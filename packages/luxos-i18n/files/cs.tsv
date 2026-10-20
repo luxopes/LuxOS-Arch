@@ -474,3 +474,68 @@ build a .lux package from a directory with lux.json	sestavit balík .lux z adres
 # Kalkulacka - vedecky rezim
 Scientific (Ctrl+2)	Vědecká (Ctrl+2)
 Degrees / radians	Stupně / radiány
+# Ucet LuxAI
+Sign in to LuxAI	Přihlásit se k LuxAI
+LuxAI Account	Účet LuxAI
+AI in LuxAI, Lux Code and LSL IDE	AI v LuxAI, Lux Code a LSL IDE
+Sign-in failed (%s).	Přihlášení se nezdařilo (%s).
+Not signed in. Run: luxos-account login	Nepřihlášeno. Spusťte: luxos-account login
+One account for AI in LuxOS: LuxAI, Lux Code and LSL IDE.	Jeden účet pro AI v LuxOS: LuxAI, Lux Code a LSL IDE.
+Sign in with the browser	Přihlásit se přes prohlížeč
+or with e-mail	nebo e-mailem
+E-mail	E-mail
+Sign In	Přihlásit se
+Send me a code instead	Poslat kód e-mailem
+No account yet?	Ještě nemáte účet?
+Create an account	Vytvořit účet
+Enter your e-mail and password.	Zadejte e-mail a heslo.
+Enter your e-mail first.	Nejdřív zadejte e-mail.
+Enter the code from the e-mail	Zadejte kód z e-mailu
+We sent a 6-digit code to %s.	Na %s jsme poslali šestimístný kód.
+Confirm the sign-in in the browser…	Potvrďte přihlášení v prohlížeči…
+After you confirm your e-mail, come back and sign in.	Po potvrzení e-mailu se vraťte a přihlaste se.
+AI usage this month	Spotřeba AI tento měsíc
+Unlimited	Bez omezení
+%s: %s of %s tokens	%s: %s z %s tokenů
+Loading…	Načítám…
+Used by	Používají
+Manage on lux-ai.cz	Spravovat na lux-ai.cz
+Sign Out	Odhlásit se
+Your session has expired. Please sign in again.	Přihlášení vypršelo. Přihlaste se prosím znovu.
+Sign out of LuxAI?	Odhlásit se z LuxAI?
+LuxAI, Lux Code and LSL IDE will stop using this account on this computer.	LuxAI, Lux Code a LSL IDE přestanou na tomto počítači tento účet používat.
+LuxAI account	Účet LuxAI
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account.	Nepovinné: AI v LuxAI, Lux Code a LSL IDE používá váš účet LuxAI.
+Sign in	Přihlásit
+Skip	Přeskočit
+Sign in to your LuxAI account now?	Přihlásit se teď k účtu LuxAI?
+Signed in as %s	Přihlášeno jako %s
+Sign-in failed. Try again?	Přihlášení se nezdařilo. Zkusit znovu?
+Wrong e-mail or password.	Nesprávný e-mail nebo heslo.
+The e-mail address is not verified yet.	E-mailová adresa ještě není ověřená.
+LuxAI is not reachable. Check the internet connection.	LuxAI není dostupné. Zkontrolujte připojení k internetu.
+signed in	přihlášeno
+not signed in	nepřihlášeno
+LuxAI sign-in failed - continuing without it.	Přihlášení k LuxAI se nezdařilo - pokračuji bez něj.
+The e-mail address is not verified yet. Use the sign-in code instead.	E-mail ještě není ověřený. Použijte přihlášení kódem.
+The code is not valid or has expired.	Kód není platný nebo vypršel.
+Too many attempts. Try again later.	Příliš mnoho pokusů. Zkuste to později.
+Please wait a minute before requesting another code.	Před dalším kódem počkejte minutu.
+The browser sign-in timed out.	Přihlášení přes prohlížeč vypršelo.
+The sign-in was cancelled.	Přihlášení bylo zrušeno.
+# Spořič a zámek
+Screen Saver & Lock	Spořič a zámek
+Screen saver	Spořič obrazovky
+Start after inactivity of	Spustit po nečinnosti
+LuxOS - wallpapers and clock	LuxOS - tapety a hodiny
+Black screen	Černá obrazovka
+Preview	Náhled
+Lock	Zámek
+Immediately	Hned
+After 1 minute	Po 1 minutě
+After 5 minutes	Po 5 minutách
+After 15 minutes	Po 15 minutách
+Require password after the screen saver starts	Vyžadovat heslo po spuštění spořiče
+The screen saver protects your computer while you are away.	Spořič chrání počítač, když od něj odejdete.
+Lock when the computer goes to sleep	Zamknout při uspání počítače
+Lock Now	Zamknout teď

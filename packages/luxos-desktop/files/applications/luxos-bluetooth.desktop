@@ -6,6 +6,6 @@ Comment[cs]=Připojení sluchátek, myši, klávesnice nebo telefonu
 Exec=luxos-bluetooth
 Icon=bluetooth
 Terminal=false
-Categories=Settings;HardwareSettings;GTK;
+Categories=Settings;HardwareSettings;X-XFCE-SettingsDialog;X-XFCE-HardwareSettings;GTK;
 Keywords=bluetooth;headphones;pair;sluchátka;párování;
 StartupWMClass=luxos-bluetooth

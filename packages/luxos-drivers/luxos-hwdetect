@@ -49,6 +49,8 @@ while read -r class id; do
             # Open moduly NVIDIA podporuji Turing (GTX 16xx / RTX 20xx) a novejsi
             if ((device >= 0x1e00)); then
                 add nvidia-open-dkms nvidia-utils nvidia-settings
+                # Uspani/hibernace: obsah VRAM se ulozi a po probuzeni obnovi (jinak cerna obrazovka)
+                svc nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service
                 need_headers=1
                 note "NVIDIA (Turing or newer): nvidia-open driver"
             else

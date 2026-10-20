@@ -1,0 +1,341 @@
+#!/usr/bin/env python3
+"""LuxOS - Ucet LuxAI: prihlaseni, profil a spotreba AI pro cely system.
+
+  luxos-account            okno uctu (prihlaseni / profil)
+  luxos-account login      okno prihlaseni; navratovy kod 0 = prihlaseno
+  luxos-account status     JSON {"signedIn": bool, "user": {...}} (bez tokenu)
+  luxos-account token      session token pro aplikace LuxOS (stdout)
+  luxos-account logout     odhlaseni (zneplatni session na serveru)
+"""
+import json
+import subprocess
+import sys
+import threading
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+import luxai_account as acc  # noqa: E402
+from luxos_i18n import _  # noqa: E402
+
+REGISTER_URL = acc.ORIGIN + "/register"
+ACCOUNT_URL = acc.ORIGIN + "/"
+
+ERRORS = {
+    "invalid_credentials": "Wrong e-mail or password.",
+    "email_unverified": "The e-mail address is not verified yet. Use the sign-in code instead.",
+    "invalid_code": "The code is not valid or has expired.",
+    "rate": "Too many attempts. Try again later.",
+    "slow_down": "Please wait a minute before requesting another code.",
+    "network": "LuxAI is not reachable. Check the internet connection.",
+    "timeout": "The browser sign-in timed out.",
+    "cancelled": "The sign-in was cancelled.",
+}
+
+
+def human(err):
+    if err.code in ERRORS:
+        return _(ERRORS[err.code])
+    return _("Sign-in failed (%s).") % err.code
+
+
+# ---- prikazova radka (bez GTK) ---------------------------------------------------
+def cli(cmd):
+    if cmd == "status":
+        a = acc.load()
+        print(json.dumps({"signedIn": bool(a), "user": (a or {}).get("user")}, ensure_ascii=False))
+        return 0
+    if cmd == "token":
+        a = acc.load()
+        if not a:
+            print(_("Not signed in. Run: luxos-account login"), file=sys.stderr)
+            return 1
+        print(a["sessionToken"])
+        return 0
+    if cmd == "logout":
+        acc.logout()
+        return 0
+    return None
+
+
+if len(sys.argv) > 1:
+    rc = cli(sys.argv[1])
+    if rc is not None:
+        sys.exit(rc)
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+
+CSS = b"""
+.hero { border-radius: 18px; padding: 22px; color: white;
+        background-image: linear-gradient(120deg, #3d6bff, #7b4dff 60%, #b14dff); }
+.hero-title { font-size: 22px; font-weight: 800; }
+.avatar { border-radius: 999px; min-width: 72px; min-height: 72px; font-size: 30px; font-weight: 800;
+          color: white; background-image: linear-gradient(135deg, #3d7bff, #8b4dff); }
+.name { font-size: 20px; font-weight: 800; }
+.dim { opacity: 0.65; }
+.card { border-radius: 14px; padding: 14px; background-color: alpha(currentColor, 0.05); }
+.card-title { font-weight: 700; }
+.primary { border-radius: 999px; padding: 6px 18px; font-weight: 700; background-image: none;
+           background-color: #3d7bff; color: white; border: none; box-shadow: none; }
+.link { border: none; background: none; box-shadow: none; color: #3d7bff; }
+.error { color: #ff453a; }
+entry { border-radius: 10px; padding: 6px 10px; min-height: 30px; }
+"""
+
+
+def run_async(work, done):
+    def target():
+        try:
+            res, err = work(), None
+        except acc.AccountError as e:
+            res, err = None, e
+        GLib.idle_add(done, res, err)
+    threading.Thread(target=target, daemon=True).start()
+
+
+class AccountWindow(Gtk.Window):
+    def __init__(self, login_mode):
+        super().__init__(title=_("LuxAI Account"))
+        self.login_mode = login_mode
+        self.signed_in = False
+        self.web = None
+        self.set_default_size(520, 600)
+        self.set_icon_name("luxos-app")
+        self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("LuxAI Account")))
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE)
+        self.add(self.stack)
+        self.connect("destroy", lambda *_a: self.web and self.web.close())
+        self.show_page()
+
+    def page(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=24)
+        return box
+
+    def replace(self, box):
+        for child in self.stack.get_children():
+            self.stack.remove(child)
+        self.stack.add(box)
+        self.stack.show_all()
+
+    def show_page(self):
+        a = acc.load()
+        if a:
+            self.show_profile(a)
+            run_async(acc.me, self.profile_loaded)
+        else:
+            self.show_login()
+
+    # ---- prihlaseni ----
+    def show_login(self, message=None):
+        box = self.page()
+        hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        hero.get_style_context().add_class("hero")
+        t = Gtk.Label(label=_("Sign in to LuxAI"), xalign=0)
+        t.get_style_context().add_class("hero-title")
+        hero.pack_start(t, False, False, 0)
+        hero.pack_start(Gtk.Label(label=_("One account for AI in LuxOS: LuxAI, Lux Code and LSL IDE."),
+                                  xalign=0, wrap=True), False, False, 0)
+        box.pack_start(hero, False, False, 0)
+
+        web = Gtk.Button(label=_("Sign in with the browser"))
+        web.get_style_context().add_class("primary")
+        web.connect("clicked", self.web_login)
+        box.pack_start(web, False, False, 0)
+
+        sep = Gtk.Label(label=_("or with e-mail"))
+        sep.get_style_context().add_class("dim")
+        box.pack_start(sep, False, False, 4)
+        self.email = Gtk.Entry(placeholder_text=_("E-mail"), input_purpose=Gtk.InputPurpose.EMAIL)
+        self.password = Gtk.Entry(placeholder_text=_("Password"), visibility=False,
+                                  input_purpose=Gtk.InputPurpose.PASSWORD, activates_default=True)
+        self.password.connect("activate", self.password_login)
+        box.pack_start(self.email, False, False, 0)
+        box.pack_start(self.password, False, False, 0)
+        row = Gtk.Box(spacing=8)
+        sign = Gtk.Button(label=_("Sign In"))
+        sign.connect("clicked", self.password_login)
+        code = Gtk.Button(label=_("Send me a code instead"))
+        code.get_style_context().add_class("link")
+        code.connect("clicked", self.code_login)
+        row.pack_start(sign, False, False, 0)
+        row.pack_start(code, False, False, 0)
+        box.pack_start(row, False, False, 0)
+        self.status = Gtk.Label(label=message or "", xalign=0, wrap=True)
+        self.status.get_style_context().add_class("error")
+        box.pack_start(self.status, False, False, 0)
+        self.spinner = Gtk.Spinner()
+        box.pack_start(self.spinner, False, False, 0)
+
+        new = Gtk.Box(spacing=6, halign=Gtk.Align.CENTER, margin_top=10)
+        new.pack_start(Gtk.Label(label=_("No account yet?")), False, False, 0)
+        create = Gtk.Button(label=_("Create an account"))
+        create.get_style_context().add_class("link")
+        create.connect("clicked", self.create_account)
+        new.pack_start(create, False, False, 0)
+        box.pack_end(new, False, False, 0)
+        self.replace(box)
+
+    def busy(self, on, text=""):
+        (self.spinner.start if on else self.spinner.stop)()
+        self.status.set_text(text)
+
+    def signed(self, res, err):
+        self.busy(False)
+        if err:
+            self.status.set_text(human(err))
+            return False
+        self.signed_in = True
+        if self.login_mode:
+            self.close()
+            return False
+        self.show_page()
+        return False
+
+    def password_login(self, _w):
+        email, pw = self.email.get_text().strip(), self.password.get_text()
+        if not email or not pw:
+            self.status.set_text(_("Enter your e-mail and password."))
+            return
+        self.busy(True)
+        run_async(lambda: acc.login_password(email, pw), self.signed)
+
+    def code_login(self, _w):
+        email = self.email.get_text().strip()
+        if not email:
+            self.status.set_text(_("Enter your e-mail first."))
+            return
+        self.busy(True)
+
+        def sent(_res, err):
+            self.busy(False)
+            if err:
+                self.status.set_text(human(err))
+                return False
+            dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
+                                    buttons=Gtk.ButtonsType.OK_CANCEL, text=_("Enter the code from the e-mail"))
+            dlg.format_secondary_text(_("We sent a 6-digit code to %s.") % email)
+            entry = Gtk.Entry(activates_default=True, max_length=6, input_purpose=Gtk.InputPurpose.DIGITS)
+            dlg.get_message_area().pack_start(entry, False, False, 0)
+            dlg.set_default_response(Gtk.ResponseType.OK)
+            entry.show()
+            ok = dlg.run() == Gtk.ResponseType.OK
+            code = entry.get_text().strip()
+            dlg.destroy()
+            if ok and code:
+                self.busy(True)
+                run_async(lambda: acc.login_code(email, code), self.signed)
+            return False
+        run_async(lambda: acc.request_code(email), sent)
+
+    def web_login(self, _w):
+        self.web = acc.WebLogin()
+        try:
+            Gtk.show_uri_on_window(self, self.web.url, Gdk.CURRENT_TIME)
+        except GLib.Error:
+            subprocess.Popen(["xdg-open", self.web.url])
+        self.busy(True, _("Confirm the sign-in in the browser…"))
+        web = self.web
+        run_async(web.wait, self.signed)
+
+    def create_account(self, _w):
+        try:
+            Gtk.show_uri_on_window(self, REGISTER_URL, Gdk.CURRENT_TIME)
+        except GLib.Error:
+            subprocess.Popen(["xdg-open", REGISTER_URL])
+        self.status.set_text(_("After you confirm your e-mail, come back and sign in."))
+
+    # ---- profil ----
+    def show_profile(self, a, data=None):
+        user = (data or {}).get("user") or a.get("user") or {}
+        box = self.page()
+        top = Gtk.Box(spacing=16)
+        name = user.get("displayName") or user.get("username") or user.get("email", "")
+        avatar = Gtk.Label(label=(name[:1] or "?").upper())
+        avatar.get_style_context().add_class("avatar")
+        top.pack_start(avatar, False, False, 0)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        n = Gtk.Label(label=name, xalign=0)
+        n.get_style_context().add_class("name")
+        e = Gtk.Label(label=user.get("email", ""), xalign=0)
+        e.get_style_context().add_class("dim")
+        texts.pack_start(n, False, False, 0)
+        texts.pack_start(e, False, False, 0)
+        top.pack_start(texts, True, True, 0)
+        box.pack_start(top, False, False, 0)
+
+        usage = user.get("usage") or {}
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        card.get_style_context().add_class("card")
+        t = Gtk.Label(label=_("AI usage this month"), xalign=0)
+        t.get_style_context().add_class("card-title")
+        card.pack_start(t, False, False, 0)
+        if usage.get("unlimited"):
+            card.pack_start(Gtk.Label(label=_("Unlimited"), xalign=0), False, False, 0)
+        elif usage:
+            for label, used, limit in (("Flash", usage.get("fastTokens", 0), usage.get("fastLimit", 0)),
+                                       ("Lite", usage.get("liteTokens", 0), usage.get("liteLimit", 0))):
+                row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+                row.pack_start(Gtk.Label(label=_("%s: %s of %s tokens") % (label, f"{used:,}".replace(",", " "),
+                                                                            f"{limit:,}".replace(",", " ")),
+                                         xalign=0), False, False, 0)
+                bar = Gtk.LevelBar(min_value=0, max_value=max(limit, 1), value=min(used, max(limit, 1)))
+                row.pack_start(bar, False, False, 0)
+                card.pack_start(row, False, False, 0)
+        else:
+            card.pack_start(Gtk.Label(label=_("Loading…"), xalign=0), False, False, 0)
+        box.pack_start(card, False, False, 0)
+
+        apps = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        apps.get_style_context().add_class("card")
+        t = Gtk.Label(label=_("Used by"), xalign=0)
+        t.get_style_context().add_class("card-title")
+        apps.pack_start(t, False, False, 0)
+        apps.pack_start(Gtk.Label(label="LuxAI · Lux Code · LSL IDE", xalign=0), False, False, 0)
+        box.pack_start(apps, False, False, 0)
+
+        row = Gtk.Box(spacing=8)
+        web = Gtk.Button(label=_("Manage on lux-ai.cz"))
+        web.connect("clicked", lambda _b: Gtk.show_uri_on_window(self, ACCOUNT_URL, Gdk.CURRENT_TIME))
+        out = Gtk.Button(label=_("Sign Out"))
+        out.connect("clicked", self.sign_out)
+        row.pack_start(web, False, False, 0)
+        row.pack_end(out, False, False, 0)
+        box.pack_end(row, False, False, 0)
+        self.replace(box)
+
+    def profile_loaded(self, data, err):
+        if err and err.code == "signed_out":
+            self.show_login(_("Your session has expired. Please sign in again."))
+        elif data:
+            self.show_profile(acc.load() or {}, data)
+        return False
+
+    def sign_out(self, _b):
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
+                                buttons=Gtk.ButtonsType.OK_CANCEL, text=_("Sign out of LuxAI?"))
+        dlg.format_secondary_text(_("LuxAI, Lux Code and LSL IDE will stop using this account on this computer."))
+        if dlg.run() == Gtk.ResponseType.OK:
+            run_async(acc.logout, lambda *_a: self.show_login() or False)
+        dlg.destroy()
+
+
+def main():
+    login_mode = len(sys.argv) > 1 and sys.argv[1] == "login"
+    if login_mode and acc.load():
+        return 0
+    GLib.set_prgname("luxos-account")
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = AccountWindow(login_mode)
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    Gtk.main()
+    return 0 if (not login_mode or acc.load()) else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

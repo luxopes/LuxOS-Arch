@@ -2,13 +2,13 @@
 
 pkgname=luxos-installer
 pkgver=1.1.0
-pkgrel=2
+pkgrel=4
 pkgdesc="LuxOS installer"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
 depends=(bash gum arch-install-scripts gptfdisk dosfstools e2fsprogs btrfs-progs cryptsetup parted
-         util-linux curl luxos-drivers luxos-i18n networkmanager)
+         util-linux curl luxos-drivers luxos-i18n luxos-account networkmanager)
 
 package() {
     local f="$startdir/files"

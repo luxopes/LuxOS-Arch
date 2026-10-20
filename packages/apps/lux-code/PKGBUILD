@@ -1,0 +1,64 @@
+# Maintainer: LuxOS Team
+# Lux Code - terminalovy AI agent pro programovani (LSL, ucet LuxAI nebo API klic)
+# Zdrojovy archiv vytvori make-source.sh z pracovni kopie ~/Lux-Code (projekt nema verejny repozitar).
+# Pri sestaveni se aplikace prelozi do nativniho ELF oficialnim vydanim LSL
+# (stejny archiv jako balicek lsl); start je ~25 ms misto ~4 s prekladu pri kazdem spusteni.
+
+pkgname=lux-code
+pkgver=0.1.2
+pkgrel=1
+_lslver=0.10.2
+pkgdesc="Lux Code - LuxAI terminal coding agent written in LSL (uses the LuxOS LuxAI account)"
+arch=(x86_64)
+url="https://lsl.lux-ai.cz"
+license=(custom)
+depends=(lsl bash coreutils util-linux procps-ng ca-certificates curl git ripgrep diffutils findutils grep sed tar unzip)
+optdepends=('luxos-account: shared LuxAI account login (luxos-account login)'
+            'firefox: browser debugging tools (with ff-rdp)'
+            'imagemagick: screenshots and image tools'
+            'xdotool: desktop automation tools'
+            'xclip: clipboard tools'
+            'android-tools: Android device tools (adb)'
+            'nodejs: JavaScript project tooling'
+            'npm: JavaScript project tooling')
+options=(!strip !debug)
+source=("$pkgname-$pkgver.tar.gz"
+        "https://lsl.lux-ai.cz/downloads/lsl-$_lslver-linux-x86_64.tar.gz")
+sha256sums=('1fd981603b48c76085c69b88caef8b53ef1f6c3cb0aef19e1101cbbc58aca85a'
+            '387993aae033ace1d77b035e3682e7ba0c12d11a1a8c8be4a9d8737843eaa1fb')
+
+build() {
+    cd "$pkgname-$pkgver"
+    # lsl hleda standardni knihovny relativne k /proc/self/exe (../lib/lsl)
+    "$srcdir/lsl-$_lslver/bin/lsl" compile chat.lsl lux-code
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    local lib="$pkgdir/usr/lib/lux-code"
+    # Do /usr/lib/lux-code jen program; .env se tam nehleda (neexistuje), uzivatelska
+    # data jsou v ~/.local/share/lux-code a nastaveni v ~/.config/lux-code/.env.
+    install -Dm755 lux-code "$lib/lux-code"
+    install -dm755 "$pkgdir/usr/bin"
+    cat >"$pkgdir/usr/bin/lux-code" <<'SH'
+#!/bin/sh
+# Spoustec Lux Code (balicek lux-code)
+# Data uzivatele: ${XDG_DATA_HOME:-~/.local/share}/lux-code; drivejsi
+# ~/.local/state/lux-code se pouzije dal, pokud uz existuje a nove umisteni ne.
+if [ -z "${LUX_CODE_HOME:-}" ]; then
+    data="${XDG_DATA_HOME:-$HOME/.local/share}/lux-code"
+    legacy="${XDG_STATE_HOME:-$HOME/.local/state}/lux-code"
+    if [ ! -d "$data" ] && [ -d "$legacy" ]; then
+        data=$legacy
+    fi
+    LUX_CODE_HOME=$data
+    export LUX_CODE_HOME
+fi
+exec /usr/lib/lux-code/lux-code "$@"
+SH
+    chmod 755 "$pkgdir/usr/bin/lux-code"
+    install -Dm644 packaging/lux-code.desktop "$pkgdir/usr/share/applications/lux-code.desktop"
+    install -Dm644 assets/luxai.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/lux-code.png"
+    install -Dm644 -t "$pkgdir/usr/share/doc/lux-code" README.md TOOLS.md
+    install -Dm644 .env.example "$pkgdir/usr/share/doc/lux-code/env.example"
+}

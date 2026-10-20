@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=LuxOS
+Name[cs]=LuxOS
+Comment=LuxOS wallpapers with a large clock
+Comment[cs]=Tapety LuxOS s velkými hodinami
+Exec=/usr/lib/xfce4-screensaver/luxos
+TryExec=/usr/lib/xfce4-screensaver/luxos
+StartupNotify=false
+Terminal=false
+Categories=Screensaver;
+OnlyShowIn=XFCE;

@@ -1,0 +1,37 @@
+# Maintainer: LuxOS Team
+# LuxAI - AI asistent pro LuxOS (chat a agent, ktery umi pracovat s pocitacem; Python + GTK 3)
+# Zdrojovy archiv vytvori make-source.sh z pracovni kopie ~/LuxAI (aplikace nema verejny repozitar).
+
+pkgname=luxai
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxAI - AI assistant that can work with your computer (chat and agent mode)"
+arch=(any)
+url="https://lux-ai.cz"
+license=(custom)
+depends=(python python-gobject gtk3 xdotool wmctrl luxos-account luxos-i18n)
+optdepends=('libnotify: desktop notifications from the agent'
+            'xdg-utils: open links and files'
+            'xclip: clipboard fallback outside GTK'
+            'grim: screenshots on Wayland')
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('e36d5e154aac387f6e19386b8c1986df39a4c994d0596e2e90a9de2c3a9f63b1')
+
+package() {
+    cd "$pkgname-$pkgver"
+    local lib="$pkgdir/usr/lib/luxai"
+    # Aplikace hleda i18n/ a data/ relativne k balicku luxai/, proto vse vedle sebe v /usr/lib/luxai
+    install -dm755 "$lib"
+    cp -r --no-preserve=ownership luxai i18n data "$lib/"
+    chmod -R u=rwX,go=rX "$lib"
+    install -dm755 "$pkgdir/usr/bin"
+    cat >"$pkgdir/usr/bin/luxai" <<'SH'
+#!/bin/sh
+# Spoustec LuxAI (balicek luxai)
+exec python3 /usr/lib/luxai/luxai/__main__.py "$@"
+SH
+    chmod 755 "$pkgdir/usr/bin/luxai"
+    install -Dm644 data/luxai.desktop "$pkgdir/usr/share/applications/luxai.desktop"
+    install -Dm644 data/luxai.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxai.svg"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/luxai/README.md"
+}

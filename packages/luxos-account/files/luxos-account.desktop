@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=LuxAI Account
+Name[cs]=Účet LuxAI
+Comment=Sign in to LuxAI for AI in LuxOS apps
+Comment[cs]=Přihlášení k LuxAI pro AI v aplikacích LuxOS
+Exec=luxos-account
+Icon=luxos-app
+Terminal=false
+Categories=Settings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;GTK;
+Keywords=account;luxai;login;profile;účet;přihlášení;profil;
+StartupWMClass=luxos-account

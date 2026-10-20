@@ -2,7 +2,7 @@
 
 pkgname=luxos-drivers
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxOS hardware detection: picks GPU, Wi-Fi, VM and other drivers automatically"
 arch=(any)
 url="https://github.com/luxos"

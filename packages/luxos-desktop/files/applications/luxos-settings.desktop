@@ -7,6 +7,6 @@ Comment[cs]=Tapeta, vzhled, Dock a horní lišta
 Exec=luxos-settings
 Icon=preferences-desktop-wallpaper
 Terminal=false
-Categories=Settings;DesktopSettings;GTK;
+Categories=Settings;DesktopSettings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;GTK;
 Keywords=wallpaper;dock;background;dark;light;tapeta;pozadí;vzhled;
 StartupWMClass=luxos-settings

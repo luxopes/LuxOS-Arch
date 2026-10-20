@@ -12,3 +12,6 @@ FULLNAME="Lux User"
 PASSWORD=luxos
 HOSTNAME_SEL=luxos
 AUTOLOGIN=0
+# Nepovinne: prihlaseni k uctu LuxAI (AI v LuxAI, Lux Code, LSL IDE)
+LUXAI_EMAIL=
+LUXAI_PASSWORD=
