@@ -5,6 +5,7 @@
 #   luxos-displays extend|mirror|external|internal   rezim (uklada se pro dalsi pripojeni)
 #   luxos-displays menu            rychla volba rezimu (Super+P)
 #   luxos-displays rescue          okna mimo viditelne obrazovky presune na hlavni monitor
+#   luxos-displays brightness N    softwarovy jas 10-100 % (monitory bez podsviceni)
 . /usr/lib/luxos/i18n.sh
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
 mode_file="$cfg/displays-mode"
@@ -73,6 +74,8 @@ apply_mode() {  # apply_mode extend|mirror|external|internal
             for name in "${external[@]}"; do args+=(--output "$name" --off); done ;;
     esac
     xrandr "${args[@]}"
+    # Softwarovy jas plati i pro nove pripojene monitory
+    [[ -f $cfg/brightness ]] && "$0" brightness "$(cat "$cfg/brightness")"
     sleep 1
     rescue
     luxos-appearance reapply >/dev/null 2>&1 &
@@ -113,6 +116,14 @@ case ${1:-auto} in
         echo "$1" >"$mode_file"
         apply_mode "$1" ;;
     rescue) rescue ;;
+    brightness)
+        # Softwarovy jas (monitory bez podsviceni): 10-100 %
+        v=${2:-100}
+        [[ $v =~ ^[0-9]+$ ]] && ((v >= 10 && v <= 100)) || { echo "usage: luxos-displays brightness 10-100" >&2; exit 2; }
+        b=$(LC_ALL=C awk -v v="$v" 'BEGIN { printf "%.2f", v / 100 }')
+        while read -r name st active _p; do
+            [[ $st == connected && $active == 1 ]] && xrandr --output "$name" --brightness "$b"
+        done < <(outputs) ;;
     menu)
         pkill -x rofi && exit 0
         light=()
@@ -127,5 +138,5 @@ case ${1:-auto} in
                 -hover-select -me-select-entry '' -me-accept-entry MousePrimary) || exit 0
         modes=(extend mirror external internal)
         exec "$0" "${modes[$choice]}" ;;
-    *) echo "usage: luxos-displays [auto|extend|mirror|external|internal|menu|rescue]" >&2; exit 2 ;;
+    *) echo "usage: luxos-displays [auto|extend|mirror|external|internal|menu|rescue|brightness N]" >&2; exit 2 ;;
 esac

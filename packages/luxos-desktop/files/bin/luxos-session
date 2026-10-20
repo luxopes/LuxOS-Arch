@@ -10,8 +10,19 @@ if [[ ! -e $cfg/initialized ]]; then
     : > "$cfg/initialized"
 fi
 
+# Softwarovy jas monitoru (Ovladaci centrum, monitory bez podsviceni)
+if [[ -f $cfg/brightness ]] && ! compgen -G '/sys/class/backlight/*' >/dev/null; then
+    luxos-displays brightness "$(cat "$cfg/brightness")" &
+fi
+
 # Nazev aktivni aplikace v horni liste, prepinani jejich nabidek jednim klikem
 luxos-appname watch &
+# Priznak skryvaneho Docku pro luxos-menubar podle nastaveni Planku
+if [[ $(gsettings get net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ hide-mode 2>/dev/null) == "'auto'" ]]; then
+    : >"$cfg/dock-autohide"
+else
+    rm -f "$cfg/dock-autohide"
+fi
 pgrep -u "$USER" -x luxos-menubar >/dev/null || luxos-menubar &
 # Sporic dat: merene pripojeni plati jen do odpojeni, po prihlaseni znovu
 luxos-datasaver reapply &

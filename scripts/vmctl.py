@@ -110,10 +110,13 @@ def main():
         x, y = int(a[1]), int(a[2])
         w, h = (int(a[3]), int(a[4])) if len(a) > 4 else (1280, 800)
         ax, ay = x * 32767 // (w - 1), y * 32767 // (h - 1)
-        qmp("input-send-event", {"events": [
-            {"type": "abs", "data": {"axis": "x", "value": ax}},
-            {"type": "abs", "data": {"axis": "y", "value": ay}}]})
-        time.sleep(0.1)
+        # Pohyb po kouscich jako skutecna mys (GTK potrebuje najeti nad prvek pred klikem)
+        for dx in (-3, -1, 0):
+            qmp("input-send-event", {"events": [
+                {"type": "abs", "data": {"axis": "x", "value": max(ax + dx * 40, 0)}},
+                {"type": "abs", "data": {"axis": "y", "value": ay}}]})
+            time.sleep(0.05)
+        time.sleep(0.15)
         for down in ((True, False) if c == "click" else ()):
             qmp("input-send-event", {"events": [{"type": "btn", "data": {"down": down, "button": "left"}}]})
             time.sleep(0.08)

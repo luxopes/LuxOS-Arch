@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""LuxOS Calculator - jednoducha kalkulacka v barvach LuxOS (GTK 3).
+"""LuxOS Calculator - kalkulacka v barvach LuxOS (GTK 3), zakladni a vedecky rezim.
 
 Pocita v desitkove aritmetice (0,1 + 0,2 = 0,3), respektuje prednost operatoru
-a ovlada se i z klavesnice: cislice, + - * /, Enter, Backspace, Esc, %,
-Ctrl+C / Ctrl+V.
+a zavorky. Vedecky rezim (Ctrl+2, zpet Ctrl+1) pridava mocniny, odmocniny,
+logaritmy, goniometricke funkce (stupne/radiany), faktorial a konstanty.
+Klavesnice: cislice, + - * / ^ ( ), Enter, Backspace, Esc, %, Ctrl+C / Ctrl+V.
 """
 import locale
+import math
+import os
+import random
 from decimal import Decimal, DivisionByZero, InvalidOperation, getcontext
 
 import sys
@@ -33,7 +37,7 @@ except locale.Error:
 DEC = locale.localeconv().get("decimal_point") or "."
 GROUP = " " if DEC == "," else ","  # uzka mezera pro carku, jinak carka
 
-OPS = {"+": "+", "-": "−", "*": "×", "/": "÷"}
+OPS = {"+": "+", "-": "\u2212", "*": "\u00d7", "/": "\u00f7", "^": "^", "root": "\u02b8\u221a"}
 
 CSS = """
 window.luxcalc { background-image: linear-gradient(165deg, @calc_bg_top, @calc_bg_bottom); }
@@ -55,6 +59,12 @@ button.key.op:hover { background-image: linear-gradient(180deg, #62a0ff, #6d5eff
 button.key.op.selected { background-image: none; background-color: white; color: #4d5bff; }
 button.key.eq { background-image: linear-gradient(180deg, #ffbf57, #ff7a3c); color: white; font-size: 25px; }
 button.key.eq:hover { background-image: linear-gradient(180deg, #ffcb73, #ff8c52); }
+button.key.sci { font-size: 15px; min-width: 62px; background-color: alpha(@calc_fn, 0.55); }
+button.key.sci:hover { background-color: @calc_fn_hover; }
+button.key.sci.active { background-color: #5b6bff; color: white; }
+button.mode { border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600;
+              background-image: none; background-color: @calc_key; color: @calc_fg; border: none; box-shadow: none; }
+button.mode:checked { background-color: #5b6bff; color: white; }
 """
 
 DARK = """
@@ -74,18 +84,85 @@ LIGHT = """
 """
 
 
+CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/calculator")
+PREC = {"+": 1, "-": 1, "*": 2, "/": 2, "^": 3, "root": 3}
+RIGHT = {"^", "root"}
+
+
+def to_dec(x):
+    """float -> Decimal na 15 platnych cislic (bez sumu 0,49999999999999994)."""
+    if math.isnan(x) or math.isinf(x):
+        raise InvalidOperation
+    return Decimal(f"{x:.15g}")
+
+
+def power(a, b):
+    if b == b.to_integral_value() and abs(b) <= 10000:
+        if a == 0 and b < 0:
+            raise DivisionByZero
+        return a ** int(b)
+    if a < 0:
+        raise InvalidOperation
+    try:
+        return to_dec(float(a) ** float(b))
+    except OverflowError:
+        raise InvalidOperation from None
+
+
+def apply_op(op, a, b):
+    if op == "+":
+        return a + b
+    if op == "-":
+        return a - b
+    if op == "*":
+        return a * b
+    if op == "/":
+        if b == 0:
+            raise DivisionByZero
+        return a / b
+    if op == "^":
+        return power(a, b)
+    if op == "root":                     # a y-root b = b-ta odmocnina z a
+        if b == 0:
+            raise DivisionByZero
+        if a < 0 and b == b.to_integral_value() and int(b) % 2:
+            return -power(-a, Decimal(1) / b)
+        return power(a, Decimal(1) / b)
+    raise InvalidOperation
+
+
 def evaluate(tokens):
-    """Vyhodnoti [cislo, op, cislo, ...] s prednosti * a / pred + a -."""
-    terms = [tokens[0]]
-    for i in range(1, len(tokens), 2):
-        op, num = tokens[i], tokens[i + 1]
-        if op == "*":
-            terms[-1] *= num
-        elif op == "/":
-            terms[-1] /= num
+    """Vyhodnoti cisla, operatory a zavorky (shunting-yard s prednosti operatoru)."""
+    out, ops = [], []
+
+    def reduce_top():
+        op = ops.pop()
+        b, a = out.pop(), out.pop()
+        out.append(apply_op(op, a, b))
+
+    for t in tokens:
+        if isinstance(t, Decimal):
+            out.append(t)
+        elif t == "(":
+            ops.append(t)
+        elif t == ")":
+            while ops and ops[-1] != "(":
+                reduce_top()
+            if ops:
+                ops.pop()
         else:
-            terms.append(num if op == "+" else -num)
-    return sum(terms, Decimal(0))
+            while ops and ops[-1] != "(" and (PREC[ops[-1]] > PREC[t] or
+                                               (PREC[ops[-1]] == PREC[t] and t not in RIGHT)):
+                reduce_top()
+            ops.append(t)
+    while ops:
+        if ops[-1] == "(":
+            ops.pop()
+            continue
+        reduce_top()
+    if len(out) != 1:
+        raise InvalidOperation
+    return out[0]
 
 
 def fmt(value):
@@ -127,11 +204,18 @@ class Calculator(Gtk.Window):
         header = Gtk.HeaderBar(show_close_button=True)
         # Bez viditelneho titulku (jako kalkulacka v macOS), nazev okna zustava pro dock a listu
         header.set_custom_title(Gtk.Label(label=""))
+        self.sci_toggle = Gtk.ToggleButton(label="f(x)", can_focus=False, valign=Gtk.Align.CENTER)
+        self.sci_toggle.get_style_context().add_class("mode")
+        self.sci_toggle.set_tooltip_text(_("Scientific (Ctrl+2)"))
+        self.sci_toggle.connect("toggled", lambda b: self.set_scientific(b.get_active()))
+        header.pack_end(self.sci_toggle)
         self.set_titlebar(header)
 
-        self.tokens = []        # dokoncene cleny vyrazu [Decimal, op, Decimal, ...]
+        self.tokens = []        # cleny vyrazu: Decimal, operator, "(" nebo ")"
         self.entry = ""         # prave psane cislo (bez formatovani)
+        self.fresh = False      # entry je vysledek funkce - dalsi cislice ho nahradi
         self.result = None      # vysledek posledniho "="
+        self.degrees = True
         self.op_buttons = {}
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin=14, margin_top=4)
@@ -143,8 +227,14 @@ class Calculator(Gtk.Window):
         box.pack_start(self.expr, False, False, 0)
         box.pack_start(self.value, False, False, 6)
 
+        keys = Gtk.Box(spacing=10)
+        box.pack_start(keys, True, True, 0)
+        self.sci_grid = Gtk.Grid(row_spacing=10, column_spacing=8, row_homogeneous=True, column_homogeneous=True)
+        self.sci_grid.set_no_show_all(True)
+        keys.pack_start(self.sci_grid, False, False, 0)
         grid = Gtk.Grid(row_spacing=10, column_spacing=10, row_homogeneous=True, column_homogeneous=True)
-        box.pack_start(grid, True, True, 0)
+        keys.pack_start(grid, True, True, 0)
+
         layout = [
             [("AC", "fn", self.clear), ("±", "fn", self.negate), ("%", "fn", self.percent), ("/", "op", None)],
             [("7", "", None), ("8", "", None), ("9", "", None), ("*", "op", None)],
@@ -170,10 +260,76 @@ class Calculator(Gtk.Window):
                     self.clear_btn = btn
                 grid.attach(btn, c, r, 1, 1)
 
+        sci = [
+            [("(", lambda: self.paren("(")), (")", lambda: self.paren(")")), ("x²", lambda: self.func("sq")),
+             ("x³", lambda: self.func("cube")), ("xʸ", lambda: self.operator("^"))],
+            [("eˣ", lambda: self.func("exp")), ("10ˣ", lambda: self.func("exp10")),
+             ("1/x", lambda: self.func("inv")), ("√x", lambda: self.func("sqrt")),
+             ("∛x", lambda: self.func("cbrt"))],
+            [("ʸ√x", lambda: self.operator("root")), ("ln", lambda: self.func("ln")),
+             ("log₁₀", lambda: self.func("log10")), ("x!", lambda: self.func("fact")),
+             ("π", lambda: self.constant(Decimal("3.14159265358979323846264338327950")))],
+            [("sin", lambda: self.func("sin")), ("cos", lambda: self.func("cos")), ("tan", lambda: self.func("tan")),
+             ("e", lambda: self.constant(Decimal("2.71828182845904523536028747135266"))),
+             ("Rand", lambda: self.constant(to_dec(random.random())))],
+            [("sin⁻¹", lambda: self.func("asin")), ("cos⁻¹", lambda: self.func("acos")),
+             ("tan⁻¹", lambda: self.func("atan")), ("|x|", lambda: self.func("abs")), ("Deg", None)],
+        ]
+        for r, row in enumerate(sci):
+            for c, (label, handler) in enumerate(row):
+                btn = Gtk.Button(label=label, can_focus=False)
+                btn.get_style_context().add_class("key")
+                btn.get_style_context().add_class("sci")
+                if handler:
+                    btn.connect("clicked", lambda _b, h=handler: h())
+                else:
+                    self.angle_btn = btn
+                    btn.connect("clicked", lambda _b: self.toggle_angle())
+                if label == "xʸ":
+                    self.op_buttons["^"] = btn
+                elif label == "ʸ√x":
+                    self.op_buttons["root"] = btn
+                self.sci_grid.attach(btn, c, r, 1, 1)
+                btn.show()
+        self.angle_btn.set_tooltip_text(_("Degrees / radians"))
+
         self.connect("key-press-event", self.on_key)
         self.refresh()
+        try:
+            with open(CONFIG) as f:
+                if f.read().strip() == "scientific":
+                    self.sci_toggle.set_active(True)
+        except OSError:
+            pass
+
+    # ---- rezim -------------------------------------------------------------
+    def set_scientific(self, on):
+        self.sci_grid.set_visible(on)
+        if self.sci_toggle.get_active() != on:
+            self.sci_toggle.set_active(on)
+        self.resize(1, 1)                    # zmensit okno po skryti panelu
+        try:
+            os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+            with open(CONFIG, "w") as f:
+                f.write("scientific" if on else "basic")
+        except OSError:
+            pass
+
+    def toggle_angle(self):
+        self.degrees = not self.degrees
+        self.angle_btn.set_label("Deg" if self.degrees else "Rad")
 
     # ---- logika ----------------------------------------------------------
+    def last(self):
+        return self.tokens[-1] if self.tokens else None
+
+    def awaiting_operand(self):
+        t = self.last()
+        return t is None or t == "(" or (isinstance(t, str) and t in PREC)
+
+    def open_parens(self):
+        return self.tokens.count("(") - self.tokens.count(")")
+
     def current(self):
         if self.entry:
             return Decimal(self.entry)
@@ -184,6 +340,8 @@ class Calculator(Gtk.Window):
     def digit(self, d):
         if self.result is not None and not self.tokens:
             self.result = None
+        if self.fresh:
+            self.entry, self.fresh = "", False
         if len(self.entry.replace("-", "").replace(".", "")) >= MAX_DIGITS:
             return
         self.entry = d if self.entry in ("", "0") else self.entry + d
@@ -192,45 +350,138 @@ class Calculator(Gtk.Window):
     def point(self):
         if self.result is not None and not self.tokens:
             self.result = None
+        if self.fresh:
+            self.entry, self.fresh = "", False
         if "." not in self.entry:
             self.entry = (self.entry or "0") + "."
         self.refresh()
 
-    def operator(self, op):
+    def push_entry(self):
         if self.entry:
             self.tokens.append(Decimal(self.entry))
-            self.entry = ""
+            self.entry, self.fresh = "", False
+
+    def operator(self, op):
+        if self.entry:
+            self.push_entry()
         elif not self.tokens:
             self.tokens.append(self.result if self.result is not None else Decimal(0))
-        if len(self.tokens) % 2 == 0:
+        elif self.last() == "(":
+            return
+        if isinstance(self.last(), str) and self.last() in PREC:
             self.tokens[-1] = op           # zmena operatoru
         else:
             self.tokens.append(op)
         self.result = None
         self.refresh()
 
+    def paren(self, p):
+        if p == "(":
+            if self.entry or self.last() == ")" or isinstance(self.last(), Decimal):
+                self.push_entry()
+                self.tokens.append("*")    # 2(3+4) = 2 x (3+4)
+            elif self.result is not None and not self.tokens:
+                self.result = None
+            self.tokens.append("(")
+        elif self.open_parens() > 0:
+            self.push_entry()
+            if self.awaiting_operand():
+                return
+            self.tokens.append(")")
+        self.refresh()
+
     def equals(self):
         if not self.tokens:
             return
         if self.entry:
-            self.tokens.append(Decimal(self.entry))
-        elif len(self.tokens) % 2 == 0:
-            self.tokens.append(self.tokens[-2])  # 5 + = -> 5 + 5
+            self.push_entry()
+        elif isinstance(self.last(), str) and self.last() in PREC:
+            if len(self.tokens) >= 2 and isinstance(self.tokens[-2], Decimal):
+                self.tokens.append(self.tokens[-2])  # 5 + = -> 5 + 5
+            else:
+                self.tokens.pop()
+        self.tokens.extend(")" * self.open_parens())
         expr = self.expression_text() + " ="
         try:
             self.result = evaluate(self.tokens)
-        except (DivisionByZero, InvalidOperation):
+        except (ArithmeticError, IndexError):
             self.result = None
             self.tokens, self.entry = [], ""
             self.show(expr, _("Error"))
             return
-        self.tokens, self.entry = [], ""
+        self.tokens, self.entry, self.fresh = [], "", False
         self.show(expr, fmt(self.result))
         self.update_ops()
 
+    def func(self, name):
+        """Funkce jedne promenne na aktualni hodnotu (jako v macOS)."""
+        x = self.current()
+        try:
+            r = self.compute(name, x)
+        except (ValueError, OverflowError, ArithmeticError):
+            self.entry, self.fresh = "", False
+            self.show(self.expression_text(), _("Error"))
+            return
+        if self.result is not None and not self.entry and not self.tokens:
+            self.result = None
+        self.entry = format(r.normalize(), "f") if abs(r.adjusted()) < 40 else str(r)
+        self.fresh = True
+        self.refresh()
+
+    def compute(self, name, x):
+        f = float(x)
+        if name == "sq":
+            return x * x
+        if name == "cube":
+            return x * x * x
+        if name == "inv":
+            if x == 0:
+                raise ZeroDivisionError
+            return Decimal(1) / x
+        if name == "sqrt":
+            if x < 0:
+                raise ValueError
+            return x.sqrt()
+        if name == "cbrt":
+            return to_dec(math.copysign(abs(f) ** (1 / 3), f))
+        if name == "abs":
+            return abs(x)
+        if name == "exp":
+            return to_dec(math.exp(f))
+        if name == "exp10":
+            return power(Decimal(10), x)
+        if name == "ln":
+            return to_dec(math.log(f))
+        if name == "log10":
+            return to_dec(math.log10(f))
+        if name == "fact":
+            if x == x.to_integral_value() and 0 <= x <= 1000:
+                return Decimal(math.factorial(int(x)))
+            return to_dec(math.gamma(f + 1))
+        if name in ("sin", "cos", "tan"):
+            a = math.radians(f) if self.degrees else f
+            if name == "tan" and abs(math.cos(a)) < 1e-15:
+                raise ValueError
+            return to_dec(round(getattr(math, name)(a), 13))   # sin(180 deg) = 0, ne 1,2e-16
+        if name in ("asin", "acos", "atan"):
+            v = getattr(math, name)(f)
+            return to_dec(round(math.degrees(v) if self.degrees else v, 12))
+        raise ValueError
+
+    def constant(self, value):
+        if self.result is not None and not self.tokens:
+            self.result = None
+        if self.entry and not self.fresh:
+            self.push_entry()              # 2 pi = 2 x pi
+        if isinstance(self.last(), Decimal) or self.last() == ")":
+            self.tokens.append("*")
+        self.entry = format(value, "f")
+        self.fresh = True
+        self.refresh()
+
     def clear(self):
         if self.entry:
-            self.entry = ""
+            self.entry, self.fresh = "", False
         else:
             self.tokens, self.result = [], None
         self.refresh()
@@ -244,30 +495,36 @@ class Calculator(Gtk.Window):
 
     def percent(self):
         value = self.current()
-        if len(self.tokens) >= 2 and self.tokens[-1] in "+-":
+        if (len(self.tokens) >= 2 and self.tokens[-1] in ("+", "-")
+                and isinstance(self.tokens[-2], Decimal)):
             value = self.tokens[-2] * value / 100   # 200 + 10 % -> 200 + 20
         else:
             value = value / 100
         self.entry = format(value.normalize(), "f")
+        self.fresh = True
         self.refresh()
 
     def backspace(self):
-        if self.entry:
+        if self.fresh:
+            self.entry, self.fresh = "", False
+        elif self.entry:
             self.entry = self.entry[:-1]
             if self.entry in ("-", "-0"):
                 self.entry = ""
+        elif self.tokens and self.tokens[-1] in ("(", ")"):
+            self.tokens.pop()
         self.refresh()
 
     # ---- zobrazeni -------------------------------------------------------
     def expression_text(self):
-        parts = []
-        for t in self.tokens:
-            parts.append(OPS[t] if isinstance(t, str) else fmt(t))
-        return " ".join(parts)
+        parts = [fmt(t) if isinstance(t, Decimal) else OPS.get(t, t) for t in self.tokens]
+        return " ".join(parts).replace("( ", "(").replace(" )", ")")
 
     def entry_text(self):
         if not self.entry:
             return None
+        if self.fresh:
+            return fmt(Decimal(self.entry))
         neg = self.entry.startswith("-")
         whole, dot, frac = self.entry.lstrip("-").partition(".")
         text = group(("-" if neg else "") + (whole or "0"))
@@ -282,23 +539,27 @@ class Calculator(Gtk.Window):
     def refresh(self):
         text = self.entry_text()
         if text is None:
-            text = fmt(self.result) if self.result is not None else (
-                fmt(self.tokens[-2]) if len(self.tokens) >= 2 else "0")
+            nums = [t for t in self.tokens if isinstance(t, Decimal)]
+            text = fmt(self.result) if self.result is not None else (fmt(nums[-1]) if nums else "0")
         self.show(self.expression_text(), text)
         self.update_ops()
 
     def update_ops(self):
-        pending = self.tokens[-1] if self.tokens and not self.entry and isinstance(self.tokens[-1], str) else None
+        t = self.last()
+        pending = t if not self.entry and isinstance(t, str) and t in PREC else None
         for op, btn in self.op_buttons.items():
             ctx = btn.get_style_context()
-            (ctx.add_class if op == pending else ctx.remove_class)("selected")
+            cls = "selected" if op in ("+", "-", "*", "/") else "active"
+            (ctx.add_class if op == pending else ctx.remove_class)(cls)
 
     # ---- klavesnice a schranka --------------------------------------------
     def on_key(self, _w, ev):
         key = Gdk.keyval_name(ev.keyval) or ""
         ctrl = ev.state & Gdk.ModifierType.CONTROL_MASK
         ch = chr(Gdk.keyval_to_unicode(ev.keyval) or 0)
-        if ctrl and key.lower() == "c":
+        if ctrl and key in ("1", "2"):
+            self.set_scientific(key == "2")
+        elif ctrl and key.lower() == "c":
             Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(self.value.get_text(), -1)
         elif ctrl and key.lower() == "v":
             text = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).wait_for_text() or ""
@@ -307,16 +568,20 @@ class Calculator(Gtk.Window):
                 Decimal(text)
             except InvalidOperation:
                 return True
-            self.entry = text
+            self.entry, self.fresh = text, False
             self.refresh()
         elif ch.isdigit():
             self.digit(ch)
         elif ch in ".,":
             self.point()
-        elif ch in "+-*/":
+        elif ch in "+-*/^":
             self.operator(ch)
+        elif ch in "()":
+            self.paren(ch)
         elif ch == "%":
             self.percent()
+        elif ch == "!":
+            self.func("fact")
         elif key in ("Return", "KP_Enter") or ch == "=":
             self.equals()
         elif key == "BackSpace":
