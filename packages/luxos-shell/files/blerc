@@ -2,6 +2,8 @@
 # Sirka znaku napevno: automaticke mereni pri startu vypisuje testovaci znaky (probliknuti)
 bleopt char_width_mode=west
 bleopt char_width_version=16.0
+# Pri zmene velikosti okna terminal text sam preskladne - prekreslit vyzvu na puvodni misto
+bleopt canvas_winch_action=redraw-prev
 bleopt complete_auto_delay=80
 bleopt exec_errexit_mark=
 bleopt exec_elapsed_mark=

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Sandbox
+Name[cs]=Sandbox
+Comment=Run untrusted apps in an isolated system
+Comment[cs]=Spouštění nedůvěryhodných aplikací v izolovaném systému
+Exec=luxos-sandbox-gui
+Icon=luxos-sandbox
+Terminal=false
+Categories=System;Security;
+Keywords=sandbox;isolation;untrusted;chroot;container;izolace;nedůvěryhodné;
+StartupWMClass=luxos-sandbox-gui

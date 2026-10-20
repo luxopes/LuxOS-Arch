@@ -1,0 +1,8 @@
+# LuxOS Sandbox - adresare pro sandboxy uzivatelu
+# Data jsou trvale v /var/lib/luxos/sandbox/<uzivatel>; /dev je devtmpfs (v RAM, pri kazdem
+# startu prazdne), proto /dev/sandbox jen odkazuje. Odkaz kazdeho uzivatele je v
+# /etc/tmpfiles.d/luxos-sandbox-<uzivatel>.conf (vytvari luxos-sandbox-helper) a pri startu
+# ho znovu vytvori systemd-tmpfiles-setup-dev.service (--prefix=/dev).
+d /var/lib/luxos 0755 root root -
+d /var/lib/luxos/sandbox 0755 root root -
+d /dev/sandbox 0755 root root -

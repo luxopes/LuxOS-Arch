@@ -1,0 +1,7 @@
+[Unit]
+Description=LuxOS Safe - lock on screen lock, sleep and logout
+
+[Service]
+ExecStart=/usr/bin/luxos-safe --watch
+# Odhlaseni (konec uzivatelske instance systemd): Trezor vzdy zamknout
+ExecStopPost=/usr/bin/luxos-safe lock --force

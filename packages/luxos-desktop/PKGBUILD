@@ -3,13 +3,13 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=7
+pkgrel=8
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Spotlight, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
 url="https://github.com/luxos"
 license=(MIT)
-makedepends=(python xfce4-settings xfce4-session libxi libxtst)
+makedepends=(python xfce4-settings xfce4-session libxi libxtst gtk3 pkgconf)
 install=luxos-desktop.install
 depends=(
     # LuxOS
@@ -23,7 +23,7 @@ depends=(
     brightnessctl luxos-i18n luxos-store luxos-account
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
     # Dock, Spotlight, prihlaseni
-    plank rofi lightdm lightdm-gtk-greeter dconf yad
+    plank rofi lightdm lightdm-gtk-greeter xcompmgr dconf yad
     # Zvuk, sit, bluetooth, tisk
     pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber pavucontrol
     networkmanager network-manager-applet nm-connection-editor
@@ -43,6 +43,8 @@ depends=(
 build() {
     # Prepinani nabidek horni listy jednim klikem
     gcc $CFLAGS $LDFLAGS -o luxos-menubar "$startdir/files/src/luxos-menubar.c" -lX11 -lXi -lXtst
+    gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-rgba-menus.so "$startdir/files/src/luxos-rgba-menus.c" \
+        $(pkg-config --cflags --libs gtk+-3.0)
 }
 
 package() {
@@ -84,6 +86,9 @@ package() {
     install -Dm644 "$f/dconf/10-luxos" "$pkgdir/etc/dconf/db/local.d/10-luxos"
 
     install -Dm644 "$f/lightdm/50-luxos.conf" "$pkgdir/etc/lightdm/lightdm.conf.d/50-luxos.conf"
+    install -Dm755 -t "$pkgdir/usr/lib/luxos/lightdm" "$f/lightdm/luxos-greeter-setup" "$f/lightdm/luxos-session-setup" \
+        "$f/lightdm/luxos-greeter-wrapper"
+    install -Dm755 libluxos-rgba-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-rgba-menus.so"
     install -Dm644 "$f/lightdm/lightdm-gtk-greeter.conf" \
         "$pkgdir/usr/share/lightdm/lightdm-gtk-greeter.conf.d/50-luxos.conf"
 

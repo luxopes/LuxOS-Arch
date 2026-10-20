@@ -1,12 +1,13 @@
 # LuxOS - prompt (starship). Vlastni kopie: ~/.config/starship.toml
 "$schema" = 'https://starship.rs/config-schema.json'
-add_newline = true
+add_newline = false
 command_timeout = 400
 scan_timeout = 20
+# Jednoradkova vyzva (jako Terminal v macOS); viceradkovou ble.sh pri zmene velikosti
+# okna neprekresli presne a v terminalu zustavaji radky navic
 format = """
 $username$hostname$directory$git_branch$git_state$git_status$python$nodejs$rust$golang$php$java\
-$cmd_duration$jobs$status
-$character"""
+$cmd_duration$jobs$status$character"""
 
 [character]
 success_symbol = '[❯](bold #a77bff)'

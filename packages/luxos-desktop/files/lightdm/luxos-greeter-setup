@@ -1,0 +1,5 @@
+#!/bin/sh
+# LuxOS - pred prihlasovaci obrazovkou: lehky kompozitor (pruhledne a zaoblene nabidky).
+# Bez nej X server vyplni zaoblene rohy a pruhlednost cernou barvou.
+command -v xcompmgr >/dev/null && { xcompmgr -n >/dev/null 2>&1 & }
+exit 0

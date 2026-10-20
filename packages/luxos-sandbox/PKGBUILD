@@ -1,0 +1,28 @@
+# Maintainer: LuxOS Team
+# Izolovany sandbox pro neduveryhodne aplikace (jeden pro kazdeho uzivatele):
+# minimalni Arch v /var/lib/luxos/sandbox/<uzivatel>, spousteni v bubblewrapu.
+
+pkgname=luxos-sandbox
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS Sandbox - isolated per-user system for untrusted applications"
+arch=(any)
+url="https://lsl.lux-ai.cz/luxos/"
+license=(MIT)
+depends=(bubblewrap passt xorg-server-xephyr arch-install-scripts polkit python python-gobject gtk3
+         iproute2 luxos-i18n)
+optdepends=('xfce4-terminal: Open Terminal button in the Sandbox window')
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 "$f/luxos-sandbox" "$pkgdir/usr/bin/luxos-sandbox"
+    install -Dm755 "$f/luxos-sandbox-gui" "$pkgdir/usr/bin/luxos-sandbox-gui"
+    install -Dm755 "$f/luxos-sandbox-helper" "$pkgdir/usr/lib/luxos/sandbox/luxos-sandbox-helper"
+    install -Dm644 "$f/luxos_sandbox_seccomp.py" "$pkgdir/usr/lib/luxos/python/luxos_sandbox_seccomp.py"
+    install -Dm644 "$f/pacman.conf" "$pkgdir/usr/share/luxos/sandbox/pacman.conf"
+    install -Dm644 "$f/org.luxos.sandbox.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.sandbox.policy"
+    install -Dm644 "$f/luxos-sandbox.tmpfiles" "$pkgdir/usr/lib/tmpfiles.d/luxos-sandbox.conf"
+    install -Dm644 "$f/luxos-sandbox.desktop" "$pkgdir/usr/share/applications/luxos-sandbox.desktop"
+    install -Dm644 "$f/luxos-sandbox.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-sandbox.svg"
+    install -Dm644 "$f/SECURITY.md" "$pkgdir/usr/share/doc/luxos-sandbox/SECURITY.md"
+}

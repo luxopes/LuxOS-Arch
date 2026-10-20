@@ -18,7 +18,7 @@ from luxos_i18n import _  # noqa: E402
 
 # Ikona pro horni listu (plugin genmon): bez nacitani GTK, klik otevre/zavre okno
 if "--panel" in sys.argv:
-    print("<icon>luxos-control-center-symbolic</icon><iconclick>luxos-control-center</iconclick>"
+    print("<icon>luxos-control-center-symbolic</icon><iconclick>luxos-cc-toggle</iconclick>"
           f"<tool>{_('Control Center')}</tool>")
     sys.exit(0)
 
@@ -313,14 +313,12 @@ class ControlCenter(Gtk.Window):
         prof.get_style_context().add_class("plain")
         pbox = Gtk.Box(spacing=10)
         pbox.get_style_context().add_class("section")
-        user = account_user()
-        name = (user or {}).get("displayName") or (user or {}).get("email") or ""
-        avatar = Gtk.Label(label=(name[:1] or "\u2726").upper())
+        avatar = self.p_avatar = Gtk.Label()
         avatar.get_style_context().add_class("avatar")
         ptext = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
-        pt = Gtk.Label(label=name if user else _("Sign in to LuxAI"), xalign=0)
+        pt = self.p_title = Gtk.Label(xalign=0)
         pt.get_style_context().add_class("title")
-        ps = Gtk.Label(label=_("LuxAI Account") if user else _("AI in LuxAI, Lux Code and LSL IDE"), xalign=0)
+        ps = self.p_sub = Gtk.Label(xalign=0)
         ps.get_style_context().add_class("sub")
         ptext.pack_start(pt, False, False, 0)
         ptext.pack_start(ps, False, False, 0)
@@ -379,9 +377,22 @@ class ControlCenter(Gtk.Window):
         self.connect("focus-out-event", lambda *_a: GLib.timeout_add(120, self.close_if_unfocused))
         self.connect("key-press-event", self.on_key)
         self.connect("realize", lambda *_a: self.place())
+        # Demon: zavreni okno jen skryje, dalsi klik v liste ho hned ukaze (SIGUSR1)
+        self.connect("delete-event", lambda *_a: self.hide() or True)
         self.refresh_fast()
         threading.Thread(target=self.refresh_slow, daemon=True).start()
         GLib.timeout_add_seconds(3, self.periodic)
+
+    def toggle(self):
+        if self.get_visible():
+            self.hide()
+        else:
+            self.refresh_fast()
+            threading.Thread(target=self.refresh_slow, daemon=True).start()
+            self.show_all()
+            self.place()
+            self.present_with_time(Gtk.get_current_event_time() or Gdk.CURRENT_TIME)
+        return False
 
     # umisteni vpravo pod horni listou na monitoru s kurzorem
     def place(self):
@@ -407,6 +418,11 @@ class ControlCenter(Gtk.Window):
     # ---- obnova stavu ----
     def refresh_fast(self):
         """Okamzite udaje (soubory v ~/.config a /sys) - bez spousteni programu."""
+        user = account_user()
+        name = (user or {}).get("displayName") or (user or {}).get("email") or ""
+        self.p_avatar.set_text((name[:1] or "\u2726").upper())
+        self.p_title.set_text(name if user else _("Sign in to LuxAI"))
+        self.p_sub.set_text(_("LuxAI Account") if user else _("AI in LuxAI, Lux Code and LSL IDE"))
         dark = dark_state()
         self.t_dark.set_state(dark, _("On") if dark else _("Off"))
         data = flag_state("datasaver")
@@ -447,7 +463,8 @@ class ControlCenter(Gtk.Window):
         return False
 
     def periodic(self):
-        threading.Thread(target=self.refresh_slow, daemon=True).start()
+        if self.get_visible():
+            threading.Thread(target=self.refresh_slow, daemon=True).start()
         return True
 
     # ---- akce ----
@@ -498,17 +515,25 @@ class ControlCenter(Gtk.Window):
         spawn("luxos-displays", "brightness", str(v))
 
 
-def main():
-    # Druhe spusteni (klik na ikonu v liste) otevrene okno zavre
+def running_pid():
+    """PID bezici instance (demona) nebo None."""
     try:
         with open(PIDFILE) as f:
             pid = int(f.read())
         with open(f"/proc/{pid}/cmdline", "rb") as f:
             if b"luxos-control-center" in f.read():
-                os.kill(pid, signal.SIGTERM)
-                return
+                return pid
     except (OSError, ValueError):
         pass
+    return None
+
+
+def main():
+    # Klik v liste (luxos-control-center bez --daemon): bezici okno jen prepne
+    pid = running_pid()
+    if pid and pid != os.getpid():
+        os.kill(pid, signal.SIGUSR1)
+        return
     with open(PIDFILE, "w") as f:
         f.write(str(os.getpid()))
 
@@ -522,8 +547,9 @@ def main():
     win = ControlCenter()
     win.connect("destroy", Gtk.main_quit)
     signal.signal(signal.SIGTERM, lambda *_a: GLib.idle_add(Gtk.main_quit))
-    win.show_all()
-    win.present()
+    signal.signal(signal.SIGUSR1, lambda *_a: GLib.idle_add(win.toggle))
+    if "--daemon" not in sys.argv:
+        win.toggle()
     try:
         Gtk.main()
     finally:

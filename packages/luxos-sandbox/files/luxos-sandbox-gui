@@ -1,0 +1,395 @@
+#!/usr/bin/env python3
+"""LuxOS - Sandbox: graficke ovladani luxos-sandbox (izolovane prostredi pro neduveryhodne aplikace).
+
+Vse dela prikaz luxos-sandbox (vytvoreni pres pkexec, instalace a spousteni v bwrap);
+okno jen zobrazuje stav, seznam aplikaci a vystup dlouhych operaci.
+"""
+import json
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import threading
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+try:
+    from luxos_i18n import _  # noqa: E402
+except ImportError:
+    def _(text):
+        return text
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+
+CLI = os.environ.get("LUXOS_SANDBOX_CLI", "luxos-sandbox")
+SHARED = os.path.expanduser("~/Sandbox")
+PKG_RE = re.compile(r"^[a-z0-9@_+][a-z0-9@._+-]*$")
+ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|[\x00-\x08\x0b-\x1f\x7f]")
+
+CSS = b"""
+@define-color sb_accent #3d7bff;
+@define-color sb_danger #e5484d;
+@define-color sb_ok #30a46c;
+.hero-title { font-size: 22px; font-weight: 800; }
+.hero-sub { font-size: 12px; opacity: 0.7; }
+.badge { border-radius: 8px; padding: 2px 8px; font-size: 11px; font-weight: 700; color: #ffffff; background-color: @sb_ok; }
+.badge.off { background-color: alpha(currentColor, 0.35); }
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }
+.row { padding: 10px 14px; }
+.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
+.hint { font-size: 11px; opacity: 0.6; }
+.app-name { font-weight: 600; }
+.primary { background-image: none; background-color: @sb_accent; color: #ffffff; border-color: @sb_accent; }
+.danger { color: @sb_danger; }
+.log { font-family: monospace; font-size: 11px; }
+"""
+
+
+class Group(Gtk.Box):
+    """Skupina radku ve stylu Nastaveni macOS (jako luxos-settings)."""
+
+    def __init__(self, parent, title):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        self.title = Gtk.Label(label=title, xalign=0)
+        self.title.get_style_context().add_class("group-title")
+        parent.pack_start(self.title, False, False, 0)
+        self.get_style_context().add_class("group")
+        parent.pack_start(self, False, False, 0)
+        self.rows = 0
+
+    def row(self, title, widget=None, hint=None):
+        box = Gtk.Box(spacing=12)
+        box.get_style_context().add_class("row")
+        if self.rows:
+            box.get_style_context().add_class("row-sep")
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        if isinstance(title, Gtk.Widget):
+            text.pack_start(title, False, False, 0)
+        else:
+            text.pack_start(Gtk.Label(label=title, xalign=0), False, False, 0)
+        if hint:
+            h = Gtk.Label(label=hint, xalign=0, wrap=True, max_width_chars=52)
+            h.get_style_context().add_class("hint")
+            text.pack_start(h, False, False, 0)
+        box.pack_start(text, True, True, 0)
+        if widget is not None:
+            widget.set_valign(Gtk.Align.CENTER)
+            box.pack_end(widget, False, False, 0)
+        self.pack_start(box, False, False, 0)
+        self.rows += 1
+        return box
+
+    def clear(self):
+        for child in self.get_children():
+            self.remove(child)
+            child.destroy()
+        self.rows = 0
+
+
+def button(label, cb, cls=None):
+    b = Gtk.Button(label=label)
+    if cls:
+        b.get_style_context().add_class(cls)
+    b.connect("clicked", lambda _b: cb())
+    return b
+
+
+class SandboxWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Sandbox"))
+        self.set_default_size(640, 760)
+        self.set_icon_name("luxos-sandbox")
+        header = Gtk.HeaderBar(show_close_button=True, title=_("Sandbox"))
+        self.set_titlebar(header)
+        self.busy = False
+        self.status = {}
+
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.add(scroll)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=22, margin_top=12)
+        scroll.add(page)
+
+        # ---- zahlavi
+        hero = Gtk.Box(spacing=14)
+        icon = Gtk.Image.new_from_icon_name("luxos-sandbox", Gtk.IconSize.DIALOG)
+        icon.set_pixel_size(64)
+        hero.pack_start(icon, False, False, 0)
+        tbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER, spacing=2)
+        trow = Gtk.Box(spacing=8)
+        t = Gtk.Label(label=_("Sandbox"), xalign=0)
+        t.get_style_context().add_class("hero-title")
+        trow.pack_start(t, False, False, 0)
+        self.badge = Gtk.Label(label="")
+        self.badge.get_style_context().add_class("badge")
+        self.badge.set_valign(Gtk.Align.CENTER)
+        trow.pack_start(self.badge, False, False, 0)
+        tbox.pack_start(trow, False, False, 0)
+        sub = Gtk.Label(label=_("An isolated system for apps you don't trust. "
+                                "Apps inside can't see your files, network or desktop."),
+                        xalign=0, wrap=True, max_width_chars=60)
+        sub.get_style_context().add_class("hero-sub")
+        tbox.pack_start(sub, False, False, 0)
+        self.path_label = Gtk.Label(label="", xalign=0, ellipsize=3)
+        self.path_label.get_style_context().add_class("hint")
+        tbox.pack_start(self.path_label, False, False, 0)
+        hero.pack_start(tbox, True, True, 0)
+        page.pack_start(hero, False, False, 0)
+
+        # ---- vytvoreni
+        self.g_create = Group(page, _("Get started"))
+        self.g_create.row(_("No sandbox yet"), button(_("Create Sandbox"), self.create, "primary"),
+                          _("Creates a minimal Arch Linux system only for you. Needs the administrator "
+                            "password once and a few minutes."))
+
+        # ---- aplikace
+        self.g_apps = Group(page, _("Installed apps"))
+        self.g_install = Group(page, _("Install app"))
+        self.pkg_entry = Gtk.Entry(placeholder_text=_("Package name, e.g. firefox"), width_chars=24)
+        self.pkg_entry.connect("activate", lambda _e: self.install())
+        self.install_btn = button(_("Install"), self.install, "primary")
+        box = Gtk.Box(spacing=6)
+        box.pack_start(self.pkg_entry, False, False, 0)
+        box.pack_start(self.install_btn, False, False, 0)
+        self.g_install.row(_("From Arch Linux repositories"), box,
+                           _("Installs into the sandbox only; network is enabled just for the download."))
+
+        # ---- spusteni
+        self.g_run = Group(page, _("Run app"))
+        self.cmd_entry = Gtk.Entry(placeholder_text=_("Command, e.g. firefox"), width_chars=24)
+        self.cmd_entry.connect("activate", lambda _e: self.run_cmd())
+        rbox = Gtk.Box(spacing=6)
+        rbox.pack_start(self.cmd_entry, False, False, 0)
+        rbox.pack_start(button(_("Run"), self.run_cmd, "primary"), False, False, 0)
+        self.g_run.row(_("Command"), rbox)
+        self.g_run.row(_("Downloaded file"), button(_("Choose File…"), self.run_file),
+                       _("The file is copied into the sandbox first; the original is never exposed."))
+        self.sw_net = Gtk.Switch(active=False)
+        self.sw_gui = Gtk.Switch(active=True)
+        self.sw_shared = Gtk.Switch(active=False)
+        self.g_run.row(_("Network"), self.sw_net, _("Internet only - no access to your local network or this computer."))
+        self.g_run.row(_("Window"), self.sw_gui, _("Show the app in its own separate window (not on your desktop)."))
+        self.g_run.row(_("Shared folder"), self.sw_shared,
+                       _("Make %s visible inside as Shared. Treat files from it as untrusted.") % "~/Sandbox")
+
+        # ---- nastroje
+        self.g_tools = Group(page, _("Tools"))
+        self.g_tools.row(_("Terminal in sandbox"), button(_("Open Terminal"), self.terminal),
+                         _("Uses the Network and Shared folder switches above."))
+        self.g_tools.row(_("Shared folder"), button(_("Open"), self.open_shared), SHARED)
+        self.g_tools.row(_("Reset sandbox"), button(_("Reset…"), self.reset, "danger"),
+                         _("Deletes everything inside the sandbox and creates it again."))
+
+        # ---- vystup
+        self.spinner = Gtk.Spinner()
+        self.state_label = Gtk.Label(label="", xalign=0)
+        sbox = Gtk.Box(spacing=8, margin_top=14)
+        sbox.pack_start(self.spinner, False, False, 0)
+        sbox.pack_start(self.state_label, True, True, 0)
+        page.pack_start(sbox, False, False, 0)
+        self.expander = Gtk.Expander(label=_("Details"))
+        self.log = Gtk.TextView(editable=False, cursor_visible=False, wrap_mode=Gtk.WrapMode.CHAR)
+        self.log.get_style_context().add_class("log")
+        lscroll = Gtk.ScrolledWindow()
+        lscroll.set_size_request(-1, 180)
+        lscroll.add(self.log)
+        self.expander.add(lscroll)
+        page.pack_start(self.expander, False, False, 6)
+
+        self.show_all()
+        self.refresh()
+
+    # ---- stav -----------------------------------------------------------------
+    def refresh(self):
+        def work():
+            try:
+                r = subprocess.run([CLI, "status", "--json"], capture_output=True, text=True, timeout=120)
+                st = json.loads(r.stdout or "{}")
+            except (OSError, ValueError, subprocess.TimeoutExpired):
+                st = {}
+            GLib.idle_add(self.apply_status, st)
+        threading.Thread(target=work, daemon=True).start()
+
+    def apply_status(self, st):
+        ok = bool(st.get("exists"))
+        raw = st.get("apps") if isinstance(st.get("apps"), dict) else {}
+        apps = {a: c for a, c in raw.items() if isinstance(a, str) and PKG_RE.match(a) and isinstance(c, str)}
+        if ok:
+            self.path_label.set_text("%s   %.0f MiB" % (st.get("path", ""), st.get("size", 0) / 1048576))
+        else:
+            self.path_label.set_text("")
+        self.badge.set_text(_("Ready") if ok else _("Not created"))
+        ctx = self.badge.get_style_context()
+        (ctx.remove_class if ok else ctx.add_class)("off")
+        self.g_apps.clear()
+        if not apps:
+            self.g_apps.row(_("No apps installed yet"))
+        for app, cmd in sorted(apps.items()):
+            name = Gtk.Label(label=app, xalign=0)
+            name.get_style_context().add_class("app-name")
+            box = Gtk.Box(spacing=6)
+            if cmd:
+                b = button(_("Run"), lambda c=cmd: self.start(c))
+                b.set_tooltip_text(cmd)
+                box.pack_start(b, False, False, 0)
+            box.pack_start(button(_("Remove"), lambda a=app: self.remove(a), "danger"), False, False, 0)
+            self.g_apps.row(name, box)
+        self.g_apps.show_all()
+        for g in (self.g_apps, self.g_install, self.g_run, self.g_tools):
+            g.set_visible(ok)
+            g.title.set_visible(ok)
+        self.g_create.set_visible(not ok)
+        self.g_create.title.set_visible(not ok)
+        return False
+
+    # ---- dlouhe operace s vystupem ------------------------------------------------
+    def append(self, text):
+        buf = self.log.get_buffer()
+        buf.insert(buf.get_end_iter(), ANSI_RE.sub("", text))
+        self.log.scroll_to_iter(buf.get_end_iter(), 0, False, 0, 0)
+        return False
+
+    def task(self, title, cmd, done_msg):
+        if self.busy:
+            return
+        self.busy = True
+        self.spinner.start()
+        self.state_label.set_text(title)
+        self.append(f"$ {shlex.join(cmd)}\n")
+
+        def work():
+            try:
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                                     text=True, errors="replace")
+                for line in p.stdout:
+                    GLib.idle_add(self.append, line)
+                rc = p.wait()
+            except OSError as e:
+                GLib.idle_add(self.append, f"{e}\n")
+                rc = 1
+            GLib.idle_add(self.finished, rc, done_msg)
+        threading.Thread(target=work, daemon=True).start()
+
+    def finished(self, rc, done_msg):
+        self.busy = False
+        self.spinner.stop()
+        if rc == 0:
+            self.state_label.set_text(done_msg)
+        else:
+            self.state_label.set_text(_("Failed - see Details."))
+            self.expander.set_expanded(True)
+        self.refresh()
+        return False
+
+    # ---- akce -----------------------------------------------------------------
+    def create(self):
+        self.task(_("Creating sandbox…"), [CLI, "create"], _("Sandbox is ready."))
+
+    def install(self):
+        pkgs = self.pkg_entry.get_text().split()
+        if not pkgs or not all(PKG_RE.match(p) for p in pkgs):
+            self.state_label.set_text(_("Enter a valid package name."))
+            return
+        self.task(_("Installing %s…") % " ".join(pkgs), [CLI, "install", *pkgs], _("Installed."))
+        self.pkg_entry.set_text("")
+
+    def remove(self, app):
+        if self.confirm(_("Remove %s from the sandbox?") % app):
+            self.task(_("Removing %s…") % app, [CLI, "remove-app", app], _("Removed."))
+
+    def flags(self, gui=True):
+        f = []
+        if self.sw_net.get_active():
+            f.append("--net")
+        if gui and self.sw_gui.get_active():
+            f.append("--gui")
+        if self.sw_shared.get_active():
+            f.append("--shared")
+        return f
+
+    def start(self, *argv):
+        """Spusti aplikaci na pozadi (okno neblokuje)."""
+        cmd = [CLI, "run", *self.flags(), "--", *argv]
+        self.append(f"$ {shlex.join(cmd)}\n")
+        self.state_label.set_text(_("Started %s in the sandbox.") % os.path.basename(argv[0]))
+
+        def work():
+            try:
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                     stdin=subprocess.DEVNULL, text=True, errors="replace", start_new_session=True)
+                for line in p.stdout:
+                    GLib.idle_add(self.append, line)
+                p.wait()
+            except OSError as e:
+                GLib.idle_add(self.append, f"{e}\n")
+        threading.Thread(target=work, daemon=True).start()
+
+    def run_cmd(self):
+        try:
+            argv = shlex.split(self.cmd_entry.get_text())
+        except ValueError:
+            argv = []
+        if not argv:
+            self.state_label.set_text(_("Enter a command."))
+            return
+        if "/" in argv[0] and not argv[0].startswith("/"):
+            argv[0] = "/" + argv[0]   # relativni cesta by se brala jako soubor hostitele
+        self.start(*argv)
+
+    def run_file(self):
+        dlg = Gtk.FileChooserDialog(title=_("Choose a file to run in the sandbox"), transient_for=self,
+                                    action=Gtk.FileChooserAction.OPEN)
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Run"), Gtk.ResponseType.OK)
+        dlg.set_current_folder(os.path.expanduser("~/Downloads") if os.path.isdir(os.path.expanduser("~/Downloads"))
+                               else os.path.expanduser("~"))
+        path = dlg.get_filename() if dlg.run() == Gtk.ResponseType.OK else None
+        dlg.destroy()
+        if path:
+            self.start(path)
+
+    def terminal(self):
+        term = shutil.which("xfce4-terminal")
+        cmd = [CLI, "shell", *self.flags(gui=False)]
+        if term:
+            subprocess.Popen([term, "--title", _("Sandbox"), "-x", *cmd], start_new_session=True)
+        elif shutil.which("x-terminal-emulator"):
+            subprocess.Popen(["x-terminal-emulator", "-e", *cmd], start_new_session=True)
+
+    def open_shared(self):
+        os.makedirs(SHARED, mode=0o700, exist_ok=True)
+        subprocess.Popen(["xdg-open", SHARED], start_new_session=True)
+
+    def reset(self):
+        if self.confirm(_("Reset the sandbox?"),
+                        _("All apps and files inside the sandbox will be deleted. ~/Sandbox stays.")):
+            self.task(_("Resetting sandbox…"), [CLI, "reset", "--yes"], _("Sandbox is ready."))
+
+    def confirm(self, text, secondary=None):
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
+                                buttons=Gtk.ButtonsType.NONE, text=text)
+        if secondary:
+            dlg.format_secondary_text(secondary)
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Continue"), Gtk.ResponseType.OK)
+        ok = dlg.run() == Gtk.ResponseType.OK
+        dlg.destroy()
+        return ok
+
+
+def main():
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    GLib.set_prgname("luxos-sandbox-gui")
+    win = SandboxWindow()
+    win.connect("destroy", Gtk.main_quit)
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

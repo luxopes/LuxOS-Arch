@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>LuxOS</vendor>
+  <action id="org.luxos.safe.setup">
+    <description>Create your Safe folder</description>
+    <description xml:lang="cs">Vytvořit složku Trezor</description>
+    <message>Creating the Safe folder for your account</message>
+    <message xml:lang="cs">Vytvoření složky Trezor pro váš účet</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/luxos/luxos-safe-helper</annotate>
+  </action>
+</policyconfig>
