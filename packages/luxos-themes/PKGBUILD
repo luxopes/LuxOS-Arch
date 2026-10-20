@@ -9,7 +9,7 @@ pkgdesc="LuxOS macOS-like themes (WhiteSur GTK, xfwm4, Plank, icons and cursors)
 arch=(any)
 url="https://github.com/vinceliuice"
 license=(MIT GPL-3.0-or-later)
-depends=(gtk3 gnome-themes-extra hicolor-icon-theme)
+depends=(gtk3 gnome-themes-extra hicolor-icon-theme luxos-branding)
 makedepends=(git)
 options=(!strip !debug)
 _gtk=d5782652d412137e26fb8ff55b55a5572e4c6995
@@ -34,13 +34,29 @@ package() {
     done
 
     # Ikony: WhiteSur, WhiteSur-light, WhiteSur-dark
+    # -a: prekreslene alternativy misto napodobenin ikon Applu (Finder, App Store, Nastaveni...)
     # install.sh vola gtk-update-icon-cache; cache vytvori pacman hook az na cilovem systemu
     mkdir -p "$srcdir/stub"
     printf '#!/bin/sh\nexit 0\n' > "$srcdir/stub/gtk-update-icon-cache"
     chmod +x "$srcdir/stub/gtk-update-icon-cache"
     cd "$srcdir/WhiteSur-icon-theme"
-    PATH="$srcdir/stub:$PATH" ./install.sh -d "$icons" -n WhiteSur -t default >/dev/null
+    PATH="$srcdir/stub:$PATH" ./install.sh -d "$icons" -n WhiteSur -t default -a >/dev/null
     rm -f "$icons"/WhiteSur*/icon-theme.cache
+    # preferences/32 obsahuje zjednodusene ikony se stejnymi nazvy jako aplikace; v docku
+    # by se v klidu ukazovaly ony a pri zvetseni macOS verze z apps/scalable
+    local f
+    for f in "$icons"/WhiteSur/apps/scalable/*; do
+        rm -f "$icons"/WhiteSur/preferences{,@2x}/32/"${f##*/}"
+    done
+    # Logo Applu (start-here*) nahradit logem LuxOS
+    while IFS= read -r -d '' f; do
+        rm -f "$f"
+        if [[ $f == *symbolic* ]]; then
+            ln -s /usr/share/luxos/logo/luxos-logo-symbolic.svg "$f"
+        else
+            ln -s /usr/share/luxos/logo/luxos-logo.svg "$f"
+        fi
+    done < <(find "$icons" -name 'start-here*.svg' -print0)
 
     # Kurzory
     cp -a "$srcdir/WhiteSur-cursors/dist" "$icons/WhiteSur-cursors"
