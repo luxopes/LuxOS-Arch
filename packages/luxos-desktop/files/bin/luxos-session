@@ -22,12 +22,13 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do
     sleep 0.5
 done
 luxos-appearance reapply
-# Po zmene monitoru (dokovaci stanice, projektor) doplnit tapetu
+# Pripojeni/odpojeni monitoru (dokovaci stanice, projektor): rozlozeni obrazovek,
+# zachrana oken z odpojeneho monitoru a tapeta (luxos-displays)
 (
     last=""
-    while sleep 5; do
-        now=$(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1 {print $NF}' | sort | tr '\n' ' ')
-        [[ $now != "$last" && -n $last ]] && luxos-appearance reapply
+    while sleep 3; do
+        now=$(xrandr --current 2>/dev/null | awk '/ connected/ {print $1}' | sort | tr '\n' ' ')
+        [[ $now != "$last" && -n $last ]] && luxos-displays auto
         last=$now
         # Sporic dat i pro nove pripojene site
         [[ -e ${XDG_CONFIG_HOME:-$HOME/.config}/luxos/datasaver ]] && luxos-datasaver reapply

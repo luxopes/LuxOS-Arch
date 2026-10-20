@@ -61,6 +61,7 @@ scale slider { min-width: 22px; min-height: 22px; margin: 0; border-radius: 11px
 .footer { background: none; border: none; box-shadow: none; color: @cc_fg; padding: 4px 6px;
           font-size: 12px; border-radius: 8px; }
 .footer:hover { background-color: @cc_tile; }
+button.plain { padding: 0; border: none; background: none; box-shadow: none; }
 """
 
 DARK = """
@@ -200,7 +201,6 @@ class Tile(Gtk.Button):
     def set_state(self, on, sub=None):
         ctx = self.get_style_context()
         if on is None:
-            self.set_sensitive(False)
             on = False
         (ctx.add_class if on else ctx.remove_class)("on")
         if sub is not None:
@@ -275,6 +275,9 @@ class ControlCenter(Gtk.Window):
 
         self.bat_box = Gtk.Box(spacing=10)
         self.bat_box.get_style_context().add_class("section")
+        bat_button = Gtk.Button(can_focus=False, relief=Gtk.ReliefStyle.NONE)
+        bat_button.get_style_context().add_class("plain")
+        bat_button.connect("clicked", lambda _b: (spawn("luxos-power"), self.close()))
         self.bat_icon = Gtk.Image.new_from_icon_name("battery-level-50-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
         bat_text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.bat_title = Gtk.Label(xalign=0)
@@ -285,10 +288,14 @@ class ControlCenter(Gtk.Window):
         bat_text.pack_start(self.bat_sub, False, False, 0)
         self.bat_box.pack_start(self.bat_icon, False, False, 0)
         self.bat_box.pack_start(bat_text, True, True, 0)
-        outer.pack_start(self.bat_box, False, False, 0)
+        self.bat_box.pack_end(Gtk.Image.new_from_icon_name("go-next-symbolic", Gtk.IconSize.MENU), False, False, 0)
+        bat_button.add(self.bat_box)
+        self.bat_wrap = bat_button
+        outer.pack_start(bat_button, False, False, 0)
 
         footer = Gtk.Box(spacing=4)
-        for label, cmd in ((_("Desktop & Dock…"), "luxos-settings"), (_("All Settings…"), "xfce4-settings-manager")):
+        for label, cmd in ((_("Desktop & Dock…"), "luxos-settings"), (_("Battery…"), "luxos-power"),
+                           (_("All Settings…"), "xfce4-settings-manager")):
             b = Gtk.Button(label=label, can_focus=False)
             b.get_style_context().add_class("footer")
             b.connect("clicked", lambda _b, c=cmd: (spawn(c), self.close()))
@@ -344,8 +351,8 @@ class ControlCenter(Gtk.Window):
             self.s_vol.icon.set_from_icon_name(
                 "audio-volume-muted-symbolic" if muted else "audio-volume-high-symbolic", Gtk.IconSize.MENU)
         bat = battery()
-        self.bat_box.set_no_show_all(bat is None)
-        self.bat_box.set_visible(bat is not None)
+        self.bat_wrap.set_no_show_all(bat is None)
+        self.bat_wrap.set_visible(bat is not None)
         if bat:
             cap, st = bat
             level = min(100, (cap + 5) // 10 * 10)
@@ -371,10 +378,9 @@ class ControlCenter(Gtk.Window):
         threading.Thread(target=self.refresh_slow, daemon=True).start()
 
     def toggle_bt(self):
-        on, _sub = bluetooth_state()
-        if on is not None:
-            run("bluetoothctl", "power", "off" if on else "on", timeout=6)
-        threading.Thread(target=self.refresh_slow, daemon=True).start()
+        # Okno Bluetooth: zapnuti, sparovana zarizeni i pripojeni noveho
+        spawn("luxos-bluetooth")
+        self.close()
 
     def toggle_dnd(self):
         run("xfconf-query", "-c", "xfce4-notifyd", "-p", "/do-not-disturb", "-n", "-t", "bool",

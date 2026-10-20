@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Hello Lux
+Comment=Example app in the LuxOS package format
+Exec=hello-lux
+Icon=hello-lux
+Categories=Utility;

@@ -1,0 +1,505 @@
+#!/usr/bin/env python3
+"""LuxOS - Baterie a napajeni: stav baterie, grafy za 24 hodin a nastaveni.
+
+Udaje bere z UPower (D-Bus): procenta, nabijeni/vybijeni, odhad vydrze,
+spotreba ve wattech, zdravi baterie a historie urovne a spotreby. Nastaveni
+vykonu (power-profiles-daemon), Sporic baterie a casy vypnuti obrazovky
+a uspani (xfce4-power-manager).
+
+LUXOS_POWER_DEMO=1 zobrazi ukazkova data (pro zarizeni bez baterie / testovani).
+"""
+import math
+import os
+import subprocess
+import sys
+import time
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_charts import COLORS, fg_color, rgb, rounded_rect  # noqa: E402
+from luxos_i18n import _  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
+
+UP = "org.freedesktop.UPower"
+DEMO = os.environ.get("LUXOS_POWER_DEMO") == "1"
+STATE_CHARGING, STATE_DISCHARGING, STATE_EMPTY, STATE_FULL, STATE_PENDING_CHARGE = 1, 2, 3, 4, 5
+PM = "xfce4-power-manager"
+AUTO_SAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver-auto")
+
+CSS = b"""
+.hero-pct { font-size: 44px; font-weight: 800; }
+.hero-state { font-size: 14px; opacity: 0.75; }
+.card { border-radius: 16px; padding: 14px; background-color: alpha(currentColor, 0.05); }
+.card-title { font-weight: 700; font-size: 13px; }
+.card-value { font-size: 20px; font-weight: 700; }
+.card-sub { font-size: 11px; opacity: 0.6; }
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.row { padding: 10px 14px; }
+.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
+.section-title { font-size: 15px; font-weight: 700; margin-top: 8px; }
+.mode { border-radius: 12px; padding: 10px 14px; }
+"""
+
+
+def run(*cmd):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        return r.stdout.strip() if r.returncode == 0 else ""
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def fmt_duration(seconds):
+    if not seconds or seconds <= 0:
+        return ""
+    m = int(seconds // 60)
+    if m < 60:
+        return _("%d min") % m
+    return _("%d h %d min") % (m // 60, m % 60)
+
+
+# ---- UPower -----------------------------------------------------------------
+class Battery:
+    def __init__(self):
+        self.bus = Gio.bus_get_sync(Gio.BusType.SYSTEM)
+        self.path = self.find_battery()
+
+    def find_battery(self):
+        try:
+            r = self.bus.call_sync(UP, "/org/freedesktop/UPower", UP, "EnumerateDevices", None,
+                                   GLib.VariantType("(ao)"), 0, 3000, None)
+        except GLib.Error:
+            return None
+        for path in r.unpack()[0]:
+            props = self.props(path)
+            if props.get("Type") == 2 and props.get("PowerSupply"):   # 2 = baterie
+                return path
+        return None
+
+    def props(self, path):
+        try:
+            r = self.bus.call_sync(UP, path, "org.freedesktop.DBus.Properties", "GetAll",
+                                   GLib.Variant("(s)", (UP + ".Device",)), GLib.VariantType("(a{sv})"), 0, 3000, None)
+            return r.unpack()[0]
+        except GLib.Error:
+            return {}
+
+    def info(self):
+        if DEMO:
+            return demo_info()
+        return self.props(self.path) if self.path else None
+
+    def history(self, kind, span=86400, points=240):
+        """[(cas_s, hodnota, stav)] od nejstarsiho; kind = charge | rate."""
+        if DEMO:
+            return demo_history(kind)
+        if not self.path:
+            return []
+        try:
+            r = self.bus.call_sync(UP, self.path, UP + ".Device", "GetHistory",
+                                   GLib.Variant("(suu)", (kind, span, points)), GLib.VariantType("(a(udu))"),
+                                   0, 3000, None)
+            return sorted(r.unpack()[0])
+        except GLib.Error:
+            return []
+
+
+def demo_info():
+    return {"Percentage": 64.0, "State": STATE_DISCHARGING, "TimeToEmpty": 4 * 3600 + 25 * 60, "TimeToFull": 0,
+            "EnergyRate": 7.8, "Energy": 33.6, "EnergyFull": 52.4, "EnergyFullDesign": 57.0, "ChargeCycles": 212,
+            "Model": "Demo battery", "Vendor": "LuxOS"}
+
+
+def demo_history(kind):
+    now = time.time()
+    out = []
+    level = 92.0
+    for i in range(240):
+        t = now - 86400 + i * 360
+        hour = (i * 6) // 60
+        charging = 7 <= hour < 9 or 17 <= hour < 18
+        level = min(100, level + 4.5) if charging else max(5, level - 0.9 - 0.4 * math.sin(i / 7))
+        if kind == "charge":
+            out.append((int(t), level, STATE_CHARGING if charging else STATE_DISCHARGING))
+        else:
+            out.append((int(t), (14 if charging else 6.5 + 3 * abs(math.sin(i / 9))), 0))
+    return out
+
+
+# ---- grafy --------------------------------------------------------------------
+class HistoryChart(Gtk.DrawingArea):
+    """Uroven baterie za 24 h; useky nabijeni zvyraznene zelene (jako Android)."""
+
+    def __init__(self, kind):
+        super().__init__()
+        self.kind = kind
+        self.points = []
+        self.set_size_request(-1, 170)
+        self.connect("draw", self.on_draw)
+
+    def set_points(self, pts):
+        self.points = pts
+        self.queue_draw()
+
+    def on_draw(self, widget, cr):
+        w, h = widget.get_allocated_width(), widget.get_allocated_height()
+        left, bottom, top = 34, 20, 8
+        cw, ch = w - left - 6, h - bottom - top
+        cr.select_font_face("Inter", 0, 0)
+        cr.set_font_size(10)
+        maximum = 100.0 if self.kind == "charge" else max([v for _t, v, _s in self.points] + [5.0]) * 1.15
+        # mrizka a popisky osy Y
+        for i in range(5):
+            y = top + ch * i / 4
+            cr.set_source_rgba(*fg_color(widget, 0.07))
+            cr.set_line_width(1)
+            cr.move_to(left, y)
+            cr.line_to(left + cw, y)
+            cr.stroke()
+            val = maximum * (1 - i / 4)
+            label = f"{val:.0f} %" if self.kind == "charge" else f"{val:.0f} W"
+            cr.set_source_rgba(*fg_color(widget, 0.45))
+            cr.move_to(0, y + 4)
+            cr.show_text(label)
+        now = time.time()
+        start = now - 86400
+        # popisky osy X po 6 hodinach
+        for hrs in (24, 18, 12, 6, 0):
+            x = left + cw * (1 - hrs / 24)
+            text = _("now") if hrs == 0 else time.strftime("%H:%M", time.localtime(now - hrs * 3600))
+            ext = cr.text_extents(text)
+            cr.move_to(min(max(x - ext.x_advance / 2, left), left + cw - ext.x_advance), h - 4)
+            cr.show_text(text)
+        if len(self.points) < 2:
+            cr.set_source_rgba(*fg_color(widget, 0.5))
+            cr.set_font_size(12)
+            msg = _("No history yet")
+            ext = cr.text_extents(msg)
+            cr.move_to(left + cw / 2 - ext.x_advance / 2, top + ch / 2)
+            cr.show_text(msg)
+            return
+
+        def xy(t, v):
+            return left + cw * (t - start) / 86400, top + ch * (1 - min(v / maximum, 1))
+
+        pts = [(xy(t, v), s) for t, v, s in self.points if t >= start]
+        if len(pts) < 2:
+            return
+        base = COLORS["cpu"] if self.kind == "rate" else COLORS["battery"]
+        # vypln pod krivkou
+        cr.move_to(pts[0][0][0], top + ch)
+        for (px, py), _s in pts:
+            cr.line_to(px, py)
+        cr.line_to(pts[-1][0][0], top + ch)
+        cr.close_path()
+        cr.set_source_rgba(*rgb(base, 0.18))
+        cr.fill()
+        # useky nabijeni (jen graf urovne)
+        if self.kind == "charge":
+            for i in range(1, len(pts)):
+                if pts[i][1] == STATE_CHARGING:
+                    (x0, _y0), (x1, _y1) = pts[i - 1][0], pts[i][0]
+                    cr.rectangle(x0, top, x1 - x0, ch)
+            cr.set_source_rgba(*rgb(COLORS["battery"], 0.12))
+            cr.fill()
+        cr.set_line_width(2.2)
+        cr.set_line_join(1)
+        for i in range(1, len(pts)):
+            (x0, y0), (x1, y1) = pts[i - 1][0], pts[i][0]
+            color = base
+            if self.kind == "charge" and pts[i][1] != STATE_CHARGING:
+                low = pts[i][0][1] > top + ch * 0.8
+                color = COLORS["battery_low"] if low else "#8e8ea0"
+            cr.set_source_rgba(*rgb(color))
+            cr.move_to(x0, y0)
+            cr.line_to(x1, y1)
+            cr.stroke()
+
+
+class BatteryIcon(Gtk.DrawingArea):
+    def __init__(self):
+        super().__init__()
+        self.pct, self.charging = 0, False
+        self.set_size_request(74, 40)
+        self.connect("draw", self.on_draw)
+
+    def set_state(self, pct, charging):
+        self.pct, self.charging = pct, charging
+        self.queue_draw()
+
+    def on_draw(self, widget, cr):
+        w, h = 64, 32
+        y = (widget.get_allocated_height() - h) / 2
+        cr.set_line_width(2.5)
+        cr.set_source_rgba(*fg_color(widget, 0.5))
+        rounded_rect(cr, 2, y, w, h, 8)
+        cr.stroke()
+        rounded_rect(cr, w + 4, y + h / 2 - 6, 5, 12, 2)
+        cr.fill()
+        color = COLORS["battery_low"] if self.pct <= 20 and not self.charging else COLORS["battery"]
+        cr.set_source_rgba(*rgb(color))
+        rounded_rect(cr, 6, y + 4, (w - 8) * self.pct / 100, h - 8, 5)
+        cr.fill()
+        if self.charging:
+            cr.set_source_rgba(1, 1, 1, 0.95)
+            cx, cy = 2 + w / 2, y + h / 2
+            cr.move_to(cx + 3, cy - 11)
+            cr.line_to(cx - 6, cy + 2)
+            cr.line_to(cx, cy + 2)
+            cr.line_to(cx - 3, cy + 11)
+            cr.line_to(cx + 6, cy - 2)
+            cr.line_to(cx, cy - 2)
+            cr.close_path()
+            cr.fill()
+
+
+# ---- okno ---------------------------------------------------------------------
+def card(title, value_label, sub_label):
+    box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+    box.get_style_context().add_class("card")
+    t = Gtk.Label(label=title, xalign=0)
+    t.get_style_context().add_class("card-title")
+    value_label.set_xalign(0)
+    value_label.get_style_context().add_class("card-value")
+    sub_label.set_xalign(0)
+    sub_label.get_style_context().add_class("card-sub")
+    for x in (t, value_label, sub_label):
+        box.pack_start(x, False, False, 0)
+    return box
+
+
+class PowerWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Battery & Power"))
+        self.set_default_size(820, 720)
+        self.set_icon_name("battery-good")
+        self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("Battery & Power")))
+        self.bat = Battery()
+
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.add(scroll)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=22)
+        scroll.add(page)
+        self.battery_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        page.pack_start(self.battery_box, False, False, 0)
+
+        # stav
+        hero = Gtk.Box(spacing=16)
+        self.icon = BatteryIcon()
+        hero.pack_start(self.icon, False, False, 0)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        self.pct = Gtk.Label(xalign=0)
+        self.pct.get_style_context().add_class("hero-pct")
+        self.state = Gtk.Label(xalign=0)
+        self.state.get_style_context().add_class("hero-state")
+        texts.pack_start(self.pct, False, False, 0)
+        texts.pack_start(self.state, False, False, 0)
+        hero.pack_start(texts, True, True, 0)
+        self.battery_box.pack_start(hero, False, False, 0)
+
+        # karty
+        grid = Gtk.Grid(column_spacing=12, row_spacing=12, column_homogeneous=True)
+        self.v_rate, self.s_rate = Gtk.Label(), Gtk.Label()
+        self.v_health, self.s_health = Gtk.Label(), Gtk.Label()
+        self.v_cycles, self.s_cycles = Gtk.Label(), Gtk.Label()
+        self.v_energy, self.s_energy = Gtk.Label(), Gtk.Label()
+        for i, (t, v, s) in enumerate(((_("Power usage"), self.v_rate, self.s_rate),
+                                       (_("Battery health"), self.v_health, self.s_health),
+                                       (_("Charge cycles"), self.v_cycles, self.s_cycles),
+                                       (_("Energy"), self.v_energy, self.s_energy))):
+            grid.attach(card(t, v, s), i, 0, 1, 1)
+        self.battery_box.pack_start(grid, False, False, 0)
+
+        # grafy
+        for title, kind in ((_("Battery level - last 24 hours"), "charge"), (_("Power usage - last 24 hours"), "rate")):
+            lab = Gtk.Label(label=title, xalign=0)
+            lab.get_style_context().add_class("section-title")
+            self.battery_box.pack_start(lab, False, False, 0)
+            chart = HistoryChart(kind)
+            frame = Gtk.Box()
+            frame.get_style_context().add_class("card")
+            frame.pack_start(chart, True, True, 0)
+            self.battery_box.pack_start(frame, False, False, 0)
+            setattr(self, f"chart_{kind}", chart)
+
+        self.no_battery = Gtk.Label(label=_("This computer runs on mains power - there is no battery."), xalign=0)
+        self.no_battery.get_style_context().add_class("hero-state")
+        page.pack_start(self.no_battery, False, False, 0)
+
+        self.build_settings(page)
+        self.refresh()
+        self.refresh_history()
+        GLib.timeout_add_seconds(5, self.refresh)
+        GLib.timeout_add_seconds(120, self.refresh_history)
+
+    # ---- nastaveni ----
+    def build_settings(self, page):
+        lab = Gtk.Label(label=_("Power mode"), xalign=0)
+        lab.get_style_context().add_class("section-title")
+        page.pack_start(lab, False, False, 0)
+        modes = Gtk.Box(spacing=8)
+        current = run("powerprofilesctl", "get")
+        available = run("powerprofilesctl", "list")
+        first = None
+        for key, label, hint in (("power-saver", _("Power Saver"), _("Longest battery life")),
+                                 ("balanced", _("Balanced"), _("Recommended")),
+                                 ("performance", _("Performance"), _("Fastest, uses more power"))):
+            if available and key + ":" not in available:
+                continue
+            b = Gtk.RadioButton.new_from_widget(first)
+            first = first or b
+            b.set_mode(False)
+            b.get_style_context().add_class("mode")
+            inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            inner.pack_start(Gtk.Label(label=label, xalign=0), False, False, 0)
+            h = Gtk.Label(label=hint, xalign=0)
+            h.get_style_context().add_class("card-sub")
+            inner.pack_start(h, False, False, 0)
+            b.add(inner)
+            b.set_active(key == current)
+            b.connect("toggled", lambda btn, k=key: btn.get_active() and run("powerprofilesctl", "set", k))
+            modes.pack_start(b, True, True, 0)
+        page.pack_start(modes, False, False, 0)
+
+        group = self.group(page, _("Battery Saver"))
+        saver = Gtk.Switch(active=run("luxos-powersaver", "status") == "on")
+        saver.connect("notify::active", lambda s, _p: run("luxos-powersaver", "on" if s.get_active() else "off"))
+        self.row(group, _("Battery Saver"), saver, _("Saves energy: power saving mode and fewer animations."))
+        auto = Gtk.Switch(active=os.path.exists(AUTO_SAVER))
+        auto.connect("notify::active", self.toggle_auto)
+        self.row(group, _("Turn on automatically at 20 %"), auto,
+                 _("Turns off again when the computer is charging."))
+
+        group = self.group(page, _("Screen and sleep"))
+        times = [(0, _("Never")), (1, _("1 minute")), (2, _("2 minutes")), (5, _("5 minutes")),
+                 (10, _("10 minutes")), (15, _("15 minutes")), (30, _("30 minutes")), (60, _("1 hour"))]
+        # xfce4-power-manager: u necinnosti znamena 14 "nikdy" (nejmensi hodnota je 15 minut)
+        sleep = [(14, _("Never")), (15, _("15 minutes")), (30, _("30 minutes")), (60, _("1 hour")),
+                 (120, _("2 hours"))]
+        for title, prop, opts in ((_("Turn off the screen on battery after"), "dpms-on-battery-off", times),
+                                  (_("Turn off the screen on power adapter after"), "dpms-on-ac-off", times),
+                                  (_("Sleep on battery after"), "inactivity-on-battery", sleep),
+                                  (_("Sleep on power adapter after"), "inactivity-on-ac", sleep)):
+            self.row(group, title, self.combo(prop, opts))
+        lid = [(1, _("Sleep")), (3, _("Lock screen")), (0, _("Turn off the screen")), (2, _("Hibernate"))]
+        self.row(group, _("When the lid is closed"), self.combo("lid-action-on-battery", lid,
+                                                                 also="lid-action-on-ac"))
+        more = Gtk.Button(label=_("Advanced Power Settings…"), halign=Gtk.Align.START, margin_top=8)
+        more.connect("clicked", lambda _b: subprocess.Popen(["xfce4-power-manager-settings"], start_new_session=True))
+        page.pack_start(more, False, False, 0)
+
+    def group(self, page, title):
+        lab = Gtk.Label(label=title, xalign=0)
+        lab.get_style_context().add_class("section-title")
+        page.pack_start(lab, False, False, 0)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        box.get_style_context().add_class("group")
+        box.rows = 0
+        page.pack_start(box, False, False, 0)
+        return box
+
+    def row(self, group, title, widget, hint=None):
+        box = Gtk.Box(spacing=12)
+        box.get_style_context().add_class("row")
+        if group.rows:
+            box.get_style_context().add_class("row-sep")
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        text.pack_start(Gtk.Label(label=title, xalign=0), False, False, 0)
+        if hint:
+            h = Gtk.Label(label=hint, xalign=0, wrap=True)
+            h.get_style_context().add_class("card-sub")
+            text.pack_start(h, False, False, 0)
+        box.pack_start(text, True, True, 0)
+        widget.set_valign(Gtk.Align.CENTER)
+        box.pack_end(widget, False, False, 0)
+        group.pack_start(box, False, False, 0)
+        group.rows += 1
+
+    def combo(self, prop, options, also=None):
+        cur = run("xfconf-query", "-c", PM, "-p", f"/{PM}/{prop}")
+        c = Gtk.ComboBoxText()
+        for value, label in options:
+            c.append(str(value), label)
+        if cur and not c.set_active_id(cur):
+            c.append(cur, _("%s minutes") % cur)
+            c.set_active_id(cur)
+        elif not cur:
+            c.set_active(0)
+
+        def changed(combo):
+            for p in filter(None, (prop, also)):
+                run("xfconf-query", "-c", PM, "-p", f"/{PM}/{p}", "-n", "-t", "uint", "-s", combo.get_active_id())
+        c.connect("changed", changed)
+        return c
+
+    def toggle_auto(self, switch, _p):
+        if switch.get_active():
+            os.makedirs(os.path.dirname(AUTO_SAVER), exist_ok=True)
+            open(AUTO_SAVER, "w").close()
+        elif os.path.exists(AUTO_SAVER):
+            os.unlink(AUTO_SAVER)
+
+    # ---- obnova ----
+    def refresh(self):
+        info = self.bat.info()
+        has = bool(info) and info.get("IsPresent", True)
+        self.battery_box.set_visible(has)
+        self.battery_box.set_no_show_all(not has)
+        self.no_battery.set_visible(not has)
+        if not has:
+            return True
+        pct = info.get("Percentage", 0)
+        st = info.get("State", 0)
+        charging = st in (STATE_CHARGING, STATE_PENDING_CHARGE)
+        self.icon.set_state(pct, charging)
+        self.pct.set_text(f"{pct:.0f} %")
+        if st == STATE_CHARGING:
+            left = fmt_duration(info.get("TimeToFull", 0))
+            text = _("Charging") + (" · " + _("full in %s") % left if left else "")
+        elif st == STATE_DISCHARGING:
+            left = fmt_duration(info.get("TimeToEmpty", 0))
+            text = _("On battery") + (" · " + _("about %s left") % left if left else "")
+        elif st == STATE_FULL:
+            text = _("Fully charged")
+        else:
+            text = _("Plugged in, not charging")
+        self.state.set_text(text)
+        rate = info.get("EnergyRate", 0)
+        self.v_rate.set_text(f"{rate:.1f} W" if rate else "-")
+        self.s_rate.set_text(_("charging power") if charging else _("current consumption"))
+        full, design = info.get("EnergyFull", 0), info.get("EnergyFullDesign", 0)
+        health = info.get("Capacity") or (full / design * 100 if design else 0)
+        self.v_health.set_text(f"{health:.0f} %" if health else "-")
+        self.s_health.set_text(_("of original capacity"))
+        cycles = info.get("ChargeCycles", -1)
+        self.v_cycles.set_text(str(cycles) if cycles and cycles > 0 else "-")
+        self.s_cycles.set_text(_("full charge cycles"))
+        self.v_energy.set_text(f"{info.get('Energy', 0):.1f} Wh")
+        self.s_energy.set_text(_("of %.1f Wh") % full if full else "")
+        return True
+
+    def refresh_history(self):
+        self.chart_charge.set_points(self.bat.history("charge"))
+        self.chart_rate.set_points(self.bat.history("rate"))
+        return True
+
+
+def main():
+    GLib.set_prgname("luxos-power")
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = PowerWindow()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    win.refresh()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

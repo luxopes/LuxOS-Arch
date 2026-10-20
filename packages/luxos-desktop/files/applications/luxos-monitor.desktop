@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=System Monitor
+Name[cs]=Monitor systému
+Comment=See how your computer is doing and quit apps that stopped responding
+Comment[cs]=Výkon počítače v grafech a ukončení aplikací, které nereagují
+Exec=luxos-monitor
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;Monitor;GTK;
+Keywords=task;manager;process;cpu;memory;kill;úlohy;procesy;paměť;procesor;
+StartupWMClass=luxos-monitor

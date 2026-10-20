@@ -331,3 +331,143 @@ Text Editor	Textový editor
 Image Viewer	Prohlížeč obrázků
 Document Viewer	Prohlížeč dokumentů
 System Monitor	Monitor systému
+# Monitory
+Extend - use both screens	Rozšířit - použít obě obrazovky
+Mirror - same picture on both	Zrcadlit - stejný obraz na obou
+Only external screen	Jen externí obrazovka
+Only this computer's screen	Jen obrazovka tohoto počítače
+Screens	Obrazovky
+# Baterie a napajeni
+Battery…	Baterie…
+Battery Saver is on	Spořič baterie je zapnutý
+Battery is at %s %%. Connect the charger.	Baterie je na %s %%. Připojte nabíječku.
+%d min	%d min
+%d h %d min	%d h %d min
+now	teď
+No history yet	Zatím žádná historie
+Battery & Power	Baterie a napájení
+Power usage	Spotřeba
+Battery health	Zdraví baterie
+Charge cycles	Nabíjecí cykly
+Energy	Energie
+Battery level - last 24 hours	Stav baterie - posledních 24 hodin
+Power usage - last 24 hours	Spotřeba - posledních 24 hodin
+This computer runs on mains power - there is no battery.	Tento počítač běží ze sítě - nemá baterii.
+Power mode	Výkonový režim
+Power Saver	Úsporný
+Longest battery life	Nejdelší výdrž baterie
+Balanced	Vyvážený
+Recommended	Doporučeno
+Performance	Výkon
+Fastest, uses more power	Nejrychlejší, víc spotřebovává
+Saves energy: power saving mode and fewer animations.	Šetří energii: úsporný režim a méně animací.
+Turn on automatically at 20 %	Zapnout automaticky při 20 %
+Turns off again when the computer is charging.	Při nabíjení se zase vypne.
+Screen and sleep	Obrazovka a uspání
+Never	Nikdy
+1 minute	1 minuta
+2 minutes	2 minuty
+5 minutes	5 minut
+10 minutes	10 minut
+15 minutes	15 minut
+30 minutes	30 minut
+1 hour	1 hodina
+2 hours	2 hodiny
+Turn off the screen on battery after	Vypnout obrazovku na baterii po
+Turn off the screen on power adapter after	Vypnout obrazovku na adaptéru po
+Sleep on battery after	Uspat na baterii po
+Sleep on power adapter after	Uspat na adaptéru po
+Sleep	Uspat
+Turn off the screen	Vypnout obrazovku
+Hibernate	Hibernovat
+When the lid is closed	Po zavření víka
+Advanced Power Settings…	Pokročilé nastavení napájení…
+%s minutes	%s minut
+full in %s	plně nabito za %s
+about %s left	zbývá asi %s
+Plugged in, not charging	Připojeno, nenabíjí se
+charging power	nabíjecí výkon
+current consumption	aktuální spotřeba
+of original capacity	původní kapacity
+full charge cycles	plných nabití
+of %.1f Wh	z %.1f Wh
+# Bluetooth
+OK	OK
+Rejected	Odmítnuto
+Pair this device?	Spárovat toto zařízení?
+Check that the device shows this code:	Zkontrolujte, že zařízení ukazuje tento kód:
+Pair	Spárovat
+Type this code on the device	Napište tento kód na zařízení
+Then press Enter on it.	Pak na něm stiskněte Enter.
+Enter the PIN code	Zadejte PIN
+Usually 0000 or 1234, see the device manual.	Obvykle 0000 nebo 1234, viz návod k zařízení.
+Enter the code	Zadejte kód
+Code shown on the device:	Kód zobrazený na zařízení:
+Connected	Připojeno
+battery %d %%	baterie %d %%
+Disconnect	Odpojit
+Connect	Připojit
+Forget this device	Zapomenout toto zařízení
+My devices	Moje zařízení
+Nearby devices	Zařízení v okolí
+No devices	Žádná zařízení
+Searching… Put the device into pairing mode.	Hledám… Přepněte zařízení do režimu párování.
+No Bluetooth adapter was found on this computer.	V tomto počítači nebyl nalezen adaptér Bluetooth.
+Visible as “%s”.	Viditelné jako „%s“.
+Turn on Bluetooth to connect headphones, a mouse, a keyboard or a phone.	Zapněte Bluetooth a připojte sluchátka, myš, klávesnici nebo telefon.
+Could not connect	Nepodařilo se připojit
+Pairing…	Páruji…
+Connecting…	Připojuji…
+Disconnecting…	Odpojuji…
+Make sure the device is on, close by and in pairing mode.	Zkontrolujte, že je zařízení zapnuté, nablízku a v režimu párování.
+Headphones	Sluchátka
+Speaker	Reproduktor
+Mouse	Myš
+Game controller	Herní ovladač
+Tablet	Tablet
+Phone	Telefon
+Device	Zařízení
+# Monitor systemu
+60 s ago	před 60 s
+%d processes	%d procesů
+1 process	1 proces
+All processes	Všechny procesy
+Network	Síť
+Name	Název
+%d cores	%d jader
+%s of %s used	využito %s z %s
+%s free · activity %s	volno %s · aktivita %s
+Download and upload	Stahování a odesílání
+All processes (%d)	Všechny procesy (%d)
+Open apps (%d)	Otevřené aplikace (%d)
+%s is not responding	%s nereaguje
+Force quit it? Unsaved changes will be lost.	Vynutit ukončení? Neuložené změny budou ztraceny.
+Force Quit	Vynutit ukončení
+# lux - format balicku
+Updating LuxOS apps	Aktualizuji aplikace LuxOS
+Usage: lux pack <directory> [output]	Použití: lux pack <adresář> [výstup]
+%s has no lux.json	%s nemá lux.json
+lux.json is not valid JSON	lux.json není platný JSON
+Invalid package name: %s	Neplatný název balíku: %s
+Invalid version: %s	Neplatná verze: %s
+%s has no app/ directory	%s nemá adresář app/
+Missing files listed in bin: %s	Chybí soubory uvedené v bin: %s
+Built %s	Sestaveno %s
+%s is not a lux package	%s není balík lux
+This package needs a newer lux	Tento balík potřebuje novější lux
+Signature OK (LuxOS)	Podpis v pořádku (LuxOS)
+%s is not signed by LuxOS.	%s není podepsaný LuxOS.
+Install it anyway?	Přesto nainstalovat?
+Installing dependencies: %s	Instaluji závislosti: %s
+Dependencies could not be installed	Závislosti se nepodařilo nainstalovat
+Installing %s %s	Instaluji %s %s
+Could not unpack %s	%s nelze rozbalit
+%s is installed	%s je nainstalováno
+Removing %s	Odebírám %s
+%s was removed	%s bylo odebráno
+Downloading %s	Stahuji %s
+Download failed: %s	Stahování selhalo: %s
+Checksum mismatch: %s	Nesouhlasí kontrolní součet: %s
+Bad signature: %s	Neplatný podpis: %s
+LuxOS package (.lux)	balík LuxOS (.lux)
+build a .lux package from a directory with lux.json	sestavit balík .lux z adresáře s lux.json

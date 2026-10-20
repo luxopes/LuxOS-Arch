@@ -21,6 +21,10 @@ for _c in /etc/lux/lux.conf "${XDG_CONFIG_HOME:-$HOME/.config}/lux/lux.conf"; do
     [[ -r $_c ]] && . "$_c"
 done
 LUX_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/lux"
+# Vlastni format balicku LuxOS (.lux)
+LUXPKG=${LUXPKG:-/usr/lib/lux/luxpkg.sh}
+[[ -r $LUXPKG ]] || LUXPKG="$(dirname "$(readlink -f "$0")")/luxpkg.sh"
+. "$LUXPKG"
 
 YES=0
 ONLY=""   # repo | aur
@@ -130,9 +134,12 @@ aur_install() {
 # --- Prikazy ----------------------------------------------------------------
 cmd_install() {
     (($#)) || die "$(T "Usage: lux install <package...>")"
-    local repo=() aur=() p
+    local repo=() aur=() luxp=() p
     for p in "$@"; do
-        if [[ $ONLY != aur ]] && in_repos "$p"; then repo+=("$p")
+        if [[ $p == *.lux && -f $p ]]; then
+            as_root "$0" __lux-file "$(readlink -f "$p")" || exit 1
+        elif [[ $ONLY != aur ]] && in_repos "$p"; then repo+=("$p")
+        elif [[ $ONLY != aur ]] && [[ -n $(lp_index_entry "$p") ]]; then luxp+=("$p")
         elif [[ $ONLY != repo ]] && ((AUR)) && aur_exists "$p"; then aur+=("$p")
         elif [[ $ONLY != repo && $p == *.*.* ]] && command -v flatpak &>/dev/null; then
             say "$(T "Installing %s from Flathub" "${B}$p${R}")"; flatpak install -y flathub "$p" || exit 1
@@ -143,12 +150,22 @@ cmd_install() {
     if ((${#repo[@]})); then
         as_root pacman -S --needed $(pac_yes) "${repo[@]}" || exit 1
     fi
+    for p in "${luxp[@]}"; do
+        as_root "$0" __lux-install "$p" || exit 1
+    done
     aur_install "${aur[@]}"
 }
 
 cmd_remove() {
     (($#)) || die "$(T "Usage: lux remove <package...>")"
-    as_root pacman -Rns $(pac_yes) "$@"
+    local -a pac=()
+    local p
+    for p in "$@"; do
+        if lp_installed "$p"; then as_root "$0" __lux-remove "$p" || exit 1
+        else pac+=("$p"); fi
+    done
+    ((${#pac[@]})) || return 0
+    as_root pacman -Rns $(pac_yes) "${pac[@]}"
 }
 
 cmd_update() {
@@ -178,6 +195,19 @@ cmd_update() {
         fi
     fi
 
+    if [[ $ONLY == "" ]]; then
+        local -a lupd=()
+        mapfile -t lupd < <(LUX_REFRESH=1 lp_updates)
+        if ((${#lupd[@]})); then
+            say "$(T "Updating LuxOS apps")"
+            local l
+            for l in "${lupd[@]}"; do
+                printf '  %s %s%s%s → %s%s%s\n' "${l%% *}" "$D" "$(cut -d' ' -f2 <<<"$l")" "$R" "$G" "${l##* }" "$R"
+                as_root "$0" __lux-install "${l%% *}" || exit 1
+            done
+        fi
+    fi
+
     if ((FLATPAK)) && command -v flatpak &>/dev/null && [[ $ONLY == "" ]]; then
         say "$(T "Updating Flatpak apps")"; flatpak update -y --noninteractive
     fi
@@ -195,6 +225,12 @@ cmd_search() {
         printf '%sRepositories%s\n' "$B" "$R"
         pacman -Ss --color "$([[ -t 1 ]] && echo always || echo never)" -- "$@" || echo "  (nothing)"
     fi
+    if [[ $ONLY != aur ]]; then
+        lp_index | jq -r --arg q "${1,,}" '.packages[] | select((.name | ascii_downcase | contains($q)) or ((.summary // "") | ascii_downcase | contains($q))) | "\(.name)\t\(.version)-\(.release // 1)\t\(.summary // "")"' |
+            while IFS=$'\t' read -r n v d; do
+                printf '%slux/%s%s %s%s%s %s(LuxOS)%s\n    %s\n' "$C" "$n" "$R" "$G" "$v" "$R" "$D" "$R" "$d"
+            done
+    fi
     if [[ $ONLY != repo ]] && ((AUR)) && command -v jq &>/dev/null; then
         printf '\n%sAUR%s %s(community)%s\n' "$B" "$R" "$D" "$R"
         curl -fsSL --max-time 20 "$LUX_AUR_RPC/search/$(jq -rn --arg v "$1" '$v|@uri')?by=name-desc" |
@@ -208,6 +244,13 @@ cmd_search() {
 cmd_info() {
     (($#)) || die "$(T "Usage: lux info <package>")"
     pacman -Qi -- "$1" 2>/dev/null || pacman -Si -- "$1" 2>/dev/null && return
+    local meta
+    if lp_installed "$1"; then meta=$(cat "$LUX_DB/$1.json"); else meta=$(lp_index_entry "$1"); fi
+    if [[ -n $meta ]]; then
+        jq -r '"Name            : \(.name)\nVersion         : \(.version)-\(.release // 1)\nDescription     : \(.summary // "")\nURL             : \(.url // "")\nLicense         : \(.license // "")\nDepends On      : \((.depends.system // []) + (.depends.lux // []) | join(" "))\nFormat          : lux"' <<<"$meta"
+        lp_installed "$1" && echo "Installed       : $(jq -r .installed <<<"$meta")"
+        return
+    fi
     if ((AUR)); then
         aur_info "$1" | jq -r '.[0] // empty | "Name            : \(.Name)\nVersion         : \(.Version)\nDescription     : \(.Description)\nURL             : \(.URL)\nDepends On      : \((.Depends // []) | join(" "))\nMaintainer      : \(.Maintainer)\nVotes           : \(.NumVotes)\nRepository      : aur"' | grep . && return
     fi
@@ -216,9 +259,10 @@ cmd_info() {
 
 cmd_list() {
     case ${1-} in
+        --lux)      lp_list ;;
         --aur)      pacman -Qm ;;
         --explicit) pacman -Qe ;;
-        "")         pacman -Q ;;
+        "")         pacman -Q; lp_list ;;
         *)          pacman -Q | grep -i -- "$1" ;;
     esac
 }
@@ -298,7 +342,8 @@ remove, rm <pkg...>|remove packages and their unneeded dependencies
 update, up|update everything (system, AUR, Flatpak)
 search, s <term>|search repositories and AUR
 info <pkg>|show package details
-list [--aur, --explicit]|list installed packages
+list [--lux, --aur]|list installed packages
+pack <dir> [out]|build a .lux package from a directory with lux.json
 files <pkg>|files installed by a package
 owner <file>|which package owns a file
 clean|clean cache and remove unneeded packages
@@ -410,6 +455,11 @@ case $cmd in
     doctor)             cmd_doctor ;;
     history)            cmd_history "$@" ;;
     tui|store)          cmd_tui ;;
+    pack)               (($#)) || die "$(T "Usage: lux pack <directory> [output]")"; lp_pack "$@" ;;
+    __lux-file)         ((EUID == 0)) || exit 1; lp_install_file "$1" ;;
+    __index)            lp_index ;;
+    __lux-install)      ((EUID == 0)) || exit 1; lp_install_name "$1" ;;
+    __lux-remove)       ((EUID == 0)) || exit 1; lp_remove "$1" ;;
     __preview)          cmd_preview "$@" ;;
     "")                 if [[ -t 0 && -t 1 ]]; then cmd_tui; else usage; fi ;;
     *)                  die "$(T "Unknown command '%s' (see lux --help)" "$cmd")" ;;

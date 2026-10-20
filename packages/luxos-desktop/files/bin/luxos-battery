@@ -7,6 +7,22 @@ if [[ -z $bat ]]; then
     exit 0
 fi
 cap=$(<"$bat/capacity") st=$(<"$bat/status")
+
+# Automaticky Sporic baterie pri 20 % (zapina Baterie a napajeni); po pripojeni
+# nabijecky ho zase vypne, ale jen kdyz ho zapnul on
+auto="${XDG_CONFIG_HOME:-$HOME/.config}/luxos/powersaver-auto"
+mark="${XDG_RUNTIME_DIR:-/tmp}/luxos-powersaver-auto-on"
+if [[ -e $auto ]]; then
+    if [[ $st == Discharging && $cap -le 20 && ! -e $mark && $(luxos-powersaver status) == off ]]; then
+        luxos-powersaver on >/dev/null
+        : >"$mark"
+        notify-send -i battery-caution -a LuxOS "$(T "Battery Saver is on")" \
+            "$(T "Battery is at %s %%. Connect the charger." "$cap")" 2>/dev/null
+    elif [[ $st != Discharging && -e $mark ]]; then
+        luxos-powersaver off >/dev/null
+        rm -f "$mark"
+    fi
+fi
 level=$(( (cap + 5) / 10 * 10 ))
 icon="battery-level-$level"
 [[ $st == Charging ]] && icon+="-charging"

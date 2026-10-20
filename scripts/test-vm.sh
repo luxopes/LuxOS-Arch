@@ -26,7 +26,7 @@ args=(
     -name LuxOS -enable-kvm -machine q35 -cpu host -smp 4 -m "${LUXOS_VM_MEM:-4096}"
     -drive file="$T/disk.qcow2",if=virtio,discard=unmap,cache=unsafe
     -nic user,model=virtio-net-pci
-    -device virtio-vga -device qemu-xhci -device usb-tablet
+    -device "virtio-vga${LUXOS_VM_OUTPUTS:+,max_outputs=$LUXOS_VM_OUTPUTS}" -device qemu-xhci -device usb-tablet
     -audiodev none,id=snd0 -device intel-hda -device hda-output,audiodev=snd0
     -chardev socket,path="$T/qga.sock",server=on,wait=off,id=qga0
     -device virtio-serial -device virtserialport,chardev=qga0,name=org.qemu.guest_agent.0
