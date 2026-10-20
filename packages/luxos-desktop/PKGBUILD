@@ -34,7 +34,7 @@ depends=(
     # Pisma
     inter-font noto-fonts noto-fonts-emoji ttf-liberation ttf-jetbrains-mono-nerd
     # Aplikace
-    firefox mousepad ristretto evince xarchiver 7zip unzip zip galculator celluloid
+    firefox mousepad ristretto evince xarchiver 7zip unzip zip celluloid python-gobject
     # Nastroje
     lshw pciutils usbutils
 )

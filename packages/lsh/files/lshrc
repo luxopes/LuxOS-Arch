@@ -1,0 +1,49 @@
+# /etc/lsh/lshrc - systemova konfigurace lsh (Lux Shell)
+# Cte ji kazdy interaktivni lsh (i prihlasovaci); vlastni nastaveni patri do ~/.lshrc.
+
+[[ $- != *i* ]] && return
+
+# Programy instalovane pres pip --user, lsl install apod.
+[[ :$PATH: == *:"$HOME/.local/bin":* ]] || PATH="$HOME/.local/bin:$PATH"
+
+# pip mimo virtualni prostredi: misto chyby "externally-managed-environment"
+# jen varovani; balicky jdou do ~/.local, systemove soubory zustanou netknute
+export PIP_BREAK_SYSTEM_PACKAGES=1
+_lsh_pip() {
+    local pip=$1
+    shift
+    if [[ ${1-} == install && -z ${VIRTUAL_ENV-} && -z ${CONDA_PREFIX-} ]]; then
+        printf '\e[33mlsh: warning:\e[0m installing Python packages outside a virtual environment\n' >&2
+        printf '\e[2m     they go to ~/.local; for projects prefer: python -m venv .venv\e[0m\n' >&2
+        if (( EUID != 0 )) && [[ " $* " != *" --user "* ]]; then
+            shift
+            set -- install --user "$@"
+        fi
+    fi
+    command "$pip" "$@"
+}
+pip()  { _lsh_pip pip "$@"; }
+pip3() { _lsh_pip pip3 "$@"; }
+
+# Radky LSL zadane primo v shellu (print ..., load ..., x = ...) prepise lsh na
+# "lsl-session run '...'"; nactene moduly a prirazeni si pamatuje pro dalsi radky
+lsl-session() {
+    local f="${XDG_RUNTIME_DIR:-/tmp}/lsh-lsl-$$.lsl" status
+    case ${1:-show} in
+        run)
+            { [[ -s $f ]] && cat "$f"; printf '%s\n' "$2"; } | command lsl
+            status=${PIPESTATUS[1]}
+            if (( status == 0 )) && [[ $2 =~ ^[[:space:]]*(load[[:space:]]|[A-Za-z_][A-Za-z0-9_]*[[:space:]]+=[^=]) ]]; then
+                printf '%s\n' "$2" >> "$f"
+            fi
+            return "$status" ;;
+        show)  if [[ -s $f ]]; then cat "$f"; else echo "lsl-session: empty"; fi ;;
+        clear) rm -f "$f" ;;
+        *)     echo "usage: lsl-session [show|clear|run CODE]" >&2; return 2 ;;
+    esac
+}
+complete -W 'show clear' lsl-session
+complete -W 'shell os lsl' about
+
+# Spolecna konfigurace LuxOS (ble.sh, starship, aliasy, historie, fastfetch)
+[[ -r /usr/share/luxos/shell/bashrc ]] && . /usr/share/luxos/shell/bashrc

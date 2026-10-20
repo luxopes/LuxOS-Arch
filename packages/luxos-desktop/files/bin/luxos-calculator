@@ -1,0 +1,339 @@
+#!/usr/bin/env python3
+"""LuxOS Calculator - jednoducha kalkulacka v barvach LuxOS (GTK 3).
+
+Pocita v desitkove aritmetice (0,1 + 0,2 = 0,3), respektuje prednost operatoru
+a ovlada se i z klavesnice: cislice, + - * /, Enter, Backspace, Esc, %,
+Ctrl+C / Ctrl+V.
+"""
+import locale
+from decimal import Decimal, DivisionByZero, InvalidOperation, getcontext
+
+import gi
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+
+getcontext().prec = 34
+MAX_DIGITS = 15
+
+try:
+    locale.setlocale(locale.LC_ALL, "")
+except locale.Error:
+    pass
+DEC = locale.localeconv().get("decimal_point") or "."
+GROUP = " " if DEC == "," else ","  # uzka mezera pro carku, jinak carka
+
+OPS = {"+": "+", "-": "−", "*": "×", "/": "÷"}
+
+CSS = """
+window.luxcalc { background-image: linear-gradient(165deg, @calc_bg_top, @calc_bg_bottom); }
+window.luxcalc headerbar { background: none; border: none; box-shadow: none; min-height: 34px; }
+.calc-expr { color: @calc_dim; font-size: 15px; }
+.calc-value { color: @calc_fg; font-size: 46px; font-weight: 300; }
+button.key {
+    border: none; border-radius: 16px; box-shadow: none; text-shadow: none;
+    background-image: none; background-color: @calc_key; color: @calc_fg;
+    font-size: 21px; min-height: 56px; min-width: 56px; padding: 0;
+    transition: background-color 120ms ease, opacity 120ms ease;
+}
+button.key:hover { background-color: @calc_key_hover; }
+button.key:active { background-color: @calc_key_active; }
+button.key.fn { background-color: @calc_fn; }
+button.key.fn:hover { background-color: @calc_fn_hover; }
+button.key.op { background-image: linear-gradient(180deg, #4d8dff, #5b4bff); color: white; font-size: 25px; }
+button.key.op:hover { background-image: linear-gradient(180deg, #62a0ff, #6d5eff); }
+button.key.op.selected { background-image: none; background-color: white; color: #4d5bff; }
+button.key.eq { background-image: linear-gradient(180deg, #ffbf57, #ff7a3c); color: white; font-size: 25px; }
+button.key.eq:hover { background-image: linear-gradient(180deg, #ffcb73, #ff8c52); }
+"""
+
+DARK = """
+@define-color calc_bg_top #1d2145; @define-color calc_bg_bottom #0f1024;
+@define-color calc_fg #ffffff; @define-color calc_dim alpha(#ffffff, 0.5);
+@define-color calc_key alpha(#ffffff, 0.09); @define-color calc_key_hover alpha(#ffffff, 0.15);
+@define-color calc_key_active alpha(#ffffff, 0.24);
+@define-color calc_fn alpha(#a9b8ff, 0.22); @define-color calc_fn_hover alpha(#a9b8ff, 0.32);
+"""
+
+LIGHT = """
+@define-color calc_bg_top #f4f6fd; @define-color calc_bg_bottom #e3e7f6;
+@define-color calc_fg #1d1d2b; @define-color calc_dim alpha(#1d1d2b, 0.5);
+@define-color calc_key #ffffff; @define-color calc_key_hover #f0f2fb;
+@define-color calc_key_active #dfe3f5;
+@define-color calc_fn #d5dbf3; @define-color calc_fn_hover #c8d0f0;
+"""
+
+
+def evaluate(tokens):
+    """Vyhodnoti [cislo, op, cislo, ...] s prednosti * a / pred + a -."""
+    terms = [tokens[0]]
+    for i in range(1, len(tokens), 2):
+        op, num = tokens[i], tokens[i + 1]
+        if op == "*":
+            terms[-1] *= num
+        elif op == "/":
+            terms[-1] /= num
+        else:
+            terms.append(num if op == "+" else -num)
+    return sum(terms, Decimal(0))
+
+
+def fmt(value):
+    """Decimal -> text pro displej (seskupeni tisicu, vedecky zapis u extremu)."""
+    if value.is_zero():
+        return "0"
+    exp = value.adjusted()
+    if exp >= MAX_DIGITS or exp < -8:
+        mant, e = f"{value:.8e}".split("e")
+        mant = mant.rstrip("0").rstrip(".")
+        return f"{mant.replace('.', DEC)}e{int(e)}"
+    q = value.quantize(Decimal(1).scaleb(-max(0, MAX_DIGITS - 1 - max(exp, 0))))
+    text = format(q.normalize(), "f")
+    return group(text)
+
+
+def group(text):
+    sign = "-" if text.startswith("-") else ""
+    text = text.lstrip("-")
+    whole, _, frac = text.partition(".")
+    parts = []
+    while len(whole) > 3:
+        parts.insert(0, whole[-3:])
+        whole = whole[:-3]
+    parts.insert(0, whole)
+    out = sign + GROUP.join(parts)
+    if _ or frac:
+        out += DEC + frac
+    return out
+
+
+class Calculator(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="Calculator")
+        self.get_style_context().add_class("luxcalc")
+        self.set_resizable(False)
+        self.set_icon_name("luxos-calculator")
+
+        header = Gtk.HeaderBar(show_close_button=True)
+        header.set_title("")
+        self.set_titlebar(header)
+
+        self.tokens = []        # dokoncene cleny vyrazu [Decimal, op, Decimal, ...]
+        self.entry = ""         # prave psane cislo (bez formatovani)
+        self.result = None      # vysledek posledniho "="
+        self.op_buttons = {}
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin=14, margin_top=4)
+        self.add(box)
+        self.expr = Gtk.Label(xalign=1, ellipsize=3)
+        self.expr.get_style_context().add_class("calc-expr")
+        self.value = Gtk.Label(xalign=1)
+        self.value.get_style_context().add_class("calc-value")
+        box.pack_start(self.expr, False, False, 0)
+        box.pack_start(self.value, False, False, 6)
+
+        grid = Gtk.Grid(row_spacing=10, column_spacing=10, row_homogeneous=True, column_homogeneous=True)
+        box.pack_start(grid, True, True, 0)
+        layout = [
+            [("AC", "fn", self.clear), ("±", "fn", self.negate), ("%", "fn", self.percent), ("/", "op", None)],
+            [("7", "", None), ("8", "", None), ("9", "", None), ("*", "op", None)],
+            [("4", "", None), ("5", "", None), ("6", "", None), ("-", "op", None)],
+            [("1", "", None), ("2", "", None), ("3", "", None), ("+", "op", None)],
+            [("0", "", None), (DEC, "", self.point), ("⌫", "fn", self.backspace), ("=", "eq", self.equals)],
+        ]
+        for r, row in enumerate(layout):
+            for c, (label, kind, handler) in enumerate(row):
+                btn = Gtk.Button(label=OPS.get(label, label) if kind == "op" else label, can_focus=False)
+                ctx = btn.get_style_context()
+                ctx.add_class("key")
+                if kind:
+                    ctx.add_class(kind)
+                if kind == "op":
+                    self.op_buttons[label] = btn
+                    btn.connect("clicked", lambda _b, o=label: self.operator(o))
+                elif handler:
+                    btn.connect("clicked", lambda _b, h=handler: h())
+                else:
+                    btn.connect("clicked", lambda _b, d=label: self.digit(d))
+                if label == "AC":
+                    self.clear_btn = btn
+                grid.attach(btn, c, r, 1, 1)
+
+        self.connect("key-press-event", self.on_key)
+        self.refresh()
+
+    # ---- logika ----------------------------------------------------------
+    def current(self):
+        if self.entry:
+            return Decimal(self.entry)
+        if self.result is not None:
+            return self.result
+        return Decimal(0)
+
+    def digit(self, d):
+        if self.result is not None and not self.tokens:
+            self.result = None
+        if len(self.entry.replace("-", "").replace(".", "")) >= MAX_DIGITS:
+            return
+        self.entry = d if self.entry in ("", "0") else self.entry + d
+        self.refresh()
+
+    def point(self):
+        if self.result is not None and not self.tokens:
+            self.result = None
+        if "." not in self.entry:
+            self.entry = (self.entry or "0") + "."
+        self.refresh()
+
+    def operator(self, op):
+        if self.entry:
+            self.tokens.append(Decimal(self.entry))
+            self.entry = ""
+        elif not self.tokens:
+            self.tokens.append(self.result if self.result is not None else Decimal(0))
+        if len(self.tokens) % 2 == 0:
+            self.tokens[-1] = op           # zmena operatoru
+        else:
+            self.tokens.append(op)
+        self.result = None
+        self.refresh()
+
+    def equals(self):
+        if not self.tokens:
+            return
+        if self.entry:
+            self.tokens.append(Decimal(self.entry))
+        elif len(self.tokens) % 2 == 0:
+            self.tokens.append(self.tokens[-2])  # 5 + = -> 5 + 5
+        expr = self.expression_text() + " ="
+        try:
+            self.result = evaluate(self.tokens)
+        except (DivisionByZero, InvalidOperation):
+            self.result = None
+            self.tokens, self.entry = [], ""
+            self.show(expr, "Error")
+            return
+        self.tokens, self.entry = [], ""
+        self.show(expr, fmt(self.result))
+        self.update_ops()
+
+    def clear(self):
+        if self.entry:
+            self.entry = ""
+        else:
+            self.tokens, self.result = [], None
+        self.refresh()
+
+    def negate(self):
+        if self.entry:
+            self.entry = self.entry[1:] if self.entry.startswith("-") else "-" + self.entry
+        elif self.result is not None:
+            self.result = -self.result
+        self.refresh()
+
+    def percent(self):
+        value = self.current()
+        if len(self.tokens) >= 2 and self.tokens[-1] in "+-":
+            value = self.tokens[-2] * value / 100   # 200 + 10 % -> 200 + 20
+        else:
+            value = value / 100
+        self.entry = format(value.normalize(), "f")
+        self.refresh()
+
+    def backspace(self):
+        if self.entry:
+            self.entry = self.entry[:-1]
+            if self.entry in ("-", "-0"):
+                self.entry = ""
+        self.refresh()
+
+    # ---- zobrazeni -------------------------------------------------------
+    def expression_text(self):
+        parts = []
+        for t in self.tokens:
+            parts.append(OPS[t] if isinstance(t, str) else fmt(t))
+        return " ".join(parts)
+
+    def entry_text(self):
+        if not self.entry:
+            return None
+        neg = self.entry.startswith("-")
+        whole, dot, frac = self.entry.lstrip("-").partition(".")
+        text = group(("-" if neg else "") + (whole or "0"))
+        return text + (DEC + frac if dot else "")
+
+    def show(self, expr, value):
+        self.expr.set_text(expr or " ")
+        size = 46 if len(value) <= 9 else max(24, 46 - (len(value) - 9) * 3)
+        self.value.set_markup(f'<span size="{size * 1024}">{GLib.markup_escape_text(value)}</span>')
+        self.clear_btn.set_label("C" if self.entry else "AC")
+
+    def refresh(self):
+        text = self.entry_text()
+        if text is None:
+            text = fmt(self.result) if self.result is not None else (
+                fmt(self.tokens[-2]) if len(self.tokens) >= 2 else "0")
+        self.show(self.expression_text(), text)
+        self.update_ops()
+
+    def update_ops(self):
+        pending = self.tokens[-1] if self.tokens and not self.entry and isinstance(self.tokens[-1], str) else None
+        for op, btn in self.op_buttons.items():
+            ctx = btn.get_style_context()
+            (ctx.add_class if op == pending else ctx.remove_class)("selected")
+
+    # ---- klavesnice a schranka --------------------------------------------
+    def on_key(self, _w, ev):
+        key = Gdk.keyval_name(ev.keyval) or ""
+        ctrl = ev.state & Gdk.ModifierType.CONTROL_MASK
+        ch = chr(Gdk.keyval_to_unicode(ev.keyval) or 0)
+        if ctrl and key.lower() == "c":
+            Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(self.value.get_text(), -1)
+        elif ctrl and key.lower() == "v":
+            text = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).wait_for_text() or ""
+            text = text.strip().replace(GROUP, "").replace(" ", "").replace(DEC, ".")
+            try:
+                Decimal(text)
+            except InvalidOperation:
+                return True
+            self.entry = text
+            self.refresh()
+        elif ch.isdigit():
+            self.digit(ch)
+        elif ch in ".,":
+            self.point()
+        elif ch in "+-*/":
+            self.operator(ch)
+        elif ch == "%":
+            self.percent()
+        elif key in ("Return", "KP_Enter") or ch == "=":
+            self.equals()
+        elif key == "BackSpace":
+            self.backspace()
+        elif key in ("Escape", "Delete"):
+            self.clear()
+        elif ctrl and key.lower() in ("q", "w"):
+            self.close()
+        else:
+            return False
+        return True
+
+
+def main():
+    GLib.set_prgname("luxos-calculator")  # WM_CLASS pro dock a horni listu
+    GLib.set_application_name("Calculator")
+    settings = Gtk.Settings.get_default()
+    dark = "dark" in (settings.props.gtk_theme_name or "").lower()
+    provider = Gtk.CssProvider()
+    provider.load_from_data(((DARK if dark else LIGHT) + CSS).encode())
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = Calculator()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

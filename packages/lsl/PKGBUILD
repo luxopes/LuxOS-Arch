@@ -1,0 +1,25 @@
+# Maintainer: LuxOS Team
+# Lux Simple Lang - oficialni binarni vydani (staticke ELF, stdlib vedle v /usr/lib/lsl)
+
+pkgname=lsl
+pkgver=0.10.2
+pkgrel=1
+pkgdesc="Lux Simple Lang - self-hosted programming language and toolchain"
+arch=(x86_64)
+url="https://lsl.lux-ai.cz"
+license=(MIT)
+depends=(binutils curl)
+options=(!strip !debug)
+source=("https://lsl.lux-ai.cz/downloads/lsl-$pkgver-linux-x86_64.tar.gz")
+sha256sums=('387993aae033ace1d77b035e3682e7ba0c12d11a1a8c8be4a9d8737843eaa1fb')
+
+package() {
+    cd "lsl-$pkgver"
+    # lsl hleda standardni knihovny relativne k /proc/self/exe (../lib/lsl)
+    install -Dm755 -t "$pkgdir/usr/bin" bin/lsl bin/lslc bin/luxir bin/lsl-configure bin/lsl-cuda-worker
+    install -dm755 "$pkgdir/usr/lib"
+    cp -r --no-preserve=ownership lib/lsl "$pkgdir/usr/lib/lsl"
+    install -Dm644 -t "$pkgdir/usr/share/doc/lsl" README.md RELEASE_NOTES.md
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/lsl/LICENSE"
+    install -Dm644 LICENSE-LuxIR-QBE.txt "$pkgdir/usr/share/licenses/lsl/LICENSE-LuxIR-QBE.txt"
+}

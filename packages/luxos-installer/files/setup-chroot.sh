@@ -43,7 +43,7 @@ groups=wheel
 for g in video audio input lp storage scanner network rfkill sys; do
     getent group "$g" >/dev/null && groups+=",$g"
 done
-id "$USERNAME" &>/dev/null || useradd -m -G "$groups" -s /bin/bash -c "$FULLNAME" "$USERNAME"
+id "$USERNAME" &>/dev/null || useradd -m -G "$groups" -s /usr/bin/lsh -c "$FULLNAME" "$USERNAME"
 passwd -l root >/dev/null
 install -Dm440 /dev/stdin /etc/sudoers.d/10-luxos <<S
 %wheel ALL=(ALL:ALL) ALL

@@ -14,5 +14,10 @@ SKEL
     fi
 }
 
-post_install() { _luxos_skel; }
-post_upgrade() { _luxos_skel; }
+# Novi uzivatele (useradd, nastaveni uzivatelu) dostanou lsh
+_luxos_default_shell() {
+    sed -i 's#^SHELL=.*#SHELL=/usr/bin/lsh#' /etc/default/useradd 2>/dev/null
+}
+
+post_install() { _luxos_skel; _luxos_default_shell; }
+post_upgrade() { _luxos_skel; _luxos_default_shell; }
