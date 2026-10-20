@@ -1,0 +1,134 @@
+#!/bin/bash
+# LuxOS - detekce hardwaru a potrebnych ovladacu
+#
+# Pouziti: luxos-hwdetect [--kernel NAZEV] [--packages|--services|--report]
+#   --packages  vypise baliky (vychozi)
+#   --services  vypise systemd sluzby k zapnuti
+#   --report    citelny prehled pro uzivatele
+set -euo pipefail
+
+kernel=linux-zen
+mode=packages
+while (($#)); do
+    case $1 in
+        --kernel) kernel=$2; shift ;;
+        --packages|--services|--report) mode=${1#--} ;;
+        -h|--help) sed -n '2,7p' "$0" | sed 's/^# \?//'; exit 0 ;;
+        *) echo "Neznamy parametr: $1" >&2; exit 2 ;;
+    esac
+    shift
+done
+
+declare -a pkgs=() svcs=() notes=()
+add()  { pkgs+=("$@"); }
+svc()  { svcs+=("$@"); }
+note() { notes+=("$1"); }
+need_headers=0
+
+# Seznam PCI zarizeni ve tvaru "trida vendor:device" (bez lspci, cte primo sysfs)
+pci_devices() {
+    local d
+    for d in /sys/bus/pci/devices/*; do
+        [[ -r $d/class ]] || continue
+        printf '%s %s:%s\n' "$(<"$d/class")" "$(<"$d/vendor")" "$(<"$d/device")"
+    done | sed 's/0x//g'
+}
+
+# --- GPU ---------------------------------------------------------------------
+while read -r class id; do
+    [[ $class == 03* ]] || continue          # 0300 VGA, 0302 3D, 0380 display
+    vendor=${id%%:*}; device=$((16#${id##*:}))
+    case $vendor in
+        8086)
+            add vulkan-intel intel-media-driver
+            note "Intel graphics: Vulkan + hardware video decoding" ;;
+        1002)
+            add vulkan-radeon
+            note "AMD graphics: Vulkan (RADV) + hardware video decoding" ;;
+        10de)
+            # Open moduly NVIDIA podporuji Turing (GTX 16xx / RTX 20xx) a novejsi
+            if ((device >= 0x1e00)); then
+                add nvidia-open-dkms nvidia-utils nvidia-settings
+                need_headers=1
+                note "NVIDIA (Turing or newer): nvidia-open driver"
+            else
+                add vulkan-nouveau
+                note "NVIDIA (older generation): open-source nouveau driver"
+            fi ;;
+        15ad) note "VMware graphics: built into the kernel" ;;
+        80ee) note "VirtualBox graphics: built into the kernel" ;;
+        1af4|1b36|1234) note "Virtual GPU (QEMU/virtio)" ;;
+    esac
+done < <(pci_devices)
+
+# Hybridni grafika NVIDIA + integrovana
+if [[ " ${pkgs[*]} " == *" nvidia-utils "* ]] && pci_devices | grep -qE '^03[0-9a-f]{4} (8086|1002):'; then
+    add nvidia-prime
+    note "Hybrid graphics: run 'prime-run <app>' to use the NVIDIA GPU"
+fi
+
+# --- Wi-Fi Broadcom (vyzaduje proprietarni wl) -----------------------------
+broadcom_wl='4311 4312 4315 4328 4329 432a 432b 432c 432d 4331 4353 4357 4358 4359 4360 43a0 43b1 43b3'
+while read -r class id; do
+    [[ $class == 0280* && ${id%%:*} == 14e4 ]] || continue
+    if [[ " $broadcom_wl " == *" ${id##*:} "* ]]; then
+        add broadcom-wl-dkms
+        need_headers=1
+        note "Broadcom Wi-Fi (${id}): broadcom-wl driver"
+    fi
+done < <(pci_devices)
+
+# --- CPU -------------------------------------------------------------------
+if grep -q GenuineIntel /proc/cpuinfo 2>/dev/null; then
+    add intel-ucode
+    if compgen -G '/sys/class/power_supply/BAT*' >/dev/null; then
+        add thermald; svc thermald.service
+        note "Intel laptop: thermald (thermal management)"
+    fi
+elif grep -q AuthenticAMD /proc/cpuinfo 2>/dev/null; then
+    add amd-ucode
+fi
+
+# --- Virtualizace ----------------------------------------------------------
+virt=$(systemd-detect-virt 2>/dev/null || true)
+case $virt in
+    oracle)    add virtualbox-guest-utils; svc vboxservice.service; note "VirtualBox: guest additions" ;;
+    vmware)    add open-vm-tools; svc vmtoolsd.service vmware-vmblock-fuse.service; note "VMware: open-vm-tools" ;;
+    kvm|qemu)  add qemu-guest-agent spice-vdagent; note "QEMU/KVM: guest agent + SPICE (clipboard, resolution)" ;;
+    microsoft) add hyperv; svc hv_kvp_daemon.service hv_vss_daemon.service; note "Hyper-V: integration services" ;;
+esac
+
+# --- Ctecka otisku prstu ---------------------------------------------------
+# Elan (04f3) vyrabi i dotykove obrazovky - ctecky maji produkt 0cXX
+fp_usb_re='^(06cb|27c6|138a|10a5|1c7a|2808|298d):|^04f3:0c'
+for d in /sys/bus/usb/devices/*; do
+    [[ -r $d/idVendor && -r $d/idProduct ]] || continue
+    if [[ "$(<"$d/idVendor"):$(<"$d/idProduct")" =~ $fp_usb_re ]]; then
+        add fprintd
+        note "Fingerprint reader: fprintd (set up with fprintd-enroll)"
+        break
+    fi
+done
+
+# --- Senzory 2v1 (otaceni obrazovky) ---------------------------------------
+if grep -qsE 'accel|incli' /sys/bus/iio/devices/*/name; then
+    add iio-sensor-proxy
+    note "Accelerometer: automatic screen rotation"
+fi
+
+# --- Hlavicky jadra pro DKMS ----------------------------------------------
+((need_headers)) && add "${kernel}-headers"
+
+if [[ -t 1 && -z ${NO_COLOR-} ]]; then B=$'\e[1m' R=$'\e[0m'; else B="" R=""; fi
+dedup() { printf '%s\n' "$@" | awk 'NF && !seen[$0]++'; }
+
+case $mode in
+    packages) dedup "${pkgs[@]}" ;;
+    services) dedup "${svcs[@]}" ;;
+    report)
+        printf '%sLuxOS hardware detection%s\n' "$B" "$R"
+        if ((${#notes[@]})); then printf '  • %s\n' "${notes[@]}"; else echo "  • No special drivers needed"; fi
+        if ((${#pkgs[@]})); then
+            printf '\n%sPackages:%s %s\n' "$B" "$R" "$(dedup "${pkgs[@]}" | tr '\n' ' ')"
+        fi ;;
+esac

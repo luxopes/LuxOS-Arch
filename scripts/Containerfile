@@ -1,0 +1,12 @@
+# Sestavovaci prostredi LuxOS (Arch Linux kontejner)
+FROM docker.io/archlinux/archlinux:latest
+RUN pacman -Syu --noconfirm --needed \
+        base-devel archiso git librsvg imagemagick python jq inter-font shellcheck \
+    && useradd -m builder \
+    && echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder \
+    && pacman -Scc --noconfirm
+# Rootless podman nesmi pripojit devtmpfs/devpts - v chrootu staci bind-mount /dev z kontejneru
+RUN for f in /usr/bin/pacstrap /usr/bin/arch-chroot; do \
+        sed -i 's|chroot_add_mount udev "$1/dev" -t devtmpfs -o mode=0755,nosuid &&|chroot_add_mount /dev "$1/dev" --bind \&\&|' "$f"; \
+    done \
+    && grep -q 'chroot_add_mount /dev "$1/dev" --bind' /usr/bin/pacstrap /usr/bin/arch-chroot

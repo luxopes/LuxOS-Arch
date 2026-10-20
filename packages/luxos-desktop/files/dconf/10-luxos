@@ -1,0 +1,34 @@
+# LuxOS - vychozi hodnoty dconf (Plank dock, GTK4/libadwaita aplikace)
+
+[net/launchpad/plank]
+enabled-docks=['dock1']
+
+[net/launchpad/plank/docks/dock1]
+theme='WhiteSur-Dark'
+position='bottom'
+alignment='center'
+icon-size=48
+zoom-enabled=true
+zoom-percent=150
+hide-mode='window-dodge'
+unhide-delay=0
+hide-delay=300
+pressure-reveal=false
+show-dock-item=false
+lock-items=false
+current-workspace-only=false
+pinned-only=false
+tooltips-enabled=true
+offset=0
+dock-items=['luxos-launchpad.dockitem', 'thunar.dockitem', 'firefox.dockitem', 'xfce4-terminal.dockitem', 'org.xfce.mousepad.dockitem', 'xfce-settings-manager.dockitem', 'trash.dockitem']
+
+[org/gnome/desktop/interface]
+color-scheme='prefer-dark'
+gtk-theme='WhiteSur-Dark'
+icon-theme='WhiteSur-dark'
+cursor-theme='WhiteSur-cursors'
+font-name='Inter 10'
+monospace-font-name='JetBrainsMono Nerd Font 10'
+
+[org/gnome/desktop/wm/preferences]
+button-layout='close,minimize,maximize:'

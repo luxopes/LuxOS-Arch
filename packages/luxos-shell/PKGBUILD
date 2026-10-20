@@ -1,0 +1,28 @@
+# Maintainer: LuxOS Team
+
+pkgname=luxos-shell
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS shell experience: bash with ble.sh, zsh, starship prompt, fastfetch"
+arch=(any)
+url="https://github.com/luxos"
+license=(MIT)
+depends=(bash bash-completion blesh starship fzf zoxide eza bat fastfetch xclip
+         zsh zsh-autosuggestions zsh-syntax-highlighting ttf-jetbrains-mono-nerd)
+install=luxos-shell.install
+
+package() {
+    local f="$startdir/files"
+    install -Dm644 -t "$pkgdir/usr/share/luxos/shell" "$f"/{bashrc,blerc,aliases.sh,zshrc,starship.toml}
+    install -Dm644 "$f/profile.sh" "$pkgdir/etc/profile.d/luxos.sh"
+    install -Dm644 "$f/fastfetch/logo.txt" "$pkgdir/usr/share/luxos/fastfetch/logo.txt"
+    install -Dm644 "$f/fastfetch/config.jsonc" "$pkgdir/etc/xdg/luxos/fastfetch/config.jsonc"
+
+    install -dm755 "$pkgdir/etc/skel"
+    cat > "$pkgdir/etc/skel/.zshrc" <<'Z'
+# Konfigurace LuxOS (autosuggestions, zvyrazneni, starship, aliasy)
+[[ -r /usr/share/luxos/shell/zshrc ]] && . /usr/share/luxos/shell/zshrc
+
+# Vlastni nastaveni pis sem:
+Z
+}

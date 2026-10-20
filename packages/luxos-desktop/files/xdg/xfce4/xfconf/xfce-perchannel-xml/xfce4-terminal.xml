@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS: terminal (paleta inspirovana macOS) -->
+<channel name="xfce4-terminal" version="1.0">
+  <property name="font-name" type="string" value="JetBrainsMono Nerd Font 11"/>
+  <property name="font-use-system" type="bool" value="false"/>
+  <property name="misc-menubar-default" type="bool" value="false"/>
+  <property name="misc-toolbar-default" type="bool" value="false"/>
+  <property name="misc-borders-default" type="bool" value="true"/>
+  <property name="misc-cursor-shape" type="string" value="TERMINAL_CURSOR_SHAPE_IBEAM"/>
+  <property name="misc-cursor-blinks" type="bool" value="true"/>
+  <property name="misc-default-geometry" type="string" value="100x30"/>
+  <property name="misc-confirm-close" type="bool" value="false"/>
+  <property name="misc-show-unsafe-paste-dialog" type="bool" value="false"/>
+  <property name="misc-tab-close-middle-click" type="bool" value="true"/>
+  <property name="misc-new-tab-adjacent" type="bool" value="true"/>
+  <property name="misc-right-click-action" type="string" value="TERMINAL_RIGHT_CLICK_ACTION_CONTEXT_MENU"/>
+  <property name="scrolling-bar" type="string" value="TERMINAL_SCROLLBAR_NONE"/>
+  <property name="scrolling-lines" type="uint" value="10000"/>
+  <property name="title-mode" type="string" value="TERMINAL_TITLE_REPLACE"/>
+  <property name="background-mode" type="string" value="TERMINAL_BACKGROUND_TRANSPARENT"/>
+  <property name="background-darkness" type="double" value="0.94"/>
+  <property name="color-use-theme" type="bool" value="false"/>
+  <property name="color-foreground" type="string" value="#e6e6f0"/>
+  <property name="color-background" type="string" value="#1c1c22"/>
+  <property name="color-cursor" type="string" value="#a77bff"/>
+  <property name="color-cursor-use-default" type="bool" value="false"/>
+  <property name="color-bold-use-default" type="bool" value="true"/>
+  <property name="color-selection" type="string" value="#e6e6f0"/>
+  <property name="color-selection-background" type="string" value="#3a3a55"/>
+  <property name="color-selection-use-default" type="bool" value="false"/>
+  <property name="color-palette" type="string" value="#2e2e38;#ff6b81;#5ad08c;#ffcc66;#6ea8ff;#c58bff;#5fd7e6;#d8d8e0;#6c6c7a;#ff8fa3;#7ee2a8;#ffd98a;#93bfff;#d6a8ff;#8be8f2;#ffffff"/>
+  <property name="tab-activity-color" type="string" value="#ff8fa3"/>
+</channel>

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Spotlight
+Comment=Search applications and files
+Exec=luxos-spotlight
+Icon=system-search
+NoDisplay=true

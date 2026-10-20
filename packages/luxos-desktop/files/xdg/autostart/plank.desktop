@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Dock
+Comment=LuxOS dock
+Exec=plank
+Icon=plank
+OnlyShowIn=XFCE;
+X-GNOME-Autostart-Delay=1
+NoDisplay=true

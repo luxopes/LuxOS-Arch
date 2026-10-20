@@ -1,0 +1,22 @@
+#!/bin/bash
+# LuxOS - prehled klavesovych zkratek
+yad --title="Keyboard Shortcuts" --window-icon=luxos-logo --list --no-selection --width=560 --height=560 --center \
+    --column="Shortcut" --column="Action" \
+    "Super + Space" "Spotlight" \
+    "Super + A" "Launchpad" \
+    "Super + Q" "Close window" \
+    "Super + M / H" "Minimize window" \
+    "Super + Tab" "Switch windows" \
+    "Super + ↑ / ← / →" "Maximize / tile half" \
+    "Ctrl + Super + F" "Full screen" \
+    "Super + D" "Show desktop" \
+    "Ctrl + Super + ← / →" "Switch workspace" \
+    "Super + E" "Files" \
+    "Super + T" "Terminal" \
+    "Super + ," "Settings" \
+    "Super + L" "Lock screen" \
+    "Super + Shift + 3" "Screenshot" \
+    "Super + Shift + 4" "Screenshot of region" \
+    "Super + Shift + 5" "Screenshot tool" \
+    "Super + Alt + Esc" "Task manager (force quit)" \
+    --button="Close!window-close:0"

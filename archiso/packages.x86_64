@@ -1,0 +1,50 @@
+# --- Zaklad live systemu (archiso) ---
+base
+linux
+linux-firmware
+sof-firmware
+alsa-firmware
+amd-ucode
+intel-ucode
+mkinitcpio
+mkinitcpio-archiso
+syslinux
+memtest86+
+memtest86+-efi
+edk2-shell
+grub
+efibootmgr
+plymouth
+sudo
+nano
+less
+man-db
+# --- Disky a instalace ---
+arch-install-scripts
+gptfdisk
+parted
+gparted
+dosfstools
+e2fsprogs
+btrfs-progs
+exfatprogs
+ntfs-3g
+cryptsetup
+lvm2
+smartmontools
+# --- Virtualizace (sluzby se spusti jen ve VM) ---
+virtualbox-guest-utils
+open-vm-tools
+qemu-guest-agent
+spice-vdagent
+hyperv
+# --- Grafika ---
+vulkan-intel
+vulkan-radeon
+vulkan-nouveau
+intel-media-driver
+# --- LuxOS ---
+pipewire-jack
+noto-fonts
+luxos-desktop
+luxos-installer

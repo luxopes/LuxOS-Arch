@@ -1,0 +1,6 @@
+_luxos_dconf() {
+    dconf update 2>/dev/null || true
+    fc-cache -s >/dev/null 2>&1 || true
+}
+post_install() { _luxos_dconf; }
+post_upgrade() { _luxos_dconf; }

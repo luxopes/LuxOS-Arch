@@ -1,0 +1,14 @@
+# Maintainer: LuxOS Team
+
+pkgname=luxos-drivers
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS hardware detection: picks GPU, Wi-Fi, VM and other drivers automatically"
+arch=(any)
+url="https://github.com/luxos"
+license=(MIT)
+depends=(bash systemd)
+
+package() {
+    install -Dm755 "$startdir/luxos-hwdetect" "$pkgdir/usr/bin/luxos-hwdetect"
+}

@@ -1,0 +1,7 @@
+#!/bin/bash
+# LuxOS - Launchpad (Super+A): mrizka aplikaci pres celou obrazovku
+if pkill -x rofi; then exit 0; fi
+extra=()
+[[ $(luxos-appearance status) == light ]] && extra=(-theme-str '@import "luxos-light-colors"')
+exec rofi -show drun -modi drun -theme luxos-launchpad -drun-exclude-categories 'Settings,X-Xfce-Toplevel' "${extra[@]}" \
+    -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf

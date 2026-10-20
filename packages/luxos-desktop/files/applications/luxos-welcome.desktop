@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Welcome to LuxOS
+Name[cs]=Vítejte v LuxOS
+Comment=Get started with LuxOS
+Exec=luxos-welcome
+Icon=luxos-logo
+Categories=System;

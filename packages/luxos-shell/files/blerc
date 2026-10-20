@@ -1,0 +1,12 @@
+# LuxOS - nastaveni ble.sh
+bleopt complete_auto_delay=80
+bleopt exec_errexit_mark=
+bleopt exec_elapsed_mark=
+bleopt edit_abell=
+bleopt prompt_eol_mark=''
+ble-face -s auto_complete fg=244
+ble-face -s syntax_error fg=203
+ble-face -s command_builtin fg=111
+ble-face -s command_alias fg=111
+ble-face -s command_function fg=111
+ble-face -s command_file fg=111

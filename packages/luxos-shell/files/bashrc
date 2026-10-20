@@ -1,0 +1,69 @@
+# LuxOS - konfigurace bashe (nacitana z ~/.bashrc)
+# Vlastni nastaveni patri do ~/.bashrc pod radek se "source" nebo do
+# ~/.config/luxos/shell.conf (napr. LUXOS_BLESH=0, LUXOS_FASTFETCH=0).
+
+[[ $- != *i* ]] && return
+
+LUXOS_BLESH=1
+LUXOS_FASTFETCH=1
+LUXOS_SHELL_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/luxos/shell.conf"
+[[ -r $LUXOS_SHELL_CONF ]] && . "$LUXOS_SHELL_CONF"
+
+# ble.sh (nasepavani + zvyrazneni syntaxe) se musi nacist co nejdrive
+if [[ $LUXOS_BLESH == 1 && $TERM != linux && $TERM != dumb && -r /usr/share/blesh/ble.sh ]]; then
+    _luxos_blecache=0
+    compgen -G "${XDG_CACHE_HOME:-$HOME/.cache}/blesh/*/term.$TERM" >/dev/null && _luxos_blecache=1
+    source /usr/share/blesh/ble.sh --noattach --rcfile /usr/share/luxos/shell/blerc
+    # Pri prvnim spusteni ble.sh vypise radek "updating tput cache" - smazat ho
+    [[ ${BLE_VERSION-} && $_luxos_blecache == 0 ]] && printf '\e[1A\e[2K\r'
+    unset _luxos_blecache
+fi
+
+# Historie
+HISTSIZE=50000
+HISTFILESIZE=100000
+HISTCONTROL=ignoreboth:erasedups
+HISTTIMEFORMAT='%F %T  '
+HISTIGNORE='ls:ll:la:cd:pwd:exit:clear'
+shopt -s histappend cmdhist checkwinsize autocd cdspell dirspell globstar extglob
+
+# Doplnovani (bez ble.sh pres readline)
+if [[ -z ${BLE_VERSION-} ]]; then
+    bind 'set completion-ignore-case on'
+    bind 'set show-all-if-ambiguous on'
+    bind 'set colored-stats on'
+    bind 'set colored-completion-prefix on'
+    bind 'set mark-symlinked-directories on'
+    bind '"\e[A": history-search-backward'
+    bind '"\e[B": history-search-forward'
+fi
+
+. /usr/share/luxos/shell/aliases.sh
+
+command -v zoxide &>/dev/null && eval "$(zoxide init bash)"
+
+if command -v fzf &>/dev/null; then
+    if [[ ${BLE_VERSION-} ]]; then
+        ble-import -d integration/fzf-completion
+        ble-import -d integration/fzf-key-bindings
+    else
+        eval "$(fzf --bash)"
+    fi
+fi
+
+# Prompt: starship v grafickem terminalu, jednoduchy prompt na TTY
+if [[ $TERM != linux ]] && command -v starship &>/dev/null; then
+    [[ -r ${XDG_CONFIG_HOME:-$HOME/.config}/starship.toml ]] || export STARSHIP_CONFIG=/usr/share/luxos/shell/starship.toml
+    eval "$(starship init bash)"
+else
+    PS1='\[\e[38;2;167;123;255m\]✦\[\e[0m\] \[\e[1m\]\w\[\e[0m\] \$ '
+fi
+
+# Uvitani - fastfetch jen v prvnim terminalu relace
+if [[ $LUXOS_FASTFETCH == 1 && $TERM != linux && -n ${XDG_RUNTIME_DIR-} && ! -e $XDG_RUNTIME_DIR/luxos-greeted ]] \
+    && command -v fastfetch &>/dev/null; then
+    : > "$XDG_RUNTIME_DIR/luxos-greeted"
+    fastfetch
+fi
+
+[[ ${BLE_VERSION-} ]] && ble-attach

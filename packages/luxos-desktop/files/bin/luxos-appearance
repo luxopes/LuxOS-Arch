@@ -1,0 +1,90 @@
+#!/bin/bash
+# LuxOS - prepinani svetleho a tmaveho vzhledu
+# Pouziti: luxos-appearance [dark|light|toggle|status|reapply]
+set -u
+
+state_dir="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
+state_file="$state_dir/appearance"
+wall_dir=/usr/share/backgrounds/luxos
+
+current() {
+    local m
+    m=$(cat "$state_file" 2>/dev/null)
+    [[ $m == light ]] && echo light || echo dark
+}
+
+# Nastavi tapetu LuxOS na vsech monitorech a plochach.
+# force=0: jen tam, kde uzivatel nema vlastni tapetu (prazdne nebo nase).
+set_wallpaper() {
+    local mode=$1 force=${2:-0} img="$wall_dir/luxos-$1.jpg" mon ws prop cur
+    command -v xfconf-query >/dev/null || return 0
+    for mon in $(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1 {print $NF}'); do
+        for ws in 0 1 2 3; do
+            prop="/backdrop/screen0/monitor$mon/workspace$ws"
+            cur=$(xfconf-query -c xfce4-desktop -p "$prop/last-image" 2>/dev/null)
+            if [[ $force == 1 && ( -z $cur || $cur == "$wall_dir"/* ) ]] || [[ -z $cur ]]; then
+                xfconf-query -c xfce4-desktop -p "$prop/last-image" -n -t string -s "$img"
+                xfconf-query -c xfce4-desktop -p "$prop/image-style" -n -t int -s 5
+            fi
+        done
+    done
+}
+
+# Barva textu horni listy: WhiteSur pocita s tmavou listou, ve svetlem rezimu ji prebarvime.
+# Spravovany blok v ~/.config/gtk-3.0/gtk.css (ostatni obsah souboru zustava).
+panel_css() {
+    local mode=$1 css="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/gtk.css"
+    mkdir -p "${css%/*}"
+    touch "$css"
+    sed -i '/\/\* LuxOS appearance begin \*\//,/\/\* LuxOS appearance end \*\//d' "$css"
+    if [[ $mode == light ]]; then
+        cat >> "$css" <<'CSS'
+/* LuxOS appearance begin */
+.xfce4-panel, .xfce4-panel label, .xfce4-panel button, .xfce4-panel image { color: #1d1d1f; }
+/* LuxOS appearance end */
+CSS
+    fi
+}
+
+apply() {
+    local mode=$1 gtk icons rgba prefer
+    if [[ $mode == light ]]; then
+        gtk=WhiteSur-Light icons=WhiteSur-light prefer=prefer-light
+        rgba=(0.96 0.96 0.97 0.62)
+    else
+        gtk=WhiteSur-Dark icons=WhiteSur-dark prefer=prefer-dark
+        rgba=(0.09 0.09 0.12 0.62)
+    fi
+
+    if command -v xfconf-query >/dev/null; then
+        xfconf-query -c xsettings -p /Net/ThemeName -n -t string -s "$gtk"
+        xfconf-query -c xsettings -p /Net/IconThemeName -n -t string -s "$icons"
+        xfconf-query -c xfwm4 -p /general/theme -n -t string -s "$gtk"
+        xfconf-query -c xfce4-panel -p /panels/dark-mode -n -t bool -s "$([[ $mode == dark ]] && echo true || echo false)"
+        xfconf-query -c xfce4-panel -p /panels/panel-1/background-rgba -n \
+            -t double -s "${rgba[0]}" -t double -s "${rgba[1]}" -t double -s "${rgba[2]}" -t double -s "${rgba[3]}"
+    fi
+    if command -v gsettings >/dev/null; then
+        gsettings set org.gnome.desktop.interface color-scheme "$prefer" 2>/dev/null
+        gsettings set org.gnome.desktop.interface gtk-theme "$gtk" 2>/dev/null
+        gsettings set org.gnome.desktop.interface icon-theme "$icons" 2>/dev/null
+        gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ theme "$gtk" 2>/dev/null
+    fi
+    local old
+    old=$(cat "$state_file" 2>/dev/null)
+    panel_css "$mode"
+    mkdir -p "$state_dir"
+    echo "$mode" > "$state_file"
+    # Panel nacita gtk.css jen pri startu
+    if [[ $old != "$mode" ]] && pgrep -u "$USER" -x xfce4-panel >/dev/null; then
+        xfce4-panel -r >/dev/null 2>&1 &
+    fi
+}
+
+case ${1:-status} in
+    dark|light) apply "$1"; set_wallpaper "$1" 1 ;;
+    toggle)     m=$([[ $(current) == dark ]] && echo light || echo dark); apply "$m"; set_wallpaper "$m" 1 ;;
+    reapply)    set_wallpaper "$(current)" 0 ;;
+    status)     current ;;
+    *) echo "Usage: luxos-appearance [dark|light|toggle|status]" >&2; exit 2 ;;
+esac

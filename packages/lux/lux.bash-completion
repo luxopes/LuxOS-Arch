@@ -1,0 +1,15 @@
+# bash completion pro lux
+_lux() {
+    local cur=${COMP_WORDS[COMP_CWORD]} cmd=${COMP_WORDS[1]}
+    local cmds="install remove update search info list files owner clean drivers mirrors doctor history"
+    if ((COMP_CWORD == 1)); then
+        COMPREPLY=($(compgen -W "$cmds --help --version" -- "$cur")); return
+    fi
+    case $cmd in
+        install|i) COMPREPLY=($(compgen -W "$(pacman -Slq 2>/dev/null)" -- "$cur")) ;;
+        remove|rm|info|files) COMPREPLY=($(compgen -W "$(pacman -Qq 2>/dev/null)" -- "$cur")) ;;
+        owner) COMPREPLY=($(compgen -f -- "$cur")) ;;
+        list) COMPREPLY=($(compgen -W "--aur --explicit" -- "$cur")) ;;
+    esac
+}
+complete -F _lux lux

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="2160" viewBox="0 0 3840 2160">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070b1d"/>
+      <stop offset="0.55" stop-color="#140f35"/>
+      <stop offset="1" stop-color="#2a0f2e"/>
+    </linearGradient>
+    <linearGradient id="w1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2f6bff"/>
+      <stop offset="0.5" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#ff5f8f"/>
+    </linearGradient>
+    <linearGradient id="w2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#18c8ff"/>
+      <stop offset="0.6" stop-color="#5b4bff"/>
+      <stop offset="1" stop-color="#b14dff"/>
+    </linearGradient>
+    <filter id="blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="60"/></filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter>
+  </defs>
+  <rect width="3840" height="2160" fill="url(#bg)"/>
+  <ellipse cx="900" cy="1500" rx="1100" ry="520" fill="#2f4bff" opacity="0.35" filter="url(#blur)"/>
+  <ellipse cx="3000" cy="700" rx="900" ry="480" fill="#c13dff" opacity="0.28" filter="url(#blur)"/>
+  <path d="M-200 1500 C 700 1000, 1500 1900, 2400 1350 S 3700 900, 4100 1200 L 4100 2400 L -200 2400 Z" fill="url(#w1)" opacity="0.55" filter="url(#soft)"/>
+  <path d="M-200 1750 C 800 1350, 1700 2150, 2700 1650 S 3800 1400, 4100 1550 L 4100 2400 L -200 2400 Z" fill="url(#w2)" opacity="0.6" filter="url(#soft)"/>
+  <path d="M-200 1950 C 900 1700, 1900 2250, 2900 1900 S 3900 1750, 4100 1820 L 4100 2400 L -200 2400 Z" fill="#0a0d24" opacity="0.65" filter="url(#soft)"/>
+</svg>

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Toggle Dark Mode
+Name[cs]=Přepnout tmavý režim
+Comment=Switch between light and dark appearance
+Exec=luxos-appearance toggle
+Icon=preferences-desktop-theme
+Categories=Settings;DesktopSettings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;
