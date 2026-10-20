@@ -4,6 +4,6 @@ Name=Install LuxOS
 Name[cs]=Nainstalovat LuxOS
 Comment=Install LuxOS to this computer
 Exec=luxos-install-gui
-Icon=luxos-app
+Icon=luxos-installer
 Categories=System;
 Terminal=false

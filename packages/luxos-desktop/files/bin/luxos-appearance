@@ -14,7 +14,8 @@ current() {
 }
 
 # Nastavi tapetu LuxOS na vsech monitorech a plochach.
-# force=0: jen tam, kde uzivatel nema vlastni tapetu (prazdne nebo nase).
+# force=0: jen tam, kde zadna tapeta neni; force=1 i misto vychozi tapety druheho
+# rezimu (jinou vybranou tapetu, i z galerie LuxOS, nemeni).
 set_wallpaper() {
     local mode=$1 force=${2:-0} img="$wall_dir/luxos-$1.jpg" mon ws prop cur
     command -v xfconf-query >/dev/null || return 0
@@ -22,7 +23,7 @@ set_wallpaper() {
         for ws in 0 1 2 3; do
             prop="/backdrop/screen0/monitor$mon/workspace$ws"
             cur=$(xfconf-query -c xfce4-desktop -p "$prop/last-image" 2>/dev/null)
-            if [[ $force == 1 && ( -z $cur || $cur == "$wall_dir"/* ) ]] || [[ -z $cur ]]; then
+            if [[ -z $cur ]] || [[ $force == 1 && $cur == "$wall_dir"/luxos-@(dark|light).jpg ]]; then
                 xfconf-query -c xfce4-desktop -p "$prop/last-image" -n -t string -s "$img"
                 xfconf-query -c xfce4-desktop -p "$prop/image-style" -n -t int -s 5
             fi

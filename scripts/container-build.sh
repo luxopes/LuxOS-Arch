@@ -12,44 +12,104 @@ WORK=/tmp/luxos-work
 PROFILE=/tmp/luxos-profile
 target=${1:-all}
 
-# Poradi: zavislosti vlastnich baliku prvni
-PACKAGES=(blesh lsl lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-desktop luxos-installer)
+# Repozitar [luxos]: system LuxOS, poradi = zavislosti vlastnich baliku prvni
+PACKAGES=(luxos-keyring blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-desktop luxos-installer)
+# Repozitar [luxos-apps]: aplikace ke stazeni (kazdy adresar v packages/apps)
+mapfile -t APPS < <(find "$ROOT/packages/apps" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort)
+ARCH=x86_64
 
 msg() { printf '\n\e[1;38;2;167;123;255m==> %s\e[0m\n' "$*"; }
+
+# Podpisovy klic (build.sh pripoji ~/.local/share/luxos/signing do /signing)
+GPGKEY=
+setup_signing() {
+    [[ -d /signing ]] || { msg "No signing key - packages will be unsigned"; return; }
+    export GNUPGHOME=/tmp/luxos-gnupg
+    rm -rf "$GNUPGHOME"
+    cp -a /signing "$GNUPGHOME"
+    chmod 700 "$GNUPGHOME"
+    GPGKEY=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/{print $10; exit}')
+    [[ -n $GPGKEY ]] || { echo "No secret key in /signing" >&2; exit 1; }
+    msg "Signing with key $GPGKEY"
+}
+
+build_one() {  # build_one ADRESAR_BALIKU CIL_PKGDEST
+    local src=$1 dest=$2 p=${1##*/}
+    msg "Building package $p"
+    rm -rf "${BUILD:?}/$p"
+    cp -r "$src" "$BUILD/$p"
+    chown -R builder: "$BUILD/$p"
+    # makepkg bezi s --nodeps (zavislosti na vlastnich balicich), makedepends instalujeme zvlast
+    (set +u; makedepends=(); source "$BUILD/$p/PKGBUILD"; ((${#makedepends[@]})) && pacman -S --needed --noconfirm "${makedepends[@]}" >/dev/null || true)
+    (cd "$BUILD/$p" && sudo -u builder env SRCDEST="$SOURCES" PKGDEST="$dest" \
+        makepkg --force --nodeps --noconfirm --cleanbuild)
+}
+
+make_repo() {  # make_repo NAZEV ADRESAR_S_BALIKY
+    local name=$1 pkgs=$2 dir=$REPO/$1/$ARCH f
+    rm -rf "$dir"
+    mkdir -p "$dir"
+    shopt -s nullglob
+    local files=("$pkgs"/*.pkg.tar.zst)
+    shopt -u nullglob
+    if ((${#files[@]})); then
+        install -m644 "${files[@]}" "$dir/"
+        if [[ -n $GPGKEY ]]; then
+            for f in "$dir"/*.pkg.tar.zst; do
+                gpg --batch --yes --detach-sign --no-armor -u "$GPGKEY" "$f"
+            done
+            repo-add -q -n -s -k "$GPGKEY" "$dir/$name.db.tar.gz" "$dir"/*.pkg.tar.zst
+        else
+            repo-add -q -n "$dir/$name.db.tar.gz" "$dir"/*.pkg.tar.zst
+        fi
+    else
+        # Prazdny repozitar (zatim bez aplikaci) - pacman ho musi umet synchronizovat
+        for f in db files; do
+            bsdtar -czf "$dir/$name.$f.tar.gz" -T /dev/null
+            ln -sf "$name.$f.tar.gz" "$dir/$name.$f"
+            [[ -n $GPGKEY ]] && gpg --batch --yes --detach-sign --no-armor -u "$GPGKEY" "$dir/$name.$f.tar.gz" \
+                && ln -sf "$name.$f.tar.gz.sig" "$dir/$name.$f.sig"
+        done
+    fi
+    msg "Repository [$name]: ${#files[@]} packages in out/repo/$name/$ARCH"
+}
 
 build_packages() {
     msg "Updating build container"
     pacman -Syu --noconfirm --needed >/dev/null
 
-    mkdir -p "$REPO" "$SOURCES" "$BUILD/pkgs"
+    setup_signing
+    rm -rf "$BUILD"
+    mkdir -p "$SOURCES" "$BUILD/pkgs/luxos" "$BUILD/pkgs/luxos-apps"
     chown -R builder: "$SOURCES" "$BUILD"
-    rm -f "$REPO"/*.pkg.tar.zst "$REPO"/luxos.*
+    rm -rf "$REPO"
+    mkdir -p "$REPO"
 
     local p
+    for p in "${APPS[@]}"; do
+        build_one "$ROOT/packages/apps/$p" "$BUILD/pkgs/luxos-apps"
+    done
     for p in "${PACKAGES[@]}"; do
-        msg "Building package $p"
-        rm -rf "${BUILD:?}/$p"
-        cp -r "$ROOT/packages/$p" "$BUILD/$p"
-        chown -R builder: "$BUILD/$p"
-        # makepkg bezi s --nodeps (zavislosti na vlastnich balicich), makedepends instalujeme zvlast
-        (set +u; makedepends=(); source "$BUILD/$p/PKGBUILD"; ((${#makedepends[@]})) && pacman -S --needed --noconfirm "${makedepends[@]}" >/dev/null || true)
-        (cd "$BUILD/$p" && sudo -u builder env SRCDEST="$SOURCES" PKGDEST="$BUILD/pkgs" \
-            makepkg --force --nodeps --noconfirm --cleanbuild)
+        build_one "$ROOT/packages/$p" "$BUILD/pkgs/luxos"
     done
     chown -R root: "$SOURCES"
 
-    install -m644 "$BUILD"/pkgs/*.pkg.tar.zst "$REPO/"
-    repo-add -q -n "$REPO/luxos.db.tar.gz" "$REPO"/*.pkg.tar.zst
-    msg "Repository: $(ls "$REPO"/*.pkg.tar.zst | wc -l) packages in out/repo"
+    make_repo luxos "$BUILD/pkgs/luxos"
+    make_repo luxos-apps "$BUILD/pkgs/luxos-apps"
 }
 
 build_iso() {
-    [[ -f $REPO/luxos.db.tar.gz ]] || { echo "Build packages first" >&2; exit 1; }
+    [[ -f $REPO/luxos/$ARCH/luxos.db.tar.gz ]] || { echo "Build packages first" >&2; exit 1; }
     msg "Preparing archiso profile"
     cleanup_work
     rm -rf "$PROFILE"
     cp -a "$ROOT/archiso" "$PROFILE"
     sed -i "s|@LUXOS_REPO@|$REPO|" "$PROFILE/pacman.conf"
+    # Starsi sestaveni vlastnich baliku (stejna verze, jiny obsah) z cache pacmanu pryc
+    local f
+    for f in "$REPO"/*/"$ARCH"/*.pkg.tar.zst; do
+        rm -f "/var/cache/pacman/pkg/${f##*/}" "/var/cache/pacman/pkg/${f##*/}.sig"
+    done
     # Lokalni repozitar i v live systemu (instalator z nej instaluje baliky LuxOS)
     mkdir -p "$PROFILE/airootfs/opt/luxos-repo"
     cp -a "$REPO"/. "$PROFILE/airootfs/opt/luxos-repo/"

@@ -14,7 +14,12 @@ engine=$(command -v podman || command -v docker || true)
 
 "$engine" build -t luxos-builder -f scripts/Containerfile scripts
 mkdir -p out/pkgcache
+# Podpisovy klic repozitare (mimo projekt); bez nej vzniknou nepodepsane baliky
+signing=()
+key="${LUXOS_SIGNING_DIR:-$HOME/.local/share/luxos/signing}"
+[[ -d $key ]] && signing=(-v "$key:/signing:ro,z")
 "$engine" run --rm --privileged \
     -v "$PWD:/luxos:z" \
     -v "$PWD/out/pkgcache:/var/cache/pacman/pkg:z" \
+    "${signing[@]}" \
     luxos-builder /luxos/scripts/container-build.sh "${1:-all}"

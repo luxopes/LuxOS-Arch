@@ -6,4 +6,5 @@ extra=()
 exec rofi -show drun -modi 'drun,window,filebrowser,run' \
     -theme luxos-spotlight "${extra[@]}" \
     -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf \
-    -display-drun 'Apps' -display-window 'Windows' -display-filebrowser 'Files' -display-run 'Run'
+    -display-drun 'Apps' -display-window 'Windows' -display-filebrowser 'Files' -display-run 'Run' \
+    -hover-select -me-select-entry '' -me-accept-entry MousePrimary

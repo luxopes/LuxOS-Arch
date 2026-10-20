@@ -5,4 +5,6 @@
     lux-muted:  #6e6e73;
     lux-border: rgba(0, 0, 0, 10%);
     lux-field:  rgba(0, 0, 0, 6%);
+    lux-accent: rgba(0, 0, 0, 8%);
+    lux-sel-fg: #1d1d1f;
 }

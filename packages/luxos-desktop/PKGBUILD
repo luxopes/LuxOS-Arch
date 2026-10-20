@@ -58,6 +58,11 @@ package() {
     install -Dm644 -t "$pkgdir/usr/share/applications" "$f"/applications/*.desktop
     install -Dm644 -t "$pkgdir/usr/share/rofi/themes" "$f"/rofi/*.rasi
 
+    # Kratke nazvy aplikaci (pacman hook prepise .desktop do /var/lib/luxos/apps)
+    install -Dm644 "$f/apps/rename.conf" "$pkgdir/usr/share/luxos/apps/rename.conf"
+    install -Dm755 "$f/apps/luxos-apps-sync" "$pkgdir/usr/lib/luxos/luxos-apps-sync"
+    install -Dm644 "$f/hooks/luxos-apps.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-apps.hook"
+
     # Skryte technicke aplikace (prekryti pres XDG_DATA_DIRS, viz /etc/profile.d/luxos.sh)
     local a
     install -dm755 "$pkgdir/usr/share/luxos/xdg/applications"

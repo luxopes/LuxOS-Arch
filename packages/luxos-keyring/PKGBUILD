@@ -1,0 +1,16 @@
+# Maintainer: LuxOS Team
+# Klic, kterym jsou podepsane baliky repozitaru [luxos] a [luxos-apps]
+
+pkgname=luxos-keyring
+pkgver=2026.10.20
+pkgrel=1
+pkgdesc="LuxOS package signing keys"
+arch=(any)
+url="https://lsl.lux-ai.cz/luxos/"
+license=(MIT)
+install=luxos-keyring.install
+
+package() {
+    install -Dm644 -t "$pkgdir/usr/share/pacman/keyrings" \
+        "$startdir"/files/luxos.gpg "$startdir"/files/luxos-trusted "$startdir"/files/luxos-revoked
+}
