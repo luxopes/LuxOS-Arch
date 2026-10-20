@@ -61,6 +61,8 @@ watch)
         if [[ -n $win && $win != 0x0 ]]; then
             wmclass=$(xprop -id "$win" WM_CLASS 2>/dev/null)
             if [[ $wmclass =~ \"([^\"]*)\",\ \"([^\"]*)\" ]]; then
+                # Nabidky horni listy (Whisker Menu, kalendar) nemeni nazev aplikace
+                [[ ${BASH_REMATCH[1]} == @(xfce4-panel|wrapper-2.0) ]] && continue
                 name=$(resolve "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}")
             fi
         fi

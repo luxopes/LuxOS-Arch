@@ -5,10 +5,11 @@ pkgname=luxos-desktop
 pkgver=1.0.0
 pkgrel=1
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Spotlight, Launchpad) and default apps"
-arch=(any)
+arch=(x86_64)
+options=(!debug)
 url="https://github.com/luxos"
 license=(MIT)
-makedepends=(python xfce4-settings xfce4-session)
+makedepends=(python xfce4-settings xfce4-session libxi libxtst)
 install=luxos-desktop.install
 depends=(
     # LuxOS
@@ -18,7 +19,7 @@ depends=(
     # Xfce (jen potrebne casti)
     xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf xfce4-notifyd
     xfce4-power-manager xfce4-screensaver xfce4-terminal xfce4-screenshooter xfce4-taskmanager
-    xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xorg-xprop
+    xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xorg-xprop libxi libxtst
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
     # Dock, Spotlight, prihlaseni
     plank rofi lightdm lightdm-gtk-greeter dconf yad
@@ -38,6 +39,11 @@ depends=(
     lshw pciutils usbutils
 )
 
+build() {
+    # Prepinani nabidek horni listy jednim klikem
+    gcc $CFLAGS $LDFLAGS -o luxos-menubar "$startdir/files/src/luxos-menubar.c" -lX11 -lXi -lXtst
+}
+
 package() {
     local f="$startdir/files"
 
@@ -48,7 +54,7 @@ package() {
     python3 "$f/merge-xfconf.py" /etc/xdg/xfce4/xfconf/xfce-perchannel-xml \
         "$f/xdg/xfce4/xfconf/xfce-perchannel-xml" "$pkgdir/etc/xdg/luxos/xfce4/xfconf/xfce-perchannel-xml"
 
-    install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/*
+    install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar
     install -Dm644 -t "$pkgdir/usr/share/applications" "$f"/applications/*.desktop
     install -Dm644 -t "$pkgdir/usr/share/rofi/themes" "$f"/rofi/*.rasi
 

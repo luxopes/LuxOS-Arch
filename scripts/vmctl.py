@@ -98,7 +98,7 @@ def main():
             if ch in SHIFTED: send(["shift", SHIFTED[ch]])
             elif ch.isupper(): send(["shift", ch.lower()])
             else: send([KEYMAP.get(ch, ch)])
-    elif c == "click":
+    elif c in ("click", "move"):
         x, y = int(a[1]), int(a[2])
         w, h = (int(a[3]), int(a[4])) if len(a) > 4 else (1280, 800)
         ax, ay = x * 32767 // (w - 1), y * 32767 // (h - 1)
@@ -106,7 +106,7 @@ def main():
             {"type": "abs", "data": {"axis": "x", "value": ax}},
             {"type": "abs", "data": {"axis": "y", "value": ay}}]})
         time.sleep(0.1)
-        for down in (True, False):
+        for down in ((True, False) if c == "click" else ()):
             qmp("input-send-event", {"events": [{"type": "btn", "data": {"down": down, "button": "left"}}]})
             time.sleep(0.08)
     elif c == "key":
