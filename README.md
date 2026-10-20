@@ -66,6 +66,28 @@ Průvodce se zeptá na jazyk, klávesnici, časové pásmo, disk, volitelné ši
 Instalace stahuje aktuální balíky z internetu; balíky LuxOS bere z lokálního repozitáře na ISO
 (`/opt/luxos-repo`, kopíruje se i do nainstalovaného systému).
 
+## Repozitáře balíků
+
+LuxOS má dva podepsané repozitáře na `https://lsl.lux-ai.cz/luxos/` (přehled: <https://lsl.lux-ai.cz/luxos/>):
+
+- `[luxos]` – systém LuxOS (`packages/*`),
+- `[luxos-apps]` – aplikace ke stažení, např. LSL, LSL IDE, Lux Code (`packages/apps/*`).
+
+Nainstalovaný systém z nich bere aktualizace (`lux update`) a aplikace (`lux install lsl`); pacman ověřuje
+podpis každého balíku klíčem z `luxos-keyring`. Live ISO instaluje z kopie repozitářů na médiu.
+
+Přidání aplikace:
+
+```bash
+mkdir packages/apps/lux-code            # PKGBUILD jako u packages/apps/lsl
+./build.sh packages                     # sestaví a podepíše oba repozitáře (out/repo)
+scripts/publish-repo.sh                 # nahraje na server a přepne vydání (ponechá 3 předchozí)
+```
+
+Podpisový klíč je mimo projekt v `~/.local/share/luxos/signing` (bez něj vzniknou nepodepsané balíky
+a `publish-repo.sh` odmítne nahrávat). Na serveru: `/srv/luxos-repo/{releases,current}`, Caddy blok
+`handle_path /luxos/*` v `lsl.lux-ai.cz`.
+
 ## lux
 
 ```
@@ -84,7 +106,7 @@ Konfigurace `/etc/lux/lux.conf` (AUR, kontrola PKGBUILD, Flatpak, velikost cache
 
 ```
 build.sh                    sestavení (podman/docker)
-scripts/                    Containerfile, build v kontejneru, test VM
+scripts/                    Containerfile, build v kontejneru, test VM, publish-repo.sh
 archiso/                    profil ISO (odvozený z archiso releng)
 packages/                   vlastní balíky LuxOS (lokální repozitář [luxos])
   luxos-branding            logo, tapety, Plymouth, os-release
@@ -92,7 +114,9 @@ packages/                   vlastní balíky LuxOS (lokální repozitář [luxos
   luxos-desktop             nastavení Xfce, dock, Spotlight/Launchpad, LightDM, aplikace
   luxos-shell               konfigurace shellu: ble.sh, zsh, starship, fastfetch
   lsh                       Lux Shell (fork GNU bash: about, LSL, pip)
-  lsl                       Lux Simple Lang (oficiální binární vydání)
+  luxos-keyring             podpisový klíč repozitářů
+  apps/                     aplikace pro repozitář [luxos-apps]
+    lsl                     Lux Simple Lang (oficiální binární vydání)
   luxos-tweaks              výkon: zram, sysctl, I/O, oomd, journald
   luxos-drivers             luxos-hwdetect
   luxos-installer           luxos-install

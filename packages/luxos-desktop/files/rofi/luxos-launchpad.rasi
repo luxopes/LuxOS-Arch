@@ -1,35 +1,39 @@
-/* LuxOS - Launchpad */
+/* LuxOS - Launchpad: zaobleny panel uprostred obrazovky */
 * {
-    lux-bg:       rgba(16, 16, 22, 90%);
+    lux-bg:       rgba(24, 25, 40, 84%);
     lux-fg:       #f2f2f7;
-    lux-muted:    #a0a0aa;
-    lux-accent:   rgba(255, 255, 255, 16%);
+    lux-muted:    #a0a0b4;
+    lux-accent:   rgba(255, 255, 255, 14%);
     lux-sel-fg:   #ffffff;
-    lux-border:   rgba(255, 255, 255, 18%);
-    lux-field:    rgba(255, 255, 255, 10%);
-    font:              "Inter 11";
+    lux-border:   rgba(255, 255, 255, 16%);
+    lux-field:    rgba(255, 255, 255, 9%);
+    font:              "Inter 10.5";
     background-color:  transparent;
     text-color:        @lux-fg;
 }
 
 window {
-    fullscreen:        true;
+    location:          center;
+    anchor:            center;
+    width:             60%;
+    border:            1px;
+    border-color:      @lux-border;
+    border-radius:     28px;
     background-color:  @lux-bg;
-    padding:           6% 12%;
+    padding:           22px 26px 18px;
 }
 
 mainbox {
     children: [ inputbar, listview ];
-    spacing:  5%;
+    spacing:  18px;
 }
 
 inputbar {
     children:         [ icon-search, entry ];
     expand:           false;
-    margin:           0 34%;
-    padding:          8px 14px;
-    spacing:          8px;
-    border-radius:    10px;
+    padding:          9px 14px;
+    spacing:          10px;
+    border-radius:    12px;
     border:           1px;
     border-color:     @lux-border;
     background-color: @lux-field;
@@ -43,27 +47,29 @@ icon-search {
 }
 
 entry {
-    placeholder:       "Search";
+    placeholder:       "Search apps";
     placeholder-color: @lux-muted;
     vertical-align:    0.5;
     horizontal-align:  0;
+    font:              "Inter 13";
 }
 
 listview {
-    columns:      7;
-    lines:        4;
-    fixed-height: true;
+    columns:       7;
+    lines:         4;
+    fixed-height:  true;
     fixed-columns: true;
-    scrollbar:    false;
-    spacing:      3%;
-    flow:         horizontal;
+    scrollbar:     false;
+    spacing:       6px;
+    flow:          horizontal;
 }
 
 element {
     orientation:   vertical;
-    padding:       14px 6px;
-    spacing:       10px;
-    border-radius: 18px;
+    padding:       12px 4px 10px;
+    spacing:       8px;
+    border-radius: 16px;
+    cursor:        pointer;
 }
 
 element selected.normal, element selected.active {
@@ -72,11 +78,13 @@ element selected.normal, element selected.active {
 }
 
 element-icon {
-    size:             72px;
+    size:             60px;
     horizontal-align: 0.5;
+    cursor:           inherit;
 }
 
 element-text {
     horizontal-align: 0.5;
     text-color:       inherit;
+    cursor:           inherit;
 }

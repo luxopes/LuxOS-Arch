@@ -10,7 +10,6 @@ set -Eeuo pipefail
 LOG=/var/log/luxos-install.log
 TARGET=/mnt
 SHARE=/usr/share/luxos/installer
-REPO_SRC=/opt/luxos-repo
 
 ((EUID == 0)) || exec sudo "$0" "$@"
 
@@ -322,13 +321,9 @@ configure_system() {
     swapoff /dev/zram* 2>/dev/null || true
     genfstab -U "$TARGET" | sed 's/,subvolid=[0-9]*//' | grep -v zram >>"$TARGET/etc/fstab"
 
-    # pacman: stejna konfigurace jako live system + lokalni repozitar LuxOS
-    install -m644 /etc/pacman.conf "$TARGET/etc/pacman.conf"
+    # pacman: repozitare LuxOS ze serveru (podepsane), Arch ze stejnych mirroru jako live system
+    install -m644 /usr/share/luxos/installer/pacman.conf "$TARGET/etc/pacman.conf"
     install -m644 /etc/pacman.d/mirrorlist "$TARGET/etc/pacman.d/mirrorlist"
-    if [[ -d $REPO_SRC ]]; then
-        mkdir -p "$TARGET/opt"
-        cp -a "$REPO_SRC" "$TARGET/opt/"
-    fi
 
     local console_km
     console_km=$(x11_to_console "$XKB_LAYOUT" "$XKB_VARIANT")

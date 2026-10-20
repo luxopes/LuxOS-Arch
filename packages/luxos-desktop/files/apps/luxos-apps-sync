@@ -1,0 +1,33 @@
+#!/bin/bash
+# LuxOS - prepis nazvu (a ikon) aplikaci podle /usr/share/luxos/apps/rename.conf
+# Spousti pacman hook pri kazde zmene .desktop souboru; vystup v /var/lib/luxos/apps
+# je v XDG_DATA_DIRS pred /usr/share (viz /etc/profile.d/luxos.sh).
+conf=/usr/share/luxos/apps/rename.conf
+out=/var/lib/luxos/apps/applications
+mkdir -p "$out"
+declare -A keep=()
+
+while IFS='|' read -r id name name_cs icon; do
+    [[ -z $id || $id == \#* ]] && continue
+    src=/usr/share/applications/$id.desktop
+    [[ -r $src ]] || continue
+    keep[$id]=1
+    awk -v n="$name" -v cs="$name_cs" -v ic="$icon" '
+        /^\[/ { sect = $0 }
+        sect == "[Desktop Entry]" && /^Name(\[[^]]*\])?=/ { next }
+        sect == "[Desktop Entry]" && ic != "" && /^Icon=/ { next }
+        { print }
+        $0 == "[Desktop Entry]" {
+            print "Name=" n
+            if (cs != "") print "Name[cs]=" cs
+            if (ic != "") print "Icon=" ic
+        }' "$src" >"$out/$id.desktop.tmp" && mv "$out/$id.desktop.tmp" "$out/$id.desktop"
+done <"$conf"
+
+# Prepisy odinstalovanych aplikaci smazat
+for f in "$out"/*.desktop; do
+    [[ -e $f ]] || continue
+    id=${f##*/}
+    [[ ${keep[${id%.desktop}]-} ]] || rm -f "$f"
+done
+update-desktop-database -q "$out" 2>/dev/null || true

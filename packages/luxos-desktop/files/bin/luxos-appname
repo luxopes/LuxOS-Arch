@@ -10,8 +10,8 @@ PLUGIN=genmon-2
 # Kratke nazvy pro aplikace, jejichz Name= je zbytecne dlouhe
 declare -A SHORT=(
     [thunar]=Files [xfce4-terminal]=Terminal [org.xfce.mousepad]="Text Editor" [mousepad]="Text Editor"
-    [xfce4-settings-manager]=Settings [xfdesktop]=Desktop [org.xfce.ristretto]=Preview [ristretto]=Preview
-    [org.gnome.evince]="Document Viewer" [evince]="Document Viewer" [xfce4-taskmanager]="Task Manager"
+    [xfce4-settings-manager]=Settings [xfdesktop]=Desktop [org.xfce.ristretto]="Image Viewer" [ristretto]="Image Viewer"
+    [org.gnome.evince]="Document Viewer" [evince]="Document Viewer" [xfce4-taskmanager]="System Monitor"
     [yad]=LuxOS
 )
 
@@ -42,6 +42,8 @@ watch)
                 f=""
             done
         fi
+        # Prejmenovane aplikace LuxOS (luxos-apps-sync) maji prednost
+        [[ -n $f && -e /var/lib/luxos/apps/applications/${f##*/} ]] && f=/var/lib/luxos/apps/applications/${f##*/}
         n=""
         if [[ -n $f ]]; then
             n=$(grep -m1 "^Name\[$lang\]=" "$f" | cut -d= -f2-)

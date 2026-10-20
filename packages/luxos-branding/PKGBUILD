@@ -20,7 +20,7 @@ build() {
     rsvg-convert -w 256 -h 256 "$f/logo/luxos-logo-white.svg" -o render/logo-white.png
     for v in dark light; do
         rsvg-convert -w 3840 -h 2160 "$f/wallpapers/luxos-$v.svg" -o render/luxos-$v.png
-        magick render/luxos-$v.png -quality 94 render/luxos-$v.jpg
+        magick render/luxos-$v.png -quality 94 render/luxos-waves-$v.jpg
     done
     for p in bar-track bar-fill entry bullet; do
         rsvg-convert "$f/plymouth/$p.svg" -o render/$p.png
@@ -54,7 +54,11 @@ package() {
     install -Dm644 -t "$pkgdir/usr/share/luxos/logo" "$f"/logo/*.svg render/logo-white.png
     install -Dm644 render/splash.png "$pkgdir/usr/share/luxos/syslinux/splash.png"
 
-    install -Dm644 -t "$pkgdir/usr/share/backgrounds/luxos" render/luxos-dark.jpg render/luxos-light.jpg
+    # Tapety; luxos-dark/light jsou vychozi pro tmavy a svetly rezim (luxos-appearance)
+    install -Dm644 -t "$pkgdir/usr/share/backgrounds/luxos" "$f"/wallpapers/*.jpg \
+        render/luxos-waves-dark.jpg render/luxos-waves-light.jpg
+    ln -s luxos-twilight.jpg "$pkgdir/usr/share/backgrounds/luxos/luxos-dark.jpg"
+    ln -s luxos-sunrise.jpg "$pkgdir/usr/share/backgrounds/luxos/luxos-light.jpg"
 
     local pt="$pkgdir/usr/share/plymouth/themes/luxos"
     install -Dm644 -t "$pt" "$f/plymouth/luxos.plymouth" "$f/plymouth/luxos.script"

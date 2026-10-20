@@ -1,0 +1,7 @@
+# Klice LuxOS do klicenky pacmanu (pokud uz je inicializovana)
+post_install() {
+    if [[ -r /etc/pacman.d/gnupg/pubring.gpg || -r /etc/pacman.d/gnupg/pubring.kbx ]]; then
+        pacman-key --populate luxos
+    fi
+}
+post_upgrade() { post_install; }

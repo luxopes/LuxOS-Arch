@@ -14,6 +14,6 @@ package() {
     local f="$startdir/files"
     install -Dm755 -t "$pkgdir/usr/bin" "$f/luxos-install" "$f/luxos-install-gui"
     install -Dm755 "$f/setup-chroot.sh" "$pkgdir/usr/share/luxos/installer/setup-chroot.sh"
-    install -Dm644 -t "$pkgdir/usr/share/luxos/installer" "$f/packages" "$f/install.conf.example"
+    install -Dm644 -t "$pkgdir/usr/share/luxos/installer" "$f/packages" "$f/install.conf.example" "$f/pacman.conf"
     install -Dm644 "$f/luxos-install.desktop" "$pkgdir/usr/share/applications/luxos-install.desktop"
 }

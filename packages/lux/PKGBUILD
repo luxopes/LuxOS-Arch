@@ -7,7 +7,7 @@ pkgdesc="LuxOS package manager (pacman, AUR and Flatpak frontend)"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
-depends=(bash pacman pacman-contrib curl jq sudo reflector luxos-drivers)
+depends=(bash pacman pacman-contrib curl jq sudo reflector luxos-drivers luxos-keyring)
 optdepends=('base-devel: build packages from AUR'
             'git: build packages from AUR'
             'flatpak: Flathub applications')

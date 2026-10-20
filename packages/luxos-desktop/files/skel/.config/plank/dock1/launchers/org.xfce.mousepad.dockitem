@@ -1,2 +1,2 @@
 [PlankDockItemPreferences]
-Launcher=file:///usr/share/applications/org.xfce.mousepad.desktop
+Launcher=file:///var/lib/luxos/apps/applications/org.xfce.mousepad.desktop
