@@ -1,0 +1,18 @@
+/* LuxOS - nabidky a vyskakovaci okna ve stylu macOS: zaoblene a mirne pruhledne.
+   Pripojuje se na konec gtk.css temat WhiteSur (luxos-themes). */
+.background.csd > menu,
+.background.popup > menu {
+    background-color: alpha(@theme_bg_color, 0.84);
+    border-radius: 12px;
+    padding: 5px;
+}
+
+menu > menuitem {
+    border-radius: 6px;
+    padding: 4px 10px;
+    min-height: 20px;
+}
+
+menu > separator {
+    margin: 4px 8px;
+}

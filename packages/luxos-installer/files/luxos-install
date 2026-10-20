@@ -10,6 +10,8 @@ set -Eeuo pipefail
 LOG=/var/log/luxos-install.log
 TARGET=/mnt
 SHARE=/usr/share/luxos/installer
+. /usr/lib/luxos/i18n.sh
+ui_lang() { export LANG=$1; . /usr/lib/luxos/i18n.sh; }   # jazyk pruvodce podle volby
 
 ((EUID == 0)) || exec sudo "$0" "$@"
 
@@ -37,8 +39,8 @@ on_error() {
     local rc=$? line=$1
     echo >&2
     gum style --border rounded --border-foreground 203 --padding "1 2" --foreground 203 \
-        "Installation failed (line $line, exit code $rc)." "" \
-        "Details are in $LOG. Last lines:" >&2 || true
+        "$(T "Installation failed (line %s, exit code %s)." "$line" "$rc")" "" \
+        "$(T "Details are in %s. Last lines:" "$LOG")" >&2 || true
     tail -n 15 "$LOG" >&2 || true
     exit "$rc"
 }
@@ -49,31 +51,33 @@ preflight() {
     command -v gum >/dev/null || { echo "gum is missing" >&2; exit 1; }
     : >"$LOG"
     if [[ -d /sys/firmware/efi/efivars ]]; then BOOTMODE=uefi; else BOOTMODE=bios; fi
-    [[ -d /run/archiso ]] || info "Warning: not running from the LuxOS live system."
+    [[ -d /run/archiso ]] || info "$(T "Warning: not running from the LuxOS live system.")"
 }
 
 have_internet() { curl -fsI --max-time 6 https://geo.mirror.pkgbuild.com/ >/dev/null 2>&1; }
 
 ensure_internet() {
     until have_internet; do
-        title "No internet connection"
-        info "LuxOS downloads the newest packages during installation."
-        info "Connect with the network icon in the top bar, or use the text tool."
+        title "$(T "No internet connection")"
+        info "$(T "LuxOS downloads the newest packages during installation.")"
+        info "$(T "Connect with the network icon in the top bar, or use the text tool.")"
         local c
-        c=$(gum choose "Try again" "Open network setup (nmtui)" "Quit") || exit 1
+        c=$(gum choose "$(T "Try again")" "$(T "Open network setup (nmtui)")" "$(T "Quit")") || exit 1
         case $c in
-            "Open network setup"*) nmtui || true ;;
-            Quit) exit 1 ;;
+            "$(T "Open network setup (nmtui)")") nmtui || true ;;
+            "$(T "Quit")") exit 1 ;;
         esac
     done
 }
 
 # --- Volby ------------------------------------------------------------------
 LANGS=(
-    "English (US)|en_US.UTF-8" "Čeština|cs_CZ.UTF-8" "Slovenčina|sk_SK.UTF-8" "Deutsch|de_DE.UTF-8"
-    "Polski|pl_PL.UTF-8" "Français|fr_FR.UTF-8" "Español|es_ES.UTF-8" "Italiano|it_IT.UTF-8"
-    "Português (Brasil)|pt_BR.UTF-8" "Nederlands|nl_NL.UTF-8" "Magyar|hu_HU.UTF-8" "Svenska|sv_SE.UTF-8"
-    "Українська|uk_UA.UTF-8" "English (UK)|en_GB.UTF-8"
+    # Anglicky nazev za teckou: hledani funguje i bez diakritiky ("czech", "cest")
+    "English (US)|en_US.UTF-8" "Čeština · Czech, Cestina|cs_CZ.UTF-8" "Slovenčina · Slovak, Slovencina|sk_SK.UTF-8"
+    "Deutsch · German|de_DE.UTF-8" "Polski · Polish|pl_PL.UTF-8" "Français · French|fr_FR.UTF-8"
+    "Español · Spanish|es_ES.UTF-8" "Italiano · Italian|it_IT.UTF-8" "Português (Brasil) · Portuguese|pt_BR.UTF-8"
+    "Nederlands · Dutch|nl_NL.UTF-8" "Magyar · Hungarian|hu_HU.UTF-8" "Svenska · Swedish|sv_SE.UTF-8"
+    "Українська · Ukrainian|uk_UA.UTF-8" "English (UK)|en_GB.UTF-8"
 )
 KEYMAPS=(
     "English (US)|us|" "Czech|cz|" "Czech (QWERTY)|cz|qwerty" "Slovak|sk|" "Slovak (QWERTY)|sk|qwerty"
@@ -84,10 +88,10 @@ KEYMAPS=(
 pick_from() {  # pick_from "Nadpis" polozka... -> vybrany radek "label|..."
     local header=$1; shift
     local labels=() sel i
-    for i in "$@"; do labels+=("${i%%|*}"); done
-    sel=$(printf '%s\n' "${labels[@]}" "Other…" | gum filter --header "$header" --height 14 --placeholder "Type to search") || exit 1
-    for i in "$@"; do [[ ${i%%|*} == "$sel" ]] && { echo "$i"; return; }; done
-    echo "Other…"
+    for i in "$@"; do labels+=("$(T "${i%%|*}")"); done
+    sel=$(printf '%s\n' "${labels[@]}" "$(T "Other…")" | gum filter --header "$header" --height 14 --placeholder "$(T "Type to search")") || exit 1
+    for i in "$@"; do [[ $(T "${i%%|*}") == "$sel" ]] && { echo "$i"; return; }; done
+    echo "Other…"   # pevny klic (nezavisly na jazyku pruvodce)
 }
 
 # Prevod rozlozeni X11 na konzolove podle tabulky systemd
@@ -121,30 +125,38 @@ list_disks() {
 interactive() {
     clear
     gum style --border rounded --border-foreground "$ACCENT" --padding "1 4" --margin "1 2" --align center \
-        "$(gum style --foreground "$ACCENT" --bold '✦  LuxOS')" "" "Welcome! This will install LuxOS on your computer." \
-        "It takes about 10 minutes."
+        "$(gum style --foreground "$ACCENT" --bold '✦  LuxOS')" "" \
+        "Welcome! This will install LuxOS on your computer." "Vítejte! Tento průvodce nainstaluje LuxOS do počítače."
 
-    ensure_internet
-
-    # Jazyk
-    title "Language"
+    # Jazyk (zaroven jazyk pruvodce)
+    title "Language · Jazyk"
     local sel
-    sel=$(pick_from "Choose the system language" "${LANGS[@]}")
+    sel=$(pick_from "Choose the system language · Vyberte jazyk systému" "${LANGS[@]}")
     if [[ $sel == "Other…" ]]; then
         LOCALE=$(grep -oE '^[a-zA-Z_@]+\.UTF-8' /usr/share/i18n/SUPPORTED | sort -u |
-                 gum filter --header "Choose locale" --height 14) || exit 1
+                 gum filter --header "$(T "Choose locale")" --height 14) || exit 1
     else
         LOCALE=${sel##*|}
     fi
-    info "Language: $LOCALE"
+    ui_lang "$LOCALE"
+    info "$(T "Language: %s" "$LOCALE")"
+    info "$(T "The installation takes about 10 minutes.")"
+
+    ensure_internet
 
     # Klavesnice
-    title "Keyboard"
-    sel=$(pick_from "Choose your keyboard layout" "${KEYMAPS[@]}")
+    title "$(T "Keyboard")"
+    # Rozlozeni pro zemi zvoleneho jazyka nahoru (cs_CZ -> cz)
+    local country=${LOCALE:3:2} first=() rest=() k
+    for k in "${KEYMAPS[@]}"; do
+        IFS='|' read -r _ l _ <<<"$k"
+        if [[ $l == "${country,,}" ]]; then first+=("$k"); else rest+=("$k"); fi
+    done
+    sel=$(pick_from "$(T "Choose your keyboard layout")" "${first[@]}" "${rest[@]}")
     if [[ $sel == "Other…" ]]; then
-        XKB_LAYOUT=$(localectl list-x11-keymap-layouts | gum filter --header "Layout" --height 14) || exit 1
+        XKB_LAYOUT=$(localectl list-x11-keymap-layouts | gum filter --header "$(T "Layout")" --height 14) || exit 1
         XKB_VARIANT=$( (echo "(default)"; localectl list-x11-keymap-variants "$XKB_LAYOUT" 2>/dev/null) |
-                       gum filter --header "Variant" --height 14) || exit 1
+                       gum filter --header "$(T "Variant")" --height 14) || exit 1
         [[ $XKB_VARIANT == "(default)" ]] && XKB_VARIANT=""
     else
         IFS='|' read -r _ XKB_LAYOUT XKB_VARIANT <<<"$sel"
@@ -153,60 +165,62 @@ interactive() {
     if [[ -n ${SUDO_USER-} && -n ${DISPLAY-} ]]; then
         sudo -u "$SUDO_USER" DISPLAY="$DISPLAY" setxkbmap "$XKB_LAYOUT" ${XKB_VARIANT:+-variant "$XKB_VARIANT"} 2>/dev/null || true
     fi
-    info "Keyboard: $XKB_LAYOUT${XKB_VARIANT:+ ($XKB_VARIANT)}"
+    info "$(T "Keyboard: %s" "$XKB_LAYOUT${XKB_VARIANT:+ ($XKB_VARIANT)}")"
 
     # Casove pasmo
-    title "Time zone"
+    title "$(T "Time zone")"
     local detected
     detected=$(curl -fs --max-time 5 'http://ip-api.com/line/?fields=timezone' 2>/dev/null || true)
     if [[ -n $detected && -e /usr/share/zoneinfo/$detected ]] && \
-       gum confirm "Use detected time zone $detected?"; then
+       gum confirm "$(T "Use detected time zone %s?" "$detected")"; then
         TIMEZONE=$detected
     else
-        TIMEZONE=$(timedatectl list-timezones | gum filter --header "Choose time zone" --height 14) || exit 1
+        TIMEZONE=$(timedatectl list-timezones | gum filter --header "$(T "Choose time zone")" --height 14) || exit 1
     fi
-    info "Time zone: $TIMEZONE"
+    info "$(T "Time zone: %s" "$TIMEZONE")"
 
     # Disk
-    title "Disk"
+    title "$(T "Disk")"
     local disks
     mapfile -t disks < <(list_disks)
     local opts=() d
     for d in "${disks[@]}"; do opts+=("${d#*|}"); done
-    opts+=("Advanced: use partitions already mounted at $TARGET")
-    sel=$(gum choose --header "Where should LuxOS be installed?" "${opts[@]}") || exit 1
-    if [[ $sel == Advanced:* ]]; then
+    local advanced
+    advanced=$(T "Advanced: use partitions already mounted at %s" "$TARGET")
+    opts+=("$advanced")
+    sel=$(gum choose --header "$(T "Where should LuxOS be installed?")" "${opts[@]}") || exit 1
+    if [[ $sel == "$advanced" ]]; then
         DISK=manual
-        mountpoint -q "$TARGET" || fail "Nothing is mounted at $TARGET. Mount root (and /boot) first."
+        mountpoint -q "$TARGET" || fail "$(T "Nothing is mounted at %s. Mount root (and /boot) first." "$TARGET")"
         ENCRYPT=0
     else
         DISK=${sel%% *}
-        info "All data on $DISK will be erased."
+        info "$(T "All data on %s will be erased." "$DISK")"
         ENCRYPT=0
-        if gum confirm --default=false "Encrypt the disk? (you will enter a password at every start)"; then
+        if gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Encrypt the disk? (you will enter a password at every start)")"; then
             ENCRYPT=1
-            LUKS_PASS=$(ask_password "Disk encryption password")
+            LUKS_PASS=$(ask_password "$(T "Disk encryption password")")
         fi
     fi
 
     # Uzivatel
-    title "Your account"
-    FULLNAME=$(gum input --header "Full name" --placeholder "Jane Appleseed") || exit 1
+    title "$(T "Your account")"
+    FULLNAME=$(gum input --header "$(T "Full name")" --placeholder "$(T "Jane Doe")") || exit 1
     local suggested
     suggested=$(iconv -f utf-8 -t ascii//TRANSLIT <<<"${FULLNAME%% *}" 2>/dev/null | tr -cd 'A-Za-z0-9' | tr 'A-Z' 'a-z')
     while :; do
-        USERNAME=$(gum input --header "User name (lowercase)" --value "${suggested:-user}") || exit 1
+        USERNAME=$(gum input --header "$(T "User name (lowercase)")" --value "${suggested:-user}") || exit 1
         valid_user "$USERNAME" && break
-        info "Use lowercase letters, numbers, - and _ (max 32 characters)."
+        info "$(T "Use lowercase letters, numbers, - and _ (max 32 characters).")"
     done
-    PASSWORD=$(ask_password "Password")
+    PASSWORD=$(ask_password "$(T "Password")")
     while :; do
-        HOSTNAME_SEL=$(gum input --header "Computer name" --value "${USERNAME}-luxos") || exit 1
+        HOSTNAME_SEL=$(gum input --header "$(T "Computer name")" --value "${USERNAME}-luxos") || exit 1
         valid_host "$HOSTNAME_SEL" && break
-        info "Use letters, numbers and - (no spaces)."
+        info "$(T "Use letters, numbers and - (no spaces).")"
     done
     AUTOLOGIN=0
-    gum confirm --default=false "Log in automatically without a password?" && AUTOLOGIN=1
+    gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Log in automatically without a password?")" && AUTOLOGIN=1
     return 0
 }
 
@@ -214,27 +228,27 @@ ask_password() {
     local p1 p2
     while :; do
         p1=$(gum input --password --header "$1") || exit 1
-        [[ ${#p1} -ge 1 ]] || { info "Password cannot be empty." >&2; continue; }
-        p2=$(gum input --password --header "$1 (again)") || exit 1
+        [[ ${#p1} -ge 1 ]] || { info "$(T "Password cannot be empty.")" >&2; continue; }
+        p2=$(gum input --password --header "$(T "%s (again)" "$1")") || exit 1
         [[ $p1 == "$p2" ]] && break
-        info "Passwords do not match, try again." >&2
+        info "$(T "Passwords do not match, try again.")" >&2
     done
     printf '%s' "$p1"
 }
 
 summary() {
-    title "Summary"
+    title "$(T "Summary")"
     gum style --border rounded --border-foreground 240 --padding "1 2" \
-        "Language     $LOCALE" \
-        "Keyboard     $XKB_LAYOUT${XKB_VARIANT:+ ($XKB_VARIANT)}" \
-        "Time zone    $TIMEZONE" \
-        "Disk         $([[ $DISK == manual ]] && echo "mounted at $TARGET" || echo "$DISK  (will be ERASED)")" \
-        "Encryption   $([[ $ENCRYPT == 1 ]] && echo yes || echo no)" \
-        "User         $FULLNAME ($USERNAME)" \
-        "Computer     $HOSTNAME_SEL" \
-        "Boot mode    ${BOOTMODE^^}"
+        "$(printf '%-13s%s' "$(T "Language")" "$LOCALE")" \
+        "$(printf '%-13s%s' "$(T "Keyboard")" "$XKB_LAYOUT${XKB_VARIANT:+ ($XKB_VARIANT)}")" \
+        "$(printf '%-13s%s' "$(T "Time zone")" "$TIMEZONE")" \
+        "$(printf '%-13s%s' "$(T "Disk")" "$([[ $DISK == manual ]] && T "mounted at %s" "$TARGET" || T "%s  (will be ERASED)" "$DISK")")" \
+        "$(printf '%-13s%s' "$(T "Encryption")" "$([[ $ENCRYPT == 1 ]] && T "yes" || T "no")")" \
+        "$(printf '%-13s%s' "$(T "User")" "$FULLNAME ($USERNAME)")" \
+        "$(printf '%-13s%s' "$(T "Computer")" "$HOSTNAME_SEL")" \
+        "$(printf '%-13s%s' "$(T "Boot mode")" "${BOOTMODE^^}")"
     ((ASSUME_YES)) && return 0
-    gum confirm --default=false --affirmative "Install" --negative "Cancel" "Install LuxOS now?" || exit 1
+    gum confirm --default=false --affirmative "$(T "Install")" --negative "$(T "Cancel")" "$(T "Install LuxOS now?")" || exit 1
 }
 
 # --- Instalace --------------------------------------------------------------
@@ -243,7 +257,7 @@ part_path() {  # part_path /dev/disk N
 }
 
 prepare_disk() {
-    step "Preparing disk $DISK"
+    step "$(T "Preparing disk %s" "$DISK")"
     swapoff -a 2>/dev/null || true
     umount -R "$TARGET" 2>/dev/null || true
     [[ -e /dev/mapper/cryptroot ]] && cryptsetup close cryptroot 2>/dev/null || true
@@ -264,11 +278,11 @@ prepare_disk() {
     else
         BOOTPART=$(part_path "$DISK" 2); rootpart=$(part_path "$DISK" 3)
     fi
-    [[ -b $BOOTPART && -b $rootpart ]] || fail "Partitions were not created correctly"
+    [[ -b $BOOTPART && -b $rootpart ]] || fail "$(T "Partitions were not created correctly")"
 
     ROOTDEV=$rootpart
     if ((ENCRYPT)); then
-        step "Encrypting the disk"
+        step "$(T "Encrypting the disk")"
         printf '%s' "$LUKS_PASS" | run cryptsetup luksFormat --type luks2 --batch-mode --key-file - "$rootpart"
         printf '%s' "$LUKS_PASS" | run cryptsetup open --allow-discards --perf-no_read_workqueue \
             --perf-no_write_workqueue --persistent --key-file - "$rootpart" cryptroot
@@ -276,7 +290,7 @@ prepare_disk() {
         ROOTDEV=/dev/mapper/cryptroot
     fi
 
-    step "Creating file systems"
+    step "$(T "Creating file systems")"
     if [[ $BOOTMODE == uefi ]]; then run mkfs.fat -F32 -n EFI "$BOOTPART"
     else run mkfs.ext4 -F -L boot "$BOOTPART"; fi
     run mkfs.btrfs -f -L LuxOS "$ROOTDEV"
@@ -295,7 +309,7 @@ prepare_disk() {
 }
 
 install_packages() {
-    step "Detecting hardware"
+    step "$(T "Detecting hardware")"
     local -a pkgs hw
     mapfile -t pkgs < <(grep -vE '^\s*(#|$)' "$SHARE/packages")
     if [[ $BOOTMODE == uefi ]]; then pkgs+=(efibootmgr); else pkgs+=(grub); fi
@@ -303,20 +317,20 @@ install_packages() {
     luxos-hwdetect --report | sed 's/^/  /'
     pkgs+=("${hw[@]}")
 
-    step "Installing packages (this is the longest step)"
+    step "$(T "Installing packages (this is the longest step)")"
     local attempt
     for attempt in 1 2 3; do
         if pacstrap -K "$TARGET" --needed "${pkgs[@]}" 2>&1 | tee -a "$LOG"; then
             return 0
         fi
-        info "Download failed (attempt $attempt), retrying…"
+        info "$(T "Download failed (attempt %s), retrying…" "$attempt")"
         sleep 3
     done
-    fail "Packages could not be installed. Check the internet connection."
+    fail "$(T "Packages could not be installed. Check the internet connection.")"
 }
 
 configure_system() {
-    step "Configuring the system"
+    step "$(T "Configuring the system")"
     # zram swap live systemu nepatri do fstab (instalovany system ma vlastni zram-generator)
     swapoff /dev/zram* 2>/dev/null || true
     genfstab -U "$TARGET" | sed 's/,subvolid=[0-9]*//' | grep -v zram >>"$TARGET/etc/fstab"
@@ -362,22 +376,22 @@ ENV
     if [[ $BOOTMODE == uefi && $DISK != manual ]] && command -v efibootmgr >/dev/null; then
         efibootmgr -q -B -L LuxOS >/dev/null 2>&1 || true
         run efibootmgr --create --disk "$DISK" --part 1 --label LuxOS \
-            --loader '\EFI\systemd\systemd-bootx64.efi' --unicode || info "Could not add UEFI boot entry (fallback loader will be used)"
+            --loader '\EFI\systemd\systemd-bootx64.efi' --unicode || info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
     fi
 }
 
 finish() {
-    step "Finishing"
+    step "$(T "Finishing")"
     cp "$LOG" "$TARGET/var/log/luxos-install.log" 2>/dev/null || true
     sync
     umount -R "$TARGET" 2>/dev/null || true
     ((ENCRYPT)) && cryptsetup close cryptroot 2>/dev/null || true
     echo
     gum style --border rounded --border-foreground "$ACCENT" --padding "1 4" --margin "1 2" --align center \
-        "$(gum style --foreground "$ACCENT" --bold '✦  LuxOS is installed')" "" \
-        "Remove the installation media and restart your computer."
+        "$(gum style --foreground "$ACCENT" --bold "✦  $(T "LuxOS is installed")")" "" \
+        "$(T "Remove the installation media and restart your computer.")"
     ((ASSUME_YES)) && return 0
-    if gum confirm "Restart now?"; then systemctl reboot; fi
+    if gum confirm --affirmative "$(T "Restart")" --negative "$(T "Later")" "$(T "Restart now?")"; then systemctl reboot; fi
 }
 
 main() {
@@ -387,11 +401,11 @@ main() {
         . "$CONFIG"
         : "${LOCALE:=en_US.UTF-8}" "${XKB_LAYOUT:=us}" "${XKB_VARIANT:=}" "${TIMEZONE:=UTC}"
         : "${ENCRYPT:=0}" "${AUTOLOGIN:=0}" "${HOSTNAME_SEL:=luxos}" "${FULLNAME:=$USERNAME}"
-        [[ -n ${DISK-} && -n ${USERNAME-} && -n ${PASSWORD-} ]] || fail "Config needs DISK, USERNAME and PASSWORD"
-        valid_user "$USERNAME" || fail "Invalid USERNAME"
-        valid_host "$HOSTNAME_SEL" || fail "Invalid HOSTNAME_SEL"
-        ((ENCRYPT)) && [[ -z ${LUKS_PASS-} ]] && fail "ENCRYPT=1 needs LUKS_PASS"
-        have_internet || fail "No internet connection"
+        [[ -n ${DISK-} && -n ${USERNAME-} && -n ${PASSWORD-} ]] || fail "$(T "Config needs DISK, USERNAME and PASSWORD")"
+        valid_user "$USERNAME" || fail "$(T "Invalid USERNAME")"
+        valid_host "$HOSTNAME_SEL" || fail "$(T "Invalid HOSTNAME_SEL")"
+        ((ENCRYPT)) && [[ -z ${LUKS_PASS-} ]] && fail "$(T "ENCRYPT=1 needs LUKS_PASS")"
+        have_internet || fail "$(T "No internet connection")"
     else
         interactive
     fi

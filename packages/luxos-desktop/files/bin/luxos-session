@@ -13,6 +13,8 @@ fi
 # Nazev aktivni aplikace v horni liste, prepinani jejich nabidek jednim klikem
 luxos-appname watch &
 pgrep -u "$USER" -x luxos-menubar >/dev/null || luxos-menubar &
+# Sporic dat: merene pripojeni plati jen do odpojeni, po prihlaseni znovu
+luxos-datasaver reapply &
 
 # Tapeta i pro nove pripojene monitory (xfdesktop musi uz bezet)
 for _ in 1 2 3 4 5 6 7 8 9 10; do
@@ -27,6 +29,8 @@ luxos-appearance reapply
         now=$(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1 {print $NF}' | sort | tr '\n' ' ')
         [[ $now != "$last" && -n $last ]] && luxos-appearance reapply
         last=$now
+        # Sporic dat i pro nove pripojene site
+        [[ -e ${XDG_CONFIG_HOME:-$HOME/.config}/luxos/datasaver ]] && luxos-datasaver reapply
     done
 ) &
 

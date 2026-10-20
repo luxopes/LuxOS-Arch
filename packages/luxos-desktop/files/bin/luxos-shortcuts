@@ -1,22 +1,24 @@
 #!/bin/bash
 # LuxOS - prehled klavesovych zkratek
-yad --title="Keyboard Shortcuts" --window-icon=luxos-logo --list --no-selection --width=560 --height=560 --center \
-    --column="Shortcut" --column="Action" \
+. /usr/lib/luxos/i18n.sh
+yad --title="$(T "Keyboard Shortcuts")" --window-icon=luxos-app --list --no-selection --width=560 --height=600 --center \
+    --column="$(T "Shortcut")" --column="$(T "Action")" \
     "Super + Space" "Spotlight" \
     "Super + A" "Launchpad" \
-    "Super + Q" "Close window" \
-    "Super + M / H" "Minimize window" \
-    "Super + Tab" "Switch windows" \
-    "Super + ↑ / ← / →" "Maximize / tile half" \
-    "Ctrl + Super + F" "Full screen" \
-    "Super + D" "Show desktop" \
-    "Ctrl + Super + ← / →" "Switch workspace" \
-    "Super + E" "Files" \
-    "Super + T" "Terminal" \
-    "Super + ," "Settings" \
-    "Super + L" "Lock screen" \
-    "Super + Shift + 3" "Screenshot" \
-    "Super + Shift + 4" "Screenshot of region" \
-    "Super + Shift + 5" "Screenshot tool" \
-    "Super + Alt + Esc" "Task manager (force quit)" \
-    --button="Close!window-close:0"
+    "Super + Q" "$(T "Close window")" \
+    "Super + M / H" "$(T "Minimize window")" \
+    "Super + Tab" "$(T "Switch windows")" \
+    "Super + ↑ / ← / →" "$(T "Maximize / tile half")" \
+    "Ctrl + Super + F" "$(T "Full screen")" \
+    "Super + D" "$(T "Show desktop")" \
+    "Ctrl + Super + ← / →" "$(T "Switch workspace")" \
+    "Super + E" "$(T "Files")" \
+    "Super + T" "$(T "Terminal")" \
+    "Super + ," "$(T "Settings")" \
+    "Super + L" "$(T "Lock screen")" \
+    "Alt + Shift" "$(T "Switch keyboard layout")" \
+    "Super + Shift + 3" "$(T "Screenshot")" \
+    "Super + Shift + 4" "$(T "Screenshot of region")" \
+    "Super + Shift + 5" "$(T "Screenshot tool")" \
+    "Super + Alt + Esc" "$(T "System monitor (force quit)")" \
+    --button="$(T "Close")!window-close:0"

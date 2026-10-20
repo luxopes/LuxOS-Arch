@@ -3,6 +3,7 @@
 #
 #   ./build.sh            baliky + ISO  (vystup: out/luxos-*.iso)
 #   ./build.sh packages   jen baliky (out/repo)
+#   ./build.sh apps       jen aplikace [luxos-apps] (packages/apps/*), [luxos] beze zmeny
 #   ./build.sh iso        jen ISO z jiz sestavenych baliku
 #
 # Potrebuje podman (doporuceno) nebo docker; vse ostatni bezi v Arch kontejneru.

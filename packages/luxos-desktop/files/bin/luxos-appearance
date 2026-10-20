@@ -1,11 +1,37 @@
 #!/bin/bash
-# LuxOS - prepinani svetleho a tmaveho vzhledu
+# LuxOS - vzhled: svetly/tmavy rezim, tapeta, pruhlednost horni listy a docku
 # Pouziti: luxos-appearance [dark|light|toggle|status|reapply]
+#          luxos-appearance wallpaper SOUBOR | bar-opacity 0-100 | dock-opacity 0-100|default
 set -u
 
 state_dir="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
 state_file="$state_dir/appearance"
+prefs="$state_dir/appearance.conf"   # BAR_OPACITY, DOCK_OPACITY (nastaveni Plocha a Dock)
 wall_dir=/usr/share/backgrounds/luxos
+BAR_OPACITY=62
+DOCK_OPACITY=
+[[ -r $prefs ]] && . "$prefs"
+
+set_pref() {  # set_pref KLIC HODNOTA
+    mkdir -p "$state_dir"
+    touch "$prefs"
+    sed -i "/^$1=/d" "$prefs"
+    echo "$1=$2" >>"$prefs"
+}
+
+# Tema docku: WhiteSur, nebo jeho kopie s vlastni pruhlednosti pozadi
+dock_theme() {  # dock_theme Dark|Light -> nazev tematu Planku
+    local base=/usr/share/plank/themes/WhiteSur-$1/dock.theme dir a
+    if [[ -z $DOCK_OPACITY || ! -r $base ]]; then
+        echo "WhiteSur-$1"
+        return
+    fi
+    dir="${XDG_DATA_HOME:-$HOME/.local/share}/plank/themes/LuxOS-$1"
+    a=$(( DOCK_OPACITY * 255 / 100 ))
+    mkdir -p "$dir"
+    sed -E "s/^(Fill(Start|End)Color=[0-9]+;;[0-9]+;;[0-9]+;;)[0-9]+/\1$a/" "$base" >"$dir/dock.theme"
+    echo "LuxOS-$1"
+}
 
 current() {
     local m
@@ -49,12 +75,14 @@ CSS
 
 apply() {
     local mode=$1 gtk icons rgba prefer
+    local alpha
+    alpha=$(LC_ALL=C awk -v o="$BAR_OPACITY" 'BEGIN { printf "%.2f", o / 100 }')
     if [[ $mode == light ]]; then
         gtk=WhiteSur-Light icons=WhiteSur-light prefer=prefer-light
-        rgba=(0.96 0.96 0.97 0.62)
+        rgba=(0.96 0.96 0.97 "$alpha")
     else
         gtk=WhiteSur-Dark icons=WhiteSur-dark prefer=prefer-dark
-        rgba=(0.09 0.09 0.12 0.62)
+        rgba=(0.09 0.09 0.12 "$alpha")
     fi
 
     if command -v xfconf-query >/dev/null; then
@@ -69,7 +97,12 @@ apply() {
         gsettings set org.gnome.desktop.interface color-scheme "$prefer" 2>/dev/null
         gsettings set org.gnome.desktop.interface gtk-theme "$gtk" 2>/dev/null
         gsettings set org.gnome.desktop.interface icon-theme "$icons" 2>/dev/null
-        gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ theme "$gtk" 2>/dev/null
+        local dock=net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ theme
+        theme=$(dock_theme "${gtk#WhiteSur-}")
+        # Plank nenacte zmenene tema se stejnym nazvem - prepnout pres puvodni
+        [[ $(gsettings get "$dock" theme 2>/dev/null) == "'$theme'" && $theme == LuxOS-* ]] &&
+            gsettings set "$dock" theme "$gtk" 2>/dev/null
+        gsettings set "$dock" theme "$theme" 2>/dev/null
     fi
     local old
     old=$(cat "$state_file" 2>/dev/null)
@@ -87,5 +120,20 @@ case ${1:-status} in
     toggle)     m=$([[ $(current) == dark ]] && echo light || echo dark); apply "$m"; set_wallpaper "$m" 1 ;;
     reapply)    set_wallpaper "$(current)" 0 ;;
     status)     current ;;
-    *) echo "Usage: luxos-appearance [dark|light|toggle|status]" >&2; exit 2 ;;
+    wallpaper)
+        [[ -r ${2-} ]] || { echo "Usage: luxos-appearance wallpaper FILE" >&2; exit 2; }
+        for mon in $(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1 {print $NF}'); do
+            for ws in 0 1 2 3; do
+                xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor$mon/workspace$ws/last-image" -n -t string -s "$2"
+                xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor$mon/workspace$ws/image-style" -n -t int -s 5
+            done
+        done ;;
+    bar-opacity|dock-opacity)
+        v=${2-}
+        [[ $1 == dock-opacity && $v == default ]] && v=
+        [[ -z $v || $v =~ ^[0-9]+$ && $v -le 100 ]] || { echo "Usage: luxos-appearance $1 0-100" >&2; exit 2; }
+        if [[ $1 == bar-opacity ]]; then BAR_OPACITY=$v; set_pref BAR_OPACITY "$v"
+        else DOCK_OPACITY=$v; set_pref DOCK_OPACITY "$v"; fi
+        apply "$(current)" ;;
+    *) echo "Usage: luxos-appearance [dark|light|toggle|status|wallpaper FILE|bar-opacity N|dock-opacity N]" >&2; exit 2 ;;
 esac

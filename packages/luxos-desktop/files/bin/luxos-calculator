@@ -8,7 +8,16 @@ Ctrl+C / Ctrl+V.
 import locale
 from decimal import Decimal, DivisionByZero, InvalidOperation, getcontext
 
+import sys
+
 import gi
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+try:
+    from luxos_i18n import _
+except ImportError:
+    def _(text):
+        return text
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
@@ -110,7 +119,7 @@ def group(text):
 
 class Calculator(Gtk.Window):
     def __init__(self):
-        super().__init__(title="Calculator")
+        super().__init__(title=_("Calculator"))
         self.get_style_context().add_class("luxcalc")
         self.set_resizable(False)
         self.set_icon_name("luxos-calculator")
@@ -212,7 +221,7 @@ class Calculator(Gtk.Window):
         except (DivisionByZero, InvalidOperation):
             self.result = None
             self.tokens, self.entry = [], ""
-            self.show(expr, "Error")
+            self.show(expr, _("Error"))
             return
         self.tokens, self.entry = [], ""
         self.show(expr, fmt(self.result))

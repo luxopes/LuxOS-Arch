@@ -24,9 +24,11 @@
         <value type="int" value="1"/>
         <value type="int" value="2"/>
         <value type="int" value="3"/>
+        <value type="int" value="11"/>
         <value type="int" value="4"/>
         <value type="int" value="5"/>
-        <value type="int" value="6"/>
+        <value type="int" value="10"/>
+        <value type="int" value="12"/>
         <value type="int" value="7"/>
         <value type="int" value="8"/>
         <value type="int" value="9"/>
@@ -40,7 +42,7 @@
       <property name="show-button-icon" type="bool" value="true"/>
       <property name="menu-width" type="int" value="440"/>
       <property name="menu-height" type="int" value="520"/>
-      <property name="menu-opacity" type="int" value="96"/>
+      <property name="menu-opacity" type="int" value="88"/>
       <property name="position-search-alternate" type="bool" value="true"/>
       <property name="position-commands-alternate" type="bool" value="true"/>
       <property name="launcher-show-description" type="bool" value="false"/>
@@ -84,7 +86,30 @@
       <property name="show-notifications" type="bool" value="true"/>
       <property name="mixer-command" type="string" value="pavucontrol"/>
     </property>
-    <property name="plugin-6" type="string" value="power-manager-plugin"/>
+    <!-- Baterie s procenty (klik = Ovladaci centrum); bez baterie se nezobrazi -->
+    <property name="plugin-10" type="string" value="genmon">
+      <property name="command" type="string" value="luxos-battery"/>
+      <property name="update-period" type="int" value="20000"/>
+      <property name="use-label" type="bool" value="false"/>
+      <property name="enable-single-row" type="bool" value="true"/>
+      <property name="font" type="string" value="Inter Semi-Bold 10"/>
+    </property>
+    <!-- Rozlozeni klavesnice (text CZ / US, prepinani Alt+Shift nebo klikem) -->
+    <property name="plugin-11" type="string" value="xkb">
+      <property name="display-type" type="uint" value="1"/>
+      <property name="display-name" type="uint" value="0"/>
+      <property name="display-scale" type="uint" value="80"/>
+      <property name="caps-lock-indicator" type="bool" value="true"/>
+      <property name="display-tooltip-icon" type="bool" value="false"/>
+      <property name="group-policy" type="uint" value="0"/>
+    </property>
+    <!-- Ovladaci centrum -->
+    <property name="plugin-12" type="string" value="genmon">
+      <property name="command" type="string" value="luxos-control-center --panel"/>
+      <property name="update-period" type="int" value="86400000"/>
+      <property name="use-label" type="bool" value="false"/>
+      <property name="enable-single-row" type="bool" value="true"/>
+    </property>
     <property name="plugin-7" type="string" value="notification-plugin"/>
     <property name="plugin-8" type="string" value="clock">
       <property name="mode" type="uint" value="2"/>

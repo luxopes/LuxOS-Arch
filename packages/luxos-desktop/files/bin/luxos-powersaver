@@ -1,0 +1,27 @@
+#!/bin/bash
+# LuxOS - Spořič baterie: luxos-powersaver [on|off|toggle|status]
+# Usporny vykonovy profil (power-profiles-daemon) a bez animace zvetsovani v docku.
+. /usr/lib/luxos/i18n.sh
+state="${XDG_CONFIG_HOME:-$HOME/.config}/luxos/powersaver"
+dock=net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/
+
+apply() {  # apply on|off
+    if [[ $1 == on ]]; then
+        powerprofilesctl set power-saver 2>/dev/null
+        gsettings set "$dock" zoom-enabled false 2>/dev/null
+    else
+        powerprofilesctl set balanced 2>/dev/null
+        gsettings set "$dock" zoom-enabled "$(cat "${state%/*}/dock-zoom" 2>/dev/null || echo true)" 2>/dev/null
+    fi
+}
+
+case ${1:-status} in
+    on)
+        mkdir -p "${state%/*}"
+        [[ -e $state ]] || gsettings get "$dock" zoom-enabled >"${state%/*}/dock-zoom" 2>/dev/null
+        : >"$state"; apply on; T "Battery Saver is on\n" ;;
+    off)    rm -f "$state"; apply off; T "Battery Saver is off\n" ;;
+    toggle) if [[ -e $state ]]; then "$0" off; else "$0" on; fi ;;
+    status) if [[ -e $state ]]; then echo on; else echo off; fi ;;
+    *) echo "usage: luxos-powersaver [on|off|toggle|status]" >&2; exit 2 ;;
+esac

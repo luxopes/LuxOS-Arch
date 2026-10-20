@@ -1,0 +1,443 @@
+#!/usr/bin/env python3
+"""LuxOS Control Center - rychle nastaveni z horni listy (jako v macOS).
+
+Dlazdice: Wi-Fi, Bluetooth, Nerusit, Tmavy rezim, Sporic dat, Sporic baterie;
+posuvniky jasu a hlasitosti; stav baterie. Druhe spusteni okno zavre, okno
+se zavre i pri ztrate fokusu nebo klavesou Esc.
+"""
+import os
+import re
+import signal
+import subprocess
+import sys
+import threading
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_i18n import _  # noqa: E402
+
+# Ikona pro horni listu (plugin genmon): bez nacitani GTK, klik otevre/zavre okno
+if "--panel" in sys.argv:
+    print("<icon>luxos-control-center-symbolic</icon><iconclick>luxos-control-center</iconclick>"
+          f"<tool>{_('Control Center')}</tool>")
+    sys.exit(0)
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+
+RUNTIME = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
+PIDFILE = os.path.join(RUNTIME, "luxos-control-center.pid")
+
+CSS = """
+window.cc { background: transparent; }
+.cc-box {
+    background-color: @cc_bg; border-radius: 18px; border: 1px solid @cc_border;
+    padding: 12px; color: @cc_fg;
+}
+.tile {
+    background-color: @cc_tile; border-radius: 14px; padding: 10px 12px;
+    border: none; box-shadow: none; background-image: none; color: @cc_fg;
+}
+.tile:hover { background-color: @cc_tile_hover; }
+.tile .bubble {
+    background-color: @cc_bubble; border-radius: 999px; min-width: 30px; min-height: 30px;
+    color: @cc_fg;
+}
+.tile.on .bubble { background-color: #3d7bff; color: white; }
+.tile .title { font-weight: 600; font-size: 12px; }
+.tile .sub { font-size: 11px; color: @cc_dim; }
+.tile:disabled { opacity: 0.45; }
+.section {
+    background-color: @cc_tile; border-radius: 14px; padding: 10px 12px;
+}
+.section .title { font-weight: 600; font-size: 12px; }
+.section .sub { font-size: 11px; color: @cc_dim; }
+scale trough { min-height: 22px; border-radius: 11px; background-color: @cc_trough; border: none; }
+scale highlight { border-radius: 11px; background-color: @cc_fill; border: none; min-height: 22px; }
+scale slider { min-width: 22px; min-height: 22px; margin: 0; border-radius: 11px;
+               background-color: white; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.35); }
+.footer { background: none; border: none; box-shadow: none; color: @cc_fg; padding: 4px 6px;
+          font-size: 12px; border-radius: 8px; }
+.footer:hover { background-color: @cc_tile; }
+"""
+
+DARK = """
+@define-color cc_bg rgba(32, 33, 52, 0.86); @define-color cc_border rgba(255, 255, 255, 0.14);
+@define-color cc_fg #f4f4fa; @define-color cc_dim rgba(244, 244, 250, 0.6);
+@define-color cc_tile rgba(255, 255, 255, 0.08); @define-color cc_tile_hover rgba(255, 255, 255, 0.13);
+@define-color cc_bubble rgba(255, 255, 255, 0.14); @define-color cc_trough rgba(255, 255, 255, 0.14);
+@define-color cc_fill rgba(255, 255, 255, 0.85);
+"""
+
+LIGHT = """
+@define-color cc_bg rgba(246, 247, 252, 0.88); @define-color cc_border rgba(0, 0, 0, 0.10);
+@define-color cc_fg #1d1d2b; @define-color cc_dim rgba(29, 29, 43, 0.58);
+@define-color cc_tile rgba(0, 0, 0, 0.05); @define-color cc_tile_hover rgba(0, 0, 0, 0.09);
+@define-color cc_bubble rgba(0, 0, 0, 0.08); @define-color cc_trough rgba(0, 0, 0, 0.10);
+@define-color cc_fill #ffffff;
+"""
+
+
+def run(*cmd, timeout=3):
+    """Vystup prikazu (str) nebo None pri chybe."""
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return r.stdout.strip() if r.returncode == 0 else None
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def spawn(*cmd):
+    try:
+        subprocess.Popen(cmd, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
+
+
+# ---- stav systemu ------------------------------------------------------------
+def wifi_state():
+    radio = run("nmcli", "radio", "wifi")
+    if radio is None:
+        return None, ""
+    on = radio == "enabled"
+    ssid = ""
+    out = run("nmcli", "-t", "-f", "ACTIVE,SSID", "device", "wifi") or ""
+    for line in out.splitlines():
+        if line.startswith("yes:"):
+            ssid = line[4:]
+            break
+    if not on:
+        return False, _("Off")
+    if ssid:
+        return True, ssid
+    wired = run("nmcli", "-t", "-f", "TYPE,STATE", "device") or ""
+    if "ethernet:connected" in wired:
+        return True, _("Ethernet")
+    return True, _("Not connected")
+
+
+def bluetooth_state():
+    out = run("bluetoothctl", "show", timeout=2)
+    if not out or "Controller" not in out:
+        return None, _("Not available")
+    on = re.search(r"Powered:\s*yes", out) is not None
+    return on, _("On") if on else _("Off")
+
+
+def dnd_state():
+    out = run("xfconf-query", "-c", "xfce4-notifyd", "-p", "/do-not-disturb")
+    return out == "true"
+
+
+def flag_state(cmd):
+    return run(cmd, "status") == "on"
+
+
+def dark_state():
+    return run("luxos-appearance", "status") == "dark"
+
+
+def battery():
+    base = "/sys/class/power_supply"
+    try:
+        for name in sorted(os.listdir(base)):
+            if name.startswith("BAT"):
+                with open(f"{base}/{name}/capacity") as f:
+                    cap = int(f.read().strip())
+                with open(f"{base}/{name}/status") as f:
+                    st = f.read().strip()
+                return cap, st
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def volume():
+    out = run("pactl", "get-sink-volume", "@DEFAULT_SINK@")
+    mute = run("pactl", "get-sink-mute", "@DEFAULT_SINK@") or ""
+    if not out:
+        return None, False
+    m = re.search(r"(\d+)%", out)
+    return (int(m.group(1)) if m else 0), mute.endswith("yes")
+
+
+def brightness():
+    if not os.path.isdir("/sys/class/backlight") or not os.listdir("/sys/class/backlight"):
+        return None
+    cur, mx = run("brightnessctl", "get"), run("brightnessctl", "max")
+    try:
+        return round(int(cur) * 100 / int(mx))
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+
+
+# ---- UI ----------------------------------------------------------------------
+class Tile(Gtk.Button):
+    def __init__(self, icon, title, on_click):
+        super().__init__(can_focus=False)
+        self.get_style_context().add_class("tile")
+        box = Gtk.Box(spacing=10)
+        bubble = Gtk.Box(halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        bubble.get_style_context().add_class("bubble")
+        self.image = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU)
+        self.image.set_hexpand(True)
+        self.image.set_vexpand(True)
+        bubble.pack_start(self.image, True, True, 0)
+        box.pack_start(bubble, False, False, 0)
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        self.title = Gtk.Label(label=title, xalign=0)
+        self.title.get_style_context().add_class("title")
+        self.sub = Gtk.Label(xalign=0, ellipsize=3, max_width_chars=12)
+        self.sub.get_style_context().add_class("sub")
+        text.pack_start(self.title, False, False, 0)
+        text.pack_start(self.sub, False, False, 0)
+        box.pack_start(text, True, True, 0)
+        self.add(box)
+        self.connect("clicked", lambda _b: on_click())
+
+    def set_state(self, on, sub=None):
+        ctx = self.get_style_context()
+        if on is None:
+            self.set_sensitive(False)
+            on = False
+        (ctx.add_class if on else ctx.remove_class)("on")
+        if sub is not None:
+            self.sub.set_text(sub)
+
+
+class SliderRow(Gtk.Box):
+    def __init__(self, title, icon, on_change, on_icon=None):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.get_style_context().add_class("section")
+        label = Gtk.Label(label=title, xalign=0)
+        label.get_style_context().add_class("title")
+        self.pack_start(label, False, False, 0)
+        row = Gtk.Box(spacing=8)
+        btn = Gtk.Button(can_focus=False, relief=Gtk.ReliefStyle.NONE)
+        self.icon = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU)
+        btn.add(self.icon)
+        if on_icon:
+            btn.connect("clicked", lambda _b: on_icon())
+        self.scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1)
+        self.scale.set_draw_value(False)
+        self.scale.set_hexpand(True)
+        self._lock = False
+        self.scale.connect("value-changed", lambda s: None if self._lock else on_change(int(s.get_value())))
+        row.pack_start(btn, False, False, 0)
+        row.pack_start(self.scale, True, True, 0)
+        self.pack_start(row, False, False, 0)
+
+    def set_value(self, v):
+        self._lock = True
+        self.scale.set_value(v)
+        self._lock = False
+
+
+class ControlCenter(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Control Center"))
+        self.get_style_context().add_class("cc")
+        self.set_decorated(False)
+        self.set_resizable(False)
+        self.set_skip_taskbar_hint(True)
+        self.set_skip_pager_hint(True)
+        self.set_keep_above(True)
+        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
+        self.stick()
+        screen = self.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual and screen.is_composited():
+            self.set_visual(visual)
+        self.set_app_paintable(True)
+
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        outer.get_style_context().add_class("cc-box")
+        outer.set_size_request(340, -1)
+        self.add(outer)
+
+        grid = Gtk.Grid(row_spacing=8, column_spacing=8, column_homogeneous=True)
+        self.t_wifi = Tile("network-wireless-symbolic", _("Wi-Fi"), self.toggle_wifi)
+        self.t_bt = Tile("bluetooth-active-symbolic", _("Bluetooth"), self.toggle_bt)
+        self.t_dnd = Tile("notifications-disabled-symbolic", _("Do Not Disturb"), self.toggle_dnd)
+        self.t_dark = Tile("weather-clear-night-symbolic", _("Dark Mode"), self.toggle_dark)
+        self.t_data = Tile("network-cellular-signal-good-symbolic", _("Data Saver"), self.toggle_data)
+        self.t_power = Tile("battery-level-50-symbolic", _("Battery Saver"), self.toggle_power)
+        for i, t in enumerate((self.t_wifi, self.t_bt, self.t_dnd, self.t_dark, self.t_data, self.t_power)):
+            grid.attach(t, i % 2, i // 2, 1, 1)
+        outer.pack_start(grid, False, False, 0)
+
+        self.s_bright = SliderRow(_("Display"), "display-brightness-symbolic", self.set_brightness)
+        outer.pack_start(self.s_bright, False, False, 0)
+        self.s_vol = SliderRow(_("Sound"), "audio-volume-high-symbolic", self.set_volume, self.toggle_mute)
+        outer.pack_start(self.s_vol, False, False, 0)
+
+        self.bat_box = Gtk.Box(spacing=10)
+        self.bat_box.get_style_context().add_class("section")
+        self.bat_icon = Gtk.Image.new_from_icon_name("battery-level-50-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
+        bat_text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.bat_title = Gtk.Label(xalign=0)
+        self.bat_title.get_style_context().add_class("title")
+        self.bat_sub = Gtk.Label(xalign=0)
+        self.bat_sub.get_style_context().add_class("sub")
+        bat_text.pack_start(self.bat_title, False, False, 0)
+        bat_text.pack_start(self.bat_sub, False, False, 0)
+        self.bat_box.pack_start(self.bat_icon, False, False, 0)
+        self.bat_box.pack_start(bat_text, True, True, 0)
+        outer.pack_start(self.bat_box, False, False, 0)
+
+        footer = Gtk.Box(spacing=4)
+        for label, cmd in ((_("Desktop & Dock…"), "luxos-settings"), (_("All Settings…"), "xfce4-settings-manager")):
+            b = Gtk.Button(label=label, can_focus=False)
+            b.get_style_context().add_class("footer")
+            b.connect("clicked", lambda _b, c=cmd: (spawn(c), self.close()))
+            footer.pack_start(b, False, False, 0)
+        outer.pack_start(footer, False, False, 0)
+
+        self.connect("focus-out-event", lambda *_a: GLib.timeout_add(120, self.close_if_unfocused))
+        self.connect("key-press-event", self.on_key)
+        self.connect("realize", lambda *_a: self.place())
+        self.refresh_fast()
+        threading.Thread(target=self.refresh_slow, daemon=True).start()
+        GLib.timeout_add_seconds(3, self.periodic)
+
+    # umisteni vpravo pod horni listou na monitoru s kurzorem
+    def place(self):
+        display = Gdk.Display.get_default()
+        pointer = display.get_default_seat().get_pointer()
+        _scr, px, py = pointer.get_position()
+        mon = display.get_monitor_at_point(px, py)
+        geo = mon.get_workarea()
+        w, _h = self.get_size()
+        self.move(geo.x + geo.width - w - 8, geo.y + 6)
+
+    def close_if_unfocused(self):
+        if not self.is_active():
+            self.close()
+        return False
+
+    def on_key(self, _w, ev):
+        if ev.keyval == Gdk.KEY_Escape:
+            self.close()
+            return True
+        return False
+
+    # ---- obnova stavu ----
+    def refresh_fast(self):
+        self.t_dnd.set_state(dnd_state())
+        self.t_dark.set_state(dark_state())
+        data = flag_state("luxos-datasaver")
+        self.t_data.set_state(data, _("On") if data else _("Off"))
+        power = flag_state("luxos-powersaver")
+        self.t_power.set_state(power, _("On") if power else _("Off"))
+        self.t_dnd.sub.set_text(_("On") if dnd_state() else _("Off"))
+        self.t_dark.sub.set_text(_("On") if dark_state() else _("Off"))
+        b = brightness()
+        self.s_bright.set_visible(b is not None)
+        self.s_bright.set_no_show_all(b is None)
+        if b is not None:
+            self.s_bright.set_value(b)
+        vol, muted = volume()
+        if vol is not None:
+            self.s_vol.set_value(vol)
+            self.s_vol.icon.set_from_icon_name(
+                "audio-volume-muted-symbolic" if muted else "audio-volume-high-symbolic", Gtk.IconSize.MENU)
+        bat = battery()
+        self.bat_box.set_no_show_all(bat is None)
+        self.bat_box.set_visible(bat is not None)
+        if bat:
+            cap, st = bat
+            level = min(100, (cap + 5) // 10 * 10)
+            icon = f"battery-level-{level}{'-charging' if st == 'Charging' else ''}-symbolic"
+            self.bat_icon.set_from_icon_name(icon, Gtk.IconSize.LARGE_TOOLBAR)
+            self.bat_title.set_text(_("Battery") + f"  {cap} %")
+            self.bat_sub.set_text({"Charging": _("Charging"), "Discharging": _("On battery")}.get(st, _("Fully charged")))
+
+    def refresh_slow(self):
+        wifi = wifi_state()
+        bt = bluetooth_state()
+        GLib.idle_add(self.t_wifi.set_state, *wifi)
+        GLib.idle_add(self.t_bt.set_state, *bt)
+
+    def periodic(self):
+        threading.Thread(target=self.refresh_slow, daemon=True).start()
+        return True
+
+    # ---- akce ----
+    def toggle_wifi(self):
+        on, _sub = wifi_state()
+        run("nmcli", "radio", "wifi", "off" if on else "on", timeout=6)
+        threading.Thread(target=self.refresh_slow, daemon=True).start()
+
+    def toggle_bt(self):
+        on, _sub = bluetooth_state()
+        if on is not None:
+            run("bluetoothctl", "power", "off" if on else "on", timeout=6)
+        threading.Thread(target=self.refresh_slow, daemon=True).start()
+
+    def toggle_dnd(self):
+        run("xfconf-query", "-c", "xfce4-notifyd", "-p", "/do-not-disturb", "-n", "-t", "bool",
+            "-s", "false" if dnd_state() else "true")
+        self.refresh_fast()
+
+    def toggle_dark(self):
+        run("luxos-appearance", "toggle", timeout=20)
+        self.close()
+
+    def toggle_data(self):
+        run("luxos-datasaver", "toggle", timeout=10)
+        self.refresh_fast()
+
+    def toggle_power(self):
+        run("luxos-powersaver", "toggle", timeout=10)
+        self.refresh_fast()
+
+    def set_volume(self, v):
+        spawn("pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{v}%")
+
+    def toggle_mute(self):
+        run("pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle")
+        self.refresh_fast()
+
+    def set_brightness(self, v):
+        spawn("brightnessctl", "-q", "set", f"{max(v, 5)}%")
+
+
+def main():
+    # Druhe spusteni (klik na ikonu v liste) otevrene okno zavre
+    try:
+        with open(PIDFILE) as f:
+            pid = int(f.read())
+        with open(f"/proc/{pid}/cmdline", "rb") as f:
+            if b"luxos-control-center" in f.read():
+                os.kill(pid, signal.SIGTERM)
+                return
+    except (OSError, ValueError):
+        pass
+    with open(PIDFILE, "w") as f:
+        f.write(str(os.getpid()))
+
+    settings = Gtk.Settings.get_default()
+    dark = "dark" in (settings.props.gtk_theme_name or "").lower()
+    provider = Gtk.CssProvider()
+    provider.load_from_data(((DARK if dark else LIGHT) + CSS).encode())
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    GLib.set_prgname("luxos-control-center")
+    win = ControlCenter()
+    win.connect("destroy", Gtk.main_quit)
+    signal.signal(signal.SIGTERM, lambda *_a: GLib.idle_add(Gtk.main_quit))
+    win.show_all()
+    win.present()
+    try:
+        Gtk.main()
+    finally:
+        try:
+            os.unlink(PIDFILE)
+        except OSError:
+            pass
+
+
+if __name__ == "__main__":
+    main()

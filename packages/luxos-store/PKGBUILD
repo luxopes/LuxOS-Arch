@@ -1,0 +1,19 @@
+# Maintainer: LuxOS Team
+# LuxOS Store - graficky obchod s aplikacemi (repozitare LuxOS + Arch Linux pres AppStream)
+
+pkgname=luxos-store
+pkgver=1.0.0
+pkgrel=2
+pkgdesc="LuxOS Store - install apps from LuxOS and Arch Linux"
+arch=(any)
+url="https://lsl.lux-ai.cz/luxos/"
+license=(MIT)
+depends=(python python-gobject gtk3 appstream archlinux-appstream-data expac pacman-contrib polkit luxos-i18n)
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 "$f/luxos-store" "$pkgdir/usr/bin/luxos-store"
+    install -Dm755 "$f/luxos-store-helper" "$pkgdir/usr/lib/luxos/luxos-store-helper"
+    install -Dm644 "$f/org.luxos.store.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.store.policy"
+    install -Dm644 "$f/luxos-store.desktop" "$pkgdir/usr/share/applications/luxos-store.desktop"
+}

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Desktop & Dock
+Name[cs]=Plocha a Dock
+Comment=Wallpaper, appearance, Dock and menu bar
+Comment[cs]=Tapeta, vzhled, Dock a horní lišta
+Exec=luxos-settings
+Icon=preferences-desktop-wallpaper
+Terminal=false
+Categories=Settings;DesktopSettings;GTK;
+Keywords=wallpaper;dock;background;dark;light;tapeta;pozadí;vzhled;
+StartupWMClass=luxos-settings

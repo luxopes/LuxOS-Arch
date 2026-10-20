@@ -1,29 +1,33 @@
 #!/bin/bash
 # LuxOS - "O tomto pocitaci"
+. /usr/lib/luxos/i18n.sh
 . /etc/os-release
 cpu=$(awk -F': ' '/model name/ {print $2; exit}' /proc/cpuinfo | sed 's/ \+/ /g')
 mem=$(awk '/MemTotal/ {printf "%.1f GB", $2/1024/1024}' /proc/meminfo)
 gpu=$(lspci 2>/dev/null | awk -F': ' '/VGA|3D|Display/ {print $2}' | sed 's/ (rev.*//' | head -2 | paste -sd '\n')
 [[ -z $gpu ]] && gpu="-"
-disk=$(df -h / | awk 'NR==2 {print $4 " available of " $2}')
+read -r avail size < <(df -h --output=avail,size / | awk 'NR==2 {print $1, $2}')
 model=$(cat /sys/class/dmi/id/product_name 2>/dev/null)
 vendor=$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null)
 kernel=$(uname -r)
-de="Xfce $(xfce4-session --version 2>/dev/null | awk 'NR==1 {print $2}')"
+battery=""
+for b in /sys/class/power_supply/BAT*; do
+    [[ -r $b/capacity ]] && battery="<b>$(T "Battery")</b>   $(<"$b/capacity") %"$'\n'
+done
 
 text="<span size='xx-large' weight='bold'>LuxOS</span>
-<span foreground='#8e8e93'>Rolling release · based on Arch Linux</span>
+<span foreground='#8e8e93'>$(T "Rolling release · based on Arch Linux")</span>
 
-<b>Computer</b>   ${vendor} ${model}
-<b>Processor</b>   ${cpu}
-<b>Memory</b>   ${mem}
-<b>Graphics</b>   ${gpu//$'\n'/, }
-<b>Storage</b>   ${disk}
-<b>Kernel</b>   ${kernel}
-<b>Desktop</b>   ${de}"
+<b>$(T "Computer")</b>   ${vendor} ${model}
+<b>$(T "Processor")</b>   ${cpu}
+<b>$(T "Memory")</b>   ${mem}
+<b>$(T "Graphics")</b>   ${gpu//$'\n'/, }
+<b>$(T "Storage")</b>   $(T "%s available of %s" "$avail" "$size")
+${battery}<b>$(T "Kernel")</b>   ${kernel}
+<b>$(T "Shell")</b>   lsh $(lsh -c 'echo $LSH_VERSION' 2>/dev/null)"
 
-yad --title="About This Computer" --window-icon=luxos-logo --image=/usr/share/icons/hicolor/128x128/apps/luxos-logo.png \
+yad --title="$(T "About This Computer")" --window-icon=luxos-app --image=/usr/share/icons/hicolor/128x128/apps/luxos-app.png \
     --text="$text" --text-align=left --borders=24 --width=560 --center --fixed \
-    --button="Software Update!system-software-update:2" --button="Close!window-close:0"
-[[ $? == 2 ]] && exec xfce4-terminal --title="LuxOS Update" -x bash -c 'lux update; echo; read -rp "Done - press Enter to close"'
+    --button="$(T "Software Update")!system-software-update:2" --button="$(T "Close")!window-close:0"
+[[ $? == 2 ]] && exec xfce4-terminal --title="$(T "Update")" -x lsh -c "lux update; echo; read -rp '$(T "Press Enter to close")'"
 exit 0

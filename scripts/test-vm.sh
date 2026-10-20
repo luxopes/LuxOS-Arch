@@ -9,7 +9,7 @@
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")/.."
 
-T=out/test
+T=${LUXOS_VM_DIR:-out/test}
 mode=${1:-live}; shift || true
 headless=0 bios=0
 for a in "$@"; do
@@ -23,7 +23,7 @@ iso=$(ls -t out/luxos-*.iso 2>/dev/null | head -1 || true)
 [[ -f $T/disk.qcow2 ]] || qemu-img create -f qcow2 "$T/disk.qcow2" 40G >/dev/null
 
 args=(
-    -name LuxOS -enable-kvm -machine q35 -cpu host -smp 4 -m 4096
+    -name LuxOS -enable-kvm -machine q35 -cpu host -smp 4 -m "${LUXOS_VM_MEM:-4096}"
     -drive file="$T/disk.qcow2",if=virtio,discard=unmap,cache=unsafe
     -nic user,model=virtio-net-pci
     -device virtio-vga -device qemu-xhci -device usb-tablet

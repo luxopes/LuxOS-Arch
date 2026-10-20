@@ -4,6 +4,7 @@
 #   luxos-appname watch   sleduje aktivni okno (xprop -spy, bez pravidelneho dotazovani)
 #                         a pri zmene obnovi plugin genmon v panelu
 #   luxos-appname print   vystup pro plugin genmon
+. /usr/lib/luxos/i18n.sh
 state="${XDG_RUNTIME_DIR:-/tmp}/luxos-appname"
 PLUGIN=genmon-2
 
@@ -33,7 +34,7 @@ watch)
         key="$inst/$cls"
         [[ -n ${cache[$key]-} ]] && { echo "${cache[$key]}"; return; }
         for n in "$inst" "$cls"; do
-            [[ -n ${SHORT[$n]-} ]] && { cache[$key]=${SHORT[$n]}; echo "${SHORT[$n]}"; return; }
+            [[ -n ${SHORT[$n]-} ]] && { cache[$key]=$(T "${SHORT[$n]}"); echo "${cache[$key]}"; return; }
         done
         f=$(grep -lisE "^StartupWMClass=($inst|$cls)$" /usr/share/applications/*.desktop 2>/dev/null | head -1)
         if [[ -z $f ]]; then
@@ -46,7 +47,9 @@ watch)
         [[ -n $f && -e /var/lib/luxos/apps/applications/${f##*/} ]] && f=/var/lib/luxos/apps/applications/${f##*/}
         n=""
         if [[ -n $f ]]; then
+            # Name[cs_CZ], pak Name[cs]
             n=$(grep -m1 "^Name\[$lang\]=" "$f" | cut -d= -f2-)
+            [[ -z $n ]] && n=$(grep -m1 "^Name\[${lang%%_*}\]=" "$f" | cut -d= -f2-)
             [[ -z $n ]] && n=$(grep -m1 '^Name=' "$f" | cut -d= -f2-)
         fi
         [[ -z $n ]] && n=${2:-$1}
@@ -68,7 +71,7 @@ watch)
                 name=$(resolve "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}")
             fi
         fi
-        [[ -z $name ]] && name=Desktop
+        [[ -z $name ]] && name=$(T "Desktop")
         if [[ $name != "$last" ]]; then
             printf '%s' "$name" > "$state"
             # Primo pres D-Bus: "xfce4-panel --plugin-event" ukaze chybovy dialog,

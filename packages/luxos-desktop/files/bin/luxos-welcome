@@ -1,36 +1,38 @@
 #!/bin/bash
 # LuxOS - uvitaci okno
+. /usr/lib/luxos/i18n.sh
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
 mkdir -p "$cfg"
 live=0; [[ -d /run/archiso ]] && live=1
+icon=/usr/share/icons/hicolor/128x128/apps/luxos-app.png
+pause="$(T "Press Enter to close")"
 
 while :; do
     mode=$(luxos-appearance status)
     buttons=()
-    ((live)) && buttons+=(--button="Install LuxOS!system-software-install:10")
-    buttons+=(--button="$([[ $mode == dark ]] && echo "Light Mode" || echo "Dark Mode")!preferences-desktop-theme:11")
-    ((live)) || buttons+=(--button="Drivers!preferences-system:12" --button="Update!system-software-update:13")
-    buttons+=(--button="Shortcuts!preferences-desktop-keyboard-shortcuts:14" --button="Close!window-close:0")
+    ((live)) && buttons+=(--button="$(T "Install LuxOS")!luxos-installer:10")
+    buttons+=(--button="$([[ $mode == dark ]] && T "Light Mode" || T "Dark Mode")!preferences-desktop-theme:11")
+    ((live)) || buttons+=(--button="$(T "LuxOS Store")!luxos-store:15" --button="$(T "Update")!system-software-update:13")
+    buttons+=(--button="$(T "Shortcuts")!preferences-desktop-keyboard-shortcuts:14" --button="$(T "Close")!window-close:0")
 
-    yad --title="Welcome to LuxOS" --window-icon=luxos-logo \
-        --image=/usr/share/icons/hicolor/128x128/apps/luxos-logo.png --borders=24 --width=640 --center \
-        --text="<span size='xx-large' weight='bold'>Welcome to LuxOS</span>
+    yad --title="$(T "Welcome to LuxOS")" --window-icon=luxos-app --image="$icon" --borders=24 --width=660 --center \
+        --text="<span size='xx-large' weight='bold'>$(T "Welcome to LuxOS")</span>
 
-Fast, light and beautifully simple.
+$(T "Fast, light and beautifully simple.")
 
-<b>Super + Space</b>  ·  Spotlight: search apps and files
-<b>Super + A</b>  ·  Launchpad: all applications
-<b>Super + Q</b>  ·  close window
-<b>Super + Shift + 4</b>  ·  screenshot of a region
-<b>lux</b>  ·  install and update software from Terminal" \
+<b>Super + Space</b>  ·  $(T "Spotlight: search apps and files")
+<b>Super + A</b>  ·  $(T "Launchpad: all applications")
+<b>Super + Q</b>  ·  $(T "close window")
+<b>Super + Shift + 4</b>  ·  $(T "screenshot of a region")
+<b>lux</b>  ·  $(T "install and update software from Terminal")" \
         "${buttons[@]}"
     rc=$?
     case $rc in
         10) setsid -f luxos-install-gui; break ;;
         11) luxos-appearance toggle ;;
-        12) xfce4-terminal --title="Drivers" -x bash -c 'lux drivers; echo; read -rp "Press Enter to close"' ;;
-        13) xfce4-terminal --title="Update" -x bash -c 'lux update; echo; read -rp "Press Enter to close"' ;;
+        13) xfce4-terminal --title="$(T "Update")" -x lsh -c "lux update; echo; read -rp '$pause'" ;;
         14) luxos-shortcuts ;;
+        15) setsid -f luxos-store ;;
         *) break ;;
     esac
 done

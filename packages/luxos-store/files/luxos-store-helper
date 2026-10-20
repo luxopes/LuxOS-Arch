@@ -1,0 +1,16 @@
+#!/bin/bash
+# LuxOS Store - instalace a odinstalace aplikaci (spousti pkexec, viz org.luxos.store.policy)
+#   luxos-store-helper install|remove BALIK... | upgrade
+set -euo pipefail
+action=${1-}
+shift || true
+for p in "$@"; do
+    [[ $p =~ ^[a-z0-9@._+][a-z0-9@._+-]*$ ]] || { echo "invalid package name: $p" >&2; exit 2; }
+done
+case $action in
+    install) (($#)) && exec pacman -S --needed --noconfirm -- "$@" ;;
+    remove)  (($#)) && exec pacman -Rns --noconfirm -- "$@" ;;
+    upgrade) exec pacman -Syu --noconfirm ;;
+esac
+echo "usage: luxos-store-helper install|remove PACKAGE... | upgrade" >&2
+exit 2

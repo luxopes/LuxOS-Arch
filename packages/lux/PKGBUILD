@@ -1,13 +1,13 @@
 # Maintainer: LuxOS Team
 
 pkgname=lux
-pkgver=0.1.0
-pkgrel=1
+pkgver=0.2.0
+pkgrel=2
 pkgdesc="LuxOS package manager (pacman, AUR and Flatpak frontend)"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
-depends=(bash pacman pacman-contrib curl jq sudo reflector luxos-drivers luxos-keyring)
+depends=(bash pacman pacman-contrib curl jq sudo reflector expac fzf luxos-drivers luxos-keyring luxos-i18n)
 optdepends=('base-devel: build packages from AUR'
             'git: build packages from AUR'
             'flatpak: Flathub applications')

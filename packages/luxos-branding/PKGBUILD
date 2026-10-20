@@ -2,7 +2,7 @@
 # Lokalni balik: zdrojove soubory jsou v ./files (odkazovano pres $startdir).
 
 pkgname=luxos-branding
-pkgver=1.0.0
+pkgver=1.1.0
 pkgrel=1
 pkgdesc="LuxOS branding: logo, wallpapers, Plymouth boot splash and os-release"
 arch=(any)
@@ -40,6 +40,7 @@ package() {
 
     install -Dm644 "$f/logo/luxos-logo.svg"          "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-logo.svg"
     install -Dm644 "$f/logo/luxos-logo-symbolic.svg" "$pkgdir/usr/share/icons/hicolor/symbolic/apps/luxos-logo-symbolic.svg"
+    install -Dm644 -t "$pkgdir/usr/share/icons/hicolor/symbolic/apps" "$f"/symbolic/*.svg
     for s in 16 24 32 48 64 128 256 512; do
         install -Dm644 render/logo-$s.png "$pkgdir/usr/share/icons/hicolor/${s}x${s}/apps/luxos-logo.png"
     done

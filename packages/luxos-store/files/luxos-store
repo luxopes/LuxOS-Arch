@@ -1,0 +1,605 @@
+#!/usr/bin/env python3
+"""LuxOS Store - obchod s aplikacemi z repozitaru LuxOS a Arch Linuxu.
+
+Aplikace Arch Linuxu popisuji metadata AppStream (archlinux-appstream-data),
+aplikace LuxOS repozitar [luxos-apps]. Instalace bezi pres pkexec a pomocny
+skript /usr/lib/luxos/luxos-store-helper (pacman).
+"""
+import os
+import re
+import subprocess
+import sys
+import threading
+from html import unescape
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_i18n import _  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("GdkPixbuf", "2.0")
+gi.require_version("AppStream", "1.0")
+from gi.repository import AppStream, Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # noqa: E402
+
+HELPER = "/usr/lib/luxos/luxos-store-helper"
+ICON_SIZE = 56
+DATASAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/datasaver")
+
+CATEGORIES = [
+    ("internet", "Internet", ("Network",), "applications-internet"),
+    ("office", "Office", ("Office",), "applications-office"),
+    ("graphics", "Graphics", ("Graphics",), "applications-graphics"),
+    ("multimedia", "Music & Video", ("AudioVideo", "Audio", "Video"), "applications-multimedia"),
+    ("development", "Developer Tools", ("Development",), "applications-development"),
+    ("games", "Games", ("Game",), "applications-games"),
+    ("education", "Education & Science", ("Education", "Science"), "applications-science"),
+    ("utilities", "Utilities", ("Utility",), "applications-utilities"),
+    ("system", "System", ("System",), "applications-system"),
+]
+POPULAR = ["firefox", "chromium", "thunderbird", "libreoffice-fresh", "gimp", "inkscape", "krita", "vlc",
+           "obs-studio", "kdenlive", "audacity", "blender", "telegram-desktop", "signal-desktop", "discord",
+           "code", "transmission-gtk", "qbittorrent", "keepassxc", "gnome-boxes", "shotwell", "rhythmbox"]
+
+CSS = b"""
+.sidebar-list { background: transparent; }
+.sidebar-list row { border-radius: 8px; padding: 6px 10px; margin: 1px 8px; }
+.sidebar-list row:selected { background-color: #3d7bff; color: white; }
+.sidebar-title { font-size: 11px; font-weight: 700; opacity: 0.55; margin: 12px 18px 4px; }
+.card { border-radius: 14px; padding: 12px; background-color: alpha(currentColor, 0.05); }
+.card:hover { background-color: alpha(currentColor, 0.09); }
+.card-name { font-weight: 700; }
+.card-sub { font-size: 11px; opacity: 0.65; }
+.badge { font-size: 10px; font-weight: 700; color: #7b6cff; }
+.get { border-radius: 999px; padding: 2px 14px; font-weight: 700; background-image: none;
+       background-color: alpha(#3d7bff, 0.14); color: #3d7bff; border: none; box-shadow: none; }
+.get:hover { background-color: alpha(#3d7bff, 0.24); }
+.get.primary { background-color: #3d7bff; color: white; }
+.page-title { font-size: 24px; font-weight: 800; }
+.section-title { font-size: 16px; font-weight: 700; margin-top: 10px; }
+.hero { border-radius: 18px; padding: 22px; color: white;
+        background-image: linear-gradient(120deg, #3d6bff, #7b4dff 60%, #b14dff); }
+.hero-title { font-size: 22px; font-weight: 800; }
+.detail-name { font-size: 26px; font-weight: 800; }
+.dim { opacity: 0.65; }
+.status { padding: 6px 14px; font-size: 12px; }
+"""
+
+
+# ---- data -----------------------------------------------------------------
+class App:
+    """Aplikace v obchode (z AppStream nebo z repozitare LuxOS)."""
+
+    def __init__(self, pkg, name, summary, repo, version="", size=0, component=None, description=""):
+        self.pkg, self.name, self.summary, self.repo = pkg, name, summary, repo
+        self.version, self.size, self.component, self.description = version, size, component, description
+        self.categories = component.get_categories() if component else []
+
+    @property
+    def is_luxos(self):
+        return self.repo.startswith("luxos")
+
+    def source_label(self):
+        return "LuxOS" if self.is_luxos else f"Arch Linux · {self.repo}"
+
+    def desktop_id(self):
+        if self.component:
+            lc = self.component.get_launchable(AppStream.LaunchableKind.DESKTOP_ID)
+            if lc and lc.get_entries():
+                return lc.get_entries()[0]
+        return f"{self.pkg}.desktop"
+
+    def icon_pixbuf(self, size):
+        theme = Gtk.IconTheme.get_default()
+        if self.component:
+            best = None
+            for ic in self.component.get_icons():
+                kind = ic.get_kind()
+                if kind == AppStream.IconKind.STOCK and theme.has_icon(ic.get_name()):
+                    try:
+                        return theme.load_icon(ic.get_name(), size, Gtk.IconLookupFlags.FORCE_SIZE)
+                    except GLib.Error:
+                        pass
+                if ic.get_filename() and (best is None or abs(ic.get_width() - size) < abs(best.get_width() - size)):
+                    best = ic
+            if best:
+                try:
+                    return GdkPixbuf.Pixbuf.new_from_file_at_size(best.get_filename(), size, size)
+                except GLib.Error:
+                    pass
+        fallback = "luxos-app" if self.is_luxos else "application-x-executable"
+        for name in (self.pkg, fallback, "application-x-executable"):
+            if theme.has_icon(name):
+                try:
+                    return theme.load_icon(name, size, Gtk.IconLookupFlags.FORCE_SIZE)
+                except GLib.Error:
+                    continue
+        return None
+
+
+def run(*cmd, timeout=60):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return r.stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def description_text(component):
+    """Popis AppStream (zjednodusene HTML) -> prosty text s odstavci."""
+    raw = component.get_description() or ""
+    raw = re.sub(r"<li>", "• ", raw)
+    raw = re.sub(r"</(p|li)>", "\n", raw)
+    raw = re.sub(r"<[^>]+>", "", raw)
+    return unescape(re.sub(r"\n{3,}", "\n\n", raw)).strip()
+
+
+class Catalog:
+    """Vsechny aplikace a stav nainstalovanych balicku."""
+
+    def __init__(self):
+        self.apps = {}
+        self.installed = set()
+        self.updates = []
+
+    def load(self):
+        sync = {}
+        for line in run("expac", "-S", r"%r\t%n\t%v\t%m\t%d").splitlines():
+            parts = line.split("\t")
+            if len(parts) == 5 and parts[1] not in sync:
+                sync[parts[1]] = parts
+        self.refresh_installed()
+        pool = AppStream.Pool()
+        try:
+            pool.load()
+            box = pool.get_components_by_kind(AppStream.ComponentKind.DESKTOP_APP)
+            comps = box.as_array()
+        except GLib.Error:
+            comps = []
+        apps = {}
+        for c in comps:
+            pkg = c.get_pkgname()
+            if not pkg or pkg not in sync or pkg in apps:
+                continue
+            repo, _n, ver, size, _d = sync[pkg]
+            apps[pkg] = App(pkg, c.get_name() or pkg, c.get_summary() or "", repo, ver, int(size or 0), c)
+        # Aplikace LuxOS (repozitar [luxos-apps]) - bez AppStream, z popisu balicku
+        for pkg, (repo, _n, ver, size, desc) in sync.items():
+            if repo == "luxos-apps" and pkg not in apps:
+                # Popis "Nazev - shrnuti" (napr. "LSL IDE - development environment ...")
+                name, sep, summary = desc.partition(" - ")
+                if not sep:
+                    name, summary = pkg, desc
+                apps[pkg] = App(pkg, name, summary, repo, ver, int(size or 0), description=desc)
+            elif repo == "luxos-apps":
+                apps[pkg].repo = repo
+        self.apps = apps
+
+    def refresh_installed(self):
+        self.installed = set(run("pacman", "-Qq").split())
+
+    def check_updates(self):
+        out = run("checkupdates", timeout=180)
+        self.updates = [line.split()[0] for line in out.splitlines() if line.strip()]
+
+
+# ---- widgety ----------------------------------------------------------------
+class AppCard(Gtk.EventBox):
+    def __init__(self, store, app):
+        super().__init__()
+        self.store, self.app = store, app
+        box = Gtk.Box(spacing=12)
+        box.get_style_context().add_class("card")
+        box.set_size_request(300, -1)
+        self.image = Gtk.Image()
+        self.image.set_size_request(ICON_SIZE, ICON_SIZE)
+        box.pack_start(self.image, False, False, 0)
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER, spacing=2)
+        name = Gtk.Label(label=app.name, xalign=0, ellipsize=Pango.EllipsizeMode.END)
+        name.get_style_context().add_class("card-name")
+        text.pack_start(name, False, False, 0)
+        if app.is_luxos:
+            badge = Gtk.Label(label="✦ LuxOS", xalign=0)
+            badge.get_style_context().add_class("badge")
+            text.pack_start(badge, False, False, 0)
+        sub = Gtk.Label(label=app.summary, xalign=0, wrap=True, lines=2,
+                        ellipsize=Pango.EllipsizeMode.END, max_width_chars=30)
+        sub.get_style_context().add_class("card-sub")
+        text.pack_start(sub, False, False, 0)
+        box.pack_start(text, True, True, 0)
+        self.button = Gtk.Button(valign=Gtk.Align.CENTER, can_focus=False)
+        self.button.get_style_context().add_class("get")
+        self.button.connect("clicked", lambda _b: store.primary_action(app))
+        box.pack_end(self.button, False, False, 0)
+        self.add(box)
+        self.connect("button-release-event", self.on_click)
+        self.update()
+        GLib.idle_add(self.load_icon)
+
+    def load_icon(self):
+        pix = self.app.icon_pixbuf(ICON_SIZE)
+        if pix:
+            self.image.set_from_pixbuf(pix)
+        return False
+
+    def on_click(self, _w, ev):
+        if ev.button == 1:
+            self.store.show_detail(self.app)
+
+    def update(self):
+        busy = self.store.busy.get(self.app.pkg)
+        if busy:
+            self.button.set_label(busy)
+            self.button.set_sensitive(False)
+        else:
+            self.button.set_sensitive(True)
+            self.button.set_label(_("Open") if self.app.pkg in self.store.catalog.installed else _("Get"))
+
+
+class Store(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("LuxOS Store"))
+        self.set_default_size(1080, 720)
+        self.set_icon_name("luxos-store")
+        self.catalog = Catalog()
+        self.busy = {}
+        self.cards = []
+
+        header = Gtk.HeaderBar(show_close_button=True, title=_("LuxOS Store"))
+        self.back = Gtk.Button.new_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON)
+        self.back.connect("clicked", lambda _b: self.go_back())
+        self.back.set_no_show_all(True)
+        header.pack_start(self.back)
+        self.search = Gtk.SearchEntry(placeholder_text=_("Search apps"))
+        self.search.set_size_request(280, -1)
+        self.search.connect("search-changed", self.on_search)
+        header.pack_end(self.search)
+        self.set_titlebar(header)
+
+        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.add(root)
+        body = Gtk.Box()
+        root.pack_start(body, True, True, 0)
+        self.status = Gtk.Label(xalign=0)
+        self.status.get_style_context().add_class("status")
+        self.status.set_no_show_all(True)
+        root.pack_end(self.status, False, False, 0)
+
+        side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        side.set_size_request(220, -1)
+        self.sidebar = Gtk.ListBox()
+        self.sidebar.get_style_context().add_class("sidebar-list")
+        self.pages = []
+        self.add_side("discover", _("Discover"), "starred-symbolic")
+        self.add_side("luxos", _("LuxOS Apps"), "luxos-logo-symbolic")
+        title = Gtk.Label(label=_("Categories").upper(), xalign=0)
+        title.get_style_context().add_class("sidebar-title")
+        side.pack_start(self.sidebar, False, False, 6)
+        side.pack_start(title, False, False, 0)
+        self.catlist = Gtk.ListBox()
+        self.catlist.get_style_context().add_class("sidebar-list")
+        for key, label, _cats, icon in CATEGORIES:
+            self.add_side(key, _(label), icon, self.catlist)
+        side.pack_start(self.catlist, False, False, 0)
+        lib = Gtk.Label(label=_("Library").upper(), xalign=0)
+        lib.get_style_context().add_class("sidebar-title")
+        side.pack_start(lib, False, False, 0)
+        self.liblist = Gtk.ListBox()
+        self.liblist.get_style_context().add_class("sidebar-list")
+        self.add_side("installed", _("Installed"), "emblem-ok-symbolic", self.liblist)
+        self.add_side("updates", _("Updates"), "software-update-available-symbolic", self.liblist)
+        side.pack_start(self.liblist, False, False, 0)
+        for lb in (self.sidebar, self.catlist, self.liblist):
+            lb.connect("row-activated", self.on_side)
+        body.pack_start(side, False, False, 0)
+        body.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 0)
+
+        self.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        body.pack_start(self.scroll, True, True, 0)
+        self.history = []
+        self.current = ("discover", None)
+
+        spinner = Gtk.Spinner(active=True, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        spinner.set_size_request(32, 32)
+        self.scroll.add(spinner)
+        threading.Thread(target=self.load_catalog, daemon=True).start()
+
+    def add_side(self, key, label, icon, listbox=None):
+        row = Gtk.ListBoxRow()
+        row.key = key
+        box = Gtk.Box(spacing=10)
+        box.pack_start(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU), False, False, 0)
+        box.pack_start(Gtk.Label(label=label, xalign=0), True, True, 0)
+        row.add(box)
+        (listbox or self.sidebar).add(row)
+
+    def load_catalog(self):
+        self.catalog.load()
+        GLib.idle_add(self.show_page, "discover")
+
+    # ---- navigace ----
+    def on_side(self, listbox, row):
+        for lb in (self.sidebar, self.catlist, self.liblist):
+            if lb is not listbox:
+                lb.unselect_all()
+        self.search.set_text("")
+        self.history.clear()
+        self.show_page(row.key)
+
+    def go_back(self):
+        if self.history:
+            key, arg = self.history.pop()
+            self.show_page(key, arg)
+
+    def set_content(self, widget):
+        child = self.scroll.get_child()
+        if child:
+            self.scroll.remove(child)
+        self.cards = []
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=24)
+        page.pack_start(widget, False, False, 0)
+        self.scroll.add(page)
+        self.scroll.get_vadjustment().set_value(0)
+        self.back.set_visible(bool(self.history))
+        self.scroll.show_all()
+
+    def show_page(self, key, arg=None):
+        self.current = (key, arg)
+        apps = self.catalog.apps
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        if key == "discover":
+            box.pack_start(self.hero(), False, False, 0)
+            lux = sorted((a for a in apps.values() if a.is_luxos), key=lambda a: a.name.lower())
+            if lux:
+                box.pack_start(self.section(_("From LuxOS")), False, False, 0)
+                box.pack_start(self.grid(lux), False, False, 0)
+            popular = [apps[p] for p in POPULAR if p in apps]
+            box.pack_start(self.section(_("Popular apps")), False, False, 0)
+            box.pack_start(self.grid(popular), False, False, 0)
+        elif key == "luxos":
+            box.pack_start(self.title(_("LuxOS Apps")), False, False, 0)
+            box.pack_start(self.dim(_("Apps made for LuxOS, signed by the LuxOS team.")), False, False, 0)
+            box.pack_start(self.grid(sorted((a for a in apps.values() if a.is_luxos), key=lambda a: a.name.lower())),
+                           False, False, 0)
+        elif key == "installed":
+            self.catalog.refresh_installed()
+            box.pack_start(self.title(_("Installed")), False, False, 0)
+            inst = [a for a in apps.values() if a.pkg in self.catalog.installed]
+            box.pack_start(self.grid(sorted(inst, key=lambda a: a.name.lower())), False, False, 0)
+        elif key == "updates":
+            box.pack_start(self.updates_page(), False, False, 0)
+        elif key == "search":
+            box.pack_start(self.title(_("Results for “%s”") % arg), False, False, 0)
+            box.pack_start(self.grid(self.find(arg)), False, False, 0)
+        else:
+            for ckey, label, cats, _icon in CATEGORIES:
+                if ckey == key:
+                    box.pack_start(self.title(_(label)), False, False, 0)
+                    found = [a for a in apps.values() if any(c in cats for c in a.categories)]
+                    found.sort(key=lambda a: (a.pkg not in POPULAR, a.name.lower()))
+                    box.pack_start(self.grid(found), False, False, 0)
+        self.set_content(box)
+
+    def find(self, text):
+        t = text.lower()
+        scored = []
+        for a in self.catalog.apps.values():
+            name = a.name.lower()
+            if t in name or t in a.pkg:
+                scored.append((0 if name.startswith(t) else 1, a))
+            elif t in a.summary.lower():
+                scored.append((2, a))
+        scored.sort(key=lambda s: (s[0], not s[1].is_luxos, s[1].name.lower()))
+        return [a for _s, a in scored[:120]]
+
+    def on_search(self, entry):
+        text = entry.get_text().strip()
+        if len(text) >= 2:
+            self.show_page("search", text)
+        elif not text and self.current[0] == "search":
+            self.show_page("discover")
+
+    # ---- stavebni bloky stranek ----
+    def title(self, text):
+        label = Gtk.Label(label=text, xalign=0)
+        label.get_style_context().add_class("page-title")
+        return label
+
+    def section(self, text):
+        label = Gtk.Label(label=text, xalign=0)
+        label.get_style_context().add_class("section-title")
+        return label
+
+    def dim(self, text):
+        label = Gtk.Label(label=text, xalign=0, wrap=True)
+        label.get_style_context().add_class("dim")
+        return label
+
+    def hero(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box.get_style_context().add_class("hero")
+        t = Gtk.Label(label=_("Welcome to the LuxOS Store"), xalign=0)
+        t.get_style_context().add_class("hero-title")
+        box.pack_start(t, False, False, 0)
+        box.pack_start(Gtk.Label(label=_("%d apps from LuxOS and Arch Linux, installed with one click.")
+                                 % len(self.catalog.apps), xalign=0), False, False, 0)
+        return box
+
+    def grid(self, apps):
+        flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, column_spacing=12, row_spacing=12,
+                           homogeneous=True, min_children_per_line=1, max_children_per_line=3)
+        if not apps:
+            return self.dim(_("Nothing here yet."))
+        for a in apps:
+            card = AppCard(self, a)
+            self.cards.append(card)
+            flow.add(card)
+        return flow
+
+    def updates_page(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box.pack_start(self.title(_("Updates")), False, False, 0)
+        row = Gtk.Box(spacing=8)
+        check = Gtk.Button(label=_("Check for Updates"))
+        update = Gtk.Button(label=_("Update All"))
+        update.get_style_context().add_class("get")
+        update.get_style_context().add_class("primary")
+        row.pack_start(check, False, False, 0)
+        row.pack_start(update, False, False, 0)
+        box.pack_start(row, False, False, 0)
+        info = self.dim("")
+        box.pack_start(info, False, False, 0)
+
+        def show_result():
+            ups = self.catalog.updates
+            info.set_text(_("Everything is up to date.") if not ups else
+                          _("%d updates available: %s") % (len(ups), ", ".join(ups[:30]) + (" …" if len(ups) > 30 else "")))
+            check.set_sensitive(True)
+
+        def do_check(_b=None):
+            check.set_sensitive(False)
+            info.set_text(_("Checking for updates…"))
+            threading.Thread(target=lambda: (self.catalog.check_updates(), GLib.idle_add(show_result)),
+                             daemon=True).start()
+
+        check.connect("clicked", do_check)
+        update.connect("clicked", lambda _b: self.run_helper("upgrade", [], _("Updating system…")))
+        if os.path.exists(DATASAVER):
+            info.set_text(_("Data Saver is on - updates are not checked automatically."))
+        else:
+            do_check()
+        return box
+
+    # ---- detail aplikace ----
+    def show_detail(self, app):
+        self.history.append(self.current)
+        self.current = ("detail", app)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        top = Gtk.Box(spacing=18)
+        img = Gtk.Image()
+        pix = app.icon_pixbuf(112)
+        if pix:
+            img.set_from_pixbuf(pix)
+        top.pack_start(img, False, False, 0)
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, valign=Gtk.Align.CENTER)
+        name = Gtk.Label(label=app.name, xalign=0)
+        name.get_style_context().add_class("detail-name")
+        text.pack_start(name, False, False, 0)
+        text.pack_start(self.dim(app.summary), False, False, 0)
+        src = Gtk.Label(label=app.source_label(), xalign=0)
+        src.get_style_context().add_class("badge")
+        text.pack_start(src, False, False, 0)
+        top.pack_start(text, True, True, 0)
+        actions = Gtk.Box(spacing=8, valign=Gtk.Align.CENTER)
+        installed = app.pkg in self.catalog.installed
+        main = Gtk.Button(label=_("Open") if installed else _("Get"))
+        main.get_style_context().add_class("get")
+        main.get_style_context().add_class("primary")
+        main.connect("clicked", lambda _b: self.primary_action(app))
+        actions.pack_start(main, False, False, 0)
+        if installed:
+            rm = Gtk.Button(label=_("Remove"))
+            rm.connect("clicked", lambda _b: self.confirm_remove(app))
+            actions.pack_start(rm, False, False, 0)
+        top.pack_end(actions, False, False, 0)
+        box.pack_start(top, False, False, 0)
+
+        facts = Gtk.Box(spacing=28)
+        for label, value in ((_("Version"), app.version),
+                             (_("Size"), GLib.format_size(app.size) if app.size else "-"),
+                             (_("Package"), app.pkg)):
+            col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            col.pack_start(self.dim(label), False, False, 0)
+            col.pack_start(Gtk.Label(label=value, xalign=0, selectable=True), False, False, 0)
+            facts.pack_start(col, False, False, 0)
+        box.pack_start(facts, False, False, 0)
+        desc = description_text(app.component) if app.component else app.description
+        if desc:
+            box.pack_start(self.section(_("About")), False, False, 0)
+            box.pack_start(Gtk.Label(label=desc, xalign=0, wrap=True, selectable=True, max_width_chars=90),
+                           False, False, 0)
+        if app.component and app.component.get_url(AppStream.UrlKind.HOMEPAGE):
+            url = app.component.get_url(AppStream.UrlKind.HOMEPAGE)
+            link = Gtk.LinkButton(uri=url, label=_("Website"), halign=Gtk.Align.START)
+            box.pack_start(link, False, False, 0)
+        self.set_content(box)
+
+    # ---- akce ----
+    def primary_action(self, app):
+        if app.pkg in self.catalog.installed:
+            try:
+                info = Gio.DesktopAppInfo.new(app.desktop_id())
+            except TypeError:
+                info = None
+            if info:
+                info.launch([], None)
+            else:
+                self.flash(_("%s is installed, but has no window to open.") % app.name)
+        else:
+            self.run_helper("install", [app.pkg], _("Installing %s…") % app.name, app)
+
+    def confirm_remove(self, app):
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
+                                buttons=Gtk.ButtonsType.OK_CANCEL, text=_("Remove %s?") % app.name)
+        dlg.format_secondary_text(_("The app will be removed from this computer. Your files stay untouched."))
+        if dlg.run() == Gtk.ResponseType.OK:
+            self.run_helper("remove", [app.pkg], _("Removing %s…") % app.name, app)
+        dlg.destroy()
+
+    def flash(self, text):
+        self.status.set_text(text)
+        self.status.show()
+
+    def run_helper(self, action, pkgs, message, app=None):
+        if app:
+            self.busy[app.pkg] = "…"
+            for c in self.cards:
+                if c.app is app:
+                    c.update()
+        self.flash(message)
+
+        def work():
+            r = subprocess.run(["pkexec", HELPER, action, *pkgs], capture_output=True, text=True)
+            GLib.idle_add(done, r)
+
+        def done(r):
+            if app:
+                self.busy.pop(app.pkg, None)
+            self.catalog.refresh_installed()
+            if r.returncode == 0:
+                self.flash(_("Done."))
+                GLib.timeout_add_seconds(4, lambda: self.status.hide() or False)
+            elif r.returncode in (126, 127):
+                self.flash(_("Cancelled."))
+            else:
+                last = (r.stderr or r.stdout).strip().splitlines()[-1:] or [""]
+                self.flash(_("Failed: %s") % last[0])
+            for c in self.cards:
+                c.update()
+            if self.current[0] == "detail":
+                cur = self.current[1]
+                if self.history:
+                    self.history.pop()
+                self.show_detail(cur)
+            return False
+
+        threading.Thread(target=work, daemon=True).start()
+
+
+def main():
+    GLib.set_prgname("luxos-store")
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = Store()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    if len(sys.argv) > 1:
+        win.search.set_text(sys.argv[1])
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

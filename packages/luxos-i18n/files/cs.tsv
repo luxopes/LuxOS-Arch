@@ -1,0 +1,333 @@
+# LuxOS - cesky preklad (anglicky text<TAB>cesky text); %s a %d musi zustat zachovane
+Keyboard Shortcuts	Klávesové zkratky
+Shortcut	Zkratka
+Action	Akce
+Close window	Zavřít okno
+Minimize window	Minimalizovat okno
+Switch windows	Přepínat okna
+Maximize / tile half	Maximalizovat / polovina obrazovky
+Full screen	Celá obrazovka
+Show desktop	Zobrazit plochu
+Switch workspace	Přepnout plochu
+Files	Soubory
+Terminal	Terminál
+Settings	Nastavení
+Lock screen	Zamknout obrazovku
+Switch keyboard layout	Přepnout rozložení klávesnice
+Screenshot	Snímek obrazovky
+Screenshot of region	Snímek výřezu
+Screenshot tool	Nástroj pro snímky
+System monitor (force quit)	Monitor systému (vynutit ukončení)
+Close	Zavřít
+Desktop & Dock	Plocha a Dock
+Advanced Desktop Settings…	Pokročilé nastavení plochy…
+Menu Bar Items…	Položky horní lišty…
+Appearance	Vzhled
+Light	Světlý
+Dark	Tmavý
+Wallpaper	Tapeta
+Choose…	Vybrat…
+Your own picture	Vlastní obrázek
+Choose a picture	Vyberte obrázek
+Pictures	Obrázky
+Dock	Dock
+Automatically hide and show the Dock	Automaticky skrývat a zobrazovat Dock
+The Dock appears when you move the pointer to the bottom edge.	Dock se objeví, když najedete ukazatelem ke spodnímu okraji.
+Size	Velikost
+Magnification	Zvětšování
+Magnification size	Míra zvětšení
+Bottom	Dole
+Left	Vlevo
+Right	Vpravo
+Position on screen	Umístění na obrazovce
+Dock opacity	Neprůhlednost Docku
+Menu Bar	Horní lišta
+Menu bar opacity	Neprůhlednost horní lišty
+Battery Saver is on\n	Spořič baterie je zapnutý\n
+Battery Saver is off\n	Spořič baterie je vypnutý\n
+Battery	Baterie
+Rolling release · based on Arch Linux	Průběžně aktualizovaný · založený na Arch Linuxu
+Computer	Počítač
+Processor	Procesor
+Memory	Paměť
+Graphics	Grafika
+Storage	Úložiště
+%s available of %s	%s volných z %s
+Kernel	Jádro
+Shell	Shell
+About This Computer	O tomto počítači
+Software Update	Aktualizace softwaru
+Update	Aktualizovat
+Press Enter to close	Stiskněte Enter pro zavření
+Install LuxOS	Nainstalovat LuxOS
+Light Mode	Světlý režim
+Dark Mode	Tmavý režim
+LuxOS Store	Obchod LuxOS
+Shortcuts	Zkratky
+Welcome to LuxOS	Vítejte v LuxOS
+Fast, light and beautifully simple.	Rychlý, lehký a krásně jednoduchý.
+Spotlight: search apps and files	Spotlight: hledání aplikací a souborů
+Launchpad: all applications	Launchpad: všechny aplikace
+close window	zavřít okno
+screenshot of a region	snímek výřezu obrazovky
+install and update software from Terminal	instalace a aktualizace softwaru z Terminálu
+Control Center	Ovládací centrum
+Off	Vypnuto
+Ethernet	Ethernet
+Not connected	Nepřipojeno
+Not available	Nedostupné
+On	Zapnuto
+Wi-Fi	Wi-Fi
+Bluetooth	Bluetooth
+Do Not Disturb	Nerušit
+Data Saver	Spořič dat
+Battery Saver	Spořič baterie
+Display	Displej
+Sound	Zvuk
+Desktop & Dock…	Plocha a Dock…
+All Settings…	Všechna nastavení…
+Charging	Nabíjí se
+On battery	Na baterii
+Fully charged	Plně nabito
+Data Saver is on\n	Spořič dat je zapnutý\n
+Data Saver is off\n	Spořič dat je vypnutý\n
+AUR is disabled in lux.conf	AUR je v lux.conf vypnutý
+jq is required for AUR support	Pro AUR je potřeba jq
+AUR packages must be built as a regular user (run lux without sudo)	Balíky z AUR se sestavují jako běžný uživatel (spusťte lux bez sudo)
+Building AUR packages needs %sbase-devel%s and %sgit%s.	Sestavení balíků z AUR potřebuje %sbase-devel%s a %sgit%s.
+Install them now?	Nainstalovat je teď?
+AUR is not reachable	AUR není dostupný
+Package '%s' was not found in repositories or AUR	Balík '%s' nebyl nalezen v repozitářích ani v AUR
+Cannot update %s from AUR	%s nelze aktualizovat z AUR
+Cannot clone %s from AUR	%s nelze stáhnout z AUR
+Review PKGBUILD of %s before building?	Zkontrolovat před sestavením PKGBUILD balíku %s?
+Build and install %s?	Sestavit a nainstalovat %s?
+Cancelled	Zrušeno
+Building %s %s(AUR)%s	Sestavuji %s %s(AUR)%s
+Build of %s failed (see %s)	Sestavení %s selhalo (viz %s)
+AUR packages to build: %s	Balíky z AUR k sestavení: %s
+AUR packages are maintained by the community, not by LuxOS.	Balíky z AUR spravuje komunita, ne LuxOS.
+Continue?	Pokračovat?
+Usage: lux install <package...>	Použití: lux install <balík...>
+Installing %s from Flathub	Instaluji %s z Flathubu
+Package '%s' not found. Try: lux search %s	Balík '%s' nebyl nalezen. Zkuste: lux search %s
+Usage: lux remove <package...>	Použití: lux remove <balík...>
+Refreshing package databases	Obnovuji databáze balíků
+Updating system packages	Aktualizuji systémové balíky
+Checking AUR packages	Kontroluji balíky z AUR
+AUR packages are up to date	Balíky z AUR jsou aktuální
+Updating Flatpak apps	Aktualizuji aplikace Flatpak
+New config files to review:	Nové konfigurační soubory ke kontrole:
+Kernel was updated - restart to use it.	Jádro bylo aktualizováno - pro jeho použití restartujte.
+System is up to date	Systém je aktuální
+Usage: lux search <term>	Použití: lux search <výraz>
+Usage: lux info <package>	Použití: lux info <balík>
+Package '%s' not found	Balík '%s' nebyl nalezen
+Cleaning package cache (keeping %s versions)	Čistím mezipaměť balíků (ponechávám %s verze)
+Unneeded packages: %s	Nepotřebné balíky: %s
+Remove them?	Odebrat je?
+No unneeded packages	Žádné nepotřebné balíky
+Clean	Hotovo, vyčištěno
+All drivers are installed	Všechny ovladače jsou nainstalované
+Missing: %s	Chybí: %s
+Install now?	Nainstalovat teď?
+Drivers installed - restart to activate them	Ovladače nainstalovány - aktivují se po restartu
+Finding the fastest mirrors (this can take a minute)	Hledám nejrychlejší zrcadla (může to chvíli trvat)
+Mirror list updated	Seznam zrcadel aktualizován
+LuxOS system check	Kontrola systému LuxOS
+%s failed service(s):	Selhané služby: %s
+Services running	Služby běží
+%s .pacnew config file(s) to merge (pacdiff)	Konfiguračních souborů .pacnew ke sloučení (pacdiff): %s
+No pending config files	Žádné čekající konfigurační soubory
+Root filesystem is %s%% full	Kořenový souborový systém je zaplněn na %s %%
+Disk usage %s%%	Využití disku %s %%
+%s unneeded package(s) - run: lux clean	Nepotřebných balíků: %s - spusťte: lux clean
+No orphaned packages	Žádné osiřelé balíky
+%s update(s) available - run: lux update	Dostupných aktualizací: %s - spusťte: lux update
+System up to date	Systém je aktuální
+Running kernel was replaced - restart	Běžící jádro bylo nahrazeno - restartujte
+%s error message(s) in this boot's log (journalctl -b -p err)	Chybových hlášení v logu od spuštění: %s (journalctl -b -p err)
+Everything looks good	Vše vypadá v pořádku
+LuxOS package manager	správce balíků LuxOS
+Usage:	Použití:
+command	příkaz
+options	volby
+arguments	argumenty
+Options:	Volby:
+system	systém
+The interactive mode needs fzf (lux install fzf)	Interaktivní režim potřebuje fzf (lux install fzf)
+The interactive mode needs expac (lux install expac)	Interaktivní režim potřebuje expac (lux install expac)
+Enter install · Ctrl-R remove · Ctrl-U update system · Tab select more	Enter instalovat · Ctrl-R odebrat · Ctrl-U aktualizovat systém · Tab vybrat více
+Alt-L LuxOS apps · Alt-I installed · Alt-A all · Esc quit	Alt-L aplikace LuxOS · Alt-I nainstalované · Alt-A vše · Esc konec
+LuxOS apps	Aplikace LuxOS
+Installed	Nainstalováno
+All packages	Všechny balíky
+Search	Hledat
+Press Enter to continue	Stiskněte Enter pro pokračování
+Usage: lux files <pkg>	Použití: lux files <balík>
+Usage: lux owner <file>	Použití: lux owner <soubor>
+Unknown command '%s' (see lux --help)	Neznámý příkaz '%s' (viz lux --help)
+Open	Otevřít
+Get	Získat
+Search apps	Hledat aplikace
+Discover	Objevovat
+LuxOS Apps	Aplikace LuxOS
+Categories	Kategorie
+Library	Knihovna
+Updates	Aktualizace
+From LuxOS	Od LuxOS
+Popular apps	Oblíbené aplikace
+Apps made for LuxOS, signed by the LuxOS team.	Aplikace vytvořené pro LuxOS, podepsané týmem LuxOS.
+Results for “%s”	Výsledky pro „%s“
+Welcome to the LuxOS Store	Vítejte v Obchodě LuxOS
+%d apps from LuxOS and Arch Linux, installed with one click.	%d aplikací z LuxOS a Arch Linuxu, instalace jedním kliknutím.
+Nothing here yet.	Zatím tu nic není.
+Check for Updates	Zkontrolovat aktualizace
+Update All	Aktualizovat vše
+Everything is up to date.	Vše je aktuální.
+%d updates available: %s	Dostupné aktualizace (%d): %s
+Checking for updates…	Kontroluji aktualizace…
+Updating system…	Aktualizuji systém…
+Data Saver is on - updates are not checked automatically.	Spořič dat je zapnutý - aktualizace se nekontrolují automaticky.
+Remove	Odebrat
+Version	Verze
+Package	Balík
+About	O aplikaci
+Website	Web
+%s is installed, but has no window to open.	%s je nainstalovaná, ale nemá okno k otevření.
+Installing %s…	Instaluji %s…
+Remove %s?	Odebrat %s?
+The app will be removed from this computer. Your files stay untouched.	Aplikace bude z počítače odebrána. Vaše soubory zůstanou zachovány.
+Removing %s…	Odebírám %s…
+Done.	Hotovo.
+Cancelled.	Zrušeno.
+Failed: %s	Nezdařilo se: %s
+interactive app store in the terminal	interaktivní obchod s aplikacemi v terminálu
+install packages (repositories, then AUR / Flathub)	instalovat balíky (repozitáře, pak AUR / Flathub)
+remove packages and their unneeded dependencies	odebrat balíky a jejich nepotřebné závislosti
+update everything (system, AUR, Flatpak)	aktualizovat vše (systém, AUR, Flatpak)
+search repositories and AUR	hledat v repozitářích a AUR
+show package details	podrobnosti o balíku
+list installed packages	seznam nainstalovaných balíků
+files installed by a package	soubory nainstalované balíkem
+which package owns a file	kterému balíku patří soubor
+clean cache and remove unneeded packages	vyčistit mezipaměť a odebrat nepotřebné balíky
+detect and install missing drivers	najít a nainstalovat chybějící ovladače
+pick the fastest download mirrors	vybrat nejrychlejší zrcadla pro stahování
+check system health	zkontrolovat stav systému
+recent package changes	poslední změny balíků
+do not ask for confirmation	neptat se na potvrzení
+only official repositories	jen oficiální repozitáře
+only AUR	jen AUR
+this help	tato nápověda
+version	verze
+Internet	Internet
+Office	Kancelář
+Music & Video	Hudba a video
+Developer Tools	Vývojářské nástroje
+Games	Hry
+Education & Science	Vzdělávání a věda
+Utilities	Nástroje
+System	Systém
+Error	Chyba
+Calculator	Kalkulačka
+# Instalator
+Installation failed (line %s, exit code %s).	Instalace selhala (řádek %s, návratový kód %s).
+Details are in %s. Last lines:	Podrobnosti jsou v %s. Poslední řádky:
+Warning: not running from the LuxOS live system.	Upozornění: neběží z živého systému LuxOS.
+No internet connection	Chybí připojení k internetu
+LuxOS downloads the newest packages during installation.	LuxOS během instalace stahuje nejnovější balíky.
+Connect with the network icon in the top bar, or use the text tool.	Připojte se ikonou sítě v horní liště, nebo použijte textový nástroj.
+Try again	Zkusit znovu
+Open network setup (nmtui)	Otevřít nastavení sítě (nmtui)
+Quit	Ukončit
+Other…	Jiné…
+Type to search	Pište pro hledání
+Choose locale	Vyberte národní prostředí
+Language: %s	Jazyk: %s
+The installation takes about 10 minutes.	Instalace trvá asi 10 minut.
+Keyboard	Klávesnice
+Choose your keyboard layout	Vyberte rozložení klávesnice
+Layout	Rozložení
+Variant	Varianta
+Keyboard: %s	Klávesnice: %s
+Time zone	Časové pásmo
+Use detected time zone %s?	Použít zjištěné časové pásmo %s?
+Choose time zone	Vyberte časové pásmo
+Time zone: %s	Časové pásmo: %s
+Disk	Disk
+Advanced: use partitions already mounted at %s	Pokročilé: použít oddíly připojené v %s
+Where should LuxOS be installed?	Kam nainstalovat LuxOS?
+Nothing is mounted at %s. Mount root (and /boot) first.	V %s není nic připojeno. Nejdřív připojte kořenový oddíl (a /boot).
+All data on %s will be erased.	Všechna data na %s budou smazána.
+Yes	Ano
+No	Ne
+Encrypt the disk? (you will enter a password at every start)	Zašifrovat disk? (heslo zadáte při každém startu)
+Disk encryption password	Heslo pro šifrování disku
+Your account	Váš účet
+Full name	Celé jméno
+Jane Doe	Jana Nováková
+User name (lowercase)	Uživatelské jméno (malými písmeny)
+Use lowercase letters, numbers, - and _ (max 32 characters).	Použijte malá písmena, číslice, - a _ (nejvýše 32 znaků).
+Password	Heslo
+Computer name	Název počítače
+Use letters, numbers and - (no spaces).	Použijte písmena, číslice a - (bez mezer).
+Log in automatically without a password?	Přihlašovat automaticky bez hesla?
+Password cannot be empty.	Heslo nesmí být prázdné.
+%s (again)	%s (znovu)
+Passwords do not match, try again.	Hesla se neshodují, zkuste to znovu.
+Summary	Souhrn
+Language	Jazyk
+mounted at %s	připojeno v %s
+%s  (will be ERASED)	%s  (bude SMAZÁN)
+Encryption	Šifrování
+yes	ano
+no	ne
+User	Uživatel
+Boot mode	Režim spouštění
+Install	Instalovat
+Cancel	Zrušit
+Install LuxOS now?	Nainstalovat LuxOS teď?
+Preparing disk %s	Připravuji disk %s
+Partitions were not created correctly	Oddíly nebyly vytvořeny správně
+Encrypting the disk	Šifruji disk
+Creating file systems	Vytvářím souborové systémy
+Detecting hardware	Rozpoznávám hardware
+Installing packages (this is the longest step)	Instaluji balíky (nejdelší krok)
+Download failed (attempt %s), retrying…	Stahování selhalo (pokus %s), zkouším znovu…
+Packages could not be installed. Check the internet connection.	Balíky se nepodařilo nainstalovat. Zkontrolujte připojení k internetu.
+Configuring the system	Nastavuji systém
+Could not add UEFI boot entry (fallback loader will be used)	Nepodařilo se přidat položku UEFI (použije se záložní zavaděč)
+Finishing	Dokončuji
+LuxOS is installed	LuxOS je nainstalovaný
+Remove the installation media and restart your computer.	Vyjměte instalační médium a restartujte počítač.
+Restart	Restartovat
+Later	Později
+Restart now?	Restartovat teď?
+Config needs DISK, USERNAME and PASSWORD	Konfigurace musí obsahovat DISK, USERNAME a PASSWORD
+Invalid USERNAME	Neplatné USERNAME
+Invalid HOSTNAME_SEL	Neplatné HOSTNAME_SEL
+ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 vyžaduje LUKS_PASS
+# Rozlozeni klavesnice (instalator)
+English (US)	Angličtina (USA)
+Czech	Čeština
+Czech (QWERTY)	Čeština (QWERTY)
+Slovak	Slovenština
+Slovak (QWERTY)	Slovenština (QWERTY)
+German	Němčina
+English (UK)	Angličtina (Británie)
+French	Francouzština
+Spanish	Španělština
+Italian	Italština
+Polish	Polština
+Hungarian	Maďarština
+Ukrainian	Ukrajinština
+Portuguese	Portugalština
+Portuguese (Brazil)	Portugalština (Brazílie)
+Swedish	Švédština
+# Nazvy aplikaci v horni liste
+Desktop	Plocha
+Text Editor	Textový editor
+Image Viewer	Prohlížeč obrázků
+Document Viewer	Prohlížeč dokumentů
+System Monitor	Monitor systému

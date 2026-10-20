@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Control Center
+Name[cs]=Ovládací centrum
+Comment=Wi-Fi, Bluetooth, sound, display, Data Saver and Battery Saver
+Comment[cs]=Wi-Fi, Bluetooth, zvuk, jas, Spořič dat a Spořič baterie
+Exec=luxos-control-center
+Icon=luxos-control-center-symbolic
+Terminal=false
+Categories=Settings;GTK;
+Keywords=wifi;bluetooth;battery;saver;volume;brightness;baterie;spořič;

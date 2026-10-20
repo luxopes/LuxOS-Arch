@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=LuxOS Store
+Name[cs]=Obchod LuxOS
+Comment=Install apps from LuxOS and Arch Linux
+Comment[cs]=Aplikace z LuxOS a Arch Linuxu
+Exec=luxos-store %u
+Icon=luxos-store
+Terminal=false
+Categories=System;PackageManager;GTK;
+Keywords=store;apps;install;software;obchod;aplikace;instalace;
+StartupWMClass=luxos-store
