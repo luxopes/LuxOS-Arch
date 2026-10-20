@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Calculator
+Name[cs]=Kalkulačka
+Comment=Calculate with LuxOS Calculator
+Comment[cs]=Kalkulačka LuxOS
+Exec=luxos-calculator
+Icon=luxos-calculator
+Terminal=false
+Categories=Utility;Calculator;GTK;
+Keywords=calc;math;kalkulacka;
+StartupWMClass=luxos-calculator

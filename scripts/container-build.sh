@@ -13,7 +13,7 @@ PROFILE=/tmp/luxos-profile
 target=${1:-all}
 
 # Poradi: zavislosti vlastnich baliku prvni
-PACKAGES=(blesh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-desktop luxos-installer)
+PACKAGES=(blesh lsl lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-desktop luxos-installer)
 
 msg() { printf '\n\e[1;38;2;167;123;255m==> %s\e[0m\n' "$*"; }
 

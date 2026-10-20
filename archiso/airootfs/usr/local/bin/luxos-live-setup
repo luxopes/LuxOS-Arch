@@ -8,7 +8,7 @@ if ! id "$user" &>/dev/null; then
     for g in video audio input lp storage network rfkill autologin; do
         getent group "$g" >/dev/null && groups+=",$g"
     done
-    useradd -m -G "$groups" -s /bin/bash -c "LuxOS Live" "$user"
+    useradd -m -G "$groups" -s /usr/bin/lsh -c "LuxOS Live" "$user"
     passwd -d "$user" >/dev/null
 fi
 install -Dm440 /dev/stdin /etc/sudoers.d/00-luxos-live <<S

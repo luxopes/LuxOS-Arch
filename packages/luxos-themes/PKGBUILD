@@ -57,6 +57,14 @@ package() {
             ln -s /usr/share/luxos/logo/luxos-logo.svg "$f"
         fi
     done < <(find "$icons" -name 'start-here*.svg' -print0)
+    # Vlastni ikony LuxOS (luxos-branding) pro zakladni aplikace
+    local name target
+    for name in org.xfce.thunar:luxos-files org.xfce.settings.manager:luxos-settings \
+                org.xfce.mousepad:luxos-notes; do
+        target=${name#*:} name=${name%%:*}
+        find "$icons"/WhiteSur* \( -name "$name.svg" -o -name "$name.png" \) -delete
+        ln -s "/usr/share/icons/hicolor/256x256/apps/$target.png" "$icons/WhiteSur/apps/scalable/$name.png"
+    done
 
     # Kurzory
     cp -a "$srcdir/WhiteSur-cursors/dist" "$icons/WhiteSur-cursors"

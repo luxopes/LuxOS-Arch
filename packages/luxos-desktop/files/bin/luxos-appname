@@ -69,7 +69,10 @@ watch)
         [[ -z $name ]] && name=Desktop
         if [[ $name != "$last" ]]; then
             printf '%s' "$name" > "$state"
-            xfce4-panel --plugin-event="$PLUGIN:refresh:bool:true" 2>/dev/null
+            # Primo pres D-Bus: "xfce4-panel --plugin-event" ukaze chybovy dialog,
+            # pokud panel jeste nebezi (zacatek relace)
+            timeout 2 gdbus call --session --dest org.xfce.Panel --object-path /org/xfce/Panel \
+                --method org.xfce.Panel.PluginEvent "$PLUGIN" refresh '<true>' >/dev/null 2>&1
             last=$name
         fi
     done

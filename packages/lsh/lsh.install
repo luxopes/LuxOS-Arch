@@ -1,0 +1,7 @@
+# lsh do /etc/shells (chsh, prihlaseni)
+post_install() {
+    grep -qxF /usr/bin/lsh /etc/shells || echo /usr/bin/lsh >> /etc/shells
+    grep -qxF /bin/lsh /etc/shells || echo /bin/lsh >> /etc/shells
+}
+post_upgrade() { post_install; }
+pre_remove() { sed -i '\#^/\(usr/\)\?bin/lsh$#d' /etc/shells; }

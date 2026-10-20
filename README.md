@@ -12,8 +12,18 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
 - **Bez starostí s ovladači:** `luxos-hwdetect` při instalaci rozpozná GPU (Intel/AMD/NVIDIA včetně hybridní
   grafiky), Wi‑Fi Broadcom, čtečky otisků, akcelerometry a virtualizaci (VirtualBox, VMware, QEMU, Hyper‑V).
   Po instalaci kdykoli `lux drivers`. PipeWire, Bluetooth, tisk bez ovladačů (IPP Everywhere) a skenery v základu.
-- **Shell:** bash s [ble.sh](https://github.com/akinomyoga/ble.sh) (našeptávání a zvýraznění syntaxe), starship
-  prompt, fzf, zoxide, eza, bat, fastfetch; zsh s pluginy jako alternativa. macOS zvyky: `open`, `pbcopy`, `pbpaste`.
+- **Shell `lsh` (Lux Shell):** vlastní shell LuxOS – fork GNU bash 5.3, plně kompatibilní, s
+  [ble.sh](https://github.com/akinomyoga/ble.sh) (našeptávání a zvýraznění syntaxe), starship promptem, fzf, zoxide,
+  eza, bat a fastfetch. Navíc oproti bashi:
+  - `about [shell|os|lsl]` – přehled o shellu, systému a LSL,
+  - příkazy [LSL](https://lsl.lux-ai.cz) přímo v shellu (`print 6 * 7`, `load time`, `x = 5`; relace: `lsl-session`),
+    `./skript.lsl` se spustí přes `lsl`,
+  - `pip install` funguje i mimo venv (balíčky do `~/.local`, jen varování místo chyby).
+
+  Konfigurace `/etc/lsh/lshrc` a `~/.lshrc`, historie `~/.lsh_history`. zsh zůstává jako alternativa.
+  macOS zvyky: `open`, `pbcopy`, `pbpaste`.
+- **Aplikace a ikony:** vlastní Kalkulačka LuxOS, ikony LuxOS pro Soubory, Nastavení, Poznámky, Launchpad,
+  instalátor a Kalkulačku; ostatní z WhiteSur v překreslené variantě (bez napodobenin ikon a loga Apple).
 - **Splash screeny:** Plymouth (černá + logo + tenký progress bar, i pro zadání hesla k LUKS), skrytý zavaděč
   (systemd-boot `timeout 0`), přihlašovací obrazovka uprostřed (lightdm-gtk-greeter), ISO boot menu v barvách LuxOS.
 - **`lux`** – správce balíků LuxOS (zatím nad pacmanem, AUR a Flatpakem; připravený na vlastní repozitář).
@@ -80,7 +90,9 @@ packages/                   vlastní balíky LuxOS (lokální repozitář [luxos
   luxos-branding            logo, tapety, Plymouth, os-release
   luxos-themes              WhiteSur GTK/xfwm4/Plank/ikony/kurzory (pevné commity)
   luxos-desktop             nastavení Xfce, dock, Spotlight/Launchpad, LightDM, aplikace
-  luxos-shell               bash + ble.sh, zsh, starship, fastfetch
+  luxos-shell               konfigurace shellu: ble.sh, zsh, starship, fastfetch
+  lsh                       Lux Shell (fork GNU bash: about, LSL, pip)
+  lsl                       Lux Simple Lang (oficiální binární vydání)
   luxos-tweaks              výkon: zram, sysctl, I/O, oomd, journald
   luxos-drivers             luxos-hwdetect
   luxos-installer           luxos-install
@@ -106,7 +118,8 @@ takže LuxOS nepřepisuje soubory jiných balíků a uživatelské změny mají 
 | `Super+L`, `Ctrl+Super+Q` | zamknout |
 | `Super+Alt+Esc` | správce úloh (vynutit ukončení) |
 | `Super+,` | nastavení |
+| klávesa Kalkulačka | Kalkulačka LuxOS |
 
 ## Licence
 
-Vlastní skripty a konfigurace LuxOS: MIT. Témata WhiteSur © vinceliuice (MIT/GPL‑3.0), ble.sh © Koichi Murase (BSD‑3).
+Vlastní skripty a konfigurace LuxOS: MIT. lsh: GPL‑3.0 (fork GNU bash). LSL: MIT. Témata WhiteSur © vinceliuice (MIT/GPL‑3.0), ble.sh © Koichi Murase (BSD‑3).

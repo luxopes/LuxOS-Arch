@@ -6,6 +6,8 @@
   vmctl.py keys 'text'             napise text (US rozlozeni)
   vmctl.py key ctrl-alt-t          stiskne kombinaci klaves (nazvy QEMU qcode)
   vmctl.py click X Y [W H]         klik levym tlacitkem (souradnice obrazovky, vychozi 1280x800)
+  vmctl.py move X Y [W H]          presune kurzor
+  vmctl.py put SOUBOR CIL          nahraje soubor do hosta
   vmctl.py ping                    ceka na guest agenta
 """
 import base64, json, os, socket, sys, time
@@ -85,6 +87,12 @@ def main():
         rc, out, err = gexec(a[1], timeout=int(a[2]) if len(a) > 2 else 600)
         sys.stdout.write(out); sys.stderr.write(err)
         return rc
+    elif c == "put":
+        h = qga("guest-file-open", {"path": a[2], "mode": "wb"})
+        with open(a[1], "rb") as f:
+            while chunk := f.read(48 * 1024):
+                qga("guest-file-write", {"handle": h, "buf-b64": base64.b64encode(chunk).decode()})
+        qga("guest-file-close", {"handle": h})
     elif c == "ping":
         end = time.time() + (int(a[1]) if len(a) > 1 else 300)
         while time.time() < end:

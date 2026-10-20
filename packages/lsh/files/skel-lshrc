@@ -1,0 +1,6 @@
+#
+# ~/.lshrc - vlastni nastaveni lsh (Lux Shell)
+#
+# Systemova konfigurace LuxOS se nacita z /etc/lsh/lshrc jeste pred timto souborem.
+# Vypnuti uvitani nebo ble.sh: ~/.config/luxos/shell.conf (LUXOS_FASTFETCH=0, LUXOS_BLESH=0).
+#

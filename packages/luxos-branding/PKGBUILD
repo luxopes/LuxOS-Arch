@@ -26,6 +26,13 @@ build() {
         rsvg-convert "$f/plymouth/$p.svg" -o render/$p.png
     done
     rsvg-convert "$f/syslinux/splash.svg" -o render/splash.png
+    # Ikony aplikaci LuxOS (512 px zdroj) v beznych velikostech
+    local i
+    for i in "$f"/icons/*.png; do
+        for s in 48 64 128 256; do
+            magick "$i" -filter Lanczos -resize ${s}x$s render/icon-$s-"${i##*/}"
+        done
+    done
 }
 
 package() {
@@ -37,6 +44,13 @@ package() {
         install -Dm644 render/logo-$s.png "$pkgdir/usr/share/icons/hicolor/${s}x${s}/apps/luxos-logo.png"
     done
     install -Dm644 render/logo-256.png "$pkgdir/usr/share/pixmaps/luxos-logo.png"
+    local i
+    for i in "$f"/icons/*.png; do
+        install -Dm644 "$i" "$pkgdir/usr/share/icons/hicolor/512x512/apps/${i##*/}"
+        for s in 48 64 128 256; do
+            install -Dm644 render/icon-$s-"${i##*/}" "$pkgdir/usr/share/icons/hicolor/${s}x$s/apps/${i##*/}"
+        done
+    done
     install -Dm644 -t "$pkgdir/usr/share/luxos/logo" "$f"/logo/*.svg render/logo-white.png
     install -Dm644 render/splash.png "$pkgdir/usr/share/luxos/syslinux/splash.png"
 

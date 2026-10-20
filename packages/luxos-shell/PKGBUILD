@@ -3,11 +3,11 @@
 pkgname=luxos-shell
 pkgver=1.0.0
 pkgrel=1
-pkgdesc="LuxOS shell experience: bash with ble.sh, zsh, starship prompt, fastfetch"
+pkgdesc="LuxOS shell experience: lsh (Lux shell) with ble.sh, zsh, starship prompt, fastfetch"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
-depends=(bash bash-completion blesh starship fzf zoxide eza bat fastfetch xclip
+depends=(bash lsh lsl bash-completion blesh starship fzf zoxide eza bat fastfetch xclip
          zsh zsh-autosuggestions zsh-syntax-highlighting ttf-jetbrains-mono-nerd)
 install=luxos-shell.install
 

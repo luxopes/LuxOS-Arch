@@ -3,5 +3,5 @@ Type=Application
 Name=Launchpad
 Comment=Show all applications
 Exec=luxos-launchpad
-Icon=view-app-grid
+Icon=luxos-launchpad
 Categories=System;
