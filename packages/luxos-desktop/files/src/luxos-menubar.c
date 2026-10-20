@@ -8,6 +8,10 @@
  *
  * Plugin se pozna podle X klienta: kazdy externi plugin bezi ve vlastnim
  * procesu wrapper-2.0, takze popup i ikona pod kurzorem maji stejny zaklad ID.
+ *
+ * Navic: pri automaticky skryvanem Docku (~/.config/luxos/dock-autohide)
+ * dotahne ukazatel z poslednich EDGE pixelu obrazovky na samotny okraj -
+ * Plank se jinak vysune jen na uplne poslednim radku.
  */
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
@@ -20,10 +24,12 @@
 #include <string.h>
 #include <sys/select.h>
 #include <time.h>
+#include <unistd.h>
 
 #define CLIENT(w) ((w) & ~0x1fffffUL)
 #define CHECK_DELAY_MS 120
 #define CLOSE_WAIT_MS 400
+#define EDGE 6                  /* pixelu nad spodnim okrajem, ktere vysunou Dock */
 
 static Display *dpy;
 static Window root;
@@ -180,6 +186,33 @@ static void send_key(KeySym ks)
 
 static void handle_event(XEvent *ev);
 
+static char autohide_flag[512];
+
+/* Ukazatel tesne nad spodnim okrajem -> na okraj (vysunuti skryteho Docku) */
+static void dock_edge(void)
+{
+    static long long checked;
+    static int enabled;
+    long long now = now_ms();
+    Window r, c;
+    int rx, ry, wx, wy, h;
+    unsigned int mask;
+
+    if (now - checked > 2000) {     /* priznak staci kontrolovat obcas */
+        enabled = access(autohide_flag, F_OK) == 0;
+        checked = now;
+    }
+    if (!enabled || !XQueryPointer(dpy, root, &r, &c, &rx, &ry, &wx, &wy, &mask))
+        return;
+    if (mask & (Button1Mask | Button2Mask | Button3Mask))
+        return;                     /* tazeni mysi nerusit */
+    h = DisplayHeight(dpy, DefaultScreen(dpy));
+    if (ry >= h - EDGE && ry < h - 1) {
+        XWarpPointer(dpy, None, root, 0, 0, 0, 0, rx, h - 1);
+        XFlush(dpy);
+    }
+}
+
 /* Zpracovava udalosti az do zavreni nabidky nebo vyprseni casu */
 static void wait_closed(Window w, int ms)
 {
@@ -237,7 +270,9 @@ static void handle_event(XEvent *ev)
         if (!XGetEventData(dpy, ck))
             return;
         XIRawEvent *re = ck->data;
-        if (re->detail == 1 && now_ms() >= replay_until) {
+        if (ck->evtype == XI_RawMotion) {
+            dock_edge();
+        } else if (re->detail == 1 && now_ms() >= replay_until) {
             /* GTK otevira nabidku uz pri stisku, proto rozhoduje stav pred nim */
             if (ck->evtype == XI_RawButtonPress) {
                 popup_at_press = popup;
@@ -272,6 +307,14 @@ int main(void)
     }
     XSetErrorHandler(ignore_errors);
     root = DefaultRootWindow(dpy);
+    {
+        const char *cfg = getenv("XDG_CONFIG_HOME");
+        const char *home = getenv("HOME");
+        if (cfg && *cfg)
+            snprintf(autohide_flag, sizeof autohide_flag, "%s/luxos/dock-autohide", cfg);
+        else
+            snprintf(autohide_flag, sizeof autohide_flag, "%s/.config/luxos/dock-autohide", home ? home : "");
+    }
     a_pid = XInternAtom(dpy, "_NET_WM_PID", False);
     a_type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
     a_state = XInternAtom(dpy, "_NET_WM_STATE", False);
@@ -285,6 +328,7 @@ int main(void)
     unsigned char bits[XIMaskLen(XI_LASTEVENT)] = {0};
     XISetMask(bits, XI_RawButtonPress);
     XISetMask(bits, XI_RawButtonRelease);
+    XISetMask(bits, XI_RawMotion);
     XIEventMask mask = {XIAllMasterDevices, sizeof bits, bits};
     XISelectEvents(dpy, root, &mask, 1);
     XFlush(dpy);

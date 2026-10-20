@@ -27,6 +27,7 @@ from gi.repository import AppStream, Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # no
 HELPER = "/usr/lib/luxos/luxos-store-helper"
 LUX_DB = "/var/lib/lux/installed"
 LUX_INDEX_URL = os.environ.get("LUX_INDEX_URL", "https://lsl.lux-ai.cz/luxos/lux")
+APPS_ICON_URL = "https://lsl.lux-ai.cz/luxos/luxos-apps/x86_64/icons"
 ICON_CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "luxos-store/icons")
 ICON_SIZE = 56
 DATASAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/datasaver")
@@ -188,11 +189,29 @@ class Catalog:
                 name, sep, summary = desc.partition(" - ")
                 if not sep:
                     name, summary = pkg, desc
-                apps[pkg] = App(pkg, name, summary, repo, ver, int(size or 0), description=desc)
+                apps[pkg] = App(pkg, name, summary, repo, ver, int(size or 0), description=desc,
+                                icon_file=self.repo_icon(pkg))
             elif repo == "luxos-apps":
                 apps[pkg].repo = repo
         self.load_lux(apps)
         self.apps = apps
+
+    @staticmethod
+    def repo_icon(pkg):
+        """Ikona aplikace z repozitare LuxOS (stazena jednou do mezipameti)."""
+        os.makedirs(ICON_CACHE, exist_ok=True)
+        for ext in ("svg", "png"):
+            path = os.path.join(ICON_CACHE, f"{pkg}.{ext}")
+            if os.path.exists(path) and os.path.getsize(path):
+                return path
+        for ext in ("svg", "png"):
+            path = os.path.join(ICON_CACHE, f"{pkg}.{ext}")
+            run("curl", "-fsSL", "--max-time", "6", "-o", path, f"{APPS_ICON_URL}/{pkg}.{ext}", timeout=8)
+            if os.path.exists(path) and os.path.getsize(path):
+                return path
+            if os.path.exists(path):
+                os.unlink(path)
+        return None
 
     def refresh_installed(self):
         self.installed = set(run("pacman", "-Qq").split())

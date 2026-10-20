@@ -24,6 +24,7 @@
       <property name="plugin-ids" type="array">
         <value type="int" value="1"/>
         <value type="int" value="2"/>
+        <value type="int" value="13"/>
         <value type="int" value="3"/>
         <value type="int" value="11"/>
         <value type="int" value="4"/>
@@ -48,6 +49,7 @@
       <property name="position-commands-alternate" type="bool" value="true"/>
       <property name="launcher-show-description" type="bool" value="false"/>
       <property name="show-command-menueditor" type="bool" value="false"/>
+      <property name="show-command-settings" type="bool" value="false"/>
       <property name="show-command-lockscreen" type="bool" value="true"/>
       <property name="show-command-shutdown" type="bool" value="true"/>
       <property name="show-command-restart" type="bool" value="true"/>
@@ -72,6 +74,15 @@
       <property name="enable-single-row" type="bool" value="true"/>
       <property name="font" type="string" value="Inter Bold 10"/>
     </property>
+    <!-- Otevrena okna (ikony) za nazvem aplikace - prepinani mezi nimi -->
+    <property name="plugin-13" type="string" value="tasklist">
+      <property name="show-labels" type="bool" value="false"/>
+      <property name="flat-buttons" type="bool" value="true"/>
+      <property name="show-handle" type="bool" value="false"/>
+      <property name="include-all-workspaces" type="bool" value="false"/>
+      <property name="grouping" type="uint" value="1"/>
+      <property name="middle-click" type="uint" value="1"/>
+    </property>
     <property name="plugin-3" type="string" value="separator">
       <property name="expand" type="bool" value="true"/>
       <property name="style" type="uint" value="0"/>
@@ -95,11 +106,11 @@
       <property name="enable-single-row" type="bool" value="true"/>
       <property name="font" type="string" value="Inter Semi-Bold 10"/>
     </property>
-    <!-- Rozlozeni klavesnice (text CZ / US, prepinani Alt+Shift nebo klikem) -->
+    <!-- Rozlozeni klavesnice (vlajka statu, prepinani Alt+Shift nebo klikem) -->
     <property name="plugin-11" type="string" value="xkb">
-      <property name="display-type" type="uint" value="1"/>
+      <property name="display-type" type="uint" value="0"/>
       <property name="display-name" type="uint" value="0"/>
-      <property name="display-scale" type="uint" value="80"/>
+      <property name="display-scale" type="uint" value="55"/>
       <property name="caps-lock-indicator" type="bool" value="true"/>
       <property name="display-tooltip-icon" type="bool" value="false"/>
       <property name="group-policy" type="uint" value="0"/>

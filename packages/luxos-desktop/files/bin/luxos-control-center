@@ -25,7 +25,7 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
 RUNTIME = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
 PIDFILE = os.path.join(RUNTIME, "luxos-control-center.pid")
@@ -119,12 +119,26 @@ def wifi_state():
     return True, _("Not connected")
 
 
+CFG = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos")
+SOFT_BRIGHTNESS = os.path.join(CFG, "brightness")
+
+
 def bluetooth_state():
-    out = run("bluetoothctl", "show", timeout=2)
-    if not out or "Controller" not in out:
+    """Adapter BlueZ pres D-Bus (bez bluetoothctl, ktery bez sluzby visi sekundy)."""
+    try:
+        bus = Gio.bus_get_sync(Gio.BusType.SYSTEM)
+        has = bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+                            "NameHasOwner", GLib.Variant("(s)", ("org.bluez",)), GLib.VariantType("(b)"),
+                            0, 500, None).unpack()[0]
+        if not has:
+            return None, _("Not available")
+        r = bus.call_sync("org.bluez", "/org/bluez/hci0", "org.freedesktop.DBus.Properties", "Get",
+                          GLib.Variant("(ss)", ("org.bluez.Adapter1", "Powered")), GLib.VariantType("(v)"),
+                          0, 500, None)
+        on = bool(r.unpack()[0])
+        return on, _("On") if on else _("Off")
+    except GLib.Error:
         return None, _("Not available")
-    on = re.search(r"Powered:\s*yes", out) is not None
-    return on, _("On") if on else _("Off")
 
 
 def dnd_state():
@@ -132,12 +146,17 @@ def dnd_state():
     return out == "true"
 
 
-def flag_state(cmd):
-    return run(cmd, "status") == "on"
+def flag_state(name):
+    """Sporic dat/baterie: priznakovy soubor v ~/.config/luxos (bez spousteni skriptu)."""
+    return os.path.exists(os.path.join(CFG, name))
 
 
 def dark_state():
-    return run("luxos-appearance", "status") == "dark"
+    try:
+        with open(os.path.join(CFG, "appearance")) as f:
+            return f.read().strip() != "light"
+    except OSError:
+        return True
 
 
 def battery():
@@ -164,14 +183,30 @@ def volume():
     return (int(m.group(1)) if m else 0), mute.endswith("yes")
 
 
-def brightness():
-    if not os.path.isdir("/sys/class/backlight") or not os.listdir("/sys/class/backlight"):
-        return None
-    cur, mx = run("brightnessctl", "get"), run("brightnessctl", "max")
+def backlight():
+    """Cesta k podsviceni (notebook) nebo None."""
+    base = "/sys/class/backlight"
     try:
-        return round(int(cur) * 100 / int(mx))
-    except (TypeError, ValueError, ZeroDivisionError):
+        names = sorted(os.listdir(base))
+    except OSError:
         return None
+    return os.path.join(base, names[0]) if names else None
+
+
+def brightness():
+    """Jas v procentech: podsviceni, jinak softwarovy jas monitoru (xrandr)."""
+    bl = backlight()
+    if bl:
+        try:
+            with open(f"{bl}/brightness") as f, open(f"{bl}/max_brightness") as g:
+                return round(int(f.read()) * 100 / int(g.read()))
+        except (OSError, ValueError, ZeroDivisionError):
+            return None
+    try:
+        with open(SOFT_BRIGHTNESS) as f:
+            return int(f.read().strip())
+    except (OSError, ValueError):
+        return 100
 
 
 # ---- UI ----------------------------------------------------------------------
@@ -332,24 +367,16 @@ class ControlCenter(Gtk.Window):
 
     # ---- obnova stavu ----
     def refresh_fast(self):
-        self.t_dnd.set_state(dnd_state())
-        self.t_dark.set_state(dark_state())
-        data = flag_state("luxos-datasaver")
+        """Okamzite udaje (soubory v ~/.config a /sys) - bez spousteni programu."""
+        dark = dark_state()
+        self.t_dark.set_state(dark, _("On") if dark else _("Off"))
+        data = flag_state("datasaver")
         self.t_data.set_state(data, _("On") if data else _("Off"))
-        power = flag_state("luxos-powersaver")
+        power = flag_state("powersaver")
         self.t_power.set_state(power, _("On") if power else _("Off"))
-        self.t_dnd.sub.set_text(_("On") if dnd_state() else _("Off"))
-        self.t_dark.sub.set_text(_("On") if dark_state() else _("Off"))
         b = brightness()
-        self.s_bright.set_visible(b is not None)
-        self.s_bright.set_no_show_all(b is None)
         if b is not None:
             self.s_bright.set_value(b)
-        vol, muted = volume()
-        if vol is not None:
-            self.s_vol.set_value(vol)
-            self.s_vol.icon.set_from_icon_name(
-                "audio-volume-muted-symbolic" if muted else "audio-volume-high-symbolic", Gtk.IconSize.MENU)
         bat = battery()
         self.bat_wrap.set_no_show_all(bat is None)
         self.bat_wrap.set_visible(bat is not None)
@@ -362,10 +389,23 @@ class ControlCenter(Gtk.Window):
             self.bat_sub.set_text({"Charging": _("Charging"), "Discharging": _("On battery")}.get(st, _("Fully charged")))
 
     def refresh_slow(self):
+        """Udaje ze sluzeb (sit, Bluetooth, zvuk, oznameni) - na pozadi."""
         wifi = wifi_state()
         bt = bluetooth_state()
-        GLib.idle_add(self.t_wifi.set_state, *wifi)
-        GLib.idle_add(self.t_bt.set_state, *bt)
+        dnd = dnd_state()
+        vol = volume()
+        GLib.idle_add(self.apply_slow, wifi, bt, dnd, vol)
+
+    def apply_slow(self, wifi, bt, dnd, vol):
+        self.t_wifi.set_state(*wifi)
+        self.t_bt.set_state(*bt)
+        self.t_dnd.set_state(dnd, _("On") if dnd else _("Off"))
+        level, muted = vol
+        if level is not None:
+            self.s_vol.set_value(level)
+            self.s_vol.icon.set_from_icon_name(
+                "audio-volume-muted-symbolic" if muted else "audio-volume-high-symbolic", Gtk.IconSize.MENU)
+        return False
 
     def periodic(self):
         threading.Thread(target=self.refresh_slow, daemon=True).start()
@@ -383,9 +423,10 @@ class ControlCenter(Gtk.Window):
         self.close()
 
     def toggle_dnd(self):
-        run("xfconf-query", "-c", "xfce4-notifyd", "-p", "/do-not-disturb", "-n", "-t", "bool",
-            "-s", "false" if dnd_state() else "true")
-        self.refresh_fast()
+        on = "on" not in self.t_dnd.get_style_context().list_classes()
+        self.t_dnd.set_state(on, _("On") if on else _("Off"))
+        spawn("xfconf-query", "-c", "xfce4-notifyd", "-p", "/do-not-disturb", "-n", "-t", "bool",
+              "-s", "true" if on else "false")
 
     def toggle_dark(self):
         run("luxos-appearance", "toggle", timeout=20)
@@ -404,10 +445,18 @@ class ControlCenter(Gtk.Window):
 
     def toggle_mute(self):
         run("pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle")
-        self.refresh_fast()
+        threading.Thread(target=self.refresh_slow, daemon=True).start()
 
     def set_brightness(self, v):
-        spawn("brightnessctl", "-q", "set", f"{max(v, 5)}%")
+        v = max(v, 10)
+        if backlight():
+            spawn("brightnessctl", "-q", "set", f"{v}%")
+            return
+        # Monitor bez podsviceni (stolni pocitac, VM): softwarovy jas vsech vystupu
+        os.makedirs(CFG, exist_ok=True)
+        with open(SOFT_BRIGHTNESS, "w") as f:
+            f.write(str(v))
+        spawn("luxos-displays", "brightness", str(v))
 
 
 def main():

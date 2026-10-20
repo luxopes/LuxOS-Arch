@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Spotlight, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)

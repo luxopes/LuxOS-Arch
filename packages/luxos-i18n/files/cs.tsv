@@ -471,3 +471,6 @@ Checksum mismatch: %s	Nesouhlasí kontrolní součet: %s
 Bad signature: %s	Neplatný podpis: %s
 LuxOS package (.lux)	balík LuxOS (.lux)
 build a .lux package from a directory with lux.json	sestavit balík .lux z adresáře s lux.json
+# Kalkulacka - vedecky rezim
+Scientific (Ctrl+2)	Vědecká (Ctrl+2)
+Degrees / radians	Stupně / radiány

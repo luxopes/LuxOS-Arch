@@ -71,6 +71,15 @@ make_repo() {  # make_repo NAZEV ADRESAR_S_BALIKY
                 && ln -sf "$name.$f.tar.gz.sig" "$dir/$name.$f.sig"
         done
     fi
+    # Ikony aplikaci pro Obchod LuxOS (aplikace jeste neni nainstalovana): icons/<balik>.png|svg
+    local pkgname icon
+    mkdir -p "$dir/icons"
+    for f in "${files[@]}"; do
+        pkgname=$(tar --zstd -xOf "$f" .PKGINFO | awk -F' = ' '$1 == "pkgname" {print $2}' | head -1)
+        icon=$(tar --zstd -tf "$f" | grep -E "^usr/share/icons/hicolor/(scalable|512x512|256x256|128x128)/apps/$pkgname\.(svg|png)$" |
+               sort | head -1 || true)
+        [[ -n $icon ]] && tar --zstd -xOf "$f" "$icon" >"$dir/icons/$pkgname.${icon##*.}"
+    done
     msg "Repository [$name]: ${#files[@]} packages in out/repo/$name/$ARCH"
 }
 
