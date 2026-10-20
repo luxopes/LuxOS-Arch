@@ -284,15 +284,12 @@ class Settings(Gtk.Window):
                                             lambda v: subprocess.Popen(["luxos-appearance", "dock-opacity", str(v)])))
 
     def toggle_autohide(self, switch, _p):
-        """Skryvani Docku; priznak pro luxos-menubar (vysunuti i kousek nad okrajem)."""
+        """Skryvani Docku (oba rezimy Dock skryvaji, luxos-menubar ho vysune i kousek nad okrajem)."""
         on = switch.get_active()
         self.dock.set_string("hide-mode", "auto" if on else "window-dodge")
         flag = os.path.join(os.path.dirname(PREFS), "dock-autohide")
         os.makedirs(os.path.dirname(flag), exist_ok=True)
-        if on:
-            open(flag, "w").close()
-        elif os.path.exists(flag):
-            os.unlink(flag)
+        open(flag, "w").close()
 
     # ---- Horni lista ----------------------------------------------------------
     def build_bar(self, page):

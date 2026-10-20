@@ -13,6 +13,9 @@ while :; do
     ((live)) && buttons+=(--button="$(T "Install LuxOS")!luxos-installer:10")
     buttons+=(--button="$([[ $mode == dark ]] && T "Light Mode" || T "Dark Mode")!preferences-desktop-theme:11")
     ((live)) || buttons+=(--button="$(T "LuxOS Store")!luxos-store:15" --button="$(T "Update")!system-software-update:13")
+    # Ucet LuxAI (AI v aplikacich) - jen dokud neni prihlaseny
+    ((live)) || [[ -s ${XDG_CONFIG_HOME:-$HOME/.config}/luxai/account.json ]] ||
+        buttons+=(--button="$(T "Sign in to LuxAI")!luxos-app:16")
     buttons+=(--button="$(T "Shortcuts")!preferences-desktop-keyboard-shortcuts:14" --button="$(T "Close")!window-close:0")
 
     yad --title="$(T "Welcome to LuxOS")" --window-icon=luxos-app --image="$icon" --borders=24 --width=660 --center \
@@ -33,6 +36,7 @@ $(T "Fast, light and beautifully simple.")
         13) xfce4-terminal --title="$(T "Update")" -x lsh -c "lux update; echo; read -rp '$pause'" ;;
         14) luxos-shortcuts ;;
         15) setsid -f luxos-store ;;
+        16) luxos-account login ;;
         *) break ;;
     esac
 done

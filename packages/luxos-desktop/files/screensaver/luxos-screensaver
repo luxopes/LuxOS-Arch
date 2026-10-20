@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+"""LuxOS - setric obrazovky: tapety LuxOS s pomalym prolinanim a velke hodiny.
+
+xfce4-screensaver ho spousti s XSCREENSAVER_WINDOW (X okno, do ktereho se kresli).
+Bez teto promenne (nahled v nastaveni, test) otevre vlastni okno; --window na cele
+obrazovce, jinak 640x400.
+"""
+import glob
+import math
+import os
+import sys
+import time
+
+import gi
+
+gi.require_version("Gdk", "3.0")
+gi.require_version("GdkPixbuf", "2.0")
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
+
+WALLS = sorted(glob.glob("/usr/share/backgrounds/luxos/luxos-*.jpg"))
+WALLS = sorted({os.path.realpath(w) for w in WALLS if not w.endswith(("luxos-dark.jpg", "luxos-light.jpg"))})
+SLIDE = 20.0      # sekund na tapetu
+FADE = 3.0        # delka prolinani
+FPS = 15
+
+
+class Saver:
+    def __init__(self):
+        self.images = {}
+        self.start = time.monotonic()
+
+    def pixbuf(self, path, w, h):
+        key = (path, w, h)
+        if key not in self.images:
+            try:
+                src = GdkPixbuf.Pixbuf.new_from_file(path)
+                scale = max(w / src.get_width(), h / src.get_height())
+                sw, sh = int(src.get_width() * scale) + 1, int(src.get_height() * scale) + 1
+                self.images = {k: v for k, v in self.images.items() if k[1:] == (w, h)}  # stara velikost pryc
+                self.images[key] = (src.scale_simple(sw, sh, GdkPixbuf.InterpType.BILINEAR), sw, sh)
+            except GLib.Error:
+                self.images[key] = None
+        return self.images[key]
+
+    def draw(self, cr, w, h):
+        t = time.monotonic() - self.start
+        cr.set_source_rgb(0.04, 0.04, 0.08)
+        cr.paint()
+        if WALLS:
+            idx = int(t // SLIDE)
+            phase = t - idx * SLIDE
+            self.paint_wall(cr, WALLS[idx % len(WALLS)], w, h, 1.0, t)
+            if phase > SLIDE - FADE:
+                alpha = (phase - (SLIDE - FADE)) / FADE
+                self.paint_wall(cr, WALLS[(idx + 1) % len(WALLS)], w, h, alpha, t)
+        # ztmaveni pro citelnost hodin
+        cr.set_source_rgba(0, 0, 0, 0.28)
+        cr.paint()
+        self.clock(cr, w, h)
+
+    def paint_wall(self, cr, path, w, h, alpha, t):
+        img = self.pixbuf(path, w, h)
+        if not img:
+            return
+        pix, sw, sh = img
+        # pomaly pohyb (Ken Burns) po zbyle plose obrazku
+        dx = (sw - w) * (0.5 + 0.5 * math.sin(t / 37))
+        dy = (sh - h) * (0.5 + 0.5 * math.cos(t / 53))
+        Gdk.cairo_set_source_pixbuf(cr, pix, -dx, -dy)
+        cr.paint_with_alpha(alpha)
+
+    def clock(self, cr, w, h):
+        now = time.localtime()
+        hh = time.strftime("%H:%M", now)
+        day = time.strftime("%A %-d. %B", now)
+        size = max(48, h * 0.16)
+        cr.select_font_face("Inter", 0, 1)
+        cr.set_font_size(size)
+        ext = cr.text_extents(hh)
+        x, y = w / 2 - ext.x_advance / 2, h * 0.30
+        cr.set_source_rgba(0, 0, 0, 0.25)
+        cr.move_to(x + 2, y + 3)
+        cr.show_text(hh)
+        cr.set_source_rgba(1, 1, 1, 0.95)
+        cr.move_to(x, y)
+        cr.show_text(hh)
+        cr.select_font_face("Inter", 0, 0)
+        cr.set_font_size(max(16, size * 0.18))
+        ext = cr.text_extents(day)
+        cr.set_source_rgba(1, 1, 1, 0.85)
+        cr.move_to(w / 2 - ext.x_advance / 2, y + size * 0.42)
+        cr.show_text(day)
+
+
+def run_foreign(xid, saver):
+    """Kresleni do okna, ktere vytvoril xfce4-screensaver."""
+    gi.require_version("GdkX11", "3.0")
+    from gi.repository import GdkX11
+    display = Gdk.Display.get_default()
+    win = GdkX11.X11Window.foreign_new_for_display(display, xid)
+    if win is None:
+        sys.exit(1)
+
+    def tick():
+        w, h = win.get_width(), win.get_height()
+        region = win.get_visible_region()
+        ctx = win.begin_draw_frame(region)
+        saver.draw(ctx.get_cairo_context(), w, h)
+        win.end_draw_frame(ctx)
+        return True
+
+    GLib.timeout_add(int(1000 / FPS), tick)
+    tick()
+    Gtk.main()
+
+
+def run_window(saver, fullscreen):
+    win = Gtk.Window(title="LuxOS")
+    area = Gtk.DrawingArea()
+    area.connect("draw", lambda wid, cr: saver.draw(cr, wid.get_allocated_width(), wid.get_allocated_height()))
+    win.add(area)
+    win.set_default_size(640, 400)
+    if fullscreen:
+        win.fullscreen()
+        win.connect("key-press-event", lambda *_a: Gtk.main_quit())
+        win.connect("button-press-event", lambda *_a: Gtk.main_quit())
+    win.connect("destroy", Gtk.main_quit)
+    GLib.timeout_add(int(1000 / FPS), lambda: area.queue_draw() or True)
+    win.show_all()
+    Gtk.main()
+
+
+def main():
+    saver = Saver()
+    xid = os.environ.get("XSCREENSAVER_WINDOW")
+    if xid and "--window" not in sys.argv:
+        run_foreign(int(xid, 0), saver)
+    else:
+        run_window(saver, "--window" in sys.argv)
+
+
+if __name__ == "__main__":
+    main()

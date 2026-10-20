@@ -17,8 +17,8 @@ fi
 
 # Nazev aktivni aplikace v horni liste, prepinani jejich nabidek jednim klikem
 luxos-appname watch &
-# Priznak skryvaneho Docku pro luxos-menubar podle nastaveni Planku
-if [[ $(gsettings get net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ hide-mode 2>/dev/null) == "'auto'" ]]; then
+# Priznak skryvaneho Docku pro luxos-menubar: Dock se skryva (i "uhyba oknum") -> vysunout u okraje
+if [[ $(gsettings get net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ hide-mode 2>/dev/null) != "'none'" ]]; then
     : >"$cfg/dock-autohide"
 else
     rm -f "$cfg/dock-autohide"

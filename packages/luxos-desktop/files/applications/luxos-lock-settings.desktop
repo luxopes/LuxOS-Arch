@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Screen Saver & Lock
+Name[cs]=Spořič a zámek
+Comment=When the screen saver starts and when to ask for the password
+Comment[cs]=Kdy se spustí spořič obrazovky a kdy chtít heslo
+Exec=luxos-lock-settings
+Icon=preferences-desktop-screensaver
+Terminal=false
+Categories=Settings;DesktopSettings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;GTK;
+Keywords=screensaver;lock;password;spořič;zámek;heslo;
+StartupWMClass=luxos-lock-settings

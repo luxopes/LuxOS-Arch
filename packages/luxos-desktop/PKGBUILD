@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=5
+pkgrel=7
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Spotlight, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
@@ -20,7 +20,7 @@ depends=(
     xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf xfce4-notifyd
     xfce4-power-manager xfce4-screensaver xfce4-terminal xfce4-screenshooter xfce4-taskmanager
     xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xfce4-xkb-plugin xorg-xprop libxi libxtst
-    brightnessctl luxos-i18n luxos-store
+    brightnessctl luxos-i18n luxos-store luxos-account
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
     # Dock, Spotlight, prihlaseni
     plank rofi lightdm lightdm-gtk-greeter dconf yad
@@ -57,6 +57,9 @@ package() {
 
     install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar
     install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f"/python/*.py
+    # Setric obrazovky: xfce4-screensaver spousti jen programy ze sve slozky
+    install -Dm755 "$f/screensaver/luxos-screensaver" "$pkgdir/usr/lib/xfce4-screensaver/luxos"
+    install -Dm644 "$f/screensaver/luxos.desktop" "$pkgdir/usr/share/applications/screensavers/luxos.desktop"
     install -Dm755 -t "$pkgdir/usr/lib/luxos/override-bin" "$f"/override-bin/*
     install -Dm644 -t "$pkgdir/usr/share/applications" "$f"/applications/*.desktop
     install -Dm644 -t "$pkgdir/usr/share/rofi/themes" "$f"/rofi/*.rasi

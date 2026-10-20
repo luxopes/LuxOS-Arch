@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-screensaver" version="1.0">
   <property name="saver" type="empty">
-    <property name="mode" type="int" value="0"/>
+    <!-- 2 = vybrane tema: setric LuxOS (tapety a hodiny), viz luxos-lock-settings -->
+    <property name="mode" type="int" value="2"/>
+    <property name="themes" type="empty">
+      <property name="list" type="array">
+        <value type="string" value="screensavers-luxos"/>
+      </property>
+    </property>
     <property name="idle-activation" type="empty">
       <property name="enabled" type="bool" value="true"/>
       <property name="delay" type="int" value="10"/>

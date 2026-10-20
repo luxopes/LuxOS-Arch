@@ -221,7 +221,59 @@ interactive() {
     done
     AUTOLOGIN=0
     gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Log in automatically without a password?")" && AUTOLOGIN=1
+    ask_luxai
     return 0
+}
+
+# Ucet LuxAI (nepovinny): prihlaseni hned pri instalaci, token se ulozi novemu uzivateli
+LUXAI_ACCOUNT=""      # JSON ulozeneho uctu (bez hesla), zapise ho configure_system
+ask_luxai() {
+    title "$(T "LuxAI account")"
+    info "$(T "Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account.")"
+    gum confirm --default=false --affirmative "$(T "Sign in")" --negative "$(T "Skip")" \
+        "$(T "Sign in to your LuxAI account now?")" || return 0
+    local email pw
+    while :; do
+        email=$(gum input --header "$(T "E-mail")" --value "${email:-}") || return 0
+        [[ -n $email ]] || return 0
+        pw=$(gum input --password --header "$(T "Password")") || return 0
+        if luxai_login "$email" "$pw"; then
+            info "$(T "Signed in as %s" "$email")"
+            return 0
+        fi
+        info "$LUXAI_ERROR"
+        gum confirm --affirmative "$(T "Try again")" --negative "$(T "Skip")" "$(T "Sign-in failed. Try again?")" || return 0
+    done
+}
+
+luxai_login() {  # luxai_login EMAIL HESLO -> LUXAI_ACCOUNT, pri chybe LUXAI_ERROR (bez podshellu!)
+    local out
+    out=$(LUXAI_EMAIL=$1 LUXAI_PASSWORD=$2 python3 - <<'PY'
+import json, os, sys, tempfile
+sys.path.insert(0, "/usr/lib/luxos/python")
+import luxai_account as acc
+tmp = tempfile.mkdtemp()
+try:
+    r = acc.request("POST", "/api/auth/password/login",
+                    {"email": os.environ["LUXAI_EMAIL"], "password": os.environ["LUXAI_PASSWORD"]})
+    if not r.get("sessionToken"):
+        raise acc.AccountError("no_token")
+    path = os.path.join(tmp, "a.json")
+    print(json.dumps(acc.save(r["sessionToken"], r.get("user") or {}, path=path)))
+    os.unlink(path)
+except acc.AccountError as e:
+    print("ERR " + e.code)
+    sys.exit(1)
+finally:
+    os.rmdir(tmp)
+PY
+) || { case $out in
+        "ERR invalid_credentials") LUXAI_ERROR=$(T "Wrong e-mail or password.") ;;
+        "ERR email_unverified") LUXAI_ERROR=$(T "The e-mail address is not verified yet.") ;;
+        "ERR network") LUXAI_ERROR=$(T "LuxAI is not reachable. Check the internet connection.") ;;
+        *) LUXAI_ERROR=$(T "Sign-in failed (%s)." "${out#ERR }") ;;
+    esac; return 1; }
+    LUXAI_ACCOUNT=$out
 }
 
 ask_password() {
@@ -246,7 +298,8 @@ summary() {
         "$(printf '%-13s%s' "$(T "Encryption")" "$([[ $ENCRYPT == 1 ]] && T "yes" || T "no")")" \
         "$(printf '%-13s%s' "$(T "User")" "$FULLNAME ($USERNAME)")" \
         "$(printf '%-13s%s' "$(T "Computer")" "$HOSTNAME_SEL")" \
-        "$(printf '%-13s%s' "$(T "Boot mode")" "${BOOTMODE^^}")"
+        "$(printf '%-13s%s' "$(T "Boot mode")" "${BOOTMODE^^}")" \
+        "$(printf '%-13s%s' "LuxAI" "$([[ -n $LUXAI_ACCOUNT ]] && T "signed in" || T "not signed in")")"
     ((ASSUME_YES)) && return 0
     gum confirm --default=false --affirmative "$(T "Install")" --negative "$(T "Cancel")" "$(T "Install LuxOS now?")" || exit 1
 }
@@ -370,6 +423,13 @@ ENV
     install -m700 "$SHARE/setup-chroot.sh" "$TARGET/root/luxos-setup.sh"
     arch-chroot "$TARGET" /root/luxos-setup.sh 2>&1 | tee -a "$LOG"
     printf '%s:%s\n' "$USERNAME" "$PASSWORD" | arch-chroot "$TARGET" chpasswd
+    # Ucet LuxAI do ~/.config/luxai/account.json noveho uzivatele (0700/0600)
+    if [[ -n $LUXAI_ACCOUNT ]]; then
+        local home="$TARGET/home/$USERNAME"
+        install -d -m700 "$home/.config" "$home/.config/luxai"
+        (umask 077; printf '%s\n' "$LUXAI_ACCOUNT" >"$home/.config/luxai/account.json")
+        arch-chroot "$TARGET" chown -R "$USERNAME:" "/home/$USERNAME/.config"
+    fi
     rm -f "$TARGET/root/luxos-setup.sh" "$TARGET/root/luxos-setup.env"
 
     # bootctl v chrootu nezapisuje EFI promenne - polozku "LuxOS" vytvorit z live systemu
@@ -406,6 +466,10 @@ main() {
         valid_host "$HOSTNAME_SEL" || fail "$(T "Invalid HOSTNAME_SEL")"
         ((ENCRYPT)) && [[ -z ${LUKS_PASS-} ]] && fail "$(T "ENCRYPT=1 needs LUKS_PASS")"
         have_internet || fail "$(T "No internet connection")"
+        # Nepovinny ucet LuxAI (LUXAI_EMAIL + LUXAI_PASSWORD v konfiguraci)
+        if [[ -n ${LUXAI_EMAIL-} && -n ${LUXAI_PASSWORD-} ]]; then
+            luxai_login "$LUXAI_EMAIL" "$LUXAI_PASSWORD" || info "$(T "LuxAI sign-in failed - continuing without it.") ($LUXAI_ERROR)"
+        fi
     else
         interactive
     fi

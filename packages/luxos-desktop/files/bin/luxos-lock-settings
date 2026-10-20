@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""LuxOS - Spořič a zámek: kdy se spusti setric obrazovky, jaky a kdy chtit heslo.
+
+Nastaveni zapisuje do xfconf kanalu xfce4-screensaver (sluzbu setrice dal pouziva).
+"""
+import subprocess
+import sys
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_i18n import _  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+
+CH = "xfce4-screensaver"
+THEME = "screensavers-luxos"
+SAVER = "/usr/lib/xfce4-screensaver/luxos"
+
+CSS = b"""
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }
+.row { padding: 10px 14px; }
+.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
+.hint { font-size: 11px; opacity: 0.6; }
+"""
+
+
+def get(prop, default=""):
+    try:
+        r = subprocess.run(["xfconf-query", "-c", CH, "-p", prop], capture_output=True, text=True, timeout=5)
+        return r.stdout.strip() if r.returncode == 0 else default
+    except (OSError, subprocess.TimeoutExpired):
+        return default
+
+
+def set_(prop, kind, value):
+    subprocess.run(["xfconf-query", "-c", CH, "-p", prop, "-n", "-t", kind, "-s", str(value)],
+                   capture_output=True, timeout=5)
+
+
+class Group(Gtk.Box):
+    def __init__(self, page, title):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        label = Gtk.Label(label=title, xalign=0)
+        label.get_style_context().add_class("group-title")
+        page.pack_start(label, False, False, 0)
+        self.get_style_context().add_class("group")
+        page.pack_start(self, False, False, 0)
+        self.rows = 0
+
+    def row(self, title, widget, hint=None):
+        box = Gtk.Box(spacing=12)
+        box.get_style_context().add_class("row")
+        if self.rows:
+            box.get_style_context().add_class("row-sep")
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        text.pack_start(Gtk.Label(label=title, xalign=0), False, False, 0)
+        if hint:
+            h = Gtk.Label(label=hint, xalign=0, wrap=True, max_width_chars=46)
+            h.get_style_context().add_class("hint")
+            text.pack_start(h, False, False, 0)
+        box.pack_start(text, True, True, 0)
+        widget.set_valign(Gtk.Align.CENTER)
+        box.pack_end(widget, False, False, 0)
+        self.pack_start(box, False, False, 0)
+        self.rows += 1
+
+
+def combo(options, active):
+    c = Gtk.ComboBoxText()
+    for key, label in options:
+        c.append(str(key), label)
+    if not c.set_active_id(str(active)):
+        c.set_active(0)
+    return c
+
+
+class LockSettings(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Screen Saver & Lock"))
+        self.set_default_size(560, 520)
+        self.set_icon_name("preferences-desktop-screensaver")
+        self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("Screen Saver & Lock")))
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=22, margin_top=6)
+        self.add(page)
+
+        g = Group(page, _("Screen saver"))
+        idle_on = get("/saver/idle-activation/enabled", "true") == "true"
+        delay = get("/saver/idle-activation/delay", "10") if idle_on else "0"
+        start = combo([(0, _("Never")), (1, _("1 minute")), (2, _("2 minutes")), (5, _("5 minutes")),
+                       (10, _("10 minutes")), (15, _("15 minutes")), (30, _("30 minutes")), (60, _("1 hour"))], delay)
+        start.connect("changed", self.on_start)
+        g.row(_("Start after inactivity of"), start)
+        mode = "luxos" if get("/saver/mode", "0") == "2" else "blank"
+        kind = combo([("luxos", _("LuxOS - wallpapers and clock")), ("blank", _("Black screen"))], mode)
+        kind.connect("changed", self.on_kind)
+        preview = Gtk.Button(label=_("Preview"))
+        preview.connect("clicked", lambda _b: subprocess.Popen([SAVER, "--window"], start_new_session=True))
+        box = Gtk.Box(spacing=6)
+        box.pack_start(kind, False, False, 0)
+        box.pack_start(preview, False, False, 0)
+        g.row(_("Screen saver"), box)
+
+        g = Group(page, _("Lock"))
+        lock_on = get("/lock/enabled", "true") == "true" and get("/lock/saver-activation/enabled", "true") == "true"
+        lock_delay = get("/lock/saver-activation/delay", "1") if lock_on else "never"
+        req = combo([(0, _("Immediately")), (1, _("After 1 minute")), (5, _("After 5 minutes")),
+                     (15, _("After 15 minutes")), ("never", _("Never"))], lock_delay)
+        req.connect("changed", self.on_require)
+        g.row(_("Require password after the screen saver starts"), req,
+              _("The screen saver protects your computer while you are away."))
+        sleep = Gtk.Switch(active=get("/lock/sleep-activation", "true") == "true")
+        sleep.connect("notify::active", lambda s, _p: set_("/lock/sleep-activation", "bool",
+                                                            "true" if s.get_active() else "false"))
+        g.row(_("Lock when the computer goes to sleep"), sleep)
+
+        row = Gtk.Box(spacing=8, margin_top=16)
+        now = Gtk.Button(label=_("Lock Now"))
+        now.connect("clicked", lambda _b: subprocess.Popen(["xflock4"], start_new_session=True))
+        row.pack_start(now, False, False, 0)
+        page.pack_start(row, False, False, 0)
+
+    def on_start(self, c):
+        minutes = int(c.get_active_id())
+        set_("/saver/idle-activation/enabled", "bool", "true" if minutes else "false")
+        if minutes:
+            set_("/saver/idle-activation/delay", "int", minutes)
+
+    def on_kind(self, c):
+        if c.get_active_id() == "luxos":
+            subprocess.run(["xfconf-query", "-c", CH, "-p", "/saver/themes/list", "-n", "-a", "-t", "string",
+                            "-s", THEME], capture_output=True, timeout=5)
+            set_("/saver/mode", "int", 2)
+        else:
+            set_("/saver/mode", "int", 0)
+
+    def on_require(self, c):
+        v = c.get_active_id()
+        if v == "never":
+            set_("/lock/saver-activation/enabled", "bool", "false")
+        else:
+            set_("/lock/enabled", "bool", "true")
+            set_("/lock/saver-activation/enabled", "bool", "true")
+            set_("/lock/saver-activation/delay", "int", v)
+
+
+def main():
+    GLib.set_prgname("luxos-lock-settings")
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = LockSettings()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

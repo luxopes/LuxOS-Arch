@@ -198,15 +198,22 @@ static void dock_edge(void)
     int rx, ry, wx, wy, h;
     unsigned int mask;
 
-    if (now - checked > 2000) {     /* priznak staci kontrolovat obcas */
+    static int height;
+    if (now - checked > 2000) {     /* priznak a vysku obrazovky staci kontrolovat obcas */
+        Window rr;
+        int gx, gy;
+        unsigned int gw, gh, gb, gd;
         enabled = access(autohide_flag, F_OK) == 0;
+        /* DisplayHeight() je z doby pripojeni - po zmene rozliseni (monitor, xrandr) neplati */
+        if (XGetGeometry(dpy, root, &rr, &gx, &gy, &gw, &gh, &gb, &gd))
+            height = (int)gh;
         checked = now;
     }
     if (!enabled || !XQueryPointer(dpy, root, &r, &c, &rx, &ry, &wx, &wy, &mask))
         return;
     if (mask & (Button1Mask | Button2Mask | Button3Mask))
         return;                     /* tazeni mysi nerusit */
-    h = DisplayHeight(dpy, DefaultScreen(dpy));
+    h = height ? height : DisplayHeight(dpy, DefaultScreen(dpy));
     if (ry >= h - EDGE && ry < h - 1) {
         XWarpPointer(dpy, None, root, 0, 0, 0, 0, rx, h - 1);
         XFlush(dpy);

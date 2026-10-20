@@ -5,6 +5,7 @@ Dlazdice: Wi-Fi, Bluetooth, Nerusit, Tmavy rezim, Sporic dat, Sporic baterie;
 posuvniky jasu a hlasitosti; stav baterie. Druhe spusteni okno zavre, okno
 se zavre i pri ztrate fokusu nebo klavesou Esc.
 """
+import json
 import os
 import re
 import signal
@@ -62,6 +63,8 @@ scale slider { min-width: 22px; min-height: 22px; margin: 0; border-radius: 11px
           font-size: 12px; border-radius: 8px; }
 .footer:hover { background-color: @cc_tile; }
 button.plain { padding: 0; border: none; background: none; box-shadow: none; }
+.avatar { border-radius: 999px; min-width: 34px; min-height: 34px; font-weight: 800; color: white;
+          background-image: linear-gradient(135deg, #3d7bff, #8b4dff); }
 """
 
 DARK = """
@@ -121,6 +124,19 @@ def wifi_state():
 
 CFG = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos")
 SOFT_BRIGHTNESS = os.path.join(CFG, "brightness")
+
+
+def account_user():
+    """Uzivatel prihlaseneho uctu LuxAI nebo None (cte jen soubor, bez site)."""
+    path = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxai/account.json")
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if not data.get("sessionToken"):
+        return None
+    return data.get("user") or {}
 
 
 def bluetooth_state():
@@ -291,6 +307,29 @@ class ControlCenter(Gtk.Window):
         outer.get_style_context().add_class("cc-box")
         outer.set_size_request(340, -1)
         self.add(outer)
+
+        # Profil: ucet LuxAI (~/.config/luxai/account.json), klik otevre Ucet LuxAI
+        prof = Gtk.Button(can_focus=False, relief=Gtk.ReliefStyle.NONE)
+        prof.get_style_context().add_class("plain")
+        pbox = Gtk.Box(spacing=10)
+        pbox.get_style_context().add_class("section")
+        user = account_user()
+        name = (user or {}).get("displayName") or (user or {}).get("email") or ""
+        avatar = Gtk.Label(label=(name[:1] or "\u2726").upper())
+        avatar.get_style_context().add_class("avatar")
+        ptext = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        pt = Gtk.Label(label=name if user else _("Sign in to LuxAI"), xalign=0)
+        pt.get_style_context().add_class("title")
+        ps = Gtk.Label(label=_("LuxAI Account") if user else _("AI in LuxAI, Lux Code and LSL IDE"), xalign=0)
+        ps.get_style_context().add_class("sub")
+        ptext.pack_start(pt, False, False, 0)
+        ptext.pack_start(ps, False, False, 0)
+        pbox.pack_start(avatar, False, False, 0)
+        pbox.pack_start(ptext, True, True, 0)
+        pbox.pack_end(Gtk.Image.new_from_icon_name("go-next-symbolic", Gtk.IconSize.MENU), False, False, 0)
+        prof.add(pbox)
+        prof.connect("clicked", lambda _b: (spawn("luxos-account"), self.close()))
+        outer.pack_start(prof, False, False, 0)
 
         grid = Gtk.Grid(row_spacing=8, column_spacing=8, column_homogeneous=True)
         self.t_wifi = Tile("network-wireless-symbolic", _("Wi-Fi"), self.toggle_wifi)
