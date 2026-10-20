@@ -10,8 +10,9 @@ if [[ ! -e $cfg/initialized ]]; then
     : > "$cfg/initialized"
 fi
 
-# Nazev aktivni aplikace v horni liste
+# Nazev aktivni aplikace v horni liste, prepinani jejich nabidek jednim klikem
 luxos-appname watch &
+pgrep -u "$USER" -x luxos-menubar >/dev/null || luxos-menubar &
 
 # Tapeta i pro nove pripojene monitory (xfdesktop musi uz bezet)
 for _ in 1 2 3 4 5 6 7 8 9 10; do
