@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "name": "hello-lux",
+  "title": "Hello Lux",
+  "version": "1.0.0",
+  "release": 1,
+  "arch": "any",
+  "summary": "Example app in the LuxOS package format",
+  "description": "Shows a greeting. Use it as a template for your own .lux packages.",
+  "license": "MIT",
+  "url": "https://lsl.lux-ai.cz/luxos/",
+  "categories": ["Utility"],
+  "depends": {
+    "system": ["yad"],
+    "lux": []
+  },
+  "bin": {
+    "hello-lux": "hello-lux"
+  }
+}

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Bluetooth
+Comment=Connect headphones, a mouse, a keyboard or a phone
+Comment[cs]=Připojení sluchátek, myši, klávesnice nebo telefonu
+Exec=luxos-bluetooth
+Icon=bluetooth
+Terminal=false
+Categories=Settings;HardwareSettings;GTK;
+Keywords=bluetooth;headphones;pair;sluchátka;párování;
+StartupWMClass=luxos-bluetooth

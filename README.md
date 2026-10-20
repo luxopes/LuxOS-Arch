@@ -33,6 +33,13 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
 - **Ovládací centrum** v horní liště – Wi‑Fi, Bluetooth, Nerušit, tmavý režim, **Spořič dat**
   (`luxos-datasaver`: měřené připojení, bez stahování na pozadí) a **Spořič baterie** (`luxos-powersaver`:
   úsporný výkonový profil), jas, hlasitost, baterie v procentech; přepínač klávesnice v liště.
+- **Monitor systému** – výkon v grafech (procesor, paměť, disk, síť) a otevřené aplikace s tlačítkem
+  Ukončit; technický výpis procesů na přepnutí.
+- **Baterie a napájení** – procenta, nabíjení/vybíjení s odhadem výdrže, spotřeba ve wattech, zdraví
+  baterie, grafy úrovně a spotřeby za 24 hodin, výkonový režim, automatický Spořič baterie při 20 %.
+- **Bluetooth** – zapnutí, moje zařízení a připojení nového jedním klikem (spárování, důvěra, připojení).
+- **Monitory** – po připojení se obrazovka sama rozšíří, okna z odpojeného monitoru se přesunou zpět,
+  `Super+P` přepíná Rozšířit / Zrcadlit / Jen externí / Jen vestavěná (`luxos-displays`).
 - **Plocha a Dock** (`luxos-settings`) – tapety, vzhled, automatické skrývání a průhlednost Docku,
   průhlednost horní lišty (nahrazuje nastavení plochy Xfce).
 - **Čeština i angličtina** – aplikace a skripty LuxOS podle jazyka systému (`luxos-i18n`,
@@ -98,6 +105,19 @@ scripts/publish-repo.sh                 # nahraje na server a přepne vydání (
 Podpisový klíč je mimo projekt v `~/.local/share/luxos/signing` (bez něj vzniknou nepodepsané balíky
 a `publish-repo.sh` odmítne nahrávat). Na serveru: `/srv/luxos-repo/{releases,current}`, Caddy blok
 `handle_path /luxos/*` v `lsl.lux-ai.cz`.
+
+## Balíčky LuxOS (.lux)
+
+Vlastní formát aplikací: archiv `tar.zst` s `lux.json` (metadata, závislosti, příkazy), aplikací v `app/`
+a soubory pro systém v `share/`; podepsaný klíčem LuxOS. Specifikace: [docs/lux-package-format.md](docs/lux-package-format.md),
+vzor `docs/examples/hello-lux`. Balíčky patří do `lux-packages/<název>/`, repozitář je
+`https://lsl.lux-ai.cz/luxos/lux/` (Obchod LuxOS je nabízí mezi aplikacemi LuxOS).
+
+```bash
+lux pack lux-packages/moje-aplikace out/   # sestavit
+lux install ./moje-aplikace-1.0-1-any.lux  # nainstalovat soubor (ověří podpis)
+lux install hello-lux                      # z repozitáře LuxOS
+```
 
 ## lux
 

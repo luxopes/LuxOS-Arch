@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS: pripojeni monitoru resi luxos-displays (luxos-session), ne dialog Xfce -->
+<channel name="displays" version="1.0">
+  <property name="Notify" type="int" value="0"/>
+  <property name="AutoEnableProfiles" type="bool" value="false"/>
+</channel>

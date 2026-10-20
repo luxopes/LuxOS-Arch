@@ -11,6 +11,8 @@ case $action in
     install) (($#)) && exec pacman -S --needed --noconfirm -- "$@" ;;
     remove)  (($#)) && exec pacman -Rns --noconfirm -- "$@" ;;
     upgrade) exec pacman -Syu --noconfirm ;;
+    lux-install) (($#)) && exec lux __lux-install "$1" ;;
+    lux-remove)  (($#)) && exec lux __lux-remove "$1" ;;
 esac
-echo "usage: luxos-store-helper install|remove PACKAGE... | upgrade" >&2
+echo "usage: luxos-store-helper install|remove|lux-install|lux-remove PACKAGE... | upgrade" >&2
 exit 2

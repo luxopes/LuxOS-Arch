@@ -1,0 +1,469 @@
+#!/usr/bin/env python3
+"""LuxOS - Monitor systemu: prehled vykonu v grafech a spustene aplikace.
+
+Karty s kruhovymi ukazateli a grafem za posledni minutu (procesor, pamet,
+disk, sit), pod nimi spustene aplikace s ikonou a tlacitkem Ukoncit.
+Technicky vypis vsech procesu je az na prepnuti "Vsechny procesy".
+Data cte primo z /proc (bez dalsich zavislosti), obnova kazdou sekundu.
+"""
+import os
+import pwd
+import signal
+import sys
+import time
+from collections import deque
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_charts import COLORS, area_chart, fg_color, human_bytes, ring  # noqa: E402
+from luxos_i18n import _  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("Wnck", "3.0")
+from gi.repository import Gdk, Gio, GLib, Gtk, Pango, Wnck  # noqa: E402
+
+HISTORY = 60          # bodu v grafech (1 s)
+CLK = os.sysconf("SC_CLK_TCK")
+PAGE = os.sysconf("SC_PAGE_SIZE")
+NCPU = os.cpu_count() or 1
+ME = os.getuid()
+
+CSS = b"""
+.card { border-radius: 16px; padding: 14px; background-color: alpha(currentColor, 0.05); }
+.card-title { font-weight: 700; font-size: 13px; }
+.card-sub { font-size: 11px; opacity: 0.6; }
+.section-title { font-size: 15px; font-weight: 700; margin-top: 6px; }
+.apps-list row { padding: 6px 10px; border-radius: 10px; }
+.apps-list row:hover { background-color: alpha(currentColor, 0.05); }
+.app-name { font-weight: 600; }
+.metric { font-feature-settings: "tnum"; opacity: 0.85; }
+.quit { border-radius: 999px; padding: 2px 12px; }
+"""
+
+
+# ---- sber dat ---------------------------------------------------------------
+def read_cpu():
+    with open("/proc/stat") as f:
+        parts = f.readline().split()[1:]
+    vals = list(map(int, parts))
+    idle = vals[3] + (vals[4] if len(vals) > 4 else 0)
+    return sum(vals), idle
+
+
+def read_mem():
+    info = {}
+    with open("/proc/meminfo") as f:
+        for line in f:
+            k, v = line.split(":", 1)
+            info[k] = int(v.split()[0]) * 1024
+    total = info["MemTotal"]
+    used = total - info.get("MemAvailable", info["MemFree"])
+    return used, total
+
+
+def read_net():
+    rx = tx = 0
+    with open("/proc/net/dev") as f:
+        for line in list(f)[2:]:
+            name, data = line.split(":", 1)
+            if name.strip() == "lo":
+                continue
+            v = data.split()
+            rx += int(v[0])
+            tx += int(v[8])
+    return rx, tx
+
+
+def read_disk_io():
+    """Prectene + zapsane bajty fyzickych disku (maji /sys/block/X/device)."""
+    total = 0
+    try:
+        with open("/proc/diskstats") as f:
+            for line in f:
+                p = line.split()
+                if os.path.exists(f"/sys/block/{p[2]}/device"):
+                    total += (int(p[5]) + int(p[9])) * 512
+    except (OSError, IndexError, ValueError):
+        pass
+    return total
+
+
+def app_index():
+    """Spustitelny soubor -> (nazev, ikona) z .desktop souboru."""
+    index = {}
+    for info in Gio.AppInfo.get_all():
+        if not hasattr(info, "get_startup_wm_class"):
+            continue
+        exe = info.get_executable()
+        if not exe:
+            continue
+        base = os.path.basename(exe)
+        icon = info.get_icon()
+        icon_name = icon.to_string() if icon else "application-x-executable"
+        name = info.get_display_name() or info.get_name()
+        index.setdefault(base, (name, icon_name))
+        wm = info.get_startup_wm_class()
+        if wm:
+            index.setdefault(wm.lower(), (name, icon_name))
+    return index
+
+
+class Processes:
+    """Spotreba procesoru a pameti po procesech (delta mezi obnovami)."""
+
+    def __init__(self):
+        self.prev = {}
+        self.prev_time = time.monotonic()
+
+    def sample(self):
+        now = time.monotonic()
+        dt = max(now - self.prev_time, 0.1)
+        cur, result = {}, []
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
+                continue
+            try:
+                with open(f"/proc/{pid}/stat") as f:
+                    stat = f.read()
+                comm = stat[stat.index("(") + 1:stat.rindex(")")]
+                fields = stat[stat.rindex(")") + 2:].split()
+                ticks = int(fields[11]) + int(fields[12])
+                rss = int(fields[21]) * PAGE
+                uid = os.stat(f"/proc/{pid}").st_uid
+                with open(f"/proc/{pid}/cmdline", "rb") as f:
+                    cmd = f.read().split(b"\0")
+            except (OSError, ValueError, IndexError):
+                continue
+            pid = int(pid)
+            cur[pid] = ticks
+            cpu = (ticks - self.prev.get(pid, ticks)) / CLK / dt * 100 / NCPU
+            exe = os.path.basename(cmd[0].decode(errors="replace")) if cmd and cmd[0] else comm
+            # skripty (python3 /usr/bin/x) -> jmeno skriptu
+            if exe.startswith(("python", "bash", "sh", "lsh", "perl")) and len(cmd) > 1 and cmd[1] and not cmd[1].startswith(b"-"):
+                exe = os.path.basename(cmd[1].decode(errors="replace"))
+            result.append({"pid": pid, "comm": comm, "exe": exe, "cpu": max(cpu, 0.0), "mem": rss, "uid": uid,
+                           "ppid": int(fields[1])})
+        self.prev, self.prev_time = cur, now
+        return result
+
+
+# ---- widgety ----------------------------------------------------------------
+class Card(Gtk.Box):
+    """Karta s kruhovym ukazatelem a grafem historie."""
+
+    def __init__(self, title, color, two_series=False):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.get_style_context().add_class("card")
+        self.color = color
+        self.title = Gtk.Label(label=title, xalign=0)
+        self.title.get_style_context().add_class("card-title")
+        self.sub = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END)
+        self.sub.get_style_context().add_class("card-sub")
+        self.pack_start(self.title, False, False, 0)
+        self.pack_start(self.sub, False, False, 0)
+        self.area = Gtk.DrawingArea()
+        self.area.set_size_request(220, 190)
+        self.area.connect("draw", self.on_draw)
+        self.pack_start(self.area, True, True, 0)
+        self.fraction, self.center, self.center_sub = 0.0, "", ""
+        self.history = [deque([0.0] * HISTORY, maxlen=HISTORY)]
+        if two_series:
+            self.history.append(deque([0.0] * HISTORY, maxlen=HISTORY))
+        self.maximum = 100.0
+        self.colors = [color, COLORS["net2"]] if two_series else [color]
+        self.show_ring = True
+
+    def update(self, fraction, center, center_sub, values, sub):
+        self.fraction, self.center, self.center_sub = fraction, center, center_sub
+        for h, v in zip(self.history, values):
+            h.append(v)
+        self.sub.set_text(sub)
+        self.area.queue_draw()
+
+    def on_draw(self, widget, cr):
+        w, h = widget.get_allocated_width(), widget.get_allocated_height()
+        chart_h = 56
+        if self.show_ring:
+            r = min(w, h - chart_h - 26) / 2 - 8
+            ring(cr, widget, w / 2, r + 8, r, self.fraction, self.color, self.center, self.center_sub)
+        else:
+            cr.select_font_face("Inter", 0, 1)
+            cr.set_font_size(22)
+            cr.set_source_rgba(*fg_color(widget))
+            ext = cr.text_extents(self.center)
+            cr.move_to(w / 2 - ext.x_advance / 2, (h - chart_h) / 2)
+            cr.show_text(self.center)
+            cr.select_font_face("Inter", 0, 0)
+            cr.set_font_size(12)
+            cr.set_source_rgba(*fg_color(widget, 0.6))
+            ext = cr.text_extents(self.center_sub)
+            cr.move_to(w / 2 - ext.x_advance / 2, (h - chart_h) / 2 + 22)
+            cr.show_text(self.center_sub)
+        maximum = None if not self.show_ring else self.maximum
+        area_chart(cr, widget, 0, h - chart_h - 14, w, chart_h,
+                   [(list(hh), c) for hh, c in zip(self.history, self.colors)], maximum,
+                   labels=(_("60 s ago"), _("now")))
+
+
+class AppRow(Gtk.ListBoxRow):
+    def __init__(self, monitor, key, name, icon):
+        super().__init__()
+        self.monitor, self.key = monitor, key
+        box = Gtk.Box(spacing=12)
+        if isinstance(icon, str):
+            img = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.DND)
+            img.set_pixel_size(32)
+        else:
+            img = Gtk.Image.new_from_pixbuf(icon.scale_simple(32, 32, 2) if icon else None)
+        box.pack_start(img, False, False, 0)
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        self.name = Gtk.Label(label=name, xalign=0, ellipsize=Pango.EllipsizeMode.END)
+        self.name.get_style_context().add_class("app-name")
+        self.detail = Gtk.Label(xalign=0)
+        self.detail.get_style_context().add_class("card-sub")
+        text.pack_start(self.name, False, False, 0)
+        text.pack_start(self.detail, False, False, 0)
+        box.pack_start(text, True, True, 0)
+        self.cpu = Gtk.Label(xalign=1, width_chars=8)
+        self.mem = Gtk.Label(xalign=1, width_chars=10)
+        for lab in (self.cpu, self.mem):
+            lab.get_style_context().add_class("metric")
+            box.pack_start(lab, False, False, 0)
+        quit_btn = Gtk.Button(label=_("Quit"), valign=Gtk.Align.CENTER)
+        quit_btn.get_style_context().add_class("quit")
+        quit_btn.connect("clicked", lambda _b: monitor.quit_app(self.key))
+        box.pack_start(quit_btn, False, False, 0)
+        self.add(box)
+
+    def update(self, cpu, mem, count):
+        self.cpu.set_text(f"{cpu:.1f} %")
+        self.mem.set_text(human_bytes(mem))
+        self.detail.set_text(_("%d processes") % count if count > 1 else _("1 process"))
+
+
+class Monitor(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("System Monitor"))
+        self.set_default_size(1000, 760)
+        self.set_icon_name("utilities-system-monitor")
+        header = Gtk.HeaderBar(show_close_button=True, title=_("System Monitor"))
+        self.all_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        self.all_switch.connect("notify::active", lambda *_a: self.refresh_lists(force=True))
+        lab = Gtk.Label(label=_("All processes"))
+        header.pack_end(self.all_switch)
+        header.pack_end(lab)
+        self.set_titlebar(header)
+
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.add(scroll)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=20)
+        scroll.add(page)
+
+        grid = Gtk.Grid(column_spacing=12, row_spacing=12, column_homogeneous=True)
+        self.c_cpu = Card(_("Processor"), COLORS["cpu"])
+        self.c_mem = Card(_("Memory"), COLORS["memory"])
+        self.c_disk = Card(_("Disk"), COLORS["disk"])
+        self.c_net = Card(_("Network"), COLORS["net"], two_series=True)
+        self.c_net.show_ring = False
+        for i, c in enumerate((self.c_cpu, self.c_mem, self.c_disk, self.c_net)):
+            grid.attach(c, i, 0, 1, 1)
+        page.pack_start(grid, False, False, 0)
+
+        self.apps_title = Gtk.Label(xalign=0)
+        self.apps_title.get_style_context().add_class("section-title")
+        page.pack_start(self.apps_title, False, False, 0)
+        head = Gtk.Box(spacing=12, margin_start=56, margin_end=96)
+        head.pack_start(Gtk.Label(label=_("Name"), xalign=0), True, True, 0)
+        for t, wc in ((_("Processor"), 8), (_("Memory"), 10)):
+            lab = Gtk.Label(label=t, xalign=1, width_chars=wc)
+            lab.get_style_context().add_class("card-sub")
+            head.pack_start(lab, False, False, 0)
+        page.pack_start(head, False, False, 0)
+        self.listbox = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        self.listbox.get_style_context().add_class("apps-list")
+        page.pack_start(self.listbox, False, False, 0)
+
+        self.apps = app_index()
+        self.screen = Wnck.Screen.get_default()
+        self.procs = Processes()
+        self.rows = {}
+        self.groups = {}
+        self.cpu_prev = read_cpu()
+        self.net_prev = (read_net(), time.monotonic())
+        self.disk_prev = read_disk_io()
+        self.tick = 0
+        self.refresh()
+        GLib.timeout_add(1000, self.refresh)
+
+    # ---- obnova ----
+    def refresh(self):
+        total, idle = read_cpu()
+        pt, pi = self.cpu_prev
+        cpu = 100 * (1 - (idle - pi) / max(total - pt, 1))
+        self.cpu_prev = (total, idle)
+        self.c_cpu.update(cpu / 100, f"{cpu:.0f} %", _("%d cores") % NCPU, [cpu], self.cpu_model())
+
+        used, mem_total = read_mem()
+        frac = used / mem_total
+        self.c_mem.update(frac, f"{frac * 100:.0f} %", human_bytes(used), [frac * 100],
+                          _("%s of %s used") % (human_bytes(used), human_bytes(mem_total)))
+
+        st = os.statvfs("/")
+        d_total = st.f_blocks * st.f_frsize
+        d_used = d_total - st.f_bavail * st.f_frsize
+        io = read_disk_io()
+        io_rate = max(io - self.disk_prev, 0)
+        self.disk_prev = io
+        self.c_disk.maximum = None
+        self.c_disk.update(d_used / d_total, f"{d_used / d_total * 100:.0f} %", human_bytes(d_used),
+                           [io_rate], _("%s free · activity %s") % (human_bytes(d_total - d_used),
+                                                                     human_bytes(io_rate, True)))
+
+        (rx, tx), now = read_net(), time.monotonic()
+        (prx, ptx), pnow = self.net_prev
+        dt = max(now - pnow, 0.1)
+        down, up = max(rx - prx, 0) / dt, max(tx - ptx, 0) / dt
+        self.net_prev = ((rx, tx), now)
+        self.c_net.update(0, "↓ " + human_bytes(down, True), "↑ " + human_bytes(up, True), [down, up],
+                          _("Download and upload"))
+
+        self.refresh_lists()
+        return True
+
+    def cpu_model(self):
+        if not hasattr(self, "_cpu_model"):
+            self._cpu_model = ""
+            try:
+                with open("/proc/cpuinfo") as f:
+                    for line in f:
+                        if line.startswith("model name"):
+                            self._cpu_model = line.split(":", 1)[1].strip()
+                            break
+            except OSError:
+                pass
+        return self._cpu_model
+
+    def refresh_lists(self, force=False):
+        procs = self.procs.sample()
+        by_pid = {p["pid"]: p for p in procs}
+        children = {}
+        for p in procs:
+            children.setdefault(p["ppid"], []).append(p["pid"])
+        show_all = self.all_switch.get_active()
+        groups = {}
+        if show_all:
+            for p in sorted(procs, key=lambda p: (-p["cpu"], -p["mem"]))[:150]:
+                try:
+                    user = pwd.getpwuid(p["uid"]).pw_name
+                except KeyError:
+                    user = str(p["uid"])
+                groups[p["pid"]] = {"name": f'{p["comm"]}  ({p["pid"]}, {user})', "icon": "application-x-executable",
+                                    "cpu": p["cpu"], "mem": p["mem"], "pids": [p["pid"]], "windows": []}
+        else:
+            # Aplikace = programy s oknem (bez panelu, docku a plochy) vcetne podprocesu
+            self.screen.force_update()
+            for win in self.screen.get_windows():
+                if win.is_skip_tasklist() or win.get_window_type() != Wnck.WindowType.NORMAL:
+                    continue
+                pid = win.get_pid()
+                if not pid or pid not in by_pid:
+                    continue
+                cls = (win.get_class_instance_name() or win.get_class_group_name() or "").lower()
+                hit = self.apps.get(cls) or self.apps.get(by_pid[pid]["exe"]) or self.apps.get(by_pid[pid]["comm"].lower())
+                name, icon = hit if hit else (win.get_class_group_name() or win.get_name(), win.get_icon())
+                g = groups.get(name)
+                if g is None:
+                    g = groups[name] = {"name": name, "icon": icon, "cpu": 0.0, "mem": 0, "pids": [], "windows": []}
+                g["windows"].append(win)
+                stack = [pid]
+                while stack:
+                    cur = stack.pop()
+                    if cur in g["pids"] or cur not in by_pid:
+                        continue
+                    g["pids"].append(cur)
+                    g["cpu"] += by_pid[cur]["cpu"]
+                    g["mem"] += by_pid[cur]["mem"]
+                    stack.extend(children.get(cur, []))
+        self.groups = groups
+        if force:
+            for row in list(self.rows.values()):
+                self.listbox.remove(row)
+            self.rows = {}
+        ordered = sorted(groups.items(), key=lambda kv: (-kv[1]["cpu"], -kv[1]["mem"]))
+        keys = {k for k, _g in ordered}
+        for k in list(self.rows):
+            if k not in keys:
+                self.listbox.remove(self.rows.pop(k))
+        for i, (k, g) in enumerate(ordered):
+            row = self.rows.get(k)
+            if row is None:
+                row = AppRow(self, k, g["name"], g["icon"])
+                self.rows[k] = row
+                self.listbox.insert(row, i)
+                row.show_all()
+            elif row.get_index() != i:
+                self.listbox.remove(row)
+                self.listbox.insert(row, i)
+            row.update(g["cpu"], g["mem"], len(g["pids"]))
+        self.apps_title.set_text(_("All processes (%d)") % len(procs) if show_all
+                                 else _("Open apps (%d)") % len(groups))
+
+    # ---- ukonceni aplikace ----
+    def quit_app(self, key):
+        """Zavrit okna aplikace (jako krizkem); proces bez okna dostane SIGTERM."""
+        g = self.groups.get(key)
+        if not g:
+            return
+        if g["windows"]:
+            for win in g["windows"]:
+                win.close(Gtk.get_current_event_time())
+        else:
+            for pid in g["pids"]:
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except OSError:
+                    pass
+        xids = [w.get_xid() for w in g["windows"]]
+        GLib.timeout_add(5000, self.check_quit, xids, list(g["pids"]), g["name"])
+
+    def check_quit(self, xids, pids, name):
+        """Okno se po 5 s nezavrelo (nebo proces bez okna bezi) -> nabidnout vynucene ukonceni."""
+        self.screen.force_update()
+        open_xids = {w.get_xid() for w in self.screen.get_windows()}
+        if xids:
+            stuck = any(x in open_xids for x in xids)
+        else:
+            stuck = any(os.path.exists(f"/proc/{p}") for p in pids)
+        if not stuck:
+            return False
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
+                                buttons=Gtk.ButtonsType.NONE, text=_("%s is not responding") % name)
+        dlg.format_secondary_text(_("Force quit it? Unsaved changes will be lost."))
+        dlg.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        dlg.add_button(_("Force Quit"), Gtk.ResponseType.OK).get_style_context().add_class("destructive-action")
+        if dlg.run() == Gtk.ResponseType.OK:
+            for pid in pids:
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except OSError:
+                    pass
+        dlg.destroy()
+        return False
+
+
+def main():
+    GLib.set_prgname("luxos-monitor")
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = Monitor()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

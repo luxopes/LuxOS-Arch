@@ -9,6 +9,7 @@
       <property name="position" type="string" value="p=6;x=0;y=0"/>
       <property name="length" type="double" value="100"/>
       <property name="position-locked" type="bool" value="true"/>
+      <property name="output-name" type="string" value="Primary"/>
       <property name="size" type="uint" value="28"/>
       <property name="icon-size" type="uint" value="16"/>
       <property name="mode" type="uint" value="0"/>

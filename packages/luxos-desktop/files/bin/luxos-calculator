@@ -125,7 +125,8 @@ class Calculator(Gtk.Window):
         self.set_icon_name("luxos-calculator")
 
         header = Gtk.HeaderBar(show_close_button=True)
-        header.set_title("")
+        # Bez viditelneho titulku (jako kalkulacka v macOS), nazev okna zustava pro dock a listu
+        header.set_custom_title(Gtk.Label(label=""))
         self.set_titlebar(header)
 
         self.tokens = []        # dokoncene cleny vyrazu [Decimal, op, Decimal, ...]

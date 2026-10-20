@@ -7,6 +7,7 @@
       <property name="&lt;Super&gt;space" type="string" value="luxos-spotlight"/>
       <property name="&lt;Super&gt;a" type="string" value="luxos-launchpad"/>
       <property name="XF86Calculator" type="string" value="luxos-calculator"/>
+      <property name="&lt;Super&gt;p" type="string" value="luxos-displays menu"/>
       <property name="XF86LaunchA" type="string" value="luxos-launchpad"/>
       <property name="&lt;Super&gt;e" type="string" value="thunar"/>
       <property name="&lt;Super&gt;t" type="string" value="xfce4-terminal"/>
@@ -14,15 +15,14 @@
       <property name="&lt;Super&gt;comma" type="string" value="xfce4-settings-manager"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;q" type="string" value="xflock4"/>
       <property name="&lt;Super&gt;l" type="string" value="xflock4"/>
-      <property name="&lt;Super&gt;&lt;Alt&gt;Escape" type="string" value="xfce4-taskmanager"/>
-      <property name="&lt;Primary&gt;&lt;Shift&gt;Escape" type="string" value="xfce4-taskmanager"/>
+      <property name="&lt;Super&gt;&lt;Alt&gt;Escape" type="string" value="luxos-monitor"/>
+      <property name="&lt;Primary&gt;&lt;Shift&gt;Escape" type="string" value="luxos-monitor"/>
       <property name="&lt;Super&gt;&lt;Shift&gt;3" type="string" value="xfce4-screenshooter -f -s ~/Pictures"/>
       <property name="&lt;Super&gt;&lt;Shift&gt;4" type="string" value="xfce4-screenshooter -r -s ~/Pictures"/>
       <property name="&lt;Super&gt;&lt;Shift&gt;5" type="string" value="xfce4-screenshooter"/>
       <property name="Print" type="string" value="xfce4-screenshooter -f -s ~/Pictures"/>
       <property name="&lt;Shift&gt;Print" type="string" value="xfce4-screenshooter -r -s ~/Pictures"/>
-      <property name="&lt;Super&gt;p" type="string" value="xfce4-display-settings --minimal"/>
-      <property name="XF86Display" type="string" value="xfce4-display-settings --minimal"/>
+      <property name="XF86Display" type="string" value="luxos-displays menu"/>
       <property name="&lt;Primary&gt;&lt;Alt&gt;Delete" type="string" value="xfce4-session-logout"/>
       <property name="XF86PowerOff" type="string" value="xfce4-session-logout"/>
     </property>

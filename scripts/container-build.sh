@@ -74,6 +74,49 @@ make_repo() {  # make_repo NAZEV ADRESAR_S_BALIKY
     msg "Repository [$name]: ${#files[@]} packages in out/repo/$name/$ARCH"
 }
 
+# Balicky ve vlastnim formatu LuxOS (.lux): kazdy adresar v lux-packages s lux.json.
+# Vystup out/repo/lux: balicky, podpisy, ikony a podepsany index.json pro lux a Obchod.
+make_lux_repo() {
+    local dir=$REPO/lux d f name icon
+    rm -rf "$dir"
+    mkdir -p "$dir"
+    for d in "$ROOT"/lux-packages/*/; do
+        [[ -f $d/lux.json ]] || continue
+        msg "Packing ${d%/}"
+        bash "$ROOT/packages/lux/lux" pack "${d%/}" "$dir" >/dev/null || exit 1
+        # ikona pro Obchod: SVG, jinak nejvetsi PNG ze share/icons
+        name=$(jq -r .name "$d/lux.json")
+        icon=$(find "$d/share/icons" -name '*.svg' 2>/dev/null | head -1)
+        [[ -z $icon ]] && icon=$(find "$d/share/icons" -name '*.png' 2>/dev/null | sort -V | tail -1)
+        [[ -n $icon ]] && cp "$icon" "$dir/$name.icon.${icon##*.}"
+    done
+    python3 - "$dir" <<'PY'
+import hashlib, json, os, subprocess, sys
+d = sys.argv[1]
+pkgs = []
+for f in sorted(os.listdir(d)):
+    if not f.endswith(".lux"):
+        continue
+    meta = json.loads(subprocess.run(["tar", "--zstd", "-xOf", os.path.join(d, f), "lux.json"],
+                                     capture_output=True, check=True).stdout)
+    data = open(os.path.join(d, f), "rb").read()
+    entry = {k: meta.get(k) for k in ("name", "title", "version", "release", "arch", "summary", "description", "depends",
+                                      "license", "url", "categories") if meta.get(k) is not None}
+    entry.update(file=f, size=len(data), sha256=hashlib.sha256(data).hexdigest())
+    for ext in ("svg", "png"):
+        if os.path.exists(os.path.join(d, f"{meta['name']}.icon.{ext}")):
+            entry["icon"] = f"{meta['name']}.icon.{ext}"
+    pkgs.append(entry)
+json.dump({"format": 1, "packages": pkgs}, open(os.path.join(d, "index.json"), "w"), indent=1, ensure_ascii=False)
+PY
+    if [[ -n $GPGKEY ]]; then
+        for f in "$dir"/*.lux "$dir/index.json"; do
+            [[ -e $f ]] && gpg --batch --yes --detach-sign --no-armor -u "$GPGKEY" "$f"
+        done
+    fi
+    msg "Repository [lux]: $(find "$dir" -name '*.lux' | wc -l) packages in out/repo/lux"
+}
+
 build_packages() {
     msg "Updating build container"
     pacman -Syu --noconfirm --needed >/dev/null
@@ -96,6 +139,7 @@ build_packages() {
 
     make_repo luxos "$BUILD/pkgs/luxos"
     make_repo luxos-apps "$BUILD/pkgs/luxos-apps"
+    make_lux_repo
 }
 
 # Jen repozitar [luxos-apps] (packages/apps/*): [luxos] v out/repo zustava, jak je

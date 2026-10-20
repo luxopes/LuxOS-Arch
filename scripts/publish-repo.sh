@@ -34,6 +34,7 @@ if ((apps_only)); then
     # [luxos] beze zmeny z aktualniho vydani na serveru, [luxos-apps] z out/repo
     ssh "$HOST" "test -d '$BASE/current/luxos'" || { echo "No current [luxos] on $HOST" >&2; exit 1; }
     rsync -a "$HOST:$BASE/current/luxos/" "$stage/luxos/"
+    ssh "$HOST" "test -d '$BASE/current/lux'" && rsync -a "$HOST:$BASE/current/lux/" "$stage/lux/"
     cp -a "$REPO/luxos-apps" "$stage/"
 else
     cp -a "$REPO"/. "$stage/"
@@ -48,6 +49,14 @@ pkglist() {  # pkglist REPO -> radky tabulky "nazev verze popis"
             $1=="pkgname"{n=$2} $1=="pkgver"{v=$2} $1=="pkgdesc"{d=$2}
             END{gsub(/&/,"\\&amp;",d); gsub(/</,"\\&lt;",d); printf "<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n", n, v, d}'
     done
+}
+luxlist() {  # balicky ve vlastnim formatu z lux/index.json
+    [[ -f $stage/lux/index.json ]] || return 0
+    python3 -c '
+import html, json, sys
+for p in json.load(open(sys.argv[1]))["packages"]:
+    print("<tr><td>%s</td><td>%s-%s</td><td>%s</td></tr>" % (html.escape(p["name"]), html.escape(p["version"]),
+          p.get("release", 1), html.escape(p.get("summary", ""))))' "$stage/lux/index.json"
 }
 cat >"$stage/index.html" <<EOF
 <!doctype html>
@@ -65,6 +74,8 @@ td{padding:6px 10px;border-bottom:1px solid #dde0ee;vertical-align:top}td:first-
 Last update: $(date -u '+%Y-%m-%d %H:%M UTC').</p>
 <h2>Apps <small>[luxos-apps]</small></h2>
 <table>$(pkglist luxos-apps)</table>
+<h2>LuxOS packages <small>(.lux)</small></h2>
+<table>$(luxlist)</table>
 <h2>System <small>[luxos]</small></h2>
 <table>$(pkglist luxos)</table>
 <h2>pacman.conf</h2>

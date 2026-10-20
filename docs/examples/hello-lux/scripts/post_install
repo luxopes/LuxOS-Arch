@@ -1,0 +1,3 @@
+#!/bin/bash
+# Spousti lux po instalaci (jako root); k dispozici je $LUX_PACKAGE a $LUX_PREFIX
+echo "hello-lux installed in $LUX_PREFIX"

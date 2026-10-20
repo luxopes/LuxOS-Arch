@@ -5,6 +5,7 @@ Aplikace Arch Linuxu popisuji metadata AppStream (archlinux-appstream-data),
 aplikace LuxOS repozitar [luxos-apps]. Instalace bezi pres pkexec a pomocny
 skript /usr/lib/luxos/luxos-store-helper (pacman).
 """
+import json
 import os
 import re
 import subprocess
@@ -24,6 +25,9 @@ gi.require_version("AppStream", "1.0")
 from gi.repository import AppStream, Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # noqa: E402
 
 HELPER = "/usr/lib/luxos/luxos-store-helper"
+LUX_DB = "/var/lib/lux/installed"
+LUX_INDEX_URL = os.environ.get("LUX_INDEX_URL", "https://lsl.lux-ai.cz/luxos/lux")
+ICON_CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "luxos-store/icons")
 ICON_SIZE = 56
 DATASAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/datasaver")
 
@@ -71,16 +75,24 @@ CSS = b"""
 class App:
     """Aplikace v obchode (z AppStream nebo z repozitare LuxOS)."""
 
-    def __init__(self, pkg, name, summary, repo, version="", size=0, component=None, description=""):
+    def __init__(self, pkg, name, summary, repo, version="", size=0, component=None, description="",
+                 icon_file=None, categories=None):
         self.pkg, self.name, self.summary, self.repo = pkg, name, summary, repo
         self.version, self.size, self.component, self.description = version, size, component, description
-        self.categories = component.get_categories() if component else []
+        self.icon_file = icon_file
+        self.categories = component.get_categories() if component else (categories or [])
 
     @property
     def is_luxos(self):
-        return self.repo.startswith("luxos")
+        return self.repo.startswith("luxos") or self.repo == "lux"
+
+    @property
+    def is_lux_format(self):
+        return self.repo == "lux"
 
     def source_label(self):
+        if self.is_lux_format:
+            return "LuxOS · " + _("LuxOS package (.lux)")
         return "LuxOS" if self.is_luxos else f"Arch Linux · {self.repo}"
 
     def desktop_id(self):
@@ -92,6 +104,11 @@ class App:
 
     def icon_pixbuf(self, size):
         theme = Gtk.IconTheme.get_default()
+        if self.icon_file:
+            try:
+                return GdkPixbuf.Pixbuf.new_from_file_at_size(self.icon_file, size, size)
+            except GLib.Error:
+                pass
         if self.component:
             best = None
             for ic in self.component.get_icons():
@@ -174,10 +191,37 @@ class Catalog:
                 apps[pkg] = App(pkg, name, summary, repo, ver, int(size or 0), description=desc)
             elif repo == "luxos-apps":
                 apps[pkg].repo = repo
+        self.load_lux(apps)
         self.apps = apps
 
     def refresh_installed(self):
         self.installed = set(run("pacman", "-Qq").split())
+        try:
+            self.installed |= {f[:-5] for f in os.listdir(LUX_DB) if f.endswith(".json")}
+        except OSError:
+            pass
+
+    def load_lux(self, apps):
+        """Balicky ve vlastnim formatu LuxOS (overeny index z lux __index)."""
+        try:
+            index = json.loads(run("lux", "__index") or "{}")
+        except ValueError:
+            return
+        os.makedirs(ICON_CACHE, exist_ok=True)
+        for p in index.get("packages", []):
+            name = p.get("name")
+            if not name or name in apps:
+                continue
+            icon = None
+            if p.get("icon"):
+                icon = os.path.join(ICON_CACHE, p["icon"])
+                if not os.path.exists(icon):
+                    run("curl", "-fsSL", "--max-time", "8", "-o", icon, f"{LUX_INDEX_URL}/{p['icon']}", timeout=10)
+                if not os.path.exists(icon):
+                    icon = None
+            apps[name] = App(name, p.get("title") or name, p.get("summary", ""), "lux",
+                             f"{p.get('version', '')}-{p.get('release', 1)}", int(p.get("size", 0)),
+                             description=p.get("description", ""), icon_file=icon, categories=p.get("categories"))
 
     def check_updates(self):
         out = run("checkupdates", timeout=180)
@@ -536,6 +580,8 @@ class Store(Gtk.Window):
                 info.launch([], None)
             else:
                 self.flash(_("%s is installed, but has no window to open.") % app.name)
+        elif app.is_lux_format:
+            self.run_helper("lux-install", [app.pkg], _("Installing %s…") % app.name, app)
         else:
             self.run_helper("install", [app.pkg], _("Installing %s…") % app.name, app)
 
@@ -544,7 +590,8 @@ class Store(Gtk.Window):
                                 buttons=Gtk.ButtonsType.OK_CANCEL, text=_("Remove %s?") % app.name)
         dlg.format_secondary_text(_("The app will be removed from this computer. Your files stay untouched."))
         if dlg.run() == Gtk.ResponseType.OK:
-            self.run_helper("remove", [app.pkg], _("Removing %s…") % app.name, app)
+            self.run_helper("lux-remove" if app.is_lux_format else "remove", [app.pkg],
+                            _("Removing %s…") % app.name, app)
         dlg.destroy()
 
     def flash(self, text):

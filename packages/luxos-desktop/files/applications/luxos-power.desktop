@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Battery & Power
+Name[cs]=Baterie a napájení
+Comment=Battery level, usage history, power mode and sleep settings
+Comment[cs]=Stav baterie, historie spotřeby, výkonový režim a uspání
+Exec=luxos-power
+Icon=battery-good
+Terminal=false
+Categories=Settings;HardwareSettings;GTK;
+Keywords=battery;power;energy;sleep;baterie;napájení;spotřeba;úspora;
+StartupWMClass=luxos-power

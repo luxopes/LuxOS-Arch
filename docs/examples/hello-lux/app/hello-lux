@@ -1,0 +1,4 @@
+#!/bin/bash
+# Ukazkova aplikace ve formatu .lux
+yad --title="Hello Lux" --window-icon=hello-lux --image=hello-lux --center --borders=24 \
+    --text="<big><b>Hello from a .lux package!</b></big>\n\nInstalled in /opt/lux/hello-lux" --button="OK:0"

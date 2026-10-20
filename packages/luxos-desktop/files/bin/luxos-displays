@@ -1,0 +1,131 @@
+#!/bin/bash
+# LuxOS - monitory: automaticke zapojeni, rezimy jako Win+P a zachrana oken
+#
+#   luxos-displays auto            po pripojeni/odpojeni monitoru (spousti luxos-session)
+#   luxos-displays extend|mirror|external|internal   rezim (uklada se pro dalsi pripojeni)
+#   luxos-displays menu            rychla volba rezimu (Super+P)
+#   luxos-displays rescue          okna mimo viditelne obrazovky presune na hlavni monitor
+. /usr/lib/luxos/i18n.sh
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
+mode_file="$cfg/displays-mode"
+
+# Vystupy: "nazev connected|disconnected active(1/0) primary(1/0)"
+outputs() {
+    xrandr --current | awk '
+        / connected| disconnected/ {
+            name = $1; st = $2; prim = ($3 == "primary") ? 1 : 0
+            active = ($0 ~ /[0-9]+x[0-9]+\+[0-9]+\+[0-9]+/) ? 1 : 0
+            print name, st, active, prim
+        }'
+}
+
+is_internal() { [[ $1 == eDP* || $1 == LVDS* || $1 == DSI* ]]; }
+
+# Hlavni vystup: vestaveny displej notebooku, jinak prvni pripojeny
+pick_primary() {
+    local name st _a _p first=""
+    while read -r name st _a _p; do
+        [[ $st == connected ]] || continue
+        if is_internal "$name"; then echo "$name"; return; fi
+        [[ -z $first ]] && first=$name
+    done < <(outputs)
+    echo "$first"
+}
+
+apply_mode() {  # apply_mode extend|mirror|external|internal
+    local mode=$1 primary name st _a _p args=() prev
+    primary=$(pick_primary)
+    [[ -n $primary ]] || return 1
+    local -a connected=() external=()
+    while read -r name st _a _p; do
+        if [[ $st == connected ]]; then
+            connected+=("$name")
+            [[ $name != "$primary" ]] && external+=("$name")
+        else
+            args+=(--output "$name" --off)
+        fi
+    done < <(outputs)
+    # Jen jeden monitor: vzdy na nem (rezimy nemaji smysl)
+    ((${#external[@]})) || mode=single
+    case $mode in
+        single)
+            args+=(--output "$primary" --auto --primary --pos 0x0) ;;
+        extend)
+            args+=(--output "$primary" --auto --primary --pos 0x0)
+            prev=$primary
+            for name in "${external[@]}"; do
+                args+=(--output "$name" --auto --right-of "$prev")
+                prev=$name
+            done ;;
+        mirror)
+            args+=(--output "$primary" --auto --primary --pos 0x0)
+            for name in "${external[@]}"; do args+=(--output "$name" --auto --same-as "$primary"); done ;;
+        external)
+            args+=(--output "$primary" --off)
+            args+=(--output "${external[0]}" --auto --primary --pos 0x0)
+            prev=${external[0]}
+            for name in "${external[@]:1}"; do
+                args+=(--output "$name" --auto --right-of "$prev")
+                prev=$name
+            done ;;
+        internal)
+            args+=(--output "$primary" --auto --primary --pos 0x0)
+            for name in "${external[@]}"; do args+=(--output "$name" --off); done ;;
+    esac
+    xrandr "${args[@]}"
+    sleep 1
+    rescue
+    luxos-appearance reapply >/dev/null 2>&1 &
+}
+
+# Okna, jejichz stred nelezi na zadnem aktivnim monitoru, presunout na hlavni monitor
+rescue() {
+    command -v wmctrl >/dev/null || return 0
+    local -a mons=()
+    local geo px=0 py=0 pw=0 ph=0
+    while read -r geo; do mons+=("$geo"); done < <(xrandr --current | grep -oE ' connected( primary)? [0-9]+x[0-9]+\+[0-9]+\+[0-9]+' |
+        grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | tr 'x+' '  ')
+    read -r pw ph px py < <(xrandr --current | grep -oE ' connected primary [0-9]+x[0-9]+\+[0-9]+\+[0-9]+' |
+        grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | tr 'x+' '  ')
+    if ((pw == 0)); then read -r pw ph px py <<<"${mons[0]:-0 0 0 0}"; fi
+    ((pw > 0)) || return 0
+    local id desk x y w h rest cx cy m mw mh mx my inside
+    while read -r id desk x y w h rest; do
+        ((desk < 0)) && continue                     # okna na vsech plochach (panel, dock)
+        cx=$((x + w / 2)) cy=$((y + h / 2)) inside=0
+        for m in "${mons[@]}"; do
+            read -r mw mh mx my <<<"$m"
+            if ((cx >= mx && cx < mx + mw && cy >= my && cy < my + mh)); then inside=1; break; fi
+        done
+        ((inside)) && continue
+        ((w > pw - 40)) && w=$((pw - 40))
+        ((h > ph - 80)) && h=$((ph - 80))
+        wmctrl -ir "$id" -b remove,maximized_vert,maximized_horz,fullscreen 2>/dev/null
+        wmctrl -ir "$id" -e "0,$((px + (pw - w) / 2)),$((py + (ph - h) / 2)),$w,$h"
+    done < <(wmctrl -lG)
+}
+
+case ${1:-auto} in
+    auto)
+        apply_mode "$(cat "$mode_file" 2>/dev/null || echo extend)" ;;
+    extend|mirror|external|internal)
+        mkdir -p "$cfg"
+        echo "$1" >"$mode_file"
+        apply_mode "$1" ;;
+    rescue) rescue ;;
+    menu)
+        pkill -x rofi && exit 0
+        light=()
+        [[ $(luxos-appearance status) == light ]] && light=(-theme-str '@import "luxos-light-colors"')
+        choice=$(printf '%s\0icon\x1f%s\n' \
+            "$(T "Extend - use both screens")" video-display \
+            "$(T "Mirror - same picture on both")" preferences-desktop-display \
+            "$(T "Only external screen")" video-display \
+            "$(T "Only this computer's screen")" computer |
+            rofi -dmenu -i -show-icons -format i -p "$(T "Screens")" -theme luxos-spotlight \
+                -theme-str "entry { placeholder: \"$(T "Screens")\"; }" "${light[@]}" \
+                -hover-select -me-select-entry '' -me-accept-entry MousePrimary) || exit 0
+        modes=(extend mirror external internal)
+        exec "$0" "${modes[$choice]}" ;;
+    *) echo "usage: luxos-displays [auto|extend|mirror|external|internal|menu|rescue]" >&2; exit 2 ;;
+esac
