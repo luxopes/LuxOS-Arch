@@ -33,5 +33,5 @@ case $st in
     *) tip=$(T "Fully charged") ;;
 esac
 [[ $(luxos-powersaver status) == on ]] && tip+=" · $(T "Battery Saver")"
-printf '<icon>%s-symbolic</icon><txt> %s %%</txt><tool>%s %s %%</tool><iconclick>luxos-control-center</iconclick><txtclick>luxos-control-center</txtclick>\n' \
+printf '<icon>%s-symbolic</icon><txt> %s %%</txt><tool>%s %s %%</tool><iconclick>luxos-cc-toggle</iconclick><txtclick>luxos-cc-toggle</txtclick>\n' \
     "$icon" "$cap" "$tip" "$cap"

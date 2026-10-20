@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""LuxOS - Trezor: privilegovana cast (pkexec). Pripravi adresare jen pro volajiciho uzivatele.
+
+  /safe                    root:root 0755
+  /safe/.vaults            root:root 0711   (sifrovana data, nelze vypsat)
+  /safe/.vaults/<user>     user      0700   (gocryptfs: sifrovane soubory)
+  /safe/<user>             user      0700   (pripojny bod, odemceny obsah)
+"""
+import os
+import pwd
+import stat
+import sys
+
+ROOT = "/safe"
+
+
+def ensure_dir(path, uid, gid, mode):
+    """Vytvori adresar; existujici overi (zadne symlinky, spravny vlastnik)."""
+    try:
+        st = os.lstat(path)
+    except FileNotFoundError:
+        os.mkdir(path, mode)
+        st = os.lstat(path)
+    if not stat.S_ISDIR(st.st_mode):
+        sys.exit(f"luxos-safe-helper: {path} is not a directory")
+    os.chown(path, uid, gid, follow_symlinks=False)
+    os.chmod(path, mode)
+
+
+def main():
+    if os.geteuid() != 0 or len(sys.argv) != 2 or sys.argv[1] != "create":
+        sys.exit("usage: pkexec luxos-safe-helper create")
+    try:
+        uid = int(os.environ["PKEXEC_UID"])
+    except (KeyError, ValueError):
+        sys.exit("luxos-safe-helper: run through pkexec")
+    user = pwd.getpwuid(uid)
+    if uid < 1000 or not user.pw_name.replace("-", "").replace("_", "").replace(".", "").isalnum():
+        sys.exit("luxos-safe-helper: refusing this user")
+    ensure_dir(ROOT, 0, 0, 0o755)
+    ensure_dir(f"{ROOT}/.vaults", 0, 0, 0o711)
+    ensure_dir(f"{ROOT}/.vaults/{user.pw_name}", uid, user.pw_gid, 0o700)
+    ensure_dir(f"{ROOT}/{user.pw_name}", uid, user.pw_gid, 0o700)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,4 @@
+#!/bin/sh
+# LuxOS - spousteni prihlasovaci obrazovky s modulem pro pruhledne zaoblene nabidky
+export GTK_MODULES="${GTK_MODULES:+$GTK_MODULES:}luxos-rgba-menus"
+exec "$@"

@@ -1,0 +1,4 @@
+#!/bin/sh
+# LuxOS - pred spustenim relace: ukoncit kompozitor prihlasovaci obrazovky (relace ma vlastni xfwm4)
+pkill -x xcompmgr 2>/dev/null
+exit 0

@@ -1,0 +1,438 @@
+#!/usr/bin/env python3
+"""LuxOS - Trezor: sifrovana slozka /safe/<uzivatel> odemykana vlastnim heslem.
+
+Data lezi zasifrovana (gocryptfs: AES-256-GCM, scrypt) v /safe/.vaults/<uzivatel>.
+Po odemceni je obsah videt v /safe/<uzivatel> jen pro vlastnika (FUSE bez
+allow_other: ani root do pripojeneho obsahu nevstoupi beznymi prostredky).
+Zamyka se rucne, po necinnosti, pri zamceni obrazovky, uspani a odhlaseni.
+
+  luxos-safe               okno Trezoru
+  luxos-safe unlock        dialog s heslem (--open pak otevre slozku)
+  luxos-safe lock          zamknout (--force i pri otevrenych souborech)
+  luxos-safe status        locked | unlocked | none
+  luxos-safe --watch       hlidac (spousti relace): zamkne pri zamceni obrazovky a uspani
+"""
+import getpass
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import tempfile
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+try:
+    from luxos_i18n import _
+except ImportError:
+    def _(text):
+        return text
+
+USER = getpass.getuser()
+VAULT = f"/safe/.vaults/{USER}"
+MOUNT = f"/safe/{USER}"
+HELPER = "/usr/lib/luxos/luxos-safe-helper"
+CONF = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/safe.json")
+LAUNCHER = "Unlock Safe.desktop"
+WRONG_PASSWORD = 12      # navratovy kod gocryptfs pro spatne heslo
+
+
+# ---- stav a nastaveni -------------------------------------------------------------
+def state():
+    if os.path.ismount(MOUNT):
+        return "unlocked"
+    if os.path.exists(os.path.join(VAULT, "gocryptfs.conf")):
+        return "locked"
+    return "none"
+
+
+def settings():
+    data = {"idle_minutes": 15, "lock_on_screen_lock": True}
+    try:
+        with open(CONF) as f:
+            data.update(json.load(f))
+    except (OSError, ValueError):
+        pass
+    return data
+
+
+def save_settings(data):
+    os.makedirs(os.path.dirname(CONF), exist_ok=True)
+    with open(CONF, "w") as f:
+        json.dump(data, f, indent=1)
+
+
+def run_pw(args, password_lines):
+    """gocryptfs s heslem na stdin (nikdy v argumentech ani prostredi)."""
+    # Chyby do docasneho souboru, ne do roury: demon gocryptfs by ji drzel otevrenou
+    # a subprocess by cekal az do timeoutu
+    with tempfile.TemporaryFile("w+") as err:
+        try:
+            r = subprocess.run(args, input="".join(p + "\n" for p in password_lines), text=True,
+                               stdout=subprocess.DEVNULL, stderr=err, timeout=120)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            return -1, str(e)
+        err.seek(0)
+        return r.returncode, err.read().strip()[-300:]
+
+
+# ---- operace ------------------------------------------------------------------------
+def place_launcher():
+    """Do prazdneho pripojneho bodu (zamceny stav) dat spoustec "Odemknout Trezor"."""
+    path = os.path.join(MOUNT, LAUNCHER)
+    with open(path, "w") as f:
+        f.write("[Desktop Entry]\nType=Application\nName=Unlock Safe\nName[cs]=Odemknout Trezor\n"
+                "Exec=luxos-safe unlock --open\nIcon=luxos-safe\nTerminal=false\n")
+    os.chmod(path, 0o700)
+    # Thunar spousti jen duveryhodne spoustece (kontrolni soucet v metadatech)
+    with open(path, "rb") as f:
+        digest = hashlib.sha256(f.read()).hexdigest()
+    subprocess.run(["gio", "set", "-t", "string", path, "metadata::xfce-exe-checksum", digest],
+                   capture_output=True)
+
+
+def create(password):
+    if not (os.path.isdir(VAULT) and os.path.isdir(MOUNT)):
+        r = subprocess.run(["pkexec", HELPER, "create"], capture_output=True, text=True)
+        if r.returncode != 0:
+            return _("Could not create the Safe folder.")
+    if os.listdir(VAULT):
+        return _("The Safe already exists.")
+    rc, err = run_pw(["gocryptfs", "-init", "-q", "-passfile", "/dev/stdin", VAULT], [password])
+    if rc != 0:
+        return _("Could not create the Safe (%s).") % err
+    place_launcher()
+    add_bookmark()
+    return unlock(password)
+
+
+def add_bookmark():
+    """Zalozka Trezor v postrannim panelu Souboru."""
+    path = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "gtk-3.0/bookmarks")
+    line = f"file://{MOUNT} {_('Safe')}\n"
+    try:
+        with open(path) as f:
+            if any(l.startswith(f"file://{MOUNT} ") for l in f):
+                return
+    except OSError:
+        pass
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "a") as f:
+        f.write(line)
+
+
+def unlock(password):
+    if state() == "unlocked":
+        return None
+    if not os.listdir(MOUNT):
+        place_launcher()
+    idle = int(settings().get("idle_minutes") or 0)
+    args = ["gocryptfs", "-q", "-passfile", "/dev/stdin", "-nosyslog"]
+    if idle:
+        args += ["-i", f"{idle}m"]       # automaticke zamceni po necinnosti
+    # -nonempty: pripojny bod obsahuje spoustec "Odemknout Trezor" (po odemceni skryty)
+    rc, err = run_pw(args + ["-nonempty", VAULT, MOUNT], [password])
+    if rc == WRONG_PASSWORD:
+        return _("Wrong password.")
+    if rc != 0:
+        return _("Could not unlock the Safe (%s).") % err
+    return None
+
+
+def lock(force=False):
+    if state() != "unlocked":
+        return None
+    r = subprocess.run(["fusermount3", "-u", MOUNT], capture_output=True, text=True)
+    if r.returncode == 0:
+        return None
+    if force:
+        # Odpojit hned; uz otevrene soubory dobehnou, nove pristupy nejsou mozne
+        subprocess.run(["fusermount3", "-uz", MOUNT], capture_output=True)
+        return None
+    return _("Some files in the Safe are still open. Close them and try again.")
+
+
+def change_password(old, new):
+    rc, err = run_pw(["gocryptfs", "-passwd", "-q", VAULT], [old, new])
+    if rc == WRONG_PASSWORD:
+        return _("Wrong password.")
+    return None if rc == 0 else _("Could not change the password (%s).") % err
+
+
+def open_folder():
+    subprocess.Popen(["xdg-open", MOUNT], start_new_session=True)
+
+
+# ---- hlidac relace ----------------------------------------------------------------------
+def watch():
+    from gi.repository import Gio, GLib
+
+    def on_lock(*_a):
+        if settings().get("lock_on_screen_lock", True):
+            lock(force=True)
+
+    def on_saver(_c, _s, _p, _i, _sig, params):
+        if params.unpack()[0]:
+            on_lock()
+
+    def on_sleep(_c, _s, _p, _i, _sig, params):
+        if params.unpack()[0]:
+            lock(force=True)          # pred uspanim vzdy
+
+    session = Gio.bus_get_sync(Gio.BusType.SESSION)
+    session.signal_subscribe(None, "org.xfce.ScreenSaver", "ActiveChanged", None, None, 0, on_saver)
+    system = Gio.bus_get_sync(Gio.BusType.SYSTEM)
+    system.signal_subscribe("org.freedesktop.login1", "org.freedesktop.login1.Manager", "PrepareForSleep",
+                            "/org/freedesktop/login1", None, 0, on_sleep)
+    loop = GLib.MainLoop()
+
+    def on_term():
+        lock(force=True)            # konec relace / odhlaseni
+        loop.quit()
+        return False
+    GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, 15, on_term)
+    loop.run()
+
+
+# ---- GUI ----------------------------------------------------------------------------
+def gui(mode):
+    import gi
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("Gdk", "3.0")
+    from gi.repository import Gdk, GLib, Gtk
+
+    css = Gtk.CssProvider()
+    css.load_from_data(b"""
+        .safe-title { font-size: 20px; font-weight: 800; }
+        .dim { opacity: 0.65; }
+        .error { color: #ff453a; }
+        .primary { border-radius: 999px; padding: 6px 20px; font-weight: 700; background-image: none;
+                   background-color: #3d7bff; color: white; border: none; box-shadow: none; }
+        entry { border-radius: 10px; padding: 6px 10px; min-height: 30px; }
+        .group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); padding: 4px 14px;
+                 background-color: alpha(currentColor, 0.04); }
+    """)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), css,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    GLib.set_prgname("luxos-safe")
+    GLib.set_application_name(_("Safe"))
+
+    win = Gtk.Window(title=_("Safe"))
+    win.set_icon_name("luxos-safe")
+    win.set_resizable(False)
+    win.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("Safe")))
+    win.connect("destroy", Gtk.main_quit)
+    box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin=28, margin_top=10)
+    box.set_size_request(380, -1)
+    win.add(box)
+    result = {"ok": False}
+
+    def clear():
+        for c in box.get_children():
+            box.remove(c)
+
+    def header(title, text):
+        box.pack_start(Gtk.Image.new_from_icon_name("luxos-safe", Gtk.IconSize.DIALOG), False, False, 4)
+        t = Gtk.Label(label=title)
+        t.get_style_context().add_class("safe-title")
+        box.pack_start(t, False, False, 0)
+        d = Gtk.Label(label=text, wrap=True, max_width_chars=44, justify=Gtk.Justification.CENTER)
+        d.get_style_context().add_class("dim")
+        box.pack_start(d, False, False, 0)
+
+    def entry(placeholder):
+        e = Gtk.Entry(visibility=False, placeholder_text=placeholder, input_purpose=Gtk.InputPurpose.PASSWORD)
+        box.pack_start(e, False, False, 0)
+        return e
+
+    def error_label():
+        lab = Gtk.Label(wrap=True, max_width_chars=44)
+        lab.get_style_context().add_class("error")
+        box.pack_start(lab, False, False, 0)
+        return lab
+
+    def button(label, cb, primary=True):
+        b = Gtk.Button(label=label)
+        if primary:
+            b.get_style_context().add_class("primary")
+        b.connect("clicked", lambda _b: cb())
+        box.pack_start(b, False, False, 0)
+        return b
+
+    def show():
+        clear()
+        st = state()
+        if st == "none":
+            page_create()
+        elif st == "locked":
+            page_unlock()
+        else:
+            page_unlocked()
+        box.show_all()
+
+    def page_create():
+        header(_("Create your Safe"),
+               _("Files in the Safe are encrypted and open only with its own password - "
+                 "not even an administrator can read them while the Safe is locked."))
+        p1 = entry(_("New Safe password"))
+        p2 = entry(_("Password again"))
+        err = error_label()
+
+        def go():
+            a, b = p1.get_text(), p2.get_text()
+            if len(a) < 8:
+                err.set_text(_("Use at least 8 characters."))
+            elif a != b:
+                err.set_text(_("Passwords do not match."))
+            else:
+                msg = create(a)
+                if msg:
+                    err.set_text(msg)
+                else:
+                    open_folder()
+                    show()
+        p2.connect("activate", lambda _e: go())
+        button(_("Create Safe"), go)
+        warn = Gtk.Label(label=_("If you forget this password, the files cannot be recovered."),
+                         wrap=True, max_width_chars=44)
+        warn.get_style_context().add_class("dim")
+        box.pack_start(warn, False, False, 0)
+
+    def page_unlock():
+        header(_("The Safe is locked"), _("Enter the Safe password to open %s.") % MOUNT)
+        pw = entry(_("Password"))
+        err = error_label()
+
+        def go():
+            msg = unlock(pw.get_text())
+            pw.set_text("")
+            if msg:
+                err.set_text(msg)
+                return
+            result["ok"] = True
+            if mode in ("unlock", "open"):
+                if mode == "open":
+                    open_folder()
+                win.destroy()
+            else:
+                open_folder()
+                show()
+        pw.connect("activate", lambda _e: go())
+        button(_("Unlock"), go)
+        GLib.idle_add(pw.grab_focus)
+
+    def page_unlocked():
+        header(_("The Safe is unlocked"), _("Your files are available in %s.") % MOUNT)
+        button(_("Open Safe"), open_folder, primary=False)
+        err = error_label()
+
+        def do_lock():
+            msg = lock()
+            if msg:
+                err.set_text(msg)
+            else:
+                show()
+        button(_("Lock Now"), do_lock)
+
+        conf = settings()
+        group = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        group.get_style_context().add_class("group")
+        row = Gtk.Box(spacing=8)
+        row.pack_start(Gtk.Label(label=_("Lock automatically after inactivity"), xalign=0), True, True, 0)
+        combo = Gtk.ComboBoxText()
+        for m, lab in ((5, _("5 minutes")), (15, _("15 minutes")), (60, _("1 hour")), (0, _("Never"))):
+            combo.append(str(m), lab)
+        combo.set_active_id(str(conf.get("idle_minutes", 15)))
+        combo.connect("changed", lambda c: save_settings({**settings(), "idle_minutes": int(c.get_active_id())}))
+        row.pack_end(combo, False, False, 0)
+        group.pack_start(row, False, False, 4)
+        row = Gtk.Box(spacing=8)
+        row.pack_start(Gtk.Label(label=_("Lock when the screen locks"), xalign=0), True, True, 0)
+        sw = Gtk.Switch(active=conf.get("lock_on_screen_lock", True))
+        sw.connect("notify::active", lambda s, _p: save_settings({**settings(), "lock_on_screen_lock": s.get_active()}))
+        row.pack_end(sw, False, False, 0)
+        group.pack_start(row, False, False, 4)
+        box.pack_start(group, False, False, 6)
+        hint = Gtk.Label(label=_("The Safe always locks when the computer goes to sleep or you log out."),
+                         wrap=True, max_width_chars=44)
+        hint.get_style_context().add_class("dim")
+        box.pack_start(hint, False, False, 0)
+
+        chg = Gtk.Button(label=_("Change Password…"))
+        chg.get_style_context().add_class("flat")
+        chg.connect("clicked", lambda _b: change_dialog())
+        box.pack_start(chg, False, False, 0)
+
+    def change_dialog():
+        dlg = Gtk.Dialog(title=_("Change Password"), transient_for=win, modal=True)
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Change"), Gtk.ResponseType.OK)
+        area = dlg.get_content_area()
+        area.set_spacing(8)
+        area.set_border_width(14)
+        old = Gtk.Entry(visibility=False, placeholder_text=_("Current password"))
+        new = Gtk.Entry(visibility=False, placeholder_text=_("New Safe password"))
+        new2 = Gtk.Entry(visibility=False, placeholder_text=_("Password again"))
+        err = Gtk.Label()
+        err.get_style_context().add_class("error")
+        for w in (old, new, new2, err):
+            area.pack_start(w, False, False, 0)
+        dlg.show_all()
+        while dlg.run() == Gtk.ResponseType.OK:
+            if len(new.get_text()) < 8:
+                err.set_text(_("Use at least 8 characters."))
+            elif new.get_text() != new2.get_text():
+                err.set_text(_("Passwords do not match."))
+            else:
+                msg = change_password(old.get_text(), new.get_text())
+                if not msg:
+                    break
+                err.set_text(msg)
+        dlg.destroy()
+
+    shown = {"state": None}
+
+    def poll():
+        # Zamceni zvenku (necinnost, zamceni obrazovky) - okno prepnout na aktualni stav
+        st = state()
+        if shown["state"] not in (None, st) and box.get_mapped():
+            show()
+        shown["state"] = st
+        return True
+
+    show()
+    GLib.timeout_add_seconds(2, poll)
+    win.show_all()
+    Gtk.main()
+    return 0 if (mode not in ("unlock", "open") or result["ok"]) else 1
+
+
+def main():
+    args = sys.argv[1:]
+    if not args:
+        return gui("main")
+    cmd = args[0]
+    if cmd == "status":
+        print(state())
+        return 0
+    if cmd == "lock":
+        msg = lock(force="--force" in args)
+        if msg:
+            print(msg, file=sys.stderr)
+            return 1
+        return 0
+    if cmd == "unlock":
+        if state() == "unlocked":
+            if "--open" in args:
+                open_folder()
+            return 0
+        if state() == "none":
+            return gui("main")
+        return gui("open" if "--open" in args else "unlock")
+    if cmd == "--watch":
+        watch()
+        return 0
+    print(__doc__)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

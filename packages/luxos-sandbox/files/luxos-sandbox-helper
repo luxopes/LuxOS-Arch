@@ -1,0 +1,285 @@
+#!/usr/bin/python3 -I
+"""LuxOS Sandbox - privilegovany pomocnik (spousti ho pkexec, akce org.luxos.sandbox.create).
+
+  luxos-sandbox-helper create   vytvori /var/lib/luxos/sandbox/<uzivatel> (pacstrap)
+  luxos-sandbox-helper reset    smaze a znovu vytvori
+  luxos-sandbox-helper destroy  smaze sandbox a odkaz /dev/sandbox/<uzivatel>
+
+Jedna jen za uzivatele z PKEXEC_UID (zadne jine argumenty se neprijimaji).
+Vsechny cesty se otviraji po komponentach s O_NOFOLLOW a overuje se vlastnik:
+/var/lib/luxos/sandbox patri rootovi (0755), takze uzivatel nemuze polozku
+<uzivatel> nahradit symlinkem. Novy koren se staví v adresari .build-<uzivatel>,
+ke kteremu uzivatel nema pristup, a teprve hotovy (vlastnik zmenen na uzivatele)
+se atomicky prejmenuje na misto.
+"""
+import fcntl
+import os
+import pwd
+import re
+import shutil
+import stat
+import subprocess
+import sys
+
+BASE = "/var/lib/luxos/sandbox"
+CONF = "/usr/share/luxos/sandbox/pacman.conf"
+TMPFILES_PKG = "/usr/lib/tmpfiles.d/luxos-sandbox.conf"
+TMPFILES_USER = "/etc/tmpfiles.d/luxos-sandbox-{user}.conf"
+PACKAGES = ["filesystem", "bash", "coreutils", "pacman", "archlinux-keyring", "ca-certificates",
+            "sed", "grep", "gawk", "findutils", "tar", "gzip", "xz", "zstd", "less", "nano",
+            "which", "procps-ng", "curl", "file", "diffutils", "glibc"]
+NAME_RE = re.compile(r"^[a-z_][a-z0-9_-]{0,31}$")
+OPEN_DIR = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+
+
+def die(msg):
+    print(f"luxos-sandbox-helper: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def uid_min():
+    try:
+        with open("/etc/login.defs") as f:
+            for line in f:
+                p = line.split()
+                if len(p) == 2 and p[0] == "UID_MIN":
+                    return int(p[1])
+    except (OSError, ValueError):
+        pass
+    return 1000
+
+
+def caller():
+    """Uzivatel, za ktereho pomocnik jedna - jen z PKEXEC_UID."""
+    if os.geteuid() != 0:
+        die("must be run through pkexec")
+    raw = os.environ.get("PKEXEC_UID", "")
+    if not raw.isdigit():
+        die("PKEXEC_UID missing")
+    uid = int(raw)
+    if uid < uid_min() or uid >= 60000:
+        die("sandbox is only for regular users")
+    try:
+        pw = pwd.getpwuid(uid)
+    except KeyError:
+        die("unknown user")
+    if not NAME_RE.match(pw.pw_name):
+        die("unsupported user name")
+    return pw
+
+
+def open_base():
+    """FD /var/lib/luxos/sandbox; kazda komponenta: adresar, ne symlink, root, ne zapisovatelny pro jine."""
+    fd = os.open("/", OPEN_DIR)
+    for comp, create in (("var", False), ("lib", False), ("luxos", True), ("sandbox", True)):
+        try:
+            try:
+                nfd = os.open(comp, OPEN_DIR, dir_fd=fd)
+            except FileNotFoundError:
+                if not create:
+                    die(f"/{comp} missing")
+                os.mkdir(comp, 0o755, dir_fd=fd)
+                nfd = os.open(comp, OPEN_DIR, dir_fd=fd)
+        except OSError as e:
+            # ELOOP/ENOTDIR = symlink nebo soubor misto adresare
+            die(f"unsafe path component {comp}: {e.strerror}")
+        os.close(fd)
+        fd = nfd
+        st = os.fstat(fd)
+        if st.st_uid != 0 or st.st_mode & 0o022:
+            die(f"unsafe ownership or permissions on {comp}")
+    return fd
+
+
+def entry(base_fd, name):
+    try:
+        return os.stat(name, dir_fd=base_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return None
+
+
+def remove_tree(base_fd, name):
+    """Smaze strom pod base_fd (shutil.rmtree s dir_fd nenasleduje symlinky)."""
+    st = entry(base_fd, name)
+    if st is None:
+        return
+    if not stat.S_ISDIR(st.st_mode):
+        os.unlink(name, dir_fd=base_fd)
+        return
+    # Uzivatel (sandbox) mohl odebrat prava adresarum; root je stejne smaze
+    shutil.rmtree(name, dir_fd=base_fd)
+
+
+def secure_tree(top_fd, uid, gid):
+    """Odebere setuid/setgid a file capabilities, vlastnika zmeni na uzivatele (bez symlinku)."""
+    def fix(name, dir_fd, is_dir):
+        st = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
+        if stat.S_ISLNK(st.st_mode):
+            os.chown(name, uid, gid, dir_fd=dir_fd, follow_symlinks=False)
+            return
+        if stat.S_ISREG(st.st_mode) or is_dir:
+            fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | (os.O_DIRECTORY if is_dir else 0),
+                         dir_fd=dir_fd)
+            try:
+                try:
+                    os.removexattr(fd, "security.capability")
+                except OSError:
+                    pass
+                os.fchown(fd, uid, gid)
+                os.fchmod(fd, stat.S_IMODE(st.st_mode) & ~(stat.S_ISUID | stat.S_ISGID))
+            finally:
+                os.close(fd)
+        else:
+            # zarizeni, fifo apod. - v sandboxu nemaji co delat
+            os.unlink(name, dir_fd=dir_fd)
+
+    for _root, dirs, files, rfd in os.fwalk(".", dir_fd=top_fd, follow_symlinks=False):
+        for name in files:
+            fix(name, rfd, False)
+        for name in dirs:
+            if stat.S_ISLNK(os.stat(name, dir_fd=rfd, follow_symlinks=False).st_mode):
+                fix(name, rfd, False)
+            else:
+                fix(name, rfd, True)
+    os.fchown(top_fd, uid, gid)
+    os.fchmod(top_fd, 0o700)
+
+
+def write_file(dir_fd, name, data, mode=0o644):
+    try:
+        os.unlink(name, dir_fd=dir_fd)
+    except FileNotFoundError:
+        pass
+    fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, mode, dir_fd=dir_fd)
+    with os.fdopen(fd, "w") as f:
+        f.write(data)
+
+
+def subdir(top_fd, rel, create=True, mode=0o755):
+    fd = os.dup(top_fd)
+    for comp in rel.split("/"):
+        try:
+            nfd = os.open(comp, OPEN_DIR, dir_fd=fd)
+        except FileNotFoundError:
+            if not create:
+                raise
+            os.mkdir(comp, mode, dir_fd=fd)
+            nfd = os.open(comp, OPEN_DIR, dir_fd=fd)
+        os.close(fd)
+        fd = nfd
+    return fd
+
+
+def configure(top_fd, pw):
+    """Nastaveni korene po pacstrapu (jeste jako root, uzivatel k nemu nema pristup)."""
+    etc = subdir(top_fd, "etc")
+    with open(CONF) as f:
+        write_file(etc, "pacman.conf", f.read())
+    # DNS: resolv.conf dodava luxos-sandbox pri --net do /run/luxos (tmpfs)
+    try:
+        os.unlink("resolv.conf", dir_fd=etc)
+    except FileNotFoundError:
+        pass
+    os.symlink("/run/luxos/resolv.conf", "resolv.conf", dir_fd=etc)
+    write_file(etc, "hostname", "sandbox\n")
+    for name, line in (("passwd", f"sandbox:x:{pw.pw_uid}:{pw.pw_gid}:Sandbox:/home/sandbox:/bin/bash\n"),
+                       ("group", f"sandbox:x:{pw.pw_gid}:\n")):
+        fd = os.open(name, os.O_WRONLY | os.O_APPEND | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=etc)
+        with os.fdopen(fd, "a") as f:
+            f.write(line)
+    write_file(etc, "luxos-sandbox", "# LuxOS Sandbox - koren vytvoren pomocnikem luxos-sandbox-helper\n")
+    os.close(etc)
+    home = subdir(top_fd, "home/sandbox", mode=0o700)
+    for d in ("Downloads", "Shared"):
+        try:
+            os.mkdir(d, 0o755, dir_fd=home)
+        except FileExistsError:
+            pass
+    os.close(home)
+
+
+def tmpfiles(pw, present):
+    path = TMPFILES_USER.format(user=pw.pw_name)
+    link = f"/dev/sandbox/{pw.pw_name}"
+    if present:
+        tmp = path + ".tmp"
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o644)
+        with os.fdopen(fd, "w") as f:
+            f.write("# LuxOS Sandbox - odkaz na sandbox uzivatele (/dev je pri kazdem startu nove)\n"
+                    f"L+ {link} - - - - {BASE}/{pw.pw_name}\n")
+        os.rename(tmp, path)
+        subprocess.run(["systemd-tmpfiles", "--create", TMPFILES_PKG, path], check=False)
+    else:
+        for p in (path, link):
+            try:
+                if os.path.islink(p) or os.path.isfile(p):
+                    os.unlink(p)
+            except OSError:
+                pass
+
+
+def create(base_fd, pw):
+    name = pw.pw_name
+    st = entry(base_fd, name)
+    if st is not None:
+        # Prazdny adresar (napr. po nepovedenem pokusu) se smi nahradit, jinak ne
+        empty = False
+        if stat.S_ISDIR(st.st_mode):
+            fd = os.open(name, OPEN_DIR, dir_fd=base_fd)
+            empty = not os.listdir(fd)
+            os.close(fd)
+        if not empty:
+            die("sandbox already exists")
+        os.rmdir(name, dir_fd=base_fd)
+    build = f".build-{name}"
+    remove_tree(base_fd, build)
+    os.mkdir(build, 0o700, dir_fd=base_fd)
+    top_fd = os.open(build, OPEN_DIR, dir_fd=base_fd)
+    if os.fstat(top_fd).st_uid != 0:
+        die("unexpected owner of build directory")
+    # Cesta je stabilni: vsechny komponenty patri rootovi a uzivatel do nich nesmi
+    path = f"{BASE}/{build}"
+    try:
+        r = subprocess.run(["pacstrap", "-c", "-K", "-C", CONF, path, *PACKAGES])
+        if r.returncode != 0:
+            die("pacstrap failed")
+        configure(top_fd, pw)
+        secure_tree(top_fd, pw.pw_uid, pw.pw_gid)
+        os.rename(build, name, src_dir_fd=base_fd, dst_dir_fd=base_fd)
+    except BaseException:
+        os.close(top_fd)
+        remove_tree(base_fd, build)
+        raise
+    os.close(top_fd)
+    tmpfiles(pw, True)
+    print(f"{BASE}/{name}")
+
+
+def destroy(base_fd, pw):
+    st = entry(base_fd, pw.pw_name)
+    if st is not None:
+        if stat.S_ISDIR(st.st_mode) and st.st_uid not in (0, pw.pw_uid):
+            die("sandbox directory has an unexpected owner")
+        remove_tree(base_fd, pw.pw_name)
+    remove_tree(base_fd, f".build-{pw.pw_name}")
+    tmpfiles(pw, False)
+
+
+def main():
+    if len(sys.argv) != 2 or sys.argv[1] not in ("create", "reset", "destroy"):
+        die("usage: luxos-sandbox-helper create|reset|destroy")
+    pw = caller()
+    os.umask(0o022)
+    os.environ["PATH"] = "/usr/bin"
+    base_fd = open_base()
+    # Jen jedna operace najednou (pacstrap trva dlouho)
+    fcntl.flock(base_fd, fcntl.LOCK_EX)
+    action = sys.argv[1]
+    if action in ("reset", "destroy"):
+        destroy(base_fd, pw)
+    if action in ("create", "reset"):
+        create(base_fd, pw)
+
+
+if __name__ == "__main__":
+    main()

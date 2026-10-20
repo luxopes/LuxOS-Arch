@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Safe
+Name[cs]=Trezor
+Comment=Encrypted folder for sensitive files
+Comment[cs]=Šifrovaná složka pro citlivá data
+Exec=luxos-safe
+Icon=luxos-safe
+Terminal=false
+Categories=Utility;Security;
+Keywords=safe;vault;encrypt;password;trezor;šifrování;heslo;
+StartupWMClass=luxos-safe

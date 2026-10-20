@@ -1,0 +1,24 @@
+# Maintainer: LuxOS Team
+# Trezor: sifrovana slozka /safe/<uzivatel> s vlastnim heslem (gocryptfs)
+
+pkgname=luxos-safe
+pkgver=1.0.0
+pkgrel=2
+pkgdesc="LuxOS Safe - encrypted /safe/<user> folder unlocked with its own password"
+arch=(any)
+url="https://lsl.lux-ai.cz/luxos/"
+license=(MIT)
+depends=(python python-gobject gtk3 gocryptfs fuse3 polkit glib2 luxos-i18n)
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 "$f/luxos-safe" "$pkgdir/usr/bin/luxos-safe"
+    install -Dm755 "$f/luxos-safe-helper" "$pkgdir/usr/lib/luxos/luxos-safe-helper"
+    install -Dm644 "$f/org.luxos.safe.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.safe.policy"
+    install -Dm644 "$f/60-luxos-safe.conf" "$pkgdir/usr/lib/sysctl.d/60-luxos-safe.conf"
+    install -Dm644 "$f/luxos-safe-watch.service" "$pkgdir/usr/lib/systemd/user/luxos-safe-watch.service"
+    install -Dm644 "$f/luxos-safe.desktop" "$pkgdir/usr/share/applications/luxos-safe.desktop"
+    install -Dm644 "$f/luxos-safe.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-safe.svg"
+    install -dm755 "$pkgdir/safe"
+    install -dm711 "$pkgdir/safe/.vaults"
+}

@@ -1,6 +1,7 @@
 #!/bin/bash
 # LuxOS - spousti se pri kazdem prihlaseni do XFCE (autostart)
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
+. /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
 mkdir -p "$cfg"
 
 # Prvni prihlaseni: standardni adresare a vychozi vzhled
@@ -24,6 +25,18 @@ else
     rm -f "$cfg/dock-autohide"
 fi
 pgrep -u "$USER" -x luxos-menubar >/dev/null || luxos-menubar &
+# Trezor: hlidac zamykani (zamceni obrazovky, uspani, odhlaseni) a zalozka v Souborech
+if command -v luxos-safe >/dev/null; then
+    systemctl --user start luxos-safe-watch.service 2>/dev/null &
+    bm="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/bookmarks"
+    if [[ -d /safe/$USER ]] && ! grep -qs "^file:///safe/$USER " "$bm"; then
+        mkdir -p "${bm%/*}"
+        printf 'file:///safe/%s %s\n' "$USER" "$(T "Safe")" >>"$bm"
+    fi
+fi
+
+# Ovladaci centrum predem nactene a skryte - klik v liste ho ukaze okamzite
+luxos-control-center --daemon &
 # Sporic dat: merene pripojeni plati jen do odpojeni, po prihlaseni znovu
 luxos-datasaver reapply &
 

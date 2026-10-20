@@ -1,0 +1,731 @@
+#!/usr/bin/env python3
+"""LuxOS Sandbox - izolovane prostredi pro neduveryhodne aplikace (jedno na uzivatele).
+
+Koren sandboxu (minimalni Arch) je v /var/lib/luxos/sandbox/<uzivatel> (vlastni ho
+uzivatel, 0700), odkaz /dev/sandbox/<uzivatel> vytvari systemd-tmpfiles. Vytvoreni
+a smazani dela privilegovany pomocnik pres pkexec, vse ostatni bezi bez root prav
+v bubblewrapu (bwrap): vlastni user/pid/ipc/uts/cgroup/net namespace, zadne
+schopnosti (capabilities), seccomp filtr, zadny pristup k domovu, D-Bus, X11 hostitele.
+
+Vrstvy spusteni (vnejsi -> vnitrni):
+  systemd-run --user --scope (limity pameti/CPU/procesu)
+    -> pasta (jen s --net: NAT sit v novem net namespace, nikdy sit hostitele)
+      -> luxos-sandbox __enter (otevre adresare korene jako FD, nastavi smerovani)
+        -> bwrap ... prikaz
+
+Pozor na bezpecnost: obsah korene sandboxu je pod kontrolou neduveryhodneho kodu.
+Hostitelska strana proto do nej nikdy nezapisuje pres cesty (symlinky!): adresare
+se otviraji s O_NOFOLLOW a do bwrap se predavaji jako FD (--bind-fd), kopirovani
+souboru dovnitr dela proces uvnitr sandboxu (data jdou pres stdin).
+"""
+import json
+import os
+import re
+import secrets
+import shutil
+import stat
+import struct
+import subprocess
+import sys
+import time
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+try:
+    from luxos_i18n import _  # noqa: E402
+except ImportError:  # mimo LuxOS (testy) - anglicky
+    def _(text):
+        return text
+# LUXOS_SANDBOX_BASE je jen pro automaticke testy (viz tests/isolation-test.sh);
+# bez LUXOS_SANDBOX_TESTING=1 se ignoruje.
+TESTING = os.environ.get("LUXOS_SANDBOX_TESTING") == "1"
+if TESTING:   # testy ze zdrojoveho stromu: modul je vedle skriptu (bez __pycache__ v repozitari)
+    sys.dont_write_bytecode = True
+    sys.path.insert(1, os.path.dirname(os.path.realpath(__file__)))
+from luxos_sandbox_seccomp import filter_bytes  # noqa: E402
+
+PROG = "luxos-sandbox"
+BASE = os.environ.get("LUXOS_SANDBOX_BASE", "/var/lib/luxos/sandbox") if TESTING else "/var/lib/luxos/sandbox"
+HELPER = "/usr/lib/luxos/sandbox/luxos-sandbox-helper"
+SHARED_HOST = os.path.expanduser("~/Sandbox")
+if TESTING and os.environ.get("LUXOS_SANDBOX_SHARED"):
+    SHARED_HOST = os.environ["LUXOS_SANDBOX_SHARED"]
+SANDBOX_HOME = "/home/sandbox"
+SHARED_IN = SANDBOX_HOME + "/Shared"
+DNS_ADDR = "169.254.1.53"
+# Trvale adresare korene (ostatni cesty v / jsou docasne - tmpfs)
+PERSIST_DIRS = ("usr", "etc", "var", "opt", "srv", "root", "mnt")
+# Balicky zakladniho systemu (shodne s pomocnikem) - nejsou to "aplikace"
+BASE_PACKAGES = ("base", "filesystem", "bash", "coreutils", "pacman", "archlinux-keyring", "ca-certificates",
+                 "sed", "grep", "gawk", "findutils", "tar", "gzip", "xz", "zstd", "less", "nano",
+                 "which", "procps-ng", "curl", "file", "diffutils", "glibc")
+PKG_RE = re.compile(r"^[a-z0-9@_+][a-z0-9@._+-]*$")
+# Neduveryhodny vystup (napr. seznam balicku) - bez ridicich znaku terminalu
+CTRL_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f\x9b]")
+
+# Vychozi limity (systemd scope); procenta pameti jsou z celkove RAM
+LIMITS = {"MemoryMax": "50%", "MemorySwapMax": "1G", "TasksMax": "512"}
+
+
+def die(msg, code=1):
+    print(f"{PROG}: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def info(msg):
+    print(msg, file=sys.stderr)
+
+
+_USER = []
+IN_NS = False   # True ve vnitrnim kroku pod pastou (jine mapovani UID)
+
+
+def username():
+    # Uvnitr namespace od pasty jsme "root" - jmeno se pak bere ze spec (viz enter)
+    if not _USER:
+        import pwd
+        _USER.append(pwd.getpwuid(os.getuid()).pw_name)
+    return _USER[0]
+
+
+# ---- bezpecne otevirani cest ------------------------------------------------
+def open_dir_nofollow(path, trusted_owner=None):
+    """Otevre adresar po jednotlivych komponentach bez nasledovani symlinku.
+
+    trusted_owner: mnozina UID, ktere smi vlastnit kazdou komponentu (jinak chyba)
+    a zadna komponenta nesmi byt zapisovatelna pro skupinu/ostatni (krome sticky /tmp).
+    """
+    if not path.startswith("/"):
+        raise ValueError(path)
+    fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    try:
+        for comp in [c for c in path.split("/") if c]:
+            if comp in (".", ".."):
+                raise OSError(f"invalid path component in {path}")
+            nfd = os.open(comp, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd)
+            os.close(fd)
+            fd = nfd
+            if trusted_owner is not None:
+                st = os.fstat(fd)
+                if st.st_uid not in trusted_owner or (st.st_mode & 0o022 and not st.st_mode & stat.S_ISVTX):
+                    raise OSError(f"unsafe ownership or permissions on {path} ({comp})")
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def open_sub(dir_fd, rel, create=False, mode=0o755):
+    """Otevre podadresar (rel bez ..) pod dir_fd s O_NOFOLLOW, volitelne ho vytvori."""
+    fd = os.dup(dir_fd)
+    try:
+        for comp in [c for c in rel.split("/") if c]:
+            if comp in (".", ".."):
+                raise OSError("invalid path")
+            try:
+                nfd = os.open(comp, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd)
+            except FileNotFoundError:
+                if not create:
+                    raise
+                os.mkdir(comp, mode, dir_fd=fd)
+                nfd = os.open(comp, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd)
+            os.close(fd)
+            fd = nfd
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def root_path():
+    return os.path.join(BASE, username())
+
+
+def open_root():
+    """FD korene sandboxu; overi, ze cesta je bezpecna a koren patri uzivateli (0700)."""
+    if IN_NS:
+        # V user namespace od pasty se root hostitele jevi jako overflowuid (65534)
+        # a uzivatel jako 0
+        try:
+            with open("/proc/sys/kernel/overflowuid") as f:
+                trusted = {int(f.read())}
+        except (OSError, ValueError):
+            trusted = {65534}
+        if TESTING:
+            trusted.add(0)
+    else:
+        trusted = {0, os.getuid()} if TESTING else {0}
+    try:
+        base_fd = open_dir_nofollow(BASE, trusted)
+    except FileNotFoundError:
+        return None
+    try:
+        fd = os.open(username(), os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=base_fd)
+    except FileNotFoundError:
+        return None
+    finally:
+        os.close(base_fd)
+    st = os.fstat(fd)
+    if st.st_uid != os.getuid():
+        os.close(fd)
+        die(_("Sandbox directory is not owned by you: %s") % root_path())
+    if st.st_mode & 0o077:
+        os.fchmod(fd, 0o700)
+    try:
+        os.stat("usr/bin", dir_fd=fd, follow_symlinks=False)
+    except FileNotFoundError:
+        os.close(fd)
+        return None   # prazdny/rozpracovany adresar
+    return fd
+
+
+def exists():
+    fd = open_root()
+    if fd is None:
+        return False
+    os.close(fd)
+    return True
+
+
+def require_sandbox():
+    if not exists():
+        die(_("No sandbox yet. Create it with: luxos-sandbox create"))
+
+
+# ---- X11 (Xephyr) ---------------------------------------------------------------
+def xauth_record(cookie):
+    """Zaznam .Xauthority: FamilyWild, prazdne cislo displeje = plati pro libovolny displej."""
+    def field(b):
+        return struct.pack(">H", len(b)) + b
+    return struct.pack(">H", 0xFFFF) + field(b"") + field(b"") + field(b"MIT-MAGIC-COOKIE-1") + field(cookie)
+
+
+class Xephyr:
+    """Vnoreny X server v samostatnem okne; do sandboxu jde jen jeho socket."""
+
+    def __init__(self, title):
+        self.title = title
+        self.proc = None
+        self.display = None
+        self.authfile = None
+
+    def start(self):
+        if not shutil.which("Xephyr"):
+            die(_("Xephyr is not installed (package xorg-server-xephyr)."))
+        rundir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+        d = os.path.join(rundir, "luxos-sandbox")
+        os.makedirs(d, mode=0o700, exist_ok=True)
+        self.cookie = secrets.token_bytes(16)
+        self.authfile = os.path.join(d, f"xauth-{os.getpid()}")
+        fd = os.open(self.authfile, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(fd, "wb") as f:
+            f.write(xauth_record(self.cookie))
+        r, w = os.pipe()
+        cmd = ["Xephyr", "-displayfd", str(w), "-title", self.title, "-screen", "1280x800", "-resizeable",
+               "-nolisten", "tcp", "-nolisten", "local", "-auth", self.authfile, "-br", "-noreset"]
+        self.proc = subprocess.Popen(cmd, pass_fds=(w,), stdin=subprocess.DEVNULL,
+                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        os.close(w)
+        data = b""
+        deadline = time.time() + 15
+        while not data.endswith(b"\n") and time.time() < deadline:
+            chunk = os.read(r, 32)
+            if not chunk:
+                break
+            data += chunk
+        os.close(r)
+        if not data.strip().isdigit():
+            self.stop()
+            die(_("Could not start the sandbox window (Xephyr)."))
+        self.display = int(data.strip())
+        sock = f"/tmp/.X11-unix/X{self.display}"
+        for _i in range(50):
+            if os.path.exists(sock):
+                break
+            time.sleep(0.1)
+        return sock
+
+    def stop(self):
+        if self.proc and self.proc.poll() is None:
+            self.proc.terminate()
+            try:
+                self.proc.wait(5)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+        if self.authfile:
+            try:
+                os.unlink(self.authfile)
+            except OSError:
+                pass
+
+
+# ---- sit ------------------------------------------------------------------------
+def host_addresses():
+    """Vsechny adresy hostitele (aby na ne sandbox se site nedosahl)."""
+    try:
+        out = subprocess.run(["ip", "-j", "addr"], capture_output=True, text=True, timeout=5).stdout
+        addrs = []
+        for link in json.loads(out or "[]"):
+            for a in link.get("addr_info", []):
+                if a.get("local"):
+                    addrs.append(a["local"])
+        return addrs
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return []
+
+
+# Soukrome a specialni rozsahy - sandbox se siti vidi jen internet, ne LAN ani hostitele
+BLOCK4 = ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.64.0.0/10", "169.254.0.0/16",
+          "192.0.0.0/24", "198.18.0.0/15", "224.0.0.0/4", "240.0.0.0/4", "0.0.0.0/8")
+BLOCK6 = ("fc00::/7", "fec0::/10", "ff00::/8")
+
+
+def ip(*args, check=False):
+    return subprocess.run(["ip", *args], capture_output=True, text=True, check=check)
+
+
+def setup_netns(spec):
+    """Bezi v net namespace od pasty (jsme tam root): zakazat LAN a adresy hostitele."""
+    routes = json.loads(ip("-j", "-4", "route").stdout or "[]")
+    default = next((r for r in routes if r.get("dst") == "default" and r.get("gateway")), None)
+    if default:
+        dev, gw = default["dev"], default["gateway"]
+        # Primo pripojene site (LAN) pryc; brana zustane dosazitelna jako onlink
+        for r in routes:
+            if r.get("protocol") == "kernel" and r.get("scope") == "link":
+                ip("-4", "route", "del", r["dst"], "dev", r["dev"])
+        ip("-4", "route", "replace", "default", "via", gw, "dev", dev, "onlink", check=True)
+        ip("-4", "route", "add", DNS_ADDR + "/32", "dev", dev)
+    for pfx in BLOCK4:
+        ip("-4", "route", "add", "prohibit", pfx)
+    for pfx in BLOCK6:
+        ip("-6", "route", "add", "prohibit", pfx)
+    local = set()
+    for link in json.loads(ip("-j", "addr").stdout or "[]"):
+        for a in link.get("addr_info", []):
+            local.add(a.get("local"))
+    for a in spec.get("host_addrs", []):
+        if a in local or a.startswith("fe80:"):
+            continue   # adresa namespace sameho (nebo link-local) - pakety k hostiteli nevedou
+        fam = "-6" if ":" in a else "-4"
+        ip(fam, "route", "add", "prohibit", a + ("/128" if ":" in a else "/32"))
+
+
+# ---- spusteni -------------------------------------------------------------------
+def systemd_scope_available():
+    rundir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+    return bool(shutil.which("systemd-run")) and os.path.exists(os.path.join(rundir, "systemd/private")) \
+        and os.environ.get("LUXOS_SANDBOX_NO_SCOPE") != "1"
+
+
+def launch(spec, stdin=None):
+    """Spusti prikaz v sandboxu podle spec; vrati navratovy kod."""
+    spec = dict(spec)
+    spec.setdefault("tty", sys.stdin.isatty() and sys.stdout.isatty() and stdin is None)
+    if spec.get("net"):
+        if not shutil.which("pasta"):
+            die(_("Network for the sandbox needs pasta (package passt)."))
+        spec["host_addrs"] = host_addresses()
+    cmd = [sys.executable, "-I", os.path.realpath(__file__), "__enter"]
+    env = dict(os.environ)
+    env["LUXOS_SANDBOX_SPEC"] = json.dumps(spec)
+    if spec.get("net"):
+        cmd = ["pasta", "--config-net", "--quiet", "--no-map-gw", "-t", "none", "-u", "none", "-T", "none",
+               "-U", "none", "--dns-forward", DNS_ADDR, "--", *cmd]
+    if systemd_scope_available():
+        ncpu = os.cpu_count() or 2
+        quota = max(100, ncpu * 100 * 3 // 4)
+        props = [f"{k}={v}" for k, v in LIMITS.items()] + [f"CPUQuota={quota}%"]
+        cmd = ["systemd-run", "--user", "--scope", "--quiet", "--collect",
+               f"--unit=luxos-sandbox-{os.getpid()}-{secrets.token_hex(3)}",
+               *[x for p in props for x in ("-p", p)], "--", *cmd]
+    elif not spec.get("quiet"):
+        info(_("Warning: systemd user session not available, running without memory/CPU limits."))
+    try:
+        r = subprocess.run(cmd, env=env, stdin=stdin)
+    except KeyboardInterrupt:
+        return 130
+    return r.returncode
+
+
+def bwrap_args(spec, fds):
+    """Sestavi argumenty bwrap. fds: seznam FD, ktere musi zustat otevrene."""
+    def keep(fd):
+        os.set_inheritable(fd, True)
+        fds.append(fd)
+        return str(fd)
+
+    def data_fd(content):
+        fd = os.memfd_create("luxos-sandbox", 0)
+        os.write(fd, content)
+        os.lseek(fd, 0, os.SEEK_SET)
+        return keep(fd)
+
+    install = spec["mode"] == "install"
+    root_fd = open_root()
+    if root_fd is None:
+        die(_("No sandbox yet. Create it with: luxos-sandbox create"))
+    a = ["bwrap", "--unshare-all", "--die-with-parent", "--hostname", "sandbox", "--clearenv"]
+    if spec.get("net"):
+        a += ["--share-net"]          # sdili jen net namespace vytvoreny pastou, ne hostitele
+    if not spec.get("tty"):
+        a += ["--new-session"]        # bez ridiciho terminalu (ochrana proti TIOCSTI)
+    if install:
+        a += ["--uid", "0", "--gid", "0", "--cap-drop", "ALL", "--cap-add", "CAP_SYS_CHROOT"]
+    else:
+        a += ["--uid", str(spec["uid"]), "--gid", str(spec["gid"]), "--cap-drop", "ALL"]
+    # Koren je cerstvy tmpfs od bwrap; trvale adresare se pripoji jako FD (bez symlinku)
+    for d in PERSIST_DIRS:
+        try:
+            fd = open_sub(root_fd, d, create=(d in ("opt", "srv", "mnt", "root")), mode=0o755)
+        except OSError:
+            continue
+        a += ["--bind-fd", keep(fd), "/" + d]
+    for link, target in (("bin", "usr/bin"), ("sbin", "usr/bin"), ("lib", "usr/lib"), ("lib64", "usr/lib")):
+        a += ["--symlink", target, "/" + link]
+    a += ["--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp", "--tmpfs", "/run",
+          "--dir", "/run/luxos", "--tmpfs", "/home"]
+    try:
+        home_fd = open_sub(root_fd, "home/sandbox", create=True, mode=0o700)
+    except OSError:
+        die(_("The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset"))
+    a += ["--bind-fd", keep(home_fd), SANDBOX_HOME]
+    if spec.get("shared"):
+        try:
+            shared_fd = open_shared()
+        except OSError as e:
+            die(_("Shared folder is not usable: %s") % e)
+        try:
+            os.unlink("Shared", dir_fd=home_fd)   # pripadny podvrzeny symlink
+        except (FileNotFoundError, IsADirectoryError, PermissionError):
+            pass
+        except OSError:
+            pass
+        a += ["--bind-fd", keep(shared_fd), SHARED_IN]
+    if spec.get("net"):
+        a += ["--ro-bind-data", data_fd(f"nameserver {DNS_ADDR}\noptions edns0\n".encode()),
+              "/run/luxos/resolv.conf"]
+    env = {"PATH": "/usr/local/sbin:/usr/local/bin:/usr/bin", "LANG": "C.UTF-8", "SHELL": "/bin/bash",
+           "HOME": "/root" if install else SANDBOX_HOME, "USER": "root" if install else "sandbox",
+           "LOGNAME": "root" if install else "sandbox", "XDG_RUNTIME_DIR": "/run/luxos/runtime",
+           "TERM": spec.get("term") or "xterm-256color", "LUXOS_SANDBOX": "1",
+           "PS1": r"\[\e[1;35m\][sandbox]\[\e[0m\] \w \$ "}
+    a += ["--dir", "/run/luxos/runtime", "--chmod", "0700", "/run/luxos/runtime"]
+    if spec.get("x11"):
+        a += ["--bind", spec["x11"], "/tmp/.X11-unix/X0",
+              "--ro-bind-data", data_fd(bytes.fromhex(spec["xauth"])), "/run/luxos/Xauthority"]
+        env.update({"DISPLAY": ":0", "XAUTHORITY": "/run/luxos/Xauthority", "GDK_BACKEND": "x11",
+                    "QT_QPA_PLATFORM": "xcb", "NO_AT_BRIDGE": "1"})
+    for k, v in env.items():
+        a += ["--setenv", k, v]
+    a += ["--seccomp", data_fd(filter_bytes(spec["mode"]))]
+    a += ["--remount-ro", "/", "--chdir", "/root" if install else SANDBOX_HOME, "--"]
+    a += spec["argv"]
+    os.close(root_fd)
+    return a
+
+
+def open_shared():
+    """~/Sandbox (vytvori se 0700); nesmi to byt symlink."""
+    home_fd = open_dir_nofollow(os.path.dirname(SHARED_HOST))
+    try:
+        return open_sub(home_fd, os.path.basename(SHARED_HOST), create=True, mode=0o700)
+    finally:
+        os.close(home_fd)
+
+
+def enter():
+    """Vnitrni krok: (v namespace od pasty) priprava site a exec bwrap."""
+    spec = json.loads(os.environ.pop("LUXOS_SANDBOX_SPEC"))
+    _USER[:] = [spec["user"]]
+    global IN_NS
+    IN_NS = bool(spec.get("net"))
+    if spec.get("net"):
+        try:
+            setup_netns(spec)
+        except (OSError, subprocess.CalledProcessError, ValueError) as e:
+            die(_("Could not set up the sandbox network: %s") % e)
+    fds = []
+    args = bwrap_args(spec, fds)
+    if os.environ.get("LUXOS_SANDBOX_DEBUG") == "1":
+        info(" ".join(args))
+    try:
+        os.execvp("bwrap", args)
+    except FileNotFoundError:
+        die(_("bubblewrap (bwrap) is not installed."))
+
+
+def base_spec(argv, mode="run", **kw):
+    spec = {"mode": mode, "argv": argv, "uid": os.getuid(), "gid": os.getgid(), "user": username(),
+            "term": os.environ.get("TERM", "")}
+    spec.update(kw)
+    return spec
+
+
+# ---- prikazy --------------------------------------------------------------------
+def cmd_create(args):
+    if exists():
+        print(_("Sandbox already exists: %s") % root_path())
+        return 0
+    if not os.path.exists(HELPER):
+        die(_("Helper not found: %s") % HELPER)
+    print(_("Creating sandbox (minimal Arch Linux system), this can take a few minutes..."))
+    r = subprocess.run(["pkexec", HELPER, "create"])
+    if r.returncode != 0:
+        die(_("Creating the sandbox failed."))
+    try:
+        os.close(open_shared())
+    except OSError:
+        pass
+    print(_("Sandbox is ready: %s") % root_path())
+    return 0
+
+
+APP_QUERY = r"""
+pacman -Qqe | while read -r p; do
+  bins=$(pacman -Qlq "$p" 2>/dev/null | grep -E '^/usr/bin/[^/]+$')
+  b=$(printf '%s\n' "$bins" | grep -x "/usr/bin/$p" || printf '%s\n' "$bins" | grep -x "/usr/bin/${p#*-}" \
+      || printf '%s\n' "$bins" | head -n 1)
+  printf '%s\t%s\n' "$p" "$b"
+done
+"""
+BIN_RE = re.compile(r"^/usr/bin/[A-Za-z0-9._+-]+$")
+
+
+def list_apps():
+    """{balik: prikaz} explicitne nainstalovanych balicku mimo zakladni system.
+
+    Dotaz bezi uvnitr sandboxu (bez site); vystup je neduveryhodny, proto se filtruje."""
+    out = subprocess.run([sys.executable, "-I", os.path.realpath(__file__), "__query"],
+                         capture_output=True, text=True, errors="replace").stdout
+    apps = {}
+    for line in out.splitlines()[:2000]:
+        name, _sep, cmd = CTRL_RE.sub("", line).strip().partition("\t")
+        if name and PKG_RE.match(name) and name not in BASE_PACKAGES:
+            apps[name] = cmd if BIN_RE.match(cmd) else ""
+    return apps
+
+
+def cmd_query(args):
+    # Pomocny vnitrni prikaz pro list_apps (bez site a bez terminalu)
+    spec = base_spec(["/bin/sh", "-c", APP_QUERY], tty=False, quiet=True)
+    return launch(spec, stdin=subprocess.DEVNULL)
+
+
+def du(fd):
+    total = 0
+    for _root, _dirs, files, rootfd in os.fwalk(".", dir_fd=fd, follow_symlinks=False):
+        for name in files:
+            try:
+                total += os.stat(name, dir_fd=rootfd, follow_symlinks=False).st_blocks * 512
+            except OSError:
+                pass
+    return total
+
+
+def cmd_status(args):
+    fd = open_root()
+    if fd is None:
+        if "--json" in args:
+            print(json.dumps({"exists": False}))
+        else:
+            print(_("No sandbox yet. Create it with: luxos-sandbox create"))
+        return 1
+    size = du(fd)
+    os.close(fd)
+    if "--json" in args:
+        print(json.dumps({"exists": True, "path": root_path(), "size": size, "shared": SHARED_HOST,
+                          "link": f"/dev/sandbox/{username()}", "apps": list_apps()}))
+        return 0
+    print(_("Sandbox: %s") % root_path())
+    if os.path.islink(f"/dev/sandbox/{username()}"):
+        print(_("Link: %s") % f"/dev/sandbox/{username()}")
+    print(_("Size: %s") % f"{size / 1024 / 1024:.0f} MiB")
+    print(_("Shared folder: %s (only with --shared)") % SHARED_HOST)
+    apps = list_apps()
+    print(_("Installed apps: %s") % (", ".join(apps) if apps else _("none")))
+    return 0
+
+
+def cmd_shell(args):
+    require_sandbox()
+    net = "--net" in args
+    shared = "--shared" in args
+    return launch(base_spec(["/bin/bash", "-l"], net=net, shared=shared))
+
+
+def import_file(path):
+    """Zkopiruje soubor hostitele do ~/Downloads v sandboxu (data pres stdin, nikdy bind)."""
+    try:
+        f = open(path, "rb")
+    except OSError as e:
+        die(str(e))
+    if not stat.S_ISREG(os.fstat(f.fileno()).st_mode):
+        die(_("Not a regular file: %s") % path)
+    name = re.sub(r"[^A-Za-z0-9._+-]", "_", os.path.basename(path)).lstrip(".") or "program"
+    script = 'mkdir -p "$HOME/Downloads" && cat > "$HOME/Downloads/$1" && chmod 755 "$HOME/Downloads/$1"'
+    with f:
+        rc = launch(base_spec(["/bin/sh", "-c", script, "sh", name], tty=False), stdin=f)
+    if rc != 0:
+        die(_("Copying the file into the sandbox failed."))
+    return f"{SANDBOX_HOME}/Downloads/{name}"
+
+
+def is_host_file(arg):
+    """Soubor hostitele ke zkopirovani: relativni cesta s '/' (./program) nebo cesta
+    v domove, /tmp ci na vymennem mediu. Systemove cesty (/usr/bin/...) patri sandboxu."""
+    if "/" not in arg:
+        return False
+    path = os.path.abspath(os.path.expanduser(arg))
+    if not (arg.startswith(("./", "../", "~/")) or not arg.startswith("/")):
+        roots = [os.path.expanduser("~"), "/tmp", "/media", "/run/media", "/mnt"]
+        if TESTING:
+            roots.append(os.environ.get("LUXOS_SANDBOX_TEST_IMPORT_ROOT", "/nonexistent"))
+        if not any(path == r or path.startswith(r.rstrip("/") + "/") for r in roots):
+            return False
+    return os.path.isfile(path)
+
+
+def parse_run_opts(args):
+    opts = {"net": False, "gui": False, "shared": False}
+    while args and args[0].startswith("--"):
+        a = args.pop(0)
+        if a == "--":
+            break
+        if a[2:] not in opts:
+            die(_("Unknown option: %s") % a)
+        opts[a[2:]] = True
+    return opts, args
+
+
+def cmd_run(args):
+    require_sandbox()
+    opts, argv = parse_run_opts(list(args))
+    if not argv:
+        die(_("Usage: luxos-sandbox run [--net] [--gui] [--shared] <command...>"))
+    if is_host_file(argv[0]):
+        print(_("Copying %s into the sandbox...") % argv[0], file=sys.stderr)
+        argv[0] = import_file(os.path.expanduser(argv[0]))
+    spec = base_spec(argv, net=opts["net"], shared=opts["shared"])
+    xe = None
+    if opts["gui"]:
+        xe = Xephyr("Sandbox - " + os.path.basename(argv[0]))
+        spec["x11"] = xe.start()
+        spec["xauth"] = xauth_record(xe.cookie).hex()
+        spec["tty"] = False
+    try:
+        return launch(spec)
+    finally:
+        if xe:
+            xe.stop()
+
+
+def valid_pkgs(pkgs):
+    if not pkgs:
+        die(_("No package given."))
+    for p in pkgs:
+        if not PKG_RE.match(p):
+            die(_("Invalid package name: %s") % p)
+    return pkgs
+
+
+def cmd_install(args):
+    require_sandbox()
+    pkgs = valid_pkgs(args)
+    # Stazene balicky se po instalaci smazou (sandbox nema drzet vlastni cache)
+    script = ('/usr/bin/pacman -Syu --needed --noconfirm --disable-sandbox -- "$@"; rc=$?; '
+              'rm -f /var/cache/pacman/pkg/*.pkg.tar.* /var/cache/pacman/pkg/*.sig 2>/dev/null; exit $rc')
+    spec = base_spec(["/bin/sh", "-c", script, "sh", *pkgs], mode="install", net=True)
+    return launch(spec)
+
+
+def cmd_remove_app(args):
+    require_sandbox()
+    pkgs = valid_pkgs(args)
+    spec = base_spec(["/usr/bin/pacman", "-Rns", "--noconfirm", "--", *pkgs], mode="install")
+    return launch(spec)
+
+
+def confirm(question, args):
+    if "--yes" in args or "-y" in args:
+        return True
+    if not sys.stdin.isatty():
+        die(_("Confirmation needed: add --yes"))
+    ans = input(question + " [" + _("yes") + "/" + _("no") + "] ").strip().lower()
+    return ans in ("y", "yes", _("yes"))
+
+
+def cmd_reset(args):
+    if not confirm(_("Wipe the whole sandbox (all installed apps and files inside) and create it again?"), args):
+        return 1
+    r = subprocess.run(["pkexec", HELPER, "reset"])
+    if r.returncode != 0:
+        die(_("Resetting the sandbox failed."))
+    print(_("Sandbox is ready: %s") % root_path())
+    return 0
+
+
+def cmd_destroy(args):
+    if not os.path.isdir(root_path()):
+        print(_("No sandbox yet. Create it with: luxos-sandbox create"))
+        return 0
+    if not confirm(_("Delete the sandbox with everything inside? (~/Sandbox stays)"), args):
+        return 1
+    r = subprocess.run(["pkexec", HELPER, "destroy"])
+    if r.returncode != 0:
+        die(_("Deleting the sandbox failed."))
+    print(_("Sandbox deleted."))
+    return 0
+
+
+USAGE = (
+    ("create", "create your sandbox (asks for the administrator password once)"),
+    ("status [--json]", "show the sandbox, its size and installed apps"),
+    ("shell [--net] [--shared]", "interactive shell inside the sandbox"),
+    ("run [--net] [--gui] [--shared] <command|./file> [args...]",
+     "run a command (a file from your computer is copied in first)"),
+    ("install <package...>", "install apps from the Arch Linux repositories into the sandbox"),
+    ("remove-app <package...>", "remove apps from the sandbox"),
+    ("reset [--yes]", "wipe the sandbox and create it again"),
+    ("destroy [--yes]", "delete the sandbox"),
+    ("--net", "network: internet only, no local network, no services of this computer"),
+    ("--gui", "own window (nested X server), never your desktop"),
+    ("--shared", "make ~/Sandbox visible as /home/sandbox/Shared"),
+)
+
+
+def usage():
+    print("luxos-sandbox - " + _("isolated sandbox for untrusted applications") + "\n")
+    for cmd, desc in USAGE:
+        print(f"  {cmd}")
+        print(f"      {_(desc)}")
+
+
+def on_signal(signum, _frame):
+    # SIGTERM/SIGHUP -> beznou cestou ven, aby se ukoncil i Xephyr (finally v cmd_run)
+    raise SystemExit(128 + signum)
+
+
+def main():
+    import signal
+    signal.signal(signal.SIGTERM, on_signal)
+    signal.signal(signal.SIGHUP, on_signal)
+    argv = sys.argv[1:]
+    if not argv or argv[0] in ("-h", "--help", "help"):
+        usage()
+        return 0
+    if os.geteuid() == 0 and argv[0] not in ("__enter",):
+        die(_("Run luxos-sandbox as a normal user, not root."))
+    cmd, args = argv[0], argv[1:]
+    table = {"create": cmd_create, "status": cmd_status, "shell": cmd_shell, "run": cmd_run,
+             "install": cmd_install, "remove-app": cmd_remove_app, "reset": cmd_reset,
+             "destroy": cmd_destroy, "__query": cmd_query}
+    if cmd == "__enter":
+        enter()
+        return 1
+    if cmd not in table:
+        die(_("Unknown command: %s") % cmd)
+    return table[cmd](args) or 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -539,3 +539,126 @@ Require password after the screen saver starts	Vyžadovat heslo po spuštění s
 The screen saver protects your computer while you are away.	Spořič chrání počítač, když od něj odejdete.
 Lock when the computer goes to sleep	Zamknout při uspání počítače
 Lock Now	Zamknout teď
+# Trezor
+Could not create the Safe folder.	Složku Trezor se nepodařilo vytvořit.
+The Safe already exists.	Trezor už existuje.
+Could not create the Safe (%s).	Trezor se nepodařilo vytvořit (%s).
+Wrong password.	Nesprávné heslo.
+Could not unlock the Safe (%s).	Trezor se nepodařilo odemknout (%s).
+Some files in the Safe are still open. Close them and try again.	Některé soubory v Trezoru jsou ještě otevřené. Zavřete je a zkuste to znovu.
+Could not change the password (%s).	Heslo se nepodařilo změnit (%s).
+Safe	Trezor
+Create your Safe	Vytvořte si Trezor
+Files in the Safe are encrypted and open only with its own password - not even an administrator can read them while the Safe is locked.	Soubory v Trezoru jsou zašifrované a otevřou se jen jeho vlastním heslem - dokud je Trezor zamčený, nepřečte je ani správce počítače.
+New Safe password	Nové heslo Trezoru
+Password again	Heslo znovu
+Use at least 8 characters.	Použijte alespoň 8 znaků.
+Create Safe	Vytvořit Trezor
+If you forget this password, the files cannot be recovered.	Když heslo zapomenete, soubory už nepůjde obnovit.
+The Safe is locked	Trezor je zamčený
+Enter the Safe password to open %s.	Zadejte heslo Trezoru a otevřete %s.
+Unlock	Odemknout
+The Safe is unlocked	Trezor je odemčený
+Your files are available in %s.	Vaše soubory jsou v %s.
+Open Safe	Otevřít Trezor
+Lock automatically after inactivity	Zamknout automaticky po nečinnosti
+Lock when the screen locks	Zamknout při zamčení obrazovky
+The Safe always locks when the computer goes to sleep or you log out.	Při uspání počítače nebo odhlášení se Trezor zamkne vždy.
+Change Password…	Změnit heslo…
+Change Password	Změnit heslo
+Change	Změnit
+Current password	Současné heslo
+# Sandbox (luxos-sandbox)
+Creating sandbox (minimal Arch Linux system), this can take a few minutes...	Vytvářím sandbox (minimální systém Arch Linux), může to trvat několik minut...
+Sandbox deleted.	Sandbox byl smazán.
+No sandbox yet. Create it with: luxos-sandbox create	Sandbox zatím neexistuje. Vytvoříte ho příkazem: luxos-sandbox create
+Creating the sandbox failed.	Vytvoření sandboxu se nezdařilo.
+Sandbox is ready: %s	Sandbox je připravený: %s
+Size: %s	Velikost: %s
+Shared folder: %s (only with --shared)	Sdílená složka: %s (jen s --shared)
+Installed apps: %s	Nainstalované aplikace: %s
+Copying the file into the sandbox failed.	Kopírování souboru do sandboxu se nezdařilo.
+Usage: luxos-sandbox run [--net] [--gui] [--shared] <command...>	Použití: luxos-sandbox run [--net] [--gui] [--shared] <příkaz...>
+No package given.	Nebyl zadán žádný balík.
+Confirmation needed: add --yes	Je potřeba potvrzení: přidejte --yes
+Wipe the whole sandbox (all installed apps and files inside) and create it again?	Smazat celý sandbox (všechny aplikace a soubory v něm) a vytvořit ho znovu?
+Resetting the sandbox failed.	Obnovení sandboxu se nezdařilo.
+Delete the sandbox with everything inside? (~/Sandbox stays)	Smazat sandbox se vším, co obsahuje? (~/Sandbox zůstane)
+Deleting the sandbox failed.	Smazání sandboxu se nezdařilo.
+Run luxos-sandbox as a normal user, not root.	Spouštějte luxos-sandbox jako běžný uživatel, ne jako root.
+Sandbox directory is not owned by you: %s	Adresář sandboxu vám nepatří: %s
+Xephyr is not installed (package xorg-server-xephyr).	Xephyr není nainstalovaný (balík xorg-server-xephyr).
+Could not start the sandbox window (Xephyr).	Nepodařilo se otevřít okno sandboxu (Xephyr).
+Network for the sandbox needs pasta (package passt).	Síť pro sandbox potřebuje pastu (balík passt).
+Warning: systemd user session not available, running without memory/CPU limits.	Upozornění: uživatelská relace systemd není dostupná, spouštím bez omezení paměti a procesoru.
+The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	Sandbox je poškozený (domovská složka není adresář). Spusťte: luxos-sandbox reset
+bubblewrap (bwrap) is not installed.	bubblewrap (bwrap) není nainstalovaný.
+Sandbox already exists: %s	Sandbox už existuje: %s
+Helper not found: %s	Pomocný program nenalezen: %s
+Link: %s	Odkaz: %s
+none	žádné
+Not a regular file: %s	Není to běžný soubor: %s
+Copying %s into the sandbox...	Kopíruji %s do sandboxu...
+isolated sandbox for untrusted applications	izolovaný sandbox pro nedůvěryhodné aplikace
+Unknown command: %s	Neznámý příkaz: %s
+Unknown option: %s	Neznámá volba: %s
+Shared folder is not usable: %s	Sdílenou složku nelze použít: %s
+Could not set up the sandbox network: %s	Nepodařilo se nastavit síť sandboxu: %s
+create your sandbox (asks for the administrator password once)	vytvoří váš sandbox (jednou se zeptá na heslo správce)
+show the sandbox, its size and installed apps	zobrazí sandbox, jeho velikost a nainstalované aplikace
+interactive shell inside the sandbox	interaktivní příkazový řádek v sandboxu
+run a command (a file from your computer is copied in first)	spustí příkaz (soubor z počítače se nejdřív zkopíruje dovnitř)
+install apps from the Arch Linux repositories into the sandbox	nainstaluje aplikace z repozitářů Arch Linuxu do sandboxu
+remove apps from the sandbox	odebere aplikace ze sandboxu
+wipe the sandbox and create it again	smaže sandbox a vytvoří ho znovu
+delete the sandbox	smaže sandbox
+network: internet only, no local network, no services of this computer	síť: jen internet, žádná místní síť ani služby tohoto počítače
+own window (nested X server), never your desktop	vlastní okno (vnořený X server), nikdy vaše plocha
+make ~/Sandbox visible as /home/sandbox/Shared	zpřístupní ~/Sandbox jako /home/sandbox/Shared
+Get started	Začínáme
+No sandbox yet	Sandbox zatím neexistuje
+Creates a minimal Arch Linux system only for you. Needs the administrator password once and a few minutes.	Vytvoří minimální systém Arch Linux jen pro vás. Jednou je potřeba heslo správce a několik minut.
+Installed apps	Nainstalované aplikace
+Install app	Instalovat aplikaci
+From Arch Linux repositories	Z repozitářů Arch Linuxu
+Installs into the sandbox only; network is enabled just for the download.	Instaluje se jen do sandboxu; síť je zapnutá pouze pro stahování.
+Run app	Spustit aplikaci
+Command	Příkaz
+Downloaded file	Stažený soubor
+The file is copied into the sandbox first; the original is never exposed.	Soubor se nejdřív zkopíruje do sandboxu; originál zůstane mimo jeho dosah.
+Internet only - no access to your local network or this computer.	Jen internet – bez přístupu do místní sítě a k tomuto počítači.
+Window	Okno
+Show the app in its own separate window (not on your desktop).	Zobrazit aplikaci ve vlastním odděleném okně (ne na vaší ploše).
+Shared folder	Sdílená složka
+Tools	Nástroje
+Terminal in sandbox	Terminál v sandboxu
+Uses the Network and Shared folder switches above.	Použije přepínače Síť a Sdílená složka výše.
+Reset sandbox	Obnovit sandbox
+Deletes everything inside the sandbox and creates it again.	Smaže vše v sandboxu a vytvoří ho znovu.
+Creating sandbox…	Vytvářím sandbox…
+Sandbox is ready.	Sandbox je připravený.
+Installed.	Nainstalováno.
+Run	Spustit
+Reset the sandbox?	Obnovit sandbox?
+All apps and files inside the sandbox will be deleted. ~/Sandbox stays.	Všechny aplikace a soubory v sandboxu budou smazány. ~/Sandbox zůstane.
+Continue	Pokračovat
+An isolated system for apps you don't trust. Apps inside can't see your files, network or desktop.	Izolovaný systém pro aplikace, kterým nedůvěřujete. Aplikace uvnitř nevidí vaše soubory, síť ani plochu.
+Create Sandbox	Vytvořit sandbox
+Package name, e.g. firefox	Název balíku, např. firefox
+Command, e.g. firefox	Příkaz, např. firefox
+Choose File…	Vybrat soubor…
+Make %s visible inside as Shared. Treat files from it as untrusted.	Zpřístupnit %s uvnitř jako Shared. Soubory z ní berte jako nedůvěryhodné.
+Open Terminal	Otevřít terminál
+Reset…	Obnovit…
+Details	Podrobnosti
+Ready	Připraveno
+Not created	Nevytvořeno
+No apps installed yet	Zatím žádné aplikace
+Failed - see Details.	Nezdařilo se – viz Podrobnosti.
+Enter a valid package name.	Zadejte platný název balíku.
+Remove %s from the sandbox?	Odebrat %s ze sandboxu?
+Removed.	Odebráno.
+Started %s in the sandbox.	%s spuštěno v sandboxu.
+Enter a command.	Zadejte příkaz.
+Choose a file to run in the sandbox	Vyberte soubor ke spuštění v sandboxu
+Resetting sandbox…	Obnovuji sandbox…
