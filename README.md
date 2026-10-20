@@ -6,7 +6,7 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
   zram swap (zstd), ladění sysctl, I/O plánovače podle typu disku, systemd-oomd, Btrfs se zstd kompresí,
   systemd initramfs, squashfs ISO v zstd (rychlý start live systému).
 - **Vzhled macOS:** horní lišta (logo-menu, název aktivní aplikace, ikony, hodiny), dock Plank se zvětšováním,
-  tlačítka oken vlevo (semafor), WhiteSur GTK/ikony/kurzory, písmo Inter, Spotlight (`Super+Mezerník`),
+  tlačítka oken vlevo (semafor), WhiteSur GTK/ikony/kurzory, písmo Inter, Hledání (`Super+Mezerník`),
   Launchpad (`Super+A`), zkratky ve stylu Cmd (`Super+Q`, `Super+Shift+4`…), přirozené posouvání na touchpadu,
   přepínání světlého/tmavého režimu.
 - **Bez starostí s ovladači:** `luxos-hwdetect` při instalaci rozpozná GPU (Intel/AMD/NVIDIA včetně hybridní
@@ -42,6 +42,16 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
   `Super+P` přepíná Rozšířit / Zrcadlit / Jen externí / Jen vestavěná (`luxos-displays`).
 - **Plocha a Dock** (`luxos-settings`) – tapety, vzhled, automatické skrývání a průhlednost Docku,
   průhlednost horní lišty (nahrazuje nastavení plochy Xfce).
+- **Přihlášení jako v macOS** (`luxos-greeter`) – obrazovka s hodinami, po kliknutí avatar a heslo;
+  plynulý přechod ze splashe bez černé obrazovky.
+- **Kalendář** pod hodinami v liště – den s událostmi, měsíc a rok, události v `.ics` s připomínkami.
+- **Hudba** v Ovládacím centru (MPRIS: Firefox, Spotify, VLC…), **jas displeje**, **profil LuxAI**.
+- **Účet LuxAI** (`luxos-account`) – jedno přihlášení pro LuxAI, Lux Code a LSL IDE; volitelně už při instalaci.
+- **Trezor** (`luxos-safe`) – šifrovaná složka `/safe/<uživatel>` s vlastním heslem, zamyká se sama.
+- **Sandbox** (`luxos-sandbox`) – izolovaný systém pro nedůvěryhodné aplikace (`/dev/sandbox/<uživatel>`).
+- **LuxDrop** – šifrovaný přenos souborů mezi počítači LuxOS (ověření kódem, připnuté klíče).
+- **Světlý režim** jako výchozí, přepínatelný nebo automatický podle východu a západu slunce;
+  spořiče obrazovky (tapety, hodiny, polární záře, fotky, logo).
 - **Čeština i angličtina** – aplikace a skripty LuxOS podle jazyka systému (`luxos-i18n`,
   překlady v `packages/luxos-i18n/files/cs.tsv`), instalátor se přepne podle zvoleného jazyka.
 
@@ -143,7 +153,7 @@ archiso/                    profil ISO (odvozený z archiso releng)
 packages/                   vlastní balíky LuxOS (lokální repozitář [luxos])
   luxos-branding            logo, tapety, Plymouth, os-release
   luxos-themes              WhiteSur GTK/xfwm4/Plank/ikony/kurzory (pevné commity)
-  luxos-desktop             nastavení Xfce, dock, Spotlight/Launchpad, LightDM, aplikace
+  luxos-desktop             nastavení Xfce, dock, Hledání/Launchpad, LightDM, aplikace
   luxos-shell               konfigurace shellu: ble.sh, zsh, starship, fastfetch
   lsh                       Lux Shell (fork GNU bash: about, LSL, pip)
   luxos-keyring             podpisový klíč repozitářů
@@ -154,6 +164,7 @@ packages/                   vlastní balíky LuxOS (lokální repozitář [luxos
   luxos-tweaks              výkon: zram, sysctl, I/O, oomd, journald
   luxos-drivers             luxos-hwdetect
   luxos-installer           luxos-install
+  luxdrop                   LuxDrop – bezpečné posílání souborů v síti (GTK, CLI, protokol)
   lux                       správce balíků
   blesh                     ble.sh
 ```
@@ -165,7 +176,7 @@ takže LuxOS nepřepisuje soubory jiných balíků a uživatelské změny mají 
 
 | Zkratka | Akce |
 |---|---|
-| `Super+Mezerník` | Spotlight |
+| `Super+Mezerník` | Hledání |
 | `Super+A` | Launchpad |
 | `Super+Q` | zavřít okno |
 | `Super+M` / `Super+H` | minimalizovat |

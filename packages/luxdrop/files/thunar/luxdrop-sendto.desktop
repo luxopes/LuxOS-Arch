@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=LuxDrop
+Name[cs]=LuxDrop
+Comment=Send to a nearby LuxOS computer
+Comment[cs]=Poslat na počítač LuxOS v okolí
+Icon=luxdrop
+Exec=luxdrop %F
+MimeType=application/octet-stream;inode/directory;

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Floating Logo
+Name[cs]=Plovoucí logo
+Comment=The LuxOS logo slowly floating around
+Comment[cs]=Logo LuxOS pomalu pluje po obrazovce
+Exec=/usr/lib/xfce4-screensaver/luxos --style logo
+TryExec=/usr/lib/xfce4-screensaver/luxos
+StartupNotify=false
+Terminal=false
+Categories=Screensaver;
+OnlyShowIn=XFCE;
+Hidden=true

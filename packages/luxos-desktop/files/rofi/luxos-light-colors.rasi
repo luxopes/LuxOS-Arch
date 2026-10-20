@@ -1,4 +1,4 @@
-/* LuxOS - svetle barvy pro Spotlight a Launchpad */
+/* LuxOS - svetle barvy pro Hledani a Launchpad */
 * {
     lux-bg:     rgba(246, 246, 248, 92%);
     lux-fg:     #1d1d1f;

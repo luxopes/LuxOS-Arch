@@ -1,0 +1,1206 @@
+#!/usr/bin/env python3
+"""LuxOS Kalendar - widget pod hodinami v horni liste (jako v macOS).
+
+Den: velke cislo dne + den v tydnu a dnesni udalosti jako barevne karty.
+Mesic: mrizka dnu (dnesek zvyrazneny, tecka = udalost), klik na den ukaze jeho udalosti.
+Rok: 12 malych mesicu, klik otevre mesic. Tlacitko + pridava udalosti, klik na kartu
+je upravi nebo smaze. Data: ~/.local/share/luxos/calendar/events.ics (iCalendar),
+dalsi *.ics ve slozce se nacitaji jen pro cteni (napr. export z Google).
+
+Demon (--daemon) drzi okno skryte a hlida pripominky (notify-send 10 minut predem);
+klik na hodiny posle SIGUSR1 (luxos-calendar-toggle) a okno se ukaze okamzite.
+"""
+import datetime as dt
+import os
+import signal
+import subprocess
+import sys
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_i18n import _  # noqa: E402
+import luxos_i18n  # noqa: E402
+import luxos_calendar_ics as ics  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("PangoCairo", "1.0")
+from gi.repository import Gdk, Gio, GLib, Gtk, Pango, PangoCairo  # noqa: E402
+
+RUNTIME = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
+PIDFILE = os.path.join(RUNTIME, "luxos-calendar.pid")
+CFG = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos")
+LANG = getattr(luxos_i18n, "LANG", "en")
+WIDTH = 324
+REMINDER_MIN = 10
+
+WEEKDAY_NAMES = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+WEEKDAY_SHORT = ("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su")
+MONTH_NAMES = ("January", "February", "March", "April", "May", "June", "July", "August",
+               "September", "October", "November", "December")
+REPEATS = (("", "Never"), ("FREQ=DAILY", "Daily"), ("FREQ=WEEKLY", "Weekly"),
+           ("FREQ=MONTHLY", "Monthly"), ("FREQ=YEARLY", "Yearly"))
+
+CSS = """
+window.lc { background: transparent; }
+.lc-box {
+    background-color: @lc_bg; border-radius: 18px; border: 1px solid @lc_border;
+    padding: 14px; color: @lc_fg;
+}
+.lc-box label { color: @lc_fg; }
+.lc-box label.dim, .lc-dim { color: @lc_dim; }
+.lc-daynum { font-size: 44px; font-weight: 700; }
+.lc-weekday { font-size: 14px; font-weight: 800; color: @lc_accent; }
+.lc-monthyear { font-size: 12px; }
+.lc-title { font-size: 15px; font-weight: 700; }
+.lc-title .year { font-weight: 400; }
+.lc-section { font-size: 12px; font-weight: 700; }
+.lc-empty { font-size: 12px; padding: 10px 2px; }
+
+.lc-seg { background-color: @lc_tile; border-radius: 9px; padding: 2px; }
+.lc-seg button {
+    border-radius: 7px; padding: 1px 11px; min-height: 20px; font-size: 11px; font-weight: 600;
+    background: none; border: none; box-shadow: none; color: @lc_fg; outline: none;
+}
+.lc-seg button:hover { background-color: @lc_tile; }
+.lc-seg button.active { background-color: @lc_seg_on; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18); }
+.lc-seg.small button { padding: 1px 6px; font-size: 11px; }
+
+button.lc-icon {
+    border-radius: 999px; min-width: 24px; min-height: 24px; padding: 0;
+    background: none; border: none; box-shadow: none; color: @lc_fg; outline: none;
+}
+button.lc-icon:hover { background-color: @lc_tile_hover; }
+button.lc-add { background-color: @lc_tile; }
+button.lc-pill {
+    border-radius: 999px; padding: 1px 10px; min-height: 22px; font-size: 11px; font-weight: 600;
+    background-color: @lc_tile; border: none; box-shadow: none; color: @lc_fg; outline: none;
+}
+button.lc-pill:hover { background-color: @lc_tile_hover; }
+button.lc-pill:disabled { opacity: 0.4; }
+.lc-box button { transition: background-color 120ms ease-out; }
+
+button.lc-card {
+    border-radius: 10px; padding: 0; border: none; box-shadow: none; outline: none;
+    background-image: none;
+}
+.lc-card .stripe { min-width: 4px; border-radius: 2px; margin: 6px 0 6px 6px; }
+.lc-card .ctext { padding: 6px 10px 6px 4px; }
+.lc-card .ctitle { font-size: 13px; font-weight: 600; }
+.lc-card .ctime { font-size: 11px; }
+
+button.lc-day {
+    border-radius: 999px; padding: 0; min-width: 34px; min-height: 34px; margin: 1px 4px;
+    background: none; border: none; box-shadow: none; outline: none; color: @lc_fg;
+}
+button.lc-day label { font-size: 12px; font-weight: 500; }
+button.lc-day:hover { background-color: @lc_tile_hover; }
+button.lc-day.other label { color: @lc_faint; }
+button.lc-day.weekend label { color: @lc_dim; }
+button.lc-day.selected { background-color: @lc_tile_hover; }
+button.lc-day.today { background-color: @lc_accent; }
+button.lc-day.today label { color: white; font-weight: 700; }
+.lc-dot { min-width: 4px; min-height: 4px; border-radius: 2px; }
+.lc-wdh { font-size: 10px; font-weight: 700; color: @lc_dim; }
+
+.lc-form label.field { font-size: 11px; font-weight: 600; color: @lc_dim; }
+.lc-form entry {
+    background-color: @lc_tile; background-image: none; border: 1px solid transparent; border-radius: 8px;
+    padding: 4px 8px; min-height: 22px; color: @lc_fg; box-shadow: none; caret-color: @lc_accent;
+}
+.lc-form entry:focus { border-color: alpha(@lc_accent, 0.7); }
+.lc-form entry.error { border-color: #ff453a; }
+.lc-form entry:disabled { opacity: 0.6; }
+.lc-form .error-text { color: #ff453a; font-size: 11px; }
+button.lc-swatch {
+    border-radius: 999px; min-width: 20px; min-height: 20px; padding: 0; border: none;
+    box-shadow: none; outline: none; background-image: none;
+}
+button.lc-swatch label { color: white; font-weight: 800; font-size: 11px; }
+button.lc-swatch.selected { box-shadow: 0 0 0 2px @lc_bg, 0 0 0 4px alpha(@lc_fg, 0.35); }
+button.lc-save {
+    border-radius: 8px; padding: 2px 14px; min-height: 24px; font-weight: 600; font-size: 12px;
+    background-color: @lc_accent; background-image: none; color: white; border: none; box-shadow: none;
+}
+button.lc-save label { color: white; }
+button.lc-save:hover { background-color: shade(@lc_accent, 1.08); }
+button.lc-plain {
+    border-radius: 8px; padding: 2px 12px; min-height: 24px; font-size: 12px; font-weight: 600;
+    background-color: @lc_tile; background-image: none; border: none; box-shadow: none; color: @lc_fg;
+}
+button.lc-plain:hover { background-color: @lc_tile_hover; }
+button.lc-danger label { color: #ff453a; }
+button.lc-danger.confirm { background-color: #ff453a; }
+button.lc-danger.confirm label { color: white; }
+"""
+
+DARK = """
+@define-color lc_bg rgba(32, 33, 52, 0.86); @define-color lc_border rgba(255, 255, 255, 0.14);
+@define-color lc_fg #f4f4fa; @define-color lc_dim rgba(244, 244, 250, 0.60);
+@define-color lc_faint rgba(244, 244, 250, 0.28);
+@define-color lc_tile rgba(255, 255, 255, 0.08); @define-color lc_tile_hover rgba(255, 255, 255, 0.14);
+@define-color lc_seg_on rgba(255, 255, 255, 0.22); @define-color lc_accent #ff453a;
+"""
+
+LIGHT = """
+@define-color lc_bg rgba(246, 247, 252, 0.88); @define-color lc_border rgba(0, 0, 0, 0.10);
+@define-color lc_fg #1d1d2b; @define-color lc_dim rgba(29, 29, 43, 0.58);
+@define-color lc_faint rgba(29, 29, 43, 0.28);
+@define-color lc_tile rgba(0, 0, 0, 0.05); @define-color lc_tile_hover rgba(0, 0, 0, 0.09);
+@define-color lc_seg_on #ffffff; @define-color lc_accent #ff3b30;
+"""
+
+
+def color_css(dark):
+    """Tridy c-<barva>: karta (pruhledna barva), pruh, tecka, vzorek."""
+    out = []
+    for name, hx in ics.COLOR_HEX.items():
+        r, g, b = (int(hx[i:i + 2], 16) for i in (1, 3, 5))
+        a = 0.24 if dark else 0.16
+        out.append(f"button.lc-card.c-{name} {{ background-color: rgba({r},{g},{b},{a}); }}")
+        out.append(f"button.lc-card.c-{name}:hover {{ background-color: rgba({r},{g},{b},{a + 0.08}); }}")
+        out.append(f".c-{name} .stripe, .lc-dot.c-{name}, button.lc-swatch.c-{name} {{ background-color: {hx}; }}")
+    return "\n".join(out)
+
+
+# ---- formatovani -----------------------------------------------------------------------
+def is_cs():
+    return LANG == "cs"
+
+
+def month_name(m):
+    return _(MONTH_NAMES[m - 1])
+
+
+def weekday_name(d):
+    return _(WEEKDAY_NAMES[d.weekday()])
+
+
+def fmt_time(t):
+    return f"{t.hour}:{t.minute:02d}"
+
+
+def fmt_long_date(d):
+    """'úterý 20. října' / 'Tuesday, October 20' (+ rok, neni-li letosni)."""
+    year = "" if d.year == dt.date.today().year else f" {d.year}"
+    if is_cs():
+        return f"{weekday_name(d)} {d.day}. {_('of ' + MONTH_NAMES[d.month - 1])}{year}"
+    return f"{weekday_name(d)}, {month_name(d.month)} {d.day}{',' if year else ''}{year}"
+
+
+def fmt_entry_date(d):
+    return f"{d.day}. {d.month}. {d.year}" if is_cs() else d.isoformat()
+
+
+def parse_entry_date(text):
+    t = text.strip().replace(" ", "")
+    try:
+        if "-" in t:
+            y, m, d = (int(x) for x in t.split("-"))
+        else:
+            parts = [p for p in t.replace("/", ".").split(".") if p]
+            d, m = int(parts[0]), int(parts[1])
+            y = int(parts[2]) if len(parts) > 2 else dt.date.today().year
+            if y < 100:
+                y += 2000
+        return dt.date(y, m, d)
+    except (ValueError, IndexError):
+        return None
+
+
+def parse_entry_time(text):
+    t = text.strip().replace(".", ":")
+    try:
+        if ":" in t:
+            h, m = t.split(":", 1)
+            h, m = int(h), int(m or 0)
+        elif t.isdigit() and len(t) in (3, 4):
+            h, m = int(t[:-2]), int(t[-2:])
+        else:
+            h, m = int(t), 0
+        return dt.time(h, m)
+    except ValueError:
+        return None
+
+
+def time_range(ev, s, e, day):
+    """Text casu karty pro dany den."""
+    if ev.all_day:
+        return _("All day")
+    starts = s.date() == day
+    ends = e.date() == day or (e.date() == day + dt.timedelta(days=1) and e.time() == dt.time())
+    if starts and ends:
+        return fmt_time(s) if e == s else f"{fmt_time(s)} – {fmt_time(e)}"
+    if starts:
+        return _("From %s") % fmt_time(s)
+    if e.date() == day:
+        return _("Until %s") % fmt_time(e)
+    return _("All day")
+
+
+def css_add(widget, *classes):
+    ctx = widget.get_style_context()
+    for c in classes:
+        ctx.add_class(c)
+    return widget
+
+
+def label(text="", *classes, xalign=0.0, **kw):
+    lab = Gtk.Label(label=text, xalign=xalign, **kw)
+    return css_add(lab, *classes)
+
+
+def icon_button(icon, cb, *classes, tooltip=None):
+    b = Gtk.Button(can_focus=False)
+    b.add(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU))
+    css_add(b, "lc-icon", *classes)
+    if tooltip:
+        b.set_tooltip_text(tooltip)
+    b.connect("clicked", lambda _b: cb())
+    return b
+
+
+def spawn(*cmd):
+    try:
+        subprocess.Popen(cmd, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
+
+
+class Segmented(Gtk.Box):
+    """Prepinac ve stylu macOS (segmentovane tlacitko)."""
+
+    def __init__(self, items, on_change, small=False):
+        super().__init__(spacing=0)
+        css_add(self, "lc-seg", *(["small"] if small else []))
+        self.buttons = {}
+        self.value = None
+        self._cb = on_change
+        for key, text in items:
+            b = Gtk.Button(label=text, can_focus=False)
+            b.connect("clicked", lambda _b, k=key: self.set_value(k, notify=True))
+            self.pack_start(b, True, True, 0)
+            self.buttons[key] = b
+
+    def set_value(self, key, notify=False):
+        self.value = key
+        for k, b in self.buttons.items():
+            (b.get_style_context().add_class if k == key else b.get_style_context().remove_class)("active")
+        if notify:
+            self._cb(key)
+
+
+# ---- karty udalosti ----------------------------------------------------------------------
+def event_card(ev, s, e, day, on_click):
+    b = Gtk.Button(can_focus=False)
+    css_add(b, "lc-card", f"c-{ics.event_color(ev)}")
+    row = Gtk.Box(spacing=0)
+    stripe = css_add(Gtk.Box(), "stripe")
+    row.pack_start(stripe, False, False, 0)
+    text = css_add(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1), "ctext")
+    title = label(ev.summary or _("New Event"), "ctitle", ellipsize=Pango.EllipsizeMode.END)
+    text.pack_start(title, False, False, 0)
+    sub = time_range(ev, s, e, day)
+    if ev.location:
+        sub += " · " + ev.location
+    text.pack_start(label(sub, "ctime", "dim", ellipsize=Pango.EllipsizeMode.END), False, False, 0)
+    row.pack_start(text, True, True, 0)
+    if ev.rrule:
+        img = Gtk.Image.new_from_icon_name("view-refresh-symbolic", Gtk.IconSize.MENU)
+        img.set_margin_end(8)
+        img.set_opacity(0.5)
+        row.pack_end(img, False, False, 0)
+    b.add(row)
+    b.connect("clicked", lambda _b: on_click(ev, s))
+    return b
+
+
+class EventList(Gtk.ScrolledWindow):
+    """Seznam karet udalosti jednoho dne (posouvatelny od urcite vysky)."""
+
+    def __init__(self, app, max_height):
+        super().__init__(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.app = app
+        self.set_propagate_natural_height(True)
+        self.set_max_content_height(max_height)
+        self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.add(self.box)
+
+    def show_day(self, day, empty_text):
+        for c in self.box.get_children():
+            c.destroy()
+        items = self.app.store.day_instances(day)
+        if not items:
+            self.box.pack_start(label(empty_text, "lc-empty", "dim"), False, False, 0)
+        for ev, s, e in items:
+            self.box.pack_start(event_card(ev, s, e, day, self.app.open_event), False, False, 0)
+        self.box.show_all()
+        # okno se zmensuje na minimalni velikost -> minimum = obsah (nejvyse max_height, pak posuvnik)
+        self.set_min_content_height(-1)
+        nat = self.box.get_preferred_height()[1]
+        self.set_min_content_height(min(nat, self.get_max_content_height()))
+
+
+# ---- pohledy -----------------------------------------------------------------------------
+class DayView(Gtk.Box):
+    def __init__(self, app):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.app = app
+        head = Gtk.Box(spacing=10)
+        self.num = label("", "lc-daynum", valign=Gtk.Align.CENTER)
+        head.pack_start(self.num, False, False, 0)
+        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER, spacing=0)
+        self.wd = label("", "lc-weekday")
+        self.my = label("", "lc-monthyear", "dim")
+        col.pack_start(self.wd, False, False, 0)
+        col.pack_start(self.my, False, False, 0)
+        head.pack_start(col, True, True, 0)
+        nav = Gtk.Box(spacing=2, valign=Gtk.Align.CENTER)
+        self.today_btn = Gtk.Button(label=_("Today"), can_focus=False)
+        css_add(self.today_btn, "lc-pill")
+        self.today_btn.connect("clicked", lambda _b: app.go_day(dt.date.today()))
+        nav.pack_start(icon_button("go-previous-symbolic", lambda: app.go_day(app.day - dt.timedelta(days=1)),
+                                   tooltip=_("Previous day")), False, False, 0)
+        nav.pack_start(self.today_btn, False, False, 0)
+        nav.pack_start(icon_button("go-next-symbolic", lambda: app.go_day(app.day + dt.timedelta(days=1)),
+                                   tooltip=_("Next day")), False, False, 0)
+        head.pack_end(nav, False, False, 0)
+        self.pack_start(head, False, False, 0)
+        self.list = EventList(app, 330)
+        self.pack_start(self.list, False, False, 0)
+
+    def refresh(self):
+        d = self.app.day
+        self.num.set_text(str(d.day))
+        self.wd.set_text(weekday_name(d).upper())
+        self.my.set_text(f"{month_name(d.month)} {d.year}")
+        self.today_btn.set_sensitive(d != dt.date.today())
+        self.list.show_day(d, _("No events today") if d == dt.date.today() else _("No events"))
+
+
+class MonthView(Gtk.Box):
+    def __init__(self, app):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.app = app
+        head = Gtk.Box(spacing=4)
+        self.title = Gtk.Label(xalign=0)
+        css_add(self.title, "lc-title")
+        head.pack_start(self.title, True, True, 0)
+        today = Gtk.Button(label=_("Today"), can_focus=False)
+        css_add(today, "lc-pill")
+        today.connect("clicked", lambda _b: app.go_day(dt.date.today()))
+        head.pack_end(icon_button("go-next-symbolic", lambda: self.shift(1), tooltip=_("Next month")), False, False, 0)
+        head.pack_end(today, False, False, 0)
+        head.pack_end(icon_button("go-previous-symbolic", lambda: self.shift(-1), tooltip=_("Previous month")),
+                      False, False, 0)
+        self.pack_start(head, False, False, 0)
+
+        self.grid = Gtk.Grid(column_homogeneous=True, row_spacing=0)
+        for c, name in enumerate(WEEKDAY_SHORT):
+            self.grid.attach(label(_(name), "lc-wdh", xalign=0.5), c, 0, 1, 1)
+        self.cells = []
+        for r in range(6):
+            for c in range(7):
+                b = Gtk.Button(can_focus=False)
+                css_add(b, "lc-day")
+                inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER, spacing=1)
+                num = Gtk.Label()
+                dot = css_add(Gtk.Box(halign=Gtk.Align.CENTER), "lc-dot")
+                inner.pack_start(num, False, False, 0)
+                inner.pack_start(dot, False, False, 0)
+                b.add(inner)
+                b.connect("clicked", lambda _b, i=len(self.cells): self.on_cell(i))
+                self.grid.attach(b, c, r + 1, 1, 1)
+                self.cells.append((b, num, dot))
+        self.pack_start(self.grid, False, False, 0)
+        self.sel_title = label("", "lc-section")
+        self.sel_title.set_margin_top(6)
+        self.pack_start(self.sel_title, False, False, 0)
+        self.list = EventList(app, 170)
+        self.pack_start(self.list, False, False, 0)
+        self.dates = []
+
+    def shift(self, delta):
+        y, m = ics.add_months(self.app.month[0], self.app.month[1], delta)
+        self.app.month = (y, m)
+        self.refresh()
+
+    def on_cell(self, i):
+        d = self.dates[i]
+        self.app.day = d
+        if (d.year, d.month) != self.app.month:
+            self.app.month = (d.year, d.month)
+        self.refresh()
+
+    def refresh(self):
+        y, m = self.app.month
+        self.title.set_markup(f"{GLib.markup_escape_text(month_name(m))} <span weight='400'>{y}</span>")
+        weeks = ics.month_grid(y, m)
+        self.dates = [d for w in weeks for d in w]
+        busy = self.app.store.busy_days(self.dates[0], self.dates[-1] + dt.timedelta(days=1))
+        today = dt.date.today()
+        for d, (b, num, dot) in zip(self.dates, self.cells):
+            num.set_text(str(d.day))
+            ctx = b.get_style_context()
+            for cls, on in (("other", d.month != m), ("today", d == today),
+                            ("selected", d == self.app.day and d != today), ("weekend", d.weekday() >= 5)):
+                (ctx.add_class if on else ctx.remove_class)(cls)
+            dctx = dot.get_style_context()
+            for c in ics.COLORS + ("white",):
+                dctx.remove_class(f"c-{c}")
+            color = busy.get(d)
+            dot.set_opacity(0 if color is None else (1.0 if d.month == m else 0.45))
+            if color:
+                dctx.add_class("c-white" if d == today else f"c-{color}")
+        self.sel_title.set_text(fmt_long_date(self.app.day))
+        self.list.show_day(self.app.day, _("No events"))
+
+
+class YearView(Gtk.Box):
+    """Rocni prehled: 12 malych mesicu kreslenych pres cairo (lehke - zadne stovky widgetu)."""
+
+    CELL_W, CELL_H = 13, 11
+
+    def __init__(self, app):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self.app = app
+        self.year = dt.date.today().year
+        head = Gtk.Box(spacing=4)
+        self.title = Gtk.Label(xalign=0)
+        css_add(self.title, "lc-title")
+        head.pack_start(self.title, True, True, 0)
+        today = Gtk.Button(label=_("Today"), can_focus=False)
+        css_add(today, "lc-pill")
+        today.connect("clicked", lambda _b: self.set_year(dt.date.today().year))
+        head.pack_end(icon_button("go-next-symbolic", lambda: self.set_year(self.year + 1), tooltip=_("Next year")),
+                      False, False, 0)
+        head.pack_end(today, False, False, 0)
+        head.pack_end(icon_button("go-previous-symbolic", lambda: self.set_year(self.year - 1),
+                                  tooltip=_("Previous year")), False, False, 0)
+        self.pack_start(head, False, False, 0)
+        grid = Gtk.Grid(column_homogeneous=True, row_spacing=10, column_spacing=6)
+        self.areas = []
+        for i in range(12):
+            ev = Gtk.EventBox()
+            area = Gtk.DrawingArea()
+            area.set_size_request(7 * self.CELL_W, 18 + 6 * self.CELL_H)
+            area.connect("draw", self.draw_month, i + 1)
+            ev.add(area)
+            ev.connect("button-release-event", lambda _w, _e, m=i + 1: app.open_month(self.year, m))
+            ev.connect("realize", lambda w: w.get_window().set_cursor(
+                Gdk.Cursor.new_from_name(w.get_display(), "pointer")))
+            grid.attach(ev, i % 3, i // 3, 1, 1)
+            self.areas.append(area)
+        self.pack_start(grid, False, False, 0)
+        self.busy = {}
+
+    def set_year(self, y):
+        self.year = y
+        self.refresh()
+
+    def refresh(self):
+        self.title.set_markup(f"<span>{self.year}</span>")
+        self.busy = self.app.store.busy_days(dt.date(self.year, 1, 1), dt.date(self.year + 1, 1, 1))
+        for a in self.areas:
+            a.queue_draw()
+
+    def draw_month(self, area, cr, month):
+        ctx = self.get_style_context()
+        fg = ctx.get_color(Gtk.StateFlags.NORMAL)
+        accent = self.app.accent_rgba()
+        w = area.get_allocated_width()
+        x0 = max(0, (w - 7 * self.CELL_W) / 2)
+        layout = PangoCairo.create_layout(cr)
+        fd = Pango.FontDescription.from_string(self.get_pango_context().get_font_description().get_family() or "Sans")
+        fd.set_weight(Pango.Weight.BOLD)
+        fd.set_absolute_size(11 * Pango.SCALE)
+        layout.set_font_description(fd)
+        layout.set_text(month_name(month), -1)
+        today = dt.date.today()
+        is_cur = (self.year, month) == (today.year, today.month)
+        cr.set_source_rgba(*(accent if is_cur else (fg.red, fg.green, fg.blue, 1)))
+        cr.move_to(x0 + 2, 0)
+        PangoCairo.show_layout(cr, layout)
+        fd.set_absolute_size(7.5 * Pango.SCALE)
+        weeks = ics.month_grid(self.year, month, rows=ics.weeks_needed(self.year, month))
+        for r, week in enumerate(weeks):
+            for c, d in enumerate(week):
+                if d.month != month:
+                    continue
+                cx = x0 + c * self.CELL_W + self.CELL_W / 2
+                cy = 18 + r * self.CELL_H + self.CELL_H / 2
+                busy = d in self.busy
+                if d == today:
+                    cr.set_source_rgba(*accent)
+                    cr.arc(cx, cy, self.CELL_H / 2 + 0.5, 0, 6.2832)
+                    cr.fill()
+                fd.set_weight(Pango.Weight.BOLD if busy or d == today else Pango.Weight.NORMAL)
+                layout.set_font_description(fd)
+                layout.set_text(str(d.day), -1)
+                _ink, logical = layout.get_pixel_extents()
+                if d == today:
+                    cr.set_source_rgba(1, 1, 1, 1)
+                else:
+                    alpha = 1.0 if busy else (0.5 if d.weekday() >= 5 else 0.75)
+                    cr.set_source_rgba(fg.red, fg.green, fg.blue, alpha)
+                cr.move_to(cx - logical.width / 2, cy - logical.height / 2)
+                PangoCairo.show_layout(cr, layout)
+                if busy and d != today:
+                    hx = ics.COLOR_HEX[self.busy[d]]
+                    cr.set_source_rgba(int(hx[1:3], 16) / 255, int(hx[3:5], 16) / 255, int(hx[5:7], 16) / 255, 1)
+                    cr.arc(cx, cy + logical.height / 2 + 0.5, 1.1, 0, 6.2832)
+                    cr.fill()
+        return False
+
+
+class EventForm(Gtk.Box):
+    """Vlozeny formular pro pridani/upravu udalosti."""
+
+    def __init__(self, app):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        css_add(self, "lc-form")
+        self.app = app
+        self.ev = None
+        head = Gtk.Box(spacing=6)
+        self.heading = label("", "lc-title")
+        head.pack_start(self.heading, True, True, 0)
+        head.pack_end(icon_button("window-close-symbolic", self.cancel, tooltip=_("Cancel")), False, False, 0)
+        self.pack_start(head, False, False, 0)
+
+        self.title = Gtk.Entry(placeholder_text=_("Title"))
+        self.title.connect("activate", lambda _e: self.save())
+        self.pack_start(self.title, False, False, 0)
+
+        row = Gtk.Box(spacing=6)
+        self.date = Gtk.Entry(width_chars=11)
+        self.date.connect("changed", lambda _e: self.date.get_style_context().remove_class("error"))
+        row.pack_start(self.field(_("Date"), self.date), True, True, 0)
+        steps = Gtk.Box(spacing=0, valign=Gtk.Align.END)
+        steps.pack_start(icon_button("go-previous-symbolic", lambda: self.step_date(-1), tooltip=_("Previous day")),
+                         False, False, 0)
+        steps.pack_start(icon_button("go-next-symbolic", lambda: self.step_date(1), tooltip=_("Next day")),
+                         False, False, 0)
+        row.pack_start(steps, False, False, 0)
+        self.pack_start(row, False, False, 0)
+
+        times = Gtk.Box(spacing=8)
+        self.start = Gtk.Entry(width_chars=6, placeholder_text="9:00")
+        self.end = Gtk.Entry(width_chars=6, placeholder_text="10:00")
+        for e in (self.start, self.end):
+            e.connect("changed", lambda w: w.get_style_context().remove_class("error"))
+            e.connect("activate", lambda _e: self.save())
+        times.pack_start(self.field(_("Starts"), self.start), True, True, 0)
+        times.pack_start(self.field(_("Ends"), self.end), True, True, 0)
+        allday = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+        allday.pack_start(label(_("All day"), "field"), False, False, 0)
+        self.allday = Gtk.Switch(halign=Gtk.Align.START, valign=Gtk.Align.CENTER, can_focus=False)
+        self.allday.connect("notify::active", lambda *_a: self.sync_allday())
+        allday.pack_start(self.allday, True, False, 0)
+        times.pack_start(allday, False, False, 0)
+        self.pack_start(times, False, False, 0)
+
+        self.pack_start(label(_("Repeat"), "field"), False, False, 0)
+        self.repeat = Segmented([(k, _(t)) for k, t in REPEATS] + [("custom", _("Custom"))], lambda _k: None,
+                                small=True)
+        self.repeat.buttons["custom"].set_no_show_all(True)
+        self.pack_start(self.repeat, False, False, 0)
+
+        crow = Gtk.Box(spacing=12)
+        self.swatches = {}
+        sw_box = Gtk.Box(spacing=10, valign=Gtk.Align.CENTER)
+        for c in ics.COLORS:
+            b = Gtk.Button(can_focus=False)
+            css_add(b, "lc-swatch", f"c-{c}")
+            b.add(Gtk.Label())
+            b.connect("clicked", lambda _b, c=c: self.set_color(c))
+            sw_box.pack_start(b, False, False, 0)
+            self.swatches[c] = b
+        crow.pack_start(sw_box, False, False, 2)
+        self.pack_start(crow, False, False, 2)
+
+        rrow = Gtk.Box(spacing=8)
+        rrow.pack_start(label(_("Remind %d minutes before") % REMINDER_MIN, valign=Gtk.Align.CENTER), True, True, 0)
+        self.remind = Gtk.Switch(can_focus=False, valign=Gtk.Align.CENTER)
+        rrow.pack_end(self.remind, False, False, 0)
+        self.remind_row = rrow
+        self.pack_start(rrow, False, False, 0)
+
+        self.note = label("", "dim", wrap=True, max_width_chars=40)
+        self.note.set_no_show_all(True)
+        self.pack_start(self.note, False, False, 0)
+        self.err = label("", "error-text", wrap=True)
+        self.err.set_no_show_all(True)
+        self.pack_start(self.err, False, False, 0)
+
+        btns = Gtk.Box(spacing=6)
+        self.delete_btn = Gtk.Button(label=_("Delete"), can_focus=False)
+        css_add(self.delete_btn, "lc-plain", "lc-danger")
+        self.delete_btn.connect("clicked", lambda _b: self.delete())
+        btns.pack_start(self.delete_btn, False, False, 0)
+        self.delete_btn.set_no_show_all(True)
+        self.save_btn = Gtk.Button(label=_("Save"), can_focus=False)
+        self.save_btn.set_no_show_all(True)
+        css_add(self.save_btn, "lc-save")
+        self.save_btn.connect("clicked", lambda _b: self.save())
+        btns.pack_end(self.save_btn, False, False, 0)
+        self.cancel_btn = Gtk.Button(label=_("Cancel"), can_focus=False)
+        css_add(self.cancel_btn, "lc-plain")
+        self.cancel_btn.connect("clicked", lambda _b: self.cancel())
+        btns.pack_end(self.cancel_btn, False, False, 0)
+        btns.set_margin_top(4)
+        self.pack_start(btns, False, False, 0)
+        self.color = ics.DEFAULT_COLOR
+        self.readonly = False
+        self.confirm = False
+        self.inputs = (self.title, self.date, self.start, self.end, self.allday, self.repeat, sw_box, self.remind)
+
+    @staticmethod
+    def field(text, widget):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+        box.pack_start(label(text, "field"), False, False, 0)
+        box.pack_start(widget, False, False, 0)
+        return box
+
+    def set_color(self, c):
+        self.color = c
+        for k, b in self.swatches.items():
+            (b.get_style_context().add_class if k == c else b.get_style_context().remove_class)("selected")
+            b.get_child().set_text("✓" if k == c else "")
+
+    def step_date(self, delta):
+        d = parse_entry_date(self.date.get_text()) or self.app.day
+        self.date.set_text(fmt_entry_date(d + dt.timedelta(days=delta)))
+
+    def sync_allday(self):
+        timed = not self.allday.get_active()
+        self.start.set_sensitive(timed and not self.readonly)
+        self.end.set_sensitive(timed and not self.readonly)
+        self.remind.set_sensitive(timed and not self.readonly)
+
+    def load(self, ev, day):
+        """ev=None -> nova udalost na den `day`."""
+        self.ev = ev
+        self.readonly = bool(ev and ev.readonly)
+        self.confirm = False
+        self.delete_btn.set_label(_("Delete"))
+        self.delete_btn.get_style_context().remove_class("confirm")
+        self.err.hide()
+        for w in (self.date, self.start, self.end):
+            w.get_style_context().remove_class("error")
+        if ev is None:
+            self.heading.set_text(_("New Event"))
+            now = dt.datetime.now()
+            start = dt.datetime.combine(day, dt.time(min(now.hour + 1, 23), 0)) if day == now.date() \
+                else dt.datetime.combine(day, dt.time(9, 0))
+            self.title.set_text("")
+            self.date.set_text(fmt_entry_date(day))
+            self.start.set_text(fmt_time(start))
+            self.end.set_text(fmt_time(min(start + dt.timedelta(hours=1), dt.datetime.combine(day, dt.time(23, 59)))))
+            self.allday.set_active(False)
+            self.repeat.set_value("")
+            self.repeat.buttons["custom"].hide()
+            self.set_color(self.app.last_color)
+            self.remind.set_active(True)
+            self.note.hide()
+        else:
+            self.heading.set_text(_("Event") if self.readonly else _("Edit Event"))
+            self.title.set_text(ev.summary)
+            sd = ev.start if ev.all_day else ev.start.date()
+            self.date.set_text(fmt_entry_date(sd))
+            self.allday.set_active(ev.all_day)
+            if ev.all_day:
+                self.start.set_text("9:00")
+                self.end.set_text("10:00")
+            else:
+                self.start.set_text(fmt_time(ev.start))
+                self.end.set_text(fmt_time(ev.start + ev.duration()))
+            raw = (ev.rrule_raw or "").upper()
+            simple = next((k for k, _t in REPEATS if k and raw == k), None)
+            if not raw:
+                self.repeat.set_value("")
+            elif simple:
+                self.repeat.set_value(simple)
+            else:
+                self.repeat.set_value("custom")
+            self.repeat.buttons["custom"].set_visible(bool(raw) and not simple)
+            self.set_color(ics.event_color(ev))
+            self.remind.set_active(ev.reminder_minutes() is not None)
+            notes = []
+            if self.readonly:
+                notes.append(_("Read-only calendar: %s") % ev.source)
+            elif ev.rrule:
+                notes.append(_("Changes apply to all occurrences."))
+            self.note.set_text(" ".join(notes))
+            self.note.set_visible(bool(notes))
+        self.delete_btn.set_visible(ev is not None and not self.readonly)
+        self.save_btn.set_visible(not self.readonly)
+        self.cancel_btn.set_label(_("Close") if self.readonly else _("Cancel"))
+        for w in self.inputs:
+            w.set_sensitive(not self.readonly)
+        self.sync_allday()
+        if not self.readonly:
+            GLib.idle_add(self.title.grab_focus)
+
+    def fail(self, msg, widget=None):
+        self.err.set_text(msg)
+        self.err.show()
+        if widget is not None:
+            widget.get_style_context().add_class("error")
+        return False
+
+    def save(self):
+        if self.readonly:
+            return False
+        day = parse_entry_date(self.date.get_text())
+        if day is None:
+            return self.fail(_("Invalid date."), self.date)
+        allday = self.allday.get_active()
+        ev = self.ev
+        if allday:
+            span = 1
+            if ev is not None and ev.all_day:
+                span = max(1, ev.duration().days)
+            start, end = day, day + dt.timedelta(days=span)
+        else:
+            st = parse_entry_time(self.start.get_text())
+            et = parse_entry_time(self.end.get_text())
+            if st is None:
+                return self.fail(_("Invalid time."), self.start)
+            if et is None:
+                return self.fail(_("Invalid time."), self.end)
+            span = 0
+            if ev is not None and not ev.all_day:
+                span = (ev.start + ev.duration()).date().toordinal() - ev.start.date().toordinal()
+            start = dt.datetime.combine(day, st)
+            end = dt.datetime.combine(day + dt.timedelta(days=span), et)
+            if end <= start:
+                return self.fail(_("The event must end after it starts."), self.end)
+        is_new = ev is None
+        if is_new:
+            ev = ics.Event()
+        ev.summary = self.title.get_text().strip() or _("New Event")
+        ev.start, ev.end = start, end
+        ev.color = self.color
+        rep = self.repeat.value
+        if rep != "custom":
+            ev.set_rrule(rep or None)
+            if not rep:
+                ev.exdate_lines, ev.exdates = [], []
+        if not allday:
+            if not self.remind.get_active():
+                ev.set_reminder(None)
+            elif ev.reminder_minutes() is None:  # existujici pripominku (i jinou nez 10 min) ponechat
+                ev.set_reminder(REMINDER_MIN)
+        self.app.last_color = self.color
+        try:
+            if is_new:
+                self.app.store.add(ev)
+            else:
+                self.app.store.update(ev)
+        except OSError as e:
+            if is_new and ev in self.app.store.own.events:
+                self.app.store.own.events.remove(ev)
+            return self.fail(_("Could not save: %s") % e.strerror)
+        self.app.day = day
+        self.app.month = (day.year, day.month)
+        self.app.close_form(changed=True)
+        return False
+
+    def delete(self):
+        if not self.confirm:
+            self.confirm = True
+            self.delete_btn.set_label(_("Delete Event?") if not self.ev.rrule else _("Delete All?"))
+            self.delete_btn.get_style_context().add_class("confirm")
+            return
+        try:
+            self.app.store.delete(self.ev)
+        except OSError as e:
+            self.fail(_("Could not save: %s") % e.strerror)
+            return
+        self.app.close_form(changed=True)
+
+    def cancel(self):
+        self.app.close_form(changed=False)
+
+
+# ---- okno -----------------------------------------------------------------------------
+class CalendarWindow(Gtk.Window):
+    def __init__(self, store):
+        super().__init__(title=_("Calendar"))
+        self.store = store
+        self.day = dt.date.today()
+        self.month = (self.day.year, self.day.month)
+        self.mode = "day"
+        self.last_color = ics.DEFAULT_COLOR
+        self.dark = True
+        css_add(self, "lc")
+        self.set_decorated(False)
+        self.set_resizable(False)
+        self.set_skip_taskbar_hint(True)
+        self.set_skip_pager_hint(True)
+        self.set_keep_above(True)
+        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
+        self.stick()
+        screen = self.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual and screen.is_composited():
+            self.set_visual(visual)
+        self.set_app_paintable(True)
+
+        self.root = css_add(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12), "lc-box")
+        self.root.set_size_request(WIDTH, -1)
+        self.add(self.root)
+        top = Gtk.Box(spacing=8)
+        self.seg = Segmented((("day", _("Day")), ("month", _("Month")), ("year", _("Year"))), self.set_mode)
+        top.pack_start(self.seg, False, False, 0)
+        self.add_btn = icon_button("list-add-symbolic", self.new_event, "lc-add", tooltip=_("New Event"))
+        top.pack_end(self.add_btn, False, False, 0)
+        self.top = top
+        self.root.pack_start(top, False, False, 0)
+        self.holder = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.root.pack_start(self.holder, False, False, 0)
+        self.views = {}
+        self.form = None
+        self.seg.set_value("day")
+        self.show_view("day")
+
+        self.connect("focus-out-event", lambda *_a: GLib.timeout_add(150, self.close_if_unfocused))
+        self.connect("key-press-event", self.on_key)
+        self.connect("delete-event", lambda *_a: self.hide() or True)
+        self.root.show_all()
+
+    def accent_rgba(self):
+        return (1.0, 0.27, 0.23, 1) if self.dark else (1.0, 0.23, 0.19, 1)
+
+    # ---- pohledy ----
+    def view(self, name):
+        if name not in self.views:  # pohledy se tvori az pri prvnim pouziti (rychly start demona)
+            cls = {"day": DayView, "month": MonthView, "year": YearView}[name]
+            self.views[name] = cls(self)
+        return self.views[name]
+
+    def show_view(self, name):
+        for c in self.holder.get_children():
+            self.holder.remove(c)
+        w = self.form if name == "form" else self.view(name)
+        self.holder.pack_start(w, False, False, 0)
+        if name != "form":
+            self.mode = name
+            w.refresh()
+        w.show_all()
+
+        self.top.set_visible(name != "form")
+        self.resize(WIDTH, 1)  # zmensit po prepnuti na mensi pohled
+
+    def set_mode(self, name):
+        if name == "month":
+            self.month = (self.day.year, self.day.month)
+        if name == "year":
+            self.view("year").year = self.month[0] if self.mode == "month" else self.day.year
+        self.show_view(name)
+
+    def go_day(self, d):
+        self.day = d
+        self.month = (d.year, d.month)
+        if self.mode == "year":
+            self.view("year").year = d.year
+        self.show_view(self.mode)
+
+    def open_month(self, y, m):
+        self.month = (y, m)
+        today = dt.date.today()
+        self.day = today if (today.year, today.month) == (y, m) else dt.date(y, m, 1)
+        self.seg.set_value("month")
+        self.show_view("month")
+
+    def ensure_form(self):
+        if self.form is None:
+            self.form = EventForm(self)
+        return self.form
+
+    def new_event(self):
+        self.ensure_form().load(None, self.day)
+        self.show_view("form")
+
+    def open_event(self, ev, _start):
+        self.ensure_form().load(ev, self.day)
+        self.show_view("form")
+
+    def close_form(self, changed):
+        self.seg.set_value(self.mode)
+        self.show_view(self.mode)
+        if changed:
+            self.emit_changed()
+
+    def emit_changed(self):
+        cb = getattr(self, "on_changed", None)
+        if cb:
+            cb()
+
+    def refresh(self):
+        if self.holder.get_children() and self.holder.get_children()[0] is not self.form:
+            self.show_view(self.mode)
+
+    # ---- zobrazeni ----
+    def toggle(self):
+        if self.get_visible():
+            self.hide()
+            return False
+        self.store.reload_if_changed()
+        self.day = dt.date.today()
+        self.month = (self.day.year, self.day.month)
+        self.seg.set_value(self.mode)
+        self.show_view(self.mode)
+        self.place()
+        self.show()
+        self.place()
+        self.present_with_time(Gtk.get_current_event_time() or Gdk.CURRENT_TIME)
+        return False
+
+    def place(self):
+        """Vpravo pod horni listou na monitoru s kurzorem (sirka okna je pevna)."""
+        display = Gdk.Display.get_default()
+        pointer = display.get_default_seat().get_pointer()
+        _scr, px, py = pointer.get_position()
+        mon = display.get_monitor_at_point(px, py)
+        geo = mon.get_workarea()
+        w = max(WIDTH, self.get_size()[0], self.root.get_preferred_width()[1])
+        self.move(geo.x + geo.width - w - 8, geo.y + 6)
+
+    def close_if_unfocused(self):
+        if not self.is_active():
+            self.hide()
+        return False
+
+    def on_key(self, _w, ev):
+        if ev.keyval == Gdk.KEY_Escape:
+            if self.form is not None and self.form.get_parent() is self.holder:
+                self.close_form(changed=False)
+            else:
+                self.hide()
+            return True
+        return False
+
+
+# ---- pripominky -----------------------------------------------------------------------
+class Reminders:
+    """Casovac v demonovi: notify-send pred udalosti podle VALARM. Budi se jen kdyz je treba
+    (nejblizsi pripominka, nejdele po 15 minutach) a po probuzeni z uspani (logind)."""
+
+    MAX_WAIT = 900
+
+    def __init__(self, store):
+        self.store = store
+        self.fired = set()
+        self.timer = None
+        self.started = dt.datetime.now()
+        try:
+            bus = Gio.bus_get_sync(Gio.BusType.SYSTEM)
+            bus.signal_subscribe("org.freedesktop.login1", "org.freedesktop.login1.Manager", "PrepareForSleep",
+                                 "/org/freedesktop/login1", None, Gio.DBusSignalFlags.NONE,
+                                 lambda *a: self.schedule(), )
+        except GLib.Error:
+            pass
+
+    def pending(self, now):
+        """[(cas pripominky, klic, udalost, zacatek, konec, minuty)] pro dnesek a zitrek."""
+        out = []
+        today = now.date()
+        for ev, s, e in self.store.instances(today - dt.timedelta(days=1), today + dt.timedelta(days=3)):
+            mins = ev.reminder_minutes()
+            if mins is None:
+                continue
+            start = s if isinstance(s, dt.datetime) else dt.datetime.combine(s, dt.time())
+            at = start - dt.timedelta(minutes=mins)
+            key = (ev.source, ev.uid, start)
+            if key in self.fired or start <= now:
+                continue
+            out.append((at, key, ev, start, e, mins))
+        out.sort(key=lambda x: x[0])
+        return out
+
+    def check(self):
+        self.timer = None
+        now = dt.datetime.now()
+        self.store.reload_if_changed()
+        for at, key, ev, start, end, _mins in self.pending(now):
+            if at > now:
+                break
+            self.fired.add(key)
+            left = max(0, round((start - now).total_seconds() / 60))
+            when = _("Now") if left == 0 else _("In %d minutes") % left
+            if isinstance(end, dt.datetime) and not ev.all_day:
+                when += f" · {fmt_time(start)}" + (f" – {fmt_time(end)}" if end > start else "")
+            spawn("notify-send", "-a", _("Calendar"), "-i", "x-office-calendar", ev.summary or _("New Event"), when)
+        self.fired = {k for k in self.fired if k[2] > now - dt.timedelta(days=1)}
+        self.schedule()
+        return False
+
+    def schedule(self):
+        if self.timer:
+            GLib.source_remove(self.timer)
+        now = dt.datetime.now()
+        nxt = next((at for at, *_r in self.pending(now)), None)
+        wait = self.MAX_WAIT if nxt is None else max(1, min(self.MAX_WAIT, int((nxt - now).total_seconds()) + 1))
+        self.timer = GLib.timeout_add_seconds(wait, self.check)
+
+
+# ---- horni lista: nahrada pluginu hodin -------------------------------------------------
+CLOCK_FORMAT = "%a %-d. %b  %H:%M"
+
+
+def migrate_panel():
+    """Starsi instalace maji v liste plugin 'clock', ktery neumi spustit prikaz po kliknuti.
+    Jednou ho nahradi pluginem genmon s luxos-clock (stejny vzhled, klik = kalendar);
+    jen pokud uzivatel format hodin nezmenil."""
+    mark = os.path.join(CFG, "calendar-clock-migrated")
+    if os.path.exists(mark):
+        return
+
+    def q(*args):
+        try:
+            r = subprocess.run(("xfconf-query", "-c", "xfce4-panel") + args, capture_output=True, text=True, timeout=5)
+            return r.stdout.strip() if r.returncode == 0 else None
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+
+    props = q("-l", "-p", "/plugins")
+    if props is None:
+        return
+    done = False
+    for prop in props.splitlines():
+        if prop.count("/") != 2 or not prop.startswith("/plugins/plugin-"):
+            continue
+        if q("-p", prop) != "clock":
+            continue
+        fmt = q("-p", prop + "/digital-time-format")
+        if fmt not in (None, CLOCK_FORMAT):
+            continue
+        q("-p", prop, "-r", "-R")
+        q("-p", prop, "-n", "-t", "string", "-s", "genmon")
+        q("-p", prop + "/command", "-n", "-t", "string", "-s", "luxos-clock")
+        q("-p", prop + "/update-period", "-n", "-t", "int", "-s", "3000")
+        q("-p", prop + "/use-label", "-n", "-t", "bool", "-s", "false")
+        q("-p", prop + "/enable-single-row", "-n", "-t", "bool", "-s", "true")
+        q("-p", prop + "/font", "-n", "-t", "string", "-s", "Inter Semi-Bold 10")
+        done = True
+    os.makedirs(CFG, exist_ok=True)
+    with open(mark, "w"):
+        pass
+    if done:
+        spawn("xfce4-panel", "-r")
+
+
+# ---- start ----------------------------------------------------------------------------
+def running_pid():
+    try:
+        with open(PIDFILE) as f:
+            pid = int(f.read())
+        with open(f"/proc/{pid}/cmdline", "rb") as f:
+            if b"luxos-calendar" in f.read():
+                return pid
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def theme_is_dark():
+    settings = Gtk.Settings.get_default()
+    name = (settings.props.gtk_theme_name or "").lower()
+    return "dark" in name or bool(settings.props.gtk_application_prefer_dark_theme)
+
+
+class Theme:
+    """CSS podle svetleho/tmaveho rezimu; prepina se zaroven se systemovym tematem."""
+
+    def __init__(self, win=None):
+        self.provider = Gtk.CssProvider()
+        self.win = win
+        self.dark = None
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), self.provider,
+                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.apply()
+        Gtk.Settings.get_default().connect("notify::gtk-theme-name", lambda *_a: self.apply())
+
+    def apply(self, dark=None):
+        dark = theme_is_dark() if dark is None else dark
+        if dark == self.dark:
+            return
+        self.dark = dark
+        css = (DARK if dark else LIGHT) + CSS + color_css(dark) + \
+            "\n.lc-dot.c-white { background-color: white; }"
+        self.provider.load_from_data(css.encode())
+        if self.win is not None:
+            self.win.dark = dark
+            self.win.queue_draw()
+
+
+def signal_add(sig, cb):
+    """Signal v hlavni smycce GLib (okamzita reakce i bez behu Pythonu)."""
+    try:
+        gi.require_version("GLibUnix", "2.0")
+        from gi.repository import GLibUnix
+        GLibUnix.signal_add(GLib.PRIORITY_HIGH, sig, cb)
+    except (ImportError, ValueError, AttributeError):
+        GLib.unix_signal_add(GLib.PRIORITY_HIGH, sig, cb)
+
+
+def main():
+    pid = running_pid()
+    if pid and pid != os.getpid():
+        os.kill(pid, signal.SIGUSR1)
+        return
+    with open(PIDFILE, "w") as f:
+        f.write(str(os.getpid()))
+    GLib.set_prgname("luxos-calendar")
+    GLib.set_application_name(_("Calendar"))
+    store = ics.Store()
+    store.reload_if_changed()
+    win = CalendarWindow(store)
+    theme = Theme(win)
+    win.dark = theme.dark
+    reminders = Reminders(store)
+    win.on_changed = reminders.schedule
+
+    # Zmeny souboru (import .ics, jina aplikace): inotify, bez dotazovani
+    try:
+        os.makedirs(store.dir, exist_ok=True)
+        mon = Gio.File.new_for_path(store.dir).monitor_directory(Gio.FileMonitorFlags.NONE, None)
+        pending = {}
+
+        def changed():
+            pending.pop("t", None)
+            if store.reload_if_changed():
+                win.refresh()
+                reminders.schedule()
+            return False
+
+        def on_event(*_a):
+            if "t" not in pending:
+                pending["t"] = GLib.timeout_add(400, changed)
+
+        mon.connect("changed", on_event)
+        win._monitor = mon
+    except (GLib.Error, OSError):
+        pass
+
+    win.connect("destroy", Gtk.main_quit)
+    signal_add(signal.SIGTERM, lambda *_a: Gtk.main_quit() or True)
+    signal_add(signal.SIGUSR1, lambda *_a: win.toggle() or True)
+    reminders.schedule()
+    if "--daemon" in sys.argv:
+        GLib.timeout_add_seconds(5, lambda: migrate_panel() and False)
+    else:
+        win.toggle()
+    try:
+        Gtk.main()
+    finally:
+        try:
+            os.unlink(PIDFILE)
+        except OSError:
+            pass
+
+
+if __name__ == "__main__":
+    main()

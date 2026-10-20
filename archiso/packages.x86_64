@@ -46,7 +46,9 @@ intel-media-driver
 # --- LuxOS ---
 pipewire-jack
 noto-fonts
+luxos-greeter
 luxos-desktop
+luxdrop
 luxos-installer
 luxai
 luxos-safe

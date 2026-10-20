@@ -9,3 +9,4 @@ Icon=luxos-control-center-symbolic
 Terminal=false
 Categories=Settings;GTK;
 Keywords=wifi;bluetooth;battery;saver;volume;brightness;baterie;spořič;
+NoDisplay=true

@@ -4,7 +4,7 @@
   <property name="configver" type="int" value="2"/>
   <property name="panels" type="array">
     <value type="int" value="1"/>
-    <property name="dark-mode" type="bool" value="true"/>
+    <property name="dark-mode" type="bool" value="false"/>
     <property name="panel-1" type="empty">
       <property name="position" type="string" value="p=6;x=0;y=0"/>
       <property name="length" type="double" value="100"/>
@@ -16,9 +16,9 @@
       <property name="enable-struts" type="bool" value="true"/>
       <property name="background-style" type="uint" value="1"/>
       <property name="background-rgba" type="array">
-        <value type="double" value="0.09"/>
-        <value type="double" value="0.09"/>
-        <value type="double" value="0.12"/>
+        <value type="double" value="0.96"/>
+        <value type="double" value="0.96"/>
+        <value type="double" value="0.97"/>
         <value type="double" value="0.62"/>
       </property>
       <property name="plugin-ids" type="array">
@@ -50,6 +50,8 @@
       <property name="launcher-show-description" type="bool" value="false"/>
       <property name="show-command-menueditor" type="bool" value="false"/>
       <property name="show-command-settings" type="bool" value="false"/>
+      <!-- Klik na jmeno/fotku uzivatele: Ucet LuxAI misto chybejiciho mugshot -->
+      <property name="command-profile" type="string" value="luxos-account"/>
       <property name="show-command-lockscreen" type="bool" value="true"/>
       <property name="show-command-shutdown" type="bool" value="true"/>
       <property name="show-command-restart" type="bool" value="true"/>
@@ -123,12 +125,13 @@
       <property name="enable-single-row" type="bool" value="true"/>
     </property>
     <property name="plugin-7" type="string" value="notification-plugin"/>
-    <property name="plugin-8" type="string" value="clock">
-      <property name="mode" type="uint" value="2"/>
-      <property name="digital-layout" type="uint" value="3"/>
-      <property name="digital-time-format" type="string" value="%a %-d. %b  %H:%M"/>
-      <property name="digital-time-font" type="string" value="Inter Semi-Bold 10"/>
-      <property name="tooltip-format" type="string" value="%A %-d. %B %Y"/>
+    <!-- Hodiny (genmon misto pluginu clock, ten neumi spustit prikaz): klik = Kalendar -->
+    <property name="plugin-8" type="string" value="genmon">
+      <property name="command" type="string" value="luxos-clock"/>
+      <property name="update-period" type="int" value="3000"/>
+      <property name="use-label" type="bool" value="false"/>
+      <property name="enable-single-row" type="bool" value="true"/>
+      <property name="font" type="string" value="Inter Semi-Bold 10"/>
     </property>
     <property name="plugin-9" type="string" value="separator">
       <property name="style" type="uint" value="0"/>

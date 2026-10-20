@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=LuxOS Greeter
+Comment=LuxOS login and lock screen
+Exec=luxos-greeter
+Type=Application

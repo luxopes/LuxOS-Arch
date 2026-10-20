@@ -86,12 +86,13 @@
     </property>
     <property name="plugin-6" type="string" value="power-manager-plugin"/>
     <property name="plugin-7" type="string" value="notification-plugin"/>
-    <property name="plugin-8" type="string" value="clock">
-      <property name="mode" type="uint" value="2"/>
-      <property name="digital-layout" type="uint" value="3"/>
-      <property name="digital-time-format" type="string" value="%a %-d. %b  %H:%M"/>
-      <property name="digital-time-font" type="string" value="Inter Semi-Bold 10"/>
-      <property name="tooltip-format" type="string" value="%A %-d. %B %Y"/>
+    <!-- Hodiny (genmon misto pluginu clock, ten neumi spustit prikaz): klik = Kalendar -->
+    <property name="plugin-8" type="string" value="genmon">
+      <property name="command" type="string" value="luxos-clock"/>
+      <property name="update-period" type="int" value="3000"/>
+      <property name="use-label" type="bool" value="false"/>
+      <property name="enable-single-row" type="bool" value="true"/>
+      <property name="font" type="string" value="Inter Semi-Bold 10"/>
     </property>
     <property name="plugin-9" type="string" value="separator">
       <property name="style" type="uint" value="0"/>

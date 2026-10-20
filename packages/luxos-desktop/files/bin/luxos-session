@@ -11,6 +11,17 @@ if [[ ! -e $cfg/initialized ]]; then
     : > "$cfg/initialized"
 fi
 
+# Starsi profily: klik na uzivatele v nabidce otevre Ucet LuxAI (mugshot neni nainstalovany)
+[[ $(xfconf-query -c xfce4-panel -p /plugins/plugin-1/command-profile 2>/dev/null) == luxos-account ]] ||
+    xfconf-query -c xfce4-panel -p /plugins/plugin-1/command-profile -n -t string -s luxos-account 2>/dev/null
+
+# Svetly/tmavy rezim: automaticky podle vychodu a zapadu slunce (je-li zapnuto)
+if [[ $(luxos-appearance mode) == auto ]]; then
+    m=$(python3 -I /usr/lib/luxos/python/luxos_sun.py mode 2>/dev/null)
+    [[ -n $m && $m != "$(luxos-appearance status)" ]] && luxos-appearance auto
+fi
+luxos-appearance watch &
+
 # Softwarovy jas monitoru (Ovladaci centrum, monitory bez podsviceni)
 if [[ -f $cfg/brightness ]] && ! compgen -G '/sys/class/backlight/*' >/dev/null; then
     luxos-displays brightness "$(cat "$cfg/brightness")" &
@@ -37,6 +48,7 @@ fi
 
 # Ovladaci centrum predem nactene a skryte - klik v liste ho ukaze okamzite
 luxos-control-center --daemon &
+luxos-calendar --daemon &  # Kalendar pod hodinami (klik na hodiny) + pripominky udalosti
 # Sporic dat: merene pripojeni plati jen do odpojeni, po prihlaseni znovu
 luxos-datasaver reapply &
 

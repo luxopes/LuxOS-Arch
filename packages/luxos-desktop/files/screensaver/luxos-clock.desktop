@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Clock
+Name[cs]=Hodiny
+Comment=Large clock on black, slowly moving
+Comment[cs]=Velké hodiny na černém pozadí, pomalu se posouvají
+Exec=/usr/lib/xfce4-screensaver/luxos --style clock
+TryExec=/usr/lib/xfce4-screensaver/luxos
+StartupNotify=false
+Terminal=false
+Categories=Screensaver;
+OnlyShowIn=XFCE;
+Hidden=true

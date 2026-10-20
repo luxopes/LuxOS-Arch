@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Photos
+Name[cs]=Fotky
+Comment=Slideshow of your Pictures folder
+Comment[cs]=Prezentace fotek ze složky Obrázky
+Exec=/usr/lib/xfce4-screensaver/luxos --style photos
+TryExec=/usr/lib/xfce4-screensaver/luxos
+StartupNotify=false
+Terminal=false
+Categories=Screensaver;
+OnlyShowIn=XFCE;
+Hidden=true

@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=LuxDrop
+GenericName=Send files nearby
+GenericName[cs]=Posílání souborů v okolí
+Comment=Securely send files and folders to nearby LuxOS computers
+Comment[cs]=Bezpečné posílání souborů a složek na počítače LuxOS v okolí
+Exec=luxdrop %F
+Icon=luxdrop
+Terminal=false
+Categories=Network;FileTransfer;GTK;
+Keywords=share;send;transfer;nearby;sdílet;poslat;přenos;
+MimeType=application/octet-stream;inode/directory;
+StartupNotify=true
+StartupWMClass=luxdrop

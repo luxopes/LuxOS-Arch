@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xsettings" version="1.0">
   <property name="Net" type="empty">
-    <property name="ThemeName" type="string" value="WhiteSur-Dark"/>
-    <property name="IconThemeName" type="string" value="WhiteSur-dark"/>
+    <property name="ThemeName" type="string" value="WhiteSur-Light"/>
+    <property name="IconThemeName" type="string" value="WhiteSur-light"/>
     <property name="EnableEventSounds" type="bool" value="false"/>
     <property name="EnableInputFeedbackSounds" type="bool" value="false"/>
   </property>

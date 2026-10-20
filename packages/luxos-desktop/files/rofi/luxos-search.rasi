@@ -1,4 +1,4 @@
-/* LuxOS - Spotlight */
+/* LuxOS - Hledani (Super+Space) */
 * {
     lux-bg:       rgba(30, 30, 36, 92%);
     lux-fg:       #f2f2f7;
@@ -42,7 +42,7 @@ icon-search {
 }
 
 entry {
-    placeholder:       "Spotlight Search";
+    placeholder:       "Search";
     placeholder-color: @lux-muted;
     font:              "Inter 17";
     vertical-align:    0.5;

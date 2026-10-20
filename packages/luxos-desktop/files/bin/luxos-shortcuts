@@ -3,7 +3,7 @@
 . /usr/lib/luxos/i18n.sh
 yad --title="$(T "Keyboard Shortcuts")" --window-icon=luxos-app --list --no-selection --width=560 --height=600 --center \
     --column="$(T "Shortcut")" --column="$(T "Action")" \
-    "Super + Space" "Spotlight" \
+    "Super + Space" "$(T "Search")" \
     "Super + A" "Launchpad" \
     "Super + Q" "$(T "Close window")" \
     "Super + M / H" "$(T "Minimize window")" \

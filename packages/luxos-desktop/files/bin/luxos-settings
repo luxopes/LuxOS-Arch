@@ -143,10 +143,11 @@ class Settings(Gtk.Window):
     def build_appearance(self, page):
         group = Group(page, _("Appearance"))
         box = Gtk.Box(spacing=12, margin=12, halign=Gtk.Align.START)
-        current = run("luxos-appearance", "status") or "dark"
+        current = run("luxos-appearance", "mode") or "light"
         self.mode_buttons = {}
         for mode, label, colors in (("light", _("Light"), ("#f5f6fb", "#d9dcea")),
-                                    ("dark", _("Dark"), ("#23243a", "#3a3c5c"))):
+                                    ("dark", _("Dark"), ("#23243a", "#3a3c5c")),
+                                    ("auto", _("Auto"), ("#f5f6fb", "#d9dcea", "#23243a", "#3a3c5c"))):
             b = Gtk.Button()
             b.get_style_context().add_class("mode")
             inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -162,6 +163,12 @@ class Settings(Gtk.Window):
             self.mode_buttons[mode] = b
             box.pack_start(b, False, False, 0)
         group.pack_start(box, False, False, 0)
+        times = run("python3", "-I", "/usr/lib/luxos/python/luxos_sun.py", "times") or ""
+        if " " in times:
+            hint = Gtk.Label(label=_("Auto: light from sunrise (%s) to sunset (%s), based on your time zone.")
+                             % tuple(times.split()), xalign=0, wrap=True, margin_start=12, margin_bottom=8)
+            hint.get_style_context().add_class("hint")
+            group.pack_start(hint, False, False, 0)
 
     @staticmethod
     def draw_mode(widget, cr, colors):
@@ -176,7 +183,16 @@ class Settings(Gtk.Window):
         cr.arc(r, r, r, 3.1416, 4.7124)
         cr.close_path()
         cr.set_source_rgb(*rgb(colors[0]))
-        cr.fill()
+        cr.fill_preserve()
+        if len(colors) == 4:
+            # Automaticky: leva pulka svetla, prava tmava
+            cr.save()
+            cr.clip()
+            cr.set_source_rgb(*rgb(colors[2]))
+            cr.rectangle(w / 2, 0, w / 2, h)
+            cr.fill()
+            cr.restore()
+        cr.new_path()
         cr.set_source_rgb(*rgb(colors[1]))
         cr.rectangle(10, 10, w - 20, 10)
         cr.fill()

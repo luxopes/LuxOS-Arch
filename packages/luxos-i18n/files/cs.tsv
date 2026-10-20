@@ -66,7 +66,7 @@ LuxOS Store	Obchod LuxOS
 Shortcuts	Zkratky
 Welcome to LuxOS	Vítejte v LuxOS
 Fast, light and beautifully simple.	Rychlý, lehký a krásně jednoduchý.
-Spotlight: search apps and files	Spotlight: hledání aplikací a souborů
+Search: apps, files and windows	Hledání: aplikace, soubory a okna
 Launchpad: all applications	Launchpad: všechny aplikace
 close window	zavřít okno
 screenshot of a region	snímek výřezu obrazovky
@@ -662,3 +662,221 @@ Started %s in the sandbox.	%s spuštěno v sandboxu.
 Enter a command.	Zadejte příkaz.
 Choose a file to run in the sandbox	Vyberte soubor ke spuštění v sandboxu
 Resetting sandbox…	Obnovuji sandbox…
+# Kalendar (luxos-calendar)
+Calendar	Kalendář
+All day	Celý den
+Changes apply to all occurrences.	Změny platí pro všechny výskyty.
+Could not save: %s	Nelze uložit: %s
+Custom	Vlastní
+Date	Datum
+Day	Den
+Delete All?	Smazat vše?
+Delete Event?	Smazat událost?
+Delete	Smazat
+Edit Event	Upravit událost
+Ends	Konec
+Event	Událost
+From %s	Od %s
+In %d minutes	Za %d minut
+Invalid date.	Neplatné datum.
+Invalid time.	Neplatný čas.
+Month	Měsíc
+New Event	Nová událost
+Next day	Další den
+Next month	Další měsíc
+Next year	Další rok
+No events today	Dnes žádné události
+No events	Žádné události
+Now	Teď
+Previous day	Předchozí den
+Previous month	Předchozí měsíc
+Previous year	Předchozí rok
+Read-only calendar: %s	Kalendář jen pro čtení: %s
+Remind %d minutes before	Připomenout %d minut předem
+Repeat	Opakovat
+Save	Uložit
+Starts	Začátek
+The event must end after it starts.	Událost musí skončit až po začátku.
+Title	Název
+Today	Dnes
+Until %s	Do %s
+Year	Rok
+Daily	Denně
+Weekly	Týdně
+Monthly	Měsíčně
+Yearly	Ročně
+Monday	pondělí
+Tuesday	úterý
+Wednesday	středa
+Thursday	čtvrtek
+Friday	pátek
+Saturday	sobota
+Sunday	neděle
+Mo	po
+Tu	út
+We	st
+Th	čt
+Fr	pá
+Sa	so
+Su	ne
+January	leden
+February	únor
+March	březen
+April	duben
+May	květen
+June	červen
+July	červenec
+August	srpen
+September	září
+October	říjen
+November	listopad
+December	prosinec
+of January	ledna
+of February	února
+of March	března
+of April	dubna
+of May	května
+of June	června
+of July	července
+of August	srpna
+of September	září
+of October	října
+of November	listopadu
+of December	prosince
+Enter Password	Zadejte heslo
+Shut Down	Vypnout
+Guest	Host
+Username	Uživatelské jméno
+Log In	Přihlásit
+Caps Lock is on	Je zapnutý Caps Lock
+Incorrect password. Try again.	Nesprávné heslo. Zkuste to znovu.
+Could not start the session.	Relaci se nepodařilo spustit.
+This action is not available right now.	Tato akce teď není dostupná.
+# LuxDrop
+Device '%s' not found on the network. Use an address: luxdrop send HOST[:PORT] FILES	Zařízení „%s“ nebylo v síti nalezeno. Použijte adresu: luxdrop send HOST[:PORT] SOUBORY
+Transfer failed: %s (%s)	Přenos se nezdařil: %s (%s)
+WARNING: someone may be impersonating this device. Nothing was sent. If the device was reinstalled, remove it with 'luxdrop trust remove ID' and pair again.	VAROVÁNÍ: někdo se možná vydává za toto zařízení. Nic nebylo odesláno. Pokud bylo zařízení přeinstalováno, odeberte ho příkazem „luxdrop trust remove ID“ a spárujte znovu.
+Receiving as "%s" (ID %s) on port %d, mode: %s, folder: %s	Příjem jako „%s“ (ID %s) na portu %d, režim: %s, složka: %s
+Nearby devices:	Zařízení v okolí:
+No devices found nearby (is avahi-daemon running?).	V okolí nebyla nalezena žádná zařízení (běží avahi-daemon?).
+No trusted devices.	Žádná důvěryhodná zařízení.
+Name: %s	Název: %s
+ID: %s	ID: %s
+Fingerprint: %s	Otisk: %s
+Send files securely between LuxOS computers.	Bezpečné posílání souborů mezi počítači s LuxOS.
+send files or folders	odeslat soubory nebo složky
+device name, ID, HOST[:PORT] or NAME@HOST[:PORT]	název zařízení, ID, HOST[:PORT] nebo NÁZEV@HOST[:PORT]
+do not trust the receiver after verification	po ověření příjemci nedůvěřovat
+receive files in the terminal	přijímat soubory v terminálu
+listen only on this address	naslouchat jen na této adrese
+who can send (everyone = for 10 minutes)	kdo smí posílat (everyone = na 10 minut)
+download folder	složka pro přijaté soubory
+do not announce on the network	neohlašovat se v síti
+list nearby devices	vypsat zařízení v okolí
+list or remove trusted devices	vypsat nebo odebrat důvěryhodná zařízení
+ID or name	ID nebo název
+show this device's name and fingerprint	zobrazit název a otisk tohoto zařízení
+show or set who can send to this computer	zobrazit nebo nastavit, kdo smí posílat na tento počítač
+Receiver: %s (ID %s)	Příjemce: %s (ID %s)
+Verification code: %s	Ověřovací kód: %s
+Does %s show the same code? [y]es and remember / [o]nly this time / [N]o: 	Zobrazuje %s stejný kód? [y] ano a zapamatovat / [o] jen tentokrát / [N] ne: 
+Preparing	Příprava
+Sending	Odesílání
+Skipped %s (%s)	Přeskočeno %s (%s)
+WARNING: this device uses the name of a trusted device, but a different key!	VAROVÁNÍ: toto zařízení používá název důvěryhodného zařízení, ale jiný klíč!
+%s (ID %s) wants to send you %d item(s), %s:	%s (ID %s) vám chce poslat položky (%d), %s:
+Accept? [y]es / [a]ccept and trust this device / [N]o: 	Přijmout? [y] ano / [a] přijmout a důvěřovat zařízení / [N] ne: 
+Accept? [y/N]: 	Přijmout? [y/N]: 
+The sender cancelled the request.	Odesílatel požadavek zrušil.
+trusted	důvěryhodné
+Removed %d device(s)	Odebráno zařízení: %d
+'%s' matches more trusted devices, use the ID	„%s“ odpovídá více důvěryhodným zařízením, použijte ID
+File not found: %s	Soubor nenalezen: %s
+Cancelling…	Ruší se…
+Sent %d item(s), %s to %s	Odesláno položek: %d, %s → %s
+Verification code: %s  (must be the same on the sender's screen)	Ověřovací kód: %s  (musí být stejný jako na obrazovce odesílatele)
+Received from %s: %s	Přijato od %s: %s
+Cannot listen on port %d: %s	Nelze naslouchat na portu %d: %s
+'%s' is not a trusted device (see 'luxdrop trust list')	„%s“ není důvěryhodné zařízení (viz „luxdrop trust list“)
+Declined transfer from %s	Odmítnut přenos od %s
+Transfer from %s failed: %s (%s)	Přenos od %s se nezdařil: %s (%s)
+Not visible on the network (%s); connect by address.	Počítač není v síti viditelný (%s); připojte se adresou.
+Waiting for the receiver to accept…	Čeká se, až příjemce přenos přijme…
+(resumed, %s were already there)	(navázáno, %s už bylo přeneseno)
+%s wants to send you %d item(s), %s: %s	%s vám chce poslat položky (%d), %s: %s
+Decline	Odmítnout
+Accept	Přijmout
+Accept and trust	Přijmout a důvěřovat
+LuxDrop: incoming files	LuxDrop: příchozí soubory
+LuxDrop: received from %s	LuxDrop: přijato od %s
+Show in folder	Zobrazit ve složce
+LuxDrop: transfer from %s failed	LuxDrop: přenos od %s se nezdařil
+Trusted devices only	Jen důvěryhodná zařízení
+Everyone for 10 minutes	Všichni na 10 minut
+Connect by address…	Připojit adresou…
+Transfers	Přenosy
+Choose	Vybrat
+Add	Přidat
+Codes match	Kódy se shodují
+Device name	Název zařízení
+Allow receiving from	Povolit příjem od
+Save received files to	Ukládat přijaté soubory do
+Accept automatically from trusted devices	Od důvěryhodných zařízení přijímat automaticky
+Receive when LuxDrop is closed	Přijímat i při zavřeném LuxDropu
+Fingerprint	Otisk
+Drop files here	Přetáhněte soubory sem
+or click to choose files, then pick a device below	nebo klikněte a vyberte soubory, pak zvolte zařízení níže
+Choose files…	Vybrat soubory…
+Choose folder…	Vybrat složku…
+Clear	Vymazat
+Received	Přijato
+Choose folder	Vyberte složku
+Choose files	Vyberte soubory
+Nearby devices cannot be found because avahi-daemon is not running. You can still connect by address.	Zařízení v okolí nelze najít, protože neběží avahi-daemon. Připojit se můžete adresou.
+Connect by address	Připojit adresou
+Verify code	Ověření kódu
+Remember this device (no code next time)	Zapamatovat si zařízení (příště bez kódu)
+Incoming files	Příchozí soubory
+Not receiving	Příjem nefunguje
+LuxDrop Settings	Nastavení LuxDropu
+This computer	Tento počítač
+Trusted devices	Důvěryhodná zařízení
+Trusted devices can send to you without a verification code. Remove a device if it was lost or reinstalled.	Důvěryhodná zařízení vám mohou posílat bez ověřovacího kódu. Zařízení odeberte, pokud bylo ztraceno nebo přeinstalováno.
+Allow receiving from:	Povolit příjem od:
+%d item(s) ready to send	Položky připravené k odeslání: %d
+No devices found yet. Open LuxDrop on the other computer, or connect by address.	Zatím nebylo nalezeno žádné zařízení. Otevřete LuxDrop na druhém počítači, nebo se připojte adresou.
+Trusted	Důvěryhodné
+Not verified yet	Zatím neověřeno
+Invalid address.	Neplatná adresa.
+Compare the code with the screen of the receiving computer. If the codes differ, someone may be intercepting the connection.	Porovnejte kód s obrazovkou přijímajícího počítače. Pokud se kódy liší, někdo možná spojení odposlouchává.
+Warning: this device uses the name of a trusted device, but its key is different. It may be someone else.	Pozor: toto zařízení používá název důvěryhodného zařízení, ale má jiný klíč. Může jít o někoho jiného.
+Trust this device (no code next time)	Důvěřovat tomuto zařízení (příště bez kódu)
+To %s: %s	Pro %s: %s
+From %s: %s	Od %s: %s
+Done	Hotovo
+Declined	Odmítnuto
+“%s” presented a different key than the trusted device. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and pair again.	„%s“ předložilo jiný klíč než důvěryhodné zařízení. Nic nebylo odesláno – někdo se za něj možná vydává. Pokud bylo přeinstalováno, odeberte ho v Nastavení a spárujte znovu.
+Nothing received yet.	Zatím nic nepřijato.
+Show	Zobrazit
+Not visible	Neviditelný
+No trusted devices yet.	Zatím žádná důvěryhodná zařízení.
+IP address of the other computer, e.g. 192.168.1.20 or 192.168.1.20:%d	IP adresa druhého počítače, např. 192.168.1.20 nebo 192.168.1.20:%d
+Does “%s” show the same code?	Zobrazuje „%s“ stejný kód?
+Cannot receive files: port %d is in use (%s). Is LuxDrop already running?	Soubory nelze přijímat: port %d je obsazený (%s). Neběží už LuxDrop?
+Verification code	Ověřovací kód
+Accept only if the sender shows the same code.	Přijměte, jen pokud odesílatel zobrazuje stejný kód.
+Preparing (checksums)… %s / %s	Příprava (kontrolní součty)… %s / %s
+Waiting for acceptance…	Čeká se na přijetí…
+“%s” wants to send you %d item(s), %s	„%s“ vám chce poslat položky (%d), %s
+Waiting for the receiver to accept… code %s	Čeká se na přijetí… kód %s
+Visible as “%s” · %d:%02d left	Viditelný jako „%s“ · zbývá %d:%02d
+Visible as “%s”	Viditelný jako „%s“
+Apps	Aplikace
+Windows	Okna
+# Vzhled a spořiče
+Auto	Automaticky
+Auto: light from sunrise (%s) to sunset (%s), based on your time zone.	Automaticky: světlý od východu (%s) do západu slunce (%s), podle časového pásma.
+Clock	Hodiny
+Aurora	Polární záře
+Photos	Fotky
+Floating Logo	Plovoucí logo

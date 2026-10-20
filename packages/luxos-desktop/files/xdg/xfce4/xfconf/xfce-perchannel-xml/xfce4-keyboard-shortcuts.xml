@@ -4,7 +4,7 @@
   <property name="commands" type="empty">
     <property name="custom" type="empty">
       <property name="override" type="bool" value="true"/>
-      <property name="&lt;Super&gt;space" type="string" value="luxos-spotlight"/>
+      <property name="&lt;Super&gt;space" type="string" value="luxos-search"/>
       <property name="&lt;Super&gt;a" type="string" value="luxos-launchpad"/>
       <property name="XF86Calculator" type="string" value="luxos-calculator"/>
       <property name="&lt;Super&gt;p" type="string" value="luxos-displays menu"/>
