@@ -11,3 +11,9 @@ case ":${XDG_DATA_DIRS:-}:" in
     *:/usr/share/luxos/xdg:*) ;;
     *) export XDG_DATA_DIRS="/var/lib/luxos/apps:/usr/share/luxos/xdg:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" ;;
 esac
+
+# Programy LuxOS, ktere nahrazuji casti Xfce (napr. xfdesktop-settings -> Plocha a Dock)
+case ":$PATH:" in
+    *:/usr/lib/luxos/override-bin:*) ;;
+    *) export PATH="/usr/lib/luxos/override-bin:$PATH" ;;
+esac

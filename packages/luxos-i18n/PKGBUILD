@@ -1,0 +1,17 @@
+# Maintainer: LuxOS Team
+# Preklady aplikaci a skriptu LuxOS (anglictina je vychozi, cestina v cs.tsv)
+
+pkgname=luxos-i18n
+pkgver=1.0.0
+pkgrel=3
+pkgdesc="LuxOS translations (English, Czech)"
+arch=(any)
+url="https://lsl.lux-ai.cz/luxos/"
+license=(MIT)
+
+package() {
+    local f="$startdir/files"
+    install -Dm644 "$f/i18n.sh" "$pkgdir/usr/lib/luxos/i18n.sh"
+    install -Dm644 "$f/luxos_i18n.py" "$pkgdir/usr/lib/luxos/python/luxos_i18n.py"
+    install -Dm644 -t "$pkgdir/usr/share/luxos/i18n" "$f"/*.tsv
+}

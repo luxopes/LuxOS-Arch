@@ -4,7 +4,7 @@
 
 pkgname=luxos-themes
 pkgver=2025.12.27
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxOS macOS-like themes (WhiteSur GTK, xfwm4, Plank, icons and cursors)"
 arch=(any)
 url="https://github.com/vinceliuice"
@@ -30,6 +30,12 @@ package() {
         tar -xJf "$srcdir/WhiteSur-gtk-theme/release/WhiteSur-$v.tar.xz" -C "$themes"
         # GNOME Shell a Cinnamon casti LuxOS nepotrebuje
         rm -rf "$themes/WhiteSur-$v"/{gnome-shell,cinnamon}
+        # Vlastni upravy LuxOS (nabidky ve stylu macOS)
+        install -m644 "$startdir/files/luxos-gtk3.css" "$themes/WhiteSur-$v/gtk-3.0/luxos.css"
+        local css
+        for css in "$themes/WhiteSur-$v"/gtk-3.0/gtk{,-dark}.css; do
+            [[ -e $css ]] && printf '\n@import url("luxos.css");\n' >>"$css"
+        done
         ln -s "../../themes/WhiteSur-$v/plank" "$pkgdir/usr/share/plank/themes/WhiteSur-$v"
     done
 

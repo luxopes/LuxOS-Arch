@@ -1,6 +1,6 @@
 #!/bin/bash
 # LuxOS - sestaveni baliku a ISO (bezi uvnitr Arch kontejneru, viz build.sh)
-# Pouziti: container-build.sh [all|packages|iso]
+# Pouziti: container-build.sh [all|packages|apps|iso]
 set -euo pipefail
 
 ROOT=/luxos
@@ -13,7 +13,7 @@ PROFILE=/tmp/luxos-profile
 target=${1:-all}
 
 # Repozitar [luxos]: system LuxOS, poradi = zavislosti vlastnich baliku prvni
-PACKAGES=(luxos-keyring blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-desktop luxos-installer)
+PACKAGES=(luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-store luxos-desktop luxos-installer)
 # Repozitar [luxos-apps]: aplikace ke stazeni (kazdy adresar v packages/apps)
 mapfile -t APPS < <(find "$ROOT/packages/apps" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort)
 ARCH=x86_64
@@ -98,6 +98,25 @@ build_packages() {
     make_repo luxos-apps "$BUILD/pkgs/luxos-apps"
 }
 
+# Jen repozitar [luxos-apps] (packages/apps/*): [luxos] v out/repo zustava, jak je
+build_apps() {
+    msg "Updating build container"
+    pacman -Syu --noconfirm --needed >/dev/null
+
+    setup_signing
+    rm -rf "$BUILD"
+    mkdir -p "$SOURCES" "$BUILD/pkgs/luxos-apps" "$REPO"
+    chown -R builder: "$SOURCES" "$BUILD"
+
+    local p
+    for p in "${APPS[@]}"; do
+        build_one "$ROOT/packages/apps/$p" "$BUILD/pkgs/luxos-apps"
+    done
+    chown -R root: "$SOURCES"
+
+    make_repo luxos-apps "$BUILD/pkgs/luxos-apps"
+}
+
 build_iso() {
     [[ -f $REPO/luxos/$ARCH/luxos.db.tar.gz ]] || { echo "Build packages first" >&2; exit 1; }
     msg "Preparing archiso profile"
@@ -129,7 +148,8 @@ cleanup_work() {
 
 case $target in
     packages) build_packages ;;
+    apps)     build_apps ;;
     iso)      build_iso ;;
     all)      build_packages; build_iso ;;
-    *) echo "Usage: $0 [all|packages|iso]" >&2; exit 2 ;;
+    *) echo "Usage: $0 [all|packages|apps|iso]" >&2; exit 2 ;;
 esac

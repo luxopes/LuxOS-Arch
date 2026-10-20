@@ -2,6 +2,8 @@
 # LuxOS - zverejneni repozitaru [luxos] a [luxos-apps] na server
 #
 #   scripts/publish-repo.sh            nahraje out/repo a prepne aktualni vydani
+#   scripts/publish-repo.sh --apps-only nahraje jen [luxos-apps] z out/repo; [luxos] prevezme
+#                                      z aktualniho vydani na serveru (po ./build.sh apps)
 #
 # Na serveru: /srv/luxos-repo/releases/<cas>/{luxos,luxos-apps}/x86_64, odkaz current
 # ukazuje na posledni vydani (Caddy: https://lsl.lux-ai.cz/luxos/). Prepnuti je
@@ -14,22 +16,33 @@ BASE=${LUXOS_REPO_DIR:-/srv/luxos-repo}
 URL=${LUXOS_REPO_URL:-https://lsl.lux-ai.cz/luxos}
 REPO=out/repo
 KEEP=3
+apps_only=0
+[[ ${1:-} == --apps-only ]] && apps_only=1
 
-for r in luxos luxos-apps; do
+repos=(luxos luxos-apps)
+((apps_only)) && repos=(luxos-apps)
+for r in "${repos[@]}"; do
     [[ -f $REPO/$r/x86_64/$r.db.tar.gz ]] || { echo "Missing $REPO/$r - run ./build.sh packages first" >&2; exit 1; }
 done
-compgen -G "$REPO/luxos/x86_64/*.pkg.tar.zst.sig" >/dev/null \
+compgen -G "$REPO/${repos[0]}/x86_64/*.pkg.tar.zst.sig" >/dev/null \
     || { echo "Packages are not signed (no key in ~/.local/share/luxos/signing)" >&2; exit 1; }
 
 release=$(date -u +%Y%m%d-%H%M%S)
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
-cp -a "$REPO"/. "$stage/"
+if ((apps_only)); then
+    # [luxos] beze zmeny z aktualniho vydani na serveru, [luxos-apps] z out/repo
+    ssh "$HOST" "test -d '$BASE/current/luxos'" || { echo "No current [luxos] on $HOST" >&2; exit 1; }
+    rsync -a "$HOST:$BASE/current/luxos/" "$stage/luxos/"
+    cp -a "$REPO/luxos-apps" "$stage/"
+else
+    cp -a "$REPO"/. "$stage/"
+fi
 
 # Prehledova stranka repozitare (seznam aplikaci a nastaveni pacmanu)
 pkglist() {  # pkglist REPO -> radky tabulky "nazev verze popis"
     local f
-    for f in "$REPO/$1"/x86_64/*.pkg.tar.zst; do
+    for f in "$stage/$1"/x86_64/*.pkg.tar.zst; do
         [[ -e $f ]] || continue
         tar --zstd -xOf "$f" .PKGINFO | awk -F' = ' '
             $1=="pkgname"{n=$2} $1=="pkgver"{v=$2} $1=="pkgdesc"{d=$2}

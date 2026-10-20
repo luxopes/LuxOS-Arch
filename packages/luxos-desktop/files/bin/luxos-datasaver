@@ -1,0 +1,25 @@
+#!/bin/bash
+# LuxOS - Spořič dat: luxos-datasaver [on|off|toggle|status]
+# Aktivni pripojeni oznaci jako merene (aplikace pak omezi stahovani na pozadi)
+# a LuxOS vynecha kontrolu aktualizaci na pozadi (luxos-store, luxos-session).
+. /usr/lib/luxos/i18n.sh
+state="${XDG_CONFIG_HOME:-$HOME/.config}/luxos/datasaver"
+
+apply() {  # apply yes|no - merene pripojeni na vsech aktivnich zarizenich
+    local dev
+    while IFS=: read -r dev type st; do
+        [[ $st == connected && $type != loopback ]] || continue
+        # Jen kdyz se stav lisi (modify znovu aplikuje nastaveni pripojeni)
+        [[ $(nmcli -g GENERAL.METERED device show "$dev" 2>/dev/null) == "$1"* ]] && continue
+        nmcli device modify "$dev" connection.metered "$1" >/dev/null 2>&1
+    done < <(nmcli -t -f DEVICE,TYPE,STATE device 2>/dev/null)
+}
+
+case ${1:-status} in
+    on)     mkdir -p "${state%/*}"; : >"$state"; apply yes; T "Data Saver is on\n" ;;
+    off)    rm -f "$state"; apply no; T "Data Saver is off\n" ;;
+    toggle) if [[ -e $state ]]; then "$0" off; else "$0" on; fi ;;
+    status) if [[ -e $state ]]; then echo on; else echo off; fi ;;
+    reapply) [[ -e $state ]] && apply yes ;;   # po prihlaseni / zmene site
+    *) echo "usage: luxos-datasaver [on|off|toggle|status]" >&2; exit 2 ;;
+esac

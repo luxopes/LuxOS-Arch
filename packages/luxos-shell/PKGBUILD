@@ -1,7 +1,7 @@
 # Maintainer: LuxOS Team
 
 pkgname=luxos-shell
-pkgver=1.0.0
+pkgver=1.1.0
 pkgrel=1
 pkgdesc="LuxOS shell experience: lsh (Lux shell) with ble.sh, zsh, starship prompt, fastfetch"
 arch=(any)
@@ -15,7 +15,7 @@ package() {
     local f="$startdir/files"
     install -Dm644 -t "$pkgdir/usr/share/luxos/shell" "$f"/{bashrc,blerc,aliases.sh,zshrc,starship.toml}
     install -Dm644 "$f/profile.sh" "$pkgdir/etc/profile.d/luxos.sh"
-    install -Dm644 "$f/fastfetch/logo.txt" "$pkgdir/usr/share/luxos/fastfetch/logo.txt"
+    install -Dm644 "$f/fastfetch/logo.ans" "$pkgdir/usr/share/luxos/fastfetch/logo.ans"
     install -Dm644 "$f/fastfetch/config.jsonc" "$pkgdir/etc/xdg/luxos/fastfetch/config.jsonc"
 
     install -dm755 "$pkgdir/etc/skel"

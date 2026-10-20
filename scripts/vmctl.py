@@ -12,7 +12,7 @@
 """
 import base64, json, os, socket, sys, time
 
-T = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "out", "test")
+T = os.environ.get("LUXOS_VM_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "out", "test")
 
 
 def rpc(path, msg, qmp=False, timeout=30):

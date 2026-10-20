@@ -1,0 +1,4 @@
+#!/bin/sh
+# LuxOS: "Nastaveni plochy" z plochy i ze Spravce nastaveni otevre Plocha a Dock
+# (puvodni dialog je dostupny tlacitkem "Pokrocile nastaveni plochy")
+exec luxos-settings "$@"

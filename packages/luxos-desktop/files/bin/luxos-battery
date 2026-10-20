@@ -1,0 +1,21 @@
+#!/bin/bash
+# LuxOS - baterie v horni liste (plugin genmon): ikona + procenta, klik = Ovladaci centrum
+. /usr/lib/luxos/i18n.sh
+bat=$(compgen -G '/sys/class/power_supply/BAT*' | head -1)
+if [[ -z $bat ]]; then
+    printf '<txt></txt>\n'
+    exit 0
+fi
+cap=$(<"$bat/capacity") st=$(<"$bat/status")
+level=$(( (cap + 5) / 10 * 10 ))
+icon="battery-level-$level"
+[[ $st == Charging ]] && icon+="-charging"
+[[ $st == Full || ($st == "Not charging" && cap -ge 95) ]] && icon="battery-level-100-charged"
+case $st in
+    Charging) tip=$(T "Charging") ;;
+    Discharging) tip=$(T "On battery") ;;
+    *) tip=$(T "Fully charged") ;;
+esac
+[[ $(luxos-powersaver status) == on ]] && tip+=" · $(T "Battery Saver")"
+printf '<icon>%s-symbolic</icon><txt> %s %%</txt><tool>%s %s %%</tool><iconclick>luxos-control-center</iconclick><txtclick>luxos-control-center</txtclick>\n' \
+    "$icon" "$cap" "$tip" "$cap"

@@ -26,7 +26,17 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
   instalátor a Kalkulačku; ostatní z WhiteSur v překreslené variantě (bez napodobenin ikon a loga Apple).
 - **Splash screeny:** Plymouth (černá + logo + tenký progress bar, i pro zadání hesla k LUKS), skrytý zavaděč
   (systemd-boot `timeout 0`), přihlašovací obrazovka uprostřed (lightdm-gtk-greeter), ISO boot menu v barvách LuxOS.
-- **`lux`** – správce balíků LuxOS (zatím nad pacmanem, AUR a Flatpakem; připravený na vlastní repozitář).
+- **`lux`** – správce balíků LuxOS (nad pacmanem, AUR a Flatpakem); `lux` bez parametrů otevře interaktivní
+  obchod v terminálu (TUI) s balíky z repozitářů LuxOS i Arch Linuxu.
+- **Obchod LuxOS** – grafický obchod s aplikacemi z repozitářů LuxOS a Arch Linuxu (metadata AppStream),
+  instalace jedním kliknutím, aktualizace.
+- **Ovládací centrum** v horní liště – Wi‑Fi, Bluetooth, Nerušit, tmavý režim, **Spořič dat**
+  (`luxos-datasaver`: měřené připojení, bez stahování na pozadí) a **Spořič baterie** (`luxos-powersaver`:
+  úsporný výkonový profil), jas, hlasitost, baterie v procentech; přepínač klávesnice v liště.
+- **Plocha a Dock** (`luxos-settings`) – tapety, vzhled, automatické skrývání a průhlednost Docku,
+  průhlednost horní lišty (nahrazuje nastavení plochy Xfce).
+- **Čeština i angličtina** – aplikace a skripty LuxOS podle jazyka systému (`luxos-i18n`,
+  překlady v `packages/luxos-i18n/files/cs.tsv`), instalátor se přepne podle zvoleného jazyka.
 
 ## Sestavení ISO
 
@@ -80,7 +90,8 @@ Přidání aplikace:
 
 ```bash
 mkdir packages/apps/lux-code            # PKGBUILD jako u packages/apps/lsl
-./build.sh packages                     # sestaví a podepíše oba repozitáře (out/repo)
+                                        # (lsl-ide: zdrojový archiv vytvoří packages/apps/lsl-ide/make-source.sh)
+./build.sh apps                         # sestaví a podepíše jen [luxos-apps] (./build.sh packages = oba repozitáře)
 scripts/publish-repo.sh                 # nahraje na server a přepne vydání (ponechá 3 předchozí)
 ```
 
@@ -91,6 +102,7 @@ a `publish-repo.sh` odmítne nahrávat). Na serveru: `/srv/luxos-repo/{releases,
 ## lux
 
 ```
+lux                        # interaktivní obchod v terminálu (Enter instalovat, Ctrl-R odebrat)
 lux install firefox        # repozitáře → AUR → Flathub
 lux remove <balík>
 lux update                 # systém + AUR + Flatpak, nejdřív klíče
@@ -115,6 +127,8 @@ packages/                   vlastní balíky LuxOS (lokální repozitář [luxos
   luxos-shell               konfigurace shellu: ble.sh, zsh, starship, fastfetch
   lsh                       Lux Shell (fork GNU bash: about, LSL, pip)
   luxos-keyring             podpisový klíč repozitářů
+  luxos-i18n                překlady (cs) pro skripty a aplikace
+  luxos-store               Obchod LuxOS
   apps/                     aplikace pro repozitář [luxos-apps]
     lsl                     Lux Simple Lang (oficiální binární vydání)
   luxos-tweaks              výkon: zram, sysctl, I/O, oomd, journald
