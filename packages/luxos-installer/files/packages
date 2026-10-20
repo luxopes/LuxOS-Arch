@@ -1,0 +1,24 @@
+# LuxOS - zakladni sada baliku instalovaneho systemu
+base
+linux-zen
+linux-firmware
+sof-firmware
+alsa-firmware
+amd-ucode
+intel-ucode
+btrfs-progs
+dosfstools
+e2fsprogs
+exfatprogs
+ntfs-3g
+cryptsetup
+plymouth
+sudo
+nano
+man-db
+man-pages
+networkmanager
+# explicitne kvuli volbe poskytovatelu (jinak by pacman vybral jack2)
+pipewire-jack
+noto-fonts
+luxos-desktop

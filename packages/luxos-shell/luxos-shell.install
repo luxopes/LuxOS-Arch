@@ -1,0 +1,18 @@
+# Bash vlastni /etc/skel/.bashrc (v backup poli) - doplnime nacitani konfigurace LuxOS
+_luxos_skel() {
+    if ! grep -q '/usr/share/luxos/shell/bashrc' /etc/skel/.bashrc 2>/dev/null; then
+        cat > /etc/skel/.bashrc <<'SKEL'
+#
+# ~/.bashrc
+#
+
+# Konfigurace LuxOS (ble.sh, starship, aliasy, historie)
+[[ -r /usr/share/luxos/shell/bashrc ]] && . /usr/share/luxos/shell/bashrc
+
+# Vlastni nastaveni pis sem:
+SKEL
+    fi
+}
+
+post_install() { _luxos_skel; }
+post_upgrade() { _luxos_skel; }

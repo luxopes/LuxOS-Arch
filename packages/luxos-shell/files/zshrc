@@ -1,0 +1,50 @@
+# LuxOS - konfigurace zsh (nacitana z ~/.zshrc)
+[[ -o interactive ]] || return
+
+LUXOS_FASTFETCH=1
+LUXOS_SHELL_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/luxos/shell.conf"
+[[ -r $LUXOS_SHELL_CONF ]] && . "$LUXOS_SHELL_CONF"
+
+HISTFILE="${HISTFILE:-$HOME/.zsh_history}"
+HISTSIZE=50000
+SAVEHIST=50000
+setopt append_history share_history hist_ignore_all_dups hist_ignore_space hist_reduce_blanks
+setopt auto_cd auto_pushd pushd_ignore_dups interactive_comments no_beep extended_glob
+
+autoload -Uz compinit && compinit -d "${XDG_CACHE_HOME:-$HOME/.cache}/zcompdump"
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+
+bindkey -e
+bindkey '^[[A' history-search-backward
+bindkey '^[[B' history-search-forward
+bindkey '^[[H' beginning-of-line
+bindkey '^[[F' end-of-line
+bindkey '^[[3~' delete-char
+bindkey '^[[1;5C' forward-word
+bindkey '^[[1;5D' backward-word
+
+. /usr/share/luxos/shell/aliases.sh
+
+command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
+command -v fzf &>/dev/null && eval "$(fzf --zsh)"
+
+if [[ $TERM != linux ]] && command -v starship &>/dev/null; then
+    [[ -r ${XDG_CONFIG_HOME:-$HOME/.config}/starship.toml ]] || export STARSHIP_CONFIG=/usr/share/luxos/shell/starship.toml
+    eval "$(starship init zsh)"
+else
+    PROMPT='%F{141}✦%f %B%~%b %# '
+fi
+
+[[ -r /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
+    . /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'
+[[ -r /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && \
+    . /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+if [[ $LUXOS_FASTFETCH == 1 && $TERM != linux && -n ${XDG_RUNTIME_DIR-} && ! -e $XDG_RUNTIME_DIR/luxos-greeted ]] \
+    && (( $+commands[fastfetch] )); then
+    : > "$XDG_RUNTIME_DIR/luxos-greeted"
+    fastfetch
+fi

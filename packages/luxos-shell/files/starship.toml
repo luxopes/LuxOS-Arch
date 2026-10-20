@@ -1,0 +1,75 @@
+# LuxOS - prompt (starship). Vlastni kopie: ~/.config/starship.toml
+"$schema" = 'https://starship.rs/config-schema.json'
+add_newline = true
+command_timeout = 400
+scan_timeout = 20
+format = """
+$username$hostname$directory$git_branch$git_state$git_status$python$nodejs$rust$golang$php$java\
+$cmd_duration$jobs$status
+$character"""
+
+[character]
+success_symbol = '[❯](bold #a77bff)'
+error_symbol = '[❯](bold #ff6b81)'
+vimcmd_symbol = '[❮](bold #6ea8ff)'
+
+[username]
+format = '[$user]($style)[@](dimmed white)'
+style_user = 'bold #6ea8ff'
+show_always = false
+
+[hostname]
+ssh_only = true
+format = '[$hostname]($style) '
+style = 'bold #6ea8ff'
+
+[directory]
+style = 'bold #e6e6f0'
+truncation_length = 4
+truncate_to_repo = true
+read_only = ' 󰌾'
+format = '[$path]($style)[$read_only]($read_only_style) '
+
+[git_branch]
+symbol = ' '
+style = 'bold #a77bff'
+format = '[$symbol$branch]($style) '
+
+[git_status]
+style = '#ff8fa3'
+format = '([$all_status$ahead_behind]($style) )'
+
+[cmd_duration]
+min_time = 2000
+style = 'dimmed white'
+format = '[ $duration]($style) '
+
+[status]
+disabled = false
+symbol = '✘ '
+style = '#ff6b81'
+format = '[$symbol$status]($style) '
+
+[python]
+format = '[${symbol}${version}]($style) '
+symbol = ' '
+
+[nodejs]
+format = '[$symbol$version]($style) '
+symbol = ' '
+
+[rust]
+format = '[$symbol$version]($style) '
+symbol = ' '
+
+[golang]
+format = '[$symbol$version]($style) '
+symbol = ' '
+
+[php]
+format = '[$symbol$version]($style) '
+symbol = ' '
+
+[java]
+format = '[$symbol$version]($style) '
+symbol = ' '

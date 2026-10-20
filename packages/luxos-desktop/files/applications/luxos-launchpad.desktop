@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Launchpad
+Comment=Show all applications
+Exec=luxos-launchpad
+Icon=view-app-grid
+Categories=System;

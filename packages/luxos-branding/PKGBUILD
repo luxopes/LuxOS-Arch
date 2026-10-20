@@ -1,0 +1,54 @@
+# Maintainer: LuxOS Team
+# Lokalni balik: zdrojove soubory jsou v ./files (odkazovano pres $startdir).
+
+pkgname=luxos-branding
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS branding: logo, wallpapers, Plymouth boot splash and os-release"
+arch=(any)
+url="https://github.com/luxos"
+license=(MIT)
+depends=(plymouth)
+makedepends=(librsvg imagemagick)
+
+build() {
+    local f="$startdir/files"
+    mkdir -p render
+    for s in 16 24 32 48 64 128 256 512; do
+        rsvg-convert -w $s -h $s "$f/logo/luxos-logo.svg" -o render/logo-$s.png
+    done
+    rsvg-convert -w 256 -h 256 "$f/logo/luxos-logo-white.svg" -o render/logo-white.png
+    for v in dark light; do
+        rsvg-convert -w 3840 -h 2160 "$f/wallpapers/luxos-$v.svg" -o render/luxos-$v.png
+        magick render/luxos-$v.png -quality 94 render/luxos-$v.jpg
+    done
+    for p in bar-track bar-fill entry bullet; do
+        rsvg-convert "$f/plymouth/$p.svg" -o render/$p.png
+    done
+    rsvg-convert "$f/syslinux/splash.svg" -o render/splash.png
+}
+
+package() {
+    local f="$startdir/files"
+
+    install -Dm644 "$f/logo/luxos-logo.svg"          "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-logo.svg"
+    install -Dm644 "$f/logo/luxos-logo-symbolic.svg" "$pkgdir/usr/share/icons/hicolor/symbolic/apps/luxos-logo-symbolic.svg"
+    for s in 16 24 32 48 64 128 256 512; do
+        install -Dm644 render/logo-$s.png "$pkgdir/usr/share/icons/hicolor/${s}x${s}/apps/luxos-logo.png"
+    done
+    install -Dm644 render/logo-256.png "$pkgdir/usr/share/pixmaps/luxos-logo.png"
+    install -Dm644 -t "$pkgdir/usr/share/luxos/logo" "$f"/logo/*.svg render/logo-white.png
+    install -Dm644 render/splash.png "$pkgdir/usr/share/luxos/syslinux/splash.png"
+
+    install -Dm644 -t "$pkgdir/usr/share/backgrounds/luxos" render/luxos-dark.jpg render/luxos-light.jpg
+
+    local pt="$pkgdir/usr/share/plymouth/themes/luxos"
+    install -Dm644 -t "$pt" "$f/plymouth/luxos.plymouth" "$f/plymouth/luxos.script"
+    install -Dm644 render/logo-white.png "$pt/logo.png"
+    for p in bar-track bar-fill entry bullet; do
+        install -Dm644 render/$p.png "$pt/$p.png"
+    done
+
+    install -Dm755 "$f/apply-branding" "$pkgdir/usr/lib/luxos/apply-branding"
+    install -Dm644 "$f/10-luxos-branding.hook" "$pkgdir/usr/share/libalpm/hooks/10-luxos-branding.hook"
+}

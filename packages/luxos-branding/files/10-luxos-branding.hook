@@ -1,0 +1,14 @@
+# Bezi pred 90-mkinitcpio-install, aby se motiv Plymouth dostal do initramfs.
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Target = filesystem
+Target = lsb-release
+Target = plymouth
+Target = luxos-branding
+
+[Action]
+Description = Applying LuxOS branding...
+When = PostTransaction
+Exec = /usr/lib/luxos/apply-branding

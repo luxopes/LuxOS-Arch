@@ -1,0 +1,105 @@
+/* LuxOS - Spotlight */
+* {
+    lux-bg:       rgba(30, 30, 36, 92%);
+    lux-fg:       #f2f2f7;
+    lux-muted:    #8e8e93;
+    lux-accent:   #0a84ff;
+    lux-sel-fg:   #ffffff;
+    lux-border:   rgba(255, 255, 255, 12%);
+    font:              "Inter 12";
+    background-color:  transparent;
+    text-color:        @lux-fg;
+}
+
+window {
+    location:          north;
+    anchor:            north;
+    y-offset:          20%;
+    width:             680px;
+    border-radius:     16px;
+    border:            1px;
+    border-color:      @lux-border;
+    background-color:  @lux-bg;
+    padding:           0;
+}
+
+mainbox {
+    children: [ inputbar, message, listview, mode-switcher ];
+    spacing:  0;
+}
+
+inputbar {
+    children: [ icon-search, entry ];
+    padding:  14px 18px;
+    spacing:  12px;
+}
+
+icon-search {
+    expand:         false;
+    filename:       "system-search";
+    size:           24px;
+    vertical-align: 0.5;
+}
+
+entry {
+    placeholder:       "Spotlight Search";
+    placeholder-color: @lux-muted;
+    font:              "Inter 17";
+    vertical-align:    0.5;
+    cursor:            text;
+}
+
+message {
+    padding: 0 18px 8px 18px;
+}
+
+listview {
+    lines:        8;
+    columns:      1;
+    dynamic:      true;
+    fixed-height: false;
+    scrollbar:    false;
+    padding:      6px;
+    border:       1px 0 0 0;
+    border-color: @lux-border;
+    spacing:      2px;
+}
+
+element {
+    padding:       7px 12px;
+    spacing:       12px;
+    border-radius: 9px;
+}
+
+element selected.normal, element selected.active {
+    background-color: @lux-accent;
+    text-color:       @lux-sel-fg;
+}
+
+element-icon {
+    size: 26px;
+}
+
+element-text {
+    vertical-align: 0.5;
+    text-color:     inherit;
+}
+
+mode-switcher {
+    padding:      6px 12px 10px 12px;
+    spacing:      6px;
+    border:       1px 0 0 0;
+    border-color: @lux-border;
+}
+
+button {
+    padding:       4px 10px;
+    border-radius: 7px;
+    text-color:    @lux-muted;
+    font:          "Inter 10";
+}
+
+button selected {
+    background-color: rgba(127, 127, 127, 20%);
+    text-color:       @lux-fg;
+}

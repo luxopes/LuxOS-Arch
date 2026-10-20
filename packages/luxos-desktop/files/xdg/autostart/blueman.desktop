@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Blueman Applet
+Exec=sh -c '[ -d /sys/class/bluetooth ] && [ -n "$(ls -A /sys/class/bluetooth 2>/dev/null)" ] && exec blueman-applet'
+Icon=blueman
+OnlyShowIn=XFCE;
+NoDisplay=true

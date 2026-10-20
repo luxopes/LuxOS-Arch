@@ -1,0 +1,12 @@
+# LuxOS - sluzby zapinane instalatorem (jedna na radek)
+NetworkManager.service
+lightdm.service
+bluetooth.service
+cups.socket
+avahi-daemon.service
+power-profiles-daemon.service
+systemd-timesyncd.service
+systemd-oomd.service
+fstrim.timer
+paccache.timer
+reflector.timer

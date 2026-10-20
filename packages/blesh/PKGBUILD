@@ -1,0 +1,33 @@
+# Maintainer: LuxOS Team
+# ble.sh - Bash Line Editor (zvyrazneni syntaxe a nasepavani pro bash)
+
+pkgname=blesh
+pkgver=0.4.0.r0.d81fd54
+pkgrel=1
+pkgdesc="Bash Line Editor - syntax highlighting and autosuggestions for bash"
+arch=(any)
+url="https://github.com/akinomyoga/ble.sh"
+license=(BSD-3-Clause)
+depends=(bash)
+makedepends=(git gawk make)
+_commit=d81fd54feb0d996fdff20dca27eaf0201f7015cc
+_contrib=d2109203480a7dfe1dead5f5f8f9f15a9146c90d
+source=("ble.sh::git+https://github.com/akinomyoga/ble.sh.git#commit=$_commit"
+        "blesh-contrib::git+https://github.com/akinomyoga/blesh-contrib.git#commit=$_contrib")
+sha256sums=('SKIP' 'SKIP')
+
+prepare() {
+    cd ble.sh
+    git submodule init
+    git config submodule.contrib.url "$srcdir/blesh-contrib"
+    git -c protocol.file.allow=always submodule update
+}
+
+build() {
+    make -C ble.sh
+}
+
+package() {
+    make -C ble.sh install DESTDIR="$pkgdir" PREFIX=/usr
+    install -Dm644 ble.sh/LICENSE.md "$pkgdir/usr/share/licenses/$pkgname/LICENSE.md"
+}

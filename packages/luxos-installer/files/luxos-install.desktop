@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Install LuxOS
+Name[cs]=Nainstalovat LuxOS
+Comment=Install LuxOS to this computer
+Exec=luxos-install-gui
+Icon=system-software-install
+Categories=System;
+Terminal=false

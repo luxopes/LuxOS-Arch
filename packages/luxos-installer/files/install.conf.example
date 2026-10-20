@@ -1,0 +1,14 @@
+# LuxOS - priklad konfigurace pro bezobsluznou instalaci
+#   sudo luxos-install --config install.conf --yes
+LOCALE=cs_CZ.UTF-8
+XKB_LAYOUT=cz
+XKB_VARIANT=
+TIMEZONE=Europe/Prague
+DISK=/dev/vda          # CELY DISK BUDE SMAZAN
+ENCRYPT=0              # 1 = LUKS2, vyzaduje LUKS_PASS
+LUKS_PASS=
+USERNAME=lux
+FULLNAME="Lux User"
+PASSWORD=luxos
+HOSTNAME_SEL=luxos
+AUTOLOGIN=0

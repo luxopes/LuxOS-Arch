@@ -1,0 +1,78 @@
+# Maintainer: LuxOS Team
+# Desktop LuxOS: XFCE upravene do podoby macOS + vybrane lehke aplikace.
+
+pkgname=luxos-desktop
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Spotlight, Launchpad) and default apps"
+arch=(any)
+url="https://github.com/luxos"
+license=(MIT)
+makedepends=(python xfce4-settings xfce4-session)
+install=luxos-desktop.install
+depends=(
+    # LuxOS
+    luxos-branding luxos-themes luxos-shell luxos-tweaks luxos-drivers lux
+    # Graficky server a vstup
+    xorg-server xorg-xrandr xorg-xinput xorg-xset xf86-input-libinput mesa
+    # Xfce (jen potrebne casti)
+    xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf xfce4-notifyd
+    xfce4-power-manager xfce4-screensaver xfce4-terminal xfce4-screenshooter xfce4-taskmanager
+    xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xorg-xprop
+    thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
+    # Dock, Spotlight, prihlaseni
+    plank rofi lightdm lightdm-gtk-greeter dconf yad
+    # Zvuk, sit, bluetooth, tisk
+    pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber pavucontrol
+    networkmanager network-manager-applet nm-connection-editor
+    bluez bluez-utils blueman
+    cups cups-pdf system-config-printer ipp-usb sane-airscan avahi nss-mdns
+    # Integrace systemu
+    polkit-gnome gnome-keyring xdg-user-dirs xdg-utils xdg-desktop-portal-gtk
+    gvfs gvfs-mtp gvfs-smb gvfs-gphoto2 udisks2 upower power-profiles-daemon
+    # Pisma
+    inter-font noto-fonts noto-fonts-emoji ttf-liberation ttf-jetbrains-mono-nerd
+    # Aplikace
+    firefox mousepad ristretto evince xarchiver 7zip unzip zip galculator celluloid
+    # Nastroje
+    lshw pciutils usbutils
+)
+
+package() {
+    local f="$startdir/files"
+
+    # Vychozi nastaveni v samostatnem XDG adresari (ma prednost pred /etc/xdg)
+    install -dm755 "$pkgdir/etc/xdg/luxos"
+    cp -r --no-preserve=ownership "$f/xdg/." "$pkgdir/etc/xdg/luxos/"
+    # Kanaly xfconf sloucit s vychozimi soubory Xfce (jinak by je nahradily cele)
+    python3 "$f/merge-xfconf.py" /etc/xdg/xfce4/xfconf/xfce-perchannel-xml \
+        "$f/xdg/xfce4/xfconf/xfce-perchannel-xml" "$pkgdir/etc/xdg/luxos/xfce4/xfconf/xfce-perchannel-xml"
+
+    install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/*
+    install -Dm644 -t "$pkgdir/usr/share/applications" "$f"/applications/*.desktop
+    install -Dm644 -t "$pkgdir/usr/share/rofi/themes" "$f"/rofi/*.rasi
+
+    # Skryte technicke aplikace (prekryti pres XDG_DATA_DIRS, viz /etc/profile.d/luxos.sh)
+    local a
+    install -dm755 "$pkgdir/usr/share/luxos/xdg/applications"
+    while read -r a; do
+        [[ -n $a ]] && printf '[Desktop Entry]\nType=Application\nName=%s\nNoDisplay=true\n' "$a" \
+            > "$pkgdir/usr/share/luxos/xdg/applications/$a.desktop"
+    done < "$f/hide/apps"
+
+    install -dm755 "$pkgdir/etc/skel"
+    cp -r --no-preserve=ownership "$f/skel/." "$pkgdir/etc/skel/"
+
+    install -Dm644 "$f/dconf/user-profile" "$pkgdir/etc/dconf/profile/user"
+    install -Dm644 "$f/dconf/10-luxos" "$pkgdir/etc/dconf/db/local.d/10-luxos"
+
+    install -Dm644 "$f/lightdm/50-luxos.conf" "$pkgdir/etc/lightdm/lightdm.conf.d/50-luxos.conf"
+    install -Dm644 "$f/lightdm/lightdm-gtk-greeter.conf" \
+        "$pkgdir/usr/share/lightdm/lightdm-gtk-greeter.conf.d/50-luxos.conf"
+
+    install -Dm644 "$f/xorg/30-luxos-touchpad.conf" "$pkgdir/etc/X11/xorg.conf.d/30-luxos-touchpad.conf"
+
+    install -Dm644 "$f/fontconfig/60-luxos.conf" "$pkgdir/usr/share/fontconfig/conf.avail/60-luxos.conf"
+    install -dm755 "$pkgdir/etc/fonts/conf.d"
+    ln -s /usr/share/fontconfig/conf.avail/60-luxos.conf "$pkgdir/etc/fonts/conf.d/60-luxos.conf"
+}

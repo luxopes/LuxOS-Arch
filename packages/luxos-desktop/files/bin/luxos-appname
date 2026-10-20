@@ -1,0 +1,75 @@
+#!/bin/bash
+# LuxOS - nazev aktivni aplikace v horni liste (jako v macOS)
+#
+#   luxos-appname watch   sleduje aktivni okno (xprop -spy, bez pravidelneho dotazovani)
+#                         a pri zmene obnovi plugin genmon v panelu
+#   luxos-appname print   vystup pro plugin genmon
+state="${XDG_RUNTIME_DIR:-/tmp}/luxos-appname"
+PLUGIN=genmon-2
+
+# Kratke nazvy pro aplikace, jejichz Name= je zbytecne dlouhe
+declare -A SHORT=(
+    [thunar]=Files [xfce4-terminal]=Terminal [org.xfce.mousepad]="Text Editor" [mousepad]="Text Editor"
+    [xfce4-settings-manager]=Settings [xfdesktop]=Desktop [org.xfce.ristretto]=Preview [ristretto]=Preview
+    [org.gnome.evince]="Document Viewer" [evince]="Document Viewer" [xfce4-taskmanager]="Task Manager"
+    [yad]=LuxOS
+)
+
+markup_escape() { local s=${1//&/&amp;}; s=${s//</&lt;}; printf '%s' "${s//>/&gt;}"; }
+
+case ${1:-print} in
+print)
+    printf '<txt>%s</txt>\n' "$(markup_escape "$(cat "$state" 2>/dev/null)")"
+    ;;
+
+watch)
+    exec 9>"$state.lock"
+    flock -n 9 || exit 0     # jen jedna instance na uzivatele
+    declare -A cache=()
+    lang=${LANG%%.*}
+
+    resolve() {  # resolve <instance> <class> -> nazev aplikace
+        local inst=${1,,} cls=${2,,} key f n
+        key="$inst/$cls"
+        [[ -n ${cache[$key]-} ]] && { echo "${cache[$key]}"; return; }
+        for n in "$inst" "$cls"; do
+            [[ -n ${SHORT[$n]-} ]] && { cache[$key]=${SHORT[$n]}; echo "${SHORT[$n]}"; return; }
+        done
+        f=$(grep -lisE "^StartupWMClass=($inst|$cls)$" /usr/share/applications/*.desktop 2>/dev/null | head -1)
+        if [[ -z $f ]]; then
+            for n in "$inst" "$cls"; do
+                for f in /usr/share/applications/{,*.}"$n".desktop; do [[ -e $f ]] && break 2; done
+                f=""
+            done
+        fi
+        n=""
+        if [[ -n $f ]]; then
+            n=$(grep -m1 "^Name\[$lang\]=" "$f" | cut -d= -f2-)
+            [[ -z $n ]] && n=$(grep -m1 '^Name=' "$f" | cut -d= -f2-)
+        fi
+        [[ -z $n ]] && n=${2:-$1}
+        cache[$key]=$n
+        echo "$n"
+    }
+
+    last=""
+    xprop -root -spy _NET_ACTIVE_WINDOW 2>/dev/null | while read -r line; do
+        # Format: "_NET_ACTIVE_WINDOW(WINDOW): window id # 0x3000003, 0x0"
+        win=""
+        [[ $line =~ \#\ (0x[0-9a-fA-F]+) ]] && win=${BASH_REMATCH[1]}
+        name=""
+        if [[ -n $win && $win != 0x0 ]]; then
+            wmclass=$(xprop -id "$win" WM_CLASS 2>/dev/null)
+            if [[ $wmclass =~ \"([^\"]*)\",\ \"([^\"]*)\" ]]; then
+                name=$(resolve "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}")
+            fi
+        fi
+        [[ -z $name ]] && name=Desktop
+        if [[ $name != "$last" ]]; then
+            printf '%s' "$name" > "$state"
+            xfce4-panel --plugin-event="$PLUGIN:refresh:bool:true" 2>/dev/null
+            last=$name
+        fi
+    done
+    ;;
+esac

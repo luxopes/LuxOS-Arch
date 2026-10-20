@@ -1,0 +1,51 @@
+# Maintainer: LuxOS Team
+# macOS-like vzhled: WhiteSur GTK/xfwm4/Plank, ikony a kurzory (vinceliuice, MIT/GPL).
+# Commity jsou pevne pripnute kvuli reprodukovatelnosti sestaveni.
+
+pkgname=luxos-themes
+pkgver=2025.12.27
+pkgrel=1
+pkgdesc="LuxOS macOS-like themes (WhiteSur GTK, xfwm4, Plank, icons and cursors)"
+arch=(any)
+url="https://github.com/vinceliuice"
+license=(MIT GPL-3.0-or-later)
+depends=(gtk3 gnome-themes-extra hicolor-icon-theme)
+makedepends=(git)
+options=(!strip !debug)
+_gtk=d5782652d412137e26fb8ff55b55a5572e4c6995
+_icons=73d8040da51a9ed74e47c7366e7e9ff437601a5c
+_cursors=e190baf618ed95ee217d2fd45589bd309b37672b
+source=("WhiteSur-gtk-theme::git+https://github.com/vinceliuice/WhiteSur-gtk-theme.git#commit=$_gtk"
+        "WhiteSur-icon-theme::git+https://github.com/vinceliuice/WhiteSur-icon-theme.git#commit=$_icons"
+        "WhiteSur-cursors::git+https://github.com/vinceliuice/WhiteSur-cursors.git#commit=$_cursors")
+sha256sums=('SKIP' 'SKIP' 'SKIP')
+
+package() {
+    local themes="$pkgdir/usr/share/themes"
+    local icons="$pkgdir/usr/share/icons"
+    install -dm755 "$themes" "$icons" "$pkgdir/usr/share/plank/themes"
+
+    # GTK 2/3/4 + xfwm4 + Plank (predpripravene release archivy)
+    for v in Dark Light; do
+        tar -xJf "$srcdir/WhiteSur-gtk-theme/release/WhiteSur-$v.tar.xz" -C "$themes"
+        # GNOME Shell a Cinnamon casti LuxOS nepotrebuje
+        rm -rf "$themes/WhiteSur-$v"/{gnome-shell,cinnamon}
+        ln -s "../../themes/WhiteSur-$v/plank" "$pkgdir/usr/share/plank/themes/WhiteSur-$v"
+    done
+
+    # Ikony: WhiteSur, WhiteSur-light, WhiteSur-dark
+    # install.sh vola gtk-update-icon-cache; cache vytvori pacman hook az na cilovem systemu
+    mkdir -p "$srcdir/stub"
+    printf '#!/bin/sh\nexit 0\n' > "$srcdir/stub/gtk-update-icon-cache"
+    chmod +x "$srcdir/stub/gtk-update-icon-cache"
+    cd "$srcdir/WhiteSur-icon-theme"
+    PATH="$srcdir/stub:$PATH" ./install.sh -d "$icons" -n WhiteSur -t default >/dev/null
+    rm -f "$icons"/WhiteSur*/icon-theme.cache
+
+    # Kurzory
+    cp -a "$srcdir/WhiteSur-cursors/dist" "$icons/WhiteSur-cursors"
+
+    install -Dm644 "$srcdir/WhiteSur-gtk-theme/COPYING" "$pkgdir/usr/share/licenses/$pkgname/WhiteSur-gtk-theme.COPYING"
+    install -Dm644 "$srcdir/WhiteSur-icon-theme/COPYING" "$pkgdir/usr/share/licenses/$pkgname/WhiteSur-icon-theme.COPYING"
+    install -Dm644 "$srcdir/WhiteSur-cursors/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/WhiteSur-cursors.LICENSE"
+}

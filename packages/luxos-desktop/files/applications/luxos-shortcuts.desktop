@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Keyboard Shortcuts
+Name[cs]=Klávesové zkratky
+Comment=Overview of LuxOS keyboard shortcuts
+Exec=luxos-shortcuts
+Icon=preferences-desktop-keyboard-shortcuts
+Categories=Settings;

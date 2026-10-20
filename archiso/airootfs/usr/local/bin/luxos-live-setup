@@ -1,0 +1,16 @@
+#!/bin/bash
+# LuxOS - priprava live relace: uzivatel "lux" bez hesla s automatickym prihlasenim
+set -e
+user=lux
+getent group autologin >/dev/null || groupadd -r autologin
+if ! id "$user" &>/dev/null; then
+    groups=wheel
+    for g in video audio input lp storage network rfkill autologin; do
+        getent group "$g" >/dev/null && groups+=",$g"
+    done
+    useradd -m -G "$groups" -s /bin/bash -c "LuxOS Live" "$user"
+    passwd -d "$user" >/dev/null
+fi
+install -Dm440 /dev/stdin /etc/sudoers.d/00-luxos-live <<S
+$user ALL=(ALL:ALL) NOPASSWD: ALL
+S

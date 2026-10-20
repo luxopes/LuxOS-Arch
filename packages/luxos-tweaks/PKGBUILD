@@ -1,0 +1,26 @@
+# Maintainer: LuxOS Team
+
+pkgname=luxos-tweaks
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, systemd-oomd"
+arch=(any)
+url="https://github.com/luxos"
+license=(MIT)
+depends=(systemd zram-generator pacman-contrib reflector)
+backup=(etc/systemd/zram-generator.conf)
+
+package() {
+    local f="$startdir/files"
+    install -Dm644 "$f/zram-generator.conf"  "$pkgdir/etc/systemd/zram-generator.conf"
+    install -Dm644 "$f/99-luxos.conf"        "$pkgdir/usr/lib/sysctl.d/99-luxos.conf"
+    install -Dm644 "$f/modules-luxos.conf"   "$pkgdir/usr/lib/modules-load.d/luxos.conf"
+    install -Dm644 "$f/journald.conf"        "$pkgdir/usr/lib/systemd/journald.conf.d/50-luxos.conf"
+    install -Dm644 "$f/system.conf"          "$pkgdir/usr/lib/systemd/system.conf.d/50-luxos.conf"
+    install -Dm644 "$f/user.conf"            "$pkgdir/usr/lib/systemd/user.conf.d/50-luxos.conf"
+    install -Dm644 "$f/60-luxos-ioschedulers.rules" "$pkgdir/usr/lib/udev/rules.d/60-luxos-ioschedulers.rules"
+    install -Dm644 "$f/oomd-user.conf"       "$pkgdir/usr/lib/systemd/system/user@.service.d/10-luxos-oomd.conf"
+    install -Dm644 "$f/oomd-root.conf"       "$pkgdir/usr/lib/systemd/system/-.slice.d/10-luxos-oomd.conf"
+    install -Dm644 "$f/makepkg.conf"         "$pkgdir/etc/makepkg.conf.d/luxos.conf"
+    install -Dm644 "$f/services"             "$pkgdir/usr/lib/luxos/services"
+}

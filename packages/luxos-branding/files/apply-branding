@@ -1,0 +1,41 @@
+#!/bin/bash
+# LuxOS - aplikuje branding po instalaci/aktualizaci baliku filesystem a luxos-branding.
+# /usr/lib/os-release patri baliku filesystem, proto ho prepisujeme hookem.
+set -e
+
+cat > /usr/lib/os-release <<'OSR'
+NAME="LuxOS"
+PRETTY_NAME="LuxOS"
+ID=luxos
+ID_LIKE=arch
+BUILD_ID=rolling
+VERSION_ID=rolling
+ANSI_COLOR="38;2;167;123;255"
+HOME_URL="https://github.com/luxos"
+LOGO=luxos-logo
+OSR
+
+# /etc/os-release je v Archu symlink na /usr/lib/os-release
+if [[ ! -L /etc/os-release ]]; then
+    ln -sf ../usr/lib/os-release /etc/os-release
+fi
+
+printf '\n  \e[38;2;167;123;255m✦\e[0m  LuxOS  \e[2m(\\l)\e[0m\n\n' > /etc/issue
+
+if [[ -f /etc/lsb-release ]]; then
+    cat > /etc/lsb-release <<'LSB'
+DISTRIB_ID="LuxOS"
+DISTRIB_RELEASE="rolling"
+DISTRIB_DESCRIPTION="LuxOS"
+LSB
+fi
+
+# Vychozi motiv Plymouth (pouze pokud ho spravce nezmenil)
+conf=/etc/plymouth/plymouthd.conf
+if [[ -f $conf ]] && ! grep -q '^Theme=' "$conf"; then
+    printf '\n[Daemon]\nTheme=luxos\nShowDelay=0\nDeviceTimeout=8\n' >> "$conf"
+elif [[ ! -f $conf ]]; then
+    mkdir -p /etc/plymouth
+    printf '[Daemon]\nTheme=luxos\nShowDelay=0\nDeviceTimeout=8\n' > "$conf"
+fi
+exit 0

@@ -1,0 +1,9 @@
+#!/bin/bash
+# LuxOS - Spotlight (Super+Space): hledani aplikaci, souboru a oken
+if pkill -x rofi; then exit 0; fi
+extra=()
+[[ $(luxos-appearance status) == light ]] && extra=(-theme-str '@import "luxos-light-colors"')
+exec rofi -show drun -modi 'drun,window,filebrowser,run' \
+    -theme luxos-spotlight "${extra[@]}" \
+    -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf \
+    -display-drun 'Apps' -display-window 'Windows' -display-filebrowser 'Files' -display-run 'Run'

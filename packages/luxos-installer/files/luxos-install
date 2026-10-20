@@ -1,0 +1,415 @@
+#!/bin/bash
+# LuxOS - instalator
+#
+# Interaktivne:   sudo luxos-install
+# Bez obsluhy:    sudo luxos-install --config /cesta/install.conf [--yes]
+#
+# Konfiguracni soubor (bash promenne) - viz /usr/share/luxos/installer/install.conf.example
+set -Eeuo pipefail
+
+LOG=/var/log/luxos-install.log
+TARGET=/mnt
+SHARE=/usr/share/luxos/installer
+REPO_SRC=/opt/luxos-repo
+
+((EUID == 0)) || exec sudo "$0" "$@"
+
+CONFIG=""
+ASSUME_YES=0
+while (($#)); do
+    case $1 in
+        --config) CONFIG=$2; shift ;;
+        --yes)    ASSUME_YES=1 ;;
+        -h|--help) sed -n '2,7p' "$0" | sed 's/^# \?//'; exit 0 ;;
+        *) echo "Unknown option: $1" >&2; exit 2 ;;
+    esac
+    shift
+done
+
+# --- Vystup -----------------------------------------------------------------
+ACCENT="#a77bff"
+title() { gum style --foreground "$ACCENT" --bold --margin "1 0 0 0" "✦ $*"; }
+info()  { gum style --foreground 250 "  $*"; }
+step()  { printf '\n\e[1;38;2;167;123;255m==>\e[0m \e[1m%s\e[0m\n' "$*"; printf '\n==> %s\n' "$*" >>"$LOG"; }
+fail()  { gum style --foreground 203 --bold "✗ $*" >&2; exit 1; }
+run()   { printf '+ %s\n' "$*" >>"$LOG"; "$@" >>"$LOG" 2>&1; }
+
+on_error() {
+    local rc=$? line=$1
+    echo >&2
+    gum style --border rounded --border-foreground 203 --padding "1 2" --foreground 203 \
+        "Installation failed (line $line, exit code $rc)." "" \
+        "Details are in $LOG. Last lines:" >&2 || true
+    tail -n 15 "$LOG" >&2 || true
+    exit "$rc"
+}
+trap 'on_error $LINENO' ERR
+
+# --- Kontroly prostredi -----------------------------------------------------
+preflight() {
+    command -v gum >/dev/null || { echo "gum is missing" >&2; exit 1; }
+    : >"$LOG"
+    if [[ -d /sys/firmware/efi/efivars ]]; then BOOTMODE=uefi; else BOOTMODE=bios; fi
+    [[ -d /run/archiso ]] || info "Warning: not running from the LuxOS live system."
+}
+
+have_internet() { curl -fsI --max-time 6 https://geo.mirror.pkgbuild.com/ >/dev/null 2>&1; }
+
+ensure_internet() {
+    until have_internet; do
+        title "No internet connection"
+        info "LuxOS downloads the newest packages during installation."
+        info "Connect with the network icon in the top bar, or use the text tool."
+        local c
+        c=$(gum choose "Try again" "Open network setup (nmtui)" "Quit") || exit 1
+        case $c in
+            "Open network setup"*) nmtui || true ;;
+            Quit) exit 1 ;;
+        esac
+    done
+}
+
+# --- Volby ------------------------------------------------------------------
+LANGS=(
+    "English (US)|en_US.UTF-8" "Čeština|cs_CZ.UTF-8" "Slovenčina|sk_SK.UTF-8" "Deutsch|de_DE.UTF-8"
+    "Polski|pl_PL.UTF-8" "Français|fr_FR.UTF-8" "Español|es_ES.UTF-8" "Italiano|it_IT.UTF-8"
+    "Português (Brasil)|pt_BR.UTF-8" "Nederlands|nl_NL.UTF-8" "Magyar|hu_HU.UTF-8" "Svenska|sv_SE.UTF-8"
+    "Українська|uk_UA.UTF-8" "English (UK)|en_GB.UTF-8"
+)
+KEYMAPS=(
+    "English (US)|us|" "Czech|cz|" "Czech (QWERTY)|cz|qwerty" "Slovak|sk|" "Slovak (QWERTY)|sk|qwerty"
+    "German|de|" "English (UK)|gb|" "French|fr|" "Spanish|es|" "Italian|it|" "Polish|pl|"
+    "Hungarian|hu|" "Ukrainian|ua|" "Portuguese|pt|" "Portuguese (Brazil)|br|" "Swedish|se|"
+)
+
+pick_from() {  # pick_from "Nadpis" polozka... -> vybrany radek "label|..."
+    local header=$1; shift
+    local labels=() sel i
+    for i in "$@"; do labels+=("${i%%|*}"); done
+    sel=$(printf '%s\n' "${labels[@]}" "Other…" | gum filter --header "$header" --height 14 --placeholder "Type to search") || exit 1
+    for i in "$@"; do [[ ${i%%|*} == "$sel" ]] && { echo "$i"; return; }; done
+    echo "Other…"
+}
+
+# Prevod rozlozeni X11 na konzolove podle tabulky systemd
+x11_to_console() {
+    local layout=$1 variant=${2:--} map=/usr/share/systemd/kbd-model-map km
+    km=$(awk -v l="$layout" -v v="$variant" '$1 !~ /^#/ && $2 == l && $4 == v {print $1; exit}' "$map" 2>/dev/null)
+    [[ -z $km ]] && km=$(awk -v l="$layout" '$1 !~ /^#/ && $2 == l {print $1; exit}' "$map" 2>/dev/null)
+    echo "${km:-us}"
+}
+
+valid_user() { [[ $1 =~ ^[a-z_][a-z0-9_-]{0,31}$ && $1 != root ]]; }
+valid_host() { [[ $1 =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]]; }
+
+iso_disk() {
+    local src
+    src=$(findmnt -no SOURCE /run/archiso/bootmnt 2>/dev/null || true)
+    [[ -n $src ]] && lsblk -no PKNAME "$src" 2>/dev/null | head -1
+}
+
+list_disks() {
+    local iso; iso=$(iso_disk)
+    lsblk -dnpbo NAME,SIZE,TYPE,RO,MODEL | while read -r name size type ro model; do
+        [[ $type == disk && $ro == 0 ]] || continue
+        [[ $name == /dev/zram* || $name == /dev/loop* ]] && continue
+        [[ -n $iso && $name == "/dev/$iso" ]] && continue
+        ((size >= 20 * 1000 * 1000 * 1000)) || continue
+        printf '%s|%s  %s  %s\n' "$name" "$name" "$(numfmt --to=si --suffix=B "$size")" "${model:-disk}"
+    done
+}
+
+interactive() {
+    clear
+    gum style --border rounded --border-foreground "$ACCENT" --padding "1 4" --margin "1 2" --align center \
+        "$(gum style --foreground "$ACCENT" --bold '✦  LuxOS')" "" "Welcome! This will install LuxOS on your computer." \
+        "It takes about 10 minutes."
+
+    ensure_internet
+
+    # Jazyk
+    title "Language"
+    local sel
+    sel=$(pick_from "Choose the system language" "${LANGS[@]}")
+    if [[ $sel == "Other…" ]]; then
+        LOCALE=$(grep -oE '^[a-zA-Z_@]+\.UTF-8' /usr/share/i18n/SUPPORTED | sort -u |
+                 gum filter --header "Choose locale" --height 14) || exit 1
+    else
+        LOCALE=${sel##*|}
+    fi
+    info "Language: $LOCALE"
+
+    # Klavesnice
+    title "Keyboard"
+    sel=$(pick_from "Choose your keyboard layout" "${KEYMAPS[@]}")
+    if [[ $sel == "Other…" ]]; then
+        XKB_LAYOUT=$(localectl list-x11-keymap-layouts | gum filter --header "Layout" --height 14) || exit 1
+        XKB_VARIANT=$( (echo "(default)"; localectl list-x11-keymap-variants "$XKB_LAYOUT" 2>/dev/null) |
+                       gum filter --header "Variant" --height 14) || exit 1
+        [[ $XKB_VARIANT == "(default)" ]] && XKB_VARIANT=""
+    else
+        IFS='|' read -r _ XKB_LAYOUT XKB_VARIANT <<<"$sel"
+    fi
+    # Okamzite pouzit i v live systemu
+    if [[ -n ${SUDO_USER-} && -n ${DISPLAY-} ]]; then
+        sudo -u "$SUDO_USER" DISPLAY="$DISPLAY" setxkbmap "$XKB_LAYOUT" ${XKB_VARIANT:+-variant "$XKB_VARIANT"} 2>/dev/null || true
+    fi
+    info "Keyboard: $XKB_LAYOUT${XKB_VARIANT:+ ($XKB_VARIANT)}"
+
+    # Casove pasmo
+    title "Time zone"
+    local detected
+    detected=$(curl -fs --max-time 5 'http://ip-api.com/line/?fields=timezone' 2>/dev/null || true)
+    if [[ -n $detected && -e /usr/share/zoneinfo/$detected ]] && \
+       gum confirm "Use detected time zone $detected?"; then
+        TIMEZONE=$detected
+    else
+        TIMEZONE=$(timedatectl list-timezones | gum filter --header "Choose time zone" --height 14) || exit 1
+    fi
+    info "Time zone: $TIMEZONE"
+
+    # Disk
+    title "Disk"
+    local disks
+    mapfile -t disks < <(list_disks)
+    local opts=() d
+    for d in "${disks[@]}"; do opts+=("${d#*|}"); done
+    opts+=("Advanced: use partitions already mounted at $TARGET")
+    sel=$(gum choose --header "Where should LuxOS be installed?" "${opts[@]}") || exit 1
+    if [[ $sel == Advanced:* ]]; then
+        DISK=manual
+        mountpoint -q "$TARGET" || fail "Nothing is mounted at $TARGET. Mount root (and /boot) first."
+        ENCRYPT=0
+    else
+        DISK=${sel%% *}
+        info "All data on $DISK will be erased."
+        ENCRYPT=0
+        if gum confirm --default=false "Encrypt the disk? (you will enter a password at every start)"; then
+            ENCRYPT=1
+            LUKS_PASS=$(ask_password "Disk encryption password")
+        fi
+    fi
+
+    # Uzivatel
+    title "Your account"
+    FULLNAME=$(gum input --header "Full name" --placeholder "Jane Appleseed") || exit 1
+    local suggested
+    suggested=$(iconv -f utf-8 -t ascii//TRANSLIT <<<"${FULLNAME%% *}" 2>/dev/null | tr -cd 'A-Za-z0-9' | tr 'A-Z' 'a-z')
+    while :; do
+        USERNAME=$(gum input --header "User name (lowercase)" --value "${suggested:-user}") || exit 1
+        valid_user "$USERNAME" && break
+        info "Use lowercase letters, numbers, - and _ (max 32 characters)."
+    done
+    PASSWORD=$(ask_password "Password")
+    while :; do
+        HOSTNAME_SEL=$(gum input --header "Computer name" --value "${USERNAME}-luxos") || exit 1
+        valid_host "$HOSTNAME_SEL" && break
+        info "Use letters, numbers and - (no spaces)."
+    done
+    AUTOLOGIN=0
+    gum confirm --default=false "Log in automatically without a password?" && AUTOLOGIN=1
+    return 0
+}
+
+ask_password() {
+    local p1 p2
+    while :; do
+        p1=$(gum input --password --header "$1") || exit 1
+        [[ ${#p1} -ge 1 ]] || { info "Password cannot be empty." >&2; continue; }
+        p2=$(gum input --password --header "$1 (again)") || exit 1
+        [[ $p1 == "$p2" ]] && break
+        info "Passwords do not match, try again." >&2
+    done
+    printf '%s' "$p1"
+}
+
+summary() {
+    title "Summary"
+    gum style --border rounded --border-foreground 240 --padding "1 2" \
+        "Language     $LOCALE" \
+        "Keyboard     $XKB_LAYOUT${XKB_VARIANT:+ ($XKB_VARIANT)}" \
+        "Time zone    $TIMEZONE" \
+        "Disk         $([[ $DISK == manual ]] && echo "mounted at $TARGET" || echo "$DISK  (will be ERASED)")" \
+        "Encryption   $([[ $ENCRYPT == 1 ]] && echo yes || echo no)" \
+        "User         $FULLNAME ($USERNAME)" \
+        "Computer     $HOSTNAME_SEL" \
+        "Boot mode    ${BOOTMODE^^}"
+    ((ASSUME_YES)) && return 0
+    gum confirm --default=false --affirmative "Install" --negative "Cancel" "Install LuxOS now?" || exit 1
+}
+
+# --- Instalace --------------------------------------------------------------
+part_path() {  # part_path /dev/disk N
+    lsblk -lnpo NAME,PARTN "$1" | awk -v n="$2" '$2 == n {print $1}'
+}
+
+prepare_disk() {
+    step "Preparing disk $DISK"
+    swapoff -a 2>/dev/null || true
+    umount -R "$TARGET" 2>/dev/null || true
+    [[ -e /dev/mapper/cryptroot ]] && cryptsetup close cryptroot 2>/dev/null || true
+
+    run wipefs -af "$DISK"
+    run sgdisk --zap-all "$DISK"
+    if [[ $BOOTMODE == uefi ]]; then
+        run sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n2:0:0 -t2:8304 -c2:LuxOS "$DISK"
+    else
+        run sgdisk -n1:0:+1M -t1:ef02 -c1:BIOS -n2:0:+1G -t2:8300 -c2:boot -n3:0:0 -t3:8304 -c3:LuxOS "$DISK"
+    fi
+    run partprobe "$DISK" || true
+    run udevadm settle
+
+    local rootpart
+    if [[ $BOOTMODE == uefi ]]; then
+        BOOTPART=$(part_path "$DISK" 1); rootpart=$(part_path "$DISK" 2)
+    else
+        BOOTPART=$(part_path "$DISK" 2); rootpart=$(part_path "$DISK" 3)
+    fi
+    [[ -b $BOOTPART && -b $rootpart ]] || fail "Partitions were not created correctly"
+
+    ROOTDEV=$rootpart
+    if ((ENCRYPT)); then
+        step "Encrypting the disk"
+        printf '%s' "$LUKS_PASS" | run cryptsetup luksFormat --type luks2 --batch-mode --key-file - "$rootpart"
+        printf '%s' "$LUKS_PASS" | run cryptsetup open --allow-discards --perf-no_read_workqueue \
+            --perf-no_write_workqueue --persistent --key-file - "$rootpart" cryptroot
+        LUKS_UUID=$(blkid -s UUID -o value "$rootpart")
+        ROOTDEV=/dev/mapper/cryptroot
+    fi
+
+    step "Creating file systems"
+    if [[ $BOOTMODE == uefi ]]; then run mkfs.fat -F32 -n EFI "$BOOTPART"
+    else run mkfs.ext4 -F -L boot "$BOOTPART"; fi
+    run mkfs.btrfs -f -L LuxOS "$ROOTDEV"
+
+    local mntopts=noatime,compress=zstd:1 sv
+    run mount "$ROOTDEV" "$TARGET"
+    for sv in @ @home @log @cache; do run btrfs subvolume create "$TARGET/$sv"; done
+    run umount "$TARGET"
+    run mount -o "$mntopts,subvol=@" "$ROOTDEV" "$TARGET"
+    mkdir -p "$TARGET"/{boot,home,var/log,var/cache}
+    run mount -o "$mntopts,subvol=@home"  "$ROOTDEV" "$TARGET/home"
+    run mount -o "$mntopts,subvol=@log"   "$ROOTDEV" "$TARGET/var/log"
+    run mount -o "$mntopts,subvol=@cache" "$ROOTDEV" "$TARGET/var/cache"
+    if [[ $BOOTMODE == uefi ]]; then run mount -o fmask=0077,dmask=0077 "$BOOTPART" "$TARGET/boot"
+    else run mount "$BOOTPART" "$TARGET/boot"; fi
+}
+
+install_packages() {
+    step "Detecting hardware"
+    local -a pkgs hw
+    mapfile -t pkgs < <(grep -vE '^\s*(#|$)' "$SHARE/packages")
+    if [[ $BOOTMODE == uefi ]]; then pkgs+=(efibootmgr); else pkgs+=(grub); fi
+    mapfile -t hw < <(luxos-hwdetect --packages --kernel linux-zen)
+    luxos-hwdetect --report | sed 's/^/  /'
+    pkgs+=("${hw[@]}")
+
+    step "Installing packages (this is the longest step)"
+    local attempt
+    for attempt in 1 2 3; do
+        if pacstrap -K "$TARGET" --needed "${pkgs[@]}" 2>&1 | tee -a "$LOG"; then
+            return 0
+        fi
+        info "Download failed (attempt $attempt), retrying…"
+        sleep 3
+    done
+    fail "Packages could not be installed. Check the internet connection."
+}
+
+configure_system() {
+    step "Configuring the system"
+    # zram swap live systemu nepatri do fstab (instalovany system ma vlastni zram-generator)
+    swapoff /dev/zram* 2>/dev/null || true
+    genfstab -U "$TARGET" | sed 's/,subvolid=[0-9]*//' | grep -v zram >>"$TARGET/etc/fstab"
+
+    # pacman: stejna konfigurace jako live system + lokalni repozitar LuxOS
+    install -m644 /etc/pacman.conf "$TARGET/etc/pacman.conf"
+    install -m644 /etc/pacman.d/mirrorlist "$TARGET/etc/pacman.d/mirrorlist"
+    if [[ -d $REPO_SRC ]]; then
+        mkdir -p "$TARGET/opt"
+        cp -a "$REPO_SRC" "$TARGET/opt/"
+    fi
+
+    local console_km
+    console_km=$(x11_to_console "$XKB_LAYOUT" "$XKB_VARIANT")
+    local -a hw_svcs
+    mapfile -t hw_svcs < <(luxos-hwdetect --services)
+
+    local cmdline="rw quiet splash loglevel=3 rd.udev.log_level=3 systemd.show_status=auto vt.global_cursor_default=0 nowatchdog zswap.enabled=0"
+    local root_uuid
+    root_uuid=$(blkid -s UUID -o value "$ROOTDEV")
+    local rootspec="root=UUID=$root_uuid rootflags=subvol=@"
+    ((ENCRYPT)) && rootspec="rd.luks.name=$LUKS_UUID=cryptroot rd.luks.options=discard root=/dev/mapper/cryptroot rootflags=subvol=@"
+    [[ $DISK == manual ]] && rootspec="root=UUID=$root_uuid$(findmnt -no OPTIONS "$TARGET" | grep -o 'subvol=[^,]*' | sed 's/^/ rootflags=/' | head -1)"
+
+    install -Dm600 /dev/stdin "$TARGET/root/luxos-setup.env" <<ENV
+LOCALE=$(printf %q "$LOCALE")
+XKB_LAYOUT=$(printf %q "$XKB_LAYOUT")
+XKB_VARIANT=$(printf %q "$XKB_VARIANT")
+CONSOLE_KEYMAP=$(printf %q "$console_km")
+TIMEZONE=$(printf %q "$TIMEZONE")
+HOSTNAME_SEL=$(printf %q "$HOSTNAME_SEL")
+USERNAME=$(printf %q "$USERNAME")
+FULLNAME=$(printf %q "$FULLNAME")
+AUTOLOGIN=$AUTOLOGIN
+ENCRYPT=$ENCRYPT
+BOOTMODE=$BOOTMODE
+DISK=$(printf %q "$DISK")
+CMDLINE=$(printf %q "$rootspec $cmdline")
+HW_SERVICES=$(printf %q "${hw_svcs[*]}")
+ENV
+    install -m700 "$SHARE/setup-chroot.sh" "$TARGET/root/luxos-setup.sh"
+    arch-chroot "$TARGET" /root/luxos-setup.sh 2>&1 | tee -a "$LOG"
+    printf '%s:%s\n' "$USERNAME" "$PASSWORD" | arch-chroot "$TARGET" chpasswd
+    rm -f "$TARGET/root/luxos-setup.sh" "$TARGET/root/luxos-setup.env"
+
+    # bootctl v chrootu nezapisuje EFI promenne - polozku "LuxOS" vytvorit z live systemu
+    if [[ $BOOTMODE == uefi && $DISK != manual ]] && command -v efibootmgr >/dev/null; then
+        efibootmgr -q -B -L LuxOS >/dev/null 2>&1 || true
+        run efibootmgr --create --disk "$DISK" --part 1 --label LuxOS \
+            --loader '\EFI\systemd\systemd-bootx64.efi' --unicode || info "Could not add UEFI boot entry (fallback loader will be used)"
+    fi
+}
+
+finish() {
+    step "Finishing"
+    cp "$LOG" "$TARGET/var/log/luxos-install.log" 2>/dev/null || true
+    sync
+    umount -R "$TARGET" 2>/dev/null || true
+    ((ENCRYPT)) && cryptsetup close cryptroot 2>/dev/null || true
+    echo
+    gum style --border rounded --border-foreground "$ACCENT" --padding "1 4" --margin "1 2" --align center \
+        "$(gum style --foreground "$ACCENT" --bold '✦  LuxOS is installed')" "" \
+        "Remove the installation media and restart your computer."
+    ((ASSUME_YES)) && return 0
+    if gum confirm "Restart now?"; then systemctl reboot; fi
+}
+
+main() {
+    preflight
+    if [[ -n $CONFIG ]]; then
+        # shellcheck disable=SC1090
+        . "$CONFIG"
+        : "${LOCALE:=en_US.UTF-8}" "${XKB_LAYOUT:=us}" "${XKB_VARIANT:=}" "${TIMEZONE:=UTC}"
+        : "${ENCRYPT:=0}" "${AUTOLOGIN:=0}" "${HOSTNAME_SEL:=luxos}" "${FULLNAME:=$USERNAME}"
+        [[ -n ${DISK-} && -n ${USERNAME-} && -n ${PASSWORD-} ]] || fail "Config needs DISK, USERNAME and PASSWORD"
+        valid_user "$USERNAME" || fail "Invalid USERNAME"
+        valid_host "$HOSTNAME_SEL" || fail "Invalid HOSTNAME_SEL"
+        ((ENCRYPT)) && [[ -z ${LUKS_PASS-} ]] && fail "ENCRYPT=1 needs LUKS_PASS"
+        have_internet || fail "No internet connection"
+    else
+        interactive
+    fi
+    summary
+    [[ $DISK == manual ]] || prepare_disk
+    if [[ $DISK == manual ]]; then
+        ROOTDEV=$(findmnt -no SOURCE "$TARGET" | sed 's/\[.*\]//')
+        BOOTPART=$(findmnt -no SOURCE "$TARGET/boot" 2>/dev/null || true)
+        [[ $BOOTMODE == bios ]] && DISK=$(lsblk -no PKNAME "$ROOTDEV" | head -1 | sed 's|^|/dev/|')
+    fi
+    install_packages
+    configure_system
+    finish
+}
+
+main "$@"

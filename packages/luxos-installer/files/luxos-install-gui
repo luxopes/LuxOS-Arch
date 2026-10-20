@@ -1,0 +1,3 @@
+#!/bin/bash
+# LuxOS - spusti instalator v okne terminalu
+exec xfce4-terminal --title="Install LuxOS" --geometry=110x34 -x sudo luxos-install "$@"

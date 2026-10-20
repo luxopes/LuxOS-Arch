@@ -1,0 +1,347 @@
+#!/bin/bash
+# lux - spravce baliku LuxOS
+#
+# Verze 0.x je jednotne rozhrani nad pacmanem, AUR a Flatpakem.
+# Budouci vlastni format/repozitar LuxOS se doplni jako dalsi "backend"
+# (viz /etc/lux/lux.conf), prikazy zustanou stejne.
+set -o pipefail
+
+LUX_VERSION=0.1.0
+LUX_AUR_RPC="https://aur.archlinux.org/rpc/v5"
+LUX_AUR_GIT="https://aur.archlinux.org"
+
+# Vychozi nastaveni (prepisuje /etc/lux/lux.conf a ~/.config/lux/lux.conf)
+AUR=1
+REVIEW_PKGBUILD=1
+FLATPAK=1
+CLEAN_KEEP=2
+for _c in /etc/lux/lux.conf "${XDG_CONFIG_HOME:-$HOME/.config}/lux/lux.conf"; do
+    [[ -r $_c ]] && . "$_c"
+done
+LUX_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/lux"
+
+YES=0
+ONLY=""   # repo | aur
+
+# --- Vystup ---------------------------------------------------------------
+if [[ -t 1 && -z ${NO_COLOR-} ]]; then
+    B=$'\e[1m' D=$'\e[2m' R=$'\e[0m' C=$'\e[38;2;167;123;255m' G=$'\e[32m' Y=$'\e[33m' E=$'\e[31m'
+else
+    B="" D="" R="" C="" G="" Y="" E=""
+fi
+say()  { printf '%s✦%s %s\n' "$C" "$R" "$*"; }
+ok()   { printf '%s✓%s %s\n' "$G" "$R" "$*"; }
+warn() { printf '%s!%s %s\n' "$Y" "$R" "$*" >&2; }
+die()  { printf '%s✗%s %s\n' "$E" "$R" "$*" >&2; exit 1; }
+ask() {  # ask "Otazka" [Y|n] -> 0 = ano
+    local def=${2:-Y} a
+    ((YES)) && return 0
+    if [[ $def == Y ]]; then read -rp "$B$1$R [Y/n] " a; [[ -z $a || $a == [yYaA]* ]]
+    else read -rp "$B$1$R [y/N] " a; [[ $a == [yYaA]* ]]; fi
+}
+as_root() { if ((EUID == 0)); then "$@"; else sudo "$@"; fi; }
+pac_yes() { ((YES)) && echo --noconfirm; }
+
+# --- Pomocne funkce pro repozitare ------------------------------------------
+in_repos()   { pacman -Sp --print-format '%n' -- "$1" &>/dev/null || pacman -Sg -- "$1" &>/dev/null; }
+installed()  { pacman -T -- "$1" &>/dev/null; }
+strip_ver()  { sed -E 's/[<>=].*$//' <<<"$1"; }
+
+# --- AUR --------------------------------------------------------------------
+need_aur_tools() {
+    ((AUR)) || die "AUR is disabled in lux.conf"
+    command -v jq &>/dev/null || die "jq is required for AUR support"
+    if ((EUID == 0)); then die "AUR packages must be built as a regular user (run lux without sudo)"; fi
+    if ! pacman -Qq base-devel &>/dev/null || ! command -v git &>/dev/null; then
+        say "Building AUR packages needs ${B}base-devel${R} and ${B}git${R}."
+        ask "Install them now?" || exit 1
+        as_root pacman -S --needed $(pac_yes) base-devel git || exit 1
+    fi
+}
+
+# aur_info pkg... -> JSON pole vysledku
+aur_info() {
+    local q="" p
+    for p in "$@"; do q+="&arg[]=$(jq -rn --arg v "$p" '$v|@uri')"; done
+    curl -fsSL --max-time 20 "$LUX_AUR_RPC/info?${q#&}" | jq -c '.results'
+}
+
+aur_exists() { [[ $(aur_info "$1" | jq 'length') -gt 0 ]]; }
+
+# Rekurzivne vyresi AUR zavislosti; vysledek v poli AUR_ORDER (zavislosti prvni)
+declare -a AUR_ORDER=()
+declare -A AUR_SEEN=() AUR_BASE=()
+aur_resolve() {
+    local pkg=$1 info deps d name
+    [[ -n ${AUR_SEEN[$pkg]-} ]] && return 0
+    AUR_SEEN[$pkg]=1
+    info=$(aur_info "$pkg") || die "AUR is not reachable"
+    [[ $(jq 'length' <<<"$info") -gt 0 ]] || die "Package '$pkg' was not found in repositories or AUR"
+    AUR_BASE[$pkg]=$(jq -r '.[0].PackageBase' <<<"$info")
+    mapfile -t deps < <(jq -r '.[0] | (.Depends // []) + (.MakeDepends // []) + (.CheckDepends // []) | .[]' <<<"$info")
+    for d in "${deps[@]}"; do
+        name=$(strip_ver "$d")
+        installed "$d" && continue
+        in_repos "$name" && continue
+        aur_resolve "$name"
+    done
+    AUR_ORDER+=("$pkg")
+}
+
+aur_build() {  # aur_build pkg [asdeps]
+    local pkg=$1 asdeps=${2:-0} base=${AUR_BASE[$1]:-$1} dir
+    dir="$LUX_CACHE/aur/$base"
+    mkdir -p "$LUX_CACHE/aur"
+    if [[ -d $dir/.git ]]; then
+        git -C "$dir" pull --ff-only -q || die "Cannot update $base from AUR"
+    else
+        git clone -q "$LUX_AUR_GIT/$base.git" "$dir" || die "Cannot clone $base from AUR"
+    fi
+    if ((REVIEW_PKGBUILD)) && ((!YES)); then
+        if ask "Review PKGBUILD of ${B}$base${R} before building?" Y; then
+            if command -v bat &>/dev/null; then bat --paging=always -l bash "$dir/PKGBUILD"; else less "$dir/PKGBUILD"; fi
+        fi
+        ask "Build and install ${B}$base${R}?" Y || die "Cancelled"
+    fi
+    say "Building ${B}$base${R} ${D}(AUR)${R}"
+    local flags=(-si --needed --noconfirm)
+    ((asdeps)) && flags+=(--asdeps)
+    (cd "$dir" && makepkg "${flags[@]}") || die "Build of $base failed (see $dir)"
+}
+
+aur_install() {
+    (($#)) || return 0
+    need_aur_tools
+    AUR_ORDER=(); AUR_SEEN=(); AUR_BASE=()
+    local p
+    for p in "$@"; do aur_resolve "$p"; done
+    say "AUR packages to build: ${B}${AUR_ORDER[*]}${R}"
+    warn "AUR packages are maintained by the community, not by LuxOS."
+    ask "Continue?" Y || exit 1
+    declare -A wanted=()
+    for p in "$@"; do wanted[$p]=1; done
+    for p in "${AUR_ORDER[@]}"; do
+        if [[ -n ${wanted[$p]-} ]]; then aur_build "$p" 0; else aur_build "$p" 1; fi
+    done
+}
+
+# --- Prikazy ----------------------------------------------------------------
+cmd_install() {
+    (($#)) || die "Usage: lux install <package...>"
+    local repo=() aur=() p
+    for p in "$@"; do
+        if [[ $ONLY != aur ]] && in_repos "$p"; then repo+=("$p")
+        elif [[ $ONLY != repo ]] && ((AUR)) && aur_exists "$p"; then aur+=("$p")
+        elif [[ $ONLY != repo && $p == *.*.* ]] && command -v flatpak &>/dev/null; then
+            say "Installing ${B}$p${R} from Flathub"; flatpak install -y flathub "$p" || exit 1
+        else
+            warn "Package '${B}$p${R}' not found. Try: lux search $p"; return 1
+        fi
+    done
+    if ((${#repo[@]})); then
+        as_root pacman -S --needed $(pac_yes) "${repo[@]}" || exit 1
+    fi
+    aur_install "${aur[@]}"
+}
+
+cmd_remove() {
+    (($#)) || die "Usage: lux remove <package...>"
+    as_root pacman -Rns $(pac_yes) "$@"
+}
+
+cmd_update() {
+    say "Refreshing package databases"
+    as_root pacman -Sy || exit 1
+    # Nejdrive klice - nejcastejsi pricina selhani aktualizaci v Archu
+    if pacman -Qu archlinux-keyring &>/dev/null; then
+        as_root pacman -S --needed --noconfirm archlinux-keyring || exit 1
+    fi
+    say "Updating system packages"
+    as_root pacman -Su $(pac_yes) || exit 1
+
+    if ((AUR)) && [[ $ONLY != repo ]] && command -v jq &>/dev/null && ((EUID != 0)); then
+        local -a foreign=() outdated=()
+        mapfile -t foreign < <(pacman -Qm 2>/dev/null)
+        if ((${#foreign[@]})); then
+            say "Checking AUR packages"
+            local names info line n v nv
+            names=$(printf '%s\n' "${foreign[@]}" | awk '{print $1}')
+            info=$(aur_info $names) || { warn "AUR is not reachable"; info='[]'; }
+            for line in "${foreign[@]}"; do
+                n=${line% *}; v=${line#* }
+                nv=$(jq -r --arg n "$n" '.[] | select(.Name==$n) | .Version' <<<"$info")
+                [[ -n $nv ]] && (( $(vercmp "$nv" "$v") > 0 )) && outdated+=("$n") && printf '  %s %s%s%s → %s%s%s\n' "$n" "$D" "$v" "$R" "$G" "$nv" "$R"
+            done
+            if ((${#outdated[@]})); then aur_install "${outdated[@]}"; else ok "AUR packages are up to date"; fi
+        fi
+    fi
+
+    if ((FLATPAK)) && command -v flatpak &>/dev/null && [[ $ONLY == "" ]]; then
+        say "Updating Flatpak apps"; flatpak update -y --noninteractive
+    fi
+
+    local pacnew
+    pacnew=$(find /etc -name '*.pacnew' 2>/dev/null)
+    [[ -n $pacnew ]] && warn "New config files to review:"$'\n'"$pacnew"
+    [[ ! -d /usr/lib/modules/$(uname -r) ]] && warn "Kernel was updated - restart to use it."
+    ok "System is up to date"
+}
+
+cmd_search() {
+    (($#)) || die "Usage: lux search <term>"
+    if [[ $ONLY != aur ]]; then
+        printf '%sRepositories%s\n' "$B" "$R"
+        pacman -Ss --color "$([[ -t 1 ]] && echo always || echo never)" -- "$@" || echo "  (nothing)"
+    fi
+    if [[ $ONLY != repo ]] && ((AUR)) && command -v jq &>/dev/null; then
+        printf '\n%sAUR%s %s(community)%s\n' "$B" "$R" "$D" "$R"
+        curl -fsSL --max-time 20 "$LUX_AUR_RPC/search/$(jq -rn --arg v "$1" '$v|@uri')?by=name-desc" |
+            jq -r '.results | sort_by(-.Popularity) | .[:20][] | "\(.Name)\t\(.Version)\t\(.Description // "")"' |
+            while IFS=$'\t' read -r n v d; do
+                printf '%saur/%s%s %s%s%s\n    %s\n' "$C" "$n" "$R" "$G" "$v" "$R" "$d"
+            done
+    fi
+}
+
+cmd_info() {
+    (($#)) || die "Usage: lux info <package>"
+    pacman -Qi -- "$1" 2>/dev/null || pacman -Si -- "$1" 2>/dev/null && return
+    if ((AUR)); then
+        aur_info "$1" | jq -r '.[0] // empty | "Name            : \(.Name)\nVersion         : \(.Version)\nDescription     : \(.Description)\nURL             : \(.URL)\nDepends On      : \((.Depends // []) | join(" "))\nMaintainer      : \(.Maintainer)\nVotes           : \(.NumVotes)\nRepository      : aur"' | grep . && return
+    fi
+    die "Package '$1' not found"
+}
+
+cmd_list() {
+    case ${1-} in
+        --aur)      pacman -Qm ;;
+        --explicit) pacman -Qe ;;
+        "")         pacman -Q ;;
+        *)          pacman -Q | grep -i -- "$1" ;;
+    esac
+}
+
+cmd_clean() {
+    say "Cleaning package cache (keeping $CLEAN_KEEP versions)"
+    as_root paccache -rk"$CLEAN_KEEP"
+    as_root paccache -ruk0
+    local orphans
+    orphans=$(pacman -Qdtq 2>/dev/null)
+    if [[ -n $orphans ]]; then
+        say "Unneeded packages: ${B}$(tr '\n' ' ' <<<"$orphans")${R}"
+        ask "Remove them?" Y && as_root pacman -Rns --noconfirm $orphans
+    else
+        ok "No unneeded packages"
+    fi
+    [[ -d $LUX_CACHE/aur ]] && find "$LUX_CACHE/aur" -maxdepth 2 -name '*.pkg.tar.*' -mtime +30 -delete 2>/dev/null
+    ok "Clean"
+}
+
+cmd_drivers() {
+    luxos-hwdetect --report
+    local -a want=() missing=() svcs=()
+    mapfile -t want < <(luxos-hwdetect --packages --kernel "$(pacman -Qq linux-zen &>/dev/null && echo linux-zen || echo linux)")
+    mapfile -t svcs < <(luxos-hwdetect --services)
+    local p
+    for p in "${want[@]}"; do installed "$p" || missing+=("$p"); done
+    if ((${#missing[@]} == 0)); then ok "All drivers are installed"; return; fi
+    say "Missing: ${B}${missing[*]}${R}"
+    ask "Install now?" Y || return 0
+    as_root pacman -S --needed $(pac_yes) "${missing[@]}" || exit 1
+    ((${#svcs[@]})) && as_root systemctl enable --now "${svcs[@]}"
+    ok "Drivers installed - restart to activate them"
+}
+
+cmd_mirrors() {
+    say "Finding the fastest mirrors (this can take a minute)"
+    as_root reflector --latest 20 --protocol https --sort rate --fastest 10 --save /etc/pacman.d/mirrorlist && ok "Mirror list updated"
+}
+
+cmd_doctor() {
+    local issues=0 n
+    say "LuxOS system check"
+    n=$(systemctl --failed --no-legend 2>/dev/null | wc -l)
+    if ((n)); then warn "$n failed service(s):"; systemctl --failed --no-legend; ((issues++)); else ok "Services running"; fi
+    n=$(find /etc -name '*.pacnew' 2>/dev/null | wc -l)
+    ((n)) && { warn "$n .pacnew config file(s) to merge (pacdiff)"; ((issues++)); } || ok "No pending config files"
+    local use; use=$(df --output=pcent / | tail -1 | tr -dc 0-9)
+    ((use > 90)) && { warn "Root filesystem is ${use}% full"; ((issues++)); } || ok "Disk usage ${use}%"
+    n=$(pacman -Qdtq 2>/dev/null | wc -l)
+    ((n)) && warn "$n unneeded package(s) - run: lux clean" || ok "No orphaned packages"
+    if command -v checkupdates &>/dev/null; then
+        n=$(checkupdates 2>/dev/null | wc -l)
+        ((n)) && warn "$n update(s) available - run: lux update" || ok "System up to date"
+    fi
+    [[ -d /usr/lib/modules/$(uname -r) ]] || { warn "Running kernel was replaced - restart"; ((issues++)); }
+    n=$(journalctl -b -p err --no-pager -q 2>/dev/null | wc -l)
+    ((n)) && warn "$n error message(s) in this boot's log (journalctl -b -p err)"
+    ((issues)) && return 1 || ok "Everything looks good"
+}
+
+cmd_history() {
+    grep -E '\[ALPM\] (installed|removed|upgraded|downgraded)' /var/log/pacman.log | tail -n "${1:-25}" |
+        sed -E "s/^\[([^]]+)\] \[ALPM\] (installed|removed|upgraded|downgraded) /${D}\1${R}  \2  /"
+}
+
+usage() {
+    cat <<USAGE
+${C}✦ lux${R} ${D}$LUX_VERSION${R} - LuxOS package manager
+
+${B}Usage:${R} lux <command> [options] [arguments]
+
+  install, i <pkg...>   install packages (repositories, then AUR / Flathub)
+  remove, rm <pkg...>   remove packages and their unneeded dependencies
+  update, up            update everything (system, AUR, Flatpak)
+  search, s <term>      search repositories and AUR
+  info <pkg>            show package details
+  list [--aur|--explicit|<filter>]
+                        list installed packages
+  files <pkg>           files installed by a package
+  owner <file>          which package owns a file
+  clean                 clean cache and remove unneeded packages
+  drivers               detect and install missing drivers
+  mirrors               pick the fastest download mirrors
+  doctor                check system health
+  history [n]           recent package changes
+
+${B}Options:${R}
+  -y, --yes             do not ask for confirmation
+      --repo            only official repositories
+      --aur             only AUR
+  -h, --help            this help
+  -V, --version         version
+USAGE
+}
+
+args=()
+while (($#)); do
+    case $1 in
+        -y|--yes) YES=1 ;;
+        --repo) ONLY=repo ;;
+        --aur) ONLY=aur ;;
+        -h|--help) usage; exit 0 ;;
+        -V|--version) echo "lux $LUX_VERSION"; exit 0 ;;
+        *) args+=("$1") ;;
+    esac
+    shift
+done
+set -- "${args[@]}"
+cmd=${1-}; shift 2>/dev/null
+
+case $cmd in
+    install|i|add)      cmd_install "$@" ;;
+    remove|rm|uninstall) cmd_remove "$@" ;;
+    update|up|upgrade)  cmd_update ;;
+    search|s|find)      cmd_search "$@" ;;
+    info|show)          cmd_info "$@" ;;
+    list|ls)            cmd_list "$@" ;;
+    files)              (($#)) || die "Usage: lux files <pkg>"; pacman -Qlq -- "$1" ;;
+    owner)              (($#)) || die "Usage: lux owner <file>"; pacman -Qo -- "$1" ;;
+    clean)              cmd_clean ;;
+    drivers)            cmd_drivers ;;
+    mirrors)            cmd_mirrors ;;
+    doctor)             cmd_doctor ;;
+    history)            cmd_history "$@" ;;
+    "")                 usage ;;
+    *)                  die "Unknown command '$cmd' (see lux --help)" ;;
+esac
