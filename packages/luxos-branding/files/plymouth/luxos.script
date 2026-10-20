@@ -36,6 +36,7 @@ fade = 0;
 password_mode = 0;
 shown_progress = 0;
 target_progress = 0;
+finishing = 0;
 
 fun refresh_cb() {
     # Plynule zobrazeni loga
@@ -47,7 +48,9 @@ fun refresh_cb() {
     }
     # Plynuly posun progress baru
     if (shown_progress < target_progress) {
-        shown_progress += (target_progress - shown_progress) * 0.08 + 0.001;
+        speed = 0.08;
+        if (finishing) speed = 0.22;
+        shown_progress += (target_progress - shown_progress) * speed + 0.002;
         if (shown_progress > target_progress) shown_progress = target_progress;
         w = Math.Int(bar.w * shown_progress);
         if (w < 1) w = 1;
@@ -61,6 +64,15 @@ fun progress_cb(duration, progress) {
     if (progress > target_progress) target_progress = progress;
 }
 Plymouth.SetBootProgressFunction(progress_cb);
+
+# Start prihlasovaci obrazovky (luxos-plymouth-finish pred LightDM): dobehnout do konce
+fun status_cb(status) {
+    if (status == "luxos-finish") {
+        finishing = 1;
+        target_progress = 1;
+    }
+}
+Plymouth.SetUpdateStatusFunction(status_cb);
 
 # --- Zadani hesla (LUKS) -------------------------------------------------
 entry.image = Image("entry.png");

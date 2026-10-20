@@ -133,7 +133,7 @@ case ${1:-auto} in
             "$(T "Mirror - same picture on both")" preferences-desktop-display \
             "$(T "Only external screen")" video-display \
             "$(T "Only this computer's screen")" computer |
-            rofi -dmenu -i -show-icons -format i -p "$(T "Screens")" -theme luxos-spotlight \
+            rofi -dmenu -i -show-icons -format i -p "$(T "Screens")" -theme luxos-search \
                 -theme-str "entry { placeholder: \"$(T "Screens")\"; }" "${light[@]}" \
                 -hover-select -me-select-entry '' -me-accept-entry MousePrimary) || exit 0
         modes=(extend mirror external internal)

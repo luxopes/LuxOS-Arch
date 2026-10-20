@@ -16,8 +16,14 @@ gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 
 CH = "xfce4-screensaver"
-THEME = "screensavers-luxos"
 SAVER = "/usr/lib/xfce4-screensaver/luxos"
+# id tematu xfce4-screensaver (screensavers-<soubor .desktop>) -> styl luxos-screensaver
+THEMES = [("screensavers-luxos", "wallpapers", "LuxOS - wallpapers and clock"),
+          ("screensavers-luxos-clock", "clock", "Clock"),
+          ("screensavers-luxos-aurora", "aurora", "Aurora"),
+          ("screensavers-luxos-photos", "photos", "Photos"),
+          ("screensavers-luxos-logo", "logo", "Floating Logo"),
+          ("blank", "blank", "Black screen")]
 
 CSS = b"""
 .group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
@@ -94,11 +100,16 @@ class LockSettings(Gtk.Window):
                        (10, _("10 minutes")), (15, _("15 minutes")), (30, _("30 minutes")), (60, _("1 hour"))], delay)
         start.connect("changed", self.on_start)
         g.row(_("Start after inactivity of"), start)
-        mode = "luxos" if get("/saver/mode", "0") == "2" else "blank"
-        kind = combo([("luxos", _("LuxOS - wallpapers and clock")), ("blank", _("Black screen"))], mode)
+        current = "blank"
+        if get("/saver/mode", "0") == "2":
+            current = (get("/saver/themes/list", "").splitlines() or ["screensavers-luxos"])[-1].strip()
+        kind = combo([(t, _(label)) for t, _s, label in THEMES], current)
         kind.connect("changed", self.on_kind)
         preview = Gtk.Button(label=_("Preview"))
-        preview.connect("clicked", lambda _b: subprocess.Popen([SAVER, "--window"], start_new_session=True))
+        # Nahled vzdy toho, co je prave vybrane (i cerne obrazovky)
+        preview.connect("clicked", lambda _b: subprocess.Popen(
+            [SAVER, "--window", "--style", dict((t, st) for t, st, _l in THEMES).get(kind.get_active_id(), "blank")],
+            start_new_session=True))
         box = Gtk.Box(spacing=6)
         box.pack_start(kind, False, False, 0)
         box.pack_start(preview, False, False, 0)
@@ -130,9 +141,10 @@ class LockSettings(Gtk.Window):
             set_("/saver/idle-activation/delay", "int", minutes)
 
     def on_kind(self, c):
-        if c.get_active_id() == "luxos":
+        theme = c.get_active_id()
+        if theme and theme != "blank":
             subprocess.run(["xfconf-query", "-c", CH, "-p", "/saver/themes/list", "-n", "-a", "-t", "string",
-                            "-s", THEME], capture_output=True, timeout=5)
+                            "-s", theme], capture_output=True, timeout=5)
             set_("/saver/mode", "int", 2)
         else:
             set_("/saver/mode", "int", 0)

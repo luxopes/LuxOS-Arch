@@ -4,7 +4,7 @@
 enabled-docks=['dock1']
 
 [net/launchpad/plank/docks/dock1]
-theme='WhiteSur-Dark'
+theme='WhiteSur-Light'
 position='bottom'
 alignment='center'
 icon-size=48
@@ -23,9 +23,9 @@ offset=0
 dock-items=['luxos-launchpad.dockitem', 'luxai.dockitem', 'luxos-store.dockitem', 'thunar.dockitem', 'firefox.dockitem', 'xfce4-terminal.dockitem', 'org.xfce.mousepad.dockitem', 'xfce-settings-manager.dockitem', 'trash.dockitem']
 
 [org/gnome/desktop/interface]
-color-scheme='prefer-dark'
-gtk-theme='WhiteSur-Dark'
-icon-theme='WhiteSur-dark'
+color-scheme='prefer-light'
+gtk-theme='WhiteSur-Light'
+icon-theme='WhiteSur-light'
 cursor-theme='WhiteSur-cursors'
 font-name='Inter 10'
 monospace-font-name='JetBrainsMono Nerd Font 10'

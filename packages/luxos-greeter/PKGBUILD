@@ -1,0 +1,23 @@
+# Maintainer: LuxOS Team
+# Prihlasovaci a zamykaci obrazovka LuxOS (LightDM greeter v Pythonu + GTK 3)
+
+pkgname=luxos-greeter
+pkgver=1.0.0
+pkgrel=2
+pkgdesc="LuxOS login screen for LightDM (clock, frosted password field, power buttons)"
+arch=(any)
+url="https://lsl.lux-ai.cz/luxos/"
+license=(MIT)
+depends=(lightdm python python-gobject gtk3 python-cairo luxos-i18n accountsservice)
+optdepends=('inter-font: default font of the login screen'
+            'light-locker: lock the screen with this greeter')
+backup=(etc/lightdm/luxos-greeter.conf)
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 "$f/luxos-greeter" "$pkgdir/usr/bin/luxos-greeter"
+    install -Dm644 "$f/luxos-greeter.desktop" "$pkgdir/usr/share/xgreeters/luxos-greeter.desktop"
+    install -Dm644 "$f/luxos-greeter.conf" "$pkgdir/etc/lightdm/luxos-greeter.conf"
+    # Vybira greeter (prepisuje greeter-session z 50-luxos.conf balicku luxos-desktop)
+    install -Dm644 "$f/60-luxos-greeter.conf" "$pkgdir/etc/lightdm/lightdm.conf.d/60-luxos-greeter.conf"
+}

@@ -1,0 +1,40 @@
+# Maintainer: LuxOS Team
+# LuxDrop - bezpecne posilani souboru mezi pocitaci LuxOS v mistni siti
+# (TLS 1.3, pripnute klice, overovaci kod, mDNS pres Avahi). Protokol: files/PROTOCOL.md
+
+pkgname=luxdrop
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS LuxDrop - securely send files to nearby LuxOS computers"
+arch=(any)
+url="https://lsl.lux-ai.cz/luxos/"
+license=(MIT)
+depends=(python python-gobject gtk3 python-cairo python-cryptography avahi nss-mdns luxos-i18n xdg-utils)
+makedepends=(python-cryptography)  # jen pro check()
+optdepends=('thunar: "Send To > LuxDrop" in the file manager'
+            'xfce4-notifyd: accept dialogs of the background receiver')
+
+check() {
+    # Jednotkove testy (ramce, SAS vektory, cesty, SHA-256); integracni testy jsou v tests/
+    cd "$startdir"
+    if ! python3 -c "import cryptography" 2>/dev/null; then
+        echo "python-cryptography is not installed - skipping unit tests" >&2
+        return 0
+    fi
+    LUXDROP_LIB="$startdir/files/lib" python3 -m unittest -q tests/test_unit.py
+}
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 "$f/luxdrop" "$pkgdir/usr/bin/luxdrop"
+    install -Dm644 -t "$pkgdir/usr/lib/luxdrop/luxdrop" "$f"/lib/luxdrop/*.py
+    python3 -m compileall -q -d /usr/lib/luxdrop "$pkgdir/usr/lib/luxdrop"
+    install -Dm644 "$f/luxdrop.desktop" "$pkgdir/usr/share/applications/luxdrop.desktop"
+    install -Dm644 "$f/luxdrop.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxdrop.svg"
+    install -Dm644 "$f/luxdrop-receiver.service" "$pkgdir/usr/lib/systemd/user/luxdrop-receiver.service"
+    # Thunar: "Odeslat do > LuxDrop" (bez zasahu do uca.xml)
+    install -Dm644 "$f/thunar/luxdrop-sendto.desktop" "$pkgdir/usr/share/Thunar/sendto/luxdrop.desktop"
+    # Vlastni akce Thunaru - nutno vlozit do uca.xml dodavaneho LuxOS (viz komentar v souboru)
+    install -Dm644 "$f/thunar/uca-luxdrop.xml" "$pkgdir/usr/share/luxdrop/thunar-uca-luxdrop.xml"
+    install -Dm644 "$f/PROTOCOL.md" "$pkgdir/usr/share/doc/luxdrop/PROTOCOL.md"
+}

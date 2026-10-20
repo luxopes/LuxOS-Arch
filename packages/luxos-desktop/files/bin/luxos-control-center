@@ -26,7 +26,7 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk  # noqa: E402
 
 RUNTIME = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
 PIDFILE = os.path.join(RUNTIME, "luxos-control-center.pid")
@@ -63,6 +63,11 @@ scale slider { min-width: 22px; min-height: 22px; margin: 0; border-radius: 11px
           font-size: 12px; border-radius: 8px; }
 .footer:hover { background-color: @cc_tile; }
 button.plain { padding: 0; border: none; background: none; box-shadow: none; }
+.art { border-radius: 9px; min-width: 42px; min-height: 42px; color: white;
+       background-image: linear-gradient(135deg, #ff5f6d, #c445ff); }
+button.media { padding: 4px; border: none; background: none; box-shadow: none; color: @cc_fg;
+               border-radius: 999px; min-width: 30px; min-height: 30px; }
+button.media:hover { background-color: @cc_tile_hover; }
 .avatar { border-radius: 999px; min-width: 34px; min-height: 34px; font-weight: 800; color: white;
           background-image: linear-gradient(135deg, #3d7bff, #8b4dff); }
 """
@@ -126,6 +131,37 @@ CFG = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.conf
 SOFT_BRIGHTNESS = os.path.join(CFG, "brightness")
 
 
+def media_state():
+    """Prehravac MPRIS (prednost ma ten, ktery prave hraje) nebo None."""
+    try:
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+        names = bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "ListNames",
+                              None, GLib.VariantType("(as)"), 0, 500, None).unpack()[0]
+    except GLib.Error:
+        return None
+    best = None
+    for name in sorted(n for n in names if n.startswith("org.mpris.MediaPlayer2.")):
+        try:
+            props = bus.call_sync(name, "/org/mpris/MediaPlayer2", "org.freedesktop.DBus.Properties", "GetAll",
+                                  GLib.Variant("(s)", ("org.mpris.MediaPlayer2.Player",)),
+                                  GLib.VariantType("(a{sv})"), 0, 500, None).unpack()[0]
+        except GLib.Error:
+            continue
+        meta = props.get("Metadata", {}) or {}
+        artist = meta.get("xesam:artist") or []
+        state = {"bus": name, "app": name.split(".")[3].split(".")[0].capitalize(),
+                 "title": str(meta.get("xesam:title") or ""),
+                 "artist": ", ".join(artist) if isinstance(artist, list) else str(artist),
+                 "art": str(meta.get("mpris:artUrl") or ""),
+                 "playing": props.get("PlaybackStatus") == "Playing",
+                 "can_next": bool(props.get("CanGoNext", True)), "can_prev": bool(props.get("CanGoPrevious", True))}
+        if state["playing"]:
+            return state
+        if best is None and (state["title"] or props.get("PlaybackStatus") == "Paused"):
+            best = state
+    return best
+
+
 def account_user():
     """Uzivatel prihlaseneho uctu LuxAI nebo None (cte jen soubor, bez site)."""
     path = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxai/account.json")
@@ -170,9 +206,9 @@ def flag_state(name):
 def dark_state():
     try:
         with open(os.path.join(CFG, "appearance")) as f:
-            return f.read().strip() != "light"
+            return f.read().strip() == "dark"
     except OSError:
-        return True
+        return False                # vychozi je svetly rezim
 
 
 def battery():
@@ -345,6 +381,36 @@ class ControlCenter(Gtk.Window):
         self.s_vol = SliderRow(_("Sound"), "audio-volume-high-symbolic", self.set_volume, self.toggle_mute)
         outer.pack_start(self.s_vol, False, False, 0)
 
+        # Prave hrajici hudba (MPRIS: Firefox, Spotify, VLC, mpv...) - jen kdyz nejaky prehravac bezi
+        media = self.media_box = Gtk.Box(spacing=10)
+        media.get_style_context().add_class("section")
+        self.m_art = Gtk.Image()
+        art_wrap = Gtk.Box(valign=Gtk.Align.CENTER)
+        art_wrap.get_style_context().add_class("art")
+        art_wrap.pack_start(self.m_art, True, True, 0)
+        media.pack_start(art_wrap, False, False, 0)
+        mtext = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        self.m_title = Gtk.Label(xalign=0, ellipsize=3, max_width_chars=18)
+        self.m_title.get_style_context().add_class("title")
+        self.m_artist = Gtk.Label(xalign=0, ellipsize=3, max_width_chars=18)
+        self.m_artist.get_style_context().add_class("sub")
+        mtext.pack_start(self.m_title, False, False, 0)
+        mtext.pack_start(self.m_artist, False, False, 0)
+        media.pack_start(mtext, True, True, 0)
+        self.m_buttons = {}
+        for name, icon in (("Previous", "media-skip-backward-symbolic"), ("PlayPause", "media-playback-start-symbolic"),
+                           ("Next", "media-skip-forward-symbolic")):
+            b = Gtk.Button(can_focus=False, valign=Gtk.Align.CENTER)
+            b.get_style_context().add_class("media")
+            b.add(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.LARGE_TOOLBAR if name == "PlayPause"
+                                               else Gtk.IconSize.MENU))
+            b.connect("clicked", lambda _b, m=name: self.media_call(m))
+            self.m_buttons[name] = b
+            media.pack_start(b, False, False, 0)
+        media.set_no_show_all(True)
+        outer.pack_start(media, False, False, 0)
+        self.player = None
+
         self.bat_box = Gtk.Box(spacing=10)
         self.bat_box.get_style_context().add_class("section")
         bat_button = Gtk.Button(can_focus=False, relief=Gtk.ReliefStyle.NONE)
@@ -449,7 +515,47 @@ class ControlCenter(Gtk.Window):
         bt = bluetooth_state()
         dnd = dnd_state()
         vol = volume()
+        media = media_state()
         GLib.idle_add(self.apply_slow, wifi, bt, dnd, vol)
+        GLib.idle_add(self.apply_media, media)
+
+    def apply_media(self, media):
+        if not media:
+            self.player = None
+            self.media_box.hide()
+            return False
+        self.player = media["bus"]
+        self.m_title.set_text(media["title"] or media["app"])
+        self.m_artist.set_text(media["artist"] or (media["app"] if media["title"] else ""))
+        icon = "media-playback-pause-symbolic" if media["playing"] else "media-playback-start-symbolic"
+        self.m_buttons["PlayPause"].get_child().set_from_icon_name(icon, Gtk.IconSize.LARGE_TOOLBAR)
+        self.m_buttons["Next"].set_sensitive(media["can_next"])
+        self.m_buttons["Previous"].set_sensitive(media["can_prev"])
+        pix = None
+        art = media["art"]
+        if art.startswith("file://"):
+            try:
+                pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(GLib.filename_from_uri(art)[0], 42, 42, True)
+            except GLib.Error:
+                pix = None
+        if pix:
+            self.m_art.set_from_pixbuf(pix)
+        else:
+            self.m_art.set_from_icon_name("audio-x-generic-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
+        self.media_box.set_no_show_all(False)
+        self.media_box.show_all()
+        return False
+
+    def media_call(self, method):
+        if not self.player:
+            return
+        try:
+            Gio.bus_get_sync(Gio.BusType.SESSION).call(
+                self.player, "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", method,
+                None, None, 0, 2000, None, None, None)
+        except GLib.Error:
+            pass
+        GLib.timeout_add(300, lambda: threading.Thread(target=self.refresh_slow, daemon=True).start() and False)
 
     def apply_slow(self, wifi, bt, dnd, vol):
         self.t_wifi.set_state(*wifi)

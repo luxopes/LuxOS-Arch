@@ -1,0 +1,8 @@
+#!/bin/sh
+# LuxOS - tesne pred prihlasovaci obrazovkou: progress bar splashe dobehne do konce.
+# Samotne predani obrazu splash -> LightDM (bez cerne mezery) dela LightDM
+# (plymouth deactivate + quit --retain-splash), viz lightdm.service.d/luxos-plymouth.conf.
+plymouth --ping 2>/dev/null || exit 0
+plymouth update --status=luxos-finish
+sleep 0.5
+exit 0

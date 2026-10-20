@@ -1,0 +1,21 @@
+# LuxDrop - prijem souboru na pozadi (zapina se v Nastaveni LuxDropu:
+# "Receive when LuxDrop is closed" -> systemctl --user enable luxdrop-receiver.service).
+# Dotazy na prijeti se zobrazuji jako oznameni; kdo smi posilat, urcuje nastaveni LuxDropu.
+[Unit]
+Description=LuxDrop background receiver
+Documentation=file:///usr/share/doc/luxdrop/PROTOCOL.md
+After=dbus.socket
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/luxdrop receive --service
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=default.target

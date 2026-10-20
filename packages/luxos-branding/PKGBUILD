@@ -3,7 +3,7 @@
 
 pkgname=luxos-branding
 pkgver=1.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxOS branding: logo, wallpapers, Plymouth boot splash and os-release"
 arch=(any)
 url="https://github.com/luxos"
@@ -63,6 +63,8 @@ package() {
 
     local pt="$pkgdir/usr/share/plymouth/themes/luxos"
     install -Dm644 -t "$pt" "$f/plymouth/luxos.plymouth" "$f/plymouth/luxos.script"
+    install -Dm755 "$f/plymouth/luxos-plymouth-finish" "$pkgdir/usr/lib/luxos/luxos-plymouth-finish"
+    install -Dm644 "$f/plymouth/lightdm-plymouth.conf" "$pkgdir/usr/lib/systemd/system/lightdm.service.d/luxos-plymouth.conf"
     install -Dm644 render/logo-white.png "$pt/logo.png"
     for p in bar-track bar-fill entry bullet; do
         install -Dm644 render/$p.png "$pt/$p.png"

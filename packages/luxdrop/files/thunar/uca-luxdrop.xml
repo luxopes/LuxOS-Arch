@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LuxDrop - vlastni akce pro Thunar ("Send with LuxDrop").
+  Thunar cte jen jeden soubor uca.xml (prvni nalezeny: ~/.config/Thunar/uca.xml, pak XDG_CONFIG_DIRS),
+  proto se tento <action> musi VLOZIT do <actions> v uca.xml, ktery LuxOS dodava
+  (packages/luxos-desktop/files/xdg/Thunar/uca.xml -> /etc/xdg/luxos/Thunar/uca.xml).
+  Polozka "Odeslat do > LuxDrop" funguje i bez toho (/usr/share/Thunar/sendto/luxdrop.desktop).
+-->
+<actions>
+<action>
+	<icon>luxdrop</icon>
+	<name>Send with LuxDrop</name>
+	<name xml:lang="cs">Odeslat přes LuxDrop</name>
+	<submenu></submenu>
+	<unique-id>luxdrop-send-1</unique-id>
+	<command>luxdrop %F</command>
+	<description>Send the selected items to a nearby LuxOS computer</description>
+	<description xml:lang="cs">Odeslat vybrané položky na počítač LuxOS v okolí</description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+</actions>

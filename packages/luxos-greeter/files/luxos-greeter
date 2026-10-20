@@ -1,0 +1,1577 @@
+#!/usr/bin/env python3
+"""LuxOS - prihlasovaci a zamykaci obrazovka (LightDM greeter).
+
+Klidovy stav: tapeta, datum a velke hodiny, vpravo nahore klavesnice/baterie/sit.
+Po kliknuti nebo klavese: avatar(y), jmeno, pole pro heslo a tlacitka napajeni.
+Vse se kresli v jednom okne pres celou obrazovku (bez vyskakovacich oken), matne
+("frosted") panely si kreslime sami z rozmazane kopie tapety - funguje i bez kompozitoru.
+
+  luxos-greeter                    beh pod LightDM
+  luxos-greeter --demo [--users N] [--sessions N] [--lock]
+                                   ukazka bez LightDM (spravne heslo: luxos), pro testy a snimky
+"""
+import argparse
+import configparser
+import ctypes
+import locale
+import math
+import os
+import sys
+import time
+import warnings
+
+
+def system_locale():
+    """LightDM spousti greeter bez LANG: jazyk vzit ze systemoveho nastaveni (/etc/locale.conf)."""
+    if os.environ.get("LANG", "C") not in ("", "C", "POSIX", "C.UTF-8"):
+        return
+    for path in ("/etc/locale.conf", "/etc/default/locale"):
+        try:
+            with open(path, encoding="utf-8") as f:
+                lines = f.read().splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            k, _sep, v = line.partition("=")
+            k, v = k.strip(), v.strip().strip("\"'")
+            if k in ("LANG", "LC_TIME", "LC_MESSAGES") and v:
+                os.environ[k] = v
+        return
+
+
+system_locale()
+sys.path.insert(0, "/usr/lib/luxos/python")
+try:
+    from luxos_i18n import _
+except ImportError:  # mimo LuxOS (testy)
+    def _(text):
+        return text
+
+import cairo  # noqa: E402
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("GdkPixbuf", "2.0")
+gi.require_version("Pango", "1.0")
+gi.require_version("PangoCairo", "1.0")
+gi.require_foreign("cairo")
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, Pango, PangoCairo  # noqa: E402
+
+CONF = os.environ.get("LUXOS_GREETER_CONF", "/etc/lightdm/luxos-greeter.conf")
+KEYBOARD_CONF = os.environ.get("LUXOS_GREETER_KEYBOARD_CONF", "/etc/X11/xorg.conf.d/00-keyboard.conf")
+ACCOUNTS_ICONS = "/var/lib/AccountsService/icons"
+DEFAULT_BG = "/usr/share/backgrounds/luxos/luxos-dark.jpg"
+LANG = (os.environ.get("LC_ALL") or os.environ.get("LC_TIME") or os.environ.get("LANG") or "en").split("_")[0].split(".")[0]
+
+
+def log(*a):
+    print("luxos-greeter:", *a, file=sys.stderr, flush=True)
+
+
+DEBUG = bool(os.environ.get("LUXOS_GREETER_DEBUG"))
+
+
+def debug(*a):
+    if DEBUG:
+        log("debug:", *a)
+
+
+# ---- konfigurace -------------------------------------------------------------------------
+def load_config():
+    cp = configparser.ConfigParser(interpolation=None)
+    try:
+        cp.read(CONF, encoding="utf-8")
+    except (OSError, configparser.Error) as e:
+        log("config:", e)
+    g = cp["greeter"] if cp.has_section("greeter") else {}
+
+    def flag(key, default):
+        v = str(g.get(key, "")).strip().lower()
+        return default if v in ("", "auto") else v in ("1", "true", "yes", "on")
+
+    h24 = flag("clock-24h", LANG != "en")
+    try:
+        idle = max(5, int(g.get("idle-timeout", 30)))
+    except ValueError:
+        idle = 30
+    date_fmt = str(g.get("date-format", "")).strip() or ("%A %-d. %B" if LANG == "cs" else "%A, %B %-d")
+    return {
+        "background": str(g.get("background", "")).strip() or DEFAULT_BG,
+        "user-background": flag("user-background", True),
+        "clock": str(g.get("clock-format", "")).strip() or ("%-H:%M" if h24 else "%-I:%M"),
+        "date": date_fmt,
+        "idle": idle,
+        "font": str(g.get("font", "")).strip() or "Inter",
+        "cursor-theme": str(g.get("cursor-theme", "")).strip() or "WhiteSur-cursors",
+        "battery": flag("show-battery", True),
+        "network": flag("show-network", True),
+    }
+
+
+# ---- LightDM a demo backend --------------------------------------------------------------
+class User:
+    def __init__(self, name, real_name, image=None, background=None, session=None, logged_in=False):
+        self.name = name                # None = rucne zadane jmeno, "*guest" = host
+        self.real_name = real_name or name or ""
+        self.image = image
+        self.background = background
+        self.session = session
+        self.logged_in = logged_in
+
+
+class LightDMBackend:
+    """Tenka vrstva nad LightDM.Greeter (stejny postup jako lightdm-gtk-greeter)."""
+
+    def __init__(self, ui):
+        gi.require_version("LightDM", "1")
+        from gi.repository import LightDM
+        self.L = LightDM
+        self.ui = ui
+        self.g = LightDM.Greeter()
+        self.g.connect("show-prompt", self._prompt)
+        self.g.connect("show-message", self._message)
+        self.g.connect("authentication-complete", lambda _g: ui.on_complete())
+        try:
+            self.g.connect_to_daemon_sync()
+        except AttributeError:
+            self.g.connect_sync()
+        self.userlist = LightDM.UserList.get_instance()
+
+    def _prompt(self, _g, text, ptype):
+        self.ui.on_prompt(text, ptype == self.L.PromptType.SECRET)
+
+    def _message(self, _g, text, mtype):
+        self.ui.on_message(text, mtype == self.L.MessageType.ERROR)
+
+    # informace
+    def users(self):
+        out = []
+        if not self.g.get_hide_users_hint():
+            for u in self.userlist.get_users():
+                out.append(User(u.get_name(), u.get_display_name(), u.get_image(), u.get_background(),
+                                u.get_session(), u.get_logged_in()))
+        if not out or self.g.get_show_manual_login_hint():
+            out.append(User(None, _("Other…")))
+        if self.g.get_has_guest_account_hint():
+            out.append(User("*guest", _("Guest")))
+        return out
+
+    def select_hint(self):
+        if self.g.get_select_guest_hint():
+            return "*guest"
+        return self.g.get_select_user_hint()
+
+    def lock_hint(self):
+        return self.g.get_lock_hint()
+
+    def sessions(self):
+        # LuxOS bezi jen na X11 (lista, dock, kompozitor) - Wayland relace Xfce nenabizet;
+        # jedina relace Xfce se v nabidce jmenuje LuxOS
+        out = [(s.get_key(), s.get_name()) for s in self.L.get_sessions()
+               if (s.get_session_type() or "x") == "x"]
+        return [(k, "LuxOS" if k == "xfce" else n) for k, n in out] or out
+
+    def default_session(self):
+        return self.g.get_default_session_hint()
+
+    def can(self, what):
+        return {"suspend": self.L.get_can_suspend, "restart": self.L.get_can_restart,
+                "shutdown": self.L.get_can_shutdown}[what]()
+
+    def power(self, what):
+        {"suspend": self.L.suspend, "restart": self.L.restart, "shutdown": self.L.shutdown}[what]()
+
+    # autentizace
+    def authenticate(self, user):
+        if self.g.get_in_authentication():
+            self.g.cancel_authentication()
+        if user.name == "*guest":
+            self.g.authenticate_as_guest()
+        else:
+            self.g.authenticate(user.name)  # None = PAM se zepta na jmeno
+
+    def respond(self, text):
+        self.g.respond(text)
+
+    def cancel(self):
+        if self.g.get_in_authentication():
+            self.g.cancel_authentication()
+
+    def is_authenticated(self):
+        return self.g.get_is_authenticated()
+
+    def auth_user(self):
+        return self.g.get_authentication_user()
+
+    def start_session(self, key):
+        self.g.start_session_sync(key)
+
+
+class DemoBackend:
+    """Napodobeni LightDM pro testy (heslo "luxos"); nic nespousti ani nevypina."""
+
+    def __init__(self, ui, n_users=1, n_sessions=1, lock=False):
+        self.ui = ui
+        self.n_users, self.n_sessions, self.lock = n_users, n_sessions, lock
+        self.state = None           # None | "prompt" | "wait" | "done"
+        self.user = None
+        self.ok = False
+
+    def users(self):
+        demo = [User("anna", "Anna Nováková"), User("petr", "Petr Svoboda"), User("eva", "Eva Dvořáková"),
+                User("jan", "Jan Černý")]
+        img = os.environ.get("LUXOS_GREETER_DEMO_AVATAR")
+        if img:
+            demo[0].image = img
+        return demo[:max(1, self.n_users)]
+
+    def select_hint(self):
+        return "anna" if self.lock else None
+
+    def lock_hint(self):
+        return self.lock
+
+    def sessions(self):
+        return [("xfce", "Xfce Session"), ("openbox", "Openbox"), ("i3", "i3")][:max(1, self.n_sessions)]
+
+    def default_session(self):
+        return "xfce"
+
+    def can(self, _what):
+        return True
+
+    def power(self, what):
+        log("demo: power", what)
+
+    def authenticate(self, user):
+        self.user, self.ok, self.state = user, False, "prompt"
+
+        def prompt():
+            if self.state == "prompt":
+                self.ui.on_prompt("Password: ", True)
+            return False
+        GLib.timeout_add(30, prompt)
+
+    def respond(self, text):
+        if self.state != "prompt":
+            return
+        self.state = "wait"
+
+        def done():
+            if self.state == "wait":
+                self.ok = text == "luxos"
+                self.state = "done"
+                self.ui.on_complete()
+            return False
+        GLib.timeout_add(400, done)
+
+    def cancel(self):
+        self.state = None
+
+    def is_authenticated(self):
+        return self.ok
+
+    def auth_user(self):
+        return self.user.name if self.user else None
+
+    def start_session(self, key):
+        log("demo: start session", key, "for", self.auth_user())
+        GLib.timeout_add(800, lambda: Gtk.main_quit() or False)
+
+
+# ---- klavesnice (rozlozeni ze systemu, prepinani skupin XKB) -----------------------------
+class XkbState(ctypes.Structure):
+    _fields_ = [("group", ctypes.c_ubyte), ("locked_group", ctypes.c_ubyte), ("base_group", ctypes.c_ushort),
+                ("latched_group", ctypes.c_ushort), ("mods", ctypes.c_ubyte), ("base_mods", ctypes.c_ubyte),
+                ("latched_mods", ctypes.c_ubyte), ("locked_mods", ctypes.c_ubyte), ("compat_state", ctypes.c_short),
+                ("grab_mods", ctypes.c_ubyte), ("compat_grab_mods", ctypes.c_ubyte), ("lookup_mods", ctypes.c_ubyte),
+                ("compat_lookup_mods", ctypes.c_ubyte), ("ptr_buttons", ctypes.c_ushort)]
+
+
+class Keyboard:
+    USE_CORE_KBD = 0x0100
+
+    def __init__(self):
+        self.layouts, self.options = self._read_conf()
+        self.x = self.dpy = None
+        try:
+            self.x = ctypes.CDLL("libX11.so.6")
+            self.x.XOpenDisplay.restype = ctypes.c_void_p
+            self.x.XOpenDisplay.argtypes = [ctypes.c_char_p]
+            self.x.XkbGetState.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.POINTER(XkbState)]
+            self.x.XkbLockGroup.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint]
+            self.x.XFlush.argtypes = [ctypes.c_void_p]
+            self.dpy = self.x.XOpenDisplay(None)
+            # inicializace rozsireni XKB v tomto spojeni (jinak XkbGetState/XkbLockGroup nic nedelaji)
+            i = [ctypes.c_int() for _ in range(5)]
+            maj, mnr = ctypes.c_int(1), ctypes.c_int(0)
+            if self.dpy and not self.x.XkbQueryExtension(ctypes.c_void_p(self.dpy), *[ctypes.byref(v) for v in i[:3]],
+                                                         ctypes.byref(maj), ctypes.byref(mnr)):
+                log("xkb: extension not available")
+        except (OSError, AttributeError) as e:
+            log("xkb:", e)
+
+    @staticmethod
+    def _read_conf():
+        vals = {}
+        try:
+            with open(KEYBOARD_CONF, encoding="utf-8") as f:
+                for line in f:
+                    p = line.strip().split(None, 2)
+                    if len(p) == 3 and p[0] == "Option":
+                        vals[p[1].strip('"')] = p[2].strip().strip('"')
+        except OSError:
+            pass
+        lay = [s.strip() for s in vals.get("XkbLayout", "").split(",")]
+        var = [s.strip() for s in vals.get("XkbVariant", "").split(",")]
+        layouts = [(lay[i], var[i] if i < len(var) else "") for i in range(len(lay)) if lay[i]]
+        return layouts or [("us", "")], vals.get("XkbOptions", "")
+
+    @property
+    def x_handles_toggle(self):
+        """Rozlozeni prepina samo X (XkbOptions grp:...), my jen ukazujeme stav."""
+        return "grp:" in self.options
+
+    def group(self):
+        if not self.dpy:
+            return 0
+        st = XkbState()
+        if self.x.XkbGetState(self.dpy, self.USE_CORE_KBD, ctypes.byref(st)) != 0:
+            return 0
+        return st.group % max(1, len(self.layouts))
+
+    def label(self, i=None):
+        i = self.group() if i is None else i
+        lay, var = self.layouts[min(i, len(self.layouts) - 1)]
+        dup = sum(1 for l, _v in self.layouts if l == lay) > 1
+        return lay.upper() + (" " + var if dup and var else "")
+
+    def next(self):
+        if not self.dpy or len(self.layouts) < 2:
+            return
+        self.x.XkbLockGroup(self.dpy, self.USE_CORE_KBD, (self.group() + 1) % len(self.layouts))
+        self.x.XFlush(self.dpy)
+
+
+# ---- stav systemu (baterie, sit) ---------------------------------------------------------
+def read(path, default=""):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return default
+
+
+def battery_state():
+    base = "/sys/class/power_supply"
+    try:
+        names = sorted(os.listdir(base))
+    except OSError:
+        return None
+    for n in names:
+        d = os.path.join(base, n)
+        if read(d + "/type") == "Battery" and read(d + "/scope", "System") != "Device":
+            try:
+                return int(read(d + "/capacity", "-1")), read(d + "/status") == "Charging"
+            except ValueError:
+                return None
+    return None
+
+
+def network_state():
+    base = "/sys/class/net"
+    try:
+        names = sorted(os.listdir(base))
+    except OSError:
+        return None
+    kind = None
+    for n in names:
+        if n == "lo" or read(f"{base}/{n}/operstate") != "up":
+            continue
+        if os.path.isdir(f"{base}/{n}/wireless") or os.path.exists(f"{base}/{n}/phy80211"):
+            return "wifi"
+        if os.path.exists(f"{base}/{n}/device"):
+            kind = "wired"
+    return kind
+
+
+# ---- kreslici pomucky --------------------------------------------------------------------
+def rounded(cr, x, y, w, h, r):
+    r = min(r, w / 2, h / 2)
+    cr.new_sub_path()
+    cr.arc(x + w - r, y + r, r, -math.pi / 2, 0)
+    cr.arc(x + w - r, y + h - r, r, 0, math.pi / 2)
+    cr.arc(x + r, y + h - r, r, math.pi / 2, math.pi)
+    cr.arc(x + r, y + r, r, math.pi, 1.5 * math.pi)
+    cr.close_path()
+
+
+def ease(t):
+    return 4 * t * t * t if t < 0.5 else 1 - (-2 * t + 2) ** 3 / 2
+
+
+def box_blur(surf, radius=2, passes=3, saturate=1.25):
+    """Rozmaze malou ImageSurface (RGB24) na miste; kanaly zpracuje samostatne."""
+    w, h, stride = surf.get_width(), surf.get_height(), surf.get_stride()
+    surf.flush()
+    data = surf.get_data()
+    ch = [[0.0] * (w * h) for _ in range(3)]
+    for y in range(h):
+        row = y * stride
+        for x in range(w):
+            o = row + 4 * x
+            for c in range(3):
+                ch[c][y * w + x] = data[o + c]
+
+    def blur_line(src, dst, start, step, n):
+        win = 2 * radius + 1
+        acc = src[start] * (radius + 1)
+        for i in range(radius):
+            acc += src[start + min(i, n - 1) * step]
+        for i in range(n):
+            acc += src[start + min(i + radius, n - 1) * step] - src[start + max(i - radius - 1, 0) * step]
+            dst[start + i * step] = acc / win
+
+    for c in range(3):
+        a = ch[c]
+        b = [0.0] * (w * h)
+        for _p in range(passes):
+            for y in range(h):
+                blur_line(a, b, y * w, 1, w)
+            for x in range(w):
+                blur_line(b, a, x, w, h)
+    for y in range(h):
+        row = y * stride
+        for x in range(w):
+            i = y * w + x
+            bl, g, r = ch[0][i], ch[1][i], ch[2][i]
+            lum = 0.0722 * bl + 0.7152 * g + 0.2126 * r
+            o = row + 4 * x
+            data[o] = max(0, min(255, int(lum + (bl - lum) * saturate)))
+            data[o + 1] = max(0, min(255, int(lum + (g - lum) * saturate)))
+            data[o + 2] = max(0, min(255, int(lum + (r - lum) * saturate)))
+    surf.mark_dirty()
+
+
+def load_pixbuf(path, size=None):
+    if not path or not os.path.isfile(path) or not os.access(path, os.R_OK):
+        return None
+    try:
+        if size:
+            return GdkPixbuf.Pixbuf.new_from_file_at_scale(path, size, size, True)
+        return GdkPixbuf.Pixbuf.new_from_file(path)
+    except GLib.Error as e:
+        log("image:", path, e.message)
+        return None
+
+
+def text_layout(cr, text, px, weight=Pango.Weight.NORMAL, family="Inter"):
+    lay = PangoCairo.create_layout(cr)
+    fd = Pango.FontDescription()
+    fd.set_family(f"{family},Inter,Cantarell,Noto Sans,sans-serif")
+    fd.set_weight(weight)
+    fd.set_absolute_size(px * Pango.SCALE)
+    lay.set_font_description(fd)
+    lay.set_text(text, -1)
+    return lay
+
+
+# ---- ikony (vlastni kresby, zadne cizi assety) -------------------------------------------
+def icon_sleep(cr, cx, cy, s):
+    # pulmesic: kruh bez posunuteho kruhu (jen uvnitr velkeho kruhu)
+    r = s * 0.40
+    cr.save()
+    cr.new_path()
+    cr.arc(cx, cy, r, 0, 2 * math.pi)
+    cr.clip()
+    cr.new_path()
+    cr.arc(cx, cy, r, 0, 2 * math.pi)
+    cr.new_sub_path()
+    cr.arc(cx + r * 0.55, cy - r * 0.45, r * 0.82, 0, 2 * math.pi)
+    cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+    cr.fill()
+    cr.restore()
+
+
+def icon_restart(cr, cx, cy, s):
+    r = s * 0.36
+    cr.set_line_width(max(1.4, s * 0.085))
+    cr.set_line_cap(cairo.LINE_CAP_ROUND)
+    cr.new_path()
+    a0, a1 = -math.pi / 2 + 0.25, -math.pi / 2 + 2 * math.pi - 0.75
+    cr.arc(cx, cy, r, a0, a1)
+    cr.stroke()
+    # sipka na konci oblouku (ve smeru hodinovych rucicek)
+    ex, ey = cx + r * math.cos(a1), cy + r * math.sin(a1)
+    tx, ty = -math.sin(a1), math.cos(a1)          # tecna
+    nx, ny = math.cos(a1), math.sin(a1)           # normala
+    k = s * 0.2
+    cr.move_to(ex + tx * k * 0.9, ey + ty * k * 0.9)
+    cr.line_to(ex + nx * k * 0.75 - tx * k * 0.25, ey + ny * k * 0.75 - ty * k * 0.25)
+    cr.line_to(ex - nx * k * 0.75 - tx * k * 0.25, ey - ny * k * 0.75 - ty * k * 0.25)
+    cr.close_path()
+    cr.fill()
+
+
+def icon_power(cr, cx, cy, s):
+    r = s * 0.36
+    cr.set_line_width(max(1.4, s * 0.085))
+    cr.set_line_cap(cairo.LINE_CAP_ROUND)
+    cr.new_path()
+    cr.arc(cx, cy + s * 0.03, r, -math.pi / 2 + 0.62, -math.pi / 2 - 0.62 + 2 * math.pi)
+    cr.stroke()
+    cr.move_to(cx, cy - s * 0.45)
+    cr.line_to(cx, cy - s * 0.05)
+    cr.stroke()
+
+
+def icon_session(cr, cx, cy, s):
+    q = s * 0.3
+    g = s * 0.08
+    for dx in (-1, 1):
+        for dy in (-1, 1):
+            rounded(cr, cx + (g / 2 if dx > 0 else -g / 2 - q), cy + (g / 2 if dy > 0 else -g / 2 - q), q, q, q * 0.25)
+    cr.fill()
+
+
+def icon_arrow(cr, cx, cy, s):
+    cr.set_line_width(max(1.5, s * 0.11))
+    cr.set_line_cap(cairo.LINE_CAP_ROUND)
+    cr.set_line_join(cairo.LINE_JOIN_ROUND)
+    cr.move_to(cx - s * 0.3, cy)
+    cr.line_to(cx + s * 0.3, cy)
+    cr.move_to(cx + s * 0.05, cy - s * 0.25)
+    cr.line_to(cx + s * 0.3, cy)
+    cr.line_to(cx + s * 0.05, cy + s * 0.25)
+    cr.stroke()
+
+
+def icon_person(cr, cx, cy, s):
+    cr.arc(cx, cy - s * 0.16, s * 0.17, 0, 2 * math.pi)
+    cr.fill()
+    cr.save()
+    cr.translate(cx, cy + s * 0.34)
+    cr.scale(s * 0.32, s * 0.27)
+    cr.arc(0, 0, 1, math.pi, 2 * math.pi)
+    cr.restore()
+    cr.close_path()
+    cr.fill()
+
+
+def icon_wifi(cr, x, y, s):
+    cx, cy = x + s / 2, y + s * 0.86
+    cr.set_line_width(max(1.3, s * 0.11))
+    cr.set_line_cap(cairo.LINE_CAP_ROUND)
+    for r in (0.3, 0.55, 0.8):
+        cr.new_path()
+        cr.arc(cx, cy, s * r * 0.85, -math.pi * 0.75, -math.pi * 0.25)
+        cr.stroke()
+    cr.arc(cx, cy, s * 0.08, 0, 2 * math.pi)
+    cr.fill()
+
+
+def icon_wired(cr, x, y, s):
+    b = s * 0.26
+    rounded(cr, x + s / 2 - b / 2, y + s * 0.08, b, b, b * 0.2)
+    rounded(cr, x + s * 0.08, y + s * 0.66, b, b, b * 0.2)
+    rounded(cr, x + s * 0.92 - b, y + s * 0.66, b, b, b * 0.2)
+    cr.fill()
+    cr.set_line_width(max(1.2, s * 0.08))
+    cr.move_to(x + s / 2, y + s * 0.08 + b)
+    cr.line_to(x + s / 2, y + s * 0.52)
+    cr.move_to(x + s * 0.08 + b / 2, y + s * 0.66)
+    cr.line_to(x + s * 0.08 + b / 2, y + s * 0.52)
+    cr.line_to(x + s * 0.92 - b / 2, y + s * 0.52)
+    cr.line_to(x + s * 0.92 - b / 2, y + s * 0.66)
+    cr.stroke()
+
+
+def icon_battery(cr, x, y, h, level, charging):
+    w = h * 2.05
+    lw = max(1.0, h * 0.09)
+    cr.set_line_width(lw)
+    cr.set_source_rgba(1, 1, 1, 0.55)
+    rounded(cr, x + lw / 2, y + lw / 2, w - h * 0.22 - lw, h - lw, h * 0.26)
+    cr.stroke()
+    rounded(cr, x + w - h * 0.2, y + h * 0.33, h * 0.14, h * 0.34, h * 0.06)
+    cr.fill()
+    inner = w - h * 0.22 - lw * 2 - h * 0.16
+    frac = max(0.0, min(1.0, level / 100.0))
+    if level <= 15 and not charging:
+        cr.set_source_rgba(1.0, 0.36, 0.33, 1)
+    else:
+        cr.set_source_rgba(1, 1, 1, 0.95)
+    rounded(cr, x + lw + h * 0.08, y + lw + h * 0.08, max(h * 0.12, inner * frac), h - 2 * lw - h * 0.16, h * 0.14)
+    cr.fill()
+    if charging:
+        cx, cy = x + (w - h * 0.22) / 2, y + h / 2
+        cr.set_source_rgba(0, 0, 0, 0.75)
+        cr.move_to(cx + h * 0.08, cy - h * 0.42)
+        cr.line_to(cx - h * 0.2, cy + h * 0.06)
+        cr.line_to(cx - h * 0.01, cy + h * 0.06)
+        cr.line_to(cx - h * 0.08, cy + h * 0.42)
+        cr.line_to(cx + h * 0.2, cy - h * 0.06)
+        cr.line_to(cx + h * 0.01, cy - h * 0.06)
+        cr.close_path()
+        cr.fill()
+
+
+# ---- hlavni okno -------------------------------------------------------------------------
+class Greeter(Gtk.Window):
+    MODIFIERS = {"Shift_L", "Shift_R", "Control_L", "Control_R", "Alt_L", "Alt_R", "Super_L", "Super_R",
+                 "Meta_L", "Meta_R", "ISO_Level3_Shift", "ISO_Next_Group", "ISO_Prev_Group", "Caps_Lock",
+                 "Num_Lock", "ISO_First_Group", "ISO_Last_Group"}
+
+    def __init__(self, args):
+        super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        self.cfg = load_config()
+        self.demo = args.demo
+        self.backend = (DemoBackend(self, args.users, args.sessions, args.lock) if args.demo
+                        else LightDMBackend(self))
+        self.kbd = Keyboard()
+
+        # stav
+        self.t = 0.0                # 0 = klid (hodiny), 1 = prihlaseni
+        self.target = 0.0
+        self.anim_id = 0
+        self.anim_from = (0.0, 0)
+        self.last_input = time.monotonic()
+        self.motion_origin = None
+        self.awaiting = False       # PAM ceka na odpoved
+        self.prompted = False       # v teto autentizaci byla zobrazena vyzva
+        self.ready = False          # overeno bez vyzvy -> staci potvrdit
+        self.pending = None         # odpoved zadana drive, nez prisla vyzva
+        self.error_shown = False
+        self.shake_id = 0
+        self.last_minute = None
+        self.bg_surf = self.blur_surf = None
+        self._battery = self._network = None
+        self._caps_hint = False
+
+        self.users = self.backend.users()
+        self.sessions = self.backend.sessions()
+        state = self._load_state()
+        hint = self.backend.select_hint()
+        names = [u.name for u in self.users]
+        sel = hint if hint in names else state.get("last-user") if state.get("last-user") in names else names[0]
+        self.user = self.users[names.index(sel)]
+        self.session = self._session_for(self.user, state.get("last-session"))
+
+        self.set_title("LuxOS Login")
+        self.set_decorated(False)
+        self.set_app_paintable(True)
+        self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.POINTER_MOTION_MASK
+                        | Gdk.EventMask.KEY_PRESS_MASK | Gdk.EventMask.SCROLL_MASK)
+        self.connect("key-press-event", self.on_key)
+        self.connect("button-press-event", self.on_button)
+        self.connect("motion-notify-event", self.on_motion)
+        self.connect("scroll-event", lambda *_a: self.touch() or False)
+        self.connect("destroy", Gtk.main_quit)
+        self.css = Gtk.CssProvider()
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), self.css,
+                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 10)
+
+        self.build()
+        self.relayout()
+        scr = Gdk.Screen.get_default()
+        scr.connect("monitors-changed", lambda *_a: self.relayout())
+        scr.connect("size-changed", lambda *_a: self.relayout())
+        km = Gdk.Keymap.get_for_display(Gdk.Display.get_default())
+        km.connect("state-changed", lambda *_a: self.update_keyboard())
+        self.show_all()
+        self.update_status()
+        GLib.timeout_add_seconds(1, self.tick)
+        GLib.timeout_add_seconds(30, self.update_status)
+        self.set_login_visible(False)
+        self.update_users()
+        self.update_session_button()
+
+    # -- stav mezi spustenimi (domov uzivatele lightdm, ne domovy uzivatelu) --
+    def _state_path(self):
+        return os.path.join(GLib.get_user_cache_dir(), "luxos-greeter", "state")
+
+    def _load_state(self):
+        out = {}
+        for line in read(self._state_path()).splitlines():
+            if "=" in line:
+                k, v = line.split("=", 1)
+                out[k.strip()] = v.strip()
+        return out
+
+    def _save_state(self):
+        if self.demo:
+            return
+        try:
+            p = self._state_path()
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            with open(p, "w", encoding="utf-8") as f:
+                f.write(f"last-user={self.user.name or ''}\nlast-session={self.session or ''}\n")
+        except OSError as e:
+            log("state:", e)
+
+    def _session_for(self, user, last=None):
+        keys = [k for k, _n in self.sessions]
+        for k in (user.session, last, self.backend.default_session(), "xfce"):
+            if k and k in keys:
+                return k
+        return keys[0] if keys else None
+
+    # -- stavba widgetu --
+    def build(self):
+        ov = Gtk.Overlay()
+        self.add(ov)
+        self.bg = Gtk.DrawingArea()
+        self.bg.connect("draw", self.draw_bg)
+        ov.add(self.bg)
+
+        # vpravo nahore: klavesnice, sit, baterie
+        self.status = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.status.set_halign(Gtk.Align.END)
+        self.status.set_valign(Gtk.Align.START)
+        self.kbd_btn = self.flat_button(Gtk.Label(), "pill")
+        self.kbd_btn.connect("draw", self.draw_frost_widget, 0.5, 0.16)
+        self.kbd_btn.connect("clicked", lambda _b: self.switch_layout())
+        self.net_icon = Gtk.DrawingArea()
+        self.net_icon.connect("draw", self.draw_net)
+        self.bat_icon = Gtk.DrawingArea()
+        self.bat_icon.connect("draw", self.draw_battery)
+        self.bat_label = Gtk.Label()
+        self.bat_label.get_style_context().add_class("status")
+        for w in (self.kbd_btn, self.net_icon, self.bat_icon, self.bat_label):
+            self.status.pack_start(w, False, False, 0)
+        ov.add_overlay(self.status)
+
+        # dole uprostred: uzivatele, heslo, hlaska
+        self.login = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.login.set_valign(Gtk.Align.END)
+        self.login.set_halign(Gtk.Align.FILL)
+        self.users_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.users_box.set_halign(Gtk.Align.CENTER)
+        self.login.pack_start(self.users_box, False, False, 0)
+        self.user_buttons = []
+        for u in self.users:
+            b = self.flat_button(None, "user")
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            av = Gtk.DrawingArea()
+            av.connect("draw", self.draw_avatar, u, b)
+            name = Gtk.Label(label=u.real_name)
+            name.get_style_context().add_class("name")
+            name.set_ellipsize(Pango.EllipsizeMode.END)
+            name.set_max_width_chars(22)
+            box.pack_start(av, False, False, 0)
+            box.pack_start(name, False, False, 0)
+            b.add(box)
+            b.connect("clicked", self.on_user_clicked, u)
+            b.avatar, b.name_label, b.user = av, name, u
+            self.users_box.pack_start(b, False, False, 0)
+            self.user_buttons.append(b)
+
+        self.pw = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.pw.set_halign(Gtk.Align.CENTER)
+        self.pw.connect("draw", self.draw_pw)
+        self.entry = Gtk.Entry()
+        self.entry.get_style_context().add_class("pw")
+        self.entry.set_visibility(False)
+        self.entry.set_property("caps-lock-warning", False)
+        self.placeholder = _("Enter Password")
+        self.entry.set_activates_default(False)
+        self.entry.connect("activate", lambda _e: self.submit())
+        self.entry.connect("changed", self.on_entry_changed)
+        self.go = self.flat_button(None, "go")
+        self.go_area = Gtk.DrawingArea()
+        self.go_area.connect("draw", self.draw_go)
+        self.go.add(self.go_area)
+        self.go.connect("clicked", lambda _b: self.submit())
+        self.pw.pack_start(self.entry, True, True, 0)
+        self.pw.pack_start(self.go, False, False, 0)
+        self.login.pack_start(self.pw, False, False, 0)
+        self.hint = Gtk.Label()
+        self.hint.get_style_context().add_class("hint")
+        self.hint.set_line_wrap(True)
+        self.hint.set_justify(Gtk.Justification.CENTER)
+        self.hint.set_max_width_chars(60)
+        self.login.pack_start(self.hint, False, False, 0)
+        ov.add_overlay(self.login)
+
+        # uplne dole: relace, uspat, restartovat, vypnout
+        self.power = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.power.set_valign(Gtk.Align.END)
+        self.power.set_halign(Gtk.Align.CENTER)
+        self.power_buttons = []
+        self.session_btn = None
+        if len(self.sessions) > 1:
+            self.session_btn = self.round_button("session", self.session_name(), icon_session, self.next_session)
+        for what, label, icon in (("suspend", _("Sleep"), icon_sleep), ("restart", _("Restart"), icon_restart),
+                                  ("shutdown", _("Shut Down"), icon_power)):
+            try:
+                if not self.backend.can(what):
+                    continue
+            except Exception as e:  # noqa: BLE001 - logind/upower nemusi bezet
+                log("power:", e)
+                continue
+            self.round_button(what, label, icon, lambda w=what: self.do_power(w))
+        ov.add_overlay(self.power)
+
+    def flat_button(self, child, cls):
+        b = Gtk.Button()
+        b.set_relief(Gtk.ReliefStyle.NONE)
+        b.set_focus_on_click(False)
+        b.get_style_context().add_class("lux")
+        b.get_style_context().add_class(cls)
+        if child is not None:
+            b.add(child)
+        return b
+
+    def round_button(self, key, label, icon, cb):
+        b = self.flat_button(None, "round")
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        area = Gtk.DrawingArea()
+        area.connect("draw", self.draw_round, b, icon)
+        lab = Gtk.Label(label=label)
+        lab.get_style_context().add_class("small")
+        box.pack_start(area, False, False, 0)
+        box.pack_start(lab, False, False, 0)
+        b.add(box)
+        b.connect("clicked", lambda _b: cb())
+        b.area, b.label, b.key = area, lab, key
+        self.power.pack_start(b, False, False, 0)
+        self.power_buttons.append(b)
+        return b
+
+    # -- geometrie a styl podle velikosti obrazovky --
+    def relayout(self):
+        disp = Gdk.Display.get_default()
+        root = Gdk.get_default_root_window()
+        self.W, self.H = root.get_width(), root.get_height()
+        mons = [disp.get_monitor(i) for i in range(disp.get_n_monitors())] or []
+        self.monitors = [m.get_geometry() for m in mons] or [Gdk.Rectangle()]
+        if not mons:
+            self.monitors[0].x = self.monitors[0].y = 0
+            self.monitors[0].width, self.monitors[0].height = self.W, self.H
+        prim = disp.get_primary_monitor() or (mons[0] if mons else None)
+        self.mon = prim.get_geometry() if prim else self.monitors[0]
+        mx, my, mw, mh = self.mon.x, self.mon.y, self.mon.width, self.mon.height
+        self.u = u = max(0.55, mh / 1080.0)
+        self.move(0, 0)
+        self.set_default_size(self.W, self.H)
+        self.resize(self.W, self.H)
+        self.set_size_request(self.W, self.H)
+
+        def px(v, lo=0):
+            return max(lo, round(v * u))
+        self.sz = {
+            "avatar": px(104, 64), "pw_w": px(250, 180), "pw_h": px(36, 28), "round": px(44, 34),
+            "status": px(16, 12), "pad": px(18, 10), "pw_pad": px(16, 11), "pw_font": px(15, 12),
+        }
+        self.status.set_margin_top(my + self.sz["pad"])
+        self.status.set_margin_end(self.W - (mx + mw) + self.sz["pad"])
+        self.status.set_spacing(px(14, 8))
+        self.login.set_margin_start(mx)
+        self.login.set_margin_end(self.W - (mx + mw))
+        self.login.set_margin_bottom(self.H - (my + mh) + px(150, 110))
+        self.login.set_spacing(px(14, 9))
+        self.users_box.set_spacing(px(34, 20))
+        for b in self.user_buttons:
+            b.avatar.set_size_request(self.sz["avatar"] + px(8, 6), self.sz["avatar"] + px(8, 6))
+            b.get_child().set_spacing(px(8, 5))
+        self.pw.set_size_request(self.sz["pw_w"], self.sz["pw_h"])
+        self.go_area.set_size_request(self.sz["pw_h"], self.sz["pw_h"])
+        self.hint.set_size_request(-1, px(22, 16))
+        self.power.set_margin_bottom(self.H - (my + mh) + px(42, 26))
+        self.power.set_spacing(px(40, 26))
+        for b in self.power_buttons:
+            b.area.set_size_request(self.sz["round"] + px(8, 6), self.sz["round"] + px(8, 6))
+            b.get_child().set_spacing(px(5, 3))
+        self.net_icon.set_size_request(self.sz["status"] + 4, self.sz["status"] + 4)
+        self.bat_icon.set_size_request(round(self.sz["status"] * 2.05) + 2, self.sz["status"] + 4)
+
+        f = self.cfg["font"]
+        css = f"""
+        * {{ font-family: "{f}", "Inter", "Cantarell", sans-serif; }}
+        window {{ background-color: transparent; }}
+        label {{ color: white; text-shadow: 0 1px {px(3, 2)}px rgba(0,0,0,0.45); }}
+        label.name {{ font-size: {px(17, 13)}px; font-weight: 600; }}
+        label.small {{ font-size: {px(13, 11)}px; font-weight: 500; color: rgba(255,255,255,0.92); }}
+        label.status {{ font-size: {px(14, 11)}px; font-weight: 600; }}
+        label.hint {{ font-size: {px(14, 11)}px; font-weight: 500; color: rgba(255,255,255,0.88); }}
+        label.hint.error {{ color: #ff8f86; font-weight: 600; }}
+        button.lux {{ background: none; border: none; box-shadow: none; outline: none; padding: 0; margin: 0;
+                      min-height: 0; min-width: 0; -gtk-icon-shadow: none; text-shadow: none; }}
+        button.lux:hover, button.lux:active, button.lux:checked {{ background: none; box-shadow: none; }}
+        button.pill {{ padding: {px(3, 2)}px {px(10, 7)}px; }}
+        button.pill label {{ font-size: {px(13, 11)}px; font-weight: 700; letter-spacing: 1px; }}
+        entry.pw {{ background: none; border: none; box-shadow: none; outline: none; color: white;
+                    caret-color: white; font-size: {self.sz["pw_font"]}px; min-height: 0;
+                    padding: 0 0 0 {self.sz["pw_pad"]}px; -gtk-secondary-caret-color: white; }}
+        entry.pw:disabled {{ color: rgba(255,255,255,0.5); }}
+        entry.pw selection {{ background-color: rgba(255,255,255,0.35); color: white; }}
+        """
+        self.css.load_from_data(css.encode())
+        self.build_backgrounds()
+        self.queue_draw()
+
+    # -- tapeta + rozmazana kopie pro matne panely --
+    def background_path(self):
+        if self.cfg["user-background"] and self.user and self.user.background:
+            p = self.user.background
+            if os.path.isfile(p) and os.access(p, os.R_OK):
+                return p
+        return self.cfg["background"]
+
+    def build_backgrounds(self):
+        if not self.get_realized():
+            self.realize()
+            # bez pozadi X okna: pred prvnim vykreslenim zadne cerne okno (plynuly prechod ze splashe)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self.get_window().set_background_pattern(None)
+        path = self.background_path()
+        if getattr(self, "_bg_key", None) == (path, self.W, self.H, str([(m.x, m.y, m.width, m.height) for m in self.monitors])):
+            return
+        self._bg_key = (path, self.W, self.H, str([(m.x, m.y, m.width, m.height) for m in self.monitors]))
+        t0 = time.monotonic()
+        pb = load_pixbuf(path) or load_pixbuf(DEFAULT_BG)
+        win = self.get_window()
+        surf = win.create_similar_surface(cairo.CONTENT_COLOR, self.W, self.H)
+        cr = cairo.Context(surf)
+        for m in self.monitors:
+            cr.save()
+            cr.rectangle(m.x, m.y, m.width, m.height)
+            cr.clip()
+            if pb:
+                pw, ph = pb.get_width(), pb.get_height()
+                sc = max(m.width / pw, m.height / ph)
+                tw, th = max(1, round(pw * sc)), max(1, round(ph * sc))
+                scaled = pb.scale_simple(tw, th, GdkPixbuf.InterpType.BILINEAR)
+                Gdk.cairo_set_source_pixbuf(cr, scaled, m.x + (m.width - tw) / 2, m.y + (m.height - th) / 2)
+                cr.paint()
+            else:  # nahradni prechod v barvach LuxOS
+                g = cairo.LinearGradient(m.x, m.y, m.x + m.width, m.y + m.height)
+                g.add_color_stop_rgb(0, 0.10, 0.11, 0.25)
+                g.add_color_stop_rgb(0.6, 0.27, 0.20, 0.52)
+                g.add_color_stop_rgb(1, 0.55, 0.36, 0.78)
+                cr.set_source(g)
+                cr.paint()
+            cr.restore()
+        self.bg_surf = surf
+        # rozmazani: zmensit na ~64 px vysky, rozmazat, zvetsit bilinearne
+        sh = 64
+        sw = max(8, round(self.W * sh / self.H))
+        small = cairo.ImageSurface(cairo.FORMAT_RGB24, sw, sh)
+        c2 = cairo.Context(small)
+        c2.scale(sw / self.W, sh / self.H)
+        c2.set_source_surface(surf, 0, 0)
+        c2.get_source().set_filter(cairo.FILTER_GOOD)
+        c2.paint()
+        box_blur(small, radius=2, passes=3)
+        blur = win.create_similar_surface(cairo.CONTENT_COLOR, self.W, self.H)
+        c3 = cairo.Context(blur)
+        c3.scale(self.W / sw, self.H / sh)
+        c3.set_source_surface(small, 0, 0)
+        c3.get_source().set_filter(cairo.FILTER_BILINEAR)
+        c3.get_source().set_extend(cairo.EXTEND_PAD)
+        c3.paint()
+        self.blur_surf = blur
+        log(f"background {path} {self.W}x{self.H} ready in {time.monotonic() - t0:.2f}s")
+
+    # -- kresleni --
+    def draw_bg(self, _w, cr):
+        if self.bg_surf:
+            cr.set_source_surface(self.bg_surf, 0, 0)
+            cr.paint()
+        e = ease(self.t)
+        # jemne ztmaveni pri prihlaseni
+        cr.set_source_rgba(0, 0, 0, 0.10 + 0.14 * e)
+        cr.paint()
+        m = self.mon
+        u = self.u
+        now = time.localtime()
+        try:
+            clock = time.strftime(self.cfg["clock"], now)
+            date = time.strftime(self.cfg["date"], now)
+        except ValueError:
+            clock, date = time.strftime("%H:%M", now), time.strftime("%x", now)
+        cx = m.x + m.width / 2
+        y0 = m.y + m.height * 0.105 - e * m.height * 0.045
+        alpha = 1.0 - 0.12 * e
+        f = self.cfg["font"]
+        dl = text_layout(cr, date, 27 * u, Pango.Weight.SEMIBOLD, f)
+        _ink, logi = dl.get_pixel_extents()
+        self.shadow_text(cr, dl, cx - logi.width / 2, y0, alpha * 0.92, 2 * u)
+        cl = text_layout(cr, clock, 180 * u, Pango.Weight.ULTRALIGHT, f)
+        ink, _logi = cl.get_pixel_extents()
+        # horni okraj cislic tesne pod datum
+        cy = y0 + logi.height + 14 * u - ink.y
+        self.shadow_text(cr, cl, cx - ink.x - ink.width / 2, cy, alpha, 4 * u)
+        return False
+
+    def shadow_text(self, cr, lay, x, y, alpha, blur):
+        # mekky stin: nekolik posunutych kopii s malou pruhlednosti
+        for dx, dy in ((0, 1), (0, 2), (-1, 1.5), (1, 1.5), (0, 3)):
+            cr.move_to(x + dx * blur * 0.35, y + dy * blur * 0.45)
+            cr.set_source_rgba(0, 0, 0, 0.055 * alpha)
+            PangoCairo.show_layout(cr, lay)
+        cr.move_to(x, y)
+        cr.set_source_rgba(1, 1, 1, alpha)
+        PangoCairo.show_layout(cr, lay)
+
+    def frost(self, widget, cr, x, y, w, h, r, tint, border=0.18):
+        """Matny panel: vyrez rozmazane tapety pod widgetem + svetly zavoj + jemny okraj."""
+        ox, oy = widget.translate_coordinates(self, 0, 0) or (0, 0)
+        cr.save()
+        rounded(cr, x, y, w, h, r)
+        cr.clip()
+        if self.blur_surf:
+            cr.set_source_surface(self.blur_surf, -ox, -oy)
+            cr.paint()
+        cr.set_source_rgba(1, 1, 1, tint)
+        cr.paint()
+        cr.restore()
+        rounded(cr, x + 0.5, y + 0.5, w - 1, h - 1, r)
+        cr.set_source_rgba(1, 1, 1, border)
+        cr.set_line_width(1)
+        cr.stroke()
+
+    def draw_frost_widget(self, w, cr, radius_frac, tint):
+        a = w.get_allocation()
+        hover = w.get_state_flags() & Gtk.StateFlags.PRELIGHT
+        self.frost(w, cr, 0, 0, a.width, a.height, a.height * radius_frac, tint + (0.06 if hover else 0))
+        if w.has_visible_focus():
+            self.focus_ring(cr, 0, 0, a.width, a.height, a.height * radius_frac)
+        return False
+
+    def set_placeholder(self, text):
+        self.placeholder = text
+        self.pw.queue_draw()
+
+    def draw_pw(self, w, cr):
+        """Pole pro heslo: matny ovál + vlastni zastupny text (GTK 3 ho u aktivniho pole skryva)."""
+        self.draw_frost_widget(w, cr, 0.5, 0.20)
+        if self.placeholder and not self.entry.get_text():
+            ex, ey = self.entry.translate_coordinates(w, 0, 0) or (0, 0)
+            ea = self.entry.get_allocation()
+            lay = text_layout(cr, self.placeholder, self.sz["pw_font"], Pango.Weight.NORMAL, self.cfg["font"])
+            lay.set_width((ea.width - self.sz["pw_pad"] - 4) * Pango.SCALE)
+            lay.set_ellipsize(Pango.EllipsizeMode.END)
+            _i, lg = lay.get_pixel_extents()
+            cr.new_path()
+            cr.move_to(ex + self.sz["pw_pad"] + 2, ey + (ea.height - lg.height) / 2)
+            cr.set_source_rgba(1, 1, 1, 0.62 if self.entry.get_sensitive() else 0.35)
+            PangoCairo.show_layout(cr, lay)
+        return False
+
+    def focus_ring(self, cr, x, y, w, h, r):
+        rounded(cr, x + 1, y + 1, w - 2, h - 2, r)
+        cr.set_source_rgba(1, 1, 1, 0.75)
+        cr.set_line_width(2)
+        cr.stroke()
+
+    def draw_round(self, area, cr, btn, icon):
+        a = area.get_allocation()
+        d = self.sz["round"]
+        x, y = (a.width - d) / 2, (a.height - d) / 2
+        fl = btn.get_state_flags()
+        tint = 0.16 + (0.10 if fl & Gtk.StateFlags.PRELIGHT else 0) + (0.12 if fl & Gtk.StateFlags.ACTIVE else 0)
+        self.frost(area, cr, x, y, d, d, d / 2, tint)
+        if btn.has_visible_focus():
+            cr.new_path()
+            cr.arc(a.width / 2, a.height / 2, d / 2 + 2.5, 0, 2 * math.pi)
+            cr.set_source_rgba(1, 1, 1, 0.8)
+            cr.set_line_width(2)
+            cr.stroke()
+        cr.set_source_rgba(1, 1, 1, 0.95)
+        icon(cr, a.width / 2, a.height / 2, d * 0.46)
+        return False
+
+    def draw_go(self, area, cr):
+        a = area.get_allocation()
+        d = a.height - max(8, round(self.sz["pw_h"] * 0.26))
+        cx, cy = a.width / 2 - 2, a.height / 2
+        has = bool(self.entry.get_text()) or self.ready
+        hover = self.go.get_state_flags() & Gtk.StateFlags.PRELIGHT
+        cr.arc(cx, cy, d / 2, 0, 2 * math.pi)
+        cr.set_source_rgba(1, 1, 1, (0.30 if has else 0.12) + (0.1 if hover else 0))
+        cr.fill()
+        cr.set_source_rgba(1, 1, 1, 0.95 if has else 0.55)
+        icon_arrow(cr, cx, cy, d * 0.62)
+        if self.go.has_visible_focus():
+            cr.new_path()
+            cr.arc(cx, cy, d / 2 + 2, 0, 2 * math.pi)
+            cr.set_source_rgba(1, 1, 1, 0.8)
+            cr.set_line_width(1.5)
+            cr.stroke()
+        return False
+
+    def draw_avatar(self, area, cr, user, btn):
+        a = area.get_allocation()
+        d = self.sz["avatar"]
+        cx, cy = a.width / 2, a.height / 2
+        selected = user is self.user
+        multi = len(self.users) > 1
+        if multi and not selected:
+            d = round(d * 0.8)
+        # obrazek z AccountsService (lightdm nema pristup do domovu uzivatelu)
+        key = (user.name, d)
+        cache = self.__dict__.setdefault("_avatars", {})
+        if key not in cache:
+            pb = None
+            for p in (user.image, os.path.join(ACCOUNTS_ICONS, user.name) if user.name else None):
+                pb = load_pixbuf(p)
+                if pb:
+                    break
+            if pb:
+                pw, ph = pb.get_width(), pb.get_height()
+                sc = max(d / pw, d / ph)
+                pb = pb.scale_simple(max(1, round(pw * sc)), max(1, round(ph * sc)), GdkPixbuf.InterpType.HYPER)
+            cache[key] = pb
+        pb = cache[key]
+        # stin
+        cr.arc(cx, cy + d * 0.03, d / 2 + 1, 0, 2 * math.pi)
+        cr.set_source_rgba(0, 0, 0, 0.18)
+        cr.fill()
+        cr.save()
+        cr.arc(cx, cy, d / 2, 0, 2 * math.pi)
+        cr.clip()
+        if pb:
+            Gdk.cairo_set_source_pixbuf(cr, pb, cx - pb.get_width() / 2, cy - pb.get_height() / 2)
+            cr.paint()
+        elif user.name is None or user.name == "*guest":
+            self.frost(area, cr, cx - d / 2, cy - d / 2, d, d, d / 2, 0.22, 0)
+            cr.set_source_rgba(1, 1, 1, 0.9)
+            icon_person(cr, cx, cy, d * 0.62)
+        else:
+            g = cairo.LinearGradient(cx - d / 2, cy - d / 2, cx + d / 2, cy + d / 2)
+            g.add_color_stop_rgb(0, 0.30, 0.52, 1.0)   # modra
+            g.add_color_stop_rgb(1, 0.66, 0.42, 0.98)  # fialova
+            cr.set_source(g)
+            cr.paint()
+            initial = (user.real_name or user.name or "?").strip()[:1].upper() or "?"
+            lay = text_layout(cr, initial, d * 0.44, Pango.Weight.MEDIUM, self.cfg["font"])
+            ink, _l = lay.get_pixel_extents()
+            cr.move_to(cx - ink.x - ink.width / 2, cy - ink.y - ink.height / 2)
+            cr.set_source_rgba(1, 1, 1, 0.97)
+            PangoCairo.show_layout(cr, lay)
+        cr.restore()
+        hover = btn.get_state_flags() & Gtk.StateFlags.PRELIGHT
+        cr.new_path()
+        cr.arc(cx, cy, d / 2 - 0.5, 0, 2 * math.pi)
+        cr.set_source_rgba(1, 1, 1, 0.55 if (hover and multi) else 0.22)
+        cr.set_line_width(1.5 if hover else 1)
+        cr.stroke()
+        if btn.has_visible_focus():
+            cr.new_path()
+            cr.arc(cx, cy, d / 2 + 3, 0, 2 * math.pi)
+            cr.set_source_rgba(1, 1, 1, 0.85)
+            cr.set_line_width(2)
+            cr.stroke()
+        return False
+
+    def draw_battery(self, area, cr):
+        if self._battery is None:
+            return False
+        a = area.get_allocation()
+        h = self.sz["status"] * 0.78
+        icon_battery(cr, 1, (a.height - h) / 2, h, *self._battery)
+        return False
+
+    def draw_net(self, area, cr):
+        if not self._network:
+            return False
+        a = area.get_allocation()
+        s = self.sz["status"]
+        cr.set_source_rgba(1, 1, 1, 0.95)
+        (icon_wifi if self._network == "wifi" else icon_wired)(cr, (a.width - s) / 2, (a.height - s) / 2, s)
+        return False
+
+    # -- periodicke aktualizace --
+    def tick(self):
+        now = time.localtime()
+        if now.tm_min != self.last_minute:
+            self.last_minute = now.tm_min
+            self.bg.queue_draw()
+        if self.target > 0 and not self.awaiting_result() and \
+                time.monotonic() - self.last_input > self.cfg["idle"]:
+            self.set_active(False)
+        return True
+
+    def update_status(self):
+        self._battery = battery_state() if self.cfg["battery"] else None
+        self._network = network_state() if self.cfg["network"] else None
+        self.bat_icon.set_visible(self._battery is not None)
+        self.bat_label.set_visible(self._battery is not None)
+        if self._battery is not None:
+            self.bat_label.set_text(f"{self._battery[0]} %" if LANG == "cs" else f"{self._battery[0]}%")
+        self.net_icon.set_visible(bool(self._network))
+        self.bat_icon.queue_draw()
+        self.net_icon.queue_draw()
+        self.update_keyboard()
+        return True
+
+    def update_keyboard(self):
+        self.kbd_btn.get_child().set_text(self.kbd.label())
+        debug("layout", self.kbd.label())
+        self.kbd_btn.set_visible(True)
+        self.update_caps()
+
+    def update_caps(self):
+        km = Gdk.Keymap.get_for_display(Gdk.Display.get_default())
+        caps = km.get_caps_lock_state()
+        if caps and not self.error_shown and not self.hint.get_text():
+            self.show_hint(_("Caps Lock is on"), False, caps=True)
+        elif not caps and getattr(self, "_caps_hint", False):
+            self.show_hint("", False)
+
+    def switch_layout(self):
+        self.kbd.next()
+        GLib.timeout_add(60, lambda: self.update_keyboard() or False)
+        if self.target > 0:
+            self.entry.grab_focus_without_selecting()
+
+    # -- prechody klid <-> prihlaseni --
+    def set_login_visible(self, on):
+        for w in (self.login, self.power):
+            w.set_visible(on)
+
+    def debug_geometry(self):
+        for name, w in [("user-" + str(b.user.name), b) for b in self.user_buttons] + \
+                [("power-" + b.key, b) for b in self.power_buttons] + [("entry", self.entry), ("layout", self.kbd_btn)]:
+            if w.get_mapped():
+                x, y = w.translate_coordinates(self, 0, 0)
+                a = w.get_allocation()
+                debug("geom", name, x + a.width // 2, y + a.height // 2)
+        return False
+
+    def set_active(self, on):
+        target = 1.0 if on else 0.0
+        if target == self.target:
+            return
+        debug("state", "login" if on else "idle")
+        self.target = target
+        self.touch()
+        if on:
+            self.set_login_visible(True)
+            self.apply_t()
+            self.start_auth()
+            self.entry.grab_focus_without_selecting()
+        else:
+            self.backend.cancel()
+            self.awaiting = self.ready = False
+            self.pending = None
+            self.entry.set_text("")
+            self.show_hint("", False)
+            self.set_focus(None)
+        self.anim_from = (self.t, GLib.get_monotonic_time())
+        if not self.anim_id:
+            self.anim_id = GLib.timeout_add(16, self.animate)
+
+    def animate(self):
+        t0, start = self.anim_from
+        dur = 380000.0 if self.target > t0 else 520000.0
+        p = min(1.0, (GLib.get_monotonic_time() - start) / dur)
+        self.t = t0 + (self.target - t0) * p
+        self.apply_t()
+        if p >= 1.0:
+            self.anim_id = 0
+            if self.target == 0:
+                self.set_login_visible(False)
+            elif DEBUG:
+                GLib.idle_add(self.debug_geometry)
+            return False
+        return True
+
+    def apply_t(self):
+        e = ease(self.t)
+        self.login.set_opacity(e)
+        self.power.set_opacity(e)
+        # obsah prijizdi lehce zdola
+        off = round((1 - e) * 24 * self.u)
+        self.login.set_margin_bottom(self.H - (self.mon.y + self.mon.height) + round(150 * self.u) - off)
+        self.bg.queue_draw()
+
+    def touch(self):
+        self.last_input = time.monotonic()
+
+    def awaiting_result(self):
+        return not self.awaiting and self.prompted and self.backend_in_auth()
+
+    def backend_in_auth(self):
+        try:
+            return self.backend.g.get_in_authentication()
+        except AttributeError:
+            return getattr(self.backend, "state", None) == "wait"
+
+    # -- vstup --
+    def on_key(self, _w, ev):
+        self.touch()
+        name = Gdk.keyval_name(ev.keyval) or ""
+        if name == "Caps_Lock":
+            GLib.timeout_add(50, lambda: self.update_caps() or False)
+        if name in ("ISO_Next_Group", "ISO_Prev_Group"):
+            GLib.timeout_add(50, lambda: self.update_keyboard() or False)
+        # Alt+Shift, pokud prepinani neobstarava samo X
+        if not self.kbd.x_handles_toggle and len(self.kbd.layouts) > 1 and (
+                (name.startswith("Shift") and ev.state & Gdk.ModifierType.MOD1_MASK)
+                or (name.startswith("Alt") and ev.state & Gdk.ModifierType.SHIFT_MASK)):
+            self.switch_layout()
+            return True
+        if self.target == 0:
+            if name in self.MODIFIERS:
+                return False
+            printable = Gdk.keyval_to_unicode(ev.keyval) >= 32 and not (
+                ev.state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.MOD1_MASK))
+            self.set_active(True)
+            # prvni znak rovnou do pole s heslem
+            return not printable
+        if name == "Escape":
+            self.set_active(False)
+            return True
+        focus = self.get_focus()
+        if focus is not self.entry and Gdk.keyval_to_unicode(ev.keyval) >= 32 and not (
+                ev.state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.MOD1_MASK)):
+            self.entry.grab_focus_without_selecting()
+        return False
+
+    def on_button(self, _w, ev):
+        self.touch()
+        if self.target == 0 and ev.type == Gdk.EventType.BUTTON_PRESS:
+            self.set_active(True)
+            return True
+        return False
+
+    def on_motion(self, _w, ev):
+        self.touch()
+        if self.target == 0:
+            if self.motion_origin is None or time.monotonic() - self.motion_origin[2] > 1.0:
+                self.motion_origin = (ev.x_root, ev.y_root, time.monotonic())
+            elif math.hypot(ev.x_root - self.motion_origin[0], ev.y_root - self.motion_origin[1]) > 60 * self.u:
+                self.motion_origin = None
+                self.set_active(True)
+        return False
+
+    def on_entry_changed(self, _e):
+        self.touch()
+        self.go_area.queue_draw()
+        self.pw.queue_draw()
+        if self.error_shown and self.entry.get_text():
+            self.show_hint("", False)
+
+    def on_user_clicked(self, _b, user):
+        self.touch()
+        if user is self.user:
+            self.entry.grab_focus_without_selecting()
+            return
+        self.user = user
+        debug("user", user.name)
+        self.session = self._session_for(user, self.session)
+        self.update_users()
+        self.update_session_button()
+        self.entry.set_text("")
+        self.show_hint("", False)
+        if self.cfg["user-background"] and self.background_path() != self._bg_key[0]:
+            self.build_backgrounds()
+            self.queue_draw()
+        self.start_auth()
+        self.entry.grab_focus_without_selecting()
+
+    def update_users(self):
+        multi = len(self.users) > 1
+        for b in self.user_buttons:
+            sel = b.user is self.user
+            b.name_label.set_opacity(1.0 if sel or not multi else 0.7)
+            b.avatar.set_opacity(1.0 if sel or not multi else 0.75)
+            b.avatar.queue_draw()
+
+    def session_name(self):
+        return dict(self.sessions).get(self.session, self.session or "")
+
+    def update_session_button(self):
+        if self.session_btn:
+            self.session_btn.label.set_text(self.session_name())
+
+    def next_session(self):
+        keys = [k for k, _n in self.sessions]
+        i = keys.index(self.session) if self.session in keys else -1
+        self.session = keys[(i + 1) % len(keys)]
+        debug("session", self.session)
+        self.update_session_button()
+        self.touch()
+
+    def do_power(self, what):
+        self.touch()
+        try:
+            self.backend.power(what)
+        except GLib.Error as e:
+            log("power", what, e.message)
+            self.show_hint(_("This action is not available right now."), True)
+
+    # -- autentizace (postup jako lightdm-gtk-greeter) --
+    def start_auth(self):
+        self.awaiting = self.prompted = self.ready = False
+        self.pending = None
+        self.entry.set_editable(True)
+        self.entry.set_sensitive(True)
+        if self.user.name is None:
+            self.entry.set_visibility(True)
+            self.set_placeholder(_("Username"))
+        try:
+            self.backend.authenticate(self.user)
+        except GLib.Error as e:
+            log("authenticate:", e.message)
+            self.show_hint(e.message, True)
+
+    def on_prompt(self, text, secret):
+        debug("prompt", repr(text), "secret" if secret else "visible")
+        self.prompted = self.awaiting = True
+        self.entry.set_sensitive(True)
+        self.entry.set_editable(True)
+        self.entry.set_visibility(not secret)
+        t = (text or "").strip().rstrip(":").strip()
+        if secret and (not t or t.lower() == "password"):
+            ph = _("Enter Password")
+        elif not secret and t.lower() in ("login", "username", "user name"):
+            ph = _("Username")
+        else:
+            ph = t
+        self.set_placeholder(ph)
+        if self.target > 0:
+            self.entry.grab_focus_without_selecting()
+        if self.pending is not None:
+            p, self.pending = self.pending, None
+            self.respond(p)
+        return False
+
+    def on_message(self, text, is_error):
+        self.show_hint(text, is_error)
+        if is_error:
+            self.error_shown = True
+
+    def on_complete(self):
+        self.awaiting = False
+        debug("complete", "idle" if self.target == 0 else self.backend.is_authenticated())
+        if self.target == 0:
+            return                  # zrusena autentizace po navratu na hodiny
+        if self.backend.is_authenticated():
+            if self.prompted:
+                self.launch()
+            else:
+                # overeno bez hesla (napr. ucet bez hesla): potvrdit Enterem nebo sipkou
+                self.ready = True
+                self.entry.set_text("")
+                self.entry.set_editable(False)
+                self.set_placeholder(_("Log In"))
+                self.go_area.queue_draw()
+            return
+        if not self.error_shown:
+            self.show_hint(_("Incorrect password. Try again."), True)
+        self.error_shown = True
+        self.shake()
+        self.entry.set_text("")
+        # novy pokus pro stejneho uzivatele
+        self.start_auth_keep_hint()
+
+    def start_auth_keep_hint(self):
+        hint, err = self.hint.get_text(), self.error_shown
+        self.start_auth()
+        self.show_hint(hint, err)
+
+    def launch(self):
+        debug("start session", self.session, "user", self.user.name)
+        self._save_state()
+        try:
+            self.backend.start_session(self.session)
+        except GLib.Error as e:
+            log("start session:", e.message)
+            self.show_hint(_("Could not start the session."), True)
+            self.shake()
+            self.start_auth_keep_hint()
+
+    def submit(self):
+        self.touch()
+        if self.target == 0:
+            self.set_active(True)
+            return
+        if self.ready:
+            self.launch()
+            return
+        text = self.entry.get_text()
+        if not self.awaiting:
+            if self.prompted and self.backend_in_auth():
+                return              # odpoved odeslana, ceka se na vysledek
+            # vyzva jeste neprisla: odpoved si podrzet a poslat s ni
+            if not self.backend_in_auth():
+                self.start_auth_keep_hint()
+            self.pending = text
+            self.entry.set_text("")
+            return
+        self.respond(text)
+
+    def respond(self, text):
+        self.awaiting = False
+        self.entry.set_text("")
+        self.entry.set_sensitive(False)
+        self.show_hint("", False)
+        try:
+            self.backend.respond(text)
+        except GLib.Error as e:
+            log("respond:", e.message)
+
+    def show_hint(self, text, error, caps=False):
+        self._caps_hint = caps and bool(text)
+        if not error:
+            self.error_shown = False
+        self.hint.set_text(text or "")
+        ctx = self.hint.get_style_context()
+        (ctx.add_class if error else ctx.remove_class)("error")
+
+    def shake(self):
+        if self.shake_id:
+            GLib.source_remove(self.shake_id)
+        start = GLib.get_monotonic_time()
+        base = 0
+
+        def step():
+            p = (GLib.get_monotonic_time() - start) / 480000.0
+            if p >= 1:
+                self.pw.set_margin_start(base)
+                self.pw.set_margin_end(base)
+                self.shake_id = 0
+                return False
+            dx = round(math.sin(p * math.pi * 8) * (1 - p) * 16 * self.u)
+            # posun doprava = vetsi levy okraj; Gtk.Align.CENTER drzi stred
+            self.pw.set_margin_start(max(0, 2 * dx))
+            self.pw.set_margin_end(max(0, -2 * dx))
+            return True
+        self.shake_id = GLib.timeout_add(16, step)
+
+
+def main():
+    ap = argparse.ArgumentParser(description="LuxOS LightDM greeter")
+    ap.add_argument("--demo", action="store_true", help="run without LightDM (password: luxos)")
+    ap.add_argument("--users", type=int, default=1, help="demo: number of users")
+    ap.add_argument("--sessions", type=int, default=1, help="demo: number of sessions")
+    ap.add_argument("--lock", action="store_true", help="demo: behave like a lock screen")
+    args = ap.parse_args()
+    try:
+        locale.setlocale(locale.LC_ALL, "")
+    except locale.Error:
+        pass
+    cfg = load_config()
+    settings = Gtk.Settings.get_default()
+    settings.set_property("gtk-application-prefer-dark-theme", True)
+    settings.set_property("gtk-cursor-theme-name", cfg["cursor-theme"])
+    settings.set_property("gtk-font-name", f"{cfg['font']} 11")
+    disp = Gdk.Display.get_default()
+    if disp is None:
+        log("no X display")
+        return 1
+    root = Gdk.get_default_root_window()
+    root.set_cursor(Gdk.Cursor.new_from_name(disp, "default") or Gdk.Cursor.new_for_display(disp, Gdk.CursorType.LEFT_PTR))
+    win = Greeter(args)
+    win.present()
+    Gtk.main()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

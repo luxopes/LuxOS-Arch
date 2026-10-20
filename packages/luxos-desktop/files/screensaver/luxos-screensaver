@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""LuxOS - setric obrazovky: tapety LuxOS s pomalym prolinanim a velke hodiny.
+"""LuxOS - setrice obrazovky (styly vybira --style):
+
+  wallpapers  tapety LuxOS s pomalym prolinanim a velke hodiny (vychozi)
+  clock       velke hodiny na cernem pozadi, pomalu se posouvaji (setri OLED)
+  aurora      plynule se prelevajici barevne svetlo
+  photos      prezentace fotek z ~/Pictures (bez fotek tapety LuxOS)
+  logo        logo LuxOS pomalu pluje po obrazovce
 
 xfce4-screensaver ho spousti s XSCREENSAVER_WINDOW (X okno, do ktereho se kresli).
 Bez teto promenne (nahled v nastaveni, test) otevre vlastni okno; --window na cele
@@ -8,8 +14,12 @@ obrazovce, jinak 640x400.
 import glob
 import math
 import os
+import random
+import subprocess
 import sys
 import time
+
+import cairo
 
 import gi
 
@@ -25,10 +35,38 @@ FADE = 3.0        # delka prolinani
 FPS = 15
 
 
+STYLES = ("wallpapers", "clock", "aurora", "photos", "logo", "blank")
+PHOTO_EXT = (".jpg", ".jpeg", ".png", ".webp")
+LOGO = "/usr/share/icons/hicolor/scalable/apps/luxos-logo.svg"
+
+
+def photo_list():
+    pics = os.path.join(os.path.expanduser("~"), "Pictures")
+    try:
+        names = subprocess.run(["xdg-user-dir", "PICTURES"], capture_output=True, text=True, timeout=2).stdout.strip()
+        if names and os.path.isdir(names):
+            pics = names
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    found = []
+    for root, _dirs, files in os.walk(pics):
+        found += [os.path.join(root, f) for f in files if f.lower().endswith(PHOTO_EXT)]
+        if len(found) > 500:
+            break
+    random.shuffle(found)
+    return found
+
+
 class Saver:
-    def __init__(self):
+    def __init__(self, style="wallpapers"):
         self.images = {}
         self.start = time.monotonic()
+        self.style = style if style in STYLES else "wallpapers"
+        self.slides = WALLS
+        if self.style == "photos":
+            self.slides = photo_list() or WALLS
+        self.logo = None
+        self.phase = random.random() * 100
 
     def pixbuf(self, path, w, h):
         key = (path, w, h)
@@ -45,19 +83,79 @@ class Saver:
 
     def draw(self, cr, w, h):
         t = time.monotonic() - self.start
-        cr.set_source_rgb(0.04, 0.04, 0.08)
+        if self.style in ("clock", "blank"):
+            cr.set_source_rgb(0, 0, 0)
+        else:
+            cr.set_source_rgb(0.04, 0.04, 0.08)
         cr.paint()
-        if WALLS:
-            idx = int(t // SLIDE)
-            phase = t - idx * SLIDE
-            self.paint_wall(cr, WALLS[idx % len(WALLS)], w, h, 1.0, t)
-            if phase > SLIDE - FADE:
-                alpha = (phase - (SLIDE - FADE)) / FADE
-                self.paint_wall(cr, WALLS[(idx + 1) % len(WALLS)], w, h, alpha, t)
-        # ztmaveni pro citelnost hodin
-        cr.set_source_rgba(0, 0, 0, 0.28)
+        if self.style in ("wallpapers", "photos"):
+            if self.slides:
+                idx = int(t // SLIDE)
+                phase = t - idx * SLIDE
+                self.paint_wall(cr, self.slides[idx % len(self.slides)], w, h, 1.0, t)
+                if phase > SLIDE - FADE:
+                    alpha = (phase - (SLIDE - FADE)) / FADE
+                    self.paint_wall(cr, self.slides[(idx + 1) % len(self.slides)], w, h, alpha, t)
+            # ztmaveni pro citelnost hodin
+            cr.set_source_rgba(0, 0, 0, 0.28)
+            cr.paint()
+            self.clock(cr, w, h)
+        elif self.style == "clock":
+            # pomaly posun, aby se hodiny nevypalily do displeje
+            dx = math.sin(t / 47 + self.phase) * w * 0.18
+            dy = math.cos(t / 61 + self.phase) * h * 0.14
+            cr.translate(dx, dy + h * 0.12)
+            self.clock(cr, w, h, alpha=0.9)
+        elif self.style == "aurora":
+            self.aurora(cr, w, h, t)
+            self.clock(cr, w, h, alpha=0.75)
+        elif self.style == "logo":
+            self.floating_logo(cr, w, h, t)
+        # "blank": jen cerna (nahled volby Cerna obrazovka)
+
+    def aurora(self, cr, w, h, t):
+        """Barevna svetla v nizkem rozliseni (levne i na 4K), roztazena pres obrazovku."""
+        sw, sh = 96, max(54, int(96 * h / max(w, 1)))
+        surf = cairo.ImageSurface(cairo.FORMAT_RGB24, sw, sh)
+        c = cairo.Context(surf)
+        c.set_source_rgb(0.03, 0.02, 0.09)
+        c.paint()
+        blobs = ((0.36, 0.30, 1.00), (0.75, 0.25, 0.95), (0.15, 0.65, 0.95), (0.95, 0.35, 0.60))
+        for i, (r, g, b) in enumerate(blobs):
+            x = sw * (0.5 + 0.42 * math.sin(t / (23 + i * 7) + i * 1.7 + self.phase))
+            y = sh * (0.5 + 0.40 * math.cos(t / (29 + i * 5) + i * 2.3 + self.phase))
+            rad = sw * (0.38 + 0.12 * math.sin(t / 17 + i))
+            g_ = cairo.RadialGradient(x, y, 0, x, y, rad)
+            g_.add_color_stop_rgba(0, r, g, b, 0.85)
+            g_.add_color_stop_rgba(1, r, g, b, 0)
+            c.set_source(g_)
+            c.set_operator(cairo.OPERATOR_ADD)
+            c.paint()
+        cr.save()
+        cr.scale(w / sw, h / sh)
+        cr.set_source_surface(surf, 0, 0)
+        cr.get_source().set_filter(cairo.FILTER_BILINEAR)
         cr.paint()
-        self.clock(cr, w, h)
+        cr.restore()
+
+    def floating_logo(self, cr, w, h, t):
+        if self.logo is None:
+            try:
+                size = int(h * 0.16)
+                self.logo = GdkPixbuf.Pixbuf.new_from_file_at_size(LOGO, size, size)
+            except GLib.Error:
+                self.logo = False
+        if not self.logo:
+            return
+        lw, lh = self.logo.get_width(), self.logo.get_height()
+        # odraz od okraju (trojuhelnikova vlna)
+        def bounce(v, span):
+            v = v % (2 * span)
+            return v if v < span else 2 * span - v
+        x = bounce(t * w * 0.035 + self.phase * 97, max(w - lw, 1))
+        y = bounce(t * h * 0.045 + self.phase * 53, max(h - lh, 1))
+        Gdk.cairo_set_source_pixbuf(cr, self.logo, x, y)
+        cr.paint_with_alpha(0.9)
 
     def paint_wall(self, cr, path, w, h, alpha, t):
         img = self.pixbuf(path, w, h)
@@ -70,7 +168,7 @@ class Saver:
         Gdk.cairo_set_source_pixbuf(cr, pix, -dx, -dy)
         cr.paint_with_alpha(alpha)
 
-    def clock(self, cr, w, h):
+    def clock(self, cr, w, h, alpha=0.95):
         now = time.localtime()
         hh = time.strftime("%H:%M", now)
         day = time.strftime("%A %-d. %B", now)
@@ -82,7 +180,7 @@ class Saver:
         cr.set_source_rgba(0, 0, 0, 0.25)
         cr.move_to(x + 2, y + 3)
         cr.show_text(hh)
-        cr.set_source_rgba(1, 1, 1, 0.95)
+        cr.set_source_rgba(1, 1, 1, alpha)
         cr.move_to(x, y)
         cr.show_text(hh)
         cr.select_font_face("Inter", 0, 0)
@@ -132,7 +230,10 @@ def run_window(saver, fullscreen):
 
 
 def main():
-    saver = Saver()
+    style = "wallpapers"
+    if "--style" in sys.argv[:-1]:
+        style = sys.argv[sys.argv.index("--style") + 1]
+    saver = Saver(style)
     xid = os.environ.get("XSCREENSAVER_WINDOW")
     if xid and "--window" not in sys.argv:
         run_foreign(int(xid, 0), saver)

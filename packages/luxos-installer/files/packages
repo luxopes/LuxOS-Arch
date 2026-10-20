@@ -21,7 +21,9 @@ networkmanager
 # explicitne kvuli volbe poskytovatelu (jinak by pacman vybral jack2)
 pipewire-jack
 noto-fonts
+luxos-greeter
 luxos-desktop
+luxdrop
 luxai
 luxos-safe
 luxos-sandbox

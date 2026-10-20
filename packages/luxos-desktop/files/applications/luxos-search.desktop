@@ -1,7 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=Spotlight
+Name=Search
+Name[cs]=Hledání
 Comment=Search applications and files
-Exec=luxos-spotlight
+Exec=luxos-search
 Icon=system-search
 NoDisplay=true
