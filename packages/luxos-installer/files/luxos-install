@@ -5,30 +5,42 @@
 # Bez obsluhy:    sudo luxos-install --config /cesta/install.conf [--yes] [--progress]
 #                 ... | sudo luxos-install --config - --yes --progress   (konfigurace ze stdin)
 # Disky (GUI):    sudo luxos-install --probe /dev/DISK   (volne misto a ESP, radky KLIC=hodnota)
+#                 sudo luxos-install --scan               (disky, oddily, LUKS, LVM jako JSON; jen cte)
+#                 luxos-install --check-layout SOUBOR     (kontrola LAYOUT bez zmen; - = stdin)
 #
 # Konfiguracni soubor (bash promenne) - viz /usr/share/luxos/installer/install.conf.example
 # --progress: strojove radky "@@STEP n celkem text", "@@PCT 0-100", "@@STATUS text", "@@NET B/s stazeno celkem", "@@NET END", "@@ERROR text", "@@DONE"
+#             rucni rozdeleni (DISK_MODE=layout) navic "@@ERASE text" (co se smaze, pred souhrnem) a "@@WARN text"
 set -Eeuo pipefail
 
 LOG=/var/log/luxos-install.log
 TARGET=/mnt
 SHARE=/usr/share/luxos/installer
+# pacman (pacstrap, arch-chroot) spousti instalator, ne clovek: kompatibilni vrstva /usr/bin/pacman
+# (luxos-pacman) ho pusti beze zmeny i tehdy, kdyz instalace bezi v terminalu
+export LUX_ALLOW_PACMAN=1
 . /usr/lib/luxos/i18n.sh
 ui_lang() { export LANG=$1; . /usr/lib/luxos/i18n.sh; }   # jazyk pruvodce podle volby
-
-((EUID == 0)) || exec sudo "$0" "$@"
+# Rucni rozdeleni disku (DISK_MODE=layout): parser, kontrola a provedeni LAYOUT
+. "$SHARE/layout.sh"
 
 CONFIG=""
 ASSUME_YES=0
 PROGRESS=0
 PROBE=""
+SCAN=0
+CHECK_LAYOUT=""
+for a in "$@"; do [[ $a == --check-layout ]] && CHECK_LAYOUT=1; done
+((EUID == 0 || CHECK_LAYOUT == 1)) || exec sudo "$0" "$@"
 while (($#)); do
     case $1 in
         --config)   CONFIG=$2; shift ;;
         --yes)      ASSUME_YES=1 ;;
         --progress) PROGRESS=1 ;;
         --probe)    PROBE=$2; shift ;;
-        -h|--help) sed -n '2,10p' "$0" | sed 's/^# \?//'; exit 0 ;;
+        --scan)     SCAN=1 ;;
+        --check-layout) CHECK_LAYOUT=$2; shift ;;
+        -h|--help) sed -n '2,13p' "$0" | sed 's/^# \?//'; exit 0 ;;
         *) echo "Unknown option: $1" >&2; exit 2 ;;
     esac
     shift
@@ -224,9 +236,14 @@ interactive() {
     for d in "${disks[@]}"; do opts+=("${d#*|}"); done
     local advanced
     advanced=$(T "Advanced: use partitions already mounted at %s" "$TARGET")
-    opts+=("$advanced")
+    local layout_opt
+    layout_opt=$(T "Advanced: manual partitioning from a layout file (LVM, encryption)")
+    opts+=("$layout_opt" "$advanced")
     sel=$(gum choose --header "$(T "Where should LuxOS be installed?")" "${opts[@]}") || exit 1
-    if [[ $sel == "$advanced" ]]; then
+    if [[ $sel == "$layout_opt" ]]; then
+        DISK=layout DISK_MODE=layout ENCRYPT=0
+        ask_layout
+    elif [[ $sel == "$advanced" ]]; then
         DISK=manual
         mountpoint -q "$TARGET" || fail "$(T "Nothing is mounted at %s. Mount root (and /boot) first." "$TARGET")"
         ENCRYPT=0
@@ -373,8 +390,11 @@ summary() {
     case $DISK_MODE in
         manual)    disk_text=$(T "mounted at %s" "$TARGET") ;;
         freespace) disk_text=$(T "%s  (free space, other systems are kept)" "$DISK") ;;
+        layout)    disk_text=$(T "manual partitioning") ;;
         *)         disk_text=$(T "%s  (will be ERASED)" "$DISK") ;;
     esac
+    local enc=$ENCRYPT
+    [[ $DISK_MODE == layout && -n $(ly_ids luks) ]] && enc=1
     boot_text=${BOOTMODE^^}
     [[ $BOOTLOADER == none ]] && boot_text+=" ($(T "no boot loader"))"
     local -a lines=(
@@ -382,7 +402,7 @@ summary() {
         "$(printf '%-13s%s' "$(T "Keyboard")" "$XKB_LAYOUT${XKB_VARIANT:+ ($XKB_VARIANT)}")"
         "$(printf '%-13s%s' "$(T "Time zone")" "$TIMEZONE")"
         "$(printf '%-13s%s' "$(T "Disk")" "$disk_text")"
-        "$(printf '%-13s%s' "$(T "Encryption")" "$([[ $ENCRYPT == 1 ]] && T "yes" || T "no")")"
+        "$(printf '%-13s%s' "$(T "Encryption")" "$([[ $enc == 1 ]] && T "yes" || T "no")")"
         "$(printf '%-13s%s' "$(T "User")" "$FULLNAME ($USERNAME)")"
         "$(printf '%-13s%s' "$(T "Computer")" "$HOSTNAME_SEL")"
         "$(printf '%-13s%s' "$(T "Boot mode")" "$boot_text")"
@@ -390,6 +410,17 @@ summary() {
         "$(printf '%-13s%s' "$(T "Software")" "$(templates_text)")"
         "$(printf '%-13s%s' "LuxAI" "$([[ -n $LUXAI_ACCOUNT ]] && T "signed in" || T "not signed in")")"
     )
+    if [[ $DISK_MODE == layout ]]; then
+        # Rozlozeni a seznam toho, co se smaze (nic se zatim nemeni)
+        local l
+        lines+=("" "$(T "Partitions:")")
+        while IFS= read -r l; do lines+=("  $l"); done < <(layout_text)
+        mapfile -t LY_DESTROY < <(layout_destroy_list)
+        if ((${#LY_DESTROY[@]})); then
+            lines+=("" "$(T "Will be erased or changed:")")
+            for l in "${LY_DESTROY[@]}"; do lines+=("  ! $l"); progress "ERASE $l"; done
+        fi
+    fi
     if ((PROGRESS)); then
         printf '  %s\n' "${lines[@]}"
     else
@@ -826,6 +857,7 @@ install_packages() {
     if [[ $BOOTLOADER != none ]]; then
         if [[ $BOOTMODE == uefi ]]; then pkgs+=(efibootmgr); else pkgs+=(grub); fi
     fi
+    [[ $DISK_MODE == layout ]] && mapfile -t -O "${#pkgs[@]}" pkgs < <(layout_packages)
     mapfile -t hw < <(luxos-hwdetect --packages --kernel linux-zen)
     luxos-hwdetect --report | sed 's/^/  /'
     pkgs+=("${hw[@]}")
@@ -862,9 +894,20 @@ configure_system() {
     swapoff /dev/zram* 2>/dev/null || true
     genfstab -U "$TARGET" | sed 's/,subvolid=[0-9]*//' | grep -v zram >"$TARGET/root/fstab.new"
     # Vedle jinych systemu: aktivni swap patri jim (LuxOS ma zram)
-    [[ $DISK_MODE == freespace ]] && sed -i '/[[:space:]]swap[[:space:]]/d' "$TARGET/root/fstab.new"
+    [[ $DISK_MODE == @(freespace|layout) ]] && sed -i '/[[:space:]]swap[[:space:]]/d' "$TARGET/root/fstab.new"
+    # Rucni rozdeleni: swap z LAYOUT (pri instalaci se nezapina, genfstab ho nevidi)
+    [[ $DISK_MODE == layout ]] && layout_fstab_swap >>"$TARGET/root/fstab.new"
     cat "$TARGET/root/fstab.new" >>"$TARGET/etc/fstab"
     rm -f "$TARGET/root/fstab.new"
+    # crypttab (+ crypttab.initramfs a klice pro dalsi svazky) pred mkinitcpio v setup-chroot
+    local enc_hook=$ENCRYPT lvm_hook=0
+    if [[ $DISK_MODE == layout ]]; then
+        layout_write_crypt
+        local hooks
+        hooks=$(layout_hooks)
+        enc_hook=${hooks#ENCRYPT_HOOK=}; enc_hook=${enc_hook%% *}
+        lvm_hook=${hooks##*LVM_HOOK=}
+    fi
 
     # pacman: repozitare LuxOS ze serveru (podepsane), Arch ze stejnych mirroru jako live system
     install -m644 /usr/share/luxos/installer/pacman.conf "$TARGET/etc/pacman.conf"
@@ -881,6 +924,14 @@ configure_system() {
     local rootspec="root=UUID=$root_uuid rootflags=subvol=@"
     ((ENCRYPT)) && rootspec="rd.luks.name=$LUKS_UUID=cryptroot rd.luks.options=discard root=/dev/mapper/cryptroot rootflags=subvol=@"
     [[ $DISK_MODE == manual ]] && rootspec="root=UUID=$root_uuid$(findmnt -no OPTIONS "$TARGET" | grep -o 'subvol=[^,]*' | sed 's/^/ rootflags=/' | head -1)"
+    [[ $DISK_MODE == layout ]] && rootspec=$(layout_cmdline)
+    # EFI oddil: /boot (jadro primo na ESP) nebo /efi (sdileny, jadro se kopiruje do EFI/LuxOS/<id>)
+    local esp_mount=/boot esp_keep=0 chroot_disk=$DISK
+    [[ $DISK_MODE == freespace ]] && esp_mount=/efi esp_keep=1
+    if [[ $DISK_MODE == layout ]]; then
+        esp_mount=${ESP_MOUNT:-/boot} esp_keep=${ESP_KEEP:-0}
+        chroot_disk=${GRUB_DISK:-$DISK}
+    fi
 
     install -Dm600 /dev/stdin "$TARGET/root/luxos-setup.env" <<ENV
 LOCALE=$(printf %q "$LOCALE")
@@ -893,12 +944,16 @@ USERNAME=$(printf %q "$USERNAME")
 FULLNAME=$(printf %q "$FULLNAME")
 AUTOLOGIN=$AUTOLOGIN
 ENCRYPT=$ENCRYPT
+ENCRYPT_HOOK=$enc_hook
+LVM_HOOK=$lvm_hook
+ESP_MOUNT=$esp_mount
+ESP_KEEP=$esp_keep
 BOOTMODE=$BOOTMODE
 BOOTLOADER=$(printf %q "$BOOTLOADER")
 DISK_MODE=$(printf %q "$DISK_MODE")
 ESP_ID=$(printf %q "${root_uuid:0:8}")
 NVIDIA_EARLY=${NVIDIA_EARLY:-0}
-DISK=$(printf %q "$DISK")
+DISK=$(printf %q "$chroot_disk")
 CMDLINE=$(printf %q "$rootspec $cmdline")
 HW_SERVICES=$(printf %q "${hw_svcs[*]}")
 ENV
@@ -924,6 +979,15 @@ ENV
                 --loader '\EFI\systemd\systemd-bootx64.efi' --unicode || info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
         elif [[ $DISK_MODE == freespace ]]; then
             shared_esp_entry
+        elif [[ $DISK_MODE == layout && -n ${ESP_PART-} ]]; then
+            if ((ESP_KEEP)); then
+                DISK=$(ly_parent_disk "$ESP_PART") shared_esp_entry
+            else
+                efibootmgr -q -B -L LuxOS >/dev/null 2>&1 || true
+                run efibootmgr --create --disk "$(ly_parent_disk "$ESP_PART")" --part "$(ly_partnum "$ESP_PART")" \
+                    --label LuxOS --loader '\EFI\systemd\systemd-bootx64.efi' --unicode ||
+                    info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
+            fi
         fi
     fi
 }
@@ -1013,8 +1077,10 @@ tpl_resolve() {  # tpl_resolve ID -> baliky sablony (podminky a jazyk vyhodnocen
     done <"$TEMPLATE_DIR/$1.list"
 }
 
-chroot_pacman() {  # pacman v cili, anglicky vystup kvuli pac_filter
-    LC_ALL=C.UTF-8 arch-chroot "$TARGET" pacman "$@"
+chroot_pacman() {  # pacman v cili (skutecny z luxos-pacman), anglicky vystup kvuli pac_filter
+    local pac=pacman
+    [[ -x $TARGET/usr/lib/lux/alpm/pacman ]] && pac=/usr/lib/lux/alpm/pacman
+    LC_ALL=C.UTF-8 arch-chroot "$TARGET" "$pac" "$@"
 }
 
 install_templates() {
@@ -1112,7 +1178,7 @@ shared_esp_entry() {
             --loader '\EFI\systemd\systemd-bootx64.efi' --unicode || info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
     fi
     # Cizi loader.conf se neprepisuje; skryte menu zviditelnit promennou EFI (LoaderConfigTimeout)
-    timeout=$(awk '$1 == "timeout" {print $2}' "$TARGET/efi/loader/loader.conf" 2>/dev/null | tail -1 || true)
+    timeout=$(awk '$1 == "timeout" {print $2}' "$TARGET${ESP_MOUNT:-/efi}/loader/loader.conf" 2>/dev/null | tail -1 || true)
     if [[ -z $timeout || $timeout == 0 || $timeout == menu-hidden ]]; then
         run bootctl set-timeout 3 || info "$(T "Could not show the boot menu; hold Space while starting to see it.")"
     fi
@@ -1131,6 +1197,7 @@ finish() {
         sleep 1
     done
     ((ENCRYPT)) && cryptsetup close cryptroot 2>/dev/null || true
+    [[ $DISK_MODE == layout ]] && layout_teardown
     if ((PROGRESS)); then
         info "$(T "LuxOS is installed")"
         progress "DONE"
@@ -1144,10 +1211,73 @@ finish() {
     if gum confirm --affirmative "$(T "Restart")" --negative "$(T "Later")" "$(T "Restart now?")"; then systemctl reboot; fi
 }
 
+# --- Rucni rozdeleni (DISK_MODE=layout) ----------------------------------------
+load_layout() {  # LAYOUT / LAYOUT_FILE -> L (kontrola konfigurace i zarizeni; nic nemeni)
+    local text=${LAYOUT-}
+    if [[ -z $text && -n ${LAYOUT_FILE-} ]]; then
+        [[ -r $LAYOUT_FILE ]] || fail "$(T "Cannot read %s" "$LAYOUT_FILE")"
+        text=$(<"$LAYOUT_FILE")
+    fi
+    [[ -n $text ]] || fail "$(T "DISK_MODE=layout needs LAYOUT or LAYOUT_FILE")"
+    layout_parse "$text"
+    layout_validate
+    ((${#LY_ERR[@]})) || layout_check_devices
+    report_layout
+}
+
+report_layout() {  # chyby -> konec se seznamem, varovani jen vypsat
+    local e msg
+    for e in "${LY_WARN[@]}"; do
+        msg=$(ly_error_text "$e")
+        progress "WARN $msg"
+        info "$(T "Warning: %s" "$msg")"
+    done
+    ((${#LY_ERR[@]})) || return 0
+    for e in "${LY_ERR[@]}"; do
+        msg=$(ly_error_text "$e")
+        printf '✗ %s\n' "$msg" >&2
+        printf '✗ %s\n' "$msg" >>"$LOG" 2>/dev/null || true
+    done
+    fail "$(ly_error_text "${LY_ERR[0]}")"
+}
+
+check_layout_cmd() {  # --check-layout SOUBOR: jen kontrola (bez roota jen konfigurace)
+    local text
+    if [[ $1 == - ]]; then text=$(cat); else text=$(<"$1"); fi
+    if [[ -d /sys/firmware/efi/efivars ]]; then BOOTMODE=${BOOTMODE:-uefi}; else BOOTMODE=${BOOTMODE:-bios}; fi
+    BOOTLOADER=${BOOTLOADER:-auto}
+    layout_parse "$text"
+    layout_validate
+    ((EUID == 0 && ${#LY_ERR[@]} == 0)) && layout_check_devices
+    local e rc=0
+    for e in "${LY_WARN[@]}"; do printf 'WARN %s\t%s\n' "${e%%|*}" "$(ly_error_text "$e")"; done
+    for e in "${LY_ERR[@]}"; do printf 'ERROR %s\t%s\n' "${e%%|*}" "$(ly_error_text "$e")"; rc=1; done
+    ((rc)) || { layout_text; layout_destroy_list | sed 's/^/ERASE /'; }
+    return "$rc"
+}
+
+ask_layout() {  # TUI: rozlozeni ze souboru (vytvori ho napr. GUI nebo podle install.conf.example)
+    local f
+    f=$(gum input --header "$(T "Path to the partition layout file (LAYOUT format)")" --value "/root/layout.conf") || exit 1
+    LAYOUT_FILE=$f LAYOUT=""
+    [[ -r $f ]] || fail "$(T "Cannot read %s" "$f")"
+    layout_parse "$(<"$f")"
+    if [[ -n $(ly_ids luks) ]]; then
+        LUKS_PASS=$(ask_password "$(T "Disk encryption password")")
+    fi
+}
+
 main() {
     if [[ -n $PROBE ]]; then
         probe "$PROBE"
         return 0
+    fi
+    if ((SCAN)); then
+        exec python3 -I /usr/lib/luxos/python/luxos_layout.py --scan
+    fi
+    if [[ -n $CHECK_LAYOUT ]]; then
+        check_layout_cmd "$CHECK_LAYOUT"
+        return
     fi
     preflight
     DISK_MODE=${DISK_MODE:-}
@@ -1166,6 +1296,7 @@ main() {
         : "${ENCRYPT:=0}" "${AUTOLOGIN:=0}" "${HOSTNAME_SEL:=luxos}" "${FULLNAME:=$USERNAME}"
         : "${BOOTLOADER:=auto}" "${LUXAI_ACCOUNT:=}" "${TEMPLATES:=}"
         [[ ${DISK_MODE-} == manual && -z ${DISK-} ]] && DISK=manual   # pripojeno v /mnt, disk neni potreba
+        [[ ${DISK_MODE-} == layout && -z ${DISK-} ]] && DISK=layout   # disky jsou v LAYOUT
         [[ -n ${DISK-}&& -n ${USERNAME-} && -n ${PASSWORD-} ]] || fail "$(T "Config needs DISK, USERNAME and PASSWORD")"
         valid_user "$USERNAME" || fail "$(T "Invalid USERNAME")"
         valid_host "$HOSTNAME_SEL" || fail "$(T "Invalid HOSTNAME_SEL")"
@@ -1189,18 +1320,22 @@ main() {
     case $DISK_MODE in
         erase|freespace) ;;
         manual) DISK=manual ;;
-        *) fail "$(T "Invalid DISK_MODE (use erase, freespace or manual)")" ;;
+        layout) ENCRYPT=0; load_layout ;;   # sifrovani popisuje LAYOUT (luks)
+        *) fail "$(T "Invalid DISK_MODE (use erase, freespace, layout or manual)")" ;;
     esac
     [[ $BOOTLOADER == auto || $BOOTLOADER == none ]] || fail "$(T "Invalid BOOTLOADER (use auto or none)")"
     : "${CARE_MODE:=carefree}"
     [[ $CARE_MODE == carefree || $CARE_MODE == classic ]] || fail "$(T "Invalid CARE_MODE (use carefree or classic)")"
     [[ -n $CONFIG ]] && parse_templates
-    if [[ $DISK_MODE == manual ]]; then STEP_TOTAL=4; else STEP_TOTAL=$((6 + ENCRYPT)); fi
+    if [[ $DISK_MODE == manual ]]; then STEP_TOTAL=4
+    elif [[ $DISK_MODE == layout ]]; then STEP_TOTAL=$(($(layout_steps) + 4))
+    else STEP_TOTAL=$((6 + ENCRYPT)); fi
     ((${#TEMPLATE_IDS[@]})) && STEP_TOTAL=$((STEP_TOTAL + 1))
     summary
     case $DISK_MODE in
         erase) prepare_disk ;;
         freespace) prepare_freespace ;;
+        layout) layout_apply ;;
         manual)
             ROOTDEV=$(findmnt -no SOURCE "$TARGET" | sed 's/\[.*\]//')
             BOOTPART=$(findmnt -no SOURCE "$TARGET/boot" 2>/dev/null || true)

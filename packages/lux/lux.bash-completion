@@ -1,13 +1,14 @@
 # bash completion pro lux
 _lux() {
-    local cur=${COMP_WORDS[COMP_CWORD]} cmd=${COMP_WORDS[1]}
+    local cur=${COMP_WORDS[COMP_CWORD]} cmd=${COMP_WORDS[1]} pac=/usr/lib/lux/alpm/pacman
+    [[ -x $pac ]] || pac=pacman
     local cmds="install remove reinstall update upgrade search info list files owns autoremove clean fix history pack drivers mirrors doctor"
     if ((COMP_CWORD == 1)); then
         COMPREPLY=($(compgen -W "$cmds --help --version --yes --verbose" -- "$cur")); return
     fi
     case $cmd in
-        install|i) COMPREPLY=($(compgen -W "$(pacman -Slq 2>/dev/null)" -- "$cur") $(compgen -f -X '!*.@(lux|pkg.tar.*)' -- "$cur")) ;;
-        remove|rm|reinstall|info|files) COMPREPLY=($(compgen -W "$(pacman -Qq 2>/dev/null; ls /var/lib/lux/installed 2>/dev/null | sed 's/\.json$//')" -- "$cur")) ;;
+        install|i) COMPREPLY=($(compgen -W "$("$pac" -Slq 2>/dev/null)" -- "$cur") $(compgen -f -X '!*.@(lux|pkg.tar.*)' -- "$cur")) ;;
+        remove|rm|reinstall|info|files) COMPREPLY=($(compgen -W "$("$pac" -Qq 2>/dev/null; ls /var/lib/lux/installed 2>/dev/null | sed 's/\.json$//')" -- "$cur")) ;;
         owns|owner) COMPREPLY=($(compgen -f -- "$cur")) ;;
         list) COMPREPLY=($(compgen -W "--installed --upgradable --explicit --aur --lux --orphans" -- "$cur")) ;;
         pack) COMPREPLY=($(compgen -d -- "$cur")) ;;

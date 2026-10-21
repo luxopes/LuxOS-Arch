@@ -31,6 +31,10 @@ LOCK = os.environ.get("LUXOS_PRINTING_LOCK", "/run/luxos-printing.lock")
 NOTIFY = "/usr/lib/luxos/printing/luxos-printing-notify"
 STALE_DAYS = 60      # automaticky pridana fronta, ktera tak dlouho nebyla videt, se odebere
 ENV_C = dict(os.environ, LC_ALL="C")
+# Instalace ovladacu: lux (libalpm), bez pyalpm skutecny pacman (luxos-pacman; /usr/bin/pacman je
+# v LuxOS kompatibilni vrstva pro lidi v terminalu)
+LUX_ALPM = "/usr/lib/lux/lux_alpm.py"
+PACMAN = "/usr/lib/lux/alpm/pacman" if os.access("/usr/lib/lux/alpm/pacman", os.X_OK) else "pacman"
 
 
 def log(msg):
@@ -181,7 +185,7 @@ def queue_for(dev, queues):
 
 
 def installed(pkg):
-    return run(["pacman", "-Q", pkg], 20)[0] == 0
+    return run([PACMAN, "-Q", pkg], 20)[0] == 0
 
 
 def install_driver(pkg):
@@ -192,7 +196,11 @@ def install_driver(pkg):
         log(f"pacman is busy, {pkg} later")
         return False
     log(f"installing printer driver {pkg}")
-    rc, _out, err = run(["pacman", "-S", "--noconfirm", "--needed", pkg], 900)
+    rc = 3
+    if os.access(LUX_ALPM, os.X_OK):
+        rc, _out, err = run([LUX_ALPM, "--machine", "-y", "--color=never", "install", "--needed", "--", pkg], 900)
+    if rc == 3:                 # pyalpm nepouzitelne (nebo lux chybi) -> pacman
+        rc, _out, err = run([PACMAN, "-S", "--noconfirm", "--needed", "--", pkg], 900)
     if rc:
         log(f"installing {pkg} failed: {err[-300:]}")
     return rc == 0

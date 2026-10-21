@@ -7,4 +7,4 @@ Description=LuxOS Safe - lock on logout
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/true
-ExecStop=/usr/bin/luxos-safe lock --force
+ExecStop=/usr/bin/luxos-safe lock --logout

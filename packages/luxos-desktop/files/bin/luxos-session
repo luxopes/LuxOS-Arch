@@ -78,8 +78,15 @@ if [[ -d /run/archiso ]]; then
     fi
 fi
 
-# Uvitaci okno pri prvnim spusteni
-if [[ ! -e $cfg/welcome-done ]]; then
+# Prvni prihlaseni: Prohlidka LuxOS (kde je co), pak Uvitani. Na live ISO jen Uvitani
+# s instalaci - prohlidka je tam z Uvitani/Launchpadu, at se okna nepretahuji o pozornost.
+if [[ ! -d /run/archiso && ! -e $cfg/tour-done ]] && command -v luxos-tour >/dev/null; then
+    (
+        sleep 3
+        luxos-tour --first-run
+        [[ -e $cfg/welcome-done ]] || luxos-welcome
+    ) &
+elif [[ ! -e $cfg/welcome-done ]]; then
     sleep 3
     luxos-welcome &
 fi

@@ -1,0 +1,15 @@
+[Unit]
+Description=LuxOS Safe - protect locked Safe folders
+# Pred prihlasenim: zamcene /safe/<uzivatel> je zastupna slozka jen pro cteni (tmpfs),
+# podkladovy adresar root:root 0000 a nemenny. Nesifrovana data se tak na disk nedostanou.
+After=local-fs.target
+Before=systemd-user-sessions.service display-manager.service
+ConditionPathIsDirectory=/safe
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/luxos/luxos-safe-helper guard
+
+[Install]
+WantedBy=multi-user.target

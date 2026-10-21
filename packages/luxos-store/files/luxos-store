@@ -26,6 +26,8 @@ from gi.repository import AppStream, Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # no
 
 HELPER = "/usr/lib/luxos/luxos-store-helper"
 LUX_DB = "/var/lib/lux/installed"
+# Skutecny pacman (luxos-pacman); /usr/bin/pacman je v LuxOS kompatibilni vrstva pro lidi v terminalu
+PACMAN = "/usr/lib/lux/alpm/pacman" if os.access("/usr/lib/lux/alpm/pacman", os.X_OK) else "pacman"
 LUX_INDEX_URL = os.environ.get("LUX_INDEX_URL", "https://lsl.lux-ai.cz/luxos/lux")
 APPS_ICON_URL = "https://lsl.lux-ai.cz/luxos/luxos-apps/x86_64/icons"
 ICON_CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "luxos-store/icons")
@@ -68,7 +70,13 @@ CSS = b"""
 .hero-title { font-size: 22px; font-weight: 800; }
 .detail-name { font-size: 26px; font-weight: 800; }
 .dim { opacity: 0.65; }
-.status { padding: 6px 14px; font-size: 12px; }
+.status { padding: 10px 16px; font-size: 13px; font-weight: 600;
+          background-color: alpha(#3d7bff, 0.10); border-top: 1px solid alpha(#3d7bff, 0.30); }
+.status progressbar trough { min-height: 10px; border-radius: 5px; border: none;
+                             background-image: none; background-color: alpha(currentColor, 0.15); }
+.status progressbar progress { min-height: 10px; border-radius: 5px; border: none;
+                               background-image: none; background-color: #3d7bff; }
+.status-pct { font-weight: 800; color: #3d7bff; min-width: 44px; }
 """
 
 
@@ -225,7 +233,7 @@ class Catalog:
         return changed
 
     def refresh_installed(self):
-        self.installed = set(run("pacman", "-Qq").split())
+        self.installed = set(run(PACMAN, "-Qq").split())
         try:
             self.installed |= {f[:-5] for f in os.listdir(LUX_DB) if f.endswith(".json")}
         except OSError:
@@ -341,9 +349,13 @@ class Store(Gtk.Window):
         self.status = Gtk.Label(xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.END)
         self.status.show()
         self.progress = Gtk.ProgressBar(valign=Gtk.Align.CENTER)
-        self.progress.set_size_request(220, -1)
+        self.progress.set_size_request(320, -1)
         self.progress.set_no_show_all(True)
+        self.progress_pct = Gtk.Label(xalign=1)
+        self.progress_pct.get_style_context().add_class("status-pct")
+        self.progress_pct.set_no_show_all(True)
         self.status_bar.pack_start(self.status, True, True, 0)
+        self.status_bar.pack_end(self.progress_pct, False, False, 0)
         self.status_bar.pack_end(self.progress, False, False, 0)
         root.pack_end(self.status_bar, False, False, 0)
 
@@ -390,7 +402,9 @@ class Store(Gtk.Window):
         row = Gtk.ListBoxRow()
         row.key = key
         box = Gtk.Box(spacing=10)
-        box.pack_start(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU), False, False, 0)
+        img = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU)
+        img.set_pixel_size(16)      # barevne PNG ikony (Internet, System) by se jinak ukazaly v plne velikosti
+        box.pack_start(img, False, False, 0)
         box.pack_start(Gtk.Label(label=label, xalign=0), True, True, 0)
         row.add(box)
         (listbox or self.sidebar).add(row)
@@ -649,6 +663,8 @@ class Store(Gtk.Window):
         self.flash(message)
         self.progress.set_fraction(0)
         self.progress.show()
+        self.progress_pct.set_text("0 %")
+        self.progress_pct.show()
         prog = {"total": 0, "down": 0, "inst": 0, "err": "", "net": False, "machine": False}
         errors = {"network": _("The internet connection is too slow or unavailable. Try it again later."),
                   "locked": _("Another app is installing software right now. Try it again in a moment."),
@@ -687,6 +703,7 @@ class Store(Gtk.Window):
 
         def show(frac, text):
             self.progress.set_fraction(max(0.0, min(1.0, frac)))
+            self.progress_pct.set_text("%d %%" % round(max(0.0, min(1.0, frac)) * 100))
             if text:
                 self.status.set_text(text)
             if app:
@@ -749,6 +766,7 @@ class Store(Gtk.Window):
 
         def done(rc, err):
             self.progress.hide()
+            self.progress_pct.hide()
             if app:
                 self.busy.pop(app.pkg, None)
             self.catalog.refresh_installed()

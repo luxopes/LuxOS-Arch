@@ -1575,3 +1575,227 @@ The photo could not be taken.	Fotku se nepodařilo pořídit.
 The photo could not be saved: %s	Fotku se nepodařilo uložit: %s
 The video could not be saved: %s	Video se nepodařilo uložit: %s
 No video encoder is installed (gst-plugins-good).	Není nainstalován žádný kodér videa (gst-plugins-good).
+Unlock Safe	Odemknout Trezor
+The Safe is locked. Files cannot be saved here until you unlock it.	Trezor je zamčený. Dokud ho neodemknete, nelze sem nic uložit.
+Could not protect the locked Safe folder (%s).	Zamčenou složku Trezoru se nepodařilo ochránit (%s).
+Unencrypted files found	Nalezeny nešifrované soubory
+Files saved in %s while the Safe was locked were not encrypted. They were moved to %s.	Soubory uložené do %s, když byl Trezor zamčený, nebyly zašifrované. Byly přesunuty do %s.
+Import them into the Safe? The unencrypted copies will then be deleted.	Přesunout je do Trezoru? Nešifrované kopie se pak smažou.
+Keep in Home Folder	Ponechat v domovské složce
+Import into Safe	Přesunout do Trezoru
+The files were imported into the Safe.	Soubory byly přesunuty do Trezoru.
+Could not import the files (%s).	Soubory se nepodařilo přesunout (%s).
+These apps keep files in the Safe open: %s. Close them and try again.	Tyto aplikace mají otevřené soubory v Trezoru: %s. Zavřete je a zkuste to znovu.
+The Safe could not be locked	Trezor se nepodařilo zamknout
+LuxOS Tour	Prohlídka LuxOS
+Skip Tour	Přeskočit prohlídku
+Get Started	Začít
+Show on Screen	Ukázat na obrazovce
+Open Control Center	Otevřít Ovládací centrum
+Open Launchpad	Otevřít Launchpad
+Open Search	Otevřít hledání
+Open Files	Otevřít Soubory
+Open LuxOS Store	Otevřít Obchod LuxOS
+Open Settings	Otevřít Nastavení
+Open LuxDrop	Otevřít LuxDrop
+Notifications	Oznámení
+System menu	Systémová nabídka
+App menus	Nabídky aplikace
+Wi-Fi, sound, battery	Wi-Fi, zvuk, baterie
+82 % · 3:12 h left	82 % · zbývá 3:12 h
+● = app is running	● = aplikace běží
+How do I connect a printer?	Jak připojím tiskárnu?
+Space	Mezerník
+Home	Domů
+Documents	Dokumenty
+Downloads	Stažené
+Music	Hudba
+Videos	Videa
+Encrypted	Šifrováno
+works with LocalSend	funguje s LocalSend
+plug in and print	připojte a tiskněte
+Edit	Úpravy
+View	Zobrazení
+Go	Přejít
+The Menu Bar	Horní lišta
+The Dock	Dock
+Launchpad and Search	Launchpad a hledání
+Files and Safe	Soubory a Trezor
+Installing Apps	Instalace aplikací
+Light, Dark or Auto	Světlý, tmavý, nebo automaticky
+Share and Print	Sdílení a tisk
+Help and Shortcuts	Pomoc a zkratky
+This short tour shows you where everything is. It takes about a minute – you can skip it anytime and open it again from Launchpad as LuxOS Tour.	Tato krátká prohlídka vám ukáže, kde co najdete. Zabere asi minutu – kdykoli ji můžete přeskočit a znovu ji otevřít z Launchpadu jako Prohlídka LuxOS.
+The LuxOS logo opens the system menu with About This Computer, Settings, sleep and shut down. Next to it are the menus of the active app. On the right: Wi-Fi, sound, battery with the time left, Control Center for quick settings, notifications and the calendar.	Logo LuxOS otevírá systémovou nabídku s položkami O tomto počítači, Nastavení, uspání a vypnutí. Vedle něj jsou nabídky aktivní aplikace. Vpravo: Wi-Fi, zvuk, baterie se zbývajícím časem, Ovládací centrum pro rychlé nastavení, oznámení a kalendář.
+Your favourite apps are at the bottom of the screen. Click an icon to open the app – a dot below it means the app is running. Drag apps from Launchpad to the Dock, drag them out to remove them.	Oblíbené aplikace máte dole na obrazovce. Kliknutím na ikonu aplikaci otevřete – tečka pod ní znamená, že aplikace běží. Aplikace přetáhněte z Launchpadu do Docku, přetažením ven je odeberete.
+Super + A opens Launchpad with all your apps. Super + Space searches apps, files and windows. Type a question instead and LuxAI will answer it – Ctrl + Enter always asks LuxAI.	Super + A otevře Launchpad se všemi aplikacemi. Super + mezerník hledá aplikace, soubory a okna. Napište místo toho otázku a odpoví vám LuxAI – Ctrl + Enter se vždy zeptá LuxAI.
+Files (Super + E) keeps your documents, downloads and pictures. The Safe is an encrypted folder for private things – it locks itself when you log out, lock the screen or the computer goes to sleep.	Soubory (Super + E) uchovávají vaše dokumenty, stažené soubory a obrázky. Trezor je šifrovaná složka pro soukromé věci – sám se zamkne, když se odhlásíte, zamknete obrazovku nebo se počítač uspí.
+LuxOS Store offers apps sorted into categories with one-click installs and updates. In the Terminal (Super + T) the lux command does the same: lux install, lux search, lux update.	Obchod LuxOS nabízí aplikace roztříděné do kategorií s instalací a aktualizacemi na jedno kliknutí. V Terminálu (Super + T) totéž umí příkaz lux: lux install, lux search, lux update.
+Choose how LuxOS looks. Auto switches between light and dark at sunrise and sunset. Wallpaper, Dock and much more are in Settings (Super + ,).	Vyberte si vzhled LuxOS. Automaticky přepíná mezi světlým a tmavým při východu a západu slunce. Tapeta, Dock a mnohem víc jsou v Nastavení (Super + ,).
+LuxDrop sends files to computers and phones nearby – it also works with the LocalSend app. Printers & Scanners finds devices on your network or USB by itself: just plug in and print.	LuxDrop posílá soubory do počítačů a telefonů v okolí – funguje i s aplikací LocalSend. Tiskárny a skenery samy najdou zařízení v síti nebo na USB: stačí připojit a tisknout.
+Found a bug or have an idea? Feedback sends it straight to the author of LuxOS. All keyboard shortcuts are listed in Keyboard Shortcuts. Enjoy LuxOS!	Našli jste chybu nebo máte nápad? Zpětná vazba ji pošle přímo autorovi LuxOS. Všechny klávesové zkratky najdete v Klávesových zkratkách. Užijte si LuxOS!
+LuxOS uses lux to manage software.	LuxOS spravuje software pomocí lux.
+All lux commands: %s	Všechny příkazy lux: %s
+Experts can still run pacman directly: %s	Pokročilí mohou pacman dál spustit přímo: %s
+The package manager core is missing (%s). Repair it with: %s	Chybí jádro správce balíků (%s). Opravíte ho příkazem: %s
+pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman je jen pro pokročilé (LUX_ALLOW_PACMAN=1 pacman …); lux a pacman sdílejí stejnou databázi balíků.
+The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	Jádro správce balíků %s je starší než pacman v Arch Linuxu %s (aktualizace LuxOS bude následovat)
+You manage the system yourself with lux.	Systém spravujete sami pomocí lux.
+# Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
+Layout line %s is not valid.	Řádek rozložení %s není platný.
+Layout line %s has an invalid id.	Řádek rozložení %s má neplatné id.
+The id %s is used twice in the layout.	Id %s je v rozložení použito dvakrát.
+The layout refers to %s, which does not exist.	Rozložení odkazuje na %s, které neexistuje.
+%s cannot be used here.	%s zde nelze použít.
+%s is used for two things at once.	%s je použito pro dvě věci najednou.
+Invalid device %s.	Neplatné zařízení %s.
+The device %s is listed twice.	Zařízení %s je uvedeno dvakrát.
+Invalid size for %s.	Neplatná velikost pro %s.
+Only one volume on %s can use the remaining space.	Zbytek místa na %s může použít jen jeden svazek.
+Invalid partition type for %s.	Neplatný typ oddílu pro %s.
+Invalid name for %s.	Neplatný název pro %s.
+The name %s is used twice.	Název %s je použit dvakrát.
+%s is marked as existing but sits on a new volume.	%s je označeno jako existující, ale leží na novém svazku.
+The volume group %s has no physical volumes.	Skupina svazků %s nemá žádné fyzické svazky.
+%s is on a disk that will be erased.	%s je na disku, který bude smazán.
+%s is not a valid mount point.	%s není platný přípojný bod.
+%s cannot be a separate partition.	%s nemůže být samostatný oddíl.
+The mount point %s is used twice.	Přípojný bod %s je použit dvakrát.
+Unsupported file system for %s.	Nepodporovaný souborový systém pro %s.
+The root file system (/) must be formatted.	Kořenový souborový systém (/) musí být naformátován.
+Choose a volume for the root file system (/).	Vyberte svazek pro kořenový souborový systém (/).
+An EFI system partition (FAT32, at least 300 MB) mounted at /boot or /efi is needed.	Je potřeba systémový oddíl EFI (FAT32, alespoň 300 MB) připojený v /boot nebo /efi.
+The EFI system partition must be a plain partition (not encrypted, not LVM).	Systémový oddíl EFI musí být obyčejný oddíl (ne šifrovaný, ne LVM).
+The partition mounted at /boot or /efi must be an EFI system partition.	Oddíl připojený v /boot nebo /efi musí být systémový oddíl EFI.
+The EFI system partition must use FAT32.	Systémový oddíl EFI musí používat FAT32.
+The EFI system partition must have at least 300 MB.	Systémový oddíl EFI musí mít alespoň 300 MB.
+With the EFI partition at /boot, there cannot be another /boot. Mount the EFI partition at /efi instead.	Když je oddíl EFI v /boot, nemůže být jiný /boot. Připojte oddíl EFI místo toho do /efi.
+The boot loader (GRUB) cannot open encrypted volumes: add an unencrypted /boot partition.	Zavaděč (GRUB) neumí otevřít šifrované svazky: přidejte nešifrovaný oddíl /boot.
+A BIOS boot partition (1 MB) is needed to start from this disk.	Ke spuštění z tohoto disku je potřeba oddíl BIOS boot (1 MB).
+The root file system (/) needs at least 8 GB.	Kořenový souborový systém (/) potřebuje alespoň 8 GB.
+The root file system (/) has less than 20 GB; apps may not fit.	Kořenový souborový systém (/) má méně než 20 GB; aplikace se nemusí vejít.
+/boot needs at least 300 MB.	/boot potřebuje alespoň 300 MB.
+/ and %s are not encrypted the same way: files in the unencrypted one are not protected.	/ a %s nejsou šifrované stejně: soubory v nešifrovaném nejsou chráněné.
+The swap is not encrypted although / is: memory contents can leak to the disk.	Swap není šifrovaný, i když / je: obsah paměti může uniknout na disk.
+Enter a passphrase for the encrypted volume %s.	Zadejte heslo pro šifrovaný svazek %s.
+%s is created but not used.	%s se vytvoří, ale nepoužije.
+%s does not exist.	%s neexistuje.
+%s does not use a GPT partition table.	%s nepoužívá tabulku oddílů GPT.
+%s is in use (mounted). Unmount it first.	%s se používá (je připojeno). Nejdřív ho odpojte.
+%s is not an encrypted (LUKS) volume.	%s není šifrovaný svazek (LUKS).
+The passphrase for %s is wrong.	Heslo pro %s je špatné.
+A volume group named %s already exists.	Skupina svazků %s už existuje.
+The volume group %s was not found.	Skupina svazků %s nebyla nalezena.
+The logical volume %s was not found.	Logický svazek %s nebyl nalezen.
+The name %s is already used by an open volume.	Název %s už používá otevřený svazek.
+%s cannot be resized (only ext4, btrfs and NTFS).	Velikost %s nelze změnit (jen ext4, btrfs a NTFS).
+The kept EFI system partition %s is not FAT32.	Ponechaný systémový oddíl EFI %s není FAT32.
+The EFI system partition %s is smaller than 300 MB.	Systémový oddíl EFI %s je menší než 300 MB.
+ERASE the whole disk %s	SMAZAT celý disk %s
+DELETE logical volume %s	SMAZAT logický svazek %s
+DELETE partition %s	SMAZAT oddíl %s
+Resize %s to %s	Změnit velikost %s na %s
+ERASE %s (new encrypted volume)	SMAZAT %s (nový šifrovaný svazek)
+ERASE %s (new LVM physical volume)	SMAZAT %s (nový fyzický svazek LVM)
+FORMAT %s	NAFORMÁTOVAT %s
+ERASE logical volume %s	SMAZAT logický svazek %s
+FORMAT logical volume %s	NAFORMÁTOVAT logický svazek %s
+keep data	ponechat data
+Could not read partition %s.	Oddíl %s nelze přečíst.
+Resizing %s to %s	Měním velikost %s na %s
+The file system on %s has errors.	Souborový systém na %s obsahuje chyby.
+%s cannot be shrunk that much.	%s nelze zmenšit tolik.
+Encrypting %s	Šifruji %s
+Creating volume group %s	Vytvářím skupinu svazků %s
+Not enough free space on %s.	Na %s není dost volného místa.
+Preparing disks	Příprava disků
+Encrypting volumes	Šifrování svazků
+Setting up LVM	Nastavení LVM
+Formatting %s as %s (%s)	Formátuji %s jako %s (%s)
+Advanced: manual partitioning from a layout file (LVM, encryption)	Pokročilé: ruční rozdělení podle souboru s rozložením (LVM, šifrování)
+manual partitioning	ruční rozdělení
+Partitions:	Oddíly:
+Will be erased or changed:	Bude smazáno nebo změněno:
+Cannot read %s	Nelze přečíst %s
+DISK_MODE=layout needs LAYOUT or LAYOUT_FILE	DISK_MODE=layout potřebuje LAYOUT nebo LAYOUT_FILE
+Warning: %s	Varování: %s
+Path to the partition layout file (LAYOUT format)	Cesta k souboru s rozložením oddílů (formát LAYOUT)
+Invalid DISK_MODE (use erase, freespace, layout or manual)	Neplatný DISK_MODE (použijte erase, freespace, layout nebo manual)
+Manual partitioning (advanced)	Ruční rozdělení (pokročilé)
+Choose partitions yourself: separate /home, /var and other directories, LVM and encryption (LUKS2), keep existing partitions.	Oddíly si zvolte sami: samostatné /home, /var a další adresáře, LVM a šifrování (LUKS2), ponechání existujících oddílů.
+You set up the partitions in the next step. Nothing is changed before you confirm the summary.	Oddíly nastavíte v dalším kroku. Nic se nezmění, dokud nepotvrdíte souhrn.
+Manual partitioning	Ruční rozdělení
+Choose where each part of LuxOS goes. Nothing is written to the disks before you confirm the summary.	Zvolte, kam přijde která část LuxOS. Na disky se nic nezapíše, dokud nepotvrdíte souhrn.
+No disks found.	Nebyly nalezeny žádné disky.
+Quick setup on	Rychlé nastavení na
+Encrypted LVM (/, /home, swap)	Šifrované LVM (/, /home, swap)
+Encrypted LVM with separate /var and /tmp	Šifrované LVM se samostatným /var a /tmp
+Erases the chosen disk in the plan; you can still change everything.	V plánu smaže zvolený disk; vše můžete dál upravit.
+Locked - unlock to use	Zamčeno - pro použití odemkněte
+Encrypted (LUKS2)	Šifrováno (LUKS2)
+not used	nepoužito
+Encrypted volume	Šifrovaný svazek
+new partition table	nová tabulka oddílů
+erase	smazat
+Free space	Volné místo
+LVM volume group	Skupina svazků LVM
+new	nový
+create	vytvořit
+Contents	Obsah
+Mount point	Přípojný bod
+Add…	Přidat…
+Edit…	Upravit…
+Unlock…	Odemknout…
+Erase Disk	Smazat disk
+New Volume Group…	Nová skupina svazků…
+Undo All Changes	Vrátit všechny změny
+Encryption passphrase	Heslo pro šifrování
+Use the same passphrase for all encrypted volumes (one prompt at start)	Stejné heslo pro všechny šifrované svazky (jeden dotaz při startu)
+New partition	Nový oddíl
+will be deleted	bude smazán
+BIOS boot partition	Oddíl BIOS boot
+LVM physical volume	Fyzický svazek LVM
+LVM physical volume (%s)	Fyzický svazek LVM (%s)
+delete	smazat
+resize to %s	změnit na %s
+format	formátovat
+Keep	Ponechat
+Keep Partitions	Ponechat oddíly
+Delete %s?	Smazat %s?
+All data on it will be lost when you click Install.	Po kliknutí na Instalovat budou všechna data na něm ztracena.
+Erase %s?	Smazat %s?
+All partitions on this disk will be deleted when you click Install.	Po kliknutí na Instalovat budou všechny oddíly na tomto disku smazány.
+New Volume	Nový svazek
+Edit %s	Upravit %s
+Use all remaining space	Použít všechno zbývající místo
+Available: %s	K dispozici: %s
+Use as	Použít jako
+for example /data	například /data
+recommended	doporučeno
+File system	Souborový systém
+Format (erases the data on it)	Naformátovat (smaže data na něm)
+Encrypt (LUKS2)	Šifrovat (LUKS2)
+Passphrase for this volume	Heslo pro tento svazek
+Passphrase	Heslo
+Resize to	Změnit velikost na
+Shrinking keeps the data, but back up important files first.	Zmenšení data zachová, ale důležité soubory si předem zálohujte.
+The used space could not be checked.	Obsazené místo se nepodařilo zjistit.
+New Volume Group	Nová skupina svazků
+Create	Vytvořit
+LVM joins one or more partitions (or encrypted volumes) into a group, from which you create logical volumes for /, /home, swap and more.	LVM spojí jeden či více oddílů (nebo šifrovaných svazků) do skupiny, ze které vytvoříte logické svazky pro /, /home, swap a další.
+Existing data on the chosen volumes will be erased when you click Install.	Po kliknutí na Instalovat budou data na zvolených svazcích smazána.
+Unlock %s	Odemknout %s
+Enter the passphrase to see what is inside. Nothing is changed.	Zadejte heslo, abyste viděli obsah. Nic se nezmění.
+The passphrase is wrong.	Heslo je špatné.
+The layout is ready.	Rozložení je připravené.
+Partitions	Oddíly
+Will be erased or changed when you click Install:	Po kliknutí na Instalovat bude smazáno nebo změněno:
+I understand that the data listed above will be lost.	Rozumím, že výše uvedená data budou ztracena.
+Confirm that the listed data will be erased.	Potvrďte, že uvedená data budou smazána.
+There is not enough free space on %s.	Na %s není dost volného místa.
+The volume group %s does not have enough free space.	Skupina svazků %s nemá dost volného místa.
+Unlock %s first or choose another volume.	Nejdřív odemkněte %s, nebo zvolte jiný svazek.
+The passphrases do not match.	Hesla se neshodují.
+Do not use (for example for LVM)	Nepoužít (např. pro LVM)
+encrypted	šifrováno
+The disk %s is too small for this layout (it needs at least %s).	Disk %s je pro toto rozložení příliš malý (potřebuje alespoň %s).

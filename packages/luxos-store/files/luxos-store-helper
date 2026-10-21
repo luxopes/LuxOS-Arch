@@ -3,7 +3,7 @@
 #   luxos-store-helper install|remove BALIK... | upgrade
 # Balicky z repozitaru instaluje lux (libalpm, /usr/lib/lux/lux_alpm.py) ve strojovem rezimu:
 # radky "@@PHASE/@@PROGRESS/@@ERROR/@@RETRY" pro prubeh a anglicke radky ve stylu pacmanu.
-# Bez pyalpm pouzije pacman (vystup anglicky kvuli prubehu, pri vypadku site "@@RETRY n").
+# Bez pyalpm pouzije skutecny pacman (vystup anglicky kvuli prubehu, pri vypadku site "@@RETRY n").
 set -uo pipefail
 export LC_ALL=C.UTF-8
 action=${1-}
@@ -13,6 +13,9 @@ for p in "$@"; do
 done
 
 LUX_ALPM=/usr/lib/lux/lux_alpm.py
+# Bez pyalpm skutecny pacman (luxos-pacman); /usr/bin/pacman je v LuxOS kompatibilni vrstva pro lidi
+PACMAN=/usr/lib/lux/alpm/pacman
+[[ -x $PACMAN ]] || PACMAN=pacman
 if [[ -x $LUX_ALPM ]] && "$LUX_ALPM" available >/dev/null 2>&1; then
     lux_alpm() { exec "$LUX_ALPM" --machine -y "$@"; }
     case $action in
@@ -29,7 +32,7 @@ pacman_retry() {
     trap 'rm -f "$log"' RETURN
     for attempt in 1 2 3; do
         ((attempt > 1)) && { echo "@@RETRY $attempt"; sleep 3; }
-        pacman "$@" 2>&1 | tee "$log"
+        "$PACMAN" "$@" 2>&1 | tee "$log"
         rc=${PIPESTATUS[0]}
         ((rc == 0)) && return 0
         grep -qE 'failed retrieving file|failed to retrieve some files|too many errors from' "$log" || return "$rc"
@@ -39,7 +42,7 @@ pacman_retry() {
 
 case $action in
     install) (($#)) && { pacman_retry -S --needed --noconfirm -- "$@"; exit; } ;;
-    remove)  (($#)) && exec pacman -Rns --noconfirm -- "$@" ;;
+    remove)  (($#)) && exec "$PACMAN" -Rns --noconfirm -- "$@" ;;
     upgrade) pacman_retry -Syu --noconfirm; exit ;;
     lux-install) (($#)) && exec lux __lux-install "$1" ;;
     lux-remove)  (($#)) && exec lux __lux-remove "$1" ;;

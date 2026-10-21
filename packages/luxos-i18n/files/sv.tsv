@@ -1575,3 +1575,227 @@ The photo could not be taken.	Det gick inte att ta fotot.
 The photo could not be saved: %s	Det gick inte att spara fotot: %s
 The video could not be saved: %s	Det gick inte att spara videon: %s
 No video encoder is installed (gst-plugins-good).	Ingen videokodare är installerad (gst-plugins-good).
+Unlock Safe	Lås upp Valvet
+The Safe is locked. Files cannot be saved here until you unlock it.	Valvet är låst. Inget kan sparas här förrän du låser upp det.
+Could not protect the locked Safe folder (%s).	Det gick inte att skydda den låsta mappen Valv (%s).
+Unencrypted files found	Okrypterade filer hittades
+Files saved in %s while the Safe was locked were not encrypted. They were moved to %s.	Filer som sparades i %s medan Valvet var låst krypterades inte. De har flyttats till %s.
+Import them into the Safe? The unencrypted copies will then be deleted.	Flytta dem till Valvet? De okrypterade kopiorna raderas sedan.
+Keep in Home Folder	Behåll i hemmappen
+Import into Safe	Flytta till Valvet
+The files were imported into the Safe.	Filerna har flyttats till Valvet.
+Could not import the files (%s).	Det gick inte att flytta filerna (%s).
+These apps keep files in the Safe open: %s. Close them and try again.	Dessa appar har filer i Valvet öppna: %s. Stäng dem och försök igen.
+The Safe could not be locked	Det gick inte att låsa Valvet
+LuxOS Tour	Rundtur i LuxOS
+Skip Tour	Hoppa över rundturen
+Get Started	Kom igång
+Show on Screen	Visa på skärmen
+Open Control Center	Öppna Kontrollcenter
+Open Launchpad	Öppna Launchpad
+Open Search	Öppna sökning
+Open Files	Öppna Filer
+Open LuxOS Store	Öppna LuxOS Store
+Open Settings	Öppna Inställningar
+Open LuxDrop	Öppna LuxDrop
+Notifications	Notiser
+System menu	Systemmeny
+App menus	Appmenyer
+Wi-Fi, sound, battery	Wi-Fi, ljud, batteri
+82 % · 3:12 h left	82 % · 3:12 h kvar
+● = app is running	● = appen körs
+How do I connect a printer?	Hur ansluter jag en skrivare?
+Space	Mellanslag
+Home	Hem
+Documents	Dokument
+Downloads	Hämtade filer
+Music	Musik
+Videos	Filmer
+Encrypted	Krypterat
+works with LocalSend	fungerar med LocalSend
+plug in and print	anslut och skriv ut
+Edit	Redigera
+View	Visa
+Go	Gå
+The Menu Bar	Menyraden
+The Dock	Dockan
+Launchpad and Search	Launchpad och sökning
+Files and Safe	Filer och Valv
+Installing Apps	Installera appar
+Light, Dark or Auto	Ljust, mörkt eller auto
+Share and Print	Dela och skriv ut
+Help and Shortcuts	Hjälp och kortkommandon
+This short tour shows you where everything is. It takes about a minute – you can skip it anytime and open it again from Launchpad as LuxOS Tour.	Den här korta rundturen visar var allt finns. Den tar ungefär en minut – du kan hoppa över den när som helst och öppna den igen från Launchpad som Rundtur i LuxOS.
+The LuxOS logo opens the system menu with About This Computer, Settings, sleep and shut down. Next to it are the menus of the active app. On the right: Wi-Fi, sound, battery with the time left, Control Center for quick settings, notifications and the calendar.	LuxOS-logotypen öppnar systemmenyn med Om den här datorn, Inställningar, viloläge och stäng av. Bredvid finns menyerna för den aktiva appen. Till höger: Wi-Fi, ljud, batteri med återstående tid, Kontrollcenter för snabbinställningar, notiser och kalendern.
+Your favourite apps are at the bottom of the screen. Click an icon to open the app – a dot below it means the app is running. Drag apps from Launchpad to the Dock, drag them out to remove them.	Dina favoritappar finns längst ner på skärmen. Klicka på en symbol för att öppna appen – en prick under betyder att appen körs. Dra appar från Launchpad till Dockan och dra ut dem för att ta bort dem.
+Super + A opens Launchpad with all your apps. Super + Space searches apps, files and windows. Type a question instead and LuxAI will answer it – Ctrl + Enter always asks LuxAI.	Super + A öppnar Launchpad med alla dina appar. Super + mellanslag söker efter appar, filer och fönster. Skriv en fråga i stället så svarar LuxAI – Ctrl + Retur frågar alltid LuxAI.
+Files (Super + E) keeps your documents, downloads and pictures. The Safe is an encrypted folder for private things – it locks itself when you log out, lock the screen or the computer goes to sleep.	Filer (Super + E) håller dina dokument, hämtade filer och bilder. Valvet är en krypterad mapp för privata saker – det låser sig självt när du loggar ut, låser skärmen eller datorn går i viloläge.
+LuxOS Store offers apps sorted into categories with one-click installs and updates. In the Terminal (Super + T) the lux command does the same: lux install, lux search, lux update.	LuxOS Store har appar sorterade i kategorier med installation och uppdateringar med ett klick. I Terminal (Super + T) gör kommandot lux samma sak: lux install, lux search, lux update.
+Choose how LuxOS looks. Auto switches between light and dark at sunrise and sunset. Wallpaper, Dock and much more are in Settings (Super + ,).	Välj hur LuxOS ser ut. Auto växlar mellan ljust och mörkt vid soluppgång och solnedgång. Bakgrundsbild, Dockan och mycket mer finns i Inställningar (Super + ,).
+LuxDrop sends files to computers and phones nearby – it also works with the LocalSend app. Printers & Scanners finds devices on your network or USB by itself: just plug in and print.	LuxDrop skickar filer till datorer och telefoner i närheten – det fungerar även med appen LocalSend. Skrivare och skannrar hittar enheter i nätverket eller via USB själv: anslut bara och skriv ut.
+Found a bug or have an idea? Feedback sends it straight to the author of LuxOS. All keyboard shortcuts are listed in Keyboard Shortcuts. Enjoy LuxOS!	Hittat ett fel eller har en idé? Feedback skickar den direkt till upphovspersonen bakom LuxOS. Alla kortkommandon finns i Kortkommandon. Njut av LuxOS!
+LuxOS uses lux to manage software.	LuxOS hanterar programvara med lux.
+All lux commands: %s	Alla lux-kommandon: %s
+Experts can still run pacman directly: %s	Experter kan fortfarande köra pacman direkt: %s
+The package manager core is missing (%s). Repair it with: %s	Pakethanterarens kärna saknas (%s). Reparera den med: %s
+pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman är bara för experter (LUX_ALLOW_PACMAN=1 pacman …); lux och pacman delar samma paketdatabas.
+The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	Pakethanterarens kärna %s är äldre än Arch Linux pacman %s (en LuxOS-uppdatering kommer)
+You manage the system yourself with lux.	Du hanterar systemet själv med lux.
+# Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
+Layout line %s is not valid.	Rad %s i layouten är ogiltig.
+Layout line %s has an invalid id.	Rad %s i layouten har ett ogiltigt id.
+The id %s is used twice in the layout.	Id %s används två gånger i layouten.
+The layout refers to %s, which does not exist.	Layouten hänvisar till %s, som inte finns.
+%s cannot be used here.	%s kan inte användas här.
+%s is used for two things at once.	%s används till två saker samtidigt.
+Invalid device %s.	Ogiltig enhet %s.
+The device %s is listed twice.	Enheten %s finns med två gånger.
+Invalid size for %s.	Ogiltig storlek för %s.
+Only one volume on %s can use the remaining space.	Bara en volym på %s kan använda resten av utrymmet.
+Invalid partition type for %s.	Ogiltig partitionstyp för %s.
+Invalid name for %s.	Ogiltigt namn för %s.
+The name %s is used twice.	Namnet %s används två gånger.
+%s is marked as existing but sits on a new volume.	%s är markerad som befintlig men ligger på en ny volym.
+The volume group %s has no physical volumes.	Volymgruppen %s har inga fysiska volymer.
+%s is on a disk that will be erased.	%s ligger på en disk som kommer att raderas.
+%s is not a valid mount point.	%s är ingen giltig monteringspunkt.
+%s cannot be a separate partition.	%s kan inte vara en separat partition.
+The mount point %s is used twice.	Monteringspunkten %s används två gånger.
+Unsupported file system for %s.	Filsystemet stöds inte för %s.
+The root file system (/) must be formatted.	Rotfilsystemet (/) måste formateras.
+Choose a volume for the root file system (/).	Välj en volym för rotfilsystemet (/).
+An EFI system partition (FAT32, at least 300 MB) mounted at /boot or /efi is needed.	En EFI-systempartition (FAT32, minst 300 MB) monterad på /boot eller /efi behövs.
+The EFI system partition must be a plain partition (not encrypted, not LVM).	EFI-systempartitionen måste vara en vanlig partition (inte krypterad, inte LVM).
+The partition mounted at /boot or /efi must be an EFI system partition.	Partitionen som monteras på /boot eller /efi måste vara en EFI-systempartition.
+The EFI system partition must use FAT32.	EFI-systempartitionen måste använda FAT32.
+The EFI system partition must have at least 300 MB.	EFI-systempartitionen måste vara minst 300 MB.
+With the EFI partition at /boot, there cannot be another /boot. Mount the EFI partition at /efi instead.	Med EFI-partitionen på /boot kan det inte finnas någon annan /boot. Montera EFI-partitionen på /efi i stället.
+The boot loader (GRUB) cannot open encrypted volumes: add an unencrypted /boot partition.	Starthanteraren (GRUB) kan inte öppna krypterade volymer: lägg till en okrypterad /boot-partition.
+A BIOS boot partition (1 MB) is needed to start from this disk.	En BIOS-startpartition (1 MB) behövs för att starta från den här disken.
+The root file system (/) needs at least 8 GB.	Rotfilsystemet (/) behöver minst 8 GB.
+The root file system (/) has less than 20 GB; apps may not fit.	Rotfilsystemet (/) har mindre än 20 GB; appar kanske inte får plats.
+/boot needs at least 300 MB.	/boot behöver minst 300 MB.
+/ and %s are not encrypted the same way: files in the unencrypted one are not protected.	/ och %s är inte krypterade på samma sätt: filer i den okrypterade är inte skyddade.
+The swap is not encrypted although / is: memory contents can leak to the disk.	Swap är inte krypterad fast / är det: minnesinnehåll kan hamna på disken.
+Enter a passphrase for the encrypted volume %s.	Ange en lösenfras för den krypterade volymen %s.
+%s is created but not used.	%s skapas men används inte.
+%s does not exist.	%s finns inte.
+%s does not use a GPT partition table.	%s använder inte en GPT-partitionstabell.
+%s is in use (mounted). Unmount it first.	%s används (monterad). Avmontera den först.
+%s is not an encrypted (LUKS) volume.	%s är ingen krypterad volym (LUKS).
+The passphrase for %s is wrong.	Lösenfrasen för %s är fel.
+A volume group named %s already exists.	Det finns redan en volymgrupp som heter %s.
+The volume group %s was not found.	Volymgruppen %s hittades inte.
+The logical volume %s was not found.	Den logiska volymen %s hittades inte.
+The name %s is already used by an open volume.	Namnet %s används redan av en öppen volym.
+%s cannot be resized (only ext4, btrfs and NTFS).	Storleken på %s kan inte ändras (bara ext4, btrfs och NTFS).
+The kept EFI system partition %s is not FAT32.	Den behållna EFI-systempartitionen %s är inte FAT32.
+The EFI system partition %s is smaller than 300 MB.	EFI-systempartitionen %s är mindre än 300 MB.
+ERASE the whole disk %s	RADERA hela disken %s
+DELETE logical volume %s	TA BORT den logiska volymen %s
+DELETE partition %s	TA BORT partitionen %s
+Resize %s to %s	Ändra storlek på %s till %s
+ERASE %s (new encrypted volume)	RADERA %s (ny krypterad volym)
+ERASE %s (new LVM physical volume)	RADERA %s (ny fysisk LVM-volym)
+FORMAT %s	FORMATERA %s
+ERASE logical volume %s	RADERA den logiska volymen %s
+FORMAT logical volume %s	FORMATERA den logiska volymen %s
+keep data	behåll data
+Could not read partition %s.	Det gick inte att läsa partitionen %s.
+Resizing %s to %s	Ändrar storlek på %s till %s
+The file system on %s has errors.	Filsystemet på %s har fel.
+%s cannot be shrunk that much.	%s kan inte krympas så mycket.
+Encrypting %s	Krypterar %s
+Creating volume group %s	Skapar volymgruppen %s
+Not enough free space on %s.	Inte tillräckligt med ledigt utrymme på %s.
+Preparing disks	Förbereder diskar
+Encrypting volumes	Krypterar volymer
+Setting up LVM	Konfigurerar LVM
+Formatting %s as %s (%s)	Formaterar %s som %s (%s)
+Advanced: manual partitioning from a layout file (LVM, encryption)	Avancerat: manuell partitionering från en layoutfil (LVM, kryptering)
+manual partitioning	manuell partitionering
+Partitions:	Partitioner:
+Will be erased or changed:	Raderas eller ändras:
+Cannot read %s	Kan inte läsa %s
+DISK_MODE=layout needs LAYOUT or LAYOUT_FILE	DISK_MODE=layout kräver LAYOUT eller LAYOUT_FILE
+Warning: %s	Varning: %s
+Path to the partition layout file (LAYOUT format)	Sökväg till partitionslayoutfilen (LAYOUT-format)
+Invalid DISK_MODE (use erase, freespace, layout or manual)	Ogiltigt DISK_MODE (använd erase, freespace, layout eller manual)
+Manual partitioning (advanced)	Manuell partitionering (avancerat)
+Choose partitions yourself: separate /home, /var and other directories, LVM and encryption (LUKS2), keep existing partitions.	Välj partitioner själv: separata /home, /var och andra kataloger, LVM och kryptering (LUKS2), behåll befintliga partitioner.
+You set up the partitions in the next step. Nothing is changed before you confirm the summary.	Du ställer in partitionerna i nästa steg. Inget ändras innan du bekräftar sammanfattningen.
+Manual partitioning	Manuell partitionering
+Choose where each part of LuxOS goes. Nothing is written to the disks before you confirm the summary.	Välj var varje del av LuxOS ska ligga. Inget skrivs till diskarna innan du bekräftar sammanfattningen.
+No disks found.	Inga diskar hittades.
+Quick setup on	Snabbinställning på
+Encrypted LVM (/, /home, swap)	Krypterad LVM (/, /home, swap)
+Encrypted LVM with separate /var and /tmp	Krypterad LVM med separata /var och /tmp
+Erases the chosen disk in the plan; you can still change everything.	Raderar den valda disken i planen; du kan fortfarande ändra allt.
+Locked - unlock to use	Låst - lås upp för att använda
+Encrypted (LUKS2)	Krypterad (LUKS2)
+not used	används inte
+Encrypted volume	Krypterad volym
+new partition table	ny partitionstabell
+erase	radera
+Free space	Ledigt utrymme
+LVM volume group	LVM-volymgrupp
+new	ny
+create	skapa
+Contents	Innehåll
+Mount point	Monteringspunkt
+Add…	Lägg till…
+Edit…	Redigera…
+Unlock…	Lås upp…
+Erase Disk	Radera disk
+New Volume Group…	Ny volymgrupp…
+Undo All Changes	Ångra alla ändringar
+Encryption passphrase	Lösenfras för kryptering
+Use the same passphrase for all encrypted volumes (one prompt at start)	Samma lösenfras för alla krypterade volymer (en fråga vid start)
+New partition	Ny partition
+will be deleted	tas bort
+BIOS boot partition	BIOS-startpartition
+LVM physical volume	Fysisk LVM-volym
+LVM physical volume (%s)	Fysisk LVM-volym (%s)
+delete	ta bort
+resize to %s	ändra till %s
+format	formatera
+Keep	Behåll
+Keep Partitions	Behåll partitioner
+Delete %s?	Ta bort %s?
+All data on it will be lost when you click Install.	All data på den försvinner när du klickar på Installera.
+Erase %s?	Radera %s?
+All partitions on this disk will be deleted when you click Install.	Alla partitioner på den här disken tas bort när du klickar på Installera.
+New Volume	Ny volym
+Edit %s	Redigera %s
+Use all remaining space	Använd allt återstående utrymme
+Available: %s	Tillgängligt: %s
+Use as	Använd som
+for example /data	till exempel /data
+recommended	rekommenderas
+File system	Filsystem
+Format (erases the data on it)	Formatera (raderar data på den)
+Encrypt (LUKS2)	Kryptera (LUKS2)
+Passphrase for this volume	Lösenfras för den här volymen
+Passphrase	Lösenfras
+Resize to	Ändra storlek till
+Shrinking keeps the data, but back up important files first.	Krympning behåller data, men säkerhetskopiera viktiga filer först.
+The used space could not be checked.	Det använda utrymmet kunde inte kontrolleras.
+New Volume Group	Ny volymgrupp
+Create	Skapa
+LVM joins one or more partitions (or encrypted volumes) into a group, from which you create logical volumes for /, /home, swap and more.	LVM slår ihop en eller flera partitioner (eller krypterade volymer) till en grupp, där du skapar logiska volymer för /, /home, swap med mera.
+Existing data on the chosen volumes will be erased when you click Install.	Befintliga data på de valda volymerna raderas när du klickar på Installera.
+Unlock %s	Lås upp %s
+Enter the passphrase to see what is inside. Nothing is changed.	Ange lösenfrasen för att se innehållet. Inget ändras.
+The passphrase is wrong.	Lösenfrasen är fel.
+The layout is ready.	Layouten är klar.
+Partitions	Partitioner
+Will be erased or changed when you click Install:	Raderas eller ändras när du klickar på Installera:
+I understand that the data listed above will be lost.	Jag förstår att data ovan går förlorade.
+Confirm that the listed data will be erased.	Bekräfta att de listade data raderas.
+There is not enough free space on %s.	Det finns inte tillräckligt med ledigt utrymme på %s.
+The volume group %s does not have enough free space.	Volymgruppen %s har inte tillräckligt med ledigt utrymme.
+Unlock %s first or choose another volume.	Lås upp %s först eller välj en annan volym.
+The passphrases do not match.	Lösenfraserna stämmer inte överens.
+Do not use (for example for LVM)	Använd inte (till exempel för LVM)
+encrypted	krypterad
+The disk %s is too small for this layout (it needs at least %s).	Disken %s är för liten för den här layouten (minst %s behövs).

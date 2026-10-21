@@ -624,6 +624,8 @@ Q_INSTALL_IGNOREPKG, Q_REPLACE_PKG, Q_CONFLICT_PKG, Q_CORRUPTED_PKG = 1, 2, 4, 8
 Q_REMOVE_PKGS, Q_SELECT_PROVIDER, Q_IMPORT_KEY = 16, 32, 64
 # alpm_download_event_type_t
 DL_INIT, DL_PROGRESS, DL_RETRY, DL_COMPLETED = 0, 1, 2, 3
+# pyalpm 0.12 u nekterych udalosti misto skutecneho textu posila jen tyto zastupne retezce
+PYALPM_PLACEHOLDERS = ("unknown event", "event not implemented")
 
 
 class Callbacks:
@@ -749,9 +751,9 @@ class Callbacks:
             if self.ui.ph is None or self.ui.ph["name"] != "hooks":
                 self.ui.phase("hooks")
                 self.ui.compat(":: Running post-transaction hooks...")
-        elif ev == EV_HOOK_RUN_START and text and text not in ("unknown event", "event not implemented"):
+        elif ev == EV_HOOK_RUN_START and text and text not in PYALPM_PLACEHOLDERS:
             self.ui.progress(0.5, text)
-        elif ev == EV_SCRIPTLET_INFO and text.strip():
+        elif ev == EV_SCRIPTLET_INFO and text.strip() and text not in PYALPM_PLACEHOLDERS:
             self.scriptlet.append(text.rstrip())
             if self.ui.verbose and not self.ui.machine:
                 self.ui.write(self.ui.dim("  " + text.rstrip()))

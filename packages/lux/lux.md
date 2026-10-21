@@ -4,10 +4,26 @@
 a Arch Linuxu spravuje přímo přes **libalpm** (knihovnu pacmanu, v Pythonu přes `pyalpm`), navíc umí
 AUR, Flatpak a vlastní balíky `.lux`.
 
-`pacman` v systému zůstává (obsahuje libalpm, makepkg a hooky) a dál funguje pro pokročilé:
+Pacman z Arch Linuxu je v systému dál (balík `luxos-pacman`: libalpm, makepkg, `pacman-key`,
+`pacman-conf`, hooky), skutečný program je ale `/usr/lib/lux/alpm/pacman`. Příkaz `pacman` je
+kompatibilní vrstva: skripty, hooky, služby, `makepkg`, `pacstrap`, `lux` a AUR pomocníci (`yay`,
+`paru`…) dostanou skutečný pacman beze změny; člověk v terminálu místo toho uvidí odpovídající příkaz
+`lux` (např. `pacman -Syu` → `lux update`, `pacman -S x` → `lux install x`) a návratový kód 1.
+
+Pro pokročilé zůstává pacman dostupný:
+
+- jednorázově: `LUX_ALLOW_PACMAN=1 pacman …`, s právy správce `sudo LUX_ALLOW_PACMAN=1 pacman …`
+  (`sudo` proměnné z prostředí nepředává, proto až za `sudo`),
+- přímo: `sudo /usr/lib/lux/alpm/pacman …`,
+- trvale pro celý systém: `sudo touch /etc/lux/allow-pacman` (zrušení: smazat soubor).
+
 `lux` i `pacman` používají stejnou databázi `/var/lib/pacman`, stejný `/etc/pacman.conf`
 (načtený přes `pacman-conf`, tedy včetně `Include`), stejné ověřování podpisů, cache a hooky.
 Balík nainstalovaný jedním nástrojem druhý normálně vidí, aktualizuje i odebere.
+
+`luxos-pacman` je sestavený ze stejných zdrojů jako `pacman` v Archu a musí s ním držet krok
+(`pyalpm` z Archu se sestavuje proti jeho `libalpm.so`); `lux doctor` upozorní, když je pacman
+v Archu novější. Do té doby `lux` při nefunkčním `pyalpm` sám přejde na záložní cestu níže.
 
 ## Příkazy
 
@@ -58,7 +74,8 @@ otázkou připomene velikost stahování; automatické aktualizace na pozadí ř
 ## Zálohy a záložní cesta
 
 Transakce dělá `/usr/lib/lux/lux_alpm.py`. Když `pyalpm` chybí nebo neumí něco, co `pacman.conf`
-používá (např. `XferCommand`, `HookDir` s hooky), `lux` použije `pacman` se stejnými volbami.
+používá (např. `XferCommand`, `HookDir` s hooky), `lux` použije skutečný pacman
+(`/usr/lib/lux/alpm/pacman`, ne kompatibilní vrstvu) se stejnými volbami.
 Vynucení: `LUX_BACKEND=pacman lux …`. Kontrola: `/usr/lib/lux/lux_alpm.py --verbose available`.
 
 ## Strojový režim (Obchod LuxOS, LuxOS Care)

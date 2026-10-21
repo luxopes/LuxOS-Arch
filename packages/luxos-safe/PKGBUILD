@@ -3,12 +3,13 @@
 
 pkgname=luxos-safe
 pkgver=1.0.0
-pkgrel=3
+pkgrel=4
 pkgdesc="LuxOS Safe - encrypted /safe/<user> folder unlocked with its own password"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
 license=(MIT)
-depends=(python python-gobject gtk3 gocryptfs fuse3 polkit glib2 luxos-i18n)
+depends=(python python-gobject gtk3 gocryptfs fuse3 polkit glib2 psmisc util-linux libnotify luxos-i18n)
+install=luxos-safe.install
 
 package() {
     local f="$startdir/files"
@@ -17,6 +18,7 @@ package() {
     install -Dm644 "$f/org.luxos.safe.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.safe.policy"
     install -Dm644 "$f/60-luxos-safe.conf" "$pkgdir/usr/lib/sysctl.d/60-luxos-safe.conf"
     install -Dm644 "$f/luxos-safe-watch.service" "$pkgdir/usr/lib/systemd/user/luxos-safe-watch.service"
+    install -Dm644 "$f/luxos-safe-guard.service" "$pkgdir/usr/lib/systemd/system/luxos-safe-guard.service"
     install -Dm644 "$f/luxos-safe.desktop" "$pkgdir/usr/share/applications/luxos-safe.desktop"
     install -Dm644 "$f/luxos-safe.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-safe.svg"
     install -dm755 "$pkgdir/safe"

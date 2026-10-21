@@ -2,15 +2,17 @@
 {
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
   "logo": {
-    // Ikona LuxOS predem vykreslena programem chafa (scripts/render-terminal-logo.sh)
+    // Logo LuxOS ze znaku Unicode (bloky, sextanty, kliny; 24bit barvy) - scripts/render-terminal-logo.py
     "type": "file-raw",
     "source": "/usr/share/luxos/fastfetch/logo.ans",
-    "width": 24,
-    "height": 12,
+    "width": 47,
+    "height": 18,
     "padding": { "top": 1, "left": 1, "right": 3 }
   },
   "display": {
     "separator": "  ",
+    // uzky terminal (80 sloupcu): radky orezat, nezalamovat pres logo
+    "disableLinewrap": true,
     "color": { "keys": "38;2;167;123;255" }
   },
   "modules": [
@@ -20,7 +22,9 @@
     { "type": "host",     "key": "󰌢 Host" },
     { "type": "kernel",   "key": " Kernel" },
     { "type": "uptime",   "key": "󰅐 Uptime" },
-    { "type": "packages", "key": "󰏖 Packages" },
+    // Baliky spravuje lux (databaze libalpm = "pacman" ve fastfetch); Flatpak/Snap/Nix jen kdyz nejake jsou
+    { "type": "packages", "key": "󰏖 Packages",
+      "format": "{pacman} (lux){?flatpak-all}, {flatpak-all} (flatpak){?}{?snap}, {snap} (snap){?}{?nix-all}, {nix-all} (nix){?}" },
     { "type": "shell",    "key": " Shell" },
     { "type": "de",       "key": "󰧨 Desktop" },
     { "type": "terminal", "key": " Terminal" },

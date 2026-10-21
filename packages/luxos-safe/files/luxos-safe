@@ -4,21 +4,31 @@
 Data lezi zasifrovana (gocryptfs: AES-256-GCM, scrypt) v /safe/.vaults/<uzivatel>.
 Po odemceni je obsah videt v /safe/<uzivatel> jen pro vlastnika (FUSE bez
 allow_other: ani root do pripojeneho obsahu nevstoupi beznymi prostredky).
-Zamyka se rucne, po necinnosti, pri zamceni obrazovky, uspani a odhlaseni.
+Zamceny Trezor je zastupna slozka jen pro cteni (tmpfs se spoustecem "Odemknout Trezor",
+pripojuje luxos-safe-helper pod rootem): nic se do ni neulozi a podkladovy adresar na disku
+je root:root 0000 a nemenny, takze nesifrovana data na disk nedopadnou.
+Zamyka se rucne, po necinnosti, pri zamceni obrazovky, uspani a odhlaseni. Otevrene soubory
+zamceni brani (zadne line odpojeni); okno i upozorneni rekne, ktere aplikace je drzi.
 
   luxos-safe               okno Trezoru
   luxos-safe unlock        dialog s heslem (--open pak otevre slozku)
-  luxos-safe lock          zamknout (--force i pri otevrenych souborech)
+  luxos-safe lock          zamknout (--force: chvili zkouset znovu, pri neuspechu upozorneni;
+                           --logout: pri odhlaseni ukoncit aplikace s otevrenymi soubory)
   luxos-safe status        locked | unlocked | none
   luxos-safe --watch       hlidac (spousti relace): zamkne pri zamceni obrazovky a uspani
 """
+import datetime
 import getpass
 import hashlib
 import json
 import os
+import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 
 sys.path.insert(0, "/usr/lib/luxos/python")
 try:
@@ -31,14 +41,58 @@ USER = getpass.getuser()
 VAULT = f"/safe/.vaults/{USER}"
 MOUNT = f"/safe/{USER}"
 HELPER = "/usr/lib/luxos/luxos-safe-helper"
+RECOVERED = f"/safe/.recovered/{USER}"      # nesifrovane soubory ze stare slozky (helper)
+HOME = os.path.expanduser("~")
 CONF = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/safe.json")
 LAUNCHER = "Unlock Safe.desktop"
+PLACEHOLDER = "luxos-safe-locked"           # zdroj zastupneho tmpfs (luxos-safe-helper)
 WRONG_PASSWORD = 12      # navratovy kod gocryptfs pro spatne heslo
+MOUNTINFO = "/proc/self/mountinfo"
+LOCK_RETRY = 4           # pokusy o zamceni (po 0,5 s) pri automatickem zamykani
+recovered_now = []       # slozky v domovske slozce presunute pri poslednim odemceni
 
 
 # ---- stav a nastaveni -------------------------------------------------------------
+def _unescape(s):
+    out, i = [], 0
+    while i < len(s):
+        if s[i] == "\\" and i + 3 < len(s) and s[i + 1:i + 4].isdigit():
+            out.append(chr(int(s[i + 1:i + 4], 8)))
+            i += 4
+        else:
+            out.append(s[i])
+            i += 1
+    return "".join(out)
+
+
+def mounts():
+    """Pripojeni na MOUNT v poradi (posledni je navrchu): [(fstype, source)]."""
+    res = []
+    try:
+        with open(MOUNTINFO) as f:
+            for line in f:
+                left, _sep, right = line.partition(" - ")
+                fields, rfields = left.split(), right.split()
+                if len(fields) >= 5 and len(rfields) >= 2 and _unescape(fields[4]) == MOUNT:
+                    res.append((rfields[0], _unescape(rfields[1])))
+    except OSError:
+        pass
+    return res
+
+
+def is_unlocked(ms=None):
+    ms = mounts() if ms is None else ms
+    return bool(ms) and ms[-1][0] == "fuse.gocryptfs"
+
+
+def protected(ms=None):
+    """Zamcena slozka je zastupny tmpfs jen pro cteni (ne zapisovatelny adresar na disku)."""
+    ms = mounts() if ms is None else ms
+    return ("tmpfs", PLACEHOLDER) in ms
+
+
 def state():
-    if os.path.ismount(MOUNT):
+    if is_unlocked():
         return "unlocked"
     if os.path.exists(os.path.join(VAULT, "gocryptfs.conf")):
         return "locked"
@@ -76,31 +130,45 @@ def run_pw(args, password_lines):
 
 
 # ---- operace ------------------------------------------------------------------------
-def place_launcher():
-    """Do prazdneho pripojneho bodu (zamceny stav) dat spoustec "Odemknout Trezor"."""
+def notify(title, body, urgency="normal"):
+    try:
+        subprocess.Popen(["notify-send", "-a", _("Safe"), "-i", "luxos-safe", "-u", urgency, title, body],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        pass
+
+
+def run_helper(cmd):
+    """pkexec luxos-safe-helper create|protect; vraci None nebo chybu."""
+    try:
+        r = subprocess.run(["pkexec", HELPER, cmd], capture_output=True, text=True, timeout=300)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return str(e)
+    return None if r.returncode == 0 else (r.stderr.strip()[-300:] or f"exit {r.returncode}")
+
+
+def trust_launcher():
+    """Spoustec "Odemknout Trezor" v zamcene slozce: Thunar spousti jen duveryhodne spoustece
+    (kontrolni soucet v metadatech gvfs; soubor patri uzivateli, ale je nemenny)."""
     path = os.path.join(MOUNT, LAUNCHER)
-    with open(path, "w") as f:
-        f.write("[Desktop Entry]\nType=Application\nName=Unlock Safe\nName[cs]=Odemknout Trezor\n"
-                "Exec=luxos-safe unlock --open\nIcon=luxos-safe\nTerminal=false\n")
-    os.chmod(path, 0o700)
-    # Thunar spousti jen duveryhodne spoustece (kontrolni soucet v metadatech)
-    with open(path, "rb") as f:
-        digest = hashlib.sha256(f.read()).hexdigest()
-    subprocess.run(["gio", "set", "-t", "string", path, "metadata::xfce-exe-checksum", digest],
-                   capture_output=True)
+    try:
+        with open(path, "rb") as f:
+            digest = hashlib.sha256(f.read()).hexdigest()
+        subprocess.run(["gio", "set", "-t", "string", path, "metadata::xfce-exe-checksum", digest],
+                       capture_output=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
 
 
 def create(password):
-    if not (os.path.isdir(VAULT) and os.path.isdir(MOUNT)):
-        r = subprocess.run(["pkexec", HELPER, "create"], capture_output=True, text=True)
-        if r.returncode != 0:
+    if not os.path.isdir(VAULT) or not protected():
+        if run_helper("create") or not protected():
             return _("Could not create the Safe folder.")
     if os.listdir(VAULT):
         return _("The Safe already exists.")
     rc, err = run_pw(["gocryptfs", "-init", "-q", "-passfile", "/dev/stdin", VAULT], [password])
     if rc != 0:
         return _("Could not create the Safe (%s).") % err
-    place_launcher()
     add_bookmark()
     return unlock(password)
 
@@ -121,34 +189,203 @@ def add_bookmark():
 
 
 def unlock(password):
+    del recovered_now[:]
     if state() == "unlocked":
         return None
-    if not os.listdir(MOUNT):
-        place_launcher()
+    if not protected():
+        # Starsi instalace: zapisovatelna slozka na disku -> nejdriv ochrana (a presun
+        # nesifrovanych souboru). Bez ochrany neodemykat: po zamceni by se dalo zase psat na disk.
+        err = run_helper("protect")
+        if err or not protected():
+            return _("Could not protect the locked Safe folder (%s).") % (err or "placeholder")
+    trust_launcher()
     idle = int(settings().get("idle_minutes") or 0)
     args = ["gocryptfs", "-q", "-passfile", "/dev/stdin", "-nosyslog"]
     if idle:
-        args += ["-i", f"{idle}m"]       # automaticke zamceni po necinnosti
-    # -nonempty: pripojny bod obsahuje spoustec "Odemknout Trezor" (po odemceni skryty)
+        args += ["-i", f"{idle}m"]       # automaticke zamceni po necinnosti (jen bez otevrenych souboru)
+    # -nonempty: zastupna slozka obsahuje spoustec "Odemknout Trezor" (po odemceni skryty)
     rc, err = run_pw(args + ["-nonempty", VAULT, MOUNT], [password])
     if rc == WRONG_PASSWORD:
         return _("Wrong password.")
     if rc != 0:
         return _("Could not unlock the Safe (%s).") % err
+    recovered_now.extend(recover_plaintext())
     return None
 
 
-def lock(force=False):
-    if state() != "unlocked":
+# ---- nesifrovane soubory ze starsi verze ---------------------------------------------------
+def recover_plaintext():
+    """Soubory, ktere se ve starsich verzich ulozily do zamcene slozky (nesifrovane), presunul
+    helper do /safe/.recovered/<user>/<cas>. Ted je presunout do ~/Safe-unencrypted-recovered-<datum>
+    (0700) a dat vedet. Nic se nemaze, jen presouva."""
+    moved = []
+    try:
+        stamps = sorted(os.listdir(RECOVERED))
+    except OSError:
+        return moved
+    for stamp in stamps:
+        src = os.path.join(RECOVERED, stamp)
+        if os.path.islink(src) or not os.path.isdir(src):
+            continue
+        entries = sorted(os.listdir(src))
+        if not entries:
+            try:
+                os.rmdir(src)
+            except OSError:
+                pass
+            continue
+        base = os.path.join(HOME, "Safe-unencrypted-recovered-" + datetime.date.today().isoformat())
+        dest, n = base, 1
+        while os.path.lexists(dest):
+            n += 1
+            dest = f"{base}-{n}"
+        os.mkdir(dest, 0o700)
+        os.chmod(dest, 0o700)
+        failed = False
+        for e in entries:
+            try:
+                shutil.move(os.path.join(src, e), os.path.join(dest, e))
+            except OSError:
+                failed = True
+        if not failed:
+            try:
+                os.rmdir(src)
+            except OSError:
+                pass
+        moved.append(dest)
+    if moved:
+        notify(_("Unencrypted files found"),
+               _("Files saved in %s while the Safe was locked were not encrypted. They were moved to %s.")
+               % (MOUNT, ", ".join(moved)), "critical")
+    return moved
+
+
+def import_recovered(path):
+    """Presunout zachranene soubory do odemceneho Trezoru (zasifrovat), nesifrovanou kopii smazat."""
+    if not is_unlocked():
+        return _("The Safe is locked")
+    target = os.path.join(MOUNT, os.path.basename(path))
+    n = 1
+    while os.path.lexists(target):
+        n += 1
+        target = os.path.join(MOUNT, f"{os.path.basename(path)}-{n}")
+    try:
+        os.mkdir(target, 0o700)
+        for e in sorted(os.listdir(path)):
+            # Jiny souborovy system: shutil.move zkopiruje a az potom smaze original
+            shutil.move(os.path.join(path, e), os.path.join(target, e))
+        os.rmdir(path)
+    except OSError as e:
+        return _("Could not import the files (%s).") % e
+    return None
+
+
+# ---- zamykani ------------------------------------------------------------------------
+def _unmount(lazy=False):
+    r = subprocess.run(["fusermount3", "-uz" if lazy else "-u", MOUNT], capture_output=True, text=True)
+    return r.returncode == 0 or not is_unlocked()
+
+
+def _daemon_pids():
+    """Procesy gocryptfs obsluhujici prave tento Trezor."""
+    pids = []
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        try:
+            with open(f"/proc/{pid}/cmdline", "rb") as f:
+                argv = f.read().split(b"\0")
+        except OSError:
+            continue
+        if argv and os.path.basename(argv[0]) == b"gocryptfs" and MOUNT.encode() in argv \
+                and VAULT.encode() in argv:
+            pids.append(int(pid))
+    return pids
+
+
+def holders():
+    """Procesy s otevrenymi soubory (nebo pracovnim adresarem) v Trezoru: [(pid, nazev)]."""
+    skip = {os.getpid(), *_daemon_pids()}
+    pids = set()
+    try:
+        r = subprocess.run(["fuser", "-m", MOUNT], capture_output=True, text=True, timeout=10)
+        pids = {int(t) for t in "".join(c if c.isdigit() else " " for c in r.stdout).split()}
+    except (OSError, subprocess.TimeoutExpired):
+        # Bez psmisc: projit /proc primo (jen vlastni procesy, jine do Trezoru stejne nemohou)
+        prefix = MOUNT.rstrip("/") + "/"
+        for pid in filter(str.isdigit, os.listdir("/proc")):
+            links = []
+            for sub in ("cwd", "root"):
+                links.append(f"/proc/{pid}/{sub}")
+            try:
+                links += [f"/proc/{pid}/fd/{fd}" for fd in os.listdir(f"/proc/{pid}/fd")]
+            except OSError:
+                continue
+            for link in links:
+                try:
+                    t = os.readlink(link)
+                except OSError:
+                    continue
+                if t == MOUNT or t.startswith(prefix):
+                    pids.add(int(pid))
+                    break
+    res = []
+    for pid in sorted(pids - skip):
+        try:
+            with open(f"/proc/{pid}/comm") as f:
+                res.append((pid, f.read().strip()))
+        except OSError:
+            res.append((pid, str(pid)))
+    return res
+
+
+def busy_message(procs):
+    names = sorted({n for _p, n in procs})
+    if not names:
+        return _("Some files in the Safe are still open. Close them and try again.")
+    return _("These apps keep files in the Safe open: %s. Close them and try again.") % ", ".join(names)
+
+
+def lock(mode="manual"):
+    """manual: jeden pokus, pri otevrenych souborech chyba s nazvy aplikaci.
+    auto (zamceni obrazovky, uspani): chvili zkouset znovu, pak upozorneni - Trezor zustane odemceny.
+    logout: aplikace s otevrenymi soubory ukoncit (SIGTERM), nakonec ukoncit gocryptfs.
+    Line odpojeni (umount -l) se zivym gocryptfs nikdy: otevrene soubory by dal sly cist a zapisovat."""
+    if not is_unlocked():
         return None
-    r = subprocess.run(["fusermount3", "-u", MOUNT], capture_output=True, text=True)
-    if r.returncode == 0:
+    if _unmount():
+        trust_launcher()
         return None
-    if force:
-        # Odpojit hned; uz otevrene soubory dobehnou, nove pristupy nejsou mozne
-        subprocess.run(["fusermount3", "-uz", MOUNT], capture_output=True)
-        return None
-    return _("Some files in the Safe are still open. Close them and try again.")
+    if mode in ("auto", "logout"):
+        for _i in range(LOCK_RETRY):
+            time.sleep(0.5)
+            if _unmount():
+                return None
+    procs = holders()
+    if mode == "logout":
+        for pid, _n in procs:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except OSError:
+                pass
+        for _i in range(6):
+            time.sleep(0.5)
+            if _unmount():
+                return None
+        # Posledni moznost: bez gocryptfs (a klice v jeho pameti) uz obsah nikdo neprecte;
+        # odpojit pak lze i "line" - mrtve pripojeni uz nic neobslouzi.
+        for pid in _daemon_pids():
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except OSError:
+                pass
+        time.sleep(0.5)
+        if _unmount() or _unmount(lazy=True):
+            return None
+    msg = busy_message(procs)
+    if mode == "auto":
+        notify(_("The Safe could not be locked"), msg, "critical")
+    return msg
 
 
 def change_password(old, new):
@@ -163,27 +400,62 @@ def open_folder():
 
 
 # ---- hlidac relace ----------------------------------------------------------------------
+def take_sleep_inhibitor(system):
+    """Zpozdeni uspani (logind "delay"), dokud se Trezor nezamkne. Vraci fd nebo None."""
+    from gi.repository import Gio, GLib
+    try:
+        res, fds = system.call_with_unix_fd_list_sync(
+            "org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "Inhibit",
+            GLib.Variant("(ssss)", ("sleep", _("Safe"), "Lock the Safe before sleep", "delay")),
+            GLib.VariantType("(h)"), Gio.DBusCallFlags.NONE, -1, None, None)
+        return fds.get(res.unpack()[0])
+    except Exception:  # noqa: BLE001 - bez logind se jen nezpozdi uspani
+        return None
+
+
 def subscribe():
-    """Zamykani pri zamceni obrazovky a pred uspanim (pouziva i luxos-daemon)."""
+    """Zamykani pri zamceni obrazovky a pred uspanim (pouziva i luxos-daemon). Zamyka se ve vlakne,
+    aby cekani na zavreni souboru neblokovalo hlavni smycku."""
     from gi.repository import Gio
+
+    inhibitor = {"fd": None}
+
+    def in_thread(fn):
+        threading.Thread(target=fn, daemon=True).start()
 
     def on_lock(*_a):
         if settings().get("lock_on_screen_lock", True):
-            lock(force=True)
+            in_thread(lambda: lock("auto"))
 
     def on_saver(_c, _s, _p, _i, _sig, params):
         if params.unpack()[0]:
             on_lock()
 
+    def release():
+        fd, inhibitor["fd"] = inhibitor["fd"], None
+        if fd is not None:
+            os.close(fd)
+
     def on_sleep(_c, _s, _p, _i, _sig, params):
         if params.unpack()[0]:
-            lock(force=True)          # pred uspanim vzdy
+            def go():
+                try:
+                    lock("auto")      # pred uspanim vzdy
+                finally:
+                    release()         # uspani pokracuje
+            in_thread(go)
+        else:
+            release()
+            inhibitor["fd"] = take_sleep_inhibitor(system)
 
     session = Gio.bus_get_sync(Gio.BusType.SESSION)
     session.signal_subscribe(None, "org.xfce.ScreenSaver", "ActiveChanged", None, None, 0, on_saver)
     system = Gio.bus_get_sync(Gio.BusType.SYSTEM)
     system.signal_subscribe("org.freedesktop.login1", "org.freedesktop.login1.Manager", "PrepareForSleep",
                             "/org/freedesktop/login1", None, 0, on_sleep)
+    inhibitor["fd"] = take_sleep_inhibitor(system)
+    if state() == "locked":
+        in_thread(trust_launcher)
 
 
 def watch():
@@ -193,7 +465,7 @@ def watch():
     loop = GLib.MainLoop()
 
     def on_term():
-        lock(force=True)            # konec relace / odhlaseni
+        lock("logout")              # konec relace / odhlaseni
         loop.quit()
         return False
     GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, 15, on_term)
@@ -295,6 +567,7 @@ def gui(mode):
                 if msg:
                     err.set_text(msg)
                 else:
+                    offer_import()
                     open_folder()
                     show()
         p2.connect("activate", lambda _e: go())
@@ -316,6 +589,7 @@ def gui(mode):
                 err.set_text(msg)
                 return
             result["ok"] = True
+            offer_import()
             if mode in ("unlock", "open"):
                 if mode == "open":
                     open_folder()
@@ -369,6 +643,25 @@ def gui(mode):
         chg.connect("clicked", lambda _b: change_dialog())
         box.pack_start(chg, False, False, 0)
 
+    def offer_import():
+        """Po odemceni: nesifrovane soubory ze stare zamcene slozky nabidnout k presunu do Trezoru."""
+        for path in list(recovered_now):
+            dlg = Gtk.MessageDialog(transient_for=win, modal=True, message_type=Gtk.MessageType.WARNING,
+                                    text=_("Unencrypted files found"))
+            dlg.format_secondary_text(
+                (_("Files saved in %s while the Safe was locked were not encrypted. They were moved to %s.")
+                 % (MOUNT, path)) + "\n\n" +
+                _("Import them into the Safe? The unencrypted copies will then be deleted."))
+            dlg.add_buttons(_("Keep in Home Folder"), Gtk.ResponseType.CANCEL,
+                            _("Import into Safe"), Gtk.ResponseType.OK)
+            dlg.set_default_response(Gtk.ResponseType.OK)
+            answer = dlg.run()
+            dlg.destroy()
+            if answer == Gtk.ResponseType.OK:
+                msg = import_recovered(path)
+                notify(_("Safe"), msg or _("The files were imported into the Safe."))
+            recovered_now.remove(path)
+
     def change_dialog():
         dlg = Gtk.Dialog(title=_("Change Password"), transient_for=win, modal=True)
         dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Change"), Gtk.ResponseType.OK)
@@ -421,7 +714,7 @@ def main():
         print(state())
         return 0
     if cmd == "lock":
-        msg = lock(force="--force" in args)
+        msg = lock("logout" if "--logout" in args else "auto" if "--force" in args else "manual")
         if msg:
             print(msg, file=sys.stderr)
             return 1

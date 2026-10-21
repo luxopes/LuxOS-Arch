@@ -658,11 +658,20 @@ class LuxBackend(unittest.TestCase):
     def test_pm_uses_lux_or_pacman(self):
         care._lux_ok = True
         self.assertEqual(care.pm(["-Su"])[0], care.LUX_ALPM)
-        self.assertEqual(care.pm(["-Rns", "x"])[:2], ["pacman", "--noconfirm"])
+        self.assertEqual(care.pm(["-Rns", "x"])[:2], [care.PACMAN, "--noconfirm"])
         care._lux_ok = False
-        self.assertEqual(care.pm(["-Su"]), ["pacman", "--noconfirm", "--noprogressbar", "--color", "never", "-Su"])
+        self.assertEqual(care.pm(["-Su"]), [care.PACMAN, "--noconfirm", "--noprogressbar", "--color", "never", "-Su"])
         self.assertEqual(care.pm(["-Syu", "--noconfirm", "--noprogressbar"]),
-                         ["pacman", "--noconfirm", "--noprogressbar", "--color", "never", "-Syu"])
+                         [care.PACMAN, "--noconfirm", "--noprogressbar", "--color", "never", "-Syu"])
+
+    def test_fallback_uses_real_pacman(self):
+        """Bez lux vola skutecny pacman (luxos-pacman), ne kompatibilni vrstvu /usr/bin/pacman."""
+        care._lux_ok = False
+        with mock.patch.object(care, "PACMAN", "/usr/lib/lux/alpm/pacman"):
+            self.assertEqual(care.pm(["-Su"])[0], "/usr/lib/lux/alpm/pacman")
+        with open(care.__file__) as f:
+            src = f.read()
+        self.assertNotRegex(src, r'\[\s*"pacman"\s*,')
 
     def test_lux_available_checks_backend(self):
         care._lux_ok = None

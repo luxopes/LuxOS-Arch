@@ -10,6 +10,7 @@ DISK_MODE=erase        # erase = CELY DISK BUDE SMAZAN
                        # freespace = vedle jinych systemu do nejvetsi volne oblasti (min. 20 GB,
                        #             jen GPT + UEFI, sdileny EFI oddil s min. 250 MB volneho mista)
                        # manual = oddily pripojene v /mnt (stejne jako DISK=manual)
+                       # layout = rucni rozdeleni podle LAYOUT nize (LVM, LUKS2, samostatne oddily)
 BOOTLOADER=auto        # auto = systemd-boot (UEFI) / GRUB (BIOS); none = bez zavadece (jadro v /boot)
 ENCRYPT=0              # 1 = LUKS2, vyzaduje LUKS_PASS
 LUKS_PASS=
@@ -30,3 +31,59 @@ LUXAI_EMAIL=
 LUXAI_PASSWORD=
 # ... nebo uz prihlaseny ucet jako JSON (obsah ~/.config/luxai/account.json, pouziva GUI)
 LUXAI_ACCOUNT=
+
+# --- Rucni rozdeleni disku: DISK_MODE=layout -----------------------------------------
+# LAYOUT (nebo LAYOUT_FILE=/cesta) popisuje oddily radek po radku: "druh klic=hodnota ...".
+# Nic se nezmeni pred potvrzenim souhrnu (--yes = potvrzeno); souhrn vypise, co se smaze.
+# Kontrola bez zmen:  luxos-install --check-layout layout.conf
+#
+#   disk   dev=/dev/vda table=new|keep          new = CELY DISK SE SMAZE, nova GPT; keep = zachovat oddily
+#   part   id=ID disk=/dev/vda size=1G|rest [type=esp|bios|linux|swap|lvm|luks|boot] [name=TEXT]
+#   use    id=ID dev=/dev/sda2 [resize=100G]    existujici oddil/zarizeni; resize jen ext4, btrfs, NTFS
+#   delete dev=/dev/sda3                        smazat existujici oddil
+#   luks   id=ID on=ID name=MAPPER [keep=1]     LUKS2 na oddilu nebo LV; keep=1 = existujici, jen odemknout
+#   vg     id=ID name=VG pvs=ID[,ID] [keep=1]   skupina LVM na oddilech/LUKS; keep=1 = existujici
+#   lv     id=ID vg=ID name=LV size=40G|rest [keep=1]
+#   fs     on=ID mount=/home type=btrfs|ext4|xfs|f2fs|vfat [format=1|0] [label=X] [subvol=@home]
+#   swap   on=ID [format=1|0]                   bez swapu staci zram (LuxOS ho ma vzdy)
+#
+# Velikosti: K/M/G/T (binarni jako sgdisk/lvcreate), rest = zbytek disku/skupiny (jen jeden).
+# Pravidla: / se vzdy formatuje; UEFI potrebuje EFI oddil (vfat, min. 300 MB) v /boot nebo /efi
+# (/efi = sdileny ESP, jadro se kopiruje do EFI/LuxOS); BIOS potrebuje oddil type=bios (1M)
+# a nesifrovany /boot, pokud je / sifrovany (GRUB). Samostatne /usr ani /boot/efi nejsou podporovane.
+# Hesla: LUKS_PASS (spolecne) nebo LUKS_PASS_<ID velkymi pismeny> pro jednotlive svazky.
+# Pri startu: svazky pod / odemkne initramfs (rd.luks.name, jedno heslo); ostatni (/home, swap…)
+# odemkne klic v /etc/cryptsetup-keys.d na sifrovanem / - bez dalsiho dotazu. Je-li / nesifrovany,
+# sifrovany swap dostane nahodny klic pri kazdem startu a ostatni svazky se zeptaji na heslo.
+#
+# Priklad: sifrovane LVM (LVM na LUKS) s /, /home a swapem na celem disku (UEFI)
+#DISK_MODE=layout
+#LUKS_PASS=tajne-heslo
+#LAYOUT='
+#disk dev=/dev/vda table=new
+#part id=esp  disk=/dev/vda size=1G type=esp
+#part id=crypt disk=/dev/vda size=rest
+#luks id=cryptlvm on=crypt name=cryptlvm
+#vg   id=vg name=luxos pvs=cryptlvm
+#lv   id=root vg=vg name=root size=40G
+#lv   id=swap vg=vg name=swap size=4G
+#lv   id=home vg=vg name=home size=rest
+#fs   on=esp  mount=/boot type=vfat
+#fs   on=root mount=/ type=btrfs
+#fs   on=home mount=/home type=btrfs
+#swap on=swap
+#'
+#
+# Priklad: LUKS na LVM (kazdy LV vlastni LUKS) a zachovany EFI oddil s Windows
+#LAYOUT='
+#use  id=win_esp dev=/dev/nvme0n1p1
+#part id=pv disk=/dev/nvme0n1 size=rest type=lvm
+#vg   id=vg name=luxos pvs=pv
+#lv   id=lroot vg=vg name=root size=50G
+#lv   id=lhome vg=vg name=home size=rest
+#luks id=croot on=lroot name=root
+#luks id=chome on=lhome name=home
+#fs   on=win_esp mount=/efi type=vfat format=0
+#fs   on=croot mount=/ type=btrfs
+#fs   on=chome mount=/home type=ext4
+#'

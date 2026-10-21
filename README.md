@@ -32,7 +32,8 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
   (systemd-boot `timeout 0`), přihlašovací obrazovka uprostřed (lightdm-gtk-greeter), ISO boot menu v barvách LuxOS.
 - **`lux`** – správce balíků LuxOS místo pacmanu: repozitáře přes libalpm (`pyalpm`, stejná databáze a podpisy jako pacman),
   AUR, Flatpak a balíky `.lux`; krátký barevný výstup, příkazy jako u apt; `lux` bez parametrů otevře interaktivní
-  obchod v terminálu (TUI) s balíky z repozitářů LuxOS i Arch Linuxu.
+  obchod v terminálu (TUI) s balíky z repozitářů LuxOS i Arch Linuxu. Příkaz `pacman` v terminálu ukáže odpovídající
+  příkaz `lux` (`luxos-pacman`, viz níže); skripty, makepkg a pacstrap pacman dostanou beze změny.
 - **Obchod LuxOS** – grafický obchod s aplikacemi z repozitářů LuxOS a Arch Linuxu (metadata AppStream),
   instalace jedním kliknutím, aktualizace.
 - **Ovládací centrum** v horní liště – Wi‑Fi, Bluetooth, Nerušit, tmavý režim, **Spořič dat**
@@ -91,9 +92,20 @@ Průvodce se zeptá na jazyk, klávesnici, časové pásmo, disk, volitelné ši
 
 - Rozdělení: UEFI → ESP 1 GiB (`/boot`, systemd-boot) + Btrfs; BIOS → bios_grub + `/boot` ext4 + Btrfs (GRUB).
 - Btrfs subvolumy `@`, `@home`, `@log`, `@cache`, `noatime,compress=zstd:1`.
-- Pokročilí: připojit vlastní oddíly do `/mnt` a zvolit *Advanced* (např. dual-boot).
+- **Ruční rozdělení** (GUI: Cíl › *Ruční rozdělení*): editor disků, oddílů, LVM a LUKS2 – vytvořit, smazat
+  a zmenšit/zvětšit oddíl (ext4, btrfs, NTFS), šifrovat oddíl nebo LV (LVM na LUKS i LUKS na LVM), skupiny LVM
+  přes více disků, přípojné body (`/`, `/home`, `/var`, `/tmp`, `/opt`, `/srv`, `/var/log`, vlastní), btrfs/ext4/xfs/f2fs,
+  swap (oddíl, LV, nebo jen zram), ponechat existující ESP, VG/LV a odemčený LUKS. Předvolby *Šifrované LVM
+  (/, /home, swap)* a *… se samostatným /var a /tmp*. Kontrola s hláškami (ESP ≥ 300 MB v `/boot` nebo `/efi`,
+  nešifrovaný `/boot` pro GRUB v BIOS režimu, duplicitní body, velikosti, rozdílné šifrování `/` a `/home`);
+  souhrn vypíše vše, co se smaže, a vyžaduje potvrzení. Při startu jedno heslo: svazky pod `/` odemkne initramfs
+  (`sd-encrypt` + `lvm2`, `rd.luks.name`), ostatní klíč v `/etc/cryptsetup-keys.d` na šifrovaném `/`.
 - Bezobslužně: `sudo luxos-install --config install.conf --yes`
-  (vzor: `/usr/share/luxos/installer/install.conf.example`).
+  (vzor: `/usr/share/luxos/installer/install.conf.example`; ruční rozdělení `DISK_MODE=layout` + `LAYOUT`,
+  kontrola bez změn `luxos-install --check-layout soubor`).
+- Pokročilí: připojit vlastní oddíly do `/mnt` a zvolit *Advanced* (např. dual-boot).
+- Testy instalátoru: `packages/luxos-installer/tests/` (bez roota `test-layout.sh`, GUI `gui-smoke.py`,
+  ve virtuálu jako root `vm-layout-test.sh`).
 
 Instalace stahuje aktuální balíky z internetu; balíky LuxOS bere z lokálního repozitáře na ISO
 (`/opt/luxos-repo`, kopíruje se i do nainstalovaného systému).
@@ -105,7 +117,7 @@ LuxOS má dva podepsané repozitáře na `https://lsl.lux-ai.cz/luxos/` (přehle
 - `[luxos]` – systém LuxOS (`packages/*`),
 - `[luxos-apps]` – aplikace ke stažení, např. LSL, LSL IDE, Lux Code (`packages/apps/*`).
 
-Nainstalovaný systém z nich bere aktualizace (`lux update`) a aplikace (`lux install lsl`); libalpm (lux i pacman) ověřuje
+Nainstalovaný systém z nich bere aktualizace (`lux update`) a aplikace (`lux install lsl`); libalpm ověřuje
 podpis každého balíku klíčem z `luxos-keyring`. Live ISO instaluje z kopie repozitářů na médiu.
 
 Přidání aplikace:
@@ -137,9 +149,19 @@ lux install hello-lux                      # z repozitáře LuxOS
 ## lux
 
 Výchozí správce balíků. Transakce dělá přes libalpm (`pyalpm`, `/usr/lib/lux/lux_alpm.py`) se stejnou
-databází, `pacman.conf`, podpisy a hooky jako pacman – `pacman` v systému zůstává pro pokročilé a oba
-nástroje jdou střídat. Bez `pyalpm` (nebo `LUX_BACKEND=pacman`) volá pacman. Obchod LuxOS a LuxOS Care
-volají `lux_alpm.py --machine` (řádky `@@…`). Podrobně: [packages/lux/lux.md](packages/lux/lux.md).
+databází, `pacman.conf`, podpisy a hooky jako pacman. Bez `pyalpm` (nebo `LUX_BACKEND=pacman`) volá skutečný
+pacman `/usr/lib/lux/alpm/pacman`. Obchod LuxOS a LuxOS Care volají `lux_alpm.py --machine` (řádky `@@…`).
+Podrobně: [packages/lux/lux.md](packages/lux/lux.md).
+
+**Pacman** je balík `luxos-pacman`: pacman z Arch Linuxu sestavený ze stejných zdrojů a součtů jako v Archu
+(libalpm, makepkg, `pacman-key`, `pacman-conf`, `vercmp`, `repo-add`, hooky), jen skutečný program je
+`/usr/lib/lux/alpm/pacman` a `/usr/bin/pacman` je kompatibilní vrstva: bez terminálu (skripty, hooky, služby)
+a pro `makepkg`, `pacstrap`, `lux` a AUR pomocníky ho pustí beze změny, člověku v terminálu ukáže příkaz `lux`
+(`pacman -Syu` → `lux update`). Pokročilí: `sudo LUX_ALLOW_PACMAN=1 pacman …` nebo trvale
+`sudo touch /etc/lux/allow-pacman`. `luxos-pacman` nahrazuje balík `pacman` (`replaces`/`provides`) a musí
+držet krok s verzí v Archu (`pyalpm` z Archu se sestavuje proti jeho `libalpm.so`) – `build.sh` varuje, když
+je Arch novější; postup aktualizace je v hlavičce `packages/luxos-pacman/PKGBUILD`.
+Testy: `python3 -m unittest discover -s packages/luxos-pacman/tests`.
 
 | Příkaz | Co dělá |
 |---|---|
@@ -188,6 +210,7 @@ packages/                   vlastní balíky LuxOS (lokální repozitář [luxos
   luxos-installer           luxos-install
   luxdrop                   LuxDrop – bezpečné posílání souborů v síti, kompatibilní s LocalSend (GTK, CLI, protokol)
   lux                       správce balíků
+  luxos-pacman              pacman z Archu (libalpm, makepkg) s příkazem pacman jako kompatibilní vrstvou
   blesh                     ble.sh
 ```
 

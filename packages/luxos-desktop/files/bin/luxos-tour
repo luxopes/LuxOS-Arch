@@ -1,0 +1,1239 @@
+#!/usr/bin/env python3
+"""LuxOS - Prohlidka LuxOS: kratky pruvodce systemem (kde je co), jako uvitani v macOS.
+
+  luxos-tour               okno pruvodce (Launchpad, Uvitani, O tomto pocitaci)
+  luxos-tour --first-run   prvni prihlaseni (luxos-session): jen pokud jeste nebezel
+  luxos-tour --page N      otevre rovnou N-tou stranku (od 1)
+
+Pri prvnim zobrazeni zapise ~/.config/luxos/tour-done, takze se sam spusti jen jednou.
+Ilustrace se kresli v cairo (zadne obrazky), barvy podle svetleho/tmaveho vzhledu.
+Tlacitko "Ukazat na obrazovce" zvyrazni skutecnou horni listu / Dock pruhlednym
+prekryvem (jen s kompozitorem a se zjistenou polohou; jinak se nezobrazi).
+"""
+import math
+import os
+import re
+import subprocess
+import sys
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_i18n import _  # noqa: E402
+
+import cairo  # noqa: E402
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("Pango", "1.0")
+gi.require_version("PangoCairo", "1.0")
+from gi.repository import Gdk, Gio, GLib, Gtk, Pango, PangoCairo  # noqa: E402
+
+CFG = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "luxos")
+MARKER = os.path.join(CFG, "tour-done")
+ACCENT = (0.24, 0.48, 1.0)          # #3d7bff
+VIOLET = (0.55, 0.36, 1.0)          # #8b5cff
+VW, VH = 640, 300                   # virtualni plocha ilustraci (zmensuje se podle okna)
+
+# Logo LuxOS (luxos-branding/files/logo/luxos-logo.svg, viewBox 256)
+LOGO_PATH = ("M246.27 209.91C188.18 163.23 147.07 104.71 133.55 30.45C116.12 140.58 158.36 161.65 246.27 209.91Z"
+             "M8.09 211.18C89.02 173.90 133.08 136.86 126.09 40.64C105.95 110.22 62.88 165.17 8.09 211.18Z"
+             "M248.64 226.09C158.26 151.17 105.77 146.57 13.73 222.82C95.86 182.21 167.60 183.49 248.64 226.09Z")
+
+CSS = b"""
+.tour-title { font-size: 24px; font-weight: 800; }
+.tour-body { font-size: 14px; opacity: 0.78; }
+.primary { border-radius: 999px; padding: 6px 24px; font-weight: 700; background-image: none;
+           background-color: #3d7bff; color: white; border: none; box-shadow: none; }
+.primary:hover { background-color: #5a8fff; }
+.primary:focus { box-shadow: 0 0 0 3px alpha(#3d7bff, 0.35); }
+.pill { border-radius: 999px; padding: 4px 16px; }
+.pill:checked { background-image: none; background-color: alpha(#3d7bff, 0.18); border-color: #3d7bff;
+                color: inherit; }
+.dot { min-width: 8px; min-height: 8px; padding: 0; margin: 0 3px; border-radius: 999px; border: none;
+       background-image: none; box-shadow: none; background-color: alpha(currentColor, 0.22); }
+.dot:hover { background-color: alpha(currentColor, 0.45); }
+.dot.active { background-color: #3d7bff; min-width: 22px; }
+.dot:focus { box-shadow: 0 0 0 2px alpha(#3d7bff, 0.5); }
+"""
+
+
+# ---- pomocne kresleni --------------------------------------------------------------------
+def rgba(c, a=1.0):
+    return (c[0], c[1], c[2], a)
+
+
+def hexc(h, a=1.0):
+    h = h.lstrip("#")
+    return (int(h[0:2], 16) / 255, int(h[2:4], 16) / 255, int(h[4:6], 16) / 255, a)
+
+
+def rrect(cr, x, y, w, h, r):
+    r = max(0, min(r, w / 2, h / 2))
+    cr.new_sub_path()
+    cr.arc(x + w - r, y + r, r, -math.pi / 2, 0)
+    cr.arc(x + w - r, y + h - r, r, 0, math.pi / 2)
+    cr.arc(x + r, y + h - r, r, math.pi / 2, math.pi)
+    cr.arc(x + r, y + r, r, math.pi, 3 * math.pi / 2)
+    cr.close_path()
+
+
+def fill(cr, color):
+    cr.set_source_rgba(*color)
+    cr.fill()
+
+
+def vgrad(y0, y1, c0, c1):
+    g = cairo.LinearGradient(0, y0, 0, y1)
+    g.add_color_stop_rgba(0, *c0)
+    g.add_color_stop_rgba(1, *c1)
+    return g
+
+
+def shadow(cr, x, y, w, h, r, dark, depth=10):
+    """Mekky stin pod oknem (nekolik pruhlednych vrstev)."""
+    for i in range(depth, 0, -2):
+        rrect(cr, x - i * 0.3, y + i * 0.5, w + i * 0.6, h + i * 0.4, r + i * 0.5)
+        cr.set_source_rgba(0, 0, 0, (0.05 if dark else 0.025))
+        cr.fill()
+
+
+def logo_path(cr, x, y, size):
+    """Vlozi do cesty logo LuxOS o velikosti size (levy horni roh x, y)."""
+    s = size / 256
+    tok = re.findall(r"[MCZ]|-?\d+(?:\.\d+)?", LOGO_PATH)
+    i = 0
+    while i < len(tok):
+        t = tok[i]
+        if t == "M":
+            cr.move_to(x + float(tok[i + 1]) * s, y + float(tok[i + 2]) * s)
+            i += 3
+        elif t == "C":
+            p = [float(v) for v in tok[i + 1:i + 7]]
+            cr.curve_to(x + p[0] * s, y + p[1] * s, x + p[2] * s, y + p[3] * s, x + p[4] * s, y + p[5] * s)
+            i += 7
+        else:
+            cr.close_path()
+            i += 1
+
+
+def logo(cr, x, y, size, color=None):
+    logo_path(cr, x, y, size)
+    if color:
+        cr.set_source_rgba(*color)
+    else:
+        g = cairo.LinearGradient(x + size * 0.16, y + size * 0.12, x + size * 0.88, y + size * 0.9)
+        g.add_color_stop_rgb(0, 0.48, 0.72, 1.0)
+        g.add_color_stop_rgb(0.5, 0.36, 0.49, 1.0)
+        g.add_color_stop_rgb(1, 0.63, 0.42, 1.0)
+        cr.set_source(g)
+    cr.fill()
+
+
+class Painter:
+    """Kontext jedne ilustrace: barvy podle vzhledu, text pres Pango, ikony z motivu."""
+    _icons = {}
+
+    def __init__(self, cr, widget, dark):
+        self.cr, self.widget, self.dark = cr, widget, dark
+        self.fg = hexc("#f2f3f7") if dark else hexc("#1d1d1f")
+        self.dim = hexc("#f2f3f7", 0.6) if dark else hexc("#1d1d1f", 0.55)
+        self.win = hexc("#262833") if dark else hexc("#ffffff")
+        self.win2 = hexc("#1e2029") if dark else hexc("#f3f4f8")
+        self.line = (1, 1, 1, 0.10) if dark else (0, 0, 0, 0.10)
+        self.font = widget.get_pango_context().get_font_description().get_family() or "Sans"
+
+    # text: vraci sirku; align l/c/r vuci x
+    def text(self, s, x, y, size=11, color=None, bold=False, align="l", mono=False, maxw=None, lines=1):
+        cr = self.cr
+        lay = PangoCairo.create_layout(cr)
+        fd = Pango.FontDescription.from_string(("Monospace" if mono else self.font) + " " + str(size))
+        fd.set_absolute_size(size * Pango.SCALE)
+        if bold:
+            fd.set_weight(Pango.Weight.BOLD)
+        lay.set_font_description(fd)
+        lay.set_text(s, -1)
+        if maxw:
+            lay.set_width(int(maxw * Pango.SCALE))
+            lay.set_ellipsize(Pango.EllipsizeMode.END)
+            if lines > 1:
+                lay.set_wrap(Pango.WrapMode.WORD_CHAR)
+                lay.set_height(-lines)
+        w, h = lay.get_pixel_size()
+        if maxw and lines > 1 and align != "l":
+            lay.set_alignment(Pango.Alignment.CENTER if align == "c" else Pango.Alignment.RIGHT)
+            w = maxw
+        dx = {"l": 0, "c": -w / 2, "r": -w}[align]
+        cr.move_to(x + dx, y - h / 2)
+        cr.set_source_rgba(*(color or self.fg))
+        PangoCairo.show_layout(cr, lay)
+        return w
+
+    def text_width(self, s, size=11, bold=False):
+        lay = PangoCairo.create_layout(self.cr)
+        fd = Pango.FontDescription.from_string(self.font)
+        fd.set_absolute_size(size * Pango.SCALE)
+        if bold:
+            fd.set_weight(Pango.Weight.BOLD)
+        lay.set_font_description(fd)
+        lay.set_text(s, -1)
+        return lay.get_pixel_size()[0]
+
+    def icon(self, names, x, y, size, fallback=ACCENT, glyph=""):
+        """Ikona aplikace z motivu ikon (prvni existujici), jinak barevna dlazdice."""
+        cr = self.cr
+        px = int(size * 2)          # vetsi rozliseni - ilustrace se zvetsuje
+        pb = None
+        for n in names:
+            key = (n, px)
+            if key not in self._icons:
+                try:
+                    self._icons[key] = Gtk.IconTheme.get_default().load_icon(
+                        n, px, Gtk.IconLookupFlags.FORCE_SIZE)
+                except GLib.Error:
+                    self._icons[key] = None
+            pb = self._icons[key]
+            if pb:
+                break
+        if pb:
+            cr.save()
+            cr.translate(x, y)
+            cr.scale(size / pb.get_width(), size / pb.get_height())
+            Gdk.cairo_set_source_pixbuf(cr, pb, 0, 0)
+            cr.paint()
+            cr.restore()
+            return
+        rrect(cr, x + size * 0.06, y + size * 0.06, size * 0.88, size * 0.88, size * 0.22)
+        cr.set_source(vgrad(y, y + size, rgba(tuple(min(1, c + 0.18) for c in fallback)), rgba(fallback)))
+        cr.fill()
+        if glyph:
+            self.text(glyph, x + size / 2, y + size / 2, size * 0.42, (1, 1, 1, 1), bold=True, align="c")
+
+    def keycap(self, label, x, y, h=26, size=11):
+        """Klavesa; vraci sirku."""
+        cr = self.cr
+        w = max(h, self.text_width(label, size, True) + 18)
+        rrect(cr, x, y + 2, w, h, 6)
+        fill(cr, (0, 0, 0, 0.35 if self.dark else 0.12))
+        rrect(cr, x, y, w, h, 6)
+        cr.set_source(vgrad(y, y + h, hexc("#3a3d4a") if self.dark else hexc("#ffffff"),
+                            hexc("#30323d") if self.dark else hexc("#eef0f5")))
+        cr.fill_preserve()
+        cr.set_source_rgba(*self.line)
+        cr.set_line_width(1)
+        cr.stroke()
+        self.text(label, x + w / 2, y + h / 2, size, bold=True, align="c")
+        return w
+
+    def combo(self, keys, x, y, h=24, size=10, align="l"):
+        """Kombinace klaves "Super + A"; vraci sirku."""
+        widths = [max(h, self.text_width(k, size, True) + 18) for k in keys]
+        total = sum(widths) + 16 * (len(keys) - 1)
+        kx = x - total / 2 if align == "c" else x
+        for i, k in enumerate(keys):
+            if i:
+                self.text("+", kx + 8, y + h / 2, size + 1, self.dim, bold=True, align="c")
+                kx += 16
+            kx += self.keycap(k, kx, y, h, size)
+        return total
+
+    def pill(self, s, x, y, size=10.5, color=ACCENT, align="c"):
+        """Popisek v barevnem stitku (vysvetlivka v ilustraci)."""
+        cr = self.cr
+        w = self.text_width(s, size, True) + 18
+        h = size + 11
+        x0 = {"l": x, "c": x - w / 2, "r": x - w}[align]
+        rrect(cr, x0, y - h / 2, w, h, h / 2)
+        fill(cr, rgba(color, 0.95))
+        self.text(s, x0 + w / 2, y, size, (1, 1, 1, 1), bold=True, align="c")
+        return x0, w
+
+    def leader(self, x0, y0, x1, y1, color=ACCENT):
+        cr = self.cr
+        cr.set_source_rgba(*rgba(color, 0.9))
+        cr.set_line_width(1.5)
+        cr.move_to(x0, y0)
+        cr.line_to(x1, y1)
+        cr.stroke()
+        cr.arc(x0, y0, 3, 0, 2 * math.pi)
+        cr.fill()
+
+    def ring(self, x, y, w, h, r, color=ACCENT):
+        """Zvyrazneni oblasti: zareni + ostra linka."""
+        cr = self.cr
+        for lw, a in ((12, 0.10), (7, 0.18), (2.5, 0.95)):
+            rrect(cr, x, y, w, h, r)
+            cr.set_source_rgba(*rgba(color, a))
+            cr.set_line_width(lw)
+            cr.stroke()
+
+    def wallpaper(self, x, y, w, h, r=10, dark=None):
+        """Tapeta LuxOS v miniature: prechod modra -> fialova s vlnami."""
+        cr = self.cr
+        dark = self.dark if dark is None else dark
+        cr.save()
+        rrect(cr, x, y, w, h, r)
+        cr.clip()
+        g = cairo.LinearGradient(x, y, x + w, y + h)
+        if dark:
+            g.add_color_stop_rgb(0, 0.06, 0.10, 0.26)
+            g.add_color_stop_rgb(0.55, 0.17, 0.14, 0.45)
+            g.add_color_stop_rgb(1, 0.33, 0.16, 0.52)
+        else:
+            g.add_color_stop_rgb(0, 0.62, 0.78, 1.0)
+            g.add_color_stop_rgb(0.55, 0.70, 0.66, 1.0)
+            g.add_color_stop_rgb(1, 0.86, 0.68, 1.0)
+        cr.set_source(g)
+        cr.paint()
+        for i, a in enumerate((0.16, 0.11, 0.08)):
+            yy = y + h * (0.45 + i * 0.16)
+            cr.move_to(x - 10, yy)
+            cr.curve_to(x + w * 0.3, yy - h * 0.35, x + w * 0.6, yy + h * 0.3, x + w + 10, yy - h * 0.15)
+            cr.line_to(x + w + 10, y + h + 10)
+            cr.line_to(x - 10, y + h + 10)
+            cr.close_path()
+            cr.set_source_rgba(1, 1, 1, a)
+            cr.fill()
+        cr.restore()
+
+    # ---- symbolicke ikony horni listy (stred cx, cy; velikost s) ----
+    def g_wifi(self, cx, cy, s, c):
+        cr = self.cr
+        cr.set_source_rgba(*c)
+        cr.set_line_width(s * 0.13)
+        cr.set_line_cap(cairo.LINE_CAP_ROUND)
+        by = cy + s * 0.38
+        for k in (0.30, 0.56, 0.82):
+            cr.arc(cx, by, s * k * 0.75, math.radians(-135), math.radians(-45))
+            cr.stroke()
+        cr.arc(cx, by - s * 0.02, s * 0.08, 0, 2 * math.pi)
+        cr.fill()
+
+    def g_sound(self, cx, cy, s, c):
+        cr = self.cr
+        cr.set_source_rgba(*c)
+        x = cx - s * 0.45
+        cr.move_to(x, cy - s * 0.14)
+        cr.line_to(x + s * 0.18, cy - s * 0.14)
+        cr.line_to(x + s * 0.42, cy - s * 0.36)
+        cr.line_to(x + s * 0.42, cy + s * 0.36)
+        cr.line_to(x + s * 0.18, cy + s * 0.14)
+        cr.line_to(x, cy + s * 0.14)
+        cr.close_path()
+        cr.fill()
+        cr.set_line_width(s * 0.1)
+        cr.set_line_cap(cairo.LINE_CAP_ROUND)
+        for k in (0.2, 0.38):
+            cr.arc(x + s * 0.42, cy, s * k, -0.9, 0.9)
+            cr.stroke()
+
+    def g_battery(self, cx, cy, s, c, level=0.82):
+        cr = self.cr
+        w, h = s * 1.15, s * 0.58
+        x, y = cx - w / 2, cy - h / 2
+        rrect(cr, x, y, w, h, h * 0.28)
+        cr.set_source_rgba(*c)
+        cr.set_line_width(s * 0.08)
+        cr.stroke()
+        rrect(cr, x + s * 0.1, y + s * 0.1, (w - s * 0.2) * level, h - s * 0.2, h * 0.14)
+        cr.fill()
+        rrect(cr, x + w + s * 0.04, cy - h * 0.2, s * 0.08, h * 0.4, s * 0.04)
+        cr.fill()
+
+    def g_cc(self, cx, cy, s, c):
+        cr = self.cr
+        cr.set_source_rgba(*c)
+        cr.set_line_width(s * 0.08)
+        for dy, knob in ((-0.22, -0.2), (0.22, 0.2)):
+            rrect(cr, cx - s * 0.42, cy + dy * s - s * 0.16, s * 0.84, s * 0.32, s * 0.16)
+            cr.stroke()
+            cr.arc(cx + knob * s, cy + dy * s, s * 0.1, 0, 2 * math.pi)
+            cr.fill()
+
+    def g_bell(self, cx, cy, s, c):
+        cr = self.cr
+        cr.set_source_rgba(*c)
+        cr.move_to(cx - s * 0.36, cy + s * 0.22)
+        cr.curve_to(cx - s * 0.26, cy + s * 0.08, cx - s * 0.3, cy - s * 0.38, cx, cy - s * 0.38)
+        cr.curve_to(cx + s * 0.3, cy - s * 0.38, cx + s * 0.26, cy + s * 0.08, cx + s * 0.36, cy + s * 0.22)
+        cr.close_path()
+        cr.fill()
+        cr.arc(cx, cy + s * 0.32, s * 0.09, 0, 2 * math.pi)
+        cr.fill()
+
+    def g_lock(self, cx, cy, s, c):
+        cr = self.cr
+        cr.set_source_rgba(*c)
+        cr.set_line_width(s * 0.12)
+        cr.arc(cx, cy - s * 0.08, s * 0.24, math.pi, 0)
+        cr.line_to(cx + s * 0.24, cy + s * 0.02)
+        cr.move_to(cx - s * 0.24, cy + s * 0.02)
+        cr.line_to(cx - s * 0.24, cy - s * 0.08)
+        cr.stroke()
+        rrect(cr, cx - s * 0.36, cy, s * 0.72, s * 0.5, s * 0.1)
+        cr.fill()
+
+    def topbar(self, x, y, w, h, app, menus, big=False):
+        """Horni lista; vraci polohy prvku pro vysvetlivky."""
+        cr = self.cr
+        rrect(cr, x, y, w, h, 0 if not big else 10)
+        fill(cr, hexc("#1c1d24", 0.78) if self.dark else hexc("#ffffff", 0.82))
+        fs = h * 0.42
+        c = self.fg
+        pos = {}
+        lx = x + h * 0.45
+        logo(cr, lx, y + h * 0.2, h * 0.6, color=c)
+        pos["logo"] = (lx + h * 0.3, y + h)
+        # vpravo: hodiny, upozorneni, ovladaci centrum, baterie, zvuk, Wi-Fi
+        clock = GLib.DateTime.new_now_local().format("%a %e %b  %H:%M") or "9:41"
+        rx = x + w - h * 0.4
+        cw = self.text(clock.replace("  ", " "), rx, y + h / 2, fs, c, bold=True, align="r")
+        pos["clock"] = (rx - cw / 2, y + h)
+        rx -= cw + h * 0.75
+        gs = h * 0.52
+        for name, fn in (("bell", self.g_bell), ("cc", self.g_cc), ("battery", self.g_battery),
+                         ("sound", self.g_sound), ("wifi", self.g_wifi)):
+            fn(rx, y + h / 2, gs, c)
+            pos[name] = (rx, y + h)
+            rx -= h * (1.0 if name != "battery" else 1.05)
+        # vlevo: aplikace a jeji nabidky (jen ty, ktere se vejdou pred stavove ikony)
+        limit = rx - h * 0.2
+        tx = lx + h * 0.95
+        tw = self.text(app, tx, y + h / 2, fs, c, bold=True)
+        mx = tx + tw + h * 0.6
+        m0 = mx
+        for m in menus:
+            mw = self.text_width(m, fs)
+            if mx + mw > limit:
+                break
+            self.text(m, mx, y + h / 2, fs, c)
+            mx += mw + h * 0.55
+        pos["menus"] = ((m0 + mx - h * 0.55) / 2 if mx > m0 else m0, y + h)
+        return pos
+
+    def window(self, x, y, w, h, title="", r=10):
+        """Okno aplikace s titulkem a semafory; vraci y obsahu."""
+        cr = self.cr
+        shadow(cr, x, y, w, h, r, self.dark)
+        rrect(cr, x, y, w, h, r)
+        fill(cr, self.win)
+        rrect(cr, x, y, w, h, r)
+        cr.set_source_rgba(*self.line)
+        cr.set_line_width(1)
+        cr.stroke()
+        for i, col in enumerate(("#ff5f57", "#febc2e", "#28c840")):
+            cr.arc(x + 14 + i * 13, y + 13, 4.2, 0, 2 * math.pi)
+            fill(cr, hexc(col))
+        if title:
+            self.text(title, x + w / 2, y + 13, 10, self.dim, bold=True, align="c")
+        return y + 26
+
+    def dock(self, cx, y, size, items, running=(), gap=None):
+        """Dock s ikonami; vraci (x, y, w, h) panelu."""
+        cr = self.cr
+        gap = gap if gap is not None else size * 0.22
+        n = len(items)
+        w = n * size + (n - 1) * gap + size * 0.5
+        h = size * 1.32
+        x = cx - w / 2
+        rrect(cr, x, y, w, h, size * 0.32)
+        fill(cr, hexc("#2b2c36", 0.72) if self.dark else hexc("#ffffff", 0.55))
+        rrect(cr, x, y, w, h, size * 0.32)
+        cr.set_source_rgba(1, 1, 1, 0.22 if self.dark else 0.7)
+        cr.set_line_width(1)
+        cr.stroke()
+        ix = x + size * 0.25
+        for i, it in enumerate(items):
+            self.icon(it[0], ix, y + size * 0.14, size, it[1], it[2])
+            if i in running:
+                cr.arc(ix + size / 2, y + h - size * 0.09, size * 0.045, 0, 2 * math.pi)
+                fill(cr, self.fg)
+            ix += size + gap
+        return x, y, w, h
+
+
+DOCK_ITEMS = [
+    (["luxos-launchpad"], (0.35, 0.45, 1.0), "⋮⋮"),
+    (["luxai", "luxos-app"], (0.30, 0.42, 1.0), "✦"),
+    (["luxos-store"], (0.20, 0.55, 1.0), "S"),
+    (["luxos-files", "org.xfce.thunar", "system-file-manager"], (0.25, 0.6, 1.0), "▤"),
+    (["firefox", "luxos-web-browser", "web-browser"], (1.0, 0.5, 0.2), "◉"),
+    (["utilities-terminal", "org.xfce.terminal"], (0.2, 0.22, 0.26), ">_"),
+    (["luxos-notes", "accessories-text-editor", "org.xfce.mousepad"], (1.0, 0.65, 0.2), "✎"),
+    (["luxos-settings", "preferences-system", "org.xfce.settings.manager"], (0.45, 0.5, 0.6), "⚙"),
+    (["user-trash"], (0.7, 0.72, 0.76), "◌"),
+]
+GRID_ITEMS = DOCK_ITEMS[2:8] + [
+    (["luxos-calculator", "accessories-calculator"], (1.0, 0.6, 0.1), "±"),
+    (["luxos-camera", "camera-app", "cheese"], (0.3, 0.3, 0.35), "◎"),
+    (["luxdrop"], (0.2, 0.7, 0.9), "⇄"),
+    (["luxos-feedback"], (0.5, 0.4, 0.95), "!"),
+    (["luxos-safe"], (0.25, 0.3, 0.45), "🔒"),
+    (["printer"], (0.5, 0.55, 0.6), "⎙"),
+    (["luxos-videos", "multimedia-video-player"], (0.9, 0.3, 0.3), "▶"),
+    (["luxos-image-viewer", "image-viewer"], (0.3, 0.7, 0.4), "▣"),
+]
+
+
+# ---- ilustrace jednotlivych stranek (virtualni plocha 640 x 300) -------------------------
+def draw_welcome(p):
+    cr = p.cr
+    p.wallpaper(0, 0, VW, VH, 18)
+    cx, cy, s = VW / 2, VH / 2 - 6, 150
+    # mekka zare za logem
+    g = cairo.RadialGradient(cx, cy + 10, 10, cx, cy + 10, 170)
+    g.add_color_stop_rgba(0, 1, 1, 1, 0.55 if not p.dark else 0.22)
+    g.add_color_stop_rgba(1, 1, 1, 1, 0)
+    cr.set_source(g)
+    cr.paint()
+    for k, a in ((1.0, 0.18), (1.35, 0.10), (1.75, 0.06)):
+        cr.arc(cx, cy + 12, s * 0.55 * k, 0, 2 * math.pi)
+        cr.set_source_rgba(1, 1, 1, a)
+        cr.set_line_width(1.2)
+        cr.stroke()
+    logo(cr, cx - s / 2, cy - s / 2 - 4, s, color=(1, 1, 1, 0.95) if p.dark else None)
+    p.text("LuxOS", cx, VH - 34, 22, (1, 1, 1, 0.95) if p.dark else hexc("#1d1d1f", 0.85), bold=True, align="c")
+
+
+def draw_menubar(p):
+    cr = p.cr
+    p.wallpaper(0, 0, VW, VH, 18)
+    by, bh = 40, 34
+    pos = p.topbar(14, by, VW - 28, bh, _("Files"), [_("File"), _("Edit"), _("View"), _("Go")], big=True)
+    # Ovladaci centrum rozbalene pod ikonou
+    ccx, bellx = pos["cc"][0], pos["bell"][0]
+    pw, ph = 224, 196
+    px, py = min(VW - 14 - pw, ccx - 40), by + bh + 10
+    shadow(cr, px, py, pw, ph, 16, p.dark)
+    rrect(cr, px, py, pw, ph, 16)
+    fill(cr, hexc("#22242e", 0.94) if p.dark else hexc("#f7f7fa", 0.95))
+    tiles = (_("Wi-Fi"), _("Bluetooth"), _("Do Not Disturb"), _("Dark Mode"))
+    for i, name in enumerate(tiles):
+        on = i < 2 or (i == 3 and p.dark)
+        tx = px + 10 + (i % 2) * 104
+        ty = py + 10 + (i // 2) * 50
+        rrect(cr, tx, ty, 98, 42, 12)
+        fill(cr, hexc("#ffffff", 0.07) if p.dark else hexc("#000000", 0.05))
+        cr.arc(tx + 19, ty + 21, 12.5, 0, 2 * math.pi)
+        fill(cr, rgba(ACCENT) if on else (hexc("#ffffff", 0.15) if p.dark else hexc("#000000", 0.12)))
+        ic = (1, 1, 1, 1) if on else p.fg
+        if i == 0:
+            p.g_wifi(tx + 19, ty + 21, 14, ic)
+        elif i == 1:
+            p.text("ᛒ", tx + 19, ty + 21, 13, ic, bold=True, align="c")
+        elif i == 2:
+            cr.save()
+            cr.arc(tx + 19, ty + 21, 6.5, 0, 2 * math.pi)
+            cr.arc_negative(tx + 22.5, ty + 18, 5.5, 2 * math.pi, 0)
+            cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+            fill(cr, ic)
+            cr.restore()
+        else:
+            cr.arc(tx + 19, ty + 21, 6.5, -math.pi / 2, math.pi / 2)
+            fill(cr, ic)
+            cr.arc(tx + 19, ty + 21, 6.5, 0, 2 * math.pi)
+            cr.set_source_rgba(*ic)
+            cr.set_line_width(1.5)
+            cr.stroke()
+        p.text(name, tx + 36, ty + 21, 9, bold=True, maxw=58, lines=2)
+    for j, (name, val) in enumerate(((_("Display"), 0.7), (_("Sound"), 0.45))):
+        sy = py + 118 + j * 32
+        p.text(name, px + 12, sy, 9, p.dim, bold=True)
+        rrect(cr, px + 12, sy + 8, pw - 24, 11, 5.5)
+        fill(cr, hexc("#ffffff", 0.12) if p.dark else hexc("#000000", 0.08))
+        rrect(cr, px + 12, sy + 8, (pw - 24) * val, 11, 5.5)
+        fill(cr, hexc("#ffffff", 0.92) if p.dark else rgba(ACCENT, 0.9))
+    yb = py + ph - 14
+    p.g_battery(px + 22, yb, 16, p.fg)
+    p.text(_("82 % · 3:12 h left"), px + 38, yb, 9.5, p.dim, bold=True)
+    p.ring(ccx - 13, by + 3, 26, bh - 6, 7)
+    # vysvetlivky nad listou (Ovladaci centrum, upozorneni)
+    p.pill(_("Control Center"), ccx + 10, 19, align="r")
+    p.pill(_("Notifications"), bellx - 10, 19, align="l")
+    # vysvetlivky vlevo pod listou
+    for key, label, ly in (("logo", _("System menu"), 128), ("menus", _("App menus"), 182),
+                           ("wifi", _("Wi-Fi, sound, battery"), 236)):
+        x0, y0 = pos[key]
+        lx = min(max(x0, 80), px - 96)
+        p.leader(x0, y0 - 2, lx, ly - 10)
+        p.pill(label, lx, ly)
+
+
+def draw_dock(p):
+    cr = p.cr
+    p.wallpaper(0, 0, VW, VH, 18)
+    rrect(cr, 0, 0, VW, 18, 0)
+    p.topbar(0, 0, VW, 18, "LuxOS", [])
+    top = p.window(150, 40, 340, 150, _("Files"))
+    rrect(cr, 151, top, 90, 150 - (top - 40) - 1, 0)
+    fill(cr, p.win2)
+    for k in range(4):
+        rrect(cr, 162, top + 14 + k * 20, 58 - k * 6, 7, 3.5)
+        fill(cr, p.dim[:3] + (0.3,))
+        p.icon(["folder"], 262 + k * 54, top + 22, 36, (0.35, 0.6, 1.0), "")
+    x, y, w, h = p.dock(VW / 2, VH - 86, 48, DOCK_ITEMS, running=(3, 4))
+    p.ring(x - 4, y - 4, w + 8, h + 8, 20)
+    # bublina s nazvem nad ikonou Soubory
+    fx = x + 48 * 0.25 + 3 * (48 + 48 * 0.22) + 24
+    x0, bw = p.pill(_("Files"), fx, y - 22, 10.5, color=(0.15, 0.16, 0.2) if not p.dark else (0.35, 0.37, 0.45))
+    cr.move_to(fx - 5, y - 13)
+    cr.line_to(fx + 5, y - 13)
+    cr.line_to(fx, y - 8)
+    cr.close_path()
+    fill(cr, (0.15, 0.16, 0.2, 0.95) if not p.dark else (0.35, 0.37, 0.45, 0.95))
+    p.text(_("● = app is running"), x + w - 6, y + h + 14, 10, p.fg, bold=True, align="r")
+
+
+def draw_launchpad(p):
+    cr = p.cr
+    p.wallpaper(0, 0, VW, VH, 18)
+    # Launchpad
+    lx, ly, lw, lh = 22, 22, 330, 256
+    shadow(cr, lx, ly, lw, lh, 18, p.dark)
+    rrect(cr, lx, ly, lw, lh, 18)
+    fill(cr, hexc("#1e1f27", 0.86) if p.dark else hexc("#ffffff", 0.8))
+    rrect(cr, lx + 16, ly + 14, lw - 32, 28, 14)
+    fill(cr, hexc("#ffffff", 0.08) if p.dark else hexc("#000000", 0.06))
+    p.text("⌕  " + _("Search apps or ask LuxAI"), lx + 30, ly + 28, 10.5, p.dim, maxw=lw - 60)
+    for i, it in enumerate(GRID_ITEMS[:12]):
+        gx = lx + 26 + (i % 4) * 74
+        gy = ly + 52 + (i // 4) * 58
+        p.icon(it[0], gx + 8, gy, 40, it[1], it[2])
+    p.combo(("Super", "A"), lx + lw / 2, ly + lh - 34, 24, 10, align="c")
+    # Hledani + LuxAI
+    sx, sy, sw = 372, 52, 248
+    shadow(cr, sx, sy, sw, 40, 14, p.dark)
+    rrect(cr, sx, sy, sw, 40, 14)
+    fill(cr, hexc("#262833", 0.95) if p.dark else hexc("#ffffff", 0.96))
+    p.text("⌕", sx + 18, sy + 20, 15, p.dim, align="c")
+    p.text(_("How do I connect a printer?"), sx + 34, sy + 20, 11, maxw=sw - 44)
+    by = sy + 54
+    rrect(cr, sx, by, sw, 120, 14)
+    fill(cr, hexc("#262833", 0.92) if p.dark else hexc("#ffffff", 0.9))
+    cr.save()
+    cr.translate(sx + 14, by + 12)
+    rrect(cr, 0, 0, 24, 24, 7)
+    cr.set_source(vgrad(0, 24, rgba(ACCENT), rgba(VIOLET)))
+    cr.fill()
+    cr.restore()
+    p.text("✦", sx + 26, by + 24, 12, (1, 1, 1, 1), bold=True, align="c")
+    p.text("LuxAI", sx + 46, by + 24, 11, bold=True)
+    for k, wf in enumerate((0.88, 0.95, 0.7, 0.5)):
+        rrect(cr, sx + 14, by + 48 + k * 16, (sw - 28) * wf, 7, 3.5)
+        fill(cr, p.dim[:3] + (0.35,))
+    p.combo(("Super", _("Space")), sx + sw / 2, sy + 190, 24, 10, align="c")
+
+
+def draw_files(p):
+    cr = p.cr
+    p.wallpaper(0, 0, VW, VH, 18)
+    x, y, w, h = 60, 24, 440, 252
+    top = p.window(x, y, w, h, _("Home"))
+    sb = 128
+    rrect(cr, x + 1, top, sb, h - (top - y) - 1, 0)
+    fill(cr, p.win2)
+    items = ((_("Home"), "go-home"), (_("Documents"), "folder-documents"), (_("Downloads"), "folder-download"),
+             (_("Pictures"), "folder-pictures"), (_("Music"), "folder-music"), (_("Safe"), None))
+    for i, (name, _ic) in enumerate(items):
+        iy = top + 18 + i * 28
+        if name == _("Safe"):
+            rrect(cr, x + 8, iy - 12, sb - 14, 24, 7)
+            fill(cr, rgba(ACCENT, 0.18))
+            p.g_lock(x + 22, iy, 13, rgba(ACCENT))
+            p.text(name, x + 36, iy, 10.5, bold=True, maxw=sb - 44)
+            p.ring(x + 6, iy - 14, sb - 10, 28, 8)
+        else:
+            rrect(cr, x + 16, iy - 5, 12, 10, 2)
+            fill(cr, rgba(ACCENT, 0.75))
+            p.text(name, x + 36, iy, 10.5, maxw=sb - 40)
+    for i, name in enumerate((_("Documents"), _("Downloads"), _("Pictures"), _("Music"), _("Videos"),
+                              _("Desktop"))):
+        fx = x + sb + 26 + (i % 3) * 96
+        fy = top + 22 + (i // 3) * 98
+        p.icon(["folder"], fx + 14, fy, 54, (0.35, 0.6, 1.0), "")
+        p.text(name, fx + 41, fy + 66, 10, align="c", maxw=90)
+    # velky zamek Trezoru
+    lx, ly = 552, 196
+    cr.arc(lx, ly, 52, 0, 2 * math.pi)
+    cr.set_source(vgrad(ly - 52, ly + 52, rgba(ACCENT), rgba(VIOLET)))
+    cr.fill()
+    p.g_lock(lx, ly + 2, 50, (1, 1, 1, 1))
+    p.text(_("Encrypted"), lx, ly + 72, 11, (1, 1, 1, 0.95) if p.dark else p.fg, bold=True, align="c")
+
+
+def draw_store(p):
+    cr = p.cr
+    p.wallpaper(0, 0, VW, VH, 18)
+    x, y, w, h = 24, 20, 380, 236
+    top = p.window(x, y, w, h, "LuxOS Store")
+    sb = 108
+    rrect(cr, x + 1, top, sb, h - (top - y) - 1, 0)
+    fill(cr, p.win2)
+    for i, name in enumerate((_("Discover"), _("Internet"), _("Office"), _("Graphics"), _("Games"),
+                              _("Updates"))):
+        iy = top + 18 + i * 26
+        if i == 0:
+            rrect(cr, x + 8, iy - 11, sb - 14, 22, 7)
+            fill(cr, rgba(ACCENT, 0.18))
+        p.text(name, x + 18, iy, 10.5, bold=(i == 0), maxw=sb - 24)
+    apps = ((["gimp"], (0.4, 0.4, 0.35), "G", "GIMP"), (["libreoffice-main", "libreoffice-startcenter"],
+            (0.2, 0.6, 0.3), "L", "LibreOffice"), (["vlc"], (1.0, 0.5, 0.1), "▶", "VLC"),
+            (["inkscape"], (0.2, 0.2, 0.2), "I", "Inkscape"))
+    for i, (ic, col, gl, name) in enumerate(apps):
+        cx = x + sb + 14 + (i % 2) * 130
+        cy = top + 14 + (i // 2) * 96
+        rrect(cr, cx, cy, 120, 84, 12)
+        fill(cr, hexc("#ffffff", 0.05) if p.dark else hexc("#000000", 0.035))
+        p.icon(ic, cx + 10, cy + 10, 38, col, gl)
+        p.text(name, cx + 10, cy + 62, 10.5, bold=True, maxw=64)
+        bw = max(40, p.text_width(_("Get"), 9.5, True) + 16)
+        rrect(cr, cx + 112 - bw, cy + 52, bw, 20, 10)
+        fill(cr, rgba(ACCENT, 0.16))
+        p.text(_("Get"), cx + 112 - bw / 2, cy + 62, 9.5, rgba(ACCENT), bold=True, align="c")
+    # Terminal s prikazem lux
+    tx, ty, tw, th = 340, 128, 278, 152
+    shadow(cr, tx, ty, tw, th, 10, True)
+    rrect(cr, tx, ty, tw, th, 10)
+    fill(cr, hexc("#16171d", 0.97))
+    for i, col in enumerate(("#ff5f57", "#febc2e", "#28c840")):
+        cr.arc(tx + 14 + i * 13, ty + 13, 4.2, 0, 2 * math.pi)
+        fill(cr, hexc(col))
+    lines = (("❯ ", "lux install gimp", "#8ab4ff"), ("", ":: " + _("Installing") + " gimp…", "#a9adbb"),
+             ("", "✓ gimp " + _("installed"), "#5fd38d"), ("❯ ", "lux update", "#8ab4ff"),
+             ("", "✓ " + _("System is up to date"), "#5fd38d"))
+    for i, (pr, s, col) in enumerate(lines):
+        ly = ty + 38 + i * 21
+        off = 0
+        if pr:
+            off = p.text(pr, tx + 14, ly, 11, hexc("#b48cff"), mono=True)
+        p.text(s, tx + 14 + off, ly, 11, hexc(col) if not pr else hexc("#f2f3f7"), mono=True, maxw=tw - 30)
+
+
+def mini_desktop(p, x, y, w, h, dark):
+    cr = p.cr
+    shadow(cr, x, y, w, h, 12, p.dark)
+    p.wallpaper(x, y, w, h, 12, dark=dark)
+    cr.save()
+    rrect(cr, x, y, w, h, 12)
+    cr.clip()
+    cr.rectangle(x, y, w, 12)
+    fill(cr, hexc("#1c1d24", 0.8) if dark else hexc("#ffffff", 0.8))
+    wx, wy, ww, wh = x + w * 0.16, y + h * 0.22, w * 0.62, h * 0.48
+    rrect(cr, wx, wy, ww, wh, 7)
+    fill(cr, hexc("#262833") if dark else hexc("#ffffff"))
+    rrect(cr, wx, wy, ww * 0.3, wh, 7)
+    fill(cr, hexc("#1e2029") if dark else hexc("#f0f1f5"))
+    for k in range(3):
+        rrect(cr, wx + ww * 0.38, wy + 14 + k * 12, ww * (0.5 - k * 0.1), 5, 2.5)
+        fill(cr, hexc("#ffffff", 0.25) if dark else hexc("#000000", 0.15))
+    rrect(cr, x + w * 0.3, y + h - 22, w * 0.4, 16, 6)
+    fill(cr, hexc("#2b2c36", 0.75) if dark else hexc("#ffffff", 0.6))
+    cr.restore()
+
+
+def draw_appearance(p, mode=None):
+    cr = p.cr
+    rrect(cr, 0, 0, VW, VH, 18)
+    fill(cr, hexc("#1a1c26") if p.dark else hexc("#eef0f8"))
+    names = (("light", _("Light")), ("dark", _("Dark")), ("auto", _("Auto")))
+    for i, (key, name) in enumerate(names):
+        x, y, w, h = 28 + i * 200, 40, 184, 170
+        if key == "auto":
+            cr.save()
+            cr.move_to(x - 20, y - 20)
+            cr.line_to(x + w + 20, y - 20)
+            cr.line_to(x - 20, y + h + 20)
+            cr.close_path()
+            cr.clip()
+            mini_desktop(p, x, y, w, h, False)
+            cr.restore()
+            cr.save()
+            cr.move_to(x + w + 20, y - 20)
+            cr.line_to(x + w + 20, y + h + 20)
+            cr.line_to(x - 20, y + h + 20)
+            cr.close_path()
+            cr.clip()
+            mini_desktop(p, x, y, w, h, True)
+            cr.restore()
+            # slunce a mesic
+            cr.arc(x + 22, y + 30, 8, 0, 2 * math.pi)
+            fill(cr, hexc("#ffb02e"))
+            cr.arc(x + w - 22, y + h - 40, 8, 0, 2 * math.pi)
+            fill(cr, hexc("#f4f4ff"))
+            cr.arc(x + w - 18, y + h - 44, 7, 0, 2 * math.pi)
+            fill(cr, hexc("#3b3170"))
+        else:
+            mini_desktop(p, x, y, w, h, key == "dark")
+        if key == mode:
+            p.ring(x - 5, y - 5, w + 10, h + 10, 16)
+        p.text(name, x + w / 2, y + h + 32, 13, bold=(key == mode), align="c")
+
+
+def draw_share(p):
+    cr = p.cr
+    p.wallpaper(0, 0, VW, VH, 18)
+    # notebook
+    lx, ly = 40, 86
+    rrect(cr, lx + 14, ly, 150, 96, 8)
+    fill(cr, hexc("#2a2c36"))
+    p.wallpaper(lx + 20, ly + 6, 138, 84, 4)
+    cr.move_to(lx, ly + 100)
+    cr.line_to(lx + 178, ly + 100)
+    cr.line_to(lx + 170, ly + 110)
+    cr.line_to(lx + 8, ly + 110)
+    cr.close_path()
+    fill(cr, hexc("#c9ccd6"))
+    # telefon
+    tx, ty = 268, 70
+    rrect(cr, tx, ty, 58, 112, 12)
+    fill(cr, hexc("#2a2c36"))
+    p.wallpaper(tx + 4, ty + 4, 50, 104, 9)
+    # vlny a letici soubor
+    for k in (1, 2, 3):
+        cr.arc(225, 134, 14 * k, math.radians(-50), math.radians(50))
+        cr.set_source_rgba(1, 1, 1, 0.8 - k * 0.18)
+        cr.set_line_width(3)
+        cr.stroke()
+    cr.save()
+    cr.translate(210, 40)
+    cr.rotate(-0.12)
+    rrect(cr, 0, 0, 34, 42, 4)
+    fill(cr, hexc("#ffffff"))
+    rrect(cr, 4, 4, 26, 22, 2)
+    cr.set_source(vgrad(4, 26, hexc("#7ab8ff"), hexc("#a06bff")))
+    cr.fill()
+    cr.move_to(4, 26)
+    cr.line_to(13, 15)
+    cr.line_to(20, 22)
+    cr.line_to(24, 18)
+    cr.line_to(30, 26)
+    cr.close_path()
+    fill(cr, hexc("#ffffff", 0.8))
+    for k in range(2):
+        rrect(cr, 4, 30 + k * 5, 26 - k * 8, 2.5, 1.2)
+        fill(cr, hexc("#000000", 0.2))
+    cr.restore()
+    p.pill("LuxDrop", 186, 224)
+    p.text(_("works with LocalSend"), 186, 250, 10.5, p.fg, bold=True, align="c")
+    # tiskarna a skener
+    px, py = 400, 100
+    rrect(cr, px + 30, py - 30, 120, 50, 4)
+    fill(cr, hexc("#ffffff"))
+    for k in range(3):
+        rrect(cr, px + 44, py - 20 + k * 10, 90 - k * 20, 4, 2)
+        fill(cr, hexc("#000000", 0.18))
+    rrect(cr, px, py, 180, 80, 14)
+    cr.set_source(vgrad(py, py + 80, hexc("#e9ebf1"), hexc("#b9bdc9")))
+    cr.fill()
+    rrect(cr, px + 24, py + 48, 132, 10, 5)
+    fill(cr, hexc("#3a3c47"))
+    cr.arc(px + 156, py + 22, 5, 0, 2 * math.pi)
+    fill(cr, hexc("#28c840"))
+    rrect(cr, px + 40, py + 54, 100, 50, 3)
+    fill(cr, hexc("#ffffff"))
+    p.icon(["luxos-logo"], px + 74, py + 62, 32, ACCENT, "")
+    p.pill(_("Printers & Scanners"), px + 90, 224)
+    p.text(_("plug in and print"), px + 90, 250, 10.5, p.fg, bold=True, align="c")
+
+
+def draw_help(p):
+    cr = p.cr
+    rrect(cr, 0, 0, VW, VH, 18)
+    fill(cr, hexc("#1a1c26") if p.dark else hexc("#eef0f8"))
+    rows = ((("Super", _("Space")), _("Search")), (("Super", "A"), "Launchpad"),
+            (("Super", "E"), _("Files")), (("Super", "T"), _("Terminal")),
+            (("Super", "Q"), _("Close window")), (("Super", "Shift", "4"), _("Screenshot of region")),
+            (("Super", "L"), _("Lock screen")), (("Super", ","), _("Settings")))
+    for i, (keys, name) in enumerate(rows):
+        x = 26 + (i % 2) * 196
+        y = 26 + (i // 2) * 62
+        p.combo(keys, x, y, 26, 10.5)
+        p.text(name, x, y + 42, 10.5, p.dim, bold=True, maxw=186)
+    # Zpetna vazba
+    fx, fy, fw, fh = 430, 30, 186, 240
+    shadow(cr, fx, fy, fw, fh, 16, p.dark)
+    rrect(cr, fx, fy, fw, fh, 16)
+    fill(cr, p.win)
+    p.icon(["luxos-feedback"], fx + fw / 2 - 32, fy + 22, 64, VIOLET, "!")
+    p.text(_("Feedback"), fx + fw / 2, fy + 108, 14, bold=True, align="c")
+    for i, (k, c) in enumerate(((_("Bug"), hexc("#ff453a")), (_("Idea"), hexc("#ffb02e")))):
+        bx = fx + 18 + i * 78
+        rrect(cr, bx, fy + 128, 72, 30, 10)
+        fill(cr, c[:3] + (0.16,))
+        p.text(k, bx + 36, fy + 143, 10.5, c, bold=True, align="c")
+    for k, wf in enumerate((0.9, 0.75, 0.55)):
+        rrect(cr, fx + 18, fy + 174 + k * 14, (fw - 36) * wf, 7, 3.5)
+        fill(cr, p.dim[:3] + (0.3,))
+    rrect(cr, fx + fw - 76, fy + fh - 34, 60, 22, 11)
+    fill(cr, rgba(ACCENT))
+    p.text(_("Send"), fx + fw - 46, fy + fh - 23, 10, (1, 1, 1, 1), bold=True, align="c")
+
+
+# ---- zvyrazneni skutecne horni listy / Docku na obrazovce --------------------------------
+def screen_rects():
+    """Skutecna poloha horni listy a Docku {"bar": (x, y, w, h), "dock": ...} v logickych px."""
+    rects = {}
+    display = Gdk.Display.get_default()
+    mon = display.get_primary_monitor() or display.get_monitor(0)
+    if not mon:
+        return rects
+    g, wa, scale = mon.get_geometry(), mon.get_workarea(), mon.get_scale_factor() or 1
+    try:
+        gi.require_version("Wnck", "3.0")
+        from gi.repository import Wnck
+        scr = Wnck.Screen.get_default()
+        scr.force_update()
+        for w in scr.get_windows():
+            cls = (w.get_class_group_name() or "").lower() + " " + (w.get_class_instance_name() or "").lower()
+            x, y, ww, hh = (v / scale for v in w.get_geometry())
+            if "plank" in cls and hh >= 24 and ww >= 48 and y + hh > g.y + g.height * 0.6:
+                rects["dock"] = (x, y, ww, hh)
+            elif "xfce4-panel" in cls and ww >= g.width * 0.8 and abs(y - g.y) < 4 and 14 <= hh <= 80:
+                rects["bar"] = (x, y, ww, hh)
+    except (ValueError, ImportError, AttributeError):
+        pass
+    if "bar" not in rects and 14 <= wa.y - g.y <= 80:   # horni lista si rezervuje okraj obrazovky
+        rects["bar"] = (g.x, g.y, g.width, wa.y - g.y)
+    return rects
+
+
+class Spotlight(Gtk.Window):
+    """Pruhledny prekryv pres monitor, ktery kliky propousti; dvakrat pulzuje kolem oblasti."""
+
+    def __init__(self, rect, text):
+        super().__init__(type=Gtk.WindowType.POPUP)
+        display = Gdk.Display.get_default()
+        mon = display.get_monitor_at_point(int(rect[0] + rect[2] / 2), int(rect[1] + rect[3] / 2))
+        self.g = mon.get_geometry()
+        self.rect, self.label, self.t = rect, text, 0
+        self.set_visual(self.get_screen().get_rgba_visual())
+        self.set_app_paintable(True)
+        self.set_keep_above(True)
+        self.move(self.g.x, self.g.y)
+        self.set_default_size(self.g.width, self.g.height)
+        self.connect("draw", self.on_draw)
+        self.connect("realize", lambda w: w.get_window().input_shape_combine_region(cairo.Region(), 0, 0))
+        GLib.timeout_add(30, self.tick)
+
+    def tick(self):
+        self.t += 0.03
+        if self.t >= 2.8:
+            self.destroy()
+            return False
+        self.queue_draw()
+        return True
+
+    def on_draw(self, _w, cr):
+        cr.set_operator(cairo.OPERATOR_SOURCE)
+        cr.set_source_rgba(0, 0, 0, 0)
+        cr.paint()
+        cr.set_operator(cairo.OPERATOR_OVER)
+        fade = min(1.0, self.t / 0.25, (2.8 - self.t) / 0.4)
+        pulse = 0.5 + 0.5 * math.sin(self.t * 2 * math.pi / 1.2)
+        x, y, w, h = self.rect
+        x, y = x - self.g.x, y - self.g.y
+        m = 3 + 5 * pulse
+        # ztlumit zbytek obrazovky
+        cr.rectangle(0, 0, self.g.width, self.g.height)
+        rrect(cr, x - m, y - m, w + 2 * m, h + 2 * m, 12)
+        cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+        cr.set_source_rgba(0, 0, 0, 0.28 * fade)
+        cr.fill()
+        for lw, a in ((14, 0.12), (8, 0.22), (3, 1.0)):
+            rrect(cr, x - m, y - m, w + 2 * m, h + 2 * m, 12)
+            cr.set_source_rgba(*ACCENT, a * fade)
+            cr.set_line_width(lw)
+            cr.stroke()
+        # popisek pod/nad oblasti
+        lay = PangoCairo.create_layout(cr)
+        fd = Pango.FontDescription.from_string("Sans Bold")
+        fd.set_absolute_size(14 * Pango.SCALE)
+        lay.set_font_description(fd)
+        lay.set_text(self.label, -1)
+        tw, th = lay.get_pixel_size()
+        lx = min(max(x + w / 2 - tw / 2 - 14, 12), self.g.width - tw - 40)
+        ly = y + h + m + 14 if y < self.g.height / 2 else y - m - th - 26
+        rrect(cr, lx, ly, tw + 28, th + 12, (th + 12) / 2)
+        cr.set_source_rgba(*ACCENT, 0.95 * fade)
+        cr.fill()
+        cr.move_to(lx + 14, ly + 6)
+        cr.set_source_rgba(1, 1, 1, fade)
+        PangoCairo.show_layout(cr, lay)
+
+
+# ---- okno pruvodce ------------------------------------------------------------------------
+def launch(*cmd):
+    try:
+        subprocess.Popen(cmd, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
+
+
+def have(cmd):
+    return GLib.find_program_in_path(cmd) is not None
+
+
+def appearance_mode():
+    try:
+        r = subprocess.run(["luxos-appearance", "mode"], capture_output=True, text=True, timeout=5)
+        return r.stdout.strip() or None
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def pages():
+    """(titulek, text, kresleni, akce); akce = (popisek, prikaz | "spot:bar|dock" | "mode")."""
+    return [
+        (_("Welcome to LuxOS"),
+         _("This short tour shows you where everything is. It takes about a minute – you can skip it "
+           "anytime and open it again from Launchpad as LuxOS Tour."),
+         draw_welcome, []),
+        (_("The Menu Bar"),
+         _("The LuxOS logo opens the system menu with About This Computer, Settings, sleep and shut down. "
+           "Next to it are the menus of the active app. On the right: Wi-Fi, sound, battery with the time "
+           "left, Control Center for quick settings, notifications and the calendar."),
+         draw_menubar, [(_("Show on Screen"), "spot:bar"), (_("Open Control Center"), ("luxos-cc-toggle",))]),
+        (_("The Dock"),
+         _("Your favourite apps are at the bottom of the screen. Click an icon to open the app – a dot "
+           "below it means the app is running. Drag apps from Launchpad to the Dock, drag them out to "
+           "remove them."),
+         draw_dock, [(_("Show on Screen"), "spot:dock")]),
+        (_("Launchpad and Search"),
+         _("Super + A opens Launchpad with all your apps. Super + Space searches apps, files and windows. "
+           "Type a question instead and LuxAI will answer it – Ctrl + Enter always asks LuxAI."),
+         draw_launchpad, [(_("Open Launchpad"), ("luxos-launchpad",)), (_("Open Search"), ("luxos-search",))]),
+        (_("Files and Safe"),
+         _("Files (Super + E) keeps your documents, downloads and pictures. The Safe is an encrypted "
+           "folder for private things – it locks itself when you log out, lock the screen or the "
+           "computer goes to sleep."),
+         draw_files, [(_("Open Files"), ("thunar",)), (_("Open Safe"), ("luxos-safe",))]),
+        (_("Installing Apps"),
+         _("LuxOS Store offers apps sorted into categories with one-click installs and updates. "
+           "In the Terminal (Super + T) the lux command does the same: lux install, lux search, lux update."),
+         draw_store, [(_("Open LuxOS Store"), ("luxos-store",)), (_("Open Terminal"), ("xfce4-terminal",))]),
+        (_("Light, Dark or Auto"),
+         _("Choose how LuxOS looks. Auto switches between light and dark at sunrise and sunset. Wallpaper, "
+           "Dock and much more are in Settings (Super + ,)."),
+         draw_appearance, [("mode", "mode"), (_("Open Settings"), ("luxos-settings",))]),
+        (_("Share and Print"),
+         _("LuxDrop sends files to computers and phones nearby – it also works with the LocalSend app. "
+           "Printers & Scanners finds devices on your network or USB by itself: just plug in and print."),
+         draw_share, [(_("Open LuxDrop"), ("luxdrop",)), (_("Printers & Scanners"), ("luxos-printers",))]),
+        (_("Help and Shortcuts"),
+         _("Found a bug or have an idea? Feedback sends it straight to the author of LuxOS. All keyboard "
+           "shortcuts are listed in Keyboard Shortcuts. Enjoy LuxOS!"),
+         draw_help, [(_("Keyboard Shortcuts"), ("luxos-shortcuts",)), (_("Send Feedback…"), ("luxos-feedback",))]),
+    ]
+
+
+class TourWindow(Gtk.ApplicationWindow):
+    def __init__(self, app, start=0):
+        super().__init__(application=app, title=_("LuxOS Tour"))
+        self.set_default_size(780, -1)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.set_icon_name("luxos-tour")
+        hb = Gtk.HeaderBar(show_close_button=True, title=_("LuxOS Tour"))
+        self.set_titlebar(hb)
+        self.pages = pages()
+        self.mode = appearance_mode()
+        self.mode_buttons = {}
+        self.areas = []
+        self.index = 0
+        # bez kompozitoru by prekryv nebyl pruhledny; bez zjistene polohy neni co ukazat
+        self.spots = screen_rects() if self.get_screen().is_composited() else {}
+        self.spot_win = None
+
+        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.add(root)
+        self.stack = Gtk.Stack(transition_duration=260, vexpand=True)
+        root.pack_start(self.stack, True, True, 0)
+        for i, page in enumerate(self.pages):
+            self.stack.add_named(self.build_page(i, *page), str(i))
+
+        root.pack_start(Gtk.Separator(), False, False, 0)
+        bar = Gtk.Box(spacing=8, margin=14, margin_start=18, margin_end=18)
+        self.skip = Gtk.Button(label=_("Skip Tour"), relief=Gtk.ReliefStyle.NONE)
+        self.skip.connect("clicked", lambda _b: self.close())
+        bar.pack_start(self.skip, False, False, 0)
+        dots = Gtk.Box(halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        self.dots = []
+        for i in range(len(self.pages)):
+            d = Gtk.Button(valign=Gtk.Align.CENTER, tooltip_text=self.pages[i][0])
+            d.get_style_context().add_class("dot")
+            d.connect("clicked", lambda _b, k=i: self.go(k))
+            dots.pack_start(d, False, False, 0)
+            self.dots.append(d)
+        bar.set_center_widget(dots)
+        self.next_btn = Gtk.Button(label=_("Continue"), can_default=True)
+        self.next_btn.get_style_context().add_class("primary")
+        self.next_btn.connect("clicked", lambda _b: self.step(1))
+        self.back_btn = Gtk.Button(label=_("Back"))
+        self.back_btn.get_style_context().add_class("pill")
+        self.back_btn.connect("clicked", lambda _b: self.step(-1))
+        bar.pack_end(self.next_btn, False, False, 0)
+        bar.pack_end(self.back_btn, False, False, 0)
+        root.pack_start(bar, False, False, 0)
+
+        self.connect("key-press-event", self.on_key)
+        self.connect("style-updated", lambda *_a: [a.queue_draw() for a in self.areas])
+        self.show_all()
+        self.next_btn.grab_default()
+        self.go(max(0, min(start, len(self.pages) - 1)), animate=False)
+
+    def build_page(self, i, title, body, draw, actions):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin=24, margin_bottom=10)
+        area = Gtk.DrawingArea(height_request=VH + 36, vexpand=True)
+        area.connect("draw", self.on_draw, draw)
+        self.areas.append(area)
+        box.pack_start(area, True, True, 0)
+        t = Gtk.Label(label=title, wrap=True, justify=Gtk.Justification.CENTER, margin_top=8)
+        t.get_style_context().add_class("tour-title")
+        box.pack_start(t, False, False, 0)
+        b = Gtk.Label(label=body, wrap=True, justify=Gtk.Justification.CENTER, max_width_chars=72)
+        b.get_style_context().add_class("tour-body")
+        box.pack_start(b, False, False, 0)
+        row = Gtk.Box(spacing=8, halign=Gtk.Align.CENTER, margin_top=4)
+        for label, cmd in actions:
+            if cmd == "mode":
+                group = Gtk.Box(spacing=6)
+                first = None
+                for key, name in (("light", _("Light")), ("dark", _("Dark")), ("auto", _("Auto"))):
+                    rb = Gtk.RadioButton(group=first, label=name, draw_indicator=False)
+                    first = first or rb
+                    rb.get_style_context().add_class("pill")
+                    rb.set_active(key == self.mode)
+                    rb.connect("toggled", self.set_mode, key)
+                    self.mode_buttons[key] = rb
+                    group.pack_start(rb, False, False, 0)
+                if have("luxos-appearance"):
+                    row.pack_start(group, False, False, 0)
+                continue
+            if isinstance(cmd, str) and cmd.startswith("spot:"):
+                if cmd[5:] not in self.spots:
+                    continue
+                btn = Gtk.Button(label=label)
+                btn.connect("clicked", self.spotlight, cmd[5:], title)
+            else:
+                if not have(cmd[0]):
+                    continue
+                btn = Gtk.Button(label=label)
+                btn.connect("clicked", lambda _b, c=cmd: launch(*c))
+            btn.get_style_context().add_class("pill")
+            row.pack_start(btn, False, False, 0)
+        box.pack_start(row, False, False, 0)
+        return box
+
+    def is_dark(self):
+        c = self.get_style_context().get_color(Gtk.StateFlags.NORMAL)
+        return (0.2126 * c.red + 0.7152 * c.green + 0.0722 * c.blue) > 0.5
+
+    def on_draw(self, area, cr, draw):
+        w, h = area.get_allocated_width(), area.get_allocated_height()
+        s = min(w / VW, h / VH)
+        cr.translate((w - VW * s) / 2, 0)
+        cr.scale(s, s)
+        rrect(cr, 0, 0, VW, VH, 18)
+        cr.clip()
+        p = Painter(cr, area, self.is_dark())
+        if draw is draw_appearance:
+            draw(p, self.mode)
+        else:
+            draw(p)
+        return False
+
+    def set_mode(self, rb, key):
+        if not rb.get_active() or key == self.mode:
+            return
+        self.mode = key
+        launch("luxos-appearance", key)
+        for a in self.areas:
+            a.queue_draw()
+
+    def spotlight(self, _b, which, title):
+        rect = screen_rects().get(which) or self.spots.get(which)
+        if self.spot_win:
+            self.spot_win.destroy()
+        self.spot_win = Spotlight(rect, title)
+        self.spot_win.connect("destroy", lambda w: setattr(self, "spot_win", None) if self.spot_win is w else None)
+        self.spot_win.show_all()
+
+    def go(self, i, animate=True):
+        if not 0 <= i < len(self.pages):
+            return
+        direction = Gtk.StackTransitionType.SLIDE_LEFT if i > self.index else Gtk.StackTransitionType.SLIDE_RIGHT
+        self.stack.set_visible_child_full(str(i), direction if animate else Gtk.StackTransitionType.NONE)
+        self.index = i
+        last = i == len(self.pages) - 1
+        self.back_btn.set_visible(i > 0)
+        self.skip.set_visible(not last)
+        self.next_btn.set_label(_("Get Started") if last else _("Continue"))
+        for k, d in enumerate(self.dots):
+            ctx = d.get_style_context()
+            (ctx.add_class if k == i else ctx.remove_class)("active")
+        self.next_btn.grab_focus()
+
+    def step(self, d):
+        if d > 0 and self.index == len(self.pages) - 1:
+            self.close()
+        else:
+            self.go(self.index + d)
+
+    def on_key(self, _w, ev):
+        k = ev.keyval
+        # sipky v prepinaci Svetly/Tmavy/Auto patri prepinaci, ne strankovani
+        if isinstance(self.get_focus(), Gtk.RadioButton) and k in (Gdk.KEY_Left, Gdk.KEY_Right):
+            return False
+        if k in (Gdk.KEY_Right, Gdk.KEY_Page_Down):
+            self.step(1)
+        elif k in (Gdk.KEY_Left, Gdk.KEY_Page_Up):
+            self.step(-1)
+        elif k == Gdk.KEY_Home:
+            self.go(0)
+        elif k == Gdk.KEY_End:
+            self.go(len(self.pages) - 1)
+        elif k == Gdk.KEY_Escape:
+            self.close()
+        else:
+            return False
+        return True
+
+
+def mark_done():
+    try:
+        os.makedirs(CFG, exist_ok=True)
+        with open(MARKER, "w"):
+            pass
+    except OSError:
+        pass
+
+
+def main():
+    args = sys.argv[1:]
+    if "--first-run" in args and os.path.exists(MARKER):
+        return 0
+    start = 0
+    if "--page" in args:
+        try:
+            start = int(args[args.index("--page") + 1]) - 1
+        except (IndexError, ValueError):
+            pass
+    GLib.set_prgname("luxos-tour")
+    GLib.set_application_name(_("LuxOS Tour"))
+    app = Gtk.Application(application_id="cz.luxos.Tour", flags=Gio.ApplicationFlags.FLAGS_NONE)
+
+    def activate(a):
+        wins = a.get_windows()
+        if wins:
+            wins[0].present()
+            return
+        provider = Gtk.CssProvider()
+        provider.load_from_data(CSS)
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        TourWindow(a, start)
+        mark_done()          # jen jednou, i kdyz se relace ukonci uprostred prohlidky
+    app.connect("activate", activate)
+    return app.run([sys.argv[0]])
+
+
+if __name__ == "__main__":
+    sys.exit(main())

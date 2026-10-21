@@ -12,6 +12,12 @@ Testovani bez zapisu na disk:
   LUXOS_INSTALL_FAKE_FAIL=1      (s FAKE) instalace skonci chybou
   LUXOS_INSTALL_FAKE_NET=...     (s FAKE) stahovani: fast (vychozi), slow, stall, errors
   LUXOS_INSTALL_FAKE_TPL_FAIL=1  (s FAKE) cast aplikaci ze sablon softwaru se nenainstaluje (jen varovani)
+  LUXOS_INSTALL_FAKE_BIOS=1      (s FAKE) pocitac spusteny v rezimu BIOS (rucni rozdeleni)
+  LUXOS_INSTALL_FAKE_STEP=...    (s FAKE) otevrit rovnou krok (napr. partitions = rucni rozdeleni)
+  LUXOS_INSTALL_FAKE_PRESET=...  (s FAKE, s krokem partitions) predvolba lvm / lvm_var na disku /dev/sdb
+
+Rucni rozdeleni (Destination > Manual partitioning): model a kontrola v luxos_layout.py,
+backend dostane LAYOUT (DISK_MODE=layout), hesla LUKS jen pres stdin.
 """
 import json
 import os
@@ -27,8 +33,10 @@ import unicodedata
 import urllib.request
 
 sys.path.insert(0, "/usr/lib/luxos/python")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))   # test ze zdrojaku: luxos_layout.py vedle skriptu
 import luxos_i18n  # noqa: E402
 from luxos_i18n import _  # noqa: E402
+import luxos_layout as lay  # noqa: E402
 
 try:
     import luxai_account as acc  # noqa: E402
@@ -142,6 +150,7 @@ CSS = """
 .warn { border-radius: 12px; padding: 10px 14px; border: 1px solid alpha(#ff9f0a, 0.55);
         background-color: alpha(#ff9f0a, 0.12); }
 .warn-title { font-weight: 700; }
+.warn-text { color: #c77700; }
 .net { font-size: 13px; }
 .status { font-size: 12px; opacity: 0.8; font-style: italic; }
 .badge { font-size: 11px; font-weight: 700; color: white; background-color: #30d158; border-radius: 99px;
@@ -216,6 +225,27 @@ def size_text(n):
             return f"{n:.0f} {unit}" if n >= 10 or unit == "B" else f"{n:.1f} {unit}"
         n /= 1000
     return ""
+
+
+def size_bin(n):
+    """Velikost v binarnich jednotkach (editor oddilu: stejne jako sgdisk/lvcreate)."""
+    n = float(n)
+    for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
+        if n < 1024 or unit == "TiB":
+            return f"{n:.0f} {unit}" if n >= 100 or unit == "B" else f"{n:.1f} {unit}"
+        n /= 1024
+    return ""
+
+
+def ram_bytes():
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                if line.startswith("MemTotal:"):
+                    return int(line.split()[1]) * 1024
+    except (OSError, ValueError, IndexError):
+        pass
+    return 0
 
 
 def say(label, text):
@@ -468,7 +498,10 @@ class Installer(Gtk.Window):
             "fullname": "", "username": "", "user_edited": False, "pw1": "", "pw2": "",
             "hostname": "", "host_edited": False, "autologin": False,
             "luxai": None, "luxai_email": "", "care": "carefree", "templates": [],
+            "layout_ok": False, "pass_mismatch": False,
         }
+        self.layout = None        # rucni rozdeleni (luxos_layout.Layout), vznikne v kroku Partitions
+        self.layout_sel = None    # vybrany radek editoru (id uzlu / ("free", disk) / ("vgfree", vg))
         set_ui_lang(locale)
         self.s["xkb"] = self.default_xkb(locale)
         self.online = None
@@ -519,6 +552,18 @@ class Installer(Gtk.Window):
         if not self.templates:
             self.steps.remove("software")
         self.idx = 0
+        if FAKE and os.environ.get("LUXOS_INSTALL_FAKE_STEP"):
+            # test/snimky: rovnou na zvoleny krok (partitions = rucni rozdeleni)
+            want = os.environ["LUXOS_INSTALL_FAKE_STEP"]
+            if want == "partitions" or os.environ.get("LUXOS_INSTALL_FAKE_PRESET"):
+                self.s["mode"] = "manual"
+                self.steps.insert(self.steps.index("disk") + 1, "partitions")
+                if want != "partitions":
+                    self.s.update({"fullname": "Jane Doe", "username": "jane", "pw1": "x", "pw2": "x",
+                                   "hostname": "jane-luxos", "disk": "/dev/sdb"})
+                    self.load_layout()
+            if want in self.steps:
+                self.idx = self.steps.index(want)
         self.show_all()
         self.render()
         self.background_checks()
@@ -576,7 +621,7 @@ class Installer(Gtk.Window):
         return self.steps[self.idx]
 
     STEP_NAMES = {"welcome": "Introduction", "network": "Network", "keyboard": "Keyboard", "timezone": "Time Zone",
-                  "disk": "Destination", "account": "Account", "care": "Maintenance", "software": "Software", "luxai": "LuxAI", "summary": "Summary",
+                  "disk": "Destination", "partitions": "Partitions", "account": "Account", "care": "Maintenance", "software": "Software", "luxai": "LuxAI", "summary": "Summary",
                   "install": "Installation", "done": "Finish"}
 
     def render_sidebar(self):
@@ -628,7 +673,8 @@ class Installer(Gtk.Window):
             self.btn_next.set_label(_("Restart Now") if ok else _("Quit"))
         self.btn_extra.set_visible(self.extra_action is not None)
         self.btn_next.set_sensitive(bool(self.valid()))
-        erase = key == "summary" and self.s["mode"] == "erase"
+        erase = key == "summary" and (self.s["mode"] == "erase" or self.s["mode"] == "manual" and self.layout is not None
+                                      and bool(self.layout.destroy_list()))
         ctx = self.btn_next.get_style_context()
         (ctx.add_class if erase else ctx.remove_class)("danger-btn")
         self.nav_hint.set_text("" if self.btn_next.get_sensitive() or key == "done" else self.why())
@@ -651,6 +697,8 @@ class Installer(Gtk.Window):
             self.start_install()
 
     def go_back(self):
+        if self.current() == "summary":
+            self.s["layout_ok"] = False
         if self.idx > 0 and self.current() not in ("install", "done"):
             self.idx -= 1
             self.render()
@@ -1015,8 +1063,9 @@ class Installer(Gtk.Window):
         probe = d.get("probe") or {}
         free_ok = probe.get("FREESPACE_ERR", "x") == ""
         free = int(probe.get("FREE_BYTES") or 0)
-        if self.s["mode"] not in ("erase", "freespace") or (self.s["mode"] == "freespace" and not free_ok):
+        if self.s["mode"] not in ("erase", "freespace", "manual") or (self.s["mode"] == "freespace" and not free_ok):
             self.s["mode"] = "freespace" if free_ok else "erase"
+        self.sync_steps()
 
         if len(self.disks) > 1:
             chips = Gtk.Box(spacing=8)
@@ -1096,6 +1145,16 @@ class Installer(Gtk.Window):
                                   _("Everything on %s will be deleted.") % disk_title(d),
                                   self.s["mode"] == "erase", lambda: self.pick_mode("erase"), danger=True,
                                   icon="user-trash", extra=chk), False, False, 0)
+        page.pack_start(self.card(_("Manual partitioning (advanced)"),
+                                  _("Choose partitions yourself: separate /home, /var and other directories, "
+                                    "LVM and encryption (LUKS2), keep existing partitions."),
+                                  self.s["mode"] == "manual", lambda: self.pick_mode("manual"),
+                                  icon="drive-multidisk"), False, False, 0)
+        if self.s["mode"] == "manual":
+            page.pack_start(self.hint(_("You set up the partitions in the next step. "
+                                        "Nothing is changed before you confirm the summary.")), False, False, 0)
+            self.valid = lambda: True
+            return
 
         # Sifrovani
         enc = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -1141,10 +1200,20 @@ class Installer(Gtk.Window):
             self.s["disk"], self.s["mode"], self.s["erase_ok"] = path, None, False
             GLib.idle_add(lambda: self.render() and False)
 
+    def sync_steps(self):
+        """Krok Partitions jen pri rucnim rozdeleni (hned za Destination)."""
+        want = self.s["mode"] == "manual"
+        if want and "partitions" not in self.steps:
+            self.steps.insert(self.steps.index("disk") + 1, "partitions")
+        elif not want and "partitions" in self.steps:
+            self.steps.remove("partitions")
+        self.render_sidebar()
+
     def pick_mode(self, mode):
         if mode != self.s["mode"]:
             self.s["mode"] = mode
             self.s["erase_ok"] = False
+            self.sync_steps()
             GLib.idle_add(lambda: self.render() and False)
             if mode == "erase":
                 # potvrzeni smazani musi byt videt
@@ -1154,6 +1223,725 @@ class Installer(Gtk.Window):
         adj = self.scroll.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size() - 150)
         return False
+
+    # ---- 5b. rucni rozdeleni (editor oddilu, LVM a LUKS) ----
+    def load_layout(self, then=None):
+        """Scan disku (jen cte): FAKE vzorek, jako root pres backend --scan, jinak lsblk bez LVM."""
+        def work():
+            if FAKE:
+                return lay.fake_scan("bios" if os.environ.get("LUXOS_INSTALL_FAKE_BIOS") == "1" else "uefi")
+            if self.root:
+                out = cmd_out("sudo", "-n", BACKEND, "--scan", timeout=90)
+                try:
+                    return json.loads(out)
+                except ValueError:
+                    pass
+            return lay.scan_system(minsizes=False)
+
+        def done(scan, _err):
+            scan = scan or {"bootmode": "uefi", "disks": [], "vgs": []}
+            if self.layout is None:
+                self.layout = lay.Layout(scan)
+                self.layout.passphrase = self.s["luks1"]
+                preset = os.environ.get("LUXOS_INSTALL_FAKE_PRESET") if FAKE else None
+                if preset:
+                    self.s["luks1"] = self.s["luks2"] = self.layout.passphrase = "luxos"
+                    self.s["preset_disk"] = "/dev/sdb"
+                    self.layout.preset("/dev/sdb", preset, ram=8 * lay.GiB)
+            else:
+                self.layout.merge_scan(scan)
+            if then:
+                then()
+            if self.current() in ("partitions", "summary"):
+                self.render()
+        run_async(work, done)
+
+    def page_partitions(self, page):
+        self.heading(page, _("Manual partitioning"),
+                     _("Choose where each part of LuxOS goes. Nothing is written to the disks before you "
+                       "confirm the summary."))
+        L = self.layout
+        if L is None:
+            row = Gtk.Box(spacing=10)
+            sp = Gtk.Spinner()
+            sp.start()
+            row.pack_start(sp, False, False, 0)
+            row.pack_start(Gtk.Label(label=_("Looking for disks…")), False, False, 0)
+            page.pack_start(row, False, False, 10)
+            self.valid = lambda: False
+            self.load_layout()
+            return
+        disks = L.of("disk")
+        if not disks:
+            page.pack_start(self.hint(_("No disks found."), "error"), False, False, 0)
+            self.valid = lambda: False
+            return
+
+        # Predvolby: jednim klikem, pak upravitelne
+        quick = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        top = Gtk.Box(spacing=8)
+        top.pack_start(Gtk.Label(label=_("Quick setup on"), xalign=0), False, False, 0)
+        combo = Gtk.ComboBoxText()
+        for d in disks:
+            combo.append(d.dev, f"{d.dev}  {d.model or _('Disk')}  {size_bin(d.size)}")
+        default_disk = self.s["disk"] if any(d.dev == self.s["disk"] for d in disks) else disks[0].dev
+        combo.set_active_id(self.s.get("preset_disk") or default_disk)
+        combo.connect("changed", lambda c: self.s.__setitem__("preset_disk", c.get_active_id()))
+        top.pack_start(combo, False, False, 0)
+        quick.pack_start(top, False, False, 0)
+        pbox = Gtk.Box(spacing=8)
+        quick.pack_start(pbox, False, False, 0)
+        for kind, label in (("lvm", _("Encrypted LVM (/, /home, swap)")),
+                            ("lvm_var", _("Encrypted LVM with separate /var and /tmp"))):
+            b = Gtk.Button(label=label)
+            b.set_tooltip_text(_("Erases the chosen disk in the plan; you can still change everything."))
+            b.connect("clicked", lambda _b, k=kind: self.apply_preset(combo.get_active_id(), k))
+            pbox.pack_start(b, False, False, 0)
+        page.pack_start(quick, False, False, 0)
+
+        # Strom: disky > oddily > LUKS, skupiny LVM > LV
+        store = Gtk.TreeStore(str, str, str, str, str, str, str, int)  # klic, ikona, zarizeni, obsah, velikost, pripojeni, zmena, tloustka
+        rows = {}
+
+        def add(parent, key, icon, name, what, size, mount="", change="", bold=False):
+            it = store.append(parent, [key, icon, name, what, size, mount, change, 700 if bold else 400])
+            rows[key] = it
+            return it
+
+        def add_block(parent, n):
+            """Oddil/LV a nad nim LUKS (a obsah) jako potomci."""
+            u = n.use
+            luks = L.luks_on(n.id)
+            icon = "drive-harddisk-symbolic" if n.kind == "part" else "drive-multidisk-symbolic"
+            it = add(parent, n.id, icon, self.node_name(n), self.node_what(n), size_bin(L.size_of(n)),
+                     self.use_text(u), self.change_text(n))
+            if luks is not None:
+                lu = luks.use
+                inner = self.node_what(luks)
+                add(it, luks.id, "changes-prevent-symbolic", L.luks_names().get(luks.id, ""),
+                    _("Locked - unlock to use") if luks.locked else _("Encrypted (LUKS2)") +
+                    ("" if inner in (_("not used"), _("Encrypted volume")) else "  ·  " + inner),
+                    size_bin(L.size_of(luks)), self.use_text(lu), self.change_text(luks))
+            return it
+
+        for d in disks:
+            it = add(None, d.id, "drive-harddisk", f"{d.dev}", f"{d.model or _('Disk')}"
+                     + ("  ·  " + _("new partition table") if d.wipe else ""),
+                     size_bin(d.size), "", _("erase") if d.wipe else "", bold=True)
+            parts = [p for p in L.parts_of(d.dev)]
+            existing = sorted([p for p in parts if p.existing], key=lambda p: p.start)
+            for p in existing:
+                add_block(it, p)
+            for p in parts:
+                if not p.existing:
+                    add_block(it, p)
+            regs = L.allocate(d.dev)[1]
+            free = sum(r[1] for r in regs)
+            if free >= 16 * lay.MiB:
+                add(it, f"free:{d.dev}", "list-add-symbolic", _("Free space"), "", size_bin(free))
+        for vg in L.of("vg"):
+            sizes, free, _short = L.vg_alloc(vg.id)
+            it = add(None, vg.id, "drive-multidisk", vg.name, _("LVM volume group") +
+                     ("" if vg.existing else "  ·  " + _("new")), size_bin(L.size_of(vg)), "",
+                     "" if vg.existing else _("create"), bold=True)
+            for lv in L.lvs_of(vg.id):
+                add_block(it, lv)
+            if free >= 16 * lay.MiB:
+                add(it, f"vgfree:{vg.id}", "list-add-symbolic", _("Free space"), "", size_bin(free))
+
+        tv = Gtk.TreeView(model=store, headers_visible=True, enable_tree_lines=True)
+        col = Gtk.TreeViewColumn(_("Device"))
+        ri = Gtk.CellRendererPixbuf()
+        col.pack_start(ri, False)
+        col.add_attribute(ri, "icon-name", 1)
+        rt = Gtk.CellRendererText(ellipsize=3)
+        col.pack_start(rt, True)
+        col.add_attribute(rt, "text", 2)
+        col.add_attribute(rt, "weight", 7)
+        col.set_expand(True)
+        tv.append_column(col)
+        for i, title in ((3, _("Contents")), (4, _("Size")), (5, _("Mount point")), (6, _("Change"))):
+            r = Gtk.CellRendererText(ellipsize=3 if i == 3 else 0)
+            c = Gtk.TreeViewColumn(title, r, text=i, weight=7)
+            if i == 3:
+                c.set_expand(True)
+            if i == 4:
+                r.set_property("xalign", 1.0)
+            tv.append_column(c)
+        tv.expand_all()
+        sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, min_content_height=280)
+        sw.get_style_context().add_class("list")
+        sw.add(tv)
+        page.pack_start(sw, True, True, 0)
+
+        # Akce pro vybrany radek
+        bar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        rows2 = (Gtk.Box(spacing=6), Gtk.Box(spacing=6))
+        btns = {}
+        for i, key, label in ((0, "add", _("Add…")), (0, "edit", _("Edit…")), (0, "delete", _("Delete")),
+                              (0, "unlock", _("Unlock…")), (1, "erase", _("Erase Disk")),
+                              (1, "vg", _("New Volume Group…")), (1, "reset", _("Undo All Changes"))):
+            b = Gtk.Button(label=label)
+            b.connect("clicked", lambda _b, k=key: self.layout_reset() if k == "reset" else self.layout_action(k))
+            (rows2[i].pack_end if key == "reset" else rows2[i].pack_start)(b, False, False, 0)
+            btns[key] = b
+        bar.pack_start(rows2[0], False, False, 0)
+        bar.pack_start(rows2[1], False, False, 0)
+        page.pack_start(bar, False, False, 0)
+
+        def on_sel(sel):
+            model, it = sel.get_selected()
+            self.layout_sel = model[it][0] if it else None
+            self.update_layout_buttons(btns)
+        tv.get_selection().connect("changed", on_sel)
+        tv.connect("row-activated", lambda *_a: self.layout_action("edit" if btns["edit"].get_sensitive()
+                                                                   else "add"))
+        if self.layout_sel in rows:
+            tv.get_selection().select_iter(rows[self.layout_sel])
+        self.update_layout_buttons(btns)
+
+        # Heslo pro sifrovani (jedno pro vsechny, nebo zvlast v uprave svazku)
+        if L.of("luks"):
+            enc = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+            enc.get_style_context().add_class("card")
+            t = Gtk.Label(label=_("Encryption passphrase"), xalign=0)
+            t.get_style_context().add_class("card-title")
+            enc.pack_start(t, False, False, 0)
+            row = Gtk.Box(spacing=10)
+            e1 = Gtk.Entry(visibility=False, placeholder_text=_("Encryption password"))
+            e2 = Gtk.Entry(visibility=False, placeholder_text=_("Confirm password"))
+            e1.set_text(self.s["luks1"])
+            e2.set_text(self.s["luks2"])
+            row.pack_start(e1, True, True, 0)
+            row.pack_start(e2, True, True, 0)
+            enc.pack_start(row, False, False, 0)
+            same = Gtk.CheckButton(label=_("Use the same passphrase for all encrypted volumes (one prompt at start)"),
+                                   active=L.same_pass)
+            enc.pack_start(same, False, False, 0)
+            enc.pack_start(self.hint(_("If you forget this password, your data cannot be recovered.")), False, False, 0)
+
+            def changed(_w):
+                self.s["luks1"], self.s["luks2"] = e1.get_text(), e2.get_text()
+                ok = self.s["luks1"] == self.s["luks2"]
+                L.passphrase = self.s["luks1"] if ok else ""
+                self.s["pass_mismatch"] = bool(self.s["luks2"]) and not ok
+                self.refresh_layout_msgs()
+            e1.connect("changed", changed)
+            e2.connect("changed", changed)
+            same.connect("toggled", lambda c: (setattr(L, "same_pass", c.get_active()), self.refresh_layout_msgs()))
+            changed(None)
+            page.pack_start(enc, False, False, 0)
+
+        self.layout_msgs = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        page.pack_start(self.layout_msgs, False, False, 0)
+        self.valid = lambda: not [m for m in self.layout_problems() if m[0] == "error"]
+        self.why = lambda: next((self.problem_text(m) for m in self.layout_problems() if m[0] == "error"), "")
+        self.refresh_layout_msgs(update_nav=False)
+
+    # -- texty radku --
+    def node_name(self, n):
+        if n.kind == "lv":
+            return n.name
+        if n.existing:
+            return n.dev.rsplit("/", 1)[-1]
+        return _("New partition")
+
+    def node_what(self, n):
+        L = self.layout
+        if n.delete:
+            return _("will be deleted")
+        if n.kind == "part" and L.is_esp_part(n):
+            return _("EFI system partition")
+        if n.kind == "part" and (n.ptype == "bios" or n.parttype == lay.BIOS_GUID):
+            return _("BIOS boot partition")
+        if n.existing and not n.use and not L.consumers(n.id):
+            if n.fstype == "LVM2_member":
+                return _("LVM physical volume")
+            kind = part_kind({"name": n.dev, "fstype": n.fstype, "parttype": n.parttype})
+            return f"{n.label}  ·  {kind}" if n.label and n.label not in kind else kind
+        if any(c.kind == "vg" for c in L.consumers(n.id)):
+            vg = next(c for c in L.consumers(n.id) if c.kind == "vg")
+            return _("LVM physical volume (%s)") % vg.name
+        if n.use:
+            if n.use["type"] == "swap":
+                return _("Swap")
+            return n.use.get("fstype", "btrfs")
+        if L.luks_on(n.id):
+            return _("Encrypted volume")
+        return _("not used")
+
+    @staticmethod
+    def use_text(u):
+        if not u:
+            return ""
+        return _("swap") if u["type"] == "swap" else u["mount"]
+
+    def change_text(self, n):
+        L = self.layout
+        if n.delete:
+            return _("delete")
+        if n.kind == "part" and n.resize:
+            return _("resize to %s") % size_bin(n.resize)
+        if not n.existing:
+            return _("create")
+        if n.use:
+            return _("format") if n.use.get("format", True) else _("keep data")
+        if any(not c.existing for c in L.consumers(n.id)):
+            return _("erase")
+        return ""
+
+    # -- akce --
+    def selected_node(self):
+        k = self.layout_sel
+        return self.layout.nodes.get(k) if isinstance(k, str) else None
+
+    def update_layout_buttons(self, btns):
+        L, k = self.layout, self.layout_sel
+        n = self.selected_node()
+        is_free = isinstance(k, str) and k.startswith(("free:", "vgfree:"))
+        btns["add"].set_sensitive(is_free or (n is not None and n.kind in ("disk", "vg")))
+        btns["edit"].set_sensitive(n is not None and n.kind in ("part", "lv", "luks") and not n.delete
+                                   and not (n.kind == "luks" and n.locked))
+        btns["delete"].set_sensitive(n is not None and (n.kind in ("part", "lv") and not n.delete
+                                                        or n.kind == "vg" and not n.existing
+                                                        or n.kind == "luks" and not n.existing))
+        if n is not None and (n.kind in ("part", "lv") and n.delete):
+            btns["delete"].set_label(_("Keep"))
+            btns["delete"].set_sensitive(True)
+        else:
+            btns["delete"].set_label(_("Delete"))
+        btns["erase"].set_sensitive(n is not None and n.kind == "disk")
+        btns["erase"].set_label(_("Keep Partitions") if n is not None and n.kind == "disk" and n.wipe
+                                else _("Erase Disk"))
+        btns["unlock"].set_sensitive(n is not None and n.kind == "luks" and n.locked)
+        btns["vg"].set_sensitive(any(L.is_free_block(x) for x in L.nodes.values()))
+
+    def layout_changed(self):
+        GLib.idle_add(lambda: self.render() and False)
+
+    def layout_reset(self):
+        scan = self.layout.scan if self.layout else None
+        self.layout = lay.Layout(scan) if scan else None
+        if self.layout:
+            self.layout.passphrase = self.s["luks1"] if self.s["luks1"] == self.s["luks2"] else ""
+        self.layout_sel = None
+        self.layout_changed()
+
+    def apply_preset(self, disk, kind):
+        L = self.layout
+        if disk is None:
+            return
+        try:
+            L.preset(disk, kind, ram=ram_bytes())
+        except lay.PresetTooSmall as e:
+            # plan zustal beze zmeny; srozumitelna hlaska misto neplatneho rozlozeni
+            need = f"{-(-e.need // lay.GiB)} GiB"
+            dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
+                                    buttons=Gtk.ButtonsType.OK, text=lay.message("preset_small", (e.disk, need), tr=_))
+            dlg.run()
+            dlg.destroy()
+            return
+        self.s["preset_disk"] = disk
+        self.layout_sel = None
+        self.layout_changed()
+
+    def layout_action(self, key):
+        L, k, n = self.layout, self.layout_sel, self.selected_node()
+        if key == "add":
+            if isinstance(k, str) and k.startswith("free:"):
+                self.edit_dialog(None, disk=k[5:])
+            elif isinstance(k, str) and k.startswith("vgfree:"):
+                self.edit_dialog(None, vg=k[7:])
+            elif n is not None and n.kind == "disk":
+                self.edit_dialog(None, disk=n.dev)
+            elif n is not None and n.kind == "vg":
+                self.edit_dialog(None, vg=n.id)
+        elif key == "edit" and n is not None:
+            # LUKS radek upravuje svazek pod nim (vcetne sifrovani)
+            base = L.nodes.get(n.on) if n.kind == "luks" and not n.existing else n
+            self.edit_dialog(base)
+        elif key == "delete" and n is not None:
+            if n.kind in ("part", "lv") and n.delete:
+                L.restore(n.id)
+            elif n.kind == "luks" and not n.existing:
+                L.encrypt(n.on, False)
+            elif n.existing and n.kind in ("part", "lv") and not self.confirm(
+                    _("Delete %s?") % n.dev, _("All data on it will be lost when you click Install.")):
+                return
+            else:
+                L.remove(n.id)
+            self.layout_changed()
+        elif key == "erase" and n is not None and n.kind == "disk":
+            if not n.wipe and n.existing and L.parts_of(n.dev) and not self.confirm(
+                    _("Erase %s?") % n.dev,
+                    _("All partitions on this disk will be deleted when you click Install.")):
+                return
+            L.wipe_disk(n.dev, not n.wipe)
+            self.layout_changed()
+        elif key == "vg":
+            self.vg_dialog()
+        elif key == "unlock" and n is not None:
+            self.unlock_dialog(n)
+
+    def confirm(self, title, text):
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
+                                buttons=Gtk.ButtonsType.NONE, text=title)
+        dlg.format_secondary_text(text)
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Continue"), Gtk.ResponseType.OK)
+        r = dlg.run()
+        dlg.destroy()
+        return r == Gtk.ResponseType.OK
+
+    # -- dialog svazku (novy oddil/LV nebo uprava) --
+    USE_KINDS = (("fs", "File system"), ("swap", "Swap"), ("esp", "EFI system partition"),
+                 ("bios", "BIOS boot partition"), ("none", "Do not use (for example for LVM)"))
+
+    def edit_dialog(self, node, disk=None, vg=None):
+        L = self.layout
+        new = node is None
+        kind = "lv" if (vg or (node is not None and node.kind == "lv")) else "part"
+        top = node
+        luks = L.luks_on(node.id) if node is not None else None
+        if luks is not None:
+            top = luks
+        use = dict(top.use) if top is not None and top.use else None
+        dlg = Gtk.Dialog(title=_("New Volume") if new else _("Edit %s") % (node.dev or self.node_name(node)),
+                         transient_for=self, modal=True)
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("OK"), Gtk.ResponseType.OK)
+        dlg.set_default_response(Gtk.ResponseType.OK)
+        box = dlg.get_content_area()
+        box.set_spacing(8)
+        box.set_border_width(16)
+        grid = Gtk.Grid(column_spacing=12, row_spacing=8)
+        box.pack_start(grid, True, True, 0)
+        r = [0]
+
+        def row(label, w):
+            lab = Gtk.Label(label=label, xalign=1)
+            lab.get_style_context().add_class("subtitle")
+            grid.attach(lab, 0, r[0], 1, 1)
+            grid.attach(w, 1, r[0], 1, 1)
+            r[0] += 1
+            return lab
+
+        # Velikost (nove) / zmena velikosti (existujici ext4, btrfs, NTFS, data zachovana)
+        if kind == "lv":
+            vg_id = vg or node.vg
+            _s, vfree, _x = L.vg_alloc(vg_id)
+            avail = vfree + (L.size_of(node) if node is not None and not node.existing else 0)
+        else:
+            dpath = disk or (node.disk if node is not None else "")
+            regs = L.allocate(dpath)[1] if dpath else []
+            avail = max([x[1] for x in regs], default=0) + (L.size_of(node) if node is not None and not node.existing
+                                                            else 0)
+        size_spin = rest = name_e = resize_spin = None
+        if new or not node.existing:
+            gib = max(avail / lay.GiB, 0.01)
+            cur = (node.size / lay.GiB) if node is not None and not node.rest else min(gib, 20.0)
+            size_spin = Gtk.SpinButton.new_with_range(0.01, max(gib, 0.01), 0.5)
+            size_spin.set_digits(2)
+            size_spin.set_value(min(cur, gib))
+            rest = Gtk.CheckButton(label=_("Use all remaining space"), active=node is not None and node.rest)
+            sb = Gtk.Box(spacing=8)
+            sb.pack_start(size_spin, False, False, 0)
+            sb.pack_start(Gtk.Label(label="GiB"), False, False, 0)
+            sb.pack_start(rest, False, False, 0)
+            rest.connect("toggled", lambda c: size_spin.set_sensitive(not c.get_active()))
+            size_spin.set_sensitive(not rest.get_active())
+            row(_("Size"), sb)
+            box.pack_start(self.hint(_("Available: %s") % size_bin(avail)), False, False, 0)
+        if kind == "lv":
+            name_e = Gtk.Entry(text=node.name if node is not None else "")
+            name_e.set_sensitive(new or not node.existing)
+            row(_("Name"), name_e)
+
+        use_combo = Gtk.ComboBoxText()
+        kinds = [k for k in self.USE_KINDS if kind == "part" or k[0] in ("fs", "swap", "none")]
+        if L.bootmode != "bios" or (node is not None and node.existing):
+            kinds = [k for k in kinds if k[0] != "bios"]
+        if node is not None and node.existing:
+            kinds = [k for k in kinds if k[0] != "bios"]
+            if not L.is_esp_part(node):
+                kinds = [k for k in kinds if k[0] != "esp"]
+        for k, label in kinds:
+            use_combo.append(k, _(label))
+        cur_kind = "none"
+        if node is not None and node.kind == "part" and (node.ptype == "esp" or L.is_esp_part(node) and use):
+            cur_kind = "esp" if use or node.ptype == "esp" else "none"
+        elif node is not None and node.ptype == "bios":
+            cur_kind = "bios"
+        elif use:
+            cur_kind = use["type"]
+        elif new:
+            cur_kind = "fs"
+        use_combo.set_active_id(cur_kind)
+        row(_("Use as"), use_combo)
+
+        mount = Gtk.ComboBoxText.new_with_entry()
+        for m in lay.MOUNTS:
+            mount.append_text(m)
+        mount.get_child().set_text(use["mount"] if use and use["type"] == "fs" else
+                                   ("/" if not L.by_mount("/") else "/home" if not L.by_mount("/home") else ""))
+        mount.get_child().set_placeholder_text(_("for example /data"))
+        mount_l = row(_("Mount point"), mount)
+        fs_combo = Gtk.ComboBoxText()
+        for t in ("btrfs", "ext4", "xfs", "f2fs"):
+            fs_combo.append(t, t + (" (" + _("recommended") + ")" if t == "btrfs" else ""))
+        fs_combo.set_active_id(use.get("fstype", "btrfs") if use and use.get("fstype") != "vfat" else "btrfs")
+        fs_l = row(_("File system"), fs_combo)
+        fmt = Gtk.CheckButton(label=_("Format (erases the data on it)"),
+                              active=use.get("format", True) if use else True)
+        existing_data = (node is not None and node.existing and luks is None) or (luks is not None and luks.existing)
+        if existing_data:
+            row("", fmt)
+        enc = Gtk.CheckButton(label=_("Encrypt (LUKS2)"), active=luks is not None)
+        enc.set_sensitive(not (luks is not None and luks.existing))
+        row("", enc)
+        own_pass = Gtk.Entry(visibility=False, placeholder_text=_("Passphrase for this volume"))
+        own_pass2 = Gtk.Entry(visibility=False, placeholder_text=_("Confirm password"))
+        if luks is not None and not luks.existing:
+            own_pass.set_text(luks.passphrase)
+            own_pass2.set_text(luks.passphrase)
+        pass_box = Gtk.Box(spacing=8)
+        pass_box.pack_start(own_pass, True, True, 0)
+        pass_box.pack_start(own_pass2, True, True, 0)
+        pass_l = row(_("Passphrase"), pass_box)
+        if node is not None and node.existing and node.kind == "part" and node.fstype in lay.RESIZABLE \
+                and luks is None and not L.consumers(node.id):
+            # zmena velikosti: od minima (je-li zname) po konec volneho mista za oddilem
+            maxs = node.size + self.space_after(node)
+            mins = node.minsize or 0
+            resize_spin = Gtk.SpinButton.new_with_range(max(mins, lay.GiB) / lay.GiB, max(maxs, node.size) / lay.GiB, 1)
+            resize_spin.set_digits(1)
+            resize_spin.set_value((node.resize or node.size) / lay.GiB)
+            rb = Gtk.Box(spacing=8)
+            rb.pack_start(resize_spin, False, False, 0)
+            rb.pack_start(Gtk.Label(label="GiB"), False, False, 0)
+            row(_("Resize to"), rb)
+            box.pack_start(self.hint(_("Shrinking keeps the data, but back up important files first.")
+                                     + ("" if mins else " " + _("The used space could not be checked."))),
+                           False, False, 0)
+        msg = self.hint("", "error")
+        box.pack_start(msg, False, False, 0)
+
+        def refresh(*_a):
+            k = use_combo.get_active_id()
+            for w in (mount, mount_l):
+                w.set_visible(k == "fs")
+            mount.set_sensitive(k in ("fs",))
+            for w in (fs_combo, fs_l):
+                w.set_visible(k == "fs")
+            fmt.set_visible(existing_data and k in ("fs", "swap", "esp"))
+            enc.set_visible(k in ("fs", "swap", "none"))
+            per = enc.get_active() and not L.same_pass and enc.get_sensitive()
+            for w in (pass_box, pass_l):
+                w.set_visible(per)
+            if resize_spin is not None:
+                resize_spin.set_sensitive(not (k in ("fs", "swap") and fmt.get_active()))
+            dlg.get_widget_for_response(Gtk.ResponseType.OK).set_sensitive(
+                not (per and own_pass.get_text() != own_pass2.get_text()))
+        for w, sig in ((use_combo, "changed"), (enc, "toggled"), (fmt, "toggled"), (own_pass, "changed"),
+                       (own_pass2, "changed")):
+            w.connect(sig, refresh)
+        box.show_all()
+        refresh()
+        if dlg.run() != Gtk.ResponseType.OK:
+            dlg.destroy()
+            return
+        k = use_combo.get_active_id()
+        size = int(size_spin.get_value() * lay.GiB) // lay.MiB * lay.MiB if size_spin else 0
+        is_rest = bool(rest and rest.get_active())
+        mp = mount.get_child().get_text().strip().rstrip("/") or "/"
+        newuse = None
+        if k == "fs":
+            newuse = {"type": "fs", "mount": mp, "fstype": fs_combo.get_active_id() or "btrfs",
+                      "format": fmt.get_active() if existing_data else True}
+        elif k == "swap":
+            newuse = {"type": "swap", "format": fmt.get_active() if existing_data else True}
+        elif k == "esp":
+            newuse = {"type": "fs", "mount": (use or {}).get("mount") if use and use.get("mount") in ("/boot", "/efi")
+                      else ("/efi" if node is not None and node.existing and not fmt.get_active() else "/boot"),
+                      "fstype": "vfat", "format": fmt.get_active() if existing_data else True}
+        dlg.destroy()
+        # Zapis do modelu
+        if node is None:
+            if kind == "lv":
+                node = L.add_lv(vg, name_e.get_text().strip() or self.lv_name(newuse), size, is_rest)
+            else:
+                node = L.add_part(disk, size, is_rest)
+        else:
+            if size_spin is not None:
+                node.size, node.rest = size, is_rest
+            if name_e is not None and name_e.get_sensitive():
+                node.name = name_e.get_text().strip() or node.name
+        if node.kind == "part" and not node.existing:
+            node.ptype = k if k in ("esp", "bios") else ""
+        if resize_spin is not None:
+            want = int(resize_spin.get_value() * lay.GiB) // lay.MiB * lay.MiB
+            node.resize = want if resize_spin.get_sensitive() and abs(want - node.size) >= lay.MiB else None
+        want_enc = enc.get_active() and k in ("fs", "swap", "none")
+        cur = L.luks_on(node.id)
+        if cur is not None and cur.existing:
+            L.set_use(cur.id, newuse)
+        else:
+            if want_enc and cur is None:
+                cur = L.encrypt(node.id)
+            elif not want_enc and cur is not None:
+                L.encrypt(node.id, False)
+                cur = None
+            target = cur if cur is not None else node
+            L.set_use(target.id, newuse)
+            if target is not node:
+                node.use = None
+            if cur is not None:
+                cur.passphrase = own_pass.get_text() if not L.same_pass else ""
+        self.layout_sel = node.id
+        self.layout_changed()
+
+    @staticmethod
+    def lv_name(use):
+        if not use:
+            return "data"
+        if use["type"] == "swap":
+            return "swap"
+        return {"/": "root"}.get(use["mount"], re.sub(r"[^a-z0-9]", "", use["mount"].rsplit("/", 1)[-1]) or "data")
+
+    def space_after(self, node):
+        """Volne misto hned za existujicim oddilem (pro zvetseni)."""
+        end = node.start * 512 + node.size
+        for start, length in self.layout.regions(node.disk):
+            if abs(start - end) < lay.MiB:
+                return length
+        return 0
+
+    # -- nova skupina LVM --
+    def vg_dialog(self):
+        L = self.layout
+        cands = [n for n in L.nodes.values() if L.is_free_block(n)]
+        dlg = Gtk.Dialog(title=_("New Volume Group"), transient_for=self, modal=True)
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Create"), Gtk.ResponseType.OK)
+        box = dlg.get_content_area()
+        box.set_spacing(8)
+        box.set_border_width(16)
+        box.pack_start(self.hint(_("LVM joins one or more partitions (or encrypted volumes) into a group, "
+                                   "from which you create logical volumes for /, /home, swap and more.")),
+                       False, False, 0)
+        name = Gtk.Entry(text=L.free_vg_name("luxos"))
+        nb = Gtk.Box(spacing=8)
+        nb.pack_start(Gtk.Label(label=_("Name")), False, False, 0)
+        nb.pack_start(name, True, True, 0)
+        box.pack_start(nb, False, False, 0)
+        checks = []
+        for n in cands:
+            label = f"{L.label(n) if n.kind != 'part' or n.existing else n.disk + ' · ' + _('New partition')}" \
+                    f"  ({size_bin(L.size_of(n))}{', ' + _('encrypted') if L.encrypted(n) else ''})"
+            c = Gtk.CheckButton(label=label, active=n.kind == "luks" or len(cands) == 1)
+            box.pack_start(c, False, False, 0)
+            checks.append((c, n))
+        box.pack_start(self.hint(_("Existing data on the chosen volumes will be erased when you click Install.")),
+                       False, False, 0)
+        box.show_all()
+        if dlg.run() == Gtk.ResponseType.OK:
+            pvs = [n.id for c, n in checks if c.get_active()]
+            if pvs and name.get_text().strip():
+                vg = L.add_vg(name.get_text().strip(), pvs)
+                self.layout_sel = vg.id
+                self.layout_changed()
+        dlg.destroy()
+
+    # -- odemceni existujiciho LUKS --
+    def unlock_dialog(self, n):
+        L = self.layout
+        base = L.nodes.get(n.on)
+        dlg = Gtk.Dialog(title=_("Unlock %s") % (base.dev if base else n.id), transient_for=self, modal=True)
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Unlock"), Gtk.ResponseType.OK)
+        dlg.set_default_response(Gtk.ResponseType.OK)
+        box = dlg.get_content_area()
+        box.set_spacing(8)
+        box.set_border_width(16)
+        box.pack_start(self.hint(_("Enter the passphrase to see what is inside. Nothing is changed.")), False, False, 0)
+        pw = Gtk.Entry(visibility=False, activates_default=True)
+        box.pack_start(pw, False, False, 0)
+        msg = self.hint("", "error")
+        box.pack_start(msg, False, False, 0)
+        box.show_all()
+        while dlg.run() == Gtk.ResponseType.OK:
+            p = pw.get_text()
+            if not FAKE and not self.root:
+                say(msg, _("Administrator rights are not available."))
+                continue
+            if self.unlock(n, base, p):
+                dlg.destroy()
+                return
+            say(msg, _("The passphrase is wrong."))
+        dlg.destroy()
+
+    def unlock(self, n, base, passphrase):
+        L = self.layout
+        if FAKE:
+            if passphrase != "luxos":
+                return False
+            L.unlock_fake(n.id)
+            L.nodes[n.id].passphrase = passphrase
+            self.layout_changed()
+            return True
+        name = "luxos-unlock-" + re.sub(r"[^a-z0-9]", "", base.dev.rsplit("/", 1)[-1])
+        try:
+            r = subprocess.run(["sudo", "-n", "cryptsetup", "open", "--key-file", "-", base.dev, name],
+                               input=passphrase.encode(), capture_output=True, timeout=60)
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        if r.returncode != 0:
+            return False
+        nid = n.id
+
+        def after():
+            if nid in self.layout.nodes:
+                self.layout.nodes[nid].passphrase = passphrase
+        cmd_out("udevadm", "settle", timeout=20)
+        self.load_layout(then=after)
+        return True
+
+    # -- kontrola --
+    def layout_problems(self):
+        L = self.layout
+        if L is None:
+            return [("error", "no_root", "")]
+        out = L.validate()
+        if self.s["pass_mismatch"]:
+            out.insert(0, ("error", "pass_mismatch", ""))
+        return out
+
+    @staticmethod
+    def problem_text(m):
+        return lay.message(m[1], m[2], tr=_)
+
+    def refresh_layout_msgs(self, update_nav=True):
+        box = getattr(self, "layout_msgs", None)
+        if box is None:
+            return
+        for c in box.get_children():
+            box.remove(c)
+        seen = set()
+        for m in self.layout_problems():
+            text = self.problem_text(m)
+            if text in seen:
+                continue
+            seen.add(text)
+            row = Gtk.Box(spacing=8)
+            icon = "dialog-error-symbolic" if m[0] == "error" else "dialog-warning-symbolic"
+            img = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU)
+            img.set_valign(Gtk.Align.START)
+            row.pack_start(img, False, False, 0)
+            lab = Gtk.Label(label=text, xalign=0, wrap=True, max_width_chars=80)
+            lab.get_style_context().add_class("error" if m[0] == "error" else "warn-text")
+            row.pack_start(lab, True, True, 0)
+            box.pack_start(row, False, False, 0)
+        if not seen:
+            box.pack_start(self.hint(_("The layout is ready."), "good"), False, False, 0)
+        box.show_all()
+        if update_nav:
+            self.update_nav()
 
     # ---- 6. ucet ----
     def page_account(self, page):
@@ -1247,7 +2035,7 @@ class Installer(Gtk.Window):
             "LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash."]),
         "classic": ("Classic (for IT professionals)", "utilities-terminal", [
             "No automatic updates or repairs - standard Arch Linux behaviour.",
-            "You manage the system yourself with lux or pacman.",
+            "You manage the system yourself with lux.",
             "You only get a notification when updates are available."]),
     }
 
@@ -1422,13 +2210,21 @@ class Installer(Gtk.Window):
         box.pack_start(grid, False, False, 0)
         lang = next((label for label, loc in LANGS if loc == self.s["locale"]), self.s["locale"])
         layout = next((t for k, t, _h in self.load_layouts() if k == self.s["xkb"]), " ".join(self.s["xkb"]))
-        if self.s["mode"] == "erase":
+        manual = self.s["mode"] == "manual"
+        if manual and self.layout is None:
+            self.valid = lambda: False
+            page.pack_start(self.hint(_("Looking for disks…")), False, False, 0)
+            return
+        if manual:
+            disk = _("Manual partitioning")
+        elif self.s["mode"] == "erase":
             disk = _("Erase %s and install LuxOS") % disk_title(d)
         else:
             free = int((d.get("probe") or {}).get("FREE_BYTES") or 0)
             disk = _("Alongside other systems on %s (%s of free space)") % (disk_title(d), size_text(free))
         rows = [(_("Language"), lang), (_("Keyboard"), layout), (_("Time zone"), self.s["timezone"]),
-                (_("Disk"), disk), (_("Encryption"), _("yes") if self.s["encrypt"] else _("no")),
+                (_("Disk"), disk), (_("Encryption"), _("yes") if (self.layout.of("luks") if manual else self.s["encrypt"])
+                                    else _("no")),
                 (_("User"), f"{self.s['fullname']} ({self.s['username']})"), (_("Computer"), self.s["hostname"]),
                 (_("Automatic login"), _("yes") if self.s["autologin"] else _("no")),
                 (_("Maintenance"), _("Classic - you manage the system yourself") if self.s["care"] == "classic"
@@ -1447,6 +2243,57 @@ class Installer(Gtk.Window):
         if self.s["mode"] == "erase":
             page.pack_start(self.hint(_("All data on %s will be erased when you click Install.") % d["path"], "error"),
                             False, False, 0)
+        if manual:
+            self.summary_layout(page)
+
+    def summary_layout(self, page):
+        """Rucni rozdeleni v souhrnu: pripojeni a vyslovny seznam toho, co se smaze."""
+        L = self.layout
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        box.get_style_context().add_class("card")
+        t = Gtk.Label(label=_("Partitions"), xalign=0)
+        t.get_style_context().add_class("card-title")
+        box.pack_start(t, False, False, 0)
+        grid = Gtk.Grid(column_spacing=18, row_spacing=3)
+        users = sorted(L.users(), key=lambda n: (n.use["type"] != "fs", n.use.get("mount", "")))
+        for i, n in enumerate(users):
+            chain = []
+            for a in reversed(L.ancestors(n)):
+                if a.kind == "part":
+                    chain.append(a.dev if a.existing else f"{a.disk} ({_('new')})")
+                elif a.kind == "luks":
+                    chain.append(_("LUKS2") + " " + L.luks_names().get(a.id, ""))
+                elif a.kind == "lv":
+                    chain.append(_("LVM") + " " + L.label(a))
+            u = n.use
+            cells = [self.use_text(u), u.get("fstype", "swap") if u["type"] == "fs" else "swap",
+                     size_bin(L.size_of(n)), " › ".join(chain),
+                     _("format") if u.get("format", True) else _("keep data")]
+            for j, c in enumerate(cells):
+                lab = Gtk.Label(label=c, xalign=0, ellipsize=3 if j == 3 else 0)
+                if j == 3:
+                    lab.set_hexpand(True)
+                grid.attach(lab, j, i, 1, 1)
+        box.pack_start(grid, False, False, 0)
+        page.pack_start(box, False, False, 0)
+        destroy = L.destroy_list()
+        if destroy:
+            warn = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            warn.get_style_context().add_class("warn")
+            wt = Gtk.Label(label=_("Will be erased or changed when you click Install:"), xalign=0)
+            wt.get_style_context().add_class("warn-title")
+            warn.pack_start(wt, False, False, 0)
+            for text, args in destroy:
+                lab = Gtk.Label(label="•  " + _(text) % args, xalign=0, wrap=True)
+                lab.get_style_context().add_class("danger-text")
+                warn.pack_start(lab, False, False, 0)
+            chk = Gtk.CheckButton(label=_("I understand that the data listed above will be lost."),
+                                  active=self.s["layout_ok"])
+            chk.connect("toggled", lambda c: (self.s.__setitem__("layout_ok", c.get_active()), self.update_nav()))
+            warn.pack_start(chk, False, False, 4)
+            page.pack_start(warn, False, False, 0)
+            self.valid = lambda: self.s["layout_ok"]
+            self.why = lambda: _("Confirm that the listed data will be erased.")
 
     # ---- 9. instalace ----
     def page_install(self, page):
@@ -1597,6 +2444,8 @@ class Installer(Gtk.Window):
             "LUXAI_ACCOUNT": json.dumps(s["luxai"], ensure_ascii=False) if s["luxai"] else "",
             "TEMPLATES": ",".join(s["templates"]),
         }
+        if s["mode"] == "manual" and self.layout is not None:
+            values.update(self.layout.config_values())
         return "".join(f"{k}={q(v)}\n" for k, v in values.items())
 
     # Kdo umi zabranit setrici/zamceni a uspani (Xfce: org.xfce.ScreenSaver, xfce4-power-manager)
@@ -1922,10 +2771,20 @@ fake_download() {
     done
     echo "@@NET END"
 }
-steps=("Preparing disk $DISK")
-((ENCRYPT)) && steps+=("Encrypting the disk")
-steps+=("Creating file systems" "Detecting hardware" "Installing packages (this is the longest step)"
-        "Configuring the system")
+if [[ $DISK_MODE == layout ]]; then
+    # Rucni rozdeleni: rozlozeni do vystupu (hesla jen delka)
+    echo "fake backend: LAYOUT (LUKS_PASS length ${#LUKS_PASS}):"
+    printf '%s\n' "$LAYOUT" | sed '/^$/d; s/^/  | /'
+    steps=("Preparing disks")
+    grep '^luks ' <<<"$LAYOUT" | grep -qv 'keep=1' && steps+=("Encrypting volumes")
+    grep -q '^vg ' <<<"$LAYOUT" && steps+=("Setting up LVM")
+    steps+=("Creating file systems")
+else
+    steps=("Preparing disk $DISK")
+    ((ENCRYPT)) && steps+=("Encrypting the disk")
+    steps+=("Creating file systems")
+fi
+steps+=("Detecting hardware" "Installing packages (this is the longest step)" "Configuring the system")
 [[ -n ${TEMPLATES-} ]] && steps+=("Installing additional software")
 steps+=("Finishing")
 n=0
