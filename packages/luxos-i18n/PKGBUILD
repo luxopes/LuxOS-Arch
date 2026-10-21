@@ -3,15 +3,17 @@
 
 pkgname=luxos-i18n
 pkgver=1.0.0
-pkgrel=8
+pkgrel=9
 pkgdesc="LuxOS translations (English, Czech)"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
 license=(MIT)
+makedepends=(python)
 
 package() {
     local f="$startdir/files"
     install -Dm644 "$f/i18n.sh" "$pkgdir/usr/lib/luxos/i18n.sh"
     install -Dm644 "$f/luxos_i18n.py" "$pkgdir/usr/lib/luxos/python/luxos_i18n.py"
+    python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 -t "$pkgdir/usr/share/luxos/i18n" "$f"/*.tsv
 }

@@ -2,9 +2,12 @@
 # LuxOS - instalator
 #
 # Interaktivne:   sudo luxos-install
-# Bez obsluhy:    sudo luxos-install --config /cesta/install.conf [--yes]
+# Bez obsluhy:    sudo luxos-install --config /cesta/install.conf [--yes] [--progress]
+#                 ... | sudo luxos-install --config - --yes --progress   (konfigurace ze stdin)
+# Disky (GUI):    sudo luxos-install --probe /dev/DISK   (volne misto a ESP, radky KLIC=hodnota)
 #
 # Konfiguracni soubor (bash promenne) - viz /usr/share/luxos/installer/install.conf.example
+# --progress: navic strojove radky "@@STEP n celkem text", "@@PCT 0-100", "@@ERROR text", "@@DONE"
 set -Eeuo pipefail
 
 LOG=/var/log/luxos-install.log
@@ -17,31 +20,65 @@ ui_lang() { export LANG=$1; . /usr/lib/luxos/i18n.sh; }   # jazyk pruvodce podle
 
 CONFIG=""
 ASSUME_YES=0
+PROGRESS=0
+PROBE=""
 while (($#)); do
     case $1 in
-        --config) CONFIG=$2; shift ;;
-        --yes)    ASSUME_YES=1 ;;
-        -h|--help) sed -n '2,7p' "$0" | sed 's/^# \?//'; exit 0 ;;
+        --config)   CONFIG=$2; shift ;;
+        --yes)      ASSUME_YES=1 ;;
+        --progress) PROGRESS=1 ;;
+        --probe)    PROBE=$2; shift ;;
+        -h|--help) sed -n '2,10p' "$0" | sed 's/^# \?//'; exit 0 ;;
         *) echo "Unknown option: $1" >&2; exit 2 ;;
     esac
     shift
 done
 
+# Konfigurace ze stdin (hesla se nezapisuji na disk); stdin pak uz nic necte
+CONFIG_DATA=""
+if [[ $CONFIG == - ]]; then
+    CONFIG_DATA=$(cat)
+    exec </dev/null
+fi
+
 # --- Vystup -----------------------------------------------------------------
 ACCENT="#a77bff"
+STEP_N=0
+STEP_TOTAL=0
+progress() { ((PROGRESS)) && printf '@@%s\n' "$*"; return 0; }   # radek pro graficky instalator
 title() { gum style --foreground "$ACCENT" --bold --margin "1 0 0 0" "✦ $*"; }
 info()  { gum style --foreground 250 "  $*"; }
-step()  { printf '\n\e[1;38;2;167;123;255m==>\e[0m \e[1m%s\e[0m\n' "$*"; printf '\n==> %s\n' "$*" >>"$LOG"; }
-fail()  { gum style --foreground 203 --bold "✗ $*" >&2; exit 1; }
+step()  {
+    STEP_N=$((STEP_N + 1))
+    progress "STEP $STEP_N $STEP_TOTAL $*"
+    printf '\n\e[1;38;2;167;123;255m==>\e[0m \e[1m%s\e[0m\n' "$*"; printf '\n==> %s\n' "$*" >>"$LOG"
+}
+fail()  { progress "ERROR $*"; printf '✗ %s\n' "$*" >>"$LOG" 2>/dev/null || true; gum style --foreground 203 --bold "✗ $*" >&2; exit 1; }
 run()   { printf '+ %s\n' "$*" >>"$LOG"; "$@" >>"$LOG" 2>&1; }
+if ((PROGRESS)); then
+    # Vystup cte GUI (roura, ne terminal): bez gum a barev
+    title() { printf '\n✦ %s\n' "$*"; }
+    info()  { printf '  %s\n' "$*"; }
+    step()  {
+        STEP_N=$((STEP_N + 1))
+        progress "STEP $STEP_N $STEP_TOTAL $*"
+        printf '\n==> %s\n' "$*" | tee -a "$LOG"
+    }
+    fail()  { progress "ERROR $*"; printf '✗ %s\n' "$*" | tee -a "$LOG" >&2; exit 1; }
+fi
 
 on_error() {
     local rc=$? line=$1
     echo >&2
-    gum style --border rounded --border-foreground 203 --padding "1 2" --foreground 203 \
-        "$(T "Installation failed (line %s, exit code %s)." "$line" "$rc")" "" \
-        "$(T "Details are in %s. Last lines:" "$LOG")" >&2 || true
-    tail -n 15 "$LOG" >&2 || true
+    progress "ERROR $(T "Installation failed (line %s, exit code %s)." "$line" "$rc")"
+    if ((PROGRESS)); then
+        T "Installation failed (line %s, exit code %s)." "$line" "$rc" >&2; echo >&2
+    else
+        gum style --border rounded --border-foreground 203 --padding "1 2" --foreground 203 \
+            "$(T "Installation failed (line %s, exit code %s)." "$line" "$rc")" "" \
+            "$(T "Details are in %s. Last lines:" "$LOG")" >&2 || true
+        tail -n 15 "$LOG" >&2 || true
+    fi
     exit "$rc"
 }
 trap 'on_error $LINENO' ERR
@@ -289,24 +326,190 @@ ask_password() {
 }
 
 summary() {
-    title "$(T "Summary")"
-    gum style --border rounded --border-foreground 240 --padding "1 2" \
-        "$(printf '%-13s%s' "$(T "Language")" "$LOCALE")" \
-        "$(printf '%-13s%s' "$(T "Keyboard")" "$XKB_LAYOUT${XKB_VARIANT:+ ($XKB_VARIANT)}")" \
-        "$(printf '%-13s%s' "$(T "Time zone")" "$TIMEZONE")" \
-        "$(printf '%-13s%s' "$(T "Disk")" "$([[ $DISK == manual ]] && T "mounted at %s" "$TARGET" || T "%s  (will be ERASED)" "$DISK")")" \
-        "$(printf '%-13s%s' "$(T "Encryption")" "$([[ $ENCRYPT == 1 ]] && T "yes" || T "no")")" \
-        "$(printf '%-13s%s' "$(T "User")" "$FULLNAME ($USERNAME)")" \
-        "$(printf '%-13s%s' "$(T "Computer")" "$HOSTNAME_SEL")" \
-        "$(printf '%-13s%s' "$(T "Boot mode")" "${BOOTMODE^^}")" \
+    local disk_text boot_text
+    case $DISK_MODE in
+        manual)    disk_text=$(T "mounted at %s" "$TARGET") ;;
+        freespace) disk_text=$(T "%s  (free space, other systems are kept)" "$DISK") ;;
+        *)         disk_text=$(T "%s  (will be ERASED)" "$DISK") ;;
+    esac
+    boot_text=${BOOTMODE^^}
+    [[ $BOOTLOADER == none ]] && boot_text+=" ($(T "no boot loader"))"
+    local -a lines=(
+        "$(printf '%-13s%s' "$(T "Language")" "$LOCALE")"
+        "$(printf '%-13s%s' "$(T "Keyboard")" "$XKB_LAYOUT${XKB_VARIANT:+ ($XKB_VARIANT)}")"
+        "$(printf '%-13s%s' "$(T "Time zone")" "$TIMEZONE")"
+        "$(printf '%-13s%s' "$(T "Disk")" "$disk_text")"
+        "$(printf '%-13s%s' "$(T "Encryption")" "$([[ $ENCRYPT == 1 ]] && T "yes" || T "no")")"
+        "$(printf '%-13s%s' "$(T "User")" "$FULLNAME ($USERNAME)")"
+        "$(printf '%-13s%s' "$(T "Computer")" "$HOSTNAME_SEL")"
+        "$(printf '%-13s%s' "$(T "Boot mode")" "$boot_text")"
         "$(printf '%-13s%s' "LuxAI" "$([[ -n $LUXAI_ACCOUNT ]] && T "signed in" || T "not signed in")")"
+    )
+    if ((PROGRESS)); then
+        printf '  %s\n' "${lines[@]}"
+    else
+        title "$(T "Summary")"
+        gum style --border rounded --border-foreground 240 --padding "1 2" "${lines[@]}"
+    fi
     ((ASSUME_YES)) && return 0
     gum confirm --default=false --affirmative "$(T "Install")" --negative "$(T "Cancel")" "$(T "Install LuxOS now?")" || exit 1
 }
 
 # --- Instalace --------------------------------------------------------------
 part_path() {  # part_path /dev/disk N
-    lsblk -lnpo NAME,PARTN "$1" | awk -v n="$2" '$2 == n {print $1}'
+    local p
+    p=$(lsblk -lnpo NAME,PARTN "$1" | awk -v n="$2" '$2 == n {print $1}')
+    if [[ -z $p ]]; then   # bez udev: jmeno podle konvence jadra (sda1, nvme0n1p1)
+        if [[ $1 == *[0-9] ]]; then p=$1p$2; else p=$1$2; fi
+        [[ -b $p ]] || p=""
+    fi
+    printf '%s\n' "$p"
+}
+
+# --- Volne misto vedle jinych systemu (DISK_MODE=freespace) ----------------
+ESP_GUID=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
+MIN_FREE=$((20 * 1000 * 1000 * 1000))     # nejmensi volna oblast pro LuxOS
+MIN_ESP_FREE=$((250 * 1000 * 1000))       # jadro + initramfs na sdilenem ESP
+
+disk_sector_size() {  # logicka velikost sektoru podle sgdisk (funguje i pro obraz disku)
+    sgdisk -p "$1" 2>/dev/null | sed -nE 's/^Sector size \(logical[^)]*\): ([0-9]+).*/\1/p' | head -1
+}
+
+free_region() {  # free_region DISK -> "ZACATEK KONEC BAJTU" nejvetsi volne oblasti (sektory, zarovnany zacatek)
+    local start end ss
+    start=$(sgdisk -f "$1" 2>/dev/null) || return 0
+    end=$(sgdisk -E "$1" 2>/dev/null) || return 0
+    ss=$(disk_sector_size "$1")
+    [[ $start =~ ^[0-9]+$ && $end =~ ^[0-9]+$ && $ss =~ ^[0-9]+$ ]] || return 0
+    ((end > start)) || return 0
+    echo "$start $end $(((end - start + 1) * ss))"
+}
+
+free_partnum() {  # prvni nepouzite cislo oddilu v GPT
+    local used n
+    used=" $(sgdisk -p "$1" | awk '$1 ~ /^[0-9]+$/ && NF >= 6 {printf "%s ", $1}')"
+    for ((n = 1; n <= 128; n++)); do
+        [[ $used == *" $n "* ]] || { echo "$n"; return 0; }
+    done
+    return 1
+}
+
+esp_systems() {  # esp_systems ADRESAR_ESP -> "Windows,kali" podle adresaru v EFI/
+    local d n out=()
+    for d in "$1"/[Ee][Ff][Ii]/*/; do
+        [[ -d $d ]] || continue
+        n=$(basename "$d")
+        case ${n,,} in
+            boot|systemd|linux|luxos|tools) ;;
+            microsoft) out+=(Windows) ;;
+            *) out+=("$n") ;;
+        esac
+    done
+    local IFS=,
+    echo "${out[*]}"
+}
+
+esp_info() {  # esp_info ODDIL -> ESP_FREE, ESP_SYSTEMS, ESP_LOADER (pripoji jen pro cteni)
+    local esp=$1 mnt tmp=""
+    mnt=$(findmnt -nro TARGET --source "$esp" 2>/dev/null | head -1 || true)
+    if [[ -z $mnt ]]; then
+        tmp=$(mktemp -d /run/luxos-esp.XXXXXX)
+        if ! mount -t vfat -o ro "$esp" "$tmp" 2>/dev/null; then rmdir "$tmp"; return 1; fi
+        mnt=$tmp
+    fi
+    ESP_FREE=$(df -B1 --output=avail "$mnt" | tail -1 | tr -d ' ')
+    ESP_SYSTEMS=$(esp_systems "$mnt")
+    ESP_LOADER=0
+    [[ -e $mnt/loader/loader.conf ]] && ESP_LOADER=1
+    if [[ -n $tmp ]]; then umount "$tmp"; rmdir "$tmp"; fi
+    return 0
+}
+
+check_freespace() {  # check_freespace DISK -> FS_ERR (prazdne = lze instalovat), FS_START/FS_END/FS_BYTES, ESP_*
+    local disk=$1 region
+    FS_ERR="" FS_START=0 FS_END=0 FS_BYTES=0 ESP_PART="" ESP_FREE=0 ESP_SYSTEMS="" ESP_LOADER=0
+    if [[ $(blkid -p -o value -s PTTYPE "$disk" 2>/dev/null) != gpt ]]; then
+        FS_ERR=not_gpt
+        return 0
+    fi
+    # Poskozenou GPT by sgdisk pri zapisu "opravil" - radeji odmitnout
+    if [[ $(sgdisk -v "$disk" 2>/dev/null) != *"No problems found"* ]]; then
+        FS_ERR=gpt_problems
+        return 0
+    fi
+    region=$(free_region "$disk")
+    [[ -n $region ]] && read -r FS_START FS_END FS_BYTES <<<"$region"
+    ESP_PART=$(lsblk -lnpo NAME,PARTTYPE "$disk" 2>/dev/null | awk -v g="$ESP_GUID" 'tolower($2) == g {print $1; exit}')
+    if [[ -z $ESP_PART ]]; then   # bez udev databaze lsblk typ oddilu nezna - podle sgdisk
+        local n
+        n=$(sgdisk -p "$disk" 2>/dev/null | awk '$1 ~ /^[0-9]+$/ && toupper($6) == "EF00" {print $1; exit}')
+        [[ -n $n ]] && ESP_PART=$(part_path "$disk" "$n")
+    fi
+    if [[ -n $ESP_PART ]] && ! esp_info "$ESP_PART"; then
+        FS_ERR=esp_mount
+    fi
+    if ((FS_BYTES < MIN_FREE)); then
+        FS_ERR=no_space
+    elif [[ $BOOTLOADER == none ]]; then
+        FS_ERR=""   # bez zavadece se ESP nepouziva
+    elif [[ $BOOTMODE != uefi ]]; then
+        FS_ERR=bios
+    elif [[ -z $ESP_PART ]]; then
+        FS_ERR=no_esp
+    elif [[ -z $FS_ERR ]] && ((ESP_FREE < MIN_ESP_FREE)); then
+        FS_ERR=esp_small
+    fi
+    return 0
+}
+
+probe() {  # --probe DISK: jen cte, vystup KLIC=hodnota pro GUI
+    local disk=$1
+    [[ -b $disk ]] || { echo "FREESPACE_ERR=not_block"; exit 1; }
+    if [[ -d /sys/firmware/efi/efivars ]]; then BOOTMODE=uefi; else BOOTMODE=bios; fi
+    BOOTLOADER=auto
+    check_freespace "$disk"
+    printf 'BOOTMODE=%s\nPTTYPE=%s\nFREE_BYTES=%s\nESP=%s\nESP_FREE=%s\nESP_LOADER=%s\nSYSTEMS=%s\nFREESPACE_ERR=%s\n' \
+        "$BOOTMODE" "$(blkid -p -o value -s PTTYPE "$disk" 2>/dev/null || true)" "$FS_BYTES" "$ESP_PART" \
+        "$ESP_FREE" "$ESP_LOADER" "$ESP_SYSTEMS" "$FS_ERR"
+}
+
+freespace_error() {  # citelna zprava k FS_ERR
+    case $1 in
+        bios)         T "Installing alongside other systems needs a computer started in UEFI mode." ;;
+        not_gpt)      T "Disk %s does not use a GPT partition table." "$DISK" ;;
+        gpt_problems) T "The partition table on %s has problems. Check it first (sgdisk -v)." "$DISK" ;;
+        no_space)     T "Disk %s has no free space of at least 20 GB." "$DISK" ;;
+        no_esp)       T "No EFI system partition found on %s." "$DISK" ;;
+        esp_mount)    T "The EFI system partition %s could not be read." "$ESP_PART" ;;
+        esp_small)    T "The EFI system partition %s has less than 250 MB free." "$ESP_PART" ;;
+        *)            printf '%s' "$1" ;;
+    esac
+}
+
+# Sifrovani (volitelne) a btrfs se subvolumy na korenovem oddilu, pripojeni do $TARGET
+encrypt_root() {
+    ROOTDEV=$1
+    if ((ENCRYPT)); then
+        step "$(T "Encrypting the disk")"
+        printf '%s' "$LUKS_PASS" | run cryptsetup luksFormat --type luks2 --batch-mode --key-file - "$1"
+        printf '%s' "$LUKS_PASS" | run cryptsetup open --allow-discards --perf-no_read_workqueue \
+            --perf-no_write_workqueue --persistent --key-file - "$1" cryptroot
+        LUKS_UUID=$(blkid -s UUID -o value "$1")
+        ROOTDEV=/dev/mapper/cryptroot
+    fi
+}
+
+mount_root() {
+    run mkfs.btrfs -f -L LuxOS "$ROOTDEV"
+    local mntopts=noatime,compress=zstd:1 sv
+    run mount "$ROOTDEV" "$TARGET"
+    for sv in @ @home @log @cache; do run btrfs subvolume create "$TARGET/$sv"; done
+    run umount "$TARGET"
+    run mount -o "$mntopts,subvol=@" "$ROOTDEV" "$TARGET"
+    mkdir -p "$TARGET"/{boot,home,var/log,var/cache}
+    run mount -o "$mntopts,subvol=@home"  "$ROOTDEV" "$TARGET/home"
+    run mount -o "$mntopts,subvol=@log"   "$ROOTDEV" "$TARGET/var/log"
+    run mount -o "$mntopts,subvol=@cache" "$ROOTDEV" "$TARGET/var/cache"
 }
 
 prepare_disk() {
@@ -333,47 +536,103 @@ prepare_disk() {
     fi
     [[ -b $BOOTPART && -b $rootpart ]] || fail "$(T "Partitions were not created correctly")"
 
-    ROOTDEV=$rootpart
-    if ((ENCRYPT)); then
-        step "$(T "Encrypting the disk")"
-        printf '%s' "$LUKS_PASS" | run cryptsetup luksFormat --type luks2 --batch-mode --key-file - "$rootpart"
-        printf '%s' "$LUKS_PASS" | run cryptsetup open --allow-discards --perf-no_read_workqueue \
-            --perf-no_write_workqueue --persistent --key-file - "$rootpart" cryptroot
-        LUKS_UUID=$(blkid -s UUID -o value "$rootpart")
-        ROOTDEV=/dev/mapper/cryptroot
-    fi
+    encrypt_root "$rootpart"
 
     step "$(T "Creating file systems")"
     if [[ $BOOTMODE == uefi ]]; then run mkfs.fat -F32 -n EFI "$BOOTPART"
     else run mkfs.ext4 -F -L boot "$BOOTPART"; fi
-    run mkfs.btrfs -f -L LuxOS "$ROOTDEV"
-
-    local mntopts=noatime,compress=zstd:1 sv
-    run mount "$ROOTDEV" "$TARGET"
-    for sv in @ @home @log @cache; do run btrfs subvolume create "$TARGET/$sv"; done
-    run umount "$TARGET"
-    run mount -o "$mntopts,subvol=@" "$ROOTDEV" "$TARGET"
-    mkdir -p "$TARGET"/{boot,home,var/log,var/cache}
-    run mount -o "$mntopts,subvol=@home"  "$ROOTDEV" "$TARGET/home"
-    run mount -o "$mntopts,subvol=@log"   "$ROOTDEV" "$TARGET/var/log"
-    run mount -o "$mntopts,subvol=@cache" "$ROOTDEV" "$TARGET/var/cache"
+    mount_root
     if [[ $BOOTMODE == uefi ]]; then run mount -o fmask=0077,dmask=0077 "$BOOTPART" "$TARGET/boot"
     else run mount "$BOOTPART" "$TARGET/boot"; fi
+}
+
+# Novy oddil jen v nejvetsi volne oblasti; existujici oddily ani ESP se neformatuji
+prepare_freespace() {
+    step "$(T "Preparing disk %s" "$DISK")"
+    umount -R "$TARGET" 2>/dev/null || true
+    [[ -e /dev/mapper/cryptroot ]] && cryptsetup close cryptroot 2>/dev/null || true
+
+    check_freespace "$DISK"
+    [[ -z $FS_ERR ]] || fail "$(freespace_error "$FS_ERR")"
+    local num before after rootpart i
+    num=$(free_partnum "$DISK") || fail "$(T "The partition table on %s is full." "$DISK")"
+    before=$(sgdisk -p "$DISK" | awk '$1 ~ /^[0-9]+$/ && NF >= 6')
+    info "$(T "New partition %s: %s GB of free space" "$num" "$((FS_BYTES / 1000000000))")"
+    run sgdisk -n"$num:$FS_START:$FS_END" -t"$num:8304" -c"$num:LuxOS" "$DISK"
+    # Kontrola: ostatni oddily musi zustat beze zmeny
+    after=$(sgdisk -p "$DISK" | awk -v n="$num" '$1 ~ /^[0-9]+$/ && NF >= 6 && $1 != n')
+    [[ $before == "$after" ]] || fail "$(T "Unexpected change of existing partitions on %s - stopping." "$DISK")"
+
+    # Ostatni oddily mohou byt pouzivane - kernelu ohlasit jen novy oddil
+    run partprobe "$DISK" || true
+    run udevadm settle || true
+    for i in 1 2 3 4 5; do
+        rootpart=$(part_path "$DISK" "$num")
+        [[ -b $rootpart ]] && break
+        run partx -a --nr "$num" "$DISK" || true
+        run udevadm settle || true
+        sleep 1
+    done
+    [[ -b $rootpart ]] || fail "$(T "Partitions were not created correctly")"
+    BOOTPART=$ESP_PART
+
+    encrypt_root "$rootpart"
+
+    step "$(T "Creating file systems")"
+    mount_root
+    # Sdileny ESP jako /efi; jadro LuxOS zustava v /boot na btrfs a kopiruje se na ESP
+    if [[ $BOOTLOADER != none ]]; then
+        mkdir -p "$TARGET/efi"
+        run mount -o fmask=0077,dmask=0077 "$ESP_PART" "$TARGET/efi"
+    fi
+}
+
+# Vystup pacstrapu do logu a na stdout; s --progress navic @@PCT (stahovani 0-40 %, instalace 40-100 %)
+pac_filter() {
+    local line total=0 dl=0 inst=0 pct last=-1
+    while IFS= read -r line; do
+        printf '%s\n' "$line" >>"$LOG"
+        printf '%s\n' "$line"
+        if [[ $line =~ ^Packages?\ \(([0-9]+)\) ]]; then
+            total=${BASH_REMATCH[1]} dl=0 inst=0
+        elif ((total)) && [[ $line == *' downloading...' ]]; then
+            dl=$((dl + 1))
+        elif ((total)) && [[ $line =~ ^(installing|upgrading|reinstalling)\  ]]; then
+            inst=$((inst + 1))
+        else
+            continue
+        fi
+        ((total)) || continue
+        pct=$(((dl * 40 + inst * 60) / total))
+        ((pct > 100)) && pct=100
+        if ((pct != last)); then progress "PCT $pct"; last=$pct; fi
+    done
+    return 0
 }
 
 install_packages() {
     step "$(T "Detecting hardware")"
     local -a pkgs hw
     mapfile -t pkgs < <(grep -vE '^\s*(#|$)' "$SHARE/packages")
-    if [[ $BOOTMODE == uefi ]]; then pkgs+=(efibootmgr); else pkgs+=(grub); fi
+    if [[ $BOOTLOADER != none ]]; then
+        if [[ $BOOTMODE == uefi ]]; then pkgs+=(efibootmgr); else pkgs+=(grub); fi
+    fi
     mapfile -t hw < <(luxos-hwdetect --packages --kernel linux-zen)
     luxos-hwdetect --report | sed 's/^/  /'
     pkgs+=("${hw[@]}")
+    # NVIDIA do initramfs jen bez integrovane grafiky (u hybridni jen zpomaluje start)
+    NVIDIA_EARLY=0
+    if [[ " ${hw[*]} " == *" nvidia-open-dkms "* && " ${hw[*]} " != *" nvidia-prime "* ]]; then NVIDIA_EARLY=1; fi
 
     step "$(T "Installing packages (this is the longest step)")"
     local attempt
     for attempt in 1 2 3; do
-        if pacstrap -K "$TARGET" --needed "${pkgs[@]}" 2>&1 | tee -a "$LOG"; then
+        if ((PROGRESS)); then
+            # anglicky vystup pacmanu kvuli rozpoznani prubehu
+            if LC_ALL=C.UTF-8 pacstrap -K "$TARGET" --needed "${pkgs[@]}" 2>&1 | pac_filter; then
+                return 0
+            fi
+        elif pacstrap -K "$TARGET" --needed "${pkgs[@]}" 2>&1 | tee -a "$LOG"; then
             return 0
         fi
         info "$(T "Download failed (attempt %s), retrying…" "$attempt")"
@@ -386,7 +645,11 @@ configure_system() {
     step "$(T "Configuring the system")"
     # zram swap live systemu nepatri do fstab (instalovany system ma vlastni zram-generator)
     swapoff /dev/zram* 2>/dev/null || true
-    genfstab -U "$TARGET" | sed 's/,subvolid=[0-9]*//' | grep -v zram >>"$TARGET/etc/fstab"
+    genfstab -U "$TARGET" | sed 's/,subvolid=[0-9]*//' | grep -v zram >"$TARGET/root/fstab.new"
+    # Vedle jinych systemu: aktivni swap patri jim (LuxOS ma zram)
+    [[ $DISK_MODE == freespace ]] && sed -i '/[[:space:]]swap[[:space:]]/d' "$TARGET/root/fstab.new"
+    cat "$TARGET/root/fstab.new" >>"$TARGET/etc/fstab"
+    rm -f "$TARGET/root/fstab.new"
 
     # pacman: repozitare LuxOS ze serveru (podepsane), Arch ze stejnych mirroru jako live system
     install -m644 /usr/share/luxos/installer/pacman.conf "$TARGET/etc/pacman.conf"
@@ -402,7 +665,7 @@ configure_system() {
     root_uuid=$(blkid -s UUID -o value "$ROOTDEV")
     local rootspec="root=UUID=$root_uuid rootflags=subvol=@"
     ((ENCRYPT)) && rootspec="rd.luks.name=$LUKS_UUID=cryptroot rd.luks.options=discard root=/dev/mapper/cryptroot rootflags=subvol=@"
-    [[ $DISK == manual ]] && rootspec="root=UUID=$root_uuid$(findmnt -no OPTIONS "$TARGET" | grep -o 'subvol=[^,]*' | sed 's/^/ rootflags=/' | head -1)"
+    [[ $DISK_MODE == manual ]] && rootspec="root=UUID=$root_uuid$(findmnt -no OPTIONS "$TARGET" | grep -o 'subvol=[^,]*' | sed 's/^/ rootflags=/' | head -1)"
 
     install -Dm600 /dev/stdin "$TARGET/root/luxos-setup.env" <<ENV
 LOCALE=$(printf %q "$LOCALE")
@@ -416,6 +679,10 @@ FULLNAME=$(printf %q "$FULLNAME")
 AUTOLOGIN=$AUTOLOGIN
 ENCRYPT=$ENCRYPT
 BOOTMODE=$BOOTMODE
+BOOTLOADER=$(printf %q "$BOOTLOADER")
+DISK_MODE=$(printf %q "$DISK_MODE")
+ESP_ID=$(printf %q "${root_uuid:0:8}")
+NVIDIA_EARLY=${NVIDIA_EARLY:-0}
 DISK=$(printf %q "$DISK")
 CMDLINE=$(printf %q "$rootspec $cmdline")
 HW_SERVICES=$(printf %q "${hw_svcs[*]}")
@@ -433,10 +700,33 @@ ENV
     rm -f "$TARGET/root/luxos-setup.sh" "$TARGET/root/luxos-setup.env"
 
     # bootctl v chrootu nezapisuje EFI promenne - polozku "LuxOS" vytvorit z live systemu
-    if [[ $BOOTMODE == uefi && $DISK != manual ]] && command -v efibootmgr >/dev/null; then
-        efibootmgr -q -B -L LuxOS >/dev/null 2>&1 || true
-        run efibootmgr --create --disk "$DISK" --part 1 --label LuxOS \
+    if [[ $BOOTLOADER != none && $BOOTMODE == uefi ]] && command -v efibootmgr >/dev/null; then
+        if [[ $DISK_MODE == erase ]]; then
+            efibootmgr -q -B -L LuxOS >/dev/null 2>&1 || true
+            run efibootmgr --create --disk "$DISK" --part 1 --label LuxOS \
+                --loader '\EFI\systemd\systemd-bootx64.efi' --unicode || info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
+        elif [[ $DISK_MODE == freespace ]]; then
+            shared_esp_entry
+        fi
+    fi
+}
+
+# Sdileny ESP: polozku UEFI pridat jen pokud tam systemd-boot jeste nema vlastni; menu musi byt videt
+shared_esp_entry() {
+    local partn partuuid entries timeout
+    partn=$(lsblk -no PARTN "$ESP_PART" | tr -d ' ')
+    partuuid=$(lsblk -no PARTUUID "$ESP_PART" | tr -d ' ')
+    entries=$(efibootmgr -v 2>/dev/null || true)
+    if [[ -n $partuuid ]] && awk -v u="${partuuid,,}" 'index(tolower($0), u) && index(tolower($0), "systemd-bootx64.efi") {f = 1} END {exit !f}' <<<"$entries"; then
+        info "$(T "systemd-boot on %s is already in the UEFI boot menu." "$ESP_PART")"
+    else
+        run efibootmgr --create --disk "$DISK" --part "$partn" --label LuxOS \
             --loader '\EFI\systemd\systemd-bootx64.efi' --unicode || info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
+    fi
+    # Cizi loader.conf se neprepisuje; skryte menu zviditelnit promennou EFI (LoaderConfigTimeout)
+    timeout=$(awk '$1 == "timeout" {print $2}' "$TARGET/efi/loader/loader.conf" 2>/dev/null | tail -1 || true)
+    if [[ -z $timeout || $timeout == 0 || $timeout == menu-hidden ]]; then
+        run bootctl set-timeout 3 || info "$(T "Could not show the boot menu; hold Space while starting to see it.")"
     fi
 }
 
@@ -444,8 +734,20 @@ finish() {
     step "$(T "Finishing")"
     cp "$LOG" "$TARGET/var/log/luxos-install.log" 2>/dev/null || true
     sync
-    umount -R "$TARGET" 2>/dev/null || true
+    # gpg-agent spusteny pacstrapem (-K) by drzel $TARGET pripojeny
+    gpgconf --homedir "$TARGET/etc/pacman.d/gnupg" --kill all >/dev/null 2>&1 || true
+    local i
+    for i in 1 2 3 4 5; do   # agent konci asynchronne
+        mountpoint -q "$TARGET" || break
+        umount -R "$TARGET" 2>/dev/null && break
+        sleep 1
+    done
     ((ENCRYPT)) && cryptsetup close cryptroot 2>/dev/null || true
+    if ((PROGRESS)); then
+        info "$(T "LuxOS is installed")"
+        progress "DONE"
+        return 0
+    fi
     echo
     gum style --border rounded --border-foreground "$ACCENT" --padding "1 4" --margin "1 2" --align center \
         "$(gum style --foreground "$ACCENT" --bold "✦  $(T "LuxOS is installed")")" "" \
@@ -455,31 +757,63 @@ finish() {
 }
 
 main() {
+    if [[ -n $PROBE ]]; then
+        probe "$PROBE"
+        return 0
+    fi
     preflight
+    DISK_MODE=${DISK_MODE:-}
+    BOOTLOADER=${BOOTLOADER:-auto}
     if [[ -n $CONFIG ]]; then
-        # shellcheck disable=SC1090
-        . "$CONFIG"
+        if [[ $CONFIG == - ]]; then
+            eval "$CONFIG_DATA"
+            CONFIG_DATA=""
+        else
+            # shellcheck disable=SC1090
+            . "$CONFIG"
+        fi
+        [[ -n ${UI_LANG-} ]] && ui_lang "$UI_LANG"
         : "${LOCALE:=en_US.UTF-8}" "${XKB_LAYOUT:=us}" "${XKB_VARIANT:=}" "${TIMEZONE:=UTC}"
         : "${ENCRYPT:=0}" "${AUTOLOGIN:=0}" "${HOSTNAME_SEL:=luxos}" "${FULLNAME:=$USERNAME}"
-        [[ -n ${DISK-} && -n ${USERNAME-} && -n ${PASSWORD-} ]] || fail "$(T "Config needs DISK, USERNAME and PASSWORD")"
+        : "${BOOTLOADER:=auto}" "${LUXAI_ACCOUNT:=}"
+        [[ ${DISK_MODE-} == manual && -z ${DISK-} ]] && DISK=manual   # pripojeno v /mnt, disk neni potreba
+        [[ -n ${DISK-}&& -n ${USERNAME-} && -n ${PASSWORD-} ]] || fail "$(T "Config needs DISK, USERNAME and PASSWORD")"
         valid_user "$USERNAME" || fail "$(T "Invalid USERNAME")"
         valid_host "$HOSTNAME_SEL" || fail "$(T "Invalid HOSTNAME_SEL")"
         ((ENCRYPT)) && [[ -z ${LUKS_PASS-} ]] && fail "$(T "ENCRYPT=1 needs LUKS_PASS")"
         have_internet || fail "$(T "No internet connection")"
-        # Nepovinny ucet LuxAI (LUXAI_EMAIL + LUXAI_PASSWORD v konfiguraci)
-        if [[ -n ${LUXAI_EMAIL-} && -n ${LUXAI_PASSWORD-} ]]; then
+        # Ucet LuxAI uz prihlaseny v GUI (JSON bez hesla), jinak LUXAI_EMAIL + LUXAI_PASSWORD
+        if [[ -n $LUXAI_ACCOUNT ]] && ! python3 -c 'import json, sys; assert json.load(sys.stdin)["sessionToken"]' \
+                <<<"$LUXAI_ACCOUNT" 2>/dev/null; then
+            info "$(T "LuxAI sign-in failed - continuing without it.")"
+            LUXAI_ACCOUNT=""
+        fi
+        if [[ -z $LUXAI_ACCOUNT && -n ${LUXAI_EMAIL-} && -n ${LUXAI_PASSWORD-} ]]; then
             luxai_login "$LUXAI_EMAIL" "$LUXAI_PASSWORD" || info "$(T "LuxAI sign-in failed - continuing without it.") ($LUXAI_ERROR)"
         fi
     else
         interactive
     fi
+    # Rezim disku: erase (cely disk), freespace (vedle jinych systemu), manual (pripojeno v $TARGET)
+    [[ $DISK == manual ]] && DISK_MODE=manual
+    : "${DISK_MODE:=erase}"
+    case $DISK_MODE in
+        erase|freespace) ;;
+        manual) DISK=manual ;;
+        *) fail "$(T "Invalid DISK_MODE (use erase, freespace or manual)")" ;;
+    esac
+    [[ $BOOTLOADER == auto || $BOOTLOADER == none ]] || fail "$(T "Invalid BOOTLOADER (use auto or none)")"
+    if [[ $DISK_MODE == manual ]]; then STEP_TOTAL=4; else STEP_TOTAL=$((6 + ENCRYPT)); fi
     summary
-    [[ $DISK == manual ]] || prepare_disk
-    if [[ $DISK == manual ]]; then
-        ROOTDEV=$(findmnt -no SOURCE "$TARGET" | sed 's/\[.*\]//')
-        BOOTPART=$(findmnt -no SOURCE "$TARGET/boot" 2>/dev/null || true)
-        [[ $BOOTMODE == bios ]] && DISK=$(lsblk -no PKNAME "$ROOTDEV" | head -1 | sed 's|^|/dev/|')
-    fi
+    case $DISK_MODE in
+        erase) prepare_disk ;;
+        freespace) prepare_freespace ;;
+        manual)
+            ROOTDEV=$(findmnt -no SOURCE "$TARGET" | sed 's/\[.*\]//')
+            BOOTPART=$(findmnt -no SOURCE "$TARGET/boot" 2>/dev/null || true)
+            [[ $BOOTMODE == bios ]] && DISK=$(lsblk -no PKNAME "$ROOTDEV" | head -1 | sed 's|^|/dev/|')
+            ;;
+    esac
     install_packages
     configure_system
     finish

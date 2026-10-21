@@ -3,13 +3,13 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=10
+pkgrel=11
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
 url="https://github.com/luxos"
 license=(MIT)
-makedepends=(python xfce4-settings xfce4-session libxi libxtst gtk3 pkgconf)
+makedepends=(python xfce4-settings xfce4-session libxi libxtst libxrandr gtk3 pkgconf)
 install=luxos-desktop.install
 depends=(
     # LuxOS
@@ -19,7 +19,7 @@ depends=(
     # Xfce (jen potrebne casti)
     xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf xfce4-notifyd
     xfce4-power-manager xfce4-screensaver xfce4-terminal xfce4-screenshooter xfce4-taskmanager
-    xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xfce4-xkb-plugin xorg-xprop libxi libxtst
+    xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xfce4-xkb-plugin xorg-xprop libxi libxtst libxrandr
     brightnessctl luxos-i18n luxos-store luxos-account
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
     # Dock, Hledani, prihlaseni
@@ -42,7 +42,7 @@ depends=(
 
 build() {
     # Prepinani nabidek horni listy jednim klikem
-    gcc $CFLAGS $LDFLAGS -o luxos-menubar "$startdir/files/src/luxos-menubar.c" -lX11 -lXi -lXtst
+    gcc $CFLAGS $LDFLAGS -o luxos-menubar "$startdir/files/src/luxos-menubar.c" -lX11 -lXi -lXtst -lXrandr
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-rgba-menus.so "$startdir/files/src/luxos-rgba-menus.c" \
         $(pkg-config --cflags --libs gtk+-3.0)
 }
@@ -60,12 +60,26 @@ package() {
     install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar
     ln -s luxos-search "$pkgdir/usr/bin/luxos-spotlight"   # starsi zkratky v xfconf
     install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f"/python/*.py
+    # Predkompilovany bajtkod: uzivatel do /usr nezapisuje, jinak by se moduly prekladaly pri kazdem startu
+    # (checked-hash: platnost podle obsahu, ne casu souboru - makepkg casy prepisuje)
+    python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     # Setric obrazovky: xfce4-screensaver spousti jen programy ze sve slozky
     install -Dm755 "$f/screensaver/luxos-screensaver" "$pkgdir/usr/lib/xfce4-screensaver/luxos"
     install -Dm644 -t "$pkgdir/usr/share/applications/screensavers" "$f"/screensaver/*.desktop
     install -Dm755 -t "$pkgdir/usr/lib/luxos/override-bin" "$f"/override-bin/*
     install -Dm644 -t "$pkgdir/usr/share/applications" "$f"/applications/*.desktop
     install -Dm644 -t "$pkgdir/usr/share/rofi/themes" "$f"/rofi/luxos-*.rasi
+
+    # Pluginy horni listy bez nabidek (genmon, systray) bezi primo v procesu panelu - kazdy
+    # externi plugin je dalsi proces (~12 MB). Panel cte <prefix>/share/xfce4/panel/plugins
+    # z XDG_DATA_DIRS (viz /etc/profile.d/luxos.sh) a moduly bere z <prefix>/lib/xfce4/panel/plugins.
+    # Pluginy s nabidkami zustavaji externi: luxos-menubar je rozlisuje podle X klienta.
+    local pp="$pkgdir/usr/lib/luxos/panel" m
+    install -Dm644 -t "$pp/share/xfce4/panel/plugins" "$f"/panel-plugins/*.desktop
+    install -dm755 "$pp/lib/xfce4/panel/plugins"
+    for m in genmon systray; do
+        ln -s "/usr/lib/xfce4/panel/plugins/lib$m.so" "$pp/lib/xfce4/panel/plugins/lib$m.so"
+    done
     install -Dm644 "$f/rofi/config.rasi" "$pkgdir/etc/rofi.rasi"   # system-wide config rofi 2.x
 
     # Kratke nazvy aplikaci (pacman hook prepise .desktop do /var/lib/luxos/apps)
@@ -93,6 +107,9 @@ package() {
     install -Dm755 libluxos-rgba-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-rgba-menus.so"
     install -Dm644 "$f/lightdm/lightdm-gtk-greeter.conf" \
         "$pkgdir/usr/share/lightdm/lightdm-gtk-greeter.conf.d/50-luxos.conf"
+
+    # Firefox: hardwarove dekodovani videa, uvolnovani panelu pri nedostatku pameti
+    install -Dm644 "$f/firefox/luxos.js" "$pkgdir/usr/lib/firefox/defaults/pref/luxos.js"
 
     install -Dm644 "$f/xorg/30-luxos-touchpad.conf" "$pkgdir/etc/X11/xorg.conf.d/30-luxos-touchpad.conf"
 

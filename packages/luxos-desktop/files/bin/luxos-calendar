@@ -15,6 +15,7 @@ import os
 import signal
 import subprocess
 import sys
+import warnings
 
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_i18n import _  # noqa: E402
@@ -969,7 +970,10 @@ class CalendarWindow(Gtk.Window):
         self.move(geo.x + geo.width - w - 8, geo.y + 6)
 
     def close_if_unfocused(self):
-        if not self.is_active():
+        # is_active() zustava po kliknuti na plochu (xfdesktop drzi grab) chybne True,
+        # proto rozhoduje i skutecne aktivni okno podle spravce oken (_NET_ACTIVE_WINDOW)
+        active = self.get_screen().get_active_window()
+        if not self.is_active() or (active is not None and active != self.get_window()):
             self.hide()
         return False
 
@@ -1094,15 +1098,19 @@ def migrate_panel():
 
 # ---- start ----------------------------------------------------------------------------
 def running_pid():
+    """(pid, signal) bezici instance: vlastni demon SIGUSR1, luxos-daemon SIGUSR2."""
     try:
         with open(PIDFILE) as f:
             pid = int(f.read())
         with open(f"/proc/{pid}/cmdline", "rb") as f:
-            if b"luxos-calendar" in f.read():
-                return pid
+            cmd = f.read()
+        if b"luxos-daemon" in cmd:
+            return pid, signal.SIGUSR2
+        if b"luxos-calendar" in cmd:
+            return pid, signal.SIGUSR1
     except (OSError, ValueError):
         pass
-    return None
+    return None, None
 
 
 def theme_is_dark():
@@ -1146,20 +1154,17 @@ def signal_add(sig, cb):
         GLib.unix_signal_add(GLib.PRIORITY_HIGH, sig, cb)
 
 
-def main():
-    pid = running_pid()
-    if pid and pid != os.getpid():
-        os.kill(pid, signal.SIGUSR1)
-        return
-    with open(PIDFILE, "w") as f:
-        f.write(str(os.getpid()))
-    GLib.set_prgname("luxos-calendar")
-    GLib.set_application_name(_("Calendar"))
+def create(daemon=True):
+    """Skryte okno kalendare s pripominkami a hlidanim souboru (pouziva i luxos-daemon)."""
     store = ics.Store()
     store.reload_if_changed()
     win = CalendarWindow(store)
+    with warnings.catch_warnings():     # vlastni WM_CLASS i ve sdilenem procesu luxos-daemon
+        warnings.simplefilter("ignore", DeprecationWarning)
+        win.set_wmclass("luxos-calendar", "Luxos-calendar")
     theme = Theme(win)
     win.dark = theme.dark
+    win._theme = theme
     reminders = Reminders(store)
     win.on_changed = reminders.schedule
 
@@ -1185,13 +1190,27 @@ def main():
     except (GLib.Error, OSError):
         pass
 
+    reminders.schedule()
+    if daemon:
+        GLib.timeout_add_seconds(5, lambda: migrate_panel() and False)
+    return win
+
+
+def main():
+    pid, sig = running_pid()
+    if pid and pid != os.getpid():
+        os.kill(pid, sig)
+        return
+    with open(PIDFILE, "w") as f:
+        f.write(str(os.getpid()))
+    GLib.set_prgname("luxos-calendar")
+    GLib.set_application_name(_("Calendar"))
+    daemon = "--daemon" in sys.argv
+    win = create(daemon)
     win.connect("destroy", Gtk.main_quit)
     signal_add(signal.SIGTERM, lambda *_a: Gtk.main_quit() or True)
     signal_add(signal.SIGUSR1, lambda *_a: win.toggle() or True)
-    reminders.schedule()
-    if "--daemon" in sys.argv:
-        GLib.timeout_add_seconds(5, lambda: migrate_panel() and False)
-    else:
+    if not daemon:
         win.toggle()
     try:
         Gtk.main()

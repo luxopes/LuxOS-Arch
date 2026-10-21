@@ -1,10 +1,16 @@
 # LuxOS - priklad konfigurace pro bezobsluznou instalaci
 #   sudo luxos-install --config install.conf --yes
+#   ... | sudo luxos-install --config - --yes --progress   (konfigurace ze stdin, hesla nejdou na disk)
 LOCALE=cs_CZ.UTF-8
 XKB_LAYOUT=cz
 XKB_VARIANT=
 TIMEZONE=Europe/Prague
-DISK=/dev/vda          # CELY DISK BUDE SMAZAN
+DISK=/dev/vda          # disk pro instalaci; "manual" = pouzit oddily uz pripojene v /mnt
+DISK_MODE=erase        # erase = CELY DISK BUDE SMAZAN
+                       # freespace = vedle jinych systemu do nejvetsi volne oblasti (min. 20 GB,
+                       #             jen GPT + UEFI, sdileny EFI oddil s min. 250 MB volneho mista)
+                       # manual = oddily pripojene v /mnt (stejne jako DISK=manual)
+BOOTLOADER=auto        # auto = systemd-boot (UEFI) / GRUB (BIOS); none = bez zavadece (jadro v /boot)
 ENCRYPT=0              # 1 = LUKS2, vyzaduje LUKS_PASS
 LUKS_PASS=
 USERNAME=lux
@@ -12,6 +18,10 @@ FULLNAME="Lux User"
 PASSWORD=luxos
 HOSTNAME_SEL=luxos
 AUTOLOGIN=0
+# Nepovinne: jazyk vystupu instalatoru (napr. cs_CZ.UTF-8)
+UI_LANG=
 # Nepovinne: prihlaseni k uctu LuxAI (AI v LuxAI, Lux Code, LSL IDE)
 LUXAI_EMAIL=
 LUXAI_PASSWORD=
+# ... nebo uz prihlaseny ucet jako JSON (obsah ~/.config/luxai/account.json, pouziva GUI)
+LUXAI_ACCOUNT=

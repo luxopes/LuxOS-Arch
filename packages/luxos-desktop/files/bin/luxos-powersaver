@@ -5,12 +5,23 @@
 state="${XDG_CONFIG_HOME:-$HOME/.config}/luxos/powersaver"
 dock=net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/
 
+# Vykonovy profil primo pres D-Bus (powerprofilesctl je skript v Pythonu - pomalejsi start)
+set_profile() {
+    local name path
+    for name in org.freedesktop.UPower.PowerProfiles net.hadess.PowerProfiles; do
+        path=/${name//.//}
+        gdbus call --system --dest "$name" --object-path "$path" \
+            --method org.freedesktop.DBus.Properties.Set "$name" ActiveProfile "<'$1'>" >/dev/null 2>&1 && return
+    done
+    powerprofilesctl set "$1" 2>/dev/null
+}
+
 apply() {  # apply on|off
     if [[ $1 == on ]]; then
-        powerprofilesctl set power-saver 2>/dev/null
+        set_profile power-saver
         gsettings set "$dock" zoom-enabled false 2>/dev/null
     else
-        powerprofilesctl set balanced 2>/dev/null
+        set_profile balanced
         gsettings set "$dock" zoom-enabled "$(cat "${state%/*}/dock-zoom" 2>/dev/null || echo true)" 2>/dev/null
     fi
 }

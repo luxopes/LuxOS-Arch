@@ -28,6 +28,7 @@ UP = "org.freedesktop.UPower"
 DEMO = os.environ.get("LUXOS_POWER_DEMO") == "1"
 STATE_CHARGING, STATE_DISCHARGING, STATE_EMPTY, STATE_FULL, STATE_PENDING_CHARGE = 1, 2, 3, 4, 5
 PM = "xfce4-power-manager"
+SAVER_STATE = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver")
 AUTO_SAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver-auto")
 
 CSS = b"""
@@ -51,6 +52,35 @@ def run(*cmd):
         return r.stdout.strip() if r.returncode == 0 else ""
     except (OSError, subprocess.TimeoutExpired):
         return ""
+
+
+PPD = (("org.freedesktop.UPower.PowerProfiles", "/org/freedesktop/UPower/PowerProfiles"),
+       ("net.hadess.PowerProfiles", "/net/hadess/PowerProfiles"))
+
+
+def ppd_state(bus):
+    """(aktivni profil, [dostupne profily]) z power-profiles-daemon, nebo ("", [])."""
+    for name, path in PPD:
+        try:
+            r = bus.call_sync(name, path, "org.freedesktop.DBus.Properties", "GetAll",
+                              GLib.Variant("(s)", (name,)), None, 0, 2000, None)
+            props = r.unpack()[0]
+            return props.get("ActiveProfile", ""), [p.get("Profile") for p in props.get("Profiles", [])]
+        except GLib.Error:
+            continue
+    return "", []
+
+
+def ppd_set(bus, profile):
+    for name, path in PPD:
+        try:
+            bus.call_sync(name, path, "org.freedesktop.DBus.Properties", "Set",
+                          GLib.Variant("(ssv)", (name, "ActiveProfile", GLib.Variant("s", profile))),
+                          None, 0, 3000, None)
+            return True
+        except GLib.Error:
+            continue
+    return False
 
 
 def fmt_duration(seconds):
@@ -342,13 +372,13 @@ class PowerWindow(Gtk.Window):
         lab.get_style_context().add_class("section-title")
         page.pack_start(lab, False, False, 0)
         modes = Gtk.Box(spacing=8)
-        current = run("powerprofilesctl", "get")
-        available = run("powerprofilesctl", "list")
+        # Primo pres D-Bus (powerprofilesctl je skript v Pythonu, kazde spusteni ~0,1 s)
+        current, available = ppd_state(self.bat.bus)
         first = None
         for key, label, hint in (("power-saver", _("Power Saver"), _("Longest battery life")),
                                  ("balanced", _("Balanced"), _("Recommended")),
                                  ("performance", _("Performance"), _("Fastest, uses more power"))):
-            if available and key + ":" not in available:
+            if available and key not in available:
                 continue
             b = Gtk.RadioButton.new_from_widget(first)
             first = first or b
@@ -361,12 +391,12 @@ class PowerWindow(Gtk.Window):
             inner.pack_start(h, False, False, 0)
             b.add(inner)
             b.set_active(key == current)
-            b.connect("toggled", lambda btn, k=key: btn.get_active() and run("powerprofilesctl", "set", k))
+            b.connect("toggled", lambda btn, k=key: btn.get_active() and ppd_set(self.bat.bus, k))
             modes.pack_start(b, True, True, 0)
         page.pack_start(modes, False, False, 0)
 
         group = self.group(page, _("Battery Saver"))
-        saver = Gtk.Switch(active=run("luxos-powersaver", "status") == "on")
+        saver = Gtk.Switch(active=os.path.exists(SAVER_STATE))
         saver.connect("notify::active", lambda s, _p: run("luxos-powersaver", "on" if s.get_active() else "off"))
         self.row(group, _("Battery Saver"), saver, _("Saves energy: power saving mode and fewer animations."))
         auto = Gtk.Switch(active=os.path.exists(AUTO_SAVER))
@@ -420,7 +450,13 @@ class PowerWindow(Gtk.Window):
         group.rows += 1
 
     def combo(self, prop, options, also=None):
-        cur = run("xfconf-query", "-c", PM, "-p", f"/{PM}/{prop}")
+        if not hasattr(self, "pm_values"):
+            # Vsechny hodnoty xfce4-power-manager jednim volanim (misto xfconf-query pro kazdou)
+            self.pm_values = {}
+            for line in run("xfconf-query", "-c", PM, "-lv").splitlines():
+                key, _s, value = line.partition(" ")
+                self.pm_values[key] = value.strip()
+        cur = self.pm_values.get(f"/{PM}/{prop}", "")
         c = Gtk.ComboBoxText()
         for value, label in options:
             c.append(str(value), label)

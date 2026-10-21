@@ -11,6 +11,11 @@ case ":${XDG_DATA_DIRS:-}:" in
     *:/usr/share/luxos/xdg:*) ;;
     *) export XDG_DATA_DIRS="/var/lib/luxos/apps:/usr/share/luxos/xdg:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" ;;
 esac
+# Lehci horni lista: pluginy bez nabidek primo v procesu panelu (/usr/lib/luxos/panel, luxos-desktop)
+case ":$XDG_DATA_DIRS:" in
+    *:/usr/lib/luxos/panel/share:*) ;;
+    *) export XDG_DATA_DIRS="/usr/lib/luxos/panel/share:$XDG_DATA_DIRS" ;;
+esac
 
 # Programy LuxOS, ktere nahrazuji casti Xfce (napr. xfdesktop-settings -> Plocha a Dock)
 case ":$PATH:" in

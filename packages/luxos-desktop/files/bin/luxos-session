@@ -20,7 +20,6 @@ if [[ $(luxos-appearance mode) == auto ]]; then
     m=$(python3 -I /usr/lib/luxos/python/luxos_sun.py mode 2>/dev/null)
     [[ -n $m && $m != "$(luxos-appearance status)" ]] && luxos-appearance auto
 fi
-luxos-appearance watch &
 
 # Softwarovy jas monitoru (Ovladaci centrum, monitory bez podsviceni)
 if [[ -f $cfg/brightness ]] && ! compgen -G '/sys/class/backlight/*' >/dev/null; then
@@ -35,8 +34,8 @@ if [[ $(gsettings get net.launchpad.plank.dock.settings:/net/launchpad/plank/doc
 else
     rm -f "$cfg/dock-autohide"
 fi
-pgrep -u "$USER" -x luxos-menubar >/dev/null || luxos-menubar &
-# Trezor: hlidac zamykani (zamceni obrazovky, uspani, odhlaseni) a zalozka v Souborech
+pgrep -u "$USER" -x luxos-menubar >/dev/null || { luxos-menubar & }
+# Trezor: zamceni pri odhlaseni (sluzba) a zalozka v Souborech; zamceni obrazovky a uspani hlida luxos-daemon
 if command -v luxos-safe >/dev/null; then
     systemctl --user start luxos-safe-watch.service 2>/dev/null &
     bm="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/bookmarks"
@@ -46,9 +45,14 @@ if command -v luxos-safe >/dev/null; then
     fi
 fi
 
-# Ovladaci centrum predem nactene a skryte - klik v liste ho ukaze okamzite
-luxos-control-center --daemon &
-luxos-calendar --daemon &  # Kalendar pod hodinami (klik na hodiny) + pripominky udalosti
+# Jeden proces pro Ovladaci centrum, Kalendar (predem nactene, klik v liste je ukaze okamzite),
+# Trezor, Sporic dat a automaticky vzhled. Pri padu se znovu spusti (dokud bezi X).
+(
+    until luxos-daemon; do
+        xprop -root _NET_SUPPORTED >/dev/null 2>&1 || break
+        sleep 2
+    done
+) &
 # Sporic dat: merene pripojeni plati jen do odpojeni, po prihlaseni znovu
 luxos-datasaver reapply &
 
@@ -58,18 +62,7 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do
     sleep 0.5
 done
 luxos-appearance reapply
-# Pripojeni/odpojeni monitoru (dokovaci stanice, projektor): rozlozeni obrazovek,
-# zachrana oken z odpojeneho monitoru a tapeta (luxos-displays)
-(
-    last=""
-    while sleep 3; do
-        now=$(xrandr --current 2>/dev/null | awk '/ connected/ {print $1}' | sort | tr '\n' ' ')
-        [[ $now != "$last" && -n $last ]] && luxos-displays auto
-        last=$now
-        # Sporic dat i pro nove pripojene site
-        [[ -e ${XDG_CONFIG_HOME:-$HOME/.config}/luxos/datasaver ]] && luxos-datasaver reapply
-    done
-) &
+# Pripojeni/odpojeni monitoru hlida luxos-menubar (udalosti RandR, bez dotazovani)
 
 # Live ISO: ikona instalatoru na plose
 if [[ -d /run/archiso ]]; then
@@ -87,4 +80,3 @@ if [[ ! -e $cfg/welcome-done ]]; then
     sleep 3
     luxos-welcome &
 fi
-wait

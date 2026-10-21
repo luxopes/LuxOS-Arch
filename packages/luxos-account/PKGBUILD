@@ -3,17 +3,19 @@
 
 pkgname=luxos-account
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxAI account for LuxOS (sign in once, used by LuxAI, Lux Code and LSL IDE)"
 arch=(any)
 url="https://lux-ai.cz"
 license=(MIT)
 depends=(python python-gobject gtk3 luxos-i18n xdg-utils)
+makedepends=(python)
 
 package() {
     local f="$startdir/files"
     install -Dm755 "$f/luxos-account" "$pkgdir/usr/bin/luxos-account"
     install -Dm644 "$f/luxai_account.py" "$pkgdir/usr/lib/luxos/python/luxai_account.py"
+    python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 "$f/luxos-account.desktop" "$pkgdir/usr/share/applications/luxos-account.desktop"
     install -Dm644 "$f/luxai-account.md" "$pkgdir/usr/share/doc/luxos-account/luxai-account.md"
 }

@@ -163,8 +163,9 @@ def open_folder():
 
 
 # ---- hlidac relace ----------------------------------------------------------------------
-def watch():
-    from gi.repository import Gio, GLib
+def subscribe():
+    """Zamykani pri zamceni obrazovky a pred uspanim (pouziva i luxos-daemon)."""
+    from gi.repository import Gio
 
     def on_lock(*_a):
         if settings().get("lock_on_screen_lock", True):
@@ -183,6 +184,12 @@ def watch():
     system = Gio.bus_get_sync(Gio.BusType.SYSTEM)
     system.signal_subscribe("org.freedesktop.login1", "org.freedesktop.login1.Manager", "PrepareForSleep",
                             "/org/freedesktop/login1", None, 0, on_sleep)
+
+
+def watch():
+    from gi.repository import GLib
+
+    subscribe()
     loop = GLib.MainLoop()
 
     def on_term():

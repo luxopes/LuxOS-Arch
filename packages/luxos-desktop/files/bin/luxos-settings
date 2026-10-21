@@ -4,7 +4,9 @@
 Nahrazuje xfdesktop-settings (viz /usr/lib/luxos/override-bin). Dock se nastavuje
 pres GSettings Planku, vzhled a pruhlednost pres luxos-appearance.
 """
+import hashlib
 import os
+import struct
 import subprocess
 import sys
 
@@ -19,6 +21,45 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk  # noqa: E402
 
 WALL_DIRS = ["/usr/share/backgrounds/luxos", os.path.expanduser("~/Pictures/Wallpapers")]
+THUMB_DIR = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "luxos", "wallpaper-thumbs")
+THUMB_W, THUMB_H = 150, 94
+
+
+def wallpaper_thumb(path):
+    """Nahled tapety. Dekodovani velkeho JPEG trva desitky ms (gdk-pixbuf pres glycin),
+    proto se nahled uklada jako surove pixely - pristi otevreni bez dekoderu."""
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    key = hashlib.sha1(f"{path}:{st.st_mtime_ns}:{st.st_size}".encode()).hexdigest()
+    cache = os.path.join(THUMB_DIR, key + ".raw")
+    try:
+        with open(cache, "rb") as f:
+            w, h, stride, alpha = struct.unpack("<4I", f.read(16))
+            data = f.read()
+        if len(data) == stride * h:
+            return GdkPixbuf.Pixbuf.new_from_bytes(GLib.Bytes.new(data), GdkPixbuf.Colorspace.RGB,
+                                                   bool(alpha), 8, w, h, stride)
+    except (OSError, struct.error, GLib.Error):
+        pass
+    try:
+        pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, THUMB_W, THUMB_H, False)
+    except GLib.Error:
+        return None
+    try:
+        os.makedirs(THUMB_DIR, exist_ok=True)
+        data = pix.read_pixel_bytes().get_data()
+        tmp = cache + ".tmp"
+        with open(tmp, "wb") as f:
+            f.write(struct.pack("<4I", pix.get_width(), pix.get_height(), pix.get_rowstride(),
+                                int(pix.get_has_alpha())))
+            size = pix.get_rowstride() * pix.get_height()    # posledni radek pixbufu nebyva zarovnany
+            f.write(data[:size].ljust(size, b"\0"))
+        os.replace(tmp, cache)
+    except OSError:
+        pass
+    return pix
 DOCK_SCHEMA = "net.launchpad.plank.dock.settings"
 DOCK_PATH = "/net/launchpad/plank/docks/dock1/"
 PREFS = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/appearance.conf")
@@ -216,6 +257,7 @@ class Settings(Gtk.Window):
         flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=4,
                            column_spacing=6, row_spacing=6, margin=10, homogeneous=True)
         self.thumbs = {}
+        self.thumb_queue = []
         seen = set()
         for d in WALL_DIRS:
             try:
@@ -242,19 +284,33 @@ class Settings(Gtk.Window):
         return None
 
     def add_thumb(self, flow, path, is_current):
-        try:
-            pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, 150, 94, False)
-        except GLib.Error:
-            return
         b = Gtk.Button()
         b.get_style_context().add_class("thumb")
         if is_current:
             b.get_style_context().add_class("current")
-        b.add(Gtk.Image.new_from_pixbuf(pix))
+        # Obrazek az po zobrazeni okna (jeden nahled na volny cyklus smycky)
+        image = Gtk.Image()
+        image.set_size_request(THUMB_W, THUMB_H)
+        b.add(image)
+        if not self.thumb_queue:
+            GLib.idle_add(self.load_thumbs, priority=GLib.PRIORITY_LOW)
+        self.thumb_queue.append((image, path, b))
         b.set_tooltip_text(os.path.basename(path).rsplit(".", 1)[0].replace("luxos-", "").replace("-", " ").title())
         b.connect("clicked", lambda _b: self.set_wallpaper(path))
         self.thumbs[path] = b
         flow.add(b)
+
+    def load_thumbs(self):
+        if not self.thumb_queue:
+            return False
+        image, path, button = self.thumb_queue.pop(0)
+        pix = wallpaper_thumb(path)
+        if pix is not None:
+            image.set_from_pixbuf(pix)
+        else:
+            self.thumbs.pop(path, None)
+            button.destroy()        # nelze nacist (poskozeny soubor)
+        return bool(self.thumb_queue)
 
     def set_wallpaper(self, path):
         for p, b in self.thumbs.items():
