@@ -1,0 +1,1420 @@
+# LuxOS - svensk översättning (engelsk text<TAB>svensk text); %s och %d måste behållas
+Keyboard Shortcuts	Kortkommandon
+Shortcut	Kortkommando
+Action	Åtgärd
+Close window	Stäng fönster
+Minimize window	Minimera fönster
+Switch windows	Växla mellan fönster
+Maximize / tile half	Maximera / halva skärmen
+Full screen	Helskärm
+Show desktop	Visa skrivbordet
+Switch workspace	Byt arbetsyta
+Files	Filer
+Terminal	Terminal
+Settings	Inställningar
+Lock screen	Lås skärmen
+Switch keyboard layout	Byt tangentbordslayout
+Screenshot	Skärmavbild
+Screenshot of region	Skärmavbild av område
+Screenshot tool	Verktyg för skärmavbilder
+System monitor (force quit)	Systemövervakning (tvångsavsluta)
+Close	Stäng
+Desktop & Dock	Skrivbord och Dock
+Advanced Desktop Settings…	Avancerade skrivbordsinställningar…
+Menu Bar Items…	Objekt i menyraden…
+Appearance	Utseende
+Light	Ljust
+Dark	Mörkt
+Wallpaper	Skrivbordsbild
+Choose…	Välj…
+Your own picture	Egen bild
+Choose a picture	Välj en bild
+Pictures	Bilder
+Dock	Dock
+Automatically hide and show the Dock	Göm och visa Dock automatiskt
+The Dock appears when you move the pointer to the bottom edge.	Dock visas när du flyttar pekaren till nederkanten.
+Size	Storlek
+Magnification	Förstoring
+Magnification size	Förstoringsgrad
+Bottom	Nederkant
+Left	Vänster
+Right	Höger
+Position on screen	Placering på skärmen
+Dock opacity	Dockens opacitet
+Menu Bar	Menyrad
+Menu bar opacity	Menyradens opacitet
+Battery Saver is on\n	Batterisparläge är på\n
+Battery Saver is off\n	Batterisparläge är av\n
+Battery	Batteri
+Rolling release · based on Arch Linux	Löpande utgåvor · baserat på Arch Linux
+Computer	Dator
+Processor	Processor
+Memory	Minne
+Graphics	Grafik
+Storage	Lagring
+%s available of %s	%s tillgängligt av %s
+Kernel	Kärna
+Shell	Skal
+About This Computer	Om den här datorn
+Software Update	Programuppdatering
+Update	Uppdatera
+Press Enter to close	Tryck på Enter för att stänga
+Install LuxOS	Installera LuxOS
+Light Mode	Ljust läge
+Dark Mode	Mörkt läge
+LuxOS Store	LuxOS Store
+Shortcuts	Kortkommandon
+Welcome to LuxOS	Välkommen till LuxOS
+Fast, light and beautifully simple.	Snabbt, lätt och vackert enkelt.
+Search: apps, files and windows	Sök: appar, filer och fönster
+Launchpad: all applications	Launchpad: alla appar
+close window	stäng fönster
+screenshot of a region	skärmavbild av ett område
+install and update software from Terminal	installera och uppdatera program från Terminal
+Control Center	Kontrollcenter
+Off	Av
+Ethernet	Ethernet
+Not connected	Inte ansluten
+Not available	Inte tillgänglig
+On	På
+Wi-Fi	Wi-Fi
+Bluetooth	Bluetooth
+Do Not Disturb	Stör ej
+Data Saver	Datasparläge
+Battery Saver	Batterisparläge
+Display	Skärm
+Sound	Ljud
+Desktop & Dock…	Skrivbord och Dock…
+All Settings…	Alla inställningar…
+Charging	Laddar
+On battery	På batteri
+Fully charged	Fulladdat
+Data Saver is on\n	Datasparläge är på\n
+Data Saver is off\n	Datasparläge är av\n
+AUR is disabled in lux.conf	AUR är avaktiverat i lux.conf
+jq is required for AUR support	jq krävs för AUR-stöd
+AUR packages must be built as a regular user (run lux without sudo)	AUR-paket måste byggas som vanlig användare (kör lux utan sudo)
+Building AUR packages needs %sbase-devel%s and %sgit%s.	För att bygga AUR-paket behövs %sbase-devel%s och %sgit%s.
+Install them now?	Vill du installera dem nu?
+AUR is not reachable	AUR går inte att nå
+Package '%s' was not found in repositories or AUR	Paketet ”%s” hittades inte i förråden eller i AUR
+Cannot update %s from AUR	Det går inte att uppdatera %s från AUR
+Cannot clone %s from AUR	Det går inte att klona %s från AUR
+Review PKGBUILD of %s before building?	Vill du granska PKGBUILD för %s innan bygget?
+Build and install %s?	Vill du bygga och installera %s?
+Cancelled	Avbrutet
+Building %s %s(AUR)%s	Bygger %s %s(AUR)%s
+Build of %s failed (see %s)	Bygget av %s misslyckades (se %s)
+AUR packages to build: %s	AUR-paket att bygga: %s
+AUR packages are maintained by the community, not by LuxOS.	AUR-paket underhålls av gemenskapen, inte av LuxOS.
+Continue?	Vill du fortsätta?
+Usage: lux install <package...>	Användning: lux install <paket...>
+Installing %s from Flathub	Installerar %s från Flathub
+Package '%s' not found. Try: lux search %s	Paketet ”%s” hittades inte. Prova: lux search %s
+Usage: lux remove <package...>	Användning: lux remove <paket...>
+Refreshing package databases	Uppdaterar paketdatabaser
+Updating system packages	Uppdaterar systempaket
+Checking AUR packages	Kontrollerar AUR-paket
+AUR packages are up to date	AUR-paketen är uppdaterade
+Updating Flatpak apps	Uppdaterar Flatpak-appar
+New config files to review:	Nya konfigurationsfiler att granska:
+Kernel was updated - restart to use it.	Kärnan har uppdaterats – starta om för att använda den.
+System is up to date	Systemet är uppdaterat
+Usage: lux search <term>	Användning: lux search <sökord>
+Usage: lux info <package>	Användning: lux info <paket>
+Package '%s' not found	Paketet ”%s” hittades inte
+Cleaning package cache (keeping %s versions)	Rensar paketcachen (behåller %s versioner)
+Unneeded packages: %s	Onödiga paket: %s
+Remove them?	Vill du ta bort dem?
+No unneeded packages	Inga onödiga paket
+Clean	Rensa
+All drivers are installed	Alla drivrutiner är installerade
+Missing: %s	Saknas: %s
+Install now?	Vill du installera nu?
+Drivers installed - restart to activate them	Drivrutinerna har installerats – starta om för att aktivera dem
+Finding the fastest mirrors (this can take a minute)	Söker efter de snabbaste speglarna (det kan ta en minut)
+Mirror list updated	Spegellistan har uppdaterats
+LuxOS system check	LuxOS-systemkontroll
+%s failed service(s):	%s tjänst(er) som misslyckats:
+Services running	Tjänsterna körs
+%s .pacnew config file(s) to merge (pacdiff)	%s .pacnew-konfigurationsfil(er) att sammanfoga (pacdiff)
+No pending config files	Inga väntande konfigurationsfiler
+Root filesystem is %s%% full	Rotfilsystemet är %s%% fullt
+Disk usage %s%%	Diskanvändning %s%%
+%s unneeded package(s) - run: lux clean	%s onödigt/onödiga paket – kör: lux clean
+No orphaned packages	Inga övergivna paket
+%s update(s) available - run: lux update	%s uppdatering(ar) tillgänglig(a) – kör: lux update
+System up to date	Systemet är uppdaterat
+Running kernel was replaced - restart	Den körande kärnan har ersatts – starta om
+%s error message(s) in this boot's log (journalctl -b -p err)	%s felmeddelande(n) i loggen för denna start (journalctl -b -p err)
+Everything looks good	Allt ser bra ut
+LuxOS package manager	LuxOS pakethanterare
+Usage:	Användning:
+command	kommando
+options	alternativ
+arguments	argument
+Options:	Alternativ:
+system	system
+The interactive mode needs fzf (lux install fzf)	Interaktivt läge kräver fzf (lux install fzf)
+The interactive mode needs expac (lux install expac)	Interaktivt läge kräver expac (lux install expac)
+Enter install · Ctrl-R remove · Ctrl-U update system · Tab select more	Enter installera · Ctrl-R ta bort · Ctrl-U uppdatera systemet · Tab markera fler
+Alt-L LuxOS apps · Alt-I installed · Alt-A all · Esc quit	Alt-L LuxOS-appar · Alt-I installerade · Alt-A alla · Esc avsluta
+LuxOS apps	LuxOS-appar
+Installed	Installerade
+All packages	Alla paket
+Search	Sök
+Press Enter to continue	Tryck på Enter för att fortsätta
+Usage: lux files <pkg>	Användning: lux files <paket>
+Usage: lux owner <file>	Användning: lux owner <fil>
+Unknown command '%s' (see lux --help)	Okänt kommando ”%s” (se lux --help)
+Open	Öppna
+Get	Hämta
+Search apps	Sök appar
+Discover	Upptäck
+LuxOS Apps	LuxOS-appar
+Categories	Kategorier
+Library	Bibliotek
+Updates	Uppdateringar
+From LuxOS	Från LuxOS
+Popular apps	Populära appar
+Apps made for LuxOS, signed by the LuxOS team.	Appar gjorda för LuxOS, signerade av LuxOS-teamet.
+Results for “%s”	Resultat för ”%s”
+Welcome to the LuxOS Store	Välkommen till LuxOS Store
+%d apps from LuxOS and Arch Linux, installed with one click.	%d appar från LuxOS och Arch Linux, installerade med ett klick.
+Nothing here yet.	Inget här ännu.
+Check for Updates	Sök efter uppdateringar
+Update All	Uppdatera alla
+Everything is up to date.	Allt är uppdaterat.
+%d updates available: %s	%d uppdateringar tillgängliga: %s
+Checking for updates…	Söker efter uppdateringar…
+Updating system…	Uppdaterar systemet…
+Data Saver is on - updates are not checked automatically.	Datasparläge är på – uppdateringar söks inte automatiskt.
+Remove	Ta bort
+Version	Version
+Package	Paket
+About	Om
+Website	Webbplats
+%s is installed, but has no window to open.	%s är installerat men har inget fönster att öppna.
+Installing %s…	Installerar %s…
+Remove %s?	Vill du ta bort %s?
+The app will be removed from this computer. Your files stay untouched.	Appen tas bort från den här datorn. Dina filer lämnas orörda.
+Removing %s…	Tar bort %s…
+Done.	Klart.
+Cancelled.	Avbrutet.
+Failed: %s	Misslyckades: %s
+interactive app store in the terminal	interaktiv appbutik i terminalen
+install packages (repositories, then AUR / Flathub)	installera paket (förråd, sedan AUR / Flathub)
+remove packages and their unneeded dependencies	ta bort paket och deras onödiga beroenden
+update everything (system, AUR, Flatpak)	uppdatera allt (system, AUR, Flatpak)
+search repositories and AUR	sök i förråd och AUR
+show package details	visa paketinformation
+list installed packages	lista installerade paket
+files installed by a package	filer som installerats av ett paket
+which package owns a file	vilket paket som äger en fil
+clean cache and remove unneeded packages	rensa cachen och ta bort onödiga paket
+detect and install missing drivers	hitta och installera saknade drivrutiner
+pick the fastest download mirrors	välj de snabbaste nedladdningsspeglarna
+check system health	kontrollera systemets hälsa
+recent package changes	senaste paketändringar
+do not ask for confirmation	fråga inte om bekräftelse
+only official repositories	endast officiella förråd
+only AUR	endast AUR
+this help	den här hjälpen
+version	version
+Internet	Internet
+Office	Kontor
+Music & Video	Musik och video
+Developer Tools	Utvecklarverktyg
+Games	Spel
+Education & Science	Utbildning och vetenskap
+Utilities	Verktyg
+System	System
+Error	Fel
+Calculator	Kalkylator
+# Instalator
+Installation failed (line %s, exit code %s).	Installationen misslyckades (rad %s, slutkod %s).
+Details are in %s. Last lines:	Detaljer finns i %s. Sista raderna:
+Warning: not running from the LuxOS live system.	Varning: körs inte från LuxOS live-system.
+No internet connection	Ingen internetanslutning
+LuxOS downloads the newest packages during installation.	LuxOS hämtar de senaste paketen under installationen.
+Connect with the network icon in the top bar, or use the text tool.	Anslut med nätverkssymbolen i menyraden eller använd textverktyget.
+Try again	Försök igen
+Open network setup (nmtui)	Öppna nätverksinställningar (nmtui)
+Quit	Avsluta
+Other…	Annat…
+Type to search	Skriv för att söka
+Choose locale	Välj språkinställning
+Language: %s	Språk: %s
+The installation takes about 10 minutes.	Installationen tar ungefär 10 minuter.
+Keyboard	Tangentbord
+Choose your keyboard layout	Välj tangentbordslayout
+Layout	Layout
+Variant	Variant
+Keyboard: %s	Tangentbord: %s
+Time zone	Tidszon
+Use detected time zone %s?	Vill du använda den identifierade tidszonen %s?
+Choose time zone	Välj tidszon
+Time zone: %s	Tidszon: %s
+Disk	Disk
+Advanced: use partitions already mounted at %s	Avancerat: använd partitioner som redan är monterade på %s
+Where should LuxOS be installed?	Var ska LuxOS installeras?
+Nothing is mounted at %s. Mount root (and /boot) first.	Inget är monterat på %s. Montera rot (och /boot) först.
+All data on %s will be erased.	All data på %s kommer att raderas.
+Yes	Ja
+No	Nej
+Encrypt the disk? (you will enter a password at every start)	Vill du kryptera disken? (du anger ett lösenord vid varje start)
+Disk encryption password	Lösenord för diskkryptering
+Your account	Ditt konto
+Full name	Fullständigt namn
+Jane Doe	Anna Andersson
+User name (lowercase)	Användarnamn (gemener)
+Use lowercase letters, numbers, - and _ (max 32 characters).	Använd gemener, siffror, - och _ (högst 32 tecken).
+Password	Lösenord
+Computer name	Datornamn
+Use letters, numbers and - (no spaces).	Använd bokstäver, siffror och - (inga mellanslag).
+Log in automatically without a password?	Vill du logga in automatiskt utan lösenord?
+Password cannot be empty.	Lösenordet får inte vara tomt.
+%s (again)	%s (igen)
+Passwords do not match, try again.	Lösenorden matchar inte, försök igen.
+Summary	Sammanfattning
+Language	Språk
+mounted at %s	monterad på %s
+%s  (will be ERASED)	%s  (RADERAS)
+Encryption	Kryptering
+yes	ja
+no	nej
+User	Användare
+Boot mode	Startläge
+Install	Installera
+Cancel	Avbryt
+Install LuxOS now?	Vill du installera LuxOS nu?
+Preparing disk %s	Förbereder disken %s
+Partitions were not created correctly	Partitionerna skapades inte korrekt
+Encrypting the disk	Krypterar disken
+Creating file systems	Skapar filsystem
+Detecting hardware	Identifierar hårdvara
+Installing packages (this is the longest step)	Installerar paket (detta är det längsta steget)
+Download failed (attempt %s), retrying…	Hämtningen misslyckades (försök %s), försöker igen…
+Packages could not be installed. Check the internet connection.	Paketen kunde inte installeras. Kontrollera internetanslutningen.
+Configuring the system	Konfigurerar systemet
+Could not add UEFI boot entry (fallback loader will be used)	Det gick inte att lägga till UEFI-startpost (reservstartladdaren används)
+Finishing	Slutför
+LuxOS is installed	LuxOS är installerat
+Remove the installation media and restart your computer.	Ta bort installationsmediet och starta om datorn.
+Restart	Starta om
+Later	Senare
+Restart now?	Vill du starta om nu?
+Config needs DISK, USERNAME and PASSWORD	Konfigurationen kräver DISK, USERNAME och PASSWORD
+Invalid USERNAME	Ogiltigt USERNAME
+Invalid HOSTNAME_SEL	Ogiltigt HOSTNAME_SEL
+ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 kräver LUKS_PASS
+# Rozlozeni klavesnice (instalator)
+English (US)	Engelska (USA)
+Czech	Tjeckiska
+Czech (QWERTY)	Tjeckiska (QWERTY)
+Slovak	Slovakiska
+Slovak (QWERTY)	Slovakiska (QWERTY)
+German	Tyska
+English (UK)	Engelska (Storbritannien)
+French	Franska
+Spanish	Spanska
+Italian	Italienska
+Polish	Polska
+Hungarian	Ungerska
+Ukrainian	Ukrainska
+Portuguese	Portugisiska
+Portuguese (Brazil)	Portugisiska (Brasilien)
+Swedish	Svenska
+# Nazvy aplikaci v horni liste
+Desktop	Skrivbord
+Text Editor	Textredigerare
+Image Viewer	Bildvisare
+Document Viewer	Dokumentvisare
+System Monitor	Systemövervakning
+# Monitory
+Extend - use both screens	Utöka – använd båda skärmarna
+Mirror - same picture on both	Spegla – samma bild på båda
+Only external screen	Endast extern skärm
+Only this computer's screen	Endast den här datorns skärm
+Screens	Skärmar
+# Baterie a napajeni
+Battery…	Batteri…
+Battery Saver is on	Batterisparläge är på
+Battery is at %s %%. Connect the charger.	Batteriet är på %s %%. Anslut laddaren.
+%d min	%d min
+%d h %d min	%d h %d min
+now	nu
+No history yet	Ingen historik ännu
+Battery & Power	Batteri och ström
+Power usage	Strömförbrukning
+Battery health	Batterihälsa
+Charge cycles	Laddningscykler
+Energy	Energi
+Battery level - last 24 hours	Batterinivå – senaste 24 timmarna
+Power usage - last 24 hours	Strömförbrukning – senaste 24 timmarna
+This computer runs on mains power - there is no battery.	Den här datorn drivs med nätström – det finns inget batteri.
+Power mode	Strömläge
+Power Saver	Energisparläge
+Longest battery life	Längsta batteritid
+Balanced	Balanserat
+Recommended	Rekommenderas
+Performance	Prestanda
+Fastest, uses more power	Snabbast, drar mer ström
+Saves energy: power saving mode and fewer animations.	Sparar energi: strömsparläge och färre animationer.
+Turn on automatically at 20 %	Slå på automatiskt vid 20 %
+Turns off again when the computer is charging.	Stängs av igen när datorn laddas.
+Screen and sleep	Skärm och vila
+Never	Aldrig
+1 minute	1 minut
+2 minutes	2 minuter
+5 minutes	5 minuter
+10 minutes	10 minuter
+15 minutes	15 minuter
+30 minutes	30 minuter
+1 hour	1 timme
+2 hours	2 timmar
+Turn off the screen on battery after	Stäng av skärmen vid batteridrift efter
+Turn off the screen on power adapter after	Stäng av skärmen vid nätadapter efter
+Sleep on battery after	Vila vid batteridrift efter
+Sleep on power adapter after	Vila vid nätadapter efter
+Sleep	Vila
+Turn off the screen	Stäng av skärmen
+Hibernate	Viloläge till disk
+When the lid is closed	När locket stängs
+Advanced Power Settings…	Avancerade ströminställningar…
+%s minutes	%s minuter
+full in %s	fullt om %s
+about %s left	cirka %s kvar
+Plugged in, not charging	Ansluten, laddar inte
+charging power	laddningseffekt
+current consumption	aktuell förbrukning
+of original capacity	av ursprunglig kapacitet
+full charge cycles	fulla laddningscykler
+of %.1f Wh	av %.1f Wh
+# Bluetooth
+OK	OK
+Rejected	Avvisad
+Pair this device?	Vill du parkoppla den här enheten?
+Check that the device shows this code:	Kontrollera att enheten visar den här koden:
+Pair	Parkoppla
+Type this code on the device	Skriv den här koden på enheten
+Then press Enter on it.	Tryck sedan på Enter på den.
+Enter the PIN code	Ange PIN-koden
+Usually 0000 or 1234, see the device manual.	Oftast 0000 eller 1234, se enhetens handbok.
+Enter the code	Ange koden
+Code shown on the device:	Kod som visas på enheten:
+Connected	Ansluten
+battery %d %%	batteri %d %%
+Disconnect	Koppla från
+Connect	Anslut
+Forget this device	Glöm den här enheten
+My devices	Mina enheter
+Nearby devices	Enheter i närheten
+No devices	Inga enheter
+Searching… Put the device into pairing mode.	Söker… Sätt enheten i parkopplingsläge.
+No Bluetooth adapter was found on this computer.	Ingen Bluetooth-adapter hittades på den här datorn.
+Visible as “%s”.	Synlig som ”%s”.
+Turn on Bluetooth to connect headphones, a mouse, a keyboard or a phone.	Slå på Bluetooth för att ansluta hörlurar, en mus, ett tangentbord eller en telefon.
+Could not connect	Det gick inte att ansluta
+Pairing…	Parkopplar…
+Connecting…	Ansluter…
+Disconnecting…	Kopplar från…
+Make sure the device is on, close by and in pairing mode.	Kontrollera att enheten är på, i närheten och i parkopplingsläge.
+Headphones	Hörlurar
+Speaker	Högtalare
+Mouse	Mus
+Game controller	Spelkontroll
+Tablet	Surfplatta
+Phone	Telefon
+Device	Enhet
+# Monitor systemu
+60 s ago	för 60 s sedan
+%d processes	%d processer
+1 process	1 process
+All processes	Alla processer
+Network	Nätverk
+Name	Namn
+%d cores	%d kärnor
+%s of %s used	%s av %s används
+%s free · activity %s	%s ledigt · aktivitet %s
+Download and upload	Hämtning och uppladdning
+All processes (%d)	Alla processer (%d)
+Open apps (%d)	Öppna appar (%d)
+%s is not responding	%s svarar inte
+Force quit it? Unsaved changes will be lost.	Vill du tvångsavsluta? Ändringar som inte sparats går förlorade.
+Force Quit	Tvångsavsluta
+# lux - format balicku
+Updating LuxOS apps	Uppdaterar LuxOS-appar
+Usage: lux pack <directory> [output]	Användning: lux pack <katalog> [utdata]
+%s has no lux.json	%s har ingen lux.json
+lux.json is not valid JSON	lux.json är inte giltig JSON
+Invalid package name: %s	Ogiltigt paketnamn: %s
+Invalid version: %s	Ogiltig version: %s
+%s has no app/ directory	%s har ingen app/-katalog
+Missing files listed in bin: %s	Filer som anges i bin saknas: %s
+Built %s	Byggde %s
+%s is not a lux package	%s är inte ett lux-paket
+This package needs a newer lux	Det här paketet kräver en nyare lux
+Signature OK (LuxOS)	Signaturen är OK (LuxOS)
+%s is not signed by LuxOS.	%s är inte signerat av LuxOS.
+Install it anyway?	Vill du installera det ändå?
+Installing dependencies: %s	Installerar beroenden: %s
+Dependencies could not be installed	Beroendena kunde inte installeras
+Installing %s %s	Installerar %s %s
+Could not unpack %s	Det gick inte att packa upp %s
+%s is installed	%s är installerat
+Removing %s	Tar bort %s
+%s was removed	%s har tagits bort
+Downloading %s	Hämtar %s
+Download failed: %s	Hämtningen misslyckades: %s
+Checksum mismatch: %s	Kontrollsumman stämmer inte: %s
+Bad signature: %s	Felaktig signatur: %s
+LuxOS package (.lux)	LuxOS-paket (.lux)
+build a .lux package from a directory with lux.json	bygg ett .lux-paket från en katalog med lux.json
+# Kalkulacka - vedecky rezim
+Scientific (Ctrl+2)	Vetenskaplig (Ctrl+2)
+Degrees / radians	Grader / radianer
+# Ucet LuxAI
+Sign in to LuxAI	Logga in på LuxAI
+LuxAI Account	LuxAI-konto
+AI in LuxAI, Lux Code and LSL IDE	AI i LuxAI, Lux Code och LSL IDE
+Sign-in failed (%s).	Inloggningen misslyckades (%s).
+Not signed in. Run: luxos-account login	Inte inloggad. Kör: luxos-account login
+One account for AI in LuxOS: LuxAI, Lux Code and LSL IDE.	Ett konto för AI i LuxOS: LuxAI, Lux Code och LSL IDE.
+Sign in with the browser	Logga in med webbläsaren
+or with e-mail	eller med e-post
+E-mail	E-post
+Sign In	Logga in
+Send me a code instead	Skicka en kod till mig i stället
+No account yet?	Inget konto ännu?
+Create an account	Skapa ett konto
+Enter your e-mail and password.	Ange din e-postadress och ditt lösenord.
+Enter your e-mail first.	Ange din e-postadress först.
+Enter the code from the e-mail	Ange koden från e-postmeddelandet
+We sent a 6-digit code to %s.	Vi har skickat en sexsiffrig kod till %s.
+Confirm the sign-in in the browser…	Bekräfta inloggningen i webbläsaren…
+After you confirm your e-mail, come back and sign in.	När du har bekräftat din e-postadress kan du komma tillbaka och logga in.
+AI usage this month	AI-användning den här månaden
+Unlimited	Obegränsat
+%s: %s of %s tokens	%s: %s av %s tokens
+Loading…	Läser in…
+Used by	Används av
+Manage on lux-ai.cz	Hantera på lux-ai.cz
+Sign Out	Logga ut
+Your session has expired. Please sign in again.	Din session har gått ut. Logga in igen.
+Sign out of LuxAI?	Vill du logga ut från LuxAI?
+LuxAI, Lux Code and LSL IDE will stop using this account on this computer.	LuxAI, Lux Code och LSL IDE slutar använda det här kontot på den här datorn.
+LuxAI account	LuxAI-konto
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account.	Valfritt: AI i LuxAI, Lux Code och LSL IDE använder ditt LuxAI-konto.
+Sign in	Logga in
+Skip	Hoppa över
+Sign in to your LuxAI account now?	Vill du logga in på ditt LuxAI-konto nu?
+Signed in as %s	Inloggad som %s
+Sign-in failed. Try again?	Inloggningen misslyckades. Vill du försöka igen?
+Wrong e-mail or password.	Fel e-postadress eller lösenord.
+The e-mail address is not verified yet.	E-postadressen är inte verifierad ännu.
+LuxAI is not reachable. Check the internet connection.	LuxAI går inte att nå. Kontrollera internetanslutningen.
+signed in	inloggad
+not signed in	inte inloggad
+LuxAI sign-in failed - continuing without it.	Inloggningen på LuxAI misslyckades – fortsätter utan den.
+The e-mail address is not verified yet. Use the sign-in code instead.	E-postadressen är inte verifierad ännu. Använd inloggningskoden i stället.
+The code is not valid or has expired.	Koden är ogiltig eller har gått ut.
+Too many attempts. Try again later.	För många försök. Försök igen senare.
+Please wait a minute before requesting another code.	Vänta en minut innan du begär en ny kod.
+The browser sign-in timed out.	Inloggningen i webbläsaren tog för lång tid.
+The sign-in was cancelled.	Inloggningen avbröts.
+# Spořič a zámek
+Screen Saver & Lock	Skärmsläckare och lås
+Screen saver	Skärmsläckare
+Start after inactivity of	Starta efter inaktivitet i
+LuxOS - wallpapers and clock	LuxOS – skrivbordsbilder och klocka
+Black screen	Svart skärm
+Preview	Förhandsvisa
+Lock	Lås
+Immediately	Omedelbart
+After 1 minute	Efter 1 minut
+After 5 minutes	Efter 5 minuter
+After 15 minutes	Efter 15 minuter
+Require password after the screen saver starts	Kräv lösenord när skärmsläckaren har startat
+The screen saver protects your computer while you are away.	Skärmsläckaren skyddar datorn medan du är borta.
+Lock when the computer goes to sleep	Lås när datorn går i vila
+Lock Now	Lås nu
+# Trezor
+Could not create the Safe folder.	Det gick inte att skapa mappen Valv.
+The Safe already exists.	Valvet finns redan.
+Could not create the Safe (%s).	Det gick inte att skapa Valvet (%s).
+Wrong password.	Fel lösenord.
+Could not unlock the Safe (%s).	Det gick inte att låsa upp Valvet (%s).
+Some files in the Safe are still open. Close them and try again.	Vissa filer i Valvet är fortfarande öppna. Stäng dem och försök igen.
+Could not change the password (%s).	Det gick inte att ändra lösenordet (%s).
+Safe	Valv
+Create your Safe	Skapa ditt Valv
+Files in the Safe are encrypted and open only with its own password - not even an administrator can read them while the Safe is locked.	Filerna i Valvet är krypterade och öppnas bara med Valvets eget lösenord – inte ens en administratör kan läsa dem medan Valvet är låst.
+New Safe password	Nytt lösenord för Valvet
+Password again	Lösenordet igen
+Use at least 8 characters.	Använd minst 8 tecken.
+Create Safe	Skapa Valv
+If you forget this password, the files cannot be recovered.	Om du glömmer lösenordet går filerna inte att återställa.
+The Safe is locked	Valvet är låst
+Enter the Safe password to open %s.	Ange Valvets lösenord för att öppna %s.
+Unlock	Lås upp
+The Safe is unlocked	Valvet är upplåst
+Your files are available in %s.	Dina filer finns i %s.
+Open Safe	Öppna Valvet
+Lock automatically after inactivity	Lås automatiskt efter inaktivitet
+Lock when the screen locks	Lås när skärmen låses
+The Safe always locks when the computer goes to sleep or you log out.	Valvet låses alltid när datorn går i vila eller när du loggar ut.
+Change Password…	Ändra lösenord…
+Change Password	Ändra lösenord
+Change	Ändra
+Current password	Nuvarande lösenord
+# Sandbox (luxos-sandbox)
+Creating sandbox (minimal Arch Linux system), this can take a few minutes...	Skapar sandlåda (minimalt Arch Linux-system), det kan ta några minuter...
+Sandbox deleted.	Sandlådan har raderats.
+No sandbox yet. Create it with: luxos-sandbox create	Ingen sandlåda ännu. Skapa den med: luxos-sandbox create
+Creating the sandbox failed.	Det gick inte att skapa sandlådan.
+Sandbox is ready: %s	Sandlådan är klar: %s
+Size: %s	Storlek: %s
+Shared folder: %s (only with --shared)	Delad mapp: %s (endast med --shared)
+Installed apps: %s	Installerade appar: %s
+Copying the file into the sandbox failed.	Det gick inte att kopiera filen till sandlådan.
+Usage: luxos-sandbox run [--net] [--gui] [--shared] <command...>	Användning: luxos-sandbox run [--net] [--gui] [--shared] <kommando...>
+No package given.	Inget paket angavs.
+Confirmation needed: add --yes	Bekräftelse krävs: lägg till --yes
+Wipe the whole sandbox (all installed apps and files inside) and create it again?	Vill du rensa hela sandlådan (alla installerade appar och filer i den) och skapa den igen?
+Resetting the sandbox failed.	Det gick inte att återställa sandlådan.
+Delete the sandbox with everything inside? (~/Sandbox stays)	Vill du radera sandlådan med allt innehåll? (~/Sandbox finns kvar)
+Deleting the sandbox failed.	Det gick inte att radera sandlådan.
+Run luxos-sandbox as a normal user, not root.	Kör luxos-sandbox som vanlig användare, inte som root.
+Sandbox directory is not owned by you: %s	Sandlådekatalogen ägs inte av dig: %s
+Xephyr is not installed (package xorg-server-xephyr).	Xephyr är inte installerat (paketet xorg-server-xephyr).
+Could not start the sandbox window (Xephyr).	Det gick inte att starta sandlådans fönster (Xephyr).
+Network for the sandbox needs pasta (package passt).	Nätverk för sandlådan kräver pasta (paketet passt).
+Warning: systemd user session not available, running without memory/CPU limits.	Varning: systemd-användarsession är inte tillgänglig, körs utan minnes-/CPU-gränser.
+The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	Sandlådan är skadad (hemkatalogen är inte en katalog). Kör: luxos-sandbox reset
+bubblewrap (bwrap) is not installed.	bubblewrap (bwrap) är inte installerat.
+Sandbox already exists: %s	Sandlådan finns redan: %s
+Helper not found: %s	Hjälpprogrammet hittades inte: %s
+Link: %s	Länk: %s
+none	ingen
+Not a regular file: %s	Inte en vanlig fil: %s
+Copying %s into the sandbox...	Kopierar %s till sandlådan...
+isolated sandbox for untrusted applications	isolerad sandlåda för opålitliga program
+Unknown command: %s	Okänt kommando: %s
+Unknown option: %s	Okänt alternativ: %s
+Shared folder is not usable: %s	Den delade mappen går inte att använda: %s
+Could not set up the sandbox network: %s	Det gick inte att konfigurera sandlådans nätverk: %s
+create your sandbox (asks for the administrator password once)	skapa din sandlåda (frågar efter administratörslösenordet en gång)
+show the sandbox, its size and installed apps	visa sandlådan, dess storlek och installerade appar
+interactive shell inside the sandbox	interaktivt skal i sandlådan
+run a command (a file from your computer is copied in first)	kör ett kommando (en fil från din dator kopieras in först)
+install apps from the Arch Linux repositories into the sandbox	installera appar från Arch Linux-förråden i sandlådan
+remove apps from the sandbox	ta bort appar från sandlådan
+wipe the sandbox and create it again	rensa sandlådan och skapa den igen
+delete the sandbox	radera sandlådan
+network: internet only, no local network, no services of this computer	nätverk: endast internet, inget lokalt nätverk, inga tjänster på den här datorn
+own window (nested X server), never your desktop	eget fönster (nästlad X-server), aldrig ditt skrivbord
+make ~/Sandbox visible as /home/sandbox/Shared	gör ~/Sandbox synlig som /home/sandbox/Shared
+Get started	Kom igång
+No sandbox yet	Ingen sandlåda ännu
+Creates a minimal Arch Linux system only for you. Needs the administrator password once and a few minutes.	Skapar ett minimalt Arch Linux-system bara för dig. Kräver administratörslösenordet en gång och några minuter.
+Installed apps	Installerade appar
+Install app	Installera app
+From Arch Linux repositories	Från Arch Linux-förråden
+Installs into the sandbox only; network is enabled just for the download.	Installerar endast i sandlådan; nätverket aktiveras bara för hämtningen.
+Run app	Kör app
+Command	Kommando
+Downloaded file	Hämtad fil
+The file is copied into the sandbox first; the original is never exposed.	Filen kopieras först till sandlådan; originalet exponeras aldrig.
+Internet only - no access to your local network or this computer.	Endast internet – ingen åtkomst till ditt lokala nätverk eller den här datorn.
+Window	Fönster
+Show the app in its own separate window (not on your desktop).	Visa appen i ett eget separat fönster (inte på ditt skrivbord).
+Shared folder	Delad mapp
+Tools	Verktyg
+Terminal in sandbox	Terminal i sandlådan
+Uses the Network and Shared folder switches above.	Använder reglagen Nätverk och Delad mapp ovan.
+Reset sandbox	Återställ sandlådan
+Deletes everything inside the sandbox and creates it again.	Raderar allt i sandlådan och skapar den igen.
+Creating sandbox…	Skapar sandlåda…
+Sandbox is ready.	Sandlådan är klar.
+Installed.	Installerat.
+Run	Kör
+Reset the sandbox?	Vill du återställa sandlådan?
+All apps and files inside the sandbox will be deleted. ~/Sandbox stays.	Alla appar och filer i sandlådan raderas. ~/Sandbox finns kvar.
+Continue	Fortsätt
+An isolated system for apps you don't trust. Apps inside can't see your files, network or desktop.	Ett isolerat system för appar du inte litar på. Appar i den kan inte se dina filer, ditt nätverk eller ditt skrivbord.
+Create Sandbox	Skapa sandlåda
+Package name, e.g. firefox	Paketnamn, t.ex. firefox
+Command, e.g. firefox	Kommando, t.ex. firefox
+Choose File…	Välj fil…
+Make %s visible inside as Shared. Treat files from it as untrusted.	Gör %s synlig inuti som Shared. Behandla filer därifrån som opålitliga.
+Open Terminal	Öppna Terminal
+Reset…	Återställ…
+Details	Detaljer
+Ready	Klar
+Not created	Inte skapad
+No apps installed yet	Inga appar installerade ännu
+Failed - see Details.	Misslyckades – se Detaljer.
+Enter a valid package name.	Ange ett giltigt paketnamn.
+Remove %s from the sandbox?	Vill du ta bort %s från sandlådan?
+Removed.	Borttaget.
+Started %s in the sandbox.	Startade %s i sandlådan.
+Enter a command.	Ange ett kommando.
+Choose a file to run in the sandbox	Välj en fil att köra i sandlådan
+Resetting sandbox…	Återställer sandlådan…
+# Kalendar (luxos-calendar)
+Calendar	Kalender
+All day	Heldag
+Changes apply to all occurrences.	Ändringarna gäller alla förekomster.
+Could not save: %s	Det gick inte att spara: %s
+Custom	Anpassat
+Date	Datum
+Day	Dag
+Delete All?	Vill du radera alla?
+Delete Event?	Vill du radera händelsen?
+Delete	Radera
+Edit Event	Redigera händelse
+Ends	Slutar
+Event	Händelse
+From %s	Från %s
+In %d minutes	Om %d minuter
+Invalid date.	Ogiltigt datum.
+Invalid time.	Ogiltig tid.
+Month	Månad
+New Event	Ny händelse
+Next day	Nästa dag
+Next month	Nästa månad
+Next year	Nästa år
+No events today	Inga händelser i dag
+No events	Inga händelser
+Now	Nu
+Previous day	Föregående dag
+Previous month	Föregående månad
+Previous year	Föregående år
+Read-only calendar: %s	Skrivskyddad kalender: %s
+Remind %d minutes before	Påminn %d minuter innan
+Repeat	Upprepa
+Save	Spara
+Starts	Börjar
+The event must end after it starts.	Händelsen måste sluta efter att den börjar.
+Title	Titel
+Today	I dag
+Until %s	Till och med %s
+Year	År
+Daily	Varje dag
+Weekly	Varje vecka
+Monthly	Varje månad
+Yearly	Varje år
+Monday	Måndag
+Tuesday	Tisdag
+Wednesday	Onsdag
+Thursday	Torsdag
+Friday	Fredag
+Saturday	Lördag
+Sunday	Söndag
+Mo	Må
+Tu	Ti
+We	On
+Th	To
+Fr	Fr
+Sa	Lö
+Su	Sö
+January	Januari
+February	Februari
+March	Mars
+April	April
+May	Maj
+June	Juni
+July	Juli
+August	Augusti
+September	September
+October	Oktober
+November	November
+December	December
+of January	januari
+of February	februari
+of March	mars
+of April	april
+of May	maj
+of June	juni
+of July	juli
+of August	augusti
+of September	september
+of October	oktober
+of November	november
+of December	december
+Enter Password	Ange lösenord
+Shut Down	Stäng av
+Guest	Gäst
+Username	Användarnamn
+Log In	Logga in
+Caps Lock is on	Caps Lock är på
+Incorrect password. Try again.	Fel lösenord. Försök igen.
+Could not start the session.	Det gick inte att starta sessionen.
+This action is not available right now.	Den här åtgärden är inte tillgänglig just nu.
+# LuxDrop
+Device '%s' not found on the network. Use an address: luxdrop send HOST[:PORT] FILES	Enheten ”%s” hittades inte i nätverket. Använd en adress: luxdrop send HOST[:PORT] FILES
+Transfer failed: %s (%s)	Överföringen misslyckades: %s (%s)
+WARNING: someone may be impersonating this device. Nothing was sent. If the device was reinstalled, remove it with 'luxdrop trust remove ID' and pair again.	VARNING: någon kan utge sig för att vara den här enheten. Inget skickades. Om enheten har installerats om tar du bort den med ”luxdrop trust remove ID” och parkopplar igen.
+Receiving as "%s" (ID %s) on port %d, mode: %s, folder: %s	Tar emot som ”%s” (ID %s) på port %d, läge: %s, mapp: %s
+Nearby devices:	Enheter i närheten:
+No devices found nearby (is avahi-daemon running?).	Inga enheter hittades i närheten (körs avahi-daemon?).
+No trusted devices.	Inga betrodda enheter.
+Name: %s	Namn: %s
+ID: %s	ID: %s
+Fingerprint: %s	Fingeravtryck: %s
+Send files securely between LuxOS computers.	Skicka filer säkert mellan LuxOS-datorer.
+send files or folders	skicka filer eller mappar
+device name, ID, HOST[:PORT] or NAME@HOST[:PORT]	enhetsnamn, ID, HOST[:PORT] eller NAMN@HOST[:PORT]
+do not trust the receiver after verification	lita inte på mottagaren efter verifieringen
+receive files in the terminal	ta emot filer i terminalen
+listen only on this address	lyssna endast på den här adressen
+who can send (everyone = for 10 minutes)	vem som kan skicka (alla = i 10 minuter)
+download folder	mapp för hämtningar
+do not announce on the network	annonsera inte i nätverket
+list nearby devices	lista enheter i närheten
+list or remove trusted devices	lista eller ta bort betrodda enheter
+ID or name	ID eller namn
+show this device's name and fingerprint	visa den här enhetens namn och fingeravtryck
+show or set who can send to this computer	visa eller ställ in vem som kan skicka till den här datorn
+Receiver: %s (ID %s)	Mottagare: %s (ID %s)
+Verification code: %s	Verifieringskod: %s
+Does %s show the same code? [y]es and remember / [o]nly this time / [N]o: 	Visar %s samma kod? [y] ja och kom ihåg / [o] bara den här gången / [N] nej: 
+Preparing	Förbereder
+Sending	Skickar
+Skipped %s (%s)	Hoppade över %s (%s)
+WARNING: this device uses the name of a trusted device, but a different key!	VARNING: den här enheten använder namnet på en betrodd enhet, men en annan nyckel!
+%s (ID %s) wants to send you %d item(s), %s:	%s (ID %s) vill skicka dig %d objekt, %s:
+Accept? [y]es / [a]ccept and trust this device / [N]o: 	Vill du ta emot? [y] ja / [a] ta emot och lita på enheten / [N] nej: 
+Accept? [y/N]: 	Vill du ta emot? [y/N]: 
+The sender cancelled the request.	Avsändaren avbröt förfrågan.
+trusted	betrodd
+Removed %d device(s)	Tog bort %d enhet(er)
+'%s' matches more trusted devices, use the ID	”%s” matchar flera betrodda enheter, använd ID
+File not found: %s	Filen hittades inte: %s
+Cancelling…	Avbryter…
+Sent %d item(s), %s to %s	Skickade %d objekt, %s till %s
+Verification code: %s  (must be the same on the sender's screen)	Verifieringskod: %s  (måste vara densamma på avsändarens skärm)
+Received from %s: %s	Mottaget från %s: %s
+Cannot listen on port %d: %s	Det går inte att lyssna på port %d: %s
+'%s' is not a trusted device (see 'luxdrop trust list')	”%s” är inte en betrodd enhet (se ”luxdrop trust list”)
+Declined transfer from %s	Avböjde överföring från %s
+Transfer from %s failed: %s (%s)	Överföringen från %s misslyckades: %s (%s)
+Not visible on the network (%s); connect by address.	Inte synlig i nätverket (%s); anslut med adress.
+Waiting for the receiver to accept…	Väntar på att mottagaren ska acceptera…
+(resumed, %s were already there)	(återupptogs, %s fanns redan)
+%s wants to send you %d item(s), %s: %s	%s vill skicka dig %d objekt, %s: %s
+Decline	Avböj
+Accept	Acceptera
+Accept and trust	Acceptera och lita på
+LuxDrop: incoming files	LuxDrop: inkommande filer
+LuxDrop: received from %s	LuxDrop: mottaget från %s
+Show in folder	Visa i mapp
+LuxDrop: transfer from %s failed	LuxDrop: överföringen från %s misslyckades
+Trusted devices only	Endast betrodda enheter
+Everyone for 10 minutes	Alla i 10 minuter
+Connect by address…	Anslut med adress…
+Transfers	Överföringar
+Choose	Välj
+Add	Lägg till
+Codes match	Koderna stämmer
+Device name	Enhetsnamn
+Allow receiving from	Tillåt mottagning från
+Save received files to	Spara mottagna filer i
+Accept automatically from trusted devices	Acceptera automatiskt från betrodda enheter
+Receive when LuxDrop is closed	Ta emot när LuxDrop är stängt
+Fingerprint	Fingeravtryck
+Drop files here	Släpp filer här
+or click to choose files, then pick a device below	eller klicka för att välja filer och välj sedan en enhet nedan
+Choose files…	Välj filer…
+Choose folder…	Välj mapp…
+Clear	Rensa
+Received	Mottaget
+Choose folder	Välj mapp
+Choose files	Välj filer
+Nearby devices cannot be found because avahi-daemon is not running. You can still connect by address.	Enheter i närheten kan inte hittas eftersom avahi-daemon inte körs. Du kan fortfarande ansluta med adress.
+Connect by address	Anslut med adress
+Verify code	Verifiera kod
+Remember this device (no code next time)	Kom ihåg den här enheten (ingen kod nästa gång)
+Incoming files	Inkommande filer
+Not receiving	Tar inte emot
+LuxDrop Settings	LuxDrop-inställningar
+This computer	Den här datorn
+Trusted devices	Betrodda enheter
+Trusted devices can send to you without a verification code. Remove a device if it was lost or reinstalled.	Betrodda enheter kan skicka till dig utan verifieringskod. Ta bort en enhet om den har tappats bort eller installerats om.
+Allow receiving from:	Tillåt mottagning från:
+%d item(s) ready to send	%d objekt redo att skickas
+No devices found yet. Open LuxDrop on the other computer, or connect by address.	Inga enheter hittades ännu. Öppna LuxDrop på den andra datorn eller anslut med adress.
+Trusted	Betrodd
+Not verified yet	Inte verifierad ännu
+Invalid address.	Ogiltig adress.
+Compare the code with the screen of the receiving computer. If the codes differ, someone may be intercepting the connection.	Jämför koden med skärmen på den mottagande datorn. Om koderna skiljer sig kan någon avlyssna anslutningen.
+Warning: this device uses the name of a trusted device, but its key is different. It may be someone else.	Varning: den här enheten använder namnet på en betrodd enhet, men nyckeln är en annan. Det kan vara någon annan.
+Trust this device (no code next time)	Lita på den här enheten (ingen kod nästa gång)
+To %s: %s	Till %s: %s
+From %s: %s	Från %s: %s
+Done	Klart
+Declined	Avböjt
+“%s” presented a different key than the trusted device. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and pair again.	”%s” visade en annan nyckel än den betrodda enheten. Inget skickades – någon kan utge sig för att vara den. Om den har installerats om tar du bort den i Inställningar och parkopplar igen.
+Nothing received yet.	Inget mottaget ännu.
+Show	Visa
+Not visible	Inte synlig
+No trusted devices yet.	Inga betrodda enheter ännu.
+IP address of the other computer, e.g. 192.168.1.20 or 192.168.1.20:%d	IP-adress till den andra datorn, t.ex. 192.168.1.20 eller 192.168.1.20:%d
+Does “%s” show the same code?	Visar ”%s” samma kod?
+Cannot receive files: port %d is in use (%s). Is LuxDrop already running?	Det går inte att ta emot filer: port %d används (%s). Körs LuxDrop redan?
+Verification code	Verifieringskod
+Accept only if the sender shows the same code.	Acceptera endast om avsändaren visar samma kod.
+Preparing (checksums)… %s / %s	Förbereder (kontrollsummor)… %s / %s
+Waiting for acceptance…	Väntar på godkännande…
+“%s” wants to send you %d item(s), %s	”%s” vill skicka dig %d objekt, %s
+Waiting for the receiver to accept… code %s	Väntar på att mottagaren ska acceptera… kod %s
+Visible as “%s” · %d:%02d left	Synlig som ”%s” · %d:%02d kvar
+Visible as “%s”	Synlig som ”%s”
+Apps	Appar
+Windows	Fönster
+# Vzhled a spořiče
+Auto	Auto
+Auto: light from sunrise (%s) to sunset (%s), based on your time zone.	Auto: ljust från soluppgång (%s) till solnedgång (%s), baserat på din tidszon.
+Clock	Klocka
+Aurora	Norrsken
+Photos	Foton
+Floating Logo	Svävande logotyp
+# luxos-install-gui (graficky instalator) a nove volby luxos-install
+Swap	Växlingsutrymme
+Encrypted (LUKS)	Krypterad (LUKS)
+Unknown	Okänd
+Back	Tillbaka
+Please wait until the installation finishes.	Vänta tills installationen är klar.
+Connect to the internet	Anslut till internet
+LuxOS downloads the newest packages during installation. Choose a Wi-Fi network or plug in a network cable.	LuxOS hämtar de senaste paketen under installationen. Välj ett Wi-Fi-nätverk eller anslut en nätverkskabel.
+Connect to the internet to continue.	Anslut till internet för att fortsätta.
+Choose your keyboard layout. You can try it in the field below.	Välj tangentbordslayout. Du kan prova den i fältet nedan.
+Time Zone	Tidszon
+Where do you want to install LuxOS?	Var vill du installera LuxOS?
+Encryption password	Krypteringslösenord
+Confirm password	Bekräfta lösenordet
+Create your account	Skapa ditt konto
+You will use this account to sign in and to install apps.	Du använder det här kontot för att logga in och installera appar.
+User name	Användarnamn
+Log in automatically	Logga in automatiskt
+Fill in your name, user name, password and computer name.	Fyll i ditt namn, användarnamn, lösenord och datornamn.
+Ready to install	Redo att installera
+Check your choices. Nothing has been changed on the disk yet.	Kontrollera dina val. Inget har ändrats på disken ännu.
+Installing LuxOS	Installerar LuxOS
+This takes about 10 minutes. You can keep using the computer.	Det tar ungefär 10 minuter. Du kan fortsätta använda datorn.
+LuxOS is being installed	LuxOS installeras
+This assistant installs LuxOS on your computer. It takes about 10 minutes.	Den här assistenten installerar LuxOS på datorn. Det tar ungefär 10 minuter.
+Choose your language	Välj språk
+You are connected to the internet	Du är ansluten till internet
+Wi-Fi password	Wi-Fi-lösenord
+Checking the connection…	Kontrollerar anslutningen…
+Type here to test your keyboard	Skriv här för att testa tangentbordet
+Choose the time zone of your location.	Välj tidszonen där du befinner dig.
+Erase disk and install LuxOS	Radera disken och installera LuxOS
+Encrypt LuxOS	Kryptera LuxOS
+Protects your files if the computer is lost. You will enter the password at every start.	Skyddar dina filer om datorn kommer bort. Du anger lösenordet vid varje start.
+If you forget this password, your data cannot be recovered.	Om du glömmer lösenordet går dina data inte att återställa.
+Confirm that the disk will be erased.	Bekräfta att disken kommer att raderas.
+Enter the encryption password twice.	Ange krypteringslösenordet två gånger.
+With automatic login, anyone who turns on the computer can use your account.	Med automatisk inloggning kan alla som slår på datorn använda ditt konto.
+You can also skip this and sign in later.	Du kan också hoppa över detta och logga in senare.
+Erase %s and install LuxOS	Radera %s och installera LuxOS
+Alongside other systems on %s (%s of free space)	Bredvid andra system på %s (%s ledigt utrymme)
+Automatic login	Automatisk inloggning
+Starting…	Startar…
+The last lines of the installation log:	De sista raderna i installationsloggen:
+Copy Log	Kopiera logg
+Save Log…	Spara logg…
+Restart Now	Starta om nu
+Passwords do not match.	Lösenorden matchar inte.
+No Wi-Fi networks found. Plug in a network cable or try again.	Inga Wi-Fi-nätverk hittades. Anslut en nätverkskabel eller försök igen.
+Connected.	Ansluten.
+Still offline.	Fortfarande offline.
+Connecting to %s…	Ansluter till %s…
+Network Settings…	Nätverksinställningar…
+Detected time zone: %s	Identifierad tidszon: %s
+No suitable disk found. LuxOS needs a disk with at least 20 GB.	Ingen lämplig disk hittades. LuxOS behöver en disk på minst 20 GB.
+The disk is empty.	Disken är tom.
+Install alongside other systems	Installera bredvid andra system
+Everything on %s will be deleted.	Allt på %s kommer att raderas.
+This name is reserved by the system.	Det här namnet är reserverat av systemet.
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in now and everything is ready after the first start.	Valfritt: AI i LuxAI, Lux Code och LSL IDE använder ditt LuxAI-konto. Logga in nu så är allt klart efter första starten.
+Sign-in is not available. You can sign in later in Settings.	Inloggning är inte tillgänglig. Du kan logga in senare i Inställningar.
+Installation failed	Installationen misslyckades
+The installer stopped with exit code %s.	Installationsprogrammet avslutades med slutkod %s.
+Could not connect. Check the password and try again.	Det gick inte att ansluta. Kontrollera lösenordet och försök igen.
+Local time: %s	Lokal tid: %s
+Looking for disks…	Söker efter diskar…
+LuxOS (new)	LuxOS (ny)
+Systems found: %s	Hittade system: %s
+LuxOS uses %s of free space. Existing systems and files are kept; you choose the system in a menu when the computer starts.	LuxOS använder %s ledigt utrymme. Befintliga system och filer behålls; du väljer system i en meny när datorn startar.
+I understand that all data on %s (%s) will be erased.	Jag förstår att all data på %s (%s) kommer att raderas.
+All data on %s will be erased when you click Install.	All data på %s raderas när du klickar på Installera.
+… and %s more partitions	… och %s partitioner till
+Installing alongside other systems is not possible: %s	Det går inte att installera bredvid andra system: %s
+EFI system partition	EFI-systempartition
+Microsoft reserved	Microsoft-reserverad
+Windows recovery	Windows-återställning
+Needs a computer started in UEFI mode.	Kräver en dator som startats i UEFI-läge.
+The disk does not use a GPT partition table.	Disken använder inte en GPT-partitionstabell.
+The partition table has problems.	Partitionstabellen har problem.
+There is no free space of at least 20 GB on this disk.	Det finns inget ledigt utrymme på minst 20 GB på den här disken.
+No EFI system partition found on this disk.	Ingen EFI-systempartition hittades på den här disken.
+The EFI system partition could not be read.	EFI-systempartitionen kunde inte läsas.
+The EFI system partition has less than 250 MB free.	EFI-systempartitionen har mindre än 250 MB ledigt.
+Administrator rights are not available.	Administratörsrättigheter är inte tillgängliga.
+Fast and light	Snabbt och lätt
+LuxOS starts quickly and leaves more memory for your apps.	LuxOS startar snabbt och lämnar mer minne åt dina appar.
+A familiar desktop	Ett välbekant skrivbord
+A dock, a clean top bar and an app grid - everything is where you expect it.	En Dock, en ren menyrad och ett apprutnät – allt finns där du förväntar dig.
+LuxAI built in	LuxAI inbyggt
+Sign in once and use AI in LuxAI, Lux Code and LSL IDE.	Logga in en gång och använd AI i LuxAI, Lux Code och LSL IDE.
+Drivers included	Drivrutiner ingår
+Graphics, Wi-Fi and other drivers are picked automatically for your hardware.	Drivrutiner för grafik, Wi-Fi och annat väljs automatiskt för din hårdvara.
+Safe by default	Säkert från början
+Signed updates, a locked root account and optional full disk encryption.	Signerade uppdateringar, ett låst root-konto och valfri kryptering av hela disken.
+Introduction	Introduktion
+Destination	Mål
+Account	Konto
+Installation	Installation
+Finish	Slutför
+%s  (free space, other systems are kept)	%s  (ledigt utrymme, andra system behålls)
+no boot loader	ingen startladdare
+Installing alongside other systems needs a computer started in UEFI mode.	Installation bredvid andra system kräver en dator som startats i UEFI-läge.
+Disk %s does not use a GPT partition table.	Disken %s använder inte en GPT-partitionstabell.
+The partition table on %s has problems. Check it first (sgdisk -v).	Partitionstabellen på %s har problem. Kontrollera den först (sgdisk -v).
+Disk %s has no free space of at least 20 GB.	Disken %s har inget ledigt utrymme på minst 20 GB.
+No EFI system partition found on %s.	Ingen EFI-systempartition hittades på %s.
+The EFI system partition %s could not be read.	EFI-systempartitionen %s kunde inte läsas.
+The EFI system partition %s has less than 250 MB free.	EFI-systempartitionen %s har mindre än 250 MB ledigt.
+The partition table on %s is full.	Partitionstabellen på %s är full.
+New partition %s: %s GB of free space	Ny partition %s: %s GB ledigt utrymme
+Unexpected change of existing partitions on %s - stopping.	Oväntad ändring av befintliga partitioner på %s – avbryter.
+systemd-boot on %s is already in the UEFI boot menu.	systemd-boot på %s finns redan i UEFI-startmenyn.
+Could not show the boot menu; hold Space while starting to see it.	Det gick inte att visa startmenyn; håll ned mellanslag vid start för att se den.
+Invalid DISK_MODE (use erase, freespace or manual)	Ogiltigt DISK_MODE (använd erase, freespace eller manual)
+Invalid BOOTLOADER (use auto or none)	Ogiltigt BOOTLOADER (använd auto eller none)
+# luxos-daemon (Bluetooth agent)
+Allow “%s” to pair with this computer?	Vill du tillåta att ”%s” parkopplas med den här datorn?
+Allow “%s” to connect?	Vill du tillåta att ”%s” ansluter?
+Only allow devices you know.	Tillåt bara enheter som du känner till.
+Allow	Tillåt
+# LuxOS 2026-10-21: lux, Store, upozorneni na internet
+Sign in to the network to use the internet (click to open the sign-in page)	Logga in på nätverket för att använda internet (klicka för att öppna inloggningssidan)
+Connected to the network, but the internet is not available	Ansluten till nätverket, men internet är inte tillgängligt
+Sign in to the network to use the internet.	Logga in på nätverket för att använda internet.
+You are connected to the network, but the internet is not available.	Du är ansluten till nätverket, men internet är inte tillgängligt.
+Server %s is not responding, trying another one…	Servern %s svarar inte, provar en annan…
+Download failed, trying again (%s/3)…	Hämtningen misslyckades, försöker igen (%s/3)…
+Some packages could not be downloaded. Check your internet connection and try again.	Vissa paket kunde inte hämtas. Kontrollera internetanslutningen och försök igen.
+Installed: %s	Installerat: %s
+Downloading %d of %d…	Hämtar %d av %d…
+The connection is slow, trying another server…	Anslutningen är långsam, provar en annan server…
+Download failed, trying again (attempt %s)…	Hämtningen misslyckades, försöker igen (försök %s)…
+The internet connection is too slow or unavailable. Try it again later.	Internetanslutningen är för långsam eller inte tillgänglig. Försök igen senare.
+unknown error	okänt fel
+Looking for the fastest download servers…	Söker efter de snabbaste nedladdningsservrarna…
+Using %s fast download servers near you.	Använder %s snabba nedladdningsservrar nära dig.
+Using the default download servers.	Använder standardservrarna för nedladdning.
+The server %s is slow, trying another one…	Servern %s är långsam, provar en annan…
+The server %s is not responding, trying another one…	Servern %s svarar inte, provar en annan…
+Downloading from %s failed, trying another one…	Hämtningen från %s misslyckades, provar en annan…
+The server %s has too many problems, skipping it.	Servern %s har för många problem, hoppar över den.
+Some files could not be downloaded.	Vissa filer kunde inte hämtas.
+Downloading the packages did not finish.	Hämtningen av paketen slutfördes inte.
+The package lists could not be downloaded.	Paketlistorna kunde inte hämtas.
+about %s min left	cirka %s min kvar
+Downloaded %s of %s	Hämtat %s av %s
+Your internet connection is very slow - the installation will take longer. It has not stopped.	Din internetanslutning är mycket långsam – installationen tar längre tid. Den har inte stannat.
+Waiting for the internet connection…	Väntar på internetanslutningen…
+Maintenance	Underhåll
+Carefree: updates install automatically in the background (not on metered networks, with Data Saver or on low battery), a previous kernel is kept to fall back on and LuxOS repairs itself.	Bekymmersfritt: uppdateringar installeras automatiskt i bakgrunden (inte på nätverk med datapriser, med Datasparläge eller vid låg batterinivå), en tidigare kärna sparas som reserv och LuxOS reparerar sig själv.
+Classic (for IT professionals): no automatic updates or repairs, standard Arch behaviour; you only get notified about available updates.	Klassiskt (för IT-proffs): inga automatiska uppdateringar eller reparationer, vanligt Arch-beteende; du får bara aviseringar om tillgängliga uppdateringar.
+Carefree (recommended)	Bekymmersfritt (rekommenderas)
+Classic (for IT professionals)	Klassiskt (för IT-proffs)
+How should LuxOS be maintained?	Hur ska LuxOS underhållas?
+Carefree - automatic updates and repairs	Bekymmersfritt – automatiska uppdateringar och reparationer
+Classic - you manage the system yourself	Klassiskt – du hanterar systemet själv
+Invalid CARE_MODE (use carefree or classic)	Ogiltigt CARE_MODE (använd carefree eller classic)
+Carefree	Bekymmersfritt
+Updates install automatically in the background - not on metered networks, with Data Saver on or on low battery.	Uppdateringar installeras automatiskt i bakgrunden – inte på nätverk med datapriser, med Datasparläge på eller vid låg batterinivå.
+A previous kernel is kept, so the computer always has a working version to start.	En tidigare kärna sparas, så datorn har alltid en fungerande version att starta.
+LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash.	LuxOS reparerar sig själv. Allvarliga problem diagnostiseras av LuxAI Flash.
+No automatic updates or repairs - standard Arch Linux behaviour.	Inga automatiska uppdateringar eller reparationer – vanligt Arch Linux-beteende.
+You manage the system yourself with lux or pacman.	Du hanterar systemet själv med lux eller pacman.
+You only get a notification when updates are available.	Du får bara en avisering när uppdateringar finns tillgängliga.
+Choose whether LuxOS takes care of itself, or whether you want full control.	Välj om LuxOS ska sköta sig självt eller om du vill ha full kontroll.
+Downloading %s of %s	Hämtar %s av %s
+waiting for data	väntar på data
+The connection is not responding right now	Anslutningen svarar inte just nu
+The installation has not stopped. LuxOS keeps trying other servers and continues as soon as data arrives again.	Installationen har inte stannat. LuxOS fortsätter att prova andra servrar och fortsätter så snart data kommer igen.
+Your internet connection is very slow	Din internetanslutning är mycket långsam
+The installation will take longer. It has not stopped.	Installationen tar längre tid. Den har inte stannat.
+The time depends on your internet connection. You can keep using the computer.	Tiden beror på din internetanslutning. Du kan fortsätta använda datorn.
+less than a minute left	mindre än en minut kvar
+%s min	%s min
+%s h %s min	%s h %s min
+# luxos-care (Aktualizace softwaru, LuxOS Care)
+never	aldrig
+just now	nyss
+%d min ago	för %d min sedan
+today at %s	i dag kl. %s
+Update failed	Uppdateringen misslyckades
+chosen by LuxAI Flash	vald av LuxAI Flash
+built-in rule	inbyggd regel
+The previous kernel could not be prepared	Den tidigare kärnan kunde inte förberedas
+A start did not finish correctly	En start slutfördes inte korrekt
+Boot menu: LuxOS (previous kernel)	Startmeny: LuxOS (tidigare kärna)
+Mode changed to Carefree	Läget ändrades till Bekymmersfritt
+Mode changed to Classic	Läget ändrades till Klassiskt
+Update Now	Uppdatera nu
+When updates are installed	När uppdateringar installeras
+Classic	Klassiskt
+LuxOS installs updates and repairs itself. It waits for an unmetered connection and enough battery, and keeps the previous kernel as a fallback.	LuxOS installerar uppdateringar och reparerar sig själv. Det väntar på en anslutning utan datapriser och tillräckligt med batteri, och sparar den tidigare kärnan som reserv.
+LuxOS only checks and tells you about updates and problems. You decide when to update.	LuxOS kontrollerar bara och informerar dig om uppdateringar och problem. Du bestämmer när du ska uppdatera.
+Available updates	Tillgängliga uppdateringar
+System health	Systemets hälsa
+Check for Problems Now	Sök efter problem nu
+Repair and update history	Historik över reparationer och uppdateringar
+Updating LuxOS…	Uppdaterar LuxOS…
+Last update: %s	Senaste uppdatering: %s
+Last check: %s	Senaste kontroll: %s
+No updates are waiting.	Inga uppdateringar väntar.
+LuxOS checks for updates automatically.	LuxOS söker efter uppdateringar automatiskt.
+Your settings were kept. Compare the files with pacdiff when convenient.	Dina inställningar har behållits. Jämför filerna med pacdiff när det passar.
+No problems found	Inga problem hittades
+Previous kernel	Tidigare kärna
+After the next kernel update the current kernel stays available as a fallback.	Efter nästa kärnuppdatering finns den nuvarande kärnan kvar som reserv.
+Nothing yet	Inget ännu
+Updates and repairs will be listed here.	Uppdateringar och reparationer visas här.
+Audit log	Granskningslogg
+Downloading… %s of %s	Hämtar… %s av %s
+Do not turn off the computer.	Stäng inte av datorn.
+The system service is not available.	Systemtjänsten är inte tillgänglig.
+Updated %d packages	Uppdaterade %d paket
+including the kernel	inklusive kärnan
+Released the kept kernel %s for reinstallation	Släppte den sparade kärnan %s för ominstallation
+Kept the previous kernel %s	Sparade den tidigare kärnan %s
+Restart to finish the update	Starta om för att slutföra uppdateringen
+New configuration file to review: %s	Ny konfigurationsfil att granska: %s
+Switch to Carefree to repair it automatically.	Byt till Bekymmersfritt för att reparera det automatiskt.
+If a new kernel fails to start, LuxOS starts this one automatically.	Om en ny kärna inte startar startar LuxOS den här automatiskt.
+If a new kernel fails to start, choose “LuxOS (previous kernel)” in the boot menu.	Om en ny kärna inte startar väljer du ”LuxOS (previous kernel)” i startmenyn.
+Show Full Log…	Visa hela loggen…
+Installing %s (%d of %d)	Installerar %s (%d av %d)
+Working…	Arbetar…
+waiting for an unmetered connection (Data Saver)	väntar på en anslutning utan datapriser (Datasparläge)
+waiting for the charger or more battery	väntar på laddaren eller mer batteri
+waiting for the internet connection	väntar på internetanslutningen
+Automatic update is %s.	Automatisk uppdatering %s.
+and %d more	och %d till
+Waiting for LuxAI Flash	Väntar på LuxAI Flash
+The repair did not help	Reparationen hjälpte inte
+Previous kernel %s is kept as a fallback	Den tidigare kärnan %s sparas som reserv
+The previous kernel %s could not be prepared	Den tidigare kärnan %s kunde inte förberedas
+Could not start: %s	Det gick inte att starta: %s
+%d updates available	%d uppdateringar tillgängliga
+Updates could not be installed	Uppdateringarna kunde inte installeras
+LuxOS is up to date	LuxOS är uppdaterat
+Updating signing keys…	Uppdaterar signeringsnycklar…
+Downloading…	Hämtar…
+Installing…	Installerar…
+Finishing…	Slutför…
+The boot partition is full.	Startpartitionen är full.
+LuxOS was updated	LuxOS har uppdaterats
+Updates are available	Uppdateringar finns tillgängliga
+LuxOS will try again later.	LuxOS försöker igen senare.
+Update postponed	Uppdateringen skjuts upp
+LuxOS fixed a problem	LuxOS åtgärdade ett problem
+LuxOS found a problem	LuxOS hittade ett problem
+Restart to finish the kernel update	Starta om för att slutföra kärnuppdateringen
+LuxOS installed a new kernel. Restart when it suits you.	LuxOS har installerat en ny kärna. Starta om när det passar dig.
+%d packages were updated.	%d paket har uppdaterats.
+%d updates are ready to install.	%d uppdateringar är redo att installeras.
+The repair was chosen by LuxAI Flash.	Reparationen valdes av LuxAI Flash.
+No internet connection.	Ingen internetanslutning.
+The connection is metered (Data Saver).	Anslutningen har datapriser (Datasparläge).
+The battery is low - connect the charger.	Batterinivån är låg – anslut laddaren.
+Sign in to LuxAI to let LuxOS fix unknown problems.	Logga in på LuxAI så att LuxOS kan åtgärda okända problem.
+This command must be run as root.	Det här kommandot måste köras som root.
+Mode: %s	Läge: %s
+Previous kernel: %s	Tidigare kärna: %s
+The package manager was left locked	Pakethanteraren lämnades låst
+A system update was interrupted	En systemuppdatering avbröts
+The kernel boot files are missing	Kärnans startfiler saknas
+A driver module (DKMS) is not built for the kernel	En drivrutinsmodul (DKMS) är inte byggd för kärnan
+The newest kernel did not start, LuxOS used the previous one	Den senaste kärnan startade inte, LuxOS använde den tidigare
+The disk is almost full	Disken är nästan full
+The file system reported errors - back up your data	Filsystemet rapporterade fel – säkerhetskopiera dina data
+System updates keep failing	Systemuppdateringar misslyckas gång på gång
+A system service failed: %s	En systemtjänst misslyckades: %s
+Removed a stale package manager lock	Tog bort ett inaktuellt lås för pakethanteraren
+Released the kept kernel for reinstallation	Släppte den sparade kärnan för ominstallation
+Finished an interrupted update	Slutförde en avbruten uppdatering
+Refreshed the package signing keys	Uppdaterade paketens signeringsnycklar
+Rebuilt the kernel boot files	Byggde om kärnans startfiler
+Rebuilt driver modules	Byggde om drivrutinsmoduler
+Reinstalled a package	Installerade om ett paket
+Restarted a service	Startade om en tjänst
+Freed disk space	Frigjorde diskutrymme
+Will try the newest kernel again	Försöker med den senaste kärnan igen
+Will start the previous kernel	Startar den tidigare kärnan
+Only reported the problem	Rapporterade endast problemet
+Boot Screen	Startskärm
+Blue	Blå
+Purple	Lila
+Orange	Orange
+Green	Grön
+White	Vit
+Shown while the computer starts. A change rebuilds the boot image, which takes about a minute.	Visas medan datorn startar. En ändring bygger om startavbilden, vilket tar ungefär en minut.
+Applying the boot screen…	Tillämpar startskärmen…
+The new boot screen will be shown at the next start.	Den nya startskärmen visas vid nästa start.
+Change cancelled.	Ändringen avbröts.
+Could not change the boot screen.	Det gick inte att ändra startskärmen.
+Live system: the boot image is not rebuilt.	Live-system: startavbilden byggs inte om.
+Rebuilding the boot image…	Bygger om startavbilden…
+Unknown variant: %s	Okänd variant: %s
+Run as root: pkexec luxos-splash set %s	Kör som root: pkexec luxos-splash set %s
+Another change of the boot screen is running.	En annan ändring av startskärmen pågår.
+Boot screen is already %s.	Startskärmen är redan %s.
+Rebuilding the boot image failed, the previous boot screen was restored.	Det gick inte att bygga om startavbilden, den tidigare startskärmen har återställts.
+Boot screen set to %s.	Startskärmen har ställts in på %s.
+# LuxOS 2026-10-21: LuxAI z Launchpadu, popisek aplikace v liste
+Active app: %s	Aktiv app: %s
+Search apps or ask LuxAI	Sök appar eller fråga LuxAI
+Search or ask LuxAI	Sök eller fråga LuxAI
+# LuxOS 2026-10-21: pojistka pameti
+Memory is running low	Minnet håller på att ta slut
+“%s” used too much memory and was closed so the computer would not freeze.	”%s” använde för mycket minne och stängdes så att datorn inte skulle frysa.
+A program used too much memory and was closed so the computer would not freeze.	Ett program använde för mycket minne och stängdes så att datorn inte skulle frysa.
+Printers & Scanners	Skrivare och skannrar
+Printing support is not installed.	Utskriftsstöd är inte installerat.
+Offline – make sure the printer is turned on	Offline – kontrollera att skrivaren är påslagen
+Paused	Pausad
+Printing…	Skriver ut…
+1 document waiting	1 dokument väntar
+%d documents waiting	%d dokument väntar
+Print Test Page	Skriv ut testsida
+Resume	Återuppta
+Remove Printer…	Ta bort skrivare…
+Default printer	Förvald skrivare
+Apps print here unless you choose another printer.	Appar skriver ut här om du inte väljer en annan skrivare.
+Ink and toner	Bläck och toner
+Print queue	Utskriftskö
+Cancel All	Avbryt alla
+No documents are waiting to print.	Inga dokument väntar på utskrift.
+USB	USB
+Document	Dokument
+Waiting	Väntar
+On hold	Parkerad
+Stopped	Stoppad
+Sending a test page…	Skickar en testsida…
+The test page could not be sent: %s	Testsidan kunde inte skickas: %s
+The test page is on its way.	Testsidan är på väg.
+Kind	Typ
+Quality	Kvalitet
+Source	Källa
+Scan	Skanna
+Scanned pages appear here. Scan more pages to save them together.	Skannade sidor visas här. Skanna fler sidor för att spara dem tillsammans.
+PDF document	PDF-dokument
+JPEG pictures	JPEG-bilder
+Show in Folder	Visa i mapp
+Checking the scanner…	Kontrollerar skannern…
+The scanner does not respond. Make sure it is turned on.	Skannern svarar inte. Kontrollera att den är påslagen.
+Place the document on the scanner and click Scan.	Lägg dokumentet på skannern och klicka på Skanna.
+Scanning…	Skannar…
+Scanning was cancelled.	Skanningen avbröts.
+Scanning failed: %s	Skanningen misslyckades: %s
+the scanner does not respond	skannern svarar inte
+This is a preview. Click Scan when the document looks right.	Det här är en förhandsvisning. Klicka på Skanna när dokumentet ser rätt ut.
+Page %d scanned. Scan another page or save.	Sidan %d har skannats. Skanna en sida till eller spara.
+Remove page	Ta bort sida
+Page %d	Sida %d
+Click Preview to see the document here	Klicka på Förhandsvisa för att se dokumentet här
+Saving…	Sparar…
+Could not save the scan: %s	Det gick inte att spara skanningen: %s
+Saved “%s” in %s	Sparade ”%s” i %s
+Saved %d pictures in %s	Sparade %d bilder i %s
+Place the next document on the scanner and click Scan.	Lägg nästa dokument på skannern och klicka på Skanna.
+Add Printer	Lägg till skrivare
+Printers nearby	Skrivare i närheten
+Search Again	Sök igen
+Turn the printer on and connect it to the same Wi‑Fi network or with a USB cable. Most printers are added automatically.	Slå på skrivaren och anslut den till samma Wi‑Fi-nätverk eller med en USB-kabel. De flesta skrivare läggs till automatiskt.
+Looking for printers…	Söker efter skrivare…
+Advanced…	Avancerat…
+Printers that need special setup (LPD, Windows sharing, manual drivers)	Skrivare som kräver särskild konfiguration (LPD, Windows-delning, manuella drivrutiner)
+Could not search for printers: %s	Det gick inte att söka efter skrivare: %s
+No printers found. Make sure the printer is turned on.	Inga skrivare hittades. Kontrollera att skrivaren är påslagen.
+Added	Tillagd
+Not supported	Stöds inte
+Adding…	Lägger till…
+The printer could not be added	Skrivaren kunde inte läggas till
+Make sure it is turned on and try again.	Kontrollera att den är påslagen och försök igen.
+Advanced printer settings for experts	Avancerade skrivarinställningar för experter
+Remove Printer	Ta bort skrivare
+No printers yet	Inga skrivare ännu
+Turn on your printer and connect it to the same Wi‑Fi network or with a USB cable. LuxOS sets it up automatically – no drivers, no questions.	Slå på skrivaren och anslut den till samma Wi‑Fi-nätverk eller med en USB-kabel. LuxOS konfigurerar den automatiskt – inga drivrutiner, inga frågor.
+Add Printer…	Lägg till skrivare…
+Printers	Skrivare
+Scanners	Skannrar
+Default	Förval
+Looking for scanners…	Söker efter skannrar…
+No scanners found	Inga skannrar hittades
+Turn the scanner on	Slå på skannern
+The change could not be made	Ändringen kunde inte göras
+Remove “%s”?	Vill du ta bort ”%s”?
+Apps will no longer print to it. You can add it again later with the + button.	Appar kommer inte längre att skriva ut till den. Du kan lägga till den igen senare med knappen +.
+Could not open advanced settings	Det gick inte att öppna avancerade inställningar
+Paper jam	Papperstrassel
+Out of paper	Slut på papper
+Out of ink or toner	Slut på bläck eller toner
+A cover is open	En lucka är öppen
+Offline	Offline
+Ink, toner or paper is low	Låg nivå av bläck, toner eller papper
+Color	Färg
+Grey	Gråskala
+Draft (150 dpi)	Utkast (150 dpi)
+Standard (300 dpi)	Standard (300 dpi)
+High (600 dpi)	Hög (600 dpi)
+Flatbed	Flatbädd
+ADF	Dokumentmatare
+ADF Duplex	Dokumentmatare, dubbelsidigt
+Flatbed scanner	Flatbäddsskanner
+Multi-function peripheral	Multifunktionsenhet
+Virtual device	Virtuell enhet
+Printer “%s” is ready	Skrivaren ”%s” är redo
+You can print from any app.	Du kan skriva ut från alla appar.
+Scanner “%s” is ready	Skannern ”%s” är redo
+Open Printers & Scanners to scan a document.	Öppna Skrivare och skannrar för att skanna ett dokument.
+“%s” is ready	”%s” är redo
+You can print from any app and scan in Printers & Scanners.	Du kan skriva ut från alla appar och skanna i Skrivare och skannrar.
+Printer “%s” needs a driver	Skrivaren ”%s” behöver en drivrutin
+LuxOS will set it up automatically once you are connected to the internet.	LuxOS konfigurerar den automatiskt när du är ansluten till internet.
+Printer “%s” needs to be set up	Skrivaren ”%s” behöver konfigureras
+It does not support driverless printing. Open Printers & Scanners and choose Advanced….	Den stöder inte drivrutinsfri utskrift. Öppna Skrivare och skannrar och välj Avancerat….
+Printer “%s” needs an add-on from HP	Skrivaren ”%s” behöver ett tillägg från HP
+Open Terminal and run: hp-plugin	Öppna Terminal och kör: hp-plugin
+Feedback	Feedback
+Help us improve LuxOS	Hjälp oss att förbättra LuxOS
+Your report goes directly to the author of LuxOS.	Din rapport går direkt till upphovspersonen bakom LuxOS.
+Bug	Fel
+Something doesn't work	Något fungerar inte
+What happened? What did you expect? Steps to reproduce help a lot.	Vad hände? Vad förväntade du dig? Steg för att återskapa felet hjälper mycket.
+Idea	Idé
+Suggest an improvement	Föreslå en förbättring
+What would you like to improve? How would it help you?	Vad vill du förbättra? Hur skulle det hjälpa dig?
+Something else	Något annat
+Question or comment	Fråga eller kommentar
+Write your message…	Skriv ditt meddelande…
+At least %d characters	Minst %d tecken
+Your e-mail (optional, if you would like a reply)	Din e-postadress (valfritt, om du vill ha svar)
+Attach a screenshot	Bifoga en skärmbild
+Take Again	Ta igen
+The screenshot could not be taken.	Det gick inte att ta en skärmbild.
+Attach system information	Bifoga systeminformation
+LuxOS and hardware versions and recent error messages. No personal files, passwords or e-mail addresses.	Versioner av LuxOS och hårdvara samt de senaste felmeddelandena. Inga personliga filer, lösenord eller e-postadresser.
+Show what will be sent	Visa vad som skickas
+Collecting…	Samlar in…
+Send	Skicka
+Sending…	Skickar…
+Try Again	Försök igen
+%d saved report(s) from earlier have been sent. Thank you!	Tidigare sparade rapporter har skickats: %d. Tack!
+LuxOS could not reach the server. Check the internet connection.	LuxOS kunde inte nå servern. Kontrollera internetanslutningen.
+Sending failed (%s).	Det gick inte att skicka (%s).
+You have sent many reports in a short time. Please try again later.	Du har skickat många rapporter på kort tid. Försök igen senare.
+The message must have 10 to 8000 characters.	Meddelandet måste ha 10 till 8000 tecken.
+The e-mail address does not look valid.	E-postadressen verkar inte vara giltig.
+The report is too large. Try it without the screenshot.	Rapporten är för stor. Försök utan skärmbild.
+The screenshot could not be accepted. Try it without the screenshot.	Skärmbilden godtogs inte. Försök utan den.
+Saved for later	Sparad till senare
+You are offline. The report will be sent automatically the next time you open Feedback with an internet connection.	Du är offline. Rapporten skickas automatiskt nästa gång du öppnar Feedback med internetanslutning.
+Thank you for your feedback!	Tack för din feedback!
+Your report has been delivered to the author of LuxOS. Every report helps make LuxOS better.	Din rapport har levererats till upphovspersonen bakom LuxOS. Varje rapport hjälper till att göra LuxOS bättre.
+Report ID: %s	Rapport-ID: %s
+Send Another	Skicka en till
+Send Feedback…	Skicka feedback…
+# LuxDrop + LocalSend
+Nothing to send: give files or --text	Inget att skicka: ange filer eller --text
+Send files securely to nearby LuxOS computers and devices with LocalSend.	Skicka filer säkert till LuxOS-datorer och enheter med LocalSend i närheten.
+send to a LocalSend device (phone, Windows, …)	skicka till en LocalSend-enhet (telefon, Windows, …)
+send a text message	skicka ett textmeddelande
+PIN required by the receiver (LocalSend)	PIN-kod som mottagaren kräver (LocalSend)
+who can send (everyone always asks first)	vem som får skicka (med everyone frågas alltid först)
+with --mode everyone: only for this many minutes (max. 10)	med --mode everyone: endast i så här många minuter (max. 10)
+LocalSend port (default 53317)	LocalSend-port (standard 53317)
+do not receive from LocalSend apps	ta inte emot från LocalSend-appar
+no LocalSend multicast discovery	ingen LocalSend-sökning via multicast
+require this PIN from LocalSend senders (empty = no PIN)	kräv denna PIN-kod av LocalSend-avsändare (tom = ingen PIN-kod)
+also scan the local network (LocalSend devices without multicast)	sök även igenom det lokala nätverket (LocalSend-enheter utan multicast)
+with everyone: only for this many minutes (max. 10)	med everyone: endast i så här många minuter (max. 10)
+Wrong PIN.	Fel PIN-kod.
+%s requires a PIN: 	%s kräver en PIN-kod: 
+LocalSend: port %d, fingerprint %s	LocalSend: port %d, fingeravtryck %s
+unencrypted - not supported	okrypterad – stöds inte
+No LocalSend device answers at %s	Ingen LocalSend-enhet svarar på %s
+%s is a LuxOS computer - using the LuxDrop protocol	%s är en LuxOS-dator – LuxDrop-protokollet används
+Message from %s:	Meddelande från %s:
+Sent with LocalSend from a %s device	Skickat med LocalSend från en enhet av typen %s
+LocalSend receiving is not available: port %d is in use (%s)	Mottagning via LocalSend är inte tillgänglig: port %d används (%s)
+LocalSend receiving is not available (python-pyopenssl is missing)	Mottagning via LocalSend är inte tillgänglig (python-pyopenssl saknas)
+identity not verified (old LocalSend version)	identiteten är inte verifierad (gammal LocalSend-version)
+LocalSend devices cannot find this computer automatically (%s)	LocalSend-enheter kan inte hitta den här datorn automatiskt (%s)
+Phone or tablet	Telefon eller surfplatta
+Web browser	Webbläsare
+Copy	Kopiera
+Message	Meddelande
+PIN required	PIN-kod krävs
+The identity of this device cannot be verified (old LocalSend version). Accept only if you expect these files.	Den här enhetens identitet kan inte verifieras (gammal LocalSend-version). Acceptera bara om du väntar dig de här filerna.
+Trust this device (save its files without asking next time)	Lita på den här enheten (spara dess filer utan att fråga nästa gång)
+Message from “%s”	Meddelande från ”%s”
+“%s” requires a PIN to receive files.	”%s” kräver en PIN-kod för att ta emot filer.
+Everyone nearby	Alla i närheten
+Receiving	Mottagning
+Receive	Ta emot
+Ready to receive	Redo att ta emot
+Who can send	Vem får skicka
+Every transfer from other devices must be accepted.	Varje överföring från andra enheter måste accepteras.
+Quick save	Snabbsparning
+Save files from trusted devices without asking.	Spara filer från betrodda enheter utan att fråga.
+Recently received	Nyligen mottagna
+Open folder	Öppna mapp
+Selection	Markering
+File	Fil
+Folder	Mapp
+Paste	Klistra in
+Refresh	Uppdatera
+Scan the local network	Sök igenom det lokala nätverket
+The clipboard is empty.	Urklipp är tomt.
+This LocalSend device has encryption turned off. Turn on “Encryption” in LocalSend settings to send files to it.	Den här LocalSend-enheten har kryptering avstängd. Slå på ”Kryptering” i LocalSend-inställningarna för att skicka filer till den.
+Scanning the local network for LocalSend devices…	Söker efter LocalSend-enheter i det lokala nätverket…
+LocalSend app (port %d)	LocalSend-app (port %d)
+LuxOS computer (port %d)	LuxOS-dator (port %d)
+Files (%d)	Filer (%d)
+Received from %s	Mottaget från %s
+Save to	Spara i
+Requests then appear as notifications.	Förfrågningar visas då som notiser.
+Work with LocalSend apps	Samarbeta med LocalSend-appar
+Phones, tablets and computers with the LocalSend app. Uses port 53317.	Telefoner, surfplattor och datorer med appen LocalSend. Använder port 53317.
+No PIN	Ingen PIN-kod
+LocalSend devices must enter this PIN before they can send.	LocalSend-enheter måste ange denna PIN-kod innan de kan skicka.
+Trusted devices can use Quick save. Remove a device if it was lost or reinstalled.	Betrodda enheter kan använda Snabbsparning. Ta bort en enhet om den har tappats bort eller installerats om.
+Security	Säkerhet
+All transfers are encrypted (TLS). LuxOS computers verify each other with a 6-digit code; LocalSend devices are identified by their certificate.	Alla överföringar är krypterade (TLS). LuxOS-datorer verifierar varandra med en 6-siffrig kod; LocalSend-enheter identifieras med sitt certifikat.
+Visible to LuxOS computers and LocalSend apps nearby.	Synlig för LuxOS-datorer och LocalSend-appar i närheten.
+Choose what to send or drop files here, then tap a device.	Välj vad du vill skicka eller släpp filer här och tryck sedan på en enhet.
+Looking for devices… Open LuxDrop or LocalSend on the other device and make sure it is on the same network.	Söker efter enheter… Öppna LuxDrop eller LocalSend på den andra enheten och kontrollera att den är på samma nätverk.
+Unencrypted	Okrypterad
+IP address of the other device, e.g. 192.168.1.20	Den andra enhetens IP-adress, t.ex. 192.168.1.20
+“%s” presented a different key than expected. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and try again.	”%s” visade en annan nyckel än väntat. Inget skickades – någon kan utge sig för att vara den. Om den har installerats om tar du bort den i Inställningar och försöker igen.
+Key fingerprint: %s	Nyckelns fingeravtryck: %s
+Receiving is turned off. Other devices cannot see this computer.	Mottagning är avstängd. Andra enheter kan inte se den här datorn.
+%d characters	%d tecken
+Cannot receive from LuxOS computers: port %d is in use (%s).	Kan inte ta emot från LuxOS-datorer: port %d används (%s).
+No device answers at %s.	Ingen enhet svarar på %s.
+Cannot receive from LocalSend apps: port %d is in use. Is LocalSend running on this computer?	Kan inte ta emot från LocalSend-appar: port %d används. Körs LocalSend på den här datorn?
+LocalSend compatibility needs the python-pyopenssl package.	LocalSend-kompatibilitet kräver paketet python-pyopenssl.
+%d:%02d left	%d:%02d kvar
+Nearby LuxOS computers cannot be found because avahi-daemon is not running.	LuxOS-datorer i närheten kan inte hittas eftersom avahi-daemon inte körs.
+Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Automatisk identifiering av LocalSend-enheter är inte tillgänglig (%s). Använd ”Sök igenom det lokala nätverket”.
+LuxDrop: message from %s	LuxDrop: meddelande från %s

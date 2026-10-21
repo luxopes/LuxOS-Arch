@@ -1,0 +1,565 @@
+#!/usr/bin/env python3
+"""LuxOS - Zpetna vazba: hlaseni chyb a napadu primo autorovi LuxOS.
+
+  luxos-feedback               okno (chyba / napad / neco jineho)
+  luxos-feedback --send-outbox odesle ulozena hlaseni bez okna (napr. po pripojeni)
+
+Hlaseni jde na POST https://lux-ai.cz/api/feedback (JSON). Prihlaseny ucet LuxAI se
+prilozi jako cookie (stejne jako v ostatnich aplikacich), jinak je hlaseni anonymni.
+Bez internetu se ulozi do ~/.local/share/luxos/feedback-outbox a odesle se pri
+dalsim spusteni. Systemove udaje jsou bez osobnich souboru, tokenu, e-mailu a cesty domu.
+"""
+import json
+import os
+import re
+import socket
+import subprocess
+import sys
+import threading
+import time
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+import luxai_account as acc  # noqa: E402
+from luxos_i18n import _  # noqa: E402
+
+ENDPOINT = "/api/feedback"
+APP = "luxos-feedback"
+OUTBOX = os.path.join(os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share")), "luxos/feedback-outbox")
+MIN_LEN, MAX_LEN = 10, 8000
+SYSTEM_MAX = 30000        # server bere nejvys ~32 KB
+SHOT_WIDTH, SHOT_MAX = 1280, 1_400_000   # WEDOS proxy nema rada velka tela
+KINDS = (
+    ("bug", "Bug", "Something doesn't work", "dialog-error-symbolic",
+     "What happened? What did you expect? Steps to reproduce help a lot."),
+    ("idea", "Idea", "Suggest an improvement", "starred-symbolic",
+     "What would you like to improve? How would it help you?"),
+    ("other", "Something else", "Question or comment", "dialog-question-symbolic",
+     "Write your message…"),
+)
+ERRORS = {
+    "rate": "You have sent many reports in a short time. Please try again later.",
+    "message_length": "The message must have 10 to 8000 characters.",
+    "invalid_contact": "The e-mail address does not look valid.",
+    "too_large": "The report is too large. Try it without the screenshot.",
+    "invalid_screenshot": "The screenshot could not be accepted. Try it without the screenshot.",
+}
+
+
+def run(*cmd, timeout=8):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return r.stdout.strip() if r.returncode == 0 else ""
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def read(path):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+# ---- systemove udaje (bez osobnich dat) ---------------------------------------------
+HOME = os.path.expanduser("~")
+USER = os.environ.get("USER") or os.path.basename(HOME)
+HOST = socket.gethostname()
+RE_EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
+RE_SECRET = re.compile(r"(?i)\b(token|password|passwd|secret|cookie|session|authorization|api[_-]?key)\b(\s*[=:]\s*)\S+")
+RE_LONG = re.compile(r"[A-Za-z0-9_\-+=]{32,}")   # bez "/" - cesty nechat citelne
+RE_IP = re.compile(r"(?<![\w.-])\d{1,3}(\.\d{1,3}){3}(?!\w|\.\d)")
+RE_MAC = re.compile(r"\b[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}\b")
+
+
+def redact(text):
+    """Odstrani cestu domu, jmeno uzivatele/pocitace, e-maily, IP/MAC a vse, co vypada jako tajny klic."""
+    text = text.replace(HOME, "~")
+    text = RE_EMAIL.sub("<email>", text)
+    text = RE_SECRET.sub(lambda m: m.group(1) + m.group(2) + "<redacted>", text)
+    text = RE_LONG.sub("<redacted>", text)
+    text = RE_MAC.sub("<mac>", text)
+    text = RE_IP.sub("<ip>", text)
+    for word, repl in ((USER, "<user>"), (HOST, "<host>")):
+        if len(word) >= 3:
+            text = re.sub(r"(?<![\w-])" + re.escape(word) + r"(?![\w-])", repl, text)
+    return text
+
+
+def log_lines(text, n=50):
+    lines = [redact(line)[:300] for line in text.splitlines() if line.strip() and not line.startswith("-- ")]
+    return lines[-n:]
+
+
+def collect_system():
+    """Slovnik presne toho, co se odesle (zobrazuje se i v okne)."""
+    osr = {}
+    for line in read("/etc/os-release").splitlines():
+        if "=" in line:
+            k, v = line.split("=", 1)
+            osr[k] = v.strip('"')
+    mem = re.search(r"MemTotal:\s+(\d+)", read("/proc/meminfo"))
+    cpu = re.search(r"model name\s*:\s*(.+)", read("/proc/cpuinfo"))
+    gpu = [re.sub(r" \(rev .*\)$", "", line.split(": ", 1)[-1])
+           for line in run("lspci").splitlines() if re.search(r"VGA|3D|Display", line)]
+    pkgs = {}
+    for line in run("pacman", "-Q").splitlines():
+        name, _sp, ver = line.partition(" ")
+        if re.match(r"^(luxos|lux$|lux-|luxai|lsl|linux$|linux-lts$|linux-zen$|mesa$|xorg-server$|xfce4-session$)", name):
+            pkgs[name] = ver
+    disk = os.statvfs("/")
+    info = {
+        "os": osr.get("PRETTY_NAME", "LuxOS"),
+        "osBuild": osr.get("BUILD_ID") or osr.get("VERSION_ID") or "",
+        "kernel": os.uname().release,
+        "computer": " ".join(x for x in (read("/sys/class/dmi/id/sys_vendor"),
+                                          read("/sys/class/dmi/id/product_name")) if x),
+        "cpu": re.sub(r"\s+", " ", cpu.group(1)) if cpu else "",
+        "cpuCores": os.cpu_count() or 0,
+        "gpu": gpu[:3],
+        "memoryGB": round(int(mem.group(1)) / 1024 / 1024, 1) if mem else 0,
+        "diskFreeGB": round(disk.f_bavail * disk.f_frsize / 1e9, 1),
+        "session": " ".join(x for x in (os.environ.get("XDG_CURRENT_DESKTOP", ""),
+                                         os.environ.get("XDG_SESSION_TYPE", "")) if x),
+        "language": os.environ.get("LANG", ""),
+        "uptimeMin": int(float((read("/proc/uptime") or "0").split()[0]) // 60),
+        "packages": pkgs,
+        "userErrors": log_lines(run("journalctl", "--user", "-b", "-p", "err", "-n", "50", "--no-pager",
+                                    "-o", "short", timeout=10)),
+        "systemErrors": log_lines(run("journalctl", "-b", "-p", "err", "-n", "50", "--no-pager",
+                                      "-o", "short", timeout=10)),
+        "xsessionErrors": log_lines(read(os.path.join(HOME, ".xsession-errors"))),
+    }
+    # Systemovy zurnal muze obsahovat i radky uzivatelskeho - neposilat je dvakrat
+    seen = set(info["userErrors"])
+    info["systemErrors"] = [line for line in info["systemErrors"] if line not in seen]
+    # Limit velikosti: nejdriv zkratit logy
+    while len(json.dumps(info, ensure_ascii=False).encode()) > SYSTEM_MAX:
+        longest = max(("userErrors", "systemErrors", "xsessionErrors"), key=lambda k: len(info[k]))
+        if not info[longest]:
+            break
+        info[longest] = info[longest][len(info[longest]) // 2 + 1:]
+    return info
+
+
+def app_version():
+    out = run("pacman", "-Q", "luxos-desktop")
+    return out.split(" ", 1)[1] if " " in out else ""
+
+
+# ---- odeslani a fronta ---------------------------------------------------------------
+def send(payload):
+    """Odesle hlaseni; vraci id. Pri vypadku site / chybe serveru zkusi jeste jednou."""
+    account = acc.load()
+    token = account["sessionToken"] if account else None
+    origin = (account or {}).get("origin", acc.ORIGIN)
+    for attempt in (1, 2):
+        try:
+            r = acc.request("POST", ENDPOINT, payload, token=token, origin=origin, timeout=45)
+            return r.get("id") or ""
+        except acc.AccountError as e:
+            retry = e.code == "network" or e.status >= 500
+            if attempt == 2 or not retry:
+                raise
+            time.sleep(2)
+    return ""
+
+
+def save_outbox(payload):
+    os.makedirs(OUTBOX, mode=0o700, exist_ok=True)
+    path = os.path.join(OUTBOX, time.strftime("%Y%m%d-%H%M%S-") + os.urandom(4).hex() + ".json")
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w") as f:
+        json.dump(payload, f, ensure_ascii=False)
+    return path
+
+
+def flush_outbox():
+    """Odesle ulozena hlaseni; vraci pocet odeslanych. Pri vypadku site skonci."""
+    try:
+        names = sorted(n for n in os.listdir(OUTBOX) if n.endswith(".json"))
+    except OSError:
+        return 0
+    sent = 0
+    for name in names:
+        path = os.path.join(OUTBOX, name)
+        try:
+            with open(path) as f:
+                payload = json.load(f)
+        except (OSError, ValueError):
+            os.replace(path, path + ".bad")
+            continue
+        try:
+            send(payload)
+        except acc.AccountError as e:
+            if e.code == "network" or e.status >= 500 or e.status == 429:
+                break
+            os.replace(path, path + ".rejected")   # server ho odmitl - neposilat porad dokola
+            continue
+        os.unlink(path)
+        sent += 1
+    return sent
+
+
+if len(sys.argv) > 1 and sys.argv[1] == "--send-outbox":
+    print(flush_outbox())
+    sys.exit(0)
+
+import base64  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
+
+CSS = b"""
+.title { font-size: 20px; font-weight: 800; }
+.dim { opacity: 0.65; }
+.kind { border-radius: 14px; padding: 12px 8px; background-image: none; box-shadow: none;
+        border: 2px solid alpha(currentColor, 0.10); background-color: alpha(currentColor, 0.04); }
+.kind:hover { background-color: alpha(currentColor, 0.08); }
+.kind:checked { border-color: #3d7bff; background-color: alpha(#3d7bff, 0.14); color: inherit; }
+.kind:checked image { color: #3d7bff; }
+.kind-title { font-weight: 700; }
+.kind-sub { font-size: 11px; opacity: 0.65; }
+.editor, .editor > border { border-radius: 12px; border: 1px solid alpha(currentColor, 0.15); }
+.editor scrolledwindow, .editor textview, .editor text { border-radius: 12px; }
+.editor textview, .editor text { background-color: transparent; }
+.placeholder { opacity: 0.45; }
+.shot { border-radius: 8px; border: 1px solid alpha(currentColor, 0.15); }
+.sysinfo, .sysinfo text { font-family: monospace; font-size: 10px; background-color: alpha(currentColor, 0.04); }
+.primary { border-radius: 999px; padding: 6px 22px; font-weight: 700; background-image: none;
+           background-color: #3d7bff; color: white; border: none; box-shadow: none; }
+.primary:disabled { opacity: 0.5; }
+.error { color: #ff453a; }
+.ok-icon { color: #30d158; }
+.done-title { font-size: 22px; font-weight: 800; }
+.info { border-radius: 10px; padding: 8px 12px; background-color: alpha(#30d158, 0.15); }
+entry { border-radius: 10px; padding: 6px 10px; min-height: 30px; }
+"""
+
+
+def label(text, cls=None, **kw):
+    lbl = Gtk.Label(label=text, xalign=kw.pop("xalign", 0), wrap=kw.pop("wrap", True), **kw)
+    if cls:
+        lbl.get_style_context().add_class(cls)
+    return lbl
+
+
+def human(err):
+    if err.code in ERRORS:
+        return _(ERRORS[err.code])
+    if err.code == "network":
+        return _("LuxOS could not reach the server. Check the internet connection.")
+    return _("Sending failed (%s).") % err.code
+
+
+class FeedbackWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Feedback"))
+        self.set_default_size(580, 720)
+        self.set_icon_name("luxos-feedback")
+        self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("Feedback")))
+        self.kind = "bug"
+        self.shot = None          # JPEG bajty snimku
+        self.system = None        # dict systemovych udaju
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE)
+        self.add(self.stack)
+        self.build_form()
+        self.stack.add_named(self.form, "form")
+        threading.Thread(target=self.load_system, daemon=True).start()
+        threading.Thread(target=self.flush_saved, daemon=True).start()
+
+    # ---- formular ----
+    def build_form(self):
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin=22)
+        scroll.add(box)
+        self.form = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.form.pack_start(scroll, True, True, 0)
+
+        self.info = label("", "info")
+        self.info.set_no_show_all(True)
+        box.pack_start(self.info, False, False, 0)
+        box.pack_start(label(_("Help us improve LuxOS"), "title"), False, False, 0)
+        box.pack_start(label(_("Your report goes directly to the author of LuxOS."), "dim"), False, False, 0)
+
+        cards = Gtk.Box(spacing=10, homogeneous=True, margin_top=6)
+        group = None
+        self.kind_buttons = {}
+        for key, title, sub, icon, _hint in KINDS:
+            b = Gtk.RadioButton(group=group, draw_indicator=False)
+            group = group or b
+            b.get_style_context().add_class("kind")
+            inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            inner.pack_start(Gtk.Image(icon_name=icon, pixel_size=26), False, False, 2)
+            inner.pack_start(label(_(title), "kind-title", xalign=0.5, justify=Gtk.Justification.CENTER),
+                             False, False, 0)
+            inner.pack_start(label(_(sub), "kind-sub", xalign=0.5, justify=Gtk.Justification.CENTER),
+                             False, False, 0)
+            b.add(inner)
+            b.connect("toggled", self.kind_changed, key)
+            self.kind_buttons[key] = b
+            cards.pack_start(b, True, True, 0)
+        box.pack_start(cards, False, False, 0)
+
+        # Text s napovedou (GTK3 TextView nema placeholder - prekryvny popisek)
+        self.text = Gtk.TextView(wrap_mode=Gtk.WrapMode.WORD_CHAR, left_margin=10, right_margin=10,
+                                 top_margin=8, bottom_margin=8, accepts_tab=False)
+        self.text.get_buffer().connect("changed", self.validate)
+        tscroll = Gtk.ScrolledWindow(min_content_height=170, hscrollbar_policy=Gtk.PolicyType.NEVER)
+        tscroll.add(self.text)
+        self.placeholder = label("", "placeholder", valign=Gtk.Align.START, margin_start=12, margin_top=8,
+                                 margin_end=12)
+        overlay = Gtk.Overlay()
+        overlay.add(tscroll)
+        overlay.add_overlay(self.placeholder)
+        overlay.set_overlay_pass_through(self.placeholder, True)
+        frame = Gtk.Frame()
+        frame.get_style_context().add_class("editor")
+        frame.add(overlay)
+        box.pack_start(frame, False, False, 0)
+        self.counter = label("", "dim", xalign=1)
+        box.pack_start(self.counter, False, False, 0)
+
+        box.pack_start(label(_("Your e-mail (optional, if you would like a reply)"), "dim"), False, False, 0)
+        self.contact = Gtk.Entry(placeholder_text="name@example.com", input_purpose=Gtk.InputPurpose.EMAIL)
+        user = (acc.load() or {}).get("user") or {}
+        self.contact.set_text(user.get("email", ""))
+        self.contact.connect("changed", self.validate)
+        box.pack_start(self.contact, False, False, 0)
+
+        # Snimek obrazovky
+        self.shot_check = Gtk.CheckButton(label=_("Attach a screenshot"))
+        self.shot_check.connect("toggled", self.shot_toggled)
+        box.pack_start(self.shot_check, False, False, 0)
+        self.shot_row = Gtk.Box(spacing=12, margin_start=26)
+        self.shot_img = Gtk.Image()
+        self.shot_img.get_style_context().add_class("shot")
+        retake = Gtk.Button(label=_("Take Again"), valign=Gtk.Align.CENTER)
+        retake.connect("clicked", lambda _b: self.take_screenshot())
+        self.shot_row.pack_start(self.shot_img, False, False, 0)
+        self.shot_row.pack_start(retake, False, False, 0)
+        self.shot_row.set_no_show_all(True)
+        box.pack_start(self.shot_row, False, False, 0)
+
+        # Systemove udaje
+        self.sys_check = Gtk.CheckButton(label=_("Attach system information"), active=True)
+        box.pack_start(self.sys_check, False, False, 0)
+        box.pack_start(label(_("LuxOS and hardware versions and recent error messages. No personal files, "
+                               "passwords or e-mail addresses."), "dim", margin_start=26), False, False, 0)
+        exp = Gtk.Expander(label=_("Show what will be sent"), margin_start=26)
+        self.sys_view = Gtk.TextView(editable=False, cursor_visible=False, wrap_mode=Gtk.WrapMode.CHAR,
+                                     left_margin=8, top_margin=6, bottom_margin=6)
+        self.sys_view.get_style_context().add_class("sysinfo")
+        self.sys_view.get_buffer().set_text(_("Collecting…"))
+        sscroll = Gtk.ScrolledWindow(min_content_height=200, margin_top=6)
+        sscroll.add(self.sys_view)
+        exp.add(sscroll)
+        box.pack_start(exp, False, False, 0)
+
+        # Spodni lista
+        bar = Gtk.Box(spacing=10, margin=14, margin_top=8)
+        self.status = label("", "error", max_width_chars=36)
+        self.spinner = Gtk.Spinner()
+        self.send_btn = Gtk.Button(label=_("Send"))
+        self.send_btn.get_style_context().add_class("primary")
+        self.send_btn.connect("clicked", self.on_send)
+        cancel = Gtk.Button(label=_("Cancel"))
+        cancel.connect("clicked", lambda _b: self.close())
+        bar.pack_start(self.status, True, True, 0)
+        bar.pack_end(self.send_btn, False, False, 0)
+        bar.pack_end(cancel, False, False, 0)
+        bar.pack_end(self.spinner, False, False, 0)
+        self.form.pack_start(Gtk.Separator(), False, False, 0)
+        self.form.pack_start(bar, False, False, 0)
+        self.kind_changed(self.kind_buttons["bug"], "bug")
+
+    def kind_changed(self, button, key):
+        if not button.get_active():
+            return
+        self.kind = key
+        self.placeholder.set_text(_(next(k[4] for k in KINDS if k[0] == key)))
+        self.validate()
+
+    def message(self):
+        buf = self.text.get_buffer()
+        return buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False).strip()
+
+    def validate(self, *_a):
+        n = len(self.message())
+        self.placeholder.set_visible(not self.text.get_buffer().get_char_count())
+        self.counter.set_text(_("At least %d characters") % MIN_LEN if n < MIN_LEN else f"{n} / {MAX_LEN}")
+        contact = self.contact.get_text().strip()
+        ok_contact = not contact or bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", contact))
+        self.send_btn.set_sensitive(MIN_LEN <= n <= MAX_LEN and ok_contact and not self.spinner.get_property("active"))
+
+    # ---- snimek obrazovky (po skryti okna) ----
+    def shot_toggled(self, check):
+        if check.get_active():
+            self.take_screenshot()
+        else:
+            self.shot = None
+            self.shot_row.hide()
+
+    def take_screenshot(self):
+        self.hide()
+        GLib.timeout_add(600, self.capture)
+
+    def capture(self):
+        try:
+            root = Gdk.get_default_root_window()
+            pb = Gdk.pixbuf_get_from_window(root, 0, 0, root.get_width(), root.get_height())
+            data = b""
+            if pb:
+                w, h = pb.get_width(), pb.get_height()
+                for width, quality in ((SHOT_WIDTH, "75"), (1024, "60"), (800, "50")):
+                    scale = min(1.0, width / w)
+                    small = pb.scale_simple(max(1, int(w * scale)), max(1, int(h * scale)),
+                                            GdkPixbuf.InterpType.BILINEAR)
+                    ok, data = small.save_to_bufferv("jpeg", ["quality"], [quality])
+                    if ok and len(data) * 4 / 3 < SHOT_MAX:
+                        break
+            self.shot = bytes(data) if data else None
+        except GLib.Error:
+            self.shot = None
+        self.show()
+        self.present()
+        if self.shot:
+            loader = GdkPixbuf.PixbufLoader.new_with_type("jpeg")
+            loader.write(self.shot)
+            loader.close()
+            pb = loader.get_pixbuf()
+            self.shot_img.set_from_pixbuf(pb.scale_simple(200, max(1, int(200 * pb.get_height() / pb.get_width())),
+                                                          GdkPixbuf.InterpType.BILINEAR))
+            self.shot_row.set_no_show_all(False)
+            self.shot_row.show_all()
+        else:
+            self.shot_check.set_active(False)
+            self.status.set_text(_("The screenshot could not be taken."))
+        return False
+
+    # ---- systemove udaje ----
+    def load_system(self):
+        info = collect_system()
+
+        def done():
+            self.system = info
+            self.sys_view.get_buffer().set_text(json.dumps(info, indent=2, ensure_ascii=False))
+            return False
+        GLib.idle_add(done)
+
+    def flush_saved(self):
+        n = flush_outbox()
+        if n:
+            GLib.idle_add(lambda: self.info.set_text(
+                _("%d saved report(s) from earlier have been sent. Thank you!") % n) or self.info.show() or False)
+
+    # ---- odeslani ----
+    def payload(self):
+        """Hlaseni z formulare (volat v hlavnim vlakne); systemove udaje doplni vlakno."""
+        p = {"kind": self.kind, "message": self.message(), "app": APP}
+        contact = self.contact.get_text().strip()
+        if contact:
+            p["contact"] = contact
+        if self.sys_check.get_active():
+            p["system"] = self.system
+        if self.shot:
+            p["screenshot"] = "data:image/jpeg;base64," + base64.b64encode(self.shot).decode()
+        return p
+
+    def on_send(self, _b):
+        self.spinner.start()
+        self.send_btn.set_sensitive(False)
+        self.status.set_text(_("Sending…"))
+        self.status.get_style_context().remove_class("error")
+
+        p = self.payload()
+
+        def work():
+            p["version"] = app_version()
+            if "system" in p and p["system"] is None:
+                p["system"] = collect_system()
+            try:
+                rid, err, saved = send(p), None, False
+            except acc.AccountError as e:
+                rid, err, saved = "", e, False
+                if e.code == "network" or e.status >= 500:
+                    try:
+                        save_outbox(p)
+                        saved = True
+                    except OSError:
+                        pass
+            GLib.idle_add(self.sent, rid, err, saved)
+        threading.Thread(target=work, daemon=True).start()
+
+    def sent(self, rid, err, saved):
+        self.spinner.stop()
+        if err and not saved:
+            self.status.get_style_context().add_class("error")
+            self.status.set_text(human(err))
+            self.status.set_tooltip_text(human(err))
+            self.send_btn.set_label(_("Try Again"))
+            self.validate()
+            return False
+        self.show_done(rid, saved)
+        return False
+
+    def show_done(self, rid, saved):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin=40, valign=Gtk.Align.CENTER)
+        icon = Gtk.Image(icon_name="emblem-ok-symbolic" if not saved else "mail-send-symbolic", pixel_size=72)
+        icon.get_style_context().add_class("ok-icon")
+        box.pack_start(icon, False, False, 0)
+        if saved:
+            title, text = _("Saved for later"), _("You are offline. The report will be sent automatically "
+                                                  "the next time you open Feedback with an internet connection.")
+        else:
+            title, text = _("Thank you for your feedback!"), _("Your report has been delivered to the author "
+                                                              "of LuxOS. Every report helps make LuxOS better.")
+        box.pack_start(label(title, "done-title", xalign=0.5), False, False, 0)
+        box.pack_start(label(text, "dim", xalign=0.5, justify=Gtk.Justification.CENTER), False, False, 0)
+        if rid:
+            rl = label(_("Report ID: %s") % rid, "dim", xalign=0.5, selectable=True)
+            box.pack_start(rl, False, False, 0)
+        row = Gtk.Box(spacing=10, halign=Gtk.Align.CENTER, margin_top=12)
+        another = Gtk.Button(label=_("Send Another"))
+        another.connect("clicked", self.reset)
+        close = Gtk.Button(label=_("Close"))
+        close.get_style_context().add_class("primary")
+        close.connect("clicked", lambda _b: self.close())
+        row.pack_start(another, False, False, 0)
+        row.pack_start(close, False, False, 0)
+        box.pack_start(row, False, False, 0)
+        old = self.stack.get_child_by_name("done")
+        if old:
+            self.stack.remove(old)
+        self.stack.add_named(box, "done")
+        box.show_all()
+        self.stack.set_visible_child_name("done")
+
+    def reset(self, _b):
+        self.text.get_buffer().set_text("")
+        self.shot_check.set_active(False)
+        self.status.set_text("")
+        self.send_btn.set_label(_("Send"))
+        self.stack.set_visible_child_name("form")
+        self.validate()
+
+
+def main():
+    GLib.set_prgname("luxos-feedback")
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = FeedbackWindow()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    win.validate()
+    Gtk.main()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

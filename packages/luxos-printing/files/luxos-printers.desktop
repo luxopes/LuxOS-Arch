@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Printers & Scanners
+Name[cs]=Tiskárny a skenery
+Comment=Print, scan and see your printers
+Comment[cs]=Tisk, skenování a přehled tiskáren
+Exec=luxos-printers
+Icon=printer
+Terminal=false
+Categories=Settings;HardwareSettings;Printing;Scanning;X-XFCE-SettingsDialog;X-XFCE-HardwareSettings;GTK;
+Keywords=printer;print;scanner;scan;print settings;cups;tiskárna;tisk;skener;skenovat;nastavení tisku;
+StartupWMClass=luxos-printers

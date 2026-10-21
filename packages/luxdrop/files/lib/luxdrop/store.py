@@ -18,6 +18,11 @@ def config_dir():
 
 
 def downloads_dir():
+    """Vychozi slozka pro prijate soubory: <Stazene>/LuxDrop (Stazene podle xdg-user-dirs)."""
+    return os.path.join(xdg_downloads(), "LuxDrop")
+
+
+def xdg_downloads():
     """Slozka Stazene podle xdg-user-dirs (jinak ~/Downloads)."""
     home = os.path.expanduser("~")
     try:
@@ -47,12 +52,16 @@ def _save_json(path, data):
 class Settings:
     DEFAULTS = {
         "name": "",
-        "receive_mode": "trusted",
+        "receive_mode": "everyone",
         "everyone_until": 0,
         "download_dir": "",
         "port": proto.DEFAULT_PORT,
         "background": False,
-        "auto_accept_trusted": True,
+        "auto_accept_trusted": True,   # "Rychle ulozeni" od duveryhodnych zarizeni
+        "localsend": True,             # kompatibilita s aplikaci LocalSend
+        "localsend_port": 53317,
+        "pin": "",                     # PIN pro prijem pres LocalSend (prazdny = bez PINu)
+        "last_mode": "everyone",       # rezim, ktery obnovi prepinac "Pripraveno k prijmu"
     }
 
     def __init__(self, directory=None):
@@ -90,26 +99,38 @@ class Settings:
         return os.path.expanduser(self.data["download_dir"]) or downloads_dir()
 
     def mode(self):
-        """Ucinny rezim; "everyone" po 10 minutach spadne zpet na "trusted"."""
+        """Ucinny rezim; casove omezene "everyone" po uplynuti spadne zpet na "trusted".
+
+        everyone_until == 0 znamena bez casoveho omezeni (kazdy prenos se stejne musi potvrdit).
+        """
         m = self.data["receive_mode"]
-        if m == "everyone":
+        if m == "everyone" and self.data["everyone_until"]:
             left = self.data["everyone_until"] - time.time()
             # Rucne upraveny soubor nesmi prodlouzit "vsichni" nad 10 minut
             if left <= 0 or left > EVERYONE_SECONDS + 5:
                 return "trusted"
         return m
 
-    def set_mode(self, mode):
+    def set_mode(self, mode, minutes=None):
+        """minutes: u "everyone" casove omezeni (max. 10 minut), None = bez omezeni."""
         if mode not in MODES:
             raise ValueError(mode)
         self.data["receive_mode"] = mode
-        self.data["everyone_until"] = time.time() + EVERYONE_SECONDS if mode == "everyone" else 0
+        self.data["everyone_until"] = 0
+        if mode == "everyone" and minutes:
+            self.data["everyone_until"] = time.time() + min(minutes * 60, EVERYONE_SECONDS)
         self.save()
 
     def everyone_left(self):
-        if self.mode() != "everyone":
+        """Zbyvajici sekundy casove omezeneho "everyone" (0 = neomezeno nebo jiny rezim)."""
+        if self.mode() != "everyone" or not self.data["everyone_until"]:
             return 0
         return max(0, int(self.data["everyone_until"] - time.time()))
+
+    @property
+    def pin(self):
+        p = self.data["pin"].strip()
+        return p[:32]
 
 
 def default_name():
@@ -148,12 +169,17 @@ class TrustStore:
         self.reload()
         return self.peers.get(fp.hex())
 
-    def add(self, fp, name, addr=None):
+    def add(self, fp, name, addr=None, kind="luxdrop", cert_fp=None, device_type=None):
+        """fp = SHA-256 klice (SPKI). kind: "luxdrop" nebo "localsend" (cert_fp = otisk LocalSend)."""
         self.reload()
         e = self.peers.get(fp.hex(), {"added": time.time()})
-        e.update({"name": str(name)[:63], "id": proto.short_id(fp), "last_seen": time.time()})
+        e.update({"name": str(name)[:63], "id": proto.short_id(fp), "last_seen": time.time(), "kind": kind})
         if addr:
             e["last_addr"] = addr
+        if cert_fp:
+            e["cert_fp"] = cert_fp
+        if device_type:
+            e["device_type"] = device_type
         self.peers[fp.hex()] = e
         self.save()
 

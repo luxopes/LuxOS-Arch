@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=19
+pkgrel=20
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
@@ -68,6 +68,7 @@ package() {
     install -Dm644 -t "$pkgdir/usr/share/applications/screensavers" "$f"/screensaver/*.desktop
     install -Dm755 -t "$pkgdir/usr/lib/luxos/override-bin" "$f"/override-bin/*
     install -Dm644 -t "$pkgdir/usr/share/applications" "$f"/applications/*.desktop
+    install -Dm644 -t "$pkgdir/usr/share/icons/hicolor/scalable/apps" "$f"/icons/*.svg
     install -Dm644 -t "$pkgdir/usr/share/rofi/themes" "$f"/rofi/luxos-*.rasi
 
     # Pluginy horni listy bez nabidek (genmon, systray) bezi primo v procesu panelu - kazdy

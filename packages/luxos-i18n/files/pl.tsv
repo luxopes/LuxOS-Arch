@@ -1,0 +1,1420 @@
+# LuxOS - polskie tlumaczenie (angielski tekst<TAB>polski tekst); %s i %d musza pozostac zachowane
+Keyboard Shortcuts	Skróty klawiszowe
+Shortcut	Skrót
+Action	Czynność
+Close window	Zamknij okno
+Minimize window	Minimalizuj okno
+Switch windows	Przełączaj okna
+Maximize / tile half	Maksymalizuj / połowa ekranu
+Full screen	Pełny ekran
+Show desktop	Pokaż biurko
+Switch workspace	Przełącz biurko
+Files	Pliki
+Terminal	Terminal
+Settings	Ustawienia
+Lock screen	Zablokuj ekran
+Switch keyboard layout	Przełącz układ klawiatury
+Screenshot	Zrzut ekranu
+Screenshot of region	Zrzut zaznaczonego obszaru
+Screenshot tool	Narzędzie do zrzutów ekranu
+System monitor (force quit)	Monitor systemu (wymuś zakończenie)
+Close	Zamknij
+Desktop & Dock	Biurko i Dock
+Advanced Desktop Settings…	Zaawansowane ustawienia biurka…
+Menu Bar Items…	Elementy paska menu…
+Appearance	Wygląd
+Light	Jasny
+Dark	Ciemny
+Wallpaper	Tapeta
+Choose…	Wybierz…
+Your own picture	Własny obrazek
+Choose a picture	Wybierz obrazek
+Pictures	Obrazki
+Dock	Dock
+Automatically hide and show the Dock	Automatycznie ukrywaj i pokazuj Dock
+The Dock appears when you move the pointer to the bottom edge.	Dock pojawia się po przesunięciu wskaźnika do dolnej krawędzi.
+Size	Rozmiar
+Magnification	Powiększanie
+Magnification size	Stopień powiększenia
+Bottom	Na dole
+Left	Po lewej
+Right	Po prawej
+Position on screen	Położenie na ekranie
+Dock opacity	Nieprzezroczystość Docka
+Menu Bar	Pasek menu
+Menu bar opacity	Nieprzezroczystość paska menu
+Battery Saver is on\n	Oszczędzanie baterii jest włączone\n
+Battery Saver is off\n	Oszczędzanie baterii jest wyłączone\n
+Battery	Bateria
+Rolling release · based on Arch Linux	Rolling release · oparty na Arch Linuksie
+Computer	Komputer
+Processor	Procesor
+Memory	Pamięć
+Graphics	Grafika
+Storage	Pamięć masowa
+%s available of %s	%s dostępne z %s
+Kernel	Jądro
+Shell	Powłoka
+About This Computer	Ten komputer
+Software Update	Uaktualnienia
+Update	Uaktualnij
+Press Enter to close	Naciśnij Enter, aby zamknąć
+Install LuxOS	Zainstaluj LuxOS
+Light Mode	Tryb jasny
+Dark Mode	Tryb ciemny
+LuxOS Store	Sklep LuxOS
+Shortcuts	Skróty
+Welcome to LuxOS	Witaj w LuxOS
+Fast, light and beautifully simple.	Szybki, lekki i pięknie prosty.
+Search: apps, files and windows	Szukaj: aplikacje, pliki i okna
+Launchpad: all applications	Launchpad: wszystkie aplikacje
+close window	zamknij okno
+screenshot of a region	zrzut zaznaczonego obszaru ekranu
+install and update software from Terminal	instalacja i uaktualnianie oprogramowania z Terminala
+Control Center	Centrum sterowania
+Off	Wył.
+Ethernet	Ethernet
+Not connected	Nie połączono
+Not available	Niedostępne
+On	Wł.
+Wi-Fi	Wi-Fi
+Bluetooth	Bluetooth
+Do Not Disturb	Nie przeszkadzać
+Data Saver	Oszczędzanie danych
+Battery Saver	Oszczędzanie baterii
+Display	Ekran
+Sound	Dźwięk
+Desktop & Dock…	Biurko i Dock…
+All Settings…	Wszystkie ustawienia…
+Charging	Ładowanie
+On battery	Na baterii
+Fully charged	W pełni naładowana
+Data Saver is on\n	Oszczędzanie danych jest włączone\n
+Data Saver is off\n	Oszczędzanie danych jest wyłączone\n
+AUR is disabled in lux.conf	AUR jest wyłączony w lux.conf
+jq is required for AUR support	Obsługa AUR wymaga jq
+AUR packages must be built as a regular user (run lux without sudo)	Pakiety z AUR należy budować jako zwykły użytkownik (uruchom lux bez sudo)
+Building AUR packages needs %sbase-devel%s and %sgit%s.	Budowanie pakietów z AUR wymaga %sbase-devel%s i %sgit%s.
+Install them now?	Zainstalować je teraz?
+AUR is not reachable	AUR jest nieosiągalny
+Package '%s' was not found in repositories or AUR	Nie znaleziono pakietu „%s” w repozytoriach ani w AUR
+Cannot update %s from AUR	Nie można uaktualnić %s z AUR
+Cannot clone %s from AUR	Nie można pobrać %s z AUR
+Review PKGBUILD of %s before building?	Przejrzeć PKGBUILD pakietu %s przed budowaniem?
+Build and install %s?	Zbudować i zainstalować %s?
+Cancelled	Anulowano
+Building %s %s(AUR)%s	Budowanie %s %s(AUR)%s
+Build of %s failed (see %s)	Budowanie %s nie powiodło się (zobacz %s)
+AUR packages to build: %s	Pakiety z AUR do zbudowania: %s
+AUR packages are maintained by the community, not by LuxOS.	Pakiety z AUR są utrzymywane przez społeczność, a nie przez LuxOS.
+Continue?	Kontynuować?
+Usage: lux install <package...>	Użycie: lux install <pakiet...>
+Installing %s from Flathub	Instalowanie %s z Flathub
+Package '%s' not found. Try: lux search %s	Nie znaleziono pakietu „%s”. Spróbuj: lux search %s
+Usage: lux remove <package...>	Użycie: lux remove <pakiet...>
+Refreshing package databases	Odświeżanie baz danych pakietów
+Updating system packages	Uaktualnianie pakietów systemowych
+Checking AUR packages	Sprawdzanie pakietów z AUR
+AUR packages are up to date	Pakiety z AUR są aktualne
+Updating Flatpak apps	Uaktualnianie aplikacji Flatpak
+New config files to review:	Nowe pliki konfiguracyjne do przejrzenia:
+Kernel was updated - restart to use it.	Jądro zostało uaktualnione - uruchom ponownie, aby go używać.
+System is up to date	System jest aktualny
+Usage: lux search <term>	Użycie: lux search <wyrażenie>
+Usage: lux info <package>	Użycie: lux info <pakiet>
+Package '%s' not found	Nie znaleziono pakietu „%s”
+Cleaning package cache (keeping %s versions)	Czyszczenie pamięci podręcznej pakietów (zachowywanie wersji: %s)
+Unneeded packages: %s	Niepotrzebne pakiety: %s
+Remove them?	Usunąć je?
+No unneeded packages	Brak niepotrzebnych pakietów
+Clean	Gotowe, wyczyszczono
+All drivers are installed	Wszystkie sterowniki są zainstalowane
+Missing: %s	Brakuje: %s
+Install now?	Zainstalować teraz?
+Drivers installed - restart to activate them	Sterowniki zainstalowane - zostaną aktywowane po ponownym uruchomieniu
+Finding the fastest mirrors (this can take a minute)	Szukanie najszybszych serwerów lustrzanych (może to chwilę potrwać)
+Mirror list updated	Lista serwerów lustrzanych uaktualniona
+LuxOS system check	Sprawdzanie systemu LuxOS
+%s failed service(s):	Usługi z błędem: %s
+Services running	Usługi działają
+%s .pacnew config file(s) to merge (pacdiff)	Pliki konfiguracyjne .pacnew do scalenia (pacdiff): %s
+No pending config files	Brak oczekujących plików konfiguracyjnych
+Root filesystem is %s%% full	System plików root jest zapełniony w %s %%
+Disk usage %s%%	Użycie dysku %s %%
+%s unneeded package(s) - run: lux clean	Niepotrzebne pakiety: %s - uruchom: lux clean
+No orphaned packages	Brak osieroconych pakietów
+%s update(s) available - run: lux update	Dostępne uaktualnienia: %s - uruchom: lux update
+System up to date	System jest aktualny
+Running kernel was replaced - restart	Działające jądro zostało zastąpione - uruchom ponownie
+%s error message(s) in this boot's log (journalctl -b -p err)	Komunikaty o błędach w dzienniku od uruchomienia: %s (journalctl -b -p err)
+Everything looks good	Wszystko wygląda dobrze
+LuxOS package manager	menedżer pakietów LuxOS
+Usage:	Użycie:
+command	polecenie
+options	opcje
+arguments	argumenty
+Options:	Opcje:
+system	system
+The interactive mode needs fzf (lux install fzf)	Tryb interaktywny wymaga fzf (lux install fzf)
+The interactive mode needs expac (lux install expac)	Tryb interaktywny wymaga expac (lux install expac)
+Enter install · Ctrl-R remove · Ctrl-U update system · Tab select more	Enter instaluj · Ctrl-R usuń · Ctrl-U uaktualnij system · Tab zaznacz więcej
+Alt-L LuxOS apps · Alt-I installed · Alt-A all · Esc quit	Alt-L aplikacje LuxOS · Alt-I zainstalowane · Alt-A wszystko · Esc wyjdź
+LuxOS apps	Aplikacje LuxOS
+Installed	Zainstalowane
+All packages	Wszystkie pakiety
+Search	Szukaj
+Press Enter to continue	Naciśnij Enter, aby kontynuować
+Usage: lux files <pkg>	Użycie: lux files <pakiet>
+Usage: lux owner <file>	Użycie: lux owner <plik>
+Unknown command '%s' (see lux --help)	Nieznane polecenie „%s” (zobacz lux --help)
+Open	Otwórz
+Get	Pobierz
+Search apps	Szukaj aplikacji
+Discover	Odkrywaj
+LuxOS Apps	Aplikacje LuxOS
+Categories	Kategorie
+Library	Biblioteka
+Updates	Uaktualnienia
+From LuxOS	Od LuxOS
+Popular apps	Popularne aplikacje
+Apps made for LuxOS, signed by the LuxOS team.	Aplikacje stworzone dla LuxOS, podpisane przez zespół LuxOS.
+Results for “%s”	Wyniki dla „%s”
+Welcome to the LuxOS Store	Witaj w Sklepie LuxOS
+%d apps from LuxOS and Arch Linux, installed with one click.	Aplikacje z LuxOS i Arch Linuksa (%d), instalowane jednym kliknięciem.
+Nothing here yet.	Na razie nic tu nie ma.
+Check for Updates	Sprawdź uaktualnienia
+Update All	Uaktualnij wszystko
+Everything is up to date.	Wszystko jest aktualne.
+%d updates available: %s	Dostępne uaktualnienia (%d): %s
+Checking for updates…	Sprawdzanie uaktualnień…
+Updating system…	Uaktualnianie systemu…
+Data Saver is on - updates are not checked automatically.	Oszczędzanie danych jest włączone - uaktualnienia nie są sprawdzane automatycznie.
+Remove	Usuń
+Version	Wersja
+Package	Pakiet
+About	Informacje
+Website	Witryna
+%s is installed, but has no window to open.	Aplikacja %s jest zainstalowana, ale nie ma okna do otwarcia.
+Installing %s…	Instalowanie %s…
+Remove %s?	Usunąć %s?
+The app will be removed from this computer. Your files stay untouched.	Aplikacja zostanie usunięta z tego komputera. Twoje pliki pozostaną nienaruszone.
+Removing %s…	Usuwanie %s…
+Done.	Gotowe.
+Cancelled.	Anulowano.
+Failed: %s	Niepowodzenie: %s
+interactive app store in the terminal	interaktywny sklep z aplikacjami w terminalu
+install packages (repositories, then AUR / Flathub)	instaluj pakiety (repozytoria, potem AUR / Flathub)
+remove packages and their unneeded dependencies	usuń pakiety i ich niepotrzebne zależności
+update everything (system, AUR, Flatpak)	uaktualnij wszystko (system, AUR, Flatpak)
+search repositories and AUR	szukaj w repozytoriach i AUR
+show package details	pokaż szczegóły pakietu
+list installed packages	lista zainstalowanych pakietów
+files installed by a package	pliki zainstalowane przez pakiet
+which package owns a file	do którego pakietu należy plik
+clean cache and remove unneeded packages	wyczyść pamięć podręczną i usuń niepotrzebne pakiety
+detect and install missing drivers	wykryj i zainstaluj brakujące sterowniki
+pick the fastest download mirrors	wybierz najszybsze serwery lustrzane do pobierania
+check system health	sprawdź stan systemu
+recent package changes	ostatnie zmiany pakietów
+do not ask for confirmation	nie pytaj o potwierdzenie
+only official repositories	tylko oficjalne repozytoria
+only AUR	tylko AUR
+this help	ta pomoc
+version	wersja
+Internet	Internet
+Office	Biuro
+Music & Video	Muzyka i wideo
+Developer Tools	Narzędzia programistyczne
+Games	Gry
+Education & Science	Edukacja i nauka
+Utilities	Narzędzia
+System	System
+Error	Błąd
+Calculator	Kalkulator
+# Instalator
+Installation failed (line %s, exit code %s).	Instalacja nie powiodła się (wiersz %s, kod wyjścia %s).
+Details are in %s. Last lines:	Szczegóły znajdują się w %s. Ostatnie wiersze:
+Warning: not running from the LuxOS live system.	Ostrzeżenie: nie uruchomiono z systemu live LuxOS.
+No internet connection	Brak połączenia z internetem
+LuxOS downloads the newest packages during installation.	LuxOS pobiera najnowsze pakiety podczas instalacji.
+Connect with the network icon in the top bar, or use the text tool.	Połącz się za pomocą ikony sieci na górnym pasku lub użyj narzędzia tekstowego.
+Try again	Spróbuj ponownie
+Open network setup (nmtui)	Otwórz ustawienia sieci (nmtui)
+Quit	Zakończ
+Other…	Inne…
+Type to search	Pisz, aby szukać
+Choose locale	Wybierz ustawienia regionalne
+Language: %s	Język: %s
+The installation takes about 10 minutes.	Instalacja trwa około 10 minut.
+Keyboard	Klawiatura
+Choose your keyboard layout	Wybierz układ klawiatury
+Layout	Układ
+Variant	Wariant
+Keyboard: %s	Klawiatura: %s
+Time zone	Strefa czasowa
+Use detected time zone %s?	Użyć wykrytej strefy czasowej %s?
+Choose time zone	Wybierz strefę czasową
+Time zone: %s	Strefa czasowa: %s
+Disk	Dysk
+Advanced: use partitions already mounted at %s	Zaawansowane: użyj partycji już zamontowanych w %s
+Where should LuxOS be installed?	Gdzie zainstalować LuxOS?
+Nothing is mounted at %s. Mount root (and /boot) first.	W %s nic nie jest zamontowane. Najpierw zamontuj partycję root (i /boot).
+All data on %s will be erased.	Wszystkie dane na %s zostaną wymazane.
+Yes	Tak
+No	Nie
+Encrypt the disk? (you will enter a password at every start)	Zaszyfrować dysk? (hasło trzeba będzie podawać przy każdym uruchomieniu)
+Disk encryption password	Hasło szyfrowania dysku
+Your account	Twoje konto
+Full name	Imię i nazwisko
+Jane Doe	Anna Kowalska
+User name (lowercase)	Nazwa użytkownika (małymi literami)
+Use lowercase letters, numbers, - and _ (max 32 characters).	Użyj małych liter, cyfr, - i _ (maks. 32 znaki).
+Password	Hasło
+Computer name	Nazwa komputera
+Use letters, numbers and - (no spaces).	Użyj liter, cyfr i - (bez spacji).
+Log in automatically without a password?	Logować automatycznie bez hasła?
+Password cannot be empty.	Hasło nie może być puste.
+%s (again)	%s (ponownie)
+Passwords do not match, try again.	Hasła nie są zgodne, spróbuj ponownie.
+Summary	Podsumowanie
+Language	Język
+mounted at %s	zamontowane w %s
+%s  (will be ERASED)	%s  (zostanie WYMAZANY)
+Encryption	Szyfrowanie
+yes	tak
+no	nie
+User	Użytkownik
+Boot mode	Tryb uruchamiania
+Install	Zainstaluj
+Cancel	Anuluj
+Install LuxOS now?	Zainstalować LuxOS teraz?
+Preparing disk %s	Przygotowywanie dysku %s
+Partitions were not created correctly	Partycje nie zostały utworzone poprawnie
+Encrypting the disk	Szyfrowanie dysku
+Creating file systems	Tworzenie systemów plików
+Detecting hardware	Wykrywanie sprzętu
+Installing packages (this is the longest step)	Instalowanie pakietów (najdłuższy krok)
+Download failed (attempt %s), retrying…	Pobieranie nie powiodło się (próba %s), ponawianie…
+Packages could not be installed. Check the internet connection.	Nie udało się zainstalować pakietów. Sprawdź połączenie z internetem.
+Configuring the system	Konfigurowanie systemu
+Could not add UEFI boot entry (fallback loader will be used)	Nie udało się dodać wpisu rozruchowego UEFI (zostanie użyty zapasowy program ładujący)
+Finishing	Kończenie
+LuxOS is installed	LuxOS jest zainstalowany
+Remove the installation media and restart your computer.	Wyjmij nośnik instalacyjny i uruchom ponownie komputer.
+Restart	Uruchom ponownie
+Later	Później
+Restart now?	Uruchomić ponownie teraz?
+Config needs DISK, USERNAME and PASSWORD	Konfiguracja musi zawierać DISK, USERNAME i PASSWORD
+Invalid USERNAME	Nieprawidłowa wartość USERNAME
+Invalid HOSTNAME_SEL	Nieprawidłowa wartość HOSTNAME_SEL
+ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 wymaga LUKS_PASS
+# Rozlozeni klavesnice (instalator)
+English (US)	Angielski (USA)
+Czech	Czeski
+Czech (QWERTY)	Czeski (QWERTY)
+Slovak	Słowacki
+Slovak (QWERTY)	Słowacki (QWERTY)
+German	Niemiecki
+English (UK)	Angielski (Wielka Brytania)
+French	Francuski
+Spanish	Hiszpański
+Italian	Włoski
+Polish	Polski
+Hungarian	Węgierski
+Ukrainian	Ukraiński
+Portuguese	Portugalski
+Portuguese (Brazil)	Portugalski (Brazylia)
+Swedish	Szwedzki
+# Nazvy aplikaci v horni liste
+Desktop	Biurko
+Text Editor	Edytor tekstu
+Image Viewer	Przeglądarka obrazków
+Document Viewer	Przeglądarka dokumentów
+System Monitor	Monitor systemu
+# Monitory
+Extend - use both screens	Rozszerz - użyj obu ekranów
+Mirror - same picture on both	Powielaj - ten sam obraz na obu
+Only external screen	Tylko ekran zewnętrzny
+Only this computer's screen	Tylko ekran tego komputera
+Screens	Ekrany
+# Baterie a napajeni
+Battery…	Bateria…
+Battery Saver is on	Oszczędzanie baterii jest włączone
+Battery is at %s %%. Connect the charger.	Poziom baterii: %s %%. Podłącz ładowarkę.
+%d min	%d min
+%d h %d min	%d godz. %d min
+now	teraz
+No history yet	Brak historii
+Battery & Power	Bateria i zasilanie
+Power usage	Zużycie energii
+Battery health	Kondycja baterii
+Charge cycles	Cykle ładowania
+Energy	Energia
+Battery level - last 24 hours	Poziom baterii - ostatnie 24 godziny
+Power usage - last 24 hours	Zużycie energii - ostatnie 24 godziny
+This computer runs on mains power - there is no battery.	Ten komputer jest zasilany z sieci - nie ma baterii.
+Power mode	Tryb zasilania
+Power Saver	Oszczędny
+Longest battery life	Najdłuższy czas pracy na baterii
+Balanced	Zrównoważony
+Recommended	Zalecany
+Performance	Wydajność
+Fastest, uses more power	Najszybszy, zużywa więcej energii
+Saves energy: power saving mode and fewer animations.	Oszczędza energię: tryb oszczędzania i mniej animacji.
+Turn on automatically at 20 %	Włącz automatycznie przy 20 %
+Turns off again when the computer is charging.	Wyłącza się ponownie, gdy komputer jest ładowany.
+Screen and sleep	Ekran i uśpienie
+Never	Nigdy
+1 minute	1 minuta
+2 minutes	2 minuty
+5 minutes	5 minut
+10 minutes	10 minut
+15 minutes	15 minut
+30 minutes	30 minut
+1 hour	1 godzina
+2 hours	2 godziny
+Turn off the screen on battery after	Wyłącz ekran na baterii po
+Turn off the screen on power adapter after	Wyłącz ekran na zasilaczu po
+Sleep on battery after	Uśpij na baterii po
+Sleep on power adapter after	Uśpij na zasilaczu po
+Sleep	Uśpij
+Turn off the screen	Wyłącz ekran
+Hibernate	Hibernuj
+When the lid is closed	Po zamknięciu pokrywy
+Advanced Power Settings…	Zaawansowane ustawienia zasilania…
+%s minutes	%s min
+full in %s	pełne naładowanie za %s
+about %s left	pozostało około %s
+Plugged in, not charging	Podłączono, nie ładuje
+charging power	moc ładowania
+current consumption	bieżące zużycie
+of original capacity	pierwotnej pojemności
+full charge cycles	pełnych cykli ładowania
+of %.1f Wh	z %.1f Wh
+# Bluetooth
+OK	OK
+Rejected	Odrzucono
+Pair this device?	Sparować to urządzenie?
+Check that the device shows this code:	Sprawdź, czy urządzenie wyświetla ten kod:
+Pair	Sparuj
+Type this code on the device	Wpisz ten kod na urządzeniu
+Then press Enter on it.	Następnie naciśnij na nim Enter.
+Enter the PIN code	Wprowadź kod PIN
+Usually 0000 or 1234, see the device manual.	Zwykle 0000 lub 1234, zobacz instrukcję urządzenia.
+Enter the code	Wprowadź kod
+Code shown on the device:	Kod wyświetlany na urządzeniu:
+Connected	Połączono
+battery %d %%	bateria %d %%
+Disconnect	Rozłącz
+Connect	Połącz
+Forget this device	Zapomnij to urządzenie
+My devices	Moje urządzenia
+Nearby devices	Urządzenia w pobliżu
+No devices	Brak urządzeń
+Searching… Put the device into pairing mode.	Szukanie… Przełącz urządzenie w tryb parowania.
+No Bluetooth adapter was found on this computer.	Nie znaleziono adaptera Bluetooth w tym komputerze.
+Visible as “%s”.	Widoczny jako „%s”.
+Turn on Bluetooth to connect headphones, a mouse, a keyboard or a phone.	Włącz Bluetooth, aby podłączyć słuchawki, mysz, klawiaturę lub telefon.
+Could not connect	Nie udało się połączyć
+Pairing…	Parowanie…
+Connecting…	Łączenie…
+Disconnecting…	Rozłączanie…
+Make sure the device is on, close by and in pairing mode.	Upewnij się, że urządzenie jest włączone, w pobliżu i w trybie parowania.
+Headphones	Słuchawki
+Speaker	Głośnik
+Mouse	Mysz
+Game controller	Kontroler gier
+Tablet	Tablet
+Phone	Telefon
+Device	Urządzenie
+# Monitor systemu
+60 s ago	60 s temu
+%d processes	Procesy: %d
+1 process	1 proces
+All processes	Wszystkie procesy
+Network	Sieć
+Name	Nazwa
+%d cores	Rdzenie: %d
+%s of %s used	użyto %s z %s
+%s free · activity %s	wolne %s · aktywność %s
+Download and upload	Pobieranie i wysyłanie
+All processes (%d)	Wszystkie procesy (%d)
+Open apps (%d)	Otwarte aplikacje (%d)
+%s is not responding	%s nie odpowiada
+Force quit it? Unsaved changes will be lost.	Wymusić zakończenie? Niezachowane zmiany zostaną utracone.
+Force Quit	Wymuś koniec
+# lux - format balicku
+Updating LuxOS apps	Uaktualnianie aplikacji LuxOS
+Usage: lux pack <directory> [output]	Użycie: lux pack <katalog> [wyjście]
+%s has no lux.json	%s nie zawiera lux.json
+lux.json is not valid JSON	lux.json nie jest prawidłowym plikiem JSON
+Invalid package name: %s	Nieprawidłowa nazwa pakietu: %s
+Invalid version: %s	Nieprawidłowa wersja: %s
+%s has no app/ directory	%s nie zawiera katalogu app/
+Missing files listed in bin: %s	Brak plików wymienionych w bin: %s
+Built %s	Zbudowano %s
+%s is not a lux package	%s nie jest pakietem lux
+This package needs a newer lux	Ten pakiet wymaga nowszej wersji lux
+Signature OK (LuxOS)	Podpis poprawny (LuxOS)
+%s is not signed by LuxOS.	%s nie jest podpisany przez LuxOS.
+Install it anyway?	Zainstalować mimo to?
+Installing dependencies: %s	Instalowanie zależności: %s
+Dependencies could not be installed	Nie udało się zainstalować zależności
+Installing %s %s	Instalowanie %s %s
+Could not unpack %s	Nie można rozpakować %s
+%s is installed	Zainstalowano %s
+Removing %s	Usuwanie %s
+%s was removed	Usunięto %s
+Downloading %s	Pobieranie %s
+Download failed: %s	Pobieranie nie powiodło się: %s
+Checksum mismatch: %s	Niezgodna suma kontrolna: %s
+Bad signature: %s	Nieprawidłowy podpis: %s
+LuxOS package (.lux)	pakiet LuxOS (.lux)
+build a .lux package from a directory with lux.json	zbuduj pakiet .lux z katalogu z lux.json
+# Kalkulacka - vedecky rezim
+Scientific (Ctrl+2)	Naukowy (Ctrl+2)
+Degrees / radians	Stopnie / radiany
+# Ucet LuxAI
+Sign in to LuxAI	Zaloguj się do LuxAI
+LuxAI Account	Konto LuxAI
+AI in LuxAI, Lux Code and LSL IDE	AI w LuxAI, Lux Code i LSL IDE
+Sign-in failed (%s).	Logowanie nie powiodło się (%s).
+Not signed in. Run: luxos-account login	Nie zalogowano. Uruchom: luxos-account login
+One account for AI in LuxOS: LuxAI, Lux Code and LSL IDE.	Jedno konto dla AI w LuxOS: LuxAI, Lux Code i LSL IDE.
+Sign in with the browser	Zaloguj się przez przeglądarkę
+or with e-mail	lub za pomocą e-maila
+E-mail	E-mail
+Sign In	Zaloguj się
+Send me a code instead	Wyślij mi kod e-mailem
+No account yet?	Nie masz jeszcze konta?
+Create an account	Utwórz konto
+Enter your e-mail and password.	Wprowadź e-mail i hasło.
+Enter your e-mail first.	Najpierw wprowadź e-mail.
+Enter the code from the e-mail	Wprowadź kod z e-maila
+We sent a 6-digit code to %s.	Wysłaliśmy 6-cyfrowy kod na adres %s.
+Confirm the sign-in in the browser…	Potwierdź logowanie w przeglądarce…
+After you confirm your e-mail, come back and sign in.	Po potwierdzeniu e-maila wróć tutaj i zaloguj się.
+AI usage this month	Użycie AI w tym miesiącu
+Unlimited	Bez ograniczeń
+%s: %s of %s tokens	%s: %s z %s tokenów
+Loading…	Wczytywanie…
+Used by	Używane przez
+Manage on lux-ai.cz	Zarządzaj na lux-ai.cz
+Sign Out	Wyloguj się
+Your session has expired. Please sign in again.	Sesja wygasła. Zaloguj się ponownie.
+Sign out of LuxAI?	Wylogować się z LuxAI?
+LuxAI, Lux Code and LSL IDE will stop using this account on this computer.	LuxAI, Lux Code i LSL IDE przestaną używać tego konta na tym komputerze.
+LuxAI account	Konto LuxAI
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account.	Opcjonalnie: AI w LuxAI, Lux Code i LSL IDE korzysta z Twojego konta LuxAI.
+Sign in	Zaloguj
+Skip	Pomiń
+Sign in to your LuxAI account now?	Zalogować się teraz do konta LuxAI?
+Signed in as %s	Zalogowano jako %s
+Sign-in failed. Try again?	Logowanie nie powiodło się. Spróbować ponownie?
+Wrong e-mail or password.	Nieprawidłowy e-mail lub hasło.
+The e-mail address is not verified yet.	Adres e-mail nie został jeszcze zweryfikowany.
+LuxAI is not reachable. Check the internet connection.	LuxAI jest niedostępne. Sprawdź połączenie z internetem.
+signed in	zalogowano
+not signed in	nie zalogowano
+LuxAI sign-in failed - continuing without it.	Logowanie do LuxAI nie powiodło się - kontynuowanie bez niego.
+The e-mail address is not verified yet. Use the sign-in code instead.	Adres e-mail nie został jeszcze zweryfikowany. Zaloguj się za pomocą kodu.
+The code is not valid or has expired.	Kod jest nieprawidłowy lub wygasł.
+Too many attempts. Try again later.	Zbyt wiele prób. Spróbuj ponownie później.
+Please wait a minute before requesting another code.	Odczekaj minutę, zanim poprosisz o kolejny kod.
+The browser sign-in timed out.	Upłynął limit czasu logowania przez przeglądarkę.
+The sign-in was cancelled.	Logowanie zostało anulowane.
+# Spořič a zámek
+Screen Saver & Lock	Wygaszacz i blokada
+Screen saver	Wygaszacz ekranu
+Start after inactivity of	Uruchom po bezczynności trwającej
+LuxOS - wallpapers and clock	LuxOS - tapety i zegar
+Black screen	Czarny ekran
+Preview	Podgląd
+Lock	Blokada
+Immediately	Natychmiast
+After 1 minute	Po 1 minucie
+After 5 minutes	Po 5 minutach
+After 15 minutes	Po 15 minutach
+Require password after the screen saver starts	Wymagaj hasła po uruchomieniu wygaszacza
+The screen saver protects your computer while you are away.	Wygaszacz chroni komputer, gdy od niego odchodzisz.
+Lock when the computer goes to sleep	Blokuj, gdy komputer przechodzi w stan uśpienia
+Lock Now	Zablokuj teraz
+# Trezor
+Could not create the Safe folder.	Nie udało się utworzyć folderu Sejf.
+The Safe already exists.	Sejf już istnieje.
+Could not create the Safe (%s).	Nie udało się utworzyć Sejfu (%s).
+Wrong password.	Nieprawidłowe hasło.
+Could not unlock the Safe (%s).	Nie udało się odblokować Sejfu (%s).
+Some files in the Safe are still open. Close them and try again.	Niektóre pliki w Sejfie są nadal otwarte. Zamknij je i spróbuj ponownie.
+Could not change the password (%s).	Nie udało się zmienić hasła (%s).
+Safe	Sejf
+Create your Safe	Utwórz swój Sejf
+Files in the Safe are encrypted and open only with its own password - not even an administrator can read them while the Safe is locked.	Pliki w Sejfie są zaszyfrowane i otwierają się tylko jego własnym hasłem - gdy Sejf jest zablokowany, nie odczyta ich nawet administrator.
+New Safe password	Nowe hasło Sejfu
+Password again	Powtórz hasło
+Use at least 8 characters.	Użyj co najmniej 8 znaków.
+Create Safe	Utwórz Sejf
+If you forget this password, the files cannot be recovered.	Jeśli zapomnisz to hasło, plików nie będzie można odzyskać.
+The Safe is locked	Sejf jest zablokowany
+Enter the Safe password to open %s.	Wprowadź hasło Sejfu, aby otworzyć %s.
+Unlock	Odblokuj
+The Safe is unlocked	Sejf jest odblokowany
+Your files are available in %s.	Twoje pliki są dostępne w %s.
+Open Safe	Otwórz Sejf
+Lock automatically after inactivity	Blokuj automatycznie po okresie bezczynności
+Lock when the screen locks	Blokuj razem z ekranem
+The Safe always locks when the computer goes to sleep or you log out.	Sejf zawsze blokuje się, gdy komputer przechodzi w stan uśpienia lub gdy się wylogujesz.
+Change Password…	Zmień hasło…
+Change Password	Zmień hasło
+Change	Zmień
+Current password	Obecne hasło
+# Sandbox (luxos-sandbox)
+Creating sandbox (minimal Arch Linux system), this can take a few minutes...	Tworzenie sandboksa (minimalny system Arch Linux), może to potrwać kilka minut...
+Sandbox deleted.	Sandbox został usunięty.
+No sandbox yet. Create it with: luxos-sandbox create	Sandbox jeszcze nie istnieje. Utwórz go poleceniem: luxos-sandbox create
+Creating the sandbox failed.	Tworzenie sandboksa nie powiodło się.
+Sandbox is ready: %s	Sandbox jest gotowy: %s
+Size: %s	Rozmiar: %s
+Shared folder: %s (only with --shared)	Folder współdzielony: %s (tylko z --shared)
+Installed apps: %s	Zainstalowane aplikacje: %s
+Copying the file into the sandbox failed.	Kopiowanie pliku do sandboksa nie powiodło się.
+Usage: luxos-sandbox run [--net] [--gui] [--shared] <command...>	Użycie: luxos-sandbox run [--net] [--gui] [--shared] <polecenie...>
+No package given.	Nie podano pakietu.
+Confirmation needed: add --yes	Wymagane potwierdzenie: dodaj --yes
+Wipe the whole sandbox (all installed apps and files inside) and create it again?	Wymazać cały sandbox (wszystkie zainstalowane aplikacje i pliki w nim) i utworzyć go ponownie?
+Resetting the sandbox failed.	Resetowanie sandboksa nie powiodło się.
+Delete the sandbox with everything inside? (~/Sandbox stays)	Usunąć sandbox wraz z całą zawartością? (~/Sandbox pozostanie)
+Deleting the sandbox failed.	Usuwanie sandboksa nie powiodło się.
+Run luxos-sandbox as a normal user, not root.	Uruchamiaj luxos-sandbox jako zwykły użytkownik, a nie root.
+Sandbox directory is not owned by you: %s	Katalog sandboksa nie należy do Ciebie: %s
+Xephyr is not installed (package xorg-server-xephyr).	Xephyr nie jest zainstalowany (pakiet xorg-server-xephyr).
+Could not start the sandbox window (Xephyr).	Nie udało się uruchomić okna sandboksa (Xephyr).
+Network for the sandbox needs pasta (package passt).	Sieć w sandboksie wymaga programu pasta (pakiet passt).
+Warning: systemd user session not available, running without memory/CPU limits.	Ostrzeżenie: sesja użytkownika systemd jest niedostępna, uruchamianie bez limitów pamięci i procesora.
+The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	Sandbox jest uszkodzony (katalog domowy nie jest katalogiem). Uruchom: luxos-sandbox reset
+bubblewrap (bwrap) is not installed.	bubblewrap (bwrap) nie jest zainstalowany.
+Sandbox already exists: %s	Sandbox już istnieje: %s
+Helper not found: %s	Nie znaleziono programu pomocniczego: %s
+Link: %s	Łącze: %s
+none	brak
+Not a regular file: %s	To nie jest zwykły plik: %s
+Copying %s into the sandbox...	Kopiowanie %s do sandboksa...
+isolated sandbox for untrusted applications	izolowany sandbox dla niezaufanych aplikacji
+Unknown command: %s	Nieznane polecenie: %s
+Unknown option: %s	Nieznana opcja: %s
+Shared folder is not usable: %s	Nie można użyć folderu współdzielonego: %s
+Could not set up the sandbox network: %s	Nie udało się skonfigurować sieci sandboksa: %s
+create your sandbox (asks for the administrator password once)	tworzy Twój sandbox (jednorazowo prosi o hasło administratora)
+show the sandbox, its size and installed apps	pokazuje sandbox, jego rozmiar i zainstalowane aplikacje
+interactive shell inside the sandbox	interaktywna powłoka wewnątrz sandboksa
+run a command (a file from your computer is copied in first)	uruchamia polecenie (plik z komputera jest najpierw kopiowany do środka)
+install apps from the Arch Linux repositories into the sandbox	instaluje aplikacje z repozytoriów Arch Linuksa w sandboksie
+remove apps from the sandbox	usuwa aplikacje z sandboksa
+wipe the sandbox and create it again	wymazuje sandbox i tworzy go ponownie
+delete the sandbox	usuwa sandbox
+network: internet only, no local network, no services of this computer	sieć: tylko internet, bez sieci lokalnej i usług tego komputera
+own window (nested X server), never your desktop	własne okno (zagnieżdżony serwer X), nigdy Twoje biurko
+make ~/Sandbox visible as /home/sandbox/Shared	udostępnia ~/Sandbox jako /home/sandbox/Shared
+Get started	Zaczynamy
+No sandbox yet	Sandbox jeszcze nie istnieje
+Creates a minimal Arch Linux system only for you. Needs the administrator password once and a few minutes.	Tworzy minimalny system Arch Linux tylko dla Ciebie. Wymaga jednorazowo hasła administratora i kilku minut.
+Installed apps	Zainstalowane aplikacje
+Install app	Zainstaluj aplikację
+From Arch Linux repositories	Z repozytoriów Arch Linuksa
+Installs into the sandbox only; network is enabled just for the download.	Instaluje tylko w sandboksie; sieć jest włączona wyłącznie na czas pobierania.
+Run app	Uruchom aplikację
+Command	Polecenie
+Downloaded file	Pobrany plik
+The file is copied into the sandbox first; the original is never exposed.	Plik jest najpierw kopiowany do sandboksa; oryginał pozostaje poza jego zasięgiem.
+Internet only - no access to your local network or this computer.	Tylko internet – bez dostępu do sieci lokalnej i tego komputera.
+Window	Okno
+Show the app in its own separate window (not on your desktop).	Pokaż aplikację we własnym, oddzielnym oknie (nie na Twoim biurku).
+Shared folder	Folder współdzielony
+Tools	Narzędzia
+Terminal in sandbox	Terminal w sandboksie
+Uses the Network and Shared folder switches above.	Używa przełączników Sieć i Folder współdzielony powyżej.
+Reset sandbox	Resetuj sandbox
+Deletes everything inside the sandbox and creates it again.	Usuwa całą zawartość sandboksa i tworzy go ponownie.
+Creating sandbox…	Tworzenie sandboksa…
+Sandbox is ready.	Sandbox jest gotowy.
+Installed.	Zainstalowano.
+Run	Uruchom
+Reset the sandbox?	Zresetować sandbox?
+All apps and files inside the sandbox will be deleted. ~/Sandbox stays.	Wszystkie aplikacje i pliki w sandboksie zostaną usunięte. ~/Sandbox pozostanie.
+Continue	Kontynuuj
+An isolated system for apps you don't trust. Apps inside can't see your files, network or desktop.	Izolowany system dla aplikacji, którym nie ufasz. Aplikacje w środku nie widzą Twoich plików, sieci ani biurka.
+Create Sandbox	Utwórz sandbox
+Package name, e.g. firefox	Nazwa pakietu, np. firefox
+Command, e.g. firefox	Polecenie, np. firefox
+Choose File…	Wybierz plik…
+Make %s visible inside as Shared. Treat files from it as untrusted.	Udostępnij %s w środku jako Shared. Traktuj pliki z tego folderu jako niezaufane.
+Open Terminal	Otwórz Terminal
+Reset…	Resetuj…
+Details	Szczegóły
+Ready	Gotowy
+Not created	Nie utworzono
+No apps installed yet	Brak zainstalowanych aplikacji
+Failed - see Details.	Niepowodzenie – zobacz Szczegóły.
+Enter a valid package name.	Wprowadź prawidłową nazwę pakietu.
+Remove %s from the sandbox?	Usunąć %s z sandboksa?
+Removed.	Usunięto.
+Started %s in the sandbox.	Uruchomiono %s w sandboksie.
+Enter a command.	Wprowadź polecenie.
+Choose a file to run in the sandbox	Wybierz plik do uruchomienia w sandboksie
+Resetting sandbox…	Resetowanie sandboksa…
+# Kalendar (luxos-calendar)
+Calendar	Kalendarz
+All day	Cały dzień
+Changes apply to all occurrences.	Zmiany dotyczą wszystkich wystąpień.
+Could not save: %s	Nie można zachować: %s
+Custom	Własne
+Date	Data
+Day	Dzień
+Delete All?	Usunąć wszystko?
+Delete Event?	Usunąć wydarzenie?
+Delete	Usuń
+Edit Event	Edytuj wydarzenie
+Ends	Koniec
+Event	Wydarzenie
+From %s	Od %s
+In %d minutes	Za %d min
+Invalid date.	Nieprawidłowa data.
+Invalid time.	Nieprawidłowa godzina.
+Month	Miesiąc
+New Event	Nowe wydarzenie
+Next day	Następny dzień
+Next month	Następny miesiąc
+Next year	Następny rok
+No events today	Brak wydarzeń dzisiaj
+No events	Brak wydarzeń
+Now	Teraz
+Previous day	Poprzedni dzień
+Previous month	Poprzedni miesiąc
+Previous year	Poprzedni rok
+Read-only calendar: %s	Kalendarz tylko do odczytu: %s
+Remind %d minutes before	Przypomnij %d min wcześniej
+Repeat	Powtarzaj
+Save	Zachowaj
+Starts	Początek
+The event must end after it starts.	Wydarzenie musi kończyć się po jego rozpoczęciu.
+Title	Tytuł
+Today	Dzisiaj
+Until %s	Do %s
+Year	Rok
+Daily	Codziennie
+Weekly	Co tydzień
+Monthly	Co miesiąc
+Yearly	Co rok
+Monday	poniedziałek
+Tuesday	wtorek
+Wednesday	środa
+Thursday	czwartek
+Friday	piątek
+Saturday	sobota
+Sunday	niedziela
+Mo	pn
+Tu	wt
+We	śr
+Th	cz
+Fr	pt
+Sa	sb
+Su	nd
+January	styczeń
+February	luty
+March	marzec
+April	kwiecień
+May	maj
+June	czerwiec
+July	lipiec
+August	sierpień
+September	wrzesień
+October	październik
+November	listopad
+December	grudzień
+of January	stycznia
+of February	lutego
+of March	marca
+of April	kwietnia
+of May	maja
+of June	czerwca
+of July	lipca
+of August	sierpnia
+of September	września
+of October	października
+of November	listopada
+of December	grudnia
+Enter Password	Wprowadź hasło
+Shut Down	Wyłącz
+Guest	Gość
+Username	Nazwa użytkownika
+Log In	Zaloguj
+Caps Lock is on	Caps Lock jest włączony
+Incorrect password. Try again.	Nieprawidłowe hasło. Spróbuj ponownie.
+Could not start the session.	Nie udało się uruchomić sesji.
+This action is not available right now.	Ta czynność jest teraz niedostępna.
+# LuxDrop
+Device '%s' not found on the network. Use an address: luxdrop send HOST[:PORT] FILES	Nie znaleziono urządzenia „%s” w sieci. Użyj adresu: luxdrop send HOST[:PORT] PLIKI
+Transfer failed: %s (%s)	Przesyłanie nie powiodło się: %s (%s)
+WARNING: someone may be impersonating this device. Nothing was sent. If the device was reinstalled, remove it with 'luxdrop trust remove ID' and pair again.	OSTRZEŻENIE: ktoś może podszywać się pod to urządzenie. Niczego nie wysłano. Jeśli system na urządzeniu został przeinstalowany, usuń je poleceniem „luxdrop trust remove ID” i sparuj ponownie.
+Receiving as "%s" (ID %s) on port %d, mode: %s, folder: %s	Odbieranie jako „%s” (ID %s) na porcie %d, tryb: %s, folder: %s
+Nearby devices:	Urządzenia w pobliżu:
+No devices found nearby (is avahi-daemon running?).	Nie znaleziono urządzeń w pobliżu (czy avahi-daemon działa?).
+No trusted devices.	Brak zaufanych urządzeń.
+Name: %s	Nazwa: %s
+ID: %s	ID: %s
+Fingerprint: %s	Odcisk: %s
+Send files securely between LuxOS computers.	Bezpieczne przesyłanie plików między komputerami z LuxOS.
+send files or folders	wyślij pliki lub foldery
+device name, ID, HOST[:PORT] or NAME@HOST[:PORT]	nazwa urządzenia, ID, HOST[:PORT] lub NAZWA@HOST[:PORT]
+do not trust the receiver after verification	nie ufaj odbiorcy po weryfikacji
+receive files in the terminal	odbieraj pliki w terminalu
+listen only on this address	nasłuchuj tylko na tym adresie
+who can send (everyone = for 10 minutes)	kto może wysyłać (everyone = na 10 minut)
+download folder	folder na odebrane pliki
+do not announce on the network	nie ogłaszaj się w sieci
+list nearby devices	wypisz urządzenia w pobliżu
+list or remove trusted devices	wypisz lub usuń zaufane urządzenia
+ID or name	ID lub nazwa
+show this device's name and fingerprint	pokaż nazwę i odcisk tego urządzenia
+show or set who can send to this computer	pokaż lub ustaw, kto może wysyłać na ten komputer
+Receiver: %s (ID %s)	Odbiorca: %s (ID %s)
+Verification code: %s	Kod weryfikacyjny: %s
+Does %s show the same code? [y]es and remember / [o]nly this time / [N]o: 	Czy %s wyświetla ten sam kod? [y] tak i zapamiętaj / [o] tylko tym razem / [N] nie: 
+Preparing	Przygotowywanie
+Sending	Wysyłanie
+Skipped %s (%s)	Pominięto %s (%s)
+WARNING: this device uses the name of a trusted device, but a different key!	OSTRZEŻENIE: to urządzenie używa nazwy zaufanego urządzenia, ale innego klucza!
+%s (ID %s) wants to send you %d item(s), %s:	%s (ID %s) chce Ci wysłać elementy (%d), %s:
+Accept? [y]es / [a]ccept and trust this device / [N]o: 	Przyjąć? [y] tak / [a] przyjmij i ufaj temu urządzeniu / [N] nie: 
+Accept? [y/N]: 	Przyjąć? [y/N]: 
+The sender cancelled the request.	Nadawca anulował żądanie.
+trusted	zaufane
+Removed %d device(s)	Usunięte urządzenia: %d
+'%s' matches more trusted devices, use the ID	„%s” pasuje do kilku zaufanych urządzeń, użyj ID
+File not found: %s	Nie znaleziono pliku: %s
+Cancelling…	Anulowanie…
+Sent %d item(s), %s to %s	Wysłane elementy: %d, %s → %s
+Verification code: %s  (must be the same on the sender's screen)	Kod weryfikacyjny: %s  (musi być taki sam jak na ekranie nadawcy)
+Received from %s: %s	Odebrano od %s: %s
+Cannot listen on port %d: %s	Nie można nasłuchiwać na porcie %d: %s
+'%s' is not a trusted device (see 'luxdrop trust list')	„%s” nie jest zaufanym urządzeniem (zobacz „luxdrop trust list”)
+Declined transfer from %s	Odrzucono przesyłanie od %s
+Transfer from %s failed: %s (%s)	Przesyłanie od %s nie powiodło się: %s (%s)
+Not visible on the network (%s); connect by address.	Komputer nie jest widoczny w sieci (%s); połącz się za pomocą adresu.
+Waiting for the receiver to accept…	Oczekiwanie na akceptację przez odbiorcę…
+(resumed, %s were already there)	(wznowiono, %s było już przesłane)
+%s wants to send you %d item(s), %s: %s	%s chce Ci wysłać elementy (%d), %s: %s
+Decline	Odrzuć
+Accept	Przyjmij
+Accept and trust	Przyjmij i ufaj
+LuxDrop: incoming files	LuxDrop: przychodzące pliki
+LuxDrop: received from %s	LuxDrop: odebrano od %s
+Show in folder	Pokaż w folderze
+LuxDrop: transfer from %s failed	LuxDrop: przesyłanie od %s nie powiodło się
+Trusted devices only	Tylko zaufane urządzenia
+Everyone for 10 minutes	Wszyscy przez 10 minut
+Connect by address…	Połącz za pomocą adresu…
+Transfers	Przesyłanie
+Choose	Wybierz
+Add	Dodaj
+Codes match	Kody są zgodne
+Device name	Nazwa urządzenia
+Allow receiving from	Zezwalaj na odbieranie od
+Save received files to	Zachowuj odebrane pliki w
+Accept automatically from trusted devices	Automatycznie przyjmuj od zaufanych urządzeń
+Receive when LuxDrop is closed	Odbieraj również przy zamkniętym LuxDrop
+Fingerprint	Odcisk
+Drop files here	Upuść pliki tutaj
+or click to choose files, then pick a device below	lub kliknij, aby wybrać pliki, a następnie wybierz urządzenie poniżej
+Choose files…	Wybierz pliki…
+Choose folder…	Wybierz folder…
+Clear	Wyczyść
+Received	Odebrane
+Choose folder	Wybierz folder
+Choose files	Wybierz pliki
+Nearby devices cannot be found because avahi-daemon is not running. You can still connect by address.	Nie można znaleźć urządzeń w pobliżu, ponieważ avahi-daemon nie działa. Nadal możesz połączyć się za pomocą adresu.
+Connect by address	Połącz za pomocą adresu
+Verify code	Weryfikacja kodu
+Remember this device (no code next time)	Zapamiętaj to urządzenie (następnym razem bez kodu)
+Incoming files	Przychodzące pliki
+Not receiving	Odbieranie nie działa
+LuxDrop Settings	Ustawienia LuxDrop
+This computer	Ten komputer
+Trusted devices	Zaufane urządzenia
+Trusted devices can send to you without a verification code. Remove a device if it was lost or reinstalled.	Zaufane urządzenia mogą wysyłać do Ciebie bez kodu weryfikacyjnego. Usuń urządzenie, jeśli zostało zgubione lub przeinstalowane.
+Allow receiving from:	Zezwalaj na odbieranie od:
+%d item(s) ready to send	Elementy gotowe do wysłania: %d
+No devices found yet. Open LuxDrop on the other computer, or connect by address.	Nie znaleziono jeszcze żadnych urządzeń. Otwórz LuxDrop na drugim komputerze lub połącz się za pomocą adresu.
+Trusted	Zaufane
+Not verified yet	Jeszcze niezweryfikowane
+Invalid address.	Nieprawidłowy adres.
+Compare the code with the screen of the receiving computer. If the codes differ, someone may be intercepting the connection.	Porównaj kod z ekranem komputera odbierającego. Jeśli kody się różnią, ktoś może przechwytywać połączenie.
+Warning: this device uses the name of a trusted device, but its key is different. It may be someone else.	Uwaga: to urządzenie używa nazwy zaufanego urządzenia, ale ma inny klucz. Może to być ktoś inny.
+Trust this device (no code next time)	Ufaj temu urządzeniu (następnym razem bez kodu)
+To %s: %s	Do %s: %s
+From %s: %s	Od %s: %s
+Done	Gotowe
+Declined	Odrzucono
+“%s” presented a different key than the trusted device. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and pair again.	„%s” przedstawiło inny klucz niż zaufane urządzenie. Niczego nie wysłano – ktoś może się pod nie podszywać. Jeśli zostało przeinstalowane, usuń je w Ustawieniach i sparuj ponownie.
+Nothing received yet.	Jeszcze nic nie odebrano.
+Show	Pokaż
+Not visible	Niewidoczny
+No trusted devices yet.	Brak zaufanych urządzeń.
+IP address of the other computer, e.g. 192.168.1.20 or 192.168.1.20:%d	Adres IP drugiego komputera, np. 192.168.1.20 lub 192.168.1.20:%d
+Does “%s” show the same code?	Czy „%s” wyświetla ten sam kod?
+Cannot receive files: port %d is in use (%s). Is LuxDrop already running?	Nie można odbierać plików: port %d jest zajęty (%s). Czy LuxDrop już działa?
+Verification code	Kod weryfikacyjny
+Accept only if the sender shows the same code.	Przyjmij tylko wtedy, gdy nadawca wyświetla ten sam kod.
+Preparing (checksums)… %s / %s	Przygotowywanie (sumy kontrolne)… %s / %s
+Waiting for acceptance…	Oczekiwanie na akceptację…
+“%s” wants to send you %d item(s), %s	„%s” chce Ci wysłać elementy (%d), %s
+Waiting for the receiver to accept… code %s	Oczekiwanie na akceptację… kod %s
+Visible as “%s” · %d:%02d left	Widoczny jako „%s” · pozostało %d:%02d
+Visible as “%s”	Widoczny jako „%s”
+Apps	Aplikacje
+Windows	Okna
+# Vzhled a spořiče
+Auto	Automatycznie
+Auto: light from sunrise (%s) to sunset (%s), based on your time zone.	Automatycznie: jasny od wschodu (%s) do zachodu słońca (%s), zgodnie ze strefą czasową.
+Clock	Zegar
+Aurora	Zorza polarna
+Photos	Zdjęcia
+Floating Logo	Pływające logo
+# luxos-install-gui (graficky instalator) a nove volby luxos-install
+Swap	Partycja wymiany
+Encrypted (LUKS)	Zaszyfrowana (LUKS)
+Unknown	Nieznany
+Back	Wstecz
+Please wait until the installation finishes.	Poczekaj, aż instalacja się zakończy.
+Connect to the internet	Połącz się z internetem
+LuxOS downloads the newest packages during installation. Choose a Wi-Fi network or plug in a network cable.	LuxOS pobiera najnowsze pakiety podczas instalacji. Wybierz sieć Wi-Fi lub podłącz kabel sieciowy.
+Connect to the internet to continue.	Połącz się z internetem, aby kontynuować.
+Choose your keyboard layout. You can try it in the field below.	Wybierz układ klawiatury. Możesz go wypróbować w polu poniżej.
+Time Zone	Strefa czasowa
+Where do you want to install LuxOS?	Gdzie chcesz zainstalować LuxOS?
+Encryption password	Hasło szyfrowania
+Confirm password	Potwierdź hasło
+Create your account	Utwórz swoje konto
+You will use this account to sign in and to install apps.	Tego konta będziesz używać do logowania i instalowania aplikacji.
+User name	Nazwa użytkownika
+Log in automatically	Loguj automatycznie
+Fill in your name, user name, password and computer name.	Wpisz imię i nazwisko, nazwę użytkownika, hasło i nazwę komputera.
+Ready to install	Gotowe do instalacji
+Check your choices. Nothing has been changed on the disk yet.	Sprawdź swoje wybory. Na dysku nic jeszcze nie zostało zmienione.
+Installing LuxOS	Instalowanie LuxOS
+This takes about 10 minutes. You can keep using the computer.	Potrwa to około 10 minut. W tym czasie możesz nadal korzystać z komputera.
+LuxOS is being installed	Trwa instalacja LuxOS
+This assistant installs LuxOS on your computer. It takes about 10 minutes.	Ten asystent zainstaluje LuxOS na Twoim komputerze. Potrwa to około 10 minut.
+Choose your language	Wybierz język
+You are connected to the internet	Masz połączenie z internetem
+Wi-Fi password	Hasło Wi-Fi
+Checking the connection…	Sprawdzanie połączenia…
+Type here to test your keyboard	Pisz tutaj, aby przetestować klawiaturę
+Choose the time zone of your location.	Wybierz strefę czasową swojej lokalizacji.
+Erase disk and install LuxOS	Wymaż dysk i zainstaluj LuxOS
+Encrypt LuxOS	Zaszyfruj LuxOS
+Protects your files if the computer is lost. You will enter the password at every start.	Chroni Twoje pliki w razie utraty komputera. Hasło trzeba będzie podawać przy każdym uruchomieniu.
+If you forget this password, your data cannot be recovered.	Jeśli zapomnisz to hasło, danych nie będzie można odzyskać.
+Confirm that the disk will be erased.	Potwierdź, że dysk zostanie wymazany.
+Enter the encryption password twice.	Wprowadź hasło szyfrowania dwukrotnie.
+With automatic login, anyone who turns on the computer can use your account.	Przy automatycznym logowaniu każdy, kto włączy komputer, może korzystać z Twojego konta.
+You can also skip this and sign in later.	Możesz też pominąć ten krok i zalogować się później.
+Erase %s and install LuxOS	Wymaż %s i zainstaluj LuxOS
+Alongside other systems on %s (%s of free space)	Obok innych systemów na %s (%s wolnego miejsca)
+Automatic login	Automatyczne logowanie
+Starting…	Uruchamianie…
+The last lines of the installation log:	Ostatnie wiersze dziennika instalacji:
+Copy Log	Kopiuj dziennik
+Save Log…	Zachowaj dziennik…
+Restart Now	Uruchom ponownie
+Passwords do not match.	Hasła nie są zgodne.
+No Wi-Fi networks found. Plug in a network cable or try again.	Nie znaleziono sieci Wi-Fi. Podłącz kabel sieciowy lub spróbuj ponownie.
+Connected.	Połączono.
+Still offline.	Nadal brak połączenia.
+Connecting to %s…	Łączenie z %s…
+Network Settings…	Ustawienia sieci…
+Detected time zone: %s	Wykryta strefa czasowa: %s
+No suitable disk found. LuxOS needs a disk with at least 20 GB.	Nie znaleziono odpowiedniego dysku. LuxOS wymaga dysku o pojemności co najmniej 20 GB.
+The disk is empty.	Dysk jest pusty.
+Install alongside other systems	Zainstaluj obok innych systemów
+Everything on %s will be deleted.	Cała zawartość dysku %s zostanie usunięta.
+This name is reserved by the system.	Ta nazwa jest zarezerwowana przez system.
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in now and everything is ready after the first start.	Opcjonalnie: AI w LuxAI, Lux Code i LSL IDE korzysta z Twojego konta LuxAI. Zaloguj się teraz, a po pierwszym uruchomieniu wszystko będzie gotowe.
+Sign-in is not available. You can sign in later in Settings.	Logowanie jest niedostępne. Możesz zalogować się później w Ustawieniach.
+Installation failed	Instalacja nie powiodła się
+The installer stopped with exit code %s.	Instalator zakończył działanie z kodem wyjścia %s.
+Could not connect. Check the password and try again.	Nie udało się połączyć. Sprawdź hasło i spróbuj ponownie.
+Local time: %s	Czas lokalny: %s
+Looking for disks…	Wyszukiwanie dysków…
+LuxOS (new)	LuxOS (nowy)
+Systems found: %s	Znalezione systemy: %s
+LuxOS uses %s of free space. Existing systems and files are kept; you choose the system in a menu when the computer starts.	LuxOS wykorzysta %s wolnego miejsca. Istniejące systemy i pliki zostaną zachowane; system wybierzesz z menu podczas uruchamiania komputera.
+I understand that all data on %s (%s) will be erased.	Rozumiem, że wszystkie dane na %s (%s) zostaną wymazane.
+All data on %s will be erased when you click Install.	Po kliknięciu Zainstaluj wszystkie dane na %s zostaną wymazane.
+… and %s more partitions	… i kolejne partycje: %s
+Installing alongside other systems is not possible: %s	Instalacja obok innych systemów nie jest możliwa: %s
+EFI system partition	Partycja systemowa EFI
+Microsoft reserved	Partycja zastrzeżona Microsoft
+Windows recovery	Odzyskiwanie systemu Windows
+Needs a computer started in UEFI mode.	Komputer musi być uruchomiony w trybie UEFI.
+The disk does not use a GPT partition table.	Dysk nie używa tablicy partycji GPT.
+The partition table has problems.	Tablica partycji zawiera błędy.
+There is no free space of at least 20 GB on this disk.	Na tym dysku nie ma co najmniej 20 GB wolnego miejsca.
+No EFI system partition found on this disk.	Na tym dysku nie znaleziono partycji systemowej EFI.
+The EFI system partition could not be read.	Nie można odczytać partycji systemowej EFI.
+The EFI system partition has less than 250 MB free.	Partycja systemowa EFI ma mniej niż 250 MB wolnego miejsca.
+Administrator rights are not available.	Uprawnienia administratora są niedostępne.
+Fast and light	Szybki i lekki
+LuxOS starts quickly and leaves more memory for your apps.	LuxOS uruchamia się szybko i zostawia więcej pamięci dla Twoich aplikacji.
+A familiar desktop	Znajome biurko
+A dock, a clean top bar and an app grid - everything is where you expect it.	Dock, przejrzysty górny pasek i siatka aplikacji – wszystko tam, gdzie się tego spodziewasz.
+LuxAI built in	Wbudowane LuxAI
+Sign in once and use AI in LuxAI, Lux Code and LSL IDE.	Zaloguj się raz i korzystaj z AI w LuxAI, Lux Code i LSL IDE.
+Drivers included	Sterowniki w zestawie
+Graphics, Wi-Fi and other drivers are picked automatically for your hardware.	Sterowniki grafiki, Wi-Fi i innych urządzeń są dobierane automatycznie do Twojego sprzętu.
+Safe by default	Bezpieczny od początku
+Signed updates, a locked root account and optional full disk encryption.	Podpisane uaktualnienia, zablokowane konto root i opcjonalne szyfrowanie całego dysku.
+Introduction	Wprowadzenie
+Destination	Miejsce docelowe
+Account	Konto
+Installation	Instalacja
+Finish	Zakończenie
+%s  (free space, other systems are kept)	%s  (wolne miejsce, inne systemy zostaną zachowane)
+no boot loader	bez programu rozruchowego
+Installing alongside other systems needs a computer started in UEFI mode.	Instalacja obok innych systemów wymaga komputera uruchomionego w trybie UEFI.
+Disk %s does not use a GPT partition table.	Dysk %s nie używa tablicy partycji GPT.
+The partition table on %s has problems. Check it first (sgdisk -v).	Tablica partycji na %s zawiera błędy. Najpierw ją sprawdź (sgdisk -v).
+Disk %s has no free space of at least 20 GB.	Na dysku %s nie ma co najmniej 20 GB wolnego miejsca.
+No EFI system partition found on %s.	Na %s nie znaleziono partycji systemowej EFI.
+The EFI system partition %s could not be read.	Nie można odczytać partycji systemowej EFI %s.
+The EFI system partition %s has less than 250 MB free.	Partycja systemowa EFI %s ma mniej niż 250 MB wolnego miejsca.
+The partition table on %s is full.	Tablica partycji na %s jest pełna.
+New partition %s: %s GB of free space	Nowa partycja %s: %s GB wolnego miejsca
+Unexpected change of existing partitions on %s - stopping.	Nieoczekiwana zmiana istniejących partycji na %s – przerywanie.
+systemd-boot on %s is already in the UEFI boot menu.	systemd-boot na %s jest już w menu rozruchowym UEFI.
+Could not show the boot menu; hold Space while starting to see it.	Nie można wyświetlić menu rozruchowego; aby je zobaczyć, przytrzymaj spację podczas uruchamiania.
+Invalid DISK_MODE (use erase, freespace or manual)	Nieprawidłowy DISK_MODE (użyj erase, freespace lub manual)
+Invalid BOOTLOADER (use auto or none)	Nieprawidłowy BOOTLOADER (użyj auto lub none)
+# luxos-daemon (Bluetooth agent)
+Allow “%s” to pair with this computer?	Zezwolić urządzeniu „%s” na sparowanie z tym komputerem?
+Allow “%s” to connect?	Zezwolić urządzeniu „%s” na połączenie?
+Only allow devices you know.	Zezwalaj tylko urządzeniom, które znasz.
+Allow	Zezwól
+# LuxOS 2026-10-21: lux, Store, upozorneni na internet
+Sign in to the network to use the internet (click to open the sign-in page)	Zaloguj się do sieci, aby korzystać z internetu (kliknij, aby otworzyć stronę logowania)
+Connected to the network, but the internet is not available	Połączono z siecią, ale internet jest niedostępny
+Sign in to the network to use the internet.	Zaloguj się do sieci, aby korzystać z internetu.
+You are connected to the network, but the internet is not available.	Masz połączenie z siecią, ale internet jest niedostępny.
+Server %s is not responding, trying another one…	Serwer %s nie odpowiada, próba z innym…
+Download failed, trying again (%s/3)…	Pobieranie nie powiodło się, ponawianie (%s/3)…
+Some packages could not be downloaded. Check your internet connection and try again.	Nie udało się pobrać niektórych pakietów. Sprawdź połączenie z internetem i spróbuj ponownie.
+Installed: %s	Zainstalowano: %s
+Downloading %d of %d…	Pobieranie %d z %d…
+The connection is slow, trying another server…	Połączenie jest wolne, próba z innym serwerem…
+Download failed, trying again (attempt %s)…	Pobieranie nie powiodło się, ponawianie (próba %s)…
+The internet connection is too slow or unavailable. Try it again later.	Połączenie z internetem jest zbyt wolne lub niedostępne. Spróbuj ponownie później.
+unknown error	nieznany błąd
+Looking for the fastest download servers…	Szukanie najszybszych serwerów pobierania…
+Using %s fast download servers near you.	Używane szybkie serwery pobierania w pobliżu: %s.
+Using the default download servers.	Używane są domyślne serwery pobierania.
+The server %s is slow, trying another one…	Serwer %s jest wolny, próba z innym…
+The server %s is not responding, trying another one…	Serwer %s nie odpowiada, próba z innym…
+Downloading from %s failed, trying another one…	Pobieranie z serwera %s nie powiodło się, próba z innym…
+The server %s has too many problems, skipping it.	Serwer %s ma zbyt wiele problemów, pomijanie go.
+Some files could not be downloaded.	Nie udało się pobrać niektórych plików.
+Downloading the packages did not finish.	Pobieranie pakietów nie zostało ukończone.
+The package lists could not be downloaded.	Nie udało się pobrać list pakietów.
+about %s min left	pozostało około %s min
+Downloaded %s of %s	Pobrano %s z %s
+Your internet connection is very slow - the installation will take longer. It has not stopped.	Twoje połączenie z internetem jest bardzo wolne – instalacja potrwa dłużej. Nie została zatrzymana.
+Waiting for the internet connection…	Oczekiwanie na połączenie z internetem…
+Maintenance	Konserwacja
+Carefree: updates install automatically in the background (not on metered networks, with Data Saver or on low battery), a previous kernel is kept to fall back on and LuxOS repairs itself.	Beztroski: uaktualnienia instalują się automatycznie w tle (nie w sieciach taryfowych, przy Oszczędzaniu danych ani przy słabej baterii), poprzednie jądro jest zachowywane jako zapasowe, a LuxOS sam się naprawia.
+Classic (for IT professionals): no automatic updates or repairs, standard Arch behaviour; you only get notified about available updates.	Klasyczny (dla specjalistów IT): bez automatycznych uaktualnień i napraw, standardowe zachowanie Arch Linuksa; otrzymujesz tylko powiadomienia o dostępnych uaktualnieniach.
+Carefree (recommended)	Beztroski (zalecany)
+Classic (for IT professionals)	Klasyczny (dla specjalistów IT)
+How should LuxOS be maintained?	Jak LuxOS ma być utrzymywany?
+Carefree - automatic updates and repairs	Beztroski – automatyczne uaktualnienia i naprawy
+Classic - you manage the system yourself	Klasyczny – samodzielnie zarządzasz systemem
+Invalid CARE_MODE (use carefree or classic)	Nieprawidłowy CARE_MODE (użyj carefree lub classic)
+Carefree	Beztroski
+Updates install automatically in the background - not on metered networks, with Data Saver on or on low battery.	Uaktualnienia instalują się automatycznie w tle – nie w sieciach taryfowych, przy włączonym Oszczędzaniu danych ani przy słabej baterii.
+A previous kernel is kept, so the computer always has a working version to start.	Poprzednie jądro jest zachowywane, więc komputer zawsze ma działającą wersję do uruchomienia.
+LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash.	LuxOS sam się naprawia. Poważne problemy diagnozuje LuxAI Flash.
+No automatic updates or repairs - standard Arch Linux behaviour.	Bez automatycznych uaktualnień i napraw – standardowe zachowanie Arch Linuksa.
+You manage the system yourself with lux or pacman.	Samodzielnie zarządzasz systemem za pomocą lux lub pacman.
+You only get a notification when updates are available.	Otrzymujesz tylko powiadomienie, gdy dostępne są uaktualnienia.
+Choose whether LuxOS takes care of itself, or whether you want full control.	Wybierz, czy LuxOS ma dbać sam o siebie, czy chcesz mieć pełną kontrolę.
+Downloading %s of %s	Pobieranie %s z %s
+waiting for data	oczekiwanie na dane
+The connection is not responding right now	Połączenie w tej chwili nie odpowiada
+The installation has not stopped. LuxOS keeps trying other servers and continues as soon as data arrives again.	Instalacja nie została zatrzymana. LuxOS próbuje innych serwerów i będzie kontynuować, gdy tylko dane znów zaczną napływać.
+Your internet connection is very slow	Twoje połączenie z internetem jest bardzo wolne
+The installation will take longer. It has not stopped.	Instalacja potrwa dłużej. Nie została zatrzymana.
+The time depends on your internet connection. You can keep using the computer.	Czas zależy od połączenia z internetem. W tym czasie możesz nadal korzystać z komputera.
+less than a minute left	pozostało mniej niż minuta
+%s min	%s min
+%s h %s min	%s godz. %s min
+# luxos-care (Aktualizace softwaru, LuxOS Care)
+never	nigdy
+just now	przed chwilą
+%d min ago	%d min temu
+today at %s	dzisiaj o %s
+Update failed	Uaktualnienie nie powiodło się
+chosen by LuxAI Flash	wybrane przez LuxAI Flash
+built-in rule	wbudowana reguła
+The previous kernel could not be prepared	Nie udało się przygotować poprzedniego jądra
+A start did not finish correctly	Uruchamianie systemu nie zakończyło się poprawnie
+Boot menu: LuxOS (previous kernel)	Menu rozruchowe: LuxOS (poprzednie jądro)
+Mode changed to Carefree	Tryb zmieniony na Beztroski
+Mode changed to Classic	Tryb zmieniony na Klasyczny
+Update Now	Uaktualnij teraz
+When updates are installed	Kiedy instalowane są uaktualnienia
+Classic	Klasyczny
+LuxOS installs updates and repairs itself. It waits for an unmetered connection and enough battery, and keeps the previous kernel as a fallback.	LuxOS sam instaluje uaktualnienia i się naprawia. Czeka na połączenie bez limitu i wystarczający poziom baterii, a poprzednie jądro zachowuje jako zapasowe.
+LuxOS only checks and tells you about updates and problems. You decide when to update.	LuxOS tylko sprawdza i informuje o uaktualnieniach oraz problemach. To Ty decydujesz, kiedy uaktualnić.
+Available updates	Dostępne uaktualnienia
+System health	Stan systemu
+Check for Problems Now	Sprawdź problemy teraz
+Repair and update history	Historia napraw i uaktualnień
+Updating LuxOS…	Uaktualnianie LuxOS…
+Last update: %s	Ostatnie uaktualnienie: %s
+Last check: %s	Ostatnie sprawdzenie: %s
+No updates are waiting.	Brak oczekujących uaktualnień.
+LuxOS checks for updates automatically.	LuxOS automatycznie sprawdza dostępność uaktualnień.
+Your settings were kept. Compare the files with pacdiff when convenient.	Twoje ustawienia zostały zachowane. Porównaj pliki za pomocą pacdiff, kiedy będzie Ci wygodnie.
+No problems found	Nie znaleziono problemów
+Previous kernel	Poprzednie jądro
+After the next kernel update the current kernel stays available as a fallback.	Po następnym uaktualnieniu jądra obecne jądro pozostanie dostępne jako zapasowe.
+Nothing yet	Jeszcze nic
+Updates and repairs will be listed here.	Tutaj pojawią się uaktualnienia i naprawy.
+Audit log	Dziennik zdarzeń
+Downloading… %s of %s	Pobieranie… %s z %s
+Do not turn off the computer.	Nie wyłączaj komputera.
+The system service is not available.	Usługa systemowa jest niedostępna.
+Updated %d packages	Uaktualnione pakiety: %d
+including the kernel	łącznie z jądrem
+Released the kept kernel %s for reinstallation	Zwolniono zachowane jądro %s do ponownej instalacji
+Kept the previous kernel %s	Zachowano poprzednie jądro %s
+Restart to finish the update	Uruchom ponownie, aby dokończyć uaktualnienie
+New configuration file to review: %s	Nowy plik konfiguracyjny do przejrzenia: %s
+Switch to Carefree to repair it automatically.	Przełącz na tryb Beztroski, aby naprawić to automatycznie.
+If a new kernel fails to start, LuxOS starts this one automatically.	Jeśli nowe jądro się nie uruchomi, LuxOS automatycznie uruchomi to.
+If a new kernel fails to start, choose “LuxOS (previous kernel)” in the boot menu.	Jeśli nowe jądro się nie uruchomi, wybierz „LuxOS (previous kernel)” w menu rozruchowym.
+Show Full Log…	Pokaż cały dziennik…
+Installing %s (%d of %d)	Instalowanie %s (%d z %d)
+Working…	Trwa praca…
+waiting for an unmetered connection (Data Saver)	oczekiwanie na połączenie bez limitu (Oszczędzanie danych)
+waiting for the charger or more battery	oczekiwanie na ładowarkę lub wyższy poziom baterii
+waiting for the internet connection	oczekiwanie na połączenie z internetem
+Automatic update is %s.	Automatyczne uaktualnienie: %s.
+and %d more	i %d więcej
+Waiting for LuxAI Flash	Oczekiwanie na LuxAI Flash
+The repair did not help	Naprawa nie pomogła
+Previous kernel %s is kept as a fallback	Poprzednie jądro %s jest zachowane jako zapasowe
+The previous kernel %s could not be prepared	Nie udało się przygotować poprzedniego jądra %s
+Could not start: %s	Nie można uruchomić: %s
+%d updates available	Dostępne uaktualnienia: %d
+Updates could not be installed	Nie udało się zainstalować uaktualnień
+LuxOS is up to date	LuxOS jest aktualny
+Updating signing keys…	Uaktualnianie kluczy podpisujących…
+Downloading…	Pobieranie…
+Installing…	Instalowanie…
+Finishing…	Kończenie…
+The boot partition is full.	Partycja rozruchowa jest pełna.
+LuxOS was updated	LuxOS został uaktualniony
+Updates are available	Dostępne są uaktualnienia
+LuxOS will try again later.	LuxOS spróbuje ponownie później.
+Update postponed	Uaktualnienie odłożone
+LuxOS fixed a problem	LuxOS naprawił problem
+LuxOS found a problem	LuxOS znalazł problem
+Restart to finish the kernel update	Uruchom ponownie, aby dokończyć uaktualnienie jądra
+LuxOS installed a new kernel. Restart when it suits you.	LuxOS zainstalował nowe jądro. Uruchom ponownie, kiedy Ci to odpowiada.
+%d packages were updated.	Uaktualnione pakiety: %d.
+%d updates are ready to install.	Uaktualnienia gotowe do instalacji: %d.
+The repair was chosen by LuxAI Flash.	Naprawę wybrał LuxAI Flash.
+No internet connection.	Brak połączenia z internetem.
+The connection is metered (Data Saver).	Połączenie jest taryfowe (Oszczędzanie danych).
+The battery is low - connect the charger.	Niski poziom baterii – podłącz ładowarkę.
+Sign in to LuxAI to let LuxOS fix unknown problems.	Zaloguj się do LuxAI, aby LuxOS mógł naprawiać także nieznane problemy.
+This command must be run as root.	To polecenie musi zostać uruchomione jako root.
+Mode: %s	Tryb: %s
+Previous kernel: %s	Poprzednie jądro: %s
+The package manager was left locked	Menedżer pakietów pozostał zablokowany
+A system update was interrupted	Uaktualnienie systemu zostało przerwane
+The kernel boot files are missing	Brak plików rozruchowych jądra
+A driver module (DKMS) is not built for the kernel	Moduł sterownika (DKMS) nie jest zbudowany dla jądra
+The newest kernel did not start, LuxOS used the previous one	Najnowsze jądro się nie uruchomiło, LuxOS użył poprzedniego
+The disk is almost full	Dysk jest prawie pełny
+The file system reported errors - back up your data	System plików zgłosił błędy – zrób kopię zapasową danych
+System updates keep failing	Uaktualnienia systemu ciągle kończą się niepowodzeniem
+A system service failed: %s	Usługa systemowa uległa awarii: %s
+Removed a stale package manager lock	Usunięto porzuconą blokadę menedżera pakietów
+Released the kept kernel for reinstallation	Zwolniono zachowane jądro do ponownej instalacji
+Finished an interrupted update	Dokończono przerwane uaktualnienie
+Refreshed the package signing keys	Odświeżono klucze podpisujące pakiety
+Rebuilt the kernel boot files	Odtworzono pliki rozruchowe jądra
+Rebuilt driver modules	Przebudowano moduły sterowników
+Reinstalled a package	Ponownie zainstalowano pakiet
+Restarted a service	Uruchomiono ponownie usługę
+Freed disk space	Zwolniono miejsce na dysku
+Will try the newest kernel again	Najnowsze jądro zostanie wypróbowane ponownie
+Will start the previous kernel	Zostanie uruchomione poprzednie jądro
+Only reported the problem	Tylko zgłoszono problem
+Boot Screen	Ekran uruchamiania
+Blue	Niebieski
+Purple	Fioletowy
+Orange	Pomarańczowy
+Green	Zielony
+White	Biały
+Shown while the computer starts. A change rebuilds the boot image, which takes about a minute.	Wyświetlany podczas uruchamiania komputera. Zmiana powoduje przebudowanie obrazu rozruchowego, co trwa około minuty.
+Applying the boot screen…	Ustawianie ekranu uruchamiania…
+The new boot screen will be shown at the next start.	Nowy ekran uruchamiania pojawi się przy następnym uruchomieniu.
+Change cancelled.	Zmiana anulowana.
+Could not change the boot screen.	Nie udało się zmienić ekranu uruchamiania.
+Live system: the boot image is not rebuilt.	System live: obraz rozruchowy nie jest przebudowywany.
+Rebuilding the boot image…	Przebudowywanie obrazu rozruchowego…
+Unknown variant: %s	Nieznany wariant: %s
+Run as root: pkexec luxos-splash set %s	Uruchom jako root: pkexec luxos-splash set %s
+Another change of the boot screen is running.	Trwa już inna zmiana ekranu uruchamiania.
+Boot screen is already %s.	Ekran uruchamiania jest już ustawiony: %s.
+Rebuilding the boot image failed, the previous boot screen was restored.	Przebudowanie obrazu rozruchowego nie powiodło się, przywrócono poprzedni ekran uruchamiania.
+Boot screen set to %s.	Ustawiono ekran uruchamiania: %s.
+# LuxOS 2026-10-21: LuxAI z Launchpadu, popisek aplikace v liste
+Active app: %s	Aktywna aplikacja: %s
+Search apps or ask LuxAI	Szukaj aplikacji lub zapytaj LuxAI
+Search or ask LuxAI	Szukaj lub zapytaj LuxAI
+# LuxOS 2026-10-21: pojistka pameti
+Memory is running low	Kończy się pamięć
+“%s” used too much memory and was closed so the computer would not freeze.	Aplikacja „%s” zużyła zbyt dużo pamięci i została zamknięta, aby komputer się nie zawiesił.
+A program used too much memory and was closed so the computer would not freeze.	Jeden z programów zużył zbyt dużo pamięci i został zamknięty, aby komputer się nie zawiesił.
+Printers & Scanners	Drukarki i skanery
+Printing support is not installed.	Obsługa drukowania nie jest zainstalowana.
+Offline – make sure the printer is turned on	Offline – upewnij się, że drukarka jest włączona
+Paused	Wstrzymana
+Printing…	Drukowanie…
+1 document waiting	1 dokument oczekuje
+%d documents waiting	Oczekujące dokumenty: %d
+Print Test Page	Drukuj stronę testową
+Resume	Wznów
+Remove Printer…	Usuń drukarkę…
+Default printer	Drukarka domyślna
+Apps print here unless you choose another printer.	Aplikacje drukują tutaj, chyba że wybierzesz inną drukarkę.
+Ink and toner	Atrament i toner
+Print queue	Kolejka wydruku
+Cancel All	Anuluj wszystko
+No documents are waiting to print.	Żadne dokumenty nie oczekują na wydruk.
+USB	USB
+Document	Dokument
+Waiting	Oczekuje
+On hold	Wstrzymane
+Stopped	Zatrzymane
+Sending a test page…	Wysyłanie strony testowej…
+The test page could not be sent: %s	Nie udało się wysłać strony testowej: %s
+The test page is on its way.	Strona testowa jest w drodze.
+Kind	Rodzaj
+Quality	Jakość
+Source	Źródło
+Scan	Skanuj
+Scanned pages appear here. Scan more pages to save them together.	Tutaj pojawiają się zeskanowane strony. Zeskanuj więcej stron, aby zachować je razem.
+PDF document	Dokument PDF
+JPEG pictures	Obrazki JPEG
+Show in Folder	Pokaż w folderze
+Checking the scanner…	Sprawdzanie skanera…
+The scanner does not respond. Make sure it is turned on.	Skaner nie odpowiada. Upewnij się, że jest włączony.
+Place the document on the scanner and click Scan.	Połóż dokument na skanerze i kliknij Skanuj.
+Scanning…	Skanowanie…
+Scanning was cancelled.	Skanowanie zostało anulowane.
+Scanning failed: %s	Skanowanie nie powiodło się: %s
+the scanner does not respond	skaner nie odpowiada
+This is a preview. Click Scan when the document looks right.	To jest podgląd. Kliknij Skanuj, gdy dokument będzie wyglądał dobrze.
+Page %d scanned. Scan another page or save.	Zeskanowano stronę %d. Zeskanuj kolejną stronę lub zachowaj.
+Remove page	Usuń stronę
+Page %d	Strona %d
+Click Preview to see the document here	Kliknij Podgląd, aby zobaczyć tutaj dokument
+Saving…	Zachowywanie…
+Could not save the scan: %s	Nie udało się zachować skanu: %s
+Saved “%s” in %s	Zachowano „%s” w folderze %s
+Saved %d pictures in %s	Zachowane obrazki: %d, folder %s
+Place the next document on the scanner and click Scan.	Połóż następny dokument na skanerze i kliknij Skanuj.
+Add Printer	Dodaj drukarkę
+Printers nearby	Drukarki w pobliżu
+Search Again	Szukaj ponownie
+Turn the printer on and connect it to the same Wi‑Fi network or with a USB cable. Most printers are added automatically.	Włącz drukarkę i podłącz ją do tej samej sieci Wi‑Fi lub kablem USB. Większość drukarek jest dodawana automatycznie.
+Looking for printers…	Wyszukiwanie drukarek…
+Advanced…	Zaawansowane…
+Printers that need special setup (LPD, Windows sharing, manual drivers)	Drukarki wymagające specjalnej konfiguracji (LPD, udostępnianie Windows, ręczne sterowniki)
+Could not search for printers: %s	Nie udało się wyszukać drukarek: %s
+No printers found. Make sure the printer is turned on.	Nie znaleziono drukarek. Upewnij się, że drukarka jest włączona.
+Added	Dodano
+Not supported	Nieobsługiwana
+Adding…	Dodawanie…
+The printer could not be added	Nie udało się dodać drukarki
+Make sure it is turned on and try again.	Upewnij się, że jest włączona, i spróbuj ponownie.
+Advanced printer settings for experts	Zaawansowane ustawienia drukarek dla ekspertów
+Remove Printer	Usuń drukarkę
+No printers yet	Brak drukarek
+Turn on your printer and connect it to the same Wi‑Fi network or with a USB cable. LuxOS sets it up automatically – no drivers, no questions.	Włącz drukarkę i podłącz ją do tej samej sieci Wi‑Fi lub kablem USB. LuxOS skonfiguruje ją automatycznie – bez sterowników i bez pytań.
+Add Printer…	Dodaj drukarkę…
+Printers	Drukarki
+Scanners	Skanery
+Default	Domyślna
+Looking for scanners…	Wyszukiwanie skanerów…
+No scanners found	Nie znaleziono skanerów
+Turn the scanner on	Włącz skaner
+The change could not be made	Nie udało się wprowadzić zmiany
+Remove “%s”?	Usunąć „%s”?
+Apps will no longer print to it. You can add it again later with the + button.	Aplikacje nie będą już na niej drukować. Możesz ją później dodać ponownie przyciskiem +.
+Could not open advanced settings	Nie udało się otworzyć ustawień zaawansowanych
+Paper jam	Zacięcie papieru
+Out of paper	Brak papieru
+Out of ink or toner	Brak atramentu lub tonera
+A cover is open	Pokrywa jest otwarta
+Offline	Offline
+Ink, toner or paper is low	Kończy się atrament, toner lub papier
+Color	Kolor
+Grey	Skala szarości
+Draft (150 dpi)	Robocza (150 dpi)
+Standard (300 dpi)	Standardowa (300 dpi)
+High (600 dpi)	Wysoka (600 dpi)
+Flatbed	Płyta skanera
+ADF	Podajnik
+ADF Duplex	Podajnik dwustronnie
+Flatbed scanner	Skaner płaski
+Multi-function peripheral	Urządzenie wielofunkcyjne
+Virtual device	Urządzenie wirtualne
+Printer “%s” is ready	Drukarka „%s” jest gotowa
+You can print from any app.	Możesz drukować z dowolnej aplikacji.
+Scanner “%s” is ready	Skaner „%s” jest gotowy
+Open Printers & Scanners to scan a document.	Aby zeskanować dokument, otwórz Drukarki i skanery.
+“%s” is ready	Urządzenie „%s” jest gotowe
+You can print from any app and scan in Printers & Scanners.	Możesz drukować z dowolnej aplikacji i skanować w aplikacji Drukarki i skanery.
+Printer “%s” needs a driver	Drukarka „%s” wymaga sterownika
+LuxOS will set it up automatically once you are connected to the internet.	LuxOS skonfiguruje ją automatycznie, gdy tylko połączysz się z internetem.
+Printer “%s” needs to be set up	Drukarka „%s” wymaga konfiguracji
+It does not support driverless printing. Open Printers & Scanners and choose Advanced….	Nie obsługuje drukowania bez sterowników. Otwórz Drukarki i skanery i wybierz Zaawansowane….
+Printer “%s” needs an add-on from HP	Drukarka „%s” wymaga dodatku od HP
+Open Terminal and run: hp-plugin	Otwórz Terminal i uruchom: hp-plugin
+Feedback	Opinie
+Help us improve LuxOS	Pomóż nam ulepszyć LuxOS
+Your report goes directly to the author of LuxOS.	Twoje zgłoszenie trafi bezpośrednio do autora LuxOS.
+Bug	Błąd
+Something doesn't work	Coś nie działa
+What happened? What did you expect? Steps to reproduce help a lot.	Co się stało? Czego się spodziewałeś? Bardzo pomogą kroki prowadzące do błędu.
+Idea	Pomysł
+Suggest an improvement	Zaproponuj ulepszenie
+What would you like to improve? How would it help you?	Co chciałbyś ulepszyć? Jak by ci to pomogło?
+Something else	Coś innego
+Question or comment	Pytanie lub uwaga
+Write your message…	Napisz swoją wiadomość…
+At least %d characters	Co najmniej %d znaków
+Your e-mail (optional, if you would like a reply)	Twój e-mail (opcjonalnie, jeśli chcesz otrzymać odpowiedź)
+Attach a screenshot	Dołącz zrzut ekranu
+Take Again	Zrób ponownie
+The screenshot could not be taken.	Nie udało się wykonać zrzutu ekranu.
+Attach system information	Dołącz informacje o systemie
+LuxOS and hardware versions and recent error messages. No personal files, passwords or e-mail addresses.	Wersje LuxOS i sprzętu oraz ostatnie komunikaty o błędach. Bez plików osobistych, haseł i adresów e-mail.
+Show what will be sent	Pokaż, co zostanie wysłane
+Collecting…	Zbieranie…
+Send	Wyślij
+Sending…	Wysyłanie…
+Try Again	Spróbuj ponownie
+%d saved report(s) from earlier have been sent. Thank you!	Wysłano wcześniej zapisane zgłoszenia: %d. Dziękujemy!
+LuxOS could not reach the server. Check the internet connection.	LuxOS nie może połączyć się z serwerem. Sprawdź połączenie z internetem.
+Sending failed (%s).	Wysyłanie nie powiodło się (%s).
+You have sent many reports in a short time. Please try again later.	W krótkim czasie wysłano wiele zgłoszeń. Spróbuj ponownie później.
+The message must have 10 to 8000 characters.	Wiadomość musi mieć od 10 do 8000 znaków.
+The e-mail address does not look valid.	Adres e-mail wygląda na nieprawidłowy.
+The report is too large. Try it without the screenshot.	Zgłoszenie jest zbyt duże. Spróbuj wysłać je bez zrzutu ekranu.
+The screenshot could not be accepted. Try it without the screenshot.	Zrzut ekranu nie został przyjęty. Spróbuj wysłać zgłoszenie bez niego.
+Saved for later	Zapisano na później
+You are offline. The report will be sent automatically the next time you open Feedback with an internet connection.	Brak połączenia z internetem. Zgłoszenie zostanie wysłane automatycznie, gdy następnym razem otworzysz Opinie z dostępem do internetu.
+Thank you for your feedback!	Dziękujemy za opinię!
+Your report has been delivered to the author of LuxOS. Every report helps make LuxOS better.	Twoje zgłoszenie zostało dostarczone autorowi LuxOS. Każde zgłoszenie pomaga ulepszać LuxOS.
+Report ID: %s	ID zgłoszenia: %s
+Send Another	Wyślij kolejne
+Send Feedback…	Wyślij opinię…
+# LuxDrop + LocalSend
+Nothing to send: give files or --text	Nie ma czego wysłać: podaj pliki lub --text
+Send files securely to nearby LuxOS computers and devices with LocalSend.	Bezpieczne przesyłanie plików do pobliskich komputerów z LuxOS i urządzeń z LocalSend.
+send to a LocalSend device (phone, Windows, …)	wyślij do urządzenia z LocalSend (telefon, Windows, …)
+send a text message	wyślij wiadomość tekstową
+PIN required by the receiver (LocalSend)	PIN wymagany przez odbiorcę (LocalSend)
+who can send (everyone always asks first)	kto może wysyłać (przy everyone zawsze najpierw pyta)
+with --mode everyone: only for this many minutes (max. 10)	przy --mode everyone: tylko przez tyle minut (maks. 10)
+LocalSend port (default 53317)	port LocalSend (domyślnie 53317)
+do not receive from LocalSend apps	nie odbieraj z aplikacji LocalSend
+no LocalSend multicast discovery	bez wykrywania LocalSend przez multicast
+require this PIN from LocalSend senders (empty = no PIN)	wymagaj tego PIN-u od nadawców LocalSend (pusty = bez PIN-u)
+also scan the local network (LocalSend devices without multicast)	przeszukaj też sieć lokalną (urządzenia LocalSend bez multicastu)
+with everyone: only for this many minutes (max. 10)	przy everyone: tylko przez tyle minut (maks. 10)
+Wrong PIN.	Nieprawidłowy PIN.
+%s requires a PIN: 	%s wymaga PIN-u: 
+LocalSend: port %d, fingerprint %s	LocalSend: port %d, odcisk %s
+unencrypted - not supported	nieszyfrowane – nieobsługiwane
+No LocalSend device answers at %s	Pod adresem %s nie odpowiada żadne urządzenie LocalSend
+%s is a LuxOS computer - using the LuxDrop protocol	%s to komputer z LuxOS – zostanie użyty protokół LuxDrop
+Message from %s:	Wiadomość od %s:
+Sent with LocalSend from a %s device	Wysłano przez LocalSend z urządzenia typu %s
+LocalSend receiving is not available: port %d is in use (%s)	Odbieranie z LocalSend jest niedostępne: port %d jest zajęty (%s)
+LocalSend receiving is not available (python-pyopenssl is missing)	Odbieranie z LocalSend jest niedostępne (brak python-pyopenssl)
+identity not verified (old LocalSend version)	tożsamość niezweryfikowana (stara wersja LocalSend)
+LocalSend devices cannot find this computer automatically (%s)	Urządzenia LocalSend nie znajdą automatycznie tego komputera (%s)
+Phone or tablet	Telefon lub tablet
+Web browser	Przeglądarka internetowa
+Copy	Kopiuj
+Message	Wiadomość
+PIN required	Wymagany PIN
+The identity of this device cannot be verified (old LocalSend version). Accept only if you expect these files.	Nie można zweryfikować tożsamości tego urządzenia (stara wersja LocalSend). Przyjmij tylko, jeśli spodziewasz się tych plików.
+Trust this device (save its files without asking next time)	Ufaj temu urządzeniu (następnym razem zapisuj jego pliki bez pytania)
+Message from “%s”	Wiadomość od „%s”
+“%s” requires a PIN to receive files.	„%s” wymaga PIN-u do odbierania plików.
+Everyone nearby	Wszyscy w pobliżu
+Receiving	Odbieranie
+Receive	Odbierz
+Ready to receive	Gotowe do odbioru
+Who can send	Kto może wysyłać
+Every transfer from other devices must be accepted.	Każde przesłanie z innych urządzeń trzeba przyjąć.
+Quick save	Szybki zapis
+Save files from trusted devices without asking.	Zapisuj pliki z zaufanych urządzeń bez pytania.
+Recently received	Ostatnio odebrane
+Open folder	Otwórz folder
+Selection	Zaznaczenie
+File	Plik
+Folder	Folder
+Paste	Wklej
+Refresh	Odśwież
+Scan the local network	Przeszukaj sieć lokalną
+The clipboard is empty.	Schowek jest pusty.
+This LocalSend device has encryption turned off. Turn on “Encryption” in LocalSend settings to send files to it.	To urządzenie LocalSend ma wyłączone szyfrowanie. Aby wysyłać do niego pliki, włącz „Szyfrowanie” w ustawieniach LocalSend.
+Scanning the local network for LocalSend devices…	Wyszukiwanie urządzeń LocalSend w sieci lokalnej…
+LocalSend app (port %d)	Aplikacja LocalSend (port %d)
+LuxOS computer (port %d)	Komputer z LuxOS (port %d)
+Files (%d)	Pliki (%d)
+Received from %s	Odebrano od %s
+Save to	Zapisuj w
+Requests then appear as notifications.	Prośby będą wtedy wyświetlane jako powiadomienia.
+Work with LocalSend apps	Współpraca z aplikacjami LocalSend
+Phones, tablets and computers with the LocalSend app. Uses port 53317.	Telefony, tablety i komputery z aplikacją LocalSend. Używa portu 53317.
+No PIN	Bez PIN-u
+LocalSend devices must enter this PIN before they can send.	Urządzenia LocalSend muszą wprowadzić ten PIN, zanim będą mogły wysyłać.
+Trusted devices can use Quick save. Remove a device if it was lost or reinstalled.	Zaufane urządzenia mogą korzystać z szybkiego zapisu. Usuń urządzenie, jeśli zostało zgubione lub przeinstalowane.
+Security	Bezpieczeństwo
+All transfers are encrypted (TLS). LuxOS computers verify each other with a 6-digit code; LocalSend devices are identified by their certificate.	Całe przesyłanie jest szyfrowane (TLS). Komputery z LuxOS weryfikują się nawzajem 6-cyfrowym kodem; urządzenia LocalSend są rozpoznawane po certyfikacie.
+Visible to LuxOS computers and LocalSend apps nearby.	Widoczne dla pobliskich komputerów z LuxOS i aplikacji LocalSend.
+Choose what to send or drop files here, then tap a device.	Wybierz, co chcesz wysłać, lub upuść tutaj pliki, a następnie stuknij urządzenie.
+Looking for devices… Open LuxDrop or LocalSend on the other device and make sure it is on the same network.	Wyszukiwanie urządzeń… Otwórz LuxDrop lub LocalSend na drugim urządzeniu i upewnij się, że jest w tej samej sieci.
+Unencrypted	Nieszyfrowane
+IP address of the other device, e.g. 192.168.1.20	Adres IP drugiego urządzenia, np. 192.168.1.20
+“%s” presented a different key than expected. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and try again.	„%s” przedstawiło inny klucz niż oczekiwany. Niczego nie wysłano – ktoś może się pod nie podszywać. Jeśli zostało przeinstalowane, usuń je w Ustawieniach i spróbuj ponownie.
+Key fingerprint: %s	Odcisk klucza: %s
+Receiving is turned off. Other devices cannot see this computer.	Odbieranie jest wyłączone. Inne urządzenia nie widzą tego komputera.
+%d characters	Znaki: %d
+Cannot receive from LuxOS computers: port %d is in use (%s).	Nie można odbierać z komputerów z LuxOS: port %d jest zajęty (%s).
+No device answers at %s.	Pod adresem %s nie odpowiada żadne urządzenie.
+Cannot receive from LocalSend apps: port %d is in use. Is LocalSend running on this computer?	Nie można odbierać z aplikacji LocalSend: port %d jest zajęty. Czy LocalSend działa na tym komputerze?
+LocalSend compatibility needs the python-pyopenssl package.	Zgodność z LocalSend wymaga pakietu python-pyopenssl.
+%d:%02d left	Pozostało %d:%02d
+Nearby LuxOS computers cannot be found because avahi-daemon is not running.	Nie można znaleźć pobliskich komputerów z LuxOS, ponieważ avahi-daemon nie działa.
+Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Automatyczne wykrywanie urządzeń LocalSend jest niedostępne (%s). Użyj opcji „Przeszukaj sieć lokalną”.
+LuxDrop: message from %s	LuxDrop: wiadomość od %s

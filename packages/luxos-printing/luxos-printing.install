@@ -1,0 +1,21 @@
+# LuxOS - tisk a skenovani: sluzby zapnout hned pri instalaci (i v chrootu instalatoru a archiso)
+# cups.socket spusti CUPS az pri prvnim pouziti; ipp-usb spousti udev po pripojeni tiskarny.
+# shellcheck disable=SC2086  # seznam jednotek se zamerne rozdeli na slova
+_units="cups.socket avahi-daemon.service luxos-printing-watch.service"
+
+_setup() {
+    /usr/lib/luxos/printing/luxos-nsswitch-mdns || true
+    systemctl enable $_units >/dev/null 2>&1 || true
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload >/dev/null 2>&1 || true
+        udevadm control --reload >/dev/null 2>&1 || true
+        systemctl start $_units >/dev/null 2>&1 || true
+    fi
+}
+
+post_install() { _setup; }
+post_upgrade() { _setup; }
+
+pre_remove() {
+    systemctl disable --now luxos-printing-watch.service >/dev/null 2>&1 || true
+}

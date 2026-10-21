@@ -66,7 +66,7 @@ class Proc:
         env = {k: v for k, v in os.environ.items() if not k.startswith("XDG_") and not k.startswith("LUXDROP_")}
         if os.environ.get("LUXDROP_DEBUG"):
             env["LUXDROP_DEBUG"] = "1"
-        env.update(HOME=home, LUXDROP_LIB=LIB, LANG="C.UTF-8", PYTHONUNBUFFERED="1")
+        env.update(HOME=home, LUXDROP_LIB=LIB, LANG="C.UTF-8", PYTHONUNBUFFERED="1", LUXDROP_NO_MULTICAST="1")
         env.update(env_extra or {})
         self.args = args
         self.p = subprocess.Popen([sys.executable, LAUNCHER] + args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -183,7 +183,7 @@ class LuxDropIntegration(unittest.TestCase):
 
     def receiver(self, who, mode):
         p = Proc(self.homes[who], ["receive", "--bind", "127.0.0.1", "--port", str(self.ports[who]),
-                                   "--mode", mode, "--no-mdns"])
+                                   "--mode", mode, "--no-mdns", "--ls-port", "0"])
         self.procs.append(p)
         p.expect(r"Receiving as")
         return p

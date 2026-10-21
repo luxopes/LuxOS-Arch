@@ -14,8 +14,8 @@
 	<submenu></submenu>
 	<unique-id>luxdrop-send-1</unique-id>
 	<command>luxdrop %F</command>
-	<description>Send the selected items to a nearby LuxOS computer</description>
-	<description xml:lang="cs">Odeslat vybrané položky na počítač LuxOS v okolí</description>
+	<description>Send the selected items to a nearby LuxOS computer or LocalSend app</description>
+	<description xml:lang="cs">Odeslat vybrané položky na počítač LuxOS nebo do aplikace LocalSend v okolí</description>
 	<range>*</range>
 	<patterns>*</patterns>
 	<directories/>

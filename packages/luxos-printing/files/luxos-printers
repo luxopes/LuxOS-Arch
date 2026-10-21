@@ -1,0 +1,1347 @@
+#!/usr/bin/env python3
+"""LuxOS - Tiskarny a skenery: prehled tiskaren, tiskova fronta a skenovani do PDF/JPEG.
+
+Tiskarny pridava system sam (luxos-printing-helper); aplikace jen ukazuje stav (pripravena, tiskne,
+vypnuta, papir, naplne), nastavuje vychozi tiskarnu, tiskne zkusebni stranku, rusi ulohy a odebira.
+"Pridat tiskarnu" je jen zalozni cesta: seznam nalezenych zarizeni a jedno tlacitko.
+Skenuje pres scanimage (SANE) ve vlakne - backend, ktery spadne nebo se zasekne, nezablokuje okno.
+
+  luxos-printers [--scanner] [--add]   (--scanner: vybrat prvni skener, --add: otevrit Pridat tiskarnu)
+"""
+import datetime
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_i18n import _  # noqa: E402
+import luxos_printing as lp  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("GdkPixbuf", "2.0")
+gi.require_version("PangoCairo", "1.0")
+gi.require_foreign("cairo")
+import cairo  # noqa: E402
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango, PangoCairo  # noqa: E402
+
+try:
+    import cups  # python-pycups
+except ImportError:  # pragma: no cover
+    cups = None
+
+HELPER = "/usr/lib/luxos/printing/luxos-printing-helper"
+APP_ID = "luxos-printers"
+
+CSS = b"""
+.sidebar { background-color: alpha(currentColor, 0.035); border-right: 1px solid alpha(currentColor, 0.10); }
+.sidebar list { background: none; }
+.sidebar row { padding: 6px 10px; border-radius: 8px; margin: 1px 8px; }
+.side-title { font-size: 11px; font-weight: 700; opacity: 0.55; margin: 14px 18px 4px; }
+.dev-name { font-weight: 600; }
+.dev-sub { font-size: 11px; opacity: 0.62; }
+.title { font-size: 20px; font-weight: 700; }
+.section-title { font-size: 12px; font-weight: 700; opacity: 0.6; margin: 18px 4px 6px; }
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.group row { padding: 8px 12px; }
+.empty { opacity: 0.6; padding: 16px; }
+.dot { font-size: 13px; }
+.dot.ok { color: #2fb350; }
+.dot.busy { color: #3d7bff; }
+.dot.warn { color: #f0a020; }
+.dot.err { color: #e5484d; }
+.toolbar-btn { padding: 2px 8px; min-height: 22px; }
+.big { padding: 8px 22px; font-weight: 600; }
+.hint { font-size: 12px; opacity: 0.65; }
+.thumb { border-radius: 6px; border: 1px solid alpha(currentColor, 0.15); padding: 3px; background-color: alpha(currentColor, 0.04); }
+.empty-title { font-size: 17px; font-weight: 700; }
+.saved { border-radius: 10px; padding: 8px 12px; background-color: alpha(#2fb350, 0.14); }
+"""
+
+STATUS_CLASS = ("ok", "busy", "warn", "err")
+
+
+def esc(s):
+    return GLib.markup_escape_text(s or "")
+
+
+def run_helper(args, done):
+    """Pomocnik s pravy roota (pkexec; polkit povoli aktivnimu uzivateli bez hesla). done(rc, out, err)."""
+    cmd = [HELPER, *args] if os.geteuid() == 0 else ["pkexec", HELPER, *args]
+
+    def work():
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            res = (r.returncode, r.stdout, r.stderr.strip())
+        except (OSError, subprocess.TimeoutExpired) as e:
+            res = (1, "", str(e))
+        GLib.idle_add(lambda: done(*res) and False)
+    threading.Thread(target=work, daemon=True).start()
+
+
+def in_thread(work, done):
+    """work() ve vlakne, done(vysledek) v hlavnim vlakne."""
+    def wrap():
+        try:
+            res = work()
+        except Exception as e:  # noqa: BLE001 - chyba se ukaze uzivateli
+            res = e
+        GLib.idle_add(lambda: done(res) and False)
+    threading.Thread(target=wrap, daemon=True).start()
+
+
+def have(cmd):
+    return shutil.which(cmd) is not None
+
+
+def section(text):
+    lab = Gtk.Label(label=text.upper(), xalign=0)
+    lab.get_style_context().add_class("section-title")
+    return lab
+
+
+def cls(widget, *names):
+    for n in names:
+        widget.get_style_context().add_class(n)
+    return widget
+
+
+# ---------------------------------------------------------------- CUPS
+
+class Cups:
+    """Cteni stavu z CUPS (pycups). Bezi ve vlakne, kazde vlakno ma vlastni spojeni."""
+
+    def snapshot(self):
+        if cups is None:
+            raise RuntimeError(_("Printing support is not installed."))
+        c = cups.Connection()
+        printers = c.getPrinters()
+        try:
+            default = c.getDefault()
+        except cups.IPPError:
+            default = None
+        jobs = c.getJobs(which_jobs="not-completed", requested_attributes=[
+            "job-id", "job-name", "job-printer-uri", "job-state", "job-originating-user-name",
+            "job-media-sheets-completed", "time-at-creation"])
+        for jid, j in jobs.items():
+            j["job-id"] = jid           # pycups vraci ID jako klic, ne jako atribut
+        markers = {}
+        for name in printers:
+            try:
+                a = c.getPrinterAttributes(name, requested_attributes=[
+                    "marker-names", "marker-levels", "marker-colors", "marker-types"])
+                markers[name] = a
+            except cups.IPPError:
+                pass
+        # Nazvy uloh: CUPS je pres neovereny IPP dotaz skryva, lpq je ukaze aspon u vlastnich uloh
+        try:
+            r = subprocess.run(["lpq", "-a"], capture_output=True, text=True, timeout=10,
+                               env=dict(os.environ, LC_ALL="C"))
+            for line in r.stdout.splitlines():
+                m = re.match(r"^\S+\s+(\S+)\s+(\d+)\s+(.*?)\s+\d+ bytes$", line)
+                if m and int(m.group(2)) in jobs and m.group(3) != "unknown":
+                    jobs[int(m.group(2))].setdefault("job-name", m.group(3))
+                    jobs[int(m.group(2))].setdefault("job-originating-user-name", m.group(1))
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        return {"printers": printers, "default": default, "jobs": jobs, "markers": markers}
+
+    @staticmethod
+    def live(printers):
+        """Primo z tiskaren v siti/USB (ipp-usb): je zapnuta? naplne a stav. Jen pro fronty dnssd://."""
+        res = {}
+        wanted = {n: lp.uri_service_name(p.get("device-uri")) for n, p in printers.items()}
+        wanted = {n: s for n, s in wanted.items() if s}
+        if not wanted:
+            return res
+        text = ""
+        procs = [subprocess.Popen(["avahi-browse", "-t", "-r", "-p", "-k", t], stdout=subprocess.PIPE,
+                                  stderr=subprocess.DEVNULL, text=True) for t in lp.PRINTER_TYPES]
+        for p in procs:
+            try:
+                text += p.communicate(timeout=12)[0]
+            except subprocess.TimeoutExpired:
+                p.kill()
+        fd, test = tempfile.mkstemp(suffix=".test")
+        with os.fdopen(fd, "w") as f:
+            f.write(lp.IPPTOOL_TEST)
+        found = {}
+        for g in lp.group_printers(lp.parse_avahi(text)).values():
+            found[g["name"]] = g
+        for name, svc in wanted.items():
+            g = found.get(svc)
+            if not g:
+                res[name] = {"online": False}
+                continue
+            info = {"online": True}
+            for stype, addr, port, rp in g["addrs"]:
+                if addr.lower().startswith("fe80:"):
+                    continue            # link-local IPv6 by potreboval rozhrani
+                host = f"[{addr}]" if ":" in addr else addr
+                scheme = "ipps" if stype == "_ipps._tcp" else "ipp"
+                try:
+                    r = subprocess.run(["ipptool", "-T", "5", "-tv", f"{scheme}://{host}:{port}/{rp}", test],
+                                       capture_output=True, text=True, timeout=15)
+                except (OSError, subprocess.TimeoutExpired):
+                    continue
+                a = lp.parse_ipptool(r.stdout)
+                if a:
+                    info.update(a)
+                    break
+            res[name] = info
+        os.unlink(test)
+        return res
+
+
+def markers_of(attrs):
+    """[(nazev, procento, barva)] jen se znamou urovni."""
+    names = attrs.get("marker-names") or []
+    levels = attrs.get("marker-levels") or []
+    colors = attrs.get("marker-colors") or []
+    if isinstance(names, str):
+        names, levels, colors = [names], [levels], [colors]
+    out = []
+    for i, n in enumerate(names):
+        lv = levels[i] if i < len(levels) else -1
+        if not isinstance(lv, int) or lv < 0:
+            continue
+        col = (colors[i] if i < len(colors) else "") or "#888888"
+        m = re.match(r"#[0-9A-Fa-f]{6}", col)
+        out.append((n, min(lv, 100), m.group(0) if m else "#888888"))
+    return out
+
+
+def printer_status(p, live, jobs):
+    """(text, trida) - trida: ok | busy | warn | err."""
+    reasons = list(p.get("printer-state-reasons") or [])
+    if live:
+        lr = live.get("printer-state-reasons") or []
+        reasons += [lr] if isinstance(lr, str) else list(lr)
+    text, serious = lp.reason_text(reasons)
+    if live is not None and not live.get("online"):
+        return _("Offline – make sure the printer is turned on"), "warn"
+    if p.get("printer-state") == 5:
+        return (_(text) if text else _("Paused")), "err"
+    if text:
+        return _(text), ("err" if serious else "warn")
+    if p.get("printer-state") == 4:
+        return _("Printing…"), "busy"
+    if jobs:
+        return (_("1 document waiting") if len(jobs) == 1 else _("%d documents waiting") % len(jobs)), "busy"
+    return _("Ready"), "ok"
+
+
+# ---------------------------------------------------------------- widgety
+
+class Dot(Gtk.Label):
+    def __init__(self):
+        super().__init__(label="●", valign=Gtk.Align.CENTER)
+        cls(self, "dot")
+
+    def set_state(self, state):
+        sc = self.get_style_context()
+        for c in STATUS_CLASS:
+            sc.remove_class(c)
+        sc.add_class(state)
+
+
+class LevelBar(Gtk.DrawingArea):
+    def __init__(self, level, color):
+        super().__init__()
+        self.level, self.color = level, Gdk.RGBA()
+        self.color.parse(color)
+        self.set_size_request(150, 8)
+        self.set_valign(Gtk.Align.CENTER)
+        self.connect("draw", self.on_draw)
+
+    def on_draw(self, _w, cr):
+        w, h = self.get_allocated_width(), self.get_allocated_height()
+        fg = self.get_style_context().get_color(Gtk.StateFlags.NORMAL)
+
+        def pill(width):
+            r = h / 2
+            cr.new_sub_path()
+            cr.arc(r, r, r, 1.5708, 4.7124)
+            cr.arc(max(width - r, r), r, r, 4.7124, 1.5708)
+            cr.close_path()
+        cr.set_source_rgba(fg.red, fg.green, fg.blue, 0.12)
+        pill(w)
+        cr.fill()
+        if self.level > 0:
+            c = self.color
+            dark_theme = fg.red + fg.green + fg.blue > 1.5
+            if dark_theme and c.red + c.green + c.blue < 0.6:
+                # cerny toner v tmavem rezimu: svetle sedy, jinak by splynul s pozadim
+                cr.set_source_rgba(fg.red, fg.green, fg.blue, 0.8)
+            else:
+                cr.set_source_rgba(c.red, c.green, c.blue, 1)
+            # bila/svetla barva by na svetlem pozadi nebyla videt - obrys
+            pill(max(h, w * self.level / 100))
+            cr.fill_preserve()
+            cr.set_source_rgba(fg.red, fg.green, fg.blue, 0.25)
+            cr.set_line_width(1)
+            cr.stroke()
+
+
+class SideRow(Gtk.ListBoxRow):
+    def __init__(self, key, icon, name, sub="", state=None):
+        super().__init__()
+        self.key = key
+        box = Gtk.Box(spacing=10)
+        box.pack_start(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.DND), False, False, 0)
+        t = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        n = cls(Gtk.Label(label=name, xalign=0, ellipsize=Pango.EllipsizeMode.END), "dev-name")
+        t.pack_start(n, False, False, 0)
+        self.sub = cls(Gtk.Label(label=sub, xalign=0, ellipsize=Pango.EllipsizeMode.END), "dev-sub")
+        t.pack_start(self.sub, False, False, 0)
+        if not sub:
+            self.sub.set_no_show_all(True)
+        box.pack_start(t, True, True, 0)
+        if state:
+            d = Dot()
+            d.set_state(state)
+            box.pack_end(d, False, False, 0)
+        self.add(box)
+
+
+# ---------------------------------------------------------------- tiskarna
+
+class PrinterPage(Gtk.ScrolledWindow):
+    def __init__(self, win):
+        super().__init__(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.win = win
+        self.name = None
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=24, spacing=2)
+        self.add(page)
+
+        head = Gtk.Box(spacing=16)
+        head.pack_start(Gtk.Image.new_from_icon_name("printer", Gtk.IconSize.DIALOG), False, False, 0)
+        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER, spacing=2)
+        self.title = cls(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END), "title")
+        self.model = cls(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END), "hint")
+        st = Gtk.Box(spacing=6)
+        self.dot = Dot()
+        self.status = Gtk.Label(xalign=0, wrap=True)
+        st.pack_start(self.dot, False, False, 0)
+        st.pack_start(self.status, False, False, 0)
+        for w in (self.title, self.model, st):
+            info.pack_start(w, False, False, 0)
+        head.pack_start(info, True, True, 0)
+        page.pack_start(head, False, False, 0)
+
+        btns = Gtk.Box(spacing=8, margin_top=16)
+        self.test_btn = Gtk.Button(label=_("Print Test Page"))
+        self.test_btn.connect("clicked", self.on_test)
+        self.resume_btn = cls(Gtk.Button(label=_("Resume")), "suggested-action")
+        self.resume_btn.connect("clicked", self.on_resume)
+        self.resume_btn.set_no_show_all(True)
+        self.remove_btn = Gtk.Button(label=_("Remove Printer…"))
+        self.remove_btn.connect("clicked", lambda _b: self.win.remove_printer(self.name))
+        btns.pack_start(self.test_btn, False, False, 0)
+        btns.pack_start(self.resume_btn, False, False, 0)
+        btns.pack_end(self.remove_btn, False, False, 0)
+        page.pack_start(btns, False, False, 0)
+        self.note = cls(Gtk.Label(xalign=0, margin_top=6), "hint")
+        page.pack_start(self.note, False, False, 0)
+
+        # Vychozi tiskarna
+        page.pack_start(section(_("Settings")), False, False, 0)
+        lb = cls(Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE), "group")
+        row = Gtk.Box(spacing=12)
+        lab = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        lab.pack_start(Gtk.Label(label=_("Default printer"), xalign=0), False, False, 0)
+        lab.pack_start(cls(Gtk.Label(label=_("Apps print here unless you choose another printer."), xalign=0,
+                                     wrap=True), "dev-sub"), False, False, 0)
+        row.pack_start(lab, True, True, 0)
+        self.default_sw = Gtk.Switch(valign=Gtk.Align.CENTER)
+        self.default_h = self.default_sw.connect("notify::active", self.on_default)
+        row.pack_end(self.default_sw, False, False, 0)
+        lb.add(row)
+        page.pack_start(lb, False, False, 0)
+
+        # Naplne
+        self.sup_title = section(_("Ink and toner"))
+        page.pack_start(self.sup_title, False, False, 0)
+        self.supplies = cls(Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE), "group")
+        page.pack_start(self.supplies, False, False, 0)
+
+        # Fronta
+        qh = Gtk.Box()
+        qh.pack_start(section(_("Print queue")), False, False, 0)
+        self.cancel_all = cls(Gtk.Button(label=_("Cancel All"), valign=Gtk.Align.END, relief=Gtk.ReliefStyle.NONE),
+                              "toolbar-btn")
+        self.cancel_all.connect("clicked", lambda _b: [self.win.cancel_job(j) for j in self.job_ids])
+        qh.pack_end(self.cancel_all, False, False, 0)
+        page.pack_start(qh, False, False, 0)
+        self.jobs = cls(Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE), "group")
+        ph = cls(Gtk.Label(label=_("No documents are waiting to print.")), "empty")
+        ph.show()
+        self.jobs.set_placeholder(ph)
+        page.pack_start(self.jobs, False, False, 0)
+        self.job_ids = []
+        self.sig = None
+
+    def show_printer(self, name, data, live):
+        p = data["printers"][name]
+        jobs = [j for j in data["jobs"].values() if (j.get("job-printer-uri") or "").rstrip("/").endswith("/" + name)]
+        jobs.sort(key=lambda j: j.get("job-id", 0))
+        mk = []
+        if live and live.get("printer-supply"):
+            mk = lp.parse_printer_supply(live["printer-supply"], live.get("printer-supply-description") or [])
+        if not mk and live and live.get("marker-levels"):
+            mk = markers_of(live)
+        if not mk:
+            mk = markers_of(data["markers"].get(name, {}))
+        status, state = printer_status(p, live, jobs)
+        sig = (name, repr(sorted(p.items())), repr(jobs), repr(mk), status, data["default"])
+        if sig == self.sig:
+            return
+        self.sig = sig
+        if self.name != name:
+            self.note.set_text("")
+        self.name = name
+        self.title.set_text(p.get("printer-info") or name)
+        uri = p.get("device-uri") or ""
+        conn = _("USB") if (p.get("printer-location") == "USB" or uri.startswith("usb:")) else _("Network")
+        model = p.get("printer-make-and-model") or ""
+        self.model.set_text(" · ".join(x for x in (model, conn) if x))
+        self.dot.set_state(state)
+        self.status.set_text(status)
+        self.resume_btn.set_visible(p.get("printer-state") == 5 or not p.get("printer-is-accepting-jobs", True))
+        self.default_sw.handler_block(self.default_h)
+        self.default_sw.set_active(data["default"] == name)
+        self.default_sw.set_sensitive(data["default"] != name)
+        self.default_sw.handler_unblock(self.default_h)
+
+        for c in self.supplies.get_children():
+            self.supplies.remove(c)
+        for n, lv, col in mk:
+            r = Gtk.Box(spacing=12)
+            r.pack_start(Gtk.Label(label=n, xalign=0, ellipsize=Pango.EllipsizeMode.END), True, True, 0)
+            r.pack_start(LevelBar(lv, col), False, False, 0)
+            r.pack_start(cls(Gtk.Label(label=f"{lv} %", width_chars=5, xalign=1), "dev-sub"), False, False, 0)
+            self.supplies.add(r)
+
+        for c in self.jobs.get_children():
+            self.jobs.remove(c)
+        self.job_ids = []
+        for j in jobs:
+            jid = j.get("job-id")
+            self.job_ids.append(jid)
+            r = Gtk.Box(spacing=12)
+            r.pack_start(Gtk.Image.new_from_icon_name("text-x-generic", Gtk.IconSize.LARGE_TOOLBAR), False, False, 0)
+            t = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            t.pack_start(cls(Gtk.Label(label=j.get("job-name") or _("Document"), xalign=0,
+                                       ellipsize=Pango.EllipsizeMode.MIDDLE), "dev-name"), False, False, 0)
+            js = {3: _("Waiting"), 4: _("On hold"), 5: _("Printing…"), 6: _("Stopped")}.get(j.get("job-state"), "")
+            who = j.get("job-originating-user-name") or ""
+            t.pack_start(cls(Gtk.Label(label=" · ".join(x for x in (js, who) if x), xalign=0), "dev-sub"),
+                         False, False, 0)
+            r.pack_start(t, True, True, 0)
+            b = Gtk.Button(label=_("Cancel"), valign=Gtk.Align.CENTER)
+            b.connect("clicked", lambda _b, i=jid: self.win.cancel_job(i))
+            r.pack_end(b, False, False, 0)
+            self.jobs.add(r)
+        self.show_all()
+        self.cancel_all.set_visible(len(jobs) > 1)
+        self.sup_title.set_visible(bool(mk))
+        self.supplies.set_visible(bool(mk))
+
+    def on_default(self, sw, _p):
+        if sw.get_active() and self.name:
+            sw.set_sensitive(False)
+            run_helper(["default", self.name], lambda rc, o, e: self.win.after_admin(rc, e))
+
+    def on_test(self, _b):
+        name = self.name
+        self.note.set_text(_("Sending a test page…"))
+
+        def work():
+            c = cups.Connection()
+            return c.printTestPage(name)
+
+        def done(res):
+            if isinstance(res, Exception):
+                self.note.set_text(_("The test page could not be sent: %s") % res)
+            else:
+                self.note.set_text(_("The test page is on its way."))
+            self.win.refresh()
+        in_thread(work, done)
+
+    def on_resume(self, _b):
+        run_helper(["resume", self.name], lambda rc, o, e: self.win.after_admin(rc, e))
+
+
+# ---------------------------------------------------------------- skener
+
+class Scanner:
+    """Jedno skenovani pres scanimage ve vlakne; prubeh a vysledek v hlavnim vlakne."""
+
+    def __init__(self):
+        self.proc = None
+        self.cancelled = False
+
+    def run(self, args, out, progress, done):
+        self.cancelled = False
+
+        def work():
+            cmd = ["scanimage", *args, "--format=pnm", "-p", "-o", out]
+            try:
+                self.proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            except OSError as e:
+                GLib.idle_add(done, False, str(e))
+                return
+            buf, err = b"", b""
+            while True:
+                ch = self.proc.stderr.read(64)
+                if not ch:
+                    break
+                buf = (buf + ch)[-256:]
+                err = (err + ch)[-2048:]
+                m = re.findall(rb"Progress: ([\d.]+)%", buf)
+                if m:
+                    GLib.idle_add(progress, float(m[-1]) / 100)
+            rc = self.proc.wait()
+            self.proc = None
+            lines = re.sub(r"Progress: [\d.]+%\s*", "", err.decode(errors="replace")).strip().splitlines()
+            ok = rc == 0 and os.path.exists(out) and os.path.getsize(out) > 0 and not self.cancelled
+            # "scanimage: sane_read: Document feeder jammed" -> "Document feeder jammed"
+            msg = re.sub(r"^scanimage: (sane_\w+: )?", "", lines[-1]) if lines else ""
+            GLib.idle_add(done, ok, "" if self.cancelled else msg)
+        threading.Thread(target=work, daemon=True).start()
+
+    def cancel(self):
+        self.cancelled = True
+        if self.proc:
+            self.proc.terminate()
+
+
+def read_pnm(path):
+    """(hlavicka, data) PNM P5/P6 ze scanimage (8 bit)."""
+    with open(path, "rb") as f:
+        raw = f.read()
+    tokens, pos = [], 0
+    while len(tokens) < 4:
+        m = re.compile(rb"\s*(#[^\n]*\n\s*)*(\S+)").match(raw, pos)
+        tokens.append(m.group(2))
+        pos = m.end()
+    return raw[:pos + 1], raw[pos + 1:], tokens
+
+
+def document_filter(path):
+    """Rezim Dokument: bile pozadi, syte cerne pismo (prosta krivka urovni, rychle pres bytes.translate)."""
+    head, data, tokens = read_pnm(path)
+    if tokens[3] != b"255":
+        return
+    lo, hi = 60, 205
+    table = bytes(0 if v <= lo else 255 if v >= hi else int((v - lo) * 255 / (hi - lo)) for v in range(256))
+    with open(path, "wb") as f:
+        f.write(head + data.translate(table))
+
+
+class ScannerPage(Gtk.Box):
+    MODES = (("color", "Color"), ("gray", "Grey"), ("document", "Document"))
+    QUALITY = ((150, "Draft (150 dpi)"), (300, "Standard (300 dpi)"), (600, "High (600 dpi)"))
+
+    def __init__(self, win):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        self.win = win
+        self.dev = None
+        self.opts = {}
+        self.pages = []           # [(soubor pnm, dpi)]
+        self.preview = None       # GdkPixbuf
+        self.scanner = Scanner()
+        self.tmp = tempfile.mkdtemp(prefix="luxos-scan-")
+        self.busy = False
+
+        top = Gtk.Box(spacing=20, margin=20)
+        self.pack_start(top, True, True, 0)
+        # Nahled: list papiru
+        self.area = Gtk.DrawingArea(hexpand=True, vexpand=True)
+        self.area.set_size_request(300, 340)
+        self.area.connect("draw", self.on_draw)
+        top.pack_start(self.area, True, True, 0)
+
+        side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        side.set_size_request(250, -1)
+        top.pack_start(side, False, False, 0)
+        self.title = cls(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END, max_width_chars=24), "title")
+        side.pack_start(self.title, False, False, 0)
+        self.sub = cls(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END, max_width_chars=30), "hint")
+        side.pack_start(self.sub, False, False, 0)
+
+        side.pack_start(section(_("Kind")), False, False, 0)
+        seg = Gtk.Box()
+        cls(seg, "linked")
+        self.mode_btns = {}
+        first = None
+        for key, label in self.MODES:
+            b = Gtk.RadioButton.new_with_label_from_widget(first, _(label))
+            b.set_mode(False)
+            b.set_hexpand(True)
+            first = first or b
+            self.mode_btns[key] = b
+            seg.pack_start(b, True, True, 0)
+        self.mode_btns["document"].set_active(True)
+        self.mode_btns["document"].connect("toggled", self.on_mode)
+        side.pack_start(seg, False, False, 0)
+
+        side.pack_start(section(_("Quality")), False, False, 0)
+        self.quality = Gtk.ComboBoxText()
+        for dpi, label in self.QUALITY:
+            self.quality.append(str(dpi), _(label))
+        self.quality.set_active_id("300")
+        side.pack_start(self.quality, False, False, 0)
+
+        self.src_title = section(_("Source"))
+        side.pack_start(self.src_title, False, False, 0)
+        self.source = Gtk.ComboBoxText()
+        side.pack_start(self.source, False, False, 0)
+
+        side.pack_start(Gtk.Box(), True, True, 0)
+        self.progress = Gtk.ProgressBar(show_text=False, no_show_all=True)
+        side.pack_start(self.progress, False, False, 0)
+        self.msg = cls(Gtk.Label(xalign=0, wrap=True, max_width_chars=32), "hint")
+        side.pack_start(self.msg, False, False, 0)
+        row = Gtk.Box(spacing=8)
+        self.prev_btn = Gtk.Button(label=_("Preview"))
+        self.prev_btn.connect("clicked", lambda _b: self.scan(preview=True))
+        self.scan_btn = cls(Gtk.Button(label=_("Scan")), "suggested-action", "big")
+        self.scan_btn.connect("clicked", lambda _b: self.scan())
+        self.cancel_btn = Gtk.Button(label=_("Cancel"), no_show_all=True)
+        self.cancel_btn.connect("clicked", lambda _b: self.scanner.cancel())
+        row.pack_start(self.prev_btn, True, True, 0)
+        row.pack_start(self.scan_btn, True, True, 0)
+        row.pack_start(self.cancel_btn, True, True, 0)
+        side.pack_start(row, False, False, 0)
+
+        # Naskenovane stranky + ulozeni
+        self.pack_start(Gtk.Separator(), False, False, 0)
+        bottom = Gtk.Box(spacing=12, margin=12, margin_start=20, margin_end=20)
+        self.pack_start(bottom, False, False, 0)
+        sc = Gtk.ScrolledWindow(vscrollbar_policy=Gtk.PolicyType.NEVER, hexpand=True)
+        sc.set_size_request(-1, 112)
+        self.strip = Gtk.Box(spacing=8)
+        sc.add(self.strip)
+        bottom.pack_start(sc, True, True, 0)
+        self.strip_hint = cls(Gtk.Label(label=_("Scanned pages appear here. Scan more pages to save them together."),
+                                        wrap=True, xalign=0), "hint")
+        self.strip.pack_start(self.strip_hint, False, False, 8)
+
+        save = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, valign=Gtk.Align.CENTER)
+        self.fmt = Gtk.ComboBoxText()
+        self.fmt.append("pdf", _("PDF document"))
+        self.fmt.append("jpeg", _("JPEG pictures"))
+        self.fmt.set_active_id("pdf")
+        save.pack_start(self.fmt, False, False, 0)
+        self.save_btn = cls(Gtk.Button(label=_("Save")), "suggested-action")
+        self.save_btn.connect("clicked", self.on_save)
+        save.pack_start(self.save_btn, False, False, 0)
+        bottom.pack_end(save, False, False, 0)
+
+        self.saved = cls(Gtk.Box(spacing=10, margin_start=20, margin_end=20, margin_bottom=12), "saved")
+        self.saved_lab = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.MIDDLE)
+        self.saved.pack_start(self.saved_lab, True, True, 0)
+        self.open_btn = Gtk.Button(label=_("Open"))
+        self.folder_btn = Gtk.Button(label=_("Show in Folder"))
+        self.saved.pack_end(self.open_btn, False, False, 0)
+        self.saved.pack_end(self.folder_btn, False, False, 0)
+        self.open_btn.connect("clicked", lambda _b: self.open_path(self.saved_files[0]))
+        self.folder_btn.connect("clicked", lambda _b: self.show_in_folder(self.saved_files[0]))
+        self.saved.set_no_show_all(True)
+        self.pack_start(self.saved, False, False, 0)
+        self.saved_files = []
+        self.update_buttons()
+        self.connect("destroy", lambda *_a: shutil.rmtree(self.tmp, ignore_errors=True))
+
+    # -- zarizeni a volby
+    def set_device(self, dev):
+        if self.dev and dev["id"] == self.dev["id"]:
+            return
+        self.dev = dev
+        self.title.set_text(dev["name"])
+        self.sub.set_text(dev["kind"])
+        self.opts = {}
+        self.preview = None
+        self.area.queue_draw()
+        self.msg.set_text(_("Checking the scanner…"))
+        self.src_title.hide()
+        self.source.hide()
+        self.busy_ui(True, False)
+        did = dev["id"]
+
+        def work():
+            r = subprocess.run(["scanimage", "-d", did, "-A"], capture_output=True, text=True, timeout=60)
+            return lp.parse_scan_options(r.stdout)
+
+        def done(res):
+            self.busy_ui(False)
+            if not self.dev or self.dev["id"] != did:
+                return
+            if isinstance(res, Exception):
+                self.msg.set_text(_("The scanner does not respond. Make sure it is turned on."))
+                return
+            self.opts = res
+            self.msg.set_text(_("Place the document on the scanner and click Scan."))
+            self.source.remove_all()
+            for s in (res.get("source") or ([], None))[0]:
+                self.source.append(s, _(s) if s in ("Flatbed", "ADF", "ADF Duplex") else s)
+            cur = (res.get("source") or ([], None))[1]
+            if cur:
+                self.source.set_active_id(cur)
+            many = len((res.get("source") or ([], None))[0]) > 1
+            self.src_title.set_visible(many)
+            self.source.set_visible(many)
+            # bez barevneho rezimu (cernobily skener) jen Seda/Dokument
+            modes = (res.get("mode") or ([], None))[0]
+            self.mode_btns["color"].set_sensitive(not modes or bool(lp.pick_mode(modes, "color")))
+        in_thread(work, done)
+
+    def on_mode(self, b):
+        if b.get_active():
+            self.quality.set_active_id("300")
+            self.fmt.set_active_id("pdf")
+
+    def mode_key(self):
+        return next(k for k, b in self.mode_btns.items() if b.get_active())
+
+    def scan_args(self, preview):
+        a = ["-d", self.dev["id"]]
+        modes = (self.opts.get("mode") or ([], None))[0]
+        kind = "color" if self.mode_key() == "color" or preview and self.mode_key() != "gray" else "gray"
+        m = lp.pick_mode(modes, kind) or lp.pick_mode(modes, "gray")
+        if m:
+            a += ["--mode", m]
+        res = self.opts.get("resolution")
+        want = 75 if preview else int(self.quality.get_active_id() or 300)
+        dpi = lp.nearest_resolution(res[0] if res else None, want)
+        if res:
+            a += ["--resolution", str(dpi)]
+        src = self.source.get_active_id()
+        if src and self.source.get_visible():
+            a += ["--source", src]
+        return a, dpi
+
+    # -- skenovani
+    def busy_ui(self, on, show_progress=True):
+        self.busy = on
+        self.progress.set_visible(on and show_progress)
+        self.progress.set_fraction(0)
+        self.cancel_btn.set_visible(on and show_progress)
+        self.scan_btn.set_visible(not (on and show_progress))
+        self.prev_btn.set_visible(not (on and show_progress))
+        self.update_buttons()
+
+    def update_buttons(self):
+        ok = bool(self.dev) and not self.busy
+        self.scan_btn.set_sensitive(ok)
+        self.prev_btn.set_sensitive(ok)
+        self.save_btn.set_sensitive(bool(self.pages) and not self.busy)
+        self.fmt.set_sensitive(bool(self.pages))
+
+    def scan(self, preview=False):
+        if not self.dev or self.busy:
+            return
+        args, dpi = self.scan_args(preview)
+        out = os.path.join(self.tmp, "preview.pnm" if preview else f"page-{len(os.listdir(self.tmp)):03d}.pnm")
+        doc = self.mode_key() == "document" and not preview
+        self.busy_ui(True)
+        self.msg.set_text(_("Scanning…"))
+        self.saved.hide()
+
+        def progress(f):
+            self.progress.set_fraction(f)
+            return False
+
+        def done(ok, err):
+            if ok and doc:
+                try:
+                    document_filter(out)
+                except (OSError, AttributeError, IndexError):
+                    pass
+            self.busy_ui(False)
+            if not ok:
+                if self.scanner.cancelled:
+                    self.msg.set_text(_("Scanning was cancelled."))
+                else:
+                    self.msg.set_text(_("Scanning failed: %s") % (err or _("the scanner does not respond")))
+                return False
+            try:
+                self.preview = GdkPixbuf.Pixbuf.new_from_file(out)
+            except GLib.Error as e:
+                self.msg.set_text(_("Scanning failed: %s") % e.message)
+                return False
+            self.area.queue_draw()
+            if preview:
+                self.msg.set_text(_("This is a preview. Click Scan when the document looks right."))
+            else:
+                self.add_page(out, dpi)
+                self.msg.set_text(_("Page %d scanned. Scan another page or save.") % len(self.pages))
+            return False
+        self.scanner.run(args, out, progress, done)
+
+    def add_page(self, path, dpi):
+        self.pages.append((path, dpi))
+        self.rebuild_strip()
+
+    def rebuild_strip(self):
+        for c in self.strip.get_children():
+            if c is not self.strip_hint:
+                self.strip.remove(c)
+        self.strip_hint.set_visible(not self.pages)
+        for i, (path, _dpi) in enumerate(self.pages):
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            ov = Gtk.Overlay()
+            try:
+                pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, 70, 86, True)
+                img = cls(Gtk.Image.new_from_pixbuf(pb), "thumb")
+            except GLib.Error:
+                img = Gtk.Image.new_from_icon_name("image-missing", Gtk.IconSize.DIALOG)
+            ov.add(img)
+            x = Gtk.Button.new_from_icon_name("window-close-symbolic", Gtk.IconSize.MENU)
+            x.set_tooltip_text(_("Remove page"))
+            x.set_halign(Gtk.Align.END)
+            x.set_valign(Gtk.Align.START)
+            x.connect("clicked", lambda _b, n=i: self.remove_page(n))
+            ov.add_overlay(x)
+            box.pack_start(ov, False, False, 0)
+            box.pack_start(cls(Gtk.Label(label=_("Page %d") % (i + 1)), "dev-sub"), False, False, 0)
+            self.strip.pack_start(box, False, False, 0)
+        self.strip.show_all()
+        self.strip_hint.set_visible(not self.pages)
+        self.update_buttons()
+
+    def remove_page(self, n):
+        path = self.pages.pop(n)[0]
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+        self.rebuild_strip()
+
+    def on_draw(self, w, cr):
+        W, H = w.get_allocated_width(), w.get_allocated_height()
+        # list A4 (nebo pomer nahledu) uprostred
+        ratio = (self.preview.get_width() / self.preview.get_height()) if self.preview else 210 / 297
+        ph = H - 16
+        pw = ph * ratio
+        if pw > W - 16:
+            pw = W - 16
+            ph = pw / ratio
+        x, y = (W - pw) / 2, (H - ph) / 2
+        cr.set_source_rgba(0, 0, 0, 0.18)
+        cr.rectangle(x + 2, y + 3, pw, ph)
+        cr.fill()
+        cr.set_source_rgb(1, 1, 1)
+        cr.rectangle(x, y, pw, ph)
+        cr.fill()
+        if self.preview:
+            pb = self.preview.scale_simple(max(1, int(pw)), max(1, int(ph)), GdkPixbuf.InterpType.BILINEAR)
+            Gdk.cairo_set_source_pixbuf(cr, pb, x, y)
+            cr.paint()
+        else:
+            layout = w.create_pango_layout(_("Click Preview to see the document here"))
+            layout.set_width(int(min(pw - 40, 220) * Pango.SCALE))
+            layout.set_wrap(Pango.WrapMode.WORD)
+            layout.set_alignment(Pango.Alignment.CENTER)
+            tw, th = layout.get_pixel_size()
+            cr.set_source_rgba(0, 0, 0, 0.4)
+            cr.move_to((W - tw) / 2, (H - th) / 2)
+            PangoCairo.show_layout(cr, layout)
+
+    # -- ulozeni
+    def target(self, fmt):
+        kind = GLib.UserDirectory.DIRECTORY_DOCUMENTS if fmt == "pdf" else GLib.UserDirectory.DIRECTORY_PICTURES
+        d = GLib.get_user_special_dir(kind) or os.path.join(GLib.get_home_dir(),
+                                                            "Documents" if fmt == "pdf" else "Pictures")
+        os.makedirs(d, exist_ok=True)
+        base = _("Scan") + " " + datetime.datetime.now().strftime("%Y-%m-%d %H.%M.%S")
+        return d, base
+
+    def on_save(self, _b):
+        fmt = self.fmt.get_active_id()
+        pages = list(self.pages)
+        d, base = self.target(fmt)
+        self.busy_ui(True, False)
+        self.msg.set_text(_("Saving…"))
+
+        def work():
+            return save_pages(pages, fmt, d, base)
+
+        def done(res):
+            self.busy_ui(False)
+            if isinstance(res, Exception):
+                self.msg.set_text(_("Could not save the scan: %s") % res)
+                return
+            self.saved_files = res
+            folder = os.path.basename(d)
+            if len(res) == 1:
+                self.saved_lab.set_text(_("Saved “%s” in %s") % (os.path.basename(res[0]), folder))
+            else:
+                self.saved_lab.set_text(_("Saved %d pictures in %s") % (len(res), folder))
+            self.saved.set_no_show_all(False)
+            self.saved.show_all()
+            for path, _dpi in self.pages:
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass
+            self.pages = []
+            self.rebuild_strip()
+            self.msg.set_text(_("Place the next document on the scanner and click Scan."))
+        in_thread(work, done)
+
+    def open_path(self, path):
+        try:
+            Gio.AppInfo.launch_default_for_uri(GLib.filename_to_uri(path), None)
+        except GLib.Error:
+            subprocess.Popen(["xdg-open", path], start_new_session=True)
+
+    def show_in_folder(self, path):
+        try:
+            bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+            bus.call_sync("org.freedesktop.FileManager1", "/org/freedesktop/FileManager1",
+                          "org.freedesktop.FileManager1", "ShowItems",
+                          GLib.Variant("(ass)", ([GLib.filename_to_uri(path)], "")), None, 0, 3000, None)
+        except GLib.Error:
+            self.open_path(os.path.dirname(path))
+
+
+def save_pages(pages, fmt, folder, base):
+    """Ulozi stranky (pnm) jako jedno PDF nebo JPEG po strankach, vrati seznam souboru."""
+    def unique(name, ext):
+        p = os.path.join(folder, f"{name}.{ext}")
+        i = 2
+        while os.path.exists(p):
+            p = os.path.join(folder, f"{name} ({i}).{ext}")
+            i += 1
+        return p
+
+    if fmt == "jpeg":
+        out = []
+        for i, (path, dpi) in enumerate(pages):
+            pb = GdkPixbuf.Pixbuf.new_from_file(path)
+            name = base if len(pages) == 1 else f"{base} - {i + 1}"
+            dest = unique(name, "jpg")
+            pb.savev(dest, "jpeg", ["quality", "x-dpi", "y-dpi"], ["90", str(dpi), str(dpi)])
+            out.append(dest)
+        return out
+    dest = unique(base, "pdf")
+    tmp = dest + ".part"
+    surf = None
+    try:
+        for path, dpi in pages:
+            pb = GdkPixbuf.Pixbuf.new_from_file(path)
+            w_pt, h_pt = pb.get_width() * 72 / dpi, pb.get_height() * 72 / dpi
+            if surf is None:
+                surf = cairo.PDFSurface(tmp, w_pt, h_pt)
+                surf.set_metadata(cairo.PDFMetadata.TITLE, base)
+                surf.set_metadata(cairo.PDFMetadata.CREATOR, "LuxOS Printers & Scanners")
+                cr = cairo.Context(surf)
+            else:
+                surf.set_size(w_pt, h_pt)
+            ok, jpeg = pb.save_to_bufferv("jpeg", ["quality"], ["85"])
+            img = cairo.ImageSurface(cairo.FORMAT_RGB24, pb.get_width(), pb.get_height())
+            c2 = cairo.Context(img)
+            Gdk.cairo_set_source_pixbuf(c2, pb, 0, 0)
+            c2.paint()
+            del c2
+            # stranka v PDF jako JPEG (male soubory), ne jako nekomprimovany obrazek
+            img.set_mime_data(cairo.MIME_TYPE_JPEG, bytes(jpeg))
+            cr.save()
+            cr.scale(72 / dpi, 72 / dpi)
+            cr.set_source_surface(img, 0, 0)
+            cr.paint()
+            cr.restore()
+            cr.show_page()
+            del img
+        surf.finish()
+        os.replace(tmp, dest)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
+    return [dest]
+
+
+def list_scanners():
+    """[{id, name, kind}] ze `scanimage -L`; stejny skener pres vic backendu jen jednou."""
+    r = subprocess.run(["scanimage", "-f", "%d\t%v\t%m\t%t%n"], capture_output=True, text=True, timeout=90)
+    best = {}
+    for line in r.stdout.splitlines():
+        f = line.split("\t")
+        if len(f) < 4:
+            continue
+        dev, vendor, model, typ = f[:4]
+        name = model if model.lower().startswith(vendor.lower()) else f"{vendor} {model}".strip()
+        name = lp.friendly_name(name)
+        prio = 0 if dev.startswith("airscan:e") else 2 if dev.startswith("airscan:w") else 1
+        conn = _("Network") if dev.startswith("airscan:") else _("USB") if "usb" in dev.lower() or \
+            "libusb" in dev else ""
+        if dev.startswith("airscan:") and ("localhost" in dev.lower() or "usb" in name.lower()):
+            conn = _("USB")
+        kind = " · ".join(x for x in (_(typ.strip().capitalize()) if typ else "", conn) if x)
+        k = name.lower()
+        if k not in best or prio < best[k][0]:
+            best[k] = (prio, {"id": dev, "name": name, "kind": kind})
+    return [v[1] for v in sorted(best.values(), key=lambda v: v[1]["name"].lower())]
+
+
+# ---------------------------------------------------------------- pridat tiskarnu
+
+class AddDialog(Gtk.Dialog):
+    def __init__(self, win):
+        super().__init__(title=_("Add Printer"), transient_for=win, modal=True, use_header_bar=True)
+        self.win = win
+        self.set_default_size(480, 400)
+        box = self.get_content_area()
+        box.set_spacing(8)
+        box.set_border_width(18)
+        head = Gtk.Box(spacing=8)
+        head.pack_start(cls(Gtk.Label(label=_("Printers nearby"), xalign=0), "dev-name"), False, False, 0)
+        self.spin = Gtk.Spinner()
+        head.pack_start(self.spin, False, False, 0)
+        again = Gtk.Button(label=_("Search Again"), relief=Gtk.ReliefStyle.NONE)
+        again.connect("clicked", lambda _b: self.search())
+        head.pack_end(again, False, False, 0)
+        box.pack_start(head, False, False, 0)
+        box.pack_start(cls(Gtk.Label(label=_("Turn the printer on and connect it to the same Wi‑Fi network or with "
+                                             "a USB cable. Most printers are added automatically."),
+                                     xalign=0, wrap=True, max_width_chars=60), "hint"), False, False, 0)
+        sc = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
+        self.list = cls(Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE), "group")
+        self.empty = cls(Gtk.Label(label=_("Looking for printers…"), wrap=True), "empty")
+        self.empty.show()
+        self.list.set_placeholder(self.empty)
+        sc.add(self.list)
+        box.pack_start(sc, True, True, 0)
+        if have("system-config-printer"):
+            adv = Gtk.Button(label=_("Advanced…"), halign=Gtk.Align.START, relief=Gtk.ReliefStyle.NONE)
+            adv.set_tooltip_text(_("Printers that need special setup (LPD, Windows sharing, manual drivers)"))
+            adv.connect("clicked", lambda _b: win.advanced())
+            box.pack_start(adv, False, False, 0)
+        self.show_all()
+        self.search()
+
+    def search(self):
+        for c in self.list.get_children():
+            self.list.remove(c)
+        self.empty.set_text(_("Looking for printers…"))
+        self.spin.start()
+        run_helper(["discover"], self.found)
+
+    def found(self, rc, out, err):
+        self.spin.stop()
+        try:
+            devs = json.loads(out) if rc == 0 else []
+        except ValueError:
+            devs = []
+        if rc != 0:
+            self.empty.set_text(_("Could not search for printers: %s") % (err or rc))
+            return
+        self.empty.set_text(_("No printers found. Make sure the printer is turned on."))
+        for d in devs:
+            r = Gtk.Box(spacing=12)
+            r.pack_start(Gtk.Image.new_from_icon_name("printer", Gtk.IconSize.DND), False, False, 0)
+            t = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+            t.pack_start(cls(Gtk.Label(label=d["name"], xalign=0, ellipsize=Pango.EllipsizeMode.END), "dev-name"),
+                         False, False, 0)
+            sub = _("USB") if d["usb"] else _("Network")
+            if d["model"] and d["model"] != d["name"]:
+                sub = f"{d['model']} · {sub}"
+            t.pack_start(cls(Gtk.Label(label=sub, xalign=0, ellipsize=Pango.EllipsizeMode.END), "dev-sub"),
+                         False, False, 0)
+            r.pack_start(t, True, True, 0)
+            if d["queue"]:
+                r.pack_end(cls(Gtk.Label(label=_("Added")), "dev-sub"), False, False, 0)
+            elif not d["supported"]:
+                r.pack_end(cls(Gtk.Label(label=_("Not supported")), "dev-sub"), False, False, 0)
+            else:
+                b = cls(Gtk.Button(label=_("Add"), valign=Gtk.Align.CENTER), "suggested-action")
+                b.connect("clicked", self.add, d)
+                r.pack_end(b, False, False, 0)
+            self.list.add(r)
+        self.list.show_all()
+
+    def add(self, b, d):
+        b.set_sensitive(False)
+        b.set_label(_("Adding…"))
+
+        def done(rc, out, err):
+            try:
+                q = json.loads(out).get("queue")
+            except ValueError:
+                q = None
+            if rc == 0 and q:
+                self.win.select_key = "p:" + q
+                self.win.refresh()
+                self.destroy()
+            else:
+                b.set_label(_("Add"))
+                b.set_sensitive(True)
+                self.win.error(_("The printer could not be added"),
+                               _("Make sure it is turned on and try again.") + ("\n\n" + err if err else ""))
+        run_helper(["add", d["key"]], done)
+
+
+# ---------------------------------------------------------------- okno
+
+class Window(Gtk.Window):
+    def __init__(self, select_scanner=False, open_add=False):
+        super().__init__(title=_("Printers & Scanners"))
+        self.set_default_size(900, 620)
+        self.set_icon_name("printer")
+        hb = Gtk.HeaderBar(show_close_button=True, title=_("Printers & Scanners"))
+        self.set_titlebar(hb)
+        if have("system-config-printer"):
+            adv = Gtk.Button(label=_("Advanced…"))
+            adv.set_tooltip_text(_("Advanced printer settings for experts"))
+            adv.connect("clicked", lambda _b: self.advanced())
+            hb.pack_end(adv)
+
+        root = Gtk.Box()
+        self.add(root)
+        side = cls(Gtk.Box(orientation=Gtk.Orientation.VERTICAL), "sidebar")
+        side.set_size_request(250, -1)
+        root.pack_start(side, False, False, 0)
+        sc = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
+        self.side = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
+        self.side.set_header_func(self.header_func)
+        self.side.connect("row-selected", self.on_select)
+        sc.add(self.side)
+        side.pack_start(sc, True, True, 0)
+        tb = Gtk.Box(spacing=4, margin=8)
+        add = cls(Gtk.Button.new_from_icon_name("list-add-symbolic", Gtk.IconSize.BUTTON), "toolbar-btn")
+        add.set_tooltip_text(_("Add Printer"))
+        add.connect("clicked", lambda _b: self.add_printer())
+        self.minus = cls(Gtk.Button.new_from_icon_name("list-remove-symbolic", Gtk.IconSize.BUTTON), "toolbar-btn")
+        self.minus.set_tooltip_text(_("Remove Printer"))
+        self.minus.connect("clicked", lambda _b: self.remove_printer(self.selected_printer()))
+        tb.pack_start(add, False, False, 0)
+        tb.pack_start(self.minus, False, False, 0)
+        side.pack_end(tb, False, False, 0)
+        side.pack_end(Gtk.Separator(), False, False, 0)
+
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, hexpand=True)
+        root.pack_start(self.stack, True, True, 0)
+        empty = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, valign=Gtk.Align.CENTER, margin=40)
+        empty.pack_start(Gtk.Image.new_from_icon_name("printer", Gtk.IconSize.DIALOG), False, False, 0)
+        empty.pack_start(cls(Gtk.Label(label=_("No printers yet")), "empty-title"), False, False, 0)
+        empty.pack_start(cls(Gtk.Label(label=_("Turn on your printer and connect it to the same Wi‑Fi network or "
+                                               "with a USB cable. LuxOS sets it up automatically – no drivers, "
+                                               "no questions."), wrap=True, justify=Gtk.Justification.CENTER,
+                                     max_width_chars=48), "hint"), False, False, 0)
+        b = Gtk.Button(label=_("Add Printer…"), halign=Gtk.Align.CENTER, margin_top=8)
+        b.connect("clicked", lambda _b: self.add_printer())
+        empty.pack_start(b, False, False, 0)
+        self.stack.add_named(empty, "empty")
+        self.ppage = PrinterPage(self)
+        self.stack.add_named(self.ppage, "printer")
+        self.spage = ScannerPage(self)
+        self.stack.add_named(self.spage, "scanner")
+
+        self.data = None
+        self.live = {}
+        self.scanners = None
+        self.side_sig = None
+        self.select_key = None
+        self.want_scanner = select_scanner
+        self.refreshing = False
+        self.cups_error = None
+        self.refresh()
+        self.refresh_live()
+        self.refresh_scanners()
+        GLib.timeout_add_seconds(2, self.tick)
+        GLib.timeout_add_seconds(30, self.refresh_live)
+        if open_add:
+            GLib.idle_add(lambda: self.add_printer() and False)
+
+    # -- data
+    def tick(self):
+        if self.get_window() and self.is_visible():
+            self.refresh()
+        return True
+
+    def refresh(self):
+        if self.refreshing:
+            return
+        self.refreshing = True
+
+        def done(res):
+            self.refreshing = False
+            if isinstance(res, Exception):
+                self.cups_error = str(res)
+                self.data = {"printers": {}, "default": None, "jobs": {}, "markers": {}}
+            else:
+                self.cups_error = None
+                self.data = res
+            self.update()
+        in_thread(Cups().snapshot, done)
+
+    def refresh_live(self):
+        if not self.data or cups is None:
+            GLib.timeout_add_seconds(2, lambda: self.refresh_live() and False)
+            return True
+        printers = dict(self.data["printers"])
+
+        def done(res):
+            if not isinstance(res, Exception):
+                self.live = res
+                self.ppage.sig = None
+                self.update()
+        in_thread(lambda: Cups.live(printers), done)
+        return True
+
+    def refresh_scanners(self):
+        def done(res):
+            self.scanners = [] if isinstance(res, Exception) else res
+            if self.want_scanner and self.scanners:
+                self.select_key = "s:" + self.scanners[0]["id"]
+                self.want_scanner = False
+            self.update()
+        in_thread(list_scanners, done)
+
+    # -- postranni panel
+    def header_func(self, row, before):
+        kind = row.key[:1]
+        if before is None or before.key[:1] != kind:
+            title = {"p": _("Printers"), "s": _("Scanners")}.get(kind)
+            row.set_header(cls(Gtk.Label(label=title.upper(), xalign=0), "side-title") if title else None)
+        else:
+            row.set_header(None)
+
+    def update(self):
+        if self.data is None:
+            return
+        rows = []
+        for name, p in sorted(self.data["printers"].items(), key=lambda x: (x[1].get("printer-info") or x[0]).lower()):
+            jobs = [j for j in self.data["jobs"].values()
+                    if (j.get("job-printer-uri") or "").rstrip("/").endswith("/" + name)]
+            text, state = printer_status(p, self.live.get(name), jobs)
+            if self.data["default"] == name:
+                text = _("Default") + " · " + text
+            rows.append(("p:" + name, "printer", p.get("printer-info") or name, text, state))
+        if self.scanners is None:
+            rows.append(("s:?", "scanner", _("Looking for scanners…"), "", None))
+        elif not self.scanners:
+            rows.append(("s:-", "scanner", _("No scanners found"), _("Turn the scanner on"), None))
+        for s in self.scanners or ():
+            rows.append(("s:" + s["id"], "scanner", s["name"], s["kind"], None))
+        sel = self.side.get_selected_row()
+        cur = self.select_key or (sel.key if sel else None)
+        if rows != self.side_sig:
+            self.side_sig = rows
+            for c in self.side.get_children():
+                self.side.remove(c)
+            for key, icon, name, sub, state in rows:
+                r = SideRow(key, icon, name, sub, state)
+                if key in ("s:?", "s:-"):
+                    r.set_selectable(False)
+                    r.set_activatable(False)
+                self.side.add(r)
+            self.side.show_all()
+        keys = [r[0] for r in rows if r[0] not in ("s:?", "s:-")]
+        if cur not in keys:
+            d = "p:" + (self.data["default"] or "")
+            cur = d if d in keys else keys[0] if keys and keys[0].startswith("p:") else None
+        self.select_key = None
+        if cur:
+            for r in self.side.get_children():
+                if r.key == cur and self.side.get_selected_row() is not r:
+                    self.side.select_row(r)
+        self.show_selected()
+
+    def selected_printer(self):
+        r = self.side.get_selected_row()
+        return r.key[2:] if r and r.key.startswith("p:") else None
+
+    def on_select(self, _lb, _row):
+        self.show_selected()
+
+    def show_selected(self):
+        r = self.side.get_selected_row()
+        self.minus.set_sensitive(bool(r and r.key.startswith("p:")))
+        if r and r.key.startswith("p:") and self.data and r.key[2:] in self.data["printers"]:
+            name = r.key[2:]
+            self.ppage.show_printer(name, self.data, self.live.get(name))
+            self.stack.set_visible_child_name("printer")
+        elif r and r.key.startswith("s:") and self.scanners:
+            dev = next((s for s in self.scanners if "s:" + s["id"] == r.key), None)
+            if dev:
+                self.spage.set_device(dev)
+                self.stack.set_visible_child_name("scanner")
+        else:
+            self.stack.set_visible_child_name("empty")
+
+    # -- akce
+    def after_admin(self, rc, err):
+        if rc != 0 and rc != 126:   # 126: uzivatel zavrel dotaz na heslo
+            self.error(_("The change could not be made"), err or "")
+        self.ppage.sig = None
+        self.refresh()
+
+    def cancel_job(self, jid):
+        def work():
+            cups.Connection().cancelJob(jid)
+
+        def done(res):
+            if isinstance(res, Exception):
+                # cizi uloha - zrusi pomocnik s pravy roota
+                run_helper(["cancel", str(jid)], lambda rc, o, e: self.after_admin(rc, e))
+            else:
+                self.refresh()
+        in_thread(work, done)
+
+    def remove_printer(self, name):
+        if not name or not self.data or name not in self.data["printers"]:
+            return
+        label = self.data["printers"][name].get("printer-info") or name
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
+                                buttons=Gtk.ButtonsType.NONE, text=_("Remove “%s”?") % label)
+        dlg.format_secondary_text(_("Apps will no longer print to it. You can add it again later with the + button."))
+        dlg.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        cls(dlg.add_button(_("Remove"), Gtk.ResponseType.OK), "destructive-action")
+        ok = dlg.run() == Gtk.ResponseType.OK
+        dlg.destroy()
+        if ok:
+            run_helper(["remove", name], lambda rc, o, e: self.after_admin(rc, e))
+
+    def add_printer(self):
+        AddDialog(self)
+
+    def advanced(self):
+        try:
+            subprocess.Popen(["system-config-printer"], start_new_session=True)
+        except OSError as e:
+            self.error(_("Could not open advanced settings"), str(e))
+
+    def error(self, title, text):
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.ERROR,
+                                buttons=Gtk.ButtonsType.CLOSE, text=title)
+        dlg.format_secondary_text(text)
+        dlg.run()
+        dlg.destroy()
+
+
+def main():
+    GLib.set_prgname(APP_ID)
+    GLib.set_application_name(_("Printers & Scanners"))
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = Window(select_scanner="--scanner" in sys.argv, open_add="--add" in sys.argv)
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()
