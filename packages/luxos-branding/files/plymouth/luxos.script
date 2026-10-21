@@ -1,22 +1,35 @@
-# LuxOS - boot splash pro Plymouth (styl macOS: cerne pozadi, logo, tenky progress bar)
+# LuxOS - boot splash pro Plymouth (styl macOS: tonovane pozadi, logo se zari, tenky progress bar)
+# Sablona pro vsechny barevne varianty: blok @variant dosazuje make-variants.py (luxos-splash).
 
-Window.SetBackgroundTopColor(0, 0, 0);
-Window.SetBackgroundBottomColor(0, 0, 0);
+# @variant-begin (vychozi hodnoty = modra varianta)
+bg_r = 0.012; bg_g = 0.024; bg_b = 0.059;
+text_r = 1; text_g = 1; text_b = 1;
+# @variant-end
+
+Window.SetBackgroundTopColor(bg_r, bg_g, bg_b);
+Window.SetBackgroundBottomColor(bg_r, bg_g, bg_b);
 
 screen_w = Window.GetWidth();
 screen_h = Window.GetHeight();
 screen_x = Window.GetX();
 screen_y = Window.GetY();
 
-# Logo - velikost podle vysky obrazovky
+# Pozadi varianty (jemny prechod, svetlejsi stred za logem)
+bg.image = Image("background.png");
+bg.sprite = Sprite(bg.image.Scale(screen_w, screen_h));
+bg.sprite.SetPosition(screen_x, screen_y, -100);
+
+# Logo - velikost znacky podle vysky obrazovky; logo.png ma kolem znacky misto na zari
+# (znacka zabira 0.6 sirky obrazku, viz make-variants.py)
 logo_raw = Image("logo.png");
-logo_size = Math.Int(screen_h * 0.13);
+logo_size = Math.Int(screen_h * 0.16);
 if (logo_size < 80) logo_size = 80;
-logo.image = logo_raw.Scale(logo_size, logo_size);
+logo_img_size = Math.Int(logo_size / 0.6);
+logo.image = logo_raw.Scale(logo_img_size, logo_img_size);
 logo.sprite = Sprite(logo.image);
 logo.x = screen_x + screen_w / 2 - logo_size / 2;
 logo.y = screen_y + screen_h / 2 - logo_size / 2 - screen_h * 0.04;
-logo.sprite.SetPosition(logo.x, logo.y, 10);
+logo.sprite.SetPosition(logo.x - (logo_img_size - logo_size) / 2, logo.y - (logo_img_size - logo_size) / 2, 10);
 logo.sprite.SetOpacity(0);
 
 # Progress bar
@@ -106,7 +119,7 @@ fun display_password_cb(prompt_text, bullet_count) {
     entry.sprite.SetOpacity(1);
 
     if (prompt_text == "") prompt_text = "Enter password";
-    prompt.image = Image.Text(prompt_text, 1, 1, 1, 0.85, "Sans 11");
+    prompt.image = Image.Text(prompt_text, text_r, text_g, text_b, 0.85, "Sans 11");
     prompt.sprite.SetImage(prompt.image);
     prompt.sprite.SetPosition(screen_x + screen_w / 2 - prompt.image.GetWidth() / 2, ey + entry.image.GetHeight() + 14, 20);
     prompt.sprite.SetOpacity(1);
@@ -127,7 +140,7 @@ Plymouth.SetDisplayPasswordFunction(display_password_cb);
 # --- Zpravy (napr. chyby fsck) ---------------------------------------------
 message.sprite = Sprite();
 fun message_cb(text) {
-    message.image = Image.Text(text, 1, 1, 1, 0.7, "Sans 10");
+    message.image = Image.Text(text, text_r, text_g, text_b, 0.7, "Sans 10");
     message.sprite.SetImage(message.image);
     message.sprite.SetPosition(screen_x + screen_w / 2 - message.image.GetWidth() / 2, screen_y + screen_h * 0.9, 30);
 }

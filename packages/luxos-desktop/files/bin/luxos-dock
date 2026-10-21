@@ -1,0 +1,18 @@
+#!/bin/bash
+# LuxOS - Dock (Plank) s obnovenim po padu.
+# Plank 0.11 spadne (SIGABRT v Services/Logger.c string_replace) na nekterych varovanich,
+# napr. pri prepnuti svetleho/tmaveho rezimu - Dock by pak zmizel. Normalni ukonceni
+# (rc 0) a zamerne ukonceni (SIGTERM/SIGINT) ho nechaji vypnuty; konec relace X take.
+pgrep -u "$USER" -x plank >/dev/null && exit 0
+crashes=0
+while :; do
+    start=$SECONDS
+    plank "$@"
+    rc=$?
+    ((rc == 0 || rc == 130 || rc == 143)) && break
+    xprop -root _NET_SUPPORTED >/dev/null 2>&1 || break
+    # opakovany pad hned po startu (poskozene nastaveni): po 5 pokusech prestat
+    ((SECONDS - start < 10)) && ((++crashes >= 5)) && break
+    ((SECONDS - start >= 10)) && crashes=0
+    sleep 1
+done

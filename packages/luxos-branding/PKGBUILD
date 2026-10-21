@@ -3,13 +3,13 @@
 
 pkgname=luxos-branding
 pkgver=1.1.0
-pkgrel=3
+pkgrel=4
 pkgdesc="LuxOS branding: logo, wallpapers, Plymouth boot splash and os-release"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
 depends=(plymouth)
-makedepends=(librsvg imagemagick)
+makedepends=(librsvg imagemagick python python-pillow python-numpy)
 
 build() {
     local f="$startdir/files"
@@ -22,9 +22,8 @@ build() {
         rsvg-convert -w 3840 -h 2160 "$f/wallpapers/luxos-$v.svg" -o render/luxos-$v.png
         magick render/luxos-$v.png -quality 94 render/luxos-waves-$v.jpg
     done
-    for p in bar-track bar-fill entry bullet; do
-        rsvg-convert "$f/plymouth/$p.svg" -o render/$p.png
-    done
+    # Boot splash: kazda barevna varianta jako samostatny motiv Plymouth + nahledy pro Nastaveni
+    python3 "$f/plymouth/make-variants.py" "$f/logo/luxos-logo.png" "$f/plymouth/luxos.script" render/plymouth
     rsvg-convert "$f/syslinux/splash.svg" -o render/splash.png
     # Ikony aplikaci LuxOS (512 px zdroj) v beznych velikostech
     local i
@@ -52,7 +51,7 @@ package() {
             install -Dm644 render/icon-$s-"${i##*/}" "$pkgdir/usr/share/icons/hicolor/${s}x$s/apps/${i##*/}"
         done
     done
-    install -Dm644 -t "$pkgdir/usr/share/luxos/logo" "$f"/logo/*.svg render/logo-white.png
+    install -Dm644 -t "$pkgdir/usr/share/luxos/logo" "$f"/logo/*.svg "$f"/logo/luxos-logo.png render/logo-white.png
     install -Dm644 render/splash.png "$pkgdir/usr/share/luxos/syslinux/splash.png"
 
     # Tapety; luxos-dark/light jsou vychozi pro tmavy a svetly rezim (luxos-appearance)
@@ -61,14 +60,17 @@ package() {
     ln -s luxos-twilight.jpg "$pkgdir/usr/share/backgrounds/luxos/luxos-dark.jpg"
     ln -s luxos-sunrise.jpg "$pkgdir/usr/share/backgrounds/luxos/luxos-light.jpg"
 
-    local pt="$pkgdir/usr/share/plymouth/themes/luxos"
-    install -Dm644 -t "$pt" "$f/plymouth/luxos.plymouth" "$f/plymouth/luxos.script"
+    # Motivy Plymouth: luxos (modra, vychozi), luxos-purple, -orange, -green, -light (luxos-splash)
+    local t
+    for t in render/plymouth/luxos*/; do
+        t=${t%/}
+        install -Dm644 -t "$pkgdir/usr/share/plymouth/themes/${t##*/}" "$t"/*
+    done
+    install -Dm644 -t "$pkgdir/usr/share/luxos/splash" render/plymouth/previews/*.png
+    install -Dm755 "$f/plymouth/luxos-splash" "$pkgdir/usr/bin/luxos-splash"
+    install -Dm644 "$f/plymouth/org.luxos.splash.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.splash.policy"
     install -Dm755 "$f/plymouth/luxos-plymouth-finish" "$pkgdir/usr/lib/luxos/luxos-plymouth-finish"
     install -Dm644 "$f/plymouth/lightdm-plymouth.conf" "$pkgdir/usr/lib/systemd/system/lightdm.service.d/luxos-plymouth.conf"
-    install -Dm644 render/logo-white.png "$pt/logo.png"
-    for p in bar-track bar-fill entry bullet; do
-        install -Dm644 render/$p.png "$pt/$p.png"
-    done
 
     install -Dm755 "$f/apply-branding" "$pkgdir/usr/lib/luxos/apply-branding"
     install -Dm644 "$f/10-luxos-branding.hook" "$pkgdir/usr/share/libalpm/hooks/10-luxos-branding.hook"

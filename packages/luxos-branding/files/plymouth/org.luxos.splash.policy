@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>LuxOS</vendor>
+  <action id="org.luxos.splash.set">
+    <description>Change the LuxOS boot screen</description>
+    <description xml:lang="cs">Změna spouštěcí obrazovky LuxOS</description>
+    <message>Authentication is required to change the boot screen</message>
+    <message xml:lang="cs">Změna spouštěcí obrazovky vyžaduje ověření</message>
+    <icon_name>luxos-logo</icon_name>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/luxos-splash</annotate>
+  </action>
+</policyconfig>
