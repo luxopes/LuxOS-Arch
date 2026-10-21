@@ -2,12 +2,13 @@
 
 pkgname=luxos-tweaks
 pkgver=1.0.0
-pkgrel=1
-pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, systemd-oomd"
+pkgrel=2
+pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, low-memory safeguard (earlyoom)"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
-depends=(systemd zram-generator pacman-contrib reflector)
+depends=(systemd zram-generator pacman-contrib reflector earlyoom dbus)
+install=luxos-tweaks.install
 backup=(etc/systemd/zram-generator.conf)
 
 package() {
@@ -19,8 +20,11 @@ package() {
     install -Dm644 "$f/system.conf"          "$pkgdir/usr/lib/systemd/system.conf.d/50-luxos.conf"
     install -Dm644 "$f/user.conf"            "$pkgdir/usr/lib/systemd/user.conf.d/50-luxos.conf"
     install -Dm644 "$f/60-luxos-ioschedulers.rules" "$pkgdir/usr/lib/udev/rules.d/60-luxos-ioschedulers.rules"
-    install -Dm644 "$f/oomd-user.conf"       "$pkgdir/usr/lib/systemd/system/user@.service.d/10-luxos-oomd.conf"
-    install -Dm644 "$f/oomd-root.conf"       "$pkgdir/usr/lib/systemd/system/-.slice.d/10-luxos-oomd.conf"
+    # Pojistka proti nedostatku pameti: earlyoom ukonci jeden proces (systemd-oomd by na Xfce
+    # ukoncil celou relaci), brzda pro aplikace a ochrana grafickeho serveru
+    install -Dm644 "$f/earlyoom.conf"        "$pkgdir/usr/lib/systemd/system/earlyoom.service.d/10-luxos.conf"
+    install -Dm644 "$f/memory-user.conf"     "$pkgdir/usr/lib/systemd/system/user-.slice.d/10-luxos-memory.conf"
+    install -Dm644 "$f/memory-display.conf"  "$pkgdir/usr/lib/systemd/system/lightdm.service.d/10-luxos-memory.conf"
     install -Dm644 "$f/makepkg.conf"         "$pkgdir/etc/makepkg.conf.d/luxos.conf"
     install -Dm644 "$f/services"             "$pkgdir/usr/lib/luxos/services"
 }
