@@ -4,7 +4,7 @@
 
 pkgname=luxai
 pkgver=1.0.0
-pkgrel=2
+pkgrel=3
 pkgdesc="LuxAI - AI assistant that can work with your computer (chat and agent mode)"
 arch=(any)
 url="https://lux-ai.cz"
@@ -15,7 +15,7 @@ optdepends=('libnotify: desktop notifications from the agent'
             'xclip: clipboard fallback outside GTK'
             'grim: screenshots on Wayland')
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('c0971d97aedd8d8389f0c5f2ffc49dfb73f02588dcdad32e829af897b6bdddbb')
+sha256sums=('779d1620b0cfc6691bfca9b48bd58b3d4860ffece73fd6ba893d7ab394303974')
 
 package() {
     cd "$pkgname-$pkgver"
@@ -32,6 +32,10 @@ exec python3 /usr/lib/luxai/luxai/__main__.py "$@"
 SH
     chmod 755 "$pkgdir/usr/bin/luxai"
     install -Dm644 data/luxai.desktop "$pkgdir/usr/share/applications/luxai.desktop"
-    install -Dm644 data/luxai.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxai.svg"
+    install -Dm644 data/luxai.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/luxai.png"
+    local s
+    for s in 256 128 64 48 32 24 16; do
+        install -Dm644 "data/icons/luxai-$s.png" "$pkgdir/usr/share/icons/hicolor/${s}x$s/apps/luxai.png"
+    done
     install -Dm644 README.md "$pkgdir/usr/share/doc/luxai/README.md"
 }
