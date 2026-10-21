@@ -42,8 +42,8 @@ lp_index() {
     mkdir -p "$dir"
     file=$dir/index.json
     if [[ ! -s $file || -n $(find "$file" -mmin +30 2>/dev/null) || ${LUX_REFRESH:-0} == 1 ]]; then
-        if curl -fsSL --max-time 15 -o "$file.new" "$LUX_INDEX_URL/index.json" &&
-           curl -fsSL --max-time 15 -o "$file.new.sig" "$LUX_INDEX_URL/index.json.sig" &&
+        if curl -fsSL --connect-timeout 5 --max-time 15 -o "$file.new" "$LUX_INDEX_URL/index.json" &&
+           curl -fsSL --connect-timeout 5 --max-time 15 -o "$file.new.sig" "$LUX_INDEX_URL/index.json.sig" &&
            lp_verify "$file.new" "$file.new.sig"; then
             mv "$file.new" "$file"
         else

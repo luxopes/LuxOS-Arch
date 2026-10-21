@@ -1,0 +1,13 @@
+// LuxOS Care: aktivni mistni spravce (wheel) smi bez hesla spustit jen tyto jednotky.
+// Co se pak provede, rozhoduje root sam (luxos_care.py) - volba LuxAI je jen cislo
+// moznosti, kterou root predem pripravil a pri spusteni znovu overi.
+polkit.addRule(function(action, subject) {
+    if (action.id != "org.freedesktop.systemd1.manage-units" || !subject.local || !subject.active ||
+        !subject.isInGroup("wheel") || action.lookup("verb") != "start")
+        return polkit.Result.NOT_HANDLED;
+    var unit = action.lookup("unit");
+    if (unit == "luxos-care-update-now.service" || unit == "luxos-care-check-now.service" ||
+        /^luxos-care-apply@[0-9a-f]{12}-[0-9]{1,2}\.service$/.test(unit))
+        return polkit.Result.YES;
+    return polkit.Result.NOT_HANDLED;
+});

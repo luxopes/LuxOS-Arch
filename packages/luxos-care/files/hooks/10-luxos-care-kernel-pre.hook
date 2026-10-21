@@ -1,0 +1,12 @@
+# LuxOS Care: odebirane jadro, se kterym system naposled nabehl, si nechat jako zalozni.
+# Bezi pred 60-mkinitcpio-remove a 70-dkms-upgrade (moduly DKMS se zachovaji taky).
+[Trigger]
+Type = Path
+Operation = Remove
+Target = usr/lib/modules/*/vmlinuz
+
+[Action]
+Description = Keeping the previous kernel as a fallback...
+When = PreTransaction
+Exec = /usr/bin/luxos-care kernel-pre
+NeedsTargets

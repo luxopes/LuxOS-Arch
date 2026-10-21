@@ -1,0 +1,15 @@
+# LuxOS Care: zalozni jadro do zavadece ("LuxOS (previous kernel)"), nove jadro na 3 pokusy.
+# Bezi po 90-mkinitcpio-install a 70-dkms-install, pred 99-luxos-esp-sync.
+[Trigger]
+Type = Path
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Target = usr/lib/modules/*/vmlinuz
+Target = usr/src/*/dkms.conf
+
+[Action]
+Description = Updating the previous kernel boot entry...
+When = PostTransaction
+Exec = /usr/bin/luxos-care kernel-post
+NeedsTargets

@@ -84,3 +84,22 @@ menu > separator {
     background-color: alpha(black, 0.30);
     color: white;
 }
+
+/* Plocha (xfdesktop): popisky ikon citelne na svetle i tmave tapete.
+   Najeti mysi = tmavy pruhledny podklad (vychozi svetly podklad s bilym textem byl necitelny). */
+XfdesktopIconView.view {
+    color: #ffffff;
+    text-shadow: 0 1px 3px alpha(black, 0.75);
+}
+XfdesktopIconView.view.cell:hover {
+    background-color: alpha(black, 0.30);
+    color: #ffffff;
+    border-radius: 6px;
+}
+XfdesktopIconView.view.cell:selected,
+XfdesktopIconView.view.cell:selected:hover {
+    background-color: #2f6fed;
+    color: #ffffff;
+    text-shadow: none;
+    border-radius: 6px;
+}

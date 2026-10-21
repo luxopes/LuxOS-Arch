@@ -6,7 +6,7 @@
 
 pkgname=lux-code
 pkgver=0.1.2
-pkgrel=1
+pkgrel=2
 _lslver=0.10.2
 pkgdesc="Lux Code - LuxAI terminal coding agent written in LSL (uses the LuxOS LuxAI account)"
 arch=(x86_64)
@@ -24,7 +24,7 @@ optdepends=('luxos-account: shared LuxAI account login (luxos-account login)'
 options=(!strip !debug)
 source=("$pkgname-$pkgver.tar.gz"
         "https://lsl.lux-ai.cz/downloads/lsl-$_lslver-linux-x86_64.tar.gz")
-sha256sums=('1fd981603b48c76085c69b88caef8b53ef1f6c3cb0aef19e1101cbbc58aca85a'
+sha256sums=('02ebd5891b9d9fa2d05fabe21e81042254fd2b09b39b8effd0208ac06e4c7291'
             '387993aae033ace1d77b035e3682e7ba0c12d11a1a8c8be4a9d8737843eaa1fb')
 
 build() {

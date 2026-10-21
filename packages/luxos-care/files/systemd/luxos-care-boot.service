@@ -1,0 +1,18 @@
+[Unit]
+Description=LuxOS Care: confirm that the system started correctly
+Documentation=https://systemd.io/AUTOMATIC_BOOT_ASSESSMENT/
+# Uspech -> boot-complete.target -> systemd-bless-boot oznaci polozku zavadece za dobrou.
+# Neuspech (napr. graficke prihlaseni nenabehlo) -> po 3 pokusech zavadec pouzije zalozni jadro.
+After=graphical.target multi-user.target display-manager.service
+Before=boot-complete.target
+ConditionPathExists=!/run/archiso
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/luxos-care boot-check
+TimeoutStartSec=30min
+
+[Install]
+WantedBy=graphical.target
+RequiredBy=boot-complete.target

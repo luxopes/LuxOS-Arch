@@ -1,0 +1,22 @@
+# LuxOS Care: sluzby zapnout hned pri instalaci (i v chrootu instalatoru); v live ISO
+# je nespusti ConditionPathExists=!/run/archiso.
+# shellcheck disable=SC2086  # seznam jednotek se zamerne rozdeli na slova
+_units="luxos-care-update.timer luxos-care-check.timer luxos-care-boot.service"
+
+post_install() {
+    systemctl enable $_units >/dev/null 2>&1 || true
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload >/dev/null 2>&1 || true
+        systemctl start luxos-care-update.timer luxos-care-check.timer >/dev/null 2>&1 || true
+    fi
+}
+
+post_upgrade() {
+    # Nove jednotky i u starsich instalaci (enable je idempotentni)
+    systemctl enable $_units >/dev/null 2>&1 || true
+}
+
+pre_remove() {
+    systemctl disable --now luxos-care-update.timer luxos-care-check.timer >/dev/null 2>&1 || true
+    systemctl disable luxos-care-boot.service >/dev/null 2>&1 || true
+}

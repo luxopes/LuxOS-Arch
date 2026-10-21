@@ -5,8 +5,11 @@ bleopt char_width_version=16.0
 # Pri zmene velikosti okna terminal text sam preskladne - prekreslit vyzvu na puvodni misto
 bleopt canvas_winch_action=redraw-prev
 bleopt complete_auto_delay=80
-bleopt exec_errexit_mark=
-bleopt exec_elapsed_mark=
+# Delka behu a chybovy kod na samostatnem radku nad vyzvou (ne uvnitr vyzvy):
+# ⏱ 1m4s prikaz / ✘ 1 - delka jen u prikazu nad 5 s, %.0s schova vytizeni CPU
+bleopt exec_errexit_mark=$'\e[38;5;203m✘ %d\e[m'
+bleopt exec_elapsed_mark=$'\e[2m⏱ %s%.0s\e[m'
+bleopt exec_elapsed_enabled='real>=5000'
 bleopt edit_abell=
 bleopt prompt_eol_mark=''
 ble-face -s auto_complete fg=244

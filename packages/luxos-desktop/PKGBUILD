@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=11
+pkgrel=12
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
@@ -111,6 +111,8 @@ package() {
     # Firefox: hardwarove dekodovani videa, uvolnovani panelu pri nedostatku pameti
     install -Dm644 "$f/firefox/luxos.js" "$pkgdir/usr/lib/firefox/defaults/pref/luxos.js"
 
+    install -Dm644 "$f/networkmanager/30-luxos-connectivity.conf" \
+        "$pkgdir/usr/lib/NetworkManager/conf.d/30-luxos-connectivity.conf"
     install -Dm644 "$f/xorg/30-luxos-touchpad.conf" "$pkgdir/etc/X11/xorg.conf.d/30-luxos-touchpad.conf"
 
     install -Dm644 "$f/fontconfig/60-luxos.conf" "$pkgdir/usr/share/fontconfig/conf.avail/60-luxos.conf"

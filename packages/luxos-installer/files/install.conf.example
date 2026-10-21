@@ -18,6 +18,8 @@ FULLNAME="Lux User"
 PASSWORD=luxos
 HOSTNAME_SEL=luxos
 AUTOLOGIN=0
+CARE_MODE=carefree     # carefree = automaticke aktualizace na pozadi, zalozni jadro, samoopravy (LuxAI Flash)
+                       # classic = bez automatickych aktualizaci a oprav (pro IT profesionaly), jen upozorneni
 # Nepovinne: jazyk vystupu instalatoru (napr. cs_CZ.UTF-8)
 UI_LANG=
 # Nepovinne: prihlaseni k uctu LuxAI (AI v LuxAI, Lux Code, LSL IDE)

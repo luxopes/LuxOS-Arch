@@ -1000,3 +1000,164 @@ Allow “%s” to pair with this computer?	Povolit spárování zařízení „%
 Allow “%s” to connect?	Povolit připojení zařízení „%s“?
 Only allow devices you know.	Povolujte jen zařízení, která znáte.
 Allow	Povolit
+# LuxOS 2026-10-21: lux, Store, upozorneni na internet
+Sign in to the network to use the internet (click to open the sign-in page)	Pro internet se přihlaste do sítě (kliknutím otevřete přihlašovací stránku)
+Connected to the network, but the internet is not available	Připojeno k síti, ale internet není dostupný
+Sign in to the network to use the internet.	Pro použití internetu se přihlaste do sítě.
+You are connected to the network, but the internet is not available.	Jste připojeni k síti, ale internet není dostupný.
+Server %s is not responding, trying another one…	Server %s neodpovídá, zkouším jiný…
+Download failed, trying again (%s/3)…	Stahování selhalo, zkouším znovu (%s/3)…
+Some packages could not be downloaded. Check your internet connection and try again.	Některé balíčky se nepodařilo stáhnout. Zkontrolujte připojení k internetu a zkuste to znovu.
+Installed: %s	Nainstalováno: %s
+Downloading %d of %d…	Stahuji %d z %d…
+The connection is slow, trying another server…	Připojení je pomalé, zkouším jiný server…
+Download failed, trying again (attempt %s)…	Stahování selhalo, zkouším znovu (pokus %s)…
+The internet connection is too slow or unavailable. Try it again later.	Připojení k internetu je příliš pomalé nebo nedostupné. Zkuste to později.
+unknown error	neznámá chyba
+Looking for the fastest download servers…	Hledám nejrychlejší servery pro stahování…
+Using %s fast download servers near you.	Používám %s rychlých serverů ve vašem okolí.
+Using the default download servers.	Používám výchozí servery pro stahování.
+The server %s is slow, trying another one…	Server %s je pomalý, zkouším jiný…
+The server %s is not responding, trying another one…	Server %s neodpovídá, zkouším jiný…
+Downloading from %s failed, trying another one…	Stahování ze serveru %s selhalo, zkouším jiný…
+The server %s has too many problems, skipping it.	Server %s má příliš mnoho problémů, přeskakuji ho.
+Some files could not be downloaded.	Některé soubory se nepodařilo stáhnout.
+Downloading the packages did not finish.	Stahování balíčků se nedokončilo.
+The package lists could not be downloaded.	Seznamy balíčků se nepodařilo stáhnout.
+about %s min left	zbývá asi %s min
+Downloaded %s of %s	Staženo %s z %s
+Your internet connection is very slow - the installation will take longer. It has not stopped.	Vaše připojení k internetu je velmi pomalé – instalace potrvá déle. Nezastavila se.
+Waiting for the internet connection…	Čekám na připojení k internetu…
+Maintenance	Údržba
+Carefree: updates install automatically in the background (not on metered networks, with Data Saver or on low battery), a previous kernel is kept to fall back on and LuxOS repairs itself.	Bezstarostná: aktualizace se instalují automaticky na pozadí (ne na měřených sítích, při Úspoře dat ani při slabé baterii), předchozí jádro zůstává jako záloha a LuxOS se sám opravuje.
+Classic (for IT professionals): no automatic updates or repairs, standard Arch behaviour; you only get notified about available updates.	Klasická (pro IT profesionály): žádné automatické aktualizace ani opravy, standardní chování Arch Linuxu; dostanete jen upozornění na dostupné aktualizace.
+Carefree (recommended)	Bezstarostná (doporučeno)
+Classic (for IT professionals)	Klasická (pro IT profesionály)
+How should LuxOS be maintained?	Jak se má o LuxOS pečovat?
+Carefree - automatic updates and repairs	Bezstarostná – automatické aktualizace a opravy
+Classic - you manage the system yourself	Klasická – systém spravujete sami
+Invalid CARE_MODE (use carefree or classic)	Neplatný CARE_MODE (použijte carefree nebo classic)
+Carefree	Bezstarostná
+Updates install automatically in the background - not on metered networks, with Data Saver on or on low battery.	Aktualizace se instalují automaticky na pozadí – ne na měřených sítích, se zapnutou Úsporou dat ani při slabé baterii.
+A previous kernel is kept, so the computer always has a working version to start.	Předchozí jádro zůstává uložené, takže počítač má vždy funkční verzi, ze které nastartuje.
+LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash.	LuxOS se opravuje sám. Vážné problémy diagnostikuje LuxAI Flash.
+No automatic updates or repairs - standard Arch Linux behaviour.	Žádné automatické aktualizace ani opravy – standardní chování Arch Linuxu.
+You manage the system yourself with lux or pacman.	Systém spravujete sami pomocí lux nebo pacman.
+You only get a notification when updates are available.	Jen dostanete upozornění, když jsou k dispozici aktualizace.
+Choose whether LuxOS takes care of itself, or whether you want full control.	Vyberte, jestli se LuxOS má starat sám o sebe, nebo chcete mít plnou kontrolu.
+Downloading %s of %s	Stahuji %s z %s
+waiting for data	čekám na data
+The connection is not responding right now	Připojení teď neodpovídá
+The installation has not stopped. LuxOS keeps trying other servers and continues as soon as data arrives again.	Instalace se nezastavila. LuxOS zkouší další servery a pokračuje, jakmile začnou znovu přicházet data.
+Your internet connection is very slow	Vaše připojení k internetu je velmi pomalé
+The installation will take longer. It has not stopped.	Instalace potrvá déle. Nezastavila se.
+The time depends on your internet connection. You can keep using the computer.	Doba instalace závisí na vašem připojení k internetu. Počítač můžete mezitím dál používat.
+less than a minute left	zbývá méně než minuta
+%s min	%s min
+%s h %s min	%s h %s min
+# luxos-care (Aktualizace softwaru, LuxOS Care)
+never	nikdy
+just now	právě teď
+%d min ago	před %d min
+today at %s	dnes v %s
+Update failed	Aktualizace selhala
+chosen by LuxAI Flash	vybral LuxAI Flash
+built-in rule	vestavěné pravidlo
+The previous kernel could not be prepared	Předchozí jádro se nepodařilo připravit
+A start did not finish correctly	Spuštění systému neproběhlo správně
+Boot menu: LuxOS (previous kernel)	Nabídka zavaděče: LuxOS (předchozí jádro)
+Mode changed to Carefree	Režim změněn na Bezstarostný
+Mode changed to Classic	Režim změněn na Klasický
+Update Now	Aktualizovat
+When updates are installed	Kdy se instalují aktualizace
+Classic	Klasická
+LuxOS installs updates and repairs itself. It waits for an unmetered connection and enough battery, and keeps the previous kernel as a fallback.	LuxOS sám instaluje aktualizace a opravuje se. Počká na neměřené připojení a dostatek baterie a předchozí jádro si nechá jako zálohu.
+LuxOS only checks and tells you about updates and problems. You decide when to update.	LuxOS jen kontroluje a upozorní vás na aktualizace a problémy. Kdy aktualizovat, rozhodujete vy.
+Available updates	Dostupné aktualizace
+System health	Stav systému
+Check for Problems Now	Zkontrolovat problémy
+Repair and update history	Historie oprav a aktualizací
+Updating LuxOS…	Aktualizace LuxOS…
+Last update: %s	Poslední aktualizace: %s
+Last check: %s	Poslední kontrola: %s
+No updates are waiting.	Žádné aktualizace nečekají.
+LuxOS checks for updates automatically.	LuxOS kontroluje aktualizace automaticky.
+Your settings were kept. Compare the files with pacdiff when convenient.	Vaše nastavení zůstalo zachované. Soubory můžete porovnat příkazem pacdiff, až se vám to bude hodit.
+No problems found	Žádné problémy
+Previous kernel	Předchozí jádro
+After the next kernel update the current kernel stays available as a fallback.	Po příští aktualizaci jádra zůstane současné jádro k dispozici jako záloha.
+Nothing yet	Zatím nic
+Updates and repairs will be listed here.	Zde se zobrazí aktualizace a opravy.
+Audit log	Záznam činnosti
+Downloading… %s of %s	Stahování… %s z %s
+Do not turn off the computer.	Nevypínejte počítač.
+The system service is not available.	Systémová služba není dostupná.
+Updated %d packages	Aktualizováno balíčků: %d
+including the kernel	včetně jádra
+Released the kept kernel %s for reinstallation	Uvolněno zachované jádro %s kvůli nové instalaci
+Kept the previous kernel %s	Předchozí jádro %s ponecháno jako záloha
+Restart to finish the update	Restartujte pro dokončení aktualizace
+New configuration file to review: %s	Nový konfigurační soubor ke kontrole: %s
+Switch to Carefree to repair it automatically.	Pro automatickou opravu přepněte na režim Bezstarostná.
+If a new kernel fails to start, LuxOS starts this one automatically.	Když nové jádro nenaběhne, LuxOS automaticky spustí toto.
+If a new kernel fails to start, choose “LuxOS (previous kernel)” in the boot menu.	Když nové jádro nenaběhne, zvolte v nabídce zavaděče „LuxOS (previous kernel)“.
+Show Full Log…	Zobrazit celý záznam…
+Installing %s (%d of %d)	Instalace %s (%d z %d)
+Working…	Probíhá…
+waiting for an unmetered connection (Data Saver)	čeká na neměřené připojení (Spořič dat)
+waiting for the charger or more battery	čeká na nabíječku nebo víc baterie
+waiting for the internet connection	čeká na připojení k internetu
+Automatic update is %s.	Automatická aktualizace %s.
+and %d more	a dalších %d
+Waiting for LuxAI Flash	Čeká na LuxAI Flash
+The repair did not help	Oprava nepomohla
+Previous kernel %s is kept as a fallback	Předchozí jádro %s je připravené jako záloha
+The previous kernel %s could not be prepared	Předchozí jádro %s se nepodařilo připravit
+Could not start: %s	Nelze spustit: %s
+%d updates available	Dostupné aktualizace: %d
+Updates could not be installed	Aktualizace se nepodařilo nainstalovat
+LuxOS is up to date	LuxOS je aktuální
+Updating signing keys…	Aktualizace podpisových klíčů…
+Downloading…	Stahování…
+Installing…	Instalace…
+Finishing…	Dokončování…
+The boot partition is full.	Zaváděcí oddíl je plný.
+LuxOS was updated	LuxOS byl aktualizován
+Updates are available	Jsou dostupné aktualizace
+LuxOS will try again later.	LuxOS to později zkusí znovu.
+Update postponed	Aktualizace odložena
+LuxOS fixed a problem	LuxOS opravil problém
+LuxOS found a problem	LuxOS našel problém
+Restart to finish the kernel update	Restartujte pro dokončení aktualizace jádra
+LuxOS installed a new kernel. Restart when it suits you.	LuxOS nainstaloval nové jádro. Restartujte, až se vám to bude hodit.
+%d packages were updated.	Aktualizováno balíčků: %d.
+%d updates are ready to install.	Aktualizace připravené k instalaci: %d.
+The repair was chosen by LuxAI Flash.	Opravu vybral LuxAI Flash.
+No internet connection.	Bez připojení k internetu.
+The connection is metered (Data Saver).	Připojení je měřené (Spořič dat).
+The battery is low - connect the charger.	Baterie je slabá – připojte nabíječku.
+Sign in to LuxAI to let LuxOS fix unknown problems.	Přihlaste se k LuxAI a LuxOS bude umět opravit i neznámé problémy.
+This command must be run as root.	Tento příkaz musí spustit root.
+Mode: %s	Režim: %s
+Previous kernel: %s	Předchozí jádro: %s
+The package manager was left locked	Správce balíčků zůstal zamčený
+A system update was interrupted	Aktualizace systému byla přerušena
+The kernel boot files are missing	Chybí zaváděcí soubory jádra
+A driver module (DKMS) is not built for the kernel	Modul ovladače (DKMS) není sestavený pro jádro
+The newest kernel did not start, LuxOS used the previous one	Nejnovější jádro nenaběhlo, LuxOS použil předchozí
+The disk is almost full	Disk je téměř plný
+The file system reported errors - back up your data	Souborový systém hlásí chyby – zálohujte svá data
+System updates keep failing	Aktualizace systému opakovaně selhávají
+A system service failed: %s	Selhala systémová služba: %s
+Removed a stale package manager lock	Odstraněn opuštěný zámek správce balíčků
+Released the kept kernel for reinstallation	Zachované jádro uvolněno kvůli nové instalaci
+Finished an interrupted update	Dokončena přerušená aktualizace
+Refreshed the package signing keys	Obnoveny podpisové klíče balíčků
+Rebuilt the kernel boot files	Znovu vytvořeny zaváděcí soubory jádra
+Rebuilt driver modules	Znovu sestaveny moduly ovladačů
+Reinstalled a package	Přeinstalován balíček
+Restarted a service	Restartována služba
+Freed disk space	Uvolněno místo na disku
+Will try the newest kernel again	Nejnovější jádro se zkusí znovu
+Will start the previous kernel	Spustí se předchozí jádro
+Only reported the problem	Problém jen nahlášen

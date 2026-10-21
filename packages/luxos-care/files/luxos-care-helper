@@ -1,0 +1,9 @@
+#!/bin/bash
+# LuxOS Care - zmena rezimu z aplikace (pkexec, viz org.luxos.care.policy)
+#   luxos-care-helper set-mode carefree|classic
+set -euo pipefail
+case ${1-}:${2-} in
+    set-mode:carefree|set-mode:classic) exec /usr/bin/luxos-care mode "$2" ;;
+esac
+echo "usage: luxos-care-helper set-mode carefree|classic" >&2
+exit 2

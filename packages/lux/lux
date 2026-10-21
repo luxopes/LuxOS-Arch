@@ -48,6 +48,53 @@ ask() {  # ask "Otazka" [Y|n] -> 0 = ano
 as_root() { if ((EUID == 0)); then "$@"; else sudo "$@"; fi; }
 pac_yes() { ((YES)) && echo --noconfirm; }
 
+# Chyby site od pacmanu citelne: "failed retrieving file X from Y" -> jedna kratka radka
+pac_net_filter() {  # pac_net_filter ZNACKA_SOUBOR (do souboru zapise "net", kdyz selhalo stahovani)
+    local line host seen=""
+    while IFS= read -r line; do
+        # anglicky i cesky vystup pacmanu ("failed retrieving file 'X' from H" / "selhalo ziskani souboru 'X' z H")
+        if [[ $line =~ (failed\ retrieving\ file|selhalo\ získání\ souboru)\ \'([^\']+)\'\ (from|z)\ ([^ :]+) ]]; then
+            host=${BASH_REMATCH[4]}
+            [[ " $seen " == *" $host "* ]] ||
+                printf '%s  ↻ %s%s\n' "$D" "$(T "Server %s is not responding, trying another one…" "$host")" "$R" >&2
+            seen+=" $host"
+            echo net >"$1"
+        elif [[ $line == *"too many errors from"* || $line == *"failed to retrieve some files"* ||
+                $line == *"příliš mnoho chyb"* || $line == *"získání některých souborů"* ]]; then
+            echo net >"$1"
+        elif [[ ($line == *"failed to commit transaction"* || $line == *"selhalo provádění transakce"* ||
+                 $line == *"žádné balíčky nebyly"* || $line == *"no packages were"*) && -s $1 ]]; then
+            :
+        else
+            printf '%s\n' "$line" >&2
+        fi
+    done
+}
+
+# pacman s opakovanim pri vypadku site (az 3 pokusy); prubeh stahovani zustava na terminalu
+pac_run() {
+    local attempt rc=0 mark extra=()
+    mark=$(mktemp)
+    for attempt in 1 2 3; do
+        : >"$mark"
+        if ((attempt > 1)); then
+            printf '\n%s↻%s %s\n' "$Y" "$R" "$(T "Download failed, trying again (%s/3)…" "$attempt")"
+            extra=(--noconfirm)      # souhlas uz padl pri prvnim pokusu
+            sleep 2
+        fi
+        as_root pacman "$@" "${extra[@]}" 2> >(pac_net_filter "$mark")
+        rc=$?
+        wait $! 2>/dev/null
+        ((rc == 0)) && break
+        [[ -s $mark ]] || break      # jina chyba nez sit (konflikt, zruseno...) - neopakovat
+    done
+    if ((rc != 0)) && [[ -s $mark ]]; then
+        printf '%s✗%s %s\n' "$E" "$R" "$(T "Some packages could not be downloaded. Check your internet connection and try again.")" >&2
+    fi
+    rm -f "$mark"
+    return "$rc"
+}
+
 # --- Pomocne funkce pro repozitare ------------------------------------------
 in_repos()   { pacman -Sp --print-format '%n' -- "$1" &>/dev/null || pacman -Sg -- "$1" &>/dev/null; }
 installed()  { pacman -T -- "$1" &>/dev/null; }
@@ -148,7 +195,8 @@ cmd_install() {
         fi
     done
     if ((${#repo[@]})); then
-        as_root pacman -S --needed $(pac_yes) "${repo[@]}" || exit 1
+        pac_run -S --needed $(pac_yes) "${repo[@]}" || exit 1
+        ok "$(T "Installed: %s" "${repo[*]}")"
     fi
     for p in "${luxp[@]}"; do
         as_root "$0" __lux-install "$p" || exit 1
@@ -170,13 +218,13 @@ cmd_remove() {
 
 cmd_update() {
     say "$(T "Refreshing package databases")"
-    as_root pacman -Sy || exit 1
+    pac_run -Sy || exit 1
     # Nejdrive klice - nejcastejsi pricina selhani aktualizaci v Archu
     if pacman -Qu archlinux-keyring &>/dev/null; then
-        as_root pacman -S --needed --noconfirm archlinux-keyring || exit 1
+        pac_run -S --needed --noconfirm archlinux-keyring || exit 1
     fi
     say "$(T "Updating system packages")"
-    as_root pacman -Su $(pac_yes) || exit 1
+    pac_run -Su $(pac_yes) || exit 1
 
     if ((AUR)) && [[ $ONLY != repo ]] && command -v jq &>/dev/null && ((EUID != 0)); then
         local -a foreign=() outdated=()

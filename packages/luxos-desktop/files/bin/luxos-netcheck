@@ -1,0 +1,35 @@
+#!/bin/bash
+# LuxOS - upozorneni "!" v horni liste: pripojeno k siti, ale internet neni dostupny (jako v Androidu)
+#   luxos-netcheck          vystup pro plugin genmon (prazdny, kdyz je vse v poradku)
+#   luxos-netcheck click    klik na ikonu: prihlasovaci stranka site, nebo Ovladaci centrum
+# Obnovu pluginu pri zmene site posila luxos-daemon (bez pravidelneho dotazovani).
+. /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
+
+state() {  # full | limited | portal | none | unknown | offline
+    local conn st
+    IFS=: read -r conn st < <(nmcli -t -f CONNECTIVITY,STATE general 2>/dev/null)
+    case $st in
+        connected*) echo "${conn:-unknown}" ;;
+        *) echo offline ;;
+    esac
+}
+
+case ${1:-panel} in
+    panel)
+        case $(state) in
+            portal)
+                printf '<icon>luxos-network-no-internet-symbolic</icon><tool>%s</tool><iconclick>luxos-netcheck click</iconclick>\n' \
+                    "$(T "Sign in to the network to use the internet (click to open the sign-in page)")" ;;
+            limited|none)
+                printf '<icon>luxos-network-no-internet-symbolic</icon><tool>%s</tool><iconclick>luxos-netcheck click</iconclick>\n' \
+                    "$(T "Connected to the network, but the internet is not available")" ;;
+            *) printf '<txt></txt>\n' ;;
+        esac ;;
+    click)
+        if [[ $(state) == portal ]]; then
+            # Prihlasovaci stranka verejne Wi-Fi se ukaze misto teto adresy
+            exec xdg-open "http://ping.archlinux.org/"
+        fi
+        exec luxos-cc-toggle ;;
+    *) echo "usage: luxos-netcheck [panel|click]" >&2; exit 2 ;;
+esac

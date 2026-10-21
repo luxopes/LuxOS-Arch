@@ -9,6 +9,7 @@ driv obstaravaly samostatne smycky:
   SIGUSR2           prepne Kalendar (luxos-calendar-toggle)
   Trezor            zamkne pri zamceni obrazovky a pred uspanim (luxos-safe)
   Sporic dat        nove pripojena sit se hned oznaci jako merena
+  Internet          "!" v liste a upozorneni, kdyz je sit bez internetu (luxos-netcheck)
   Bluetooth         agent pro parovani z telefonu a sluchatek (misto blueman-applet)
   Svetly/tmavy      automaticky rezim podle vychodu a zapadu slunce
 
@@ -86,6 +87,102 @@ def debounce(ms, fn):
             GLib.source_remove(state["id"])
         state["id"] = GLib.timeout_add(ms, fire)
     return trigger
+
+
+# ---- Internet nedostupny: "!" v liste (luxos-netcheck) a jedno upozorneni ------------------
+NM_CONNECTIVITY_FULL = 4
+
+
+def panel_xfconf(*args):
+    try:
+        r = subprocess.run(("xfconf-query", "-c", "xfce4-panel") + args, capture_output=True, text=True, timeout=5)
+        return r.stdout.strip() if r.returncode == 0 else None
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def netcheck_plugin():
+    """Id pluginu genmon s luxos-netcheck; starsim profilum ho jednou prida vedle ikon (systray)."""
+    props = panel_xfconf("-l", "-p", "/plugins") or ""
+    for prop in props.splitlines():
+        if prop.endswith("/command") and (panel_xfconf("-p", prop) or "").startswith("luxos-netcheck"):
+            return prop.split("/")[2].split("-")[1]
+    mark = os.path.join(CFG, "netcheck-added")
+    if os.path.exists(mark):
+        return None                     # uzivatel ho z listy odebral
+    ids = [int(p.split("-")[1]) for p in props.splitlines() if p.count("/") == 2 and p.startswith("/plugins/plugin-")]
+    tray = next((p.split("-")[1] for p in props.splitlines()
+                 if p.count("/") == 2 and panel_xfconf("-p", p) == "systray"), None)
+    if not ids or tray is None:
+        return None
+    new = max(ids) + 1
+    for panel in (panel_xfconf("-l", "-p", "/panels") or "").splitlines():
+        if not panel.endswith("/plugin-ids"):
+            continue
+        order = (panel_xfconf("-p", panel) or "").split()
+        order = [v for v in order if v.isdigit()]
+        if tray not in order:
+            continue
+        order.insert(order.index(tray) + 1, str(new))
+        base = f"/plugins/plugin-{new}"
+        panel_xfconf("-p", base, "-n", "-t", "string", "-s", "genmon")
+        panel_xfconf("-p", base + "/command", "-n", "-t", "string", "-s", "luxos-netcheck")
+        panel_xfconf("-p", base + "/update-period", "-n", "-t", "int", "-s", "86400000")
+        panel_xfconf("-p", base + "/use-label", "-n", "-t", "bool", "-s", "false")
+        panel_xfconf("-p", base + "/enable-single-row", "-n", "-t", "bool", "-s", "true")
+        args = ["-p", panel, "--force-array"]
+        for v in order:
+            args += ["-t", "int", "-s", v]
+        panel_xfconf(*args)
+        open(mark, "w").close()
+        spawn("xfce4-panel", "-r")
+        return str(new)
+    return None
+
+
+def watch_connectivity(system):
+    state = {"plugin": None, "last": None}
+    session = Gio.bus_get_sync(Gio.BusType.SESSION)
+
+    def connectivity():
+        try:
+            r = system.call_sync("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
+                                 "org.freedesktop.DBus.Properties", "Get",
+                                 GLib.Variant("(ss)", ("org.freedesktop.NetworkManager", "Connectivity")),
+                                 None, 0, 3000, None)
+            return r.unpack()[0]
+        except GLib.Error:
+            return None
+
+    def update():
+        if state["plugin"] is None:
+            state["plugin"] = netcheck_plugin()
+        if state["plugin"]:
+            try:
+                session.call_sync("org.xfce.Panel", "/org/xfce/Panel", "org.xfce.Panel", "PluginEvent",
+                                  GLib.Variant("(ssv)", (f"genmon-{state['plugin']}", "refresh", GLib.Variant("b", True))),
+                                  None, 0, 2000, None)
+            except GLib.Error:
+                pass
+        c = connectivity()
+        # 2 = prihlaseni do site (portal), 3 = bez internetu; jedno upozorneni na kazdou zmenu
+        if c in (2, 3) and state["last"] not in (2, 3):
+            spawn("notify-send", "-a", "LuxOS", "-i", "luxos-network-no-internet-symbolic",
+                  _("No internet connection"),
+                  _("Sign in to the network to use the internet.") if c == 2
+                  else _("You are connected to the network, but the internet is not available."))
+        state["last"] = c
+        return False
+
+    refresh = debounce(1000, update)
+    GLib.timeout_add_seconds(8, update)     # po prihlaseni (panel uz bezi)
+
+    def on_props(_c, _s, _p, _i, _sig, params):
+        iface, changed, _inv = params.unpack()
+        if iface == "org.freedesktop.NetworkManager" and ("Connectivity" in changed or "State" in changed):
+            refresh()
+    system.signal_subscribe("org.freedesktop.NetworkManager", "org.freedesktop.DBus.Properties",
+                            "PropertiesChanged", "/org/freedesktop/NetworkManager", None, 0, on_props)
 
 
 # ---- Sporic dat: merene pripojeni i pro nove pripojene site ---------------------------
@@ -237,9 +334,18 @@ def main():
         except Exception as e:  # noqa: BLE001
             log(f"safe: {e}")
 
+    # LuxOS Care (balik luxos-care): upozorneni na aktualizace a opravy, volba opravy pres LuxAI
+    care_mod = load("luxos_care_session", "/usr/lib/luxos/python/luxos_care_session.py")
+    if care_mod is not None:
+        try:
+            care_mod.subscribe()
+        except Exception as e:  # noqa: BLE001
+            log(f"care: {e}")
+
     try:
         system = Gio.bus_get_sync(Gio.BusType.SYSTEM)
         watch_networks(system)
+        watch_connectivity(system)
         watch_bluetooth(system)
 
         # Po probuzeni (vecer otevreny notebook) hned zkontrolovat vzhled

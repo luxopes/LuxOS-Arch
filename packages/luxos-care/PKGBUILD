@@ -1,0 +1,34 @@
+# Maintainer: LuxOS Team
+# LuxOS Care - system bez udrzby: automaticke aktualizace (Sporic dat, baterie), zalozni jadro
+# s automatickym navratem (systemd-boot boot counting / GRUB) a samooprava (pravidla + LuxAI Flash)
+
+pkgname=luxos-care
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS Care - automatic updates, previous kernel fallback and self-repair"
+arch=(any)
+url="https://lsl.lux-ai.cz/luxos/"
+license=(MIT)
+depends=(python python-gobject gtk3 pacman pacman-contrib mkinitcpio systemd polkit luxos-i18n)
+optdepends=('luxos-account: LuxAI Flash chooses repairs for unknown problems'
+            'networkmanager: skip updates on metered connections (Data Saver)'
+            'grub: previous kernel entry on BIOS installs'
+            'dkms: keep NVIDIA and other DKMS modules for the previous kernel')
+makedepends=(python)
+install=luxos-care.install
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 "$f/luxos-care" "$pkgdir/usr/bin/luxos-care"
+    install -Dm755 "$f/luxos-update" "$pkgdir/usr/bin/luxos-update"
+    install -Dm755 "$f/luxos-care-helper" "$pkgdir/usr/lib/luxos/care/luxos-care-helper"
+    install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f/luxos_care.py" "$f/luxos_care_session.py"
+    python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
+    install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f"/systemd/*
+    install -Dm644 -t "$pkgdir/usr/share/libalpm/hooks" "$f"/hooks/*.hook
+    install -Dm755 "$f/grub/11_luxos_previous" "$pkgdir/etc/grub.d/11_luxos_previous"
+    install -Dm644 "$f/org.luxos.care.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.care.policy"
+    install -Dm644 "$f/50-luxos-care.rules" "$pkgdir/usr/share/polkit-1/rules.d/50-luxos-care.rules"
+    install -Dm644 "$f/luxos-update.desktop" "$pkgdir/usr/share/applications/luxos-update.desktop"
+    install -dm755 "$pkgdir/var/lib/luxos-care"
+}
