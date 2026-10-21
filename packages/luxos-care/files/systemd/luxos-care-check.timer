@@ -1,0 +1,11 @@
+[Unit]
+Description=LuxOS Care: periodic problem check
+ConditionPathExists=!/run/archiso
+
+[Timer]
+OnBootSec=30min
+OnUnitActiveSec=6h
+RandomizedDelaySec=15min
+
+[Install]
+WantedBy=timers.target

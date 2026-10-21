@@ -1,0 +1,554 @@
+#!/usr/bin/env python3
+"""LuxOS - Aktualizace softwaru a pece o system (LuxOS Care).
+
+Rezim Bez starosti / Klasicky, "Aktualizovat" se skutecnym prubehem (cte /run/luxos-care/progress.json),
+cas posledni aktualizace, cekajici aktualizace, nalezene problemy, historie oprav a zalozni jadro.
+Vse privilegovane dela root (systemd jednotky luxos-care-*), aplikace jen cte stav.
+
+LUXOS_CARE_ROOT=<adresar> cte stav z jineho korene (ukazky, testy).
+"""
+import json
+import os
+import subprocess
+import sys
+import time
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_i18n import _  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gio, GLib, Gtk  # noqa: E402
+
+ROOT = os.environ.get("LUXOS_CARE_ROOT", "")
+STATE_DIR = ROOT + "/var/lib/luxos-care"
+PROGRESS = ROOT + "/run/luxos-care/progress.json"
+CONF = ROOT + "/etc/luxos/care.conf"
+HELPER = "/usr/lib/luxos/care/luxos-care-helper"
+
+CSS = b"""
+.hero-title { font-size: 20px; font-weight: 800; }
+.hero-sub { font-size: 12px; opacity: 0.65; }
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }
+.row { padding: 10px 14px; }
+.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
+.hint { font-size: 11px; opacity: 0.6; }
+.mode { border-radius: 12px; padding: 10px 12px; border: 2px solid alpha(currentColor, 0.10); background: none; }
+.mode.current { border-color: #3d7bff; background-color: alpha(#3d7bff, 0.06); }
+.mode-title { font-weight: 700; }
+.ok { color: #2fb36b; }
+.bad { color: #e5484d; }
+.warn { color: #e09b1a; }
+progressbar trough { min-height: 8px; border-radius: 4px; }
+progressbar progress { min-height: 8px; border-radius: 4px; }
+"""
+
+
+def read_json(path, default):
+    try:
+        with open(path) as f:
+            d = json.load(f)
+        return d if isinstance(d, type(default)) else default
+    except (OSError, ValueError):
+        return default
+
+
+def read_mode():
+    try:
+        with open(CONF) as f:
+            for line in f:
+                if line.strip().startswith("MODE="):
+                    v = line.split("=", 1)[1].strip().strip('"')
+                    if v in ("carefree", "classic"):
+                        return v
+    except OSError:
+        pass
+    return "carefree"
+
+
+def history(limit=40):
+    out = []
+    try:
+        with open(os.path.join(STATE_DIR, "history.jsonl")) as f:
+            for line in f:
+                try:
+                    out.append(json.loads(line))
+                except ValueError:
+                    pass
+    except OSError:
+        pass
+    return out[-limit:][::-1]
+
+
+def when(t):
+    if not t:
+        return _("never")
+    d = time.time() - t
+    if d < 90:
+        return _("just now")
+    if d < 3600:
+        return _("%d min ago") % (d // 60)
+    if time.strftime("%Y%m%d", time.localtime(t)) == time.strftime("%Y%m%d"):
+        return _("today at %s") % time.strftime("%H:%M", time.localtime(t))
+    return time.strftime("%d.%m.%Y %H:%M", time.localtime(t))
+
+
+def fmt_size(b):
+    return f"{b / 1024 / 1024:.0f} MB" if b >= 1024 * 1024 else f"{b / 1024:.0f} kB"
+
+
+def problem_title(p):
+    t = _(p.get("title", ""))
+    args = p.get("args") or []
+    return t.replace("%s", str(args[0])) if "%s" in t and args else t
+
+
+ACTION_LABELS = {
+    "remove_db_lock": "Removed a stale package manager lock",
+    "complete_upgrade": "Finished an interrupted update",
+    "refresh_keyring": "Refreshed the package signing keys",
+    "rebuild_initramfs": "Rebuilt the kernel boot files",
+    "dkms_autoinstall": "Rebuilt driver modules",
+    "reinstall_package": "Reinstalled a package",
+    "restart_unit": "Restarted a service",
+    "clean_cache": "Freed disk space",
+    "retry_new_kernel": "Will try the newest kernel again",
+    "use_previous_kernel": "Will start the previous kernel",
+    "none": "Only reported the problem",
+}
+
+
+def history_text(h):
+    """(nadpis, podrobnost, ok) radku historie."""
+    k = h.get("kind")
+    ok = h.get("ok", True)
+    if k == "update":
+        if ok:
+            n = int(h.get("count", 0))
+            return _("Updated %d packages") % n, (_("including the kernel") if h.get("kernel") else ""), True
+        return _("Update failed"), h.get("error", ""), False
+    if k == "repair":
+        act = _(ACTION_LABELS.get(h.get("action"), h.get("action", "")))
+        if h.get("target"):
+            act += f" ({h['target']})"
+        src = _("chosen by LuxAI Flash") if h.get("source") == "ai" else _("built-in rule")
+        return act, f"{problem_title(h)} · {src}", ok
+    if k == "kernel":
+        if h.get("released"):
+            return _("Released the kept kernel %s for reinstallation") % h["released"], "", True
+        if ok:
+            return _("Kept the previous kernel %s") % h.get("prev", ""), _("Boot menu: LuxOS (previous kernel)"), True
+        return _("The previous kernel could not be prepared"), h.get("error", ""), False
+    if k == "boot":
+        return _("A start did not finish correctly"), ", ".join(h.get("problems", [])), False
+    if k == "mode":
+        return (_("Mode changed to Carefree") if h.get("mode") == "carefree" else _("Mode changed to Classic")), "", True
+    return k or "?", "", ok
+
+
+class App:
+    def __init__(self):
+        self.win = Gtk.Window(title=_("Software Update"))
+        self.win.set_default_size(660, 720)
+        self.win.set_icon_name("system-software-update")
+        self.win.connect("destroy", Gtk.main_quit)
+        css = Gtk.CssProvider()
+        css.load_from_data(CSS)
+        Gtk.StyleContext.add_provider_for_screen(self.win.get_screen(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        try:
+            self.sysbus = Gio.bus_get_sync(Gio.BusType.SYSTEM)
+        except GLib.Error:
+            self.sysbus = None
+        self.poll_id = None
+        self.mode_busy = False
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.win.add(scroll)
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        outer.set_border_width(22)
+        scroll.add(outer)
+
+        # -- hlavni stav --
+        hero = Gtk.Box(spacing=16)
+        icon = Gtk.Image.new_from_icon_name("luxos-logo", Gtk.IconSize.DIALOG)
+        icon.set_pixel_size(64)
+        hero.pack_start(icon, False, False, 0)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        texts.set_valign(Gtk.Align.CENTER)
+        self.title = Gtk.Label(xalign=0)
+        self.title.get_style_context().add_class("hero-title")
+        self.title.set_line_wrap(True)
+        self.sub = Gtk.Label(xalign=0)
+        self.sub.get_style_context().add_class("hero-sub")
+        self.sub.set_line_wrap(True)
+        texts.pack_start(self.title, False, False, 0)
+        texts.pack_start(self.sub, False, False, 0)
+        hero.pack_start(texts, True, True, 0)
+        btns = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        btns.set_valign(Gtk.Align.CENTER)
+        self.update_btn = Gtk.Button(label=_("Update Now"))
+        self.update_btn.get_style_context().add_class("suggested-action")
+        self.update_btn.connect("clicked", lambda _b: self.start_unit("luxos-care-update-now.service"))
+        self.restart_btn = Gtk.Button(label=_("Restart"))
+        self.restart_btn.get_style_context().add_class("suggested-action")
+        self.restart_btn.connect("clicked", lambda _b: self.restart())
+        btns.pack_start(self.update_btn, False, False, 0)
+        btns.pack_start(self.restart_btn, False, False, 0)
+        hero.pack_start(btns, False, False, 0)
+        outer.pack_start(hero, False, False, 0)
+
+        self.prog_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.prog_box.set_margin_top(14)
+        self.progress = Gtk.ProgressBar()
+        self.prog_label = Gtk.Label(xalign=0)
+        self.prog_label.get_style_context().add_class("hint")
+        self.prog_box.pack_start(self.progress, False, False, 0)
+        self.prog_box.pack_start(self.prog_label, False, False, 0)
+        outer.pack_start(self.prog_box, False, False, 0)
+
+        # -- rezim --
+        outer.pack_start(self.group_title(_("When updates are installed")), False, False, 0)
+        modes = Gtk.Box(spacing=10, homogeneous=True)
+        self.mode_btns = {}
+        for key, name, desc in (
+                ("carefree", _("Carefree"),
+                 _("LuxOS installs updates and repairs itself. It waits for an unmetered connection "
+                   "and enough battery, and keeps the previous kernel as a fallback.")),
+                ("classic", _("Classic"),
+                 _("LuxOS only checks and tells you about updates and problems. You decide when to update."))):
+            b = Gtk.Button()
+            b.get_style_context().add_class("mode")
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            t = Gtk.Label(label=name, xalign=0)
+            t.get_style_context().add_class("mode-title")
+            d = Gtk.Label(label=desc, xalign=0)
+            d.get_style_context().add_class("hint")
+            d.set_line_wrap(True)
+            d.set_max_width_chars(34)
+            box.pack_start(t, False, False, 0)
+            box.pack_start(d, False, False, 0)
+            b.add(box)
+            b.connect("clicked", lambda _b, k=key: self.set_mode(k))
+            modes.pack_start(b, True, True, 0)
+            self.mode_btns[key] = b
+        outer.pack_start(modes, False, False, 0)
+
+        # -- aktualizace --
+        outer.pack_start(self.group_title(_("Available updates")), False, False, 0)
+        self.updates_group = self.group()
+        outer.pack_start(self.updates_group, False, False, 0)
+
+        # -- zdravi systemu --
+        head = Gtk.Box()
+        head.pack_start(self.group_title(_("System health")), False, False, 0)
+        self.check_btn = Gtk.Button(label=_("Check for Problems Now"))
+        self.check_btn.set_valign(Gtk.Align.END)
+        self.check_btn.connect("clicked", lambda _b: self.start_unit("luxos-care-check-now.service"))
+        head.pack_end(self.check_btn, False, False, 0)
+        outer.pack_start(head, False, False, 0)
+        self.health_group = self.group()
+        outer.pack_start(self.health_group, False, False, 0)
+
+        # -- historie --
+        outer.pack_start(self.group_title(_("Repair and update history")), False, False, 0)
+        self.history_group = self.group()
+        outer.pack_start(self.history_group, False, False, 0)
+
+        self.refresh()
+        try:
+            self.mon = Gio.File.new_for_path(STATE_DIR).monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, None)
+            self.mon.connect("changed", lambda *_a: self.schedule_refresh())
+        except GLib.Error:
+            self.mon = None
+        self.win.show_all()
+        self.refresh()
+
+    # -- stavebni prvky --
+    def group_title(self, text):
+        lab = Gtk.Label(label=text, xalign=0)
+        lab.get_style_context().add_class("group-title")
+        return lab
+
+    def group(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        box.get_style_context().add_class("group")
+        return box
+
+    def row(self, group, title, sub="", status=None, first=False, widget=None):
+        r = Gtk.Box(spacing=10)
+        r.get_style_context().add_class("row")
+        if group.get_children():
+            r.get_style_context().add_class("row-sep")
+        if status is not None:
+            dot = Gtk.Label(label={"ok": "●", "bad": "●", "warn": "●"}.get(status, "●"))
+            dot.get_style_context().add_class(status)
+            dot.set_valign(Gtk.Align.START)
+            r.pack_start(dot, False, False, 0)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        t = Gtk.Label(label=title, xalign=0)
+        t.set_line_wrap(True)
+        box.pack_start(t, False, False, 0)
+        if sub:
+            s = Gtk.Label(label=sub, xalign=0)
+            s.get_style_context().add_class("hint")
+            s.set_line_wrap(True)
+            box.pack_start(s, False, False, 0)
+        r.pack_start(box, True, True, 0)
+        if widget is not None:
+            widget.set_valign(Gtk.Align.CENTER)
+            r.pack_end(widget, False, False, 0)
+        group.pack_start(r, False, False, 0)
+        return r
+
+    @staticmethod
+    def clear(box):
+        for c in box.get_children():
+            box.remove(c)
+
+    # -- stav --
+    def schedule_refresh(self):
+        GLib.timeout_add(400, lambda: self.refresh() and False)
+
+    def running(self):
+        p = read_json(PROGRESS, {})
+        if not p:
+            return None
+        pid = int(p.get("pid", 0) or 0)
+        if pid and not ROOT and not os.path.exists(f"/proc/{pid}"):
+            return None
+        return p
+
+    def refresh(self):
+        st = read_json(os.path.join(STATE_DIR, "state.json"), {})
+        mode = read_mode()
+        prog = self.running()
+        for k, b in self.mode_btns.items():
+            ctx = b.get_style_context()
+            (ctx.add_class if k == mode else ctx.remove_class)("current")
+
+        pending = st.get("pending", [])
+        reboot = bool(st.get("needs_reboot"))
+        if prog:
+            self.title.set_text(_("Updating LuxOS…"))
+        elif reboot:
+            self.title.set_text(_("Restart to finish the update"))
+        elif pending:
+            self.title.set_text(_("%d updates available") % len(pending))
+        elif st.get("last_error") and int(st.get("failures", 0) or 0) > 0:
+            self.title.set_text(_("Updates could not be installed"))
+        else:
+            self.title.set_text(_("LuxOS is up to date"))
+        sub = [_("Last update: %s") % when(st.get("last_update")),
+               _("Last check: %s") % when(max(int(st.get("last_check", 0) or 0),
+                                              int(st.get("last_check_updates", 0) or 0)))]
+        if mode == "carefree" and st.get("last_skip_reason") and not prog:
+            why = {"metered": _("waiting for an unmetered connection (Data Saver)"),
+                   "battery": _("waiting for the charger or more battery"),
+                   "offline": _("waiting for the internet connection")}.get(st["last_skip_reason"])
+            if why and int(st.get("last_skip", 0)) > int(st.get("last_success", 0) or 0):
+                sub.append(_("Automatic update is %s.") % why)
+        self.sub.set_text("\n".join(sub))
+        self.update_btn.set_visible(not prog and not reboot)
+        self.update_btn.set_sensitive(not prog)
+        self.restart_btn.set_visible(reboot and not prog)
+        self.check_btn.set_sensitive(not prog)
+        self.show_progress(prog)
+
+        # aktualizace
+        self.clear(self.updates_group)
+        if pending:
+            for name, old, new in pending[:60]:
+                self.row(self.updates_group, name, f"{old} → {new}")
+            if len(pending) > 60:
+                self.row(self.updates_group, _("and %d more") % (len(pending) - 60))
+        else:
+            self.row(self.updates_group, _("No updates are waiting."),
+                     _("LuxOS checks for updates automatically."))
+        for f in st.get("pacnew", [])[:10]:
+            self.row(self.updates_group, _("New configuration file to review: %s") % f,
+                     _("Your settings were kept. Compare the files with pacdiff when convenient."), status="warn")
+
+        # zdravi
+        self.clear(self.health_group)
+        probs = st.get("problems", [])
+        if not probs:
+            self.row(self.health_group, _("No problems found"), _("Last check: %s") % when(st.get("last_check")),
+                     status="ok")
+        for p in probs:
+            sub = p.get("detail", "")
+            ai = p.get("ai") or {}
+            if ai.get("status") == "pending":
+                sub = (sub + " · " if sub else "") + (_("Waiting for LuxAI Flash") if mode == "carefree" else "")
+            elif ai.get("status") == "failed":
+                sub = (sub + " · " if sub else "") + _("The repair did not help")
+            if mode == "classic" and p.get("rules"):
+                sub = (sub + " · " if sub else "") + _("Switch to Carefree to repair it automatically.")
+            self.row(self.health_group, problem_title(p), sub, status="bad" if p.get("severity") == "serious" else "warn")
+        prev = st.get("prev_kernel")
+        if prev:
+            if st.get("prev_kernel_ok"):
+                auto = (_("If a new kernel fails to start, LuxOS starts this one automatically.")
+                        if st.get("auto_fallback") else
+                        _("If a new kernel fails to start, choose “LuxOS (previous kernel)” in the boot menu."))
+                self.row(self.health_group, _("Previous kernel %s is kept as a fallback") % prev, auto, status="ok")
+            else:
+                self.row(self.health_group, _("The previous kernel %s could not be prepared") % prev,
+                         {"esp_full": _("The boot partition is full.")}.get(st.get("prev_kernel_error"), ""),
+                         status="warn")
+        else:
+            self.row(self.health_group, _("Previous kernel"),
+                     _("After the next kernel update the current kernel stays available as a fallback."))
+
+        # historie
+        self.clear(self.history_group)
+        hist = history(15)
+        if not hist:
+            self.row(self.history_group, _("Nothing yet"), _("Updates and repairs will be listed here."))
+        for h in hist:
+            title, detail, ok = history_text(h)
+            sub = when(h.get("time")) + (f" · {detail}" if detail else "")
+            self.row(self.history_group, title, sub, status="ok" if ok else "bad")
+        if hist:
+            more = Gtk.Button(label=_("Show Full Log…"))
+            more.connect("clicked", lambda _b: self.full_log())
+            self.row(self.history_group, _("Audit log"), "/var/lib/luxos-care/history.jsonl", widget=more)
+        self.win.show_all()
+        self.update_btn.set_visible(not prog and not reboot)
+        self.restart_btn.set_visible(reboot and not prog)
+        self.prog_box.set_visible(bool(prog))
+        return True
+
+    def show_progress(self, prog):
+        if not prog:
+            if self.poll_id:
+                GLib.source_remove(self.poll_id)
+                self.poll_id = None
+            self.prog_box.set_visible(False)
+            return
+        self.prog_box.set_visible(True)
+        self.progress.set_fraction(float(prog.get("fraction", 0)))
+        ph = prog.get("phase")
+        if ph == "download" and prog.get("total_bytes"):
+            text = _("Downloading… %s of %s") % (fmt_size(prog.get("bytes", 0)), fmt_size(prog["total_bytes"]))
+        elif ph == "install" and prog.get("total"):
+            text = _("Installing %s (%d of %d)") % (prog.get("text", ""), prog.get("done", 0), prog["total"])
+        else:
+            text = {"check": _("Checking for updates…"), "keyring": _("Updating signing keys…"),
+                    "download": _("Downloading…"), "install": _("Installing…"),
+                    "cleanup": _("Finishing…")}.get(ph, _("Working…"))
+        self.prog_label.set_text(text + "  " + _("Do not turn off the computer."))
+        if not self.poll_id:
+            self.poll_id = GLib.timeout_add(500, self.poll)
+
+    def poll(self):
+        prog = self.running()
+        if not prog:
+            self.poll_id = None
+            self.refresh()
+            return False
+        self.show_progress(prog)
+        return True
+
+    # -- akce --
+    def start_unit(self, unit):
+        if self.sysbus is None:
+            return self.error(_("The system service is not available."))
+        try:
+            self.sysbus.call_sync("org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+                                  "org.freedesktop.systemd1.Manager", "StartUnit",
+                                  GLib.Variant("(ss)", (unit, "replace")), None,
+                                  Gio.DBusCallFlags.ALLOW_INTERACTIVE_AUTHORIZATION, 120000, None)
+        except GLib.Error as e:
+            return self.error(_("Could not start: %s") % e.message)
+        if unit.startswith("luxos-care-update"):
+            self.title.set_text(_("Updating LuxOS…"))
+            self.prog_box.set_visible(True)
+            self.progress.pulse()
+            self.prog_label.set_text(_("Checking for updates…"))
+            self.update_btn.set_sensitive(False)
+            GLib.timeout_add(700, self.poll_start)
+        return None
+
+    def poll_start(self):
+        """Po spusteni: cekat na prvni zapis prubehu (nebo na konec, kdyz nebylo co delat)."""
+        prog = self.running()
+        if prog:
+            self._ticks = 0
+            self.show_progress(prog)
+            return False
+        self._ticks = getattr(self, "_ticks", 0) + 1
+        if self._ticks > 90:
+            self._ticks = 0
+            self.refresh()
+            return False
+        self.progress.pulse()
+        return True
+
+    def set_mode(self, m):
+        if self.mode_busy or m == read_mode():
+            return
+        self.mode_busy = True
+
+        def done(pid, status):
+            self.mode_busy = False
+            GLib.spawn_close_pid(pid)
+            self.refresh()
+        try:
+            pid, *_x = GLib.spawn_async(["pkexec", HELPER, "set-mode", m],
+                                        flags=GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD)
+            GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid, done)
+        except GLib.Error as e:
+            self.mode_busy = False
+            self.error(e.message)
+
+    def restart(self):
+        for cmd in (["xfce4-session-logout", "--reboot", "--fast"], ["systemctl", "reboot"]):
+            try:
+                subprocess.Popen(cmd, start_new_session=True)
+                return
+            except OSError:
+                continue
+
+    def full_log(self):
+        d = Gtk.Dialog(title=_("Audit log"), transient_for=self.win, modal=True)
+        d.add_button(_("Close"), Gtk.ResponseType.CLOSE)
+        d.set_default_size(620, 460)
+        sw = Gtk.ScrolledWindow()
+        tv = Gtk.TextView(editable=False, monospace=True, wrap_mode=Gtk.WrapMode.WORD_CHAR)
+        lines = []
+        for h in history(500):
+            title, detail, ok = history_text(h)
+            lines.append(f"{time.strftime('%Y-%m-%d %H:%M', time.localtime(h.get('time', 0)))}  "
+                         f"{'OK ' if ok else 'ERR'}  {title}" + (f" — {detail}" if detail else ""))
+            if h.get("output"):
+                lines.append("        " + h["output"].strip().replace("\n", "\n        ")[:600])
+        tv.get_buffer().set_text("\n".join(lines) or _("Nothing yet"))
+        sw.add(tv)
+        sw.set_vexpand(True)
+        d.get_content_area().pack_start(sw, True, True, 0)
+        d.show_all()
+        d.run()
+        d.destroy()
+
+    def error(self, text):
+        m = Gtk.MessageDialog(transient_for=self.win, modal=True, message_type=Gtk.MessageType.ERROR,
+                              buttons=Gtk.ButtonsType.CLOSE, text=text)
+        m.run()
+        m.destroy()
+
+
+APP_ID = "luxos-update"
+
+
+def main():
+    GLib.set_prgname(APP_ID)
+    GLib.set_application_name(_("Software Update"))
+    App()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

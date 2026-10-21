@@ -1,0 +1,9 @@
+[Unit]
+Description=LuxOS Care: apply the repair option %i chosen by LuxAI
+ConditionPathExists=!/run/archiso
+
+[Service]
+Type=oneshot
+# %i = <id pozadavku>-<cislo moznosti>; root overi oboji proti vlastnimu stavu
+ExecStart=/usr/bin/luxos-care apply %i
+TimeoutStartSec=2h

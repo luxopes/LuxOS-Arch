@@ -1,0 +1,12 @@
+[Unit]
+Description=LuxOS Care: check for and install updates
+ConditionPathExists=!/run/archiso
+
+[Timer]
+# Kazdou hodinu se jen overi podminky (sluzba sama rozhodne, zda je cas aktualizovat)
+OnBootSec=15min
+OnUnitActiveSec=1h
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

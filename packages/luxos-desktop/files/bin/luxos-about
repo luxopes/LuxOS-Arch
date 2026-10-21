@@ -29,5 +29,8 @@ ${battery}<b>$(T "Kernel")</b>   ${kernel}
 yad --title="$(T "About This Computer")" --window-icon=luxos-app --image=/usr/share/icons/hicolor/128x128/apps/luxos-app.png \
     --text="$text" --text-align=left --borders=24 --width=560 --center --fixed \
     --button="$(T "Software Update")!system-software-update:2" --button="$(T "Close")!window-close:0"
-[[ $? == 2 ]] && exec xfce4-terminal --title="$(T "Update")" -x lsh -c "lux update; echo; read -rp '$(T "Press Enter to close")'"
+if [[ $? == 2 ]]; then
+    command -v luxos-update >/dev/null && exec luxos-update   # Aktualizace softwaru (luxos-care)
+    exec xfce4-terminal --title="$(T "Update")" -x lsh -c "lux update; echo; read -rp '$(T "Press Enter to close")'"
+fi
 exit 0

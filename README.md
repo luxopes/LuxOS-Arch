@@ -10,7 +10,7 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
   grafika NVIDIA se uspí (runtime PM), Firefox dekóduje video hardwarově (VA-API).
 - **Vzhled macOS:** horní lišta (logo-menu, název aktivní aplikace, ikony, hodiny), dock Plank se zvětšováním,
   tlačítka oken vlevo (semafor), WhiteSur GTK/ikony/kurzory, písmo Inter, Hledání (`Super+Mezerník`),
-  Launchpad (`Super+A`), zkratky ve stylu Cmd (`Super+Q`, `Super+Shift+4`…), přirozené posouvání na touchpadu,
+  Launchpad (`Super+A`), zkratky ve stylu Cmd (`Super+Q`, `Super+Shift+4`…), touchpad: klepnutí = klik, dvěma prsty = pravé tlačítko, posouvání na okraji,
   přepínání světlého/tmavého režimu.
 - **Bez starostí s ovladači:** `luxos-hwdetect` při instalaci rozpozná GPU (Intel/AMD/NVIDIA včetně hybridní
   grafiky), Wi‑Fi Broadcom, čtečky otisků, akcelerometry a virtualizaci (VirtualBox, VMware, QEMU, Hyper‑V).

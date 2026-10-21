@@ -1,0 +1,11 @@
+[Unit]
+Description=LuxOS Care: look for serious problems and repair them
+After=network-online.target
+ConditionPathExists=!/run/archiso
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/luxos-care check
+TimeoutStartSec=2h
+Nice=10
+IOSchedulingClass=idle

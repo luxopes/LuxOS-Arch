@@ -1,16 +1,35 @@
 #!/bin/bash
 # LuxOS Store - instalace a odinstalace aplikaci (spousti pkexec, viz org.luxos.store.policy)
 #   luxos-store-helper install|remove BALIK... | upgrade
-set -euo pipefail
+# Vystup pacmanu je anglicky (LC_ALL=C.UTF-8), aby Store mohl ukazovat prubeh;
+# pri vypadku site se stahovani zopakuje ("@@RETRY n" pro Store).
+set -uo pipefail
+export LC_ALL=C.UTF-8
 action=${1-}
 shift || true
 for p in "$@"; do
     [[ $p =~ ^[a-z0-9@._+][a-z0-9@._+-]*$ ]] || { echo "invalid package name: $p" >&2; exit 2; }
 done
+
+# pacman s opakovanim: jen kdyz selhalo stahovani (ne pri konfliktu apod.)
+pacman_retry() {
+    local attempt log rc
+    log=$(mktemp)
+    trap 'rm -f "$log"' RETURN
+    for attempt in 1 2 3; do
+        ((attempt > 1)) && { echo "@@RETRY $attempt"; sleep 3; }
+        pacman "$@" 2>&1 | tee "$log"
+        rc=${PIPESTATUS[0]}
+        ((rc == 0)) && return 0
+        grep -qE 'failed retrieving file|failed to retrieve some files|too many errors from' "$log" || return "$rc"
+    done
+    return "$rc"
+}
+
 case $action in
-    install) (($#)) && exec pacman -S --needed --noconfirm -- "$@" ;;
+    install) (($#)) && { pacman_retry -S --needed --noconfirm -- "$@"; exit; } ;;
     remove)  (($#)) && exec pacman -Rns --noconfirm -- "$@" ;;
-    upgrade) exec pacman -Syu --noconfirm ;;
+    upgrade) pacman_retry -Syu --noconfirm; exit ;;
     lux-install) (($#)) && exec lux __lux-install "$1" ;;
     lux-remove)  (($#)) && exec lux __lux-remove "$1" ;;
 esac

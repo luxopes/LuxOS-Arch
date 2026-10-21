@@ -7,7 +7,7 @@
 # Disky (GUI):    sudo luxos-install --probe /dev/DISK   (volne misto a ESP, radky KLIC=hodnota)
 #
 # Konfiguracni soubor (bash promenne) - viz /usr/share/luxos/installer/install.conf.example
-# --progress: navic strojove radky "@@STEP n celkem text", "@@PCT 0-100", "@@ERROR text", "@@DONE"
+# --progress: strojove radky "@@STEP n celkem text", "@@PCT 0-100", "@@STATUS text", "@@NET B/s stazeno celkem", "@@NET END", "@@ERROR text", "@@DONE"
 set -Eeuo pipefail
 
 LOG=/var/log/luxos-install.log
@@ -258,8 +258,27 @@ interactive() {
     done
     AUTOLOGIN=0
     gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Log in automatically without a password?")" && AUTOLOGIN=1
+    ask_care
     ask_luxai
     return 0
+}
+
+# Udrzba systemu: carefree (automaticke aktualizace a opravy) nebo classic (spravuje uzivatel)
+care_text() {
+    if [[ $1 == classic ]]; then T "Classic - you manage the system yourself"
+    else T "Carefree - automatic updates and repairs"; fi
+}
+
+ask_care() {
+    title "$(T "Maintenance")"
+    info "$(T "Carefree: updates install automatically in the background (not on metered networks, with Data Saver or on low battery), a previous kernel is kept to fall back on and LuxOS repairs itself.")"
+    info "$(T "Classic (for IT professionals): no automatic updates or repairs, standard Arch behaviour; you only get notified about available updates.")"
+    local carefree classic sel
+    carefree="$(T "Carefree (recommended)")"
+    classic="$(T "Classic (for IT professionals)")"
+    sel=$(gum choose --header "$(T "How should LuxOS be maintained?")" "$carefree" "$classic") || exit 1
+    if [[ $sel == "$classic" ]]; then CARE_MODE=classic; else CARE_MODE=carefree; fi
+    info "$(care_text "$CARE_MODE")"
 }
 
 # Ucet LuxAI (nepovinny): prihlaseni hned pri instalaci, token se ulozi novemu uzivateli
@@ -343,6 +362,7 @@ summary() {
         "$(printf '%-13s%s' "$(T "User")" "$FULLNAME ($USERNAME)")"
         "$(printf '%-13s%s' "$(T "Computer")" "$HOSTNAME_SEL")"
         "$(printf '%-13s%s' "$(T "Boot mode")" "$boot_text")"
+        "$(printf '%-13s%s' "$(T "Maintenance")" "$(care_text "$CARE_MODE")")"
         "$(printf '%-13s%s' "LuxAI" "$([[ -n $LUXAI_ACCOUNT ]] && T "signed in" || T "not signed in")")"
     )
     if ((PROGRESS)); then
@@ -587,25 +607,189 @@ prepare_freespace() {
     fi
 }
 
-# Vystup pacstrapu do logu a na stdout; s --progress navic @@PCT (stahovani 0-40 %, instalace 40-100 %)
+# --- Sit: rychle mirrory, prubeh stahovani, srozumitelne chyby --------------
+MIRRORLIST=/etc/pacman.d/mirrorlist
+
+tz_country() {  # tz_country Europe/Prague -> CZ
+    awk -v tz="$1" '$1 !~ /^#/ && $3 == tz {print $1; exit}' /usr/share/zoneinfo/zone.tab 2>/dev/null || true
+}
+
+# Nejrychlejsi mirrory v zemi podle casoveho pasma (reflector, kratke timeouty); puvodni seznam
+# zustava za nimi jako zaloha. Live system ho pouzije pro pacstrap, configure_system ho kopiruje do cile.
+rank_mirrors() {
+    local orig=$MIRRORLIST.luxos-orig cc tmp n
+    [[ -e $orig ]] || cp "$MIRRORLIST" "$orig" 2>/dev/null || return 0
+    command -v reflector >/dev/null || { echo "rank_mirrors: reflector is not installed" >>"$LOG"; return 0; }
+    cc=$(tz_country "${TIMEZONE:-}")
+    [[ -n $cc ]] || { echo "rank_mirrors: no country for time zone ${TIMEZONE:-}" >>"$LOG"; return 0; }
+    progress "STATUS $(T "Looking for the fastest download servers…")"
+    info "$(T "Looking for the fastest download servers…")"
+    tmp=$(mktemp)
+    printf '+ reflector --country %s\n' "$cc" >>"$LOG"
+    if timeout 45 reflector --country "$cc" --protocol https --latest 12 --sort rate --number 8 \
+            --connection-timeout 3 --download-timeout 5 --threads 4 --save "$tmp" >>"$LOG" 2>&1; then
+        n=$(grep -c '^Server *=' "$tmp" || true)
+    else
+        n=0
+    fi
+    if ((n >= 2)); then
+        {
+            echo "# LuxOS: fastest mirrors for $cc (reflector), then the default list as a fallback"
+            grep '^Server *=' "$tmp"
+            echo
+            grep '^Server *=' "$orig" | grep -vxF -f <(grep '^Server *=' "$tmp") || true
+        } >"$MIRRORLIST.new"
+        mv -f "$MIRRORLIST.new" "$MIRRORLIST"
+        info "$(T "Using %s fast download servers near you." "$n")"
+    else
+        cp -f "$orig" "$MIRRORLIST"
+        info "$(T "Using the default download servers.")"
+    fi
+    progress "STATUS "
+    rm -f "$tmp"
+}
+
+pac_friendly() {  # surovy radek pacmanu -> srozumitelna veta (prazdny vystup = radek beze zmeny)
+    local l=$1 host why
+    if [[ $l =~ ^error:\ failed\ retrieving\ file\ \'[^\']*\'\ from\ ([^\ ]+)\ :\ (.*)$ ]]; then
+        host=${BASH_REMATCH[1]} why=${BASH_REMATCH[2]}
+        case ${why,,} in
+            *"too slow"*) T "The server %s is slow, trying another one…" "$host" ;;
+            *"timed out"*|*"connect"*|*"resolve"*|*"reset"*|*"refused"*|*"unreachable"*|*"ssl"*)
+                T "The server %s is not responding, trying another one…" "$host" ;;
+            *) T "Downloading from %s failed, trying another one…" "$host" ;;
+        esac
+    elif [[ $l =~ ^warning:\ too\ many\ errors\ from\ ([^\ ,]+) ]]; then
+        T "The server %s has too many problems, skipping it." "${BASH_REMATCH[1]}"
+    elif [[ $l == "error: failed to retrieve some files" || $l == "warning: failed to retrieve some files" ]]; then
+        T "Some files could not be downloaded."
+    elif [[ $l == "error: failed to commit transaction (failed to retrieve some files)" ]]; then
+        T "Downloading the packages did not finish."
+    elif [[ $l == "error: failed to synchronize all databases"* ]]; then
+        T "The package lists could not be downloaded."
+    fi
+    return 0
+}
+
+human_bytes() { numfmt --to=si --suffix=B --format=%.1f "$1" 2>/dev/null || echo "$1 B"; }
+
+# Prubeh stahovani: velikost cache v cili (pacstrap stahuje do $TARGET/var/cache/pacman/pkg)
+# kazde ~2 s -> "@@NET B/s stazeno celkem"; v TUI kazdych 15 s radek s rychlosti
+net_sample() {
+    ((net == 1)) || return 0
+    local now cur d r
+    now=${EPOCHREALTIME//[.,]/}
+    ((now - net_t >= 1900000)) || return 0
+    cur=$(du -sb "$cache" 2>/dev/null | cut -f1 || true)
+    d=$((${cur:-0} - base))
+    ((d > dl_total)) && d=$dl_total
+    r=0
+    ((d > got)) && r=$(((d - got) * 1000000 / (now - net_t)))
+    ((d > got)) && got=$d
+    rate=$(((rate * 6 + r * 4) / 10))
+    net_t=$now
+    progress "NET $rate $got $dl_total"
+    pac_pct
+    if ((!PROGRESS && now - tui_t >= 15000000)); then
+        tui_t=$now
+        local left=""
+        ((rate > 0)) && left=" · $(T "about %s min left" "$(((dl_total - got) / rate / 60 + 1))")"
+        info "$(T "Downloaded %s of %s" "$(human_bytes "$got")" "$(human_bytes "$dl_total")") · $(human_bytes "$rate")/s$left"
+        ((rate < 150000)) && info "$(T "Your internet connection is very slow - the installation will take longer. It has not stopped.")"
+    fi
+    return 0
+}
+
+pac_pct() {  # @@PCT: stahovani 0-40 % (podle bajtu, jinak podle poctu), instalace 40-100 %
+    ((total)) || return 0
+    local dlp
+    if ((net == 2)); then dlp=40
+    elif ((net == 1 && dl_total > 0)); then dlp=$((got * 40 / dl_total))
+    else dlp=$((dl * 40 / total)); fi
+    pct=$((dlp + inst * 60 / total))
+    ((pct > 100)) && pct=100
+    if ((pct > last)); then progress "PCT $pct"; last=$pct; fi
+    return 0
+}
+
+net_end() {
+    ((net == 1)) || return 0
+    net=2
+    progress "NET $rate $dl_total $dl_total"
+    progress "NET END"
+}
+
+# Vystup pacstrapu: surove do logu, na stdout (GUI Podrobnosti / terminal) srozumitelne vety misto chyb site
 pac_filter() {
-    local line total=0 dl=0 inst=0 pct last=-1
-    while IFS= read -r line; do
+    local line part="" rc eof=0 friendly last_friendly=""
+    local total=0 dl=0 inst=0 pct last=-1
+    local net=0 dl_total=0 base=0 got=0 rate=0 net_t=0 tui_t=0 cache="$TARGET/var/cache/pacman/pkg"
+    while ((!eof)); do
+        if IFS= read -r -t 2 line; then
+            line=$part$line part=""
+        else
+            rc=$?
+            if ((rc > 128)); then   # nic neprislo - jen zmerit stahovani
+                part+=$line
+                net_sample
+                continue
+            fi
+            eof=1
+            line=$part$line part=""
+            [[ -n $line ]] || break
+        fi
         printf '%s\n' "$line" >>"$LOG"
-        printf '%s\n' "$line"
+        friendly=$(pac_friendly "$line")
+        if [[ -n $friendly ]]; then
+            if [[ $friendly != "$last_friendly" ]]; then
+                printf '%s\n' "$friendly"
+                progress "STATUS $friendly"
+                last_friendly=$friendly
+            fi
+        else
+            printf '%s\n' "$line"
+        fi
         if [[ $line =~ ^Packages?\ \(([0-9]+)\) ]]; then
             total=${BASH_REMATCH[1]} dl=0 inst=0
+        elif [[ $line =~ ^Total\ Download\ Size:\ +([0-9.]+)\ +([KMG]?i?B) ]]; then
+            dl_total=$(awk -v n="${BASH_REMATCH[1]}" -v u="${BASH_REMATCH[2]}" 'BEGIN {
+                m = u == "KiB" ? 1024 : u == "MiB" ? 1048576 : u == "GiB" ? 1073741824 : 1; printf "%.0f", n * m }')
+            base=$(du -sb "$cache" 2>/dev/null | cut -f1 || true)
+            base=${base:-0} got=0 rate=0 net=1
+            net_t=${EPOCHREALTIME//[.,]/} tui_t=$net_t
+            ((dl_total > 0)) && progress "NET 0 0 $dl_total" || net=0
         elif ((total)) && [[ $line == *' downloading...' ]]; then
             dl=$((dl + 1))
-        elif ((total)) && [[ $line =~ ^(installing|upgrading|reinstalling)\  ]]; then
-            inst=$((inst + 1))
-        else
-            continue
+        elif [[ $line =~ ^(\([\ 0-9/]+\)\ )?(checking\ keyring|checking\ keys|checking\ package\ integrity|loading\ package\ files|checking\ for\ file\ conflicts|installing\ |upgrading\ |reinstalling\ |::\ Processing\ package\ changes) ]]; then
+            net_end
+            [[ $line =~ ^(installing|upgrading|reinstalling)\  ]] && ((total)) && inst=$((inst + 1))
         fi
-        ((total)) || continue
-        pct=$(((dl * 40 + inst * 60) / total))
-        ((pct > 100)) && pct=100
-        if ((pct != last)); then progress "PCT $pct"; last=$pct; fi
+        net_sample
+        pac_pct
+    done
+    ((net == 1)) && progress "NET END"
+    return 0
+}
+
+# Po nepovedenem pokusu: zamek databaze, nedokoncena stahovani a gpg-agent z predchoziho behu
+pac_cleanup() {
+    gpgconf --homedir "$TARGET/etc/pacman.d/gnupg" --kill all >/dev/null 2>&1 || true
+    rm -f "$TARGET/var/lib/pacman/db.lck"
+    find "$TARGET/var/cache/pacman/pkg" "$TARGET/var/lib/pacman/sync" -name '*.part' -delete 2>/dev/null || true
+    find "$TARGET/var/cache/pacman/pkg" -mindepth 1 -maxdepth 1 -type d -name 'download-*' \
+        -exec rm -rf {} + 2>/dev/null || true
+    return 0
+}
+
+wait_internet() {  # pri vypadku pripojeni pockat (max. ~10 min), pak to zkusit tak jako tak
+    local i
+    for ((i = 0; i < 60; i++)); do
+        have_internet && return 0
+        if ((i == 0)); then
+            progress "STATUS $(T "Waiting for the internet connection…")"
+            info "$(T "Waiting for the internet connection…")"
+        fi
+        sleep 10
     done
     return 0
 }
@@ -625,18 +809,24 @@ install_packages() {
     if [[ " ${hw[*]} " == *" nvidia-open-dkms "* && " ${hw[*]} " != *" nvidia-prime "* ]]; then NVIDIA_EARLY=1; fi
 
     step "$(T "Installing packages (this is the longest step)")"
-    local attempt
+    rank_mirrors
+    local attempt retry_conf=/run/luxos-pacman-retry.conf
+    local -a conf=()
     for attempt in 1 2 3; do
-        if ((PROGRESS)); then
-            # anglicky vystup pacmanu kvuli rozpoznani prubehu
-            if LC_ALL=C.UTF-8 pacstrap -K "$TARGET" --needed "${pkgs[@]}" 2>&1 | pac_filter; then
-                return 0
-            fi
-        elif pacstrap -K "$TARGET" --needed "${pkgs[@]}" 2>&1 | tee -a "$LOG"; then
+        # anglicky vystup pacmanu kvuli rozpoznani prubehu a chyb
+        if LC_ALL=C.UTF-8 pacstrap "${conf[@]}" -K "$TARGET" --needed "${pkgs[@]}" 2>&1 | pac_filter; then
+            progress "STATUS "
             return 0
         fi
+        ((attempt < 3)) || break
+        progress "STATUS $(T "Download failed (attempt %s), retrying…" "$attempt")"
         info "$(T "Download failed (attempt %s), retrying…" "$attempt")"
-        sleep 3
+        pac_cleanup
+        sleep $((attempt * 5))
+        wait_internet
+        # Dalsi pokus s mene soubeznymi stahovanimi: pomale linky pak nespadnou pod limit pacmanu
+        sed -E 's/^#?[[:space:]]*ParallelDownloads.*/ParallelDownloads = 3/' /etc/pacman.conf >"$retry_conf"
+        conf=(-C "$retry_conf")
     done
     fail "$(T "Packages could not be installed. Check the internet connection.")"
 }
@@ -687,6 +877,8 @@ DISK=$(printf %q "$DISK")
 CMDLINE=$(printf %q "$rootspec $cmdline")
 HW_SERVICES=$(printf %q "${hw_svcs[*]}")
 ENV
+    # Rezim udrzby pro luxos-care
+    install -Dm644 /dev/stdin "$TARGET/etc/luxos/care.conf" <<<"MODE=$CARE_MODE"
     install -m700 "$SHARE/setup-chroot.sh" "$TARGET/root/luxos-setup.sh"
     arch-chroot "$TARGET" /root/luxos-setup.sh 2>&1 | tee -a "$LOG"
     printf '%s:%s\n' "$USERNAME" "$PASSWORD" | arch-chroot "$TARGET" chpasswd
@@ -764,6 +956,7 @@ main() {
     preflight
     DISK_MODE=${DISK_MODE:-}
     BOOTLOADER=${BOOTLOADER:-auto}
+    CARE_MODE=${CARE_MODE:-}
     if [[ -n $CONFIG ]]; then
         if [[ $CONFIG == - ]]; then
             eval "$CONFIG_DATA"
@@ -803,6 +996,8 @@ main() {
         *) fail "$(T "Invalid DISK_MODE (use erase, freespace or manual)")" ;;
     esac
     [[ $BOOTLOADER == auto || $BOOTLOADER == none ]] || fail "$(T "Invalid BOOTLOADER (use auto or none)")"
+    : "${CARE_MODE:=carefree}"
+    [[ $CARE_MODE == carefree || $CARE_MODE == classic ]] || fail "$(T "Invalid CARE_MODE (use carefree or classic)")"
     if [[ $DISK_MODE == manual ]]; then STEP_TOTAL=4; else STEP_TOTAL=$((6 + ENCRYPT)); fi
     summary
     case $DISK_MODE in

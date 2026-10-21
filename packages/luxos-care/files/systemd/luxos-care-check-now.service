@@ -1,0 +1,9 @@
+[Unit]
+Description=LuxOS Care: check for problems and updates now
+After=network-online.target
+ConditionPathExists=!/run/archiso
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/luxos-care check --updates
+TimeoutStartSec=2h

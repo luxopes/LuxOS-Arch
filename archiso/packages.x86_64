@@ -21,6 +21,7 @@ less
 man-db
 # --- Disky a instalace ---
 arch-install-scripts
+reflector
 gptfdisk
 parted
 gparted
@@ -52,3 +53,4 @@ luxdrop
 luxos-installer
 luxai
 luxos-safe
+luxos-care

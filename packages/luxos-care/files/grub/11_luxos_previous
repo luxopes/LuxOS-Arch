@@ -1,0 +1,48 @@
+#!/bin/sh
+# LuxOS Care - GRUB: polozka "LuxOS (previous kernel)" a automaticky navrat k ni.
+# Po instalaci noveho jadra nastavi luxos-care v grubenv luxos_tries=3; kazdy start ho snizi,
+# uspesny start (luxos-care-boot.service) ho smaze. Pri 0 se spusti zalozni jadro.
+set -e
+
+prefix="/usr"
+exec_prefix="/usr"
+datarootdir="/usr/share"
+. "$datarootdir/grub/grub-mkconfig_lib"
+
+prev=/boot/luxos-prev/vmlinuz
+initrd=/boot/luxos-prev/initramfs.img
+[ -f "$prev" ] && [ -f "$initrd" ] || exit 0
+version=$(cat /var/lib/luxos-care/kernel/prev 2>/dev/null || true)
+
+if [ "x${GRUB_DEVICE_UUID}" = "x" ] || [ "x${GRUB_DISABLE_LINUX_UUID}" = "xtrue" ]; then
+    root_dev=${GRUB_DEVICE}
+else
+    root_dev=UUID=${GRUB_DEVICE_UUID}
+fi
+args="${GRUB_CMDLINE_LINUX} ${GRUB_CMDLINE_LINUX_DEFAULT}"
+if [ "x${GRUB_FS}" = "xbtrfs" ]; then
+    rootsubvol="$(make_system_path_relative_to_its_root /)"
+    rootsubvol="${rootsubvol#/}"
+    [ "x${rootsubvol}" != x ] && args="rootflags=subvol=${rootsubvol} ${args}"
+fi
+boot_dev=$("${grub_probe}" --target=device "$prev")
+rel=$(make_system_path_relative_to_its_root /boot/luxos-prev)
+
+cat <<'EOF'
+if [ "${luxos_tries}" = "0" ]; then
+    set default="luxos-previous"
+elif [ "${luxos_tries}" ]; then
+    if [ "${luxos_tries}" = "3" ]; then set luxos_tries=2
+    elif [ "${luxos_tries}" = "2" ]; then set luxos_tries=1
+    else set luxos_tries=0; fi
+    if [ "${env_block}" ]; then save_env -f "${env_block}" luxos_tries; else save_env luxos_tries; fi
+fi
+EOF
+echo "menuentry 'LuxOS (previous kernel)' --class luxos --class gnu-linux --class os \$menuentry_id_option 'luxos-previous' {"
+echo "	load_video"
+echo "	insmod gzio"
+prepare_grub_to_access_device "$boot_dev" | grub_add_tab
+echo "	echo 'Loading Linux ${version} ...'"
+echo "	linux	${rel}/vmlinuz root=${root_dev} rw ${args}"
+echo "	initrd	${rel}/initramfs.img"
+echo "}"

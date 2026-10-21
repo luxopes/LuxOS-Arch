@@ -2,7 +2,7 @@
 
 pkgname=lux
 pkgver=0.3.0
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxOS package manager (pacman, AUR and Flatpak frontend)"
 arch=(any)
 url="https://github.com/luxos"

@@ -637,7 +637,6 @@ class Greeter(Gtk.Window):
         self.anim_id = 0
         self.anim_from = (0.0, 0)
         self.last_input = time.monotonic()
-        self.motion_origin = None
         self.awaiting = False       # PAM ceka na odpoved
         self.prompted = False       # v teto autentizaci byla zobrazena vyzva
         self.ready = False          # overeno bez vyzvy -> staci potvrdit
@@ -1309,6 +1308,11 @@ class Greeter(Gtk.Window):
             GLib.timeout_add(50, lambda: self.update_caps() or False)
         if name in ("ISO_Next_Group", "ISO_Prev_Group"):
             GLib.timeout_add(50, lambda: self.update_keyboard() or False)
+        # Ctrl/Super+Mezernik prepina rozlozeni vzdy (jako v macOS), i kdyz Alt+Shift obstarava X
+        if name == "space" and len(self.kbd.layouts) > 1 and ev.state & (
+                Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SUPER_MASK | Gdk.ModifierType.MOD4_MASK):
+            self.switch_layout()
+            return True
         # Alt+Shift, pokud prepinani neobstarava samo X
         if not self.kbd.x_handles_toggle and len(self.kbd.layouts) > 1 and (
                 (name.startswith("Shift") and ev.state & Gdk.ModifierType.MOD1_MASK)
@@ -1339,14 +1343,9 @@ class Greeter(Gtk.Window):
             return True
         return False
 
-    def on_motion(self, _w, ev):
+    def on_motion(self, _w, _ev):
+        # Pohyb mysi jen prodlouzi necinnost; prihlaseni ukaze az klik nebo klavesa (jako macOS)
         self.touch()
-        if self.target == 0:
-            if self.motion_origin is None or time.monotonic() - self.motion_origin[2] > 1.0:
-                self.motion_origin = (ev.x_root, ev.y_root, time.monotonic())
-            elif math.hypot(ev.x_root - self.motion_origin[0], ev.y_root - self.motion_origin[1]) > 60 * self.u:
-                self.motion_origin = None
-                self.set_active(True)
         return False
 
     def on_entry_changed(self, _e):

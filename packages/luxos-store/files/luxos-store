@@ -160,6 +160,7 @@ class Catalog:
         self.apps = {}
         self.installed = set()
         self.updates = []
+        self.pending_icons = []
 
     def load(self):
         sync = {}
@@ -196,22 +197,32 @@ class Catalog:
         self.load_lux(apps)
         self.apps = apps
 
-    @staticmethod
-    def repo_icon(pkg):
-        """Ikona aplikace z repozitare LuxOS (stazena jednou do mezipameti)."""
-        os.makedirs(ICON_CACHE, exist_ok=True)
+    def repo_icon(self, pkg):
+        """Ikona aplikace z repozitare LuxOS z mezipameti; chybejici se stahne az po zobrazeni katalogu."""
         for ext in ("svg", "png"):
             path = os.path.join(ICON_CACHE, f"{pkg}.{ext}")
             if os.path.exists(path) and os.path.getsize(path):
                 return path
-        for ext in ("svg", "png"):
-            path = os.path.join(ICON_CACHE, f"{pkg}.{ext}")
-            run("curl", "-fsSL", "--max-time", "6", "-o", path, f"{APPS_ICON_URL}/{pkg}.{ext}", timeout=8)
-            if os.path.exists(path) and os.path.getsize(path):
-                return path
-            if os.path.exists(path):
-                os.unlink(path)
+        self.pending_icons.append((pkg, [(f"{APPS_ICON_URL}/{pkg}.{ext}", os.path.join(ICON_CACHE, f"{pkg}.{ext}"))
+                                         for ext in ("svg", "png")]))
         return None
+
+    def fetch_icons(self):
+        """Stazeni chybejicich ikon na pozadi (pomala sit nesmi zdrzet zobrazeni obchodu)."""
+        changed = False
+        os.makedirs(ICON_CACHE, exist_ok=True)
+        pending, self.pending_icons = self.pending_icons, []
+        for pkg, candidates in pending:
+            for url, path in candidates:
+                run("curl", "-fsSL", "--max-time", "6", "-o", path, url, timeout=8)
+                if os.path.exists(path) and os.path.getsize(path):
+                    if pkg in self.apps:
+                        self.apps[pkg].icon_file = path
+                        changed = True
+                    break
+                if os.path.exists(path):
+                    os.unlink(path)
+        return changed
 
     def refresh_installed(self):
         self.installed = set(run("pacman", "-Qq").split())
@@ -223,7 +234,7 @@ class Catalog:
     def load_lux(self, apps):
         """Balicky ve vlastnim formatu LuxOS (overeny index z lux __index)."""
         try:
-            index = json.loads(run("lux", "__index") or "{}")
+            index = json.loads(run("lux", "__index", timeout=15) or "{}")
         except ValueError:
             return
         os.makedirs(ICON_CACHE, exist_ok=True)
@@ -235,8 +246,7 @@ class Catalog:
             if p.get("icon"):
                 icon = os.path.join(ICON_CACHE, p["icon"])
                 if not os.path.exists(icon):
-                    run("curl", "-fsSL", "--max-time", "8", "-o", icon, f"{LUX_INDEX_URL}/{p['icon']}", timeout=10)
-                if not os.path.exists(icon):
+                    self.pending_icons.append((name, [(f"{LUX_INDEX_URL}/{p['icon']}", icon)]))
                     icon = None
             apps[name] = App(name, p.get("title") or name, p.get("summary", ""), "lux",
                              f"{p.get('version', '')}-{p.get('release', 1)}", int(p.get("size", 0)),
@@ -324,10 +334,18 @@ class Store(Gtk.Window):
         self.add(root)
         body = Gtk.Box()
         root.pack_start(body, True, True, 0)
-        self.status = Gtk.Label(xalign=0)
-        self.status.get_style_context().add_class("status")
-        self.status.set_no_show_all(True)
-        root.pack_end(self.status, False, False, 0)
+        # Spodni lista: stav operace a prubeh instalace/aktualizace
+        self.status_bar = Gtk.Box(spacing=12)
+        self.status_bar.get_style_context().add_class("status")
+        self.status_bar.set_no_show_all(True)
+        self.status = Gtk.Label(xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.END)
+        self.status.show()
+        self.progress = Gtk.ProgressBar(valign=Gtk.Align.CENTER)
+        self.progress.set_size_request(220, -1)
+        self.progress.set_no_show_all(True)
+        self.status_bar.pack_start(self.status, True, True, 0)
+        self.status_bar.pack_end(self.progress, False, False, 0)
+        root.pack_end(self.status_bar, False, False, 0)
 
         side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         side.set_size_request(220, -1)
@@ -380,6 +398,9 @@ class Store(Gtk.Window):
     def load_catalog(self):
         self.catalog.load()
         GLib.idle_add(self.show_page, "discover")
+        if self.catalog.fetch_icons():
+            # stazene ikony: znovu vykreslit aktualni stranku
+            GLib.idle_add(lambda: self.show_page(*self.current) or False)
 
     # ---- navigace ----
     def on_side(self, listbox, row):
@@ -615,32 +636,88 @@ class Store(Gtk.Window):
 
     def flash(self, text):
         self.status.set_text(text)
-        self.status.show()
+        self.status_bar.show()
 
     def run_helper(self, action, pkgs, message, app=None):
+        """Operace pres pkexec s prubehem podle vystupu pacmanu (stahovani 0-50 %, instalace 50-100 %)."""
         if app:
-            self.busy[app.pkg] = "…"
+            self.busy[app.pkg] = "0 %"
             for c in self.cards:
                 if c.app is app:
                     c.update()
         self.flash(message)
+        self.progress.set_fraction(0)
+        self.progress.show()
+        prog = {"total": 0, "down": 0, "inst": 0, "err": "", "net": False}
+
+        def show(frac, text):
+            self.progress.set_fraction(max(0.0, min(1.0, frac)))
+            if text:
+                self.status.set_text(text)
+            if app:
+                self.busy[app.pkg] = "%d %%" % round(frac * 100)
+                for c in self.cards:
+                    if c.app is app:
+                        c.update()
+            return False
+
+        def parse(line):
+            total = prog["total"] or 1
+            m = re.match(r"^Packages? \((\d+)\)", line)
+            if m:
+                prog["total"] = int(m.group(1))
+                return
+            if line.endswith("downloading...") or line.endswith(" is up to date"):
+                prog["down"] += 1
+                GLib.idle_add(show, 0.5 * prog["down"] / total,
+                              _("Downloading %d of %d…") % (min(prog["down"], total), total))
+                return
+            # bez terminalu pacman pise "installing jmeno..." (s terminalem "(1/3) installing jmeno")
+            m = re.match(r"^(?:\(\s*\d+/\d+\) )?(installing|upgrading|reinstalling|removing|downgrading) (\S+?)(?:\.\.\.)?$",
+                         line)
+            if m:
+                prog["inst"] += 1
+                verb = {"removing": _("Removing %s…")}.get(m.group(1), _("Installing %s…"))
+                GLib.idle_add(show, 0.5 + 0.5 * (prog["inst"] - 1) / total, verb % m.group(2))
+                return
+            if "failed retrieving file" in line or "too many errors from" in line:
+                if not prog["net"]:
+                    prog["net"] = True
+                    GLib.idle_add(show, self.progress.get_fraction(),
+                                  _("The connection is slow, trying another server…"))
+                return
+            if line.startswith("@@RETRY"):
+                GLib.idle_add(show, self.progress.get_fraction(),
+                              _("Download failed, trying again (attempt %s)…") % line.split()[-1])
+                return
+            if line.startswith("error:"):
+                prog["err"] = line[6:].strip()
 
         def work():
-            r = subprocess.run(["pkexec", HELPER, action, *pkgs], capture_output=True, text=True)
-            GLib.idle_add(done, r)
+            try:
+                p = subprocess.Popen(["pkexec", HELPER, action, *pkgs], stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT, text=True, bufsize=1)
+            except OSError as e:
+                GLib.idle_add(done, 1, str(e))
+                return
+            for line in p.stdout:
+                parse(line.strip())
+            GLib.idle_add(done, p.wait(), prog["err"])
 
-        def done(r):
+        def done(rc, err):
+            self.progress.hide()
             if app:
                 self.busy.pop(app.pkg, None)
             self.catalog.refresh_installed()
-            if r.returncode == 0:
+            if rc == 0:
                 self.flash(_("Done."))
-                GLib.timeout_add_seconds(4, lambda: self.status.hide() or False)
-            elif r.returncode in (126, 127):
+                GLib.timeout_add_seconds(4, lambda: self.status_bar.hide() or False)
+            elif rc in (126, 127):
                 self.flash(_("Cancelled."))
+            elif prog["net"]:
+                self.flash(_("The internet connection is too slow or unavailable. Try it again later."))
             else:
-                last = (r.stderr or r.stdout).strip().splitlines()[-1:] or [""]
-                self.flash(_("Failed: %s") % last[0])
+                self.flash(_("Failed: %s") % (err or _("unknown error")))
             for c in self.cards:
                 c.update()
             if self.current[0] == "detail":

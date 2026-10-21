@@ -1,0 +1,12 @@
+[Unit]
+Description=LuxOS Care: update now (requested by the user)
+Wants=network-online.target
+After=network-online.target NetworkManager.service
+ConditionPathExists=!/run/archiso
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/luxos-care update --manual
+# Stahovani se pri vypnuti prerusi, instalace dobehne (luxos-care ceka na pacman)
+KillMode=mixed
+TimeoutStopSec=30min

@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Software Update
+Name[cs]=Aktualizace softwaru
+GenericName=Software Update & Care
+GenericName[cs]=Aktualizace a péče o systém
+Comment=Updates, automatic repairs and the previous kernel fallback
+Comment[cs]=Aktualizace, automatické opravy a záložní jádro
+Exec=luxos-update
+Icon=system-software-update
+Terminal=false
+Categories=Settings;System;X-XFCE-SettingsDialog;X-XFCE-SystemSettings;GTK;
+Keywords=update;upgrade;repair;kernel;care;aktualizace;oprava;jádro;péče;
+StartupWMClass=luxos-update

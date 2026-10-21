@@ -10,6 +10,7 @@ Testovani bez zapisu na disk:
   LUXOS_INSTALL_FAKE=1           vzorove disky, simulovana instalace (bez sudo)
   LUXOS_INSTALL_FAKE_OFFLINE=1   (s FAKE) predstira chybejici internet
   LUXOS_INSTALL_FAKE_FAIL=1      (s FAKE) instalace skonci chybou
+  LUXOS_INSTALL_FAKE_NET=...     (s FAKE) stahovani: fast (vychozi), slow, stall, errors
 """
 import json
 import os
@@ -20,6 +21,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unicodedata
 import urllib.request
 
@@ -132,6 +134,15 @@ CSS = """
 .slide-title { font-size: 19px; font-weight: 800; }
 .log { font-family: monospace; font-size: 11px; }
 .done-icon { color: #30d158; }
+.warn { border-radius: 12px; padding: 10px 14px; border: 1px solid alpha(#ff9f0a, 0.55);
+        background-color: alpha(#ff9f0a, 0.12); }
+.warn-title { font-weight: 700; }
+.net { font-size: 13px; }
+.status { font-size: 12px; opacity: 0.8; font-style: italic; }
+.badge { font-size: 11px; font-weight: 700; color: white; background-color: #30d158; border-radius: 99px;
+         padding: 1px 8px; }
+.care-card { padding: 18px 18px; }
+.bullet { font-size: 13px; }
 .fail-icon { color: #ff453a; }
 progressbar trough { min-height: 8px; border-radius: 4px; }
 progressbar progress { min-height: 8px; border-radius: 4px; background-image: none; background-color: ACCENT; border: none; }
@@ -416,7 +427,7 @@ class Installer(Gtk.Window):
             "disk": None, "mode": None, "encrypt": False, "luks1": "", "luks2": "", "erase_ok": False,
             "fullname": "", "username": "", "user_edited": False, "pw1": "", "pw2": "",
             "hostname": "", "host_edited": False, "autologin": False,
-            "luxai": None, "luxai_email": "",
+            "luxai": None, "luxai_email": "", "care": "carefree",
         }
         set_ui_lang(locale)
         self.s["xkb"] = self.default_xkb(locale)
@@ -462,7 +473,8 @@ class Installer(Gtk.Window):
         nav.pack_end(self.btn_back, False, False, 0)
         nav.pack_end(self.btn_extra, False, False, 0)
 
-        self.steps = ["welcome", "keyboard", "timezone", "disk", "account", "luxai", "summary", "install", "done"]
+        self.steps = ["welcome", "keyboard", "timezone", "disk", "account", "care", "luxai", "summary", "install",
+                      "done"]
         self.idx = 0
         self.show_all()
         self.render()
@@ -521,7 +533,7 @@ class Installer(Gtk.Window):
         return self.steps[self.idx]
 
     STEP_NAMES = {"welcome": "Introduction", "network": "Network", "keyboard": "Keyboard", "timezone": "Time Zone",
-                  "disk": "Destination", "account": "Account", "luxai": "LuxAI", "summary": "Summary",
+                  "disk": "Destination", "account": "Account", "care": "Maintenance", "luxai": "LuxAI", "summary": "Summary",
                   "install": "Installation", "done": "Finish"}
 
     def render_sidebar(self):
@@ -667,7 +679,7 @@ class Installer(Gtk.Window):
             GLib.timeout_add(150, scroll_to)
         return entry, lb
 
-    def card(self, title, text, selected, on_click, danger=False, icon=None, extra=None):
+    def card(self, title, text, selected, on_click, danger=False, icon=None, extra=None, badge=None):
         ev = Gtk.EventBox()
         box = Gtk.Box(spacing=14)
         ctx = box.get_style_context()
@@ -680,7 +692,16 @@ class Installer(Gtk.Window):
         col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
         t = Gtk.Label(label=title, xalign=0, wrap=True)
         t.get_style_context().add_class("card-title")
-        col.pack_start(t, False, False, 0)
+        if badge:
+            # stitek vedle nadpisu (napr. "Doporuceno")
+            hb = Gtk.Box(spacing=10)
+            hb.pack_start(t, False, False, 0)
+            b = Gtk.Label(label=badge, valign=Gtk.Align.CENTER)
+            b.get_style_context().add_class("badge")
+            hb.pack_start(b, False, False, 0)
+            col.pack_start(hb, False, False, 0)
+        else:
+            col.pack_start(t, False, False, 0)
         if text:
             col.pack_start(self.hint(text), False, False, 0)
         if extra:
@@ -1174,7 +1195,44 @@ class Installer(Gtk.Window):
         refresh()
         GLib.idle_add(lambda: (full.grab_focus_without_selecting(), full.set_position(-1)) and False)
 
-    # ---- 7. LuxAI ----
+    # ---- 7. udrzba (carefree / classic) ----
+    CARE = {
+        "carefree": ("Carefree", "emblem-default", [
+            "Updates install automatically in the background - not on metered networks, "
+            "with Data Saver on or on low battery.",
+            "A previous kernel is kept, so the computer always has a working version to start.",
+            "LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash."]),
+        "classic": ("Classic (for IT professionals)", "utilities-terminal", [
+            "No automatic updates or repairs - standard Arch Linux behaviour.",
+            "You manage the system yourself with lux or pacman.",
+            "You only get a notification when updates are available."]),
+    }
+
+    def page_care(self, page):
+        self.heading(page, _("How should LuxOS be maintained?"),
+                     _("Choose whether LuxOS takes care of itself, or whether you want full control."))
+        for key in ("carefree", "classic"):
+            title, icon, bullets = self.CARE[key]
+            col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+            for b in bullets:
+                row = Gtk.Box(spacing=8)
+                dot = Gtk.Label(label="•", valign=Gtk.Align.START)
+                row.pack_start(dot, False, False, 0)
+                lab = Gtk.Label(label=_(b), xalign=0, wrap=True, max_width_chars=58)
+                lab.get_style_context().add_class("bullet")
+                row.pack_start(lab, True, True, 0)
+                col.pack_start(row, False, False, 0)
+            card = self.card(_(title), "", self.s["care"] == key, lambda k=key: self.pick_care(k),
+                             icon=icon, extra=col, badge=_("Recommended") if key == "carefree" else None)
+            card.get_child().get_style_context().add_class("care-card")
+            page.pack_start(card, False, False, 0)
+
+    def pick_care(self, key):
+        if key != self.s["care"]:
+            self.s["care"] = key
+            GLib.idle_add(lambda: self.render() and False)
+
+    # ---- 8. LuxAI ----
     def page_luxai(self, page):
         hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         hero.get_style_context().add_class("slide")
@@ -1258,6 +1316,8 @@ class Installer(Gtk.Window):
                 (_("Disk"), disk), (_("Encryption"), _("yes") if self.s["encrypt"] else _("no")),
                 (_("User"), f"{self.s['fullname']} ({self.s['username']})"), (_("Computer"), self.s["hostname"]),
                 (_("Automatic login"), _("yes") if self.s["autologin"] else _("no")),
+                (_("Maintenance"), _("Classic - you manage the system yourself") if self.s["care"] == "classic"
+                 else _("Carefree - automatic updates and repairs")),
                 ("LuxAI", _("signed in") if self.s["luxai"] else _("not signed in"))]
         for i, (k, v) in enumerate(rows):
             lab = Gtk.Label(label=k, xalign=0)
@@ -1275,6 +1335,7 @@ class Installer(Gtk.Window):
     # ---- 9. instalace ----
     def page_install(self, page):
         self.heading(page, _("Installing LuxOS"), _("This takes about 10 minutes. You can keep using the computer."))
+        self.install_sub = page.get_children()[-1]
         self.step_label = Gtk.Label(label=_("Starting…"), xalign=0, ellipsize=3)
         page.pack_start(self.step_label, False, False, 4)
         row = Gtk.Box(spacing=10)
@@ -1284,6 +1345,36 @@ class Installer(Gtk.Window):
         row.pack_start(self.bar, True, True, 0)
         row.pack_start(self.pct_label, False, False, 0)
         page.pack_start(row, False, False, 0)
+        # Stahovani: rychlost a zbyvajici cas (spinner ukazuje, ze instalace bezi)
+        self.net_row = Gtk.Box(spacing=8, no_show_all=True)
+        self.net_spin = Gtk.Spinner()
+        self.net_label = Gtk.Label(xalign=0, ellipsize=3)
+        self.net_label.get_style_context().add_class("net")
+        self.net_row.pack_start(self.net_spin, False, False, 0)
+        self.net_row.pack_start(self.net_label, True, True, 0)
+        self.net_spin.show()
+        self.net_label.show()
+        page.pack_start(self.net_row, False, False, 0)
+        # Srozumitelna hlaska o serverech ("Server X je pomaly, zkousim jiny…")
+        self.status_label = Gtk.Label(xalign=0, wrap=True, max_width_chars=80, no_show_all=True)
+        self.status_label.get_style_context().add_class("status")
+        page.pack_start(self.status_label, False, False, 0)
+        # Varovani pri pomalem nebo zastavenem pripojeni
+        self.warn_box = Gtk.Box(spacing=12, no_show_all=True)
+        self.warn_box.get_style_context().add_class("warn")
+        wicon = Gtk.Image.new_from_icon_name("network-wireless-signal-weak-symbolic", Gtk.IconSize.DND)
+        wicon.set_valign(Gtk.Align.START)
+        wicon.show()
+        self.warn_box.pack_start(wicon, False, False, 0)
+        wcol = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        self.warn_title = Gtk.Label(xalign=0, wrap=True, max_width_chars=70)
+        self.warn_title.get_style_context().add_class("warn-title")
+        self.warn_text = Gtk.Label(xalign=0, wrap=True, max_width_chars=70)
+        wcol.pack_start(self.warn_title, False, False, 0)
+        wcol.pack_start(self.warn_text, False, False, 0)
+        wcol.show_all()
+        self.warn_box.pack_start(wcol, True, True, 0)
+        page.pack_start(self.warn_box, False, False, 0)
         self.slide_stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.SLIDE_LEFT, transition_duration=450,
                                      margin_top=10)
         for i, (icon, title, text) in enumerate(SLIDES):
@@ -1386,7 +1477,7 @@ class Installer(Gtk.Window):
             "TIMEZONE": s["timezone"], "DISK": s["disk"], "DISK_MODE": s["mode"], "BOOTLOADER": "auto",
             "ENCRYPT": "1" if s["encrypt"] else "0", "LUKS_PASS": s["luks1"] if s["encrypt"] else "",
             "USERNAME": s["username"], "FULLNAME": s["fullname"].strip(), "PASSWORD": s["pw1"],
-            "HOSTNAME_SEL": s["hostname"], "AUTOLOGIN": "1" if s["autologin"] else "0",
+            "HOSTNAME_SEL": s["hostname"], "AUTOLOGIN": "1" if s["autologin"] else "0", "CARE_MODE": s["care"],
             "LUXAI_ACCOUNT": json.dumps(s["luxai"], ensure_ascii=False) if s["luxai"] else "",
         }
         return "".join(f"{k}={q(v)}\n" for k, v in values.items())
@@ -1427,6 +1518,9 @@ class Installer(Gtk.Window):
         self.inhibit_idle(True)
         self.lines, self.buf = [], b""
         self.step_n, self.step_total, self.shown, self.target = 0, 1, 0.0, (0.0, 0.0)
+        self.real, self.goal = 0.0, 0.0   # skutecny prubeh a cil animace pruhu
+        self.net = None                   # {"rate", "got", "total", "avg", "idle", "slow"} behem stahovani
+        self.status_until = 0.0
         self.error_text, self.done_flag = "", False
         if FAKE:
             cmd = ["bash", "-c", FAKE_BACKEND]
@@ -1447,7 +1541,7 @@ class Installer(Gtk.Window):
             pass
         fd = self.proc.stdout.fileno()
         GLib.io_add_watch(fd, GLib.PRIORITY_DEFAULT, GLib.IO_IN | GLib.IO_HUP | GLib.IO_ERR, self.on_output)
-        GLib.timeout_add(500, self.tick)
+        GLib.timeout_add(100, self.tick)
         GLib.timeout_add_seconds(9, self.next_slide)
 
     def on_output(self, fd, cond):
@@ -1486,17 +1580,21 @@ class Installer(Gtk.Window):
             except (IndexError, ValueError):
                 return
             self.target = self.step_range()
-            self.shown = max(self.shown, self.target[0])
+            self.real = max(self.real, self.target[0])
             self.step_label.set_text(parts[3] if len(parts) > 3 else "")
-            self.update_bar()
+            self.show_status("")
         elif line.startswith("@@PCT "):
             try:
                 pct = min(max(int(line.split()[1]), 0), 100)
             except (IndexError, ValueError):
                 return
             a, b = self.target
-            self.shown = max(self.shown, a + (b - a) * pct / 100)
-            self.update_bar()
+            self.real = max(self.real, a + (b - a) * pct / 100)
+        elif line.startswith("@@NET"):
+            self.on_net(line.split()[1:])
+        elif line.startswith("@@STATUS"):
+            text = line[9:].strip()
+            self.show_status(text, hold=12, force=not text)
         elif line.startswith("@@ERROR "):
             self.error_text = self.error_text or line[8:]
         elif line == "@@DONE":
@@ -1510,13 +1608,75 @@ class Installer(Gtk.Window):
                 self.log_buf.delete(self.log_buf.get_start_iter(), self.log_buf.get_iter_at_line(1000))
             self.log_view.scroll_mark_onscreen(self.log_end)
 
+    def show_status(self, text, hold=0, force=False):
+        """Hlaska pod pruhem; s hold zustane aspon tolik sekund (neprepise ji hned dalsi radek)."""
+        now = time.monotonic()
+        if not text and not force and now < self.status_until:
+            return
+        self.status_until = now + hold if text else 0.0
+        say(self.status_label, text)
+
+    def on_net(self, args):
+        """@@NET B/s stazeno celkem | @@NET END"""
+        if args[:1] == ["END"] or len(args) < 3:
+            self.net = None
+            self.net_spin.stop()
+            self.net_row.hide()
+            self.warn_box.hide()
+            return
+        try:
+            rate, got, total = (max(int(x), 0) for x in args[:3])
+        except ValueError:
+            return
+        n = self.net
+        if n is None or got < n["got"] or total != n["total"]:
+            # novy pokus nebo zacatek stahovani
+            n = self.net = {"rate": 0, "got": got, "total": total, "avg": float(rate), "idle": 0, "slow": 0}
+        n["idle"] = 0 if got > n["got"] else n["idle"] + 1   # vzorky (~2 s) bez novych dat
+        n["rate"], n["got"] = rate, got
+        n["avg"] = n["avg"] * 0.8 + rate * 0.2              # klidnejsi odhad pro zbyvajici cas
+        left = max(total - got, 0)
+        eta = left / n["avg"] if n["avg"] > 1000 else None
+        slow = rate < 150_000 or (eta is not None and eta > 25 * 60)
+        n["slow"] = n["slow"] + 1 if slow else 0
+        parts = [_("Downloading %s of %s") % (size_text(got), size_text(total))]
+        if n["idle"] >= 3:
+            parts.append(_("waiting for data"))
+        else:
+            parts.append(_("%s/s") % size_text(rate))
+            if eta is not None:
+                parts.append(eta_text(eta))
+        self.net_label.set_text(" · ".join(parts))
+        self.net_row.show()
+        self.net_spin.start()
+        if n["idle"] >= 10:          # ~20 s bez dat
+            self.warn(_("The connection is not responding right now"),
+                      _("The installation has not stopped. LuxOS keeps trying other servers and continues "
+                        "as soon as data arrives again."))
+        elif n["slow"] >= 5:         # ~10 s pomale
+            self.warn(_("Your internet connection is very slow"),
+                      _("The installation will take longer. It has not stopped."))
+        elif n["idle"] == 0 and n["slow"] == 0:
+            self.warn_box.hide()
+
+    def warn(self, title, text):
+        self.warn_title.set_text(title)
+        self.warn_text.set_text(text)
+        self.warn_box.show()
+        self.install_sub.set_text(_("The time depends on your internet connection. You can keep using the computer."))
+
     def tick(self):
         if not self.installing:
             return False
-        # Kroky bez prubehu: pomalu se blizit konci kroku, aby pruh nestal
         a, b = self.target
-        if b > self.shown:
-            self.shown += (b - self.shown) * 0.004
+        # Kroky bez prubehu: cil se pomalu blizi konci kroku, aby pruh nestal; pri stahovani
+        # nejvys o 2 % nad skutecny stav (pruh nema predbihat data)
+        cap = b if self.net is None else min(b, self.real + 0.02)
+        if cap > self.goal:
+            self.goal += (cap - self.goal) * 0.0008
+        self.goal = max(self.goal, self.real)
+        if self.goal > self.shown + 0.0002:
+            self.shown = min(self.goal, self.shown + max((self.goal - self.shown) * 0.15, 0.0002))
             self.update_bar()
         return True
 
@@ -1541,6 +1701,16 @@ class Installer(Gtk.Window):
             self.result = ("fail", text)
         self.idx = self.steps.index("done")
         self.render()
+
+
+def eta_text(sec):
+    """Zbyvajici cas stahovani: "about 12 min left"."""
+    if sec < 60:
+        return _("less than a minute left")
+    m = int(sec / 60 + 0.5)
+    if m < 60:
+        return _("about %s left") % (_("%s min") % m)
+    return _("about %s left") % (_("%s h %s min") % (m // 60, m % 60))
 
 
 def wifi_list():
@@ -1595,8 +1765,44 @@ FAKE_BACKEND = r'''
 set -euo pipefail
 eval "$(cat)"
 echo "fake backend: DISK=$DISK DISK_MODE=$DISK_MODE ENCRYPT=$ENCRYPT USERNAME=$USERNAME HOST=$HOSTNAME_SEL"
-echo "fake backend: FULLNAME=$FULLNAME, password length ${#PASSWORD}, LuxAI=${LUXAI_ACCOUNT:+yes}"
+echo "fake backend: FULLNAME=$FULLNAME, password length ${#PASSWORD}, LuxAI=${LUXAI_ACCOUNT:+yes}, CARE_MODE=$CARE_MODE"
 d=${LUXOS_INSTALL_FAKE_DELAY:-0.4}
+# Stahovani jako v luxos-install (pac_filter): @@NET kazde "2 s", srozumitelne hlasky o serverech
+fake_download() {
+    local net=${LUXOS_INSTALL_FAKE_NET:-fast} total=$((1300 * 1000 * 1000)) got=0 rate=0 i=0 r
+    echo "@@STATUS Looking for the fastest download servers…"
+    echo "  Looking for the fastest download servers…"
+    sleep "$d"
+    echo "  Using 8 fast download servers near you."
+    echo "@@STATUS "
+    echo "Packages (120) base-3-2 linux-zen-6.17 ..."
+    echo "Total Download Size:  1239.78 MiB"
+    echo "@@NET 0 0 $total"
+    while ((got < total)); do
+        i=$((i + 1))
+        case $net in
+            slow)  r=$((90000 + RANDOM % 40000)) ;;
+            stall) if ((i > 8 && i < 30)); then r=0; else r=$((900000 + RANDOM % 300000)); fi ;;
+            errors) r=$((2500000 + RANDOM % 500000))
+                    if ((i == 4)); then
+                        echo "The server mirror.example.org is slow, trying another one…"
+                        echo "@@STATUS The server mirror.example.org is slow, trying another one…"
+                    elif ((i == 9)); then
+                        echo "The server mirror.example.org has too many problems, skipping it."
+                        echo "@@STATUS The server mirror.example.org has too many problems, skipping it."
+                    fi ;;
+            *)     r=$((9000000 + RANDOM % 2000000)) ;;
+        esac
+        # slow: rychle dokoncit, aby test netrval vecne (rychlost se ale hlasi pravdive)
+        [[ $net == slow ]] && ((i > 40)) && r=$((total / 3))
+        got=$((got + r * 2)); ((got > total)) && got=$total
+        rate=$(((rate * 6 + r * 4) / 10))
+        echo "@@NET $rate $got $total"
+        echo "@@PCT $((got * 40 / total))"
+        sleep "$(awk -v d="$d" 'BEGIN {print d / 4}')"
+    done
+    echo "@@NET END"
+}
 steps=("Preparing disk $DISK")
 ((ENCRYPT)) && steps+=("Encrypting the disk")
 steps+=("Creating file systems" "Detecting hardware" "Installing packages (this is the longest step)"
@@ -1607,10 +1813,10 @@ for s in "${steps[@]}"; do
     echo "@@STEP $n ${#steps[@]} $s"
     echo "==> $s"
     if [[ $s == Installing* ]]; then
-        echo "Packages (120) base-3-2 linux-zen-6.17 ..."
+        fake_download
         for p in $(seq 1 120); do
             echo "installing package-$p..."
-            echo "@@PCT $(((p * 100) / 120))"
+            echo "@@PCT $((40 + (p * 60) / 120))"
             sleep "$(awk -v d="$d" 'BEGIN {print d / 10}')"
             if [[ ${LUXOS_INSTALL_FAKE_FAIL-} == 1 && $p == 60 ]]; then
                 echo "error: failed to commit transaction (conflicting files)"

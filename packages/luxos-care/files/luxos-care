@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""LuxOS Care - aktualizace, zalozni jadro a samooprava (viz /usr/lib/luxos/python/luxos_care.py).
+
+  luxos-care [status] [--json]      stav (kdokoli)
+  luxos-care history [N]            auditni zaznam oprav a aktualizaci
+  luxos-care mode [carefree|classic]
+  luxos-care update [--manual]      (root, luxos-care-update.service)
+  luxos-care check [--updates]      (root, luxos-care-check.service)
+  luxos-care apply ID-N             (root, luxos-care-apply@ID-N.service: volba LuxAI)
+  luxos-care boot-check             (root, pred boot-complete.target)
+  luxos-care kernel-pre|kernel-post (root, hooky pacmanu; cile na stdin)
+  luxos-care release-kept           (root) vystup pacmanu na stdin: uvolni zalozni jadro
+                                    se stejnou verzi, jaka se ma nainstalovat
+"""
+import json
+import os
+import sys
+import time
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+import luxos_care as care  # noqa: E402
+from luxos_i18n import _  # noqa: E402
+
+
+def need_root():
+    if os.geteuid() != 0 and not care.ROOT:
+        sys.exit(_("This command must be run as root."))
+
+
+def fmt_time(t):
+    return time.strftime("%Y-%m-%d %H:%M", time.localtime(t)) if t else _("never")
+
+
+def status(as_json):
+    st = care.load_state()
+    st["mode"] = care.mode()
+    st.pop("attempts", None)
+    st.pop("rules_done_once", None)
+    for p in st.get("problems", []):
+        if "ai" in p:
+            p["ai"] = {k: v for k, v in p["ai"].items() if k != "diagnosis"}
+    if as_json:
+        print(json.dumps(st, indent=1, ensure_ascii=False))
+        return 0
+    print(_("Mode: %s") % (_("Carefree") if st["mode"] == "carefree" else _("Classic")))
+    print(_("Last update: %s") % fmt_time(st.get("last_update")))
+    print(_("Last check: %s") % fmt_time(st.get("last_check")))
+    pend = st.get("pending", [])
+    print(_("%d updates available") % len(pend))
+    if st.get("prev_kernel"):
+        print(_("Previous kernel: %s") % st["prev_kernel"])
+    for p in st.get("problems", []):
+        print("! " + _(p["title"]).replace("%s", " ".join(p.get("args", []))))
+    if st.get("needs_reboot"):
+        print(_("Restart to finish the update"))
+    for f in st.get("pacnew", []):
+        print(_("New configuration file to review: %s") % f)
+    return 0
+
+
+def main(argv):
+    cmd = argv[1] if len(argv) > 1 else "status"
+    args = argv[2:]
+    if cmd == "status":
+        return status("--json" in args)
+    if cmd == "history":
+        n = int(args[0]) if args and args[0].isdigit() else 30
+        for h in care.read_history(n):
+            print(json.dumps(h, ensure_ascii=False))
+        return 0
+    if cmd == "mode":
+        if not args:
+            print(care.mode())
+            return 0
+        need_root()
+        care.set_mode(args[0])
+        care.history("mode", mode=args[0])
+        return 0
+    if cmd == "update":
+        need_root()
+        return care.do_update(manual="--manual" in args)
+    if cmd == "check":
+        need_root()
+        try:
+            with care.CareLock(wait=True):
+                care.do_check()
+        except BlockingIOError:
+            return 0
+        if "--updates" in args:
+            care.do_check_updates(force=True)
+        return 0
+    if cmd == "apply":
+        need_root()
+        rid, _s, n = (args[0] if args else "").rpartition("-")
+        if not n.isdigit():
+            sys.exit("usage: luxos-care apply ID-N")
+        with care.CareLock(wait=True):
+            ok, out = care.apply_ai_choice(rid, int(n))
+        print(out[-2000:] if out else ("ok" if ok else "failed"))
+        return 0 if ok else 1
+    if cmd == "boot-check":
+        need_root()
+        rc = care.boot_check()
+        try:
+            with care.CareLock(wait=True):
+                care.do_check(boot=True)
+        except Exception as e:  # noqa: BLE001 - vysledek startu rozhoduje boot_check
+            care.log(f"check after boot failed: {e}")
+        return rc
+    if cmd == "release-kept":
+        # pacman -S ... 2>&1 | luxos-care release-kept: uvolni zalozni jadro kolidujici s instalaci
+        need_root()
+        print(" ".join(care.release_kept_conflicts(sys.stdin.read())))
+        return 0
+    if cmd in ("kernel-pre", "kernel-post"):
+        need_root()
+        targets = [] if sys.stdin.isatty() else sys.stdin.read().split()
+        try:
+            return (care.kernel_pre if cmd == "kernel-pre" else care.kernel_post)(targets)
+        except Exception as e:  # noqa: BLE001 - hook nesmi rozbit transakci pacmanu
+            care.log(f"{cmd} failed: {e}")
+            return 0
+    print(__doc__.strip(), file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
