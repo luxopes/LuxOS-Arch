@@ -880,3 +880,123 @@ Clock	Hodiny
 Aurora	Polární záře
 Photos	Fotky
 Floating Logo	Plovoucí logo
+# luxos-install-gui (graficky instalator) a nove volby luxos-install
+Swap	Odkládací oddíl
+Encrypted (LUKS)	Šifrovaný (LUKS)
+Unknown	Neznámý
+Back	Zpět
+Please wait until the installation finishes.	Počkejte prosím, až instalace skončí.
+Connect to the internet	Připojte se k internetu
+LuxOS downloads the newest packages during installation. Choose a Wi-Fi network or plug in a network cable.	LuxOS během instalace stahuje nejnovější balíky. Vyberte síť Wi-Fi nebo připojte síťový kabel.
+Connect to the internet to continue.	Pro pokračování se připojte k internetu.
+Choose your keyboard layout. You can try it in the field below.	Vyberte rozložení klávesnice. Vyzkoušet si ho můžete v poli níže.
+Time Zone	Časové pásmo
+Where do you want to install LuxOS?	Kam chcete LuxOS nainstalovat?
+Encryption password	Heslo pro šifrování
+Confirm password	Heslo znovu
+Create your account	Vytvořte si účet
+You will use this account to sign in and to install apps.	Tento účet budete používat k přihlášení a instalaci aplikací.
+User name	Uživatelské jméno
+Log in automatically	Přihlašovat automaticky
+Fill in your name, user name, password and computer name.	Vyplňte jméno, uživatelské jméno, heslo a název počítače.
+Ready to install	Připraveno k instalaci
+Check your choices. Nothing has been changed on the disk yet.	Zkontrolujte svou volbu. Na disku se zatím nic nezměnilo.
+Installing LuxOS	Instaluji LuxOS
+This takes about 10 minutes. You can keep using the computer.	Potrvá to asi 10 minut. Počítač můžete mezitím dál používat.
+LuxOS is being installed	LuxOS se instaluje
+This assistant installs LuxOS on your computer. It takes about 10 minutes.	Tento průvodce nainstaluje LuxOS do vašeho počítače. Potrvá to asi 10 minut.
+Choose your language	Vyberte jazyk
+You are connected to the internet	Jste připojeni k internetu
+Wi-Fi password	Heslo k Wi-Fi
+Checking the connection…	Ověřuji připojení…
+Type here to test your keyboard	Zde si vyzkoušejte klávesnici
+Choose the time zone of your location.	Vyberte časové pásmo, ve kterém se nacházíte.
+Erase disk and install LuxOS	Smazat disk a nainstalovat LuxOS
+Encrypt LuxOS	Šifrovat LuxOS
+Protects your files if the computer is lost. You will enter the password at every start.	Chrání vaše soubory při ztrátě počítače. Heslo zadáte při každém spuštění.
+If you forget this password, your data cannot be recovered.	Pokud heslo zapomenete, data nepůjde obnovit.
+Confirm that the disk will be erased.	Potvrďte, že se disk smaže.
+Enter the encryption password twice.	Zadejte heslo pro šifrování dvakrát.
+With automatic login, anyone who turns on the computer can use your account.	S automatickým přihlášením může váš účet použít každý, kdo počítač zapne.
+You can also skip this and sign in later.	Tento krok můžete přeskočit a přihlásit se později.
+Erase %s and install LuxOS	Smazat %s a nainstalovat LuxOS
+Alongside other systems on %s (%s of free space)	Vedle jiných systémů na %s (%s volného místa)
+Automatic login	Automatické přihlášení
+Starting…	Spouštím…
+The last lines of the installation log:	Poslední řádky záznamu instalace:
+Copy Log	Kopírovat záznam
+Save Log…	Uložit záznam…
+Restart Now	Restartovat
+Passwords do not match.	Hesla se neshodují.
+No Wi-Fi networks found. Plug in a network cable or try again.	Nenalezena žádná síť Wi-Fi. Připojte síťový kabel nebo to zkuste znovu.
+Connected.	Připojeno.
+Still offline.	Stále bez připojení.
+Connecting to %s…	Připojuji k %s…
+Network Settings…	Nastavení sítě…
+Detected time zone: %s	Zjištěné časové pásmo: %s
+No suitable disk found. LuxOS needs a disk with at least 20 GB.	Nenalezen vhodný disk. LuxOS potřebuje disk s alespoň 20 GB.
+The disk is empty.	Disk je prázdný.
+Install alongside other systems	Nainstalovat vedle jiných systémů
+Everything on %s will be deleted.	Vše na disku %s bude smazáno.
+This name is reserved by the system.	Toto jméno je vyhrazené pro systém.
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in now and everything is ready after the first start.	Nepovinné: AI v LuxAI, Lux Code a LSL IDE používá váš účet LuxAI. Přihlaste se teď a po prvním spuštění bude vše připravené.
+Sign-in is not available. You can sign in later in Settings.	Přihlášení není dostupné. Přihlásit se můžete později v Nastavení.
+Installation failed	Instalace selhala
+The installer stopped with exit code %s.	Instalátor skončil s návratovým kódem %s.
+Could not connect. Check the password and try again.	Připojení se nezdařilo. Zkontrolujte heslo a zkuste to znovu.
+Local time: %s	Místní čas: %s
+Looking for disks…	Hledám disky…
+LuxOS (new)	LuxOS (nový)
+Systems found: %s	Nalezené systémy: %s
+LuxOS uses %s of free space. Existing systems and files are kept; you choose the system in a menu when the computer starts.	LuxOS využije %s volného místa. Stávající systémy i soubory zůstanou; systém vyberete v nabídce při spuštění počítače.
+I understand that all data on %s (%s) will be erased.	Rozumím, že všechna data na %s (%s) budou smazána.
+All data on %s will be erased when you click Install.	Po klepnutí na Instalovat budou všechna data na %s smazána.
+… and %s more partitions	… a další oddíly: %s
+Installing alongside other systems is not possible: %s	Instalace vedle jiných systémů není možná: %s
+EFI system partition	Systémový oddíl EFI
+Microsoft reserved	Vyhrazený oddíl Microsoft
+Windows recovery	Obnovení Windows
+Needs a computer started in UEFI mode.	Počítač musí být spuštěný v režimu UEFI.
+The disk does not use a GPT partition table.	Disk nepoužívá tabulku oddílů GPT.
+The partition table has problems.	Tabulka oddílů obsahuje chyby.
+There is no free space of at least 20 GB on this disk.	Na disku není volné místo alespoň 20 GB.
+No EFI system partition found on this disk.	Na disku chybí systémový oddíl EFI.
+The EFI system partition could not be read.	Systémový oddíl EFI nelze přečíst.
+The EFI system partition has less than 250 MB free.	Systémový oddíl EFI má méně než 250 MB volného místa.
+Administrator rights are not available.	Nejsou k dispozici práva správce.
+Fast and light	Rychlý a lehký
+LuxOS starts quickly and leaves more memory for your apps.	LuxOS startuje rychle a nechává víc paměti vašim aplikacím.
+A familiar desktop	Známá plocha
+A dock, a clean top bar and an app grid - everything is where you expect it.	Dok, čistá horní lišta a mřížka aplikací – vše je tam, kde to čekáte.
+LuxAI built in	LuxAI v základu
+Sign in once and use AI in LuxAI, Lux Code and LSL IDE.	Přihlaste se jednou a používejte AI v LuxAI, Lux Code i LSL IDE.
+Drivers included	Ovladače v ceně
+Graphics, Wi-Fi and other drivers are picked automatically for your hardware.	Ovladače grafiky, Wi-Fi a dalších zařízení se vyberou automaticky podle vašeho hardwaru.
+Safe by default	Bezpečný od začátku
+Signed updates, a locked root account and optional full disk encryption.	Podepsané aktualizace, zamčený účet root a volitelné šifrování disku.
+Introduction	Úvod
+Destination	Umístění
+Account	Účet
+Installation	Instalace
+Finish	Dokončení
+%s  (free space, other systems are kept)	%s  (volné místo, ostatní systémy zůstanou)
+no boot loader	bez zavaděče
+Installing alongside other systems needs a computer started in UEFI mode.	Instalace vedle jiných systémů vyžaduje počítač spuštěný v režimu UEFI.
+Disk %s does not use a GPT partition table.	Disk %s nepoužívá tabulku oddílů GPT.
+The partition table on %s has problems. Check it first (sgdisk -v).	Tabulka oddílů na %s obsahuje chyby. Nejdřív ji zkontrolujte (sgdisk -v).
+Disk %s has no free space of at least 20 GB.	Na disku %s není volné místo alespoň 20 GB.
+No EFI system partition found on %s.	Na %s chybí systémový oddíl EFI.
+The EFI system partition %s could not be read.	Systémový oddíl EFI %s nelze přečíst.
+The EFI system partition %s has less than 250 MB free.	Systémový oddíl EFI %s má méně než 250 MB volného místa.
+The partition table on %s is full.	Tabulka oddílů na %s je plná.
+New partition %s: %s GB of free space	Nový oddíl %s: %s GB volného místa
+Unexpected change of existing partitions on %s - stopping.	Nečekaná změna stávajících oddílů na %s – končím.
+systemd-boot on %s is already in the UEFI boot menu.	systemd-boot na %s už je v nabídce spouštění UEFI.
+Could not show the boot menu; hold Space while starting to see it.	Nabídku spouštění nelze zobrazit; při startu ji vyvoláte podržením mezerníku.
+Invalid DISK_MODE (use erase, freespace or manual)	Neplatný DISK_MODE (použijte erase, freespace nebo manual)
+Invalid BOOTLOADER (use auto or none)	Neplatný BOOTLOADER (použijte auto nebo none)
+# luxos-daemon (Bluetooth agent)
+Allow “%s” to pair with this computer?	Povolit spárování zařízení „%s“ s tímto počítačem?
+Allow “%s” to connect?	Povolit připojení zařízení „%s“?
+Only allow devices you know.	Povolujte jen zařízení, která znáte.
+Allow	Povolit

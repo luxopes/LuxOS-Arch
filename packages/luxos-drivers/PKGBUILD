@@ -2,7 +2,7 @@
 
 pkgname=luxos-drivers
 pkgver=1.0.0
-pkgrel=2
+pkgrel=3
 pkgdesc="LuxOS hardware detection: picks GPU, Wi-Fi, VM and other drivers automatically"
 arch=(any)
 url="https://github.com/luxos"
@@ -11,4 +11,7 @@ depends=(bash systemd)
 
 package() {
     install -Dm755 "$startdir/luxos-hwdetect" "$pkgdir/usr/bin/luxos-hwdetect"
+    # Uspavani nepouzivane grafiky NVIDIA (hybridni notebooky: jednotky W z baterie)
+    install -Dm644 "$startdir/luxos-nvidia-pm.conf" "$pkgdir/usr/lib/modprobe.d/luxos-nvidia-pm.conf"
+    install -Dm644 "$startdir/80-luxos-nvidia-pm.rules" "$pkgdir/usr/lib/udev/rules.d/80-luxos-nvidia-pm.rules"
 }

@@ -1,0 +1,11 @@
+[Xfce Panel]
+Type=X-XFCE-PanelPlugin
+Encoding=UTF-8
+Name=Generic Monitor
+Name[cs]=Obecné sledování
+Comment=Show output of a command.
+Comment[cs]=Zobrazit výstup příkazu.
+Icon=org.xfce.genmon
+X-XFCE-Module=genmon
+X-XFCE-Internal=TRUE
+X-XFCE-API=2.0

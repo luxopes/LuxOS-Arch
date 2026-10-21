@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Print Queue Applet
+Comment=LuxOS: off by default - it kept CUPS and a Python process running without any printer
+Exec=system-config-printer-applet
+Hidden=true

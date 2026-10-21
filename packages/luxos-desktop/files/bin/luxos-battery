@@ -1,7 +1,9 @@
 #!/bin/bash
 # LuxOS - baterie v horni liste (plugin genmon): ikona + procenta, klik = Ovladaci centrum
 . /usr/lib/luxos/i18n.sh
-bat=$(compgen -G '/sys/class/power_supply/BAT*' | head -1)
+bats=(/sys/class/power_supply/BAT*)
+bat=${bats[0]}
+[[ -e $bat ]] || bat=
 if [[ -z $bat ]]; then
     printf '<txt></txt>\n'
     exit 0
@@ -12,8 +14,9 @@ cap=$(<"$bat/capacity") st=$(<"$bat/status")
 # nabijecky ho zase vypne, ale jen kdyz ho zapnul on
 auto="${XDG_CONFIG_HOME:-$HOME/.config}/luxos/powersaver-auto"
 mark="${XDG_RUNTIME_DIR:-/tmp}/luxos-powersaver-auto-on"
+saver="${XDG_CONFIG_HOME:-$HOME/.config}/luxos/powersaver"   # stav jako luxos-powersaver status, bez dalsiho procesu
 if [[ -e $auto ]]; then
-    if [[ $st == Discharging && $cap -le 20 && ! -e $mark && $(luxos-powersaver status) == off ]]; then
+    if [[ $st == Discharging && $cap -le 20 && ! -e $mark && ! -e $saver ]]; then
         luxos-powersaver on >/dev/null
         : >"$mark"
         notify-send -i battery-caution -a LuxOS "$(T "Battery Saver is on")" \
@@ -32,6 +35,6 @@ case $st in
     Discharging) tip=$(T "On battery") ;;
     *) tip=$(T "Fully charged") ;;
 esac
-[[ $(luxos-powersaver status) == on ]] && tip+=" · $(T "Battery Saver")"
+[[ -e $saver ]] && tip+=" · $(T "Battery Saver")"
 printf '<icon>%s-symbolic</icon><txt> %s %%</txt><tool>%s %s %%</tool><iconclick>luxos-cc-toggle</iconclick><txtclick>luxos-cc-toggle</txtclick>\n' \
     "$icon" "$cap" "$tip" "$cap"

@@ -4,7 +4,10 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
 
 - **Rychlost a nenáročnost:** Xfce + vestavěný kompozitor xfwm4 (žádný těžký shell), jádro `linux-zen`,
   zram swap (zstd), ladění sysctl, I/O plánovače podle typu disku, systemd-oomd, Btrfs se zstd kompresí,
-  systemd initramfs, squashfs ISO v zstd (rychlý start live systému).
+  systemd initramfs, squashfs ISO v zstd (rychlý start live systému). Relace bez pravidelného dotazování:
+  Ovládací centrum, Kalendář, Trezor, Spořič dat a automatický vzhled v jednom procesu `luxos-daemon`,
+  připojení monitoru hlídá událost RandR, pluginy lišty bez nabídek běží přímo v panelu. Nepoužívaná
+  grafika NVIDIA se uspí (runtime PM), Firefox dekóduje video hardwarově (VA-API).
 - **Vzhled macOS:** horní lišta (logo-menu, název aktivní aplikace, ikony, hodiny), dock Plank se zvětšováním,
   tlačítka oken vlevo (semafor), WhiteSur GTK/ikony/kurzory, písmo Inter, Hledání (`Super+Mezerník`),
   Launchpad (`Super+A`), zkratky ve stylu Cmd (`Super+Q`, `Super+Shift+4`…), přirozené posouvání na touchpadu,

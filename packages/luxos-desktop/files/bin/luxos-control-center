@@ -12,6 +12,7 @@ import signal
 import subprocess
 import sys
 import threading
+import warnings
 
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_i18n import _  # noqa: E402
@@ -55,9 +56,9 @@ window.cc { background: transparent; }
 }
 .section .title { font-weight: 600; font-size: 12px; }
 .section .sub { font-size: 11px; color: @cc_dim; }
-scale trough { min-height: 22px; border-radius: 11px; background-color: @cc_trough; border: none; }
-scale highlight { border-radius: 11px; background-color: @cc_fill; border: none; min-height: 22px; }
-scale slider { min-width: 22px; min-height: 22px; margin: 0; border-radius: 11px;
+.cc-box scale trough { min-height: 22px; border-radius: 11px; background-color: @cc_trough; border: none; }
+.cc-box scale highlight { border-radius: 11px; background-color: @cc_fill; border: none; min-height: 22px; }
+.cc-box scale slider { min-width: 22px; min-height: 22px; margin: 0; border-radius: 11px;
                background-color: white; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.35); }
 .footer { background: none; border: none; box-shadow: none; color: @cc_fg; padding: 4px 6px;
           font-size: 12px; border-radius: 8px; }
@@ -447,7 +448,7 @@ class ControlCenter(Gtk.Window):
         self.connect("delete-event", lambda *_a: self.hide() or True)
         self.refresh_fast()
         threading.Thread(target=self.refresh_slow, daemon=True).start()
-        GLib.timeout_add_seconds(3, self.periodic)
+        self.timer = None
 
     def toggle(self):
         if self.get_visible():
@@ -458,6 +459,8 @@ class ControlCenter(Gtk.Window):
             self.show_all()
             self.place()
             self.present_with_time(Gtk.get_current_event_time() or Gdk.CURRENT_TIME)
+            if self.timer is None:
+                self.timer = GLib.timeout_add_seconds(3, self.periodic)
         return False
 
     # umisteni vpravo pod horni listou na monitoru s kurzorem
@@ -471,7 +474,10 @@ class ControlCenter(Gtk.Window):
         self.move(geo.x + geo.width - w - 8, geo.y + 6)
 
     def close_if_unfocused(self):
-        if not self.is_active():
+        # is_active() zustava po kliknuti na plochu (xfdesktop drzi grab) chybne True,
+        # proto rozhoduje i skutecne aktivni okno podle spravce oken (_NET_ACTIVE_WINDOW)
+        active = self.get_screen().get_active_window()
+        if not self.is_active() or (active is not None and active != self.get_window()):
             self.close()
         return False
 
@@ -569,9 +575,12 @@ class ControlCenter(Gtk.Window):
         return False
 
     def periodic(self):
+        # Obnova jen pri zobrazenem okne (skryty demon se zbytecne nebudi)
         if self.get_visible():
             threading.Thread(target=self.refresh_slow, daemon=True).start()
-        return True
+            return True
+        self.timer = None
+        return False
 
     # ---- akce ----
     def toggle_wifi(self):
@@ -622,16 +631,36 @@ class ControlCenter(Gtk.Window):
 
 
 def running_pid():
-    """PID bezici instance (demona) nebo None."""
+    """PID bezici instance (demon nebo luxos-daemon) nebo None."""
     try:
         with open(PIDFILE) as f:
             pid = int(f.read())
         with open(f"/proc/{pid}/cmdline", "rb") as f:
-            if b"luxos-control-center" in f.read():
-                return pid
+            cmd = f.read()
+        if b"luxos-control-center" in cmd or b"luxos-daemon" in cmd:
+            return pid
     except (OSError, ValueError):
         pass
     return None
+
+
+def create():
+    """Skryte okno Ovladaciho centra se styly podle tematu (pouziva i luxos-daemon)."""
+    provider = Gtk.CssProvider()
+
+    def load_css(*_a):
+        name = (Gtk.Settings.get_default().props.gtk_theme_name or "").lower()
+        provider.load_from_data(((DARK if "dark" in name else LIGHT) + CSS).encode())
+    load_css()
+    # Svetly/tmavy rezim se muze prepnout za behu (automaticky podle slunce)
+    Gtk.Settings.get_default().connect("notify::gtk-theme-name", load_css)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = ControlCenter()
+    with warnings.catch_warnings():     # vlastni WM_CLASS i ve sdilenem procesu luxos-daemon
+        warnings.simplefilter("ignore", DeprecationWarning)
+        win.set_wmclass("luxos-control-center", "Luxos-control-center")
+    return win
 
 
 def main():
@@ -643,14 +672,8 @@ def main():
     with open(PIDFILE, "w") as f:
         f.write(str(os.getpid()))
 
-    settings = Gtk.Settings.get_default()
-    dark = "dark" in (settings.props.gtk_theme_name or "").lower()
-    provider = Gtk.CssProvider()
-    provider.load_from_data(((DARK if dark else LIGHT) + CSS).encode())
-    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
-                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
     GLib.set_prgname("luxos-control-center")
-    win = ControlCenter()
+    win = create()
     win.connect("destroy", Gtk.main_quit)
     signal.signal(signal.SIGTERM, lambda *_a: GLib.idle_add(Gtk.main_quit))
     signal.signal(signal.SIGUSR1, lambda *_a: GLib.idle_add(win.toggle))

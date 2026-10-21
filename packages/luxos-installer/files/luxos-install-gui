@@ -1,3 +1,1641 @@
-#!/bin/bash
-# LuxOS - spusti instalator v okne terminalu
-exec xfce4-terminal --title="Install LuxOS" --geometry=110x34 -x sudo luxos-install "$@"
+#!/usr/bin/env python3
+"""LuxOS - graficky instalator: pruvodce nad backendem luxos-install (bash).
+
+GUI bezi jako uzivatel live systemu, jako root bezi jen backend
+(sudo -n, jinak pkexec):  luxos-install --config - --yes --progress
+Konfigurace vcetne hesel jde pres stdin (hodnoty pres shlex.quote), nikdy na disk.
+Volne misto a EFI oddil zjisti  luxos-install --probe /dev/DISK  (jen cte).
+
+Testovani bez zapisu na disk:
+  LUXOS_INSTALL_FAKE=1           vzorove disky, simulovana instalace (bez sudo)
+  LUXOS_INSTALL_FAKE_OFFLINE=1   (s FAKE) predstira chybejici internet
+  LUXOS_INSTALL_FAKE_FAIL=1      (s FAKE) instalace skonci chybou
+"""
+import json
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+import unicodedata
+import urllib.request
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+import luxos_i18n  # noqa: E402
+from luxos_i18n import _  # noqa: E402
+
+try:
+    import luxai_account as acc  # noqa: E402
+except ImportError:
+    acc = None
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
+
+BACKEND = "/usr/bin/luxos-install"
+LOG = "/var/log/luxos-install.log"
+I18N_DIR = os.environ.get("LUXOS_I18N_DIR", "/usr/share/luxos/i18n")
+FAKE = os.environ.get("LUXOS_INSTALL_FAKE") == "1"
+MIN_DISK = 20 * 1000 ** 3
+ACCENT = "#3d7bff"
+
+LANGS = [
+    ("English (US)", "en_US.UTF-8"), ("Čeština", "cs_CZ.UTF-8"), ("Slovenčina", "sk_SK.UTF-8"),
+    ("Deutsch", "de_DE.UTF-8"), ("Polski", "pl_PL.UTF-8"), ("Français", "fr_FR.UTF-8"),
+    ("Español", "es_ES.UTF-8"), ("Italiano", "it_IT.UTF-8"), ("Português (Brasil)", "pt_BR.UTF-8"),
+    ("Nederlands", "nl_NL.UTF-8"), ("Magyar", "hu_HU.UTF-8"), ("Svenska", "sv_SE.UTF-8"),
+    ("Українська", "uk_UA.UTF-8"), ("English (UK)", "en_GB.UTF-8"),
+]
+# Bezna rozlozeni nahore seznamu (nazvy jako v textovem instalatoru, maji preklad)
+KEYMAPS = [
+    ("English (US)", "us", ""), ("Czech", "cz", ""), ("Czech (QWERTY)", "cz", "qwerty"), ("Slovak", "sk", ""),
+    ("Slovak (QWERTY)", "sk", "qwerty"), ("German", "de", ""), ("English (UK)", "gb", ""), ("French", "fr", ""),
+    ("Spanish", "es", ""), ("Italian", "it", ""), ("Polish", "pl", ""), ("Hungarian", "hu", ""),
+    ("Ukrainian", "ua", ""), ("Portuguese", "pt", ""), ("Portuguese (Brazil)", "br", ""), ("Swedish", "se", ""),
+]
+# Systemova jmena, ktera nesmi byt uzivatelskym jmenem
+RESERVED_USERS = {"root", "bin", "daemon", "mail", "ftp", "http", "nobody", "dbus", "uuidd", "polkitd", "avahi",
+                  "lightdm", "git", "rtkit", "colord", "alpm", "tss", "usbmux", "geoclue", "lux", "sddm", "gdm"}
+ESP_GUID = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
+PART_KINDS = {
+    ESP_GUID: "EFI system partition",
+    "e3c9e316-0b5c-4db8-817d-f92df00215ae": "Microsoft reserved",
+    "de94bba4-06d1-4d40-a16a-bfd50179d6ac": "Windows recovery",
+}
+FREESPACE_WHY = {
+    "bios": "Needs a computer started in UEFI mode.",
+    "not_gpt": "The disk does not use a GPT partition table.",
+    "gpt_problems": "The partition table has problems.",
+    "no_space": "There is no free space of at least 20 GB on this disk.",
+    "no_esp": "No EFI system partition found on this disk.",
+    "esp_mount": "The EFI system partition could not be read.",
+    "esp_small": "The EFI system partition has less than 250 MB free.",
+    "no_root": "Administrator rights are not available.",
+}
+SLIDES = [
+    ("system-run-symbolic", "Fast and light",
+     "LuxOS starts quickly and leaves more memory for your apps."),
+    ("preferences-desktop-symbolic", "A familiar desktop",
+     "A dock, a clean top bar and an app grid - everything is where you expect it."),
+    ("dialog-information-symbolic", "LuxAI built in",
+     "Sign in once and use AI in LuxAI, Lux Code and LSL IDE."),
+    ("computer-symbolic", "Drivers included",
+     "Graphics, Wi-Fi and other drivers are picked automatically for your hardware."),
+    ("security-high-symbolic", "Safe by default",
+     "Signed updates, a locked root account and optional full disk encryption."),
+]
+
+CSS = """
+.sidebar { background-color: alpha(currentColor, 0.045); border-right: 1px solid alpha(currentColor, 0.09); }
+.brand { font-size: 18px; font-weight: 800; }
+.step { padding: 7px 12px; border-radius: 8px; }
+.step.current { background-color: alpha(ACCENT, 0.16); }
+.step.current label { font-weight: 700; }
+.step.todo { opacity: 0.5; }
+.step-dot { border-radius: 99px; min-width: 9px; min-height: 9px; background-color: alpha(currentColor, 0.25); }
+.step.current .step-dot { background-color: ACCENT; }
+.step.done .step-dot { background-color: #30d158; }
+.title { font-size: 24px; font-weight: 800; }
+.big-title { font-size: 30px; font-weight: 800; }
+.subtitle { opacity: 0.72; }
+.hint { font-size: 12px; opacity: 0.65; }
+.error { color: #ff453a; }
+.good { color: #30d158; }
+.card { border-radius: 14px; padding: 14px 16px; border: 1px solid alpha(currentColor, 0.13);
+        background-color: alpha(currentColor, 0.04); }
+.card.choice:hover { background-color: alpha(currentColor, 0.07); }
+.card.selected { border: 2px solid ACCENT; background-color: alpha(ACCENT, 0.09); }
+.card.danger.selected { border-color: #ff453a; background-color: alpha(#ff453a, 0.08); }
+.card-title { font-weight: 700; font-size: 14px; }
+.danger-text { color: #ff453a; font-weight: 700; }
+.list { border-radius: 12px; border: 1px solid alpha(currentColor, 0.13); background-color: alpha(currentColor, 0.03); }
+.list row { padding: 7px 12px; }
+.list row:selected, .list row:selected:backdrop, .list row:selected:focus {
+    background-color: ACCENT; background-image: none; color: white; }
+.list row:selected label { color: white; }
+.primary { border-radius: 8px; padding: 6px 20px; font-weight: 700; background-image: none; background-color: ACCENT;
+           color: white; border: none; box-shadow: none; text-shadow: none; }
+.primary:disabled { background-color: alpha(ACCENT, 0.4); color: alpha(white, 0.8); }
+.primary label { color: white; }
+.danger-btn { background-color: #ff453a; }
+.navbtn { min-width: 100px; border-radius: 8px; }
+.navbar { border-top: 1px solid alpha(currentColor, 0.08); }
+.slide { border-radius: 16px; padding: 22px; color: white;
+         background-image: linear-gradient(120deg, #3d6bff, #7b4dff 60%, #b14dff); }
+.slide label { color: white; }
+.slide-title { font-size: 19px; font-weight: 800; }
+.log { font-family: monospace; font-size: 11px; }
+.done-icon { color: #30d158; }
+.fail-icon { color: #ff453a; }
+progressbar trough { min-height: 8px; border-radius: 4px; }
+progressbar progress { min-height: 8px; border-radius: 4px; background-image: none; background-color: ACCENT; border: none; }
+entry { border-radius: 8px; padding: 6px 10px; min-height: 30px; }
+""".replace("ACCENT", ACCENT).encode()
+
+
+# ---- pomocne funkce --------------------------------------------------------------
+def set_ui_lang(locale):
+    """Prepne jazyk pruvodce za behu (luxos_i18n cte jazyk jen pri importu)."""
+    os.environ["LANG"] = locale
+    code = locale.split("_")[0].split(".")[0]
+    luxos_i18n._TR.clear()
+    try:
+        with open(os.path.join(I18N_DIR, code + ".tsv"), encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("#") or "\t" not in line:
+                    continue
+                k, v = line.rstrip("\n").split("\t", 1)
+                if v:
+                    luxos_i18n._TR[k] = v
+    except OSError:
+        pass
+
+
+def size_text(n):
+    """Velikost v jednotkach SI (stejne jako numfmt --to=si v TUI)."""
+    n = float(n)
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1000 or unit == "TB":
+            return f"{n:.0f} {unit}" if n >= 10 or unit == "B" else f"{n:.1f} {unit}"
+        n /= 1000
+    return ""
+
+
+def say(label, text):
+    """Text napovedy; prazdna se skryje."""
+    label.set_text(text)
+    label.set_visible(bool(text))
+
+
+def run_async(work, done):
+    """work() ve vlakne, done(vysledek, vyjimka) v hlavni smycce GTK."""
+    def target():
+        try:
+            res, err = work(), None
+        except Exception as e:  # noqa: BLE001 - chyba se zobrazi v GUI
+            res, err = None, e
+        GLib.idle_add(lambda: done(res, err) and False)
+    threading.Thread(target=target, daemon=True).start()
+
+
+def cmd_out(*cmd, timeout=20):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return r.stdout if r.returncode == 0 else ""
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def have_internet():
+    if FAKE:
+        return os.environ.get("LUXOS_INSTALL_FAKE_OFFLINE") != "1"
+    try:
+        req = urllib.request.Request("https://geo.mirror.pkgbuild.com/", method="HEAD")
+        urllib.request.urlopen(req, timeout=6).close()
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def sudo_ok():
+    if FAKE:
+        return True
+    try:
+        return subprocess.run(["sudo", "-n", "true"], capture_output=True, timeout=10).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def suggest_username(fullname):
+    first = (fullname.strip().split() or [""])[0]
+    ascii_ = unicodedata.normalize("NFKD", first).encode("ascii", "ignore").decode()
+    name = re.sub(r"[^a-z0-9]", "", ascii_.lower())
+    if name and not re.match(r"[a-z_]", name):
+        name = "u" + name
+    return name[:32]
+
+
+def valid_user(u):
+    return bool(re.fullmatch(r"[a-z_][a-z0-9_-]{0,31}", u)) and u not in RESERVED_USERS
+
+
+def valid_host(h):
+    return bool(re.fullmatch(r"[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?", h))
+
+
+# ---- disky -----------------------------------------------------------------------
+def fake_disks():
+    gb = 1000 ** 3
+    return [
+        {"path": "/dev/nvme0n1", "name": "nvme0n1", "size": 512 * gb, "model": "Samsung SSD 980 PRO", "tran": "nvme",
+         "parts": [
+             {"name": "nvme0n1p1", "size": int(0.3 * gb), "start": 2048, "fstype": "vfat", "label": "SYSTEM",
+              "parttype": ESP_GUID},
+             {"name": "nvme0n1p2", "size": int(0.016 * gb), "start": 2048 + 585938, "fstype": "", "label": "",
+              "parttype": "e3c9e316-0b5c-4db8-817d-f92df00215ae"},
+             {"name": "nvme0n1p3", "size": 250 * gb, "start": 2048 + 617188, "fstype": "ntfs", "label": "Windows",
+              "parttype": ""},
+             {"name": "nvme0n1p4", "size": int(0.8 * gb), "start": 2048 + 617188 + 488281250, "fstype": "ntfs",
+              "label": "", "parttype": "de94bba4-06d1-4d40-a16a-bfd50179d6ac"},
+         ],
+         "probe": {"FREESPACE_ERR": "", "FREE_BYTES": str(int(260.5 * gb)), "SYSTEMS": "Windows", "BOOTMODE": "uefi"}},
+        {"path": "/dev/sda", "name": "sda", "size": 1000 * gb, "model": "WDC WD10EZEX", "tran": "sata",
+         "parts": [{"name": "sda1", "size": 1000 * gb - 2 * 1000 ** 2, "start": 2048, "fstype": "ext4", "label": "Data",
+                    "parttype": ""}],
+         "probe": {"FREESPACE_ERR": "no_space", "FREE_BYTES": "1031168", "SYSTEMS": "", "BOOTMODE": "uefi"}},
+    ]
+
+
+def iso_disk():
+    src = cmd_out("findmnt", "-no", "SOURCE", "/run/archiso/bootmnt").strip()
+    return cmd_out("lsblk", "-no", "PKNAME", src).strip().split("\n")[0] if src else ""
+
+
+def sys_start(name):
+    try:
+        with open(f"/sys/class/block/{name}/start") as f:
+            return int(f.read())
+    except (OSError, ValueError):
+        return 0
+
+
+def list_disks():
+    """Disky vhodne pro instalaci (stejna pravidla jako list_disks v TUI) vcetne oddilu."""
+    if FAKE:
+        return fake_disks()
+    raw = cmd_out("lsblk", "-J", "-b", "-o", "NAME,PATH,SIZE,TYPE,RO,MODEL,TRAN,FSTYPE,LABEL,PARTLABEL,PARTTYPE")
+    try:
+        devices = json.loads(raw or "{}").get("blockdevices", [])
+    except ValueError:
+        devices = []
+    iso = iso_disk()
+    disks = []
+    for d in devices:
+        ro = d.get("ro") in (True, "1", 1)
+        if d.get("type") != "disk" or ro or d["name"].startswith(("zram", "loop")) or d["name"] == iso:
+            continue
+        if int(d.get("size") or 0) < MIN_DISK:
+            continue
+        parts = []
+        for p in d.get("children") or []:
+            if p.get("type") != "part":
+                continue
+            parts.append({"name": p["name"], "size": int(p.get("size") or 0), "start": sys_start(p["name"]),
+                          "fstype": p.get("fstype") or "", "label": p.get("label") or p.get("partlabel") or "",
+                          "parttype": (p.get("parttype") or "").lower()})
+        parts.sort(key=lambda p: p["start"])
+        disks.append({"path": d.get("path") or "/dev/" + d["name"], "name": d["name"], "size": int(d["size"]),
+                      "model": (d.get("model") or "").strip(), "tran": d.get("tran") or "", "parts": parts,
+                      "probe": None})
+    return disks
+
+
+def probe_disk(disk, root):
+    """Volne misto a ESP (luxos-install --probe bezi jako root, jen cte)."""
+    if FAKE or disk.get("probe") is not None:
+        return disk.get("probe") or {}
+    if not root:
+        return {"FREESPACE_ERR": "no_root"}
+    out = cmd_out("sudo", "-n", BACKEND, "--probe", disk["path"], timeout=40)
+    info = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+    return info or {"FREESPACE_ERR": "no_root"}
+
+
+def part_kind(p):
+    kind = PART_KINDS.get(p["parttype"])
+    if kind:
+        return _(kind)
+    fs = p["fstype"]
+    if fs == "ntfs":
+        return "Windows (NTFS)"
+    if fs in ("ext4", "ext3", "btrfs", "xfs", "f2fs"):
+        return f"Linux ({fs})"
+    if fs == "swap":
+        return _("Swap")
+    if fs == "crypto_LUKS":
+        return _("Encrypted (LUKS)")
+    if fs in ("vfat", "exfat"):
+        return fs.upper() if fs == "vfat" else "exFAT"
+    return fs or _("Unknown")
+
+
+def disk_title(d):
+    return f"{d['model'] or _('Disk')} · {size_text(d['size'])}"
+
+
+# ---- graf obsazeni disku -----------------------------------------------------------------
+COLORS = [(0.62, 0.40, 1.0), (0.19, 0.78, 0.55), (1.0, 0.62, 0.04), (1.0, 0.36, 0.55),
+          (0.35, 0.78, 0.98), (0.95, 0.80, 0.25), (0.62, 0.62, 0.68)]
+LUXOS_COLOR = (0.24, 0.48, 1.0)   # novy oddil LuxOS
+
+
+class DiskBar(Gtk.DrawingArea):
+    """Vodorovny pruh: oddily barevne, volne misto prazdne, novy oddil LuxOS zvyrazneny."""
+
+    def __init__(self, disk, luxos=None):
+        super().__init__()
+        self.disk, self.luxos = disk, luxos  # luxos: None | "erase" | bajty volneho mista
+        self.set_size_request(-1, 26)
+        self.connect("draw", self.on_draw)
+
+    def segments(self):
+        size = self.disk["size"]
+        if self.luxos == "erase":
+            return [(size, "luxos")]
+        segs, pos = [], 2048 * 512
+        for i, p in enumerate(self.disk["parts"]):
+            start = p["start"] * 512 if p["start"] else pos
+            if start - pos > 64 * 1000 ** 2:
+                segs.append((start - pos, "free"))
+            segs.append((p["size"], i))
+            pos = start + p["size"]
+        if size - pos > 64 * 1000 ** 2:
+            segs.append((size - pos, "free"))
+        if isinstance(self.luxos, int):
+            # nejvetsi volnou oblast nahradit LuxOS
+            frees = [k for k, s in enumerate(segs) if s[1] == "free"]
+            if frees:
+                k = max(frees, key=lambda k: segs[k][0])
+                segs[k] = (segs[k][0], "luxos")
+        return segs
+
+    def on_draw(self, widget, cr):
+        w, h = widget.get_allocated_width(), widget.get_allocated_height()
+        fg = widget.get_style_context().get_color(Gtk.StateFlags.NORMAL)
+        segs = self.segments()
+        total = sum(s for s, _k in segs) or 1
+        r = 7
+        cr.new_sub_path()
+        cr.arc(r, r, r, 3.1416, 1.5 * 3.1416)
+        cr.arc(w - r, r, r, 1.5 * 3.1416, 0)
+        cr.arc(w - r, h - r, r, 0, 0.5 * 3.1416)
+        cr.arc(r, h - r, r, 0.5 * 3.1416, 3.1416)
+        cr.close_path()
+        cr.clip()
+        cr.set_source_rgba(fg.red, fg.green, fg.blue, 0.08)
+        cr.paint()
+        x = 0.0
+        for s, kind in segs:
+            sw = max(3.0, w * s / total)
+            if kind == "free":
+                cr.set_source_rgba(fg.red, fg.green, fg.blue, 0.06)
+            elif kind == "luxos":
+                cr.set_source_rgba(*LUXOS_COLOR, 1)
+            else:
+                cr.set_source_rgba(*COLORS[kind % len(COLORS)], 0.9)
+            cr.rectangle(x, 0, sw, h)
+            cr.fill()
+            cr.set_source_rgba(fg.red, fg.green, fg.blue, 0.25)
+            cr.rectangle(x + sw - 1, 0, 1, h)
+            cr.fill()
+            x += sw
+        return False
+
+
+# ---- okno ------------------------------------------------------------------------
+class Installer(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Install LuxOS"))
+        self.set_default_size(860, 600)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.set_icon_name("luxos-installer")
+        self.header = Gtk.HeaderBar(show_close_button=True, title=_("Install LuxOS"))
+        self.set_titlebar(self.header)
+        self.connect("delete-event", self.on_delete)
+
+        lang = os.environ.get("LANG", "en_US.UTF-8")
+        locale = next((loc for _l, loc in LANGS if loc.split(".")[0] == lang.split(".")[0]), "en_US.UTF-8")
+        self.s = {  # stav pruvodce (pri prechodu mezi kroky se stranky stavi znovu z nej)
+            "locale": locale, "xkb": ("us", ""), "timezone": "UTC", "tz_detected": "",
+            "disk": None, "mode": None, "encrypt": False, "luks1": "", "luks2": "", "erase_ok": False,
+            "fullname": "", "username": "", "user_edited": False, "pw1": "", "pw2": "",
+            "hostname": "", "host_edited": False, "autologin": False,
+            "luxai": None, "luxai_email": "",
+        }
+        set_ui_lang(locale)
+        self.s["xkb"] = self.default_xkb(locale)
+        self.online = None
+        self.root = None
+        self.disks = None
+        self.layouts = None
+        self.zones = None
+        self.installing = False
+        self.result = None  # None | ("ok",) | ("fail", text)
+        self.lines = []
+        self.valid = lambda: True
+
+        outer = Gtk.Box()
+        self.add(outer)
+        self.sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, width_request=220)
+        self.sidebar.get_style_context().add_class("sidebar")
+        outer.pack_start(self.sidebar, False, False, 0)
+        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        outer.pack_start(right, True, True, 0)
+        self.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        right.pack_start(self.scroll, True, True, 0)
+        nav = Gtk.Box(spacing=8, margin=14, margin_start=28, margin_end=20)
+        navwrap = Gtk.Box()
+        navwrap.get_style_context().add_class("navbar")
+        navwrap.pack_start(nav, True, True, 0)
+        right.pack_end(navwrap, False, False, 0)
+        self.nav_hint = Gtk.Label(xalign=0, wrap=True)
+        self.nav_hint.get_style_context().add_class("hint")
+        nav.pack_start(self.nav_hint, True, True, 0)
+        self.btn_next = Gtk.Button()
+        self.btn_next.get_style_context().add_class("primary")
+        self.btn_next.get_style_context().add_class("navbtn")
+        self.btn_next.connect("clicked", lambda _b: self.go_next())
+        self.btn_back = Gtk.Button()
+        self.btn_back.get_style_context().add_class("navbtn")
+        self.btn_back.connect("clicked", lambda _b: self.go_back())
+        self.btn_extra = Gtk.Button()
+        self.btn_extra.get_style_context().add_class("navbtn")
+        self.btn_extra.connect("clicked", lambda _b: self.extra_action and self.extra_action())
+        self.extra_action = None
+        nav.pack_end(self.btn_next, False, False, 0)
+        nav.pack_end(self.btn_back, False, False, 0)
+        nav.pack_end(self.btn_extra, False, False, 0)
+
+        self.steps = ["welcome", "keyboard", "timezone", "disk", "account", "luxai", "summary", "install", "done"]
+        self.idx = 0
+        self.show_all()
+        self.render()
+        self.background_checks()
+
+    # ---- pozadi: internet, disky, casove pasmo ----
+    def background_checks(self):
+        run_async(lambda: (have_internet(), sudo_ok()), self.checked)
+        run_async(self.detect_timezone, self.tz_detected)
+
+    def checked(self, res, _err):
+        self.online, self.root = res if res else (False, False)
+        if not self.online and "network" not in self.steps:
+            self.steps.insert(1, "network")
+            if self.idx >= 1:
+                self.idx += 1
+        self.render_sidebar()
+        self.load_disks()
+
+    def load_disks(self):
+        def work():
+            disks = list_disks()
+            for d in disks:
+                d["probe"] = probe_disk(d, self.root)
+            return disks
+
+        def done(disks, _err):
+            self.disks = disks or []
+            if self.s["disk"] is None and self.disks:
+                self.s["disk"] = self.disks[0]["path"]
+            if self.current() == "disk":
+                self.render()
+        run_async(work, done)
+
+    @staticmethod
+    def detect_timezone():
+        if FAKE:
+            return "Europe/Prague"
+        try:
+            with urllib.request.urlopen("http://ip-api.com/line/?fields=timezone", timeout=5) as r:
+                tz = r.read().decode().strip()
+            if tz and os.path.exists("/usr/share/zoneinfo/" + tz):
+                return tz
+        except Exception:  # noqa: BLE001
+            pass
+        return cmd_out("timedatectl", "show", "-p", "Timezone", "--value").strip()
+
+    def tz_detected(self, tz, _err):
+        if tz and self.s["timezone"] == "UTC":
+            self.s["timezone"] = self.s["tz_detected"] = tz
+            if self.current() == "timezone":
+                self.render()
+
+    # ---- navigace ----
+    def current(self):
+        return self.steps[self.idx]
+
+    STEP_NAMES = {"welcome": "Introduction", "network": "Network", "keyboard": "Keyboard", "timezone": "Time Zone",
+                  "disk": "Destination", "account": "Account", "luxai": "LuxAI", "summary": "Summary",
+                  "install": "Installation", "done": "Finish"}
+
+    def render_sidebar(self):
+        for c in self.sidebar.get_children():
+            self.sidebar.remove(c)
+        brand = Gtk.Box(spacing=10, margin=20, margin_bottom=18)
+        brand.pack_start(logo_image(40), False, False, 0)
+        name = Gtk.Label(label="LuxOS", xalign=0)
+        name.get_style_context().add_class("brand")
+        brand.pack_start(name, False, False, 0)
+        self.sidebar.pack_start(brand, False, False, 0)
+        for i, key in enumerate(self.steps):
+            row = Gtk.Box(spacing=10, margin_start=12, margin_end=12)
+            ctx = row.get_style_context()
+            ctx.add_class("step")
+            ctx.add_class("current" if i == self.idx else "done" if i < self.idx else "todo")
+            dot = Gtk.Box(valign=Gtk.Align.CENTER)
+            dot.get_style_context().add_class("step-dot")
+            row.pack_start(dot, False, False, 0)
+            row.pack_start(Gtk.Label(label=_(self.STEP_NAMES[key]), xalign=0), True, True, 0)
+            self.sidebar.pack_start(row, False, False, 0)
+        self.sidebar.show_all()
+
+    def render(self):
+        self.header.set_title(_("Install LuxOS"))
+        self.render_sidebar()
+        child = self.scroll.get_child()
+        if child:
+            self.scroll.remove(child)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=28, margin_top=22)
+        self.valid = lambda: True
+        self.why = lambda: ""
+        self.extra_action = None
+        getattr(self, "page_" + self.current())(page)
+        self.scroll.add(page)
+        self.scroll.get_vadjustment().set_value(0)
+        self.scroll.show_all()
+        self.update_nav()
+
+    def update_nav(self):
+        key = self.current()
+        self.btn_back.set_label(_("Back"))
+        self.btn_back.set_visible(0 < self.idx and key not in ("install", "done"))
+        labels = {"summary": _("Install"), "luxai": _("Continue") if self.s["luxai"] else _("Skip")}
+        self.btn_next.set_label(labels.get(key, _("Continue")))
+        self.btn_next.set_visible(key != "install")
+        if key == "done":
+            ok = self.result and self.result[0] == "ok"
+            self.btn_next.set_label(_("Restart Now") if ok else _("Quit"))
+        self.btn_extra.set_visible(self.extra_action is not None)
+        self.btn_next.set_sensitive(bool(self.valid()))
+        erase = key == "summary" and self.s["mode"] == "erase"
+        ctx = self.btn_next.get_style_context()
+        (ctx.add_class if erase else ctx.remove_class)("danger-btn")
+        self.nav_hint.set_text("" if self.btn_next.get_sensitive() or key == "done" else self.why())
+
+    def go_next(self):
+        key = self.current()
+        if key == "done":
+            if self.result and self.result[0] == "ok":
+                self.restart()
+            else:
+                Gtk.main_quit()
+            return
+        if not self.valid():
+            return
+        if key == "network" and not self.online:
+            return
+        self.idx += 1
+        self.render()
+        if self.current() == "install":
+            self.start_install()
+
+    def go_back(self):
+        if self.idx > 0 and self.current() not in ("install", "done"):
+            self.idx -= 1
+            self.render()
+
+    def on_delete(self, *_a):
+        if not self.installing:
+            Gtk.main_quit()
+            return False
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.INFO,
+                                buttons=Gtk.ButtonsType.OK, text=_("LuxOS is being installed"))
+        dlg.format_secondary_text(_("Please wait until the installation finishes."))
+        dlg.run()
+        dlg.destroy()
+        return True
+
+    # ---- stavebni prvky ----
+    def heading(self, page, title, subtitle=None):
+        t = Gtk.Label(label=title, xalign=0, wrap=True)
+        t.get_style_context().add_class("title")
+        page.pack_start(t, False, False, 0)
+        if subtitle:
+            s = Gtk.Label(label=subtitle, xalign=0, wrap=True, max_width_chars=70)
+            s.get_style_context().add_class("subtitle")
+            page.pack_start(s, False, False, 0)
+
+    @staticmethod
+    def hint(text, cls="hint"):
+        h = Gtk.Label(label=text, xalign=0, wrap=True, max_width_chars=72)
+        h.get_style_context().add_class(cls)
+        h.set_no_show_all(not text)   # prazdna napoveda nezabira misto
+        return h
+
+    def search_list(self, page, items, selected, on_select, height=260, placeholder=None):
+        """Vyhledavaci pole + seznam; items = [(klic, text, hledany_text)]."""
+        entry = Gtk.SearchEntry(placeholder_text=placeholder or _("Type to search"))
+        page.pack_start(entry, False, False, 0)
+        lb = Gtk.ListBox(activate_on_single_click=True)
+        lb.get_style_context().add_class("list")
+        sel_row = None
+        for key, text, hay in items:
+            row = Gtk.ListBoxRow()
+            row.key, row.hay = key, (hay or text).lower()
+            row.add(Gtk.Label(label=text, xalign=0))
+            lb.add(row)
+            if key == selected and sel_row is None:
+                sel_row = row
+        sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, min_content_height=height)
+        sw.get_style_context().add_class("list")
+        sw.add(lb)
+        page.pack_start(sw, True, True, 0)
+
+        def flt(row):
+            q = entry.get_text().strip().lower()
+            if not q:
+                return True
+            q2 = unicodedata.normalize("NFKD", q).encode("ascii", "ignore").decode()
+            return q in row.hay or (q2 and q2 in row.hay)
+        lb.set_filter_func(flt)
+        entry.connect("search-changed", lambda _e: lb.invalidate_filter())
+        lb.connect("row-selected", lambda _l, row: row and on_select(row.key))
+        if sel_row:
+            lb.select_row(sel_row)
+
+            def scroll_to():
+                alloc = sel_row.get_allocation()
+                if alloc.y > 0:
+                    sw.get_vadjustment().set_value(max(0, alloc.y - 60))
+                return False
+            GLib.timeout_add(150, scroll_to)
+        return entry, lb
+
+    def card(self, title, text, selected, on_click, danger=False, icon=None, extra=None):
+        ev = Gtk.EventBox()
+        box = Gtk.Box(spacing=14)
+        ctx = box.get_style_context()
+        for c in ("card", "choice") + (("selected",) if selected else ()) + (("danger",) if danger else ()):
+            ctx.add_class(c)
+        if icon:
+            img = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.DIALOG)
+            img.set_valign(Gtk.Align.START)
+            box.pack_start(img, False, False, 0)
+        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+        t = Gtk.Label(label=title, xalign=0, wrap=True)
+        t.get_style_context().add_class("card-title")
+        col.pack_start(t, False, False, 0)
+        if text:
+            col.pack_start(self.hint(text), False, False, 0)
+        if extra:
+            col.pack_start(extra, False, False, 4)
+        box.pack_start(col, True, True, 0)
+        ev.add(box)
+        ev.connect("button-press-event", lambda *_a: on_click())
+        ev.connect("realize", lambda w: w.get_window().set_cursor(
+            Gdk.Cursor.new_from_name(w.get_display(), "pointer")))
+        return ev
+
+    def password_pair(self, box, key1, key2, label1, label2):
+        """Dve pole hesla + kontrola shody; vraci popisek chyby."""
+        e1 = Gtk.Entry(visibility=False, placeholder_text=label1, input_purpose=Gtk.InputPurpose.PASSWORD)
+        e2 = Gtk.Entry(visibility=False, placeholder_text=label2, input_purpose=Gtk.InputPurpose.PASSWORD)
+        e1.set_text(self.s[key1])
+        e2.set_text(self.s[key2])
+        msg = self.hint("", "error")
+
+        def changed(_e):
+            self.s[key1], self.s[key2] = e1.get_text(), e2.get_text()
+            say(msg, _("Passwords do not match.") if self.s[key2] and self.s[key1] != self.s[key2] else "")
+            self.update_nav()
+        e1.connect("changed", changed)
+        e2.connect("changed", changed)
+        row = Gtk.Box(spacing=10)
+        row.pack_start(e1, True, True, 0)
+        row.pack_start(e2, True, True, 0)
+        box.pack_start(row, False, False, 0)
+        box.pack_start(msg, False, False, 0)
+        changed(None)
+        return e1
+
+    # ---- 1. uvod a jazyk ----
+    def page_welcome(self, page):
+        top = Gtk.Box(spacing=18)
+        top.pack_start(logo_image(72), False, False, 0)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, valign=Gtk.Align.CENTER)
+        t = Gtk.Label(label=_("Welcome to LuxOS"), xalign=0)
+        t.get_style_context().add_class("big-title")
+        texts.pack_start(t, False, False, 0)
+        s = Gtk.Label(label=_("This assistant installs LuxOS on your computer. It takes about 10 minutes."),
+                      xalign=0, wrap=True)
+        s.get_style_context().add_class("subtitle")
+        texts.pack_start(s, False, False, 0)
+        top.pack_start(texts, True, True, 0)
+        page.pack_start(top, False, False, 6)
+        page.pack_start(self.hint(_("Choose your language")), False, False, 0)
+        items = [(loc, label, label + " " + loc) for label, loc in LANGS]
+        self.search_list(page, items, self.s["locale"], self.choose_lang, height=250)
+
+    def choose_lang(self, locale):
+        if locale == self.s["locale"]:
+            return
+        self.s["locale"] = locale
+        set_ui_lang(locale)
+        self.s["xkb"] = self.default_xkb(locale)
+        self.layouts = None
+        GLib.idle_add(lambda: self.render() and False)   # prestavet az po obsluze signalu
+
+    @staticmethod
+    def default_xkb(locale):
+        country = locale[3:5].lower()
+        for _n, layout, variant in KEYMAPS:
+            if layout == country:
+                return (layout, variant)
+        return ("us", "")
+
+    # ---- 2. sit ----
+    def page_network(self, page):
+        if self.online:
+            self.heading(page, _("You are connected to the internet"),
+                         _("LuxOS downloads the newest packages during installation."))
+            return
+        self.heading(page, _("Connect to the internet"),
+                     _("LuxOS downloads the newest packages during installation. "
+                       "Choose a Wi-Fi network or plug in a network cable."))
+        self.valid = lambda: bool(self.online)
+        self.why = lambda: _("Connect to the internet to continue.")
+        status = self.hint("")
+        page.pack_start(status, False, False, 0)
+        lb = Gtk.ListBox()
+        lb.get_style_context().add_class("list")
+        sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, min_content_height=200)
+        sw.add(lb)
+        page.pack_start(sw, True, True, 0)
+        pwrow = Gtk.Box(spacing=8)
+        pw = Gtk.Entry(visibility=False, placeholder_text=_("Wi-Fi password"), hexpand=True)
+        connect = Gtk.Button(label=_("Connect"))
+        connect.get_style_context().add_class("primary")
+        spinner = Gtk.Spinner()
+        pwrow.pack_start(pw, True, True, 0)
+        pwrow.pack_start(connect, False, False, 0)
+        pwrow.pack_start(spinner, False, False, 0)
+        page.pack_start(pwrow, False, False, 0)
+        chosen = {"ssid": None, "secure": False}
+
+        def fill(nets, _err):
+            for c in lb.get_children():
+                lb.remove(c)
+            for ssid, signal, secure in nets or []:
+                row = Gtk.ListBoxRow()
+                row.ssid, row.secure = ssid, secure
+                b = Gtk.Box(spacing=10)
+                level = "excellent" if signal > 75 else "good" if signal > 50 else "ok" if signal > 25 else "weak"
+                b.pack_start(Gtk.Image.new_from_icon_name(f"network-wireless-signal-{level}-symbolic",
+                                                          Gtk.IconSize.MENU), False, False, 0)
+                b.pack_start(Gtk.Label(label=ssid, xalign=0), True, True, 0)
+                if secure:
+                    b.pack_end(Gtk.Image.new_from_icon_name("changes-prevent-symbolic", Gtk.IconSize.MENU),
+                               False, False, 0)
+                row.add(b)
+                lb.add(row)
+            if not nets:
+                say(status, _("No Wi-Fi networks found. Plug in a network cable or try again."))
+            lb.show_all()
+
+        def selected(_l, row):
+            if row:
+                chosen["ssid"], chosen["secure"] = row.ssid, row.secure
+                pw.set_sensitive(row.secure)
+                connect.set_sensitive(True)
+        lb.connect("row-selected", selected)
+        pw.set_sensitive(False)
+        connect.set_sensitive(False)
+
+        def recheck(_b=None):
+            say(status, _("Checking the connection…"))
+            run_async(have_internet, after_check)
+
+        def after_check(ok, _err):
+            self.online = bool(ok)
+            if ok:
+                say(status, _("Connected."))
+                self.update_nav()
+            else:
+                say(status, _("Still offline."))
+                run_async(wifi_list, fill)
+
+        def do_connect(_b):
+            if not chosen["ssid"]:
+                return
+            spinner.start()
+            say(status, _("Connecting to %s…") % chosen["ssid"])
+            cmd = ["nmcli", "--wait", "25", "device", "wifi", "connect", chosen["ssid"]]
+            if chosen["secure"]:
+                cmd += ["password", pw.get_text()]
+
+            def work():
+                if FAKE:
+                    return True
+                return subprocess.run(cmd, capture_output=True, timeout=40).returncode == 0
+
+            def done(ok, _err):
+                spinner.stop()
+                if ok:
+                    recheck()
+                else:
+                    say(status, _("Could not connect. Check the password and try again."))
+            run_async(work, done)
+        connect.connect("clicked", do_connect)
+        pw.connect("activate", do_connect)
+        row2 = Gtk.Box(spacing=8)
+        again = Gtk.Button(label=_("Try again"))
+        again.connect("clicked", recheck)
+        row2.pack_start(again, False, False, 0)
+        if shutil.which("nm-connection-editor"):
+            ed = Gtk.Button(label=_("Network Settings…"))
+            ed.connect("clicked", lambda _b: subprocess.Popen(["nm-connection-editor"], start_new_session=True))
+            row2.pack_start(ed, False, False, 0)
+        page.pack_start(row2, False, False, 0)
+        run_async(wifi_list, fill)
+
+    # ---- 3. klavesnice ----
+    def load_layouts(self):
+        if self.layouts is not None:
+            return self.layouts
+        common = [((layout, variant), _(name), f"{name} {_(name)} {layout} {variant}")
+                  for name, layout, variant in KEYMAPS]
+        seen = {k for k, _t, _h in common}
+        country = self.s["locale"][3:5].lower()
+        common.sort(key=lambda it: it[0][0] != country)
+        rest, section = [], None
+        try:
+            with open("/usr/share/X11/xkb/rules/evdev.lst", encoding="utf-8") as f:
+                for line in f:
+                    if line.startswith("!"):
+                        section = line[1:].strip()
+                        continue
+                    m = re.match(r"\s+(\S+)\s+(.*)", line)
+                    if not m:
+                        continue
+                    if section == "layout":
+                        key, desc = (m.group(1), ""), m.group(2)
+                    elif section == "variant" and ":" in m.group(2):
+                        layout, desc = m.group(2).split(":", 1)
+                        key, desc = (layout.strip(), m.group(1)), desc.strip()
+                    else:
+                        continue
+                    if key not in seen:
+                        seen.add(key)
+                        rest.append((key, desc, f"{desc} {key[0]} {key[1]}"))
+        except OSError:
+            pass
+        rest.sort(key=lambda it: it[1].lower())
+        self.layouts = common + rest
+        return self.layouts
+
+    def page_keyboard(self, page):
+        self.heading(page, _("Keyboard"), _("Choose your keyboard layout. You can try it in the field below."))
+
+        def choose(key):
+            self.s["xkb"] = key
+            layout, variant = key
+            cmd = ["setxkbmap", layout] + (["-variant", variant] if variant else [])
+            try:
+                subprocess.Popen(cmd, stderr=subprocess.DEVNULL)
+            except OSError:
+                pass
+        self.search_list(page, self.load_layouts(), self.s["xkb"], choose, height=230)
+        test = Gtk.Entry(placeholder_text=_("Type here to test your keyboard"))
+        page.pack_start(test, False, False, 0)
+
+    # ---- 4. casove pasmo ----
+    def page_timezone(self, page):
+        det = self.s["tz_detected"]
+        self.heading(page, _("Time Zone"),
+                     _("Detected time zone: %s") % det if det else _("Choose the time zone of your location."))
+        if self.zones is None:
+            out = cmd_out("timedatectl", "list-timezones")
+            self.zones = [z for z in out.split() if "/" in z or z == "UTC"] or ["UTC", "Europe/Prague"]
+        items = [(z, z.replace("_", " ").replace("/", " / "), z.replace("_", " ")) for z in self.zones]
+        clock = self.hint("")
+
+        def choose(z):
+            self.s["timezone"] = z
+            try:
+                now = GLib.DateTime.new_now(GLib.TimeZone.new(z))
+                say(clock, _("Local time: %s") % now.format("%H:%M"))
+            except (TypeError, GLib.Error):
+                say(clock, "")
+        page.pack_start(clock, False, False, 0)
+        self.search_list(page, items, self.s["timezone"], choose, height=240)
+        choose(self.s["timezone"])
+
+    # ---- 5. disk ----
+    def selected_disk(self):
+        return next((d for d in self.disks or [] if d["path"] == self.s["disk"]), None)
+
+    def page_disk(self, page):
+        self.heading(page, _("Where do you want to install LuxOS?"))
+        if self.disks is None:
+            row = Gtk.Box(spacing=10)
+            sp = Gtk.Spinner()
+            sp.start()
+            row.pack_start(sp, False, False, 0)
+            row.pack_start(Gtk.Label(label=_("Looking for disks…")), False, False, 0)
+            page.pack_start(row, False, False, 10)
+            self.valid = lambda: False
+            return
+        if not self.disks:
+            page.pack_start(self.hint(_("No suitable disk found. LuxOS needs a disk with at least 20 GB."),
+                                      "error"), False, False, 0)
+            self.valid = lambda: False
+            return
+        d = self.selected_disk() or self.disks[0]
+        self.s["disk"] = d["path"]
+        probe = d.get("probe") or {}
+        free_ok = probe.get("FREESPACE_ERR", "x") == ""
+        free = int(probe.get("FREE_BYTES") or 0)
+        if self.s["mode"] not in ("erase", "freespace") or (self.s["mode"] == "freespace" and not free_ok):
+            self.s["mode"] = "freespace" if free_ok else "erase"
+
+        if len(self.disks) > 1:
+            chips = Gtk.Box(spacing=8)
+            for other in self.disks:
+                b = Gtk.ToggleButton(active=other is d)
+                inner = Gtk.Box(spacing=8)
+                inner.pack_start(Gtk.Image.new_from_icon_name("drive-harddisk", Gtk.IconSize.LARGE_TOOLBAR),
+                                 False, False, 0)
+                inner.pack_start(Gtk.Label(label=f"{disk_title(other)}\n{other['path']}", xalign=0), False, False, 0)
+                b.add(inner)
+                b.connect("toggled", lambda _b, p=other["path"]: self.pick_disk(p))
+                chips.pack_start(b, False, False, 0)
+            page.pack_start(chips, False, False, 0)
+
+        # Co uz je na disku
+        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        info.get_style_context().add_class("card")
+        head = Gtk.Box(spacing=10)
+        head.pack_start(Gtk.Image.new_from_icon_name("drive-harddisk", Gtk.IconSize.DND), False, False, 0)
+        ht = Gtk.Label(label=f"{disk_title(d)}  ·  {d['path']}", xalign=0)
+        ht.get_style_context().add_class("card-title")
+        head.pack_start(ht, True, True, 0)
+        info.pack_start(head, False, False, 0)
+        luxos = "erase" if self.s["mode"] == "erase" else free if self.s["mode"] == "freespace" else None
+        info.pack_start(DiskBar(d, luxos), False, False, 0)
+        if d["parts"]:
+            grid = Gtk.Grid(column_spacing=14, row_spacing=3)
+            for i, p in enumerate(d["parts"][:8]):
+                c = COLORS[i % len(COLORS)]
+                dot = Gtk.Label()
+                dot.set_markup(f"<span foreground='#{int(c[0]*255):02x}{int(c[1]*255):02x}{int(c[2]*255):02x}'>●</span>")
+                grid.attach(dot, 0, i, 1, 1)
+                grid.attach(Gtk.Label(label=p["label"] or part_kind(p), xalign=0, hexpand=True), 1, i, 1, 1)
+                k = self.hint(f"{part_kind(p)} · {p['name']}" if p["label"] else p["name"])
+                grid.attach(k, 2, i, 1, 1)
+                grid.attach(Gtk.Label(label=size_text(p["size"]), xalign=1), 3, i, 1, 1)
+            if self.s["mode"] == "freespace":
+                i = min(len(d["parts"]), 8)
+                dot = Gtk.Label()
+                dot.set_markup("<span foreground='%s'>●</span>" % ACCENT)
+                grid.attach(dot, 0, i, 1, 1)
+                new = Gtk.Label(label=_("LuxOS (new)"), xalign=0)
+                new.get_style_context().add_class("card-title")
+                grid.attach(new, 1, i, 1, 1)
+                grid.attach(Gtk.Label(label=size_text(free), xalign=1), 3, i, 1, 1)
+            info.pack_start(grid, False, False, 0)
+            if len(d["parts"]) > 8:
+                info.pack_start(self.hint(_("… and %s more partitions") % (len(d["parts"]) - 8)), False, False, 0)
+        else:
+            info.pack_start(self.hint(_("The disk is empty.")), False, False, 0)
+        systems = [s for s in probe.get("SYSTEMS", "").split(",") if s]
+        if systems:
+            info.pack_start(self.hint(_("Systems found: %s") % ", ".join(systems)), False, False, 0)
+        page.pack_start(info, False, False, 0)
+
+        # Volby
+        if free_ok:
+            page.pack_start(self.card(_("Install alongside other systems"),
+                                      _("LuxOS uses %s of free space. Existing systems and files are kept; "
+                                        "you choose the system in a menu when the computer starts.") % size_text(free),
+                                      self.s["mode"] == "freespace", lambda: self.pick_mode("freespace"),
+                                      icon="drive-multidisk"), False, False, 0)
+        elif d["parts"]:
+            why = FREESPACE_WHY.get(probe.get("FREESPACE_ERR", ""), "")
+            if why:
+                page.pack_start(self.hint(_("Installing alongside other systems is not possible: %s") % _(why)),
+                                False, False, 0)
+        chk = None
+        if self.s["mode"] == "erase":
+            # Vyslovne potvrzeni smazani primo v karte
+            chk = Gtk.CheckButton(label=_("I understand that all data on %s (%s) will be erased.")
+                                  % (disk_title(d), d["path"]), active=self.s["erase_ok"])
+            chk.get_child().get_style_context().add_class("danger-text")
+            chk.get_child().set_line_wrap(True)
+            chk.connect("toggled", lambda c: (self.s.__setitem__("erase_ok", c.get_active()), self.update_nav()))
+        page.pack_start(self.card(_("Erase disk and install LuxOS"),
+                                  _("Everything on %s will be deleted.") % disk_title(d),
+                                  self.s["mode"] == "erase", lambda: self.pick_mode("erase"), danger=True,
+                                  icon="user-trash", extra=chk), False, False, 0)
+
+        # Sifrovani
+        enc = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        enc.get_style_context().add_class("card")
+        row = Gtk.Box(spacing=12)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        t = Gtk.Label(label=_("Encrypt LuxOS"), xalign=0)
+        t.get_style_context().add_class("card-title")
+        texts.pack_start(t, False, False, 0)
+        texts.pack_start(self.hint(_("Protects your files if the computer is lost. "
+                                     "You will enter the password at every start.")), False, False, 0)
+        row.pack_start(texts, True, True, 0)
+        sw = Gtk.Switch(active=self.s["encrypt"], valign=Gtk.Align.CENTER)
+        row.pack_end(sw, False, False, 0)
+        enc.pack_start(row, False, False, 0)
+        rev = Gtk.Revealer(reveal_child=self.s["encrypt"])
+        pbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.password_pair(pbox, "luks1", "luks2", _("Encryption password"), _("Confirm password"))
+        pbox.pack_start(self.hint(_("If you forget this password, your data cannot be recovered.")), False, False, 0)
+        rev.add(pbox)
+        enc.pack_start(rev, False, False, 0)
+
+        def toggled(s, _p):
+            self.s["encrypt"] = s.get_active()
+            rev.set_reveal_child(s.get_active())
+            self.update_nav()
+        sw.connect("notify::active", toggled)
+        page.pack_start(enc, False, False, 0)
+
+        def valid():
+            if self.s["mode"] == "erase" and not self.s["erase_ok"]:
+                return False
+            if self.s["encrypt"] and (not self.s["luks1"] or self.s["luks1"] != self.s["luks2"]):
+                return False
+            return True
+        self.valid = valid
+        self.why = lambda: (_("Confirm that the disk will be erased.")
+                            if self.s["mode"] == "erase" and not self.s["erase_ok"]
+                            else _("Enter the encryption password twice."))
+
+    def pick_disk(self, path):
+        if path != self.s["disk"]:
+            self.s["disk"], self.s["mode"], self.s["erase_ok"] = path, None, False
+            GLib.idle_add(lambda: self.render() and False)
+
+    def pick_mode(self, mode):
+        if mode != self.s["mode"]:
+            self.s["mode"] = mode
+            self.s["erase_ok"] = False
+            GLib.idle_add(lambda: self.render() and False)
+            if mode == "erase":
+                # potvrzeni smazani musi byt videt
+                GLib.timeout_add(120, self.scroll_to_erase)
+
+    def scroll_to_erase(self):
+        adj = self.scroll.get_vadjustment()
+        adj.set_value(adj.get_upper() - adj.get_page_size() - 150)
+        return False
+
+    # ---- 6. ucet ----
+    def page_account(self, page):
+        self.heading(page, _("Create your account"), _("You will use this account to sign in and to install apps."))
+        grid = Gtk.Grid(column_spacing=14, row_spacing=6)
+        page.pack_start(grid, False, False, 0)
+        rows = [0]
+
+        def add(label, widget, msg=None):
+            lab = Gtk.Label(label=label, xalign=1)
+            lab.get_style_context().add_class("subtitle")
+            grid.attach(lab, 0, rows[0], 1, 1)
+            widget.set_hexpand(True)
+            grid.attach(widget, 1, rows[0], 1, 1)
+            rows[0] += 1
+            if msg is not None:
+                grid.attach(msg, 1, rows[0], 1, 1)
+                rows[0] += 1
+
+        full = Gtk.Entry(text=self.s["fullname"], placeholder_text=_("Jane Doe"))
+        user = Gtk.Entry(text=self.s["username"], max_length=32)
+        user_msg = self.hint("")
+        host = Gtk.Entry(text=self.s["hostname"], max_length=63)
+        host_msg = self.hint("")
+        add(_("Full name"), full)
+        add(_("User name"), user, user_msg)
+        pw_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        self.password_pair(pw_box, "pw1", "pw2", _("Password"), _("Confirm password"))
+        add(_("Password"), pw_box)
+        add(_("Computer name"), host, host_msg)
+        auto = Gtk.Switch(active=self.s["autologin"], halign=Gtk.Align.START)
+        auto.connect("notify::active", lambda s, _p: self.s.__setitem__("autologin", s.get_active()))
+        add(_("Log in automatically"), auto)
+        page.pack_start(self.hint(_("With automatic login, anyone who turns on the computer can use your account.")),
+                        False, False, 0)
+        lock = {"busy": False}
+
+        def on_full(_e):
+            self.s["fullname"] = full.get_text()
+            if not self.s["user_edited"]:
+                lock["busy"] = True
+                user.set_text(suggest_username(self.s["fullname"]))
+                lock["busy"] = False
+            refresh()
+
+        def on_user(_e):
+            if not lock["busy"]:
+                self.s["user_edited"] = bool(user.get_text())
+            self.s["username"] = user.get_text()
+            if not self.s["host_edited"]:
+                lock["busy"] = True
+                host.set_text(f"{self.s['username']}-luxos" if self.s["username"] else "")
+                lock["busy"] = False
+            refresh()
+
+        def on_host(_e):
+            if not lock["busy"]:
+                self.s["host_edited"] = bool(host.get_text())
+            self.s["hostname"] = host.get_text()
+            refresh()
+
+        def refresh():
+            u, h = self.s["username"], self.s["hostname"]
+            if u and u in RESERVED_USERS:
+                say(user_msg, _("This name is reserved by the system."))
+            elif u and not valid_user(u):
+                say(user_msg, _("Use lowercase letters, numbers, - and _ (max 32 characters)."))
+            else:
+                say(user_msg, "")
+            say(host_msg, _("Use letters, numbers and - (no spaces).") if h and not valid_host(h) else "")
+            for m in (user_msg, host_msg):
+                ctx = m.get_style_context()
+                (ctx.add_class if m.get_text() else ctx.remove_class)("error")
+            self.update_nav()
+        full.connect("changed", on_full)
+        user.connect("changed", on_user)
+        host.connect("changed", on_host)
+        self.why = lambda: _("Fill in your name, user name, password and computer name.")
+        self.valid = lambda: (bool(self.s["fullname"].strip()) and valid_user(self.s["username"])
+                              and valid_host(self.s["hostname"]) and bool(self.s["pw1"])
+                              and self.s["pw1"] == self.s["pw2"])
+        refresh()
+        GLib.idle_add(lambda: (full.grab_focus_without_selecting(), full.set_position(-1)) and False)
+
+    # ---- 7. LuxAI ----
+    def page_luxai(self, page):
+        hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        hero.get_style_context().add_class("slide")
+        t = Gtk.Label(label=_("LuxAI account"), xalign=0)
+        t.get_style_context().add_class("slide-title")
+        hero.pack_start(t, False, False, 0)
+        hero.pack_start(Gtk.Label(label=_("Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. "
+                                          "Sign in now and everything is ready after the first start."),
+                                  xalign=0, wrap=True, max_width_chars=60), False, False, 0)
+        page.pack_start(hero, False, False, 0)
+        if self.s["luxai"]:
+            email = (self.s["luxai"].get("user") or {}).get("email") or self.s["luxai_email"]
+            ok = self.hint(_("Signed in as %s") % email, "good")
+            page.pack_start(ok, False, False, 0)
+            out = Gtk.Button(label=_("Sign Out"), halign=Gtk.Align.START)
+            out.connect("clicked", lambda _b: (self.s.__setitem__("luxai", None),
+                                               GLib.idle_add(lambda: self.render() and False)))
+            page.pack_start(out, False, False, 0)
+            return
+        if acc is None:
+            page.pack_start(self.hint(_("Sign-in is not available. You can sign in later in Settings.")),
+                            False, False, 0)
+            return
+        email = Gtk.Entry(text=self.s["luxai_email"], placeholder_text=_("E-mail"),
+                          input_purpose=Gtk.InputPurpose.EMAIL)
+        pw = Gtk.Entry(visibility=False, placeholder_text=_("Password"), input_purpose=Gtk.InputPurpose.PASSWORD)
+        page.pack_start(email, False, False, 0)
+        page.pack_start(pw, False, False, 0)
+        row = Gtk.Box(spacing=10)
+        sign = Gtk.Button(label=_("Sign In"))
+        spinner = Gtk.Spinner()
+        row.pack_start(sign, False, False, 0)
+        row.pack_start(spinner, False, False, 0)
+        page.pack_start(row, False, False, 0)
+        status = self.hint("", "error")
+        page.pack_start(status, False, False, 0)
+        page.pack_start(self.hint(_("You can also skip this and sign in later.")), False, False, 0)
+
+        def login(_w):
+            e, p = email.get_text().strip(), pw.get_text()
+            if not e or not p:
+                say(status, _("Enter your e-mail and password."))
+                return
+            self.s["luxai_email"] = e
+            spinner.start()
+            sign.set_sensitive(False)
+            say(status, "")
+            run_async(lambda: luxai_login(e, p), done)
+
+        def done(account, err):
+            spinner.stop()
+            sign.set_sensitive(True)
+            if err:
+                code = getattr(err, "code", "error")
+                msgs = {"invalid_credentials": "Wrong e-mail or password.",
+                        "email_unverified": "The e-mail address is not verified yet.",
+                        "network": "LuxAI is not reachable. Check the internet connection."}
+                say(status, _(msgs[code]) if code in msgs else _("Sign-in failed (%s).") % code)
+                return
+            self.s["luxai"] = account
+            GLib.idle_add(lambda: self.render() and False)
+        sign.connect("clicked", login)
+        pw.connect("activate", login)
+
+    # ---- 8. souhrn ----
+    def page_summary(self, page):
+        self.heading(page, _("Ready to install"), _("Check your choices. Nothing has been changed on the disk yet."))
+        d = self.selected_disk()
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        box.get_style_context().add_class("card")
+        grid = Gtk.Grid(column_spacing=24, row_spacing=9)
+        box.pack_start(grid, False, False, 0)
+        lang = next((label for label, loc in LANGS if loc == self.s["locale"]), self.s["locale"])
+        layout = next((t for k, t, _h in self.load_layouts() if k == self.s["xkb"]), " ".join(self.s["xkb"]))
+        if self.s["mode"] == "erase":
+            disk = _("Erase %s and install LuxOS") % disk_title(d)
+        else:
+            free = int((d.get("probe") or {}).get("FREE_BYTES") or 0)
+            disk = _("Alongside other systems on %s (%s of free space)") % (disk_title(d), size_text(free))
+        rows = [(_("Language"), lang), (_("Keyboard"), layout), (_("Time zone"), self.s["timezone"]),
+                (_("Disk"), disk), (_("Encryption"), _("yes") if self.s["encrypt"] else _("no")),
+                (_("User"), f"{self.s['fullname']} ({self.s['username']})"), (_("Computer"), self.s["hostname"]),
+                (_("Automatic login"), _("yes") if self.s["autologin"] else _("no")),
+                ("LuxAI", _("signed in") if self.s["luxai"] else _("not signed in"))]
+        for i, (k, v) in enumerate(rows):
+            lab = Gtk.Label(label=k, xalign=0)
+            lab.get_style_context().add_class("subtitle")
+            grid.attach(lab, 0, i, 1, 1)
+            val = Gtk.Label(label=v, xalign=0, wrap=True, max_width_chars=50, selectable=False)
+            if k == _("Disk") and self.s["mode"] == "erase":
+                val.get_style_context().add_class("danger-text")
+            grid.attach(val, 1, i, 1, 1)
+        page.pack_start(box, False, False, 0)
+        if self.s["mode"] == "erase":
+            page.pack_start(self.hint(_("All data on %s will be erased when you click Install.") % d["path"], "error"),
+                            False, False, 0)
+
+    # ---- 9. instalace ----
+    def page_install(self, page):
+        self.heading(page, _("Installing LuxOS"), _("This takes about 10 minutes. You can keep using the computer."))
+        self.step_label = Gtk.Label(label=_("Starting…"), xalign=0, ellipsize=3)
+        page.pack_start(self.step_label, False, False, 4)
+        row = Gtk.Box(spacing=10)
+        self.bar = Gtk.ProgressBar(valign=Gtk.Align.CENTER)
+        self.pct_label = Gtk.Label(label="0 %")
+        self.pct_label.get_style_context().add_class("hint")
+        row.pack_start(self.bar, True, True, 0)
+        row.pack_start(self.pct_label, False, False, 0)
+        page.pack_start(row, False, False, 0)
+        self.slide_stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.SLIDE_LEFT, transition_duration=450,
+                                     margin_top=10)
+        for i, (icon, title, text) in enumerate(SLIDES):
+            s = Gtk.Box(spacing=18)
+            s.get_style_context().add_class("slide")
+            img = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.DIALOG)
+            img.set_pixel_size(56)
+            s.pack_start(img, False, False, 0)
+            col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, valign=Gtk.Align.CENTER)
+            t = Gtk.Label(label=_(title), xalign=0)
+            t.get_style_context().add_class("slide-title")
+            col.pack_start(t, False, False, 0)
+            col.pack_start(Gtk.Label(label=_(text), xalign=0, wrap=True, max_width_chars=48), False, False, 0)
+            s.pack_start(col, True, True, 0)
+            self.slide_stack.add_named(s, str(i))
+        page.pack_start(self.slide_stack, False, False, 0)
+        exp = Gtk.Expander(label=_("Details"))
+        self.log_view = Gtk.TextView(editable=False, cursor_visible=False, wrap_mode=Gtk.WrapMode.CHAR,
+                                     monospace=True)
+        self.log_view.get_style_context().add_class("log")
+        self.log_buf = self.log_view.get_buffer()
+        self.log_end = self.log_buf.create_mark("end", self.log_buf.get_end_iter(), False)
+        sw = Gtk.ScrolledWindow(min_content_height=150)
+        sw.add(self.log_view)
+        exp.add(sw)
+        page.pack_start(exp, True, True, 0)
+
+    # ---- 10. konec ----
+    def page_done(self, page):
+        ok = self.result and self.result[0] == "ok"
+        icon = Gtk.Image.new_from_icon_name("emblem-ok-symbolic" if ok else "dialog-error-symbolic",
+                                            Gtk.IconSize.DIALOG)
+        icon.set_pixel_size(72)
+        icon.get_style_context().add_class("done-icon" if ok else "fail-icon")
+        page.pack_start(icon, False, False, 16 if ok else 4)
+        t = Gtk.Label(label=_("LuxOS is installed") if ok else _("Installation failed"))
+        t.get_style_context().add_class("big-title")
+        page.pack_start(t, False, False, 0)
+        if ok:
+            s = Gtk.Label(label=_("Remove the installation media and restart your computer."), wrap=True)
+            s.get_style_context().add_class("subtitle")
+            page.pack_start(s, False, False, 0)
+            self.extra_action = lambda: Gtk.main_quit()
+            self.btn_extra.set_label(_("Later"))
+            return
+        err = Gtk.Label(label=self.result[1], wrap=True, max_width_chars=70, selectable=True)
+        err.get_style_context().add_class("error")
+        page.pack_start(err, False, False, 0)
+        page.pack_start(self.hint(_("The last lines of the installation log:")), False, False, 0)
+        tv = Gtk.TextView(editable=False, monospace=True, wrap_mode=Gtk.WrapMode.CHAR)
+        tv.get_style_context().add_class("log")
+        tv.get_buffer().set_text("\n".join(self.lines[-40:]))
+        sw = Gtk.ScrolledWindow(min_content_height=170)
+        sw.add(tv)
+        page.pack_start(sw, True, True, 0)
+        GLib.idle_add(lambda: sw.get_vadjustment().set_value(sw.get_vadjustment().get_upper()) and False)
+        row = Gtk.Box(spacing=8)
+        copy = Gtk.Button(label=_("Copy Log"))
+        copy.connect("clicked", lambda _b: Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(self.full_log(), -1))
+        save = Gtk.Button(label=_("Save Log…"))
+        save.connect("clicked", self.save_log)
+        row.pack_start(copy, False, False, 0)
+        row.pack_start(save, False, False, 0)
+        page.pack_start(row, False, False, 0)
+
+    def full_log(self):
+        try:
+            with open(LOG, encoding="utf-8", errors="replace") as f:
+                return f.read()
+        except OSError:
+            return "\n".join(self.lines)
+
+    def save_log(self, _b):
+        dlg = Gtk.FileChooserDialog(title=_("Save Log…"), transient_for=self, action=Gtk.FileChooserAction.SAVE)
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Save"), Gtk.ResponseType.OK)
+        dlg.set_current_name("luxos-install.log")
+        dlg.set_do_overwrite_confirmation(True)
+        if dlg.run() == Gtk.ResponseType.OK:
+            try:
+                with open(dlg.get_filename(), "w", encoding="utf-8") as f:
+                    f.write(self.full_log())
+            except OSError as e:
+                self.nav_hint.set_text(str(e))
+        dlg.destroy()
+
+    def restart(self):
+        if FAKE:
+            print("FAKE: restart")
+            Gtk.main_quit()
+            return
+        if subprocess.run(["systemctl", "reboot"], capture_output=True).returncode != 0:
+            subprocess.run(["sudo", "-n", "systemctl", "reboot"], capture_output=True)
+
+    # ---- beh backendu ----
+    def build_config(self):
+        s, q = self.s, shlex.quote
+        layout, variant = s["xkb"]
+        values = {
+            "LOCALE": s["locale"], "UI_LANG": s["locale"], "XKB_LAYOUT": layout, "XKB_VARIANT": variant,
+            "TIMEZONE": s["timezone"], "DISK": s["disk"], "DISK_MODE": s["mode"], "BOOTLOADER": "auto",
+            "ENCRYPT": "1" if s["encrypt"] else "0", "LUKS_PASS": s["luks1"] if s["encrypt"] else "",
+            "USERNAME": s["username"], "FULLNAME": s["fullname"].strip(), "PASSWORD": s["pw1"],
+            "HOSTNAME_SEL": s["hostname"], "AUTOLOGIN": "1" if s["autologin"] else "0",
+            "LUXAI_ACCOUNT": json.dumps(s["luxai"], ensure_ascii=False) if s["luxai"] else "",
+        }
+        return "".join(f"{k}={q(v)}\n" for k, v in values.items())
+
+    # Kdo umi zabranit setrici/zamceni a uspani (Xfce: org.xfce.ScreenSaver, xfce4-power-manager)
+    INHIBITORS = (("org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver"),
+                  ("org.xfce.ScreenSaver", "/org/xfce/ScreenSaver", "org.xfce.ScreenSaver"),
+                  ("org.freedesktop.PowerManagement", "/org/freedesktop/PowerManagement/Inhibit",
+                   "org.freedesktop.PowerManagement.Inhibit"))
+
+    def inhibit_idle(self, on):
+        """Behem instalace bez setrice obrazovky, zamceni a uspani."""
+        try:
+            bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+        except GLib.Error:
+            return
+        if on:
+            self.inhibit_cookies = []
+            for name, path, iface in self.INHIBITORS:
+                try:
+                    r = bus.call_sync(name, path, iface, "Inhibit",
+                                      GLib.Variant("(ss)", ("luxos-install-gui", _("Installing LuxOS"))),
+                                      GLib.VariantType("(u)"), Gio.DBusCallFlags.NO_AUTO_START, 3000, None)
+                    self.inhibit_cookies.append((name, path, iface, r.unpack()[0]))
+                except GLib.Error:
+                    continue
+        else:
+            for name, path, iface, cookie in getattr(self, "inhibit_cookies", []):
+                try:
+                    bus.call_sync(name, path, iface, "UnInhibit", GLib.Variant("(u)", (cookie,)),
+                                  None, 0, 3000, None)
+                except GLib.Error:
+                    pass
+            self.inhibit_cookies = []
+
+    def start_install(self):
+        self.installing = True
+        self.inhibit_idle(True)
+        self.lines, self.buf = [], b""
+        self.step_n, self.step_total, self.shown, self.target = 0, 1, 0.0, (0.0, 0.0)
+        self.error_text, self.done_flag = "", False
+        if FAKE:
+            cmd = ["bash", "-c", FAKE_BACKEND]
+        elif self.root:
+            cmd = ["sudo", "-n", BACKEND, "--config", "-", "--yes", "--progress"]
+        else:
+            cmd = ["pkexec", BACKEND, "--config", "-", "--yes", "--progress"]
+        try:
+            self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                         stderr=subprocess.STDOUT, bufsize=0)
+        except OSError as e:
+            self.finished(1, str(e))
+            return
+        try:
+            self.proc.stdin.write(self.build_config().encode())
+            self.proc.stdin.close()
+        except OSError:
+            pass
+        fd = self.proc.stdout.fileno()
+        GLib.io_add_watch(fd, GLib.PRIORITY_DEFAULT, GLib.IO_IN | GLib.IO_HUP | GLib.IO_ERR, self.on_output)
+        GLib.timeout_add(500, self.tick)
+        GLib.timeout_add_seconds(9, self.next_slide)
+
+    def on_output(self, fd, cond):
+        data = b""
+        if cond & GLib.IO_IN:
+            try:
+                data = os.read(fd, 65536)
+            except OSError:
+                data = b""
+        if data:
+            self.buf += data
+            *lines, self.buf = re.split(rb"[\r\n]", self.buf)
+            for raw in lines:
+                self.handle_line(raw.decode("utf-8", "replace"))
+            return True
+        if self.buf:
+            self.handle_line(self.buf.decode("utf-8", "replace"))
+            self.buf = b""
+        proc = self.proc
+        run_async(proc.wait, lambda rc, _e: self.finished(rc if rc is not None else 1))
+        return False
+
+    def step_range(self):
+        total = max(self.step_total, 1)
+        # Vahy kroku: posledni ctyri jsou HW, baliky, konfigurace, dokonceni (poradi v luxos-install)
+        w = [2] * (total - 4) + [1, 70, 22, 1] if total >= 4 else [1] * total
+        s = float(sum(w))
+        n = min(max(self.step_n, 1), total)
+        return sum(w[:n - 1]) / s, sum(w[:n]) / s
+
+    def handle_line(self, line):
+        if line.startswith("@@STEP "):
+            parts = line.split(" ", 3)
+            try:
+                self.step_n, self.step_total = int(parts[1]), int(parts[2])
+            except (IndexError, ValueError):
+                return
+            self.target = self.step_range()
+            self.shown = max(self.shown, self.target[0])
+            self.step_label.set_text(parts[3] if len(parts) > 3 else "")
+            self.update_bar()
+        elif line.startswith("@@PCT "):
+            try:
+                pct = min(max(int(line.split()[1]), 0), 100)
+            except (IndexError, ValueError):
+                return
+            a, b = self.target
+            self.shown = max(self.shown, a + (b - a) * pct / 100)
+            self.update_bar()
+        elif line.startswith("@@ERROR "):
+            self.error_text = self.error_text or line[8:]
+        elif line == "@@DONE":
+            self.done_flag = True
+        else:
+            self.lines.append(line)
+            if len(self.lines) > 20000:
+                del self.lines[:5000]
+            self.log_buf.insert(self.log_buf.get_end_iter(), line + "\n")
+            if self.log_buf.get_line_count() > 3000:
+                self.log_buf.delete(self.log_buf.get_start_iter(), self.log_buf.get_iter_at_line(1000))
+            self.log_view.scroll_mark_onscreen(self.log_end)
+
+    def tick(self):
+        if not self.installing:
+            return False
+        # Kroky bez prubehu: pomalu se blizit konci kroku, aby pruh nestal
+        a, b = self.target
+        if b > self.shown:
+            self.shown += (b - self.shown) * 0.004
+            self.update_bar()
+        return True
+
+    def update_bar(self):
+        self.bar.set_fraction(min(self.shown, 1.0))
+        self.pct_label.set_text(f"{int(self.shown * 100)} %")
+
+    def next_slide(self):
+        if not self.installing:
+            return False
+        cur = int(self.slide_stack.get_visible_child_name() or 0)
+        self.slide_stack.set_visible_child_name(str((cur + 1) % len(SLIDES)))
+        return True
+
+    def finished(self, rc, extra=""):
+        self.installing = False
+        self.inhibit_idle(False)
+        if rc == 0 and self.done_flag:
+            self.result = ("ok",)
+        else:
+            text = self.error_text or extra or _("The installer stopped with exit code %s.") % rc
+            self.result = ("fail", text)
+        self.idx = self.steps.index("done")
+        self.render()
+
+
+def wifi_list():
+    """[(ssid, sila, zabezpecena)] z nmcli, bez duplicit."""
+    if FAKE:
+        return [("LuxLab", 82, True), ("Kavarna U Lipy", 54, False), ("Home-5G", 31, True)]
+    out = cmd_out("nmcli", "-t", "-e", "yes", "-f", "SIGNAL,SECURITY,SSID", "device", "wifi", "list",
+                  "--rescan", "yes", timeout=30)
+    best = {}
+    for line in out.splitlines():
+        f = re.split(r"(?<!\\):", line, maxsplit=2)
+        if len(f) < 3:
+            continue
+        ssid = f[2].replace("\\:", ":").replace("\\\\", "\\")
+        if not ssid:
+            continue
+        try:
+            sig = int(f[0])
+        except ValueError:
+            sig = 0
+        if ssid not in best or sig > best[ssid][1]:
+            best[ssid] = (ssid, sig, f[1] not in ("", "--"))
+    return sorted(best.values(), key=lambda n: -n[1])
+
+
+def luxai_login(email, password):
+    """Prihlaseni k LuxAI jako v TUI: JSON uctu (bez hesla), soubor jen docasne."""
+    r = acc.request("POST", "/api/auth/password/login", {"email": email, "password": password})
+    if not r.get("sessionToken"):
+        raise acc.AccountError("no_token")
+    tmp = tempfile.mkdtemp()
+    try:
+        path = os.path.join(tmp, "a.json")
+        data = acc.save(r["sessionToken"], r.get("user") or {}, path=path)
+        os.unlink(path)
+    finally:
+        os.rmdir(tmp)
+    return data
+
+
+def logo_image(size):
+    theme = Gtk.IconTheme.get_default()
+    name = next((n for n in ("luxos-logo", "luxos-installer", "system-software-install")
+                 if theme.has_icon(n)), "system-software-install")
+    img = Gtk.Image.new_from_icon_name(name, Gtk.IconSize.DIALOG)
+    img.set_pixel_size(size)
+    return img
+
+
+# Simulovany backend (LUXOS_INSTALL_FAKE=1): cte konfiguraci ze stdin stejne jako luxos-install
+FAKE_BACKEND = r'''
+set -euo pipefail
+eval "$(cat)"
+echo "fake backend: DISK=$DISK DISK_MODE=$DISK_MODE ENCRYPT=$ENCRYPT USERNAME=$USERNAME HOST=$HOSTNAME_SEL"
+echo "fake backend: FULLNAME=$FULLNAME, password length ${#PASSWORD}, LuxAI=${LUXAI_ACCOUNT:+yes}"
+d=${LUXOS_INSTALL_FAKE_DELAY:-0.4}
+steps=("Preparing disk $DISK")
+((ENCRYPT)) && steps+=("Encrypting the disk")
+steps+=("Creating file systems" "Detecting hardware" "Installing packages (this is the longest step)"
+        "Configuring the system" "Finishing")
+n=0
+for s in "${steps[@]}"; do
+    n=$((n + 1))
+    echo "@@STEP $n ${#steps[@]} $s"
+    echo "==> $s"
+    if [[ $s == Installing* ]]; then
+        echo "Packages (120) base-3-2 linux-zen-6.17 ..."
+        for p in $(seq 1 120); do
+            echo "installing package-$p..."
+            echo "@@PCT $(((p * 100) / 120))"
+            sleep "$(awk -v d="$d" 'BEGIN {print d / 10}')"
+            if [[ ${LUXOS_INSTALL_FAKE_FAIL-} == 1 && $p == 60 ]]; then
+                echo "error: failed to commit transaction (conflicting files)"
+                echo "@@ERROR Packages could not be installed. Check the internet connection."
+                exit 1
+            fi
+        done
+    else
+        sleep "$d"
+    fi
+done
+echo "@@DONE"
+'''
+
+
+def main():
+    GLib.set_prgname("luxos-install-gui")
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = Installer()
+    win.show()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

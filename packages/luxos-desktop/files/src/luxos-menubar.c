@@ -8,20 +8,28 @@
  *
  * Plugin se pozna podle X klienta: kazdy externi plugin bezi ve vlastnim
  * procesu wrapper-2.0, takze popup i ikona pod kurzorem maji stejny zaklad ID.
+ * Proto pluginy s nabidkami zustavaji externi; uvnitr panelu bezi jen pluginy
+ * bez nabidek (genmon, systray - viz /usr/lib/luxos/panel).
  *
  * Navic: pri automaticky skryvanem Docku (~/.config/luxos/dock-autohide)
  * dotahne ukazatel z poslednich EDGE pixelu obrazovky na samotny okraj -
- * Plank se jinak vysune jen na uplne poslednim radku.
+ * Plank se jinak vysune jen na uplne poslednim radku. Pohyb mysi se sleduje
+ * jen pri zapnutem priznaku a dotazy na polohu se slucuji (max. ~60x za s).
+ *
+ * A: pripojeni/odpojeni monitoru (udalost RandR, zadne dotazovani) spusti
+ * "luxos-displays auto" - rozlozeni obrazovek, okna z odpojeneho monitoru, tapeta.
  */
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/XInput2.h>
 #include <X11/extensions/XTest.h>
+#include <X11/extensions/Xrandr.h>
 #include <X11/keysym.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <sys/select.h>
 #include <time.h>
 #include <unistd.h>
@@ -30,6 +38,9 @@
 #define CHECK_DELAY_MS 120
 #define CLOSE_WAIT_MS 400
 #define EDGE 6                  /* pixelu nad spodnim okrajem, ktere vysunou Dock */
+#define EDGE_COALESCE_MS 15     /* pohyby mysi v tomto okne = jeden dotaz na polohu */
+#define FLAG_CHECK_MS 5000      /* jak casto zjistit, jestli se Dock skryva */
+#define HOTPLUG_DELAY_MS 1200   /* vyckat, nez se vystup ustali (EDID, dalsi udalosti) */
 
 static Display *dpy;
 static Window root;
@@ -187,29 +198,56 @@ static void send_key(KeySym ks)
 static void handle_event(XEvent *ev);
 
 static char autohide_flag[512];
+static int autohide;            /* Dock se skryva -> sledovat pohyb mysi */
+static long long edge_due;      /* naplanovana kontrola polohy (0 = zadna) */
+static long long flag_due;
+
+static int rr_event_base = -1;
+static long long hotplug_due;
+static char outputs_last[1024];
+
+static void select_xi(int motion)
+{
+    unsigned char bits[XIMaskLen(XI_LASTEVENT)] = {0};
+    XISetMask(bits, XI_RawButtonPress);
+    XISetMask(bits, XI_RawButtonRelease);
+    if (motion)
+        XISetMask(bits, XI_RawMotion);
+    XIEventMask mask = {XIAllMasterDevices, sizeof bits, bits};
+    XISelectEvents(dpy, root, &mask, 1);
+    XFlush(dpy);
+}
+
+static void check_flag(void)
+{
+    int on = access(autohide_flag, F_OK) == 0;
+    if (on != autohide) {
+        autohide = on;
+        select_xi(on);
+    }
+    flag_due = now_ms() + FLAG_CHECK_MS;
+}
 
 /* Ukazatel tesne nad spodnim okrajem -> na okraj (vysunuti skryteho Docku) */
 static void dock_edge(void)
 {
     static long long checked;
-    static int enabled;
+    static int height;
     long long now = now_ms();
     Window r, c;
     int rx, ry, wx, wy, h;
     unsigned int mask;
 
-    static int height;
-    if (now - checked > 2000) {     /* priznak a vysku obrazovky staci kontrolovat obcas */
+    edge_due = 0;
+    if (now - checked > 2000) {     /* DisplayHeight() je z doby pripojeni - po zmene rozliseni neplati */
         Window rr;
         int gx, gy;
         unsigned int gw, gh, gb, gd;
-        enabled = access(autohide_flag, F_OK) == 0;
-        /* DisplayHeight() je z doby pripojeni - po zmene rozliseni (monitor, xrandr) neplati */
         if (XGetGeometry(dpy, root, &rr, &gx, &gy, &gw, &gh, &gb, &gd))
             height = (int)gh;
         checked = now;
     }
-    if (!enabled || !XQueryPointer(dpy, root, &r, &c, &rx, &ry, &wx, &wy, &mask))
+    if (!autohide || !XQueryPointer(dpy, root, &r, &c, &rx, &ry, &wx, &wy, &mask))
         return;
     if (mask & (Button1Mask | Button2Mask | Button3Mask))
         return;                     /* tazeni mysi nerusit */
@@ -217,6 +255,40 @@ static void dock_edge(void)
     if (ry >= h - EDGE && ry < h - 1) {
         XWarpPointer(dpy, None, root, 0, 0, 0, 0, rx, h - 1);
         XFlush(dpy);
+    }
+}
+
+/* Seznam pripojenych vystupu ("eDP-1 HDMI-1 ") */
+static void connected_outputs(char *buf, size_t n)
+{
+    size_t len = 0;
+    buf[0] = 0;
+    XRRScreenResources *res = XRRGetScreenResources(dpy, root);   /* znovu zjistit pripojeni */
+    if (!res)
+        return;
+    for (int i = 0; i < res->noutput; i++) {
+        XRROutputInfo *info = XRRGetOutputInfo(dpy, res, res->outputs[i]);
+        if (!info)
+            continue;
+        if (info->connection == RR_Connected && len + strlen(info->name) + 2 < n)
+            len += snprintf(buf + len, n - len, "%s ", info->name);
+        XRRFreeOutputInfo(info);
+    }
+    XRRFreeScreenResources(res);
+}
+
+static void run_hotplug(void)
+{
+    char now[sizeof outputs_last];
+    hotplug_due = 0;
+    connected_outputs(now, sizeof now);
+    if (!strcmp(now, outputs_last))
+        return;                     /* jen zmena rezimu/rozlozeni, ne pripojeni */
+    strcpy(outputs_last, now);
+    if (fork() == 0) {
+        setsid();
+        execlp("luxos-displays", "luxos-displays", "auto", (char *)NULL);
+        _exit(127);
     }
 }
 
@@ -260,6 +332,11 @@ static void run_pending(void)
 
 static void handle_event(XEvent *ev)
 {
+    if (rr_event_base >= 0 && ev->type == rr_event_base + RRNotify) {
+        if (((XRRNotifyEvent *)ev)->subtype == RRNotify_OutputChange)
+            hotplug_due = now_ms() + HOTPLUG_DELAY_MS;
+        return;
+    }
     if (ev->type == MapNotify) {
         Window w = ev->xmap.window;
         if (is_popup(w)) {
@@ -278,7 +355,8 @@ static void handle_event(XEvent *ev)
             return;
         XIRawEvent *re = ck->data;
         if (ck->evtype == XI_RawMotion) {
-            dock_edge();
+            if (!edge_due)
+                edge_due = now_ms() + EDGE_COALESCE_MS;
         } else if (re->detail == 1 && now_ms() >= replay_until) {
             /* GTK otevira nabidku uz pri stisku, proto rozhoduje stav pred nim */
             if (ck->evtype == XI_RawButtonPress) {
@@ -332,12 +410,16 @@ int main(void)
     a_menu[2] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_MENU", False);
 
     XSelectInput(dpy, root, SubstructureNotifyMask);
-    unsigned char bits[XIMaskLen(XI_LASTEVENT)] = {0};
-    XISetMask(bits, XI_RawButtonPress);
-    XISetMask(bits, XI_RawButtonRelease);
-    XISetMask(bits, XI_RawMotion);
-    XIEventMask mask = {XIAllMasterDevices, sizeof bits, bits};
-    XISelectEvents(dpy, root, &mask, 1);
+    select_xi(0);
+    check_flag();
+    int rr_err;
+    if (XRRQueryExtension(dpy, &rr_event_base, &rr_err)) {
+        XRRSelectInput(dpy, root, RROutputChangeNotifyMask);
+        connected_outputs(outputs_last, sizeof outputs_last);
+    } else {
+        rr_event_base = -1;
+    }
+    signal(SIGCHLD, SIG_IGN);       /* luxos-displays: bez zombie procesu */
     XFlush(dpy);
 
     int fd = ConnectionNumber(dpy);
@@ -347,23 +429,34 @@ int main(void)
             XNextEvent(dpy, &ev);
             handle_event(&ev);
         }
-        if (pending.active && now_ms() >= pending.due) {
+        long long now = now_ms();
+        if (pending.active && now >= pending.due) {
             run_pending();
             continue;
         }
+        if (edge_due && now >= edge_due)
+            dock_edge();
+        if (hotplug_due && now >= hotplug_due)
+            run_hotplug();
+        if (now >= flag_due)
+            check_flag();
+
+        /* nejblizsi naplanovana akce */
+        long long due = flag_due;
+        if (pending.active && pending.due < due)
+            due = pending.due;
+        if (edge_due && edge_due < due)
+            due = edge_due;
+        if (hotplug_due && hotplug_due < due)
+            due = hotplug_due;
+        long long left = due - now_ms();
+        if (left < 0)
+            left = 0;
         fd_set fds;
         FD_ZERO(&fds);
         FD_SET(fd, &fds);
-        struct timeval tv, *tvp = NULL;
-        if (pending.active) {
-            long long left = pending.due - now_ms();
-            if (left < 0)
-                left = 0;
-            tv.tv_sec = left / 1000;
-            tv.tv_usec = (left % 1000) * 1000;
-            tvp = &tv;
-        }
-        if (select(fd + 1, &fds, NULL, NULL, tvp) < 0)
+        struct timeval tv = {left / 1000, (left % 1000) * 1000};
+        if (select(fd + 1, &fds, NULL, NULL, &tv) < 0)
             return 1;
     }
 }

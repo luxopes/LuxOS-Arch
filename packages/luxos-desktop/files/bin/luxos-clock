@@ -1,7 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 # LuxOS - hodiny v horni liste (plugin genmon misto pluginu clock): stejny format, klik = Kalendar.
-# Spousti se kazde 3 s - jen /bin/sh a date (zadny Python), at je lista lehka.
+# Spousti se kazde 3 s - cas formatuje primo bash (printf %()T), bez dalsich procesu.
 # Tucnost v markupu: genmon z vlastnosti font prebira jen rodinu a velikost.
 # Tooltip s celym datem (prazdny by genmon nahradil technickym popisem pluginu).
-printf '<txt><span weight="600">%s</span></txt><tool>%s</tool><txtclick>luxos-calendar-toggle</txtclick>\n' \
-    "$(date '+%a %-d. %b  %H:%M')" "$(date '+%A %-d. %B %Y')"
+printf '<txt><span weight="600">%(%a %-d. %b  %H:%M)T</span></txt><tool>%(%A %-d. %B %Y)T</tool><txtclick>luxos-calendar-toggle</txtclick>\n' -1 -1

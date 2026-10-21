@@ -62,7 +62,8 @@ fi
 
 echo "--> Initramfs"
 modules=""
-if pacman -Qq nvidia-open-dkms &>/dev/null; then
+# Rane nacteni NVIDIA jen bez integrovane grafiky (u hybridni jen zpomaluje start)
+if ((${NVIDIA_EARLY:-1})) && pacman -Qq nvidia-open-dkms &>/dev/null; then
     modules="nvidia nvidia_modeset nvidia_uvm nvidia_drm"
 fi
 encrypt_hook=""
@@ -74,11 +75,84 @@ HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconso
 COMPRESSION="zstd"
 M
 /usr/lib/luxos/apply-branding
+if [[ ${DISK_MODE:-erase} == freespace && ${BOOTLOADER:-auto} != none ]]; then
+    # Sdileny ESP: fallback initramfs by z /boot (btrfs) stejne nesel spustit - jen zdrzuje
+    sed -i "s/^PRESETS=.*/PRESETS=('default')/" /etc/mkinitcpio.d/linux-zen.preset
+    rm -f /boot/initramfs-linux-zen-fallback.img
+fi
 mkinitcpio -P
 
-echo "--> Boot loader ($BOOTMODE)"
+echo "--> Boot loader ($BOOTMODE, ${BOOTLOADER:-auto})"
 kernel=linux-zen
-if [[ $BOOTMODE == uefi ]]; then
+if [[ ${BOOTLOADER:-auto} == none ]]; then
+    echo "   (skip - jadro zustava v /boot)"
+elif [[ ${DISK_MODE:-erase} == freespace ]]; then
+    # ESP sdileny s jinymi systemy (/efi): cizi soubory, polozky ani loader.conf se neprepisuji.
+    # Jadro a initramfs se kopiruji do vlastniho adresare EFI/LuxOS/<id> (zadna kolize nazvu).
+    esp=/efi
+    dir=EFI/LuxOS/$ESP_ID
+    install -Dm644 /dev/stdin /etc/luxos/esp.conf <<C
+# LuxOS - kopie jadra na sdileny ESP (luxos-esp-sync)
+ESP_DIR=$esp/$dir
+KERNEL=$kernel
+C
+    install -Dm755 /dev/stdin /usr/local/sbin/luxos-esp-sync <<'S'
+#!/bin/bash
+# LuxOS - zkopiruje jadro a initramfs z /boot na sdileny ESP (jen pri zmene)
+set -eu
+. /etc/luxos/esp.conf
+mountpoint -q "${ESP_DIR%%/EFI/*}" || { echo "luxos-esp-sync: ESP is not mounted" >&2; exit 0; }
+mkdir -p "$ESP_DIR"
+for f in "vmlinuz-$KERNEL" "initramfs-$KERNEL.img"; do
+    [[ -e /boot/$f ]] || continue
+    cmp -s "/boot/$f" "$ESP_DIR/$f" && continue
+    cp "/boot/$f" "$ESP_DIR/$f.new"
+    mv -f "$ESP_DIR/$f.new" "$ESP_DIR/$f"
+done
+S
+    # Po kazde transakci pacmanu (po mkinitcpio) a po rucnim mkinitcpio
+    install -Dm644 /dev/stdin /etc/pacman.d/hooks/99-luxos-esp-sync.hook <<'H'
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Target = *
+
+[Action]
+Description = Copying the LuxOS kernel to the EFI system partition...
+When = PostTransaction
+Exec = /usr/local/sbin/luxos-esp-sync
+H
+    mkdir -p /etc/initcpio/post
+    ln -sf /usr/local/sbin/luxos-esp-sync /etc/initcpio/post/luxos-esp-sync
+    /usr/local/sbin/luxos-esp-sync
+    [[ -e $esp/$dir/vmlinuz-$kernel && -e $esp/$dir/initramfs-$kernel.img ]] || { echo "Kernel copy to ESP failed" >&2; exit 1; }
+
+    # systemd-boot jen pokud na ESP jeste neni (jiny systemd-boot se neprepisuje)
+    mkdir -p "$esp/EFI/systemd" "$esp/loader/entries"
+    sdboot=/usr/lib/systemd/boot/efi/systemd-bootx64.efi
+    [[ -e $esp/EFI/systemd/systemd-bootx64.efi ]] || install -m644 "$sdboot" "$esp/EFI/systemd/systemd-bootx64.efi"
+    # Zalozni zavadec jen kdyz zadny neni (napr. Windows ho nema)
+    if ! compgen -G "$esp/[Ee][Ff][Ii]/[Bb][Oo][Oo][Tt]/[Bb][Oo][Oo][Tt][Xx]64.[Ee][Ff][Ii]" >/dev/null; then
+        install -Dm644 "$sdboot" "$esp/EFI/BOOT/BOOTX64.EFI"
+    fi
+    if [[ ! -e $esp/loader/loader.conf ]]; then
+        # Jine systemy na disku: menu s odpoctem 3 s (Windows systemd-boot najde sam)
+        cat > "$esp/loader/loader.conf" <<L
+default luxos-$ESP_ID.conf
+timeout 3
+console-mode max
+editor no
+L
+    fi
+    cat > "$esp/loader/entries/luxos-$ESP_ID.conf" <<E
+title   LuxOS
+linux   /$dir/vmlinuz-$kernel
+initrd  /$dir/initramfs-$kernel.img
+options $CMDLINE
+E
+    systemctl enable systemd-boot-update.service
+elif [[ $BOOTMODE == uefi ]]; then
     bootctl install --esp-path=/boot
     mkdir -p /boot/loader/entries
     cat > /boot/loader/loader.conf <<L
