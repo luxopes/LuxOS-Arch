@@ -1,7 +1,7 @@
 #!/bin/bash
 # LuxOS - prehled klavesovych zkratek
 . /usr/lib/luxos/i18n.sh
-yad --title="$(T "Keyboard Shortcuts")" --window-icon=luxos-app --list --no-selection --width=560 --height=600 --center \
+yad --title="$(T "Keyboard Shortcuts")" --name=luxos-shortcuts --class=luxos-shortcuts --window-icon=luxos-app --list --no-selection --width=560 --height=600 --center \
     --column="$(T "Shortcut")" --column="$(T "Action")" \
     "Super + Space" "$(T "Search")" \
     "Super + A" "Launchpad" \

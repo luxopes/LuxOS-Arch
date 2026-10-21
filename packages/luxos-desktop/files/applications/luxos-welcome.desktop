@@ -6,3 +6,4 @@ Comment=Get started with LuxOS
 Exec=luxos-welcome
 Icon=luxos-app
 Categories=System;
+StartupWMClass=luxos-welcome
