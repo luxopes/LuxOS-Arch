@@ -1,7 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Compositor
-Comment=LuxOS window effects: shadows, rounded corners and animations (picom)
-Exec=luxos-compositor
-OnlyShowIn=XFCE;
-NoDisplay=true

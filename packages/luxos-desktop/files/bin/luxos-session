@@ -11,6 +11,9 @@ if [[ ! -e $cfg/initialized ]]; then
     : > "$cfg/initialized"
 fi
 
+# Kompozitor xfwm4 (stiny, pruhlednost): zapnout i po pokusu s picom, ktery ho vypinal
+pgrep -u "$USER" -x picom >/dev/null || xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s true 2>/dev/null
+
 # Starsi profily: klik na uzivatele v nabidce otevre Ucet LuxAI (mugshot neni nainstalovany)
 [[ $(xfconf-query -c xfce4-panel -p /plugins/plugin-1/command-profile 2>/dev/null) == luxos-account ]] ||
     xfconf-query -c xfce4-panel -p /plugins/plugin-1/command-profile -n -t string -s luxos-account 2>/dev/null
