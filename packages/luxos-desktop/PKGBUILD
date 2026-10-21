@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=14
+pkgrel=15
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
@@ -23,7 +23,7 @@ depends=(
     brightnessctl luxos-i18n luxos-store luxos-account
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
     # Dock, Hledani, prihlaseni
-    plank rofi lightdm lightdm-gtk-greeter dconf yad
+    plank picom rofi lightdm lightdm-gtk-greeter dconf yad
     # Zvuk, sit, bluetooth, tisk
     pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber pavucontrol
     networkmanager network-manager-applet nm-connection-editor
@@ -107,6 +107,9 @@ package() {
     install -Dm755 libluxos-rgba-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-rgba-menus.so"
     install -Dm644 "$f/lightdm/lightdm-gtk-greeter.conf" \
         "$pkgdir/usr/share/lightdm/lightdm-gtk-greeter.conf.d/50-luxos.conf"
+
+    # Kompozitor picom: animace minimalizace/obnoveni oken, stiny, zaoblene rohy (luxos-compositor)
+    install -Dm644 "$f/picom/picom.conf" "$pkgdir/usr/share/luxos/picom.conf"
 
     # Firefox: hardwarove dekodovani videa, uvolnovani panelu pri nedostatku pameti
     install -Dm644 "$f/firefox/luxos.js" "$pkgdir/usr/lib/firefox/defaults/pref/luxos.js"
