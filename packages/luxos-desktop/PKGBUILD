@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=17
+pkgrel=19
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
@@ -28,7 +28,7 @@ depends=(
     pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber pavucontrol
     networkmanager network-manager-applet nm-connection-editor
     bluez bluez-utils blueman
-    cups cups-pdf system-config-printer ipp-usb sane-airscan avahi nss-mdns
+    luxos-printing cups cups-pdf system-config-printer ipp-usb sane-airscan avahi nss-mdns
     # Integrace systemu
     polkit-gnome gnome-keyring xdg-user-dirs xdg-utils xdg-desktop-portal-gtk
     gvfs gvfs-mtp gvfs-smb gvfs-gphoto2 udisks2 upower power-profiles-daemon

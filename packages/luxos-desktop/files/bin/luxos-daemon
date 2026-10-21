@@ -9,6 +9,7 @@ driv obstaravaly samostatne smycky:
   SIGUSR2           prepne Kalendar (luxos-calendar-toggle)
   Trezor            zamkne pri zamceni obrazovky a pred uspanim (luxos-safe)
   Sporic dat        nove pripojena sit se hned oznaci jako merena
+  Pamet             upozorneni, kdyz pojistka earlyoom ukonci program (nedostatek pameti)
   Internet          "!" v liste a upozorneni, kdyz je sit bez internetu (luxos-netcheck)
   Bluetooth         agent pro parovani z telefonu a sluchatek (misto blueman-applet)
   Svetly/tmavy      automaticky rezim podle vychodu a zapadu slunce
@@ -185,6 +186,26 @@ def watch_connectivity(system):
                             "PropertiesChanged", "/org/freedesktop/NetworkManager", None, 0, on_props)
 
 
+# ---- Nedostatek pameti: upozorneni od pojistky earlyoom (luxos-tweaks) ------------------
+def watch_low_memory(system):
+    import re
+    last = {}
+
+    def on_notify(_c, _s, _p, _i, _sig, params):
+        text = " ".join(str(v) for v in params.unpack())
+        m = re.search(r"process (\d+) (.+?)(?:[.,;]|$)", text)
+        name = m.group(2).strip() if m else ""
+        # davka signalu pri jednom zasahu -> jedno upozorneni
+        if last.get("name") == name and GLib.get_monotonic_time() - last.get("t", 0) < 10_000_000:
+            return
+        last.update(name=name, t=GLib.get_monotonic_time())
+        body = (_("“%s” used too much memory and was closed so the computer would not freeze.") % name
+                if name else _("A program used too much memory and was closed so the computer would not freeze."))
+        spawn("notify-send", "-a", "LuxOS", "-u", "critical", "-i", "dialog-warning",
+              _("Memory is running low"), body)
+    system.signal_subscribe(None, "net.nuetzlich.SystemNotifications", "Notify", None, None, 0, on_notify)
+
+
 # ---- Sporic dat: merene pripojeni i pro nove pripojene site ---------------------------
 def watch_networks(system):
     reapply = debounce(2000, lambda: os.path.exists(os.path.join(CFG, "datasaver"))
@@ -346,6 +367,7 @@ def main():
         system = Gio.bus_get_sync(Gio.BusType.SYSTEM)
         watch_networks(system)
         watch_connectivity(system)
+        watch_low_memory(system)
         watch_bluetooth(system)
 
         # Po probuzeni (vecer otevreny notebook) hned zkontrolovat vzhled

@@ -6,7 +6,7 @@ cups.socket
 avahi-daemon.service
 power-profiles-daemon.service
 systemd-timesyncd.service
-systemd-oomd.service
+earlyoom.service
 fstrim.timer
 paccache.timer
 reflector.timer

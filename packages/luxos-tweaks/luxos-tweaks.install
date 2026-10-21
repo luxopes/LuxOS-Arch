@@ -1,0 +1,14 @@
+# LuxOS - prechod ze systemd-oomd na earlyoom u stavajicich instalaci
+post_install() {
+    systemctl enable earlyoom.service >/dev/null 2>&1 || true
+}
+
+post_upgrade() {
+    systemctl disable systemd-oomd.service systemd-oomd.socket >/dev/null 2>&1 || true
+    systemctl enable earlyoom.service >/dev/null 2>&1 || true
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload >/dev/null 2>&1
+        systemctl stop systemd-oomd.service systemd-oomd.socket >/dev/null 2>&1 || true
+        systemctl restart earlyoom.service >/dev/null 2>&1 || true
+    fi
+}
