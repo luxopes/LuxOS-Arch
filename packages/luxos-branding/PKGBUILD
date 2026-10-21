@@ -3,7 +3,7 @@
 
 pkgname=luxos-branding
 pkgver=1.1.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxOS branding: logo, wallpapers, Plymouth boot splash and os-release"
 arch=(any)
 url="https://github.com/luxos"
@@ -57,8 +57,8 @@ package() {
     # Tapety; luxos-dark/light jsou vychozi pro tmavy a svetly rezim (luxos-appearance)
     install -Dm644 -t "$pkgdir/usr/share/backgrounds/luxos" "$f"/wallpapers/*.jpg \
         render/luxos-waves-dark.jpg render/luxos-waves-light.jpg
-    ln -s luxos-twilight.jpg "$pkgdir/usr/share/backgrounds/luxos/luxos-dark.jpg"
-    ln -s luxos-sunrise.jpg "$pkgdir/usr/share/backgrounds/luxos/luxos-light.jpg"
+    ln -s luxos-flow-dark.jpg "$pkgdir/usr/share/backgrounds/luxos/luxos-dark.jpg"
+    ln -s luxos-flow-light.jpg "$pkgdir/usr/share/backgrounds/luxos/luxos-light.jpg"
 
     # Motivy Plymouth: luxos (modra, vychozi), luxos-purple, -orange, -green, -light (luxos-splash)
     local t

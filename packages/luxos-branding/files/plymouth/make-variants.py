@@ -83,19 +83,13 @@ def make_logo(src, v):
     off = (CANVAS - MARK) // 2
     shape = Image.new("L", (CANVAS, CANVAS), 0)
     shape.paste(mark.split()[3], (off, off))
-    # tecka: v souradnicich znacky 256x256 na (212, 64), polomer 9
-    k = MARK / 256
-    dsz = int(round(18 * k)) | 1
-    dot = circle(dsz, v["dot"])
-    dpos = (int(off + 212 * k - dsz / 2), int(off + 64 * k - dsz / 2))
-    shape.paste(255, dpos, dot.split()[3])
+    # bez tecky (prani uzivatele): jen znacka se zarou
     if v["dark"]:
         canvas.alpha_composite(colored(shape.filter(ImageFilter.GaussianBlur(MARK * 0.11)), v["glow"], 0.45))
         canvas.alpha_composite(colored(shape.filter(ImageFilter.GaussianBlur(MARK * 0.035)), v["glow"], 0.75))
     else:
         canvas.alpha_composite(colored(shape.filter(ImageFilter.GaussianBlur(MARK * 0.06)), "#000000", 0.10))
     canvas.alpha_composite(mark, (off, off))
-    canvas.alpha_composite(dot, dpos)
     return canvas
 
 
