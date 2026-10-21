@@ -1,0 +1,25 @@
+#!/bin/bash
+# LuxOS - upozorneni "Tiskarna ... je pripravena" (bezi v relaci uzivatele, spousti luxos-printing-helper)
+# Pouziti: luxos-printing-notify printer|scanner|both|driver|manual|plugin NAZEV
+# shellcheck disable=SC1091,SC2059,SC1111  # preklady z i18n.sh, typograficke uvozovky jsou zamerne
+. /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+name=$2
+case $1 in
+    printer) title=$(T "Printer “%s” is ready" "$name"); body=$(T "You can print from any app.") ;;
+    scanner) title=$(T "Scanner “%s” is ready" "$name"); body=$(T "Open Printers & Scanners to scan a document.") ;;
+    both)    title=$(T "“%s” is ready" "$name"); body=$(T "You can print from any app and scan in Printers & Scanners.") ;;
+    driver)  title=$(T "Printer “%s” needs a driver" "$name")
+             body=$(T "LuxOS will set it up automatically once you are connected to the internet.") ;;
+    manual)  title=$(T "Printer “%s” needs to be set up" "$name")
+             body=$(T "It does not support driverless printing. Open Printers & Scanners and choose Advanced….") ;;
+    plugin)  title=$(T "Printer “%s” needs an add-on from HP" "$name")
+             body=$(T "Open Terminal and run: hp-plugin") ;;
+    *) exit 2 ;;
+esac
+icon=printer
+[[ $1 == scanner ]] && icon=scanner
+# -A ceka na kliknuti: "Otevrit" spusti aplikaci Tiskarny a skenery
+action=$(notify-send -a "$(T "Printers & Scanners")" -i "$icon" -h string:desktop-entry:luxos-printers \
+    -A "open=$(T "Open")" "$title" "$body" 2>/dev/null)
+[[ $action == open ]] && exec luxos-printers
+exit 0

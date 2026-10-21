@@ -1,0 +1,1420 @@
+# LuxOS - magyar forditas (angol szoveg<TAB>magyar szoveg); a %s es %d helyorzoknek meg kell maradniuk
+Keyboard Shortcuts	Billentyűparancsok
+Shortcut	Billentyűparancs
+Action	Művelet
+Close window	Ablak bezárása
+Minimize window	Ablak kis méretre állítása
+Switch windows	Váltás az ablakok között
+Maximize / tile half	Teljes méret / fél képernyő
+Full screen	Teljes képernyő
+Show desktop	Íróasztal megjelenítése
+Switch workspace	Váltás munkaterületek között
+Files	Fájlok
+Terminal	Terminál
+Settings	Beállítások
+Lock screen	Képernyő zárolása
+Switch keyboard layout	Billentyűzetkiosztás váltása
+Screenshot	Képernyőkép
+Screenshot of region	Képernyőkép egy területről
+Screenshot tool	Képernyőkép eszköz
+System monitor (force quit)	Rendszerfigyelő (kilépés kényszerítése)
+Close	Bezárás
+Desktop & Dock	Íróasztal és Dock
+Advanced Desktop Settings…	Speciális íróasztal-beállítások…
+Menu Bar Items…	Menüsor elemei…
+Appearance	Megjelenés
+Light	Világos
+Dark	Sötét
+Wallpaper	Háttérkép
+Choose…	Kiválasztás…
+Your own picture	Saját kép
+Choose a picture	Válassz egy képet
+Pictures	Képek
+Dock	Dock
+Automatically hide and show the Dock	A Dock automatikus elrejtése és megjelenítése
+The Dock appears when you move the pointer to the bottom edge.	A Dock akkor jelenik meg, amikor a mutatót a képernyő alsó széléhez viszed.
+Size	Méret
+Magnification	Nagyítás
+Magnification size	Nagyítás mértéke
+Bottom	Lent
+Left	Balra
+Right	Jobbra
+Position on screen	Elhelyezés a képernyőn
+Dock opacity	Dock átlátszatlansága
+Menu Bar	Menüsor
+Menu bar opacity	Menüsor átlátszatlansága
+Battery Saver is on\n	Az Akkukímélő be van kapcsolva\n
+Battery Saver is off\n	Az Akkukímélő ki van kapcsolva\n
+Battery	Akkumulátor
+Rolling release · based on Arch Linux	Folyamatosan frissülő kiadás · Arch Linux alapokon
+Computer	Számítógép
+Processor	Processzor
+Memory	Memória
+Graphics	Grafika
+Storage	Tárhely
+%s available of %s	%s szabad, összesen: %s
+Kernel	Kernel
+Shell	Shell
+About This Computer	Erről a számítógépről
+Software Update	Szoftverfrissítés
+Update	Frissítés
+Press Enter to close	A bezáráshoz nyomd meg az Entert
+Install LuxOS	LuxOS telepítése
+Light Mode	Világos mód
+Dark Mode	Sötét mód
+LuxOS Store	LuxOS Áruház
+Shortcuts	Billentyűparancsok
+Welcome to LuxOS	Üdv a LuxOS-ben!
+Fast, light and beautifully simple.	Gyors, könnyű és gyönyörűen egyszerű.
+Search: apps, files and windows	Keresés: appok, fájlok és ablakok
+Launchpad: all applications	Launchpad: az összes app
+close window	ablak bezárása
+screenshot of a region	képernyőkép egy területről
+install and update software from Terminal	szoftverek telepítése és frissítése a Terminálból
+Control Center	Vezérlőközpont
+Off	Ki
+Ethernet	Ethernet
+Not connected	Nincs csatlakoztatva
+Not available	Nem érhető el
+On	Be
+Wi-Fi	Wi-Fi
+Bluetooth	Bluetooth
+Do Not Disturb	Ne zavarjanak
+Data Saver	Adattakarékos mód
+Battery Saver	Akkukímélő
+Display	Kijelző
+Sound	Hang
+Desktop & Dock…	Íróasztal és Dock…
+All Settings…	Minden beállítás…
+Charging	Töltés
+On battery	Akkumulátorról
+Fully charged	Teljesen feltöltve
+Data Saver is on\n	Az Adattakarékos mód be van kapcsolva\n
+Data Saver is off\n	Az Adattakarékos mód ki van kapcsolva\n
+AUR is disabled in lux.conf	Az AUR ki van kapcsolva a lux.conf fájlban
+jq is required for AUR support	Az AUR-támogatáshoz szükség van a jq csomagra
+AUR packages must be built as a regular user (run lux without sudo)	Az AUR-csomagokat normál felhasználóként kell lefordítani (futtasd a lux parancsot sudo nélkül)
+Building AUR packages needs %sbase-devel%s and %sgit%s.	Az AUR-csomagok fordításához szükség van a következőkre: %sbase-devel%s és %sgit%s.
+Install them now?	Telepíted őket most?
+AUR is not reachable	Az AUR nem érhető el
+Package '%s' was not found in repositories or AUR	A(z) „%s” csomag nem található sem a tárolókban, sem az AUR-ban
+Cannot update %s from AUR	A(z) %s nem frissíthető az AUR-ból
+Cannot clone %s from AUR	A(z) %s nem klónozható az AUR-ból
+Review PKGBUILD of %s before building?	Átnézed a(z) %s PKGBUILD fájlját a fordítás előtt?
+Build and install %s?	Lefordítod és telepíted a következőt: %s?
+Cancelled	Megszakítva
+Building %s %s(AUR)%s	Fordítás: %s %s(AUR)%s
+Build of %s failed (see %s)	A(z) %s fordítása nem sikerült (lásd: %s)
+AUR packages to build: %s	Lefordítandó AUR-csomagok: %s
+AUR packages are maintained by the community, not by LuxOS.	Az AUR-csomagokat a közösség tartja karban, nem a LuxOS.
+Continue?	Folytatod?
+Usage: lux install <package...>	Használat: lux install <csomag...>
+Installing %s from Flathub	A(z) %s telepítése a Flathubról
+Package '%s' not found. Try: lux search %s	A(z) „%s” csomag nem található. Próbáld ezt: lux search %s
+Usage: lux remove <package...>	Használat: lux remove <csomag...>
+Refreshing package databases	Csomagadatbázisok frissítése
+Updating system packages	Rendszercsomagok frissítése
+Checking AUR packages	AUR-csomagok ellenőrzése
+AUR packages are up to date	Az AUR-csomagok naprakészek
+Updating Flatpak apps	Flatpak appok frissítése
+New config files to review:	Átnézendő új konfigurációs fájlok:
+Kernel was updated - restart to use it.	A kernel frissült - a használatához indítsd újra a gépet.
+System is up to date	A rendszer naprakész
+Usage: lux search <term>	Használat: lux search <kifejezés>
+Usage: lux info <package>	Használat: lux info <csomag>
+Package '%s' not found	A(z) „%s” csomag nem található
+Cleaning package cache (keeping %s versions)	Csomaggyorsítótár tisztítása (megmaradó verziók: %s)
+Unneeded packages: %s	Szükségtelen csomagok: %s
+Remove them?	Eltávolítod őket?
+No unneeded packages	Nincsenek szükségtelen csomagok
+Clean	Kész, kitakarítva
+All drivers are installed	Minden illesztőprogram telepítve van
+Missing: %s	Hiányzik: %s
+Install now?	Telepíted most?
+Drivers installed - restart to activate them	Az illesztőprogramok telepítve - újraindítás után lesznek aktívak
+Finding the fastest mirrors (this can take a minute)	A leggyorsabb tükörszerverek keresése (ez eltarthat egy percig)
+Mirror list updated	A tükörszerverek listája frissítve
+LuxOS system check	LuxOS rendszerellenőrzés
+%s failed service(s):	Hibás szolgáltatások: %s
+Services running	A szolgáltatások futnak
+%s .pacnew config file(s) to merge (pacdiff)	Összefésülendő .pacnew konfigurációs fájlok (pacdiff): %s
+No pending config files	Nincsenek függőben lévő konfigurációs fájlok
+Root filesystem is %s%% full	A gyökér fájlrendszer telítettsége: %s%%
+Disk usage %s%%	Lemezhasználat: %s%%
+%s unneeded package(s) - run: lux clean	Szükségtelen csomagok: %s - futtasd: lux clean
+No orphaned packages	Nincsenek árva csomagok
+%s update(s) available - run: lux update	Elérhető frissítések: %s - futtasd: lux update
+System up to date	A rendszer naprakész
+Running kernel was replaced - restart	A futó kernel lecserélődött - indítsd újra a gépet
+%s error message(s) in this boot's log (journalctl -b -p err)	Hibaüzenetek a mostani rendszerindítás naplójában: %s (journalctl -b -p err)
+Everything looks good	Minden rendben van
+LuxOS package manager	LuxOS csomagkezelő
+Usage:	Használat:
+command	parancs
+options	opciók
+arguments	argumentumok
+Options:	Opciók:
+system	rendszer
+The interactive mode needs fzf (lux install fzf)	Az interaktív módhoz szükség van az fzf csomagra (lux install fzf)
+The interactive mode needs expac (lux install expac)	Az interaktív módhoz szükség van az expac csomagra (lux install expac)
+Enter install · Ctrl-R remove · Ctrl-U update system · Tab select more	Enter telepítés · Ctrl-R eltávolítás · Ctrl-U rendszerfrissítés · Tab több kijelölése
+Alt-L LuxOS apps · Alt-I installed · Alt-A all · Esc quit	Alt-L LuxOS appok · Alt-I telepítettek · Alt-A összes · Esc kilépés
+LuxOS apps	LuxOS appok
+Installed	Telepítve
+All packages	Összes csomag
+Search	Keresés
+Press Enter to continue	A folytatáshoz nyomd meg az Entert
+Usage: lux files <pkg>	Használat: lux files <csomag>
+Usage: lux owner <file>	Használat: lux owner <fájl>
+Unknown command '%s' (see lux --help)	Ismeretlen parancs: „%s” (lásd: lux --help)
+Open	Megnyitás
+Get	Letöltés
+Search apps	Appok keresése
+Discover	Felfedezés
+LuxOS Apps	LuxOS appok
+Categories	Kategóriák
+Library	Könyvtár
+Updates	Frissítések
+From LuxOS	A LuxOS-től
+Popular apps	Népszerű appok
+Apps made for LuxOS, signed by the LuxOS team.	A LuxOS-hez készült appok, a LuxOS csapat aláírásával.
+Results for “%s”	Találatok a következőre: „%s”
+Welcome to the LuxOS Store	Üdv a LuxOS Áruházban!
+%d apps from LuxOS and Arch Linux, installed with one click.	%d app a LuxOS-ből és az Arch Linuxból, egyetlen kattintással telepítve.
+Nothing here yet.	Itt még nincs semmi.
+Check for Updates	Frissítések keresése
+Update All	Az összes frissítése
+Everything is up to date.	Minden naprakész.
+%d updates available: %s	Elérhető frissítések (%d): %s
+Checking for updates…	Frissítések keresése…
+Updating system…	A rendszer frissítése…
+Data Saver is on - updates are not checked automatically.	Az Adattakarékos mód be van kapcsolva - a frissítések keresése nem automatikus.
+Remove	Eltávolítás
+Version	Verzió
+Package	Csomag
+About	Névjegy
+Website	Weboldal
+%s is installed, but has no window to open.	A(z) %s telepítve van, de nincs megnyitható ablaka.
+Installing %s…	A(z) %s telepítése…
+Remove %s?	Eltávolítod a következőt: %s?
+The app will be removed from this computer. Your files stay untouched.	Az app törlődik erről a számítógépről. A fájljaid érintetlenek maradnak.
+Removing %s…	A(z) %s eltávolítása…
+Done.	Kész.
+Cancelled.	Megszakítva.
+Failed: %s	Sikertelen: %s
+interactive app store in the terminal	interaktív appáruház a terminálban
+install packages (repositories, then AUR / Flathub)	csomagok telepítése (tárolók, majd AUR / Flathub)
+remove packages and their unneeded dependencies	csomagok és szükségtelen függőségeik eltávolítása
+update everything (system, AUR, Flatpak)	minden frissítése (rendszer, AUR, Flatpak)
+search repositories and AUR	keresés a tárolókban és az AUR-ban
+show package details	csomag részleteinek megjelenítése
+list installed packages	telepített csomagok listája
+files installed by a package	egy csomag által telepített fájlok
+which package owns a file	melyik csomaghoz tartozik egy fájl
+clean cache and remove unneeded packages	gyorsítótár tisztítása és szükségtelen csomagok eltávolítása
+detect and install missing drivers	hiányzó illesztőprogramok felismerése és telepítése
+pick the fastest download mirrors	a leggyorsabb letöltési tükörszerverek kiválasztása
+check system health	a rendszer állapotának ellenőrzése
+recent package changes	legutóbbi csomagváltozások
+do not ask for confirmation	ne kérjen megerősítést
+only official repositories	csak a hivatalos tárolók
+only AUR	csak az AUR
+this help	ez a súgó
+version	verzió
+Internet	Internet
+Office	Iroda
+Music & Video	Zene és videó
+Developer Tools	Fejlesztői eszközök
+Games	Játékok
+Education & Science	Oktatás és tudomány
+Utilities	Segédprogramok
+System	Rendszer
+Error	Hiba
+Calculator	Számológép
+# Instalator
+Installation failed (line %s, exit code %s).	A telepítés nem sikerült (sor: %s, kilépési kód: %s).
+Details are in %s. Last lines:	A részletek itt találhatók: %s. Utolsó sorok:
+Warning: not running from the LuxOS live system.	Figyelem: nem a LuxOS élő rendszeréből fut.
+No internet connection	Nincs internetkapcsolat
+LuxOS downloads the newest packages during installation.	A LuxOS a telepítés közben a legújabb csomagokat tölti le.
+Connect with the network icon in the top bar, or use the text tool.	Csatlakozz a felső sáv hálózat ikonjával, vagy használd a szöveges eszközt.
+Try again	Újrapróbálás
+Open network setup (nmtui)	Hálózati beállítások megnyitása (nmtui)
+Quit	Kilépés
+Other…	Egyéb…
+Type to search	Gépelj a kereséshez
+Choose locale	Válassz területi beállítást
+Language: %s	Nyelv: %s
+The installation takes about 10 minutes.	A telepítés körülbelül 10 percig tart.
+Keyboard	Billentyűzet
+Choose your keyboard layout	Válaszd ki a billentyűzetkiosztást
+Layout	Kiosztás
+Variant	Változat
+Keyboard: %s	Billentyűzet: %s
+Time zone	Időzóna
+Use detected time zone %s?	Használod a felismert időzónát (%s)?
+Choose time zone	Válassz időzónát
+Time zone: %s	Időzóna: %s
+Disk	Lemez
+Advanced: use partitions already mounted at %s	Speciális: a(z) %s alá már csatolt partíciók használata
+Where should LuxOS be installed?	Hová települjön a LuxOS?
+Nothing is mounted at %s. Mount root (and /boot) first.	A(z) %s alá nincs semmi csatolva. Előbb csatold a gyökérpartíciót (és a /boot partíciót).
+All data on %s will be erased.	A(z) %s összes adata törlődik.
+Yes	Igen
+No	Nem
+Encrypt the disk? (you will enter a password at every start)	Titkosítod a lemezt? (minden indításkor meg kell adnod egy jelszót)
+Disk encryption password	Lemeztitkosítási jelszó
+Your account	Fiókod
+Full name	Teljes név
+Jane Doe	Kovács Anna
+User name (lowercase)	Felhasználónév (kisbetűkkel)
+Use lowercase letters, numbers, - and _ (max 32 characters).	Használj kisbetűket, számokat, - és _ jelet (legfeljebb 32 karakter).
+Password	Jelszó
+Computer name	Számítógép neve
+Use letters, numbers and - (no spaces).	Használj betűket, számokat és - jelet (szóköz nélkül).
+Log in automatically without a password?	Automatikus bejelentkezés jelszó nélkül?
+Password cannot be empty.	A jelszó nem lehet üres.
+%s (again)	%s (újra)
+Passwords do not match, try again.	A jelszavak nem egyeznek, próbáld újra.
+Summary	Összegzés
+Language	Nyelv
+mounted at %s	csatolási pont: %s
+%s  (will be ERASED)	%s  (TÖRLŐDNI FOG)
+Encryption	Titkosítás
+yes	igen
+no	nem
+User	Felhasználó
+Boot mode	Rendszerindítási mód
+Install	Telepítés
+Cancel	Mégse
+Install LuxOS now?	Telepíted most a LuxOS-t?
+Preparing disk %s	A(z) %s lemez előkészítése
+Partitions were not created correctly	A partíciók nem jöttek létre megfelelően
+Encrypting the disk	A lemez titkosítása
+Creating file systems	Fájlrendszerek létrehozása
+Detecting hardware	Hardver felismerése
+Installing packages (this is the longest step)	Csomagok telepítése (ez a leghosszabb lépés)
+Download failed (attempt %s), retrying…	A letöltés nem sikerült (%s. kísérlet), újrapróbálás…
+Packages could not be installed. Check the internet connection.	A csomagokat nem sikerült telepíteni. Ellenőrizd az internetkapcsolatot.
+Configuring the system	A rendszer beállítása
+Could not add UEFI boot entry (fallback loader will be used)	Nem sikerült UEFI rendszerindítási bejegyzést hozzáadni (a tartalék betöltő lesz használva)
+Finishing	Befejezés
+LuxOS is installed	A LuxOS telepítve van
+Remove the installation media and restart your computer.	Távolítsd el a telepítőadathordozót, és indítsd újra a számítógépet.
+Restart	Újraindítás
+Later	Később
+Restart now?	Újraindítod most?
+Config needs DISK, USERNAME and PASSWORD	A konfigurációnak tartalmaznia kell a DISK, USERNAME és PASSWORD értéket
+Invalid USERNAME	Érvénytelen USERNAME
+Invalid HOSTNAME_SEL	Érvénytelen HOSTNAME_SEL
+ENCRYPT=1 needs LUKS_PASS	Az ENCRYPT=1 beállításhoz LUKS_PASS szükséges
+# Rozlozeni klavesnice (instalator)
+English (US)	Angol (USA)
+Czech	Cseh
+Czech (QWERTY)	Cseh (QWERTY)
+Slovak	Szlovák
+Slovak (QWERTY)	Szlovák (QWERTY)
+German	Német
+English (UK)	Angol (Egyesült Királyság)
+French	Francia
+Spanish	Spanyol
+Italian	Olasz
+Polish	Lengyel
+Hungarian	Magyar
+Ukrainian	Ukrán
+Portuguese	Portugál
+Portuguese (Brazil)	Portugál (Brazília)
+Swedish	Svéd
+# Nazvy aplikaci v horni liste
+Desktop	Íróasztal
+Text Editor	Szövegszerkesztő
+Image Viewer	Képnézegető
+Document Viewer	Dokumentummegjelenítő
+System Monitor	Rendszerfigyelő
+# Monitory
+Extend - use both screens	Kiterjesztés - mindkét képernyő használata
+Mirror - same picture on both	Tükrözés - ugyanaz a kép mindkettőn
+Only external screen	Csak a külső képernyő
+Only this computer's screen	Csak a számítógép saját képernyője
+Screens	Képernyők
+# Baterie a napajeni
+Battery…	Akkumulátor…
+Battery Saver is on	Az Akkukímélő be van kapcsolva
+Battery is at %s %%. Connect the charger.	Az akkumulátor töltöttsége %s %%. Csatlakoztasd a töltőt.
+%d min	%d perc
+%d h %d min	%d óra %d perc
+now	most
+No history yet	Még nincsenek előzmények
+Battery & Power	Akkumulátor és energia
+Power usage	Energiafogyasztás
+Battery health	Akkumulátor állapota
+Charge cycles	Töltési ciklusok
+Energy	Energia
+Battery level - last 24 hours	Töltöttségi szint - az elmúlt 24 óra
+Power usage - last 24 hours	Energiafogyasztás - az elmúlt 24 óra
+This computer runs on mains power - there is no battery.	Ez a számítógép hálózati áramról működik - nincs akkumulátora.
+Power mode	Energiamód
+Power Saver	Energiatakarékos
+Longest battery life	Leghosszabb akkumulátor-üzemidő
+Balanced	Kiegyensúlyozott
+Recommended	Ajánlott
+Performance	Teljesítmény
+Fastest, uses more power	Leggyorsabb, több energiát fogyaszt
+Saves energy: power saving mode and fewer animations.	Energiát takarít meg: energiatakarékos mód és kevesebb animáció.
+Turn on automatically at 20 %	Automatikus bekapcsolás 20 %-nál
+Turns off again when the computer is charging.	Töltés közben ismét kikapcsol.
+Screen and sleep	Képernyő és alvó állapot
+Never	Soha
+1 minute	1 perc
+2 minutes	2 perc
+5 minutes	5 perc
+10 minutes	10 perc
+15 minutes	15 perc
+30 minutes	30 perc
+1 hour	1 óra
+2 hours	2 óra
+Turn off the screen on battery after	Képernyő kikapcsolása akkumulátoron ennyi idő után:
+Turn off the screen on power adapter after	Képernyő kikapcsolása hálózati adapteren ennyi idő után:
+Sleep on battery after	Alvó állapot akkumulátoron ennyi idő után:
+Sleep on power adapter after	Alvó állapot hálózati adapteren ennyi idő után:
+Sleep	Alvó állapot
+Turn off the screen	Képernyő kikapcsolása
+Hibernate	Hibernálás
+When the lid is closed	Ha a fedél le van csukva
+Advanced Power Settings…	Speciális energiabeállítások…
+%s minutes	%s perc
+full in %s	teljes feltöltésig: %s
+about %s left	kb. %s van hátra
+Plugged in, not charging	Csatlakoztatva, nem töltődik
+charging power	töltési teljesítmény
+current consumption	jelenlegi fogyasztás
+of original capacity	az eredeti kapacitásból
+full charge cycles	teljes töltési ciklus
+of %.1f Wh	/ %.1f Wh
+# Bluetooth
+OK	OK
+Rejected	Elutasítva
+Pair this device?	Párosítod ezt az eszközt?
+Check that the device shows this code:	Ellenőrizd, hogy az eszköz ezt a kódot mutatja:
+Pair	Párosítás
+Type this code on the device	Írd be ezt a kódot az eszközön
+Then press Enter on it.	Ezután nyomd meg rajta az Entert.
+Enter the PIN code	Add meg a PIN-kódot
+Usually 0000 or 1234, see the device manual.	Általában 0000 vagy 1234, lásd az eszköz kézikönyvét.
+Enter the code	Add meg a kódot
+Code shown on the device:	Az eszközön megjelenő kód:
+Connected	Csatlakoztatva
+battery %d %%	akkumulátor: %d %%
+Disconnect	Leválasztás
+Connect	Csatlakozás
+Forget this device	Eszköz elfelejtése
+My devices	Eszközeim
+Nearby devices	Közeli eszközök
+No devices	Nincsenek eszközök
+Searching… Put the device into pairing mode.	Keresés… Állítsd az eszközt párosítási módba.
+No Bluetooth adapter was found on this computer.	Ebben a számítógépben nem található Bluetooth-adapter.
+Visible as “%s”.	Látható ezen a néven: „%s”.
+Turn on Bluetooth to connect headphones, a mouse, a keyboard or a phone.	Kapcsold be a Bluetooth-t fejhallgató, egér, billentyűzet vagy telefon csatlakoztatásához.
+Could not connect	Nem sikerült csatlakozni
+Pairing…	Párosítás…
+Connecting…	Csatlakozás…
+Disconnecting…	Leválasztás…
+Make sure the device is on, close by and in pairing mode.	Ellenőrizd, hogy az eszköz be van-e kapcsolva, a közelben van-e, és párosítási módban van-e.
+Headphones	Fejhallgató
+Speaker	Hangszóró
+Mouse	Egér
+Game controller	Játékvezérlő
+Tablet	Táblagép
+Phone	Telefon
+Device	Eszköz
+# Monitor systemu
+60 s ago	60 mp-cel ezelőtt
+%d processes	%d folyamat
+1 process	1 folyamat
+All processes	Összes folyamat
+Network	Hálózat
+Name	Név
+%d cores	%d mag
+%s of %s used	Használatban: %s / %s
+%s free · activity %s	Szabad: %s · aktivitás: %s
+Download and upload	Letöltés és feltöltés
+All processes (%d)	Összes folyamat (%d)
+Open apps (%d)	Megnyitott appok (%d)
+%s is not responding	A(z) %s nem válaszol
+Force quit it? Unsaved changes will be lost.	Kényszeríted a kilépést? A nem mentett módosítások elvesznek.
+Force Quit	Kilépés kényszerítése
+# lux - format balicku
+Updating LuxOS apps	LuxOS appok frissítése
+Usage: lux pack <directory> [output]	Használat: lux pack <könyvtár> [kimenet]
+%s has no lux.json	A(z) %s nem tartalmaz lux.json fájlt
+lux.json is not valid JSON	A lux.json nem érvényes JSON
+Invalid package name: %s	Érvénytelen csomagnév: %s
+Invalid version: %s	Érvénytelen verzió: %s
+%s has no app/ directory	A(z) %s nem tartalmaz app/ könyvtárat
+Missing files listed in bin: %s	A bin alatt felsorolt fájlok hiányoznak: %s
+Built %s	Elkészült: %s
+%s is not a lux package	A(z) %s nem lux-csomag
+This package needs a newer lux	Ehhez a csomaghoz újabb lux szükséges
+Signature OK (LuxOS)	Az aláírás rendben (LuxOS)
+%s is not signed by LuxOS.	A(z) %s nincs aláírva a LuxOS által.
+Install it anyway?	Mégis telepíted?
+Installing dependencies: %s	Függőségek telepítése: %s
+Dependencies could not be installed	A függőségeket nem sikerült telepíteni
+Installing %s %s	Telepítés: %s %s
+Could not unpack %s	A(z) %s nem bontható ki
+%s is installed	A(z) %s telepítve
+Removing %s	Eltávolítás: %s
+%s was removed	A(z) %s eltávolítva
+Downloading %s	Letöltés: %s
+Download failed: %s	A letöltés nem sikerült: %s
+Checksum mismatch: %s	Az ellenőrzőösszeg nem egyezik: %s
+Bad signature: %s	Hibás aláírás: %s
+LuxOS package (.lux)	LuxOS-csomag (.lux)
+build a .lux package from a directory with lux.json	.lux csomag készítése egy lux.json fájlt tartalmazó könyvtárból
+# Kalkulacka - vedecky rezim
+Scientific (Ctrl+2)	Tudományos (Ctrl+2)
+Degrees / radians	Fok / radián
+# Ucet LuxAI
+Sign in to LuxAI	Bejelentkezés a LuxAI-ba
+LuxAI Account	LuxAI-fiók
+AI in LuxAI, Lux Code and LSL IDE	AI a LuxAI-ban, a Lux Code-ban és az LSL IDE-ben
+Sign-in failed (%s).	A bejelentkezés nem sikerült (%s).
+Not signed in. Run: luxos-account login	Nem vagy bejelentkezve. Futtasd: luxos-account login
+One account for AI in LuxOS: LuxAI, Lux Code and LSL IDE.	Egy fiók a LuxOS AI-funkcióihoz: LuxAI, Lux Code és LSL IDE.
+Sign in with the browser	Bejelentkezés a böngészőben
+or with e-mail	vagy e-maillel
+E-mail	E-mail
+Sign In	Bejelentkezés
+Send me a code instead	Inkább kérek egy kódot
+No account yet?	Még nincs fiókod?
+Create an account	Fiók létrehozása
+Enter your e-mail and password.	Add meg az e-mail-címedet és a jelszavadat.
+Enter your e-mail first.	Előbb add meg az e-mail-címedet.
+Enter the code from the e-mail	Add meg az e-mailben kapott kódot
+We sent a 6-digit code to %s.	Elküldtünk egy 6 jegyű kódot ide: %s.
+Confirm the sign-in in the browser…	Erősítsd meg a bejelentkezést a böngészőben…
+After you confirm your e-mail, come back and sign in.	Miután megerősítetted az e-mail-címedet, gyere vissza, és jelentkezz be.
+AI usage this month	AI-használat ebben a hónapban
+Unlimited	Korlátlan
+%s: %s of %s tokens	%s: %s / %s token
+Loading…	Betöltés…
+Used by	Használja:
+Manage on lux-ai.cz	Kezelés a lux-ai.cz oldalon
+Sign Out	Kijelentkezés
+Your session has expired. Please sign in again.	A munkameneted lejárt. Jelentkezz be újra.
+Sign out of LuxAI?	Kijelentkezel a LuxAI-ból?
+LuxAI, Lux Code and LSL IDE will stop using this account on this computer.	A LuxAI, a Lux Code és az LSL IDE ezen a számítógépen többé nem használja ezt a fiókot.
+LuxAI account	LuxAI-fiók
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account.	Nem kötelező: a LuxAI, a Lux Code és az LSL IDE AI-funkciói a LuxAI-fiókodat használják.
+Sign in	Bejelentkezés
+Skip	Kihagyás
+Sign in to your LuxAI account now?	Bejelentkezel most a LuxAI-fiókodba?
+Signed in as %s	Bejelentkezve mint %s
+Sign-in failed. Try again?	A bejelentkezés nem sikerült. Újrapróbálod?
+Wrong e-mail or password.	Hibás e-mail-cím vagy jelszó.
+The e-mail address is not verified yet.	Az e-mail-cím még nincs megerősítve.
+LuxAI is not reachable. Check the internet connection.	A LuxAI nem érhető el. Ellenőrizd az internetkapcsolatot.
+signed in	bejelentkezve
+not signed in	nincs bejelentkezve
+LuxAI sign-in failed - continuing without it.	A LuxAI-bejelentkezés nem sikerült - folytatás nélküle.
+The e-mail address is not verified yet. Use the sign-in code instead.	Az e-mail-cím még nincs megerősítve. Jelentkezz be inkább kóddal.
+The code is not valid or has expired.	A kód érvénytelen vagy lejárt.
+Too many attempts. Try again later.	Túl sok próbálkozás. Próbáld újra később.
+Please wait a minute before requesting another code.	Várj egy percet, mielőtt újabb kódot kérsz.
+The browser sign-in timed out.	A böngészős bejelentkezés időtúllépés miatt megszakadt.
+The sign-in was cancelled.	A bejelentkezés megszakadt.
+# Spořič a zámek
+Screen Saver & Lock	Képernyővédő és zárolás
+Screen saver	Képernyővédő
+Start after inactivity of	Indítás ennyi tétlenség után:
+LuxOS - wallpapers and clock	LuxOS - háttérképek és óra
+Black screen	Fekete képernyő
+Preview	Előnézet
+Lock	Zárolás
+Immediately	Azonnal
+After 1 minute	1 perc után
+After 5 minutes	5 perc után
+After 15 minutes	15 perc után
+Require password after the screen saver starts	Jelszó kérése a képernyővédő elindulása után
+The screen saver protects your computer while you are away.	A képernyővédő védi a számítógépedet, amíg távol vagy.
+Lock when the computer goes to sleep	Zárolás, amikor a számítógép alvó állapotba kerül
+Lock Now	Zárolás most
+# Trezor
+Could not create the Safe folder.	Nem sikerült létrehozni a Széf mappát.
+The Safe already exists.	A Széf már létezik.
+Could not create the Safe (%s).	Nem sikerült létrehozni a Széfet (%s).
+Wrong password.	Hibás jelszó.
+Could not unlock the Safe (%s).	Nem sikerült feloldani a Széfet (%s).
+Some files in the Safe are still open. Close them and try again.	A Széfben lévő néhány fájl még nyitva van. Zárd be őket, és próbáld újra.
+Could not change the password (%s).	Nem sikerült módosítani a jelszót (%s).
+Safe	Széf
+Create your Safe	Hozd létre a Széfedet
+Files in the Safe are encrypted and open only with its own password - not even an administrator can read them while the Safe is locked.	A Széfben lévő fájlok titkosítva vannak, és csak a Széf saját jelszavával nyithatók meg - amíg a Széf zárolva van, még a rendszergazda sem olvashatja el őket.
+New Safe password	Új Széf-jelszó
+Password again	Jelszó újra
+Use at least 8 characters.	Legalább 8 karaktert használj.
+Create Safe	Széf létrehozása
+If you forget this password, the files cannot be recovered.	Ha elfelejted ezt a jelszót, a fájlok nem állíthatók vissza.
+The Safe is locked	A Széf zárolva van
+Enter the Safe password to open %s.	Add meg a Széf jelszavát a következő megnyitásához: %s.
+Unlock	Feloldás
+The Safe is unlocked	A Széf fel van oldva
+Your files are available in %s.	A fájljaid itt érhetők el: %s.
+Open Safe	Széf megnyitása
+Lock automatically after inactivity	Automatikus zárolás tétlenség után
+Lock when the screen locks	Zárolás a képernyő zárolásakor
+The Safe always locks when the computer goes to sleep or you log out.	A Széf mindig zárolódik, amikor a számítógép alvó állapotba kerül, vagy kijelentkezel.
+Change Password…	Jelszó módosítása…
+Change Password	Jelszó módosítása
+Change	Módosítás
+Current password	Jelenlegi jelszó
+# Sandbox (luxos-sandbox)
+Creating sandbox (minimal Arch Linux system), this can take a few minutes...	A sandbox létrehozása (minimális Arch Linux rendszer), ez eltarthat néhány percig...
+Sandbox deleted.	A sandbox törölve.
+No sandbox yet. Create it with: luxos-sandbox create	Még nincs sandbox. Ezzel hozhatod létre: luxos-sandbox create
+Creating the sandbox failed.	A sandbox létrehozása nem sikerült.
+Sandbox is ready: %s	A sandbox elkészült: %s
+Size: %s	Méret: %s
+Shared folder: %s (only with --shared)	Megosztott mappa: %s (csak --shared esetén)
+Installed apps: %s	Telepített appok: %s
+Copying the file into the sandbox failed.	A fájl bemásolása a sandboxba nem sikerült.
+Usage: luxos-sandbox run [--net] [--gui] [--shared] <command...>	Használat: luxos-sandbox run [--net] [--gui] [--shared] <parancs...>
+No package given.	Nincs megadva csomag.
+Confirmation needed: add --yes	Megerősítés szükséges: add hozzá a --yes kapcsolót
+Wipe the whole sandbox (all installed apps and files inside) and create it again?	Törlöd a teljes sandboxot (minden benne lévő appot és fájlt), és újra létrehozod?
+Resetting the sandbox failed.	A sandbox visszaállítása nem sikerült.
+Delete the sandbox with everything inside? (~/Sandbox stays)	Törlöd a sandboxot mindennel együtt? (a ~/Sandbox megmarad)
+Deleting the sandbox failed.	A sandbox törlése nem sikerült.
+Run luxos-sandbox as a normal user, not root.	A luxos-sandbox parancsot normál felhasználóként futtasd, ne rootként.
+Sandbox directory is not owned by you: %s	A sandbox könyvtára nem a te tulajdonod: %s
+Xephyr is not installed (package xorg-server-xephyr).	A Xephyr nincs telepítve (xorg-server-xephyr csomag).
+Could not start the sandbox window (Xephyr).	Nem sikerült megnyitni a sandbox ablakát (Xephyr).
+Network for the sandbox needs pasta (package passt).	A sandbox hálózatához szükség van a pasta programra (passt csomag).
+Warning: systemd user session not available, running without memory/CPU limits.	Figyelem: a systemd felhasználói munkamenet nem érhető el, futtatás memória- és CPU-korlát nélkül.
+The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	A sandbox sérült (a home nem könyvtár). Futtasd: luxos-sandbox reset
+bubblewrap (bwrap) is not installed.	A bubblewrap (bwrap) nincs telepítve.
+Sandbox already exists: %s	A sandbox már létezik: %s
+Helper not found: %s	A segédprogram nem található: %s
+Link: %s	Hivatkozás: %s
+none	nincs
+Not a regular file: %s	Nem normál fájl: %s
+Copying %s into the sandbox...	A(z) %s bemásolása a sandboxba...
+isolated sandbox for untrusted applications	elszigetelt sandbox nem megbízható alkalmazásokhoz
+Unknown command: %s	Ismeretlen parancs: %s
+Unknown option: %s	Ismeretlen opció: %s
+Shared folder is not usable: %s	A megosztott mappa nem használható: %s
+Could not set up the sandbox network: %s	Nem sikerült beállítani a sandbox hálózatát: %s
+create your sandbox (asks for the administrator password once)	létrehozza a sandboxodat (egyszer kéri a rendszergazdai jelszót)
+show the sandbox, its size and installed apps	megjeleníti a sandboxot, a méretét és a telepített appokat
+interactive shell inside the sandbox	interaktív parancsértelmező a sandboxban
+run a command (a file from your computer is copied in first)	parancs futtatása (a számítógépedről származó fájl előbb bemásolódik)
+install apps from the Arch Linux repositories into the sandbox	appok telepítése az Arch Linux tárolóiból a sandboxba
+remove apps from the sandbox	appok eltávolítása a sandboxból
+wipe the sandbox and create it again	törli a sandboxot, és újra létrehozza
+delete the sandbox	a sandbox törlése
+network: internet only, no local network, no services of this computer	hálózat: csak internet, se helyi hálózat, se a számítógép szolgáltatásai
+own window (nested X server), never your desktop	saját ablak (beágyazott X-szerver), soha nem a te íróasztalod
+make ~/Sandbox visible as /home/sandbox/Shared	a ~/Sandbox elérhetővé tétele /home/sandbox/Shared néven
+Get started	Első lépések
+No sandbox yet	Még nincs sandbox
+Creates a minimal Arch Linux system only for you. Needs the administrator password once and a few minutes.	Létrehoz egy minimális Arch Linux rendszert csak neked. Egyszer kell hozzá a rendszergazdai jelszó és néhány perc.
+Installed apps	Telepített appok
+Install app	App telepítése
+From Arch Linux repositories	Az Arch Linux tárolóiból
+Installs into the sandbox only; network is enabled just for the download.	Csak a sandboxba települ; a hálózat csak a letöltés idejére van bekapcsolva.
+Run app	App futtatása
+Command	Parancs
+Downloaded file	Letöltött fájl
+The file is copied into the sandbox first; the original is never exposed.	A fájl előbb bemásolódik a sandboxba; az eredetihez a sandbox soha nem fér hozzá.
+Internet only - no access to your local network or this computer.	Csak internet – nincs hozzáférés a helyi hálózathoz és ehhez a számítógéphez.
+Window	Ablak
+Show the app in its own separate window (not on your desktop).	Az app megjelenítése saját, külön ablakban (nem az íróasztalodon).
+Shared folder	Megosztott mappa
+Tools	Eszközök
+Terminal in sandbox	Terminál a sandboxban
+Uses the Network and Shared folder switches above.	A fenti Hálózat és Megosztott mappa kapcsolókat használja.
+Reset sandbox	Sandbox visszaállítása
+Deletes everything inside the sandbox and creates it again.	Mindent töröl a sandboxból, és újra létrehozza.
+Creating sandbox…	A sandbox létrehozása…
+Sandbox is ready.	A sandbox elkészült.
+Installed.	Telepítve.
+Run	Futtatás
+Reset the sandbox?	Visszaállítod a sandboxot?
+All apps and files inside the sandbox will be deleted. ~/Sandbox stays.	A sandboxban lévő összes app és fájl törlődik. A ~/Sandbox megmarad.
+Continue	Folytatás
+An isolated system for apps you don't trust. Apps inside can't see your files, network or desktop.	Elszigetelt rendszer azokhoz az appokhoz, amelyekben nem bízol. A benne futó appok nem látják a fájljaidat, a hálózatodat és az íróasztalodat.
+Create Sandbox	Sandbox létrehozása
+Package name, e.g. firefox	Csomagnév, pl. firefox
+Command, e.g. firefox	Parancs, pl. firefox
+Choose File…	Fájl kiválasztása…
+Make %s visible inside as Shared. Treat files from it as untrusted.	A(z) %s elérhetővé tétele bent Shared néven. Az innen származó fájlokat kezeld megbízhatatlanként.
+Open Terminal	Terminál megnyitása
+Reset…	Visszaállítás…
+Details	Részletek
+Ready	Kész
+Not created	Nincs létrehozva
+No apps installed yet	Még nincsenek telepített appok
+Failed - see Details.	Sikertelen – lásd a Részleteket.
+Enter a valid package name.	Adj meg egy érvényes csomagnevet.
+Remove %s from the sandbox?	Eltávolítod a(z) %s appot a sandboxból?
+Removed.	Eltávolítva.
+Started %s in the sandbox.	A(z) %s elindult a sandboxban.
+Enter a command.	Adj meg egy parancsot.
+Choose a file to run in the sandbox	Válaszd ki a sandboxban futtatandó fájlt
+Resetting sandbox…	A sandbox visszaállítása…
+# Kalendar (luxos-calendar)
+Calendar	Naptár
+All day	Egész nap
+Changes apply to all occurrences.	A módosítások az összes ismétlődésre vonatkoznak.
+Could not save: %s	Nem sikerült menteni: %s
+Custom	Egyéni
+Date	Dátum
+Day	Nap
+Delete All?	Mindet törlöd?
+Delete Event?	Törlöd az eseményt?
+Delete	Törlés
+Edit Event	Esemény szerkesztése
+Ends	Vége
+Event	Esemény
+From %s	Kezdete: %s
+In %d minutes	%d perc múlva
+Invalid date.	Érvénytelen dátum.
+Invalid time.	Érvénytelen időpont.
+Month	Hónap
+New Event	Új esemény
+Next day	Következő nap
+Next month	Következő hónap
+Next year	Következő év
+No events today	Ma nincsenek események
+No events	Nincsenek események
+Now	Most
+Previous day	Előző nap
+Previous month	Előző hónap
+Previous year	Előző év
+Read-only calendar: %s	Csak olvasható naptár: %s
+Remind %d minutes before	Emlékeztető %d perccel előtte
+Repeat	Ismétlés
+Save	Mentés
+Starts	Kezdés
+The event must end after it starts.	Az eseménynek a kezdése után kell véget érnie.
+Title	Cím
+Today	Ma
+Until %s	Eddig: %s
+Year	Év
+Daily	Naponta
+Weekly	Hetente
+Monthly	Havonta
+Yearly	Évente
+Monday	hétfő
+Tuesday	kedd
+Wednesday	szerda
+Thursday	csütörtök
+Friday	péntek
+Saturday	szombat
+Sunday	vasárnap
+Mo	H
+Tu	K
+We	Sze
+Th	Cs
+Fr	P
+Sa	Szo
+Su	V
+January	január
+February	február
+March	március
+April	április
+May	május
+June	június
+July	július
+August	augusztus
+September	szeptember
+October	október
+November	november
+December	december
+of January	január
+of February	február
+of March	március
+of April	április
+of May	május
+of June	június
+of July	július
+of August	augusztus
+of September	szeptember
+of October	október
+of November	november
+of December	december
+Enter Password	Add meg a jelszót
+Shut Down	Leállítás
+Guest	Vendég
+Username	Felhasználónév
+Log In	Bejelentkezés
+Caps Lock is on	A Caps Lock be van kapcsolva
+Incorrect password. Try again.	Hibás jelszó. Próbáld újra.
+Could not start the session.	Nem sikerült elindítani a munkamenetet.
+This action is not available right now.	Ez a művelet most nem érhető el.
+# LuxDrop
+Device '%s' not found on the network. Use an address: luxdrop send HOST[:PORT] FILES	A(z) „%s” eszköz nem található a hálózaton. Használj címet: luxdrop send HOST[:PORT] FÁJLOK
+Transfer failed: %s (%s)	Az átvitel nem sikerült: %s (%s)
+WARNING: someone may be impersonating this device. Nothing was sent. If the device was reinstalled, remove it with 'luxdrop trust remove ID' and pair again.	FIGYELEM: lehet, hogy valaki ennek az eszköznek adja ki magát. Semmi sem lett elküldve. Ha az eszközt újratelepítették, távolítsd el a „luxdrop trust remove ID” paranccsal, és párosítsd újra.
+Receiving as "%s" (ID %s) on port %d, mode: %s, folder: %s	Fogadás „%s” néven (ID: %s) a(z) %d porton, mód: %s, mappa: %s
+Nearby devices:	Közeli eszközök:
+No devices found nearby (is avahi-daemon running?).	Nem található eszköz a közelben (fut az avahi-daemon?).
+No trusted devices.	Nincsenek megbízható eszközök.
+Name: %s	Név: %s
+ID: %s	ID: %s
+Fingerprint: %s	Ujjlenyomat: %s
+Send files securely between LuxOS computers.	Fájlok biztonságos küldése LuxOS-t futtató számítógépek között.
+send files or folders	fájlok vagy mappák küldése
+device name, ID, HOST[:PORT] or NAME@HOST[:PORT]	eszköznév, ID, HOST[:PORT] vagy NÉV@HOST[:PORT]
+do not trust the receiver after verification	ne bízzon meg a fogadóban az ellenőrzés után
+receive files in the terminal	fájlok fogadása a terminálban
+listen only on this address	figyelés csak ezen a címen
+who can send (everyone = for 10 minutes)	ki küldhet (everyone = 10 percig)
+download folder	letöltési mappa
+do not announce on the network	ne jelenjen meg a hálózaton
+list nearby devices	közeli eszközök listázása
+list or remove trusted devices	megbízható eszközök listázása vagy eltávolítása
+ID or name	ID vagy név
+show this device's name and fingerprint	az eszköz nevének és ujjlenyomatának megjelenítése
+show or set who can send to this computer	annak megjelenítése vagy beállítása, ki küldhet erre a számítógépre
+Receiver: %s (ID %s)	Fogadó: %s (ID: %s)
+Verification code: %s	Ellenőrző kód: %s
+Does %s show the same code? [y]es and remember / [o]nly this time / [N]o: 	Ugyanezt a kódot mutatja a(z) %s? [y] igen, és megjegyzés / [o] csak most / [N] nem: 
+Preparing	Előkészítés
+Sending	Küldés
+Skipped %s (%s)	Kihagyva: %s (%s)
+WARNING: this device uses the name of a trusted device, but a different key!	FIGYELEM: ez az eszköz egy megbízható eszköz nevét használja, de más kulccsal!
+%s (ID %s) wants to send you %d item(s), %s:	%s (ID: %s) %d elemet szeretne küldeni neked, %s:
+Accept? [y]es / [a]ccept and trust this device / [N]o: 	Elfogadod? [y] igen / [a] elfogadás, és megbízom ebben az eszközben / [N] nem: 
+Accept? [y/N]: 	Elfogadod? [y/N]: 
+The sender cancelled the request.	A küldő visszavonta a kérést.
+trusted	megbízható
+Removed %d device(s)	Eltávolított eszközök: %d
+'%s' matches more trusted devices, use the ID	A(z) „%s” több megbízható eszközre is illik, használd az ID-t
+File not found: %s	A fájl nem található: %s
+Cancelling…	Megszakítás…
+Sent %d item(s), %s to %s	Elküldve: %d elem, %s → %s
+Verification code: %s  (must be the same on the sender's screen)	Ellenőrző kód: %s  (ugyanennek kell lennie a küldő képernyőjén)
+Received from %s: %s	Fogadva tőle: %s: %s
+Cannot listen on port %d: %s	Nem lehet figyelni a(z) %d porton: %s
+'%s' is not a trusted device (see 'luxdrop trust list')	A(z) „%s” nem megbízható eszköz (lásd: „luxdrop trust list”)
+Declined transfer from %s	Elutasított átvitel tőle: %s
+Transfer from %s failed: %s (%s)	A(z) %s felőli átvitel nem sikerült: %s (%s)
+Not visible on the network (%s); connect by address.	A számítógép nem látható a hálózaton (%s); csatlakozz cím alapján.
+Waiting for the receiver to accept…	Várakozás, hogy a fogadó elfogadja…
+(resumed, %s were already there)	(folytatva, %s már átvitelre került)
+%s wants to send you %d item(s), %s: %s	%s %d elemet szeretne küldeni neked, %s: %s
+Decline	Elutasítás
+Accept	Elfogadás
+Accept and trust	Elfogadás és megbízás
+LuxDrop: incoming files	LuxDrop: bejövő fájlok
+LuxDrop: received from %s	LuxDrop: fogadva tőle: %s
+Show in folder	Megjelenítés a mappában
+LuxDrop: transfer from %s failed	LuxDrop: a(z) %s felőli átvitel nem sikerült
+Trusted devices only	Csak megbízható eszközök
+Everyone for 10 minutes	Mindenki 10 percig
+Connect by address…	Csatlakozás cím alapján…
+Transfers	Átvitelek
+Choose	Kiválasztás
+Add	Hozzáadás
+Codes match	A kódok egyeznek
+Device name	Eszköz neve
+Allow receiving from	Fogadás engedélyezése tőlük:
+Save received files to	Fogadott fájlok mentési helye:
+Accept automatically from trusted devices	Automatikus elfogadás megbízható eszközökről
+Receive when LuxDrop is closed	Fogadás akkor is, ha a LuxDrop be van zárva
+Fingerprint	Ujjlenyomat
+Drop files here	Húzd ide a fájlokat
+or click to choose files, then pick a device below	vagy kattints a fájlok kiválasztásához, majd válassz egy eszközt lent
+Choose files…	Fájlok kiválasztása…
+Choose folder…	Mappa kiválasztása…
+Clear	Törlés
+Received	Fogadva
+Choose folder	Válassz mappát
+Choose files	Válassz fájlokat
+Nearby devices cannot be found because avahi-daemon is not running. You can still connect by address.	A közeli eszközök nem kereshetők, mert az avahi-daemon nem fut. Cím alapján továbbra is csatlakozhatsz.
+Connect by address	Csatlakozás cím alapján
+Verify code	Kód ellenőrzése
+Remember this device (no code next time)	Eszköz megjegyzése (legközelebb kód nélkül)
+Incoming files	Bejövő fájlok
+Not receiving	A fogadás nem működik
+LuxDrop Settings	LuxDrop-beállítások
+This computer	Ez a számítógép
+Trusted devices	Megbízható eszközök
+Trusted devices can send to you without a verification code. Remove a device if it was lost or reinstalled.	A megbízható eszközök ellenőrző kód nélkül küldhetnek neked. Távolíts el egy eszközt, ha elveszett, vagy újratelepítették.
+Allow receiving from:	Fogadás engedélyezése tőlük:
+%d item(s) ready to send	Küldésre kész elemek: %d
+No devices found yet. Open LuxDrop on the other computer, or connect by address.	Még nem található eszköz. Nyisd meg a LuxDropot a másik számítógépen, vagy csatlakozz cím alapján.
+Trusted	Megbízható
+Not verified yet	Még nincs ellenőrizve
+Invalid address.	Érvénytelen cím.
+Compare the code with the screen of the receiving computer. If the codes differ, someone may be intercepting the connection.	Hasonlítsd össze a kódot a fogadó számítógép képernyőjével. Ha a kódok eltérnek, lehet, hogy valaki lehallgatja a kapcsolatot.
+Warning: this device uses the name of a trusted device, but its key is different. It may be someone else.	Figyelem: ez az eszköz egy megbízható eszköz nevét használja, de a kulcsa eltér. Lehet, hogy valaki más.
+Trust this device (no code next time)	Megbízom ebben az eszközben (legközelebb kód nélkül)
+To %s: %s	Címzett: %s: %s
+From %s: %s	Feladó: %s: %s
+Done	Kész
+Declined	Elutasítva
+“%s” presented a different key than the trusted device. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and pair again.	A(z) „%s” más kulcsot mutatott fel, mint a megbízható eszköz. Semmi sem lett elküldve – lehet, hogy valaki annak adja ki magát. Ha újratelepítették, távolítsd el a Beállításokban, és párosítsd újra.
+Nothing received yet.	Még nem érkezett semmi.
+Show	Megjelenítés
+Not visible	Nem látható
+No trusted devices yet.	Még nincsenek megbízható eszközök.
+IP address of the other computer, e.g. 192.168.1.20 or 192.168.1.20:%d	A másik számítógép IP-címe, pl. 192.168.1.20 vagy 192.168.1.20:%d
+Does “%s” show the same code?	Ugyanezt a kódot mutatja a(z) „%s”?
+Cannot receive files: port %d is in use (%s). Is LuxDrop already running?	Nem lehet fájlokat fogadni: a(z) %d port foglalt (%s). Lehet, hogy a LuxDrop már fut?
+Verification code	Ellenőrző kód
+Accept only if the sender shows the same code.	Csak akkor fogadd el, ha a küldő ugyanezt a kódot látja.
+Preparing (checksums)… %s / %s	Előkészítés (ellenőrzőösszegek)… %s / %s
+Waiting for acceptance…	Várakozás az elfogadásra…
+“%s” wants to send you %d item(s), %s	A(z) „%s” %d elemet szeretne küldeni neked, %s
+Waiting for the receiver to accept… code %s	Várakozás, hogy a fogadó elfogadja… kód: %s
+Visible as “%s” · %d:%02d left	Látható „%s” néven · hátralévő idő: %d:%02d
+Visible as “%s”	Látható „%s” néven
+Apps	Appok
+Windows	Ablakok
+# Vzhled a spořiče
+Auto	Automatikus
+Auto: light from sunrise (%s) to sunset (%s), based on your time zone.	Automatikus: világos napkeltétől (%s) napnyugtáig (%s), az időzónád alapján.
+Clock	Óra
+Aurora	Sarki fény
+Photos	Fotók
+Floating Logo	Lebegő logó
+# luxos-install-gui (graficky instalator) a nove volby luxos-install
+Swap	Cserehely
+Encrypted (LUKS)	Titkosított (LUKS)
+Unknown	Ismeretlen
+Back	Vissza
+Please wait until the installation finishes.	Várj, amíg a telepítés befejeződik.
+Connect to the internet	Csatlakozz az internethez
+LuxOS downloads the newest packages during installation. Choose a Wi-Fi network or plug in a network cable.	A LuxOS a telepítés közben a legújabb csomagokat tölti le. Válassz egy Wi-Fi-hálózatot, vagy csatlakoztass hálózati kábelt.
+Connect to the internet to continue.	A folytatáshoz csatlakozz az internethez.
+Choose your keyboard layout. You can try it in the field below.	Válaszd ki a billentyűzetkiosztást. Az alábbi mezőben ki is próbálhatod.
+Time Zone	Időzóna
+Where do you want to install LuxOS?	Hová szeretnéd telepíteni a LuxOS-t?
+Encryption password	Titkosítási jelszó
+Confirm password	Jelszó megerősítése
+Create your account	Hozd létre a fiókodat
+You will use this account to sign in and to install apps.	Ezzel a fiókkal fogsz bejelentkezni és appokat telepíteni.
+User name	Felhasználónév
+Log in automatically	Automatikus bejelentkezés
+Fill in your name, user name, password and computer name.	Add meg a nevedet, a felhasználónevet, a jelszót és a számítógép nevét.
+Ready to install	Kész a telepítésre
+Check your choices. Nothing has been changed on the disk yet.	Ellenőrizd a választásaidat. A lemezen még semmi sem változott.
+Installing LuxOS	A LuxOS telepítése
+This takes about 10 minutes. You can keep using the computer.	Ez körülbelül 10 percig tart. Közben nyugodtan használhatod a számítógépet.
+LuxOS is being installed	A LuxOS telepítése folyamatban
+This assistant installs LuxOS on your computer. It takes about 10 minutes.	Ez a segéd telepíti a LuxOS-t a számítógépedre. Körülbelül 10 percig tart.
+Choose your language	Válaszd ki a nyelvet
+You are connected to the internet	Csatlakoztál az internethez
+Wi-Fi password	Wi-Fi-jelszó
+Checking the connection…	A kapcsolat ellenőrzése…
+Type here to test your keyboard	Gépelj ide a billentyűzet kipróbálásához
+Choose the time zone of your location.	Válaszd ki a tartózkodási helyed időzónáját.
+Erase disk and install LuxOS	Lemez törlése és a LuxOS telepítése
+Encrypt LuxOS	A LuxOS titkosítása
+Protects your files if the computer is lost. You will enter the password at every start.	Védi a fájljaidat, ha a számítógép elveszik. A jelszót minden indításkor meg kell adnod.
+If you forget this password, your data cannot be recovered.	Ha elfelejted ezt a jelszót, az adataid nem állíthatók vissza.
+Confirm that the disk will be erased.	Erősítsd meg, hogy a lemez törlődni fog.
+Enter the encryption password twice.	Add meg kétszer a titkosítási jelszót.
+With automatic login, anyone who turns on the computer can use your account.	Automatikus bejelentkezés esetén bárki használhatja a fiókodat, aki bekapcsolja a számítógépet.
+You can also skip this and sign in later.	Ezt ki is hagyhatod, és később is bejelentkezhetsz.
+Erase %s and install LuxOS	A(z) %s törlése és a LuxOS telepítése
+Alongside other systems on %s (%s of free space)	Más rendszerek mellé a(z) %s lemezen (%s szabad hely)
+Automatic login	Automatikus bejelentkezés
+Starting…	Indítás…
+The last lines of the installation log:	A telepítési napló utolsó sorai:
+Copy Log	Napló másolása
+Save Log…	Napló mentése…
+Restart Now	Újraindítás most
+Passwords do not match.	A jelszavak nem egyeznek.
+No Wi-Fi networks found. Plug in a network cable or try again.	Nem található Wi-Fi-hálózat. Csatlakoztass hálózati kábelt, vagy próbáld újra.
+Connected.	Csatlakozva.
+Still offline.	Továbbra sincs kapcsolat.
+Connecting to %s…	Csatlakozás ehhez: %s…
+Network Settings…	Hálózati beállítások…
+Detected time zone: %s	Felismert időzóna: %s
+No suitable disk found. LuxOS needs a disk with at least 20 GB.	Nem található megfelelő lemez. A LuxOS-nek legalább 20 GB-os lemez kell.
+The disk is empty.	A lemez üres.
+Install alongside other systems	Telepítés más rendszerek mellé
+Everything on %s will be deleted.	A(z) %s lemezen minden törlődik.
+This name is reserved by the system.	Ezt a nevet a rendszer foglalja le.
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in now and everything is ready after the first start.	Nem kötelező: a LuxAI, a Lux Code és az LSL IDE AI-funkciói a LuxAI-fiókodat használják. Jelentkezz be most, és az első indítás után minden készen áll.
+Sign-in is not available. You can sign in later in Settings.	A bejelentkezés nem érhető el. Később a Beállításokban is bejelentkezhetsz.
+Installation failed	A telepítés nem sikerült
+The installer stopped with exit code %s.	A telepítő a következő kilépési kóddal állt le: %s.
+Could not connect. Check the password and try again.	Nem sikerült csatlakozni. Ellenőrizd a jelszót, és próbáld újra.
+Local time: %s	Helyi idő: %s
+Looking for disks…	Lemezek keresése…
+LuxOS (new)	LuxOS (új)
+Systems found: %s	Talált rendszerek: %s
+LuxOS uses %s of free space. Existing systems and files are kept; you choose the system in a menu when the computer starts.	A LuxOS %s szabad helyet használ fel. A meglévő rendszerek és fájlok megmaradnak; a számítógép indításakor egy menüben választhatod ki a rendszert.
+I understand that all data on %s (%s) will be erased.	Tudomásul veszem, hogy a(z) %s (%s) összes adata törlődik.
+All data on %s will be erased when you click Install.	A Telepítés gombra kattintva a(z) %s összes adata törlődik.
+… and %s more partitions	… és további %s partíció
+Installing alongside other systems is not possible: %s	A más rendszerek melletti telepítés nem lehetséges: %s
+EFI system partition	EFI-rendszerpartíció
+Microsoft reserved	Microsoft által fenntartott
+Windows recovery	Windows-helyreállítás
+Needs a computer started in UEFI mode.	A számítógépet UEFI módban kell elindítani.
+The disk does not use a GPT partition table.	A lemez nem GPT-partíciós táblát használ.
+The partition table has problems.	A partíciós táblában hibák vannak.
+There is no free space of at least 20 GB on this disk.	A lemezen nincs legalább 20 GB szabad hely.
+No EFI system partition found on this disk.	Ezen a lemezen nem található EFI-rendszerpartíció.
+The EFI system partition could not be read.	Az EFI-rendszerpartíció nem olvasható.
+The EFI system partition has less than 250 MB free.	Az EFI-rendszerpartíción kevesebb mint 250 MB szabad hely van.
+Administrator rights are not available.	Rendszergazdai jogosultság nem érhető el.
+Fast and light	Gyors és könnyű
+LuxOS starts quickly and leaves more memory for your apps.	A LuxOS gyorsan elindul, és több memóriát hagy az appjaidnak.
+A familiar desktop	Ismerős íróasztal
+A dock, a clean top bar and an app grid - everything is where you expect it.	Dock, letisztult felső sáv és appok rácsa - minden ott van, ahol várod.
+LuxAI built in	Beépített LuxAI
+Sign in once and use AI in LuxAI, Lux Code and LSL IDE.	Jelentkezz be egyszer, és használd az AI-t a LuxAI-ban, a Lux Code-ban és az LSL IDE-ben.
+Drivers included	Illesztőprogramokkal együtt
+Graphics, Wi-Fi and other drivers are picked automatically for your hardware.	A grafikus, Wi-Fi- és egyéb illesztőprogramok automatikusan a hardveredhez igazodnak.
+Safe by default	Alapból biztonságos
+Signed updates, a locked root account and optional full disk encryption.	Aláírt frissítések, zárolt root fiók és opcionális teljes lemeztitkosítás.
+Introduction	Bevezetés
+Destination	Célhely
+Account	Fiók
+Installation	Telepítés
+Finish	Befejezés
+%s  (free space, other systems are kept)	%s  (szabad hely, a többi rendszer megmarad)
+no boot loader	nincs rendszerbetöltő
+Installing alongside other systems needs a computer started in UEFI mode.	A más rendszerek melletti telepítéshez UEFI módban elindított számítógép szükséges.
+Disk %s does not use a GPT partition table.	A(z) %s lemez nem GPT-partíciós táblát használ.
+The partition table on %s has problems. Check it first (sgdisk -v).	A(z) %s partíciós táblájában hibák vannak. Előbb ellenőrizd (sgdisk -v).
+Disk %s has no free space of at least 20 GB.	A(z) %s lemezen nincs legalább 20 GB szabad hely.
+No EFI system partition found on %s.	A(z) %s lemezen nem található EFI-rendszerpartíció.
+The EFI system partition %s could not be read.	A(z) %s EFI-rendszerpartíció nem olvasható.
+The EFI system partition %s has less than 250 MB free.	A(z) %s EFI-rendszerpartíción kevesebb mint 250 MB szabad hely van.
+The partition table on %s is full.	A(z) %s partíciós táblája megtelt.
+New partition %s: %s GB of free space	Új partíció: %s: %s GB szabad hely
+Unexpected change of existing partitions on %s - stopping.	A(z) %s meglévő partíciói váratlanul megváltoztak – leállás.
+systemd-boot on %s is already in the UEFI boot menu.	A(z) %s systemd-boot már szerepel az UEFI rendszerindító menüjében.
+Could not show the boot menu; hold Space while starting to see it.	Nem sikerült megjeleníteni a rendszerindító menüt; indításkor tartsd lenyomva a szóközt a megjelenítéséhez.
+Invalid DISK_MODE (use erase, freespace or manual)	Érvénytelen DISK_MODE (használd: erase, freespace vagy manual)
+Invalid BOOTLOADER (use auto or none)	Érvénytelen BOOTLOADER (használd: auto vagy none)
+# luxos-daemon (Bluetooth agent)
+Allow “%s” to pair with this computer?	Engedélyezed, hogy a(z) „%s” párosodjon ezzel a számítógéppel?
+Allow “%s” to connect?	Engedélyezed a(z) „%s” csatlakozását?
+Only allow devices you know.	Csak olyan eszközöket engedélyezz, amelyeket ismersz.
+Allow	Engedélyezés
+# LuxOS 2026-10-21: lux, Store, upozorneni na internet
+Sign in to the network to use the internet (click to open the sign-in page)	Az internet használatához jelentkezz be a hálózatba (kattints a bejelentkezési oldal megnyitásához)
+Connected to the network, but the internet is not available	Csatlakozva a hálózathoz, de az internet nem érhető el
+Sign in to the network to use the internet.	Az internet használatához jelentkezz be a hálózatba.
+You are connected to the network, but the internet is not available.	Csatlakoztál a hálózathoz, de az internet nem érhető el.
+Server %s is not responding, trying another one…	A(z) %s szerver nem válaszol, másik kipróbálása…
+Download failed, trying again (%s/3)…	A letöltés nem sikerült, újrapróbálás (%s/3)…
+Some packages could not be downloaded. Check your internet connection and try again.	Néhány csomagot nem sikerült letölteni. Ellenőrizd az internetkapcsolatot, és próbáld újra.
+Installed: %s	Telepítve: %s
+Downloading %d of %d…	Letöltés: %d / %d…
+The connection is slow, trying another server…	A kapcsolat lassú, másik szerver kipróbálása…
+Download failed, trying again (attempt %s)…	A letöltés nem sikerült, újrapróbálás (%s. kísérlet)…
+The internet connection is too slow or unavailable. Try it again later.	Az internetkapcsolat túl lassú vagy nem érhető el. Próbáld újra később.
+unknown error	ismeretlen hiba
+Looking for the fastest download servers…	A leggyorsabb letöltőszerverek keresése…
+Using %s fast download servers near you.	%s gyors letöltőszerver használata a közeledben.
+Using the default download servers.	Az alapértelmezett letöltőszerverek használata.
+The server %s is slow, trying another one…	A(z) %s szerver lassú, másik kipróbálása…
+The server %s is not responding, trying another one…	A(z) %s szerver nem válaszol, másik kipróbálása…
+Downloading from %s failed, trying another one…	A letöltés a(z) %s szerverről nem sikerült, másik kipróbálása…
+The server %s has too many problems, skipping it.	A(z) %s szerverrel túl sok a probléma, kihagyás.
+Some files could not be downloaded.	Néhány fájlt nem sikerült letölteni.
+Downloading the packages did not finish.	A csomagok letöltése nem fejeződött be.
+The package lists could not be downloaded.	A csomaglistákat nem sikerült letölteni.
+about %s min left	kb. %s perc van hátra
+Downloaded %s of %s	Letöltve: %s / %s
+Your internet connection is very slow - the installation will take longer. It has not stopped.	Az internetkapcsolatod nagyon lassú – a telepítés tovább tart. Nem állt le.
+Waiting for the internet connection…	Várakozás az internetkapcsolatra…
+Maintenance	Karbantartás
+Carefree: updates install automatically in the background (not on metered networks, with Data Saver or on low battery), a previous kernel is kept to fall back on and LuxOS repairs itself.	Gondtalan: a frissítések automatikusan települnek a háttérben (forgalomkorlátos hálózaton, bekapcsolt Adattakarékos módban és alacsony töltöttségnél nem), az előző kernel tartalékként megmarad, és a LuxOS megjavítja önmagát.
+Classic (for IT professionals): no automatic updates or repairs, standard Arch behaviour; you only get notified about available updates.	Klasszikus (informatikai szakembereknek): nincs automatikus frissítés vagy javítás, szabványos Arch-működés; csak értesítést kapsz az elérhető frissítésekről.
+Carefree (recommended)	Gondtalan (ajánlott)
+Classic (for IT professionals)	Klasszikus (informatikai szakembereknek)
+How should LuxOS be maintained?	Hogyan legyen karbantartva a LuxOS?
+Carefree - automatic updates and repairs	Gondtalan – automatikus frissítések és javítások
+Classic - you manage the system yourself	Klasszikus – a rendszert te magad kezeled
+Invalid CARE_MODE (use carefree or classic)	Érvénytelen CARE_MODE (használd: carefree vagy classic)
+Carefree	Gondtalan
+Updates install automatically in the background - not on metered networks, with Data Saver on or on low battery.	A frissítések automatikusan települnek a háttérben – forgalomkorlátos hálózaton, bekapcsolt Adattakarékos módban és alacsony töltöttségnél nem.
+A previous kernel is kept, so the computer always has a working version to start.	Az előző kernel megmarad, így a számítógépnek mindig van működő, indítható verziója.
+LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash.	A LuxOS megjavítja önmagát. A súlyos problémákat a LuxAI Flash diagnosztizálja.
+No automatic updates or repairs - standard Arch Linux behaviour.	Nincs automatikus frissítés vagy javítás – szabványos Arch Linux-működés.
+You manage the system yourself with lux or pacman.	A rendszert te magad kezeled a lux vagy a pacman segítségével.
+You only get a notification when updates are available.	Csak értesítést kapsz, ha frissítések érhetők el.
+Choose whether LuxOS takes care of itself, or whether you want full control.	Válaszd ki, hogy a LuxOS gondoskodjon-e önmagáról, vagy te szeretnéd teljesen irányítani.
+Downloading %s of %s	Letöltés: %s / %s
+waiting for data	várakozás az adatokra
+The connection is not responding right now	A kapcsolat most nem válaszol
+The installation has not stopped. LuxOS keeps trying other servers and continues as soon as data arrives again.	A telepítés nem állt le. A LuxOS további szervereket próbál, és folytatja, amint újra érkeznek adatok.
+Your internet connection is very slow	Az internetkapcsolatod nagyon lassú
+The installation will take longer. It has not stopped.	A telepítés tovább tart. Nem állt le.
+The time depends on your internet connection. You can keep using the computer.	Az időtartam az internetkapcsolattól függ. Közben nyugodtan használhatod a számítógépet.
+less than a minute left	kevesebb mint egy perc van hátra
+%s min	%s perc
+%s h %s min	%s óra %s perc
+# luxos-care (Aktualizace softwaru, LuxOS Care)
+never	soha
+just now	épp most
+%d min ago	%d perce
+today at %s	ma %s-kor
+Update failed	A frissítés nem sikerült
+chosen by LuxAI Flash	a LuxAI Flash választotta
+built-in rule	beépített szabály
+The previous kernel could not be prepared	Az előző kernelt nem sikerült előkészíteni
+A start did not finish correctly	Egy rendszerindítás nem fejeződött be megfelelően
+Boot menu: LuxOS (previous kernel)	Rendszerindító menü: LuxOS (előző kernel)
+Mode changed to Carefree	Mód módosítva: Gondtalan
+Mode changed to Classic	Mód módosítva: Klasszikus
+Update Now	Frissítés most
+When updates are installed	Mikor települjenek a frissítések
+Classic	Klasszikus
+LuxOS installs updates and repairs itself. It waits for an unmetered connection and enough battery, and keeps the previous kernel as a fallback.	A LuxOS maga telepíti a frissítéseket és javítja magát. Megvárja a forgalomkorlát nélküli kapcsolatot és az elegendő töltöttséget, az előző kernelt pedig tartalékként megtartja.
+LuxOS only checks and tells you about updates and problems. You decide when to update.	A LuxOS csak ellenőrzi a frissítéseket és a problémákat, és szól róluk. Hogy mikor frissítesz, azt te döntöd el.
+Available updates	Elérhető frissítések
+System health	A rendszer állapota
+Check for Problems Now	Problémák keresése most
+Repair and update history	Javítási és frissítési előzmények
+Updating LuxOS…	A LuxOS frissítése…
+Last update: %s	Utolsó frissítés: %s
+Last check: %s	Utolsó ellenőrzés: %s
+No updates are waiting.	Nincs várakozó frissítés.
+LuxOS checks for updates automatically.	A LuxOS automatikusan keres frissítéseket.
+Your settings were kept. Compare the files with pacdiff when convenient.	A beállításaid megmaradtak. Ha alkalmas, hasonlítsd össze a fájlokat a pacdiff paranccsal.
+No problems found	Nem található probléma
+Previous kernel	Előző kernel
+After the next kernel update the current kernel stays available as a fallback.	A következő kernelfrissítés után a jelenlegi kernel tartalékként elérhető marad.
+Nothing yet	Még semmi
+Updates and repairs will be listed here.	A frissítések és javítások itt jelennek meg.
+Audit log	Tevékenységnapló
+Downloading… %s of %s	Letöltés… %s / %s
+Do not turn off the computer.	Ne kapcsold ki a számítógépet.
+The system service is not available.	A rendszerszolgáltatás nem érhető el.
+Updated %d packages	Frissített csomagok: %d
+including the kernel	a kernellel együtt
+Released the kept kernel %s for reinstallation	A megtartott %s kernel felszabadítva az újratelepítéshez
+Kept the previous kernel %s	Az előző %s kernel megtartva
+Restart to finish the update	A frissítés befejezéséhez indítsd újra a gépet
+New configuration file to review: %s	Átnézendő új konfigurációs fájl: %s
+Switch to Carefree to repair it automatically.	Az automatikus javításhoz válts Gondtalan módra.
+If a new kernel fails to start, LuxOS starts this one automatically.	Ha egy új kernel nem indul el, a LuxOS automatikusan ezt indítja.
+If a new kernel fails to start, choose “LuxOS (previous kernel)” in the boot menu.	Ha egy új kernel nem indul el, válaszd a rendszerindító menüben a „LuxOS (previous kernel)” lehetőséget.
+Show Full Log…	Teljes napló megjelenítése…
+Installing %s (%d of %d)	%s telepítése (%d / %d)
+Working…	Folyamatban…
+waiting for an unmetered connection (Data Saver)	várakozás forgalomkorlát nélküli kapcsolatra (Adattakarékos mód)
+waiting for the charger or more battery	várakozás a töltőre vagy nagyobb töltöttségre
+waiting for the internet connection	várakozás az internetkapcsolatra
+Automatic update is %s.	Az automatikus frissítés állapota: %s.
+and %d more	és még %d
+Waiting for LuxAI Flash	Várakozás a LuxAI Flash-re
+The repair did not help	A javítás nem segített
+Previous kernel %s is kept as a fallback	Az előző %s kernel tartalékként megmarad
+The previous kernel %s could not be prepared	Az előző %s kernelt nem sikerült előkészíteni
+Could not start: %s	Nem sikerült elindítani: %s
+%d updates available	Elérhető frissítések: %d
+Updates could not be installed	A frissítéseket nem sikerült telepíteni
+LuxOS is up to date	A LuxOS naprakész
+Updating signing keys…	Aláíró kulcsok frissítése…
+Downloading…	Letöltés…
+Installing…	Telepítés…
+Finishing…	Befejezés…
+The boot partition is full.	A rendszerindító partíció megtelt.
+LuxOS was updated	A LuxOS frissült
+Updates are available	Frissítések érhetők el
+LuxOS will try again later.	A LuxOS később újra megpróbálja.
+Update postponed	Frissítés elhalasztva
+LuxOS fixed a problem	A LuxOS kijavított egy problémát
+LuxOS found a problem	A LuxOS problémát talált
+Restart to finish the kernel update	A kernelfrissítés befejezéséhez indítsd újra a gépet
+LuxOS installed a new kernel. Restart when it suits you.	A LuxOS új kernelt telepített. Indítsd újra a gépet, amikor alkalmas.
+%d packages were updated.	Frissített csomagok: %d.
+%d updates are ready to install.	Telepítésre kész frissítések: %d.
+The repair was chosen by LuxAI Flash.	A javítást a LuxAI Flash választotta.
+No internet connection.	Nincs internetkapcsolat.
+The connection is metered (Data Saver).	A kapcsolat forgalomkorlátos (Adattakarékos mód).
+The battery is low - connect the charger.	Az akkumulátor töltöttsége alacsony – csatlakoztasd a töltőt.
+Sign in to LuxAI to let LuxOS fix unknown problems.	Jelentkezz be a LuxAI-ba, hogy a LuxOS ismeretlen problémákat is javíthasson.
+This command must be run as root.	Ezt a parancsot rootként kell futtatni.
+Mode: %s	Mód: %s
+Previous kernel: %s	Előző kernel: %s
+The package manager was left locked	A csomagkezelő zárolva maradt
+A system update was interrupted	Egy rendszerfrissítés megszakadt
+The kernel boot files are missing	Hiányoznak a kernel rendszerindító fájljai
+A driver module (DKMS) is not built for the kernel	Egy illesztőprogram-modul (DKMS) nincs lefordítva a kernelhez
+The newest kernel did not start, LuxOS used the previous one	A legújabb kernel nem indult el, a LuxOS az előzőt használta
+The disk is almost full	A lemez majdnem megtelt
+The file system reported errors - back up your data	A fájlrendszer hibákat jelzett – készíts biztonsági mentést az adataidról
+System updates keep failing	A rendszerfrissítések ismételten sikertelenek
+A system service failed: %s	Egy rendszerszolgáltatás leállt hibával: %s
+Removed a stale package manager lock	Elavult csomagkezelő-zárolás eltávolítva
+Released the kept kernel for reinstallation	A megtartott kernel felszabadítva az újratelepítéshez
+Finished an interrupted update	Egy megszakadt frissítés befejezve
+Refreshed the package signing keys	A csomagaláíró kulcsok frissítve
+Rebuilt the kernel boot files	A kernel rendszerindító fájljai újra létrehozva
+Rebuilt driver modules	Az illesztőprogram-modulok újrafordítva
+Reinstalled a package	Egy csomag újratelepítve
+Restarted a service	Egy szolgáltatás újraindítva
+Freed disk space	Lemezterület felszabadítva
+Will try the newest kernel again	A legújabb kernel újbóli kipróbálása
+Will start the previous kernel	Az előző kernel lesz elindítva
+Only reported the problem	A probléma csak jelentve lett
+Boot Screen	Indítóképernyő
+Blue	Kék
+Purple	Lila
+Orange	Narancs
+Green	Zöld
+White	Fehér
+Shown while the computer starts. A change rebuilds the boot image, which takes about a minute.	A számítógép indításakor jelenik meg. A módosítás újra létrehozza a rendszerindító képfájlt, ami körülbelül egy percig tart.
+Applying the boot screen…	Az indítóképernyő alkalmazása…
+The new boot screen will be shown at the next start.	Az új indítóképernyő a következő indításkor jelenik meg.
+Change cancelled.	A módosítás megszakítva.
+Could not change the boot screen.	Nem sikerült módosítani az indítóképernyőt.
+Live system: the boot image is not rebuilt.	Élő rendszer: a rendszerindító képfájl nem lesz újra létrehozva.
+Rebuilding the boot image…	A rendszerindító képfájl újra létrehozása…
+Unknown variant: %s	Ismeretlen változat: %s
+Run as root: pkexec luxos-splash set %s	Futtasd rootként: pkexec luxos-splash set %s
+Another change of the boot screen is running.	Már folyamatban van az indítóképernyő egy másik módosítása.
+Boot screen is already %s.	Az indítóképernyő már ez: %s.
+Rebuilding the boot image failed, the previous boot screen was restored.	A rendszerindító képfájl létrehozása nem sikerült, az előző indítóképernyő visszaállítva.
+Boot screen set to %s.	Az indítóképernyő beállítva: %s.
+# LuxOS 2026-10-21: LuxAI z Launchpadu, popisek aplikace v liste
+Active app: %s	Aktív app: %s
+Search apps or ask LuxAI	Appok keresése vagy kérdezd a LuxAI-t
+Search or ask LuxAI	Keresés vagy kérdezd a LuxAI-t
+# LuxOS 2026-10-21: pojistka pameti
+Memory is running low	Kevés a szabad memória
+“%s” used too much memory and was closed so the computer would not freeze.	A(z) „%s” túl sok memóriát használt, ezért bezárult, hogy a számítógép ne fagyjon le.
+A program used too much memory and was closed so the computer would not freeze.	Egy program túl sok memóriát használt, ezért bezárult, hogy a számítógép ne fagyjon le.
+Printers & Scanners	Nyomtatók és szkennerek
+Printing support is not installed.	A nyomtatástámogatás nincs telepítve.
+Offline – make sure the printer is turned on	Offline – ellenőrizd, hogy a nyomtató be van-e kapcsolva
+Paused	Szüneteltetve
+Printing…	Nyomtatás…
+1 document waiting	1 dokumentum várakozik
+%d documents waiting	Várakozó dokumentumok: %d
+Print Test Page	Tesztoldal nyomtatása
+Resume	Folytatás
+Remove Printer…	Nyomtató eltávolítása…
+Default printer	Alapértelmezett nyomtató
+Apps print here unless you choose another printer.	Az appok ide nyomtatnak, hacsak nem választasz másik nyomtatót.
+Ink and toner	Tinta és toner
+Print queue	Nyomtatási sor
+Cancel All	Az összes megszakítása
+No documents are waiting to print.	Nincs nyomtatásra váró dokumentum.
+USB	USB
+Document	Dokumentum
+Waiting	Várakozik
+On hold	Visszatartva
+Stopped	Leállítva
+Sending a test page…	Tesztoldal küldése…
+The test page could not be sent: %s	A tesztoldalt nem sikerült elküldeni: %s
+The test page is on its way.	A tesztoldal úton van.
+Kind	Típus
+Quality	Minőség
+Source	Forrás
+Scan	Beolvasás
+Scanned pages appear here. Scan more pages to save them together.	A beolvasott oldalak itt jelennek meg. Olvass be több oldalt, ha együtt szeretnéd menteni őket.
+PDF document	PDF-dokumentum
+JPEG pictures	JPEG-képek
+Show in Folder	Megjelenítés a mappában
+Checking the scanner…	A szkenner ellenőrzése…
+The scanner does not respond. Make sure it is turned on.	A szkenner nem válaszol. Ellenőrizd, hogy be van-e kapcsolva.
+Place the document on the scanner and click Scan.	Helyezd a dokumentumot a szkennerre, és kattints a Beolvasás gombra.
+Scanning…	Beolvasás…
+Scanning was cancelled.	A beolvasás megszakadt.
+Scanning failed: %s	A beolvasás nem sikerült: %s
+the scanner does not respond	a szkenner nem válaszol
+This is a preview. Click Scan when the document looks right.	Ez egy előnézet. Kattints a Beolvasás gombra, ha a dokumentum jól néz ki.
+Page %d scanned. Scan another page or save.	A(z) %d. oldal beolvasva. Olvass be egy újabb oldalt, vagy mentsd.
+Remove page	Oldal eltávolítása
+Page %d	%d. oldal
+Click Preview to see the document here	Kattints az Előnézet gombra, hogy itt lásd a dokumentumot
+Saving…	Mentés…
+Could not save the scan: %s	Nem sikerült menteni a beolvasott anyagot: %s
+Saved “%s” in %s	„%s” mentve ide: %s
+Saved %d pictures in %s	%d kép mentve ide: %s
+Place the next document on the scanner and click Scan.	Helyezd a következő dokumentumot a szkennerre, és kattints a Beolvasás gombra.
+Add Printer	Nyomtató hozzáadása
+Printers nearby	Közeli nyomtatók
+Search Again	Keresés újra
+Turn the printer on and connect it to the same Wi‑Fi network or with a USB cable. Most printers are added automatically.	Kapcsold be a nyomtatót, és csatlakoztasd ugyanahhoz a Wi‑Fi-hálózathoz vagy USB-kábellel. A legtöbb nyomtató automatikusan hozzáadódik.
+Looking for printers…	Nyomtatók keresése…
+Advanced…	Speciális…
+Printers that need special setup (LPD, Windows sharing, manual drivers)	Különleges beállítást igénylő nyomtatók (LPD, Windows-megosztás, kézi illesztőprogramok)
+Could not search for printers: %s	Nem sikerült nyomtatókat keresni: %s
+No printers found. Make sure the printer is turned on.	Nem található nyomtató. Ellenőrizd, hogy a nyomtató be van-e kapcsolva.
+Added	Hozzáadva
+Not supported	Nem támogatott
+Adding…	Hozzáadás…
+The printer could not be added	A nyomtatót nem sikerült hozzáadni
+Make sure it is turned on and try again.	Ellenőrizd, hogy be van-e kapcsolva, és próbáld újra.
+Advanced printer settings for experts	Speciális nyomtatóbeállítások szakértőknek
+Remove Printer	Nyomtató eltávolítása
+No printers yet	Még nincsenek nyomtatók
+Turn on your printer and connect it to the same Wi‑Fi network or with a USB cable. LuxOS sets it up automatically – no drivers, no questions.	Kapcsold be a nyomtatót, és csatlakoztasd ugyanahhoz a Wi‑Fi-hálózathoz vagy USB-kábellel. A LuxOS automatikusan beállítja – illesztőprogramok és kérdések nélkül.
+Add Printer…	Nyomtató hozzáadása…
+Printers	Nyomtatók
+Scanners	Szkennerek
+Default	Alapértelmezett
+Looking for scanners…	Szkennerek keresése…
+No scanners found	Nem található szkenner
+Turn the scanner on	Kapcsold be a szkennert
+The change could not be made	A módosítást nem sikerült végrehajtani
+Remove “%s”?	Eltávolítod a következőt: „%s”?
+Apps will no longer print to it. You can add it again later with the + button.	Az appok többé nem nyomtatnak erre. Később a + gombbal újra hozzáadhatod.
+Could not open advanced settings	Nem sikerült megnyitni a speciális beállításokat
+Paper jam	Papírelakadás
+Out of paper	Kifogyott a papír
+Out of ink or toner	Kifogyott a tinta vagy a toner
+A cover is open	Egy fedél nyitva van
+Offline	Offline
+Ink, toner or paper is low	Kevés a tinta, a toner vagy a papír
+Color	Színes
+Grey	Szürkeárnyalatos
+Draft (150 dpi)	Vázlat (150 dpi)
+Standard (300 dpi)	Normál (300 dpi)
+High (600 dpi)	Magas (600 dpi)
+Flatbed	Síkágy
+ADF	ADF
+ADF Duplex	ADF kétoldalas
+Flatbed scanner	Síkágyas szkenner
+Multi-function peripheral	Multifunkciós eszköz
+Virtual device	Virtuális eszköz
+Printer “%s” is ready	A(z) „%s” nyomtató készen áll
+You can print from any app.	Bármelyik appból nyomtathatsz.
+Scanner “%s” is ready	A(z) „%s” szkenner készen áll
+Open Printers & Scanners to scan a document.	Dokumentum beolvasásához nyisd meg a Nyomtatók és szkennerek appot.
+“%s” is ready	A(z) „%s” készen áll
+You can print from any app and scan in Printers & Scanners.	Bármelyik appból nyomtathatsz, beolvasni pedig a Nyomtatók és szkennerek appban tudsz.
+Printer “%s” needs a driver	A(z) „%s” nyomtatóhoz illesztőprogram szükséges
+LuxOS will set it up automatically once you are connected to the internet.	A LuxOS automatikusan beállítja, amint csatlakozol az internethez.
+Printer “%s” needs to be set up	A(z) „%s” nyomtatót be kell állítani
+It does not support driverless printing. Open Printers & Scanners and choose Advanced….	Nem támogatja az illesztőprogram nélküli nyomtatást. Nyisd meg a Nyomtatók és szkennerek appot, és válaszd a Speciális… lehetőséget.
+Printer “%s” needs an add-on from HP	A(z) „%s” nyomtatóhoz HP-bővítmény szükséges
+Open Terminal and run: hp-plugin	Nyisd meg a Terminált, és futtasd: hp-plugin
+Feedback	Visszajelzés
+Help us improve LuxOS	Segíts jobbá tenni a LuxOS-t
+Your report goes directly to the author of LuxOS.	A bejelentésed közvetlenül a LuxOS szerzőjéhez kerül.
+Bug	Hiba
+Something doesn't work	Valami nem működik
+What happened? What did you expect? Steps to reproduce help a lot.	Mi történt? Mire számítottál? Sokat segít, ha leírod, hogyan idézhető elő a hiba.
+Idea	Ötlet
+Suggest an improvement	Fejlesztési javaslat
+What would you like to improve? How would it help you?	Mit fejlesztenél? Miben segítene ez neked?
+Something else	Egyéb
+Question or comment	Kérdés vagy megjegyzés
+Write your message…	Írd meg az üzenetedet…
+At least %d characters	Legalább %d karakter
+Your e-mail (optional, if you would like a reply)	E-mail-címed (nem kötelező, ha választ szeretnél)
+Attach a screenshot	Képernyőkép csatolása
+Take Again	Újra
+The screenshot could not be taken.	Nem sikerült képernyőképet készíteni.
+Attach system information	Rendszerinformációk csatolása
+LuxOS and hardware versions and recent error messages. No personal files, passwords or e-mail addresses.	A LuxOS és a hardver verziói, valamint a legutóbbi hibaüzenetek. Személyes fájlok, jelszavak és e-mail-címek nélkül.
+Show what will be sent	Mi lesz elküldve?
+Collecting…	Gyűjtés…
+Send	Küldés
+Sending…	Küldés folyamatban…
+Try Again	Újrapróbálás
+%d saved report(s) from earlier have been sent. Thank you!	Korábban mentett bejelentések elküldve: %d. Köszönjük!
+LuxOS could not reach the server. Check the internet connection.	A LuxOS nem érte el a szervert. Ellenőrizd az internetkapcsolatot.
+Sending failed (%s).	A küldés sikertelen (%s).
+You have sent many reports in a short time. Please try again later.	Rövid idő alatt sok bejelentést küldtél. Próbáld újra később.
+The message must have 10 to 8000 characters.	Az üzenet 10–8000 karakter hosszú lehet.
+The e-mail address does not look valid.	Az e-mail-cím nem tűnik érvényesnek.
+The report is too large. Try it without the screenshot.	A bejelentés túl nagy. Próbáld képernyőkép nélkül.
+The screenshot could not be accepted. Try it without the screenshot.	A képernyőkép nem fogadható el. Próbáld nélküle.
+Saved for later	Mentve későbbre
+You are offline. The report will be sent automatically the next time you open Feedback with an internet connection.	Nincs internetkapcsolat. A bejelentés automatikusan elküldésre kerül, amikor legközelebb internetkapcsolattal megnyitod a Visszajelzést.
+Thank you for your feedback!	Köszönjük a visszajelzést!
+Your report has been delivered to the author of LuxOS. Every report helps make LuxOS better.	A bejelentésed eljutott a LuxOS szerzőjéhez. Minden bejelentés segít jobbá tenni a LuxOS-t.
+Report ID: %s	Bejelentés azonosítója: %s
+Send Another	Újabb küldése
+Send Feedback…	Visszajelzés küldése…
+# LuxDrop + LocalSend
+Nothing to send: give files or --text	Nincs mit küldeni: adj meg fájlokat vagy a --text kapcsolót
+Send files securely to nearby LuxOS computers and devices with LocalSend.	Fájlok biztonságos küldése a közeli, LuxOS-t futtató számítógépekre és LocalSendet használó eszközökre.
+send to a LocalSend device (phone, Windows, …)	küldés LocalSendet használó eszközre (telefon, Windows, …)
+send a text message	szöveges üzenet küldése
+PIN required by the receiver (LocalSend)	a fogadó által kért PIN-kód (LocalSend)
+who can send (everyone always asks first)	ki küldhet (everyone esetén mindig előbb rákérdez)
+with --mode everyone: only for this many minutes (max. 10)	--mode everyone esetén: csak ennyi percig (max. 10)
+LocalSend port (default 53317)	LocalSend-port (alapértelmezés: 53317)
+do not receive from LocalSend apps	ne fogadjon LocalSend appokból
+no LocalSend multicast discovery	LocalSend-keresés multicasttal kikapcsolva
+require this PIN from LocalSend senders (empty = no PIN)	ennek a PIN-kódnak a megkövetelése a LocalSend-küldőktől (üres = nincs PIN-kód)
+also scan the local network (LocalSend devices without multicast)	a helyi hálózat átvizsgálása is (multicast nélküli LocalSend-eszközök)
+with everyone: only for this many minutes (max. 10)	everyone esetén: csak ennyi percig (max. 10)
+Wrong PIN.	Hibás PIN-kód.
+%s requires a PIN: 	A(z) %s PIN-kódot kér: 
+LocalSend: port %d, fingerprint %s	LocalSend: port %d, ujjlenyomat %s
+unencrypted - not supported	titkosítatlan – nem támogatott
+No LocalSend device answers at %s	A(z) %s címen nem válaszol LocalSend-eszköz
+%s is a LuxOS computer - using the LuxDrop protocol	A(z) %s LuxOS-t futtató számítógép – a LuxDrop protokoll lesz használva
+Message from %s:	Üzenet tőle: %s:
+Sent with LocalSend from a %s device	LocalSenddel küldve egy %s típusú eszközről
+LocalSend receiving is not available: port %d is in use (%s)	A LocalSend-fogadás nem érhető el: a(z) %d port foglalt (%s)
+LocalSend receiving is not available (python-pyopenssl is missing)	A LocalSend-fogadás nem érhető el (hiányzik a python-pyopenssl)
+identity not verified (old LocalSend version)	a személyazonosság nincs ellenőrizve (régi LocalSend-verzió)
+LocalSend devices cannot find this computer automatically (%s)	A LocalSend-eszközök nem találják meg automatikusan ezt a számítógépet (%s)
+Phone or tablet	Telefon vagy táblagép
+Web browser	Webböngésző
+Copy	Másolás
+Message	Üzenet
+PIN required	PIN-kód szükséges
+The identity of this device cannot be verified (old LocalSend version). Accept only if you expect these files.	Az eszköz személyazonossága nem ellenőrizhető (régi LocalSend-verzió). Csak akkor fogadd el, ha ezekre a fájlokra számítasz.
+Trust this device (save its files without asking next time)	Megbízom ebben az eszközben (legközelebb kérdés nélkül mentse a fájljait)
+Message from “%s”	Üzenet tőle: „%s”
+“%s” requires a PIN to receive files.	A(z) „%s” PIN-kódot kér a fájlok fogadásához.
+Everyone nearby	Mindenki a közelben
+Receiving	Fogadás
+Receive	Fogadás
+Ready to receive	Készen áll a fogadásra
+Who can send	Ki küldhet
+Every transfer from other devices must be accepted.	A más eszközökről érkező minden átvitelt jóvá kell hagyni.
+Quick save	Gyors mentés
+Save files from trusted devices without asking.	Fájlok mentése megbízható eszközökről kérdés nélkül.
+Recently received	Nemrég fogadott
+Open folder	Mappa megnyitása
+Selection	Kijelölés
+File	Fájl
+Folder	Mappa
+Paste	Beillesztés
+Refresh	Frissítés
+Scan the local network	Helyi hálózat átvizsgálása
+The clipboard is empty.	A vágólap üres.
+This LocalSend device has encryption turned off. Turn on “Encryption” in LocalSend settings to send files to it.	Ezen a LocalSend-eszközön ki van kapcsolva a titkosítás. Ha fájlokat szeretnél küldeni rá, kapcsold be a „Titkosítás” lehetőséget a LocalSend beállításaiban.
+Scanning the local network for LocalSend devices…	LocalSend-eszközök keresése a helyi hálózaton…
+LocalSend app (port %d)	LocalSend app (port: %d)
+LuxOS computer (port %d)	LuxOS-t futtató számítógép (port: %d)
+Files (%d)	Fájlok (%d)
+Received from %s	Fogadva tőle: %s
+Save to	Mentés helye
+Requests then appear as notifications.	A kérések ezután értesítésként jelennek meg.
+Work with LocalSend apps	Együttműködés LocalSend appokkal
+Phones, tablets and computers with the LocalSend app. Uses port 53317.	LocalSend appot futtató telefonok, táblagépek és számítógépek. Az 53317-es portot használja.
+No PIN	Nincs PIN-kód
+LocalSend devices must enter this PIN before they can send.	A LocalSend-eszközöknek meg kell adniuk ezt a PIN-kódot, mielőtt küldhetnek.
+Trusted devices can use Quick save. Remove a device if it was lost or reinstalled.	A megbízható eszközök használhatják a gyors mentést. Távolíts el egy eszközt, ha elveszett vagy újratelepítették.
+Security	Biztonság
+All transfers are encrypted (TLS). LuxOS computers verify each other with a 6-digit code; LocalSend devices are identified by their certificate.	Minden átvitel titkosított (TLS). A LuxOS-t futtató számítógépek egy 6 jegyű kóddal ellenőrzik egymást; a LocalSend-eszközök a tanúsítványuk alapján azonosíthatók.
+Visible to LuxOS computers and LocalSend apps nearby.	Látható a közeli, LuxOS-t futtató számítógépek és LocalSend appok számára.
+Choose what to send or drop files here, then tap a device.	Válaszd ki, mit szeretnél küldeni, vagy húzd ide a fájlokat, majd koppints egy eszközre.
+Looking for devices… Open LuxDrop or LocalSend on the other device and make sure it is on the same network.	Eszközök keresése… Nyisd meg a LuxDropot vagy a LocalSendet a másik eszközön, és győződj meg róla, hogy ugyanazon a hálózaton van.
+Unencrypted	Titkosítatlan
+IP address of the other device, e.g. 192.168.1.20	A másik eszköz IP-címe, pl. 192.168.1.20
+“%s” presented a different key than expected. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and try again.	A(z) „%s” a vártnál eltérő kulcsot mutatott fel. Semmi sem lett elküldve – lehet, hogy valaki annak adja ki magát. Ha újratelepítették, távolítsd el a Beállításokban, és próbáld újra.
+Key fingerprint: %s	Kulcs ujjlenyomata: %s
+Receiving is turned off. Other devices cannot see this computer.	A fogadás ki van kapcsolva. Más eszközök nem látják ezt a számítógépet.
+%d characters	%d karakter
+Cannot receive from LuxOS computers: port %d is in use (%s).	Nem lehet fogadni LuxOS-t futtató számítógépekről: a(z) %d port foglalt (%s).
+No device answers at %s.	A(z) %s címen nem válaszol eszköz.
+Cannot receive from LocalSend apps: port %d is in use. Is LocalSend running on this computer?	Nem lehet fogadni LocalSend appokból: a(z) %d port foglalt. Fut a LocalSend ezen a számítógépen?
+LocalSend compatibility needs the python-pyopenssl package.	A LocalSend-kompatibilitáshoz a python-pyopenssl csomag szükséges.
+%d:%02d left	%d:%02d van hátra
+Nearby LuxOS computers cannot be found because avahi-daemon is not running.	A közeli, LuxOS-t futtató számítógépek nem kereshetők, mert az avahi-daemon nem fut.
+Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	A LocalSend-eszközök automatikus keresése nem érhető el (%s). Használd a „Helyi hálózat átvizsgálása” lehetőséget.
+LuxDrop: message from %s	LuxDrop: üzenet tőle: %s

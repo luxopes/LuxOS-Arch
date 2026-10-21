@@ -53,7 +53,7 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
 - **Účet LuxAI** (`luxos-account`) – jedno přihlášení pro LuxAI, Lux Code a LSL IDE; volitelně už při instalaci.
 - **Trezor** (`luxos-safe`) – šifrovaná složka `/safe/<uživatel>` s vlastním heslem, zamyká se sama.
 - **Sandbox** (`luxos-sandbox`) – izolovaný systém pro nedůvěryhodné aplikace (`/dev/sandbox/<uživatel>`).
-- **LuxDrop** – šifrovaný přenos souborů mezi počítači LuxOS (ověření kódem, připnuté klíče).
+- **LuxDrop** – šifrovaný přenos souborů mezi počítači LuxOS (ověření kódem, připnuté klíče) a s aplikací LocalSend (telefony, tablety, Windows, Linux; protokol v2, HTTPS + mTLS).
 - **Světlý režim** jako výchozí, přepínatelný nebo automatický podle východu a západu slunce;
   spořiče obrazovky (tapety, hodiny, polární záře, fotky, logo).
 - **Čeština i angličtina** – aplikace a skripty LuxOS podle jazyka systému (`luxos-i18n`,
@@ -168,7 +168,7 @@ packages/                   vlastní balíky LuxOS (lokální repozitář [luxos
   luxos-tweaks              výkon: zram, sysctl, I/O, oomd, journald
   luxos-drivers             luxos-hwdetect
   luxos-installer           luxos-install
-  luxdrop                   LuxDrop – bezpečné posílání souborů v síti (GTK, CLI, protokol)
+  luxdrop                   LuxDrop – bezpečné posílání souborů v síti, kompatibilní s LocalSend (GTK, CLI, protokol)
   lux                       správce balíků
   blesh                     ble.sh
 ```

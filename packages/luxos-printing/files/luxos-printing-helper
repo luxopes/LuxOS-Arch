@@ -1,0 +1,429 @@
+#!/usr/bin/env python3
+"""LuxOS - automaticke nastaveni tiskaren a skeneru (bezi jako root).
+
+  luxos-printing-helper sync            najit tiskarny a skenery, pridat nove fronty, upozornit uzivatele
+  luxos-printing-helper discover        JSON se vsemi nalezenymi tiskarnami (pro "Pridat tiskarnu")
+  luxos-printing-helper add KLIC        pridat tiskarnu z discover (i drive odebranou)
+  luxos-printing-helper remove FRONTA   odebrat (a uz ji sam znovu nepridavat)
+  luxos-printing-helper default FRONTA  vychozi tiskarna
+  luxos-printing-helper resume FRONTA   znovu povolit pozastavenou frontu
+  luxos-printing-helper cancel ID       zrusit tiskovou ulohu (i cizi)
+
+Sitove tiskarny (IPP Everywhere / AirPrint / Mopria) a USB tiskarny pres ipp-usb dostanou frontu
+bez ovladace (lpadmin -m everywhere). Klasicke USB tiskarny dostanou nejlepsi nainstalovany ovladac;
+kdyz zadny nepasuje, doinstaluje se hplip (HP) nebo gutenprint (ostatni), jinak obecny ovladac
+podle jazyka tiskarny (PostScript / PCL). Pridane fronty si pamatuje ve stavu, takze nikdy nesahne
+na fronty, ktere vytvoril nekdo jiny. Volani z aplikace pres pkexec (polkit org.luxos.printing.manage).
+"""
+import fcntl
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+import luxos_printing as lp  # noqa: E402
+
+STATE = os.environ.get("LUXOS_PRINTING_STATE", "/var/lib/luxos-printing/state.json")
+LOCK = os.environ.get("LUXOS_PRINTING_LOCK", "/run/luxos-printing.lock")
+NOTIFY = "/usr/lib/luxos/printing/luxos-printing-notify"
+STALE_DAYS = 60      # automaticky pridana fronta, ktera tak dlouho nebyla videt, se odebere
+ENV_C = dict(os.environ, LC_ALL="C")
+
+
+def log(msg):
+    print(f"luxos-printing: {msg}", file=sys.stderr, flush=True)
+
+
+def run(cmd, timeout=60):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=ENV_C)
+        return r.returncode, r.stdout, r.stderr.strip()
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return 1, "", str(e)
+
+
+# ---- stav ----
+
+def load_state():
+    try:
+        with open(STATE) as f:
+            st = json.load(f)
+    except (OSError, ValueError):
+        st = {}
+    for k in ("queues", "seen_scanners", "notified"):
+        st.setdefault(k, {})
+    st.setdefault("ignored", [])
+    return st
+
+
+def save_state(st):
+    os.makedirs(os.path.dirname(STATE), exist_ok=True)
+    tmp = STATE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(st, f, indent=1, sort_keys=True)
+    os.replace(tmp, STATE)
+
+
+# ---- zjisteni zarizeni ----
+
+def browse(types):
+    """avahi-browse pro vic typu sluzeb soubezne (kazdy ~1-2 s)."""
+    procs = []
+    for t in types:
+        try:
+            procs.append(subprocess.Popen(["avahi-browse", "-t", "-r", "-p", "-k", t], stdout=subprocess.PIPE,
+                                          stderr=subprocess.DEVNULL, text=True))
+        except OSError as e:
+            log(f"avahi-browse: {e}")
+    text = ""
+    for p in procs:
+        try:
+            text += p.communicate(timeout=15)[0]
+        except subprocess.TimeoutExpired:
+            p.kill()
+            text += p.communicate()[0]
+    return lp.parse_avahi(text)
+
+
+def cups_queues():
+    """{fronta: device-uri} (lpstat -v, bez zavislosti na jazyku)."""
+    rc, out, _err = run(["lpstat", "-v"], 20)
+    q = {}
+    for line in out.splitlines():
+        m = re.match(r"^device for (\S+): (.*)$", line)
+        if m:
+            q[m.group(1)] = m.group(2).strip()
+    return q
+
+
+def cups_default():
+    rc, out, _err = run(["lpstat", "-d"], 20)
+    m = re.search(r"system default destination: (\S+)", out)
+    return m.group(1) if m else None
+
+
+def ippusb_serials():
+    """Seriova cisla USB zarizeni s rozhranim IPP-USB (ty obsluhuje ipp-usb, ne klasicky ovladac)."""
+    out = set()
+    base = "/sys/bus/usb/devices"
+    try:
+        devs = os.listdir(base)
+    except OSError:
+        return out
+    for d in devs:
+        if ":" not in d:
+            continue
+        p = os.path.join(base, d)
+        try:
+            cls = tuple(open(os.path.join(p, f)).read().strip() for f in
+                        ("bInterfaceClass", "bInterfaceSubClass", "bInterfaceProtocol"))
+            vendor = open(os.path.join(p, "..", "idVendor")).read().strip()
+        except OSError:
+            continue
+        if cls == ("07", "01", "04") or (vendor == "03f0" and cls == ("ff", "09", "01")):
+            try:
+                out.add(open(os.path.join(p, "..", "serial")).read().strip())
+            except OSError:
+                out.add("")
+    return out
+
+
+def usb_printers():
+    """Klasicke USB tiskarny podle backendu usb v CUPS."""
+    rc, out, _err = run(["lpinfo", "--include-schemes", "usb", "-l", "-v"], 60)
+    devs = []
+    skip = ippusb_serials()
+    for d in lp.parse_lpinfo(out, "Device"):
+        uri = d.get("uri", "")
+        if not uri.startswith("usb://"):
+            continue
+        if lp.usb_serial(uri) in skip:
+            continue
+        devid = lp.parse_device_id(d.get("device-id"))
+        name = " ".join(x for x in (devid.get("MFG"), devid.get("MDL")) if x) or d.get("make-and-model") or "USB Printer"
+        devs.append({"key": uri, "uri": uri, "name": name, "model": name, "usb": True, "classic": True,
+                     "device_id": d.get("device-id", "")})
+    return devs
+
+
+def usb_scanners():
+    """USB skenery rozpoznane pravidly SANE (libsane_matched) mimo zarizeni IPP-USB."""
+    rc, out, _err = run(["udevadm", "info", "--export-db"], 20)
+    found = {}
+    for block in out.split("\n\n"):
+        env = dict(line[3:].split("=", 1) for line in block.splitlines() if line.startswith("E: ") and "=" in line)
+        if env.get("libsane_matched") != "yes" or env.get("DEVTYPE") != "usb_device":
+            continue
+        if ":070104:" in env.get("ID_USB_INTERFACES", ""):
+            continue
+        name = " ".join(x for x in (env.get("ID_VENDOR_FROM_DATABASE") or env.get("ID_VENDOR"),
+                                    env.get("ID_MODEL_FROM_DATABASE") or env.get("ID_MODEL")) if x)
+        key = "usb:" + (env.get("ID_SERIAL") or env.get("DEVPATH", ""))
+        found[key] = {"key": key, "name": (name or "USB Scanner").replace("_", " "), "usb": True}
+    return found
+
+
+# ---- fronty ----
+
+def queue_for(dev, queues):
+    """Existujici fronta pro zarizeni (podle UUID nebo URI)."""
+    for name, uri in queues.items():
+        if dev.get("uuid") and lp.uri_uuid(uri) == dev["uuid"]:
+            return name
+        if uri == dev["uri"]:
+            return name
+        if not dev.get("uuid") and lp.uri_service_name(uri) == dev.get("name") and not dev.get("classic"):
+            return name
+    return None
+
+
+def installed(pkg):
+    return run(["pacman", "-Q", pkg], 20)[0] == 0
+
+
+def install_driver(pkg):
+    """Doinstaluje balik s ovladacem (bez -y: zadna castecna aktualizace systemu)."""
+    if installed(pkg) or os.environ.get("LUXOS_PRINTING_NO_INSTALL"):
+        return False
+    if os.path.exists("/var/lib/pacman/db.lck"):
+        log(f"pacman is busy, {pkg} later")
+        return False
+    log(f"installing printer driver {pkg}")
+    rc, _out, err = run(["pacman", "-S", "--noconfirm", "--needed", pkg], 900)
+    if rc:
+        log(f"installing {pkg} failed: {err[-300:]}")
+    return rc == 0
+
+
+def models():
+    rc, out, _err = run(["lpinfo", "-l", "-m"], 120)
+    return lp.parse_lpinfo(out, "Model")
+
+
+def create_queue(dev, queues):
+    """Vytvori frontu, vrati (nazev, None) nebo (None, duvod)."""
+    name = lp.queue_name(dev["model"] if dev.get("classic") else dev["name"], queues)
+    desc = lp.friendly_name(dev["name"])
+    loc = "USB" if dev.get("usb") else "Network"
+    if dev.get("classic"):
+        models_cache = models()
+        ppd = lp.pick_ppd(models_cache, dev["device_id"])
+        missing = None
+        if not ppd:
+            pkg = lp.driver_package(lp.parse_device_id(dev["device_id"]).get("MFG"))
+            if install_driver(pkg):
+                models_cache = models()
+                ppd = lp.pick_ppd(models_cache, dev["device_id"])
+            elif not installed(pkg):
+                missing = pkg
+        ppd = ppd or lp.generic_ppd(dev["device_id"])
+        # Napr. HP LaserJet 1020: ovladac hplip potrebuje firmware HP (hp-plugin) - uzivateli to rekneme
+        mm = next((m.get("make-and-model", "") for m in models_cache if m.get("name") == ppd), "")
+        dev["needs_plugin"] = "proprietary plugin" in mm
+        if not ppd:
+            # bez internetu: zkusi se znovu pri dalsim pripojeni; jinak ovladac v LuxOS neni
+            return None, ("driver" if missing else "manual")
+        model = ["-m", ppd]
+    else:
+        if not dev.get("driverless"):
+            return None, "manual"       # sitova tiskarna bez IPP Everywhere - jen Pokrocile
+        model = ["-m", "everywhere"]
+    cmd = ["lpadmin", "-p", name, "-E", "-v", dev["uri"], *model, "-D", desc, "-L", loc,
+           "-o", "printer-is-shared=false", "-o", "printer-error-policy=retry-job"]
+    rc, _out, err = run(cmd, 120)
+    if rc:
+        log(f"lpadmin {name} failed: {err}")
+        return None, "failed"
+    # lpadmin -E u starsich CUPS frontu nepovoli vzdy - pro jistotu
+    run(["cupsenable", name], 20)
+    run(["cupsaccept", name], 20)
+    log(f"added {name} ({dev['uri']}, {model[1]})")
+    queues[name] = dev["uri"]
+    return name, None
+
+
+# ---- upozorneni ----
+
+def sessions():
+    """Aktivni graficke relace: [(uzivatel, uid, display)]."""
+    rc, out, _err = run(["loginctl", "list-sessions", "--no-legend"], 10)
+    res = []
+    for line in out.splitlines():
+        sid = line.split()[0] if line.split() else None
+        if not sid:
+            continue
+        rc, info, _err = run(["loginctl", "show-session", sid, "-p", "Name", "-p", "User", "-p", "Type",
+                              "-p", "Active", "-p", "Remote", "-p", "Display"], 10)
+        p = dict(x.split("=", 1) for x in info.splitlines() if "=" in x)
+        if p.get("Type") in ("x11", "wayland") and p.get("Active") == "yes" and p.get("Remote") != "yes":
+            res.append((p.get("Name"), p.get("User"), p.get("Display") or ":0"))
+    return res
+
+
+def notify(kind, name):
+    """Upozorneni v jazyce uzivatele: skript bezi pod jeho uzivatelskym spravcem systemd."""
+    test_log = os.environ.get("LUXOS_PRINTING_NOTIFY_LOG")
+    if test_log:
+        with open(test_log, "a") as f:
+            f.write(f"{kind}\t{name}\n")
+        return
+    for user, _uid, display in sessions():
+        if not user:
+            continue
+        run(["systemd-run", "--quiet", "--collect", "--user", f"--machine={user}@.host",
+             f"--setenv=DISPLAY={display}", NOTIFY, kind, name], 15)
+
+
+# ---- prikazy ----
+
+def lock():
+    os.makedirs(os.path.dirname(LOCK), exist_ok=True)
+    f = open(LOCK, "w")
+    fcntl.flock(f, fcntl.LOCK_EX)
+    return f
+
+
+def discover(st):
+    queues = cups_queues()
+    nets = lp.group_printers(browse(lp.PRINTER_TYPES)).values()
+    devs = []
+    for d in list(nets) + usb_printers():
+        devs.append({"key": d["key"], "name": lp.friendly_name(d["name"]), "model": d["model"],
+                     "usb": d["usb"], "queue": queue_for(d, queues), "ignored": d["key"] in st["ignored"],
+                     "supported": bool(d.get("classic") or d.get("driverless")), "_dev": d})
+    return devs, queues
+
+
+def cmd_sync(st, only_key=None):
+    now = int(time.time())
+    # Fronty odebrane jinym nastrojem: uzivatel je nechce, znovu je nepridavat
+    queues = cups_queues()
+    for name in list(st["queues"]):
+        if name not in queues:
+            key = st["queues"].pop(name)["key"]
+            if key not in st["ignored"]:
+                st["ignored"].append(key)
+            log(f"{name} was removed by the user, not adding it again")
+    devs, queues = discover(st)
+    added = []
+    for d in devs:
+        dev = d["_dev"]
+        if d["queue"]:
+            if d["queue"] in st["queues"]:
+                st["queues"][d["queue"]]["seen"] = now
+            continue
+        if only_key is not None and d["key"] != only_key:
+            continue
+        if d["key"] in st["ignored"]:
+            if only_key is None:
+                continue
+            st["ignored"].remove(d["key"])
+        name, why = create_queue(dev, queues)
+        if name:
+            st["queues"][name] = {"key": d["key"], "uri": dev["uri"], "added": now, "seen": now,
+                                  "usb": dev["usb"], "uuid": dev.get("uuid")}
+            added.append((name, d["name"], dev.get("uuid")))
+            if dev.get("needs_plugin"):
+                notify("plugin", d["name"])
+            d["queue"] = name
+        elif why in ("driver", "manual") and st["notified"].get("driver:" + d["key"]) is None:
+            st["notified"]["driver:" + d["key"]] = now
+            notify(why, d["name"])
+    # Vychozi tiskarna, kdyz zadna neni
+    if added and not cups_default():
+        run(["lpadmin", "-d", added[0][0]], 20)
+        log(f"default printer {added[0][0]}")
+    # Dlouho nevidene automaticke fronty pryc (az se tiskarna objevi, prida se znovu)
+    for name, q in list(st["queues"].items()):
+        if now - q.get("seen", now) > STALE_DAYS * 86400:
+            rc, out, _err = run(["lpstat", "-o", name], 20)
+            if out.strip():
+                continue
+            if run(["lpadmin", "-x", name], 30)[0] == 0:
+                log(f"removed stale {name}")
+                st["queues"].pop(name)
+    # Skenery
+    scanners = lp.group_scanners(browse(lp.SCANNER_TYPES))
+    scanners.update(usb_scanners())
+    printer_ids = {u for _n, _d, u in added if u} | {lp.friendly_name(d).lower() for _n, d, _u in added}
+    new_scanners = []
+    for key, s in scanners.items():
+        if key not in st["seen_scanners"]:
+            new_scanners.append(s)
+        st["seen_scanners"][key] = now
+    both = set()
+    for s in new_scanners:
+        uid = s["key"][5:] if s["key"].startswith("uuid:") else None
+        if (uid and uid in printer_ids) or lp.friendly_name(s["name"]).lower() in printer_ids:
+            both.add(uid or lp.friendly_name(s["name"]).lower())
+        else:
+            notify("scanner", lp.friendly_name(s["name"]))
+    for _name, desc, uuid in added:
+        notify("both" if (uuid in both or lp.friendly_name(desc).lower() in both) else "printer", desc)
+    return [a[0] for a in added]
+
+
+def main(argv):
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__)
+        return 0 if argv else 2
+    cmd, args = argv[0], argv[1:]
+    if os.geteuid() != 0:
+        print("luxos-printing-helper: run as root (pkexec)", file=sys.stderr)
+        return 1
+    with lock():
+        st = load_state()
+        try:
+            if cmd == "sync":
+                cmd_sync(st)
+            elif cmd == "discover":
+                devs, _q = discover(st)
+                for d in devs:
+                    d.pop("_dev")
+                print(json.dumps(devs))
+            elif cmd == "add" and len(args) == 1:
+                added = cmd_sync(st, only_key=args[0])
+                print(json.dumps({"queue": added[0] if added else None}))
+                if not added:
+                    return 1
+            elif cmd == "remove" and len(args) == 1:
+                name = args[0]
+                q = st["queues"].pop(name, None)
+                uri = cups_queues().get(name)
+                rc, _o, err = run(["lpadmin", "-x", name], 30)
+                if rc:
+                    print(err, file=sys.stderr)
+                    return 1
+                # Klic zarizeni: z vlastniho zaznamu, jinak z URI (fronta vytvorena jinak)
+                key = q["key"] if q else ("uuid:" + lp.uri_uuid(uri) if lp.uri_uuid(uri) else uri)
+                if key and key not in st["ignored"]:
+                    st["ignored"].append(key)
+            elif cmd == "default" and len(args) == 1:
+                rc, _o, err = run(["lpadmin", "-d", args[0]], 20)
+                if rc:
+                    print(err, file=sys.stderr)
+                    return 1
+            elif cmd == "resume" and len(args) == 1:
+                run(["cupsaccept", args[0]], 20)
+                rc, _o, err = run(["cupsenable", "--release", args[0]], 20)
+                if rc:
+                    print(err, file=sys.stderr)
+                    return 1
+            elif cmd == "cancel" and len(args) == 1 and args[0].isdigit():
+                rc, _o, err = run(["cancel", args[0]], 20)
+                if rc:
+                    print(err, file=sys.stderr)
+                    return 1
+            else:
+                print(__doc__, file=sys.stderr)
+                return 2
+        finally:
+            save_state(st)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

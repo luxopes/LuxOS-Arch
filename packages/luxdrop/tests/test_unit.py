@@ -11,6 +11,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -352,11 +353,25 @@ class TestStore(unittest.TestCase):
             self.assertEqual(t.remove("Peer PC"), 1)
             self.assertFalse(t.is_trusted(fp))
             s = store.Settings(os.path.join(d, "cfg"))
-            self.assertEqual(s.mode(), "trusted")  # vychozi rezim
-            s.set_mode("everyone")
+            # Vychozi rezim: kazdy v okoli se muze zeptat (prenos se vzdy musi potvrdit)
             self.assertEqual(s.mode(), "everyone")
+            self.assertEqual(s.everyone_left(), 0)
+            s.set_mode("trusted")
+            self.assertEqual(store.Settings(os.path.join(d, "cfg")).mode(), "trusted")
+            s.set_mode("everyone", minutes=5)  # casove omezene
+            self.assertEqual(s.mode(), "everyone")
+            self.assertTrue(250 < s.everyone_left() <= 300)
             s.data["everyone_until"] = 1  # vyprselo
             self.assertEqual(s.mode(), "trusted")
+            s.data["everyone_until"] = time.time() + 3600  # rucne prodlouzene nad 10 minut
+            self.assertEqual(s.mode(), "trusted")
+            s.set_mode("everyone", minutes=60)  # max. 10 minut
+            self.assertLessEqual(s.everyone_left(), 600)
+            self.assertTrue(s.download_dir.endswith(os.path.join("Downloads", "LuxDrop")) or s.data["download_dir"])
+            # LocalSend zaznam v duveryhodnych
+            t.add(fp, "Phone", kind="localsend", cert_fp="AB" * 32, device_type="mobile")
+            e = t.get(fp)
+            self.assertEqual((e["kind"], e["cert_fp"], e["device_type"]), ("localsend", "AB" * 32, "mobile"))
         finally:
             shutil.rmtree(d)
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LuxDrop pro firewalld. Povolit jen v domaci/duveryhodne zone (ne ve verejnych sitich),
+     prikazy viz /usr/share/doc/luxdrop/PROTOCOL.md (cast Firewall). -->
+<service>
+  <short>LuxDrop</short>
+  <description>LuxDrop file sharing: LuxOS computers (TCP 47923) and LocalSend apps (TCP/UDP 53317, multicast discovery). mDNS (UDP 5353) is a separate service.</description>
+  <port protocol="tcp" port="47923"/>
+  <port protocol="tcp" port="53317"/>
+  <port protocol="udp" port="53317"/>
+  <include service="mdns"/>
+</service>

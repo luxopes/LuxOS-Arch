@@ -1,0 +1,1420 @@
+# LuxOS - ukrainian translation (english text<TAB>ukrainian text); %s and %d must stay unchanged
+Keyboard Shortcuts	Клавіатурні скорочення
+Shortcut	Скорочення
+Action	Дія
+Close window	Закрити вікно
+Minimize window	Згорнути вікно
+Switch windows	Перемикати вікна
+Maximize / tile half	Розгорнути / половина екрана
+Full screen	Повний екран
+Show desktop	Показати робочий стіл
+Switch workspace	Перемкнути робочий простір
+Files	Файли
+Terminal	Термінал
+Settings	Параметри
+Lock screen	Заблокувати екран
+Switch keyboard layout	Перемкнути розкладку клавіатури
+Screenshot	Знімок екрана
+Screenshot of region	Знімок області
+Screenshot tool	Інструмент знімків
+System monitor (force quit)	Монітор системи (примусово завершити)
+Close	Закрити
+Desktop & Dock	Робочий стіл і Dock
+Advanced Desktop Settings…	Додаткові параметри робочого столу…
+Menu Bar Items…	Елементи смуги меню…
+Appearance	Вигляд
+Light	Світлий
+Dark	Темний
+Wallpaper	Шпалери
+Choose…	Вибрати…
+Your own picture	Власне зображення
+Choose a picture	Виберіть зображення
+Pictures	Зображення
+Dock	Dock
+Automatically hide and show the Dock	Автоматично ховати й показувати Dock
+The Dock appears when you move the pointer to the bottom edge.	Dock з’являється, коли ви наводите вказівник на нижній край.
+Size	Розмір
+Magnification	Збільшення
+Magnification size	Ступінь збільшення
+Bottom	Унизу
+Left	Ліворуч
+Right	Праворуч
+Position on screen	Розташування на екрані
+Dock opacity	Непрозорість Dock
+Menu Bar	Смуга меню
+Menu bar opacity	Непрозорість смуги меню
+Battery Saver is on\n	Економія заряду ввімкнена\n
+Battery Saver is off\n	Економія заряду вимкнена\n
+Battery	Акумулятор
+Rolling release · based on Arch Linux	Постійні оновлення · на основі Arch Linux
+Computer	Комп’ютер
+Processor	Процесор
+Memory	Пам’ять
+Graphics	Графіка
+Storage	Сховище
+%s available of %s	%s доступно з %s
+Kernel	Ядро
+Shell	Оболонка
+About This Computer	Про цей комп’ютер
+Software Update	Оновлення ПЗ
+Update	Оновити
+Press Enter to close	Натисніть Enter, щоб закрити
+Install LuxOS	Інсталювати LuxOS
+Light Mode	Світлий режим
+Dark Mode	Темний режим
+LuxOS Store	LuxOS Store
+Shortcuts	Скорочення
+Welcome to LuxOS	Вітаємо в LuxOS
+Fast, light and beautifully simple.	Швидка, легка й чудово проста.
+Search: apps, files and windows	Пошук: програми, файли й вікна
+Launchpad: all applications	Launchpad: усі програми
+close window	закрити вікно
+screenshot of a region	знімок області екрана
+install and update software from Terminal	інсталяція й оновлення ПЗ з Термінала
+Control Center	Центр керування
+Off	Вимкнено
+Ethernet	Ethernet
+Not connected	Не під’єднано
+Not available	Недоступно
+On	Увімкнено
+Wi-Fi	Wi-Fi
+Bluetooth	Bluetooth
+Do Not Disturb	Не турбувати
+Data Saver	Економія даних
+Battery Saver	Економія заряду
+Display	Дисплей
+Sound	Звук
+Desktop & Dock…	Робочий стіл і Dock…
+All Settings…	Усі параметри…
+Charging	Заряджається
+On battery	Від акумулятора
+Fully charged	Повністю заряджено
+Data Saver is on\n	Економія даних ввімкнена\n
+Data Saver is off\n	Економія даних вимкнена\n
+AUR is disabled in lux.conf	AUR вимкнено в lux.conf
+jq is required for AUR support	Для підтримки AUR потрібен jq
+AUR packages must be built as a regular user (run lux without sudo)	Пакети AUR збираються від імені звичайного користувача (запустіть lux без sudo)
+Building AUR packages needs %sbase-devel%s and %sgit%s.	Для збирання пакетів AUR потрібні %sbase-devel%s і %sgit%s.
+Install them now?	Інсталювати їх зараз?
+AUR is not reachable	AUR недоступний
+Package '%s' was not found in repositories or AUR	Пакет «%s» не знайдено ні в репозиторіях, ні в AUR
+Cannot update %s from AUR	Не вдається оновити %s з AUR
+Cannot clone %s from AUR	Не вдається клонувати %s з AUR
+Review PKGBUILD of %s before building?	Переглянути PKGBUILD пакета %s перед збиранням?
+Build and install %s?	Зібрати й інсталювати %s?
+Cancelled	Скасовано
+Building %s %s(AUR)%s	Збирання %s %s(AUR)%s
+Build of %s failed (see %s)	Збирання %s не вдалося (див. %s)
+AUR packages to build: %s	Пакети AUR для збирання: %s
+AUR packages are maintained by the community, not by LuxOS.	Пакети AUR підтримує спільнота, а не LuxOS.
+Continue?	Продовжити?
+Usage: lux install <package...>	Використання: lux install <пакет...>
+Installing %s from Flathub	Інсталяція %s із Flathub
+Package '%s' not found. Try: lux search %s	Пакет «%s» не знайдено. Спробуйте: lux search %s
+Usage: lux remove <package...>	Використання: lux remove <пакет...>
+Refreshing package databases	Оновлення баз даних пакетів
+Updating system packages	Оновлення системних пакетів
+Checking AUR packages	Перевірка пакетів AUR
+AUR packages are up to date	Пакети AUR актуальні
+Updating Flatpak apps	Оновлення програм Flatpak
+New config files to review:	Нові файли конфігурації для перегляду:
+Kernel was updated - restart to use it.	Ядро оновлено – перезавантажтеся, щоб його використовувати.
+System is up to date	Система актуальна
+Usage: lux search <term>	Використання: lux search <запит>
+Usage: lux info <package>	Використання: lux info <пакет>
+Package '%s' not found	Пакет «%s» не знайдено
+Cleaning package cache (keeping %s versions)	Очищення кешу пакетів (зберігаються версії: %s)
+Unneeded packages: %s	Непотрібні пакети: %s
+Remove them?	Вилучити їх?
+No unneeded packages	Немає непотрібних пакетів
+Clean	Готово, очищено
+All drivers are installed	Усі драйвери інстальовано
+Missing: %s	Бракує: %s
+Install now?	Інсталювати зараз?
+Drivers installed - restart to activate them	Драйвери інстальовано – вони запрацюють після перезавантаження
+Finding the fastest mirrors (this can take a minute)	Пошук найшвидших дзеркал (це може тривати хвилину)
+Mirror list updated	Список дзеркал оновлено
+LuxOS system check	Перевірка системи LuxOS
+%s failed service(s):	Збійні служби: %s
+Services running	Служби працюють
+%s .pacnew config file(s) to merge (pacdiff)	Файли конфігурації .pacnew для об’єднання (pacdiff): %s
+No pending config files	Немає файлів конфігурації в черзі
+Root filesystem is %s%% full	Коренева файлова система заповнена на %s%%
+Disk usage %s%%	Використання диска: %s%%
+%s unneeded package(s) - run: lux clean	Непотрібних пакетів: %s – запустіть: lux clean
+No orphaned packages	Немає осиротілих пакетів
+%s update(s) available - run: lux update	Доступно оновлень: %s – запустіть: lux update
+System up to date	Система актуальна
+Running kernel was replaced - restart	Запущене ядро замінено – перезавантажтеся
+%s error message(s) in this boot's log (journalctl -b -p err)	Повідомлень про помилки в журналі цього запуску: %s (journalctl -b -p err)
+Everything looks good	Усе гаразд
+LuxOS package manager	менеджер пакетів LuxOS
+Usage:	Використання:
+command	команда
+options	параметри
+arguments	аргументи
+Options:	Параметри:
+system	система
+The interactive mode needs fzf (lux install fzf)	Для інтерактивного режиму потрібен fzf (lux install fzf)
+The interactive mode needs expac (lux install expac)	Для інтерактивного режиму потрібен expac (lux install expac)
+Enter install · Ctrl-R remove · Ctrl-U update system · Tab select more	Enter інсталювати · Ctrl-R вилучити · Ctrl-U оновити систему · Tab вибрати кілька
+Alt-L LuxOS apps · Alt-I installed · Alt-A all · Esc quit	Alt-L програми LuxOS · Alt-I інстальовані · Alt-A усі · Esc вихід
+LuxOS apps	Програми LuxOS
+Installed	Інстальовано
+All packages	Усі пакети
+Search	Пошук
+Press Enter to continue	Натисніть Enter, щоб продовжити
+Usage: lux files <pkg>	Використання: lux files <пакет>
+Usage: lux owner <file>	Використання: lux owner <файл>
+Unknown command '%s' (see lux --help)	Невідома команда «%s» (див. lux --help)
+Open	Відкрити
+Get	Отримати
+Search apps	Пошук програм
+Discover	Огляд
+LuxOS Apps	Програми LuxOS
+Categories	Категорії
+Library	Бібліотека
+Updates	Оновлення
+From LuxOS	Від LuxOS
+Popular apps	Популярні програми
+Apps made for LuxOS, signed by the LuxOS team.	Програми, створені для LuxOS і підписані командою LuxOS.
+Results for “%s”	Результати для «%s»
+Welcome to the LuxOS Store	Вітаємо в LuxOS Store
+%d apps from LuxOS and Arch Linux, installed with one click.	%d програм з LuxOS і Arch Linux, інсталяція одним клацанням.
+Nothing here yet.	Тут поки нічого немає.
+Check for Updates	Перевірити оновлення
+Update All	Оновити все
+Everything is up to date.	Усе актуально.
+%d updates available: %s	Доступні оновлення (%d): %s
+Checking for updates…	Перевірка оновлень…
+Updating system…	Оновлення системи…
+Data Saver is on - updates are not checked automatically.	Економія даних ввімкнена – оновлення не перевіряються автоматично.
+Remove	Вилучити
+Version	Версія
+Package	Пакет
+About	Про програму
+Website	Вебсайт
+%s is installed, but has no window to open.	%s інстальовано, але вона не має вікна, яке можна відкрити.
+Installing %s…	Інсталяція %s…
+Remove %s?	Вилучити %s?
+The app will be removed from this computer. Your files stay untouched.	Програму буде вилучено з цього комп’ютера. Ваші файли залишаться недоторканими.
+Removing %s…	Вилучення %s…
+Done.	Готово.
+Cancelled.	Скасовано.
+Failed: %s	Не вдалося: %s
+interactive app store in the terminal	інтерактивна крамниця програм у терміналі
+install packages (repositories, then AUR / Flathub)	інсталювати пакети (репозиторії, потім AUR / Flathub)
+remove packages and their unneeded dependencies	вилучити пакети та їхні непотрібні залежності
+update everything (system, AUR, Flatpak)	оновити все (система, AUR, Flatpak)
+search repositories and AUR	шукати в репозиторіях і AUR
+show package details	показати відомості про пакет
+list installed packages	список інстальованих пакетів
+files installed by a package	файли, інстальовані пакетом
+which package owns a file	якому пакету належить файл
+clean cache and remove unneeded packages	очистити кеш і вилучити непотрібні пакети
+detect and install missing drivers	знайти й інсталювати відсутні драйвери
+pick the fastest download mirrors	вибрати найшвидші дзеркала для завантаження
+check system health	перевірити стан системи
+recent package changes	останні зміни пакетів
+do not ask for confirmation	не питати підтвердження
+only official repositories	лише офіційні репозиторії
+only AUR	лише AUR
+this help	ця довідка
+version	версія
+Internet	Інтернет
+Office	Офіс
+Music & Video	Музика й відео
+Developer Tools	Інструменти розробника
+Games	Ігри
+Education & Science	Освіта й наука
+Utilities	Утиліти
+System	Система
+Error	Помилка
+Calculator	Калькулятор
+# Instalator
+Installation failed (line %s, exit code %s).	Інсталяція не вдалася (рядок %s, код виходу %s).
+Details are in %s. Last lines:	Подробиці в %s. Останні рядки:
+Warning: not running from the LuxOS live system.	Увага: систему запущено не з живої системи LuxOS.
+No internet connection	Немає з’єднання з інтернетом
+LuxOS downloads the newest packages during installation.	Під час інсталяції LuxOS завантажує найновіші пакети.
+Connect with the network icon in the top bar, or use the text tool.	Під’єднайтеся через значок мережі на верхній смузі або скористайтеся текстовим інструментом.
+Try again	Спробувати ще раз
+Open network setup (nmtui)	Відкрити налаштування мережі (nmtui)
+Quit	Вийти
+Other…	Інше…
+Type to search	Введіть для пошуку
+Choose locale	Виберіть мовний стандарт
+Language: %s	Мова: %s
+The installation takes about 10 minutes.	Інсталяція триває близько 10 хвилин.
+Keyboard	Клавіатура
+Choose your keyboard layout	Виберіть розкладку клавіатури
+Layout	Розкладка
+Variant	Варіант
+Keyboard: %s	Клавіатура: %s
+Time zone	Часовий пояс
+Use detected time zone %s?	Використати визначений часовий пояс %s?
+Choose time zone	Виберіть часовий пояс
+Time zone: %s	Часовий пояс: %s
+Disk	Диск
+Advanced: use partitions already mounted at %s	Додатково: використати розділи, змонтовані в %s
+Where should LuxOS be installed?	Куди інсталювати LuxOS?
+Nothing is mounted at %s. Mount root (and /boot) first.	У %s нічого не змонтовано. Спершу змонтуйте кореневий розділ (і /boot).
+All data on %s will be erased.	Усі дані на %s буде стерто.
+Yes	Так
+No	Ні
+Encrypt the disk? (you will enter a password at every start)	Зашифрувати диск? (пароль потрібно буде вводити під час кожного запуску)
+Disk encryption password	Пароль шифрування диска
+Your account	Ваш обліковий запис
+Full name	Повне ім’я
+Jane Doe	Олена Петренко
+User name (lowercase)	Ім’я користувача (малими літерами)
+Use lowercase letters, numbers, - and _ (max 32 characters).	Використовуйте малі латинські літери, цифри, - і _ (не більше 32 символів).
+Password	Пароль
+Computer name	Назва комп’ютера
+Use letters, numbers and - (no spaces).	Використовуйте латинські літери, цифри та - (без пробілів).
+Log in automatically without a password?	Входити автоматично без пароля?
+Password cannot be empty.	Пароль не може бути порожнім.
+%s (again)	%s (ще раз)
+Passwords do not match, try again.	Паролі не збігаються, спробуйте ще раз.
+Summary	Підсумок
+Language	Мова
+mounted at %s	змонтовано в %s
+%s  (will be ERASED)	%s  (буде СТЕРТО)
+Encryption	Шифрування
+yes	так
+no	ні
+User	Користувач
+Boot mode	Режим завантаження
+Install	Інсталювати
+Cancel	Скасувати
+Install LuxOS now?	Інсталювати LuxOS зараз?
+Preparing disk %s	Підготовка диска %s
+Partitions were not created correctly	Розділи створено неправильно
+Encrypting the disk	Шифрування диска
+Creating file systems	Створення файлових систем
+Detecting hardware	Визначення обладнання
+Installing packages (this is the longest step)	Інсталяція пакетів (найдовший крок)
+Download failed (attempt %s), retrying…	Не вдалося завантажити (спроба %s), повторна спроба…
+Packages could not be installed. Check the internet connection.	Не вдалося інсталювати пакети. Перевірте з’єднання з інтернетом.
+Configuring the system	Налаштування системи
+Could not add UEFI boot entry (fallback loader will be used)	Не вдалося додати запис завантаження UEFI (буде використано резервний завантажувач)
+Finishing	Завершення
+LuxOS is installed	LuxOS інстальовано
+Remove the installation media and restart your computer.	Вийміть інсталяційний носій і перезавантажте комп’ютер.
+Restart	Перезавантажити
+Later	Пізніше
+Restart now?	Перезавантажити зараз?
+Config needs DISK, USERNAME and PASSWORD	Конфігурація має містити DISK, USERNAME і PASSWORD
+Invalid USERNAME	Недійсне значення USERNAME
+Invalid HOSTNAME_SEL	Недійсне значення HOSTNAME_SEL
+ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 потребує LUKS_PASS
+# Rozlozeni klavesnice (instalator)
+English (US)	Англійська (США)
+Czech	Чеська
+Czech (QWERTY)	Чеська (QWERTY)
+Slovak	Словацька
+Slovak (QWERTY)	Словацька (QWERTY)
+German	Німецька
+English (UK)	Англійська (Велика Британія)
+French	Французька
+Spanish	Іспанська
+Italian	Італійська
+Polish	Польська
+Hungarian	Угорська
+Ukrainian	Українська
+Portuguese	Португальська
+Portuguese (Brazil)	Португальська (Бразилія)
+Swedish	Шведська
+# Nazvy aplikaci v horni liste
+Desktop	Робочий стіл
+Text Editor	Текстовий редактор
+Image Viewer	Переглядач зображень
+Document Viewer	Переглядач документів
+System Monitor	Монітор системи
+# Monitory
+Extend - use both screens	Розширити – використовувати обидва екрани
+Mirror - same picture on both	Віддзеркалити – однакове зображення на обох
+Only external screen	Лише зовнішній екран
+Only this computer's screen	Лише екран цього комп’ютера
+Screens	Екрани
+# Baterie a napajeni
+Battery…	Акумулятор…
+Battery Saver is on	Економія заряду ввімкнена
+Battery is at %s %%. Connect the charger.	Заряд акумулятора: %s %%. Під’єднайте зарядний пристрій.
+%d min	%d хв
+%d h %d min	%d год %d хв
+now	зараз
+No history yet	Історії ще немає
+Battery & Power	Акумулятор і живлення
+Power usage	Споживання енергії
+Battery health	Стан акумулятора
+Charge cycles	Цикли заряджання
+Energy	Енергія
+Battery level - last 24 hours	Рівень заряду – останні 24 години
+Power usage - last 24 hours	Споживання енергії – останні 24 години
+This computer runs on mains power - there is no battery.	Цей комп’ютер живиться від мережі – акумулятора немає.
+Power mode	Режим живлення
+Power Saver	Економія енергії
+Longest battery life	Найдовша робота від акумулятора
+Balanced	Збалансований
+Recommended	Рекомендовано
+Performance	Продуктивність
+Fastest, uses more power	Найшвидший, споживає більше енергії
+Saves energy: power saving mode and fewer animations.	Заощаджує енергію: режим економії живлення й менше анімацій.
+Turn on automatically at 20 %	Вмикати автоматично при 20 %
+Turns off again when the computer is charging.	Знову вимикається, коли комп’ютер заряджається.
+Screen and sleep	Екран і режим сну
+Never	Ніколи
+1 minute	1 хвилина
+2 minutes	2 хвилини
+5 minutes	5 хвилин
+10 minutes	10 хвилин
+15 minutes	15 хвилин
+30 minutes	30 хвилин
+1 hour	1 година
+2 hours	2 години
+Turn off the screen on battery after	Вимикати екран від акумулятора через
+Turn off the screen on power adapter after	Вимикати екран від адаптера живлення через
+Sleep on battery after	Переходити в сон від акумулятора через
+Sleep on power adapter after	Переходити в сон від адаптера живлення через
+Sleep	Сон
+Turn off the screen	Вимкнути екран
+Hibernate	Гібернація
+When the lid is closed	Коли кришку закрито
+Advanced Power Settings…	Додаткові параметри живлення…
+%s minutes	%s хв
+full in %s	повністю зарядиться за %s
+about %s left	залишилося близько %s
+Plugged in, not charging	Під’єднано, не заряджається
+charging power	потужність заряджання
+current consumption	поточне споживання
+of original capacity	від початкової ємності
+full charge cycles	повних циклів заряджання
+of %.1f Wh	з %.1f Вт·год
+# Bluetooth
+OK	OK
+Rejected	Відхилено
+Pair this device?	Об’єднати в пару цей пристрій?
+Check that the device shows this code:	Переконайтеся, що пристрій показує цей код:
+Pair	Об’єднати в пару
+Type this code on the device	Введіть цей код на пристрої
+Then press Enter on it.	Потім натисніть на ньому Enter.
+Enter the PIN code	Введіть PIN-код
+Usually 0000 or 1234, see the device manual.	Зазвичай 0000 або 1234, див. посібник до пристрою.
+Enter the code	Введіть код
+Code shown on the device:	Код, показаний на пристрої:
+Connected	Під’єднано
+battery %d %%	акумулятор %d %%
+Disconnect	Від’єднати
+Connect	Під’єднати
+Forget this device	Забути цей пристрій
+My devices	Мої пристрої
+Nearby devices	Пристрої поблизу
+No devices	Немає пристроїв
+Searching… Put the device into pairing mode.	Пошук… Переведіть пристрій у режим створення пари.
+No Bluetooth adapter was found on this computer.	На цьому комп’ютері не знайдено адаптер Bluetooth.
+Visible as “%s”.	Видимий як «%s».
+Turn on Bluetooth to connect headphones, a mouse, a keyboard or a phone.	Увімкніть Bluetooth, щоб під’єднати навушники, мишу, клавіатуру або телефон.
+Could not connect	Не вдалося під’єднати
+Pairing…	Створення пари…
+Connecting…	Під’єднання…
+Disconnecting…	Від’єднання…
+Make sure the device is on, close by and in pairing mode.	Переконайтеся, що пристрій увімкнено, він поруч і в режимі створення пари.
+Headphones	Навушники
+Speaker	Динамік
+Mouse	Миша
+Game controller	Ігровий контролер
+Tablet	Планшет
+Phone	Телефон
+Device	Пристрій
+# Monitor systemu
+60 s ago	60 с тому
+%d processes	Процесів: %d
+1 process	1 процес
+All processes	Усі процеси
+Network	Мережа
+Name	Назва
+%d cores	Ядер: %d
+%s of %s used	Використано %s з %s
+%s free · activity %s	вільно %s · активність %s
+Download and upload	Завантаження й вивантаження
+All processes (%d)	Усі процеси (%d)
+Open apps (%d)	Відкриті програми (%d)
+%s is not responding	%s не відповідає
+Force quit it? Unsaved changes will be lost.	Примусово завершити? Незбережені зміни буде втрачено.
+Force Quit	Примусово завершити
+# lux - format balicku
+Updating LuxOS apps	Оновлення програм LuxOS
+Usage: lux pack <directory> [output]	Використання: lux pack <каталог> [вихід]
+%s has no lux.json	%s не має lux.json
+lux.json is not valid JSON	lux.json не є дійсним JSON
+Invalid package name: %s	Недійсна назва пакета: %s
+Invalid version: %s	Недійсна версія: %s
+%s has no app/ directory	%s не має каталогу app/
+Missing files listed in bin: %s	Бракує файлів, указаних у bin: %s
+Built %s	Зібрано %s
+%s is not a lux package	%s не є пакетом lux
+This package needs a newer lux	Цей пакет потребує новішої версії lux
+Signature OK (LuxOS)	Підпис дійсний (LuxOS)
+%s is not signed by LuxOS.	%s не підписано LuxOS.
+Install it anyway?	Усе одно інсталювати?
+Installing dependencies: %s	Інсталяція залежностей: %s
+Dependencies could not be installed	Не вдалося інсталювати залежності
+Installing %s %s	Інсталяція %s %s
+Could not unpack %s	Не вдалося розпакувати %s
+%s is installed	%s інстальовано
+Removing %s	Вилучення %s
+%s was removed	%s вилучено
+Downloading %s	Завантаження %s
+Download failed: %s	Не вдалося завантажити: %s
+Checksum mismatch: %s	Контрольна сума не збігається: %s
+Bad signature: %s	Недійсний підпис: %s
+LuxOS package (.lux)	пакет LuxOS (.lux)
+build a .lux package from a directory with lux.json	зібрати пакет .lux з каталогу з lux.json
+# Kalkulacka - vedecky rezim
+Scientific (Ctrl+2)	Науковий (Ctrl+2)
+Degrees / radians	Градуси / радіани
+# Ucet LuxAI
+Sign in to LuxAI	Увійти в LuxAI
+LuxAI Account	Обліковий запис LuxAI
+AI in LuxAI, Lux Code and LSL IDE	ШІ в LuxAI, Lux Code і LSL IDE
+Sign-in failed (%s).	Не вдалося ввійти (%s).
+Not signed in. Run: luxos-account login	Вхід не виконано. Запустіть: luxos-account login
+One account for AI in LuxOS: LuxAI, Lux Code and LSL IDE.	Один обліковий запис для ШІ в LuxOS: LuxAI, Lux Code і LSL IDE.
+Sign in with the browser	Увійти через браузер
+or with e-mail	або через e-mail
+E-mail	E-mail
+Sign In	Увійти
+Send me a code instead	Надіслати код на e-mail
+No account yet?	Ще не маєте облікового запису?
+Create an account	Створити обліковий запис
+Enter your e-mail and password.	Введіть e-mail і пароль.
+Enter your e-mail first.	Спершу введіть e-mail.
+Enter the code from the e-mail	Введіть код з листа
+We sent a 6-digit code to %s.	Ми надіслали 6-значний код на %s.
+Confirm the sign-in in the browser…	Підтвердьте вхід у браузері…
+After you confirm your e-mail, come back and sign in.	Підтвердивши e-mail, поверніться сюди й увійдіть.
+AI usage this month	Використання ШІ цього місяця
+Unlimited	Без обмежень
+%s: %s of %s tokens	%s: %s з %s токенів
+Loading…	Завантаження…
+Used by	Використовують
+Manage on lux-ai.cz	Керувати на lux-ai.cz
+Sign Out	Вийти
+Your session has expired. Please sign in again.	Сеанс завершився. Увійдіть ще раз.
+Sign out of LuxAI?	Вийти з LuxAI?
+LuxAI, Lux Code and LSL IDE will stop using this account on this computer.	LuxAI, Lux Code і LSL IDE більше не використовуватимуть цей обліковий запис на цьому комп’ютері.
+LuxAI account	Обліковий запис LuxAI
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account.	Необов’язково: ШІ в LuxAI, Lux Code і LSL IDE використовує ваш обліковий запис LuxAI.
+Sign in	Увійти
+Skip	Пропустити
+Sign in to your LuxAI account now?	Увійти в обліковий запис LuxAI зараз?
+Signed in as %s	Ви ввійшли як %s
+Sign-in failed. Try again?	Не вдалося ввійти. Спробувати ще раз?
+Wrong e-mail or password.	Неправильний e-mail або пароль.
+The e-mail address is not verified yet.	Адресу e-mail ще не підтверджено.
+LuxAI is not reachable. Check the internet connection.	LuxAI недоступний. Перевірте з’єднання з інтернетом.
+signed in	вхід виконано
+not signed in	вхід не виконано
+LuxAI sign-in failed - continuing without it.	Не вдалося ввійти в LuxAI – продовження без нього.
+The e-mail address is not verified yet. Use the sign-in code instead.	Адресу e-mail ще не підтверджено. Увійдіть за допомогою коду.
+The code is not valid or has expired.	Код недійсний або його термін дії минув.
+Too many attempts. Try again later.	Забагато спроб. Спробуйте пізніше.
+Please wait a minute before requesting another code.	Зачекайте хвилину, перш ніж запитувати новий код.
+The browser sign-in timed out.	Час очікування входу через браузер минув.
+The sign-in was cancelled.	Вхід скасовано.
+# Spořič a zámek
+Screen Saver & Lock	Заставка й блокування
+Screen saver	Заставка екрана
+Start after inactivity of	Запускати після бездіяльності
+LuxOS - wallpapers and clock	LuxOS – шпалери й годинник
+Black screen	Чорний екран
+Preview	Попередній перегляд
+Lock	Блокування
+Immediately	Негайно
+After 1 minute	Через 1 хвилину
+After 5 minutes	Через 5 хвилин
+After 15 minutes	Через 15 хвилин
+Require password after the screen saver starts	Вимагати пароль після запуску заставки
+The screen saver protects your computer while you are away.	Заставка захищає комп’ютер, коли вас немає поруч.
+Lock when the computer goes to sleep	Блокувати, коли комп’ютер переходить у сон
+Lock Now	Заблокувати зараз
+# Trezor
+Could not create the Safe folder.	Не вдалося створити папку «Сейф».
+The Safe already exists.	Сейф уже існує.
+Could not create the Safe (%s).	Не вдалося створити Сейф (%s).
+Wrong password.	Неправильний пароль.
+Could not unlock the Safe (%s).	Не вдалося розблокувати Сейф (%s).
+Some files in the Safe are still open. Close them and try again.	Деякі файли в Сейфі ще відкриті. Закрийте їх і спробуйте ще раз.
+Could not change the password (%s).	Не вдалося змінити пароль (%s).
+Safe	Сейф
+Create your Safe	Створіть свій Сейф
+Files in the Safe are encrypted and open only with its own password - not even an administrator can read them while the Safe is locked.	Файли в Сейфі зашифровано, і вони відкриваються лише його власним паролем – поки Сейф заблоковано, їх не прочитає навіть адміністратор.
+New Safe password	Новий пароль Сейфа
+Password again	Пароль ще раз
+Use at least 8 characters.	Використовуйте щонайменше 8 символів.
+Create Safe	Створити Сейф
+If you forget this password, the files cannot be recovered.	Якщо ви забудете цей пароль, файли буде неможливо відновити.
+The Safe is locked	Сейф заблоковано
+Enter the Safe password to open %s.	Введіть пароль Сейфа, щоб відкрити %s.
+Unlock	Розблокувати
+The Safe is unlocked	Сейф розблоковано
+Your files are available in %s.	Ваші файли доступні в %s.
+Open Safe	Відкрити Сейф
+Lock automatically after inactivity	Блокувати автоматично після бездіяльності
+Lock when the screen locks	Блокувати разом з екраном
+The Safe always locks when the computer goes to sleep or you log out.	Сейф завжди блокується, коли комп’ютер переходить у сон або ви виходите із системи.
+Change Password…	Змінити пароль…
+Change Password	Змінити пароль
+Change	Змінити
+Current password	Поточний пароль
+# Sandbox (luxos-sandbox)
+Creating sandbox (minimal Arch Linux system), this can take a few minutes...	Створення пісочниці (мінімальна система Arch Linux), це може тривати кілька хвилин...
+Sandbox deleted.	Пісочницю видалено.
+No sandbox yet. Create it with: luxos-sandbox create	Пісочниці ще немає. Створіть її командою: luxos-sandbox create
+Creating the sandbox failed.	Не вдалося створити пісочницю.
+Sandbox is ready: %s	Пісочниця готова: %s
+Size: %s	Розмір: %s
+Shared folder: %s (only with --shared)	Спільна папка: %s (лише з --shared)
+Installed apps: %s	Інстальовані програми: %s
+Copying the file into the sandbox failed.	Не вдалося скопіювати файл у пісочницю.
+Usage: luxos-sandbox run [--net] [--gui] [--shared] <command...>	Використання: luxos-sandbox run [--net] [--gui] [--shared] <команда...>
+No package given.	Не вказано пакет.
+Confirmation needed: add --yes	Потрібне підтвердження: додайте --yes
+Wipe the whole sandbox (all installed apps and files inside) and create it again?	Стерти всю пісочницю (усі інстальовані програми й файли в ній) і створити її заново?
+Resetting the sandbox failed.	Не вдалося скинути пісочницю.
+Delete the sandbox with everything inside? (~/Sandbox stays)	Видалити пісочницю з усім вмістом? (~/Sandbox залишиться)
+Deleting the sandbox failed.	Не вдалося видалити пісочницю.
+Run luxos-sandbox as a normal user, not root.	Запускайте luxos-sandbox від імені звичайного користувача, а не root.
+Sandbox directory is not owned by you: %s	Каталог пісочниці вам не належить: %s
+Xephyr is not installed (package xorg-server-xephyr).	Xephyr не інстальовано (пакет xorg-server-xephyr).
+Could not start the sandbox window (Xephyr).	Не вдалося відкрити вікно пісочниці (Xephyr).
+Network for the sandbox needs pasta (package passt).	Для мережі в пісочниці потрібна pasta (пакет passt).
+Warning: systemd user session not available, running without memory/CPU limits.	Увага: сеанс користувача systemd недоступний, запуск без обмежень пам’яті й процесора.
+The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	Пісочницю пошкоджено (домашня папка не є каталогом). Запустіть: luxos-sandbox reset
+bubblewrap (bwrap) is not installed.	bubblewrap (bwrap) не інстальовано.
+Sandbox already exists: %s	Пісочниця вже існує: %s
+Helper not found: %s	Допоміжну програму не знайдено: %s
+Link: %s	Посилання: %s
+none	немає
+Not a regular file: %s	Не є звичайним файлом: %s
+Copying %s into the sandbox...	Копіювання %s у пісочницю...
+isolated sandbox for untrusted applications	ізольована пісочниця для ненадійних програм
+Unknown command: %s	Невідома команда: %s
+Unknown option: %s	Невідомий параметр: %s
+Shared folder is not usable: %s	Спільну папку неможливо використати: %s
+Could not set up the sandbox network: %s	Не вдалося налаштувати мережу пісочниці: %s
+create your sandbox (asks for the administrator password once)	створити вашу пісочницю (один раз запитує пароль адміністратора)
+show the sandbox, its size and installed apps	показати пісочницю, її розмір та інстальовані програми
+interactive shell inside the sandbox	інтерактивна оболонка в пісочниці
+run a command (a file from your computer is copied in first)	виконати команду (файл з комп’ютера спершу копіюється всередину)
+install apps from the Arch Linux repositories into the sandbox	інсталювати програми з репозиторіїв Arch Linux у пісочницю
+remove apps from the sandbox	вилучити програми з пісочниці
+wipe the sandbox and create it again	стерти пісочницю й створити її заново
+delete the sandbox	видалити пісочницю
+network: internet only, no local network, no services of this computer	мережа: лише інтернет, без локальної мережі та служб цього комп’ютера
+own window (nested X server), never your desktop	власне вікно (вкладений X-сервер), ніколи не ваш робочий стіл
+make ~/Sandbox visible as /home/sandbox/Shared	зробити ~/Sandbox видимою як /home/sandbox/Shared
+Get started	Почати
+No sandbox yet	Пісочниці ще немає
+Creates a minimal Arch Linux system only for you. Needs the administrator password once and a few minutes.	Створює мінімальну систему Arch Linux лише для вас. Потрібні один раз пароль адміністратора й кілька хвилин.
+Installed apps	Інстальовані програми
+Install app	Інсталювати програму
+From Arch Linux repositories	З репозиторіїв Arch Linux
+Installs into the sandbox only; network is enabled just for the download.	Інсталюється лише в пісочницю; мережа вмикається тільки для завантаження.
+Run app	Запустити програму
+Command	Команда
+Downloaded file	Завантажений файл
+The file is copied into the sandbox first; the original is never exposed.	Файл спершу копіюється в пісочницю; оригінал залишається поза її досяжністю.
+Internet only - no access to your local network or this computer.	Лише інтернет – без доступу до локальної мережі й до цього комп’ютера.
+Window	Вікно
+Show the app in its own separate window (not on your desktop).	Показувати програму в окремому власному вікні (не на робочому столі).
+Shared folder	Спільна папка
+Tools	Інструменти
+Terminal in sandbox	Термінал у пісочниці
+Uses the Network and Shared folder switches above.	Використовує перемикачі «Мережа» і «Спільна папка» вище.
+Reset sandbox	Скинути пісочницю
+Deletes everything inside the sandbox and creates it again.	Видаляє все в пісочниці й створює її заново.
+Creating sandbox…	Створення пісочниці…
+Sandbox is ready.	Пісочниця готова.
+Installed.	Інстальовано.
+Run	Запустити
+Reset the sandbox?	Скинути пісочницю?
+All apps and files inside the sandbox will be deleted. ~/Sandbox stays.	Усі програми й файли в пісочниці буде видалено. ~/Sandbox залишиться.
+Continue	Продовжити
+An isolated system for apps you don't trust. Apps inside can't see your files, network or desktop.	Ізольована система для програм, яким ви не довіряєте. Програми всередині не бачать ваших файлів, мережі чи робочого столу.
+Create Sandbox	Створити пісочницю
+Package name, e.g. firefox	Назва пакета, напр. firefox
+Command, e.g. firefox	Команда, напр. firefox
+Choose File…	Вибрати файл…
+Make %s visible inside as Shared. Treat files from it as untrusted.	Зробити %s видимою всередині як Shared. Вважайте файли з неї ненадійними.
+Open Terminal	Відкрити Термінал
+Reset…	Скинути…
+Details	Подробиці
+Ready	Готово
+Not created	Не створено
+No apps installed yet	Ще немає інстальованих програм
+Failed - see Details.	Не вдалося – див. «Подробиці».
+Enter a valid package name.	Введіть дійсну назву пакета.
+Remove %s from the sandbox?	Вилучити %s з пісочниці?
+Removed.	Вилучено.
+Started %s in the sandbox.	%s запущено в пісочниці.
+Enter a command.	Введіть команду.
+Choose a file to run in the sandbox	Виберіть файл для запуску в пісочниці
+Resetting sandbox…	Скидання пісочниці…
+# Kalendar (luxos-calendar)
+Calendar	Календар
+All day	Увесь день
+Changes apply to all occurrences.	Зміни застосовуються до всіх повторень.
+Could not save: %s	Не вдалося зберегти: %s
+Custom	Власний
+Date	Дата
+Day	День
+Delete All?	Видалити все?
+Delete Event?	Видалити подію?
+Delete	Видалити
+Edit Event	Редагувати подію
+Ends	Кінець
+Event	Подія
+From %s	З %s
+In %d minutes	Через %d хв
+Invalid date.	Недійсна дата.
+Invalid time.	Недійсний час.
+Month	Місяць
+New Event	Нова подія
+Next day	Наступний день
+Next month	Наступний місяць
+Next year	Наступний рік
+No events today	Сьогодні немає подій
+No events	Немає подій
+Now	Зараз
+Previous day	Попередній день
+Previous month	Попередній місяць
+Previous year	Попередній рік
+Read-only calendar: %s	Календар лише для читання: %s
+Remind %d minutes before	Нагадати за %d хв до початку
+Repeat	Повторювати
+Save	Зберегти
+Starts	Початок
+The event must end after it starts.	Подія має закінчуватися після початку.
+Title	Назва
+Today	Сьогодні
+Until %s	До %s
+Year	Рік
+Daily	Щодня
+Weekly	Щотижня
+Monthly	Щомісяця
+Yearly	Щороку
+Monday	понеділок
+Tuesday	вівторок
+Wednesday	середа
+Thursday	четвер
+Friday	п’ятниця
+Saturday	субота
+Sunday	неділя
+Mo	пн
+Tu	вт
+We	ср
+Th	чт
+Fr	пт
+Sa	сб
+Su	нд
+January	січень
+February	лютий
+March	березень
+April	квітень
+May	травень
+June	червень
+July	липень
+August	серпень
+September	вересень
+October	жовтень
+November	листопад
+December	грудень
+of January	січня
+of February	лютого
+of March	березня
+of April	квітня
+of May	травня
+of June	червня
+of July	липня
+of August	серпня
+of September	вересня
+of October	жовтня
+of November	листопада
+of December	грудня
+Enter Password	Введіть пароль
+Shut Down	Вимкнути
+Guest	Гість
+Username	Ім’я користувача
+Log In	Увійти
+Caps Lock is on	Увімкнено Caps Lock
+Incorrect password. Try again.	Неправильний пароль. Спробуйте ще раз.
+Could not start the session.	Не вдалося запустити сеанс.
+This action is not available right now.	Ця дія зараз недоступна.
+# LuxDrop
+Device '%s' not found on the network. Use an address: luxdrop send HOST[:PORT] FILES	Пристрій «%s» не знайдено в мережі. Використайте адресу: luxdrop send HOST[:PORT] ФАЙЛИ
+Transfer failed: %s (%s)	Не вдалося передати: %s (%s)
+WARNING: someone may be impersonating this device. Nothing was sent. If the device was reinstalled, remove it with 'luxdrop trust remove ID' and pair again.	УВАГА: можливо, хтось видає себе за цей пристрій. Нічого не надіслано. Якщо пристрій було перевстановлено, вилучіть його командою «luxdrop trust remove ID» і створіть пару знову.
+Receiving as "%s" (ID %s) on port %d, mode: %s, folder: %s	Отримання як «%s» (ID %s) на порту %d, режим: %s, папка: %s
+Nearby devices:	Пристрої поблизу:
+No devices found nearby (is avahi-daemon running?).	Поблизу не знайдено пристроїв (чи запущено avahi-daemon?).
+No trusted devices.	Немає довірених пристроїв.
+Name: %s	Назва: %s
+ID: %s	ID: %s
+Fingerprint: %s	Відбиток: %s
+Send files securely between LuxOS computers.	Безпечне надсилання файлів між комп’ютерами з LuxOS.
+send files or folders	надіслати файли або папки
+device name, ID, HOST[:PORT] or NAME@HOST[:PORT]	назва пристрою, ID, HOST[:PORT] або НАЗВА@HOST[:PORT]
+do not trust the receiver after verification	не довіряти отримувачу після перевірки
+receive files in the terminal	отримувати файли в терміналі
+listen only on this address	слухати лише на цій адресі
+who can send (everyone = for 10 minutes)	хто може надсилати (everyone = на 10 хвилин)
+download folder	папка для отриманих файлів
+do not announce on the network	не оголошувати себе в мережі
+list nearby devices	показати пристрої поблизу
+list or remove trusted devices	показати або вилучити довірені пристрої
+ID or name	ID або назва
+show this device's name and fingerprint	показати назву й відбиток цього пристрою
+show or set who can send to this computer	показати або задати, хто може надсилати на цей комп’ютер
+Receiver: %s (ID %s)	Отримувач: %s (ID %s)
+Verification code: %s	Код перевірки: %s
+Does %s show the same code? [y]es and remember / [o]nly this time / [N]o: 	Чи показує %s той самий код? [y] так і запам’ятати / [o] лише цього разу / [N] ні: 
+Preparing	Підготовка
+Sending	Надсилання
+Skipped %s (%s)	Пропущено %s (%s)
+WARNING: this device uses the name of a trusted device, but a different key!	УВАГА: цей пристрій використовує назву довіреного пристрою, але інший ключ!
+%s (ID %s) wants to send you %d item(s), %s:	%s (ID %s) хоче надіслати вам елементи (%d), %s:
+Accept? [y]es / [a]ccept and trust this device / [N]o: 	Прийняти? [y] так / [a] прийняти й довіряти цьому пристрою / [N] ні: 
+Accept? [y/N]: 	Прийняти? [y/N]: 
+The sender cancelled the request.	Відправник скасував запит.
+trusted	довірений
+Removed %d device(s)	Вилучено пристроїв: %d
+'%s' matches more trusted devices, use the ID	«%s» відповідає кільком довіреним пристроям, використайте ID
+File not found: %s	Файл не знайдено: %s
+Cancelling…	Скасування…
+Sent %d item(s), %s to %s	Надіслано елементів: %d, %s → %s
+Verification code: %s  (must be the same on the sender's screen)	Код перевірки: %s  (має збігатися з кодом на екрані відправника)
+Received from %s: %s	Отримано від %s: %s
+Cannot listen on port %d: %s	Не вдається слухати на порту %d: %s
+'%s' is not a trusted device (see 'luxdrop trust list')	«%s» не є довіреним пристроєм (див. «luxdrop trust list»)
+Declined transfer from %s	Відхилено передачу від %s
+Transfer from %s failed: %s (%s)	Не вдалося передати від %s: %s (%s)
+Not visible on the network (%s); connect by address.	Комп’ютер не видно в мережі (%s); під’єднайтеся за адресою.
+Waiting for the receiver to accept…	Очікування, поки отримувач прийме передачу…
+(resumed, %s were already there)	(відновлено, %s уже було передано)
+%s wants to send you %d item(s), %s: %s	%s хоче надіслати вам елементи (%d), %s: %s
+Decline	Відхилити
+Accept	Прийняти
+Accept and trust	Прийняти й довіряти
+LuxDrop: incoming files	LuxDrop: вхідні файли
+LuxDrop: received from %s	LuxDrop: отримано від %s
+Show in folder	Показати в папці
+LuxDrop: transfer from %s failed	LuxDrop: не вдалося передати від %s
+Trusted devices only	Лише довірені пристрої
+Everyone for 10 minutes	Усі на 10 хвилин
+Connect by address…	Під’єднатися за адресою…
+Transfers	Передачі
+Choose	Вибрати
+Add	Додати
+Codes match	Коди збігаються
+Device name	Назва пристрою
+Allow receiving from	Дозволити отримання від
+Save received files to	Зберігати отримані файли в
+Accept automatically from trusted devices	Автоматично приймати від довірених пристроїв
+Receive when LuxDrop is closed	Отримувати, навіть коли LuxDrop закрито
+Fingerprint	Відбиток
+Drop files here	Перетягніть файли сюди
+or click to choose files, then pick a device below	або клацніть, щоб вибрати файли, а потім виберіть пристрій нижче
+Choose files…	Вибрати файли…
+Choose folder…	Вибрати папку…
+Clear	Очистити
+Received	Отримано
+Choose folder	Виберіть папку
+Choose files	Виберіть файли
+Nearby devices cannot be found because avahi-daemon is not running. You can still connect by address.	Неможливо знайти пристрої поблизу, бо avahi-daemon не запущено. Ви все одно можете під’єднатися за адресою.
+Connect by address	Під’єднатися за адресою
+Verify code	Перевірка коду
+Remember this device (no code next time)	Запам’ятати цей пристрій (наступного разу без коду)
+Incoming files	Вхідні файли
+Not receiving	Отримання не працює
+LuxDrop Settings	Параметри LuxDrop
+This computer	Цей комп’ютер
+Trusted devices	Довірені пристрої
+Trusted devices can send to you without a verification code. Remove a device if it was lost or reinstalled.	Довірені пристрої можуть надсилати вам файли без коду перевірки. Вилучіть пристрій, якщо його втрачено або перевстановлено.
+Allow receiving from:	Дозволити отримання від:
+%d item(s) ready to send	Елементів готово до надсилання: %d
+No devices found yet. Open LuxDrop on the other computer, or connect by address.	Пристроїв ще не знайдено. Відкрийте LuxDrop на іншому комп’ютері або під’єднайтеся за адресою.
+Trusted	Довірений
+Not verified yet	Ще не перевірено
+Invalid address.	Недійсна адреса.
+Compare the code with the screen of the receiving computer. If the codes differ, someone may be intercepting the connection.	Порівняйте код з екраном комп’ютера-отримувача. Якщо коди відрізняються, можливо, хтось перехоплює з’єднання.
+Warning: this device uses the name of a trusted device, but its key is different. It may be someone else.	Увага: цей пристрій використовує назву довіреного пристрою, але має інший ключ. Можливо, це хтось інший.
+Trust this device (no code next time)	Довіряти цьому пристрою (наступного разу без коду)
+To %s: %s	Для %s: %s
+From %s: %s	Від %s: %s
+Done	Готово
+Declined	Відхилено
+“%s” presented a different key than the trusted device. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and pair again.	«%s» надав інший ключ, ніж довірений пристрій. Нічого не надіслано – можливо, хтось видає себе за нього. Якщо його перевстановлено, вилучіть його в Параметрах і створіть пару знову.
+Nothing received yet.	Ще нічого не отримано.
+Show	Показати
+Not visible	Невидимий
+No trusted devices yet.	Ще немає довірених пристроїв.
+IP address of the other computer, e.g. 192.168.1.20 or 192.168.1.20:%d	IP-адреса іншого комп’ютера, напр. 192.168.1.20 або 192.168.1.20:%d
+Does “%s” show the same code?	Чи показує «%s» той самий код?
+Cannot receive files: port %d is in use (%s). Is LuxDrop already running?	Неможливо отримувати файли: порт %d зайнятий (%s). Можливо, LuxDrop уже запущено?
+Verification code	Код перевірки
+Accept only if the sender shows the same code.	Приймайте, лише якщо відправник показує той самий код.
+Preparing (checksums)… %s / %s	Підготовка (контрольні суми)… %s / %s
+Waiting for acceptance…	Очікування прийняття…
+“%s” wants to send you %d item(s), %s	«%s» хоче надіслати вам елементи (%d), %s
+Waiting for the receiver to accept… code %s	Очікування прийняття… код %s
+Visible as “%s” · %d:%02d left	Видимий як «%s» · залишилося %d:%02d
+Visible as “%s”	Видимий як «%s»
+Apps	Програми
+Windows	Вікна
+# Vzhled a spořiče
+Auto	Авто
+Auto: light from sunrise (%s) to sunset (%s), based on your time zone.	Авто: світлий від сходу (%s) до заходу сонця (%s), відповідно до часового поясу.
+Clock	Годинник
+Aurora	Полярне сяйво
+Photos	Фото
+Floating Logo	Плаваючий логотип
+# luxos-install-gui (graficky instalator) a nove volby luxos-install
+Swap	Розділ підкачки
+Encrypted (LUKS)	Зашифрований (LUKS)
+Unknown	Невідомий
+Back	Назад
+Please wait until the installation finishes.	Зачекайте, поки інсталяцію буде завершено.
+Connect to the internet	Під’єднайтеся до інтернету
+LuxOS downloads the newest packages during installation. Choose a Wi-Fi network or plug in a network cable.	Під час інсталяції LuxOS завантажує найновіші пакети. Виберіть мережу Wi-Fi або під’єднайте мережевий кабель.
+Connect to the internet to continue.	Щоб продовжити, під’єднайтеся до інтернету.
+Choose your keyboard layout. You can try it in the field below.	Виберіть розкладку клавіатури. Випробувати її можна в полі нижче.
+Time Zone	Часовий пояс
+Where do you want to install LuxOS?	Куди ви хочете інсталювати LuxOS?
+Encryption password	Пароль шифрування
+Confirm password	Підтвердіть пароль
+Create your account	Створіть обліковий запис
+You will use this account to sign in and to install apps.	Цей обліковий запис використовуватиметься для входу та інсталяції програм.
+User name	Ім’я користувача
+Log in automatically	Входити автоматично
+Fill in your name, user name, password and computer name.	Заповніть ім’я, ім’я користувача, пароль і назву комп’ютера.
+Ready to install	Усе готово до інсталяції
+Check your choices. Nothing has been changed on the disk yet.	Перевірте свій вибір. На диску ще нічого не змінено.
+Installing LuxOS	Інсталяція LuxOS
+This takes about 10 minutes. You can keep using the computer.	Це триває близько 10 хвилин. Тим часом можна далі користуватися комп’ютером.
+LuxOS is being installed	LuxOS інсталюється
+This assistant installs LuxOS on your computer. It takes about 10 minutes.	Цей помічник інсталює LuxOS на ваш комп’ютер. Це триває близько 10 хвилин.
+Choose your language	Виберіть мову
+You are connected to the internet	Ви під’єднані до інтернету
+Wi-Fi password	Пароль Wi-Fi
+Checking the connection…	Перевірка з’єднання…
+Type here to test your keyboard	Введіть тут текст, щоб випробувати клавіатуру
+Choose the time zone of your location.	Виберіть часовий пояс свого розташування.
+Erase disk and install LuxOS	Стерти диск та інсталювати LuxOS
+Encrypt LuxOS	Зашифрувати LuxOS
+Protects your files if the computer is lost. You will enter the password at every start.	Захищає ваші файли в разі втрати комп’ютера. Пароль потрібно буде вводити під час кожного запуску.
+If you forget this password, your data cannot be recovered.	Якщо ви забудете цей пароль, дані буде неможливо відновити.
+Confirm that the disk will be erased.	Підтвердьте, що диск буде стерто.
+Enter the encryption password twice.	Введіть пароль шифрування двічі.
+With automatic login, anyone who turns on the computer can use your account.	З автоматичним входом будь-хто, хто ввімкне комп’ютер, зможе користуватися вашим обліковим записом.
+You can also skip this and sign in later.	Цей крок можна пропустити й увійти пізніше.
+Erase %s and install LuxOS	Стерти %s та інсталювати LuxOS
+Alongside other systems on %s (%s of free space)	Поряд з іншими системами на %s (%s вільного місця)
+Automatic login	Автоматичний вхід
+Starting…	Запуск…
+The last lines of the installation log:	Останні рядки журналу інсталяції:
+Copy Log	Копіювати журнал
+Save Log…	Зберегти журнал…
+Restart Now	Перезавантажити зараз
+Passwords do not match.	Паролі не збігаються.
+No Wi-Fi networks found. Plug in a network cable or try again.	Мереж Wi-Fi не знайдено. Під’єднайте мережевий кабель або спробуйте ще раз.
+Connected.	Під’єднано.
+Still offline.	Досі немає з’єднання.
+Connecting to %s…	Під’єднання до %s…
+Network Settings…	Параметри мережі…
+Detected time zone: %s	Визначений часовий пояс: %s
+No suitable disk found. LuxOS needs a disk with at least 20 GB.	Не знайдено відповідного диска. LuxOS потребує диск щонайменше на 20 ГБ.
+The disk is empty.	Диск порожній.
+Install alongside other systems	Інсталювати поряд з іншими системами
+Everything on %s will be deleted.	Усе на %s буде видалено.
+This name is reserved by the system.	Це ім’я зарезервоване системою.
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in now and everything is ready after the first start.	Необов’язково: ШІ в LuxAI, Lux Code і LSL IDE використовує ваш обліковий запис LuxAI. Увійдіть зараз, і все буде готово після першого запуску.
+Sign-in is not available. You can sign in later in Settings.	Вхід недоступний. Увійти можна пізніше в Параметрах.
+Installation failed	Інсталяція не вдалася
+The installer stopped with exit code %s.	Інсталятор зупинився з кодом виходу %s.
+Could not connect. Check the password and try again.	Не вдалося під’єднатися. Перевірте пароль і спробуйте ще раз.
+Local time: %s	Місцевий час: %s
+Looking for disks…	Пошук дисків…
+LuxOS (new)	LuxOS (новий)
+Systems found: %s	Знайдені системи: %s
+LuxOS uses %s of free space. Existing systems and files are kept; you choose the system in a menu when the computer starts.	LuxOS використає %s вільного місця. Наявні системи й файли збережуться; систему ви вибиратимете в меню під час запуску комп’ютера.
+I understand that all data on %s (%s) will be erased.	Я розумію, що всі дані на %s (%s) буде стерто.
+All data on %s will be erased when you click Install.	Усі дані на %s буде стерто, коли ви клацнете «Інсталювати».
+… and %s more partitions	… і ще розділів: %s
+Installing alongside other systems is not possible: %s	Інсталяція поряд з іншими системами неможлива: %s
+EFI system partition	Системний розділ EFI
+Microsoft reserved	Зарезервовано Microsoft
+Windows recovery	Відновлення Windows
+Needs a computer started in UEFI mode.	Потрібен комп’ютер, запущений у режимі UEFI.
+The disk does not use a GPT partition table.	Диск не використовує таблицю розділів GPT.
+The partition table has problems.	Таблиця розділів містить помилки.
+There is no free space of at least 20 GB on this disk.	На цьому диску немає щонайменше 20 ГБ вільного місця.
+No EFI system partition found on this disk.	На цьому диску не знайдено системного розділу EFI.
+The EFI system partition could not be read.	Не вдалося прочитати системний розділ EFI.
+The EFI system partition has less than 250 MB free.	На системному розділі EFI вільно менше ніж 250 МБ.
+Administrator rights are not available.	Права адміністратора недоступні.
+Fast and light	Швидка й легка
+LuxOS starts quickly and leaves more memory for your apps.	LuxOS швидко запускається й залишає більше пам’яті для ваших програм.
+A familiar desktop	Знайомий робочий стіл
+A dock, a clean top bar and an app grid - everything is where you expect it.	Dock, охайна смуга меню й сітка програм – усе там, де ви очікуєте.
+LuxAI built in	Вбудований LuxAI
+Sign in once and use AI in LuxAI, Lux Code and LSL IDE.	Увійдіть один раз і користуйтеся ШІ в LuxAI, Lux Code і LSL IDE.
+Drivers included	Драйвери в комплекті
+Graphics, Wi-Fi and other drivers are picked automatically for your hardware.	Драйвери графіки, Wi-Fi та інших пристроїв вибираються автоматично для вашого обладнання.
+Safe by default	Безпечна від початку
+Signed updates, a locked root account and optional full disk encryption.	Підписані оновлення, заблокований обліковий запис root і необов’язкове шифрування всього диска.
+Introduction	Вступ
+Destination	Розташування
+Account	Обліковий запис
+Installation	Інсталяція
+Finish	Завершення
+%s  (free space, other systems are kept)	%s  (вільне місце, інші системи збережуться)
+no boot loader	без завантажувача
+Installing alongside other systems needs a computer started in UEFI mode.	Для інсталяції поряд з іншими системами потрібен комп’ютер, запущений у режимі UEFI.
+Disk %s does not use a GPT partition table.	Диск %s не використовує таблицю розділів GPT.
+The partition table on %s has problems. Check it first (sgdisk -v).	Таблиця розділів на %s містить помилки. Спершу перевірте її (sgdisk -v).
+Disk %s has no free space of at least 20 GB.	На диску %s немає щонайменше 20 ГБ вільного місця.
+No EFI system partition found on %s.	На %s не знайдено системного розділу EFI.
+The EFI system partition %s could not be read.	Не вдалося прочитати системний розділ EFI %s.
+The EFI system partition %s has less than 250 MB free.	На системному розділі EFI %s вільно менше ніж 250 МБ.
+The partition table on %s is full.	Таблиця розділів на %s заповнена.
+New partition %s: %s GB of free space	Новий розділ %s: %s ГБ вільного місця
+Unexpected change of existing partitions on %s - stopping.	Неочікувана зміна наявних розділів на %s – зупинка.
+systemd-boot on %s is already in the UEFI boot menu.	systemd-boot на %s уже є в меню завантаження UEFI.
+Could not show the boot menu; hold Space while starting to see it.	Не вдалося показати меню завантаження; щоб його побачити, утримуйте Пробіл під час запуску.
+Invalid DISK_MODE (use erase, freespace or manual)	Недійсне значення DISK_MODE (використайте erase, freespace або manual)
+Invalid BOOTLOADER (use auto or none)	Недійсне значення BOOTLOADER (використайте auto або none)
+# luxos-daemon (Bluetooth agent)
+Allow “%s” to pair with this computer?	Дозволити «%s» створити пару з цим комп’ютером?
+Allow “%s” to connect?	Дозволити «%s» під’єднатися?
+Only allow devices you know.	Дозволяйте лише пристрої, які ви знаєте.
+Allow	Дозволити
+# LuxOS 2026-10-21: lux, Store, upozorneni na internet
+Sign in to the network to use the internet (click to open the sign-in page)	Щоб користуватися інтернетом, увійдіть у мережу (клацніть, щоб відкрити сторінку входу)
+Connected to the network, but the internet is not available	Під’єднано до мережі, але інтернет недоступний
+Sign in to the network to use the internet.	Щоб користуватися інтернетом, увійдіть у мережу.
+You are connected to the network, but the internet is not available.	Ви під’єднані до мережі, але інтернет недоступний.
+Server %s is not responding, trying another one…	Сервер %s не відповідає, пробуємо інший…
+Download failed, trying again (%s/3)…	Не вдалося завантажити, повторна спроба (%s/3)…
+Some packages could not be downloaded. Check your internet connection and try again.	Деякі пакети не вдалося завантажити. Перевірте з’єднання з інтернетом і спробуйте ще раз.
+Installed: %s	Інстальовано: %s
+Downloading %d of %d…	Завантаження %d з %d…
+The connection is slow, trying another server…	З’єднання повільне, пробуємо інший сервер…
+Download failed, trying again (attempt %s)…	Не вдалося завантажити, повторна спроба (спроба %s)…
+The internet connection is too slow or unavailable. Try it again later.	З’єднання з інтернетом надто повільне або недоступне. Спробуйте пізніше.
+unknown error	невідома помилка
+Looking for the fastest download servers…	Пошук найшвидших серверів завантаження…
+Using %s fast download servers near you.	Використовуються швидкі сервери завантаження поблизу вас: %s.
+Using the default download servers.	Використовуються стандартні сервери завантаження.
+The server %s is slow, trying another one…	Сервер %s повільний, пробуємо інший…
+The server %s is not responding, trying another one…	Сервер %s не відповідає, пробуємо інший…
+Downloading from %s failed, trying another one…	Не вдалося завантажити із сервера %s, пробуємо інший…
+The server %s has too many problems, skipping it.	Сервер %s має забагато проблем, його пропущено.
+Some files could not be downloaded.	Деякі файли не вдалося завантажити.
+Downloading the packages did not finish.	Завантаження пакетів не завершилося.
+The package lists could not be downloaded.	Не вдалося завантажити списки пакетів.
+about %s min left	залишилося близько %s хв
+Downloaded %s of %s	Завантажено %s з %s
+Your internet connection is very slow - the installation will take longer. It has not stopped.	З’єднання з інтернетом дуже повільне – інсталяція триватиме довше. Вона не зупинилася.
+Waiting for the internet connection…	Очікування з’єднання з інтернетом…
+Maintenance	Обслуговування
+Carefree: updates install automatically in the background (not on metered networks, with Data Saver or on low battery), a previous kernel is kept to fall back on and LuxOS repairs itself.	Безтурботний: оновлення інсталюються автоматично у фоновому режимі (не в лімітних мережах, не з Економією даних і не при низькому заряді), попереднє ядро зберігається як резервне, а LuxOS сама себе відновлює.
+Classic (for IT professionals): no automatic updates or repairs, standard Arch behaviour; you only get notified about available updates.	Класичний (для ІТ-фахівців): без автоматичних оновлень і відновлень, стандартна поведінка Arch; ви лише отримуєте сповіщення про доступні оновлення.
+Carefree (recommended)	Безтурботний (рекомендовано)
+Classic (for IT professionals)	Класичний (для ІТ-фахівців)
+How should LuxOS be maintained?	Як обслуговувати LuxOS?
+Carefree - automatic updates and repairs	Безтурботний – автоматичні оновлення й відновлення
+Classic - you manage the system yourself	Класичний – ви самі керуєте системою
+Invalid CARE_MODE (use carefree or classic)	Недійсне значення CARE_MODE (використайте carefree або classic)
+Carefree	Безтурботний
+Updates install automatically in the background - not on metered networks, with Data Saver on or on low battery.	Оновлення інсталюються автоматично у фоновому режимі – не в лімітних мережах, не з увімкненою Економією даних і не при низькому заряді.
+A previous kernel is kept, so the computer always has a working version to start.	Попереднє ядро зберігається, тож комп’ютер завжди має робочу версію для запуску.
+LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash.	LuxOS сама себе відновлює. Серйозні проблеми діагностує LuxAI Flash.
+No automatic updates or repairs - standard Arch Linux behaviour.	Без автоматичних оновлень і відновлень – стандартна поведінка Arch Linux.
+You manage the system yourself with lux or pacman.	Ви самі керуєте системою за допомогою lux або pacman.
+You only get a notification when updates are available.	Ви лише отримуєте сповіщення, коли доступні оновлення.
+Choose whether LuxOS takes care of itself, or whether you want full control.	Виберіть, чи LuxOS дбатиме про себе сама, чи ви хочете мати повний контроль.
+Downloading %s of %s	Завантаження %s з %s
+waiting for data	очікування даних
+The connection is not responding right now	З’єднання зараз не відповідає
+The installation has not stopped. LuxOS keeps trying other servers and continues as soon as data arrives again.	Інсталяція не зупинилася. LuxOS пробує інші сервери й продовжить, щойно дані знову почнуть надходити.
+Your internet connection is very slow	З’єднання з інтернетом дуже повільне
+The installation will take longer. It has not stopped.	Інсталяція триватиме довше. Вона не зупинилася.
+The time depends on your internet connection. You can keep using the computer.	Час залежить від з’єднання з інтернетом. Тим часом можна далі користуватися комп’ютером.
+less than a minute left	залишилося менше хвилини
+%s min	%s хв
+%s h %s min	%s год %s хв
+# luxos-care (Aktualizace softwaru, LuxOS Care)
+never	ніколи
+just now	щойно
+%d min ago	%d хв тому
+today at %s	сьогодні о %s
+Update failed	Не вдалося оновити
+chosen by LuxAI Flash	вибрано LuxAI Flash
+built-in rule	вбудоване правило
+The previous kernel could not be prepared	Не вдалося підготувати попереднє ядро
+A start did not finish correctly	Запуск системи не завершився належним чином
+Boot menu: LuxOS (previous kernel)	Меню завантаження: LuxOS (попереднє ядро)
+Mode changed to Carefree	Режим змінено на «Безтурботний»
+Mode changed to Classic	Режим змінено на «Класичний»
+Update Now	Оновити зараз
+When updates are installed	Коли інсталюються оновлення
+Classic	Класичний
+LuxOS installs updates and repairs itself. It waits for an unmetered connection and enough battery, and keeps the previous kernel as a fallback.	LuxOS сама інсталює оновлення й відновлює себе. Вона чекає на нелімітне з’єднання й достатній заряд акумулятора та зберігає попереднє ядро як резервне.
+LuxOS only checks and tells you about updates and problems. You decide when to update.	LuxOS лише перевіряє й повідомляє вам про оновлення та проблеми. Коли оновлювати, вирішуєте ви.
+Available updates	Доступні оновлення
+System health	Стан системи
+Check for Problems Now	Перевірити наявність проблем
+Repair and update history	Історія відновлень і оновлень
+Updating LuxOS…	Оновлення LuxOS…
+Last update: %s	Останнє оновлення: %s
+Last check: %s	Остання перевірка: %s
+No updates are waiting.	Немає оновлень в очікуванні.
+LuxOS checks for updates automatically.	LuxOS перевіряє оновлення автоматично.
+Your settings were kept. Compare the files with pacdiff when convenient.	Ваші налаштування збережено. Коли буде зручно, порівняйте файли за допомогою pacdiff.
+No problems found	Проблем не знайдено
+Previous kernel	Попереднє ядро
+After the next kernel update the current kernel stays available as a fallback.	Після наступного оновлення ядра поточне ядро залишиться доступним як резервне.
+Nothing yet	Поки нічого
+Updates and repairs will be listed here.	Тут відображатимуться оновлення й відновлення.
+Audit log	Журнал дій
+Downloading… %s of %s	Завантаження… %s з %s
+Do not turn off the computer.	Не вимикайте комп’ютер.
+The system service is not available.	Системна служба недоступна.
+Updated %d packages	Оновлено пакетів: %d
+including the kernel	включно з ядром
+Released the kept kernel %s for reinstallation	Звільнено збережене ядро %s для повторної інсталяції
+Kept the previous kernel %s	Попереднє ядро %s збережено
+Restart to finish the update	Перезавантажтеся, щоб завершити оновлення
+New configuration file to review: %s	Новий файл конфігурації для перегляду: %s
+Switch to Carefree to repair it automatically.	Перейдіть у режим «Безтурботний», щоб це виправлялося автоматично.
+If a new kernel fails to start, LuxOS starts this one automatically.	Якщо нове ядро не запуститься, LuxOS автоматично запустить це.
+If a new kernel fails to start, choose “LuxOS (previous kernel)” in the boot menu.	Якщо нове ядро не запуститься, виберіть у меню завантаження «LuxOS (previous kernel)».
+Show Full Log…	Показати весь журнал…
+Installing %s (%d of %d)	Інсталяція %s (%d з %d)
+Working…	Виконується…
+waiting for an unmetered connection (Data Saver)	очікування нелімітного з’єднання (Економія даних)
+waiting for the charger or more battery	очікування зарядного пристрою або більшого заряду
+waiting for the internet connection	очікування з’єднання з інтернетом
+Automatic update is %s.	Автоматичне оновлення: %s.
+and %d more	і ще %d
+Waiting for LuxAI Flash	Очікування LuxAI Flash
+The repair did not help	Відновлення не допомогло
+Previous kernel %s is kept as a fallback	Попереднє ядро %s збережено як резервне
+The previous kernel %s could not be prepared	Не вдалося підготувати попереднє ядро %s
+Could not start: %s	Не вдалося запустити: %s
+%d updates available	Доступно оновлень: %d
+Updates could not be installed	Не вдалося інсталювати оновлення
+LuxOS is up to date	LuxOS актуальна
+Updating signing keys…	Оновлення ключів підпису…
+Downloading…	Завантаження…
+Installing…	Інсталяція…
+Finishing…	Завершення…
+The boot partition is full.	Завантажувальний розділ заповнений.
+LuxOS was updated	LuxOS оновлено
+Updates are available	Доступні оновлення
+LuxOS will try again later.	LuxOS спробує ще раз пізніше.
+Update postponed	Оновлення відкладено
+LuxOS fixed a problem	LuxOS виправила проблему
+LuxOS found a problem	LuxOS виявила проблему
+Restart to finish the kernel update	Перезавантажтеся, щоб завершити оновлення ядра
+LuxOS installed a new kernel. Restart when it suits you.	LuxOS інсталювала нове ядро. Перезавантажтеся, коли вам буде зручно.
+%d packages were updated.	Оновлено пакетів: %d.
+%d updates are ready to install.	Оновлень готово до інсталяції: %d.
+The repair was chosen by LuxAI Flash.	Спосіб відновлення вибрав LuxAI Flash.
+No internet connection.	Немає з’єднання з інтернетом.
+The connection is metered (Data Saver).	З’єднання лімітне (Економія даних).
+The battery is low - connect the charger.	Низький заряд акумулятора – під’єднайте зарядний пристрій.
+Sign in to LuxAI to let LuxOS fix unknown problems.	Увійдіть у LuxAI, щоб LuxOS могла виправляти й невідомі проблеми.
+This command must be run as root.	Цю команду потрібно запускати від імені root.
+Mode: %s	Режим: %s
+Previous kernel: %s	Попереднє ядро: %s
+The package manager was left locked	Менеджер пакетів залишився заблокованим
+A system update was interrupted	Оновлення системи було перервано
+The kernel boot files are missing	Бракує завантажувальних файлів ядра
+A driver module (DKMS) is not built for the kernel	Модуль драйвера (DKMS) не зібрано для ядра
+The newest kernel did not start, LuxOS used the previous one	Найновіше ядро не запустилося, LuxOS використала попереднє
+The disk is almost full	Диск майже заповнений
+The file system reported errors - back up your data	Файлова система повідомила про помилки – створіть резервну копію даних
+System updates keep failing	Оновлення системи постійно не вдаються
+A system service failed: %s	Збій системної служби: %s
+Removed a stale package manager lock	Вилучено застаріле блокування менеджера пакетів
+Released the kept kernel for reinstallation	Звільнено збережене ядро для повторної інсталяції
+Finished an interrupted update	Завершено перерване оновлення
+Refreshed the package signing keys	Оновлено ключі підпису пакетів
+Rebuilt the kernel boot files	Повторно створено завантажувальні файли ядра
+Rebuilt driver modules	Повторно зібрано модулі драйверів
+Reinstalled a package	Перевстановлено пакет
+Restarted a service	Перезапущено службу
+Freed disk space	Звільнено місце на диску
+Will try the newest kernel again	Найновіше ядро буде випробувано ще раз
+Will start the previous kernel	Буде запущено попереднє ядро
+Only reported the problem	Лише повідомлено про проблему
+Boot Screen	Екран завантаження
+Blue	Синій
+Purple	Фіолетовий
+Orange	Помаранчевий
+Green	Зелений
+White	Білий
+Shown while the computer starts. A change rebuilds the boot image, which takes about a minute.	Показується під час запуску комп’ютера. Зміна повторно збирає завантажувальний образ, це триває близько хвилини.
+Applying the boot screen…	Застосування екрана завантаження…
+The new boot screen will be shown at the next start.	Новий екран завантаження з’явиться під час наступного запуску.
+Change cancelled.	Зміну скасовано.
+Could not change the boot screen.	Не вдалося змінити екран завантаження.
+Live system: the boot image is not rebuilt.	Жива система: завантажувальний образ не збирається повторно.
+Rebuilding the boot image…	Повторне збирання завантажувального образу…
+Unknown variant: %s	Невідомий варіант: %s
+Run as root: pkexec luxos-splash set %s	Запустіть від імені root: pkexec luxos-splash set %s
+Another change of the boot screen is running.	Уже виконується інша зміна екрана завантаження.
+Boot screen is already %s.	Екран завантаження вже: %s.
+Rebuilding the boot image failed, the previous boot screen was restored.	Не вдалося зібрати завантажувальний образ, попередній екран завантаження відновлено.
+Boot screen set to %s.	Екран завантаження встановлено: %s.
+# LuxOS 2026-10-21: LuxAI z Launchpadu, popisek aplikace v liste
+Active app: %s	Активна програма: %s
+Search apps or ask LuxAI	Шукати програми або запитати LuxAI
+Search or ask LuxAI	Шукати або запитати LuxAI
+# LuxOS 2026-10-21: pojistka pameti
+Memory is running low	Закінчується пам’ять
+“%s” used too much memory and was closed so the computer would not freeze.	Програма «%s» використала забагато пам’яті, і її закрито, щоб комп’ютер не завис.
+A program used too much memory and was closed so the computer would not freeze.	Одна з програм використала забагато пам’яті, і її закрито, щоб комп’ютер не завис.
+Printers & Scanners	Принтери та сканери
+Printing support is not installed.	Підтримку друку не інстальовано.
+Offline – make sure the printer is turned on	Не в мережі – переконайтеся, що принтер увімкнено
+Paused	Призупинено
+Printing…	Друк…
+1 document waiting	1 документ в очікуванні
+%d documents waiting	Документів в очікуванні: %d
+Print Test Page	Надрукувати пробну сторінку
+Resume	Продовжити
+Remove Printer…	Вилучити принтер…
+Default printer	Стандартний принтер
+Apps print here unless you choose another printer.	Програми друкують тут, якщо ви не виберете інший принтер.
+Ink and toner	Чорнило й тонер
+Print queue	Черга друку
+Cancel All	Скасувати все
+No documents are waiting to print.	Немає документів, що очікують друку.
+USB	USB
+Document	Документ
+Waiting	В очікуванні
+On hold	Утримується
+Stopped	Зупинено
+Sending a test page…	Надсилання пробної сторінки…
+The test page could not be sent: %s	Не вдалося надіслати пробну сторінку: %s
+The test page is on its way.	Пробну сторінку надіслано.
+Kind	Тип
+Quality	Якість
+Source	Джерело
+Scan	Сканувати
+Scanned pages appear here. Scan more pages to save them together.	Тут з’являтимуться відскановані сторінки. Відскануйте кілька сторінок, щоб зберегти їх разом.
+PDF document	Документ PDF
+JPEG pictures	Зображення JPEG
+Show in Folder	Показати в папці
+Checking the scanner…	Перевірка сканера…
+The scanner does not respond. Make sure it is turned on.	Сканер не відповідає. Переконайтеся, що його ввімкнено.
+Place the document on the scanner and click Scan.	Покладіть документ на сканер і клацніть «Сканувати».
+Scanning…	Сканування…
+Scanning was cancelled.	Сканування скасовано.
+Scanning failed: %s	Не вдалося відсканувати: %s
+the scanner does not respond	сканер не відповідає
+This is a preview. Click Scan when the document looks right.	Це попередній перегляд. Коли документ виглядатиме добре, клацніть «Сканувати».
+Page %d scanned. Scan another page or save.	Сторінку %d відскановано. Відскануйте наступну або збережіть.
+Remove page	Вилучити сторінку
+Page %d	Сторінка %d
+Click Preview to see the document here	Клацніть «Попередній перегляд», щоб побачити тут документ
+Saving…	Збереження…
+Could not save the scan: %s	Не вдалося зберегти скан: %s
+Saved “%s” in %s	«%s» збережено в %s
+Saved %d pictures in %s	Збережено зображень: %d, папка %s
+Place the next document on the scanner and click Scan.	Покладіть на сканер наступний документ і клацніть «Сканувати».
+Add Printer	Додати принтер
+Printers nearby	Принтери поблизу
+Search Again	Шукати знову
+Turn the printer on and connect it to the same Wi‑Fi network or with a USB cable. Most printers are added automatically.	Увімкніть принтер і під’єднайте його до тієї самої мережі Wi‑Fi або кабелем USB. Більшість принтерів додаються автоматично.
+Looking for printers…	Пошук принтерів…
+Advanced…	Додатково…
+Printers that need special setup (LPD, Windows sharing, manual drivers)	Принтери, що потребують спеціального налаштування (LPD, спільний доступ Windows, ручні драйвери)
+Could not search for printers: %s	Не вдалося виконати пошук принтерів: %s
+No printers found. Make sure the printer is turned on.	Принтерів не знайдено. Переконайтеся, що принтер увімкнено.
+Added	Додано
+Not supported	Не підтримується
+Adding…	Додавання…
+The printer could not be added	Не вдалося додати принтер
+Make sure it is turned on and try again.	Переконайтеся, що його ввімкнено, і спробуйте ще раз.
+Advanced printer settings for experts	Додаткові параметри принтерів для фахівців
+Remove Printer	Вилучити принтер
+No printers yet	Ще немає принтерів
+Turn on your printer and connect it to the same Wi‑Fi network or with a USB cable. LuxOS sets it up automatically – no drivers, no questions.	Увімкніть принтер і під’єднайте його до тієї самої мережі Wi‑Fi або кабелем USB. LuxOS налаштує його автоматично – без драйверів і без запитань.
+Add Printer…	Додати принтер…
+Printers	Принтери
+Scanners	Сканери
+Default	Стандартний
+Looking for scanners…	Пошук сканерів…
+No scanners found	Сканерів не знайдено
+Turn the scanner on	Увімкніть сканер
+The change could not be made	Не вдалося внести зміну
+Remove “%s”?	Вилучити «%s»?
+Apps will no longer print to it. You can add it again later with the + button.	Програми більше не друкуватимуть на ньому. Пізніше його можна знову додати кнопкою +.
+Could not open advanced settings	Не вдалося відкрити додаткові параметри
+Paper jam	Папір застряг
+Out of paper	Закінчився папір
+Out of ink or toner	Закінчилося чорнило або тонер
+A cover is open	Відкрито кришку
+Offline	Не в мережі
+Ink, toner or paper is low	Закінчується чорнило, тонер або папір
+Color	Кольорове
+Grey	Сіре
+Draft (150 dpi)	Чернетка (150 dpi)
+Standard (300 dpi)	Стандартна (300 dpi)
+High (600 dpi)	Висока (600 dpi)
+Flatbed	Планшет
+ADF	Автоподавач
+ADF Duplex	Автоподавач, двосторонньо
+Flatbed scanner	Планшетний сканер
+Multi-function peripheral	Багатофункціональний пристрій
+Virtual device	Віртуальний пристрій
+Printer “%s” is ready	Принтер «%s» готовий
+You can print from any app.	Друкувати можна з будь-якої програми.
+Scanner “%s” is ready	Сканер «%s» готовий
+Open Printers & Scanners to scan a document.	Щоб відсканувати документ, відкрийте «Принтери та сканери».
+“%s” is ready	«%s» готовий
+You can print from any app and scan in Printers & Scanners.	Друкувати можна з будь-якої програми, а сканувати – у «Принтерах та сканерах».
+Printer “%s” needs a driver	Принтеру «%s» потрібен драйвер
+LuxOS will set it up automatically once you are connected to the internet.	LuxOS налаштує його автоматично, щойно ви під’єднаєтеся до інтернету.
+Printer “%s” needs to be set up	Принтер «%s» потрібно налаштувати
+It does not support driverless printing. Open Printers & Scanners and choose Advanced….	Він не підтримує друк без драйверів. Відкрийте «Принтери та сканери» й виберіть «Додатково…».
+Printer “%s” needs an add-on from HP	Принтеру «%s» потрібен додаток від HP
+Open Terminal and run: hp-plugin	Відкрийте Термінал і запустіть: hp-plugin
+Feedback	Відгук
+Help us improve LuxOS	Допоможіть нам покращити LuxOS
+Your report goes directly to the author of LuxOS.	Ваше повідомлення надійде безпосередньо автору LuxOS.
+Bug	Помилка
+Something doesn't work	Щось не працює
+What happened? What did you expect? Steps to reproduce help a lot.	Що сталося? Чого ви очікували? Дуже допоможуть кроки для відтворення.
+Idea	Ідея
+Suggest an improvement	Запропонувати покращення
+What would you like to improve? How would it help you?	Що б ви хотіли покращити? Як це вам допоможе?
+Something else	Інше
+Question or comment	Питання або коментар
+Write your message…	Напишіть своє повідомлення…
+At least %d characters	Щонайменше %d символів
+Your e-mail (optional, if you would like a reply)	Ваш e-mail (необов’язково, якщо бажаєте отримати відповідь)
+Attach a screenshot	Додати знімок екрана
+Take Again	Зняти ще раз
+The screenshot could not be taken.	Не вдалося зробити знімок екрана.
+Attach system information	Додати інформацію про систему
+LuxOS and hardware versions and recent error messages. No personal files, passwords or e-mail addresses.	Версії LuxOS і обладнання та останні повідомлення про помилки. Без особистих файлів, паролів і адрес e-mail.
+Show what will be sent	Показати, що буде надіслано
+Collecting…	Збирання…
+Send	Надіслати
+Sending…	Надсилання…
+Try Again	Спробувати ще раз
+%d saved report(s) from earlier have been sent. Thank you!	Надіслано раніше збережені повідомлення: %d. Дякуємо!
+LuxOS could not reach the server. Check the internet connection.	LuxOS не вдалося з’єднатися із сервером. Перевірте з’єднання з інтернетом.
+Sending failed (%s).	Не вдалося надіслати (%s).
+You have sent many reports in a short time. Please try again later.	Ви надіслали багато повідомлень за короткий час. Спробуйте пізніше.
+The message must have 10 to 8000 characters.	Повідомлення має містити від 10 до 8000 символів.
+The e-mail address does not look valid.	Адреса e-mail виглядає недійсною.
+The report is too large. Try it without the screenshot.	Повідомлення завелике. Спробуйте надіслати його без знімка екрана.
+The screenshot could not be accepted. Try it without the screenshot.	Знімок екрана не прийнято. Спробуйте надіслати повідомлення без нього.
+Saved for later	Збережено на потім
+You are offline. The report will be sent automatically the next time you open Feedback with an internet connection.	Ви не в мережі. Повідомлення буде надіслано автоматично, коли ви наступного разу відкриєте Відгук з підключенням до інтернету.
+Thank you for your feedback!	Дякуємо за відгук!
+Your report has been delivered to the author of LuxOS. Every report helps make LuxOS better.	Ваше повідомлення доставлено автору LuxOS. Кожне повідомлення допомагає покращувати LuxOS.
+Report ID: %s	ID повідомлення: %s
+Send Another	Надіслати ще
+Send Feedback…	Надіслати відгук…
+# LuxDrop + LocalSend
+Nothing to send: give files or --text	Нічого надсилати: вкажіть файли або --text
+Send files securely to nearby LuxOS computers and devices with LocalSend.	Безпечне надсилання файлів на комп’ютери з LuxOS і пристрої з LocalSend поблизу.
+send to a LocalSend device (phone, Windows, …)	надіслати на пристрій з LocalSend (телефон, Windows, …)
+send a text message	надіслати текстове повідомлення
+PIN required by the receiver (LocalSend)	PIN-код, якого вимагає отримувач (LocalSend)
+who can send (everyone always asks first)	хто може надсилати (для everyone завжди спершу запитує)
+with --mode everyone: only for this many minutes (max. 10)	з --mode everyone: лише на стільки хвилин (макс. 10)
+LocalSend port (default 53317)	порт LocalSend (типово 53317)
+do not receive from LocalSend apps	не отримувати з програм LocalSend
+no LocalSend multicast discovery	без пошуку LocalSend через multicast
+require this PIN from LocalSend senders (empty = no PIN)	вимагати цей PIN-код від відправників LocalSend (порожній = без PIN-коду)
+also scan the local network (LocalSend devices without multicast)	також сканувати локальну мережу (пристрої LocalSend без multicast)
+with everyone: only for this many minutes (max. 10)	з everyone: лише на стільки хвилин (макс. 10)
+Wrong PIN.	Неправильний PIN-код.
+%s requires a PIN: 	%s вимагає PIN-код: 
+LocalSend: port %d, fingerprint %s	LocalSend: порт %d, відбиток %s
+unencrypted - not supported	без шифрування – не підтримується
+No LocalSend device answers at %s	За адресою %s не відповідає жоден пристрій LocalSend
+%s is a LuxOS computer - using the LuxDrop protocol	%s – комп’ютер з LuxOS, буде використано протокол LuxDrop
+Message from %s:	Повідомлення від %s:
+Sent with LocalSend from a %s device	Надіслано через LocalSend з пристрою типу %s
+LocalSend receiving is not available: port %d is in use (%s)	Отримання з LocalSend недоступне: порт %d зайнятий (%s)
+LocalSend receiving is not available (python-pyopenssl is missing)	Отримання з LocalSend недоступне (бракує python-pyopenssl)
+identity not verified (old LocalSend version)	особу не перевірено (стара версія LocalSend)
+LocalSend devices cannot find this computer automatically (%s)	Пристрої LocalSend не можуть автоматично знайти цей комп’ютер (%s)
+Phone or tablet	Телефон або планшет
+Web browser	Вебоглядач
+Copy	Копіювати
+Message	Повідомлення
+PIN required	Потрібен PIN-код
+The identity of this device cannot be verified (old LocalSend version). Accept only if you expect these files.	Не вдається перевірити особу цього пристрою (стара версія LocalSend). Приймайте, лише якщо очікуєте ці файли.
+Trust this device (save its files without asking next time)	Довіряти цьому пристрою (наступного разу зберігати його файли без запиту)
+Message from “%s”	Повідомлення від «%s»
+“%s” requires a PIN to receive files.	«%s» вимагає PIN-код для отримання файлів.
+Everyone nearby	Усі поблизу
+Receiving	Отримання
+Receive	Отримати
+Ready to receive	Готово до отримання
+Who can send	Хто може надсилати
+Every transfer from other devices must be accepted.	Кожну передачу з інших пристроїв потрібно прийняти.
+Quick save	Швидке збереження
+Save files from trusted devices without asking.	Зберігати файли з довірених пристроїв без запиту.
+Recently received	Нещодавно отримані
+Open folder	Відкрити папку
+Selection	Вибране
+File	Файл
+Folder	Папка
+Paste	Вставити
+Refresh	Оновити
+Scan the local network	Сканувати локальну мережу
+The clipboard is empty.	Буфер обміну порожній.
+This LocalSend device has encryption turned off. Turn on “Encryption” in LocalSend settings to send files to it.	На цьому пристрої LocalSend вимкнено шифрування. Щоб надсилати на нього файли, увімкніть «Шифрування» в параметрах LocalSend.
+Scanning the local network for LocalSend devices…	Пошук пристроїв LocalSend у локальній мережі…
+LocalSend app (port %d)	Програма LocalSend (порт %d)
+LuxOS computer (port %d)	Комп’ютер з LuxOS (порт %d)
+Files (%d)	Файли (%d)
+Received from %s	Отримано від %s
+Save to	Зберігати в
+Requests then appear as notifications.	Тоді запити з’являтимуться як сповіщення.
+Work with LocalSend apps	Працювати з програмами LocalSend
+Phones, tablets and computers with the LocalSend app. Uses port 53317.	Телефони, планшети й комп’ютери з програмою LocalSend. Використовує порт 53317.
+No PIN	Без PIN-коду
+LocalSend devices must enter this PIN before they can send.	Пристрої LocalSend мають ввести цей PIN-код, перш ніж зможуть надсилати.
+Trusted devices can use Quick save. Remove a device if it was lost or reinstalled.	Довірені пристрої можуть використовувати швидке збереження. Вилучіть пристрій, якщо його втрачено або перевстановлено.
+Security	Безпека
+All transfers are encrypted (TLS). LuxOS computers verify each other with a 6-digit code; LocalSend devices are identified by their certificate.	Усі передачі зашифровано (TLS). Комп’ютери з LuxOS перевіряють один одного 6-значним кодом; пристрої LocalSend розпізнаються за сертифікатом.
+Visible to LuxOS computers and LocalSend apps nearby.	Видимий для комп’ютерів з LuxOS і програм LocalSend поблизу.
+Choose what to send or drop files here, then tap a device.	Виберіть, що надіслати, або перетягніть сюди файли, а потім торкніться пристрою.
+Looking for devices… Open LuxDrop or LocalSend on the other device and make sure it is on the same network.	Пошук пристроїв… Відкрийте LuxDrop або LocalSend на іншому пристрої та переконайтеся, що він у тій самій мережі.
+Unencrypted	Без шифрування
+IP address of the other device, e.g. 192.168.1.20	IP-адреса іншого пристрою, напр. 192.168.1.20
+“%s” presented a different key than expected. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and try again.	«%s» надав інший ключ, ніж очікувалося. Нічого не надіслано – можливо, хтось видає себе за нього. Якщо його перевстановлено, вилучіть його в Параметрах і спробуйте ще раз.
+Key fingerprint: %s	Відбиток ключа: %s
+Receiving is turned off. Other devices cannot see this computer.	Отримання вимкнено. Інші пристрої не бачать цей комп’ютер.
+%d characters	Символів: %d
+Cannot receive from LuxOS computers: port %d is in use (%s).	Не вдається отримувати з комп’ютерів з LuxOS: порт %d зайнятий (%s).
+No device answers at %s.	За адресою %s не відповідає жоден пристрій.
+Cannot receive from LocalSend apps: port %d is in use. Is LocalSend running on this computer?	Не вдається отримувати з програм LocalSend: порт %d зайнятий. Чи не запущено LocalSend на цьому комп’ютері?
+LocalSend compatibility needs the python-pyopenssl package.	Для сумісності з LocalSend потрібен пакет python-pyopenssl.
+%d:%02d left	Залишилося %d:%02d
+Nearby LuxOS computers cannot be found because avahi-daemon is not running.	Неможливо знайти комп’ютери з LuxOS поблизу, бо avahi-daemon не запущено.
+Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Автоматичний пошук пристроїв LocalSend недоступний (%s). Скористайтеся «Сканувати локальну мережу».
+LuxDrop: message from %s	LuxDrop: повідомлення від %s

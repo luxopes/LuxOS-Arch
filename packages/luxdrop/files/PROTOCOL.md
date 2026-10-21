@@ -1,7 +1,16 @@
 # LuxDrop protocol, version 1
 
 LuxDrop sends files and folders between two devices on the same local network. Every
-connection is end-to-end encrypted and authenticated. This document has enough detail to
+connection is end-to-end encrypted and authenticated. LuxDrop speaks two protocols:
+
+* **Part A – the LuxDrop protocol** (sections 1–13) between LuxOS computers: TLS 1.3,
+  pinned keys and a 6-digit verification code (SAS). This is the most secure option and
+  LuxOS always prefers it when both sides are LuxOS.
+* **Part B – LocalSend protocol v2** (section 14) for the LocalSend app on Android,
+  phones and tablets, Windows, other Linux systems and so on. See section 15 for the
+  security model of both.
+
+This document has enough detail to
 write a compatible client, for example for Android in Kotlin or Java. You need only the
 standard library: `SSLSocket`, `KeyPairGenerator` (EC P-256), `Signature`
 (`SHA256withECDSA`), `MessageDigest` (SHA-256), `NsdManager` and a JSON parser.
@@ -220,8 +229,13 @@ The receiver checks its policy after successful authentication:
 | mode | trusted (pinned) sender | unknown sender |
 |------|-------------------------|----------------|
 | `off` | `error receiving_off` | `error receiving_off` |
-| `trusted` (default) | allowed; auto-accepted or asked | `error not_trusted`, without asking the user |
-| `everyone` (10 minutes, then back to `trusted`) | allowed | the user must Accept after comparing the SAS |
+| `trusted` | allowed; auto-accepted ("Quick save") or asked | `error not_trusted`, without asking the user |
+| `everyone` (default since LuxDrop 1.0.0-2) | allowed | the user must Accept after comparing the SAS |
+
+`everyone` can also be limited in time (`luxdrop mode everyone --minutes 10`, at most 10
+minutes, then back to `trusted`). Without a limit it stays on, like LocalSend's "receive"
+switch – every transfer from an unknown device still needs an explicit Accept.
+The same policy applies to LocalSend senders (section 14).
 
 Other rules:
 
@@ -333,22 +347,28 @@ Other rules:
 
 ## 12. Firewall
 
-LuxDrop needs incoming **TCP 47923**, which is the default and can be changed with
-`port` in `~/.config/luxdrop/settings.json`. It also needs **UDP 5353** (mDNS, Avahi).
-LuxOS ships no firewall by default. If you enable one:
+LuxDrop needs incoming **TCP 47923** (LuxDrop, setting `port`), **TCP and UDP 53317**
+(LocalSend HTTPS server and multicast discovery, setting `localsend_port`) and
+**UDP 5353** (mDNS, Avahi). LuxOS ships no firewall by default, so nothing has to be done.
+If you enable one, open the ports **only for private networks** (home/work), never on
+public Wi-Fi. The package ships a firewalld service and a ufw application profile:
 
 ```
+# firewalld: only in the home zone (assign your home Wi-Fi/LAN connection to it)
+sudo firewall-cmd --permanent --zone=home --add-service=luxdrop && sudo firewall-cmd --reload
+
+# ufw: only from private address ranges
+sudo ufw allow from 192.168.0.0/16 to any app LuxDrop
+sudo ufw allow from 10.0.0.0/8 to any app LuxDrop
+
 # nftables (/etc/nftables.conf, inside table inet filter, chain input)
-tcp dport 47923 accept
-udp dport 5353 accept
-
-# ufw
-sudo ufw allow 47923/tcp
-sudo ufw allow 5353/udp
-
-# firewalld
-sudo firewall-cmd --permanent --add-port=47923/tcp --add-service=mdns && sudo firewall-cmd --reload
+ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport { 47923, 53317 } accept
+ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } udp dport { 53317, 5353 } accept
 ```
+
+The multicast group 224.0.0.167 is link-local (never routed), so discovery only works in
+the local network segment. Without multicast (for example on guest Wi-Fi with client
+isolation), use "Scan the local network" or "Connect by address".
 
 ## 13. Notes for an Android implementation
 
@@ -364,3 +384,118 @@ sudo firewall-cmd --permanent --add-port=47923/tcp --add-service=mdns && sudo fi
 * Write received data to app storage and verify it before moving it to the Downloads
   collection (`MediaStore`). Apply the same path rules as in section 8.1.
 * Reuse the vectors from section 6.4 as unit tests.
+
+## 14. Part B – LocalSend protocol v2
+
+LuxDrop implements the receiving and the sending side of the
+[LocalSend protocol v2](https://github.com/localsend/protocol) (v2.2, compatible with
+apps that speak 2.0/2.1). It was tested against the official Rust implementation
+(`localsend` crate, the core of the LocalSend app): transfers in both directions,
+text messages, PIN, decline and multicast discovery.
+
+### 14.1 Identity and TLS
+
+* LuxDrop uses its own identity (section 2) also for LocalSend: the same self-signed
+  P-256 certificate. The **LocalSend fingerprint** is SHA-256 of the whole certificate in
+  DER, as 64 uppercase hex characters (official test vector: the certificate in
+  `tests/test_localsend_unit.py` → `4BADDE53…52FA`).
+* HTTPS only, on **TCP 53317**, TLS 1.2 or 1.3, ALPN `http/1.1`. Plain HTTP LocalSend
+  devices (encryption turned off in LocalSend) are shown as "Unencrypted" and nothing is
+  sent to or accepted from them.
+* **Server:** asks for a client certificate (mTLS) but accepts any one; the sender's
+  identity is the fingerprint of the certificate it proved with the TLS handshake.
+  Current LocalSend apps (1.18+) always present one. Older apps send none – such a
+  sender is shown as "identity not verified" and can never be trusted or quick-saved.
+* **Client:** presents the LuxDrop certificate (current LocalSend requires mTLS) and
+  checks the receiver's certificate fingerprint right after the handshake, before any
+  data is sent. The expected value comes from discovery; for a trusted device the pinned
+  key (SHA-256 of SPKI) must also match. A mismatch aborts with `key_mismatch`.
+
+### 14.2 Discovery
+
+* Multicast UDP **224.0.0.167:53317**, JSON:
+  `{"alias","version":"2.2","deviceModel":"LuxOS","deviceType":"desktop","fingerprint",
+  "port","protocol":"https","download":false,"announce":true,"announcement":true}`.
+  `announcement` is the v1 name of `announce`. LuxDrop adds
+  `"luxdrop":{"v":1,"id":"<16 hex>","port":47923}`; other apps ignore unknown fields.
+* LuxDrop announces 3× (after 0.1 s, 0.5 s, 2 s) at start and on "Refresh", on every
+  IPv4 interface.
+* On a foreign announcement LuxDrop answers with `POST /api/localsend/v2/register` to
+  the announcing device (pinned to the announced fingerprint). If that fails it answers
+  with a multicast message with `announce:false` (v2.0/2.1 fallback). While receiving is
+  off, it only remembers the device and does not register.
+* `POST /register` to LuxDrop is accepted only when the claimed fingerprint equals the
+  client certificate's fingerprint (otherwise ignored, like LocalSend). Without a client
+  certificate LuxDrop verifies the device by its own `/register` request back to the
+  sender's address.
+* HTTP fallback scan of the local `/24` subnets – **only on request** ("Scan the local
+  network", `luxdrop devices --scan`), only private (RFC 1918) networks, max. 48
+  parallel requests with a 1 s timeout.
+* A LocalSend device that carries the `luxdrop` field is a LuxOS computer: the UI shows
+  it once and sends with the LuxDrop protocol (Part A, SAS + pinning).
+* `GET /api/localsend/v2/info` and `/api/localsend/v1/info` (old apps probe v1) answer
+  with the device info.
+
+### 14.3 Receiving (`POST /prepare-upload`, `/upload`, `/cancel`)
+
+1. `prepare-upload?pin=…` – with a PIN set, untrusted senders must give it: `401` when
+   missing or wrong; after 3 wrong attempts from one IP `429` for 5 minutes.
+2. Policy (section 7): `off` → `403`; `trusted` and an untrusted sender → `403` without
+   asking.
+3. The body is validated (max. 8 MiB JSON, 100 000 files, sizes 0…2^53, optional SHA-256
+   as 64 hex). File names may contain `/` (folders). They are normalized to NFC, `\` is
+   treated as `/`, control and bidi characters become `_`, empty and `.` components are
+   dropped, components over 255 bytes are shortened; **absolute paths, `~`, drive
+   letters and `..` reject the whole request with `400`**. Collisions (also case and
+   NFC/NFD) get " (2)". A file name that is also a folder of another file → `400`.
+4. Only one session at a time (`409` while another one waits or runs). Disk space:
+   `free − total` must stay ≥ 256 MiB, otherwise `507`.
+5. A single `text/plain` file with `preview` is a **text message**: it is shown
+   (with a Copy button) and the answer is `204` – nothing is saved.
+6. Otherwise the user must Accept (dialog with device name and type, file list, total
+   size) – unless the sender's key is trusted and "Quick save" is on. Decline/timeout
+   (120 s) → `403`. If the sender closes the connection or calls `/cancel` meanwhile,
+   the dialog closes.
+7. Accept → `200 {"sessionId": uuid4, "files": {fileId: token}}` (tokens: 192 random
+   bits, compared in constant time).
+8. `upload?sessionId&fileId&token` must come from the same IP, with the right token, once
+   per file (up to 3 attempts after a broken connection). The body (Content-Length or
+   chunked) is written to `<download folder>/.luxdrop-partial/ls-<random>.part`
+   (`O_EXCL|O_NOFOLLOW`, 0600). More data than announced → `400`; size or SHA-256
+   mismatch → `400`/`422` and the part is deleted. A verified file is moved into place
+   with `link()`/`unlink()` (never overwrites; `name (1).ext` …), folders are created
+   with `mkdirat` + `O_NOFOLLOW`. The file mode is 0644, `metadata.modified` sets mtime.
+9. `/cancel` from the sender's IP ends the session; the receiver's Cancel ends it and
+   sends `POST /cancel?sessionId=…` to the sender's server.
+
+Received files go to `~/Downloads/LuxDrop` (XDG download folder + `LuxDrop`), or the
+folder chosen in Settings.
+
+### 14.4 Sending
+
+`prepare-upload` with all files (relative paths with `/` for folders, SHA-256, MIME type,
+mtime) → on `401` the user is asked for the receiver's PIN → `204` = nothing to send
+(message) / `403` declined / `409` busy / `429` too many PIN attempts → for every
+accepted file `upload` with `Content-Length`. Cancel closes the connection and sends
+`/cancel`. Text is sent as one `text/plain` file with `preview` (shown as a message by
+LocalSend). LocalSend cannot transfer empty folders; they are skipped.
+
+## 15. Security model
+
+| | LuxOS ↔ LuxOS (Part A) | LuxOS ↔ LocalSend (Part B) |
+|-|-|-|
+| Encryption | TLS 1.3 only | TLS 1.2/1.3 (HTTPS); plain-HTTP peers refused |
+| Receiver identity | pinned key; first contact: 6-digit SAS on both screens | certificate fingerprint from discovery, checked before sending; pinned key for trusted devices |
+| Sender identity | ECDSA signature inside TLS + SAS | client certificate (mTLS) of current LocalSend apps; old apps: unverified |
+| Man-in-the-middle on first contact | detected by the SAS (10⁻⁶ chance per attempt) | **not detectable** – LocalSend has no verification code (trust on first use) |
+| Incoming transfer | always needs Accept, unless pinned + Quick save | always needs Accept, unless pinned (via mTLS) + Quick save; optional PIN |
+| Integrity | SHA-256 of every file | TLS + SHA-256 when the sender provides it (LuxDrop always does) |
+
+Why both protocols: LocalSend's model protects against passive eavesdropping and against
+a device that changes its key later, but on first contact an active attacker in the same
+network could pose as the other device, because there is no code to compare. LuxDrop's
+own protocol closes this gap with the SAS, so it stays the default between LuxOS
+computers; LocalSend is used only for devices that cannot speak it. Trusting a LocalSend
+device ("Trust this device" in the accept dialog, off by default) pins the key of its
+client certificate; afterwards a different key with the same name is not trusted and the
+dialog warns about it.

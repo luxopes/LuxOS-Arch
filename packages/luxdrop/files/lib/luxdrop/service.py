@@ -1,7 +1,9 @@
-"""LuxDrop - prijem na pozadi (luxdrop-receiver.service).
+"""LuxDrop - prijem na pozadi (luxdrop-receiver.service), LuxDrop i LocalSend.
 
-Dotazy na prijeti se zobrazuji jako oznameni s tlacitky (org.freedesktop.Notifications).
-Bez oznamovaci sluzby se neduveryhodne prenosy odmitnou.
+Pri dotazu na prijeti se ukaze oznameni a (je-li k dispozici displej) i dialog
+prijeti - stejny jako v okne aplikace. Odpovedet lze v dialogu nebo tlacitky
+v oznameni; plati prvni odpoved. Bez displeje i oznamovaci sluzby se neduveryhodne
+prenosy odmitnou.
 """
 import os
 import signal
@@ -15,7 +17,7 @@ from gi.repository import Gio, GLib  # noqa: E402
 
 from . import proto, transfer  # noqa: E402
 from .cli import _, human  # noqa: E402
-from .discovery import Discovery  # noqa: E402
+from .engine import Engine  # noqa: E402
 
 NOTIFY = "org.freedesktop.Notifications"
 NOTIFY_PATH = "/org/freedesktop/Notifications"
@@ -24,7 +26,7 @@ NOTIFY_PATH = "/org/freedesktop/Notifications"
 class Notifier:
     def __init__(self):
         self.bus = Gio.bus_get_sync(Gio.BusType.SESSION)
-        self.waiting = {}  # id oznameni -> (Event, vysledek)
+        self.waiting = {}  # id oznameni -> callback(klic akce)
         self.open_dirs = {}
         self.bus.signal_subscribe(NOTIFY, NOTIFY, "ActionInvoked", NOTIFY_PATH, None, 0, self._on_action)
         self.bus.signal_subscribe(NOTIFY, NOTIFY, "NotificationClosed", NOTIFY_PATH, None, 0, self._on_closed)
@@ -49,78 +51,122 @@ class Notifier:
     def _on_action(self, _c, _s, _p, _i, _sig, params):
         nid, key = params.unpack()
         if nid in self.waiting:
-            ev, res = self.waiting.pop(nid)
-            res["v"] = key
-            ev.set()
+            self.waiting.pop(nid)(key)
         elif nid in self.open_dirs and key == "open":
             subprocess.Popen(["xdg-open", self.open_dirs.pop(nid)], stdout=subprocess.DEVNULL,
                              stderr=subprocess.DEVNULL)
 
     def _on_closed(self, _c, _s, _p, _i, _sig, params):
         nid, _reason = params.unpack()
-        if nid in self.waiting:
-            ev, res = self.waiting.pop(nid)
-            res.setdefault("v", "decline")
-            ev.set()
+        cb = self.waiting.pop(nid, None)
+        if cb is not None:
+            cb("closed")
 
 
-class NotifyHandler(transfer.Handler):
-    def __init__(self, notifier, settings):
+def gtk_available():
+    """Dialog jen kdyz ma sluzba displej (DISPLAY/WAYLAND_DISPLAY z prostredi relace)."""
+    if not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+        return False
+    try:
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
+        r = Gtk.init_check([])
+        return r[0] if isinstance(r, tuple) else bool(r)
+    except (ValueError, ImportError):
+        return False
+
+
+class ServiceHandler(transfer.Handler):
+    def __init__(self, notifier, settings, use_gtk):
         self.n = notifier
         self.settings = settings
-
-    def _main(self, fn, *a):
-        """Volani v hlavnim vlakne GLib a pockani na vysledek."""
-        ev, box = threading.Event(), {}
-
-        def run():
-            try:
-                box["v"] = fn(*a)
-            except GLib.Error as e:
-                box["e"] = e
-            ev.set()
-            return False
-
-        GLib.idle_add(run)
-        ev.wait(10)
-        if "e" in box or "v" not in box:
-            raise RuntimeError("notification failed")
-        return box["v"]
+        self.use_gtk = use_gtk
 
     def ask(self, req):
-        esc = GLib.markup_escape_text  # telo oznameni muze byt interpretovano jako markup
-        body = _("%s wants to send you %d item(s), %s: %s") % (
-            esc(req.peer_name), len(req.items), human(req.total), esc(", ".join(req.items[:5])))
-        if req.sas:
-            body += "\n" + _("Verification code: %s  (must be the same on the sender's screen)") \
-                % proto.format_sas(req.sas)
-        if req.name_clash:
-            body += "\n" + _("WARNING: this device uses the name of a trusted device, but a different key!")
-        actions = ["decline", _("Decline"), "accept", _("Accept")]
-        if req.sas:
-            actions += ["trust", _("Accept and trust")]
-        try:
-            ev, res = threading.Event(), {}
-            nid = self._main(self.n.notify, _("LuxDrop: incoming files"), body, actions, 0, True)
-            self.n.waiting[nid] = (ev, res)
-        except RuntimeError:
-            return False, False
+        ev, box = threading.Event(), {}
+        ui = {}
+
+        def answer(v, source=None):
+            # Prvni odpoved (dialog nebo oznameni) plati; druhe se zavre
+            if "v" in box:
+                return
+            box["v"] = v
+            ev.set()
+
+            def cleanup():
+                if ui.get("nid") is not None and self.n is not None:
+                    self.n.waiting.pop(ui["nid"], None)
+                    self.n.close(ui["nid"])
+                if ui.get("dlg") is not None and source != "dialog":  # dialog se zavrel sam
+                    try:
+                        ui["dlg"].destroy()
+                    except Exception:  # noqa: BLE001 - dialog uz muze byt zavreny
+                        pass
+                return False
+            GLib.idle_add(cleanup)
+
+        def show():
+            esc = GLib.markup_escape_text  # telo oznameni muze byt interpretovano jako markup
+            if req.message is not None:
+                summary = _("LuxDrop: message from %s") % req.peer_name
+                body = esc(req.message[:300])
+                actions = []
+            else:
+                summary = _("LuxDrop: incoming files")
+                body = _("%s wants to send you %d item(s), %s: %s") % (
+                    esc(req.peer_name), len(req.items), human(req.total), esc(", ".join(req.items[:5])))
+                if req.sas:
+                    body += "\n" + _("Verification code: %s  (must be the same on the sender's screen)") \
+                        % proto.format_sas(req.sas)
+                if req.name_clash:
+                    body += "\n" + _("WARNING: this device uses the name of a trusted device, but a different key!")
+                actions = ["decline", _("Decline"), "accept", _("Accept")]
+                if req.sas:
+                    actions += ["trust", _("Accept and trust")]
+            if self.use_gtk:
+                from . import dialogs
+                ui["dlg"] = dialogs.accept_dialog(req, lambda v: answer(v, "dialog"))
+                # Oznameni az po vykresleni dialogu (spusteni oznamovaci sluzby muze chvili trvat)
+                GLib.timeout_add(300, notify, summary, body, actions)
+            else:
+                notify(summary, body, actions)
+            return False
+
+        def notify(summary, body, actions):
+            if "v" in box:
+                return False
+            if self.n is not None:
+                try:
+                    nid = self.n.notify(summary, body, [] if self.use_gtk else actions, 0 if actions else -1,
+                                        bool(actions))
+                    ui["nid"] = nid
+                    if actions and not self.use_gtk:
+                        self.n.waiting[nid] = lambda key: answer((key in ("accept", "trust"), key == "trust"))
+                except GLib.Error:
+                    if not self.use_gtk:
+                        answer((False, False))
+            elif not self.use_gtk:
+                answer((False, False))
+            return False
+
+        GLib.idle_add(show)
         while not ev.wait(0.5):
             if req.withdrawn.is_set():
-                self.n.waiting.pop(nid, None)
-                GLib.idle_add(self.n.close, nid)
-                return False, False
-        return res.get("v") in ("accept", "trust"), res.get("v") == "trust"
+                answer((False, False))
+        return box["v"]
 
     def finished(self, t):
+        if self.n is None:
+            return
+
         def show():
             try:
-                if t.state == "done":
+                if t.state == "done" and t.saved:
                     nid = self.n.notify(_("LuxDrop: received from %s") % t.peer_name,
                                         GLib.markup_escape_text(", ".join(os.path.basename(p) for p in t.saved[:5])),
                                         ["open", _("Show in folder")])
                     self.n.open_dirs[nid] = self.settings.download_dir
-                elif t.state == "failed":
+                elif t.state == "failed" and t.items:
                     self.n.notify(_("LuxDrop: transfer from %s failed") % t.peer_name,
                                   GLib.markup_escape_text(t.error))
             except GLib.Error:
@@ -135,32 +181,31 @@ def run_service(ctx, args):
         notifier = Notifier()
     except GLib.Error as e:
         print("luxdrop: no session bus: %s" % e.message)
+        notifier = None
+    use_gtk = gtk_available()
+    if notifier is None and not use_gtk:
+        print("luxdrop: neither notifications nor a display are available", flush=True)
         return 1
-    handler = NotifyHandler(notifier, ctx.settings)
-    rx = transfer.Receiver(ctx.identity, ctx.settings, ctx.trust, ctx.history, handler,
-                           bind=args.bind or "", port=args.port)
-    port = rx.start()
-    disc = Discovery()
-    state = {"key": None}
+    handler = ServiceHandler(notifier, ctx.settings, use_gtk)
+    eng = Engine(ctx.identity, ctx.settings, ctx.trust, ctx.history, handler, bind=args.bind or "",
+                 port=args.port, ls_port=args.ls_port, mdns=not args.no_mdns, multicast=not args.no_multicast)
+    eng.start(browse=False)
+    if eng.receiver is None and eng.ls_server is None:
+        print("luxdrop: cannot listen: %s" % "; ".join(e[2] for e in eng.errors), flush=True)
+        return 1
+    for kind, port, err in eng.errors:
+        print("luxdrop: %s %s: %s" % (kind, port or "", err), flush=True)
 
     def sync():
-        # Zverejneni podle aktualniho nastaveni (meni ho graficka aplikace)
-        ctx.settings.reload()
-        key = (ctx.settings.name, ctx.settings.mode() != "off")
-        if key != state["key"]:
-            state["key"] = key
-            if key[1]:
-                disc.publish(ctx.settings.name, ctx.identity.id, port)
-            else:
-                disc.unpublish()
+        eng.sync()  # zmeny nastaveni z okna aplikace
         return True
 
-    sync()
     GLib.timeout_add_seconds(5, sync)
     for sig in (signal.SIGINT, signal.SIGTERM):
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, lambda *_a: (loop.quit(), False)[1])
-    print("luxdrop: receiving in the background on port %d (mode %s)" % (port, ctx.settings.mode()), flush=True)
+    print("luxdrop: receiving in the background (LuxDrop port %s, LocalSend port %s, mode %s, dialogs %s)"
+          % (eng.receiver.port if eng.receiver else "-", eng.ls_server.port if eng.ls_server else "-",
+             ctx.settings.mode(), "yes" if use_gtk else "no"), flush=True)
     loop.run()
-    rx.stop()
-    disc.unpublish()
+    eng.stop()
     return 0

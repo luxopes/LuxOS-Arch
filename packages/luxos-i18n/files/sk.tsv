@@ -1,0 +1,1420 @@
+# LuxOS - slovensky preklad (anglicky text<TAB>slovensky text); %s a %d musia zostat zachovane
+Keyboard Shortcuts	Klávesové skratky
+Shortcut	Skratka
+Action	Akcia
+Close window	Zavrieť okno
+Minimize window	Minimalizovať okno
+Switch windows	Prepínať okná
+Maximize / tile half	Maximalizovať / polovica obrazovky
+Full screen	Celá obrazovka
+Show desktop	Zobraziť plochu
+Switch workspace	Prepnúť plochu
+Files	Súbory
+Terminal	Terminál
+Settings	Nastavenia
+Lock screen	Zamknúť obrazovku
+Switch keyboard layout	Prepnúť rozloženie klávesnice
+Screenshot	Snímka obrazovky
+Screenshot of region	Snímka výrezu
+Screenshot tool	Nástroj na snímky
+System monitor (force quit)	Monitor systému (vynútiť ukončenie)
+Close	Zavrieť
+Desktop & Dock	Plocha a Dock
+Advanced Desktop Settings…	Pokročilé nastavenia plochy…
+Menu Bar Items…	Položky lišty ponuky…
+Appearance	Vzhľad
+Light	Svetlý
+Dark	Tmavý
+Wallpaper	Tapeta
+Choose…	Vybrať…
+Your own picture	Vlastný obrázok
+Choose a picture	Vyberte obrázok
+Pictures	Obrázky
+Dock	Dock
+Automatically hide and show the Dock	Automaticky skrývať a zobrazovať Dock
+The Dock appears when you move the pointer to the bottom edge.	Dock sa zobrazí, keď presuniete ukazovateľ k spodnému okraju.
+Size	Veľkosť
+Magnification	Zväčšovanie
+Magnification size	Miera zväčšenia
+Bottom	Dole
+Left	Vľavo
+Right	Vpravo
+Position on screen	Umiestnenie na obrazovke
+Dock opacity	Nepriehľadnosť Docku
+Menu Bar	Lišta ponuky
+Menu bar opacity	Nepriehľadnosť lišty ponuky
+Battery Saver is on\n	Šetrič batérie je zapnutý\n
+Battery Saver is off\n	Šetrič batérie je vypnutý\n
+Battery	Batéria
+Rolling release · based on Arch Linux	Priebežne aktualizovaný · založený na Arch Linuxe
+Computer	Počítač
+Processor	Procesor
+Memory	Pamäť
+Graphics	Grafika
+Storage	Úložisko
+%s available of %s	%s voľných z %s
+Kernel	Jadro
+Shell	Shell
+About This Computer	O tomto počítači
+Software Update	Aktualizácia softvéru
+Update	Aktualizovať
+Press Enter to close	Stlačte Enter na zatvorenie
+Install LuxOS	Inštalovať LuxOS
+Light Mode	Svetlý režim
+Dark Mode	Tmavý režim
+LuxOS Store	Obchod LuxOS
+Shortcuts	Skratky
+Welcome to LuxOS	Vitajte v LuxOS
+Fast, light and beautifully simple.	Rýchly, ľahký a krásne jednoduchý.
+Search: apps, files and windows	Hľadanie: aplikácie, súbory a okná
+Launchpad: all applications	Launchpad: všetky aplikácie
+close window	zavrieť okno
+screenshot of a region	snímka výrezu obrazovky
+install and update software from Terminal	inštalácia a aktualizácia softvéru z Terminálu
+Control Center	Ovládacie centrum
+Off	Vypnuté
+Ethernet	Ethernet
+Not connected	Nepripojené
+Not available	Nedostupné
+On	Zapnuté
+Wi-Fi	Wi-Fi
+Bluetooth	Bluetooth
+Do Not Disturb	Nerušiť
+Data Saver	Šetrič dát
+Battery Saver	Šetrič batérie
+Display	Displej
+Sound	Zvuk
+Desktop & Dock…	Plocha a Dock…
+All Settings…	Všetky nastavenia…
+Charging	Nabíja sa
+On battery	Na batérii
+Fully charged	Úplne nabité
+Data Saver is on\n	Šetrič dát je zapnutý\n
+Data Saver is off\n	Šetrič dát je vypnutý\n
+AUR is disabled in lux.conf	AUR je v lux.conf vypnutý
+jq is required for AUR support	Pre AUR je potrebný jq
+AUR packages must be built as a regular user (run lux without sudo)	Balíky z AUR sa zostavujú ako bežný používateľ (spustite lux bez sudo)
+Building AUR packages needs %sbase-devel%s and %sgit%s.	Zostavenie balíkov z AUR potrebuje %sbase-devel%s a %sgit%s.
+Install them now?	Nainštalovať ich teraz?
+AUR is not reachable	AUR nie je dostupný
+Package '%s' was not found in repositories or AUR	Balík '%s' sa nenašiel v repozitároch ani v AUR
+Cannot update %s from AUR	%s sa nedá aktualizovať z AUR
+Cannot clone %s from AUR	%s sa nedá stiahnuť z AUR
+Review PKGBUILD of %s before building?	Skontrolovať pred zostavením PKGBUILD balíka %s?
+Build and install %s?	Zostaviť a nainštalovať %s?
+Cancelled	Zrušené
+Building %s %s(AUR)%s	Zostavujem %s %s(AUR)%s
+Build of %s failed (see %s)	Zostavenie %s zlyhalo (pozri %s)
+AUR packages to build: %s	Balíky z AUR na zostavenie: %s
+AUR packages are maintained by the community, not by LuxOS.	Balíky z AUR spravuje komunita, nie LuxOS.
+Continue?	Pokračovať?
+Usage: lux install <package...>	Použitie: lux install <balík...>
+Installing %s from Flathub	Inštalujem %s z Flathubu
+Package '%s' not found. Try: lux search %s	Balík '%s' sa nenašiel. Skúste: lux search %s
+Usage: lux remove <package...>	Použitie: lux remove <balík...>
+Refreshing package databases	Obnovujem databázy balíkov
+Updating system packages	Aktualizujem systémové balíky
+Checking AUR packages	Kontrolujem balíky z AUR
+AUR packages are up to date	Balíky z AUR sú aktuálne
+Updating Flatpak apps	Aktualizujem aplikácie Flatpak
+New config files to review:	Nové konfiguračné súbory na kontrolu:
+Kernel was updated - restart to use it.	Jadro bolo aktualizované - na jeho použitie reštartujte.
+System is up to date	Systém je aktuálny
+Usage: lux search <term>	Použitie: lux search <výraz>
+Usage: lux info <package>	Použitie: lux info <balík>
+Package '%s' not found	Balík '%s' sa nenašiel
+Cleaning package cache (keeping %s versions)	Čistím vyrovnávaciu pamäť balíkov (ponechávam %s verzie)
+Unneeded packages: %s	Nepotrebné balíky: %s
+Remove them?	Odstrániť ich?
+No unneeded packages	Žiadne nepotrebné balíky
+Clean	Hotovo, vyčistené
+All drivers are installed	Všetky ovládače sú nainštalované
+Missing: %s	Chýba: %s
+Install now?	Nainštalovať teraz?
+Drivers installed - restart to activate them	Ovládače nainštalované - aktivujú sa po reštarte
+Finding the fastest mirrors (this can take a minute)	Hľadám najrýchlejšie zrkadlá (môže to chvíľu trvať)
+Mirror list updated	Zoznam zrkadiel aktualizovaný
+LuxOS system check	Kontrola systému LuxOS
+%s failed service(s):	Zlyhané služby: %s
+Services running	Služby bežia
+%s .pacnew config file(s) to merge (pacdiff)	Konfiguračné súbory .pacnew na zlúčenie (pacdiff): %s
+No pending config files	Žiadne čakajúce konfiguračné súbory
+Root filesystem is %s%% full	Koreňový súborový systém je zaplnený na %s %%
+Disk usage %s%%	Využitie disku %s %%
+%s unneeded package(s) - run: lux clean	Nepotrebné balíky: %s - spustite: lux clean
+No orphaned packages	Žiadne osirelé balíky
+%s update(s) available - run: lux update	Dostupné aktualizácie: %s - spustite: lux update
+System up to date	Systém je aktuálny
+Running kernel was replaced - restart	Bežiace jadro bolo nahradené - reštartujte
+%s error message(s) in this boot's log (journalctl -b -p err)	Chybové hlásenia v logu od spustenia: %s (journalctl -b -p err)
+Everything looks good	Všetko vyzerá v poriadku
+LuxOS package manager	správca balíkov LuxOS
+Usage:	Použitie:
+command	príkaz
+options	voľby
+arguments	argumenty
+Options:	Voľby:
+system	systém
+The interactive mode needs fzf (lux install fzf)	Interaktívny režim potrebuje fzf (lux install fzf)
+The interactive mode needs expac (lux install expac)	Interaktívny režim potrebuje expac (lux install expac)
+Enter install · Ctrl-R remove · Ctrl-U update system · Tab select more	Enter inštalovať · Ctrl-R odstrániť · Ctrl-U aktualizovať systém · Tab vybrať viac
+Alt-L LuxOS apps · Alt-I installed · Alt-A all · Esc quit	Alt-L aplikácie LuxOS · Alt-I nainštalované · Alt-A všetko · Esc koniec
+LuxOS apps	Aplikácie LuxOS
+Installed	Nainštalované
+All packages	Všetky balíky
+Search	Hľadať
+Press Enter to continue	Stlačte Enter na pokračovanie
+Usage: lux files <pkg>	Použitie: lux files <balík>
+Usage: lux owner <file>	Použitie: lux owner <súbor>
+Unknown command '%s' (see lux --help)	Neznámy príkaz '%s' (pozri lux --help)
+Open	Otvoriť
+Get	Získať
+Search apps	Hľadať aplikácie
+Discover	Objavovať
+LuxOS Apps	Aplikácie LuxOS
+Categories	Kategórie
+Library	Knižnica
+Updates	Aktualizácie
+From LuxOS	Od LuxOS
+Popular apps	Obľúbené aplikácie
+Apps made for LuxOS, signed by the LuxOS team.	Aplikácie vytvorené pre LuxOS, podpísané tímom LuxOS.
+Results for “%s”	Výsledky pre „%s“
+Welcome to the LuxOS Store	Vitajte v Obchode LuxOS
+%d apps from LuxOS and Arch Linux, installed with one click.	%d aplikácií z LuxOS a Arch Linuxu, inštalácia jedným kliknutím.
+Nothing here yet.	Zatiaľ tu nič nie je.
+Check for Updates	Vyhľadať aktualizácie
+Update All	Aktualizovať všetko
+Everything is up to date.	Všetko je aktuálne.
+%d updates available: %s	Dostupné aktualizácie (%d): %s
+Checking for updates…	Kontrolujem aktualizácie…
+Updating system…	Aktualizujem systém…
+Data Saver is on - updates are not checked automatically.	Šetrič dát je zapnutý - aktualizácie sa nekontrolujú automaticky.
+Remove	Odstrániť
+Version	Verzia
+Package	Balík
+About	O aplikácii
+Website	Web
+%s is installed, but has no window to open.	%s je nainštalovaná, ale nemá okno na otvorenie.
+Installing %s…	Inštalujem %s…
+Remove %s?	Odstrániť %s?
+The app will be removed from this computer. Your files stay untouched.	Aplikácia bude z počítača odstránená. Vaše súbory zostanú zachované.
+Removing %s…	Odstraňujem %s…
+Done.	Hotovo.
+Cancelled.	Zrušené.
+Failed: %s	Nepodarilo sa: %s
+interactive app store in the terminal	interaktívny obchod s aplikáciami v termináli
+install packages (repositories, then AUR / Flathub)	inštalovať balíky (repozitáre, potom AUR / Flathub)
+remove packages and their unneeded dependencies	odstrániť balíky a ich nepotrebné závislosti
+update everything (system, AUR, Flatpak)	aktualizovať všetko (systém, AUR, Flatpak)
+search repositories and AUR	hľadať v repozitároch a AUR
+show package details	podrobnosti o balíku
+list installed packages	zoznam nainštalovaných balíkov
+files installed by a package	súbory nainštalované balíkom
+which package owns a file	ktorému balíku patrí súbor
+clean cache and remove unneeded packages	vyčistiť vyrovnávaciu pamäť a odstrániť nepotrebné balíky
+detect and install missing drivers	nájsť a nainštalovať chýbajúce ovládače
+pick the fastest download mirrors	vybrať najrýchlejšie zrkadlá na sťahovanie
+check system health	skontrolovať stav systému
+recent package changes	posledné zmeny balíkov
+do not ask for confirmation	nepýtať sa na potvrdenie
+only official repositories	len oficiálne repozitáre
+only AUR	len AUR
+this help	tento pomocník
+version	verzia
+Internet	Internet
+Office	Kancelária
+Music & Video	Hudba a video
+Developer Tools	Vývojárske nástroje
+Games	Hry
+Education & Science	Vzdelávanie a veda
+Utilities	Nástroje
+System	Systém
+Error	Chyba
+Calculator	Kalkulačka
+# Instalator
+Installation failed (line %s, exit code %s).	Inštalácia zlyhala (riadok %s, návratový kód %s).
+Details are in %s. Last lines:	Podrobnosti sú v %s. Posledné riadky:
+Warning: not running from the LuxOS live system.	Upozornenie: nebeží zo živého systému LuxOS.
+No internet connection	Chýba pripojenie k internetu
+LuxOS downloads the newest packages during installation.	LuxOS počas inštalácie sťahuje najnovšie balíky.
+Connect with the network icon in the top bar, or use the text tool.	Pripojte sa ikonou siete v hornej lište alebo použite textový nástroj.
+Try again	Skúsiť znova
+Open network setup (nmtui)	Otvoriť nastavenia siete (nmtui)
+Quit	Ukončiť
+Other…	Iné…
+Type to search	Píšte na vyhľadávanie
+Choose locale	Vyberte miestne nastavenie
+Language: %s	Jazyk: %s
+The installation takes about 10 minutes.	Inštalácia trvá asi 10 minút.
+Keyboard	Klávesnica
+Choose your keyboard layout	Vyberte rozloženie klávesnice
+Layout	Rozloženie
+Variant	Variant
+Keyboard: %s	Klávesnica: %s
+Time zone	Časové pásmo
+Use detected time zone %s?	Použiť zistené časové pásmo %s?
+Choose time zone	Vyberte časové pásmo
+Time zone: %s	Časové pásmo: %s
+Disk	Disk
+Advanced: use partitions already mounted at %s	Pokročilé: použiť oddiely pripojené v %s
+Where should LuxOS be installed?	Kam nainštalovať LuxOS?
+Nothing is mounted at %s. Mount root (and /boot) first.	V %s nie je nič pripojené. Najprv pripojte koreňový oddiel (a /boot).
+All data on %s will be erased.	Všetky dáta na %s budú vymazané.
+Yes	Áno
+No	Nie
+Encrypt the disk? (you will enter a password at every start)	Zašifrovať disk? (heslo zadáte pri každom štarte)
+Disk encryption password	Heslo na šifrovanie disku
+Your account	Váš účet
+Full name	Celé meno
+Jane Doe	Jana Nováková
+User name (lowercase)	Používateľské meno (malými písmenami)
+Use lowercase letters, numbers, - and _ (max 32 characters).	Použite malé písmená, číslice, - a _ (najviac 32 znakov).
+Password	Heslo
+Computer name	Názov počítača
+Use letters, numbers and - (no spaces).	Použite písmená, číslice a - (bez medzier).
+Log in automatically without a password?	Prihlasovať automaticky bez hesla?
+Password cannot be empty.	Heslo nesmie byť prázdne.
+%s (again)	%s (znova)
+Passwords do not match, try again.	Heslá sa nezhodujú, skúste to znova.
+Summary	Súhrn
+Language	Jazyk
+mounted at %s	pripojené v %s
+%s  (will be ERASED)	%s  (bude VYMAZANÝ)
+Encryption	Šifrovanie
+yes	áno
+no	nie
+User	Používateľ
+Boot mode	Režim spúšťania
+Install	Inštalovať
+Cancel	Zrušiť
+Install LuxOS now?	Nainštalovať LuxOS teraz?
+Preparing disk %s	Pripravujem disk %s
+Partitions were not created correctly	Oddiely neboli vytvorené správne
+Encrypting the disk	Šifrujem disk
+Creating file systems	Vytváram súborové systémy
+Detecting hardware	Rozpoznávam hardvér
+Installing packages (this is the longest step)	Inštalujem balíky (najdlhší krok)
+Download failed (attempt %s), retrying…	Sťahovanie zlyhalo (pokus %s), skúšam znova…
+Packages could not be installed. Check the internet connection.	Balíky sa nepodarilo nainštalovať. Skontrolujte pripojenie k internetu.
+Configuring the system	Nastavujem systém
+Could not add UEFI boot entry (fallback loader will be used)	Nepodarilo sa pridať položku UEFI (použije sa záložný zavádzač)
+Finishing	Dokončujem
+LuxOS is installed	LuxOS je nainštalovaný
+Remove the installation media and restart your computer.	Vyberte inštalačné médium a reštartujte počítač.
+Restart	Reštartovať
+Later	Neskôr
+Restart now?	Reštartovať teraz?
+Config needs DISK, USERNAME and PASSWORD	Konfigurácia musí obsahovať DISK, USERNAME a PASSWORD
+Invalid USERNAME	Neplatné USERNAME
+Invalid HOSTNAME_SEL	Neplatné HOSTNAME_SEL
+ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 vyžaduje LUKS_PASS
+# Rozlozeni klavesnice (instalator)
+English (US)	Angličtina (USA)
+Czech	Čeština
+Czech (QWERTY)	Čeština (QWERTY)
+Slovak	Slovenčina
+Slovak (QWERTY)	Slovenčina (QWERTY)
+German	Nemčina
+English (UK)	Angličtina (Británia)
+French	Francúzština
+Spanish	Španielčina
+Italian	Taliančina
+Polish	Poľština
+Hungarian	Maďarčina
+Ukrainian	Ukrajinčina
+Portuguese	Portugalčina
+Portuguese (Brazil)	Portugalčina (Brazília)
+Swedish	Švédčina
+# Nazvy aplikaci v horni liste
+Desktop	Plocha
+Text Editor	Textový editor
+Image Viewer	Prehliadač obrázkov
+Document Viewer	Prehliadač dokumentov
+System Monitor	Monitor systému
+# Monitory
+Extend - use both screens	Rozšíriť - použiť obe obrazovky
+Mirror - same picture on both	Zrkadliť - rovnaký obraz na oboch
+Only external screen	Len externá obrazovka
+Only this computer's screen	Len obrazovka tohto počítača
+Screens	Obrazovky
+# Baterie a napajeni
+Battery…	Batéria…
+Battery Saver is on	Šetrič batérie je zapnutý
+Battery is at %s %%. Connect the charger.	Batéria je na %s %%. Pripojte nabíjačku.
+%d min	%d min
+%d h %d min	%d h %d min
+now	teraz
+No history yet	Zatiaľ žiadna história
+Battery & Power	Batéria a napájanie
+Power usage	Spotreba
+Battery health	Stav batérie
+Charge cycles	Nabíjacie cykly
+Energy	Energia
+Battery level - last 24 hours	Stav batérie - posledných 24 hodín
+Power usage - last 24 hours	Spotreba - posledných 24 hodín
+This computer runs on mains power - there is no battery.	Tento počítač beží zo siete - nemá batériu.
+Power mode	Výkonový režim
+Power Saver	Úsporný
+Longest battery life	Najdlhšia výdrž batérie
+Balanced	Vyvážený
+Recommended	Odporúčané
+Performance	Výkon
+Fastest, uses more power	Najrýchlejší, viac spotrebúva
+Saves energy: power saving mode and fewer animations.	Šetrí energiu: úsporný režim a menej animácií.
+Turn on automatically at 20 %	Zapnúť automaticky pri 20 %
+Turns off again when the computer is charging.	Pri nabíjaní sa znova vypne.
+Screen and sleep	Obrazovka a spánok
+Never	Nikdy
+1 minute	1 minúta
+2 minutes	2 minúty
+5 minutes	5 minút
+10 minutes	10 minút
+15 minutes	15 minút
+30 minutes	30 minút
+1 hour	1 hodina
+2 hours	2 hodiny
+Turn off the screen on battery after	Vypnúť obrazovku na batérii po
+Turn off the screen on power adapter after	Vypnúť obrazovku na adaptéri po
+Sleep on battery after	Uspať na batérii po
+Sleep on power adapter after	Uspať na adaptéri po
+Sleep	Uspať
+Turn off the screen	Vypnúť obrazovku
+Hibernate	Hibernovať
+When the lid is closed	Po zatvorení veka
+Advanced Power Settings…	Pokročilé nastavenia napájania…
+%s minutes	%s minút
+full in %s	úplne nabité o %s
+about %s left	zostáva asi %s
+Plugged in, not charging	Pripojené, nenabíja sa
+charging power	nabíjací výkon
+current consumption	aktuálna spotreba
+of original capacity	pôvodnej kapacity
+full charge cycles	úplných nabití
+of %.1f Wh	z %.1f Wh
+# Bluetooth
+OK	OK
+Rejected	Odmietnuté
+Pair this device?	Spárovať toto zariadenie?
+Check that the device shows this code:	Skontrolujte, či zariadenie zobrazuje tento kód:
+Pair	Spárovať
+Type this code on the device	Napíšte tento kód na zariadení
+Then press Enter on it.	Potom na ňom stlačte Enter.
+Enter the PIN code	Zadajte PIN
+Usually 0000 or 1234, see the device manual.	Zvyčajne 0000 alebo 1234, pozrite návod k zariadeniu.
+Enter the code	Zadajte kód
+Code shown on the device:	Kód zobrazený na zariadení:
+Connected	Pripojené
+battery %d %%	batéria %d %%
+Disconnect	Odpojiť
+Connect	Pripojiť
+Forget this device	Zabudnúť toto zariadenie
+My devices	Moje zariadenia
+Nearby devices	Zariadenia v okolí
+No devices	Žiadne zariadenia
+Searching… Put the device into pairing mode.	Hľadám… Prepnite zariadenie do režimu párovania.
+No Bluetooth adapter was found on this computer.	V tomto počítači sa nenašiel adaptér Bluetooth.
+Visible as “%s”.	Viditeľné ako „%s“.
+Turn on Bluetooth to connect headphones, a mouse, a keyboard or a phone.	Zapnite Bluetooth a pripojte slúchadlá, myš, klávesnicu alebo telefón.
+Could not connect	Nepodarilo sa pripojiť
+Pairing…	Párujem…
+Connecting…	Pripájam…
+Disconnecting…	Odpájam…
+Make sure the device is on, close by and in pairing mode.	Skontrolujte, či je zariadenie zapnuté, nablízku a v režime párovania.
+Headphones	Slúchadlá
+Speaker	Reproduktor
+Mouse	Myš
+Game controller	Herný ovládač
+Tablet	Tablet
+Phone	Telefón
+Device	Zariadenie
+# Monitor systemu
+60 s ago	pred 60 s
+%d processes	%d procesov
+1 process	1 proces
+All processes	Všetky procesy
+Network	Sieť
+Name	Názov
+%d cores	%d jadier
+%s of %s used	využité %s z %s
+%s free · activity %s	voľné %s · aktivita %s
+Download and upload	Sťahovanie a odosielanie
+All processes (%d)	Všetky procesy (%d)
+Open apps (%d)	Otvorené aplikácie (%d)
+%s is not responding	%s nereaguje
+Force quit it? Unsaved changes will be lost.	Vynútiť ukončenie? Neuložené zmeny sa stratia.
+Force Quit	Vynútiť ukončenie
+# lux - format balicku
+Updating LuxOS apps	Aktualizujem aplikácie LuxOS
+Usage: lux pack <directory> [output]	Použitie: lux pack <adresár> [výstup]
+%s has no lux.json	%s nemá lux.json
+lux.json is not valid JSON	lux.json nie je platný JSON
+Invalid package name: %s	Neplatný názov balíka: %s
+Invalid version: %s	Neplatná verzia: %s
+%s has no app/ directory	%s nemá adresár app/
+Missing files listed in bin: %s	Chýbajú súbory uvedené v bin: %s
+Built %s	Zostavené %s
+%s is not a lux package	%s nie je balík lux
+This package needs a newer lux	Tento balík potrebuje novší lux
+Signature OK (LuxOS)	Podpis v poriadku (LuxOS)
+%s is not signed by LuxOS.	%s nie je podpísaný LuxOS.
+Install it anyway?	Napriek tomu nainštalovať?
+Installing dependencies: %s	Inštalujem závislosti: %s
+Dependencies could not be installed	Závislosti sa nepodarilo nainštalovať
+Installing %s %s	Inštalujem %s %s
+Could not unpack %s	%s sa nedá rozbaliť
+%s is installed	%s je nainštalované
+Removing %s	Odstraňujem %s
+%s was removed	%s bolo odstránené
+Downloading %s	Sťahujem %s
+Download failed: %s	Sťahovanie zlyhalo: %s
+Checksum mismatch: %s	Nesúhlasí kontrolný súčet: %s
+Bad signature: %s	Neplatný podpis: %s
+LuxOS package (.lux)	balík LuxOS (.lux)
+build a .lux package from a directory with lux.json	zostaviť balík .lux z adresára s lux.json
+# Kalkulacka - vedecky rezim
+Scientific (Ctrl+2)	Vedecká (Ctrl+2)
+Degrees / radians	Stupne / radiány
+# Ucet LuxAI
+Sign in to LuxAI	Prihlásiť sa do LuxAI
+LuxAI Account	Účet LuxAI
+AI in LuxAI, Lux Code and LSL IDE	AI v LuxAI, Lux Code a LSL IDE
+Sign-in failed (%s).	Prihlásenie sa nepodarilo (%s).
+Not signed in. Run: luxos-account login	Neprihlásené. Spustite: luxos-account login
+One account for AI in LuxOS: LuxAI, Lux Code and LSL IDE.	Jeden účet pre AI v LuxOS: LuxAI, Lux Code a LSL IDE.
+Sign in with the browser	Prihlásiť sa cez prehliadač
+or with e-mail	alebo e-mailom
+E-mail	E-mail
+Sign In	Prihlásiť sa
+Send me a code instead	Poslať kód e-mailom
+No account yet?	Ešte nemáte účet?
+Create an account	Vytvoriť účet
+Enter your e-mail and password.	Zadajte e-mail a heslo.
+Enter your e-mail first.	Najprv zadajte e-mail.
+Enter the code from the e-mail	Zadajte kód z e-mailu
+We sent a 6-digit code to %s.	Na %s sme poslali šesťmiestny kód.
+Confirm the sign-in in the browser…	Potvrďte prihlásenie v prehliadači…
+After you confirm your e-mail, come back and sign in.	Po potvrdení e-mailu sa vráťte a prihláste sa.
+AI usage this month	Spotreba AI tento mesiac
+Unlimited	Bez obmedzenia
+%s: %s of %s tokens	%s: %s z %s tokenov
+Loading…	Načítava sa…
+Used by	Používajú
+Manage on lux-ai.cz	Spravovať na lux-ai.cz
+Sign Out	Odhlásiť sa
+Your session has expired. Please sign in again.	Prihlásenie vypršalo. Prihláste sa, prosím, znova.
+Sign out of LuxAI?	Odhlásiť sa z LuxAI?
+LuxAI, Lux Code and LSL IDE will stop using this account on this computer.	LuxAI, Lux Code a LSL IDE prestanú na tomto počítači používať tento účet.
+LuxAI account	Účet LuxAI
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account.	Nepovinné: AI v LuxAI, Lux Code a LSL IDE používa váš účet LuxAI.
+Sign in	Prihlásiť
+Skip	Preskočiť
+Sign in to your LuxAI account now?	Prihlásiť sa teraz do účtu LuxAI?
+Signed in as %s	Prihlásené ako %s
+Sign-in failed. Try again?	Prihlásenie sa nepodarilo. Skúsiť znova?
+Wrong e-mail or password.	Nesprávny e-mail alebo heslo.
+The e-mail address is not verified yet.	E-mailová adresa ešte nie je overená.
+LuxAI is not reachable. Check the internet connection.	LuxAI nie je dostupné. Skontrolujte pripojenie k internetu.
+signed in	prihlásené
+not signed in	neprihlásené
+LuxAI sign-in failed - continuing without it.	Prihlásenie do LuxAI sa nepodarilo - pokračujem bez neho.
+The e-mail address is not verified yet. Use the sign-in code instead.	E-mail ešte nie je overený. Použite prihlásenie kódom.
+The code is not valid or has expired.	Kód nie je platný alebo vypršal.
+Too many attempts. Try again later.	Príliš veľa pokusov. Skúste to neskôr.
+Please wait a minute before requesting another code.	Pred ďalším kódom počkajte minútu.
+The browser sign-in timed out.	Prihlásenie cez prehliadač vypršalo.
+The sign-in was cancelled.	Prihlásenie bolo zrušené.
+# Spořič a zámek
+Screen Saver & Lock	Šetrič a zámka
+Screen saver	Šetrič obrazovky
+Start after inactivity of	Spustiť po nečinnosti
+LuxOS - wallpapers and clock	LuxOS - tapety a hodiny
+Black screen	Čierna obrazovka
+Preview	Ukážka
+Lock	Zámka
+Immediately	Hneď
+After 1 minute	Po 1 minúte
+After 5 minutes	Po 5 minútach
+After 15 minutes	Po 15 minútach
+Require password after the screen saver starts	Vyžadovať heslo po spustení šetriča
+The screen saver protects your computer while you are away.	Šetrič chráni počítač, keď od neho odídete.
+Lock when the computer goes to sleep	Zamknúť pri uspaní počítača
+Lock Now	Zamknúť teraz
+# Trezor
+Could not create the Safe folder.	Priečinok Trezor sa nepodarilo vytvoriť.
+The Safe already exists.	Trezor už existuje.
+Could not create the Safe (%s).	Trezor sa nepodarilo vytvoriť (%s).
+Wrong password.	Nesprávne heslo.
+Could not unlock the Safe (%s).	Trezor sa nepodarilo odomknúť (%s).
+Some files in the Safe are still open. Close them and try again.	Niektoré súbory v Trezore sú ešte otvorené. Zatvorte ich a skúste to znova.
+Could not change the password (%s).	Heslo sa nepodarilo zmeniť (%s).
+Safe	Trezor
+Create your Safe	Vytvorte si Trezor
+Files in the Safe are encrypted and open only with its own password - not even an administrator can read them while the Safe is locked.	Súbory v Trezore sú zašifrované a otvoria sa len jeho vlastným heslom - kým je Trezor zamknutý, neprečíta ich ani správca počítača.
+New Safe password	Nové heslo Trezoru
+Password again	Heslo znova
+Use at least 8 characters.	Použite aspoň 8 znakov.
+Create Safe	Vytvoriť Trezor
+If you forget this password, the files cannot be recovered.	Ak heslo zabudnete, súbory už nebude možné obnoviť.
+The Safe is locked	Trezor je zamknutý
+Enter the Safe password to open %s.	Zadajte heslo Trezoru a otvorte %s.
+Unlock	Odomknúť
+The Safe is unlocked	Trezor je odomknutý
+Your files are available in %s.	Vaše súbory sú v %s.
+Open Safe	Otvoriť Trezor
+Lock automatically after inactivity	Zamknúť automaticky po nečinnosti
+Lock when the screen locks	Zamknúť pri zamknutí obrazovky
+The Safe always locks when the computer goes to sleep or you log out.	Pri uspaní počítača alebo odhlásení sa Trezor zamkne vždy.
+Change Password…	Zmeniť heslo…
+Change Password	Zmeniť heslo
+Change	Zmeniť
+Current password	Súčasné heslo
+# Sandbox (luxos-sandbox)
+Creating sandbox (minimal Arch Linux system), this can take a few minutes...	Vytváram sandbox (minimálny systém Arch Linux), môže to trvať niekoľko minút...
+Sandbox deleted.	Sandbox bol vymazaný.
+No sandbox yet. Create it with: luxos-sandbox create	Sandbox zatiaľ neexistuje. Vytvoríte ho príkazom: luxos-sandbox create
+Creating the sandbox failed.	Vytvorenie sandboxu sa nepodarilo.
+Sandbox is ready: %s	Sandbox je pripravený: %s
+Size: %s	Veľkosť: %s
+Shared folder: %s (only with --shared)	Zdieľaný priečinok: %s (len s --shared)
+Installed apps: %s	Nainštalované aplikácie: %s
+Copying the file into the sandbox failed.	Kopírovanie súboru do sandboxu sa nepodarilo.
+Usage: luxos-sandbox run [--net] [--gui] [--shared] <command...>	Použitie: luxos-sandbox run [--net] [--gui] [--shared] <príkaz...>
+No package given.	Nebol zadaný žiadny balík.
+Confirmation needed: add --yes	Je potrebné potvrdenie: pridajte --yes
+Wipe the whole sandbox (all installed apps and files inside) and create it again?	Vymazať celý sandbox (všetky aplikácie a súbory v ňom) a vytvoriť ho znova?
+Resetting the sandbox failed.	Obnovenie sandboxu sa nepodarilo.
+Delete the sandbox with everything inside? (~/Sandbox stays)	Vymazať sandbox so všetkým, čo obsahuje? (~/Sandbox zostane)
+Deleting the sandbox failed.	Vymazanie sandboxu sa nepodarilo.
+Run luxos-sandbox as a normal user, not root.	Spúšťajte luxos-sandbox ako bežný používateľ, nie ako root.
+Sandbox directory is not owned by you: %s	Adresár sandboxu vám nepatrí: %s
+Xephyr is not installed (package xorg-server-xephyr).	Xephyr nie je nainštalovaný (balík xorg-server-xephyr).
+Could not start the sandbox window (Xephyr).	Nepodarilo sa otvoriť okno sandboxu (Xephyr).
+Network for the sandbox needs pasta (package passt).	Sieť pre sandbox potrebuje pasta (balík passt).
+Warning: systemd user session not available, running without memory/CPU limits.	Upozornenie: používateľská relácia systemd nie je dostupná, spúšťam bez obmedzenia pamäte a procesora.
+The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	Sandbox je poškodený (domovský priečinok nie je adresár). Spustite: luxos-sandbox reset
+bubblewrap (bwrap) is not installed.	bubblewrap (bwrap) nie je nainštalovaný.
+Sandbox already exists: %s	Sandbox už existuje: %s
+Helper not found: %s	Pomocný program sa nenašiel: %s
+Link: %s	Odkaz: %s
+none	žiadne
+Not a regular file: %s	Nie je to bežný súbor: %s
+Copying %s into the sandbox...	Kopírujem %s do sandboxu...
+isolated sandbox for untrusted applications	izolovaný sandbox pre nedôveryhodné aplikácie
+Unknown command: %s	Neznámy príkaz: %s
+Unknown option: %s	Neznáma voľba: %s
+Shared folder is not usable: %s	Zdieľaný priečinok sa nedá použiť: %s
+Could not set up the sandbox network: %s	Nepodarilo sa nastaviť sieť sandboxu: %s
+create your sandbox (asks for the administrator password once)	vytvorí váš sandbox (raz sa opýta na heslo správcu)
+show the sandbox, its size and installed apps	zobrazí sandbox, jeho veľkosť a nainštalované aplikácie
+interactive shell inside the sandbox	interaktívny príkazový riadok v sandboxe
+run a command (a file from your computer is copied in first)	spustí príkaz (súbor z počítača sa najprv skopíruje dovnútra)
+install apps from the Arch Linux repositories into the sandbox	nainštaluje aplikácie z repozitárov Arch Linuxu do sandboxu
+remove apps from the sandbox	odstráni aplikácie zo sandboxu
+wipe the sandbox and create it again	vymaže sandbox a vytvorí ho znova
+delete the sandbox	vymaže sandbox
+network: internet only, no local network, no services of this computer	sieť: len internet, žiadna miestna sieť ani služby tohto počítača
+own window (nested X server), never your desktop	vlastné okno (vnorený X server), nikdy vaša plocha
+make ~/Sandbox visible as /home/sandbox/Shared	sprístupní ~/Sandbox ako /home/sandbox/Shared
+Get started	Začíname
+No sandbox yet	Sandbox zatiaľ neexistuje
+Creates a minimal Arch Linux system only for you. Needs the administrator password once and a few minutes.	Vytvorí minimálny systém Arch Linux len pre vás. Raz je potrebné heslo správcu a niekoľko minút.
+Installed apps	Nainštalované aplikácie
+Install app	Inštalovať aplikáciu
+From Arch Linux repositories	Z repozitárov Arch Linuxu
+Installs into the sandbox only; network is enabled just for the download.	Inštaluje sa len do sandboxu; sieť je zapnutá iba na sťahovanie.
+Run app	Spustiť aplikáciu
+Command	Príkaz
+Downloaded file	Stiahnutý súbor
+The file is copied into the sandbox first; the original is never exposed.	Súbor sa najprv skopíruje do sandboxu; originál zostane mimo jeho dosahu.
+Internet only - no access to your local network or this computer.	Len internet – bez prístupu do miestnej siete a k tomuto počítaču.
+Window	Okno
+Show the app in its own separate window (not on your desktop).	Zobraziť aplikáciu vo vlastnom oddelenom okne (nie na vašej ploche).
+Shared folder	Zdieľaný priečinok
+Tools	Nástroje
+Terminal in sandbox	Terminál v sandboxe
+Uses the Network and Shared folder switches above.	Použije prepínače Sieť a Zdieľaný priečinok vyššie.
+Reset sandbox	Obnoviť sandbox
+Deletes everything inside the sandbox and creates it again.	Vymaže všetko v sandboxe a vytvorí ho znova.
+Creating sandbox…	Vytváram sandbox…
+Sandbox is ready.	Sandbox je pripravený.
+Installed.	Nainštalované.
+Run	Spustiť
+Reset the sandbox?	Obnoviť sandbox?
+All apps and files inside the sandbox will be deleted. ~/Sandbox stays.	Všetky aplikácie a súbory v sandboxe budú vymazané. ~/Sandbox zostane.
+Continue	Pokračovať
+An isolated system for apps you don't trust. Apps inside can't see your files, network or desktop.	Izolovaný systém pre aplikácie, ktorým nedôverujete. Aplikácie vnútri nevidia vaše súbory, sieť ani plochu.
+Create Sandbox	Vytvoriť sandbox
+Package name, e.g. firefox	Názov balíka, napr. firefox
+Command, e.g. firefox	Príkaz, napr. firefox
+Choose File…	Vybrať súbor…
+Make %s visible inside as Shared. Treat files from it as untrusted.	Sprístupniť %s vnútri ako Shared. Súbory z neho považujte za nedôveryhodné.
+Open Terminal	Otvoriť terminál
+Reset…	Obnoviť…
+Details	Podrobnosti
+Ready	Pripravené
+Not created	Nevytvorené
+No apps installed yet	Zatiaľ žiadne aplikácie
+Failed - see Details.	Nepodarilo sa – pozri Podrobnosti.
+Enter a valid package name.	Zadajte platný názov balíka.
+Remove %s from the sandbox?	Odstrániť %s zo sandboxu?
+Removed.	Odstránené.
+Started %s in the sandbox.	%s spustené v sandboxe.
+Enter a command.	Zadajte príkaz.
+Choose a file to run in the sandbox	Vyberte súbor na spustenie v sandboxe
+Resetting sandbox…	Obnovujem sandbox…
+# Kalendar (luxos-calendar)
+Calendar	Kalendár
+All day	Celý deň
+Changes apply to all occurrences.	Zmeny platia pre všetky výskyty.
+Could not save: %s	Nedá sa uložiť: %s
+Custom	Vlastné
+Date	Dátum
+Day	Deň
+Delete All?	Vymazať všetko?
+Delete Event?	Vymazať udalosť?
+Delete	Vymazať
+Edit Event	Upraviť udalosť
+Ends	Koniec
+Event	Udalosť
+From %s	Od %s
+In %d minutes	O %d minút
+Invalid date.	Neplatný dátum.
+Invalid time.	Neplatný čas.
+Month	Mesiac
+New Event	Nová udalosť
+Next day	Ďalší deň
+Next month	Ďalší mesiac
+Next year	Ďalší rok
+No events today	Dnes žiadne udalosti
+No events	Žiadne udalosti
+Now	Teraz
+Previous day	Predchádzajúci deň
+Previous month	Predchádzajúci mesiac
+Previous year	Predchádzajúci rok
+Read-only calendar: %s	Kalendár len na čítanie: %s
+Remind %d minutes before	Pripomenúť %d minút vopred
+Repeat	Opakovať
+Save	Uložiť
+Starts	Začiatok
+The event must end after it starts.	Udalosť musí skončiť až po začiatku.
+Title	Názov
+Today	Dnes
+Until %s	Do %s
+Year	Rok
+Daily	Denne
+Weekly	Týždenne
+Monthly	Mesačne
+Yearly	Ročne
+Monday	pondelok
+Tuesday	utorok
+Wednesday	streda
+Thursday	štvrtok
+Friday	piatok
+Saturday	sobota
+Sunday	nedeľa
+Mo	po
+Tu	ut
+We	st
+Th	št
+Fr	pi
+Sa	so
+Su	ne
+January	január
+February	február
+March	marec
+April	apríl
+May	máj
+June	jún
+July	júl
+August	august
+September	september
+October	október
+November	november
+December	december
+of January	januára
+of February	februára
+of March	marca
+of April	apríla
+of May	mája
+of June	júna
+of July	júla
+of August	augusta
+of September	septembra
+of October	októbra
+of November	novembra
+of December	decembra
+Enter Password	Zadajte heslo
+Shut Down	Vypnúť
+Guest	Hosť
+Username	Používateľské meno
+Log In	Prihlásiť
+Caps Lock is on	Je zapnutý Caps Lock
+Incorrect password. Try again.	Nesprávne heslo. Skúste to znova.
+Could not start the session.	Reláciu sa nepodarilo spustiť.
+This action is not available right now.	Táto akcia teraz nie je dostupná.
+# LuxDrop
+Device '%s' not found on the network. Use an address: luxdrop send HOST[:PORT] FILES	Zariadenie „%s“ sa v sieti nenašlo. Použite adresu: luxdrop send HOST[:PORT] SÚBORY
+Transfer failed: %s (%s)	Prenos sa nepodaril: %s (%s)
+WARNING: someone may be impersonating this device. Nothing was sent. If the device was reinstalled, remove it with 'luxdrop trust remove ID' and pair again.	VAROVANIE: niekto sa možno vydáva za toto zariadenie. Nič nebolo odoslané. Ak bolo zariadenie preinštalované, odstráňte ho príkazom „luxdrop trust remove ID“ a spárujte znova.
+Receiving as "%s" (ID %s) on port %d, mode: %s, folder: %s	Príjem ako „%s“ (ID %s) na porte %d, režim: %s, priečinok: %s
+Nearby devices:	Zariadenia v okolí:
+No devices found nearby (is avahi-daemon running?).	V okolí sa nenašli žiadne zariadenia (beží avahi-daemon?).
+No trusted devices.	Žiadne dôveryhodné zariadenia.
+Name: %s	Názov: %s
+ID: %s	ID: %s
+Fingerprint: %s	Odtlačok: %s
+Send files securely between LuxOS computers.	Bezpečné posielanie súborov medzi počítačmi s LuxOS.
+send files or folders	odoslať súbory alebo priečinky
+device name, ID, HOST[:PORT] or NAME@HOST[:PORT]	názov zariadenia, ID, HOST[:PORT] alebo NÁZOV@HOST[:PORT]
+do not trust the receiver after verification	po overení príjemcovi nedôverovať
+receive files in the terminal	prijímať súbory v termináli
+listen only on this address	počúvať len na tejto adrese
+who can send (everyone = for 10 minutes)	kto smie posielať (everyone = na 10 minút)
+download folder	priečinok na prijaté súbory
+do not announce on the network	neohlasovať sa v sieti
+list nearby devices	vypísať zariadenia v okolí
+list or remove trusted devices	vypísať alebo odstrániť dôveryhodné zariadenia
+ID or name	ID alebo názov
+show this device's name and fingerprint	zobraziť názov a odtlačok tohto zariadenia
+show or set who can send to this computer	zobraziť alebo nastaviť, kto smie posielať na tento počítač
+Receiver: %s (ID %s)	Príjemca: %s (ID %s)
+Verification code: %s	Overovací kód: %s
+Does %s show the same code? [y]es and remember / [o]nly this time / [N]o: 	Zobrazuje %s rovnaký kód? [y] áno a zapamätať / [o] len tentoraz / [N] nie: 
+Preparing	Príprava
+Sending	Odosielanie
+Skipped %s (%s)	Preskočené %s (%s)
+WARNING: this device uses the name of a trusted device, but a different key!	VAROVANIE: toto zariadenie používa názov dôveryhodného zariadenia, ale iný kľúč!
+%s (ID %s) wants to send you %d item(s), %s:	%s (ID %s) vám chce poslať položky (%d), %s:
+Accept? [y]es / [a]ccept and trust this device / [N]o: 	Prijať? [y] áno / [a] prijať a dôverovať zariadeniu / [N] nie: 
+Accept? [y/N]: 	Prijať? [y/N]: 
+The sender cancelled the request.	Odosielateľ požiadavku zrušil.
+trusted	dôveryhodné
+Removed %d device(s)	Odstránené zariadenia: %d
+'%s' matches more trusted devices, use the ID	„%s“ zodpovedá viacerým dôveryhodným zariadeniam, použite ID
+File not found: %s	Súbor sa nenašiel: %s
+Cancelling…	Ruší sa…
+Sent %d item(s), %s to %s	Odoslané položky: %d, %s → %s
+Verification code: %s  (must be the same on the sender's screen)	Overovací kód: %s  (musí byť rovnaký ako na obrazovke odosielateľa)
+Received from %s: %s	Prijaté od %s: %s
+Cannot listen on port %d: %s	Nedá sa počúvať na porte %d: %s
+'%s' is not a trusted device (see 'luxdrop trust list')	„%s“ nie je dôveryhodné zariadenie (pozri „luxdrop trust list“)
+Declined transfer from %s	Odmietnutý prenos od %s
+Transfer from %s failed: %s (%s)	Prenos od %s sa nepodaril: %s (%s)
+Not visible on the network (%s); connect by address.	Počítač nie je v sieti viditeľný (%s); pripojte sa adresou.
+Waiting for the receiver to accept…	Čaká sa, kým príjemca prenos prijme…
+(resumed, %s were already there)	(nadviazané, %s už bolo prenesené)
+%s wants to send you %d item(s), %s: %s	%s vám chce poslať položky (%d), %s: %s
+Decline	Odmietnuť
+Accept	Prijať
+Accept and trust	Prijať a dôverovať
+LuxDrop: incoming files	LuxDrop: prichádzajúce súbory
+LuxDrop: received from %s	LuxDrop: prijaté od %s
+Show in folder	Zobraziť v priečinku
+LuxDrop: transfer from %s failed	LuxDrop: prenos od %s sa nepodaril
+Trusted devices only	Len dôveryhodné zariadenia
+Everyone for 10 minutes	Všetci na 10 minút
+Connect by address…	Pripojiť adresou…
+Transfers	Prenosy
+Choose	Vybrať
+Add	Pridať
+Codes match	Kódy sa zhodujú
+Device name	Názov zariadenia
+Allow receiving from	Povoliť príjem od
+Save received files to	Ukladať prijaté súbory do
+Accept automatically from trusted devices	Od dôveryhodných zariadení prijímať automaticky
+Receive when LuxDrop is closed	Prijímať aj pri zatvorenom LuxDrope
+Fingerprint	Odtlačok
+Drop files here	Presuňte súbory sem
+or click to choose files, then pick a device below	alebo kliknite a vyberte súbory, potom zvoľte zariadenie nižšie
+Choose files…	Vybrať súbory…
+Choose folder…	Vybrať priečinok…
+Clear	Vymazať
+Received	Prijaté
+Choose folder	Vyberte priečinok
+Choose files	Vyberte súbory
+Nearby devices cannot be found because avahi-daemon is not running. You can still connect by address.	Zariadenia v okolí sa nedajú nájsť, pretože nebeží avahi-daemon. Pripojiť sa môžete adresou.
+Connect by address	Pripojiť adresou
+Verify code	Overenie kódu
+Remember this device (no code next time)	Zapamätať si zariadenie (nabudúce bez kódu)
+Incoming files	Prichádzajúce súbory
+Not receiving	Príjem nefunguje
+LuxDrop Settings	Nastavenia LuxDropu
+This computer	Tento počítač
+Trusted devices	Dôveryhodné zariadenia
+Trusted devices can send to you without a verification code. Remove a device if it was lost or reinstalled.	Dôveryhodné zariadenia vám môžu posielať bez overovacieho kódu. Zariadenie odstráňte, ak sa stratilo alebo bolo preinštalované.
+Allow receiving from:	Povoliť príjem od:
+%d item(s) ready to send	Položky pripravené na odoslanie: %d
+No devices found yet. Open LuxDrop on the other computer, or connect by address.	Zatiaľ sa nenašlo žiadne zariadenie. Otvorte LuxDrop na druhom počítači alebo sa pripojte adresou.
+Trusted	Dôveryhodné
+Not verified yet	Zatiaľ neoverené
+Invalid address.	Neplatná adresa.
+Compare the code with the screen of the receiving computer. If the codes differ, someone may be intercepting the connection.	Porovnajte kód s obrazovkou prijímajúceho počítača. Ak sa kódy líšia, niekto možno spojenie odpočúva.
+Warning: this device uses the name of a trusted device, but its key is different. It may be someone else.	Pozor: toto zariadenie používa názov dôveryhodného zariadenia, ale má iný kľúč. Môže ísť o niekoho iného.
+Trust this device (no code next time)	Dôverovať tomuto zariadeniu (nabudúce bez kódu)
+To %s: %s	Pre %s: %s
+From %s: %s	Od %s: %s
+Done	Hotovo
+Declined	Odmietnuté
+“%s” presented a different key than the trusted device. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and pair again.	„%s“ predložilo iný kľúč ako dôveryhodné zariadenie. Nič nebolo odoslané – niekto sa zaň možno vydáva. Ak bolo preinštalované, odstráňte ho v Nastaveniach a spárujte znova.
+Nothing received yet.	Zatiaľ nič neprijaté.
+Show	Zobraziť
+Not visible	Neviditeľný
+No trusted devices yet.	Zatiaľ žiadne dôveryhodné zariadenia.
+IP address of the other computer, e.g. 192.168.1.20 or 192.168.1.20:%d	IP adresa druhého počítača, napr. 192.168.1.20 alebo 192.168.1.20:%d
+Does “%s” show the same code?	Zobrazuje „%s“ rovnaký kód?
+Cannot receive files: port %d is in use (%s). Is LuxDrop already running?	Súbory sa nedajú prijímať: port %d je obsadený (%s). Nebeží už LuxDrop?
+Verification code	Overovací kód
+Accept only if the sender shows the same code.	Prijmite, len ak odosielateľ zobrazuje rovnaký kód.
+Preparing (checksums)… %s / %s	Príprava (kontrolné súčty)… %s / %s
+Waiting for acceptance…	Čaká sa na prijatie…
+“%s” wants to send you %d item(s), %s	„%s“ vám chce poslať položky (%d), %s
+Waiting for the receiver to accept… code %s	Čaká sa na prijatie… kód %s
+Visible as “%s” · %d:%02d left	Viditeľný ako „%s“ · zostáva %d:%02d
+Visible as “%s”	Viditeľný ako „%s“
+Apps	Aplikácie
+Windows	Okná
+# Vzhled a spořiče
+Auto	Automaticky
+Auto: light from sunrise (%s) to sunset (%s), based on your time zone.	Automaticky: svetlý od východu (%s) do západu slnka (%s), podľa časového pásma.
+Clock	Hodiny
+Aurora	Polárna žiara
+Photos	Fotky
+Floating Logo	Plávajúce logo
+# luxos-install-gui (graficky instalator) a nove volby luxos-install
+Swap	Odkladací oddiel
+Encrypted (LUKS)	Šifrovaný (LUKS)
+Unknown	Neznámy
+Back	Späť
+Please wait until the installation finishes.	Počkajte, prosím, kým sa inštalácia skončí.
+Connect to the internet	Pripojte sa k internetu
+LuxOS downloads the newest packages during installation. Choose a Wi-Fi network or plug in a network cable.	LuxOS počas inštalácie sťahuje najnovšie balíky. Vyberte sieť Wi-Fi alebo pripojte sieťový kábel.
+Connect to the internet to continue.	Ak chcete pokračovať, pripojte sa k internetu.
+Choose your keyboard layout. You can try it in the field below.	Vyberte rozloženie klávesnice. Vyskúšať si ho môžete v poli nižšie.
+Time Zone	Časové pásmo
+Where do you want to install LuxOS?	Kam chcete LuxOS nainštalovať?
+Encryption password	Heslo na šifrovanie
+Confirm password	Heslo znova
+Create your account	Vytvorte si účet
+You will use this account to sign in and to install apps.	Tento účet budete používať na prihlásenie a inštaláciu aplikácií.
+User name	Používateľské meno
+Log in automatically	Prihlasovať automaticky
+Fill in your name, user name, password and computer name.	Vyplňte meno, používateľské meno, heslo a názov počítača.
+Ready to install	Pripravené na inštaláciu
+Check your choices. Nothing has been changed on the disk yet.	Skontrolujte svoj výber. Na disku sa zatiaľ nič nezmenilo.
+Installing LuxOS	Inštalujem LuxOS
+This takes about 10 minutes. You can keep using the computer.	Potrvá to asi 10 minút. Počítač môžete medzitým ďalej používať.
+LuxOS is being installed	LuxOS sa inštaluje
+This assistant installs LuxOS on your computer. It takes about 10 minutes.	Tento sprievodca nainštaluje LuxOS do vášho počítača. Potrvá to asi 10 minút.
+Choose your language	Vyberte jazyk
+You are connected to the internet	Ste pripojení k internetu
+Wi-Fi password	Heslo k Wi-Fi
+Checking the connection…	Overujem pripojenie…
+Type here to test your keyboard	Tu si vyskúšajte klávesnicu
+Choose the time zone of your location.	Vyberte časové pásmo, v ktorom sa nachádzate.
+Erase disk and install LuxOS	Vymazať disk a nainštalovať LuxOS
+Encrypt LuxOS	Šifrovať LuxOS
+Protects your files if the computer is lost. You will enter the password at every start.	Chráni vaše súbory pri strate počítača. Heslo zadáte pri každom spustení.
+If you forget this password, your data cannot be recovered.	Ak heslo zabudnete, dáta nebude možné obnoviť.
+Confirm that the disk will be erased.	Potvrďte, že sa disk vymaže.
+Enter the encryption password twice.	Zadajte heslo na šifrovanie dvakrát.
+With automatic login, anyone who turns on the computer can use your account.	S automatickým prihlásením môže váš účet použiť každý, kto počítač zapne.
+You can also skip this and sign in later.	Tento krok môžete preskočiť a prihlásiť sa neskôr.
+Erase %s and install LuxOS	Vymazať %s a nainštalovať LuxOS
+Alongside other systems on %s (%s of free space)	Vedľa iných systémov na %s (%s voľného miesta)
+Automatic login	Automatické prihlásenie
+Starting…	Spúšťam…
+The last lines of the installation log:	Posledné riadky záznamu inštalácie:
+Copy Log	Kopírovať záznam
+Save Log…	Uložiť záznam…
+Restart Now	Reštartovať
+Passwords do not match.	Heslá sa nezhodujú.
+No Wi-Fi networks found. Plug in a network cable or try again.	Nenašla sa žiadna sieť Wi-Fi. Pripojte sieťový kábel alebo to skúste znova.
+Connected.	Pripojené.
+Still offline.	Stále bez pripojenia.
+Connecting to %s…	Pripájam k %s…
+Network Settings…	Nastavenia siete…
+Detected time zone: %s	Zistené časové pásmo: %s
+No suitable disk found. LuxOS needs a disk with at least 20 GB.	Nenašiel sa vhodný disk. LuxOS potrebuje disk s aspoň 20 GB.
+The disk is empty.	Disk je prázdny.
+Install alongside other systems	Nainštalovať vedľa iných systémov
+Everything on %s will be deleted.	Všetko na disku %s bude vymazané.
+This name is reserved by the system.	Toto meno je vyhradené pre systém.
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in now and everything is ready after the first start.	Nepovinné: AI v LuxAI, Lux Code a LSL IDE používa váš účet LuxAI. Prihláste sa teraz a po prvom spustení bude všetko pripravené.
+Sign-in is not available. You can sign in later in Settings.	Prihlásenie nie je dostupné. Prihlásiť sa môžete neskôr v Nastaveniach.
+Installation failed	Inštalácia zlyhala
+The installer stopped with exit code %s.	Inštalátor skončil s návratovým kódom %s.
+Could not connect. Check the password and try again.	Pripojenie sa nepodarilo. Skontrolujte heslo a skúste to znova.
+Local time: %s	Miestny čas: %s
+Looking for disks…	Hľadám disky…
+LuxOS (new)	LuxOS (nový)
+Systems found: %s	Nájdené systémy: %s
+LuxOS uses %s of free space. Existing systems and files are kept; you choose the system in a menu when the computer starts.	LuxOS využije %s voľného miesta. Existujúce systémy aj súbory zostanú; systém vyberiete v ponuke pri spustení počítača.
+I understand that all data on %s (%s) will be erased.	Rozumiem, že všetky dáta na %s (%s) budú vymazané.
+All data on %s will be erased when you click Install.	Po kliknutí na Inštalovať budú všetky dáta na %s vymazané.
+… and %s more partitions	… a ďalšie oddiely: %s
+Installing alongside other systems is not possible: %s	Inštalácia vedľa iných systémov nie je možná: %s
+EFI system partition	Systémový oddiel EFI
+Microsoft reserved	Vyhradený oddiel Microsoft
+Windows recovery	Obnovenie Windows
+Needs a computer started in UEFI mode.	Počítač musí byť spustený v režime UEFI.
+The disk does not use a GPT partition table.	Disk nepoužíva tabuľku oddielov GPT.
+The partition table has problems.	Tabuľka oddielov obsahuje chyby.
+There is no free space of at least 20 GB on this disk.	Na disku nie je voľné miesto aspoň 20 GB.
+No EFI system partition found on this disk.	Na disku chýba systémový oddiel EFI.
+The EFI system partition could not be read.	Systémový oddiel EFI sa nedá prečítať.
+The EFI system partition has less than 250 MB free.	Systémový oddiel EFI má menej ako 250 MB voľného miesta.
+Administrator rights are not available.	Nie sú k dispozícii práva správcu.
+Fast and light	Rýchly a ľahký
+LuxOS starts quickly and leaves more memory for your apps.	LuxOS štartuje rýchlo a necháva viac pamäte vašim aplikáciám.
+A familiar desktop	Známa plocha
+A dock, a clean top bar and an app grid - everything is where you expect it.	Dock, čistá horná lišta a mriežka aplikácií – všetko je tam, kde to čakáte.
+LuxAI built in	LuxAI v základe
+Sign in once and use AI in LuxAI, Lux Code and LSL IDE.	Prihláste sa raz a používajte AI v LuxAI, Lux Code aj LSL IDE.
+Drivers included	Ovládače v cene
+Graphics, Wi-Fi and other drivers are picked automatically for your hardware.	Ovládače grafiky, Wi-Fi a ďalších zariadení sa vyberú automaticky podľa vášho hardvéru.
+Safe by default	Bezpečný od začiatku
+Signed updates, a locked root account and optional full disk encryption.	Podpísané aktualizácie, zamknutý účet root a voliteľné šifrovanie disku.
+Introduction	Úvod
+Destination	Umiestnenie
+Account	Účet
+Installation	Inštalácia
+Finish	Dokončenie
+%s  (free space, other systems are kept)	%s  (voľné miesto, ostatné systémy zostanú)
+no boot loader	bez zavádzača
+Installing alongside other systems needs a computer started in UEFI mode.	Inštalácia vedľa iných systémov vyžaduje počítač spustený v režime UEFI.
+Disk %s does not use a GPT partition table.	Disk %s nepoužíva tabuľku oddielov GPT.
+The partition table on %s has problems. Check it first (sgdisk -v).	Tabuľka oddielov na %s obsahuje chyby. Najprv ju skontrolujte (sgdisk -v).
+Disk %s has no free space of at least 20 GB.	Na disku %s nie je voľné miesto aspoň 20 GB.
+No EFI system partition found on %s.	Na %s chýba systémový oddiel EFI.
+The EFI system partition %s could not be read.	Systémový oddiel EFI %s sa nedá prečítať.
+The EFI system partition %s has less than 250 MB free.	Systémový oddiel EFI %s má menej ako 250 MB voľného miesta.
+The partition table on %s is full.	Tabuľka oddielov na %s je plná.
+New partition %s: %s GB of free space	Nový oddiel %s: %s GB voľného miesta
+Unexpected change of existing partitions on %s - stopping.	Neočakávaná zmena existujúcich oddielov na %s – končím.
+systemd-boot on %s is already in the UEFI boot menu.	systemd-boot na %s už je v ponuke spúšťania UEFI.
+Could not show the boot menu; hold Space while starting to see it.	Ponuku spúšťania nemožno zobraziť; pri štarte ju vyvoláte podržaním medzerníka.
+Invalid DISK_MODE (use erase, freespace or manual)	Neplatný DISK_MODE (použite erase, freespace alebo manual)
+Invalid BOOTLOADER (use auto or none)	Neplatný BOOTLOADER (použite auto alebo none)
+# luxos-daemon (Bluetooth agent)
+Allow “%s” to pair with this computer?	Povoliť spárovanie zariadenia „%s“ s týmto počítačom?
+Allow “%s” to connect?	Povoliť pripojenie zariadenia „%s“?
+Only allow devices you know.	Povoľujte len zariadenia, ktoré poznáte.
+Allow	Povoliť
+# LuxOS 2026-10-21: lux, Store, upozorneni na internet
+Sign in to the network to use the internet (click to open the sign-in page)	Na používanie internetu sa prihláste do siete (kliknutím otvoríte prihlasovaciu stránku)
+Connected to the network, but the internet is not available	Pripojené k sieti, ale internet nie je dostupný
+Sign in to the network to use the internet.	Na používanie internetu sa prihláste do siete.
+You are connected to the network, but the internet is not available.	Ste pripojení k sieti, ale internet nie je dostupný.
+Server %s is not responding, trying another one…	Server %s neodpovedá, skúšam iný…
+Download failed, trying again (%s/3)…	Sťahovanie zlyhalo, skúšam znova (%s/3)…
+Some packages could not be downloaded. Check your internet connection and try again.	Niektoré balíky sa nepodarilo stiahnuť. Skontrolujte pripojenie k internetu a skúste to znova.
+Installed: %s	Nainštalované: %s
+Downloading %d of %d…	Sťahujem %d z %d…
+The connection is slow, trying another server…	Pripojenie je pomalé, skúšam iný server…
+Download failed, trying again (attempt %s)…	Sťahovanie zlyhalo, skúšam znova (pokus %s)…
+The internet connection is too slow or unavailable. Try it again later.	Pripojenie k internetu je príliš pomalé alebo nedostupné. Skúste to neskôr.
+unknown error	neznáma chyba
+Looking for the fastest download servers…	Hľadám najrýchlejšie servery na sťahovanie…
+Using %s fast download servers near you.	Používam %s rýchlych serverov vo vašom okolí.
+Using the default download servers.	Používam predvolené servery na sťahovanie.
+The server %s is slow, trying another one…	Server %s je pomalý, skúšam iný…
+The server %s is not responding, trying another one…	Server %s neodpovedá, skúšam iný…
+Downloading from %s failed, trying another one…	Sťahovanie zo servera %s zlyhalo, skúšam iný…
+The server %s has too many problems, skipping it.	Server %s má príliš veľa problémov, preskakujem ho.
+Some files could not be downloaded.	Niektoré súbory sa nepodarilo stiahnuť.
+Downloading the packages did not finish.	Sťahovanie balíkov sa nedokončilo.
+The package lists could not be downloaded.	Zoznamy balíkov sa nepodarilo stiahnuť.
+about %s min left	zostáva asi %s min
+Downloaded %s of %s	Stiahnuté %s z %s
+Your internet connection is very slow - the installation will take longer. It has not stopped.	Vaše pripojenie k internetu je veľmi pomalé – inštalácia potrvá dlhšie. Nezastavila sa.
+Waiting for the internet connection…	Čakám na pripojenie k internetu…
+Maintenance	Údržba
+Carefree: updates install automatically in the background (not on metered networks, with Data Saver or on low battery), a previous kernel is kept to fall back on and LuxOS repairs itself.	Bezstarostná: aktualizácie sa inštalujú automaticky na pozadí (nie v meraných sieťach, so Šetričom dát ani pri slabej batérii), predchádzajúce jadro zostáva ako záloha a LuxOS sa sám opravuje.
+Classic (for IT professionals): no automatic updates or repairs, standard Arch behaviour; you only get notified about available updates.	Klasická (pre IT profesionálov): žiadne automatické aktualizácie ani opravy, štandardné správanie Arch Linuxu; dostanete len upozornenie na dostupné aktualizácie.
+Carefree (recommended)	Bezstarostná (odporúčané)
+Classic (for IT professionals)	Klasická (pre IT profesionálov)
+How should LuxOS be maintained?	Ako sa má o LuxOS starať?
+Carefree - automatic updates and repairs	Bezstarostná – automatické aktualizácie a opravy
+Classic - you manage the system yourself	Klasická – systém spravujete sami
+Invalid CARE_MODE (use carefree or classic)	Neplatný CARE_MODE (použite carefree alebo classic)
+Carefree	Bezstarostná
+Updates install automatically in the background - not on metered networks, with Data Saver on or on low battery.	Aktualizácie sa inštalujú automaticky na pozadí – nie v meraných sieťach, so zapnutým Šetričom dát ani pri slabej batérii.
+A previous kernel is kept, so the computer always has a working version to start.	Predchádzajúce jadro zostáva uložené, takže počítač má vždy funkčnú verziu, z ktorej naštartuje.
+LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash.	LuxOS sa opravuje sám. Vážne problémy diagnostikuje LuxAI Flash.
+No automatic updates or repairs - standard Arch Linux behaviour.	Žiadne automatické aktualizácie ani opravy – štandardné správanie Arch Linuxu.
+You manage the system yourself with lux or pacman.	Systém spravujete sami pomocou lux alebo pacman.
+You only get a notification when updates are available.	Len dostanete upozornenie, keď sú k dispozícii aktualizácie.
+Choose whether LuxOS takes care of itself, or whether you want full control.	Vyberte, či sa LuxOS má starať sám o seba, alebo chcete mať plnú kontrolu.
+Downloading %s of %s	Sťahujem %s z %s
+waiting for data	čakám na dáta
+The connection is not responding right now	Pripojenie teraz neodpovedá
+The installation has not stopped. LuxOS keeps trying other servers and continues as soon as data arrives again.	Inštalácia sa nezastavila. LuxOS skúša ďalšie servery a pokračuje, hneď ako začnú znova prichádzať dáta.
+Your internet connection is very slow	Vaše pripojenie k internetu je veľmi pomalé
+The installation will take longer. It has not stopped.	Inštalácia potrvá dlhšie. Nezastavila sa.
+The time depends on your internet connection. You can keep using the computer.	Čas inštalácie závisí od vášho pripojenia k internetu. Počítač môžete medzitým ďalej používať.
+less than a minute left	zostáva menej ako minúta
+%s min	%s min
+%s h %s min	%s h %s min
+# luxos-care (Aktualizace softwaru, LuxOS Care)
+never	nikdy
+just now	práve teraz
+%d min ago	pred %d min
+today at %s	dnes o %s
+Update failed	Aktualizácia zlyhala
+chosen by LuxAI Flash	vybral LuxAI Flash
+built-in rule	vstavané pravidlo
+The previous kernel could not be prepared	Predchádzajúce jadro sa nepodarilo pripraviť
+A start did not finish correctly	Spustenie systému neprebehlo správne
+Boot menu: LuxOS (previous kernel)	Ponuka zavádzača: LuxOS (predchádzajúce jadro)
+Mode changed to Carefree	Režim zmenený na Bezstarostný
+Mode changed to Classic	Režim zmenený na Klasický
+Update Now	Aktualizovať
+When updates are installed	Kedy sa inštalujú aktualizácie
+Classic	Klasická
+LuxOS installs updates and repairs itself. It waits for an unmetered connection and enough battery, and keeps the previous kernel as a fallback.	LuxOS sám inštaluje aktualizácie a opravuje sa. Počká na nemerané pripojenie a dostatok batérie a predchádzajúce jadro si nechá ako zálohu.
+LuxOS only checks and tells you about updates and problems. You decide when to update.	LuxOS len kontroluje a upozorní vás na aktualizácie a problémy. Kedy aktualizovať, rozhodujete vy.
+Available updates	Dostupné aktualizácie
+System health	Stav systému
+Check for Problems Now	Skontrolovať problémy
+Repair and update history	História opráv a aktualizácií
+Updating LuxOS…	Aktualizácia LuxOS…
+Last update: %s	Posledná aktualizácia: %s
+Last check: %s	Posledná kontrola: %s
+No updates are waiting.	Žiadne aktualizácie nečakajú.
+LuxOS checks for updates automatically.	LuxOS kontroluje aktualizácie automaticky.
+Your settings were kept. Compare the files with pacdiff when convenient.	Vaše nastavenia zostali zachované. Súbory môžete porovnať príkazom pacdiff, keď sa vám to bude hodiť.
+No problems found	Žiadne problémy
+Previous kernel	Predchádzajúce jadro
+After the next kernel update the current kernel stays available as a fallback.	Po ďalšej aktualizácii jadra zostane súčasné jadro k dispozícii ako záloha.
+Nothing yet	Zatiaľ nič
+Updates and repairs will be listed here.	Tu sa zobrazia aktualizácie a opravy.
+Audit log	Záznam činnosti
+Downloading… %s of %s	Sťahovanie… %s z %s
+Do not turn off the computer.	Nevypínajte počítač.
+The system service is not available.	Systémová služba nie je dostupná.
+Updated %d packages	Aktualizované balíky: %d
+including the kernel	vrátane jadra
+Released the kept kernel %s for reinstallation	Uvoľnené zachované jadro %s kvôli novej inštalácii
+Kept the previous kernel %s	Predchádzajúce jadro %s ponechané ako záloha
+Restart to finish the update	Reštartujte na dokončenie aktualizácie
+New configuration file to review: %s	Nový konfiguračný súbor na kontrolu: %s
+Switch to Carefree to repair it automatically.	Na automatickú opravu prepnite na režim Bezstarostná.
+If a new kernel fails to start, LuxOS starts this one automatically.	Ak nové jadro nenaštartuje, LuxOS automaticky spustí toto.
+If a new kernel fails to start, choose “LuxOS (previous kernel)” in the boot menu.	Ak nové jadro nenaštartuje, zvoľte v ponuke zavádzača „LuxOS (previous kernel)“.
+Show Full Log…	Zobraziť celý záznam…
+Installing %s (%d of %d)	Inštalácia %s (%d z %d)
+Working…	Prebieha…
+waiting for an unmetered connection (Data Saver)	čaká na nemerané pripojenie (Šetrič dát)
+waiting for the charger or more battery	čaká na nabíjačku alebo viac batérie
+waiting for the internet connection	čaká na pripojenie k internetu
+Automatic update is %s.	Automatická aktualizácia %s.
+and %d more	a ďalších %d
+Waiting for LuxAI Flash	Čaká na LuxAI Flash
+The repair did not help	Oprava nepomohla
+Previous kernel %s is kept as a fallback	Predchádzajúce jadro %s je pripravené ako záloha
+The previous kernel %s could not be prepared	Predchádzajúce jadro %s sa nepodarilo pripraviť
+Could not start: %s	Nedá sa spustiť: %s
+%d updates available	Dostupné aktualizácie: %d
+Updates could not be installed	Aktualizácie sa nepodarilo nainštalovať
+LuxOS is up to date	LuxOS je aktuálny
+Updating signing keys…	Aktualizácia podpisových kľúčov…
+Downloading…	Sťahovanie…
+Installing…	Inštalácia…
+Finishing…	Dokončovanie…
+The boot partition is full.	Zavádzací oddiel je plný.
+LuxOS was updated	LuxOS bol aktualizovaný
+Updates are available	Sú dostupné aktualizácie
+LuxOS will try again later.	LuxOS to neskôr skúsi znova.
+Update postponed	Aktualizácia odložená
+LuxOS fixed a problem	LuxOS opravil problém
+LuxOS found a problem	LuxOS našiel problém
+Restart to finish the kernel update	Reštartujte na dokončenie aktualizácie jadra
+LuxOS installed a new kernel. Restart when it suits you.	LuxOS nainštaloval nové jadro. Reštartujte, keď sa vám to bude hodiť.
+%d packages were updated.	Aktualizované balíky: %d.
+%d updates are ready to install.	Aktualizácie pripravené na inštaláciu: %d.
+The repair was chosen by LuxAI Flash.	Opravu vybral LuxAI Flash.
+No internet connection.	Bez pripojenia k internetu.
+The connection is metered (Data Saver).	Pripojenie je merané (Šetrič dát).
+The battery is low - connect the charger.	Batéria je slabá – pripojte nabíjačku.
+Sign in to LuxAI to let LuxOS fix unknown problems.	Prihláste sa do LuxAI a LuxOS bude vedieť opraviť aj neznáme problémy.
+This command must be run as root.	Tento príkaz musí spustiť root.
+Mode: %s	Režim: %s
+Previous kernel: %s	Predchádzajúce jadro: %s
+The package manager was left locked	Správca balíkov zostal zamknutý
+A system update was interrupted	Aktualizácia systému bola prerušená
+The kernel boot files are missing	Chýbajú zavádzacie súbory jadra
+A driver module (DKMS) is not built for the kernel	Modul ovládača (DKMS) nie je zostavený pre jadro
+The newest kernel did not start, LuxOS used the previous one	Najnovšie jadro nenaštartovalo, LuxOS použil predchádzajúce
+The disk is almost full	Disk je takmer plný
+The file system reported errors - back up your data	Súborový systém hlási chyby – zálohujte svoje dáta
+System updates keep failing	Aktualizácie systému opakovane zlyhávajú
+A system service failed: %s	Zlyhala systémová služba: %s
+Removed a stale package manager lock	Odstránený opustený zámok správcu balíkov
+Released the kept kernel for reinstallation	Zachované jadro uvoľnené kvôli novej inštalácii
+Finished an interrupted update	Dokončená prerušená aktualizácia
+Refreshed the package signing keys	Obnovené podpisové kľúče balíkov
+Rebuilt the kernel boot files	Znova vytvorené zavádzacie súbory jadra
+Rebuilt driver modules	Znova zostavené moduly ovládačov
+Reinstalled a package	Preinštalovaný balík
+Restarted a service	Reštartovaná služba
+Freed disk space	Uvoľnené miesto na disku
+Will try the newest kernel again	Najnovšie jadro sa skúsi znova
+Will start the previous kernel	Spustí sa predchádzajúce jadro
+Only reported the problem	Problém len nahlásený
+Boot Screen	Úvodná obrazovka
+Blue	Modrá
+Purple	Fialová
+Orange	Oranžová
+Green	Zelená
+White	Biela
+Shown while the computer starts. A change rebuilds the boot image, which takes about a minute.	Zobrazuje sa pri štarte počítača. Zmena znova zostaví zavádzací obraz, trvá to asi minútu.
+Applying the boot screen…	Nastavujem úvodnú obrazovku…
+The new boot screen will be shown at the next start.	Nová úvodná obrazovka sa zobrazí pri ďalšom štarte.
+Change cancelled.	Zmena zrušená.
+Could not change the boot screen.	Úvodnú obrazovku sa nepodarilo zmeniť.
+Live system: the boot image is not rebuilt.	Živý systém: zavádzací obraz sa znova nezostavuje.
+Rebuilding the boot image…	Znova zostavujem zavádzací obraz…
+Unknown variant: %s	Neznámy variant: %s
+Run as root: pkexec luxos-splash set %s	Spustite ako root: pkexec luxos-splash set %s
+Another change of the boot screen is running.	Už prebieha iná zmena úvodnej obrazovky.
+Boot screen is already %s.	Úvodná obrazovka už je %s.
+Rebuilding the boot image failed, the previous boot screen was restored.	Zostavenie zavádzacieho obrazu zlyhalo, vrátená predchádzajúca úvodná obrazovka.
+Boot screen set to %s.	Úvodná obrazovka nastavená: %s.
+# LuxOS 2026-10-21: LuxAI z Launchpadu, popisek aplikace v liste
+Active app: %s	Aktívna aplikácia: %s
+Search apps or ask LuxAI	Hľadať aplikácie alebo sa opýtať LuxAI
+Search or ask LuxAI	Hľadať alebo sa opýtať LuxAI
+# LuxOS 2026-10-21: pojistka pameti
+Memory is running low	Dochádza pamäť
+“%s” used too much memory and was closed so the computer would not freeze.	Aplikácia „%s“ zabrala príliš veľa pamäte a bola ukončená, aby počítač nezamrzol.
+A program used too much memory and was closed so the computer would not freeze.	Jeden program zabral príliš veľa pamäte a bol ukončený, aby počítač nezamrzol.
+Printers & Scanners	Tlačiarne a skenery
+Printing support is not installed.	Podpora tlače nie je nainštalovaná.
+Offline – make sure the printer is turned on	Nedostupná – skontrolujte, či je tlačiareň zapnutá
+Paused	Pozastavená
+Printing…	Tlačí…
+1 document waiting	1 dokument čaká
+%d documents waiting	Čakajúce dokumenty: %d
+Print Test Page	Vytlačiť skúšobnú stranu
+Resume	Pokračovať
+Remove Printer…	Odstrániť tlačiareň…
+Default printer	Predvolená tlačiareň
+Apps print here unless you choose another printer.	Aplikácie tlačia sem, ak nezvolíte inú tlačiareň.
+Ink and toner	Atrament a toner
+Print queue	Tlačový front
+Cancel All	Zrušiť všetko
+No documents are waiting to print.	Žiadne dokumenty nečakajú na tlač.
+USB	USB
+Document	Dokument
+Waiting	Čaká
+On hold	Pozdržané
+Stopped	Zastavené
+Sending a test page…	Odosiela sa skúšobná strana…
+The test page could not be sent: %s	Skúšobnú stranu sa nepodarilo odoslať: %s
+The test page is on its way.	Skúšobná strana je na ceste.
+Kind	Druh
+Quality	Kvalita
+Source	Zdroj
+Scan	Skenovať
+Scanned pages appear here. Scan more pages to save them together.	Tu sa zobrazia naskenované strany. Naskenujte viac strán a uložte ich spolu.
+PDF document	Dokument PDF
+JPEG pictures	Obrázky JPEG
+Show in Folder	Zobraziť v priečinku
+Checking the scanner…	Kontroluje sa skener…
+The scanner does not respond. Make sure it is turned on.	Skener neodpovedá. Skontrolujte, či je zapnutý.
+Place the document on the scanner and click Scan.	Položte dokument na skener a kliknite na Skenovať.
+Scanning…	Skenuje sa…
+Scanning was cancelled.	Skenovanie bolo zrušené.
+Scanning failed: %s	Skenovanie zlyhalo: %s
+the scanner does not respond	skener neodpovedá
+This is a preview. Click Scan when the document looks right.	Toto je ukážka. Keď bude dokument vyzerať dobre, kliknite na Skenovať.
+Page %d scanned. Scan another page or save.	Strana %d je naskenovaná. Naskenujte ďalšiu alebo uložte.
+Remove page	Odstrániť stranu
+Page %d	Strana %d
+Click Preview to see the document here	Po kliknutí na Ukážka sa tu zobrazí dokument
+Saving…	Ukladá sa…
+Could not save the scan: %s	Sken sa nepodarilo uložiť: %s
+Saved “%s” in %s	Uložené „%s“ do priečinka %s
+Saved %d pictures in %s	Uložené obrázky: %d, priečinok %s
+Place the next document on the scanner and click Scan.	Položte na skener ďalší dokument a kliknite na Skenovať.
+Add Printer	Pridať tlačiareň
+Printers nearby	Tlačiarne v okolí
+Search Again	Hľadať znova
+Turn the printer on and connect it to the same Wi‑Fi network or with a USB cable. Most printers are added automatically.	Zapnite tlačiareň a pripojte ju k rovnakej sieti Wi‑Fi alebo káblom USB. Väčšina tlačiarní sa pridá automaticky.
+Looking for printers…	Hľadajú sa tlačiarne…
+Advanced…	Pokročilé…
+Printers that need special setup (LPD, Windows sharing, manual drivers)	Tlačiarne s osobitným nastavením (LPD, zdieľanie Windows, ručné ovládače)
+Could not search for printers: %s	Tlačiarne sa nepodarilo vyhľadať: %s
+No printers found. Make sure the printer is turned on.	Nenašla sa žiadna tlačiareň. Skontrolujte, či je zapnutá.
+Added	Pridané
+Not supported	Nepodporované
+Adding…	Pridáva sa…
+The printer could not be added	Tlačiareň sa nepodarilo pridať
+Make sure it is turned on and try again.	Skontrolujte, či je zapnutá, a skúste to znova.
+Advanced printer settings for experts	Pokročilé nastavenia tlačiarní pre odborníkov
+Remove Printer	Odstrániť tlačiareň
+No printers yet	Zatiaľ žiadne tlačiarne
+Turn on your printer and connect it to the same Wi‑Fi network or with a USB cable. LuxOS sets it up automatically – no drivers, no questions.	Zapnite tlačiareň a pripojte ju k rovnakej sieti Wi‑Fi alebo káblom USB. LuxOS ju nastaví sám – bez ovládačov a bez otázok.
+Add Printer…	Pridať tlačiareň…
+Printers	Tlačiarne
+Scanners	Skenery
+Default	Predvolené
+Looking for scanners…	Hľadajú sa skenery…
+No scanners found	Nenašiel sa žiadny skener
+Turn the scanner on	Zapnite skener
+The change could not be made	Zmenu sa nepodarilo vykonať
+Remove “%s”?	Odstrániť „%s“?
+Apps will no longer print to it. You can add it again later with the + button.	Aplikácie na ňu už nebudú tlačiť. Neskôr ju môžete znova pridať tlačidlom +.
+Could not open advanced settings	Pokročilé nastavenia sa nepodarilo otvoriť
+Paper jam	Zaseknutý papier
+Out of paper	Došiel papier
+Out of ink or toner	Došiel atrament alebo toner
+A cover is open	Je otvorený kryt
+Offline	Nedostupná
+Ink, toner or paper is low	Dochádza atrament, toner alebo papier
+Color	Farebne
+Grey	Sivo
+Draft (150 dpi)	Koncept (150 dpi)
+Standard (300 dpi)	Štandardná (300 dpi)
+High (600 dpi)	Vysoká (600 dpi)
+Flatbed	Sklenená doska
+ADF	Podávač
+ADF Duplex	Podávač obojstranne
+Flatbed scanner	Stolový skener
+Multi-function peripheral	Multifunkčné zariadenie
+Virtual device	Virtuálne zariadenie
+Printer “%s” is ready	Tlačiareň „%s“ je pripravená
+You can print from any app.	Môžete tlačiť z ľubovoľnej aplikácie.
+Scanner “%s” is ready	Skener „%s“ je pripravený
+Open Printers & Scanners to scan a document.	Dokument naskenujete v aplikácii Tlačiarne a skenery.
+“%s” is ready	„%s“ je pripravené
+You can print from any app and scan in Printers & Scanners.	Tlačiť môžete z ľubovoľnej aplikácie a skenovať v aplikácii Tlačiarne a skenery.
+Printer “%s” needs a driver	Tlačiareň „%s“ potrebuje ovládač
+LuxOS will set it up automatically once you are connected to the internet.	LuxOS ju nastaví sám, hneď ako budete pripojení k internetu.
+Printer “%s” needs to be set up	Tlačiareň „%s“ je potrebné nastaviť
+It does not support driverless printing. Open Printers & Scanners and choose Advanced….	Nepodporuje tlač bez ovládačov. Otvorte Tlačiarne a skenery a zvoľte Pokročilé….
+Printer “%s” needs an add-on from HP	Tlačiareň „%s“ potrebuje doplnok od HP
+Open Terminal and run: hp-plugin	Otvorte Terminál a spustite: hp-plugin
+Feedback	Spätná väzba
+Help us improve LuxOS	Pomôžte nám vylepšiť LuxOS
+Your report goes directly to the author of LuxOS.	Vaše hlásenie pôjde priamo autorovi LuxOS.
+Bug	Chyba
+Something doesn't work	Niečo nefunguje
+What happened? What did you expect? Steps to reproduce help a lot.	Čo sa stalo? Čo ste očakávali? Veľmi pomôže postup, ako chybu vyvolať.
+Idea	Nápad
+Suggest an improvement	Navrhnúť vylepšenie
+What would you like to improve? How would it help you?	Čo by ste chceli vylepšiť? Ako by vám to pomohlo?
+Something else	Niečo iné
+Question or comment	Otázka alebo pripomienka
+Write your message…	Napíšte svoju správu…
+At least %d characters	Aspoň %d znakov
+Your e-mail (optional, if you would like a reply)	Váš e-mail (nepovinné, ak chcete odpoveď)
+Attach a screenshot	Priložiť snímku obrazovky
+Take Again	Nasnímať znova
+The screenshot could not be taken.	Snímku obrazovky sa nepodarilo vytvoriť.
+Attach system information	Priložiť informácie o systéme
+LuxOS and hardware versions and recent error messages. No personal files, passwords or e-mail addresses.	Verzie LuxOS a hardvéru a posledné chybové hlásenia. Žiadne osobné súbory, heslá ani e-mailové adresy.
+Show what will be sent	Zobraziť, čo sa odošle
+Collecting…	Zhromažďovanie…
+Send	Odoslať
+Sending…	Odosielanie…
+Try Again	Skúsiť znova
+%d saved report(s) from earlier have been sent. Thank you!	Odoslané skôr uložené hlásenia: %d. Ďakujeme!
+LuxOS could not reach the server. Check the internet connection.	LuxOS sa nemohol spojiť so serverom. Skontrolujte pripojenie k internetu.
+Sending failed (%s).	Odoslanie zlyhalo (%s).
+You have sent many reports in a short time. Please try again later.	Za krátky čas ste odoslali veľa hlásení. Skúste to prosím neskôr.
+The message must have 10 to 8000 characters.	Správa musí mať 10 až 8000 znakov.
+The e-mail address does not look valid.	E-mailová adresa nevyzerá platne.
+The report is too large. Try it without the screenshot.	Hlásenie je príliš veľké. Skúste ho odoslať bez snímky obrazovky.
+The screenshot could not be accepted. Try it without the screenshot.	Snímka obrazovky nebola prijatá. Skúste hlásenie odoslať bez nej.
+Saved for later	Uložené na neskôr
+You are offline. The report will be sent automatically the next time you open Feedback with an internet connection.	Nie ste pripojení k internetu. Hlásenie sa odošle automaticky, keď nabudúce otvoríte Spätnú väzbu s pripojením k internetu.
+Thank you for your feedback!	Ďakujeme za spätnú väzbu!
+Your report has been delivered to the author of LuxOS. Every report helps make LuxOS better.	Vaše hlásenie bolo doručené autorovi LuxOS. Každé hlásenie pomáha LuxOS zlepšovať.
+Report ID: %s	ID hlásenia: %s
+Send Another	Odoslať ďalšie
+Send Feedback…	Odoslať spätnú väzbu…
+# LuxDrop + LocalSend
+Nothing to send: give files or --text	Nie je čo odoslať: zadajte súbory alebo --text
+Send files securely to nearby LuxOS computers and devices with LocalSend.	Bezpečné posielanie súborov do počítačov s LuxOS a zariadení s LocalSend v okolí.
+send to a LocalSend device (phone, Windows, …)	poslať do zariadenia s LocalSend (telefón, Windows, …)
+send a text message	poslať textovú správu
+PIN required by the receiver (LocalSend)	PIN požadovaný príjemcom (LocalSend)
+who can send (everyone always asks first)	kto smie posielať (pri everyone sa vždy najprv opýta)
+with --mode everyone: only for this many minutes (max. 10)	s --mode everyone: len na toľko minút (max. 10)
+LocalSend port (default 53317)	port LocalSend (predvolený 53317)
+do not receive from LocalSend apps	neprijímať z aplikácií LocalSend
+no LocalSend multicast discovery	bez hľadania LocalSend cez multicast
+require this PIN from LocalSend senders (empty = no PIN)	vyžadovať tento PIN od odosielateľov LocalSend (prázdny = bez PINu)
+also scan the local network (LocalSend devices without multicast)	prehľadať aj miestnu sieť (zariadenia LocalSend bez multicastu)
+with everyone: only for this many minutes (max. 10)	s everyone: len na toľko minút (max. 10)
+Wrong PIN.	Nesprávny PIN.
+%s requires a PIN: 	%s vyžaduje PIN: 
+LocalSend: port %d, fingerprint %s	LocalSend: port %d, odtlačok %s
+unencrypted - not supported	nešifrované – nepodporované
+No LocalSend device answers at %s	Na adrese %s neodpovedá žiadne zariadenie LocalSend
+%s is a LuxOS computer - using the LuxDrop protocol	%s je počítač s LuxOS – použije sa protokol LuxDrop
+Message from %s:	Správa od %s:
+Sent with LocalSend from a %s device	Odoslané cez LocalSend zo zariadenia typu %s
+LocalSend receiving is not available: port %d is in use (%s)	Príjem z LocalSend nie je dostupný: port %d je obsadený (%s)
+LocalSend receiving is not available (python-pyopenssl is missing)	Príjem z LocalSend nie je dostupný (chýba python-pyopenssl)
+identity not verified (old LocalSend version)	totožnosť neoverená (stará verzia LocalSend)
+LocalSend devices cannot find this computer automatically (%s)	Zariadenia LocalSend tento počítač automaticky nenájdu (%s)
+Phone or tablet	Telefón alebo tablet
+Web browser	Webový prehliadač
+Copy	Kopírovať
+Message	Správa
+PIN required	Vyžaduje sa PIN
+The identity of this device cannot be verified (old LocalSend version). Accept only if you expect these files.	Totožnosť tohto zariadenia sa nedá overiť (stará verzia LocalSend). Prijmite len súbory, ktoré očakávate.
+Trust this device (save its files without asking next time)	Dôverovať tomuto zariadeniu (nabudúce ukladať jeho súbory bez pýtania)
+Message from “%s”	Správa od „%s“
+“%s” requires a PIN to receive files.	„%s“ vyžaduje na príjem súborov PIN.
+Everyone nearby	Všetci v okolí
+Receiving	Prijímanie
+Receive	Príjem
+Ready to receive	Pripravené na príjem
+Who can send	Kto môže posielať
+Every transfer from other devices must be accepted.	Každý prenos z iných zariadení je potrebné potvrdiť.
+Quick save	Rýchle uloženie
+Save files from trusted devices without asking.	Ukladať súbory z dôveryhodných zariadení bez pýtania.
+Recently received	Nedávno prijaté
+Open folder	Otvoriť priečinok
+Selection	Výber
+File	Súbor
+Folder	Priečinok
+Paste	Vložiť
+Refresh	Obnoviť
+Scan the local network	Prehľadať miestnu sieť
+The clipboard is empty.	Schránka je prázdna.
+This LocalSend device has encryption turned off. Turn on “Encryption” in LocalSend settings to send files to it.	Toto zariadenie LocalSend má vypnuté šifrovanie. Ak doň chcete posielať súbory, zapnite v nastaveniach LocalSend „Šifrovanie“.
+Scanning the local network for LocalSend devices…	Hľadám zariadenia LocalSend v miestnej sieti…
+LocalSend app (port %d)	Aplikácia LocalSend (port %d)
+LuxOS computer (port %d)	Počítač s LuxOS (port %d)
+Files (%d)	Súbory (%d)
+Received from %s	Prijaté od %s
+Save to	Ukladať do
+Requests then appear as notifications.	Žiadosti sa potom zobrazia ako upozornenia.
+Work with LocalSend apps	Spolupráca s aplikáciami LocalSend
+Phones, tablets and computers with the LocalSend app. Uses port 53317.	Telefóny, tablety a počítače s aplikáciou LocalSend. Používa port 53317.
+No PIN	Bez PINu
+LocalSend devices must enter this PIN before they can send.	Zariadenia LocalSend musia pred odoslaním zadať tento PIN.
+Trusted devices can use Quick save. Remove a device if it was lost or reinstalled.	Dôveryhodné zariadenia môžu využiť rýchle uloženie. Zariadenie odstráňte, ak sa stratilo alebo bolo preinštalované.
+Security	Zabezpečenie
+All transfers are encrypted (TLS). LuxOS computers verify each other with a 6-digit code; LocalSend devices are identified by their certificate.	Všetky prenosy sú šifrované (TLS). Počítače s LuxOS sa navzájom overujú šesťmiestnym kódom, zariadenia LocalSend sa rozpoznajú podľa certifikátu.
+Visible to LuxOS computers and LocalSend apps nearby.	Viditeľné pre počítače s LuxOS a aplikácie LocalSend v okolí.
+Choose what to send or drop files here, then tap a device.	Vyberte, čo chcete odoslať, alebo sem presuňte súbory a potom ťuknite na zariadenie.
+Looking for devices… Open LuxDrop or LocalSend on the other device and make sure it is on the same network.	Hľadám zariadenia… Otvorte LuxDrop alebo LocalSend na druhom zariadení a overte, že je v rovnakej sieti.
+Unencrypted	Nešifrované
+IP address of the other device, e.g. 192.168.1.20	IP adresa druhého zariadenia, napr. 192.168.1.20
+“%s” presented a different key than expected. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and try again.	„%s“ predložilo iný kľúč, než sa očakávalo. Nič nebolo odoslané – niekto sa zaň možno vydáva. Ak bolo zariadenie preinštalované, odstráňte ho v Nastaveniach a skúste to znova.
+Key fingerprint: %s	Odtlačok kľúča: %s
+Receiving is turned off. Other devices cannot see this computer.	Príjem je vypnutý. Ostatné zariadenia tento počítač nevidia.
+%d characters	%d znakov
+Cannot receive from LuxOS computers: port %d is in use (%s).	Nedá sa prijímať z počítačov s LuxOS: port %d je obsadený (%s).
+No device answers at %s.	Na adrese %s neodpovedá žiadne zariadenie.
+Cannot receive from LocalSend apps: port %d is in use. Is LocalSend running on this computer?	Nedá sa prijímať z aplikácií LocalSend: port %d je obsadený. Nebeží na tomto počítači LocalSend?
+LocalSend compatibility needs the python-pyopenssl package.	Kompatibilita s LocalSend vyžaduje balík python-pyopenssl.
+%d:%02d left	zostáva %d:%02d
+Nearby LuxOS computers cannot be found because avahi-daemon is not running.	Počítače s LuxOS v okolí sa nedajú nájsť, pretože nebeží avahi-daemon.
+Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Automatické hľadanie zariadení LocalSend nie je k dispozícii (%s). Použite „Prehľadať miestnu sieť“.
+LuxDrop: message from %s	LuxDrop: správa od %s

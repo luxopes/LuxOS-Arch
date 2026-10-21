@@ -1,0 +1,11 @@
+# LuxOS - mDNS v /etc/nsswitch.conf i po aktualizaci baliku filesystem (napr. novy nsswitch.conf)
+[Trigger]
+Type = Path
+Operation = Install
+Operation = Upgrade
+Target = etc/nsswitch.conf
+
+[Action]
+Description = Enabling .local names for printers and scanners (mDNS)...
+When = PostTransaction
+Exec = /usr/lib/luxos/printing/luxos-nsswitch-mdns

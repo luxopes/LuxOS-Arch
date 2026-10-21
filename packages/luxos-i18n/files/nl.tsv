@@ -1,0 +1,1420 @@
+# LuxOS - Nederlandse vertaling (Engelse tekst<TAB>Nederlandse tekst); %s en %d moeten behouden blijven
+Keyboard Shortcuts	Toetscombinaties
+Shortcut	Toetscombinatie
+Action	Actie
+Close window	Sluit venster
+Minimize window	Minimaliseer venster
+Switch windows	Wissel tussen vensters
+Maximize / tile half	Maximaliseer / halve schermbreedte
+Full screen	Schermvullend
+Show desktop	Toon bureaublad
+Switch workspace	Wissel van werkruimte
+Files	Bestanden
+Terminal	Terminal
+Settings	Instellingen
+Lock screen	Vergrendel scherm
+Switch keyboard layout	Wissel toetsenbordindeling
+Screenshot	Schermafbeelding
+Screenshot of region	Schermafbeelding van gebied
+Screenshot tool	Schermafbeeldingshulpmiddel
+System monitor (force quit)	Systeemmonitor (forceer stoppen)
+Close	Sluit
+Desktop & Dock	Bureaublad en Dock
+Advanced Desktop Settings…	Geavanceerde bureaubladinstellingen…
+Menu Bar Items…	Menubalkonderdelen…
+Appearance	Weergave
+Light	Licht
+Dark	Donker
+Wallpaper	Achtergrond
+Choose…	Kies…
+Your own picture	Je eigen afbeelding
+Choose a picture	Kies een afbeelding
+Pictures	Afbeeldingen
+Dock	Dock
+Automatically hide and show the Dock	Verberg en toon het Dock automatisch
+The Dock appears when you move the pointer to the bottom edge.	Het Dock verschijnt als je de aanwijzer naar de onderrand beweegt.
+Size	Grootte
+Magnification	Vergroting
+Magnification size	Vergrotingsgrootte
+Bottom	Onder
+Left	Links
+Right	Rechts
+Position on screen	Positie op scherm
+Dock opacity	Doorzichtigheid van Dock
+Menu Bar	Menubalk
+Menu bar opacity	Doorzichtigheid van menubalk
+Battery Saver is on\n	Batterijbesparing is aan\n
+Battery Saver is off\n	Batterijbesparing is uit\n
+Battery	Batterij
+Rolling release · based on Arch Linux	Rolling release · gebaseerd op Arch Linux
+Computer	Computer
+Processor	Processor
+Memory	Geheugen
+Graphics	Grafische kaart
+Storage	Opslag
+%s available of %s	%s beschikbaar van %s
+Kernel	Kernel
+Shell	Shell
+About This Computer	Over deze computer
+Software Update	Software-update
+Update	Werk bij
+Press Enter to close	Druk op Enter om te sluiten
+Install LuxOS	Installeer LuxOS
+Light Mode	Lichte modus
+Dark Mode	Donkere modus
+LuxOS Store	LuxOS Store
+Shortcuts	Toetscombinaties
+Welcome to LuxOS	Welkom bij LuxOS
+Fast, light and beautifully simple.	Snel, licht en prachtig eenvoudig.
+Search: apps, files and windows	Zoek: apps, bestanden en vensters
+Launchpad: all applications	Launchpad: alle apps
+close window	sluit venster
+screenshot of a region	schermafbeelding van een gebied
+install and update software from Terminal	installeer en werk software bij vanuit Terminal
+Control Center	Bedieningspaneel
+Off	Uit
+Ethernet	Ethernet
+Not connected	Niet verbonden
+Not available	Niet beschikbaar
+On	Aan
+Wi-Fi	Wifi
+Bluetooth	Bluetooth
+Do Not Disturb	Niet storen
+Data Saver	Databesparing
+Battery Saver	Batterijbesparing
+Display	Beeldscherm
+Sound	Geluid
+Desktop & Dock…	Bureaublad en Dock…
+All Settings…	Alle instellingen…
+Charging	Wordt opgeladen
+On battery	Op batterij
+Fully charged	Volledig opgeladen
+Data Saver is on\n	Databesparing is aan\n
+Data Saver is off\n	Databesparing is uit\n
+AUR is disabled in lux.conf	AUR is uitgeschakeld in lux.conf
+jq is required for AUR support	jq is vereist voor AUR-ondersteuning
+AUR packages must be built as a regular user (run lux without sudo)	AUR-pakketten moeten als gewone gebruiker worden gebouwd (voer lux uit zonder sudo)
+Building AUR packages needs %sbase-devel%s and %sgit%s.	Voor het bouwen van AUR-pakketten zijn %sbase-devel%s en %sgit%s nodig.
+Install them now?	Nu installeren?
+AUR is not reachable	AUR is niet bereikbaar
+Package '%s' was not found in repositories or AUR	Pakket ‘%s’ is niet gevonden in de repository’s of AUR
+Cannot update %s from AUR	Kan %s niet bijwerken vanuit AUR
+Cannot clone %s from AUR	Kan %s niet klonen vanuit AUR
+Review PKGBUILD of %s before building?	PKGBUILD van %s bekijken voor het bouwen?
+Build and install %s?	%s bouwen en installeren?
+Cancelled	Geannuleerd
+Building %s %s(AUR)%s	%s wordt gebouwd %s(AUR)%s
+Build of %s failed (see %s)	Bouwen van %s is mislukt (zie %s)
+AUR packages to build: %s	Te bouwen AUR-pakketten: %s
+AUR packages are maintained by the community, not by LuxOS.	AUR-pakketten worden onderhouden door de community, niet door LuxOS.
+Continue?	Doorgaan?
+Usage: lux install <package...>	Gebruik: lux install <pakket...>
+Installing %s from Flathub	%s wordt geïnstalleerd vanaf Flathub
+Package '%s' not found. Try: lux search %s	Pakket ‘%s’ niet gevonden. Probeer: lux search %s
+Usage: lux remove <package...>	Gebruik: lux remove <pakket...>
+Refreshing package databases	Pakketdatabases worden vernieuwd
+Updating system packages	Systeempakketten worden bijgewerkt
+Checking AUR packages	AUR-pakketten worden gecontroleerd
+AUR packages are up to date	AUR-pakketten zijn bijgewerkt
+Updating Flatpak apps	Flatpak-apps worden bijgewerkt
+New config files to review:	Nieuwe configuratiebestanden om te bekijken:
+Kernel was updated - restart to use it.	De kernel is bijgewerkt - herstart om hem te gebruiken.
+System is up to date	Het systeem is bijgewerkt
+Usage: lux search <term>	Gebruik: lux search <term>
+Usage: lux info <package>	Gebruik: lux info <pakket>
+Package '%s' not found	Pakket ‘%s’ niet gevonden
+Cleaning package cache (keeping %s versions)	Pakketcache wordt opgeschoond (%s versies blijven bewaard)
+Unneeded packages: %s	Overbodige pakketten: %s
+Remove them?	Verwijderen?
+No unneeded packages	Geen overbodige pakketten
+Clean	Schoon op
+All drivers are installed	Alle stuurprogramma’s zijn geïnstalleerd
+Missing: %s	Ontbreekt: %s
+Install now?	Nu installeren?
+Drivers installed - restart to activate them	Stuurprogramma’s geïnstalleerd - herstart om ze te activeren
+Finding the fastest mirrors (this can take a minute)	Snelste mirrors worden gezocht (dit kan een minuut duren)
+Mirror list updated	Mirrorlijst bijgewerkt
+LuxOS system check	LuxOS-systeemcontrole
+%s failed service(s):	%s mislukte dienst(en):
+Services running	Diensten actief
+%s .pacnew config file(s) to merge (pacdiff)	%s .pacnew-configuratiebestand(en) om samen te voegen (pacdiff)
+No pending config files	Geen openstaande configuratiebestanden
+Root filesystem is %s%% full	Rootbestandssysteem is %s%% vol
+Disk usage %s%%	Schijfgebruik %s%%
+%s unneeded package(s) - run: lux clean	%s overbodig(e) pakket(ten) - voer uit: lux clean
+No orphaned packages	Geen verweesde pakketten
+%s update(s) available - run: lux update	%s update(s) beschikbaar - voer uit: lux update
+System up to date	Systeem bijgewerkt
+Running kernel was replaced - restart	Actieve kernel is vervangen - herstart
+%s error message(s) in this boot's log (journalctl -b -p err)	%s foutmelding(en) in het logboek van deze opstart (journalctl -b -p err)
+Everything looks good	Alles ziet er goed uit
+LuxOS package manager	LuxOS-pakketbeheer
+Usage:	Gebruik:
+command	opdracht
+options	opties
+arguments	argumenten
+Options:	Opties:
+system	systeem
+The interactive mode needs fzf (lux install fzf)	De interactieve modus heeft fzf nodig (lux install fzf)
+The interactive mode needs expac (lux install expac)	De interactieve modus heeft expac nodig (lux install expac)
+Enter install · Ctrl-R remove · Ctrl-U update system · Tab select more	Enter installeer · Ctrl-R verwijder · Ctrl-U werk systeem bij · Tab selecteer meer
+Alt-L LuxOS apps · Alt-I installed · Alt-A all · Esc quit	Alt-L LuxOS-apps · Alt-I geïnstalleerd · Alt-A alles · Esc stop
+LuxOS apps	LuxOS-apps
+Installed	Geïnstalleerd
+All packages	Alle pakketten
+Search	Zoek
+Press Enter to continue	Druk op Enter om door te gaan
+Usage: lux files <pkg>	Gebruik: lux files <pakket>
+Usage: lux owner <file>	Gebruik: lux owner <bestand>
+Unknown command '%s' (see lux --help)	Onbekende opdracht ‘%s’ (zie lux --help)
+Open	Open
+Get	Download
+Search apps	Zoek apps
+Discover	Ontdek
+LuxOS Apps	LuxOS Apps
+Categories	Categorieën
+Library	Bibliotheek
+Updates	Updates
+From LuxOS	Van LuxOS
+Popular apps	Populaire apps
+Apps made for LuxOS, signed by the LuxOS team.	Apps gemaakt voor LuxOS, ondertekend door het LuxOS-team.
+Results for “%s”	Resultaten voor “%s”
+Welcome to the LuxOS Store	Welkom bij de LuxOS Store
+%d apps from LuxOS and Arch Linux, installed with one click.	%d apps van LuxOS en Arch Linux, geïnstalleerd met één klik.
+Nothing here yet.	Hier staat nog niets.
+Check for Updates	Zoek naar updates
+Update All	Werk alles bij
+Everything is up to date.	Alles is bijgewerkt.
+%d updates available: %s	%d updates beschikbaar: %s
+Checking for updates…	Zoeken naar updates…
+Updating system…	Systeem wordt bijgewerkt…
+Data Saver is on - updates are not checked automatically.	Databesparing is aan - er wordt niet automatisch naar updates gezocht.
+Remove	Verwijder
+Version	Versie
+Package	Pakket
+About	Info
+Website	Website
+%s is installed, but has no window to open.	%s is geïnstalleerd, maar heeft geen venster om te openen.
+Installing %s…	%s wordt geïnstalleerd…
+Remove %s?	%s verwijderen?
+The app will be removed from this computer. Your files stay untouched.	De app wordt van deze computer verwijderd. Je bestanden blijven onaangeroerd.
+Removing %s…	%s wordt verwijderd…
+Done.	Klaar.
+Cancelled.	Geannuleerd.
+Failed: %s	Mislukt: %s
+interactive app store in the terminal	interactieve appwinkel in de terminal
+install packages (repositories, then AUR / Flathub)	installeer pakketten (repository’s, daarna AUR / Flathub)
+remove packages and their unneeded dependencies	verwijder pakketten en hun overbodige afhankelijkheden
+update everything (system, AUR, Flatpak)	werk alles bij (systeem, AUR, Flatpak)
+search repositories and AUR	doorzoek repository’s en AUR
+show package details	toon pakketgegevens
+list installed packages	toon geïnstalleerde pakketten
+files installed by a package	bestanden geïnstalleerd door een pakket
+which package owns a file	welk pakket een bestand bezit
+clean cache and remove unneeded packages	schoon cache op en verwijder overbodige pakketten
+detect and install missing drivers	detecteer en installeer ontbrekende stuurprogramma’s
+pick the fastest download mirrors	kies de snelste downloadmirrors
+check system health	controleer de systeemgezondheid
+recent package changes	recente pakketwijzigingen
+do not ask for confirmation	vraag niet om bevestiging
+only official repositories	alleen officiële repository’s
+only AUR	alleen AUR
+this help	deze hulp
+version	versie
+Internet	Internet
+Office	Kantoor
+Music & Video	Muziek en video
+Developer Tools	Ontwikkelaarstools
+Games	Games
+Education & Science	Onderwijs en wetenschap
+Utilities	Hulpprogramma’s
+System	Systeem
+Error	Fout
+Calculator	Rekenmachine
+# Installatieprogramma
+Installation failed (line %s, exit code %s).	Installatie mislukt (regel %s, afsluitcode %s).
+Details are in %s. Last lines:	Details staan in %s. Laatste regels:
+Warning: not running from the LuxOS live system.	Waarschuwing: niet gestart vanaf het LuxOS-livesysteem.
+No internet connection	Geen internetverbinding
+LuxOS downloads the newest packages during installation.	LuxOS downloadt tijdens de installatie de nieuwste pakketten.
+Connect with the network icon in the top bar, or use the text tool.	Maak verbinding via het netwerksymbool in de menubalk, of gebruik het teksthulpmiddel.
+Try again	Probeer opnieuw
+Open network setup (nmtui)	Open netwerkinstellingen (nmtui)
+Quit	Stop
+Other…	Andere…
+Type to search	Typ om te zoeken
+Choose locale	Kies landinstelling
+Language: %s	Taal: %s
+The installation takes about 10 minutes.	De installatie duurt ongeveer 10 minuten.
+Keyboard	Toetsenbord
+Choose your keyboard layout	Kies je toetsenbordindeling
+Layout	Indeling
+Variant	Variant
+Keyboard: %s	Toetsenbord: %s
+Time zone	Tijdzone
+Use detected time zone %s?	Gedetecteerde tijdzone %s gebruiken?
+Choose time zone	Kies tijdzone
+Time zone: %s	Tijdzone: %s
+Disk	Schijf
+Advanced: use partitions already mounted at %s	Geavanceerd: gebruik partities die al zijn gekoppeld op %s
+Where should LuxOS be installed?	Waar moet LuxOS worden geïnstalleerd?
+Nothing is mounted at %s. Mount root (and /boot) first.	Er is niets gekoppeld op %s. Koppel eerst root (en /boot).
+All data on %s will be erased.	Alle gegevens op %s worden gewist.
+Yes	Ja
+No	Nee
+Encrypt the disk? (you will enter a password at every start)	Schijf versleutelen? (je voert bij elke start een wachtwoord in)
+Disk encryption password	Wachtwoord voor schijfversleuteling
+Your account	Je account
+Full name	Volledige naam
+Jane Doe	Jan Jansen
+User name (lowercase)	Gebruikersnaam (kleine letters)
+Use lowercase letters, numbers, - and _ (max 32 characters).	Gebruik kleine letters, cijfers, - en _ (max. 32 tekens).
+Password	Wachtwoord
+Computer name	Computernaam
+Use letters, numbers and - (no spaces).	Gebruik letters, cijfers en - (geen spaties).
+Log in automatically without a password?	Automatisch inloggen zonder wachtwoord?
+Password cannot be empty.	Wachtwoord mag niet leeg zijn.
+%s (again)	%s (nogmaals)
+Passwords do not match, try again.	Wachtwoorden komen niet overeen, probeer het opnieuw.
+Summary	Overzicht
+Language	Taal
+mounted at %s	gekoppeld op %s
+%s  (will be ERASED)	%s  (wordt GEWIST)
+Encryption	Versleuteling
+yes	ja
+no	nee
+User	Gebruiker
+Boot mode	Opstartmodus
+Install	Installeer
+Cancel	Annuleer
+Install LuxOS now?	LuxOS nu installeren?
+Preparing disk %s	Schijf %s wordt voorbereid
+Partitions were not created correctly	Partities zijn niet correct aangemaakt
+Encrypting the disk	Schijf wordt versleuteld
+Creating file systems	Bestandssystemen worden aangemaakt
+Detecting hardware	Hardware wordt gedetecteerd
+Installing packages (this is the longest step)	Pakketten worden geïnstalleerd (dit is de langste stap)
+Download failed (attempt %s), retrying…	Download mislukt (poging %s), opnieuw proberen…
+Packages could not be installed. Check the internet connection.	Pakketten konden niet worden geïnstalleerd. Controleer de internetverbinding.
+Configuring the system	Systeem wordt geconfigureerd
+Could not add UEFI boot entry (fallback loader will be used)	Kan geen UEFI-opstartitem toevoegen (de reservelader wordt gebruikt)
+Finishing	Afronden
+LuxOS is installed	LuxOS is geïnstalleerd
+Remove the installation media and restart your computer.	Verwijder het installatiemedium en herstart je computer.
+Restart	Herstart
+Later	Later
+Restart now?	Nu herstarten?
+Config needs DISK, USERNAME and PASSWORD	Configuratie vereist DISK, USERNAME en PASSWORD
+Invalid USERNAME	Ongeldige USERNAME
+Invalid HOSTNAME_SEL	Ongeldige HOSTNAME_SEL
+ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 vereist LUKS_PASS
+# Toetsenbordindelingen (installatieprogramma)
+English (US)	Engels (VS)
+Czech	Tsjechisch
+Czech (QWERTY)	Tsjechisch (QWERTY)
+Slovak	Slowaaks
+Slovak (QWERTY)	Slowaaks (QWERTY)
+German	Duits
+English (UK)	Engels (VK)
+French	Frans
+Spanish	Spaans
+Italian	Italiaans
+Polish	Pools
+Hungarian	Hongaars
+Ukrainian	Oekraïens
+Portuguese	Portugees
+Portuguese (Brazil)	Portugees (Brazilië)
+Swedish	Zweeds
+# Namen van apps in de menubalk
+Desktop	Bureaublad
+Text Editor	Teksteditor
+Image Viewer	Afbeeldingen bekijken
+Document Viewer	Documenten bekijken
+System Monitor	Systeemmonitor
+# Beeldschermen
+Extend - use both screens	Uitbreiden - gebruik beide schermen
+Mirror - same picture on both	Synchrone weergave - zelfde beeld op beide
+Only external screen	Alleen extern scherm
+Only this computer's screen	Alleen scherm van deze computer
+Screens	Schermen
+# Batterij en voeding
+Battery…	Batterij…
+Battery Saver is on	Batterijbesparing is aan
+Battery is at %s %%. Connect the charger.	Batterij is op %s %%. Sluit de lader aan.
+%d min	%d min.
+%d h %d min	%d u %d min.
+now	nu
+No history yet	Nog geen geschiedenis
+Battery & Power	Batterij en energie
+Power usage	Energieverbruik
+Battery health	Batterijconditie
+Charge cycles	Laadcycli
+Energy	Energie
+Battery level - last 24 hours	Batterijniveau - afgelopen 24 uur
+Power usage - last 24 hours	Energieverbruik - afgelopen 24 uur
+This computer runs on mains power - there is no battery.	Deze computer werkt op netstroom - er is geen batterij.
+Power mode	Energiemodus
+Power Saver	Energiebesparing
+Longest battery life	Langste batterijduur
+Balanced	Gebalanceerd
+Recommended	Aanbevolen
+Performance	Prestaties
+Fastest, uses more power	Snelst, verbruikt meer energie
+Saves energy: power saving mode and fewer animations.	Bespaart energie: energiebesparingsmodus en minder animaties.
+Turn on automatically at 20 %	Automatisch inschakelen bij 20 %
+Turns off again when the computer is charging.	Wordt weer uitgeschakeld als de computer wordt opgeladen.
+Screen and sleep	Scherm en sluimer
+Never	Nooit
+1 minute	1 minuut
+2 minutes	2 minuten
+5 minutes	5 minuten
+10 minutes	10 minuten
+15 minutes	15 minuten
+30 minutes	30 minuten
+1 hour	1 uur
+2 hours	2 uur
+Turn off the screen on battery after	Schakel scherm op batterij uit na
+Turn off the screen on power adapter after	Schakel scherm op lichtnetadapter uit na
+Sleep on battery after	Sluimer op batterij na
+Sleep on power adapter after	Sluimer op lichtnetadapter na
+Sleep	Sluimer
+Turn off the screen	Schakel scherm uit
+Hibernate	Slaapstand
+When the lid is closed	Als het deksel wordt gesloten
+Advanced Power Settings…	Geavanceerde energie-instellingen…
+%s minutes	%s minuten
+full in %s	vol over %s
+about %s left	nog ongeveer %s
+Plugged in, not charging	Aangesloten, wordt niet opgeladen
+charging power	laadvermogen
+current consumption	huidig verbruik
+of original capacity	van oorspronkelijke capaciteit
+full charge cycles	volledige laadcycli
+of %.1f Wh	van %.1f Wh
+# Bluetooth
+OK	OK
+Rejected	Geweigerd
+Pair this device?	Dit apparaat koppelen?
+Check that the device shows this code:	Controleer of het apparaat deze code toont:
+Pair	Koppel
+Type this code on the device	Typ deze code op het apparaat
+Then press Enter on it.	Druk daarna op het apparaat op Enter.
+Enter the PIN code	Voer de pincode in
+Usually 0000 or 1234, see the device manual.	Meestal 0000 of 1234, zie de handleiding van het apparaat.
+Enter the code	Voer de code in
+Code shown on the device:	Code getoond op het apparaat:
+Connected	Verbonden
+battery %d %%	batterij %d %%
+Disconnect	Verbreek verbinding
+Connect	Maak verbinding
+Forget this device	Vergeet dit apparaat
+My devices	Mijn apparaten
+Nearby devices	Apparaten in de buurt
+No devices	Geen apparaten
+Searching… Put the device into pairing mode.	Zoeken… Zet het apparaat in de koppelmodus.
+No Bluetooth adapter was found on this computer.	Er is geen Bluetooth-adapter gevonden op deze computer.
+Visible as “%s”.	Zichtbaar als “%s”.
+Turn on Bluetooth to connect headphones, a mouse, a keyboard or a phone.	Schakel Bluetooth in om een koptelefoon, muis, toetsenbord of telefoon te verbinden.
+Could not connect	Kan geen verbinding maken
+Pairing…	Koppelen…
+Connecting…	Verbinding maken…
+Disconnecting…	Verbinding verbreken…
+Make sure the device is on, close by and in pairing mode.	Zorg dat het apparaat aan staat, dichtbij is en in de koppelmodus staat.
+Headphones	Koptelefoon
+Speaker	Luidspreker
+Mouse	Muis
+Game controller	Gamecontroller
+Tablet	Tablet
+Phone	Telefoon
+Device	Apparaat
+# Systeemmonitor
+60 s ago	60 s geleden
+%d processes	%d processen
+1 process	1 proces
+All processes	Alle processen
+Network	Netwerk
+Name	Naam
+%d cores	%d kernen
+%s of %s used	%s van %s gebruikt
+%s free · activity %s	%s vrij · activiteit %s
+Download and upload	Download en upload
+All processes (%d)	Alle processen (%d)
+Open apps (%d)	Open apps (%d)
+%s is not responding	%s reageert niet
+Force quit it? Unsaved changes will be lost.	Geforceerd stoppen? Niet-bewaarde wijzigingen gaan verloren.
+Force Quit	Forceer stoppen
+# lux - pakketformaat
+Updating LuxOS apps	LuxOS-apps worden bijgewerkt
+Usage: lux pack <directory> [output]	Gebruik: lux pack <map> [uitvoer]
+%s has no lux.json	%s heeft geen lux.json
+lux.json is not valid JSON	lux.json is geen geldige JSON
+Invalid package name: %s	Ongeldige pakketnaam: %s
+Invalid version: %s	Ongeldige versie: %s
+%s has no app/ directory	%s heeft geen app/-map
+Missing files listed in bin: %s	Ontbrekende bestanden vermeld in bin: %s
+Built %s	%s gebouwd
+%s is not a lux package	%s is geen lux-pakket
+This package needs a newer lux	Dit pakket vereist een nieuwere lux
+Signature OK (LuxOS)	Handtekening OK (LuxOS)
+%s is not signed by LuxOS.	%s is niet ondertekend door LuxOS.
+Install it anyway?	Toch installeren?
+Installing dependencies: %s	Afhankelijkheden worden geïnstalleerd: %s
+Dependencies could not be installed	Afhankelijkheden konden niet worden geïnstalleerd
+Installing %s %s	%s %s wordt geïnstalleerd
+Could not unpack %s	Kan %s niet uitpakken
+%s is installed	%s is geïnstalleerd
+Removing %s	%s wordt verwijderd
+%s was removed	%s is verwijderd
+Downloading %s	%s wordt gedownload
+Download failed: %s	Download mislukt: %s
+Checksum mismatch: %s	Checksum komt niet overeen: %s
+Bad signature: %s	Ongeldige handtekening: %s
+LuxOS package (.lux)	LuxOS-pakket (.lux)
+build a .lux package from a directory with lux.json	bouw een .lux-pakket van een map met lux.json
+# Rekenmachine - wetenschappelijke modus
+Scientific (Ctrl+2)	Wetenschappelijk (Ctrl+2)
+Degrees / radians	Graden / radialen
+# LuxAI-account
+Sign in to LuxAI	Log in bij LuxAI
+LuxAI Account	LuxAI-account
+AI in LuxAI, Lux Code and LSL IDE	AI in LuxAI, Lux Code en LSL IDE
+Sign-in failed (%s).	Inloggen mislukt (%s).
+Not signed in. Run: luxos-account login	Niet ingelogd. Voer uit: luxos-account login
+One account for AI in LuxOS: LuxAI, Lux Code and LSL IDE.	Eén account voor AI in LuxOS: LuxAI, Lux Code en LSL IDE.
+Sign in with the browser	Log in met de browser
+or with e-mail	of met e-mail
+E-mail	E-mail
+Sign In	Log in
+Send me a code instead	Stuur me in plaats daarvan een code
+No account yet?	Nog geen account?
+Create an account	Maak een account aan
+Enter your e-mail and password.	Voer je e-mailadres en wachtwoord in.
+Enter your e-mail first.	Voer eerst je e-mailadres in.
+Enter the code from the e-mail	Voer de code uit de e-mail in
+We sent a 6-digit code to %s.	We hebben een 6-cijferige code gestuurd naar %s.
+Confirm the sign-in in the browser…	Bevestig het inloggen in de browser…
+After you confirm your e-mail, come back and sign in.	Kom terug en log in nadat je je e-mailadres hebt bevestigd.
+AI usage this month	AI-gebruik deze maand
+Unlimited	Onbeperkt
+%s: %s of %s tokens	%s: %s van %s tokens
+Loading…	Laden…
+Used by	Gebruikt door
+Manage on lux-ai.cz	Beheer op lux-ai.cz
+Sign Out	Log uit
+Your session has expired. Please sign in again.	Je sessie is verlopen. Log opnieuw in.
+Sign out of LuxAI?	Uitloggen bij LuxAI?
+LuxAI, Lux Code and LSL IDE will stop using this account on this computer.	LuxAI, Lux Code en LSL IDE gebruiken dit account dan niet meer op deze computer.
+LuxAI account	LuxAI-account
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account.	Optioneel: AI in LuxAI, Lux Code en LSL IDE gebruikt je LuxAI-account.
+Sign in	Log in
+Skip	Sla over
+Sign in to your LuxAI account now?	Nu inloggen bij je LuxAI-account?
+Signed in as %s	Ingelogd als %s
+Sign-in failed. Try again?	Inloggen mislukt. Opnieuw proberen?
+Wrong e-mail or password.	Onjuist e-mailadres of wachtwoord.
+The e-mail address is not verified yet.	Het e-mailadres is nog niet geverifieerd.
+LuxAI is not reachable. Check the internet connection.	LuxAI is niet bereikbaar. Controleer de internetverbinding.
+signed in	ingelogd
+not signed in	niet ingelogd
+LuxAI sign-in failed - continuing without it.	Inloggen bij LuxAI mislukt - er wordt zonder doorgegaan.
+The e-mail address is not verified yet. Use the sign-in code instead.	Het e-mailadres is nog niet geverifieerd. Gebruik in plaats daarvan de inlogcode.
+The code is not valid or has expired.	De code is ongeldig of verlopen.
+Too many attempts. Try again later.	Te veel pogingen. Probeer het later opnieuw.
+Please wait a minute before requesting another code.	Wacht een minuut voordat je een nieuwe code aanvraagt.
+The browser sign-in timed out.	Inloggen via de browser is verlopen.
+The sign-in was cancelled.	Het inloggen is geannuleerd.
+# Schermbeveiliging en vergrendeling
+Screen Saver & Lock	Schermbeveiliging en vergrendeling
+Screen saver	Schermbeveiliging
+Start after inactivity of	Start na inactiviteit van
+LuxOS - wallpapers and clock	LuxOS - achtergronden en klok
+Black screen	Zwart scherm
+Preview	Voorvertoning
+Lock	Vergrendel
+Immediately	Onmiddellijk
+After 1 minute	Na 1 minuut
+After 5 minutes	Na 5 minuten
+After 15 minutes	Na 15 minuten
+Require password after the screen saver starts	Vraag om wachtwoord nadat de schermbeveiliging start
+The screen saver protects your computer while you are away.	De schermbeveiliging beschermt je computer terwijl je weg bent.
+Lock when the computer goes to sleep	Vergrendel als de computer in de sluimerstand gaat
+Lock Now	Vergrendel nu
+# Kluis
+Could not create the Safe folder.	Kan de Kluis-map niet aanmaken.
+The Safe already exists.	De Kluis bestaat al.
+Could not create the Safe (%s).	Kan de Kluis niet aanmaken (%s).
+Wrong password.	Onjuist wachtwoord.
+Could not unlock the Safe (%s).	Kan de Kluis niet ontgrendelen (%s).
+Some files in the Safe are still open. Close them and try again.	Sommige bestanden in de Kluis zijn nog geopend. Sluit ze en probeer het opnieuw.
+Could not change the password (%s).	Kan het wachtwoord niet wijzigen (%s).
+Safe	Kluis
+Create your Safe	Maak je Kluis aan
+Files in the Safe are encrypted and open only with its own password - not even an administrator can read them while the Safe is locked.	Bestanden in de Kluis zijn versleuteld en openen alleen met een eigen wachtwoord - zelfs een beheerder kan ze niet lezen terwijl de Kluis vergrendeld is.
+New Safe password	Nieuw Kluis-wachtwoord
+Password again	Wachtwoord nogmaals
+Use at least 8 characters.	Gebruik minstens 8 tekens.
+Create Safe	Maak Kluis aan
+If you forget this password, the files cannot be recovered.	Als je dit wachtwoord vergeet, kunnen de bestanden niet worden hersteld.
+The Safe is locked	De Kluis is vergrendeld
+Enter the Safe password to open %s.	Voer het Kluis-wachtwoord in om %s te openen.
+Unlock	Ontgrendel
+The Safe is unlocked	De Kluis is ontgrendeld
+Your files are available in %s.	Je bestanden zijn beschikbaar in %s.
+Open Safe	Open Kluis
+Lock automatically after inactivity	Vergrendel automatisch na inactiviteit
+Lock when the screen locks	Vergrendel als het scherm wordt vergrendeld
+The Safe always locks when the computer goes to sleep or you log out.	De Kluis wordt altijd vergrendeld als de computer in de sluimerstand gaat of je uitlogt.
+Change Password…	Wijzig wachtwoord…
+Change Password	Wijzig wachtwoord
+Change	Wijzig
+Current password	Huidig wachtwoord
+# Sandbox (luxos-sandbox)
+Creating sandbox (minimal Arch Linux system), this can take a few minutes...	Sandbox wordt aangemaakt (minimaal Arch Linux-systeem), dit kan een paar minuten duren...
+Sandbox deleted.	Sandbox verwijderd.
+No sandbox yet. Create it with: luxos-sandbox create	Nog geen sandbox. Maak er een aan met: luxos-sandbox create
+Creating the sandbox failed.	Aanmaken van de sandbox is mislukt.
+Sandbox is ready: %s	Sandbox is gereed: %s
+Size: %s	Grootte: %s
+Shared folder: %s (only with --shared)	Gedeelde map: %s (alleen met --shared)
+Installed apps: %s	Geïnstalleerde apps: %s
+Copying the file into the sandbox failed.	Kopiëren van het bestand naar de sandbox is mislukt.
+Usage: luxos-sandbox run [--net] [--gui] [--shared] <command...>	Gebruik: luxos-sandbox run [--net] [--gui] [--shared] <opdracht...>
+No package given.	Geen pakket opgegeven.
+Confirmation needed: add --yes	Bevestiging nodig: voeg --yes toe
+Wipe the whole sandbox (all installed apps and files inside) and create it again?	De hele sandbox wissen (alle geïnstalleerde apps en bestanden erin) en opnieuw aanmaken?
+Resetting the sandbox failed.	Herstellen van de sandbox is mislukt.
+Delete the sandbox with everything inside? (~/Sandbox stays)	De sandbox met alles erin verwijderen? (~/Sandbox blijft bewaard)
+Deleting the sandbox failed.	Verwijderen van de sandbox is mislukt.
+Run luxos-sandbox as a normal user, not root.	Voer luxos-sandbox uit als gewone gebruiker, niet als root.
+Sandbox directory is not owned by you: %s	De sandboxmap is niet van jou: %s
+Xephyr is not installed (package xorg-server-xephyr).	Xephyr is niet geïnstalleerd (pakket xorg-server-xephyr).
+Could not start the sandbox window (Xephyr).	Kan het sandboxvenster (Xephyr) niet starten.
+Network for the sandbox needs pasta (package passt).	Netwerk voor de sandbox vereist pasta (pakket passt).
+Warning: systemd user session not available, running without memory/CPU limits.	Waarschuwing: systemd-gebruikerssessie niet beschikbaar, er wordt gewerkt zonder geheugen-/CPU-limieten.
+The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	De sandbox is beschadigd (home is geen map). Voer uit: luxos-sandbox reset
+bubblewrap (bwrap) is not installed.	bubblewrap (bwrap) is niet geïnstalleerd.
+Sandbox already exists: %s	Sandbox bestaat al: %s
+Helper not found: %s	Hulpprogramma niet gevonden: %s
+Link: %s	Koppeling: %s
+none	geen
+Not a regular file: %s	Geen gewoon bestand: %s
+Copying %s into the sandbox...	%s wordt naar de sandbox gekopieerd...
+isolated sandbox for untrusted applications	geïsoleerde sandbox voor niet-vertrouwde apps
+Unknown command: %s	Onbekende opdracht: %s
+Unknown option: %s	Onbekende optie: %s
+Shared folder is not usable: %s	Gedeelde map is niet bruikbaar: %s
+Could not set up the sandbox network: %s	Kan het sandboxnetwerk niet instellen: %s
+create your sandbox (asks for the administrator password once)	maak je sandbox aan (vraagt één keer om het beheerderswachtwoord)
+show the sandbox, its size and installed apps	toon de sandbox, de grootte en geïnstalleerde apps
+interactive shell inside the sandbox	interactieve shell in de sandbox
+run a command (a file from your computer is copied in first)	voer een opdracht uit (een bestand van je computer wordt eerst ingekopieerd)
+install apps from the Arch Linux repositories into the sandbox	installeer apps uit de Arch Linux-repository’s in de sandbox
+remove apps from the sandbox	verwijder apps uit de sandbox
+wipe the sandbox and create it again	wis de sandbox en maak hem opnieuw aan
+delete the sandbox	verwijder de sandbox
+network: internet only, no local network, no services of this computer	netwerk: alleen internet, geen lokaal netwerk, geen diensten van deze computer
+own window (nested X server), never your desktop	eigen venster (geneste X-server), nooit je bureaublad
+make ~/Sandbox visible as /home/sandbox/Shared	maak ~/Sandbox zichtbaar als /home/sandbox/Shared
+Get started	Aan de slag
+No sandbox yet	Nog geen sandbox
+Creates a minimal Arch Linux system only for you. Needs the administrator password once and a few minutes.	Maakt een minimaal Arch Linux-systeem alleen voor jou. Vereist één keer het beheerderswachtwoord en een paar minuten.
+Installed apps	Geïnstalleerde apps
+Install app	Installeer app
+From Arch Linux repositories	Uit Arch Linux-repository’s
+Installs into the sandbox only; network is enabled just for the download.	Installeert alleen in de sandbox; het netwerk is alleen ingeschakeld voor de download.
+Run app	Start app
+Command	Opdracht
+Downloaded file	Gedownload bestand
+The file is copied into the sandbox first; the original is never exposed.	Het bestand wordt eerst naar de sandbox gekopieerd; het origineel wordt nooit blootgesteld.
+Internet only - no access to your local network or this computer.	Alleen internet - geen toegang tot je lokale netwerk of deze computer.
+Window	Venster
+Show the app in its own separate window (not on your desktop).	Toon de app in een eigen apart venster (niet op je bureaublad).
+Shared folder	Gedeelde map
+Tools	Hulpmiddelen
+Terminal in sandbox	Terminal in sandbox
+Uses the Network and Shared folder switches above.	Gebruikt de schakelaars Netwerk en Gedeelde map hierboven.
+Reset sandbox	Herstel sandbox
+Deletes everything inside the sandbox and creates it again.	Verwijdert alles in de sandbox en maakt hem opnieuw aan.
+Creating sandbox…	Sandbox wordt aangemaakt…
+Sandbox is ready.	Sandbox is gereed.
+Installed.	Geïnstalleerd.
+Run	Start
+Reset the sandbox?	De sandbox herstellen?
+All apps and files inside the sandbox will be deleted. ~/Sandbox stays.	Alle apps en bestanden in de sandbox worden verwijderd. ~/Sandbox blijft bewaard.
+Continue	Ga door
+An isolated system for apps you don't trust. Apps inside can't see your files, network or desktop.	Een geïsoleerd systeem voor apps die je niet vertrouwt. Apps erin kunnen je bestanden, netwerk en bureaublad niet zien.
+Create Sandbox	Maak sandbox aan
+Package name, e.g. firefox	Pakketnaam, bijv. firefox
+Command, e.g. firefox	Opdracht, bijv. firefox
+Choose File…	Kies bestand…
+Make %s visible inside as Shared. Treat files from it as untrusted.	Maak %s binnenin zichtbaar als Shared. Behandel bestanden daaruit als niet-vertrouwd.
+Open Terminal	Open Terminal
+Reset…	Herstel…
+Details	Details
+Ready	Gereed
+Not created	Niet aangemaakt
+No apps installed yet	Nog geen apps geïnstalleerd
+Failed - see Details.	Mislukt - zie Details.
+Enter a valid package name.	Voer een geldige pakketnaam in.
+Remove %s from the sandbox?	%s uit de sandbox verwijderen?
+Removed.	Verwijderd.
+Started %s in the sandbox.	%s is gestart in de sandbox.
+Enter a command.	Voer een opdracht in.
+Choose a file to run in the sandbox	Kies een bestand om in de sandbox uit te voeren
+Resetting sandbox…	Sandbox wordt hersteld…
+# Agenda (luxos-calendar)
+Calendar	Agenda
+All day	Hele dag
+Changes apply to all occurrences.	Wijzigingen gelden voor alle herhalingen.
+Could not save: %s	Kan niet bewaren: %s
+Custom	Aangepast
+Date	Datum
+Day	Dag
+Delete All?	Alles verwijderen?
+Delete Event?	Activiteit verwijderen?
+Delete	Verwijder
+Edit Event	Wijzig activiteit
+Ends	Eindigt
+Event	Activiteit
+From %s	Vanaf %s
+In %d minutes	Over %d minuten
+Invalid date.	Ongeldige datum.
+Invalid time.	Ongeldige tijd.
+Month	Maand
+New Event	Nieuwe activiteit
+Next day	Volgende dag
+Next month	Volgende maand
+Next year	Volgend jaar
+No events today	Geen activiteiten vandaag
+No events	Geen activiteiten
+Now	Nu
+Previous day	Vorige dag
+Previous month	Vorige maand
+Previous year	Vorig jaar
+Read-only calendar: %s	Alleen-lezen agenda: %s
+Remind %d minutes before	Herinner %d minuten van tevoren
+Repeat	Herhaal
+Save	Bewaar
+Starts	Begint
+The event must end after it starts.	De activiteit moet eindigen nadat deze begint.
+Title	Titel
+Today	Vandaag
+Until %s	Tot %s
+Year	Jaar
+Daily	Dagelijks
+Weekly	Wekelijks
+Monthly	Maandelijks
+Yearly	Jaarlijks
+Monday	maandag
+Tuesday	dinsdag
+Wednesday	woensdag
+Thursday	donderdag
+Friday	vrijdag
+Saturday	zaterdag
+Sunday	zondag
+Mo	ma
+Tu	di
+We	wo
+Th	do
+Fr	vr
+Sa	za
+Su	zo
+January	januari
+February	februari
+March	maart
+April	april
+May	mei
+June	juni
+July	juli
+August	augustus
+September	september
+October	oktober
+November	november
+December	december
+of January	januari
+of February	februari
+of March	maart
+of April	april
+of May	mei
+of June	juni
+of July	juli
+of August	augustus
+of September	september
+of October	oktober
+of November	november
+of December	december
+Enter Password	Voer wachtwoord in
+Shut Down	Zet uit
+Guest	Gast
+Username	Gebruikersnaam
+Log In	Log in
+Caps Lock is on	Caps Lock is aan
+Incorrect password. Try again.	Onjuist wachtwoord. Probeer het opnieuw.
+Could not start the session.	Kan de sessie niet starten.
+This action is not available right now.	Deze actie is momenteel niet beschikbaar.
+# LuxDrop
+Device '%s' not found on the network. Use an address: luxdrop send HOST[:PORT] FILES	Apparaat ‘%s’ niet gevonden op het netwerk. Gebruik een adres: luxdrop send HOST[:PORT] FILES
+Transfer failed: %s (%s)	Overdracht mislukt: %s (%s)
+WARNING: someone may be impersonating this device. Nothing was sent. If the device was reinstalled, remove it with 'luxdrop trust remove ID' and pair again.	WAARSCHUWING: iemand doet zich mogelijk voor als dit apparaat. Er is niets verstuurd. Als het apparaat opnieuw is geïnstalleerd, verwijder het dan met ‘luxdrop trust remove ID’ en koppel het opnieuw.
+Receiving as "%s" (ID %s) on port %d, mode: %s, folder: %s	Ontvangen als “%s” (ID %s) op poort %d, modus: %s, map: %s
+Nearby devices:	Apparaten in de buurt:
+No devices found nearby (is avahi-daemon running?).	Geen apparaten in de buurt gevonden (draait avahi-daemon?).
+No trusted devices.	Geen vertrouwde apparaten.
+Name: %s	Naam: %s
+ID: %s	ID: %s
+Fingerprint: %s	Vingerafdruk: %s
+Send files securely between LuxOS computers.	Verstuur bestanden veilig tussen LuxOS-computers.
+send files or folders	verstuur bestanden of mappen
+device name, ID, HOST[:PORT] or NAME@HOST[:PORT]	apparaatnaam, ID, HOST[:PORT] of NAME@HOST[:PORT]
+do not trust the receiver after verification	vertrouw de ontvanger niet na verificatie
+receive files in the terminal	ontvang bestanden in de terminal
+listen only on this address	luister alleen op dit adres
+who can send (everyone = for 10 minutes)	wie mag versturen (everyone = gedurende 10 minuten)
+download folder	downloadmap
+do not announce on the network	niet aankondigen op het netwerk
+list nearby devices	toon apparaten in de buurt
+list or remove trusted devices	toon of verwijder vertrouwde apparaten
+ID or name	ID of naam
+show this device's name and fingerprint	toon de naam en vingerafdruk van dit apparaat
+show or set who can send to this computer	toon of stel in wie naar deze computer mag versturen
+Receiver: %s (ID %s)	Ontvanger: %s (ID %s)
+Verification code: %s	Verificatiecode: %s
+Does %s show the same code? [y]es and remember / [o]nly this time / [N]o: 	Toont %s dezelfde code? [y] ja en onthouden / [o] alleen deze keer / [N] nee: 
+Preparing	Voorbereiden
+Sending	Versturen
+Skipped %s (%s)	%s overgeslagen (%s)
+WARNING: this device uses the name of a trusted device, but a different key!	WAARSCHUWING: dit apparaat gebruikt de naam van een vertrouwd apparaat, maar een andere sleutel!
+%s (ID %s) wants to send you %d item(s), %s:	%s (ID %s) wil je %d onderdeel/onderdelen sturen, %s:
+Accept? [y]es / [a]ccept and trust this device / [N]o: 	Accepteren? [y] ja / [a] accepteren en dit apparaat vertrouwen / [N] nee: 
+Accept? [y/N]: 	Accepteren? [y/N]: 
+The sender cancelled the request.	De afzender heeft het verzoek geannuleerd.
+trusted	vertrouwd
+Removed %d device(s)	%d apparaat/apparaten verwijderd
+'%s' matches more trusted devices, use the ID	‘%s’ komt overeen met meerdere vertrouwde apparaten, gebruik de ID
+File not found: %s	Bestand niet gevonden: %s
+Cancelling…	Annuleren…
+Sent %d item(s), %s to %s	%d onderdeel/onderdelen, %s verstuurd naar %s
+Verification code: %s  (must be the same on the sender's screen)	Verificatiecode: %s  (moet hetzelfde zijn op het scherm van de afzender)
+Received from %s: %s	Ontvangen van %s: %s
+Cannot listen on port %d: %s	Kan niet luisteren op poort %d: %s
+'%s' is not a trusted device (see 'luxdrop trust list')	‘%s’ is geen vertrouwd apparaat (zie ‘luxdrop trust list’)
+Declined transfer from %s	Overdracht van %s geweigerd
+Transfer from %s failed: %s (%s)	Overdracht van %s mislukt: %s (%s)
+Not visible on the network (%s); connect by address.	Niet zichtbaar op het netwerk (%s); maak verbinding via adres.
+Waiting for the receiver to accept…	Wachten tot de ontvanger accepteert…
+(resumed, %s were already there)	(hervat, %s was al aanwezig)
+%s wants to send you %d item(s), %s: %s	%s wil je %d onderdeel/onderdelen sturen, %s: %s
+Decline	Weiger
+Accept	Accepteer
+Accept and trust	Accepteer en vertrouw
+LuxDrop: incoming files	LuxDrop: binnenkomende bestanden
+LuxDrop: received from %s	LuxDrop: ontvangen van %s
+Show in folder	Toon in map
+LuxDrop: transfer from %s failed	LuxDrop: overdracht van %s mislukt
+Trusted devices only	Alleen vertrouwde apparaten
+Everyone for 10 minutes	Iedereen gedurende 10 minuten
+Connect by address…	Maak verbinding via adres…
+Transfers	Overdrachten
+Choose	Kies
+Add	Voeg toe
+Codes match	Codes komen overeen
+Device name	Apparaatnaam
+Allow receiving from	Sta ontvangen toe van
+Save received files to	Bewaar ontvangen bestanden in
+Accept automatically from trusted devices	Accepteer automatisch van vertrouwde apparaten
+Receive when LuxDrop is closed	Ontvang wanneer LuxDrop gesloten is
+Fingerprint	Vingerafdruk
+Drop files here	Zet bestanden hier neer
+or click to choose files, then pick a device below	of klik om bestanden te kiezen en kies daarna hieronder een apparaat
+Choose files…	Kies bestanden…
+Choose folder…	Kies map…
+Clear	Wis
+Received	Ontvangen
+Choose folder	Kies map
+Choose files	Kies bestanden
+Nearby devices cannot be found because avahi-daemon is not running. You can still connect by address.	Apparaten in de buurt kunnen niet worden gevonden omdat avahi-daemon niet draait. Je kunt nog steeds verbinding maken via adres.
+Connect by address	Maak verbinding via adres
+Verify code	Verifieer code
+Remember this device (no code next time)	Onthoud dit apparaat (de volgende keer geen code)
+Incoming files	Binnenkomende bestanden
+Not receiving	Ontvangt niet
+LuxDrop Settings	LuxDrop-instellingen
+This computer	Deze computer
+Trusted devices	Vertrouwde apparaten
+Trusted devices can send to you without a verification code. Remove a device if it was lost or reinstalled.	Vertrouwde apparaten kunnen je zonder verificatiecode iets sturen. Verwijder een apparaat als het kwijt is of opnieuw is geïnstalleerd.
+Allow receiving from:	Sta ontvangen toe van:
+%d item(s) ready to send	%d onderdeel/onderdelen klaar om te versturen
+No devices found yet. Open LuxDrop on the other computer, or connect by address.	Nog geen apparaten gevonden. Open LuxDrop op de andere computer of maak verbinding via adres.
+Trusted	Vertrouwd
+Not verified yet	Nog niet geverifieerd
+Invalid address.	Ongeldig adres.
+Compare the code with the screen of the receiving computer. If the codes differ, someone may be intercepting the connection.	Vergelijk de code met het scherm van de ontvangende computer. Als de codes verschillen, onderschept iemand mogelijk de verbinding.
+Warning: this device uses the name of a trusted device, but its key is different. It may be someone else.	Waarschuwing: dit apparaat gebruikt de naam van een vertrouwd apparaat, maar de sleutel is anders. Het kan iemand anders zijn.
+Trust this device (no code next time)	Vertrouw dit apparaat (de volgende keer geen code)
+To %s: %s	Naar %s: %s
+From %s: %s	Van %s: %s
+Done	Klaar
+Declined	Geweigerd
+“%s” presented a different key than the trusted device. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and pair again.	“%s” toonde een andere sleutel dan het vertrouwde apparaat. Er is niets verstuurd – iemand doet zich mogelijk als dit apparaat voor. Als het opnieuw is geïnstalleerd, verwijder het dan in Instellingen en koppel het opnieuw.
+Nothing received yet.	Nog niets ontvangen.
+Show	Toon
+Not visible	Niet zichtbaar
+No trusted devices yet.	Nog geen vertrouwde apparaten.
+IP address of the other computer, e.g. 192.168.1.20 or 192.168.1.20:%d	IP-adres van de andere computer, bijv. 192.168.1.20 of 192.168.1.20:%d
+Does “%s” show the same code?	Toont “%s” dezelfde code?
+Cannot receive files: port %d is in use (%s). Is LuxDrop already running?	Kan geen bestanden ontvangen: poort %d is in gebruik (%s). Draait LuxDrop al?
+Verification code	Verificatiecode
+Accept only if the sender shows the same code.	Accepteer alleen als de afzender dezelfde code toont.
+Preparing (checksums)… %s / %s	Voorbereiden (checksums)… %s / %s
+Waiting for acceptance…	Wachten op acceptatie…
+“%s” wants to send you %d item(s), %s	“%s” wil je %d onderdeel/onderdelen sturen, %s
+Waiting for the receiver to accept… code %s	Wachten tot de ontvanger accepteert… code %s
+Visible as “%s” · %d:%02d left	Zichtbaar als “%s” · nog %d:%02d
+Visible as “%s”	Zichtbaar als “%s”
+Apps	Apps
+Windows	Vensters
+# Weergave en schermbeveiligingen
+Auto	Automatisch
+Auto: light from sunrise (%s) to sunset (%s), based on your time zone.	Automatisch: licht van zonsopgang (%s) tot zonsondergang (%s), op basis van je tijdzone.
+Clock	Klok
+Aurora	Aurora
+Photos	Foto’s
+Floating Logo	Zwevend logo
+# luxos-install-gui (grafisch installatieprogramma) en nieuwe opties van luxos-install
+Swap	Swap
+Encrypted (LUKS)	Versleuteld (LUKS)
+Unknown	Onbekend
+Back	Terug
+Please wait until the installation finishes.	Wacht tot de installatie is voltooid.
+Connect to the internet	Maak verbinding met internet
+LuxOS downloads the newest packages during installation. Choose a Wi-Fi network or plug in a network cable.	LuxOS downloadt tijdens de installatie de nieuwste pakketten. Kies een wifinetwerk of sluit een netwerkkabel aan.
+Connect to the internet to continue.	Maak verbinding met internet om door te gaan.
+Choose your keyboard layout. You can try it in the field below.	Kies je toetsenbordindeling. Je kunt hem uitproberen in het veld hieronder.
+Time Zone	Tijdzone
+Where do you want to install LuxOS?	Waar wil je LuxOS installeren?
+Encryption password	Versleutelingswachtwoord
+Confirm password	Bevestig wachtwoord
+Create your account	Maak je account aan
+You will use this account to sign in and to install apps.	Je gebruikt dit account om in te loggen en apps te installeren.
+User name	Gebruikersnaam
+Log in automatically	Log automatisch in
+Fill in your name, user name, password and computer name.	Vul je naam, gebruikersnaam, wachtwoord en computernaam in.
+Ready to install	Klaar om te installeren
+Check your choices. Nothing has been changed on the disk yet.	Controleer je keuzes. Er is nog niets op de schijf gewijzigd.
+Installing LuxOS	LuxOS wordt geïnstalleerd
+This takes about 10 minutes. You can keep using the computer.	Dit duurt ongeveer 10 minuten. Je kunt de computer blijven gebruiken.
+LuxOS is being installed	LuxOS wordt geïnstalleerd
+This assistant installs LuxOS on your computer. It takes about 10 minutes.	Deze assistent installeert LuxOS op je computer. Dit duurt ongeveer 10 minuten.
+Choose your language	Kies je taal
+You are connected to the internet	Je bent verbonden met internet
+Wi-Fi password	Wifiwachtwoord
+Checking the connection…	Verbinding wordt gecontroleerd…
+Type here to test your keyboard	Typ hier om je toetsenbord te testen
+Choose the time zone of your location.	Kies de tijdzone van je locatie.
+Erase disk and install LuxOS	Wis schijf en installeer LuxOS
+Encrypt LuxOS	Versleutel LuxOS
+Protects your files if the computer is lost. You will enter the password at every start.	Beschermt je bestanden als de computer kwijtraakt. Je voert bij elke start het wachtwoord in.
+If you forget this password, your data cannot be recovered.	Als je dit wachtwoord vergeet, kunnen je gegevens niet worden hersteld.
+Confirm that the disk will be erased.	Bevestig dat de schijf wordt gewist.
+Enter the encryption password twice.	Voer het versleutelingswachtwoord twee keer in.
+With automatic login, anyone who turns on the computer can use your account.	Met automatisch inloggen kan iedereen die de computer aanzet je account gebruiken.
+You can also skip this and sign in later.	Je kunt dit ook overslaan en later inloggen.
+Erase %s and install LuxOS	Wis %s en installeer LuxOS
+Alongside other systems on %s (%s of free space)	Naast andere systemen op %s (%s vrije ruimte)
+Automatic login	Automatisch inloggen
+Starting…	Starten…
+The last lines of the installation log:	De laatste regels van het installatielogboek:
+Copy Log	Kopieer logboek
+Save Log…	Bewaar logboek…
+Restart Now	Herstart nu
+Passwords do not match.	Wachtwoorden komen niet overeen.
+No Wi-Fi networks found. Plug in a network cable or try again.	Geen wifinetwerken gevonden. Sluit een netwerkkabel aan of probeer het opnieuw.
+Connected.	Verbonden.
+Still offline.	Nog steeds offline.
+Connecting to %s…	Verbinding maken met %s…
+Network Settings…	Netwerkinstellingen…
+Detected time zone: %s	Gedetecteerde tijdzone: %s
+No suitable disk found. LuxOS needs a disk with at least 20 GB.	Geen geschikte schijf gevonden. LuxOS heeft een schijf van minstens 20 GB nodig.
+The disk is empty.	De schijf is leeg.
+Install alongside other systems	Installeer naast andere systemen
+Everything on %s will be deleted.	Alles op %s wordt verwijderd.
+This name is reserved by the system.	Deze naam is gereserveerd door het systeem.
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in now and everything is ready after the first start.	Optioneel: AI in LuxAI, Lux Code en LSL IDE gebruikt je LuxAI-account. Log nu in en alles is klaar na de eerste start.
+Sign-in is not available. You can sign in later in Settings.	Inloggen is niet beschikbaar. Je kunt later inloggen in Instellingen.
+Installation failed	Installatie mislukt
+The installer stopped with exit code %s.	Het installatieprogramma is gestopt met afsluitcode %s.
+Could not connect. Check the password and try again.	Kan geen verbinding maken. Controleer het wachtwoord en probeer het opnieuw.
+Local time: %s	Lokale tijd: %s
+Looking for disks…	Schijven zoeken…
+LuxOS (new)	LuxOS (nieuw)
+Systems found: %s	Gevonden systemen: %s
+LuxOS uses %s of free space. Existing systems and files are kept; you choose the system in a menu when the computer starts.	LuxOS gebruikt %s vrije ruimte. Bestaande systemen en bestanden blijven behouden; je kiest het systeem in een menu als de computer start.
+I understand that all data on %s (%s) will be erased.	Ik begrijp dat alle gegevens op %s (%s) worden gewist.
+All data on %s will be erased when you click Install.	Alle gegevens op %s worden gewist als je op Installeer klikt.
+… and %s more partitions	… en nog %s partities
+Installing alongside other systems is not possible: %s	Installeren naast andere systemen is niet mogelijk: %s
+EFI system partition	EFI-systeempartitie
+Microsoft reserved	Gereserveerd door Microsoft
+Windows recovery	Windows-herstel
+Needs a computer started in UEFI mode.	Vereist een computer die in UEFI-modus is gestart.
+The disk does not use a GPT partition table.	De schijf gebruikt geen GPT-partitietabel.
+The partition table has problems.	De partitietabel heeft problemen.
+There is no free space of at least 20 GB on this disk.	Er is geen vrije ruimte van minstens 20 GB op deze schijf.
+No EFI system partition found on this disk.	Geen EFI-systeempartitie gevonden op deze schijf.
+The EFI system partition could not be read.	De EFI-systeempartitie kan niet worden gelezen.
+The EFI system partition has less than 250 MB free.	De EFI-systeempartitie heeft minder dan 250 MB vrij.
+Administrator rights are not available.	Beheerdersrechten zijn niet beschikbaar.
+Fast and light	Snel en licht
+LuxOS starts quickly and leaves more memory for your apps.	LuxOS start snel en laat meer geheugen over voor je apps.
+A familiar desktop	Een vertrouwd bureaublad
+A dock, a clean top bar and an app grid - everything is where you expect it.	Een Dock, een overzichtelijke menubalk en een appraster - alles staat waar je het verwacht.
+LuxAI built in	LuxAI ingebouwd
+Sign in once and use AI in LuxAI, Lux Code and LSL IDE.	Log één keer in en gebruik AI in LuxAI, Lux Code en LSL IDE.
+Drivers included	Stuurprogramma’s inbegrepen
+Graphics, Wi-Fi and other drivers are picked automatically for your hardware.	Stuurprogramma’s voor grafische kaart, wifi en andere worden automatisch voor je hardware gekozen.
+Safe by default	Standaard veilig
+Signed updates, a locked root account and optional full disk encryption.	Ondertekende updates, een vergrendeld root-account en optionele volledige schijfversleuteling.
+Introduction	Introductie
+Destination	Bestemming
+Account	Account
+Installation	Installatie
+Finish	Voltooi
+%s  (free space, other systems are kept)	%s  (vrije ruimte, andere systemen blijven behouden)
+no boot loader	geen opstartlader
+Installing alongside other systems needs a computer started in UEFI mode.	Installeren naast andere systemen vereist een computer die in UEFI-modus is gestart.
+Disk %s does not use a GPT partition table.	Schijf %s gebruikt geen GPT-partitietabel.
+The partition table on %s has problems. Check it first (sgdisk -v).	De partitietabel op %s heeft problemen. Controleer deze eerst (sgdisk -v).
+Disk %s has no free space of at least 20 GB.	Schijf %s heeft geen vrije ruimte van minstens 20 GB.
+No EFI system partition found on %s.	Geen EFI-systeempartitie gevonden op %s.
+The EFI system partition %s could not be read.	De EFI-systeempartitie %s kan niet worden gelezen.
+The EFI system partition %s has less than 250 MB free.	De EFI-systeempartitie %s heeft minder dan 250 MB vrij.
+The partition table on %s is full.	De partitietabel op %s is vol.
+New partition %s: %s GB of free space	Nieuwe partitie %s: %s GB vrije ruimte
+Unexpected change of existing partitions on %s - stopping.	Onverwachte wijziging van bestaande partities op %s - gestopt.
+systemd-boot on %s is already in the UEFI boot menu.	systemd-boot op %s staat al in het UEFI-opstartmenu.
+Could not show the boot menu; hold Space while starting to see it.	Kan het opstartmenu niet tonen; houd tijdens het starten de spatiebalk ingedrukt om het te zien.
+Invalid DISK_MODE (use erase, freespace or manual)	Ongeldige DISK_MODE (gebruik erase, freespace of manual)
+Invalid BOOTLOADER (use auto or none)	Ongeldige BOOTLOADER (gebruik auto of none)
+# luxos-daemon (Bluetooth-agent)
+Allow “%s” to pair with this computer?	“%s” toestaan om met deze computer te koppelen?
+Allow “%s” to connect?	“%s” toestaan om verbinding te maken?
+Only allow devices you know.	Sta alleen apparaten toe die je kent.
+Allow	Sta toe
+# LuxOS 2026-10-21: lux, Store, internetmeldingen
+Sign in to the network to use the internet (click to open the sign-in page)	Log in bij het netwerk om internet te gebruiken (klik om de inlogpagina te openen)
+Connected to the network, but the internet is not available	Verbonden met het netwerk, maar internet is niet beschikbaar
+Sign in to the network to use the internet.	Log in bij het netwerk om internet te gebruiken.
+You are connected to the network, but the internet is not available.	Je bent verbonden met het netwerk, maar internet is niet beschikbaar.
+Server %s is not responding, trying another one…	Server %s reageert niet, er wordt een andere geprobeerd…
+Download failed, trying again (%s/3)…	Download mislukt, opnieuw proberen (%s/3)…
+Some packages could not be downloaded. Check your internet connection and try again.	Sommige pakketten konden niet worden gedownload. Controleer je internetverbinding en probeer het opnieuw.
+Installed: %s	Geïnstalleerd: %s
+Downloading %d of %d…	%d van %d wordt gedownload…
+The connection is slow, trying another server…	De verbinding is traag, er wordt een andere server geprobeerd…
+Download failed, trying again (attempt %s)…	Download mislukt, opnieuw proberen (poging %s)…
+The internet connection is too slow or unavailable. Try it again later.	De internetverbinding is te traag of niet beschikbaar. Probeer het later opnieuw.
+unknown error	onbekende fout
+Looking for the fastest download servers…	Snelste downloadservers worden gezocht…
+Using %s fast download servers near you.	%s snelle downloadservers bij jou in de buurt worden gebruikt.
+Using the default download servers.	De standaarddownloadservers worden gebruikt.
+The server %s is slow, trying another one…	De server %s is traag, er wordt een andere geprobeerd…
+The server %s is not responding, trying another one…	De server %s reageert niet, er wordt een andere geprobeerd…
+Downloading from %s failed, trying another one…	Downloaden van %s mislukt, er wordt een andere geprobeerd…
+The server %s has too many problems, skipping it.	De server %s heeft te veel problemen en wordt overgeslagen.
+Some files could not be downloaded.	Sommige bestanden konden niet worden gedownload.
+Downloading the packages did not finish.	Het downloaden van de pakketten is niet voltooid.
+The package lists could not be downloaded.	De pakketlijsten konden niet worden gedownload.
+about %s min left	nog ongeveer %s min.
+Downloaded %s of %s	%s van %s gedownload
+Your internet connection is very slow - the installation will take longer. It has not stopped.	Je internetverbinding is erg traag - de installatie duurt langer. Ze is niet gestopt.
+Waiting for the internet connection…	Wachten op de internetverbinding…
+Maintenance	Onderhoud
+Carefree: updates install automatically in the background (not on metered networks, with Data Saver or on low battery), a previous kernel is kept to fall back on and LuxOS repairs itself.	Zorgeloos: updates worden automatisch op de achtergrond geïnstalleerd (niet op netwerken met datalimiet, met Databesparing of bij een bijna lege batterij), een vorige kernel blijft bewaard als terugvaloptie en LuxOS herstelt zichzelf.
+Classic (for IT professionals): no automatic updates or repairs, standard Arch behaviour; you only get notified about available updates.	Klassiek (voor IT-professionals): geen automatische updates of reparaties, standaardgedrag van Arch; je krijgt alleen een melding over beschikbare updates.
+Carefree (recommended)	Zorgeloos (aanbevolen)
+Classic (for IT professionals)	Klassiek (voor IT-professionals)
+How should LuxOS be maintained?	Hoe moet LuxOS worden onderhouden?
+Carefree - automatic updates and repairs	Zorgeloos - automatische updates en reparaties
+Classic - you manage the system yourself	Klassiek - je beheert het systeem zelf
+Invalid CARE_MODE (use carefree or classic)	Ongeldige CARE_MODE (gebruik carefree of classic)
+Carefree	Zorgeloos
+Updates install automatically in the background - not on metered networks, with Data Saver on or on low battery.	Updates worden automatisch op de achtergrond geïnstalleerd - niet op netwerken met datalimiet, met Databesparing aan of bij een bijna lege batterij.
+A previous kernel is kept, so the computer always has a working version to start.	Een vorige kernel blijft bewaard, zodat de computer altijd een werkende versie heeft om te starten.
+LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash.	LuxOS herstelt zichzelf. Ernstige problemen worden gediagnosticeerd door LuxAI Flash.
+No automatic updates or repairs - standard Arch Linux behaviour.	Geen automatische updates of reparaties - standaardgedrag van Arch Linux.
+You manage the system yourself with lux or pacman.	Je beheert het systeem zelf met lux of pacman.
+You only get a notification when updates are available.	Je krijgt alleen een melding als er updates beschikbaar zijn.
+Choose whether LuxOS takes care of itself, or whether you want full control.	Kies of LuxOS voor zichzelf zorgt, of dat je volledige controle wilt.
+Downloading %s of %s	%s van %s wordt gedownload
+waiting for data	wachten op gegevens
+The connection is not responding right now	De verbinding reageert op dit moment niet
+The installation has not stopped. LuxOS keeps trying other servers and continues as soon as data arrives again.	De installatie is niet gestopt. LuxOS blijft andere servers proberen en gaat verder zodra er weer gegevens binnenkomen.
+Your internet connection is very slow	Je internetverbinding is erg traag
+The installation will take longer. It has not stopped.	De installatie duurt langer. Ze is niet gestopt.
+The time depends on your internet connection. You can keep using the computer.	De duur hangt af van je internetverbinding. Je kunt de computer blijven gebruiken.
+less than a minute left	nog minder dan een minuut
+%s min	%s min.
+%s h %s min	%s u %s min.
+# luxos-care (Software-update, LuxOS Care)
+never	nooit
+just now	zojuist
+%d min ago	%d min. geleden
+today at %s	vandaag om %s
+Update failed	Update mislukt
+chosen by LuxAI Flash	gekozen door LuxAI Flash
+built-in rule	ingebouwde regel
+The previous kernel could not be prepared	De vorige kernel kon niet worden voorbereid
+A start did not finish correctly	Een opstart is niet correct voltooid
+Boot menu: LuxOS (previous kernel)	Opstartmenu: LuxOS (vorige kernel)
+Mode changed to Carefree	Modus gewijzigd naar Zorgeloos
+Mode changed to Classic	Modus gewijzigd naar Klassiek
+Update Now	Werk nu bij
+When updates are installed	Wanneer updates worden geïnstalleerd
+Classic	Klassiek
+LuxOS installs updates and repairs itself. It waits for an unmetered connection and enough battery, and keeps the previous kernel as a fallback.	LuxOS installeert updates en herstelt zichzelf. Het wacht op een verbinding zonder datalimiet en voldoende batterij, en bewaart de vorige kernel als terugvaloptie.
+LuxOS only checks and tells you about updates and problems. You decide when to update.	LuxOS controleert alleen en meldt je updates en problemen. Jij bepaalt wanneer je bijwerkt.
+Available updates	Beschikbare updates
+System health	Systeemgezondheid
+Check for Problems Now	Zoek nu naar problemen
+Repair and update history	Geschiedenis van reparaties en updates
+Updating LuxOS…	LuxOS wordt bijgewerkt…
+Last update: %s	Laatste update: %s
+Last check: %s	Laatste controle: %s
+No updates are waiting.	Er wachten geen updates.
+LuxOS checks for updates automatically.	LuxOS zoekt automatisch naar updates.
+Your settings were kept. Compare the files with pacdiff when convenient.	Je instellingen zijn bewaard. Vergelijk de bestanden met pacdiff wanneer het je uitkomt.
+No problems found	Geen problemen gevonden
+Previous kernel	Vorige kernel
+After the next kernel update the current kernel stays available as a fallback.	Na de volgende kernelupdate blijft de huidige kernel beschikbaar als terugvaloptie.
+Nothing yet	Nog niets
+Updates and repairs will be listed here.	Updates en reparaties worden hier vermeld.
+Audit log	Auditlogboek
+Downloading… %s of %s	Downloaden… %s van %s
+Do not turn off the computer.	Zet de computer niet uit.
+The system service is not available.	De systeemdienst is niet beschikbaar.
+Updated %d packages	%d pakketten bijgewerkt
+including the kernel	inclusief de kernel
+Released the kept kernel %s for reinstallation	Bewaarde kernel %s vrijgegeven voor herinstallatie
+Kept the previous kernel %s	Vorige kernel %s bewaard
+Restart to finish the update	Herstart om de update te voltooien
+New configuration file to review: %s	Nieuw configuratiebestand om te bekijken: %s
+Switch to Carefree to repair it automatically.	Schakel over naar Zorgeloos om dit automatisch te herstellen.
+If a new kernel fails to start, LuxOS starts this one automatically.	Als een nieuwe kernel niet start, start LuxOS automatisch deze.
+If a new kernel fails to start, choose “LuxOS (previous kernel)” in the boot menu.	Als een nieuwe kernel niet start, kies dan “LuxOS (vorige kernel)” in het opstartmenu.
+Show Full Log…	Toon volledig logboek…
+Installing %s (%d of %d)	%s wordt geïnstalleerd (%d van %d)
+Working…	Bezig…
+waiting for an unmetered connection (Data Saver)	wacht op een verbinding zonder datalimiet (Databesparing)
+waiting for the charger or more battery	wacht op de lader of meer batterij
+waiting for the internet connection	wacht op de internetverbinding
+Automatic update is %s.	Automatische update %s.
+and %d more	en nog %d
+Waiting for LuxAI Flash	Wachten op LuxAI Flash
+The repair did not help	De reparatie heeft niet geholpen
+Previous kernel %s is kept as a fallback	Vorige kernel %s blijft bewaard als terugvaloptie
+The previous kernel %s could not be prepared	De vorige kernel %s kon niet worden voorbereid
+Could not start: %s	Kan niet starten: %s
+%d updates available	%d updates beschikbaar
+Updates could not be installed	Updates konden niet worden geïnstalleerd
+LuxOS is up to date	LuxOS is bijgewerkt
+Updating signing keys…	Ondertekeningssleutels worden bijgewerkt…
+Downloading…	Downloaden…
+Installing…	Installeren…
+Finishing…	Afronden…
+The boot partition is full.	De opstartpartitie is vol.
+LuxOS was updated	LuxOS is bijgewerkt
+Updates are available	Er zijn updates beschikbaar
+LuxOS will try again later.	LuxOS probeert het later opnieuw.
+Update postponed	Update uitgesteld
+LuxOS fixed a problem	LuxOS heeft een probleem opgelost
+LuxOS found a problem	LuxOS heeft een probleem gevonden
+Restart to finish the kernel update	Herstart om de kernelupdate te voltooien
+LuxOS installed a new kernel. Restart when it suits you.	LuxOS heeft een nieuwe kernel geïnstalleerd. Herstart wanneer het je uitkomt.
+%d packages were updated.	%d pakketten zijn bijgewerkt.
+%d updates are ready to install.	%d updates staan klaar om te installeren.
+The repair was chosen by LuxAI Flash.	De reparatie is gekozen door LuxAI Flash.
+No internet connection.	Geen internetverbinding.
+The connection is metered (Data Saver).	De verbinding heeft een datalimiet (Databesparing).
+The battery is low - connect the charger.	De batterij is bijna leeg - sluit de lader aan.
+Sign in to LuxAI to let LuxOS fix unknown problems.	Log in bij LuxAI zodat LuxOS onbekende problemen kan oplossen.
+This command must be run as root.	Deze opdracht moet als root worden uitgevoerd.
+Mode: %s	Modus: %s
+Previous kernel: %s	Vorige kernel: %s
+The package manager was left locked	Pakketbeheer is vergrendeld achtergelaten
+A system update was interrupted	Een systeemupdate is onderbroken
+The kernel boot files are missing	De opstartbestanden van de kernel ontbreken
+A driver module (DKMS) is not built for the kernel	Een stuurprogrammamodule (DKMS) is niet gebouwd voor de kernel
+The newest kernel did not start, LuxOS used the previous one	De nieuwste kernel is niet gestart, LuxOS heeft de vorige gebruikt
+The disk is almost full	De schijf is bijna vol
+The file system reported errors - back up your data	Het bestandssysteem heeft fouten gemeld - maak een reservekopie van je gegevens
+System updates keep failing	Systeemupdates blijven mislukken
+A system service failed: %s	Een systeemdienst is mislukt: %s
+Removed a stale package manager lock	Verouderde vergrendeling van pakketbeheer verwijderd
+Released the kept kernel for reinstallation	Bewaarde kernel vrijgegeven voor herinstallatie
+Finished an interrupted update	Onderbroken update voltooid
+Refreshed the package signing keys	Ondertekeningssleutels van pakketten vernieuwd
+Rebuilt the kernel boot files	Opstartbestanden van de kernel opnieuw aangemaakt
+Rebuilt driver modules	Stuurprogrammamodules opnieuw gebouwd
+Reinstalled a package	Een pakket opnieuw geïnstalleerd
+Restarted a service	Een dienst herstart
+Freed disk space	Schijfruimte vrijgemaakt
+Will try the newest kernel again	De nieuwste kernel wordt opnieuw geprobeerd
+Will start the previous kernel	De vorige kernel wordt gestart
+Only reported the problem	Alleen het probleem gemeld
+Boot Screen	Opstartscherm
+Blue	Blauw
+Purple	Paars
+Orange	Oranje
+Green	Groen
+White	Wit
+Shown while the computer starts. A change rebuilds the boot image, which takes about a minute.	Wordt getoond terwijl de computer opstart. Een wijziging maakt de opstartimage opnieuw aan, wat ongeveer een minuut duurt.
+Applying the boot screen…	Opstartscherm wordt toegepast…
+The new boot screen will be shown at the next start.	Het nieuwe opstartscherm wordt bij de volgende start getoond.
+Change cancelled.	Wijziging geannuleerd.
+Could not change the boot screen.	Kan het opstartscherm niet wijzigen.
+Live system: the boot image is not rebuilt.	Livesysteem: de opstartimage wordt niet opnieuw aangemaakt.
+Rebuilding the boot image…	Opstartimage wordt opnieuw aangemaakt…
+Unknown variant: %s	Onbekende variant: %s
+Run as root: pkexec luxos-splash set %s	Voer uit als root: pkexec luxos-splash set %s
+Another change of the boot screen is running.	Er wordt al een andere wijziging van het opstartscherm uitgevoerd.
+Boot screen is already %s.	Opstartscherm is al %s.
+Rebuilding the boot image failed, the previous boot screen was restored.	Opnieuw aanmaken van de opstartimage is mislukt, het vorige opstartscherm is hersteld.
+Boot screen set to %s.	Opstartscherm ingesteld op %s.
+# LuxOS 2026-10-21: LuxAI vanuit Launchpad, appnaam in de menubalk
+Active app: %s	Actieve app: %s
+Search apps or ask LuxAI	Zoek apps of vraag het LuxAI
+Search or ask LuxAI	Zoek of vraag het LuxAI
+# LuxOS 2026-10-21: geheugenbeveiliging
+Memory is running low	Het geheugen raakt op
+“%s” used too much memory and was closed so the computer would not freeze.	“%s” gebruikte te veel geheugen en is gesloten zodat de computer niet zou vastlopen.
+A program used too much memory and was closed so the computer would not freeze.	Een programma gebruikte te veel geheugen en is gesloten zodat de computer niet zou vastlopen.
+Printers & Scanners	Printers en scanners
+Printing support is not installed.	Ondersteuning voor afdrukken is niet geïnstalleerd.
+Offline – make sure the printer is turned on	Offline – zorg dat de printer aan staat
+Paused	Gepauzeerd
+Printing…	Afdrukken…
+1 document waiting	1 document in wachtrij
+%d documents waiting	%d documenten in wachtrij
+Print Test Page	Druk testpagina af
+Resume	Hervat
+Remove Printer…	Verwijder printer…
+Default printer	Standaardprinter
+Apps print here unless you choose another printer.	Apps drukken hier af, tenzij je een andere printer kiest.
+Ink and toner	Inkt en toner
+Print queue	Afdrukwachtrij
+Cancel All	Annuleer alles
+No documents are waiting to print.	Er wachten geen documenten om te worden afgedrukt.
+USB	USB
+Document	Document
+Waiting	In wachtrij
+On hold	Wordt vastgehouden
+Stopped	Gestopt
+Sending a test page…	Testpagina wordt verstuurd…
+The test page could not be sent: %s	De testpagina kon niet worden verstuurd: %s
+The test page is on its way.	De testpagina is onderweg.
+Kind	Soort
+Quality	Kwaliteit
+Source	Bron
+Scan	Scan
+Scanned pages appear here. Scan more pages to save them together.	Gescande pagina’s verschijnen hier. Scan meer pagina’s om ze samen te bewaren.
+PDF document	PDF-document
+JPEG pictures	JPEG-afbeeldingen
+Show in Folder	Toon in map
+Checking the scanner…	Scanner wordt gecontroleerd…
+The scanner does not respond. Make sure it is turned on.	De scanner reageert niet. Zorg dat hij aan staat.
+Place the document on the scanner and click Scan.	Leg het document op de scanner en klik op Scan.
+Scanning…	Scannen…
+Scanning was cancelled.	Scannen is geannuleerd.
+Scanning failed: %s	Scannen mislukt: %s
+the scanner does not respond	de scanner reageert niet
+This is a preview. Click Scan when the document looks right.	Dit is een voorvertoning. Klik op Scan als het document er goed uitziet.
+Page %d scanned. Scan another page or save.	Pagina %d gescand. Scan nog een pagina of bewaar.
+Remove page	Verwijder pagina
+Page %d	Pagina %d
+Click Preview to see the document here	Klik op Voorvertoning om het document hier te zien
+Saving…	Bewaren…
+Could not save the scan: %s	Kan de scan niet bewaren: %s
+Saved “%s” in %s	“%s” bewaard in %s
+Saved %d pictures in %s	%d afbeeldingen bewaard in %s
+Place the next document on the scanner and click Scan.	Leg het volgende document op de scanner en klik op Scan.
+Add Printer	Voeg printer toe
+Printers nearby	Printers in de buurt
+Search Again	Zoek opnieuw
+Turn the printer on and connect it to the same Wi‑Fi network or with a USB cable. Most printers are added automatically.	Zet de printer aan en verbind hem met hetzelfde wifinetwerk of met een USB-kabel. De meeste printers worden automatisch toegevoegd.
+Looking for printers…	Printers zoeken…
+Advanced…	Geavanceerd…
+Printers that need special setup (LPD, Windows sharing, manual drivers)	Printers die een speciale configuratie nodig hebben (LPD, Windows-delen, handmatige stuurprogramma’s)
+Could not search for printers: %s	Kan niet naar printers zoeken: %s
+No printers found. Make sure the printer is turned on.	Geen printers gevonden. Zorg dat de printer aan staat.
+Added	Toegevoegd
+Not supported	Niet ondersteund
+Adding…	Toevoegen…
+The printer could not be added	De printer kon niet worden toegevoegd
+Make sure it is turned on and try again.	Zorg dat hij aan staat en probeer het opnieuw.
+Advanced printer settings for experts	Geavanceerde printerinstellingen voor experts
+Remove Printer	Verwijder printer
+No printers yet	Nog geen printers
+Turn on your printer and connect it to the same Wi‑Fi network or with a USB cable. LuxOS sets it up automatically – no drivers, no questions.	Zet je printer aan en verbind hem met hetzelfde wifinetwerk of met een USB-kabel. LuxOS stelt hem automatisch in – geen stuurprogramma’s, geen vragen.
+Add Printer…	Voeg printer toe…
+Printers	Printers
+Scanners	Scanners
+Default	Standaard
+Looking for scanners…	Scanners zoeken…
+No scanners found	Geen scanners gevonden
+Turn the scanner on	Zet de scanner aan
+The change could not be made	De wijziging kon niet worden doorgevoerd
+Remove “%s”?	“%s” verwijderen?
+Apps will no longer print to it. You can add it again later with the + button.	Apps zullen er niet meer naar afdrukken. Je kunt hem later weer toevoegen met de knop +.
+Could not open advanced settings	Kan geavanceerde instellingen niet openen
+Paper jam	Papierstoring
+Out of paper	Papier op
+Out of ink or toner	Inkt of toner op
+A cover is open	Er staat een klep open
+Offline	Offline
+Ink, toner or paper is low	Inkt, toner of papier raakt op
+Color	Kleur
+Grey	Grijs
+Draft (150 dpi)	Concept (150 dpi)
+Standard (300 dpi)	Standaard (300 dpi)
+High (600 dpi)	Hoog (600 dpi)
+Flatbed	Flatbed
+ADF	ADF
+ADF Duplex	ADF dubbelzijdig
+Flatbed scanner	Flatbedscanner
+Multi-function peripheral	Multifunctioneel apparaat
+Virtual device	Virtueel apparaat
+Printer “%s” is ready	Printer “%s” is gereed
+You can print from any app.	Je kunt afdrukken vanuit elke app.
+Scanner “%s” is ready	Scanner “%s” is gereed
+Open Printers & Scanners to scan a document.	Open Printers en scanners om een document te scannen.
+“%s” is ready	“%s” is gereed
+You can print from any app and scan in Printers & Scanners.	Je kunt afdrukken vanuit elke app en scannen in Printers en scanners.
+Printer “%s” needs a driver	Printer “%s” heeft een stuurprogramma nodig
+LuxOS will set it up automatically once you are connected to the internet.	LuxOS stelt hem automatisch in zodra je met internet bent verbonden.
+Printer “%s” needs to be set up	Printer “%s” moet worden ingesteld
+It does not support driverless printing. Open Printers & Scanners and choose Advanced….	Hij ondersteunt geen afdrukken zonder stuurprogramma. Open Printers en scanners en kies Geavanceerd….
+Printer “%s” needs an add-on from HP	Printer “%s” heeft een add-on van HP nodig
+Open Terminal and run: hp-plugin	Open Terminal en voer uit: hp-plugin
+Feedback	Feedback
+Help us improve LuxOS	Help ons LuxOS te verbeteren
+Your report goes directly to the author of LuxOS.	Je melding gaat rechtstreeks naar de maker van LuxOS.
+Bug	Fout
+Something doesn't work	Iets werkt niet
+What happened? What did you expect? Steps to reproduce help a lot.	Wat is er gebeurd? Wat verwachtte je? Stappen om het na te doen helpen enorm.
+Idea	Idee
+Suggest an improvement	Verbetering voorstellen
+What would you like to improve? How would it help you?	Wat zou je willen verbeteren? Hoe zou het je helpen?
+Something else	Iets anders
+Question or comment	Vraag of opmerking
+Write your message…	Schrijf je bericht…
+At least %d characters	Minstens %d tekens
+Your e-mail (optional, if you would like a reply)	Je e-mailadres (optioneel, als je een antwoord wilt)
+Attach a screenshot	Schermafbeelding bijvoegen
+Take Again	Opnieuw maken
+The screenshot could not be taken.	Kan geen schermafbeelding maken.
+Attach system information	Systeeminformatie bijvoegen
+LuxOS and hardware versions and recent error messages. No personal files, passwords or e-mail addresses.	Versies van LuxOS en hardware en recente foutmeldingen. Geen persoonlijke bestanden, wachtwoorden of e-mailadressen.
+Show what will be sent	Toon wat er wordt verzonden
+Collecting…	Verzamelen…
+Send	Verzenden
+Sending…	Verzenden…
+Try Again	Opnieuw proberen
+%d saved report(s) from earlier have been sent. Thank you!	Eerder opgeslagen meldingen verzonden: %d. Bedankt!
+LuxOS could not reach the server. Check the internet connection.	LuxOS kon de server niet bereiken. Controleer de internetverbinding.
+Sending failed (%s).	Verzenden mislukt (%s).
+You have sent many reports in a short time. Please try again later.	Je hebt in korte tijd veel meldingen verzonden. Probeer het later opnieuw.
+The message must have 10 to 8000 characters.	Het bericht moet 10 tot 8000 tekens bevatten.
+The e-mail address does not look valid.	Het e-mailadres lijkt ongeldig.
+The report is too large. Try it without the screenshot.	De melding is te groot. Probeer het zonder schermafbeelding.
+The screenshot could not be accepted. Try it without the screenshot.	De schermafbeelding is niet geaccepteerd. Probeer het zonder.
+Saved for later	Bewaard voor later
+You are offline. The report will be sent automatically the next time you open Feedback with an internet connection.	Je bent offline. De melding wordt automatisch verzonden wanneer je Feedback de volgende keer opent met een internetverbinding.
+Thank you for your feedback!	Bedankt voor je feedback!
+Your report has been delivered to the author of LuxOS. Every report helps make LuxOS better.	Je melding is bezorgd bij de maker van LuxOS. Elke melding helpt LuxOS beter te maken.
+Report ID: %s	Meldings-ID: %s
+Send Another	Nog een verzenden
+Send Feedback…	Feedback verzenden…
+# LuxDrop + LocalSend
+Nothing to send: give files or --text	Niets te versturen: geef bestanden of --text op
+Send files securely to nearby LuxOS computers and devices with LocalSend.	Verstuur bestanden veilig naar LuxOS-computers en apparaten met LocalSend in de buurt.
+send to a LocalSend device (phone, Windows, …)	verstuur naar een LocalSend-apparaat (telefoon, Windows, …)
+send a text message	verstuur een tekstbericht
+PIN required by the receiver (LocalSend)	pincode vereist door de ontvanger (LocalSend)
+who can send (everyone always asks first)	wie mag versturen (bij everyone wordt altijd eerst gevraagd)
+with --mode everyone: only for this many minutes (max. 10)	met --mode everyone: alleen gedurende dit aantal minuten (max. 10)
+LocalSend port (default 53317)	LocalSend-poort (standaard 53317)
+do not receive from LocalSend apps	ontvang niet van LocalSend-apps
+no LocalSend multicast discovery	geen LocalSend-detectie via multicast
+require this PIN from LocalSend senders (empty = no PIN)	vereis deze pincode van LocalSend-afzenders (leeg = geen pincode)
+also scan the local network (LocalSend devices without multicast)	doorzoek ook het lokale netwerk (LocalSend-apparaten zonder multicast)
+with everyone: only for this many minutes (max. 10)	met everyone: alleen gedurende dit aantal minuten (max. 10)
+Wrong PIN.	Verkeerde pincode.
+%s requires a PIN: 	%s vereist een pincode: 
+LocalSend: port %d, fingerprint %s	LocalSend: poort %d, vingerafdruk %s
+unencrypted - not supported	onversleuteld – niet ondersteund
+No LocalSend device answers at %s	Geen LocalSend-apparaat antwoordt op %s
+%s is a LuxOS computer - using the LuxDrop protocol	%s is een LuxOS-computer – het LuxDrop-protocol wordt gebruikt
+Message from %s:	Bericht van %s:
+Sent with LocalSend from a %s device	Verstuurd met LocalSend vanaf een apparaat van het type %s
+LocalSend receiving is not available: port %d is in use (%s)	Ontvangen via LocalSend is niet beschikbaar: poort %d is in gebruik (%s)
+LocalSend receiving is not available (python-pyopenssl is missing)	Ontvangen via LocalSend is niet beschikbaar (python-pyopenssl ontbreekt)
+identity not verified (old LocalSend version)	identiteit niet geverifieerd (oude LocalSend-versie)
+LocalSend devices cannot find this computer automatically (%s)	LocalSend-apparaten kunnen deze computer niet automatisch vinden (%s)
+Phone or tablet	Telefoon of tablet
+Web browser	Webbrowser
+Copy	Kopieer
+Message	Bericht
+PIN required	Pincode vereist
+The identity of this device cannot be verified (old LocalSend version). Accept only if you expect these files.	De identiteit van dit apparaat kan niet worden geverifieerd (oude LocalSend-versie). Accepteer alleen als je deze bestanden verwacht.
+Trust this device (save its files without asking next time)	Vertrouw dit apparaat (bewaar de volgende keer zijn bestanden zonder te vragen)
+Message from “%s”	Bericht van “%s”
+“%s” requires a PIN to receive files.	“%s” vereist een pincode om bestanden te ontvangen.
+Everyone nearby	Iedereen in de buurt
+Receiving	Ontvangen
+Receive	Ontvang
+Ready to receive	Klaar om te ontvangen
+Who can send	Wie mag versturen
+Every transfer from other devices must be accepted.	Elke overdracht van andere apparaten moet worden geaccepteerd.
+Quick save	Snel bewaren
+Save files from trusted devices without asking.	Bewaar bestanden van vertrouwde apparaten zonder te vragen.
+Recently received	Onlangs ontvangen
+Open folder	Open map
+Selection	Selectie
+File	Bestand
+Folder	Map
+Paste	Plak
+Refresh	Ververs
+Scan the local network	Doorzoek het lokale netwerk
+The clipboard is empty.	Het klembord is leeg.
+This LocalSend device has encryption turned off. Turn on “Encryption” in LocalSend settings to send files to it.	Op dit LocalSend-apparaat is versleuteling uitgeschakeld. Schakel “Versleuteling” in bij de LocalSend-instellingen om er bestanden naar te versturen.
+Scanning the local network for LocalSend devices…	Lokaal netwerk doorzoeken op LocalSend-apparaten…
+LocalSend app (port %d)	LocalSend-app (poort %d)
+LuxOS computer (port %d)	LuxOS-computer (poort %d)
+Files (%d)	Bestanden (%d)
+Received from %s	Ontvangen van %s
+Save to	Bewaar in
+Requests then appear as notifications.	Verzoeken verschijnen dan als meldingen.
+Work with LocalSend apps	Werk samen met LocalSend-apps
+Phones, tablets and computers with the LocalSend app. Uses port 53317.	Telefoons, tablets en computers met de LocalSend-app. Gebruikt poort 53317.
+No PIN	Geen pincode
+LocalSend devices must enter this PIN before they can send.	LocalSend-apparaten moeten deze pincode invoeren voordat ze kunnen versturen.
+Trusted devices can use Quick save. Remove a device if it was lost or reinstalled.	Vertrouwde apparaten kunnen ‘Snel bewaren’ gebruiken. Verwijder een apparaat als het kwijt is of opnieuw is geïnstalleerd.
+Security	Beveiliging
+All transfers are encrypted (TLS). LuxOS computers verify each other with a 6-digit code; LocalSend devices are identified by their certificate.	Alle overdrachten zijn versleuteld (TLS). LuxOS-computers verifiëren elkaar met een 6-cijferige code; LocalSend-apparaten worden herkend aan hun certificaat.
+Visible to LuxOS computers and LocalSend apps nearby.	Zichtbaar voor LuxOS-computers en LocalSend-apps in de buurt.
+Choose what to send or drop files here, then tap a device.	Kies wat je wilt versturen of zet hier bestanden neer en tik daarna op een apparaat.
+Looking for devices… Open LuxDrop or LocalSend on the other device and make sure it is on the same network.	Zoeken naar apparaten… Open LuxDrop of LocalSend op het andere apparaat en controleer of het op hetzelfde netwerk zit.
+Unencrypted	Onversleuteld
+IP address of the other device, e.g. 192.168.1.20	IP-adres van het andere apparaat, bijv. 192.168.1.20
+“%s” presented a different key than expected. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and try again.	“%s” toonde een andere sleutel dan verwacht. Er is niets verstuurd – iemand doet zich mogelijk als dit apparaat voor. Als het opnieuw is geïnstalleerd, verwijder het dan in Instellingen en probeer het opnieuw.
+Key fingerprint: %s	Vingerafdruk van sleutel: %s
+Receiving is turned off. Other devices cannot see this computer.	Ontvangen is uitgeschakeld. Andere apparaten kunnen deze computer niet zien.
+%d characters	%d tekens
+Cannot receive from LuxOS computers: port %d is in use (%s).	Kan niet ontvangen van LuxOS-computers: poort %d is in gebruik (%s).
+No device answers at %s.	Geen apparaat antwoordt op %s.
+Cannot receive from LocalSend apps: port %d is in use. Is LocalSend running on this computer?	Kan niet ontvangen van LocalSend-apps: poort %d is in gebruik. Draait LocalSend op deze computer?
+LocalSend compatibility needs the python-pyopenssl package.	Compatibiliteit met LocalSend vereist het pakket python-pyopenssl.
+%d:%02d left	Nog %d:%02d
+Nearby LuxOS computers cannot be found because avahi-daemon is not running.	LuxOS-computers in de buurt kunnen niet worden gevonden omdat avahi-daemon niet draait.
+Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Automatische detectie van LocalSend-apparaten is niet beschikbaar (%s). Gebruik “Doorzoek het lokale netwerk”.
+LuxDrop: message from %s	LuxDrop: bericht van %s

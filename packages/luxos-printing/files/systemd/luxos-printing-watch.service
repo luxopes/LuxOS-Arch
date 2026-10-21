@@ -1,0 +1,14 @@
+[Unit]
+Description=LuxOS automatic printer and scanner setup (watch network and USB)
+After=avahi-daemon.service cups.socket
+Wants=avahi-daemon.service
+ConditionPathExists=/usr/bin/avahi-browse
+
+[Service]
+ExecStart=/usr/lib/luxos/printing/luxos-printing-watch
+Restart=always
+RestartSec=10
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

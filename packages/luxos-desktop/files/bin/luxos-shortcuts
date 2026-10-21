@@ -21,4 +21,5 @@ yad --title="$(T "Keyboard Shortcuts")" --name=luxos-shortcuts --class=luxos-sho
     "Super + Shift + 4" "$(T "Screenshot of region")" \
     "Super + Shift + 5" "$(T "Screenshot tool")" \
     "Super + Alt + Esc" "$(T "System monitor (force quit)")" \
-    --button="$(T "Close")!window-close:0"
+    --button="$(T "Send Feedback…")!luxos-feedback:3" --button="$(T "Close")!window-close:0"
+[[ $? == 3 ]] && exec luxos-feedback   # Napoveda -> zpetna vazba autorovi

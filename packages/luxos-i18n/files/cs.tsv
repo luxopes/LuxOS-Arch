@@ -1188,3 +1188,232 @@ Search or ask LuxAI	Hledat nebo se zeptat LuxAI
 Memory is running low	Dochází paměť
 “%s” used too much memory and was closed so the computer would not freeze.	Aplikace „%s“ zabrala příliš mnoho paměti a byla ukončena, aby počítač nezamrzl.
 A program used too much memory and was closed so the computer would not freeze.	Jeden program zabral příliš mnoho paměti a byl ukončen, aby počítač nezamrzl.
+Printers & Scanners	Tiskárny a skenery
+Printing support is not installed.	Podpora tisku není nainstalovaná.
+Offline – make sure the printer is turned on	Nedostupná – zkontrolujte, že je tiskárna zapnutá
+Paused	Pozastavená
+Printing…	Tiskne…
+1 document waiting	1 dokument čeká
+%d documents waiting	Čekající dokumenty: %d
+Print Test Page	Vytisknout zkušební stránku
+Resume	Pokračovat
+Remove Printer…	Odebrat tiskárnu…
+Default printer	Výchozí tiskárna
+Apps print here unless you choose another printer.	Aplikace tisknou sem, pokud nezvolíte jinou tiskárnu.
+Ink and toner	Inkoust a toner
+Print queue	Tisková fronta
+Cancel All	Zrušit vše
+No documents are waiting to print.	Žádné dokumenty nečekají na tisk.
+USB	USB
+Document	Dokument
+Waiting	Čeká
+On hold	Pozdrženo
+Stopped	Zastaveno
+Sending a test page…	Odesílá se zkušební stránka…
+The test page could not be sent: %s	Zkušební stránku se nepodařilo odeslat: %s
+The test page is on its way.	Zkušební stránka je na cestě.
+Kind	Druh
+Quality	Kvalita
+Source	Zdroj
+Scan	Skenovat
+Scanned pages appear here. Scan more pages to save them together.	Zde se objeví naskenované stránky. Naskenujte víc stránek a uložte je společně.
+PDF document	Dokument PDF
+JPEG pictures	Obrázky JPEG
+Show in Folder	Zobrazit ve složce
+Checking the scanner…	Kontroluje se skener…
+The scanner does not respond. Make sure it is turned on.	Skener neodpovídá. Zkontrolujte, že je zapnutý.
+Place the document on the scanner and click Scan.	Položte dokument na skener a klikněte na Skenovat.
+Scanning…	Skenuje se…
+Scanning was cancelled.	Skenování bylo zrušeno.
+Scanning failed: %s	Skenování selhalo: %s
+the scanner does not respond	skener neodpovídá
+This is a preview. Click Scan when the document looks right.	Toto je náhled. Až bude dokument vypadat dobře, klikněte na Skenovat.
+Page %d scanned. Scan another page or save.	Stránka %d je naskenovaná. Naskenujte další nebo uložte.
+Remove page	Odebrat stránku
+Page %d	Stránka %d
+Click Preview to see the document here	Po kliknutí na Náhled se tu zobrazí dokument
+Saving…	Ukládá se…
+Could not save the scan: %s	Sken se nepodařilo uložit: %s
+Saved “%s” in %s	Uloženo „%s“ do složky %s
+Saved %d pictures in %s	Uložené obrázky: %d, složka %s
+Place the next document on the scanner and click Scan.	Položte na skener další dokument a klikněte na Skenovat.
+Add Printer	Přidat tiskárnu
+Printers nearby	Tiskárny v okolí
+Search Again	Hledat znovu
+Turn the printer on and connect it to the same Wi‑Fi network or with a USB cable. Most printers are added automatically.	Zapněte tiskárnu a připojte ji ke stejné síti Wi‑Fi nebo kabelem USB. Většina tiskáren se přidá automaticky.
+Looking for printers…	Hledají se tiskárny…
+Advanced…	Pokročilé…
+Printers that need special setup (LPD, Windows sharing, manual drivers)	Tiskárny se zvláštním nastavením (LPD, sdílení Windows, ruční ovladače)
+Could not search for printers: %s	Tiskárny se nepodařilo vyhledat: %s
+No printers found. Make sure the printer is turned on.	Nenalezena žádná tiskárna. Zkontrolujte, že je zapnutá.
+Added	Přidáno
+Not supported	Nepodporováno
+Adding…	Přidává se…
+The printer could not be added	Tiskárnu se nepodařilo přidat
+Make sure it is turned on and try again.	Zkontrolujte, že je zapnutá, a zkuste to znovu.
+Advanced printer settings for experts	Pokročilé nastavení tiskáren pro odborníky
+Remove Printer	Odebrat tiskárnu
+No printers yet	Zatím žádné tiskárny
+Turn on your printer and connect it to the same Wi‑Fi network or with a USB cable. LuxOS sets it up automatically – no drivers, no questions.	Zapněte tiskárnu a připojte ji ke stejné síti Wi‑Fi nebo kabelem USB. LuxOS ji nastaví sám – bez ovladačů a bez otázek.
+Add Printer…	Přidat tiskárnu…
+Printers	Tiskárny
+Scanners	Skenery
+Default	Výchozí
+Looking for scanners…	Hledají se skenery…
+No scanners found	Nenalezen žádný skener
+Turn the scanner on	Zapněte skener
+The change could not be made	Změnu se nepodařilo provést
+Remove “%s”?	Odebrat „%s“?
+Apps will no longer print to it. You can add it again later with the + button.	Aplikace na ni už nebudou tisknout. Později ji můžete znovu přidat tlačítkem +.
+Could not open advanced settings	Pokročilé nastavení se nepodařilo otevřít
+Paper jam	Uvíznutý papír
+Out of paper	Došel papír
+Out of ink or toner	Došel inkoust nebo toner
+A cover is open	Je otevřený kryt
+Offline	Nedostupná
+Ink, toner or paper is low	Dochází inkoust, toner nebo papír
+Color	Barevně
+Grey	Šedě
+Draft (150 dpi)	Koncept (150 dpi)
+Standard (300 dpi)	Standardní (300 dpi)
+High (600 dpi)	Vysoká (600 dpi)
+Flatbed	Skleněná deska
+ADF	Podavač
+ADF Duplex	Podavač oboustranně
+Flatbed scanner	Stolní skener
+Multi-function peripheral	Multifunkční zařízení
+Virtual device	Virtuální zařízení
+Printer “%s” is ready	Tiskárna „%s“ je připravena
+You can print from any app.	Můžete tisknout z libovolné aplikace.
+Scanner “%s” is ready	Skener „%s“ je připraven
+Open Printers & Scanners to scan a document.	Dokument naskenujete v aplikaci Tiskárny a skenery.
+“%s” is ready	„%s“ je připraveno
+You can print from any app and scan in Printers & Scanners.	Tisknout můžete z libovolné aplikace a skenovat v aplikaci Tiskárny a skenery.
+Printer “%s” needs a driver	Tiskárna „%s“ potřebuje ovladač
+LuxOS will set it up automatically once you are connected to the internet.	LuxOS ji nastaví sám, jakmile budete připojeni k internetu.
+Printer “%s” needs to be set up	Tiskárnu „%s“ je potřeba nastavit
+It does not support driverless printing. Open Printers & Scanners and choose Advanced….	Nepodporuje tisk bez ovladačů. Otevřete Tiskárny a skenery a zvolte Pokročilé….
+Printer “%s” needs an add-on from HP	Tiskárna „%s“ potřebuje doplněk od HP
+Open Terminal and run: hp-plugin	Otevřete Terminál a spusťte: hp-plugin
+Feedback	Zpětná vazba
+Help us improve LuxOS	Pomozte nám vylepšit LuxOS
+Your report goes directly to the author of LuxOS.	Vaše hlášení půjde přímo autorovi LuxOS.
+Bug	Chyba
+Something doesn't work	Něco nefunguje
+What happened? What did you expect? Steps to reproduce help a lot.	Co se stalo? Co jste očekávali? Hodně pomůže postup, jak chybu vyvolat.
+Idea	Nápad
+Suggest an improvement	Navrhnout vylepšení
+What would you like to improve? How would it help you?	Co byste chtěli vylepšit? Jak by vám to pomohlo?
+Something else	Něco jiného
+Question or comment	Dotaz nebo připomínka
+Write your message…	Napište svou zprávu…
+At least %d characters	Alespoň %d znaků
+Your e-mail (optional, if you would like a reply)	Váš e-mail (nepovinné, pokud chcete odpověď)
+Attach a screenshot	Přiložit snímek obrazovky
+Take Again	Pořídit znovu
+The screenshot could not be taken.	Snímek obrazovky se nepodařilo pořídit.
+Attach system information	Přiložit informace o systému
+LuxOS and hardware versions and recent error messages. No personal files, passwords or e-mail addresses.	Verze LuxOS a hardwaru a poslední chybová hlášení. Žádné osobní soubory, hesla ani e-mailové adresy.
+Show what will be sent	Zobrazit, co se odešle
+Collecting…	Shromažďování…
+Send	Odeslat
+Sending…	Odesílání…
+Try Again	Zkusit znovu
+%d saved report(s) from earlier have been sent. Thank you!	Odeslaná dříve uložená hlášení: %d. Děkujeme!
+LuxOS could not reach the server. Check the internet connection.	LuxOS se nemohl spojit se serverem. Zkontrolujte připojení k internetu.
+Sending failed (%s).	Odeslání se nezdařilo (%s).
+You have sent many reports in a short time. Please try again later.	Během krátké doby jste odeslali mnoho hlášení. Zkuste to prosím později.
+The message must have 10 to 8000 characters.	Zpráva musí mít 10 až 8000 znaků.
+The e-mail address does not look valid.	E-mailová adresa nevypadá platně.
+The report is too large. Try it without the screenshot.	Hlášení je příliš velké. Zkuste ho odeslat bez snímku obrazovky.
+The screenshot could not be accepted. Try it without the screenshot.	Snímek obrazovky nebyl přijat. Zkuste hlášení odeslat bez něj.
+Saved for later	Uloženo na později
+You are offline. The report will be sent automatically the next time you open Feedback with an internet connection.	Nejste připojeni k internetu. Hlášení se odešle automaticky, až příště otevřete Zpětnou vazbu s připojením k internetu.
+Thank you for your feedback!	Děkujeme za zpětnou vazbu!
+Your report has been delivered to the author of LuxOS. Every report helps make LuxOS better.	Vaše hlášení bylo doručeno autorovi LuxOS. Každé hlášení pomáhá LuxOS zlepšovat.
+Report ID: %s	ID hlášení: %s
+Send Another	Odeslat další
+Send Feedback…	Odeslat zpětnou vazbu…
+Nothing to send: give files or --text	Není co odeslat: zadejte soubory nebo --text
+Send files securely to nearby LuxOS computers and devices with LocalSend.	Bezpečné posílání souborů na počítače LuxOS a zařízení s LocalSend v okolí.
+send to a LocalSend device (phone, Windows, …)	poslat na zařízení s LocalSend (telefon, Windows, …)
+send a text message	poslat textovou zprávu
+PIN required by the receiver (LocalSend)	PIN požadovaný příjemcem (LocalSend)
+who can send (everyone always asks first)	kdo smí posílat (u everyone se vždy nejdřív zeptá)
+with --mode everyone: only for this many minutes (max. 10)	s --mode everyone: jen na tolik minut (max. 10)
+LocalSend port (default 53317)	port LocalSend (výchozí 53317)
+do not receive from LocalSend apps	nepřijímat z aplikací LocalSend
+no LocalSend multicast discovery	bez hledání LocalSend přes multicast
+require this PIN from LocalSend senders (empty = no PIN)	vyžadovat tento PIN od odesílatelů LocalSend (prázdný = bez PINu)
+also scan the local network (LocalSend devices without multicast)	prohledat i místní síť (zařízení LocalSend bez multicastu)
+with everyone: only for this many minutes (max. 10)	s everyone: jen na tolik minut (max. 10)
+Wrong PIN.	Špatný PIN.
+%s requires a PIN: 	%s vyžaduje PIN: 
+LocalSend: port %d, fingerprint %s	LocalSend: port %d, otisk %s
+unencrypted - not supported	nešifrované – nepodporováno
+No LocalSend device answers at %s	Na adrese %s neodpovídá žádné zařízení LocalSend
+%s is a LuxOS computer - using the LuxDrop protocol	%s je počítač LuxOS – použije se protokol LuxDrop
+Message from %s:	Zpráva od %s:
+Sent with LocalSend from a %s device	Odesláno přes LocalSend ze zařízení typu %s
+LocalSend receiving is not available: port %d is in use (%s)	Příjem z LocalSend není dostupný: port %d je obsazený (%s)
+LocalSend receiving is not available (python-pyopenssl is missing)	Příjem z LocalSend není dostupný (chybí python-pyopenssl)
+identity not verified (old LocalSend version)	totožnost neověřena (stará verze LocalSend)
+LocalSend devices cannot find this computer automatically (%s)	Zařízení LocalSend tento počítač automaticky nenajdou (%s)
+Phone or tablet	Telefon nebo tablet
+Web browser	Webový prohlížeč
+Copy	Kopírovat
+Message	Zpráva
+PIN required	Vyžadován PIN
+The identity of this device cannot be verified (old LocalSend version). Accept only if you expect these files.	Totožnost tohoto zařízení nelze ověřit (stará verze LocalSend). Přijměte jen soubory, které očekáváte.
+Trust this device (save its files without asking next time)	Důvěřovat tomuto zařízení (příště ukládat jeho soubory bez ptaní)
+Message from “%s”	Zpráva od „%s“
+“%s” requires a PIN to receive files.	„%s“ vyžaduje pro příjem souborů PIN.
+Everyone nearby	Všichni v okolí
+Receiving	Přijímání
+Receive	Příjem
+Ready to receive	Připraveno k příjmu
+Who can send	Kdo může posílat
+Every transfer from other devices must be accepted.	Každý přenos z jiných zařízení je nutné potvrdit.
+Quick save	Rychlé uložení
+Save files from trusted devices without asking.	Ukládat soubory z důvěryhodných zařízení bez ptaní.
+Recently received	Nedávno přijaté
+Open folder	Otevřít složku
+Selection	Výběr
+File	Soubor
+Folder	Složka
+Paste	Vložit
+Refresh	Obnovit
+Scan the local network	Prohledat místní síť
+The clipboard is empty.	Schránka je prázdná.
+This LocalSend device has encryption turned off. Turn on “Encryption” in LocalSend settings to send files to it.	Toto zařízení LocalSend má vypnuté šifrování. Pro posílání souborů zapněte v nastavení LocalSend „Šifrování“.
+Scanning the local network for LocalSend devices…	Hledám zařízení LocalSend v místní síti…
+LocalSend app (port %d)	Aplikace LocalSend (port %d)
+LuxOS computer (port %d)	Počítač LuxOS (port %d)
+Files (%d)	Soubory (%d)
+Received from %s	Přijato od %s
+Save to	Ukládat do
+Requests then appear as notifications.	Žádosti se pak zobrazí jako oznámení.
+Work with LocalSend apps	Spolupráce s aplikacemi LocalSend
+Phones, tablets and computers with the LocalSend app. Uses port 53317.	Telefony, tablety a počítače s aplikací LocalSend. Používá port 53317.
+No PIN	Bez PINu
+LocalSend devices must enter this PIN before they can send.	Zařízení LocalSend musí před odesláním zadat tento PIN.
+Trusted devices can use Quick save. Remove a device if it was lost or reinstalled.	Důvěryhodná zařízení mohou využít rychlé uložení. Odeberte zařízení, které se ztratilo nebo bylo přeinstalováno.
+Security	Zabezpečení
+All transfers are encrypted (TLS). LuxOS computers verify each other with a 6-digit code; LocalSend devices are identified by their certificate.	Všechny přenosy jsou šifrované (TLS). Počítače LuxOS se navzájem ověřují šesticiferným kódem, zařízení LocalSend se poznají podle certifikátu.
+Visible to LuxOS computers and LocalSend apps nearby.	Viditelné pro počítače LuxOS a aplikace LocalSend v okolí.
+Choose what to send or drop files here, then tap a device.	Vyberte, co chcete odeslat, nebo sem přetáhněte soubory, a pak klepněte na zařízení.
+Looking for devices… Open LuxDrop or LocalSend on the other device and make sure it is on the same network.	Hledám zařízení… Otevřete LuxDrop nebo LocalSend na druhém zařízení a ověřte, že je ve stejné síti.
+Unencrypted	Nešifrované
+IP address of the other device, e.g. 192.168.1.20	IP adresa druhého zařízení, např. 192.168.1.20
+“%s” presented a different key than expected. Nothing was sent – someone may be impersonating it. If it was reinstalled, remove it in Settings and try again.	„%s“ předložilo jiný klíč, než se čekalo. Nic nebylo odesláno – někdo se za něj může vydávat. Pokud bylo zařízení přeinstalováno, odeberte ho v Nastavení a zkuste to znovu.
+Key fingerprint: %s	Otisk klíče: %s
+Receiving is turned off. Other devices cannot see this computer.	Příjem je vypnutý. Ostatní zařízení tento počítač nevidí.
+%d characters	%d znaků
+Cannot receive from LuxOS computers: port %d is in use (%s).	Nelze přijímat z počítačů LuxOS: port %d je obsazený (%s).
+No device answers at %s.	Na adrese %s neodpovídá žádné zařízení.
+Cannot receive from LocalSend apps: port %d is in use. Is LocalSend running on this computer?	Nelze přijímat z aplikací LocalSend: port %d je obsazený. Neběží na tomto počítači LocalSend?
+LocalSend compatibility needs the python-pyopenssl package.	Kompatibilita s LocalSend vyžaduje balíček python-pyopenssl.
+%d:%02d left	zbývá %d:%02d
+Nearby LuxOS computers cannot be found because avahi-daemon is not running.	Počítače LuxOS v okolí nelze najít, protože neběží avahi-daemon.
+Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Automatické hledání zařízení LocalSend není k dispozici (%s). Použijte „Prohledat místní síť“.
+LuxDrop: message from %s	LuxDrop: zpráva od %s

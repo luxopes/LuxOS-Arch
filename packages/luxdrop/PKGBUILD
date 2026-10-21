@@ -1,15 +1,17 @@
 # Maintainer: LuxOS Team
 # LuxDrop - bezpecne posilani souboru mezi pocitaci LuxOS v mistni siti
-# (TLS 1.3, pripnute klice, overovaci kod, mDNS pres Avahi). Protokol: files/PROTOCOL.md
+# (TLS 1.3, pripnute klice, overovaci kod, mDNS pres Avahi) a s aplikaci LocalSend
+# (protokol v2: HTTPS + mTLS, multicast 224.0.0.167:53317). Protokol: files/PROTOCOL.md
 
 pkgname=luxdrop
 pkgver=1.0.0
-pkgrel=1
-pkgdesc="LuxOS LuxDrop - securely send files to nearby LuxOS computers"
+pkgrel=2
+pkgdesc="LuxOS LuxDrop - securely send files to nearby LuxOS computers and LocalSend apps"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
 license=(MIT)
-depends=(python python-gobject gtk3 python-cairo python-cryptography avahi nss-mdns luxos-i18n xdg-utils)
+depends=(python python-gobject gtk3 python-cairo python-cryptography python-pyopenssl avahi nss-mdns luxos-i18n
+         xdg-utils)
 makedepends=(python-cryptography)  # jen pro check()
 optdepends=('thunar: "Send To > LuxDrop" in the file manager'
             'xfce4-notifyd: accept dialogs of the background receiver')
@@ -21,7 +23,7 @@ check() {
         echo "python-cryptography is not installed - skipping unit tests" >&2
         return 0
     fi
-    LUXDROP_LIB="$startdir/files/lib" python3 -m unittest -q tests/test_unit.py
+    LUXDROP_LIB="$startdir/files/lib" python3 -m unittest -q tests/test_unit.py tests/test_localsend_unit.py
 }
 
 package() {
@@ -37,4 +39,7 @@ package() {
     # Vlastni akce Thunaru - nutno vlozit do uca.xml dodavaneho LuxOS (viz komentar v souboru)
     install -Dm644 "$f/thunar/uca-luxdrop.xml" "$pkgdir/usr/share/luxdrop/thunar-uca-luxdrop.xml"
     install -Dm644 "$f/PROTOCOL.md" "$pkgdir/usr/share/doc/luxdrop/PROTOCOL.md"
+    # Firewall (LuxOS zadny nedodava): definice sluzby pro firewalld a profil pro ufw - nic samy neotviraji
+    install -Dm644 "$f/firewall/luxdrop-firewalld.xml" "$pkgdir/usr/lib/firewalld/services/luxdrop.xml"
+    install -Dm644 "$f/firewall/luxdrop-ufw" "$pkgdir/etc/ufw/applications.d/luxdrop"
 }

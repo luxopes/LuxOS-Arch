@@ -113,11 +113,21 @@ class Transfer:
         self.skipped = []
         self.resumed = 0
         self.sas = None
+        self.protocol = "luxdrop"  # "luxdrop" nebo "localsend"
+        self.device_type = "desktop"
+        self.files = []  # jednotlive soubory pro UI: {"name", "size", "done", "state"}
+        self.on_cancel = None  # LocalSend: zruseni relace u druhe strany
         self._cancel = threading.Event()
         self.sock = None
 
     def cancel(self):
+        first = not self._cancel.is_set()
         self._cancel.set()
+        if first and self.on_cancel is not None:
+            try:
+                self.on_cancel()
+            except Exception:  # noqa: BLE001 - zruseni nesmi shodit UI
+                pass
         if self.direction == "in" and self.sock is not None:
             # Prijemce prerusi spojeni; odesilatel to pozna jako chybu spojeni
             try:
@@ -136,7 +146,8 @@ class Transfer:
 class IncomingRequest:
     """Dotaz na prijemce: prijmout prenos?"""
 
-    def __init__(self, transfer, fp, trusted, sas, name_clash, files, dirs):
+    def __init__(self, transfer, fp, trusted, sas, name_clash, files, dirs, protocol="luxdrop",
+                 can_trust=None, verified=True, message=None, device_model=""):
         self.transfer = transfer
         self.fp = fp
         self.peer_name = transfer.peer_name
@@ -149,6 +160,13 @@ class IncomingRequest:
         self.nfiles = len(files)
         self.ndirs = len(dirs)
         self.withdrawn = threading.Event()  # odesilatel to mezitim zrusil
+        self.protocol = protocol
+        self.device_type = transfer.device_type
+        self.device_model = device_model
+        # LocalSend: nema overovaci kod; duverovat lze jen zarizeni s overenym certifikatem (mTLS)
+        self.can_trust = bool(sas) if can_trust is None else can_trust
+        self.verified = verified
+        self.message = message  # textova zprava (LocalSend) - jen zobrazit
 
 
 class Handler:
@@ -328,6 +346,7 @@ class Receiver:
             if parts[0] not in tops:
                 tops.append(parts[0])
         t.items, t.total = tops, total
+        t.files = [{"name": f["path"], "size": f["size"], "done": 0, "state": "waiting"} for f in files]
         self.active.add(t)
 
         dest = self.settings.download_dir
@@ -365,6 +384,8 @@ class Receiver:
             ch.send({"type": "accept", "resume": [{"index": i, "offset": o} for i, o in offsets.items() if o]})
             t.resumed = sum(offsets.values())
             t.done = t.resumed
+            for f in files:
+                t.files[f["index"]]["done"] = offsets.get(f["index"], 0)
             t.state = "transferring"
             self.handler.update(t)
             self._receive_files(ch, t, part_fd, fp_c, files, offsets)
@@ -483,6 +504,8 @@ class Receiver:
                 raise proto.ProtocolError(proto.E_PROTOCOL, "offset differs from the accepted one")
             expected_next = idx + 1
             received.add(idx)
+            ui = t.files[idx]
+            ui["state"] = "receiving"
             name = part_name(fp_c, f["path"], f["sha256"], f["size"])
             fd = os.open(name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600, dir_fd=part_fd)
             with os.fdopen(fd, "r+b") as out:
@@ -511,6 +534,7 @@ class Receiver:
                     h.update(data)
                     remaining -= len(data)
                     t.done += len(data)
+                    ui["done"] += len(data)
                     now = time.monotonic()
                     if now - last_ui > 0.1:
                         last_ui = now
@@ -518,6 +542,7 @@ class Receiver:
                 out.flush()
                 os.fsync(out.fileno())
             digests[idx] = h.digest()
+            ui["state"] = "done"
         # Kontrola SHA-256 vsech souboru (i tech dokoncenych v drivejsim pokusu)
         bad = []
         for f in files:
@@ -769,6 +794,7 @@ def _send(identity, settings, trust, host, port, paths, cb, t, expected_fp, hell
             raise proto.ProtocolError(proto.E_INTERNAL, "file changed while reading: %s" % local)
         files.append({"path": rel, "size": size, "sha256": digest.hex(), "exec": ex})
     t.done = 0
+    t.files = [{"name": f["path"], "size": f["size"], "done": 0, "state": "waiting"} for f in files]
 
     # Spojeni + TLS
     t.state = "connecting"
@@ -860,14 +886,18 @@ def _send(identity, settings, trust, host, port, paths, cb, t, expected_fp, hell
         if off < 0 or off > f["size"]:
             raise proto.ProtocolError(proto.E_PROTOCOL, "invalid resume offset")
         t.resumed += off
+        t.files[i]["done"] = off
     t.done = t.resumed
     cb.update(t)
     rate = float(os.environ.get("LUXDROP_TEST_RATE", "0") or 0)  # jen pro testy (bajty/s)
     start, sent, last_ui = time.monotonic(), 0, 0.0
     for i, (f, (local, rel, _size, _x)) in enumerate(zip(files, items)):
         off = resume.get(i, 0)
+        ui = t.files[i]
         if off == f["size"]:
+            ui["state"] = "done"
             continue
+        ui["state"] = "sending"
         ch.send({"type": "file", "index": i, "offset": off})
         flags = os.O_RDONLY | (os.O_NOFOLLOW if "/" in rel else 0)
         with os.fdopen(os.open(local, flags), "rb") as fh:
@@ -885,6 +915,7 @@ def _send(identity, settings, trust, host, port, paths, cb, t, expected_fp, hell
                 remaining -= len(data)
                 sent += len(data)
                 t.done += len(data)
+                ui["done"] += len(data)
                 now = time.monotonic()
                 if now - last_ui > 0.1:
                     last_ui = now
@@ -893,6 +924,7 @@ def _send(identity, settings, trust, host, port, paths, cb, t, expected_fp, hell
                     ahead = sent / rate - (now - start)
                     if ahead > 0:
                         time.sleep(ahead)
+        ui["state"] = "done"
     ch.send({"type": "end"})
     tls.settimeout(max(IO_TIMEOUT, 30 + t.total / (50 * 1024 * 1024)))  # prijemce kontroluje SHA-256
     res = ch.recv_msg("result")

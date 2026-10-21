@@ -1,0 +1,8 @@
+[Unit]
+Description=LuxOS automatic printer and scanner setup
+After=avahi-daemon.service cups.socket cups.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/luxos/printing/luxos-printing-helper sync
+Nice=10

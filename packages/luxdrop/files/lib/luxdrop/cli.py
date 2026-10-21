@@ -1,4 +1,4 @@
-"""LuxDrop - prikazova radka: send, receive, devices, trust, id, mode."""
+"""LuxDrop - prikazova radka: send, receive, devices, trust, id, mode (LuxDrop i LocalSend)."""
 import argparse
 import os
 import sys
@@ -57,9 +57,10 @@ def ask_line(prompt, abort=None):
 # --- send ---------------------------------------------------------------------
 
 class CliSend(transfer.SendCallbacks):
-    def __init__(self, remember_default=True, show_progress=True):
+    def __init__(self, remember_default=True, show_progress=True, pin=None):
         self.remember_default = remember_default
         self.show_progress = show_progress
+        self.pin = pin
         self._last = 0.0
 
     def confirm(self, info, replied):
@@ -72,6 +73,14 @@ class CliSend(transfer.SendCallbacks):
         if a in ("o", "once"):
             return True, False
         return False, False
+
+    def ask_pin(self, peer_name, wrong):
+        if self.pin is not None and not wrong:
+            return self.pin
+        if wrong:
+            print(_("Wrong PIN."), file=sys.stderr)
+        a = ask_line(_("%s requires a PIN: ") % peer_name)
+        return a or None
 
     def update(self, t):
         if not self.show_progress:
@@ -146,20 +155,63 @@ def discover(timeout, own_id=None):
     return d.devices(own_id)
 
 
+def resolve_localsend(ctx, target, timeout=4.0):
+    """LocalSend zarizeni podle adresy (overi se /register) nebo jmena (multicast)."""
+    from .engine import Engine
+    eng = Engine(ctx.identity, ctx.settings, ctx.trust, ctx.history, transfer.Handler(), mdns=False)
+    target = target.strip()
+    if any(c in target for c in ".:") or target == "localhost":
+        eng.lsd = None
+        d = eng.add_manual(target, localsend_proto=True, prefer_luxdrop=False)
+        if d is None:
+            raise SystemExit(_("No LocalSend device answers at %s") % target)
+        return d
+    eng.start_localsend()
+    eng.sync(force=True)
+    deadline = time.time() + timeout
+    try:
+        while time.time() < deadline:
+            for d in eng.devices():
+                if d["name"].lower() == target.lower() or (len(target) >= 6 and d["id"].startswith(target.lower())):
+                    return d
+            time.sleep(0.2)
+    finally:
+        eng.stop()
+    raise SystemExit(_("Device '%s' not found on the network. Use an address: luxdrop send HOST[:PORT] FILES")
+                     % target)
+
+
 def cmd_send(args):
     ctx = Ctx()
+    if args.text is None and not args.files:
+        print(_("Nothing to send: give files or --text"), file=sys.stderr)
+        return EXIT_USAGE
     for p in args.files:
         if not os.path.lexists(p):
             print(_("File not found: %s") % p, file=sys.stderr)
             return EXIT_USAGE
-    host, port, expected_fp = resolve_target(ctx, args.target, args.port)
-    cb = CliSend(remember_default=not args.no_remember, show_progress=not args.quiet)
+    cb = CliSend(remember_default=not args.no_remember, show_progress=not args.quiet, pin=args.pin)
     t = transfer.Transfer("out")
     result = {}
+    if args.localsend:
+        device = resolve_localsend(ctx, args.target)
+        if device["kind"] == "luxdrop":
+            print(_("%s is a LuxOS computer - using the LuxDrop protocol") % device["name"], file=sys.stderr)
 
-    def run():
-        result["t"] = transfer.send(ctx.identity, ctx.settings, ctx.trust, ctx.history, host, port,
-                                    args.files, cb, transfer=t, expected_fp=expected_fp)
+        def run():
+            from .engine import Engine
+            eng = Engine(ctx.identity, ctx.settings, ctx.trust, ctx.history, transfer.Handler(), mdns=False)
+            result["t"] = eng.send(device, cb, paths=args.files or None, text=args.text, t=t)
+    else:
+        host, port, expected_fp = resolve_target(ctx, args.target, args.port)
+        files = list(args.files)
+        if args.text is not None:
+            from .engine import Engine
+            files.append(Engine.text_file(args.text))
+
+        def run():
+            result["t"] = transfer.send(ctx.identity, ctx.settings, ctx.trust, ctx.history, host, port,
+                                        files, cb, transfer=t, expected_fp=expected_fp)
 
     th = threading.Thread(target=run, daemon=True)
     th.start()
@@ -170,6 +222,7 @@ def cmd_send(args):
         print("\n" + _("Cancelling…"), file=sys.stderr)
         t.cancel()
         th.join(10)
+    t = result.get("t", t)
     sys.stderr.write("\n")
     for p, why in t.skipped:
         print(_("Skipped %s (%s)") % (p, why), file=sys.stderr)
@@ -190,14 +243,23 @@ def cmd_send(args):
 class CliReceive(transfer.Handler):
     def ask(self, req):
         print()
+        if req.message is not None:
+            print(_("Message from %s:") % req.peer_name)
+            print(req.message, flush=True)
+            return False, False
         if req.name_clash:
             print(_("WARNING: this device uses the name of a trusted device, but a different key!"))
         print(_("%s (ID %s) wants to send you %d item(s), %s:")
               % (req.peer_name, req.peer_id, len(req.items), human(req.total)))
         for n in req.items[:10]:
             print("   " + n)
+        if req.protocol == "localsend":
+            print(_("Sent with LocalSend from a %s device") % req.device_type
+                  + ("" if req.verified else " - " + _("identity not verified (old LocalSend version)")))
         if req.sas:
             print(_("Verification code: %s  (must be the same on the sender's screen)") % proto.format_sas(req.sas))
+            a = ask_line(_("Accept? [y]es / [a]ccept and trust this device / [N]o: "), abort=req.withdrawn.is_set)
+        elif req.can_trust:
             a = ask_line(_("Accept? [y]es / [a]ccept and trust this device / [N]o: "), abort=req.withdrawn.is_set)
         else:
             a = ask_line(_("Accept? [y/N]: "), abort=req.withdrawn.is_set)
@@ -218,40 +280,46 @@ class CliReceive(transfer.Handler):
 def cmd_receive(args):
     ctx = Ctx()
     if args.mode:
-        ctx.settings.set_mode(args.mode)
+        ctx.settings.set_mode(args.mode, args.minutes)
     if args.dir:
         ctx.settings.set("download_dir", os.path.abspath(args.dir))
+    if args.pin is not None:
+        ctx.settings.set("pin", args.pin)
+    if args.no_localsend:
+        ctx.settings.data["localsend"] = False  # jen pro tento beh
     if args.service:
         from .service import run_service
         return run_service(ctx, args)
-    handler = CliReceive()
-    rx = transfer.Receiver(ctx.identity, ctx.settings, ctx.trust, ctx.history, handler,
-                           bind=args.bind or "", port=args.port)
-    try:
-        port = rx.start()
-    except OSError as e:
-        print(_("Cannot listen on port %d: %s") % (args.port or ctx.settings["port"], e.strerror), file=sys.stderr)
+    from .engine import Engine
+    eng = Engine(ctx.identity, ctx.settings, ctx.trust, ctx.history, CliReceive(), bind=args.bind or "",
+                 port=args.port, ls_port=args.ls_port, mdns=not args.no_mdns, multicast=not args.no_multicast)
+    eng.start(browse=False)
+    if eng.receiver is None:
+        print(_("Cannot listen on port %d: %s") % (args.port or ctx.settings["port"], eng.errors[0][2]), file=sys.stderr)
         return EXIT_FAIL
-    disc = None
-    if not args.no_mdns:
-        try:
-            from .discovery import Discovery
-            disc = Discovery()
-            if not disc.publish(ctx.settings.name, ctx.identity.id, port):
-                print(_("Not visible on the network (%s); connect by address.") % disc.error, file=sys.stderr)
-        except ImportError:
-            pass
+    for kind, port, err in eng.errors:
+        if kind == "avahi":
+            print(_("Not visible on the network (%s); connect by address.") % err, file=sys.stderr)
+        elif kind == "localsend_port":
+            print(_("LocalSend receiving is not available: port %d is in use (%s)") % (port, err), file=sys.stderr)
+        elif kind == "localsend_missing":
+            print(_("LocalSend receiving is not available (python-pyopenssl is missing)"), file=sys.stderr)
+        elif kind == "multicast":
+            print(_("LocalSend devices cannot find this computer automatically (%s)") % err, file=sys.stderr)
     print(_("Receiving as \"%s\" (ID %s) on port %d, mode: %s, folder: %s")
-          % (ctx.settings.name, ctx.identity.id, port, ctx.settings.mode(), ctx.settings.download_dir), flush=True)
+          % (ctx.settings.name, ctx.identity.id, eng.receiver.port, ctx.settings.mode(), ctx.settings.download_dir),
+          flush=True)
+    if eng.ls_server:
+        print(_("LocalSend: port %d, fingerprint %s") % (eng.ls_server.port, eng.ls_server.fingerprint[:16]),
+              flush=True)
     try:
         while True:
             time.sleep(1)
+            eng.sync()
     except KeyboardInterrupt:
         pass
     finally:
-        rx.stop()
-        if disc:
-            disc.unpublish()
+        eng.stop()
     return EXIT_OK
 
 
@@ -259,13 +327,33 @@ def cmd_receive(args):
 
 def cmd_devices(args):
     ctx = Ctx()
-    found = discover(args.timeout, ctx.identity.id)
-    trusted_ids = {e.get("id") for e in ctx.trust.peers.values()}
+    from .engine import Engine
+    eng = Engine(ctx.identity, ctx.settings, ctx.trust, ctx.history, transfer.Handler(), mdns=True)
+    eng.start()  # prijem kvuli odpovedim LocalSend (POST /register); obsazene porty nevadi
+    if args.scan:
+        eng.scan()
+    found = {}
+    try:
+        from gi.repository import GLib
+        loop = GLib.MainLoop()
+        GLib.timeout_add(int(args.timeout * 1000), loop.quit)
+        loop.run()
+    except ImportError:
+        time.sleep(args.timeout)
+    while args.scan and eng.lsd and eng.lsd.scanning:
+        time.sleep(0.2)
+    for d in eng.devices():
+        found[d["key"]] = d
+    eng.stop()
     if found:
         print(_("Nearby devices:"))
-        for d in found:
-            mark = _("trusted") if d["id"] in trusted_ids else ""
-            print("  %-28s %-16s %s  %s" % (d["name"], d["id"], transfer.fmt_addr(d["host"], d["port"]), mark))
+        for d in found.values():
+            mark = _("trusted") if d["trusted"] else ""
+            kind = "LuxOS" if d["kind"] == "luxdrop" else "LocalSend/" + d["device_type"]
+            if d["kind"] == "localsend" and not d["secure"]:
+                mark = _("unencrypted - not supported")
+            print("  %-28s %-16s %-18s %s  %s" % (d["name"], d["id"], kind, transfer.fmt_addr(d["host"], d["port"]),
+                                                  mark))
     else:
         print(_("No devices found nearby (is avahi-daemon running?)."))
     return EXIT_OK
@@ -296,9 +384,9 @@ def cmd_id(_args):
 def cmd_mode(args):
     s = store.Settings()
     if args.mode:
-        s.set_mode(args.mode)
+        s.set_mode(args.mode, args.minutes)
     left = s.everyone_left()
-    print(s.mode() + ((" (%d min)" % (left // 60 + 1)) if s.mode() == "everyone" else ""))
+    print(s.mode() + ((" (%d min)" % (left // 60 + 1)) if left else ""))
     return EXIT_OK
 
 
@@ -312,29 +400,40 @@ def main(argv=None):
     if argv[0] == "gui":
         from .gui import main as gui_main
         return gui_main(argv[1:])
-    ap = argparse.ArgumentParser(prog="luxdrop", description=_("Send files securely between LuxOS computers."))
+    ap = argparse.ArgumentParser(prog="luxdrop", description=_("Send files securely to nearby LuxOS computers "
+                                                                "and devices with LocalSend."))
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("send", help=_("send files or folders"))
     s.add_argument("target", help=_("device name, ID, HOST[:PORT] or NAME@HOST[:PORT]"))
-    s.add_argument("files", nargs="+")
+    s.add_argument("files", nargs="*")
     s.add_argument("--port", type=int)
+    s.add_argument("--localsend", action="store_true", help=_("send to a LocalSend device (phone, Windows, …)"))
+    s.add_argument("--text", help=_("send a text message"))
+    s.add_argument("--pin", help=_("PIN required by the receiver (LocalSend)"))
     s.add_argument("--no-remember", action="store_true", help=_("do not trust the receiver after verification"))
     s.add_argument("-q", "--quiet", action="store_true")
     r = sub.add_parser("receive", help=_("receive files in the terminal"))
     r.add_argument("--port", type=int)
     r.add_argument("--bind", help=_("listen only on this address"))
-    r.add_argument("--mode", choices=store.MODES, help=_("who can send (everyone = for 10 minutes)"))
+    r.add_argument("--mode", choices=store.MODES, help=_("who can send (everyone always asks first)"))
+    r.add_argument("--minutes", type=int, help=_("with --mode everyone: only for this many minutes (max. 10)"))
     r.add_argument("--dir", help=_("download folder"))
     r.add_argument("--no-mdns", action="store_true", help=_("do not announce on the network"))
+    r.add_argument("--ls-port", type=int, help=_("LocalSend port (default 53317)"))
+    r.add_argument("--no-localsend", action="store_true", help=_("do not receive from LocalSend apps"))
+    r.add_argument("--no-multicast", action="store_true", help=_("no LocalSend multicast discovery"))
+    r.add_argument("--pin", help=_("require this PIN from LocalSend senders (empty = no PIN)"))
     r.add_argument("--service", action="store_true", help=argparse.SUPPRESS)
     d = sub.add_parser("devices", help=_("list nearby devices"))
     d.add_argument("--timeout", type=float, default=3.0)
+    d.add_argument("--scan", action="store_true", help=_("also scan the local network (LocalSend devices without multicast)"))
     t = sub.add_parser("trust", help=_("list or remove trusted devices"))
     t.add_argument("action", choices=("list", "remove"), nargs="?", default="list")
     t.add_argument("key", nargs="?", help=_("ID or name"))
     sub.add_parser("id", help=_("show this device's name and fingerprint"))
     m = sub.add_parser("mode", help=_("show or set who can send to this computer"))
     m.add_argument("mode", nargs="?", choices=store.MODES)
+    m.add_argument("--minutes", type=int, help=_("with everyone: only for this many minutes (max. 10)"))
     a = ap.parse_args(argv)
     fn = {"send": cmd_send, "receive": cmd_receive, "devices": cmd_devices, "trust": cmd_trust,
           "id": cmd_id, "mode": cmd_mode}[a.cmd]
