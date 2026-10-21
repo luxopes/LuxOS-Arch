@@ -3,7 +3,7 @@
 
 Aplikace Arch Linuxu popisuji metadata AppStream (archlinux-appstream-data),
 aplikace LuxOS repozitar [luxos-apps]. Instalace bezi pres pkexec a pomocny
-skript /usr/lib/luxos/luxos-store-helper (pacman).
+skript /usr/lib/luxos/luxos-store-helper (lux pres libalpm, bez pyalpm pacman).
 """
 import json
 import os
@@ -639,7 +639,8 @@ class Store(Gtk.Window):
         self.status_bar.show()
 
     def run_helper(self, action, pkgs, message, app=None):
-        """Operace pres pkexec s prubehem podle vystupu pacmanu (stahovani 0-50 %, instalace 50-100 %)."""
+        """Operace pres pkexec s prubehem (stahovani 0-50 %, instalace 50-100 %). lux posila radky
+        "@@PHASE/@@PROGRESS/@@ERROR" (/usr/share/doc/lux/lux.md), zalozni pacman svuj bezny vystup."""
         if app:
             self.busy[app.pkg] = "0 %"
             for c in self.cards:
@@ -648,7 +649,41 @@ class Store(Gtk.Window):
         self.flash(message)
         self.progress.set_fraction(0)
         self.progress.show()
-        prog = {"total": 0, "down": 0, "inst": 0, "err": "", "net": False}
+        prog = {"total": 0, "down": 0, "inst": 0, "err": "", "net": False, "machine": False}
+        errors = {"network": _("The internet connection is too slow or unavailable. Try it again later."),
+                  "locked": _("Another app is installing software right now. Try it again in a moment."),
+                  "disk": _("Not enough free disk space."),
+                  "keyring": _("A package signature could not be verified. Run in Terminal: lux fix"),
+                  "conflict": _("The app conflicts with files of another package."),
+                  "pkgconflict": _("The app conflicts with an installed package."),
+                  "deps": _("Some required packages are not available."),
+                  "notfound": _("The app is no longer available in the repository.")}
+
+        def parse_machine(line):
+            parts = line[2:].split(" ", 3)
+            kind = parts[0]
+            if kind == "PLAN" and len(parts) > 2 and parts[2].isdigit():
+                prog["total"] = int(parts[2])
+            elif kind == "PROGRESS" and len(parts) > 2 and parts[2].isdigit():
+                pct = int(parts[2]) / 100
+                phase = parts[1]
+                detail = parts[3] if len(parts) > 3 else ""
+                if phase == "download":
+                    GLib.idle_add(show, 0.45 * pct, _("Downloading…"))
+                elif phase == "verify":
+                    GLib.idle_add(show, 0.45 + 0.05 * pct, _("Checking…"))
+                elif phase in ("install", "remove"):
+                    name = detail.split(" ", 1)[-1] if detail else ""
+                    verb = _("Removing %s…") if phase == "remove" else _("Installing %s…")
+                    GLib.idle_add(show, 0.5 + 0.48 * pct, verb % name if name else None)
+                elif phase == "hooks":
+                    GLib.idle_add(show, 0.98 + 0.02 * pct, _("Finishing…"))
+            elif kind == "ERROR" and len(parts) > 1:
+                prog["err"] = errors.get(parts[1]) or (line.split(" ", 2)[2] if line.count(" ") >= 2 else "")
+                prog["net"] = parts[1] == "network"
+            elif kind == "RETRY":
+                GLib.idle_add(show, self.progress.get_fraction(),
+                              _("Download failed, trying again (attempt %s)…") % parts[-1])
 
         def show(frac, text):
             self.progress.set_fraction(max(0.0, min(1.0, frac)))
@@ -662,6 +697,14 @@ class Store(Gtk.Window):
             return False
 
         def parse(line):
+            if line.startswith("@@"):
+                prog["machine"] = True
+                parse_machine(line)
+                return
+            if prog["machine"]:
+                if line.startswith("error:") and not prog["err"]:
+                    prog["err"] = line[6:].strip()
+                return
             total = prog["total"] or 1
             m = re.match(r"^Packages? \((\d+)\)", line)
             if m:

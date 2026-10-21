@@ -2,5 +2,10 @@ _luxos_dconf() {
     dconf update 2>/dev/null || true
     fc-cache -s >/dev/null 2>&1 || true
 }
-post_install() { _luxos_dconf; }
-post_upgrade() { _luxos_dconf; }
+# Relace "LuxOS" misto "xfce" (i u starsich instalaci s automatickym prihlasenim)
+_luxos_session() {
+    rm -f /usr/share/xsessions/xfce.desktop
+    sed -i 's/^autologin-session=xfce$/autologin-session=luxos/' /etc/lightdm/lightdm.conf.d/*.conf 2>/dev/null || true
+}
+post_install() { _luxos_dconf; _luxos_session; }
+post_upgrade() { _luxos_dconf; _luxos_session; }

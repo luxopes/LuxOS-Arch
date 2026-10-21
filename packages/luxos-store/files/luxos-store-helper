@@ -1,8 +1,9 @@
 #!/bin/bash
 # LuxOS Store - instalace a odinstalace aplikaci (spousti pkexec, viz org.luxos.store.policy)
 #   luxos-store-helper install|remove BALIK... | upgrade
-# Vystup pacmanu je anglicky (LC_ALL=C.UTF-8), aby Store mohl ukazovat prubeh;
-# pri vypadku site se stahovani zopakuje ("@@RETRY n" pro Store).
+# Balicky z repozitaru instaluje lux (libalpm, /usr/lib/lux/lux_alpm.py) ve strojovem rezimu:
+# radky "@@PHASE/@@PROGRESS/@@ERROR/@@RETRY" pro prubeh a anglicke radky ve stylu pacmanu.
+# Bez pyalpm pouzije pacman (vystup anglicky kvuli prubehu, pri vypadku site "@@RETRY n").
 set -uo pipefail
 export LC_ALL=C.UTF-8
 action=${1-}
@@ -10,6 +11,16 @@ shift || true
 for p in "$@"; do
     [[ $p =~ ^[a-z0-9@._+][a-z0-9@._+-]*$ ]] || { echo "invalid package name: $p" >&2; exit 2; }
 done
+
+LUX_ALPM=/usr/lib/lux/lux_alpm.py
+if [[ -x $LUX_ALPM ]] && "$LUX_ALPM" available >/dev/null 2>&1; then
+    lux_alpm() { exec "$LUX_ALPM" --machine -y "$@"; }
+    case $action in
+        install) (($#)) && lux_alpm install --needed -- "$@" ;;
+        remove)  (($#)) && lux_alpm remove -- "$@" ;;
+        upgrade) lux_alpm update ;;
+    esac
+fi
 
 # pacman s opakovanim: jen kdyz selhalo stahovani (ne pri konfliktu apod.)
 pacman_retry() {

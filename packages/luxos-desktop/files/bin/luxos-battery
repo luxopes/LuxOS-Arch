@@ -35,6 +35,25 @@ case $st in
     Discharging) tip=$(T "On battery") ;;
     *) tip=$(T "Fully charged") ;;
 esac
+# Odhad casu z aktualniho odberu (energy_* v uWh/uW, nebo charge_* v uAh/uA)
+rd() { [[ -r $bat/$1 ]] && read -r "$2" <"$bat/$1"; }
+now= full= rate=
+rd energy_now now && rd energy_full full && rd power_now rate ||
+    { rd charge_now now && rd charge_full full && rd current_now rate; }
+rate=${rate#-}
+if [[ -n $now && -n $full && ${rate:-0} -gt 0 ]]; then
+    mins=
+    if [[ $st == Discharging ]]; then
+        mins=$(( now * 60 / rate ))
+    elif [[ $st == Charging && $full -gt $now ]]; then
+        mins=$(( (full - now) * 60 / rate ))
+    fi
+    if [[ -n $mins ]] && (( mins > 0 && mins < 6000 )); then
+        if (( mins >= 60 )); then t="$((mins / 60)) h $((mins % 60)) min"; else t="$mins min"; fi
+        if [[ $st == Discharging ]]; then tip+=" · $(T "%s remaining" "$t")"
+        else tip+=" · $(T "%s until full" "$t")"; fi
+    fi
+fi
 [[ -e $saver ]] && tip+=" · $(T "Battery Saver")"
-printf '<icon>%s-symbolic</icon><txt> %s %%</txt><tool>%s %s %%</tool><iconclick>luxos-cc-toggle</iconclick><txtclick>luxos-cc-toggle</txtclick>\n' \
-    "$icon" "$cap" "$tip" "$cap"
+printf '<icon>%s-symbolic</icon><txt> %s %%</txt><tool>%s %% · %s</tool><iconclick>luxos-cc-toggle</iconclick><txtclick>luxos-cc-toggle</txtclick>\n' \
+    "$icon" "$cap" "$cap" "$tip"

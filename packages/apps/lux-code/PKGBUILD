@@ -6,25 +6,26 @@
 
 pkgname=lux-code
 pkgver=0.1.2
-pkgrel=2
+pkgrel=3
 _lslver=0.10.2
 pkgdesc="Lux Code - LuxAI terminal coding agent written in LSL (uses the LuxOS LuxAI account)"
 arch=(x86_64)
 url="https://lsl.lux-ai.cz"
 license=(custom)
-depends=(lsl bash coreutils util-linux procps-ng ca-certificates curl git ripgrep diffutils findutils grep sed tar unzip)
+depends=(lsl bash coreutils util-linux procps-ng ca-certificates curl git ripgrep diffutils findutils grep sed tar unzip
+         xclip)  # xclip: Ctrl+V/Alt+V vlozi obrazek ze schranky (X11)
 optdepends=('luxos-account: shared LuxAI account login (luxos-account login)'
             'firefox: browser debugging tools (with ff-rdp)'
-            'imagemagick: screenshots and image tools'
+            'imagemagick: screenshots, image tools, downscaling pasted images'
             'xdotool: desktop automation tools'
-            'xclip: clipboard tools'
+            'wl-clipboard: image paste from the clipboard on Wayland'
             'android-tools: Android device tools (adb)'
             'nodejs: JavaScript project tooling'
             'npm: JavaScript project tooling')
 options=(!strip !debug)
 source=("$pkgname-$pkgver.tar.gz"
         "https://lsl.lux-ai.cz/downloads/lsl-$_lslver-linux-x86_64.tar.gz")
-sha256sums=('02ebd5891b9d9fa2d05fabe21e81042254fd2b09b39b8effd0208ac06e4c7291'
+sha256sums=('0af244f57dfeed7120f92b2a5833dc07479a4a6051324ab7e7ac45d71866a8fb'
             '387993aae033ace1d77b035e3682e7ba0c12d11a1a8c8be4a9d8737843eaa1fb')
 
 build() {

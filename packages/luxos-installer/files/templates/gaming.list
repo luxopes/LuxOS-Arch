@@ -1,0 +1,23 @@
+# LuxOS - sablona softwaru "Hry" (format viz everyday.list)
+# Steam potrebuje repozitar multilib (zapne se v /etc/pacman.conf) a 32bitove ovladace
+# k ovladacum zvolenym luxos-hwdetect; bez znameho GPU softwarovy Vulkan (jinak by pacman
+# --noconfirm vybral prvniho poskytovatele = NVIDIA).
+@name Gaming
+@description Steam with Proton for Windows games, GameMode for better performance and the MangoHud overlay.
+@apps Steam · GameMode · MangoHud
+@icon applications-games
+@repo multilib
+@order 40
+@download 650
+steam
+gamemode
+lib32-gamemode
+mangohud
+lib32-mangohud
+lib32-mesa ?mesa
+lib32-vulkan-intel ?vulkan-intel
+lib32-vulkan-radeon ?vulkan-radeon
+lib32-vulkan-nouveau ?vulkan-nouveau
+lib32-nvidia-utils ?nvidia-utils
+vulkan-swrast ?!vulkan-intel,vulkan-radeon,vulkan-nouveau,nvidia-utils
+lib32-vulkan-swrast ?!vulkan-intel,vulkan-radeon,vulkan-nouveau,nvidia-utils

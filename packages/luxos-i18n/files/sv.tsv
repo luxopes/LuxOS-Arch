@@ -1418,3 +1418,160 @@ LocalSend compatibility needs the python-pyopenssl package.	LocalSend-kompatibil
 Nearby LuxOS computers cannot be found because avahi-daemon is not running.	LuxOS-datorer i närheten kan inte hittas eftersom avahi-daemon inte körs.
 Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Automatisk identifiering av LocalSend-enheter är inte tillgänglig (%s). Använd ”Sök igenom det lokala nätverket”.
 LuxDrop: message from %s	LuxDrop: meddelande från %s
+%s remaining	%s kvar
+%s until full	%s tills fulladdat
+# LuxOS 2026-10-21: instalator - sablony softwaru
+Software	Programvara
+Choose apps to preinstall (Space selects, Enter confirms). Select nothing for only the essentials.	Välj appar att förinstallera (blanksteg markerar, Enter bekräftar). Utan val installeras bara grunderna.
+What will you use LuxOS for?	Vad ska du använda LuxOS till?
+Unknown software template %s - skipped.	Okänd programmall %s – hoppades över.
+Only the essentials	Bara grunderna
+Package %s is not available - skipped.	Paketet %s är inte tillgängligt – hoppades över.
+Installing additional software	Installerar ytterligare programvara
+Enabled the multilib repository.	Förrådet multilib har aktiverats.
+Additional software was skipped. You can install it later in the LuxOS Store.	Ytterligare programvara hoppades över. Du kan installera den senare i LuxOS Store.
+Installing the apps one by one…	Installerar apparna en i taget…
+Some apps could not be installed: %s. You can install them later in the LuxOS Store.	Vissa appar kunde inte installeras: %s. Du kan installera dem senare i LuxOS Store.
+Everyday	Vardag
+Office suite for documents, spreadsheets and presentations, an e-mail client and a calculator.	Kontorspaket för dokument, kalkylark och presentationer, ett e-postprogram och en miniräknare.
+Programming	Programmering
+A code editor, Git, compilers, Python and Node.js for software development.	En kodredigerare, Git, kompilatorer, Python och Node.js för programvaruutveckling.
+Video & Photo	Video & foto
+Edit videos, photos and graphics, record the screen and work with audio.	Redigera video, foton och grafik, spela in skärmen och arbeta med ljud.
+Gaming	Spel
+Steam with Proton for Windows games, GameMode for better performance and the MangoHud overlay.	Steam med Proton för Windows-spel, GameMode för bättre prestanda och MangoHud-överlägget.
+Security & Networking	Säkerhet & nätverk
+Network analysis and system hardening: Nmap, Wireshark, firewall settings, a security audit and a password manager.	Nätverksanalys och systemhärdning: Nmap, Wireshark, brandväggsinställningar, en säkerhetsgranskning och en lösenordshanterare.
+Choose your software	Välj programvara
+Pick ready-made app sets to install with LuxOS. You can combine several or skip this. Apps can be added or removed later in the LuxOS Store.	Välj färdiga appaket att installera med LuxOS. Du kan kombinera flera eller hoppa över steget. Appar kan läggas till eller tas bort senare i LuxOS Store.
+Web browser, files, media player, text editor and LuxAI - nothing extra.	Webbläsare, filer, mediaspelare, textredigerare och LuxAI – inget mer.
+Additional download: about %s	Ytterligare nedladdning: cirka %s
+about %s to download	cirka %s att ladda ned
+# lux - spravce baliku (libalpm)
+1 package	1 paket
+%d packages	%d paket
+%s download	%s att hämta
+%s disk	%s disk
+Install %s?	Installera %s?
+Upgrade %s?	Uppdatera %s?
+Reinstall %s?	Installera om %s?
+Download %s?	Hämta %s?
+Installed %s	Installerat: %s
+Upgraded %s	Uppdaterat: %s
+Reinstalled %s	Ominstallerat: %s
+Removed %s	Borttaget: %s
+Downloaded %s	Hämtat: %s
++%d deps	+%d beroenden
+in %s	på %s
++%d more	+%d till
+Refreshing	Uppdaterar
+Downloading	Hämtar
+Verifying	Verifierar
+Installing	Installerar
+Removing	Tar bort
+Checking…	Kontrollerar…
+Already installed: %s	Redan installerat: %s
+Also removes: %s	Tar även bort: %s
+Data Saver is on - this downloads %s.	Datasparläget är på – %s hämtas.
+Confirmation is needed: run the command in a terminal or add -y.	Bekräftelse krävs: kör kommandot i en terminal eller lägg till -y.
+The package database is locked: another package manager is running, or a previous one crashed. If nothing else is running: lux fix	Paketdatabasen är låst: en annan pakethanterare körs eller så kraschade en tidigare. Om inget annat körs: lux fix
+This needs administrator rights.	Det här kräver administratörsbehörighet.
+This needs administrator rights (sudo or pkexec).	Det här kräver administratörsbehörighet (sudo eller pkexec).
+Not enough free disk space. Free some space (lux clean) and try again.	Inte tillräckligt med diskutrymme. Frigör utrymme (lux clean) och försök igen.
+Not enough free disk space.	Inte tillräckligt med diskutrymme.
+Some files of the new packages already exist on the system (file conflict).	Vissa filer från de nya paketen finns redan i systemet (filkonflikt).
+The selected packages conflict with installed packages.	De valda paketen krockar med installerade paket.
+Dependencies can not be satisfied: %s	Beroenden kan inte uppfyllas: %s
+Dependencies can not be satisfied.	Beroenden kan inte uppfyllas.
+A downloaded package is damaged. Try again; if it repeats, run: lux clean	Ett hämtat paket är skadat. Försök igen; om det upprepas, kör: lux clean
+A package signature could not be verified. Repair the signing keys with: lux fix	En paketsignatur kunde inte verifieras. Reparera nycklarna med: lux fix
+A package signature could not be verified. Run in Terminal: lux fix	En paketsignatur kunde inte verifieras. Kör i Terminal: lux fix
+Package not found.	Paketet hittades inte.
+The package operation failed.	Paketåtgärden misslyckades.
+Details: run the command again with --verbose	Detaljer: kör kommandot igen med --verbose
+Replace a package with its successor?	Ersätta ett paket med dess efterföljare?
+Remove a conflicting package?	Ta bort ett paket som krockar?
+Delete the damaged downloaded package?	Radera det skadade hämtade paketet?
+Import the missing signing key?	Importera den saknade signeringsnyckeln?
+Install a package from IgnorePkg anyway?	Installera ändå ett paket från IgnorePkg?
+These packages are essential for the system: %s	De här paketen är nödvändiga för systemet: %s
+Remove them anyway?	Ta bort dem ändå?
+New config files to review: %d (run: pacdiff)	Nya konfigurationsfiler att granska: %d (kör: pacdiff)
+Stopping after the current package…	Stoppar efter det aktuella paketet…
+Installing from a URL is not supported, download the file first: %s	Installation från en URL stöds inte, hämta filen först: %s
+Cannot read package file %s	Kan inte läsa paketfilen %s
+Package '%s' is not installed	Paketet '%s' är inte installerat
+%s %s is not in the repositories or the package cache	%s %s finns varken i förråden eller i paketcachen
+System packages are up to date	Systempaketen är uppdaterade
+Updating signing keys	Uppdaterar signeringsnycklar
+installed	installerat
+not in repositories (AUR or local)	finns inte i förråden (AUR eller lokalt)
+Description	Beskrivning
+Repository	Förråd
+URL	URL
+License	Licens
+Groups	Grupper
+Provides	Tillhandahåller
+Depends on	Beror på
+Optional deps	Valfria beroenden
+Conflicts with	Krockar med
+Replaces	Ersätter
+Required by	Krävs av
+Installed size	Installerad storlek
+Download size	Hämtningsstorlek
+Install reason	Installationsorsak
+explicitly installed	uttryckligen installerat
+as a dependency	som beroende
+Packager	Paketerare
+Build date	Byggdatum
+No package owns %s	Inget paket äger %s
+is owned by	tillhör
+Usage: lux files <package>	Användning: lux files <paket>
+Usage: lux owns <file>	Användning: lux owns <fil>
+Usage: lux reinstall <package...>	Användning: lux reinstall <paket...>
+Checking the package database	Kontrollerar paketdatabasen
+Another package manager is running (%s) - wait until it finishes.	En annan pakethanterare körs (%s) – vänta tills den är klar.
+The package database is locked, but no package manager is running. Remove the stale lock?	Paketdatabasen är låst men ingen pakethanterare körs. Ta bort det gamla låset?
+Removed the stale database lock	Det gamla databaslåset togs bort
+The package database is not locked	Paketdatabasen är inte låst
+Repairing the package signing keys	Reparerar paketens signeringsnycklar
+Could not create the signing keyring	Kunde inte skapa nyckelringen för signaturer
+Could not load the signing keys	Kunde inte läsa in signeringsnycklarna
+Signing keys loaded	Signeringsnycklar inlästa
+The system clock is not synchronized, signature checks can fail. Turn it on: timedatectl set-ntp true	Systemklockan är inte synkroniserad, signaturkontroller kan misslyckas. Slå på: timedatectl set-ntp true
+Package manager repaired	Pakethanteraren reparerad
+list available updates	lista tillgängliga uppdateringar
+list LuxOS (.lux) or AUR packages	lista LuxOS- (.lux) eller AUR-paket
+install the same version again	installera samma version igen
+remove dependencies nothing needs any more	ta bort beroenden som inget längre behöver
+repair a locked database and the signing keys	reparera en låst databas och signeringsnycklarna
+show all details (and raw errors)	visa alla detaljer (och råa fel)
+pacman stays available for advanced use; lux and pacman share the same package database.	pacman finns kvar för avancerad användning; lux och pacman delar samma paketdatabas.
+Another app is installing software right now. Try it again in a moment.	En annan app installerar programvara just nu. Försök igen om en stund.
+The app conflicts with files of another package.	Appen krockar med filer från ett annat paket.
+The app conflicts with an installed package.	Appen krockar med ett installerat paket.
+Some required packages are not available.	Vissa nödvändiga paket är inte tillgängliga.
+The app is no longer available in the repository.	Appen finns inte längre i förrådet.
+Camera	Kamera
+Photo	Foto
+Video	Video
+Take Photo	Ta foto
+Start recording	Starta inspelning
+Stop recording	Stoppa inspelning
+Mirror preview	Spegelvänd förhandsvisning
+Choose camera	Välj kamera
+Open last capture	Öppna senaste bild
+Take the picture after 3 seconds	Ta bilden efter 3 sekunder
+Starting the camera…	Startar kameran…
+No camera found	Ingen kamera hittades
+Connect a webcam, or check that the built-in camera is turned on. Some laptops have a camera switch, a privacy shutter or a key with a camera symbol.	Anslut en webbkamera eller kontrollera att den inbyggda kameran är påslagen. Vissa bärbara datorer har en kamerabrytare, ett skydd eller en tangent med en kamerasymbol.
+The camera is being used by another app	Kameran används av en annan app
+Close the other app that uses the camera (a video call, a browser tab…) and try again.	Stäng den andra appen som använder kameran (ett videosamtal, en webbläsarflik…) och försök igen.
+Camera access is not allowed	Åtkomst till kameran är inte tillåten
+Your user account is not allowed to use the camera. Log out and log in again; if that does not help, add yourself to the video group and restart:	Ditt användarkonto får inte använda kameran. Logga ut och in igen; om det inte hjälper, lägg till dig i gruppen video och starta om:
+The camera could not be started	Kameran kunde inte startas
+The GStreamer plugin for cameras (gst-plugins-good) is missing.	GStreamer-insticksmodulen för kameror (gst-plugins-good) saknas.
+The photo could not be taken.	Det gick inte att ta fotot.
+The photo could not be saved: %s	Det gick inte att spara fotot: %s
+The video could not be saved: %s	Det gick inte att spara videon: %s
+No video encoder is installed (gst-plugins-good).	Ingen videokodare är installerad (gst-plugins-good).

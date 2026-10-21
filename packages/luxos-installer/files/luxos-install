@@ -259,6 +259,7 @@ interactive() {
     AUTOLOGIN=0
     gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Log in automatically without a password?")" && AUTOLOGIN=1
     ask_care
+    ask_templates
     ask_luxai
     return 0
 }
@@ -279,6 +280,29 @@ ask_care() {
     sel=$(gum choose --header "$(T "How should LuxOS be maintained?")" "$carefree" "$classic") || exit 1
     if [[ $sel == "$classic" ]]; then CARE_MODE=classic; else CARE_MODE=carefree; fi
     info "$(care_text "$CARE_MODE")"
+}
+
+# Sablony softwaru: aplikace predinstalovane navic k zakladnimu systemu (vice najednou)
+ask_templates() {
+    title "$(T "Software")"
+    info "$(T "Choose apps to preinstall (Space selects, Enter confirms). Select nothing for only the essentials.")"
+    local -a ids=() labels=() sel
+    local id l
+    while IFS= read -r id; do
+        ids+=("$id")
+        labels+=("$(T "$(tpl_field "$id" name)") - $(tpl_field "$id" apps)")
+    done < <(tpl_all)
+    ((${#ids[@]})) || { TEMPLATES=""; return 0; }
+    mapfile -t sel < <(printf '%s\n' "${labels[@]}" |
+        gum choose --no-limit --height 10 --header "$(T "What will you use LuxOS for?")" || true)
+    TEMPLATES=""
+    for l in "${sel[@]}"; do
+        for id in "${!labels[@]}"; do
+            [[ ${labels[id]} == "$l" ]] && TEMPLATES+="${TEMPLATES:+,}${ids[id]}"
+        done
+    done
+    parse_templates
+    info "$(templates_text)"
 }
 
 # Ucet LuxAI (nepovinny): prihlaseni hned pri instalaci, token se ulozi novemu uzivateli
@@ -363,6 +387,7 @@ summary() {
         "$(printf '%-13s%s' "$(T "Computer")" "$HOSTNAME_SEL")"
         "$(printf '%-13s%s' "$(T "Boot mode")" "$boot_text")"
         "$(printf '%-13s%s' "$(T "Maintenance")" "$(care_text "$CARE_MODE")")"
+        "$(printf '%-13s%s' "$(T "Software")" "$(templates_text)")"
         "$(printf '%-13s%s' "LuxAI" "$([[ -n $LUXAI_ACCOUNT ]] && T "signed in" || T "not signed in")")"
     )
     if ((PROGRESS)); then
@@ -903,6 +928,177 @@ ENV
     fi
 }
 
+# --- Sablony softwaru (TEMPLATES) -------------------------------------------
+# Kazda sablona je soubor $SHARE/templates/<id>.list (popis @klic hodnota + baliky, viz everyday.list).
+# Instaluji se az po zakladnim systemu; chyba sablony instalaci nikdy nezastavi (jen varovani).
+TEMPLATE_DIR=$SHARE/templates
+TEMPLATE_IDS=()
+
+tpl_field() {  # tpl_field ID KLIC -> hodnota "@KLIC hodnota" (prvni vyskyt)
+    sed -nE "s/^@$2[[:space:]]+//p" "$TEMPLATE_DIR/$1.list" 2>/dev/null | head -1 | sed 's/[[:space:]]*$//'
+}
+
+tpl_all() {  # vsechny dostupne sablony podle @order
+    local f
+    for f in "$TEMPLATE_DIR"/*.list; do
+        [[ -r $f ]] || continue
+        f=${f##*/}
+        printf '%s %s\n' "$(tpl_field "${f%.list}" order)" "${f%.list}"
+    done | sort -n | cut -d' ' -f2
+}
+
+parse_templates() {  # TEMPLATES="a,b c" -> TEMPLATE_IDS (nezname se preskoci s varovanim)
+    local -a list=()
+    local t
+    TEMPLATE_IDS=()
+    IFS=', ' read -ra list <<<"${TEMPLATES-}"
+    for t in "${list[@]}"; do
+        [[ -z $t || $t == none ]] && continue
+        if [[ $t =~ ^[a-z0-9_-]+$ && -r $TEMPLATE_DIR/$t.list ]]; then
+            [[ " ${TEMPLATE_IDS[*]} " == *" $t "* ]] || TEMPLATE_IDS+=("$t")
+        else
+            info "$(T "Unknown software template %s - skipped." "$t")"
+        fi
+    done
+    TEMPLATES=$(IFS=,; echo "${TEMPLATE_IDS[*]}")
+}
+
+templates_text() {  # citelny seznam zvolenych sablon
+    ((${#TEMPLATE_IDS[@]})) || { T "Only the essentials"; return 0; }
+    local id out=()
+    for id in "${TEMPLATE_IDS[@]}"; do out+=("$(T "$(tpl_field "$id" name)")"); done
+    local IFS=,
+    printf '%s' "${out[*]}" | sed 's/,/, /g'
+}
+
+lang_candidates() {  # lang_candidates ODDELOVAC -> jazykove pripony baliku (cs_CZ -> "cs-cz", "cs")
+    local l=${LOCALE%%.*} ll cc
+    l=${l%%@*}
+    ll=${l%%_*} cc=${l#*_}
+    [[ $l == *_* ]] && printf '%s\n' "${ll,,}$1${cc,,}"
+    printf '%s\n' "${ll,,}"
+}
+
+tpl_resolve() {  # tpl_resolve ID -> baliky sablony (podminky a jazyk vyhodnoceny; $avail, $installed)
+    local line name cond neg any p c
+    while read -r line; do
+        line=${line%%#*}
+        [[ -z ${line// /} || $line == @* ]] && continue
+        read -r name cond _ <<<"$line"
+        if [[ -n $cond ]]; then
+            neg=0; [[ $cond == '?!'* ]] && neg=1
+            cond=${cond#\?}; cond=${cond#!}
+            any=0
+            for p in ${cond//,/ }; do
+                grep -qxF -- "$p" <<<"$installed" && any=1
+            done
+            ((any != neg)) || continue
+        fi
+        if [[ $name == *%lang%* || $name == *%lang_%* ]]; then
+            # jazykovy balicek: prvni existujici varianta, jinak tise vynechat
+            local sep=-
+            [[ $name == *%lang_%* ]] && sep=_
+            for c in $(lang_candidates "$sep"); do
+                p=${name//%lang_%/$c}; p=${p//%lang%/$c}
+                if grep -qxF -- "$p" <<<"$avail"; then printf '%s\n' "$p"; break; fi
+            done
+            continue
+        fi
+        if grep -qxF -- "$name" <<<"$avail"; then
+            printf '%s\n' "$name"
+        else
+            info "$(T "Package %s is not available - skipped." "$name")" >&2
+            printf '%s\n' "$name" >>"$TPL_MISSING"
+        fi
+    done <"$TEMPLATE_DIR/$1.list"
+}
+
+chroot_pacman() {  # pacman v cili, anglicky vystup kvuli pac_filter
+    LC_ALL=C.UTF-8 arch-chroot "$TARGET" pacman "$@"
+}
+
+install_templates() {
+    ((${#TEMPLATE_IDS[@]})) || return 0
+    step "$(T "Installing additional software")"
+    info "$(templates_text)"
+    local id attempt ok=0 avail installed g
+    local -a pkgs=() failed=() groups=()
+    TPL_MISSING=$(mktemp)
+
+    # Steam apod.: repozitar multilib (zustane zapnuty kvuli aktualizacim)
+    for id in "${TEMPLATE_IDS[@]}"; do
+        if [[ $(tpl_field "$id" repo) == multilib ]] && ! grep -q '^\[multilib\]' "$TARGET/etc/pacman.conf"; then
+            printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >>"$TARGET/etc/pacman.conf"
+            info "$(T "Enabled the multilib repository.")"
+        fi
+    done
+
+    for attempt in 1 2 3; do
+        if chroot_pacman -Sy --noconfirm >>"$LOG" 2>&1; then ok=1; break; fi
+        pac_cleanup
+        sleep $((attempt * 5))
+        wait_internet
+    done
+    if ((!ok)); then
+        progress "STATUS $(T "Additional software was skipped. You can install it later in the LuxOS Store.")"
+        info "$(T "The package lists could not be downloaded.") $(T "Additional software was skipped. You can install it later in the LuxOS Store.")"
+        rm -f "$TPL_MISSING"
+        return 0
+    fi
+    avail=$(chroot_pacman -Slq 2>>"$LOG" | sort -u) || avail=""
+    installed=$(chroot_pacman -Qq 2>>"$LOG") || installed=""
+
+    for id in "${TEMPLATE_IDS[@]}"; do
+        mapfile -t -O "${#pkgs[@]}" pkgs < <(tpl_resolve "$id")
+        for g in $(tpl_field "$id" groups); do groups+=("$g"); done
+    done
+    mapfile -t pkgs < <(printf '%s\n' "${pkgs[@]}" | awk 'NF && !seen[$0]++')
+    mapfile -t failed <"$TPL_MISSING"
+    rm -f "$TPL_MISSING"
+
+    if ((${#pkgs[@]})); then
+        ok=0
+        for attempt in 1 2 3; do
+            # -Su: databaze jsou cerstve (-Sy), bez castecne aktualizace
+            if chroot_pacman -Su --needed --noconfirm "${pkgs[@]}" 2>&1 | pac_filter; then ok=1; break; fi
+            ((attempt < 3)) || break
+            progress "STATUS $(T "Download failed (attempt %s), retrying…" "$attempt")"
+            info "$(T "Download failed (attempt %s), retrying…" "$attempt")"
+            pac_cleanup
+            sleep $((attempt * 5))
+            wait_internet
+        done
+        if ((!ok)); then
+            # Spolecna transakce selhala (napr. konflikt): po jednom, chybny balik jen preskocit
+            progress "STATUS $(T "Installing the apps one by one…")"
+            info "$(T "Installing the apps one by one…")"
+            local i=0 p
+            for p in "${pkgs[@]}"; do
+                i=$((i + 1))
+                progress "PCT $((i * 100 / ${#pkgs[@]}))"
+                pac_cleanup
+                chroot_pacman -S --needed --noconfirm "$p" >>"$LOG" 2>&1 || failed+=("$p")
+            done
+        fi
+    fi
+    progress "STATUS "
+
+    # Skupiny (napr. wireshark: zachytavani bez roota)
+    for g in "${groups[@]}"; do
+        if arch-chroot "$TARGET" getent group "$g" >/dev/null 2>&1; then
+            run arch-chroot "$TARGET" gpasswd -a "$USERNAME" "$g" || true
+        fi
+    done
+    install -Dm644 /dev/stdin "$TARGET/etc/luxos/templates.conf" <<<"TEMPLATES=$TEMPLATES" || true
+
+    if ((${#failed[@]})); then
+        local IFS=' '
+        progress "STATUS $(T "Some apps could not be installed: %s. You can install them later in the LuxOS Store." "${failed[*]}")"
+        info "$(T "Some apps could not be installed: %s. You can install them later in the LuxOS Store." "${failed[*]}")"
+    fi
+    return 0
+}
+
 # Sdileny ESP: polozku UEFI pridat jen pokud tam systemd-boot jeste nema vlastni; menu musi byt videt
 shared_esp_entry() {
     local partn partuuid entries timeout
@@ -968,7 +1164,7 @@ main() {
         [[ -n ${UI_LANG-} ]] && ui_lang "$UI_LANG"
         : "${LOCALE:=en_US.UTF-8}" "${XKB_LAYOUT:=us}" "${XKB_VARIANT:=}" "${TIMEZONE:=UTC}"
         : "${ENCRYPT:=0}" "${AUTOLOGIN:=0}" "${HOSTNAME_SEL:=luxos}" "${FULLNAME:=$USERNAME}"
-        : "${BOOTLOADER:=auto}" "${LUXAI_ACCOUNT:=}"
+        : "${BOOTLOADER:=auto}" "${LUXAI_ACCOUNT:=}" "${TEMPLATES:=}"
         [[ ${DISK_MODE-} == manual && -z ${DISK-} ]] && DISK=manual   # pripojeno v /mnt, disk neni potreba
         [[ -n ${DISK-}&& -n ${USERNAME-} && -n ${PASSWORD-} ]] || fail "$(T "Config needs DISK, USERNAME and PASSWORD")"
         valid_user "$USERNAME" || fail "$(T "Invalid USERNAME")"
@@ -998,7 +1194,9 @@ main() {
     [[ $BOOTLOADER == auto || $BOOTLOADER == none ]] || fail "$(T "Invalid BOOTLOADER (use auto or none)")"
     : "${CARE_MODE:=carefree}"
     [[ $CARE_MODE == carefree || $CARE_MODE == classic ]] || fail "$(T "Invalid CARE_MODE (use carefree or classic)")"
+    [[ -n $CONFIG ]] && parse_templates
     if [[ $DISK_MODE == manual ]]; then STEP_TOTAL=4; else STEP_TOTAL=$((6 + ENCRYPT)); fi
+    ((${#TEMPLATE_IDS[@]})) && STEP_TOTAL=$((STEP_TOTAL + 1))
     summary
     case $DISK_MODE in
         erase) prepare_disk ;;
@@ -1011,6 +1209,7 @@ main() {
     esac
     install_packages
     configure_system
+    install_templates
     finish
 }
 

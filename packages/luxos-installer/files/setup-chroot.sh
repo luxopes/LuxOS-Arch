@@ -56,7 +56,7 @@ if ((AUTOLOGIN)); then
     install -Dm644 /dev/stdin /etc/lightdm/lightdm.conf.d/60-autologin.conf <<A
 [Seat:*]
 autologin-user=$USERNAME
-autologin-session=xfce
+autologin-session=luxos
 A
 fi
 

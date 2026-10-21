@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=LuxOS
+Comment=LuxOS desktop
+Exec=startxfce4
+TryExec=startxfce4
+Icon=luxos-logo
+DesktopNames=XFCE
