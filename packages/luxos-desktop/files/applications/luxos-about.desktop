@@ -6,3 +6,4 @@ Comment=System information
 Exec=luxos-about
 Icon=luxos-logo
 Categories=System;
+StartupWMClass=luxos-about

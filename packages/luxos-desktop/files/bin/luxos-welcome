@@ -18,7 +18,7 @@ while :; do
         buttons+=(--button="$(T "Sign in to LuxAI")!luxos-app:16")
     buttons+=(--button="$(T "Shortcuts")!preferences-desktop-keyboard-shortcuts:14" --button="$(T "Close")!window-close:0")
 
-    yad --title="$(T "Welcome to LuxOS")" --window-icon=luxos-app --image="$icon" --borders=24 --width=660 --center \
+    yad --title="$(T "Welcome to LuxOS")" --name=luxos-welcome --class=luxos-welcome --window-icon=luxos-app --image="$icon" --borders=24 --width=660 --center \
         --text="<span size='xx-large' weight='bold'>$(T "Welcome to LuxOS")</span>
 
 $(T "Fast, light and beautifully simple.")

@@ -6,3 +6,4 @@ Comment=Overview of LuxOS keyboard shortcuts
 Exec=luxos-shortcuts
 Icon=preferences-desktop-keyboard-shortcuts
 Categories=Settings;
+StartupWMClass=luxos-shortcuts

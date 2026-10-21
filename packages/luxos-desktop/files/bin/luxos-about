@@ -26,7 +26,7 @@ text="<span size='xx-large' weight='bold'>LuxOS</span>
 ${battery}<b>$(T "Kernel")</b>   ${kernel}
 <b>$(T "Shell")</b>   lsh $(lsh -c 'echo $LSH_VERSION' 2>/dev/null)"
 
-yad --title="$(T "About This Computer")" --window-icon=luxos-app --image=/usr/share/icons/hicolor/128x128/apps/luxos-app.png \
+yad --title="$(T "About This Computer")" --name=luxos-about --class=luxos-about --window-icon=luxos-app --image=/usr/share/icons/hicolor/128x128/apps/luxos-app.png \
     --text="$text" --text-align=left --borders=24 --width=560 --center --fixed \
     --button="$(T "Software Update")!system-software-update:2" --button="$(T "Close")!window-close:0"
 if [[ $? == 2 ]]; then
