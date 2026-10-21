@@ -2,8 +2,9 @@
 # LuxOS - Launchpad (Super+A): mrizka aplikaci v panelu uprostred obrazovky
 if pkill -x rofi; then exit 0; fi
 . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
-extra=(-theme-str "entry { placeholder: \"$(T "Search apps")\"; }")
+extra=(-theme-str "entry { placeholder: \"$(T "Search apps or ask LuxAI")\"; }")
 [[ $(luxos-appearance status) == light ]] && extra+=(-theme-str '@import "luxos-light-colors"')
-exec rofi -show drun -modi drun -theme luxos-launchpad -drun-exclude-categories 'X-XFCE-SettingsDialog,X-Xfce-Toplevel' "${extra[@]}" \
+# Aplikace + LuxAI: text bez shody s aplikaci (nebo Ctrl+Enter) je dotaz pro LuxAI (luxos-luxai-rofi)
+exec rofi -show combi -modi combi -combi-modi "luxai:luxos-luxai-rofi,drun" -combi-hide-mode-prefix -theme luxos-launchpad -drun-exclude-categories 'X-XFCE-SettingsDialog,X-Xfce-Toplevel' "${extra[@]}" \
     -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf \
     -hover-select -me-select-entry '' -me-accept-entry MousePrimary

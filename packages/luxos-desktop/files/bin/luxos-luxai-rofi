@@ -1,0 +1,8 @@
+#!/bin/bash
+# LuxOS - rezim rofi "luxai" pro Launchpad a Hledani: vlastni napsany text (zadna aplikace
+# neodpovida, nebo Ctrl+Enter) se posle jako dotaz do LuxAI v rezimu Agent.
+# Bez argumentu (vypis polozek) nic nevraci - v seznamu zustanou jen aplikace.
+if [[ ${ROFI_RETV-} == 2 && -n ${1// } ]] && command -v luxai >/dev/null; then
+    setsid -f luxai --agent "$1" >/dev/null 2>&1
+fi
+exit 0

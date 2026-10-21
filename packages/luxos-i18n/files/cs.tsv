@@ -1180,3 +1180,7 @@ Another change of the boot screen is running.	Už probíhá jiná změna spoušt
 Boot screen is already %s.	Spouštěcí obrazovka už je %s.
 Rebuilding the boot image failed, the previous boot screen was restored.	Sestavení zaváděcího obrazu selhalo, vrácena předchozí spouštěcí obrazovka.
 Boot screen set to %s.	Spouštěcí obrazovka nastavena: %s.
+# LuxOS 2026-10-21: LuxAI z Launchpadu, popisek aplikace v liste
+Active app: %s	Aktivní aplikace: %s
+Search apps or ask LuxAI	Hledat aplikace nebo se zeptat LuxAI
+Search or ask LuxAI	Hledat nebo se zeptat LuxAI
