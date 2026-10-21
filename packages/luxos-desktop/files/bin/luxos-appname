@@ -20,7 +20,9 @@ markup_escape() { local s=${1//&/&amp;}; s=${s//</&lt;}; printf '%s' "${s//>/&gt
 
 case ${1:-print} in
 print)
-    printf '<txt>%s</txt>\n' "$(markup_escape "$(cat "$state" 2>/dev/null)")"
+    # Tooltip srozumitelny pro kazdeho (prazdny by genmon nahradil technickym popisem pluginu)
+    name=$(markup_escape "$(cat "$state" 2>/dev/null)")
+    printf '<txt>%s</txt><tool>%s</tool>\n' "$name" "$(T "Active app: %s" "$name")"
     ;;
 
 watch)
