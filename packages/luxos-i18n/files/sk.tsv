@@ -1418,3 +1418,161 @@ LocalSend compatibility needs the python-pyopenssl package.	Kompatibilita s Loca
 Nearby LuxOS computers cannot be found because avahi-daemon is not running.	Počítače s LuxOS v okolí sa nedajú nájsť, pretože nebeží avahi-daemon.
 Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Automatické hľadanie zariadení LocalSend nie je k dispozícii (%s). Použite „Prehľadať miestnu sieť“.
 LuxDrop: message from %s	LuxDrop: správa od %s
+%s remaining	zostáva %s
+%s until full	%s do nabitia
+# LuxOS 2026-10-21: instalator - sablony softwaru
+Software	Softvér
+Choose apps to preinstall (Space selects, Enter confirms). Select nothing for only the essentials.	Vyberte aplikácie na predinštalovanie (medzerník vyberá, Enter potvrdí). Bez výberu sa nainštaluje len základ.
+What will you use LuxOS for?	Na čo budete LuxOS používať?
+Unknown software template %s - skipped.	Neznáma šablóna softvéru %s – preskočené.
+Only the essentials	Len základ
+Package %s is not available - skipped.	Balík %s nie je k dispozícii – preskočené.
+Installing additional software	Inštalácia ďalšieho softvéru
+Enabled the multilib repository.	Zapnutý repozitár multilib.
+Additional software was skipped. You can install it later in the LuxOS Store.	Ďalší softvér bol preskočený. Môžete ho nainštalovať neskôr v Obchode LuxOS.
+Installing the apps one by one…	Inštalujem aplikácie po jednej…
+Some apps could not be installed: %s. You can install them later in the LuxOS Store.	Niektoré aplikácie sa nepodarilo nainštalovať: %s. Môžete ich nainštalovať neskôr v Obchode LuxOS.
+Everyday	Každodenné použitie
+Office suite for documents, spreadsheets and presentations, an e-mail client and a calculator.	Kancelársky balík na dokumenty, tabuľky a prezentácie, e-mailový klient a kalkulačka.
+Programming	Programovanie
+A code editor, Git, compilers, Python and Node.js for software development.	Editor kódu, Git, kompilátory, Python a Node.js na vývoj softvéru.
+Video & Photo	Video a foto
+Edit videos, photos and graphics, record the screen and work with audio.	Úprava videí, fotiek a grafiky, nahrávanie obrazovky a práca so zvukom.
+Gaming	Hry
+Steam with Proton for Windows games, GameMode for better performance and the MangoHud overlay.	Steam s Protonom pre hry z Windows, GameMode pre vyšší výkon a prekrytie MangoHud.
+Security & Networking	Bezpečnosť a siete
+Network analysis and system hardening: Nmap, Wireshark, firewall settings, a security audit and a password manager.	Analýza siete a zabezpečenie systému: Nmap, Wireshark, nastavenie firewallu, bezpečnostný audit a správca hesiel.
+Choose your software	Vyberte softvér
+Pick ready-made app sets to install with LuxOS. You can combine several or skip this. Apps can be added or removed later in the LuxOS Store.	Vyberte hotové sady aplikácií, ktoré sa nainštalujú s LuxOS. Môžete ich skombinovať niekoľko alebo krok preskočiť. Aplikácie môžete neskôr pridať či odobrať v Obchode LuxOS.
+Web browser, files, media player, text editor and LuxAI - nothing extra.	Webový prehliadač, súbory, prehrávač médií, textový editor a LuxAI – nič navyše.
+Additional download: about %s	Na stiahnutie navyše: asi %s
+about %s to download	asi %s na stiahnutie
+# lux - spravce baliku (libalpm)
+1 package	1 balík
+%d packages	%d balíkov
+%d packages|few	%d balíky
+%s download	%s na stiahnutie
+%s disk	%s na disku
+Install %s?	Nainštalovať %s?
+Upgrade %s?	Aktualizovať %s?
+Reinstall %s?	Znova nainštalovať %s?
+Download %s?	Stiahnuť %s?
+Installed %s	Nainštalované: %s
+Upgraded %s	Aktualizované: %s
+Reinstalled %s	Znova nainštalované: %s
+Removed %s	Odstránené: %s
+Downloaded %s	Stiahnuté: %s
++%d deps	+%d závislostí
+in %s	za %s
++%d more	+%d ďalších
+Refreshing	Obnovujem
+Downloading	Sťahujem
+Verifying	Overujem
+Installing	Inštalujem
+Removing	Odstraňujem
+Checking…	Kontrolujem…
+Already installed: %s	Už nainštalované: %s
+Also removes: %s	Odstráni aj: %s
+Data Saver is on - this downloads %s.	Šetrič dát je zapnutý – stiahne sa %s.
+Confirmation is needed: run the command in a terminal or add -y.	Je potrebné potvrdenie: spustite príkaz v termináli alebo pridajte -y.
+The package database is locked: another package manager is running, or a previous one crashed. If nothing else is running: lux fix	Databáza balíkov je zamknutá: beží iný správca balíkov alebo predchádzajúci spadol. Ak nič iné nebeží: lux fix
+This needs administrator rights.	Na to sú potrebné práva správcu.
+This needs administrator rights (sudo or pkexec).	Na to sú potrebné práva správcu (sudo alebo pkexec).
+Not enough free disk space. Free some space (lux clean) and try again.	Na disku nie je dosť miesta. Uvoľnite miesto (lux clean) a skúste to znova.
+Not enough free disk space.	Na disku nie je dosť miesta.
+Some files of the new packages already exist on the system (file conflict).	Niektoré súbory nových balíkov už v systéme existujú (konflikt súborov).
+The selected packages conflict with installed packages.	Vybrané balíky sú v konflikte s nainštalovanými.
+Dependencies can not be satisfied: %s	Závislosti nemožno splniť: %s
+Dependencies can not be satisfied.	Závislosti nemožno splniť.
+A downloaded package is damaged. Try again; if it repeats, run: lux clean	Stiahnutý balík je poškodený. Skúste to znova; ak sa to opakuje, spustite: lux clean
+A package signature could not be verified. Repair the signing keys with: lux fix	Podpis balíka sa nepodarilo overiť. Opravte kľúče príkazom: lux fix
+A package signature could not be verified. Run in Terminal: lux fix	Podpis balíka sa nepodarilo overiť. Spustite v Termináli: lux fix
+Package not found.	Balík sa nenašiel.
+The package operation failed.	Operácia s balíkmi zlyhala.
+Details: run the command again with --verbose	Podrobnosti: spustite príkaz znova s --verbose
+Replace a package with its successor?	Nahradiť balík jeho nástupcom?
+Remove a conflicting package?	Odstrániť konfliktný balík?
+Delete the damaged downloaded package?	Zmazať poškodený stiahnutý balík?
+Import the missing signing key?	Importovať chýbajúci podpisový kľúč?
+Install a package from IgnorePkg anyway?	Napriek tomu nainštalovať balík z IgnorePkg?
+These packages are essential for the system: %s	Tieto balíky sú pre systém nevyhnutné: %s
+Remove them anyway?	Napriek tomu ich odstrániť?
+New config files to review: %d (run: pacdiff)	Nové konfiguračné súbory na kontrolu: %d (spustite: pacdiff)
+Stopping after the current package…	Zastavím po dokončení aktuálneho balíka…
+Installing from a URL is not supported, download the file first: %s	Inštalácia z URL nie je podporovaná, najprv súbor stiahnite: %s
+Cannot read package file %s	Súbor balíka %s nemožno prečítať
+Package '%s' is not installed	Balík '%s' nie je nainštalovaný
+%s %s is not in the repositories or the package cache	%s %s nie je v repozitároch ani vo vyrovnávacej pamäti balíkov
+System packages are up to date	Systémové balíky sú aktuálne
+Updating signing keys	Aktualizujem podpisové kľúče
+installed	nainštalované
+not in repositories (AUR or local)	nie je v repozitároch (AUR alebo miestny)
+Description	Popis
+Repository	Repozitár
+URL	URL
+License	Licencia
+Groups	Skupiny
+Provides	Poskytuje
+Depends on	Závisí od
+Optional deps	Voliteľné závislosti
+Conflicts with	V konflikte s
+Replaces	Nahrádza
+Required by	Vyžadované balíkmi
+Installed size	Veľkosť po inštalácii
+Download size	Veľkosť na stiahnutie
+Install reason	Dôvod inštalácie
+explicitly installed	nainštalované výslovne
+as a dependency	ako závislosť
+Packager	Zostavil
+Build date	Dátum zostavenia
+No package owns %s	Súbor %s nepatrí žiadnemu balíku
+is owned by	patrí balíku
+Usage: lux files <package>	Použitie: lux files <balík>
+Usage: lux owns <file>	Použitie: lux owns <súbor>
+Usage: lux reinstall <package...>	Použitie: lux reinstall <balík...>
+Checking the package database	Kontrolujem databázu balíkov
+Another package manager is running (%s) - wait until it finishes.	Beží iný správca balíkov (%s) – počkajte, kým skončí.
+The package database is locked, but no package manager is running. Remove the stale lock?	Databáza balíkov je zamknutá, ale žiadny správca balíkov nebeží. Odstrániť starý zámok?
+Removed the stale database lock	Starý zámok databázy odstránený
+The package database is not locked	Databáza balíkov nie je zamknutá
+Repairing the package signing keys	Opravujem podpisové kľúče balíkov
+Could not create the signing keyring	Kľúčenku pre podpisy sa nepodarilo vytvoriť
+Could not load the signing keys	Podpisové kľúče sa nepodarilo načítať
+Signing keys loaded	Podpisové kľúče načítané
+The system clock is not synchronized, signature checks can fail. Turn it on: timedatectl set-ntp true	Systémové hodiny nie sú synchronizované, overenie podpisov môže zlyhať. Zapnite: timedatectl set-ntp true
+Package manager repaired	Správca balíkov opravený
+list available updates	vypíše dostupné aktualizácie
+list LuxOS (.lux) or AUR packages	vypíše balíky LuxOS (.lux) alebo z AUR
+install the same version again	znova nainštaluje rovnakú verziu
+remove dependencies nothing needs any more	odstráni závislosti, ktoré už nič nepotrebuje
+repair a locked database and the signing keys	opraví zamknutú databázu a podpisové kľúče
+show all details (and raw errors)	zobrazí všetky podrobnosti (aj pôvodné chyby)
+pacman stays available for advanced use; lux and pacman share the same package database.	pacman zostáva k dispozícii pre pokročilých; lux a pacman zdieľajú rovnakú databázu balíkov.
+Another app is installing software right now. Try it again in a moment.	Iná aplikácia práve inštaluje softvér. Skúste to o chvíľu znova.
+The app conflicts with files of another package.	Aplikácia je v konflikte so súbormi iného balíka.
+The app conflicts with an installed package.	Aplikácia je v konflikte s nainštalovaným balíkom.
+Some required packages are not available.	Niektoré potrebné balíky nie sú k dispozícii.
+The app is no longer available in the repository.	Aplikácia už v repozitári nie je.
+Camera	Kamera
+Photo	Fotka
+Video	Video
+Take Photo	Odfotiť
+Start recording	Spustiť nahrávanie
+Stop recording	Zastaviť nahrávanie
+Mirror preview	Zrkadliť náhľad
+Choose camera	Vybrať kameru
+Open last capture	Otvoriť posledný záber
+Take the picture after 3 seconds	Odfotiť po 3 sekundách
+Starting the camera…	Spúšťam kameru…
+No camera found	Nenašla sa žiadna kamera
+Connect a webcam, or check that the built-in camera is turned on. Some laptops have a camera switch, a privacy shutter or a key with a camera symbol.	Pripojte webkameru alebo skontrolujte, či je vstavaná kamera zapnutá. Niektoré notebooky majú vypínač kamery, krytku alebo kláves so symbolom kamery.
+The camera is being used by another app	Kameru používa iná aplikácia
+Close the other app that uses the camera (a video call, a browser tab…) and try again.	Zatvorte inú aplikáciu, ktorá používa kameru (videohovor, kartu prehliadača…), a skúste to znova.
+Camera access is not allowed	Prístup ku kamere nie je povolený
+Your user account is not allowed to use the camera. Log out and log in again; if that does not help, add yourself to the video group and restart:	Váš používateľský účet nemá oprávnenie používať kameru. Odhláste sa a znova prihláste; ak to nepomôže, pridajte sa do skupiny video a reštartujte počítač:
+The camera could not be started	Kameru sa nepodarilo spustiť
+The GStreamer plugin for cameras (gst-plugins-good) is missing.	Chýba plugin GStreamer pre kamery (gst-plugins-good).
+The photo could not be taken.	Fotku sa nepodarilo zhotoviť.
+The photo could not be saved: %s	Fotku sa nepodarilo uložiť: %s
+The video could not be saved: %s	Video sa nepodarilo uložiť: %s
+No video encoder is installed (gst-plugins-good).	Nie je nainštalovaný žiadny kodér videa (gst-plugins-good).

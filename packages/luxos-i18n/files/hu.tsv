@@ -1418,3 +1418,160 @@ LocalSend compatibility needs the python-pyopenssl package.	A LocalSend-kompatib
 Nearby LuxOS computers cannot be found because avahi-daemon is not running.	A közeli, LuxOS-t futtató számítógépek nem kereshetők, mert az avahi-daemon nem fut.
 Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	A LocalSend-eszközök automatikus keresése nem érhető el (%s). Használd a „Helyi hálózat átvizsgálása” lehetőséget.
 LuxDrop: message from %s	LuxDrop: üzenet tőle: %s
+%s remaining	%s van hátra
+%s until full	%s a teljes töltésig
+# LuxOS 2026-10-21: instalator - sablony softwaru
+Software	Szoftverek
+Choose apps to preinstall (Space selects, Enter confirms). Select nothing for only the essentials.	Válassza ki az előre telepítendő alkalmazásokat (Szóköz: kijelölés, Enter: jóváhagyás). Ha semmit sem választ, csak az alaprendszer települ.
+What will you use LuxOS for?	Mire fogja használni a LuxOS-t?
+Unknown software template %s - skipped.	Ismeretlen szoftversablon: %s – kihagyva.
+Only the essentials	Csak az alapok
+Package %s is not available - skipped.	A(z) %s csomag nem érhető el – kihagyva.
+Installing additional software	További szoftverek telepítése
+Enabled the multilib repository.	A multilib tároló bekapcsolva.
+Additional software was skipped. You can install it later in the LuxOS Store.	A további szoftverek kimaradtak. Később telepítheti őket a LuxOS Áruházban.
+Installing the apps one by one…	Alkalmazások telepítése egyenként…
+Some apps could not be installed: %s. You can install them later in the LuxOS Store.	Néhány alkalmazást nem sikerült telepíteni: %s. Később telepítheti őket a LuxOS Áruházban.
+Everyday	Mindennapi használat
+Office suite for documents, spreadsheets and presentations, an e-mail client and a calculator.	Irodai csomag dokumentumokhoz, táblázatokhoz és bemutatókhoz, levelezőprogram és számológép.
+Programming	Programozás
+A code editor, Git, compilers, Python and Node.js for software development.	Kódszerkesztő, Git, fordítók, Python és Node.js szoftverfejlesztéshez.
+Video & Photo	Videó és fotó
+Edit videos, photos and graphics, record the screen and work with audio.	Videók, fotók és grafikák szerkesztése, képernyőfelvétel és hangszerkesztés.
+Gaming	Játék
+Steam with Proton for Windows games, GameMode for better performance and the MangoHud overlay.	Steam Protonnal a Windowsos játékokhoz, GameMode a jobb teljesítményért és MangoHud kijelzés.
+Security & Networking	Biztonság és hálózat
+Network analysis and system hardening: Nmap, Wireshark, firewall settings, a security audit and a password manager.	Hálózatelemzés és rendszervédelem: Nmap, Wireshark, tűzfalbeállítások, biztonsági audit és jelszókezelő.
+Choose your software	Válasszon szoftvereket
+Pick ready-made app sets to install with LuxOS. You can combine several or skip this. Apps can be added or removed later in the LuxOS Store.	Válasszon kész alkalmazáscsomagokat, amelyek a LuxOS-szel együtt települnek. Többet is kombinálhat, vagy kihagyhatja ezt a lépést. Az alkalmazásokat később a LuxOS Áruházban adhatja hozzá vagy távolíthatja el.
+Web browser, files, media player, text editor and LuxAI - nothing extra.	Böngésző, fájlok, médialejátszó, szövegszerkesztő és LuxAI – semmi több.
+Additional download: about %s	További letöltés: kb. %s
+about %s to download	kb. %s letöltés
+# lux - spravce baliku (libalpm)
+1 package	1 csomag
+%d packages	%d csomag
+%s download	%s letöltés
+%s disk	%s lemez
+Install %s?	Telepíted: %s?
+Upgrade %s?	Frissíted: %s?
+Reinstall %s?	Újratelepíted: %s?
+Download %s?	Letöltöd: %s?
+Installed %s	Telepítve: %s
+Upgraded %s	Frissítve: %s
+Reinstalled %s	Újratelepítve: %s
+Removed %s	Eltávolítva: %s
+Downloaded %s	Letöltve: %s
++%d deps	+%d függőség
+in %s	%s alatt
++%d more	+%d további
+Refreshing	Frissítés
+Downloading	Letöltés
+Verifying	Ellenőrzés
+Installing	Telepítés
+Removing	Eltávolítás
+Checking…	Ellenőrzés…
+Already installed: %s	Már telepítve: %s
+Also removes: %s	Ezeket is eltávolítja: %s
+Data Saver is on - this downloads %s.	Az adatforgalom-csökkentés be van kapcsolva – %s letöltése következik.
+Confirmation is needed: run the command in a terminal or add -y.	Megerősítés szükséges: futtasd a parancsot terminálban, vagy add hozzá: -y.
+The package database is locked: another package manager is running, or a previous one crashed. If nothing else is running: lux fix	A csomagadatbázis zárolva van: másik csomagkezelő fut, vagy egy korábbi összeomlott. Ha semmi más nem fut: lux fix
+This needs administrator rights.	Ehhez rendszergazdai jogok kellenek.
+This needs administrator rights (sudo or pkexec).	Ehhez rendszergazdai jogok kellenek (sudo vagy pkexec).
+Not enough free disk space. Free some space (lux clean) and try again.	Nincs elég szabad hely a lemezen. Szabadíts fel helyet (lux clean), és próbáld újra.
+Not enough free disk space.	Nincs elég szabad hely a lemezen.
+Some files of the new packages already exist on the system (file conflict).	Az új csomagok néhány fájlja már létezik a rendszeren (fájlütközés).
+The selected packages conflict with installed packages.	A kiválasztott csomagok ütköznek a telepítettekkel.
+Dependencies can not be satisfied: %s	A függőségek nem teljesíthetők: %s
+Dependencies can not be satisfied.	A függőségek nem teljesíthetők.
+A downloaded package is damaged. Try again; if it repeats, run: lux clean	Egy letöltött csomag sérült. Próbáld újra; ha ismétlődik, futtasd: lux clean
+A package signature could not be verified. Repair the signing keys with: lux fix	Egy csomag aláírása nem ellenőrizhető. Javítsd az aláíró kulcsokat: lux fix
+A package signature could not be verified. Run in Terminal: lux fix	Egy csomag aláírása nem ellenőrizhető. Futtasd a Terminálban: lux fix
+Package not found.	A csomag nem található.
+The package operation failed.	A csomagművelet nem sikerült.
+Details: run the command again with --verbose	Részletek: futtasd újra a parancsot --verbose kapcsolóval
+Replace a package with its successor?	Lecseréled a csomagot az utódjára?
+Remove a conflicting package?	Eltávolítod az ütköző csomagot?
+Delete the damaged downloaded package?	Törlöd a sérült letöltött csomagot?
+Import the missing signing key?	Importálod a hiányzó aláíró kulcsot?
+Install a package from IgnorePkg anyway?	Mégis telepíted az IgnorePkg-ben szereplő csomagot?
+These packages are essential for the system: %s	Ezek a csomagok nélkülözhetetlenek a rendszerhez: %s
+Remove them anyway?	Mégis eltávolítod őket?
+New config files to review: %d (run: pacdiff)	Átnézendő új konfigurációs fájlok: %d (futtasd: pacdiff)
+Stopping after the current package…	Leállás az aktuális csomag után…
+Installing from a URL is not supported, download the file first: %s	Az URL-ről történő telepítés nem támogatott, előbb töltsd le a fájlt: %s
+Cannot read package file %s	A(z) %s csomagfájl nem olvasható
+Package '%s' is not installed	A(z) '%s' csomag nincs telepítve
+%s %s is not in the repositories or the package cache	%s %s nincs sem a tárolókban, sem a csomaggyorsítótárban
+System packages are up to date	A rendszercsomagok naprakészek
+Updating signing keys	Aláíró kulcsok frissítése
+installed	telepítve
+not in repositories (AUR or local)	nincs a tárolókban (AUR vagy helyi)
+Description	Leírás
+Repository	Tároló
+URL	URL
+License	Licenc
+Groups	Csoportok
+Provides	Biztosítja
+Depends on	Függőségei
+Optional deps	Opcionális függőségek
+Conflicts with	Ütközik ezzel
+Replaces	Lecseréli
+Required by	Igényli
+Installed size	Telepített méret
+Download size	Letöltési méret
+Install reason	Telepítés oka
+explicitly installed	kifejezetten telepítve
+as a dependency	függőségként
+Packager	Csomagoló
+Build date	Készítés dátuma
+No package owns %s	Egyik csomag sem tartalmazza: %s
+is owned by	csomagja:
+Usage: lux files <package>	Használat: lux files <csomag>
+Usage: lux owns <file>	Használat: lux owns <fájl>
+Usage: lux reinstall <package...>	Használat: lux reinstall <csomag...>
+Checking the package database	A csomagadatbázis ellenőrzése
+Another package manager is running (%s) - wait until it finishes.	Másik csomagkezelő fut (%s) – várd meg, amíg befejezi.
+The package database is locked, but no package manager is running. Remove the stale lock?	A csomagadatbázis zárolva van, de nem fut csomagkezelő. Eltávolítod a régi zárolást?
+Removed the stale database lock	A régi adatbázis-zárolás eltávolítva
+The package database is not locked	A csomagadatbázis nincs zárolva
+Repairing the package signing keys	A csomagaláíró kulcsok javítása
+Could not create the signing keyring	Nem sikerült létrehozni az aláíró kulcstartót
+Could not load the signing keys	Nem sikerült betölteni az aláíró kulcsokat
+Signing keys loaded	Aláíró kulcsok betöltve
+The system clock is not synchronized, signature checks can fail. Turn it on: timedatectl set-ntp true	A rendszeróra nincs szinkronizálva, az aláírás-ellenőrzés hibát adhat. Kapcsold be: timedatectl set-ntp true
+Package manager repaired	A csomagkezelő megjavítva
+list available updates	elérhető frissítések listája
+list LuxOS (.lux) or AUR packages	LuxOS (.lux) vagy AUR csomagok listája
+install the same version again	ugyanazt a verziót újratelepíti
+remove dependencies nothing needs any more	eltávolítja a már nem szükséges függőségeket
+repair a locked database and the signing keys	javítja a zárolt adatbázist és az aláíró kulcsokat
+show all details (and raw errors)	minden részlet (és a nyers hibák) megjelenítése
+pacman stays available for advanced use; lux and pacman share the same package database.	a pacman haladóknak továbbra is elérhető; a lux és a pacman ugyanazt a csomagadatbázist használja.
+Another app is installing software right now. Try it again in a moment.	Egy másik alkalmazás éppen szoftvert telepít. Próbáld újra egy kicsit később.
+The app conflicts with files of another package.	Az alkalmazás ütközik egy másik csomag fájljaival.
+The app conflicts with an installed package.	Az alkalmazás ütközik egy telepített csomaggal.
+Some required packages are not available.	Néhány szükséges csomag nem érhető el.
+The app is no longer available in the repository.	Az alkalmazás már nem érhető el a tárolóban.
+Camera	Kamera
+Photo	Fotó
+Video	Videó
+Take Photo	Fénykép készítése
+Start recording	Felvétel indítása
+Stop recording	Felvétel leállítása
+Mirror preview	Tükrözött előnézet
+Choose camera	Kamera kiválasztása
+Open last capture	Utolsó felvétel megnyitása
+Take the picture after 3 seconds	Fénykép 3 másodperc múlva
+Starting the camera…	Kamera indítása…
+No camera found	Nem található kamera
+Connect a webcam, or check that the built-in camera is turned on. Some laptops have a camera switch, a privacy shutter or a key with a camera symbol.	Csatlakoztasson egy webkamerát, vagy ellenőrizze, hogy a beépített kamera be van-e kapcsolva. Egyes laptopokon kamerakapcsoló, takarófedél vagy kamera jelű billentyű található.
+The camera is being used by another app	A kamerát egy másik alkalmazás használja
+Close the other app that uses the camera (a video call, a browser tab…) and try again.	Zárja be a kamerát használó másik alkalmazást (videohívás, böngészőlap…), és próbálja újra.
+Camera access is not allowed	A kamera használata nem engedélyezett
+Your user account is not allowed to use the camera. Log out and log in again; if that does not help, add yourself to the video group and restart:	A felhasználói fiókja nem használhatja a kamerát. Jelentkezzen ki, majd újra be; ha ez nem segít, adja hozzá magát a video csoporthoz, és indítsa újra a gépet:
+The camera could not be started	Nem sikerült elindítani a kamerát
+The GStreamer plugin for cameras (gst-plugins-good) is missing.	Hiányzik a kamerákhoz szükséges GStreamer bővítmény (gst-plugins-good).
+The photo could not be taken.	Nem sikerült fényképet készíteni.
+The photo could not be saved: %s	Nem sikerült menteni a fényképet: %s
+The video could not be saved: %s	Nem sikerült menteni a videót: %s
+No video encoder is installed (gst-plugins-good).	Nincs telepítve videókódoló (gst-plugins-good).

@@ -43,7 +43,7 @@ scripts/                 volitelné: post_install, pre_remove (bash, běží jak
 | `version`, `release` | verze aplikace a vydání balíčku (porovnává se jako u pacmanu) |
 | `arch` | `any` nebo `x86_64` |
 | `summary`, `description`, `license`, `url`, `categories` | informace pro Obchod a `lux info`; kategorie podle freedesktop (`Utility`, `Development`, `Graphics`…) |
-| `depends.system` | balíčky z repozitářů (pacman), nainstalují se před aplikací |
+| `depends.system` | balíčky z repozitářů LuxOS/Arch (instaluje je `lux` přes libalpm), nainstalují se před aplikací |
 | `depends.lux` | další balíčky `.lux` z repozitáře LuxOS |
 | `bin` | příkazy: `název` → cesta v `app/`; vznikne odkaz `/usr/local/bin/název` |
 
@@ -53,7 +53,7 @@ scripts/                 volitelné: post_install, pre_remove (bash, běží jak
 
 1. ověří podpis klíčem LuxOS (`luxos-keyring`); u repozitáře i kontrolní součet z indexu,
    nepodepsaný lokální soubor nainstaluje jen po potvrzení,
-2. nainstaluje `depends.system` (pacman) a `depends.lux`,
+2. nainstaluje `depends.system` (z repozitářů) a `depends.lux`,
 3. rozbalí aplikaci do `/opt/lux/<name>` (atomicky, stará verze se nahradí až po rozbalení),
 4. vytvoří příkazy v `/usr/local/bin`, zkopíruje `share/` do `/usr/local/share`,
 5. zapíše seznam souborů do `/var/lib/lux/installed/<name>.json` a spustí `scripts/post_install`.

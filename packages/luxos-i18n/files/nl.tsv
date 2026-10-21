@@ -1418,3 +1418,160 @@ LocalSend compatibility needs the python-pyopenssl package.	Compatibiliteit met 
 Nearby LuxOS computers cannot be found because avahi-daemon is not running.	LuxOS-computers in de buurt kunnen niet worden gevonden omdat avahi-daemon niet draait.
 Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Automatische detectie van LocalSend-apparaten is niet beschikbaar (%s). Gebruik “Doorzoek het lokale netwerk”.
 LuxDrop: message from %s	LuxDrop: bericht van %s
+%s remaining	nog %s
+%s until full	%s tot vol
+# LuxOS 2026-10-21: instalator - sablony softwaru
+Software	Software
+Choose apps to preinstall (Space selects, Enter confirms). Select nothing for only the essentials.	Kies apps om vooraf te installeren (spatie selecteert, Enter bevestigt). Zonder keuze wordt alleen de basis geïnstalleerd.
+What will you use LuxOS for?	Waarvoor ga je LuxOS gebruiken?
+Unknown software template %s - skipped.	Onbekende softwaresjabloon %s – overgeslagen.
+Only the essentials	Alleen de basis
+Package %s is not available - skipped.	Pakket %s is niet beschikbaar – overgeslagen.
+Installing additional software	Extra software installeren
+Enabled the multilib repository.	De multilib-repository is ingeschakeld.
+Additional software was skipped. You can install it later in the LuxOS Store.	Extra software is overgeslagen. Je kunt deze later installeren in de LuxOS Store.
+Installing the apps one by one…	Apps één voor één installeren…
+Some apps could not be installed: %s. You can install them later in the LuxOS Store.	Sommige apps konden niet worden geïnstalleerd: %s. Je kunt ze later installeren in de LuxOS Store.
+Everyday	Dagelijks gebruik
+Office suite for documents, spreadsheets and presentations, an e-mail client and a calculator.	Kantoorpakket voor documenten, spreadsheets en presentaties, een e-mailprogramma en een rekenmachine.
+Programming	Programmeren
+A code editor, Git, compilers, Python and Node.js for software development.	Een code-editor, Git, compilers, Python en Node.js voor softwareontwikkeling.
+Video & Photo	Video & foto
+Edit videos, photos and graphics, record the screen and work with audio.	Bewerk video’s, foto’s en afbeeldingen, neem het scherm op en werk met audio.
+Gaming	Gamen
+Steam with Proton for Windows games, GameMode for better performance and the MangoHud overlay.	Steam met Proton voor Windows-games, GameMode voor betere prestaties en de MangoHud-overlay.
+Security & Networking	Beveiliging & netwerken
+Network analysis and system hardening: Nmap, Wireshark, firewall settings, a security audit and a password manager.	Netwerkanalyse en systeembeveiliging: Nmap, Wireshark, firewallinstellingen, een beveiligingsaudit en een wachtwoordbeheerder.
+Choose your software	Kies je software
+Pick ready-made app sets to install with LuxOS. You can combine several or skip this. Apps can be added or removed later in the LuxOS Store.	Kies kant-en-klare app-sets om met LuxOS te installeren. Je kunt er meerdere combineren of deze stap overslaan. Apps kun je later toevoegen of verwijderen in de LuxOS Store.
+Web browser, files, media player, text editor and LuxAI - nothing extra.	Webbrowser, bestanden, mediaspeler, teksteditor en LuxAI – verder niets.
+Additional download: about %s	Extra download: ongeveer %s
+about %s to download	ongeveer %s te downloaden
+# lux - spravce baliku (libalpm)
+1 package	1 pakket
+%d packages	%d pakketten
+%s download	%s downloaden
+%s disk	%s schijf
+Install %s?	%s installeren?
+Upgrade %s?	%s bijwerken?
+Reinstall %s?	%s opnieuw installeren?
+Download %s?	%s downloaden?
+Installed %s	Geïnstalleerd: %s
+Upgraded %s	Bijgewerkt: %s
+Reinstalled %s	Opnieuw geïnstalleerd: %s
+Removed %s	Verwijderd: %s
+Downloaded %s	Gedownload: %s
++%d deps	+%d afhankelijkheden
+in %s	in %s
++%d more	+%d meer
+Refreshing	Verversen
+Downloading	Downloaden
+Verifying	Controleren
+Installing	Installeren
+Removing	Verwijderen
+Checking…	Controleren…
+Already installed: %s	Al geïnstalleerd: %s
+Also removes: %s	Verwijdert ook: %s
+Data Saver is on - this downloads %s.	Databesparing staat aan – er wordt %s gedownload.
+Confirmation is needed: run the command in a terminal or add -y.	Bevestiging nodig: voer de opdracht uit in een terminal of voeg -y toe.
+The package database is locked: another package manager is running, or a previous one crashed. If nothing else is running: lux fix	De pakketdatabase is vergrendeld: er draait een andere pakketbeheerder of een vorige is gecrasht. Draait er verder niets: lux fix
+This needs administrator rights.	Hiervoor zijn beheerdersrechten nodig.
+This needs administrator rights (sudo or pkexec).	Hiervoor zijn beheerdersrechten nodig (sudo of pkexec).
+Not enough free disk space. Free some space (lux clean) and try again.	Niet genoeg vrije schijfruimte. Maak ruimte vrij (lux clean) en probeer het opnieuw.
+Not enough free disk space.	Niet genoeg vrije schijfruimte.
+Some files of the new packages already exist on the system (file conflict).	Sommige bestanden van de nieuwe pakketten bestaan al op het systeem (bestandsconflict).
+The selected packages conflict with installed packages.	De gekozen pakketten conflicteren met geïnstalleerde pakketten.
+Dependencies can not be satisfied: %s	Afhankelijkheden kunnen niet worden vervuld: %s
+Dependencies can not be satisfied.	Afhankelijkheden kunnen niet worden vervuld.
+A downloaded package is damaged. Try again; if it repeats, run: lux clean	Een gedownload pakket is beschadigd. Probeer het opnieuw; gebeurt het weer, voer dan uit: lux clean
+A package signature could not be verified. Repair the signing keys with: lux fix	Een pakkethandtekening kon niet worden gecontroleerd. Herstel de sleutels met: lux fix
+A package signature could not be verified. Run in Terminal: lux fix	Een pakkethandtekening kon niet worden gecontroleerd. Voer uit in Terminal: lux fix
+Package not found.	Pakket niet gevonden.
+The package operation failed.	De pakketbewerking is mislukt.
+Details: run the command again with --verbose	Details: voer de opdracht opnieuw uit met --verbose
+Replace a package with its successor?	Pakket vervangen door zijn opvolger?
+Remove a conflicting package?	Conflicterend pakket verwijderen?
+Delete the damaged downloaded package?	Beschadigd gedownload pakket verwijderen?
+Import the missing signing key?	Ontbrekende ondertekeningssleutel importeren?
+Install a package from IgnorePkg anyway?	Toch een pakket uit IgnorePkg installeren?
+These packages are essential for the system: %s	Deze pakketten zijn essentieel voor het systeem: %s
+Remove them anyway?	Toch verwijderen?
+New config files to review: %d (run: pacdiff)	Nieuwe configuratiebestanden om na te kijken: %d (voer uit: pacdiff)
+Stopping after the current package…	Stoppen na het huidige pakket…
+Installing from a URL is not supported, download the file first: %s	Installeren vanaf een URL wordt niet ondersteund, download eerst het bestand: %s
+Cannot read package file %s	Kan pakketbestand %s niet lezen
+Package '%s' is not installed	Pakket '%s' is niet geïnstalleerd
+%s %s is not in the repositories or the package cache	%s %s staat niet in de repositories of de pakketcache
+System packages are up to date	Systeempakketten zijn bijgewerkt
+Updating signing keys	Ondertekeningssleutels bijwerken
+installed	geïnstalleerd
+not in repositories (AUR or local)	niet in de repositories (AUR of lokaal)
+Description	Beschrijving
+Repository	Repository
+URL	URL
+License	Licentie
+Groups	Groepen
+Provides	Levert
+Depends on	Hangt af van
+Optional deps	Optionele afhankelijkheden
+Conflicts with	Conflicteert met
+Replaces	Vervangt
+Required by	Vereist door
+Installed size	Geïnstalleerde grootte
+Download size	Downloadgrootte
+Install reason	Reden van installatie
+explicitly installed	expliciet geïnstalleerd
+as a dependency	als afhankelijkheid
+Packager	Pakketbouwer
+Build date	Bouwdatum
+No package owns %s	Geen pakket bevat %s
+is owned by	hoort bij
+Usage: lux files <package>	Gebruik: lux files <pakket>
+Usage: lux owns <file>	Gebruik: lux owns <bestand>
+Usage: lux reinstall <package...>	Gebruik: lux reinstall <pakket...>
+Checking the package database	Pakketdatabase controleren
+Another package manager is running (%s) - wait until it finishes.	Er draait een andere pakketbeheerder (%s) – wacht tot die klaar is.
+The package database is locked, but no package manager is running. Remove the stale lock?	De pakketdatabase is vergrendeld, maar er draait geen pakketbeheerder. Oude vergrendeling verwijderen?
+Removed the stale database lock	Oude databasevergrendeling verwijderd
+The package database is not locked	De pakketdatabase is niet vergrendeld
+Repairing the package signing keys	Ondertekeningssleutels van pakketten herstellen
+Could not create the signing keyring	Kon de sleutelbos voor ondertekening niet aanmaken
+Could not load the signing keys	Kon de ondertekeningssleutels niet laden
+Signing keys loaded	Ondertekeningssleutels geladen
+The system clock is not synchronized, signature checks can fail. Turn it on: timedatectl set-ntp true	De systeemklok is niet gesynchroniseerd, handtekeningcontroles kunnen mislukken. Zet aan: timedatectl set-ntp true
+Package manager repaired	Pakketbeheerder hersteld
+list available updates	beschikbare updates tonen
+list LuxOS (.lux) or AUR packages	LuxOS- (.lux) of AUR-pakketten tonen
+install the same version again	dezelfde versie opnieuw installeren
+remove dependencies nothing needs any more	afhankelijkheden verwijderen die niets meer nodig heeft
+repair a locked database and the signing keys	vergrendelde database en ondertekeningssleutels herstellen
+show all details (and raw errors)	alle details tonen (en ruwe fouten)
+pacman stays available for advanced use; lux and pacman share the same package database.	pacman blijft beschikbaar voor gevorderden; lux en pacman delen dezelfde pakketdatabase.
+Another app is installing software right now. Try it again in a moment.	Een andere app installeert nu software. Probeer het zo opnieuw.
+The app conflicts with files of another package.	De app conflicteert met bestanden van een ander pakket.
+The app conflicts with an installed package.	De app conflicteert met een geïnstalleerd pakket.
+Some required packages are not available.	Sommige benodigde pakketten zijn niet beschikbaar.
+The app is no longer available in the repository.	De app is niet meer beschikbaar in de repository.
+Camera	Camera
+Photo	Foto
+Video	Video
+Take Photo	Foto maken
+Start recording	Opname starten
+Stop recording	Opname stoppen
+Mirror preview	Voorbeeld spiegelen
+Choose camera	Camera kiezen
+Open last capture	Laatste opname openen
+Take the picture after 3 seconds	Foto maken na 3 seconden
+Starting the camera…	Camera wordt gestart…
+No camera found	Geen camera gevonden
+Connect a webcam, or check that the built-in camera is turned on. Some laptops have a camera switch, a privacy shutter or a key with a camera symbol.	Sluit een webcam aan of controleer of de ingebouwde camera is ingeschakeld. Sommige laptops hebben een cameraschakelaar, een privacyklepje of een toets met een camerasymbool.
+The camera is being used by another app	De camera wordt door een andere app gebruikt
+Close the other app that uses the camera (a video call, a browser tab…) and try again.	Sluit de andere app die de camera gebruikt (een videogesprek, een browsertabblad…) en probeer het opnieuw.
+Camera access is not allowed	Toegang tot de camera is niet toegestaan
+Your user account is not allowed to use the camera. Log out and log in again; if that does not help, add yourself to the video group and restart:	Je gebruikersaccount mag de camera niet gebruiken. Meld je af en weer aan; helpt dat niet, voeg jezelf dan toe aan de groep video en herstart:
+The camera could not be started	De camera kon niet worden gestart
+The GStreamer plugin for cameras (gst-plugins-good) is missing.	De GStreamer-plug-in voor camera’s (gst-plugins-good) ontbreekt.
+The photo could not be taken.	De foto kon niet worden gemaakt.
+The photo could not be saved: %s	De foto kon niet worden opgeslagen: %s
+The video could not be saved: %s	De video kon niet worden opgeslagen: %s
+No video encoder is installed (gst-plugins-good).	Er is geen video-encoder geïnstalleerd (gst-plugins-good).

@@ -410,7 +410,50 @@ def update_due(st, t=None, every=UPDATE_EVERY):
 
 
 # ---- pacman: blokovani a aktualizace -----------------------------------------------------
-PKG_MANAGERS = {"pacman", "yay", "paru", "pamac", "pacman-key", "makepkg", "pacstrap"}
+PKG_MANAGERS = {"pacman", "yay", "paru", "pamac", "pacman-key", "makepkg", "pacstrap", "lux_alpm.py"}
+
+# Transakce dela lux (libalpm: stejna databaze, podpisy a hooky jako pacman) ve strojovem rezimu;
+# jeho vystup obsahuje i radky ve stylu pacmanu ("upgrading x...", "error: ...", "x: /f exists in
+# filesystem"), takze prubeh i rozpoznani chyb zustavaji stejne. Bez lux/pyalpm se pouzije pacman.
+LUX_ALPM = os.environ.get("LUXOS_CARE_LUX_ALPM", "/usr/lib/lux/lux_alpm.py")
+_lux_ok = None
+
+
+def lux_available():
+    global _lux_ok
+    if _lux_ok is None:
+        _lux_ok = os.access(LUX_ALPM, os.X_OK) and run([LUX_ALPM, "available"], timeout=120)[0] == 0
+    return _lux_ok
+
+
+def lux_command(args):
+    """Argumenty pacmanu, ktere LuxOS Care pouziva -> prikaz lux; None = jen pacman."""
+    a = [x for x in args if x not in ("--noconfirm", "--noprogressbar")]
+    base = [LUX_ALPM, "--machine", "-y", "--color=never"]
+    if not a:
+        return None
+    op, rest = a[0], a[1:]
+    if op == "-Syuw" and not rest:
+        return base + ["upgrade", "--refresh", "--download-only"]
+    if op == "-Su" and not rest:
+        return base + ["upgrade"]
+    if op == "-Syu" and not rest:
+        return base + ["upgrade", "--refresh"]
+    if op in ("-S", "-Sy") and rest:
+        names = [x for x in rest if x != "--needed"]
+        if names and all(PKG_RE.match(n) for n in names):
+            return base + ["install"] + (["--refresh"] if op == "-Sy" else []) + \
+                (["--needed"] if "--needed" in rest else []) + ["--"] + names
+    if op == "-U" and len(rest) == 1 and rest[0].startswith("/"):
+        return base + ["install", "--", rest[0]]
+    return None
+
+
+def pm(args):
+    """Prikaz pro transakci: lux, kdyz je k dispozici, jinak pacman (bez otazek a progress baru)."""
+    cmd = lux_command(args) if lux_available() else None
+    return cmd or ["pacman", "--noconfirm", "--noprogressbar", "--color", "never"] + \
+        [x for x in args if x not in ("--noconfirm", "--noprogressbar")]
 
 
 def pacman_running():
@@ -501,8 +544,8 @@ class Updater:
             p.send_signal(signal.SIGINT)
 
     def pacman(self, args, phase, total=0, sizes=None, base=0.0, span=1.0, timeout=7200):
-        """Spusti pacman a z vystupu pocita prubeh. Vraci (rc, vystup)."""
-        cmd = ["pacman", "--noconfirm", "--noprogressbar", "--color", "never"] + args
+        """Spusti transakci (lux, jinak pacman) a z vystupu pocita prubeh. Vraci (rc, vystup)."""
+        cmd = pm(args)
         if have("systemd-inhibit") and os.path.exists("/run/systemd/system") and phase == "install":
             cmd = ["systemd-inhibit", "--what=shutdown:sleep:handle-lid-switch", "--who=LuxOS",
                    "--why=Installing updates", "--mode=block"] + cmd
@@ -520,14 +563,14 @@ class Updater:
         start = time.time()
         for line in self.proc.stdout:
             out.append(line)
-            if phase == "install" and total:
+            if phase == "install" and line.startswith(":: Running post-transaction hooks"):
+                set_progress("install", base + span, "hooks")
+            elif phase == "install" and total:
                 if re.match(r"^(installing|upgrading|reinstalling|downgrading|removing) \S+\.\.\.", line):
                     done[0] += 1
                     name = line.split()[1].rstrip(".")
                     set_progress("install", base + span * min(1.0, done[0] / total), name,
                                  done=done[0], total=total)
-            elif phase == "install" and line.startswith(":: Running post-transaction hooks"):
-                set_progress("install", base + span, "hooks")
             if time.time() - start > timeout:
                 self.proc.kill()
         rc = self.proc.wait()
@@ -1428,13 +1471,13 @@ def execute_action(action, target=None):
     if action == "complete_upgrade":
         if pacman_running():
             return False, "busy"
-        rc, out = run(["pacman", "-Syu", "--noconfirm", "--noprogressbar"], timeout=7200)
+        rc, out = run(pm(["-Syu"]), timeout=7200)
         if rc != 0 and release_kept_conflicts(out):
-            rc, out = run(["pacman", "-Su", "--noconfirm", "--noprogressbar"], timeout=7200)
+            rc, out = run(pm(["-Su"]), timeout=7200)
         return rc == 0, out[-3000:]
     if action == "refresh_keyring":
         rc1, o1 = run(["pacman-key", "--populate"], timeout=600)
-        rc2, o2 = run(["pacman", "-Sy", "--needed", "--noconfirm", "archlinux-keyring"], timeout=1200)
+        rc2, o2 = run(pm(["-Sy", "--needed", "archlinux-keyring"]), timeout=1200)
         return rc1 == 0 and rc2 == 0, (o1 + o2)[-3000:]
     if action == "rebuild_initramfs":
         rc, out = run(["mkinitcpio", "-P"], timeout=1800)
@@ -1459,9 +1502,9 @@ def execute_action(action, target=None):
             if os.path.isdir(PKG_CACHE) else []
         cached = [f for f in cached if re.fullmatch(re.escape(f"{target}-{ver}-") + r"[a-z0-9_]+\.pkg\.tar\.(zst|xz)", f)]
         if cached:
-            rc, out = run(["pacman", "-U", "--noconfirm", os.path.join(PKG_CACHE, cached[0])], timeout=1800)
+            rc, out = run(pm(["-U", os.path.join(PKG_CACHE, cached[0])]), timeout=1800)
         else:
-            rc, out = run(["pacman", "-S", "--noconfirm", target], timeout=1800)
+            rc, out = run(pm(["-S", target]), timeout=1800)
         return rc == 0, out[-3000:]
     if action == "restart_unit":
         rc, out = run(["systemctl", "restart", target], timeout=180)

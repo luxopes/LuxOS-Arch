@@ -4,13 +4,14 @@
 
 pkgname=luxos-care
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxOS Care - automatic updates, previous kernel fallback and self-repair"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
 license=(MIT)
 depends=(python python-gobject gtk3 pacman pacman-contrib mkinitcpio systemd polkit luxos-i18n)
-optdepends=('luxos-account: LuxAI Flash chooses repairs for unknown problems'
+optdepends=('lux: updates through libalpm (pyalpm) with the same progress output; pacman otherwise'
+            'luxos-account: LuxAI Flash chooses repairs for unknown problems'
             'networkmanager: skip updates on metered connections (Data Saver)'
             'grub: previous kernel entry on BIOS installs'
             'dkms: keep NVIDIA and other DKMS modules for the previous kernel')

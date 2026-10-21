@@ -1,0 +1,13 @@
+# LuxOS - sablona softwaru "Video a foto" (format viz everyday.list)
+@name Video & Photo
+@description Edit videos, photos and graphics, record the screen and work with audio.
+@apps Kdenlive · GIMP · Inkscape · darktable · Audacity · OBS Studio
+@icon applications-multimedia
+@order 30
+@download 450
+kdenlive
+gimp
+inkscape
+darktable
+audacity
+obs-studio

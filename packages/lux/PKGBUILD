@@ -2,12 +2,12 @@
 
 pkgname=lux
 pkgver=0.3.0
-pkgrel=3
-pkgdesc="LuxOS package manager (pacman, AUR and Flatpak frontend)"
+pkgrel=5
+pkgdesc="LuxOS package manager (libalpm via pyalpm, AUR, Flatpak and .lux apps)"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
-depends=(bash pacman pacman-contrib curl jq sudo reflector expac fzf tar zstd gnupg luxos-drivers luxos-keyring luxos-i18n)
+depends=(bash python pyalpm pacman pacman-contrib curl jq sudo reflector expac fzf tar zstd gnupg luxos-drivers luxos-keyring luxos-i18n)
 optdepends=('base-devel: build packages from AUR'
             'git: build packages from AUR'
             'flatpak: Flathub applications')
@@ -16,6 +16,8 @@ backup=(etc/lux/lux.conf)
 package() {
     install -Dm755 "$startdir/lux" "$pkgdir/usr/bin/lux"
     install -Dm644 "$startdir/luxpkg.sh" "$pkgdir/usr/lib/lux/luxpkg.sh"
+    install -Dm755 "$startdir/lux_alpm.py" "$pkgdir/usr/lib/lux/lux_alpm.py"
+    install -Dm644 "$startdir/lux.md" "$pkgdir/usr/share/doc/lux/lux.md"
     install -Dm644 "$startdir/lux-package-format.md" "$pkgdir/usr/share/doc/lux/lux-package-format.md"
     install -dm755 "$pkgdir/opt/lux" "$pkgdir/var/lib/lux/installed"
     install -Dm644 "$startdir/lux.conf" "$pkgdir/etc/lux/lux.conf"

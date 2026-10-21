@@ -4,7 +4,7 @@
 
 pkgname=luxos-themes
 pkgver=2025.12.27
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxOS macOS-like themes (WhiteSur GTK, xfwm4, Plank, icons and cursors)"
 arch=(any)
 url="https://github.com/vinceliuice"
@@ -63,10 +63,13 @@ package() {
             ln -s /usr/share/luxos/logo/luxos-logo.svg "$f"
         fi
     done < <(find "$icons" -name 'start-here*.svg' -print0)
-    # Vlastni ikony LuxOS (luxos-branding) pro zakladni aplikace
+    # Vlastni ikony LuxOS (luxos-branding) pro zakladni aplikace a kategorie nabidky
     local name target
     for name in org.xfce.thunar:luxos-files org.xfce.settings.manager:luxos-settings \
-                org.xfce.mousepad:luxos-notes; do
+                org.xfce.mousepad:luxos-notes org.xfce.ristretto:luxos-image-viewer \
+                io.github.celluloid_player.Celluloid:luxos-videos org.xfce.webbrowser:luxos-web-browser \
+                applications-internet:luxos-internet applications-system:luxos-system \
+                applications-accessories:luxos-accessories applications-other:luxos-all-apps; do
         target=${name#*:} name=${name%%:*}
         find "$icons"/WhiteSur* \( -name "$name.svg" -o -name "$name.png" \) -delete
         ln -s "/usr/share/icons/hicolor/256x256/apps/$target.png" "$icons/WhiteSur/apps/scalable/$name.png"

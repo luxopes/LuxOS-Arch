@@ -1418,3 +1418,161 @@ LocalSend compatibility needs the python-pyopenssl package.	Для сумісн�
 Nearby LuxOS computers cannot be found because avahi-daemon is not running.	Неможливо знайти комп’ютери з LuxOS поблизу, бо avahi-daemon не запущено.
 Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Автоматичний пошук пристроїв LocalSend недоступний (%s). Скористайтеся «Сканувати локальну мережу».
 LuxDrop: message from %s	LuxDrop: повідомлення від %s
+%s remaining	залишилося %s
+%s until full	%s до повного заряду
+# LuxOS 2026-10-21: instalator - sablony softwaru
+Software	Програми
+Choose apps to preinstall (Space selects, Enter confirms). Select nothing for only the essentials.	Виберіть програми для попереднього встановлення (Пробіл вибирає, Enter підтверджує). Без вибору буде встановлено лише основне.
+What will you use LuxOS for?	Для чого ви використовуватимете LuxOS?
+Unknown software template %s - skipped.	Невідомий шаблон програм %s – пропущено.
+Only the essentials	Лише основне
+Package %s is not available - skipped.	Пакет %s недоступний – пропущено.
+Installing additional software	Встановлення додаткових програм
+Enabled the multilib repository.	Увімкнено репозиторій multilib.
+Additional software was skipped. You can install it later in the LuxOS Store.	Додаткові програми пропущено. Ви можете встановити їх пізніше в LuxOS Store.
+Installing the apps one by one…	Встановлення програм по одній…
+Some apps could not be installed: %s. You can install them later in the LuxOS Store.	Деякі програми не вдалося встановити: %s. Ви можете встановити їх пізніше в LuxOS Store.
+Everyday	Щоденне використання
+Office suite for documents, spreadsheets and presentations, an e-mail client and a calculator.	Офісний пакет для документів, таблиць і презентацій, поштовий клієнт і калькулятор.
+Programming	Програмування
+A code editor, Git, compilers, Python and Node.js for software development.	Редактор коду, Git, компілятори, Python і Node.js для розробки програм.
+Video & Photo	Відео і фото
+Edit videos, photos and graphics, record the screen and work with audio.	Редагування відео, фото і графіки, запис екрана та робота зі звуком.
+Gaming	Ігри
+Steam with Proton for Windows games, GameMode for better performance and the MangoHud overlay.	Steam із Proton для ігор з Windows, GameMode для кращої продуктивності та накладка MangoHud.
+Security & Networking	Безпека і мережі
+Network analysis and system hardening: Nmap, Wireshark, firewall settings, a security audit and a password manager.	Аналіз мережі та захист системи: Nmap, Wireshark, налаштування брандмауера, аудит безпеки та менеджер паролів.
+Choose your software	Виберіть програми
+Pick ready-made app sets to install with LuxOS. You can combine several or skip this. Apps can be added or removed later in the LuxOS Store.	Виберіть готові набори програм, які буде встановлено разом із LuxOS. Можна поєднати кілька або пропустити цей крок. Програми можна пізніше додати чи вилучити в LuxOS Store.
+Web browser, files, media player, text editor and LuxAI - nothing extra.	Браузер, файли, медіапрогравач, текстовий редактор і LuxAI – нічого зайвого.
+Additional download: about %s	Додатково завантажити: близько %s
+about %s to download	близько %s для завантаження
+# lux - spravce baliku (libalpm)
+1 package	1 пакет
+%d packages	%d пакетів
+%d packages|few	%d пакети
+%s download	%s завантажити
+%s disk	%s на диску
+Install %s?	Встановити %s?
+Upgrade %s?	Оновити %s?
+Reinstall %s?	Перевстановити %s?
+Download %s?	Завантажити %s?
+Installed %s	Встановлено: %s
+Upgraded %s	Оновлено: %s
+Reinstalled %s	Перевстановлено: %s
+Removed %s	Видалено: %s
+Downloaded %s	Завантажено: %s
++%d deps	+%d залежн.
+in %s	за %s
++%d more	+%d ще
+Refreshing	Оновлення баз
+Downloading	Завантаження
+Verifying	Перевірка
+Installing	Встановлення
+Removing	Видалення
+Checking…	Перевірка…
+Already installed: %s	Вже встановлено: %s
+Also removes: %s	Також видалить: %s
+Data Saver is on - this downloads %s.	Заощадження даних увімкнено – буде завантажено %s.
+Confirmation is needed: run the command in a terminal or add -y.	Потрібне підтвердження: запустіть команду в терміналі або додайте -y.
+The package database is locked: another package manager is running, or a previous one crashed. If nothing else is running: lux fix	База пакетів заблокована: працює інший менеджер пакетів або попередній аварійно завершився. Якщо нічого іншого не працює: lux fix
+This needs administrator rights.	Для цього потрібні права адміністратора.
+This needs administrator rights (sudo or pkexec).	Для цього потрібні права адміністратора (sudo або pkexec).
+Not enough free disk space. Free some space (lux clean) and try again.	Недостатньо місця на диску. Звільніть місце (lux clean) і спробуйте ще раз.
+Not enough free disk space.	Недостатньо місця на диску.
+Some files of the new packages already exist on the system (file conflict).	Деякі файли нових пакетів уже існують у системі (конфлікт файлів).
+The selected packages conflict with installed packages.	Вибрані пакети конфліктують із встановленими.
+Dependencies can not be satisfied: %s	Неможливо задовольнити залежності: %s
+Dependencies can not be satisfied.	Неможливо задовольнити залежності.
+A downloaded package is damaged. Try again; if it repeats, run: lux clean	Завантажений пакет пошкоджено. Спробуйте ще раз; якщо повторюється, запустіть: lux clean
+A package signature could not be verified. Repair the signing keys with: lux fix	Не вдалося перевірити підпис пакета. Виправте ключі командою: lux fix
+A package signature could not be verified. Run in Terminal: lux fix	Не вдалося перевірити підпис пакета. Запустіть у Терміналі: lux fix
+Package not found.	Пакет не знайдено.
+The package operation failed.	Операція з пакетами не вдалася.
+Details: run the command again with --verbose	Подробиці: запустіть команду ще раз із --verbose
+Replace a package with its successor?	Замінити пакет його наступником?
+Remove a conflicting package?	Видалити конфліктний пакет?
+Delete the damaged downloaded package?	Видалити пошкоджений завантажений пакет?
+Import the missing signing key?	Імпортувати відсутній ключ підпису?
+Install a package from IgnorePkg anyway?	Все одно встановити пакет з IgnorePkg?
+These packages are essential for the system: %s	Ці пакети необхідні для системи: %s
+Remove them anyway?	Все одно видалити їх?
+New config files to review: %d (run: pacdiff)	Нові файли конфігурації для перевірки: %d (запустіть: pacdiff)
+Stopping after the current package…	Зупинка після поточного пакета…
+Installing from a URL is not supported, download the file first: %s	Встановлення за URL не підтримується, спершу завантажте файл: %s
+Cannot read package file %s	Не вдається прочитати файл пакета %s
+Package '%s' is not installed	Пакет '%s' не встановлено
+%s %s is not in the repositories or the package cache	%s %s немає ні в репозиторіях, ні в кеші пакетів
+System packages are up to date	Системні пакети оновлені
+Updating signing keys	Оновлення ключів підпису
+installed	встановлено
+not in repositories (AUR or local)	немає в репозиторіях (AUR або локальний)
+Description	Опис
+Repository	Репозиторій
+URL	URL
+License	Ліцензія
+Groups	Групи
+Provides	Надає
+Depends on	Залежить від
+Optional deps	Необов’язкові залежності
+Conflicts with	Конфліктує з
+Replaces	Замінює
+Required by	Потрібен для
+Installed size	Розмір після встановлення
+Download size	Розмір завантаження
+Install reason	Причина встановлення
+explicitly installed	встановлено явно
+as a dependency	як залежність
+Packager	Пакувальник
+Build date	Дата збирання
+No package owns %s	Жоден пакет не містить %s
+is owned by	належить пакету
+Usage: lux files <package>	Використання: lux files <пакет>
+Usage: lux owns <file>	Використання: lux owns <файл>
+Usage: lux reinstall <package...>	Використання: lux reinstall <пакет...>
+Checking the package database	Перевірка бази пакетів
+Another package manager is running (%s) - wait until it finishes.	Працює інший менеджер пакетів (%s) – зачекайте, поки він завершить.
+The package database is locked, but no package manager is running. Remove the stale lock?	База пакетів заблокована, але жоден менеджер пакетів не працює. Видалити застаріле блокування?
+Removed the stale database lock	Застаріле блокування бази видалено
+The package database is not locked	База пакетів не заблокована
+Repairing the package signing keys	Відновлення ключів підпису пакетів
+Could not create the signing keyring	Не вдалося створити сховище ключів підпису
+Could not load the signing keys	Не вдалося завантажити ключі підпису
+Signing keys loaded	Ключі підпису завантажено
+The system clock is not synchronized, signature checks can fail. Turn it on: timedatectl set-ntp true	Системний годинник не синхронізовано, перевірка підписів може не вдатися. Увімкніть: timedatectl set-ntp true
+Package manager repaired	Менеджер пакетів відновлено
+list available updates	показати доступні оновлення
+list LuxOS (.lux) or AUR packages	показати пакети LuxOS (.lux) або з AUR
+install the same version again	встановити ту саму версію повторно
+remove dependencies nothing needs any more	видалити залежності, які більше нічому не потрібні
+repair a locked database and the signing keys	виправити заблоковану базу та ключі підпису
+show all details (and raw errors)	показати всі подробиці (і сирі помилки)
+pacman stays available for advanced use; lux and pacman share the same package database.	pacman залишається для досвідчених; lux і pacman використовують ту саму базу пакетів.
+Another app is installing software right now. Try it again in a moment.	Інша програма зараз встановлює ПЗ. Спробуйте ще раз за мить.
+The app conflicts with files of another package.	Програма конфліктує з файлами іншого пакета.
+The app conflicts with an installed package.	Програма конфліктує зі встановленим пакетом.
+Some required packages are not available.	Деякі потрібні пакети недоступні.
+The app is no longer available in the repository.	Програми більше немає в репозиторії.
+Camera	Камера
+Photo	Фото
+Video	Відео
+Take Photo	Зробити фото
+Start recording	Почати запис
+Stop recording	Зупинити запис
+Mirror preview	Дзеркальний перегляд
+Choose camera	Вибрати камеру
+Open last capture	Відкрити останній знімок
+Take the picture after 3 seconds	Зробити фото через 3 секунди
+Starting the camera…	Запуск камери…
+No camera found	Камеру не знайдено
+Connect a webcam, or check that the built-in camera is turned on. Some laptops have a camera switch, a privacy shutter or a key with a camera symbol.	Підключіть вебкамеру або перевірте, чи ввімкнена вбудована камера. Деякі ноутбуки мають перемикач камери, шторку або клавішу із символом камери.
+The camera is being used by another app	Камера використовується іншою програмою
+Close the other app that uses the camera (a video call, a browser tab…) and try again.	Закрийте іншу програму, яка використовує камеру (відеодзвінок, вкладку браузера…), і спробуйте ще раз.
+Camera access is not allowed	Доступ до камери заборонено
+Your user account is not allowed to use the camera. Log out and log in again; if that does not help, add yourself to the video group and restart:	Ваш обліковий запис не має дозволу на використання камери. Вийдіть і знову увійдіть; якщо це не допоможе, додайте себе до групи video і перезавантажте комп’ютер:
+The camera could not be started	Не вдалося запустити камеру
+The GStreamer plugin for cameras (gst-plugins-good) is missing.	Відсутній плагін GStreamer для камер (gst-plugins-good).
+The photo could not be taken.	Не вдалося зробити фото.
+The photo could not be saved: %s	Не вдалося зберегти фото: %s
+The video could not be saved: %s	Не вдалося зберегти відео: %s
+No video encoder is installed (gst-plugins-good).	Не встановлено кодувальник відео (gst-plugins-good).

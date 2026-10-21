@@ -1,0 +1,19 @@
+# LuxOS - sablona softwaru "Kazdodenni pouziti" (luxos-install TEMPLATES=everyday)
+# Format: @klic hodnota = popis sablony; ostatni radky = baliky z repozitaru Arch/LuxOS.
+#   balik ?a,b    jen kdyz je v systemu nainstalovany nektery z baliku a, b (napr. ovladac)
+#   balik ?!a,b   jen kdyz neni nainstalovany zadny z nich
+#   %lang% / %lang_%  jazyk systemu (cs_CZ -> cs-cz nebo cs / cs_cz nebo cs); balik se
+#                     pouzije, jen pokud existuje (jinak se tise vynecha)
+@name Everyday
+@description Office suite for documents, spreadsheets and presentations, an e-mail client and a calculator.
+@apps LibreOffice · Thunderbird · Galculator
+@icon x-office-document
+@order 10
+# priblizna velikost stahovani v MB nad zakladni system (odhad podle repozitaru 2026-10)
+@download 320
+libreoffice-fresh
+libreoffice-fresh-%lang%
+hunspell-%lang_%
+thunderbird
+thunderbird-i18n-%lang%
+galculator

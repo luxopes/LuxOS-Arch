@@ -1418,3 +1418,161 @@ LocalSend compatibility needs the python-pyopenssl package.	Zgodność z LocalSe
 Nearby LuxOS computers cannot be found because avahi-daemon is not running.	Nie można znaleźć pobliskich komputerów z LuxOS, ponieważ avahi-daemon nie działa.
 Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Automatyczne wykrywanie urządzeń LocalSend jest niedostępne (%s). Użyj opcji „Przeszukaj sieć lokalną”.
 LuxDrop: message from %s	LuxDrop: wiadomość od %s
+%s remaining	pozostało %s
+%s until full	%s do pełnego naładowania
+# LuxOS 2026-10-21: instalator - sablony softwaru
+Software	Oprogramowanie
+Choose apps to preinstall (Space selects, Enter confirms). Select nothing for only the essentials.	Wybierz aplikacje do preinstalowania (spacja zaznacza, Enter zatwierdza). Bez wyboru zostanie zainstalowana tylko podstawa.
+What will you use LuxOS for?	Do czego będziesz używać LuxOS?
+Unknown software template %s - skipped.	Nieznany szablon oprogramowania %s – pominięto.
+Only the essentials	Tylko podstawa
+Package %s is not available - skipped.	Pakiet %s jest niedostępny – pominięto.
+Installing additional software	Instalowanie dodatkowego oprogramowania
+Enabled the multilib repository.	Włączono repozytorium multilib.
+Additional software was skipped. You can install it later in the LuxOS Store.	Dodatkowe oprogramowanie zostało pominięte. Możesz je zainstalować później w Sklepie LuxOS.
+Installing the apps one by one…	Instalowanie aplikacji pojedynczo…
+Some apps could not be installed: %s. You can install them later in the LuxOS Store.	Nie udało się zainstalować niektórych aplikacji: %s. Możesz je zainstalować później w Sklepie LuxOS.
+Everyday	Na co dzień
+Office suite for documents, spreadsheets and presentations, an e-mail client and a calculator.	Pakiet biurowy do dokumentów, arkuszy i prezentacji, klient poczty i kalkulator.
+Programming	Programowanie
+A code editor, Git, compilers, Python and Node.js for software development.	Edytor kodu, Git, kompilatory, Python i Node.js do tworzenia oprogramowania.
+Video & Photo	Wideo i zdjęcia
+Edit videos, photos and graphics, record the screen and work with audio.	Edycja filmów, zdjęć i grafiki, nagrywanie ekranu i praca z dźwiękiem.
+Gaming	Gry
+Steam with Proton for Windows games, GameMode for better performance and the MangoHud overlay.	Steam z Protonem do gier z Windows, GameMode dla lepszej wydajności i nakładka MangoHud.
+Security & Networking	Bezpieczeństwo i sieci
+Network analysis and system hardening: Nmap, Wireshark, firewall settings, a security audit and a password manager.	Analiza sieci i zabezpieczanie systemu: Nmap, Wireshark, ustawienia zapory, audyt bezpieczeństwa i menedżer haseł.
+Choose your software	Wybierz oprogramowanie
+Pick ready-made app sets to install with LuxOS. You can combine several or skip this. Apps can be added or removed later in the LuxOS Store.	Wybierz gotowe zestawy aplikacji instalowane razem z LuxOS. Możesz połączyć kilka lub pominąć ten krok. Aplikacje można później dodać lub usunąć w Sklepie LuxOS.
+Web browser, files, media player, text editor and LuxAI - nothing extra.	Przeglądarka, pliki, odtwarzacz multimediów, edytor tekstu i LuxAI – nic więcej.
+Additional download: about %s	Dodatkowo do pobrania: ok. %s
+about %s to download	ok. %s do pobrania
+# lux - spravce baliku (libalpm)
+1 package	1 pakiet
+%d packages	%d pakietów
+%d packages|few	%d pakiety
+%s download	%s do pobrania
+%s disk	%s na dysku
+Install %s?	Zainstalować %s?
+Upgrade %s?	Zaktualizować %s?
+Reinstall %s?	Zainstalować ponownie %s?
+Download %s?	Pobrać %s?
+Installed %s	Zainstalowano: %s
+Upgraded %s	Zaktualizowano: %s
+Reinstalled %s	Ponownie zainstalowano: %s
+Removed %s	Usunięto: %s
+Downloaded %s	Pobrano: %s
++%d deps	+%d zależności
+in %s	w %s
++%d more	+%d więcej
+Refreshing	Odświeżanie
+Downloading	Pobieranie
+Verifying	Weryfikacja
+Installing	Instalacja
+Removing	Usuwanie
+Checking…	Sprawdzanie…
+Already installed: %s	Już zainstalowane: %s
+Also removes: %s	Usunie również: %s
+Data Saver is on - this downloads %s.	Oszczędzanie danych jest włączone – zostanie pobrane %s.
+Confirmation is needed: run the command in a terminal or add -y.	Wymagane potwierdzenie: uruchom polecenie w terminalu lub dodaj -y.
+The package database is locked: another package manager is running, or a previous one crashed. If nothing else is running: lux fix	Baza pakietów jest zablokowana: działa inny menedżer pakietów albo poprzedni uległ awarii. Jeśli nic innego nie działa: lux fix
+This needs administrator rights.	Wymaga to uprawnień administratora.
+This needs administrator rights (sudo or pkexec).	Wymaga to uprawnień administratora (sudo lub pkexec).
+Not enough free disk space. Free some space (lux clean) and try again.	Za mało miejsca na dysku. Zwolnij miejsce (lux clean) i spróbuj ponownie.
+Not enough free disk space.	Za mało miejsca na dysku.
+Some files of the new packages already exist on the system (file conflict).	Niektóre pliki nowych pakietów już istnieją w systemie (konflikt plików).
+The selected packages conflict with installed packages.	Wybrane pakiety są w konflikcie z zainstalowanymi.
+Dependencies can not be satisfied: %s	Nie można spełnić zależności: %s
+Dependencies can not be satisfied.	Nie można spełnić zależności.
+A downloaded package is damaged. Try again; if it repeats, run: lux clean	Pobrany pakiet jest uszkodzony. Spróbuj ponownie; jeśli to się powtarza, uruchom: lux clean
+A package signature could not be verified. Repair the signing keys with: lux fix	Nie udało się zweryfikować podpisu pakietu. Napraw klucze poleceniem: lux fix
+A package signature could not be verified. Run in Terminal: lux fix	Nie udało się zweryfikować podpisu pakietu. Uruchom w Terminalu: lux fix
+Package not found.	Nie znaleziono pakietu.
+The package operation failed.	Operacja na pakietach nie powiodła się.
+Details: run the command again with --verbose	Szczegóły: uruchom polecenie ponownie z --verbose
+Replace a package with its successor?	Zastąpić pakiet jego następcą?
+Remove a conflicting package?	Usunąć kolidujący pakiet?
+Delete the damaged downloaded package?	Usunąć uszkodzony pobrany pakiet?
+Import the missing signing key?	Zaimportować brakujący klucz podpisu?
+Install a package from IgnorePkg anyway?	Mimo to zainstalować pakiet z IgnorePkg?
+These packages are essential for the system: %s	Te pakiety są niezbędne dla systemu: %s
+Remove them anyway?	Mimo to je usunąć?
+New config files to review: %d (run: pacdiff)	Nowe pliki konfiguracyjne do przejrzenia: %d (uruchom: pacdiff)
+Stopping after the current package…	Zatrzymanie po bieżącym pakiecie…
+Installing from a URL is not supported, download the file first: %s	Instalacja z adresu URL nie jest obsługiwana, najpierw pobierz plik: %s
+Cannot read package file %s	Nie można odczytać pliku pakietu %s
+Package '%s' is not installed	Pakiet '%s' nie jest zainstalowany
+%s %s is not in the repositories or the package cache	%s %s nie ma w repozytoriach ani w pamięci podręcznej pakietów
+System packages are up to date	Pakiety systemowe są aktualne
+Updating signing keys	Aktualizacja kluczy podpisu
+installed	zainstalowany
+not in repositories (AUR or local)	brak w repozytoriach (AUR lub lokalny)
+Description	Opis
+Repository	Repozytorium
+URL	URL
+License	Licencja
+Groups	Grupy
+Provides	Dostarcza
+Depends on	Zależy od
+Optional deps	Opcjonalne zależności
+Conflicts with	Konflikt z
+Replaces	Zastępuje
+Required by	Wymagany przez
+Installed size	Rozmiar po instalacji
+Download size	Rozmiar do pobrania
+Install reason	Powód instalacji
+explicitly installed	zainstalowany jawnie
+as a dependency	jako zależność
+Packager	Pakujący
+Build date	Data budowy
+No package owns %s	Żaden pakiet nie zawiera %s
+is owned by	należy do
+Usage: lux files <package>	Użycie: lux files <pakiet>
+Usage: lux owns <file>	Użycie: lux owns <plik>
+Usage: lux reinstall <package...>	Użycie: lux reinstall <pakiet...>
+Checking the package database	Sprawdzanie bazy pakietów
+Another package manager is running (%s) - wait until it finishes.	Działa inny menedżer pakietów (%s) – poczekaj, aż skończy.
+The package database is locked, but no package manager is running. Remove the stale lock?	Baza pakietów jest zablokowana, ale żaden menedżer pakietów nie działa. Usunąć starą blokadę?
+Removed the stale database lock	Usunięto starą blokadę bazy
+The package database is not locked	Baza pakietów nie jest zablokowana
+Repairing the package signing keys	Naprawa kluczy podpisu pakietów
+Could not create the signing keyring	Nie udało się utworzyć bazy kluczy podpisu
+Could not load the signing keys	Nie udało się wczytać kluczy podpisu
+Signing keys loaded	Klucze podpisu wczytane
+The system clock is not synchronized, signature checks can fail. Turn it on: timedatectl set-ntp true	Zegar systemowy nie jest synchronizowany, weryfikacja podpisów może się nie udać. Włącz: timedatectl set-ntp true
+Package manager repaired	Menedżer pakietów naprawiony
+list available updates	wyświetla dostępne aktualizacje
+list LuxOS (.lux) or AUR packages	wyświetla pakiety LuxOS (.lux) lub z AUR
+install the same version again	instaluje ponownie tę samą wersję
+remove dependencies nothing needs any more	usuwa zależności, których nic już nie potrzebuje
+repair a locked database and the signing keys	naprawia zablokowaną bazę i klucze podpisu
+show all details (and raw errors)	pokazuje wszystkie szczegóły (i surowe błędy)
+pacman stays available for advanced use; lux and pacman share the same package database.	pacman pozostaje dostępny dla zaawansowanych; lux i pacman korzystają z tej samej bazy pakietów.
+Another app is installing software right now. Try it again in a moment.	Inna aplikacja właśnie instaluje oprogramowanie. Spróbuj ponownie za chwilę.
+The app conflicts with files of another package.	Aplikacja jest w konflikcie z plikami innego pakietu.
+The app conflicts with an installed package.	Aplikacja jest w konflikcie z zainstalowanym pakietem.
+Some required packages are not available.	Niektóre wymagane pakiety są niedostępne.
+The app is no longer available in the repository.	Aplikacji nie ma już w repozytorium.
+Camera	Kamera
+Photo	Zdjęcie
+Video	Wideo
+Take Photo	Zrób zdjęcie
+Start recording	Rozpocznij nagrywanie
+Stop recording	Zatrzymaj nagrywanie
+Mirror preview	Lustrzany podgląd
+Choose camera	Wybierz kamerę
+Open last capture	Otwórz ostatnie ujęcie
+Take the picture after 3 seconds	Zrób zdjęcie po 3 sekundach
+Starting the camera…	Uruchamianie kamery…
+No camera found	Nie znaleziono kamery
+Connect a webcam, or check that the built-in camera is turned on. Some laptops have a camera switch, a privacy shutter or a key with a camera symbol.	Podłącz kamerę internetową lub sprawdź, czy wbudowana kamera jest włączona. Niektóre laptopy mają przełącznik kamery, zasłonkę lub klawisz z symbolem kamery.
+The camera is being used by another app	Kamera jest używana przez inną aplikację
+Close the other app that uses the camera (a video call, a browser tab…) and try again.	Zamknij inną aplikację korzystającą z kamery (rozmowę wideo, kartę przeglądarki…) i spróbuj ponownie.
+Camera access is not allowed	Brak dostępu do kamery
+Your user account is not allowed to use the camera. Log out and log in again; if that does not help, add yourself to the video group and restart:	Twoje konto nie ma uprawnień do korzystania z kamery. Wyloguj się i zaloguj ponownie; jeśli to nie pomoże, dodaj się do grupy video i uruchom ponownie komputer:
+The camera could not be started	Nie udało się uruchomić kamery
+The GStreamer plugin for cameras (gst-plugins-good) is missing.	Brak wtyczki GStreamer do obsługi kamer (gst-plugins-good).
+The photo could not be taken.	Nie udało się zrobić zdjęcia.
+The photo could not be saved: %s	Nie udało się zapisać zdjęcia: %s
+The video could not be saved: %s	Nie udało się zapisać wideo: %s
+No video encoder is installed (gst-plugins-good).	Nie zainstalowano kodera wideo (gst-plugins-good).

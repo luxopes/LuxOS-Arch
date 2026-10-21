@@ -1,0 +1,20 @@
+# LuxOS - sablona softwaru "Programovani" (format viz everyday.list)
+@name Programming
+@description A code editor, Git, compilers, Python and Node.js for software development.
+@apps Lux Code · Code - OSS · Git · GCC · Python · Node.js · Meld
+@icon applications-development
+@order 20
+@download 370
+code
+git
+git-lfs
+github-cli
+base-devel
+openssh
+python
+python-pip
+nodejs
+npm
+jq
+meld
+lux-code

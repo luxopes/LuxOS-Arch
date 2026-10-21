@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=20
+pkgrel=22
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
@@ -36,6 +36,8 @@ depends=(
     inter-font noto-fonts noto-fonts-emoji ttf-liberation ttf-jetbrains-mono-nerd
     # Aplikace
     firefox mousepad ristretto evince xarchiver 7zip unzip zip celluloid python-gobject python-cairo libwnck3 upower libnotify wmctrl
+    # Kamera (luxos-camera): v4l2src, jpegdec, videoflip, vp8enc/webmmux, pulsesrc (good); opusenc (base)
+    gstreamer gst-plugins-base gst-plugins-good
     # Nastroje
     lshw pciutils usbutils
 )
@@ -87,6 +89,9 @@ package() {
     install -Dm644 "$f/apps/rename.conf" "$pkgdir/usr/share/luxos/apps/rename.conf"
     install -Dm755 "$f/apps/luxos-apps-sync" "$pkgdir/usr/lib/luxos/luxos-apps-sync"
     install -Dm644 "$f/hooks/luxos-apps.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-apps.hook"
+    # Prihlasovaci relace "LuxOS" misto "Xfce Session" (hook odstrani xfce.desktop z xfce4-session)
+    install -Dm644 "$f/xsessions/luxos.desktop" "$pkgdir/usr/share/xsessions/luxos.desktop"
+    install -Dm644 "$f/hooks/luxos-xsession.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-xsession.hook"
 
     # Skryte technicke aplikace (prekryti pres XDG_DATA_DIRS, viz /etc/profile.d/luxos.sh)
     local a

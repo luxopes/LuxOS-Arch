@@ -11,6 +11,7 @@ Testovani bez zapisu na disk:
   LUXOS_INSTALL_FAKE_OFFLINE=1   (s FAKE) predstira chybejici internet
   LUXOS_INSTALL_FAKE_FAIL=1      (s FAKE) instalace skonci chybou
   LUXOS_INSTALL_FAKE_NET=...     (s FAKE) stahovani: fast (vychozi), slow, stall, errors
+  LUXOS_INSTALL_FAKE_TPL_FAIL=1  (s FAKE) cast aplikaci ze sablon softwaru se nenainstaluje (jen varovani)
 """
 import json
 import os
@@ -45,6 +46,10 @@ LOG = "/var/log/luxos-install.log"
 I18N_DIR = os.environ.get("LUXOS_I18N_DIR", "/usr/share/luxos/i18n")
 FAKE = os.environ.get("LUXOS_INSTALL_FAKE") == "1"
 MIN_DISK = 20 * 1000 ** 3
+# Sablony softwaru (stejne soubory cte backend); pri testu ze zdrojaku vedle skriptu
+TEMPLATE_DIR = next((d for d in ("/usr/share/luxos/installer/templates",
+                                 os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"))
+                     if os.path.isdir(d)), "")
 ACCENT = "#3d7bff"
 
 LANGS = [
@@ -144,6 +149,12 @@ CSS = """
 .care-card { padding: 18px 18px; }
 .bullet { font-size: 13px; }
 .fail-icon { color: #ff453a; }
+.tile { border-radius: 14px; padding: 14px; border: 1px solid alpha(currentColor, 0.13);
+        background-color: alpha(currentColor, 0.04); }
+.tile:hover { background-color: alpha(currentColor, 0.07); }
+.tile.selected { border: 2px solid ACCENT; background-color: alpha(ACCENT, 0.09); padding: 13px; }
+.tile-check { color: ACCENT; }
+.tile-apps { font-size: 12px; }
 progressbar trough { min-height: 8px; border-radius: 4px; }
 progressbar progress { min-height: 8px; border-radius: 4px; background-image: none; background-color: ACCENT; border: none; }
 entry { border-radius: 8px; padding: 6px 10px; min-height: 30px; }
@@ -166,6 +177,35 @@ def set_ui_lang(locale):
                     luxos_i18n._TR[k] = v
     except OSError:
         pass
+
+
+def load_templates():
+    """Sablony softwaru z TEMPLATE_DIR: [{"id", "name", "description", "apps", "icon", "download"}] podle @order."""
+    out = []
+    try:
+        names = sorted(f for f in os.listdir(TEMPLATE_DIR) if f.endswith(".list")) if TEMPLATE_DIR else []
+    except OSError:
+        names = []
+    for fn in names:
+        t = {"id": fn[:-5], "order": 999, "name": fn[:-5], "description": "", "apps": "", "icon": "", "download": 0}
+        if not re.fullmatch(r"[a-z0-9_-]+", t["id"]):
+            continue
+        try:
+            with open(os.path.join(TEMPLATE_DIR, fn), encoding="utf-8") as f:
+                for line in f:
+                    m = re.match(r"@(\w+)\s+(.*?)\s*$", line)
+                    if m and m.group(1) in t and m.group(1) != "id":
+                        k, v = m.groups()
+                        if k in ("order", "download"):
+                            try:
+                                v = int(v)
+                            except ValueError:
+                                continue
+                        t[k] = v
+        except OSError:
+            continue
+        out.append(t)
+    return sorted(out, key=lambda t: (t["order"], t["id"]))
 
 
 def size_text(n):
@@ -427,7 +467,7 @@ class Installer(Gtk.Window):
             "disk": None, "mode": None, "encrypt": False, "luks1": "", "luks2": "", "erase_ok": False,
             "fullname": "", "username": "", "user_edited": False, "pw1": "", "pw2": "",
             "hostname": "", "host_edited": False, "autologin": False,
-            "luxai": None, "luxai_email": "", "care": "carefree",
+            "luxai": None, "luxai_email": "", "care": "carefree", "templates": [],
         }
         set_ui_lang(locale)
         self.s["xkb"] = self.default_xkb(locale)
@@ -440,6 +480,7 @@ class Installer(Gtk.Window):
         self.result = None  # None | ("ok",) | ("fail", text)
         self.lines = []
         self.valid = lambda: True
+        self.templates = load_templates()
 
         outer = Gtk.Box()
         self.add(outer)
@@ -473,8 +514,10 @@ class Installer(Gtk.Window):
         nav.pack_end(self.btn_back, False, False, 0)
         nav.pack_end(self.btn_extra, False, False, 0)
 
-        self.steps = ["welcome", "keyboard", "timezone", "disk", "account", "care", "luxai", "summary", "install",
-                      "done"]
+        self.steps = ["welcome", "keyboard", "timezone", "disk", "account", "care", "software", "luxai", "summary",
+                      "install", "done"]
+        if not self.templates:
+            self.steps.remove("software")
         self.idx = 0
         self.show_all()
         self.render()
@@ -533,7 +576,7 @@ class Installer(Gtk.Window):
         return self.steps[self.idx]
 
     STEP_NAMES = {"welcome": "Introduction", "network": "Network", "keyboard": "Keyboard", "timezone": "Time Zone",
-                  "disk": "Destination", "account": "Account", "care": "Maintenance", "luxai": "LuxAI", "summary": "Summary",
+                  "disk": "Destination", "account": "Account", "care": "Maintenance", "software": "Software", "luxai": "LuxAI", "summary": "Summary",
                   "install": "Installation", "done": "Finish"}
 
     def render_sidebar(self):
@@ -1232,7 +1275,79 @@ class Installer(Gtk.Window):
             self.s["care"] = key
             GLib.idle_add(lambda: self.render() and False)
 
-    # ---- 8. LuxAI ----
+    # ---- 8. sablony softwaru (vice najednou, zadna = jen zaklad) ----
+    def page_software(self, page):
+        self.heading(page, _("Choose your software"),
+                     _("Pick ready-made app sets to install with LuxOS. You can combine several or skip this. "
+                       "Apps can be added or removed later in the LuxOS Store."))
+        chosen = self.s["templates"]
+        flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, min_children_per_line=2,
+                           max_children_per_line=2, column_spacing=12, row_spacing=12, homogeneous=True)
+        base = {"id": None, "name": "Only the essentials", "icon": "computer",
+                "description": "Web browser, files, media player, text editor and LuxAI - nothing extra.",
+                "apps": "", "download": 0}
+        for t in [base] + self.templates:
+            selected = (not chosen) if t["id"] is None else t["id"] in chosen
+            flow.add(self.tile(t, selected))
+        page.pack_start(flow, False, False, 0)
+        mb = sum(t["download"] for t in self.templates if t["id"] in chosen)
+        if mb:
+            page.pack_start(self.hint(_("Additional download: about %s") % size_text(mb * 1000 ** 2)),
+                            False, False, 0)
+
+    def tile(self, t, selected):
+        """Dlazdice sablony: ikona, nazev, popis, aplikace; zatrzeni vpravo nahore."""
+        ev = Gtk.EventBox()
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        ctx = box.get_style_context()
+        ctx.add_class("tile")
+        if selected:
+            ctx.add_class("selected")
+        top = Gtk.Box(spacing=10)
+        img = Gtk.Image.new_from_icon_name(t["icon"] or "applications-other", Gtk.IconSize.DIALOG)
+        img.set_pixel_size(40)
+        top.pack_start(img, False, False, 0)
+        name = Gtk.Label(label=_(t["name"]), xalign=0, wrap=True, max_width_chars=22)
+        name.get_style_context().add_class("card-title")
+        top.pack_start(name, True, True, 0)
+        check = Gtk.Image.new_from_icon_name("object-select-symbolic", Gtk.IconSize.BUTTON) if selected \
+            else Gtk.Image(width_request=16)
+        check.get_style_context().add_class("tile-check")
+        check.set_valign(Gtk.Align.START)
+        top.pack_end(check, False, False, 0)
+        box.pack_start(top, False, False, 0)
+        desc = Gtk.Label(label=_(t["description"]), xalign=0, wrap=True, max_width_chars=30, width_chars=24)
+        desc.get_style_context().add_class("hint")
+        box.pack_start(desc, False, False, 0)
+        if t["apps"]:
+            apps = Gtk.Label(label=t["apps"], xalign=0, wrap=True, max_width_chars=30)
+            apps.get_style_context().add_class("tile-apps")
+            box.pack_start(apps, False, False, 0)
+        if t["download"]:
+            box.pack_start(self.hint(_("about %s to download") % size_text(t["download"] * 1000 ** 2)),
+                           False, False, 0)
+        ev.add(box)
+        ev.connect("button-press-event", lambda *_a: self.toggle_template(t["id"]))
+        ev.connect("realize", lambda w: w.get_window().set_cursor(
+            Gdk.Cursor.new_from_name(w.get_display(), "pointer")))
+        return ev
+
+    def toggle_template(self, tid):
+        cur = self.s["templates"]
+        if tid is None:
+            self.s["templates"] = []
+        elif tid in cur:
+            self.s["templates"] = [x for x in cur if x != tid]
+        else:
+            order = [t["id"] for t in self.templates]
+            self.s["templates"] = sorted(cur + [tid], key=order.index)
+        GLib.idle_add(lambda: self.render() and False)
+
+    def templates_text(self):
+        names = [_(t["name"]) for t in self.templates if t["id"] in self.s["templates"]]
+        return ", ".join(names) if names else _("Only the essentials")
+
+    # ---- 9. LuxAI ----
     def page_luxai(self, page):
         hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         hero.get_style_context().add_class("slide")
@@ -1318,6 +1433,7 @@ class Installer(Gtk.Window):
                 (_("Automatic login"), _("yes") if self.s["autologin"] else _("no")),
                 (_("Maintenance"), _("Classic - you manage the system yourself") if self.s["care"] == "classic"
                  else _("Carefree - automatic updates and repairs")),
+                (_("Software"), self.templates_text()),
                 ("LuxAI", _("signed in") if self.s["luxai"] else _("not signed in"))]
         for i, (k, v) in enumerate(rows):
             lab = Gtk.Label(label=k, xalign=0)
@@ -1479,6 +1595,7 @@ class Installer(Gtk.Window):
             "USERNAME": s["username"], "FULLNAME": s["fullname"].strip(), "PASSWORD": s["pw1"],
             "HOSTNAME_SEL": s["hostname"], "AUTOLOGIN": "1" if s["autologin"] else "0", "CARE_MODE": s["care"],
             "LUXAI_ACCOUNT": json.dumps(s["luxai"], ensure_ascii=False) if s["luxai"] else "",
+            "TEMPLATES": ",".join(s["templates"]),
         }
         return "".join(f"{k}={q(v)}\n" for k, v in values.items())
 
@@ -1566,8 +1683,9 @@ class Installer(Gtk.Window):
 
     def step_range(self):
         total = max(self.step_total, 1)
-        # Vahy kroku: posledni ctyri jsou HW, baliky, konfigurace, dokonceni (poradi v luxos-install)
-        w = [2] * (total - 4) + [1, 70, 22, 1] if total >= 4 else [1] * total
+        # Vahy kroku: na konci HW, baliky, konfigurace, [sablony softwaru,] dokonceni (poradi v luxos-install)
+        tail = [1, 55, 18, 25, 1] if self.s["templates"] else [1, 70, 22, 1]
+        w = [2] * (total - len(tail)) + tail if total >= len(tail) else [1] * total
         s = float(sum(w))
         n = min(max(self.step_n, 1), total)
         return sum(w[:n - 1]) / s, sum(w[:n]) / s
@@ -1766,6 +1884,7 @@ set -euo pipefail
 eval "$(cat)"
 echo "fake backend: DISK=$DISK DISK_MODE=$DISK_MODE ENCRYPT=$ENCRYPT USERNAME=$USERNAME HOST=$HOSTNAME_SEL"
 echo "fake backend: FULLNAME=$FULLNAME, password length ${#PASSWORD}, LuxAI=${LUXAI_ACCOUNT:+yes}, CARE_MODE=$CARE_MODE"
+echo "fake backend: TEMPLATES=${TEMPLATES-}"
 d=${LUXOS_INSTALL_FAKE_DELAY:-0.4}
 # Stahovani jako v luxos-install (pac_filter): @@NET kazde "2 s", srozumitelne hlasky o serverech
 fake_download() {
@@ -1806,13 +1925,27 @@ fake_download() {
 steps=("Preparing disk $DISK")
 ((ENCRYPT)) && steps+=("Encrypting the disk")
 steps+=("Creating file systems" "Detecting hardware" "Installing packages (this is the longest step)"
-        "Configuring the system" "Finishing")
+        "Configuring the system")
+[[ -n ${TEMPLATES-} ]] && steps+=("Installing additional software")
+steps+=("Finishing")
 n=0
 for s in "${steps[@]}"; do
     n=$((n + 1))
     echo "@@STEP $n ${#steps[@]} $s"
     echo "==> $s"
-    if [[ $s == Installing* ]]; then
+    if [[ $s == "Installing additional software" ]]; then
+        echo "  ${TEMPLATES//,/, }"
+        echo "Packages (40) libreoffice-fresh ..."
+        for p in $(seq 1 40); do
+            echo "installing app-$p..."
+            echo "@@PCT $((p * 100 / 40))"
+            sleep "$(awk -v d="$d" 'BEGIN {print d / 10}')"
+        done
+        if [[ ${LUXOS_INSTALL_FAKE_TPL_FAIL-} == 1 ]]; then
+            echo "  Some apps could not be installed: steam. You can install them later in the LuxOS Store."
+            echo "@@STATUS Some apps could not be installed: steam. You can install them later in the LuxOS Store."
+        fi
+    elif [[ $s == Installing* ]]; then
         fake_download
         for p in $(seq 1 120); do
             echo "installing package-$p..."

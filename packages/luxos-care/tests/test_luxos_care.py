@@ -628,6 +628,93 @@ class Catalog(Root):
         self.assertEqual(ex.call_count, 1)
 
 
+class LuxBackend(unittest.TestCase):
+    """Transakce pres lux (libalpm) misto pacmanu; bez lux/pyalpm zustava pacman."""
+
+    def setUp(self):
+        self._ok = care._lux_ok
+
+    def tearDown(self):
+        care._lux_ok = self._ok
+
+    def test_mapping(self):
+        L = care.LUX_ALPM
+        base = [L, "--machine", "-y", "--color=never"]
+        self.assertEqual(care.lux_command(["-Syuw"]), base + ["upgrade", "--refresh", "--download-only"])
+        self.assertEqual(care.lux_command(["-Su"]), base + ["upgrade"])
+        self.assertEqual(care.lux_command(["-Syu", "--noconfirm", "--noprogressbar"]), base + ["upgrade", "--refresh"])
+        self.assertEqual(care.lux_command(["-Sy", "--needed", "archlinux-keyring", "luxos-keyring"]),
+                         base + ["install", "--refresh", "--needed", "--", "archlinux-keyring", "luxos-keyring"])
+        self.assertEqual(care.lux_command(["-S", "linux"]), base + ["install", "--", "linux"])
+        self.assertEqual(care.lux_command(["-U", "/var/cache/pacman/pkg/linux-6.11-1-x86_64.pkg.tar.zst"]),
+                         base + ["install", "--", "/var/cache/pacman/pkg/linux-6.11-1-x86_64.pkg.tar.zst"])
+        # nezname nebo podezrele argumenty -> jen pacman
+        self.assertIsNone(care.lux_command(["-Rns", "x"]))
+        self.assertIsNone(care.lux_command(["-S", "--overwrite", "*", "x"]))
+        self.assertIsNone(care.lux_command(["-S", "a;b"]))
+        self.assertIsNone(care.lux_command(["-U", "relative.pkg.tar.zst"]))
+        self.assertIsNone(care.lux_command([]))
+
+    def test_pm_uses_lux_or_pacman(self):
+        care._lux_ok = True
+        self.assertEqual(care.pm(["-Su"])[0], care.LUX_ALPM)
+        self.assertEqual(care.pm(["-Rns", "x"])[:2], ["pacman", "--noconfirm"])
+        care._lux_ok = False
+        self.assertEqual(care.pm(["-Su"]), ["pacman", "--noconfirm", "--noprogressbar", "--color", "never", "-Su"])
+        self.assertEqual(care.pm(["-Syu", "--noconfirm", "--noprogressbar"]),
+                         ["pacman", "--noconfirm", "--noprogressbar", "--color", "never", "-Syu"])
+
+    def test_lux_available_checks_backend(self):
+        care._lux_ok = None
+        with mock.patch.object(care, "LUX_ALPM", "/nonexistent/lux_alpm.py"):
+            self.assertFalse(care.lux_available())
+        care._lux_ok = None
+        with mock.patch.object(care.os, "access", return_value=True), \
+                mock.patch.object(care, "run", return_value=(3, "pyalpm is not installed")) as r:
+            self.assertFalse(care.lux_available())
+            self.assertEqual(r.call_args[0][0][1:], ["available"])
+        care._lux_ok = None
+        with mock.patch.object(care.os, "access", return_value=True), \
+                mock.patch.object(care, "run", return_value=(0, "ok")):
+            self.assertTrue(care.lux_available())
+
+    def test_updater_progress_and_errors_from_lux_output(self):
+        """Vystup lux --machine: prubeh z radku 'upgrading x...', chyby a konflikty jako u pacmanu."""
+        out = "\n".join(["@@PLAN upgrade 2 100 100", "Packages (2) a-2-1 linux-6.11.2-1", "@@PHASE install",
+                         "upgrading a...", "upgrading linux...", ":: Running post-transaction hooks...",
+                         "@@PHASE hooks", "@@DONE 0"]) + "\n"
+        care._lux_ok = True
+        seen = []
+
+        class P:
+            def __init__(self, cmd, **_kw):
+                seen.append(cmd)
+                self.stdout = iter(out.splitlines(True))
+
+            def wait(self):
+                return 0
+
+            def poll(self):
+                return 0
+        prog = []
+        with mock.patch.object(care.subprocess, "Popen", P), \
+                mock.patch.object(care, "set_progress", lambda *a, **k: prog.append((a, k))), \
+                mock.patch.object(care, "have", return_value=False):
+            rc, text = care.Updater().pacman(["-Su"], "install", total=2, base=0.6, span=0.37)
+        self.assertEqual(rc, 0)
+        self.assertEqual(seen[0][0], care.LUX_ALPM)
+        self.assertEqual([k.get("done") for _a, k in prog if k.get("done")], [1, 2])
+        self.assertEqual(prog[-1][0][2], "hooks")
+        err = "error: failed to commit transaction (conflicting files)\n" \
+              "linux: /usr/lib/modules/6.11.2-arch1-1/vmlinuz exists in filesystem\n" \
+              "@@ERROR conflict Some files of the new packages already exist on the system (file conflict).\n"
+        self.assertEqual(care.classify_pacman_error(err), "conflict")
+        self.assertEqual(care.classify_pacman_error(
+            "error: failed to init transaction (unable to lock database)\n@@ERROR locked x"), "locked")
+        self.assertEqual(care.classify_pacman_error(
+            "error: failed retrieving file 'a.pkg.tar.zst' from m : timeout\n@@ERROR network x"), "network")
+
+
 class Redact(unittest.TestCase):
     def test_redact(self):
         text = ("Oct 20 host1 lightdm[1]: user antonin from 192.168.1.20 mac aa:bb:cc:dd:ee:ff "

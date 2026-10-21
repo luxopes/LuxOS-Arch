@@ -30,7 +30,8 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
 - **Splash screeny:** Plymouth (tónované pozadí + logo se září + tenký progress bar, i pro zadání hesla k LUKS;
   varianty modrá/fialová/oranžová/zelená/bílá v Nastavení › Plocha a Dock nebo `luxos-splash set <varianta>`), skrytý zavaděč
   (systemd-boot `timeout 0`), přihlašovací obrazovka uprostřed (lightdm-gtk-greeter), ISO boot menu v barvách LuxOS.
-- **`lux`** – správce balíků LuxOS (nad pacmanem, AUR a Flatpakem); `lux` bez parametrů otevře interaktivní
+- **`lux`** – správce balíků LuxOS místo pacmanu: repozitáře přes libalpm (`pyalpm`, stejná databáze a podpisy jako pacman),
+  AUR, Flatpak a balíky `.lux`; krátký barevný výstup, příkazy jako u apt; `lux` bez parametrů otevře interaktivní
   obchod v terminálu (TUI) s balíky z repozitářů LuxOS i Arch Linuxu.
 - **Obchod LuxOS** – grafický obchod s aplikacemi z repozitářů LuxOS a Arch Linuxu (metadata AppStream),
   instalace jedním kliknutím, aktualizace.
@@ -104,7 +105,7 @@ LuxOS má dva podepsané repozitáře na `https://lsl.lux-ai.cz/luxos/` (přehle
 - `[luxos]` – systém LuxOS (`packages/*`),
 - `[luxos-apps]` – aplikace ke stažení, např. LSL, LSL IDE, Lux Code (`packages/apps/*`).
 
-Nainstalovaný systém z nich bere aktualizace (`lux update`) a aplikace (`lux install lsl`); pacman ověřuje
+Nainstalovaný systém z nich bere aktualizace (`lux update`) a aplikace (`lux install lsl`); libalpm (lux i pacman) ověřuje
 podpis každého balíku klíčem z `luxos-keyring`. Live ISO instaluje z kopie repozitářů na médiu.
 
 Přidání aplikace:
@@ -135,18 +136,35 @@ lux install hello-lux                      # z repozitáře LuxOS
 
 ## lux
 
-```
-lux                        # interaktivní obchod v terminálu (Enter instalovat, Ctrl-R odebrat)
-lux install firefox        # repozitáře → AUR → Flathub
-lux remove <balík>
-lux update                 # systém + AUR + Flatpak, nejdřív klíče
-lux search <výraz>
-lux drivers                # doinstaluje chybějící ovladače
-lux doctor                 # kontrola systému
-lux clean | mirrors | history | info | files | owner
-```
+Výchozí správce balíků. Transakce dělá přes libalpm (`pyalpm`, `/usr/lib/lux/lux_alpm.py`) se stejnou
+databází, `pacman.conf`, podpisy a hooky jako pacman – `pacman` v systému zůstává pro pokročilé a oba
+nástroje jdou střídat. Bez `pyalpm` (nebo `LUX_BACKEND=pacman`) volá pacman. Obchod LuxOS a LuxOS Care
+volají `lux_alpm.py --machine` (řádky `@@…`). Podrobně: [packages/lux/lux.md](packages/lux/lux.md).
+
+| Příkaz | Co dělá |
+|---|---|
+| `lux` | interaktivní obchod v terminálu (Enter instalovat, Ctrl-R odebrat) |
+| `lux install <balík…>` | repozitáře → LuxOS (`.lux`) → AUR → Flathub; i soubor `.lux` / `.pkg.tar.zst` |
+| `lux remove <balík…>` | odebere i nepotřebné závislosti |
+| `lux update` / `lux upgrade` | obnoví databáze, nejdřív klíče, celý systém + AUR + `.lux` + Flatpak |
+| `lux search <výraz>` · `lux info <balík>` | hledání a podrobnosti (repozitáře, LuxOS, AUR) |
+| `lux list [--installed\|--upgradable]` | nainstalované balíky / dostupné aktualizace (`--explicit`, `--aur`, `--orphans`, `--lux`) |
+| `lux reinstall <balík…>` | stejná verze znovu |
+| `lux autoremove` | odebere závislosti, které už nic nepotřebuje |
+| `lux files <balík>` · `lux owns <soubor>` | soubory balíku / komu patří soubor |
+| `lux clean` | vyčistí cache balíků (+ nabídne `autoremove`) |
+| `lux fix` | opraví zamčenou databázi a podpisové klíče |
+| `lux history [počet] [balík]` | poslední změny balíků |
+| `lux drivers` · `lux doctor` · `lux mirrors` · `lux pack` | ovladače, kontrola systému, zrcadla, sestavení `.lux` |
+
+Výstup: `Install 3 packages (12.4 MB download, +48 MB disk)? [Y/n]`, jedna řádka s pruhem na fázi
+(stahování, ověření, instalace) a souhrn `✓ Installed firefox 131.0-1 (+2 deps) in 8.2 s`; chyby jednou
+větou, detaily s `--verbose`. `-y` přeskočí otázky (jinak se `lux` vždy zeptá), práva správce přes
+`sudo`/`pkexec` automaticky, `NO_COLOR` a přesměrovaný výstup bez barev.
 
 Konfigurace `/etc/lux/lux.conf` (AUR, kontrola PKGBUILD, Flatpak, velikost cache).
+
+Testy (bez rootu, napodobenina pyalpm): `python3 -m unittest discover -s packages/lux/tests`.
 
 ## Struktura
 

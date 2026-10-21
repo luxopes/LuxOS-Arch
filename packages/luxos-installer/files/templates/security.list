@@ -1,0 +1,22 @@
+# LuxOS - sablona softwaru "Bezpecnost a site" (format viz everyday.list)
+# Jen standardni nastroje z oficialnich repozitaru: analyza site a zabezpeceni systemu.
+@name Security & Networking
+@description Network analysis and system hardening: Nmap, Wireshark, firewall settings, a security audit and a password manager.
+@apps Nmap · Wireshark · Gufw · Lynis · KeePassXC
+@icon security-high
+@groups wireshark
+@order 50
+@download 170
+nmap
+wireshark-qt
+tcpdump
+mtr
+traceroute
+bind
+whois
+openbsd-netcat
+iperf3
+gufw
+lynis
+arch-audit
+keepassxc
