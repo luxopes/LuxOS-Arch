@@ -1,0 +1,28 @@
+#!/bin/bash
+# LuxOS - kompozitor picom: stiny, zaoblene rohy a animace oken (minimalizace do Docku).
+# Kdyz picom nejde spustit nebo opakovane pada (napr. bez OpenGL), vrati se kompozitor xfwm4.
+# Vlastni nastaveni: ~/.config/picom.conf (jinak /usr/share/luxos/picom.conf)
+conf=${XDG_CONFIG_HOME:-$HOME/.config}/picom.conf
+[[ -r $conf ]] || conf=/usr/share/luxos/picom.conf
+pgrep -u "$USER" -x picom >/dev/null && exit 0
+command -v picom >/dev/null || exit 0
+
+xfwm_compositing() { xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s "$1" 2>/dev/null; }
+
+fails=0
+while :; do
+    xfwm_compositing false
+    sleep 0.3                       # xfwm4 musi kompozici uvolnit, jinak picom neziska obrazovku
+    start=$SECONDS
+    picom --config "$conf"
+    rc=$?
+    # zamerne ukonceni (rc 0, SIGINT, SIGTERM - i konec relace): kompozici zpet xfwm4
+    ((rc == 0 || rc == 130 || rc == 143)) && { xfwm_compositing true; break; }
+    xprop -root _NET_SUPPORTED >/dev/null 2>&1 || break
+    if ((SECONDS - start < 10)); then
+        ((++fails >= 3)) && { xfwm_compositing true; break; }
+    else
+        fails=0
+    fi
+    sleep 1
+done
