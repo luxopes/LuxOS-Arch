@@ -26,6 +26,8 @@ ENDPOINT = "/api/feedback"
 APP = "luxos-feedback"
 OUTBOX = os.path.join(os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share")), "luxos/feedback-outbox")
 MIN_LEN, MAX_LEN = 10, 8000
+# Skutecny pacman (luxos-pacman); /usr/bin/pacman je v LuxOS kompatibilni vrstva pro lidi v terminalu
+PACMAN = "/usr/lib/lux/alpm/pacman" if os.access("/usr/lib/lux/alpm/pacman", os.X_OK) else "pacman"
 SYSTEM_MAX = 30000        # server bere nejvys ~32 KB
 SHOT_WIDTH, SHOT_MAX = 1280, 1_400_000   # WEDOS proxy nema rada velka tela
 KINDS = (
@@ -103,7 +105,7 @@ def collect_system():
     gpu = [re.sub(r" \(rev .*\)$", "", line.split(": ", 1)[-1])
            for line in run("lspci").splitlines() if re.search(r"VGA|3D|Display", line)]
     pkgs = {}
-    for line in run("pacman", "-Q").splitlines():
+    for line in run(PACMAN, "-Q").splitlines():
         name, _sp, ver = line.partition(" ")
         if re.match(r"^(luxos|lux$|lux-|luxai|lsl|linux$|linux-lts$|linux-zen$|mesa$|xorg-server$|xfce4-session$)", name):
             pkgs[name] = ver
@@ -143,7 +145,7 @@ def collect_system():
 
 
 def app_version():
-    out = run("pacman", "-Q", "luxos-desktop")
+    out = run(PACMAN, "-Q", "luxos-desktop")
     return out.split(" ", 1)[1] if " " in out else ""
 
 

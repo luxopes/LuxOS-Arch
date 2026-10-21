@@ -51,6 +51,9 @@ MODULES = "/usr/lib/modules"
 PACMAN_LOCK = "/var/lib/pacman/db.lck"
 PACMAN_LOG = "/var/log/pacman.log"
 PKG_CACHE = "/var/cache/pacman/pkg"
+# Skutecny pacman (luxos-pacman); /usr/bin/pacman je v LuxOS kompatibilni vrstva pro lidi v terminalu
+# (bez terminalu by ho stejne pustila dal, primo je to ale jistejsi). Jinde nez v LuxOS pacman z PATH.
+PACMAN = "/usr/lib/lux/alpm/pacman" if os.access("/usr/lib/lux/alpm/pacman", os.X_OK) else "pacman"
 GRUBENV = "/boot/grub/grubenv"
 GRUB_PREV_DIR = "/boot/luxos-prev"
 
@@ -452,7 +455,7 @@ def lux_command(args):
 def pm(args):
     """Prikaz pro transakci: lux, kdyz je k dispozici, jinak pacman (bez otazek a progress baru)."""
     cmd = lux_command(args) if lux_available() else None
-    return cmd or ["pacman", "--noconfirm", "--noprogressbar", "--color", "never"] + \
+    return cmd or [PACMAN, "--noconfirm", "--noprogressbar", "--color", "never"] + \
         [x for x in args if x not in ("--noconfirm", "--noprogressbar")]
 
 
@@ -598,7 +601,7 @@ class Updater:
 
     def download_plan(self):
         """{nazev souboru: velikost} pro balicky, ktere jeste nejsou v cache."""
-        rc, out = run(["pacman", "-Sup", "--print-format", "%l %s"], timeout=120)
+        rc, out = run([PACMAN, "-Sup", "--print-format", "%l %s"], timeout=120)
         sizes = {}
         if rc != 0:
             return sizes
@@ -646,7 +649,7 @@ class Updater:
             return {"result": "failed", "error": classify_pacman_error(out), "packages": names}
 
         # 3. Instalace z cache (bez site, nepreruzi se vypnutim - viz TimeoutStopSec)
-        rc, out = run(["pacman", "-Qu"], timeout=60)
+        rc, out = run([PACMAN, "-Qu"], timeout=60)
         total = len([x for x in out.splitlines() if x.strip()]) if rc == 0 else len(names)
         kernel_before = installed_version(config()["KERNEL"])
         rc, out = self.pacman(["-Su"], "install", total=max(total, 1), base=0.6, span=0.37)
@@ -664,7 +667,7 @@ class Updater:
         # Velikosti stahovani zname az po synchronizaci; -Sup s docasnou databazi z checkupdates
         dbpath = os.path.join(os.environ.get("TMPDIR", "/tmp"), f"checkup-db-{os.getuid()}")
         if os.path.isdir(dbpath):
-            rc, out = run(["pacman", "-Sup", "--dbpath", dbpath, "--logfile", "/dev/null",
+            rc, out = run([PACMAN, "-Sup", "--dbpath", dbpath, "--logfile", "/dev/null",
                            "--print-format", "%l %s"], timeout=120)
             sizes = {}
             if rc == 0:
@@ -690,7 +693,7 @@ class Updater:
 
 
 def installed_version(pkg):
-    rc, out = run(["pacman", "-Q", pkg], timeout=30)
+    rc, out = run([PACMAN, "-Q", pkg], timeout=30)
     return out.split()[1] if rc == 0 and len(out.split()) >= 2 else ""
 
 
@@ -840,7 +843,7 @@ def pkgbase(ver):
 
 
 def owned_by_package(path):
-    rc, _o = run(["pacman", "-Qoq", "--", path], timeout=60)
+    rc, _o = run([PACMAN, "-Qoq", "--", path], timeout=60)
     return rc == 0
 
 
@@ -1493,7 +1496,7 @@ def execute_action(action, target=None):
         rc, out = run(["dkms", "autoinstall", "-k", target], timeout=3600)
         return rc == 0, out[-3000:]
     if action == "reinstall_package":
-        rc, _o = run(["pacman", "-Q", target], timeout=30)
+        rc, _o = run([PACMAN, "-Q", target], timeout=30)
         if rc != 0:
             return False, "not installed"
         ver = installed_version(target)
@@ -1585,7 +1588,7 @@ def unit_package(unit):
     path = out.strip()
     if rc != 0 or not path.startswith("/usr/"):
         return ""
-    rc, out = run(["pacman", "-Qoq", path], timeout=30)
+    rc, out = run([PACMAN, "-Qoq", path], timeout=30)
     return out.strip() if rc == 0 and PKG_RE.match(out.strip()) else ""
 
 

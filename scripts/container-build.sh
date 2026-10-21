@@ -13,7 +13,8 @@ PROFILE=/tmp/luxos-profile
 target=${1:-all}
 
 # Repozitar [luxos]: system LuxOS, poradi = zavislosti vlastnich baliku prvni
-PACKAGES=(luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-printing luxos-desktop luxos-installer)
+# (luxos-pacman = pacman z Archu s /usr/bin/pacman jako kompatibilni vrstvou; potrebuji ho lux, pyalpm i base)
+PACKAGES=(luxos-pacman luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-printing luxos-desktop luxos-installer)
 # Repozitar [luxos-apps]: aplikace ke stazeni (kazdy adresar v packages/apps)
 mapfile -t APPS < <(find "$ROOT/packages/apps" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort)
 ARCH=x86_64
@@ -39,9 +40,15 @@ build_one() {  # build_one ADRESAR_BALIKU CIL_PKGDEST
     rm -rf "${BUILD:?}/$p"
     cp -r "$src" "$BUILD/$p"
     chown -R builder: "$BUILD/$p"
-    # makepkg bezi s --nodeps (zavislosti na vlastnich balicich), makedepends instalujeme zvlast
-    (set +u; makedepends=(); source "$BUILD/$p/PKGBUILD"; ((${#makedepends[@]})) && pacman -S --needed --noconfirm "${makedepends[@]}" >/dev/null || true)
-    (cd "$BUILD/$p" && sudo -u builder env SRCDEST="$SOURCES" PKGDEST="$dest" \
+    # makepkg bezi s --nodeps (zavislosti na vlastnich balicich), makedepends a checkdepends instalujeme zvlast
+    (set +u; makedepends=(); checkdepends=(); source "$BUILD/$p/PKGBUILD"
+     deps=("${makedepends[@]}" "${checkdepends[@]}")
+     ((${#deps[@]})) && pacman -S --needed --noconfirm "${deps[@]}" >/dev/null || true)
+    # Podepsane zdroje (source=...?signed, validpgpkeys): verejne klice z keys/pgp jako v Arch devtools
+    if compgen -G "$BUILD/$p/keys/pgp/*.asc" >/dev/null; then
+        sudo -u builder env -u GNUPGHOME gpg --batch --quiet --import "$BUILD/$p"/keys/pgp/*.asc
+    fi
+    (cd "$BUILD/$p" && sudo -u builder env -u GNUPGHOME SRCDEST="$SOURCES" PKGDEST="$dest" \
         makepkg --force --nodeps --noconfirm --cleanbuild)
 }
 
@@ -126,9 +133,23 @@ PY
     msg "Repository [lux]: $(find "$dir" -name '*.lux' | wc -l) packages in out/repo/lux"
 }
 
+# luxos-pacman musi drzet krok s pacmanem Arch Linuxu: pyalpm a dalsi baliky z Archu se sestavuji
+# proti jeho libalpm.so. Kontejner je po -Syu aktualni Arch, takze jeho [core]/pacman je Arch.
+check_pacman_version() {
+    local arch ours
+    arch=$(LC_ALL=C pacman -Si core/pacman 2>/dev/null | awk -F': ' '/^Version/ {print $2; exit}')
+    ours=$(set +u; source "$ROOT/packages/luxos-pacman/PKGBUILD"; echo "$pkgver-$pkgrel")
+    [[ -n $arch ]] || { msg "WARNING: cannot read the Arch Linux pacman version"; return 0; }
+    if (($(vercmp "$arch" "$ours") > 0)); then
+        msg "WARNING: Arch Linux has pacman $arch, luxos-pacman is $ours"
+        printf '    Update packages/luxos-pacman/PKGBUILD from the Arch tag (see its header) before publishing.\n' >&2
+    fi
+}
+
 build_packages() {
     msg "Updating build container"
     pacman -Syu --noconfirm --needed >/dev/null
+    check_pacman_version
 
     setup_signing
     rm -rf "$BUILD"

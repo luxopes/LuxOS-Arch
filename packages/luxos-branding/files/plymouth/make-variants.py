@@ -20,18 +20,19 @@ def rgb(h):
     return np.array([int(h[i:i + 2], 16) for i in (1, 3, 5)], float) / 255
 
 
-# varianta: motiv, okraj a stred pozadi, barva loga, zare, tecka, vypln/draha baru, text
+# varianta: motiv, okraj a stred pozadi (temer cerne, jen nadech barvy), barva loga a zare,
+# vypln/draha baru (jasna vypln, tlumena draha)
 VARIANTS = {
-    "blue":   dict(theme="luxos", name="Blue", edge="#03060f", center="#0f2148", tint="#5f97ff",
-                   glow="#3f7bff", dot="#dfe9ff", fill="#d2e2ff", track=("#8aa6e0", 0.28), dark=True),
-    "purple": dict(theme="luxos-purple", name="Purple", edge="#05030f", center="#1c1040", tint="#a47dff",
-                   glow="#8657ff", dot="#ece4ff", fill="#e3d6ff", track=("#a993e0", 0.28), dark=True),
-    "orange": dict(theme="luxos-orange", name="Orange", edge="#080503", center="#2b1608", tint="#ff9d55",
-                   glow="#ff7722", dot="#fff0e2", fill="#ffdcbd", track=("#e0aa84", 0.28), dark=True),
-    "green":  dict(theme="luxos-green", name="Green", edge="#030805", center="#0b2618", tint="#5cd391",
-                   glow="#26b868", dot="#e2fbec", fill="#c9f4da", track=("#86d0a8", 0.28), dark=True),
-    "light":  dict(theme="luxos-light", name="Light", edge="#dedcd6", center="#f7f6f2", tint="#6d7078",
-                   glow="#ffffff", dot="#2a2b30", fill="#26272c", track=("#26272c", 0.16), dark=False),
+    "blue":   dict(theme="luxos", name="Blue", edge="#010207", center="#081226", tint="#5d95ff",
+                   glow="#3a76ff", core="#f2f7ff", fill="#eef4ff", track=("#7f9fe0", 0.15), dark=True),
+    "purple": dict(theme="luxos-purple", name="Purple", edge="#030108", center="#110a26", tint="#a07cff",
+                   glow="#7f4dff", core="#f7f2ff", fill="#f3eeff", track=("#a993e0", 0.15), dark=True),
+    "orange": dict(theme="luxos-orange", name="Orange", edge="#050201", center="#1d0f05", tint="#ff9a52",
+                   glow="#ff7417", core="#fff6ee", fill="#fff3e8", track=("#e0aa84", 0.15), dark=True),
+    "green":  dict(theme="luxos-green", name="Green", edge="#010402", center="#06180d", tint="#4fd68c",
+                   glow="#1fbf66", core="#effff5", fill="#ecfcf2", track=("#86d0a8", 0.15), dark=True),
+    "light":  dict(theme="luxos-light", name="Light", edge="#d6d6da", center="#f0f0f2", tint="#2a2c32",
+                   glow="#000000", core="#6b6f78", fill="#2a2c32", track=("#2a2c32", 0.12), dark=False),
 }
 
 CANVAS = 640          # logo.png: platno se zari
@@ -66,18 +67,31 @@ def colored(layer_alpha, color, opacity):
     return img
 
 
+def blur(a, r):
+    img = Image.fromarray((np.clip(a, 0, 1) * 255 + .5).astype(np.uint8), "L")
+    return np.asarray(img.filter(ImageFilter.GaussianBlur(r))).astype(float) / 255
+
+
 def make_logo(src, v):
-    """Logo v barve varianty, mekka zare a tecka vpravo nahore."""
+    """Logo v barve varianty: svetle jadro podel cepeli (bily lesk), syta barva u okraju, mekka zare."""
     m = src.resize((MARK, MARK), Image.LANCZOS)
     a = np.asarray(m).astype(float) / 255
-    lum = np.clip((a[..., :3].mean(2) - 0.45) / 0.55, 0, 1)[..., None]   # stinovani predlohy 0..1
-    t = rgb(v["tint"])
+    alpha = a[..., 3]
+    # stinovani predlohy bez tmaveho lemu (normalizovana konvoluce vahou alfa)
+    lum = blur(a[..., :3].mean(2) * alpha, 1.2) / np.maximum(blur(alpha, 1.2), 1e-3)
+    lum = np.clip((lum - 0.45) / 0.55, 0, 1)
+    # "jadro" cepele: vnitrek tvaru daleko od okraju -> bily lesk podel tahu
+    core = np.clip((blur(alpha, MARK * 0.012) * alpha - 0.55) / 0.40, 0, 1)
+    t, c = rgb(v["tint"]), rgb(v["core"])
     if v["dark"]:
-        col = t * (0.62 + 0.38 * lum)
-        col = col + (1 - col) * (lum ** 2.2) * 0.62              # svetla do bila (kovovy lesk)
+        col = t * (0.85 + 0.30 * lum[..., None])
+        hl = np.clip(0.75 * core + 0.45 * lum ** 2, 0, 1)[..., None]
+        col = col + (c - col) * hl
     else:
-        col = rgb("#3b3d44") * (1 - lum) + rgb("#b9bcc4") * lum   # sedy kov na svetlem pozadi
-    mark = Image.fromarray((np.dstack([np.clip(col, 0, 1), a[..., 3:]]) * 255 + .5).astype(np.uint8), "RGBA")
+        # grafitove logo na svetle sedem pozadi, jen jemny svetlejsi lesk
+        hl = np.clip(0.35 * core * lum + 0.25 * lum ** 3, 0, 1)[..., None]
+        col = t + (c - t) * hl
+    mark = Image.fromarray((np.dstack([np.clip(col, 0, 1), alpha]) * 255 + .5).astype(np.uint8), "RGBA")
 
     canvas = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
     off = (CANVAS - MARK) // 2
@@ -85,19 +99,20 @@ def make_logo(src, v):
     shape.paste(mark.split()[3], (off, off))
     # bez tecky (prani uzivatele): jen znacka se zarou
     if v["dark"]:
-        canvas.alpha_composite(colored(shape.filter(ImageFilter.GaussianBlur(MARK * 0.11)), v["glow"], 0.45))
-        canvas.alpha_composite(colored(shape.filter(ImageFilter.GaussianBlur(MARK * 0.035)), v["glow"], 0.75))
+        canvas.alpha_composite(colored(shape.filter(ImageFilter.GaussianBlur(MARK * 0.14)), v["glow"], 0.55))
+        canvas.alpha_composite(colored(shape.filter(ImageFilter.GaussianBlur(MARK * 0.045)), v["glow"], 0.85))
+        canvas.alpha_composite(colored(shape.filter(ImageFilter.GaussianBlur(MARK * 0.010)), v["tint"], 0.55))
     else:
-        canvas.alpha_composite(colored(shape.filter(ImageFilter.GaussianBlur(MARK * 0.06)), "#000000", 0.10))
+        canvas.alpha_composite(colored(shape.filter(ImageFilter.GaussianBlur(MARK * 0.05)), "#000000", 0.16))
     canvas.alpha_composite(mark, (off, off))
     return canvas
 
 
 def make_background(v, w=768, h=432):
-    """Tonovane pozadi: svetlejsi stred za logem, tmavsi okraje (s ditheringem proti pruhum)."""
+    """Temer cerne (svetle u Light) pozadi, za logem jen jemny nadech barvy; dithering proti pruhum."""
     yy, xx = np.mgrid[0:h, 0:w].astype(float)
     r = np.sqrt(((xx / w - 0.5) * 1.25) ** 2 + ((yy / h - 0.44) * 0.95) ** 2)
-    f = np.clip(1 - r / 0.75, 0, 1) ** 1.6
+    f = np.clip(1 - r / 0.62, 0, 1) ** 2.2
     col = rgb(v["edge"]) * (1 - f[..., None]) + rgb(v["center"]) * f[..., None]
     rnd = np.random.default_rng(7)
     col = col * 255 + rnd.uniform(-0.5, 0.5, col.shape) + rnd.uniform(-0.5, 0.5, col.shape)

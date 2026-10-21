@@ -1576,3 +1576,227 @@ The photo could not be taken.	Nie udało się zrobić zdjęcia.
 The photo could not be saved: %s	Nie udało się zapisać zdjęcia: %s
 The video could not be saved: %s	Nie udało się zapisać wideo: %s
 No video encoder is installed (gst-plugins-good).	Nie zainstalowano kodera wideo (gst-plugins-good).
+Unlock Safe	Odblokuj Sejf
+The Safe is locked. Files cannot be saved here until you unlock it.	Sejf jest zablokowany. Dopóki go nie odblokujesz, nie można tu nic zapisać.
+Could not protect the locked Safe folder (%s).	Nie udało się zabezpieczyć zablokowanego folderu Sejfu (%s).
+Unencrypted files found	Znaleziono niezaszyfrowane pliki
+Files saved in %s while the Safe was locked were not encrypted. They were moved to %s.	Pliki zapisane w %s, gdy Sejf był zablokowany, nie zostały zaszyfrowane. Przeniesiono je do %s.
+Import them into the Safe? The unencrypted copies will then be deleted.	Przenieść je do Sejfu? Niezaszyfrowane kopie zostaną wtedy usunięte.
+Keep in Home Folder	Zostaw w folderze domowym
+Import into Safe	Przenieś do Sejfu
+The files were imported into the Safe.	Pliki zostały przeniesione do Sejfu.
+Could not import the files (%s).	Nie udało się przenieść plików (%s).
+These apps keep files in the Safe open: %s. Close them and try again.	Te aplikacje mają otwarte pliki w Sejfie: %s. Zamknij je i spróbuj ponownie.
+The Safe could not be locked	Nie udało się zablokować Sejfu
+LuxOS Tour	Przewodnik po LuxOS
+Skip Tour	Pomiń przewodnik
+Get Started	Zaczynamy
+Show on Screen	Pokaż na ekranie
+Open Control Center	Otwórz Centrum sterowania
+Open Launchpad	Otwórz Launchpad
+Open Search	Otwórz wyszukiwanie
+Open Files	Otwórz Pliki
+Open LuxOS Store	Otwórz Sklep LuxOS
+Open Settings	Otwórz Ustawienia
+Open LuxDrop	Otwórz LuxDrop
+Notifications	Powiadomienia
+System menu	Menu systemowe
+App menus	Menu aplikacji
+Wi-Fi, sound, battery	Wi-Fi, dźwięk, bateria
+82 % · 3:12 h left	82% · pozostało 3:12 h
+● = app is running	● = aplikacja działa
+How do I connect a printer?	Jak podłączyć drukarkę?
+Space	Spacja
+Home	Katalog domowy
+Documents	Dokumenty
+Downloads	Pobrane
+Music	Muzyka
+Videos	Wideo
+Encrypted	Zaszyfrowane
+works with LocalSend	działa z LocalSend
+plug in and print	podłącz i drukuj
+Edit	Edycja
+View	Widok
+Go	Idź
+The Menu Bar	Pasek menu
+The Dock	Dock
+Launchpad and Search	Launchpad i wyszukiwanie
+Files and Safe	Pliki i Sejf
+Installing Apps	Instalowanie aplikacji
+Light, Dark or Auto	Jasny, ciemny lub automatyczny
+Share and Print	Udostępnianie i drukowanie
+Help and Shortcuts	Pomoc i skróty
+This short tour shows you where everything is. It takes about a minute – you can skip it anytime and open it again from Launchpad as LuxOS Tour.	Ten krótki przewodnik pokaże, gdzie co jest. Zajmie około minuty – w każdej chwili możesz go pominąć i otworzyć ponownie z Launchpada jako Przewodnik po LuxOS.
+The LuxOS logo opens the system menu with About This Computer, Settings, sleep and shut down. Next to it are the menus of the active app. On the right: Wi-Fi, sound, battery with the time left, Control Center for quick settings, notifications and the calendar.	Logo LuxOS otwiera menu systemowe z pozycjami Ten komputer, Ustawienia, uśpienie i wyłączenie. Obok są menu aktywnej aplikacji. Po prawej: Wi-Fi, dźwięk, bateria z pozostałym czasem, Centrum sterowania z szybkimi ustawieniami, powiadomienia i kalendarz.
+Your favourite apps are at the bottom of the screen. Click an icon to open the app – a dot below it means the app is running. Drag apps from Launchpad to the Dock, drag them out to remove them.	Ulubione aplikacje są na dole ekranu. Kliknij ikonę, aby otworzyć aplikację – kropka pod nią oznacza, że aplikacja działa. Przeciągnij aplikacje z Launchpada do Docka, a wyciągnij je, aby je usunąć.
+Super + A opens Launchpad with all your apps. Super + Space searches apps, files and windows. Type a question instead and LuxAI will answer it – Ctrl + Enter always asks LuxAI.	Super + A otwiera Launchpad ze wszystkimi aplikacjami. Super + spacja wyszukuje aplikacje, pliki i okna. Wpisz zamiast tego pytanie, a odpowie LuxAI – Ctrl + Enter zawsze pyta LuxAI.
+Files (Super + E) keeps your documents, downloads and pictures. The Safe is an encrypted folder for private things – it locks itself when you log out, lock the screen or the computer goes to sleep.	Pliki (Super + E) przechowują dokumenty, pobrane pliki i obrazy. Sejf to zaszyfrowany folder na prywatne rzeczy – sam się zamyka, gdy się wylogujesz, zablokujesz ekran lub komputer przejdzie w stan uśpienia.
+LuxOS Store offers apps sorted into categories with one-click installs and updates. In the Terminal (Super + T) the lux command does the same: lux install, lux search, lux update.	Sklep LuxOS oferuje aplikacje podzielone na kategorie z instalacją i aktualizacjami jednym kliknięciem. W Terminalu (Super + T) to samo robi polecenie lux: lux install, lux search, lux update.
+Choose how LuxOS looks. Auto switches between light and dark at sunrise and sunset. Wallpaper, Dock and much more are in Settings (Super + ,).	Wybierz wygląd LuxOS. Tryb automatyczny przełącza między jasnym i ciemnym o wschodzie i zachodzie słońca. Tapeta, Dock i wiele więcej są w Ustawieniach (Super + ,).
+LuxDrop sends files to computers and phones nearby – it also works with the LocalSend app. Printers & Scanners finds devices on your network or USB by itself: just plug in and print.	LuxDrop wysyła pliki do pobliskich komputerów i telefonów – działa też z aplikacją LocalSend. Drukarki i skanery same znajdą urządzenia w sieci lub na USB: wystarczy podłączyć i drukować.
+Found a bug or have an idea? Feedback sends it straight to the author of LuxOS. All keyboard shortcuts are listed in Keyboard Shortcuts. Enjoy LuxOS!	Znalazłeś błąd lub masz pomysł? Opinie wyślą go prosto do autora LuxOS. Wszystkie skróty znajdziesz w Skrótach klawiszowych. Miłego korzystania z LuxOS!
+LuxOS uses lux to manage software.	LuxOS zarządza oprogramowaniem za pomocą lux.
+All lux commands: %s	Wszystkie polecenia lux: %s
+Experts can still run pacman directly: %s	Zaawansowani użytkownicy mogą nadal uruchomić pacman bezpośrednio: %s
+The package manager core is missing (%s). Repair it with: %s	Brak rdzenia menedżera pakietów (%s). Napraw go poleceniem: %s
+pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman jest tylko dla zaawansowanych (LUX_ALLOW_PACMAN=1 pacman …); lux i pacman używają tej samej bazy pakietów.
+The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	Rdzeń menedżera pakietów %s jest starszy niż pacman w Arch Linux %s (aktualizacja LuxOS wkrótce)
+You manage the system yourself with lux.	Samodzielnie zarządzasz systemem za pomocą lux.
+# Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
+Layout line %s is not valid.	Wiersz układu %s jest nieprawidłowy.
+Layout line %s has an invalid id.	Wiersz układu %s ma nieprawidłowy identyfikator.
+The id %s is used twice in the layout.	Identyfikator %s występuje w układzie dwa razy.
+The layout refers to %s, which does not exist.	Układ odwołuje się do %s, który nie istnieje.
+%s cannot be used here.	Nie można tu użyć %s.
+%s is used for two things at once.	%s jest użyty do dwóch rzeczy jednocześnie.
+Invalid device %s.	Nieprawidłowe urządzenie %s.
+The device %s is listed twice.	Urządzenie %s występuje dwa razy.
+Invalid size for %s.	Nieprawidłowy rozmiar dla %s.
+Only one volume on %s can use the remaining space.	Tylko jeden wolumin na %s może użyć pozostałego miejsca.
+Invalid partition type for %s.	Nieprawidłowy typ partycji dla %s.
+Invalid name for %s.	Nieprawidłowa nazwa dla %s.
+The name %s is used twice.	Nazwa %s jest użyta dwa razy.
+%s is marked as existing but sits on a new volume.	%s oznaczono jako istniejący, ale leży na nowym woluminie.
+The volume group %s has no physical volumes.	Grupa woluminów %s nie ma woluminów fizycznych.
+%s is on a disk that will be erased.	%s jest na dysku, który zostanie wymazany.
+%s is not a valid mount point.	%s nie jest prawidłowym punktem montowania.
+%s cannot be a separate partition.	%s nie może być osobną partycją.
+The mount point %s is used twice.	Punkt montowania %s jest użyty dwa razy.
+Unsupported file system for %s.	Nieobsługiwany system plików dla %s.
+The root file system (/) must be formatted.	Główny system plików (/) musi zostać sformatowany.
+Choose a volume for the root file system (/).	Wybierz wolumin dla głównego systemu plików (/).
+An EFI system partition (FAT32, at least 300 MB) mounted at /boot or /efi is needed.	Potrzebna jest partycja systemowa EFI (FAT32, co najmniej 300 MB) zamontowana w /boot lub /efi.
+The EFI system partition must be a plain partition (not encrypted, not LVM).	Partycja systemowa EFI musi być zwykłą partycją (bez szyfrowania, bez LVM).
+The partition mounted at /boot or /efi must be an EFI system partition.	Partycja zamontowana w /boot lub /efi musi być partycją systemową EFI.
+The EFI system partition must use FAT32.	Partycja systemowa EFI musi używać FAT32.
+The EFI system partition must have at least 300 MB.	Partycja systemowa EFI musi mieć co najmniej 300 MB.
+With the EFI partition at /boot, there cannot be another /boot. Mount the EFI partition at /efi instead.	Gdy partycja EFI jest w /boot, nie może być innego /boot. Zamiast tego zamontuj partycję EFI w /efi.
+The boot loader (GRUB) cannot open encrypted volumes: add an unencrypted /boot partition.	Program rozruchowy (GRUB) nie otworzy zaszyfrowanych woluminów: dodaj niezaszyfrowaną partycję /boot.
+A BIOS boot partition (1 MB) is needed to start from this disk.	Do uruchamiania z tego dysku potrzebna jest partycja BIOS boot (1 MB).
+The root file system (/) needs at least 8 GB.	Główny system plików (/) potrzebuje co najmniej 8 GB.
+The root file system (/) has less than 20 GB; apps may not fit.	Główny system plików (/) ma mniej niż 20 GB; aplikacje mogą się nie zmieścić.
+/boot needs at least 300 MB.	/boot potrzebuje co najmniej 300 MB.
+/ and %s are not encrypted the same way: files in the unencrypted one are not protected.	/ i %s nie są zaszyfrowane tak samo: pliki w niezaszyfrowanym nie są chronione.
+The swap is not encrypted although / is: memory contents can leak to the disk.	Swap nie jest zaszyfrowany, choć / jest: zawartość pamięci może trafić na dysk.
+Enter a passphrase for the encrypted volume %s.	Wpisz hasło dla zaszyfrowanego woluminu %s.
+%s is created but not used.	%s zostanie utworzony, ale nie będzie używany.
+%s does not exist.	%s nie istnieje.
+%s does not use a GPT partition table.	%s nie używa tablicy partycji GPT.
+%s is in use (mounted). Unmount it first.	%s jest w użyciu (zamontowany). Najpierw go odmontuj.
+%s is not an encrypted (LUKS) volume.	%s nie jest zaszyfrowanym woluminem (LUKS).
+The passphrase for %s is wrong.	Hasło dla %s jest nieprawidłowe.
+A volume group named %s already exists.	Grupa woluminów o nazwie %s już istnieje.
+The volume group %s was not found.	Nie znaleziono grupy woluminów %s.
+The logical volume %s was not found.	Nie znaleziono woluminu logicznego %s.
+The name %s is already used by an open volume.	Nazwa %s jest już używana przez otwarty wolumin.
+%s cannot be resized (only ext4, btrfs and NTFS).	Nie można zmienić rozmiaru %s (tylko ext4, btrfs i NTFS).
+The kept EFI system partition %s is not FAT32.	Zachowana partycja systemowa EFI %s nie jest FAT32.
+The EFI system partition %s is smaller than 300 MB.	Partycja systemowa EFI %s ma mniej niż 300 MB.
+ERASE the whole disk %s	WYMAZAĆ cały dysk %s
+DELETE logical volume %s	USUNĄĆ wolumin logiczny %s
+DELETE partition %s	USUNĄĆ partycję %s
+Resize %s to %s	Zmienić rozmiar %s na %s
+ERASE %s (new encrypted volume)	WYMAZAĆ %s (nowy zaszyfrowany wolumin)
+ERASE %s (new LVM physical volume)	WYMAZAĆ %s (nowy wolumin fizyczny LVM)
+FORMAT %s	SFORMATOWAĆ %s
+ERASE logical volume %s	WYMAZAĆ wolumin logiczny %s
+FORMAT logical volume %s	SFORMATOWAĆ wolumin logiczny %s
+keep data	zachowaj dane
+Could not read partition %s.	Nie można odczytać partycji %s.
+Resizing %s to %s	Zmieniam rozmiar %s na %s
+The file system on %s has errors.	System plików na %s zawiera błędy.
+%s cannot be shrunk that much.	Nie można aż tak zmniejszyć %s.
+Encrypting %s	Szyfrowanie %s
+Creating volume group %s	Tworzenie grupy woluminów %s
+Not enough free space on %s.	Za mało wolnego miejsca na %s.
+Preparing disks	Przygotowywanie dysków
+Encrypting volumes	Szyfrowanie woluminów
+Setting up LVM	Konfigurowanie LVM
+Formatting %s as %s (%s)	Formatowanie %s jako %s (%s)
+Advanced: manual partitioning from a layout file (LVM, encryption)	Zaawansowane: ręczne partycjonowanie z pliku układu (LVM, szyfrowanie)
+manual partitioning	ręczne partycjonowanie
+Partitions:	Partycje:
+Will be erased or changed:	Zostanie wymazane lub zmienione:
+Cannot read %s	Nie można odczytać %s
+DISK_MODE=layout needs LAYOUT or LAYOUT_FILE	DISK_MODE=layout wymaga LAYOUT lub LAYOUT_FILE
+Warning: %s	Ostrzeżenie: %s
+Path to the partition layout file (LAYOUT format)	Ścieżka do pliku układu partycji (format LAYOUT)
+Invalid DISK_MODE (use erase, freespace, layout or manual)	Nieprawidłowy DISK_MODE (użyj erase, freespace, layout lub manual)
+Manual partitioning (advanced)	Ręczne partycjonowanie (zaawansowane)
+Choose partitions yourself: separate /home, /var and other directories, LVM and encryption (LUKS2), keep existing partitions.	Wybierz partycje samodzielnie: osobne /home, /var i inne katalogi, LVM i szyfrowanie (LUKS2), zachowanie istniejących partycji.
+You set up the partitions in the next step. Nothing is changed before you confirm the summary.	Partycje ustawisz w następnym kroku. Nic się nie zmieni przed potwierdzeniem podsumowania.
+Manual partitioning	Ręczne partycjonowanie
+Choose where each part of LuxOS goes. Nothing is written to the disks before you confirm the summary.	Wybierz, gdzie trafi każda część LuxOS. Nic nie zostanie zapisane na dyskach przed potwierdzeniem podsumowania.
+No disks found.	Nie znaleziono dysków.
+Quick setup on	Szybka konfiguracja na
+Encrypted LVM (/, /home, swap)	Zaszyfrowane LVM (/, /home, swap)
+Encrypted LVM with separate /var and /tmp	Zaszyfrowane LVM z osobnymi /var i /tmp
+Erases the chosen disk in the plan; you can still change everything.	W planie wymazuje wybrany dysk; wszystko możesz jeszcze zmienić.
+Locked - unlock to use	Zablokowany - odblokuj, aby użyć
+Encrypted (LUKS2)	Zaszyfrowany (LUKS2)
+not used	nieużywany
+Encrypted volume	Zaszyfrowany wolumin
+new partition table	nowa tablica partycji
+erase	wymazać
+Free space	Wolne miejsce
+LVM volume group	Grupa woluminów LVM
+new	nowy
+create	utworzyć
+Contents	Zawartość
+Mount point	Punkt montowania
+Add…	Dodaj…
+Edit…	Edytuj…
+Unlock…	Odblokuj…
+Erase Disk	Wymaż dysk
+New Volume Group…	Nowa grupa woluminów…
+Undo All Changes	Cofnij wszystkie zmiany
+Encryption passphrase	Hasło szyfrowania
+Use the same passphrase for all encrypted volumes (one prompt at start)	To samo hasło dla wszystkich zaszyfrowanych woluminów (jedno pytanie przy starcie)
+New partition	Nowa partycja
+will be deleted	zostanie usunięta
+BIOS boot partition	Partycja BIOS boot
+LVM physical volume	Wolumin fizyczny LVM
+LVM physical volume (%s)	Wolumin fizyczny LVM (%s)
+delete	usunąć
+resize to %s	zmienić na %s
+format	formatować
+Keep	Zachowaj
+Keep Partitions	Zachowaj partycje
+Delete %s?	Usunąć %s?
+All data on it will be lost when you click Install.	Po kliknięciu Zainstaluj wszystkie dane na nim zostaną utracone.
+Erase %s?	Wymazać %s?
+All partitions on this disk will be deleted when you click Install.	Po kliknięciu Zainstaluj wszystkie partycje na tym dysku zostaną usunięte.
+New Volume	Nowy wolumin
+Edit %s	Edytuj %s
+Use all remaining space	Użyj całego pozostałego miejsca
+Available: %s	Dostępne: %s
+Use as	Użyj jako
+for example /data	na przykład /data
+recommended	zalecane
+File system	System plików
+Format (erases the data on it)	Sformatuj (usuwa znajdujące się na nim dane)
+Encrypt (LUKS2)	Szyfruj (LUKS2)
+Passphrase for this volume	Hasło dla tego woluminu
+Passphrase	Hasło
+Resize to	Zmień rozmiar na
+Shrinking keeps the data, but back up important files first.	Zmniejszenie zachowuje dane, ale najpierw zrób kopię ważnych plików.
+The used space could not be checked.	Nie udało się sprawdzić zajętego miejsca.
+New Volume Group	Nowa grupa woluminów
+Create	Utwórz
+LVM joins one or more partitions (or encrypted volumes) into a group, from which you create logical volumes for /, /home, swap and more.	LVM łączy jedną lub więcej partycji (lub zaszyfrowanych woluminów) w grupę, z której tworzysz woluminy logiczne dla /, /home, swap i innych.
+Existing data on the chosen volumes will be erased when you click Install.	Po kliknięciu Zainstaluj dane na wybranych woluminach zostaną wymazane.
+Unlock %s	Odblokuj %s
+Enter the passphrase to see what is inside. Nothing is changed.	Wpisz hasło, aby zobaczyć zawartość. Nic nie zostanie zmienione.
+The passphrase is wrong.	Hasło jest nieprawidłowe.
+The layout is ready.	Układ jest gotowy.
+Partitions	Partycje
+Will be erased or changed when you click Install:	Po kliknięciu Zainstaluj zostanie wymazane lub zmienione:
+I understand that the data listed above will be lost.	Rozumiem, że powyższe dane zostaną utracone.
+Confirm that the listed data will be erased.	Potwierdź, że wymienione dane zostaną wymazane.
+There is not enough free space on %s.	Na %s jest za mało wolnego miejsca.
+The volume group %s does not have enough free space.	Grupa woluminów %s nie ma wystarczająco wolnego miejsca.
+Unlock %s first or choose another volume.	Najpierw odblokuj %s albo wybierz inny wolumin.
+The passphrases do not match.	Hasła nie są zgodne.
+Do not use (for example for LVM)	Nie używaj (np. dla LVM)
+encrypted	zaszyfrowany
+The disk %s is too small for this layout (it needs at least %s).	Dysk %s jest za mały dla tego układu (potrzeba co najmniej %s).

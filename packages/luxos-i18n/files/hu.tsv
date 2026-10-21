@@ -1575,3 +1575,227 @@ The photo could not be taken.	Nem sikerült fényképet készíteni.
 The photo could not be saved: %s	Nem sikerült menteni a fényképet: %s
 The video could not be saved: %s	Nem sikerült menteni a videót: %s
 No video encoder is installed (gst-plugins-good).	Nincs telepítve videókódoló (gst-plugins-good).
+Unlock Safe	Széf feloldása
+The Safe is locked. Files cannot be saved here until you unlock it.	A Széf zárolva van. Amíg nem oldod fel, ide semmit sem lehet menteni.
+Could not protect the locked Safe folder (%s).	Nem sikerült védeni a zárolt Széf mappát (%s).
+Unencrypted files found	Titkosítatlan fájlok találhatók
+Files saved in %s while the Safe was locked were not encrypted. They were moved to %s.	A(z) %s mappába a Széf zárolása alatt mentett fájlok nem lettek titkosítva. Áthelyeztük őket ide: %s.
+Import them into the Safe? The unencrypted copies will then be deleted.	Áthelyezed őket a Széfbe? A titkosítatlan másolatok ezután törlődnek.
+Keep in Home Folder	Maradjanak a saját mappában
+Import into Safe	Áthelyezés a Széfbe
+The files were imported into the Safe.	A fájlok átkerültek a Széfbe.
+Could not import the files (%s).	Nem sikerült áthelyezni a fájlokat (%s).
+These apps keep files in the Safe open: %s. Close them and try again.	Ezek az alkalmazások nyitva tartanak fájlokat a Széfben: %s. Zárd be őket, és próbáld újra.
+The Safe could not be locked	Nem sikerült zárolni a Széfet
+LuxOS Tour	LuxOS bemutató
+Skip Tour	Bemutató kihagyása
+Get Started	Kezdjük
+Show on Screen	Mutasd a képernyőn
+Open Control Center	Vezérlőközpont megnyitása
+Open Launchpad	Launchpad megnyitása
+Open Search	Keresés megnyitása
+Open Files	Fájlok megnyitása
+Open LuxOS Store	LuxOS Áruház megnyitása
+Open Settings	Beállítások megnyitása
+Open LuxDrop	LuxDrop megnyitása
+Notifications	Értesítések
+System menu	Rendszermenü
+App menus	Alkalmazásmenük
+Wi-Fi, sound, battery	Wi-Fi, hang, akkumulátor
+82 % · 3:12 h left	82% · még 3:12 óra
+● = app is running	● = az alkalmazás fut
+How do I connect a printer?	Hogyan csatlakoztatok nyomtatót?
+Space	Szóköz
+Home	Saját mappa
+Documents	Dokumentumok
+Downloads	Letöltések
+Music	Zene
+Videos	Videók
+Encrypted	Titkosítva
+works with LocalSend	működik a LocalSenddel
+plug in and print	csatlakoztasd és nyomtass
+Edit	Szerkesztés
+View	Nézet
+Go	Ugrás
+The Menu Bar	A menüsor
+The Dock	A Dock
+Launchpad and Search	Launchpad és keresés
+Files and Safe	Fájlok és Széf
+Installing Apps	Alkalmazások telepítése
+Light, Dark or Auto	Világos, sötét vagy automatikus
+Share and Print	Megosztás és nyomtatás
+Help and Shortcuts	Segítség és billentyűparancsok
+This short tour shows you where everything is. It takes about a minute – you can skip it anytime and open it again from Launchpad as LuxOS Tour.	Ez a rövid bemutató megmutatja, mi hol található. Körülbelül egy perc – bármikor kihagyhatod, és később újra megnyithatod a Launchpadből LuxOS bemutató néven.
+The LuxOS logo opens the system menu with About This Computer, Settings, sleep and shut down. Next to it are the menus of the active app. On the right: Wi-Fi, sound, battery with the time left, Control Center for quick settings, notifications and the calendar.	A LuxOS logó nyitja a rendszermenüt: A számítógép névjegye, Beállítások, alvás és leállítás. Mellette az aktív alkalmazás menüi vannak. Jobb oldalon: Wi-Fi, hang, akkumulátor a hátralévő idővel, a Vezérlőközpont a gyors beállításokhoz, értesítések és a naptár.
+Your favourite apps are at the bottom of the screen. Click an icon to open the app – a dot below it means the app is running. Drag apps from Launchpad to the Dock, drag them out to remove them.	A kedvenc alkalmazásaid a képernyő alján vannak. Kattints egy ikonra a megnyitáshoz – az alatta lévő pont jelzi, hogy az alkalmazás fut. Húzz alkalmazásokat a Launchpadből a Dockra, és húzd ki őket az eltávolításhoz.
+Super + A opens Launchpad with all your apps. Super + Space searches apps, files and windows. Type a question instead and LuxAI will answer it – Ctrl + Enter always asks LuxAI.	A Super + A megnyitja a Launchpadet az összes alkalmazással. A Super + szóköz alkalmazásokat, fájlokat és ablakokat keres. Írj be inkább egy kérdést, és a LuxAI válaszol – a Ctrl + Enter mindig a LuxAI-t kérdezi.
+Files (Super + E) keeps your documents, downloads and pictures. The Safe is an encrypted folder for private things – it locks itself when you log out, lock the screen or the computer goes to sleep.	A Fájlok (Super + E) tárolja a dokumentumaidat, letöltéseidet és képeidet. A Széf titkosított mappa a személyes dolgokhoz – magától bezáródik, amikor kijelentkezel, zárolod a képernyőt vagy a gép alvó állapotba kerül.
+LuxOS Store offers apps sorted into categories with one-click installs and updates. In the Terminal (Super + T) the lux command does the same: lux install, lux search, lux update.	A LuxOS Áruház kategóriákba rendezett alkalmazásokat kínál egykattintásos telepítéssel és frissítéssel. A Terminálban (Super + T) ugyanezt teszi a lux parancs: lux install, lux search, lux update.
+Choose how LuxOS looks. Auto switches between light and dark at sunrise and sunset. Wallpaper, Dock and much more are in Settings (Super + ,).	Válaszd ki a LuxOS megjelenését. Az automatikus mód napkeltekor és napnyugtakor vált a világos és a sötét között. A háttérkép, a Dock és még sok más a Beállításokban van (Super + ,).
+LuxDrop sends files to computers and phones nearby – it also works with the LocalSend app. Printers & Scanners finds devices on your network or USB by itself: just plug in and print.	A LuxDrop fájlokat küld a közeli számítógépekre és telefonokra – a LocalSend alkalmazással is működik. A Nyomtatók és szkennerek magától megtalálja a hálózaton vagy USB-n lévő eszközöket: csak csatlakoztasd és nyomtass.
+Found a bug or have an idea? Feedback sends it straight to the author of LuxOS. All keyboard shortcuts are listed in Keyboard Shortcuts. Enjoy LuxOS!	Hibát találtál, vagy ötleted van? A Visszajelzés egyenesen a LuxOS szerzőjének küldi. Az összes billentyűparancs a Billentyűparancsok között található. Jó szórakozást a LuxOS-hez!
+LuxOS uses lux to manage software.	A LuxOS a lux segítségével kezeli a szoftvereket.
+All lux commands: %s	Az összes lux parancs: %s
+Experts can still run pacman directly: %s	Haladó felhasználók továbbra is közvetlenül futtathatják a pacmant: %s
+The package manager core is missing (%s). Repair it with: %s	Hiányzik a csomagkezelő magja (%s). Javítsd ezzel: %s
+pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	A pacman csak haladóknak való (LUX_ALLOW_PACMAN=1 pacman …); a lux és a pacman ugyanazt a csomagadatbázist használja.
+The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	A csomagkezelő magja (%s) régebbi, mint az Arch Linux pacman (%s) – hamarosan érkezik LuxOS-frissítés
+You manage the system yourself with lux.	A rendszert te magad kezeled a lux segítségével.
+# Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
+Layout line %s is not valid.	A(z) %s. elrendezési sor érvénytelen.
+Layout line %s has an invalid id.	A(z) %s. elrendezési sor azonosítója érvénytelen.
+The id %s is used twice in the layout.	A(z) %s azonosító kétszer szerepel az elrendezésben.
+The layout refers to %s, which does not exist.	Az elrendezés a(z) %s elemre hivatkozik, amely nem létezik.
+%s cannot be used here.	A(z) %s itt nem használható.
+%s is used for two things at once.	A(z) %s egyszerre két dologra van használva.
+Invalid device %s.	Érvénytelen eszköz: %s.
+The device %s is listed twice.	A(z) %s eszköz kétszer szerepel.
+Invalid size for %s.	Érvénytelen méret: %s.
+Only one volume on %s can use the remaining space.	A(z) %s fennmaradó helyét csak egy kötet használhatja.
+Invalid partition type for %s.	Érvénytelen partíciótípus: %s.
+Invalid name for %s.	Érvénytelen név: %s.
+The name %s is used twice.	A(z) %s név kétszer szerepel.
+%s is marked as existing but sits on a new volume.	A(z) %s meglévőként van jelölve, de új köteten van.
+The volume group %s has no physical volumes.	A(z) %s kötetcsoportnak nincs fizikai kötete.
+%s is on a disk that will be erased.	A(z) %s egy törlendő lemezen van.
+%s is not a valid mount point.	A(z) %s nem érvényes csatolási pont.
+%s cannot be a separate partition.	A(z) %s nem lehet külön partíció.
+The mount point %s is used twice.	A(z) %s csatolási pont kétszer szerepel.
+Unsupported file system for %s.	Nem támogatott fájlrendszer: %s.
+The root file system (/) must be formatted.	A gyökér-fájlrendszert (/) formázni kell.
+Choose a volume for the root file system (/).	Válasszon kötetet a gyökér-fájlrendszerhez (/).
+An EFI system partition (FAT32, at least 300 MB) mounted at /boot or /efi is needed.	Szükség van egy /boot vagy /efi alá csatolt EFI rendszerpartícióra (FAT32, legalább 300 MB).
+The EFI system partition must be a plain partition (not encrypted, not LVM).	Az EFI rendszerpartíció csak egyszerű partíció lehet (nem titkosított, nem LVM).
+The partition mounted at /boot or /efi must be an EFI system partition.	A /boot vagy /efi alá csatolt partíciónak EFI rendszerpartíciónak kell lennie.
+The EFI system partition must use FAT32.	Az EFI rendszerpartíciónak FAT32-nek kell lennie.
+The EFI system partition must have at least 300 MB.	Az EFI rendszerpartíciónak legalább 300 MB-osnak kell lennie.
+With the EFI partition at /boot, there cannot be another /boot. Mount the EFI partition at /efi instead.	Ha az EFI partíció a /boot alatt van, nem lehet másik /boot. Csatolja inkább az EFI partíciót az /efi alá.
+The boot loader (GRUB) cannot open encrypted volumes: add an unencrypted /boot partition.	A rendszertöltő (GRUB) nem tud titkosított kötetet megnyitni: adjon hozzá titkosítatlan /boot partíciót.
+A BIOS boot partition (1 MB) is needed to start from this disk.	Az erről a lemezről való indításhoz BIOS boot partíció (1 MB) kell.
+The root file system (/) needs at least 8 GB.	A gyökér-fájlrendszernek (/) legalább 8 GB kell.
+The root file system (/) has less than 20 GB; apps may not fit.	A gyökér-fájlrendszer (/) kisebb 20 GB-nál; az alkalmazások nem biztos, hogy elférnek.
+/boot needs at least 300 MB.	A /boot számára legalább 300 MB kell.
+/ and %s are not encrypted the same way: files in the unencrypted one are not protected.	A / és a(z) %s titkosítása eltér: a titkosítatlanon lévő fájlok nincsenek védve.
+The swap is not encrypted although / is: memory contents can leak to the disk.	A swap nincs titkosítva, bár a / igen: a memória tartalma a lemezre kerülhet.
+Enter a passphrase for the encrypted volume %s.	Adjon meg jelmondatot a(z) %s titkosított kötethez.
+%s is created but not used.	A(z) %s létrejön, de nincs használva.
+%s does not exist.	A(z) %s nem létezik.
+%s does not use a GPT partition table.	A(z) %s nem GPT partíciós táblát használ.
+%s is in use (mounted). Unmount it first.	A(z) %s használatban van (csatolva). Először válassza le.
+%s is not an encrypted (LUKS) volume.	A(z) %s nem titkosított (LUKS) kötet.
+The passphrase for %s is wrong.	A(z) %s jelmondata hibás.
+A volume group named %s already exists.	Már létezik %s nevű kötetcsoport.
+The volume group %s was not found.	A(z) %s kötetcsoport nem található.
+The logical volume %s was not found.	A(z) %s logikai kötet nem található.
+The name %s is already used by an open volume.	A(z) %s nevet már egy megnyitott kötet használja.
+%s cannot be resized (only ext4, btrfs and NTFS).	A(z) %s mérete nem módosítható (csak ext4, btrfs és NTFS).
+The kept EFI system partition %s is not FAT32.	A megtartott %s EFI rendszerpartíció nem FAT32.
+The EFI system partition %s is smaller than 300 MB.	A(z) %s EFI rendszerpartíció kisebb 300 MB-nál.
+ERASE the whole disk %s	A teljes %s lemez TÖRLÉSE
+DELETE logical volume %s	A(z) %s logikai kötet TÖRLÉSE
+DELETE partition %s	A(z) %s partíció TÖRLÉSE
+Resize %s to %s	%s átméretezése erre: %s
+ERASE %s (new encrypted volume)	%s TÖRLÉSE (új titkosított kötet)
+ERASE %s (new LVM physical volume)	%s TÖRLÉSE (új LVM fizikai kötet)
+FORMAT %s	%s FORMÁZÁSA
+ERASE logical volume %s	A(z) %s logikai kötet TÖRLÉSE
+FORMAT logical volume %s	A(z) %s logikai kötet FORMÁZÁSA
+keep data	adatok megtartása
+Could not read partition %s.	A(z) %s partíció nem olvasható.
+Resizing %s to %s	%s átméretezése erre: %s
+The file system on %s has errors.	A(z) %s fájlrendszere hibás.
+%s cannot be shrunk that much.	A(z) %s nem zsugorítható ennyire.
+Encrypting %s	%s titkosítása
+Creating volume group %s	A(z) %s kötetcsoport létrehozása
+Not enough free space on %s.	Nincs elég szabad hely ezen: %s.
+Preparing disks	Lemezek előkészítése
+Encrypting volumes	Kötetek titkosítása
+Setting up LVM	LVM beállítása
+Formatting %s as %s (%s)	%s formázása erre: %s (%s)
+Advanced: manual partitioning from a layout file (LVM, encryption)	Haladó: kézi particionálás elrendezésfájlból (LVM, titkosítás)
+manual partitioning	kézi particionálás
+Partitions:	Partíciók:
+Will be erased or changed:	Törlődik vagy módosul:
+Cannot read %s	A(z) %s nem olvasható
+DISK_MODE=layout needs LAYOUT or LAYOUT_FILE	A DISK_MODE=layout beállításhoz LAYOUT vagy LAYOUT_FILE kell
+Warning: %s	Figyelmeztetés: %s
+Path to the partition layout file (LAYOUT format)	A partícióelrendezés-fájl elérési útja (LAYOUT formátum)
+Invalid DISK_MODE (use erase, freespace, layout or manual)	Érvénytelen DISK_MODE (erase, freespace, layout vagy manual lehet)
+Manual partitioning (advanced)	Kézi particionálás (haladó)
+Choose partitions yourself: separate /home, /var and other directories, LVM and encryption (LUKS2), keep existing partitions.	Válassza ki maga a partíciókat: külön /home, /var és más könyvtárak, LVM és titkosítás (LUKS2), meglévő partíciók megtartása.
+You set up the partitions in the next step. Nothing is changed before you confirm the summary.	A partíciókat a következő lépésben állítja be. Semmi sem változik, amíg nem hagyja jóvá az összegzést.
+Manual partitioning	Kézi particionálás
+Choose where each part of LuxOS goes. Nothing is written to the disks before you confirm the summary.	Válassza ki, hová kerüljön a LuxOS egyes része. Semmi sem kerül a lemezekre, amíg nem hagyja jóvá az összegzést.
+No disks found.	Nem található lemez.
+Quick setup on	Gyorsbeállítás ezen:
+Encrypted LVM (/, /home, swap)	Titkosított LVM (/, /home, swap)
+Encrypted LVM with separate /var and /tmp	Titkosított LVM külön /var és /tmp kötettel
+Erases the chosen disk in the plan; you can still change everything.	A tervben törli a kiválasztott lemezt; utána még bármit módosíthat.
+Locked - unlock to use	Zárolva - a használathoz oldja fel
+Encrypted (LUKS2)	Titkosított (LUKS2)
+not used	nincs használva
+Encrypted volume	Titkosított kötet
+new partition table	új partíciós tábla
+erase	törlés
+Free space	Szabad hely
+LVM volume group	LVM kötetcsoport
+new	új
+create	létrehozás
+Contents	Tartalom
+Mount point	Csatolási pont
+Add…	Hozzáadás…
+Edit…	Szerkesztés…
+Unlock…	Feloldás…
+Erase Disk	Lemez törlése
+New Volume Group…	Új kötetcsoport…
+Undo All Changes	Minden módosítás visszavonása
+Encryption passphrase	Titkosítási jelmondat
+Use the same passphrase for all encrypted volumes (one prompt at start)	Ugyanaz a jelmondat minden titkosított kötethez (egy kérdés induláskor)
+New partition	Új partíció
+will be deleted	törlődik
+BIOS boot partition	BIOS boot partíció
+LVM physical volume	LVM fizikai kötet
+LVM physical volume (%s)	LVM fizikai kötet (%s)
+delete	törlés
+resize to %s	átméretezés: %s
+format	formázás
+Keep	Megtartás
+Keep Partitions	Partíciók megtartása
+Delete %s?	Törli ezt: %s?
+All data on it will be lost when you click Install.	A Telepítés gombra kattintva minden rajta lévő adat elvész.
+Erase %s?	Törli ezt: %s?
+All partitions on this disk will be deleted when you click Install.	A Telepítés gombra kattintva a lemez összes partíciója törlődik.
+New Volume	Új kötet
+Edit %s	%s szerkesztése
+Use all remaining space	Teljes fennmaradó hely használata
+Available: %s	Elérhető: %s
+Use as	Használat
+for example /data	például /data
+recommended	ajánlott
+File system	Fájlrendszer
+Format (erases the data on it)	Formázás (törli a rajta lévő adatokat)
+Encrypt (LUKS2)	Titkosítás (LUKS2)
+Passphrase for this volume	Jelmondat ehhez a kötethez
+Passphrase	Jelmondat
+Resize to	Átméretezés erre
+Shrinking keeps the data, but back up important files first.	A zsugorítás megőrzi az adatokat, de előbb mentse a fontos fájlokat.
+The used space could not be checked.	A foglalt hely nem ellenőrizhető.
+New Volume Group	Új kötetcsoport
+Create	Létrehozás
+LVM joins one or more partitions (or encrypted volumes) into a group, from which you create logical volumes for /, /home, swap and more.	Az LVM egy vagy több partíciót (vagy titkosított kötetet) csoportba fog, amelyből logikai köteteket hoz létre a /, /home, swap stb. számára.
+Existing data on the chosen volumes will be erased when you click Install.	A Telepítés gombra kattintva a kiválasztott kötetek adatai törlődnek.
+Unlock %s	%s feloldása
+Enter the passphrase to see what is inside. Nothing is changed.	Adja meg a jelmondatot a tartalom megtekintéséhez. Semmi sem változik.
+The passphrase is wrong.	A jelmondat hibás.
+The layout is ready.	Az elrendezés kész.
+Partitions	Partíciók
+Will be erased or changed when you click Install:	A Telepítés gombra kattintva törlődik vagy módosul:
+I understand that the data listed above will be lost.	Tudomásul veszem, hogy a fent felsorolt adatok elvesznek.
+Confirm that the listed data will be erased.	Erősítse meg, hogy a felsorolt adatok törlődnek.
+There is not enough free space on %s.	Nincs elég szabad hely ezen: %s.
+The volume group %s does not have enough free space.	A(z) %s kötetcsoportban nincs elég szabad hely.
+Unlock %s first or choose another volume.	Előbb oldja fel ezt: %s, vagy válasszon másik kötetet.
+The passphrases do not match.	A jelmondatok nem egyeznek.
+Do not use (for example for LVM)	Nincs használva (például LVM-hez)
+encrypted	titkosított
+The disk %s is too small for this layout (it needs at least %s).	A(z) %s lemez túl kicsi ehhez az elrendezéshez (legalább %s kell).

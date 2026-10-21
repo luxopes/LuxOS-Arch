@@ -63,19 +63,25 @@ fi
 echo "--> Initramfs"
 modules=""
 # Rane nacteni NVIDIA jen bez integrovane grafiky (u hybridni jen zpomaluje start)
-if ((${NVIDIA_EARLY:-1})) && pacman -Qq nvidia-open-dkms &>/dev/null; then
+pac=/usr/lib/lux/alpm/pacman   # skutecny pacman (luxos-pacman); /usr/bin/pacman je kompatibilni vrstva
+[[ -x $pac ]] || pac=pacman
+if ((${NVIDIA_EARLY:-1})) && "$pac" -Qq nvidia-open-dkms &>/dev/null; then
     modules="nvidia nvidia_modeset nvidia_uvm nvidia_drm"
 fi
-encrypt_hook=""
-((ENCRYPT)) && encrypt_hook="sd-encrypt"
+# Sifrovany / (sd-encrypt: rd.luks.* + /etc/crypttab.initramfs) a / na LVM (lvm2); poradi: block sd-encrypt lvm2
+storage_hooks=""
+((ENCRYPT || ${ENCRYPT_HOOK:-0})) && storage_hooks="sd-encrypt"
+((${LVM_HOOK:-0})) && storage_hooks+=" lvm2"
 cat > /etc/mkinitcpio.conf.d/luxos.conf <<M
 # LuxOS - systemd initramfs s Plymouth (boot splash)
 MODULES=($modules)
-HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconsole block $encrypt_hook filesystems fsck)
+HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconsole block ${storage_hooks# } filesystems fsck)
 COMPRESSION="zstd"
 M
 /usr/lib/luxos/apply-branding
-if [[ ${DISK_MODE:-erase} == freespace && ${BOOTLOADER:-auto} != none ]]; then
+# ESP v /efi (vedle jinych systemu nebo rucne): jadro zustava v /boot a kopiruje se na ESP
+[[ -n ${ESP_MOUNT-} ]] || { [[ ${DISK_MODE:-erase} == freespace ]] && ESP_MOUNT=/efi || ESP_MOUNT=/boot; }
+if [[ $ESP_MOUNT == /efi && ${BOOTLOADER:-auto} != none ]]; then
     # Sdileny ESP: fallback initramfs by z /boot (btrfs) stejne nesel spustit - jen zdrzuje
     sed -i "s/^PRESETS=.*/PRESETS=('default')/" /etc/mkinitcpio.d/linux-zen.preset
     rm -f /boot/initramfs-linux-zen-fallback.img
@@ -86,7 +92,7 @@ echo "--> Boot loader ($BOOTMODE, ${BOOTLOADER:-auto})"
 kernel=linux-zen
 if [[ ${BOOTLOADER:-auto} == none ]]; then
     echo "   (skip - jadro zustava v /boot)"
-elif [[ ${DISK_MODE:-erase} == freespace ]]; then
+elif [[ $BOOTMODE == uefi && $ESP_MOUNT == /efi ]]; then
     # ESP sdileny s jinymi systemy (/efi): cizi soubory, polozky ani loader.conf se neprepisuji.
     # Jadro a initramfs se kopiruji do vlastniho adresare EFI/LuxOS/<id> (zadna kolize nazvu).
     esp=/efi
@@ -153,14 +159,30 @@ options $CMDLINE
 E
     systemctl enable systemd-boot-update.service
 elif [[ $BOOTMODE == uefi ]]; then
-    bootctl install --esp-path=/boot
-    mkdir -p /boot/loader/entries
-    cat > /boot/loader/loader.conf <<L
+    if ((${ESP_KEEP:-0})); then
+        # Zachovany ESP v /boot (rucni rozdeleni): cizi zavadece a loader.conf se neprepisuji
+        sdboot=/usr/lib/systemd/boot/efi/systemd-bootx64.efi
+        install -Dm644 "$sdboot" /boot/EFI/systemd/systemd-bootx64.efi
+        if ! compgen -G "/boot/[Ee][Ff][Ii]/[Bb][Oo][Oo][Tt]/[Bb][Oo][Oo][Tt][Xx]64.[Ee][Ff][Ii]" >/dev/null; then
+            install -Dm644 "$sdboot" /boot/EFI/BOOT/BOOTX64.EFI
+        fi
+        mkdir -p /boot/loader/entries
+        [[ -e /boot/loader/loader.conf ]] || cat > /boot/loader/loader.conf <<L
+default luxos.conf
+timeout 3
+console-mode max
+editor no
+L
+    else
+        bootctl install --esp-path=/boot
+        mkdir -p /boot/loader/entries
+        cat > /boot/loader/loader.conf <<L
 default luxos.conf
 timeout 0
 console-mode max
 editor no
 L
+    fi
     cat > /boot/loader/entries/luxos.conf <<E
 title   LuxOS
 linux   /vmlinuz-$kernel

@@ -1575,3 +1575,227 @@ The photo could not be taken.	De foto kon niet worden gemaakt.
 The photo could not be saved: %s	De foto kon niet worden opgeslagen: %s
 The video could not be saved: %s	De video kon niet worden opgeslagen: %s
 No video encoder is installed (gst-plugins-good).	Er is geen video-encoder geïnstalleerd (gst-plugins-good).
+Unlock Safe	Kluis ontgrendelen
+The Safe is locked. Files cannot be saved here until you unlock it.	De Kluis is vergrendeld. Zolang u hem niet ontgrendelt, kan hier niets worden opgeslagen.
+Could not protect the locked Safe folder (%s).	Kan de vergrendelde Kluis-map niet beveiligen (%s).
+Unencrypted files found	Onversleutelde bestanden gevonden
+Files saved in %s while the Safe was locked were not encrypted. They were moved to %s.	Bestanden die in %s zijn opgeslagen terwijl de Kluis vergrendeld was, zijn niet versleuteld. Ze zijn verplaatst naar %s.
+Import them into the Safe? The unencrypted copies will then be deleted.	Naar de Kluis verplaatsen? De onversleutelde kopieën worden daarna verwijderd.
+Keep in Home Folder	In persoonlijke map houden
+Import into Safe	Naar de Kluis verplaatsen
+The files were imported into the Safe.	De bestanden zijn naar de Kluis verplaatst.
+Could not import the files (%s).	Kan de bestanden niet verplaatsen (%s).
+These apps keep files in the Safe open: %s. Close them and try again.	Deze apps houden bestanden in de Kluis geopend: %s. Sluit ze en probeer het opnieuw.
+The Safe could not be locked	Kan de Kluis niet vergrendelen
+LuxOS Tour	Rondleiding door LuxOS
+Skip Tour	Rondleiding overslaan
+Get Started	Aan de slag
+Show on Screen	Toon op scherm
+Open Control Center	Open Bedieningspaneel
+Open Launchpad	Open Launchpad
+Open Search	Open zoeken
+Open Files	Open Bestanden
+Open LuxOS Store	Open LuxOS Store
+Open Settings	Open Instellingen
+Open LuxDrop	Open LuxDrop
+Notifications	Meldingen
+System menu	Systeemmenu
+App menus	App-menu’s
+Wi-Fi, sound, battery	Wi-Fi, geluid, batterij
+82 % · 3:12 h left	82% · nog 3:12 u
+● = app is running	● = app is geopend
+How do I connect a printer?	Hoe sluit ik een printer aan?
+Space	Spatie
+Home	Thuismap
+Documents	Documenten
+Downloads	Downloads
+Music	Muziek
+Videos	Video’s
+Encrypted	Versleuteld
+works with LocalSend	werkt met LocalSend
+plug in and print	aansluiten en printen
+Edit	Wijzig
+View	Weergave
+Go	Ga
+The Menu Bar	De menubalk
+The Dock	Het Dock
+Launchpad and Search	Launchpad en zoeken
+Files and Safe	Bestanden en Kluis
+Installing Apps	Apps installeren
+Light, Dark or Auto	Licht, donker of automatisch
+Share and Print	Delen en printen
+Help and Shortcuts	Hulp en sneltoetsen
+This short tour shows you where everything is. It takes about a minute – you can skip it anytime and open it again from Launchpad as LuxOS Tour.	Deze korte rondleiding laat zien waar alles zit. Het duurt ongeveer een minuut – je kunt hem altijd overslaan en later opnieuw openen via Launchpad als Rondleiding door LuxOS.
+The LuxOS logo opens the system menu with About This Computer, Settings, sleep and shut down. Next to it are the menus of the active app. On the right: Wi-Fi, sound, battery with the time left, Control Center for quick settings, notifications and the calendar.	Het LuxOS-logo opent het systeemmenu met Over deze computer, Instellingen, sluimer en uitschakelen. Daarnaast staan de menu’s van de actieve app. Rechts: wifi, geluid, batterij met resterende tijd, het Bedieningspaneel voor snelle instellingen, meldingen en de kalender.
+Your favourite apps are at the bottom of the screen. Click an icon to open the app – a dot below it means the app is running. Drag apps from Launchpad to the Dock, drag them out to remove them.	Je favoriete apps staan onderaan het scherm. Klik op een symbool om de app te openen – een stip eronder betekent dat de app geopend is. Sleep apps vanuit Launchpad naar het Dock en sleep ze eruit om ze te verwijderen.
+Super + A opens Launchpad with all your apps. Super + Space searches apps, files and windows. Type a question instead and LuxAI will answer it – Ctrl + Enter always asks LuxAI.	Super + A opent Launchpad met al je apps. Super + spatie zoekt apps, bestanden en vensters. Typ in plaats daarvan een vraag en LuxAI beantwoordt hem – Ctrl + Enter vraagt het altijd aan LuxAI.
+Files (Super + E) keeps your documents, downloads and pictures. The Safe is an encrypted folder for private things – it locks itself when you log out, lock the screen or the computer goes to sleep.	Bestanden (Super + E) bewaart je documenten, downloads en afbeeldingen. De Kluis is een versleutelde map voor privézaken – hij vergrendelt zichzelf als je uitlogt, het scherm vergrendelt of de computer gaat sluimeren.
+LuxOS Store offers apps sorted into categories with one-click installs and updates. In the Terminal (Super + T) the lux command does the same: lux install, lux search, lux update.	LuxOS Store biedt apps per categorie, met installeren en bijwerken in één klik. In Terminal (Super + T) doet het commando lux hetzelfde: lux install, lux search, lux update.
+Choose how LuxOS looks. Auto switches between light and dark at sunrise and sunset. Wallpaper, Dock and much more are in Settings (Super + ,).	Kies hoe LuxOS eruitziet. Automatisch wisselt bij zonsopgang en zonsondergang tussen licht en donker. Achtergrond, Dock en nog veel meer vind je in Instellingen (Super + ,).
+LuxDrop sends files to computers and phones nearby – it also works with the LocalSend app. Printers & Scanners finds devices on your network or USB by itself: just plug in and print.	LuxDrop stuurt bestanden naar computers en telefoons in de buurt – het werkt ook met de app LocalSend. Printers en scanners vindt apparaten op je netwerk of via USB vanzelf: gewoon aansluiten en printen.
+Found a bug or have an idea? Feedback sends it straight to the author of LuxOS. All keyboard shortcuts are listed in Keyboard Shortcuts. Enjoy LuxOS!	Een fout gevonden of een idee? Feedback stuurt het rechtstreeks naar de maker van LuxOS. Alle sneltoetsen staan in Toetscombinaties. Veel plezier met LuxOS!
+LuxOS uses lux to manage software.	LuxOS beheert software met lux.
+All lux commands: %s	Alle lux-opdrachten: %s
+Experts can still run pacman directly: %s	Experts kunnen pacman nog steeds direct uitvoeren: %s
+The package manager core is missing (%s). Repair it with: %s	De kern van het pakketbeheer ontbreekt (%s). Herstel met: %s
+pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman is alleen voor experts (LUX_ALLOW_PACMAN=1 pacman …); lux en pacman delen dezelfde pakketdatabase.
+The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	De kern van het pakketbeheer %s is ouder dan pacman van Arch Linux %s (een LuxOS-update volgt)
+You manage the system yourself with lux.	Je beheert het systeem zelf met lux.
+# Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
+Layout line %s is not valid.	Regel %s van de indeling is ongeldig.
+Layout line %s has an invalid id.	Regel %s van de indeling heeft een ongeldig id.
+The id %s is used twice in the layout.	Het id %s wordt twee keer gebruikt in de indeling.
+The layout refers to %s, which does not exist.	De indeling verwijst naar %s, dat niet bestaat.
+%s cannot be used here.	%s kan hier niet worden gebruikt.
+%s is used for two things at once.	%s wordt voor twee dingen tegelijk gebruikt.
+Invalid device %s.	Ongeldig apparaat %s.
+The device %s is listed twice.	Het apparaat %s staat er twee keer in.
+Invalid size for %s.	Ongeldige grootte voor %s.
+Only one volume on %s can use the remaining space.	Slechts één volume op %s kan de resterende ruimte gebruiken.
+Invalid partition type for %s.	Ongeldig partitietype voor %s.
+Invalid name for %s.	Ongeldige naam voor %s.
+The name %s is used twice.	De naam %s wordt twee keer gebruikt.
+%s is marked as existing but sits on a new volume.	%s is gemarkeerd als bestaand, maar staat op een nieuw volume.
+The volume group %s has no physical volumes.	De volumegroep %s heeft geen fysieke volumes.
+%s is on a disk that will be erased.	%s staat op een schijf die gewist wordt.
+%s is not a valid mount point.	%s is geen geldig koppelpunt.
+%s cannot be a separate partition.	%s kan geen aparte partitie zijn.
+The mount point %s is used twice.	Het koppelpunt %s wordt twee keer gebruikt.
+Unsupported file system for %s.	Niet-ondersteund bestandssysteem voor %s.
+The root file system (/) must be formatted.	Het rootbestandssysteem (/) moet worden geformatteerd.
+Choose a volume for the root file system (/).	Kies een volume voor het rootbestandssysteem (/).
+An EFI system partition (FAT32, at least 300 MB) mounted at /boot or /efi is needed.	Er is een EFI-systeempartitie (FAT32, minstens 300 MB) nodig, gekoppeld aan /boot of /efi.
+The EFI system partition must be a plain partition (not encrypted, not LVM).	De EFI-systeempartitie moet een gewone partitie zijn (niet versleuteld, geen LVM).
+The partition mounted at /boot or /efi must be an EFI system partition.	De partitie op /boot of /efi moet een EFI-systeempartitie zijn.
+The EFI system partition must use FAT32.	De EFI-systeempartitie moet FAT32 gebruiken.
+The EFI system partition must have at least 300 MB.	De EFI-systeempartitie moet minstens 300 MB zijn.
+With the EFI partition at /boot, there cannot be another /boot. Mount the EFI partition at /efi instead.	Met de EFI-partitie op /boot kan er geen andere /boot zijn. Koppel de EFI-partitie in plaats daarvan aan /efi.
+The boot loader (GRUB) cannot open encrypted volumes: add an unencrypted /boot partition.	De bootloader (GRUB) kan geen versleutelde volumes openen: voeg een onversleutelde /boot-partitie toe.
+A BIOS boot partition (1 MB) is needed to start from this disk.	Er is een BIOS-bootpartitie (1 MB) nodig om vanaf deze schijf te starten.
+The root file system (/) needs at least 8 GB.	Het rootbestandssysteem (/) heeft minstens 8 GB nodig.
+The root file system (/) has less than 20 GB; apps may not fit.	Het rootbestandssysteem (/) is kleiner dan 20 GB; apps passen er misschien niet op.
+/boot needs at least 300 MB.	/boot heeft minstens 300 MB nodig.
+/ and %s are not encrypted the same way: files in the unencrypted one are not protected.	/ en %s zijn niet op dezelfde manier versleuteld: bestanden op het onversleutelde volume zijn niet beschermd.
+The swap is not encrypted although / is: memory contents can leak to the disk.	De swap is niet versleuteld terwijl / dat wel is: geheugeninhoud kan op de schijf terechtkomen.
+Enter a passphrase for the encrypted volume %s.	Voer een wachtwoordzin in voor het versleutelde volume %s.
+%s is created but not used.	%s wordt aangemaakt maar niet gebruikt.
+%s does not exist.	%s bestaat niet.
+%s does not use a GPT partition table.	%s gebruikt geen GPT-partitietabel.
+%s is in use (mounted). Unmount it first.	%s is in gebruik (gekoppeld). Ontkoppel het eerst.
+%s is not an encrypted (LUKS) volume.	%s is geen versleuteld volume (LUKS).
+The passphrase for %s is wrong.	De wachtwoordzin voor %s is onjuist.
+A volume group named %s already exists.	Er bestaat al een volumegroep met de naam %s.
+The volume group %s was not found.	De volumegroep %s is niet gevonden.
+The logical volume %s was not found.	Het logische volume %s is niet gevonden.
+The name %s is already used by an open volume.	De naam %s wordt al gebruikt door een geopend volume.
+%s cannot be resized (only ext4, btrfs and NTFS).	De grootte van %s kan niet worden gewijzigd (alleen ext4, btrfs en NTFS).
+The kept EFI system partition %s is not FAT32.	De behouden EFI-systeempartitie %s is geen FAT32.
+The EFI system partition %s is smaller than 300 MB.	De EFI-systeempartitie %s is kleiner dan 300 MB.
+ERASE the whole disk %s	De hele schijf %s WISSEN
+DELETE logical volume %s	Logisch volume %s VERWIJDEREN
+DELETE partition %s	Partitie %s VERWIJDEREN
+Resize %s to %s	Grootte van %s wijzigen naar %s
+ERASE %s (new encrypted volume)	%s WISSEN (nieuw versleuteld volume)
+ERASE %s (new LVM physical volume)	%s WISSEN (nieuw fysiek LVM-volume)
+FORMAT %s	%s FORMATTEREN
+ERASE logical volume %s	Logisch volume %s WISSEN
+FORMAT logical volume %s	Logisch volume %s FORMATTEREN
+keep data	gegevens behouden
+Could not read partition %s.	Partitie %s kon niet worden gelezen.
+Resizing %s to %s	Grootte van %s wordt gewijzigd naar %s
+The file system on %s has errors.	Het bestandssysteem op %s bevat fouten.
+%s cannot be shrunk that much.	%s kan niet zo veel worden verkleind.
+Encrypting %s	%s wordt versleuteld
+Creating volume group %s	Volumegroep %s wordt aangemaakt
+Not enough free space on %s.	Niet genoeg vrije ruimte op %s.
+Preparing disks	Schijven voorbereiden
+Encrypting volumes	Volumes versleutelen
+Setting up LVM	LVM instellen
+Formatting %s as %s (%s)	%s wordt geformatteerd als %s (%s)
+Advanced: manual partitioning from a layout file (LVM, encryption)	Geavanceerd: handmatig partitioneren vanuit een indelingsbestand (LVM, versleuteling)
+manual partitioning	handmatig partitioneren
+Partitions:	Partities:
+Will be erased or changed:	Wordt gewist of gewijzigd:
+Cannot read %s	Kan %s niet lezen
+DISK_MODE=layout needs LAYOUT or LAYOUT_FILE	DISK_MODE=layout vereist LAYOUT of LAYOUT_FILE
+Warning: %s	Waarschuwing: %s
+Path to the partition layout file (LAYOUT format)	Pad naar het partitie-indelingsbestand (LAYOUT-formaat)
+Invalid DISK_MODE (use erase, freespace, layout or manual)	Ongeldige DISK_MODE (gebruik erase, freespace, layout of manual)
+Manual partitioning (advanced)	Handmatig partitioneren (geavanceerd)
+Choose partitions yourself: separate /home, /var and other directories, LVM and encryption (LUKS2), keep existing partitions.	Kies zelf de partities: aparte /home, /var en andere mappen, LVM en versleuteling (LUKS2), bestaande partities behouden.
+You set up the partitions in the next step. Nothing is changed before you confirm the summary.	U stelt de partities in de volgende stap in. Er verandert niets voordat u het overzicht bevestigt.
+Manual partitioning	Handmatig partitioneren
+Choose where each part of LuxOS goes. Nothing is written to the disks before you confirm the summary.	Kies waar elk deel van LuxOS komt. Er wordt niets naar de schijven geschreven voordat u het overzicht bevestigt.
+No disks found.	Geen schijven gevonden.
+Quick setup on	Snel instellen op
+Encrypted LVM (/, /home, swap)	Versleutelde LVM (/, /home, swap)
+Encrypted LVM with separate /var and /tmp	Versleutelde LVM met aparte /var en /tmp
+Erases the chosen disk in the plan; you can still change everything.	Wist de gekozen schijf in het plan; u kunt daarna nog alles wijzigen.
+Locked - unlock to use	Vergrendeld - ontgrendel om te gebruiken
+Encrypted (LUKS2)	Versleuteld (LUKS2)
+not used	niet gebruikt
+Encrypted volume	Versleuteld volume
+new partition table	nieuwe partitietabel
+erase	wissen
+Free space	Vrije ruimte
+LVM volume group	LVM-volumegroep
+new	nieuw
+create	aanmaken
+Contents	Inhoud
+Mount point	Koppelpunt
+Add…	Toevoegen…
+Edit…	Bewerken…
+Unlock…	Ontgrendelen…
+Erase Disk	Schijf wissen
+New Volume Group…	Nieuwe volumegroep…
+Undo All Changes	Alle wijzigingen ongedaan maken
+Encryption passphrase	Wachtwoordzin voor versleuteling
+Use the same passphrase for all encrypted volumes (one prompt at start)	Dezelfde wachtwoordzin voor alle versleutelde volumes (één vraag bij het starten)
+New partition	Nieuwe partitie
+will be deleted	wordt verwijderd
+BIOS boot partition	BIOS-bootpartitie
+LVM physical volume	Fysiek LVM-volume
+LVM physical volume (%s)	Fysiek LVM-volume (%s)
+delete	verwijderen
+resize to %s	wijzigen naar %s
+format	formatteren
+Keep	Behouden
+Keep Partitions	Partities behouden
+Delete %s?	%s verwijderen?
+All data on it will be lost when you click Install.	Alle gegevens erop gaan verloren wanneer u op Installeren klikt.
+Erase %s?	%s wissen?
+All partitions on this disk will be deleted when you click Install.	Alle partities op deze schijf worden verwijderd wanneer u op Installeren klikt.
+New Volume	Nieuw volume
+Edit %s	%s bewerken
+Use all remaining space	Alle resterende ruimte gebruiken
+Available: %s	Beschikbaar: %s
+Use as	Gebruiken als
+for example /data	bijvoorbeeld /data
+recommended	aanbevolen
+File system	Bestandssysteem
+Format (erases the data on it)	Formatteren (wist de gegevens erop)
+Encrypt (LUKS2)	Versleutelen (LUKS2)
+Passphrase for this volume	Wachtwoordzin voor dit volume
+Passphrase	Wachtwoordzin
+Resize to	Grootte wijzigen naar
+Shrinking keeps the data, but back up important files first.	Verkleinen behoudt de gegevens, maar maak eerst een back-up van belangrijke bestanden.
+The used space could not be checked.	De gebruikte ruimte kon niet worden gecontroleerd.
+New Volume Group	Nieuwe volumegroep
+Create	Aanmaken
+LVM joins one or more partitions (or encrypted volumes) into a group, from which you create logical volumes for /, /home, swap and more.	LVM voegt een of meer partities (of versleutelde volumes) samen tot een groep, waarin u logische volumes maakt voor /, /home, swap en meer.
+Existing data on the chosen volumes will be erased when you click Install.	Bestaande gegevens op de gekozen volumes worden gewist wanneer u op Installeren klikt.
+Unlock %s	%s ontgrendelen
+Enter the passphrase to see what is inside. Nothing is changed.	Voer de wachtwoordzin in om de inhoud te zien. Er verandert niets.
+The passphrase is wrong.	De wachtwoordzin is onjuist.
+The layout is ready.	De indeling is klaar.
+Partitions	Partities
+Will be erased or changed when you click Install:	Wordt gewist of gewijzigd wanneer u op Installeren klikt:
+I understand that the data listed above will be lost.	Ik begrijp dat de hierboven vermelde gegevens verloren gaan.
+Confirm that the listed data will be erased.	Bevestig dat de vermelde gegevens worden gewist.
+There is not enough free space on %s.	Er is niet genoeg vrije ruimte op %s.
+The volume group %s does not have enough free space.	De volumegroep %s heeft niet genoeg vrije ruimte.
+Unlock %s first or choose another volume.	Ontgrendel eerst %s of kies een ander volume.
+The passphrases do not match.	De wachtwoordzinnen komen niet overeen.
+Do not use (for example for LVM)	Niet gebruiken (bijvoorbeeld voor LVM)
+encrypted	versleuteld
+The disk %s is too small for this layout (it needs at least %s).	De schijf %s is te klein voor deze indeling (er is minstens %s nodig).

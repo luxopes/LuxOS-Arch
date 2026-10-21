@@ -16,6 +16,7 @@ while :; do
     # Ucet LuxAI (AI v aplikacich) - jen dokud neni prihlaseny
     ((live)) || [[ -s ${XDG_CONFIG_HOME:-$HOME/.config}/luxai/account.json ]] ||
         buttons+=(--button="$(T "Sign in to LuxAI")!luxos-app:16")
+    buttons+=(--button="$(T "LuxOS Tour")!luxos-tour:17")
     buttons+=(--button="$(T "Shortcuts")!preferences-desktop-keyboard-shortcuts:14" --button="$(T "Close")!window-close:0")
 
     yad --title="$(T "Welcome to LuxOS")" --name=luxos-welcome --class=luxos-welcome --window-icon=luxos-app --image="$icon" --borders=24 --width=660 --center \
@@ -37,6 +38,7 @@ $(T "Fast, light and beautifully simple.")
         14) luxos-shortcuts ;;
         15) setsid -f luxos-store ;;
         16) luxos-account login ;;
+        17) setsid -f luxos-tour ;;   # Prohlidka LuxOS (kde je co)
         *) break ;;
     esac
 done

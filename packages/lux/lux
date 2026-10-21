@@ -1,9 +1,10 @@
 #!/bin/bash
-# lux - spravce baliku LuxOS (misto pacmanu pro bezne pouziti)
+# lux - spravce baliku LuxOS (prikaz pacman v terminalu odkaze sem, viz luxos-pacman)
 #
 # Repozitare Arch Linuxu a LuxOS spravuje pres libalpm (pyalpm, /usr/lib/lux/lux_alpm.py):
 # stejna databaze, pacman.conf, podpisy a hooky jako pacman, takze oba nastroje jdou stridat.
-# Bez pyalpm (nebo s LUX_BACKEND=pacman) pouzije pacman. Dale AUR, Flatpak a vlastni format .lux.
+# Bez pyalpm (nebo s LUX_BACKEND=pacman) pouzije skutecny pacman (/usr/lib/lux/alpm/pacman).
+# Dale AUR, Flatpak a vlastni format .lux.
 set -o pipefail
 
 LUX_VERSION=0.3.0
@@ -33,6 +34,10 @@ LUX_SELF=$(readlink -f "$0")
 # Backend libalpm (vedle skriptu pri spusteni z repozitare)
 LUX_ALPM=${LUX_ALPM:-/usr/lib/lux/lux_alpm.py}
 [[ -x $LUX_ALPM ]] || LUX_ALPM="$(dirname "$LUX_SELF")/lux_alpm.py"
+# Skutecny pacman (luxos-pacman) pro zalozni backend a dotazy; /usr/bin/pacman je v LuxOS jen
+# kompatibilni vrstva, ktera cloveku v terminalu ukaze prikaz lux
+LUX_PACMAN=${LUX_PACMAN:-/usr/lib/lux/alpm/pacman}
+[[ -x $LUX_PACMAN ]] || LUX_PACMAN=pacman
 
 # --- Vystup ---------------------------------------------------------------
 # Barvy se rozhodnou jednou (proces pod sudo/pkexec uz NO_COLOR ani terminal uzivatele nemusi videt)
@@ -155,7 +160,7 @@ pac_run() {
             extra=(--noconfirm)      # souhlas uz padl pri prvnim pokusu
             sleep 2
         fi
-        as_root pacman "$@" "${extra[@]}" 2> >(pac_net_filter "$mark")
+        as_root "$LUX_PACMAN" "$@" "${extra[@]}" 2> >(pac_net_filter "$mark")
         rc=$?
         wait $! 2>/dev/null
         ((rc == 0)) && break
@@ -169,8 +174,8 @@ pac_run() {
 }
 
 # --- Pomocne funkce pro repozitare ------------------------------------------
-in_repos()   { pacman -Sp --print-format '%n' -- "$1" &>/dev/null || pacman -Sg -- "$1" &>/dev/null; }
-installed()  { pacman -T -- "$1" &>/dev/null; }
+in_repos()   { "$LUX_PACMAN" -Sp --print-format '%n' -- "$1" &>/dev/null || "$LUX_PACMAN" -Sg -- "$1" &>/dev/null; }
+installed()  { "$LUX_PACMAN" -T -- "$1" &>/dev/null; }
 strip_ver()  { sed -E 's/[<>=].*$//' <<<"$1"; }
 
 # --- AUR --------------------------------------------------------------------
@@ -178,7 +183,7 @@ need_aur_tools() {
     ((AUR)) || die "$(T "AUR is disabled in lux.conf")"
     command -v jq &>/dev/null || die "$(T "jq is required for AUR support")"
     if ((EUID == 0)); then die "$(T "AUR packages must be built as a regular user (run lux without sudo)")"; fi
-    if ! pacman -Qq base-devel &>/dev/null || ! command -v git &>/dev/null; then
+    if ! "$LUX_PACMAN" -Qq base-devel &>/dev/null || ! command -v git &>/dev/null; then
         say "$(T "Building AUR packages needs %sbase-devel%s and %sgit%s." "${B}" "${R}" "${B}" "${R}")"
         ask "$(T "Install them now?")" || exit 1
         (YES=1; repo_install base-devel git) || exit 1
@@ -232,7 +237,7 @@ aur_build() {  # aur_build pkg [asdeps]
     say "$(T "Building %s %s(AUR)%s" "${B}$base${R}" "${D}" "${R}")"
     local flags=(-si --needed --noconfirm)
     ((asdeps)) && flags+=(--asdeps)
-    (cd "$dir" && makepkg "${flags[@]}") || die "$(T "Build of %s failed (see %s)" "$base" "$dir")"
+    (cd "$dir" && PACMAN=$LUX_PACMAN makepkg "${flags[@]}") || die "$(T "Build of %s failed (see %s)" "$base" "$dir")"
 }
 
 aur_install() {
@@ -296,7 +301,7 @@ cmd_remove() {
     done
     ((${#pac[@]})) || return 0
     if alpm_ok; then alpm_root remove -- "${pac[@]}"
-    else as_root pacman -Rns $(pac_yes) "${pac[@]}"; fi
+    else as_root "$LUX_PACMAN" -Rns $(pac_yes) "${pac[@]}"; fi
 }
 
 cmd_reinstall() {
@@ -315,10 +320,10 @@ cmd_reinstall() {
 cmd_autoremove() {
     if alpm_ok; then alpm_root autoremove; return; fi
     local orphans
-    orphans=$(pacman -Qdtq 2>/dev/null)
+    orphans=$("$LUX_PACMAN" -Qdtq 2>/dev/null)
     if [[ -n $orphans ]]; then
         say "$(T "Unneeded packages: %s" "${B}$(tr '\n' ' ' <<<"$orphans")${R}")"
-        ask "$(T "Remove them?")" Y && as_root pacman -Rns --noconfirm $orphans
+        ask "$(T "Remove them?")" Y && as_root "$LUX_PACMAN" -Rns --noconfirm $orphans
     else
         ok "$(T "No unneeded packages")"
     fi
@@ -332,7 +337,7 @@ cmd_update() {
         say "$(T "Refreshing package databases")"
         pac_run -Sy || exit 1
         # Nejdrive klice - nejcastejsi pricina selhani aktualizaci v Archu
-        if pacman -Qu archlinux-keyring &>/dev/null; then
+        if "$LUX_PACMAN" -Qu archlinux-keyring &>/dev/null; then
             pac_run -S --needed --noconfirm archlinux-keyring || exit 1
         fi
         say "$(T "Updating system packages")"
@@ -341,7 +346,7 @@ cmd_update() {
 
     if ((AUR)) && [[ $ONLY != repo ]] && command -v jq &>/dev/null && ((EUID != 0)); then
         local -a foreign=() outdated=()
-        mapfile -t foreign < <(pacman -Qm 2>/dev/null)
+        mapfile -t foreign < <("$LUX_PACMAN" -Qm 2>/dev/null)
         if ((${#foreign[@]})); then
             say "$(T "Checking AUR packages")"
             local names info line n v nv
@@ -387,7 +392,7 @@ cmd_search() {
         if alpm_ok; then
             alpm search -- "$@" || echo "  (nothing)"
         else
-            pacman -Ss --color "$([[ $LUX_COLOR == always ]] && echo always || echo never)" -- "$@" || echo "  (nothing)"
+            "$LUX_PACMAN" -Ss --color "$([[ $LUX_COLOR == always ]] && echo always || echo never)" -- "$@" || echo "  (nothing)"
         fi
     fi
     if [[ $ONLY != aur ]]; then
@@ -411,7 +416,7 @@ cmd_info() {
     if alpm_ok; then
         alpm info -- "$1" 2>/dev/null && return
     else
-        pacman -Qi -- "$1" 2>/dev/null || pacman -Si -- "$1" 2>/dev/null && return
+        "$LUX_PACMAN" -Qi -- "$1" 2>/dev/null || "$LUX_PACMAN" -Si -- "$1" 2>/dev/null && return
     fi
     local meta
     if lp_installed "$1"; then meta=$(cat "$LUX_DB/$1.json"); else meta=$(lp_index_entry "$1"); fi
@@ -443,12 +448,12 @@ cmd_list() {
     fi
     case ${1-} in
         --lux)      lp_list ;;
-        --aur|--foreign) pacman -Qm ;;
-        --explicit) pacman -Qe ;;
-        --orphans)  pacman -Qdt ;;
-        --upgradable|--updates) pacman -Qu; lp_updates ;;
-        ""|--installed) pacman -Q; lp_list ;;
-        *)          pacman -Q | grep -i -- "$1" ;;
+        --aur|--foreign) "$LUX_PACMAN" -Qm ;;
+        --explicit) "$LUX_PACMAN" -Qe ;;
+        --orphans)  "$LUX_PACMAN" -Qdt ;;
+        --upgradable|--updates) "$LUX_PACMAN" -Qu; lp_updates ;;
+        ""|--installed) "$LUX_PACMAN" -Q; lp_list ;;
+        *)          "$LUX_PACMAN" -Q | grep -i -- "$1" ;;
     esac
 }
 
@@ -458,7 +463,7 @@ cmd_files() {
         echo "$LUX_ROOT/$1/"
         jq -r '.installed_files // [] | .[]' "$LUX_DB/$1.json"
     elif alpm_ok; then alpm files -- "$1"
-    else pacman -Qlq -- "$1"; fi
+    else "$LUX_PACMAN" -Qlq -- "$1"; fi
 }
 
 cmd_owns() {
@@ -477,7 +482,7 @@ cmd_owns() {
             continue
         fi
         if alpm_ok; then alpm owns -- "$f" || rc=1
-        else pacman -Qo -- "$f" || rc=1; fi
+        else "$LUX_PACMAN" -Qo -- "$f" || rc=1; fi
     done
     return "$rc"
 }
@@ -530,7 +535,7 @@ lux_fix() {
         warn "$(T "The system clock is not synchronized, signature checks can fail. Turn it on: timedatectl set-ntp true")"
     fi
     local -a keys=() k
-    for k in archlinux-keyring luxos-keyring; do pacman -Q "$k" &>/dev/null && keys+=("$k"); done
+    for k in archlinux-keyring luxos-keyring; do "$LUX_PACMAN" -Q "$k" &>/dev/null && keys+=("$k"); done
     if ((${#keys[@]})); then
         if alpm_ok; then alpm_root install --refresh --needed -- "${keys[@]}" || exit
         else pac_run -Sy --needed $(pac_yes) "${keys[@]}" || exit 1; fi
@@ -548,7 +553,7 @@ cmd_fix() {
 cmd_drivers() {
     luxos-hwdetect --report
     local -a want=() missing=() svcs=()
-    mapfile -t want < <(luxos-hwdetect --packages --kernel "$(pacman -Qq linux-zen &>/dev/null && echo linux-zen || echo linux)")
+    mapfile -t want < <(luxos-hwdetect --packages --kernel "$("$LUX_PACMAN" -Qq linux-zen &>/dev/null && echo linux-zen || echo linux)")
     mapfile -t svcs < <(luxos-hwdetect --services)
     local p
     for p in "${want[@]}"; do installed "$p" || missing+=("$p"); done
@@ -574,11 +579,18 @@ cmd_doctor() {
     ((n)) && { warn "$(T "%s .pacnew config file(s) to merge (pacdiff)" "$n")"; ((issues++)); } || ok "$(T "No pending config files")"
     local use; use=$(df --output=pcent / | tail -1 | tr -dc 0-9)
     ((use > 90)) && { warn "$(T "Root filesystem is %s%% full" "${use}")"; ((issues++)); } || ok "$(T "Disk usage %s%%" "${use}")"
-    n=$(pacman -Qdtq 2>/dev/null | wc -l)
+    n=$("$LUX_PACMAN" -Qdtq 2>/dev/null | wc -l)
     ((n)) && warn "$(T "%s unneeded package(s) - run: lux clean" "$n")" || ok "$(T "No orphaned packages")"
     if command -v checkupdates &>/dev/null; then
         n=$(checkupdates 2>/dev/null | wc -l)
         ((n)) && warn "$(T "%s update(s) available - run: lux update" "$n")" || ok "$(T "System up to date")"
+    fi
+    # luxos-pacman musi drzet krok s pacmanem Arch Linuxu (pyalpm z Archu se sestavuje proti jeho libalpm)
+    local own upstream
+    own=$("$LUX_PACMAN" -Q luxos-pacman 2>/dev/null | awk '{print $2}')
+    upstream=$(LC_ALL=C "$LUX_PACMAN" -Si core/pacman 2>/dev/null | awk -F': ' '/^Version/ {print $2; exit}')
+    if [[ -n $own && -n $upstream ]] && (($(vercmp "$upstream" "$own" 2>/dev/null || echo 0) > 0)); then
+        warn "$(T "The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)" "$own" "$upstream")"
     fi
     [[ -d /usr/lib/modules/$(uname -r) ]] || { warn "$(T "Running kernel was replaced - restart")"; ((issues++)); }
     n=$(journalctl -b -p err --no-pager -q 2>/dev/null | wc -l)
@@ -639,7 +651,7 @@ CMDS
 -h, --help|this help
 -V, --version|version
 OPTS
-    printf '\n%s\n' "$D$(T "pacman stays available for advanced use; lux and pacman share the same package database.")$R"
+    printf '\n%s\n' "$D$(T "pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.")$R"
 }
 
 # --- Interaktivni rezim (TUI): repozitare LuxOS i Arch Linuxu ---------------
@@ -655,7 +667,7 @@ tui_list() {  # tui_list all|luxos|installed -> radky "zobrazeni<TAB>balik"
             else { o = 2; badge = sprintf("\033[2m  %-6.6s\033[0m", repo) }
             mark = (name in inst) ? "\033[32m●\033[0m" : " "
             printf "%d\t%s %s \033[1m%-26.26s\033[0m \033[2m%-14.14s\033[0m %s\t%s\n", o, badge, mark, name, $3, $4, name
-        }' <(pacman -Qq) - | sort -t$'\t' -s -k1,1n | cut -f2-
+        }' <("$LUX_PACMAN" -Qq) - | sort -t$'\t' -s -k1,1n | cut -f2-
 }
 
 cmd_tui() {
@@ -696,9 +708,9 @@ cmd_tui() {
 
 cmd_preview() {  # nahled pro TUI (bez ladicich hlasek pacmanu)
     [[ -n ${1-} ]] || return 0
-    pacman -Si --color=always -- "$1" 2>/dev/null |
+    "$LUX_PACMAN" -Si --color=always -- "$1" 2>/dev/null |
         grep -vE '^(Architecture|Packager|Build Date|Validated By|MD5|SHA256|Signatures|Conflicts With|Replaces|Optional Deps|Architektura|Sestaveno)' 
-    if pacman -Q -- "$1" &>/dev/null; then
+    if "$LUX_PACMAN" -Q -- "$1" &>/dev/null; then
         printf '\n\e[32m● %s\e[0m\n' "$(T "Installed")"
     fi
 }

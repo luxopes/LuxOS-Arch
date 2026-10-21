@@ -1576,3 +1576,227 @@ The photo could not be taken.	Не вдалося зробити фото.
 The photo could not be saved: %s	Не вдалося зберегти фото: %s
 The video could not be saved: %s	Не вдалося зберегти відео: %s
 No video encoder is installed (gst-plugins-good).	Не встановлено кодувальник відео (gst-plugins-good).
+Unlock Safe	Розблокувати Сейф
+The Safe is locked. Files cannot be saved here until you unlock it.	Сейф заблоковано. Поки ви його не розблокуєте, сюди нічого не можна зберегти.
+Could not protect the locked Safe folder (%s).	Не вдалося захистити заблоковану папку Сейфа (%s).
+Unencrypted files found	Знайдено незашифровані файли
+Files saved in %s while the Safe was locked were not encrypted. They were moved to %s.	Файли, збережені в %s, коли Сейф був заблокований, не зашифровано. Їх переміщено до %s.
+Import them into the Safe? The unencrypted copies will then be deleted.	Перемістити їх до Сейфа? Незашифровані копії потім буде видалено.
+Keep in Home Folder	Залишити в домашній папці
+Import into Safe	Перемістити до Сейфа
+The files were imported into the Safe.	Файли переміщено до Сейфа.
+Could not import the files (%s).	Не вдалося перемістити файли (%s).
+These apps keep files in the Safe open: %s. Close them and try again.	Ці програми тримають відкритими файли в Сейфі: %s. Закрийте їх і спробуйте ще раз.
+The Safe could not be locked	Не вдалося заблокувати Сейф
+LuxOS Tour	Огляд LuxOS
+Skip Tour	Пропустити огляд
+Get Started	Почати
+Show on Screen	Показати на екрані
+Open Control Center	Відкрити Центр керування
+Open Launchpad	Відкрити Launchpad
+Open Search	Відкрити пошук
+Open Files	Відкрити Файли
+Open LuxOS Store	Відкрити LuxOS Store
+Open Settings	Відкрити Параметри
+Open LuxDrop	Відкрити LuxDrop
+Notifications	Сповіщення
+System menu	Системне меню
+App menus	Меню застосунку
+Wi-Fi, sound, battery	Wi-Fi, звук, батарея
+82 % · 3:12 h left	82 % · залишилось 3:12 год
+● = app is running	● = застосунок працює
+How do I connect a printer?	Як підключити принтер?
+Space	Пробіл
+Home	Домівка
+Documents	Документи
+Downloads	Завантаження
+Music	Музика
+Videos	Відео
+Encrypted	Зашифровано
+works with LocalSend	працює з LocalSend
+plug in and print	підключіть і друкуйте
+Edit	Зміни
+View	Вигляд
+Go	Перейти
+The Menu Bar	Рядок меню
+The Dock	Dock
+Launchpad and Search	Launchpad і пошук
+Files and Safe	Файли та Сейф
+Installing Apps	Встановлення застосунків
+Light, Dark or Auto	Світлий, темний або авто
+Share and Print	Обмін і друк
+Help and Shortcuts	Допомога і скорочення
+This short tour shows you where everything is. It takes about a minute – you can skip it anytime and open it again from Launchpad as LuxOS Tour.	Цей короткий огляд покаже, де що знаходиться. Він триває близько хвилини – його можна будь-коли пропустити й знову відкрити з Launchpad як «Огляд LuxOS».
+The LuxOS logo opens the system menu with About This Computer, Settings, sleep and shut down. Next to it are the menus of the active app. On the right: Wi-Fi, sound, battery with the time left, Control Center for quick settings, notifications and the calendar.	Логотип LuxOS відкриває системне меню: Про цей комп’ютер, Параметри, сон і вимкнення. Поруч – меню активного застосунку. Праворуч: Wi-Fi, звук, батарея із залишком часу, Центр керування зі швидкими налаштуваннями, сповіщення та календар.
+Your favourite apps are at the bottom of the screen. Click an icon to open the app – a dot below it means the app is running. Drag apps from Launchpad to the Dock, drag them out to remove them.	Улюблені застосунки – внизу екрана. Клацніть значок, щоб відкрити застосунок; крапка під ним означає, що він працює. Перетягніть застосунки з Launchpad у Dock, а щоб прибрати – витягніть їх.
+Super + A opens Launchpad with all your apps. Super + Space searches apps, files and windows. Type a question instead and LuxAI will answer it – Ctrl + Enter always asks LuxAI.	Super + A відкриває Launchpad з усіма застосунками. Super + пробіл шукає застосунки, файли та вікна. Натомість введіть запитання – і LuxAI відповість; Ctrl + Enter завжди запитує LuxAI.
+Files (Super + E) keeps your documents, downloads and pictures. The Safe is an encrypted folder for private things – it locks itself when you log out, lock the screen or the computer goes to sleep.	Файли (Super + E) зберігають ваші документи, завантаження й зображення. Сейф – це зашифрована тека для особистого; він сам блокується, коли ви виходите із системи, блокуєте екран або комп’ютер засинає.
+LuxOS Store offers apps sorted into categories with one-click installs and updates. In the Terminal (Super + T) the lux command does the same: lux install, lux search, lux update.	LuxOS Store пропонує застосунки за категоріями зі встановленням і оновленнями в один клік. У Терміналі (Super + T) те саме робить команда lux: lux install, lux search, lux update.
+Choose how LuxOS looks. Auto switches between light and dark at sunrise and sunset. Wallpaper, Dock and much more are in Settings (Super + ,).	Виберіть вигляд LuxOS. Авто перемикає світлий і темний режими на світанку та заході сонця. Шпалери, Dock і багато іншого – у Параметрах (Super + ,).
+LuxDrop sends files to computers and phones nearby – it also works with the LocalSend app. Printers & Scanners finds devices on your network or USB by itself: just plug in and print.	LuxDrop надсилає файли на комп’ютери й телефони поруч – працює також із застосунком LocalSend. Принтери та сканери самі знаходять пристрої в мережі або через USB: просто підключіть і друкуйте.
+Found a bug or have an idea? Feedback sends it straight to the author of LuxOS. All keyboard shortcuts are listed in Keyboard Shortcuts. Enjoy LuxOS!	Знайшли помилку чи маєте ідею? Відгук надішле її просто автору LuxOS. Усі скорочення є в розділі «Клавіатурні скорочення». Насолоджуйтеся LuxOS!
+LuxOS uses lux to manage software.	LuxOS керує програмами за допомогою lux.
+All lux commands: %s	Усі команди lux: %s
+Experts can still run pacman directly: %s	Досвідчені користувачі й далі можуть запускати pacman напряму: %s
+The package manager core is missing (%s). Repair it with: %s	Відсутнє ядро менеджера пакетів (%s). Відновіть його командою: %s
+pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman — лише для досвідчених (LUX_ALLOW_PACMAN=1 pacman …); lux і pacman використовують одну базу пакетів.
+The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	Ядро менеджера пакетів %s старіше за pacman в Arch Linux %s (оновлення LuxOS незабаром)
+You manage the system yourself with lux.	Ви самі керуєте системою за допомогою lux.
+# Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
+Layout line %s is not valid.	Рядок розмітки %s недійсний.
+Layout line %s has an invalid id.	Рядок розмітки %s має недійсний id.
+The id %s is used twice in the layout.	Id %s використано в розмітці двічі.
+The layout refers to %s, which does not exist.	Розмітка посилається на %s, якого не існує.
+%s cannot be used here.	%s тут не можна використати.
+%s is used for two things at once.	%s використано для двох речей одночасно.
+Invalid device %s.	Недійсний пристрій %s.
+The device %s is listed twice.	Пристрій %s указано двічі.
+Invalid size for %s.	Недійсний розмір для %s.
+Only one volume on %s can use the remaining space.	Лише один том на %s може використати решту місця.
+Invalid partition type for %s.	Недійсний тип розділу для %s.
+Invalid name for %s.	Недійсна назва для %s.
+The name %s is used twice.	Назву %s використано двічі.
+%s is marked as existing but sits on a new volume.	%s позначено як наявний, але він лежить на новому томі.
+The volume group %s has no physical volumes.	Група томів %s не має фізичних томів.
+%s is on a disk that will be erased.	%s розташовано на диску, який буде стерто.
+%s is not a valid mount point.	%s не є дійсною точкою монтування.
+%s cannot be a separate partition.	%s не може бути окремим розділом.
+The mount point %s is used twice.	Точку монтування %s використано двічі.
+Unsupported file system for %s.	Непідтримувана файлова система для %s.
+The root file system (/) must be formatted.	Кореневу файлову систему (/) потрібно відформатувати.
+Choose a volume for the root file system (/).	Виберіть том для кореневої файлової системи (/).
+An EFI system partition (FAT32, at least 300 MB) mounted at /boot or /efi is needed.	Потрібен системний розділ EFI (FAT32, щонайменше 300 МБ), змонтований у /boot або /efi.
+The EFI system partition must be a plain partition (not encrypted, not LVM).	Системний розділ EFI має бути звичайним розділом (не зашифрованим, не LVM).
+The partition mounted at /boot or /efi must be an EFI system partition.	Розділ, змонтований у /boot або /efi, має бути системним розділом EFI.
+The EFI system partition must use FAT32.	Системний розділ EFI має використовувати FAT32.
+The EFI system partition must have at least 300 MB.	Системний розділ EFI має мати щонайменше 300 МБ.
+With the EFI partition at /boot, there cannot be another /boot. Mount the EFI partition at /efi instead.	Коли розділ EFI змонтовано в /boot, іншого /boot бути не може. Натомість змонтуйте розділ EFI в /efi.
+The boot loader (GRUB) cannot open encrypted volumes: add an unencrypted /boot partition.	Завантажувач (GRUB) не може відкрити зашифровані томи: додайте незашифрований розділ /boot.
+A BIOS boot partition (1 MB) is needed to start from this disk.	Для запуску з цього диска потрібен розділ BIOS boot (1 МБ).
+The root file system (/) needs at least 8 GB.	Кореневій файловій системі (/) потрібно щонайменше 8 ГБ.
+The root file system (/) has less than 20 GB; apps may not fit.	Коренева файлова система (/) має менше 20 ГБ; застосунки можуть не вміститися.
+/boot needs at least 300 MB.	/boot потрібно щонайменше 300 МБ.
+/ and %s are not encrypted the same way: files in the unencrypted one are not protected.	/ і %s зашифровано по-різному: файли в незашифрованому не захищені.
+The swap is not encrypted although / is: memory contents can leak to the disk.	Swap не зашифровано, хоча / зашифровано: вміст пам'яті може потрапити на диск.
+Enter a passphrase for the encrypted volume %s.	Введіть пароль для зашифрованого тому %s.
+%s is created but not used.	%s буде створено, але не використано.
+%s does not exist.	%s не існує.
+%s does not use a GPT partition table.	%s не використовує таблицю розділів GPT.
+%s is in use (mounted). Unmount it first.	%s використовується (змонтовано). Спершу відмонтуйте його.
+%s is not an encrypted (LUKS) volume.	%s не є зашифрованим томом (LUKS).
+The passphrase for %s is wrong.	Пароль для %s неправильний.
+A volume group named %s already exists.	Група томів з назвою %s уже існує.
+The volume group %s was not found.	Групу томів %s не знайдено.
+The logical volume %s was not found.	Логічний том %s не знайдено.
+The name %s is already used by an open volume.	Назву %s уже використовує відкритий том.
+%s cannot be resized (only ext4, btrfs and NTFS).	Розмір %s не можна змінити (лише ext4, btrfs і NTFS).
+The kept EFI system partition %s is not FAT32.	Збережений системний розділ EFI %s не є FAT32.
+The EFI system partition %s is smaller than 300 MB.	Системний розділ EFI %s менший за 300 МБ.
+ERASE the whole disk %s	СТЕРТИ весь диск %s
+DELETE logical volume %s	ВИДАЛИТИ логічний том %s
+DELETE partition %s	ВИДАЛИТИ розділ %s
+Resize %s to %s	Змінити розмір %s на %s
+ERASE %s (new encrypted volume)	СТЕРТИ %s (новий зашифрований том)
+ERASE %s (new LVM physical volume)	СТЕРТИ %s (новий фізичний том LVM)
+FORMAT %s	ФОРМАТУВАТИ %s
+ERASE logical volume %s	СТЕРТИ логічний том %s
+FORMAT logical volume %s	ФОРМАТУВАТИ логічний том %s
+keep data	зберегти дані
+Could not read partition %s.	Не вдалося прочитати розділ %s.
+Resizing %s to %s	Змінюю розмір %s на %s
+The file system on %s has errors.	Файлова система на %s містить помилки.
+%s cannot be shrunk that much.	%s не можна настільки зменшити.
+Encrypting %s	Шифрування %s
+Creating volume group %s	Створення групи томів %s
+Not enough free space on %s.	Недостатньо вільного місця на %s.
+Preparing disks	Підготовка дисків
+Encrypting volumes	Шифрування томів
+Setting up LVM	Налаштування LVM
+Formatting %s as %s (%s)	Форматування %s як %s (%s)
+Advanced: manual partitioning from a layout file (LVM, encryption)	Додатково: ручна розмітка з файлу розмітки (LVM, шифрування)
+manual partitioning	ручна розмітка
+Partitions:	Розділи:
+Will be erased or changed:	Буде стерто або змінено:
+Cannot read %s	Не вдалося прочитати %s
+DISK_MODE=layout needs LAYOUT or LAYOUT_FILE	DISK_MODE=layout потребує LAYOUT або LAYOUT_FILE
+Warning: %s	Попередження: %s
+Path to the partition layout file (LAYOUT format)	Шлях до файлу розмітки розділів (формат LAYOUT)
+Invalid DISK_MODE (use erase, freespace, layout or manual)	Недійсний DISK_MODE (використайте erase, freespace, layout або manual)
+Manual partitioning (advanced)	Ручна розмітка (додатково)
+Choose partitions yourself: separate /home, /var and other directories, LVM and encryption (LUKS2), keep existing partitions.	Оберіть розділи самі: окремі /home, /var та інші каталоги, LVM і шифрування (LUKS2), збереження наявних розділів.
+You set up the partitions in the next step. Nothing is changed before you confirm the summary.	Розділи налаштуєте на наступному кроці. Нічого не зміниться, доки ви не підтвердите підсумок.
+Manual partitioning	Ручна розмітка
+Choose where each part of LuxOS goes. Nothing is written to the disks before you confirm the summary.	Оберіть, куди піде кожна частина LuxOS. На диски нічого не записується, доки ви не підтвердите підсумок.
+No disks found.	Диски не знайдено.
+Quick setup on	Швидке налаштування на
+Encrypted LVM (/, /home, swap)	Зашифрований LVM (/, /home, swap)
+Encrypted LVM with separate /var and /tmp	Зашифрований LVM з окремими /var і /tmp
+Erases the chosen disk in the plan; you can still change everything.	У плані стирає вибраний диск; усе ще можна змінити.
+Locked - unlock to use	Заблоковано - розблокуйте, щоб використати
+Encrypted (LUKS2)	Зашифровано (LUKS2)
+not used	не використовується
+Encrypted volume	Зашифрований том
+new partition table	нова таблиця розділів
+erase	стерти
+Free space	Вільне місце
+LVM volume group	Група томів LVM
+new	новий
+create	створити
+Contents	Вміст
+Mount point	Точка монтування
+Add…	Додати…
+Edit…	Змінити…
+Unlock…	Розблокувати…
+Erase Disk	Стерти диск
+New Volume Group…	Нова група томів…
+Undo All Changes	Скасувати всі зміни
+Encryption passphrase	Пароль шифрування
+Use the same passphrase for all encrypted volumes (one prompt at start)	Однаковий пароль для всіх зашифрованих томів (один запит під час запуску)
+New partition	Новий розділ
+will be deleted	буде видалено
+BIOS boot partition	Розділ BIOS boot
+LVM physical volume	Фізичний том LVM
+LVM physical volume (%s)	Фізичний том LVM (%s)
+delete	видалити
+resize to %s	змінити до %s
+format	форматувати
+Keep	Залишити
+Keep Partitions	Залишити розділи
+Delete %s?	Видалити %s?
+All data on it will be lost when you click Install.	Після натискання «Інсталювати» всі дані на ньому буде втрачено.
+Erase %s?	Стерти %s?
+All partitions on this disk will be deleted when you click Install.	Після натискання «Інсталювати» всі розділи на цьому диску буде видалено.
+New Volume	Новий том
+Edit %s	Змінити %s
+Use all remaining space	Використати все вільне місце
+Available: %s	Доступно: %s
+Use as	Використати як
+for example /data	наприклад /data
+recommended	рекомендовано
+File system	Файлова система
+Format (erases the data on it)	Форматувати (стирає дані на ньому)
+Encrypt (LUKS2)	Зашифрувати (LUKS2)
+Passphrase for this volume	Пароль для цього тому
+Passphrase	Пароль
+Resize to	Змінити розмір до
+Shrinking keeps the data, but back up important files first.	Зменшення зберігає дані, але спершу зробіть резервну копію важливих файлів.
+The used space could not be checked.	Не вдалося перевірити зайняте місце.
+New Volume Group	Нова група томів
+Create	Створити
+LVM joins one or more partitions (or encrypted volumes) into a group, from which you create logical volumes for /, /home, swap and more.	LVM об'єднує один або кілька розділів (чи зашифрованих томів) у групу, з якої ви створюєте логічні томи для /, /home, swap тощо.
+Existing data on the chosen volumes will be erased when you click Install.	Після натискання «Інсталювати» дані на вибраних томах буде стерто.
+Unlock %s	Розблокувати %s
+Enter the passphrase to see what is inside. Nothing is changed.	Введіть пароль, щоб побачити вміст. Нічого не зміниться.
+The passphrase is wrong.	Пароль неправильний.
+The layout is ready.	Розмітку підготовлено.
+Partitions	Розділи
+Will be erased or changed when you click Install:	Після натискання «Інсталювати» буде стерто або змінено:
+I understand that the data listed above will be lost.	Я розумію, що наведені вище дані буде втрачено.
+Confirm that the listed data will be erased.	Підтвердьте, що наведені дані буде стерто.
+There is not enough free space on %s.	На %s недостатньо вільного місця.
+The volume group %s does not have enough free space.	У групі томів %s недостатньо вільного місця.
+Unlock %s first or choose another volume.	Спершу розблокуйте %s або виберіть інший том.
+The passphrases do not match.	Паролі не збігаються.
+Do not use (for example for LVM)	Не використовувати (наприклад, для LVM)
+encrypted	зашифровано
+The disk %s is too small for this layout (it needs at least %s).	Диск %s замалий для цієї розмітки (потрібно щонайменше %s).

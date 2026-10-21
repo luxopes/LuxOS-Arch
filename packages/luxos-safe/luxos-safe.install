@@ -1,0 +1,18 @@
+# LuxOS - Trezor: ochrana zamcenych slozek pri startu (i v chrootu instalatoru zapnout).
+# Po aktualizaci ochranit hned (starsi verze nechavaly zamcenou slozku zapisovatelnou na disku);
+# prave odemcene Trezory se ochrani pri dalsim odemceni nebo startu.
+
+post_install() {
+    systemctl enable luxos-safe-guard.service >/dev/null 2>&1 || true
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload >/dev/null 2>&1 || true
+        # Pres systemd: pripojeni vznikne v hlavnim jmennem prostoru, i kdyz pacman bezi v izolovane sluzbe
+        systemctl restart luxos-safe-guard.service >/dev/null 2>&1 || true
+    fi
+}
+
+post_upgrade() { post_install; }
+
+pre_remove() {
+    systemctl disable luxos-safe-guard.service >/dev/null 2>&1 || true
+}

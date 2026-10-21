@@ -16,7 +16,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 LUX = os.path.join(HERE, "..", "lux")
 
 STUB = """#!/bin/bash
-printf '%s\\n' "$*" >>"$LOG/$(basename "$0").log"
+n=$(basename "$0")
+# skutecny pacman (luxos-pacman: .../alpm/pacman) se zapisuje zvlast od /usr/bin/pacman
+[[ $(basename "$(dirname "$0")") == alpm ]] && n=alpm-$n
+printf '%s\\n' "$*" >>"$LOG/$n.log"
 case "$(basename "$0")" in
   lux_alpm.py)
     for a in "$@"; do
@@ -126,7 +129,7 @@ class CLI(unittest.TestCase):
         for cmd in ("install", "remove", "update, upgrade", "reinstall", "autoremove", "owns", "fix",
                     "list --upgradable", "history"):
             self.assertIn(cmd, out)
-        self.assertIn("pacman stays available", out)
+        self.assertIn("LUX_ALLOW_PACMAN=1", out)
 
     def test_install_through_backend_as_root(self):
         rc, out = self.lux("install", "htop")
@@ -196,6 +199,33 @@ class CLI(unittest.TestCase):
             self.assertIn("-S --noconfirm htop", self.calls("pacman"))
             rc, out = self.lux("list", "--upgradable", env=env)
             self.assertIn("-Qu", self.calls("pacman"))
+
+    def test_fallback_uses_real_pacman_not_shim(self):
+        """Zalozni cesta vola skutecny pacman (LUX_PACMAN, v LuxOS /usr/lib/lux/alpm/pacman), nikdy
+        /usr/bin/pacman - to je v LuxOS kompatibilni vrstva, ktera by v terminalu odmitla."""
+        alpm = os.path.join(self.tmp, "alpm")
+        os.makedirs(alpm)
+        real = os.path.join(alpm, "pacman")
+        with open(real, "w") as f:
+            f.write(STUB)
+        os.chmod(real, 0o755)
+        env = {"LUX_BACKEND": "pacman", "LUX_PACMAN": real}
+        for args in (("-y", "install", "htop"), ("-y", "remove", "htop"), ("-y", "autoremove"),
+                     ("-y", "reinstall", "htop"), ("list", "--upgradable"), ("list",), ("files", "htop"),
+                     ("owns", "/usr/bin/htop"), ("info", "htop"), ("search", "htop"), ("doctor",)):
+            self.lux(*args, env=env)
+        real_calls = self.calls("alpm-pacman")
+        for want in ("-S --needed --noconfirm htop", "-Rns --noconfirm htop", "-Rns --noconfirm orphan-lib",
+                     "-S --noconfirm htop", "-Qu", "-Q", "-Qlq -- htop", "-Qo -- /usr/bin/htop"):
+            self.assertIn(want, real_calls)
+        self.assertTrue(any(x.startswith("-Ss") for x in real_calls), real_calls)
+        self.assertEqual(self.calls("pacman"), [])
+        # neexistujici LUX_PACMAN -> pacman z PATH (system bez luxos-pacman)
+        shutil.rmtree(self.log)
+        os.makedirs(self.log)
+        rc, out = self.lux("-y", "install", "htop", env={"LUX_BACKEND": "pacman", "LUX_PACMAN": "/nonexistent"})
+        self.assertEqual(rc, 0, out)
+        self.assertIn("-S --needed --noconfirm htop", self.calls("pacman"))
 
     def test_history(self):
         rc, out = self.lux("history")

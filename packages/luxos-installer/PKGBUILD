@@ -2,12 +2,12 @@
 
 pkgname=luxos-installer
 pkgver=1.1.0
-pkgrel=11
+pkgrel=14
 pkgdesc="LuxOS installer"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
-depends=(bash gum arch-install-scripts gptfdisk dosfstools e2fsprogs btrfs-progs cryptsetup parted
+depends=(bash gum arch-install-scripts gptfdisk dosfstools e2fsprogs btrfs-progs cryptsetup parted lvm2 xfsprogs f2fs-tools
          util-linux curl reflector luxos-drivers luxos-i18n luxos-account networkmanager
          python python-gobject gtk3 sudo xorg-setxkbmap)
 
@@ -15,6 +15,9 @@ package() {
     local f="$startdir/files"
     install -Dm755 -t "$pkgdir/usr/bin" "$f/luxos-install" "$f/luxos-install-gui"
     install -Dm755 "$f/setup-chroot.sh" "$pkgdir/usr/share/luxos/installer/setup-chroot.sh"
+    # Rucni rozdeleni: backend (bash) a model pro GUI (Python)
+    install -Dm644 "$f/layout.sh" "$pkgdir/usr/share/luxos/installer/layout.sh"
+    install -Dm644 "$f/luxos_layout.py" "$pkgdir/usr/lib/luxos/python/luxos_layout.py"
     install -Dm644 -t "$pkgdir/usr/share/luxos/installer" "$f/packages" "$f/install.conf.example" "$f/pacman.conf"
     # Sablony softwaru (TEMPLATES=, krok Software v GUI)
     install -Dm644 -t "$pkgdir/usr/share/luxos/installer/templates" "$f"/templates/*.list

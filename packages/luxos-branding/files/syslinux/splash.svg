@@ -1,14 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+  <!-- Pozadi spousteci nabidky ISO (syslinux): stejny vzhled jako boot splash - temer cerne
+       pozadi s nadechem modre, logo se zari a bilym leskem podel cepeli -->
   <defs>
+    <radialGradient id="bg" gradientUnits="userSpaceOnUse" cx="320" cy="90" r="330">
+      <stop offset="0" stop-color="#081226"/>
+      <stop offset="0.55" stop-color="#03060f"/>
+      <stop offset="1" stop-color="#010207"/>
+    </radialGradient>
     <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="40" y1="30" x2="225" y2="230">
-      <stop offset="0" stop-color="#7ab8ff"/>
-      <stop offset="0.5" stop-color="#5b7cff"/>
-      <stop offset="1" stop-color="#a06bff"/>
+      <stop offset="0" stop-color="#9cccff"/>
+      <stop offset="0.5" stop-color="#6f93ff"/>
+      <stop offset="1" stop-color="#b38cff"/>
     </linearGradient>
+    <path id="mark" d="M246.27 209.91C188.18 163.23 147.07 104.71 133.55 30.45C116.12 140.58 158.36 161.65 246.27 209.91ZM8.09 211.18C89.02 173.90 133.08 136.86 126.09 40.64C105.95 110.22 62.88 165.17 8.09 211.18ZM248.64 226.09C158.26 151.17 105.77 146.57 13.73 222.82C95.86 182.21 167.60 183.49 248.64 226.09Z"/>
+    <clipPath id="clip"><use href="#mark"/></clipPath>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
+    <filter id="glow2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter>
+    <filter id="core" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="3"/></filter>
   </defs>
-  <rect width="640" height="480" fill="#000000"/>
+  <rect width="640" height="480" fill="url(#bg)"/>
   <g transform="translate(290 48) scale(0.234)">
-    <path fill="url(#g)" d="M246.27 209.91C188.18 163.23 147.07 104.71 133.55 30.45C116.12 140.58 158.36 161.65 246.27 209.91ZM8.09 211.18C89.02 173.90 133.08 136.86 126.09 40.64C105.95 110.22 62.88 165.17 8.09 211.18ZM248.64 226.09C158.26 151.17 105.77 146.57 13.73 222.82C95.86 182.21 167.60 183.49 248.64 226.09Z"/>
+    <use href="#mark" fill="#3a76ff" opacity="0.55" filter="url(#glow)"/>
+    <use href="#mark" fill="#3a76ff" opacity="0.8" filter="url(#glow2)"/>
+    <use href="#mark" fill="url(#g)"/>
+    <!-- bily lesk: rozmazany tvar orezany na tvar = svetlejsi jadro, sytejsi okraje -->
+    <g clip-path="url(#clip)">
+      <use href="#mark" fill="#ffffff" opacity="0.8" filter="url(#core)"/>
+    </g>
   </g>
   <text x="320" y="138" text-anchor="middle" font-family="Inter" font-weight="600" font-size="26" fill="#ffffff">LuxOS</text>
 </svg>

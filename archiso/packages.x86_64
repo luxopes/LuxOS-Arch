@@ -1,5 +1,7 @@
 # --- Zaklad live systemu (archiso) ---
 base
+# pacman z Archu (libalpm, makepkg); prikaz pacman je kompatibilni vrstva, pacstrap ho dostane beze zmeny
+luxos-pacman
 linux
 linux-firmware
 sof-firmware
@@ -32,6 +34,9 @@ exfatprogs
 ntfs-3g
 cryptsetup
 lvm2
+# rucni rozdeleni v instalatoru: XFS a F2FS
+xfsprogs
+f2fs-tools
 smartmontools
 # --- Virtualizace (sluzby se spusti jen ve VM) ---
 virtualbox-guest-utils

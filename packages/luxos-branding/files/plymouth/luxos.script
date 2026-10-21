@@ -2,7 +2,7 @@
 # Sablona pro vsechny barevne varianty: blok @variant dosazuje make-variants.py (luxos-splash).
 
 # @variant-begin (vychozi hodnoty = modra varianta)
-bg_r = 0.012; bg_g = 0.024; bg_b = 0.059;
+bg_r = 0.004; bg_g = 0.008; bg_b = 0.027;
 text_r = 1; text_g = 1; text_b = 1;
 # @variant-end
 
