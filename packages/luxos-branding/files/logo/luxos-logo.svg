@@ -1,12 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#6ea8ff"/>
-      <stop offset="0.5" stop-color="#a77bff"/>
-      <stop offset="1" stop-color="#ff8fa3"/>
+    <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="40" y1="30" x2="225" y2="230">
+      <stop offset="0" stop-color="#7ab8ff"/>
+      <stop offset="0.5" stop-color="#5b7cff"/>
+      <stop offset="1" stop-color="#a06bff"/>
     </linearGradient>
   </defs>
-  <!-- LuxOS: hvezdicka svetla -->
-  <path fill="url(#g)" d="M128 14C138 92 164 118 242 128C164 138 138 164 128 242C118 164 92 138 14 128C92 118 118 92 128 14Z"/>
-  <circle cx="200" cy="58" r="14" fill="url(#g)" opacity="0.85"/>
+  <!-- LuxOS: tri zahnute cepele (vektor z predlohy, kazda cepel = dve Bezierovy krivky) -->
+  <path fill="url(#g)" d="M246.27 209.91C188.18 163.23 147.07 104.71 133.55 30.45C116.12 140.58 158.36 161.65 246.27 209.91ZM8.09 211.18C89.02 173.90 133.08 136.86 126.09 40.64C105.95 110.22 62.88 165.17 8.09 211.18ZM248.64 226.09C158.26 151.17 105.77 146.57 13.73 222.82C95.86 182.21 167.60 183.49 248.64 226.09Z"/>
 </svg>

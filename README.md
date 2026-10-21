@@ -27,7 +27,8 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
   macOS zvyky: `open`, `pbcopy`, `pbpaste`.
 - **Aplikace a ikony:** vlastní Kalkulačka LuxOS, ikony LuxOS pro Soubory, Nastavení, Poznámky, Launchpad,
   instalátor a Kalkulačku; ostatní z WhiteSur v překreslené variantě (bez napodobenin ikon a loga Apple).
-- **Splash screeny:** Plymouth (černá + logo + tenký progress bar, i pro zadání hesla k LUKS), skrytý zavaděč
+- **Splash screeny:** Plymouth (tónované pozadí + logo se září + tenký progress bar, i pro zadání hesla k LUKS;
+  varianty modrá/fialová/oranžová/zelená/bílá v Nastavení › Plocha a Dock nebo `luxos-splash set <varianta>`), skrytý zavaděč
   (systemd-boot `timeout 0`), přihlašovací obrazovka uprostřed (lightdm-gtk-greeter), ISO boot menu v barvách LuxOS.
 - **`lux`** – správce balíků LuxOS (nad pacmanem, AUR a Flatpakem); `lux` bez parametrů otevře interaktivní
   obchod v terminálu (TUI) s balíky z repozitářů LuxOS i Arch Linuxu.

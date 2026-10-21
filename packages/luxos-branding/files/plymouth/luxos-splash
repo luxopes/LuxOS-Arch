@@ -1,0 +1,98 @@
+#!/bin/bash
+# LuxOS - barevna varianta boot splashe (Plymouth)
+#
+#   luxos-splash list            dostupne varianty
+#   luxos-splash get             aktivni varianta (nebo "other" pro cizi motiv)
+#   luxos-splash set VARIANTA    nastavit variantu a znovu sestavit initramfs (root, pkexec)
+#
+# Kazda varianta je samostatny motiv Plymouth (luxos = modra, luxos-purple, ...), skript
+# Plymouthu soubory za behu cist nemuze. "set" zmeni Theme= v /etc/plymouth/plymouthd.conf
+# a spusti mkinitcpio -P, aby se do initramfs dostaly obrazky zvolene varianty.
+set -uo pipefail
+# shellcheck source=/dev/null
+[[ -r /usr/lib/luxos/i18n.sh ]] && . /usr/lib/luxos/i18n.sh
+# shellcheck disable=SC2059
+declare -F T >/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+
+THEMES=/usr/share/plymouth/themes
+CONF=${LUXOS_SPLASH_CONF:-/etc/plymouth/plymouthd.conf}
+VARIANTS=(blue purple orange green light)
+
+theme_of() { if [[ $1 == blue ]]; then echo luxos; else echo "luxos-$1"; fi; }
+
+current_theme() {
+    local t
+    t=$(sed -n 's/^[[:space:]]*Theme[[:space:]]*=[[:space:]]*//p' "$CONF" 2>/dev/null | tail -1)
+    [[ -z $t ]] && t=$(sed -n 's/^[[:space:]]*Theme[[:space:]]*=[[:space:]]*//p' /usr/share/plymouth/plymouthd.defaults 2>/dev/null | tail -1)
+    echo "${t%%[[:space:]]*}"
+}
+
+variant_of() {
+    local v
+    for v in "${VARIANTS[@]}"; do
+        [[ $(theme_of "$v") == "$1" ]] && { echo "$v"; return; }
+    done
+    echo other
+}
+
+# Theme= v plymouthd.conf (ostatni nastaveni zustava)
+write_theme() {
+    local t=$1
+    mkdir -p "${CONF%/*}"
+    if grep -q '^[[:space:]]*Theme[[:space:]]*=' "$CONF" 2>/dev/null; then
+        sed -i "s/^[[:space:]]*Theme[[:space:]]*=.*/Theme=$t/" "$CONF"
+    elif grep -q '^\[Daemon\]' "$CONF" 2>/dev/null; then
+        sed -i "/^\[Daemon\]/a Theme=$t" "$CONF"
+    else
+        printf '\n[Daemon]\nTheme=%s\n' "$t" >>"$CONF"
+    fi
+}
+
+rebuild_initramfs() {
+    # Live system z ISO: initramfs je na mediu, zmena plati jen pro instalaci
+    if [[ -d /run/archiso || -n ${LUXOS_SPLASH_NO_INITRAMFS-} ]]; then
+        T "Live system: the boot image is not rebuilt."; echo
+        return 0
+    fi
+    T "Rebuilding the boot image…"; echo
+    mkinitcpio -P
+}
+
+cmd_set() {
+    local v=${1-} t prev
+    t=$(theme_of "$v")
+    if [[ ! " ${VARIANTS[*]} " == *" $v "* || ! -f $THEMES/$t/$t.plymouth ]]; then
+        T "Unknown variant: %s" "$v" >&2; echo >&2
+        return 2
+    fi
+    if ((EUID != 0)); then
+        T "Run as root: pkexec luxos-splash set %s" "$v" >&2; echo >&2
+        return 1
+    fi
+    exec 9>/run/lock/luxos-splash.lock
+    if ! flock -n 9; then
+        T "Another change of the boot screen is running." >&2; echo >&2
+        return 3
+    fi
+    prev=$(current_theme)
+    if [[ $prev == "$t" ]]; then
+        T "Boot screen is already %s." "$v"; echo
+        return 0
+    fi
+    write_theme "$t"
+    if ! rebuild_initramfs; then
+        # puvodni motiv zpet, at initramfs a nastaveni odpovidaji
+        if [[ -n $prev ]]; then write_theme "$prev"; else sed -i '/^[[:space:]]*Theme[[:space:]]*=/d' "$CONF"; fi
+        rebuild_initramfs >/dev/null 2>&1
+        T "Rebuilding the boot image failed, the previous boot screen was restored." >&2; echo >&2
+        return 1
+    fi
+    T "Boot screen set to %s." "$v"; echo
+}
+
+case ${1-} in
+    list) printf '%s\n' "${VARIANTS[@]}" ;;
+    get)  variant_of "$(current_theme)" ;;
+    set)  cmd_set "${2-}"; exit $? ;;
+    *)    echo "usage: luxos-splash list | get | set $(IFS='|'; echo "${VARIANTS[*]}")" >&2; exit 2 ;;
+esac

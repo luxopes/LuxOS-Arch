@@ -1161,3 +1161,22 @@ Freed disk space	Uvolněno místo na disku
 Will try the newest kernel again	Nejnovější jádro se zkusí znovu
 Will start the previous kernel	Spustí se předchozí jádro
 Only reported the problem	Problém jen nahlášen
+Boot Screen	Spouštěcí obrazovka
+Blue	Modrá
+Purple	Fialová
+Orange	Oranžová
+Green	Zelená
+White	Bílá
+Shown while the computer starts. A change rebuilds the boot image, which takes about a minute.	Zobrazuje se při startu počítače. Změna znovu sestaví zaváděcí obraz, trvá to asi minutu.
+Applying the boot screen…	Nastavuji spouštěcí obrazovku…
+The new boot screen will be shown at the next start.	Nová spouštěcí obrazovka se ukáže při příštím startu.
+Change cancelled.	Změna zrušena.
+Could not change the boot screen.	Spouštěcí obrazovku se nepodařilo změnit.
+Live system: the boot image is not rebuilt.	Živý systém: zaváděcí obraz se znovu nesestavuje.
+Rebuilding the boot image…	Znovu sestavuji zaváděcí obraz…
+Unknown variant: %s	Neznámá varianta: %s
+Run as root: pkexec luxos-splash set %s	Spusťte jako root: pkexec luxos-splash set %s
+Another change of the boot screen is running.	Už probíhá jiná změna spouštěcí obrazovky.
+Boot screen is already %s.	Spouštěcí obrazovka už je %s.
+Rebuilding the boot image failed, the previous boot screen was restored.	Sestavení zaváděcího obrazu selhalo, vrácena předchozí spouštěcí obrazovka.
+Boot screen set to %s.	Spouštěcí obrazovka nastavena: %s.
