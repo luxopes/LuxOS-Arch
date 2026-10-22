@@ -38,6 +38,14 @@ def pump():
         Gtk.main_iteration_do(False)
 
 
+def walk(w):
+    """Vsechny widgety pod w (vcetne w)."""
+    yield w
+    if isinstance(w, Gtk.Container):
+        for c in w.get_children():
+            yield from walk(c)
+
+
 def bash_validate(cfg):
     """Konfigurace z GUI -> eval v bash -> layout.sh: chyby (prazdne = OK)."""
     script = f'''
@@ -158,6 +166,90 @@ def main():
                                                 "Creating file systems"] and "@@DONE" in r.stdout, str(steps))
     win.s["mode"] = "freespace"
     check("freespace: DISK_MODE=freespace", "DISK_MODE=freespace" in win.build_config())
+
+    # Existujici oddil (DISK_MODE=partition): vyber oddilu, duvody, /home, souhrn, konfigurace
+    out = ("FREESPACE_ERR=no_space\nPART_BOOT_ERR=\nPART_ESP=/dev/vda1\n"
+           "PART=/dev/vda1\t536870912\tvfat\tEFI\tesp\tesp\t\t\n"
+           "PART=/dev/vda2\t64424509440\text4\t\t\t\tos\tUbuntu 24.04.1 LTS\n")
+    pr = gui.parse_probe(out)
+    check("parse_probe: radky PART v PARTS", [p["dev"] for p in pr["PARTS"]] == ["/dev/vda1", "/dev/vda2"]
+          and pr["PARTS"][1]["name"] == "Ubuntu 24.04.1 LTS" and pr["PARTS"][0]["root_err"] == "esp"
+          and pr["PART_ESP"] == "/dev/vda1", str(pr))
+    win.s.update({"mode": None, "disk": "/dev/nvme0n1", "encrypt": False, "luks1": "", "luks2": "",
+                  "layout_ok": False, "part": None, "home_part": None})
+    win.layout = None
+    win.disks = gui.fake_disks()
+    win.idx = win.steps.index("disk")
+    win.render()
+    win.pick_mode("partition")
+    pump()
+    check("partition: bez kroku Partitions", "partitions" not in win.steps)
+    check("partition: bez vyberu nelze pokracovat", not win.valid() and "Choose a partition" in win.why(), win.why())
+    radios = {}
+    for w in walk(win.scroll):
+        if isinstance(w, Gtk.RadioButton) and w.get_child():
+            texts = [x.get_text() for x in walk(w) if isinstance(x, Gtk.Label)]
+            radios[texts[0].split()[0]] = (w, texts)
+    check("partition: vsechny 4 oddily v seznamu", sorted(radios) == ["/dev/nvme0n1p%d" % i for i in range(1, 5)],
+          str(sorted(radios)))
+    check("partition: ESP nelze vybrat (duvod)", not radios["/dev/nvme0n1p1"][0].get_sensitive()
+          and "Not available: EFI system partition" in radios["/dev/nvme0n1p1"][1])
+    check("partition: MSR/recovery nelze vybrat", not radios["/dev/nvme0n1p2"][0].get_sensitive()
+          and not radios["/dev/nvme0n1p4"][0].get_sensitive())
+    check("partition: Windows lze vybrat, obsah popsan", radios["/dev/nvme0n1p3"][0].get_sensitive()
+          and "Operating system: Windows" in radios["/dev/nvme0n1p3"][1])
+    radios["/dev/nvme0n1p3"][0].set_active(True)
+    pump()
+    labels = [x.get_text() for x in walk(win.scroll) if isinstance(x, Gtk.Label)]
+    check("partition: vybran oddil a lze pokracovat", win.s["part"] == "/dev/nvme0n1p3" and win.valid())
+    check("partition: silne varovani o Windows", any("contains Windows" in t for t in labels))
+    check("partition: hlaska o sdilenem ESP", any("/dev/nvme0n1p1 is shared" in t for t in labels))
+    combo = next(w for w in walk(win.scroll) if isinstance(w, Gtk.ComboBoxText))
+    ids = [r[1] for r in combo.get_model()]
+    check("partition: /home kandidati z obou disku (ext4)", ids == ["", "/dev/sda1", "/dev/sda2"], str(ids))
+    combo.set_active_id("/dev/sda2")
+    check("partition: /home zvolen", win.s["home_part"] == "/dev/sda2" and win.valid())
+    win.s["encrypt"] = True
+    check("partition: sifrovani bez hesla blokuje", not win.valid())
+    win.s["luks1"] = win.s["luks2"] = "tajne"
+    check("partition: sifrovani s heslem OK", win.valid())
+    # souhrn: potvrzeni smazani, obsah a varovani
+    win.idx = win.steps.index("summary")
+    win.render()
+    pump()
+    labels = [x.get_text() for x in walk(win.scroll) if isinstance(x, Gtk.Label)]
+    check("partition souhrn: bez potvrzeni nelze instalovat", not win.valid())
+    check("partition souhrn: co se smaze vcetne obsahu",
+          any("ERASE partition /dev/nvme0n1p3" in t and "Operating system: Windows" in t for t in labels), str(labels))
+    check("partition souhrn: silne varovani", any("WARNING: /dev/nvme0n1p3 contains Windows" in t for t in labels))
+    check("partition souhrn: /home a /efi bez formatovani", "/home" in labels and "/efi" in labels
+          and labels.count("keep data") == 2, str(labels))
+    check("partition souhrn: cervene tlacitko Install", win.btn_next.get_style_context().has_class("danger-btn"))
+    win.s["layout_ok"] = True
+    win.render()
+    pump()
+    check("partition souhrn: po potvrzeni lze instalovat", win.valid())
+    cfg = win.build_config()
+    check("partition: konfigurace", all(x in cfg for x in ("DISK_MODE=partition", "ROOT_PART=/dev/nvme0n1p3",
+                                                            "HOME_PART=/dev/sda2", "ENCRYPT=1")), cfg)
+    r = subprocess.run(["bash", "-c", gui.FAKE_BACKEND], input=cfg, capture_output=True, text=True,
+                       env=dict(os.environ, LUXOS_INSTALL_FAKE_DELAY="0"))
+    steps = [ln.split(" ", 3)[3] for ln in r.stdout.splitlines() if ln.startswith("@@STEP")]
+    check("partition: FAKE kroky jako backend (layout.sh)", steps[:3] == ["Preparing disks", "Encrypting volumes",
+                                                                          "Creating file systems"]
+          and "@@DONE" in r.stdout, str(steps))
+    # bez EFI oddilu: vysvetleni, nelze pokracovat
+    win.idx = win.steps.index("disk")
+    win.disks[0]["probe"] = dict(win.disks[0]["probe"], PART_BOOT_ERR="no_esp")
+    win.s["layout_ok"] = False
+    win.render()
+    pump()
+    labels = [x.get_text() for x in walk(win.scroll) if isinstance(x, Gtk.Label)]
+    check("partition: bez ESP nelze pokracovat", not win.valid() and "No EFI system partition" in win.why(), win.why())
+    check("partition: bez ESP vysvetleni na strance", any("No EFI system partition found" in t for t in labels))
+    win.disks = gui.fake_disks()
+    win.s.update({"mode": "manual", "part": None, "home_part": None})
+    win.sync_steps()   # dalsi testy pokracuji v rucnim rozdeleni
 
     # Regrese z VM: predvolba na 24 GiB disku je platna, puvodni plan (30 GiB LV ve ~23 GiB VG) GUI zablokuje
     small = {"bootmode": "uefi", "vgs": [], "disks": [{"path": "/dev/vdx", "name": "vdx", "size": 24 * lay.GiB,

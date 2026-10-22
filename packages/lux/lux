@@ -672,12 +672,17 @@ tui_list() {  # tui_list all|luxos|installed -> radky "zobrazeni<TAB>balik"
             else { o = 2; badge = sprintf("\033[2m  %-6.6s\033[0m", repo) }
             mark = (name in inst) ? "\033[32m●\033[0m" : " "
             printf "%d\t%s %s \033[1m%-26.26s\033[0m \033[2m%-14.14s\033[0m %s\t%s\n", o, badge, mark, name, $3, $4, name
-        }' <("$LUX_PACMAN" -Qq) - | sort -t$'\t' -s -k1,1n | cut -f2-
+        }' <("$LUX_PACMAN" -Qq 2>/dev/null) - | sort -t$'\t' -s -k1,1n | cut -f2-
 }
 
 cmd_tui() {
     command -v fzf &>/dev/null || die "$(T "The interactive mode needs fzf (lux install fzf)")"
     command -v expac &>/dev/null || die "$(T "The interactive mode needs expac (lux install expac)")"
+    # cerstvy system (napr. live ISO) jeste nema seznamy baliku z repozitaru
+    if ! compgen -G "${LUX_SYNC_DIR:-/var/lib/pacman/sync}/*.db" >/dev/null; then
+        say "$(T "Downloading the list of available software first")"
+        if alpm_ok; then alpm_root sync || exit 1; else pac_run -Sy || exit 1; fi
+    fi
     local filter=all out key label
     local -a sel
     local header
@@ -762,5 +767,10 @@ case $cmd in
     __lux-remove)       ((EUID == 0)) || exit 1; lp_remove "$1" ;;
     __preview)          cmd_preview "$@" ;;
     "")                 if [[ -t 0 && -t 1 ]]; then cmd_tui; else usage; fi ;;
+    # zvyk z pacmanu (lux -Syu, lux -S balik): ukazat odpovidajici prikaz lux
+    -[SRQUFDT]*)        if [[ -x /usr/bin/pacman ]] && grep -q LUX_PACMAN_HINT /usr/bin/pacman 2>/dev/null; then
+                            LUX_PACMAN_HINT=1 exec /usr/bin/pacman "$cmd" "$@"
+                        fi
+                        die "$(T "Unknown command '%s' (see lux --help)" "$cmd")" ;;
     *)                  die "$(T "Unknown command '%s' (see lux --help)" "$cmd")" ;;
 esac

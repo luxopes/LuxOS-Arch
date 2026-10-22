@@ -1930,3 +1930,101 @@ Could not open the Scanner app	Aplikaci Skener se nepodařilo otevřít
 Open the Scanner app to scan a document.	Dokument naskenujete v aplikaci Skener.
 Open windows	Otevřená okna
 Keyboard, network, sound, battery	Klávesnice, síť, zvuk, baterie
+# LuxAI: prihlaseni kodem a zalozeni uctu (instalator, Ucet LuxAI)
+An account with this e-mail already exists. Sign in instead.	Účet s tímto e-mailem už existuje. Přihlaste se.
+At least %d characters (%d more).	Alespoň %d znaků (ještě %d).
+At least %d characters.	Alespoň %d znaků.
+Create Account	Vytvořit účet
+Create a new account	Vytvořit nový účet
+Creating an account from LuxOS is not available yet - create it at %s	Vytvoření účtu z LuxOS zatím není dostupné - vytvořte si ho na %s
+E-mail Code	Kód e-mailem
+Easy to guess - use different characters.	Snadno uhodnutelné - použijte různé znaky.
+Enter a valid e-mail address.	Zadejte platnou e-mailovou adresu.
+Enter the 6-digit code (leave empty to send a new one)	Zadejte šestimístný kód (prázdné = poslat nový)
+Enter your name.	Zadejte své jméno.
+Forgot password? Sign in with a code	Zapomenuté heslo? Přihlaste se kódem
+Good password. Longer is even better.	Dobré heslo. Delší je ještě lepší.
+Hide password	Skrýt heslo
+I Agree	Souhlasím
+I agree to the LuxAI Terms	Souhlasím s podmínkami LuxAI
+Loading the terms…	Načítám podmínky…
+LuxAI Terms of Use	Podmínky používání LuxAI
+LuxAI is having problems right now. Try again later.	LuxAI má právě potíže. Zkuste to později.
+New Account	Nový účet
+No internet connection. You can skip this step and sign in later in Settings.	Nejste připojeni k internetu. Tento krok můžete přeskočit a přihlásit se později v Nastavení.
+Open %s	Otevřít %s
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in or create an account now and everything is ready after the first start.	Nepovinné: AI v LuxAI, Lux Code a LSL IDE používá váš účet LuxAI. Přihlaste se nebo si vytvořte účet teď a po prvním spuštění bude vše připravené.
+Password (at least %d characters)	Heslo (alespoň %d znaků)
+Read the terms	Přečíst podmínky
+Resend code	Poslat kód znovu
+Resend code in %d s	Poslat znovu za %d s
+Send Code	Poslat kód
+Show password	Zobrazit heslo
+Sign in with a code from e-mail	Přihlásit se kódem z e-mailu
+Sign in with a password	Přihlásit se heslem
+Strong password.	Silné heslo.
+The account could not be saved (%s).	Účet se nepodařilo uložit (%s).
+The code is valid for 10 minutes. Check also the spam folder.	Kód platí 10 minut. Podívejte se i do složky se spamem.
+The e-mail check is temporarily unavailable. Try again later.	Kontrola e-mailu je dočasně nedostupná. Zkuste to později.
+The password can have at most %d characters.	Heslo může mít nejvýše %d znaků.
+The password must have at least 12 characters.	Heslo musí mít alespoň 12 znaků.
+The server did not finish the sign-in. Try again.	Server přihlášení nedokončil. Zkuste to znovu.
+This e-mail domain cannot be used for a LuxAI account.	Tuto e-mailovou doménu nelze pro účet LuxAI použít.
+This e-mail domain cannot be verified yet. Please use another address.	Tuto e-mailovou doménu zatím nelze ověřit. Použijte jinou adresu.
+Use a different e-mail	Použít jiný e-mail
+We sent a code to %s.	Kód jsme poslali na %s.
+We sent a new code.	Poslali jsme nový kód.
+We will e-mail you a 6-digit code - no password needed.	Pošleme vám e-mailem šestimístný kód - heslo není potřeba.
+You can also read them at %s	Najdete je také na %s
+You can skip this step and sign in to LuxAI later in Settings.	Tento krok můžete přeskočit a k LuxAI se přihlásit později v Nastavení.
+You need to agree to the LuxAI Terms.	Je potřeba souhlasit s podmínkami LuxAI.
+Your name	Vaše jméno
+DISK_MODE=partition needs ROOT_PART	DISK_MODE=partition vyžaduje ROOT_PART
+%s cannot be used for LuxOS: %s	%s nelze použít pro LuxOS: %s
+%s cannot be used as /home: %s	%s nelze použít jako /home: %s
+does not exist	neexistuje
+not a partition	není oddíl
+installation medium	instalační médium
+in use (mounted)	používá se (připojeno)
+extended partition	rozšířený oddíl
+system partition (reserved or recovery)	systémový oddíl (rezervovaný nebo pro obnovení)
+part of LVM	součást LVM
+encrypted (LUKS)	šifrovaný (LUKS)
+part of RAID or a storage pool	součást RAID nebo úložného fondu
+smaller than 20 GB	menší než 20 GB
+no Linux file system for /home	chybí linuxový souborový systém pro /home
+already chosen for LuxOS	už je vybraný pro LuxOS
+Operating system: %s	Operační systém: %s
+Encrypted with BitLocker (Windows)	Šifrováno pomocí BitLocker (Windows)
+Files (no operating system found)	Soubory (operační systém nenalezen)
+Empty file system	Prázdný souborový systém
+Empty (no file system)	Prázdný (bez souborového systému)
+Swap space	Odkládací prostor (swap)
+Contents could not be checked	Obsah nelze zjistit
+Installing into an existing partition needs a computer started in UEFI mode.	Instalace do existujícího oddílu vyžaduje počítač spuštěný v režimu UEFI.
+No EFI system partition found. Installing into an existing partition shares it with the other systems; use Erase disk or Manual partitioning instead.	Nenalezen systémový oddíl EFI. Instalace do existujícího oddílu ho sdílí s ostatními systémy; použijte raději Smazat disk nebo Ruční rozdělení.
+ERASE partition %s: %s	SMAZAT oddíl %s: %s
+All other partitions are kept unchanged.	Všechny ostatní oddíly zůstanou beze změny.
+WARNING: %s contains %s. It will be deleted and will no longer start.	VAROVÁNÍ: %s obsahuje %s. Tento systém bude smazán a už se nespustí.
+WARNING: the contents of %s could not be checked. Make sure it holds nothing you need.	VAROVÁNÍ: obsah %s nelze zjistit. Ujistěte se, že na něm není nic, co potřebujete.
+Looking for partitions…	Hledám oddíly…
+Partitions that cannot be used:	Oddíly, které nelze použít:
+No partition can be used for LuxOS (at least 20 GB, not in use, not a system partition).	Pro LuxOS nelze použít žádný oddíl (alespoň 20 GB, nepoužívaný, ne systémový).
+Which partition should LuxOS replace? Everything on it will be erased.	Který oddíl má LuxOS nahradit? Vše na něm bude smazáno.
+All data on %s will be erased. Other partitions are kept.	Všechna data na %s budou smazána. Ostatní oddíly zůstanou zachovány.
+No - keep /home on the LuxOS partition	Ne - /home zůstane na oddílu LuxOS
+Use an existing partition as /home (its files are kept)?	Použít existující oddíl jako /home (jeho soubory zůstanou zachovány)?
+partition %s  (will be ERASED, other partitions are kept)	oddíl %s  (bude SMAZÁN, ostatní oddíly zůstanou)
+Install into an existing partition (other partitions are kept)	Nainstalovat do existujícího oddílu (ostatní oddíly zůstanou)
+Encrypt LuxOS? (you will enter a password at every start)	Zašifrovat LuxOS? (heslo zadáte při každém startu)
+Invalid DISK_MODE (use erase, freespace, partition, layout or manual)	Neplatný DISK_MODE (použijte erase, freespace, partition, layout nebo manual)
+Replace an existing partition	Nahradit existující oddíl
+LuxOS is installed into one partition you choose; everything on it is erased. Other partitions and systems are kept.	LuxOS se nainstaluje do jednoho oddílu, který vyberete; vše na něm bude smazáno. Ostatní oddíly a systémy zůstanou zachovány.
+Choose a partition for LuxOS.	Vyberte oddíl pro LuxOS.
+Partition for LuxOS	Oddíl pro LuxOS
+Not available: %s	Nedostupné: %s
+No partition on this disk can be used for LuxOS.	Žádný oddíl na tomto disku nelze pro LuxOS použít.
+The EFI system partition %s is shared with the other systems and is not formatted.	Systémový oddíl EFI %s se sdílí s ostatními systémy a nebude naformátován.
+Replace partition %s with LuxOS; other partitions are kept	Nahradit oddíl %s systémem LuxOS; ostatní oddíly zůstanou zachovány
+Could not set the partition type of %s; LuxOS works anyway.	Typ oddílu %s se nepodařilo nastavit; LuxOS bude přesto fungovat.
+Downloading the list of available software first	Nejdřív stahuji seznam dostupného softwaru

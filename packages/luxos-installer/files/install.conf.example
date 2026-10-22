@@ -9,9 +9,15 @@ DISK=/dev/vda          # disk pro instalaci; "manual" = pouzit oddily uz pripoje
 DISK_MODE=erase        # erase = CELY DISK BUDE SMAZAN
                        # freespace = vedle jinych systemu do nejvetsi volne oblasti (min. 20 GB,
                        #             jen GPT + UEFI, sdileny EFI oddil s min. 250 MB volneho mista)
+                       # partition = do EXISTUJICIHO oddilu ROOT_PART (TEN SE SMAZE), ostatni oddily zustanou
+                       #             (jen UEFI, sdileny EFI oddil s min. 250 MB volneho mista; swap = zram)
                        # manual = oddily pripojene v /mnt (stejne jako DISK=manual)
                        # layout = rucni rozdeleni podle LAYOUT nize (LVM, LUKS2, samostatne oddily)
 BOOTLOADER=auto        # auto = systemd-boot (UEFI) / GRUB (BIOS); none = bez zavadece (jadro v /boot)
+ROOT_PART=             # DISK_MODE=partition: oddil pro LuxOS (min. 20 GB, nepripojeny), napr. /dev/nvme0n1p4;
+                       #   DISK lze vynechat (doplni se podle oddilu)
+HOME_PART=             # DISK_MODE=partition, nepovinne: existujici oddil jako /home BEZ formatovani
+                       #   (ext4, btrfs, xfs, f2fs; btrfs se subvolumem @home se pripoji jako @home)
 ENCRYPT=0              # 1 = LUKS2, vyzaduje LUKS_PASS
 LUKS_PASS=
 USERNAME=lux

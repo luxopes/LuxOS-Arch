@@ -1930,3 +1930,101 @@ Could not open the Scanner app	Nem sikerült megnyitni a Szkenner alkalmazást
 Open the Scanner app to scan a document.	Nyisd meg a Szkenner alkalmazást egy dokumentum beolvasásához.
 Open windows	Megnyitott ablakok
 Keyboard, network, sound, battery	Billentyűzet, hálózat, hang, akkumulátor
+# LuxAI: prihlaseni kodem a zalozeni uctu (instalator, Ucet LuxAI)
+An account with this e-mail already exists. Sign in instead.	Ezzel az e-mail-címmel már van fiók. Jelentkezz be.
+At least %d characters (%d more).	Legalább %d karakter (még %d).
+At least %d characters.	Legalább %d karakter.
+Create Account	Fiók létrehozása
+Create a new account	Új fiók létrehozása
+Creating an account from LuxOS is not available yet - create it at %s	A fiók létrehozása a LuxOS-ből még nem érhető el - hozd létre itt: %s
+E-mail Code	Kód e-mailben
+Easy to guess - use different characters.	Könnyen kitalálható - használj különböző karaktereket.
+Enter a valid e-mail address.	Adj meg egy érvényes e-mail-címet.
+Enter the 6-digit code (leave empty to send a new one)	Írd be a 6 jegyű kódot (üresen hagyva új kódot küld)
+Enter your name.	Add meg a neved.
+Forgot password? Sign in with a code	Elfelejtetted a jelszót? Jelentkezz be kóddal
+Good password. Longer is even better.	Jó jelszó. A hosszabb még jobb.
+Hide password	Jelszó elrejtése
+I Agree	Elfogadom
+I agree to the LuxAI Terms	Elfogadom a LuxAI feltételeit
+Loading the terms…	Feltételek betöltése…
+LuxAI Terms of Use	A LuxAI felhasználási feltételei
+LuxAI is having problems right now. Try again later.	A LuxAI-nál most problémák vannak. Próbáld újra később.
+New Account	Új fiók
+No internet connection. You can skip this step and sign in later in Settings.	Nincs internetkapcsolat. Ezt a lépést kihagyhatod, és később a Beállításokban jelentkezhetsz be.
+Open %s	%s megnyitása
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in or create an account now and everything is ready after the first start.	Nem kötelező: a LuxAI, a Lux Code és az LSL IDE AI-funkciói a LuxAI-fiókodat használják. Jelentkezz be vagy hozz létre fiókot most, és az első indítás után minden készen áll.
+Password (at least %d characters)	Jelszó (legalább %d karakter)
+Read the terms	Feltételek elolvasása
+Resend code	Kód újraküldése
+Resend code in %d s	Újraküldés %d mp múlva
+Send Code	Kód küldése
+Show password	Jelszó megjelenítése
+Sign in with a code from e-mail	Bejelentkezés e-mailben kapott kóddal
+Sign in with a password	Bejelentkezés jelszóval
+Strong password.	Erős jelszó.
+The account could not be saved (%s).	A fiókot nem sikerült menteni (%s).
+The code is valid for 10 minutes. Check also the spam folder.	A kód 10 percig érvényes. Nézd meg a spam mappát is.
+The e-mail check is temporarily unavailable. Try again later.	Az e-mail ellenőrzése átmenetileg nem érhető el. Próbáld újra később.
+The password can have at most %d characters.	A jelszó legfeljebb %d karakter lehet.
+The password must have at least 12 characters.	A jelszónak legalább 12 karakterből kell állnia.
+The server did not finish the sign-in. Try again.	A szerver nem fejezte be a bejelentkezést. Próbáld újra.
+This e-mail domain cannot be used for a LuxAI account.	Ez az e-mail-domain nem használható LuxAI-fiókhoz.
+This e-mail domain cannot be verified yet. Please use another address.	Ezt az e-mail-domaint még nem tudjuk ellenőrizni. Használj másik címet.
+Use a different e-mail	Másik e-mail-cím használata
+We sent a code to %s.	Elküldtük a kódot ide: %s.
+We sent a new code.	Új kódot küldtünk.
+We will e-mail you a 6-digit code - no password needed.	E-mailben küldünk egy 6 jegyű kódot - jelszó nem kell.
+You can also read them at %s	Itt is elolvashatod: %s
+You can skip this step and sign in to LuxAI later in Settings.	Ezt a lépést kihagyhatod, és később a Beállításokban jelentkezhetsz be a LuxAI-ba.
+You need to agree to the LuxAI Terms.	El kell fogadnod a LuxAI feltételeit.
+Your name	Neved
+DISK_MODE=partition needs ROOT_PART	A DISK_MODE=partition módhoz ROOT_PART szükséges
+%s cannot be used for LuxOS: %s	A(z) %s nem használható a LuxOS-hez: %s
+%s cannot be used as /home: %s	A(z) %s nem használható /home-ként: %s
+does not exist	nem létezik
+not a partition	nem partíció
+installation medium	telepítő adathordozó
+in use (mounted)	használatban (csatolva)
+extended partition	kiterjesztett partíció
+system partition (reserved or recovery)	rendszerpartíció (fenntartott vagy helyreállító)
+part of LVM	LVM része
+encrypted (LUKS)	titkosított (LUKS)
+part of RAID or a storage pool	RAID vagy tárolókészlet része
+smaller than 20 GB	kisebb mint 20 GB
+no Linux file system for /home	nincs rajta Linux fájlrendszer a /home számára
+already chosen for LuxOS	már ki van választva a LuxOS-hez
+Operating system: %s	Operációs rendszer: %s
+Encrypted with BitLocker (Windows)	BitLockerrel titkosítva (Windows)
+Files (no operating system found)	Fájlok (operációs rendszer nem található)
+Empty file system	Üres fájlrendszer
+Empty (no file system)	Üres (nincs fájlrendszer)
+Swap space	Cserehely (swap)
+Contents could not be checked	A tartalom nem ellenőrizhető
+Installing into an existing partition needs a computer started in UEFI mode.	A meglévő partícióra telepítéshez UEFI módban indított számítógép szükséges.
+No EFI system partition found. Installing into an existing partition shares it with the other systems; use Erase disk or Manual partitioning instead.	Nem található EFI-rendszerpartíció. A meglévő partícióra telepítés megosztja azt a többi rendszerrel; használd helyette a Lemez törlése vagy a Kézi particionálás lehetőséget.
+ERASE partition %s: %s	A(z) %s partíció TÖRLÉSE: %s
+All other partitions are kept unchanged.	Az összes többi partíció változatlan marad.
+WARNING: %s contains %s. It will be deleted and will no longer start.	FIGYELEM: a(z) %s tartalmazza ezt: %s. Ez a rendszer törlődik, és többé nem indul el.
+WARNING: the contents of %s could not be checked. Make sure it holds nothing you need.	FIGYELEM: a(z) %s tartalma nem ellenőrizhető. Győződj meg róla, hogy nincs rajta semmi, amire szükséged van.
+Looking for partitions…	Partíciók keresése…
+Partitions that cannot be used:	Nem használható partíciók:
+No partition can be used for LuxOS (at least 20 GB, not in use, not a system partition).	Egyik partíció sem használható a LuxOS-hez (legalább 20 GB, nincs használatban, nem rendszerpartíció).
+Which partition should LuxOS replace? Everything on it will be erased.	Melyik partíciót cserélje le a LuxOS? Minden törlődik rajta.
+All data on %s will be erased. Other partitions are kept.	A(z) %s összes adata törlődik. A többi partíció megmarad.
+No - keep /home on the LuxOS partition	Nem - a /home maradjon a LuxOS partícióján
+Use an existing partition as /home (its files are kept)?	Meglévő partíciót használsz /home-ként (a fájljai megmaradnak)?
+partition %s  (will be ERASED, other partitions are kept)	%s partíció  (TÖRLŐDIK, a többi partíció megmarad)
+Install into an existing partition (other partitions are kept)	Telepítés meglévő partícióra (a többi partíció megmarad)
+Encrypt LuxOS? (you will enter a password at every start)	Titkosítod a LuxOS-t? (minden indításkor meg kell adnod egy jelszót)
+Invalid DISK_MODE (use erase, freespace, partition, layout or manual)	Érvénytelen DISK_MODE (erase, freespace, partition, layout vagy manual lehet)
+Replace an existing partition	Meglévő partíció lecserélése
+LuxOS is installed into one partition you choose; everything on it is erased. Other partitions and systems are kept.	A LuxOS az általad választott partícióra települ; minden törlődik rajta. A többi partíció és rendszer megmarad.
+Choose a partition for LuxOS.	Válassz partíciót a LuxOS-hez.
+Partition for LuxOS	Partíció a LuxOS-hez
+Not available: %s	Nem elérhető: %s
+No partition on this disk can be used for LuxOS.	Ezen a lemezen egyik partíció sem használható a LuxOS-hez.
+The EFI system partition %s is shared with the other systems and is not formatted.	A(z) %s EFI-rendszerpartíciót a többi rendszerrel közösen használja, és nem lesz formázva.
+Replace partition %s with LuxOS; other partitions are kept	A(z) %s partíció lecserélése LuxOS-re; a többi partíció megmarad
+Could not set the partition type of %s; LuxOS works anyway.	A(z) %s partíciótípusát nem sikerült beállítani; a LuxOS így is működik.
+Downloading the list of available software first	Először letöltöm az elérhető szoftverek listáját

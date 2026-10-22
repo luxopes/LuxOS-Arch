@@ -1931,3 +1931,101 @@ Could not open the Scanner app	Не вдалося відкрити програ
 Open the Scanner app to scan a document.	Відкрийте програму «Сканер», щоб відсканувати документ.
 Open windows	Відкриті вікна
 Keyboard, network, sound, battery	Клавіатура, мережа, звук, батарея
+# LuxAI: prihlaseni kodem a zalozeni uctu (instalator, Ucet LuxAI)
+An account with this e-mail already exists. Sign in instead.	Обліковий запис із цією адресою вже існує. Увійдіть.
+At least %d characters (%d more).	Щонайменше %d символів (ще %d).
+At least %d characters.	Щонайменше %d символів.
+Create Account	Створити обліковий запис
+Create a new account	Створити новий обліковий запис
+Creating an account from LuxOS is not available yet - create it at %s	Створення облікового запису з LuxOS поки недоступне - створіть його на %s
+E-mail Code	Код e-mail
+Easy to guess - use different characters.	Легко вгадати - використайте різні символи.
+Enter a valid e-mail address.	Введіть дійсну адресу e-mail.
+Enter the 6-digit code (leave empty to send a new one)	Введіть 6-значний код (порожньо = надіслати новий)
+Enter your name.	Введіть своє ім’я.
+Forgot password? Sign in with a code	Забули пароль? Увійдіть за кодом
+Good password. Longer is even better.	Добрий пароль. Довший - ще краще.
+Hide password	Сховати пароль
+I Agree	Погоджуюся
+I agree to the LuxAI Terms	Я погоджуюся з умовами LuxAI
+Loading the terms…	Завантаження умов…
+LuxAI Terms of Use	Умови використання LuxAI
+LuxAI is having problems right now. Try again later.	У LuxAI зараз проблеми. Спробуйте пізніше.
+New Account	Новий обліковий запис
+No internet connection. You can skip this step and sign in later in Settings.	Немає підключення до інтернету. Цей крок можна пропустити й увійти пізніше в Налаштуваннях.
+Open %s	Відкрити %s
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in or create an account now and everything is ready after the first start.	Необов’язково: ШІ в LuxAI, Lux Code і LSL IDE використовує ваш обліковий запис LuxAI. Увійдіть або створіть обліковий запис зараз, і все буде готово після першого запуску.
+Password (at least %d characters)	Пароль (щонайменше %d символів)
+Read the terms	Прочитати умови
+Resend code	Надіслати код ще раз
+Resend code in %d s	Надіслати ще раз через %d с
+Send Code	Надіслати код
+Show password	Показати пароль
+Sign in with a code from e-mail	Увійти за кодом з e-mail
+Sign in with a password	Увійти з паролем
+Strong password.	Надійний пароль.
+The account could not be saved (%s).	Не вдалося зберегти обліковий запис (%s).
+The code is valid for 10 minutes. Check also the spam folder.	Код дійсний 10 хвилин. Перевірте також папку зі спамом.
+The e-mail check is temporarily unavailable. Try again later.	Перевірка e-mail тимчасово недоступна. Спробуйте пізніше.
+The password can have at most %d characters.	Пароль може мати щонайбільше %d символів.
+The password must have at least 12 characters.	Пароль має містити щонайменше 12 символів.
+The server did not finish the sign-in. Try again.	Сервер не завершив вхід. Спробуйте ще раз.
+This e-mail domain cannot be used for a LuxAI account.	Цей домен e-mail не можна використати для облікового запису LuxAI.
+This e-mail domain cannot be verified yet. Please use another address.	Цей домен e-mail поки не вдається перевірити. Використайте іншу адресу.
+Use a different e-mail	Використати інший e-mail
+We sent a code to %s.	Ми надіслали код на %s.
+We sent a new code.	Ми надіслали новий код.
+We will e-mail you a 6-digit code - no password needed.	Ми надішлемо вам на e-mail 6-значний код - пароль не потрібен.
+You can also read them at %s	Їх також можна прочитати на %s
+You can skip this step and sign in to LuxAI later in Settings.	Цей крок можна пропустити й увійти в LuxAI пізніше в Налаштуваннях.
+You need to agree to the LuxAI Terms.	Потрібно погодитися з умовами LuxAI.
+Your name	Ваше ім’я
+DISK_MODE=partition needs ROOT_PART	DISK_MODE=partition потребує ROOT_PART
+%s cannot be used for LuxOS: %s	%s не можна використати для LuxOS: %s
+%s cannot be used as /home: %s	%s не можна використати як /home: %s
+does not exist	не існує
+not a partition	не розділ
+installation medium	інсталяційний носій
+in use (mounted)	використовується (змонтовано)
+extended partition	розширений розділ
+system partition (reserved or recovery)	системний розділ (зарезервований або відновлення)
+part of LVM	частина LVM
+encrypted (LUKS)	зашифрований (LUKS)
+part of RAID or a storage pool	частина RAID або пулу сховища
+smaller than 20 GB	менше 20 ГБ
+no Linux file system for /home	немає файлової системи Linux для /home
+already chosen for LuxOS	вже вибрано для LuxOS
+Operating system: %s	Операційна система: %s
+Encrypted with BitLocker (Windows)	Зашифровано BitLocker (Windows)
+Files (no operating system found)	Файли (операційну систему не знайдено)
+Empty file system	Порожня файлова система
+Empty (no file system)	Порожній (без файлової системи)
+Swap space	Простір підкачки (swap)
+Contents could not be checked	Не вдалося перевірити вміст
+Installing into an existing partition needs a computer started in UEFI mode.	Інсталяція в наявний розділ потребує комп’ютера, запущеного в режимі UEFI.
+No EFI system partition found. Installing into an existing partition shares it with the other systems; use Erase disk or Manual partitioning instead.	Системний розділ EFI не знайдено. Інсталяція в наявний розділ спільно використовує його з іншими системами; натомість скористайтеся Стерти диск або Ручна розмітка.
+ERASE partition %s: %s	СТЕРТИ розділ %s: %s
+All other partitions are kept unchanged.	Усі інші розділи залишаться без змін.
+WARNING: %s contains %s. It will be deleted and will no longer start.	УВАГА: %s містить %s. Цю систему буде видалено, і вона більше не запуститься.
+WARNING: the contents of %s could not be checked. Make sure it holds nothing you need.	УВАГА: не вдалося перевірити вміст %s. Переконайтеся, що на ньому немає нічого потрібного.
+Looking for partitions…	Пошук розділів…
+Partitions that cannot be used:	Розділи, які не можна використати:
+No partition can be used for LuxOS (at least 20 GB, not in use, not a system partition).	Жоден розділ не можна використати для LuxOS (щонайменше 20 ГБ, не використовується, не системний).
+Which partition should LuxOS replace? Everything on it will be erased.	Який розділ має замінити LuxOS? Усе на ньому буде стерто.
+All data on %s will be erased. Other partitions are kept.	Усі дані на %s буде стерто. Інші розділи збережуться.
+No - keep /home on the LuxOS partition	Ні - залишити /home на розділі LuxOS
+Use an existing partition as /home (its files are kept)?	Використати наявний розділ як /home (його файли збережуться)?
+partition %s  (will be ERASED, other partitions are kept)	розділ %s  (буде СТЕРТО, інші розділи збережуться)
+Install into an existing partition (other partitions are kept)	Інсталювати в наявний розділ (інші розділи збережуться)
+Encrypt LuxOS? (you will enter a password at every start)	Зашифрувати LuxOS? (пароль потрібно буде вводити під час кожного запуску)
+Invalid DISK_MODE (use erase, freespace, partition, layout or manual)	Недійсний DISK_MODE (використайте erase, freespace, partition, layout або manual)
+Replace an existing partition	Замінити наявний розділ
+LuxOS is installed into one partition you choose; everything on it is erased. Other partitions and systems are kept.	LuxOS буде інстальовано в розділ, який ви виберете; усе на ньому буде стерто. Інші розділи та системи збережуться.
+Choose a partition for LuxOS.	Виберіть розділ для LuxOS.
+Partition for LuxOS	Розділ для LuxOS
+Not available: %s	Недоступно: %s
+No partition on this disk can be used for LuxOS.	Жоден розділ на цьому диску не можна використати для LuxOS.
+The EFI system partition %s is shared with the other systems and is not formatted.	Системний розділ EFI %s спільно використовується з іншими системами і не форматується.
+Replace partition %s with LuxOS; other partitions are kept	Замінити розділ %s на LuxOS; інші розділи збережуться
+Could not set the partition type of %s; LuxOS works anyway.	Не вдалося встановити тип розділу %s; LuxOS усе одно працюватиме.
+Downloading the list of available software first	Спершу завантажую список доступних програм
