@@ -22,6 +22,12 @@ HOME_PART=             # DISK_MODE=partition, nepovinne: existujici oddil jako /
                        #   (ext4, btrfs, xfs, f2fs; btrfs se subvolumem @home se pripoji jako @home)
 ENCRYPT=0              # 1 = LUKS2, vyzaduje LUKS_PASS
 LUKS_PASS=
+WIPE=none              # bezpecne smazani mista pro LuxOS pred formatovanim (po rozdeleni disku, pred LUKS/mkfs):
+                       # none = ne (rychle); zero = smazat - SSD/NVMe rychlym prikazem disku (blkdiscard --secure
+                       #   nebo -z), pokud ho disk umi, jinak prepsat nulami (dd, setri procesor);
+                       # overwrite = vzdy prepsat nulami (dd). Muze trvat dlouho (HDD ~130 MB/s, 1 TB ~ 2 h).
+                       # Maze jen oddily LuxOS (nove, formatovane, sifrovane), nikdy jine oddily ani sdileny EFI.
+                       # Doporuceno se sifrovanim (ENCRYPT=1). S DISK_MODE=manual neni k dispozici.
 USERNAME=lux
 FULLNAME="Lux User"
 PASSWORD=luxos

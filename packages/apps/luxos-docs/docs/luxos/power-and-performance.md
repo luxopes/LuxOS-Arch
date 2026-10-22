@@ -24,6 +24,11 @@ What it does:
 - **LuxOS Store** shows "Data Saver is on - updates are not checked automatically."
 - `lux` still downloads when you run it yourself (passes `--datasaver` to the backend, which only
   reminds you of the download size before asking).
+- System background downloads `reflector.service` (mirror list) and `archlinux-keyring-wkd-sync.service`
+  are skipped on any metered connection (Data Saver, or a phone hotspot NetworkManager guesses as
+  metered): drop-in `ExecCondition=/usr/lib/luxos/luxos-unmetered` (package `luxos-tweaks`). They run
+  again at the next timer elapse on an unmetered connection.
+- Not changed (not controllable reversibly): Firefox prefs, third-party sync clients.
 
 Turning it off sets `connection.metered no` on active devices.
 
@@ -35,11 +40,29 @@ Toggle: **Control Center › Battery Saver**, **Battery & Power** app, or:
 luxos-powersaver on|off|toggle|status
 ```
 
-- State file `~/.config/luxos/powersaver`.
-- On: power-profiles-daemon profile **power-saver** (set over D-Bus, fallback `powerprofilesctl`) and
-  the Dock zoom animation is disabled (the previous zoom setting is remembered in
-  `~/.config/luxos/dock-zoom`).
-- Off: profile **balanced**, Dock zoom restored.
+- State file `~/.config/luxos/powersaver`; original values in `~/.config/luxos/powersaver.saved`.
+- On (like macOS Low Power Mode), session part:
+  - power-profiles-daemon profile **power-saver** (EPP "power", platform_profile low-power);
+  - built-in display (eDP/LVDS/DSI) above 60 Hz is switched to ~60 Hz (also after monitor changes);
+  - backlight dimmed by 20 % (not below 40 %, only when above 40 %);
+  - GTK animations off (xsettings `/Gtk/EnableAnimations`), no Dock magnification.
+- System part `luxos-powersaver.service` (root, started without a password by polkit rule
+  `50-luxos-powersaver.rules`, helper `/usr/lib/luxos/luxos-powersaver-helper`, originals in
+  `/run/luxos/powersaver.saved`):
+  - CPU turbo/boost off (`intel_pstate/no_turbo`, `cpufreq/boost`, per-policy `boost`);
+  - HDA audio codec power save 1 s (only if it was 0);
+  - USB autosuspend for idle devices whose driver handles it (webcam `uvcvideo`, Realtek card readers)
+    or that have no driver; input, audio, Bluetooth, network, storage and hubs are left alone;
+  - `vm.dirty_writeback_centisecs` 500 → 1500 (fewer disk wake-ups);
+  - pauses `man-db.timer` and `luxos-care-check.timer` (they catch up when the saver turns off);
+  - marker `/run/luxos/powersaver`: LuxOS Care does not update automatically unless charging.
+- Off: everything restored (previous power profile, refresh rate, brightness if you did not change
+  it meanwhile, animations, Dock zoom; the service's stop restores the system values).
+- After reboot `/run` is empty; `luxos-session` runs `luxos-powersaver reapply` at login.
+- Deliberately not changed: Wi-Fi power save (already on by default in the kernel), PCIe ASPM
+  (`powersave` can disable L1 substates and use more power, `powersupersave` is unstable on some
+  hardware), SATA link power (already the kernel default on laptops), NMI watchdog (already off),
+  NVIDIA dGPU (runtime PM from `luxos-drivers` already powers it off when idle), freezing apps.
 
 ### Automatic Battery Saver at 20 %
 
@@ -48,6 +71,18 @@ In **Battery & Power › Battery Saver** the switch *Turn on automatically at 20
 Saver on when the battery is discharging at ≤ 20 % (notification "Battery Saver is on – Battery is at
 N %. Connect the charger.") and turns it off again when charging – but only if it was turned on
 automatically (marker `$XDG_RUNTIME_DIR/luxos-powersaver-auto-on`).
+
+### Stay awake while music or video is playing
+
+Battery & Power › Screen and sleep › *Stay awake while music or video is playing* (default on; off =
+`~/.config/luxos/sleep-while-playing` exists). xfce4-power-manager handles the lid (it holds logind's
+`handle-lid-switch` inhibitor), so `luxos-daemon` watches MPRIS players over D-Bus (no polling) and
+while something plays temporarily sets xfce4-power-manager's lid action to *Turn off the screen* (if it
+was Sleep/Hibernate) and sleep-on-inactivity to *Never*. The originals are in
+`~/.config/luxos/sleep-override` (restored after 30 s without playback, and at daemon start after a
+crash). If the lid was closed while playing, the computer then goes to sleep (via
+xfce4-power-manager, which locks the screen). Battery & Power edits the originals while the override
+is active.
 
 Battery & Power also offers the power mode (Power Saver / Balanced / Performance, when
 power-profiles-daemon supports them), screen-off and sleep timeouts, lid action and *Advanced Power

@@ -1,6 +1,7 @@
 #!/bin/bash
 # LuxOS - spusteni ISO nebo nainstalovaneho systemu v QEMU/KVM
-#   (LUXOS_VM_DIR, LUXOS_VM_MEM, LUXOS_VM_ISO, LUXOS_VM_NAME, LUXOS_VM_OUTPUTS)
+#   (LUXOS_VM_DIR, LUXOS_VM_MEM, LUXOS_VM_ISO, LUXOS_VM_NAME, LUXOS_VM_OUTPUTS, LUXOS_VM_VGA)
+#   LUXOS_VM_VGA=VGA: standardni graficka karta (virtio-vga se po uspani S3 zasekne)
 #
 #   scripts/test-vm.sh live      [--headless] [--bios]   boot z ISO (+ prazdny disk 40G)
 #   scripts/test-vm.sh disk      [--headless] [--bios]   boot z nainstalovaneho disku
@@ -28,7 +29,7 @@ args=(
     -name "${LUXOS_VM_NAME:-LuxOS}" -enable-kvm -machine q35 -cpu host -smp 4 -m "${LUXOS_VM_MEM:-4096}"
     -drive file="$T/disk.qcow2",if=none,id=hd0,discard=unmap,cache=unsafe -device virtio-blk-pci,drive=hd0,bootindex=1
     -nic user,model=virtio-net-pci
-    -device "virtio-vga${LUXOS_VM_OUTPUTS:+,max_outputs=$LUXOS_VM_OUTPUTS}" -device qemu-xhci -device usb-tablet
+    -device "${LUXOS_VM_VGA:-virtio-vga}${LUXOS_VM_OUTPUTS:+,max_outputs=$LUXOS_VM_OUTPUTS}" -device qemu-xhci -device usb-tablet
     -audiodev none,id=snd0 -device intel-hda -device hda-output,audiodev=snd0
     -chardev socket,path="$T/qga.sock",server=on,wait=off,id=qga0
     -device virtio-serial -device virtserialport,chardev=qga0,name=org.qemu.guest_agent.0

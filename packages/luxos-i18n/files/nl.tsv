@@ -2218,3 +2218,161 @@ The package lists could not be refreshed: %s	De pakketlijsten konden niet worden
 The package lists could not be refreshed.	De pakketlijsten konden niet worden vernieuwd.
 Removed a stale database lock left by an interrupted update.	Een databasevergrendeling van een onderbroken update is verwijderd.
 Waiting for another update to finish (%s)…	Wachten tot een andere update klaar is (%s)…
+Rename…	Naam wijzigen…
+Rename	Naam wijzigen
+Rename This Computer	Naam van deze computer wijzigen
+Use Default	Standaard gebruiken
+Use the system name “%s”	Systeemnaam ‘%s’ gebruiken
+Other Bluetooth devices, such as your phone or headphones, show this name.	Andere Bluetooth-apparaten, zoals je telefoon of koptelefoon, tonen deze naam.
+An empty name uses the system name “%s”.	Een lege naam gebruikt de systeemnaam ‘%s’.
+The name cannot contain line breaks or control characters.	De naam mag geen regeleinden of stuurtekens bevatten.
+The name is too long (at most %d bytes).	De naam is te lang (maximaal %d bytes).
+Visible to nearby devices as “%s”.	Zichtbaar voor apparaten in de buurt als ‘%s’.
+Other devices see this computer as “%s”.	Andere apparaten zien deze computer als ‘%s’.
+This computer's name, shown to other Bluetooth devices	Naam van deze computer die andere Bluetooth-apparaten zien
+visible now	nu zichtbaar
+Could not rename this computer	Kan de naam van deze computer niet wijzigen
+Erase securely	Veilig wissen
+Optionally overwrite the space for LuxOS first, so old files there cannot be recovered. Other partitions are not touched.	Overschrijf optioneel eerst de ruimte voor LuxOS, zodat oude bestanden daar niet meer te herstellen zijn. Andere partities blijven ongemoeid.
+Area: %s. This can take long: %s (SSD and NVMe drives with a fast erase command finish much sooner).	Gebied: %s. Dit kan lang duren: %s (SSD- en NVMe-schijven met een snelle wisopdracht zijn veel eerder klaar).
+Recommended with encryption: nothing unencrypted from before stays on the disk.	Aanbevolen bij versleuteling: er blijft niets onversleuteld van vroeger op de schijf.
+You can skip the rest of the erasing with Ctrl+C; the installation then continues.	Je kunt de rest van het wissen overslaan met Ctrl+C; de installatie gaat dan verder.
+Erase first	Eerst wissen
+Securely erase the space for LuxOS first (slow)?	Eerst de ruimte voor LuxOS veilig wissen (traag)?
+yes, %s (%s)	ja, %s (%s)
+under a minute	minder dan een minuut
+about %s min	ongeveer %s min
+about %s h %s min	ongeveer %s u %s min
+about %s h %s min left	nog ongeveer %s u %s min
+Erasing the space for LuxOS	Ruimte voor LuxOS wissen
+Erasing %s (%s)	%s wissen (%s)
+Erasing %s: %s %% (%s of %s)	%s wissen: %s %% (%s van %s)
+(Ctrl+C skips erasing)	(Ctrl+C slaat het wissen over)
+Skipping %s: size unknown.	%s overgeslagen: grootte onbekend.
+Cannot erase %s: it is not a block device.	Kan %s niet wissen: geen blokapparaat.
+Refusing to erase %s (type %s): only LuxOS partitions and volumes are erased.	%s (type %s) wordt niet gewist: alleen LuxOS-partities en -volumes worden gewist.
+Cannot erase %s: it is in use (%s).	Kan %s niet wissen: in gebruik (%s).
+Erasing %s failed (write error at %s). The disk may be damaged.	Wissen van %s mislukt (schrijffout bij %s). De schijf is mogelijk beschadigd.
+Erasing was skipped - the installation continues. %s of %s was overwritten.	Wissen overgeslagen – de installatie gaat verder. %s van %s is overschreven.
+Erasing was skipped - the installation continues.	Wissen overgeslagen – de installatie gaat verder.
+Invalid WIPE (use none, zero or overwrite)	Ongeldige WIPE (gebruik none, zero of overwrite)
+WIPE is not available with partitions already mounted at %s (DISK_MODE=manual).	WIPE is niet beschikbaar met partities die al op %s zijn aangekoppeld (DISK_MODE=manual).
+Erase securely first (slow)	Eerst veilig wissen (traag)
+Overwrites the space for LuxOS (%s) so that old files there cannot be recovered. Other partitions are not touched.	Overschrijft de ruimte voor LuxOS (%s), zodat oude bestanden daar niet meer te herstellen zijn. Andere partities blijven ongemoeid.
+This can take long: %s. SSD and NVMe drives with a fast erase command finish much sooner. You can skip the rest while it runs; the installation then continues.	Dit kan lang duren: %s. SSD- en NVMe-schijven met een snelle wisopdracht zijn veel eerder klaar. Tijdens het wissen kun je de rest overslaan; de installatie gaat dan verder.
+Erasing the space for LuxOS. This can take a long time.	De ruimte voor LuxOS wordt gewist. Dit kan lang duren.
+Skip Erasing	Wissen overslaan
+Skipping the rest of the erasing…	De rest van het wissen wordt overgeslagen…
+about %s	ongeveer %s
+Longer battery life: slower processor without turbo, 60 Hz screen, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Langere accuduur: tragere processor zonder turbo, 60 Hz-scherm, iets lagere helderheid, geen animaties, ongebruikte apparaten slapen en achtergrondtaken pauzeren.
+Stay awake while music or video is playing	Niet slapen terwijl muziek of video speelt
+Music keeps playing even with the lid closed (the screen turns off). The computer goes to sleep when playback stops.	Muziek blijft spelen, ook met gesloten deksel (het scherm gaat uit). De computer gaat slapen wanneer het afspelen stopt.
+Not reported by this battery	Niet gemeld door deze accu
+The battery firmware does not report its charge cycles. Battery health shows how worn the battery is.	De firmware van de accu meldt geen laadcycli. De batterijconditie laat zien hoe versleten de accu is.
+Try '%s --help' for more information.	Probeer '%s --help' voor meer informatie.
+Only root can do this. Try again with sudo.	Alleen root kan dit doen. Probeer het opnieuw met sudo.
+%s is the last administrator. Continuing because of --force.	%s is de laatste beheerder. Er wordt doorgegaan vanwege --force.
+%s is the last administrator; without one nobody could manage this computer. Make another user an administrator first (adduser NAME wheel) or use --force.	%s is de laatste beheerder; zonder beheerder kan niemand deze computer beheren. Maak eerst een andere gebruiker beheerder (adduser NAAM wheel) of gebruik --force.
+Missing group name.	Groepsnaam ontbreekt.
+Missing user name.	Gebruikersnaam ontbreekt.
+'%s' is not a valid name. Use lowercase letters, digits, - and _, start with a letter (at most 32 characters).	'%s' is geen geldige naam. Gebruik kleine letters, cijfers, - en _, beginnend met een letter (maximaal 32 tekens).
+Try: %s	Probeer: %s
+The user %s already exists.	De gebruiker %s bestaat al.
+The group %s already exists. To put the new user into it, use: %s	De groep %s bestaat al. Gebruik om de nieuwe gebruiker erin te plaatsen: %s
+The group %s does not exist. Create it with: %s	De groep %s bestaat niet. Maak hem aan met: %s
+Full name (optional):	Volledige naam (optioneel):
+The full name must not contain ':' or a line break.	De volledige naam mag geen ':' of regeleinde bevatten.
+Should %s be an administrator (allowed to use sudo)? [y/N]	Moet %s beheerder zijn (mag sudo gebruiken)? [y/N]
+Could not create the user %s.	De gebruiker %s kon niet worden aangemaakt.
+Set a password for %s:	Stel een wachtwoord in voor %s:
+The password was not set. Try again? [Y/n]	Het wachtwoord is niet ingesteld. Opnieuw proberen? [Y/n]
+No password is set, so %s can't log in yet. Set one with: %s	Er is geen wachtwoord ingesteld, dus %s kan nog niet inloggen. Stel er een in met: %s
+User %s created.	Gebruiker %s aangemaakt.
+Home folder: %s	Persoonlijke map: %s
+Administrator: yes (can use sudo)	Beheerder: ja (mag sudo gebruiken)
+Administrator: no	Beheerder: nee
+Groups: %s	Groepen: %s
+On LuxOS administrators are in the group %s.	In LuxOS zitten beheerders in de groep %s.
+The user %s does not exist.	De gebruiker %s bestaat niet.
+%s is already a member of %s.	%s is al lid van %s.
+Could not add %s to %s.	Kan %s niet toevoegen aan %s.
+Added %s to the group %s.	%s is toegevoegd aan de groep %s.
+%s is now an administrator (can use sudo).	%s is nu beheerder (mag sudo gebruiken).
+The change applies after %s logs in again.	De wijziging geldt nadat %s opnieuw inlogt.
+The group %s already exists.	De groep %s bestaat al.
+Could not create the group %s.	De groep %s kon niet worden aangemaakt.
+Group %s created.	Groep %s aangemaakt.
+Refusing to remove the root account.	Het account root wordt niet verwijderd.
+%s is a system account (UID %s). Use --system if you really want to remove it.	%s is een systeemaccount (UID %s). Gebruik --system als u het echt wilt verwijderen.
+You can't remove the account you are logged in with.	U kunt het account waarmee u bent ingelogd niet verwijderen.
+%s is still logged in or has running programs. Log them out first: %s	%s is nog ingelogd of heeft actieve programma's. Log de gebruiker eerst uit: %s
+Also delete the home folder %s with all its files? [y/N]	Ook de persoonlijke map %s met alle bestanden verwijderen? [y/N]
+Remove the user %s and delete %s? This can't be undone. [y/N]	Gebruiker %s verwijderen en %s wissen? Dit kan niet ongedaan worden gemaakt. [y/N]
+Remove the user %s? The files in %s are kept. [y/N]	Gebruiker %s verwijderen? De bestanden in %s blijven behouden. [y/N]
+Nothing was changed.	Er is niets gewijzigd.
+Could not remove the user %s.	De gebruiker %s kon niet worden verwijderd.
+User %s removed.	Gebruiker %s verwijderd.
+Home folder %s deleted.	Persoonlijke map %s verwijderd.
+Home folder %s kept.	Persoonlijke map %s behouden.
+The group %s does not exist.	De groep %s bestaat niet.
+%s is the primary group of %s and can't be removed from it.	%s is de primaire groep van %s; de gebruiker kan er niet uit worden verwijderd.
+%s is not a member of %s.	%s is geen lid van %s.
+Could not remove %s from %s.	Kan %s niet uit %s verwijderen.
+Removed %s from the group %s.	%s is verwijderd uit de groep %s.
+Refusing to remove the system group %s.	De systeemgroep %s wordt niet verwijderd.
+%s is a system group (GID %s). Use --system if you really want to remove it.	%s is een systeemgroep (GID %s). Gebruik --system als u hem echt wilt verwijderen.
+%s is the primary group of the user %s. Remove that user first.	%s is de primaire groep van gebruiker %s. Verwijder eerst die gebruiker.
+The group %s still has members: %s	De groep %s heeft nog leden: %s
+Could not remove the group %s.	De groep %s kon niet worden verwijderd.
+Group %s removed.	Groep %s verwijderd.
+OPTIONS	OPTIES
+USER	GEBRUIKER
+GROUP	GROEP
+remove a user (asks whether to delete the home folder)	verwijdert een gebruiker (vraagt of de persoonlijke map weg moet)
+remove a user from a group	verwijdert een gebruiker uit een groep
+also delete the home folder and mail	verwijdert ook de persoonlijke map en e-mail
+allow removing system accounts (UID below 1000)	staat verwijderen van systeemaccounts toe (UID onder 1000)
+don't ask for confirmation	vraagt niet om bevestiging
+allow removing the last administrator	staat verwijderen van de laatste beheerder toe
+print only errors	toont alleen fouten
+remove a group	verwijdert een groep
+remove the group only when it has no members	verwijdert de groep alleen als die geen leden heeft
+allow removing system groups (GID below 1000)	staat verwijderen van systeemgroepen toe (GID onder 1000)
+create a group	maakt een groep aan
+add a user to a group	voegt een gebruiker toe aan een groep
+create a system group	maakt een systeemgroep aan
+use this group ID	gebruikt dit groeps-ID
+create a user with a home folder and password (asks for the rest)	maakt een gebruiker aan met persoonlijke map en wachtwoord (vraagt de rest)
+add a user to a group (sudo or wheel = administrator)	voegt een gebruiker toe aan een groep (sudo of wheel = beheerder)
+make the user an administrator or not, without asking	maakt de gebruiker wel of geen beheerder, zonder te vragen
+full name (also --gecos)	volledige naam (ook --gecos)
+don't set a password now	nu geen wachtwoord instellen
+account that can't log in	account dat niet kan inloggen
+login shell (default: lsh)	login-shell (standaard: lsh)
+home folder (default: /home/USER)	persoonlijke map (standaard: /home/GEBRUIKER)
+don't create the home folder	geen persoonlijke map aanmaken
+primary group instead of a new group named after the user	primaire groep in plaats van een nieuwe groep met de gebruikersnaam
+use this user ID	gebruikt dit gebruikers-ID
+create a system account (no password, no login)	maakt een systeemaccount aan (geen wachtwoord, geen login)
+skip the user name check	slaat de controle van de gebruikersnaam over
+Related: deluser, addgroup, delgroup, passwd USER, chfn USER	Zie ook: deluser, addgroup, delgroup, passwd GEBRUIKER, chfn GEBRUIKER
+Option %s needs a value.	Optie %s heeft een waarde nodig.
+Too many arguments.	Te veel argumenten.
+The ID must be a number: %s	Het ID moet een getal zijn: %s
+Name of the new group:	Naam van de nieuwe groep:
+Group to remove:	Te verwijderen groep:
+User to remove:	Te verwijderen gebruiker:
+Name of the new user (lowercase, e.g. %s):	Naam van de nieuwe gebruiker (kleine letters, bijv. %s):
+SERVICE	SERVICE
+LuxOS runs services with systemd; this calls systemctl. All options: %s	LuxOS draait services met systemd; dit roept systemctl aan. Alle opties: %s
+On LuxOS the service %s is called %s.	In LuxOS heet de service %s %s.
+Unknown action: %s	Onbekende actie: %s
+Regenerates %s with grub-mkconfig. With systemd-boot nothing needs to be done.	Genereert %s opnieuw met grub-mkconfig. Met systemd-boot hoeft er niets te gebeuren.
+LuxOS starts with systemd-boot, so there is no GRUB to update. Boot entries update automatically with each kernel.	LuxOS start met systemd-boot, er is dus geen GRUB om bij te werken. Opstartitems worden bij elke kernel automatisch bijgewerkt.
+Show them with: %s	Toon ze met: %s
+No GRUB configuration found (%s).	Geen GRUB-configuratie gevonden (%s).
+LuxOS can't install .deb or .rpm files. Search for the app with %s.	LuxOS kan geen .deb- of .rpm-bestanden installeren. Zoek de app met %s.
+Apps that other systems ship as Snaps are usually available as Flatpaks; lux installs those too.	Apps die andere systemen als Snap leveren, zijn meestal als Flatpak beschikbaar; lux installeert die ook.
+You can also change this in Settings.	U kunt dit ook wijzigen in Instellingen.
+%s is not installed. LuxOS has a modern equivalent:	%s is niet geïnstalleerd. LuxOS heeft een modern alternatief:
+Or install the classic tool: %s	Of installeer het klassieke hulpmiddel: %s

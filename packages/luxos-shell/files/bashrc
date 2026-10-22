@@ -55,6 +55,17 @@ command_not_found_handle() {
         /usr/lib/lux/pacman-hint "$@"
         return 127
     fi
+    # zvyky z Debianu/Ubuntu, Fedory a openSUSE (apt, dnf, ifconfig, ...) -> prikaz v LuxOS
+    case $1 in
+        apt|apt-get|apt-cache|aptitude|dpkg|dpkg-reconfigure|dnf|yum|zypper|snap|\
+        ifconfig|netstat|route|arp|iwconfig|nslookup|dig|host|traceroute|which)
+            if [[ -x /usr/lib/luxos/command-hint ]]; then
+                local sh=${0##*/}
+                printf '%s: %s: %s\n' "${sh#-}" "$1" "command not found" >&2
+                /usr/lib/luxos/command-hint "$@"
+                return 127
+            fi ;;
+    esac
     if declare -F _luxos_cnf_prev >/dev/null; then _luxos_cnf_prev "$@"; return; fi
     local sh=${0##*/}
     printf '%s: %s: %s\n' "${sh#-}" "$1" "command not found" >&2

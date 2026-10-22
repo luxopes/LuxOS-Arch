@@ -1,0 +1,9 @@
+[Unit]
+Description=LuxOS Battery Saver (system part)
+
+[Service]
+# Bezi jen jako stav: start = uspory zapnout, stop (i pri vypnuti pocitace) = vratit
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/luxos/luxos-powersaver-helper on
+ExecStop=/usr/lib/luxos/luxos-powersaver-helper off

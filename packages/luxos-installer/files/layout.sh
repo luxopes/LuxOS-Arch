@@ -714,8 +714,57 @@ layout_packages() {  # baliky potrebne v cilovem systemu
     done | sort -u
 }
 
+# --- Bezpecne smazani (WIPE, wipe.sh) ----------------------------------------------
+# Maze se nejnizsi uroven, na ktere LuxOS vse zaklada znovu: nove oddily, existujici oddil/LV/otevreny
+# LUKS, nad kterym vznika novy LUKS/VG nebo formatovany FS/swap, a nove LV v zachovane skupine
+# (to az po lvcreate, viz ly_ensure). Zachovane (format=0, keep=1) a mazane/jine oddily nikdy.
+ly_wipe_on() { declare -F wipe_enabled >/dev/null && wipe_enabled; }
+
+ly_new_consumer() {  # ly_new_consumer ID: objekt nad nim prepise data (novy LUKS/VG, formatovany FS/swap)
+    case ${L[$1.kind]-} in
+        luks|vg) [[ ${L[$1.keep]-0} != 1 ]] ;;
+        fs|swap) [[ ${L[$1.format]-1} == 1 ]] ;;
+        *) return 1 ;;
+    esac
+}
+
+ly_wipe_lv_later() {  # nove LV v zachovane skupine (maze se po lvcreate)
+    [[ ${L[$1.kind]-} == lv && ${L[$1.keep]-0} != 1 && ${L[${L[$1.vg]}.keep]-0} == 1 ]]
+}
+
+layout_wipe_ids() {  # objekty ke smazani v kroku mazani (bez ly_wipe_lv_later)
+    local id
+    for id in $(ly_ids part); do echo "$id"; done
+    for id in $(ly_ids use) $(ly_ids lv) $(ly_ids luks); do
+        [[ ${L[$id.kind]} == use || ${L[$id.keep]-0} == 1 ]] || continue
+        ly_new_consumer "${L[$id.by]-}" && echo "$id"
+    done
+    return 0
+}
+
+layout_wipe_bytes() {  # odhad velikosti mazane oblasti (po ly_capacity; pro souhrn)
+    local id total=0
+    for id in $(layout_wipe_ids) $(for id in $(ly_ids lv); do ly_wipe_lv_later "$id" && echo "$id"; done); do
+        total=$((total + $(ly_obj_size "$id")))
+    done
+    echo "$total"
+}
+
+ly_wipe_step() {  # krok mazani: po rozdeleni disku, pred LUKS/LVM/mkfs
+    local id devs=()
+    ly_wipe_on || return 0
+    step "$(T "Erasing the space for LuxOS")"
+    for id in $(layout_wipe_ids); do
+        [[ ${L[$id.kind]} == @(lv|luks) ]] && ly_ensure "$id"   # zachovane: jen cesta / odemceni
+        [[ -n ${L[$id.dev]-} ]] || fail "$(T "Partitions were not created correctly")"
+        devs+=("${L[$id.dev]}")
+    done
+    wipe_devices "${devs[@]}"
+}
+
 layout_steps() {  # pocet kroku pripravy disku (pro @@STEP celkem)
     local n=2
+    ly_wipe_on && n=$((n + 1))
     [[ -n $(for id in $(ly_ids luks); do [[ ${L[$id.keep]-0} == 1 ]] || ly_random_swap "$id" || echo x; done) ]] && n=$((n + 1))
     [[ -n $(ly_ids vg) ]] && n=$((n + 1))
     echo "$n"
@@ -922,6 +971,9 @@ ly_ensure() {  # ly_ensure ID: zalozi objekt (a vse pod nim), nastavi L[id.dev]
             fi
             L[$id.dev]=$(ly_lv_path "$vgname" "${L[$id.name]}")
             ly_isblk "${L[$id.dev]}" || run udevadm settle || true
+            if ly_wipe_on && ly_wipe_lv_later "$id"; then
+                wipe_devices "${L[$id.dev]}"
+            fi
             ;;
     esac
 }
@@ -1039,6 +1091,7 @@ layout_apply() {  # vse zalozit a pripojit do $TARGET (az po potvrzeni souhrnu)
         ly_release "${L[$id.dev]}"
         run lvremove -y "${L[$id.dev]}"
     done
+    ly_wipe_step
 
     # LUKS, LVM (v poradi zavislosti; ly_ensure zalozi i vse pod objektem)
     local nluks=0

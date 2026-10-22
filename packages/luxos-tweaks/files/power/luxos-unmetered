@@ -1,0 +1,12 @@
+#!/bin/bash
+# LuxOS - Sporic dat pro systemove sluzby: ExecCondition=/usr/lib/luxos/luxos-unmetered
+# Konec 0 = pripojeni neni merene (sluzba muze stahovat), 1 = merene -> systemd sluzbu preskoci.
+# Merene je pripojeni se Sporicem dat (luxos-datasaver) i to, ktere NetworkManager tak odhadne
+# (sdileni internetu z telefonu). Bez NetworkManageru se nic nepreskakuje.
+out=$(busctl --auto-start=no get-property org.freedesktop.NetworkManager /org/freedesktop/NetworkManager \
+    org.freedesktop.NetworkManager Metered 2>/dev/null) || exit 0
+case $out in
+    # NMMetered: 1 = ano, 3 = odhadem ano
+    "u 1" | "u 3") echo "metered connection (Data Saver): skipped"; exit 1 ;;
+esac
+exit 0

@@ -138,7 +138,10 @@ rescue() {
 
 case ${1:-auto} in
     auto)
-        apply_mode "$(cat "$mode_file" 2>/dev/null || echo extend)" ;;
+        apply_mode "$(cat "$mode_file" 2>/dev/null || echo extend)"
+        # Sporic baterie: vestaveny displej po zmene zapojeni opet nejvys 60 Hz
+        [[ -e $cfg/powersaver ]] && python3 -I /usr/lib/luxos/python/luxos_displays.py rate-cap >/dev/null 2>&1
+        true ;;
     extend|mirror|external|internal)
         mkdir -p "$cfg"
         echo "$1" >"$mode_file"

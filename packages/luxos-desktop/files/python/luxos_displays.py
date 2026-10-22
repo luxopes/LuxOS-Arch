@@ -9,6 +9,11 @@ vypise pro kazdy pripojeny vystup s ulozenym nastavenim radek
 skutecne nabizi). Vystupy bez zaznamu se nevypisuji - luxos-displays pro ne
 pouzije --auto (doporuceny rezim monitoru).
 
+    python3 -I luxos_displays.py rate-cap | rate-restore VYSTUP REZIM FREKVENCE
+
+Sporic baterie: vestaveny displej s vic nez 60 Hz prepne na 60 Hz (vypise
+"VYSTUP REZIM PUVODNI_FREKVENCE" pro navrat) a pri vypnuti frekvenci vrati.
+
 Nastaveni je v ~/.config/luxos/displays.json (LUXOS_DISPLAYS_CONF ho prepise,
 pouziva se pro zkusebni pouziti pred potvrzenim). Klic zaznamu je nazev vystupu
 a otisk EDID, takze jiny monitor na stejnem konektoru dostane svuj doporuceny rezim.
@@ -313,6 +318,50 @@ def all_output_args(outputs, entries):
     return lines
 
 
+# ---- Sporic baterie: vestaveny displej nejvys 60 Hz (jako Rezim nizke spotreby v macOS) ----
+RATE_CAP = 61.0     # 59.94 / 60.00 / 60.02 Hz projdou, 90/120/144/165 Hz ne
+
+
+def rate_cap_target(out, limit=RATE_CAP):
+    """(rezim, aktualni, nova frekvence) pro snizeni frekvence vestaveneho displeje, nebo None."""
+    if not (is_internal(out["name"]) and out["connected"] and out["active"]):
+        return None
+    name, cur = current_mode(out)
+    if name is None or float(cur) <= limit:
+        return None
+    md = find_mode(out, name)
+    low = [r for r in md["rates"] if float(r) <= limit]
+    if not low:
+        return None
+    return name, cur, max(low, key=float)
+
+
+def rate_cap(outputs):
+    """Snizi frekvenci; vrati [(vystup, rezim, puvodni frekvence)] pro pozdejsi navrat."""
+    done = []
+    for out in outputs:
+        t = rate_cap_target(out)
+        if t is None:
+            continue
+        mode, cur, new = t
+        run_xrandr("--output", out["name"], "--mode", mode, "--rate", new)
+        done.append((out["name"], mode, cur))
+    return done
+
+
+def rate_restore(outputs, name, mode, rate):
+    """Vrati puvodni frekvenci, jen kdyz vystup porad pouziva stejny rezim a frekvenci nabizi."""
+    out = next((o for o in outputs if o["name"] == name and o["connected"] and o["active"]), None)
+    if out is None:
+        return False
+    cur_mode, cur = current_mode(out)
+    md = find_mode(out, mode)
+    if cur_mode != mode or md is None or rate not in md["rates"] or cur == rate:
+        return False
+    run_xrandr("--output", name, "--mode", mode, "--rate", rate)
+    return True
+
+
 # ---- velikost textu (xsettings Xft/DPI) ------------------------------------------
 def text_size_index(dpi):
     """Index v TEXT_SIZES pro aktualni Xft/DPI (None/neplatne = vychozi, jinak nejblizsi)."""
@@ -351,7 +400,14 @@ def main(argv):
         for name, args in all_output_args(query(), entries):
             print(name, *args)
         return 0
-    print("usage: luxos_displays.py output-args", file=sys.stderr)
+    if argv[1:2] == ["rate-cap"]:
+        for name, mode, rate in rate_cap(query()):
+            print(name, mode, rate)
+        return 0
+    if argv[1:2] == ["rate-restore"] and len(argv) == 5:
+        rate_restore(query(), *argv[2:5])
+        return 0
+    print("usage: luxos_displays.py output-args | rate-cap | rate-restore OUTPUT MODE RATE", file=sys.stderr)
     return 2
 
 

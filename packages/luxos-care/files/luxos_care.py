@@ -396,12 +396,18 @@ def conditions_ok(env, manual=False):
     ok, why = battery_ok(env.get("ac"), env.get("batteries") or [])
     if not ok:
         return False, why
+    # Sporic baterie (luxos-powersaver): automaticky jen s nabijeckou
+    bats = env.get("batteries") or []
+    if env.get("powersaver") and bats and env.get("ac") is not True and \
+            not any(st in ("Charging", "Full") for _c, st in bats):
+        return False, "battery"
     return True, ""
 
 
 def current_env():
     ac, bats = power_supplies()
-    return {"metered": nm_metered(), "connectivity": nm_connectivity(), "ac": ac, "batteries": bats}
+    return {"metered": nm_metered(), "connectivity": nm_connectivity(), "ac": ac, "batteries": bats,
+            "powersaver": os.path.exists(P("/run/luxos/powersaver"))}
 
 
 def backoff(failures):

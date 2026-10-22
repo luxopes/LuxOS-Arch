@@ -12,6 +12,8 @@
 # --progress: strojove radky "@@STEP n celkem text", "@@PCT 0-100", "@@STATUS text", "@@NET B/s stazeno celkem", "@@NET END", "@@ERROR text", "@@DONE"
 #             rucni rozdeleni a existujici oddil (DISK_MODE=layout, partition) navic "@@ERASE text"
 #             (co se smaze, pred souhrnem) a "@@WARN text"
+#             bezpecne smazani (WIPE=zero|overwrite): "@@WIPE START" / "@@WIPE END" (GUI ukaze "Preskocit"),
+#             prubeh v @@PCT a @@STATUS; preskoceni = soubor WIPE_CANCEL_FILE (z GUI) nebo Ctrl+C
 set -Eeuo pipefail
 
 LOG=/var/log/luxos-install.log
@@ -24,6 +26,8 @@ export PATH="/usr/lib/lux/alpm/bin:${PATH:-/usr/local/sbin:/usr/local/bin:/usr/b
 ui_lang() { export LANG=$1; . /usr/lib/luxos/i18n.sh; }   # jazyk pruvodce podle volby
 # Rucni rozdeleni disku (DISK_MODE=layout): parser, kontrola a provedeni LAYOUT
 . "$SHARE/layout.sh"
+# Bezpecne smazani mista pro LuxOS pred formatovanim (WIPE=zero|overwrite)
+. "$SHARE/wipe.sh"
 
 CONFIG=""
 ASSUME_YES=0
@@ -383,6 +387,56 @@ interactive() {
     return 0
 }
 
+# Bezpecne smazani (WIPE): nabidka v TUI po vyberu disku
+wipe_area_bytes() {  # velikost mazane oblasti podle rezimu (pro odhad casu)
+    case $DISK_MODE in
+        erase)     wipe_size "$DISK" ;;
+        freespace) [[ -n ${FS_BYTES-} ]] || check_freespace "$DISK" >/dev/null 2>&1 || true; echo "${FS_BYTES:-0}" ;;
+        partition) wipe_size "$ROOT_PART" ;;
+        layout)    ly_capacity; layout_wipe_bytes ;;
+        *)         echo 0 ;;
+    esac
+}
+
+wipe_text() {  # citelny popis volby WIPE pro souhrn
+    case ${WIPE:-none} in
+        none) T "no" ;;
+        *) T "yes, %s (%s)" "$(human_bytes "$(wipe_area_bytes)")" "$(wipe_estimate_text "$(wipe_area_bytes)" "$(wipe_disk_hint)")" ;;
+    esac
+}
+
+wipe_disk_hint() {  # disk pro odhad rychlosti (rucni rozdeleni: prvni disk s novym/formatovanym oddilem)
+    local id
+    case $DISK_MODE in
+        partition) ly_parent_disk "$ROOT_PART" ;;
+        layout)
+            for id in $(layout_wipe_ids); do
+                [[ ${L[$id.kind]} == part ]] && { echo "${L[$id.disk]}"; return; }
+                [[ ${L[$id.kind]} == use ]] && { ly_parent_disk "${L[$id.dev]}"; return; }
+            done
+            echo /dev/null ;;
+        *) echo "$DISK" ;;
+    esac
+}
+
+ask_wipe() {
+    WIPE=none
+    [[ $DISK_MODE == manual ]] && return 0
+    local bytes
+    bytes=$(wipe_area_bytes)
+    ((bytes > 0)) || return 0
+    title "$(T "Erase securely")"
+    info "$(T "Optionally overwrite the space for LuxOS first, so old files there cannot be recovered. Other partitions are not touched.")"
+    info "$(T "Area: %s. This can take long: %s (SSD and NVMe drives with a fast erase command finish much sooner)." "$(human_bytes "$bytes")" "$(wipe_estimate_text "$bytes" "$(wipe_disk_hint)")")"
+    ((ENCRYPT)) || [[ -n $(ly_ids luks 2>/dev/null) ]] &&
+        info "$(T "Recommended with encryption: nothing unencrypted from before stays on the disk.")"
+    info "$(T "You can skip the rest of the erasing with Ctrl+C; the installation then continues.")"
+    if gum confirm --default=false --affirmative "$(T "Erase first")" --negative "$(T "No")"             "$(T "Securely erase the space for LuxOS first (slow)?")"; then
+        WIPE=zero
+    fi
+    return 0
+}
+
 # Udrzba systemu: carefree (automaticke aktualizace a opravy) nebo classic (spravuje uzivatel)
 care_text() {
     if [[ $1 == classic ]]; then T "Classic - you manage the system yourself"
@@ -598,6 +652,7 @@ summary() {
         "$(printf '%-13s%s' "$(T "Time zone")" "$TIMEZONE")"
         "$(printf '%-13s%s' "$(T "Disk")" "$disk_text")"
         "$(printf '%-13s%s' "$(T "Encryption")" "$([[ $enc == 1 ]] && T "yes" || T "no")")"
+        "$(printf '%-13s%s' "$(T "Erase first")" "$(wipe_text)")"
         "$(printf '%-13s%s' "$(T "User")" "$FULLNAME ($USERNAME)")"
         "$(printf '%-13s%s' "$(T "Computer")" "$HOSTNAME_SEL")"
         "$(printf '%-13s%s' "$(T "Boot mode")" "$boot_text")"
@@ -1183,6 +1238,11 @@ prepare_disk() {
     fi
     [[ -b $BOOTPART && -b $rootpart ]] || fail "$(T "Partitions were not created correctly")"
 
+    # Volitelne smazani: jen nove oddily LuxOS, po rozdeleni a pred LUKS/mkfs
+    if wipe_enabled; then
+        step "$(T "Erasing the space for LuxOS")"
+        wipe_devices "$BOOTPART" "$rootpart"
+    fi
     encrypt_root "$rootpart"
 
     step "$(T "Creating file systems")"
@@ -1223,6 +1283,11 @@ prepare_freespace() {
     [[ -b $rootpart ]] || fail "$(T "Partitions were not created correctly")"
     BOOTPART=$ESP_PART
 
+    # Volitelne smazani: jen novy oddil (sdileny ESP a ostatni oddily ne)
+    if wipe_enabled; then
+        step "$(T "Erasing the space for LuxOS")"
+        wipe_devices "$rootpart"
+    fi
     encrypt_root "$rootpart"
 
     step "$(T "Creating file systems")"
@@ -1878,6 +1943,15 @@ ask_layout() {  # TUI: rozlozeni ze souboru (vytvori ho napr. GUI nebo podle ins
     fi
 }
 
+check_wipe() {  # WIPE z konfigurace / TUI
+    : "${WIPE:=none}"
+    wipe_valid || fail "$(T "Invalid WIPE (use none, zero or overwrite)")"
+    if wipe_enabled && [[ $DISK_MODE == manual ]]; then
+        fail "$(T "WIPE is not available with partitions already mounted at %s (DISK_MODE=manual)." "$TARGET")"
+    fi
+    return 0
+}
+
 main() {
     if [[ -n $PROBE ]]; then
         probe "$PROBE"
@@ -1905,7 +1979,7 @@ main() {
         [[ -n ${UI_LANG-} ]] && ui_lang "$UI_LANG"
         : "${LOCALE:=en_US.UTF-8}" "${XKB_LAYOUT:=us}" "${XKB_VARIANT:=}" "${TIMEZONE:=UTC}"
         : "${ENCRYPT:=0}" "${AUTOLOGIN:=0}" "${HOSTNAME_SEL:=luxos}" "${FULLNAME:=$USERNAME}"
-        : "${BOOTLOADER:=auto}" "${LUXAI_ACCOUNT:=}" "${TEMPLATES:=}"
+        : "${BOOTLOADER:=auto}" "${LUXAI_ACCOUNT:=}" "${TEMPLATES:=}" "${WIPE:=none}" "${WIPE_CANCEL_FILE:=}"
         xkb_normalize   # seznam rozlozeni a prepinani (viz xkb_normalize)
         [[ ${DISK_MODE-} == manual && -z ${DISK-} ]] && DISK=manual   # pripojeno v /mnt, disk neni potreba
         [[ ${DISK_MODE-} == layout && -z ${DISK-} ]] && DISK=layout   # disky jsou v LAYOUT
@@ -1940,12 +2014,14 @@ main() {
         *) fail "$(T "Invalid DISK_MODE (use erase, freespace, partition, layout or manual)")" ;;
     esac
     [[ $BOOTLOADER == auto || $BOOTLOADER == none ]] || fail "$(T "Invalid BOOTLOADER (use auto or none)")"
+    [[ -z $CONFIG ]] && ask_wipe   # TUI: az po priprave rezimu (velikost mazane oblasti)
+    check_wipe
     : "${CARE_MODE:=carefree}"
     [[ $CARE_MODE == carefree || $CARE_MODE == classic ]] || fail "$(T "Invalid CARE_MODE (use carefree or classic)")"
     [[ -n $CONFIG ]] && parse_templates
     if [[ $DISK_MODE == manual ]]; then STEP_TOTAL=4
     elif uses_layout; then STEP_TOTAL=$(($(layout_steps) + 4))
-    else STEP_TOTAL=$((6 + ENCRYPT)); fi
+    else STEP_TOTAL=$((6 + ENCRYPT)); wipe_enabled && STEP_TOTAL=$((STEP_TOTAL + 1)); fi
     ((${#TEMPLATE_IDS[@]})) && STEP_TOTAL=$((STEP_TOTAL + 1))
     summary
     case $DISK_MODE in

@@ -20,6 +20,8 @@ Rucni rozdeleni (Destination > Manual partitioning): model a kontrola v luxos_la
 backend dostane LAYOUT (DISK_MODE=layout), hesla LUKS jen pres stdin.
 Existujici oddil (Destination > Replace an existing partition): vhodne oddily a jejich obsah hlasi --probe
 (radky PART=...), backend dostane DISK_MODE=partition, ROOT_PART a volitelne HOME_PART.
+Bezpecne smazani (souhrn > Erase securely first): WIPE=zero; behem mazani (@@WIPE START/END) tlacitko
+"Skip Erasing" vytvori soubor WIPE_CANCEL_FILE (backend ho kontroluje mezi kusy a pokracuje bez mazani).
 """
 import json
 import os
@@ -28,6 +30,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import unicodedata
@@ -410,7 +413,7 @@ def list_disks():
     """Disky vhodne pro instalaci (stejna pravidla jako list_disks v TUI) vcetne oddilu."""
     if FAKE:
         return fake_disks()
-    raw = cmd_out("lsblk", "-J", "-b", "-o", "NAME,PATH,SIZE,TYPE,RO,MODEL,TRAN,FSTYPE,LABEL,PARTLABEL,PARTTYPE")
+    raw = cmd_out("lsblk", "-J", "-b", "-o", "NAME,PATH,SIZE,TYPE,RO,ROTA,MODEL,TRAN,FSTYPE,LABEL,PARTLABEL,PARTTYPE")
     try:
         devices = json.loads(raw or "{}").get("blockdevices", [])
     except ValueError:
@@ -433,7 +436,7 @@ def list_disks():
         parts.sort(key=lambda p: p["start"])
         disks.append({"path": d.get("path") or "/dev/" + d["name"], "name": d["name"], "size": int(d["size"]),
                       "model": (d.get("model") or "").strip(), "tran": d.get("tran") or "", "parts": parts,
-                      "probe": None})
+                      "rota": d.get("rota") not in (False, "0", 0), "probe": None})
     return disks
 
 
@@ -590,6 +593,7 @@ class Installer(Gtk.Window):
             "hostname": "", "host_edited": False, "autologin": False,
             "luxai": None, "luxai_email": "", "care": "carefree", "templates": [],
             "layout_ok": False, "pass_mismatch": False, "part": None, "home_part": None,
+            "wipe": False,
         }
         self.luxai_panel = None   # panel prihlaseni LuxAI (drzi stav mezi prekreslenim)
         self.layout = None        # rucni rozdeleni (luxos_layout.Layout), vznikne v kroku Partitions
@@ -2581,6 +2585,71 @@ class Installer(Gtk.Window):
             self.summary_layout(page)
         if self.s["mode"] == "partition":
             self.summary_partition(page)
+        self.wipe_card(page)
+
+    # ---- bezpecne smazani (WIPE) ----
+    def disk_by_path(self, path):
+        return next((d for d in self.disks or [] if d["path"] == path), None)
+
+    def wipe_plan(self):
+        """[(disk nebo None, bajty)] - co volba smaze (jen misto pro LuxOS)."""
+        mode, d = self.s["mode"], self.selected_disk()
+        if mode == "manual":
+            if self.layout is None:
+                return []
+            return [(self.disk_by_path(n.disk) if n.kind == "part" else None, b) for n, b in self.layout.wipe_targets()]
+        if not d:
+            return []
+        if mode == "erase":
+            return [(d, d["size"])]
+        if mode == "freespace":
+            return [(d, int((d.get("probe") or {}).get("FREE_BYTES") or 0))]
+        if mode == "partition":
+            p = self.part_info(self.s.get("part")) or {}
+            return [(d, int(p.get("size") or 0))]
+        return []
+
+    @staticmethod
+    def wipe_speed(d):
+        """Odhad rychlosti prepsani (B/s): NVMe ~1,5 GB/s, SSD ~450 MB/s, HDD/nevime ~130 MB/s."""
+        if not d:
+            return 130e6
+        if d.get("tran") == "nvme" or d.get("name", "").startswith("nvme"):
+            return 1.5e9
+        return 450e6 if d.get("rota") is False else 130e6
+
+    def wipe_estimate(self):
+        plan = self.wipe_plan()
+        return sum(b for _d, b in plan), sum(b / self.wipe_speed(d) for d, b in plan)
+
+    def wipe_card(self, page):
+        total, sec = self.wipe_estimate()
+        if total <= 0:
+            self.s["wipe"] = False
+            return
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box.get_style_context().add_class("card")
+        row = Gtk.Box(spacing=12)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        t = Gtk.Label(label=_("Erase securely first (slow)"), xalign=0)
+        t.get_style_context().add_class("card-title")
+        texts.pack_start(t, False, False, 0)
+        texts.pack_start(self.hint(_("Overwrites the space for LuxOS (%s) so that old files there cannot be "
+                                     "recovered. Other partitions are not touched.") % size_text(total)),
+                         False, False, 0)
+        row.pack_start(texts, True, True, 0)
+        sw = Gtk.Switch(active=self.s["wipe"], valign=Gtk.Align.CENTER)
+        sw.connect("notify::active", lambda w, _p: self.s.__setitem__("wipe", w.get_active()))
+        row.pack_end(sw, False, False, 0)
+        box.pack_start(row, False, False, 0)
+        box.pack_start(self.hint(_("This can take long: %s. SSD and NVMe drives with a fast erase command finish "
+                                   "much sooner. You can skip the rest while it runs; the installation then "
+                                   "continues.") % wipe_time_text(sec)), False, False, 0)
+        encrypted = self.layout.of("luks") if self.s["mode"] == "manual" and self.layout else self.s["encrypt"]
+        if encrypted:
+            box.pack_start(self.hint(_("Recommended with encryption: nothing unencrypted from before stays on the "
+                                       "disk.")), False, False, 0)
+        page.pack_start(box, False, False, 0)
 
     def summary_partition(self, page):
         """Existujici oddil v souhrnu: pripojeni, co se smaze (s obsahem) a potvrzeni."""
@@ -2723,6 +2792,18 @@ class Installer(Gtk.Window):
         wcol.show_all()
         self.warn_box.pack_start(wcol, True, True, 0)
         page.pack_start(self.warn_box, False, False, 0)
+        # Bezpecne smazani: lze preskocit zbytek (instalace pokracuje)
+        self.wipe_box = Gtk.Box(spacing=12, no_show_all=True)
+        self.wipe_box.get_style_context().add_class("warn")
+        self.wipe_label = Gtk.Label(label=_("Erasing the space for LuxOS. This can take a long time."),
+                                    xalign=0, wrap=True, max_width_chars=60)
+        self.wipe_label.show()
+        self.wipe_box.pack_start(self.wipe_label, True, True, 0)
+        self.wipe_btn = Gtk.Button(label=_("Skip Erasing"), valign=Gtk.Align.CENTER)
+        self.wipe_btn.connect("clicked", lambda _b: self.skip_wipe())
+        self.wipe_btn.show()
+        self.wipe_box.pack_end(self.wipe_btn, False, False, 0)
+        page.pack_start(self.wipe_box, False, False, 0)
         self.slide_stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.SLIDE_LEFT, transition_duration=450,
                                      margin_top=10)
         for i, (icon, title, text) in enumerate(SLIDES):
@@ -2829,6 +2910,7 @@ class Installer(Gtk.Window):
             "HOSTNAME_SEL": s["hostname"], "AUTOLOGIN": "1" if s["autologin"] else "0", "CARE_MODE": s["care"],
             "LUXAI_ACCOUNT": json.dumps(s["luxai"], ensure_ascii=False) if s["luxai"] else "",
             "TEMPLATES": ",".join(s["templates"]),
+            "WIPE": "zero" if s["wipe"] else "none", "WIPE_CANCEL_FILE": self.wipe_cancel_file(),
         }
         if s["mode"] == "manual" and self.layout is not None:
             values.update(self.layout.config_values())
@@ -2867,8 +2949,31 @@ class Installer(Gtk.Window):
                     pass
             self.inhibit_cookies = []
 
+    def wipe_cancel_file(self):
+        """Soubor, kterym GUI rekne backendu (root) "preskocit mazani" - v adresari jen pro tohoto uzivatele."""
+        if not self.s["wipe"]:
+            return ""
+        if not getattr(self, "wipe_dir", None):
+            self.wipe_dir = tempfile.mkdtemp(prefix="luxos-install-")
+        return os.path.join(self.wipe_dir, "skip-wipe")
+
+    def skip_wipe(self):
+        path = self.wipe_cancel_file()
+        if not path:
+            return
+        try:
+            open(path, "w").close()
+        except OSError:
+            return
+        self.wipe_btn.set_sensitive(False)
+        self.wipe_label.set_text(_("Skipping the rest of the erasing…"))
+
     def start_install(self):
         self.installing = True
+        self.wiping = False
+        est = self.wipe_estimate()[1] if self.s["wipe"] else 0
+        # vaha kroku mazani v pruhu: podle odhadu (baliky ~ 70 pri ~10 min)
+        self.wipe_weight = min(max(est / 600 * 70, 4), 300) if self.s["wipe"] else 0
         self.inhibit_idle(True)
         self.lines, self.buf = [], b""
         self.step_n, self.step_total, self.shown, self.target = 0, 1, 0.0, (0.0, 0.0)
@@ -2923,6 +3028,8 @@ class Installer(Gtk.Window):
         # Vahy kroku: na konci HW, baliky, konfigurace, [sablony softwaru,] dokonceni (poradi v luxos-install)
         tail = [1, 55, 18, 25, 1] if self.s["templates"] else [1, 70, 22, 1]
         w = [2] * (total - len(tail)) + tail if total >= len(tail) else [1] * total
+        if getattr(self, "wipe_weight", 0) and total > len(tail) + 1:
+            w[1] = self.wipe_weight      # krok 2 = mazani (hned po rozdeleni disku)
         s = float(sum(w))
         n = min(max(self.step_n, 1), total)
         return sum(w[:n - 1]) / s, sum(w[:n]) / s
@@ -2947,6 +3054,9 @@ class Installer(Gtk.Window):
             self.real = max(self.real, a + (b - a) * pct / 100)
         elif line.startswith("@@NET"):
             self.on_net(line.split()[1:])
+        elif line.startswith("@@WIPE"):
+            self.wiping = line.split()[1:2] == ["START"]
+            self.wipe_box.set_visible(self.wiping)
         elif line.startswith("@@STATUS"):
             text = line[9:].strip()
             self.show_status(text, hold=12, force=not text)
@@ -3026,7 +3136,7 @@ class Installer(Gtk.Window):
         a, b = self.target
         # Kroky bez prubehu: cil se pomalu blizi konci kroku, aby pruh nestal; pri stahovani
         # nejvys o 2 % nad skutecny stav (pruh nema predbihat data)
-        cap = b if self.net is None else min(b, self.real + 0.02)
+        cap = b if self.net is None and not self.wiping else min(b, self.real + 0.02)
         if cap > self.goal:
             self.goal += (cap - self.goal) * 0.0008
         self.goal = max(self.goal, self.real)
@@ -3048,6 +3158,10 @@ class Installer(Gtk.Window):
 
     def finished(self, rc, extra=""):
         self.installing = False
+        self.wiping = False
+        if getattr(self, "wipe_dir", None):
+            shutil.rmtree(self.wipe_dir, ignore_errors=True)
+            self.wipe_dir = None
         self.inhibit_idle(False)
         if rc == 0 and self.done_flag:
             self.result = ("ok",)
@@ -3066,6 +3180,16 @@ def eta_text(sec):
     if m < 60:
         return _("about %s left") % (_("%s min") % m)
     return _("about %s left") % (_("%s h %s min") % (m // 60, m % 60))
+
+
+def wipe_time_text(sec):
+    """Odhad doby mazani: "about 25 min"."""
+    if sec < 60:
+        return _("under a minute")
+    m = int(sec / 60 + 0.5)
+    if m < 60:
+        return _("about %s") % (_("%s min") % m)
+    return _("about %s") % (_("%s h %s min") % (m // 60, m % 60))
 
 
 def wifi_list():
@@ -3175,6 +3299,8 @@ else
     ((ENCRYPT)) && steps+=("Encrypting the disk")
     steps+=("Creating file systems")
 fi
+# Bezpecne smazani: krok 2 (hned po rozdeleni disku), lze preskocit souborem WIPE_CANCEL_FILE
+[[ ${WIPE:-none} != none ]] && steps=("${steps[0]}" "Erasing the space for LuxOS" "${steps[@]:1}")
 steps+=("Detecting hardware" "Installing packages (this is the longest step)" "Configuring the system")
 [[ -n ${TEMPLATES-} ]] && steps+=("Installing additional software")
 steps+=("Finishing")
@@ -3183,7 +3309,20 @@ for s in "${steps[@]}"; do
     n=$((n + 1))
     echo "@@STEP $n ${#steps[@]} $s"
     echo "==> $s"
-    if [[ $s == "Installing additional software" ]]; then
+    if [[ $s == "Erasing the space for LuxOS" ]]; then
+        echo "@@WIPE START"
+        for p in $(seq 1 ${LUXOS_INSTALL_FAKE_WIPE_CHUNKS:-20}); do
+            if [[ -n ${WIPE_CANCEL_FILE-} && -e $WIPE_CANCEL_FILE ]]; then
+                echo "  Erasing was skipped - the installation continues."
+                echo "@@STATUS Erasing was skipped - the installation continues."
+                break
+            fi
+            echo "@@PCT $((p * 100 / ${LUXOS_INSTALL_FAKE_WIPE_CHUNKS:-20}))"
+            echo "@@STATUS Erasing $DISK: $((p * 5)) % · about 3 min left"
+            sleep "$(awk -v d="$d" 'BEGIN {print d / 4}')"
+        done
+        echo "@@WIPE END"
+    elif [[ $s == "Installing additional software" ]]; then
         echo "  ${TEMPLATES//,/, }"
         echo "Packages (40) libreoffice-fresh ..."
         for p in $(seq 1 40); do

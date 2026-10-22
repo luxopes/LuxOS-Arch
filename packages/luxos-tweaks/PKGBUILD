@@ -2,8 +2,8 @@
 
 pkgname=luxos-tweaks
 pkgver=1.0.0
-pkgrel=2
-pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, low-memory safeguard (earlyoom)"
+pkgrel=3
+pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, low-memory safeguard (earlyoom), Battery/Data Saver system parts"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
@@ -27,4 +27,14 @@ package() {
     install -Dm644 "$f/memory-display.conf"  "$pkgdir/usr/lib/systemd/system/lightdm.service.d/10-luxos-memory.conf"
     install -Dm644 "$f/makepkg.conf"         "$pkgdir/etc/makepkg.conf.d/luxos.conf"
     install -Dm644 "$f/services"             "$pkgdir/usr/lib/luxos/services"
+    # Sporic baterie - systemova cast (luxos-powersaver zapina jednotku bez hesla pres polkit)
+    install -Dm755 "$f/power/luxos-powersaver-helper" "$pkgdir/usr/lib/luxos/luxos-powersaver-helper"
+    install -Dm644 "$f/power/luxos-powersaver.service" "$pkgdir/usr/lib/systemd/system/luxos-powersaver.service"
+    install -Dm644 "$f/power/50-luxos-powersaver.rules" "$pkgdir/usr/share/polkit-1/rules.d/50-luxos-powersaver.rules"
+    # Sporic dat: stahovani systemovych sluzeb na pozadi se na merenem pripojeni preskoci
+    install -Dm755 "$f/power/luxos-unmetered" "$pkgdir/usr/lib/luxos/luxos-unmetered"
+    local u
+    for u in reflector archlinux-keyring-wkd-sync; do
+        install -Dm644 "$f/power/50-luxos-datasaver.conf" "$pkgdir/usr/lib/systemd/system/$u.service.d/50-luxos-datasaver.conf"
+    done
 }

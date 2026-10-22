@@ -30,6 +30,10 @@ STATE_CHARGING, STATE_DISCHARGING, STATE_EMPTY, STATE_FULL, STATE_PENDING_CHARGE
 PM = "xfce4-power-manager"
 SAVER_STATE = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver")
 AUTO_SAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver-auto")
+# Neuspavat pri prehravani (luxos-daemon): priznak vypnute volby a puvodni hodnoty xfce4-power-manager,
+# ktere demon behem prehravani docasne prepsal - aplikace pak ukazuje a meni tyto puvodni hodnoty
+SLEEP_WHILE_PLAYING = os.path.join(os.path.dirname(SAVER_STATE), "sleep-while-playing")
+SLEEP_OVERRIDE = os.path.join(os.path.dirname(SAVER_STATE), "sleep-override")
 
 CSS = b"""
 .hero-pct { font-size: 44px; font-weight: 800; }
@@ -38,6 +42,7 @@ CSS = b"""
 .card-title { font-weight: 700; font-size: 13px; }
 .card-value { font-size: 20px; font-weight: 700; }
 .card-sub { font-size: 11px; opacity: 0.6; }
+.card-na { font-size: 13px; opacity: 0.55; }
 .group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
 .row { padding: 10px 14px; }
 .row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
@@ -81,6 +86,46 @@ def ppd_set(bus, profile):
         except GLib.Error:
             continue
     return False
+
+
+def read_override():
+    vals = {}
+    try:
+        with open(SLEEP_OVERRIDE) as f:
+            for line in f:
+                k, _s, v = line.strip().partition("=")
+                if v.isdigit():
+                    vals[k] = v
+    except OSError:
+        pass
+    return vals
+
+
+def write_override(vals):
+    with open(SLEEP_OVERRIDE + ".tmp", "w") as f:
+        f.writelines(f"{k}={v}\n" for k, v in vals.items())
+    os.replace(SLEEP_OVERRIDE + ".tmp", SLEEP_OVERRIDE)
+
+
+def charge_cycles(info, path=None):
+    """Pocet cyklu z UPower, jinak z jadra (cycle_count); 0 = baterie ho neudava."""
+    n = info.get("ChargeCycles", -1) or 0
+    if n > 0:
+        return n
+    base = "/sys/class/power_supply"
+    try:
+        names = [path] if path else sorted(os.path.join(base, d) for d in os.listdir(base) if d.startswith("BAT"))
+    except OSError:
+        return 0
+    for d in names:
+        try:
+            with open(os.path.join(d, "cycle_count")) as f:
+                n = int(f.read().strip())
+            if n > 0:
+                return n
+        except (OSError, ValueError):
+            continue
+    return 0
 
 
 def fmt_duration(seconds):
@@ -335,7 +380,7 @@ class PowerWindow(Gtk.Window):
         grid = Gtk.Grid(column_spacing=12, row_spacing=12, column_homogeneous=True)
         self.v_rate, self.s_rate = Gtk.Label(), Gtk.Label()
         self.v_health, self.s_health = Gtk.Label(), Gtk.Label()
-        self.v_cycles, self.s_cycles = Gtk.Label(), Gtk.Label()
+        self.v_cycles, self.s_cycles = Gtk.Label(wrap=True), Gtk.Label()
         self.v_energy, self.s_energy = Gtk.Label(), Gtk.Label()
         for i, (t, v, s) in enumerate(((_("Power usage"), self.v_rate, self.s_rate),
                                        (_("Battery health"), self.v_health, self.s_health),
@@ -397,8 +442,13 @@ class PowerWindow(Gtk.Window):
 
         group = self.group(page, _("Battery Saver"))
         saver = Gtk.Switch(active=os.path.exists(SAVER_STATE))
-        saver.connect("notify::active", lambda s, _p: run("luxos-powersaver", "on" if s.get_active() else "off"))
-        self.row(group, _("Battery Saver"), saver, _("Saves energy: power saving mode and fewer animations."))
+        # Na pozadi: prepnuti monitoru na 60 Hz apod. nesmi zdrzet okno
+        saver.connect("notify::active", lambda s, _p: subprocess.Popen(
+            ["luxos-powersaver", "on" if s.get_active() else "off"], stdout=subprocess.DEVNULL,
+            start_new_session=True))
+        self.row(group, _("Battery Saver"), saver,
+                 _("Longer battery life: slower processor without turbo, 60 Hz screen, slightly lower "
+                   "brightness, no animations, idle devices sleep and background tasks pause."))
         auto = Gtk.Switch(active=os.path.exists(AUTO_SAVER))
         auto.connect("notify::active", self.toggle_auto)
         self.row(group, _("Turn on automatically at 20 %"), auto,
@@ -418,6 +468,11 @@ class PowerWindow(Gtk.Window):
         lid = [(1, _("Sleep")), (3, _("Lock screen")), (0, _("Turn off the screen")), (2, _("Hibernate"))]
         self.row(group, _("When the lid is closed"), self.combo("lid-action-on-battery", lid,
                                                                  also="lid-action-on-ac"))
+        playing = Gtk.Switch(active=not os.path.exists(SLEEP_WHILE_PLAYING))
+        playing.connect("notify::active", self.toggle_playing)
+        self.row(group, _("Stay awake while music or video is playing"), playing,
+                 _("Music keeps playing even with the lid closed (the screen turns off). "
+                   "The computer goes to sleep when playback stops."))
         more = Gtk.Button(label=_("Advanced Power Settings…"), halign=Gtk.Align.START, margin_top=8)
         more.connect("clicked", lambda _b: subprocess.Popen(["xfce4-power-manager-settings"], start_new_session=True))
         page.pack_start(more, False, False, 0)
@@ -456,7 +511,7 @@ class PowerWindow(Gtk.Window):
             for line in run("xfconf-query", "-c", PM, "-lv").splitlines():
                 key, _s, value = line.partition(" ")
                 self.pm_values[key] = value.strip()
-        cur = self.pm_values.get(f"/{PM}/{prop}", "")
+        cur = read_override().get(prop) or self.pm_values.get(f"/{PM}/{prop}", "")
         c = Gtk.ComboBoxText()
         for value, label in options:
             c.append(str(value), label)
@@ -467,10 +522,26 @@ class PowerWindow(Gtk.Window):
             c.set_active(0)
 
         def changed(combo):
+            # Behem prehravani drzi luxos-daemon docasnou hodnotu: zmenit puvodni, kterou pak vrati
+            over = read_override()
             for p in filter(None, (prop, also)):
-                run("xfconf-query", "-c", PM, "-p", f"/{PM}/{p}", "-n", "-t", "uint", "-s", combo.get_active_id())
+                if p in over:
+                    over[p] = combo.get_active_id()
+                else:
+                    run("xfconf-query", "-c", PM, "-p", f"/{PM}/{p}", "-n", "-t", "uint", "-s", combo.get_active_id())
+            if over:
+                write_override(over)
         c.connect("changed", changed)
         return c
+
+    def toggle_playing(self, switch, _p):
+        # luxos-daemon sleduje priznak (inotify) a pripadne hned vrati nastaveni uspavani
+        if switch.get_active():
+            if os.path.exists(SLEEP_WHILE_PLAYING):
+                os.unlink(SLEEP_WHILE_PLAYING)
+        else:
+            os.makedirs(os.path.dirname(SLEEP_WHILE_PLAYING), exist_ok=True)
+            open(SLEEP_WHILE_PLAYING, "w").close()
 
     def toggle_auto(self, switch, _p):
         if switch.get_active():
@@ -511,9 +582,23 @@ class PowerWindow(Gtk.Window):
         health = info.get("Capacity") or (full / design * 100 if design else 0)
         self.v_health.set_text(f"{health:.0f} %" if health else "-")
         self.s_health.set_text(_("of original capacity"))
-        cycles = info.get("ChargeCycles", -1)
-        self.v_cycles.set_text(str(cycles) if cycles and cycles > 0 else "-")
-        self.s_cycles.set_text(_("full charge cycles"))
+        cycles = info.get("ChargeCycles", 0) if DEMO else charge_cycles(info)
+        ctx = self.v_cycles.get_style_context()
+        card_box = self.v_cycles.get_parent()
+        if cycles > 0:
+            self.v_cycles.set_text(str(cycles))
+            ctx.remove_class("card-na")
+            ctx.add_class("card-value")
+            self.s_cycles.set_text(_("full charge cycles"))
+            card_box.set_tooltip_text(None)
+        else:
+            # Mnoho notebooku (firmware baterie) pocet cyklu neudava - neni to chyba LuxOS
+            self.v_cycles.set_text(_("Not reported by this battery"))
+            ctx.remove_class("card-value")
+            ctx.add_class("card-na")
+            self.s_cycles.set_text("")
+            card_box.set_tooltip_text(_("The battery firmware does not report its charge cycles. "
+                                        "Battery health shows how worn the battery is."))
         self.v_energy.set_text(f"{info.get('Energy', 0):.1f} Wh")
         self.s_energy.set_text(_("of %.1f Wh") % full if full else "")
         return True

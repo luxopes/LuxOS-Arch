@@ -2218,3 +2218,161 @@ The package lists could not be refreshed: %s	Die Paketlisten konnten nicht aktua
 The package lists could not be refreshed.	Die Paketlisten konnten nicht aktualisiert werden.
 Removed a stale database lock left by an interrupted update.	Eine von einer abgebrochenen Aktualisierung übrig gebliebene Datenbanksperre wurde entfernt.
 Waiting for another update to finish (%s)…	Warte, bis eine andere Aktualisierung fertig ist (%s)…
+Rename…	Umbenennen…
+Rename	Umbenennen
+Rename This Computer	Diesen Computer umbenennen
+Use Default	Standard verwenden
+Use the system name “%s”	Systemnamen „%s“ verwenden
+Other Bluetooth devices, such as your phone or headphones, show this name.	Andere Bluetooth-Geräte wie Ihr Telefon oder Kopfhörer zeigen diesen Namen an.
+An empty name uses the system name “%s”.	Ein leerer Name verwendet den Systemnamen „%s“.
+The name cannot contain line breaks or control characters.	Der Name darf keine Zeilenumbrüche oder Steuerzeichen enthalten.
+The name is too long (at most %d bytes).	Der Name ist zu lang (höchstens %d Byte).
+Visible to nearby devices as “%s”.	Für Geräte in der Nähe sichtbar als „%s“.
+Other devices see this computer as “%s”.	Andere Geräte sehen diesen Computer als „%s“.
+This computer's name, shown to other Bluetooth devices	Name dieses Computers, den andere Bluetooth-Geräte sehen
+visible now	jetzt sichtbar
+Could not rename this computer	Der Computer konnte nicht umbenannt werden
+Erase securely	Sicher löschen
+Optionally overwrite the space for LuxOS first, so old files there cannot be recovered. Other partitions are not touched.	Optional den Platz für LuxOS zuerst überschreiben, damit alte Dateien dort nicht wiederhergestellt werden können. Andere Partitionen bleiben unberührt.
+Area: %s. This can take long: %s (SSD and NVMe drives with a fast erase command finish much sooner).	Bereich: %s. Das kann lange dauern: %s (SSDs und NVMe-Laufwerke mit schnellem Löschbefehl sind viel früher fertig).
+Recommended with encryption: nothing unencrypted from before stays on the disk.	Empfohlen mit Verschlüsselung: Nichts Unverschlüsseltes von früher bleibt auf dem Datenträger.
+You can skip the rest of the erasing with Ctrl+C; the installation then continues.	Den Rest des Löschens können Sie mit Strg+C überspringen; die Installation läuft dann weiter.
+Erase first	Zuerst löschen
+Securely erase the space for LuxOS first (slow)?	Den Platz für LuxOS zuerst sicher löschen (langsam)?
+yes, %s (%s)	ja, %s (%s)
+under a minute	unter einer Minute
+about %s min	etwa %s Min.
+about %s h %s min	etwa %s Std. %s Min.
+about %s h %s min left	noch etwa %s Std. %s Min.
+Erasing the space for LuxOS	Platz für LuxOS wird gelöscht
+Erasing %s (%s)	%s wird gelöscht (%s)
+Erasing %s: %s %% (%s of %s)	%s wird gelöscht: %s %% (%s von %s)
+(Ctrl+C skips erasing)	(Strg+C überspringt das Löschen)
+Skipping %s: size unknown.	%s wird übersprungen: Größe unbekannt.
+Cannot erase %s: it is not a block device.	%s kann nicht gelöscht werden: kein Blockgerät.
+Refusing to erase %s (type %s): only LuxOS partitions and volumes are erased.	%s (Typ %s) wird nicht gelöscht: Gelöscht werden nur LuxOS-Partitionen und -Volumes.
+Cannot erase %s: it is in use (%s).	%s kann nicht gelöscht werden: wird verwendet (%s).
+Erasing %s failed (write error at %s). The disk may be damaged.	Löschen von %s fehlgeschlagen (Schreibfehler bei %s). Der Datenträger ist möglicherweise beschädigt.
+Erasing was skipped - the installation continues. %s of %s was overwritten.	Löschen übersprungen – die Installation wird fortgesetzt. %s von %s wurden überschrieben.
+Erasing was skipped - the installation continues.	Löschen übersprungen – die Installation wird fortgesetzt.
+Invalid WIPE (use none, zero or overwrite)	Ungültiges WIPE (none, zero oder overwrite verwenden)
+WIPE is not available with partitions already mounted at %s (DISK_MODE=manual).	WIPE ist mit bereits unter %s eingehängten Partitionen nicht verfügbar (DISK_MODE=manual).
+Erase securely first (slow)	Zuerst sicher löschen (langsam)
+Overwrites the space for LuxOS (%s) so that old files there cannot be recovered. Other partitions are not touched.	Überschreibt den Platz für LuxOS (%s), damit alte Dateien dort nicht wiederhergestellt werden können. Andere Partitionen bleiben unberührt.
+This can take long: %s. SSD and NVMe drives with a fast erase command finish much sooner. You can skip the rest while it runs; the installation then continues.	Das kann lange dauern: %s. SSDs und NVMe-Laufwerke mit schnellem Löschbefehl sind viel früher fertig. Während des Löschens können Sie den Rest überspringen; die Installation läuft dann weiter.
+Erasing the space for LuxOS. This can take a long time.	Der Platz für LuxOS wird gelöscht. Das kann lange dauern.
+Skip Erasing	Löschen überspringen
+Skipping the rest of the erasing…	Der Rest des Löschens wird übersprungen…
+about %s	etwa %s
+Longer battery life: slower processor without turbo, 60 Hz screen, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Längere Akkulaufzeit: langsamerer Prozessor ohne Turbo, 60-Hz-Bildschirm, etwas geringere Helligkeit, keine Animationen, ungenutzte Geräte schlafen und Hintergrundaufgaben pausieren.
+Stay awake while music or video is playing	Nicht in den Ruhezustand wechseln, während Musik oder Video läuft
+Music keeps playing even with the lid closed (the screen turns off). The computer goes to sleep when playback stops.	Die Musik läuft auch bei geschlossenem Deckel weiter (der Bildschirm schaltet sich aus). Der Computer schläft ein, wenn die Wiedergabe endet.
+Not reported by this battery	Von diesem Akku nicht gemeldet
+The battery firmware does not report its charge cycles. Battery health shows how worn the battery is.	Die Akku-Firmware meldet keine Ladezyklen. Der Batteriezustand zeigt, wie abgenutzt der Akku ist.
+Try '%s --help' for more information.	Weitere Informationen: '%s --help'.
+Only root can do this. Try again with sudo.	Das darf nur root. Versuchen Sie es erneut mit sudo.
+%s is the last administrator. Continuing because of --force.	%s ist der letzte Administrator. Wegen --force wird fortgefahren.
+%s is the last administrator; without one nobody could manage this computer. Make another user an administrator first (adduser NAME wheel) or use --force.	%s ist der letzte Administrator; ohne ihn könnte niemand diesen Computer verwalten. Machen Sie zuerst einen anderen Benutzer zum Administrator (adduser NAME wheel) oder verwenden Sie --force.
+Missing group name.	Gruppenname fehlt.
+Missing user name.	Benutzername fehlt.
+'%s' is not a valid name. Use lowercase letters, digits, - and _, start with a letter (at most 32 characters).	'%s' ist kein gültiger Name. Verwenden Sie Kleinbuchstaben, Ziffern, - und _, am Anfang ein Buchstabe (höchstens 32 Zeichen).
+Try: %s	Versuchen Sie: %s
+The user %s already exists.	Der Benutzer %s existiert bereits.
+The group %s already exists. To put the new user into it, use: %s	Die Gruppe %s existiert bereits. Um den neuen Benutzer darin aufzunehmen, verwenden Sie: %s
+The group %s does not exist. Create it with: %s	Die Gruppe %s existiert nicht. Erstellen Sie sie mit: %s
+Full name (optional):	Vollständiger Name (optional):
+The full name must not contain ':' or a line break.	Der vollständige Name darf weder ':' noch einen Zeilenumbruch enthalten.
+Should %s be an administrator (allowed to use sudo)? [y/N]	Soll %s Administrator sein (darf sudo verwenden)? [y/N]
+Could not create the user %s.	Der Benutzer %s konnte nicht erstellt werden.
+Set a password for %s:	Legen Sie ein Passwort für %s fest:
+The password was not set. Try again? [Y/n]	Das Passwort wurde nicht festgelegt. Erneut versuchen? [Y/n]
+No password is set, so %s can't log in yet. Set one with: %s	Es ist kein Passwort festgelegt, daher kann sich %s noch nicht anmelden. Legen Sie eines fest mit: %s
+User %s created.	Benutzer %s wurde erstellt.
+Home folder: %s	Persönlicher Ordner: %s
+Administrator: yes (can use sudo)	Administrator: ja (darf sudo verwenden)
+Administrator: no	Administrator: nein
+Groups: %s	Gruppen: %s
+On LuxOS administrators are in the group %s.	In LuxOS sind Administratoren in der Gruppe %s.
+The user %s does not exist.	Der Benutzer %s existiert nicht.
+%s is already a member of %s.	%s ist bereits Mitglied von %s.
+Could not add %s to %s.	%s konnte nicht zu %s hinzugefügt werden.
+Added %s to the group %s.	%s wurde zur Gruppe %s hinzugefügt.
+%s is now an administrator (can use sudo).	%s ist jetzt Administrator (darf sudo verwenden).
+The change applies after %s logs in again.	Die Änderung gilt, sobald sich %s erneut anmeldet.
+The group %s already exists.	Die Gruppe %s existiert bereits.
+Could not create the group %s.	Die Gruppe %s konnte nicht erstellt werden.
+Group %s created.	Gruppe %s wurde erstellt.
+Refusing to remove the root account.	Das Konto root wird nicht entfernt.
+%s is a system account (UID %s). Use --system if you really want to remove it.	%s ist ein Systemkonto (UID %s). Verwenden Sie --system, wenn Sie es wirklich entfernen möchten.
+You can't remove the account you are logged in with.	Das Konto, mit dem Sie angemeldet sind, kann nicht entfernt werden.
+%s is still logged in or has running programs. Log them out first: %s	%s ist noch angemeldet oder hat laufende Programme. Melden Sie den Benutzer zuerst ab: %s
+Also delete the home folder %s with all its files? [y/N]	Auch den persönlichen Ordner %s mit allen Dateien löschen? [y/N]
+Remove the user %s and delete %s? This can't be undone. [y/N]	Benutzer %s entfernen und %s löschen? Das kann nicht rückgängig gemacht werden. [y/N]
+Remove the user %s? The files in %s are kept. [y/N]	Benutzer %s entfernen? Die Dateien in %s bleiben erhalten. [y/N]
+Nothing was changed.	Es wurde nichts geändert.
+Could not remove the user %s.	Der Benutzer %s konnte nicht entfernt werden.
+User %s removed.	Benutzer %s wurde entfernt.
+Home folder %s deleted.	Persönlicher Ordner %s wurde gelöscht.
+Home folder %s kept.	Persönlicher Ordner %s bleibt erhalten.
+The group %s does not exist.	Die Gruppe %s existiert nicht.
+%s is the primary group of %s and can't be removed from it.	%s ist die primäre Gruppe von %s; er kann nicht daraus entfernt werden.
+%s is not a member of %s.	%s ist kein Mitglied von %s.
+Could not remove %s from %s.	%s konnte nicht aus %s entfernt werden.
+Removed %s from the group %s.	%s wurde aus der Gruppe %s entfernt.
+Refusing to remove the system group %s.	Die Systemgruppe %s wird nicht entfernt.
+%s is a system group (GID %s). Use --system if you really want to remove it.	%s ist eine Systemgruppe (GID %s). Verwenden Sie --system, wenn Sie sie wirklich entfernen möchten.
+%s is the primary group of the user %s. Remove that user first.	%s ist die primäre Gruppe des Benutzers %s. Entfernen Sie zuerst diesen Benutzer.
+The group %s still has members: %s	Die Gruppe %s hat noch Mitglieder: %s
+Could not remove the group %s.	Die Gruppe %s konnte nicht entfernt werden.
+Group %s removed.	Gruppe %s wurde entfernt.
+OPTIONS	OPTIONEN
+USER	BENUTZER
+GROUP	GRUPPE
+remove a user (asks whether to delete the home folder)	entfernt einen Benutzer (fragt, ob der persönliche Ordner gelöscht wird)
+remove a user from a group	entfernt einen Benutzer aus einer Gruppe
+also delete the home folder and mail	löscht auch den persönlichen Ordner und die Post
+allow removing system accounts (UID below 1000)	erlaubt das Entfernen von Systemkonten (UID unter 1000)
+don't ask for confirmation	ohne Rückfrage
+allow removing the last administrator	erlaubt das Entfernen des letzten Administrators
+print only errors	nur Fehler ausgeben
+remove a group	entfernt eine Gruppe
+remove the group only when it has no members	entfernt die Gruppe nur, wenn sie keine Mitglieder hat
+allow removing system groups (GID below 1000)	erlaubt das Entfernen von Systemgruppen (GID unter 1000)
+create a group	erstellt eine Gruppe
+add a user to a group	fügt einen Benutzer zu einer Gruppe hinzu
+create a system group	erstellt eine Systemgruppe
+use this group ID	verwendet diese Gruppen-ID
+create a user with a home folder and password (asks for the rest)	erstellt einen Benutzer mit persönlichem Ordner und Passwort (fragt nach dem Rest)
+add a user to a group (sudo or wheel = administrator)	fügt einen Benutzer zu einer Gruppe hinzu (sudo oder wheel = Administrator)
+make the user an administrator or not, without asking	macht den Benutzer zum Administrator oder nicht, ohne Rückfrage
+full name (also --gecos)	vollständiger Name (auch --gecos)
+don't set a password now	jetzt kein Passwort festlegen
+account that can't log in	Konto ohne Anmeldung
+login shell (default: lsh)	Anmelde-Shell (Standard: lsh)
+home folder (default: /home/USER)	persönlicher Ordner (Standard: /home/BENUTZER)
+don't create the home folder	keinen persönlichen Ordner erstellen
+primary group instead of a new group named after the user	primäre Gruppe statt einer neuen Gruppe mit dem Benutzernamen
+use this user ID	verwendet diese Benutzer-ID
+create a system account (no password, no login)	erstellt ein Systemkonto (ohne Passwort und Anmeldung)
+skip the user name check	überspringt die Prüfung des Benutzernamens
+Related: deluser, addgroup, delgroup, passwd USER, chfn USER	Siehe auch: deluser, addgroup, delgroup, passwd BENUTZER, chfn BENUTZER
+Option %s needs a value.	Die Option %s benötigt einen Wert.
+Too many arguments.	Zu viele Argumente.
+The ID must be a number: %s	Die ID muss eine Zahl sein: %s
+Name of the new group:	Name der neuen Gruppe:
+Group to remove:	Zu entfernende Gruppe:
+User to remove:	Zu entfernender Benutzer:
+Name of the new user (lowercase, e.g. %s):	Name des neuen Benutzers (Kleinbuchstaben, z. B. %s):
+SERVICE	DIENST
+LuxOS runs services with systemd; this calls systemctl. All options: %s	LuxOS startet Dienste mit systemd; dieser Befehl ruft systemctl auf. Alle Optionen: %s
+On LuxOS the service %s is called %s.	In LuxOS heißt der Dienst %s %s.
+Unknown action: %s	Unbekannte Aktion: %s
+Regenerates %s with grub-mkconfig. With systemd-boot nothing needs to be done.	Erzeugt %s mit grub-mkconfig neu. Mit systemd-boot ist nichts zu tun.
+LuxOS starts with systemd-boot, so there is no GRUB to update. Boot entries update automatically with each kernel.	LuxOS startet mit systemd-boot, es gibt also kein GRUB zu aktualisieren. Starteinträge werden mit jedem Kernel automatisch aktualisiert.
+Show them with: %s	Anzeigen mit: %s
+No GRUB configuration found (%s).	Keine GRUB-Konfiguration gefunden (%s).
+LuxOS can't install .deb or .rpm files. Search for the app with %s.	LuxOS kann keine .deb- oder .rpm-Dateien installieren. Suchen Sie die App mit %s.
+Apps that other systems ship as Snaps are usually available as Flatpaks; lux installs those too.	Apps, die andere Systeme als Snap ausliefern, gibt es meist als Flatpak; auch diese installiert lux.
+You can also change this in Settings.	Sie können das auch in den Einstellungen ändern.
+%s is not installed. LuxOS has a modern equivalent:	%s ist nicht installiert. LuxOS hat eine moderne Entsprechung:
+Or install the classic tool: %s	Oder installieren Sie das klassische Werkzeug: %s

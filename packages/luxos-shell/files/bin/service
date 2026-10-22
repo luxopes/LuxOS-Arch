@@ -1,0 +1,81 @@
+#!/bin/bash
+# LuxOS - service: prikaz z Debianu/Ubuntu nad systemd (systemctl).
+#   service SLUZBA AKCE    start, stop, restart, reload, force-reload, try-restart, status
+#                          (navic enable, disable, is-active, is-enabled)
+#   service --status-all   prehled sluzeb ve stylu Debianu: [ + ] bezi, [ - ] nebezi
+# Nazvy z Debianu (ssh, apache2, cron, ...) se prelozi na nazvy v LuxOS, pokud sluzba s puvodnim
+# nazvem neexistuje. Opravneni resi systemctl (polkit) - pripadne spust se sudo.
+[[ -r /usr/lib/luxos/i18n.sh ]] && . /usr/lib/luxos/i18n.sh
+declare -F T >/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+
+usage() {
+    printf '%s\n' "$(T "Usage:")"
+    printf '  service %s {start|stop|restart|reload|force-reload|try-restart|status}\n' "$(T "SERVICE")"
+    printf '  service --status-all\n\n'
+    printf '%s\n' "$(T "LuxOS runs services with systemd; this calls systemctl. All options: %s" "systemctl --help")"
+}
+
+unit_exists() {
+    local d
+    for d in /etc/systemd/system /run/systemd/system /usr/lib/systemd/system; do
+        [[ -e $d/$1.service ]] && return 0
+    done
+    return 1
+}
+
+# Debian/Ubuntu -> Arch nazvy sluzeb
+debian_name() {
+    case $1 in
+        ssh) echo sshd ;;
+        apache2) echo httpd ;;
+        cron) echo cronie ;;
+        mysql) echo mariadb ;;
+        network-manager) echo NetworkManager ;;
+        smbd) echo smb ;;
+        nmbd) echo nmb ;;
+        ntp) echo ntpd ;;
+        *) return 1 ;;
+    esac
+}
+
+case ${1-} in
+    ""|-h|--help) usage; [[ -n ${1-} ]]; exit ;;
+    --version) echo "service (LuxOS) 1.0"; exit 0 ;;
+    --status-all)
+        if [[ -t 1 && -z ${NO_COLOR-} ]]; then G=$'\e[32m' D=$'\e[2m' R=$'\e[0m'; else G="" D="" R=""; fi
+        systemctl list-units --type=service --all --plain --no-legend --no-pager 2>/dev/null |
+            while read -r unit _load active _sub _desc; do
+                [[ $unit == *.service ]] || continue
+                [[ $unit == *@* ]] && continue
+                if [[ $active == active ]]; then
+                    printf ' [ %s+%s ]  %s\n' "$G" "$R" "${unit%.service}"
+                else
+                    printf ' [ %s-%s ]  %s\n' "$D" "$R" "${unit%.service}"
+                fi
+            done
+        exit 0 ;;
+esac
+
+name=${1%.service}
+action=${2-}
+if [[ -z $action ]]; then
+    usage >&2
+    exit 1
+fi
+shift 2
+
+if ! unit_exists "$name" && alt=$(debian_name "$name") && [[ $alt != "$name" ]] && unit_exists "$alt"; then
+    printf '%s\n' "$(T "On LuxOS the service %s is called %s." "$name" "$alt")" >&2
+    name=$alt
+fi
+
+case $action in
+    start|stop|restart|reload|try-restart|status|enable|disable|is-active|is-enabled)
+        exec systemctl "$action" "$name.service" "$@" ;;
+    force-reload)
+        exec systemctl reload-or-restart "$name.service" "$@" ;;
+    *)
+        printf 'service: %s\n' "$(T "Unknown action: %s" "$action")" >&2
+        usage >&2
+        exit 1 ;;
+esac
