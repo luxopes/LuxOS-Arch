@@ -1,0 +1,10 @@
+// LuxOS Sporic baterie: prihlaseny mistni uzivatel smi bez hesla zapnout/vypnout jen tuto jednotku.
+// Jednotka nebere zadne parametry - co se nastavi, urcuje root (luxos-powersaver-helper).
+polkit.addRule(function(action, subject) {
+    if (action.id != "org.freedesktop.systemd1.manage-units" || !subject.local || !subject.active)
+        return polkit.Result.NOT_HANDLED;
+    var verb = action.lookup("verb");
+    if (action.lookup("unit") == "luxos-powersaver.service" && (verb == "start" || verb == "stop"))
+        return polkit.Result.YES;
+    return polkit.Result.NOT_HANDLED;
+});

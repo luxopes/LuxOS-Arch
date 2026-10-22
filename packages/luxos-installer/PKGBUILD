@@ -2,7 +2,7 @@
 
 pkgname=luxos-installer
 pkgver=1.1.0
-pkgrel=18
+pkgrel=19
 pkgdesc="LuxOS installer"
 arch=(any)
 url="https://github.com/luxos"
@@ -17,6 +17,8 @@ package() {
     install -Dm755 "$f/setup-chroot.sh" "$pkgdir/usr/share/luxos/installer/setup-chroot.sh"
     # Rucni rozdeleni: backend (bash) a model pro GUI (Python)
     install -Dm644 "$f/layout.sh" "$pkgdir/usr/share/luxos/installer/layout.sh"
+    # Bezpecne smazani mista pro LuxOS (WIPE)
+    install -Dm644 "$f/wipe.sh" "$pkgdir/usr/share/luxos/installer/wipe.sh"
     install -Dm644 "$f/luxos_layout.py" "$pkgdir/usr/lib/luxos/python/luxos_layout.py"
     install -Dm644 -t "$pkgdir/usr/share/luxos/installer" "$f/packages" "$f/install.conf.example" "$f/pacman.conf"
     # Sablony softwaru (TEMPLATES=, krok Software v GUI)

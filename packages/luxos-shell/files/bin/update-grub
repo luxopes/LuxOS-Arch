@@ -1,0 +1,32 @@
+#!/bin/bash
+# LuxOS - update-grub: prikaz z Debianu/Ubuntu.
+# S GRUBem (instalace pro BIOS) obnovi /boot/grub/grub.cfg pres grub-mkconfig (bez roota pres sudo).
+# Se systemd-boot (UEFI, vychozi v LuxOS) neni potreba nic delat - jen to vysvetli.
+[[ -r /usr/lib/luxos/i18n.sh ]] && . /usr/lib/luxos/i18n.sh
+declare -F T >/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+
+cfg=/boot/grub/grub.cfg
+case ${1-} in
+    -h|--help)
+        printf '%s\n' "$(T "Usage:")" "  update-grub" ""
+        printf '%s\n' "$(T "Regenerates %s with grub-mkconfig. With systemd-boot nothing needs to be done." "$cfg")"
+        exit 0 ;;
+esac
+
+if [[ -f $cfg ]] && command -v grub-mkconfig >/dev/null 2>&1; then
+    if [[ $(id -u) != 0 ]]; then
+        command -v sudo >/dev/null 2>&1 && exec sudo -- "$0" "$@"
+        printf 'update-grub: %s\n' "$(T "Only root can do this. Try again with sudo.")" >&2
+        exit 1
+    fi
+    exec grub-mkconfig -o "$cfg" "$@"
+fi
+
+if [[ -d /boot/loader/entries || -d /efi/loader/entries || -d /boot/efi/loader/entries ]]; then
+    printf '✦ %s\n' "$(T "LuxOS starts with systemd-boot, so there is no GRUB to update. Boot entries update automatically with each kernel.")"
+    printf '  %s\n' "$(T "Show them with: %s" "bootctl list")"
+    exit 0
+fi
+
+printf 'update-grub: %s\n' "$(T "No GRUB configuration found (%s)." "$cfg")" >&2
+exit 1

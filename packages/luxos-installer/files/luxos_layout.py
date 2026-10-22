@@ -922,6 +922,29 @@ class Layout:
                     out.append(("FORMAT %s", (n.dev,)))
         return out
 
+    def wipe_targets(self):
+        """[(uzel, bajty)] - co smaze volba WIPE (stejna pravidla jako layout_wipe_ids v layout.sh):
+        nove oddily, nove LV v zachovane skupine a existujici oddil/LV/otevreny LUKS, nad kterym vznika
+        novy LUKS/VG nebo formatovany FS/swap. Zachovane, mazane a nepouzite oddily nikdy."""
+        out = []
+        for n in self.nodes.values():
+            if n.delete or n.kind not in ("part", "lv", "luks"):
+                continue
+            if not n.existing:
+                if n.kind == "part":
+                    out.append(n)
+                elif n.kind == "lv":
+                    vg = self.nodes.get(n.vg)
+                    if vg is not None and vg.existing:
+                        out.append(n)
+                continue
+            if n.kind == "part" and self.disk_node(n.disk).wipe:
+                continue
+            if (n.use and n.use.get("format", True)) or \
+                    any(not c.existing and c.kind in ("luks", "vg") for c in self.consumers(n.id)):
+                out.append(n)
+        return [(n, self.size_of(n)) for n in out]
+
     def needed(self):
         """Objekty, ktere patri do LAYOUT: vse nove + existujici pod pouzitymi."""
         keep = set()

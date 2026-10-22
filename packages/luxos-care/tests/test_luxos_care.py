@@ -93,6 +93,15 @@ class Conditions(unittest.TestCase):
         self.assertEqual(care.conditions_ok(dict(low, metered="yes"), manual=True), (True, ""))
         # metered ma prednost pred baterii v duvodu
         self.assertEqual(care.conditions_ok(dict(low, metered="yes")), (False, "metered"))
+        # Sporic baterie: automaticky jen s nabijeckou (i pri dost nabite baterii)
+        full_bat = dict(good, ac=False, batteries=[(90, "Discharging")])
+        self.assertEqual(care.conditions_ok(full_bat), (True, ""))
+        self.assertEqual(care.conditions_ok(dict(full_bat, powersaver=True)), (False, "battery"))
+        self.assertEqual(care.conditions_ok(dict(good, powersaver=True)), (True, ""))
+        self.assertEqual(care.conditions_ok(dict(good, ac=None, batteries=[(50, "Charging")], powersaver=True)),
+                         (True, ""))
+        self.assertEqual(care.conditions_ok(dict(good, batteries=[], ac=None, powersaver=True)), (True, ""))
+        self.assertEqual(care.conditions_ok(dict(full_bat, powersaver=True), manual=True), (True, ""))
 
     def test_backoff_and_due(self):
         self.assertEqual(care.backoff(0), 0)

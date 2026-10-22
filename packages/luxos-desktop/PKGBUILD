@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=29
+pkgrel=30
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
@@ -48,6 +48,9 @@ build() {
     # Prepinani nabidek horni listy jednim klikem
     gcc $CFLAGS $LDFLAGS -o luxos-menubar "$startdir/files/src/luxos-menubar.c" -lX11 -lXi -lXtst -lXrandr
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-rgba-menus.so "$startdir/files/src/luxos-rgba-menus.c" \
+        $(pkg-config --cflags --libs gtk+-3.0)
+    # Zamykaci obrazovka: bez prazdne informacni listy (cerny pruh dole) po probuzeni
+    gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-lock-fix.so "$startdir/files/src/luxos-lock-fix.c" \
         $(pkg-config --cflags --libs gtk+-3.0)
 }
 
@@ -127,6 +130,7 @@ package() {
     install -Dm755 -t "$pkgdir/usr/lib/luxos/lightdm" "$f/lightdm/luxos-greeter-setup" "$f/lightdm/luxos-session-setup" \
         "$f/lightdm/luxos-greeter-wrapper"
     install -Dm755 libluxos-rgba-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-rgba-menus.so"
+    install -Dm755 libluxos-lock-fix.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-lock-fix.so"
     install -Dm644 "$f/lightdm/lightdm-gtk-greeter.conf" \
         "$pkgdir/usr/share/lightdm/lightdm-gtk-greeter.conf.d/50-luxos.conf"
 

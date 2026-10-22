@@ -1,0 +1,141 @@
+#!/bin/bash
+# LuxOS - /usr/lib/luxos/command-hint: napoveda pro zvyky z Debianu/Ubuntu, Fedory a openSUSE.
+#   command-hint PRIKAZ [ARGUMENTY]   vypise odpovidajici prikaz v LuxOS (stderr), navratovy kod 1
+# Spousti ho obsluha "command not found" v shellu LuxOS (bashrc, zshrc) jen pro prikazy, ktere v systemu nejsou:
+#   spravci baliku (apt, apt-get, apt-cache, aptitude, dpkg, dnf, yum, zypper, snap) -> lux
+#   dpkg-reconfigure -> timedatectl/localectl, sitove nastroje (ifconfig, netstat, ...) -> iproute2/systemd,
+#   which -> command -v
+# Nikdy nic neinstaluje ani nespousti. Pacman resi /usr/lib/lux/pacman-hint (balik lux).
+[[ -r /usr/lib/luxos/i18n.sh ]] && . /usr/lib/luxos/i18n.sh
+declare -F T >/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+
+cmd=${1-}
+shift
+q() { local out="" a; for a in "$@"; do printf -v a '%q' "$a"; out+=" $a"; done; printf '%s' "${out# }"; }
+
+# Argumenty bez voleb (-y, --yes, ...) a nalezene volby
+words=() opts=()
+for a in "$@"; do
+    if [[ $a == -* ]]; then opts+=("$a"); else words+=("$a"); fi
+done
+sub=${words[0]-}
+args=("${words[@]:1}")
+has_opt() { local o; for o in "${opts[@]}"; do [[ $o == "$1" ]] && return 0; done; return 1; }
+
+suggest=()   # odpovidajici prikazy
+kind=pkg     # pkg = spravce baliku, tool = chybejici nastroj
+install=""   # balik s klasickym nastrojem
+extra=""     # dalsi poznamka
+
+pkg_args() { ((${#args[@]})) && q "${args[@]}"; }
+deb_note() { extra=$(T "LuxOS can't install .deb or .rpm files. Search for the app with %s." "lux search NAME"); }
+
+map_pkg() {
+    local a=$(pkg_args)
+    case $sub in
+        install|in|add)
+            local x
+            for x in "${args[@]}"; do [[ $x == *.deb || $x == *.rpm ]] && { deb_note; return; }; done
+            [[ -n $a ]] && suggest+=("lux install $a") ;;
+        remove|purge|autopurge|erase|rm|uninstall) [[ -n $a ]] && suggest+=("lux remove $a") ;;
+        reinstall) [[ -n $a ]] && suggest+=("lux reinstall $a") ;;
+        update|upgrade|full-upgrade|dist-upgrade|dup|up|refresh|ref|check-update|makecache|distro-sync)
+            suggest+=("lux update") ;;
+        search|se|find) suggest+=("lux search${a:+ $a}") ;;
+        show|info|if|policy|depends|rdepends|showpkg) suggest+=("lux info${a:+ $a}") ;;
+        list|ls)
+            if has_opt --upgradable || [[ ${args[0]-} == updates || ${args[0]-} == upgrades ]]; then
+                suggest+=("lux list --upgradable")
+            else
+                suggest+=("lux list")
+            fi ;;
+        autoremove) suggest+=("lux autoremove") ;;
+        clean|autoclean) suggest+=("lux clean") ;;
+        provides|whatprovides) [[ -n $a ]] && suggest+=("lux owns $a") ;;
+    esac
+}
+
+map_dpkg() {
+    local o
+    for o in "${opts[@]}"; do
+        case $o in
+            -l|--list) suggest+=("lux list${words:+ $(q "${words[@]}")}") ;;
+            -L|--listfiles) ((${#words[@]})) && suggest+=("lux files $(q "${words[0]}")") ;;
+            -S|--search) ((${#words[@]})) && suggest+=("lux owns $(q "${words[@]}")") ;;
+            -s|--status|-p|--print-avail) ((${#words[@]})) && suggest+=("lux info $(q "${words[0]}")") ;;
+            -r|--remove|-P|--purge) ((${#words[@]})) && suggest+=("lux remove $(q "${words[@]}")") ;;
+            -i|--install) deb_note ;;
+        esac
+        ((${#suggest[@]})) && return
+    done
+}
+
+case $cmd in
+    apt|apt-get|aptitude|dnf|yum|zypper|apt-cache)
+        map_pkg ;;
+    dpkg)
+        map_dpkg ;;
+    snap)
+        map_pkg
+        extra=$(T "Apps that other systems ship as Snaps are usually available as Flatpaks; lux installs those too.") ;;
+    dpkg-reconfigure)
+        kind=tool
+        case $sub in
+            tzdata) suggest+=("timedatectl list-timezones" "timedatectl set-timezone REGION/CITY") ;;
+            locales) suggest+=("localectl list-locales" "localectl set-locale LANG=LOCALE") ;;
+            keyboard-configuration) suggest+=("localectl list-x11-keymap-layouts" "localectl set-x11-keymap LAYOUT") ;;
+        esac
+        extra=$(T "You can also change this in Settings.") ;;
+    ifconfig)
+        kind=tool install=net-tools
+        if ((${#words[@]})); then suggest+=("ip address show $(q "${words[0]}")"); else suggest+=("ip address" "ip -brief address"); fi ;;
+    netstat)
+        kind=tool install=net-tools
+        # ss zna stejne volby -t -u -l -p -n -a -x -e; -r (smerovani) a -i (rozhrani) maji jine prikazy
+        ss_ok=1
+        for o in "${opts[@]}"; do [[ $o =~ ^-[tulpnaxe]+$ ]] || ss_ok=0; done
+        if has_opt --route || [[ " ${opts[*]}" =~ \ -[a-z]*r ]]; then suggest+=("ip route")
+        elif has_opt --interfaces || [[ " ${opts[*]}" =~ \ -[a-z]*i ]]; then suggest+=("ip -statistics link")
+        elif ((${#opts[@]} && ss_ok)); then suggest+=("ss $(q "${opts[@]}")")
+        else suggest+=("ss -tulpn")
+        fi ;;
+    route) kind=tool install=net-tools; suggest+=("ip route") ;;
+    arp) kind=tool install=net-tools; suggest+=("ip neighbour") ;;
+    iwconfig) kind=tool install=wireless_tools; suggest+=("nmcli device wifi" "nmcli device status") ;;
+    nslookup|dig|host)
+        kind=tool install=bind
+        if ((${#words[@]})); then suggest+=("resolvectl query $(q "${words[-1]}")"); else suggest+=("resolvectl query NAME"); fi ;;
+    traceroute)
+        kind=tool install=traceroute
+        if ((${#words[@]})); then suggest+=("tracepath $(q "${words[-1]}")"); else suggest+=("tracepath HOST"); fi ;;
+    which)
+        kind=tool install=which
+        if ((${#words[@]})); then suggest+=("command -v $(q "${words[@]}")" "type -a $(q "${words[@]}")"); else suggest+=("command -v NAME"); fi ;;
+    *) exit 2 ;;
+esac
+
+if [[ -t 2 && -z ${NO_COLOR-} ]]; then
+    B=$'\e[1m' D=$'\e[2m' R=$'\e[0m' C=$'\e[38;2;167;123;255m'
+else
+    B="" D="" R="" C=""
+fi
+orig="$cmd${1+ $(q "$@")}"
+
+{
+    if [[ $kind == pkg ]]; then
+        printf '%s✦%s %s\n' "$C" "$R" "$(T "LuxOS uses lux to manage software.")"
+    else
+        printf '%s✦%s %s\n' "$C" "$R" "$(T "%s is not installed. LuxOS has a modern equivalent:" "$cmd")"
+    fi
+    for s in "${suggest[@]}"; do
+        printf '  %s%s%s  →  %s%s%s\n' "$D" "$orig" "$R" "$B" "$s" "$R"
+        orig=$(printf '%*s' "${#orig}" "")
+    done
+    [[ -n $extra ]] && printf '  %s\n' "$extra"
+    if [[ $kind == pkg ]]; then
+        printf '  %s\n' "$(T "All lux commands: %s" "${B}lux --help${R}")"
+    elif [[ -n $install ]]; then
+        printf '  %s\n' "$(T "Or install the classic tool: %s" "${B}lux install $install${R}")"
+    fi
+} >&2
+exit 1

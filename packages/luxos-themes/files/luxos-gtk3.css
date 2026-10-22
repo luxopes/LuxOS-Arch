@@ -103,3 +103,59 @@ XfdesktopIconView.view.cell:selected:hover {
     text-shadow: none;
     border-radius: 6px;
 }
+
+/* Prepinani oken Alt+Tab (xfwm4) ve stylu macOS: velke ikony aplikaci v poloprusvitnem
+   zaoblenem panelu, vybrana aplikace na zaoblenem podkladu a pod ikonami nazev okna.
+   Velikost ikon cte xfwm4 ze stylovych vlastnosti XfwmTabwinWidget (nahledy oken jsou
+   vypnute v kanalu xfwm4: cycle_preview). Sirku okraje panelu odvozuje xfwm4 ze
+   zaobleni + ramecku + paddingu. */
+#xfwm-tabwin {
+    -XfwmTabwinWidget-icon-size: 96;
+    -XfwmTabwinWidget-preview-size: 192;
+    -XfwmTabwinWidget-listview-icon-size: 32;
+    padding: 0;
+    border-radius: 22px;
+    border: 1px solid alpha(@theme_fg_color, 0.12);
+    background-color: alpha(@theme_bg_color, 0.92);
+    background-image: none;
+    color: @theme_fg_color;
+}
+
+#xfwm-tabwin button {
+    min-width: 0;
+    min-height: 0;
+    margin: 2px;
+    padding: 10px;
+    border: none;
+    border-radius: 20px;
+    background-color: transparent;
+    background-image: none;
+    box-shadow: none;
+    color: @theme_fg_color;
+    transition: none;
+}
+
+#xfwm-tabwin button:hover {
+    background-color: alpha(@theme_fg_color, 0.06);
+}
+
+#xfwm-tabwin button:checked,
+#xfwm-tabwin button:checked:hover {
+    background-color: alpha(@theme_fg_color, 0.15);
+}
+
+/* Popisek pod ikonou je trida okna (WM_CLASS: "Xfce4 terminal", "Luxos calculator"),
+   ne nazev aplikace - skryt; misto nej plati nazev okna dole */
+#xfwm-tabwin button label {
+    margin: 0;
+    min-height: 0;
+    font-size: 1px;
+    color: transparent;
+}
+
+/* nazev vybraneho okna pod ikonami */
+#xfwm-tabwin > box > label {
+    margin: 4px 16px 2px;
+    font-weight: 600;
+    color: @theme_fg_color;
+}

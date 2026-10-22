@@ -3,7 +3,7 @@
 
 Mluvi s fprintd pres D-Bus (net.reactivated.Fprint) - prubeh snimani ukazuje primo v okne.
 Prihlasovani otiskem zapina luxos-fingerprint-pam (pacman hook po instalaci fprintd).
-LUXOS_FPRINT_BUS=session: fprintd na session sbernici (testy s napodobenou sluzbou).
+LUXOS_FPRINT_BUS=session nebo adresa unix:...: fprintd na session / vlastni sbernici (testy s napodobenou sluzbou).
 """
 import math
 import os
@@ -95,8 +95,15 @@ class Fprint:
 
     def __init__(self, bus=None):
         if bus is None:
-            kind = Gio.BusType.SESSION if os.environ.get("LUXOS_FPRINT_BUS") == "session" else Gio.BusType.SYSTEM
-            bus = Gio.bus_get_sync(kind, None)
+            want = os.environ.get("LUXOS_FPRINT_BUS", "")
+            if want.startswith("unix:"):
+                # testy: vlastni sbernice podle adresy (nezavisle na sdilene session sbernici procesu)
+                bus = Gio.DBusConnection.new_for_address_sync(
+                    want, Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT
+                    | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION, None, None)
+            else:
+                kind = Gio.BusType.SESSION if want == "session" else Gio.BusType.SYSTEM
+                bus = Gio.bus_get_sync(kind, None)
         self.bus = bus
         self.dev = None             # cesta zarizeni
         self.props = {}
@@ -413,7 +420,7 @@ class FingerprintWindow(Gtk.Window):
     # -- prubeh --
     def start(self):
         if self.fp is None:
-            if not os.path.exists(SERVICE_FILE) and os.environ.get("LUXOS_FPRINT_BUS") != "session":
+            if not os.path.exists(SERVICE_FILE) and not os.environ.get("LUXOS_FPRINT_BUS"):
                 self.no_reader(installed=False)
                 return False
             try:

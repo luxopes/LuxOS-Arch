@@ -132,35 +132,14 @@ CFG = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.conf
 SOFT_BRIGHTNESS = os.path.join(CFG, "brightness")
 
 
-def media_state():
-    """Prehravac MPRIS (prednost ma ten, ktery prave hraje) nebo None."""
+def media_watcher():
+    """Sdileny hlidac MPRIS (luxos_mpris): stav prehravacu prichazi signaly D-Bus, bez dotazovani."""
     try:
-        bus = Gio.bus_get_sync(Gio.BusType.SESSION)
-        names = bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "ListNames",
-                              None, GLib.VariantType("(as)"), 0, 500, None).unpack()[0]
-    except GLib.Error:
+        import luxos_mpris
+        return luxos_mpris.watcher()
+    except (ImportError, GLib.Error) as e:
+        print(f"luxos-control-center: media: {e}", file=sys.stderr)
         return None
-    best = None
-    for name in sorted(n for n in names if n.startswith("org.mpris.MediaPlayer2.")):
-        try:
-            props = bus.call_sync(name, "/org/mpris/MediaPlayer2", "org.freedesktop.DBus.Properties", "GetAll",
-                                  GLib.Variant("(s)", ("org.mpris.MediaPlayer2.Player",)),
-                                  GLib.VariantType("(a{sv})"), 0, 500, None).unpack()[0]
-        except GLib.Error:
-            continue
-        meta = props.get("Metadata", {}) or {}
-        artist = meta.get("xesam:artist") or []
-        state = {"bus": name, "app": name.split(".")[3].split(".")[0].capitalize(),
-                 "title": str(meta.get("xesam:title") or ""),
-                 "artist": ", ".join(artist) if isinstance(artist, list) else str(artist),
-                 "art": str(meta.get("mpris:artUrl") or ""),
-                 "playing": props.get("PlaybackStatus") == "Playing",
-                 "can_next": bool(props.get("CanGoNext", True)), "can_prev": bool(props.get("CanGoPrevious", True))}
-        if state["playing"]:
-            return state
-        if best is None and (state["title"] or props.get("PlaybackStatus") == "Paused"):
-            best = state
-    return best
 
 
 def account_user():
@@ -442,6 +421,11 @@ class ControlCenter(Gtk.Window):
         media.set_no_show_all(True)
         outer.pack_start(media, False, False, 0)
         self.player = None
+        self.media_art = None           # posledni nactena obalka (soubor se necte znovu)
+        self.media_dirty = True         # zmena pri skrytem okne se projevi az pri zobrazeni
+        self.mpris = media_watcher()
+        if self.mpris is not None:
+            self.mpris.connect(self.on_media_changed)
 
         self.bat_box = Gtk.Box(spacing=10)
         self.bat_box.get_style_context().add_class("section")
@@ -487,6 +471,8 @@ class ControlCenter(Gtk.Window):
         else:
             self.refresh_fast()
             threading.Thread(target=self.refresh_slow, daemon=True).start()
+            if self.media_dirty:
+                self.apply_media()
             self.show_all()
             self.place()
             self.present_with_time(Gtk.get_current_event_time() or Gdk.CURRENT_TIME)
@@ -555,47 +541,54 @@ class ControlCenter(Gtk.Window):
         bt = bluetooth_state()
         dnd = dnd_state()
         vol = volume()
-        media = media_state()
         GLib.idle_add(self.apply_slow, wifi, bt, dnd, vol)
-        GLib.idle_add(self.apply_media, media)
 
-    def apply_media(self, media):
+    # ---- hudba a video (MPRIS): udalosti, zadne dotazovani ----
+    def on_media_changed(self):
+        if self.get_visible():
+            self.apply_media()
+        else:
+            self.media_dirty = True     # skryte okno: obalku apod. nacist az pri zobrazeni
+
+    def apply_media(self):
+        self.media_dirty = False
+        media = self.mpris.current() if self.mpris is not None else None
         if not media:
             self.player = None
+            self.media_box.set_no_show_all(True)
             self.media_box.hide()
-            return False
+            return
         self.player = media["bus"]
         self.m_title.set_text(media["title"] or media["app"])
         self.m_artist.set_text(media["artist"] or (media["app"] if media["title"] else ""))
-        icon = "media-playback-pause-symbolic" if media["playing"] else "media-playback-start-symbolic"
-        self.m_buttons["PlayPause"].get_child().set_from_icon_name(icon, Gtk.IconSize.LARGE_TOOLBAR)
+        self.set_play_icon(media["playing"])
         self.m_buttons["Next"].set_sensitive(media["can_next"])
         self.m_buttons["Previous"].set_sensitive(media["can_prev"])
-        pix = None
         art = media["art"]
-        if art.startswith("file://"):
-            try:
-                pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(GLib.filename_from_uri(art)[0], 42, 42, True)
-            except GLib.Error:
-                pix = None
-        if pix:
-            self.m_art.set_from_pixbuf(pix)
-        else:
-            self.m_art.set_from_icon_name("audio-x-generic-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
-        self.media_box.set_no_show_all(False)
-        self.media_box.show_all()
-        return False
+        if art != self.media_art:
+            self.media_art = art
+            pix = None
+            if art.startswith("file://"):
+                try:
+                    pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(GLib.filename_from_uri(art)[0], 42, 42, True)
+                except GLib.Error:
+                    pix = None
+            if pix:
+                self.m_art.set_from_pixbuf(pix)
+            else:
+                self.m_art.set_from_icon_name("audio-x-generic-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
+        if not self.media_box.get_visible():
+            self.media_box.set_no_show_all(False)
+            self.media_box.show_all()
+
+    def set_play_icon(self, playing):
+        icon = "media-playback-pause-symbolic" if playing else "media-playback-start-symbolic"
+        self.m_buttons["PlayPause"].get_child().set_from_icon_name(icon, Gtk.IconSize.LARGE_TOOLBAR)
 
     def media_call(self, method):
-        if not self.player:
-            return
-        try:
-            Gio.bus_get_sync(Gio.BusType.SESSION).call(
-                self.player, "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", method,
-                None, None, 0, 2000, None, None, None)
-        except GLib.Error:
-            pass
-        GLib.timeout_add(300, lambda: threading.Thread(target=self.refresh_slow, daemon=True).start() and False)
+        # Ikona se prepne hned po kliknuti (watcher stav zmeni lokalne), prehravac ji pak potvrdi signalem
+        if self.player and self.mpris is not None:
+            self.mpris.call(self.player, method)
 
     def apply_slow(self, wifi, bt, dnd, vol):
         self.t_wifi.set_state(*wifi)
@@ -638,12 +631,22 @@ class ControlCenter(Gtk.Window):
         self.close()
 
     def toggle_data(self):
-        run("luxos-datasaver", "toggle", timeout=10)
-        self.refresh_fast()
+        self.toggle_flag(self.t_data, "datasaver", "luxos-datasaver")
 
     def toggle_power(self):
-        run("luxos-powersaver", "toggle", timeout=10)
-        self.refresh_fast()
+        self.toggle_flag(self.t_power, "powersaver", "luxos-powersaver")
+
+    def toggle_flag(self, tile, flag, cmd):
+        """Dlazdice se prepne hned, prikaz (sit, systemova cast, monitor) dobehne na pozadi."""
+        on = not flag_state(flag)
+        tile.set_state(on, _("On") if on else _("Off"))
+        try:
+            p = subprocess.Popen((cmd, "on" if on else "off"), stdin=subprocess.DEVNULL,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        except OSError:
+            self.refresh_fast()
+            return
+        GLib.child_watch_add(GLib.PRIORITY_DEFAULT, p.pid, lambda *_a: (p.wait(), self.refresh_fast()))
 
     def set_volume(self, v):
         spawn("pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{v}%")

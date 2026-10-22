@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Screensaver
+Comment=LuxOS: lock screen with the luxos-lock-fix GTK module (no black strip after waking from sleep)
+Exec=env GTK_MODULES=luxos-lock-fix xfce4-screensaver
+Icon=org.xfce.ScreenSaver
+OnlyShowIn=XFCE;
+NoDisplay=true

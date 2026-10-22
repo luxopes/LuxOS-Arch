@@ -3,7 +3,7 @@
 
 pkgname=lsh
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 _bashver=5.3
 _patchlevel=020
 pkgdesc="lsh - the Lux shell (GNU bash fork with LuxOS and LSL integration)"
@@ -62,6 +62,10 @@ check() {
     cd bash-$_bashver
     ./bash --version | grep -q '^lsh (Lux Shell) '"$pkgver"
     ./bash -c 'about shell' | grep -q 'lsh - the Lux shell'
+    ./bash -c 'about os' | grep -q 'Kernel'
+    ./bash -c 'about system' | grep -q 'Memory'
+    ./bash -c 'about hw' | grep -q 'Hardware'
+    ! ./bash -c 'about nonsense' 2>/dev/null
     [[ $(./bash -c 'echo $LSH_VERSION') == "$pkgver" ]]
 }
 

@@ -1,0 +1,95 @@
+#!/bin/bash
+# LuxOS - Sporic baterie, systemova cast (root): luxos-powersaver-helper on|off
+# Spousti ji luxos-powersaver.service (start = on, stop = off); uzivatel ji zapina luxos-powersaver.
+#
+# on  ulozi puvodni hodnoty do /run/luxos/powersaver.saved a nastavi:
+#     - procesor bez turbo/boost (intel_pstate no_turbo, cpufreq boost): spicky az o 30-50 % nizsi
+#       spotreby, procesor zustava na zakladni frekvenci (EPP "power" uz nastavil power-profiles-daemon)
+#     - zvukovy kodek HDA se po 1 s ticha vypne (power_save), pokud byl vypnuty uspory
+#     - nepouzivana USB zarizeni s ovladacem, ktery uspavani zvlada (kamera, ctecka karet), nebo
+#       bez ovladace se uspavaji; vstup, zvuk, Bluetooth, sit a disky se nemeni (vypadky, zpozdeni)
+#     - zapis na disk po 15 s misto 5 s (disk/NVMe dele v usporem stavu)
+#     - pozastavi tezke ulohy na pozadi (man-db, kontrola LuxOS Care); Persistent casovace
+#       dobehnou po vypnuti sporice
+#     - priznak /run/luxos/powersaver: LuxOS Care neaktualizuje automaticky bez nabijecky
+# off vrati vse ulozene. /run se restartem vymaze - po prihlaseni ho obnovi luxos-powersaver reapply.
+# LUXOS_SYSROOT = falesny koren pro testy (/sys, /proc, /run).
+set -u
+root=${LUXOS_SYSROOT:-}
+dir=$root/run/luxos
+saved=$dir/powersaver.saved
+mark=$dir/powersaver
+TIMERS=(man-db.timer luxos-care-check.timer)
+# Ovladace USB, u kterych je automaticke uspani bezpecne (kamera, ctecky karet)
+USB_SAFE=" uvcvideo rtsx_usb rtsx_usb_ms rtsx_usb_sdmmc ums-realtek "
+
+recorded() { [[ -f $saved ]] && grep -qF -- "$1	" "$saved"; }
+
+set_value() {  # set_value SOUBOR HODNOTA - zapise a poprve ulozi puvodni hodnotu
+    local f=$1 v=$2 cur
+    [[ -f $f ]] || return 0
+    cur=$(<"$f") 2>/dev/null || return 0
+    [[ $cur == "$v" ]] && return 0
+    { printf '%s\n' "$v" >"$f"; } 2>/dev/null || return 0
+    recorded "$f" || printf '%s\t%s\n' "$f" "$cur" >>"$saved"
+}
+
+usb_safe() {  # usb_safe ZARIZENI - vsechna rozhrani bez ovladace nebo s ovladacem z USB_SAFE
+    local dev=$1 intf drv
+    [[ $(cat "$dev/bDeviceClass" 2>/dev/null) == 09 ]] && return 1      # huby uspava jadro samo
+    for intf in "$dev"/"${dev##*/}":*; do
+        [[ -d $intf ]] || continue
+        [[ -e $intf/driver ]] || continue
+        drv=$(basename "$(readlink "$intf/driver")")
+        [[ $USB_SAFE == *" $drv "* ]] || return 1
+    done
+    return 0
+}
+
+on() {
+    mkdir -p "$dir"
+    local f dev t
+    # Procesor: bez turbo/boost
+    set_value "$root/sys/devices/system/cpu/intel_pstate/no_turbo" 1
+    set_value "$root/sys/devices/system/cpu/cpufreq/boost" 0
+    for f in "$root"/sys/devices/system/cpu/cpufreq/policy*/boost; do set_value "$f" 0; done
+    # Zvuk: kodek HDA se po 1 s necinnosti uspi (PipeWire zastavi proud po 5 s ticha)
+    f=$root/sys/module/snd_hda_intel/parameters/power_save
+    [[ -f $f && $(<"$f") == 0 ]] && set_value "$f" 1
+    # Disk: zapis po 15 s (ztrata nejvys 15 s neulozenych dat pri vypadku proudu)
+    set_value "$root/proc/sys/vm/dirty_writeback_centisecs" 1500
+    # USB: uspavani bezpecnych nebo nepouzivanych zarizeni
+    for dev in "$root"/sys/bus/usb/devices/*; do
+        [[ ${dev##*/} == *:* || ! -f $dev/power/control ]] && continue
+        usb_safe "$dev" && set_value "$dev/power/control" auto
+    done
+    # Tezke ulohy na pozadi
+    if [[ -z $root ]]; then
+        for t in "${TIMERS[@]}"; do
+            if systemctl is-active --quiet "$t" && systemctl stop --no-block "$t" 2>/dev/null; then
+                recorded "timer:$t" || printf 'timer:%s\t\n' "$t" >>"$saved"
+            fi
+        done
+    fi
+    : >"$mark"
+}
+
+off() {
+    local f v
+    if [[ -f $saved ]]; then
+        while IFS=$'\t' read -r f v; do
+            case $f in
+                timer:*) [[ -z $root ]] && systemctl start --no-block "${f#timer:}" 2>/dev/null ;;
+                *) [[ -f $f ]] && { printf '%s\n' "$v" >"$f"; } 2>/dev/null ;;
+            esac
+        done <"$saved"
+    fi
+    rm -f "$saved" "$mark"
+}
+
+case ${1:-} in
+    on) on ;;
+    off) off ;;
+    *) echo "usage: luxos-powersaver-helper on|off" >&2; exit 2 ;;
+esac
+exit 0

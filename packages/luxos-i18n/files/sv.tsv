@@ -2218,3 +2218,161 @@ The package lists could not be refreshed: %s	Paketlistorna kunde inte uppdateras
 The package lists could not be refreshed.	Paketlistorna kunde inte uppdateras.
 Removed a stale database lock left by an interrupted update.	Tog bort ett databaslås som lämnats av en avbruten uppdatering.
 Waiting for another update to finish (%s)…	Väntar på att en annan uppdatering ska bli klar (%s)…
+Rename…	Byt namn…
+Rename	Byt namn
+Rename This Computer	Byt namn på den här datorn
+Use Default	Använd standard
+Use the system name “%s”	Använd systemnamnet ”%s”
+Other Bluetooth devices, such as your phone or headphones, show this name.	Andra Bluetooth-enheter, till exempel din telefon eller dina hörlurar, visar det här namnet.
+An empty name uses the system name “%s”.	Ett tomt namn använder systemnamnet ”%s”.
+The name cannot contain line breaks or control characters.	Namnet får inte innehålla radbrytningar eller styrtecken.
+The name is too long (at most %d bytes).	Namnet är för långt (högst %d byte).
+Visible to nearby devices as “%s”.	Synlig för enheter i närheten som ”%s”.
+Other devices see this computer as “%s”.	Andra enheter ser den här datorn som ”%s”.
+This computer's name, shown to other Bluetooth devices	Den här datorns namn som andra Bluetooth-enheter ser
+visible now	synlig nu
+Could not rename this computer	Det gick inte att byta namn på datorn
+Erase securely	Säker radering
+Optionally overwrite the space for LuxOS first, so old files there cannot be recovered. Other partitions are not touched.	Skriv valfritt över utrymmet för LuxOS först så att gamla filer där inte kan återställas. Andra partitioner påverkas inte.
+Area: %s. This can take long: %s (SSD and NVMe drives with a fast erase command finish much sooner).	Område: %s. Det kan ta lång tid: %s (SSD- och NVMe-enheter med ett snabbt raderingskommando blir klara mycket tidigare).
+Recommended with encryption: nothing unencrypted from before stays on the disk.	Rekommenderas med kryptering: inget okrypterat från tidigare blir kvar på disken.
+You can skip the rest of the erasing with Ctrl+C; the installation then continues.	Du kan hoppa över resten av raderingen med Ctrl+C; installationen fortsätter sedan.
+Erase first	Radera först
+Securely erase the space for LuxOS first (slow)?	Radera utrymmet för LuxOS säkert först (långsamt)?
+yes, %s (%s)	ja, %s (%s)
+under a minute	under en minut
+about %s min	cirka %s min
+about %s h %s min	cirka %s h %s min
+about %s h %s min left	cirka %s h %s min kvar
+Erasing the space for LuxOS	Raderar utrymmet för LuxOS
+Erasing %s (%s)	Raderar %s (%s)
+Erasing %s: %s %% (%s of %s)	Raderar %s: %s %% (%s av %s)
+(Ctrl+C skips erasing)	(Ctrl+C hoppar över raderingen)
+Skipping %s: size unknown.	Hoppar över %s: okänd storlek.
+Cannot erase %s: it is not a block device.	Kan inte radera %s: det är ingen blockenhet.
+Refusing to erase %s (type %s): only LuxOS partitions and volumes are erased.	Vägrar radera %s (typ %s): endast LuxOS-partitioner och volymer raderas.
+Cannot erase %s: it is in use (%s).	Kan inte radera %s: den används (%s).
+Erasing %s failed (write error at %s). The disk may be damaged.	Radering av %s misslyckades (skrivfel vid %s). Disken kan vara skadad.
+Erasing was skipped - the installation continues. %s of %s was overwritten.	Raderingen hoppades över – installationen fortsätter. %s av %s skrevs över.
+Erasing was skipped - the installation continues.	Raderingen hoppades över – installationen fortsätter.
+Invalid WIPE (use none, zero or overwrite)	Ogiltigt WIPE (använd none, zero eller overwrite)
+WIPE is not available with partitions already mounted at %s (DISK_MODE=manual).	WIPE är inte tillgängligt med partitioner som redan är monterade på %s (DISK_MODE=manual).
+Erase securely first (slow)	Radera säkert först (långsamt)
+Overwrites the space for LuxOS (%s) so that old files there cannot be recovered. Other partitions are not touched.	Skriver över utrymmet för LuxOS (%s) så att gamla filer där inte kan återställas. Andra partitioner påverkas inte.
+This can take long: %s. SSD and NVMe drives with a fast erase command finish much sooner. You can skip the rest while it runs; the installation then continues.	Det kan ta lång tid: %s. SSD- och NVMe-enheter med ett snabbt raderingskommando blir klara mycket tidigare. Medan det pågår kan du hoppa över resten; installationen fortsätter sedan.
+Erasing the space for LuxOS. This can take a long time.	Utrymmet för LuxOS raderas. Det kan ta lång tid.
+Skip Erasing	Hoppa över radering
+Skipping the rest of the erasing…	Hoppar över resten av raderingen…
+about %s	cirka %s
+Longer battery life: slower processor without turbo, 60 Hz screen, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Längre batteritid: långsammare processor utan turbo, 60 Hz-skärm, något lägre ljusstyrka, inga animationer, oanvända enheter går i viloläge och bakgrundsuppgifter pausas.
+Stay awake while music or video is playing	Gå inte i viloläge medan musik eller video spelas
+Music keeps playing even with the lid closed (the screen turns off). The computer goes to sleep when playback stops.	Musiken fortsätter spela även med stängt lock (skärmen stängs av). Datorn går i viloläge när uppspelningen slutar.
+Not reported by this battery	Rapporteras inte av detta batteri
+The battery firmware does not report its charge cycles. Battery health shows how worn the battery is.	Batteriets firmware rapporterar inte laddningscykler. Batterihälsa visar hur slitet batteriet är.
+Try '%s --help' for more information.	Prova '%s --help' för mer information.
+Only root can do this. Try again with sudo.	Bara root kan göra detta. Försök igen med sudo.
+%s is the last administrator. Continuing because of --force.	%s är den sista administratören. Fortsätter på grund av --force.
+%s is the last administrator; without one nobody could manage this computer. Make another user an administrator first (adduser NAME wheel) or use --force.	%s är den sista administratören; utan en administratör kan ingen hantera datorn. Gör först en annan användare till administratör (adduser NAMN wheel) eller använd --force.
+Missing group name.	Gruppnamn saknas.
+Missing user name.	Användarnamn saknas.
+'%s' is not a valid name. Use lowercase letters, digits, - and _, start with a letter (at most 32 characters).	'%s' är inte ett giltigt namn. Använd gemener, siffror, - och _, och börja med en bokstav (högst 32 tecken).
+Try: %s	Prova: %s
+The user %s already exists.	Användaren %s finns redan.
+The group %s already exists. To put the new user into it, use: %s	Gruppen %s finns redan. Använd detta för att lägga den nya användaren i den: %s
+The group %s does not exist. Create it with: %s	Gruppen %s finns inte. Skapa den med: %s
+Full name (optional):	Fullständigt namn (valfritt):
+The full name must not contain ':' or a line break.	Det fullständiga namnet får inte innehålla ':' eller radbrytning.
+Should %s be an administrator (allowed to use sudo)? [y/N]	Ska %s vara administratör (får använda sudo)? [y/N]
+Could not create the user %s.	Det gick inte att skapa användaren %s.
+Set a password for %s:	Ange ett lösenord för %s:
+The password was not set. Try again? [Y/n]	Lösenordet ställdes inte in. Försöka igen? [Y/n]
+No password is set, so %s can't log in yet. Set one with: %s	Inget lösenord är inställt, så %s kan inte logga in än. Ange ett med: %s
+User %s created.	Användaren %s har skapats.
+Home folder: %s	Hemmapp: %s
+Administrator: yes (can use sudo)	Administratör: ja (får använda sudo)
+Administrator: no	Administratör: nej
+Groups: %s	Grupper: %s
+On LuxOS administrators are in the group %s.	I LuxOS finns administratörer i gruppen %s.
+The user %s does not exist.	Användaren %s finns inte.
+%s is already a member of %s.	%s är redan medlem i %s.
+Could not add %s to %s.	Det gick inte att lägga till %s i %s.
+Added %s to the group %s.	%s har lagts till i gruppen %s.
+%s is now an administrator (can use sudo).	%s är nu administratör (får använda sudo).
+The change applies after %s logs in again.	Ändringen gäller när %s loggar in igen.
+The group %s already exists.	Gruppen %s finns redan.
+Could not create the group %s.	Det gick inte att skapa gruppen %s.
+Group %s created.	Gruppen %s har skapats.
+Refusing to remove the root account.	Kontot root tas inte bort.
+%s is a system account (UID %s). Use --system if you really want to remove it.	%s är ett systemkonto (UID %s). Använd --system om du verkligen vill ta bort det.
+You can't remove the account you are logged in with.	Du kan inte ta bort kontot du är inloggad med.
+%s is still logged in or has running programs. Log them out first: %s	%s är fortfarande inloggad eller har program igång. Logga ut användaren först: %s
+Also delete the home folder %s with all its files? [y/N]	Ta även bort hemmappen %s med alla filer? [y/N]
+Remove the user %s and delete %s? This can't be undone. [y/N]	Ta bort användaren %s och radera %s? Det går inte att ångra. [y/N]
+Remove the user %s? The files in %s are kept. [y/N]	Ta bort användaren %s? Filerna i %s behålls. [y/N]
+Nothing was changed.	Inget ändrades.
+Could not remove the user %s.	Det gick inte att ta bort användaren %s.
+User %s removed.	Användaren %s har tagits bort.
+Home folder %s deleted.	Hemmappen %s har raderats.
+Home folder %s kept.	Hemmappen %s har behållits.
+The group %s does not exist.	Gruppen %s finns inte.
+%s is the primary group of %s and can't be removed from it.	%s är primär grupp för %s och användaren kan inte tas bort från den.
+%s is not a member of %s.	%s är inte medlem i %s.
+Could not remove %s from %s.	Det gick inte att ta bort %s från %s.
+Removed %s from the group %s.	%s har tagits bort från gruppen %s.
+Refusing to remove the system group %s.	Systemgruppen %s tas inte bort.
+%s is a system group (GID %s). Use --system if you really want to remove it.	%s är en systemgrupp (GID %s). Använd --system om du verkligen vill ta bort den.
+%s is the primary group of the user %s. Remove that user first.	%s är primär grupp för användaren %s. Ta bort den användaren först.
+The group %s still has members: %s	Gruppen %s har fortfarande medlemmar: %s
+Could not remove the group %s.	Det gick inte att ta bort gruppen %s.
+Group %s removed.	Gruppen %s har tagits bort.
+OPTIONS	ALTERNATIV
+USER	ANVÄNDARE
+GROUP	GRUPP
+remove a user (asks whether to delete the home folder)	tar bort en användare (frågar om hemmappen ska raderas)
+remove a user from a group	tar bort en användare från en grupp
+also delete the home folder and mail	raderar även hemmappen och e-post
+allow removing system accounts (UID below 1000)	tillåter borttagning av systemkonton (UID under 1000)
+don't ask for confirmation	frågar inte om bekräftelse
+allow removing the last administrator	tillåter borttagning av den sista administratören
+print only errors	visar bara fel
+remove a group	tar bort en grupp
+remove the group only when it has no members	tar bara bort gruppen om den saknar medlemmar
+allow removing system groups (GID below 1000)	tillåter borttagning av systemgrupper (GID under 1000)
+create a group	skapar en grupp
+add a user to a group	lägger till en användare i en grupp
+create a system group	skapar en systemgrupp
+use this group ID	använder detta grupp-ID
+create a user with a home folder and password (asks for the rest)	skapar en användare med hemmapp och lösenord (frågar efter resten)
+add a user to a group (sudo or wheel = administrator)	lägger till en användare i en grupp (sudo eller wheel = administratör)
+make the user an administrator or not, without asking	gör användaren till administratör eller inte, utan att fråga
+full name (also --gecos)	fullständigt namn (även --gecos)
+don't set a password now	ange inget lösenord nu
+account that can't log in	konto som inte kan logga in
+login shell (default: lsh)	inloggningsskal (standard: lsh)
+home folder (default: /home/USER)	hemmapp (standard: /home/ANVÄNDARE)
+don't create the home folder	skapa ingen hemmapp
+primary group instead of a new group named after the user	primär grupp i stället för en ny grupp med användarens namn
+use this user ID	använder detta användar-ID
+create a system account (no password, no login)	skapar ett systemkonto (inget lösenord, ingen inloggning)
+skip the user name check	hoppar över kontrollen av användarnamnet
+Related: deluser, addgroup, delgroup, passwd USER, chfn USER	Se även: deluser, addgroup, delgroup, passwd ANVÄNDARE, chfn ANVÄNDARE
+Option %s needs a value.	Alternativet %s kräver ett värde.
+Too many arguments.	För många argument.
+The ID must be a number: %s	ID måste vara ett tal: %s
+Name of the new group:	Namn på den nya gruppen:
+Group to remove:	Grupp att ta bort:
+User to remove:	Användare att ta bort:
+Name of the new user (lowercase, e.g. %s):	Namn på den nya användaren (gemener, t.ex. %s):
+SERVICE	TJÄNST
+LuxOS runs services with systemd; this calls systemctl. All options: %s	LuxOS kör tjänster med systemd; detta anropar systemctl. Alla alternativ: %s
+On LuxOS the service %s is called %s.	I LuxOS heter tjänsten %s %s.
+Unknown action: %s	Okänd åtgärd: %s
+Regenerates %s with grub-mkconfig. With systemd-boot nothing needs to be done.	Skapar om %s med grub-mkconfig. Med systemd-boot behövs inget göras.
+LuxOS starts with systemd-boot, so there is no GRUB to update. Boot entries update automatically with each kernel.	LuxOS startar med systemd-boot, så det finns ingen GRUB att uppdatera. Startposterna uppdateras automatiskt med varje kärna.
+Show them with: %s	Visa dem med: %s
+No GRUB configuration found (%s).	Ingen GRUB-konfiguration hittades (%s).
+LuxOS can't install .deb or .rpm files. Search for the app with %s.	LuxOS kan inte installera .deb- eller .rpm-filer. Sök efter appen med %s.
+Apps that other systems ship as Snaps are usually available as Flatpaks; lux installs those too.	Appar som andra system levererar som Snap finns oftast som Flatpak; lux installerar dem också.
+You can also change this in Settings.	Du kan också ändra detta i Inställningar.
+%s is not installed. LuxOS has a modern equivalent:	%s är inte installerat. LuxOS har en modern motsvarighet:
+Or install the classic tool: %s	Eller installera det klassiska verktyget: %s

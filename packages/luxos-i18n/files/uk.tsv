@@ -2219,3 +2219,161 @@ The package lists could not be refreshed: %s	Не вдалося оновити 
 The package lists could not be refreshed.	Не вдалося оновити списки пакетів.
 Removed a stale database lock left by an interrupted update.	Видалено блокування бази даних, що залишилося після перерваного оновлення.
 Waiting for another update to finish (%s)…	Очікування завершення іншого оновлення (%s)…
+Rename…	Перейменувати…
+Rename	Перейменувати
+Rename This Computer	Перейменувати цей комп’ютер
+Use Default	Типова назва
+Use the system name “%s”	Використати назву системи «%s»
+Other Bluetooth devices, such as your phone or headphones, show this name.	Інші пристрої Bluetooth, наприклад телефон або навушники, показують цю назву.
+An empty name uses the system name “%s”.	Порожня назва означає назву системи «%s».
+The name cannot contain line breaks or control characters.	Назва не може містити розриви рядків або керівні символи.
+The name is too long (at most %d bytes).	Назва задовга (не більше %d байтів).
+Visible to nearby devices as “%s”.	Видимий для пристроїв поблизу як «%s».
+Other devices see this computer as “%s”.	Інші пристрої бачать цей комп’ютер як «%s».
+This computer's name, shown to other Bluetooth devices	Назва цього комп’ютера, яку бачать інші пристрої Bluetooth
+visible now	зараз видимий
+Could not rename this computer	Не вдалося перейменувати комп’ютер
+Erase securely	Безпечне стирання
+Optionally overwrite the space for LuxOS first, so old files there cannot be recovered. Other partitions are not touched.	За бажання спочатку перезаписати місце для LuxOS, щоб старі файли не можна було відновити. Інші розділи не змінюються.
+Area: %s. This can take long: %s (SSD and NVMe drives with a fast erase command finish much sooner).	Область: %s. Це може тривати довго: %s (SSD і NVMe з командою швидкого стирання впораються значно швидше).
+Recommended with encryption: nothing unencrypted from before stays on the disk.	Рекомендовано з шифруванням: на диску не залишиться нічого незашифрованого з минулого.
+You can skip the rest of the erasing with Ctrl+C; the installation then continues.	Решту стирання можна пропустити клавішами Ctrl+C; встановлення продовжиться.
+Erase first	Спочатку стерти
+Securely erase the space for LuxOS first (slow)?	Спочатку безпечно стерти місце для LuxOS (повільно)?
+yes, %s (%s)	так, %s (%s)
+under a minute	менше хвилини
+about %s min	близько %s хв
+about %s h %s min	близько %s год %s хв
+about %s h %s min left	залишилось близько %s год %s хв
+Erasing the space for LuxOS	Стирання місця для LuxOS
+Erasing %s (%s)	Стирання %s (%s)
+Erasing %s: %s %% (%s of %s)	Стирання %s: %s %% (%s з %s)
+(Ctrl+C skips erasing)	(Ctrl+C пропускає стирання)
+Skipping %s: size unknown.	%s пропущено: невідомий розмір.
+Cannot erase %s: it is not a block device.	Неможливо стерти %s: це не блоковий пристрій.
+Refusing to erase %s (type %s): only LuxOS partitions and volumes are erased.	Відмовлено у стиранні %s (тип %s): стираються лише розділи й томи LuxOS.
+Cannot erase %s: it is in use (%s).	Неможливо стерти %s: використовується (%s).
+Erasing %s failed (write error at %s). The disk may be damaged.	Не вдалося стерти %s (помилка запису на %s). Диск може бути пошкоджений.
+Erasing was skipped - the installation continues. %s of %s was overwritten.	Стирання пропущено – встановлення продовжується. Перезаписано %s з %s.
+Erasing was skipped - the installation continues.	Стирання пропущено – встановлення продовжується.
+Invalid WIPE (use none, zero or overwrite)	Недійсне WIPE (використовуйте none, zero або overwrite)
+WIPE is not available with partitions already mounted at %s (DISK_MODE=manual).	WIPE недоступне для розділів, уже змонтованих у %s (DISK_MODE=manual).
+Erase securely first (slow)	Спочатку безпечно стерти (повільно)
+Overwrites the space for LuxOS (%s) so that old files there cannot be recovered. Other partitions are not touched.	Перезаписує місце для LuxOS (%s), щоб старі файли не можна було відновити. Інші розділи не змінюються.
+This can take long: %s. SSD and NVMe drives with a fast erase command finish much sooner. You can skip the rest while it runs; the installation then continues.	Це може тривати довго: %s. SSD і NVMe з командою швидкого стирання впораються значно швидше. Під час стирання решту можна пропустити; встановлення продовжиться.
+Erasing the space for LuxOS. This can take a long time.	Стирається місце для LuxOS. Це може тривати довго.
+Skip Erasing	Пропустити стирання
+Skipping the rest of the erasing…	Пропуск решти стирання…
+about %s	близько %s
+Longer battery life: slower processor without turbo, 60 Hz screen, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Довша робота від акумулятора: повільніший процесор без турбо, екран 60 Гц, трохи нижча яскравість, без анімацій, невикористані пристрої засинають, а фонові завдання призупиняються.
+Stay awake while music or video is playing	Не присипляти під час відтворення музики чи відео
+Music keeps playing even with the lid closed (the screen turns off). The computer goes to sleep when playback stops.	Музика грає навіть із закритою кришкою (екран вимикається). Комп’ютер засне, коли відтворення завершиться.
+Not reported by this battery	Цей акумулятор не повідомляє
+The battery firmware does not report its charge cycles. Battery health shows how worn the battery is.	Мікропрограма акумулятора не повідомляє кількість циклів заряджання. Стан акумулятора показує його знос.
+Try '%s --help' for more information.	Докладніше: '%s --help'.
+Only root can do this. Try again with sudo.	Це може зробити лише root. Спробуйте ще раз із sudo.
+%s is the last administrator. Continuing because of --force.	%s — останній адміністратор. Продовжую через --force.
+%s is the last administrator; without one nobody could manage this computer. Make another user an administrator first (adduser NAME wheel) or use --force.	%s — останній адміністратор; без нього ніхто не зможе керувати цим комп'ютером. Спершу зробіть адміністратором іншого користувача (adduser ІМ'Я wheel) або використайте --force.
+Missing group name.	Не вказано назву групи.
+Missing user name.	Не вказано ім'я користувача.
+'%s' is not a valid name. Use lowercase letters, digits, - and _, start with a letter (at most 32 characters).	'%s' — недійсне ім'я. Використовуйте малі латинські літери, цифри, - та _, починаючи з літери (не більше 32 символів).
+Try: %s	Спробуйте: %s
+The user %s already exists.	Користувач %s уже існує.
+The group %s already exists. To put the new user into it, use: %s	Група %s уже існує. Щоб додати до неї нового користувача, використайте: %s
+The group %s does not exist. Create it with: %s	Групи %s не існує. Створіть її командою: %s
+Full name (optional):	Повне ім'я (необов'язково):
+The full name must not contain ':' or a line break.	Повне ім'я не може містити ':' або розрив рядка.
+Should %s be an administrator (allowed to use sudo)? [y/N]	Зробити %s адміністратором (може використовувати sudo)? [y/N]
+Could not create the user %s.	Не вдалося створити користувача %s.
+Set a password for %s:	Встановіть пароль для %s:
+The password was not set. Try again? [Y/n]	Пароль не встановлено. Спробувати ще раз? [Y/n]
+No password is set, so %s can't log in yet. Set one with: %s	Пароль не встановлено, тому %s поки що не може увійти. Встановіть його командою: %s
+User %s created.	Користувача %s створено.
+Home folder: %s	Домашня тека: %s
+Administrator: yes (can use sudo)	Адміністратор: так (може використовувати sudo)
+Administrator: no	Адміністратор: ні
+Groups: %s	Групи: %s
+On LuxOS administrators are in the group %s.	У LuxOS адміністратори входять до групи %s.
+The user %s does not exist.	Користувача %s не існує.
+%s is already a member of %s.	%s уже є учасником %s.
+Could not add %s to %s.	Не вдалося додати %s до %s.
+Added %s to the group %s.	%s додано до групи %s.
+%s is now an administrator (can use sudo).	%s тепер адміністратор (може використовувати sudo).
+The change applies after %s logs in again.	Зміна набуде чинності, коли %s увійде знову.
+The group %s already exists.	Група %s уже існує.
+Could not create the group %s.	Не вдалося створити групу %s.
+Group %s created.	Групу %s створено.
+Refusing to remove the root account.	Обліковий запис root не можна видалити.
+%s is a system account (UID %s). Use --system if you really want to remove it.	%s — системний обліковий запис (UID %s). Використайте --system, якщо справді хочете його видалити.
+You can't remove the account you are logged in with.	Не можна видалити обліковий запис, під яким ви ввійшли.
+%s is still logged in or has running programs. Log them out first: %s	%s досі в системі або має запущені програми. Спершу завершіть сеанс: %s
+Also delete the home folder %s with all its files? [y/N]	Також видалити домашню теку %s з усіма файлами? [y/N]
+Remove the user %s and delete %s? This can't be undone. [y/N]	Видалити користувача %s і стерти %s? Це не можна скасувати. [y/N]
+Remove the user %s? The files in %s are kept. [y/N]	Видалити користувача %s? Файли в %s буде збережено. [y/N]
+Nothing was changed.	Нічого не змінено.
+Could not remove the user %s.	Не вдалося видалити користувача %s.
+User %s removed.	Користувача %s видалено.
+Home folder %s deleted.	Домашню теку %s видалено.
+Home folder %s kept.	Домашню теку %s збережено.
+The group %s does not exist.	Групи %s не існує.
+%s is the primary group of %s and can't be removed from it.	%s — основна група користувача %s, і його не можна з неї вилучити.
+%s is not a member of %s.	%s не є учасником %s.
+Could not remove %s from %s.	Не вдалося вилучити %s з %s.
+Removed %s from the group %s.	%s вилучено з групи %s.
+Refusing to remove the system group %s.	Системну групу %s не можна видалити.
+%s is a system group (GID %s). Use --system if you really want to remove it.	%s — системна група (GID %s). Використайте --system, якщо справді хочете її видалити.
+%s is the primary group of the user %s. Remove that user first.	%s — основна група користувача %s. Спершу видаліть цього користувача.
+The group %s still has members: %s	Група %s ще має учасників: %s
+Could not remove the group %s.	Не вдалося видалити групу %s.
+Group %s removed.	Групу %s видалено.
+OPTIONS	ПАРАМЕТРИ
+USER	КОРИСТУВАЧ
+GROUP	ГРУПА
+remove a user (asks whether to delete the home folder)	видаляє користувача (запитує про видалення домашньої теки)
+remove a user from a group	вилучає користувача з групи
+also delete the home folder and mail	також видаляє домашню теку й пошту
+allow removing system accounts (UID below 1000)	дозволяє видаляти системні облікові записи (UID менше 1000)
+don't ask for confirmation	не запитує підтвердження
+allow removing the last administrator	дозволяє видалити останнього адміністратора
+print only errors	виводить лише помилки
+remove a group	видаляє групу
+remove the group only when it has no members	видаляє групу, лише якщо в ній немає учасників
+allow removing system groups (GID below 1000)	дозволяє видаляти системні групи (GID менше 1000)
+create a group	створює групу
+add a user to a group	додає користувача до групи
+create a system group	створює системну групу
+use this group ID	використовує цей ID групи
+create a user with a home folder and password (asks for the rest)	створює користувача з домашньою текою та паролем (решту запитає)
+add a user to a group (sudo or wheel = administrator)	додає користувача до групи (sudo або wheel = адміністратор)
+make the user an administrator or not, without asking	робить користувача адміністратором чи ні, без запитання
+full name (also --gecos)	повне ім'я (також --gecos)
+don't set a password now	не встановлювати пароль зараз
+account that can't log in	обліковий запис без входу
+login shell (default: lsh)	оболонка входу (типово: lsh)
+home folder (default: /home/USER)	домашня тека (типово: /home/КОРИСТУВАЧ)
+don't create the home folder	не створювати домашню теку
+primary group instead of a new group named after the user	основна група замість нової групи з ім'ям користувача
+use this user ID	використовує цей ID користувача
+create a system account (no password, no login)	створює системний обліковий запис (без пароля і входу)
+skip the user name check	пропускає перевірку імені користувача
+Related: deluser, addgroup, delgroup, passwd USER, chfn USER	Див. також: deluser, addgroup, delgroup, passwd КОРИСТУВАЧ, chfn КОРИСТУВАЧ
+Option %s needs a value.	Параметр %s потребує значення.
+Too many arguments.	Забагато аргументів.
+The ID must be a number: %s	ID має бути числом: %s
+Name of the new group:	Назва нової групи:
+Group to remove:	Група для видалення:
+User to remove:	Користувач для видалення:
+Name of the new user (lowercase, e.g. %s):	Ім'я нового користувача (малими літерами, напр. %s):
+SERVICE	СЛУЖБА
+LuxOS runs services with systemd; this calls systemctl. All options: %s	LuxOS запускає служби через systemd; ця команда викликає systemctl. Усі параметри: %s
+On LuxOS the service %s is called %s.	У LuxOS служба %s називається %s.
+Unknown action: %s	Невідома дія: %s
+Regenerates %s with grub-mkconfig. With systemd-boot nothing needs to be done.	Повторно створює %s за допомогою grub-mkconfig. Із systemd-boot нічого робити не потрібно.
+LuxOS starts with systemd-boot, so there is no GRUB to update. Boot entries update automatically with each kernel.	LuxOS завантажується через systemd-boot, тож оновлювати GRUB не потрібно. Пункти завантаження оновлюються автоматично з кожним ядром.
+Show them with: %s	Переглянути їх: %s
+No GRUB configuration found (%s).	Конфігурацію GRUB не знайдено (%s).
+LuxOS can't install .deb or .rpm files. Search for the app with %s.	LuxOS не встановлює файли .deb чи .rpm. Знайдіть застосунок командою %s.
+Apps that other systems ship as Snaps are usually available as Flatpaks; lux installs those too.	Застосунки, які інші системи постачають як Snap, зазвичай доступні як Flatpak; lux встановлює й їх.
+You can also change this in Settings.	Це також можна змінити в Налаштуваннях.
+%s is not installed. LuxOS has a modern equivalent:	%s не встановлено. У LuxOS є сучасний відповідник:
+Or install the classic tool: %s	Або встановіть класичний інструмент: %s

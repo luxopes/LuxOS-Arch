@@ -13,6 +13,7 @@ driv obstaravaly samostatne smycky:
   Internet          "!" v liste a upozorneni, kdyz je sit bez internetu (luxos-netcheck)
   Bluetooth         agent pro parovani z telefonu a sluchatek (misto blueman-applet)
   Svetly/tmavy      automaticky rezim podle vychodu a zapadu slunce
+  Prehravani       pri hrajici hudbe/videu neuspava (ani zavreny vik), viz KeepAwake
   Ovladace          jednou za start upozorneni na chybejici ovladace (luxos-drivers)
 
 Vsechno je rizene udalostmi (D-Bus, signaly); jediny casovac je kontrola
@@ -288,6 +289,206 @@ def watch_bluetooth(system):
                                                      appeared, None)
 
 
+# ---- Neuspavat pri prehravani hudby/videa (i se zavrenym vikem) ------------------------
+# Vikem i necinnosti uspava xfce4-power-manager (drzi si inhibitor handle-lid-switch v logind,
+# takze inhibitor logind by nepomohl). Behem prehravani proto docasne nastavime jeho akci
+# vika na "vypnout obrazovku" (0) a uspani pri necinnosti na "nikdy" (14); puvodni hodnoty
+# jsou v SLEEP_OVERRIDE (obnovi se i po padu, pri dalsim startu). xfce4-power-manager cte
+# nastaveni az v okamziku udalosti, takze zmena plati hned.
+XFPM = "xfce4-power-manager"
+SLEEP_OVERRIDE = os.path.join(CFG, "sleep-override")       # "vlastnost=puvodni hodnota"
+SLEEP_WHILE_PLAYING = os.path.join(CFG, "sleep-while-playing")   # existuje = volba vypnuta
+LID_PROPS = ("lid-action-on-battery", "lid-action-on-ac")
+IDLE_PROPS = ("inactivity-on-battery", "inactivity-on-ac")
+SLEEP_ACTIONS = (1, 2, 5)       # uspat, hibernovat, hybridni uspani (0 = vypnout obrazovku)
+LID_SCREEN_OFF, IDLE_NEVER = 0, 14
+PLAYBACK_GRACE = 30             # s ticha, nez se nastaveni vrati (mezery mezi skladbami, kratka pauza)
+
+
+def read_override(path=SLEEP_OVERRIDE):
+    vals = {}
+    try:
+        with open(path) as f:
+            for line in f:
+                k, _s, v = line.strip().partition("=")
+                if v.isdigit():
+                    vals[k] = int(v)
+    except OSError:
+        pass
+    return vals
+
+
+def write_override(vals, path=SLEEP_OVERRIDE):
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        f.writelines(f"{k}={v}\n" for k, v in vals.items())
+    os.replace(tmp, path)
+
+
+def plan_override(current):
+    """{vlastnost: hodnota} xfce4-power-manager -> {vlastnost: (puvodni, docasna)} pro dobu prehravani."""
+    plan = {}
+    for p in LID_PROPS:
+        if current.get(p) in SLEEP_ACTIONS:
+            plan[p] = (current[p], LID_SCREEN_OFF)
+    for p in IDLE_PROPS:
+        v = current.get(p)
+        if v is not None and v > IDLE_NEVER:
+            plan[p] = (v, IDLE_NEVER)
+    return plan
+
+
+def plan_restore(saved, current):
+    """Co vratit: jen vlastnosti, ktere mezitim nikdo nezmenil (jinak plati novejsi volba uzivatele)."""
+    temp = {p: (LID_SCREEN_OFF if p in LID_PROPS else IDLE_NEVER) for p in saved}
+    return {p: v for p, v in saved.items() if current.get(p) in (temp[p], None)}
+
+
+def lid_sleep_action(saved, on_battery, lid_closed, external_monitor):
+    """Akce po skonceni prehravani se zavrenym vikem: "Suspend", "Hibernate" nebo None."""
+    if not lid_closed or external_monitor:
+        return None
+    a = saved.get("lid-action-on-battery" if on_battery else "lid-action-on-ac")
+    return {1: "Suspend", 5: "Suspend", 2: "Hibernate"}.get(a)
+
+
+def external_monitor(base="/sys/class/drm"):
+    """Pripojeny jiny nez vestaveny displej (s nim xfce4-power-manager vikem neuspava)."""
+    try:
+        names = os.listdir(base)
+    except OSError:
+        return False
+    for n in names:
+        if "-" not in n or any(t in n for t in ("-eDP", "-LVDS", "-DSI")):
+            continue
+        try:
+            with open(os.path.join(base, n, "status")) as f:
+                if f.read().strip() == "connected":
+                    return True
+        except OSError:
+            continue
+    return False
+
+
+class KeepAwake:
+    def __init__(self, session, system, watcher):
+        self.session, self.system, self.watcher = session, system, watcher
+        self.timer = 0
+        self.engaged = False
+        self.restore(sleep=False)           # zbytek po padu / odhlaseni behem prehravani
+        watcher.connect(self.changed)
+        self.monitor = Gio.File.new_for_path(SLEEP_WHILE_PLAYING).monitor_file(Gio.FileMonitorFlags.NONE, None)
+        self.monitor.connect("changed", lambda *_a: self.changed())
+        self.changed()
+
+    def xfconf(self, method, prop, value=None):
+        args = (XFPM, f"/{XFPM}/{prop}") + ((value,) if value is not None else ())
+        sig = "(ssv)" if value is not None else "(ss)"
+        try:
+            r = self.session.call_sync("org.xfce.Xfconf", "/org/xfce/Xfconf", "org.xfce.Xfconf", method,
+                                       GLib.Variant(sig, args), None, 0, 3000, None)
+            return r.unpack()[0] if value is None else True
+        except GLib.Error:
+            return None
+
+    def current(self, props):
+        vals = {}
+        for p in props:
+            v = self.xfconf("GetProperty", p)
+            if isinstance(v, int):
+                vals[p] = v
+        return vals
+
+    def changed(self):
+        want = self.watcher.playing() and not os.path.exists(SLEEP_WHILE_PLAYING)
+        if want:
+            if self.timer:
+                GLib.source_remove(self.timer)
+                self.timer = 0
+            # Jednou za prehravani (zmena metadat u dalsi skladby uz xfconf necte)
+            if not self.engaged:
+                self.engaged = True
+                if not os.path.exists(SLEEP_OVERRIDE):
+                    self.engage()
+            return
+        self.engaged = False
+        if os.path.exists(SLEEP_OVERRIDE) and not self.timer:
+            # Volbu uzivatel vypnul -> hned, jinak az po chvili ticha
+            delay = 1 if os.path.exists(SLEEP_WHILE_PLAYING) else PLAYBACK_GRACE
+            self.timer = GLib.timeout_add_seconds(delay, self.on_quiet)
+
+    def engage(self):
+        plan = plan_override(self.current(LID_PROPS + IDLE_PROPS))
+        if not plan:
+            return
+        write_override({p: orig for p, (orig, _t) in plan.items()})
+        for p, (_o, temp) in plan.items():
+            self.xfconf("SetProperty", p, GLib.Variant("u", temp))
+
+    def on_quiet(self):
+        self.timer = 0
+        if not self.watcher.playing() or os.path.exists(SLEEP_WHILE_PLAYING):
+            self.restore(sleep=True)
+        return False
+
+    def upower(self, prop):
+        try:
+            r = self.system.call_sync("org.freedesktop.UPower", "/org/freedesktop/UPower",
+                                      "org.freedesktop.DBus.Properties", "Get",
+                                      GLib.Variant("(ss)", ("org.freedesktop.UPower", prop)), None, 0, 2000, None)
+            return bool(r.unpack()[0])
+        except GLib.Error:
+            return False
+
+    def restore(self, sleep):
+        saved = read_override()
+        if not saved:
+            if os.path.exists(SLEEP_OVERRIDE):
+                os.unlink(SLEEP_OVERRIDE)
+            return
+        for p, v in plan_restore(saved, self.current(saved)).items():
+            self.xfconf("SetProperty", p, GLib.Variant("u", v))
+        try:
+            os.unlink(SLEEP_OVERRIDE)
+        except OSError:
+            pass
+        if not sleep:
+            return
+        # Vik se zavrel behem prehravani: ted, kdyz hudba skoncila, uspat jako po zavreni vika
+        action = lid_sleep_action(saved, self.upower("OnBattery"), self.upower("LidIsClosed"), external_monitor())
+        if action:
+            log(f"playback stopped with the lid closed: {action}")
+            self.sleep(action)
+
+    def sleep(self, action):
+        # Pres xfce4-power-manager (zamkne obrazovku podle nastaveni), jinak primo logind
+        try:
+            self.session.call_sync("org.freedesktop.PowerManagement", "/org/freedesktop/PowerManagement",
+                                   "org.freedesktop.PowerManagement", action, None, None, 0, 5000, None)
+            return
+        except GLib.Error as e:
+            log(f"power manager {action}: {e.message}")
+        try:
+            self.system.call_sync("org.freedesktop.login1", "/org/freedesktop/login1",
+                                  "org.freedesktop.login1.Manager", action, GLib.Variant("(b)", (False,)),
+                                  None, 0, 5000, None)
+        except GLib.Error as e:
+            log(f"logind {action}: {e.message}")
+
+    def shutdown(self):
+        if os.path.exists(SLEEP_OVERRIDE):
+            self.restore(sleep=False)
+
+
+def watch_playback(system):
+    try:
+        import luxos_mpris
+        return KeepAwake(Gio.bus_get_sync(Gio.BusType.SESSION), system, luxos_mpris.watcher())
+    except (ImportError, GLib.Error) as e:
+        log(f"playback: {e}")
+        return None
+
+
 # ---- Automaticky svetly/tmavy rezim ----------------------------------------------------
 def appearance_check():
     prefs = {}
@@ -372,12 +573,14 @@ def main():
         except Exception as e:  # noqa: BLE001
             log(f"drivers: {e}")
 
+    awake = None
     try:
         system = Gio.bus_get_sync(Gio.BusType.SYSTEM)
         watch_networks(system)
         watch_connectivity(system)
         watch_low_memory(system)
         watch_bluetooth(system)
+        awake = watch_playback(system)
 
         # Po probuzeni (vecer otevreny notebook) hned zkontrolovat vzhled
         def on_sleep(_c, _s, _p, _i, _sig, params):
@@ -392,6 +595,8 @@ def main():
     try:
         Gtk.main()
     finally:
+        if awake is not None:
+            awake.shutdown()
         for p in PIDFILES:
             try:
                 with open(p) as f:

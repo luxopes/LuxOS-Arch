@@ -1,0 +1,442 @@
+#!/bin/bash
+# LuxOS - adduser, deluser, addgroup, delgroup: pratelska sprava uzivatelu a skupin jako v Debianu/Ubuntu.
+# Jeden skript, chovani podle nazvu prikazu (addgroup, deluser a delgroup jsou odkazy na adduser).
+#   adduser [VOLBY] [UZIVATEL]             novy uzivatel: domovska slozka z /etc/skel (vychozi nastaveni LuxOS),
+#                                          heslo, cele jmeno, dotaz na administratora (skupina wheel = sudo)
+#   adduser UZIVATEL SKUPINA               prida existujiciho uzivatele do skupiny (sudo/admin -> wheel)
+#   adduser --group SKUPINA, addgroup SKUPINA   nova skupina
+#   deluser [--remove-home] UZIVATEL       smaze uzivatele (s potvrzenim v terminalu)
+#   deluser UZIVATEL SKUPINA               odebere uzivatele ze skupiny
+#   delgroup SKUPINA                       smaze skupinu
+# Chybejici udaje se doptaji v terminalu. Bez roota se prikaz spusti znovu pres sudo.
+# Pojistky: root, systemove ucty/skupiny (UID/GID < 1000 bez --system), vlastni ucet a posledni
+# administrator (root je v LuxOS zamceny, bez clena wheel by nesel spravovat system) se nesmazou.
+# Vykonavaji programy z baliku shadow: useradd, userdel, groupadd, groupdel, gpasswd, passwd.
+[[ -r /usr/lib/luxos/i18n.sh ]] && . /usr/lib/luxos/i18n.sh
+declare -F T >/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+
+prog=${0##*/}
+self=$0
+orig_args=("$@")
+
+if [[ -t 1 && -z ${NO_COLOR-} ]]; then
+    B=$'\e[1m' D=$'\e[2m' R=$'\e[0m' C=$'\e[38;2;167;123;255m' Y=$'\e[33m'
+else
+    B="" D="" R="" C="" Y=""
+fi
+
+# Skupiny pro novy ucet s plochou (jako instalator LuxOS); administrator navic wheel a sys
+DESKTOP_GROUPS=(video audio input lp storage scanner network rfkill)
+ADMIN_GROUPS=(wheel sys)
+
+quiet=0
+msg() { ((quiet)) || printf '%s✦%s %s\n' "$C" "$R" "$*"; }
+note() { ((quiet)) || printf '  %s%s%s\n' "$D" "$*" "$R"; }
+warn() { printf '%s!%s %s\n' "$Y" "$R" "$*" >&2; }
+die() { printf '%s: %s\n' "$prog" "$*" >&2; exit 1; }
+usage_error() { printf '%s: %s\n' "$prog" "$*" >&2; printf '%s\n' "$(T "Try '%s --help' for more information." "$prog")" >&2; exit 1; }
+
+interactive=0
+[[ -t 0 ]] && interactive=1
+
+# Otazka ano/ne; $2 = vychozi odpoved (y/n) pri Enteru
+ask_yes() {
+    local ans
+    read -r -p "$1 " ans || return 1
+    ans=${ans,,}
+    [[ -z $ans ]] && ans=$2
+    # yes/ano/áno/ja/sí/sim/oui/tak/igen/так
+    [[ $ans == [yajsoti]* || $ans == á* || $ans == т* ]]
+}
+ask() { local v; read -r -p "$1 " v || return 1; printf '%s' "$v"; }
+
+need_root() {
+    [[ $(id -u) == 0 ]] && return
+    if command -v sudo >/dev/null 2>&1; then
+        exec sudo -- "$self" "${orig_args[@]}"
+    fi
+    die "$(T "Only root can do this. Try again with sudo.")"
+}
+
+# Zaznamy z passwd/group: pole oddelena dvojteckou
+pw_get() { getent passwd "$1" 2>/dev/null; }
+gr_get() { getent group "$1" 2>/dev/null; }
+pw_field() { local l; l=$(pw_get "$1") || return 1; cut -d: -f"$2" <<<"$l"; }
+gr_field() { local l; l=$(gr_get "$1") || return 1; cut -d: -f"$2" <<<"$l"; }
+
+# Je UZIVATEL clenem SKUPINY (doplnkove clenstvi nebo primarni skupina)?
+in_group() {
+    local members gid
+    members=$(gr_field "$2" 4)
+    [[ ,$members, == *,"$1",* ]] && return 0
+    gid=$(gr_field "$2" 3) || return 1
+    [[ $(pw_field "$1" 4) == "$gid" ]]
+}
+
+# Administratori (clenove wheel) krome UZIVATELE $1
+other_admins() {
+    local members m out=()
+    members=$(gr_field wheel 4) || return 0
+    local IFS=,
+    for m in $members; do
+        [[ -n $m && $m != "$1" ]] && pw_get "$m" >/dev/null && out+=("$m")
+    done
+    printf '%s\n' "${out[@]}"
+}
+
+check_last_admin() {
+    in_group "$1" wheel || return 0
+    [[ -n $(other_admins "$1") ]] && return 0
+    ((force)) && { warn "$(T "%s is the last administrator. Continuing because of --force." "$1")"; return 0; }
+    die "$(T "%s is the last administrator; without one nobody could manage this computer. Make another user an administrator first (adduser NAME wheel) or use --force." "$1")"
+}
+
+valid_name() {
+    ((badname)) && [[ $1 =~ ^[^:,[:space:]/]+$ && $1 != -* ]] && return 0
+    [[ $1 =~ ^[a-z_][a-z0-9_-]{0,31}$ ]]
+}
+
+check_name() {
+    local what=$1 name=$2
+    if [[ -z $name ]]; then
+        if [[ $what == group ]]; then usage_error "$(T "Missing group name.")"; fi
+        usage_error "$(T "Missing user name.")"
+    fi
+    valid_name "$name" && return
+    local hint=${name,,}
+    hint=${hint//[^a-z0-9_-]/}
+    [[ $hint =~ ^[a-z_] ]] || hint=""
+    printf '%s: %s\n' "$prog" "$(T "'%s' is not a valid name. Use lowercase letters, digits, - and _, start with a letter (at most 32 characters)." "$name")" >&2
+    [[ -n $hint ]] && printf '  %s\n' "$(T "Try: %s" "$prog $hint")" >&2
+    exit 1
+}
+
+# Primarni skupina uzivatele (GID) - pro odebrani ze skupiny a mazani skupiny
+primary_of() {
+    local gid=$1 line
+    while IFS= read -r line; do
+        [[ $(cut -d: -f4 <<<"$line") == "$gid" ]] && { cut -d: -f1 <<<"$line"; return 0; }
+    done < <(getent passwd 2>/dev/null)
+    return 1
+}
+
+# ---- adduser ----------------------------------------------------------------
+
+create_user() {
+    local name=$1 args=() groups=() g pw_ok=0 made_home=0
+
+    check_name user "$name"
+    pw_get "$name" >/dev/null && die "$(T "The user %s already exists." "$name")"
+    if [[ -z $ingroup ]] && ((!system)) && gr_get "$name" >/dev/null; then
+        die "$(T "The group %s already exists. To put the new user into it, use: %s" "$name" "adduser --ingroup $name $name")"
+    fi
+    if [[ -n $ingroup ]] && ! gr_get "$ingroup" >/dev/null; then
+        die "$(T "The group %s does not exist. Create it with: %s" "$ingroup" "addgroup $ingroup")"
+    fi
+
+    if ((interactive && !system)) && [[ -z ${comment+x} ]]; then
+        comment=$(ask "$(T "Full name (optional):")") || comment=""
+    fi
+    [[ ${comment-} == *[:$'\n']* ]] && die "$(T "The full name must not contain ':' or a line break.")"
+    if ((!system)) && [[ -z $admin ]]; then
+        admin=0
+        if ((interactive)) && ask_yes "$(T "Should %s be an administrator (allowed to use sudo)? [y/N]" "$name")" n; then
+            admin=1
+        fi
+    fi
+
+    if ((system)); then
+        args+=(-r)
+        if [[ -n $home ]]; then args+=(-m -d "$home"); made_home=1; else args+=(-M); fi
+        [[ -n $shell ]] || shell=/usr/bin/nologin
+    else
+        if ((nohome)); then args+=(-M); else args+=(-m); made_home=1; fi
+        [[ -n $home ]] && args+=(-d "$home")
+        for g in "${DESKTOP_GROUPS[@]}"; do gr_get "$g" >/dev/null && groups+=("$g"); done
+        if ((admin)); then
+            for g in "${ADMIN_GROUPS[@]}"; do gr_get "$g" >/dev/null && groups+=("$g"); done
+        fi
+    fi
+    ((disabled_login)) && shell=/usr/bin/nologin
+    if [[ -n $ingroup ]]; then args+=(-g "$ingroup" -N); else args+=(-U); fi
+    ((${#groups[@]})) && args+=(-G "$(IFS=,; printf '%s' "${groups[*]}")")
+    [[ -n ${comment-} ]] && args+=(-c "$comment")
+    [[ -n $shell ]] && args+=(-s "$shell")
+    [[ -n $uid ]] && args+=(-u "$uid")
+
+    useradd "${args[@]}" -- "$name" || die "$(T "Could not create the user %s." "$name")"
+    home=$(pw_field "$name" 6)
+
+    if ((system || disabled_password || disabled_login)); then
+        :
+    elif ((interactive)); then
+        msg "$(T "Set a password for %s:" "$name")"
+        while :; do
+            if passwd "$name"; then pw_ok=1; break; fi
+            ask_yes "$(T "The password was not set. Try again? [Y/n]")" y || break
+        done
+        ((pw_ok)) || warn "$(T "No password is set, so %s can't log in yet. Set one with: %s" "$name" "sudo passwd $name")"
+    else
+        warn "$(T "No password is set, so %s can't log in yet. Set one with: %s" "$name" "sudo passwd $name")"
+    fi
+
+    msg "$(T "User %s created." "${B}$name${R}")"
+    ((made_home)) && note "$(T "Home folder: %s" "$home")"
+    if ((!system)); then
+        if ((admin)); then note "$(T "Administrator: yes (can use sudo)")"; else note "$(T "Administrator: no")"; fi
+        ((${#groups[@]})) && note "$(T "Groups: %s" "${groups[*]}")"
+    fi
+    return 0
+}
+
+# sudo/admin z Debianu/Ubuntu odpovidaji v LuxOS skupine wheel
+map_admin_group() {
+    if [[ ($1 == sudo || $1 == admin) ]] && ! gr_get "$1" >/dev/null && gr_get wheel >/dev/null; then
+        note "$(T "On LuxOS administrators are in the group %s." wheel)" >&2
+        printf 'wheel'
+    else
+        printf '%s' "$1"
+    fi
+}
+
+add_to_group() {
+    local user=$1 group
+    group=$(map_admin_group "$2")
+    pw_get "$user" >/dev/null || die "$(T "The user %s does not exist." "$user")"
+    gr_get "$group" >/dev/null || die "$(T "The group %s does not exist. Create it with: %s" "$group" "addgroup $group")"
+    if in_group "$user" "$group"; then
+        msg "$(T "%s is already a member of %s." "$user" "$group")"
+        return 0
+    fi
+    gpasswd -a "$user" "$group" >/dev/null || die "$(T "Could not add %s to %s." "$user" "$group")"
+    msg "$(T "Added %s to the group %s." "${B}$user${R}" "${B}$group${R}")"
+    [[ $group == wheel ]] && note "$(T "%s is now an administrator (can use sudo)." "$user")"
+    note "$(T "The change applies after %s logs in again." "$user")"
+}
+
+create_group() {
+    local name=$1 args=()
+    check_name group "$name"
+    gr_get "$name" >/dev/null && die "$(T "The group %s already exists." "$name")"
+    ((system)) && args+=(-r)
+    [[ -n $gid ]] && args+=(-g "$gid")
+    groupadd "${args[@]}" -- "$name" || die "$(T "Could not create the group %s." "$name")"
+    msg "$(T "Group %s created." "${B}$name${R}")"
+}
+
+# ---- deluser / delgroup -------------------------------------------------------
+
+delete_user() {
+    local name=$1 uid home err me q
+    pw_get "$name" >/dev/null || {
+        ((system)) && return 0    # --system: neexistujici systemovy ucet neni chyba (jako Debian)
+        die "$(T "The user %s does not exist." "$name")"
+    }
+    uid=$(pw_field "$name" 3)
+    home=$(pw_field "$name" 6)
+    [[ $name == root || $uid == 0 ]] && die "$(T "Refusing to remove the root account.")"
+    if ((uid < 1000)) && ((!system)); then
+        die "$(T "%s is a system account (UID %s). Use --system if you really want to remove it." "$name" "$uid")"
+    fi
+    me=${SUDO_USER:-$(logname 2>/dev/null)}
+    [[ -n $me && $me == "$name" ]] && die "$(T "You can't remove the account you are logged in with.")"
+    check_last_admin "$name"
+    if pgrep -u "$name" >/dev/null 2>&1; then
+        die "$(T "%s is still logged in or has running programs. Log them out first: %s" "$name" "loginctl terminate-user $name")"
+    fi
+
+    if ((interactive && !yes)); then
+        if [[ -z $remove_home ]] && [[ -d $home ]]; then
+            remove_home=0
+            ask_yes "$(T "Also delete the home folder %s with all its files? [y/N]" "$home")" n && remove_home=1
+        fi
+        if ((remove_home)); then
+            q=$(T "Remove the user %s and delete %s? This can't be undone. [y/N]" "$name" "$home")
+        else
+            q=$(T "Remove the user %s? The files in %s are kept. [y/N]" "$name" "$home")
+        fi
+        ask_yes "$q" n || { msg "$(T "Nothing was changed.")"; exit 1; }
+    fi
+
+    if ((remove_home)); then
+        err=$(userdel -r -- "$name" 2>&1) || { printf '%s\n' "$err" >&2; die "$(T "Could not remove the user %s." "$name")"; }
+    else
+        err=$(userdel -- "$name" 2>&1) || { printf '%s\n' "$err" >&2; die "$(T "Could not remove the user %s." "$name")"; }
+    fi
+    # hlaseni o chybejicim postovnim spoolu je v LuxOS normalni
+    [[ -n $err ]] && grep -v 'mail spool' <<<"$err" >&2
+    msg "$(T "User %s removed." "${B}$name${R}")"
+    if ((remove_home)); then
+        note "$(T "Home folder %s deleted." "$home")"
+    elif [[ -d $home ]]; then
+        note "$(T "Home folder %s kept." "$home")"
+    fi
+}
+
+remove_from_group() {
+    local user=$1 group gid
+    group=$(map_admin_group "$2")
+    pw_get "$user" >/dev/null || die "$(T "The user %s does not exist." "$user")"
+    gr_get "$group" >/dev/null || die "$(T "The group %s does not exist." "$group")"
+    gid=$(gr_field "$group" 3)
+    if [[ $(pw_field "$user" 4) == "$gid" ]]; then
+        die "$(T "%s is the primary group of %s and can't be removed from it." "$group" "$user")"
+    fi
+    if ! in_group "$user" "$group"; then
+        msg "$(T "%s is not a member of %s." "$user" "$group")"
+        return 0
+    fi
+    [[ $group == wheel ]] && check_last_admin "$user"
+    gpasswd -d "$user" "$group" >/dev/null || die "$(T "Could not remove %s from %s." "$user" "$group")"
+    msg "$(T "Removed %s from the group %s." "${B}$user${R}" "${B}$group${R}")"
+    note "$(T "The change applies after %s logs in again." "$user")"
+}
+
+delete_group() {
+    local name=$1 gid members prim
+    gr_get "$name" >/dev/null || {
+        ((system)) && return 0
+        die "$(T "The group %s does not exist." "$name")"
+    }
+    gid=$(gr_field "$name" 3)
+    members=$(gr_field "$name" 4)
+    case $name in
+        root|wheel|users|sys|adm) die "$(T "Refusing to remove the system group %s." "$name")" ;;
+    esac
+    if ((gid < 1000)) && ((!system)); then
+        die "$(T "%s is a system group (GID %s). Use --system if you really want to remove it." "$name" "$gid")"
+    fi
+    if prim=$(primary_of "$gid"); then
+        die "$(T "%s is the primary group of the user %s. Remove that user first." "$name" "$prim")"
+    fi
+    if ((only_if_empty)) && [[ -n $members ]]; then
+        die "$(T "The group %s still has members: %s" "$name" "${members//,/, }")"
+    fi
+    groupdel -- "$name" || die "$(T "Could not remove the group %s." "$name")"
+    msg "$(T "Group %s removed." "${B}$name${R}")"
+}
+
+# ---- napoveda -----------------------------------------------------------------
+
+opt() { printf '  %-28s %s\n' "$1" "$2"; }
+usage() {
+    case $prog in
+        deluser)
+            printf '%s\n' "$(T "Usage:")"
+            printf '  deluser [%s] %s\n  deluser %s %s\n  deluser --group %s\n\n' "$(T "OPTIONS")" "$(T "USER")" "$(T "USER")" "$(T "GROUP")" "$(T "GROUP")"
+            opt "deluser USER" "$(T "remove a user (asks whether to delete the home folder)")"
+            opt "deluser USER GROUP" "$(T "remove a user from a group")"
+            opt "--remove-home" "$(T "also delete the home folder and mail")"
+            opt "--system" "$(T "allow removing system accounts (UID below 1000)")"
+            opt "-y, --yes" "$(T "don't ask for confirmation")"
+            opt "--force" "$(T "allow removing the last administrator")"
+            opt "-q, --quiet" "$(T "print only errors")" ;;
+        delgroup)
+            printf '%s\n' "$(T "Usage:")"
+            printf '  delgroup [%s] %s\n  delgroup %s %s\n\n' "$(T "OPTIONS")" "$(T "GROUP")" "$(T "USER")" "$(T "GROUP")"
+            opt "delgroup GROUP" "$(T "remove a group")"
+            opt "delgroup USER GROUP" "$(T "remove a user from a group")"
+            opt "--only-if-empty" "$(T "remove the group only when it has no members")"
+            opt "--system" "$(T "allow removing system groups (GID below 1000)")"
+            opt "-q, --quiet" "$(T "print only errors")" ;;
+        addgroup)
+            printf '%s\n' "$(T "Usage:")"
+            printf '  addgroup [%s] %s\n  addgroup %s %s\n\n' "$(T "OPTIONS")" "$(T "GROUP")" "$(T "USER")" "$(T "GROUP")"
+            opt "addgroup GROUP" "$(T "create a group")"
+            opt "addgroup USER GROUP" "$(T "add a user to a group")"
+            opt "--system" "$(T "create a system group")"
+            opt "--gid ID" "$(T "use this group ID")"
+            opt "-q, --quiet" "$(T "print only errors")" ;;
+        *)
+            printf '%s\n' "$(T "Usage:")"
+            printf '  adduser [%s] [%s]\n  adduser %s %s\n  adduser --group %s\n\n' "$(T "OPTIONS")" "$(T "USER")" "$(T "USER")" "$(T "GROUP")" "$(T "GROUP")"
+            opt "adduser USER" "$(T "create a user with a home folder and password (asks for the rest)")"
+            opt "adduser USER GROUP" "$(T "add a user to a group (sudo or wheel = administrator)")"
+            opt "--admin / --no-admin" "$(T "make the user an administrator or not, without asking")"
+            opt "--comment NAME" "$(T "full name (also --gecos)")"
+            opt "--disabled-password" "$(T "don't set a password now")"
+            opt "--disabled-login" "$(T "account that can't log in")"
+            opt "--shell SHELL" "$(T "login shell (default: lsh)")"
+            opt "--home DIR" "$(T "home folder (default: /home/USER)")"
+            opt "--no-create-home" "$(T "don't create the home folder")"
+            opt "--ingroup GROUP" "$(T "primary group instead of a new group named after the user")"
+            opt "--uid ID" "$(T "use this user ID")"
+            opt "--system" "$(T "create a system account (no password, no login)")"
+            opt "--allow-bad-names" "$(T "skip the user name check")"
+            opt "-q, --quiet" "$(T "print only errors")"
+            printf '\n%s\n' "$(T "Related: deluser, addgroup, delgroup, passwd USER, chfn USER")" ;;
+    esac
+}
+
+# ---- argumenty ------------------------------------------------------------------
+
+admin="" system=0 nohome=0 disabled_password=0 disabled_login=0 badname=0
+home="" shell="" uid="" gid="" ingroup="" group_mode=0 remove_home="" yes=0 force=0 only_if_empty=0
+unset comment
+pos=()
+while (($#)); do
+    a=$1; shift
+    case $a in
+        -h|--help) usage; exit 0 ;;
+        -q|--quiet) quiet=1 ;;
+        --comment|--gecos) (($#)) || usage_error "$(T "Option %s needs a value." "$a")"; comment=$1; shift ;;
+        --comment=*|--gecos=*) comment=${a#*=} ;;
+        --home|--shell|--uid|--gid|--ingroup)
+            (($#)) || usage_error "$(T "Option %s needs a value." "$a")"
+            v=$1; shift
+            case $a in --home) home=$v ;; --shell) shell=$v ;; --uid) uid=$v ;; --gid) gid=$v ;; --ingroup) ingroup=$v ;; esac ;;
+        --home=*) home=${a#*=} ;;
+        --shell=*) shell=${a#*=} ;;
+        --uid=*) uid=${a#*=} ;;
+        --gid=*) gid=${a#*=} ;;
+        --ingroup=*) ingroup=${a#*=} ;;
+        --admin|--sudo) admin=1 ;;
+        --no-admin) admin=0 ;;
+        --system) system=1 ;;
+        --group) group_mode=1 ;;
+        --no-create-home) nohome=1 ;;
+        --disabled-password) disabled_password=1 ;;
+        --disabled-login) disabled_login=1 ;;
+        --allow-bad-names|--force-badname|--allow-badname) badname=1 ;;
+        --remove-home) remove_home=1 ;;
+        --only-if-empty) only_if_empty=1 ;;
+        -y|--yes) yes=1 ;;
+        -f|--force) force=1 ;;
+        --) pos+=("$@"); break ;;
+        -*) usage_error "$(T "Unknown option: %s" "$a")" ;;
+        *) pos+=("$a") ;;
+    esac
+done
+((${#pos[@]} <= 2)) || usage_error "$(T "Too many arguments.")"
+[[ -z $uid || $uid =~ ^[0-9]+$ ]] || usage_error "$(T "The ID must be a number: %s" "$uid")"
+[[ -z $gid || $gid =~ ^[0-9]+$ ]] || usage_error "$(T "The ID must be a number: %s" "$gid")"
+# --gid u uzivatele = primarni skupina podle cisla
+[[ $prog == adduser && -n $gid && $group_mode == 0 && -z $ingroup ]] && ingroup=$gid
+
+need_root
+
+case $prog in
+    addgroup)
+        if ((${#pos[@]} == 2)); then add_to_group "${pos[0]}" "${pos[1]}"; exit; fi
+        ((${#pos[@]})) || { ((interactive)) && pos=("$(ask "$(T "Name of the new group:")")"); }
+        create_group "${pos[0]-}" ;;
+    delgroup)
+        if ((${#pos[@]} == 2)); then remove_from_group "${pos[0]}" "${pos[1]}"; exit; fi
+        ((${#pos[@]})) || { ((interactive)) && pos=("$(ask "$(T "Group to remove:")")"); }
+        [[ -n ${pos[0]-} ]] || usage_error "$(T "Missing group name.")"
+        delete_group "${pos[0]}" ;;
+    deluser)
+        if ((${#pos[@]} == 2)); then remove_from_group "${pos[0]}" "${pos[1]}"; exit; fi
+        ((${#pos[@]})) || { ((interactive)) && pos=("$(ask "$(T "User to remove:")")"); }
+        [[ -n ${pos[0]-} ]] || usage_error "$(T "Missing user name.")"
+        if ((group_mode)); then delete_group "${pos[0]}"; else delete_user "${pos[0]}"; fi ;;
+    *)
+        if ((${#pos[@]} == 2)); then add_to_group "${pos[0]}" "${pos[1]}"; exit; fi
+        if ((group_mode)); then
+            ((${#pos[@]})) || { ((interactive)) && pos=("$(ask "$(T "Name of the new group:")")"); }
+            create_group "${pos[0]-}"
+            exit
+        fi
+        ((${#pos[@]})) || { ((interactive)) && pos=("$(ask "$(T "Name of the new user (lowercase, e.g. %s):" jana)")"); }
+        create_user "${pos[0]-}" ;;
+esac

@@ -24,12 +24,15 @@ SHOTS = sys.argv[sys.argv.index("--shots") + 1] if "--shots" in sys.argv else ""
 if SHOTS:
     del sys.argv[sys.argv.index("--shots"):sys.argv.index("--shots") + 2]
 
-os.environ.update({"LANG": "en_US.UTF-8", "LUXOS_I18N_DIR": I18N, "LUXOS_FPRINT_BUS": "session"})
+os.environ.update({"LANG": "en_US.UTF-8", "LUXOS_I18N_DIR": I18N})
 DBUS = subprocess.Popen(["dbus-daemon", "--session", "--nofork", "--print-address=1"],
                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
 # i pri "unittest discover" (bez __main__): vlastni sbernici po testech vzdy ukoncit
 atexit.register(DBUS.terminate)
-os.environ["DBUS_SESSION_BUS_ADDRESS"] = DBUS.stdout.readline().strip()
+# Aplikace i napodobeny fprintd jdou na tuto sbernici podle adresy - sdilena session sbernice
+# procesu (a DBUS_SESSION_BUS_ADDRESS ostatnich testu) zustava beze zmeny
+FP_BUS = DBUS.stdout.readline().strip()
+os.environ["LUXOS_FPRINT_BUS"] = FP_BUS
 sys.path.insert(0, I18N)
 app = SourceFileLoader("luxos_fingerprint", os.path.join(FILES, "bin", "luxos-fingerprint")).load_module()
 from gi.repository import Gdk, Gtk  # noqa: E402
@@ -85,7 +88,8 @@ class Gui(unittest.TestCase):
     def start(self, *fake_args):
         self.state = tempfile.mktemp(prefix="luxos-fprintd-")
         self.svc = subprocess.Popen([sys.executable, FAKE, "--state", self.state, *fake_args],
-                                    stdout=subprocess.PIPE, text=True)
+                                    stdout=subprocess.PIPE, text=True,
+                                    env=dict(os.environ, DBUS_SESSION_BUS_ADDRESS=FP_BUS))
         self.assertEqual(self.svc.stdout.readline().strip(), "ready")
         self.addCleanup(self.stop)
         self.win = app.FingerprintWindow(client=None)

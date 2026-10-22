@@ -1,0 +1,26 @@
+{
+  "version": "0.9.3",
+  "codename": "Polaris",
+  "items": [
+    {"icon": "battery-level-50-symbolic",
+     "title": {"en": "Much stronger Battery Saver", "cs": "Mnohem silnější spořič baterie"},
+     "text": {"en": "Limits performance, background work, refresh rate and brightness for longer battery life. Data Saver now also pauses system background downloads.",
+              "cs": "Omezí výkon, práci na pozadí, obnovovací frekvenci a jas pro delší výdrž. Spořič dat navíc pozastaví i systémová stahování na pozadí."}},
+    {"icon": "audio-x-generic-symbolic",
+     "title": {"en": "Music keeps playing with the lid closed", "cs": "Hudba hraje i se zavřeným víkem"},
+     "text": {"en": "While music or video plays, closing the lid only turns off the screen (Battery & Power). Media controls in Control Center react instantly.",
+              "cs": "Když hraje hudba nebo video, zavření víka jen vypne obrazovku (Baterie a napájení). Ovládání přehrávání v Ovládacím centru reaguje okamžitě."}},
+    {"icon": "utilities-terminal-symbolic",
+     "title": {"en": "Familiar commands", "cs": "Známé příkazy"},
+     "text": {"en": "adduser, deluser, addgroup, delgroup, service, about os and about system; apt and friends point you to lux.",
+              "cs": "adduser, deluser, addgroup, delgroup, service, about os a about system; apt a podobné vás navedou na lux."}},
+    {"icon": "view-grid-symbolic",
+     "title": {"en": "New app switcher", "cs": "Nový přepínač aplikací"},
+     "text": {"en": "Alt+Tab shows large app icons in a translucent panel. The lock screen no longer shows a black strip after waking up.",
+              "cs": "Alt+Tab ukazuje velké ikony aplikací v průhledném panelu. Zamčená obrazovka po probuzení už nemá černý pruh."}},
+    {"icon": "bluetooth-active-symbolic",
+     "title": {"en": "Bluetooth name and secure erase", "cs": "Jméno pro Bluetooth a bezpečné mazání"},
+     "text": {"en": "Rename this computer for Bluetooth. The installer can securely erase the space it installs to.",
+              "cs": "Přejmenujte počítač pro Bluetooth. Instalátor umí bezpečně smazat místo, kam instaluje."}}
+  ]
+}

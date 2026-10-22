@@ -9,6 +9,8 @@
   vmctl.py move X Y [W H]          presune kurzor
   vmctl.py put SOUBOR CIL          nahraje soubor do hosta
   vmctl.py ping                    ceka na guest agenta
+  vmctl.py wakeup                  probudi uspaneho hosta (QMP system_wakeup)
+  vmctl.py status                  stav VM (running, suspended...)
 """
 import base64, json, os, socket, sys, time
 
@@ -122,6 +124,11 @@ def main():
             time.sleep(0.08)
     elif c == "key":
         send(a[1].split("-"))
+    elif c == "wakeup":
+        # probuzeni hosta z uspani (systemctl suspend v hostu)
+        qmp("system_wakeup")
+    elif c == "status":
+        print(qmp("query-status").get("status"))
     else:
         print(__doc__); return 1
     return 0

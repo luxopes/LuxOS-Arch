@@ -1,38 +1,127 @@
 #!/bin/bash
-# LuxOS - Spořič baterie: luxos-powersaver [on|off|toggle|status]
-# Usporny vykonovy profil (power-profiles-daemon) a bez animace zvetsovani v docku.
-. /usr/lib/luxos/i18n.sh
-state="${XDG_CONFIG_HOME:-$HOME/.config}/luxos/powersaver"
+# LuxOS - Spořič baterie: luxos-powersaver [on|off|toggle|status|reapply]
+#
+# Zapnuty sporic (jako Rezim nizke spotreby v macOS; vse se pri vypnuti vrati):
+#   - profil power-saver (power-profiles-daemon: EPP "power", platform_profile low-power)
+#   - systemova cast luxos-powersaver.service (root, polkit bez hesla, viz luxos-tweaks):
+#     procesor bez turbo/boost, usporny zvukovy kodek, nepouzivana USB zarizeni (kamera, ctecka
+#     karet) se uspavaji, mene probouzeni disku zapisem, pozastavene tezke ulohy na pozadi
+#     (man-db, kontrola LuxOS Care) a bez automatickych aktualizaci na baterii
+#   - vestaveny displej nejvys 60 Hz, jas o petinu nizsi, bez animaci GTK a zvetsovani v Docku
+# Puvodni hodnoty relace: ~/.config/luxos/powersaver.saved ("klic=hodnota"), systemove /run/luxos.
+# Priznak ~/.config/luxos/powersaver plati i po restartu: luxos-session vola "reapply".
+. /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
+cfg=${XDG_CONFIG_HOME:-$HOME/.config}/luxos
+state=$cfg/powersaver
+saved=$cfg/powersaver.saved
 dock=net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/
+unit=luxos-powersaver.service
+displays=${LUXOS_DISPLAYS_PY:-/usr/lib/luxos/python/luxos_displays.py}
+backlight=${LUXOS_BACKLIGHT:-/sys/class/backlight}     # testy: falesne podsviceni
 
-# Vykonovy profil primo pres D-Bus (powerprofilesctl je skript v Pythonu - pomalejsi start)
+# ---- ulozene puvodni hodnoty ----
+get() { [[ -f $saved ]] && sed -n "s/^$1=//p" "$saved" | head -n1; }
+put() { [[ -n $(get "$1") ]] || printf '%s=%s\n' "$1" "$2" >>"$saved"; }   # jen prvni (puvodni) hodnota
+
+# ---- vykonovy profil primo pres D-Bus (powerprofilesctl je skript v Pythonu - pomalejsi start) ----
+PPD=(org.freedesktop.UPower.PowerProfiles net.hadess.PowerProfiles)
+get_profile() {
+    local name out
+    for name in "${PPD[@]}"; do
+        out=$(gdbus call --system --dest "$name" --object-path "/${name//.//}" \
+            --method org.freedesktop.DBus.Properties.Get "$name" ActiveProfile 2>/dev/null) || continue
+        out=${out#*\'}; echo "${out%%\'*}"; return
+    done
+}
 set_profile() {
-    local name path
-    for name in org.freedesktop.UPower.PowerProfiles net.hadess.PowerProfiles; do
-        path=/${name//.//}
-        gdbus call --system --dest "$name" --object-path "$path" \
+    local name
+    for name in "${PPD[@]}"; do
+        gdbus call --system --dest "$name" --object-path "/${name//.//}" \
             --method org.freedesktop.DBus.Properties.Set "$name" ActiveProfile "<'$1'>" >/dev/null 2>&1 && return
     done
     powerprofilesctl set "$1" 2>/dev/null
 }
 
-apply() {  # apply on|off
-    if [[ $1 == on ]]; then
-        set_profile power-saver
-        gsettings set "$dock" zoom-enabled false 2>/dev/null
-    else
-        set_profile balanced
-        gsettings set "$dock" zoom-enabled "$(cat "${state%/*}/dock-zoom" 2>/dev/null || echo true)" 2>/dev/null
+# ---- systemova cast (root): jednotka bez hesla diky pravidlu polkit ----
+system_part() {  # system_part start|stop
+    systemctl --no-ask-password --no-block "$1" "$unit" >/dev/null 2>&1
+}
+
+# ---- jas podsviceni (notebook) ----
+bright_pct() {  # aktualni jas v % nebo nic
+    local b m c
+    b=$(compgen -G "$backlight/*" | head -n1) || return
+    m=$(<"$b/max_brightness") && c=$(<"$b/brightness") && (( m > 0 )) && echo $(( (c * 100 + m / 2) / m ))
+}
+
+apply_on() {  # apply_on [first] - "first" = prvni zapnuti (ulozit puvodni hodnoty, ztlumit)
+    local p name mode rate
+    if [[ ${1:-} == first ]]; then
+        p=$(get_profile); [[ -n $p && $p != power-saver ]] && put profile "$p"
+        put dock-zoom "$(cat "$cfg/dock-zoom" 2>/dev/null || gsettings get "$dock" zoom-enabled 2>/dev/null || echo true)"
+        put animations "$(xfconf-query -c xsettings -p /Gtk/EnableAnimations 2>/dev/null || echo unset)"
     fi
+    set_profile power-saver
+    system_part start
+    gsettings set "$dock" zoom-enabled false 2>/dev/null
+    # GTK bez animaci (prechody, posuvniky, spinnery): mene prekreslovani a probouzeni GPU
+    xfconf-query -c xsettings -p /Gtk/EnableAnimations -n -t bool -s false 2>/dev/null
+    # Displeje s 90-165 Hz: 60 Hz setri asi 0,5-1,5 W (vyrobce panelu i macOS to delaji stejne)
+    if [[ -n ${DISPLAY:-} && -r $displays ]]; then
+        while read -r name mode rate; do
+            [[ -n $rate ]] && put "rate-$name" "$mode $rate"
+        done < <(python3 -I "$displays" rate-cap 2>/dev/null)
+    fi
+    # Jas: podsviceni je nejvetsi spotrebic notebooku; o petinu nize, ne pod 40 %
+    if [[ ${1:-} == first ]]; then
+        p=$(bright_pct)
+        if [[ -n $p ]] && (( p > 40 )); then
+            local new=$(( p * 80 / 100 )); (( new < 40 )) && new=40
+            brightnessctl -q set "$new%" 2>/dev/null && { put bright-orig "$p"; put bright-set "$(bright_pct)"; }
+        fi
+    fi
+}
+
+apply_off() {
+    local v line name
+    v=$(get profile); set_profile "${v:-balanced}"
+    system_part stop
+    v=$(get dock-zoom); gsettings set "$dock" zoom-enabled "${v:-true}" 2>/dev/null
+    v=$(get animations)
+    if [[ -z $v || $v == unset ]]; then
+        xfconf-query -c xsettings -p /Gtk/EnableAnimations -r 2>/dev/null
+    else
+        xfconf-query -c xsettings -p /Gtk/EnableAnimations -n -t bool -s "$v" 2>/dev/null
+    fi
+    if [[ -n ${DISPLAY:-} && -r $displays && -f $saved ]]; then
+        while IFS= read -r line; do
+            name=${line%%=*}; name=${name#rate-}
+            read -r mode v <<<"${line#*=}"
+            python3 -I "$displays" rate-restore "$name" "$mode" "$v" 2>/dev/null
+        done < <(grep '^rate-' "$saved")
+    fi
+    # Jas vratit jen kdyz ho uzivatel mezitim nezmenil
+    v=$(get bright-set)
+    if [[ -n $v && $(bright_pct) == "$v" ]]; then
+        brightnessctl -q set "$(get bright-orig)%" 2>/dev/null
+    fi
+    rm -f "$saved" "$cfg/dock-zoom"
 }
 
 case ${1:-status} in
     on)
-        mkdir -p "${state%/*}"
-        [[ -e $state ]] || gsettings get "$dock" zoom-enabled >"${state%/*}/dock-zoom" 2>/dev/null
-        : >"$state"; apply on; T "Battery Saver is on\n" ;;
-    off)    rm -f "$state"; apply off; T "Battery Saver is off\n" ;;
+        mkdir -p "$cfg"
+        if [[ -e $state ]]; then apply_on; else apply_on first; : >"$state"; fi
+        T "Battery Saver is on\n" ;;
+    off)    rm -f "$state"; apply_off; T "Battery Saver is off\n" ;;
     toggle) if [[ -e $state ]]; then "$0" off; else "$0" on; fi ;;
     status) if [[ -e $state ]]; then echo on; else echo off; fi ;;
-    *) echo "usage: luxos-powersaver [on|off|toggle|status]" >&2; exit 2 ;;
+    reapply)
+        # Po prihlaseni: systemova cast a 60 Hz se restartem ztrati, ostatni zustava ulozene
+        if [[ -e $state ]]; then
+            apply_on
+        elif [[ -e ${LUXOS_SYSROOT:-}/run/luxos/powersaver ]]; then
+            system_part stop        # zbylo po jinem uzivateli / padu relace
+        fi ;;
+    *) echo "usage: luxos-powersaver [on|off|toggle|status|reapply]" >&2; exit 2 ;;
 esac

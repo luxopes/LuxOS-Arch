@@ -2219,3 +2219,161 @@ The package lists could not be refreshed: %s	Zoznamy balíkov sa nepodarilo obno
 The package lists could not be refreshed.	Zoznamy balíkov sa nepodarilo obnoviť.
 Removed a stale database lock left by an interrupted update.	Odstránený zámok databázy, ktorý zostal po prerušenej aktualizácii.
 Waiting for another update to finish (%s)…	Čakám, kým skončí iná aktualizácia (%s)…
+Rename…	Premenovať…
+Rename	Premenovať
+Rename This Computer	Premenovať tento počítač
+Use Default	Použiť predvolené
+Use the system name “%s”	Použiť názov systému „%s“
+Other Bluetooth devices, such as your phone or headphones, show this name.	Ostatné zariadenia Bluetooth, napríklad telefón alebo slúchadlá, zobrazujú tento názov.
+An empty name uses the system name “%s”.	Prázdny názov použije názov systému „%s“.
+The name cannot contain line breaks or control characters.	Názov nesmie obsahovať zalomenie riadka ani riadiace znaky.
+The name is too long (at most %d bytes).	Názov je príliš dlhý (najviac %d bajtov).
+Visible to nearby devices as “%s”.	Viditeľný pre zariadenia v okolí ako „%s“.
+Other devices see this computer as “%s”.	Ostatné zariadenia vidia tento počítač ako „%s“.
+This computer's name, shown to other Bluetooth devices	Názov tohto počítača, ktorý vidia ostatné zariadenia Bluetooth
+visible now	teraz viditeľný
+Could not rename this computer	Počítač sa nepodarilo premenovať
+Erase securely	Bezpečné vymazanie
+Optionally overwrite the space for LuxOS first, so old files there cannot be recovered. Other partitions are not touched.	Voliteľne najprv prepísať miesto pre LuxOS, aby staré súbory nebolo možné obnoviť. Ostatných oddielov sa to nedotkne.
+Area: %s. This can take long: %s (SSD and NVMe drives with a fast erase command finish much sooner).	Oblasť: %s. Môže to trvať dlho: %s (SSD a NVMe disky s rýchlym príkazom na vymazanie skončia oveľa skôr).
+Recommended with encryption: nothing unencrypted from before stays on the disk.	Odporúčané so šifrovaním: na disku nezostane nič nešifrované z predtým.
+You can skip the rest of the erasing with Ctrl+C; the installation then continues.	Zvyšok mazania môžete preskočiť klávesmi Ctrl+C; inštalácia potom pokračuje.
+Erase first	Najprv vymazať
+Securely erase the space for LuxOS first (slow)?	Najprv bezpečne vymazať miesto pre LuxOS (pomalé)?
+yes, %s (%s)	áno, %s (%s)
+under a minute	menej ako minúta
+about %s min	asi %s min
+about %s h %s min	asi %s h %s min
+about %s h %s min left	zostáva asi %s h %s min
+Erasing the space for LuxOS	Mazanie miesta pre LuxOS
+Erasing %s (%s)	Mazanie %s (%s)
+Erasing %s: %s %% (%s of %s)	Mazanie %s: %s %% (%s z %s)
+(Ctrl+C skips erasing)	(Ctrl+C mazanie preskočí)
+Skipping %s: size unknown.	%s sa preskakuje: neznáma veľkosť.
+Cannot erase %s: it is not a block device.	%s nie je možné vymazať: nie je to blokové zariadenie.
+Refusing to erase %s (type %s): only LuxOS partitions and volumes are erased.	%s (typ %s) sa nevymaže: mažú sa len oddiely a zväzky LuxOS.
+Cannot erase %s: it is in use (%s).	%s nie je možné vymazať: používa sa (%s).
+Erasing %s failed (write error at %s). The disk may be damaged.	Mazanie %s zlyhalo (chyba zápisu na pozícii %s). Disk môže byť poškodený.
+Erasing was skipped - the installation continues. %s of %s was overwritten.	Mazanie bolo preskočené – inštalácia pokračuje. Prepísané %s z %s.
+Erasing was skipped - the installation continues.	Mazanie bolo preskočené – inštalácia pokračuje.
+Invalid WIPE (use none, zero or overwrite)	Neplatné WIPE (použite none, zero alebo overwrite)
+WIPE is not available with partitions already mounted at %s (DISK_MODE=manual).	WIPE nie je k dispozícii s oddielmi už pripojenými v %s (DISK_MODE=manual).
+Erase securely first (slow)	Najprv bezpečne vymazať (pomalé)
+Overwrites the space for LuxOS (%s) so that old files there cannot be recovered. Other partitions are not touched.	Prepíše miesto pre LuxOS (%s), aby staré súbory nebolo možné obnoviť. Ostatných oddielov sa to nedotkne.
+This can take long: %s. SSD and NVMe drives with a fast erase command finish much sooner. You can skip the rest while it runs; the installation then continues.	Môže to trvať dlho: %s. SSD a NVMe disky s rýchlym príkazom na vymazanie skončia oveľa skôr. Počas mazania môžete zvyšok preskočiť; inštalácia potom pokračuje.
+Erasing the space for LuxOS. This can take a long time.	Maže sa miesto pre LuxOS. Môže to trvať dlho.
+Skip Erasing	Preskočiť mazanie
+Skipping the rest of the erasing…	Preskakuje sa zvyšok mazania…
+about %s	asi %s
+Longer battery life: slower processor without turbo, 60 Hz screen, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Dlhšia výdrž batérie: pomalší procesor bez turba, obrazovka 60 Hz, o niečo nižší jas, bez animácií, nepoužívané zariadenia sa uspia a úlohy na pozadí sa pozastavia.
+Stay awake while music or video is playing	Neuspávať, keď hrá hudba alebo video
+Music keeps playing even with the lid closed (the screen turns off). The computer goes to sleep when playback stops.	Hudba hrá aj so zatvoreným vekom (obrazovka sa vypne). Počítač sa uspí, keď prehrávanie skončí.
+Not reported by this battery	Táto batéria neuvádza
+The battery firmware does not report its charge cycles. Battery health shows how worn the battery is.	Firmvér batérie počet cyklov nabíjania neuvádza. Opotrebovanie batérie ukazuje Stav batérie.
+Try '%s --help' for more information.	Viac informácií: '%s --help'.
+Only root can do this. Try again with sudo.	Toto môže urobiť iba root. Skúste to znova so sudo.
+%s is the last administrator. Continuing because of --force.	%s je posledný správca. Pokračujem kvôli --force.
+%s is the last administrator; without one nobody could manage this computer. Make another user an administrator first (adduser NAME wheel) or use --force.	%s je posledný správca; bez neho by tento počítač nikto nemohol spravovať. Najprv urobte správcom iného používateľa (adduser MENO wheel) alebo použite --force.
+Missing group name.	Chýba názov skupiny.
+Missing user name.	Chýba používateľské meno.
+'%s' is not a valid name. Use lowercase letters, digits, - and _, start with a letter (at most 32 characters).	'%s' nie je platné meno. Použite malé písmená bez diakritiky, číslice, - a _, na začiatku písmeno (najviac 32 znakov).
+Try: %s	Skúste: %s
+The user %s already exists.	Používateľ %s už existuje.
+The group %s already exists. To put the new user into it, use: %s	Skupina %s už existuje. Na zaradenie nového používateľa do nej použite: %s
+The group %s does not exist. Create it with: %s	Skupina %s neexistuje. Vytvorte ju príkazom: %s
+Full name (optional):	Celé meno (nepovinné):
+The full name must not contain ':' or a line break.	Celé meno nesmie obsahovať ':' ani koniec riadka.
+Should %s be an administrator (allowed to use sudo)? [y/N]	Má byť %s správcom (smie používať sudo)? [y/N]
+Could not create the user %s.	Používateľa %s sa nepodarilo vytvoriť.
+Set a password for %s:	Nastavte heslo pre %s:
+The password was not set. Try again? [Y/n]	Heslo nebolo nastavené. Skúsiť znova? [Y/n]
+No password is set, so %s can't log in yet. Set one with: %s	Heslo nie je nastavené, %s sa zatiaľ nemôže prihlásiť. Nastavte ho príkazom: %s
+User %s created.	Používateľ %s bol vytvorený.
+Home folder: %s	Domovský priečinok: %s
+Administrator: yes (can use sudo)	Správca: áno (môže používať sudo)
+Administrator: no	Správca: nie
+Groups: %s	Skupiny: %s
+On LuxOS administrators are in the group %s.	V LuxOS sú správcovia v skupine %s.
+The user %s does not exist.	Používateľ %s neexistuje.
+%s is already a member of %s.	%s už je členom skupiny %s.
+Could not add %s to %s.	%s sa nepodarilo pridať do skupiny %s.
+Added %s to the group %s.	%s bol pridaný do skupiny %s.
+%s is now an administrator (can use sudo).	%s je teraz správca (môže používať sudo).
+The change applies after %s logs in again.	Zmena sa prejaví, keď sa %s znova prihlási.
+The group %s already exists.	Skupina %s už existuje.
+Could not create the group %s.	Skupinu %s sa nepodarilo vytvoriť.
+Group %s created.	Skupina %s bola vytvorená.
+Refusing to remove the root account.	Účet root nemožno odstrániť.
+%s is a system account (UID %s). Use --system if you really want to remove it.	%s je systémový účet (UID %s). Ak ho naozaj chcete odstrániť, použite --system.
+You can't remove the account you are logged in with.	Nemožno odstrániť účet, pod ktorým ste prihlásení.
+%s is still logged in or has running programs. Log them out first: %s	%s je stále prihlásený alebo má spustené programy. Najprv ho odhláste: %s
+Also delete the home folder %s with all its files? [y/N]	Zmazať aj domovský priečinok %s so všetkými súbormi? [y/N]
+Remove the user %s and delete %s? This can't be undone. [y/N]	Odstrániť používateľa %s a zmazať %s? Nedá sa to vrátiť späť. [y/N]
+Remove the user %s? The files in %s are kept. [y/N]	Odstrániť používateľa %s? Súbory v %s zostanú. [y/N]
+Nothing was changed.	Nič sa nezmenilo.
+Could not remove the user %s.	Používateľa %s sa nepodarilo odstrániť.
+User %s removed.	Používateľ %s bol odstránený.
+Home folder %s deleted.	Domovský priečinok %s bol zmazaný.
+Home folder %s kept.	Domovský priečinok %s zostal zachovaný.
+The group %s does not exist.	Skupina %s neexistuje.
+%s is the primary group of %s and can't be removed from it.	%s je primárna skupina používateľa %s a nemožno ho z nej odobrať.
+%s is not a member of %s.	%s nie je členom skupiny %s.
+Could not remove %s from %s.	%s sa nepodarilo odobrať zo skupiny %s.
+Removed %s from the group %s.	%s bol odobraný zo skupiny %s.
+Refusing to remove the system group %s.	Systémovú skupinu %s nemožno odstrániť.
+%s is a system group (GID %s). Use --system if you really want to remove it.	%s je systémová skupina (GID %s). Ak ju naozaj chcete odstrániť, použite --system.
+%s is the primary group of the user %s. Remove that user first.	%s je primárna skupina používateľa %s. Najprv odstráňte tohto používateľa.
+The group %s still has members: %s	Skupina %s má stále členov: %s
+Could not remove the group %s.	Skupinu %s sa nepodarilo odstrániť.
+Group %s removed.	Skupina %s bola odstránená.
+OPTIONS	VOĽBY
+USER	POUŽÍVATEĽ
+GROUP	SKUPINA
+remove a user (asks whether to delete the home folder)	odstráni používateľa (spýta sa na zmazanie domovského priečinka)
+remove a user from a group	odoberie používateľa zo skupiny
+also delete the home folder and mail	zmaže aj domovský priečinok a poštu
+allow removing system accounts (UID below 1000)	povolí odstránenie systémových účtov (UID pod 1000)
+don't ask for confirmation	nebude sa pýtať na potvrdenie
+allow removing the last administrator	povolí odstránenie posledného správcu
+print only errors	vypisuje iba chyby
+remove a group	odstráni skupinu
+remove the group only when it has no members	odstráni skupinu, iba ak nemá členov
+allow removing system groups (GID below 1000)	povolí odstránenie systémových skupín (GID pod 1000)
+create a group	vytvorí skupinu
+add a user to a group	pridá používateľa do skupiny
+create a system group	vytvorí systémovú skupinu
+use this group ID	použije toto ID skupiny
+create a user with a home folder and password (asks for the rest)	vytvorí používateľa s domovským priečinkom a heslom (na ostatné sa spýta)
+add a user to a group (sudo or wheel = administrator)	pridá používateľa do skupiny (sudo alebo wheel = správca)
+make the user an administrator or not, without asking	urobí z používateľa správcu alebo nie, bez pýtania
+full name (also --gecos)	celé meno (aj --gecos)
+don't set a password now	heslo teraz nenastavovať
+account that can't log in	účet bez možnosti prihlásenia
+login shell (default: lsh)	prihlasovací shell (predvolený: lsh)
+home folder (default: /home/USER)	domovský priečinok (predvolený: /home/POUŽÍVATEĽ)
+don't create the home folder	nevytvárať domovský priečinok
+primary group instead of a new group named after the user	primárna skupina namiesto novej skupiny s menom používateľa
+use this user ID	použije toto ID používateľa
+create a system account (no password, no login)	vytvorí systémový účet (bez hesla a prihlásenia)
+skip the user name check	preskočí kontrolu používateľského mena
+Related: deluser, addgroup, delgroup, passwd USER, chfn USER	Súvisiace: deluser, addgroup, delgroup, passwd POUŽÍVATEĽ, chfn POUŽÍVATEĽ
+Option %s needs a value.	Voľba %s potrebuje hodnotu.
+Too many arguments.	Príliš veľa argumentov.
+The ID must be a number: %s	ID musí byť číslo: %s
+Name of the new group:	Názov novej skupiny:
+Group to remove:	Skupina na odstránenie:
+User to remove:	Používateľ na odstránenie:
+Name of the new user (lowercase, e.g. %s):	Meno nového používateľa (malými písmenami, napr. %s):
+SERVICE	SLUŽBA
+LuxOS runs services with systemd; this calls systemctl. All options: %s	LuxOS spúšťa služby cez systemd; tento príkaz volá systemctl. Všetky možnosti: %s
+On LuxOS the service %s is called %s.	V LuxOS sa služba %s volá %s.
+Unknown action: %s	Neznáma akcia: %s
+Regenerates %s with grub-mkconfig. With systemd-boot nothing needs to be done.	Znova vytvorí %s pomocou grub-mkconfig. So systemd-boot netreba nič robiť.
+LuxOS starts with systemd-boot, so there is no GRUB to update. Boot entries update automatically with each kernel.	LuxOS štartuje cez systemd-boot, takže nie je žiadny GRUB na aktualizáciu. Položky spúšťania sa aktualizujú automaticky s každým jadrom.
+Show them with: %s	Zobrazíte ich príkazom: %s
+No GRUB configuration found (%s).	Konfigurácia GRUBu sa nenašla (%s).
+LuxOS can't install .deb or .rpm files. Search for the app with %s.	LuxOS nevie inštalovať súbory .deb ani .rpm. Aplikáciu vyhľadajte príkazom %s.
+Apps that other systems ship as Snaps are usually available as Flatpaks; lux installs those too.	Aplikácie, ktoré iné systémy dodávajú ako Snap, bývajú dostupné ako Flatpak; aj tie lux nainštaluje.
+You can also change this in Settings.	Môžete to zmeniť aj v Nastaveniach.
+%s is not installed. LuxOS has a modern equivalent:	%s nie je nainštalovaný. LuxOS má modernú náhradu:
+Or install the classic tool: %s	Alebo nainštalujte klasický nástroj: %s

@@ -1,7 +1,9 @@
 #!/bin/bash
 # LuxOS - Spořič dat: luxos-datasaver [on|off|toggle|status]
-# Aktivni pripojeni oznaci jako merene (aplikace pak omezi stahovani na pozadi)
-# a LuxOS vynecha kontrolu aktualizaci na pozadi (luxos-store, luxos-session).
+# Aktivni pripojeni oznaci jako merene (i nove pripojene site - luxos-daemon). Na merenem
+# pripojeni pak na pozadi nic nestahuje: LuxOS Care (aktualizace a kontroly), Obchod, lux,
+# systemove sluzby reflector a archlinux-keyring-wkd-sync (luxos-unmetered v luxos-tweaks)
+# a aplikace, ktere merene pripojeni respektuji (NetworkManager Metered).
 . /usr/lib/luxos/i18n.sh
 state="${XDG_CONFIG_HOME:-$HOME/.config}/luxos/datasaver"
 

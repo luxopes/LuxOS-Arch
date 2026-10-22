@@ -93,16 +93,20 @@ Run `luxos-power`, or use Control Center › Battery…. The data comes from UPo
 
 - Battery percentage and state: Charging (full in …), On battery (about … left), Fully charged,
   Plugged in, not charging.
-- Power usage in watts, battery health (% of original capacity), charge cycles, energy (Wh).
+- Power usage in watts, battery health (% of original capacity), charge cycles (UPower, else
+  `/sys/class/power_supply/BAT*/cycle_count`; many batteries do not report them – then "Not reported
+  by this battery", use battery health instead), energy (Wh).
 - Charts: battery level and power usage over the last 24 hours.
 - **Power mode** (power-profiles-daemon): Power Saver, Balanced (recommended), Performance.
-- **Battery Saver**: power-saving mode and fewer animations (no Dock magnification). The switch
+- **Battery Saver**: power-saver profile, no CPU turbo, 60 Hz built-in screen, slightly lower
+  brightness, no animations, idle devices sleep, background tasks pause (details in
+  [Power and performance](power-and-performance.md)). The switch
   "Turn on automatically at 20 %" stores its state in `~/.config/luxos/powersaver-auto`. Battery
   Saver turns off again when the computer charges. From the command line:
   `luxos-powersaver on|off|toggle|status`.
 - **Screen and sleep** (xfce4-power-manager): turn off the screen on battery / on power adapter
   after…, sleep on battery / on power adapter after…, and when the lid is closed (Sleep, Lock
-  screen, Turn off the screen, Hibernate).
+  screen, Turn off the screen, Hibernate), and *Stay awake while music or video is playing*.
 - **Advanced Power Settings…** opens `xfce4-power-manager-settings`.
 
 On a computer without a battery the app says "This computer runs on mains power - there is no

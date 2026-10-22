@@ -2218,3 +2218,161 @@ The package lists could not be refreshed: %s	A csomaglisták nem frissíthetők:
 The package lists could not be refreshed.	A csomaglisták nem frissíthetők.
 Removed a stale database lock left by an interrupted update.	Eltávolítva egy megszakadt frissítés után maradt adatbázis-zárolás.
 Waiting for another update to finish (%s)…	Várakozás egy másik frissítés befejezésére (%s)…
+Rename…	Átnevezés…
+Rename	Átnevezés
+Rename This Computer	A számítógép átnevezése
+Use Default	Alapértelmezett
+Use the system name “%s”	A rendszer nevének használata: „%s”
+Other Bluetooth devices, such as your phone or headphones, show this name.	Más Bluetooth-eszközök, például a telefon vagy a fejhallgató ezt a nevet látják.
+An empty name uses the system name “%s”.	Üres név esetén a rendszer neve lesz használva: „%s”.
+The name cannot contain line breaks or control characters.	A név nem tartalmazhat sortörést vagy vezérlőkaraktert.
+The name is too long (at most %d bytes).	A név túl hosszú (legfeljebb %d bájt).
+Visible to nearby devices as “%s”.	A közeli eszközök számára látható ezen a néven: „%s”.
+Other devices see this computer as “%s”.	Más eszközök ezen a néven látják a számítógépet: „%s”.
+This computer's name, shown to other Bluetooth devices	A számítógép neve, ahogy más Bluetooth-eszközök látják
+visible now	most látható
+Could not rename this computer	Nem sikerült átnevezni a számítógépet
+Erase securely	Biztonságos törlés
+Optionally overwrite the space for LuxOS first, so old files there cannot be recovered. Other partitions are not touched.	Igény szerint előbb felülírható a LuxOS helye, hogy a régi fájlok ne legyenek visszaállíthatók. A többi partíció érintetlen marad.
+Area: %s. This can take long: %s (SSD and NVMe drives with a fast erase command finish much sooner).	Terület: %s. Ez sokáig tarthat: %s (a gyors törlési paranccsal rendelkező SSD- és NVMe-meghajtók sokkal hamarabb végeznek).
+Recommended with encryption: nothing unencrypted from before stays on the disk.	Titkosítással ajánlott: nem marad a lemezen korábbi titkosítatlan adat.
+You can skip the rest of the erasing with Ctrl+C; the installation then continues.	A törlés hátralévő részét a Ctrl+C billentyűkkel kihagyhatja; a telepítés ezután folytatódik.
+Erase first	Előbb törlés
+Securely erase the space for LuxOS first (slow)?	Előbb biztonságosan törli a LuxOS helyét (lassú)?
+yes, %s (%s)	igen, %s (%s)
+under a minute	kevesebb mint egy perc
+about %s min	kb. %s perc
+about %s h %s min	kb. %s óra %s perc
+about %s h %s min left	kb. %s óra %s perc van hátra
+Erasing the space for LuxOS	A LuxOS helyének törlése
+Erasing %s (%s)	%s törlése (%s)
+Erasing %s: %s %% (%s of %s)	%s törlése: %s %% (%s / %s)
+(Ctrl+C skips erasing)	(Ctrl+C: törlés kihagyása)
+Skipping %s: size unknown.	%s kihagyva: ismeretlen méret.
+Cannot erase %s: it is not a block device.	%s nem törölhető: nem blokkeszköz.
+Refusing to erase %s (type %s): only LuxOS partitions and volumes are erased.	%s (típus: %s) nem törölhető: csak a LuxOS partíciói és kötetei törlődnek.
+Cannot erase %s: it is in use (%s).	%s nem törölhető: használatban van (%s).
+Erasing %s failed (write error at %s). The disk may be damaged.	%s törlése nem sikerült (írási hiba itt: %s). Lehet, hogy a lemez sérült.
+Erasing was skipped - the installation continues. %s of %s was overwritten.	A törlés kimaradt – a telepítés folytatódik. %s / %s felülírva.
+Erasing was skipped - the installation continues.	A törlés kimaradt – a telepítés folytatódik.
+Invalid WIPE (use none, zero or overwrite)	Érvénytelen WIPE (használja: none, zero vagy overwrite)
+WIPE is not available with partitions already mounted at %s (DISK_MODE=manual).	A WIPE nem használható a már %s alá csatolt partíciókkal (DISK_MODE=manual).
+Erase securely first (slow)	Előbb biztonságos törlés (lassú)
+Overwrites the space for LuxOS (%s) so that old files there cannot be recovered. Other partitions are not touched.	Felülírja a LuxOS helyét (%s), hogy a régi fájlok ne legyenek visszaállíthatók. A többi partíció érintetlen marad.
+This can take long: %s. SSD and NVMe drives with a fast erase command finish much sooner. You can skip the rest while it runs; the installation then continues.	Ez sokáig tarthat: %s. A gyors törlési paranccsal rendelkező SSD- és NVMe-meghajtók sokkal hamarabb végeznek. Futás közben a hátralévő részt kihagyhatja; a telepítés ezután folytatódik.
+Erasing the space for LuxOS. This can take a long time.	A LuxOS helyének törlése folyik. Ez sokáig tarthat.
+Skip Erasing	Törlés kihagyása
+Skipping the rest of the erasing…	A törlés hátralévő része kimarad…
+about %s	kb. %s
+Longer battery life: slower processor without turbo, 60 Hz screen, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Hosszabb akkumulátor-üzemidő: lassabb processzor turbó nélkül, 60 Hz-es kijelző, kissé alacsonyabb fényerő, animációk nélkül, a nem használt eszközök alvó módba lépnek, a háttérfeladatok szünetelnek.
+Stay awake while music or video is playing	Ne aludjon el zene vagy videó lejátszása közben
+Music keeps playing even with the lid closed (the screen turns off). The computer goes to sleep when playback stops.	A zene lecsukott fedéllel is szól (a kijelző kikapcsol). A számítógép a lejátszás végén alvó módba lép.
+Not reported by this battery	Ez az akkumulátor nem jelenti
+The battery firmware does not report its charge cycles. Battery health shows how worn the battery is.	Az akkumulátor firmware-e nem jelenti a töltési ciklusokat. Az akkumulátor állapota mutatja, mennyire kopott.
+Try '%s --help' for more information.	További információ: '%s --help'.
+Only root can do this. Try again with sudo.	Ezt csak a root teheti meg. Próbálja újra sudo-val.
+%s is the last administrator. Continuing because of --force.	%s az utolsó rendszergazda. A --force miatt folytatom.
+%s is the last administrator; without one nobody could manage this computer. Make another user an administrator first (adduser NAME wheel) or use --force.	%s az utolsó rendszergazda; nélküle senki sem tudná kezelni ezt a számítógépet. Előbb tegyen rendszergazdává egy másik felhasználót (adduser NÉV wheel), vagy használja a --force kapcsolót.
+Missing group name.	Hiányzik a csoport neve.
+Missing user name.	Hiányzik a felhasználónév.
+'%s' is not a valid name. Use lowercase letters, digits, - and _, start with a letter (at most 32 characters).	'%s' nem érvényes név. Használjon kisbetűket, számjegyeket, - és _ jelet, betűvel kezdve (legfeljebb 32 karakter).
+Try: %s	Próbálja: %s
+The user %s already exists.	A(z) %s felhasználó már létezik.
+The group %s already exists. To put the new user into it, use: %s	A(z) %s csoport már létezik. Az új felhasználó felvételéhez használja: %s
+The group %s does not exist. Create it with: %s	A(z) %s csoport nem létezik. Létrehozás: %s
+Full name (optional):	Teljes név (nem kötelező):
+The full name must not contain ':' or a line break.	A teljes név nem tartalmazhat ':' jelet vagy sortörést.
+Should %s be an administrator (allowed to use sudo)? [y/N]	Legyen %s rendszergazda (használhatja a sudo-t)? [y/N]
+Could not create the user %s.	A(z) %s felhasználót nem sikerült létrehozni.
+Set a password for %s:	Jelszó beállítása: %s
+The password was not set. Try again? [Y/n]	A jelszó nem lett beállítva. Újra? [Y/n]
+No password is set, so %s can't log in yet. Set one with: %s	Nincs jelszó, így %s még nem tud bejelentkezni. Beállítás: %s
+User %s created.	A(z) %s felhasználó létrejött.
+Home folder: %s	Saját mappa: %s
+Administrator: yes (can use sudo)	Rendszergazda: igen (használhatja a sudo-t)
+Administrator: no	Rendszergazda: nem
+Groups: %s	Csoportok: %s
+On LuxOS administrators are in the group %s.	A LuxOS-ben a rendszergazdák a(z) %s csoportban vannak.
+The user %s does not exist.	A(z) %s felhasználó nem létezik.
+%s is already a member of %s.	%s már tagja ennek: %s.
+Could not add %s to %s.	%s hozzáadása nem sikerült ehhez: %s.
+Added %s to the group %s.	%s hozzáadva ehhez a csoporthoz: %s.
+%s is now an administrator (can use sudo).	%s mostantól rendszergazda (használhatja a sudo-t).
+The change applies after %s logs in again.	A változás akkor lép életbe, amikor %s újra bejelentkezik.
+The group %s already exists.	A(z) %s csoport már létezik.
+Could not create the group %s.	A(z) %s csoportot nem sikerült létrehozni.
+Group %s created.	A(z) %s csoport létrejött.
+Refusing to remove the root account.	A root fiók nem törölhető.
+%s is a system account (UID %s). Use --system if you really want to remove it.	%s rendszerfiók (UID %s). Ha tényleg törölni szeretné, használja a --system kapcsolót.
+You can't remove the account you are logged in with.	Nem törölheti azt a fiókot, amellyel be van jelentkezve.
+%s is still logged in or has running programs. Log them out first: %s	%s még be van jelentkezve, vagy futó programjai vannak. Előbb jelentkeztesse ki: %s
+Also delete the home folder %s with all its files? [y/N]	Törli a(z) %s saját mappát is az összes fájllal együtt? [y/N]
+Remove the user %s and delete %s? This can't be undone. [y/N]	Törli a(z) %s felhasználót és ezt: %s? Ez nem vonható vissza. [y/N]
+Remove the user %s? The files in %s are kept. [y/N]	Törli a(z) %s felhasználót? A fájlok itt megmaradnak: %s. [y/N]
+Nothing was changed.	Semmi sem változott.
+Could not remove the user %s.	A(z) %s felhasználót nem sikerült törölni.
+User %s removed.	A(z) %s felhasználó törölve.
+Home folder %s deleted.	A(z) %s saját mappa törölve.
+Home folder %s kept.	A(z) %s saját mappa megmaradt.
+The group %s does not exist.	A(z) %s csoport nem létezik.
+%s is the primary group of %s and can't be removed from it.	%s az elsődleges csoportja ennek: %s, ezért nem távolítható el belőle.
+%s is not a member of %s.	%s nem tagja ennek: %s.
+Could not remove %s from %s.	%s eltávolítása nem sikerült ebből: %s.
+Removed %s from the group %s.	%s eltávolítva ebből a csoportból: %s.
+Refusing to remove the system group %s.	A(z) %s rendszercsoport nem törölhető.
+%s is a system group (GID %s). Use --system if you really want to remove it.	%s rendszercsoport (GID %s). Ha tényleg törölni szeretné, használja a --system kapcsolót.
+%s is the primary group of the user %s. Remove that user first.	%s a(z) %s felhasználó elsődleges csoportja. Előbb törölje ezt a felhasználót.
+The group %s still has members: %s	A(z) %s csoportnak még vannak tagjai: %s
+Could not remove the group %s.	A(z) %s csoportot nem sikerült törölni.
+Group %s removed.	A(z) %s csoport törölve.
+OPTIONS	KAPCSOLÓK
+USER	FELHASZNÁLÓ
+GROUP	CSOPORT
+remove a user (asks whether to delete the home folder)	felhasználó törlése (rákérdez a saját mappa törlésére)
+remove a user from a group	felhasználó eltávolítása egy csoportból
+also delete the home folder and mail	a saját mappát és a leveleket is törli
+allow removing system accounts (UID below 1000)	rendszerfiókok törlésének engedélyezése (UID 1000 alatt)
+don't ask for confirmation	nem kér megerősítést
+allow removing the last administrator	az utolsó rendszergazda törlésének engedélyezése
+print only errors	csak a hibákat írja ki
+remove a group	csoport törlése
+remove the group only when it has no members	csak akkor törli a csoportot, ha nincsenek tagjai
+allow removing system groups (GID below 1000)	rendszercsoportok törlésének engedélyezése (GID 1000 alatt)
+create a group	csoport létrehozása
+add a user to a group	felhasználó hozzáadása egy csoporthoz
+create a system group	rendszercsoport létrehozása
+use this group ID	ezt a csoportazonosítót használja
+create a user with a home folder and password (asks for the rest)	felhasználó létrehozása saját mappával és jelszóval (a többit megkérdezi)
+add a user to a group (sudo or wheel = administrator)	felhasználó hozzáadása csoporthoz (sudo vagy wheel = rendszergazda)
+make the user an administrator or not, without asking	a felhasználó rendszergazda lesz vagy sem, kérdés nélkül
+full name (also --gecos)	teljes név (vagy --gecos)
+don't set a password now	most ne állítson be jelszót
+account that can't log in	bejelentkezni nem tudó fiók
+login shell (default: lsh)	bejelentkezési shell (alapértelmezett: lsh)
+home folder (default: /home/USER)	saját mappa (alapértelmezett: /home/FELHASZNÁLÓ)
+don't create the home folder	ne hozzon létre saját mappát
+primary group instead of a new group named after the user	elsődleges csoport a felhasználóról elnevezett új csoport helyett
+use this user ID	ezt a felhasználóazonosítót használja
+create a system account (no password, no login)	rendszerfiók létrehozása (jelszó és bejelentkezés nélkül)
+skip the user name check	kihagyja a felhasználónév ellenőrzését
+Related: deluser, addgroup, delgroup, passwd USER, chfn USER	Kapcsolódó: deluser, addgroup, delgroup, passwd FELHASZNÁLÓ, chfn FELHASZNÁLÓ
+Option %s needs a value.	A(z) %s kapcsolónak érték kell.
+Too many arguments.	Túl sok argumentum.
+The ID must be a number: %s	Az azonosítónak számnak kell lennie: %s
+Name of the new group:	Az új csoport neve:
+Group to remove:	Törlendő csoport:
+User to remove:	Törlendő felhasználó:
+Name of the new user (lowercase, e.g. %s):	Az új felhasználó neve (kisbetűkkel, pl. %s):
+SERVICE	SZOLGÁLTATÁS
+LuxOS runs services with systemd; this calls systemctl. All options: %s	A LuxOS a szolgáltatásokat systemd-vel futtatja; ez a parancs a systemctl-t hívja. Minden lehetőség: %s
+On LuxOS the service %s is called %s.	A LuxOS-ben a(z) %s szolgáltatás neve %s.
+Unknown action: %s	Ismeretlen művelet: %s
+Regenerates %s with grub-mkconfig. With systemd-boot nothing needs to be done.	Újragenerálja a(z) %s fájlt a grub-mkconfig segítségével. systemd-boot esetén nincs teendő.
+LuxOS starts with systemd-boot, so there is no GRUB to update. Boot entries update automatically with each kernel.	A LuxOS systemd-boottal indul, így nincs frissítendő GRUB. A rendszerindítási bejegyzések minden kernellel automatikusan frissülnek.
+Show them with: %s	Megjelenítés: %s
+No GRUB configuration found (%s).	Nem található GRUB-konfiguráció (%s).
+LuxOS can't install .deb or .rpm files. Search for the app with %s.	A LuxOS nem tud .deb vagy .rpm fájlt telepíteni. Keresse meg az alkalmazást ezzel: %s.
+Apps that other systems ship as Snaps are usually available as Flatpaks; lux installs those too.	Azok az alkalmazások, amelyeket más rendszerek Snapként adnak, általában Flatpakként is elérhetők; ezeket is telepíti a lux.
+You can also change this in Settings.	Ezt a Beállításokban is módosíthatja.
+%s is not installed. LuxOS has a modern equivalent:	A(z) %s nincs telepítve. A LuxOS-ben van modern megfelelője:
+Or install the classic tool: %s	Vagy telepítse a klasszikus eszközt: %s
