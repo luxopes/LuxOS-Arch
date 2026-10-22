@@ -5,6 +5,8 @@ if pkill -x rofi; then exit 0; fi
 extra=(-theme-str "entry { placeholder: \"$(T "Search apps or ask LuxAI")\"; }")
 [[ $(luxos-appearance status) == light ]] && extra+=(-theme-str '@import "luxos-light-colors"')
 # Aplikace + LuxAI: text bez shody s aplikaci (nebo Ctrl+Enter) je dotaz pro LuxAI (luxos-luxai-rofi)
+# X-LuxOS-Launchpad: vybrane panely Nastaveni (Tiskarny a skenery, Ovladace) maji kopii s OnlyShowIn jen pro Launchpad
+export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-XFCE}:X-LuxOS-Launchpad"
 exec rofi -show combi -modi combi -combi-modi "luxai:luxos-luxai-rofi,drun" -combi-hide-mode-prefix -theme luxos-launchpad -drun-exclude-categories 'X-XFCE-SettingsDialog,X-Xfce-Toplevel' "${extra[@]}" \
     -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf \
     -hover-select -me-select-entry '' -me-accept-entry MousePrimary

@@ -2,7 +2,7 @@
 
 pkgname=luxos-drivers
 pkgver=1.0.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxOS hardware detection and the Drivers app: picks GPU, Wi-Fi, camera, VM and other drivers automatically"
 arch=(any)
 url="https://github.com/luxos"
@@ -29,5 +29,8 @@ package() {
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 "$startdir/org.luxos.drivers.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.drivers.policy"
     install -Dm644 "$startdir/luxos-drivers.desktop" "$pkgdir/usr/share/applications/luxos-drivers.desktop"
+    # Kopie jen pro Launchpad (ten skryva panely Nastaveni); OnlyShowIn ji skryje v menu a Hledani
+    sed -e 's/^Categories=.*/Categories=X-LuxOS-Launchpad;/' -e '/^\[Desktop Entry\]/a OnlyShowIn=X-LuxOS-Launchpad;' \
+        "$pkgdir/usr/share/applications/luxos-drivers.desktop" > "$pkgdir/usr/share/applications/luxos-drivers-launchpad.desktop"
     install -Dm644 "$startdir/luxos-drivers.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-drivers.svg"
 }
