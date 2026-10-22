@@ -4,18 +4,18 @@
 
 pkgname=luxai
 pkgver=1.0.0
-pkgrel=7
+pkgrel=8
 pkgdesc="LuxAI - AI assistant that can work with your computer (chat and agent mode)"
 arch=(any)
 url="https://lux-ai.cz"
 license=(custom)
-depends=(python python-gobject gtk3 xdotool wmctrl luxos-account luxos-i18n)
+depends=(python python-gobject gtk3 xdotool wmctrl luxos-account luxos-i18n luxos-docs)
 optdepends=('libnotify: desktop notifications from the agent'
             'xdg-utils: open links and files'
             'xclip: clipboard fallback outside GTK'
             'grim: screenshots on Wayland')
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('8b200ec1347442d80bbeaa1ec9f950dc87cbc8a31ac53fa10c85116143849ccd')
+sha256sums=('e06cefadf5761d0a8344fca9030ef5d6ae612604ccecf4be33ac15c741a49acb')
 
 package() {
     cd "$pkgname-$pkgver"
