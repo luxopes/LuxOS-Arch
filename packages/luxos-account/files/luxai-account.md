@@ -43,14 +43,28 @@ Dostupná API (stejná jako pro LSL IDE, viz `~/lsl-ide/server/patch_lux_account
 ## Pomocné nástroje
 
 - Python: `/usr/lib/luxos/python/luxai_account.py` – `load()`, `me()`, `request(...)`,
-  `login_password`, `request_code` + `login_code`, `WebLogin` (PKCE přes `/ide/connect?app=…`), `logout()`.
+  `login_password`, `request_code` + `login_code`, `WebLogin` (PKCE přes `/ide/connect?app=…`), `logout()`;
+  bez uložení (instalátor): `password_session`, `verify_code`; registrace `register_start`,
+  podmínky jako text `fetch_terms()`, hlášky k chybovým kódům `error_text(err, _)`.
+- GTK: `/usr/lib/luxos/python/luxai_account_gtk.py` – `SignInPanel` (heslo / kód z e-mailu / nový účet)
+  a `show_terms()`; používá ho `luxos-account` i grafický instalátor.
 - Příkazová řádka (i pro LSL / Lux Code):
   - `luxos-account status` → JSON `{"signedIn": true, "user": {...}}` (bez tokenu),
   - `luxos-account token` → vypíše session token (jen pro aplikace téhož uživatele),
   - `luxos-account login` → otevře okno přihlášení (vrátí 0 po přihlášení),
+  - `luxos-account register` → totéž, rovnou se založením nového účtu,
+  - `luxos-account register` → totéž, rovnou se založením nového účtu,
   - `luxos-account logout`.
 
 ## Vytvoření účtu
 
-Registrace probíhá na webu (`https://lux-ai.cz/register` – podmínky, ověření e-mailu);
-`luxos-account` ji otevře v prohlížeči a pak nabídne přihlášení přes web jedním klikem.
+Účet jde založit přímo v LuxOS (instalátor – grafický i textový – a `luxos-account`), bez prohlížeče:
+
+1. jméno, e-mail, heslo (12–128 znaků) a souhlas s podmínkami (text `GET /terms` se zobrazí v aplikaci),
+2. `POST /api/auth/register/start` `{email, password, displayName, termsAccepted: true}` pošle 6místný kód,
+3. `POST /api/auth/code/verify` `{email, code}` účet založí a vrátí `{ok, user, sessionToken}`.
+
+Chyby: `invalid_email`, `email_domain_blocked`, `weak_password`, `terms_required`, `account_exists` (409),
+`rate` / `slow_down` (429, `Retry-After`), `email_domain_check_unavailable` (503), `email_domain_review` (422).
+Dokud server registraci z nativních klientů nepovolí (`403 {"error": "origin"}`), aplikace nabídnou
+dokončení na webu (`https://lux-ai.cz/register`).

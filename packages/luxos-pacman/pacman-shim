@@ -43,7 +43,8 @@ called_by_tool() {
     return 1
 }
 
-if [[ ${LUX_ALLOW_PACMAN-} == 1 || ! -t 0 || ! -t 1 || -e $ALLOW_FILE ]] || called_by_tool; then
+# LUX_PACMAN_HINT=1: jen napoveda (lux -Syu apod.), nikdy skutecny pacman
+if [[ ${LUX_PACMAN_HINT-} != 1 ]] && { [[ ${LUX_ALLOW_PACMAN-} == 1 || ! -t 0 || ! -t 1 || -e $ALLOW_FILE ]] || called_by_tool; }; then
     exec "$REAL" "$@"
 fi
 

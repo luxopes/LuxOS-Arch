@@ -1930,3 +1930,101 @@ Could not open the Scanner app	Impossibile aprire l’app Scanner
 Open the Scanner app to scan a document.	Apri l’app Scanner per scansionare un documento.
 Open windows	Finestre aperte
 Keyboard, network, sound, battery	Tastiera, rete, audio, batteria
+# LuxAI: prihlaseni kodem a zalozeni uctu (instalator, Ucet LuxAI)
+An account with this e-mail already exists. Sign in instead.	Esiste già un account con questa e-mail. Accedi.
+At least %d characters (%d more).	Almeno %d caratteri (ancora %d).
+At least %d characters.	Almeno %d caratteri.
+Create Account	Crea account
+Create a new account	Crea un nuovo account
+Creating an account from LuxOS is not available yet - create it at %s	La creazione di un account da LuxOS non è ancora disponibile - crealo su %s
+E-mail Code	Codice via e-mail
+Easy to guess - use different characters.	Facile da indovinare - usa caratteri diversi.
+Enter a valid e-mail address.	Inserisci un indirizzo e-mail valido.
+Enter the 6-digit code (leave empty to send a new one)	Inserisci il codice di 6 cifre (vuoto = invia un nuovo codice)
+Enter your name.	Inserisci il tuo nome.
+Forgot password? Sign in with a code	Password dimenticata? Accedi con un codice
+Good password. Longer is even better.	Buona password. Più lunga è ancora meglio.
+Hide password	Nascondi password
+I Agree	Accetto
+I agree to the LuxAI Terms	Accetto i termini di LuxAI
+Loading the terms…	Caricamento dei termini…
+LuxAI Terms of Use	Termini di utilizzo di LuxAI
+LuxAI is having problems right now. Try again later.	LuxAI ha dei problemi in questo momento. Riprova più tardi.
+New Account	Nuovo account
+No internet connection. You can skip this step and sign in later in Settings.	Nessuna connessione a Internet. Puoi saltare questo passaggio e accedere più tardi in Impostazioni.
+Open %s	Apri %s
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in or create an account now and everything is ready after the first start.	Facoltativo: l’AI in LuxAI, Lux Code e LSL IDE usa il tuo account LuxAI. Accedi o crea un account ora e tutto sarà pronto dopo il primo avvio.
+Password (at least %d characters)	Password (almeno %d caratteri)
+Read the terms	Leggi i termini
+Resend code	Invia di nuovo il codice
+Resend code in %d s	Invia di nuovo tra %d s
+Send Code	Invia codice
+Show password	Mostra password
+Sign in with a code from e-mail	Accedi con un codice via e-mail
+Sign in with a password	Accedi con la password
+Strong password.	Password sicura.
+The account could not be saved (%s).	Impossibile salvare l’account (%s).
+The code is valid for 10 minutes. Check also the spam folder.	Il codice è valido per 10 minuti. Controlla anche la cartella spam.
+The e-mail check is temporarily unavailable. Try again later.	Il controllo dell’e-mail è temporaneamente non disponibile. Riprova più tardi.
+The password can have at most %d characters.	La password può avere al massimo %d caratteri.
+The password must have at least 12 characters.	La password deve avere almeno 12 caratteri.
+The server did not finish the sign-in. Try again.	Il server non ha completato l’accesso. Riprova.
+This e-mail domain cannot be used for a LuxAI account.	Questo dominio e-mail non può essere usato per un account LuxAI.
+This e-mail domain cannot be verified yet. Please use another address.	Questo dominio e-mail non può ancora essere verificato. Usa un altro indirizzo.
+Use a different e-mail	Usa un’altra e-mail
+We sent a code to %s.	Abbiamo inviato un codice a %s.
+We sent a new code.	Abbiamo inviato un nuovo codice.
+We will e-mail you a 6-digit code - no password needed.	Ti invieremo via e-mail un codice di 6 cifre - nessuna password necessaria.
+You can also read them at %s	Puoi leggerli anche su %s
+You can skip this step and sign in to LuxAI later in Settings.	Puoi saltare questo passaggio e accedere a LuxAI più tardi in Impostazioni.
+You need to agree to the LuxAI Terms.	Devi accettare i termini di LuxAI.
+Your name	Il tuo nome
+DISK_MODE=partition needs ROOT_PART	DISK_MODE=partition richiede ROOT_PART
+%s cannot be used for LuxOS: %s	%s non può essere usata per LuxOS: %s
+%s cannot be used as /home: %s	%s non può essere usata come /home: %s
+does not exist	non esiste
+not a partition	non è una partizione
+installation medium	supporto di installazione
+in use (mounted)	in uso (montata)
+extended partition	partizione estesa
+system partition (reserved or recovery)	partizione di sistema (riservata o di ripristino)
+part of LVM	parte di LVM
+encrypted (LUKS)	crittografata (LUKS)
+part of RAID or a storage pool	parte di un RAID o di un pool di archiviazione
+smaller than 20 GB	più piccola di 20 GB
+no Linux file system for /home	nessun file system Linux per /home
+already chosen for LuxOS	già scelta per LuxOS
+Operating system: %s	Sistema operativo: %s
+Encrypted with BitLocker (Windows)	Crittografata con BitLocker (Windows)
+Files (no operating system found)	File (nessun sistema operativo trovato)
+Empty file system	File system vuoto
+Empty (no file system)	Vuota (nessun file system)
+Swap space	Spazio di swap
+Contents could not be checked	Impossibile controllare il contenuto
+Installing into an existing partition needs a computer started in UEFI mode.	L’installazione in una partizione esistente richiede un computer avviato in modalità UEFI.
+No EFI system partition found. Installing into an existing partition shares it with the other systems; use Erase disk or Manual partitioning instead.	Nessuna partizione di sistema EFI trovata. L’installazione in una partizione esistente la condivide con gli altri sistemi; usa invece Inizializza il disco o Partizionamento manuale.
+ERASE partition %s: %s	CANCELLARE la partizione %s: %s
+All other partitions are kept unchanged.	Tutte le altre partizioni restano invariate.
+WARNING: %s contains %s. It will be deleted and will no longer start.	ATTENZIONE: %s contiene %s. Questo sistema verrà eliminato e non si avvierà più.
+WARNING: the contents of %s could not be checked. Make sure it holds nothing you need.	ATTENZIONE: impossibile controllare il contenuto di %s. Assicurati che non contenga nulla che ti serve.
+Looking for partitions…	Ricerca delle partizioni…
+Partitions that cannot be used:	Partizioni non utilizzabili:
+No partition can be used for LuxOS (at least 20 GB, not in use, not a system partition).	Nessuna partizione può essere usata per LuxOS (almeno 20 GB, non in uso, non di sistema).
+Which partition should LuxOS replace? Everything on it will be erased.	Quale partizione deve sostituire LuxOS? Tutto il suo contenuto verrà cancellato.
+All data on %s will be erased. Other partitions are kept.	Tutti i dati su %s verranno cancellati. Le altre partizioni vengono mantenute.
+No - keep /home on the LuxOS partition	No - mantieni /home sulla partizione di LuxOS
+Use an existing partition as /home (its files are kept)?	Usare una partizione esistente come /home (i suoi file vengono mantenuti)?
+partition %s  (will be ERASED, other partitions are kept)	partizione %s  (verrà CANCELLATA, le altre partizioni vengono mantenute)
+Install into an existing partition (other partitions are kept)	Installa in una partizione esistente (le altre partizioni vengono mantenute)
+Encrypt LuxOS? (you will enter a password at every start)	Crittografare LuxOS? (inserirai una password a ogni avvio)
+Invalid DISK_MODE (use erase, freespace, partition, layout or manual)	DISK_MODE non valido (usa erase, freespace, partition, layout o manual)
+Replace an existing partition	Sostituisci una partizione esistente
+LuxOS is installed into one partition you choose; everything on it is erased. Other partitions and systems are kept.	LuxOS viene installato nella partizione che scegli; tutto il suo contenuto viene cancellato. Le altre partizioni e gli altri sistemi vengono mantenuti.
+Choose a partition for LuxOS.	Scegli una partizione per LuxOS.
+Partition for LuxOS	Partizione per LuxOS
+Not available: %s	Non disponibile: %s
+No partition on this disk can be used for LuxOS.	Nessuna partizione di questo disco può essere usata per LuxOS.
+The EFI system partition %s is shared with the other systems and is not formatted.	La partizione di sistema EFI %s è condivisa con gli altri sistemi e non viene formattata.
+Replace partition %s with LuxOS; other partitions are kept	Sostituisci la partizione %s con LuxOS; le altre partizioni vengono mantenute
+Could not set the partition type of %s; LuxOS works anyway.	Impossibile impostare il tipo di partizione di %s; LuxOS funziona comunque.
+Downloading the list of available software first	Prima scarico l’elenco del software disponibile

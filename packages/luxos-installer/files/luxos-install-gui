@@ -4,7 +4,7 @@
 GUI bezi jako uzivatel live systemu, jako root bezi jen backend
 (sudo -n, jinak pkexec):  luxos-install --config - --yes --progress
 Konfigurace vcetne hesel jde pres stdin (hodnoty pres shlex.quote), nikdy na disk.
-Volne misto a EFI oddil zjisti  luxos-install --probe /dev/DISK  (jen cte).
+Volne misto, EFI oddil a existujici oddily zjisti  luxos-install --probe /dev/DISK  (jen cte).
 
 Testovani bez zapisu na disk:
   LUXOS_INSTALL_FAKE=1           vzorove disky, simulovana instalace (bez sudo)
@@ -18,6 +18,8 @@ Testovani bez zapisu na disk:
 
 Rucni rozdeleni (Destination > Manual partitioning): model a kontrola v luxos_layout.py,
 backend dostane LAYOUT (DISK_MODE=layout), hesla LUKS jen pres stdin.
+Existujici oddil (Destination > Replace an existing partition): vhodne oddily a jejich obsah hlasi --probe
+(radky PART=...), backend dostane DISK_MODE=partition, ROOT_PART a volitelne HOME_PART.
 """
 import json
 import os
@@ -26,7 +28,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 import unicodedata
@@ -48,6 +49,11 @@ import gi  # noqa: E402
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
+
+try:
+    import luxai_account_gtk as accgtk  # noqa: E402 - spolecny panel prihlaseni / registrace LuxAI
+except ImportError:
+    accgtk = None
 
 BACKEND = "/usr/bin/luxos-install"
 LOG = "/var/log/luxos-install.log"
@@ -93,6 +99,33 @@ FREESPACE_WHY = {
     "esp_small": "The EFI system partition has less than 250 MB free.",
     "no_root": "Administrator rights are not available.",
 }
+# Existujici oddil (DISK_MODE=partition): sloupce radku PART= z --probe (stejne jako PART_FIELDS v luxos-install)
+PART_FIELDS = ("dev", "size", "fstype", "label", "root_err", "home_err", "content", "name")
+# Duvody, proc oddil nelze pouzit (stejne texty jako part_reason v luxos-install)
+PART_REASONS = {
+    "not_found": "does not exist",
+    "not_part": "not a partition",
+    "iso": "installation medium",
+    "busy": "in use (mounted)",
+    "esp": "EFI system partition",
+    "extended": "extended partition",
+    "system": "system partition (reserved or recovery)",
+    "lvm": "part of LVM",
+    "luks": "encrypted (LUKS)",
+    "raid": "part of RAID or a storage pool",
+    "small": "smaller than 20 GB",
+    "home_fs": "no Linux file system for /home",
+    "same": "already chosen for LuxOS",
+}
+PART_BOOT_WHY = {
+    "bios": "Installing into an existing partition needs a computer started in UEFI mode.",
+    "no_esp": "No EFI system partition found. Installing into an existing partition shares it with the other "
+              "systems; use Erase disk or Manual partitioning instead.",
+    "esp_mount": "The EFI system partition could not be read.",
+    "esp_small": "The EFI system partition has less than 250 MB free.",
+    "no_root": "Administrator rights are not available.",
+}
+OTHER_OS = ("windows", "os", "macos", "bitlocker")   # obsah oddilu = jiny operacni system
 SLIDES = [
     ("system-run-symbolic", "Fast and light",
      "LuxOS starts quickly and leaves more memory for your apps."),
@@ -325,12 +358,29 @@ def fake_disks():
              {"name": "nvme0n1p4", "size": int(0.8 * gb), "start": 2048 + 617188 + 488281250, "fstype": "ntfs",
               "label": "", "parttype": "de94bba4-06d1-4d40-a16a-bfd50179d6ac"},
          ],
-         "probe": {"FREESPACE_ERR": "", "FREE_BYTES": str(int(260.5 * gb)), "SYSTEMS": "Windows", "BOOTMODE": "uefi"}},
+         "probe": {"FREESPACE_ERR": "", "FREE_BYTES": str(int(260.5 * gb)), "SYSTEMS": "Windows", "BOOTMODE": "uefi",
+                   "PART_BOOT_ERR": "", "PART_ESP": "/dev/nvme0n1p1", "PARTS": [
+                       fake_part("/dev/nvme0n1p1", 0.3 * gb, "vfat", "SYSTEM", "esp", "esp"),
+                       fake_part("/dev/nvme0n1p2", 0.016 * gb, "", "", "system", "system"),
+                       fake_part("/dev/nvme0n1p3", 250 * gb, "ntfs", "Windows", "", "home_fs", "windows", "Windows"),
+                       fake_part("/dev/nvme0n1p4", 0.8 * gb, "ntfs", "", "system", "system")]}},
         {"path": "/dev/sda", "name": "sda", "size": 1000 * gb, "model": "WDC WD10EZEX", "tran": "sata",
-         "parts": [{"name": "sda1", "size": 1000 * gb - 2 * 1000 ** 2, "start": 2048, "fstype": "ext4", "label": "Data",
-                    "parttype": ""}],
-         "probe": {"FREESPACE_ERR": "no_space", "FREE_BYTES": "1031168", "SYSTEMS": "", "BOOTMODE": "uefi"}},
+         "parts": [{"name": "sda1", "size": 600 * gb, "start": 2048, "fstype": "ext4", "label": "Ubuntu",
+                    "parttype": ""},
+                   {"name": "sda2", "size": 392 * gb, "start": 2048 + 1171875000, "fstype": "ext4", "label": "Data",
+                    "parttype": ""},
+                   {"name": "sda3", "size": 8 * gb - 2 * 1000 ** 2, "start": 2048 + 1937500000, "fstype": "swap",
+                    "label": "", "parttype": ""}],
+         "probe": {"FREESPACE_ERR": "no_space", "FREE_BYTES": "1031168", "SYSTEMS": "", "BOOTMODE": "uefi",
+                   "PART_BOOT_ERR": "", "PART_ESP": "/dev/nvme0n1p1", "PARTS": [
+                       fake_part("/dev/sda1", 600 * gb, "ext4", "Ubuntu", "", "", "os", "Ubuntu 24.04.1 LTS"),
+                       fake_part("/dev/sda2", 392 * gb, "ext4", "Data", "", "", "data"),
+                       fake_part("/dev/sda3", 8 * gb, "swap", "", "small", "home_fs", "swap")]}},
     ]
+
+
+def fake_part(dev, size, fstype, label, root_err, home_err, content="", name=""):
+    return dict(zip(PART_FIELDS, (dev, str(int(size)), fstype, label, root_err, home_err, content, name)))
 
 
 def iso_disk():
@@ -383,9 +433,39 @@ def probe_disk(disk, root):
         return disk.get("probe") or {}
     if not root:
         return {"FREESPACE_ERR": "no_root"}
-    out = cmd_out("sudo", "-n", BACKEND, "--probe", disk["path"], timeout=40)
-    info = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
-    return info or {"FREESPACE_ERR": "no_root"}
+    out = cmd_out("sudo", "-n", BACKEND, "--probe", disk["path"], timeout=60)
+    return parse_probe(out) or {"FREESPACE_ERR": "no_root"}
+
+
+def parse_probe(out):
+    """Vystup --probe: KLIC=hodnota; radky PART= (oddily, sloupce oddelene TAB) -> seznam v "PARTS"."""
+    info, parts = {}, []
+    for line in out.splitlines():
+        if line.startswith("PART="):
+            cols = line[5:].split("\t")
+            parts.append(dict(zip(PART_FIELDS, cols + [""] * (len(PART_FIELDS) - len(cols)))))
+        elif "=" in line:
+            k, v = line.split("=", 1)
+            info[k] = v
+    if info:
+        info["PARTS"] = parts
+    return info
+
+
+def content_text(p):
+    """Popis obsahu oddilu (stejne texty jako part_content_text v luxos-install)."""
+    c = p.get("content", "")
+    if c in ("windows", "os", "macos"):
+        return _("Operating system: %s") % p.get("name", "")
+    return _({"bitlocker": "Encrypted with BitLocker (Windows)", "data": "Files (no operating system found)",
+              "empty_fs": "Empty file system", "empty": "Empty (no file system)",
+              "swap": "Swap space"}.get(c, "Contents could not be checked"))
+
+
+def part_desc(p):
+    """Radek oddilu: zarizeni, velikost, FS a popisek (napr. /dev/sda2  392 GB  ext4  "Data")."""
+    return f"{p['dev']}  {size_text(int(p.get('size') or 0))}  {p.get('fstype') or '?'}" + \
+        (f"  \"{p['label']}\"" if p.get("label") else "")
 
 
 def part_kind(p):
@@ -498,8 +578,9 @@ class Installer(Gtk.Window):
             "fullname": "", "username": "", "user_edited": False, "pw1": "", "pw2": "",
             "hostname": "", "host_edited": False, "autologin": False,
             "luxai": None, "luxai_email": "", "care": "carefree", "templates": [],
-            "layout_ok": False, "pass_mismatch": False,
+            "layout_ok": False, "pass_mismatch": False, "part": None, "home_part": None,
         }
+        self.luxai_panel = None   # panel prihlaseni LuxAI (drzi stav mezi prekreslenim)
         self.layout = None        # rucni rozdeleni (luxos_layout.Layout), vznikne v kroku Partitions
         self.layout_sel = None    # vybrany radek editoru (id uzlu / ("free", disk) / ("vgfree", vg))
         set_ui_lang(locale)
@@ -673,7 +754,8 @@ class Installer(Gtk.Window):
             self.btn_next.set_label(_("Restart Now") if ok else _("Quit"))
         self.btn_extra.set_visible(self.extra_action is not None)
         self.btn_next.set_sensitive(bool(self.valid()))
-        erase = key == "summary" and (self.s["mode"] == "erase" or self.s["mode"] == "manual" and self.layout is not None
+        erase = key == "summary" and (self.s["mode"] in ("erase", "partition")
+                                      or self.s["mode"] == "manual" and self.layout is not None
                                       and bool(self.layout.destroy_list()))
         ctx = self.btn_next.get_style_context()
         (ctx.add_class if erase else ctx.remove_class)("danger-btn")
@@ -1063,7 +1145,8 @@ class Installer(Gtk.Window):
         probe = d.get("probe") or {}
         free_ok = probe.get("FREESPACE_ERR", "x") == ""
         free = int(probe.get("FREE_BYTES") or 0)
-        if self.s["mode"] not in ("erase", "freespace", "manual") or (self.s["mode"] == "freespace" and not free_ok):
+        if self.s["mode"] not in ("erase", "freespace", "manual", "partition") or \
+                (self.s["mode"] == "freespace" and not free_ok) or (self.s["mode"] == "partition" and not d["parts"]):
             self.s["mode"] = "freespace" if free_ok else "erase"
         self.sync_steps()
 
@@ -1133,6 +1216,12 @@ class Installer(Gtk.Window):
             if why:
                 page.pack_start(self.hint(_("Installing alongside other systems is not possible: %s") % _(why)),
                                 False, False, 0)
+        if d["parts"]:
+            page.pack_start(self.card(_("Replace an existing partition"),
+                                      _("LuxOS is installed into one partition you choose; everything on it is erased. "
+                                        "Other partitions and systems are kept."),
+                                      self.s["mode"] == "partition", lambda: self.pick_mode("partition"),
+                                      icon="drive-harddisk"), False, False, 0)
         chk = None
         if self.s["mode"] == "erase":
             # Vyslovne potvrzeni smazani primo v karte
@@ -1155,6 +1244,9 @@ class Installer(Gtk.Window):
                                         "Nothing is changed before you confirm the summary.")), False, False, 0)
             self.valid = lambda: True
             return
+
+        if self.s["mode"] == "partition":
+            self.partition_chooser(page, probe)
 
         # Sifrovani
         enc = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -1187,18 +1279,133 @@ class Installer(Gtk.Window):
         def valid():
             if self.s["mode"] == "erase" and not self.s["erase_ok"]:
                 return False
+            if self.s["mode"] == "partition" and self.partition_problem():
+                return False
             if self.s["encrypt"] and (not self.s["luks1"] or self.s["luks1"] != self.s["luks2"]):
                 return False
             return True
         self.valid = valid
-        self.why = lambda: (_("Confirm that the disk will be erased.")
-                            if self.s["mode"] == "erase" and not self.s["erase_ok"]
-                            else _("Enter the encryption password twice."))
+
+        def why():
+            if self.s["mode"] == "erase" and not self.s["erase_ok"]:
+                return _("Confirm that the disk will be erased.")
+            if self.s["mode"] == "partition" and self.partition_problem():
+                return self.partition_problem()
+            return _("Enter the encryption password twice.")
+        self.why = why
 
     def pick_disk(self, path):
         if path != self.s["disk"]:
             self.s["disk"], self.s["mode"], self.s["erase_ok"] = path, None, False
+            self.s["part"] = self.s["home_part"] = None
             GLib.idle_add(lambda: self.render() and False)
+
+    # ---- 5a. existujici oddil (DISK_MODE=partition) ----
+    def part_info(self, dev):
+        """Radek PART= z --probe pro oddil (ze vsech disku) nebo None."""
+        for d in self.disks or []:
+            for p in (d.get("probe") or {}).get("PARTS", []):
+                if p["dev"] == dev:
+                    return p
+        return None
+
+    def home_candidates(self):
+        """Oddily, ktere lze bez formatovani pripojit jako /home (vsechny disky, mimo vybrany /)."""
+        return [p for d in self.disks or [] for p in (d.get("probe") or {}).get("PARTS", [])
+                if not p.get("home_err") and p["dev"] != self.s.get("part")]
+
+    def partition_problem(self):
+        """Proc nelze pokracovat v rezimu partition (prazdne = lze)."""
+        probe = (self.selected_disk() or {}).get("probe") or {}
+        boot = probe.get("PART_BOOT_ERR", "no_root")
+        if boot:
+            return _(PART_BOOT_WHY.get(boot, boot))
+        p = self.part_info(self.s.get("part"))
+        if not p or p.get("root_err") or p["dev"] not in [x["dev"] for x in probe.get("PARTS", [])]:
+            return _("Choose a partition for LuxOS.")
+        if self.s.get("home_part") and self.s["home_part"] not in [h["dev"] for h in self.home_candidates()]:
+            return _("Choose a partition for LuxOS.")
+        return ""
+
+    def partition_chooser(self, page, probe):
+        """Vyber oddilu pro LuxOS (nevhodne s duvodem), varovani o obsahu a volitelny /home."""
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box.get_style_context().add_class("card")
+        t = Gtk.Label(label=_("Partition for LuxOS"), xalign=0)
+        t.get_style_context().add_class("card-title")
+        box.pack_start(t, False, False, 0)
+        page.pack_start(box, False, False, 0)
+        boot = probe.get("PART_BOOT_ERR", "no_root")
+        if boot:
+            box.pack_start(self.hint(_(PART_BOOT_WHY.get(boot, boot)), "error"), False, False, 0)
+            return
+        parts = probe.get("PARTS", [])
+        if self.s.get("part") not in [p["dev"] for p in parts if not p.get("root_err")]:
+            self.s["part"] = None
+        warn = self.hint("", "error")
+        group = Gtk.RadioButton()   # skryty vychozi prvek skupiny (zadny oddil zatim nevybran)
+        home_combo = Gtk.ComboBoxText()
+
+        def fill_home():
+            cands = self.home_candidates()
+            if self.s.get("home_part") not in [h["dev"] for h in cands]:
+                self.s["home_part"] = None
+            home_combo.remove_all()
+            home_combo.append("", _("No - keep /home on the LuxOS partition"))
+            for h in cands:
+                home_combo.append(h["dev"], f"{part_desc(h)}  -  {content_text(h)}")
+            home_combo.set_active_id(self.s.get("home_part") or "")
+
+        def show_warn():
+            p = self.part_info(self.s.get("part"))
+            if p and p.get("content") in OTHER_OS:
+                say(warn, _("WARNING: %s contains %s. It will be deleted and will no longer start.")
+                    % (p["dev"], p.get("name") or "Windows"))
+            elif p and p.get("content") in ("", "unknown"):
+                say(warn, _("WARNING: the contents of %s could not be checked. Make sure it holds nothing you need.")
+                    % p["dev"])
+            else:
+                say(warn, "")
+
+        def toggled(rb, dev):
+            if rb.get_active():
+                self.s["part"] = dev
+                fill_home()
+                show_warn()
+                self.update_nav()
+
+        any_ok = False
+        for p in parts:
+            rb = Gtk.RadioButton.new_from_widget(group)
+            col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+            col.pack_start(Gtk.Label(label=part_desc(p), xalign=0), False, False, 0)
+            if p.get("root_err"):
+                col.pack_start(self.hint(_("Not available: %s") % _(PART_REASONS.get(p["root_err"], p["root_err"]))),
+                               False, False, 0)
+                rb.set_sensitive(False)
+            else:
+                any_ok = True
+                col.pack_start(self.hint(content_text(p)), False, False, 0)
+            rb.add(col)
+            rb.set_active(p["dev"] == self.s.get("part"))
+            rb.connect("toggled", toggled, p["dev"])
+            box.pack_start(rb, False, False, 0)
+        if not any_ok:
+            box.pack_start(self.hint(_("No partition on this disk can be used for LuxOS."), "error"), False, False, 0)
+        box.pack_start(warn, False, False, 0)
+        show_warn()
+        if probe.get("PART_ESP"):
+            box.pack_start(self.hint(_("The EFI system partition %s is shared with the other systems and is not "
+                                       "formatted.") % probe["PART_ESP"]), False, False, 0)
+        # Volitelne: existujici oddil jako /home (bez formatovani)
+        hb = Gtk.Box(spacing=10)
+        hb.pack_start(Gtk.Label(label=_("Use an existing partition as /home (its files are kept)?"), xalign=0,
+                                wrap=True), False, False, 0)
+        fill_home()
+        home_combo.connect("changed", lambda c: (self.s.__setitem__("home_part", c.get_active_id() or None),
+                                                 self.update_nav()))
+        box.pack_start(hb, False, False, 4)
+        box.pack_start(home_combo, False, False, 0)
 
     def sync_steps(self):
         """Krok Partitions jen pri rucnim rozdeleni (hned za Destination)."""
@@ -2143,7 +2350,8 @@ class Installer(Gtk.Window):
         t.get_style_context().add_class("slide-title")
         hero.pack_start(t, False, False, 0)
         hero.pack_start(Gtk.Label(label=_("Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. "
-                                          "Sign in now and everything is ready after the first start."),
+                                          "Sign in or create an account now and everything is ready "
+                                          "after the first start."),
                                   xalign=0, wrap=True, max_width_chars=60), False, False, 0)
         page.pack_start(hero, False, False, 0)
         if self.s["luxai"]:
@@ -2155,50 +2363,64 @@ class Installer(Gtk.Window):
                                                GLib.idle_add(lambda: self.render() and False)))
             page.pack_start(out, False, False, 0)
             return
-        if acc is None:
+        if acc is None or accgtk is None:
             page.pack_start(self.hint(_("Sign-in is not available. You can sign in later in Settings.")),
                             False, False, 0)
             return
-        email = Gtk.Entry(text=self.s["luxai_email"], placeholder_text=_("E-mail"),
-                          input_purpose=Gtk.InputPurpose.EMAIL)
-        pw = Gtk.Entry(visibility=False, placeholder_text=_("Password"), input_purpose=Gtk.InputPurpose.PASSWORD)
-        page.pack_start(email, False, False, 0)
-        page.pack_start(pw, False, False, 0)
-        row = Gtk.Box(spacing=10)
-        sign = Gtk.Button(label=_("Sign In"))
-        spinner = Gtk.Spinner()
-        row.pack_start(sign, False, False, 0)
-        row.pack_start(spinner, False, False, 0)
-        page.pack_start(row, False, False, 0)
-        status = self.hint("", "error")
-        page.pack_start(status, False, False, 0)
+        if self.online is False:
+            # bez internetu: srozumitelne vysvetleni, krok jde preskocit (tlacitko Preskocit dole)
+            warn = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            warn.get_style_context().add_class("warn")
+            t = Gtk.Label(label=_("No internet connection"), xalign=0)
+            t.get_style_context().add_class("warn-title")
+            warn.pack_start(t, False, False, 0)
+            warn.pack_start(Gtk.Label(label=_("You can skip this step and sign in to LuxAI later in Settings."),
+                                      xalign=0, wrap=True, max_width_chars=70), False, False, 0)
+            page.pack_start(warn, False, False, 0)
+            again = Gtk.Button(label=_("Try Again"), halign=Gtk.Align.START)
+            spinner = Gtk.Spinner()
+            row = Gtk.Box(spacing=10)
+            row.pack_start(again, False, False, 0)
+            row.pack_start(spinner, False, False, 0)
+            page.pack_start(row, False, False, 0)
+
+            def recheck(_b):
+                again.set_sensitive(False)
+                spinner.start()
+                run_async(have_internet, rechecked)
+
+            def rechecked(ok, _err):
+                self.online = bool(ok)
+                if self.current() == "luxai":
+                    self.render()
+            again.connect("clicked", recheck)
+            return
+        # Panel drzi stav (rezim, odeslany kod, odpocet) - pri prekresleni stranky se jen presune
+        panel = self.luxai_panel
+        if panel is None:
+            panel = self.luxai_panel = accgtk.SignInPanel(
+                self.luxai_signed, name=self.s["fullname"].strip(), email=self.s["luxai_email"],
+                offline_text=_("No internet connection. You can skip this step and sign in later in Settings."),
+                open_url_fn=open_url)
+        else:
+            if panel.get_parent():
+                panel.get_parent().remove(panel)
+            if self.s["fullname"].strip() and not panel.reg_name.get_text().strip():
+                panel.reg_name.set_text(self.s["fullname"].strip())
+        page.pack_start(panel, False, False, 0)
+        # stara stranka se pri prekresleni nici i s detmi - panel z ni vyjmout driv (handler bezi pred tim)
+        page.connect("destroy", lambda pg: panel.get_parent() is pg and pg.remove(panel))
         page.pack_start(self.hint(_("You can also skip this and sign in later.")), False, False, 0)
 
-        def login(_w):
-            e, p = email.get_text().strip(), pw.get_text()
-            if not e or not p:
-                say(status, _("Enter your e-mail and password."))
-                return
-            self.s["luxai_email"] = e
-            spinner.start()
-            sign.set_sensitive(False)
-            say(status, "")
-            run_async(lambda: luxai_login(e, p), done)
-
-        def done(account, err):
-            spinner.stop()
-            sign.set_sensitive(True)
-            if err:
-                code = getattr(err, "code", "error")
-                msgs = {"invalid_credentials": "Wrong e-mail or password.",
-                        "email_unverified": "The e-mail address is not verified yet.",
-                        "network": "LuxAI is not reachable. Check the internet connection."}
-                say(status, _(msgs[code]) if code in msgs else _("Sign-in failed (%s).") % code)
-                return
-            self.s["luxai"] = account
+    def luxai_signed(self, account):
+        """Prihlaseno (heslem, kodem nebo novym uctem): JSON uctu pujde do instalovaneho systemu."""
+        self.s["luxai"] = account
+        self.s["luxai_email"] = (account.get("user") or {}).get("email") or ""
+        if self.luxai_panel is not None:
+            self.luxai_panel.destroy()
+            self.luxai_panel = None
+        if self.current() == "luxai":
             GLib.idle_add(lambda: self.render() and False)
-        sign.connect("clicked", login)
-        pw.connect("activate", login)
 
     # ---- 8. souhrn ----
     def page_summary(self, page):
@@ -2219,6 +2441,8 @@ class Installer(Gtk.Window):
             disk = _("Manual partitioning")
         elif self.s["mode"] == "erase":
             disk = _("Erase %s and install LuxOS") % disk_title(d)
+        elif self.s["mode"] == "partition":
+            disk = _("Replace partition %s with LuxOS; other partitions are kept") % self.s["part"]
         else:
             free = int((d.get("probe") or {}).get("FREE_BYTES") or 0)
             disk = _("Alongside other systems on %s (%s of free space)") % (disk_title(d), size_text(free))
@@ -2236,7 +2460,7 @@ class Installer(Gtk.Window):
             lab.get_style_context().add_class("subtitle")
             grid.attach(lab, 0, i, 1, 1)
             val = Gtk.Label(label=v, xalign=0, wrap=True, max_width_chars=50, selectable=False)
-            if k == _("Disk") and self.s["mode"] == "erase":
+            if k == _("Disk") and self.s["mode"] in ("erase", "partition"):
                 val.get_style_context().add_class("danger-text")
             grid.attach(val, 1, i, 1, 1)
         page.pack_start(box, False, False, 0)
@@ -2245,6 +2469,57 @@ class Installer(Gtk.Window):
                             False, False, 0)
         if manual:
             self.summary_layout(page)
+        if self.s["mode"] == "partition":
+            self.summary_partition(page)
+
+    def summary_partition(self, page):
+        """Existujici oddil v souhrnu: pripojeni, co se smaze (s obsahem) a potvrzeni."""
+        p = self.part_info(self.s["part"]) or {"dev": self.s["part"]}
+        probe = (self.selected_disk() or {}).get("probe") or {}
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        box.get_style_context().add_class("card")
+        t = Gtk.Label(label=_("Partitions"), xalign=0)
+        t.get_style_context().add_class("card-title")
+        box.pack_start(t, False, False, 0)
+        grid = Gtk.Grid(column_spacing=18, row_spacing=3)
+        rows = [("/", "btrfs", p["dev"] + (" › " + _("LUKS2") if self.s["encrypt"] else ""), _("format"))]
+        if probe.get("PART_ESP"):
+            rows.append(("/efi", "vfat", probe["PART_ESP"], _("keep data")))
+        if self.s.get("home_part"):
+            h = self.part_info(self.s["home_part"]) or {}
+            rows.append(("/home", h.get("fstype", ""), self.s["home_part"], _("keep data")))
+        for i, cells in enumerate(rows):
+            for j, c in enumerate(cells):
+                grid.attach(Gtk.Label(label=c, xalign=0, hexpand=j == 2), j, i, 1, 1)
+        box.pack_start(grid, False, False, 0)
+        page.pack_start(box, False, False, 0)
+        warn = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        warn.get_style_context().add_class("warn")
+        wt = Gtk.Label(label=_("Will be erased or changed when you click Install:"), xalign=0)
+        wt.get_style_context().add_class("warn-title")
+        warn.pack_start(wt, False, False, 0)
+        lab = Gtk.Label(label="•  " + _("ERASE partition %s: %s") % (part_desc(p) if "size" in p else p["dev"],
+                                                                     content_text(p)), xalign=0, wrap=True)
+        lab.get_style_context().add_class("danger-text")
+        warn.pack_start(lab, False, False, 0)
+        if p.get("content") in OTHER_OS:
+            strong = Gtk.Label(xalign=0, wrap=True)
+            strong.set_markup("<b>%s</b>" % GLib.markup_escape_text(
+                _("WARNING: %s contains %s. It will be deleted and will no longer start.")
+                % (p["dev"], p.get("name") or "Windows")))
+            strong.get_style_context().add_class("danger-text")
+            warn.pack_start(strong, False, False, 0)
+        elif p.get("content") in (None, "", "unknown"):
+            warn.pack_start(self.hint(_("WARNING: the contents of %s could not be checked. Make sure it holds "
+                                        "nothing you need.") % p["dev"], "error"), False, False, 0)
+        warn.pack_start(self.hint(_("All other partitions are kept unchanged.")), False, False, 0)
+        chk = Gtk.CheckButton(label=_("I understand that the data listed above will be lost."),
+                              active=self.s["layout_ok"])
+        chk.connect("toggled", lambda c: (self.s.__setitem__("layout_ok", c.get_active()), self.update_nav()))
+        warn.pack_start(chk, False, False, 4)
+        page.pack_start(warn, False, False, 0)
+        self.valid = lambda: self.s["layout_ok"]
+        self.why = lambda: _("Confirm that the listed data will be erased.")
 
     def summary_layout(self, page):
         """Rucni rozdeleni v souhrnu: pripojeni a vyslovny seznam toho, co se smaze."""
@@ -2446,6 +2721,8 @@ class Installer(Gtk.Window):
         }
         if s["mode"] == "manual" and self.layout is not None:
             values.update(self.layout.config_values())
+        if s["mode"] == "partition":
+            values.update({"ROOT_PART": s.get("part") or "", "HOME_PART": s.get("home_part") or ""})
         return "".join(f"{k}={q(v)}\n" for k, v in values.items())
 
     # Kdo umi zabranit setrici/zamceni a uspani (Xfce: org.xfce.ScreenSaver, xfce4-power-manager)
@@ -2703,19 +2980,16 @@ def wifi_list():
     return sorted(best.values(), key=lambda n: -n[1])
 
 
-def luxai_login(email, password):
-    """Prihlaseni k LuxAI jako v TUI: JSON uctu (bez hesla), soubor jen docasne."""
-    r = acc.request("POST", "/api/auth/password/login", {"email": email, "password": password})
-    if not r.get("sessionToken"):
-        raise acc.AccountError("no_token")
-    tmp = tempfile.mkdtemp()
+def open_url(url):
+    """Odkaz v prohlizeci zive relace (napr. registrace na webu, kdyz ji server z LuxOS jeste nepovoli)."""
+    if FAKE and os.environ.get("LUXOS_INSTALL_FAKE_NOBROWSER") == "1":
+        print("FAKE: open " + url)
+        return
     try:
-        path = os.path.join(tmp, "a.json")
-        data = acc.save(r["sessionToken"], r.get("user") or {}, path=path)
-        os.unlink(path)
-    finally:
-        os.rmdir(tmp)
-    return data
+        subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+    except OSError:
+        pass
 
 
 def logo_image(size):
@@ -2734,6 +3008,7 @@ eval "$(cat)"
 echo "fake backend: DISK=$DISK DISK_MODE=$DISK_MODE ENCRYPT=$ENCRYPT USERNAME=$USERNAME HOST=$HOSTNAME_SEL"
 echo "fake backend: FULLNAME=$FULLNAME, password length ${#PASSWORD}, LuxAI=${LUXAI_ACCOUNT:+yes}, CARE_MODE=$CARE_MODE"
 echo "fake backend: TEMPLATES=${TEMPLATES-}"
+[[ $DISK_MODE == partition ]] && echo "fake backend: ROOT_PART=$ROOT_PART HOME_PART=${HOME_PART-}"
 d=${LUXOS_INSTALL_FAKE_DELAY:-0.4}
 # Stahovani jako v luxos-install (pac_filter): @@NET kazde "2 s", srozumitelne hlasky o serverech
 fake_download() {
@@ -2778,6 +3053,11 @@ if [[ $DISK_MODE == layout ]]; then
     steps=("Preparing disks")
     grep '^luks ' <<<"$LAYOUT" | grep -qv 'keep=1' && steps+=("Encrypting volumes")
     grep -q '^vg ' <<<"$LAYOUT" && steps+=("Setting up LVM")
+    steps+=("Creating file systems")
+elif [[ $DISK_MODE == partition ]]; then
+    # Existujici oddil: backend pripravuje disk pres layout.sh (stejne kroky)
+    steps=("Preparing disks")
+    ((ENCRYPT)) && steps+=("Encrypting volumes")
     steps+=("Creating file systems")
 else
     steps=("Preparing disk $DISK")

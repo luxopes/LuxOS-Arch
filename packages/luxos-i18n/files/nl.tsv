@@ -1930,3 +1930,101 @@ Could not open the Scanner app	Kan de app Scanner niet openen
 Open the Scanner app to scan a document.	Open de app Scanner om een document te scannen.
 Open windows	Geopende vensters
 Keyboard, network, sound, battery	Toetsenbord, netwerk, geluid, batterij
+# LuxAI: prihlaseni kodem a zalozeni uctu (instalator, Ucet LuxAI)
+An account with this e-mail already exists. Sign in instead.	Er bestaat al een account met dit e-mailadres. Log in.
+At least %d characters (%d more).	Minstens %d tekens (nog %d).
+At least %d characters.	Minstens %d tekens.
+Create Account	Account aanmaken
+Create a new account	Nieuw account aanmaken
+Creating an account from LuxOS is not available yet - create it at %s	Een account aanmaken vanuit LuxOS kan nog niet - maak het aan op %s
+E-mail Code	Code per e-mail
+Easy to guess - use different characters.	Makkelijk te raden - gebruik verschillende tekens.
+Enter a valid e-mail address.	Voer een geldig e-mailadres in.
+Enter the 6-digit code (leave empty to send a new one)	Voer de 6-cijferige code in (leeg = nieuwe sturen)
+Enter your name.	Voer je naam in.
+Forgot password? Sign in with a code	Wachtwoord vergeten? Log in met een code
+Good password. Longer is even better.	Goed wachtwoord. Langer is nog beter.
+Hide password	Wachtwoord verbergen
+I Agree	Akkoord
+I agree to the LuxAI Terms	Ik ga akkoord met de LuxAI-voorwaarden
+Loading the terms…	Voorwaarden laden…
+LuxAI Terms of Use	LuxAI-gebruiksvoorwaarden
+LuxAI is having problems right now. Try again later.	LuxAI heeft nu problemen. Probeer het later opnieuw.
+New Account	Nieuw account
+No internet connection. You can skip this step and sign in later in Settings.	Geen internetverbinding. Je kunt deze stap overslaan en later inloggen via Instellingen.
+Open %s	%s openen
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in or create an account now and everything is ready after the first start.	Optioneel: AI in LuxAI, Lux Code en LSL IDE gebruikt je LuxAI-account. Log nu in of maak een account aan en alles is klaar na de eerste start.
+Password (at least %d characters)	Wachtwoord (minstens %d tekens)
+Read the terms	Voorwaarden lezen
+Resend code	Code opnieuw sturen
+Resend code in %d s	Opnieuw sturen over %d s
+Send Code	Code sturen
+Show password	Wachtwoord tonen
+Sign in with a code from e-mail	Inloggen met een code per e-mail
+Sign in with a password	Inloggen met wachtwoord
+Strong password.	Sterk wachtwoord.
+The account could not be saved (%s).	Het account kon niet worden opgeslagen (%s).
+The code is valid for 10 minutes. Check also the spam folder.	De code is 10 minuten geldig. Kijk ook in de spammap.
+The e-mail check is temporarily unavailable. Try again later.	De e-mailcontrole is tijdelijk niet beschikbaar. Probeer het later opnieuw.
+The password can have at most %d characters.	Het wachtwoord mag hoogstens %d tekens hebben.
+The password must have at least 12 characters.	Het wachtwoord moet minstens 12 tekens hebben.
+The server did not finish the sign-in. Try again.	De server heeft het inloggen niet afgerond. Probeer het opnieuw.
+This e-mail domain cannot be used for a LuxAI account.	Dit e-maildomein kan niet worden gebruikt voor een LuxAI-account.
+This e-mail domain cannot be verified yet. Please use another address.	Dit e-maildomein kan nog niet worden gecontroleerd. Gebruik een ander adres.
+Use a different e-mail	Ander e-mailadres gebruiken
+We sent a code to %s.	We hebben een code gestuurd naar %s.
+We sent a new code.	We hebben een nieuwe code gestuurd.
+We will e-mail you a 6-digit code - no password needed.	We sturen je een 6-cijferige code per e-mail - geen wachtwoord nodig.
+You can also read them at %s	Je kunt ze ook lezen op %s
+You can skip this step and sign in to LuxAI later in Settings.	Je kunt deze stap overslaan en later via Instellingen inloggen bij LuxAI.
+You need to agree to the LuxAI Terms.	Je moet akkoord gaan met de LuxAI-voorwaarden.
+Your name	Je naam
+DISK_MODE=partition needs ROOT_PART	DISK_MODE=partition vereist ROOT_PART
+%s cannot be used for LuxOS: %s	%s kan niet worden gebruikt voor LuxOS: %s
+%s cannot be used as /home: %s	%s kan niet worden gebruikt als /home: %s
+does not exist	bestaat niet
+not a partition	geen partitie
+installation medium	installatiemedium
+in use (mounted)	in gebruik (gekoppeld)
+extended partition	uitgebreide partitie
+system partition (reserved or recovery)	systeempartitie (gereserveerd of herstel)
+part of LVM	onderdeel van LVM
+encrypted (LUKS)	versleuteld (LUKS)
+part of RAID or a storage pool	onderdeel van RAID of een opslagpool
+smaller than 20 GB	kleiner dan 20 GB
+no Linux file system for /home	geen Linux-bestandssysteem voor /home
+already chosen for LuxOS	al gekozen voor LuxOS
+Operating system: %s	Besturingssysteem: %s
+Encrypted with BitLocker (Windows)	Versleuteld met BitLocker (Windows)
+Files (no operating system found)	Bestanden (geen besturingssysteem gevonden)
+Empty file system	Leeg bestandssysteem
+Empty (no file system)	Leeg (geen bestandssysteem)
+Swap space	Wisselgeheugen (swap)
+Contents could not be checked	Inhoud kon niet worden gecontroleerd
+Installing into an existing partition needs a computer started in UEFI mode.	Installeren in een bestaande partitie vereist een computer die in UEFI-modus is gestart.
+No EFI system partition found. Installing into an existing partition shares it with the other systems; use Erase disk or Manual partitioning instead.	Geen EFI-systeempartitie gevonden. Installeren in een bestaande partitie deelt deze met de andere systemen; gebruik in plaats daarvan Wis schijf of Handmatig partitioneren.
+ERASE partition %s: %s	Partitie %s WISSEN: %s
+All other partitions are kept unchanged.	Alle andere partities blijven ongewijzigd.
+WARNING: %s contains %s. It will be deleted and will no longer start.	WAARSCHUWING: %s bevat %s. Dit systeem wordt verwijderd en start niet meer.
+WARNING: the contents of %s could not be checked. Make sure it holds nothing you need.	WAARSCHUWING: de inhoud van %s kon niet worden gecontroleerd. Zorg dat er niets op staat dat je nodig hebt.
+Looking for partitions…	Partities zoeken…
+Partitions that cannot be used:	Partities die niet kunnen worden gebruikt:
+No partition can be used for LuxOS (at least 20 GB, not in use, not a system partition).	Geen enkele partitie kan worden gebruikt voor LuxOS (minstens 20 GB, niet in gebruik, geen systeempartitie).
+Which partition should LuxOS replace? Everything on it will be erased.	Welke partitie moet LuxOS vervangen? Alles erop wordt gewist.
+All data on %s will be erased. Other partitions are kept.	Alle gegevens op %s worden gewist. Andere partities blijven behouden.
+No - keep /home on the LuxOS partition	Nee - /home op de LuxOS-partitie houden
+Use an existing partition as /home (its files are kept)?	Een bestaande partitie als /home gebruiken (de bestanden blijven behouden)?
+partition %s  (will be ERASED, other partitions are kept)	partitie %s  (wordt GEWIST, andere partities blijven behouden)
+Install into an existing partition (other partitions are kept)	Installeer in een bestaande partitie (andere partities blijven behouden)
+Encrypt LuxOS? (you will enter a password at every start)	LuxOS versleutelen? (je voert bij elke start een wachtwoord in)
+Invalid DISK_MODE (use erase, freespace, partition, layout or manual)	Ongeldige DISK_MODE (gebruik erase, freespace, partition, layout of manual)
+Replace an existing partition	Vervang een bestaande partitie
+LuxOS is installed into one partition you choose; everything on it is erased. Other partitions and systems are kept.	LuxOS wordt geïnstalleerd in één partitie naar keuze; alles erop wordt gewist. Andere partities en systemen blijven behouden.
+Choose a partition for LuxOS.	Kies een partitie voor LuxOS.
+Partition for LuxOS	Partitie voor LuxOS
+Not available: %s	Niet beschikbaar: %s
+No partition on this disk can be used for LuxOS.	Geen enkele partitie op deze schijf kan worden gebruikt voor LuxOS.
+The EFI system partition %s is shared with the other systems and is not formatted.	De EFI-systeempartitie %s wordt gedeeld met de andere systemen en wordt niet geformatteerd.
+Replace partition %s with LuxOS; other partitions are kept	Partitie %s vervangen door LuxOS; andere partities blijven behouden
+Could not set the partition type of %s; LuxOS works anyway.	Het partitietype van %s kon niet worden ingesteld; LuxOS werkt toch.
+Downloading the list of available software first	Eerst wordt de lijst met beschikbare software gedownload

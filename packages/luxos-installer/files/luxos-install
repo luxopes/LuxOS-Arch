@@ -4,13 +4,14 @@
 # Interaktivne:   sudo luxos-install
 # Bez obsluhy:    sudo luxos-install --config /cesta/install.conf [--yes] [--progress]
 #                 ... | sudo luxos-install --config - --yes --progress   (konfigurace ze stdin)
-# Disky (GUI):    sudo luxos-install --probe /dev/DISK   (volne misto a ESP, radky KLIC=hodnota)
+# Disky (GUI):    sudo luxos-install --probe /dev/DISK   (volne misto, ESP a oddily pro DISK_MODE=partition; KLIC=hodnota)
 #                 sudo luxos-install --scan               (disky, oddily, LUKS, LVM jako JSON; jen cte)
 #                 luxos-install --check-layout SOUBOR     (kontrola LAYOUT bez zmen; - = stdin)
 #
 # Konfiguracni soubor (bash promenne) - viz /usr/share/luxos/installer/install.conf.example
 # --progress: strojove radky "@@STEP n celkem text", "@@PCT 0-100", "@@STATUS text", "@@NET B/s stazeno celkem", "@@NET END", "@@ERROR text", "@@DONE"
-#             rucni rozdeleni (DISK_MODE=layout) navic "@@ERASE text" (co se smaze, pred souhrnem) a "@@WARN text"
+#             rucni rozdeleni a existujici oddil (DISK_MODE=layout, partition) navic "@@ERASE text"
+#             (co se smaze, pred souhrnem) a "@@WARN text"
 set -Eeuo pipefail
 
 LOG=/var/log/luxos-install.log
@@ -236,13 +237,21 @@ interactive() {
     for d in "${disks[@]}"; do opts+=("${d#*|}"); done
     local advanced
     advanced=$(T "Advanced: use partitions already mounted at %s" "$TARGET")
-    local layout_opt
+    local layout_opt part_opt
+    part_opt=$(T "Install into an existing partition (other partitions are kept)")
     layout_opt=$(T "Advanced: manual partitioning from a layout file (LVM, encryption)")
-    opts+=("$layout_opt" "$advanced")
+    opts+=("$part_opt" "$layout_opt" "$advanced")
     sel=$(gum choose --header "$(T "Where should LuxOS be installed?")" "${opts[@]}") || exit 1
     if [[ $sel == "$layout_opt" ]]; then
         DISK=layout DISK_MODE=layout ENCRYPT=0
         ask_layout
+    elif [[ $sel == "$part_opt" ]]; then
+        DISK_MODE=partition ENCRYPT=0
+        ask_partition
+        if gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Encrypt LuxOS? (you will enter a password at every start)")"; then
+            ENCRYPT=1
+            LUKS_PASS=$(ask_password "$(T "Disk encryption password")")
+        fi
     elif [[ $sel == "$advanced" ]]; then
         DISK=manual
         mountpoint -q "$TARGET" || fail "$(T "Nothing is mounted at %s. Mount root (and /boot) first." "$TARGET")"
@@ -327,50 +336,142 @@ LUXAI_ACCOUNT=""      # JSON ulozeneho uctu (bez hesla), zapise ho configure_sys
 ask_luxai() {
     title "$(T "LuxAI account")"
     info "$(T "Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account.")"
-    gum confirm --default=false --affirmative "$(T "Sign in")" --negative "$(T "Skip")" \
-        "$(T "Sign in to your LuxAI account now?")" || return 0
-    local email pw
+    local how email="" pw pw2 name
+    local o_pw o_code o_new o_skip
+    o_pw=$(T "Sign in with a password") o_code=$(T "Sign in with a code from e-mail")
+    o_new=$(T "Create a new account") o_skip=$(T "Skip")
     while :; do
-        email=$(gum input --header "$(T "E-mail")" --value "${email:-}") || return 0
-        [[ -n $email ]] || return 0
-        pw=$(gum input --password --header "$(T "Password")") || return 0
-        if luxai_login "$email" "$pw"; then
+        how=$(gum choose --header "$(T "Sign in to your LuxAI account now?")" "$o_pw" "$o_code" "$o_new" "$o_skip") \
+            || return 0
+        case $how in
+            "$o_pw")
+                email=$(gum input --header "$(T "E-mail")" --value "$email") || continue
+                [[ -n $email ]] || continue
+                pw=$(gum input --password --header "$(T "Password")") || continue
+                if luxai_login "$email" "$pw"; then
+                    info "$(T "Signed in as %s" "$email")"
+                    return 0
+                fi
+                info "$LUXAI_ERROR" ;;
+            "$o_code")
+                email=$(gum input --header "$(T "E-mail")" --value "$email") || continue
+                [[ -n $email ]] || continue
+                if ! luxai_call code_request "$email"; then
+                    info "$LUXAI_ERROR"
+                    continue
+                fi
+                luxai_code_step code_request "$email" "" "" && return 0 ;;
+            "$o_new")
+                name=$(gum input --header "$(T "Your name")" --value "${name:-${FULLNAME-}}" --char-limit 80) || continue
+                email=$(gum input --header "$(T "E-mail")" --value "$email") || continue
+                while :; do
+                    pw=$(gum input --password --header "$(T "Password (at least %d characters)" 12)") || continue 2
+                    if ((${#pw} < 12 || ${#pw} > 128)); then
+                        info "$(T "The password must have at least 12 characters.")"
+                        continue
+                    fi
+                    pw2=$(gum input --password --header "$(T "Confirm password")") || continue 2
+                    [[ $pw == "$pw2" ]] && break
+                    info "$(T "Passwords do not match.")"
+                done
+                luxai_terms || continue
+                if ! luxai_call register "$email" "$pw" "$name"; then
+                    info "$LUXAI_ERROR"
+                    continue
+                fi
+                luxai_code_step register "$email" "$pw" "$name" && return 0 ;;
+            *) return 0 ;;
+        esac
+    done
+}
+
+luxai_terms() {  # souhlas s podminkami LuxAI (lze si je precist primo v terminalu)
+    local o_read o_yes o_no c
+    o_read=$(T "Read the terms") o_yes=$(T "I agree to the LuxAI Terms") o_no=$(T "Cancel")
+    while :; do
+        c=$(gum choose --header "$(T "LuxAI Terms of Use")" "$o_yes" "$o_read" "$o_no") || return 1
+        case $c in
+            "$o_yes") return 0 ;;
+            "$o_read")
+                if luxai_call terms; then
+                    printf '%s\n' "$LUXAI_OUT" | gum pager
+                else
+                    info "$LUXAI_ERROR"
+                fi ;;
+            *) return 1 ;;
+        esac
+    done
+}
+
+luxai_code_step() {  # luxai_code_step AKCE_PRO_NOVY_KOD EMAIL HESLO JMENO -> LUXAI_ACCOUNT
+    local again=$1 email=$2 code
+    info "$(T "We sent a code to %s." "$email") $(T "The code is valid for 10 minutes. Check also the spam folder.")"
+    while :; do
+        code=$(gum input --header "$(T "Enter the 6-digit code (leave empty to send a new one)")" \
+            --placeholder 000000 --char-limit 6) || return 1
+        code=${code//[^0-9]/}
+        if [[ -z $code ]]; then
+            if luxai_call "$again" "$email" "$3" "$4"; then
+                info "$(T "We sent a new code.")"
+            else
+                info "$LUXAI_ERROR"
+            fi
+            continue
+        fi
+        if luxai_call verify "$email" "$code"; then
+            LUXAI_ACCOUNT=$LUXAI_OUT
             info "$(T "Signed in as %s" "$email")"
             return 0
         fi
         info "$LUXAI_ERROR"
-        gum confirm --affirmative "$(T "Try again")" --negative "$(T "Skip")" "$(T "Sign-in failed. Try again?")" || return 0
+        [[ $LUXAI_CODE == rate ]] && return 1
     done
 }
 
 luxai_login() {  # luxai_login EMAIL HESLO -> LUXAI_ACCOUNT, pri chybe LUXAI_ERROR (bez podshellu!)
+    luxai_call password "$1" "$2" || return 1
+    LUXAI_ACCOUNT=$LUXAI_OUT
+}
+
+# luxai_call AKCE [EMAIL] [HESLO|KOD] [JMENO] -> LUXAI_OUT; pri chybe LUXAI_CODE + LUXAI_ERROR (prelozena hlaska)
+#   password EMAIL HESLO | verify EMAIL KOD: JSON uctu (bez hesla, nic se neuklada na disk)
+#   code_request EMAIL | register EMAIL HESLO JMENO: posle kod e-mailem | terms: text podminek
+luxai_call() {
     local out
-    out=$(LUXAI_EMAIL=$1 LUXAI_PASSWORD=$2 python3 - <<'PY'
-import json, os, sys, tempfile
+    LUXAI_OUT="" LUXAI_CODE="" LUXAI_ERROR=""
+    out=$(LUXAI_ACTION=$1 LUXAI_EMAIL=${2-} LUXAI_SECRET=${3-} LUXAI_NAME=${4-} python3 - <<'PY'
+import json, os, sys
 sys.path.insert(0, "/usr/lib/luxos/python")
 import luxai_account as acc
-tmp = tempfile.mkdtemp()
+from luxos_i18n import _
+a, email, secret, name = (os.environ.get(k, "") for k in ("LUXAI_ACTION", "LUXAI_EMAIL", "LUXAI_SECRET", "LUXAI_NAME"))
 try:
-    r = acc.request("POST", "/api/auth/password/login",
-                    {"email": os.environ["LUXAI_EMAIL"], "password": os.environ["LUXAI_PASSWORD"]})
-    if not r.get("sessionToken"):
-        raise acc.AccountError("no_token")
-    path = os.path.join(tmp, "a.json")
-    print(json.dumps(acc.save(r["sessionToken"], r.get("user") or {}, path=path)))
-    os.unlink(path)
+    if a == "password":
+        print(json.dumps(acc.password_session(email, secret), ensure_ascii=False))
+    elif a == "verify":
+        print(json.dumps(acc.verify_code(email, secret), ensure_ascii=False))
+    elif a == "code_request":
+        acc.request_code(email.strip().lower())
+        print("OK")
+    elif a == "register":
+        acc.register_start(email, secret, name)
+        print("OK")
+    elif a == "terms":
+        print(acc.fetch_terms())
+    else:
+        raise acc.AccountError("usage")
 except acc.AccountError as e:
-    print("ERR " + e.code)
+    print("ERR %s\t%s" % (e.code, acc.error_text(e, _).replace("\n", " ")))
     sys.exit(1)
-finally:
-    os.rmdir(tmp)
 PY
-) || { case $out in
-        "ERR invalid_credentials") LUXAI_ERROR=$(T "Wrong e-mail or password.") ;;
-        "ERR email_unverified") LUXAI_ERROR=$(T "The e-mail address is not verified yet.") ;;
-        "ERR network") LUXAI_ERROR=$(T "LuxAI is not reachable. Check the internet connection.") ;;
-        *) LUXAI_ERROR=$(T "Sign-in failed (%s)." "${out#ERR }") ;;
-    esac; return 1; }
-    LUXAI_ACCOUNT=$out
+) || {
+        LUXAI_CODE=${out%%$'\t'*}
+        LUXAI_CODE=${LUXAI_CODE#ERR }
+        LUXAI_ERROR=${out#*$'\t'}
+        [[ $out == ERR* ]] || { LUXAI_CODE=error; LUXAI_ERROR=$(T "Sign-in failed (%s)." error); }
+        return 1
+    }
+    LUXAI_OUT=$out
 }
 
 ask_password() {
@@ -391,10 +492,11 @@ summary() {
         manual)    disk_text=$(T "mounted at %s" "$TARGET") ;;
         freespace) disk_text=$(T "%s  (free space, other systems are kept)" "$DISK") ;;
         layout)    disk_text=$(T "manual partitioning") ;;
+        partition) disk_text=$(T "partition %s  (will be ERASED, other partitions are kept)" "$ROOT_PART") ;;
         *)         disk_text=$(T "%s  (will be ERASED)" "$DISK") ;;
     esac
     local enc=$ENCRYPT
-    [[ $DISK_MODE == layout && -n $(ly_ids luks) ]] && enc=1
+    uses_layout && [[ -n $(ly_ids luks) ]] && enc=1
     boot_text=${BOOTMODE^^}
     [[ $BOOTLOADER == none ]] && boot_text+=" ($(T "no boot loader"))"
     local -a lines=(
@@ -420,6 +522,15 @@ summary() {
             lines+=("" "$(T "Will be erased or changed:")")
             for l in "${LY_DESTROY[@]}"; do lines+=("  ! $l"); progress "ERASE $l"; done
         fi
+    elif [[ $DISK_MODE == partition ]]; then
+        local l
+        while IFS= read -r l; do
+            lines+=("$l")
+            case $l in
+                "  !! "*) progress "WARN ${l#  !! }" ;;
+                "  ! "*)  progress "ERASE ${l#  ! }" ;;
+            esac
+        done < <(part_summary)
     fi
     if ((PROGRESS)); then
         printf '  %s\n' "${lines[@]}"
@@ -547,6 +658,8 @@ probe() {  # --probe DISK: jen cte, vystup KLIC=hodnota pro GUI
     printf 'BOOTMODE=%s\nPTTYPE=%s\nFREE_BYTES=%s\nESP=%s\nESP_FREE=%s\nESP_LOADER=%s\nSYSTEMS=%s\nFREESPACE_ERR=%s\n' \
         "$BOOTMODE" "$(blkid -p -o value -s PTTYPE "$disk" 2>/dev/null || true)" "$FS_BYTES" "$ESP_PART" \
         "$ESP_FREE" "$ESP_LOADER" "$ESP_SYSTEMS" "$FS_ERR"
+    # Existujici oddily pro DISK_MODE=partition (PART_BOOT_ERR, PART_ESP, PART=...)
+    part_probe "$disk"
 }
 
 freespace_error() {  # citelna zprava k FS_ERR
@@ -560,6 +673,371 @@ freespace_error() {  # citelna zprava k FS_ERR
         esp_small)    T "The EFI system partition %s has less than 250 MB free." "$ESP_PART" ;;
         *)            printf '%s' "$1" ;;
     esac
+}
+
+# --- Existujici oddil (DISK_MODE=partition) --------------------------------------
+# LuxOS se nainstaluje do jednoho vybraneho oddilu (naformatuje se jako btrfs, volitelne LUKS2).
+# Ostatni oddily zustanou beze zmeny, EFI oddil se sdili bez formatovani (jako freespace),
+# volitelne se jiny existujici oddil pripoji jako /home bez formatovani.
+# Konfigurace: ROOT_PART=/dev/sda3 [HOME_PART=/dev/sda4]; provedeni obstara layout.sh (vlastni LAYOUT).
+MIN_PART=$MIN_FREE                       # nejmensi oddil pro LuxOS (stejne jako volne misto)
+PART_HOME_FS=" ext4 btrfs xfs f2fs "     # FS, ktere lze bez formatovani pouzit jako /home
+PART_FIELDS="dev size fstype label root_err home_err content name"   # sloupce radku PART= (--probe)
+
+uses_layout() { [[ $DISK_MODE == @(layout|partition) ]]; }   # disky pripravuje layout.sh
+
+part_disks() {  # disky, na kterych lze hledat oddily (bez instalacniho media, zram, loop, jen pro cteni)
+    local iso
+    iso=$(iso_disk)
+    lsblk -dnpo NAME,TYPE,RO 2>/dev/null |
+        awk -v iso="/dev/$iso" '$2 == "disk" && $3 == 0 && $1 !~ /^\/dev\/(zram|loop)/ && $1 != iso {print $1}'
+}
+
+part_list() {  # part_list DISK -> oddily disku v poradi
+    lsblk -lnpo NAME,TYPE "$1" 2>/dev/null | awk '$2 == "part" {print $1}'
+}
+
+part_blkid() {  # part_blkid DEV -> PB_TYPE, PB_LABEL, PB_PTYPE (typ oddilu GUID / 0xNN), PB_SCHEME (cte primo z disku)
+    local line k v
+    PB_TYPE="" PB_LABEL="" PB_PTYPE="" PB_SCHEME=""
+    while IFS= read -r line; do
+        k=${line%%=*} v=${line#*=}
+        case $k in
+            TYPE) PB_TYPE=$v ;;
+            LABEL) PB_LABEL=$v ;;
+            PART_ENTRY_TYPE) PB_PTYPE=${v,,} ;;
+            PART_ENTRY_SCHEME) PB_SCHEME=$v ;;
+        esac
+    done < <(blkid -p -o export "$1" 2>/dev/null || true)
+    # bez zaznamu z blkid (napr. prazdny oddil): typ oddilu podle udev
+    [[ -n $PB_PTYPE ]] || PB_PTYPE=$(lsblk -dno PARTTYPE "$1" 2>/dev/null | tr -d ' ' | tr 'A-Z' 'a-z')
+    PB_LABEL=${PB_LABEL//[$'\t\n']/ }
+    return 0
+}
+
+part_holders() {  # neco nad oddilem (device mapper, RAID) - i bez pripojeni
+    compgen -G "/sys/class/block/${1##*/}/holders/*" >/dev/null
+}
+
+part_check() {  # part_check DEV -> PC_ROOT_ERR / PC_HOME_ERR (prazdne = lze pouzit pro / / pro /home), PC_SIZE, PC_TYPE, PC_LABEL
+    local dev=$1 err="" iso
+    PC_ROOT_ERR="" PC_HOME_ERR="" PC_SIZE=0 PC_TYPE="" PC_LABEL=""
+    if ! ly_isblk "$dev"; then
+        PC_ROOT_ERR=not_found PC_HOME_ERR=not_found
+        return 0
+    fi
+    part_blkid "$dev"
+    PC_TYPE=$PB_TYPE PC_LABEL=$PB_LABEL
+    PC_SIZE=$(blockdev --getsize64 "$dev" 2>/dev/null || echo 0)
+    iso=$(iso_disk)
+    if [[ $(lsblk -dno TYPE "$dev" 2>/dev/null | tr -d ' ') != part && -z $PB_SCHEME ]]; then err=not_part
+    elif [[ -n $iso && $(ly_parent_disk "$dev") == "/dev/$iso" ]]; then err=iso
+    elif ly_busy "$dev" || part_holders "$dev"; then err=busy
+    else
+        case $PB_PTYPE in
+            "$ESP_GUID"|0xef) err=esp ;;
+            0x5|0xf|0x85) err=extended ;;
+            # Microsoft reserved, Windows recovery, BIOS boot
+            e3c9e316-0b5c-4db8-817d-f92df00215ae|de94bba4-06d1-4d40-a16a-bfd50179d6ac|21686148-6449-6e6f-744e-656564454649|0x27) err=system ;;
+        esac
+    fi
+    if [[ -z $err ]]; then
+        case $PB_TYPE in
+            LVM2_member) err=lvm ;;
+            crypto_LUKS) err=luks ;;
+            *_raid_member|zfs_member) err=raid ;;
+        esac
+    fi
+    PC_ROOT_ERR=$err PC_HOME_ERR=$err
+    if [[ -z $err ]]; then
+        ((PC_SIZE >= MIN_PART)) || PC_ROOT_ERR=small
+        [[ $PART_HOME_FS == *" $PC_TYPE "* ]] || PC_HOME_ERR=home_fs
+    fi
+    return 0
+}
+
+part_peek_dir() {  # part_peek_dir ADRESAR -> PP_CONTENT (windows|os|data|empty_fs), PP_NAME, PP_SUBVOL (pripojeny FS)
+    local d=$1 f
+    if compgen -G "$d/[Ww][Ii][Nn][Dd][Oo][Ww][Ss]/[Ss][Yy][Ss][Tt][Ee][Mm]32" >/dev/null; then
+        PP_CONTENT=windows PP_NAME=Windows
+    else
+        # Linux: os-release primo nebo v obvyklem subvolumu btrfs
+        for f in "$d"/etc/os-release "$d"/usr/lib/os-release "$d"/@/etc/os-release "$d"/@/usr/lib/os-release \
+                 "$d"/@rootfs/etc/os-release "$d"/root/etc/os-release; do
+            [[ -f $f ]] || continue
+            PP_CONTENT=os
+            PP_NAME=$(sed -nE 's/^PRETTY_NAME=["'\'']?([^"'\'']*)["'\'']?[[:space:]]*$/\1/p' "$f" | head -1 | tr -d '\t' | cut -c1-48)
+            [[ -n $PP_NAME ]] || PP_NAME=Linux
+            break
+        done
+    fi
+    [[ -d $d/@home ]] && PP_SUBVOL=@home
+    [[ -n $PP_CONTENT ]] && return 0
+    if [[ -n $(find "$d" -mindepth 1 -maxdepth 1 ! -name lost+found ! -name '$RECYCLE.BIN' \
+               ! -name 'System Volume Information' -print -quit 2>/dev/null) ]]; then
+        PP_CONTENT=data
+    else
+        PP_CONTENT=empty_fs
+    fi
+    return 0
+}
+
+part_peek() {  # part_peek DEV FSTYPE -> PP_CONTENT, PP_NAME, PP_SUBVOL (pripoji jen pro cteni, bez prehrani zurnalu)
+    local dev=$1 t=$2 mnt tmp="" opts
+    PP_CONTENT="" PP_NAME="" PP_SUBVOL=""
+    case $t in
+        "") PP_CONTENT=empty; return 0 ;;
+        BitLocker) PP_CONTENT=bitlocker PP_NAME=Windows; return 0 ;;
+        apfs|hfsplus|hfs) PP_CONTENT=macos PP_NAME=macOS; return 0 ;;
+        swap) PP_CONTENT=swap; return 0 ;;
+        ntfs) opts="-t ntfs3 -o ro" ;;
+        ext2|ext3|ext4) opts="-t $t -o ro,noload" ;;
+        btrfs) opts="-t btrfs -o ro,rescue=nologreplay" ;;
+        xfs|f2fs) opts="-t $t -o ro,norecovery" ;;
+        vfat|exfat) opts="-t $t -o ro" ;;
+        *) PP_CONTENT=unknown; return 0 ;;
+    esac
+    mnt=$(findmnt -nro TARGET --source "$dev" 2>/dev/null | head -1 || true)
+    if [[ -z $mnt ]]; then
+        tmp=$(mktemp -d /run/luxos-peek.XXXXXX 2>/dev/null) || { PP_CONTENT=unknown; return 0; }
+        # shellcheck disable=SC2086
+        if ! timeout 30 mount $opts "$dev" "$tmp" >/dev/null 2>&1; then
+            rmdir "$tmp"
+            PP_CONTENT=unknown
+            return 0
+        fi
+        mnt=$tmp
+    fi
+    part_peek_dir "$mnt"
+    if [[ -n $tmp ]]; then
+        umount "$tmp" 2>/dev/null || umount -l "$tmp" 2>/dev/null || true
+        rmdir "$tmp" 2>/dev/null || true
+    fi
+    return 0
+}
+
+part_other_os() { [[ $1 == @(windows|os|macos|bitlocker) ]]; }   # obsah = jiny operacni system
+
+part_reason() {  # kratky duvod, proc oddil nelze pouzit
+    case $1 in
+        not_found) T "does not exist" ;;
+        not_part)  T "not a partition" ;;
+        iso)       T "installation medium" ;;
+        busy)      T "in use (mounted)" ;;
+        esp)       T "EFI system partition" ;;
+        extended)  T "extended partition" ;;
+        system)    T "system partition (reserved or recovery)" ;;
+        lvm)       T "part of LVM" ;;
+        luks)      T "encrypted (LUKS)" ;;
+        raid)      T "part of RAID or a storage pool" ;;
+        small)     T "smaller than 20 GB" ;;
+        home_fs)   T "no Linux file system for /home" ;;
+        same)      T "already chosen for LuxOS" ;;
+        *)         printf '%s' "$1" ;;
+    esac
+}
+
+part_content_text() {  # part_content_text OBSAH JMENO -> popis obsahu oddilu
+    case $1 in
+        windows|os|macos) T "Operating system: %s" "$2" ;;
+        bitlocker) T "Encrypted with BitLocker (Windows)" ;;
+        data)      T "Files (no operating system found)" ;;
+        empty_fs)  T "Empty file system" ;;
+        empty)     T "Empty (no file system)" ;;
+        swap)      T "Swap space" ;;
+        *)         T "Contents could not be checked" ;;
+    esac
+}
+
+part_desc() {  # part_desc DEV VELIKOST FS POPISEK -> "/dev/sda3  120.0GB  ntfs  "Data""
+    printf '%s  %s  %s%s' "$1" "$(human_bytes "$2")" "${3:-?}" "${4:+  \"$4\"}"
+}
+
+part_find_esp() {  # part_find_esp DISK -> EFI oddil na stejnem disku, jinak na jinem
+    local d p
+    for d in "$1" $(part_disks); do
+        for p in $(part_list "$d"); do
+            part_blkid "$p"
+            [[ $PB_PTYPE == "$ESP_GUID" || $PB_PTYPE == 0xef ]] && { echo "$p"; return 0; }
+        done
+    done
+    return 0
+}
+
+part_boot_check() {  # part_boot_check DISK -> PART_BOOT_ERR (prazdne = lze), PART_ESP, ESP_FREE, ESP_SYSTEMS
+    PART_BOOT_ERR="" PART_ESP="" ESP_FREE=0 ESP_SYSTEMS="" ESP_LOADER=0
+    [[ $BOOTLOADER == none ]] && return 0   # bez zavadece se ESP nepouziva
+    if [[ $BOOTMODE != uefi ]]; then PART_BOOT_ERR=bios; return 0; fi
+    PART_ESP=$(part_find_esp "$1")
+    if [[ -z $PART_ESP ]]; then PART_BOOT_ERR=no_esp
+    elif ! esp_info "$PART_ESP"; then PART_BOOT_ERR=esp_mount
+    elif ((ESP_FREE < MIN_ESP_FREE)); then PART_BOOT_ERR=esp_small
+    fi
+    return 0
+}
+
+part_boot_error() {  # citelna zprava k PART_BOOT_ERR
+    case $1 in
+        bios)      T "Installing into an existing partition needs a computer started in UEFI mode." ;;
+        no_esp)    T "No EFI system partition found. Installing into an existing partition shares it with the other systems; use Erase disk or Manual partitioning instead." ;;
+        esp_mount) T "The EFI system partition %s could not be read." "$PART_ESP" ;;
+        esp_small) T "The EFI system partition %s has less than 250 MB free." "$PART_ESP" ;;
+        *)         printf '%s' "$1" ;;
+    esac
+}
+
+part_probe() {  # part_probe DISK: radky pro GUI (PART_BOOT_ERR, PART_ESP, PART=sloupce PART_FIELDS oddelene TAB)
+    local p
+    part_boot_check "$1"
+    printf 'PART_BOOT_ERR=%s\nPART_ESP=%s\n' "$PART_BOOT_ERR" "$PART_ESP"
+    for p in $(part_list "$1"); do
+        part_check "$p"
+        PP_CONTENT="" PP_NAME=""
+        # obsah jen u oddilu, ktere lze vybrat (pripojeni jen pro cteni)
+        [[ -z $PC_ROOT_ERR || -z $PC_HOME_ERR ]] && part_peek "$p" "$PC_TYPE"
+        printf 'PART=%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$p" "$PC_SIZE" "$PC_TYPE" "$PC_LABEL" \
+            "$PC_ROOT_ERR" "$PC_HOME_ERR" "$PP_CONTENT" "$PP_NAME"
+    done
+}
+
+part_layout() {  # ROOT_PART, ENCRYPT, PART_ESP, HOME_PART, HOME_FS, HOME_SUBVOL -> LAYOUT (format layout.sh)
+    local on=root
+    echo "use id=root dev=$ROOT_PART"
+    if ((ENCRYPT)); then
+        echo "luks id=croot on=root name=cryptroot"
+        on=croot
+    fi
+    echo "fs on=$on mount=/ type=btrfs"
+    if [[ -n $PART_ESP ]]; then
+        echo "use id=esp dev=$PART_ESP"
+        echo "fs on=esp mount=/efi type=vfat format=0"
+    fi
+    if [[ -n ${HOME_PART-} ]]; then
+        echo "use id=home dev=$HOME_PART"
+        echo "fs on=home mount=/home type=$HOME_FS format=0${HOME_SUBVOL:+ subvol=$HOME_SUBVOL}"
+    fi
+}
+
+part_setup() {  # DISK_MODE=partition: kontrola vyberu, LAYOUT a kontrola layout.sh (nic nemeni)
+    [[ -n ${ROOT_PART-} ]] || fail "$(T "DISK_MODE=partition needs ROOT_PART")"
+    part_check "$ROOT_PART"
+    [[ -z $PC_ROOT_ERR ]] || fail "$(T "%s cannot be used for LuxOS: %s" "$ROOT_PART" "$(part_reason "$PC_ROOT_ERR")")"
+    PART_SIZE=$PC_SIZE PART_FSTYPE=$PC_TYPE PART_LABEL=$PC_LABEL
+    part_peek "$ROOT_PART" "$PC_TYPE"
+    PART_CONTENT=$PP_CONTENT PART_OSNAME=$PP_NAME
+    DISK=$(ly_parent_disk "$ROOT_PART")
+    HOME_PART=${HOME_PART-} HOME_FS="" HOME_SUBVOL=""
+    if [[ -n $HOME_PART ]]; then
+        [[ $HOME_PART != "$ROOT_PART" ]] ||
+            fail "$(T "%s cannot be used as /home: %s" "$HOME_PART" "$(part_reason same)")"
+        part_check "$HOME_PART"
+        [[ -z $PC_HOME_ERR ]] || fail "$(T "%s cannot be used as /home: %s" "$HOME_PART" "$(part_reason "$PC_HOME_ERR")")"
+        HOME_FS=$PC_TYPE
+        # btrfs jineho systemu: domovske adresare v subvolumu @home
+        if [[ $HOME_FS == btrfs ]]; then
+            part_peek "$HOME_PART" btrfs
+            HOME_SUBVOL=$PP_SUBVOL
+        fi
+    fi
+    part_boot_check "$DISK"
+    [[ -z $PART_BOOT_ERR ]] || fail "$(part_boot_error "$PART_BOOT_ERR")"
+    # Sifrovani popisuje LAYOUT (luks), stejne jako v rezimu layout
+    LAYOUT=$(part_layout)
+    PART_ENCRYPT=$ENCRYPT
+    ENCRYPT=0
+    layout_parse "$LAYOUT"
+    layout_validate
+    ((${#LY_ERR[@]})) || layout_check_devices
+    report_layout
+}
+
+part_set_type() {  # typ vybraneho oddilu -> Linux (Windows by jinak nabizel "naformatovat" neznamy datovy oddil)
+    local disk n code before after
+    disk=$(ly_parent_disk "$ROOT_PART")
+    n=$(ly_partnum "$ROOT_PART")
+    part_blkid "$ROOT_PART"
+    case $PB_SCHEME in
+        gpt)
+            # Poskozenou GPT by sgdisk pri zapisu "opravil" - typ pak radeji nemenit
+            if [[ $(sgdisk -v "$disk" 2>/dev/null) != *"No problems found"* ]]; then
+                info "$(T "Could not set the partition type of %s; LuxOS works anyway." "$ROOT_PART")"
+                return 0
+            fi
+            code=8304
+            ((${PART_ENCRYPT:-0})) && code=8309
+            before=$(sgdisk -p "$disk" | awk -v n="$n" '$1 ~ /^[0-9]+$/ && NF >= 6 && $1 != n')
+            run sgdisk -t "$n:$code" "$disk" ||
+                { info "$(T "Could not set the partition type of %s; LuxOS works anyway." "$ROOT_PART")"; return 0; }
+            # Kontrola: ostatni oddily musi zustat beze zmeny
+            after=$(sgdisk -p "$disk" | awk -v n="$n" '$1 ~ /^[0-9]+$/ && NF >= 6 && $1 != n')
+            [[ $before == "$after" ]] || fail "$(T "Unexpected change of existing partitions on %s - stopping." "$disk")"
+            run partx -u --nr "$n" "$disk" || true ;;
+        dos)
+            run sfdisk --part-type "$disk" "$n" 83 ||
+                info "$(T "Could not set the partition type of %s; LuxOS works anyway." "$ROOT_PART")" ;;
+    esac
+    return 0
+}
+
+part_summary() {  # radky souhrnu: co se smaze ("  ! ...") a varovani ("  !! ...")
+    local l what
+    echo ""
+    T "Partitions:"; echo
+    while IFS= read -r l; do echo "  $l"; done < <(layout_text)
+    echo ""
+    T "Will be erased or changed:"; echo
+    what=$(part_content_text "$PART_CONTENT" "$PART_OSNAME")
+    l=$(T "ERASE partition %s: %s" "$(part_desc "$ROOT_PART" "$PART_SIZE" "$PART_FSTYPE" "$PART_LABEL")" "$what")
+    echo "  ! $l"
+    l=$(T "All other partitions are kept unchanged.")
+    echo "  $l"
+    if part_other_os "$PART_CONTENT"; then
+        l=$(T "WARNING: %s contains %s. It will be deleted and will no longer start." "$ROOT_PART" "$PART_OSNAME")
+        echo "  !! $l"
+    elif [[ $PART_CONTENT == unknown ]]; then
+        l=$(T "WARNING: the contents of %s could not be checked. Make sure it holds nothing you need." "$ROOT_PART")
+        echo "  !! $l"
+    fi
+    return 0
+}
+
+ask_partition() {  # TUI: oddil pro LuxOS (vsechny disky) a volitelne zachovany /home
+    local d p desc sel items=() homes=() unavail=() keep_none
+    info "$(T "Looking for partitions…")"
+    for d in $(part_disks); do
+        for p in $(part_list "$d"); do
+            part_check "$p"
+            desc=$(part_desc "$p" "$PC_SIZE" "$PC_TYPE" "$PC_LABEL")
+            if [[ -n $PC_ROOT_ERR && -n $PC_HOME_ERR ]]; then
+                unavail+=("$desc  ($(part_reason "$PC_ROOT_ERR"))")
+                continue
+            fi
+            part_peek "$p" "$PC_TYPE"
+            desc+="  - $(part_content_text "$PP_CONTENT" "$PP_NAME")"
+            if [[ -z $PC_ROOT_ERR ]]; then items+=("$desc"); else unavail+=("$desc  ($(part_reason "$PC_ROOT_ERR"))"); fi
+            [[ -z $PC_HOME_ERR ]] && homes+=("$desc")
+        done
+    done
+    if ((${#unavail[@]})); then
+        info "$(T "Partitions that cannot be used:")"
+        for d in "${unavail[@]}"; do info "  $d"; done
+    fi
+    ((${#items[@]})) || fail "$(T "No partition can be used for LuxOS (at least 20 GB, not in use, not a system partition).")"
+    sel=$(gum choose --header "$(T "Which partition should LuxOS replace? Everything on it will be erased.")" "${items[@]}") || exit 1
+    ROOT_PART=${sel%% *}
+    DISK=$(ly_parent_disk "$ROOT_PART")
+    part_boot_check "$DISK"
+    [[ -z $PART_BOOT_ERR ]] || fail "$(part_boot_error "$PART_BOOT_ERR")"
+    info "$(T "All data on %s will be erased. Other partitions are kept." "$ROOT_PART")"
+    HOME_PART=""
+    local -a hopts=()
+    for d in "${homes[@]}"; do [[ ${d%% *} == "$ROOT_PART" ]] || hopts+=("$d"); done
+    if ((${#hopts[@]})); then
+        keep_none=$(T "No - keep /home on the LuxOS partition")
+        sel=$(gum choose --header "$(T "Use an existing partition as /home (its files are kept)?")" "$keep_none" "${hopts[@]}") || exit 1
+        [[ $sel == "$keep_none" ]] || HOME_PART=${sel%% *}
+    fi
+    return 0
 }
 
 # Sifrovani (volitelne) a btrfs se subvolumy na korenovem oddilu, pripojeni do $TARGET
@@ -857,7 +1335,7 @@ install_packages() {
     if [[ $BOOTLOADER != none ]]; then
         if [[ $BOOTMODE == uefi ]]; then pkgs+=(efibootmgr); else pkgs+=(grub); fi
     fi
-    [[ $DISK_MODE == layout ]] && mapfile -t -O "${#pkgs[@]}" pkgs < <(layout_packages)
+    uses_layout && mapfile -t -O "${#pkgs[@]}" pkgs < <(layout_packages)
     mapfile -t hw < <(luxos-hwdetect --packages --kernel linux-zen)
     luxos-hwdetect --report | sed 's/^/  /'
     # Legacy ovladace NVIDIA (nvidia-580xx-*, nvidia-470xx-*: [luxos], ~0,5 GB) v ISO nejsou;
@@ -933,14 +1411,14 @@ configure_system() {
     swapoff /dev/zram* 2>/dev/null || true
     genfstab -U "$TARGET" | sed 's/,subvolid=[0-9]*//' | grep -v zram >"$TARGET/root/fstab.new"
     # Vedle jinych systemu: aktivni swap patri jim (LuxOS ma zram)
-    [[ $DISK_MODE == @(freespace|layout) ]] && sed -i '/[[:space:]]swap[[:space:]]/d' "$TARGET/root/fstab.new"
+    [[ $DISK_MODE == @(freespace|layout|partition) ]] && sed -i '/[[:space:]]swap[[:space:]]/d' "$TARGET/root/fstab.new"
     # Rucni rozdeleni: swap z LAYOUT (pri instalaci se nezapina, genfstab ho nevidi)
-    [[ $DISK_MODE == layout ]] && layout_fstab_swap >>"$TARGET/root/fstab.new"
+    uses_layout && layout_fstab_swap >>"$TARGET/root/fstab.new"
     cat "$TARGET/root/fstab.new" >>"$TARGET/etc/fstab"
     rm -f "$TARGET/root/fstab.new"
     # crypttab (+ crypttab.initramfs a klice pro dalsi svazky) pred mkinitcpio v setup-chroot
     local enc_hook=$ENCRYPT lvm_hook=0
-    if [[ $DISK_MODE == layout ]]; then
+    if uses_layout; then
         layout_write_crypt
         local hooks
         hooks=$(layout_hooks)
@@ -963,11 +1441,11 @@ configure_system() {
     local rootspec="root=UUID=$root_uuid rootflags=subvol=@"
     ((ENCRYPT)) && rootspec="rd.luks.name=$LUKS_UUID=cryptroot rd.luks.options=discard root=/dev/mapper/cryptroot rootflags=subvol=@"
     [[ $DISK_MODE == manual ]] && rootspec="root=UUID=$root_uuid$(findmnt -no OPTIONS "$TARGET" | grep -o 'subvol=[^,]*' | sed 's/^/ rootflags=/' | head -1)"
-    [[ $DISK_MODE == layout ]] && rootspec=$(layout_cmdline)
+    uses_layout && rootspec=$(layout_cmdline)
     # EFI oddil: /boot (jadro primo na ESP) nebo /efi (sdileny, jadro se kopiruje do EFI/LuxOS/<id>)
     local esp_mount=/boot esp_keep=0 chroot_disk=$DISK
     [[ $DISK_MODE == freespace ]] && esp_mount=/efi esp_keep=1
-    if [[ $DISK_MODE == layout ]]; then
+    if uses_layout; then
         esp_mount=${ESP_MOUNT:-/boot} esp_keep=${ESP_KEEP:-0}
         chroot_disk=${GRUB_DISK:-$DISK}
     fi
@@ -1018,7 +1496,7 @@ ENV
                 --loader '\EFI\systemd\systemd-bootx64.efi' --unicode || info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
         elif [[ $DISK_MODE == freespace ]]; then
             shared_esp_entry
-        elif [[ $DISK_MODE == layout && -n ${ESP_PART-} ]]; then
+        elif uses_layout && [[ -n ${ESP_PART-} ]]; then
             if ((ESP_KEEP)); then
                 DISK=$(ly_parent_disk "$ESP_PART") shared_esp_entry
             else
@@ -1236,7 +1714,7 @@ finish() {
         sleep 1
     done
     ((ENCRYPT)) && cryptsetup close cryptroot 2>/dev/null || true
-    [[ $DISK_MODE == layout ]] && layout_teardown
+    uses_layout && layout_teardown
     if ((PROGRESS)); then
         info "$(T "LuxOS is installed")"
         progress "DONE"
@@ -1336,6 +1814,8 @@ main() {
         : "${BOOTLOADER:=auto}" "${LUXAI_ACCOUNT:=}" "${TEMPLATES:=}"
         [[ ${DISK_MODE-} == manual && -z ${DISK-} ]] && DISK=manual   # pripojeno v /mnt, disk neni potreba
         [[ ${DISK_MODE-} == layout && -z ${DISK-} ]] && DISK=layout   # disky jsou v LAYOUT
+        # existujici oddil: disk podle oddilu
+        [[ ${DISK_MODE-} == partition && -z ${DISK-} && -n ${ROOT_PART-} ]] && DISK=$(ly_parent_disk "$ROOT_PART")
         [[ -n ${DISK-}&& -n ${USERNAME-} && -n ${PASSWORD-} ]] || fail "$(T "Config needs DISK, USERNAME and PASSWORD")"
         valid_user "$USERNAME" || fail "$(T "Invalid USERNAME")"
         valid_host "$HOSTNAME_SEL" || fail "$(T "Invalid HOSTNAME_SEL")"
@@ -1353,21 +1833,23 @@ main() {
     else
         interactive
     fi
-    # Rezim disku: erase (cely disk), freespace (vedle jinych systemu), manual (pripojeno v $TARGET)
+    # Rezim disku: erase (cely disk), freespace (vedle jinych systemu), partition (existujici oddil),
+    # layout (rucni rozdeleni), manual (pripojeno v $TARGET)
     [[ $DISK == manual ]] && DISK_MODE=manual
     : "${DISK_MODE:=erase}"
     case $DISK_MODE in
         erase|freespace) ;;
         manual) DISK=manual ;;
         layout) ENCRYPT=0; load_layout ;;   # sifrovani popisuje LAYOUT (luks)
-        *) fail "$(T "Invalid DISK_MODE (use erase, freespace, layout or manual)")" ;;
+        partition) part_setup ;;            # sestavi LAYOUT (ENCRYPT -> luks)
+        *) fail "$(T "Invalid DISK_MODE (use erase, freespace, partition, layout or manual)")" ;;
     esac
     [[ $BOOTLOADER == auto || $BOOTLOADER == none ]] || fail "$(T "Invalid BOOTLOADER (use auto or none)")"
     : "${CARE_MODE:=carefree}"
     [[ $CARE_MODE == carefree || $CARE_MODE == classic ]] || fail "$(T "Invalid CARE_MODE (use carefree or classic)")"
     [[ -n $CONFIG ]] && parse_templates
     if [[ $DISK_MODE == manual ]]; then STEP_TOTAL=4
-    elif [[ $DISK_MODE == layout ]]; then STEP_TOTAL=$(($(layout_steps) + 4))
+    elif uses_layout; then STEP_TOTAL=$(($(layout_steps) + 4))
     else STEP_TOTAL=$((6 + ENCRYPT)); fi
     ((${#TEMPLATE_IDS[@]})) && STEP_TOTAL=$((STEP_TOTAL + 1))
     summary
@@ -1375,6 +1857,12 @@ main() {
         erase) prepare_disk ;;
         freespace) prepare_freespace ;;
         layout) layout_apply ;;
+        partition)
+            # Mezi souhrnem a instalaci se mohl oddil zacit pouzivat - znovu overit
+            part_check "$ROOT_PART"
+            [[ -z $PC_ROOT_ERR ]] || fail "$(T "%s cannot be used for LuxOS: %s" "$ROOT_PART" "$(part_reason "$PC_ROOT_ERR")")"
+            part_set_type
+            layout_apply ;;
         manual)
             ROOTDEV=$(findmnt -no SOURCE "$TARGET" | sed 's/\[.*\]//')
             BOOTPART=$(findmnt -no SOURCE "$TARGET/boot" 2>/dev/null || true)

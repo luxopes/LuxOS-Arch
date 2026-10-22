@@ -1,7 +1,8 @@
 # LuxOS installer - nahrada diskovych prikazu pro testy layout.sh bez roota (source z test-layout.sh)
 #
 # Stav je v $MOCK: disks/<jmeno>.size (sektory 512 B), disks/<jmeno>.tbl ("cislo zacatek konec kod jmeno"),
-# fs/<zarizeni> (typ FS), luks/<zarizeni>, open/<mapper> (podklad), lv/<vg>-<lv>, vg/<vg> (PV).
+# fs/<zarizeni> (typ FS), luks/<zarizeni>, open/<mapper> (podklad), lv/<vg>-<lv>, vg/<vg> (PV),
+# label/<zarizeni> (popisek FS), busy/<zarizeni> (pripojeno), mnt/<zarizeni> (adresar = pripojeny obsah pro findmnt).
 # Kazdy volany prikaz se zapise do $MOCK/cmds (bez hesel - ta jdou na stdin).
 
 mock_init() {  # mock_init "vda:64G" "sda:500G" ...
@@ -44,6 +45,7 @@ sgdisk() {
         a=${args[i]}
         case $a in
             -o|--zap-all) : >"$tbl" ;;
+            -v) echo "No problems found. 0 free sectors" ;;
             -p)
                 echo "Disk $disk: $sz sectors"
                 echo "Sector size (logical/physical): 512/512 bytes"
@@ -99,6 +101,9 @@ lsblk() {
     local opts=$* dev=${!#} name
     name=${dev#/dev/}
     case $opts in
+        *"-dno TYPE"*)
+            if [[ -e $MOCK/disks/$name.tbl ]]; then echo disk; else ly_isblk "$dev" && echo part; fi ;;
+        *PARTTYPE*) mock_ptype "$dev" ;;
         *NAME,PARTN*)
             [[ -e $MOCK/disks/$name.tbl ]] || return 0
             awk '{print $1}' "$MOCK/disks/$name.tbl" | while read -r n; do echo "$(mock_partpath "$name" "$n") $n"; done ;;
@@ -131,8 +136,46 @@ ly_isblk() {  # existuje v emulaci?
     [[ -e $MOCK/lv/${k//\//-} ]]   # /dev/vg/lv
 }
 
+mock_ptype() {  # typ oddilu (GUID nebo 0xNN) podle kodu v tabulce
+    local dn n code
+    read -r dn n <<<"$(mock_disk_of "$1")"
+    [[ -n $dn && -e $MOCK/disks/$dn.tbl ]] || return 0
+    code=$(awk -v n="$n" '$1 == n {print tolower($4)}' "$MOCK/disks/$dn.tbl")
+    case $code in
+        0x*)  echo "$code" ;;
+        ef00) echo c12a7328-f81f-11d2-ba4b-00a0c93ec93b ;;
+        ef02) echo 21686148-6449-6e6f-744e-656564454649 ;;
+        0700) echo ebd0a0a2-b9e5-4433-87c0-68b6b72699c7 ;;
+        0c01) echo e3c9e316-0b5c-4db8-817d-f92df00215ae ;;
+        2700) echo de94bba4-06d1-4d40-a16a-bfd50179d6ac ;;
+        8200) echo 0657fd6d-a4ab-43c4-84e5-0933c84b4f4f ;;
+        8304) echo 4f68bce3-e8cd-4db1-96e7-fbcaf984b709 ;;
+        8309) echo ca7d7ccb-63ed-4c53-861c-1742536059cc ;;
+        8e00) echo e6d6d379-f507-44c2-a23c-238f2a3df928 ;;
+        fd00) echo a19d880f-05fc-4d3b-a006-743f0f84911e ;;
+        "")   ;;
+        *)    echo 0fc63daf-8483-4772-8e79-3d69d8477de4 ;;
+    esac
+}
+
+findmnt() {  # findmnt -nro TARGET --source DEV: adresar z $MOCK/mnt/<zarizeni> (obsah "pripojeneho" FS)
+    local k; k=$(mk_key "${!#}")
+    [[ -d $MOCK/mnt/$k ]] && echo "$MOCK/mnt/$k"
+    return 0
+}
+
 blkid() {
     local dev=${!#} what="" k
+    if [[ " $* " == *" -o export "* ]]; then   # blkid -p -o export DEV
+        k=$(mk_key "$dev")
+        ly_isblk "$dev" || return 2
+        if [[ -e $MOCK/luks/$k ]]; then echo TYPE=crypto_LUKS
+        elif [[ -e $MOCK/fs/$k ]]; then echo "TYPE=$(<"$MOCK/fs/$k")"; fi
+        [[ -e $MOCK/label/$k ]] && echo "LABEL=$(<"$MOCK/label/$k")"
+        local pt; pt=$(mock_ptype "$dev")
+        [[ -n $pt ]] && { echo PART_ENTRY_SCHEME=gpt; echo "PART_ENTRY_TYPE=$pt"; }
+        return 0
+    fi
     local -a a=("$@")
     for ((i = 0; i < ${#a[@]}; i++)); do [[ ${a[i]} == -s ]] && what=${a[i + 1]}; done
     k=$(mk_key "$dev")

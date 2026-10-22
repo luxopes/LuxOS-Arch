@@ -116,6 +116,14 @@ class Shim(unittest.TestCase):
         self.assertEqual(out.returncode, 0)
         self.assertEqual(self.real_calls(), [["-Qq"]])
 
+    def test_hint_mode_never_runs_pacman(self):
+        # lux -Syu: napoveda i bez terminalu a i kdyz by jinak pacman prosel (LUX_ALLOW_PACMAN)
+        for env in ({"LUX_PACMAN_HINT": "1"}, {"LUX_PACMAN_HINT": "1", "LUX_ALLOW_PACMAN": "1"}):
+            rc, _o, err = self.run_shim(["-Syu"], tty_in=False, tty_out=False, env=env)
+            self.assertEqual(rc, 1)
+            self.assertEqual(self.real_calls(), [])
+            self.assertIn("lux update", err)
+
     # ---- clovek v terminalu: prikaz lux -------------------------------------------------------
     def test_interactive_is_redirected_to_lux(self):
         rc, _o, err = self.run_shim(["-Syu"])
@@ -326,7 +334,7 @@ class Shim(unittest.TestCase):
         """Skripty volaji pacman casto: bez terminalu zadne hledani predku ani preklady."""
         with open(SHIM) as f:
             src = f.read()
-        fast = src.index("if [[ ${LUX_ALLOW_PACMAN-} == 1 || ! -t 0 || ! -t 1")
+        fast = src.index("[[ ${LUX_ALLOW_PACMAN-} == 1 || ! -t 0 || ! -t 1")
         self.assertLess(fast, src.index("i18n.sh ]] && ."))
 
 

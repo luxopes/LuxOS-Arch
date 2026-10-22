@@ -1930,3 +1930,101 @@ Could not open the Scanner app	Det gick inte att öppna appen Skanner
 Open the Scanner app to scan a document.	Öppna appen Skanner för att skanna ett dokument.
 Open windows	Öppna fönster
 Keyboard, network, sound, battery	Tangentbord, nätverk, ljud, batteri
+# LuxAI: prihlaseni kodem a zalozeni uctu (instalator, Ucet LuxAI)
+An account with this e-mail already exists. Sign in instead.	Det finns redan ett konto med den här e-postadressen. Logga in i stället.
+At least %d characters (%d more).	Minst %d tecken (%d till).
+At least %d characters.	Minst %d tecken.
+Create Account	Skapa konto
+Create a new account	Skapa ett nytt konto
+Creating an account from LuxOS is not available yet - create it at %s	Det går ännu inte att skapa ett konto från LuxOS - skapa det på %s
+E-mail Code	Kod via e-post
+Easy to guess - use different characters.	Lätt att gissa - använd olika tecken.
+Enter a valid e-mail address.	Ange en giltig e-postadress.
+Enter the 6-digit code (leave empty to send a new one)	Ange den 6-siffriga koden (tomt = skicka en ny)
+Enter your name.	Ange ditt namn.
+Forgot password? Sign in with a code	Glömt lösenordet? Logga in med en kod
+Good password. Longer is even better.	Bra lösenord. Längre är ännu bättre.
+Hide password	Dölj lösenord
+I Agree	Jag godkänner
+I agree to the LuxAI Terms	Jag godkänner LuxAI:s villkor
+Loading the terms…	Läser in villkoren…
+LuxAI Terms of Use	LuxAI:s användarvillkor
+LuxAI is having problems right now. Try again later.	LuxAI har problem just nu. Försök igen senare.
+New Account	Nytt konto
+No internet connection. You can skip this step and sign in later in Settings.	Ingen internetanslutning. Du kan hoppa över det här steget och logga in senare i Inställningar.
+Open %s	Öppna %s
+Optional: AI in LuxAI, Lux Code and LSL IDE uses your LuxAI account. Sign in or create an account now and everything is ready after the first start.	Valfritt: AI i LuxAI, Lux Code och LSL IDE använder ditt LuxAI-konto. Logga in eller skapa ett konto nu så är allt klart efter första starten.
+Password (at least %d characters)	Lösenord (minst %d tecken)
+Read the terms	Läs villkoren
+Resend code	Skicka koden igen
+Resend code in %d s	Skicka igen om %d s
+Send Code	Skicka kod
+Show password	Visa lösenord
+Sign in with a code from e-mail	Logga in med en kod via e-post
+Sign in with a password	Logga in med lösenord
+Strong password.	Starkt lösenord.
+The account could not be saved (%s).	Kontot kunde inte sparas (%s).
+The code is valid for 10 minutes. Check also the spam folder.	Koden gäller i 10 minuter. Titta även i skräppostmappen.
+The e-mail check is temporarily unavailable. Try again later.	Kontrollen av e-postadressen är tillfälligt otillgänglig. Försök igen senare.
+The password can have at most %d characters.	Lösenordet får ha högst %d tecken.
+The password must have at least 12 characters.	Lösenordet måste ha minst 12 tecken.
+The server did not finish the sign-in. Try again.	Servern slutförde inte inloggningen. Försök igen.
+This e-mail domain cannot be used for a LuxAI account.	Den här e-postdomänen kan inte användas för ett LuxAI-konto.
+This e-mail domain cannot be verified yet. Please use another address.	Den här e-postdomänen kan inte verifieras ännu. Använd en annan adress.
+Use a different e-mail	Använd en annan e-postadress
+We sent a code to %s.	Vi har skickat en kod till %s.
+We sent a new code.	Vi har skickat en ny kod.
+We will e-mail you a 6-digit code - no password needed.	Vi skickar en 6-siffrig kod via e-post - inget lösenord behövs.
+You can also read them at %s	Du kan också läsa dem på %s
+You can skip this step and sign in to LuxAI later in Settings.	Du kan hoppa över det här steget och logga in på LuxAI senare i Inställningar.
+You need to agree to the LuxAI Terms.	Du måste godkänna LuxAI:s villkor.
+Your name	Ditt namn
+DISK_MODE=partition needs ROOT_PART	DISK_MODE=partition kräver ROOT_PART
+%s cannot be used for LuxOS: %s	%s kan inte användas för LuxOS: %s
+%s cannot be used as /home: %s	%s kan inte användas som /home: %s
+does not exist	finns inte
+not a partition	inte en partition
+installation medium	installationsmedium
+in use (mounted)	används (monterad)
+extended partition	utökad partition
+system partition (reserved or recovery)	systempartition (reserverad eller återställning)
+part of LVM	del av LVM
+encrypted (LUKS)	krypterad (LUKS)
+part of RAID or a storage pool	del av RAID eller en lagringspool
+smaller than 20 GB	mindre än 20 GB
+no Linux file system for /home	inget Linux-filsystem för /home
+already chosen for LuxOS	redan vald för LuxOS
+Operating system: %s	Operativsystem: %s
+Encrypted with BitLocker (Windows)	Krypterad med BitLocker (Windows)
+Files (no operating system found)	Filer (inget operativsystem hittades)
+Empty file system	Tomt filsystem
+Empty (no file system)	Tom (inget filsystem)
+Swap space	Växlingsutrymme (swap)
+Contents could not be checked	Innehållet kunde inte kontrolleras
+Installing into an existing partition needs a computer started in UEFI mode.	Installation i en befintlig partition kräver en dator som startats i UEFI-läge.
+No EFI system partition found. Installing into an existing partition shares it with the other systems; use Erase disk or Manual partitioning instead.	Ingen EFI-systempartition hittades. Installation i en befintlig partition delar den med de andra systemen; använd Radera disken eller Manuell partitionering i stället.
+ERASE partition %s: %s	RADERA partition %s: %s
+All other partitions are kept unchanged.	Alla andra partitioner lämnas oförändrade.
+WARNING: %s contains %s. It will be deleted and will no longer start.	VARNING: %s innehåller %s. Systemet raderas och startar inte längre.
+WARNING: the contents of %s could not be checked. Make sure it holds nothing you need.	VARNING: innehållet i %s kunde inte kontrolleras. Se till att den inte innehåller något du behöver.
+Looking for partitions…	Söker efter partitioner…
+Partitions that cannot be used:	Partitioner som inte kan användas:
+No partition can be used for LuxOS (at least 20 GB, not in use, not a system partition).	Ingen partition kan användas för LuxOS (minst 20 GB, används inte, inte en systempartition).
+Which partition should LuxOS replace? Everything on it will be erased.	Vilken partition ska LuxOS ersätta? Allt på den raderas.
+All data on %s will be erased. Other partitions are kept.	All data på %s raderas. Andra partitioner behålls.
+No - keep /home on the LuxOS partition	Nej - behåll /home på LuxOS-partitionen
+Use an existing partition as /home (its files are kept)?	Vill du använda en befintlig partition som /home (dess filer behålls)?
+partition %s  (will be ERASED, other partitions are kept)	partition %s  (RADERAS, andra partitioner behålls)
+Install into an existing partition (other partitions are kept)	Installera i en befintlig partition (andra partitioner behålls)
+Encrypt LuxOS? (you will enter a password at every start)	Vill du kryptera LuxOS? (du anger ett lösenord vid varje start)
+Invalid DISK_MODE (use erase, freespace, partition, layout or manual)	Ogiltigt DISK_MODE (använd erase, freespace, partition, layout eller manual)
+Replace an existing partition	Ersätt en befintlig partition
+LuxOS is installed into one partition you choose; everything on it is erased. Other partitions and systems are kept.	LuxOS installeras i en partition som du väljer; allt på den raderas. Andra partitioner och system behålls.
+Choose a partition for LuxOS.	Välj en partition för LuxOS.
+Partition for LuxOS	Partition för LuxOS
+Not available: %s	Inte tillgänglig: %s
+No partition on this disk can be used for LuxOS.	Ingen partition på den här disken kan användas för LuxOS.
+The EFI system partition %s is shared with the other systems and is not formatted.	EFI-systempartitionen %s delas med de andra systemen och formateras inte.
+Replace partition %s with LuxOS; other partitions are kept	Ersätt partition %s med LuxOS; andra partitioner behålls
+Could not set the partition type of %s; LuxOS works anyway.	Partitionstypen för %s kunde inte ställas in; LuxOS fungerar ändå.
+Downloading the list of available software first	Hämtar först listan över tillgänglig programvara
