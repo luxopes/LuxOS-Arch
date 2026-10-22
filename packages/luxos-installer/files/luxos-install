@@ -144,12 +144,126 @@ pick_from() {  # pick_from "Nadpis" polozka... -> vybrany radek "label|..."
     echo "Other…"   # pevny klic (nezavisly na jazyku pruvodce)
 }
 
-# Prevod rozlozeni X11 na konzolove podle tabulky systemd
+# Prevod rozlozeni X11 na konzolove podle tabulky systemd (jako systemd-localed): cely seznam
+# ("cz,us" -> cz-us-qwertz), pak prvni rozlozeni s variantou, pak prvni rozlozeni s cimkoli
 x11_to_console() {
-    local layout=$1 variant=${2:--} map=/usr/share/systemd/kbd-model-map km
-    km=$(awk -v l="$layout" -v v="$variant" '$1 !~ /^#/ && $2 == l && $4 == v {print $1; exit}' "$map" 2>/dev/null)
-    [[ -z $km ]] && km=$(awk -v l="$layout" '$1 !~ /^#/ && $2 == l {print $1; exit}' "$map" 2>/dev/null)
+    local layout=$1 variant=${2-} map=${KBD_MODEL_MAP:-/usr/share/systemd/kbd-model-map} km
+    [[ -z ${variant//,/} ]] && variant=-
+    km=$(awk -v l="$layout" -v v="$variant" -v l1="${layout%%,*}" -v v1="${2%%,*}" '
+        $1 ~ /^#/ || NF < 5 { next }
+        { split($2, a, ","); split($4, b, ","); fv = (b[1] == "-") ? "" : b[1] }
+        $2 == l && $4 == v { print $1; found = 1; exit }
+        !e && a[1] == l1 && fv == v1 { e = $1 }
+        !f && a[1] == l1 { f = $1 }
+        END { if (!found) print (e != "" ? e : f) }' "$map" 2>/dev/null)
     echo "${km:-us}"
+}
+
+# Rozlozeni klavesnice: XKB_LAYOUT a XKB_VARIANT jsou seznamy oddelene carkou (prvni = vychozi,
+# nejvyse 4 - vic XKB neumi), XKB_OPTIONS prepinani (napr. grp:alt_shift_toggle; prazdne = jen
+# klikem na vlajku v horni liste). Bez XKB_OPTIONS (starsi konfigurace) se k jinemu rozlozeni nez
+# US pridava US s prepinanim Alt+Shift jako driv. Vysledek se zapise zpet do promennych.
+XKB_SWITCH_DEFAULT=grp:alt_shift_toggle
+xkb_normalize() {
+    local -a lays vars
+    local -A seen=()
+    local i l v out_l=() out_v=()
+    IFS=, read -ra lays <<<"${XKB_LAYOUT-}"
+    IFS=, read -ra vars <<<"${XKB_VARIANT-}"
+    for i in "${!lays[@]}"; do
+        l=${lays[i]// /} v=${vars[i]-}
+        v=${v// /}
+        [[ -z $l ]] && continue
+        [[ $l =~ ^[a-z][a-z0-9_-]{0,31}$ && $v =~ ^[A-Za-z0-9_-]{0,48}$ ]] ||
+            fail "$(T "Invalid keyboard layout: %s" "$l${v:+ ($v)}")"
+        [[ -n ${seen["$l:$v"]-} ]] && continue
+        seen["$l:$v"]=1
+        out_l+=("$l") out_v+=("$v")
+    done
+    ((${#out_l[@]})) || out_l=(us) out_v=("")
+    if [[ -z ${XKB_OPTIONS+x} ]]; then
+        if ((${#out_l[@]} == 1)) && [[ ${out_l[0]} != us ]]; then out_l+=(us) out_v+=(""); fi
+        XKB_OPTIONS=""
+        ((${#out_l[@]} > 1)) && XKB_OPTIONS=$XKB_SWITCH_DEFAULT
+    fi
+    ((${#out_l[@]} <= 4)) || fail "$(T "At most %d keyboard layouts are possible." 4)"
+    [[ $XKB_OPTIONS =~ ^([A-Za-z0-9_]+:[A-Za-z0-9_]+(,[A-Za-z0-9_]+:[A-Za-z0-9_]+)*)?$ ]] ||
+        fail "$(T "Invalid XKB_OPTIONS: %s" "$XKB_OPTIONS")"
+    XKB_LAYOUT=$(IFS=,; echo "${out_l[*]}")
+    XKB_VARIANT=$(IFS=,; echo "${out_v[*]}")
+}
+
+# "cz (qwerty), us" pro souhrn
+xkb_text() {
+    local -a lays vars
+    local i out=()
+    IFS=, read -ra lays <<<"$XKB_LAYOUT"
+    IFS=, read -ra vars <<<"$XKB_VARIANT"
+    for i in "${!lays[@]}"; do out+=("${lays[i]}${vars[i]:+ (${vars[i]})}"); done
+    local IFS=,
+    echo "${out[*]}" | sed 's/,/, /g'
+}
+
+# Rozlozeni hned i v live systemu (pruvodce bezi v terminalu graficke relace)
+xkb_live() {
+    [[ -n ${SUDO_USER-} && -n ${DISPLAY-} ]] || return 0
+    sudo -u "$SUDO_USER" DISPLAY="$DISPLAY" setxkbmap -layout "$XKB_LAYOUT" -variant "$XKB_VARIANT" \
+        -option "" ${XKB_OPTIONS:+-option "$XKB_OPTIONS"} 2>/dev/null || true
+}
+
+# Krok Klavesnice: vychozi rozlozeni + dalsi (US predvybrane, Enter = potvrdit)
+ask_keyboard() {
+    title "$(T "Keyboard")"
+    # Rozlozeni pro zemi zvoleneho jazyka nahoru (cs_CZ -> cz)
+    local country=${LOCALE:3:2} first=() rest=() k sel n l v
+    for k in "${KEYMAPS[@]}"; do
+        IFS='|' read -r _ l _ <<<"$k"
+        if [[ $l == "${country,,}" ]]; then first+=("$k"); else rest+=("$k"); fi
+    done
+    sel=$(pick_from "$(T "Choose your keyboard layout")" "${first[@]}" "${rest[@]}")
+    if [[ $sel == "Other…" ]]; then
+        XKB_LAYOUT=$(localectl list-x11-keymap-layouts | gum filter --header "$(T "Layout")" --height 14) || exit 1
+        XKB_VARIANT=$( (echo "(default)"; localectl list-x11-keymap-variants "$XKB_LAYOUT" 2>/dev/null) |
+                       gum filter --header "$(T "Variant")" --height 14) || exit 1
+        [[ $XKB_VARIANT == "(default)" ]] && XKB_VARIANT=""
+    else
+        IFS='|' read -r _ XKB_LAYOUT XKB_VARIANT <<<"$sel"
+    fi
+    # Dalsi rozlozeni: prvni polozka = jen vychozi; US predvybrane (psani hesel a kodu)
+    local only labels=() pre="" extra
+    only=$(T "Only %s" "$(T "${sel%%|*}")")
+    [[ $sel == "Other…" ]] && only=$(T "Only %s" "$XKB_LAYOUT${XKB_VARIANT:+ ($XKB_VARIANT)}")
+    for k in "${KEYMAPS[@]}"; do
+        IFS='|' read -r n l v <<<"$k"
+        [[ $l == "$XKB_LAYOUT" && $v == "$XKB_VARIANT" ]] && continue
+        labels+=("$(T "$n")")
+        [[ $XKB_LAYOUT != us && $l == us && -z $v ]] && pre=$(T "$n")
+    done
+    extra=$(printf '%s\n' "$only" "${labels[@]}" "$(T "Other…")" |
+            gum choose --limit 3 ${pre:+--selected "$pre"} --height 14 \
+                --header "$(T "More layouts? Space selects, Enter confirms (switch with Alt+Shift)")") || exit 1
+    local lays=$XKB_LAYOUT vars=$XKB_VARIANT line
+    while IFS= read -r line; do
+        [[ -z $line || $line == "$only" ]] && continue
+        if [[ $line == "$(T "Other…")" ]]; then
+            l=$(localectl list-x11-keymap-layouts | gum filter --header "$(T "Layout")" --height 14) || continue
+            v=$( (echo "(default)"; localectl list-x11-keymap-variants "$l" 2>/dev/null) |
+                 gum filter --header "$(T "Variant")" --height 14) || v="(default)"
+            [[ $v == "(default)" ]] && v=""
+        else
+            for k in "${KEYMAPS[@]}"; do
+                IFS='|' read -r n l v <<<"$k"
+                [[ $(T "$n") == "$line" ]] && break
+            done
+        fi
+        lays+=",$l" vars+=",$v"
+    done <<<"$extra"
+    XKB_LAYOUT=$lays XKB_VARIANT=$vars
+    XKB_OPTIONS=""
+    [[ $XKB_LAYOUT == *,* ]] && XKB_OPTIONS=$XKB_SWITCH_DEFAULT
+    xkb_normalize
+    xkb_live
+    info "$(T "Keyboard: %s" "$(xkb_text)")"
 }
 
 valid_user() { [[ $1 =~ ^[a-z_][a-z0-9_-]{0,31}$ && $1 != root ]]; }
@@ -194,28 +308,7 @@ interactive() {
 
     ensure_internet
 
-    # Klavesnice
-    title "$(T "Keyboard")"
-    # Rozlozeni pro zemi zvoleneho jazyka nahoru (cs_CZ -> cz)
-    local country=${LOCALE:3:2} first=() rest=() k
-    for k in "${KEYMAPS[@]}"; do
-        IFS='|' read -r _ l _ <<<"$k"
-        if [[ $l == "${country,,}" ]]; then first+=("$k"); else rest+=("$k"); fi
-    done
-    sel=$(pick_from "$(T "Choose your keyboard layout")" "${first[@]}" "${rest[@]}")
-    if [[ $sel == "Other…" ]]; then
-        XKB_LAYOUT=$(localectl list-x11-keymap-layouts | gum filter --header "$(T "Layout")" --height 14) || exit 1
-        XKB_VARIANT=$( (echo "(default)"; localectl list-x11-keymap-variants "$XKB_LAYOUT" 2>/dev/null) |
-                       gum filter --header "$(T "Variant")" --height 14) || exit 1
-        [[ $XKB_VARIANT == "(default)" ]] && XKB_VARIANT=""
-    else
-        IFS='|' read -r _ XKB_LAYOUT XKB_VARIANT <<<"$sel"
-    fi
-    # Okamzite pouzit i v live systemu
-    if [[ -n ${SUDO_USER-} && -n ${DISPLAY-} ]]; then
-        sudo -u "$SUDO_USER" DISPLAY="$DISPLAY" setxkbmap "$XKB_LAYOUT" ${XKB_VARIANT:+-variant "$XKB_VARIANT"} 2>/dev/null || true
-    fi
-    info "$(T "Keyboard: %s" "$XKB_LAYOUT${XKB_VARIANT:+ ($XKB_VARIANT)}")"
+    ask_keyboard
 
     # Casove pasmo
     title "$(T "Time zone")"
@@ -501,7 +594,7 @@ summary() {
     [[ $BOOTLOADER == none ]] && boot_text+=" ($(T "no boot loader"))"
     local -a lines=(
         "$(printf '%-13s%s' "$(T "Language")" "$LOCALE")"
-        "$(printf '%-13s%s' "$(T "Keyboard")" "$XKB_LAYOUT${XKB_VARIANT:+ ($XKB_VARIANT)}")"
+        "$(printf '%-13s%s' "$(T "Keyboard")" "$(xkb_text)")"
         "$(printf '%-13s%s' "$(T "Time zone")" "$TIMEZONE")"
         "$(printf '%-13s%s' "$(T "Disk")" "$disk_text")"
         "$(printf '%-13s%s' "$(T "Encryption")" "$([[ $enc == 1 ]] && T "yes" || T "no")")"
@@ -1454,6 +1547,7 @@ configure_system() {
 LOCALE=$(printf %q "$LOCALE")
 XKB_LAYOUT=$(printf %q "$XKB_LAYOUT")
 XKB_VARIANT=$(printf %q "$XKB_VARIANT")
+XKB_OPTIONS=$(printf %q "${XKB_OPTIONS-}")
 CONSOLE_KEYMAP=$(printf %q "$console_km")
 TIMEZONE=$(printf %q "$TIMEZONE")
 HOSTNAME_SEL=$(printf %q "$HOSTNAME_SEL")
@@ -1812,6 +1906,7 @@ main() {
         : "${LOCALE:=en_US.UTF-8}" "${XKB_LAYOUT:=us}" "${XKB_VARIANT:=}" "${TIMEZONE:=UTC}"
         : "${ENCRYPT:=0}" "${AUTOLOGIN:=0}" "${HOSTNAME_SEL:=luxos}" "${FULLNAME:=$USERNAME}"
         : "${BOOTLOADER:=auto}" "${LUXAI_ACCOUNT:=}" "${TEMPLATES:=}"
+        xkb_normalize   # seznam rozlozeni a prepinani (viz xkb_normalize)
         [[ ${DISK_MODE-} == manual && -z ${DISK-} ]] && DISK=manual   # pripojeno v /mnt, disk neni potreba
         [[ ${DISK_MODE-} == layout && -z ${DISK-} ]] && DISK=layout   # disky jsou v LAYOUT
         # existujici oddil: disk podle oddilu

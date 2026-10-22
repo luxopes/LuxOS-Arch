@@ -2,7 +2,8 @@
 Type=Application
 Name=Keyboard Shortcuts
 Name[cs]=Klávesové zkratky
-Comment=Overview of LuxOS keyboard shortcuts
+Comment=View and change keyboard shortcuts
+Comment[cs]=Zobrazení a změna klávesových zkratek
 Exec=luxos-shortcuts
 Icon=preferences-desktop-keyboard-shortcuts
 Categories=Settings;

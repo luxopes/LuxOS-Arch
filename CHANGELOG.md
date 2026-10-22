@@ -4,6 +4,17 @@ Verze: `X.Y.Z` – `Y` roste s každým novým ISO, `Z` s opravami chyb. Každá
 Číslo verze je v `packages/luxos-branding/files/version` (os-release, O tomto počítači, fastfetch, název ISO).
 LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z jakého stavu systém vychází.
 
+## 0.9.2 „Polaris“ – 2026-10-22 (beta)
+
+### Nové
+- Více rozložení klávesnice v instalátoru (textovém i grafickém) a aplikace Rozložení klávesnice: nastavení pro všechny uživatele a přihlašovací obrazovku, volba kláves pro přepínání.
+- Klávesové zkratky: změna, vypnutí, vlastní zkratky, kontrola kolizí, obnovení výchozích.
+- Nově připojená sluchátka / reproduktory (Bluetooth, USB, HDMI) se hned stanou výstupem zvuku.
+
+### Opravy
+- Starší instalace se aktualizují bez „unresolvable package conflicts“ (lux a LuxOS Care závisí na obecném jádru balíčků; lux-engine nahradí až nový lux).
+- Vlajka klávesnice v horní liště otevře Rozložení klávesnice.
+
 ## 0.9.1 „Polaris“ – 2026-10-22 (beta)
 
 ### Nové

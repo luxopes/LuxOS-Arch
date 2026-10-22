@@ -2139,3 +2139,82 @@ The screenshot could not be saved.	Das Bildschirmfoto konnte nicht gespeichert w
 %s .pacnew config file(s) to merge - run: lux configs	Zu zusammenführende .pacnew-Konfigurationsdateien: %s – ausführen: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Ihre Einstellungen wurden beibehalten. Führen Sie die Dateien bei Gelegenheit zusammen: lux configs
 review and merge new config files (.pacnew)	neue Konfigurationsdateien (.pacnew) prüfen und zusammenführen
+Keyboard Layouts	Tastaturbelegungen
+Layouts	Belegungen
+Add Layout	Belegung hinzufügen
+Add Layout…	Belegung hinzufügen …
+Add as another layout	Als weitere Belegung hinzufügen
+Alt + Shift	Alt + Umschalt
+Ctrl + Shift	Strg + Umschalt
+Both Shift keys	Beide Umschalttasten
+Caps Lock	Feststelltaste
+Menu key	Menütaste
+Only by clicking the flag in the menu bar	Nur durch Klick auf die Flagge in der Menüleiste
+Apply to All Users and the Login Screen	Für alle Benutzer und den Anmeldebildschirm übernehmen
+At most %d keyboard layouts are possible.	Höchstens %d Tastaturbelegungen sind möglich.
+At most %d layouts are possible.	Höchstens %d Belegungen sind möglich.
+Choose your keyboard layout. Add more layouts with + to switch between them; the first one is the default.	Wählen Sie Ihre Tastaturbelegung. Mit + fügen Sie weitere Belegungen hinzu, zwischen denen Sie wechseln können; die erste ist die Standardbelegung.
+Could not save the keyboard layouts: %s	Die Tastaturbelegungen konnten nicht gespeichert werden: %s
+Invalid XKB_OPTIONS: %s	Ungültige XKB_OPTIONS: %s
+Invalid keyboard layout: %s	Ungültige Tastaturbelegung: %s
+Key repeat and other keyboard settings	Tastenwiederholung und weitere Tastatureinstellungen
+Make default	Als Standard festlegen
+More Keyboard Settings…	Weitere Tastatureinstellungen …
+More layouts? Space selects, Enter confirms (switch with Alt+Shift)	Weitere Belegungen? Leertaste wählt, Eingabe bestätigt (Wechsel mit Alt+Umschalt)
+Move down	Nach unten
+Move up	Nach oben
+Not saved: administrator authentication was cancelled.	Nicht gespeichert: Die Administrator-Authentifizierung wurde abgebrochen.
+Only %s	Nur %s
+Saved for all users and the login screen.	Für alle Benutzer und den Anmeldebildschirm gespeichert.
+Switch layouts with	Belegung wechseln mit
+Switching	Wechseln
+The first layout is the default. Switch between them with the shortcut below or by clicking the flag in the menu bar.	Die erste Belegung ist die Standardbelegung. Wechseln Sie mit dem Kürzel unten oder per Klick auf die Flagge in der Menüleiste.
+Your account uses its own keyboard layouts from Xfce settings. Applying switches it back to the layouts set here.	Ihr Konto verwendet eigene Tastaturbelegungen aus den Xfce-Einstellungen. Durch Übernehmen werden wieder die hier festgelegten Belegungen verwendet.
+default	Standard
+Add Shortcut	Kurzbefehl hinzufügen
+Add Shortcut…	Kurzbefehl hinzufügen …
+Already used by “%s” - it will be replaced.	Wird bereits von „%s“ verwendet – wird ersetzt.
+Apps & System	Apps & System
+Choose App	App auswählen
+Choose App…	App auswählen …
+Click to change the shortcut	Klicken, um den Kurzbefehl zu ändern
+Custom Shortcuts	Eigene Kurzbefehle
+Delete the shortcut “%s”?	Kurzbefehl „%s“ löschen?
+Edit Shortcut	Kurzbefehl bearbeiten
+Esc cancels, Backspace turns the shortcut off.	Esc bricht ab, Rücktaste schaltet den Kurzbefehl aus.
+Esc cancels.	Esc bricht ab.
+Go to workspace %d	Zu Arbeitsfläche %d wechseln
+Log out or shut down	Abmelden oder ausschalten
+Maximize window	Fenster maximieren
+New Shortcut	Neuer Kurzbefehl
+Next workspace	Nächste Arbeitsfläche
+Other Xfce Shortcuts	Weitere Xfce-Kurzbefehle
+Press the new shortcut for “%s”	Neuen Kurzbefehl für „%s“ drücken
+Previous workspace	Vorherige Arbeitsfläche
+Record Shortcut…	Kurzbefehl aufnehmen …
+Replace	Ersetzen
+Replace it? The other action will lose this shortcut.	Ersetzen? Die andere Aktion verliert diesen Kurzbefehl.
+Restore All Defaults…	Alle Standards wiederherstellen …
+Restore Default	Standard wiederherstellen
+Restore Defaults	Standards wiederherstellen
+Restore all shortcuts to their defaults?	Alle Kurzbefehle auf die Standards zurücksetzen?
+Screenshots	Bildschirmfotos
+Set together with the keyboard layouts.	Wird zusammen mit den Tastaturbelegungen eingestellt.
+Shortcuts could not be read from the Xfce settings service. Changes will not be saved.	Kurzbefehle konnten nicht vom Xfce-Einstellungsdienst gelesen werden. Änderungen werden nicht gespeichert.
+Standard Xfce shortcuts kept for compatibility.	Standard-Kurzbefehle von Xfce, aus Kompatibilitätsgründen beibehalten.
+Switch windows backwards	Fenster rückwärts wechseln
+Switch windows of the same app	Fenster derselben App wechseln
+The shortcut could not be saved.	Der Kurzbefehl konnte nicht gespeichert werden.
+Tile window left	Fenster links anordnen
+Tile window right	Fenster rechts anordnen
+Use at least one of Ctrl, Alt or Super.	Mindestens Strg, Alt oder Super verwenden.
+Your custom shortcuts are kept unless their keys are needed by a default shortcut.	Eigene Kurzbefehle bleiben erhalten, sofern ihre Tasten nicht von einem Standard-Kurzbefehl benötigt werden.
+Your own shortcuts that open an app or run a command.	Eigene Kurzbefehle, die eine App öffnen oder einen Befehl ausführen.
+e.g. Open my notes	z. B. Notizen öffnen
+“%s” is already used by “%s”.	„%s“ wird bereits von „%s“ verwendet.
+View and change keyboard shortcuts	Tastaturkurzbefehle anzeigen und ändern
+Another update is still running (%s). Try again when it finishes.	Eine andere Aktualisierung läuft noch (%s). Versuchen Sie es erneut, wenn sie fertig ist.
+The package lists could not be refreshed: %s	Die Paketlisten konnten nicht aktualisiert werden: %s
+The package lists could not be refreshed.	Die Paketlisten konnten nicht aktualisiert werden.
+Removed a stale database lock left by an interrupted update.	Eine von einer abgebrochenen Aktualisierung übrig gebliebene Datenbanksperre wurde entfernt.
+Waiting for another update to finish (%s)…	Warte, bis eine andere Aktualisierung fertig ist (%s)…

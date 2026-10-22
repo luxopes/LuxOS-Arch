@@ -2139,3 +2139,82 @@ The screenshot could not be saved.	Impossibile salvare l’istantanea.
 %s .pacnew config file(s) to merge - run: lux configs	File di configurazione .pacnew da unire: %s - esegui: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Le tue impostazioni sono state mantenute. Unisci i file quando ti è comodo: lux configs
 review and merge new config files (.pacnew)	esamina e unisci i nuovi file di configurazione (.pacnew)
+Keyboard Layouts	Layout della tastiera
+Layouts	Layout
+Add Layout	Aggiungi layout
+Add Layout…	Aggiungi layout…
+Add as another layout	Aggiungi come altro layout
+Alt + Shift	Alt + Maiusc
+Ctrl + Shift	Ctrl + Maiusc
+Both Shift keys	Entrambi i tasti Maiusc
+Caps Lock	Bloc Maiusc
+Menu key	Tasto Menu
+Only by clicking the flag in the menu bar	Solo facendo clic sulla bandiera nella barra dei menu
+Apply to All Users and the Login Screen	Applica a tutti gli utenti e alla schermata di accesso
+At most %d keyboard layouts are possible.	Sono possibili al massimo %d layout della tastiera.
+At most %d layouts are possible.	Sono possibili al massimo %d layout.
+Choose your keyboard layout. Add more layouts with + to switch between them; the first one is the default.	Scegli il layout della tastiera. Aggiungi altri layout con + per passare dall’uno all’altro; il primo è quello predefinito.
+Could not save the keyboard layouts: %s	Impossibile salvare i layout della tastiera: %s
+Invalid XKB_OPTIONS: %s	XKB_OPTIONS non valide: %s
+Invalid keyboard layout: %s	Layout della tastiera non valido: %s
+Key repeat and other keyboard settings	Ripetizione dei tasti e altre impostazioni della tastiera
+Make default	Imposta come predefinito
+More Keyboard Settings…	Altre impostazioni della tastiera…
+More layouts? Space selects, Enter confirms (switch with Alt+Shift)	Altri layout? Spazio seleziona, Invio conferma (cambio con Alt+Maiusc)
+Move down	Sposta giù
+Move up	Sposta su
+Not saved: administrator authentication was cancelled.	Non salvato: l’autenticazione dell’amministratore è stata annullata.
+Only %s	Solo %s
+Saved for all users and the login screen.	Salvato per tutti gli utenti e la schermata di accesso.
+Switch layouts with	Cambia layout con
+Switching	Cambio
+The first layout is the default. Switch between them with the shortcut below or by clicking the flag in the menu bar.	Il primo layout è quello predefinito. Passa dall’uno all’altro con la scorciatoia qui sotto o facendo clic sulla bandiera nella barra dei menu.
+Your account uses its own keyboard layouts from Xfce settings. Applying switches it back to the layouts set here.	Il tuo account usa layout della tastiera propri dalle impostazioni di Xfce. Applicando tornerà ai layout impostati qui.
+default	predefinito
+Add Shortcut	Aggiungi abbreviazione
+Add Shortcut…	Aggiungi abbreviazione…
+Already used by “%s” - it will be replaced.	Già usata da “%s”: verrà sostituita.
+Apps & System	App e sistema
+Choose App	Scegli app
+Choose App…	Scegli app…
+Click to change the shortcut	Fai clic per cambiare l’abbreviazione
+Custom Shortcuts	Abbreviazioni personalizzate
+Delete the shortcut “%s”?	Eliminare l’abbreviazione “%s”?
+Edit Shortcut	Modifica abbreviazione
+Esc cancels, Backspace turns the shortcut off.	Esc annulla, Backspace disattiva l’abbreviazione.
+Esc cancels.	Esc annulla.
+Go to workspace %d	Vai all’area di lavoro %d
+Log out or shut down	Esci o spegni
+Maximize window	Ingrandisci finestra
+New Shortcut	Nuova abbreviazione
+Next workspace	Area di lavoro successiva
+Other Xfce Shortcuts	Altre abbreviazioni di Xfce
+Press the new shortcut for “%s”	Premi la nuova abbreviazione per “%s”
+Previous workspace	Area di lavoro precedente
+Record Shortcut…	Registra abbreviazione…
+Replace	Sostituisci
+Replace it? The other action will lose this shortcut.	Sostituirla? L’altra azione perderà questa abbreviazione.
+Restore All Defaults…	Ripristina tutti i valori predefiniti…
+Restore Default	Ripristina predefinito
+Restore Defaults	Ripristina predefiniti
+Restore all shortcuts to their defaults?	Ripristinare tutte le abbreviazioni ai valori predefiniti?
+Screenshots	Istantanee dello schermo
+Set together with the keyboard layouts.	Si imposta insieme ai layout di tastiera.
+Shortcuts could not be read from the Xfce settings service. Changes will not be saved.	Impossibile leggere le abbreviazioni dal servizio impostazioni di Xfce. Le modifiche non verranno salvate.
+Standard Xfce shortcuts kept for compatibility.	Abbreviazioni standard di Xfce mantenute per compatibilità.
+Switch windows backwards	Cambia finestra all’indietro
+Switch windows of the same app	Cambia finestra della stessa app
+The shortcut could not be saved.	Impossibile salvare l’abbreviazione.
+Tile window left	Affianca finestra a sinistra
+Tile window right	Affianca finestra a destra
+Use at least one of Ctrl, Alt or Super.	Usa almeno Ctrl, Alt o Super.
+Your custom shortcuts are kept unless their keys are needed by a default shortcut.	Le abbreviazioni personalizzate restano, a meno che i loro tasti non servano a un’abbreviazione predefinita.
+Your own shortcuts that open an app or run a command.	Le tue abbreviazioni per aprire un’app o eseguire un comando.
+e.g. Open my notes	es. Apri le mie note
+“%s” is already used by “%s”.	“%s” è già usata da “%s”.
+View and change keyboard shortcuts	Visualizza e modifica le abbreviazioni da tastiera
+Another update is still running (%s). Try again when it finishes.	È ancora in corso un altro aggiornamento (%s). Riprova quando sarà finito.
+The package lists could not be refreshed: %s	Impossibile aggiornare gli elenchi dei pacchetti: %s
+The package lists could not be refreshed.	Impossibile aggiornare gli elenchi dei pacchetti.
+Removed a stale database lock left by an interrupted update.	Rimosso un blocco del database lasciato da un aggiornamento interrotto.
+Waiting for another update to finish (%s)…	In attesa che finisca un altro aggiornamento (%s)…

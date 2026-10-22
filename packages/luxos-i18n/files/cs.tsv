@@ -2139,3 +2139,82 @@ The screenshot could not be saved.	Snímek obrazovky se nepodařilo uložit.
 %s .pacnew config file(s) to merge - run: lux configs	Konfiguračních souborů .pacnew ke sloučení: %s - spusťte: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Vaše nastavení zůstalo zachované. Soubory můžete sloučit, až se vám to bude hodit: lux configs
 review and merge new config files (.pacnew)	porovná a sloučí nové konfigurační soubory (.pacnew)
+Keyboard Layouts	Rozložení klávesnice
+Layouts	Rozložení
+Add Layout	Přidat rozložení
+Add Layout…	Přidat rozložení…
+Add as another layout	Přidat jako další rozložení
+Alt + Shift	Alt + Shift
+Ctrl + Shift	Ctrl + Shift
+Both Shift keys	Obě klávesy Shift
+Caps Lock	Caps Lock
+Menu key	Klávesa Menu
+Only by clicking the flag in the menu bar	Jen kliknutím na vlajku v horní liště
+Apply to All Users and the Login Screen	Použít pro všechny uživatele a přihlašovací obrazovku
+At most %d keyboard layouts are possible.	Lze nastavit nejvýše %d rozložení klávesnice.
+At most %d layouts are possible.	Lze nastavit nejvýše %d rozložení.
+Choose your keyboard layout. Add more layouts with + to switch between them; the first one is the default.	Vyberte rozložení klávesnice. Tlačítkem + přidáte další rozložení, mezi kterými lze přepínat; první je výchozí.
+Could not save the keyboard layouts: %s	Rozložení klávesnice se nepodařilo uložit: %s
+Invalid XKB_OPTIONS: %s	Neplatné XKB_OPTIONS: %s
+Invalid keyboard layout: %s	Neplatné rozložení klávesnice: %s
+Key repeat and other keyboard settings	Opakování kláves a další nastavení klávesnice
+Make default	Nastavit jako výchozí
+More Keyboard Settings…	Další nastavení klávesnice…
+More layouts? Space selects, Enter confirms (switch with Alt+Shift)	Další rozložení? Mezerník vybírá, Enter potvrdí (přepínání Alt+Shift)
+Move down	Posunout dolů
+Move up	Posunout nahoru
+Not saved: administrator authentication was cancelled.	Neuloženo: ověření správce bylo zrušeno.
+Only %s	Jen %s
+Saved for all users and the login screen.	Uloženo pro všechny uživatele a přihlašovací obrazovku.
+Switch layouts with	Přepínat rozložení pomocí
+Switching	Přepínání
+The first layout is the default. Switch between them with the shortcut below or by clicking the flag in the menu bar.	První rozložení je výchozí. Přepínat mezi nimi můžete zkratkou níže nebo kliknutím na vlajku v horní liště.
+Your account uses its own keyboard layouts from Xfce settings. Applying switches it back to the layouts set here.	Váš účet používá vlastní rozložení klávesnice z nastavení Xfce. Použitím se vrátí k rozložením nastaveným zde.
+default	výchozí
+Add Shortcut	Přidat zkratku
+Add Shortcut…	Přidat zkratku…
+Already used by “%s” - it will be replaced.	Už ji používá „%s“ – bude nahrazena.
+Apps & System	Aplikace a systém
+Choose App	Vyberte aplikaci
+Choose App…	Vybrat aplikaci…
+Click to change the shortcut	Kliknutím zkratku změníte
+Custom Shortcuts	Vlastní zkratky
+Delete the shortcut “%s”?	Smazat zkratku „%s“?
+Edit Shortcut	Upravit zkratku
+Esc cancels, Backspace turns the shortcut off.	Esc zruší, Backspace zkratku vypne.
+Esc cancels.	Esc zruší.
+Go to workspace %d	Přejít na plochu %d
+Log out or shut down	Odhlásit nebo vypnout
+Maximize window	Maximalizovat okno
+New Shortcut	Nová zkratka
+Next workspace	Další plocha
+Other Xfce Shortcuts	Další zkratky Xfce
+Press the new shortcut for “%s”	Stiskněte novou zkratku pro „%s“
+Previous workspace	Předchozí plocha
+Record Shortcut…	Nahrát zkratku…
+Replace	Nahradit
+Replace it? The other action will lose this shortcut.	Nahradit? Druhá akce tuto zkratku ztratí.
+Restore All Defaults…	Obnovit vše na výchozí…
+Restore Default	Obnovit výchozí
+Restore Defaults	Obnovit výchozí
+Restore all shortcuts to their defaults?	Obnovit všechny zkratky na výchozí?
+Screenshots	Snímky obrazovky
+Set together with the keyboard layouts.	Nastavuje se spolu s rozložením klávesnice.
+Shortcuts could not be read from the Xfce settings service. Changes will not be saved.	Zkratky se nepodařilo načíst ze služby nastavení Xfce. Změny se neuloží.
+Standard Xfce shortcuts kept for compatibility.	Standardní zkratky Xfce zachované kvůli kompatibilitě.
+Switch windows backwards	Přepínat okna pozpátku
+Switch windows of the same app	Přepínat okna stejné aplikace
+The shortcut could not be saved.	Zkratku se nepodařilo uložit.
+Tile window left	Okno na levou polovinu
+Tile window right	Okno na pravou polovinu
+Use at least one of Ctrl, Alt or Super.	Použijte alespoň jednu z kláves Ctrl, Alt nebo Super.
+Your custom shortcuts are kept unless their keys are needed by a default shortcut.	Vlastní zkratky zůstanou, pokud jejich klávesy nepotřebuje některá výchozí zkratka.
+Your own shortcuts that open an app or run a command.	Vaše zkratky, které otevřou aplikaci nebo spustí příkaz.
+e.g. Open my notes	např. Otevřít poznámky
+“%s” is already used by “%s”.	„%s“ už používá „%s“.
+View and change keyboard shortcuts	Zobrazení a změna klávesových zkratek
+Another update is still running (%s). Try again when it finishes.	Ještě běží jiná aktualizace (%s). Zkuste to znovu, až skončí.
+The package lists could not be refreshed: %s	Seznamy balíčků se nepodařilo obnovit: %s
+The package lists could not be refreshed.	Seznamy balíčků se nepodařilo obnovit.
+Removed a stale database lock left by an interrupted update.	Odstraněn zámek databáze, který zůstal po přerušené aktualizaci.
+Waiting for another update to finish (%s)…	Čekám, až skončí jiná aktualizace (%s)…

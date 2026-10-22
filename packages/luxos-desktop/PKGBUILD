@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=28
+pkgrel=29
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
@@ -19,7 +19,7 @@ depends=(
     # Xfce (jen potrebne casti)
     xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf xfce4-notifyd
     xfce4-power-manager xfce4-screensaver xfce4-terminal ffmpeg xfce4-taskmanager
-    xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xfce4-xkb-plugin xorg-xprop libxi libxtst libxrandr
+    xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xfce4-xkb-plugin xorg-setxkbmap xorg-xprop libxi libxtst libxrandr
     brightnessctl luxos-i18n luxos-store luxos-account
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
     # Dock, Hledani, prihlaseni
@@ -75,6 +75,9 @@ package() {
     # Monitory i v Launchpadu (ten skryva panely Nastaveni); OnlyShowIn ji skryje v menu a Hledani
     sed -e 's/^Categories=.*/Categories=X-LuxOS-Launchpad;/' -e '/^\[Desktop Entry\]/a OnlyShowIn=X-LuxOS-Launchpad;' \
         "$f/applications/luxos-display-settings.desktop" > "$pkgdir/usr/share/applications/luxos-display-settings-launchpad.desktop"
+    # Klavesnice (rozlozeni pro cely system) take v Launchpadu
+    sed -e 's/^Categories=.*/Categories=X-LuxOS-Launchpad;/' -e '/^\[Desktop Entry\]/a OnlyShowIn=X-LuxOS-Launchpad;' \
+        "$f/applications/luxos-keyboard.desktop" > "$pkgdir/usr/share/applications/luxos-keyboard-launchpad.desktop"
     install -Dm644 -t "$pkgdir/usr/share/icons/hicolor/scalable/apps" "$f"/icons/*.svg
     install -Dm644 -t "$pkgdir/usr/share/rofi/themes" "$f"/rofi/luxos-*.rasi
 
@@ -133,6 +136,9 @@ package() {
     install -Dm644 "$f/networkmanager/30-luxos-connectivity.conf" \
         "$pkgdir/usr/lib/NetworkManager/conf.d/30-luxos-connectivity.conf"
     install -Dm644 "$f/xorg/30-luxos-touchpad.conf" "$pkgdir/etc/X11/xorg.conf.d/30-luxos-touchpad.conf"
+    # Zvuk: nove pripojena sluchatka / reproduktory se hned pouziji (pipewire-pulse)
+    install -Dm644 "$f/pipewire/50-luxos-switch-on-connect.conf" \
+        "$pkgdir/usr/share/pipewire/pipewire-pulse.conf.d/50-luxos-switch-on-connect.conf"
 
     install -Dm644 "$f/fontconfig/60-luxos.conf" "$pkgdir/usr/share/fontconfig/conf.avail/60-luxos.conf"
     install -dm755 "$pkgdir/etc/fonts/conf.d"

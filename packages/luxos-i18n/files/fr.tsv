@@ -2139,3 +2139,82 @@ The screenshot could not be saved.	Impossible d’enregistrer la capture d’éc
 %s .pacnew config file(s) to merge - run: lux configs	%s fichier(s) de configuration .pacnew à fusionner. Exécutez : lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Vos réglages ont été conservés. Fusionnez les fichiers quand vous le souhaitez : lux configs
 review and merge new config files (.pacnew)	examiner et fusionner les nouveaux fichiers de configuration (.pacnew)
+Keyboard Layouts	Dispositions du clavier
+Layouts	Dispositions
+Add Layout	Ajouter une disposition
+Add Layout…	Ajouter une disposition…
+Add as another layout	Ajouter comme autre disposition
+Alt + Shift	Alt + Maj
+Ctrl + Shift	Ctrl + Maj
+Both Shift keys	Les deux touches Maj
+Caps Lock	Verr. Maj
+Menu key	Touche Menu
+Only by clicking the flag in the menu bar	Uniquement en cliquant sur le drapeau dans la barre des menus
+Apply to All Users and the Login Screen	Appliquer à tous les utilisateurs et à l’écran de connexion
+At most %d keyboard layouts are possible.	%d dispositions de clavier au maximum sont possibles.
+At most %d layouts are possible.	%d dispositions au maximum sont possibles.
+Choose your keyboard layout. Add more layouts with + to switch between them; the first one is the default.	Choisissez la disposition du clavier. Ajoutez-en d’autres avec + pour passer de l’une à l’autre ; la première est celle par défaut.
+Could not save the keyboard layouts: %s	Impossible d’enregistrer les dispositions du clavier : %s
+Invalid XKB_OPTIONS: %s	XKB_OPTIONS non valides : %s
+Invalid keyboard layout: %s	Disposition de clavier non valide : %s
+Key repeat and other keyboard settings	Répétition des touches et autres réglages du clavier
+Make default	Définir par défaut
+More Keyboard Settings…	Autres réglages du clavier…
+More layouts? Space selects, Enter confirms (switch with Alt+Shift)	D’autres dispositions ? Espace sélectionne, Entrée confirme (changement avec Alt+Maj)
+Move down	Descendre
+Move up	Monter
+Not saved: administrator authentication was cancelled.	Non enregistré : l’authentification administrateur a été annulée.
+Only %s	Uniquement %s
+Saved for all users and the login screen.	Enregistré pour tous les utilisateurs et l’écran de connexion.
+Switch layouts with	Changer de disposition avec
+Switching	Changement
+The first layout is the default. Switch between them with the shortcut below or by clicking the flag in the menu bar.	La première disposition est celle par défaut. Passez de l’une à l’autre avec le raccourci ci-dessous ou en cliquant sur le drapeau dans la barre des menus.
+Your account uses its own keyboard layouts from Xfce settings. Applying switches it back to the layouts set here.	Votre compte utilise ses propres dispositions de clavier des réglages Xfce. Appliquer le ramène aux dispositions définies ici.
+default	par défaut
+Add Shortcut	Ajouter un raccourci
+Add Shortcut…	Ajouter un raccourci…
+Already used by “%s” - it will be replaced.	Déjà utilisé par « %s » – il sera remplacé.
+Apps & System	Apps et système
+Choose App	Choisir une app
+Choose App…	Choisir une app…
+Click to change the shortcut	Cliquez pour modifier le raccourci
+Custom Shortcuts	Raccourcis personnalisés
+Delete the shortcut “%s”?	Supprimer le raccourci « %s » ?
+Edit Shortcut	Modifier le raccourci
+Esc cancels, Backspace turns the shortcut off.	Échap annule, Retour arrière désactive le raccourci.
+Esc cancels.	Échap annule.
+Go to workspace %d	Aller au bureau %d
+Log out or shut down	Fermer la session ou éteindre
+Maximize window	Agrandir la fenêtre
+New Shortcut	Nouveau raccourci
+Next workspace	Bureau suivant
+Other Xfce Shortcuts	Autres raccourcis Xfce
+Press the new shortcut for “%s”	Appuyez sur le nouveau raccourci pour « %s »
+Previous workspace	Bureau précédent
+Record Shortcut…	Enregistrer le raccourci…
+Replace	Remplacer
+Replace it? The other action will lose this shortcut.	Le remplacer ? L’autre action perdra ce raccourci.
+Restore All Defaults…	Tout rétablir par défaut…
+Restore Default	Rétablir par défaut
+Restore Defaults	Rétablir les valeurs par défaut
+Restore all shortcuts to their defaults?	Rétablir tous les raccourcis par défaut ?
+Screenshots	Captures d’écran
+Set together with the keyboard layouts.	Se règle avec les dispositions de clavier.
+Shortcuts could not be read from the Xfce settings service. Changes will not be saved.	Impossible de lire les raccourcis depuis le service de paramètres Xfce. Les modifications ne seront pas enregistrées.
+Standard Xfce shortcuts kept for compatibility.	Raccourcis Xfce standard conservés pour la compatibilité.
+Switch windows backwards	Changer de fenêtre en sens inverse
+Switch windows of the same app	Changer de fenêtre dans la même app
+The shortcut could not be saved.	Impossible d’enregistrer le raccourci.
+Tile window left	Placer la fenêtre à gauche
+Tile window right	Placer la fenêtre à droite
+Use at least one of Ctrl, Alt or Super.	Utilisez au moins Ctrl, Alt ou Super.
+Your custom shortcuts are kept unless their keys are needed by a default shortcut.	Vos raccourcis personnalisés sont conservés, sauf si un raccourci par défaut utilise leurs touches.
+Your own shortcuts that open an app or run a command.	Vos raccourcis pour ouvrir une app ou lancer une commande.
+e.g. Open my notes	p. ex. Ouvrir mes notes
+“%s” is already used by “%s”.	« %s » est déjà utilisé par « %s ».
+View and change keyboard shortcuts	Afficher et modifier les raccourcis clavier
+Another update is still running (%s). Try again when it finishes.	Une autre mise à jour est encore en cours (%s). Réessayez quand elle sera terminée.
+The package lists could not be refreshed: %s	Impossible d’actualiser les listes de paquets : %s
+The package lists could not be refreshed.	Impossible d’actualiser les listes de paquets.
+Removed a stale database lock left by an interrupted update.	Verrou de base de données laissé par une mise à jour interrompue supprimé.
+Waiting for another update to finish (%s)…	En attente de la fin d’une autre mise à jour (%s)…

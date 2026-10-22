@@ -186,6 +186,7 @@ class TestFfmpeg(unittest.TestCase):
         self.assertEqual(cmd[cmd.index("-f", cmd.index("-i")) + 1], "mp4")   # .part soubor -> formát explicitne
 
 
+@unittest.skipUnless(HAVE_DISPLAY, "parse_args je az v GTK casti (xvfb-run)")
 class TestArgs(unittest.TestCase):
     def test_parse(self):
         self.assertEqual(shot.parse_args([])["action"], "toolbar")

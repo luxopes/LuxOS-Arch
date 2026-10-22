@@ -2139,3 +2139,82 @@ The screenshot could not be saved.	Não foi possível guardar a captura de ecrã
 %s .pacnew config file(s) to merge - run: lux configs	%s arquivo(s) de configuração .pacnew para mesclar – execute: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Seus ajustes foram mantidos. Mescle os arquivos quando for conveniente: lux configs
 review and merge new config files (.pacnew)	revisa e mescla novos arquivos de configuração (.pacnew)
+Keyboard Layouts	Layouts de teclado
+Layouts	Layouts
+Add Layout	Adicionar layout
+Add Layout…	Adicionar layout…
+Add as another layout	Adicionar como outro layout
+Alt + Shift	Alt + Shift
+Ctrl + Shift	Ctrl + Shift
+Both Shift keys	Ambas as teclas Shift
+Caps Lock	Caps Lock
+Menu key	Tecla Menu
+Only by clicking the flag in the menu bar	Somente clicando na bandeira na barra de menus
+Apply to All Users and the Login Screen	Aplicar a todos os usuários e à tela de login
+At most %d keyboard layouts are possible.	São possíveis no máximo %d layouts de teclado.
+At most %d layouts are possible.	São possíveis no máximo %d layouts.
+Choose your keyboard layout. Add more layouts with + to switch between them; the first one is the default.	Escolha o layout do teclado. Adicione mais com + para alternar entre eles; o primeiro é o padrão.
+Could not save the keyboard layouts: %s	Não foi possível salvar os layouts de teclado: %s
+Invalid XKB_OPTIONS: %s	XKB_OPTIONS inválidas: %s
+Invalid keyboard layout: %s	Layout de teclado inválido: %s
+Key repeat and other keyboard settings	Repetição de teclas e outras configurações do teclado
+Make default	Definir como padrão
+More Keyboard Settings…	Mais configurações do teclado…
+More layouts? Space selects, Enter confirms (switch with Alt+Shift)	Mais layouts? Espaço seleciona, Enter confirma (alternar com Alt+Shift)
+Move down	Mover para baixo
+Move up	Mover para cima
+Not saved: administrator authentication was cancelled.	Não salvo: a autenticação de administrador foi cancelada.
+Only %s	Somente %s
+Saved for all users and the login screen.	Salvo para todos os usuários e a tela de login.
+Switch layouts with	Alternar layouts com
+Switching	Alternância
+The first layout is the default. Switch between them with the shortcut below or by clicking the flag in the menu bar.	O primeiro layout é o padrão. Alterne entre eles com o atalho abaixo ou clicando na bandeira na barra de menus.
+Your account uses its own keyboard layouts from Xfce settings. Applying switches it back to the layouts set here.	Sua conta usa layouts de teclado próprios das configurações do Xfce. Aplicar volta a usar os layouts definidos aqui.
+default	padrão
+Add Shortcut	Adicionar atalho
+Add Shortcut…	Adicionar atalho…
+Already used by “%s” - it will be replaced.	Já usado por “%s” – será substituído.
+Apps & System	Apps e sistema
+Choose App	Escolher app
+Choose App…	Escolher app…
+Click to change the shortcut	Clique para alterar o atalho
+Custom Shortcuts	Atalhos personalizados
+Delete the shortcut “%s”?	Excluir o atalho “%s”?
+Edit Shortcut	Editar atalho
+Esc cancels, Backspace turns the shortcut off.	Esc cancela, Backspace desativa o atalho.
+Esc cancels.	Esc cancela.
+Go to workspace %d	Ir para a área de trabalho %d
+Log out or shut down	Sair ou desligar
+Maximize window	Maximizar janela
+New Shortcut	Novo atalho
+Next workspace	Próxima área de trabalho
+Other Xfce Shortcuts	Outros atalhos do Xfce
+Press the new shortcut for “%s”	Pressione o novo atalho para “%s”
+Previous workspace	Área de trabalho anterior
+Record Shortcut…	Gravar atalho…
+Replace	Substituir
+Replace it? The other action will lose this shortcut.	Substituir? A outra ação perderá este atalho.
+Restore All Defaults…	Restaurar todos os padrões…
+Restore Default	Restaurar padrão
+Restore Defaults	Restaurar padrões
+Restore all shortcuts to their defaults?	Restaurar todos os atalhos para o padrão?
+Screenshots	Capturas de tela
+Set together with the keyboard layouts.	Definido junto com os layouts de teclado.
+Shortcuts could not be read from the Xfce settings service. Changes will not be saved.	Não foi possível ler os atalhos do serviço de configurações do Xfce. As alterações não serão salvas.
+Standard Xfce shortcuts kept for compatibility.	Atalhos padrão do Xfce mantidos por compatibilidade.
+Switch windows backwards	Alternar janelas para trás
+Switch windows of the same app	Alternar janelas do mesmo app
+The shortcut could not be saved.	Não foi possível salvar o atalho.
+Tile window left	Encaixar janela à esquerda
+Tile window right	Encaixar janela à direita
+Use at least one of Ctrl, Alt or Super.	Use pelo menos Ctrl, Alt ou Super.
+Your custom shortcuts are kept unless their keys are needed by a default shortcut.	Seus atalhos personalizados são mantidos, a menos que um atalho padrão precise das teclas.
+Your own shortcuts that open an app or run a command.	Seus atalhos para abrir um app ou executar um comando.
+e.g. Open my notes	ex.: Abrir minhas notas
+“%s” is already used by “%s”.	“%s” já é usado por “%s”.
+View and change keyboard shortcuts	Ver e alterar atalhos de teclado
+Another update is still running (%s). Try again when it finishes.	Ainda está a decorrer outra atualização (%s). Tente novamente quando terminar.
+The package lists could not be refreshed: %s	Não foi possível atualizar as listas de pacotes: %s
+The package lists could not be refreshed.	Não foi possível atualizar as listas de pacotes.
+Removed a stale database lock left by an interrupted update.	Removido um bloqueio da base de dados deixado por uma atualização interrompida.
+Waiting for another update to finish (%s)…	A aguardar que termine outra atualização (%s)…

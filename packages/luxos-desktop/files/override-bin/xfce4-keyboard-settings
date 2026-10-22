@@ -1,0 +1,5 @@
+#!/bin/sh
+# LuxOS: "Nastaveni klavesnice" z vlajky v horni liste (xkb plugin) otevre Rozlozeni klavesnice
+# (luxos-keyboard, i pro vsechny uzivatele); puvodni dialog Xfce je /usr/bin/xfce4-keyboard-settings
+[ $# -eq 0 ] && command -v luxos-keyboard >/dev/null && exec luxos-keyboard
+exec /usr/bin/xfce4-keyboard-settings "$@"

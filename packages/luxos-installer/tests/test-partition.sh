@@ -22,7 +22,7 @@ hasnot() { ! grep -qF -- "$2" "$1" 2>/dev/null; }
 # Funkce z instalatoru (bez spusteni main): sekce volneho mista a existujiciho oddilu + vybrane funkce
 extract() { sed -n "/^$1() {/,/^}/p" "$FILES/luxos-install"; }
 sed -n '/^# --- Volne misto vedle jinych systemu/,/^# Sifrovani (volitelne)/p' "$FILES/luxos-install" >"$OUT/lib.sh"
-for f in human_bytes iso_disk report_layout summary configure_system shared_esp_entry; do extract "$f" >>"$OUT/lib.sh"; done
+for f in human_bytes iso_disk report_layout summary xkb_text configure_system shared_esp_entry; do extract "$f" >>"$OUT/lib.sh"; done
 grep -q '^part_setup() {' "$OUT/lib.sh" && grep -q '^summary() {' "$OUT/lib.sh" || { echo "extrakce selhala"; exit 1; }
 
 # Prostredi jednoho behu (v podshellu): layout.sh, nahrady disku, funkce instalatoru
