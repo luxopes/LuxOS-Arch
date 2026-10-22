@@ -1,111 +1,304 @@
 #!/bin/bash
 # LuxOS - detekce hardwaru a potrebnych ovladacu
 #
-# Pouziti: luxos-hwdetect [--kernel NAZEV] [--packages|--services|--report]
+# Pouziti: luxos-hwdetect [--kernel NAZEV]... [--packages|--services|--report|--json]
 #   --packages  vypise baliky (vychozi)
 #   --services  vypise systemd sluzby k zapnuti
 #   --report    citelny prehled pro uzivatele
+#   --json      strojovy popis zarizeni (aplikace Ovladace a upozorneni po prihlaseni)
+#   --kernel    jadro, pro ktere se instaluji hlavicky (DKMS); lze opakovat.
+#               Vychozi: nainstalovana jadra (/usr/lib/modules/*/pkgbase), jinak linux-zen.
 set -euo pipefail
+# Promenne pro testy: LUXOS_HW_ROOT (koren s falesnym /sys, /proc, /etc, /usr/lib/modules),
+# LUXOS_HW_VIRT (vysledek systemd-detect-virt), LUXOS_HW_DATA (adresar s nvidia-legacy.ids).
+# Cte jen sysfs/procfs (bez lspci) - musi byt rychle, bezi i po kazdem prihlaseni.
 
-kernel=linux-zen
+R=${LUXOS_HW_ROOT:-}
+DATA=${LUXOS_HW_DATA:-/usr/share/luxos/hwdetect}
 mode=packages
+declare -a kernels=()
 while (($#)); do
     case $1 in
-        --kernel) kernel=$2; shift ;;
-        --packages|--services|--report) mode=${1#--} ;;
-        -h|--help) sed -n '2,7p' "$0" | sed 's/^# \?//'; exit 0 ;;
+        --kernel) [[ $# -ge 2 ]] || { echo "--kernel needs a value" >&2; exit 2; }; kernels+=("$2"); shift ;;
+        --packages|--services|--report|--json) mode=${1#--} ;;
+        -h|--help) sed -n '2,10p' "$0" | sed 's/^# \?//'; exit 0 ;;
         *) echo "Neznamy parametr: $1" >&2; exit 2 ;;
     esac
     shift
 done
 
+# --- Zaznamy zarizeni ------------------------------------------------------------
+# Kazde zarizeni ma vlastni baliky/sluzby (aplikace Ovladace ukazuje stav po zarizenich);
+# --packages a --services vypisuji jejich sjednoceni.
 declare -a pkgs=() svcs=() notes=()
-add()  { pkgs+=("$@"); }
-svc()  { svcs+=("$@"); }
-note() { notes+=("$1"); }
-need_headers=0
+declare -a D_ID=() D_KIND=() D_TITLE=() D_NOTE=() D_PKGS=() D_SVCS=() D_MOD=() D_REBOOT=() D_HDR=() D_ALT=()
+cur=-1
+device() {  # device ID DRUH NAZEV
+    cur=${#D_ID[@]}
+    D_ID+=("$1"); D_KIND+=("$2"); D_TITLE+=("$3")
+    D_NOTE+=(""); D_PKGS+=(""); D_SVCS+=(""); D_MOD+=(""); D_REBOOT+=(0); D_HDR+=(0); D_ALT+=("")
+}
+add()  { pkgs+=("$@"); D_PKGS[cur]+="${D_PKGS[cur]:+ }$*"; }
+svc()  { svcs+=("$@"); D_SVCS[cur]+="${D_SVCS[cur]:+ }$*"; }
+note() { notes+=("$1"); D_NOTE[cur]+="${D_NOTE[cur]:+$'\n'}$1"; }
+module() { D_MOD[cur]=$1; }        # modul jadra, ktery po instalaci a restartu bezi
+reboot_needed() { D_REBOOT[cur]=1; }
+headers() { D_HDR[cur]=1; }        # DKMS: hlavicky jadra
+# Volitelna nahrada doporuceneho ovladace (napr. NVIDIA 470 misto nouveau):
+# alt ID NAZEV POZNAMKA "BALIKY" "SLUZBY" MODUL HLAVICKY(0/1)
+alt() { D_ALT[cur]+="$1"$'\x1f'"$2"$'\x1f'"$3"$'\x1f'"$4"$'\x1f'"$5"$'\x1f'"$6"$'\x1f'"$7"$'\x1e'; }
 
-# Seznam PCI zarizeni ve tvaru "trida vendor:device" (bez lspci, cte primo sysfs)
-pci_devices() {
-    local d
-    for d in /sys/bus/pci/devices/*; do
-        [[ -r $d/class ]] || continue
-        printf '%s %s:%s\n' "$(<"$d/class")" "$(<"$d/vendor")" "$(<"$d/device")"
-    done | sed 's/0x//g'
+want_names=0
+[[ $mode == report || $mode == json ]] && want_names=1
+
+# Nazev zarizeni z databaze pci.ids (jen pro --report/--json; balik hwdata)
+pci_name() {  # pci_name VENDOR DEVICE
+    local f
+    ((want_names)) || return 0
+    for f in "$R/usr/share/hwdata/pci.ids" "$R/usr/share/misc/pci.ids"; do
+        [[ -r $f ]] || continue
+        awk -v v="$1" -v d="$2" '
+            /^[0-9a-f][0-9a-f][0-9a-f][0-9a-f] / { inv = ($1 == v); next }
+            /^C / { exit }
+            inv && /^\t[0-9a-f][0-9a-f][0-9a-f][0-9a-f] / && $1 == d { s = substr($0, 8)
+                if (match(s, /\[[^]]*\]/)) s = substr(s, RSTART + 1, RLENGTH - 2)
+                print s; exit }' "$f"
+        return 0
+    done
 }
 
+# PCI zarizeni ve tvaru "adresa trida vendor device" (bez lspci, primo ze sysfs)
+declare -a PCI=()
+for d in "$R"/sys/bus/pci/devices/*; do
+    [[ -r $d/class && -r $d/vendor && -r $d/device ]] || continue
+    c=$(<"$d/class") v=$(<"$d/vendor") p=$(<"$d/device")
+    PCI+=("${d##*/} ${c#0x} ${v#0x} ${p#0x}")
+done
+# USB zarizeni "vendor:product"
+declare -a USB=()
+for d in "$R"/sys/bus/usb/devices/*; do
+    [[ -r $d/idVendor && -r $d/idProduct ]] || continue
+    USB+=("$(<"$d/idVendor"):$(<"$d/idProduct")")
+done
+
+multilib=0
+grep -qs '^\[multilib\]' "$R/etc/pacman.conf" && multilib=1
+live=0
+[[ -d $R/run/archiso ]] && live=1
+laptop=0
+compgen -G "$R/sys/class/power_supply/BAT*" >/dev/null && laptop=1
+
 # --- GPU ---------------------------------------------------------------------
-while read -r class id; do
+# Generace NVIDIA (PCI ID):
+#   0x1e00 a vys      Turing, Ampere, Ada, Hopper, Blackwell -> nvidia-open (aktualni ovladac)
+#   nvidia-legacy.ids  580 = Maxwell, Pascal, Volta -> nvidia-580xx (legacy vetev, [luxos])
+#                      470 = Kepler -> nouveau, volitelne nvidia-470xx (jen Xorg, komunitni zaplaty)
+#   ostatni            Fermi a starsi -> nouveau (NVIDIA pro ne nema ovladac pro soucasna jadra)
+nvidia_branch() {  # nvidia_branch DEVICE -> "vetev nazev"
+    local id=$1 line=""
+    if ((16#$id >= 0x1e00)); then echo "open"; return; fi
+    [[ -r $DATA/nvidia-legacy.ids ]] && line=$(grep -m1 "^$id " "$DATA/nvidia-legacy.ids" || true)
+    if [[ -n $line ]]; then echo "${line#* }"; return; fi
+    # Neznamy model: rozsah Maxwell..Volta, jinak starsi (nouveau je bezpecny)
+    if ((16#$id >= 0x1340)); then echo "580"; else echo "old"; fi
+}
+
+has_igpu=0
+declare -a nv_slots=() nv_ids=() nv_branch=() nv_names=()
+for e in "${PCI[@]}"; do
+    read -r slot class vendor id <<<"$e"
     [[ $class == 03* ]] || continue          # 0300 VGA, 0302 3D, 0380 display
-    vendor=${id%%:*}; device=$((16#${id##*:}))
+    case $vendor in
+        8086|1002) has_igpu=1 ;;
+        10de)
+            b=$(nvidia_branch "$id")
+            nv_slots+=("$slot"); nv_ids+=("$id"); nv_branch+=("${b%% *}")
+            n=""; [[ $b == *" "* ]] && n=${b#* }
+            nv_names+=("$n") ;;
+    esac
+done
+# Jeden ovladac NVIDIA pro vsechny karty: 580 umi i Turing a novejsi
+nvb=""
+if ((${#nv_branch[@]})); then
+    case " ${nv_branch[*]} " in
+        *" 580 "*)  nvb=580 ;;
+        *" open "*) nvb=open ;;
+        *" 470 "*)  nvb=470 ;;
+        *)          nvb=old ;;
+    esac
+fi
+
+i=0
+for e in "${PCI[@]}"; do
+    read -r slot class vendor id <<<"$e"
+    [[ $class == 03* ]] || continue
     case $vendor in
         8086)
-            add vulkan-intel intel-media-driver
+            name=$(pci_name "$vendor" "$id")
+            device "gpu-$slot" gpu "Intel ${name:-graphics}"
+            d=$((16#$id))
+            add vulkan-intel
+            # VA-API: iHD (intel-media-driver) od Broadwellu, starsi grafiky jen i965
+            if ((d < 0x1600 || (d >= 0x2500 && d < 0x2f00) || (d >= 0xa000 && d < 0xa100) || (d >= 0x22b0 && d < 0x22c0))); then
+                add libva-intel-driver
+            else
+                add intel-media-driver
+            fi
+            ((multilib)) && add lib32-mesa lib32-vulkan-intel
             note "Intel graphics: Vulkan + hardware video decoding" ;;
         1002)
-            add vulkan-radeon
+            name=$(pci_name "$vendor" "$id")
+            device "gpu-$slot" gpu "AMD ${name:-graphics}"
+            add vulkan-radeon                    # VA-API je soucasti mesa
+            ((multilib)) && add lib32-mesa lib32-vulkan-radeon
             note "AMD graphics: Vulkan (RADV) + hardware video decoding" ;;
         10de)
-            # Open moduly NVIDIA podporuji Turing (GTX 16xx / RTX 20xx) a novejsi
-            if ((device >= 0x1e00)); then
-                add nvidia-open-dkms nvidia-utils nvidia-settings
-                # Uspani/hibernace: obsah VRAM se ulozi a po probuzeni obnovi (jinak cerna obrazovka)
-                svc nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service
-                need_headers=1
-                note "NVIDIA (Turing or newer): nvidia-open driver"
-            else
-                add vulkan-nouveau
-                note "NVIDIA (older generation): open-source nouveau driver"
-            fi ;;
-        15ad) note "VMware graphics: built into the kernel" ;;
-        80ee) note "VirtualBox graphics: built into the kernel" ;;
-        1af4|1b36|1234) note "Virtual GPU (QEMU/virtio)" ;;
+            name=${nv_names[i]:-}
+            [[ -n $name ]] || name=$(pci_name "$vendor" "$id")
+            name=${name#NVIDIA }
+            device "gpu-$slot" gpu "NVIDIA ${name:-graphics}"
+            case $nvb in
+                open)
+                    # Open moduly (Turing+); uspani resi jadro (595+), sluzby nvidia-suspend netreba
+                    add nvidia-open-dkms nvidia-utils nvidia-settings libva-nvidia-driver
+                    ((multilib)) && add lib32-nvidia-utils
+                    headers; module nvidia; reboot_needed
+                    note "NVIDIA (Turing or newer): nvidia-open driver" ;;
+                580)
+                    # Maxwell/Pascal/Volta: posledni ovladac je vetev 580 (balik v [luxos], z AUR)
+                    add nvidia-580xx-dkms nvidia-580xx-utils libva-nvidia-driver
+                    ((multilib)) && add lib32-nvidia-580xx-utils
+                    # Uspani/hibernace: obsah VRAM se ulozi a po probuzeni obnovi (jinak cerna obrazovka)
+                    svc nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service
+                    headers; module nvidia; reboot_needed
+                    note "NVIDIA (Maxwell/Pascal/Volta): legacy NVIDIA 580 driver" ;;
+                470)
+                    # Kepler: nouveau je soucasti jadra a aktualizace ho nerozbiji;
+                    # NVIDIA 470 uz NVIDIA neudrzuje (zaplaty komunity, jen Xorg) - jen volitelne
+                    add vulkan-nouveau linux-firmware-nvidia
+                    ((multilib)) && add lib32-vulkan-nouveau
+                    note "NVIDIA (Kepler): open-source nouveau driver; the legacy NVIDIA 470 driver is optional"
+                    a="nvidia-470xx-dkms nvidia-470xx-utils"
+                    ((multilib)) && a+=" lib32-nvidia-470xx-utils"
+                    ((has_igpu)) && a+=" nvidia-prime"
+                    alt nvidia-470xx "NVIDIA 470 legacy driver" \
+                        "Faster 3D, Xorg only. NVIDIA no longer maintains it; a kernel update can break it until the community fixes it." \
+                        "$a" "" nvidia 1 ;;
+                *)
+                    add vulkan-nouveau linux-firmware-nvidia
+                    ((multilib)) && add lib32-vulkan-nouveau
+                    note "NVIDIA (older generation): open-source nouveau driver (NVIDIA has no driver for current kernels)" ;;
+            esac
+            # Hybridni grafika NVIDIA + integrovana
+            if [[ $nvb == open || $nvb == 580 ]] && ((has_igpu)); then
+                add nvidia-prime
+                note "Hybrid graphics: run 'prime-run <app>' to use the NVIDIA GPU"
+            fi
+            i=$((i + 1)) ;;
+        15ad) device "gpu-$slot" gpu "VMware SVGA"; note "VMware graphics: built into the kernel" ;;
+        80ee) device "gpu-$slot" gpu "VirtualBox graphics"; note "VirtualBox graphics: built into the kernel" ;;
+        1af4|1b36|1234) device "gpu-$slot" gpu "Virtual GPU"; note "Virtual GPU (QEMU/virtio)" ;;
     esac
-done < <(pci_devices)
-
-# Hybridni grafika NVIDIA + integrovana
-if [[ " ${pkgs[*]} " == *" nvidia-utils "* ]] && pci_devices | grep -qE '^03[0-9a-f]{4} (8086|1002):'; then
-    add nvidia-prime
-    note "Hybrid graphics: run 'prime-run <app>' to use the NVIDIA GPU"
-fi
+done
 
 # --- Wi-Fi Broadcom (vyzaduje proprietarni wl) -----------------------------
 broadcom_wl='4311 4312 4315 4328 4329 432a 432b 432c 432d 4331 4353 4357 4358 4359 4360 43a0 43b1 43b3'
-while read -r class id; do
-    [[ $class == 0280* && ${id%%:*} == 14e4 ]] || continue
-    if [[ " $broadcom_wl " == *" ${id##*:} "* ]]; then
-        add broadcom-wl-dkms
-        need_headers=1
-        note "Broadcom Wi-Fi (${id}): broadcom-wl driver"
+for e in "${PCI[@]}"; do
+    read -r slot class vendor id <<<"$e"
+    [[ $class == 0280* && $vendor == 14e4 && " $broadcom_wl " == *" $id "* ]] || continue
+    name=$(pci_name "$vendor" "$id")
+    device "wifi-$slot" wifi "Broadcom ${name:-Wi-Fi}"
+    add broadcom-wl-dkms
+    headers; module wl; reboot_needed
+    note "Broadcom Wi-Fi: broadcom-wl driver"
+done
+
+# --- Zvuk Intel Smart Sound (SOF): mikrofony a reproduktory notebooku ------------
+# Trida 0401 (multimedia audio) nebo 0403 80 (audio s DSP); bezne HDA 040300 firmware nepotrebuje
+for e in "${PCI[@]}"; do
+    read -r slot class vendor id <<<"$e"
+    [[ $vendor == 8086 && ( $class == 0401* || $class == 040380 ) ]] || continue
+    device "audio-$slot" audio "Intel Smart Sound audio"
+    add sof-firmware alsa-ucm-conf
+    reboot_needed
+    note "Intel Smart Sound audio: SOF firmware (speakers and microphones)"
+    break
+done
+
+# --- Kamery Intel IPU (MIPI, novejsi notebooky) ----------------------------------
+# Ovladac IPU6 je v jadre od 6.10, obraz zpracovava libcamera (softwarove ISP) a aplikacim
+# ho predava PipeWire. IPU7/IPU8 (Lunar Lake a novejsi) je v jadre zatim v staging.
+ipu6=' 9a19 9a39 4e19 465d 462e a75d 7d19 ' ipu7=' 645d b05d d719 '
+for e in "${PCI[@]}"; do
+    read -r slot class vendor id <<<"$e"
+    [[ $vendor == 8086 ]] || continue
+    if [[ $ipu6 == *" $id "* ]]; then
+        device "camera-$slot" camera "Intel IPU6 camera"
+        add libcamera pipewire-libcamera gst-plugin-libcamera
+        note "Intel IPU6 camera: works through libcamera/PipeWire (Firefox, apps with PipeWire camera support); apps that open the camera directly may not see it"
+    elif [[ $ipu7 == *" $id "* ]]; then
+        device "camera-$slot" camera "Intel IPU7 camera"
+        add libcamera pipewire-libcamera gst-plugin-libcamera
+        note "Intel IPU7 camera: Linux support is still experimental - the built-in camera may not work yet"
     fi
-done < <(pci_devices)
+done
+
+# --- USB Wi-Fi v rezimu "CD s ovladacem" (Realtek/MediaTek) -----------------------
+# Ovladace bezne pouzivanych adapteru jsou v jadre (rtw88, rtw89, rtl8xxxu, mt76);
+# nektere se ale nejdriv hlasi jako disk s ovladacem pro Windows a prepne je usb_modeswitch.
+for u in "${USB[@]}"; do
+    case $u in
+        0bda:1a2b|0e8d:2870)
+            device "usb-$u" wifi "USB Wi-Fi adapter"
+            add usb_modeswitch
+            note "USB Wi-Fi adapter in driver-CD mode: usb_modeswitch switches it to Wi-Fi"
+            break ;;
+    esac
+done
+
+# --- Thunderbolt / USB4: autorizace pripojenych zarizeni ---------------------------
+if compgen -G "$R/sys/bus/thunderbolt/devices/domain*" >/dev/null; then
+    device thunderbolt thunderbolt "Thunderbolt / USB4"
+    add bolt
+    note "Thunderbolt: bolt (authorizes docks and other devices)"
+fi
 
 # --- CPU -------------------------------------------------------------------
-if grep -q GenuineIntel /proc/cpuinfo 2>/dev/null; then
+if grep -qs GenuineIntel "$R/proc/cpuinfo"; then
+    device cpu cpu "Intel processor"
     add intel-ucode
-    if compgen -G '/sys/class/power_supply/BAT*' >/dev/null; then
+    note "Intel processor: microcode updates"
+    if ((laptop)); then
         add thermald; svc thermald.service
         note "Intel laptop: thermald (thermal management)"
     fi
-elif grep -q AuthenticAMD /proc/cpuinfo 2>/dev/null; then
+elif grep -qs AuthenticAMD "$R/proc/cpuinfo"; then
+    device cpu cpu "AMD processor"
     add amd-ucode
+    note "AMD processor: microcode updates"
 fi
 
 # --- Virtualizace ----------------------------------------------------------
-virt=$(systemd-detect-virt 2>/dev/null || true)
+if [[ -n ${LUXOS_HW_VIRT+x} ]]; then
+    virt=$LUXOS_HW_VIRT
+elif [[ -z $R ]]; then
+    virt=$(systemd-detect-virt 2>/dev/null || true)
+else
+    virt=none
+fi
 case $virt in
-    oracle)    add virtualbox-guest-utils; svc vboxservice.service; note "VirtualBox: guest additions" ;;
-    vmware)    add open-vm-tools; svc vmtoolsd.service vmware-vmblock-fuse.service; note "VMware: open-vm-tools" ;;
-    kvm|qemu)  add qemu-guest-agent spice-vdagent; note "QEMU/KVM: guest agent + SPICE (clipboard, resolution)" ;;
-    microsoft) add hyperv; svc hv_kvp_daemon.service hv_vss_daemon.service; note "Hyper-V: integration services" ;;
+    oracle)    device vm vm "VirtualBox"; add virtualbox-guest-utils; svc vboxservice.service; note "VirtualBox: guest additions" ;;
+    vmware)    device vm vm "VMware"; add open-vm-tools; svc vmtoolsd.service vmware-vmblock-fuse.service; note "VMware: open-vm-tools" ;;
+    kvm|qemu)  device vm vm "QEMU/KVM"; add qemu-guest-agent spice-vdagent; note "QEMU/KVM: guest agent + SPICE (clipboard, resolution)" ;;
+    microsoft) device vm vm "Hyper-V"; add hyperv; svc hv_kvp_daemon.service hv_vss_daemon.service; note "Hyper-V: integration services" ;;
 esac
 
 # --- Ctecka otisku prstu ---------------------------------------------------
 # Elan (04f3) vyrabi i dotykove obrazovky - ctecky maji produkt 0cXX
 fp_usb_re='^(06cb|27c6|138a|10a5|1c7a|2808|298d):|^04f3:0c'
-for d in /sys/bus/usb/devices/*; do
-    [[ -r $d/idVendor && -r $d/idProduct ]] || continue
-    if [[ "$(<"$d/idVendor"):$(<"$d/idProduct")" =~ $fp_usb_re ]]; then
+for u in "${USB[@]}"; do
+    if [[ $u =~ $fp_usb_re ]]; then
+        device fingerprint fingerprint "Fingerprint reader"
         add fprintd
         note "Fingerprint reader: fprintd (set up with fprintd-enroll)"
         break
@@ -113,24 +306,94 @@ for d in /sys/bus/usb/devices/*; do
 done
 
 # --- Senzory 2v1 (otaceni obrazovky) ---------------------------------------
-if grep -qsE 'accel|incli' /sys/bus/iio/devices/*/name; then
+if grep -qsE 'accel|incli' "$R"/sys/bus/iio/devices/*/name; then
+    device sensors sensors "Accelerometer"
     add iio-sensor-proxy
     note "Accelerometer: automatic screen rotation"
 fi
 
 # --- Hlavicky jadra pro DKMS ----------------------------------------------
-((need_headers)) && add "${kernel}-headers"
-
-if [[ -t 1 && -z ${NO_COLOR-} ]]; then B=$'\e[1m' R=$'\e[0m'; else B="" R=""; fi
+# Hlavicky musi patrit k jadrum, ktera jsou opravdu nainstalovana (DKMS sestavi modul pro kazde).
+# pkgbase maji jen jadra z baliku (zalozni jadro LuxOS Care ho nema).
+if ((${#kernels[@]} == 0)); then
+    for f in "$R"/usr/lib/modules/*/pkgbase; do
+        [[ -r $f ]] || continue
+        k=$(<"$f")
+        [[ $k =~ ^[a-z0-9][a-z0-9._+-]*$ ]] && kernels+=("$k")
+    done
+    ((${#kernels[@]})) || kernels=(linux-zen)
+fi
 dedup() { printf '%s\n' "$@" | awk 'NF && !seen[$0]++'; }
+mapfile -t kernels < <(dedup "${kernels[@]}")
+hdr=""
+for k in "${kernels[@]}"; do hdr+="${hdr:+ }$k-headers"; done
+for ((n = 0; n < ${#D_ID[@]}; n++)); do
+    if ((D_HDR[n])); then
+        D_PKGS[n]+=" $hdr"
+        # shellcheck disable=SC2206
+        pkgs+=($hdr)
+    fi
+done
+
+# --- Vystup ------------------------------------------------------------------
+# JSON bez podprocesu (printf -v): vystup --json se cte po kazdem prihlaseni
+js() {  # js PROMENNA TEXT -> retezec JSON
+    local s=$2
+    s=${s//\\/\\\\}; s=${s//\"/\\\"}; s=${s//$'\t'/ }; s=${s//$'\n'/\\n}; s=${s//$'\r'/}
+    printf -v "$1" '"%s"' "$s"
+}
+jarr() {  # jarr PROMENNA "a b c" -> ["a","b","c"] (bez duplicit)
+    local out="" x q
+    local -A seen=()
+    for x in $2; do
+        [[ -n ${seen[$x]-} ]] && continue
+        seen[$x]=1
+        js q "$x"
+        out+="${out:+,}$q"
+    done
+    printf -v "$1" '[%s]' "$out"
+}
+jbool() { if (($2)); then printf -v "$1" true; else printf -v "$1" false; fi; }
+
+if [[ -t 1 && -z ${NO_COLOR-} ]]; then B=$'\e[1m' N=$'\e[0m'; else B="" N=""; fi
 
 case $mode in
     packages) dedup "${pkgs[@]}" ;;
     services) dedup "${svcs[@]}" ;;
     report)
-        printf '%sLuxOS hardware detection%s\n' "$B" "$R"
+        printf '%sLuxOS hardware detection%s\n' "$B" "$N"
         if ((${#notes[@]})); then printf '  • %s\n' "${notes[@]}"; else echo "  • No special drivers needed"; fi
+        for ((n = 0; n < ${#D_ID[@]}; n++)); do
+            [[ -n ${D_ALT[n]} ]] || continue
+            while IFS=$'\x1f' read -r -d $'\x1e' a_id a_title a_note a_pkgs _rest; do
+                printf '  ◦ %s (%s): %s\n' "$a_title" "$a_id" "$a_pkgs"
+            done <<<"${D_ALT[n]}"
+        done
         if ((${#pkgs[@]})); then
-            printf '\n%sPackages:%s %s\n' "$B" "$R" "$(dedup "${pkgs[@]}" | tr '\n' ' ')"
+            printf '\n%sPackages:%s %s\n' "$B" "$N" "$(dedup "${pkgs[@]}" | tr '\n' ' ')"
         fi ;;
+    json)
+        j_live="" j_ml="" j_k="" j_id="" j_kind="" j_title="" j_note="" j_p="" j_s="" j_m="" j_r=""
+        jbool j_live "$live"; jbool j_ml "$multilib"; jarr j_k "${kernels[*]}"
+        out="{\"version\":1,\"live\":$j_live,\"multilib\":$j_ml,\"kernels\":$j_k,\"devices\":["
+        for ((n = 0; n < ${#D_ID[@]}; n++)); do
+            ((n)) && out+=","
+            js j_id "${D_ID[n]}"; js j_kind "${D_KIND[n]}"; js j_title "${D_TITLE[n]}"; js j_note "${D_NOTE[n]}"
+            jarr j_p "${D_PKGS[n]}"; jarr j_s "${D_SVCS[n]}"; js j_m "${D_MOD[n]}"; jbool j_r "${D_REBOOT[n]}"
+            out+="{\"id\":$j_id,\"kind\":$j_kind,\"title\":$j_title,\"note\":$j_note,\"packages\":$j_p,\"services\":$j_s,\"module\":$j_m,\"reboot\":$j_r,\"alternatives\":["
+            first=1
+            if [[ -n ${D_ALT[n]} ]]; then
+                while IFS=$'\x1f' read -r -d $'\x1e' a_id a_title a_note a_pkgs a_svcs a_mod a_hdr; do
+                    ((a_hdr)) && a_pkgs+=" $hdr"
+                    ((first)) || out+=","
+                    first=0
+                    js j_id "$a_id"; js j_title "$a_title"; js j_note "$a_note"
+                    jarr j_p "$a_pkgs"; jarr j_s "$a_svcs"; js j_m "$a_mod"
+                    out+="{\"id\":$j_id,\"title\":$j_title,\"note\":$j_note,\"packages\":$j_p,\"services\":$j_s,\"module\":$j_m,\"reboot\":true}"
+                done <<<"${D_ALT[n]}"
+            fi
+            out+="]}"
+        done
+        jarr j_p "${pkgs[*]}"; jarr j_s "${svcs[*]}"
+        printf '%s],"packages":%s,"services":%s}\n' "$out" "$j_p" "$j_s" ;;
 esac

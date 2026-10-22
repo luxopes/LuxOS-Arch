@@ -1799,3 +1799,132 @@ The passphrases do not match.	A jelmondatok nem egyeznek.
 Do not use (for example for LVM)	Nincs használva (például LVM-hez)
 encrypted	titkosított
 The disk %s is too small for this layout (it needs at least %s).	A(z) %s lemez túl kicsi ehhez az elrendezéshez (legalább %s kell).
+# Ovladace (luxos-drivers)
+Drivers	Illesztőprogramok
+Detecting hardware…	Hardver felismerése…
+Additional drivers are available for your hardware	További illesztőprogramok érhetők el a hardverhez
+Additional drivers are available	További illesztőprogramok érhetők el
+Restart to finish installing drivers	Indítsa újra a gépet az illesztőprogramok telepítésének befejezéséhez
+Install recommended drivers	Ajánlott illesztőprogramok telepítése
+Working	Működik
+Restart required	Újraindítás szükséges
+Driver available	Illesztőprogram elérhető
+Drivers are installed automatically when you install LuxOS.	Az illesztőprogramok a LuxOS telepítésekor automatikusan települnek.
+Packages: %s	Csomagok: %s
+Hardware detection failed: %s	A hardver felismerése sikertelen: %s
+No special drivers needed	Nincs szükség külön illesztőprogramra
+Using: %s	Használatban: %s
+Other option: %s…	Másik lehetőség: %s…
+Installing drivers…	Illesztőprogramok telepítése…
+Updating the system first (the kernel headers must match the kernel)…	Először a rendszer frissítése (a kernelfejléceknek egyezniük kell a kernellel)…
+Building the driver for the kernel (this can take a few minutes)…	Az illesztőprogram fordítása a kernelhez (ez néhány percig tarthat)…
+Open Drivers to install them with one click.	Nyissa meg az Illesztőprogramok alkalmazást, és telepítse őket egy kattintással.
+Show drivers	Illesztőprogramok megjelenítése
+Don't remind me	Ne emlékeztessen
+Intel graphics: Vulkan + hardware video decoding	Intel grafika: Vulkan + hardveres videódekódolás
+AMD graphics: Vulkan (RADV) + hardware video decoding	AMD grafika: Vulkan (RADV) + hardveres videódekódolás
+NVIDIA (Turing or newer): nvidia-open driver	NVIDIA (Turing vagy újabb): nvidia-open illesztőprogram
+NVIDIA (Maxwell/Pascal/Volta): legacy NVIDIA 580 driver	NVIDIA (Maxwell/Pascal/Volta): régebbi NVIDIA 580 illesztőprogram
+NVIDIA (Kepler): open-source nouveau driver; the legacy NVIDIA 470 driver is optional	NVIDIA (Kepler): nyílt forrású nouveau illesztőprogram; a régebbi NVIDIA 470 választható
+NVIDIA (older generation): open-source nouveau driver (NVIDIA has no driver for current kernels)	NVIDIA (régebbi generáció): nyílt forrású nouveau (az NVIDIA-nak nincs illesztőprogramja a mai kernelekhez)
+Hybrid graphics: run 'prime-run <app>' to use the NVIDIA GPU	Hibrid grafika: az NVIDIA GPU használatához futtassa: 'prime-run <alkalmazás>'
+VMware graphics: built into the kernel	VMware grafika: a kernel része
+VirtualBox graphics: built into the kernel	VirtualBox grafika: a kernel része
+Virtual GPU (QEMU/virtio)	Virtuális GPU (QEMU/virtio)
+Broadcom Wi-Fi: broadcom-wl driver	Broadcom Wi-Fi: broadcom-wl illesztőprogram
+Intel Smart Sound audio: SOF firmware (speakers and microphones)	Intel Smart Sound hang: SOF firmware (hangszórók és mikrofonok)
+Intel IPU6 camera: works through libcamera/PipeWire (Firefox, apps with PipeWire camera support); apps that open the camera directly may not see it	Intel IPU6 kamera: libcamera/PipeWire segítségével működik (Firefox, PipeWire-kamerát támogató alkalmazások); a kamerát közvetlenül megnyitó alkalmazások nem biztos, hogy látják
+Intel IPU7 camera: Linux support is still experimental - the built-in camera may not work yet	Intel IPU7 kamera: a Linux-támogatás még kísérleti – a beépített kamera lehet, hogy még nem működik
+USB Wi-Fi adapter in driver-CD mode: usb_modeswitch switches it to Wi-Fi	USB Wi-Fi adapter illesztőprogram-CD módban: a usb_modeswitch Wi-Fi módba kapcsolja
+Thunderbolt: bolt (authorizes docks and other devices)	Thunderbolt: bolt (engedélyezi a dokkolókat és más eszközöket)
+Intel processor: microcode updates	Intel processzor: mikrokód-frissítések
+AMD processor: microcode updates	AMD processzor: mikrokód-frissítések
+Intel laptop: thermald (thermal management)	Intel laptop: thermald (hőkezelés)
+VirtualBox: guest additions	VirtualBox: vendég kiegészítések
+VMware: open-vm-tools	VMware: open-vm-tools
+QEMU/KVM: guest agent + SPICE (clipboard, resolution)	QEMU/KVM: vendégügynök + SPICE (vágólap, felbontás)
+Hyper-V: integration services	Hyper-V: integrációs szolgáltatások
+Fingerprint reader: fprintd (set up with fprintd-enroll)	Ujjlenyomat-olvasó: fprintd (beállítás: fprintd-enroll)
+Accelerometer: automatic screen rotation	Gyorsulásmérő: automatikus képernyőforgatás
+NVIDIA 470 legacy driver	Régebbi NVIDIA 470 illesztőprogram
+Faster 3D, Xorg only. NVIDIA no longer maintains it; a kernel update can break it until the community fixes it.	Gyorsabb 3D, csak Xorg. Az NVIDIA már nem tartja karban; egy kernelfrissítés elronthatja, amíg a közösség ki nem javítja.
+Intel graphics	Intel grafika
+AMD graphics	AMD grafika
+NVIDIA graphics	NVIDIA grafika
+Broadcom Wi-Fi	Broadcom Wi-Fi
+VirtualBox graphics	VirtualBox grafika
+Virtual GPU	Virtuális GPU
+Intel Smart Sound audio	Intel Smart Sound hang
+Intel IPU6 camera	Intel IPU6 kamera
+Intel IPU7 camera	Intel IPU7 kamera
+USB Wi-Fi adapter	USB Wi-Fi adapter
+Thunderbolt / USB4	Thunderbolt / USB4
+Intel processor	Intel processzor
+AMD processor	AMD processzor
+Fingerprint reader	Ujjlenyomat-olvasó
+Accelerometer	Gyorsulásmérő
+Downloading the NVIDIA driver…	Az NVIDIA illesztőprogram letöltése…
+The NVIDIA driver could not be installed. The open-source driver is used for now; install it later in Drivers.	Az NVIDIA illesztőprogramot nem sikerült telepíteni. Egyelőre a nyílt forrású illesztőprogram működik; később telepítse az Illesztőprogramok alkalmazásban.
+Scanner	Szkenner
+Choose scanner	Szkenner kiválasztása
+Glass (flatbed)	Üveglap (síkágyas)
+Document feeder	Lapadagoló
+Document feeder, both sides	Lapadagoló, mindkét oldal
+No scanner found	Nem található szkenner
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. Then click Try Again.	Kapcsold be a szkennert, és csatlakoztasd USB-kábellel vagy ugyanahhoz a Wi‑Fi-hálózathoz, mint ezt a számítógépet. Ezután kattints az Újrapróbálás gombra.
+Scanning support is not installed	A szkennelés támogatása nincs telepítve
+Install the luxos-printing package from the Store.	Telepítsd a luxos-printing csomagot az Áruházból.
+Scanners could not be found	Nem sikerült szkennereket keresni
+Something went wrong while looking for scanners. Try again in a moment.	Hiba történt a szkennerek keresése közben. Próbáld újra egy kis idő múlva.
+Scan as	Beolvasás mint
+Colours	Színek
+Colour	Színes
+Black & white	Fekete-fehér
+Paper	Papír
+Start Over	Újrakezdés
+Show in Files	Megjelenítés a Fájlokban
+Scanned pages appear here. Click Scan Another Page to add more pages to the same document.	A beolvasott oldalak itt jelennek meg. Kattints a További oldal beolvasása gombra, ha további oldalakat szeretnél ugyanahhoz a dokumentumhoz adni.
+Move page left	Oldal mozgatása balra
+Move page right	Oldal mozgatása jobbra
+JPEG picture	JPEG-kép
+PNG picture	PNG-kép
+Print…	Nyomtatás…
+Getting the scanner ready…	Szkenner előkészítése…
+1 page scanned.	1 oldal beolvasva.
+%d pages scanned.	Beolvasott oldalak: %d.
+Scan More Pages	További oldalak beolvasása
+Scan All Pages	Összes oldal beolvasása
+Scan Another Page	További oldal beolvasása
+For letters, forms and receipts.	Levelekhez, űrlapokhoz és nyugtákhoz.
+For photos and pictures, in more detail.	Fényképekhez és képekhez, részletesebben.
+Place the document face down on the scanner glass, then click Scan.	Helyezd a dokumentumot képpel lefelé a szkenner üveglapjára, majd kattints a Beolvasás gombra.
+The scan could not be saved	A beolvasott anyagot nem sikerült menteni
+Check that there is enough free space in your Documents folder.	Ellenőrizd, hogy van-e elég szabad hely a Dokumentumok mappában.
+The scan could not be printed	A beolvasott anyagot nem sikerült kinyomtatni
+Close without saving the scanned pages?	Bezárod a beolvasott oldalak mentése nélkül?
+The pages you scanned have not been saved yet.	A beolvasott oldalak még nincsenek mentve.
+Close Without Saving	Bezárás mentés nélkül
+The scanner is busy	A szkenner foglalt
+Another app or computer is using it right now. Wait a moment and try again.	Most egy másik alkalmazás vagy számítógép használja. Várj egy kicsit, és próbáld újra.
+The paper is jammed	Papírelakadás
+Open the document feeder, carefully remove the paper and try again.	Nyisd ki a lapadagolót, óvatosan vedd ki a papírt, és próbáld újra.
+The document feeder is empty	A lapadagoló üres
+Put the pages in the document feeder, or choose the glass as the source.	Tedd az oldalakat a lapadagolóba, vagy válaszd forrásként az üveglapot.
+The scanner cover is open	A szkenner fedele nyitva van
+Close the cover and try again.	Csukd le a fedelet, és próbáld újra.
+The scanner cannot be used	A szkenner nem használható
+Your user account is not allowed to use this scanner. Log out and log in again.	A felhasználói fiókod nem férhet hozzá ehhez a szkennerhez. Jelentkezz ki, majd be újra.
+Not enough memory or disk space	Nincs elég memória vagy lemezterület
+Close some apps or free up disk space, or scan with lower quality.	Zárj be néhány alkalmazást, szabadíts fel lemezterületet, vagy olvass be alacsonyabb minőségben.
+The scanner does not respond	A szkenner nem válaszol
+Make sure it is turned on and connected with a USB cable or to the same Wi‑Fi network.	Ellenőrizd, hogy be van-e kapcsolva, és USB-kábellel vagy ugyanahhoz a Wi‑Fi-hálózathoz csatlakozik-e.
+The connection to the scanner was lost	Megszakadt a kapcsolat a szkennerrel
+Check the cable or Wi‑Fi connection, turn the scanner off and on again and try once more.	Ellenőrizd a kábelt vagy a Wi‑Fi-kapcsolatot, kapcsold ki és be a szkennert, majd próbáld újra.
+Scanning was cancelled	A beolvasás megszakadt
+Something went wrong while scanning	Hiba történt a beolvasás közben
+Turn the scanner off and on again and try once more.	Kapcsold ki és be a szkennert, majd próbáld újra.
+Scan %s	Beolvasás %s
+Scan…	Beolvasás…
+Open in the Scanner app	Megnyitás a Szkenner alkalmazásban
+Could not open the Scanner app	Nem sikerült megnyitni a Szkenner alkalmazást
+Open the Scanner app to scan a document.	Nyisd meg a Szkenner alkalmazást egy dokumentum beolvasásához.

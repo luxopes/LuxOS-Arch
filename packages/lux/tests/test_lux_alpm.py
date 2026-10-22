@@ -663,3 +663,53 @@ class CallbackShapes(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GpuProviders(unittest.TestCase):
+    """Zavislost na vulkan-driver nesmi na ne-NVIDIA stroji vybrat ovladac NVIDIA z [luxos]."""
+
+    def gpu_world(self, h):
+        by = {db.name: db for db in h.sync}
+        by["luxos"].add(fake.Package("lib32-nvidia-470xx-utils", "470.256-1", provides=["lib32-vulkan-driver"]))
+        by["extra"].add(fake.Package("steam", "1.0-1", depends=["lib32-vulkan-driver"]))
+        by["extra"].add(fake.Package("lib32-vulkan-swrast", "25.0-1", provides=["lib32-vulkan-driver"]))
+        by["extra"].add(fake.Package("lib32-vulkan-radeon", "25.0-1", provides=["lib32-vulkan-driver"]))
+        by["extra"].add(fake.Package("lib32-nvidia-utils", "615.0-1", provides=["lib32-vulkan-driver"]))
+
+    def install(self, hw):
+        old = lux_alpm.Lux.hw_packages
+        lux_alpm.Lux.hw_packages = lambda self: list(hw)
+        try:
+            api = make_api()
+            reg = api.Handle.register_syncdb
+
+            def register(h, name, sig):
+                db = reg(h, name, sig)
+                if name == "extra":
+                    self.gpu_world(h)
+                return db
+            api.Handle.register_syncdb = register
+            rc, out, h = run(["-y", "--machine", "install", "steam"], api=api)
+        finally:
+            lux_alpm.Lux.hw_packages = old
+        self.assertEqual(rc, 0, out)
+        return {p.name for p in h.local.pkgcache}
+
+    def test_amd_gets_radeon(self):
+        got = self.install(["vulkan-radeon", "amd-ucode"])
+        self.assertIn("lib32-vulkan-radeon", got)
+        self.assertNotIn("lib32-nvidia-470xx-utils", got)
+
+    def test_vm_gets_software_vulkan(self):
+        got = self.install(["qemu-guest-agent"])
+        self.assertIn("lib32-vulkan-swrast", got)
+        self.assertNotIn("lib32-nvidia-470xx-utils", got)
+
+    def test_modern_nvidia_gets_current_driver(self):
+        got = self.install(["nvidia-open-dkms", "nvidia-utils"])
+        self.assertIn("lib32-nvidia-utils", got)
+        self.assertNotIn("lib32-nvidia-470xx-utils", got)
+
+    def test_kepler_keeps_legacy(self):
+        got = self.install(["lib32-nvidia-470xx-utils", "nvidia-470xx-dkms"])
+        self.assertIn("lib32-nvidia-470xx-utils", got)

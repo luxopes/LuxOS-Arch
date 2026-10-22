@@ -1800,3 +1800,132 @@ The passphrases do not match.	Паролі не збігаються.
 Do not use (for example for LVM)	Не використовувати (наприклад, для LVM)
 encrypted	зашифровано
 The disk %s is too small for this layout (it needs at least %s).	Диск %s замалий для цієї розмітки (потрібно щонайменше %s).
+# Ovladace (luxos-drivers)
+Drivers	Драйвери
+Detecting hardware…	Виявлення обладнання…
+Additional drivers are available for your hardware	Для вашого обладнання доступні додаткові драйвери
+Additional drivers are available	Доступні додаткові драйвери
+Restart to finish installing drivers	Перезапустіть, щоб завершити встановлення драйверів
+Install recommended drivers	Встановити рекомендовані драйвери
+Working	Працює
+Restart required	Потрібен перезапуск
+Driver available	Драйвер доступний
+Drivers are installed automatically when you install LuxOS.	Драйвери встановляться автоматично під час встановлення LuxOS.
+Packages: %s	Пакунки: %s
+Hardware detection failed: %s	Не вдалося виявити обладнання: %s
+No special drivers needed	Спеціальні драйвери не потрібні
+Using: %s	Використовується: %s
+Other option: %s…	Інший варіант: %s…
+Installing drivers…	Встановлення драйверів…
+Updating the system first (the kernel headers must match the kernel)…	Спершу оновлення системи (заголовки ядра мають відповідати ядру)…
+Building the driver for the kernel (this can take a few minutes)…	Збирання драйвера для ядра (це може тривати кілька хвилин)…
+Open Drivers to install them with one click.	Відкрийте Драйвери, щоб встановити їх одним клацанням.
+Show drivers	Показати драйвери
+Don't remind me	Не нагадувати
+Intel graphics: Vulkan + hardware video decoding	Графіка Intel: Vulkan + апаратне декодування відео
+AMD graphics: Vulkan (RADV) + hardware video decoding	Графіка AMD: Vulkan (RADV) + апаратне декодування відео
+NVIDIA (Turing or newer): nvidia-open driver	NVIDIA (Turing або новіші): драйвер nvidia-open
+NVIDIA (Maxwell/Pascal/Volta): legacy NVIDIA 580 driver	NVIDIA (Maxwell/Pascal/Volta): застарілий драйвер NVIDIA 580
+NVIDIA (Kepler): open-source nouveau driver; the legacy NVIDIA 470 driver is optional	NVIDIA (Kepler): відкритий драйвер nouveau; застарілий драйвер NVIDIA 470 — за бажанням
+NVIDIA (older generation): open-source nouveau driver (NVIDIA has no driver for current kernels)	NVIDIA (старше покоління): відкритий драйвер nouveau (NVIDIA не має драйвера для сучасних ядер)
+Hybrid graphics: run 'prime-run <app>' to use the NVIDIA GPU	Гібридна графіка: щоб використати GPU NVIDIA, запустіть 'prime-run <програма>'
+VMware graphics: built into the kernel	Графіка VMware: вбудована в ядро
+VirtualBox graphics: built into the kernel	Графіка VirtualBox: вбудована в ядро
+Virtual GPU (QEMU/virtio)	Віртуальний GPU (QEMU/virtio)
+Broadcom Wi-Fi: broadcom-wl driver	Wi-Fi Broadcom: драйвер broadcom-wl
+Intel Smart Sound audio: SOF firmware (speakers and microphones)	Звук Intel Smart Sound: мікропрограма SOF (динаміки й мікрофони)
+Intel IPU6 camera: works through libcamera/PipeWire (Firefox, apps with PipeWire camera support); apps that open the camera directly may not see it	Камера Intel IPU6: працює через libcamera/PipeWire (Firefox, програми з підтримкою камери PipeWire); програми, що відкривають камеру напряму, можуть її не бачити
+Intel IPU7 camera: Linux support is still experimental - the built-in camera may not work yet	Камера Intel IPU7: підтримка в Linux поки експериментальна – вбудована камера може ще не працювати
+USB Wi-Fi adapter in driver-CD mode: usb_modeswitch switches it to Wi-Fi	USB-адаптер Wi-Fi у режимі диска з драйвером: usb_modeswitch перемикає його на Wi-Fi
+Thunderbolt: bolt (authorizes docks and other devices)	Thunderbolt: bolt (авторизує док-станції та інші пристрої)
+Intel processor: microcode updates	Процесор Intel: оновлення мікрокоду
+AMD processor: microcode updates	Процесор AMD: оновлення мікрокоду
+Intel laptop: thermald (thermal management)	Ноутбук Intel: thermald (керування температурою)
+VirtualBox: guest additions	VirtualBox: доповнення гостьової ОС
+VMware: open-vm-tools	VMware: open-vm-tools
+QEMU/KVM: guest agent + SPICE (clipboard, resolution)	QEMU/KVM: гостьовий агент + SPICE (буфер обміну, роздільність)
+Hyper-V: integration services	Hyper-V: служби інтеграції
+Fingerprint reader: fprintd (set up with fprintd-enroll)	Сканер відбитків пальців: fprintd (налаштування: fprintd-enroll)
+Accelerometer: automatic screen rotation	Акселерометр: автоматичний поворот екрана
+NVIDIA 470 legacy driver	Застарілий драйвер NVIDIA 470
+Faster 3D, Xorg only. NVIDIA no longer maintains it; a kernel update can break it until the community fixes it.	Швидше 3D, лише Xorg. NVIDIA його більше не підтримує; оновлення ядра може його зламати, доки спільнота не виправить.
+Intel graphics	Графіка Intel
+AMD graphics	Графіка AMD
+NVIDIA graphics	Графіка NVIDIA
+Broadcom Wi-Fi	Wi-Fi Broadcom
+VirtualBox graphics	Графіка VirtualBox
+Virtual GPU	Віртуальний GPU
+Intel Smart Sound audio	Звук Intel Smart Sound
+Intel IPU6 camera	Камера Intel IPU6
+Intel IPU7 camera	Камера Intel IPU7
+USB Wi-Fi adapter	USB-адаптер Wi-Fi
+Thunderbolt / USB4	Thunderbolt / USB4
+Intel processor	Процесор Intel
+AMD processor	Процесор AMD
+Fingerprint reader	Сканер відбитків пальців
+Accelerometer	Акселерометр
+Downloading the NVIDIA driver…	Завантаження драйвера NVIDIA…
+The NVIDIA driver could not be installed. The open-source driver is used for now; install it later in Drivers.	Не вдалося встановити драйвер NVIDIA. Поки що використовується відкритий драйвер; встановіть його пізніше в програмі Драйвери.
+Scanner	Сканер
+Choose scanner	Вибрати сканер
+Glass (flatbed)	Скло (планшетний сканер)
+Document feeder	Автоподавач документів
+Document feeder, both sides	Автоподавач документів, обидві сторони
+No scanner found	Сканер не знайдено
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. Then click Try Again.	Увімкніть сканер і під’єднайте його кабелем USB або до тієї ж мережі Wi‑Fi, що й цей комп’ютер. Потім натисніть «Спробувати ще раз».
+Scanning support is not installed	Підтримку сканування не встановлено
+Install the luxos-printing package from the Store.	Встановіть пакет luxos-printing з Крамниці.
+Scanners could not be found	Не вдалося знайти сканери
+Something went wrong while looking for scanners. Try again in a moment.	Під час пошуку сканерів щось пішло не так. Спробуйте ще раз за мить.
+Scan as	Сканувати як
+Colours	Кольори
+Colour	Кольорово
+Black & white	Чорно-біле
+Paper	Папір
+Start Over	Почати знову
+Show in Files	Показати у Файлах
+Scanned pages appear here. Click Scan Another Page to add more pages to the same document.	Тут з’являтимуться відскановані сторінки. Натисніть «Сканувати ще сторінку», щоб додати сторінки до того самого документа.
+Move page left	Посунути сторінку ліворуч
+Move page right	Посунути сторінку праворуч
+JPEG picture	Зображення JPEG
+PNG picture	Зображення PNG
+Print…	Друк…
+Getting the scanner ready…	Підготовка сканера…
+1 page scanned.	Відскановано 1 сторінку.
+%d pages scanned.	Відскановано сторінок: %d.
+Scan More Pages	Сканувати ще сторінки
+Scan All Pages	Сканувати всі сторінки
+Scan Another Page	Сканувати ще сторінку
+For letters, forms and receipts.	Для листів, бланків і чеків.
+For photos and pictures, in more detail.	Для фото й зображень, з більшою деталізацією.
+Place the document face down on the scanner glass, then click Scan.	Покладіть документ лицьовим боком донизу на скло сканера й натисніть «Сканувати».
+The scan could not be saved	Не вдалося зберегти скан
+Check that there is enough free space in your Documents folder.	Перевірте, чи достатньо вільного місця в папці «Документи».
+The scan could not be printed	Не вдалося надрукувати скан
+Close without saving the scanned pages?	Закрити, не зберігши відскановані сторінки?
+The pages you scanned have not been saved yet.	Відскановані сторінки ще не збережено.
+Close Without Saving	Закрити без збереження
+The scanner is busy	Сканер зайнятий
+Another app or computer is using it right now. Wait a moment and try again.	Ним зараз користується інша програма або інший комп’ютер. Зачекайте трохи й спробуйте ще раз.
+The paper is jammed	Папір застряг
+Open the document feeder, carefully remove the paper and try again.	Відкрийте автоподавач, обережно вийміть папір і спробуйте ще раз.
+The document feeder is empty	Автоподавач документів порожній
+Put the pages in the document feeder, or choose the glass as the source.	Покладіть сторінки в автоподавач або виберіть скло як джерело.
+The scanner cover is open	Кришку сканера відкрито
+Close the cover and try again.	Закрийте кришку й спробуйте ще раз.
+The scanner cannot be used	Сканер не можна використати
+Your user account is not allowed to use this scanner. Log out and log in again.	Ваш обліковий запис не має доступу до цього сканера. Вийдіть із системи й увійдіть знову.
+Not enough memory or disk space	Недостатньо пам’яті або місця на диску
+Close some apps or free up disk space, or scan with lower quality.	Закрийте деякі програми чи звільніть місце на диску або скануйте з нижчою якістю.
+The scanner does not respond	Сканер не відповідає
+Make sure it is turned on and connected with a USB cable or to the same Wi‑Fi network.	Переконайтеся, що його увімкнено й під’єднано кабелем USB або до тієї ж мережі Wi‑Fi.
+The connection to the scanner was lost	З’єднання зі сканером втрачено
+Check the cable or Wi‑Fi connection, turn the scanner off and on again and try once more.	Перевірте кабель або з’єднання Wi‑Fi, вимкніть і ввімкніть сканер і спробуйте ще раз.
+Scanning was cancelled	Сканування скасовано
+Something went wrong while scanning	Під час сканування щось пішло не так
+Turn the scanner off and on again and try once more.	Вимкніть і ввімкніть сканер і спробуйте ще раз.
+Scan %s	Скан %s
+Scan…	Сканувати…
+Open in the Scanner app	Відкрити в програмі «Сканер»
+Could not open the Scanner app	Не вдалося відкрити програму «Сканер»
+Open the Scanner app to scan a document.	Відкрийте програму «Сканер», щоб відсканувати документ.

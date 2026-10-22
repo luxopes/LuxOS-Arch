@@ -6,7 +6,7 @@
 name=$2
 case $1 in
     printer) title=$(T "Printer “%s” is ready" "$name"); body=$(T "You can print from any app.") ;;
-    scanner) title=$(T "Scanner “%s” is ready" "$name"); body=$(T "Open Printers & Scanners to scan a document.") ;;
+    scanner) title=$(T "Scanner “%s” is ready" "$name"); body=$(T "Open the Scanner app to scan a document.") ;;
     both)    title=$(T "“%s” is ready" "$name"); body=$(T "You can print from any app and scan in Printers & Scanners.") ;;
     driver)  title=$(T "Printer “%s” needs a driver" "$name")
              body=$(T "LuxOS will set it up automatically once you are connected to the internet.") ;;
@@ -16,10 +16,11 @@ case $1 in
              body=$(T "Open Terminal and run: hp-plugin") ;;
     *) exit 2 ;;
 esac
-icon=printer
-[[ $1 == scanner ]] && icon=scanner
-# -A ceka na kliknuti: "Otevrit" spusti aplikaci Tiskarny a skenery
-action=$(notify-send -a "$(T "Printers & Scanners")" -i "$icon" -h string:desktop-entry:luxos-printers \
+icon=printer app=luxos-printers appname=$(T "Printers & Scanners")
+# Samotny skener: "Otevrit" spusti jednoduchou aplikaci Skener (luxos-scan)
+[[ $1 == scanner ]] && icon=luxos-scan app=luxos-scan appname=$(T "Scanner")
+# -A ceka na kliknuti: "Otevrit" spusti aplikaci
+action=$(notify-send -a "$appname" -i "$icon" -h "string:desktop-entry:$app" \
     -A "open=$(T "Open")" "$title" "$body" 2>/dev/null)
-[[ $action == open ]] && exec luxos-printers
+[[ $action == open ]] && exec "$app"
 exit 0

@@ -1,0 +1,340 @@
+#!/usr/bin/env python3
+"""LuxOS - Ovladace: rozpoznany hardware, stav jeho ovladacu a instalace jednim tlacitkem.
+
+Doporuceni bere z luxos-hwdetect --json (viz /usr/lib/luxos/python/luxos_drivers.py),
+instaluje pres pkexec a /usr/lib/luxos/drivers/luxos-drivers-helper (lux ve strojovem rezimu).
+V live systemu jen ukazuje, co instalator nainstaluje.
+"""
+import subprocess
+import sys
+import threading
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+import luxos_drivers as drv  # noqa: E402
+from luxos_i18n import _  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+
+HELPER = "/usr/lib/luxos/drivers/luxos-drivers-helper"
+ICONS = {"gpu": "video-display", "wifi": "network-wireless", "audio": "audio-card", "camera": "camera-web",
+         "cpu": "computer", "vm": "computer", "fingerprint": "fingerprint", "sensors": "input-tablet",
+         "thunderbolt": "drive-removable-media"}
+STATUS = {drv.WORKING: ("Working", "ok"), drv.INSTALLED: ("Installed", "ok"),
+          drv.RESTART: ("Restart required", "warn"), drv.AVAILABLE: ("Driver available", "todo")}
+ERRORS = {"network": "The internet connection is too slow or unavailable. Try it again later.",
+          "locked": "Another app is installing software right now. Try it again in a moment.",
+          "disk": "Not enough free disk space.",
+          "keyring": "A package signature could not be verified. Run in Terminal: lux fix",
+          "deps": "Some required packages are not available.",
+          "notfound": "Some required packages are not available."}
+
+CSS = b"""
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.row { padding: 10px 14px; }
+.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
+.dev-title { font-weight: 700; }
+.hint { font-size: 11px; opacity: 0.65; }
+.summary { font-size: 17px; font-weight: 700; }
+.badge { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 2px 10px; }
+.badge.ok { color: #1f9d55; background-color: alpha(#1f9d55, 0.12); }
+.badge.warn { color: #c77700; background-color: alpha(#c77700, 0.14); }
+.badge.todo { color: #3d7bff; background-color: alpha(#3d7bff, 0.12); }
+.status { padding: 10px 16px; font-size: 13px; font-weight: 600;
+          background-color: alpha(#3d7bff, 0.10); border-top: 1px solid alpha(#3d7bff, 0.30); }
+.status progressbar trough { min-height: 10px; border-radius: 5px; border: none;
+                             background-image: none; background-color: alpha(currentColor, 0.15); }
+.status progressbar progress { min-height: 10px; border-radius: 5px; border: none;
+                               background-image: none; background-color: #3d7bff; }
+"""
+
+
+def tr_lines(text):
+    """Poznamka z luxos-hwdetect (anglicky, po radcich) -> preklad po radcich."""
+    return "\n".join(_(line) for line in (text or "").splitlines() if line.strip())
+
+
+def progress_from_line(line, prog):
+    """Radek pomocnika -> (podil 0-1 nebo None, text nebo None). prog drzi stav mezi radky
+    (faze, chyba, restart). Aktualizace systemu zabira 0-40 %, instalace zbytek."""
+    line = line.strip()
+    if not line.startswith("@@"):
+        if line.startswith("error:") and not prog.get("err"):
+            prog["err"] = line[6:].strip()
+        return None, None
+    parts = line[2:].split(" ", 3)
+    kind = parts[0]
+    if kind == "STEP" and len(parts) > 1:
+        if parts[1] == "update":
+            prog.update(lo=0.0, hi=0.4, updated=True)
+            return 0.0, _("Updating the system first (the kernel headers must match the kernel)…")
+        if parts[1] == "install":
+            prog.update(lo=0.4 if prog.get("updated") else 0.0, hi=1.0)
+            return prog["lo"], _("Installing drivers…")
+        if parts[1] == "services":
+            return 0.99, _("Finishing…")
+    elif kind == "PROGRESS" and len(parts) > 2 and parts[2].isdigit():
+        pct = int(parts[2]) / 100
+        phase = parts[1]
+        lo, hi = prog.get("lo", 0.0), prog.get("hi", 1.0)
+        span = hi - lo
+        if phase == "download":
+            return lo + span * 0.45 * pct, _("Downloading…")
+        if phase == "verify":
+            return lo + span * (0.45 + 0.05 * pct), _("Checking…")
+        if phase == "install":
+            detail = parts[3] if len(parts) > 3 else ""
+            name = detail.split(" ", 1)[-1] if detail else ""
+            return lo + span * (0.5 + 0.43 * pct), (_("Installing %s…") % name) if name else None
+        if phase == "hooks":
+            # DKMS sestavuje modul jadra (NVIDIA ~1-3 min)
+            return lo + span * (0.93 + 0.05 * pct), _("Building the driver for the kernel (this can take a few minutes)…")
+    elif kind == "ERROR" and len(parts) > 1:
+        msg = ERRORS.get(parts[1])
+        prog["err"] = _(msg) if msg else (line.split(" ", 2)[2] if line.count(" ") >= 2 else parts[1])
+    elif kind == "RETRY":
+        return None, _("Download failed, trying again (attempt %s)…") % parts[-1]
+    elif kind == "REBOOT":
+        prog["reboot"] = True
+    return None, None
+
+
+class DriversWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Drivers"))
+        self.set_default_size(660, 600)
+        self.set_icon_name("luxos-drivers")
+        header = Gtk.HeaderBar(show_close_button=True, title=_("Drivers"))
+        self.set_titlebar(header)
+        self.data = None
+        self.states = []
+        self.busy = False
+
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.add(outer)
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        outer.pack_start(scroll, True, True, 0)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin=22, margin_top=14)
+        scroll.add(page)
+
+        top = Gtk.Box(spacing=14)
+        self.summary_icon = Gtk.Image.new_from_icon_name("emblem-system", Gtk.IconSize.DIALOG)
+        top.pack_start(self.summary_icon, False, False, 0)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER, spacing=2)
+        self.summary = Gtk.Label(label=_("Detecting hardware…"), xalign=0, wrap=True)
+        self.summary.get_style_context().add_class("summary")
+        self.subtitle = Gtk.Label(xalign=0, wrap=True)
+        self.subtitle.get_style_context().add_class("hint")
+        texts.pack_start(self.summary, False, False, 0)
+        texts.pack_start(self.subtitle, False, False, 0)
+        top.pack_start(texts, True, True, 0)
+        page.pack_start(top, False, False, 0)
+
+        self.list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.list.get_style_context().add_class("group")
+        page.pack_start(self.list, False, False, 0)
+
+        buttons = Gtk.Box(spacing=8, halign=Gtk.Align.END)
+        self.restart_btn = Gtk.Button(label=_("Restart"))
+        self.restart_btn.connect("clicked", lambda _b: self.restart())
+        self.install_btn = Gtk.Button(label=_("Install recommended drivers"))
+        self.install_btn.get_style_context().add_class("suggested-action")
+        self.install_btn.connect("clicked", lambda _b: self.install(None))
+        buttons.pack_start(self.restart_btn, False, False, 0)
+        buttons.pack_start(self.install_btn, False, False, 0)
+        page.pack_start(buttons, False, False, 0)
+
+        self.status_bar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.status_bar.get_style_context().add_class("status")
+        self.status = Gtk.Label(xalign=0, wrap=True)
+        self.progress = Gtk.ProgressBar()
+        self.status_bar.pack_start(self.status, False, False, 0)
+        self.status_bar.pack_start(self.progress, False, False, 0)
+        outer.pack_end(self.status_bar, False, False, 0)
+
+    def start(self):
+        self.show_all()
+        self.status_bar.hide()
+        self.install_btn.hide()
+        self.restart_btn.hide()
+        self.refresh()
+
+    # ---- detekce ----------------------------------------------------------------------
+    def refresh(self):
+        def work():
+            try:
+                data = drv.detect()
+                states = drv.evaluate(data)
+                GLib.idle_add(self.show_states, data, states, None)
+            except Exception as e:  # noqa: BLE001 - chyba se ukaze v okne
+                GLib.idle_add(self.show_states, None, [], str(e))
+        threading.Thread(target=work, daemon=True).start()
+
+    def show_states(self, data, states, error, reboot=False):
+        self.data, self.states = data, states
+        for c in self.list.get_children():
+            self.list.remove(c)
+        if error:
+            self.summary.set_text(_("Hardware detection failed: %s") % error)
+            self.summary_icon.set_from_icon_name("dialog-error", Gtk.IconSize.DIALOG)
+            return False
+        for i, st in enumerate(states):
+            self.list.pack_start(self.device_row(st, i > 0), False, False, 0)
+        if not states:
+            row = Gtk.Label(label=_("No special drivers needed"), xalign=0, margin=14)
+            self.list.pack_start(row, False, False, 0)
+        self.list.show_all()
+
+        live = bool(data.get("live"))
+        missing = drv.missing_packages(states)
+        restart = reboot or drv.needs_restart(states)
+        if live:
+            self.summary.set_text(_("Drivers are installed automatically when you install LuxOS."))
+            self.subtitle.set_text(_("Packages: %s") % ", ".join(missing) if missing else "")
+            icon = "dialog-information"
+        elif missing:
+            self.summary.set_text(_("Additional drivers are available for your hardware"))
+            self.subtitle.set_text(_("Packages: %s") % ", ".join(missing))
+            icon = "software-update-available"
+        elif restart:
+            self.summary.set_text(_("Restart to finish installing drivers"))
+            self.subtitle.set_text("")
+            icon = "system-reboot"
+        else:
+            self.summary.set_text(_("All drivers are installed"))
+            self.subtitle.set_text("")
+            icon = "emblem-ok-symbolic"
+        self.summary_icon.set_from_icon_name(icon, Gtk.IconSize.DIALOG)
+        self.install_btn.set_visible(bool(missing) and not live)
+        self.install_btn.set_sensitive(not self.busy)
+        self.restart_btn.set_visible(restart and not live)
+        return False
+
+    def device_row(self, st, sep):
+        dev = st["device"]
+        box = Gtk.Box(spacing=12)
+        box.get_style_context().add_class("row")
+        if sep:
+            box.get_style_context().add_class("row-sep")
+        icon = Gtk.Image.new_from_icon_name(ICONS.get(dev.get("kind"), "computer"), Gtk.IconSize.DND)
+        icon.set_valign(Gtk.Align.START)
+        box.pack_start(icon, False, False, 0)
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        title = Gtk.Label(label=_(dev.get("title", "")), xalign=0, wrap=True)
+        title.get_style_context().add_class("dev-title")
+        text.pack_start(title, False, False, 0)
+        active = st.get("active")
+        note = tr_lines(active.get("note") if active else dev.get("note"))
+        if active:
+            note = _("Using: %s") % _(active.get("title", "")) + ("\n" + note if note else "")
+        if note:
+            h = Gtk.Label(label=note, xalign=0, wrap=True, max_width_chars=60)
+            h.get_style_context().add_class("hint")
+            text.pack_start(h, False, False, 0)
+        live = bool(self.data and self.data.get("live"))
+        for alt in dev.get("alternatives") or []:
+            if active and alt.get("id") == active.get("id"):
+                continue
+            b = Gtk.Button(label=_("Other option: %s…") % _(alt.get("title", "")), halign=Gtk.Align.START,
+                           relief=Gtk.ReliefStyle.NONE)
+            b.set_sensitive(not live and not self.busy)
+            b.connect("clicked", lambda _b, d=dev, a=alt: self.confirm_alternative(d, a))
+            text.pack_start(b, False, False, 0)
+        box.pack_start(text, True, True, 0)
+        label, cls = STATUS[st["status"]]
+        badge = Gtk.Label(label=_(label), valign=Gtk.Align.START)
+        badge.get_style_context().add_class("badge")
+        badge.get_style_context().add_class(cls)
+        box.pack_end(badge, False, False, 0)
+        return box
+
+    # ---- instalace --------------------------------------------------------------------
+    def confirm_alternative(self, dev, alt):
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
+                                buttons=Gtk.ButtonsType.OK_CANCEL, text=_("Install %s?") % _(alt.get("title", "")))
+        dlg.format_secondary_text(tr_lines(alt.get("note")))
+        ok = dlg.run() == Gtk.ResponseType.OK
+        dlg.destroy()
+        if ok:
+            self.install((dev["id"], alt["id"]))
+
+    def install(self, alternative):
+        if self.busy:
+            return
+        self.busy = True
+        self.install_btn.set_sensitive(False)
+        self.status.set_text(_("Installing drivers…"))
+        self.progress.set_fraction(0)
+        self.status_bar.show_all()
+        prog = {}
+        cmd = ["pkexec", HELPER] + (["install-alt", *alternative] if alternative else ["install"])
+
+        def show(frac, text):
+            if frac is not None:
+                self.progress.set_fraction(max(0.0, min(1.0, frac)))
+            if text:
+                self.status.set_text(text)
+            return False
+
+        def work():
+            try:
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+            except OSError as e:
+                GLib.idle_add(done, 1, str(e))
+                return
+            for line in p.stdout:
+                frac, text = progress_from_line(line, prog)
+                if frac is not None or text:
+                    GLib.idle_add(show, frac, text)
+            GLib.idle_add(done, p.wait(), prog.get("err", ""))
+
+        def done(rc, err):
+            self.busy = False
+            if rc == 0:
+                self.progress.set_fraction(1)
+                self.status.set_text(_("Drivers installed - restart to activate them") if prog.get("reboot")
+                                     else _("Done."))
+            elif rc in (126, 127):
+                self.status.set_text(_("Cancelled."))
+            else:
+                self.status.set_text(_("Failed: %s") % (err or _("unknown error")))
+            self.progress.hide()
+
+            def after():
+                try:
+                    data = drv.detect()
+                    states = drv.evaluate(data)
+                    GLib.idle_add(self.show_states, data, states, None, bool(prog.get("reboot")))
+                except Exception as e:  # noqa: BLE001
+                    GLib.idle_add(self.show_states, None, [], str(e))
+            threading.Thread(target=after, daemon=True).start()
+            return False
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def restart(self):
+        for cmd in (["xfce4-session-logout", "--reboot", "--fast"], ["systemctl", "reboot"]):
+            try:
+                subprocess.Popen(cmd, stdin=subprocess.DEVNULL, start_new_session=True)
+                return
+            except OSError:
+                continue
+
+
+def main():
+    GLib.set_prgname("luxos-drivers")
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = DriversWindow()
+    win.connect("destroy", Gtk.main_quit)
+    win.start()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

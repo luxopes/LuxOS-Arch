@@ -3,7 +3,7 @@
 
 pkgname=luxos-i18n
 pkgver=1.0.0
-pkgrel=19
+pkgrel=20
 pkgdesc="LuxOS translations (English, Czech, Slovak, Polish, Ukrainian, Hungarian, German, French, Spanish, Italian, Portuguese, Dutch, Swedish)"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"

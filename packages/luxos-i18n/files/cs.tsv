@@ -1799,3 +1799,132 @@ The passphrases do not match.	Hesla se neshodují.
 Do not use (for example for LVM)	Nepoužít (např. pro LVM)
 encrypted	šifrováno
 The disk %s is too small for this layout (it needs at least %s).	Disk %s je pro toto rozložení příliš malý (potřebuje alespoň %s).
+# Ovladace (luxos-drivers)
+Drivers	Ovladače
+Detecting hardware…	Rozpoznávám hardware…
+Additional drivers are available for your hardware	Pro váš hardware jsou k dispozici další ovladače
+Additional drivers are available	K dispozici jsou další ovladače
+Restart to finish installing drivers	Pro dokončení instalace ovladačů restartujte počítač
+Install recommended drivers	Nainstalovat doporučené ovladače
+Working	Funguje
+Restart required	Vyžaduje restart
+Driver available	Ovladač k dispozici
+Drivers are installed automatically when you install LuxOS.	Ovladače se nainstalují automaticky při instalaci LuxOS.
+Packages: %s	Balíky: %s
+Hardware detection failed: %s	Rozpoznání hardwaru selhalo: %s
+No special drivers needed	Nejsou potřeba žádné zvláštní ovladače
+Using: %s	Používá se: %s
+Other option: %s…	Jiná možnost: %s…
+Installing drivers…	Instaluji ovladače…
+Updating the system first (the kernel headers must match the kernel)…	Nejdřív aktualizuji systém (hlavičky jádra musí odpovídat jádru)…
+Building the driver for the kernel (this can take a few minutes)…	Sestavuji ovladač pro jádro (může to trvat několik minut)…
+Open Drivers to install them with one click.	Otevřete Ovladače a nainstalujte je jedním kliknutím.
+Show drivers	Zobrazit ovladače
+Don't remind me	Nepřipomínat
+Intel graphics: Vulkan + hardware video decoding	Grafika Intel: Vulkan + hardwarové dekódování videa
+AMD graphics: Vulkan (RADV) + hardware video decoding	Grafika AMD: Vulkan (RADV) + hardwarové dekódování videa
+NVIDIA (Turing or newer): nvidia-open driver	NVIDIA (Turing a novější): ovladač nvidia-open
+NVIDIA (Maxwell/Pascal/Volta): legacy NVIDIA 580 driver	NVIDIA (Maxwell/Pascal/Volta): starší ovladač NVIDIA 580
+NVIDIA (Kepler): open-source nouveau driver; the legacy NVIDIA 470 driver is optional	NVIDIA (Kepler): otevřený ovladač nouveau; starší ovladač NVIDIA 470 je volitelný
+NVIDIA (older generation): open-source nouveau driver (NVIDIA has no driver for current kernels)	NVIDIA (starší generace): otevřený ovladač nouveau (NVIDIA pro současná jádra ovladač nemá)
+Hybrid graphics: run 'prime-run <app>' to use the NVIDIA GPU	Hybridní grafika: grafiku NVIDIA použijete příkazem 'prime-run <aplikace>'
+VMware graphics: built into the kernel	Grafika VMware: součást jádra
+VirtualBox graphics: built into the kernel	Grafika VirtualBox: součást jádra
+Virtual GPU (QEMU/virtio)	Virtuální grafika (QEMU/virtio)
+Broadcom Wi-Fi: broadcom-wl driver	Wi-Fi Broadcom: ovladač broadcom-wl
+Intel Smart Sound audio: SOF firmware (speakers and microphones)	Zvuk Intel Smart Sound: firmware SOF (reproduktory a mikrofony)
+Intel IPU6 camera: works through libcamera/PipeWire (Firefox, apps with PipeWire camera support); apps that open the camera directly may not see it	Kamera Intel IPU6: funguje přes libcamera/PipeWire (Firefox, aplikace s podporou kamery přes PipeWire); aplikace, které kameru otevírají přímo, ji nemusí vidět
+Intel IPU7 camera: Linux support is still experimental - the built-in camera may not work yet	Kamera Intel IPU7: podpora v Linuxu je zatím experimentální – vestavěná kamera ještě nemusí fungovat
+USB Wi-Fi adapter in driver-CD mode: usb_modeswitch switches it to Wi-Fi	USB adaptér Wi-Fi v režimu CD s ovladačem: usb_modeswitch ho přepne na Wi-Fi
+Thunderbolt: bolt (authorizes docks and other devices)	Thunderbolt: bolt (povoluje doky a další zařízení)
+Intel processor: microcode updates	Procesor Intel: aktualizace mikrokódu
+AMD processor: microcode updates	Procesor AMD: aktualizace mikrokódu
+Intel laptop: thermald (thermal management)	Notebook Intel: thermald (řízení teploty)
+VirtualBox: guest additions	VirtualBox: doplňky pro hosta
+VMware: open-vm-tools	VMware: open-vm-tools
+QEMU/KVM: guest agent + SPICE (clipboard, resolution)	QEMU/KVM: agent hosta + SPICE (schránka, rozlišení)
+Hyper-V: integration services	Hyper-V: integrační služby
+Fingerprint reader: fprintd (set up with fprintd-enroll)	Čtečka otisků prstů: fprintd (nastavení příkazem fprintd-enroll)
+Accelerometer: automatic screen rotation	Akcelerometr: automatické otáčení obrazovky
+NVIDIA 470 legacy driver	Starší ovladač NVIDIA 470
+Faster 3D, Xorg only. NVIDIA no longer maintains it; a kernel update can break it until the community fixes it.	Rychlejší 3D, jen Xorg. NVIDIA ho už neudržuje; aktualizace jádra ho může rozbít, dokud ho komunita neopraví.
+Intel graphics	Grafika Intel
+AMD graphics	Grafika AMD
+NVIDIA graphics	Grafika NVIDIA
+Broadcom Wi-Fi	Wi-Fi Broadcom
+VirtualBox graphics	Grafika VirtualBox
+Virtual GPU	Virtuální grafika
+Intel Smart Sound audio	Zvuk Intel Smart Sound
+Intel IPU6 camera	Kamera Intel IPU6
+Intel IPU7 camera	Kamera Intel IPU7
+USB Wi-Fi adapter	USB adaptér Wi-Fi
+Thunderbolt / USB4	Thunderbolt / USB4
+Intel processor	Procesor Intel
+AMD processor	Procesor AMD
+Fingerprint reader	Čtečka otisků prstů
+Accelerometer	Akcelerometr
+Downloading the NVIDIA driver…	Stahuji ovladač NVIDIA…
+The NVIDIA driver could not be installed. The open-source driver is used for now; install it later in Drivers.	Ovladač NVIDIA se nepodařilo nainstalovat. Zatím se použije otevřený ovladač; nainstalujte ho později v aplikaci Ovladače.
+Scanner	Skener
+Choose scanner	Vybrat skener
+Glass (flatbed)	Sklo (plochý skener)
+Document feeder	Podavač dokumentů
+Document feeder, both sides	Podavač dokumentů, obě strany
+No scanner found	Nenalezen žádný skener
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. Then click Try Again.	Zapněte skener a připojte ho kabelem USB nebo ke stejné síti Wi‑Fi jako tento počítač. Pak klikněte na Zkusit znovu.
+Scanning support is not installed	Podpora skenování není nainstalovaná
+Install the luxos-printing package from the Store.	Nainstalujte balíček luxos-printing z Obchodu.
+Scanners could not be found	Skenery se nepodařilo vyhledat
+Something went wrong while looking for scanners. Try again in a moment.	Při hledání skenerů se něco pokazilo. Zkuste to za chvíli znovu.
+Scan as	Skenovat jako
+Colours	Barvy
+Colour	Barevně
+Black & white	Černobíle
+Paper	Papír
+Start Over	Začít znovu
+Show in Files	Zobrazit v Souborech
+Scanned pages appear here. Click Scan Another Page to add more pages to the same document.	Zde se objeví naskenované stránky. Kliknutím na Skenovat další stránku přidáte do stejného dokumentu další stránky.
+Move page left	Posunout stránku doleva
+Move page right	Posunout stránku doprava
+JPEG picture	Obrázek JPEG
+PNG picture	Obrázek PNG
+Print…	Tisk…
+Getting the scanner ready…	Připravuji skener…
+1 page scanned.	Naskenována 1 stránka.
+%d pages scanned.	Naskenované stránky: %d.
+Scan More Pages	Skenovat další stránky
+Scan All Pages	Skenovat všechny stránky
+Scan Another Page	Skenovat další stránku
+For letters, forms and receipts.	Pro dopisy, formuláře a účtenky.
+For photos and pictures, in more detail.	Pro fotky a obrázky, ve větším detailu.
+Place the document face down on the scanner glass, then click Scan.	Položte dokument lícem dolů na sklo skeneru a klikněte na Skenovat.
+The scan could not be saved	Sken se nepodařilo uložit
+Check that there is enough free space in your Documents folder.	Zkontrolujte, že je ve složce Dokumenty dost volného místa.
+The scan could not be printed	Sken se nepodařilo vytisknout
+Close without saving the scanned pages?	Zavřít bez uložení naskenovaných stránek?
+The pages you scanned have not been saved yet.	Naskenované stránky ještě nejsou uložené.
+Close Without Saving	Zavřít bez uložení
+The scanner is busy	Skener je zaneprázdněný
+Another app or computer is using it right now. Wait a moment and try again.	Právě ho používá jiná aplikace nebo jiný počítač. Chvíli počkejte a zkuste to znovu.
+The paper is jammed	Papír se zasekl
+Open the document feeder, carefully remove the paper and try again.	Otevřete podavač dokumentů, opatrně vyjměte papír a zkuste to znovu.
+The document feeder is empty	Podavač dokumentů je prázdný
+Put the pages in the document feeder, or choose the glass as the source.	Vložte stránky do podavače dokumentů, nebo jako zdroj vyberte sklo.
+The scanner cover is open	Víko skeneru je otevřené
+Close the cover and try again.	Zavřete víko a zkuste to znovu.
+The scanner cannot be used	Skener nelze použít
+Your user account is not allowed to use this scanner. Log out and log in again.	Váš uživatelský účet nemá k tomuto skeneru přístup. Odhlaste se a znovu přihlaste.
+Not enough memory or disk space	Nedostatek paměti nebo místa na disku
+Close some apps or free up disk space, or scan with lower quality.	Zavřete některé aplikace nebo uvolněte místo na disku, případně skenujte v nižší kvalitě.
+The scanner does not respond	Skener neodpovídá
+Make sure it is turned on and connected with a USB cable or to the same Wi‑Fi network.	Zkontrolujte, že je zapnutý a připojený kabelem USB nebo ke stejné síti Wi‑Fi.
+The connection to the scanner was lost	Spojení se skenerem se přerušilo
+Check the cable or Wi‑Fi connection, turn the scanner off and on again and try once more.	Zkontrolujte kabel nebo připojení Wi‑Fi, vypněte a zapněte skener a zkuste to znovu.
+Scanning was cancelled	Skenování bylo zrušeno
+Something went wrong while scanning	Při skenování se něco pokazilo
+Turn the scanner off and on again and try once more.	Vypněte a zapněte skener a zkuste to znovu.
+Scan %s	Sken %s
+Scan…	Skenovat…
+Open in the Scanner app	Otevřít v aplikaci Skener
+Could not open the Scanner app	Aplikaci Skener se nepodařilo otevřít
+Open the Scanner app to scan a document.	Dokument naskenujete v aplikaci Skener.

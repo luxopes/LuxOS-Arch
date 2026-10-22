@@ -2,16 +2,32 @@
 
 pkgname=luxos-drivers
 pkgver=1.0.0
-pkgrel=3
-pkgdesc="LuxOS hardware detection: picks GPU, Wi-Fi, VM and other drivers automatically"
+pkgrel=4
+pkgdesc="LuxOS hardware detection and the Drivers app: picks GPU, Wi-Fi, camera, VM and other drivers automatically"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
-depends=(bash systemd)
+# hwdata: nazvy zarizeni (pci.ids); python-gobject/gtk3/polkit: aplikace Ovladace
+depends=(bash systemd hwdata python python-gobject gtk3 polkit luxos-i18n)
+optdepends=('lux: installs drivers through libalpm with progress (pacman otherwise)'
+            'libnotify: notification server integration')
+makedepends=(python)
+install=luxos-drivers.install
 
 package() {
     install -Dm755 "$startdir/luxos-hwdetect" "$pkgdir/usr/bin/luxos-hwdetect"
+    # Tabulka karet NVIDIA na legacy vetvich 580/470 (tools/gen-nvidia-legacy.py)
+    install -Dm644 "$startdir/nvidia-legacy.ids" "$pkgdir/usr/share/luxos/hwdetect/nvidia-legacy.ids"
     # Uspavani nepouzivane grafiky NVIDIA (hybridni notebooky: jednotky W z baterie)
     install -Dm644 "$startdir/luxos-nvidia-pm.conf" "$pkgdir/usr/lib/modprobe.d/luxos-nvidia-pm.conf"
     install -Dm644 "$startdir/80-luxos-nvidia-pm.rules" "$pkgdir/usr/lib/udev/rules.d/80-luxos-nvidia-pm.rules"
+
+    # Aplikace Ovladace, pomocnik pro root (pkexec) a kontrola po prihlaseni (luxos-daemon)
+    install -Dm755 "$startdir/luxos-drivers" "$pkgdir/usr/bin/luxos-drivers"
+    install -Dm755 "$startdir/luxos-drivers-helper" "$pkgdir/usr/lib/luxos/drivers/luxos-drivers-helper"
+    install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$startdir/luxos_drivers.py" "$startdir/luxos_drivers_session.py"
+    python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
+    install -Dm644 "$startdir/org.luxos.drivers.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.drivers.policy"
+    install -Dm644 "$startdir/luxos-drivers.desktop" "$pkgdir/usr/share/applications/luxos-drivers.desktop"
+    install -Dm644 "$startdir/luxos-drivers.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-drivers.svg"
 }

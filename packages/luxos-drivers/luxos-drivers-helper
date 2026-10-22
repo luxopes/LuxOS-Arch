@@ -1,0 +1,124 @@
+#!/usr/bin/python3 -I
+"""LuxOS - instalace ovladacu (spousti pkexec, viz org.luxos.drivers.policy).
+
+  luxos-drivers-helper install                     doporucene ovladace
+  luxos-drivers-helper install-alt ZARIZENI VOLBA  alternativa (napr. gpu-0000:01:00.0 nvidia-470xx)
+
+Co se instaluje, rozhoduje helper sam podle luxos-hwdetect (volajici preda jen volbu).
+Baliky instaluje lux (libalpm) ve strojovem rezimu - radky "@@..." viz /usr/share/doc/lux/lux.md;
+bez pyalpm skutecny pacman. Navic posila:
+  @@STEP update|install|services   faze
+  @@REBOOT                         ovladace zacnou fungovat az po restartu
+"""
+import os
+import re
+import subprocess
+import sys
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+import luxos_drivers as drv  # noqa: E402
+
+LUX_ALPM = "/usr/lib/lux/lux_alpm.py"
+ID_RE = re.compile(r"^[A-Za-z0-9:._-]{1,64}$")
+# Sluzby, ktere se pri zapnuti nesmi rovnou spustit (bezi jen pri uspani)
+NO_START = ("nvidia-suspend.service", "nvidia-resume.service", "nvidia-hibernate.service")
+
+
+def say(line):
+    print(line, flush=True)
+
+
+def lux_available():
+    try:
+        return os.access(LUX_ALPM, os.X_OK) and subprocess.run(
+            [LUX_ALPM, "available"], capture_output=True, timeout=30).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def run(cmd):
+    """Spusti prikaz, vystup posila dal (radek po radku), vrati navratovy kod."""
+    try:
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+    except OSError as e:
+        say(f"error: {e}")
+        return 1
+    for line in p.stdout:
+        say(line.rstrip("\n"))
+    return p.wait()
+
+
+def pacman_retry(args):
+    """pacman s opakovanim, jen kdyz selhalo stahovani (stejne jako Obchod LuxOS)."""
+    rc = 1
+    for attempt in (1, 2, 3):
+        if attempt > 1:
+            say(f"@@RETRY {attempt}")
+        p = subprocess.Popen([drv.PACMAN, *args], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                             bufsize=1)
+        out = []
+        for line in p.stdout:
+            out.append(line)
+            say(line.rstrip("\n"))
+        rc = p.wait()
+        if rc == 0:
+            return 0
+        if not re.search(r"failed retrieving file|failed to retrieve some files|too many errors from", "".join(out)):
+            return rc
+    return rc
+
+
+def main(argv):
+    if os.geteuid() != 0:
+        sys.exit("luxos-drivers-helper must run as root (pkexec)")
+    os.environ["LC_ALL"] = "C.UTF-8"
+    if argv[1:2] == ["install"] and len(argv) == 2:
+        alternative = None
+    elif argv[1:2] == ["install-alt"] and len(argv) == 4 and all(ID_RE.match(a) for a in argv[2:]):
+        alternative = (argv[2], argv[3])
+    else:
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    if os.path.isdir("/run/archiso"):
+        say("@@ERROR live Drivers are installed by the installer on the live system")
+        return 1
+
+    try:
+        pkgs, svcs, reboot = drv.plan(drv.detect(), alternative=alternative)
+    except (RuntimeError, ValueError, OSError, subprocess.TimeoutExpired) as e:
+        say(f"@@ERROR unknown {e}")
+        return 1
+
+    use_lux = lux_available()
+    rc = 0
+    if pkgs:
+        # Hlavicky jadra musi mit stejnou verzi jako jadro, jinak DKMS sestavi modul pro jine jadro.
+        # Kdyz se databaze repozitaru a system rozesly, nejdriv cela aktualizace (zadna castecna).
+        if drv.headers_out_of_sync(pkgs):
+            say("@@STEP update")
+            rc = run([LUX_ALPM, "--machine", "-y", "update"]) if use_lux else pacman_retry(["-Syu", "--noconfirm"])
+            if rc != 0:
+                return rc
+        say("@@STEP install")
+        if use_lux:
+            rc = run([LUX_ALPM, "--machine", "-y", "install", "--needed", "--", *pkgs])
+        else:
+            rc = pacman_retry(["-S", "--needed", "--noconfirm", "--", *pkgs])
+        if rc != 0:
+            return rc
+
+    if svcs:
+        say("@@STEP services")
+        for s in svcs:
+            if subprocess.run(["systemctl", "cat", s], capture_output=True).returncode != 0:
+                continue                      # balik se sluzbou neni nainstalovany
+            cmd = ["systemctl", "enable", s] if s in NO_START else ["systemctl", "enable", "--now", s]
+            if subprocess.run(cmd, capture_output=True).returncode != 0:
+                say(f"warning: could not enable {s}")
+    if reboot and pkgs:
+        say("@@REBOOT")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

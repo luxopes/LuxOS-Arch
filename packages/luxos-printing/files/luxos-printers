@@ -1245,6 +1245,12 @@ class Window(Gtk.Window):
                 if key in ("s:?", "s:-"):
                     r.set_selectable(False)
                     r.set_activatable(False)
+                elif key.startswith("s:") and have("luxos-scan"):
+                    # Skenovani v samostatne jednoduche aplikaci Skener (luxos-scan)
+                    b = cls(Gtk.Button(label=_("Scan…"), valign=Gtk.Align.CENTER), "toolbar-btn")
+                    b.set_tooltip_text(_("Open in the Scanner app"))
+                    b.connect("clicked", lambda _b, d=key[2:]: self.open_scan_app(d))
+                    r.get_child().pack_end(b, False, False, 0)
                 self.side.add(r)
             self.side.show_all()
         keys = [r[0] for r in rows if r[0] not in ("s:?", "s:-")]
@@ -1315,6 +1321,12 @@ class Window(Gtk.Window):
 
     def add_printer(self):
         AddDialog(self)
+
+    def open_scan_app(self, dev):
+        try:
+            subprocess.Popen(["luxos-scan", "--device", dev], start_new_session=True)
+        except OSError as e:
+            self.error(_("Could not open the Scanner app"), str(e))
 
     def advanced(self):
         try:

@@ -1,12 +1,12 @@
 # Maintainer: LuxOS Team
 # Tisk a skenovani bez nastavovani: tiskarny v siti i na USB se pridaji samy (bez ovladacu pres
 # IPP Everywhere / AirPrint / ipp-usb, klasicke USB tiskarny s ovladacem), skenery pres SANE + eSCL.
-# Aplikace Tiskarny a skenery (luxos-printers).
+# Aplikace Tiskarny a skenery (luxos-printers) a jednoducha aplikace Skener (luxos-scan).
 
 pkgname=luxos-printing
 pkgver=1.0.0
-pkgrel=2
-pkgdesc="LuxOS plug-and-play printing and scanning, Printers & Scanners app"
+pkgrel=3
+pkgdesc="LuxOS plug-and-play printing and scanning, Printers & Scanners and Scanner apps"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
 license=(MIT)
@@ -21,14 +21,16 @@ install=luxos-printing.install
 package() {
     local f="$startdir/files" d="$pkgdir/usr/lib/luxos/printing"
     install -Dm755 "$f/luxos-printers" "$pkgdir/usr/bin/luxos-printers"
+    install -Dm755 "$f/luxos-scan" "$pkgdir/usr/bin/luxos-scan"
     install -Dm755 -t "$d" "$f/luxos-printing-helper" "$f/luxos-printing-watch" "$f/luxos-printing-notify" \
         "$f/luxos-nsswitch-mdns"
-    install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f/luxos_printing.py"
+    install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f/luxos_printing.py" "$f/luxos_scan.py"
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f"/systemd/*
     install -Dm644 -t "$pkgdir/usr/lib/udev/rules.d" "$f"/udev/*.rules
     install -Dm644 -t "$pkgdir/usr/share/libalpm/hooks" "$f"/hooks/*.hook
     install -Dm644 "$f/org.luxos.printing.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.printing.policy"
     install -Dm644 "$f/luxos-printers.desktop" "$pkgdir/usr/share/applications/luxos-printers.desktop"
+    install -Dm644 "$f/luxos-scan.desktop" "$pkgdir/usr/share/applications/luxos-scan.desktop"
     install -dm755 "$pkgdir/var/lib/luxos-printing"
 }

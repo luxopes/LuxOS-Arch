@@ -1,0 +1,14 @@
+# LuxOS - luxos-drivers: oprava po starsich verzich
+post_upgrade() {
+    # Do 1.0.0-3 instalator zapinal nvidia-suspend/resume/hibernate i pro open moduly NVIDIA.
+    # Od ovladace 595 uspani resi jadro a Arch tyto sluzby pro open moduly vypina (nvidia-utils.install);
+    # ponechavaji se jen pro legacy 580xx (nvidia-580xx-utils je zapina sam).
+    # Primo databaze (pacman -Q by nvidia-utils nasel i pres "provides" legacy baliku)
+    if (( $(vercmp "$2" 1.0.0-4) < 0 )) && compgen -G '/var/lib/pacman/local/nvidia-utils-[0-9]*' >/dev/null; then
+        local s
+        for s in nvidia-suspend nvidia-resume nvidia-hibernate nvidia-suspend-then-hibernate; do
+            systemctl is-enabled --quiet "$s" 2>/dev/null && systemctl disable "$s" 2>/dev/null
+        done
+    fi
+    return 0
+}

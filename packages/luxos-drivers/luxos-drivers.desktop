@@ -1,0 +1,23 @@
+[Desktop Entry]
+Type=Application
+Name=Drivers
+Name[cs]=Ovladače
+Name[sk]=Ovládače
+Name[pl]=Sterowniki
+Name[uk]=Драйвери
+Name[hu]=Illesztőprogramok
+Name[de]=Treiber
+Name[fr]=Pilotes
+Name[es]=Controladores
+Name[it]=Driver
+Name[pt]=Drivers
+Name[nl]=Stuurprogramma's
+Name[sv]=Drivrutiner
+Comment=Detected hardware and its drivers (graphics, Wi-Fi, camera)
+Comment[cs]=Rozpoznaný hardware a jeho ovladače (grafika, Wi-Fi, kamera)
+Exec=luxos-drivers
+Icon=luxos-drivers
+Terminal=false
+Categories=Settings;HardwareSettings;X-XFCE-SettingsDialog;X-XFCE-HardwareSettings;GTK;
+Keywords=drivers;nvidia;graphics;gpu;wifi;hardware;ovladače;ovladač;grafika;
+StartupWMClass=luxos-drivers
