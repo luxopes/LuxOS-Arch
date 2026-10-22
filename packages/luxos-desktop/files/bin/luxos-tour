@@ -556,13 +556,33 @@ def draw_menubar(p):
             p.g_wifi(cx, cy, 9, ic)
         elif kind == "bt":
             p.text("ᛒ", cx, cy, 8, ic, bold=True, align="c")
-        elif kind in ("dnd", "dark"):
-            cr.save()
-            cr.arc(cx, cy, 4.2, 0, 2 * math.pi)
-            cr.arc_negative(cx + 2.4, cy - 2, 3.6, 2 * math.pi, 0)
-            cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
-            fill(cr, ic)
-            cr.restore()
+        elif kind == "dnd":
+            # preskrtnuty zvonek (obrys) jako ve skutecnem Ovladacim centru
+            cr.set_source_rgba(*ic)
+            cr.set_line_width(0.9)
+            cr.set_line_cap(cairo.LINE_CAP_ROUND)
+            cr.set_line_join(cairo.LINE_JOIN_ROUND)
+            cr.move_to(cx - 3.4, cy + 2.2)
+            cr.curve_to(cx - 2.5, cy + 1, cx - 2.9, cy - 3.6, cx, cy - 3.6)
+            cr.curve_to(cx + 2.9, cy - 3.6, cx + 2.5, cy + 1, cx + 3.4, cy + 2.2)
+            cr.close_path()
+            cr.stroke()
+            cr.arc(cx, cy + 3.3, 0.9, 0, 2 * math.pi)
+            cr.fill()
+            cr.move_to(cx - 3.6, cy - 3.8)
+            cr.line_to(cx + 3.6, cy + 3.8)
+            cr.stroke()
+        elif kind == "dark":
+            # srpek mesice: kruh, z nej vyriznuty posunuty kruh
+            cr.push_group()
+            cr.arc(cx, cy, 3.8, 0, 2 * math.pi)
+            cr.set_source_rgba(*ic)
+            cr.fill()
+            cr.set_operator(cairo.OPERATOR_CLEAR)
+            cr.arc(cx + 2.3, cy - 1.6, 3.3, 0, 2 * math.pi)
+            cr.fill()
+            cr.pop_group_to_source()
+            cr.paint()
         elif kind == "data":
             for k in range(4):
                 cr.rectangle(cx - 4 + k * 2.2, cy + 3.5 - (k + 1) * 1.8, 1.4, (k + 1) * 1.8)
