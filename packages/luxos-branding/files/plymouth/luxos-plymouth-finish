@@ -4,5 +4,5 @@
 # (plymouth deactivate + quit --retain-splash), viz lightdm.service.d/luxos-plymouth.conf.
 plymouth --ping 2>/dev/null || exit 0
 plymouth update --status=luxos-finish
-sleep 0.5
+sleep 0.3
 exit 0

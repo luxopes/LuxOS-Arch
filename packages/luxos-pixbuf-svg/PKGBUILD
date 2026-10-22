@@ -1,0 +1,25 @@
+# Maintainer: LuxOS Team
+# Zavadec SVG pro gdk-pixbuf primo v procesu (librsvg). Je to puvodni modul io-svg.c
+# z librsvg (LGPL), ktery librsvg od 2.61.2 uz vychozi nestavi (GNOME presel na glycin).
+# LuxOS pouziva gdk-pixbuf bez glycinu (balik gdk-pixbuf2 z [luxos]) - bez tohoto modulu
+# by se ikony SVG (WhiteSur) nenacetly vubec.
+
+pkgname=luxos-pixbuf-svg
+pkgver=2.63.3
+pkgrel=1
+pkgdesc="SVG loader module for gdk-pixbuf (librsvg, in-process) - LuxOS"
+url="https://gitlab.gnome.org/GNOME/librsvg"
+arch=(x86_64)
+license=(LGPL-2.1-or-later)
+depends=(gdk-pixbuf2 librsvg)
+makedepends=(pkgconf)
+options=(!debug)
+
+build() {
+    gcc $CFLAGS $LDFLAGS -shared -fPIC -o libpixbufloader-svg.so "$startdir/files/io-svg.c" \
+        $(pkg-config --cflags --libs librsvg-2.0 gdk-pixbuf-2.0)
+}
+
+package() {
+    install -Dm755 libpixbufloader-svg.so "$pkgdir/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.so"
+}

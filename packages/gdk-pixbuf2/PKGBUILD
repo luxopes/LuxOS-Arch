@@ -1,0 +1,52 @@
+# Maintainer: LuxOS Team
+# gdk-pixbuf bez glycinu: obrazky (PNG, JPEG, ikony...) se dekoduji primo v procesu aplikace.
+#
+# Arch od gdk-pixbuf 2.44 nacita kazdy obrazek pres glycin: na kazde nacteni se spusti
+# sandbox bwrap + proces glycin-image-rs/glycin-svg a data jdou pres D-Bus. Mereno ve VM
+# LuxOS: ikona SVG ~4 ms a ~5 procesu misto ~0,3 ms v procesu; pri prihlaseni ~40 sandboxu,
+# kazda nabidka s ikonami ma desitky dalsich. Kali/Debian (gdk-pixbuf 2.42) to nema - odtud
+# cast rozdilu v rychlosti. LuxOS proto stavi gdk-pixbuf s klasickymi zavadeci (png a jpeg
+# vestavene, ostatni jako moduly v /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders, SVG z balicku
+# luxos-pixbuf-svg). Repozitar [luxos] je v pacman.conf pred [extra], takze ma tento balik
+# prednost pred stejnojmennym z Archu; pri nove verzi v Archu zvysit pkgver a sjednotit pkgrel.
+# Stejne verze, vyssi pkgrel nez Arch (2.44.8-1), aby se nainstalovane systemy aktualizovaly.
+
+pkgname=gdk-pixbuf2
+pkgver=2.44.8
+pkgrel=1.1
+pkgdesc="An image loading library (LuxOS: in-process loaders, no glycin sandbox process per image)"
+url="https://gitlab.gnome.org/GNOME/gdk-pixbuf"
+arch=(x86_64)
+license=(LGPL-2.1-or-later)
+depends=(glib2 glibc libjpeg-turbo libpng libtiff shared-mime-info)
+makedepends=(glib2-devel gobject-introspection meson)
+optdepends=('luxos-pixbuf-svg: SVG images and icons'
+            'webp-pixbuf-loader: WebP images')
+provides=(libgdk_pixbuf-2.0.so)
+options=(!debug)
+source=("https://download.gnome.org/sources/gdk-pixbuf/${pkgver%.*}/gdk-pixbuf-$pkgver.tar.xz")
+sha256sums=('919f529512961a12e81cd4b4b466a48c3933469e7f9a310c6513cd4fb252ba3c')
+
+build() {
+    local opts=(
+        -D glycin=disabled -D android=disabled
+        -D png=enabled -D jpeg=enabled -D tiff=enabled -D gif=enabled
+        -D others=enabled
+        -D builtin_loaders=png,jpeg
+        -D introspection=enabled
+        -D installed_tests=false -D tests=false
+        -D man=false -D documentation=false
+        -D thumbnailer=disabled
+    )
+    arch-meson "gdk-pixbuf-$pkgver" build "${opts[@]}"
+    meson compile -C build
+}
+
+package() {
+    meson install -C build --destdir "$pkgdir"
+    # Cache zavadecu (loaders.cache) vytvari a maze pacman hook na cilovem systemu
+    install -Dm644 "$startdir/files/gdk-pixbuf-query-loaders.hook" \
+        "$pkgdir/usr/share/libalpm/hooks/gdk-pixbuf-query-loaders.hook"
+    install -Dm644 "$startdir/files/gdk-pixbuf-remove-loaders-cache.hook" \
+        "$pkgdir/usr/share/libalpm/hooks/gdk-pixbuf-remove-loaders-cache.hook"
+}

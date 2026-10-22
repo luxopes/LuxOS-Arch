@@ -73,7 +73,10 @@ def enroll_message(result, swipe=False):
     text, done, err = ENROLL.get(result, ("Something went wrong. Try again.", True, True))
     if result == "enroll-stage-passed" and swipe:
         text = "Swipe your finger again"
-    return _(text), done, err
+    text = _(text)
+    if result in ("enroll-unknown-error", "enroll-failed") or result not in ENROLL:
+        text += f"\n({result})"      # technicky duvod od ctecky (libfprint)
+    return text, done, err
 
 
 def error_message(err):
@@ -87,7 +90,14 @@ def error_message(err):
         return _("The fingerprint reader is not available.")
     if name == ERR + "PrintsNotDeleted":
         return _("Could not remove the fingerprint.")
-    return _("Something went wrong. Try again.")
+    # neznama chyba: k obecne vete technicky duvod (podle nej jde chybu najit a opravit)
+    detail = name.rsplit(".", 1)[-1] if name else ""
+    msg = (err.message or "").strip()
+    if msg and detail not in msg:
+        detail = f"{detail}: {msg}" if detail else msg
+    elif msg:
+        detail = msg
+    return _("Something went wrong. Try again.") + (f"\n({detail})" if detail else "")
 
 
 class Fprint:
@@ -308,7 +318,10 @@ class FingerprintWindow(Gtk.Window):
         super().__init__(title=_("Fingerprint Login"))
         self.set_default_size(520, 500)
         self.set_icon_name("luxos-fingerprint")
-        self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("Fingerprint Login")))
+        # HeaderBar zobrazit hned (okno se ukazuje pres show(), ne show_all() - jinak by chybelo zavirani)
+        header = Gtk.HeaderBar(show_close_button=True, title=_("Fingerprint Login"))
+        header.show_all()
+        self.set_titlebar(header)
         self.fp = client
         self.enrolled = []
         self.finger = None

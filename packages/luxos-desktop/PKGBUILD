@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=30
+pkgrel=31
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
@@ -14,6 +14,8 @@ install=luxos-desktop.install
 depends=(
     # LuxOS
     luxos-branding luxos-themes luxos-shell luxos-tweaks luxos-drivers lux
+    # Obrazky a ikony v procesu aplikace (gdk-pixbuf2 z [luxos] bez glycinu + zavadece SVG a WebP)
+    gdk-pixbuf2 luxos-pixbuf-svg webp-pixbuf-loader
     # Graficky server a vstup
     xorg-server xorg-xrandr xorg-xinput xorg-xset xf86-input-libinput mesa
     # Xfce (jen potrebne casti)

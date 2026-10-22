@@ -4,6 +4,13 @@
     <property name="SaveOnExit" type="bool" value="false"/>
     <property name="PromptOnLogout" type="bool" value="true"/>
   </property>
+  <!-- gpg-agent spousti systemd uzivatele na vyzadani (gpg-agent.socket); xfce4-session by ho
+       pri kazdem prihlaseni zabil a spustil znovu (gpgconf, gpg-connect-agent - tri procesy navic) -->
+  <property name="startup" type="empty">
+    <property name="gpg-agent" type="empty">
+      <property name="enabled" type="bool" value="false"/>
+    </property>
+  </property>
   <property name="shutdown" type="empty">
     <property name="LockScreen" type="bool" value="true"/>
   </property>

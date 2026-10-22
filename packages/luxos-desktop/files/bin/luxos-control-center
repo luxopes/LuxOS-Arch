@@ -284,7 +284,9 @@ class Tile(Gtk.Button):
         bubble.pack_start(self.image, True, True, 0)
         box.pack_start(bubble, False, False, 0)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
-        self.title = Gtk.Label(label=title, xalign=0)
+        # pevna sirka: delsi preklady ("Sporic baterie") se zkrati, okno se nerozsiri za okraj
+        self.title = Gtk.Label(label=title, xalign=0, ellipsize=3, max_width_chars=12)
+        self.title.set_tooltip_text(title)
         self.title.get_style_context().add_class("title")
         self.sub = Gtk.Label(xalign=0, ellipsize=3, max_width_chars=12)
         self.sub.get_style_context().add_class("sub")
@@ -459,6 +461,7 @@ class ControlCenter(Gtk.Window):
         self.connect("focus-out-event", lambda *_a: GLib.timeout_add(120, self.close_if_unfocused))
         self.connect("key-press-event", self.on_key)
         self.connect("realize", lambda *_a: self.place())
+        self.connect("configure-event", lambda *_a: GLib.idle_add(self.on_size) and False)
         # Demon: zavreni okno jen skryje, dalsi klik v liste ho hned ukaze (SIGUSR1)
         self.connect("delete-event", lambda *_a: self.hide() or True)
         self.refresh_fast()
@@ -487,8 +490,20 @@ class ControlCenter(Gtk.Window):
         _scr, px, py = pointer.get_position()
         mon = display.get_monitor_at_point(px, py)
         geo = mon.get_workarea()
-        w, _h = self.get_size()
-        self.move(geo.x + geo.width - w - 8, geo.y + 6)
+        w, h = self.get_size()
+        # cele okno vzdy na monitoru (i kdyz po zobrazeni zmeni velikost - viz on_size)
+        x = max(geo.x + 4, geo.x + geo.width - w - 8)
+        y = geo.y + 6
+        if y + h > geo.y + geo.height - 4:
+            y = max(geo.y, geo.y + geo.height - h - 4)
+        self.move(x, y)
+        self._placed_size = (w, h)
+
+    def on_size(self, *_a):
+        # obsah (baterie, prehravani, delsi texty) zmenil velikost okna: znovu umistit
+        if self.get_visible() and self.get_size() != getattr(self, "_placed_size", None):
+            self.place()
+        return False
 
     def close_if_unfocused(self):
         # is_active() zustava po kliknuti na plochu (xfdesktop drzi grab) chybne True,

@@ -10,8 +10,12 @@ ConditionPathExists=!/run/archiso
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+# Bezi ve chvili, kdy startuje prihlasovaci obrazovka: nebrat ji procesor ani disk
+# (kontrola po startu neni naspech)
 ExecStart=/usr/bin/luxos-care boot-check
 TimeoutStartSec=30min
+Nice=19
+IOSchedulingClass=idle
 
 [Install]
 WantedBy=graphical.target

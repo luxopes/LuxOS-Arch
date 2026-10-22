@@ -526,28 +526,40 @@ def main():
     GLib.set_prgname("luxos-daemon")
     GLib.set_application_name("LuxOS")
 
-    cc_mod = load("luxos_cc_app", "/usr/bin/luxos-control-center")
-    cal_mod = load("luxos_calendar_app", "/usr/bin/luxos-calendar")
     safe_mod = load("luxos_safe_app", "/usr/bin/luxos-safe")
 
-    cc = cal = None
-    try:
-        cc = cc_mod.create() if cc_mod else None
-    except Exception as e:  # noqa: BLE001
-        log(f"control center: {e}")
-    try:
-        cal = cal_mod.create(daemon=True) if cal_mod else None
-    except Exception as e:  # noqa: BLE001
-        log(f"calendar: {e}")
+    # Skryta okna Ovladaciho centra a Kalendare: vytvorit az po usazeni relace (nebrzdi prihlaseni),
+    # nebo hned pri prvnim kliknuti, prijde-li driv. Pri chybe vytvoreni se program spusti samostatne.
+    windows = {}
+    APPS = {"cc": ("luxos_cc_app", "/usr/bin/luxos-control-center", {}),
+            "cal": ("luxos_calendar_app", "/usr/bin/luxos-calendar", {"daemon": True})}
 
-    def toggle(win, fallback):
+    def window(kind):
+        if kind not in windows:
+            name, path, kwargs = APPS[kind]
+            windows[kind] = None
+            mod = load(name, path)
+            try:
+                windows[kind] = mod.create(**kwargs) if mod else None
+            except Exception as e:  # noqa: BLE001
+                log(f"{kind}: {e}")
+        return windows[kind]
+
+    def prebuild():
+        for kind in APPS:
+            window(kind)
+        return False
+    GLib.timeout_add_seconds(6, prebuild)
+
+    def toggle(kind, fallback):
+        win = window(kind)
         if win is not None:
             win.toggle()
         else:
             spawn(fallback)
         return True
-    signal_add(signal.SIGUSR1, lambda *_a: toggle(cc, "luxos-control-center"))
-    signal_add(signal.SIGUSR2, lambda *_a: toggle(cal, "luxos-calendar"))
+    signal_add(signal.SIGUSR1, lambda *_a: toggle("cc", "luxos-control-center"))
+    signal_add(signal.SIGUSR2, lambda *_a: toggle("cal", "luxos-calendar"))
     signal_add(signal.SIGTERM, lambda *_a: Gtk.main_quit() or False)
     signal_add(signal.SIGINT, lambda *_a: Gtk.main_quit() or False)
 

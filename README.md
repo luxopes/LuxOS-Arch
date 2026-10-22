@@ -217,6 +217,8 @@ packages/                   vlastní balíky LuxOS (lokální repozitář [luxos
   luxdrop                   LuxDrop – bezpečné posílání souborů v síti, kompatibilní s LocalSend (GTK, CLI, protokol)
   lux                       správce balíků
   lux-engine                jádro lux: libalpm a nástroje pacmanu z Archu (makepkg…), bez příkazu pacman
+  gdk-pixbuf2               náhrada balíku z Archu bez glycinu: obrázky a ikony se dekódují v procesu aplikace
+  luxos-pixbuf-svg          zavaděč SVG pro gdk-pixbuf (librsvg, v procesu)
   blesh                     ble.sh
 ```
 
