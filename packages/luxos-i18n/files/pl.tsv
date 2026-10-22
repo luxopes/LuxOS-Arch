@@ -1640,7 +1640,7 @@ All lux commands: %s	Wszystkie polecenia lux: %s
 Experts can still run pacman directly: %s	Zaawansowani użytkownicy mogą nadal uruchomić pacman bezpośrednio: %s
 The package manager core is missing (%s). Repair it with: %s	Brak rdzenia menedżera pakietów (%s). Napraw go poleceniem: %s
 pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman jest tylko dla zaawansowanych (LUX_ALLOW_PACMAN=1 pacman …); lux i pacman używają tej samej bazy pakietów.
-The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	Rdzeń menedżera pakietów %s jest starszy niż pacman w Arch Linux %s (aktualizacja LuxOS wkrótce)
+The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	Rdzeń menedżera pakietów %s jest starszy niż w Arch Linux (%s); aktualizacja LuxOS wkrótce
 You manage the system yourself with lux.	Samodzielnie zarządzasz systemem za pomocą lux.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
 Layout line %s is not valid.	Wiersz układu %s jest nieprawidłowy.
@@ -2031,3 +2031,112 @@ Could not set the partition type of %s; LuxOS works anyway.	Nie udało się usta
 Downloading the list of available software first	Najpierw pobieram listę dostępnego oprogramowania
 Version %s	Wersja %s
 build %s	kompilacja %s
+Displays	Monitory
+Displays…	Monitory…
+Built-in Display	Wbudowany ekran
+Revert	Przywróć
+Keep Changes	Zachowaj zmiany
+Keep these display settings?	Zachować te ustawienia ekranu?
+The previous settings will be restored in %d seconds.	Poprzednie ustawienia zostaną przywrócone za %d s.
+No displays found. Display settings need an X11 session.	Nie znaleziono ekranów. Ustawienia ekranu wymagają sesji X11.
+Multiple Displays	Wiele ekranów
+You can also switch with Super+P.	Możesz też przełączać klawiszami Super+P.
+This display is turned off.	Ten ekran jest wyłączony.
+Turn it on with Super+P or under Multiple Displays.	Włącz go klawiszami Super+P lub w sekcji Wiele ekranów.
+%s (Recommended)	%s (zalecana)
+Resolution	Rozdzielczość
+A lower resolution makes everything larger; the recommended one is the sharpest.	Niższa rozdzielczość powiększa wszystko; zalecana jest najostrzejsza.
+Refresh rate	Częstotliwość odświeżania
+Standard	Standardowy
+Rotation	Obrót
+The display could not use this setting.	Ekran nie mógł użyć tego ustawienia.
+The previous settings were restored.	Przywrócono poprzednie ustawienia.
+Text Size	Rozmiar tekstu
+Smaller	Mniejszy
+Large	Duży
+Larger	Większy
+Largest	Największy
+Changes the size of text in the menu bar, window titles and apps. Some apps need to be reopened.	Zmienia rozmiar tekstu na pasku menu, w tytułach okien i aplikacjach. Niektóre aplikacje trzeba otworzyć ponownie.
+Fingerprint Login	Logowanie odciskiem palca
+Touch the fingerprint sensor or enter your password	Dotknij czytnika linii papilarnych lub wpisz hasło
+Fingerprint not recognized. Try again or enter your password.	Nie rozpoznano odcisku. Spróbuj ponownie lub wpisz hasło.
+Set Up…	Skonfiguruj…
+Unlock and log in with your fingerprint instead of the password.	Odblokowuj i loguj się odciskiem palca zamiast hasła.
+Fingerprint reader: fprintd (set up in Settings > Fingerprint)	Czytnik linii papilarnych: fprintd (konfiguracja w Ustawienia > Odcisk palca)
+You are not allowed to change fingerprints.	Nie masz uprawnień do zmiany odcisków palców.
+The fingerprint reader is being used by another app. Try again later.	Czytnik linii papilarnych jest używany przez inną aplikację. Spróbuj później.
+The fingerprint reader is not available.	Czytnik linii papilarnych jest niedostępny.
+Could not remove the fingerprint.	Nie udało się usunąć odcisku palca.
+Something went wrong. Try again.	Coś poszło nie tak. Spróbuj ponownie.
+Looking for a fingerprint reader…	Szukanie czytnika linii papilarnych…
+Use your fingerprint to log in, unlock the screen and approve administrator actions. Your password always works too.	Używaj odcisku palca do logowania, odblokowywania ekranu i zatwierdzania działań administratora. Hasło też zawsze działa.
+Fingerprints	Odciski palców
+Add Fingerprint…	Dodaj odcisk palca…
+Remove All	Usuń wszystkie
+This computer has no supported fingerprint reader. If you connect one, open Drivers to set it up.	Ten komputer nie ma obsługiwanego czytnika linii papilarnych. Jeśli go podłączysz, otwórz Sterowniki, aby go skonfigurować.
+Fingerprint support is not installed. Drivers installs it automatically when your computer has a supported fingerprint reader.	Obsługa odcisków palców nie jest zainstalowana. Sterowniki zainstalują ją automatycznie, jeśli komputer ma obsługiwany czytnik.
+No fingerprint reader found	Nie znaleziono czytnika linii papilarnych
+Open Drivers	Otwórz Sterowniki
+No fingerprints added yet.	Nie dodano jeszcze odcisków palców.
+Remove the fingerprint “%s”?	Usunąć odcisk „%s”?
+You will no longer be able to use this finger to log in.	Nie będzie można już logować się tym palcem.
+Removing…	Usuwanie…
+Remove all fingerprints?	Usunąć wszystkie odciski palców?
+You will need your password to log in.	Do logowania potrzebne będzie hasło.
+Add Fingerprint	Dodaj odcisk palca
+Which finger do you want to add?	Który palec chcesz dodać?
+Swipe your finger across the sensor.	Przesuń palcem po czytniku.
+Place your finger on the sensor, then lift it.	Połóż palec na czytniku, a następnie go podnieś.
+Step %d of %d	Krok %d z %d
+Right index finger	Prawy palec wskazujący
+Left index finger	Lewy palec wskazujący
+Right thumb	Prawy kciuk
+Left thumb	Lewy kciuk
+Right middle finger	Prawy palec środkowy
+Left middle finger	Lewy palec środkowy
+Right ring finger	Prawy palec serdeczny
+Left ring finger	Lewy palec serdeczny
+Right little finger	Prawy mały palec
+Left little finger	Lewy mały palec
+Lift your finger, then touch the sensor again	Podnieś palec i ponownie dotknij czytnika
+Didn't catch that. Touch the sensor again.	Nie udało się odczytać. Dotknij czytnika ponownie.
+Swipe was too short. Try again.	Przesunięcie było za krótkie. Spróbuj ponownie.
+Center your finger on the sensor and try again.	Umieść palec na środku czytnika i spróbuj ponownie.
+Lift your finger and try again.	Podnieś palec i spróbuj ponownie.
+Fingerprint added	Dodano odcisk palca
+Could not add the fingerprint. Try again.	Nie udało się dodać odcisku palca. Spróbuj ponownie.
+The reader cannot store more fingerprints. Remove one first.	Czytnik nie może zapisać więcej odcisków. Najpierw usuń jeden.
+This fingerprint is already added.	Ten odcisk palca jest już dodany.
+The fingerprint reader was disconnected.	Czytnik linii papilarnych został odłączony.
+Swipe your finger again	Przesuń palcem ponownie
+What's New	Co nowego
+What's New in LuxOS %s	Co nowego w LuxOS %s
+LuxOS %s	LuxOS %s
+No release notes are available.	Brak informacji o wydaniu.
+Could not check for updates. Check your internet connection and try again.	Nie udało się sprawdzić aktualizacji. Sprawdź połączenie z internetem i spróbuj ponownie.
+Capture	Zrób zrzut
+Capture Entire Screen	Cały ekran
+Capture Selected Window	Wybrane okno
+Capture Selected Portion	Zaznaczony obszar
+Record	Nagraj
+Record Entire Screen	Nagraj cały ekran
+Record Selected Portion	Nagraj zaznaczony obszar
+Options	Opcje
+Timer	Minutnik
+None	Brak
+5 Seconds	5 sekund
+10 Seconds	10 sekund
+Clipboard	Schowek
+Choose a Folder	Wybierz folder
+Show Mouse Pointer	Pokaż wskaźnik myszy
+Remember Last Selection	Zapamiętaj ostatni wybór
+Screenshot %s at %s	Zrzut ekranu %s o %s
+Screen Recording %s at %s	Nagranie ekranu %s o %s
+Stop	Zatrzymaj
+Stop Recording	Zatrzymaj nagrywanie
+Screen recording is not available: ffmpeg was not found.	Nagrywanie ekranu jest niedostępne: nie znaleziono ffmpeg.
+The screen recording failed.	Nagrywanie ekranu nie powiodło się.
+The screenshot could not be saved.	Nie udało się zapisać zrzutu ekranu.
+%s .pacnew config file(s) to merge - run: lux configs	Pliki konfiguracyjne .pacnew do scalenia: %s - uruchom: lux configs
+Your settings were kept. Merge the files when convenient: lux configs	Twoje ustawienia zostały zachowane. Scal pliki, kiedy będzie Ci wygodnie: lux configs
+review and merge new config files (.pacnew)	przegląda i scala nowe pliki konfiguracyjne (.pacnew)

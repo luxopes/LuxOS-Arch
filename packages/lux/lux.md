@@ -4,26 +4,35 @@
 a Arch Linuxu spravuje přímo přes **libalpm** (knihovnu pacmanu, v Pythonu přes `pyalpm`), navíc umí
 AUR, Flatpak a vlastní balíky `.lux`.
 
-Pacman z Arch Linuxu je v systému dál (balík `luxos-pacman`: libalpm, makepkg, `pacman-key`,
-`pacman-conf`, hooky), skutečný program je ale `/usr/lib/lux/alpm/pacman`. Příkaz `pacman` je
-kompatibilní vrstva: skripty, hooky, služby, `makepkg`, `pacstrap`, `lux` a AUR pomocníci (`yay`,
-`paru`…) dostanou skutečný pacman beze změny; člověk v terminálu místo toho uvidí odpovídající příkaz
-`lux` (např. `pacman -Syu` → `lux update`, `pacman -S x` → `lux install x`) a návratový kód 1.
+Příkaz `pacman` v LuxOS není. Jádro `lux` je balík **`lux-engine`**: libalpm a nástroje pacmanu
+z Arch Linuxu (sestavené ze stejných zdrojů a součtů jako v Archu) – `makepkg`, `vercmp`, `repo-add`,
+hooky a konfigurace zůstávají, interní nástroje `pacman`, `pacman-key`, `pacman-conf`
+a `pacman-db-upgrade` jsou v `/usr/lib/lux/alpm/bin` mimo `PATH` (bez manuálových stránek
+a doplňování). Kdo z Archu napíše `pacman -Syu`, uvidí v shellu LuxOS místo „command not found“
+i odpovídající příkaz `lux` (`pacman -Syu` → `lux update`, `pacman -S x` → `lux install x`,
+nápověda `/usr/lib/lux/pacman-hint`); totéž `lux -Syu`.
 
-Pro pokročilé zůstává pacman dostupný:
+Nástroje jádra dostanou ti, kdo je potřebují:
 
-- jednorázově: `LUX_ALLOW_PACMAN=1 pacman …`, s právy správce `sudo LUX_ALLOW_PACMAN=1 pacman …`
-  (`sudo` proměnné z prostředí nepředává, proto až za `sudo`),
-- přímo: `sudo /usr/lib/lux/alpm/pacman …`,
-- trvale pro celý systém: `sudo touch /etc/lux/allow-pacman` (zrušení: smazat soubor).
+- `lux` a `lux_alpm.py` si `/usr/lib/lux/alpm/bin` přidají na začátek `PATH`; dědí ho hooky
+  a skriptlety transakcí. Přes `sudo`/`pkexec` lux předá pevnou cestu
+  `/usr/lib/lux/alpm/bin:/usr/local/sbin:/usr/local/bin:/usr/bin` (ne `PATH` uživatele).
+- `makepkg`: `/etc/makepkg.conf.d/lux-engine.conf` (`PATH`, `PACMAN`, `PACMAN_AUTH` se stejnou cestou
+  pro `sudo`).
+- služby z `pacman-contrib` a `archlinux-keyring` (`paccache`, `pacman-filesdb-refresh`,
+  `archlinux-keyring-wkd-sync`): drop-iny `/usr/lib/systemd/system/<služba>.service.d/lux-engine.conf`.
+  Globální `DefaultEnvironment` záměrně ne – `PATH` správce služeb dědí i relace uživatelů (LightDM).
+- nástroje LuxOS (Obchod, LuxOS Care, Ovladače, tisk, instalátor, sandbox) si cestu nastaví samy.
+- klíče z klíčenek (`archlinux-keyring`, `luxos-keyring`) načte hook `lux-engine-keyrings`
+  (instalační skript `archlinux-keyring` hledá `/usr/bin/pacman-key`, který v LuxOS není).
 
-`lux` i `pacman` používají stejnou databázi `/var/lib/pacman`, stejný `/etc/pacman.conf`
-(načtený přes `pacman-conf`, tedy včetně `Include`), stejné ověřování podpisů, cache a hooky.
-Balík nainstalovaný jedním nástrojem druhý normálně vidí, aktualizuje i odebere.
+`lux` používá databázi `/var/lib/pacman`, `/etc/pacman.conf` (načtený přes `pacman-conf`, tedy
+včetně `Include`), ověřování podpisů, cache a hooky jako pacman v Arch Linuxu.
 
-`luxos-pacman` je sestavený ze stejných zdrojů jako `pacman` v Archu a musí s ním držet krok
-(`pyalpm` z Archu se sestavuje proti jeho `libalpm.so`); `lux doctor` upozorní, když je pacman
-v Archu novější. Do té doby `lux` při nefunkčním `pyalpm` sám přejde na záložní cestu níže.
+`lux-engine` musí držet krok s `pacman` v Archu (`pyalpm` z Archu se sestavuje proti jeho
+`libalpm.so`); `lux doctor` upozorní, když je Arch novější. Do té doby `lux` při nefunkčním `pyalpm`
+sám přejde na záložní cestu níže. `lux-engine` nahrazuje `luxos-pacman` z LuxOS 0.9 (`replaces`):
+`lux update` ho vymění sám.
 
 ## Příkazy
 
@@ -44,6 +53,7 @@ v Archu novější. Do té doby `lux` při nefunkčním `pyalpm` sám přejde na
 | `lux owns <soubor>` (`owner`) | kterému balíku soubor patří (i příkaz z `PATH`) | `-Qo` |
 | `lux clean` | vyčistí cache (ponechá `CLEAN_KEEP` verzí) a nabídne `autoremove` | `paccache` |
 | `lux fix` | opraví zamčenou databázi (jen když žádný správce balíků neběží), smaže nedokončená stahování, obnoví podpisové klíče (`pacman-key --init/--populate`, `archlinux-keyring`, `luxos-keyring`) | |
+| `lux configs` | porovná a sloučí nové konfigurační soubory z aktualizací (`.pacnew`, `.pacsave`) | `pacdiff` |
 | `lux history [počet] [balík]` | poslední změny balíků z `pacman.log` | |
 | `lux drivers`, `lux mirrors`, `lux doctor`, `lux pack` | ovladače, rychlá zrcadla, kontrola systému, sestavení `.lux` | |
 
@@ -74,8 +84,8 @@ otázkou připomene velikost stahování; automatické aktualizace na pozadí ř
 ## Zálohy a záložní cesta
 
 Transakce dělá `/usr/lib/lux/lux_alpm.py`. Když `pyalpm` chybí nebo neumí něco, co `pacman.conf`
-používá (např. `XferCommand`, `HookDir` s hooky), `lux` použije skutečný pacman
-(`/usr/lib/lux/alpm/pacman`, ne kompatibilní vrstvu) se stejnými volbami.
+používá (např. `XferCommand`, `HookDir` s hooky), `lux` použije pacman z jádra
+(`/usr/lib/lux/alpm/bin/pacman`) se stejnými volbami.
 Vynucení: `LUX_BACKEND=pacman lux …`. Kontrola: `/usr/lib/lux/lux_alpm.py --verbose available`.
 
 ## Strojový režim (Obchod LuxOS, LuxOS Care)

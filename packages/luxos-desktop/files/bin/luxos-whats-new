@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+"""LuxOS - Co je noveho: novinky po aktualizaci systemu.
+
+  luxos-whats-new            novinky aktualni verze (z O tomto pocitaci, Launchpadu)
+  luxos-whats-new --auto     po prihlaseni (luxos-session): jen kdyz se od posledniho
+                             zobrazeni zmenila verze LuxOS; ukaze novinky vsech novych verzi
+  luxos-whats-new --mark-seen   aktualni verzi oznaci jako videnou (novy uzivatel - ma Prohlidku)
+
+Novinky jsou v /usr/share/luxos/whats-new/<verze>.json (balik luxos-branding):
+  {"version": "0.9.1", "codename": "Polaris",
+   "items": [{"icon": "nazev-ikony", "title": {"en": "...", "cs": "..."}, "text": {"en": "...", ...}}]}
+Chybejici jazyk = anglicky text. Videna verze: ~/.config/luxos/whats-new-seen.
+"""
+import json
+import locale
+import os
+import re
+import sys
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_i18n import _  # noqa: E402
+
+NOTES_DIR = os.environ.get("LUXOS_WHATS_NEW_DIR", "/usr/share/luxos/whats-new")
+VERSION_FILE = os.environ.get("LUXOS_VERSION_FILE", "/usr/lib/luxos/version")
+CFG = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "luxos")
+SEEN = os.path.join(CFG, "whats-new-seen")
+
+CSS = b"""
+.wn-title { font-size: 26px; font-weight: 800; }
+.wn-sub { font-size: 14px; opacity: 0.6; }
+.wn-version { font-size: 12px; font-weight: 700; opacity: 0.55; margin-top: 6px; }
+.wn-item-title { font-size: 14px; font-weight: 700; }
+.wn-item-text { font-size: 13px; opacity: 0.72; }
+.wn-icon { background-color: alpha(#3d7bff, 0.14); border-radius: 12px; color: #3d7bff;
+           min-width: 44px; min-height: 44px; }
+.primary { border-radius: 999px; padding: 6px 30px; font-weight: 700; background-image: none;
+           background-color: #3d7bff; color: white; border: none; box-shadow: none; }
+.primary:hover { background-color: #5a8fff; }
+.primary:focus { box-shadow: 0 0 0 3px alpha(#3d7bff, 0.35); }
+"""
+
+
+def vkey(v):
+    """Razeni verzi 0.9.10 > 0.9.9."""
+    return [int(x) if x.isdigit() else x for x in re.split(r"[.\-]", v)]
+
+
+def current_version():
+    try:
+        with open(VERSION_FILE, encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("VERSION="):
+                    return line.split("=", 1)[1].strip().strip('"')
+    except OSError:
+        pass
+    return ""
+
+
+def read_seen():
+    try:
+        with open(SEEN, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def mark_seen(version):
+    if not version:
+        return
+    os.makedirs(CFG, exist_ok=True)
+    tmp = SEEN + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(version + "\n")
+    os.replace(tmp, SEEN)
+
+
+def load_notes():
+    """Vsechny novinky {verze: data}, chybne soubory se preskoci."""
+    notes = {}
+    try:
+        names = os.listdir(NOTES_DIR)
+    except OSError:
+        return notes
+    for name in names:
+        if not name.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(NOTES_DIR, name), encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if isinstance(data, dict) and data.get("items"):
+            notes[str(data.get("version") or name[:-5])] = data
+    return notes
+
+
+def pending(notes, seen, current):
+    """Verze s novinkami, ktere uzivatel jeste nevidel (seen < verze <= current), nejnovejsi prvni."""
+    out = [v for v in notes if vkey(v) <= vkey(current) and (not seen or vkey(v) > vkey(seen))]
+    return sorted(out, key=vkey, reverse=True)
+
+
+def lang_codes():
+    lang = os.environ.get("LANGUAGE", "").split(":")[0] or os.environ.get("LC_ALL") \
+        or os.environ.get("LC_MESSAGES") or os.environ.get("LANG") or locale.getlocale()[0] or "en"
+    lang = lang.split(".")[0]
+    return [lang, lang.split("_")[0], "en"]
+
+
+def tr(value, langs):
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        for code in langs:
+            if value.get(code):
+                return value[code]
+        return next(iter(value.values()), "")
+    return ""
+
+
+def show(versions, notes):
+    import gi
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("Gdk", "3.0")
+    from gi.repository import Gdk, GLib, Gtk
+
+    GLib.set_prgname("luxos-whats-new")
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    langs = lang_codes()
+    newest = notes[versions[0]]
+
+    win = Gtk.Window(title=_("What's New"))
+    win.set_icon_name("luxos-app")
+    win.set_position(Gtk.WindowPosition.CENTER)
+    win.set_default_size(580, 720)
+    header = Gtk.HeaderBar(show_close_button=True)
+    win.set_titlebar(header)
+    win.connect("destroy", Gtk.main_quit)
+
+    outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_start=36, margin_end=36,
+                    margin_bottom=24)
+    logo = Gtk.Image.new_from_icon_name("luxos-app", Gtk.IconSize.DIALOG)
+    logo.set_pixel_size(72)
+    outer.pack_start(logo, False, False, 0)
+    title = Gtk.Label(label=_("What's New in LuxOS %s") % versions[0], wrap=True, justify=Gtk.Justification.CENTER)
+    title.get_style_context().add_class("wn-title")
+    outer.pack_start(title, False, False, 0)
+    if newest.get("codename"):
+        sub = Gtk.Label(label=newest["codename"])
+        sub.get_style_context().add_class("wn-sub")
+        outer.pack_start(sub, False, False, 0)
+
+    rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16, margin_top=18, margin_end=8)
+    for i, v in enumerate(versions):
+        if len(versions) > 1:
+            head = Gtk.Label(label=_("LuxOS %s") % v, xalign=0)
+            head.get_style_context().add_class("wn-version")
+            rows.pack_start(head, False, False, 0)
+        for item in notes[v].get("items", []):
+            row = Gtk.Box(spacing=14)
+            icon = Gtk.Image.new_from_icon_name(item.get("icon") or "starred-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
+            icon.set_pixel_size(24)
+            icon.get_style_context().add_class("wn-icon")
+            icon.set_valign(Gtk.Align.START)
+            row.pack_start(icon, False, False, 0)
+            text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, valign=Gtk.Align.CENTER)
+            t = Gtk.Label(label=tr(item.get("title"), langs), xalign=0, wrap=True)
+            t.get_style_context().add_class("wn-item-title")
+            text.pack_start(t, False, False, 0)
+            body = tr(item.get("text"), langs)
+            if body:
+                b = Gtk.Label(label=body, xalign=0, wrap=True, max_width_chars=50)
+                b.get_style_context().add_class("wn-item-text")
+                text.pack_start(b, False, False, 0)
+            row.pack_start(text, True, True, 0)
+            rows.pack_start(row, False, False, 0)
+    scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_height=True)
+    scroll.add(rows)
+    outer.pack_start(scroll, True, True, 0)
+
+    ok = Gtk.Button(label=_("Continue"), halign=Gtk.Align.CENTER, margin_top=14)
+    ok.get_style_context().add_class("primary")
+    ok.connect("clicked", lambda _b: win.destroy())
+    outer.pack_end(ok, False, False, 0)
+    win.add(outer)
+    win.show_all()
+    ok.grab_focus()
+    Gtk.main()
+
+
+def main(args):
+    current = current_version()
+    notes = load_notes()
+    if "--mark-seen" in args:
+        mark_seen(current)
+        return 0
+    if "--auto" in args:
+        if os.path.isdir("/run/archiso") or not current:
+            return 0
+        versions = pending(notes, read_seen(), current)
+        if not versions:
+            mark_seen(current)
+            return 0
+        mark_seen(current)          # jen jednou, i kdyz se relace ukonci s otevrenym oknem
+        show(versions, notes)
+        return 0
+    versions = [v for v in sorted(notes, key=vkey, reverse=True) if not current or vkey(v) <= vkey(current)][:1]
+    if not versions:
+        print(_("No release notes are available."), file=sys.stderr)
+        return 1
+    show(versions, notes)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

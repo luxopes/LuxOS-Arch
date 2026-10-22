@@ -1,0 +1,4 @@
+# LuxOS - prihlaseni otiskem: greeter (uzivatel lightdm) sem zapisuje uzivatele, ktery
+# zacal psat heslo, a pam_listfile v /etc/pam.d/lightdm pro nej otisk preskoci
+d /run/luxos-fingerprint 0755 lightdm lightdm -
+f /run/luxos-fingerprint/password-only 0644 lightdm lightdm -

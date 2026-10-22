@@ -27,6 +27,24 @@ bindkey '^[[1;5D' backward-word
 
 . /usr/share/luxos/shell/aliases.sh
 
+# Software spravuje lux; prikaz pacman v LuxOS neni (viz bashrc): misto "command not found"
+# i odpovidajici prikaz lux. Existujici obsluha zustava pro ostatni prikazy.
+# (ne sama sebe pri znovunacteni)
+if (( $+functions[command_not_found_handler] )) && [[ $functions[command_not_found_handler] != *pacman-hint* ]]; then
+    functions -c command_not_found_handler _luxos_cnf_prev
+fi
+command_not_found_handler() {
+    if [[ $1 == pacman || $1 == pacman-* ]] && [[ -x /usr/lib/lux/pacman-hint ]]; then
+        printf 'zsh: command not found: %s\n' "$1" >&2
+        if [[ $1 == pacman ]]; then shift; else set --; fi
+        /usr/lib/lux/pacman-hint "$@"
+        return 127
+    fi
+    if (( $+functions[_luxos_cnf_prev] )); then _luxos_cnf_prev "$@"; return; fi
+    printf 'zsh: command not found: %s\n' "$1" >&2
+    return 127
+}
+
 command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
 command -v fzf &>/dev/null && eval "$(fzf --zsh)"
 

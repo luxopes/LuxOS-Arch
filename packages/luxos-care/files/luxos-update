@@ -369,7 +369,7 @@ class App:
                      _("LuxOS checks for updates automatically."))
         for f in st.get("pacnew", [])[:10]:
             self.row(self.updates_group, _("New configuration file to review: %s") % f,
-                     _("Your settings were kept. Compare the files with pacdiff when convenient."), status="warn")
+                     _("Your settings were kept. Merge the files when convenient: lux configs"), status="warn")
 
         # zdravi
         self.clear(self.health_group)

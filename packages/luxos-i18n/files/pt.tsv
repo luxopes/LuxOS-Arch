@@ -1639,7 +1639,7 @@ All lux commands: %s	Todos os comandos do lux: %s
 Experts can still run pacman directly: %s	Especialistas ainda podem executar o pacman diretamente: %s
 The package manager core is missing (%s). Repair it with: %s	O núcleo do gerenciador de pacotes está ausente (%s). Repare com: %s
 pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	O pacman é só para especialistas (LUX_ALLOW_PACMAN=1 pacman …); lux e pacman compartilham o mesmo banco de dados de pacotes.
-The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	O núcleo do gerenciador de pacotes %s é mais antigo que o pacman do Arch Linux %s (uma atualização do LuxOS virá em breve)
+The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	O núcleo do gerenciador de pacotes %s é mais antigo que o do Arch Linux (%s); uma atualização do LuxOS virá em breve
 You manage the system yourself with lux.	Você mesmo gerencia o sistema com lux.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
 Layout line %s is not valid.	A linha %s do layout não é válida.
@@ -2030,3 +2030,112 @@ Could not set the partition type of %s; LuxOS works anyway.	Não foi possível d
 Downloading the list of available software first	Primeiro a transferir a lista de software disponível
 Version %s	Versão %s
 build %s	compilação %s
+Displays	Ecrãs
+Displays…	Ecrãs…
+Built-in Display	Ecrã integrado
+Revert	Reverter
+Keep Changes	Manter alterações
+Keep these display settings?	Manter estas definições de ecrã?
+The previous settings will be restored in %d seconds.	As definições anteriores serão repostas em %d segundos.
+No displays found. Display settings need an X11 session.	Nenhum ecrã encontrado. As definições de ecrã precisam de uma sessão X11.
+Multiple Displays	Vários ecrãs
+You can also switch with Super+P.	Também pode alternar com Super+P.
+This display is turned off.	Este ecrã está desligado.
+Turn it on with Super+P or under Multiple Displays.	Ligue-o com Super+P ou em Vários ecrãs.
+%s (Recommended)	%s (recomendada)
+Resolution	Resolução
+A lower resolution makes everything larger; the recommended one is the sharpest.	Uma resolução mais baixa aumenta tudo; a recomendada é a mais nítida.
+Refresh rate	Taxa de atualização
+Standard	Padrão
+Rotation	Rotação
+The display could not use this setting.	O ecrã não conseguiu usar esta definição.
+The previous settings were restored.	As definições anteriores foram repostas.
+Text Size	Tamanho do texto
+Smaller	Mais pequeno
+Large	Grande
+Larger	Maior
+Largest	O maior
+Changes the size of text in the menu bar, window titles and apps. Some apps need to be reopened.	Altera o tamanho do texto na barra de menus, nos títulos das janelas e nas aplicações. Algumas aplicações têm de ser reabertas.
+Fingerprint Login	Início de sessão com impressão digital
+Touch the fingerprint sensor or enter your password	Toque no sensor de impressões digitais ou introduza a palavra-passe
+Fingerprint not recognized. Try again or enter your password.	Impressão digital não reconhecida. Tente novamente ou introduza a palavra-passe.
+Set Up…	Configurar…
+Unlock and log in with your fingerprint instead of the password.	Desbloqueie e inicie sessão com a impressão digital em vez da palavra-passe.
+Fingerprint reader: fprintd (set up in Settings > Fingerprint)	Leitor de impressões digitais: fprintd (configure em Definições > Impressão digital)
+You are not allowed to change fingerprints.	Não tem permissão para alterar impressões digitais.
+The fingerprint reader is being used by another app. Try again later.	O leitor de impressões digitais está a ser usado por outra app. Tente mais tarde.
+The fingerprint reader is not available.	O leitor de impressões digitais não está disponível.
+Could not remove the fingerprint.	Não foi possível remover a impressão digital.
+Something went wrong. Try again.	Algo correu mal. Tente novamente.
+Looking for a fingerprint reader…	A procurar um leitor de impressões digitais…
+Use your fingerprint to log in, unlock the screen and approve administrator actions. Your password always works too.	Use a impressão digital para iniciar sessão, desbloquear o ecrã e aprovar ações de administrador. A palavra-passe também funciona sempre.
+Fingerprints	Impressões digitais
+Add Fingerprint…	Adicionar impressão digital…
+Remove All	Remover tudo
+This computer has no supported fingerprint reader. If you connect one, open Drivers to set it up.	Este computador não tem um leitor de impressões digitais compatível. Se ligar um, abra Controladores para o configurar.
+Fingerprint support is not installed. Drivers installs it automatically when your computer has a supported fingerprint reader.	O suporte de impressões digitais não está instalado. Controladores instala-o automaticamente se o computador tiver um leitor compatível.
+No fingerprint reader found	Nenhum leitor de impressões digitais encontrado
+Open Drivers	Abrir Controladores
+No fingerprints added yet.	Ainda não foram adicionadas impressões digitais.
+Remove the fingerprint “%s”?	Remover a impressão digital «%s»?
+You will no longer be able to use this finger to log in.	Deixará de poder iniciar sessão com este dedo.
+Removing…	A remover…
+Remove all fingerprints?	Remover todas as impressões digitais?
+You will need your password to log in.	Vai precisar da palavra-passe para iniciar sessão.
+Add Fingerprint	Adicionar impressão digital
+Which finger do you want to add?	Que dedo pretende adicionar?
+Swipe your finger across the sensor.	Deslize o dedo pelo sensor.
+Place your finger on the sensor, then lift it.	Coloque o dedo no sensor e depois levante-o.
+Step %d of %d	Passo %d de %d
+Right index finger	Indicador direito
+Left index finger	Indicador esquerdo
+Right thumb	Polegar direito
+Left thumb	Polegar esquerdo
+Right middle finger	Médio direito
+Left middle finger	Médio esquerdo
+Right ring finger	Anelar direito
+Left ring finger	Anelar esquerdo
+Right little finger	Mindinho direito
+Left little finger	Mindinho esquerdo
+Lift your finger, then touch the sensor again	Levante o dedo e toque novamente no sensor
+Didn't catch that. Touch the sensor again.	Não foi possível ler. Toque novamente no sensor.
+Swipe was too short. Try again.	O deslize foi demasiado curto. Tente novamente.
+Center your finger on the sensor and try again.	Centre o dedo no sensor e tente novamente.
+Lift your finger and try again.	Levante o dedo e tente novamente.
+Fingerprint added	Impressão digital adicionada
+Could not add the fingerprint. Try again.	Não foi possível adicionar a impressão digital. Tente novamente.
+The reader cannot store more fingerprints. Remove one first.	O leitor não consegue guardar mais impressões digitais. Remova uma primeiro.
+This fingerprint is already added.	Esta impressão digital já foi adicionada.
+The fingerprint reader was disconnected.	O leitor de impressões digitais foi desligado.
+Swipe your finger again	Deslize o dedo novamente
+What's New	Novidades
+What's New in LuxOS %s	Novidades do LuxOS %s
+LuxOS %s	LuxOS %s
+No release notes are available.	Não há notas de versão disponíveis.
+Could not check for updates. Check your internet connection and try again.	Não foi possível verificar atualizações. Verifique a ligação à internet e tente novamente.
+Capture	Capturar
+Capture Entire Screen	Capturar todo o ecrã
+Capture Selected Window	Capturar a janela selecionada
+Capture Selected Portion	Capturar a área selecionada
+Record	Gravar
+Record Entire Screen	Gravar todo o ecrã
+Record Selected Portion	Gravar a área selecionada
+Options	Opções
+Timer	Temporizador
+None	Nenhum
+5 Seconds	5 segundos
+10 Seconds	10 segundos
+Clipboard	Área de transferência
+Choose a Folder	Escolher uma pasta
+Show Mouse Pointer	Mostrar o ponteiro
+Remember Last Selection	Lembrar a última seleção
+Screenshot %s at %s	Captura de ecrã %s às %s
+Screen Recording %s at %s	Gravação de ecrã %s às %s
+Stop	Parar
+Stop Recording	Parar a gravação
+Screen recording is not available: ffmpeg was not found.	A gravação de ecrã não está disponível: o ffmpeg não foi encontrado.
+The screen recording failed.	A gravação de ecrã falhou.
+The screenshot could not be saved.	Não foi possível guardar a captura de ecrã.
+%s .pacnew config file(s) to merge - run: lux configs	%s arquivo(s) de configuração .pacnew para mesclar – execute: lux configs
+Your settings were kept. Merge the files when convenient: lux configs	Seus ajustes foram mantidos. Mescle os arquivos quando for conveniente: lux configs
+review and merge new config files (.pacnew)	revisa e mescla novos arquivos de configuração (.pacnew)

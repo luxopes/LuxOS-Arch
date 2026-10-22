@@ -3,6 +3,7 @@
 
 Nastaveni zapisuje do xfconf kanalu xfce4-screensaver (sluzbu setrice dal pouziva).
 """
+import os
 import subprocess
 import sys
 
@@ -127,6 +128,11 @@ class LockSettings(Gtk.Window):
         sleep.connect("notify::active", lambda s, _p: set_("/lock/sleep-activation", "bool",
                                                             "true" if s.get_active() else "false"))
         g.row(_("Lock when the computer goes to sleep"), sleep)
+        # Otisk prstu jen s nainstalovanym fprintd (luxos-drivers ho pridava pri nalezene ctecce)
+        if os.path.exists("/usr/share/dbus-1/system-services/net.reactivated.Fprint.service"):
+            fp = Gtk.Button(label=_("Set Up…"))
+            fp.connect("clicked", lambda _b: subprocess.Popen(["luxos-fingerprint"], start_new_session=True))
+            g.row(_("Fingerprint Login"), fp, _("Unlock and log in with your fingerprint instead of the password."))
 
         row = Gtk.Box(spacing=8, margin_top=16)
         now = Gtk.Button(label=_("Lock Now"))

@@ -251,7 +251,36 @@ class DemoBackend:
             if self.state == "prompt":
                 self.ui.on_prompt("Password: ", True)
             return False
+        if DEMO_FPRINT and user.name and not self.ui.password_only:
+            self.fingerprint()
+            return
         GLib.timeout_add(30, prompt)
+
+    def fingerprint(self):
+        # napodobeni pam_fprintd (LUXOS_GREETER_DEMO_FPRINT): zprava, pak shoda / neshoda / cekani
+        self.state = "finger"
+        gen = self.gen = getattr(self, "gen", 0) + 1
+
+        def step(what):
+            if self.state != "finger" or gen != self.gen:
+                return False
+            if what == "info":
+                self.ui.on_message("Place your finger on the fingerprint reader", False)
+            elif what == "match":
+                self.ok, self.state = True, "done"
+                self.ui.on_complete()
+            elif what == "nomatch":
+                self.ui.on_message("Failed to match fingerprint", True)
+            elif what == "timeout":
+                self.state = "prompt"
+                self.ui.on_prompt("Password: ", True)
+            return False
+        GLib.timeout_add(30, step, "info")
+        if DEMO_FPRINT == "match":
+            GLib.timeout_add(900, step, "match")
+        elif DEMO_FPRINT == "nomatch":
+            GLib.timeout_add(500, step, "nomatch")
+            GLib.timeout_add(1500, step, "timeout")
 
     def respond(self, text):
         if self.state != "prompt":
@@ -361,6 +390,19 @@ def read(path, default=""):
             return f.read().strip()
     except OSError:
         return default
+
+
+# ---- otisk prstu (pam_fprintd pred heslem v /etc/pam.d/lightdm, viz luxos-fingerprint-pam) ----
+# PAM nejdriv ceka na otisk a teprve pak se pta na heslo. Kdo zacne psat heslo, toho zapiseme
+# do FPRINT_SKIP (pam_listfile) a autentizaci spustime znovu - PAM otisk preskoci a hned chce heslo.
+FPRINT_SKIP = "/run/luxos-fingerprint/password-only"
+DEMO_FPRINT = os.environ.get("LUXOS_GREETER_DEMO_FPRINT", "")   # demo: match | nomatch | wait
+
+
+def fprint_enabled(demo=False):
+    if demo:
+        return bool(DEMO_FPRINT)
+    return "pam_fprintd" in read("/etc/pam.d/lightdm") and os.path.exists("/usr/lib/security/pam_fprintd.so")
 
 
 def battery_state():
@@ -641,6 +683,9 @@ class Greeter(Gtk.Window):
         self.prompted = False       # v teto autentizaci byla zobrazena vyzva
         self.ready = False          # overeno bez vyzvy -> staci potvrdit
         self.pending = None         # odpoved zadana drive, nez prisla vyzva
+        self.fprint = fprint_enabled(args.demo)
+        self.fp_wait = False        # PAM ceka na otisk prstu (heslo jde psat i tak)
+        self.password_only = False  # tato autentizace preskakuje otisk
         self.error_shown = False
         self.shake_id = 0
         self.last_minute = None
@@ -656,6 +701,14 @@ class Greeter(Gtk.Window):
         sel = hint if hint in names else state.get("last-user") if state.get("last-user") in names else names[0]
         self.user = self.users[names.index(sel)]
         self.session = self._session_for(self.user, state.get("last-session"))
+        # tapeta se urci jednou podle uzivatele vybraneho pri startu (zamceny / posledni prihlaseny)
+        # a pri prepinani uzivatelu se nemeni - zadne skakani pozadi ani nove rozmazavani
+        self.bg_user = self.user
+        # animace radku uzivatelu: posun radku (px) a mira vyberu kazdeho uzivatele (0..1)
+        self.row_shift = 0.0
+        self.sel_w = [1.0 if u is self.user else 0.0 for u in self.users]
+        self.row_anim_id = 0
+        self.row_anim = None
 
         self.set_title("LuxOS Login")
         self.set_decorated(False)
@@ -908,12 +961,14 @@ class Greeter(Gtk.Window):
         """
         self.css.load_from_data(css.encode())
         self.build_backgrounds()
+        self.update_users(animate=False)
         self.queue_draw()
 
     # -- tapeta + rozmazana kopie pro matne panely --
     def background_path(self):
-        if self.cfg["user-background"] and self.user and self.user.background:
-            p = self.user.background
+        u = self.bg_user
+        if self.cfg["user-background"] and u and u.background:
+            p = u.background
             if os.path.isfile(p) and os.access(p, os.R_OK):
                 return p
         return self.cfg["background"]
@@ -1106,12 +1161,18 @@ class Greeter(Gtk.Window):
         a = area.get_allocation()
         d = self.sz["avatar"]
         cx, cy = a.width / 2, a.height / 2
-        selected = user is self.user
+        full = d
         multi = len(self.users) > 1
-        if multi and not selected:
-            d = round(d * 0.8)
+        if multi:
+            # mira vyberu 0..1 (behem animace prepnuti plynule roste/klesa)
+            d = d * (0.8 + 0.2 * self.sel_w[self.users.index(user)])
+        # klidove velikosti predpocitane (HYPER), mezikroky animace jen skaluje cairo z plne velikosti
+        rest = abs(d - full) < 0.5 or abs(d - full * 0.8) < 0.5
+        if rest:
+            d = round(d)
+        size = d if rest else full
         # obrazek z AccountsService (lightdm nema pristup do domovu uzivatelu)
-        key = (user.name, d)
+        key = (user.name, size)
         cache = self.__dict__.setdefault("_avatars", {})
         if key not in cache:
             pb = None
@@ -1121,7 +1182,7 @@ class Greeter(Gtk.Window):
                     break
             if pb:
                 pw, ph = pb.get_width(), pb.get_height()
-                sc = max(d / pw, d / ph)
+                sc = max(size / pw, size / ph)
                 pb = pb.scale_simple(max(1, round(pw * sc)), max(1, round(ph * sc)), GdkPixbuf.InterpType.HYPER)
             cache[key] = pb
         pb = cache[key]
@@ -1133,7 +1194,10 @@ class Greeter(Gtk.Window):
         cr.arc(cx, cy, d / 2, 0, 2 * math.pi)
         cr.clip()
         if pb:
-            Gdk.cairo_set_source_pixbuf(cr, pb, cx - pb.get_width() / 2, cy - pb.get_height() / 2)
+            cr.translate(cx, cy)
+            cr.scale(d / size, d / size)
+            Gdk.cairo_set_source_pixbuf(cr, pb, -pb.get_width() / 2, -pb.get_height() / 2)
+            cr.get_source().set_filter(cairo.FILTER_GOOD)
             cr.paint()
         elif user.name is None or user.name == "*guest":
             self.frost(area, cr, cx - d / 2, cy - d / 2, d, d, d / 2, 0.22, 0)
@@ -1331,6 +1395,15 @@ class Greeter(Gtk.Window):
             self.set_active(False)
             return True
         focus = self.get_focus()
+        # sipky vlevo/vpravo prepinaji uzivatele: na tlacitku uzivatele vzdy, v poli s heslem jen kdyz je prazdne
+        if name in ("Left", "Right") and len(self.users) > 1 and not (ev.state & (
+                Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.MOD1_MASK | Gdk.ModifierType.SHIFT_MASK)):
+            if focus in self.user_buttons:
+                self.step_user(focus.user, 1 if name == "Right" else -1)
+                return True
+            if focus is self.entry and not self.entry.get_text():
+                self.step_user(self.user, 1 if name == "Right" else -1)
+                return True
         if focus is not self.entry and Gdk.keyval_to_unicode(ev.keyval) >= 32 and not (
                 ev.state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.MOD1_MASK)):
             self.entry.grab_focus_without_selecting()
@@ -1367,18 +1440,66 @@ class Greeter(Gtk.Window):
         self.update_session_button()
         self.entry.set_text("")
         self.show_hint("", False)
-        if self.cfg["user-background"] and self.background_path() != self._bg_key[0]:
-            self.build_backgrounds()
-            self.queue_draw()
         self.start_auth()
         self.entry.grab_focus_without_selecting()
 
-    def update_users(self):
+    def step_user(self, ref, delta):
+        """Sipky vlevo/vpravo: vybrat souseda (bez preteceni na druhy konec)."""
+        i = self.users.index(ref) + delta
+        if 0 <= i < len(self.users):
+            self.on_user_clicked(None, self.users[i])
+
+    def update_users(self, animate=True):
+        """Vybrany uzivatel se plynule presune doprostred nad pole pro heslo, ostatni se posunou."""
+        target_w = [1.0 if u is self.user else 0.0 for u in self.users]
+        target_shift = self.row_target()
+        if not animate or not self.get_mapped() or not self.login.get_visible():
+            if self.row_anim_id:
+                GLib.source_remove(self.row_anim_id)
+                self.row_anim_id = 0
+            self.row_shift, self.sel_w = target_shift, target_w
+            self.apply_row()
+            return
+        self.row_anim = (GLib.get_monotonic_time(), self.row_shift, target_shift, list(self.sel_w), target_w)
+        if not self.row_anim_id:
+            self.row_anim_id = GLib.timeout_add(16, self.animate_row)
+
+    def row_target(self):
+        """Posun radku (px), pri kterem je stred vybraneho uzivatele uprostred obrazovky."""
+        if len(self.user_buttons) < 2:
+            return 0.0
+        sp = self.users_box.get_spacing()
+        widths = [b.get_preferred_width()[1] for b in self.user_buttons]
+        x = centre = 0
+        for b, w in zip(self.user_buttons, widths):
+            if b.user is self.user:
+                centre = x + w / 2
+            x += w + sp
+        # radek musi zustat cely na monitoru (hodne uzivatelu -> vybrany nemusi byt presne uprostred)
+        room = max(0.0, (self.mon.width - (x - sp)) / 2)
+        return max(-room, min(room, (x - sp) / 2 - centre))
+
+    def animate_row(self):
+        start, s0, s1, w0, w1 = self.row_anim
+        p = min(1.0, (GLib.get_monotonic_time() - start) / 240000.0)
+        e = 1 - (1 - p) ** 3       # ease-out
+        self.row_shift = s0 + (s1 - s0) * e
+        self.sel_w = [a + (b - a) * e for a, b in zip(w0, w1)]
+        self.apply_row()
+        if p >= 1.0:
+            self.row_anim_id = 0
+            return False
+        return True
+
+    def apply_row(self):
+        # Gtk.Align.CENTER drzi stred, takze posun o s = okraj 2*s na jedne strane (jako u shake)
+        s = round(self.row_shift)
+        self.users_box.set_margin_start(max(0, 2 * s))
+        self.users_box.set_margin_end(max(0, -2 * s))
         multi = len(self.users) > 1
-        for b in self.user_buttons:
-            sel = b.user is self.user
-            b.name_label.set_opacity(1.0 if sel or not multi else 0.7)
-            b.avatar.set_opacity(1.0 if sel or not multi else 0.75)
+        for b, w in zip(self.user_buttons, self.sel_w):
+            b.name_label.set_opacity(0.7 + 0.3 * w if multi else 1.0)
+            b.avatar.set_opacity(0.75 + 0.25 * w if multi else 1.0)
             b.avatar.queue_draw()
 
     def session_name(self):
@@ -1405,9 +1526,13 @@ class Greeter(Gtk.Window):
             self.show_hint(_("This action is not available right now."), True)
 
     # -- autentizace (postup jako lightdm-gtk-greeter) --
-    def start_auth(self):
+    def start_auth(self, password_only=False):
         self.awaiting = self.prompted = self.ready = False
         self.pending = None
+        self.fp_wait = False
+        self.password_only = password_only and self.fprint_skip(self.user.name)
+        if not password_only:
+            self.fprint_skip(None)
         self.entry.set_editable(True)
         self.entry.set_sensitive(True)
         if self.user.name is None:
@@ -1433,6 +1558,11 @@ class Greeter(Gtk.Window):
         else:
             ph = t
         self.set_placeholder(ph)
+        if self.fp_wait:
+            # otisk vyprsel nebo neprosel: dal uz jen heslo
+            self.fp_wait = False
+            if not self.error_shown:
+                self.show_hint("", False)
         if self.target > 0:
             self.entry.grab_focus_without_selecting()
         if self.pending is not None:
@@ -1441,9 +1571,34 @@ class Greeter(Gtk.Window):
         return False
 
     def on_message(self, text, is_error):
+        debug("message", repr(text), "error" if is_error else "info")
+        # zpravy pam_fprintd prichazeji pred vyzvou k heslu (jejich text muze byt v jinem jazyce)
+        if self.fprint and not self.prompted and not self.password_only and self.user.name:
+            if not is_error:
+                self.fp_wait = True
+                if not self.error_shown:
+                    self.show_hint(_("Touch the fingerprint sensor or enter your password"), False)
+                return
+            if self.fp_wait:
+                self.show_hint(_("Fingerprint not recognized. Try again or enter your password."), True)
+                self.error_shown = True
+                self.shake()
+                return
         self.show_hint(text, is_error)
         if is_error:
             self.error_shown = True
+
+    def fprint_skip(self, name):
+        """Zapise uzivatele, pro ktereho PAM preskoci otisk (None = nikoho); False pri chybe."""
+        if not self.fprint or self.demo:
+            return self.fprint
+        try:
+            with open(FPRINT_SKIP, "w", encoding="utf-8") as f:
+                f.write(f"{name}\n" if name else "")
+            return True
+        except OSError as e:
+            log("fingerprint:", e)
+            return False
 
     def on_complete(self):
         self.awaiting = False
@@ -1451,7 +1606,7 @@ class Greeter(Gtk.Window):
         if self.target == 0:
             return                  # zrusena autentizace po navratu na hodiny
         if self.backend.is_authenticated():
-            if self.prompted:
+            if self.prompted or self.fp_wait:   # heslo nebo otisk prstu
                 self.launch()
             else:
                 # overeno bez hesla (napr. ucet bez hesla): potvrdit Enterem nebo sipkou
@@ -1494,6 +1649,13 @@ class Greeter(Gtk.Window):
             self.launch()
             return
         text = self.entry.get_text()
+        if self.fp_wait and not self.awaiting:
+            # PAM ceka na otisk: znovu bez otisku, heslo se posle s prvni vyzvou
+            if self.user.name and self.fprint_skip(self.user.name):
+                self.start_auth(password_only=True)
+            self.pending = text or None
+            self.entry.set_text("")
+            return
         if not self.awaiting:
             if self.prompted and self.backend_in_auth():
                 return              # odpoved odeslana, ceka se na vysledek

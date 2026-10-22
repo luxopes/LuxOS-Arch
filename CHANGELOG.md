@@ -4,6 +4,23 @@ Verze: `X.Y.Z` – `Y` roste s každým novým ISO, `Z` s opravami chyb. Každá
 Číslo verze je v `packages/luxos-branding/files/version` (os-release, O tomto počítači, fastfetch, název ISO).
 LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z jakého stavu systém vychází.
 
+## 0.9.1 „Polaris“ – 2026-10-22 (beta)
+
+### Nové
+- Snímek obrazovky: plovoucí lišta (Print, Shift+Super+5) – celá obrazovka, okno, výřez, nahrávání obrazovky či výřezu, volby (kam uložit, časovač, ukazatel); Shift+Super+3/4 rovnou.
+- Monitory: rozlišení, obnovovací frekvence, otočení (s 15s potvrzením) a velikost textu.
+- Přihlášení otiskem prstu (přihlašovací obrazovka, zámek, sudo, schvalování); aplikace Otisk prstu.
+- Co je nového: po aktualizaci na novou verzi se při prvním přihlášení ukážou novinky (i v O tomto počítači).
+- `lux configs`: sloučení nových verzí konfiguračních souborů.
+
+### Změny
+- lux je jediný správce balíčků: příkaz `pacman` v systému není, motor balíčků je balík `lux-engine` (dříve `luxos-pacman`).
+- Přihlašovací obrazovka: tapeta se při přepínání uživatelů nemění, profil se plynule posune.
+- Obchod: „Aktualizovat vše“ jen když jsou aktualizace, chyba kontroly (síť) se hlásí.
+- Ovládací centrum: odhad zbývajícího času baterie; klik na ikonu jasu otevře Monitory.
+- Průhledné notifikace podle světlého/tmavého režimu.
+- fastfetch: LuxOS Desktop a LuxOS Terminal místo názvů Xfce.
+
 ## 0.9.0 „Polaris“ – 2026-10-22 (beta)
 
 První číslovaná verze.

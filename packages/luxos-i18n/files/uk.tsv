@@ -1640,7 +1640,7 @@ All lux commands: %s	Усі команди lux: %s
 Experts can still run pacman directly: %s	Досвідчені користувачі й далі можуть запускати pacman напряму: %s
 The package manager core is missing (%s). Repair it with: %s	Відсутнє ядро менеджера пакетів (%s). Відновіть його командою: %s
 pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman — лише для досвідчених (LUX_ALLOW_PACMAN=1 pacman …); lux і pacman використовують одну базу пакетів.
-The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	Ядро менеджера пакетів %s старіше за pacman в Arch Linux %s (оновлення LuxOS незабаром)
+The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	Ядро менеджера пакетів %s старіше, ніж в Arch Linux (%s); оновлення LuxOS незабаром
 You manage the system yourself with lux.	Ви самі керуєте системою за допомогою lux.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
 Layout line %s is not valid.	Рядок розмітки %s недійсний.
@@ -2031,3 +2031,112 @@ Could not set the partition type of %s; LuxOS works anyway.	Не вдалося 
 Downloading the list of available software first	Спершу завантажую список доступних програм
 Version %s	Версія %s
 build %s	збірка %s
+Displays	Дисплеї
+Displays…	Дисплеї…
+Built-in Display	Вбудований дисплей
+Revert	Повернути
+Keep Changes	Зберегти зміни
+Keep these display settings?	Зберегти ці налаштування дисплея?
+The previous settings will be restored in %d seconds.	Попередні налаштування буде відновлено через %d с.
+No displays found. Display settings need an X11 session.	Дисплеї не знайдено. Налаштування дисплея потребують сеансу X11.
+Multiple Displays	Кілька дисплеїв
+You can also switch with Super+P.	Також можна перемикати клавішами Super+P.
+This display is turned off.	Цей дисплей вимкнено.
+Turn it on with Super+P or under Multiple Displays.	Увімкніть його клавішами Super+P або в розділі «Кілька дисплеїв».
+%s (Recommended)	%s (рекомендовано)
+Resolution	Роздільна здатність
+A lower resolution makes everything larger; the recommended one is the sharpest.	Нижча роздільна здатність збільшує все; рекомендована найчіткіша.
+Refresh rate	Частота оновлення
+Standard	Стандартний
+Rotation	Поворот
+The display could not use this setting.	Дисплей не зміг використати це налаштування.
+The previous settings were restored.	Попередні налаштування відновлено.
+Text Size	Розмір тексту
+Smaller	Менший
+Large	Великий
+Larger	Більший
+Largest	Найбільший
+Changes the size of text in the menu bar, window titles and apps. Some apps need to be reopened.	Змінює розмір тексту в рядку меню, заголовках вікон і програмах. Деякі програми потрібно відкрити знову.
+Fingerprint Login	Вхід за відбитком пальця
+Touch the fingerprint sensor or enter your password	Торкніться сканера відбитків або введіть пароль
+Fingerprint not recognized. Try again or enter your password.	Відбиток не розпізнано. Спробуйте ще раз або введіть пароль.
+Set Up…	Налаштувати…
+Unlock and log in with your fingerprint instead of the password.	Розблоковуйте та входьте за відбитком пальця замість пароля.
+Fingerprint reader: fprintd (set up in Settings > Fingerprint)	Сканер відбитків: fprintd (налаштування в Параметри > Відбиток пальця)
+You are not allowed to change fingerprints.	Ви не маєте дозволу змінювати відбитки пальців.
+The fingerprint reader is being used by another app. Try again later.	Сканер відбитків використовує інший застосунок. Спробуйте пізніше.
+The fingerprint reader is not available.	Сканер відбитків недоступний.
+Could not remove the fingerprint.	Не вдалося видалити відбиток.
+Something went wrong. Try again.	Щось пішло не так. Спробуйте ще раз.
+Looking for a fingerprint reader…	Пошук сканера відбитків…
+Use your fingerprint to log in, unlock the screen and approve administrator actions. Your password always works too.	Використовуйте відбиток пальця для входу, розблокування екрана та підтвердження дій адміністратора. Пароль теж завжди працює.
+Fingerprints	Відбитки пальців
+Add Fingerprint…	Додати відбиток…
+Remove All	Видалити все
+This computer has no supported fingerprint reader. If you connect one, open Drivers to set it up.	Цей комп’ютер не має підтримуваного сканера відбитків. Якщо ви під’єднаєте його, відкрийте «Драйвери», щоб налаштувати.
+Fingerprint support is not installed. Drivers installs it automatically when your computer has a supported fingerprint reader.	Підтримку відбитків не встановлено. «Драйвери» встановлять її автоматично, якщо комп’ютер має підтримуваний сканер.
+No fingerprint reader found	Сканер відбитків не знайдено
+Open Drivers	Відкрити «Драйвери»
+No fingerprints added yet.	Відбитків ще не додано.
+Remove the fingerprint “%s”?	Видалити відбиток «%s»?
+You will no longer be able to use this finger to log in.	Ви більше не зможете входити цим пальцем.
+Removing…	Видалення…
+Remove all fingerprints?	Видалити всі відбитки?
+You will need your password to log in.	Для входу знадобиться пароль.
+Add Fingerprint	Додати відбиток
+Which finger do you want to add?	Який палець додати?
+Swipe your finger across the sensor.	Проведіть пальцем по сканеру.
+Place your finger on the sensor, then lift it.	Прикладіть палець до сканера, потім підніміть його.
+Step %d of %d	Крок %d з %d
+Right index finger	Правий вказівний палець
+Left index finger	Лівий вказівний палець
+Right thumb	Правий великий палець
+Left thumb	Лівий великий палець
+Right middle finger	Правий середній палець
+Left middle finger	Лівий середній палець
+Right ring finger	Правий безіменний палець
+Left ring finger	Лівий безіменний палець
+Right little finger	Правий мізинець
+Left little finger	Лівий мізинець
+Lift your finger, then touch the sensor again	Підніміть палець і знову торкніться сканера
+Didn't catch that. Touch the sensor again.	Не вдалося зчитати. Торкніться сканера ще раз.
+Swipe was too short. Try again.	Проведення було закоротким. Спробуйте ще раз.
+Center your finger on the sensor and try again.	Розмістіть палець по центру сканера й спробуйте ще раз.
+Lift your finger and try again.	Підніміть палець і спробуйте ще раз.
+Fingerprint added	Відбиток додано
+Could not add the fingerprint. Try again.	Не вдалося додати відбиток. Спробуйте ще раз.
+The reader cannot store more fingerprints. Remove one first.	Сканер не може зберегти більше відбитків. Спершу видаліть один.
+This fingerprint is already added.	Цей відбиток уже додано.
+The fingerprint reader was disconnected.	Сканер відбитків від’єднано.
+Swipe your finger again	Проведіть пальцем ще раз
+What's New	Що нового
+What's New in LuxOS %s	Що нового в LuxOS %s
+LuxOS %s	LuxOS %s
+No release notes are available.	Примітки до випуску недоступні.
+Could not check for updates. Check your internet connection and try again.	Не вдалося перевірити оновлення. Перевірте з'єднання з інтернетом і спробуйте ще раз.
+Capture	Зняти
+Capture Entire Screen	Знімок усього екрана
+Capture Selected Window	Знімок вибраного вікна
+Capture Selected Portion	Знімок вибраної області
+Record	Записати
+Record Entire Screen	Записати весь екран
+Record Selected Portion	Записати вибрану область
+Options	Параметри
+Timer	Таймер
+None	Немає
+5 Seconds	5 секунд
+10 Seconds	10 секунд
+Clipboard	Буфер обміну
+Choose a Folder	Виберіть теку
+Show Mouse Pointer	Показувати вказівник миші
+Remember Last Selection	Запам'ятати останній вибір
+Screenshot %s at %s	Знімок екрана %s о %s
+Screen Recording %s at %s	Запис екрана %s о %s
+Stop	Зупинити
+Stop Recording	Зупинити запис
+Screen recording is not available: ffmpeg was not found.	Запис екрана недоступний: ffmpeg не знайдено.
+The screen recording failed.	Не вдалося записати екран.
+The screenshot could not be saved.	Не вдалося зберегти знімок екрана.
+%s .pacnew config file(s) to merge - run: lux configs	Файли конфігурації .pacnew для об’єднання: %s – запустіть: lux configs
+Your settings were kept. Merge the files when convenient: lux configs	Ваші налаштування збережено. Коли буде зручно, об’єднайте файли: lux configs
+review and merge new config files (.pacnew)	переглянути й об’єднати нові файли конфігурації (.pacnew)

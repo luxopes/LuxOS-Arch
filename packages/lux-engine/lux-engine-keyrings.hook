@@ -1,0 +1,13 @@
+# LuxOS (lux-engine): klice z nainstalovanych a aktualizovanych klicenek. Instalacni skripty klicenek
+# (archlinux-keyring) volaji /usr/bin/pacman-key, ktery v LuxOS neni.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Path
+Target = usr/share/pacman/keyrings/*.gpg
+
+[Action]
+Description = Loading package signing keys...
+When = PostTransaction
+Exec = /usr/share/libalpm/scripts/lux-engine-keyrings
+NeedsTargets

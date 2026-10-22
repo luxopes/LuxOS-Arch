@@ -572,6 +572,107 @@ class Transactions(unittest.TestCase):
         self.assertTrue(api.Handle.last.transactions[-1].released)
 
 
+# ---- prechod luxos-pacman (LuxOS 0.9) -> lux-engine ---------------------------------------
+ENGINE_VER = "7.1.0.r9.g54d9411-3.1"
+
+
+def engine_world(h):
+    """Nainstalovany LuxOS 0.9 (luxos-pacman) a repozitar [luxos] s lux-engine (replaces luxos-pacman)."""
+    luxos = next(db for db in h.sync if db.name == "luxos")
+    luxos.add(fake.Package("lux-engine", ENGINE_VER, "Package engine of lux", depends=["glibc"],
+                           provides=["pacman=7.1.0.r9.g54d9411", "libalpm.so", "luxos-pacman=7.1.0.r9.g54d9411"],
+                           conflicts=["pacman", "luxos-pacman"], replaces=["pacman", "luxos-pacman"]))
+    luxos.add(fake.Package("lux", "0.3.0-9", "LuxOS package manager", depends=["lux-engine", "pyalpm"]))
+    loc = h.local
+    loc.pkgcache = [p for p in loc.pkgcache if p.name != "pacman"]
+    loc.add(fake.Package("luxos-pacman", ENGINE_VER, provides=["pacman=7.1.0.r9.g54d9411", "libalpm.so"],
+                         depends=["glibc"], files=["usr/bin/pacman", "usr/lib/lux/alpm/pacman"]))
+    loc.add(fake.Package("pyalpm", "0.11-1", depends=["pacman>=6"], reason=1))
+    loc.add(fake.Package("lux", "0.3.0-8", depends=["pacman", "pyalpm"]))
+    # stejna verze pacmanu je i v [core]: nesmi vratit Arch pacman misto lux-engine
+    core = next(db for db in h.sync if db.name == "core")
+    core.add(fake.Package("pacman", "7.1.0.r9.g54d9411-3", "package manager", replaces=[]))
+
+
+def engine_api():
+    api = make_api()
+    orig = api.Handle.register_syncdb
+
+    def register(self, name, sig):
+        db = orig(self, name, sig)
+        if name == "extra":           # posledni repozitar: world() uz probehl
+            engine_world(self)
+        return db
+    api.Handle.register_syncdb = register
+    return api
+
+
+class EngineReplacement(unittest.TestCase):
+    """Upgrade LuxOS 0.9: sysupgrade nahradi luxos-pacman balikem lux-engine (replaces). Overuje
+    obsluhu otazky na nahrazeni v lux; samotne nahrazeni tu simuluje fake_pyalpm podle libalpm."""
+
+    def test_update_replaces_luxos_pacman(self):
+        rc, out, h = run(["-y", "update"], api=engine_api())
+        self.assertEqual(rc, 0, out)
+        t = h.transactions[-1]
+        self.assertIn("luxos-pacman", [p.name for p in t.to_remove])
+        self.assertIn("lux-engine", [p.name for p in t.to_add])
+        self.assertIn("lux", [p.name for p in t.to_add])
+        self.assertNotIn("pacman", [p.name for p in t.to_add])
+        self.assertIsNone(h.local.get_pkg("luxos-pacman"))
+        self.assertEqual(h.local.get_pkg("lux-engine").version, ENGINE_VER)
+
+    def test_update_replaces_arch_pacman(self):
+        """System s pacmanem z Archu (bez luxos-pacman): lux-engine nahradi i balik pacman."""
+        api = make_api()
+        orig = api.Handle.register_syncdb
+
+        def register(self, name, sig):
+            db = orig(self, name, sig)
+            if name == "extra":
+                engine_world(self)
+                self.local.pkgcache = [p for p in self.local.pkgcache if p.name != "luxos-pacman"]
+                self.local.add(fake.Package("pacman", "7.1.0.r9.g54d9411-3", provides=["libalpm.so"]))
+            return db
+        api.Handle.register_syncdb = register
+        rc, out, h = run(["-y", "update"], api=api)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("pacman", [p.name for p in h.transactions[-1].to_remove])
+        self.assertIsNone(h.local.get_pkg("pacman"))
+        self.assertIsNotNone(h.local.get_pkg("lux-engine"))
+
+    def test_machine_mode_replaces_without_question(self):
+        rc, out, h = run(["--machine", "-y", "update"], api=engine_api())
+        self.assertEqual(rc, 0, out)
+        self.assertIsNotNone(h.local.get_pkg("lux-engine"))
+        self.assertIsNone(h.local.get_pkg("luxos-pacman"))
+
+    def test_interactive_asks_before_replacing(self):
+        rc, out, h = run(["update"], tty=True, answer="y\ny\n", api=engine_api())
+        self.assertEqual(rc, 0, out)
+        self.assertIn("Replace a package with its successor?", strip(out))
+        self.assertIsNotNone(h.local.get_pkg("lux-engine"))
+
+    def test_hooks_get_engine_tools_on_path(self):
+        old = os.environ.get("PATH")
+        try:
+            os.environ["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/bin"    # jako po sudo
+            rc, out, h = run(["-y", "update"], api=engine_api())
+            self.assertEqual(rc, 0, out)
+            self.assertEqual(h.transactions[-1].env_path,
+                             "/usr/lib/lux/alpm/bin:/usr/local/sbin:/usr/local/bin:/usr/bin")
+        finally:
+            os.environ["PATH"] = old
+
+    def test_engine_path(self):
+        ep = lux_alpm.engine_path
+        self.assertEqual(ep("/usr/bin"), "/usr/lib/lux/alpm/bin:/usr/bin")
+        self.assertEqual(ep("/usr/lib/lux/alpm/bin:/usr/bin"), "/usr/lib/lux/alpm/bin:/usr/bin")
+        self.assertEqual(ep("/usr/bin:/usr/lib/lux/alpm/bin"), "/usr/lib/lux/alpm/bin:/usr/bin")
+        self.assertEqual(ep(""), "/usr/lib/lux/alpm/bin:/usr/local/sbin:/usr/local/bin:/usr/bin")
+        self.assertEqual(ep(None), "/usr/lib/lux/alpm/bin:/usr/local/sbin:/usr/local/bin:/usr/bin")
+
+
 class Queries(unittest.TestCase):
     def test_search(self):
         rc, out, _h = run(["search", "vlc"])

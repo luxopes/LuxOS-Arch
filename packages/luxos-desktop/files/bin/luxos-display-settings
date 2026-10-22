@@ -1,0 +1,509 @@
+#!/usr/bin/env python3
+"""LuxOS - Monitory: rozliseni, obnovovaci frekvence a otoceni kazdeho monitoru, velikost textu.
+
+Zmena se hned pouzije (luxos-displays auto se zkusebnim nastavenim) a do 15 sekund
+se musi potvrdit, jinak se vrati puvodni - jako v macOS/GNOME. Potvrzene nastaveni
+je v ~/.config/luxos/displays.json; luxos-displays ho pouziva po prihlaseni
+(luxos-session) i po pripojeni monitoru (luxos-menubar). Velikost textu je Xft/DPI
+v kanalu xsettings (xfsettingsd ji hned rozesle vsem aplikacim).
+
+Nahrazuje xfce4-display-settings (viz /usr/lib/luxos/override-bin).
+"""
+import os
+import subprocess
+import sys
+
+sys.path.insert(0, os.environ.get("LUXOS_PYDIR") or "/usr/lib/luxos/python")
+import luxos_displays as ld  # noqa: E402
+from luxos_i18n import _  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
+
+CFG = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "luxos")
+MODE_FILE = os.path.join(CFG, "displays-mode")
+CONFIRM_SECONDS = int(os.environ.get("LUXOS_DISPLAYS_CONFIRM_SECONDS") or 15)
+
+CSS = b"""
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }
+.row { padding: 10px 14px; }
+.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
+.hint { font-size: 11px; opacity: 0.6; }
+.big-a { font-size: 18px; font-weight: 600; }
+.small-a { font-size: 11px; font-weight: 600; }
+"""
+
+
+class Group(Gtk.Box):
+    """Skupina radku ve stylu Nastaveni macOS (stejne jako Plocha a Dock)."""
+
+    def __init__(self, parent, title):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        label = Gtk.Label(label=title, xalign=0)
+        label.get_style_context().add_class("group-title")
+        parent.pack_start(label, False, False, 0)
+        self.get_style_context().add_class("group")
+        parent.pack_start(self, False, False, 0)
+        self.rows = 0
+
+    def row(self, title, widget, hint=None):
+        box = Gtk.Box(spacing=12)
+        box.get_style_context().add_class("row")
+        if self.rows:
+            box.get_style_context().add_class("row-sep")
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        text.pack_start(Gtk.Label(label=title, xalign=0), False, False, 0)
+        if hint:
+            h = Gtk.Label(label=hint, xalign=0, wrap=True, max_width_chars=48)
+            h.get_style_context().add_class("hint")
+            text.pack_start(h, False, False, 0)
+        box.pack_start(text, True, True, 0)
+        if widget is not None:
+            widget.set_valign(Gtk.Align.CENTER)
+            box.pack_end(widget, False, False, 0)
+        self.pack_start(box, False, False, 0)
+        self.rows += 1
+        return box
+
+
+def display_name(out, outputs):
+    """Citelny nazev monitoru: vestaveny displej, model z EDID, jinak nazev konektoru."""
+    if ld.is_internal(out["name"]):
+        return _("Built-in Display")
+    model = ld.edid_name(out["edid"])
+    if not model:
+        return out["name"]
+    same = [o for o in outputs if o["connected"] and ld.edid_name(o["edid"]) == model]
+    return f"{model} ({out['name']})" if len(same) > 1 else model
+
+
+class Arrangement(Gtk.DrawingArea):
+    """Nahled rozlozeni aktivnich monitoru (jen zobrazeni)."""
+
+    def __init__(self, outputs):
+        super().__init__()
+        self.outputs = outputs
+        self.set_size_request(-1, 150)
+        self.connect("draw", self.on_draw)
+
+    def on_draw(self, widget, cr):
+        act = [o for o in self.outputs if o["connected"] and o["geometry"]]
+        if not act:
+            return
+        w, h = widget.get_allocated_width(), widget.get_allocated_height()
+        x0 = min(o["geometry"][2] for o in act)
+        y0 = min(o["geometry"][3] for o in act)
+        x1 = max(o["geometry"][2] + o["geometry"][0] for o in act)
+        y1 = max(o["geometry"][3] + o["geometry"][1] for o in act)
+        pad = 14
+        scale = min((w - 2 * pad) / max(x1 - x0, 1), (h - 2 * pad) / max(y1 - y0, 1))
+        ox = (w - (x1 - x0) * scale) / 2
+        oy = (h - (y1 - y0) * scale) / 2
+        fg = widget.get_style_context().get_color(Gtk.StateFlags.NORMAL)
+        for o in act:
+            gw, gh, gx, gy = o["geometry"]
+            rx, ry = ox + (gx - x0) * scale + 3, oy + (gy - y0) * scale + 3
+            rw, rh = gw * scale - 6, gh * scale - 6
+            r = 8
+            cr.new_sub_path()
+            cr.arc(rx + rw - r, ry + r, r, -1.5708, 0)
+            cr.arc(rx + rw - r, ry + rh - r, r, 0, 1.5708)
+            cr.arc(rx + r, ry + rh - r, r, 1.5708, 3.1416)
+            cr.arc(rx + r, ry + r, r, 3.1416, 4.7124)
+            cr.close_path()
+            cr.set_source_rgb(0.24, 0.48, 1.0)
+            cr.fill_preserve()
+            cr.set_source_rgba(fg.red, fg.green, fg.blue, 0.35)
+            cr.set_line_width(1)
+            cr.stroke()
+            if o["primary"]:
+                # Horni lista na hlavnim monitoru
+                cr.set_source_rgba(1, 1, 1, 0.55)
+                cr.rectangle(rx + 6, ry + 6, rw - 12, 4)
+                cr.fill()
+            label = display_name(o, self.outputs)
+            cr.set_source_rgb(1, 1, 1)
+            cr.select_font_face("Inter", 0, 1)
+            cr.set_font_size(12)
+            ext = cr.text_extents(label)
+            if ext.x_advance > rw - 8:
+                label = o["name"]
+                ext = cr.text_extents(label)
+            cr.move_to(rx + (rw - ext.x_advance) / 2, ry + rh / 2 + 4)
+            cr.show_text(label)
+
+
+class ConfirmDialog(Gtk.Dialog):
+    """"Ponechat nastaveni?" s odpoctem; bez odpovedi se vrati puvodni."""
+
+    def __init__(self, parent, on_done):
+        super().__init__(title=_("Displays"), transient_for=parent, modal=True)
+        self.on_done = on_done
+        self.left = CONFIRM_SECONDS
+        self.finished = False
+        self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
+        self.set_keep_above(True)
+        self.set_resizable(False)
+        self.add_button(_("Revert"), Gtk.ResponseType.CANCEL)
+        keep = self.add_button(_("Keep Changes"), Gtk.ResponseType.OK)
+        keep.get_style_context().add_class("suggested-action")
+        self.set_default_response(Gtk.ResponseType.CANCEL)
+        box = self.get_content_area()
+        box.set_spacing(6)
+        box.set_border_width(18)
+        title = Gtk.Label(xalign=0)
+        title.set_markup("<b>%s</b>" % GLib.markup_escape_text(_("Keep these display settings?")))
+        box.pack_start(title, False, False, 0)
+        self.countdown = Gtk.Label(xalign=0, wrap=True, max_width_chars=44)
+        box.pack_start(self.countdown, False, False, 0)
+        self.update_text()
+        self.connect("response", self.on_response)
+        self.timer = GLib.timeout_add_seconds(1, self.tick)
+
+    def update_text(self):
+        self.countdown.set_text(_("The previous settings will be restored in %d seconds.") % self.left)
+
+    def tick(self):
+        self.left -= 1
+        if self.left <= 0:
+            self.timer = 0
+            self.finish(False)
+            return False
+        self.update_text()
+        return True
+
+    def on_response(self, _dlg, response):
+        self.finish(response == Gtk.ResponseType.OK)
+
+    def finish(self, keep):
+        if self.finished:
+            return
+        self.finished = True
+        if self.timer:
+            GLib.source_remove(self.timer)
+            self.timer = 0
+        self.destroy()
+        self.on_done(keep)
+
+
+class Displays(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Displays"))
+        self.set_default_size(640, 700)
+        self.set_icon_name("preferences-desktop-display")
+        header = Gtk.HeaderBar(show_close_button=True, title=_("Displays"))
+        self.set_titlebar(header)
+        self.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.add(self.scroll)
+        self.page = None
+        self.building = False
+        self.busy = False
+        self.pending = None         # (stare zaznamy, nove zaznamy, vystup, rezim, frekvence, otoceni)
+        self.dialog = None
+        self.text_timer = 0
+        self.entries = ld.load()
+        self.refresh()
+
+    # ---- stav ---------------------------------------------------------------
+    def refresh(self):
+        self.outputs = ld.query()
+        self.build()
+
+    def connected(self):
+        return [o for o in self.outputs if o["connected"]]
+
+    def build(self):
+        self.building = True
+        # ScrolledWindow obaluje stranku do Gtk.Viewport - odstranit cely
+        child = self.scroll.get_child()
+        if child:
+            child.destroy()
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=22, margin_top=6)
+        self.page = page
+        self.scroll.add(page)
+        outs = self.connected()
+        if outs:
+            preview = Arrangement(self.outputs)
+            page.pack_start(preview, False, False, 6)
+        else:
+            msg = Gtk.Label(label=_("No displays found. Display settings need an X11 session."),
+                            wrap=True, margin=24)
+            msg.get_style_context().add_class("hint")
+            page.pack_start(msg, False, False, 0)
+        if len(outs) > 1:
+            self.build_multi(page)
+        self.combos = {}
+        for out in outs:
+            self.build_output(page, out)
+        self.build_text(page)
+        page.set_sensitive(not self.busy)
+        page.show_all()
+        self.building = False
+
+    # ---- vice monitoru (stejne rezimy jako Super+P) ------------------------------
+    def build_multi(self, page):
+        group = Group(page, _("Multiple Displays"))
+        combo = Gtk.ComboBoxText()
+        for key, label in (("extend", _("Extend - use both screens")),
+                           ("mirror", _("Mirror - same picture on both")),
+                           ("external", _("Only external screen")),
+                           ("internal", _("Only this computer's screen"))):
+            combo.append(key, label)
+        try:
+            with open(MODE_FILE) as f:
+                current = f.read().strip()
+        except OSError:
+            current = "extend"
+        combo.set_active_id(current if current in ("extend", "mirror", "external", "internal") else "extend")
+        combo.connect("changed", self.on_multi)
+        group.row(_("Use as"), combo, _("You can also switch with Super+P."))
+
+    def on_multi(self, combo):
+        if self.building:
+            return
+        self.set_busy(True)
+        self.spawn(["luxos-displays", combo.get_active_id()], None, lambda _ok: self.after_apply())
+
+    # ---- jeden monitor ------------------------------------------------------------
+    def build_output(self, page, out):
+        group = Group(page, display_name(out, self.outputs))
+        if not out["geometry"]:
+            group.row(_("This display is turned off."), None,
+                      _("Turn it on with Super+P or under Multiple Displays."))
+            return
+        cur_mode, cur_rate = ld.current_mode(out)
+
+        res = Gtk.ComboBoxText()
+        for name, recommended in ld.resolution_choices(out):
+            label = ld.fmt_mode(name)
+            if recommended:
+                label = _("%s (Recommended)") % label
+            res.append(name, label)
+        if cur_mode:
+            res.set_active_id(cur_mode)
+        res.connect("changed", self.on_resolution, out)
+        group.row(_("Resolution"), res,
+                  _("A lower resolution makes everything larger; the recommended one is the sharpest."))
+
+        rate = Gtk.ComboBoxText()
+        md = ld.find_mode(out, cur_mode) if cur_mode else None
+        rates = md["rates"] if md else []
+        if rates and any(float(r) > 0 for r in rates):
+            for r in sorted(rates, key=float, reverse=True):
+                rate.append(r, ld.fmt_rate(r))
+            if cur_rate:
+                rate.set_active_id(cur_rate)
+            rate.connect("changed", self.on_rate, out)
+            group.row(_("Refresh rate"), rate)
+
+        rot = Gtk.ComboBoxText()
+        for key, label in (("normal", _("Standard")), ("right", "90°"), ("inverted", "180°"), ("left", "270°")):
+            if key in out["rotations"]:
+                rot.append(key, label)
+        rot.set_active_id(out["rotation"])
+        rot.connect("changed", self.on_rotation, out)
+        group.row(_("Rotation"), rot)
+        self.combos[out["name"]] = (res, rate, rot)
+
+    def selected(self, out):
+        res, rate, rot = self.combos[out["name"]]
+        return res.get_active_id(), rate.get_active_id(), rot.get_active_id() or "normal"
+
+    def on_resolution(self, combo, out):
+        if self.building:
+            return
+        mode = combo.get_active_id()
+        md = ld.find_mode(out, mode)
+        if not md:
+            return
+        _m, _r, rot = self.selected(out)
+        self.try_settings(out, mode, ld.best_rate(md), rot)
+
+    def on_rate(self, combo, out):
+        if self.building:
+            return
+        mode, rate, rot = self.selected(out)
+        self.try_settings(out, mode, rate, rot)
+
+    def on_rotation(self, combo, out):
+        if self.building:
+            return
+        mode, rate, rot = self.selected(out)
+        self.try_settings(out, mode, rate, rot)
+
+    # ---- zkusebni pouziti a potvrzeni --------------------------------------------
+    def try_settings(self, out, mode, rate, rotation):
+        old = dict(self.entries)
+        new = dict(old)
+        key = ld.output_key(out)
+        entry = ld.entry_for(out, mode, rate, rotation)
+        if entry:
+            new[key] = entry
+        else:
+            new.pop(key, None)
+        self.pending = (old, new, out["name"], mode, rate, rotation)
+        preview = self.preview_path()
+        ld.save(new, preview)
+        self.set_busy(True)
+        self.spawn(["luxos-displays", "auto"], {"LUXOS_DISPLAYS_CONF": preview}, lambda _ok: self.after_preview())
+
+    @staticmethod
+    def preview_path():
+        base = os.environ.get("XDG_RUNTIME_DIR") or CFG
+        return os.path.join(base, "luxos-displays-preview.json")
+
+    def after_preview(self):
+        if not self.pending:
+            return
+        _old, _new, name, mode, rate, rotation = self.pending
+        self.outputs = ld.query()
+        out = next((o for o in self.outputs if o["name"] == name), None)
+        cur_mode, cur_rate = ld.current_mode(out) if out else (None, None)
+        ok = out is not None and cur_mode == mode and out["rotation"] == rotation and \
+            (not rate or cur_rate is None or abs(float(cur_rate) - float(rate)) < 0.05)
+        self.build()
+        if not ok:
+            self.revert(_("The display could not use this setting."))
+            return
+        self.dialog = ConfirmDialog(self, self.confirmed)
+        self.dialog.show_all()
+        self.dialog.present()
+
+    def confirmed(self, keep):
+        self.dialog = None
+        if keep:
+            _old, new, *_rest = self.pending
+            self.pending = None
+            ld.save(new)
+            self.entries = new
+            forget_xfce_profile()
+            self.cleanup_preview()
+            self.set_busy(False)
+        else:
+            self.revert(None)
+
+    def revert(self, message):
+        self.pending = None
+        self.cleanup_preview()
+        # Puvodni (ulozene) nastaveni znovu pouzije luxos-displays
+        self.spawn(["luxos-displays", "auto"], None, lambda _ok: self.after_apply(message))
+
+    def cleanup_preview(self):
+        try:
+            os.unlink(self.preview_path())
+        except OSError:
+            pass
+
+    def after_apply(self, message=None):
+        self.set_busy(False)
+        self.refresh()
+        if message:
+            dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
+                                    buttons=Gtk.ButtonsType.OK, text=message)
+            dlg.format_secondary_text(_("The previous settings were restored."))
+            dlg.connect("response", lambda d, _r: d.destroy())
+            dlg.show()
+
+    def abandon(self):
+        """Zavreni okna behem zkusebniho pouziti: vratit ulozene nastaveni (nepotvrzeno)."""
+        if self.pending:
+            self.pending = None
+            self.cleanup_preview()
+            subprocess.Popen(["luxos-displays", "auto"], start_new_session=True,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def set_busy(self, busy):
+        self.busy = busy
+        if self.page:
+            self.page.set_sensitive(not busy)
+
+    def spawn(self, argv, env, done):
+        launcher = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE)
+        for k, v in (env or {}).items():
+            launcher.setenv(k, v, True)
+        try:
+            proc = launcher.spawnv(argv)
+        except GLib.Error:
+            GLib.idle_add(lambda: done(False) and False)
+            return
+
+        def finished(p, res):
+            try:
+                p.wait_check_finish(res)
+                ok = True
+            except GLib.Error:
+                ok = False
+            done(ok)
+        proc.wait_check_async(None, finished)
+
+    # ---- velikost textu ------------------------------------------------------------
+    def build_text(self, page):
+        group = Group(page, _("Text Size"))
+        labels = (_("Smaller"), _("Default"), _("Large"), _("Larger"), _("Largest"))
+        scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, len(ld.TEXT_SIZES) - 1, 1)
+        scale.set_round_digits(0)
+        scale.set_draw_value(False)
+        scale.set_hexpand(True)
+        for i, label in enumerate(labels):
+            scale.add_mark(i, Gtk.PositionType.BOTTOM, label)
+        scale.set_value(ld.text_size_index(ld.read_dpi()))
+        scale.connect("value-changed", self.on_text_size)
+        self.text_scale = scale
+        box = Gtk.Box(spacing=10, margin_start=14, margin_end=14, margin_top=10, margin_bottom=4)
+        small = Gtk.Label(label="A", valign=Gtk.Align.START, margin_top=2)
+        small.get_style_context().add_class("small-a")
+        big = Gtk.Label(label="A", valign=Gtk.Align.START)
+        big.get_style_context().add_class("big-a")
+        box.pack_start(small, False, False, 0)
+        box.pack_start(scale, True, True, 0)
+        box.pack_start(big, False, False, 0)
+        group.pack_start(box, False, False, 0)
+        hint = Gtk.Label(label=_("Changes the size of text in the menu bar, window titles and apps. "
+                                 "Some apps need to be reopened."),
+                         xalign=0, wrap=True, margin_start=14, margin_end=14, margin_bottom=10)
+        hint.get_style_context().add_class("hint")
+        group.pack_start(hint, False, False, 0)
+
+    def on_text_size(self, scale):
+        if self.building:
+            return
+        # Zmena DPI prekresli vsechny aplikace - az po kratke pauze
+        if self.text_timer:
+            GLib.source_remove(self.text_timer)
+        self.text_timer = GLib.timeout_add(350, self.apply_text_size)
+
+    def apply_text_size(self):
+        self.text_timer = 0
+        ld.set_text_size(int(round(self.text_scale.get_value())))
+        return False
+
+
+def forget_xfce_profile():
+    """Profil "Default" z dialogu Xfce by xfsettingsd pouzil po prihlaseni pred LuxOS - smazat."""
+    try:
+        r = subprocess.run(["xfconf-query", "-c", "displays", "-l"], capture_output=True, text=True, timeout=5)
+        if any(p.startswith("/Default/") for p in r.stdout.split()):
+            subprocess.run(["xfconf-query", "-c", "displays", "-p", "/Default", "-r", "-R"],
+                           capture_output=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+
+def main():
+    GLib.set_prgname("luxos-display-settings")
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = Displays()
+    win.connect("destroy", lambda _w: (win.abandon(), Gtk.main_quit()))
+    win.show_all()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

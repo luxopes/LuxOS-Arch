@@ -72,6 +72,8 @@ def main(argv):
     if os.geteuid() != 0:
         sys.exit("luxos-drivers-helper must run as root (pkexec)")
     os.environ["LC_ALL"] = "C.UTF-8"
+    # pkexec nastavi vlastni PATH: nastroje jadra lux (lux-engine) pro hooky a skriptlety transakci
+    os.environ["PATH"] = drv.ENGINE_BIN + ":/usr/local/sbin:/usr/local/bin:/usr/bin"
     if argv[1:2] == ["install"] and len(argv) == 2:
         alternative = None
     elif argv[1:2] == ["install-alt"] and len(argv) == 4 and all(ID_RE.match(a) for a in argv[2:]):

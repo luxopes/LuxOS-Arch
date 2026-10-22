@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Fingerprint
+Name[cs]=Otisk prstu
+Comment=Log in and unlock with your fingerprint
+Comment[cs]=Přihlášení a odemknutí otiskem prstu
+Exec=luxos-fingerprint
+Icon=luxos-fingerprint
+Terminal=false
+Categories=Settings;DesktopSettings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;GTK;
+Keywords=fingerprint;finger;reader;login;unlock;fprintd;otisk;prst;čtečka;přihlášení;odemknout;
+StartupWMClass=luxos-fingerprint

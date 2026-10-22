@@ -17,11 +17,11 @@
       <property name="&lt;Super&gt;l" type="string" value="xflock4"/>
       <property name="&lt;Super&gt;&lt;Alt&gt;Escape" type="string" value="luxos-monitor"/>
       <property name="&lt;Primary&gt;&lt;Shift&gt;Escape" type="string" value="luxos-monitor"/>
-      <property name="&lt;Super&gt;&lt;Shift&gt;3" type="string" value="xfce4-screenshooter -f -s ~/Pictures"/>
-      <property name="&lt;Super&gt;&lt;Shift&gt;4" type="string" value="xfce4-screenshooter -r -s ~/Pictures"/>
-      <property name="&lt;Super&gt;&lt;Shift&gt;5" type="string" value="xfce4-screenshooter"/>
-      <property name="Print" type="string" value="xfce4-screenshooter -f -s ~/Pictures"/>
-      <property name="&lt;Shift&gt;Print" type="string" value="xfce4-screenshooter -r -s ~/Pictures"/>
+      <property name="&lt;Super&gt;&lt;Shift&gt;3" type="string" value="luxos-screenshot --screen"/>
+      <property name="&lt;Super&gt;&lt;Shift&gt;4" type="string" value="luxos-screenshot --portion"/>
+      <property name="&lt;Super&gt;&lt;Shift&gt;5" type="string" value="luxos-screenshot"/>
+      <property name="Print" type="string" value="luxos-screenshot"/>
+      <property name="&lt;Shift&gt;Print" type="string" value="luxos-screenshot --portion"/>
       <property name="XF86Display" type="string" value="luxos-displays menu"/>
       <property name="&lt;Primary&gt;&lt;Alt&gt;Delete" type="string" value="xfce4-session-logout"/>
       <property name="XF86PowerOff" type="string" value="xfce4-session-logout"/>

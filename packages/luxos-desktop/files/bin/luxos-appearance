@@ -95,6 +95,7 @@ apply() {
         xfconf-query -c xsettings -p /Net/ThemeName -n -t string -s "$gtk"
         xfconf-query -c xsettings -p /Net/IconThemeName -n -t string -s "$icons"
         xfconf-query -c xfwm4 -p /general/theme -n -t string -s "$gtk"
+        xfconf-query -c xfce4-notifyd -p /theme -n -t string -s "$gtk"
         xfconf-query -c xfce4-panel -p /panels/dark-mode -n -t bool -s "$([[ $mode == dark ]] && echo true || echo false)"
         xfconf-query -c xfce4-panel -p /panels/panel-1/background-rgba -n \
             -t double -s "${rgba[0]}" -t double -s "${rgba[1]}" -t double -s "${rgba[2]}" -t double -s "${rgba[3]}"

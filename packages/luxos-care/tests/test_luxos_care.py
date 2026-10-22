@@ -665,13 +665,26 @@ class LuxBackend(unittest.TestCase):
                          [care.PACMAN, "--noconfirm", "--noprogressbar", "--color", "never", "-Syu"])
 
     def test_fallback_uses_real_pacman(self):
-        """Bez lux vola skutecny pacman (luxos-pacman), ne kompatibilni vrstvu /usr/bin/pacman."""
+        """Bez lux vola pacman z jadra lux (lux-engine, /usr/lib/lux/alpm/bin), ne pacman z PATH."""
         care._lux_ok = False
-        with mock.patch.object(care, "PACMAN", "/usr/lib/lux/alpm/pacman"):
-            self.assertEqual(care.pm(["-Su"])[0], "/usr/lib/lux/alpm/pacman")
+        with mock.patch.object(care, "PACMAN", "/usr/lib/lux/alpm/bin/pacman"):
+            self.assertEqual(care.pm(["-Su"])[0], "/usr/lib/lux/alpm/bin/pacman")
         with open(care.__file__) as f:
             src = f.read()
         self.assertNotRegex(src, r'\[\s*"pacman"\s*,')
+
+    def test_commands_get_engine_tools_on_path(self):
+        """Spoustene prikazy (checkupdates, paccache, pacman-key, hooky transakci) najdou nastroje jadra;
+        proces sam PATH nemeni (modul nacitaji i aplikace v relaci uzivatele)."""
+        with mock.patch.dict(os.environ, {"PATH": "/usr/bin:/bin"}):
+            rc, out = care.run(["sh", "-c", 'echo "$PATH"'])
+            self.assertEqual((rc, out.strip()), (0, "/usr/lib/lux/alpm/bin:/usr/bin:/bin"))
+            self.assertEqual(os.environ["PATH"], "/usr/bin:/bin")
+        with mock.patch.dict(os.environ, {"PATH": "/usr/lib/lux/alpm/bin:/usr/bin"}):
+            self.assertEqual(care.engine_env()["PATH"], "/usr/lib/lux/alpm/bin:/usr/bin")
+        with open(care.__file__) as f:
+            src = f.read()
+        self.assertNotIn("dict(os.environ, LC_ALL", src)      # kazde spusteni pres engine_env
 
     def test_lux_available_checks_backend(self):
         care._lux_ok = None

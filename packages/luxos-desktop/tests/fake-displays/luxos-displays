@@ -1,0 +1,3 @@
+#!/bin/sh
+# Testy: skutecny luxos-displays z repozitare (v Gitu neni spustitelny)
+exec bash "$(dirname "$0")/../../files/bin/luxos-displays" "$@"

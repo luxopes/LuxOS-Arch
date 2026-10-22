@@ -29,8 +29,11 @@
     { "type": "packages", "key": "󰏖  Packages", "keyColor": "38;2;180;140;255",
       "format": "{pacman} (lux){?flatpak-all}, {flatpak-all} (flatpak){?}{?snap}, {snap} (snap){?}{?nix-all}, {nix-all} (nix){?}" },
     { "type": "shell",    "key": "󰆍  Shell",    "keyColor": "38;2;255;122;217" },
-    { "type": "de",       "key": "󰧨  Desktop",  "keyColor": "38;2;91;140;255" },
-    { "type": "terminal", "key": "󰞷  Terminal", "keyColor": "38;2;155;140;255" },
+    // Prostredi a terminal LuxOS pod vlastnimi jmeny (ne Xfce / xfce4-terminal)
+    { "type": "command",  "key": "󰧨  Desktop",  "keyColor": "38;2;91;140;255", "shell": "/bin/sh",
+      "text": "case \"$XDG_CURRENT_DESKTOP\" in *XFCE*|*LuxOS*|'') echo 'LuxOS Desktop' ;; *) echo \"$XDG_CURRENT_DESKTOP\" ;; esac" },
+    { "type": "command",  "key": "󰞷  Terminal", "keyColor": "38;2;155;140;255", "shell": "/bin/sh",
+      "text": "/usr/lib/luxos/fastfetch-terminal" },
     { "type": "cpu",      "key": "󰻟  CPU",      "keyColor": "38;2;255;107;154" },
     { "type": "gpu",      "key": "󰢮  GPU",      "keyColor": "38;2;255;107;213" },
     { "type": "memory",   "key": "󰍛  Memory",   "keyColor": "38;2;79;209;197" },

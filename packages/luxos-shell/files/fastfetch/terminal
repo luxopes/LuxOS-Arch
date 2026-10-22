@@ -1,0 +1,23 @@
+#!/bin/sh
+# LuxOS - radek Terminal ve fastfetch: terminal LuxOS se jmenuje "LuxOS Terminal",
+# jiny terminal podle jmena procesu (prvni predek, ktery neni shell), pres SSH "SSH".
+p=$PPID
+i=0
+while [ "${p:-0}" -gt 1 ] && [ $i -lt 16 ]; do
+    c=$(cat "/proc/$p/comm" 2>/dev/null)
+    case $c in
+        xfce4-terminal)
+            # verze z databaze baliku (rychlejsi nez spoustet xfce4-terminal --version)
+            v=""
+            for d in /var/lib/pacman/local/xfce4-terminal-[0-9]*; do
+                [ -d "$d" ] && v=${d##*/xfce4-terminal-} && v=${v%-*}
+            done
+            echo "LuxOS Terminal${v:+ $v}"; exit 0 ;;
+        sshd*) echo "SSH"; exit 0 ;;
+        fastfetch|sh|bash|lsh|zsh|fish|dash|sudo|su|doas|tmux*|screen|script) ;;
+        *) echo "$c"; exit 0 ;;
+    esac
+    p=$(awk '{print $4}' "/proc/$p/stat" 2>/dev/null)
+    i=$((i + 1))
+done
+echo "${TERM:-unknown}"

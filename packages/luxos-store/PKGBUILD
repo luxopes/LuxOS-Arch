@@ -3,7 +3,7 @@
 
 pkgname=luxos-store
 pkgver=1.0.0
-pkgrel=8
+pkgrel=9
 pkgdesc="LuxOS Store - install apps from LuxOS and Arch Linux"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"

@@ -24,6 +24,12 @@ if [[ $(luxos-appearance mode) == auto ]]; then
     [[ -n $m && $m != "$(luxos-appearance status)" ]] && luxos-appearance auto
 fi
 
+# Ulozene rozliseni/otoceni (Monitory) a rezim vice monitoru (Super+P) plati i po prihlaseni.
+# Profil "Default" z xfsettingsd (kanal displays) se pouzije drive, toto ho prepise.
+if [[ -f $cfg/displays.json || -f $cfg/displays-mode ]]; then
+    luxos-displays auto &
+fi
+
 # Softwarovy jas monitoru (Ovladaci centrum, monitory bez podsviceni)
 if [[ -f $cfg/brightness ]] && ! compgen -G '/sys/class/backlight/*' >/dev/null; then
     luxos-displays brightness "$(cat "$cfg/brightness")" &
@@ -80,7 +86,9 @@ fi
 
 # Prvni prihlaseni: Prohlidka LuxOS (kde je co), pak Uvitani. Na live ISO jen Uvitani
 # s instalaci - prohlidka je tam z Uvitani/Launchpadu, at se okna nepretahuji o pozornost.
+# Po aktualizaci na novou verzi LuxOS: Co je noveho (novy uzivatel ma misto toho Prohlidku).
 if [[ ! -d /run/archiso && ! -e $cfg/tour-done ]] && command -v luxos-tour >/dev/null; then
+    luxos-whats-new --mark-seen 2>/dev/null
     (
         sleep 3
         luxos-tour --first-run
@@ -89,4 +97,6 @@ if [[ ! -d /run/archiso && ! -e $cfg/tour-done ]] && command -v luxos-tour >/dev
 elif [[ ! -e $cfg/welcome-done ]]; then
     sleep 3
     luxos-welcome &
+elif [[ ! -d /run/archiso ]]; then
+    (sleep 3; luxos-whats-new --auto) &
 fi

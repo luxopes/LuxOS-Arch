@@ -4,6 +4,7 @@ Chova se jako rozhrani pyalpm, ktere lux_alpm pouziva: Handle, databaze, balicky
 a callbacky (dlcb ve tvaru pyalpm >= 0.10: soubor, udalost, data). Neovuje skutecne chovani
 libalpm (podpisy, hooky, konflikty souboru) - to je nutne overit na LuxOS.
 """
+import os
 import re
 
 
@@ -68,7 +69,7 @@ def sync_newversion(pkg, dbs):
 
 class Package:
     def __init__(self, name, version, desc="", depends=(), provides=(), groups=(), isize=1000000,
-                 size=500000, reason=0, files=(), optdepends=(), db=None):
+                 size=500000, reason=0, files=(), optdepends=(), db=None, replaces=(), conflicts=()):
         self.name = name
         self.version = version
         self.desc = desc
@@ -78,8 +79,8 @@ class Package:
         self.provides = list(provides)
         self.depends = list(depends)
         self.optdepends = list(optdepends)
-        self.conflicts = []
-        self.replaces = []
+        self.conflicts = list(conflicts)
+        self.replaces = list(replaces)
         self.isize = isize
         self.size = size
         self.download_size = size
@@ -207,8 +208,28 @@ class Transaction:
         self.remove.append(p)
 
     def sysupgrade(self, downgrade):
-        for p in self.h.local.pkgcache:
-            n = sync_newversion(p, self.h.sync)
+        h = self.h
+        replaced = set()
+        # nahrazeni jako libalpm (sync.c check_replacers): balik z repozitare, ktery v "replaces" uvadi
+        # nainstalovany balik (a sam nainstalovany neni) - otazka ALPM_QUESTION_REPLACE_PKG (2)
+        for db in h.sync:
+            for new in db.pkgcache:
+                if h.local.get_pkg(new.name) is not None:
+                    continue
+                for old in list(h.local.pkgcache):
+                    if old.name in replaced or not any(_dep_name(r) == old.name for r in new.replaces):
+                        continue
+                    if not (h.questioncb and h.questioncb(2, old.name, new.name, db.name)):
+                        continue
+                    replaced.add(old.name)
+                    if old not in self.remove:
+                        self.remove.append(old)
+                    if new not in self.add:
+                        self.add.append(new)
+        for p in h.local.pkgcache:
+            if p.name in replaced:
+                continue
+            n = sync_newversion(p, h.sync)
             if n is not None and n not in self.add:
                 self.add.append(n)
 
@@ -273,6 +294,8 @@ class Transaction:
         if self.flags.get("downloadonly"):
             self.committed = True
             return
+        # hooky a skriptlety libalpm dedi prostredi procesu (PATH s nastroji jadra)
+        self.env_path = os.environ.get("PATH")
         if h.progresscb:
             for i in range(1, len(self.to_add) + 1):
                 h.progresscb("", 100, len(self.to_add), i)

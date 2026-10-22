@@ -1639,7 +1639,7 @@ All lux commands: %s	Az összes lux parancs: %s
 Experts can still run pacman directly: %s	Haladó felhasználók továbbra is közvetlenül futtathatják a pacmant: %s
 The package manager core is missing (%s). Repair it with: %s	Hiányzik a csomagkezelő magja (%s). Javítsd ezzel: %s
 pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	A pacman csak haladóknak való (LUX_ALLOW_PACMAN=1 pacman …); a lux és a pacman ugyanazt a csomagadatbázist használja.
-The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	A csomagkezelő magja (%s) régebbi, mint az Arch Linux pacman (%s) – hamarosan érkezik LuxOS-frissítés
+The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	A csomagkezelő magja (%s) régebbi, mint az Arch Linuxé (%s) – hamarosan érkezik LuxOS-frissítés
 You manage the system yourself with lux.	A rendszert te magad kezeled a lux segítségével.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
 Layout line %s is not valid.	A(z) %s. elrendezési sor érvénytelen.
@@ -2030,3 +2030,112 @@ Could not set the partition type of %s; LuxOS works anyway.	A(z) %s partíciót�
 Downloading the list of available software first	Először letöltöm az elérhető szoftverek listáját
 Version %s	Verzió: %s
 build %s	build: %s
+Displays	Kijelzők
+Displays…	Kijelzők…
+Built-in Display	Beépített kijelző
+Revert	Visszaállítás
+Keep Changes	Módosítások megtartása
+Keep these display settings?	Megtartja ezeket a kijelzőbeállításokat?
+The previous settings will be restored in %d seconds.	Az előző beállítások %d másodperc múlva visszaállnak.
+No displays found. Display settings need an X11 session.	Nem található kijelző. A kijelzőbeállításokhoz X11-munkamenet kell.
+Multiple Displays	Több kijelző
+You can also switch with Super+P.	Super+P billentyűvel is válthat.
+This display is turned off.	Ez a kijelző ki van kapcsolva.
+Turn it on with Super+P or under Multiple Displays.	Kapcsolja be a Super+P billentyűvel vagy a Több kijelző résznél.
+%s (Recommended)	%s (ajánlott)
+Resolution	Felbontás
+A lower resolution makes everything larger; the recommended one is the sharpest.	Kisebb felbontásnál minden nagyobb; az ajánlott a legélesebb.
+Refresh rate	Frissítési gyakoriság
+Standard	Normál
+Rotation	Elforgatás
+The display could not use this setting.	A kijelző nem tudta használni ezt a beállítást.
+The previous settings were restored.	Az előző beállítások visszaálltak.
+Text Size	Szövegméret
+Smaller	Kisebb
+Large	Nagy
+Larger	Nagyobb
+Largest	Legnagyobb
+Changes the size of text in the menu bar, window titles and apps. Some apps need to be reopened.	Megváltoztatja a szöveg méretét a menüsorban, az ablakcímekben és az alkalmazásokban. Egyes alkalmazásokat újra kell nyitni.
+Fingerprint Login	Bejelentkezés ujjlenyomattal
+Touch the fingerprint sensor or enter your password	Érintse meg az ujjlenyomat-olvasót, vagy adja meg a jelszavát
+Fingerprint not recognized. Try again or enter your password.	Az ujjlenyomat nem ismerhető fel. Próbálja újra, vagy adja meg a jelszavát.
+Set Up…	Beállítás…
+Unlock and log in with your fingerprint instead of the password.	Feloldás és bejelentkezés ujjlenyomattal jelszó helyett.
+Fingerprint reader: fprintd (set up in Settings > Fingerprint)	Ujjlenyomat-olvasó: fprintd (beállítás: Beállítások > Ujjlenyomat)
+You are not allowed to change fingerprints.	Nincs jogosultsága az ujjlenyomatok módosításához.
+The fingerprint reader is being used by another app. Try again later.	Az ujjlenyomat-olvasót egy másik alkalmazás használja. Próbálja újra később.
+The fingerprint reader is not available.	Az ujjlenyomat-olvasó nem érhető el.
+Could not remove the fingerprint.	Az ujjlenyomatot nem sikerült eltávolítani.
+Something went wrong. Try again.	Valami hiba történt. Próbálja újra.
+Looking for a fingerprint reader…	Ujjlenyomat-olvasó keresése…
+Use your fingerprint to log in, unlock the screen and approve administrator actions. Your password always works too.	Ujjlenyomattal bejelentkezhet, feloldhatja a képernyőt és jóváhagyhatja a rendszergazdai műveleteket. A jelszava továbbra is működik.
+Fingerprints	Ujjlenyomatok
+Add Fingerprint…	Ujjlenyomat hozzáadása…
+Remove All	Összes eltávolítása
+This computer has no supported fingerprint reader. If you connect one, open Drivers to set it up.	Ebben a számítógépben nincs támogatott ujjlenyomat-olvasó. Ha csatlakoztat egyet, a beállításhoz nyissa meg az Illesztőprogramok alkalmazást.
+Fingerprint support is not installed. Drivers installs it automatically when your computer has a supported fingerprint reader.	Az ujjlenyomat-támogatás nincs telepítve. Az Illesztőprogramok automatikusan telepíti, ha a számítógépben van támogatott olvasó.
+No fingerprint reader found	Nem található ujjlenyomat-olvasó
+Open Drivers	Illesztőprogramok megnyitása
+No fingerprints added yet.	Még nincs hozzáadott ujjlenyomat.
+Remove the fingerprint “%s”?	Eltávolítja a(z) „%s” ujjlenyomatot?
+You will no longer be able to use this finger to log in.	Ezzel az ujjal többé nem tud bejelentkezni.
+Removing…	Eltávolítás…
+Remove all fingerprints?	Eltávolítja az összes ujjlenyomatot?
+You will need your password to log in.	A bejelentkezéshez a jelszavára lesz szüksége.
+Add Fingerprint	Ujjlenyomat hozzáadása
+Which finger do you want to add?	Melyik ujját szeretné hozzáadni?
+Swipe your finger across the sensor.	Húzza végig az ujját az érzékelőn.
+Place your finger on the sensor, then lift it.	Helyezze az ujját az érzékelőre, majd emelje fel.
+Step %d of %d	%d. lépés / %d
+Right index finger	Jobb mutatóujj
+Left index finger	Bal mutatóujj
+Right thumb	Jobb hüvelykujj
+Left thumb	Bal hüvelykujj
+Right middle finger	Jobb középső ujj
+Left middle finger	Bal középső ujj
+Right ring finger	Jobb gyűrűsujj
+Left ring finger	Bal gyűrűsujj
+Right little finger	Jobb kisujj
+Left little finger	Bal kisujj
+Lift your finger, then touch the sensor again	Emelje fel az ujját, majd érintse meg újra az érzékelőt
+Didn't catch that. Touch the sensor again.	Nem sikerült beolvasni. Érintse meg újra az érzékelőt.
+Swipe was too short. Try again.	Túl rövid volt a húzás. Próbálja újra.
+Center your finger on the sensor and try again.	Helyezze az ujját az érzékelő közepére, és próbálja újra.
+Lift your finger and try again.	Emelje fel az ujját, és próbálja újra.
+Fingerprint added	Ujjlenyomat hozzáadva
+Could not add the fingerprint. Try again.	Az ujjlenyomatot nem sikerült hozzáadni. Próbálja újra.
+The reader cannot store more fingerprints. Remove one first.	Az olvasó nem tud több ujjlenyomatot tárolni. Előbb távolítson el egyet.
+This fingerprint is already added.	Ez az ujjlenyomat már hozzá van adva.
+The fingerprint reader was disconnected.	Az ujjlenyomat-olvasó le lett választva.
+Swipe your finger again	Húzza végig újra az ujját
+What's New	Újdonságok
+What's New in LuxOS %s	A LuxOS %s újdonságai
+LuxOS %s	LuxOS %s
+No release notes are available.	Nincsenek elérhető kiadási megjegyzések.
+Could not check for updates. Check your internet connection and try again.	Nem sikerült frissítéseket keresni. Ellenőrizze az internetkapcsolatot, és próbálja újra.
+Capture	Rögzítés
+Capture Entire Screen	Teljes képernyő rögzítése
+Capture Selected Window	Kijelölt ablak rögzítése
+Capture Selected Portion	Kijelölt terület rögzítése
+Record	Felvétel
+Record Entire Screen	Teljes képernyő felvétele
+Record Selected Portion	Kijelölt terület felvétele
+Options	Beállítások
+Timer	Időzítő
+None	Nincs
+5 Seconds	5 másodperc
+10 Seconds	10 másodperc
+Clipboard	Vágólap
+Choose a Folder	Mappa kiválasztása
+Show Mouse Pointer	Egérmutató megjelenítése
+Remember Last Selection	Utolsó kijelölés megjegyzése
+Screenshot %s at %s	Képernyőkép %s %s
+Screen Recording %s at %s	Képernyőfelvétel %s %s
+Stop	Leállítás
+Stop Recording	Felvétel leállítása
+Screen recording is not available: ffmpeg was not found.	A képernyőfelvétel nem érhető el: az ffmpeg nem található.
+The screen recording failed.	A képernyőfelvétel sikertelen.
+The screenshot could not be saved.	A képernyőkép nem menthető.
+%s .pacnew config file(s) to merge - run: lux configs	Összefésülendő .pacnew konfigurációs fájlok: %s - futtasd: lux configs
+Your settings were kept. Merge the files when convenient: lux configs	A beállításaid megmaradtak. Ha alkalmas, fésüld össze a fájlokat: lux configs
+review and merge new config files (.pacnew)	új konfigurációs fájlok (.pacnew) áttekintése és összefésülése

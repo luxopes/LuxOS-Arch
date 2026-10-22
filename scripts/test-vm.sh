@@ -1,5 +1,6 @@
 #!/bin/bash
 # LuxOS - spusteni ISO nebo nainstalovaneho systemu v QEMU/KVM
+#   (LUXOS_VM_DIR, LUXOS_VM_MEM, LUXOS_VM_ISO, LUXOS_VM_NAME, LUXOS_VM_OUTPUTS)
 #
 #   scripts/test-vm.sh live      [--headless] [--bios]   boot z ISO (+ prazdny disk 40G)
 #   scripts/test-vm.sh disk      [--headless] [--bios]   boot z nainstalovaneho disku
@@ -19,11 +20,12 @@ done
 mkdir -p "$T"
 if [[ $mode == reset ]]; then rm -f "$T"/disk.qcow2 "$T"/OVMF_VARS.fd; echo "Reset."; exit 0; fi
 
-iso=$(ls -t out/luxos-*.iso 2>/dev/null | head -1 || true)
+# LUXOS_VM_ISO: jine ISO (napr. Arch Linux pro porovnani), LUXOS_VM_NAME: nazev okna
+iso=${LUXOS_VM_ISO:-$(ls -t out/luxos-*.iso 2>/dev/null | head -1 || true)}
 [[ -f $T/disk.qcow2 ]] || qemu-img create -f qcow2 "$T/disk.qcow2" 40G >/dev/null
 
 args=(
-    -name LuxOS -enable-kvm -machine q35 -cpu host -smp 4 -m "${LUXOS_VM_MEM:-4096}"
+    -name "${LUXOS_VM_NAME:-LuxOS}" -enable-kvm -machine q35 -cpu host -smp 4 -m "${LUXOS_VM_MEM:-4096}"
     -drive file="$T/disk.qcow2",if=none,id=hd0,discard=unmap,cache=unsafe -device virtio-blk-pci,drive=hd0,bootindex=1
     -nic user,model=virtio-net-pci
     -device "virtio-vga${LUXOS_VM_OUTPUTS:+,max_outputs=$LUXOS_VM_OUTPUTS}" -device qemu-xhci -device usb-tablet

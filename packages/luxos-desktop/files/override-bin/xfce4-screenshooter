@@ -1,0 +1,8 @@
+#!/bin/sh
+# LuxOS: stare zkratky a spousteci xfce4-screenshooter otevrou Snimek obrazovky (luxos-screenshot)
+case " $* " in
+    *" -f "*|*" --fullscreen "*) exec luxos-screenshot --screen ;;
+    *" -r "*|*" --region "*) exec luxos-screenshot --portion ;;
+    *" -w "*|*" --window "*) exec luxos-screenshot --window ;;
+esac
+exec luxos-screenshot

@@ -1,7 +1,7 @@
 # LuxOS - zakladni sada baliku instalovaneho systemu
 base
-# pacman z Archu; prikaz pacman je kompatibilni vrstva, spravcem baliku je lux
-luxos-pacman
+# jadro lux (libalpm a nastroje pacmanu z Archu, bez prikazu pacman); spravcem baliku je lux
+lux-engine
 linux-zen
 linux-firmware
 sof-firmware

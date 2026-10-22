@@ -9,3 +9,5 @@ _luxos_session() {
 }
 post_install() { _luxos_dconf; _luxos_session; }
 post_upgrade() { _luxos_dconf; _luxos_session; }
+# Otisk prstu: pred odinstalaci vratit PAM sluzby do puvodni podoby (hook uz pak nepobezi)
+pre_remove() { /usr/lib/luxos/luxos-fingerprint-pam remove || true; }

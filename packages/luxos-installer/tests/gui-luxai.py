@@ -11,6 +11,9 @@ import sys
 import tempfile
 import time
 from importlib.machinery import SourceFileLoader
+# Jen virtualni X z xvfb-run (nebo vyslovne LUXOS_TEST_X=1 ve VM) - nikdy skutecna obrazovka
+if "xvfb-run" not in os.environ.get("XAUTHORITY", "") and os.environ.get("LUXOS_TEST_X") != "1":
+    sys.exit("Run under xvfb-run (or LUXOS_TEST_X=1 in a VM) - never on a real display.")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.join(HERE, "..", "files")

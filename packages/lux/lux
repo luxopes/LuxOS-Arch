@@ -1,11 +1,20 @@
 #!/bin/bash
-# lux - spravce baliku LuxOS (prikaz pacman v terminalu odkaze sem, viz luxos-pacman)
+# lux - spravce baliku LuxOS (prikaz pacman v LuxOS neni; kdo ho napise, shell ukaze prikaz lux)
 #
 # Repozitare Arch Linuxu a LuxOS spravuje pres libalpm (pyalpm, /usr/lib/lux/lux_alpm.py):
-# stejna databaze, pacman.conf, podpisy a hooky jako pacman, takze oba nastroje jdou stridat.
-# Bez pyalpm (nebo s LUX_BACKEND=pacman) pouzije skutecny pacman (/usr/lib/lux/alpm/pacman).
+# databaze, /etc/pacman.conf, podpisy a hooky jako v Arch Linuxu.
+# Bez pyalpm (nebo s LUX_BACKEND=pacman) pouzije nastroj jadra pacman (/usr/lib/lux/alpm/bin, lux-engine).
 # Dale AUR, Flatpak a vlastni format .lux.
 set -o pipefail
+
+# Nastroje jadra (pacman, pacman-conf, pacman-key z lux-engine) jsou mimo PATH. Dedi to i hooky
+# a skriptlety transakci, makepkg a checkupdates. Pro roota pevna cesta (ne PATH uzivatele).
+LUX_ENGINE_BIN=${LUX_ENGINE_BIN:-/usr/lib/lux/alpm/bin}
+LUX_ROOT_PATH="$LUX_ENGINE_BIN:/usr/local/sbin:/usr/local/bin:/usr/bin"
+case ":$PATH:" in
+    *:"$LUX_ENGINE_BIN":*) ;;
+    *) export PATH="$LUX_ENGINE_BIN${PATH:+:$PATH}" ;;
+esac
 
 LUX_VERSION=0.3.0
 [[ -r /usr/lib/luxos/i18n.sh ]] && . /usr/lib/luxos/i18n.sh
@@ -34,10 +43,12 @@ LUX_SELF=$(readlink -f "$0")
 # Backend libalpm (vedle skriptu pri spusteni z repozitare)
 LUX_ALPM=${LUX_ALPM:-/usr/lib/lux/lux_alpm.py}
 [[ -x $LUX_ALPM ]] || LUX_ALPM="$(dirname "$LUX_SELF")/lux_alpm.py"
-# Skutecny pacman (luxos-pacman) pro zalozni backend a dotazy; /usr/bin/pacman je v LuxOS jen
-# kompatibilni vrstva, ktera cloveku v terminalu ukaze prikaz lux
-LUX_PACMAN=${LUX_PACMAN:-/usr/lib/lux/alpm/pacman}
+# pacman z jadra (lux-engine) pro zalozni backend a dotazy; mimo LuxOS z PATH
+LUX_PACMAN=${LUX_PACMAN:-$LUX_ENGINE_BIN/pacman}
 [[ -x $LUX_PACMAN ]] || LUX_PACMAN=pacman
+# Napoveda pro zvyk z Archu (lux -Syu): /usr/lib/lux/pacman-hint, pri spusteni z repozitare vedle skriptu
+LUX_HINT=${LUX_HINT:-/usr/lib/lux/pacman-hint}
+[[ -x $LUX_HINT ]] || LUX_HINT="$(dirname "$LUX_SELF")/pacman-hint"
 
 # --- Vystup ---------------------------------------------------------------
 # Barvy se rozhodnou jednou (proces pod sudo/pkexec uz NO_COLOR ani terminal uzivatele nemusi videt)
@@ -63,7 +74,8 @@ ask() {  # ask "Otazka" [Y|n] -> 0 = ano
 # Prava roota automaticky: sudo v terminalu, jinak pkexec (graficke overeni); jazyk a barvy se predaji
 as_root() {
     if ((EUID == 0)); then "$@"; return; fi
-    local -a envv=(/usr/bin/env "LUX_COLOR=$LUX_COLOR" "LANG=${LANG:-C.UTF-8}")
+    # sudo/pkexec nastavi vlastni PATH - nastroje jadra pro hooky a skriptlety transakci
+    local -a envv=(/usr/bin/env "PATH=$LUX_ROOT_PATH" "LUX_COLOR=$LUX_COLOR" "LANG=${LANG:-C.UTF-8}")
     [[ -n ${LC_ALL-} ]] && envv+=("LC_ALL=$LC_ALL")
     [[ -n ${NO_COLOR-} ]] && envv+=("NO_COLOR=$NO_COLOR")
     [[ -n ${LUX_BACKEND-} ]] && envv+=("LUX_BACKEND=$LUX_BACKEND")
@@ -550,6 +562,15 @@ cmd_fix() {
     as_root "$LUX_SELF" "${f[@]}" __fix
 }
 
+# Nove konfiguracni soubory z aktualizaci (.pacnew/.pacsave): porovnat a sloucit (pacdiff z pacman-contrib
+# vola pacman a pacman-conf jmenem - dostane je v PATH od lux, i pres sudo/pkexec)
+cmd_configs() {
+    if [[ -z $(find /etc \( -name '*.pacnew' -o -name '*.pacsave' \) -print -quit 2>/dev/null) ]]; then
+        ok "$(T "No pending config files")"; return 0
+    fi
+    as_root pacdiff "$@"
+}
+
 cmd_drivers() {
     luxos-hwdetect --report
     local -a want=() missing=() svcs=()
@@ -581,7 +602,7 @@ cmd_doctor() {
     n=$(systemctl --failed --no-legend 2>/dev/null | wc -l)
     if ((n)); then warn "$(T "%s failed service(s):" "$n")"; systemctl --failed --no-legend; ((issues++)); else ok "$(T "Services running")"; fi
     n=$(find /etc -name '*.pacnew' 2>/dev/null | wc -l)
-    ((n)) && { warn "$(T "%s .pacnew config file(s) to merge (pacdiff)" "$n")"; ((issues++)); } || ok "$(T "No pending config files")"
+    ((n)) && { warn "$(T "%s .pacnew config file(s) to merge - run: lux configs" "$n")"; ((issues++)); } || ok "$(T "No pending config files")"
     local use; use=$(df --output=pcent / | tail -1 | tr -dc 0-9)
     ((use > 90)) && { warn "$(T "Root filesystem is %s%% full" "${use}")"; ((issues++)); } || ok "$(T "Disk usage %s%%" "${use}")"
     n=$("$LUX_PACMAN" -Qdtq 2>/dev/null | wc -l)
@@ -590,12 +611,12 @@ cmd_doctor() {
         n=$(checkupdates 2>/dev/null | wc -l)
         ((n)) && warn "$(T "%s update(s) available - run: lux update" "$n")" || ok "$(T "System up to date")"
     fi
-    # luxos-pacman musi drzet krok s pacmanem Arch Linuxu (pyalpm z Archu se sestavuje proti jeho libalpm)
+    # lux-engine musi drzet krok s pacmanem Arch Linuxu (pyalpm z Archu se sestavuje proti jeho libalpm)
     local own upstream
-    own=$("$LUX_PACMAN" -Q luxos-pacman 2>/dev/null | awk '{print $2}')
+    own=$("$LUX_PACMAN" -Q lux-engine 2>/dev/null | awk '{print $2}')
     upstream=$(LC_ALL=C "$LUX_PACMAN" -Si core/pacman 2>/dev/null | awk -F': ' '/^Version/ {print $2; exit}')
     if [[ -n $own && -n $upstream ]] && (($(vercmp "$upstream" "$own" 2>/dev/null || echo 0) > 0)); then
-        warn "$(T "The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)" "$own" "$upstream")"
+        warn "$(T "The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow" "$own" "$upstream")"
     fi
     [[ -d /usr/lib/modules/$(uname -r) ]] || { warn "$(T "Running kernel was replaced - restart")"; ((issues++)); }
     n=$(journalctl -b -p err --no-pager -q 2>/dev/null | wc -l)
@@ -639,6 +660,7 @@ files <pkg>|files installed by a package
 owns <file>|which package owns a file
 clean|clean cache and remove unneeded packages
 fix|repair a locked database and the signing keys
+configs|review and merge new config files (.pacnew)
 history [n] [pkg]|recent package changes
 pack <dir> [out]|build a .lux package from a directory with lux.json
 drivers|detect and install missing drivers
@@ -656,7 +678,6 @@ CMDS
 -h, --help|this help
 -V, --version|version
 OPTS
-    printf '\n%s\n' "$D$(T "pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.")$R"
 }
 
 # --- Interaktivni rezim (TUI): repozitare LuxOS i Arch Linuxu ---------------
@@ -754,6 +775,7 @@ case $cmd in
     autoremove)         cmd_autoremove ;;
     clean)              cmd_clean ;;
     fix)                cmd_fix ;;
+    configs)            cmd_configs "$@" ;;
     __fix)              ((EUID == 0)) || exit 1; lux_fix ;;
     drivers)            cmd_drivers ;;
     mirrors)            cmd_mirrors ;;
@@ -768,9 +790,7 @@ case $cmd in
     __preview)          cmd_preview "$@" ;;
     "")                 if [[ -t 0 && -t 1 ]]; then cmd_tui; else usage; fi ;;
     # zvyk z pacmanu (lux -Syu, lux -S balik): ukazat odpovidajici prikaz lux
-    -[SRQUFDT]*)        if [[ -x /usr/bin/pacman ]] && grep -q LUX_PACMAN_HINT /usr/bin/pacman 2>/dev/null; then
-                            LUX_PACMAN_HINT=1 exec /usr/bin/pacman "$cmd" "$@"
-                        fi
+    -[SRQUFDT]*)        [[ -x $LUX_HINT ]] && exec "$LUX_HINT" "$cmd" "$@"
                         die "$(T "Unknown command '%s' (see lux --help)" "$cmd")" ;;
     *)                  die "$(T "Unknown command '%s' (see lux --help)" "$cmd")" ;;
 esac

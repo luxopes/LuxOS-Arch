@@ -2,14 +2,14 @@
 
 pkgname=luxos-drivers
 pkgver=1.0.0
-pkgrel=5
+pkgrel=6
 pkgdesc="LuxOS hardware detection and the Drivers app: picks GPU, Wi-Fi, camera, VM and other drivers automatically"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
 # hwdata: nazvy zarizeni (pci.ids); python-gobject/gtk3/polkit: aplikace Ovladace
 depends=(bash systemd hwdata python python-gobject gtk3 polkit luxos-i18n)
-optdepends=('lux: installs drivers through libalpm with progress (pacman otherwise)'
+optdepends=('lux: installs drivers through libalpm with progress'
             'libnotify: notification server integration')
 makedepends=(python)
 install=luxos-drivers.install

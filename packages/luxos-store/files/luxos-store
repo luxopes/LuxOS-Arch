@@ -26,8 +26,11 @@ from gi.repository import AppStream, Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # no
 
 HELPER = "/usr/lib/luxos/luxos-store-helper"
 LUX_DB = "/var/lib/lux/installed"
-# Skutecny pacman (luxos-pacman); /usr/bin/pacman je v LuxOS kompatibilni vrstva pro lidi v terminalu
-PACMAN = "/usr/lib/lux/alpm/pacman" if os.access("/usr/lib/lux/alpm/pacman", os.X_OK) else "pacman"
+# Nastroje jadra lux (pacman, pacman-conf z lux-engine) jsou mimo PATH. checkupdates je vola jmenem,
+# dostane je jen on (ENGINE_ENV) - aplikace spustene z Obchodu ne.
+ENGINE_BIN = "/usr/lib/lux/alpm/bin"
+PACMAN = ENGINE_BIN + "/pacman" if os.access(ENGINE_BIN + "/pacman", os.X_OK) else "pacman"
+ENGINE_ENV = dict(os.environ, PATH=ENGINE_BIN + ":" + os.environ.get("PATH", "/usr/local/sbin:/usr/local/bin:/usr/bin"))
 LUX_INDEX_URL = os.environ.get("LUX_INDEX_URL", "https://lsl.lux-ai.cz/luxos/lux")
 APPS_ICON_URL = "https://lsl.lux-ai.cz/luxos/luxos-apps/x86_64/icons"
 ICON_CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "luxos-store/icons")
@@ -261,8 +264,15 @@ class Catalog:
                              description=p.get("description", ""), icon_file=icon, categories=p.get("categories"))
 
     def check_updates(self):
-        out = run("checkupdates", timeout=180)
-        self.updates = [line.split()[0] for line in out.splitlines() if line.strip()]
+        """True = kontrola probehla (checkupdates: 0 = jsou aktualizace, 2 = nejsou, jinak chyba/sit)."""
+        try:
+            r = subprocess.run(["checkupdates"], capture_output=True, text=True, timeout=180, env=ENGINE_ENV)
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        if r.returncode not in (0, 2):
+            return False
+        self.updates = [line.split()[0] for line in r.stdout.splitlines() if line.strip()]
+        return True
 
 
 # ---- widgety ----------------------------------------------------------------
@@ -539,26 +549,34 @@ class Store(Gtk.Window):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.pack_start(self.title(_("Updates")), False, False, 0)
         row = Gtk.Box(spacing=8)
-        check = Gtk.Button(label=_("Check for Updates"))
+        check = Gtk.Button(label=_("Check for Updates"), always_show_image=True,
+                           image=Gtk.Image.new_from_icon_name("view-refresh-symbolic", Gtk.IconSize.BUTTON))
         update = Gtk.Button(label=_("Update All"))
         update.get_style_context().add_class("get")
         update.get_style_context().add_class("primary")
+        # aktualizovat lze az po kontrole, ktera neco nasla
+        update.set_sensitive(bool(self.catalog.updates))
         row.pack_start(check, False, False, 0)
         row.pack_start(update, False, False, 0)
         box.pack_start(row, False, False, 0)
         info = self.dim("")
         box.pack_start(info, False, False, 0)
 
-        def show_result():
+        def show_result(ok):
             ups = self.catalog.updates
-            info.set_text(_("Everything is up to date.") if not ups else
-                          _("%d updates available: %s") % (len(ups), ", ".join(ups[:30]) + (" …" if len(ups) > 30 else "")))
+            if not ok:
+                info.set_text(_("Could not check for updates. Check your internet connection and try again."))
+            else:
+                info.set_text(_("Everything is up to date.") if not ups else
+                              _("%d updates available: %s") % (len(ups), ", ".join(ups[:30]) + (" …" if len(ups) > 30 else "")))
             check.set_sensitive(True)
+            update.set_sensitive(bool(ups))
 
         def do_check(_b=None):
             check.set_sensitive(False)
+            update.set_sensitive(False)
             info.set_text(_("Checking for updates…"))
-            threading.Thread(target=lambda: (self.catalog.check_updates(), GLib.idle_add(show_result)),
+            threading.Thread(target=lambda: GLib.idle_add(show_result, self.catalog.check_updates()),
                              daemon=True).start()
 
         check.connect("clicked", do_check)
@@ -779,6 +797,10 @@ class Store(Gtk.Window):
                 self.flash(_("The internet connection is too slow or unavailable. Try it again later."))
             else:
                 self.flash(_("Failed: %s") % (err or _("unknown error")))
+            if action == "upgrade" and rc == 0:
+                self.catalog.updates = []
+                if self.current[0] == "updates":
+                    self.show_page("updates")
             for c in self.cards:
                 c.update()
             if self.current[0] == "detail":
