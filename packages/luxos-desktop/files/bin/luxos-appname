@@ -14,6 +14,7 @@ declare -A SHORT=(
     [xfce4-settings-manager]=Settings [xfdesktop]=Desktop [org.xfce.ristretto]="Image Viewer" [ristretto]="Image Viewer"
     [org.gnome.evince]="Document Viewer" [evince]="Document Viewer" [xfce4-taskmanager]="System Monitor"
     [yad]=LuxOS [luxos-calendar]=Calendar [luxos-control-center]="Control Center"
+    [luxos-whats-new]="What's New" [luxos-screenshot]=Screenshot
 )
 
 markup_escape() { local s=${1//&/&amp;}; s=${s//</&lt;}; printf '%s' "${s//>/&gt;}"; }
