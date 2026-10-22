@@ -3,30 +3,33 @@
 # /usr/lib/os-release patri baliku filesystem, proto ho prepisujeme hookem.
 set -e
 
+# Verze se doplni pri sestaveni baliku (files/version, BUILD_ID = datum sestaveni)
 cat > /usr/lib/os-release <<'OSR'
 NAME="LuxOS"
-PRETTY_NAME="LuxOS"
+PRETTY_NAME="LuxOS @SHORT@ @CODENAME@"
 ID=luxos
 ID_LIKE=arch
-BUILD_ID=rolling
-VERSION_ID=rolling
+VERSION="@SHORT@ (@CODENAME@)"
+VERSION_ID=@VERSION@
+VERSION_CODENAME=@CODENAME_LC@
+BUILD_ID=@BUILD@
 ANSI_COLOR="38;2;167;123;255"
 HOME_URL="https://github.com/luxos"
 LOGO=luxos-logo
 OSR
-
 # /etc/os-release je v Archu symlink na /usr/lib/os-release
 if [[ ! -L /etc/os-release ]]; then
     ln -sf ../usr/lib/os-release /etc/os-release
 fi
 
-printf '\n  \e[38;2;167;123;255m✦\e[0m  LuxOS  \e[2m(\\l)\e[0m\n\n' > /etc/issue
+printf '\n  \e[38;2;167;123;255m✦\e[0m  LuxOS @SHORT@  \e[2m(\\l)\e[0m\n\n' > /etc/issue
 
 if [[ -f /etc/lsb-release ]]; then
     cat > /etc/lsb-release <<'LSB'
 DISTRIB_ID="LuxOS"
-DISTRIB_RELEASE="rolling"
-DISTRIB_DESCRIPTION="LuxOS"
+DISTRIB_RELEASE="@VERSION@"
+DISTRIB_CODENAME=@CODENAME_LC@
+DISTRIB_DESCRIPTION="LuxOS @SHORT@ @CODENAME@"
 LSB
 fi
 

@@ -112,6 +112,7 @@ def collect_system():
     disk = os.statvfs("/")
     info = {
         "os": osr.get("PRETTY_NAME", "LuxOS"),
+        "osVersion": osr.get("VERSION_ID", ""),
         "osBuild": osr.get("BUILD_ID") or osr.get("VERSION_ID") or "",
         "kernel": os.uname().release,
         "computer": " ".join(x for x in (read("/sys/class/dmi/id/sys_vendor"),

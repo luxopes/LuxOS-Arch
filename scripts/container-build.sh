@@ -203,6 +203,10 @@ build_iso() {
     rm -rf "$PROFILE"
     cp -a "$ROOT/archiso" "$PROFILE"
     sed -i "s|@LUXOS_REPO@|$REPO|" "$PROFILE/pacman.conf"
+    # ISO pojmenovane podle verze LuxOS (packages/luxos-branding/files/version): luxos-0.9.0-x86_64.iso
+    local VERSION
+    VERSION=$(. "$ROOT/packages/luxos-branding/files/version" && echo "$VERSION")
+    sed -i "s|^iso_version=.*|iso_version=\"$VERSION\"|" "$PROFILE/profiledef.sh"
     # Starsi sestaveni vlastnich baliku (stejna verze, jiny obsah) z cache pacmanu pryc
     local f
     for f in "$REPO"/*/"$ARCH"/*.pkg.tar.zst; do

@@ -2028,3 +2028,5 @@ The EFI system partition %s is shared with the other systems and is not formatte
 Replace partition %s with LuxOS; other partitions are kept	Reemplazar la partición %s por LuxOS; las demás particiones se conservan
 Could not set the partition type of %s; LuxOS works anyway.	No se pudo establecer el tipo de partición de %s; LuxOS funcionará igualmente.
 Downloading the list of available software first	Primero se descarga la lista de software disponible
+Version %s	Versión %s
+build %s	compilación %s

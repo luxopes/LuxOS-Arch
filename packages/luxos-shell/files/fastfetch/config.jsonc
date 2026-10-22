@@ -20,7 +20,7 @@
     { "type": "custom", "format": "LuxOS", "outputColor": "1;97" },
     { "type": "custom", "format": "SIMPLE  ·  FAST  ·  SECURE", "outputColor": "90" },
     "break",
-    { "type": "os",       "key": "󰔶  OS",       "keyColor": "38;2;255;159;90",  "format": "{name} {arch}" },
+    { "type": "os",       "key": "󰔶  OS",       "keyColor": "38;2;255;159;90",  "format": "{name} {version} {arch}" },
     { "type": "host",     "key": "󰍹  Host",     "keyColor": "38;2;255;210;90",
       "format": "{name}{?version} ({version}){?}" },
     { "type": "kernel",   "key": "  Kernel",   "keyColor": "38;2;95;211;141" },
