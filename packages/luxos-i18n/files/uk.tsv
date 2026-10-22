@@ -2140,3 +2140,82 @@ The screenshot could not be saved.	Не вдалося зберегти знім
 %s .pacnew config file(s) to merge - run: lux configs	Файли конфігурації .pacnew для об’єднання: %s – запустіть: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Ваші налаштування збережено. Коли буде зручно, об’єднайте файли: lux configs
 review and merge new config files (.pacnew)	переглянути й об’єднати нові файли конфігурації (.pacnew)
+Keyboard Layouts	Розкладки клавіатури
+Layouts	Розкладки
+Add Layout	Додати розкладку
+Add Layout…	Додати розкладку…
+Add as another layout	Додати як ще одну розкладку
+Alt + Shift	Alt + Shift
+Ctrl + Shift	Ctrl + Shift
+Both Shift keys	Обидві клавіші Shift
+Caps Lock	Caps Lock
+Menu key	Клавіша меню
+Only by clicking the flag in the menu bar	Лише клацанням прапорця на панелі меню
+Apply to All Users and the Login Screen	Застосувати для всіх користувачів і екрана входу
+At most %d keyboard layouts are possible.	Можливо щонайбільше %d розкладки клавіатури.
+At most %d layouts are possible.	Можливо щонайбільше %d розкладки.
+Choose your keyboard layout. Add more layouts with + to switch between them; the first one is the default.	Виберіть розкладку клавіатури. Кнопкою + додайте інші розкладки, між якими можна перемикатися; перша — типова.
+Could not save the keyboard layouts: %s	Не вдалося зберегти розкладки клавіатури: %s
+Invalid XKB_OPTIONS: %s	Недійсні XKB_OPTIONS: %s
+Invalid keyboard layout: %s	Недійсна розкладка клавіатури: %s
+Key repeat and other keyboard settings	Повторення клавіш та інші налаштування клавіатури
+Make default	Зробити типовою
+More Keyboard Settings…	Інші налаштування клавіатури…
+More layouts? Space selects, Enter confirms (switch with Alt+Shift)	Ще розкладки? Пробіл вибирає, Enter підтверджує (перемикання Alt+Shift)
+Move down	Перемістити вниз
+Move up	Перемістити вгору
+Not saved: administrator authentication was cancelled.	Не збережено: автентифікацію адміністратора скасовано.
+Only %s	Лише %s
+Saved for all users and the login screen.	Збережено для всіх користувачів і екрана входу.
+Switch layouts with	Перемикати розкладки за допомогою
+Switching	Перемикання
+The first layout is the default. Switch between them with the shortcut below or by clicking the flag in the menu bar.	Перша розкладка — типова. Перемикайтеся між ними сполученням клавіш нижче або клацанням прапорця на панелі меню.
+Your account uses its own keyboard layouts from Xfce settings. Applying switches it back to the layouts set here.	Ваш обліковий запис використовує власні розкладки клавіатури з налаштувань Xfce. Застосування поверне його до розкладок, заданих тут.
+default	типова
+Add Shortcut	Додати скорочення
+Add Shortcut…	Додати скорочення…
+Already used by “%s” - it will be replaced.	Уже використовується «%s» – буде замінено.
+Apps & System	Застосунки та система
+Choose App	Вибрати застосунок
+Choose App…	Вибрати застосунок…
+Click to change the shortcut	Натисніть, щоб змінити скорочення
+Custom Shortcuts	Власні скорочення
+Delete the shortcut “%s”?	Видалити скорочення «%s»?
+Edit Shortcut	Змінити скорочення
+Esc cancels, Backspace turns the shortcut off.	Esc скасовує, Backspace вимикає скорочення.
+Esc cancels.	Esc скасовує.
+Go to workspace %d	Перейти до робочого простору %d
+Log out or shut down	Вийти або вимкнути
+Maximize window	Розгорнути вікно
+New Shortcut	Нове скорочення
+Next workspace	Наступний робочий простір
+Other Xfce Shortcuts	Інші скорочення Xfce
+Press the new shortcut for “%s”	Натисніть нове скорочення для «%s»
+Previous workspace	Попередній робочий простір
+Record Shortcut…	Записати скорочення…
+Replace	Замінити
+Replace it? The other action will lose this shortcut.	Замінити? Інша дія втратить це скорочення.
+Restore All Defaults…	Відновити всі типові…
+Restore Default	Відновити типове
+Restore Defaults	Відновити типові
+Restore all shortcuts to their defaults?	Відновити всі скорочення до типових?
+Screenshots	Знімки екрана
+Set together with the keyboard layouts.	Налаштовується разом із розкладками клавіатури.
+Shortcuts could not be read from the Xfce settings service. Changes will not be saved.	Не вдалося прочитати скорочення зі служби налаштувань Xfce. Зміни не буде збережено.
+Standard Xfce shortcuts kept for compatibility.	Стандартні скорочення Xfce, збережені для сумісності.
+Switch windows backwards	Перемикати вікна назад
+Switch windows of the same app	Перемикати вікна одного застосунку
+The shortcut could not be saved.	Не вдалося зберегти скорочення.
+Tile window left	Розмістити вікно ліворуч
+Tile window right	Розмістити вікно праворуч
+Use at least one of Ctrl, Alt or Super.	Використайте принаймні Ctrl, Alt або Super.
+Your custom shortcuts are kept unless their keys are needed by a default shortcut.	Власні скорочення збережуться, якщо їхні клавіші не потрібні типовому скороченню.
+Your own shortcuts that open an app or run a command.	Ваші скорочення, що відкривають застосунок або виконують команду.
+e.g. Open my notes	напр. Відкрити нотатки
+“%s” is already used by “%s”.	«%s» уже використовується «%s».
+View and change keyboard shortcuts	Перегляд і зміна клавіатурних скорочень
+Another update is still running (%s). Try again when it finishes.	Ще триває інше оновлення (%s). Спробуйте знову, коли воно завершиться.
+The package lists could not be refreshed: %s	Не вдалося оновити списки пакетів: %s
+The package lists could not be refreshed.	Не вдалося оновити списки пакетів.
+Removed a stale database lock left by an interrupted update.	Видалено блокування бази даних, що залишилося після перерваного оновлення.
+Waiting for another update to finish (%s)…	Очікування завершення іншого оновлення (%s)…

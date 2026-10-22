@@ -80,6 +80,11 @@ KEYMAPS = [
     ("Spanish", "es", ""), ("Italian", "it", ""), ("Polish", "pl", ""), ("Hungarian", "hu", ""),
     ("Ukrainian", "ua", ""), ("Portuguese", "pt", ""), ("Portuguese (Brazil)", "br", ""), ("Swedish", "se", ""),
 ]
+MAX_XKB = 4   # XKB umi nejvyse 4 rozlozeni
+# Prepinani rozlozeni (XKB_OPTIONS); Super+Mezernik je Hledani, Alt+Mezernik nabidka okna
+XKB_SWITCHES = [("grp:alt_shift_toggle", "Alt + Shift"), ("grp:ctrl_shift_toggle", "Ctrl + Shift"),
+                ("grp:shifts_toggle", "Both Shift keys"), ("grp:caps_toggle", "Caps Lock"),
+                ("grp:menu_toggle", "Menu key"), ("", "Only by clicking the flag in the menu bar")]
 # Systemova jmena, ktera nesmi byt uzivatelskym jmenem
 RESERVED_USERS = {"root", "bin", "daemon", "mail", "ftp", "http", "nobody", "dbus", "uuidd", "polkitd", "avahi",
                   "lightdm", "git", "rtkit", "colord", "alpm", "tss", "usbmux", "geoclue", "lux", "sddm", "gdm"}
@@ -186,6 +191,11 @@ CSS = """
 .warn-text { color: #c77700; }
 .net { font-size: 13px; }
 .status { font-size: 12px; opacity: 0.8; font-style: italic; }
+.chip { border-radius: 99px; padding: 3px 4px 3px 12px; border: 1px solid alpha(currentColor, 0.18);
+        background-color: alpha(currentColor, 0.05); }
+.chip.default { border-color: ACCENT; background-color: alpha(ACCENT, 0.12); }
+.chip button { padding: 0; min-width: 22px; min-height: 22px; border-radius: 99px; }
+.add-btn { padding: 0 4px; min-height: 22px; }
 .badge { font-size: 11px; font-weight: 700; color: white; background-color: #30d158; border-radius: 99px;
          padding: 1px 8px; }
 .care-card { padding: 18px 18px; }
@@ -573,7 +583,8 @@ class Installer(Gtk.Window):
         lang = os.environ.get("LANG", "en_US.UTF-8")
         locale = next((loc for _l, loc in LANGS if loc.split(".")[0] == lang.split(".")[0]), "en_US.UTF-8")
         self.s = {  # stav pruvodce (pri prechodu mezi kroky se stranky stavi znovu z nej)
-            "locale": locale, "xkb": ("us", ""), "timezone": "UTC", "tz_detected": "",
+            "locale": locale, "xkb": [("us", "")], "xkb_switch": XKB_SWITCHES[0][0], "timezone": "UTC",
+            "tz_detected": "",
             "disk": None, "mode": None, "encrypt": False, "luks1": "", "luks2": "", "erase_ok": False,
             "fullname": "", "username": "", "user_edited": False, "pw1": "", "pw2": "",
             "hostname": "", "host_edited": False, "autologin": False,
@@ -813,8 +824,8 @@ class Installer(Gtk.Window):
         h.set_no_show_all(not text)   # prazdna napoveda nezabira misto
         return h
 
-    def search_list(self, page, items, selected, on_select, height=260, placeholder=None):
-        """Vyhledavaci pole + seznam; items = [(klic, text, hledany_text)]."""
+    def search_list(self, page, items, selected, on_select, height=260, placeholder=None, extra=None):
+        """Vyhledavaci pole + seznam; items = [(klic, text, hledany_text)], extra(klic) = prvek na konci radku."""
         entry = Gtk.SearchEntry(placeholder_text=placeholder or _("Type to search"))
         page.pack_start(entry, False, False, 0)
         lb = Gtk.ListBox(activate_on_single_click=True)
@@ -823,7 +834,13 @@ class Installer(Gtk.Window):
         for key, text, hay in items:
             row = Gtk.ListBoxRow()
             row.key, row.hay = key, (hay or text).lower()
-            row.add(Gtk.Label(label=text, xalign=0))
+            if extra:
+                rb = Gtk.Box(spacing=8)
+                rb.pack_start(Gtk.Label(label=text, xalign=0), True, True, 0)
+                rb.pack_end(extra(key), False, False, 0)
+                row.add(rb)
+            else:
+                row.add(Gtk.Label(label=text, xalign=0))
             lb.add(row)
             if key == selected and sel_row is None:
                 sel_row = row
@@ -846,7 +863,7 @@ class Installer(Gtk.Window):
 
             def scroll_to():
                 alloc = sel_row.get_allocation()
-                if alloc.y > 0:
+                if alloc.y > 0 and sw.get_mapped():   # stranka mezitim mohla byt prestavena
                     sw.get_vadjustment().set_value(max(0, alloc.y - 60))
                 return False
             GLib.timeout_add(150, scroll_to)
@@ -937,11 +954,12 @@ class Installer(Gtk.Window):
 
     @staticmethod
     def default_xkb(locale):
+        """Rozlozeni podle zeme jazyka a US navic (psani hesel a kodu), prvni = vychozi."""
         country = locale[3:5].lower()
         for _n, layout, variant in KEYMAPS:
-            if layout == country:
-                return (layout, variant)
-        return ("us", "")
+            if layout == country and layout != "us":
+                return [(layout, variant), ("us", "")]
+        return [("us", "")]
 
     # ---- 2. sit ----
     def page_network(self, page):
@@ -1083,20 +1101,110 @@ class Installer(Gtk.Window):
         self.layouts = common + rest
         return self.layouts
 
+    def xkb_name(self, key):
+        return next((t for k, t, _h in self.load_layouts() if k == key), " ".join(p for p in key if p))
+
+    def xkb_values(self):
+        """(XKB_LAYOUT, XKB_VARIANT, XKB_OPTIONS) pro backend: seznamy oddelene carkou."""
+        lays = self.s["xkb"]
+        opts = self.s["xkb_switch"] if len(lays) > 1 else ""
+        return ",".join(l for l, _v in lays), ",".join(v for _l, v in lays), opts
+
+    def xkb_live(self):
+        """Rozlozeni hned i v live systemu (pole na vyzkouseni)."""
+        layout, variant, opts = self.xkb_values()
+        cmd = ["setxkbmap", "-layout", layout, "-variant", variant, "-option", ""] + (["-option", opts] if opts else [])
+        try:
+            subprocess.Popen(cmd, stderr=subprocess.DEVNULL)
+        except OSError:
+            pass
+
     def page_keyboard(self, page):
-        self.heading(page, _("Keyboard"), _("Choose your keyboard layout. You can try it in the field below."))
+        self.heading(page, _("Keyboard"), _("Choose your keyboard layout. Add more layouts with + to switch "
+                                            "between them; the first one is the default."))
+        chips = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, column_spacing=6, row_spacing=6,
+                            max_children_per_line=MAX_XKB)
+        page.pack_start(chips, False, False, 0)
+        switch_row = Gtk.Box(spacing=10)
+        switch_row.pack_start(Gtk.Label(label=_("Switch layouts with"), xalign=0), False, False, 0)
+        switch = Gtk.ComboBoxText()
+        for opt, label in XKB_SWITCHES:
+            switch.append(opt or "none", _(label))
+        switch.set_active_id(self.s["xkb_switch"] or "none")
+        switch.connect("changed", lambda c: (self.s.update(xkb_switch="" if c.get_active_id() == "none"
+                                                           else c.get_active_id()), self.xkb_live()))
+        switch_row.pack_start(switch, False, False, 0)
+        add_buttons = {}
+
+        def changed():
+            for c in chips.get_children():
+                chips.remove(c)
+            lays = self.s["xkb"]
+            for i, key in enumerate(lays):
+                chip = Gtk.Box(spacing=4)
+                chip.get_style_context().add_class("chip")
+                if i == 0:
+                    chip.get_style_context().add_class("default")
+                ev = Gtk.EventBox()
+                ev.add(Gtk.Label(label=self.xkb_name(key) + (" · " + _("default") if i == 0 and len(lays) > 1 else "")))
+                if i:
+                    ev.set_tooltip_text(_("Make default"))
+                    ev.connect("button-press-event", lambda _w, _e, k=key: make_default(k))
+                chip.pack_start(ev, False, False, 0)
+                rm = Gtk.Button.new_from_icon_name("window-close-symbolic", Gtk.IconSize.MENU)
+                rm.set_relief(Gtk.ReliefStyle.NONE)
+                rm.set_tooltip_text(_("Remove"))
+                rm.set_sensitive(len(lays) > 1)
+                rm.connect("clicked", lambda _b, k=key: remove(k))
+                chip.pack_start(rm, False, False, 0)
+                chips.add(chip)
+            for key, b in add_buttons.items():
+                b.set_sensitive(key not in lays and len(lays) < MAX_XKB)
+            switch_row.set_visible(len(lays) > 1)
+            chips.show_all()
+            self.xkb_live()
+
+        def make_default(key):
+            self.s["xkb"] = [key] + [k for k in self.s["xkb"] if k != key]
+            changed()
 
         def choose(key):
-            self.s["xkb"] = key
-            layout, variant = key
-            cmd = ["setxkbmap", layout] + (["-variant", variant] if variant else [])
-            try:
-                subprocess.Popen(cmd, stderr=subprocess.DEVNULL)
-            except OSError:
-                pass
-        self.search_list(page, self.load_layouts(), self.s["xkb"], choose, height=230)
+            # Klik do seznamu meni vychozi rozlozeni (prvni), ostatni zustanou
+            lays = self.s["xkb"]
+            if key in lays:
+                make_default(key)
+            else:
+                self.s["xkb"] = [key] + lays[1:]
+                changed()
+
+        def add(key):
+            if key not in self.s["xkb"] and len(self.s["xkb"]) < MAX_XKB:
+                self.s["xkb"] = self.s["xkb"] + [key]
+                changed()
+
+        def remove(key):
+            if len(self.s["xkb"]) > 1:
+                self.s["xkb"] = [k for k in self.s["xkb"] if k != key]
+                changed()
+
+        def plus(key):
+            b = Gtk.Button.new_from_icon_name("list-add-symbolic", Gtk.IconSize.MENU)
+            b.set_relief(Gtk.ReliefStyle.NONE)
+            b.get_style_context().add_class("add-btn")
+            b.set_tooltip_text(_("Add as another layout"))
+            b.connect("clicked", lambda _b: add(key))
+            add_buttons[key] = b
+            return b
+        self.search_list(page, self.load_layouts(), self.s["xkb"][0], choose, height=210, extra=plus)
+        page.pack_start(switch_row, False, False, 0)
+        switch_row.set_no_show_all(True)
+        for w in switch_row.get_children():
+            w.show()
         test = Gtk.Entry(placeholder_text=_("Type here to test your keyboard"))
         page.pack_start(test, False, False, 0)
+        self.kbd_ui = {"chips": chips, "switch": switch, "switch_row": switch_row, "add": add_buttons,
+                       "choose": choose, "add_fn": add, "remove": remove, "make_default": make_default}
+        changed()
 
     # ---- 4. casove pasmo ----
     def page_timezone(self, page):
@@ -2431,7 +2539,9 @@ class Installer(Gtk.Window):
         grid = Gtk.Grid(column_spacing=24, row_spacing=9)
         box.pack_start(grid, False, False, 0)
         lang = next((label for label, loc in LANGS if loc == self.s["locale"]), self.s["locale"])
-        layout = next((t for k, t, _h in self.load_layouts() if k == self.s["xkb"]), " ".join(self.s["xkb"]))
+        layout = ", ".join(self.xkb_name(k) for k in self.s["xkb"])
+        if len(self.s["xkb"]) > 1:
+            layout += "  (" + dict((o, _(t)) for o, t in XKB_SWITCHES)[self.s["xkb_switch"]] + ")"
         manual = self.s["mode"] == "manual"
         if manual and self.layout is None:
             self.valid = lambda: False
@@ -2709,9 +2819,10 @@ class Installer(Gtk.Window):
     # ---- beh backendu ----
     def build_config(self):
         s, q = self.s, shlex.quote
-        layout, variant = s["xkb"]
+        layout, variant, options = self.xkb_values()
         values = {
             "LOCALE": s["locale"], "UI_LANG": s["locale"], "XKB_LAYOUT": layout, "XKB_VARIANT": variant,
+            "XKB_OPTIONS": options,
             "TIMEZONE": s["timezone"], "DISK": s["disk"], "DISK_MODE": s["mode"], "BOOTLOADER": "auto",
             "ENCRYPT": "1" if s["encrypt"] else "0", "LUKS_PASS": s["luks1"] if s["encrypt"] else "",
             "USERNAME": s["username"], "FULLNAME": s["fullname"].strip(), "PASSWORD": s["pw1"],

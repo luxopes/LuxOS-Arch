@@ -9,22 +9,29 @@ locale-gen
 echo "LANG=$LOCALE" > /etc/locale.conf
 
 echo "--> Keyboard ($XKB_LAYOUT ${XKB_VARIANT})"
-echo "KEYMAP=$CONSOLE_KEYMAP" > /etc/vconsole.conf
-layouts=$XKB_LAYOUT variants=$XKB_VARIANT options=""
-if [[ $XKB_LAYOUT != us ]]; then
-    # Druhe rozlozeni US pro psani kodu/hesel, prepinani Alt+Shift
-    layouts="$XKB_LAYOUT,us" variants="$XKB_VARIANT," options="grp:alt_shift_toggle"
-fi
+# Rozlozeni pro cely system ve formatu systemd-localed (localectl): XKB_LAYOUT/XKB_VARIANT jsou seznamy
+# oddelene carkou (prvni = vychozi, pripravi luxos-install xkb_normalize), XKB_OPTIONS prepinani.
+# X server (relace i prihlasovaci obrazovka) cte 00-keyboard.conf, localed (systemd >= 255) i vconsole.conf.
+XKB_OPTIONS=${XKB_OPTIONS-}
+{
+    echo "KEYMAP=$CONSOLE_KEYMAP"
+    echo "XKBLAYOUT=$XKB_LAYOUT"
+    if [[ -n ${XKB_VARIANT//,/} ]]; then echo "XKBVARIANT=$XKB_VARIANT"; fi
+    if [[ -n $XKB_OPTIONS ]]; then echo "XKBOPTIONS=$XKB_OPTIONS"; fi
+} > /etc/vconsole.conf
 mkdir -p /etc/X11/xorg.conf.d
-cat > /etc/X11/xorg.conf.d/00-keyboard.conf <<KB
-Section "InputClass"
-    Identifier "system-keyboard"
-    MatchIsKeyboard "on"
-    Option "XkbLayout" "$layouts"
-    Option "XkbVariant" "$variants"
-    Option "XkbOptions" "$options"
-EndSection
-KB
+{
+    echo "# Written by systemd-localed(8), read by systemd-localed and Xorg. It's"
+    echo "# probably wise not to edit this file manually. Use localectl(1) to"
+    echo "# update this file."
+    echo 'Section "InputClass"'
+    echo '        Identifier "system-keyboard"'
+    echo '        MatchIsKeyboard "on"'
+    echo "        Option \"XkbLayout\" \"$XKB_LAYOUT\""
+    if [[ -n ${XKB_VARIANT//,/} ]]; then echo "        Option \"XkbVariant\" \"$XKB_VARIANT\""; fi
+    if [[ -n $XKB_OPTIONS ]]; then echo "        Option \"XkbOptions\" \"$XKB_OPTIONS\""; fi
+    echo "EndSection"
+} > /etc/X11/xorg.conf.d/00-keyboard.conf
 
 echo "--> Time zone ($TIMEZONE)"
 ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime

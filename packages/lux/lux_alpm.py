@@ -180,6 +180,55 @@ ERROR_KINDS = [  # (text v chybe libalpm/pacmanu, druh) - stejne texty cte LuxOS
 ]
 
 
+# Spravci baliku, kteri drzi zamek databaze (jmeno procesu), a nastroje LuxOS v Pythonu (skript v argumentech)
+PKG_MANAGERS = {"pacman", "makepkg", "pacstrap", "yay", "paru", "pamac", "pamac-daemon", "packagekitd"}
+PKG_SCRIPTS = {"lux_alpm.py": "lux", "luxos-care": "LuxOS Care", "luxos_care.py": "LuxOS Care",
+               "luxos-update": "LuxOS Care", "luxos-store-helper": "LuxOS Store"}
+LOCK_WAIT = float(os.environ.get("LUX_LOCK_WAIT", "300"))     # s: jak dlouho cekat na jinou aktualizaci
+
+
+def _ancestors(pid):
+    """PID procesu a vsech jeho predku (vlastni lux, sudo, Obchod... nejsou "jiny spravce baliku")."""
+    out = set()
+    while pid > 1 and pid not in out:
+        out.add(pid)
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                pid = int(f.read().rsplit(")", 1)[1].split()[1])
+        except (OSError, ValueError, IndexError):
+            break
+    return out
+
+
+def running_package_managers(proc="/proc"):
+    """Nazvy jinych bezicich spravcu baliku (bez tohoto procesu a jeho predku)."""
+    mine = _ancestors(os.getpid())
+    names = set()
+    try:
+        pids = [int(d) for d in os.listdir(proc) if d.isdigit()]
+    except OSError:
+        return []
+    for pid in pids:
+        if pid in mine:
+            continue
+        try:
+            with open(f"{proc}/{pid}/comm") as f:
+                comm = f.read().strip()
+            with open(f"{proc}/{pid}/cmdline", "rb") as f:
+                argv = [a.decode(errors="replace") for a in f.read().split(b"\0") if a]
+        except OSError:
+            continue
+        if comm in PKG_MANAGERS:
+            names.add(comm)
+            continue
+        for a in argv[:3]:
+            label = PKG_SCRIPTS.get(os.path.basename(a))
+            if label:
+                names.add(label)
+                break
+    return sorted(names)
+
+
 def classify(text):
     low = (text or "").lower()
     for needle, kind in ERROR_KINDS:
@@ -190,8 +239,11 @@ def classify(text):
 
 def plain_message(kind, detail=""):
     m = {
-        "locked": _("The package database is locked: another package manager is running, "
-                    "or a previous one crashed. If nothing else is running: lux fix"),
+        "locked": _("Another update is still running (%s). Try again when it finishes.") % detail if detail else
+        _("The package database is locked: another package manager is running, "
+          "or a previous one crashed. If nothing else is running: lux fix"),
+        "refresh": _("The package lists could not be refreshed: %s") % detail if detail else
+        _("The package lists could not be refreshed."),
         "permission": _("This needs administrator rights."),
         "disk": _("Not enough free disk space. Free some space (lux clean) and try again."),
         "conflict": _("Some files of the new packages already exist on the system (file conflict)."),
@@ -878,6 +930,7 @@ class Lux:
     # -- obnoveni databazi
     def refresh(self, force=False, attempts=3):
         self.need_root()
+        self.wait_for_lock()
         dbs = self.syncdbs("Sync")
         for attempt in range(1, attempts + 1):
             self.cb.reset("refresh")
@@ -898,14 +951,53 @@ class Lux:
             text = "\n".join(f"{n}: {m}" for n, m, _d in failed) + "\n" + "\n".join(self.cb.log_errors)
             kind = classify(text)
             if kind == "unknown":
-                kind = "network"
+                # libalpm hlasi jen "unable to update database": zamek pozna podle souboru, jinak se
+                # opakuje jako sit, ale zprava rika skutecny duvod
+                kind = "locked" if os.path.exists(self.lock_path()) else "refresh"
             self.ui.phase_done(False)
             for n, m, _d in failed:
                 self.ui.compat(f"error: failed to update {n} ({m})")
             self.ui.compat("error: failed to synchronize all databases")
-            if kind != "network" or attempt == attempts:
-                raise LuxError(kind, plain_message(kind), [f"{n}: {m}" for n, m, _d in failed] + self.cb.log_errors)
+            if kind not in ("network", "refresh") or attempt == attempts:
+                detail = (self.cb.log_errors or [failed[0][1]])[0] if kind == "refresh" else ""
+                raise LuxError(kind, plain_message(kind, detail),
+                               [f"{n}: {m}" for n, m, _d in failed] + self.cb.log_errors)
             self.retry_notice(attempt + 1, attempts)
+
+    def lock_path(self):
+        try:
+            dbpath = self.h.dbpath
+        except AttributeError:
+            dbpath = (self.conf.get("DBPath") if self.conf is not None else None) or "/var/lib/pacman/"
+        return os.path.join(dbpath, "db.lck")
+
+    def wait_for_lock(self):
+        """Zamcena databaze: pocka, az jina aktualizace (LuxOS Care, Obchod...) skonci; zamek po
+        prerusene operaci (zadny spravce baliku nebezi) odstrani - jinak by libalpm hlasil jen
+        "unable to update database" a vypadalo by to jako chyba site."""
+        lock = self.lock_path()
+        deadline = time.time() + LOCK_WAIT
+        waiting = False
+        while os.path.exists(lock):
+            procs = running_package_managers()
+            if not procs:
+                try:
+                    os.unlink(lock)
+                except FileNotFoundError:
+                    return
+                except OSError as e:
+                    raise LuxError("locked", plain_message("locked"), [f"{lock}: {e}"])
+                self.ui.note(_("Removed a stale database lock left by an interrupted update."))
+                return
+            if time.time() > deadline:
+                raise LuxError("locked", plain_message("locked", ", ".join(procs)), [lock])
+            if not waiting:
+                waiting = True
+                self.ui.emit("WAIT", ",".join(procs))
+                self.ui.say(_("Waiting for another update to finish (%s)…") % ", ".join(procs))
+            if self.interrupted:
+                raise LuxError("interrupted", _("Cancelled"), rc=130)
+            time.sleep(1)
 
     def retry_notice(self, attempt, attempts):
         self.ui.emit("RETRY", attempt)
@@ -1028,6 +1120,7 @@ class Lux:
         h = self.h
         api, ui = self.api, self.ui
         self.cb.reset()
+        self.wait_for_lock()
         try:
             t = h.init_transaction(**flags)
         except api.error as e:

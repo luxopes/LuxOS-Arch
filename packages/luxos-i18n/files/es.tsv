@@ -2139,3 +2139,82 @@ The screenshot could not be saved.	No se pudo guardar la captura de pantalla.
 %s .pacnew config file(s) to merge - run: lux configs	%s archivo(s) de configuración .pacnew para combinar: ejecuta lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Se han conservado tus ajustes. Combina los archivos cuando te venga bien: lux configs
 review and merge new config files (.pacnew)	revisa y combina los nuevos archivos de configuración (.pacnew)
+Keyboard Layouts	Distribuciones del teclado
+Layouts	Distribuciones
+Add Layout	Añadir distribución
+Add Layout…	Añadir distribución…
+Add as another layout	Añadir como otra distribución
+Alt + Shift	Alt + Mayús
+Ctrl + Shift	Ctrl + Mayús
+Both Shift keys	Ambas teclas Mayús
+Caps Lock	Bloq Mayús
+Menu key	Tecla Menú
+Only by clicking the flag in the menu bar	Solo haciendo clic en la bandera de la barra de menús
+Apply to All Users and the Login Screen	Aplicar a todos los usuarios y a la pantalla de inicio de sesión
+At most %d keyboard layouts are possible.	Se permiten como máximo %d distribuciones de teclado.
+At most %d layouts are possible.	Se permiten como máximo %d distribuciones.
+Choose your keyboard layout. Add more layouts with + to switch between them; the first one is the default.	Elija la distribución del teclado. Añada más con + para cambiar entre ellas; la primera es la predeterminada.
+Could not save the keyboard layouts: %s	No se pudieron guardar las distribuciones del teclado: %s
+Invalid XKB_OPTIONS: %s	XKB_OPTIONS no válidas: %s
+Invalid keyboard layout: %s	Distribución de teclado no válida: %s
+Key repeat and other keyboard settings	Repetición de teclas y otros ajustes del teclado
+Make default	Establecer como predeterminada
+More Keyboard Settings…	Más ajustes del teclado…
+More layouts? Space selects, Enter confirms (switch with Alt+Shift)	¿Más distribuciones? Espacio selecciona, Intro confirma (cambio con Alt+Mayús)
+Move down	Bajar
+Move up	Subir
+Not saved: administrator authentication was cancelled.	No guardado: se canceló la autenticación de administrador.
+Only %s	Solo %s
+Saved for all users and the login screen.	Guardado para todos los usuarios y la pantalla de inicio de sesión.
+Switch layouts with	Cambiar de distribución con
+Switching	Cambio
+The first layout is the default. Switch between them with the shortcut below or by clicking the flag in the menu bar.	La primera distribución es la predeterminada. Cambie entre ellas con el atajo de abajo o haciendo clic en la bandera de la barra de menús.
+Your account uses its own keyboard layouts from Xfce settings. Applying switches it back to the layouts set here.	Su cuenta usa sus propias distribuciones de teclado de los ajustes de Xfce. Al aplicar, volverá a usar las distribuciones definidas aquí.
+default	predeterminada
+Add Shortcut	Añadir atajo
+Add Shortcut…	Añadir atajo…
+Already used by “%s” - it will be replaced.	Ya lo usa «%s»; se reemplazará.
+Apps & System	Apps y sistema
+Choose App	Elegir app
+Choose App…	Elegir app…
+Click to change the shortcut	Haz clic para cambiar el atajo
+Custom Shortcuts	Atajos personalizados
+Delete the shortcut “%s”?	¿Eliminar el atajo «%s»?
+Edit Shortcut	Editar atajo
+Esc cancels, Backspace turns the shortcut off.	Esc cancela, Retroceso desactiva el atajo.
+Esc cancels.	Esc cancela.
+Go to workspace %d	Ir al espacio de trabajo %d
+Log out or shut down	Cerrar sesión o apagar
+Maximize window	Maximizar ventana
+New Shortcut	Nuevo atajo
+Next workspace	Espacio de trabajo siguiente
+Other Xfce Shortcuts	Otros atajos de Xfce
+Press the new shortcut for “%s”	Pulsa el nuevo atajo para «%s»
+Previous workspace	Espacio de trabajo anterior
+Record Shortcut…	Grabar atajo…
+Replace	Reemplazar
+Replace it? The other action will lose this shortcut.	¿Reemplazarlo? La otra acción perderá este atajo.
+Restore All Defaults…	Restaurar todos los valores predeterminados…
+Restore Default	Restaurar predeterminado
+Restore Defaults	Restaurar predeterminados
+Restore all shortcuts to their defaults?	¿Restaurar todos los atajos a sus valores predeterminados?
+Screenshots	Capturas de pantalla
+Set together with the keyboard layouts.	Se configura junto con las distribuciones de teclado.
+Shortcuts could not be read from the Xfce settings service. Changes will not be saved.	No se pudieron leer los atajos del servicio de configuración de Xfce. Los cambios no se guardarán.
+Standard Xfce shortcuts kept for compatibility.	Atajos estándar de Xfce conservados por compatibilidad.
+Switch windows backwards	Cambiar de ventana hacia atrás
+Switch windows of the same app	Cambiar entre ventanas de la misma app
+The shortcut could not be saved.	No se pudo guardar el atajo.
+Tile window left	Ajustar ventana a la izquierda
+Tile window right	Ajustar ventana a la derecha
+Use at least one of Ctrl, Alt or Super.	Usa al menos Ctrl, Alt o Super.
+Your custom shortcuts are kept unless their keys are needed by a default shortcut.	Tus atajos personalizados se conservan, salvo que un atajo predeterminado necesite sus teclas.
+Your own shortcuts that open an app or run a command.	Tus atajos para abrir una app o ejecutar un comando.
+e.g. Open my notes	p. ej., Abrir mis notas
+“%s” is already used by “%s”.	«%s» ya lo usa «%s».
+View and change keyboard shortcuts	Ver y cambiar los atajos de teclado
+Another update is still running (%s). Try again when it finishes.	Todavía hay otra actualización en curso (%s). Inténtelo de nuevo cuando termine.
+The package lists could not be refreshed: %s	No se pudieron actualizar las listas de paquetes: %s
+The package lists could not be refreshed.	No se pudieron actualizar las listas de paquetes.
+Removed a stale database lock left by an interrupted update.	Se eliminó un bloqueo de la base de datos dejado por una actualización interrumpida.
+Waiting for another update to finish (%s)…	Esperando a que termine otra actualización (%s)…

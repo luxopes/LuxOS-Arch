@@ -2139,3 +2139,82 @@ The screenshot could not be saved.	A képernyőkép nem menthető.
 %s .pacnew config file(s) to merge - run: lux configs	Összefésülendő .pacnew konfigurációs fájlok: %s - futtasd: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	A beállításaid megmaradtak. Ha alkalmas, fésüld össze a fájlokat: lux configs
 review and merge new config files (.pacnew)	új konfigurációs fájlok (.pacnew) áttekintése és összefésülése
+Keyboard Layouts	Billentyűzetkiosztások
+Layouts	Kiosztások
+Add Layout	Kiosztás hozzáadása
+Add Layout…	Kiosztás hozzáadása…
+Add as another layout	Hozzáadás további kiosztásként
+Alt + Shift	Alt + Shift
+Ctrl + Shift	Ctrl + Shift
+Both Shift keys	Mindkét Shift billentyű
+Caps Lock	Caps Lock
+Menu key	Menü billentyű
+Only by clicking the flag in the menu bar	Csak a menüsor zászlójára kattintva
+Apply to All Users and the Login Screen	Alkalmazás minden felhasználóra és a bejelentkezési képernyőre
+At most %d keyboard layouts are possible.	Legfeljebb %d billentyűzetkiosztás lehetséges.
+At most %d layouts are possible.	Legfeljebb %d kiosztás lehetséges.
+Choose your keyboard layout. Add more layouts with + to switch between them; the first one is the default.	Válassza ki a billentyűzetkiosztást. A + gombbal további kiosztásokat adhat hozzá, amelyek között válthat; az első az alapértelmezett.
+Could not save the keyboard layouts: %s	A billentyűzetkiosztásokat nem sikerült menteni: %s
+Invalid XKB_OPTIONS: %s	Érvénytelen XKB_OPTIONS: %s
+Invalid keyboard layout: %s	Érvénytelen billentyűzetkiosztás: %s
+Key repeat and other keyboard settings	Billentyűismétlés és egyéb billentyűzetbeállítások
+Make default	Beállítás alapértelmezettként
+More Keyboard Settings…	További billentyűzetbeállítások…
+More layouts? Space selects, Enter confirms (switch with Alt+Shift)	További kiosztások? Szóköz kijelöl, Enter jóváhagy (váltás: Alt+Shift)
+Move down	Lejjebb
+Move up	Feljebb
+Not saved: administrator authentication was cancelled.	Nincs mentve: a rendszergazdai hitelesítés megszakadt.
+Only %s	Csak %s
+Saved for all users and the login screen.	Mentve minden felhasználónak és a bejelentkezési képernyőnek.
+Switch layouts with	Kiosztásváltás ezzel
+Switching	Váltás
+The first layout is the default. Switch between them with the shortcut below or by clicking the flag in the menu bar.	Az első kiosztás az alapértelmezett. Az alábbi billentyűparanccsal vagy a menüsor zászlójára kattintva válthat közöttük.
+Your account uses its own keyboard layouts from Xfce settings. Applying switches it back to the layouts set here.	A fiókja saját billentyűzetkiosztást használ az Xfce beállításaiból. Az alkalmazással visszaáll az itt beállított kiosztásokra.
+default	alapértelmezett
+Add Shortcut	Billentyűparancs hozzáadása
+Add Shortcut…	Billentyűparancs hozzáadása…
+Already used by “%s” - it will be replaced.	Már használja: „%s” – le lesz cserélve.
+Apps & System	Alkalmazások és rendszer
+Choose App	Alkalmazás kiválasztása
+Choose App…	Alkalmazás kiválasztása…
+Click to change the shortcut	Kattintson a billentyűparancs módosításához
+Custom Shortcuts	Saját billentyűparancsok
+Delete the shortcut “%s”?	Törli a(z) „%s” billentyűparancsot?
+Edit Shortcut	Billentyűparancs szerkesztése
+Esc cancels, Backspace turns the shortcut off.	Esc: mégse, Backspace: billentyűparancs kikapcsolása.
+Esc cancels.	Esc: mégse.
+Go to workspace %d	Ugrás a(z) %d. munkaterületre
+Log out or shut down	Kijelentkezés vagy leállítás
+Maximize window	Ablak maximalizálása
+New Shortcut	Új billentyűparancs
+Next workspace	Következő munkaterület
+Other Xfce Shortcuts	További Xfce-billentyűparancsok
+Press the new shortcut for “%s”	Nyomja le az új billentyűparancsot ehhez: „%s”
+Previous workspace	Előző munkaterület
+Record Shortcut…	Billentyűparancs rögzítése…
+Replace	Csere
+Replace it? The other action will lose this shortcut.	Lecseréli? A másik művelet elveszíti ezt a billentyűparancsot.
+Restore All Defaults…	Minden alapértelmezés visszaállítása…
+Restore Default	Alapértelmezés visszaállítása
+Restore Defaults	Alapértelmezések visszaállítása
+Restore all shortcuts to their defaults?	Visszaállítja az összes billentyűparancsot az alapértelmezésre?
+Screenshots	Képernyőképek
+Set together with the keyboard layouts.	A billentyűzetkiosztásokkal együtt állítható be.
+Shortcuts could not be read from the Xfce settings service. Changes will not be saved.	A billentyűparancsokat nem sikerült beolvasni az Xfce beállítási szolgáltatásból. A módosítások nem lesznek mentve.
+Standard Xfce shortcuts kept for compatibility.	Szabványos Xfce-billentyűparancsok a kompatibilitás érdekében.
+Switch windows backwards	Ablakváltás visszafelé
+Switch windows of the same app	Váltás ugyanazon alkalmazás ablakai között
+The shortcut could not be saved.	A billentyűparancsot nem sikerült menteni.
+Tile window left	Ablak igazítása balra
+Tile window right	Ablak igazítása jobbra
+Use at least one of Ctrl, Alt or Super.	Használja a Ctrl, Alt vagy Super billentyűk legalább egyikét.
+Your custom shortcuts are kept unless their keys are needed by a default shortcut.	A saját billentyűparancsok megmaradnak, hacsak egy alapértelmezett parancsnak nincs szüksége a billentyűikre.
+Your own shortcuts that open an app or run a command.	Saját billentyűparancsok alkalmazás megnyitásához vagy parancs futtatásához.
+e.g. Open my notes	pl. Jegyzeteim megnyitása
+“%s” is already used by “%s”.	A(z) „%s” billentyűparancsot már használja: „%s”.
+View and change keyboard shortcuts	Billentyűparancsok megtekintése és módosítása
+Another update is still running (%s). Try again when it finishes.	Még fut egy másik frissítés (%s). Próbálja újra, ha befejeződött.
+The package lists could not be refreshed: %s	A csomaglisták nem frissíthetők: %s
+The package lists could not be refreshed.	A csomaglisták nem frissíthetők.
+Removed a stale database lock left by an interrupted update.	Eltávolítva egy megszakadt frissítés után maradt adatbázis-zárolás.
+Waiting for another update to finish (%s)…	Várakozás egy másik frissítés befejezésére (%s)…

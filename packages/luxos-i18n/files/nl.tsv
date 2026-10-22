@@ -2139,3 +2139,82 @@ The screenshot could not be saved.	De schermafbeelding kon niet worden opgeslage
 %s .pacnew config file(s) to merge - run: lux configs	%s .pacnew-configuratiebestand(en) om samen te voegen - voer uit: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Je instellingen zijn bewaard. Voeg de bestanden samen wanneer het je uitkomt: lux configs
 review and merge new config files (.pacnew)	nieuwe configuratiebestanden (.pacnew) bekijken en samenvoegen
+Keyboard Layouts	Toetsenbordindelingen
+Layouts	Indelingen
+Add Layout	Indeling toevoegen
+Add Layout…	Indeling toevoegen…
+Add as another layout	Toevoegen als extra indeling
+Alt + Shift	Alt + Shift
+Ctrl + Shift	Ctrl + Shift
+Both Shift keys	Beide Shift-toetsen
+Caps Lock	Caps Lock
+Menu key	Menutoets
+Only by clicking the flag in the menu bar	Alleen door op de vlag in de menubalk te klikken
+Apply to All Users and the Login Screen	Toepassen op alle gebruikers en het aanmeldscherm
+At most %d keyboard layouts are possible.	Maximaal %d toetsenbordindelingen zijn mogelijk.
+At most %d layouts are possible.	Maximaal %d indelingen zijn mogelijk.
+Choose your keyboard layout. Add more layouts with + to switch between them; the first one is the default.	Kies je toetsenbordindeling. Voeg met + meer indelingen toe om ertussen te wisselen; de eerste is de standaard.
+Could not save the keyboard layouts: %s	De toetsenbordindelingen konden niet worden opgeslagen: %s
+Invalid XKB_OPTIONS: %s	Ongeldige XKB_OPTIONS: %s
+Invalid keyboard layout: %s	Ongeldige toetsenbordindeling: %s
+Key repeat and other keyboard settings	Toetsherhaling en andere toetsenbordinstellingen
+Make default	Als standaard instellen
+More Keyboard Settings…	Meer toetsenbordinstellingen…
+More layouts? Space selects, Enter confirms (switch with Alt+Shift)	Meer indelingen? Spatie selecteert, Enter bevestigt (wisselen met Alt+Shift)
+Move down	Omlaag
+Move up	Omhoog
+Not saved: administrator authentication was cancelled.	Niet opgeslagen: beheerdersverificatie is geannuleerd.
+Only %s	Alleen %s
+Saved for all users and the login screen.	Opgeslagen voor alle gebruikers en het aanmeldscherm.
+Switch layouts with	Wissel van indeling met
+Switching	Wisselen
+The first layout is the default. Switch between them with the shortcut below or by clicking the flag in the menu bar.	De eerste indeling is de standaard. Wissel met de sneltoets hieronder of door op de vlag in de menubalk te klikken.
+Your account uses its own keyboard layouts from Xfce settings. Applying switches it back to the layouts set here.	Je account gebruikt eigen toetsenbordindelingen uit de Xfce-instellingen. Toepassen zet het terug naar de indelingen die hier zijn ingesteld.
+default	standaard
+Add Shortcut	Toetscombinatie toevoegen
+Add Shortcut…	Toetscombinatie toevoegen…
+Already used by “%s” - it will be replaced.	Al in gebruik door ‘%s’ – wordt vervangen.
+Apps & System	Apps en systeem
+Choose App	App kiezen
+Choose App…	App kiezen…
+Click to change the shortcut	Klik om de toetscombinatie te wijzigen
+Custom Shortcuts	Eigen toetscombinaties
+Delete the shortcut “%s”?	Toetscombinatie ‘%s’ verwijderen?
+Edit Shortcut	Toetscombinatie bewerken
+Esc cancels, Backspace turns the shortcut off.	Esc annuleert, Backspace schakelt de toetscombinatie uit.
+Esc cancels.	Esc annuleert.
+Go to workspace %d	Naar werkblad %d
+Log out or shut down	Afmelden of uitschakelen
+Maximize window	Venster maximaliseren
+New Shortcut	Nieuwe toetscombinatie
+Next workspace	Volgend werkblad
+Other Xfce Shortcuts	Overige Xfce-toetscombinaties
+Press the new shortcut for “%s”	Druk op de nieuwe toetscombinatie voor ‘%s’
+Previous workspace	Vorig werkblad
+Record Shortcut…	Toetscombinatie opnemen…
+Replace	Vervangen
+Replace it? The other action will lose this shortcut.	Vervangen? De andere actie verliest deze toetscombinatie.
+Restore All Defaults…	Alle standaarden herstellen…
+Restore Default	Standaard herstellen
+Restore Defaults	Standaarden herstellen
+Restore all shortcuts to their defaults?	Alle toetscombinaties naar de standaard herstellen?
+Screenshots	Schermafbeeldingen
+Set together with the keyboard layouts.	Wordt ingesteld samen met de toetsenbordindelingen.
+Shortcuts could not be read from the Xfce settings service. Changes will not be saved.	Toetscombinaties konden niet worden gelezen uit de Xfce-instellingendienst. Wijzigingen worden niet opgeslagen.
+Standard Xfce shortcuts kept for compatibility.	Standaard Xfce-toetscombinaties, behouden voor compatibiliteit.
+Switch windows backwards	Vensters achteruit wisselen
+Switch windows of the same app	Wisselen tussen vensters van dezelfde app
+The shortcut could not be saved.	De toetscombinatie kon niet worden opgeslagen.
+Tile window left	Venster links tegelen
+Tile window right	Venster rechts tegelen
+Use at least one of Ctrl, Alt or Super.	Gebruik minstens Ctrl, Alt of Super.
+Your custom shortcuts are kept unless their keys are needed by a default shortcut.	Je eigen toetscombinaties blijven behouden, tenzij een standaardcombinatie hun toetsen nodig heeft.
+Your own shortcuts that open an app or run a command.	Je eigen toetscombinaties om een app te openen of een opdracht uit te voeren.
+e.g. Open my notes	bijv. Mijn notities openen
+“%s” is already used by “%s”.	‘%s’ wordt al gebruikt door ‘%s’.
+View and change keyboard shortcuts	Toetscombinaties bekijken en wijzigen
+Another update is still running (%s). Try again when it finishes.	Er loopt nog een andere update (%s). Probeer het opnieuw wanneer die klaar is.
+The package lists could not be refreshed: %s	De pakketlijsten konden niet worden vernieuwd: %s
+The package lists could not be refreshed.	De pakketlijsten konden niet worden vernieuwd.
+Removed a stale database lock left by an interrupted update.	Een databasevergrendeling van een onderbroken update is verwijderd.
+Waiting for another update to finish (%s)…	Wachten tot een andere update klaar is (%s)…

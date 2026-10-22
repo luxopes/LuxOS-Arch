@@ -2,12 +2,14 @@
 
 pkgname=lux
 pkgver=0.3.0
-pkgrel=9
+pkgrel=10
 pkgdesc="LuxOS package manager (libalpm via pyalpm, AUR, Flatpak and .lux apps)"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
-depends=(bash python pyalpm lux-engine pacman-contrib curl jq sudo reflector expac fzf tar zstd gnupg luxos-drivers luxos-keyring luxos-i18n)
+# "pacman" = virtualni zavislost (lux-engine, drive luxos-pacman i pacman z Archu): starsi lux/Obchod,
+# ktere nahrazeni baliku odmitnou, tak aktualizuji vse ostatni a lux-engine nahradi az novy lux
+depends=(bash python pyalpm pacman pacman-contrib curl jq sudo reflector expac fzf tar zstd gnupg luxos-drivers luxos-keyring luxos-i18n)
 optdepends=('base-devel: build packages from AUR'
             'git: build packages from AUR'
             'flatpak: Flathub applications')

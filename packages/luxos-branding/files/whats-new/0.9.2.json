@@ -1,0 +1,22 @@
+{
+  "version": "0.9.2",
+  "codename": "Polaris",
+  "items": [
+    {"icon": "input-keyboard-symbolic",
+     "title": {"en": "Several keyboard layouts", "cs": "Více rozložení klávesnice"},
+     "text": {"en": "Choose more layouts during installation, or in the new Keyboard Layouts app for all users and the login screen.",
+              "cs": "Vyberte víc rozložení už při instalaci, nebo v nové aplikaci Rozložení klávesnice – pro všechny uživatele i přihlašovací obrazovku."}},
+    {"icon": "preferences-desktop-keyboard-shortcuts-symbolic",
+     "title": {"en": "Edit keyboard shortcuts", "cs": "Úprava klávesových zkratek"},
+     "text": {"en": "Change any shortcut, turn it off or add your own in Keyboard Shortcuts.",
+              "cs": "V Klávesových zkratkách změníte libovolnou zkratku, vypnete ji nebo přidáte vlastní."}},
+    {"icon": "audio-headphones-symbolic",
+     "title": {"en": "Headphones switch automatically", "cs": "Sluchátka se přepnou sama"},
+     "text": {"en": "Newly connected Bluetooth or USB headphones and speakers become the sound output right away.",
+              "cs": "Nově připojená Bluetooth nebo USB sluchátka a reproduktory se hned stanou výstupem zvuku."}},
+    {"icon": "software-update-available-symbolic",
+     "title": {"en": "More reliable updates", "cs": "Spolehlivější aktualizace"},
+     "text": {"en": "Older LuxOS installations can update without package conflicts.",
+              "cs": "I starší instalace LuxOS se aktualizují bez konfliktů balíčků."}}
+  ]
+}

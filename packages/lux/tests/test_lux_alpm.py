@@ -511,6 +511,66 @@ class Transactions(unittest.TestCase):
         self.assertEqual(rc, 0, out)
         self.assertIn("@@RETRY 2", out)
 
+    # ---- zamcena databaze: cekani na jinou aktualizaci, opusteny zamek, presne hlasky ----
+    def _locked(self, procs, argv=("--machine", "sync")):
+        import tempfile
+        d = tempfile.mkdtemp(prefix="lux-lock-")
+        open(os.path.join(d, "db.lck"), "w").close()
+        old = lux_alpm.running_package_managers
+        lux_alpm.running_package_managers = lambda: procs
+        try:
+            rc, out, h = run(list(argv), prepare=lambda h: setattr(h, "dbpath", d))
+        finally:
+            lux_alpm.running_package_managers = old
+        return rc, out, os.path.exists(os.path.join(d, "db.lck"))
+
+    def test_stale_lock_removed(self):
+        rc, out, still = self._locked([])
+        self.assertEqual(rc, 0, out)
+        self.assertFalse(still)
+
+    def test_running_update_waits_then_explains(self):
+        old = lux_alpm.LOCK_WAIT
+        lux_alpm.LOCK_WAIT = 0
+        try:
+            rc, out, still = self._locked(["LuxOS Care"], argv=("sync",))
+        finally:
+            lux_alpm.LOCK_WAIT = old
+        self.assertEqual(rc, 1)
+        self.assertTrue(still)                                   # cizi zamek se nemaze
+        self.assertIn("Another update is still running (LuxOS Care)", out)
+        self.assertNotIn("internet", out)
+
+    def test_unknown_refresh_error_is_not_network(self):
+        api = make_api()
+        orig = api.Handle.register_syncdb
+
+        def reg(self, name, sig):
+            db = orig(self, name, sig)
+            db.update_errors.extend(fake.error("unable to update database", 99, None) for _ in range(3))
+            return db
+        api.Handle.register_syncdb = reg
+        rc, out, _h = run(["sync"], api=api)
+        self.assertEqual(rc, 1)
+        self.assertIn("The package lists could not be refreshed: unable to update database", out)
+        self.assertNotIn("internet", out)
+
+    def test_running_package_managers_scan(self):
+        import tempfile
+        proc = tempfile.mkdtemp(prefix="lux-proc-")
+
+        def add(pid, comm, *argv):
+            os.makedirs(os.path.join(proc, str(pid)))
+            with open(os.path.join(proc, str(pid), "comm"), "w") as f:
+                f.write(comm + "\n")
+            with open(os.path.join(proc, str(pid), "cmdline"), "wb") as f:
+                f.write(b"\0".join(a.encode() for a in argv) + b"\0")
+        add(101, "python3", "/usr/bin/python3", "/usr/lib/luxos/luxos_care.py", "update")
+        add(102, "pacman", "pacman", "-Syu")
+        add(103, "python3", "python3", "/usr/bin/other.py")
+        add(os.getpid(), "python3", "python3", "/usr/lib/lux/lux_alpm.py")   # vlastni proces se nepocita
+        self.assertEqual(lux_alpm.running_package_managers(proc), ["LuxOS Care", "pacman"])
+
     def test_remove_recursive_and_holdpkg(self):
         def prep(h):
             pass

@@ -2140,3 +2140,82 @@ The screenshot could not be saved.	Nie udało się zapisać zrzutu ekranu.
 %s .pacnew config file(s) to merge - run: lux configs	Pliki konfiguracyjne .pacnew do scalenia: %s - uruchom: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Twoje ustawienia zostały zachowane. Scal pliki, kiedy będzie Ci wygodnie: lux configs
 review and merge new config files (.pacnew)	przegląda i scala nowe pliki konfiguracyjne (.pacnew)
+Keyboard Layouts	Układy klawiatury
+Layouts	Układy
+Add Layout	Dodaj układ
+Add Layout…	Dodaj układ…
+Add as another layout	Dodaj jako kolejny układ
+Alt + Shift	Alt + Shift
+Ctrl + Shift	Ctrl + Shift
+Both Shift keys	Oba klawisze Shift
+Caps Lock	Caps Lock
+Menu key	Klawisz Menu
+Only by clicking the flag in the menu bar	Tylko kliknięciem flagi na pasku menu
+Apply to All Users and the Login Screen	Zastosuj dla wszystkich użytkowników i ekranu logowania
+At most %d keyboard layouts are possible.	Możliwe są maksymalnie %d układy klawiatury.
+At most %d layouts are possible.	Możliwe są maksymalnie %d układy.
+Choose your keyboard layout. Add more layouts with + to switch between them; the first one is the default.	Wybierz układ klawiatury. Przyciskiem + dodasz kolejne układy, między którymi można przełączać; pierwszy jest domyślny.
+Could not save the keyboard layouts: %s	Nie udało się zapisać układów klawiatury: %s
+Invalid XKB_OPTIONS: %s	Nieprawidłowe XKB_OPTIONS: %s
+Invalid keyboard layout: %s	Nieprawidłowy układ klawiatury: %s
+Key repeat and other keyboard settings	Powtarzanie klawiszy i inne ustawienia klawiatury
+Make default	Ustaw jako domyślny
+More Keyboard Settings…	Więcej ustawień klawiatury…
+More layouts? Space selects, Enter confirms (switch with Alt+Shift)	Więcej układów? Spacja zaznacza, Enter zatwierdza (przełączanie Alt+Shift)
+Move down	Przesuń w dół
+Move up	Przesuń w górę
+Not saved: administrator authentication was cancelled.	Nie zapisano: uwierzytelnianie administratora zostało anulowane.
+Only %s	Tylko %s
+Saved for all users and the login screen.	Zapisano dla wszystkich użytkowników i ekranu logowania.
+Switch layouts with	Przełączaj układy za pomocą
+Switching	Przełączanie
+The first layout is the default. Switch between them with the shortcut below or by clicking the flag in the menu bar.	Pierwszy układ jest domyślny. Przełączaj między nimi skrótem poniżej lub klikając flagę na pasku menu.
+Your account uses its own keyboard layouts from Xfce settings. Applying switches it back to the layouts set here.	Twoje konto używa własnych układów klawiatury z ustawień Xfce. Zastosowanie przywróci układy ustawione tutaj.
+default	domyślny
+Add Shortcut	Dodaj skrót
+Add Shortcut…	Dodaj skrót…
+Already used by “%s” - it will be replaced.	Już używany przez „%s” – zostanie zastąpiony.
+Apps & System	Aplikacje i system
+Choose App	Wybierz aplikację
+Choose App…	Wybierz aplikację…
+Click to change the shortcut	Kliknij, aby zmienić skrót
+Custom Shortcuts	Własne skróty
+Delete the shortcut “%s”?	Usunąć skrót „%s”?
+Edit Shortcut	Edytuj skrót
+Esc cancels, Backspace turns the shortcut off.	Esc anuluje, Backspace wyłącza skrót.
+Esc cancels.	Esc anuluje.
+Go to workspace %d	Przejdź do obszaru roboczego %d
+Log out or shut down	Wyloguj lub wyłącz
+Maximize window	Maksymalizuj okno
+New Shortcut	Nowy skrót
+Next workspace	Następny obszar roboczy
+Other Xfce Shortcuts	Inne skróty Xfce
+Press the new shortcut for “%s”	Naciśnij nowy skrót dla „%s”
+Previous workspace	Poprzedni obszar roboczy
+Record Shortcut…	Nagraj skrót…
+Replace	Zastąp
+Replace it? The other action will lose this shortcut.	Zastąpić? Druga czynność utraci ten skrót.
+Restore All Defaults…	Przywróć wszystkie domyślne…
+Restore Default	Przywróć domyślny
+Restore Defaults	Przywróć domyślne
+Restore all shortcuts to their defaults?	Przywrócić wszystkie skróty do domyślnych?
+Screenshots	Zrzuty ekranu
+Set together with the keyboard layouts.	Ustawiany razem z układami klawiatury.
+Shortcuts could not be read from the Xfce settings service. Changes will not be saved.	Nie udało się odczytać skrótów z usługi ustawień Xfce. Zmiany nie zostaną zapisane.
+Standard Xfce shortcuts kept for compatibility.	Standardowe skróty Xfce zachowane dla zgodności.
+Switch windows backwards	Przełączaj okna wstecz
+Switch windows of the same app	Przełączaj okna tej samej aplikacji
+The shortcut could not be saved.	Nie udało się zapisać skrótu.
+Tile window left	Przyciągnij okno do lewej
+Tile window right	Przyciągnij okno do prawej
+Use at least one of Ctrl, Alt or Super.	Użyj co najmniej Ctrl, Alt lub Super.
+Your custom shortcuts are kept unless their keys are needed by a default shortcut.	Własne skróty zostaną zachowane, chyba że ich klawisze są potrzebne skrótowi domyślnemu.
+Your own shortcuts that open an app or run a command.	Własne skróty otwierające aplikację lub uruchamiające polecenie.
+e.g. Open my notes	np. Otwórz moje notatki
+“%s” is already used by “%s”.	„%s” jest już używany przez „%s”.
+View and change keyboard shortcuts	Wyświetlanie i zmiana skrótów klawiszowych
+Another update is still running (%s). Try again when it finishes.	Nadal trwa inna aktualizacja (%s). Spróbuj ponownie, gdy się zakończy.
+The package lists could not be refreshed: %s	Nie udało się odświeżyć list pakietów: %s
+The package lists could not be refreshed.	Nie udało się odświeżyć list pakietów.
+Removed a stale database lock left by an interrupted update.	Usunięto blokadę bazy danych pozostawioną przez przerwaną aktualizację.
+Waiting for another update to finish (%s)…	Czekam na zakończenie innej aktualizacji (%s)…

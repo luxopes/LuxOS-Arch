@@ -2139,3 +2139,82 @@ The screenshot could not be saved.	Skärmbilden kunde inte sparas.
 %s .pacnew config file(s) to merge - run: lux configs	%s .pacnew-konfigurationsfil(er) att sammanfoga – kör: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Dina inställningar har behållits. Sammanfoga filerna när det passar: lux configs
 review and merge new config files (.pacnew)	granska och sammanfoga nya konfigurationsfiler (.pacnew)
+Keyboard Layouts	Tangentbordslayouter
+Layouts	Layouter
+Add Layout	Lägg till layout
+Add Layout…	Lägg till layout…
+Add as another layout	Lägg till som ytterligare layout
+Alt + Shift	Alt + Skift
+Ctrl + Shift	Ctrl + Skift
+Both Shift keys	Båda Skift-tangenterna
+Caps Lock	Caps Lock
+Menu key	Menytangent
+Only by clicking the flag in the menu bar	Endast genom att klicka på flaggan i menyraden
+Apply to All Users and the Login Screen	Använd för alla användare och inloggningsskärmen
+At most %d keyboard layouts are possible.	Högst %d tangentbordslayouter är möjliga.
+At most %d layouts are possible.	Högst %d layouter är möjliga.
+Choose your keyboard layout. Add more layouts with + to switch between them; the first one is the default.	Välj tangentbordslayout. Lägg till fler med + för att växla mellan dem; den första är standard.
+Could not save the keyboard layouts: %s	Det gick inte att spara tangentbordslayouterna: %s
+Invalid XKB_OPTIONS: %s	Ogiltiga XKB_OPTIONS: %s
+Invalid keyboard layout: %s	Ogiltig tangentbordslayout: %s
+Key repeat and other keyboard settings	Tangentrepetition och andra tangentbordsinställningar
+Make default	Gör till standard
+More Keyboard Settings…	Fler tangentbordsinställningar…
+More layouts? Space selects, Enter confirms (switch with Alt+Shift)	Fler layouter? Mellanslag markerar, Retur bekräftar (växla med Alt+Skift)
+Move down	Flytta ned
+Move up	Flytta upp
+Not saved: administrator authentication was cancelled.	Inte sparat: administratörsautentiseringen avbröts.
+Only %s	Endast %s
+Saved for all users and the login screen.	Sparat för alla användare och inloggningsskärmen.
+Switch layouts with	Växla layout med
+Switching	Växling
+The first layout is the default. Switch between them with the shortcut below or by clicking the flag in the menu bar.	Den första layouten är standard. Växla mellan dem med kortkommandot nedan eller genom att klicka på flaggan i menyraden.
+Your account uses its own keyboard layouts from Xfce settings. Applying switches it back to the layouts set here.	Ditt konto använder egna tangentbordslayouter från Xfce-inställningarna. Om du tillämpar återgår det till layouterna som anges här.
+default	standard
+Add Shortcut	Lägg till kortkommando
+Add Shortcut…	Lägg till kortkommando…
+Already used by “%s” - it will be replaced.	Används redan av ”%s” – ersätts.
+Apps & System	Appar och system
+Choose App	Välj app
+Choose App…	Välj app…
+Click to change the shortcut	Klicka för att ändra kortkommandot
+Custom Shortcuts	Egna kortkommandon
+Delete the shortcut “%s”?	Ta bort kortkommandot ”%s”?
+Edit Shortcut	Redigera kortkommando
+Esc cancels, Backspace turns the shortcut off.	Esc avbryter, Backsteg stänger av kortkommandot.
+Esc cancels.	Esc avbryter.
+Go to workspace %d	Gå till arbetsyta %d
+Log out or shut down	Logga ut eller stäng av
+Maximize window	Maximera fönster
+New Shortcut	Nytt kortkommando
+Next workspace	Nästa arbetsyta
+Other Xfce Shortcuts	Övriga Xfce-kortkommandon
+Press the new shortcut for “%s”	Tryck på det nya kortkommandot för ”%s”
+Previous workspace	Föregående arbetsyta
+Record Shortcut…	Spela in kortkommando…
+Replace	Ersätt
+Replace it? The other action will lose this shortcut.	Ersätta? Den andra åtgärden förlorar kortkommandot.
+Restore All Defaults…	Återställ alla standardvärden…
+Restore Default	Återställ standard
+Restore Defaults	Återställ standardvärden
+Restore all shortcuts to their defaults?	Återställa alla kortkommandon till standard?
+Screenshots	Skärmbilder
+Set together with the keyboard layouts.	Ställs in tillsammans med tangentbordslayouterna.
+Shortcuts could not be read from the Xfce settings service. Changes will not be saved.	Kortkommandona kunde inte läsas från Xfce-inställningstjänsten. Ändringar sparas inte.
+Standard Xfce shortcuts kept for compatibility.	Standardkortkommandon i Xfce som behålls för kompatibilitet.
+Switch windows backwards	Byt fönster bakåt
+Switch windows of the same app	Byt mellan fönster i samma app
+The shortcut could not be saved.	Kortkommandot kunde inte sparas.
+Tile window left	Placera fönster till vänster
+Tile window right	Placera fönster till höger
+Use at least one of Ctrl, Alt or Super.	Använd minst en av Ctrl, Alt eller Super.
+Your custom shortcuts are kept unless their keys are needed by a default shortcut.	Dina egna kortkommandon behålls om inte ett standardkommando behöver tangenterna.
+Your own shortcuts that open an app or run a command.	Egna kortkommandon som öppnar en app eller kör ett kommando.
+e.g. Open my notes	t.ex. Öppna mina anteckningar
+“%s” is already used by “%s”.	”%s” används redan av ”%s”.
+View and change keyboard shortcuts	Visa och ändra kortkommandon
+Another update is still running (%s). Try again when it finishes.	En annan uppdatering pågår fortfarande (%s). Försök igen när den är klar.
+The package lists could not be refreshed: %s	Paketlistorna kunde inte uppdateras: %s
+The package lists could not be refreshed.	Paketlistorna kunde inte uppdateras.
+Removed a stale database lock left by an interrupted update.	Tog bort ett databaslås som lämnats av en avbruten uppdatering.
+Waiting for another update to finish (%s)…	Väntar på att en annan uppdatering ska bli klar (%s)…
