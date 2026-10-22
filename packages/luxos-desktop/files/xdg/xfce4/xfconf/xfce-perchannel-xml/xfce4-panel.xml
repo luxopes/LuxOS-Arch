@@ -115,7 +115,7 @@
       <property name="enable-single-row" type="bool" value="true"/>
       <property name="font" type="string" value="Inter Semi-Bold 10"/>
     </property>
-    <!-- Rozlozeni klavesnice (vlajka statu, prepinani Alt+Shift nebo klikem) -->
+    <!-- Rozlozeni klavesnice (vlajka statu, prepinani obema klavesami Shift nebo klikem) -->
     <property name="plugin-11" type="string" value="xkb">
       <property name="display-type" type="uint" value="0"/>
       <property name="display-name" type="uint" value="0"/>

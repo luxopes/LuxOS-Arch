@@ -2376,3 +2376,18 @@ Apps that other systems ship as Snaps are usually available as Flatpaks; lux ins
 You can also change this in Settings.	È possibile cambiarlo anche in Impostazioni.
 %s is not installed. LuxOS has a modern equivalent:	%s non è installato. LuxOS ha un equivalente moderno:
 Or install the classic tool: %s	Oppure installare lo strumento classico: %s
+More layouts? Space selects, Enter confirms (switch with both Shift keys)	Altri layout? Spazio seleziona, Invio conferma (cambio con entrambi i tasti Maiusc)
+Super key alone opens Launchpad	Il solo tasto Super apre il Launchpad
+Tap and release Super without another key.	Premi e rilascia Super senza altri tasti.
+The setting could not be saved.	Impossibile salvare l’impostazione.
+Tap the Super key (or press Super + A) to open Launchpad with all your apps. Super + Space searches apps, files and windows. Type a question instead and LuxAI will answer it – Ctrl + Enter always asks LuxAI.	Premi da solo il tasto Super (o Super + A) per aprire il Launchpad con tutte le tue app. Super + Spazio cerca app, file e finestre. Scrivi invece una domanda e risponderà LuxAI: Ctrl + Invio chiede sempre a LuxAI.
+Copied	Copiato
+Copied to Clipboard	Copiato negli appunti
+Save As…	Salva come…
+Save to: %s	Salva in: %s
+Hold Ctrl to copy to the clipboard	Tieni premuto Ctrl per copiare negli appunti
+Click a window to capture it	Fai clic su una finestra per catturarla
+Save Screenshot	Salva istantanea dello schermo
+Save Recording	Salva registrazione
+The screenshot could not be copied to the clipboard.	Impossibile copiare l’istantanea negli appunti.
+The file could not be moved to the Trash.	Impossibile spostare il file nel cestino.

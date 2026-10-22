@@ -19,14 +19,18 @@ with no arguments also opens this app.)
 
   | Choice | XKB option |
   |---|---|
-  | Alt + Shift (default) | `grp:alt_shift_toggle` |
+  | Both Shift keys (default) | `grp:shifts_toggle` |
+  | Alt + Shift | `grp:alt_shift_toggle` |
   | Ctrl + Shift | `grp:ctrl_shift_toggle` |
-  | Both Shift keys | `grp:shifts_toggle` |
   | Caps Lock | `grp:caps_toggle` |
   | Menu key | `grp:menu_toggle` |
   | Only by clicking the flag in the menu bar | (none) |
 
-  Super+Space is not offered, because it opens Search.
+  Super+Space is not offered, because it opens Search. "Both Shift keys" means pressing left and
+  right Shift together; it does not clash with shortcuts such as Alt+Shift+Tab. Older LuxOS
+  installs that still had the previous default (only `grp:alt_shift_toggle`) are switched to
+  `grp:shifts_toggle` by the `luxos-desktop` package update (takes effect at the next login); a
+  layout switch chosen by the user is never changed.
 - A test field ("Type here to test your keyboard"). Changes are tried right away in the running
   session (`setxkbmap`). If you close the window without applying them, the old layout comes back.
 - **Apply to All Users and the Login Screen** saves through `localectl set-x11-keymap`
@@ -54,8 +58,8 @@ installation also show up here.
 - **The layout changes only in one account:** that account has its own Xfce layouts. Click Apply in
   Keyboard Layouts, or check with `xfconf-query -c keyboard-layout -p /Default/XkbDisable` (should
   be `true`).
-- **Cannot switch layouts:** check the "Switch layouts with" choice. With "Only by clicking the
-  flag", there is no key combination.
+- **Cannot switch layouts:** check the "Switch layouts with" choice (default: both Shift keys
+  pressed together). With "Only by clicking the flag", there is no key combination.
 - **Check the current settings:** `localectl status` (system), `setxkbmap -query` (session).
 
 ## Keyboard Shortcuts (luxos-shortcuts)
@@ -86,6 +90,8 @@ Shortcuts** (stock Xfce shortcuts that LuxOS keeps).
   itself only stores the command.
 - The layout switching shortcut is shown here but is set in Keyboard Layouts ("Set together with
   the keyboard layouts").
+- **Super key alone opens Launchpad** (under Apps & System, on by default): a switch for tapping
+  Super on its own (see "Other keys" below). Super+A keeps working either way.
 
 From a script, use `xfconf-query -c xfce4-keyboard-shortcuts -l -v` to list shortcuts. For example,
 `xfconf-query -c xfce4-keyboard-shortcuts -p '/commands/custom/<Super>k' -n -t string -s 'firefox'`
@@ -102,6 +108,7 @@ as well. They appear under "Other Xfce Shortcuts".
 | Shortcut | Action | Command |
 |---|---|---|
 | Super+Space | Search | `luxos-search` |
+| Super (tap alone) | Launchpad (open/close) | `luxos-launchpad` (via `luxos-menubar`) |
 | Super+A | Launchpad | `luxos-launchpad` |
 | Launch A key (XF86LaunchA) | Launchpad | `luxos-launchpad` |
 | Super+E | Files | `thunar` |
@@ -150,6 +157,13 @@ while moving or resizing windows.
 ### Other keys
 
 - Volume and media keys are handled by the sound plugin in the top bar.
-- Layout switching: Alt+Shift by default (Keyboard Layouts).
+- Layout switching: both Shift keys together by default (Keyboard Layouts).
+- Tapping **Super alone** (press and release within 0.4 s, no other key or mouse button in
+  between) opens Launchpad, like the Start key on Windows; tapping it again closes it. Super+key
+  shortcuts never trigger it. It is detected by `luxos-menubar` from passive XInput2 raw key
+  events (no key grabs) and does nothing while another program holds the keyboard (locked screen,
+  screensaver, open menu, recording a shortcut). Turn it off in Keyboard Shortcuts ("Super key
+  alone opens Launchpad"); this creates `~/.config/luxos/super-launchpad-off`, which
+  `luxos-menubar` checks every 5 seconds.
 - In Launchpad and Search, Ctrl+Enter sends the typed text to LuxAI.
 - In the Calculator, Ctrl+1 and Ctrl+2 switch between the basic and scientific modes.

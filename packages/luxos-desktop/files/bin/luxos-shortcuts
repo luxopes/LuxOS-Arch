@@ -452,6 +452,8 @@ class ShortcutsWindow(Gtk.Window):
                 self.add_layout_row(group)
             for a in items:
                 self.add_action_row(group, a)
+                if a.id == "launchpad":
+                    self.add_super_row(group)
         bottom = Gtk.Box(margin_top=18)
         reset = Gtk.Button(label=_("Restore All Defaults…"))
         reset.connect("clicked", lambda _b: self.restore_all())
@@ -485,6 +487,20 @@ class ShortcutsWindow(Gtk.Window):
         spacer = Gtk.Box()
         spacer.set_size_request(24, -1)
         self.rows["layout"] = group.row(_("Switch keyboard layout"), [cap, spacer])
+
+    def add_super_row(self, group):
+        # Tuknuti na samotnou Super (luxos-menubar); Super+klavesa zustava zkratkou
+        sw = Gtk.Switch(active=ls.super_tap_enabled())
+        sw.connect("notify::active", self.on_super_tap)
+        spacer = Gtk.Box()
+        spacer.set_size_request(24, -1)
+        self.rows["super-tap"] = group.row(_("Super key alone opens Launchpad"), [sw, spacer],
+                                           _("Tap and release Super without another key."))
+        self.super_switch = sw
+
+    def on_super_tap(self, sw, _p):
+        if not ls.set_super_tap(sw.get_active()):
+            warn(self, _("The setting could not be saved."))
 
     def build_custom(self, page, items):
         group = Group(page, section_title("custom"), _(SECTION_HINTS["custom"]))

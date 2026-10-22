@@ -4,8 +4,8 @@
 LOCALE=cs_CZ.UTF-8
 XKB_LAYOUT=cz          # vice rozlozeni oddelenych carkou, prvni = vychozi (max. 4), napr. cz,us
 XKB_VARIANT=           # varianty ve stejnem poradi, napr. qwerty, (= cz qwerty + us)
-#XKB_OPTIONS=grp:alt_shift_toggle   # prepinani rozlozeni; prazdne = jen klikem na vlajku v horni liste.
-                       # Bez XKB_OPTIONS se k jedinemu rozlozeni jinemu nez us prida us (Alt+Shift).
+#XKB_OPTIONS=grp:shifts_toggle      # prepinani rozlozeni; prazdne = jen klikem na vlajku v horni liste.
+                       # Bez XKB_OPTIONS se k jedinemu rozlozeni jinemu nez us prida us (obe klavesy Shift).
 TIMEZONE=Europe/Prague
 DISK=/dev/vda          # disk pro instalaci; "manual" = pouzit oddily uz pripojene v /mnt
 DISK_MODE=erase        # erase = CELY DISK BUDE SMAZAN

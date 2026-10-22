@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=31
+pkgrel=32
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
@@ -23,6 +23,8 @@ depends=(
     xfce4-power-manager xfce4-screensaver xfce4-terminal ffmpeg xfce4-taskmanager
     xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xfce4-xkb-plugin xorg-setxkbmap xorg-xprop libxi libxtst libxrandr
     brightnessctl luxos-i18n luxos-store luxos-account
+    # Snimek obrazovky: obrazek ve schrance drzi xclip i po skonceni programu
+    xclip
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
     # Dock, Hledani, prihlaseni
     plank rofi lightdm lightdm-gtk-greeter dconf yad

@@ -65,23 +65,23 @@ kbd() {  # kbd LOCALE ODPOVEDI... -> spusti ask_keyboard v podshellu, vypise "LA
 }
 
 echo "## TUI krok Klavesnice"
-eq "cs: Czech + predvybrana US (Enter)" "cz,us|,|grp:alt_shift_toggle" "$(kbd cs_CZ.UTF-8 "Czech" "English (US)")"
+eq "cs: Czech + predvybrana US (Enter)" "cz,us|,|grp:shifts_toggle" "$(kbd cs_CZ.UTF-8 "Czech" "English (US)")"
 check "cs: US je predvybrana" grep -q -- '--selected English (US)' "$TMP/gum.log"
 check "cs: nejvyse 3 dalsi" grep -q -- '--limit 3' "$TMP/gum.log"
 check "cs: nabidka obsahuje 'Only Czech' jako prvni" test "$(head -1 "$TMP/gum.items")" == "Only Czech"
 check "cs: vychozi rozlozeni neni v nabidce dalsich" test "$(grep -cx 'Czech' "$TMP/gum.items")" == 0
 check "cs: info v souhrnu" grep -q "Keyboard: cz, us" "$TMP/info"
 eq "cs: jen Czech (bez US)" "cz||" "$(kbd cs_CZ.UTF-8 "Czech" "Only Czech")"
-eq "cs: Czech (QWERTY) + US + German" "cz,us,de|qwerty,,|grp:alt_shift_toggle" \
+eq "cs: Czech (QWERTY) + US + German" "cz,us,de|qwerty,,|grp:shifts_toggle" \
     "$(kbd cs_CZ.UTF-8 "Czech (QWERTY)" "English (US)|German")"
-eq "cs: 'Only' spolu s jinymi se ignoruje" "sk,us|,|grp:alt_shift_toggle" \
+eq "cs: 'Only' spolu s jinymi se ignoruje" "sk,us|,|grp:shifts_toggle" \
     "$(kbd sk_SK.UTF-8 "Slovak" "Only Slovak|English (US)")"
 eq "en: jen US (bez predvyberu)" "us||" "$(kbd en_US.UTF-8 "English (US)" "Only English (US)")"
 check "en: US neni predvybrana" bash -c "! grep -q -- '--selected' '$TMP/gum.log'"
-eq "en: US + Czech" "us,cz|,|grp:alt_shift_toggle" "$(kbd en_US.UTF-8 "English (US)" "Czech")"
-eq "Other…: fr + ua (phonetic)" "fr,ua|,phonetic|grp:alt_shift_toggle" \
+eq "en: US + Czech" "us,cz|,|grp:shifts_toggle" "$(kbd en_US.UTF-8 "English (US)" "Czech")"
+eq "Other…: fr + ua (phonetic)" "fr,ua|,phonetic|grp:shifts_toggle" \
     "$(kbd en_US.UTF-8 "Other…" "fr" "(default)" "Other…" "ua" "phonetic")"
-eq "Ukrainian: varianty sedi k rozlozenim" "ua,us,cz|,,qwerty|grp:alt_shift_toggle" \
+eq "Ukrainian: varianty sedi k rozlozenim" "ua,us,cz|,,qwerty|grp:shifts_toggle" \
     "$(kbd uk_UA.UTF-8 "Ukrainian" "English (US)|Czech (QWERTY)")"
 out=$(kbd cs_CZ.UTF-8 "Czech" "__CANCEL__"); rc=$?
 check "Esc v dalsich rozlozenich ukonci pruvodce" test "$rc" != 0
@@ -93,12 +93,12 @@ norm() {  # norm 'PROMENNE' -> "LAYOUT|VARIANT|OPTIONS" nebo FAIL
     (unset XKB_LAYOUT XKB_VARIANT XKB_OPTIONS; eval "$1"; xkb_normalize
      printf '%s|%s|%s\n' "$XKB_LAYOUT" "$XKB_VARIANT" "$XKB_OPTIONS") 2>/dev/null || echo "FAIL"
 }
-eq "starsi konfigurace: cz -> cz,us + Alt+Shift" "cz,us|,|grp:alt_shift_toggle" "$(norm 'XKB_LAYOUT=cz XKB_VARIANT=')"
-eq "starsi konfigurace: cz qwerty" "cz,us|qwerty,|grp:alt_shift_toggle" "$(norm 'XKB_LAYOUT=cz XKB_VARIANT=qwerty')"
+eq "starsi konfigurace: cz -> cz,us + obe Shift" "cz,us|,|grp:shifts_toggle" "$(norm 'XKB_LAYOUT=cz XKB_VARIANT=')"
+eq "starsi konfigurace: cz qwerty" "cz,us|qwerty,|grp:shifts_toggle" "$(norm 'XKB_LAYOUT=cz XKB_VARIANT=qwerty')"
 eq "starsi konfigurace: us zustane samo" "us||" "$(norm 'XKB_LAYOUT=us XKB_VARIANT=')"
 eq "bez XKB_LAYOUT: us" "us||" "$(norm ':')"
 eq "explicitni XKB_OPTIONS='': jen cz" "cz||" "$(norm 'XKB_LAYOUT=cz XKB_VARIANT= XKB_OPTIONS=')"
-eq "seznam bez XKB_OPTIONS: Alt+Shift" "de,us|,|grp:alt_shift_toggle" "$(norm 'XKB_LAYOUT=de,us')"
+eq "seznam bez XKB_OPTIONS: obe Shift" "de,us|,|grp:shifts_toggle" "$(norm 'XKB_LAYOUT=de,us')"
 eq "mezery a duplicity" "cz,us|qwerty,|grp:ctrl_shift_toggle" \
     "$(norm 'XKB_LAYOUT="cz, us,cz" XKB_VARIANT="qwerty,,qwerty" XKB_OPTIONS=grp:ctrl_shift_toggle')"
 eq "prazdne polozky se vynechaji" "cz,us|,|" "$(norm 'XKB_LAYOUT=cz,,us XKB_VARIANT= XKB_OPTIONS=')"
@@ -186,6 +186,8 @@ eq "aplikace Klavesnice + greeter ctou vysledek instalatoru" \
     "[('cz', 'qwerty'), ('us', '')] ['grp:alt_shift_toggle'] [('cz', 'qwerty'), ('us', '')] grp:alt_shift_toggle" "$out"
 
 echo "## luxos-install: luxos-setup.env obsahuje XKB_OPTIONS"
+check "vychozi prepinani: obe klavesy Shift" grep -qx 'XKB_SWITCH_DEFAULT=grp:shifts_toggle' "$FILES/luxos-install"
+check "TUI napoveda: obe klavesy Shift" grep -q '(switch with both Shift keys)' "$FILES/luxos-install"
 check "env: XKB_OPTIONS" grep -q '^XKB_OPTIONS=$(printf %q "${XKB_OPTIONS-}")$' "$FILES/luxos-install"
 check "konfigurace: xkb_normalize po nacteni" grep -q '^        xkb_normalize' "$FILES/luxos-install"
 check "bash -n luxos-install" bash -n "$FILES/luxos-install"

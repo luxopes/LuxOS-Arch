@@ -170,6 +170,27 @@ class Parsing(unittest.TestCase):
             f.write('Option "XkbLayout" "us"\n')
         self.assertIsNone(ls.layout_switch(p))
         self.assertIsNone(ls.layout_switch(os.path.join(TMP, "none.conf")))
+        with open(p, "w") as f:
+            f.write('Option "XkbOptions" "grp:shifts_toggle,compose:ralt"\n')   # vychozi LuxOS
+        self.assertEqual(ls.layout_switch(p), "Left Shift + Right Shift")
+
+    def test_super_tap_setting(self):
+        flag = ls.super_tap_flag()
+        self.assertEqual(flag, os.path.join(TMP, "config", "luxos", "super-launchpad-off"))
+        if os.path.exists(flag):
+            os.unlink(flag)
+        self.assertTrue(ls.super_tap_enabled())             # vychozi: zapnuto
+        self.assertTrue(ls.set_super_tap(False))
+        self.assertTrue(os.path.exists(flag))
+        self.assertFalse(ls.super_tap_enabled())
+        self.assertTrue(ls.set_super_tap(False))            # opakovane bez chyby
+        self.assertTrue(ls.set_super_tap(True))
+        self.assertFalse(os.path.exists(flag))
+        self.assertTrue(ls.set_super_tap(True))
+        # Nezapisovatelne misto -> False, zadna vyjimka
+        bad = os.path.join(TMP, "file-not-dir")
+        open(bad, "w").close()
+        self.assertFalse(ls.set_super_tap(False, os.path.join(bad, "x", "flag")))
 
     def test_short_label(self):
         self.assertEqual(ls.short_label("exo-open --launch WebBrowser"), "Web Browser")
@@ -397,7 +418,10 @@ class App(unittest.TestCase):
     def setUp(self):
         reset_fake()
         with open(os.environ["LUXOS_XKB_CONF"], "w") as f:
-            f.write('Option "XkbOptions" "grp:alt_shift_toggle"\n')
+            f.write('Option "XkbOptions" "grp:shifts_toggle"\n')
+        flag = ls.super_tap_flag()
+        if os.path.exists(flag):
+            os.unlink(flag)
         self.asked = []
         self.answer = True
         self.app.ask = self.fake_ask
@@ -470,12 +494,38 @@ class App(unittest.TestCase):
         self.assertIn("Super + Q, Alt + F4", page)
         self.assertIn("Super + Shift + 4, Shift + Print Screen", page)
         self.assertIn("Switch keyboard layout", page)
-        self.assertIn("Alt + Shift", page)
+        self.assertIn("Left Shift + Right Shift", page)
+        self.assertIn("Super key alone opens Launchpad", page)
         self.assertIn("Add Shortcut…", page)
         self.assertFalse(any("⌘" in t for t in page))
         self.assertEqual(writes(), [])
         self.shot("shortcuts-window")
         self.shot("shortcuts-window-apps", self.win.rows["search"])
+
+    def test_super_tap_row(self):
+        row = self.win.rows["super-tap"]
+        launchpad = self.win.rows["launchpad"]
+        box = row.get_parent()
+        kids = box.get_children()
+        self.assertEqual(kids.index(row), kids.index(launchpad) + 1)     # hned pod Launchpadem
+        sw = self.win.super_switch
+        self.assertTrue(sw.get_active())
+        flag = ls.super_tap_flag()
+        sw.set_active(False)
+        self.pump(0.1)
+        self.assertTrue(os.path.exists(flag))
+        sw.set_active(True)
+        self.pump(0.1)
+        self.assertFalse(os.path.exists(flag))
+        self.assertEqual(writes(), [])                  # xfconf se nemeni
+        sw.set_active(False)
+        self.pump(0.1)
+        self.win.destroy()
+        self.win = self.app.ShortcutsWindow()           # stav po znovuotevreni
+        self.win.show_all()
+        self.pump(0.2)
+        self.assertFalse(self.win.super_switch.get_active())
+        self.shot("shortcuts-super-tap", self.win.rows["super-tap"])
 
     def test_capture_dialog_keys(self):
         Gdk = self.Gdk

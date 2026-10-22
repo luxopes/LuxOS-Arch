@@ -26,6 +26,8 @@ sys.path.insert(0, PYDIR)
 sys.path.insert(1, I18N)
 import luxos_keyboard as kb  # noqa: E402
 
+TMP = tempfile.mkdtemp(prefix="luxos-kbd-unit-")
+
 # 00-keyboard.conf, jak ho zapise systemd-localed (localectl set-x11-keymap cz,us pc105 qwerty, ...)
 LOCALED = """# Written by systemd-localed(8), read by systemd-localed and Xorg. It's
 # probably wise not to edit this file manually. Use localectl(1) to
@@ -127,6 +129,91 @@ class Generate(unittest.TestCase):
         # Super+Mezernik je v LuxOS Hledani - nesmi byt v nabidce
         self.assertNotIn("grp:win_space_toggle", [o for o, _l in kb.SWITCH_OPTIONS])
         self.assertEqual(kb.SWITCH_OPTIONS[0][0], kb.DEFAULT_SWITCH)
+        self.assertEqual(kb.DEFAULT_SWITCH, "grp:shifts_toggle")
+        self.assertEqual(kb.SWITCH_OPTIONS[0], ("grp:shifts_toggle", "Both Shift keys"))
+        self.assertIn(("grp:alt_shift_toggle", "Alt + Shift"), kb.SWITCH_OPTIONS)   # dal na vyber
+
+    def test_migrate_options(self):
+        m = kb.migrate_options
+        self.assertEqual(m("grp:alt_shift_toggle"), "grp:shifts_toggle")
+        self.assertEqual(m("terminate:ctrl_alt_bksp,grp:alt_shift_toggle,compose:ralt"),
+                         "terminate:ctrl_alt_bksp,grp:shifts_toggle,compose:ralt")
+        self.assertEqual(m("grp:alt_shift_toggle,grp_led:scroll"), "grp:shifts_toggle,grp_led:scroll")
+        for keep in ("", "compose:ralt", "grp:ctrl_shift_toggle", "grp:shifts_toggle", "grp:caps_toggle,compose:ralt",
+                     "grp:alt_shift_toggle,grp:caps_toggle", "grp:alt_shift_toggle_bidir"):
+            self.assertIsNone(m(keep), keep)
+
+    def migrate_files(self, conf_text, vc_text=None, marker_exists=False):
+        d = tempfile.mkdtemp(dir=TMP)
+        conf, vc, marker = (os.path.join(d, n) for n in ("00-keyboard.conf", "vconsole.conf", "lib/migrated"))
+        if conf_text is not None:
+            with open(conf, "w") as f:
+                f.write(conf_text)
+            os.chmod(conf, 0o644)
+        if vc_text is not None:
+            with open(vc, "w") as f:
+                f.write(vc_text)
+        if marker_exists:
+            os.makedirs(os.path.dirname(marker))
+            open(marker, "w").close()
+        changed = kb.migrate_default_switch(conf, vc, marker)
+
+        def rd(p):
+            try:
+                with open(p) as f:
+                    return f.read()
+            except FileNotFoundError:
+                return None
+        return changed, rd(conf), rd(vc), os.path.exists(marker), conf, vc, marker
+
+    def test_migrate_old_default(self):
+        old = kb.conf_text([("cz", "qwerty"), ("us", "")], ["grp:alt_shift_toggle", "compose:ralt"], "pc105")
+        vc = "KEYMAP=cz-qwerty\nXKBLAYOUT=cz,us\nXKBMODEL=pc105\nXKBVARIANT=qwerty,\nXKBOPTIONS=grp:alt_shift_toggle,compose:ralt\n"
+        changed, conf, vcon, marked, cpath, vpath, marker = self.migrate_files(old, vc)
+        self.assertTrue(changed)
+        self.assertEqual(conf, old.replace("grp:alt_shift_toggle", "grp:shifts_toggle"))
+        self.assertEqual(vcon, vc.replace("grp:alt_shift_toggle", "grp:shifts_toggle"))
+        self.assertTrue(marked)
+        self.assertEqual(stat.S_IMODE(os.stat(cpath).st_mode), 0o644)
+        cfg = kb.read_system(cpath, vpath)
+        self.assertEqual(cfg["options"], ["grp:shifts_toggle", "compose:ralt"])
+        self.assertEqual(cfg["layouts"], [("cz", "qwerty"), ("us", "")])
+        self.assertEqual(cfg["model"], "pc105")
+        self.assertFalse(os.path.exists(cpath + ".luxos-new"))
+        # Podruhe (znacka existuje) uz nic - ani kdyz si uzivatel Alt+Shift pozdeji vybere znovu
+        with open(cpath, "w") as f:
+            f.write(old)
+        self.assertFalse(kb.migrate_default_switch(cpath, vpath, marker))
+        with open(cpath) as f:
+            self.assertEqual(f.read(), old)
+
+    def test_migrate_quoted_vconsole(self):
+        old = kb.conf_text([("de", ""), ("us", "")], ["grp:alt_shift_toggle"])
+        changed, conf, vcon, *_r = self.migrate_files(old, 'KEYMAP=de\nXKBOPTIONS="grp:alt_shift_toggle"\n')
+        self.assertTrue(changed)
+        self.assertIn('Option "XkbOptions" "grp:shifts_toggle"', conf)
+        self.assertEqual(vcon, 'KEYMAP=de\nXKBOPTIONS="grp:shifts_toggle"\n')
+
+    def test_migrate_keeps_custom_choice(self):
+        for opts in (["grp:ctrl_shift_toggle"], [], ["compose:ralt"], ["grp:caps_toggle", "compose:ralt"]):
+            text = kb.conf_text([("cz", ""), ("us", "")], opts)
+            changed, conf, _v, marked, *_r = self.migrate_files(text, None)
+            self.assertFalse(changed, opts)
+            self.assertEqual(conf, text, opts)
+            self.assertTrue(marked, opts)       # rozhodnuto - uz nikdy znovu
+
+    def test_migrate_without_config(self):
+        # Instalace jeste rozlozeni nezapsala: nic, ani znacka (zkusi se pri dalsi aktualizaci)
+        changed, conf, vcon, marked, *_r = self.migrate_files(None, None)
+        self.assertFalse(changed)
+        self.assertIsNone(conf)
+        self.assertFalse(marked)
+
+    def test_migrate_marker_blocks(self):
+        old = kb.conf_text([("cz", ""), ("us", "")], ["grp:alt_shift_toggle"])
+        changed, conf, *_r = self.migrate_files(old, None, marker_exists=True)
+        self.assertFalse(changed)
+        self.assertEqual(conf, old)
 
 
 class Catalog(unittest.TestCase):
@@ -295,8 +382,8 @@ class App(unittest.TestCase):
             finally:
                 self.app.AddDialog = orig
             self.assertEqual(w.layouts, [("de", ""), ("us", "")])
-            self.assertEqual(w.options, ["grp:alt_shift_toggle"])
-            self.assertEqual(w.switch.get_active_id(), "grp:alt_shift_toggle")
+            self.assertEqual(w.options, ["grp:shifts_toggle"])     # vychozi: obe klavesy Shift
+            self.assertEqual(w.switch.get_active_id(), "grp:shifts_toggle")
             w.destroy()
         finally:
             with open(kb.CONF, "w") as f:

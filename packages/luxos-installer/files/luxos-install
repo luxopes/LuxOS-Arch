@@ -164,10 +164,10 @@ x11_to_console() {
 }
 
 # Rozlozeni klavesnice: XKB_LAYOUT a XKB_VARIANT jsou seznamy oddelene carkou (prvni = vychozi,
-# nejvyse 4 - vic XKB neumi), XKB_OPTIONS prepinani (napr. grp:alt_shift_toggle; prazdne = jen
+# nejvyse 4 - vic XKB neumi), XKB_OPTIONS prepinani (napr. grp:shifts_toggle; prazdne = jen
 # klikem na vlajku v horni liste). Bez XKB_OPTIONS (starsi konfigurace) se k jinemu rozlozeni nez
-# US pridava US s prepinanim Alt+Shift jako driv. Vysledek se zapise zpet do promennych.
-XKB_SWITCH_DEFAULT=grp:alt_shift_toggle
+# US pridava US s vychozim prepinanim (obe klavesy Shift). Vysledek se zapise zpet do promennych.
+XKB_SWITCH_DEFAULT=grp:shifts_toggle
 xkb_normalize() {
     local -a lays vars
     local -A seen=()
@@ -245,7 +245,7 @@ ask_keyboard() {
     done
     extra=$(printf '%s\n' "$only" "${labels[@]}" "$(T "Other…")" |
             gum choose --limit 3 ${pre:+--selected "$pre"} --height 14 \
-                --header "$(T "More layouts? Space selects, Enter confirms (switch with Alt+Shift)")") || exit 1
+                --header "$(T "More layouts? Space selects, Enter confirms (switch with both Shift keys)")") || exit 1
     local lays=$XKB_LAYOUT vars=$XKB_VARIANT line
     while IFS= read -r line; do
         [[ -z $line || $line == "$only" ]] && continue

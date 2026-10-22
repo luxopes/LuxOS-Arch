@@ -275,7 +275,7 @@ class KeyboardSettings(Gtk.Window):
         dlg.destroy()
         if key and key not in self.layouts and len(self.layouts) < kb.MAX_LAYOUTS:
             self.layouts.append(key)
-            # Druhe rozlozeni bez prepinani by neslo zapnout klavesnici - nabidnout Alt+Shift
+            # Druhe rozlozeni bez prepinani by neslo zapnout klavesnici - nabidnout obe klavesy Shift
             if len(self.layouts) == 2 and not kb.switch_of(self.options):
                 self.options = kb.with_switch(self.options, kb.DEFAULT_SWITCH)
                 self.switch.set_active_id(kb.DEFAULT_SWITCH)

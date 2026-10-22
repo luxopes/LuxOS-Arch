@@ -85,8 +85,9 @@ KEYMAPS = [
 ]
 MAX_XKB = 4   # XKB umi nejvyse 4 rozlozeni
 # Prepinani rozlozeni (XKB_OPTIONS); Super+Mezernik je Hledani, Alt+Mezernik nabidka okna
-XKB_SWITCHES = [("grp:alt_shift_toggle", "Alt + Shift"), ("grp:ctrl_shift_toggle", "Ctrl + Shift"),
-                ("grp:shifts_toggle", "Both Shift keys"), ("grp:caps_toggle", "Caps Lock"),
+# Prvni = vychozi: obe klavesy Shift naraz (Alt+Shift kolidoval se zkratkami Alt+Shift+...)
+XKB_SWITCHES = [("grp:shifts_toggle", "Both Shift keys"), ("grp:alt_shift_toggle", "Alt + Shift"),
+                ("grp:ctrl_shift_toggle", "Ctrl + Shift"), ("grp:caps_toggle", "Caps Lock"),
                 ("grp:menu_toggle", "Menu key"), ("", "Only by clicking the flag in the menu bar")]
 # Systemova jmena, ktera nesmi byt uzivatelskym jmenem
 RESERVED_USERS = {"root", "bin", "daemon", "mail", "ftp", "http", "nobody", "dbus", "uuidd", "polkitd", "avahi",

@@ -15,12 +15,13 @@ CONF = os.environ.get("LUXOS_KEYBOARD_CONF", "/etc/X11/xorg.conf.d/00-keyboard.c
 VCONSOLE = os.environ.get("LUXOS_VCONSOLE_CONF", "/etc/vconsole.conf")
 RULES = os.environ.get("LUXOS_XKB_RULES", "/usr/share/X11/xkb/rules/evdev.lst")
 MAX_LAYOUTS = 4   # XKB umi nejvyse 4 skupiny
-DEFAULT_SWITCH = "grp:alt_shift_toggle"
+# Vychozi prepinani: obe klavesy Shift naraz (Alt+Shift kolidoval se zkratkami Alt+Shift+...)
+DEFAULT_SWITCH = "grp:shifts_toggle"
 # Prepinani rozlozeni (XkbOptions grp:...); Super+Mezernik je Hledani, Alt+Mezernik nabidka okna
 SWITCH_OPTIONS = [
+    ("grp:shifts_toggle", "Both Shift keys"),
     ("grp:alt_shift_toggle", "Alt + Shift"),
     ("grp:ctrl_shift_toggle", "Ctrl + Shift"),
-    ("grp:shifts_toggle", "Both Shift keys"),
     ("grp:caps_toggle", "Caps Lock"),
     ("grp:menu_toggle", "Menu key"),
     ("", "Only by clicking the flag in the menu bar"),
@@ -153,6 +154,68 @@ def setxkbmap_cmd(layouts, options=()):
     if options:
         cmd += ["-option", ",".join(options)]
     return cmd
+
+
+# ---- prevod stareho vychoziho prepinani (balicek luxos-desktop, post_upgrade) ---------------
+OLD_DEFAULT_SWITCH = "grp:alt_shift_toggle"   # vychozi do LuxOS 0.9.4; nahodne selhaval
+MIGRATED = os.environ.get("LUXOS_KEYBOARD_MIGRATED", "/var/lib/luxos/keyboard-switch-migrated")
+
+
+def migrate_options(value):
+    """XkbOptions se starym vychozim prepinanim -> s novym (ostatni volby zustanou); jinak None."""
+    opts = [o.strip() for o in value.split(",") if o.strip()]
+    if [o for o in opts if o.startswith("grp:")] != [OLD_DEFAULT_SWITCH]:
+        return None
+    return ",".join(DEFAULT_SWITCH if o == OLD_DEFAULT_SWITCH else o for o in opts)
+
+
+def migrate_text(text, vconsole=False):
+    """Obsah 00-keyboard.conf (nebo vconsole.conf) s prevedenym prepinanim; None = beze zmeny."""
+    pat = (re.compile(r'^(XKBOPTIONS="?)([^"\n]*)("?)$', re.M) if vconsole
+           else re.compile(r'^(\s*Option\s+"XkbOptions"\s+")([^"]*)(")', re.M))
+    m = pat.search(text)
+    new = migrate_options(m.group(2)) if m else None
+    if new is None:
+        return None
+    return text[:m.start()] + m.group(1) + new + m.group(3) + text[m.end():]
+
+
+def _rewrite(path, vconsole):
+    try:
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return False
+    new = migrate_text(text, vconsole)
+    if new is None:
+        return False
+    tmp = path + ".luxos-new"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(new)
+    os.chmod(tmp, os.stat(path).st_mode & 0o7777)
+    os.replace(tmp, path)
+    return True
+
+
+def migrate_default_switch(conf=None, vconsole=None, marker=None):
+    """Jednou za zivot systemu: stare vychozi Alt+Shift -> obe klavesy Shift.
+
+    Meni jen presne stare vychozi prepinani (jedina volba grp: = grp:alt_shift_toggle);
+    vlastni volbu uzivatele (jine prepinani, zadne) nechava. Znacka MIGRATED zajisti, ze
+    pozdeji vedome zvolene Alt+Shift uz dalsi aktualizace neprepise. Bez konfigurace
+    (instalace jeste nezapsala rozlozeni) se nic nedeje a znacka se nevytvori.
+    Vraci True, kdyz neco zmenila. Projevi se po novem startu X (dalsi prihlaseni).
+    """
+    conf, vconsole, marker = conf or CONF, vconsole or VCONSOLE, marker or MIGRATED
+    if os.path.exists(marker) or not os.path.exists(conf):
+        return False
+    changed = _rewrite(conf, False)
+    if changed:
+        _rewrite(vconsole, True)    # localed drzi kopii XKB* i tam
+    os.makedirs(os.path.dirname(marker), exist_ok=True)
+    with open(marker, "w", encoding="utf-8") as f:
+        f.write("grp:shifts_toggle\n" if changed else "unchanged\n")
+    return changed
 
 
 # ---- katalog rozlozeni --------------------------------------------------------------------

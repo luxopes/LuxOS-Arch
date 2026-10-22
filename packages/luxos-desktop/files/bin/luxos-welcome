@@ -25,7 +25,7 @@ while :; do
 $(T "Fast, light and beautifully simple.")
 
 <b>Super + Space</b>  ·  $(T "Search: apps, files and windows")
-<b>Super + A</b>  ·  $(T "Launchpad: all applications")
+<b>Super, Super + A</b>  ·  $(T "Launchpad: all applications")
 <b>Super + Q</b>  ·  $(T "close window")
 <b>Super + Shift + 4</b>  ·  $(T "screenshot of a region")
 <b>lux</b>  ·  $(T "install and update software from Terminal")" \

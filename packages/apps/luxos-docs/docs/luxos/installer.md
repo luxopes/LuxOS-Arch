@@ -84,7 +84,7 @@ Template: `/usr/share/luxos/installer/install.conf.example`. Keys (bash variable
 |---|---|
 | `LOCALE` | e.g. `cs_CZ.UTF-8` (default `en_US.UTF-8`) |
 | `XKB_LAYOUT`, `XKB_VARIANT` | comma-separated, first is default, max 4 (e.g. `cz,us` and `qwerty,`) |
-| `XKB_OPTIONS` | switching, e.g. `grp:alt_shift_toggle`; empty = only by clicking the flag in the top bar. Without it a single non-`us` layout gets `us` added (Alt+Shift) |
+| `XKB_OPTIONS` | switching, e.g. `grp:shifts_toggle` (both Shift keys, the default); empty = only by clicking the flag in the top bar. Without it a single non-`us` layout gets `us` added (both Shift keys) |
 | `TIMEZONE` | e.g. `Europe/Prague` (default `UTC`) |
 | `DISK` | target disk, or `manual` |
 | `DISK_MODE` | `erase` (default), `freespace`, `partition`, `layout`, `manual` |
@@ -137,8 +137,8 @@ swap on=swap
 ## Keyboard layouts
 
 The layout for the chosen language's country is listed first; up to 3 more layouts can be added
-(US is pre-selected for typing passwords). With more than one layout, Alt+Shift switches by
-default. Layouts apply to the console, X11, the login screen and all users. They can be changed
+(US is pre-selected for typing passwords). With more than one layout, pressing both Shift keys
+together switches by default. Layouts apply to the console, X11, the login screen and all users. They can be changed
 later in the Keyboard Layouts app (see [keyboard.md](keyboard.md)).
 
 ## Maintenance mode

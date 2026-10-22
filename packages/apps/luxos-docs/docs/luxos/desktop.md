@@ -84,7 +84,7 @@ running.
 
 ## Launchpad and Search
 
-- **Launchpad** (`Super+A`, `luxos-launchpad`, also the first Dock icon): a grid of all apps
+- **Launchpad** (tap `Super` alone, `Super+A`, `luxos-launchpad`, also the first Dock icon): a grid of all apps
   (rofi theme `luxos-launchpad`). Settings panels of Xfce are hidden there. A few LuxOS settings
   apps get Launchpad-only copies: Displays, Keyboard Layouts, Fingerprint, Printers & Scanners
   (`X-LuxOS-Launchpad`).
@@ -206,6 +206,6 @@ method, touchpad off while typing, and adaptive acceleration.
 
 ## Keyboard shortcuts
 
-`Super` plays the role of the macOS Cmd key: `Super+Space` Search, `Super+A` Launchpad, `Super+Q`
+`Super` plays the role of the macOS Cmd key: `Super+Space` Search, `Super` alone or `Super+A` Launchpad, `Super+Q`
 close, `Super+Shift+4` screenshot of an area. The full list and how to change it:
 [keyboard.md](keyboard.md).

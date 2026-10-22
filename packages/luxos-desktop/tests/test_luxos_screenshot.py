@@ -17,12 +17,18 @@ import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+SHORTCUTS = os.path.join(HERE, "..", "files", "xdg", "xfce4", "xfconf", "xfce-perchannel-xml",
+                         "xfce4-keyboard-shortcuts.xml")
 BIN = os.path.join(HERE, "..", "files", "bin", "luxos-screenshot")
 I18N = os.path.join(HERE, "..", "..", "luxos-i18n", "files")
 TMP = tempfile.mkdtemp(prefix="luxos-shot-test-")
 os.environ["XDG_CONFIG_HOME"] = os.path.join(TMP, "config")
 os.environ["XDG_RUNTIME_DIR"] = os.path.join(TMP, "run")
 os.makedirs(os.environ["XDG_RUNTIME_DIR"], mode=0o700)
+os.environ["XDG_DATA_HOME"] = os.path.join(TMP, "data")
+# Zadna sezeni D-Bus uzivatele: notifikace ani spravce souboru se nesmi objevit na skutecne obrazovce
+os.environ["DBUS_SESSION_BUS_ADDRESS"] = "unix:path=" + os.path.join(TMP, "no-bus")
+os.environ["NO_AT_BRIDGE"] = "1"
 os.environ["LANG"] = "en_US.UTF-8"
 os.environ.pop("LC_ALL", None)
 os.environ.pop("LC_MESSAGES", None)
@@ -186,6 +192,39 @@ class TestFfmpeg(unittest.TestCase):
         self.assertEqual(cmd[cmd.index("-f", cmd.index("-i")) + 1], "mp4")   # .part soubor -> formát explicitne
 
 
+class TestShortcuts(unittest.TestCase):
+    def test_pretty(self):
+        self.assertEqual(shot.pretty_accel("<Super><Shift>3"), "Super+Shift+3")
+        self.assertEqual(shot.pretty_accel("<Shift><Primary>a"), "Ctrl+Shift+A")
+        self.assertEqual(shot.pretty_accel("<Shift>Print"), "Shift+Print")
+        self.assertEqual(shot.pretty_accel("Print"), "Print")
+        self.assertIsNone(shot.pretty_accel("<Super>"))
+        self.assertIsNone(shot.pretty_accel(""))
+
+    def test_defaults_from_luxos(self):
+        self.assertEqual(shot.global_shortcut("luxos-screenshot --screen", [SHORTCUTS]), "Super+Shift+3")
+        # vic zkratek pro jeden prikaz: prvni (Super+Shift+4, ne Shift+Print)
+        self.assertEqual(shot.global_shortcut("luxos-screenshot --portion", [SHORTCUTS]), "Super+Shift+4")
+        self.assertIsNone(shot.global_shortcut("luxos-screenshot --window", [SHORTCUTS]))
+
+    def test_user_overrides_defaults(self):
+        d = tempfile.mkdtemp(dir=TMP)
+        user, broken = os.path.join(d, "user.xml"), os.path.join(d, "broken.xml")
+        with open(user, "w") as f:
+            f.write('''<?xml version="1.0"?><channel name="xfce4-keyboard-shortcuts" version="1.0">
+<property name="commands" type="empty"><property name="custom" type="empty">
+<property name="override" type="bool" value="true"/>
+<property name="&lt;Primary&gt;&lt;Alt&gt;3" type="string" value="luxos-screenshot --screen"/>
+</property></property></channel>''')
+        with open(broken, "w") as f:
+            f.write("<channel")
+        files = [os.path.join(d, "missing.xml"), broken, user, SHORTCUTS]
+        self.assertEqual(shot.global_shortcut("luxos-screenshot --screen", files), "Ctrl+Alt+3")
+        # uzivatel zkratku odstranil: vychozi z /etc/xdg se neukaze
+        self.assertIsNone(shot.global_shortcut("luxos-screenshot --portion", files))
+        self.assertIsNone(shot.global_shortcut("luxos-screenshot --screen", [broken]))
+
+
 @unittest.skipUnless(HAVE_DISPLAY, "parse_args je az v GTK casti (xvfb-run)")
 class TestArgs(unittest.TestCase):
     def test_parse(self):
@@ -212,12 +251,43 @@ def pump(ms):
         GLib.usleep(5000)
 
 
+def clip_png(wait=3.0):
+    """PNG ze schranky virtualniho X (jiny proces nez program) nebo b""."""
+    end = time.monotonic() + wait
+    while True:
+        r = subprocess.run(["xclip", "-o", "-selection", "clipboard", "-t", "image/png"],
+                           capture_output=True, timeout=10)
+        if r.returncode == 0 and r.stdout.startswith(b"\x89PNG"):
+            return r.stdout
+        if time.monotonic() > end:
+            return b""
+        time.sleep(0.1)
+
+
+def clip_text(text):
+    """Schranku prevezme text (aby stary obrazek nemohl projit testem)."""
+    subprocess.run(["xclip", "-selection", "clipboard", "-i"], input=text.encode(), timeout=10,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(0.2)
+
+
+def png_bytes_size(data):
+    return int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
+
+
 @unittest.skipUnless(HAVE_DISPLAY, "needs X (xvfb-run)")
 class TestGui(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         from gi.repository import Gdk, Gtk
         cls.Gtk, cls.Gdk = Gtk, Gdk
+        # Modalni dialog, ktery nechal otevreny jiny modul testu (stejny proces pri discover),
+        # drzi zachyceni GTK a lista by nedostavala udalosti mysi
+        for w in Gtk.Window.list_toplevels():
+            if w.get_modal() and w.get_visible():
+                w.destroy()
+        # Motiv hostitele (napr. *-Dark v /etc/gtk-3.0) nesmi urcovat svetly/tmavy vzhled testu
+        Gtk.Settings.get_default().props.gtk_theme_name = "Adwaita"
         shot.install_css()
         # Pozadi se znamou barvou (bez WM: obycejne okno pres celou obrazovku)
         root = Gdk.get_default_root_window()
@@ -249,7 +319,17 @@ class TestGui(unittest.TestCase):
         shot.save_options(dict(shot.DEFAULTS, **opts))
         app = shot.App(dict({"action": "toolbar", "output": self.out, "no_thumb": True}, **args))
         app.quit = self.on_quit
+        self.addCleanup(self.close_app, app)
         return app
+
+    @staticmethod
+    def close_app(app):
+        """Okna neuspesneho testu nesmi zustat na obrazovce dalsich testu."""
+        for name in ("thumb", "toolbar", "overlay", "pill", "countdown"):
+            w = getattr(app, name, None)
+            if w:
+                w.destroy()
+        pump(30)
 
     def on_quit(self, *_a):
         self.quits += 1
@@ -374,6 +454,424 @@ class TestGui(unittest.TestCase):
         self.assertEqual(self.quits, 1)
         self.assertEqual(self.pngs(), [])
 
+    # ---- popisek nad listou -------------------------------------------------------------
+    def key_event(self, keyval, release=False, state=0):
+        Gdk = self.Gdk
+        e = Gdk.Event.new(Gdk.EventType.KEY_RELEASE if release else Gdk.EventType.KEY_PRESS)
+        e.key.keyval = keyval
+        e.key.state = state
+        return e.key
+
+    def test_caption_names_modes(self):
+        orig = shot.shortcut_files
+        shot.shortcut_files = lambda: [SHORTCUTS]
+        shot._SHORTCUTS.clear()
+        try:
+            app = self.make_app({"mode": "screen"}, {})
+            app.run()
+            pump(200)
+            tb, cap = app.toolbar, app.toolbar.caption
+            # Vybrany rezim je videt trvale, nad listou a na stredu
+            self.assertTrue(cap.get_visible())
+            self.assertEqual(cap.name.get_text(), "Capture Entire Screen")
+            self.assertEqual(cap.key.get_text(), "Super+Shift+3")
+            (cx, cy), (cw, ch) = cap.get_position(), cap.get_size()
+            (tx, ty), (tw, th) = tb.get_position(), tb.get_size()
+            self.assertLessEqual(cy + ch, ty)
+            self.assertGreater(cy + ch, ty - 20)
+            self.assertLessEqual(abs((cx + cw / 2) - (tx + tw / 2)), 2)
+            self.assertLess(ch, 34)
+            # Najeti mysi: nazev hned (bez cekani tooltipu), po odjeti zpet vybrany rezim
+            tb.hover("portion")
+            self.assertEqual(cap.name.get_text(), "Capture Selected Portion")
+            self.assertEqual(cap.key.get_text(), "Super+Shift+4")
+            tb.hover("rec_screen")
+            self.assertEqual(cap.name.get_text(), "Record Entire Screen")
+            self.assertFalse(cap.key.get_visible())
+            tb.hover("window")
+            self.assertEqual(cap.hint.get_text(), "Click a window to capture it")
+            tb.hover("close")
+            self.assertEqual((cap.name.get_text(), cap.key.get_text()), ("Close", "Esc"))
+            tb.hover("options")
+            self.assertEqual(cap.name.get_text(), "Save to: Desktop")
+            app.set_opt("save_to", "clipboard")
+            self.assertEqual(cap.name.get_text(), "Save to: Clipboard")
+            app.set_opt("save_to", "desktop")
+            tb.hover("capture")
+            self.assertEqual(cap.key.get_text(), "Enter")
+            self.assertIn("Ctrl", cap.hint.get_text())
+            tb.hover(None)
+            self.assertEqual(cap.name.get_text(), "Capture Entire Screen")
+            pump(50)
+            # Popisek se zmensi na kratsi text a zustane na stredu
+            self.assertLessEqual(abs((cap.get_position()[0] + cap.get_size()[0] / 2) - (tx + tw / 2)), 2)
+            # Tlacitka nemaji pomaly tooltip GTK, ale maji jmeno pro ctecku obrazovky
+            self.assertIsNone(tb.modes["portion"].get_tooltip_text())
+            self.assertEqual(tb.modes["portion"].get_accessible().get_name(), "Capture Selected Portion")
+            # Prepnuti rezimu: popisek ukaze novy rezim; lista se skryva -> popisek taky
+            app.set_mode("rec_portion")
+            self.assertFalse(cap.get_visible())
+            pump(shot.HIDE_DELAY + 200)
+            self.assertTrue(cap.get_visible())
+            self.assertEqual(cap.name.get_text(), "Record Selected Portion")
+            self.save_look("caption-rec-portion.png")
+            app.cancel()
+            pump(50)
+        finally:
+            shot.shortcut_files = orig
+            shot._SHORTCUTS.clear()
+
+    def test_caption_real_pointer_and_ctrl(self):
+        """Skutecny pohyb mysi a Ctrl+klik (xdotool ve virtualnim X): popisek a kopie do schranky."""
+        if not shutil.which("xdotool") or not shutil.which("xclip"):
+            self.skipTest("xdotool/xclip missing")
+        clip_text("before")
+        app = self.make_app({"mode": "screen"}, {})
+        app.run()
+        pump(300)
+        tb, cap = app.toolbar, app.toolbar.caption
+
+        def center(widget):
+            x, y = widget.translate_coordinates(tb, widget.get_allocated_width() // 2,
+                                                    widget.get_allocated_height() // 2)
+            tx, ty = tb.get_position()
+            return tx + x, ty + y
+        x, y = center(tb.modes["rec_portion"])
+        subprocess.run(["xdotool", "mousemove", str(x), str(y)], check=True)
+        t0 = time.monotonic()
+        while cap.name.get_text() != "Record Selected Portion" and time.monotonic() - t0 < 1:
+            pump(10)
+        self.assertEqual(cap.name.get_text(), "Record Selected Portion")
+        self.assertLess(time.monotonic() - t0, 0.25, "caption must follow the pointer immediately")
+        self.save_look("caption-hover.png")
+        x, y = center(tb.capture)
+        subprocess.run(["xdotool", "mousemove", str(x), str(y)], check=True)
+        pump(100)
+        self.assertEqual(cap.key.get_text(), "Enter")
+        subprocess.run(["xdotool", "keydown", "ctrl"], check=True)
+        pump(150)
+        try:
+            self.assertEqual(tb.capture.get_label(), "Copy")
+            self.save_look("toolbar-ctrl.png")
+            subprocess.run(["xdotool", "click", "1"], check=True)
+            pump(shot.HIDE_DELAY + 500)
+        finally:
+            subprocess.run(["xdotool", "keyup", "ctrl"], check=True)
+        self.assertEqual(self.pngs(), [])           # Ctrl: nic se neulozilo, jen schranka
+        data = clip_png()
+        self.assertEqual(png_bytes_size(data), (self.sw, self.sh))
+        self.assertEqual(self.quits, 1)
+
+    def test_ctrl_key_toggles_copy_label(self):
+        app = self.make_app({"mode": "portion", "selection": [10, 10, 50, 40]}, {})
+        app.run()
+        pump(200)
+        tb = app.toolbar
+        app.on_key(tb, self.key_event(self.Gdk.KEY_Control_L))
+        self.assertEqual(tb.capture.get_label(), "Copy")
+        app.on_key_release(tb, self.key_event(self.Gdk.KEY_Control_L, release=True))
+        self.assertEqual(tb.capture.get_label(), "Capture")
+        app.set_mode("rec_screen")
+        app.on_key(tb, self.key_event(self.Gdk.KEY_Control_R))
+        self.assertEqual(tb.capture.get_label(), "Record")       # nahravani do schranky nejde
+        app.cancel()
+        pump(50)
+
+    # ---- schranka -------------------------------------------------------------------------
+    def test_ctrl_enter_copies_portion(self):
+        if not shutil.which("xclip"):
+            self.skipTest("xclip missing")
+        clip_text("before")
+        app = self.make_app({"mode": "portion", "selection": [100, 120, 200, 150]}, {})
+        app.run()
+        pump(200)
+        app.on_key(app.overlay, self.key_event(self.Gdk.KEY_Return, state=self.Gdk.ModifierType.CONTROL_MASK))
+        pump(400)
+        self.assertEqual(self.pngs(), [])
+        data = clip_png()
+        self.assertEqual(png_bytes_size(data), (200, 150))
+        from gi.repository import GdkPixbuf
+        loader = GdkPixbuf.PixbufLoader.new_with_type("png")
+        loader.write(data)
+        loader.close()
+        self.assertEqual(tuple(loader.get_pixbuf().get_pixels()[:3]), BG)
+        # Bez Ctrl (Enter) se uklada soubor jako drive
+        app = self.make_app({"mode": "portion", "selection": [100, 120, 200, 150]}, {})
+        app.run()
+        pump(200)
+        app.on_key(app.overlay, self.key_event(self.Gdk.KEY_Return))
+        pump(400)
+        self.assertEqual(len(self.pngs()), 1)
+
+    def test_quick_portion_ctrl_release_copies(self):
+        if not shutil.which("xclip"):
+            self.skipTest("xclip missing")
+        clip_text("before")
+        app = self.make_app({}, {"action": "portion"})
+        app.run()
+        pump(200)
+        ov, Gdk = app.overlay, self.Gdk
+
+        def ev(kind, x, y, state=0):
+            e = Gdk.Event.new(kind)
+            e.button.button = 1
+            e.button.x, e.button.y, e.button.x_root, e.button.y_root = x, y, x, y
+            e.button.state = state
+            return e.button
+        ov.on_press(ov, ev(Gdk.EventType.BUTTON_PRESS, 10, 10))
+        m = Gdk.Event.new(Gdk.EventType.MOTION_NOTIFY)
+        m.motion.x, m.motion.y = 70, 50
+        ov.on_motion(ov, m.motion)
+        ov.on_release(ov, ev(Gdk.EventType.BUTTON_RELEASE, 70, 50, Gdk.ModifierType.CONTROL_MASK))
+        pump(400)
+        self.assertEqual(self.pngs(), [])
+        self.assertEqual(png_bytes_size(clip_png()), (60, 40))
+
+    def test_save_to_clipboard_option_shows_copied_thumbnail(self):
+        if not shutil.which("xclip"):
+            self.skipTest("xclip missing")
+        clip_text("before")
+        shot.save_options(dict(shot.DEFAULTS, save_to="clipboard", mode="screen"))
+        app = shot.App({"action": "toolbar"})          # bez --output: volba Schranka plati
+        app.quit = self.on_quit
+        self.addCleanup(self.close_app, app)
+        app.run()
+        pump(150)
+        app.capture()
+        pump(shot.HIDE_DELAY + 500)
+        self.assertEqual(png_bytes_size(clip_png()), (self.sw, self.sh))
+        th = app.thumb
+        self.assertIsNotNone(th)
+        self.assertTrue(th.get_visible())
+        self.assertIsNone(th.path)
+        self.assertEqual(list(th.buttons), ["save_as", "close"])
+        self.save_look("thumb-copied.png")
+        th.act("close")
+        pump(50)
+        self.assertIsNone(app.thumb)
+        self.assertEqual(self.quits, 1)            # xclip drzi obrazek, proces muze skoncit
+
+    def test_gtk_clipboard_fallback_keeps_process(self):
+        """Bez xclipu drzi obrazek proces sam a skonci az po prevzeti schranky nekym jinym."""
+        if not shutil.which("xclip"):
+            self.skipTest("xclip missing (needed to read the clipboard)")
+        from gi.repository import GdkPixbuf
+        orig = shot.clipboard_png
+        shot.clipboard_png = lambda pb: False
+        try:
+            app = self.make_app({}, {})
+            pb = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, 33, 21)
+            pb.fill(0x112233ff)
+            self.assertTrue(app.copy_image(pb))
+            reader = subprocess.Popen(["xclip", "-o", "-selection", "clipboard", "-t", "image/png"],
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            t0 = time.monotonic()
+            while reader.poll() is None and time.monotonic() - t0 < 5:
+                pump(20)                # odpovida tento proces
+            data = reader.communicate(timeout=5)[0]
+            self.assertEqual(png_bytes_size(data), (33, 21))
+            app.done()                  # nahled zavreny, ale schranka je nase: neskoncit
+            self.assertEqual(self.quits, 0)
+            pump(1700)
+            clip_text("someone else")
+            pump(300)
+            self.assertEqual(self.quits, 1)
+        finally:
+            shot.clipboard_png = orig
+
+    # ---- nahled po ulozeni -------------------------------------------------------------------
+    def thumb_app(self):
+        app = self.make_app({"mode": "portion", "selection": [100, 120, 200, 150]}, {"no_thumb": False})
+        app.run()
+        pump(200)
+        before = set(self.pngs())
+        app.capture()
+        pump(400)
+        new = sorted(set(self.pngs()) - before)
+        self.assertEqual(len(new), 1)
+        self.assertIsNotNone(app.thumb)
+        return app, app.thumb, new[0]
+
+    def test_thumbnail_actions_layout(self):
+        app, th, path = self.thumb_app()
+        self.assertEqual(th.path, path)
+        self.assertEqual(list(th.buttons), ["copy", "reveal", "save_as", "delete", "close"])
+        self.assertEqual([b[2].get_text() for b in th.buttons.values()],
+                         ["Copy", "Show in Files", "Save As…", "Delete", "Close"])
+        x, y = th.get_position()
+        w, h = th.get_size()
+        self.assertLessEqual(x + w, self.sw)
+        self.assertLessEqual(y + h, self.sh)
+        self.assertLess(w, 400)
+        self.assertLess(h, 190)
+        self.save_look("thumb-light.png")
+        settings = self.Gtk.Settings.get_default()
+        settings.props.gtk_application_prefer_dark_theme = True
+        pump(200)
+        self.save_look("thumb-dark.png")
+        settings.props.gtk_application_prefer_dark_theme = False
+        menu = th.popup_menu()
+        pump(100)
+        labels = [i.get_label() for i in menu.get_children() if not isinstance(i, self.Gtk.SeparatorMenuItem)]
+        self.assertEqual(labels, ["Open", "Copy", "Show in Files", "Save As…", "Delete", "Close"])
+        self.assertIsNone(th.timer)                 # nabidka otevrena: nahled nezmizi
+        menu.popdown()
+        pump(50)
+        self.assertIsNotNone(th.timer)
+        th.act("close")
+        pump(50)
+        self.assertEqual(self.quits, 1)
+        self.assertTrue(os.path.exists(path))      # Zavrit soubor nemaze
+
+    def test_thumbnail_copy(self):
+        if not shutil.which("xclip"):
+            self.skipTest("xclip missing")
+        clip_text("before")
+        app, th, path = self.thumb_app()
+        th.act("copy")
+        self.assertEqual(th.buttons["copy"][2].get_text(), "Copied")
+        self.assertEqual(png_bytes_size(clip_png()), (200, 150))
+        self.assertIsNotNone(app.thumb)            # nahled zustava pro dalsi akce
+        th.finish()
+        pump(50)
+        self.assertEqual(self.quits, 1)
+        self.assertEqual(png_bytes_size(clip_png()), (200, 150))   # i po skonceni
+
+    def test_thumbnail_save_as(self):
+        app, th, path = self.thumb_app()
+        dest_dir = tempfile.mkdtemp(dir=TMP)
+        asked = []
+        app.ask_save_path = lambda src, video=False: asked.append((src, video)) or None   # Zrusit
+        th.act("save_as")
+        pump(50)
+        self.assertEqual(asked, [(path, False)])
+        self.assertTrue(th.get_visible())          # po zruseni se nahled vrati
+        self.assertIsNotNone(th.timer)
+        self.assertEqual(self.quits, 0)
+        app.ask_save_path = lambda src, video=False: os.path.join(dest_dir, "copy.jpg")
+        th.act("save_as")
+        pump(50)
+        with open(os.path.join(dest_dir, "copy.jpg"), "rb") as f:
+            self.assertEqual(f.read(3), b"\xff\xd8\xff")      # JPEG podle pripony
+        self.assertTrue(os.path.exists(path))      # puvodni soubor zustava
+        self.assertEqual(self.quits, 1)
+        from gi.repository import GdkPixbuf
+        pb = GdkPixbuf.Pixbuf.new_from_file(path)
+        out = shot.write_copy(pb, path, os.path.join(dest_dir, "x.png"))
+        self.assertEqual(png_size(out), (200, 150))
+        shot.write_copy(pb, path, path)            # sam na sebe: nic se nerozbije
+        self.assertEqual(png_size(path), (200, 150))
+        vid = os.path.join(dest_dir, "v.mp4")
+        with open(vid, "wb") as f:
+            f.write(b"video")
+        shot.write_copy(None, vid, os.path.join(dest_dir, "v2.mp4"), video=True)
+        with open(os.path.join(dest_dir, "v2.mp4"), "rb") as f:
+            self.assertEqual(f.read(), b"video")
+        shot.write_copy(None, vid, vid, video=True)
+
+    def test_thumbnail_reveal(self):
+        app, th, path = self.thumb_app()
+        opened = []
+        orig_open, orig_bus = shot.open_uri, shot.Gio.bus_get_sync
+        shot.open_uri = opened.append
+        try:
+            # Bez sezeni D-Bus: otevre se slozka
+            th.act("reveal")
+            pump(50)
+            self.assertEqual(opened, [self.GLib_uri(os.path.dirname(path))])
+            self.assertEqual(self.quits, 1)
+            # Se spravcem souboru: ShowItems s URI souboru
+            app, th, path = self.thumb_app()
+            calls = []
+
+            class Bus:
+                def call(self, *a):
+                    calls.append(a[:5])
+                    a[-1](self, None)
+
+                def call_finish(self, res):
+                    return None
+            shot.Gio.bus_get_sync = lambda *a: Bus()
+            th.act("reveal")
+            pump(50)
+            self.assertEqual(calls[0][:4], ("org.freedesktop.FileManager1", "/org/freedesktop/FileManager1",
+                                            "org.freedesktop.FileManager1", "ShowItems"))
+            self.assertEqual(calls[0][4].unpack(), ([self.GLib_uri(path)], ""))
+            self.assertEqual(len(opened), 1)
+            self.assertEqual(self.quits, 2)
+        finally:
+            shot.open_uri, shot.Gio.bus_get_sync = orig_open, orig_bus
+
+    @staticmethod
+    def GLib_uri(p):
+        from gi.repository import GLib
+        return GLib.filename_to_uri(p)
+
+    def test_thumbnail_delete(self):
+        app, th, path = self.thumb_app()
+        trashed = []
+        orig = shot.trash_file
+        shot.trash_file = lambda p: trashed.append(p) or "trash"
+        try:
+            th.act("delete")
+            pump(50)
+        finally:
+            shot.trash_file = orig
+        self.assertEqual(trashed, [path])
+        self.assertIsNone(app.thumb)
+        self.assertEqual(self.quits, 1)
+
+    def test_trash_file_real(self):
+        """Skutecny Kos v oddelenem procesu s HOME v TMP (nikdy Kos uzivatele)."""
+        home = tempfile.mkdtemp(dir=TMP)
+        f = os.path.join(home, "Desktop", "Screenshot x.png")
+        os.makedirs(os.path.dirname(f))
+        open(f, "wb").close()
+        code = ("import importlib.machinery as m, importlib.util as u, sys;"
+                "l = m.SourceFileLoader('s', sys.argv[1]); s = u.module_from_spec(u.spec_from_loader('s', l));"
+                "l.exec_module(s); print(s.trash_file(sys.argv[2]))")
+        env = dict(os.environ, HOME=home, XDG_DATA_HOME=os.path.join(home, ".local", "share"), PYTHONPATH=I18N)
+        r = subprocess.run([sys.executable, "-c", code, BIN, f], capture_output=True, text=True, env=env, timeout=20)
+        self.assertEqual(r.stdout.strip(), "trash", r.stderr)
+        self.assertFalse(os.path.exists(f))
+        self.assertTrue(os.path.exists(os.path.join(home, ".local", "share", "Trash", "files", "Screenshot x.png")))
+        # Slozka bez Kose (tmpfs mimo domov): soubor, ktery program prave vytvoril, se smaze
+        g = os.path.join(tempfile.mkdtemp(dir=TMP), "y.png")
+        open(g, "wb").close()
+        env = dict(os.environ, PYTHONPATH=I18N)
+        r = subprocess.run([sys.executable, "-c", code, BIN, g], capture_output=True, text=True, env=env, timeout=20)
+        self.assertIn(r.stdout.strip(), ("trash", "deleted"), r.stderr)
+        self.assertFalse(os.path.exists(g))
+        # Chybejici soubor: chyba, nic se netvari jako smazane
+        r = subprocess.run([sys.executable, "-c", code, BIN, g], capture_output=True, text=True, env=env, timeout=20)
+        self.assertNotEqual(r.returncode, 0)
+
+    def test_thumbnail_delete_failure_keeps_thumbnail(self):
+        app, th, path = self.thumb_app()
+        notes = []
+        orig = shot.notify
+        shot.notify = lambda text, icon=None: notes.append(text)
+        try:
+            os.unlink(path)                         # soubor mezitim zmizel
+            th.act("delete")
+            pump(50)
+            self.assertEqual(len(notes), 1)
+            self.assertIsNotNone(app.thumb)
+            self.assertEqual(self.quits, 0)
+            th.finish()
+        finally:
+            shot.notify = orig
+
+    def test_video_thumbnail_has_no_copy(self):
+        from gi.repository import GdkPixbuf
+        app = self.make_app({}, {})
+        pb = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, 440, 248)
+        pb.fill(0x334455ff)
+        th = shot.Thumbnail(app, os.path.join(self.out, "rec.mp4"), pb, video=True)
+        self.assertEqual(list(th.buttons), ["reveal", "save_as", "delete", "close"])
+        th.finish()
+        self.assertEqual(self.quits, 1)
+
     def test_window_list_bounds(self):
         """Okno se stinem GTK (_GTK_FRAME_EXTENTS) se orizne na viditelnou cast; nejvyssi okno vyhrava."""
         class W:
@@ -433,6 +931,15 @@ class TestCli(unittest.TestCase):
         sizes = sorted(png_size(os.path.join(out, f)) for f in files)
         self.assertEqual(sizes[0], (300, 200))
         self.assertGreater(sizes[1][0], 300)
+
+    def test_clipboard_survives_exit(self):
+        """--clipboard: proces skonci hned a obrazek ve schrance zustane (drzi ho xclip)."""
+        if not shutil.which("xclip"):
+            self.skipTest("xclip missing")
+        clip_text("before")
+        r = self.run_cli("--portion", "--region", "5,6,77,55", "--clipboard", "--no-thumbnail", timeout=15)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(png_bytes_size(clip_png()), (77, 55))
 
     def test_record_and_stop(self):
         if not shutil.which("ffmpeg"):

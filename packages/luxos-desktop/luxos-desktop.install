@@ -7,7 +7,16 @@ _luxos_session() {
     rm -f /usr/share/xsessions/xfce.desktop
     sed -i 's/^autologin-session=xfce$/autologin-session=luxos/' /etc/lightdm/lightdm.conf.d/*.conf 2>/dev/null || true
 }
-post_install() { _luxos_dconf; _luxos_session; }
-post_upgrade() { _luxos_dconf; _luxos_session; }
+# Prepinani rozlozeni: stare vychozi Alt+Shift (nahodne selhavalo) -> obe klavesy Shift.
+# Jen presne stare vychozi a jen jednou (znacka /var/lib/luxos/keyboard-switch-migrated);
+# vlastni volbu nemeni. Projevi se pri dalsim prihlaseni (novy start X).
+_luxos_keyboard() {
+    python3 -c 'import sys; sys.path.insert(0, "/usr/lib/luxos/python")
+import luxos_keyboard as k
+k.migrate_default_switch() and print("==> Keyboard layouts now switch with both Shift keys (from the next login).")' \
+        2>/dev/null || true
+}
+post_install() { _luxos_dconf; _luxos_session; _luxos_keyboard; }
+post_upgrade() { _luxos_dconf; _luxos_session; _luxos_keyboard; }
 # Otisk prstu: pred odinstalaci vratit PAM sluzby do puvodni podoby (hook uz pak nepobezi)
 pre_remove() { /usr/lib/luxos/luxos-fingerprint-pam remove || true; }

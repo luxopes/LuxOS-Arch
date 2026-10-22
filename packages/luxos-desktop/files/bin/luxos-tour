@@ -672,7 +672,7 @@ def draw_launchpad(p):
         gx = lx + 26 + (i % 4) * 74
         gy = ly + 52 + (i // 4) * 58
         p.icon(it[0], gx + 8, gy, 40, it[1], it[2])
-    p.combo(("Super", "A"), lx + lw / 2, ly + lh - 34, 24, 10, align="c")
+    p.combo(("Super",), lx + lw / 2, ly + lh - 34, 24, 10, align="c")   # samotne tuknuti na Super
     # Hledani + LuxAI
     sx, sy, sw = 372, 52, 248
     shadow(cr, sx, sy, sw, 40, 14, p.dark)
@@ -913,7 +913,7 @@ def draw_help(p):
     cr = p.cr
     rrect(cr, 0, 0, VW, VH, 18)
     fill(cr, hexc("#1a1c26") if p.dark else hexc("#eef0f8"))
-    rows = ((("Super", _("Space")), _("Search")), (("Super", "A"), "Launchpad"),
+    rows = ((("Super", _("Space")), _("Search")), (("Super",), "Launchpad"),
             (("Super", "E"), _("Files")), (("Super", "T"), _("Terminal")),
             (("Super", "Q"), _("Close window")), (("Super", "Shift", "4"), _("Screenshot of region")),
             (("Super", "L"), _("Lock screen")), (("Super", ","), _("Settings")))
@@ -1113,7 +1113,8 @@ def pages():
            "remove them."),
          draw_dock, [(_("Show on Screen"), "spot:dock")]),
         (_("Launchpad and Search"),
-         _("Super + A opens Launchpad with all your apps. Super + Space searches apps, files and windows. "
+         _("Tap the Super key (or press Super + A) to open Launchpad with all your apps. Super + Space "
+           "searches apps, files and windows. "
            "Type a question instead and LuxAI will answer it – Ctrl + Enter always asks LuxAI."),
          draw_launchpad, [(_("Open Launchpad"), ("luxos-launchpad",)), (_("Open Search"), ("luxos-search",))]),
         (_("Files and Safe"),

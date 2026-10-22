@@ -2376,3 +2376,18 @@ Apps that other systems ship as Snaps are usually available as Flatpaks; lux ins
 You can also change this in Settings.	Ezt a Beállításokban is módosíthatja.
 %s is not installed. LuxOS has a modern equivalent:	A(z) %s nincs telepítve. A LuxOS-ben van modern megfelelője:
 Or install the classic tool: %s	Vagy telepítse a klasszikus eszközt: %s
+More layouts? Space selects, Enter confirms (switch with both Shift keys)	További kiosztások? Szóköz kijelöl, Enter jóváhagy (váltás: mindkét Shift billentyű)
+Super key alone opens Launchpad	Magában a Super billentyű megnyitja a Launchpadet
+Tap and release Super without another key.	Nyomd le és engedd fel a Supert más billentyű nélkül.
+The setting could not be saved.	A beállítást nem sikerült menteni.
+Tap the Super key (or press Super + A) to open Launchpad with all your apps. Super + Space searches apps, files and windows. Type a question instead and LuxAI will answer it – Ctrl + Enter always asks LuxAI.	Nyomd meg magában a Super billentyűt (vagy a Super + A-t), és megnyílik a Launchpad az összes alkalmazással. A Super + szóköz alkalmazásokat, fájlokat és ablakokat keres. Írj be inkább egy kérdést, és a LuxAI válaszol – a Ctrl + Enter mindig a LuxAI-t kérdezi.
+Copied	Kimásolva
+Copied to Clipboard	Vágólapra másolva
+Save As…	Mentés másként…
+Save to: %s	Mentés helye: %s
+Hold Ctrl to copy to the clipboard	A Ctrl lenyomva tartásával a vágólapra másol
+Click a window to capture it	Kattintson egy ablakra a rögzítéséhez
+Save Screenshot	Képernyőkép mentése
+Save Recording	Felvétel mentése
+The screenshot could not be copied to the clipboard.	A képernyőkép nem másolható a vágólapra.
+The file could not be moved to the Trash.	A fájl nem helyezhető a Kukába.
