@@ -1639,7 +1639,7 @@ All lux commands: %s	Alla lux-kommandon: %s
 Experts can still run pacman directly: %s	Experter kan fortfarande köra pacman direkt: %s
 The package manager core is missing (%s). Repair it with: %s	Pakethanterarens kärna saknas (%s). Reparera den med: %s
 pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman är bara för experter (LUX_ALLOW_PACMAN=1 pacman …); lux och pacman delar samma paketdatabas.
-The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	Pakethanterarens kärna %s är äldre än Arch Linux pacman %s (en LuxOS-uppdatering kommer)
+The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	Pakethanterarens kärna %s är äldre än den i Arch Linux (%s); en LuxOS-uppdatering kommer
 You manage the system yourself with lux.	Du hanterar systemet själv med lux.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
 Layout line %s is not valid.	Rad %s i layouten är ogiltig.
@@ -2030,3 +2030,112 @@ Could not set the partition type of %s; LuxOS works anyway.	Partitionstypen för
 Downloading the list of available software first	Hämtar först listan över tillgänglig programvara
 Version %s	Version %s
 build %s	bygge %s
+Displays	Skärmar
+Displays…	Skärmar…
+Built-in Display	Inbyggd skärm
+Revert	Återställ
+Keep Changes	Behåll ändringar
+Keep these display settings?	Behålla dessa skärminställningar?
+The previous settings will be restored in %d seconds.	De tidigare inställningarna återställs om %d sekunder.
+No displays found. Display settings need an X11 session.	Inga skärmar hittades. Skärminställningar kräver en X11-session.
+Multiple Displays	Flera skärmar
+You can also switch with Super+P.	Du kan också växla med Super+P.
+This display is turned off.	Den här skärmen är avstängd.
+Turn it on with Super+P or under Multiple Displays.	Slå på den med Super+P eller under Flera skärmar.
+%s (Recommended)	%s (rekommenderas)
+Resolution	Upplösning
+A lower resolution makes everything larger; the recommended one is the sharpest.	En lägre upplösning gör allt större; den rekommenderade är skarpast.
+Refresh rate	Uppdateringsfrekvens
+Standard	Standard
+Rotation	Rotation
+The display could not use this setting.	Skärmen kunde inte använda den här inställningen.
+The previous settings were restored.	De tidigare inställningarna återställdes.
+Text Size	Textstorlek
+Smaller	Mindre
+Large	Stor
+Larger	Större
+Largest	Störst
+Changes the size of text in the menu bar, window titles and apps. Some apps need to be reopened.	Ändrar textstorleken i menyraden, fönsterrubriker och appar. Vissa appar behöver öppnas igen.
+Fingerprint Login	Inloggning med fingeravtryck
+Touch the fingerprint sensor or enter your password	Rör vid fingeravtryckssensorn eller ange ditt lösenord
+Fingerprint not recognized. Try again or enter your password.	Fingeravtrycket kändes inte igen. Försök igen eller ange ditt lösenord.
+Set Up…	Konfigurera…
+Unlock and log in with your fingerprint instead of the password.	Lås upp och logga in med fingeravtrycket i stället för lösenordet.
+Fingerprint reader: fprintd (set up in Settings > Fingerprint)	Fingeravtrycksläsare: fprintd (konfigureras i Inställningar > Fingeravtryck)
+You are not allowed to change fingerprints.	Du har inte behörighet att ändra fingeravtryck.
+The fingerprint reader is being used by another app. Try again later.	Fingeravtrycksläsaren används av en annan app. Försök igen senare.
+The fingerprint reader is not available.	Fingeravtrycksläsaren är inte tillgänglig.
+Could not remove the fingerprint.	Det gick inte att ta bort fingeravtrycket.
+Something went wrong. Try again.	Något gick fel. Försök igen.
+Looking for a fingerprint reader…	Söker efter en fingeravtrycksläsare…
+Use your fingerprint to log in, unlock the screen and approve administrator actions. Your password always works too.	Använd fingeravtrycket för att logga in, låsa upp skärmen och godkänna administratörsåtgärder. Lösenordet fungerar alltid också.
+Fingerprints	Fingeravtryck
+Add Fingerprint…	Lägg till fingeravtryck…
+Remove All	Ta bort alla
+This computer has no supported fingerprint reader. If you connect one, open Drivers to set it up.	Den här datorn har ingen fingeravtrycksläsare som stöds. Om du ansluter en, öppna Drivrutiner för att konfigurera den.
+Fingerprint support is not installed. Drivers installs it automatically when your computer has a supported fingerprint reader.	Stöd för fingeravtryck är inte installerat. Drivrutiner installerar det automatiskt om datorn har en läsare som stöds.
+No fingerprint reader found	Ingen fingeravtrycksläsare hittades
+Open Drivers	Öppna Drivrutiner
+No fingerprints added yet.	Inga fingeravtryck har lagts till ännu.
+Remove the fingerprint “%s”?	Ta bort fingeravtrycket ”%s”?
+You will no longer be able to use this finger to log in.	Du kan inte längre logga in med det här fingret.
+Removing…	Tar bort…
+Remove all fingerprints?	Ta bort alla fingeravtryck?
+You will need your password to log in.	Du behöver ditt lösenord för att logga in.
+Add Fingerprint	Lägg till fingeravtryck
+Which finger do you want to add?	Vilket finger vill du lägga till?
+Swipe your finger across the sensor.	Dra fingret över sensorn.
+Place your finger on the sensor, then lift it.	Lägg fingret på sensorn och lyft det sedan.
+Step %d of %d	Steg %d av %d
+Right index finger	Höger pekfinger
+Left index finger	Vänster pekfinger
+Right thumb	Höger tumme
+Left thumb	Vänster tumme
+Right middle finger	Höger långfinger
+Left middle finger	Vänster långfinger
+Right ring finger	Höger ringfinger
+Left ring finger	Vänster ringfinger
+Right little finger	Höger lillfinger
+Left little finger	Vänster lillfinger
+Lift your finger, then touch the sensor again	Lyft fingret och rör vid sensorn igen
+Didn't catch that. Touch the sensor again.	Det gick inte att läsa. Rör vid sensorn igen.
+Swipe was too short. Try again.	Dragningen var för kort. Försök igen.
+Center your finger on the sensor and try again.	Placera fingret mitt på sensorn och försök igen.
+Lift your finger and try again.	Lyft fingret och försök igen.
+Fingerprint added	Fingeravtrycket har lagts till
+Could not add the fingerprint. Try again.	Det gick inte att lägga till fingeravtrycket. Försök igen.
+The reader cannot store more fingerprints. Remove one first.	Läsaren kan inte lagra fler fingeravtryck. Ta bort ett först.
+This fingerprint is already added.	Det här fingeravtrycket har redan lagts till.
+The fingerprint reader was disconnected.	Fingeravtrycksläsaren kopplades från.
+Swipe your finger again	Dra fingret igen
+What's New	Nyheter
+What's New in LuxOS %s	Nyheter i LuxOS %s
+LuxOS %s	LuxOS %s
+No release notes are available.	Inga versionsanteckningar finns.
+Could not check for updates. Check your internet connection and try again.	Det gick inte att söka efter uppdateringar. Kontrollera internetanslutningen och försök igen.
+Capture	Ta bild
+Capture Entire Screen	Ta bild av hela skärmen
+Capture Selected Window	Ta bild av markerat fönster
+Capture Selected Portion	Ta bild av markerat område
+Record	Spela in
+Record Entire Screen	Spela in hela skärmen
+Record Selected Portion	Spela in markerat område
+Options	Alternativ
+Timer	Timer
+None	Ingen
+5 Seconds	5 sekunder
+10 Seconds	10 sekunder
+Clipboard	Urklipp
+Choose a Folder	Välj en mapp
+Show Mouse Pointer	Visa muspekaren
+Remember Last Selection	Kom ihåg senaste markering
+Screenshot %s at %s	Skärmbild %s kl. %s
+Screen Recording %s at %s	Skärminspelning %s kl. %s
+Stop	Stoppa
+Stop Recording	Stoppa inspelningen
+Screen recording is not available: ffmpeg was not found.	Skärminspelning är inte tillgänglig: ffmpeg hittades inte.
+The screen recording failed.	Skärminspelningen misslyckades.
+The screenshot could not be saved.	Skärmbilden kunde inte sparas.
+%s .pacnew config file(s) to merge - run: lux configs	%s .pacnew-konfigurationsfil(er) att sammanfoga – kör: lux configs
+Your settings were kept. Merge the files when convenient: lux configs	Dina inställningar har behållits. Sammanfoga filerna när det passar: lux configs
+review and merge new config files (.pacnew)	granska och sammanfoga nya konfigurationsfiler (.pacnew)

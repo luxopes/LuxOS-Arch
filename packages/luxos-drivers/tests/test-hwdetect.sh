@@ -245,6 +245,27 @@ has fprintd usb_modeswitch
 machine elan-touch; usb 1-3 04f3 2b7c
 run_case "Elan touchscreen only"
 lacks fprintd
+# Seznam libfprint z hwdb systemd: podporovane i mimo odhad podle vyrobce, nepodporovane nikdy
+fp_hwdb() {
+    mkdir -p "$ROOT/usr/lib/udev/hwdb.d"
+    printf '%s\n' '# Supported by libfprint driver aes2501' 'usb:v08FFp2580*' ' ID_AUTOSUSPEND=1' '' \
+        '# Supported by libfprint driver synaptics' 'usb:v06CBp00BD*' ' ID_AUTOSUSPEND=1' '' \
+        '# Known unsupported devices' 'usb:v06CBp0081*' 'usb:v27C6p5740*' ' ID_AUTOSUSPEND=1' \
+        >"$ROOT/usr/lib/udev/hwdb.d/60-autosuspend-fingerprint-reader.hwdb"
+}
+machine fp-hwdb-ok; fp_hwdb; usb 1-1 08ff 2580
+run_case "fingerprint supported by hwdb (AuthenTec)"
+has fprintd
+machine fp-hwdb-ok2; fp_hwdb; usb 1-1 06CB 00BD
+run_case "fingerprint supported by hwdb (Synaptics, upper case)"
+has fprintd
+machine fp-hwdb-no; fp_hwdb; usb 1-1 06cb 0081; usb 1-2 27c6 5740
+run_case "fingerprint known unsupported"
+lacks fprintd
+json_py 'not any(x["id"] == "fingerprint" for x in d["devices"])'
+machine fp-hwdb-unknown; fp_hwdb; usb 1-1 27c6 63ac
+run_case "fingerprint unknown ID, known vendor"
+has fprintd
 
 # --- Thunderbolt a akcelerometr ---
 machine tb; mkdir -p "$ROOT/sys/bus/thunderbolt/devices/domain0"

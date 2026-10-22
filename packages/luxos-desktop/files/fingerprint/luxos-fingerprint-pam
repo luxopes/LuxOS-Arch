@@ -1,0 +1,131 @@
+#!/bin/bash
+# LuxOS - prihlaseni otiskem prstu: zapis pam_fprintd do PAM sluzeb (LightDM, sudo, polkit, zamek)
+#
+# Pouziti: luxos-fingerprint-pam [sync|apply|remove|status]
+#   sync    apply, pokud je nainstalovany pam_fprintd (balik fprintd), jinak remove (vychozi)
+#   apply   vlozi blok s pam_fprintd pred prvni radek "auth" kazde sluzby
+#   remove  blok odebere (kopie z /usr/lib/pam.d, ktere vytvoril apply, smaze)
+#   status  vypise stav sluzeb
+#
+# Soubory v /etc/pam.d patri jinym balikum (lightdm, sudo, polkit, xfce4-screensaver), proto
+# je nenahrazujeme cele: menime jen vlastni blok mezi znackami a pacman hook ho po kazde
+# aktualizaci techto baliku obnovi. Radky "-auth" PAM tise preskoci, kdyz modul chybi,
+# a pam_fprintd bez ctecky / bez ulozenych otisku / pri vzdalenem prihlaseni hned vraci
+# PAM_AUTHINFO_UNAVAIL - heslo tak funguje vzdy.
+set -euo pipefail
+
+R=${LUXOS_PAM_ROOT:-}                 # koren pro testy
+PAMD=$R/etc/pam.d
+VENDOR=$R/usr/lib/pam.d
+MODULE=$R/usr/lib/security/pam_fprintd.so
+BEGIN="# LuxOS fingerprint: begin (managed by luxos-fingerprint-pam)"
+END="# LuxOS fingerprint: end"
+COPY="# LuxOS fingerprint: copy of /usr/lib/pam.d"
+# Greeter LuxOS sem zapise uzivatele, ktery zacal psat heslo: pam_listfile pak otisk preskoci
+# a PAM se hned zepta na heslo (bez cekani na timeout ctecky). Viz luxos-greeter, tmpfiles.d.
+SKIP=/run/luxos-fingerprint/password-only
+SERVICES=(lightdm sudo polkit-1 xfce4-screensaver)
+
+block() {  # block SLUZBA - radky vkladane do sluzby
+    printf '%s\n' "$BEGIN"
+    if [[ $1 == lightdm ]]; then
+        # uzivatel v souboru -> preskocit pam_fprintd (default=1); jinak i bez souboru pokracovat
+        printf '%s\n' "auth       [success=ignore default=1]  pam_listfile.so item=user sense=deny file=$SKIP onerr=succeed"
+        printf '%s\n' "-auth      sufficient  pam_fprintd.so max-tries=3 timeout=30"
+    else
+        # sudo, polkit a zamek obrazovky neumi heslo a otisk soubezne: kratky timeout
+        printf '%s\n' "-auth      sufficient  pam_fprintd.so max-tries=3 timeout=10"
+    fi
+    printf '%s\n' "$END"
+}
+
+strip_block() {  # obsah souboru bez naseho bloku
+    awk -v b="$BEGIN" -v e="$END" '$0 == b {skip = 1; next} skip && $0 == e {skip = 0; next} !skip' "$1"
+}
+
+with_block() {  # with_block SOUBOR SLUZBA - obsah s blokem pred prvnim radkem auth
+    local blk
+    blk=$(block "$2")
+    strip_block "$1" | awk -v blk="$blk" '
+        !done && $0 ~ /^[[:space:]]*-?auth[[:space:]]/ { print blk; done = 1 }
+        { print }
+        END { if (!done) exit 3 }'
+}
+
+write_file() {  # write_file CIL OBSAH - atomicky, jen pri zmene; zachova prava
+    local dst=$1 tmp
+    if [[ -f $dst ]] && [[ $(cat "$dst") == "$2" ]]; then
+        return 0
+    fi
+    tmp=$(mktemp "$dst.luxos.XXXXXX")
+    printf '%s\n' "$2" >"$tmp"
+    if [[ -f $dst ]]; then
+        chmod --reference="$dst" "$tmp"
+    else
+        chmod 644 "$tmp"
+    fi
+    mv -f "$tmp" "$dst"
+}
+
+apply_one() {
+    local s=$1 f=$PAMD/$1 src content
+    if [[ -f $f ]]; then
+        src=$f
+    elif [[ -f $VENDOR/$s ]]; then
+        # sluzba jen v /usr/lib/pam.d: vlastni kopie v /etc/pam.d (ma prednost)
+        src=$VENDOR/$s
+    else
+        return 0                      # balik se sluzbou neni nainstalovany
+    fi
+    if ! content=$(with_block "$src" "$s"); then
+        echo "luxos-fingerprint-pam: $s: no auth line, skipped" >&2
+        return 0
+    fi
+    [[ $src == "$VENDOR/$s" ]] && content="$COPY"$'\n'"$content"
+    mkdir -p "$PAMD"
+    write_file "$f" "$content"
+}
+
+remove_one() {
+    local s=$1 f=$PAMD/$1 content
+    [[ -f $f ]] || return 0
+    content=$(strip_block "$f")
+    if [[ $(head -n1 "$f") == "$COPY" ]]; then
+        content=$(sed '1d' <<<"$content")
+        # nase kopie beze zmen spravce -> smazat, plati opet soubor z /usr/lib/pam.d
+        if [[ -f $VENDOR/$s ]] && [[ $content == "$(cat "$VENDOR/$s")" ]]; then
+            rm -f "$f"
+            return 0
+        fi
+    fi
+    grep -qxF "$BEGIN" "$f" || [[ $(head -n1 "$f") == "$COPY" ]] || return 0
+    write_file "$f" "$content"
+}
+
+status() {
+    local s f
+    for s in "${SERVICES[@]}"; do
+        f=$PAMD/$s
+        if [[ -f $f ]] && grep -qxF "$BEGIN" "$f"; then
+            echo "$s: fingerprint"
+        elif [[ -f $f || -f $VENDOR/$s ]]; then
+            echo "$s: password only"
+        else
+            echo "$s: not installed"
+        fi
+    done
+}
+
+cmd=${1:-sync}
+case $cmd in
+    sync)   if [[ -e $MODULE ]]; then cmd=apply; else cmd=remove; fi ;;
+    apply|remove) ;;
+    status) status; exit 0 ;;
+    -h|--help) sed -n '2,10p' "$0" | sed 's/^# \?//'; exit 0 ;;
+    *) echo "Unknown command: $cmd" >&2; exit 2 ;;
+esac
+rc=0
+for s in "${SERVICES[@]}"; do
+    "${cmd}_one" "$s" || { echo "luxos-fingerprint-pam: $s: $cmd failed" >&2; rc=1; }
+done
+exit $rc

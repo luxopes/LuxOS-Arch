@@ -1,7 +1,7 @@
 # --- Zaklad live systemu (archiso) ---
 base
-# pacman z Archu (libalpm, makepkg); prikaz pacman je kompatibilni vrstva, pacstrap ho dostane beze zmeny
-luxos-pacman
+# jadro lux (libalpm, makepkg a nastroje pacmanu z Archu v /usr/lib/lux/alpm/bin, bez prikazu pacman)
+lux-engine
 linux
 linux-firmware
 sof-firmware

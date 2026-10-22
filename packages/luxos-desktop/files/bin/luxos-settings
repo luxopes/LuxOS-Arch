@@ -174,7 +174,8 @@ class Settings(Gtk.Window):
         self.build_bar(page)
 
         more = Gtk.Box(spacing=8, margin_top=18)
-        for label, cmd in ((_("Advanced Desktop Settings…"), ["/usr/bin/xfdesktop-settings"]),
+        for label, cmd in ((_("Displays…"), ["luxos-display-settings"]),
+                           (_("Advanced Desktop Settings…"), ["/usr/bin/xfdesktop-settings"]),
                            (_("Menu Bar Items…"), ["xfce4-panel", "--preferences"])):
             b = Gtk.Button(label=label)
             b.connect("clicked", lambda _b, c=cmd: subprocess.Popen(c, start_new_session=True))

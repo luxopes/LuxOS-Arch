@@ -17,7 +17,7 @@ LUX = os.path.join(HERE, "..", "lux")
 
 STUB = """#!/bin/bash
 n=$(basename "$0")
-# skutecny pacman (luxos-pacman: .../alpm/pacman) se zapisuje zvlast od /usr/bin/pacman
+# pacman predany v LUX_PACMAN z adresare .../alpm/ se zapisuje zvlast (alpm-pacman)
 [[ $(basename "$(dirname "$0")") == alpm ]] && n=alpm-$n
 printf '%s\\n' "$*" >>"$LOG/$n.log"
 case "$(basename "$0")" in
@@ -88,6 +88,8 @@ class CLI(unittest.TestCase):
             "XDG_CONFIG_HOME": os.path.join(self.tmp, "cfg"),
             "XDG_CACHE_HOME": os.path.join(self.tmp, "cache"),
             "LUX_ALPM": os.path.join(self.bin, "lux_alpm.py"),
+            # nastroje jadra (v LuxOS /usr/lib/lux/alpm/bin): zastupne skripty, i v PATH pro roota
+            "LUX_ENGINE_BIN": self.bin,
             "LOG": self.log,
             "FAKEDB": self.db,
             "LANG": "C.UTF-8",
@@ -129,7 +131,7 @@ class CLI(unittest.TestCase):
         for cmd in ("install", "remove", "update, upgrade", "reinstall", "autoremove", "owns", "fix",
                     "list --upgradable", "history"):
             self.assertIn(cmd, out)
-        self.assertIn("LUX_ALLOW_PACMAN=1", out)
+        self.assertNotIn("pacman", out)
 
     def test_install_through_backend_as_root(self):
         rc, out = self.lux("install", "htop")
@@ -137,9 +139,47 @@ class CLI(unittest.TestCase):
         self.assertEqual(self.backend(), ["resolve -- htop", "install --needed -- htop"])
         sudo = self.calls("sudo")
         self.assertEqual(len(sudo), 1)
-        self.assertIn("/usr/bin/env LUX_COLOR=never LANG=C.UTF-8", sudo[0])
+        # sudo nastavi vlastni PATH: lux preda pevnou cestu s nastroji jadra (hooky, skriptlety), ne PATH uzivatele
+        self.assertIn(f"/usr/bin/env PATH={self.bin}:/usr/local/sbin:/usr/local/bin:/usr/bin LUX_COLOR=never LANG=C.UTF-8",
+                      sudo[0])
+        self.assertNotIn(":/bin ", sudo[0])
         self.assertIn("--color=never", sudo[0])
         self.assertNotIn(" -y ", sudo[0])                     # bez -y se nic nepotvrzuje samo
+
+    def test_engine_tools_on_path(self):
+        """Nastroje jadra jsou mimo PATH: lux je prida na zacatek (pro sebe, makepkg, checkupdates...)."""
+        probe = os.path.join(self.bin, "lux-path-probe")
+        out = subprocess.run(["bash", "-c", f'source <(sed -n "1,/^# --- Vystup/p" "{LUX}"); echo "$PATH"'],
+                             env=dict(self.env, LUX_ENGINE_BIN="/opt/engine"), capture_output=True, text=True)
+        self.assertEqual(out.stdout.strip(), "/opt/engine:" + self.env["PATH"], out.stderr)
+        out = subprocess.run(["bash", "-c", f'source <(sed -n "1,/^# --- Vystup/p" "{LUX}"); echo "$PATH"'],
+                             env=dict(self.env, LUX_ENGINE_BIN="/opt/engine", PATH="/usr/bin:/opt/engine"),
+                             capture_output=True, text=True)
+        self.assertEqual(out.stdout.strip(), "/usr/bin:/opt/engine")          # bez duplicit
+        self.assertFalse(os.path.exists(probe))
+
+    def test_configs_runs_pacdiff_with_engine_tools(self):
+        """lux configs: pacdiff (vola pacman a pacman-conf jmenem) bezi jako root s nastroji jadra v PATH."""
+        for name, body in (("pacdiff", 'printf "%s|%s\\n" "$*" "$PATH" >>"$LOG/pacdiff.log"\n'),
+                           ("find", 'echo /etc/pacman.conf.pacnew\n')):
+            p = os.path.join(self.bin, name)
+            with open(p, "w") as f:
+                f.write("#!/bin/bash\n" + body)
+            os.chmod(p, 0o755)
+        rc, out = self.lux("configs", "--output")
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(len(self.calls("sudo")), 1)
+        args, path = self.calls("pacdiff")[0].split("|")
+        self.assertEqual(args, "--output")
+        self.assertEqual(path, f"{self.bin}:/usr/local/sbin:/usr/local/bin:/usr/bin")
+        # bez novych konfiguracnich souboru se nic nespousti
+        with open(os.path.join(self.bin, "find"), "w") as f:
+            f.write("#!/bin/bash\nexit 0\n")
+        os.remove(os.path.join(self.log, "pacdiff.log"))
+        rc, out = self.lux("configs")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("No pending config files", out)
+        self.assertEqual(self.calls("pacdiff"), [])
 
     def test_install_not_found_installs_nothing(self):
         rc, out = self.lux("install", "htop", "nope")
@@ -201,8 +241,7 @@ class CLI(unittest.TestCase):
             self.assertIn("-Qu", self.calls("pacman"))
 
     def test_fallback_uses_real_pacman_not_shim(self):
-        """Zalozni cesta vola skutecny pacman (LUX_PACMAN, v LuxOS /usr/lib/lux/alpm/pacman), nikdy
-        /usr/bin/pacman - to je v LuxOS kompatibilni vrstva, ktera by v terminalu odmitla."""
+        """Zalozni cesta vola pacman z LUX_PACMAN (v LuxOS /usr/lib/lux/alpm/bin/pacman z lux-engine)."""
         alpm = os.path.join(self.tmp, "alpm")
         os.makedirs(alpm)
         real = os.path.join(alpm, "pacman")
@@ -220,7 +259,7 @@ class CLI(unittest.TestCase):
             self.assertIn(want, real_calls)
         self.assertTrue(any(x.startswith("-Ss") for x in real_calls), real_calls)
         self.assertEqual(self.calls("pacman"), [])
-        # neexistujici LUX_PACMAN -> pacman z PATH (system bez luxos-pacman)
+        # neexistujici LUX_PACMAN -> pacman z PATH (system bez lux-engine)
         shutil.rmtree(self.log)
         os.makedirs(self.log)
         rc, out = self.lux("-y", "install", "htop", env={"LUX_BACKEND": "pacman", "LUX_PACMAN": "/nonexistent"})

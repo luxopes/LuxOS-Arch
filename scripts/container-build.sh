@@ -13,8 +13,8 @@ PROFILE=/tmp/luxos-profile
 target=${1:-all}
 
 # Repozitar [luxos]: system LuxOS, poradi = zavislosti vlastnich baliku prvni
-# (luxos-pacman = pacman z Archu s /usr/bin/pacman jako kompatibilni vrstvou; potrebuji ho lux, pyalpm i base)
-PACKAGES=(luxos-pacman luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-printing luxos-desktop luxos-installer
+# (lux-engine = jadro lux: libalpm a nastroje pacmanu z Archu bez prikazu pacman; potrebuji ho lux, pyalpm i base)
+PACKAGES=(lux-engine luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-printing luxos-desktop luxos-installer
           # Legacy ovladace NVIDIA z AUR (Maxwell/Pascal/Volta 580xx, Kepler 470xx) - jen online, ne v ISO
           nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-470xx-utils lib32-nvidia-470xx-utils)
 # Baliky, ktere se nekopiruji do mistniho repozitare v ISO (velke, potrebuje je jen malo pocitacu;
@@ -44,6 +44,8 @@ build_one() {  # build_one ADRESAR_BALIKU CIL_PKGDEST
     msg "Building package $p"
     rm -rf "${BUILD:?}/$p"
     cp -r "$src" "$BUILD/$p"
+    # mezipameti Pythonu z testu (py_compile, import skriptu) do balicku nepatri - a "install -t dir/*" na nich selze
+    find "$BUILD/$p" -name __pycache__ -type d -prune -exec rm -rf {} +
     chown -R builder: "$BUILD/$p"
     # makepkg bezi s --nodeps (zavislosti na vlastnich balicich), makedepends a checkdepends instalujeme zvlast
     (set +u; makedepends=(); checkdepends=(); source "$BUILD/$p/PKGBUILD"
@@ -138,16 +140,16 @@ PY
     msg "Repository [lux]: $(find "$dir" -name '*.lux' | wc -l) packages in out/repo/lux"
 }
 
-# luxos-pacman musi drzet krok s pacmanem Arch Linuxu: pyalpm a dalsi baliky z Archu se sestavuji
+# lux-engine musi drzet krok s pacmanem Arch Linuxu: pyalpm a dalsi baliky z Archu se sestavuji
 # proti jeho libalpm.so. Kontejner je po -Syu aktualni Arch, takze jeho [core]/pacman je Arch.
 check_pacman_version() {
     local arch ours
     arch=$(LC_ALL=C pacman -Si core/pacman 2>/dev/null | awk -F': ' '/^Version/ {print $2; exit}')
-    ours=$(set +u; source "$ROOT/packages/luxos-pacman/PKGBUILD"; echo "$pkgver-$pkgrel")
+    ours=$(set +u; source "$ROOT/packages/lux-engine/PKGBUILD"; echo "$pkgver-$pkgrel")
     [[ -n $arch ]] || { msg "WARNING: cannot read the Arch Linux pacman version"; return 0; }
     if (($(vercmp "$arch" "$ours") > 0)); then
-        msg "WARNING: Arch Linux has pacman $arch, luxos-pacman is $ours"
-        printf '    Update packages/luxos-pacman/PKGBUILD from the Arch tag (see its header) before publishing.\n' >&2
+        msg "WARNING: Arch Linux has pacman $arch, lux-engine is $ours"
+        printf '    Update packages/lux-engine/PKGBUILD from the Arch tag (see its header) before publishing.\n' >&2
     fi
 }
 

@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=27
+pkgrel=28
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 options=(!debug)
@@ -18,7 +18,7 @@ depends=(
     xorg-server xorg-xrandr xorg-xinput xorg-xset xf86-input-libinput mesa
     # Xfce (jen potrebne casti)
     xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf xfce4-notifyd
-    xfce4-power-manager xfce4-screensaver xfce4-terminal xfce4-screenshooter xfce4-taskmanager
+    xfce4-power-manager xfce4-screensaver xfce4-terminal ffmpeg xfce4-taskmanager
     xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xfce4-xkb-plugin xorg-xprop libxi libxtst libxrandr
     brightnessctl luxos-i18n luxos-store luxos-account
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
@@ -41,6 +41,8 @@ depends=(
     # Nastroje
     lshw pciutils usbutils
 )
+# fprintd instaluje luxos-drivers jen pri nalezene ctecce (luxos-hwdetect)
+optdepends=('fprintd: log in with a fingerprint (Fingerprint settings)')
 
 build() {
     # Prepinani nabidek horni listy jednim klikem
@@ -70,6 +72,9 @@ package() {
     install -Dm644 -t "$pkgdir/usr/share/applications/screensavers" "$f"/screensaver/*.desktop
     install -Dm755 -t "$pkgdir/usr/lib/luxos/override-bin" "$f"/override-bin/*
     install -Dm644 -t "$pkgdir/usr/share/applications" "$f"/applications/*.desktop
+    # Monitory i v Launchpadu (ten skryva panely Nastaveni); OnlyShowIn ji skryje v menu a Hledani
+    sed -e 's/^Categories=.*/Categories=X-LuxOS-Launchpad;/' -e '/^\[Desktop Entry\]/a OnlyShowIn=X-LuxOS-Launchpad;' \
+        "$f/applications/luxos-display-settings.desktop" > "$pkgdir/usr/share/applications/luxos-display-settings-launchpad.desktop"
     install -Dm644 -t "$pkgdir/usr/share/icons/hicolor/scalable/apps" "$f"/icons/*.svg
     install -Dm644 -t "$pkgdir/usr/share/rofi/themes" "$f"/rofi/luxos-*.rasi
 
@@ -92,6 +97,14 @@ package() {
     # Prihlasovaci relace "LuxOS" misto "Xfce Session" (hook odstrani xfce.desktop z xfce4-session)
     install -Dm644 "$f/xsessions/luxos.desktop" "$pkgdir/usr/share/xsessions/luxos.desktop"
     install -Dm644 "$f/hooks/luxos-xsession.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-xsession.hook"
+
+    # Otisk prstu: pam_fprintd v LightDM/sudo/polkit/zamku (hook po instalaci fprintd a aktualizacich
+    # dotcenych baliku), soubor pro greeter "jen heslo" a kopie panelu pro Launchpad
+    install -Dm755 "$f/fingerprint/luxos-fingerprint-pam" "$pkgdir/usr/lib/luxos/luxos-fingerprint-pam"
+    install -Dm644 "$f/fingerprint/luxos-fingerprint.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-fingerprint.hook"
+    install -Dm644 "$f/fingerprint/luxos-fingerprint.tmpfiles" "$pkgdir/usr/lib/tmpfiles.d/luxos-fingerprint.conf"
+    sed -e 's/^Categories=.*/Categories=X-LuxOS-Launchpad;/' -e '/^\[Desktop Entry\]/a OnlyShowIn=X-LuxOS-Launchpad;' \
+        "$f/applications/luxos-fingerprint.desktop" > "$pkgdir/usr/share/applications/luxos-fingerprint-launchpad.desktop"
 
     # Skryte technicke aplikace (prekryti pres XDG_DATA_DIRS, viz /etc/profile.d/luxos.sh)
     local a

@@ -1639,7 +1639,7 @@ All lux commands: %s	Tutti i comandi lux: %s
 Experts can still run pacman directly: %s	Gli esperti possono ancora eseguire pacman direttamente: %s
 The package manager core is missing (%s). Repair it with: %s	Manca il nucleo del gestore dei pacchetti (%s). Riparalo con: %s
 pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman è solo per esperti (LUX_ALLOW_PACMAN=1 pacman …); lux e pacman condividono lo stesso database dei pacchetti.
-The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	Il nucleo del gestore dei pacchetti %s è più vecchio di pacman di Arch Linux %s (seguirà un aggiornamento di LuxOS)
+The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	Il nucleo del gestore dei pacchetti %s è più vecchio di quello di Arch Linux (%s); seguirà un aggiornamento di LuxOS
 You manage the system yourself with lux.	Gestisci tu il sistema con lux.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
 Layout line %s is not valid.	La riga %s dello schema non è valida.
@@ -2030,3 +2030,112 @@ Could not set the partition type of %s; LuxOS works anyway.	Impossibile impostar
 Downloading the list of available software first	Prima scarico l’elenco del software disponibile
 Version %s	Versione %s
 build %s	build %s
+Displays	Schermi
+Displays…	Schermi…
+Built-in Display	Schermo integrato
+Revert	Ripristina
+Keep Changes	Mantieni modifiche
+Keep these display settings?	Mantenere queste impostazioni dello schermo?
+The previous settings will be restored in %d seconds.	Le impostazioni precedenti verranno ripristinate tra %d secondi.
+No displays found. Display settings need an X11 session.	Nessuno schermo trovato. Le impostazioni dello schermo richiedono una sessione X11.
+Multiple Displays	Più schermi
+You can also switch with Super+P.	Puoi anche cambiare con Super+P.
+This display is turned off.	Questo schermo è spento.
+Turn it on with Super+P or under Multiple Displays.	Accendilo con Super+P o in Più schermi.
+%s (Recommended)	%s (consigliata)
+Resolution	Risoluzione
+A lower resolution makes everything larger; the recommended one is the sharpest.	Una risoluzione più bassa ingrandisce tutto; quella consigliata è la più nitida.
+Refresh rate	Frequenza di aggiornamento
+Standard	Standard
+Rotation	Rotazione
+The display could not use this setting.	Lo schermo non ha potuto usare questa impostazione.
+The previous settings were restored.	Le impostazioni precedenti sono state ripristinate.
+Text Size	Dimensione del testo
+Smaller	Più piccolo
+Large	Grande
+Larger	Più grande
+Largest	Il più grande
+Changes the size of text in the menu bar, window titles and apps. Some apps need to be reopened.	Cambia la dimensione del testo nella barra dei menu, nei titoli delle finestre e nelle app. Alcune app vanno riaperte.
+Fingerprint Login	Accesso con impronta
+Touch the fingerprint sensor or enter your password	Tocca il sensore di impronte o inserisci la password
+Fingerprint not recognized. Try again or enter your password.	Impronta non riconosciuta. Riprova o inserisci la password.
+Set Up…	Configura…
+Unlock and log in with your fingerprint instead of the password.	Sblocca e accedi con l’impronta invece della password.
+Fingerprint reader: fprintd (set up in Settings > Fingerprint)	Lettore di impronte: fprintd (configuralo in Impostazioni > Impronta)
+You are not allowed to change fingerprints.	Non hai i permessi per modificare le impronte.
+The fingerprint reader is being used by another app. Try again later.	Il lettore di impronte è in uso da un’altra app. Riprova più tardi.
+The fingerprint reader is not available.	Il lettore di impronte non è disponibile.
+Could not remove the fingerprint.	Impossibile rimuovere l’impronta.
+Something went wrong. Try again.	Si è verificato un problema. Riprova.
+Looking for a fingerprint reader…	Ricerca del lettore di impronte…
+Use your fingerprint to log in, unlock the screen and approve administrator actions. Your password always works too.	Usa l’impronta per accedere, sbloccare lo schermo e approvare le azioni di amministratore. Anche la password funziona sempre.
+Fingerprints	Impronte
+Add Fingerprint…	Aggiungi impronta…
+Remove All	Rimuovi tutto
+This computer has no supported fingerprint reader. If you connect one, open Drivers to set it up.	Questo computer non ha un lettore di impronte supportato. Se ne colleghi uno, apri Driver per configurarlo.
+Fingerprint support is not installed. Drivers installs it automatically when your computer has a supported fingerprint reader.	Il supporto per le impronte non è installato. Driver lo installa automaticamente se il computer ha un lettore supportato.
+No fingerprint reader found	Nessun lettore di impronte trovato
+Open Drivers	Apri Driver
+No fingerprints added yet.	Nessuna impronta aggiunta.
+Remove the fingerprint “%s”?	Rimuovere l’impronta «%s»?
+You will no longer be able to use this finger to log in.	Non potrai più accedere con questo dito.
+Removing…	Rimozione…
+Remove all fingerprints?	Rimuovere tutte le impronte?
+You will need your password to log in.	Per accedere servirà la password.
+Add Fingerprint	Aggiungi impronta
+Which finger do you want to add?	Quale dito vuoi aggiungere?
+Swipe your finger across the sensor.	Fai scorrere il dito sul sensore.
+Place your finger on the sensor, then lift it.	Appoggia il dito sul sensore, poi sollevalo.
+Step %d of %d	Passo %d di %d
+Right index finger	Indice destro
+Left index finger	Indice sinistro
+Right thumb	Pollice destro
+Left thumb	Pollice sinistro
+Right middle finger	Medio destro
+Left middle finger	Medio sinistro
+Right ring finger	Anulare destro
+Left ring finger	Anulare sinistro
+Right little finger	Mignolo destro
+Left little finger	Mignolo sinistro
+Lift your finger, then touch the sensor again	Solleva il dito, poi tocca di nuovo il sensore
+Didn't catch that. Touch the sensor again.	Lettura non riuscita. Tocca di nuovo il sensore.
+Swipe was too short. Try again.	Scorrimento troppo breve. Riprova.
+Center your finger on the sensor and try again.	Centra il dito sul sensore e riprova.
+Lift your finger and try again.	Solleva il dito e riprova.
+Fingerprint added	Impronta aggiunta
+Could not add the fingerprint. Try again.	Impossibile aggiungere l’impronta. Riprova.
+The reader cannot store more fingerprints. Remove one first.	Il lettore non può memorizzare altre impronte. Rimuovine prima una.
+This fingerprint is already added.	Questa impronta è già stata aggiunta.
+The fingerprint reader was disconnected.	Il lettore di impronte è stato scollegato.
+Swipe your finger again	Fai scorrere di nuovo il dito
+What's New	Novità
+What's New in LuxOS %s	Novità di LuxOS %s
+LuxOS %s	LuxOS %s
+No release notes are available.	Nessuna nota di rilascio disponibile.
+Could not check for updates. Check your internet connection and try again.	Impossibile cercare aggiornamenti. Controlla la connessione a Internet e riprova.
+Capture	Cattura
+Capture Entire Screen	Cattura l’intero schermo
+Capture Selected Window	Cattura la finestra selezionata
+Capture Selected Portion	Cattura l’area selezionata
+Record	Registra
+Record Entire Screen	Registra l’intero schermo
+Record Selected Portion	Registra l’area selezionata
+Options	Opzioni
+Timer	Timer
+None	Nessuno
+5 Seconds	5 secondi
+10 Seconds	10 secondi
+Clipboard	Appunti
+Choose a Folder	Scegli una cartella
+Show Mouse Pointer	Mostra il puntatore
+Remember Last Selection	Ricorda l’ultima selezione
+Screenshot %s at %s	Istantanea %s alle %s
+Screen Recording %s at %s	Registrazione schermo %s alle %s
+Stop	Interrompi
+Stop Recording	Interrompi la registrazione
+Screen recording is not available: ffmpeg was not found.	La registrazione dello schermo non è disponibile: ffmpeg non trovato.
+The screen recording failed.	La registrazione dello schermo non è riuscita.
+The screenshot could not be saved.	Impossibile salvare l’istantanea.
+%s .pacnew config file(s) to merge - run: lux configs	File di configurazione .pacnew da unire: %s - esegui: lux configs
+Your settings were kept. Merge the files when convenient: lux configs	Le tue impostazioni sono state mantenute. Unisci i file quando ti è comodo: lux configs
+review and merge new config files (.pacnew)	esamina e unisci i nuovi file di configurazione (.pacnew)

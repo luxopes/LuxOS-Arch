@@ -1639,7 +1639,7 @@ All lux commands: %s	Alle lux-opdrachten: %s
 Experts can still run pacman directly: %s	Experts kunnen pacman nog steeds direct uitvoeren: %s
 The package manager core is missing (%s). Repair it with: %s	De kern van het pakketbeheer ontbreekt (%s). Herstel met: %s
 pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman is alleen voor experts (LUX_ALLOW_PACMAN=1 pacman …); lux en pacman delen dezelfde pakketdatabase.
-The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	De kern van het pakketbeheer %s is ouder dan pacman van Arch Linux %s (een LuxOS-update volgt)
+The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	De kern van het pakketbeheer %s is ouder dan die van Arch Linux (%s); een LuxOS-update volgt
 You manage the system yourself with lux.	Je beheert het systeem zelf met lux.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
 Layout line %s is not valid.	Regel %s van de indeling is ongeldig.
@@ -2030,3 +2030,112 @@ Could not set the partition type of %s; LuxOS works anyway.	Het partitietype van
 Downloading the list of available software first	Eerst wordt de lijst met beschikbare software gedownload
 Version %s	Versie %s
 build %s	build %s
+Displays	Beeldschermen
+Displays…	Beeldschermen…
+Built-in Display	Ingebouwd beeldscherm
+Revert	Terugzetten
+Keep Changes	Wijzigingen behouden
+Keep these display settings?	Deze beeldscherminstellingen behouden?
+The previous settings will be restored in %d seconds.	De vorige instellingen worden over %d seconden hersteld.
+No displays found. Display settings need an X11 session.	Geen beeldschermen gevonden. Beeldscherminstellingen vereisen een X11-sessie.
+Multiple Displays	Meerdere beeldschermen
+You can also switch with Super+P.	U kunt ook wisselen met Super+P.
+This display is turned off.	Dit beeldscherm staat uit.
+Turn it on with Super+P or under Multiple Displays.	Zet het aan met Super+P of onder Meerdere beeldschermen.
+%s (Recommended)	%s (aanbevolen)
+Resolution	Resolutie
+A lower resolution makes everything larger; the recommended one is the sharpest.	Een lagere resolutie maakt alles groter; de aanbevolen resolutie is het scherpst.
+Refresh rate	Verversingssnelheid
+Standard	Standaard
+Rotation	Draaiing
+The display could not use this setting.	Het beeldscherm kon deze instelling niet gebruiken.
+The previous settings were restored.	De vorige instellingen zijn hersteld.
+Text Size	Tekstgrootte
+Smaller	Kleiner
+Large	Groot
+Larger	Groter
+Largest	Grootst
+Changes the size of text in the menu bar, window titles and apps. Some apps need to be reopened.	Wijzigt de tekstgrootte in de menubalk, venstertitels en apps. Sommige apps moeten opnieuw worden geopend.
+Fingerprint Login	Inloggen met vingerafdruk
+Touch the fingerprint sensor or enter your password	Raak de vingerafdruksensor aan of voer je wachtwoord in
+Fingerprint not recognized. Try again or enter your password.	Vingerafdruk niet herkend. Probeer het opnieuw of voer je wachtwoord in.
+Set Up…	Instellen…
+Unlock and log in with your fingerprint instead of the password.	Ontgrendel en log in met je vingerafdruk in plaats van je wachtwoord.
+Fingerprint reader: fprintd (set up in Settings > Fingerprint)	Vingerafdruklezer: fprintd (instellen via Instellingen > Vingerafdruk)
+You are not allowed to change fingerprints.	Je mag vingerafdrukken niet wijzigen.
+The fingerprint reader is being used by another app. Try again later.	De vingerafdruklezer wordt door een andere app gebruikt. Probeer het later opnieuw.
+The fingerprint reader is not available.	De vingerafdruklezer is niet beschikbaar.
+Could not remove the fingerprint.	Kan de vingerafdruk niet verwijderen.
+Something went wrong. Try again.	Er is iets misgegaan. Probeer het opnieuw.
+Looking for a fingerprint reader…	Zoeken naar een vingerafdruklezer…
+Use your fingerprint to log in, unlock the screen and approve administrator actions. Your password always works too.	Gebruik je vingerafdruk om in te loggen, het scherm te ontgrendelen en beheerdersacties goed te keuren. Je wachtwoord werkt ook altijd.
+Fingerprints	Vingerafdrukken
+Add Fingerprint…	Vingerafdruk toevoegen…
+Remove All	Alles verwijderen
+This computer has no supported fingerprint reader. If you connect one, open Drivers to set it up.	Deze computer heeft geen ondersteunde vingerafdruklezer. Sluit je er een aan, open dan Stuurprogramma’s om hem in te stellen.
+Fingerprint support is not installed. Drivers installs it automatically when your computer has a supported fingerprint reader.	Ondersteuning voor vingerafdrukken is niet geïnstalleerd. Stuurprogramma’s installeert die automatisch als je computer een ondersteunde lezer heeft.
+No fingerprint reader found	Geen vingerafdruklezer gevonden
+Open Drivers	Stuurprogramma’s openen
+No fingerprints added yet.	Nog geen vingerafdrukken toegevoegd.
+Remove the fingerprint “%s”?	Vingerafdruk ‘%s’ verwijderen?
+You will no longer be able to use this finger to log in.	Je kunt dan niet meer met deze vinger inloggen.
+Removing…	Verwijderen…
+Remove all fingerprints?	Alle vingerafdrukken verwijderen?
+You will need your password to log in.	Je hebt dan je wachtwoord nodig om in te loggen.
+Add Fingerprint	Vingerafdruk toevoegen
+Which finger do you want to add?	Welke vinger wil je toevoegen?
+Swipe your finger across the sensor.	Haal je vinger over de sensor.
+Place your finger on the sensor, then lift it.	Leg je vinger op de sensor en til hem daarna op.
+Step %d of %d	Stap %d van %d
+Right index finger	Rechterwijsvinger
+Left index finger	Linkerwijsvinger
+Right thumb	Rechterduim
+Left thumb	Linkerduim
+Right middle finger	Rechtermiddelvinger
+Left middle finger	Linkermiddelvinger
+Right ring finger	Rechterringvinger
+Left ring finger	Linkerringvinger
+Right little finger	Rechterpink
+Left little finger	Linkerpink
+Lift your finger, then touch the sensor again	Til je vinger op en raak de sensor opnieuw aan
+Didn't catch that. Touch the sensor again.	Niet goed gelezen. Raak de sensor opnieuw aan.
+Swipe was too short. Try again.	Te korte veegbeweging. Probeer het opnieuw.
+Center your finger on the sensor and try again.	Leg je vinger midden op de sensor en probeer het opnieuw.
+Lift your finger and try again.	Til je vinger op en probeer het opnieuw.
+Fingerprint added	Vingerafdruk toegevoegd
+Could not add the fingerprint. Try again.	Kan de vingerafdruk niet toevoegen. Probeer het opnieuw.
+The reader cannot store more fingerprints. Remove one first.	De lezer kan geen vingerafdrukken meer opslaan. Verwijder er eerst een.
+This fingerprint is already added.	Deze vingerafdruk is al toegevoegd.
+The fingerprint reader was disconnected.	De vingerafdruklezer is losgekoppeld.
+Swipe your finger again	Haal je vinger nogmaals over de sensor
+What's New	Wat is er nieuw
+What's New in LuxOS %s	Nieuw in LuxOS %s
+LuxOS %s	LuxOS %s
+No release notes are available.	Er zijn geen release-opmerkingen beschikbaar.
+Could not check for updates. Check your internet connection and try again.	Kan niet controleren op updates. Controleer de internetverbinding en probeer het opnieuw.
+Capture	Vastleggen
+Capture Entire Screen	Volledig scherm vastleggen
+Capture Selected Window	Geselecteerd venster vastleggen
+Capture Selected Portion	Geselecteerd gebied vastleggen
+Record	Opnemen
+Record Entire Screen	Volledig scherm opnemen
+Record Selected Portion	Geselecteerd gebied opnemen
+Options	Opties
+Timer	Timer
+None	Geen
+5 Seconds	5 seconden
+10 Seconds	10 seconden
+Clipboard	Klembord
+Choose a Folder	Kies een map
+Show Mouse Pointer	Muisaanwijzer tonen
+Remember Last Selection	Laatste selectie onthouden
+Screenshot %s at %s	Schermafbeelding %s om %s
+Screen Recording %s at %s	Schermopname %s om %s
+Stop	Stoppen
+Stop Recording	Opname stoppen
+Screen recording is not available: ffmpeg was not found.	Schermopname is niet beschikbaar: ffmpeg niet gevonden.
+The screen recording failed.	De schermopname is mislukt.
+The screenshot could not be saved.	De schermafbeelding kon niet worden opgeslagen.
+%s .pacnew config file(s) to merge - run: lux configs	%s .pacnew-configuratiebestand(en) om samen te voegen - voer uit: lux configs
+Your settings were kept. Merge the files when convenient: lux configs	Je instellingen zijn bewaard. Voeg de bestanden samen wanneer het je uitkomt: lux configs
+review and merge new config files (.pacnew)	nieuwe configuratiebestanden (.pacnew) bekijken en samenvoegen

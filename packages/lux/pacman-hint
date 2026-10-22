@@ -1,61 +1,11 @@
 #!/bin/bash
-# LuxOS - /usr/bin/pacman: kompatibilni vrstva. Spravcem baliku LuxOS je lux.
-#
-# Skutecny pacman z Arch Linuxu je /usr/lib/lux/alpm/pacman (balik luxos-pacman).
-# Beze zmeny ho dostane:
-#   - kazdy volajici bez terminalu (skripty, hooky, sluzby, roury, presmerovany vystup),
-#   - makepkg, pacstrap, lux a AUR pomocnici (i pres sudo/unshare - hleda se v predcich procesu),
-#   - LUX_ALLOW_PACMAN=1 pacman ... (pod sudo: sudo LUX_ALLOW_PACMAN=1 pacman ...),
-#   - trvale pro cely system: soubor /etc/lux/allow-pacman.
-# Clovek v terminalu misto toho uvidi odpovidajici prikaz lux (navratovy kod 1).
-REAL=/usr/lib/lux/alpm/pacman
-ALLOW_FILE=/etc/lux/allow-pacman
-# Predci, kteri pacman potrebuji (jmeno procesu, u skriptu i jmeno skriptu)
-TOOLS=" makepkg pacstrap lux yay paru pikaur trizen aura pamac "
-
-# Spusteno nastrojem ze seznamu TOOLS? (/proc/<pid>/stat: "pid (jmeno) stav ppid ...")
-#   /proc/self (ne $PPID): pacstrap a arch-chroot spousti pacman v novem PID namespace (unshare),
-#   kde getppid() vraci 0; /proc hostitele ukazuje skutecne predky.
-called_by_tool() {
-    local pid stat comm i a
-    local -a f argv
-    IFS= read -r stat 2>/dev/null </proc/self/stat || return 1
-    f=(${stat##*\) })
-    pid=${f[1]-}
-    for ((i = 0; i < 32; i++)); do
-        [[ $pid =~ ^[0-9]+$ ]] && ((pid > 1)) || return 1
-        IFS= read -r stat 2>/dev/null <"/proc/$pid/stat" || return 1
-        comm=${stat#*\(}; comm=${comm%\) *}
-        [[ $TOOLS == *" $comm "* ]] && return 0
-        # skript spusteny interpretem (bash /usr/bin/makepkg): jmeno skriptu je az v argumentech
-        argv=()
-        mapfile -d '' -t argv 2>/dev/null <"/proc/$pid/cmdline"
-        if [[ ${argv[0]##*/} =~ ^(bash|sh|dash|zsh|lsh|env)$ ]]; then
-            for a in "${argv[@]:1}"; do
-                [[ $a == -* ]] && continue
-                [[ $TOOLS == *" ${a##*/} "* ]] && return 0
-                break
-            done
-        fi
-        f=(${stat##*\) })
-        pid=${f[1]-}
-    done
-    return 1
-}
-
-# LUX_PACMAN_HINT=1: jen napoveda (lux -Syu apod.), nikdy skutecny pacman
-if [[ ${LUX_PACMAN_HINT-} != 1 ]] && { [[ ${LUX_ALLOW_PACMAN-} == 1 || ! -t 0 || ! -t 1 || -e $ALLOW_FILE ]] || called_by_tool; }; then
-    exec "$REAL" "$@"
-fi
-
-# ---- clovek v terminalu: misto pacmanu prikaz lux ------------------------------------------
+# LuxOS - /usr/lib/lux/pacman-hint: napoveda pro zvyk z Arch Linuxu. Spravcem baliku LuxOS je lux,
+# prikaz pacman v systemu neni (jadro libalpm a jeho nastroje jsou interni soucast lux, balik lux-engine).
+#   pacman-hint [ARGUMENTY PACMANU]   vypise odpovidajici prikazy lux (stderr), navratovy kod 1
+# Spousti ho obsluha "command not found" v shellu LuxOS (bashrc, zshrc) a lux pri "lux -Syu" apod.
+# Nikdy nic neinstaluje ani nespousti.
 [[ -r /usr/lib/luxos/i18n.sh ]] && . /usr/lib/luxos/i18n.sh
 declare -F T >/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
-
-if [[ ! -x $REAL ]]; then
-    printf '%s\n' "$(T "The package manager core is missing (%s). Repair it with: %s" "$REAL" "lux reinstall luxos-pacman")" >&2
-    exit 127
-fi
 
 # Argumenty pacmanu -> operace (S/R/Q/U/F/D/T/V), pismena voleb a cile
 op="" flags="" targets=()
@@ -151,9 +101,7 @@ if [[ -t 2 && -z ${NO_COLOR-} ]]; then
 else
     B="" D="" R="" C=""
 fi
-sudo=""
-((EUID == 0)) && [[ -n ${SUDO_USER-} ]] && sudo="sudo "
-orig="${sudo}pacman${1+ $(q "$@")}"
+orig="pacman${1+ $(q "$@")}"
 
 {
     printf '%s✦%s %s\n' "$C" "$R" "$(T "LuxOS uses lux to manage software.")"
@@ -162,6 +110,5 @@ orig="${sudo}pacman${1+ $(q "$@")}"
         orig=$(printf '%*s' "${#orig}" "")
     done
     printf '  %s\n' "$(T "All lux commands: %s" "${B}lux --help${R}")"
-    printf '  %s%s%s\n' "$D" "$(T "Experts can still run pacman directly: %s" "${sudo}LUX_ALLOW_PACMAN=1 pacman${1+ $(q "$@")}")" "$R"
 } >&2
 exit 1

@@ -1,0 +1,16 @@
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Target = fprintd
+Target = lightdm
+Target = sudo
+Target = polkit
+Target = xfce4-screensaver
+Target = luxos-desktop
+
+[Action]
+Description = Setting up fingerprint login...
+When = PostTransaction
+Exec = /usr/lib/luxos/luxos-fingerprint-pam sync

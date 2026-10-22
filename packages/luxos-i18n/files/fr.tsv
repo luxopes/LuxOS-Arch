@@ -1639,7 +1639,7 @@ All lux commands: %s	Toutes les commandes lux : %s
 Experts can still run pacman directly: %s	Les experts peuvent toujours lancer pacman directement : %s
 The package manager core is missing (%s). Repair it with: %s	Le cœur du gestionnaire de paquets est manquant (%s). Réparez-le avec : %s
 pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman est réservé aux experts (LUX_ALLOW_PACMAN=1 pacman …) ; lux et pacman partagent la même base de paquets.
-The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	Le cœur du gestionnaire de paquets %s est plus ancien que pacman d'Arch Linux %s (une mise à jour de LuxOS suivra)
+The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	Le cœur du gestionnaire de paquets %s est plus ancien que celui d'Arch Linux (%s) ; une mise à jour de LuxOS suivra
 You manage the system yourself with lux.	Vous gérez le système vous-même avec lux.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
 Layout line %s is not valid.	La ligne %s du schéma n'est pas valide.
@@ -2030,3 +2030,112 @@ Could not set the partition type of %s; LuxOS works anyway.	Impossible de défin
 Downloading the list of available software first	Téléchargement de la liste des logiciels disponibles
 Version %s	Version %s
 build %s	build %s
+Displays	Écrans
+Displays…	Écrans…
+Built-in Display	Écran intégré
+Revert	Rétablir
+Keep Changes	Conserver les modifications
+Keep these display settings?	Conserver ces réglages d’affichage ?
+The previous settings will be restored in %d seconds.	Les réglages précédents seront rétablis dans %d secondes.
+No displays found. Display settings need an X11 session.	Aucun écran trouvé. Les réglages d’affichage nécessitent une session X11.
+Multiple Displays	Plusieurs écrans
+You can also switch with Super+P.	Vous pouvez aussi basculer avec Super+P.
+This display is turned off.	Cet écran est éteint.
+Turn it on with Super+P or under Multiple Displays.	Allumez-le avec Super+P ou sous Plusieurs écrans.
+%s (Recommended)	%s (recommandée)
+Resolution	Résolution
+A lower resolution makes everything larger; the recommended one is the sharpest.	Une résolution plus basse agrandit tout ; la résolution recommandée est la plus nette.
+Refresh rate	Fréquence de rafraîchissement
+Standard	Standard
+Rotation	Rotation
+The display could not use this setting.	L’écran n’a pas pu utiliser ce réglage.
+The previous settings were restored.	Les réglages précédents ont été rétablis.
+Text Size	Taille du texte
+Smaller	Plus petit
+Large	Grand
+Larger	Plus grand
+Largest	Le plus grand
+Changes the size of text in the menu bar, window titles and apps. Some apps need to be reopened.	Modifie la taille du texte dans la barre de menus, les titres de fenêtres et les applications. Certaines applications doivent être rouvertes.
+Fingerprint Login	Connexion par empreinte
+Touch the fingerprint sensor or enter your password	Touchez le capteur d’empreintes ou saisissez votre mot de passe
+Fingerprint not recognized. Try again or enter your password.	Empreinte non reconnue. Réessayez ou saisissez votre mot de passe.
+Set Up…	Configurer…
+Unlock and log in with your fingerprint instead of the password.	Déverrouillez et connectez-vous avec votre empreinte au lieu du mot de passe.
+Fingerprint reader: fprintd (set up in Settings > Fingerprint)	Lecteur d’empreintes : fprintd (à configurer dans Réglages > Empreinte)
+You are not allowed to change fingerprints.	Vous n’êtes pas autorisé à modifier les empreintes.
+The fingerprint reader is being used by another app. Try again later.	Le lecteur d’empreintes est utilisé par une autre app. Réessayez plus tard.
+The fingerprint reader is not available.	Le lecteur d’empreintes n’est pas disponible.
+Could not remove the fingerprint.	Impossible de supprimer l’empreinte.
+Something went wrong. Try again.	Un problème est survenu. Réessayez.
+Looking for a fingerprint reader…	Recherche d’un lecteur d’empreintes…
+Use your fingerprint to log in, unlock the screen and approve administrator actions. Your password always works too.	Utilisez votre empreinte pour vous connecter, déverrouiller l’écran et approuver les actions d’administration. Votre mot de passe fonctionne toujours aussi.
+Fingerprints	Empreintes
+Add Fingerprint…	Ajouter une empreinte…
+Remove All	Tout supprimer
+This computer has no supported fingerprint reader. If you connect one, open Drivers to set it up.	Cet ordinateur n’a pas de lecteur d’empreintes pris en charge. Si vous en branchez un, ouvrez Pilotes pour le configurer.
+Fingerprint support is not installed. Drivers installs it automatically when your computer has a supported fingerprint reader.	La prise en charge des empreintes n’est pas installée. Pilotes l’installe automatiquement si votre ordinateur possède un lecteur pris en charge.
+No fingerprint reader found	Aucun lecteur d’empreintes trouvé
+Open Drivers	Ouvrir Pilotes
+No fingerprints added yet.	Aucune empreinte ajoutée pour l’instant.
+Remove the fingerprint “%s”?	Supprimer l’empreinte « %s » ?
+You will no longer be able to use this finger to log in.	Vous ne pourrez plus vous connecter avec ce doigt.
+Removing…	Suppression…
+Remove all fingerprints?	Supprimer toutes les empreintes ?
+You will need your password to log in.	Vous aurez besoin de votre mot de passe pour vous connecter.
+Add Fingerprint	Ajouter une empreinte
+Which finger do you want to add?	Quel doigt voulez-vous ajouter ?
+Swipe your finger across the sensor.	Faites glisser votre doigt sur le capteur.
+Place your finger on the sensor, then lift it.	Posez votre doigt sur le capteur, puis relevez-le.
+Step %d of %d	Étape %d sur %d
+Right index finger	Index droit
+Left index finger	Index gauche
+Right thumb	Pouce droit
+Left thumb	Pouce gauche
+Right middle finger	Majeur droit
+Left middle finger	Majeur gauche
+Right ring finger	Annulaire droit
+Left ring finger	Annulaire gauche
+Right little finger	Auriculaire droit
+Left little finger	Auriculaire gauche
+Lift your finger, then touch the sensor again	Relevez votre doigt, puis touchez à nouveau le capteur
+Didn't catch that. Touch the sensor again.	Lecture non réussie. Touchez à nouveau le capteur.
+Swipe was too short. Try again.	Glissement trop court. Réessayez.
+Center your finger on the sensor and try again.	Centrez votre doigt sur le capteur et réessayez.
+Lift your finger and try again.	Relevez votre doigt et réessayez.
+Fingerprint added	Empreinte ajoutée
+Could not add the fingerprint. Try again.	Impossible d’ajouter l’empreinte. Réessayez.
+The reader cannot store more fingerprints. Remove one first.	Le lecteur ne peut pas enregistrer plus d’empreintes. Supprimez-en une d’abord.
+This fingerprint is already added.	Cette empreinte est déjà ajoutée.
+The fingerprint reader was disconnected.	Le lecteur d’empreintes a été déconnecté.
+Swipe your finger again	Faites glisser votre doigt à nouveau
+What's New	Nouveautés
+What's New in LuxOS %s	Nouveautés de LuxOS %s
+LuxOS %s	LuxOS %s
+No release notes are available.	Aucune note de version disponible.
+Could not check for updates. Check your internet connection and try again.	Impossible de rechercher les mises à jour. Vérifiez votre connexion Internet et réessayez.
+Capture	Capturer
+Capture Entire Screen	Capturer tout l’écran
+Capture Selected Window	Capturer la fenêtre sélectionnée
+Capture Selected Portion	Capturer la zone sélectionnée
+Record	Enregistrer
+Record Entire Screen	Enregistrer tout l’écran
+Record Selected Portion	Enregistrer la zone sélectionnée
+Options	Options
+Timer	Minuteur
+None	Aucun
+5 Seconds	5 secondes
+10 Seconds	10 secondes
+Clipboard	Presse-papiers
+Choose a Folder	Choisir un dossier
+Show Mouse Pointer	Afficher le pointeur
+Remember Last Selection	Mémoriser la dernière sélection
+Screenshot %s at %s	Capture d’écran %s à %s
+Screen Recording %s at %s	Enregistrement de l’écran %s à %s
+Stop	Arrêter
+Stop Recording	Arrêter l’enregistrement
+Screen recording is not available: ffmpeg was not found.	L’enregistrement de l’écran n’est pas disponible : ffmpeg est introuvable.
+The screen recording failed.	L’enregistrement de l’écran a échoué.
+The screenshot could not be saved.	Impossible d’enregistrer la capture d’écran.
+%s .pacnew config file(s) to merge - run: lux configs	%s fichier(s) de configuration .pacnew à fusionner. Exécutez : lux configs
+Your settings were kept. Merge the files when convenient: lux configs	Vos réglages ont été conservés. Fusionnez les fichiers quand vous le souhaitez : lux configs
+review and merge new config files (.pacnew)	examiner et fusionner les nouveaux fichiers de configuration (.pacnew)

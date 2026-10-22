@@ -1,0 +1,3 @@
+#!/bin/sh
+# Falesny prikaz pro testy: nic nedela
+exit 0

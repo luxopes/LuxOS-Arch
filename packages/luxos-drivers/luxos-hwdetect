@@ -294,13 +294,37 @@ case $virt in
 esac
 
 # --- Ctecka otisku prstu ---------------------------------------------------
+# Presny seznam ctecek podporovanych libfprint (a znamych nepodporovanych) ma systemd
+# v hwdb; ID mimo seznam posoudi hruby odhad podle vyrobce.
 # Elan (04f3) vyrabi i dotykove obrazovky - ctecky maji produkt 0cXX
 fp_usb_re='^(06cb|27c6|138a|10a5|1c7a|2808|298d):|^04f3:0c'
+declare -A fp_seen=()                       # vendor:product -> ok | no
+fp_hwdb=$R/usr/lib/udev/hwdb.d/60-autosuspend-fingerprint-reader.hwdb
+if [[ -r $fp_hwdb && ${#USB[@]} -gt 0 ]]; then
+    # jedno volani grep jen s ID pripojenych zarizeni (glob nad celym souborem je v bashi pomaly)
+    fp_args=(-e "# Known unsupported devices")
+    for u in "${USB[@]}"; do
+        fp_v=${u%%:*} fp_p=${u#*:}
+        fp_args+=(-e "usb:v${fp_v^^}p${fp_p^^}*")
+    done
+    fp_list=ok
+    while IFS= read -r line; do
+        if [[ $line == "# Known unsupported"* ]]; then
+            fp_list=no
+        else
+            fp_v=${line:5:4} fp_p=${line:10:4}
+            fp_seen[${fp_v,,}:${fp_p,,}]=$fp_list
+        fi
+    done < <(LC_ALL=C grep -F "${fp_args[@]}" "$fp_hwdb" || true)
+fi
 for u in "${USB[@]}"; do
-    if [[ $u =~ $fp_usb_re ]]; then
+    u=${u,,}
+    fp_st=${fp_seen[$u]:-}
+    [[ $fp_st == no ]] && continue
+    if [[ $fp_st == ok || $u =~ $fp_usb_re ]]; then
         device fingerprint fingerprint "Fingerprint reader"
         add fprintd
-        note "Fingerprint reader: fprintd (set up with fprintd-enroll)"
+        note "Fingerprint reader: fprintd (set up in Settings > Fingerprint)"
         break
     fi
 done

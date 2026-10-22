@@ -12,8 +12,9 @@ import subprocess
 ROOT = ""                                   # testy: docasny koren
 HWDETECT = "/usr/bin/luxos-hwdetect"
 LOCAL_DB = "/var/lib/pacman/local"
-# Skutecny pacman (luxos-pacman); /usr/bin/pacman je v LuxOS kompatibilni vrstva pro lidi
-PACMAN = "/usr/lib/lux/alpm/pacman" if os.access("/usr/lib/lux/alpm/pacman", os.X_OK) else "pacman"
+# pacman z jadra lux (lux-engine, mimo PATH); jinde nez v LuxOS z PATH
+ENGINE_BIN = "/usr/lib/lux/alpm/bin"
+PACMAN = ENGINE_BIN + "/pacman" if os.access(ENGINE_BIN + "/pacman", os.X_OK) else "pacman"
 
 WORKING, INSTALLED, RESTART, AVAILABLE = "working", "installed", "restart", "available"
 

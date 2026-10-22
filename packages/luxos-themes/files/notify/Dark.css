@@ -1,0 +1,23 @@
+/* LuxOS - oznameni (xfce4-notifyd): mirne pruhledne jako Ovladaci centrum a nabidky, rezim Dark */
+#XfceNotifyWindow {
+    background-color: rgba(32, 33, 52, 0.80);
+    color: #f4f4fa;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
+    padding: 4px;
+}
+#XfceNotifyWindow label { color: #f4f4fa; }
+#XfceNotifyWindow label#summary { font-weight: bold; }
+#XfceNotifyWindow label#body { color: rgba(244, 244, 250, 0.72); }
+#XfceNotifyWindow button {
+    background: rgba(255, 255, 255, 0.10);
+    color: #f4f4fa;
+    border: none;
+    border-radius: 8px;
+    box-shadow: none;
+    text-shadow: none;
+    padding: 3px 10px;
+}
+#XfceNotifyWindow button:hover { background: rgba(255, 255, 255, 0.16); }
+#XfceNotifyWindow progressbar trough { background: rgba(255, 255, 255, 0.14); border: none; border-radius: 4px; min-height: 6px; }
+#XfceNotifyWindow progressbar progress { border-radius: 4px; min-height: 6px; }

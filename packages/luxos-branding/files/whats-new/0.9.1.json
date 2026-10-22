@@ -1,0 +1,30 @@
+{
+  "version": "0.9.1",
+  "codename": "Polaris",
+  "items": [
+    {"icon": "camera-photo-symbolic",
+     "title": {"en": "New Screenshot tool", "cs": "Nový nástroj na snímky obrazovky"},
+     "text": {"en": "Press Print Screen or Shift+Super+5: capture the whole screen, a window or a selected area, or record the screen.",
+              "cs": "Stiskněte Print Screen nebo Shift+Super+5: snímek celé obrazovky, okna nebo vybrané oblasti, nebo nahrávání obrazovky."}},
+    {"icon": "video-display-symbolic",
+     "title": {"en": "Displays settings", "cs": "Nastavení monitorů"},
+     "text": {"en": "Change the screen resolution, refresh rate and text size.",
+              "cs": "Změna rozlišení obrazovky, obnovovací frekvence a velikosti písma."}},
+    {"icon": "auth-fingerprint-symbolic",
+     "title": {"en": "Sign in with your fingerprint", "cs": "Přihlášení otiskem prstu"},
+     "text": {"en": "On computers with a fingerprint reader, add your finger in Settings and use it to log in, unlock and approve changes.",
+              "cs": "Na počítačích se čtečkou otisků přidejte prst v Nastavení a používejte ho k přihlášení, odemčení a schvalování změn."}},
+    {"icon": "system-users-symbolic",
+     "title": {"en": "Smoother login screen", "cs": "Plynulejší přihlašovací obrazovka"},
+     "text": {"en": "Switching users slides the profile into place and the wallpaper stays the same.",
+              "cs": "Při přepínání uživatelů se profil plynule posune a tapeta zůstává stejná."}},
+    {"icon": "software-update-available-symbolic",
+     "title": {"en": "lux is the only package manager", "cs": "lux je jediný správce balíčků"},
+     "text": {"en": "The pacman command is gone - use lux, or the LuxOS Store, which can now check for updates on demand.",
+              "cs": "Příkaz pacman zmizel – používejte lux nebo Obchod LuxOS, který teď umí na požádání zkontrolovat aktualizace."}},
+    {"icon": "preferences-desktop-notification-symbolic",
+     "title": {"en": "Polish", "cs": "Vylepšení"},
+     "text": {"en": "Translucent notifications, battery time in Control Center, LuxOS Desktop and LuxOS Terminal in fastfetch, and this What's New window after every update.",
+              "cs": "Průhledné notifikace, zbývající čas baterie v Ovládacím centru, LuxOS Desktop a LuxOS Terminal ve fastfetch a toto okno s novinkami po každé aktualizaci."}}
+  ]
+}

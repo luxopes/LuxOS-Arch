@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""Falesny xrandr pro testy Monitoru: stav v JSON (FAKE_XRANDR_STATE), volani do FAKE_XRANDR_LOG.
+
+Stav: {"outputs": [{"name", "connected", "edid", "mm": [w, h], "modes": [[nazev, [frekvence]]],
+"preferred": [rezim, frekvence], "current": [rezim, frekvence] | null, "rotation", "pos": [x, y],
+"primary"}]}. Umi vypis (--current, --prop) a nastaveni --output/--mode/--rate/--rotate/--auto/
+--off/--primary/--pos/--right-of/--same-as/--brightness. FAKE_XRANDR_REJECT=REZIM odmitne rezim.
+"""
+import json
+import os
+import sys
+
+state_path = os.environ["FAKE_XRANDR_STATE"]
+with open(state_path) as f:
+    state = json.load(f)
+args = sys.argv[1:]
+log = os.environ.get("FAKE_XRANDR_LOG")
+if log and "--output" in args:
+    with open(log, "a") as f:
+        f.write(" ".join(args) + "\n")
+outs = {o["name"]: o for o in state["outputs"]}
+
+
+def size(o):
+    if not o.get("current"):
+        return None
+    w, h = (int(v) for v in o["current"][0].rstrip("i").split("x"))
+    if o.get("rotation") in ("left", "right"):
+        w, h = h, w
+    return w, h
+
+
+if "--output" in args:
+    i = 0
+    cur = None
+    pending = {}
+    while i < len(args):
+        a = args[i]
+        if a == "--output":
+            cur = outs[args[i + 1]]
+            pending[cur["name"]] = {}
+            i += 2
+            continue
+        p = pending[cur["name"]]
+        if a in ("--mode", "--rate", "--rotate", "--pos", "--right-of", "--same-as", "--brightness", "--left-of"):
+            p[a] = args[i + 1]
+            i += 2
+            continue
+        p[a] = True
+        i += 1
+    rej = os.environ.get("FAKE_XRANDR_REJECT")
+    for name, p in pending.items():
+        o = outs[name]
+        if p.get("--mode") and p["--mode"] == rej:
+            print(f"xrandr: cannot find mode {rej}", file=sys.stderr)
+            sys.exit(1)
+    for name, p in pending.items():
+        o = outs[name]
+        if "--off" in p:
+            o["current"] = None
+            continue
+        if "--primary" in p:
+            for x in outs.values():
+                x["primary"] = False
+            o["primary"] = True
+        if "--auto" in p and o["connected"]:
+            o["current"] = list(o["preferred"])
+        if "--mode" in p:
+            rates = dict((m, r) for m, r in o["modes"])[p["--mode"]]
+            o["current"] = [p["--mode"], p.get("--rate") or rates[0]]
+        if "--rotate" in p:
+            o["rotation"] = p["--rotate"]
+    # Pozice az po zmene rezimu (right-of zavisi na velikosti souseda)
+    for name, p in pending.items():
+        o = outs[name]
+        if "--pos" in p:
+            o["pos"] = [int(v) for v in p["--pos"].split("x")]
+        elif "--right-of" in p:
+            r = outs[p["--right-of"]]
+            o["pos"] = [r["pos"][0] + size(r)[0], r["pos"][1]]
+        elif "--same-as" in p:
+            o["pos"] = list(outs[p["--same-as"]]["pos"])
+    with open(state_path, "w") as f:
+        json.dump(state, f)
+    sys.exit(0)
+
+if "--listactivemonitors" in args:
+    act = [o for o in state["outputs"] if o.get("current")]
+    print(f"Monitors: {len(act)}")
+    for i, o in enumerate(act):
+        print(f" {i}: +{o['name']} 0/0x0/0+0+0  {o['name']}")
+    sys.exit(0)
+
+prop = "--prop" in args or "--verbose" in args
+print("Screen 0: minimum 320 x 200, current 1920 x 1080, maximum 16384 x 16384")
+for o in state["outputs"]:
+    head = f"{o['name']} {'connected' if o['connected'] else 'disconnected'}"
+    if o.get("primary"):
+        head += " primary"
+    s = size(o)
+    if s:
+        head += f" {s[0]}x{s[1]}+{o['pos'][0]}+{o['pos'][1]}"
+        if o.get("rotation", "normal") != "normal":
+            head += " " + o["rotation"]
+    head += " (normal left inverted right x axis y axis)"
+    if o["connected"] and s:
+        head += f" {o['mm'][0]}mm x {o['mm'][1]}mm"
+    print(head)
+    if prop and o.get("edid"):
+        print("\tEDID: ")
+        for i in range(0, len(o["edid"]), 32):
+            print("\t\t" + o["edid"][i:i + 32])
+    if prop:
+        print("\tnon-desktop: 0 ")
+        print("\t\tsupported: 0, 1")
+    if not o["connected"]:
+        continue
+    for mode, rates in o["modes"]:
+        cells = []
+        for r in rates:
+            star = "*" if o.get("current") == [mode, r] else " "
+            plus = "+" if o["preferred"] == [mode, r] else " "
+            cells.append(f"{r}{star}{plus}")
+        print(f"   {mode:<14}" + "  ".join(cells))

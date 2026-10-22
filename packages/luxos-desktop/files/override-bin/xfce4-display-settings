@@ -1,0 +1,7 @@
+#!/bin/sh
+# LuxOS: "Displej" ze Spravce nastaveni a menu otevre Monitory (luxos-display-settings);
+# rychla volba (--minimal, klavesa Display) je Super+P (luxos-displays menu)
+case " $* " in
+    *" --minimal "*|*" -m "*) exec luxos-displays menu ;;
+esac
+exec luxos-display-settings

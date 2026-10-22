@@ -40,6 +40,27 @@ fi
 
 . /usr/share/luxos/shell/aliases.sh
 
+# Software spravuje lux; prikaz pacman v LuxOS neni. Kdo ho ze zvyku napise, dostane misto
+# "command not found" i odpovidajici prikaz lux (/usr/lib/lux/pacman-hint, balik lux).
+# Existujici obsluha (napr. z ~/.bashrc pred nactenim LuxOS) zustava pro ostatni prikazy.
+if declare -F command_not_found_handle >/dev/null &&
+    [[ $(declare -f command_not_found_handle) != *pacman-hint* ]]; then   # ne sama sebe (znovunacteni)
+    eval "_luxos_cnf_prev() $(declare -f command_not_found_handle | tail -n +2)"
+fi
+command_not_found_handle() {
+    if [[ $1 == pacman || $1 == pacman-* ]] && [[ -x /usr/lib/lux/pacman-hint ]]; then
+        local sh=${0##*/}
+        printf '%s: %s: %s\n' "${sh#-}" "$1" "command not found" >&2
+        if [[ $1 == pacman ]]; then shift; else set --; fi
+        /usr/lib/lux/pacman-hint "$@"
+        return 127
+    fi
+    if declare -F _luxos_cnf_prev >/dev/null; then _luxos_cnf_prev "$@"; return; fi
+    local sh=${0##*/}
+    printf '%s: %s: %s\n' "${sh#-}" "$1" "command not found" >&2
+    return 127
+}
+
 command -v zoxide &>/dev/null && eval "$(zoxide init bash)"
 
 if command -v fzf &>/dev/null; then

@@ -34,8 +34,8 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
   (systemd-boot `timeout 0`), přihlašovací obrazovka uprostřed (lightdm-gtk-greeter), ISO boot menu v barvách LuxOS.
 - **`lux`** – správce balíků LuxOS místo pacmanu: repozitáře přes libalpm (`pyalpm`, stejná databáze a podpisy jako pacman),
   AUR, Flatpak a balíky `.lux`; krátký barevný výstup, příkazy jako u apt; `lux` bez parametrů otevře interaktivní
-  obchod v terminálu (TUI) s balíky z repozitářů LuxOS i Arch Linuxu. Příkaz `pacman` v terminálu ukáže odpovídající
-  příkaz `lux` (`luxos-pacman`, viz níže); skripty, makepkg a pacstrap pacman dostanou beze změny.
+  obchod v terminálu (TUI) s balíky z repozitářů LuxOS i Arch Linuxu. Příkaz `pacman` v LuxOS není (jádro `lux-engine`,
+  viz níže); kdo ho napíše, uvidí odpovídající příkaz `lux`.
 - **Obchod LuxOS** – grafický obchod s aplikacemi z repozitářů LuxOS a Arch Linuxu (metadata AppStream),
   instalace jedním kliknutím, aktualizace.
 - **Ovládací centrum** v horní liště – Wi‑Fi, Bluetooth, Nerušit, tmavý režim, **Spořič dat**
@@ -151,19 +151,21 @@ lux install hello-lux                      # z repozitáře LuxOS
 ## lux
 
 Výchozí správce balíků. Transakce dělá přes libalpm (`pyalpm`, `/usr/lib/lux/lux_alpm.py`) se stejnou
-databází, `pacman.conf`, podpisy a hooky jako pacman. Bez `pyalpm` (nebo `LUX_BACKEND=pacman`) volá skutečný
-pacman `/usr/lib/lux/alpm/pacman`. Obchod LuxOS a LuxOS Care volají `lux_alpm.py --machine` (řádky `@@…`).
+databází, `pacman.conf`, podpisy a hooky jako pacman v Archu. Bez `pyalpm` (nebo `LUX_BACKEND=pacman`) volá
+pacman z jádra `/usr/lib/lux/alpm/bin/pacman`. Obchod LuxOS a LuxOS Care volají `lux_alpm.py --machine` (řádky `@@…`).
 Podrobně: [packages/lux/lux.md](packages/lux/lux.md).
 
-**Pacman** je balík `luxos-pacman`: pacman z Arch Linuxu sestavený ze stejných zdrojů a součtů jako v Archu
-(libalpm, makepkg, `pacman-key`, `pacman-conf`, `vercmp`, `repo-add`, hooky), jen skutečný program je
-`/usr/lib/lux/alpm/pacman` a `/usr/bin/pacman` je kompatibilní vrstva: bez terminálu (skripty, hooky, služby)
-a pro `makepkg`, `pacstrap`, `lux` a AUR pomocníky ho pustí beze změny, člověku v terminálu ukáže příkaz `lux`
-(`pacman -Syu` → `lux update`). Pokročilí: `sudo LUX_ALLOW_PACMAN=1 pacman …` nebo trvale
-`sudo touch /etc/lux/allow-pacman`. `luxos-pacman` nahrazuje balík `pacman` (`replaces`/`provides`) a musí
-držet krok s verzí v Archu (`pyalpm` z Archu se sestavuje proti jeho `libalpm.so`) – `build.sh` varuje, když
-je Arch novější; postup aktualizace je v hlavičce `packages/luxos-pacman/PKGBUILD`.
-Testy: `python3 -m unittest discover -s packages/luxos-pacman/tests`.
+**Jádro `lux-engine`**: libalpm a nástroje pacmanu z Arch Linuxu sestavené ze stejných zdrojů a součtů jako
+v Archu (libalpm, makepkg, `vercmp`, `repo-add`, hooky). Příkaz `pacman` v systému není: `pacman`, `pacman-key`,
+`pacman-conf` a `pacman-db-upgrade` jsou interní nástroje v `/usr/lib/lux/alpm/bin` (mimo `PATH`, bez manuálů
+a doplňování). Dostane je `lux` (a hooky a skriptlety jeho transakcí), `makepkg`
+(`/etc/makepkg.conf.d/lux-engine.conf`), služby z `pacman-contrib`/`archlinux-keyring` (drop-iny) a nástroje
+LuxOS; podrobně v [packages/lux/lux.md](packages/lux/lux.md). Shell LuxOS na `pacman …` odpoví odpovídajícím
+příkazem `lux` (`pacman -Syu` → `lux update`). `lux-engine` nahrazuje `pacman` i `luxos-pacman` z LuxOS 0.9
+(`replaces`/`provides`) a musí držet krok s verzí v Archu (`pyalpm` z Archu se sestavuje proti jeho
+`libalpm.so`) – `build.sh` varuje, když je Arch novější; postup aktualizace je v hlavičce
+`packages/lux-engine/PKGBUILD`. Testy: `python3 -m unittest discover -s packages/lux-engine/tests`
+(nápověda a shell: `packages/lux/tests/test_pacman_hint.py`).
 
 | Příkaz | Co dělá |
 |---|---|
@@ -178,6 +180,7 @@ Testy: `python3 -m unittest discover -s packages/luxos-pacman/tests`.
 | `lux files <balík>` · `lux owns <soubor>` | soubory balíku / komu patří soubor |
 | `lux clean` | vyčistí cache balíků (+ nabídne `autoremove`) |
 | `lux fix` | opraví zamčenou databázi a podpisové klíče |
+| `lux configs` | porovná a sloučí nové konfigurační soubory (`.pacnew`) |
 | `lux history [počet] [balík]` | poslední změny balíků |
 | `lux drivers` · `lux doctor` · `lux mirrors` · `lux pack` | ovladače, kontrola systému, zrcadla, sestavení `.lux` |
 
@@ -213,7 +216,7 @@ packages/                   vlastní balíky LuxOS (lokální repozitář [luxos
   luxos-installer           luxos-install
   luxdrop                   LuxDrop – bezpečné posílání souborů v síti, kompatibilní s LocalSend (GTK, CLI, protokol)
   lux                       správce balíků
-  luxos-pacman              pacman z Archu (libalpm, makepkg) s příkazem pacman jako kompatibilní vrstvou
+  lux-engine                jádro lux: libalpm a nástroje pacmanu z Archu (makepkg…), bez příkazu pacman
   blesh                     ble.sh
 ```
 

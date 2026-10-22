@@ -63,7 +63,7 @@ fi
 echo "--> Initramfs"
 modules=""
 # Rane nacteni NVIDIA jen bez integrovane grafiky (u hybridni jen zpomaluje start)
-pac=/usr/lib/lux/alpm/pacman   # skutecny pacman (luxos-pacman); /usr/bin/pacman je kompatibilni vrstva
+pac=/usr/lib/lux/alpm/bin/pacman   # pacman z jadra lux (lux-engine), mimo PATH
 [[ -x $pac ]] || pac=pacman
 if ((${NVIDIA_EARLY:-1})) && "$pac" -Qq 2>/dev/null | grep -xE 'nvidia-open-dkms|nvidia-[0-9]+xx-dkms' >/dev/null; then
     modules="nvidia nvidia_modeset nvidia_uvm nvidia_drm"

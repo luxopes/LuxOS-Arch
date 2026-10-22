@@ -1,5 +1,10 @@
-# Klice LuxOS do klicenky pacmanu (pokud uz je inicializovana)
+# Klice LuxOS do klicenky spravce baliku (pokud uz je inicializovana).
+# S lux-engine je nacte jeho hook lux-engine-keyrings (po transakci); tady jen bez nej (LuxOS 0.9,
+# kde se klicenky aktualizuji samostatnou transakci jeste pred lux-engine).
 post_install() {
+    [[ -e /usr/share/libalpm/hooks/lux-engine-keyrings.hook ]] && return 0
+    local PATH="/usr/lib/lux/alpm/bin:$PATH"
+    command -v pacman-key >/dev/null || return 0
     if [[ -r /etc/pacman.d/gnupg/pubring.gpg || -r /etc/pacman.d/gnupg/pubring.kbx ]]; then
         pacman-key --populate luxos
     fi

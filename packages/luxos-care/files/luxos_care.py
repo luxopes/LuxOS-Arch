@@ -51,9 +51,18 @@ MODULES = "/usr/lib/modules"
 PACMAN_LOCK = "/var/lib/pacman/db.lck"
 PACMAN_LOG = "/var/log/pacman.log"
 PKG_CACHE = "/var/cache/pacman/pkg"
-# Skutecny pacman (luxos-pacman); /usr/bin/pacman je v LuxOS kompatibilni vrstva pro lidi v terminalu
-# (bez terminalu by ho stejne pustila dal, primo je to ale jistejsi). Jinde nez v LuxOS pacman z PATH.
-PACMAN = "/usr/lib/lux/alpm/pacman" if os.access("/usr/lib/lux/alpm/pacman", os.X_OK) else "pacman"
+# Nastroje jadra lux (pacman, pacman-key, pacman-conf z lux-engine) jsou mimo PATH. Spoustene prikazy
+# (lux, pacman, checkupdates, paccache) i hooky transakci je dostanou v PATH (engine_env); proces
+# sam PATH nemeni (modul nacita i aplikace v relaci uzivatele). Jinde nez v LuxOS pacman z PATH.
+ENGINE_BIN = "/usr/lib/lux/alpm/bin"
+PACMAN = ENGINE_BIN + "/pacman" if os.access(ENGINE_BIN + "/pacman", os.X_OK) else "pacman"
+
+
+def engine_env(**extra):
+    """Prostredi pro spoustene prikazy: PATH s nastroji jadra na zacatku (bez duplicit)."""
+    path = [p for p in os.environ.get("PATH", "/usr/local/sbin:/usr/local/bin:/usr/bin").split(":")
+            if p and p != ENGINE_BIN]
+    return dict(os.environ, PATH=":".join([ENGINE_BIN] + path), **extra)
 GRUBENV = "/boot/grub/grubenv"
 GRUB_PREV_DIR = "/boot/luxos-prev"
 
@@ -260,7 +269,7 @@ class CareLock:
 # ---- spousteni prikazu -------------------------------------------------------------------
 def run(cmd, timeout=600, input=None, env=None):
     """(navratovy kod, vystup stdout+stderr). Nikdy nevyhazuje vyjimku."""
-    e = dict(os.environ, LC_ALL="C", LANG="C")
+    e = engine_env(LC_ALL="C", LANG="C")
     if env:
         e.update(env)
     try:
@@ -552,7 +561,7 @@ class Updater:
         if have("systemd-inhibit") and os.path.exists("/run/systemd/system") and phase == "install":
             cmd = ["systemd-inhibit", "--what=shutdown:sleep:handle-lid-switch", "--who=LuxOS",
                    "--why=Installing updates", "--mode=block"] + cmd
-        env = dict(os.environ, LC_ALL="C", LANG="C")
+        env = engine_env(LC_ALL="C", LANG="C")
         out, done = [], [0]
         try:
             self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
@@ -1439,7 +1448,7 @@ KVER_RE = re.compile(r"^[A-Za-z0-9._+-]{1,100}$")
 CATALOG = {
     "none": ("Do nothing and only report the problem", None),
     "remove_db_lock": ("Remove a stale package manager lock", None),
-    "complete_upgrade": ("Finish an interrupted system update (pacman -Syu)", None),
+    "complete_upgrade": ("Finish an interrupted system update (lux update)", None),
     "refresh_keyring": ("Refresh the package signing keys", None),
     "rebuild_initramfs": ("Rebuild the initramfs of installed kernels", None),
     "dkms_autoinstall": ("Rebuild DKMS kernel modules (e.g. NVIDIA) for a kernel", "kernel"),

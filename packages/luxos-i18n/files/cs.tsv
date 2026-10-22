@@ -1639,7 +1639,7 @@ All lux commands: %s	Všechny příkazy lux: %s
 Experts can still run pacman directly: %s	Pokročilí mohou pacman dál spustit přímo: %s
 The package manager core is missing (%s). Repair it with: %s	Chybí jádro správce balíků (%s). Opravíte ho příkazem: %s
 pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman je jen pro pokročilé (LUX_ALLOW_PACMAN=1 pacman …); lux a pacman sdílejí stejnou databázi balíků.
-The package manager core %s is older than Arch Linux pacman %s (a LuxOS update will follow)	Jádro správce balíků %s je starší než pacman v Arch Linuxu %s (aktualizace LuxOS bude následovat)
+The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	Jádro správce balíků %s je starší než v Arch Linuxu (%s); aktualizace LuxOS bude následovat
 You manage the system yourself with lux.	Systém spravujete sami pomocí lux.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
 Layout line %s is not valid.	Řádek rozložení %s není platný.
@@ -2030,3 +2030,112 @@ Could not set the partition type of %s; LuxOS works anyway.	Typ oddílu %s se ne
 Downloading the list of available software first	Nejdřív stahuji seznam dostupného softwaru
 Version %s	Verze %s
 build %s	sestavení %s
+Displays	Monitory
+Displays…	Monitory…
+Built-in Display	Vestavěný displej
+Revert	Vrátit
+Keep Changes	Ponechat změny
+Keep these display settings?	Ponechat toto nastavení monitoru?
+The previous settings will be restored in %d seconds.	Původní nastavení se obnoví za %d s.
+No displays found. Display settings need an X11 session.	Nenalezen žádný monitor. Nastavení monitorů potřebuje relaci X11.
+Multiple Displays	Více monitorů
+You can also switch with Super+P.	Přepínat můžete i klávesami Super+P.
+This display is turned off.	Tento monitor je vypnutý.
+Turn it on with Super+P or under Multiple Displays.	Zapněte ho klávesami Super+P nebo v části Více monitorů.
+%s (Recommended)	%s (doporučeno)
+Resolution	Rozlišení
+A lower resolution makes everything larger; the recommended one is the sharpest.	Nižší rozlišení vše zvětší; doporučené je nejostřejší.
+Refresh rate	Obnovovací frekvence
+Standard	Standardní
+Rotation	Otočení
+The display could not use this setting.	Monitor toto nastavení nemohl použít.
+The previous settings were restored.	Původní nastavení bylo obnoveno.
+Text Size	Velikost textu
+Smaller	Menší
+Large	Velký
+Larger	Větší
+Largest	Největší
+Changes the size of text in the menu bar, window titles and apps. Some apps need to be reopened.	Změní velikost textu v horní liště, titulcích oken a aplikacích. Některé aplikace je potřeba znovu otevřít.
+Fingerprint Login	Přihlášení otiskem prstu
+Touch the fingerprint sensor or enter your password	Dotkněte se čtečky otisků prstů nebo zadejte heslo
+Fingerprint not recognized. Try again or enter your password.	Otisk nebyl rozpoznán. Zkuste to znovu nebo zadejte heslo.
+Set Up…	Nastavit…
+Unlock and log in with your fingerprint instead of the password.	Odemykání a přihlášení otiskem prstu místo hesla.
+Fingerprint reader: fprintd (set up in Settings > Fingerprint)	Čtečka otisků prstů: fprintd (nastavení v Nastavení > Otisk prstu)
+You are not allowed to change fingerprints.	Nemáte oprávnění měnit otisky prstů.
+The fingerprint reader is being used by another app. Try again later.	Čtečku otisků právě používá jiná aplikace. Zkuste to později.
+The fingerprint reader is not available.	Čtečka otisků prstů není dostupná.
+Could not remove the fingerprint.	Otisk se nepodařilo odebrat.
+Something went wrong. Try again.	Něco se pokazilo. Zkuste to znovu.
+Looking for a fingerprint reader…	Hledám čtečku otisků prstů…
+Use your fingerprint to log in, unlock the screen and approve administrator actions. Your password always works too.	Otiskem prstu se můžete přihlásit, odemknout obrazovku a potvrzovat akce správce. Heslo funguje vždy také.
+Fingerprints	Otisky prstů
+Add Fingerprint…	Přidat otisk…
+Remove All	Odebrat vše
+This computer has no supported fingerprint reader. If you connect one, open Drivers to set it up.	Tento počítač nemá podporovanou čtečku otisků prstů. Pokud nějakou připojíte, nastavte ji v aplikaci Ovladače.
+Fingerprint support is not installed. Drivers installs it automatically when your computer has a supported fingerprint reader.	Podpora otisků prstů není nainstalovaná. Aplikace Ovladače ji nainstaluje automaticky, pokud má počítač podporovanou čtečku.
+No fingerprint reader found	Nenalezena žádná čtečka otisků prstů
+Open Drivers	Otevřít Ovladače
+No fingerprints added yet.	Zatím nejsou přidané žádné otisky.
+Remove the fingerprint “%s”?	Odebrat otisk „%s“?
+You will no longer be able to use this finger to log in.	Tímto prstem se už nebudete moci přihlásit.
+Removing…	Odebírám…
+Remove all fingerprints?	Odebrat všechny otisky?
+You will need your password to log in.	K přihlášení budete potřebovat heslo.
+Add Fingerprint	Přidat otisk
+Which finger do you want to add?	Který prst chcete přidat?
+Swipe your finger across the sensor.	Přejeďte prstem přes čtečku.
+Place your finger on the sensor, then lift it.	Položte prst na čtečku a pak ho zvedněte.
+Step %d of %d	Krok %d z %d
+Right index finger	Pravý ukazováček
+Left index finger	Levý ukazováček
+Right thumb	Pravý palec
+Left thumb	Levý palec
+Right middle finger	Pravý prostředníček
+Left middle finger	Levý prostředníček
+Right ring finger	Pravý prsteníček
+Left ring finger	Levý prsteníček
+Right little finger	Pravý malíček
+Left little finger	Levý malíček
+Lift your finger, then touch the sensor again	Zvedněte prst a znovu se dotkněte čtečky
+Didn't catch that. Touch the sensor again.	Nepodařilo se načíst. Dotkněte se čtečky znovu.
+Swipe was too short. Try again.	Tah byl příliš krátký. Zkuste to znovu.
+Center your finger on the sensor and try again.	Položte prst doprostřed čtečky a zkuste to znovu.
+Lift your finger and try again.	Zvedněte prst a zkuste to znovu.
+Fingerprint added	Otisk byl přidán
+Could not add the fingerprint. Try again.	Otisk se nepodařilo přidat. Zkuste to znovu.
+The reader cannot store more fingerprints. Remove one first.	Čtečka už neuloží další otisky. Nejdřív nějaký odeberte.
+This fingerprint is already added.	Tento otisk už je přidaný.
+The fingerprint reader was disconnected.	Čtečka otisků prstů byla odpojena.
+Swipe your finger again	Přejeďte prstem znovu
+What's New	Co je nového
+What's New in LuxOS %s	Co je nového v LuxOS %s
+LuxOS %s	LuxOS %s
+No release notes are available.	Poznámky k vydání nejsou k dispozici.
+Could not check for updates. Check your internet connection and try again.	Aktualizace se nepodařilo zkontrolovat. Zkontrolujte připojení k internetu a zkuste to znovu.
+Capture	Pořídit
+Capture Entire Screen	Celá obrazovka
+Capture Selected Window	Vybrané okno
+Capture Selected Portion	Vybraná oblast
+Record	Nahrát
+Record Entire Screen	Nahrát celou obrazovku
+Record Selected Portion	Nahrát vybranou oblast
+Options	Volby
+Timer	Časovač
+None	Žádný
+5 Seconds	5 sekund
+10 Seconds	10 sekund
+Clipboard	Schránka
+Choose a Folder	Vyberte složku
+Show Mouse Pointer	Zobrazit ukazatel myši
+Remember Last Selection	Pamatovat poslední výběr
+Screenshot %s at %s	Snímek obrazovky %s v %s
+Screen Recording %s at %s	Nahrávka obrazovky %s v %s
+Stop	Zastavit
+Stop Recording	Zastavit nahrávání
+Screen recording is not available: ffmpeg was not found.	Nahrávání obrazovky není k dispozici: chybí ffmpeg.
+The screen recording failed.	Nahrávání obrazovky selhalo.
+The screenshot could not be saved.	Snímek obrazovky se nepodařilo uložit.
+%s .pacnew config file(s) to merge - run: lux configs	Konfiguračních souborů .pacnew ke sloučení: %s - spusťte: lux configs
+Your settings were kept. Merge the files when convenient: lux configs	Vaše nastavení zůstalo zachované. Soubory můžete sloučit, až se vám to bude hodit: lux configs
+review and merge new config files (.pacnew)	porovná a sloučí nové konfigurační soubory (.pacnew)

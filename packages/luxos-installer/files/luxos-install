@@ -17,9 +17,9 @@ set -Eeuo pipefail
 LOG=/var/log/luxos-install.log
 TARGET=/mnt
 SHARE=/usr/share/luxos/installer
-# pacman (pacstrap, arch-chroot) spousti instalator, ne clovek: kompatibilni vrstva /usr/bin/pacman
-# (luxos-pacman) ho pusti beze zmeny i tehdy, kdyz instalace bezi v terminalu
-export LUX_ALLOW_PACMAN=1
+# pacstrap a setup-chroot.sh (pres arch-chroot) volaji pacman, pacman-key a pacman-conf jmenem: jsou to
+# nastroje jadra lux (lux-engine) mimo PATH. sudo/pkexec PATH nastavi po svem, proto az tady.
+export PATH="/usr/lib/lux/alpm/bin:${PATH:-/usr/local/sbin:/usr/local/bin:/usr/bin}"
 . /usr/lib/luxos/i18n.sh
 ui_lang() { export LANG=$1; . /usr/lib/luxos/i18n.sh; }   # jazyk pruvodce podle volby
 # Rucni rozdeleni disku (DISK_MODE=layout): parser, kontrola a provedeni LAYOUT
@@ -1357,7 +1357,7 @@ install_packages() {
 
     step "$(T "Installing packages (this is the longest step)")"
     rank_mirrors
-    local attempt retry_conf=/run/luxos-pacman-retry.conf
+    local attempt retry_conf=/run/luxos-install-retry.conf
     local -a conf=()
     for attempt in 1 2 3; do
         # anglicky vystup pacmanu kvuli rozpoznani prubehu a chyb
@@ -1594,9 +1594,9 @@ tpl_resolve() {  # tpl_resolve ID -> baliky sablony (podminky a jazyk vyhodnocen
     done <"$TEMPLATE_DIR/$1.list"
 }
 
-chroot_pacman() {  # pacman v cili (skutecny z luxos-pacman), anglicky vystup kvuli pac_filter
+chroot_pacman() {  # pacman z jadra lux v cili (lux-engine), anglicky vystup kvuli pac_filter
     local pac=pacman
-    [[ -x $TARGET/usr/lib/lux/alpm/pacman ]] && pac=/usr/lib/lux/alpm/pacman
+    [[ -x $TARGET/usr/lib/lux/alpm/bin/pacman ]] && pac=/usr/lib/lux/alpm/bin/pacman
     LC_ALL=C.UTF-8 arch-chroot "$TARGET" "$pac" "$@"
 }
 

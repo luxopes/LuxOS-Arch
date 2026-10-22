@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+"""Falesny xfconf-query (FAKE_XFCONF = JSON {"kanal": {"/vlastnost": hodnota}})."""
+import json
+import os
+import sys
+
+path = os.environ["FAKE_XFCONF"]
+try:
+    with open(path) as f:
+        db = json.load(f)
+except (OSError, ValueError):
+    db = {}
+a = sys.argv[1:]
+ch = a[a.index("-c") + 1]
+chan = db.setdefault(ch, {})
+prop = a[a.index("-p") + 1] if "-p" in a else None
+if "-l" in a:
+    print("\n".join(sorted(chan)))
+    sys.exit(0)
+if "-r" in a:
+    for k in [k for k in chan if k == prop or ("-R" in a and k.startswith(prop + "/"))]:
+        del chan[k]
+elif "-s" in a:
+    chan[prop] = a[a.index("-s") + 1]
+else:
+    if prop not in chan:
+        print(f'Property "{prop}" does not exist on channel "{ch}".', file=sys.stderr)
+        sys.exit(1)
+    print(chan[prop])
+    sys.exit(0)
+with open(path, "w") as f:
+    json.dump(db, f)

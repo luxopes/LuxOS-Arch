@@ -4,7 +4,7 @@
 
 pkgname=luxos-themes
 pkgver=2025.12.27
-pkgrel=5
+pkgrel=6
 pkgdesc="LuxOS macOS-like themes (WhiteSur GTK, xfwm4, Plank, icons and cursors)"
 arch=(any)
 url="https://github.com/vinceliuice"
@@ -37,6 +37,8 @@ package() {
             [[ -e $css ]] && printf '\n@import url("luxos.css");\n' >>"$css"
         done
         ln -s "../../themes/WhiteSur-$v/plank" "$pkgdir/usr/share/plank/themes/WhiteSur-$v"
+        # Oznameni (xfce4-notifyd, tema = tema GTK, nastavuje luxos-appearance)
+        install -Dm644 "$startdir/files/notify/$v.css" "$themes/WhiteSur-$v/xfce-notify-4.0/gtk.css"
     done
 
     # Ikony: WhiteSur, WhiteSur-light, WhiteSur-dark

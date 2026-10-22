@@ -29,11 +29,12 @@ ${battery}<b>$(T "Kernel")</b>   ${kernel}
 
 yad --title="$(T "About This Computer")" --name=luxos-about --class=luxos-about --window-icon=luxos-app --image=/usr/share/icons/hicolor/128x128/apps/luxos-app.png \
     --text="$text" --text-align=left --borders=24 --width=560 --center --fixed \
-    --button="$(T "LuxOS Tour")!luxos-tour:4" --button="$(T "Send Feedback…")!luxos-feedback:3" \
+    --button="$(T "What's New")!starred:5" --button="$(T "LuxOS Tour")!luxos-tour:4" --button="$(T "Send Feedback…")!luxos-feedback:3" \
     --button="$(T "Software Update")!system-software-update:2" --button="$(T "Close")!window-close:0"
 rc=$?
 [[ $rc == 3 ]] && exec luxos-feedback   # Zpetna vazba autorovi
 [[ $rc == 4 ]] && exec luxos-tour       # Prohlidka LuxOS
+[[ $rc == 5 ]] && exec luxos-whats-new  # Co je noveho v teto verzi
 if [[ $rc == 2 ]]; then
     command -v luxos-update >/dev/null && exec luxos-update   # Aktualizace softwaru (luxos-care)
     exec xfce4-terminal --title="$(T "Update")" -x lsh -c "lux update; echo; read -rp '$(T "Press Enter to close")'"

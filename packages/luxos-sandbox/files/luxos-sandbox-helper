@@ -270,7 +270,8 @@ def main():
         die("usage: luxos-sandbox-helper create|reset|destroy")
     pw = caller()
     os.umask(0o022)
-    os.environ["PATH"] = "/usr/bin"
+    # pacstrap vola pacman, pacman-conf a pacman-key jmenem: nastroje jadra lux (lux-engine) mimo /usr/bin
+    os.environ["PATH"] = "/usr/lib/lux/alpm/bin:/usr/bin"
     base_fd = open_base()
     # Jen jedna operace najednou (pacstrap trva dlouho)
     fcntl.flock(base_fd, fcntl.LOCK_EX)

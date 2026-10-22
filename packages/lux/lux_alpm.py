@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 """lux_alpm - transakce a dotazy balicku pro lux pres libalpm (pyalpm), bez CLI pacmanu.
 
-Pouziva stejnou databazi (/var/lib/pacman), konfiguraci (/etc/pacman.conf, nactenou pres
-pacman-conf - presne jako ji cte pacman), overovani podpisu, cache a hooky jako pacman, takze
-lux i pacman spravuji tentyz system. Spousti ho /usr/bin/lux; Obchod LuxOS a LuxOS Care s --machine.
+Pouziva databazi (/var/lib/pacman), konfiguraci (/etc/pacman.conf, nactenou pres pacman-conf
+z jadra lux-engine - presne jako ji cte pacman), overovani podpisu, cache a hooky jako pacman
+v Arch Linuxu. Spousti ho /usr/bin/lux; Obchod LuxOS a LuxOS Care s --machine.
 
   lux_alpm.py [volby] PRIKAZ [argumenty]
 
@@ -33,6 +33,16 @@ import time
 
 VERSION = "0.3.0"
 EXIT_UNAVAILABLE = 3
+# Nastroje jadra (pacman-conf, pacman-key... z lux-engine) jsou mimo PATH; potrebuje je lux_alpm
+# i hooky a skriptlety transakci (dedi prostredi tohoto procesu)
+ENGINE_BIN = "/usr/lib/lux/alpm/bin"
+DEFAULT_PATH = "/usr/local/sbin:/usr/local/bin:/usr/bin"
+
+
+def engine_path(path):
+    """PATH s nastroji jadra na zacatku (bez duplicit)."""
+    parts = [p for p in (path or DEFAULT_PATH).split(":") if p and p != ENGINE_BIN]
+    return ":".join([ENGINE_BIN] + parts)
 
 # ---- preklady (luxos-i18n) -----------------------------------------------------------------
 _TR = None
@@ -1707,6 +1717,7 @@ def build_parser():
 
 
 def main(argv=None, api=None, conf=None, out=None, inp=None):
+    os.environ["PATH"] = engine_path(os.environ.get("PATH"))
     try:
         args = build_parser().parse_args(argv)
     except SystemExit as e:

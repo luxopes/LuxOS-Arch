@@ -1,0 +1,18 @@
+#!/bin/bash
+# LuxOS (lux-engine): pacman-key --populate pro klicenky z hooku lux-engine-keyrings.hook
+# (cile na stdin: usr/share/pacman/keyrings/JMENO.gpg). Totez, co delaji instalacni skripty
+# klicenek v Archu; bez inicializovane klicenky (napr. sestaveni ISO) nic.
+export PATH=/usr/lib/lux/alpm/bin:/usr/local/sbin:/usr/local/bin:/usr/bin
+names=()
+while IFS= read -r f; do
+    f=${f##*/}
+    [[ $f == ?*.gpg ]] && names+=("${f%.gpg}")
+done
+((${#names[@]})) || exit 0
+pacman-key -l >/dev/null 2>&1 || exit 0
+# archlinux-keyring.install: starsi pacman vypinal zamykani klicenky
+gpgdir=$(pacman-conf GPGDir 2>/dev/null); gpgdir=${gpgdir:-/etc/pacman.d/gnupg/}
+if grep -qx 'lock-never' "${gpgdir%/}/gpg.conf" 2>/dev/null; then
+    sed -i '/^lock-never$/d' "${gpgdir%/}/gpg.conf"
+fi
+exec pacman-key --populate "${names[@]}"

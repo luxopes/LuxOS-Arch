@@ -213,6 +213,7 @@ def dark_state():
 
 
 def battery():
+    """(kapacita %, stav, minuty do vybiti/nabiti nebo None) - stejny odhad jako luxos-battery."""
     base = "/sys/class/power_supply"
     try:
         for name in sorted(os.listdir(base)):
@@ -221,10 +222,38 @@ def battery():
                     cap = int(f.read().strip())
                 with open(f"{base}/{name}/status") as f:
                     st = f.read().strip()
-                return cap, st
+                return cap, st, battery_minutes(f"{base}/{name}", st)
     except (OSError, ValueError):
         pass
     return None
+
+
+def battery_minutes(bat, st):
+    """Odhad z aktualniho odberu (energy_* v uWh/uW, nebo charge_* v uAh/uA)."""
+    def rd(*names):
+        try:
+            vals = []
+            for n in names:
+                with open(f"{bat}/{n}") as f:
+                    vals.append(abs(int(f.read().strip())))
+            return vals
+        except (OSError, ValueError):
+            return None
+    v = rd("energy_now", "energy_full", "power_now") or rd("charge_now", "charge_full", "current_now")
+    if not v or v[2] <= 0:
+        return None
+    now, full, rate = v
+    if st == "Discharging":
+        mins = now * 60 // rate
+    elif st == "Charging" and full > now:
+        mins = (full - now) * 60 // rate
+    else:
+        return None
+    return mins if 0 < mins < 6000 else None
+
+
+def fmt_minutes(mins):
+    return f"{mins // 60} h {mins % 60} min" if mins >= 60 else f"{mins} min"
 
 
 def volume():
@@ -377,7 +406,9 @@ class ControlCenter(Gtk.Window):
             grid.attach(t, i % 2, i // 2, 1, 1)
         outer.pack_start(grid, False, False, 0)
 
-        self.s_bright = SliderRow(_("Display"), "display-brightness-symbolic", self.set_brightness)
+        # Klik na ikonu jasu otevre Monitory (rozliseni, velikost textu)
+        self.s_bright = SliderRow(_("Display"), "display-brightness-symbolic", self.set_brightness,
+                                  lambda: (spawn("luxos-display-settings"), self.close()))
         outer.pack_start(self.s_bright, False, False, 0)
         self.s_vol = SliderRow(_("Sound"), "audio-volume-high-symbolic", self.set_volume, self.toggle_mute)
         outer.pack_start(self.s_vol, False, False, 0)
@@ -508,12 +539,15 @@ class ControlCenter(Gtk.Window):
         self.bat_wrap.set_no_show_all(bat is None)
         self.bat_wrap.set_visible(bat is not None)
         if bat:
-            cap, st = bat
+            cap, st, mins = bat
             level = min(100, (cap + 5) // 10 * 10)
             icon = f"battery-level-{level}{'-charging' if st == 'Charging' else ''}-symbolic"
             self.bat_icon.set_from_icon_name(icon, Gtk.IconSize.LARGE_TOOLBAR)
             self.bat_title.set_text(_("Battery") + f"  {cap} %")
-            self.bat_sub.set_text({"Charging": _("Charging"), "Discharging": _("On battery")}.get(st, _("Fully charged")))
+            sub = {"Charging": _("Charging"), "Discharging": _("On battery")}.get(st, _("Fully charged"))
+            if mins:
+                sub += " · " + (_("%s remaining") if st == "Discharging" else _("%s until full")) % fmt_minutes(mins)
+            self.bat_sub.set_text(sub)
 
     def refresh_slow(self):
         """Udaje ze sluzeb (sit, Bluetooth, zvuk, oznameni) - na pozadi."""
