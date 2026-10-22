@@ -372,8 +372,25 @@ class Painter:
         rrect(cr, cx - s * 0.36, cy, s * 0.72, s * 0.5, s * 0.1)
         cr.fill()
 
-    def topbar(self, x, y, w, h, app, menus, big=False):
-        """Horni lista; vraci polohy prvku pro vysvetlivky."""
+    def g_flag(self, cx, cy, s, c):
+        """Vlajka rozlozeni klavesnice (jako v liste: pruhy + kanton)."""
+        cr = self.cr
+        w, h = s * 1.15, s * 0.78
+        x, y = cx - w / 2, cy - h / 2
+        cr.save()
+        rrect(cr, x, y, w, h, s * 0.08)
+        cr.clip()
+        for i in range(7):
+            cr.rectangle(x, y + i * h / 7, w, h / 7 + 0.3)
+            fill(cr, hexc("#d8323c") if i % 2 == 0 else hexc("#ffffff"))
+        cr.rectangle(x, y, w * 0.45, h * 4 / 7)
+        fill(cr, hexc("#3b4a9c"))
+        cr.restore()
+
+    def topbar(self, x, y, w, h, app, windows=(), big=False):
+        """Horni lista jako ve skutecnosti: logo, nazev aktivni aplikace, ikony otevrenych oken;
+        vpravo klavesnice, sit, zvuk, baterie, Ovladaci centrum, upozorneni, hodiny.
+        windows = [(nazvy ikon, aktivni)]. Vraci polohy prvku pro vysvetlivky."""
         cr = self.cr
         rrect(cr, x, y, w, h, 0 if not big else 10)
         fill(cr, hexc("#1c1d24", 0.78) if self.dark else hexc("#ffffff", 0.82))
@@ -383,31 +400,31 @@ class Painter:
         lx = x + h * 0.45
         logo(cr, lx, y + h * 0.2, h * 0.6, color=c)
         pos["logo"] = (lx + h * 0.3, y + h)
-        # vpravo: hodiny, upozorneni, ovladaci centrum, baterie, zvuk, Wi-Fi
-        clock = GLib.DateTime.new_now_local().format("%a %e %b  %H:%M") or "9:41"
+        # vpravo: hodiny (stejny format jako luxos-clock), upozorneni, Ovladaci centrum, ...
+        clock = GLib.DateTime.new_now_local().format("%a %-d. %b  %H:%M") or "9:41"
         rx = x + w - h * 0.4
-        cw = self.text(clock.replace("  ", " "), rx, y + h / 2, fs, c, bold=True, align="r")
+        cw = self.text(clock, rx, y + h / 2, fs, c, bold=True, align="r")
         pos["clock"] = (rx - cw / 2, y + h)
         rx -= cw + h * 0.75
         gs = h * 0.52
         for name, fn in (("bell", self.g_bell), ("cc", self.g_cc), ("battery", self.g_battery),
-                         ("sound", self.g_sound), ("wifi", self.g_wifi)):
+                         ("sound", self.g_sound), ("wifi", self.g_wifi), ("keyboard", self.g_flag)):
             fn(rx, y + h / 2, gs, c)
             pos[name] = (rx, y + h)
             rx -= h * (1.0 if name != "battery" else 1.05)
-        # vlevo: aplikace a jeji nabidky (jen ty, ktere se vejdou pred stavove ikony)
-        limit = rx - h * 0.2
+        # vlevo: nazev aktivni aplikace a ikony otevrenych oken (prepinani kliknutim)
         tx = lx + h * 0.95
         tw = self.text(app, tx, y + h / 2, fs, c, bold=True)
-        mx = tx + tw + h * 0.6
-        m0 = mx
-        for m in menus:
-            mw = self.text_width(m, fs)
-            if mx + mw > limit:
-                break
-            self.text(m, mx, y + h / 2, fs, c)
-            mx += mw + h * 0.55
-        pos["menus"] = ((m0 + mx - h * 0.55) / 2 if mx > m0 else m0, y + h)
+        ix = tx + tw + h * 0.35
+        isz = h * 0.6
+        w0 = ix
+        for names, active in windows:
+            if active:
+                rrect(cr, ix - h * 0.12, y + h * 0.08, isz + h * 0.24, h * 0.84, h * 0.18)
+                fill(cr, hexc("#ffffff", 0.14) if self.dark else hexc("#000000", 0.07))
+            self.icon(names, ix, y + (h - isz) / 2, isz)
+            ix += isz + h * 0.4
+        pos["windows"] = ((w0 + ix - h * 0.4) / 2 if ix > w0 else w0, y + h)
         return pos
 
     def window(self, x, y, w, h, title="", r=10):
@@ -497,63 +514,100 @@ def draw_welcome(p):
 def draw_menubar(p):
     cr = p.cr
     p.wallpaper(0, 0, VW, VH, 18)
-    by, bh = 40, 34
-    pos = p.topbar(14, by, VW - 28, bh, _("Files"), [_("File"), _("Edit"), _("View"), _("Go")], big=True)
-    # Ovladaci centrum rozbalene pod ikonou
+    by, bh = 40, 30
+    wins = [(["luxos-files", "org.xfce.thunar", "system-file-manager"], True),
+            (["firefox", "luxos-web-browser", "web-browser"], False),
+            (["org.xfce.terminal", "utilities-terminal"], False)]
+    pos = p.topbar(14, by, VW - 28, bh, _("Files"), wins, big=True)
     ccx, bellx = pos["cc"][0], pos["bell"][0]
-    pw, ph = 224, 196
-    px, py = min(VW - 14 - pw, ccx - 40), by + bh + 10
-    shadow(cr, px, py, pw, ph, 16, p.dark)
-    rrect(cr, px, py, pw, ph, 16)
-    fill(cr, hexc("#22242e", 0.94) if p.dark else hexc("#f7f7fa", 0.95))
-    tiles = (_("Wi-Fi"), _("Bluetooth"), _("Do Not Disturb"), _("Dark Mode"))
-    for i, name in enumerate(tiles):
-        on = i < 2 or (i == 3 and p.dark)
-        tx = px + 10 + (i % 2) * 104
-        ty = py + 10 + (i // 2) * 50
-        rrect(cr, tx, ty, 98, 42, 12)
-        fill(cr, hexc("#ffffff", 0.07) if p.dark else hexc("#000000", 0.05))
-        cr.arc(tx + 19, ty + 21, 12.5, 0, 2 * math.pi)
-        fill(cr, rgba(ACCENT) if on else (hexc("#ffffff", 0.15) if p.dark else hexc("#000000", 0.12)))
+    # Ovladaci centrum rozbalene pod ikonou (stejne casti jako skutecne)
+    pw, ph = 232, 206
+    px, py = VW - 14 - pw, by + bh + 8
+    panel = hexc("#22242e", 0.95) if p.dark else hexc("#f6f3f4", 0.96)
+    box = hexc("#ffffff", 0.07) if p.dark else hexc("#000000", 0.045)
+    off = hexc("#ffffff", 0.15) if p.dark else hexc("#000000", 0.1)
+    shadow(cr, px, py, pw, ph, 14, p.dark)
+    rrect(cr, px, py, pw, ph, 14)
+    fill(cr, panel)
+    # ucet LuxAI
+    ax, ay, aw = px + 7, py + 7, pw - 14
+    rrect(cr, ax, ay, aw, 24, 8)
+    fill(cr, box)
+    cr.arc(ax + 13, ay + 12, 8, 0, 2 * math.pi)
+    fill(cr, hexc("#6d5cff"))
+    p.text("✦", ax + 13, ay + 12, 7, (1, 1, 1, 1), bold=True, align="c")
+    p.text(_("Sign in to LuxAI"), ax + 26, ay + 12, 8.5, bold=True, maxw=aw - 40)
+    p.text("›", ax + aw - 8, ay + 12, 10, p.dim, align="c")
+    # dlazdice 2 x 3
+    tiles = ((_("Wi-Fi"), _("Connected"), True, "wifi"), (_("Bluetooth"), _("Off"), False, "bt"),
+             (_("Do Not Disturb"), _("Off"), False, "dnd"), (_("Dark Mode"), _("On") if p.dark else _("Off"), p.dark, "dark"),
+             (_("Data Saver"), _("Off"), False, "data"), (_("Battery Saver"), _("Off"), False, "batt"))
+    tw = (aw - 5) / 2
+    for i, (name, sub, on, kind) in enumerate(tiles):
+        tx = ax + (i % 2) * (tw + 5)
+        ty = py + 36 + (i // 2) * 28
+        rrect(cr, tx, ty, tw, 24, 8)
+        fill(cr, box)
+        cx, cy = tx + 12, ty + 12
+        cr.arc(cx, cy, 8, 0, 2 * math.pi)
+        fill(cr, rgba(ACCENT) if on else off)
         ic = (1, 1, 1, 1) if on else p.fg
-        if i == 0:
-            p.g_wifi(tx + 19, ty + 21, 14, ic)
-        elif i == 1:
-            p.text("ᛒ", tx + 19, ty + 21, 13, ic, bold=True, align="c")
-        elif i == 2:
+        if kind == "wifi":
+            p.g_wifi(cx, cy, 9, ic)
+        elif kind == "bt":
+            p.text("ᛒ", cx, cy, 8, ic, bold=True, align="c")
+        elif kind in ("dnd", "dark"):
             cr.save()
-            cr.arc(tx + 19, ty + 21, 6.5, 0, 2 * math.pi)
-            cr.arc_negative(tx + 22.5, ty + 18, 5.5, 2 * math.pi, 0)
+            cr.arc(cx, cy, 4.2, 0, 2 * math.pi)
+            cr.arc_negative(cx + 2.4, cy - 2, 3.6, 2 * math.pi, 0)
             cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
             fill(cr, ic)
             cr.restore()
-        else:
-            cr.arc(tx + 19, ty + 21, 6.5, -math.pi / 2, math.pi / 2)
+        elif kind == "data":
+            for k in range(4):
+                cr.rectangle(cx - 4 + k * 2.2, cy + 3.5 - (k + 1) * 1.8, 1.4, (k + 1) * 1.8)
             fill(cr, ic)
-            cr.arc(tx + 19, ty + 21, 6.5, 0, 2 * math.pi)
-            cr.set_source_rgba(*ic)
-            cr.set_line_width(1.5)
+        else:
+            p.g_battery(cx, cy, 8, ic, 0.4)
+        p.text(name, tx + 24, cy - 4, 7.6, bold=True, maxw=tw - 27)
+        p.text(sub, tx + 24, cy + 5, 6.8, p.dim, maxw=tw - 27)
+    # jas a hlasitost v ramecku: popisek, ikona a posuvnik
+    for j, (name, val, glyph) in enumerate(((_("Display"), 0.97, "sun"), (_("Sound"), 0.42, "snd"))):
+        sy = py + 122 + j * 34
+        rrect(cr, ax, sy, aw, 30, 8)
+        fill(cr, box)
+        p.text(name, ax + 7, sy + 8, 7.6, bold=True)
+        if glyph == "sun":
+            cr.arc(ax + 12, sy + 20, 2.2, 0, 2 * math.pi)
+            fill(cr, p.fg)
+            cr.set_source_rgba(*p.fg)
+            cr.set_line_width(0.9)
+            for k in range(8):
+                an = k * math.pi / 4
+                cr.move_to(ax + 12 + math.cos(an) * 3.4, sy + 20 + math.sin(an) * 3.4)
+                cr.line_to(ax + 12 + math.cos(an) * 4.6, sy + 20 + math.sin(an) * 4.6)
             cr.stroke()
-        p.text(name, tx + 36, ty + 21, 9, bold=True, maxw=58, lines=2)
-    for j, (name, val) in enumerate(((_("Display"), 0.7), (_("Sound"), 0.45))):
-        sy = py + 118 + j * 32
-        p.text(name, px + 12, sy, 9, p.dim, bold=True)
-        rrect(cr, px + 12, sy + 8, pw - 24, 11, 5.5)
+        else:
+            p.g_sound(ax + 12, sy + 20, 8, p.fg)
+        sx0, sw = ax + 24, aw - 32
+        rrect(cr, sx0, sy + 17, sw, 6, 3)
         fill(cr, hexc("#ffffff", 0.12) if p.dark else hexc("#000000", 0.08))
-        rrect(cr, px + 12, sy + 8, (pw - 24) * val, 11, 5.5)
-        fill(cr, hexc("#ffffff", 0.92) if p.dark else rgba(ACCENT, 0.9))
-    yb = py + ph - 14
-    p.g_battery(px + 22, yb, 16, p.fg)
-    p.text(_("82 % · 3:12 h left"), px + 38, yb, 9.5, p.dim, bold=True)
-    p.ring(ccx - 13, by + 3, 26, bh - 6, 7)
-    # vysvetlivky nad listou (Ovladaci centrum, upozorneni)
+        rrect(cr, sx0, sy + 17, sw * val, 6, 3)
+        fill(cr, hexc("#ffffff", 0.85) if p.dark else hexc("#ffffff", 1.0))
+        cr.arc(sx0 + sw * val, sy + 20, 4.5, 0, 2 * math.pi)
+        fill(cr, hexc("#ffffff"))
+    lx = ax + 3
+    for link in (_("Desktop & Dock…"), _("Battery…"), _("All Settings…")):
+        lx += p.text(link, lx, py + ph - 9, 7.4, p.fg) + 10
+    p.ring(ccx - 12, by + 3, 24, bh - 6, 7)
+    # vysvetlivky nad listou
     p.pill(_("Control Center"), ccx + 10, 19, align="r")
     p.pill(_("Notifications"), bellx - 10, 19, align="l")
     # vysvetlivky vlevo pod listou
-    for key, label, ly in (("logo", _("System menu"), 128), ("menus", _("App menus"), 182),
-                           ("wifi", _("Wi-Fi, sound, battery"), 236)):
+    for key, label, ly in (("logo", _("System menu"), 120), ("windows", _("Open windows"), 172),
+                           ("wifi", _("Keyboard, network, sound, battery"), 232)):
         x0, y0 = pos[key]
-        lx = min(max(x0, 80), px - 96)
+        lx = min(max(x0, 80), px - 110)
         p.leader(x0, y0 - 2, lx, ly - 10)
         p.pill(label, lx, ly)
 
@@ -562,7 +616,7 @@ def draw_dock(p):
     cr = p.cr
     p.wallpaper(0, 0, VW, VH, 18)
     rrect(cr, 0, 0, VW, 18, 0)
-    p.topbar(0, 0, VW, 18, "LuxOS", [])
+    p.topbar(0, 0, VW, 18, "LuxOS")
     top = p.window(150, 40, 340, 150, _("Files"))
     rrect(cr, 151, top, 90, 150 - (top - 40) - 1, 0)
     fill(cr, p.win2)
@@ -989,8 +1043,9 @@ def pages():
          draw_welcome, []),
         (_("The Menu Bar"),
          _("The LuxOS logo opens the system menu with About This Computer, Settings, sleep and shut down. "
-           "Next to it are the menus of the active app. On the right: Wi-Fi, sound, battery with the time "
-           "left, Control Center for quick settings, notifications and the calendar."),
+           "Next to it is the name of the active app and icons of your open windows – click one to switch "
+           "to it. On the right: keyboard layout, network, sound, battery with the time left, Control "
+           "Center for quick settings, notifications and the calendar."),
          draw_menubar, [(_("Show on Screen"), "spot:bar"), (_("Open Control Center"), ("luxos-cc-toggle",))]),
         (_("The Dock"),
          _("Your favourite apps are at the bottom of the screen. Click an icon to open the app – a dot "
