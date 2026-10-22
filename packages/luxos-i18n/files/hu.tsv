@@ -2028,3 +2028,5 @@ The EFI system partition %s is shared with the other systems and is not formatte
 Replace partition %s with LuxOS; other partitions are kept	A(z) %s partíció lecserélése LuxOS-re; a többi partíció megmarad
 Could not set the partition type of %s; LuxOS works anyway.	A(z) %s partíciótípusát nem sikerült beállítani; a LuxOS így is működik.
 Downloading the list of available software first	Először letöltöm az elérhető szoftverek listáját
+Version %s	Verzió: %s
+build %s	build: %s

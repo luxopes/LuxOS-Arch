@@ -3,7 +3,7 @@
 
 pkgname=luxos-branding
 pkgver=1.1.0
-pkgrel=10
+pkgrel=11
 pkgdesc="LuxOS branding: logo, wallpapers, Plymouth boot splash and os-release"
 arch=(any)
 url="https://github.com/luxos"
@@ -72,6 +72,12 @@ package() {
     install -Dm755 "$f/plymouth/luxos-plymouth-finish" "$pkgdir/usr/lib/luxos/luxos-plymouth-finish"
     install -Dm644 "$f/plymouth/lightdm-plymouth.conf" "$pkgdir/usr/lib/systemd/system/lightdm.service.d/luxos-plymouth.conf"
 
-    install -Dm755 "$f/apply-branding" "$pkgdir/usr/lib/luxos/apply-branding"
+    # verze LuxOS do os-release (files/version); BUILD_ID = den sestaveni
+    local VERSION CODENAME
+    . "$f/version"
+    sed -e "s/@VERSION@/$VERSION/g" -e "s/@SHORT@/${VERSION%.0}/g" -e "s/@CODENAME@/$CODENAME/g" \
+        -e "s/@CODENAME_LC@/${CODENAME,,}/g" -e "s/@BUILD@/$(date -u +%Y%m%d)/g" "$f/apply-branding" \
+        | install -Dm755 /dev/stdin "$pkgdir/usr/lib/luxos/apply-branding"
+    install -Dm644 "$f/version" "$pkgdir/usr/lib/luxos/version"
     install -Dm644 "$f/10-luxos-branding.hook" "$pkgdir/usr/share/libalpm/hooks/10-luxos-branding.hook"
 }

@@ -16,7 +16,8 @@ for b in /sys/class/power_supply/BAT*; do
 done
 
 text="<span size='xx-large' weight='bold'>LuxOS</span>
-<span foreground='#8e8e93'>$(T "Rolling release · based on Arch Linux")</span>
+<span foreground='#8e8e93'>$(T "Version %s" "${VERSION:-$VERSION_ID}")${BUILD_ID:+ · $(T "build %s" "$BUILD_ID")}
+$(T "Rolling release · based on Arch Linux")</span>
 
 <b>$(T "Computer")</b>   ${vendor} ${model}
 <b>$(T "Processor")</b>   ${cpu}
