@@ -4,6 +4,13 @@ Verze: `X.Y.Z` – `Y` roste s každým novým ISO, `Z` s opravami chyb. Každá
 Číslo verze je v `packages/luxos-branding/files/version` (os-release, O tomto počítači, fastfetch, název ISO).
 LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z jakého stavu systém vychází.
 
+## 0.9.5 „Polaris“ – 2026-10-22 (beta)
+
+### Nové
+- Rozložení klávesnice se ve výchozím stavu přepíná oběma Shifty (dosavadní výchozí Alt+Shift se při aktualizaci jednou převede, vlastní volba zůstane); samotný stisk Super otevře Launchpad (lze vypnout v Klávesových zkratkách).
+- Snímek obrazovky: nad lištou název vybraného režimu a zkratka, okamžité popisky při najetí; náhled s akcemi Kopírovat, Zobrazit v Souborech, Uložit jako…, Smazat; Ctrl při pořízení kopíruje do schránky.
+- Nové ikony Monitorů a Otisku prstu.
+
 ## 0.9.4 „Polaris“ – 2026-10-22 (beta)
 
 ### Rychlost

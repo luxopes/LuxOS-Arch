@@ -135,7 +135,7 @@ See [printing-scanning.md](printing-scanning.md).
 - Layout differs in one account: that account has own Xfce layouts
   (`xfconf-query -c keyboard-layout -p /Default/XkbDisable` is `false`); press Apply in Keyboard
   Layouts.
-- Cannot switch: check "Switch layouts with" (default Alt+Shift; max 4 layouts).
+- Cannot switch: check "Switch layouts with" (default both Shift keys together; max 4 layouts).
 - Inspect: `localectl status`, `setxkbmap -query`.
 
 Shortcut conflicts or a broken shortcut: **Keyboard Shortcuts** (`luxos-shortcuts`) › Restore

@@ -2,7 +2,7 @@
 
 pkgname=luxos-installer
 pkgver=1.1.0
-pkgrel=19
+pkgrel=20
 pkgdesc="LuxOS installer"
 arch=(any)
 url="https://github.com/luxos"

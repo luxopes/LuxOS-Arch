@@ -10,6 +10,8 @@ smazat - vypina se prazdnym prikazem (knihovna zkratek Xfce prazdne prikazy pres
 Nazvy vlastnich zkratek (xfconf zna jen prikaz) jsou v ~/.config/luxos/shortcuts.json.
 LUXOS_XFCONF_QUERY prepise prikaz xfconf-query (testy s falesnym prikazem),
 LUXOS_SHORTCUTS_DEFAULTS soubor s vychozimi zkratkami a LUXOS_XKB_CONF nastaveni klavesnice X.
+Samotna klavesa Super otevira Launchpad (luxos-menubar), dokud neexistuje priznak
+~/.config/luxos/super-launchpad-off.
 """
 import json
 import os
@@ -613,3 +615,29 @@ def layout_switch(path=None):
         if opt.startswith("grp:"):
             return XKB_TOGGLES.get(opt[4:], opt[4:].replace("_", " "))
     return None
+
+
+# ---- samotna klavesa Super otevre Launchpad (hlida luxos-menubar) -------------------------------
+def super_tap_flag():
+    """Priznak vypnuti; luxos-menubar ho kontroluje kazdych 5 s."""
+    base = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
+    return os.path.join(base, "luxos", "super-launchpad-off")
+
+
+def super_tap_enabled(path=None):
+    return not os.path.exists(path or super_tap_flag())
+
+
+def set_super_tap(on, path=None):
+    """Zapne/vypne otevirani Launchpadu samotnou klavesou Super; vraci uspech."""
+    path = path or super_tap_flag()
+    try:
+        if on:
+            if os.path.exists(path):
+                os.remove(path)
+        else:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            open(path, "w").close()
+    except OSError:
+        return False
+    return True

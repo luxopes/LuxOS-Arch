@@ -107,7 +107,7 @@ def main():
     check("2 stitky rozlozeni", len(chips) == 2)
     check("prepinani viditelne pro 2 rozlozeni", ui["switch_row"].get_visible())
     check("setxkbmap v live systemu s obema rozlozenimi",
-          last_call() == "-layout cz,us -variant , -option  -option grp:alt_shift_toggle", last_call())
+          last_call() == "-layout cz,us -variant , -option  -option grp:shifts_toggle", last_call())
     check("tlacitko + u pouziteho rozlozeni neaktivni", not ui["add"][("cz", "")].get_sensitive())
     check("tlacitko + u noveho rozlozeni aktivni", ui["add"][("de", "")].get_sensitive())
 
@@ -128,6 +128,9 @@ def main():
     ui["remove"](("us", ""))
     ui["remove"](("fr", ""))
     check("odebrani", win.s["xkb"] == [("de", ""), ("sk", "qwerty")], str(win.s["xkb"]))
+    check("vychozi prepinani: obe klavesy Shift (prvni v nabidce)",
+          ui["switch"].get_active_id() == "grp:shifts_toggle" and win.s["xkb_switch"] == "grp:shifts_toggle",
+          ui["switch"].get_active_id())
     ui["switch"].set_active_id("grp:ctrl_shift_toggle")
     pump()
     check("volba prepinani", win.s["xkb_switch"] == "grp:ctrl_shift_toggle")

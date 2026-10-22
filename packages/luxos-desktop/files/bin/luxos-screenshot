@@ -12,6 +12,9 @@
 
 Staticke snimky bere GDK primo z korenoveho okna X (zadna dalsi zavislost); vyrez a okno
 se vybiraji nad zmrazenym snimkem obrazovky, takze lista ani prekryv ve snimku nejsou.
+Popisek nad listou ukazuje rezim pod mysi / vybrany rezim a zkratku. Drzeny Ctrl pri zachyceni
+= do schranky misto souboru (obrazek drzi xclip i po skonceni). Nahled po snimku ma akce
+Kopirovat, Zobrazit v Souborech, Ulozit jako, Smazat (do Kose), Zavrit; i pres prave tlacitko.
 Volby jsou v ~/.config/luxos/screenshot.json.
 """
 import datetime
@@ -148,6 +151,49 @@ def parse_region(text):
     return tuple(int(v) for v in m.groups())
 
 
+# ---- klavesove zkratky (napoveda v liste) ------------------------------------------
+SHORTCUTS_XML = os.path.join("xfce4", "xfconf", "xfce-perchannel-xml", "xfce4-keyboard-shortcuts.xml")
+MOD_NAMES = (("Super", ("super", "mod4", "meta", "hyper")), ("Ctrl", ("primary", "control", "ctrl")),
+             ("Alt", ("alt", "mod1")), ("Shift", ("shift",)))
+
+
+def shortcut_files():
+    """Uzivatelske nastaveni zkratek Xfce, pak vychozi (XDG_CONFIG_DIRS, v LuxOS /etc/xdg/luxos)."""
+    dirs = [os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")]
+    dirs += (os.environ.get("XDG_CONFIG_DIRS") or "/etc/xdg").split(":")
+    return [os.path.join(d, SHORTCUTS_XML) for d in dirs if d]
+
+
+def pretty_accel(accel):
+    """'<Super><Shift>4' -> 'Super+Shift+4' (poradi jako v dokumentaci LuxOS)."""
+    mods = [m.lower() for m in re.findall(r"<(\w+)>", accel or "")]
+    key = re.sub(r"<\w+>", "", accel or "")
+    if not key:
+        return None
+    parts = [name for name, aliases in MOD_NAMES if any(m in aliases for m in mods)]
+    return "+".join(parts + [key.upper() if len(key) == 1 else key])
+
+
+def global_shortcut(command, files=None):
+    """Prvni zkratka pro prikaz ze zkratek Xfce ('Super+Shift+3') nebo None.
+
+    Plati prvni soubor, ktery ma vlastni zkratky (commands/custom) - uzivatelsky prebiji vychozi."""
+    import xml.etree.ElementTree as ET
+    for path in shortcut_files() if files is None else files:
+        try:
+            root = ET.parse(path).getroot()
+        except (OSError, ET.ParseError):
+            continue
+        custom = root.find("./property[@name='commands']/property[@name='custom']")
+        if custom is None:
+            continue
+        for p in custom.findall("property"):
+            if p.get("name") != "override" and (p.get("value") or "").strip() == command:
+                return pretty_accel(p.get("name"))
+        return None
+    return None
+
+
 # ---- nahravani (ffmpeg) --------------------------------------------------------
 ENCODERS = (
     # H.264 (prehraje vse); Arch ffmpeg ma libx264 primo v balicku
@@ -223,10 +269,10 @@ CSS = """
 window.lx-shot { background: transparent; }
 .bar { background-color: @sb_bg; border-radius: 18px; border: 1px solid @sb_border;
        padding: 8px 10px; color: @sb_fg; }
-.bar button, .pill button { background: none; background-image: none; border: none; box-shadow: none;
+.bar button, .pill button, .thumb button { background: none; background-image: none; border: none; box-shadow: none;
        outline: none; text-shadow: none; -gtk-icon-shadow: none; color: @sb_fg; border-radius: 8px;
        padding: 7px 11px; min-height: 0; min-width: 0; }
-.bar button:hover, .pill button:hover { background-color: @sb_hover; }
+.bar button:hover, .pill button:hover, .thumb button:hover { background-color: @sb_hover; }
 .bar button.active { background-color: @sb_active; border-radius: 10px; }
 .bar button.active:hover { background-color: @sb_active; }
 .bar button.close { padding: 6px 7px; }
@@ -244,6 +290,17 @@ window.lx-shot { background: transparent; }
 .count { background-color: @sb_bg; border-radius: 22px; border: 1px solid @sb_border;
          padding: 6px 26px; }
 .count label { font-size: 46px; font-weight: 700; color: @sb_fg; font-feature-settings: "tnum"; }
+.caption { background-color: @sb_bg; border-radius: 9px; border: 1px solid @sb_border;
+           padding: 4px 10px; }
+.caption label { color: @sb_fg; font-size: 13px; }
+.caption label.name { font-weight: 600; }
+.caption label.key { border: 1px solid @sb_sep; border-radius: 5px; padding: 0 5px; font-size: 12px; }
+.caption label.hint, .thumb label.status { opacity: 0.72; font-size: 12px; }
+.thumb { background-color: @sb_bg; border-radius: 12px; border: 1px solid @sb_border; padding: 6px;
+         color: @sb_fg; }
+.thumb button { padding: 4px 10px 4px 7px; border-radius: 7px; }
+.thumb button label, .thumb label { color: @sb_fg; font-size: 13px; }
+.thumb image { color: @sb_fg; }
 """
 
 # Stejne barvy jako Ovladaci centrum (luxos-control-center)
@@ -566,19 +623,82 @@ class Icon(Gtk.DrawingArea):
 
 
 # ---- okna ---------------------------------------------------------------------------------
+def mode_name(mode):
+    return {"screen": _("Capture Entire Screen"), "window": _("Capture Selected Window"),
+            "portion": _("Capture Selected Portion"), "rec_screen": _("Record Entire Screen"),
+            "rec_portion": _("Record Selected Portion")}[mode]
+
+
+# Prikaz, jehoz globalni zkratku lista ukaze u rezimu
+MODE_COMMANDS = {"screen": "luxos-screenshot --screen", "portion": "luxos-screenshot --portion"}
+_SHORTCUTS = {}
+
+
+def mode_shortcut(mode):
+    cmd = MODE_COMMANDS.get(mode)
+    if cmd and cmd not in _SHORTCUTS:
+        _SHORTCUTS[cmd] = global_shortcut(cmd)       # soubor se cte jen jednou
+    return _SHORTCUTS.get(cmd)
+
+
+def ctrl_held():
+    """Drzi uzivatel Ctrl? Ze stavu udalosti, ktera prave probiha (klik, klavesa)."""
+    ok, state = Gtk.get_current_event_state()
+    return bool(ok and state & Gdk.ModifierType.CONTROL_MASK)
+
+
+class Caption(Popup):
+    """Popisek nad listou: nazev rezimu pod mysi (hned, bez cekani jako u tooltipu)
+    a jinak vybrany rezim; vpravo klavesova zkratka nebo napoveda."""
+
+    def __init__(self):
+        super().__init__(radius=9)
+        box = Gtk.Box(spacing=7)
+        box.get_style_context().add_class("caption")
+        self.name, self.key, self.hint = Gtk.Label(), Gtk.Label(), Gtk.Label()
+        for lab, cls in ((self.name, "name"), (self.key, "key"), (self.hint, "hint")):
+            lab.get_style_context().add_class(cls)
+            box.pack_start(lab, False, False, 0)
+        self.add(box)
+        box.show_all()
+        self.text = None
+        self.anchor = None          # (stred x, horni okraj listy)
+
+    def set(self, name, key=None, hint=None):
+        if self.text == (name, key, hint):
+            return
+        self.text = (name, key, hint)
+        self.name.set_text(name)
+        for lab, val in ((self.key, key), (self.hint, hint)):
+            lab.set_text(val or "")
+            lab.set_visible(bool(val))
+        self.resize(1, 1)           # i zmensit, kdyz je novy text kratsi
+        self.reposition()
+
+    def reposition(self):
+        if self.anchor:
+            size = self.get_preferred_size()[1]
+            self.move(self.anchor[0] - size.width // 2, self.anchor[1] - size.height - 6)
+
+
 class Toolbar(Popup):
     def __init__(self, app):
         super().__init__(radius=18)
         self.app = app
+        self.mode = None
+        self.hovered = None
+        self.ctrl = False
+        self.caption = Caption()
         bar = Gtk.Box(spacing=4)
         bar.get_style_context().add_class("bar")
         self.add(bar)
 
-        def tool(painter, tip, cb, w=34, h=24):
-            b = Gtk.Button(can_focus=False, tooltip_text=tip)
+        def tool(painter, key, cb, w=34, h=24):
+            b = Gtk.Button(can_focus=False)
             b.add(Icon(painter, w, h))
             b.connect("clicked", lambda _b: cb())
             bar.pack_start(b, False, False, 0)
+            self.hoverable(b, key)
             return b
 
         def sep():
@@ -586,21 +706,16 @@ class Toolbar(Popup):
             s.get_style_context().add_class("sep")
             bar.pack_start(s, False, False, 0)
 
-        close = tool(icon_close, _("Close"), app.cancel, 22, 22)
+        close = tool(icon_close, "close", app.cancel, 22, 22)
         close.get_style_context().add_class("close")
         sep()
         self.modes = {}
-        for mode, painter, tip in (
-                ("screen", icon_screen, _("Capture Entire Screen")),
-                ("window", icon_window, _("Capture Selected Window")),
-                ("portion", icon_portion, _("Capture Selected Portion")),
-                (None, None, None),
-                ("rec_screen", icon_rec_screen, _("Record Entire Screen")),
-                ("rec_portion", icon_rec_portion, _("Record Selected Portion"))):
+        for mode, painter in (("screen", icon_screen), ("window", icon_window), ("portion", icon_portion),
+                              (None, None), ("rec_screen", icon_rec_screen), ("rec_portion", icon_rec_portion)):
             if mode is None:
                 sep()
                 continue
-            self.modes[mode] = tool(painter, tip, lambda m=mode: app.set_mode(m), 40, 26)
+            self.modes[mode] = tool(painter, mode, lambda m=mode: app.set_mode(m), 40, 26)
         sep()
         opt = self.options = Gtk.Button(can_focus=False)
         ob = Gtk.Box(spacing=3)
@@ -609,25 +724,88 @@ class Toolbar(Popup):
         opt.add(ob)
         opt.connect("clicked", lambda _b: app.options_menu(opt))
         bar.pack_start(opt, False, False, 0)
+        self.hoverable(opt, "options")
         self.capture = Gtk.Button(label=_("Capture"), can_focus=False)
         self.capture.get_style_context().add_class("capture")
         self.capture.connect("clicked", lambda _b: app.capture())
         bar.pack_start(self.capture, False, False, 0)
+        self.hoverable(self.capture, "capture")
         self.connect("key-press-event", app.on_key)
+        self.connect("key-release-event", app.on_key_release)
+        # Popisek je samostatne okno (bez kompozitoru nejde pruhledna mezera) - jde s listou
+        self.connect("map", lambda _w: self.show_caption())
+        self.connect("unmap", lambda _w: self.caption.hide())
+        self.connect("destroy", lambda _w: self.caption.destroy())
+
+    def hoverable(self, button, key):
+        # Pristupnost: tlacitka s ikonou maji jmeno i bez tooltipu
+        name = {"close": _("Close"), "options": _("Options"), "capture": _("Capture")}.get(key)
+        button.get_accessible().set_name(name or mode_name(key))
+        button.connect("enter-notify-event", lambda *_a: self.hover(key))
+        button.connect("leave-notify-event", lambda *_a: self.hover(None))
+
+    def describe(self, key):
+        """(nazev, klavesa, napoveda) pro popisek nad listou."""
+        mode = self.mode or "portion"
+        if key == "close":
+            return _("Close"), "Esc", None
+        if key == "options":
+            dest = {"desktop": _("Desktop"), "pictures": _("Pictures"), "clipboard": _("Clipboard")}.get(
+                self.app.opts["save_to"]) or os.path.basename(self.app.opts["other_dir"].rstrip("/"))
+            try:
+                return _("Save to: %s") % dest, None, None
+            except (TypeError, ValueError):         # poskozeny preklad
+                return "Save to: %s" % dest, None, None
+        if key == "capture":
+            copy = not mode.startswith("rec_") and mode != "window"
+            return mode_name(mode), "Enter", _("Hold Ctrl to copy to the clipboard") if copy else None
+        if key in MODES:
+            hint = _("Click a window to capture it") if key == "window" else None
+            return mode_name(key), mode_shortcut(key), hint
+        return "", None, None
+
+    def hover(self, key):
+        self.hovered = key
+        self.update_caption()
+        return False
+
+    def update_caption(self):
+        self.caption.set(*self.describe(self.hovered or self.mode or "portion"))
+
+    def show_caption(self):
+        self.update_caption()
+        self.caption.show()
+        gw = self.caption.get_window()
+        if gw:
+            gw.raise_()
 
     def set_mode(self, mode):
+        self.mode = mode
         for m, b in self.modes.items():
             (b.get_style_context().add_class if m == mode else b.get_style_context().remove_class)("active")
-        self.capture.set_label(_("Record") if mode.startswith("rec_") else _("Capture"))
+        self.set_ctrl(self.ctrl)
         self.capture.set_sensitive(mode != "window")      # okno se zachyti kliknutim na nej
+        self.update_caption()
+
+    def set_ctrl(self, held):
+        """Drzeny Ctrl: tlacitko ukaze Kopirovat (snimek pujde do schranky)."""
+        self.ctrl = held
+        mode = self.mode or "portion"
+        if mode.startswith("rec_"):
+            self.capture.set_label(_("Record"))
+        else:
+            self.capture.set_label(_("Copy") if held else _("Capture"))
 
     def place(self):
-        """Dole uprostred monitoru s mysi, nad Dockem."""
+        """Dole uprostred monitoru s mysi, nad Dockem; popisek nad listou."""
         disp = Gdk.Display.get_default()
         mon = monitor_at_pointer(disp)
         g = mon.get_geometry()
         w, h = self.get_preferred_size()[1].width, self.get_preferred_size()[1].height
-        self.move(g.x + (g.width - w) // 2, g.y + g.height - h - max(90, g.height // 10))
+        x, y = g.x + (g.width - w) // 2, g.y + g.height - h - max(90, g.height // 10)
+        self.move(x, y)
+        self.caption.anchor = (x + w // 2, y)
+        self.caption.reposition()
 
 
 def monitor_at_pointer(disp):
@@ -655,12 +833,14 @@ class Overlay(Popup):
         self.windows = None
         self.mode = None
         self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK |
-                        Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.KEY_PRESS_MASK)
+                        Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.KEY_PRESS_MASK |
+                        Gdk.EventMask.KEY_RELEASE_MASK)
         self.connect("draw", self.on_draw)
         self.connect("button-press-event", self.on_press)
         self.connect("button-release-event", self.on_release)
         self.connect("motion-notify-event", self.on_motion)
         self.connect("key-press-event", self.on_key)
+        self.connect("key-release-event", app.on_key_release)
         self.connect("realize", lambda w: self.set_cursor("crosshair"))
         self.set_mode(mode)
 
@@ -764,7 +944,7 @@ class Overlay(Popup):
         if self.mode == "window":
             r = self.windows.at(ev.x_root, ev.y_root) if self.windows else None
             if r:
-                self.app.selected(r, window=True)
+                self.app.selected(r, window=True, ctrl=bool(ev.state & Gdk.ModifierType.CONTROL_MASK))
             return True
         if ev.type == Gdk.EventType._2BUTTON_PRESS and self.hit(ev.x, ev.y) == "move":
             self.app.capture()
@@ -826,7 +1006,7 @@ class Overlay(Popup):
             return True
         self.sel = list(sel)
         if self.quick:
-            self.app.selected(sel)
+            self.app.selected(sel, ctrl=bool(ev.state & Gdk.ModifierType.CONTROL_MASK))
         return True
 
     def on_key(self, w, ev):
@@ -837,76 +1017,187 @@ class Overlay(Popup):
 
 
 class Thumbnail(Popup):
-    """Maly nahled vpravo dole; klik otevre soubor, lze ho pretahnout do jine aplikace."""
+    """Nahled vpravo dole s akcemi Kopirovat / Zobrazit v Souborech / Ulozit jako / Smazat / Zavrit.
 
-    def __init__(self, path, pb, on_done):
-        super().__init__(radius=10)
-        self.path, self.on_done = path, on_done
-        disp = Gdk.Display.get_default()
-        g = monitor_at_pointer(disp).get_geometry()
+    Klik na obrazek otevre soubor, tazenim ho lze vlozit do jine aplikace, prave tlacitko = nabidka."""
+
+    def __init__(self, app, path, pb, copied=False, video=False):
+        super().__init__(radius=12)
+        self.app, self.path, self.full, self.copied, self.video = app, path, pb, copied, video
+        self.on_done = app.done
         w, h = pb.get_width(), pb.get_height()
-        s = min(220 / w, 150 / h, 1)
+        s = min(200 / w, 140 / h, 1)
         self.pb = pb.scale_simple(max(1, int(w * s)), max(1, int(h * s)), GdkPixbuf.InterpType.BILINEAR)
-        self.pad = 3
-        tw, th = self.pb.get_width() + 2 * self.pad, self.pb.get_height() + 2 * self.pad
-        self.set_default_size(tw, th)
-        self.move(g.x + g.width - tw - 24, g.y + g.height - th - 96)
-        self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK |
-                        Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK)
-        self.connect("draw", self.on_draw)
-        self.connect("button-release-event", self.on_click)
+        card = Gtk.Box(spacing=8)
+        card.get_style_context().add_class("thumb")
+        img = self.image = Gtk.DrawingArea()
+        img.set_size_request(self.pb.get_width(), self.pb.get_height())
+        img.set_valign(Gtk.Align.CENTER)
+        img.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK)
+        img.connect("draw", self.on_draw)
+        img.connect("button-release-event", self.on_click)
+        img.drag_source_set(Gdk.ModifierType.BUTTON1_MASK, [], Gdk.DragAction.COPY)
+        if path:
+            img.drag_source_add_uri_targets()
+        else:
+            img.drag_source_add_image_targets()
+        img.drag_source_set_icon_pixbuf(self.pb)
+        img.connect("drag-data-get", self.on_drag_get)
+        img.connect("drag-begin", lambda *_a: setattr(self, "dragging", True))
+        img.connect("drag-end", lambda *_a: self.finish())
+        card.pack_start(img, False, False, 0)
+        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+        col.set_valign(Gtk.Align.CENTER)
+        if copied:          # snimek uz je ve schrance (volba Schranka nebo Ctrl)
+            st = Gtk.Box(spacing=6, margin_start=7, margin_bottom=3)
+            st.pack_start(Gtk.Image.new_from_icon_name("object-select-symbolic", Gtk.IconSize.MENU), False, False, 0)
+            lab = Gtk.Label(label=_("Copied to Clipboard"), xalign=0)
+            lab.get_style_context().add_class("status")
+            st.pack_start(lab, False, False, 0)
+            col.pack_start(st, False, False, 0)
+        self.buttons = {}
+        for key, icon, label in self.actions():
+            b = Gtk.Button(can_focus=False)
+            bx = Gtk.Box(spacing=7)
+            image = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU)
+            lab = Gtk.Label(label=label, xalign=0)
+            bx.pack_start(image, False, False, 0)
+            bx.pack_start(lab, True, True, 0)
+            b.add(bx)
+            b.connect("clicked", lambda _b, k=key: self.act(k))
+            col.pack_start(b, False, False, 0)
+            self.buttons[key] = (b, image, lab)
+        card.pack_start(col, False, False, 0)
+        self.add(card)
+        card.show_all()
+        g = monitor_at_pointer(Gdk.Display.get_default()).get_geometry()
+        size = self.get_preferred_size()[1]
+        self.move(g.x + g.width - size.width - 24, g.y + g.height - size.height - 96)
+        self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.ENTER_NOTIFY_MASK |
+                        Gdk.EventMask.LEAVE_NOTIFY_MASK)
+        self.connect("button-press-event", self.on_press)
         self.connect("enter-notify-event", lambda *_a: self.stop_timer())
-        self.connect("leave-notify-event", lambda *_a: self.start_timer())
-        self.drag_source_set(Gdk.ModifierType.BUTTON1_MASK, [], Gdk.DragAction.COPY)
-        self.drag_source_add_uri_targets()
-        self.drag_source_set_icon_pixbuf(self.pb)
-        self.connect("drag-data-get", self.on_drag_get)
-        self.connect("drag-begin", lambda *_a: setattr(self, "dragging", True))
-        self.connect("drag-end", lambda *_a: self.finish())
+        self.connect("leave-notify-event", self.on_leave)
         self.dragging = False
+        self.menu = None
         self.timer = None
         self.start_timer()
 
+    def actions(self):
+        """(klic, ikona, popisek) tlacitek podle toho, co se zachytilo."""
+        acts = []
+        if not self.video and not self.copied:
+            acts.append(("copy", "edit-copy-symbolic", _("Copy")))
+        if self.path:
+            acts.append(("reveal", "folder-open-symbolic", _("Show in Files")))
+        acts.append(("save_as", "document-save-as-symbolic", _("Save As…")))
+        if self.path:
+            acts.append(("delete", "user-trash-symbolic", _("Delete")))
+        acts.append(("close", "window-close-symbolic", _("Close")))
+        return acts
+
     def start_timer(self):
         self.stop_timer()
-        self.timer = GLib.timeout_add(THUMB_TIME, self.finish)
+        if self.on_done:
+            self.timer = GLib.timeout_add(THUMB_TIME, self.finish)
 
     def stop_timer(self):
         if self.timer:
             GLib.source_remove(self.timer)
             self.timer = None
 
-    def on_draw(self, _w, cr):
-        w, h = self.get_allocated_width(), self.get_allocated_height()
-        cr.set_operator(cairo.OPERATOR_SOURCE)
-        cr.set_source_rgba(0, 0, 0, 0)
+    def on_leave(self, _w, ev):
+        if ev.detail != Gdk.NotifyType.INFERIOR and not self.menu:   # presun na tlacitko neni odchod
+            self.start_timer()
+        return False
+
+    def on_draw(self, widget, cr):
+        w, h = widget.get_allocated_width(), widget.get_allocated_height()
+        rounded(cr, 0, 0, w, h, 7)
+        cr.clip()
+        Gdk.cairo_set_source_pixbuf(cr, self.pb, (w - self.pb.get_width()) / 2, (h - self.pb.get_height()) / 2)
         cr.paint()
-        cr.set_operator(cairo.OPERATOR_OVER)
-        rounded(cr, 0, 0, w, h, 10)
-        cr.set_source_rgba(1, 1, 1, 0.96)
-        cr.fill()
-        rounded(cr, 0.5, 0.5, w - 1, h - 1, 10)
-        cr.set_source_rgba(0, 0, 0, 0.18)
+        cr.reset_clip()
+        rounded(cr, 0.5, 0.5, w - 1, h - 1, 7)
+        cr.set_source_rgba(0, 0, 0, 0.16)
         cr.set_line_width(1)
         cr.stroke()
-        rounded(cr, self.pad, self.pad, w - 2 * self.pad, h - 2 * self.pad, 8)
-        cr.clip()
-        Gdk.cairo_set_source_pixbuf(cr, self.pb, self.pad, self.pad)
-        cr.paint()
 
     def on_drag_get(self, _w, _ctx, data, _info, _time):
-        data.set_uris([GLib.filename_to_uri(self.path)])
+        if self.path:
+            data.set_uris([GLib.filename_to_uri(self.path)])
+        else:
+            data.set_pixbuf(self.full)
 
     def on_click(self, _w, ev):
         if ev.button == 1 and not self.dragging:
-            try:
-                Gio.AppInfo.launch_default_for_uri(GLib.filename_to_uri(self.path), None)
-            except GLib.Error:
-                spawn("xdg-open", self.path)
+            if self.path:
+                open_uri(GLib.filename_to_uri(self.path))
+                self.finish()
+            return True
+        return False
+
+    def on_press(self, _w, ev):
+        if ev.button == 3:
+            self.popup_menu(ev)
+            return True
+        return False
+
+    def popup_menu(self, ev=None):
+        menu = Gtk.Menu()
+        items = ([("open", None, _("Open"))] if self.path else []) + self.actions()
+        for key, _icon, label in items:
+            if key == "close":
+                menu.append(Gtk.SeparatorMenuItem())
+            it = Gtk.MenuItem(label=label)
+            # akce az po zavreni nabidky (dialog Ulozit jako nesmi bezet pod jejim zachycenim)
+            it.connect("activate", lambda _i, k=key: GLib.idle_add(lambda: self.act(k) and False))
+            menu.append(it)
+        menu.show_all()
+        menu.attach_to_widget(self, None)
+        self.stop_timer()
+
+        def closed(_m):
+            self.menu = None
+            self.start_timer()
+        menu.connect("hide", closed)
+        self.menu = menu
+        if ev:
+            menu.popup_at_pointer(ev)
+        else:
+            menu.popup_at_widget(self, Gdk.Gravity.NORTH_WEST, Gdk.Gravity.SOUTH_WEST, None)
+        return menu
+
+    def act(self, key):
+        if not self.on_done:            # nahled uz je zavreny
+            return False
+        if key == "copy":
+            if self.app.copy_image(self.full):
+                _b, image, lab = self.buttons["copy"]
+                image.set_from_icon_name("object-select-symbolic", Gtk.IconSize.MENU)
+                lab.set_text(_("Copied"))
+            self.start_timer()
+        elif key == "open":
+            open_uri(GLib.filename_to_uri(self.path))
             self.finish()
-        elif ev.button == 3:
+        elif key == "reveal":
+            self.stop_timer()
+            self.hide()
+            self.app.reveal(self.path, self.finish)
+        elif key == "save_as":
+            self.stop_timer()
+            self.hide()             # dialog spravuje WM, nahled mimo WM by ho zakryl
+            if self.app.save_as(self.full, self.path, self.video):
+                self.finish()
+            else:
+                self.show()
+                self.start_timer()
+        elif key == "delete":
+            if self.app.trash(self.path):
+                self.finish()
+        elif key == "close":
             self.finish()
-        return True
+        return False
 
     def finish(self, *_a):
         self.stop_timer()
@@ -981,6 +1272,67 @@ def spawn(*cmd):
 def notify(text, icon="dialog-warning"):
     print(f"luxos-screenshot: {text}", file=sys.stderr)
     spawn("notify-send", "-a", _("Screenshot"), "-i", icon, _("Screenshot"), text)
+
+
+def open_uri(uri):
+    try:
+        Gio.AppInfo.launch_default_for_uri(uri, None)
+    except GLib.Error:
+        spawn("xdg-open", uri)
+
+
+def clipboard_png(pb):
+    """Obrazek do schranky pres xclip: drzi ho samostatny proces xclip, takze zustane ve schrance
+    i po skonceni tohoto programu (do dalsiho kopirovani). False = xclip neni / selhal."""
+    import shutil
+    if not pb or not shutil.which("xclip"):
+        return False
+    try:
+        ok, data = pb.save_to_bufferv("png", [], [])
+    except GLib.Error:
+        return False
+    if not ok:
+        return False
+    try:
+        p = subprocess.Popen(["xclip", "-selection", "clipboard", "-t", "image/png", "-i"],
+                             stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+        p.communicate(bytes(data), timeout=10)      # xclip nacte data a odejde do pozadi
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return p.returncode == 0
+
+
+def trash_file(path):
+    """Smazat = do Kose; 'trash', nebo 'deleted', kdyz slozka Kos nepodporuje (napr. tmpfs).
+
+    Bez Kose se maze napevno - jde o snimek, ktery tento program prave vytvoril."""
+    f = Gio.File.new_for_path(path)
+    try:
+        f.trash(None)
+        return "trash"
+    except GLib.Error as e:
+        if not e.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_SUPPORTED):
+            raise
+    os.unlink(path)
+    return "deleted"
+
+
+def write_copy(pb, src, dest, video=False):
+    """Ulozit jako: video/soubor zkopiruje, obrazek ulozi podle pripony (.jpg = JPEG, jinak PNG)."""
+    import shutil
+    if video or pb is None:
+        if src and not (os.path.exists(dest) and os.path.samefile(src, dest)):
+            shutil.copyfile(src, dest)
+        return dest
+    if os.path.splitext(dest)[1].lower() in (".jpg", ".jpeg"):
+        if pb.get_has_alpha():
+            pb = pb.composite_color_simple(pb.get_width(), pb.get_height(), GdkPixbuf.InterpType.NEAREST,
+                                           255, 8, 0xffffff, 0xffffff)
+        pb.savev(dest, "jpeg", ["quality"], ["92"])
+    else:
+        pb.savev(dest, "png", [], [])
+    return dest
 
 
 def _die_with_parent():
@@ -1096,6 +1448,8 @@ class App:
         self.rec = None
         self.mode = self.opts["mode"]
         self.holding_clip = False
+        self.to_clip = False        # Ctrl pri zachyceni: do schranky misto souboru
+        self.clip_owner = None      # okno GTK, ktere drzi schranku (jen bez xclipu)
         self.busy = False
         self.scale = root_window().get_scale_factor()
 
@@ -1131,8 +1485,15 @@ class App:
             self.cancel()
             return True
         if ev.keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter) and self.toolbar:
-            self.capture()
+            self.capture(ctrl=bool(ev.state & Gdk.ModifierType.CONTROL_MASK))
             return True
+        if ev.keyval in (Gdk.KEY_Control_L, Gdk.KEY_Control_R) and self.toolbar:
+            self.toolbar.set_ctrl(True)
+        return False
+
+    def on_key_release(self, _w, ev):
+        if ev.keyval in (Gdk.KEY_Control_L, Gdk.KEY_Control_R) and self.toolbar:
+            self.toolbar.set_ctrl(False)
         return False
 
     # -- start podle prepinacu
@@ -1187,6 +1548,7 @@ class App:
         tb.place()
         tb.show()
         tb.get_window().raise_()
+        tb.show_caption()
         grab_keyboard(self.overlay or tb)
 
     def freeze(self):
@@ -1231,6 +1593,12 @@ class App:
         g = None
         for key, label in (("desktop", _("Desktop")), ("pictures", _("Pictures")), ("clipboard", _("Clipboard"))):
             g = radio(g, label, o["save_to"] == key, lambda k=key: self.set_opt("save_to", k))
+        # Napoveda pod Schrankou: kopie jednoho snimku bez zmeny volby
+        hint = Gtk.MenuItem(sensitive=False)
+        lab = Gtk.Label(xalign=0)
+        lab.set_markup("<small>%s</small>" % GLib.markup_escape_text(_("Hold Ctrl to copy to the clipboard")))
+        hint.add(lab)
+        menu.append(hint)
         if o["other_dir"]:
             g = radio(g, os.path.basename(o["other_dir"].rstrip("/")) or o["other_dir"], o["save_to"] == "other",
                       lambda: self.set_opt("save_to", "other"))
@@ -1259,6 +1627,8 @@ class App:
     def set_opt(self, key, value):
         self.opts[key] = value
         save_options(self.opts)
+        if self.toolbar:
+            self.toolbar.update_caption()
         if key == "pointer" and value and self.frozen and self.frozen[1] is None:
             self.frozen = (self.frozen[0], cursor_image())
 
@@ -1283,11 +1653,12 @@ class App:
         return False
 
     # -- zachyceni
-    def capture(self):
-        """Tlacitko Zachytit / Nahrat nebo Enter."""
+    def capture(self, ctrl=None):
+        """Tlacitko Zachytit / Nahrat nebo Enter; s Ctrl jde snimek do schranky."""
         if self.busy:
             return
         mode = self.mode
+        self.to_clip = ctrl_held() if ctrl is None else bool(ctrl)
         if mode in ("portion", "rec_portion"):
             sel = self.overlay.norm() if self.overlay else None
             if not sel or sel[2] < 3 or sel[3] < 3:
@@ -1340,10 +1711,11 @@ class App:
             return True
         GLib.timeout_add(max(delay, 1), lambda: tick() and GLib.timeout_add(1000, tick) and False)
 
-    def selected(self, rect, window=False):
+    def selected(self, rect, window=False, ctrl=False):
         """Vyber v prekryvu hotov: vyrez pustenim mysi (bez listy) nebo klik na okno."""
         if self.busy:
             return
+        self.to_clip = bool(ctrl)
         if self.mode == "rec_portion":
             self.start_recording(rect)
         else:
@@ -1380,17 +1752,15 @@ class App:
             notify(_("The screenshot could not be taken."))
             self.quit()
             return
-        folder = None if self.args.get("clipboard") else save_dir(self.opts, override=self.args.get("output"))
-        if self.args.get("clipboard") and self.args.get("output"):
-            folder = self.args["output"]
-        if folder is None:
-            clip = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-            clip.set_image(pb)
-            clip.store()          # spravce schranky (pokud bezi) si obrazek prevezme
-            # Bez spravce schranky musi obrazek drzet tento proces - do dalsiho kopirovani
-            self.holding_clip = True
-            set_state("idle")
-            GLib.timeout_add(1500, lambda: clip.connect("owner-change", self.quit) and False)
+        out = self.args.get("output")
+        if self.args.get("clipboard"):
+            folder = out                    # --clipboard --output: soubor do slozky (jako drive)
+        else:
+            folder = save_dir(self.opts, override=out)
+        if self.to_clip or folder is None:
+            if not self.copy_image(pb):
+                notify(_("The screenshot could not be copied to the clipboard."))
+            self.show_thumb(None, pb, copied=True)
             return
         try:
             os.makedirs(folder, exist_ok=True)
@@ -1403,13 +1773,102 @@ class App:
         print(path)
         self.show_thumb(path, pb)
 
-    def show_thumb(self, path, pb):
+    def show_thumb(self, path, pb, copied=False, video=False):
         if self.args.get("no_thumb") or not pb:
-            self.quit()
+            self.done()
             return
         set_state("idle")
-        self.thumb = Thumbnail(path, pb, self.quit)
+        self.thumb = Thumbnail(self, path, pb, copied=copied, video=video)
         self.thumb.show_all()
+
+    def done(self):
+        """Nahled zavreny: konec, jen obrazek ve schrance drzeny primo timto procesem pocka."""
+        self.thumb = None
+        if self.holding_clip and self.own_clipboard():
+            set_state("idle")
+            return
+        self.quit()
+
+    # -- akce nahledu
+    def copy_image(self, pb):
+        if clipboard_png(pb):
+            return True
+        if not pb:
+            return False
+        # Bez xclipu drzi obrazek tento proces (a ceka, dokud schranku neprevezme nekdo jiny)
+        clip = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        clip.set_image(pb)
+        clip.store()          # spravce schranky (pokud bezi) si obrazek prevezme
+        self.clip_owner = Gdk.selection_owner_get(Gdk.SELECTION_CLIPBOARD)
+        if not self.holding_clip:
+            self.holding_clip = True
+            GLib.timeout_add(1500, lambda: clip.connect("owner-change", self.clip_lost) and False)
+        return True
+
+    def own_clipboard(self):
+        owner = Gdk.selection_owner_get(Gdk.SELECTION_CLIPBOARD)
+        return owner is not None and owner == self.clip_owner
+
+    def clip_lost(self, *_a):
+        if not self.thumb and not self.own_clipboard():
+            self.quit()
+
+    def reveal(self, path, cb):
+        """Zobrazit v Souborech: spravce souboru oznaci soubor (FileManager1), jinak otevre slozku."""
+        def fallback():
+            open_uri(GLib.filename_to_uri(os.path.dirname(path)))
+
+        def reply(conn, res):
+            try:
+                conn.call_finish(res)
+            except GLib.Error:
+                fallback()
+            cb()
+        try:
+            bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+            bus.call("org.freedesktop.FileManager1", "/org/freedesktop/FileManager1",
+                     "org.freedesktop.FileManager1", "ShowItems",
+                     GLib.Variant("(ass)", ([GLib.filename_to_uri(path)], "")),
+                     None, Gio.DBusCallFlags.NONE, 8000, None, reply)
+        except GLib.Error:
+            fallback()
+            cb()
+
+    def ask_save_path(self, src, video=False):
+        """Dialog Ulozit jako; vrati cestu nebo None."""
+        dlg = Gtk.FileChooserDialog(title=_("Save Recording") if video else _("Save Screenshot"),
+                                    action=Gtk.FileChooserAction.SAVE)
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Save"), Gtk.ResponseType.ACCEPT)
+        dlg.set_default_response(Gtk.ResponseType.ACCEPT)
+        dlg.set_do_overwrite_confirmation(True)
+        dlg.set_keep_above(True)
+        folder = os.path.dirname(src) if src else user_dir("pictures")
+        if os.path.isdir(folder):
+            dlg.set_current_folder(folder)
+        dlg.set_current_name(os.path.basename(src) if src else file_name(datetime.datetime.now()))
+        path = dlg.get_filename() if dlg.run() == Gtk.ResponseType.ACCEPT else None
+        dlg.destroy()
+        if path and not video and not os.path.splitext(path)[1]:
+            path = unique_path(os.path.dirname(path), os.path.basename(path) + ".png")
+        return path
+
+    def save_as(self, pb, src, video=False):
+        dest = self.ask_save_path(src, video)
+        if not dest:
+            return None
+        try:
+            return write_copy(pb, src, dest, video)
+        except (OSError, GLib.Error) as e:
+            notify(_("The screenshot could not be saved.") + f" {e}")
+            return None
+
+    def trash(self, path):
+        try:
+            trash_file(path)
+            return True
+        except (OSError, GLib.Error) as e:
+            notify(_("The file could not be moved to the Trash.") + " " + (getattr(e, "message", None) or str(e)))
+            return False
 
     # -- nahravani
     def start_recording(self, rect):
@@ -1448,7 +1907,7 @@ class App:
             self.quit()
             return
         print(path)
-        self.show_thumb(path, None if self.args.get("no_thumb") else video_frame(path))
+        self.show_thumb(path, None if self.args.get("no_thumb") else video_frame(path), video=True)
 
 
 def unix_signal(sig, cb):

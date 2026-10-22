@@ -18,21 +18,32 @@
  *
  * A: pripojeni/odpojeni monitoru (udalost RandR, zadne dotazovani) spusti
  * "luxos-displays auto" - rozlozeni obrazovek, okna z odpojeneho monitoru, tapeta.
+ *
+ * A: samotne tuknuti na klavesu Super otevre Launchpad (jako Start ve Windows).
+ * Raw udalosti klaves (pasivne, bez grabu); rozpoznani je v luxos-super-tap.h.
+ * Super+klavesa nebo Super+mys Launchpad neotevre. Pri zamcene obrazovce, otevrene
+ * nabidce apod. (klavesnici drzi grab jineho klienta) se nic nespusti. Vypina se
+ * priznakem ~/.config/luxos/super-launchpad-off (aplikace Klavesove zkratky).
  */
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/XKBlib.h>
 #include <X11/extensions/XInput2.h>
 #include <X11/extensions/XTest.h>
 #include <X11/extensions/Xrandr.h>
 #include <X11/keysym.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <sys/select.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "luxos-super-tap.h"
 
 #define CLIENT(w) ((w) & ~0x1fffffUL)
 #define CHECK_DELAY_MS 120
@@ -199,6 +210,9 @@ static void handle_event(XEvent *ev);
 
 static char autohide_flag[512];
 static int autohide;            /* Dock se skryva -> sledovat pohyb mysi */
+static char super_flag[512];    /* existuje = Super samotna Launchpad neotevira */
+static int super_on = -1;       /* sledovat klavesy kvuli tuknuti na Super */
+static struct super_tap tap;
 static long long edge_due;      /* naplanovana kontrola polohy (0 = zadna) */
 static long long flag_due;
 
@@ -206,13 +220,17 @@ static int rr_event_base = -1;
 static long long hotplug_due;
 static char outputs_last[1024];
 
-static void select_xi(int motion)
+static void select_xi(void)
 {
     unsigned char bits[XIMaskLen(XI_LASTEVENT)] = {0};
     XISetMask(bits, XI_RawButtonPress);
     XISetMask(bits, XI_RawButtonRelease);
-    if (motion)
+    if (autohide)
         XISetMask(bits, XI_RawMotion);
+    if (super_on > 0) {
+        XISetMask(bits, XI_RawKeyPress);
+        XISetMask(bits, XI_RawKeyRelease);
+    }
     XIEventMask mask = {XIAllMasterDevices, sizeof bits, bits};
     XISelectEvents(dpy, root, &mask, 1);
     XFlush(dpy);
@@ -221,9 +239,13 @@ static void select_xi(int motion)
 static void check_flag(void)
 {
     int on = access(autohide_flag, F_OK) == 0;
-    if (on != autohide) {
+    int super = access(super_flag, F_OK) != 0;
+    if (on != autohide || super != super_on) {
         autohide = on;
-        select_xi(on);
+        if (super != super_on)
+            memset(&tap, 0, sizeof tap);
+        super_on = super;
+        select_xi();
     }
     flag_due = now_ms() + FLAG_CHECK_MS;
 }
@@ -292,6 +314,68 @@ static void run_hotplug(void)
     }
 }
 
+/* Bezi proces s timto jmenem pod nasim uzivatelem? */
+static int own_process_running(const char *name)
+{
+    DIR *d = opendir("/proc");
+    struct dirent *e;
+    int found = 0;
+    uid_t uid = getuid();
+    if (!d)
+        return 0;
+    while (!found && (e = readdir(d))) {
+        char path[300], comm[32] = "";
+        struct stat st;
+        if (e->d_name[0] < '1' || e->d_name[0] > '9')
+            continue;
+        snprintf(path, sizeof path, "/proc/%s/comm", e->d_name);
+        if (stat(path, &st) || st.st_uid != uid)
+            continue;
+        FILE *f = fopen(path, "r");
+        if (!f)
+            continue;
+        if (fgets(comm, sizeof comm, f)) {
+            comm[strcspn(comm, "\n")] = 0;
+            found = !strcmp(comm, name);
+        }
+        fclose(f);
+    }
+    closedir(d);
+    return found;
+}
+
+/* Tuknuti na Super: otevrit (nebo zavrit) Launchpad */
+static void super_launchpad(void)
+{
+    /* Grab klavesnice drzi nekdo jiny: zamcena obrazovka/sporic, nabidka, zaznam zkratky.
+     * Vyjimka je otevreny Launchpad (rofi) - luxos-launchpad ho zavre jako Super+A. */
+    int r = XGrabKeyboard(dpy, root, False, GrabModeAsync, GrabModeAsync, CurrentTime);
+    if (r == GrabSuccess)
+        XUngrabKeyboard(dpy, CurrentTime);
+    XFlush(dpy);
+    if (r != GrabSuccess && !own_process_running("rofi"))
+        return;
+    if (fork() == 0) {
+        setsid();
+        execlp("luxos-launchpad", "luxos-launchpad", (char *)NULL);
+        _exit(127);
+    }
+}
+
+static void super_key(XIRawEvent *re, int press)
+{
+    int kc = re->detail;
+    KeySym ks = XkbKeycodeToKeysym(dpy, (KeyCode)kc, 0, 0);
+    int is_super = ks == XK_Super_L || ks == XK_Super_R;
+    if (press && is_super) {
+        char keys[32];
+        XQueryKeymap(dpy, keys);    /* skutecny stav ostatnich klaves (ztracena uvolneni) */
+        super_tap_sync(&tap, keys);
+    }
+    if (super_tap_event(&tap, press ? TAP_KEY_PRESS : TAP_KEY_RELEASE, kc, is_super, now_ms()))
+        super_launchpad();
+}
+
 /* Zpracovava udalosti az do zavreni nabidky nebo vyprseni casu */
 static void wait_closed(Window w, int ms)
 {
@@ -354,6 +438,14 @@ static void handle_event(XEvent *ev)
         if (!XGetEventData(dpy, ck))
             return;
         XIRawEvent *re = ck->data;
+        if (ck->evtype == XI_RawKeyPress || ck->evtype == XI_RawKeyRelease) {
+            if (super_on > 0)
+                super_key(re, ck->evtype == XI_RawKeyPress);
+            XFreeEventData(dpy, ck);
+            return;
+        }
+        if (ck->evtype == XI_RawButtonPress)
+            super_tap_event(&tap, TAP_BUTTON, 0, 0, now_ms());   /* Super+klik/kolecko */
         if (ck->evtype == XI_RawMotion) {
             if (!edge_due)
                 edge_due = now_ms() + EDGE_COALESCE_MS;
@@ -399,6 +491,10 @@ int main(void)
             snprintf(autohide_flag, sizeof autohide_flag, "%s/luxos/dock-autohide", cfg);
         else
             snprintf(autohide_flag, sizeof autohide_flag, "%s/.config/luxos/dock-autohide", home ? home : "");
+        if (cfg && *cfg)
+            snprintf(super_flag, sizeof super_flag, "%s/luxos/super-launchpad-off", cfg);
+        else
+            snprintf(super_flag, sizeof super_flag, "%s/.config/luxos/super-launchpad-off", home ? home : "");
     }
     a_pid = XInternAtom(dpy, "_NET_WM_PID", False);
     a_type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
@@ -410,7 +506,6 @@ int main(void)
     a_menu[2] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_MENU", False);
 
     XSelectInput(dpy, root, SubstructureNotifyMask);
-    select_xi(0);
     check_flag();
     int rr_err;
     if (XRRQueryExtension(dpy, &rr_event_base, &rr_err)) {

@@ -194,7 +194,7 @@ class Displays(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Displays"))
         self.set_default_size(640, 700)
-        self.set_icon_name("preferences-desktop-display")
+        self.set_icon_name("luxos-displays")
         header = Gtk.HeaderBar(show_close_button=True, title=_("Displays"))
         self.set_titlebar(header)
         self.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)

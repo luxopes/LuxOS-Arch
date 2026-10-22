@@ -1,0 +1,18 @@
+{
+  "version": "0.9.5",
+  "codename": "Polaris",
+  "items": [
+    {"icon": "input-keyboard-symbolic",
+     "title": {"en": "Switch layouts with both Shift keys", "cs": "Rozložení přepnete oběma Shifty"},
+     "text": {"en": "Press Left Shift + Right Shift to switch the keyboard layout. Tap the Super key on its own to open Launchpad.",
+              "cs": "Levý a pravý Shift současně přepne rozložení klávesnice. Samotný stisk klávesy Super otevře Launchpad."}},
+    {"icon": "camera-photo-symbolic",
+     "title": {"en": "Screenshot tells you what each button does", "cs": "Snímek obrazovky ukazuje, co je co"},
+     "text": {"en": "The selected mode and its shortcut are shown above the bar. After a capture: Copy, Save As…, Show in Files or Delete. Hold Ctrl to copy straight to the clipboard.",
+              "cs": "Nad lištou je vidět vybraný režim a jeho zkratka. Po pořízení snímku: Kopírovat, Uložit jako…, Zobrazit v Souborech nebo Smazat. S podrženým Ctrl se snímek rovnou zkopíruje."}},
+    {"icon": "preferences-desktop-display-symbolic",
+     "title": {"en": "New icons", "cs": "Nové ikony"},
+     "text": {"en": "Displays and Fingerprint have new icons.",
+              "cs": "Monitory a Otisk prstu mají nové ikony."}}
+  ]
+}
