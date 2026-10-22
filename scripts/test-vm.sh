@@ -24,7 +24,7 @@ iso=$(ls -t out/luxos-*.iso 2>/dev/null | head -1 || true)
 
 args=(
     -name LuxOS -enable-kvm -machine q35 -cpu host -smp 4 -m "${LUXOS_VM_MEM:-4096}"
-    -drive file="$T/disk.qcow2",if=virtio,discard=unmap,cache=unsafe
+    -drive file="$T/disk.qcow2",if=none,id=hd0,discard=unmap,cache=unsafe -device virtio-blk-pci,drive=hd0,bootindex=1
     -nic user,model=virtio-net-pci
     -device "virtio-vga${LUXOS_VM_OUTPUTS:+,max_outputs=$LUXOS_VM_OUTPUTS}" -device qemu-xhci -device usb-tablet
     -audiodev none,id=snd0 -device intel-hda -device hda-output,audiodev=snd0
@@ -39,7 +39,8 @@ if ((!bios)); then
 fi
 if [[ $mode == live ]]; then
     [[ -n $iso ]] || { echo "No ISO in out/ - run ./build.sh first" >&2; exit 1; }
-    args+=(-cdrom "$iso" -boot order=d)
+    # bootindex: UEFI jinak upredni nainstalovany system podle ulozenych NVRAM polozek
+    args+=(-drive file="$iso",if=none,id=cd0,media=cdrom,readonly=on -device ide-cd,drive=cd0,bootindex=0)
 fi
 if ((headless)); then args+=(-display none -vnc 127.0.0.1:7); else args+=(-display gtk,zoom-to-fit=on); fi
 
