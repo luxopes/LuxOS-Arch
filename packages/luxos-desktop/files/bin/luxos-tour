@@ -943,6 +943,42 @@ def draw_help(p):
 
 
 # ---- zvyrazneni skutecne horni listy / Docku na obrazovce --------------------------------
+def input_shape(xid):
+    """Obalka vstupniho tvaru X11 okna (x, y, w, h) v px okna, nebo None (bez X11/Xext)."""
+    try:
+        import ctypes
+        import ctypes.util
+
+        class XRect(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_short), ("y", ctypes.c_short),
+                        ("w", ctypes.c_ushort), ("h", ctypes.c_ushort)]
+        x11 = ctypes.CDLL(ctypes.util.find_library("X11") or "libX11.so.6")
+        xext = ctypes.CDLL(ctypes.util.find_library("Xext") or "libXext.so.6")
+        x11.XOpenDisplay.restype = ctypes.c_void_p
+        x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+        x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+        x11.XFree.argtypes = [ctypes.c_void_p]
+        xext.XShapeGetRectangles.restype = ctypes.POINTER(XRect)
+        xext.XShapeGetRectangles.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int,
+                                             ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
+        dpy = x11.XOpenDisplay(None)
+        if not dpy:
+            return None
+        try:
+            n, order = ctypes.c_int(), ctypes.c_int()
+            r = xext.XShapeGetRectangles(dpy, xid, 2, ctypes.byref(n), ctypes.byref(order))   # 2 = ShapeInput
+            if not r or n.value < 1:
+                return None
+            rs = [(r[i].x, r[i].y, r[i].x + r[i].w, r[i].y + r[i].h) for i in range(n.value)]
+            x11.XFree(ctypes.cast(r, ctypes.c_void_p))
+        finally:
+            x11.XCloseDisplay(dpy)
+        x0, y0 = min(a[0] for a in rs), min(a[1] for a in rs)
+        return (x0, y0, max(a[2] for a in rs) - x0, max(a[3] for a in rs) - y0)
+    except (OSError, AttributeError, ValueError):
+        return None
+
+
 def screen_rects():
     """Skutecna poloha horni listy a Docku {"bar": (x, y, w, h), "dock": ...} v logickych px."""
     rects = {}
@@ -960,6 +996,10 @@ def screen_rects():
             cls = (w.get_class_group_name() or "").lower() + " " + (w.get_class_instance_name() or "").lower()
             x, y, ww, hh = (v / scale for v in w.get_geometry())
             if "plank" in cls and hh >= 24 and ww >= 48 and y + hh > g.y + g.height * 0.6:
+                # okno Docku je siroke a vysoke kvuli zvetsovani ikon; viditelny Dock = vstupni tvar okna
+                shp = input_shape(w.get_xid())
+                if shp and shp[2] >= 48 and shp[3] >= 24:
+                    x, y, ww, hh = x + shp[0] / scale, y + shp[1] / scale, shp[2] / scale, shp[3] / scale
                 rects["dock"] = (x, y, ww, hh)
             elif "xfce4-panel" in cls and ww >= g.width * 0.8 and abs(y - g.y) < 4 and 14 <= hh <= 80:
                 rects["bar"] = (x, y, ww, hh)

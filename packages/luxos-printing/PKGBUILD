@@ -5,7 +5,7 @@
 
 pkgname=luxos-printing
 pkgver=1.0.0
-pkgrel=3
+pkgrel=4
 pkgdesc="LuxOS plug-and-play printing and scanning, Printers & Scanners and Scanner apps"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
@@ -31,6 +31,9 @@ package() {
     install -Dm644 -t "$pkgdir/usr/share/libalpm/hooks" "$f"/hooks/*.hook
     install -Dm644 "$f/org.luxos.printing.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.printing.policy"
     install -Dm644 "$f/luxos-printers.desktop" "$pkgdir/usr/share/applications/luxos-printers.desktop"
+    # Kopie jen pro Launchpad (ten skryva panely Nastaveni); OnlyShowIn ji skryje v menu a Hledani
+    sed -e 's/^Categories=.*/Categories=X-LuxOS-Launchpad;/' -e '/^\[Desktop Entry\]/a OnlyShowIn=X-LuxOS-Launchpad;' \
+        "$pkgdir/usr/share/applications/luxos-printers.desktop" > "$pkgdir/usr/share/applications/luxos-printers-launchpad.desktop"
     install -Dm644 "$f/luxos-scan.desktop" "$pkgdir/usr/share/applications/luxos-scan.desktop"
     install -dm755 "$pkgdir/var/lib/luxos-printing"
 }
