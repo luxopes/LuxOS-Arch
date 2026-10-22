@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+"""Falesny scanimage pro testy luxos-scan (bez skeneru). Chovani urcuje FAKE_SCAN:
+
+  ok (vychozi) | busy | jam | adf (2 listy, pak prazdny podavac) | adf-empty | slow (ceka na SIGTERM)
+  | partial (preruseny zapis) | none (zadny skener)
+"""
+import os
+import signal
+import sys
+import time
+
+mode = os.environ.get("FAKE_SCAN", "ok")
+args = sys.argv[1:]
+
+
+def opt(name):
+    for i, a in enumerate(args):
+        if a == name and i + 1 < len(args):
+            return args[i + 1]
+        if a.startswith(name + "="):
+            return a.split("=", 1)[1]
+    return None
+
+
+if "-f" in args:
+    if mode != "none":
+        sys.stdout.write("airscan:e0:HP LaserJet MFP M140w\tHP\tHP LaserJet MFP M140w (A1B2C3)\teSCL network scanner\n"
+                         "airscan:w1:HP LaserJet MFP M140w\tHP\tHP LaserJet MFP M140w (A1B2C3)\tWSD network scanner\n"
+                         "pixma:04A91234_ABC\tCANON\tCanon TS5300 series\tmultifunction peripheral\n")
+    else:
+        sys.stderr.write("\nNo scanners were identified.\n")
+    sys.exit(0)
+
+if "-A" in args:
+    if mode == "busy":
+        sys.stderr.write(f"scanimage: open of device {opt('-d')} failed: Device busy\n")
+        sys.exit(1)
+    print(f"\nAll options specific to device `{opt('-d')}':\n  Scan Mode:\n"
+          "    --mode Color|Gray [Color]\n"
+          "    --resolution 75|100|150|200|300|600|1200dpi [300]\n"
+          "    --source Flatbed|ADF|ADF Duplex [Flatbed]\n")
+    sys.exit(0)
+
+W, H = 30, 40
+mode_val = opt("--mode") or "Color"
+chans = 1 if mode_val == "Gray" else 3
+magic = b"P5" if chans == 1 else b"P6"
+with open(os.environ.get("FAKE_SCAN_LOG", os.devnull), "a") as f:
+    f.write(" ".join(args) + "\n")
+
+
+def page(path, full=True):
+    data = bytes((x * 7 + y * 3) % 256 for y in range(H) for x in range(W) for _c in range(chans))
+    with open(path, "wb") as f:
+        f.write(magic + b"\n# fake\n%d %d\n255\n" % (W, H) + (data if full else data[: len(data) // 3]))
+
+
+def progress():
+    for p in (0, 25.5, 50, 100):
+        sys.stderr.write("Progress: %.1f%%\r" % p)
+        sys.stderr.flush()
+        time.sleep(0.05)
+
+
+if mode == "busy":
+    sys.stderr.write(f"scanimage: open of device {opt('-d')} failed: Device busy\n")
+    sys.exit(1)
+if mode == "jam":
+    progress()
+    sys.stderr.write("scanimage: sane_read: Document feeder jammed\n")
+    sys.exit(1)
+if mode == "slow":
+    def term(*_a):
+        sys.stderr.write("scanimage: received signal 15\nscanimage: aborting\n")
+        sys.exit(130)
+    signal.signal(signal.SIGTERM, term)
+    sys.stderr.write("Progress: 10.0%\r")
+    sys.stderr.flush()
+    out = opt("-o")
+    if out:
+        page(out, full=False)
+    for _i in range(300):
+        time.sleep(0.1)
+    sys.exit(0)
+
+batch = opt("--batch")
+if batch:
+    start = int(opt("--batch-start") or 1)
+    n = 0 if mode == "adf-empty" else 2
+    for i in range(n):
+        progress()
+        page(batch % (start + i))
+        sys.stderr.write(f"Scanned page {start + i}. (scanner status = 5)\n")
+    sys.stderr.write("scanimage: sane_start: Document feeder out of documents\n")
+    sys.exit(7 if n == 0 else 0)
+
+out = opt("-o")
+progress()
+page(out, full=mode != "partial")
+sys.exit(0)

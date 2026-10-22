@@ -65,7 +65,7 @@ modules=""
 # Rane nacteni NVIDIA jen bez integrovane grafiky (u hybridni jen zpomaluje start)
 pac=/usr/lib/lux/alpm/pacman   # skutecny pacman (luxos-pacman); /usr/bin/pacman je kompatibilni vrstva
 [[ -x $pac ]] || pac=pacman
-if ((${NVIDIA_EARLY:-1})) && "$pac" -Qq nvidia-open-dkms &>/dev/null; then
+if ((${NVIDIA_EARLY:-1})) && "$pac" -Qq 2>/dev/null | grep -xE 'nvidia-open-dkms|nvidia-[0-9]+xx-dkms' >/dev/null; then
     modules="nvidia nvidia_modeset nvidia_uvm nvidia_drm"
 fi
 # Sifrovany / (sd-encrypt: rd.luks.* + /etc/crypttab.initramfs) a / na LVM (lvm2); poradi: block sd-encrypt lvm2

@@ -553,15 +553,20 @@ cmd_fix() {
 cmd_drivers() {
     luxos-hwdetect --report
     local -a want=() missing=() svcs=()
-    mapfile -t want < <(luxos-hwdetect --packages --kernel "$("$LUX_PACMAN" -Qq linux-zen &>/dev/null && echo linux-zen || echo linux)")
+    # Hlavicky jader (DKMS) podle nainstalovanych jader (/usr/lib/modules/*/pkgbase)
+    mapfile -t want < <(luxos-hwdetect --packages)
     mapfile -t svcs < <(luxos-hwdetect --services)
-    local p
+    local p s
+    local -a now=() later=()
     for p in "${want[@]}"; do installed "$p" || missing+=("$p"); done
     if ((${#missing[@]} == 0)); then ok "$(T "All drivers are installed")"; return; fi
     say "$(T "Missing: %s" "${B}${missing[*]}${R}")"
     ask "$(T "Install now?")" Y || return 0
     (YES=1; repo_install "${missing[@]}") || exit 1
-    ((${#svcs[@]})) && as_root systemctl enable --now "${svcs[@]}"
+    # nvidia-suspend/resume/hibernate bezi jen pri uspani - zapnout, ale nespoustet
+    for s in "${svcs[@]}"; do if [[ $s == nvidia-* ]]; then later+=("$s"); else now+=("$s"); fi; done
+    ((${#now[@]})) && as_root systemctl enable --now "${now[@]}"
+    ((${#later[@]})) && as_root systemctl enable "${later[@]}"
     ok "$(T "Drivers installed - restart to activate them")"
 }
 

@@ -860,10 +860,22 @@ install_packages() {
     [[ $DISK_MODE == layout ]] && mapfile -t -O "${#pkgs[@]}" pkgs < <(layout_packages)
     mapfile -t hw < <(luxos-hwdetect --packages --kernel linux-zen)
     luxos-hwdetect --report | sed 's/^/  /'
-    pkgs+=("${hw[@]}")
+    # Legacy ovladace NVIDIA (nvidia-580xx-*, nvidia-470xx-*: [luxos], ~0,5 GB) v ISO nejsou;
+    # nainstaluji se po zakladnim systemu z online [luxos] (install_online_drivers).
+    # nvidia-prime s nimi: jinak by si pacstrap pritahl nvidia-utils z [extra] a ten s nimi koliduje.
+    HW_ONLINE=()
+    local p
+    for p in "${hw[@]}"; do [[ $p == *nvidia-[0-9]*xx* ]] && HW_ONLINE+=("$p"); done
+    for p in "${hw[@]}"; do
+        if [[ $p == *nvidia-[0-9]*xx* ]] || { ((${#HW_ONLINE[@]})) && [[ $p == nvidia-prime ]]; }; then
+            [[ $p == nvidia-prime ]] && HW_ONLINE+=("$p")
+            continue
+        fi
+        pkgs+=("$p")
+    done
     # NVIDIA do initramfs jen bez integrovane grafiky (u hybridni jen zpomaluje start)
     NVIDIA_EARLY=0
-    if [[ " ${hw[*]} " == *" nvidia-open-dkms "* && " ${hw[*]} " != *" nvidia-prime "* ]]; then NVIDIA_EARLY=1; fi
+    if [[ " ${hw[*]} " =~ \ nvidia-(open|[0-9]+xx)-dkms\  && " ${hw[*]} " != *" nvidia-prime "* ]]; then NVIDIA_EARLY=1; fi
 
     step "$(T "Installing packages (this is the longest step)")"
     rank_mirrors
@@ -873,6 +885,7 @@ install_packages() {
         # anglicky vystup pacmanu kvuli rozpoznani prubehu a chyb
         if LC_ALL=C.UTF-8 pacstrap "${conf[@]}" -K "$TARGET" --needed "${pkgs[@]}" 2>&1 | pac_filter; then
             progress "STATUS "
+            install_online_drivers
             return 0
         fi
         ((attempt < 3)) || break
@@ -886,6 +899,32 @@ install_packages() {
         conf=(-C "$retry_conf")
     done
     fail "$(T "Packages could not be installed. Check the internet connection.")"
+}
+
+# Legacy ovladace NVIDIA z online [luxos] (v ISO nejsou). Chyba instalaci nezastavi:
+# zustane ovladac nouveau z jadra a po prvnim prihlaseni se ovladac nabidne v aplikaci Ovladace.
+install_online_drivers() {
+    ((${#HW_ONLINE[@]})) || return 0
+    progress "STATUS $(T "Downloading the NVIDIA driver…")"
+    info "$(T "Downloading the NVIDIA driver…")"
+    # Repozitare LuxOS ze serveru (configure_system pak pacman.conf zapise znovu, stejny obsah)
+    install -m644 /usr/share/luxos/installer/pacman.conf "$TARGET/etc/pacman.conf"
+    install -m644 /etc/pacman.d/mirrorlist "$TARGET/etc/pacman.d/mirrorlist"
+    local attempt
+    for attempt in 1 2 3; do
+        # -Sy: online databaze [luxos] (pacstrap pouzil mistni z ISO); system je cerstve nainstalovany
+        if chroot_pacman -Sy --needed --noconfirm "${HW_ONLINE[@]}" 2>&1 | pac_filter; then
+            progress "STATUS "
+            return 0
+        fi
+        ((attempt < 3)) || break
+        pac_cleanup
+        sleep $((attempt * 5))
+        wait_internet
+    done
+    progress "STATUS "
+    NVIDIA_EARLY=0
+    info "$(T "The NVIDIA driver could not be installed. The open-source driver is used for now; install it later in Drivers.")"
 }
 
 configure_system() {

@@ -946,6 +946,49 @@ class Lux:
                            if kind not in ("unknown", "notfound") else _("Cannot read package file %s") % path,
                            [f"error: {msg}"] + det)
 
+    # -- graficke ovladace jako zavislosti
+    def hw_packages(self):
+        """Baliky doporucene detekci hardwaru (prazdne, kdyz detekce chybi)."""
+        try:
+            r = subprocess.run(["luxos-hwdetect", "--packages"], capture_output=True, text=True, timeout=10)
+        except (OSError, subprocess.SubprocessError):
+            return []
+        return r.stdout.split() if r.returncode == 0 else []
+
+    def better_gpu_providers(self, add, to_add):
+        """Kdyz zavislost typu vulkan-driver vybrala ovladac NVIDIA (prvni poskytovatel v [luxos]),
+        ktery k tomuto hardwaru nepatri, vrati vhodnejsi poskytovatele. Jinak prazdny seznam."""
+        asked = {p.name for p in add}
+        local = self.localdb
+        pulled = [p for p in to_add if GPU_VENDOR_PKG.match(p.name)
+                  and p.name not in asked and local.get_pkg(p.name) is None]
+        if not pulled:
+            return []
+        hw = self.hw_packages()
+        if any(p.name in hw for p in pulled):
+            return []
+        dbs = self.syncdbs("Install")
+        planned = {p.name for p in to_add}
+        # doporucene baliky maji prednost, vcetne 32bit variant (multilib se mohl zapnout az ted)
+        prefer = hw + ["lib32-" + n for n in hw if not n.startswith("lib32-")]
+        extra = []
+        for p in pulled:
+            for prov in p.provides:
+                virt = re.split(r"[<>=]", prov, 1)[0]
+                if not virt.endswith("-driver"):
+                    continue
+                for name in prefer + GPU_FALLBACK.get(virt, []):
+                    if name in planned:
+                        continue
+                    cand = next((db.get_pkg(name) for db in dbs if db.get_pkg(name)), None)
+                    if cand is None:
+                        continue
+                    if name == virt or any(re.split(r"[<>=]", x, 1)[0] == virt for x in cand.provides):
+                        extra.append(cand)
+                        planned.add(name)
+                        break
+        return extra
+
     # -- transakce
     def transaction(self, action, add=(), remove=(), sysupgrade=False, flags=None, explicit=(), attempts=3):
         """Jedna transakce jako pacman: init -> cile -> prepare -> otazka -> commit. Pri chybe site se
@@ -953,16 +996,25 @@ class Lux:
         self.need_root()
         flags = dict(flags or {})
         confirmed = False
-        for attempt in range(1, attempts + 1):
+        add = list(add)
+        check_gpu = True
+        attempt = 1
+        while True:
             try:
-                return self._transaction(action, add, remove, sysupgrade, flags, explicit, confirmed)
+                return self._transaction(action, add, remove, sysupgrade, flags, explicit, confirmed, check_gpu)
+            except _Reprovide as r:
+                # jen jednou a nepocita se mezi opakovani pri chybe site
+                check_gpu = False
+                add += r.extra
+                continue
             except _Retry as r:
                 confirmed = True
                 if attempt == attempts:
                     raise r.error
-                self.retry_notice(attempt + 1, attempts)
+                attempt += 1
+                self.retry_notice(attempt, attempts)
 
-    def _transaction(self, action, add, remove, sysupgrade, flags, explicit, confirmed):
+    def _transaction(self, action, add, remove, sysupgrade, flags, explicit, confirmed, check_gpu=False):
         h = self.h
         api, ui = self.api, self.ui
         self.cb.reset()
@@ -997,6 +1049,10 @@ class Lux:
             to_remove = list(t.to_remove)
             if not to_add and not to_remove:
                 return 0
+            if check_gpu:
+                extra = self.better_gpu_providers(add, to_add)
+                if extra:
+                    raise _Reprovide(extra)
             plan = self.plan(to_add, to_remove)
             if not confirmed:
                 self.show_plan(action, plan, to_add, to_remove)
@@ -1146,6 +1202,26 @@ class Lux:
                 signal.signal(s, handler)
             except (ValueError, OSError):
                 pass
+
+
+# Ovladace NVIDIA, ktere libalpm vybere jako prvniho poskytovatele vulkan-driver apod.
+GPU_VENDOR_PKG = re.compile(r"^(lib32-)?(opencl-)?nvidia(-\d+xx)?(-utils|-dkms|-open.*)?$")
+# Nahradni poskytovatele, kdyz detekce hardwaru nic vhodneho nedoporuci (napr. ve VM)
+GPU_FALLBACK = {
+    "vulkan-driver": ["vulkan-swrast"],
+    "lib32-vulkan-driver": ["lib32-vulkan-swrast"],
+    "opengl-driver": ["mesa"],
+    "lib32-opengl-driver": ["lib32-mesa"],
+    "opencl-driver": ["opencl-mesa"],
+    "lib32-opencl-driver": ["lib32-opencl-mesa"],
+}
+
+
+class _Reprovide(Exception):
+    """Transakce si vybrala nevhodny graficky ovladac -> zopakovat s lepsimi poskytovateli."""
+    def __init__(self, extra):
+        super().__init__("reprovide")
+        self.extra = extra
 
 
 class _Retry(Exception):

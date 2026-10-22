@@ -14,7 +14,12 @@ target=${1:-all}
 
 # Repozitar [luxos]: system LuxOS, poradi = zavislosti vlastnich baliku prvni
 # (luxos-pacman = pacman z Archu s /usr/bin/pacman jako kompatibilni vrstvou; potrebuji ho lux, pyalpm i base)
-PACKAGES=(luxos-pacman luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-printing luxos-desktop luxos-installer)
+PACKAGES=(luxos-pacman luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-printing luxos-desktop luxos-installer
+          # Legacy ovladace NVIDIA z AUR (Maxwell/Pascal/Volta 580xx, Kepler 470xx) - jen online, ne v ISO
+          nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-470xx-utils lib32-nvidia-470xx-utils)
+# Baliky, ktere se nekopiruji do mistniho repozitare v ISO (velke, potrebuje je jen malo pocitacu;
+# instalator je stahuje z online [luxos], viz install_online_drivers v luxos-install)
+ISO_ONLINE_ONLY='*nvidia-[0-9]*xx*'
 # Repozitar [luxos-apps]: aplikace ke stazeni (kazdy adresar v packages/apps)
 mapfile -t APPS < <(find "$ROOT/packages/apps" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort)
 ARCH=x86_64
@@ -206,12 +211,31 @@ build_iso() {
     # Lokalni repozitar i v live systemu (instalator z nej instaluje baliky LuxOS)
     mkdir -p "$PROFILE/airootfs/opt/luxos-repo"
     cp -a "$REPO"/. "$PROFILE/airootfs/opt/luxos-repo/"
+    iso_drop_online_only "$PROFILE/airootfs/opt/luxos-repo/luxos/$ARCH"
     rsvg-convert "$ROOT/packages/luxos-branding/files/syslinux/splash.svg" -o "$PROFILE/syslinux/splash.png"
 
     msg "Building ISO (mkarchiso)"
     mkarchiso -v -w "$WORK" -o "$OUT" "$PROFILE"
     cleanup_work
     ls -lh "$OUT"/*.iso
+}
+
+# Z kopie repozitaru [luxos] v ISO odebere baliky jen pro online instalaci (ISO_ONLINE_ONLY).
+# Live system ma pro [luxos] SigLevel Optional: neplatny podpis databaze se smaze.
+iso_drop_online_only() {  # iso_drop_online_only ADRESAR_REPOZITARE
+    local dir=$1 f n
+    local -a names=()
+    shopt -s nullglob
+    for f in "$dir"/$ISO_ONLINE_ONLY.pkg.tar.zst; do
+        n=$(tar --zstd -xOf "$f" .PKGINFO | awk -F' = ' '$1 == "pkgname" {print $2; exit}')
+        [[ -n $n ]] && names+=("$n")
+        rm -f "$f" "$f.sig" "$dir/icons/$n".*
+    done
+    shopt -u nullglob
+    ((${#names[@]})) || return 0
+    repo-remove -q "$dir/luxos.db.tar.gz" "${names[@]}"
+    rm -f "$dir"/luxos.db.sig "$dir"/luxos.db.tar.gz.sig "$dir"/luxos.files.sig "$dir"/luxos.files.tar.gz.sig
+    msg "ISO: left out of the local [luxos] repository (installed online): ${names[*]}"
 }
 
 # Pripadne zbyle pripojeni (dev, proc...) odpojit pred mazanim pracovniho adresare

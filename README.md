@@ -13,8 +13,10 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
   Launchpad (`Super+A`), zkratky ve stylu Cmd (`Super+Q`, `Super+Shift+4`…), touchpad: klepnutí = klik, dvěma prsty = pravé tlačítko, posouvání na okraji,
   přepínání světlého/tmavého režimu.
 - **Bez starostí s ovladači:** `luxos-hwdetect` při instalaci rozpozná GPU (Intel/AMD/NVIDIA včetně hybridní
-  grafiky), Wi‑Fi Broadcom, čtečky otisků, akcelerometry a virtualizaci (VirtualBox, VMware, QEMU, Hyper‑V).
-  Po instalaci kdykoli `lux drivers`. PipeWire, Bluetooth, tisk bez ovladačů (IPP Everywhere) a skenery v základu.
+  grafiky; NVIDIA Turing+ `nvidia-open`, Maxwell/Pascal/Volta legacy 580xx z `[luxos]`, Kepler nouveau nebo volitelně 470xx),
+  zvuk Intel SOF, kamery Intel IPU6/IPU7, Thunderbolt, Wi‑Fi Broadcom, čtečky otisků, akcelerometry a virtualizaci
+  (VirtualBox, VMware, QEMU, Hyper‑V). Nový hardware po instalaci: upozornění po přihlášení a aplikace Ovladače
+  (instalace jedním tlačítkem), v terminálu `lux drivers`. PipeWire, Bluetooth, tisk bez ovladačů (IPP Everywhere) a skenery v základu.
 - **Shell `lsh` (Lux Shell):** vlastní shell LuxOS – fork GNU bash 5.3, plně kompatibilní, s
   [ble.sh](https://github.com/akinomyoga/ble.sh) (našeptávání a zvýraznění syntaxe), starship promptem, fzf, zoxide,
   eza, bat a fastfetch. Navíc oproti bashi:
@@ -206,7 +208,8 @@ packages/                   vlastní balíky LuxOS (lokální repozitář [luxos
   apps/                     aplikace pro repozitář [luxos-apps]
     lsl                     Lux Simple Lang (oficiální binární vydání)
   luxos-tweaks              výkon: zram, sysctl, I/O, oomd, journald
-  luxos-drivers             luxos-hwdetect
+  luxos-drivers             luxos-hwdetect, aplikace Ovladače
+  nvidia-580xx-utils …      legacy ovladače NVIDIA z AUR (580xx, 470xx a lib32), jen online, ne v ISO
   luxos-installer           luxos-install
   luxdrop                   LuxDrop – bezpečné posílání souborů v síti, kompatibilní s LocalSend (GTK, CLI, protokol)
   lux                       správce balíků

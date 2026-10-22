@@ -13,6 +13,7 @@ driv obstaravaly samostatne smycky:
   Internet          "!" v liste a upozorneni, kdyz je sit bez internetu (luxos-netcheck)
   Bluetooth         agent pro parovani z telefonu a sluchatek (misto blueman-applet)
   Svetly/tmavy      automaticky rezim podle vychodu a zapadu slunce
+  Ovladace          jednou za start upozorneni na chybejici ovladace (luxos-drivers)
 
 Vsechno je rizene udalostmi (D-Bus, signaly); jediny casovac je kontrola
 automatickeho vzhledu jednou za 5 minut, bez spousteni dalsich procesu.
@@ -362,6 +363,14 @@ def main():
             care_mod.subscribe()
         except Exception as e:  # noqa: BLE001
             log(f"care: {e}")
+
+    # Ovladace (balik luxos-drivers): jednou za start upozorni na chybejici ovladace hardwaru
+    drivers_mod = load("luxos_drivers_session", "/usr/lib/luxos/python/luxos_drivers_session.py")
+    if drivers_mod is not None:
+        try:
+            drivers_mod.subscribe()
+        except Exception as e:  # noqa: BLE001
+            log(f"drivers: {e}")
 
     try:
         system = Gio.bus_get_sync(Gio.BusType.SYSTEM)

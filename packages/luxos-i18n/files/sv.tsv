@@ -1799,3 +1799,132 @@ The passphrases do not match.	Lösenfraserna stämmer inte överens.
 Do not use (for example for LVM)	Använd inte (till exempel för LVM)
 encrypted	krypterad
 The disk %s is too small for this layout (it needs at least %s).	Disken %s är för liten för den här layouten (minst %s behövs).
+# Ovladace (luxos-drivers)
+Drivers	Drivrutiner
+Detecting hardware…	Identifierar hårdvara…
+Additional drivers are available for your hardware	Ytterligare drivrutiner finns för din hårdvara
+Additional drivers are available	Ytterligare drivrutiner finns
+Restart to finish installing drivers	Starta om för att slutföra installationen av drivrutiner
+Install recommended drivers	Installera rekommenderade drivrutiner
+Working	Fungerar
+Restart required	Omstart krävs
+Driver available	Drivrutin finns
+Drivers are installed automatically when you install LuxOS.	Drivrutiner installeras automatiskt när du installerar LuxOS.
+Packages: %s	Paket: %s
+Hardware detection failed: %s	Identifiering av hårdvara misslyckades: %s
+No special drivers needed	Inga särskilda drivrutiner behövs
+Using: %s	Används: %s
+Other option: %s…	Annat alternativ: %s…
+Installing drivers…	Installerar drivrutiner…
+Updating the system first (the kernel headers must match the kernel)…	Uppdaterar systemet först (kärnhuvudena måste matcha kärnan)…
+Building the driver for the kernel (this can take a few minutes)…	Bygger drivrutinen för kärnan (det kan ta några minuter)…
+Open Drivers to install them with one click.	Öppna Drivrutiner för att installera dem med ett klick.
+Show drivers	Visa drivrutiner
+Don't remind me	Påminn inte mig
+Intel graphics: Vulkan + hardware video decoding	Intel-grafik: Vulkan + hårdvaruavkodning av video
+AMD graphics: Vulkan (RADV) + hardware video decoding	AMD-grafik: Vulkan (RADV) + hårdvaruavkodning av video
+NVIDIA (Turing or newer): nvidia-open driver	NVIDIA (Turing eller nyare): drivrutinen nvidia-open
+NVIDIA (Maxwell/Pascal/Volta): legacy NVIDIA 580 driver	NVIDIA (Maxwell/Pascal/Volta): äldre drivrutin NVIDIA 580
+NVIDIA (Kepler): open-source nouveau driver; the legacy NVIDIA 470 driver is optional	NVIDIA (Kepler): drivrutinen nouveau med öppen källkod; den äldre NVIDIA 470 är valfri
+NVIDIA (older generation): open-source nouveau driver (NVIDIA has no driver for current kernels)	NVIDIA (äldre generation): drivrutinen nouveau med öppen källkod (NVIDIA har ingen drivrutin för dagens kärnor)
+Hybrid graphics: run 'prime-run <app>' to use the NVIDIA GPU	Hybridgrafik: kör 'prime-run <app>' för att använda NVIDIA-GPU:n
+VMware graphics: built into the kernel	VMware-grafik: inbyggd i kärnan
+VirtualBox graphics: built into the kernel	VirtualBox-grafik: inbyggd i kärnan
+Virtual GPU (QEMU/virtio)	Virtuell GPU (QEMU/virtio)
+Broadcom Wi-Fi: broadcom-wl driver	Broadcom-wifi: drivrutinen broadcom-wl
+Intel Smart Sound audio: SOF firmware (speakers and microphones)	Intel Smart Sound-ljud: SOF-firmware (högtalare och mikrofoner)
+Intel IPU6 camera: works through libcamera/PipeWire (Firefox, apps with PipeWire camera support); apps that open the camera directly may not see it	Intel IPU6-kamera: fungerar via libcamera/PipeWire (Firefox, appar med PipeWire-kamera); appar som öppnar kameran direkt kanske inte ser den
+Intel IPU7 camera: Linux support is still experimental - the built-in camera may not work yet	Intel IPU7-kamera: Linux-stödet är fortfarande experimentellt – den inbyggda kameran kanske inte fungerar än
+USB Wi-Fi adapter in driver-CD mode: usb_modeswitch switches it to Wi-Fi	USB-wifiadapter i drivrutins-CD-läge: usb_modeswitch växlar den till wifi
+Thunderbolt: bolt (authorizes docks and other devices)	Thunderbolt: bolt (godkänner dockor och andra enheter)
+Intel processor: microcode updates	Intel-processor: mikrokoduppdateringar
+AMD processor: microcode updates	AMD-processor: mikrokoduppdateringar
+Intel laptop: thermald (thermal management)	Intel-bärbar: thermald (temperaturhantering)
+VirtualBox: guest additions	VirtualBox: gästtillägg
+VMware: open-vm-tools	VMware: open-vm-tools
+QEMU/KVM: guest agent + SPICE (clipboard, resolution)	QEMU/KVM: gästagent + SPICE (urklipp, upplösning)
+Hyper-V: integration services	Hyper-V: integrationstjänster
+Fingerprint reader: fprintd (set up with fprintd-enroll)	Fingeravtrycksläsare: fprintd (konfigurera med fprintd-enroll)
+Accelerometer: automatic screen rotation	Accelerometer: automatisk skärmrotation
+NVIDIA 470 legacy driver	Äldre drivrutin NVIDIA 470
+Faster 3D, Xorg only. NVIDIA no longer maintains it; a kernel update can break it until the community fixes it.	Snabbare 3D, endast Xorg. NVIDIA underhåller den inte längre; en kärnuppdatering kan förstöra den tills gemenskapen lagar den.
+Intel graphics	Intel-grafik
+AMD graphics	AMD-grafik
+NVIDIA graphics	NVIDIA-grafik
+Broadcom Wi-Fi	Broadcom-wifi
+VirtualBox graphics	VirtualBox-grafik
+Virtual GPU	Virtuell GPU
+Intel Smart Sound audio	Intel Smart Sound-ljud
+Intel IPU6 camera	Intel IPU6-kamera
+Intel IPU7 camera	Intel IPU7-kamera
+USB Wi-Fi adapter	USB-wifiadapter
+Thunderbolt / USB4	Thunderbolt / USB4
+Intel processor	Intel-processor
+AMD processor	AMD-processor
+Fingerprint reader	Fingeravtrycksläsare
+Accelerometer	Accelerometer
+Downloading the NVIDIA driver…	Laddar ned NVIDIA-drivrutinen…
+The NVIDIA driver could not be installed. The open-source driver is used for now; install it later in Drivers.	NVIDIA-drivrutinen kunde inte installeras. Tills vidare används drivrutinen med öppen källkod; installera den senare i Drivrutiner.
+Scanner	Skanner
+Choose scanner	Välj skanner
+Glass (flatbed)	Glas (flatbädd)
+Document feeder	Dokumentmatare
+Document feeder, both sides	Dokumentmatare, båda sidor
+No scanner found	Ingen skanner hittades
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. Then click Try Again.	Slå på skannern och anslut den med en USB-kabel eller till samma Wi‑Fi-nätverk som den här datorn. Klicka sedan på Försök igen.
+Scanning support is not installed	Stöd för skanning är inte installerat
+Install the luxos-printing package from the Store.	Installera paketet luxos-printing från Butiken.
+Scanners could not be found	Det gick inte att söka efter skannrar
+Something went wrong while looking for scanners. Try again in a moment.	Något gick fel när skannrar söktes. Försök igen om en stund.
+Scan as	Skanna som
+Colours	Färger
+Colour	Färg
+Black & white	Svartvitt
+Paper	Papper
+Start Over	Börja om
+Show in Files	Visa i Filer
+Scanned pages appear here. Click Scan Another Page to add more pages to the same document.	Skannade sidor visas här. Klicka på Skanna en sida till för att lägga till sidor i samma dokument.
+Move page left	Flytta sidan åt vänster
+Move page right	Flytta sidan åt höger
+JPEG picture	JPEG-bild
+PNG picture	PNG-bild
+Print…	Skriv ut…
+Getting the scanner ready…	Förbereder skannern…
+1 page scanned.	1 sida skannad.
+%d pages scanned.	Skannade sidor: %d.
+Scan More Pages	Skanna fler sidor
+Scan All Pages	Skanna alla sidor
+Scan Another Page	Skanna en sida till
+For letters, forms and receipts.	För brev, blanketter och kvitton.
+For photos and pictures, in more detail.	För foton och bilder, med mer detaljer.
+Place the document face down on the scanner glass, then click Scan.	Lägg dokumentet med framsidan nedåt på skannerglaset och klicka på Skanna.
+The scan could not be saved	Det gick inte att spara skanningen
+Check that there is enough free space in your Documents folder.	Kontrollera att det finns tillräckligt med ledigt utrymme i mappen Dokument.
+The scan could not be printed	Det gick inte att skriva ut skanningen
+Close without saving the scanned pages?	Stänga utan att spara de skannade sidorna?
+The pages you scanned have not been saved yet.	De skannade sidorna har inte sparats än.
+Close Without Saving	Stäng utan att spara
+The scanner is busy	Skannern är upptagen
+Another app or computer is using it right now. Wait a moment and try again.	En annan app eller dator använder den just nu. Vänta en stund och försök igen.
+The paper is jammed	Papperet har fastnat
+Open the document feeder, carefully remove the paper and try again.	Öppna dokumentmataren, ta försiktigt bort papperet och försök igen.
+The document feeder is empty	Dokumentmataren är tom
+Put the pages in the document feeder, or choose the glass as the source.	Lägg sidorna i dokumentmataren eller välj glaset som källa.
+The scanner cover is open	Skannerns lock är öppet
+Close the cover and try again.	Stäng locket och försök igen.
+The scanner cannot be used	Skannern kan inte användas
+Your user account is not allowed to use this scanner. Log out and log in again.	Ditt användarkonto får inte använda den här skannern. Logga ut och logga in igen.
+Not enough memory or disk space	Inte tillräckligt med minne eller diskutrymme
+Close some apps or free up disk space, or scan with lower quality.	Stäng några appar, frigör diskutrymme eller skanna med lägre kvalitet.
+The scanner does not respond	Skannern svarar inte
+Make sure it is turned on and connected with a USB cable or to the same Wi‑Fi network.	Kontrollera att den är påslagen och ansluten med en USB-kabel eller till samma Wi‑Fi-nätverk.
+The connection to the scanner was lost	Anslutningen till skannern bröts
+Check the cable or Wi‑Fi connection, turn the scanner off and on again and try once more.	Kontrollera kabeln eller Wi‑Fi-anslutningen, stäng av och slå på skannern och försök igen.
+Scanning was cancelled	Skanningen avbröts
+Something went wrong while scanning	Något gick fel under skanningen
+Turn the scanner off and on again and try once more.	Stäng av och slå på skannern och försök igen.
+Scan %s	Skanning %s
+Scan…	Skanna…
+Open in the Scanner app	Öppna i appen Skanner
+Could not open the Scanner app	Det gick inte att öppna appen Skanner
+Open the Scanner app to scan a document.	Öppna appen Skanner för att skanna ett dokument.

@@ -1799,3 +1799,132 @@ The passphrases do not match.	Las frases de contraseña no coinciden.
 Do not use (for example for LVM)	No usar (por ejemplo, para LVM)
 encrypted	cifrado
 The disk %s is too small for this layout (it needs at least %s).	El disco %s es demasiado pequeño para este esquema (necesita al menos %s).
+# Ovladace (luxos-drivers)
+Drivers	Controladores
+Detecting hardware…	Detectando el hardware…
+Additional drivers are available for your hardware	Hay controladores adicionales disponibles para su hardware
+Additional drivers are available	Hay controladores adicionales disponibles
+Restart to finish installing drivers	Reinicie para terminar de instalar los controladores
+Install recommended drivers	Instalar los controladores recomendados
+Working	Funciona
+Restart required	Requiere reinicio
+Driver available	Controlador disponible
+Drivers are installed automatically when you install LuxOS.	Los controladores se instalan automáticamente al instalar LuxOS.
+Packages: %s	Paquetes: %s
+Hardware detection failed: %s	Error al detectar el hardware: %s
+No special drivers needed	No se necesitan controladores especiales
+Using: %s	En uso: %s
+Other option: %s…	Otra opción: %s…
+Installing drivers…	Instalando controladores…
+Updating the system first (the kernel headers must match the kernel)…	Primero se actualiza el sistema (las cabeceras del núcleo deben coincidir con el núcleo)…
+Building the driver for the kernel (this can take a few minutes)…	Compilando el controlador para el núcleo (puede tardar unos minutos)…
+Open Drivers to install them with one click.	Abra Controladores para instalarlos con un clic.
+Show drivers	Mostrar controladores
+Don't remind me	No recordármelo
+Intel graphics: Vulkan + hardware video decoding	Gráficos Intel: Vulkan + decodificación de vídeo por hardware
+AMD graphics: Vulkan (RADV) + hardware video decoding	Gráficos AMD: Vulkan (RADV) + decodificación de vídeo por hardware
+NVIDIA (Turing or newer): nvidia-open driver	NVIDIA (Turing o posterior): controlador nvidia-open
+NVIDIA (Maxwell/Pascal/Volta): legacy NVIDIA 580 driver	NVIDIA (Maxwell/Pascal/Volta): controlador heredado NVIDIA 580
+NVIDIA (Kepler): open-source nouveau driver; the legacy NVIDIA 470 driver is optional	NVIDIA (Kepler): controlador libre nouveau; el controlador heredado NVIDIA 470 es opcional
+NVIDIA (older generation): open-source nouveau driver (NVIDIA has no driver for current kernels)	NVIDIA (generación antigua): controlador libre nouveau (NVIDIA no tiene controlador para los núcleos actuales)
+Hybrid graphics: run 'prime-run <app>' to use the NVIDIA GPU	Gráficos híbridos: ejecute 'prime-run <app>' para usar la GPU NVIDIA
+VMware graphics: built into the kernel	Gráficos VMware: integrados en el núcleo
+VirtualBox graphics: built into the kernel	Gráficos VirtualBox: integrados en el núcleo
+Virtual GPU (QEMU/virtio)	GPU virtual (QEMU/virtio)
+Broadcom Wi-Fi: broadcom-wl driver	Wi-Fi Broadcom: controlador broadcom-wl
+Intel Smart Sound audio: SOF firmware (speakers and microphones)	Audio Intel Smart Sound: firmware SOF (altavoces y micrófonos)
+Intel IPU6 camera: works through libcamera/PipeWire (Firefox, apps with PipeWire camera support); apps that open the camera directly may not see it	Cámara Intel IPU6: funciona mediante libcamera/PipeWire (Firefox, apps con cámara PipeWire); las apps que abren la cámara directamente pueden no verla
+Intel IPU7 camera: Linux support is still experimental - the built-in camera may not work yet	Cámara Intel IPU7: el soporte en Linux aún es experimental; es posible que la cámara integrada todavía no funcione
+USB Wi-Fi adapter in driver-CD mode: usb_modeswitch switches it to Wi-Fi	Adaptador Wi-Fi USB en modo CD de controlador: usb_modeswitch lo cambia a Wi-Fi
+Thunderbolt: bolt (authorizes docks and other devices)	Thunderbolt: bolt (autoriza bases y otros dispositivos)
+Intel processor: microcode updates	Procesador Intel: actualizaciones de microcódigo
+AMD processor: microcode updates	Procesador AMD: actualizaciones de microcódigo
+Intel laptop: thermald (thermal management)	Portátil Intel: thermald (gestión térmica)
+VirtualBox: guest additions	VirtualBox: complementos de invitado
+VMware: open-vm-tools	VMware: open-vm-tools
+QEMU/KVM: guest agent + SPICE (clipboard, resolution)	QEMU/KVM: agente de invitado + SPICE (portapapeles, resolución)
+Hyper-V: integration services	Hyper-V: servicios de integración
+Fingerprint reader: fprintd (set up with fprintd-enroll)	Lector de huellas: fprintd (configúrelo con fprintd-enroll)
+Accelerometer: automatic screen rotation	Acelerómetro: rotación automática de la pantalla
+NVIDIA 470 legacy driver	Controlador heredado NVIDIA 470
+Faster 3D, Xorg only. NVIDIA no longer maintains it; a kernel update can break it until the community fixes it.	3D más rápido, solo Xorg. NVIDIA ya no lo mantiene; una actualización del núcleo puede romperlo hasta que la comunidad lo arregle.
+Intel graphics	Gráficos Intel
+AMD graphics	Gráficos AMD
+NVIDIA graphics	Gráficos NVIDIA
+Broadcom Wi-Fi	Wi-Fi Broadcom
+VirtualBox graphics	Gráficos VirtualBox
+Virtual GPU	GPU virtual
+Intel Smart Sound audio	Audio Intel Smart Sound
+Intel IPU6 camera	Cámara Intel IPU6
+Intel IPU7 camera	Cámara Intel IPU7
+USB Wi-Fi adapter	Adaptador Wi-Fi USB
+Thunderbolt / USB4	Thunderbolt / USB4
+Intel processor	Procesador Intel
+AMD processor	Procesador AMD
+Fingerprint reader	Lector de huellas
+Accelerometer	Acelerómetro
+Downloading the NVIDIA driver…	Descargando el controlador NVIDIA…
+The NVIDIA driver could not be installed. The open-source driver is used for now; install it later in Drivers.	No se pudo instalar el controlador NVIDIA. Por ahora se usa el controlador libre; instálelo más tarde en Controladores.
+Scanner	Escáner
+Choose scanner	Elegir escáner
+Glass (flatbed)	Cristal (plano)
+Document feeder	Alimentador de documentos
+Document feeder, both sides	Alimentador de documentos, ambas caras
+No scanner found	No se ha encontrado ningún escáner
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. Then click Try Again.	Enciende el escáner y conéctalo con un cable USB o a la misma red Wi‑Fi que este ordenador. Después haz clic en Reintentar.
+Scanning support is not installed	La compatibilidad con escáneres no está instalada
+Install the luxos-printing package from the Store.	Instala el paquete luxos-printing desde la Tienda.
+Scanners could not be found	No se han podido buscar escáneres
+Something went wrong while looking for scanners. Try again in a moment.	Algo ha fallado al buscar escáneres. Vuelve a intentarlo en un momento.
+Scan as	Escanear como
+Colours	Colores
+Colour	Color
+Black & white	Blanco y negro
+Paper	Papel
+Start Over	Empezar de nuevo
+Show in Files	Mostrar en Archivos
+Scanned pages appear here. Click Scan Another Page to add more pages to the same document.	Las páginas escaneadas aparecen aquí. Haz clic en Escanear otra página para añadir páginas al mismo documento.
+Move page left	Mover página a la izquierda
+Move page right	Mover página a la derecha
+JPEG picture	Imagen JPEG
+PNG picture	Imagen PNG
+Print…	Imprimir…
+Getting the scanner ready…	Preparando el escáner…
+1 page scanned.	1 página escaneada.
+%d pages scanned.	Páginas escaneadas: %d.
+Scan More Pages	Escanear más páginas
+Scan All Pages	Escanear todas las páginas
+Scan Another Page	Escanear otra página
+For letters, forms and receipts.	Para cartas, formularios y recibos.
+For photos and pictures, in more detail.	Para fotos e imágenes, con más detalle.
+Place the document face down on the scanner glass, then click Scan.	Coloca el documento boca abajo sobre el cristal del escáner y haz clic en Escanear.
+The scan could not be saved	No se ha podido guardar el escaneo
+Check that there is enough free space in your Documents folder.	Comprueba que haya suficiente espacio libre en la carpeta Documentos.
+The scan could not be printed	No se ha podido imprimir el escaneo
+Close without saving the scanned pages?	¿Cerrar sin guardar las páginas escaneadas?
+The pages you scanned have not been saved yet.	Las páginas escaneadas todavía no se han guardado.
+Close Without Saving	Cerrar sin guardar
+The scanner is busy	El escáner está ocupado
+Another app or computer is using it right now. Wait a moment and try again.	Otra aplicación u otro ordenador lo está usando ahora. Espera un momento y vuelve a intentarlo.
+The paper is jammed	El papel se ha atascado
+Open the document feeder, carefully remove the paper and try again.	Abre el alimentador de documentos, retira el papel con cuidado y vuelve a intentarlo.
+The document feeder is empty	El alimentador de documentos está vacío
+Put the pages in the document feeder, or choose the glass as the source.	Coloca las páginas en el alimentador de documentos o elige el cristal como origen.
+The scanner cover is open	La tapa del escáner está abierta
+Close the cover and try again.	Cierra la tapa y vuelve a intentarlo.
+The scanner cannot be used	No se puede usar el escáner
+Your user account is not allowed to use this scanner. Log out and log in again.	Tu cuenta de usuario no tiene permiso para usar este escáner. Cierra la sesión y vuelve a iniciarla.
+Not enough memory or disk space	No hay suficiente memoria o espacio en disco
+Close some apps or free up disk space, or scan with lower quality.	Cierra algunas aplicaciones, libera espacio en disco o escanea con menor calidad.
+The scanner does not respond	El escáner no responde
+Make sure it is turned on and connected with a USB cable or to the same Wi‑Fi network.	Comprueba que esté encendido y conectado con un cable USB o a la misma red Wi‑Fi.
+The connection to the scanner was lost	Se ha perdido la conexión con el escáner
+Check the cable or Wi‑Fi connection, turn the scanner off and on again and try once more.	Comprueba el cable o la conexión Wi‑Fi, apaga y enciende el escáner y vuelve a intentarlo.
+Scanning was cancelled	Se ha cancelado el escaneo
+Something went wrong while scanning	Algo ha fallado durante el escaneo
+Turn the scanner off and on again and try once more.	Apaga y enciende el escáner y vuelve a intentarlo.
+Scan %s	Escaneo %s
+Scan…	Escanear…
+Open in the Scanner app	Abrir en la app Escáner
+Could not open the Scanner app	No se ha podido abrir la app Escáner
+Open the Scanner app to scan a document.	Abre la app Escáner para escanear un documento.

@@ -1799,3 +1799,132 @@ The passphrases do not match.	De wachtwoordzinnen komen niet overeen.
 Do not use (for example for LVM)	Niet gebruiken (bijvoorbeeld voor LVM)
 encrypted	versleuteld
 The disk %s is too small for this layout (it needs at least %s).	De schijf %s is te klein voor deze indeling (er is minstens %s nodig).
+# Ovladace (luxos-drivers)
+Drivers	Stuurprogramma's
+Detecting hardware…	Hardware wordt gedetecteerd…
+Additional drivers are available for your hardware	Er zijn extra stuurprogramma's beschikbaar voor uw hardware
+Additional drivers are available	Er zijn extra stuurprogramma's beschikbaar
+Restart to finish installing drivers	Herstart om de installatie van stuurprogramma's te voltooien
+Install recommended drivers	Aanbevolen stuurprogramma's installeren
+Working	Werkt
+Restart required	Herstart vereist
+Driver available	Stuurprogramma beschikbaar
+Drivers are installed automatically when you install LuxOS.	Stuurprogramma's worden automatisch geïnstalleerd wanneer u LuxOS installeert.
+Packages: %s	Pakketten: %s
+Hardware detection failed: %s	Hardwaredetectie mislukt: %s
+No special drivers needed	Geen speciale stuurprogramma's nodig
+Using: %s	In gebruik: %s
+Other option: %s…	Andere optie: %s…
+Installing drivers…	Stuurprogramma's worden geïnstalleerd…
+Updating the system first (the kernel headers must match the kernel)…	Eerst wordt het systeem bijgewerkt (de kernelheaders moeten bij de kernel passen)…
+Building the driver for the kernel (this can take a few minutes)…	Stuurprogramma wordt voor de kernel gebouwd (dit kan enkele minuten duren)…
+Open Drivers to install them with one click.	Open Stuurprogramma's om ze met één klik te installeren.
+Show drivers	Stuurprogramma's tonen
+Don't remind me	Niet meer herinneren
+Intel graphics: Vulkan + hardware video decoding	Intel-graphics: Vulkan + hardwarematige videodecodering
+AMD graphics: Vulkan (RADV) + hardware video decoding	AMD-graphics: Vulkan (RADV) + hardwarematige videodecodering
+NVIDIA (Turing or newer): nvidia-open driver	NVIDIA (Turing of nieuwer): stuurprogramma nvidia-open
+NVIDIA (Maxwell/Pascal/Volta): legacy NVIDIA 580 driver	NVIDIA (Maxwell/Pascal/Volta): verouderd stuurprogramma NVIDIA 580
+NVIDIA (Kepler): open-source nouveau driver; the legacy NVIDIA 470 driver is optional	NVIDIA (Kepler): opensource-stuurprogramma nouveau; het verouderde NVIDIA 470 is optioneel
+NVIDIA (older generation): open-source nouveau driver (NVIDIA has no driver for current kernels)	NVIDIA (oudere generatie): opensource-stuurprogramma nouveau (NVIDIA heeft geen stuurprogramma voor huidige kernels)
+Hybrid graphics: run 'prime-run <app>' to use the NVIDIA GPU	Hybride graphics: voer 'prime-run <app>' uit om de NVIDIA-GPU te gebruiken
+VMware graphics: built into the kernel	VMware-graphics: ingebouwd in de kernel
+VirtualBox graphics: built into the kernel	VirtualBox-graphics: ingebouwd in de kernel
+Virtual GPU (QEMU/virtio)	Virtuele GPU (QEMU/virtio)
+Broadcom Wi-Fi: broadcom-wl driver	Broadcom-wifi: stuurprogramma broadcom-wl
+Intel Smart Sound audio: SOF firmware (speakers and microphones)	Intel Smart Sound-audio: SOF-firmware (luidsprekers en microfoons)
+Intel IPU6 camera: works through libcamera/PipeWire (Firefox, apps with PipeWire camera support); apps that open the camera directly may not see it	Intel IPU6-camera: werkt via libcamera/PipeWire (Firefox, apps met PipeWire-camera); apps die de camera direct openen, zien hem mogelijk niet
+Intel IPU7 camera: Linux support is still experimental - the built-in camera may not work yet	Intel IPU7-camera: Linux-ondersteuning is nog experimenteel – de ingebouwde camera werkt mogelijk nog niet
+USB Wi-Fi adapter in driver-CD mode: usb_modeswitch switches it to Wi-Fi	USB-wifi-adapter in stuurprogramma-cd-modus: usb_modeswitch schakelt hem naar wifi
+Thunderbolt: bolt (authorizes docks and other devices)	Thunderbolt: bolt (autoriseert docks en andere apparaten)
+Intel processor: microcode updates	Intel-processor: microcode-updates
+AMD processor: microcode updates	AMD-processor: microcode-updates
+Intel laptop: thermald (thermal management)	Intel-laptop: thermald (temperatuurbeheer)
+VirtualBox: guest additions	VirtualBox: gasttoevoegingen
+VMware: open-vm-tools	VMware: open-vm-tools
+QEMU/KVM: guest agent + SPICE (clipboard, resolution)	QEMU/KVM: gastagent + SPICE (klembord, resolutie)
+Hyper-V: integration services	Hyper-V: integratieservices
+Fingerprint reader: fprintd (set up with fprintd-enroll)	Vingerafdruklezer: fprintd (instellen met fprintd-enroll)
+Accelerometer: automatic screen rotation	Versnellingsmeter: automatische schermrotatie
+NVIDIA 470 legacy driver	Verouderd stuurprogramma NVIDIA 470
+Faster 3D, Xorg only. NVIDIA no longer maintains it; a kernel update can break it until the community fixes it.	Snellere 3D, alleen Xorg. NVIDIA onderhoudt het niet meer; een kernelupdate kan het breken totdat de community het repareert.
+Intel graphics	Intel-graphics
+AMD graphics	AMD-graphics
+NVIDIA graphics	NVIDIA-graphics
+Broadcom Wi-Fi	Broadcom-wifi
+VirtualBox graphics	VirtualBox-graphics
+Virtual GPU	Virtuele GPU
+Intel Smart Sound audio	Intel Smart Sound-audio
+Intel IPU6 camera	Intel IPU6-camera
+Intel IPU7 camera	Intel IPU7-camera
+USB Wi-Fi adapter	USB-wifi-adapter
+Thunderbolt / USB4	Thunderbolt / USB4
+Intel processor	Intel-processor
+AMD processor	AMD-processor
+Fingerprint reader	Vingerafdruklezer
+Accelerometer	Versnellingsmeter
+Downloading the NVIDIA driver…	NVIDIA-stuurprogramma wordt gedownload…
+The NVIDIA driver could not be installed. The open-source driver is used for now; install it later in Drivers.	Het NVIDIA-stuurprogramma kon niet worden geïnstalleerd. Voorlopig wordt het opensource-stuurprogramma gebruikt; installeer het later in Stuurprogramma's.
+Scanner	Scanner
+Choose scanner	Scanner kiezen
+Glass (flatbed)	Glasplaat (flatbed)
+Document feeder	Documentinvoer
+Document feeder, both sides	Documentinvoer, dubbelzijdig
+No scanner found	Geen scanner gevonden
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. Then click Try Again.	Zet de scanner aan en sluit hem aan met een USB-kabel of op hetzelfde wifinetwerk als deze computer. Klik daarna op Opnieuw proberen.
+Scanning support is not installed	Ondersteuning voor scannen is niet geïnstalleerd
+Install the luxos-printing package from the Store.	Installeer het pakket luxos-printing via de Store.
+Scanners could not be found	Kan niet naar scanners zoeken
+Something went wrong while looking for scanners. Try again in a moment.	Er ging iets mis bij het zoeken naar scanners. Probeer het zo meteen opnieuw.
+Scan as	Scannen als
+Colours	Kleuren
+Colour	Kleur
+Black & white	Zwart-wit
+Paper	Papier
+Start Over	Opnieuw beginnen
+Show in Files	Toon in Bestanden
+Scanned pages appear here. Click Scan Another Page to add more pages to the same document.	Gescande pagina’s verschijnen hier. Klik op Nog een pagina scannen om pagina’s aan hetzelfde document toe te voegen.
+Move page left	Pagina naar links
+Move page right	Pagina naar rechts
+JPEG picture	JPEG-afbeelding
+PNG picture	PNG-afbeelding
+Print…	Afdrukken…
+Getting the scanner ready…	Scanner voorbereiden…
+1 page scanned.	1 pagina gescand.
+%d pages scanned.	Gescande pagina’s: %d.
+Scan More Pages	Meer pagina’s scannen
+Scan All Pages	Alle pagina’s scannen
+Scan Another Page	Nog een pagina scannen
+For letters, forms and receipts.	Voor brieven, formulieren en bonnetjes.
+For photos and pictures, in more detail.	Voor foto’s en afbeeldingen, met meer detail.
+Place the document face down on the scanner glass, then click Scan.	Leg het document met de bedrukte kant naar beneden op de glasplaat en klik op Scan.
+The scan could not be saved	Kan de scan niet bewaren
+Check that there is enough free space in your Documents folder.	Controleer of er genoeg vrije ruimte is in je map Documenten.
+The scan could not be printed	Kan de scan niet afdrukken
+Close without saving the scanned pages?	Sluiten zonder de gescande pagina’s te bewaren?
+The pages you scanned have not been saved yet.	De gescande pagina’s zijn nog niet bewaard.
+Close Without Saving	Sluiten zonder bewaren
+The scanner is busy	De scanner is bezet
+Another app or computer is using it right now. Wait a moment and try again.	Een andere app of computer gebruikt hem op dit moment. Wacht even en probeer het opnieuw.
+The paper is jammed	Het papier is vastgelopen
+Open the document feeder, carefully remove the paper and try again.	Open de documentinvoer, verwijder voorzichtig het papier en probeer het opnieuw.
+The document feeder is empty	De documentinvoer is leeg
+Put the pages in the document feeder, or choose the glass as the source.	Leg de pagina’s in de documentinvoer of kies de glasplaat als bron.
+The scanner cover is open	De klep van de scanner is open
+Close the cover and try again.	Sluit de klep en probeer het opnieuw.
+The scanner cannot be used	De scanner kan niet worden gebruikt
+Your user account is not allowed to use this scanner. Log out and log in again.	Je gebruikersaccount heeft geen toegang tot deze scanner. Log uit en opnieuw in.
+Not enough memory or disk space	Niet genoeg geheugen of schijfruimte
+Close some apps or free up disk space, or scan with lower quality.	Sluit enkele apps, maak schijfruimte vrij of scan met een lagere kwaliteit.
+The scanner does not respond	De scanner reageert niet
+Make sure it is turned on and connected with a USB cable or to the same Wi‑Fi network.	Controleer of hij aanstaat en is aangesloten met een USB-kabel of op hetzelfde wifinetwerk.
+The connection to the scanner was lost	De verbinding met de scanner is verbroken
+Check the cable or Wi‑Fi connection, turn the scanner off and on again and try once more.	Controleer de kabel of de wifiverbinding, zet de scanner uit en weer aan en probeer het opnieuw.
+Scanning was cancelled	Scannen is geannuleerd
+Something went wrong while scanning	Er ging iets mis tijdens het scannen
+Turn the scanner off and on again and try once more.	Zet de scanner uit en weer aan en probeer het opnieuw.
+Scan %s	Scan %s
+Scan…	Scannen…
+Open in the Scanner app	Openen in de app Scanner
+Could not open the Scanner app	Kan de app Scanner niet openen
+Open the Scanner app to scan a document.	Open de app Scanner om een document te scannen.
