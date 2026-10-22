@@ -1,0 +1,31 @@
+# Maintainer: LuxOS Team
+# Offline dokumentace LuxOS a LSL pro AI asistenty (LuxAI, Lux Code) a uzivatele.
+# Kontrakt pro ctenare: /usr/share/luxos/docs/index.json + luxos/*.md a lsl/*.md (viz tests/test_docs.py).
+# Obsah je napsany podle kodu v tomto repozitari a podle oficialni reference LSL; pri zmene
+# dokumentu zvysit pkgrel (nainstalovane systemy jinak zmenu nedostanou).
+
+pkgname=luxos-docs
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Offline LuxOS and LSL reference library for AI assistants (LuxAI, Lux Code)"
+arch=(any)
+url="https://lsl.lux-ai.cz/luxos/"
+license=(MIT)
+checkdepends=(python)
+
+check() {
+    # index.json odpovida souborum, nadpisy, velikosti a vnitrni odkazy
+    python3 -I "$startdir/tests/test_docs.py" "$startdir/docs"
+}
+
+package() {
+    local d="$pkgdir/usr/share/luxos/docs"
+    install -Dm644 "$startdir/docs/index.json" "$d/index.json"
+    local f
+    for f in "$startdir"/docs/luxos/*.md; do
+        install -Dm644 "$f" "$d/luxos/${f##*/}"
+    done
+    for f in "$startdir"/docs/lsl/*.md; do
+        install -Dm644 "$f" "$d/lsl/${f##*/}"
+    done
+}
