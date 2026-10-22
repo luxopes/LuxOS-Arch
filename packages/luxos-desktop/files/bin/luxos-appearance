@@ -49,12 +49,21 @@ sun_mode() {
 # force=0: jen tam, kde zadna tapeta neni; force=1 i misto vychozi tapety druheho
 # rezimu (jinou vybranou tapetu, i z galerie LuxOS, nemeni).
 set_wallpaper() {
-    local mode=$1 force=${2:-0} img="$wall_dir/luxos-$1.jpg" mon ws prop cur
+    local mode=$1 force=${2:-0} img="$wall_dir/luxos-$1.jpg" mon ws prop cur line
     command -v xfconf-query >/dev/null || return 0
+    # Ulozene tapety jednim dotazem (drive jedno volani xfconf-query na monitor a plochu,
+    # pri kazdem prihlaseni); hodnota nasleduje za nazvem vlastnosti po mezerach
+    local -A have=()
+    while IFS= read -r line; do
+        [[ $line == /backdrop/screen0/monitor*/last-image* ]] || continue
+        prop=${line%%[[:space:]]*}
+        cur=${line#"$prop"}
+        have[$prop]=${cur#"${cur%%[![:space:]]*}"}
+    done < <(xfconf-query -c xfce4-desktop -l -v 2>/dev/null)
     for mon in $(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1 {print $NF}'); do
         for ws in 0 1 2 3; do
             prop="/backdrop/screen0/monitor$mon/workspace$ws"
-            cur=$(xfconf-query -c xfce4-desktop -p "$prop/last-image" 2>/dev/null)
+            cur=${have[$prop/last-image]-}
             if [[ -z $cur ]] || [[ $force == 1 && $cur == "$wall_dir"/luxos-@(dark|light).jpg ]]; then
                 xfconf-query -c xfce4-desktop -p "$prop/last-image" -n -t string -s "$img"
                 xfconf-query -c xfce4-desktop -p "$prop/image-style" -n -t int -s 5

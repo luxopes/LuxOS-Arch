@@ -13,8 +13,9 @@ PROFILE=/tmp/luxos-profile
 target=${1:-all}
 
 # Repozitar [luxos]: system LuxOS, poradi = zavislosti vlastnich baliku prvni
-# (lux-engine = jadro lux: libalpm a nastroje pacmanu z Archu bez prikazu pacman; potrebuji ho lux, pyalpm i base)
-PACKAGES=(lux-engine luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-printing luxos-desktop luxos-installer
+# (lux-engine = jadro lux: libalpm a nastroje pacmanu z Archu bez prikazu pacman; potrebuji ho lux, pyalpm i base;
+#  gdk-pixbuf2 = nahrada baliku z Archu bez glycinu, obrazky se dekoduji v procesu, luxos-pixbuf-svg = zavadec SVG)
+PACKAGES=(lux-engine gdk-pixbuf2 luxos-pixbuf-svg luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-printing luxos-desktop luxos-installer
           # Legacy ovladace NVIDIA z AUR (Maxwell/Pascal/Volta 580xx, Kepler 470xx) - jen online, ne v ISO
           nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-470xx-utils lib32-nvidia-470xx-utils)
 # Baliky, ktere se nekopiruji do mistniho repozitare v ISO (velke, potrebuje je jen malo pocitacu;
