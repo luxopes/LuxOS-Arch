@@ -57,6 +57,7 @@ LuxOS computer. LuxOS is Arch-based, but several Arch habits are wrong here.
 | Send files to phones / other PCs | LuxDrop (`luxdrop`) | LocalSend compatible |
 | Encrypted folder | Safe (`luxos-safe`; `luxos-safe status`, `luxos-safe lock`) | user unlocks in the dialog |
 | Run untrusted software | Sandbox (`luxos-sandbox`) | see below |
+| Why a downloaded program does not start, restore deleted files | Lux Guard (`luxos-guard scan FILE`, `luxos-guard list`, `luxos-guard restore PATH`) | see below |
 | LuxAI account | LuxAI Account (`luxos-account`), `luxos-account login\|status\|logout` | |
 | System info | About This Computer (`luxos-about`), `about os`, `fastfetch`, `cat /etc/os-release` | |
 | Processes, force quit | System Monitor (`luxos-monitor`, Super+Alt+Esc) | |
@@ -85,7 +86,7 @@ was updated, suggest a restart; if it lists new config files, `lux configs`.
 ### Services
 
 Standard systemd: `systemctl status NAME`, `pkexec systemctl restart NAME`. Do not disable LuxOS
-units (`luxos-care-*`, `luxos-safe-guard`, `earlyoom`) unless the user explicitly asks.
+units (`luxos-care-*`, `luxos-safe-guard`, `luxos-guard`, `earlyoom`) unless the user explicitly asks.
 
 ### Users, hostname, time zone
 
@@ -116,6 +117,17 @@ luxos-sandbox reset --yes               # wipe and recreate
 Use `luxos-sandbox install`, not `lux`, for sandbox apps. It is not a VM – kernel exploits can
 escape; for clearly malicious software recommend a virtual machine. Details: [sandbox.md](sandbox.md).
 
+## Lux Guard
+
+Lux Guard checks programs and scripts from downloads, attachments and USB drives when they start.
+"Permission denied" for such a file usually means Lux Guard refused it: run `luxos-guard scan FILE`
+(reasons, origin) and `journalctl -t luxos-guard -n 20`, then explain the reason. Critical files
+(wiping the disk or home, ransomware, hidden code) run only in the Sandbox – recommend **Run in
+Sandbox** or deleting the file; never stop the service, never use `luxos-guard allow --force` and
+never copy or rewrite the file to get around the check. Deleted or encrypted files can be restored
+from hourly snapshots: `luxos-guard snapshots`, `luxos-guard restore [--from TIME] [--overwrite] PATH`
+(as the user). Details: [guard.md](guard.md).
+
 ## Safe (encrypted folder)
 
 `/safe/<user>` is unlocked only by the user in the Safe dialog (`luxos-safe unlock --open`). While
@@ -137,7 +149,7 @@ starting at [LSL overview](../lsl/overview.md).
   `hold` instead of `IgnorePkg`), database `/var/lib/lux`, cache `/var/cache/lux/pkg`, log
   `/var/log/lux.log`, keyring `/etc/lux/keyring`. The engine is based on Arch's libalpm (pacman code).
 - Default shell is `lsh` (bash-compatible). `~/.lshrc` instead of `~/.bashrc`.
-- Kernel is `linux-zen`; initramfs built with `mkinitcpio`; Btrfs subvolumes `@`, `@home`, `@log`,
+- Kernel is `linux-luxos` (own LuxOS kernel; older installs switch from `linux-zen` automatically); initramfs built with `mkinitcpio`; Btrfs subvolumes `@`, `@home`, `@log`,
   `@cache`.
 - Desktop defaults are in `/etc/xdg/luxos`, LuxOS state files in `~/.config/luxos`
   ([configuration.md](configuration.md)).

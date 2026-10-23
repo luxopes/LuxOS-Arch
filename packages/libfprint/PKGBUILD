@@ -1,0 +1,81 @@
+# Maintainer: LuxOS Team
+# libfprint z Archu + oprava ctecek ELAN, ktere nestihnou kalibraci (04f3:0c4f v Acer Aspire 7:
+# kazdy zapis otisku koncil "Calibration failed!", fprintd hlasil enroll-unknown-error).
+# Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
+# verzi v Archu zvysit pkgver (a b2sums), pkgrel nechat X.1. Patch poslat do upstreamu - az ho
+# libfprint prevezme, tento balik smazat.
+# Puvodni PKGBUILD Archu (udrzovatel Jan Alexander Steffens, prispevatele Tom Gundersen,
+# Thomas Baechler) je v PKGBUILD.arch.
+
+pkgname=libfprint
+pkgver=1.94.100
+pkgrel=1.1
+pkgdesc="Library for fingerprint readers (LuxOS: ELAN calibration fix)"
+url="https://fprint.freedesktop.org/"
+arch=(x86_64)
+license=(LGPL-2.1-or-later)
+depends=(
+  libgcc
+  glib2
+  glibc
+  libgudev
+  libgusb
+  openssl
+  pixman
+)
+makedepends=(
+  git
+  glib2-devel
+  gobject-introspection
+  gtk-doc
+  meson
+  python-cairo
+  python-gobject
+  systemd
+)
+checkdepends=(
+  cairo
+  umockdev
+)
+provides=(libfprint-2.so)
+groups=(fprint)
+options=(!debug)
+source=("git+https://gitlab.freedesktop.org/libfprint/libfprint.git?signed#tag=v$pkgver"
+        elan-calibration-attempts.patch)
+b2sums=('56cbe62a6d4b98d1de90f45bae8de605418802d1b4d8d5dc55a8557a65045b115df51daf8385decdebd8aea79c86103467d5a327cbd461030d450f0e15466d08'
+        '64423168106424b61a659f5a558285ed9a843e177d944bc50727af3e5a9094e6e392db10ce693dad0f85731579edb1ad575c88548dbaa05cc88af9279df5b063')
+validpgpkeys=(
+  D4C501DA48EB797A081750939449C2F50996635F # Marco Trevisan (Treviño) <mail@3v1n0.net>
+)
+
+prepare() {
+  cd $pkgname
+  patch -Np1 -i ../elan-calibration-attempts.patch
+}
+
+build() {
+  local meson_options=(
+    # Add virtual drivers for integration tests (e.g. in fprintd)
+    -D drivers=all
+
+    -D installed-tests=false
+  )
+
+  arch-meson $pkgname build "${meson_options[@]}"
+  meson compile -C build
+}
+
+check() {
+  # egis_etu905 (jina ctecka, patch se ho netyka) v kontejneru LuxOS pada na emulaci USB
+  # ("libusb: cannot find handle for fd") - ostatni testy vcetne elan musi projit
+  local tests
+  tests=$(meson test -C build --list 2>/dev/null | awk '{print $NF}' | sed 's/^libfprint://' | grep -vx egis_etu905)
+  [[ -n $tests ]] || return 1
+  meson test -C build --print-errorlogs $tests
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+}
+
+# vim:set sw=2 sts=-1 et:

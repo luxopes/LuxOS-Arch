@@ -822,6 +822,13 @@ def do_update(manual=False):
         save_state(st)
         if r == "ok":
             safe_check(after_update=True)
+        try:
+            with CareLock():
+                kernel_migrate()
+        except BlockingIOError:
+            pass
+        except Exception as e:  # noqa: BLE001 - prechod jadra nesmi rozbit aktualizaci
+            log(f"kernel switch failed: {e}")
         return 0
     if r in ("stopped", "busy"):
         save_state(st)
@@ -932,7 +939,9 @@ def copy_tree_linked(src, dst):
 def kernel_pre(targets):
     """PreTransaction: odebirane jadro, se kterym system naposled nabehl, odlozit do STAGING."""
     kernel = config()["KERNEL"]
-    removed = [v for v in versions_from_targets(targets) if pkgbase(v) == kernel]
+    # Pri prechodu na jine jadro (kernel_switch) se odebirane puvodni jadro stane zaloznim
+    kernels = {kernel, kread("switch_from")} - {""}
+    removed = [v for v in versions_from_targets(targets) if pkgbase(v) in kernels]
     if not removed:
         return 0
     good = kread("good")
@@ -947,9 +956,9 @@ def kernel_pre(targets):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     copy_tree_linked(src, dst)
     # Initramfs, se kterym jadro opravdu nabehlo (jen pokud /boot patri k teto verzi)
-    for bootdir in ("/boot",):
-        vml = P(f"{bootdir}/vmlinuz-{kernel}")
-        img = P(f"{bootdir}/initramfs-{kernel}.img")
+    for name in sorted(kernels):
+        vml = P(f"/boot/vmlinuz-{name}")
+        img = P(f"/boot/initramfs-{name}.img")
         if os.path.isfile(vml) and os.path.isfile(img) and _same_file(vml, os.path.join(src, "vmlinuz")):
             shutil.copy2(img, os.path.join(dst, ".luxos-initramfs.img"))
     log(f"saved kernel {keep} as the previous kernel")
@@ -1376,9 +1385,181 @@ def kernel_post(targets):
         if lay["kind"] != "none":
             history("kernel", ok=False, prev=prev, error=why)
         return 0
-    if kernel_changed and installed_version(kernel):
+    switched = bool(kread("switch_from")) and restored
+    if switched:
+        kwrite("switch_from", "")
+    if (kernel_changed or switched) and installed_version(kernel):
         arm_trial(lay)
         history("kernel", ok=True, prev=prev, new=installed_version(kernel), layout=lay["kind"])
+    return 0
+
+
+# ---- prechod na jadro LuxOS ----------------------------------------------------------------
+LUXOS_KERNEL = "linux-luxos"
+
+
+def set_conf_key(path, key, value):
+    """KEY=hodnota v jednoduchem konfiguracnim souboru (ostatni radky beze zmeny)."""
+    lines, found = [], False
+    try:
+        with open(P(path)) as f:
+            for line in f:
+                if line.strip().startswith(key + "="):
+                    if not found:
+                        lines.append(f"{key}={value}\n")
+                    found = True
+                else:
+                    lines.append(line)
+    except OSError:
+        pass
+    if not found:
+        lines.append(f"{key}={value}\n")
+    atomic_write(P(path), "".join(lines), 0o644)
+
+
+def rename_kernel_paths(text, old, new):
+    """linux/initrd radky polozky zavadece: vmlinuz-OLD -> vmlinuz-NEW, initramfs-OLD* -> initramfs-NEW*."""
+    out = []
+    for line in text.splitlines():
+        key = line.strip().split(None, 1)[0] if line.strip() else ""
+        if key in ("linux", "initrd"):
+            line = re.sub(r"(vmlinuz-)" + re.escape(old) + r"(?=$|[^A-Za-z0-9_.-])", r"\g<1>" + new, line)
+            line = re.sub(r"(initramfs-)" + re.escape(old) + r"((?:-fallback)?\.img)", r"\g<1>" + new + r"\2", line)
+        out.append(line)
+    return "\n".join(out) + ("\n" if text.endswith("\n") else "")
+
+
+def dkms_ready(new_ver):
+    """Moduly DKMS (napr. NVIDIA) jsou sestavene i pro nove jadro - jinak by po prechodu chybel ovladac."""
+    try:
+        srcs = [d for d in os.listdir(P("/usr/src")) if os.path.isfile(P(f"/usr/src/{d}/dkms.conf"))]
+    except OSError:
+        srcs = []
+    if not srcs:
+        return True, []
+    if not have("dkms"):
+        return False, srcs
+    rc, out = run(["dkms", "status", "-k", new_ver], timeout=60)
+    missing = []
+    for d in srcs:
+        name = d.rsplit("-", 1)[0]
+        if not re.search(r"^" + re.escape(name) + r"[/,].*installed", out, re.M):
+            missing.append(d)
+    return not missing, missing
+
+
+def kernel_switch(target=LUXOS_KERNEL, install=True):
+    """Prechod nainstalovaneho systemu na jine jadro (linux-zen -> linux-luxos) bez rizika:
+    1. doinstaluje jadro (a hlavicky, kdyz se pouzivaji moduly DKMS), 2. overi initramfs a DKMS,
+    3. prepise polozky zavadece a KERNEL, 4. odebere puvodni jadro - hook kernel_pre si ho necha
+    jako zalozni ("LuxOS (previous kernel)") a nove jadro dostane 3 pokusy o start.
+    -> (ok, duvod). Pri chybe pred krokem 3 zustava system beze zmeny na puvodnim jadru."""
+    old = config()["KERNEL"]
+    if old == target:
+        return True, "already"
+    want = [target]
+    if installed_version(f"{old}-headers"):
+        want.append(f"{target}-headers")
+    missing = [p for p in want if not installed_version(p)]
+    if missing:
+        if not install:
+            return False, "not_installed"
+        # spusteno po aktualizaci (luxos-care.install): pockat, az transakce skonci
+        for _i in range(360):
+            if not os.path.exists(P(DB_LOCK)):
+                break
+            time.sleep(5)
+        else:
+            return False, "locked"
+        log(f"switching to the LuxOS kernel: installing {' '.join(missing)}")
+        rc, out = run([ENGINE, "-S", "--needed", "--noconfirm", *missing], timeout=3600, env=engine_env(LC_ALL="C"))
+        if rc != 0:
+            log(f"installing {' '.join(missing)} failed: {out[-800:]}")
+            return False, "install_failed"
+    new_ver = installed_kernels_of(target)
+    if not new_ver or not os.path.isfile(P(f"/boot/vmlinuz-{target}")) or \
+            not os.path.isfile(P(f"/boot/initramfs-{target}.img")):
+        return False, "no_initramfs"
+    ok, why = dkms_ready(new_ver)
+    if not ok:
+        log(f"DKMS modules not built for {new_ver}: {' '.join(why)}")
+        return False, "dkms"
+
+    lay = detect_layout()
+    esp = read_kv(ESP_CONF)
+    # stary "previous kernel" (verze puvodniho jadra) - jeho misto zaujme puvodni jadro samo
+    remove_prev_boot(lay)
+    for f in ("prev", "kept"):
+        kwrite(f, "")
+    if lay["kind"] == "sdboot" and lay.get("main"):
+        entries = P(lay["entries"])
+        for f in os.listdir(entries):
+            if f == lay["main"] or (f.startswith(lay["name"] + "-fallback") and f.endswith(".conf")):
+                path = os.path.join(entries, f)
+                with open(path) as fh:
+                    text = fh.read()
+                atomic_write(path, rename_kernel_paths(text, old, target))
+    if esp.get("ESP_DIR"):
+        # sdileny ESP: jen vychozi initramfs (jako u puvodniho jadra) a kopie noveho jadra na ESP
+        preset = P(f"/etc/mkinitcpio.d/{target}.preset")
+        if os.path.isfile(preset):
+            with open(preset) as f:
+                ptext = f.read()
+            atomic_write(preset, re.sub(r"^PRESETS=.*$", "PRESETS=('default')", ptext, flags=re.M))
+            try:
+                os.unlink(P(f"/boot/initramfs-{target}-fallback.img"))
+            except OSError:
+                pass
+        set_conf_key(ESP_CONF, "KERNEL", target)
+        if os.access(P("/usr/local/sbin/luxos-esp-sync"), os.X_OK):
+            run(["/usr/local/sbin/luxos-esp-sync"], timeout=300)
+    set_conf_key(CONF, "KERNEL", target)
+    kwrite("switch_from", old)
+    history("kernel_switch", ok=True, old=old, new=target, layout=lay["kind"])
+
+    log(f"boot entries now use {target}; removing {old} (kept as the previous kernel)")
+    # puvodni jadro pryc: kernel_pre (switch_from) ho odlozi jako zalozni, kernel_post udela polozku
+    remove = [p for p in (old, f"{old}-headers") if installed_version(p)]
+    rc, out = run([ENGINE, "-R", "--noconfirm", *remove], timeout=1800, env=engine_env(LC_ALL="C"))
+    if rc != 0:
+        log(f"removing {' '.join(remove)} failed (the old kernel stays installed): {out[-800:]}")
+    if esp.get("ESP_DIR"):
+        for f in (f"vmlinuz-{old}", f"initramfs-{old}.img"):
+            try:
+                os.unlink(P(f"{esp['ESP_DIR']}/{f}"))
+            except OSError:
+                pass
+    if lay["kind"] == "grub":
+        update_grub(force=True)
+    update_state(needs_reboot=True)
+    add_event("updated", count=0, reboot=True)
+    return True, ""
+
+
+def installed_kernels_of(pkg):
+    """Verze (adresar v /usr/lib/modules) nainstalovaneho jadra daneho pkgbase."""
+    try:
+        for v in sorted(os.listdir(P(MODULES)), key=_verkey, reverse=True):
+            if pkgbase(v) == pkg and os.path.isfile(P(f"{MODULES}/{v}/vmlinuz")):
+                return v
+    except OSError:
+        pass
+    return ""
+
+
+def kernel_migrate():
+    """Automaticky prechod na jadro LuxOS (po aktualizaci systemu): jen kdyz je v repozitari."""
+    if config()["KERNEL"] == LUXOS_KERNEL:
+        return 0
+    rc, _o = run([ENGINE, "-Si", LUXOS_KERNEL], timeout=60)
+    if rc != 0:
+        return 0
+    ok, why = kernel_switch()
+    if not ok:
+        log(f"switch to {LUXOS_KERNEL} postponed: {why}")
+        update_state(kernel_switch_error=why)
+        return 1
+    update_state(kernel_switch_error="")
     return 0
 
 

@@ -135,10 +135,10 @@ flatpak             on
 clean-keep          2
 
 repo luxos
-    server  https://lsl.lux-ai.cz/luxos/$repo/$arch
+    server  https://luxos.lux-ai.cz/repo/$repo/$arch
 
 repo luxos-apps
-    server  https://lsl.lux-ai.cz/luxos/$repo/$arch
+    server  https://luxos.lux-ai.cz/repo/$repo/$arch
 
 repo core
     mirrors  /etc/lux/mirrorlist
@@ -154,13 +154,13 @@ include  /etc/lux/conf.d/*.conf
 | `[luxos]` | the LuxOS system: lux-engine, lux, luxos-desktop, luxos-care, luxos-drivers, luxos-installer, lsh, themes, branding, LuxDrop, … and legacy NVIDIA drivers (`nvidia-580xx-*`, `nvidia-470xx-*`, built from AUR, online only) |
 | `[luxos-apps]` | downloadable apps, e.g. `lsl` (Lux Simple Lang), `lsl-ide`, `lux-code`, `luxai`, `luxos-docs` |
 | `[core]`, `[extra]` | Arch Linux, via `/etc/lux/mirrorlist` (`lux mirrors` refreshes it) |
-| `.lux` repo | `https://lsl.lux-ai.cz/luxos/lux/` (`index.json` + signatures), see [lux-packages.md](lux-packages.md) |
+| `.lux` repo | `https://luxos.lux-ai.cz/repo/lux/` (`index.json` + signatures), see [lux-packages.md](lux-packages.md) |
 
 `[multilib]` is not enabled by default; the installer's Gaming template enables it (Steam needs it),
 manually `sudo /usr/lib/lux/lux-config enable-repo multilib`. Own repositories go to
 `/etc/lux/conf.d/NAME.conf` (`repo NAME` + indented `server …`).
 `[luxos]`/`[luxos-apps]` are listed before Arch's repos, so LuxOS versions win on name clashes.
-An overview page of the repos is at `https://lsl.lux-ai.cz/luxos/`.
+An overview page of the repos is at `https://luxos.lux-ai.cz/repo/`.
 
 The live ISO installs LuxOS packages from a local copy at `/opt/luxos-repo` (`file://` servers);
 the installed system uses the online servers above.

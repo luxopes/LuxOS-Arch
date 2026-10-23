@@ -43,7 +43,7 @@ hold                linux-firmware    # podržet balík (lux update ho přeskoč
 aur                 on
 
 repo luxos
-    server  https://lsl.lux-ai.cz/luxos/$repo/$arch
+    server  https://luxos.lux-ai.cz/repo/$repo/$arch
 
 repo core
     mirrors  /etc/lux/mirrorlist

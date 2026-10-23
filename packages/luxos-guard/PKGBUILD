@@ -1,0 +1,37 @@
+# Maintainer: LuxOS Team
+# Lux Guard: kontrola programu ze stazenych souboru, priloh a USB pred spustenim (fanotify v jadre),
+# rizikove = dotaz, kriticke (mazani disku/domova, ransomware ...) = jen v sandboxu; hodinove snimky
+# btrfs slozky /home jen pro cteni jako zachranna sit.
+
+pkgname=luxos-guard
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Lux Guard - checks programs from downloads, attachments and USB drives before they run; /home snapshots"
+arch=(any)
+url="https://luxos.lux-ai.cz/"
+license=(MIT)
+# btrfs-progs: snimky /home; libnotify: upozorneni; glib2: gio trash; luxos-sandbox: "Spustit v sandboxu"
+depends=(python python-gobject gtk3 glib2 libnotify btrfs-progs luxos-i18n luxos-sandbox)
+checkdepends=(python-pytest)
+install=luxos-guard.install
+
+check() {
+    cd "$startdir"
+    python -m pytest -q -p no:cacheprovider tests --ignore=tests/test_gui.py
+}
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 "$f/luxos-guard" "$pkgdir/usr/bin/luxos-guard"
+    install -Dm755 "$f/luxos-guard-agent" "$pkgdir/usr/bin/luxos-guard-agent"
+    install -Dm755 "$f/luxos-guard-gui" "$pkgdir/usr/bin/luxos-guard-gui"
+    install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f"/luxos_guard_{core,rules,service,session,snap}.py
+    python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
+    install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f"/systemd/*
+    install -Dm644 "$f/luxos-guard-agent.desktop" "$pkgdir/etc/xdg/autostart/luxos-guard-agent.desktop"
+    install -Dm644 "$f/luxos-guard.desktop" "$pkgdir/usr/share/applications/luxos-guard.desktop"
+    install -Dm644 "$f/luxos-guard.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-guard.svg"
+    install -Dm644 "$f/SECURITY.md" "$pkgdir/usr/share/doc/luxos-guard/SECURITY.md"
+    install -Dm644 "$startdir/tests/root-fanotify-test.sh" "$pkgdir/usr/share/doc/luxos-guard/root-fanotify-test.sh"
+    install -dm700 "$pkgdir/var/lib/luxos-guard"
+}

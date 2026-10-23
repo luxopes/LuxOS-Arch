@@ -1495,7 +1495,7 @@ Import the missing signing key?	Importera den saknade signeringsnyckeln?
 Install a package from IgnorePkg anyway?	Installera ändå ett paket från IgnorePkg?
 These packages are essential for the system: %s	De här paketen är nödvändiga för systemet: %s
 Remove them anyway?	Ta bort dem ändå?
-New config files to review: %d (run: pacdiff)	Nya konfigurationsfiler att granska: %d (kör: pacdiff)
+New config files to review: %d (run: lux configs)	Nya konfigurationsfiler att granska: %d (kör: lux configs)
 Stopping after the current package…	Stoppar efter det aktuella paketet…
 Installing from a URL is not supported, download the file first: %s	Installation från en URL stöds inte, hämta filen först: %s
 Cannot read package file %s	Kan inte läsa paketfilen %s
@@ -2409,3 +2409,129 @@ Removed %d old package files from the cache (%s freed)	Tog bort %d gamla paketfi
 The package cache is already clean	Paketcachen är redan ren
 The package manager uses /etc/lux and /var/lib/lux	Pakethanteraren använder /etc/lux och /var/lib/lux
 The package manager configuration of the live system is broken.	Pakethanterarens konfiguration i livesystemet är trasig.
+Another update check is still running. Try again later.	En annan uppdateringskontroll pågår fortfarande. Försök igen senare.
+The package lists could not be refreshed. Check your internet connection and try again.	Paketlistorna kunde inte uppdateras. Kontrollera internetanslutningen och försök igen.
+Would restore %d files (%d unchanged or newer kept).	Skulle återställa %d filer (%d oförändrade eller nyare behålls).
+Restored %d files from %s (%d unchanged or newer kept).	Återställde %d filer från %s (%d oförändrade eller nyare behölls).
+Lux Guard: not running	Lux Guard: körs inte
+Lux Guard: active	Lux Guard: aktiv
+Usage: luxos-guard scan FILE...	Användning: luxos-guard scan FIL...
+Usage: luxos-guard allow FILE	Användning: luxos-guard allow FIL
+Lux Guard is not running.	Lux Guard körs inte.
+Allowed: %s	Tillåten: %s
+No watched files.	Inga bevakade filer.
+allowed	tillåten
+No snapshots.	Inga ögonblicksbilder.
+No snapshot that old.	Ingen så gammal ögonblicksbild.
+Run restore as the user whose files you restore, not root.	Kör återställningen som den användare vars filer återställs, inte som root.
+Only files in your home folder can be restored.	Endast filer i din hemmapp kan återställas.
+Snapshots are made by the system (root).	Ögonblicksbilder skapas av systemet (root).
+protection against harmful programs from downloads, attachments and USB drives	skydd mot skadliga program från nedladdningar, bilagor och USB-enheter
+protection and snapshot status	status för skydd och ögonblicksbilder
+check a file	kontrollera en fil
+allow a risky file (like Run Anyway)	tillåt en riskabel fil (som Kör ändå)
+watched files and recent decisions	bevakade filer och senaste beslut
+times of /home snapshots	tider för ögonblicksbilder av /home
+restore files from a snapshot (without --overwrite only missing files)	återställ filer från en ögonblicksbild (utan --overwrite bara saknade)
+CRITICAL - blocked outside the sandbox	KRITISK – blockerad utanför sandlådan
+RISKY - asks before running	RISKABEL – frågar innan körning
+Watched files: %d (critical: %d)	Bevakade filer: %d (kritiska: %d)
+Warning: the Lux Guard session helper is not running - risky programs are blocked without asking.	Varning: Lux Guards sessionshjälpare körs inte – riskabla program blockeras utan fråga.
+Snapshots of /home: %d, newest %s	Ögonblicksbilder av /home: %d, senaste %s
+Snapshots of /home: none yet	Ögonblicksbilder av /home: inga ännu
+Snapshots of /home: not available (needs btrfs)	Ögonblicksbilder av /home: inte tillgängliga (kräver btrfs)
+This file belongs to another user.	Den här filen tillhör en annan användare.
+Recent decisions:	Senaste beslut:
+Unknown time: %s	Okänd tid: %s
+%s is not in the snapshot from %s.	%s finns inte i ögonblicksbilden från %s.
+Removable media: %s	Flyttbara media: %s
+Not a program or script - Lux Guard does not check it.	Inte ett program eller skript – Lux Guard kontrollerar det inte.
+program	program
+script	skript
+launcher	startare
+Java program	Java-program
+Windows program	Windows-program
+Type: %s	Typ: %s
+No dangerous behaviour found.	Inget farligt beteende hittades.
+This file is critical - it can only be run in the sandbox: luxos-sandbox run %s	Den här filen är kritisk – den kan bara köras i sandlådan: luxos-sandbox run %s
+Dangerous: %s	Farligt: %s
+Notes: %s	Anmärkningar: %s
+Origin: %s	Ursprung: %s
+Lux Guard: not from outside this computer, not watched	Lux Guard: inte utifrån, bevakas inte
+Lux Guard: %s	Lux Guard: %s
+Lux Guard: dangerous file	Lux Guard: farlig fil
+It will not run outside the sandbox.	Den körs inte utanför sandlådan.
+Lux Guard blocked a dangerous program	Lux Guard blockerade ett farligt program
+Run a program from outside this computer?	Köra ett program som kommer utifrån?
+Watched files	Bevakade filer
+Recent decisions	Senaste beslut
+Restore files	Återställ filer
+found	hittad
+blocked	blockerad
+not run	kördes inte
+run in sandbox	kördes i sandlådan
+moved to trash	flyttad till papperskorgen
+not run (no session)	kördes inte (ingen session)
+Files changed since then (for example encrypted by ransomware) are replaced by the saved version. Files created later are kept.	Filer som ändrats sedan dess (till exempel krypterade av utpressningsprogram) ersätts med den sparade versionen. Senare skapade filer behålls.
+Restore	Återställ
+Restoring files…	Återställer filer…
+Don't Run	Kör inte
+Checks programs from downloads, e-mail attachments and USB drives before they run. Dangerous ones run only in the sandbox.	Kontrollerar program från nedladdningar, e-postbilagor och USB-enheter innan de körs. Farliga körs bara i sandlådan.
+Active	Aktiv
+Not running	Körs inte
+“%s” (%s) – %s.	”%s” (%s) – %s.
+It cannot run outside the sandbox. In the sandbox it cannot see or delete your files.	Det kan inte köras utanför sandlådan. I sandlådan kan det inte se eller radera dina filer.
+Lux Guard does not know this program. Programs from unknown sources can delete or steal your files. Run it only if you trust where it came from.	Lux Guard känner inte till programmet. Program från okända källor kan radera eller stjäla dina filer. Kör det bara om du litar på var det kommer ifrån.
+Run in Sandbox starts it in an isolated system without access to your files.	”Kör i sandlådan” startar det i ett isolerat system utan åtkomst till dina filer.
+Move to Trash	Flytta till papperskorgen
+Run in Sandbox	Kör i sandlådan
+Run Anyway	Kör ändå
+No programs from outside this computer yet.	Inga program utifrån ännu.
+Nothing yet.	Inget ännu.
+Snapshots need the btrfs file system (standard LuxOS installation).	Ögonblicksbilder kräver filsystemet btrfs (standardinstallation av LuxOS).
+Restore all files to %s?	Återställa alla filer till %s?
+This program:	Det här programmet:
+Allowed	Tillåten
+No snapshots yet. Lux Guard saves your home folder every hour.	Inga ögonblicksbilder ännu. Lux Guard sparar din hemmapp varje timme.
+Lux Guard saves your home folder every hour (kept 1 day, then one per day for 7 days). Programs cannot change or delete these copies.	Lux Guard sparar din hemmapp varje timme (sparas 1 dag, sedan en per dag i 7 dagar). Program kan inte ändra eller radera dessa kopior.
+Critical	Kritisk
+Risky	Riskabel
+Show Files	Visa filer
+Restore Deleted	Återställ raderade
+Restore All…	Återställ allt…
+Sandbox is not installed	Sandlådan är inte installerad
+Install the luxos-sandbox package.	Installera paketet luxos-sandbox.
+Create the sandbox first	Skapa sandlådan först
+The Sandbox window opens. Click Create, then try the program again.	Fönstret Sandlåda öppnas. Klicka på Skapa och försök sedan igen.
+Moved to Trash	Flyttad till papperskorgen
+Could not move to Trash	Kunde inte flytta till papperskorgen
+Sandbox	Sandlåda
+deletes your files, your home folder or the whole system	raderar dina filer, din hemmapp eller hela systemet
+removes the bootloader, kernels or core system packages	tar bort starthanteraren, kärnor eller grundläggande systempaket
+formats, wipes or overwrites a disk	formaterar, raderar eller skriver över en disk
+freezes the computer (fork bomb)	låser datorn (fork-bomb)
+breaks permissions of the whole system or a system folder	förstör behörigheterna för hela systemet eller en systemmapp
+crashes or instantly restarts the computer	kraschar eller startar om datorn direkt
+changes sudo, polkit or login (PAM) security settings	ändrar säkerhetsinställningar för sudo, polkit eller inloggning (PAM)
+tries to switch off Lux Guard or delete its backups	försöker stänga av Lux Guard eller radera dess säkerhetskopior
+downloads code from the internet and runs it immediately without any check	laddar ner kod från internet och kör den direkt utan kontroll
+runs hidden (encoded) code	kör dold (kodad) kod
+encrypts your files (ransomware behaviour)	krypterar dina filer (beteende som utpressningsprogram)
+changes user accounts or passwords	ändrar användarkonton eller lösenord
+disables package signature checks	stänger av kontroll av paketsignaturer
+feeds a password to sudo or su	skickar ett lösenord till sudo eller su
+downloads more code from the internet and runs it	laddar ner mer kod från internet och kör den
+asks for administrator rights	begär administratörsrättigheter
+adds a program to startup	lägger till ett program vid start
+downloaded from the internet	nedladdat från internet
+an e-mail or web attachment	en e-post- eller webbilaga
+from a USB drive or memory card	från en USB-enhet eller ett minneskort
+from the sandbox shared folder	från sandlådans delade mapp
+a copy of a file from outside this computer	en kopia av en fil utifrån
+created by a program from outside this computer	skapad av ett program utifrån
+from outside this computer	utifrån
+Sign in to the network	Logga in på nätverket
+This network requires you to sign in before you can use the internet.	Det här nätverket kräver att du loggar in innan du kan använda internet.
+Connected to the internet	Ansluten till internet
+You are signed in to the network.	Du är inloggad på nätverket.
+Step after the update failed:	Ett steg efter uppdateringen misslyckades:

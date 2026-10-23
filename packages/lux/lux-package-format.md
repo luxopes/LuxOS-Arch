@@ -63,7 +63,7 @@ scripts/                 volitelné: post_install, pre_remove (bash, běží jak
 
 ## Repozitář
 
-`https://lsl.lux-ai.cz/luxos/lux/`:
+`https://luxos.lux-ai.cz/repo/lux/`:
 
 - `index.json` + `index.json.sig` – seznam balíčků (`name`, `title`, `version`, `release`, `summary`,
   `file`, `size`, `sha256`, volitelně `icon`),

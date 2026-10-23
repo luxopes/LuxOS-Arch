@@ -40,7 +40,7 @@ fail() { echo "FAIL-CALLED $*" >>"$OUT/log"; return 1; }
 eval 'luxos-hwdetect() { "$DRIVERS/luxos-hwdetect" "$@"; }'
 export DRIVERS
 export LUXOS_HW_DATA=$DRIVERS LUXOS_HW_VIRT=none
-SHARE=$OUT/share; mkdir -p "$SHARE"; printf 'base\nlinux-zen\n' >"$SHARE/packages"
+SHARE=$OUT/share; mkdir -p "$SHARE"; printf 'base\nlinux-luxos\n' >"$SHARE/packages"
 # shellcheck disable=SC2034  # cte je vyjmuta install_packages
 BOOTLOADER=auto BOOTMODE=uefi DISK_MODE=erase TARGET=$OUT/target
 
@@ -67,7 +67,7 @@ check() {  # check popis podminka...
 machine "0000:01:00.0 030000 10de 2684"
 install_packages >/dev/null 2>&1
 check "open: nvidia-open-dkms in pacstrap" in_file pacstrap nvidia-open-dkms
-check "open: headers in pacstrap" in_file pacstrap linux-zen-headers
+check "open: headers in pacstrap" in_file pacstrap linux-luxos-headers
 check "open: nothing downloaded online" test ! -e "$OUT/chroot"
 check "open: NVIDIA_EARLY=1 without iGPU" test "$NVIDIA_EARLY" = 1
 check "pacstrap uses the engine config of the live system" bash -c "grep -A1 -x -- -C '$OUT/pacstrap' | grep -qx /run/lux/engine.conf"
@@ -78,9 +78,9 @@ check "pacstrap gets the engine tools under Arch names (shim first in PATH)" bas
 machine "0000:01:00.0 030000 10de 1c03"
 install_packages >/dev/null 2>&1
 check "580: dkms not in pacstrap" bash -c "! grep -qx nvidia-580xx-dkms '$OUT/pacstrap'"
-check "580: headers in pacstrap (DKMS builds in the second step)" in_file pacstrap linux-zen-headers
+check "580: headers in pacstrap (DKMS builds in the second step)" in_file pacstrap linux-luxos-headers
 check "580: libva-nvidia-driver in pacstrap" in_file pacstrap libva-nvidia-driver
-check "580: online -Sy" in_file chroot -Sy
+check "580: online -Syy" in_file chroot -Syy
 check "580: dkms online" in_file chroot nvidia-580xx-dkms
 check "580: utils online" in_file chroot nvidia-580xx-utils
 check "580: NVIDIA_EARLY=1" test "$NVIDIA_EARLY" = 1
@@ -110,7 +110,7 @@ check "kepler: NVIDIA_EARLY=0" test "$NVIDIA_EARLY" = 0
 machine "0000:01:00.0 030000 10de 1c03"
 CHROOT_RC=1 install_packages >/dev/null 2>&1; rc=$?
 check "580 offline: install continues" test "$rc" = 0
-check "580 offline: three attempts" test "$(grep -cx -- -Sy "$OUT/chroot")" = 3
+check "580 offline: three attempts" test "$(grep -cx -- -Syy "$OUT/chroot")" = 3
 check "580 offline: NVIDIA_EARLY reset" test "$NVIDIA_EARLY" = 0
 check "580 offline: user is told" grep -q "Drivers" "$OUT/log"
 check "580 offline: fail not called" bash -c "! grep -q FAIL-CALLED '$OUT/log'"

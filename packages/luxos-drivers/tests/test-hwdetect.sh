@@ -234,10 +234,10 @@ run_case "explicit --kernel" --kernel linux-zen
 has linux-zen-headers; lacks linux-lts-headers
 machine nokernel; pci 0000:01:00.0 030000 10de 2684
 run_case "no kernel installed (live)"
-has linux-zen-headers
+has linux-luxos-headers
 machine badkernel; pci 0000:01:00.0 030000 10de 2684; kernel 'linux;rm -rf' 7.2.0
 run_case "invalid pkgbase is ignored"
-has linux-zen-headers
+has linux-luxos-headers
 if grep -q 'rm' <<<"$PK"; then bad "invalid pkgbase leaked"; else ok; fi
 
 # --- Virtualni stroje ---

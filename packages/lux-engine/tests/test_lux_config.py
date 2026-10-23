@@ -54,7 +54,7 @@ class Format(Base):
         for line in ("Architecture = auto", "ParallelDownloads = 10", "SigLevel = Required DatabaseOptional",
                      "LocalFileSigLevel = Optional", "Color", "ILoveCandy", "CheckSpace", "VerbosePkgLists",
                      "DownloadUser = alpm", "HoldPkg = lux-engine glibc",
-                     "[luxos]\nServer = https://lsl.lux-ai.cz/luxos/$repo/$arch",
+                     "[luxos]\nServer = https://luxos.lux-ai.cz/repo/$repo/$arch",
                      "[core]\nServer = https://geo.mirror.pkgbuild.com/$repo/os/$arch"):
             self.assertIn(line + "\n", body)
         # cesty jadra jen jako vychozi (pacstrap -r by jinak pouzil cesty hostitele)
@@ -442,3 +442,33 @@ Include = /etc/pacman.d/mirrorlist
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MovedServers(Base):
+    def test_old_luxos_address_updated_and_identical_pacnew_dropped(self):
+        pkg = open(os.path.join(PKG, "lux.conf")).read()
+        old = pkg.replace("https://luxos.lux-ai.cz/repo/", "https://lsl.lux-ai.cz/luxos/")
+        self.assertNotEqual(old, pkg)
+        conf = os.path.join(self.root, "etc/lux/lux.conf")
+        os.makedirs(os.path.dirname(conf), exist_ok=True)
+        with open(conf, "w") as f:
+            f.write(old)
+        with open(conf + ".pacnew", "w") as f:
+            f.write(pkg)
+        self.assertTrue(lc.update_moved_servers(conf))
+        self.assertEqual(open(conf).read(), pkg)
+        self.assertFalse(os.path.exists(conf + ".pacnew"))
+        self.assertFalse(lc.update_moved_servers(conf))
+
+    def test_custom_config_keeps_everything_else(self):
+        conf = os.path.join(self.root, "etc/lux/lux.conf")
+        os.makedirs(os.path.dirname(conf), exist_ok=True)
+        text = "hold  nano\n\nrepo luxos\n    server  https://lsl.lux-ai.cz/luxos/$repo/$arch   # LuxOS\n\nrepo mine\n    server  https://lsl.lux-ai.cz/other/$repo\n"
+        with open(conf, "w") as f:
+            f.write(text)
+        with open(conf + ".pacnew", "w") as f:
+            f.write("different")
+        self.assertTrue(lc.update_moved_servers(conf))
+        self.assertEqual(open(conf).read(), text.replace("https://lsl.lux-ai.cz/luxos/$repo", "https://luxos.lux-ai.cz/repo/$repo"))
+        self.assertTrue(os.path.exists(conf + ".pacnew"))
+

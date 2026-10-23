@@ -1,0 +1,294 @@
+#!/usr/bin/env python3
+"""Lux Guard - ochrana pred skodlivymi programy ze stazenych souboru, prilohy a USB.
+
+  luxos-guard status                     stav ochrany a snimku
+  luxos-guard scan SOUBOR...             zkontrolovat soubor (bez root prav)
+  luxos-guard allow SOUBOR               povolit rizikovy soubor (jako "Presto spustit")
+  luxos-guard list                       hlidane soubory a posledni rozhodnuti
+  luxos-guard snapshots                  casy snimku slozky /home
+  luxos-guard restore [--from CAS] [--overwrite] [--dry-run] CESTA
+                                         obnovit soubory ze snimku (jako uzivatel)
+  luxos-guard service                    sluzba (root, luxos-guard.service)
+  luxos-guard snapshot                   novy snimek a uklid starych (root, casovac)
+"""
+import datetime
+import json
+import os
+import socket
+import sys
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+try:
+    from luxos_i18n import _  # noqa: E402
+except ImportError:  # mimo LuxOS (testy) - anglicky
+    def _(text):
+        return text
+import luxos_guard_core as core  # noqa: E402
+import luxos_guard_rules as rules  # noqa: E402
+import luxos_guard_snap as snap  # noqa: E402
+
+PROG = "luxos-guard"
+
+
+def die(msg, code=1):
+    print(f"{PROG}: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def request(msg, fd=None, sock_path=None, timeout=10):
+    """Jeden dotaz na sluzbu (JSON radek; soubor se predava jako otevreny deskriptor). None = nebezi."""
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM | socket.SOCK_CLOEXEC)
+    s.settimeout(timeout)
+    try:
+        s.connect(sock_path or os.environ.get("LUXOS_GUARD_SOCKET") or core.SOCKET)
+        data = (json.dumps(msg) + "\n").encode()
+        if fd is not None:
+            socket.send_fds(s, [data], [fd])
+        else:
+            s.sendall(data)
+        buf = b""
+        while b"\n" not in buf:
+            chunk = s.recv(65536)
+            if not chunk:
+                break
+            buf += chunk
+        return json.loads(buf.split(b"\n", 1)[0]) if buf else None
+    except (OSError, ValueError):
+        return None
+    finally:
+        s.close()
+
+
+def level_text(level):
+    return {core.CRITICAL: _("CRITICAL - blocked outside the sandbox"),
+            core.RISKY: _("RISKY - asks before running")}.get(level, level or "")
+
+
+def cmd_status(args):
+    r = request({"op": "status"})
+    if r is None or r.get("op") != "status":
+        print(_("Lux Guard: not running"))
+        code = 1
+    else:
+        print(_("Lux Guard: active"))
+        print(_("Watched files: %d (critical: %d)") % (r.get("watched", 0), r.get("critical", 0)))
+        if not r.get("agent") and os.getuid() != 0:
+            print(_("Warning: the Lux Guard session helper is not running - risky programs are blocked without asking."))
+        if r.get("removable"):
+            print(_("Removable media: %s") % ", ".join(r["removable"]))
+        if r.get("stats"):
+            print("stats: " + ", ".join(f"{k}={v}" for k, v in r["stats"].items()))
+        code = 0
+    snaps = snap.list_snapshots()
+    if snaps:
+        print(_("Snapshots of /home: %d, newest %s") % (len(snaps), snaps[-1][0].strftime("%Y-%m-%d %H:%M")))
+    elif snap.fs_type(snap.HOME) == "btrfs":
+        print(_("Snapshots of /home: none yet"))
+    else:
+        print(_("Snapshots of /home: not available (needs btrfs)"))
+    return code
+
+
+def open_file(path):
+    try:
+        return os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
+    except OSError as e:
+        die(f"{path}: {e.strerror}")
+
+
+def cmd_scan(args):
+    if not args:
+        die(_("Usage: luxos-guard scan FILE..."))
+    worst = 0
+    for path in args:
+        fd = open_file(path)
+        try:
+            data = os.pread(fd, rules.MAX_READ, 0)
+            verdict = rules.classify(data, os.path.basename(path))
+            r = request({"op": "check"}, fd=fd, timeout=3)
+        finally:
+            os.close(fd)
+        print(path)
+        if verdict is None:
+            print("  " + _("Not a program or script - Lux Guard does not check it."))
+            continue
+        kind = {"elf": _("program"), "appimage": "AppImage", "script": _("script"), "desktop": _("launcher"),
+                "jar": _("Java program"), "windows": _("Windows program")}.get(verdict.kind, verdict.kind)
+        print("  " + _("Type: %s") % (kind + (f" ({verdict.interp})" if verdict.interp else "")))
+        if verdict.reasons:
+            worst = 2
+            print("  " + _("Dangerous: %s") % "; ".join(_(x) for x in verdict.reasons))
+        if verdict.notes:
+            print("  " + _("Notes: %s") % "; ".join(_(x) for x in verdict.notes))
+        if not verdict.reasons and not verdict.notes:
+            print("  " + _("No dangerous behaviour found."))
+        entry = (r or {}).get("entry") if r and r.get("op") == "check" else None
+        if entry:
+            print("  " + _("Lux Guard: %s") % level_text(entry.get("level")) +
+                  (" - " + _("allowed") if entry.get("status") == core.ALLOWED else ""))
+            print("  " + _("Origin: %s") % _(core.describe_origin(entry.get("origin"), entry.get("origin_detail"))))
+            worst = max(worst, 1)
+        elif r is not None:
+            print("  " + _("Lux Guard: not from outside this computer, not watched"))
+    return worst
+
+
+def cmd_allow(args):
+    force = "--force" in args
+    paths = [a for a in args if not a.startswith("--")]
+    if len(paths) != 1:
+        die(_("Usage: luxos-guard allow FILE"))
+    fd = open_file(paths[0])
+    try:
+        r = request({"op": "allow", "force": force}, fd=fd)
+    finally:
+        os.close(fd)
+    if r is None:
+        die(_("Lux Guard is not running."))
+    if r.get("op") == "error":
+        if r.get("error") == "critical":
+            die(_("This file is critical - it can only be run in the sandbox: luxos-sandbox run %s") % paths[0])
+        if r.get("error") == "not yours":
+            die(_("This file belongs to another user."))
+        die(r.get("error", "error"))
+    print(_("Allowed: %s") % paths[0])
+    return 0
+
+
+def cmd_list(args):
+    r = request({"op": "list"})
+    if r is None or r.get("op") != "list":
+        die(_("Lux Guard is not running."))
+    if "--json" in args:
+        print(json.dumps(r, ensure_ascii=False, indent=1))
+        return 0
+    entries = sorted(r.get("entries") or [], key=lambda e: e.get("t") or 0)
+    if not entries:
+        print(_("No watched files."))
+    for e in entries:
+        st = _("allowed") if e.get("status") == core.ALLOWED else level_text(e.get("level"))
+        print(f"{e.get('path')}\n  {st}")
+        if e.get("reasons"):
+            print("  " + "; ".join(_(x) for x in e["reasons"]))
+    log = r.get("log") or []
+    if log:
+        print("\n" + _("Recent decisions:"))
+        for x in log[-20:]:
+            t = datetime.datetime.fromtimestamp(x.get("t", 0)).strftime("%Y-%m-%d %H:%M")
+            print(f"  {t}  {x.get('action')}  {x.get('path')}")
+    return 0
+
+
+def cmd_snapshots(args):
+    snaps = snap.list_snapshots()
+    if not snaps:
+        print(_("No snapshots.") if snap.fs_type(snap.HOME) == "btrfs" else
+              _("Snapshots of /home: not available (needs btrfs)"))
+        return 0
+    for t, p in snaps:
+        print(f"{t.strftime('%Y-%m-%d %H:%M')}  {p}")
+    return 0
+
+
+def find_snapshot(when):
+    snaps = snap.list_snapshots()
+    if not snaps:
+        die(_("No snapshots."))
+    if not when:
+        return snaps[-1]
+    for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d_%H-%M", "%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+        try:
+            t = datetime.datetime.strptime(when, fmt)
+            break
+        except ValueError:
+            continue
+    else:
+        die(_("Unknown time: %s") % when)
+    # posledni snimek nejpozdeji v zadanem case (u data: konec dne)
+    if len(when) == 10:
+        t = t + datetime.timedelta(days=1) - datetime.timedelta(minutes=1)
+    best = [s for s in snaps if s[0] <= t]
+    if not best:
+        die(_("No snapshot that old."))
+    return best[-1]
+
+
+def cmd_restore(args):
+    overwrite = "--overwrite" in args
+    dry = "--dry-run" in args
+    when = None
+    rest = []
+    it = iter(args)
+    for a in it:
+        if a == "--from":
+            when = next(it, None)
+        elif a.startswith("--from="):
+            when = a.split("=", 1)[1]
+        elif not a.startswith("--"):
+            rest.append(a)
+    if os.getuid() == 0:
+        die(_("Run restore as the user whose files you restore, not root."))
+    home = os.path.realpath(os.path.expanduser("~"))
+    target = os.path.abspath(os.path.expanduser(rest[0])) if rest else home
+    if not (target == home or target.startswith(home + "/")):
+        die(_("Only files in your home folder can be restored."))
+    t, sp = find_snapshot(when)
+    src = os.path.join(snap.user_snapshot_dir(sp, home), os.path.relpath(target, home))
+    if not os.path.lexists(src):
+        die(_("%s is not in the snapshot from %s.") % (target, t.strftime("%Y-%m-%d %H:%M")))
+    done, skipped = snap.restore(src, target, overwrite=overwrite, dry_run=dry)
+    msg = _("Would restore %d files (%d unchanged or newer kept).") if dry else \
+        _("Restored %d files from %s (%d unchanged or newer kept).")
+    print(msg % (done, skipped) if dry else msg % (done, t.strftime("%Y-%m-%d %H:%M"), skipped))
+    return 0
+
+
+def cmd_snapshot(args):
+    if os.geteuid() != 0:
+        die(_("Snapshots are made by the system (root)."))
+    if not snap.supported():
+        print("snapshots not supported here (/home is not a btrfs subvolume)")
+        return 0
+    try:
+        p = snap.take()
+    except OSError as e:
+        die(f"snapshot failed: {e}")
+    if p:
+        print(f"snapshot {p}")
+    for g in snap.prune():
+        print(f"deleted {g}")
+    return 0
+
+
+def cmd_service(args):
+    import luxos_guard_service
+    return luxos_guard_service.run_service()
+
+
+def usage():
+    print("luxos-guard - " + _("protection against harmful programs from downloads, attachments and USB drives"))
+    print()
+    for c, d in (("status", _("protection and snapshot status")),
+                 ("scan FILE...", _("check a file")),
+                 ("allow FILE", _("allow a risky file (like Run Anyway)")),
+                 ("list [--json]", _("watched files and recent decisions")),
+                 ("snapshots", _("times of /home snapshots")),
+                 ("restore [--from TIME] [--overwrite] [--dry-run] PATH",
+                  _("restore files from a snapshot (without --overwrite only missing files)"))):
+        print(f"  {c}\n      {d}")
+
+
+def main():
+    argv = sys.argv[1:]
+    if not argv or argv[0] in ("-h", "--help", "help"):
+        usage()
+        return 0
+    table = {"status": cmd_status, "scan": cmd_scan, "allow": cmd_allow, "list": cmd_list,
+             "snapshots": cmd_snapshots, "restore": cmd_restore, "snapshot": cmd_snapshot, "service": cmd_service}
+    if argv[0] not in table:
+        die(_("Unknown command: %s") % argv[0])
+    return table[argv[0]](argv[1:]) or 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

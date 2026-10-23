@@ -1495,7 +1495,7 @@ Import the missing signing key?	Fehlenden Signaturschlüssel importieren?
 Install a package from IgnorePkg anyway?	Paket aus IgnorePkg trotzdem installieren?
 These packages are essential for the system: %s	Diese Pakete sind für das System unverzichtbar: %s
 Remove them anyway?	Trotzdem entfernen?
-New config files to review: %d (run: pacdiff)	Neue Konfigurationsdateien zum Prüfen: %d (ausführen: pacdiff)
+New config files to review: %d (run: lux configs)	Neue Konfigurationsdateien zum Prüfen: %d (ausführen: lux configs)
 Stopping after the current package…	Stoppe nach dem aktuellen Paket…
 Installing from a URL is not supported, download the file first: %s	Installation von einer URL wird nicht unterstützt, zuerst die Datei herunterladen: %s
 Cannot read package file %s	Paketdatei %s kann nicht gelesen werden
@@ -2409,3 +2409,129 @@ Removed %d old package files from the cache (%s freed)	%d alte Paketdateien aus 
 The package cache is already clean	Der Paket-Cache ist bereits sauber
 The package manager uses /etc/lux and /var/lib/lux	Die Paketverwaltung verwendet /etc/lux und /var/lib/lux
 The package manager configuration of the live system is broken.	Die Konfiguration der Paketverwaltung im Live-System ist beschädigt.
+Another update check is still running. Try again later.	Eine andere Update-Prüfung läuft noch. Versuchen Sie es später erneut.
+The package lists could not be refreshed. Check your internet connection and try again.	Die Paketlisten konnten nicht aktualisiert werden. Prüfen Sie die Internetverbindung und versuchen Sie es erneut.
+Would restore %d files (%d unchanged or newer kept).	Würde %d Dateien wiederherstellen (%d unverändert oder neuer bleiben).
+Restored %d files from %s (%d unchanged or newer kept).	%d Dateien vom Stand %s wiederhergestellt (%d unverändert oder neuer blieben).
+Lux Guard: not running	Lux Guard: läuft nicht
+Lux Guard: active	Lux Guard: aktiv
+Usage: luxos-guard scan FILE...	Verwendung: luxos-guard scan DATEI...
+Usage: luxos-guard allow FILE	Verwendung: luxos-guard allow DATEI
+Lux Guard is not running.	Lux Guard läuft nicht.
+Allowed: %s	Erlaubt: %s
+No watched files.	Keine überwachten Dateien.
+allowed	erlaubt
+No snapshots.	Keine Schnappschüsse.
+No snapshot that old.	Kein so alter Schnappschuss.
+Run restore as the user whose files you restore, not root.	Wiederherstellung als der Benutzer ausführen, dessen Dateien wiederhergestellt werden, nicht als root.
+Only files in your home folder can be restored.	Nur Dateien in Ihrem persönlichen Ordner können wiederhergestellt werden.
+Snapshots are made by the system (root).	Schnappschüsse erstellt das System (root).
+protection against harmful programs from downloads, attachments and USB drives	Schutz vor schädlichen Programmen aus Downloads, Anhängen und USB-Laufwerken
+protection and snapshot status	Status von Schutz und Schnappschüssen
+check a file	eine Datei prüfen
+allow a risky file (like Run Anyway)	eine riskante Datei erlauben (wie Trotzdem ausführen)
+watched files and recent decisions	überwachte Dateien und letzte Entscheidungen
+times of /home snapshots	Zeitpunkte der /home-Schnappschüsse
+restore files from a snapshot (without --overwrite only missing files)	Dateien aus einem Schnappschuss wiederherstellen (ohne --overwrite nur fehlende)
+CRITICAL - blocked outside the sandbox	KRITISCH – außerhalb der Sandbox blockiert
+RISKY - asks before running	RISKANT – fragt vor dem Ausführen
+Watched files: %d (critical: %d)	Überwachte Dateien: %d (kritisch: %d)
+Warning: the Lux Guard session helper is not running - risky programs are blocked without asking.	Warnung: Der Lux-Guard-Sitzungshelfer läuft nicht – riskante Programme werden ohne Nachfrage blockiert.
+Snapshots of /home: %d, newest %s	Schnappschüsse von /home: %d, neuester %s
+Snapshots of /home: none yet	Schnappschüsse von /home: noch keine
+Snapshots of /home: not available (needs btrfs)	Schnappschüsse von /home: nicht verfügbar (benötigt btrfs)
+This file belongs to another user.	Diese Datei gehört einem anderen Benutzer.
+Recent decisions:	Letzte Entscheidungen:
+Unknown time: %s	Unbekannte Zeit: %s
+%s is not in the snapshot from %s.	%s ist nicht im Schnappschuss vom %s.
+Removable media: %s	Wechselmedien: %s
+Not a program or script - Lux Guard does not check it.	Kein Programm oder Skript – Lux Guard prüft es nicht.
+program	Programm
+script	Skript
+launcher	Starter
+Java program	Java-Programm
+Windows program	Windows-Programm
+Type: %s	Typ: %s
+No dangerous behaviour found.	Kein gefährliches Verhalten gefunden.
+This file is critical - it can only be run in the sandbox: luxos-sandbox run %s	Diese Datei ist kritisch – sie kann nur in der Sandbox laufen: luxos-sandbox run %s
+Dangerous: %s	Gefährlich: %s
+Notes: %s	Hinweise: %s
+Origin: %s	Herkunft: %s
+Lux Guard: not from outside this computer, not watched	Lux Guard: nicht von außerhalb dieses Computers, nicht überwacht
+Lux Guard: %s	Lux Guard: %s
+Lux Guard: dangerous file	Lux Guard: gefährliche Datei
+It will not run outside the sandbox.	Er wird außerhalb der Sandbox nicht ausgeführt.
+Lux Guard blocked a dangerous program	Lux Guard hat ein gefährliches Programm blockiert
+Run a program from outside this computer?	Ein Programm von außerhalb dieses Computers ausführen?
+Watched files	Überwachte Dateien
+Recent decisions	Letzte Entscheidungen
+Restore files	Dateien wiederherstellen
+found	gefunden
+blocked	blockiert
+not run	nicht ausgeführt
+run in sandbox	in der Sandbox ausgeführt
+moved to trash	in den Papierkorb verschoben
+not run (no session)	nicht ausgeführt (keine Sitzung)
+Files changed since then (for example encrypted by ransomware) are replaced by the saved version. Files created later are kept.	Seitdem geänderte Dateien (z. B. von Ransomware verschlüsselt) werden durch die gespeicherte Version ersetzt. Später erstellte Dateien bleiben erhalten.
+Restore	Wiederherstellen
+Restoring files…	Dateien werden wiederhergestellt…
+Don't Run	Nicht ausführen
+Checks programs from downloads, e-mail attachments and USB drives before they run. Dangerous ones run only in the sandbox.	Prüft Programme aus Downloads, E-Mail-Anhängen und USB-Laufwerken vor dem Start. Gefährliche laufen nur in der Sandbox.
+Active	Aktiv
+Not running	Läuft nicht
+“%s” (%s) – %s.	„%s“ (%s) – %s.
+It cannot run outside the sandbox. In the sandbox it cannot see or delete your files.	Es kann außerhalb der Sandbox nicht laufen. In der Sandbox kann es Ihre Dateien weder sehen noch löschen.
+Lux Guard does not know this program. Programs from unknown sources can delete or steal your files. Run it only if you trust where it came from.	Lux Guard kennt dieses Programm nicht. Programme aus unbekannten Quellen können Ihre Dateien löschen oder stehlen. Führen Sie es nur aus, wenn Sie der Quelle vertrauen.
+Run in Sandbox starts it in an isolated system without access to your files.	„In Sandbox ausführen“ startet es in einem isolierten System ohne Zugriff auf Ihre Dateien.
+Move to Trash	In den Papierkorb
+Run in Sandbox	In Sandbox ausführen
+Run Anyway	Trotzdem ausführen
+No programs from outside this computer yet.	Noch keine Programme von außerhalb.
+Nothing yet.	Noch nichts.
+Snapshots need the btrfs file system (standard LuxOS installation).	Schnappschüsse benötigen das Dateisystem btrfs (Standardinstallation von LuxOS).
+Restore all files to %s?	Alle Dateien auf den Stand %s zurücksetzen?
+This program:	Dieses Programm:
+Allowed	Erlaubt
+No snapshots yet. Lux Guard saves your home folder every hour.	Noch keine Schnappschüsse. Lux Guard sichert Ihren persönlichen Ordner stündlich.
+Lux Guard saves your home folder every hour (kept 1 day, then one per day for 7 days). Programs cannot change or delete these copies.	Lux Guard sichert Ihren persönlichen Ordner stündlich (1 Tag lang, dann einer pro Tag für 7 Tage). Programme können diese Kopien weder ändern noch löschen.
+Critical	Kritisch
+Risky	Riskant
+Show Files	Dateien anzeigen
+Restore Deleted	Gelöschte wiederherstellen
+Restore All…	Alles wiederherstellen…
+Sandbox is not installed	Die Sandbox ist nicht installiert
+Install the luxos-sandbox package.	Installieren Sie das Paket luxos-sandbox.
+Create the sandbox first	Erstellen Sie zuerst die Sandbox
+The Sandbox window opens. Click Create, then try the program again.	Das Sandbox-Fenster öffnet sich. Klicken Sie auf Erstellen und versuchen Sie es dann erneut.
+Moved to Trash	In den Papierkorb verschoben
+Could not move to Trash	Verschieben in den Papierkorb fehlgeschlagen
+Sandbox	Sandbox
+deletes your files, your home folder or the whole system	löscht Ihre Dateien, Ihren persönlichen Ordner oder das ganze System
+removes the bootloader, kernels or core system packages	entfernt den Bootloader, Kernel oder grundlegende Systempakete
+formats, wipes or overwrites a disk	formatiert, löscht oder überschreibt ein Laufwerk
+freezes the computer (fork bomb)	legt den Computer lahm (Fork-Bombe)
+breaks permissions of the whole system or a system folder	zerstört die Berechtigungen des ganzen Systems oder eines Systemordners
+crashes or instantly restarts the computer	bringt den Computer zum Absturz oder startet ihn sofort neu
+changes sudo, polkit or login (PAM) security settings	ändert Sicherheitseinstellungen von sudo, polkit oder der Anmeldung (PAM)
+tries to switch off Lux Guard or delete its backups	versucht, Lux Guard abzuschalten oder seine Sicherungen zu löschen
+downloads code from the internet and runs it immediately without any check	lädt Code aus dem Internet herunter und führt ihn sofort ohne Prüfung aus
+runs hidden (encoded) code	führt versteckten (kodierten) Code aus
+encrypts your files (ransomware behaviour)	verschlüsselt Ihre Dateien (Verhalten von Ransomware)
+changes user accounts or passwords	ändert Benutzerkonten oder Passwörter
+disables package signature checks	deaktiviert die Prüfung von Paketsignaturen
+feeds a password to sudo or su	übergibt ein Passwort an sudo oder su
+downloads more code from the internet and runs it	lädt weiteren Code aus dem Internet herunter und führt ihn aus
+asks for administrator rights	fordert Administratorrechte an
+adds a program to startup	fügt ein Programm zum Autostart hinzu
+downloaded from the internet	aus dem Internet heruntergeladen
+an e-mail or web attachment	ein E-Mail- oder Web-Anhang
+from a USB drive or memory card	von einem USB-Laufwerk oder einer Speicherkarte
+from the sandbox shared folder	aus dem gemeinsamen Ordner der Sandbox
+a copy of a file from outside this computer	eine Kopie einer Datei von außerhalb
+created by a program from outside this computer	von einem Programm von außerhalb erstellt
+from outside this computer	von außerhalb dieses Computers
+Sign in to the network	Im Netzwerk anmelden
+This network requires you to sign in before you can use the internet.	Dieses Netzwerk erfordert eine Anmeldung, bevor Sie das Internet nutzen können.
+Connected to the internet	Mit dem Internet verbunden
+You are signed in to the network.	Sie sind im Netzwerk angemeldet.
+Step after the update failed:	Schritt nach der Aktualisierung fehlgeschlagen:

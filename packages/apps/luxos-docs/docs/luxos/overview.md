@@ -34,17 +34,17 @@ What's New after an update shows these items (data in `/usr/share/luxos/whats-ne
 | Package manager | **`lux`** (libalpm via pyalpm, plus AUR, Flatpak and `.lux` apps); **there is no `pacman` command** – typing it shows the matching `lux` command | `pacman`, `apt`, ... |
 | Package engine | `lux-engine`: libalpm and tools from Arch's pacman, internal tools `lux-engine`, `lux-engine-key` in `/usr/lib/lux/alpm/bin` | `pacman` package |
 | Package configuration | `/etc/lux/lux.conf` in an own format (`repo NAME` blocks, `hold`), mirrors `/etc/lux/mirrorlist`, data in `/var/lib/lux` – no `/etc/pacman.conf` | `/etc/pacman.conf` |
-| Own repositories | signed `[luxos]` (system) and `[luxos-apps]` (apps such as `lsl`, `lsl-ide`, `lux-code`, `luxai`) at `https://lsl.lux-ai.cz/luxos/` | – |
+| Own repositories | signed `[luxos]` (system) and `[luxos-apps]` (apps such as `lsl`, `lsl-ide`, `lux-code`, `luxai`) at `https://luxos.lux-ai.cz/repo/` | – |
 | App format | own `.lux` packages installed to `/opt/lux/<name>` | – |
 | Desktop | Xfce parts (xfwm4 compositor, panel, xfdesktop, xfconf) styled like macOS: top bar, Plank Dock, Launchpad, Search, Control Center | GNOME/KDE/Xfce stock |
 | Shell | **`lsh`** (Lux Shell, a GNU bash 5.3 fork) with `about`, LSL statements and a pip warning; ble.sh, starship, fzf, zoxide | bash/zsh |
 | Programming | LSL (Lux Simple Lang) packaged as `lsl`, usable directly in the shell | – |
 | Maintenance | **LuxOS Care**: automatic updates, previous-kernel fallback, self-repair | manual |
 | Drivers | `luxos-hwdetect` + Drivers app (NVIDIA by generation incl. legacy 580xx/470xx, SOF audio, IPU6/7 cameras, Broadcom Wi-Fi, VM guests) | manual |
-| Security extras | **Safe** (`/safe/<user>`, gocryptfs) and **Sandbox** (`/dev/sandbox/<user>`, bubblewrap) | – |
+| Security extras | **Lux Guard** (checks programs from downloads/USB when started, dangerous ones only in the sandbox, hourly `/home` snapshots), **Safe** (`/safe/<user>`, gocryptfs) and **Sandbox** (`/dev/sandbox/<user>`, bubblewrap) | – |
 | AI | **LuxAI** assistant, one shared LuxAI account for LuxAI, Lux Code and LSL IDE | – |
 | Defaults | `/etc/xdg/luxos` first in `XDG_CONFIG_DIRS` – never overwrites other packages' files | edits in `/etc/xdg` |
-| Performance | `linux-zen` kernel, zram (zstd), earlyoom, sysctl tuning, I/O schedulers by disk type, Btrfs with zstd, hidden boot menu (systemd-boot `timeout 0`; 3 s menu when other systems share the EFI partition) | varies |
+| Performance | own `linux-luxos` kernel (stable kernel.org, auto-built), zram (zstd), earlyoom, sysctl tuning, I/O schedulers by disk type, Btrfs with zstd, hidden boot menu (systemd-boot `timeout 0`; 3 s menu when other systems share the EFI partition) | varies |
 
 ## Main components
 
@@ -58,6 +58,7 @@ What's New after an update shows these items (data in `/usr/share/luxos/whats-ne
 | `luxos-printing` | driverless printing and scanning | [printing-scanning.md](printing-scanning.md) |
 | `luxdrop` | LuxDrop file sharing (LocalSend compatible) | [luxdrop.md](luxdrop.md) |
 | `luxos-safe`, `luxos-sandbox` | encrypted folder, isolated app system | [safe.md](safe.md), [sandbox.md](sandbox.md) |
+| `luxos-guard` | Lux Guard: check of downloaded programs, `/home` snapshots | [guard.md](guard.md) |
 | `luxos-tweaks` | zram, sysctl, earlyoom, journald, I/O | [power-and-performance.md](power-and-performance.md) |
 | `lsh`, `luxos-shell`, `blesh` | shell, prompt, aliases, fastfetch | [shell.md](shell.md) |
 | `luxos-installer` | `luxos-install` (text and GUI) | [installer.md](installer.md) |

@@ -9,6 +9,8 @@
   luxos-care apply ID-N             (root, luxos-care-apply@ID-N.service: volba LuxAI)
   luxos-care boot-check             (root, pred boot-complete.target)
   luxos-care kernel-pre|kernel-post (root, hooky jadra lux; cile na stdin)
+  luxos-care kernel-switch          (root) prechod na jadro LuxOS (linux-luxos), puvodni zustane
+                                    jako zalozni; spousti ho i `lux update` (after-update.d)
   luxos-care release-kept           (root) vystup transakce na stdin: uvolni zalozni jadro
                                     se stejnou verzi, jaka se ma nainstalovat
 """
@@ -106,6 +108,15 @@ def main(argv):
                 care.do_check(boot=True)
         except Exception as e:  # noqa: BLE001 - vysledek startu rozhoduje boot_check
             care.log(f"check after boot failed: {e}")
+        return rc
+    if cmd == "kernel-switch":
+        need_root()
+        try:
+            with care.CareLock(wait=True):
+                rc = care.kernel_migrate()
+        except Exception as e:  # noqa: BLE001
+            care.log(f"kernel switch failed: {e}")
+            return 1
         return rc
     if cmd == "release-kept":
         # lux-engine -S ... 2>&1 | luxos-care release-kept: uvolni zalozni jadro kolidujici s instalaci

@@ -3,10 +3,10 @@
 
 pkgname=luxos-store
 pkgver=1.0.0
-pkgrel=10
+pkgrel=11
 pkgdesc="LuxOS Store - install apps from LuxOS and Arch Linux"
 arch=(any)
-url="https://lsl.lux-ai.cz/luxos/"
+url="https://luxos.lux-ai.cz/repo/"
 license=(MIT)
 depends=(python python-gobject gtk3 appstream archlinux-appstream-data polkit lux luxos-i18n)
 

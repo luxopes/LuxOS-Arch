@@ -89,13 +89,13 @@ M
 [[ -n ${ESP_MOUNT-} ]] || { [[ ${DISK_MODE:-erase} == freespace ]] && ESP_MOUNT=/efi || ESP_MOUNT=/boot; }
 if [[ $ESP_MOUNT == /efi && ${BOOTLOADER:-auto} != none ]]; then
     # Sdileny ESP: fallback initramfs by z /boot (btrfs) stejne nesel spustit - jen zdrzuje
-    sed -i "s/^PRESETS=.*/PRESETS=('default')/" /etc/mkinitcpio.d/linux-zen.preset
-    rm -f /boot/initramfs-linux-zen-fallback.img
+    sed -i "s/^PRESETS=.*/PRESETS=('default')/" /etc/mkinitcpio.d/linux-luxos.preset
+    rm -f /boot/initramfs-linux-luxos-fallback.img
 fi
 mkinitcpio -P
 
 echo "--> Boot loader ($BOOTMODE, ${BOOTLOADER:-auto})"
-kernel=linux-zen
+kernel=linux-luxos
 if [[ ${BOOTLOADER:-auto} == none ]]; then
     echo "   (skip - jadro zustava v /boot)"
 elif [[ $BOOTMODE == uefi && $ESP_MOUNT == /efi ]]; then

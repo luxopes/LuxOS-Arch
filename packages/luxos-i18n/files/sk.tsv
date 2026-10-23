@@ -1496,7 +1496,7 @@ Import the missing signing key?	Importovať chýbajúci podpisový kľúč?
 Install a package from IgnorePkg anyway?	Napriek tomu nainštalovať balík z IgnorePkg?
 These packages are essential for the system: %s	Tieto balíky sú pre systém nevyhnutné: %s
 Remove them anyway?	Napriek tomu ich odstrániť?
-New config files to review: %d (run: pacdiff)	Nové konfiguračné súbory na kontrolu: %d (spustite: pacdiff)
+New config files to review: %d (run: lux configs)	Nové konfiguračné súbory na kontrolu: %d (spustite: lux configs)
 Stopping after the current package…	Zastavím po dokončení aktuálneho balíka…
 Installing from a URL is not supported, download the file first: %s	Inštalácia z URL nie je podporovaná, najprv súbor stiahnite: %s
 Cannot read package file %s	Súbor balíka %s nemožno prečítať
@@ -2410,3 +2410,129 @@ Removed %d old package files from the cache (%s freed)	Z cache odstránených %d
 The package cache is already clean	Cache balíkov už je čistá
 The package manager uses /etc/lux and /var/lib/lux	Správca balíkov používa /etc/lux a /var/lib/lux
 The package manager configuration of the live system is broken.	Konfigurácia správcu balíkov v živom systéme je poškodená.
+Another update check is still running. Try again later.	Ešte beží iná kontrola aktualizácií. Skúste to neskôr.
+The package lists could not be refreshed. Check your internet connection and try again.	Zoznamy balíkov sa nepodarilo obnoviť. Skontrolujte pripojenie na internet a skúste to znova.
+Would restore %d files (%d unchanged or newer kept).	Obnovilo by sa %d súborov (%d bez zmeny alebo novších zostane).
+Restored %d files from %s (%d unchanged or newer kept).	Obnovených %d súborov zo stavu %s (%d bez zmeny alebo novších zostalo).
+Lux Guard: not running	Lux Guard: nebeží
+Lux Guard: active	Lux Guard: aktívny
+Usage: luxos-guard scan FILE...	Použitie: luxos-guard scan SÚBOR...
+Usage: luxos-guard allow FILE	Použitie: luxos-guard allow SÚBOR
+Lux Guard is not running.	Lux Guard nebeží.
+Allowed: %s	Povolené: %s
+No watched files.	Žiadne strážené súbory.
+allowed	povolené
+No snapshots.	Žiadne snímky.
+No snapshot that old.	Taký starý snímok neexistuje.
+Run restore as the user whose files you restore, not root.	Obnovu spustite ako používateľ, ktorého súbory obnovujete, nie ako root.
+Only files in your home folder can be restored.	Obnoviť možno iba súbory vo vašom domovskom priečinku.
+Snapshots are made by the system (root).	Snímky vytvára systém (root).
+protection against harmful programs from downloads, attachments and USB drives	ochrana pred škodlivými programami zo stiahnutých súborov, príloh a USB diskov
+protection and snapshot status	stav ochrany a snímok
+check a file	skontrolovať súbor
+allow a risky file (like Run Anyway)	povoliť rizikový súbor (ako Napriek tomu spustiť)
+watched files and recent decisions	strážené súbory a posledné rozhodnutia
+times of /home snapshots	časy snímok /home
+restore files from a snapshot (without --overwrite only missing files)	obnoviť súbory zo snímky (bez --overwrite iba chýbajúce)
+CRITICAL - blocked outside the sandbox	KRITICKÝ – mimo sandboxu zablokovaný
+RISKY - asks before running	RIZIKOVÝ – pred spustením sa opýta
+Watched files: %d (critical: %d)	Strážené súbory: %d (kritické: %d)
+Warning: the Lux Guard session helper is not running - risky programs are blocked without asking.	Upozornenie: pomocník Lux Guard v relácii nebeží – rizikové programy sa blokujú bez opýtania.
+Snapshots of /home: %d, newest %s	Snímky /home: %d, najnovšia %s
+Snapshots of /home: none yet	Snímky /home: zatiaľ žiadne
+Snapshots of /home: not available (needs btrfs)	Snímky /home: nie sú k dispozícii (vyžadujú btrfs)
+This file belongs to another user.	Tento súbor patrí inému používateľovi.
+Recent decisions:	Posledné rozhodnutia:
+Unknown time: %s	Neznámy čas: %s
+%s is not in the snapshot from %s.	%s nie je v snímke z %s.
+Removable media: %s	Vymeniteľné médiá: %s
+Not a program or script - Lux Guard does not check it.	Nie je to program ani skript – Lux Guard ho nekontroluje.
+program	program
+script	skript
+launcher	spúšťač
+Java program	program v Jave
+Windows program	program pre Windows
+Type: %s	Typ: %s
+No dangerous behaviour found.	Nebezpečné správanie sa nenašlo.
+This file is critical - it can only be run in the sandbox: luxos-sandbox run %s	Tento súbor je kritický – dá sa spustiť iba v sandboxe: luxos-sandbox run %s
+Dangerous: %s	Nebezpečné: %s
+Notes: %s	Poznámky: %s
+Origin: %s	Pôvod: %s
+Lux Guard: not from outside this computer, not watched	Lux Guard: neprišiel zvonku, nestráži sa
+Lux Guard: %s	Lux Guard: %s
+Lux Guard: dangerous file	Lux Guard: nebezpečný súbor
+It will not run outside the sandbox.	Mimo sandboxu sa nespustí.
+Lux Guard blocked a dangerous program	Lux Guard zablokoval nebezpečný program
+Run a program from outside this computer?	Spustiť program, ktorý prišiel zvonku?
+Watched files	Strážené súbory
+Recent decisions	Posledné rozhodnutia
+Restore files	Obnoviť súbory
+found	nájdený
+blocked	zablokovaný
+not run	nespustený
+run in sandbox	spustený v sandboxe
+moved to trash	presunutý do koša
+not run (no session)	nespustený (bez relácie)
+Files changed since then (for example encrypted by ransomware) are replaced by the saved version. Files created later are kept.	Súbory zmenené odvtedy (napr. zašifrované ransomvérom) sa nahradia uloženou verziou. Neskôr vytvorené súbory zostanú.
+Restore	Obnoviť
+Restoring files…	Obnovujem súbory…
+Don't Run	Nespúšťať
+Checks programs from downloads, e-mail attachments and USB drives before they run. Dangerous ones run only in the sandbox.	Kontroluje programy zo stiahnutých súborov, príloh e-mailov a USB diskov pred spustením. Nebezpečné pobežia iba v sandboxe.
+Active	Aktívny
+Not running	Nebeží
+“%s” (%s) – %s.	„%s“ (%s) – %s.
+It cannot run outside the sandbox. In the sandbox it cannot see or delete your files.	Mimo sandboxu sa spustiť nemôže. V sandboxe nevidí vaše súbory a nemôže ich vymazať.
+Lux Guard does not know this program. Programs from unknown sources can delete or steal your files. Run it only if you trust where it came from.	Lux Guard tento program nepozná. Programy z neznámych zdrojov môžu vymazať alebo ukradnúť vaše súbory. Spustite ho, iba ak dôverujete jeho pôvodu.
+Run in Sandbox starts it in an isolated system without access to your files.	Spustiť v sandboxe ho spustí v oddelenom systéme bez prístupu k vašim súborom.
+Move to Trash	Presunúť do koša
+Run in Sandbox	Spustiť v sandboxe
+Run Anyway	Napriek tomu spustiť
+No programs from outside this computer yet.	Zatiaľ žiadne programy zvonku.
+Nothing yet.	Zatiaľ nič.
+Snapshots need the btrfs file system (standard LuxOS installation).	Snímky vyžadujú súborový systém btrfs (bežná inštalácia LuxOS).
+Restore all files to %s?	Obnoviť všetky súbory do stavu %s?
+This program:	Tento program:
+Allowed	Povolené
+No snapshots yet. Lux Guard saves your home folder every hour.	Zatiaľ žiadne snímky. Lux Guard ukladá váš domovský priečinok každú hodinu.
+Lux Guard saves your home folder every hour (kept 1 day, then one per day for 7 days). Programs cannot change or delete these copies.	Lux Guard ukladá váš domovský priečinok každú hodinu (uchováva 1 deň, potom jednu denne 7 dní). Programy tieto kópie nemôžu zmeniť ani vymazať.
+Critical	Kritický
+Risky	Rizikový
+Show Files	Zobraziť súbory
+Restore Deleted	Obnoviť vymazané
+Restore All…	Obnoviť všetko…
+Sandbox is not installed	Sandbox nie je nainštalovaný
+Install the luxos-sandbox package.	Nainštalujte balík luxos-sandbox.
+Create the sandbox first	Najprv vytvorte sandbox
+The Sandbox window opens. Click Create, then try the program again.	Otvorí sa okno Sandbox. Kliknite na Vytvoriť a potom program skúste znova.
+Moved to Trash	Presunuté do koša
+Could not move to Trash	Presun do koša zlyhal
+Sandbox	Sandbox
+deletes your files, your home folder or the whole system	vymaže vaše súbory, domovský priečinok alebo celý systém
+removes the bootloader, kernels or core system packages	odstráni zavádzač, jadrá alebo základné balíky systému
+formats, wipes or overwrites a disk	naformátuje, vymaže alebo prepíše disk
+freezes the computer (fork bomb)	zahltí a zamrazí počítač (fork bomba)
+breaks permissions of the whole system or a system folder	pokazí oprávnenia celého systému alebo systémového priečinka
+crashes or instantly restarts the computer	zhodí alebo okamžite reštartuje počítač
+changes sudo, polkit or login (PAM) security settings	mení bezpečnostné nastavenia sudo, polkit alebo prihlásenia (PAM)
+tries to switch off Lux Guard or delete its backups	snaží sa vypnúť Lux Guard alebo vymazať jeho zálohy
+downloads code from the internet and runs it immediately without any check	stiahne kód z internetu a hneď ho bez kontroly spustí
+runs hidden (encoded) code	spúšťa skrytý (zakódovaný) kód
+encrypts your files (ransomware behaviour)	šifruje vaše súbory (správanie ransomvéru)
+changes user accounts or passwords	mení používateľské účty alebo heslá
+disables package signature checks	vypína kontrolu podpisov balíkov
+feeds a password to sudo or su	odovzdáva heslo programu sudo alebo su
+downloads more code from the internet and runs it	sťahuje z internetu ďalší kód a spúšťa ho
+asks for administrator rights	žiada o práva správcu
+adds a program to startup	pridáva program do automatického spúšťania
+downloaded from the internet	stiahnuté z internetu
+an e-mail or web attachment	príloha e-mailu alebo webu
+from a USB drive or memory card	z USB disku alebo pamäťovej karty
+from the sandbox shared folder	zo zdieľaného priečinka sandboxu
+a copy of a file from outside this computer	kópia súboru, ktorý prišiel zvonku
+created by a program from outside this computer	vytvorené programom, ktorý prišiel zvonku
+from outside this computer	zvonku
+Sign in to the network	Prihlásenie do siete
+This network requires you to sign in before you can use the internet.	Táto sieť vyžaduje prihlásenie, než budete môcť používať internet.
+Connected to the internet	Pripojené na internet
+You are signed in to the network.	Ste prihlásení do siete.
+Step after the update failed:	Krok po aktualizácii zlyhal:

@@ -23,6 +23,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 PYDIR = os.path.join(ROOT, "luxos-desktop", "files", "python")
 BIN = os.path.join(ROOT, "luxos-desktop", "files", "bin")
+LEGACY = os.path.join(ROOT, "luxos-desktop", "files", "python-legacy")   # puvodni luxos-hub v Pythonu (neinstaluje se; nahrazen LSL)
 HELPER = os.path.join(ROOT, "luxos-tweaks", "files", "power", "luxos-powersaver-helper")
 UNMETERED = os.path.join(ROOT, "luxos-tweaks", "files", "power", "luxos-unmetered")
 FAKE_XRANDR = os.path.join(HERE, "fake-displays", "xrandr")
@@ -583,7 +584,7 @@ class KeepAwakeTest(Bus):
     def setUp(self):
         super().setUp()
         self.cfg = tempfile.mkdtemp(prefix="luxos-awake-")
-        self.hub = load_program("luxos_hub_test", os.path.join(BIN, "luxos-hub"))
+        self.hub = load_program("luxos_hub_test", os.path.join(LEGACY, "luxos-hub"))
         self.hub.SLEEP_OVERRIDE = os.path.join(self.cfg, "sleep-override")
         self.hub.SLEEP_WHILE_PLAYING = os.path.join(self.cfg, "sleep-while-playing")
         self.hub.PLAYBACK_GRACE = 1
@@ -630,9 +631,9 @@ class KeepAwakeTest(Bus):
         write(f"{drm}/card1-eDP-1/status", "connected\n")
         write(f"{drm}/card1-HDMI-A-1/status", "disconnected\n")
         os.makedirs(f"{drm}/card1")
-        self.assertFalse(load_program("d2", os.path.join(BIN, "luxos-hub")).external_monitor(drm))
+        self.assertFalse(load_program("d2", os.path.join(LEGACY, "luxos-hub")).external_monitor(drm))
         write(f"{drm}/card1-HDMI-A-1/status", "connected\n")
-        self.assertTrue(load_program("d3", os.path.join(BIN, "luxos-hub")).external_monitor(drm))
+        self.assertTrue(load_program("d3", os.path.join(LEGACY, "luxos-hub")).external_monitor(drm))
 
     def test_play_with_lid_closed_then_stop(self):
         w, ka = self.make()

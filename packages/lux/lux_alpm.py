@@ -43,6 +43,7 @@ EXIT_UNAVAILABLE = 3
 ENGINE_BIN = "/usr/lib/lux/alpm/bin"
 DEFAULT_PATH = "/usr/local/sbin:/usr/local/bin:/usr/bin"
 DEFAULT_DBPATH = "/var/lib/lux/"
+CHECK_UPDATES_WAIT = 300        # s: jak dlouho check-updates ceka na jinou probihajici kontrolu
 DEFAULT_CACHEDIR = "/var/cache/lux/pkg/"
 MIGRATE = os.environ.get("LUX_MIGRATE", "/usr/share/libalpm/scripts/lux-engine-migrate")
 
@@ -1325,7 +1326,7 @@ class Lux:
         ui.ok(line)
         ui.emit("SUMMARY", action, plan["count"], plan["download"], plan["delta"], f"{seconds:.1f}")
         if self.cb.pacnew:
-            ui.warn(_("New config files to review: %d (run: pacdiff)") % self.cb.pacnew)
+            ui.warn(_("New config files to review: %d (run: lux configs)") % self.cb.pacnew)
         if self.cb.scriptlet and not ui.verbose and not ui.machine:
             for line in self.cb.scriptlet[:5]:
                 ui.note("  " + line.strip())
@@ -1821,6 +1822,24 @@ def cmd_check_updates(lux, args):
     st = os.lstat(tmp)
     if st.st_uid != os.getuid() or os.path.islink(tmp):
         raise LuxError("permission", f"{tmp} does not belong to this user")
+    # Obchod, Pece a terminal kontroluji do stejne slozky: dalsi beh pocka na prvni (drive spadl
+    # na zamku jadra s hlaskou o internetu). Kdo drzi flock, je jediny uzivatel slozky, takze
+    # db.lck je zbytek preruseneho behu a muze se smazat.
+    import fcntl
+    lockf = open(os.path.join(tmp, ".check-updates.lock"), "a")
+    deadline = time.monotonic() + CHECK_UPDATES_WAIT
+    while True:
+        try:
+            fcntl.flock(lockf, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            break
+        except BlockingIOError:
+            if time.monotonic() > deadline:
+                raise LuxError("locked", _("Another update check is still running. Try again later."))
+            time.sleep(0.5)
+    try:
+        os.unlink(os.path.join(tmp, "db.lck"))
+    except FileNotFoundError:
+        pass
     local = os.path.join(tmp, "local")
     if os.path.islink(local) and os.readlink(local) != os.path.join(real, "local"):
         os.unlink(local)
@@ -1846,7 +1865,7 @@ def cmd_check_updates(lux, args):
         except tl.api.error as e:
             failed.append(f"{db.name}: {alpm_error_parts(e)[0]}")
     if failed:
-        raise LuxError("network", plain_message("network"), failed)
+        raise LuxError("refresh", _("The package lists could not be refreshed. Check your internet connection and try again."), failed)
     tl.conf = tconf
     dbs = tl.syncdbs("Upgrade")
     n = 0

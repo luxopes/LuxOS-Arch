@@ -12,7 +12,7 @@
 LUX_ROOT=/opt/lux
 LUX_DB=/var/lib/lux/installed
 LUX_SHARE=/usr/local/share
-LUX_INDEX_URL=${LUX_INDEX_URL:-https://lsl.lux-ai.cz/luxos/lux}
+LUX_INDEX_URL=${LUX_INDEX_URL:-https://luxos.lux-ai.cz/repo/lux}
 LUX_KEYRING=${LUX_KEYRING:-/usr/share/pacman/keyrings/luxos.gpg}
 LUX_FORMAT=1
 

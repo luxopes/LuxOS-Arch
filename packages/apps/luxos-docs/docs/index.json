@@ -525,6 +525,30 @@
           ]
         },
         {
+          "path": "luxos/guard.md",
+          "title": "Lux Guard – protection against harmful downloaded programs",
+          "summary": "luxos-guard: fanotify check of programs from downloads, attachments and USB when started; risky = dialog, critical (wiping disk/home, ransomware, hidden code) = sandbox only; why something was blocked; hourly /home btrfs snapshots and restoring files; limits",
+          "keywords": [
+            "Lux Guard",
+            "luxos-guard",
+            "guard",
+            "virus",
+            "malware",
+            "antivirus",
+            "blocked",
+            "Permission denied",
+            "dangerous program",
+            "ransomware",
+            "fanotify",
+            "snapshot",
+            "restore",
+            "deleted files",
+            "Run in Sandbox",
+            "Run Anyway",
+            "luxos-guard-agent"
+          ]
+        },
+        {
           "path": "luxos/power-and-performance.md",
           "title": "Power, performance and memory",
           "summary": "Data Saver, Battery Saver (auto at 20 %), earlyoom, zram, sysctl, I/O schedulers, journald and other performance defaults",

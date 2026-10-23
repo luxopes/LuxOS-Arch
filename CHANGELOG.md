@@ -4,6 +4,25 @@ Verze: `X.Y.Z` – `Y` roste s každým novým ISO, `Z` s opravami chyb. Každá
 Číslo verze je v `packages/luxos-branding/files/version` (os-release, O tomto počítači, fastfetch, název ISO).
 LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z jakého stavu systém vychází.
 
+## 0.9.7 „Polaris“ – 2026-10-23 (beta)
+
+### Nové
+- **Lux Guard** (`luxos-guard`): kontrola souborů z internetu, pošty, chatu, LuxDrop a USB při spuštění (fanotify v jádře, značky jen na hlídaných souborech – ostatní programy nic nestojí). Rizikové: dialog „Nespouštět / Spustit v sandboxu / Přesto spustit“; kritické (mazání domovské složky nebo disku, `dd`/`mkfs`/`shred` na disk, šifrování souborů ve smyčce, skrytý kód, vypnutí ochrany…): mimo sandbox nikdy. Vlastní pravidla bez antiviru (na 35 980 skriptech a programech systému 1 planý poplach). Každou hodinu snímek `/home` jen pro čtení (btrfs, 24 h po hodinách + 7 dní), obnova souborů v okně Lux Guard nebo `luxos-guard restore`. Dokumentace i pro LuxAI: `docs/luxos/guard.md`.
+- **Přihlášení k síti s portálem** (hotel, vlak, letiště): `luxos-hub` při stavu „portal“ otevře přihlašovací stránku sám, jednou za připojení (znovu tlačítkem „Přihlásit se“ v upozornění), v jednorázovém okně Firefoxu s prázdným profilem v paměti (bez cookies, hesel, historie a doplňků uživatele, po zavření smazáno); po připojení se okno zavře.
+- **Jádro LuxOS `linux-luxos`** (https://github.com/luxopes/luxos-kernel): stabilní Linux z kernel.org s ověřeným podpisem, konfigurace Archu (všechny ovladače) + `config-luxos` (BBR, `NR_CPUS=512`, THP na vyžádání). GitHub Actions každých 6 h sestaví novou verzi, spustí ji v QEMU s ~50 ovladači a vydá s attestací původu; LuxOS ji převezme po ověření (`scripts/fetch-kernel.sh`) a podepíše. Nové instalace a live ISO ho mají rovnou, starší instalace přejdou z `linux-zen` samy po aktualizaci (`luxos-care kernel-switch`: hlavičky pro DKMS, kontrola initramfs a modulů DKMS, `linux-zen` zůstane jako „LuxOS (previous kernel)“ a nové jádro má 3 pokusy o start).
+- **Ovládací centrum, Kalendář a `luxos-hub` v LSL** (LSL 0.10.6, jeden program místo tří v Pythonu): o 23 MB méně paměti (PSS), 7× méně CPU při startu relace, odezva po kliknutí stejná.
+
+### Opravy
+- Obchod: „Aktualizace se nepodařilo zkontrolovat“, když běžela kontrola LuxOS Care současně, nebo po přerušené kontrole (zámek v dočasné databázi). Kontroly na sebe počkají, zbylý zámek se uklidí a Obchod ukáže skutečný důvod chyby.
+- Čtečky otisků ELAN (např. 04f3:0c4f, Acer Aspire 7): „Calibration failed!“ – vlastní balík `libfprint` dává kalibraci až 100 kontrol (5 s) místo 10.
+- LuxAI 1.0.0-11: hlášení chyb opět uvádí balíky LuxOS (dotaz přes `lux-engine` místo neexistujícího `pacman`).
+
+### Změny
+- Repozitáře a stažení LuxOS jsou na **https://luxos.lux-ai.cz** (`/repo/`, `/download/`); stará adresa `lsl.lux-ai.cz/luxos` dál funguje, převod starých konfigurací ji přepíše.
+- `lux update` spouští po aktualizaci kroky ostatních balíků (`/usr/lib/lux/after-update.d`).
+- `lsl` 0.10.6 v `[luxos-apps]`.
+- `./build.sh one BALÍK` sestaví jeden balík do `out/single` (repozitář beze změny).
+
 ## 0.9.6 „Polaris“ – 2026-10-23 (beta)
 
 ### Nové

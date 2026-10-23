@@ -62,7 +62,7 @@ lux install ./myapp-1.0-1-any.lux
 lux install org.gimp.GIMP        # Flatpak app ID (if flatpak is installed)
 lux -y update
 lux owns /usr/bin/fastfetch
-lux history 50 linux-zen
+lux history 50 linux-luxos
 ```
 
 Arch habits are translated: typing `pacman -Syu` (or `lux -Syu`) prints the matching lux command
@@ -82,7 +82,7 @@ hold                linux-firmware    # keep at the current version
 aur                 on
 
 repo luxos
-    server  https://lsl.lux-ai.cz/luxos/$repo/$arch
+    server  https://luxos.lux-ai.cz/repo/$repo/$arch
 
 repo core
     mirrors  /etc/lux/mirrorlist

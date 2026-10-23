@@ -481,6 +481,12 @@ def main(argv):
             m.migrate("hook")
         except Exception as e:  # noqa: BLE001
             log(f"migration failed: {e}")
+        try:
+            # LuxOS 0.9.7: repozitare na luxos.lux-ai.cz/repo (stara adresa dal funguje)
+            if lux_config.update_moved_servers(m.p("etc/lux/lux.conf")):
+                log("repository addresses updated in /etc/lux/lux.conf")
+        except Exception as e:  # noqa: BLE001
+            log(f"updating repository addresses failed: {e}")
         return 0
     if cmd == "auto":
         rc = m.migrate("auto") if m.needs() else 0

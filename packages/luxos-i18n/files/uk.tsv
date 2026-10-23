@@ -1496,7 +1496,7 @@ Import the missing signing key?	Імпортувати відсутній клю
 Install a package from IgnorePkg anyway?	Все одно встановити пакет з IgnorePkg?
 These packages are essential for the system: %s	Ці пакети необхідні для системи: %s
 Remove them anyway?	Все одно видалити їх?
-New config files to review: %d (run: pacdiff)	Нові файли конфігурації для перевірки: %d (запустіть: pacdiff)
+New config files to review: %d (run: lux configs)	Нові файли конфігурації для перевірки: %d (запустіть: lux configs)
 Stopping after the current package…	Зупинка після поточного пакета…
 Installing from a URL is not supported, download the file first: %s	Встановлення за URL не підтримується, спершу завантажте файл: %s
 Cannot read package file %s	Не вдається прочитати файл пакета %s
@@ -2410,3 +2410,129 @@ Removed %d old package files from the cache (%s freed)	Вилучено %d ст�
 The package cache is already clean	Кеш пакетів уже чистий
 The package manager uses /etc/lux and /var/lib/lux	Менеджер пакетів використовує /etc/lux і /var/lib/lux
 The package manager configuration of the live system is broken.	Конфігурацію менеджера пакетів живої системи пошкоджено.
+Another update check is still running. Try again later.	Ще триває інша перевірка оновлень. Спробуйте пізніше.
+The package lists could not be refreshed. Check your internet connection and try again.	Не вдалося оновити списки пакунків. Перевірте підключення до інтернету та спробуйте ще раз.
+Would restore %d files (%d unchanged or newer kept).	Було б відновлено файлів: %d (без змін або новіших залишено: %d).
+Restored %d files from %s (%d unchanged or newer kept).	Відновлено файлів: %d зі стану %s (без змін або новіших залишено: %d).
+Lux Guard: not running	Lux Guard: не працює
+Lux Guard: active	Lux Guard: активний
+Usage: luxos-guard scan FILE...	Використання: luxos-guard scan ФАЙЛ...
+Usage: luxos-guard allow FILE	Використання: luxos-guard allow ФАЙЛ
+Lux Guard is not running.	Lux Guard не працює.
+Allowed: %s	Дозволено: %s
+No watched files.	Немає файлів під наглядом.
+allowed	дозволено
+No snapshots.	Немає знімків.
+No snapshot that old.	Такого старого знімка немає.
+Run restore as the user whose files you restore, not root.	Запустіть відновлення від імені користувача, чиї файли відновлюєте, а не від root.
+Only files in your home folder can be restored.	Відновити можна лише файли з домашньої теки.
+Snapshots are made by the system (root).	Знімки створює система (root).
+protection against harmful programs from downloads, attachments and USB drives	захист від шкідливих програм із завантажень, вкладень і USB-накопичувачів
+protection and snapshot status	стан захисту та знімків
+check a file	перевірити файл
+allow a risky file (like Run Anyway)	дозволити ризикований файл (як «Усе одно запустити»)
+watched files and recent decisions	файли під наглядом і останні рішення
+times of /home snapshots	час знімків /home
+restore files from a snapshot (without --overwrite only missing files)	відновити файли зі знімка (без --overwrite лише відсутні)
+CRITICAL - blocked outside the sandbox	КРИТИЧНИЙ – заблоковано поза пісочницею
+RISKY - asks before running	РИЗИКОВАНИЙ – питає перед запуском
+Watched files: %d (critical: %d)	Файлів під наглядом: %d (критичних: %d)
+Warning: the Lux Guard session helper is not running - risky programs are blocked without asking.	Увага: помічник сеансу Lux Guard не працює – ризиковані програми блокуються без запиту.
+Snapshots of /home: %d, newest %s	Знімків /home: %d, найновіший %s
+Snapshots of /home: none yet	Знімки /home: поки немає
+Snapshots of /home: not available (needs btrfs)	Знімки /home: недоступні (потрібен btrfs)
+This file belongs to another user.	Цей файл належить іншому користувачу.
+Recent decisions:	Останні рішення:
+Unknown time: %s	Невідомий час: %s
+%s is not in the snapshot from %s.	%s немає у знімку від %s.
+Removable media: %s	Знімні носії: %s
+Not a program or script - Lux Guard does not check it.	Це не програма і не скрипт – Lux Guard його не перевіряє.
+program	програма
+script	скрипт
+launcher	засіб запуску
+Java program	програма Java
+Windows program	програма для Windows
+Type: %s	Тип: %s
+No dangerous behaviour found.	Небезпечної поведінки не знайдено.
+This file is critical - it can only be run in the sandbox: luxos-sandbox run %s	Цей файл критичний – його можна запустити лише в пісочниці: luxos-sandbox run %s
+Dangerous: %s	Небезпечно: %s
+Notes: %s	Примітки: %s
+Origin: %s	Походження: %s
+Lux Guard: not from outside this computer, not watched	Lux Guard: не ззовні, не під наглядом
+Lux Guard: %s	Lux Guard: %s
+Lux Guard: dangerous file	Lux Guard: небезпечний файл
+It will not run outside the sandbox.	Поза пісочницею не запуститься.
+Lux Guard blocked a dangerous program	Lux Guard заблокував небезпечну програму
+Run a program from outside this computer?	Запустити програму ззовні?
+Watched files	Файли під наглядом
+Recent decisions	Останні рішення
+Restore files	Відновити файли
+found	виявлено
+blocked	заблоковано
+not run	не запущено
+run in sandbox	запущено в пісочниці
+moved to trash	переміщено до смітника
+not run (no session)	не запущено (немає сеансу)
+Files changed since then (for example encrypted by ransomware) are replaced by the saved version. Files created later are kept.	Файли, змінені відтоді (наприклад, зашифровані програмою-вимагачем), буде замінено збереженою версією. Пізніше створені файли залишаться.
+Restore	Відновити
+Restoring files…	Відновлення файлів…
+Don't Run	Не запускати
+Checks programs from downloads, e-mail attachments and USB drives before they run. Dangerous ones run only in the sandbox.	Перевіряє програми із завантажень, вкладень пошти та USB-накопичувачів перед запуском. Небезпечні працюють лише в пісочниці.
+Active	Активний
+Not running	Не працює
+“%s” (%s) – %s.	«%s» (%s) – %s.
+It cannot run outside the sandbox. In the sandbox it cannot see or delete your files.	Вона не може працювати поза пісочницею. У пісочниці вона не бачить і не може видалити ваші файли.
+Lux Guard does not know this program. Programs from unknown sources can delete or steal your files. Run it only if you trust where it came from.	Lux Guard не знає цієї програми. Програми з невідомих джерел можуть видалити або викрасти ваші файли. Запускайте її, лише якщо довіряєте джерелу.
+Run in Sandbox starts it in an isolated system without access to your files.	«Запустити в пісочниці» запускає її в ізольованій системі без доступу до ваших файлів.
+Move to Trash	Перемістити до смітника
+Run in Sandbox	Запустити в пісочниці
+Run Anyway	Усе одно запустити
+No programs from outside this computer yet.	Програм ззовні поки немає.
+Nothing yet.	Поки нічого.
+Snapshots need the btrfs file system (standard LuxOS installation).	Знімкам потрібна файлова система btrfs (стандартне встановлення LuxOS).
+Restore all files to %s?	Відновити всі файли до стану %s?
+This program:	Ця програма:
+Allowed	Дозволено
+No snapshots yet. Lux Guard saves your home folder every hour.	Знімків поки немає. Lux Guard зберігає домашню теку щогодини.
+Lux Guard saves your home folder every hour (kept 1 day, then one per day for 7 days). Programs cannot change or delete these copies.	Lux Guard зберігає домашню теку щогодини (1 день, потім по одній на день протягом 7 днів). Програми не можуть змінити чи видалити ці копії.
+Critical	Критичний
+Risky	Ризикований
+Show Files	Показати файли
+Restore Deleted	Відновити видалені
+Restore All…	Відновити все…
+Sandbox is not installed	Пісочницю не встановлено
+Install the luxos-sandbox package.	Установіть пакет luxos-sandbox.
+Create the sandbox first	Спершу створіть пісочницю
+The Sandbox window opens. Click Create, then try the program again.	Відкриється вікно «Пісочниця». Натисніть «Створити», а потім спробуйте ще раз.
+Moved to Trash	Переміщено до смітника
+Could not move to Trash	Не вдалося перемістити до смітника
+Sandbox	Пісочниця
+deletes your files, your home folder or the whole system	видаляє ваші файли, домашню теку або всю систему
+removes the bootloader, kernels or core system packages	видаляє завантажувач, ядра або основні пакети системи
+formats, wipes or overwrites a disk	форматує, стирає або перезаписує диск
+freezes the computer (fork bomb)	заморожує комп'ютер (fork-бомба)
+breaks permissions of the whole system or a system folder	ламає права доступу всієї системи або системної теки
+crashes or instantly restarts the computer	аварійно зупиняє або миттєво перезапускає комп'ютер
+changes sudo, polkit or login (PAM) security settings	змінює налаштування безпеки sudo, polkit або входу (PAM)
+tries to switch off Lux Guard or delete its backups	намагається вимкнути Lux Guard або видалити його резервні копії
+downloads code from the internet and runs it immediately without any check	завантажує код з інтернету й одразу запускає без перевірки
+runs hidden (encoded) code	запускає прихований (закодований) код
+encrypts your files (ransomware behaviour)	шифрує ваші файли (поведінка програми-вимагача)
+changes user accounts or passwords	змінює облікові записи або паролі
+disables package signature checks	вимикає перевірку підписів пакетів
+feeds a password to sudo or su	передає пароль у sudo або su
+downloads more code from the internet and runs it	завантажує з інтернету додатковий код і запускає його
+asks for administrator rights	запитує права адміністратора
+adds a program to startup	додає програму до автозапуску
+downloaded from the internet	завантажено з інтернету
+an e-mail or web attachment	вкладення пошти або з вебу
+from a USB drive or memory card	з USB-накопичувача або картки пам'яті
+from the sandbox shared folder	зі спільної теки пісочниці
+a copy of a file from outside this computer	копія файлу ззовні
+created by a program from outside this computer	створено програмою ззовні
+from outside this computer	ззовні
+Sign in to the network	Вхід у мережу
+This network requires you to sign in before you can use the internet.	Ця мережа вимагає входу, перш ніж ви зможете користуватися інтернетом.
+Connected to the internet	Підключено до інтернету
+You are signed in to the network.	Ви увійшли в мережу.
+Step after the update failed:	Крок після оновлення не вдався:

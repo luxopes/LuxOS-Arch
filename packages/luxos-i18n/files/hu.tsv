@@ -1495,7 +1495,7 @@ Import the missing signing key?	Importálod a hiányzó aláíró kulcsot?
 Install a package from IgnorePkg anyway?	Mégis telepíted az IgnorePkg-ben szereplő csomagot?
 These packages are essential for the system: %s	Ezek a csomagok nélkülözhetetlenek a rendszerhez: %s
 Remove them anyway?	Mégis eltávolítod őket?
-New config files to review: %d (run: pacdiff)	Átnézendő új konfigurációs fájlok: %d (futtasd: pacdiff)
+New config files to review: %d (run: lux configs)	Átnézendő új konfigurációs fájlok: %d (futtasd: lux configs)
 Stopping after the current package…	Leállás az aktuális csomag után…
 Installing from a URL is not supported, download the file first: %s	Az URL-ről történő telepítés nem támogatott, előbb töltsd le a fájlt: %s
 Cannot read package file %s	A(z) %s csomagfájl nem olvasható
@@ -2409,3 +2409,129 @@ Removed %d old package files from the cache (%s freed)	%d régi csomagfájl tör
 The package cache is already clean	A csomag-gyorsítótár már tiszta
 The package manager uses /etc/lux and /var/lib/lux	A csomagkezelő az /etc/lux és a /var/lib/lux könyvtárat használja
 The package manager configuration of the live system is broken.	Az élő rendszer csomagkezelő-beállítása sérült.
+Another update check is still running. Try again later.	Még fut egy másik frissítéskeresés. Próbálja újra később.
+The package lists could not be refreshed. Check your internet connection and try again.	A csomaglistákat nem sikerült frissíteni. Ellenőrizze az internetkapcsolatot, és próbálja újra.
+Would restore %d files (%d unchanged or newer kept).	%d fájl lenne visszaállítva (%d változatlan vagy újabb megmarad).
+Restored %d files from %s (%d unchanged or newer kept).	%d fájl visszaállítva (%s állapot; %d változatlan vagy újabb megmaradt).
+Lux Guard: not running	Lux Guard: nem fut
+Lux Guard: active	Lux Guard: aktív
+Usage: luxos-guard scan FILE...	Használat: luxos-guard scan FÁJL...
+Usage: luxos-guard allow FILE	Használat: luxos-guard allow FÁJL
+Lux Guard is not running.	A Lux Guard nem fut.
+Allowed: %s	Engedélyezve: %s
+No watched files.	Nincs figyelt fájl.
+allowed	engedélyezve
+No snapshots.	Nincsenek pillanatképek.
+No snapshot that old.	Nincs ilyen régi pillanatkép.
+Run restore as the user whose files you restore, not root.	A visszaállítást annak a felhasználónak a nevében futtassa, akinek a fájljait visszaállítja, ne rootként.
+Only files in your home folder can be restored.	Csak a saját mappájában lévő fájlok állíthatók vissza.
+Snapshots are made by the system (root).	A pillanatképeket a rendszer készíti (root).
+protection against harmful programs from downloads, attachments and USB drives	védelem a letöltésekből, mellékletekből és USB-meghajtókról érkező kártékony programok ellen
+protection and snapshot status	a védelem és a pillanatképek állapota
+check a file	fájl ellenőrzése
+allow a risky file (like Run Anyway)	kockázatos fájl engedélyezése (mint a Futtatás mégis)
+watched files and recent decisions	figyelt fájlok és legutóbbi döntések
+times of /home snapshots	a /home pillanatképeinek időpontjai
+restore files from a snapshot (without --overwrite only missing files)	fájlok visszaállítása pillanatképből (--overwrite nélkül csak a hiányzók)
+CRITICAL - blocked outside the sandbox	KRITIKUS – a sandboxon kívül tiltva
+RISKY - asks before running	KOCKÁZATOS – futtatás előtt rákérdez
+Watched files: %d (critical: %d)	Figyelt fájlok: %d (kritikus: %d)
+Warning: the Lux Guard session helper is not running - risky programs are blocked without asking.	Figyelem: a Lux Guard munkamenet-segéd nem fut – a kockázatos programok kérdés nélkül tiltva lesznek.
+Snapshots of /home: %d, newest %s	/home pillanatképei: %d, legújabb %s
+Snapshots of /home: none yet	/home pillanatképei: még nincs
+Snapshots of /home: not available (needs btrfs)	/home pillanatképei: nem érhetők el (btrfs szükséges)
+This file belongs to another user.	Ez a fájl egy másik felhasználóé.
+Recent decisions:	Legutóbbi döntések:
+Unknown time: %s	Ismeretlen időpont: %s
+%s is not in the snapshot from %s.	%s nincs benne a(z) %s pillanatképben.
+Removable media: %s	Cserélhető adathordozók: %s
+Not a program or script - Lux Guard does not check it.	Nem program vagy szkript – a Lux Guard nem ellenőrzi.
+program	program
+script	szkript
+launcher	indító
+Java program	Java-program
+Windows program	Windows-program
+Type: %s	Típus: %s
+No dangerous behaviour found.	Veszélyes viselkedés nem található.
+This file is critical - it can only be run in the sandbox: luxos-sandbox run %s	Ez a fájl kritikus – csak a sandboxban futtatható: luxos-sandbox run %s
+Dangerous: %s	Veszélyes: %s
+Notes: %s	Megjegyzések: %s
+Origin: %s	Eredet: %s
+Lux Guard: not from outside this computer, not watched	Lux Guard: nem kívülről érkezett, nincs figyelve
+Lux Guard: %s	Lux Guard: %s
+Lux Guard: dangerous file	Lux Guard: veszélyes fájl
+It will not run outside the sandbox.	A sandboxon kívül nem fog futni.
+Lux Guard blocked a dangerous program	A Lux Guard letiltott egy veszélyes programot
+Run a program from outside this computer?	Futtat egy kívülről érkezett programot?
+Watched files	Figyelt fájlok
+Recent decisions	Legutóbbi döntések
+Restore files	Fájlok visszaállítása
+found	észlelve
+blocked	letiltva
+not run	nem futott
+run in sandbox	sandboxban futott
+moved to trash	a kukába került
+not run (no session)	nem futott (nincs munkamenet)
+Files changed since then (for example encrypted by ransomware) are replaced by the saved version. Files created later are kept.	Az azóta módosult fájlokat (például zsarolóvírus által titkosítottakat) a mentett változat váltja fel. A később létrehozott fájlok megmaradnak.
+Restore	Visszaállítás
+Restoring files…	Fájlok visszaállítása…
+Don't Run	Ne futtassa
+Checks programs from downloads, e-mail attachments and USB drives before they run. Dangerous ones run only in the sandbox.	Futtatás előtt ellenőrzi a letöltésekből, e-mail-mellékletekből és USB-meghajtókról származó programokat. A veszélyesek csak a sandboxban futnak.
+Active	Aktív
+Not running	Nem fut
+“%s” (%s) – %s.	„%s” (%s) – %s.
+It cannot run outside the sandbox. In the sandbox it cannot see or delete your files.	A sandboxon kívül nem futhat. A sandboxban nem látja és nem törölheti a fájljait.
+Lux Guard does not know this program. Programs from unknown sources can delete or steal your files. Run it only if you trust where it came from.	A Lux Guard nem ismeri ezt a programot. Az ismeretlen forrásból származó programok törölhetik vagy ellophatják a fájljait. Csak akkor futtassa, ha megbízik a forrásában.
+Run in Sandbox starts it in an isolated system without access to your files.	A „Futtatás sandboxban” elszigetelt rendszerben indítja, a fájljaihoz való hozzáférés nélkül.
+Move to Trash	Áthelyezés a kukába
+Run in Sandbox	Futtatás sandboxban
+Run Anyway	Futtatás mégis
+No programs from outside this computer yet.	Még nincs kívülről érkezett program.
+Nothing yet.	Még semmi.
+Snapshots need the btrfs file system (standard LuxOS installation).	A pillanatképekhez btrfs fájlrendszer szükséges (szabványos LuxOS-telepítés).
+Restore all files to %s?	Minden fájl visszaállítása a(z) %s állapotra?
+This program:	Ez a program:
+Allowed	Engedélyezve
+No snapshots yet. Lux Guard saves your home folder every hour.	Még nincs pillanatkép. A Lux Guard óránként menti a saját mappáját.
+Lux Guard saves your home folder every hour (kept 1 day, then one per day for 7 days). Programs cannot change or delete these copies.	A Lux Guard óránként menti a saját mappáját (1 napig, utána napi egyet 7 napig őriz). A programok ezeket a másolatokat nem módosíthatják és nem törölhetik.
+Critical	Kritikus
+Risky	Kockázatos
+Show Files	Fájlok megjelenítése
+Restore Deleted	Töröltek visszaállítása
+Restore All…	Összes visszaállítása…
+Sandbox is not installed	A sandbox nincs telepítve
+Install the luxos-sandbox package.	Telepítse a luxos-sandbox csomagot.
+Create the sandbox first	Először hozza létre a sandboxot
+The Sandbox window opens. Click Create, then try the program again.	Megnyílik a Sandbox ablak. Kattintson a Létrehozás gombra, majd próbálja újra.
+Moved to Trash	Áthelyezve a kukába
+Could not move to Trash	Nem sikerült a kukába helyezni
+Sandbox	Sandbox
+deletes your files, your home folder or the whole system	törli a fájljait, a saját mappáját vagy az egész rendszert
+removes the bootloader, kernels or core system packages	eltávolítja a rendszerbetöltőt, a kerneleket vagy alapvető rendszercsomagokat
+formats, wipes or overwrites a disk	formáz, töröl vagy felülír egy lemezt
+freezes the computer (fork bomb)	lefagyasztja a számítógépet (fork bomba)
+breaks permissions of the whole system or a system folder	tönkreteszi az egész rendszer vagy egy rendszermappa jogosultságait
+crashes or instantly restarts the computer	lefagyasztja vagy azonnal újraindítja a számítógépet
+changes sudo, polkit or login (PAM) security settings	módosítja a sudo, a polkit vagy a bejelentkezés (PAM) biztonsági beállításait
+tries to switch off Lux Guard or delete its backups	megpróbálja kikapcsolni a Lux Guardot vagy törölni a mentéseit
+downloads code from the internet and runs it immediately without any check	kódot tölt le az internetről, és ellenőrzés nélkül azonnal futtatja
+runs hidden (encoded) code	rejtett (kódolt) kódot futtat
+encrypts your files (ransomware behaviour)	titkosítja a fájljait (zsarolóvírus-viselkedés)
+changes user accounts or passwords	felhasználói fiókokat vagy jelszavakat módosít
+disables package signature checks	kikapcsolja a csomagaláírások ellenőrzését
+feeds a password to sudo or su	jelszót ad át a sudónak vagy a su-nak
+downloads more code from the internet and runs it	további kódot tölt le az internetről és futtatja
+asks for administrator rights	rendszergazdai jogokat kér
+adds a program to startup	programot ad az automatikus indításhoz
+downloaded from the internet	az internetről letöltve
+an e-mail or web attachment	e-mail- vagy webes melléklet
+from a USB drive or memory card	USB-meghajtóról vagy memóriakártyáról
+from the sandbox shared folder	a sandbox megosztott mappájából
+a copy of a file from outside this computer	egy kívülről érkezett fájl másolata
+created by a program from outside this computer	kívülről érkezett program hozta létre
+from outside this computer	kívülről
+Sign in to the network	Bejelentkezés a hálózatba
+This network requires you to sign in before you can use the internet.	Ez a hálózat bejelentkezést kér, mielőtt használhatná az internetet.
+Connected to the internet	Csatlakozva az internethez
+You are signed in to the network.	Bejelentkezett a hálózatba.
+Step after the update failed:	A frissítés utáni lépés nem sikerült:

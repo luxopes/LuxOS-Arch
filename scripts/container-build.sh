@@ -1,6 +1,6 @@
 #!/bin/bash
 # LuxOS - sestaveni baliku a ISO (bezi uvnitr Arch kontejneru, viz build.sh)
-# Pouziti: container-build.sh [all|packages|apps|iso]
+# Pouziti: container-build.sh [all|packages|apps|iso|one BALIK]
 set -euo pipefail
 
 ROOT=/luxos
@@ -15,12 +15,13 @@ target=${1:-all}
 # Repozitar [luxos]: system LuxOS, poradi = zavislosti vlastnich baliku prvni
 # (lux-engine = jadro lux: libalpm a nastroje z pacmanu Arch Linuxu, bez prikazu pacman; potrebuji ho lux, pyalpm i base;
 #  gdk-pixbuf2 = nahrada baliku z Archu bez glycinu, obrazky se dekoduji v procesu, luxos-pixbuf-svg = zavadec SVG)
-PACKAGES=(lux-engine gdk-pixbuf2 luxos-pixbuf-svg luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-printing luxos-desktop luxos-installer
+PACKAGES=(lux-engine gdk-pixbuf2 luxos-pixbuf-svg libfprint luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-guard luxos-printing luxos-desktop luxos-installer
           # Legacy ovladace NVIDIA z AUR (Maxwell/Pascal/Volta 580xx, Kepler 470xx) - jen online, ne v ISO
           nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-470xx-utils lib32-nvidia-470xx-utils)
 # Baliky, ktere se nekopiruji do mistniho repozitare v ISO (velke, potrebuje je jen malo pocitacu;
 # instalator je stahuje z online [luxos], viz install_online_drivers v luxos-install)
-ISO_ONLINE_ONLY='*nvidia-[0-9]*xx*'
+# (hlavicky jadra jen pro moduly DKMS, napr. NVIDIA - instaluji se spolu s ovladacem)
+ISO_ONLINE_ONLY=('*nvidia-[0-9]*xx*' 'linux-luxos-headers-[0-9]*')
 # Repozitar [luxos-apps]: aplikace ke stazeni (kazdy adresar v packages/apps)
 mapfile -t APPS < <(find "$ROOT/packages/apps" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort)
 ARCH=x86_64
@@ -51,8 +52,12 @@ build_one() {  # build_one ADRESAR_BALIKU CIL_PKGDEST
     # makepkg bezi s --nodeps (zavislosti na vlastnich balicich), makedepends a checkdepends instalujeme zvlast.
     # Zavislost z vlastniho repozitare (napr. lsl z [luxos-apps] pro luxos-desktop) neni v repozitarich
     # Archu: nainstaluje se balik sestaveny drive v tomto behu (aplikace se stavi pred [luxos]).
-    (set +u; makedepends=(); checkdepends=(); source "$BUILD/$p/PKGBUILD"
+    (set +u; depends=(); makedepends=(); checkdepends=(); source "$BUILD/$p/PKGBUILD"
      sync=(); local_pkgs=()
+     # depends z repozitaru Archu taky: baliky prevzate z Archu (libfprint, gdk-pixbuf2) proti nim linkuji
+     for d in "${depends[@]}"; do
+         pacman -Si "${d%%[<>=]*}" &>/dev/null && sync+=("$d")
+     done
      for d in "${makedepends[@]}" "${checkdepends[@]}"; do
          n=${d%%[<>=]*}
          if pacman -Si "$n" &>/dev/null; then sync+=("$d"); continue; fi
@@ -184,6 +189,11 @@ build_packages() {
         build_one "$ROOT/packages/$p" "$BUILD/pkgs/luxos"
     done
     chown -R root: "$SOURCES"
+    # Jadro LuxOS se stavi na GitHub Actions (luxopes/luxos-kernel); build.sh ho stahne a overi
+    # (scripts/fetch-kernel.sh: SHA256SUMS + attestace puvodu) do out/kernel, tady se jen podepise.
+    compgen -G "$OUT/kernel/linux-luxos-[0-9]*.pkg.tar.zst" >/dev/null ||
+        { echo "Missing out/kernel/linux-luxos-*.pkg.tar.zst (scripts/fetch-kernel.sh)" >&2; exit 1; }
+    install -m644 "$OUT"/kernel/linux-luxos-*.pkg.tar.zst "$BUILD/pkgs/luxos/"
 
     make_repo luxos "$BUILD/pkgs/luxos"
     make_repo luxos-apps "$BUILD/pkgs/luxos-apps"
@@ -241,10 +251,11 @@ build_iso() {
 # Z kopie repozitaru [luxos] v ISO odebere baliky jen pro online instalaci (ISO_ONLINE_ONLY).
 # Live system ma pro [luxos] SigLevel Optional: neplatny podpis databaze se smaze.
 iso_drop_online_only() {  # iso_drop_online_only ADRESAR_REPOZITARE
-    local dir=$1 f n
-    local -a names=()
+    local dir=$1 f n pat
+    local -a names=() files=()
     shopt -s nullglob
-    for f in "$dir"/$ISO_ONLINE_ONLY.pkg.tar.zst; do
+    for pat in "${ISO_ONLINE_ONLY[@]}"; do files+=("$dir"/$pat.pkg.tar.zst); done
+    for f in "${files[@]}"; do
         n=$(tar --zstd -xOf "$f" .PKGINFO | awk -F' = ' '$1 == "pkgname" {print $2; exit}')
         [[ -n $n ]] && names+=("$n")
         rm -f "$f" "$f.sig" "$dir/icons/$n".*
@@ -254,6 +265,23 @@ iso_drop_online_only() {  # iso_drop_online_only ADRESAR_REPOZITARE
     repo-remove -q "$dir/luxos.db.tar.gz" "${names[@]}"
     rm -f "$dir"/luxos.db.sig "$dir"/luxos.db.tar.gz.sig "$dir"/luxos.files.sig "$dir"/luxos.files.tar.gz.sig
     msg "ISO: left out of the local [luxos] repository (installed online): ${names[*]}"
+}
+
+# Jeden balik z packages/ (nebo packages/apps/) do out/single bez prestavby repozitare - na zkousku
+build_single() {
+    local p=${1:?package name} src
+    src=$ROOT/packages/$p
+    [[ -f $src/PKGBUILD ]] || src=$ROOT/packages/apps/$p
+    [[ -f $src/PKGBUILD ]] || { echo "No package $p" >&2; exit 2; }
+    msg "Updating build container"
+    pacman -Syu --noconfirm --needed >/dev/null
+    rm -rf "$BUILD"
+    mkdir -p "$SOURCES" "$BUILD/pkgs/single" "$OUT/single"
+    chown -R builder: "$SOURCES" "$BUILD"
+    build_one "$src" "$BUILD/pkgs/single"
+    chown -R root: "$SOURCES"
+    install -m644 "$BUILD"/pkgs/single/*.pkg.tar.zst "$OUT/single/"
+    ls -lh "$OUT"/single/
 }
 
 # Pripadne zbyle pripojeni (dev, proc...) odpojit pred mazanim pracovniho adresare
@@ -267,5 +295,6 @@ case $target in
     apps)     build_apps ;;
     iso)      build_iso ;;
     all)      build_packages; build_iso ;;
-    *) echo "Usage: $0 [all|packages|apps|iso]" >&2; exit 2 ;;
+    one)      build_single "${2:-}" ;;
+    *) echo "Usage: $0 [all|packages|apps|iso|one PACKAGE]" >&2; exit 2 ;;
 esac

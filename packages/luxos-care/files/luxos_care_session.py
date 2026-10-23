@@ -334,3 +334,34 @@ def subscribe():
         log(f"monitor: {e.message}")
     # Po prihlaseni: co se stalo pred chvili (napr. oprava pri startu)
     GLib.timeout_add_seconds(20, on_change)
+
+
+# ---- pomocny program pro luxos-hub v LSL -------------------------------------------------------------
+def ask_main(request_id):
+    """`luxos_care_session.py ask <request_id>`: dotaz na LuxAI Flash pro cekajici problem a spusteni
+    zvolene opravy; vypise JSON {"option": cislo nebo null, "info": duvod, "started": bool}.
+    Hub v LSL ho spousti jen pro tuto chvili (LSL nema TLS), token uzivatele zustava v tomto procesu."""
+    out = {"option": None, "info": "unknown_request", "started": False}
+    if ID_RE.match(request_id):
+        try:
+            _state["sys"] = Gio.bus_get_sync(Gio.BusType.SYSTEM)
+        except GLib.Error as e:
+            log(f"system bus: {e.message}")
+        st = read_json("state.json", {})
+        for p in st.get("problems", []):
+            req = p.get("ai") or {}
+            if req.get("request_id") == request_id and req.get("status") == "pending":
+                n, info = ask_ai(p)
+                out = {"option": n, "info": info, "started": False}
+                if n is not None and _state["sys"] is not None:
+                    out["started"] = start_apply(request_id, n)
+                break
+    print(json.dumps(out), flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    if len(sys.argv) >= 3 and sys.argv[1] == "ask":
+        sys.exit(ask_main(sys.argv[2]))
+    print(__doc__)
+    sys.exit(2)

@@ -32,8 +32,8 @@ ENGINE_BIN = "/usr/lib/lux/alpm/bin"
 ENGINE = ENGINE_BIN + "/lux-engine"
 LUX_ALPM = "/usr/lib/lux/lux_alpm.py"
 ENGINE_ENV = dict(os.environ, PATH=ENGINE_BIN + ":" + os.environ.get("PATH", "/usr/local/sbin:/usr/local/bin:/usr/bin"))
-LUX_INDEX_URL = os.environ.get("LUX_INDEX_URL", "https://lsl.lux-ai.cz/luxos/lux")
-APPS_ICON_URL = "https://lsl.lux-ai.cz/luxos/luxos-apps/x86_64/icons"
+LUX_INDEX_URL = os.environ.get("LUX_INDEX_URL", "https://luxos.lux-ai.cz/repo/lux")
+APPS_ICON_URL = "https://luxos.lux-ai.cz/repo/luxos-apps/x86_64/icons"
 ICON_CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "luxos-store/icons")
 ICON_SIZE = 56
 DATASAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/datasaver")
@@ -277,8 +277,12 @@ class Catalog:
             r = subprocess.run([LUX_ALPM, "--color=never", "check-updates"], capture_output=True, text=True,
                                timeout=180, env=ENGINE_ENV)
         except (OSError, subprocess.TimeoutExpired):
+            self.update_error = None
             return False
         if r.returncode not in (0, 2):
+            # prvni radek hlasky lux ("✗ ..."), uz prelozeny; jinak obecny text
+            lines = [ln.strip().lstrip("✗").strip() for ln in (r.stderr or "").splitlines() if ln.strip()]
+            self.update_error = lines[0] if lines else None
             return False
         self.updates = [line.split()[0] for line in r.stdout.splitlines() if line.strip()]
         return True
@@ -574,7 +578,8 @@ class Store(Gtk.Window):
         def show_result(ok):
             ups = self.catalog.updates
             if not ok:
-                info.set_text(_("Could not check for updates. Check your internet connection and try again."))
+                info.set_text(getattr(self.catalog, "update_error", None) or
+                              _("Could not check for updates. Check your internet connection and try again."))
             else:
                 info.set_text(_("Everything is up to date.") if not ups else
                               _("%d updates available: %s") % (len(ups), ", ".join(ups[:30]) + (" …" if len(ups) > 30 else "")))

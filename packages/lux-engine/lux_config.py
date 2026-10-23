@@ -8,7 +8,7 @@ konfigurace jadra (/run/lux/engine.conf).
     parallel-downloads  10
     hold  linux-firmware
     repo luxos
-        server  https://lsl.lux-ai.cz/luxos/$repo/$arch
+        server  https://luxos.lux-ai.cz/repo/$repo/$arch
     repo core
         mirrors  /etc/lux/mirrorlist
     include  /etc/lux/conf.d/*.conf
@@ -28,6 +28,7 @@ engine.conf zustava (lux sam odmitne pokracovat).
   lux-config dump [--config F]                       vygenerovana konfigurace jadra na stdout
   lux-config mirrors-import [SOUBOR|-] [--output F]  seznam zrcadel z reflectoru/pacmanu -> format lux
   lux-config convert-pacman SOUBOR                   stary pacman.conf -> lux.conf na stdout
+  lux-config update-servers [--config F]             stara adresa repozitaru LuxOS -> nova (po aktualizaci)
   lux-config enable-repo NAZEV [--mirrors F|--server URL] [--config F]   prida blok repo
   lux-config has-repo NAZEV [--config F]             0 = repozitar je nastaven
 """
@@ -577,6 +578,46 @@ def map_path(p):
     return p
 
 
+# Repozitare LuxOS se presunuly (LuxOS 0.9.7); stara adresa dal funguje, prevod pouzije novou
+MOVED_SERVERS = {"https://lsl.lux-ai.cz/luxos/": "https://luxos.lux-ai.cz/repo/"}
+
+
+def moved_server(url):
+    for old, new in MOVED_SERVERS.items():
+        if url.startswith(old):
+            return new + url[len(old):]
+    return url
+
+
+def update_moved_servers(conf=LUX_CONF):
+    """Stara adresa repozitaru LuxOS v /etc/lux/lux.conf -> nova (jen radky server, zbytek beze zmeny).
+    Kdyz se lux.conf lisila od baliku jen adresou, aktualizace nechala lux.conf.pacnew se stejnym
+    obsahem - ten se po uprave smaze. Vraci True, kdyz se neco zmenilo."""
+    try:
+        with open(conf, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return False
+    out = []
+    for line in text.splitlines(keepends=True):
+        m = re.match(r"^(\s*server\s+)(\S+)(.*)$", line, re.S)
+        if m and moved_server(m.group(2)) != m.group(2):
+            line = m.group(1) + moved_server(m.group(2)) + m.group(3)
+        out.append(line)
+    new = "".join(out)
+    changed = new != text
+    if changed:
+        atomic_write(conf, new, os.stat(conf).st_mode & 0o7777)
+    try:
+        with open(conf + ".pacnew", encoding="utf-8") as f:
+            if f.read() == new:
+                os.unlink(conf + ".pacnew")
+                changed = True
+    except OSError:
+        pass
+    return changed
+
+
 def convert_pacman_conf(path, root=""):
     """Stary pacman.conf -> (text lux.conf, {cesta: obsah dalsich seznamu zrcadel}, [varovani]).
     Include se seznamem zrcadel -> 'mirrors' (soubor prevedeny do formatu lux), ostatni Include se vlozi."""
@@ -652,7 +693,7 @@ def convert_pacman_conf(path, root=""):
             else:
                 repo = next(r for r in repos if r["name"] == section[0])
                 if key == "Server":
-                    repo["servers"].append(val)
+                    repo["servers"].append(moved_server(val))
                 elif key == "SigLevel":
                     repo["sig"] = sig_from_pacman(val)
                 elif key == "Usage":
@@ -816,6 +857,10 @@ def main(argv):
                 sys.stdout.write(data)
             else:
                 atomic_write(out, data)
+            return 0
+        if cmd == "update-servers":
+            if update_moved_servers(conf):
+                print(f"lux-config: repository addresses updated in {conf}")
             return 0
         if cmd == "convert-pacman":
             text, extra, warns = convert_pacman_conf(args[0])

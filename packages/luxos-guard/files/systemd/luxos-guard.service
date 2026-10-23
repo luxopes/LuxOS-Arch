@@ -1,0 +1,30 @@
+[Unit]
+Description=Lux Guard - checks programs from downloads, attachments and USB drives before they run
+Documentation=file:///usr/share/luxos/docs/luxos/guard.md
+After=local-fs.target
+Before=display-manager.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/luxos-guard service
+# Kdyz sluzba skonci, jadro cekajici udalosti povoli - proto hned znovu
+Restart=always
+RestartSec=1
+SyslogIdentifier=luxos-guard
+OOMScoreAdjust=-900
+Nice=-5
+MemoryHigh=160M
+# Zamerne BEZ ProtectSystem/ProtectHome/PrivateTmp/Protect*: vytvori vlastni jmenny prostor
+# pripojeni a znacky fanotify na pripojeni (/home, /tmp, USB) by hlidaly jen jeho kopie,
+# ne pripojeni, ktera pouzivaji programy uzivatele.
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_FOWNER CAP_SYS_PTRACE
+RestrictAddressFamilies=AF_UNIX
+SystemCallArchitectures=native
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
