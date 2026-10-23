@@ -1,0 +1,14 @@
+#!/bin/bash
+# LuxOS - reflector.service (casovac reflector.timer): nejrychlejsi zrcadla do /etc/lux/mirrorlist.
+# reflector pise seznam ve formatu spravce baliku Archu ("Server = ..."); lux-config ho prevede na format
+# lux (jedna adresa na radek). Kdyz reflector nic nenajde, seznam zrcadel zustane beze zmeny.
+set -u
+dir=${CACHE_DIRECTORY:-/var/cache/reflector}
+tmp=$dir/mirrorlist.new
+rm -f "$tmp"
+# --save az za konfiguraci: plati posledni (reflector.conf z Archu uklada do stare cesty)
+reflector @/etc/xdg/reflector/reflector.conf --save "$tmp" || { rc=$?; rm -f "$tmp"; exit "$rc"; }
+/usr/lib/lux/lux-config mirrors-import "$tmp" --output /etc/lux/mirrorlist
+rc=$?
+rm -f "$tmp"
+exit "$rc"

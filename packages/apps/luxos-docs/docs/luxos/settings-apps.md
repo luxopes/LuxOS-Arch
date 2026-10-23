@@ -154,7 +154,7 @@ D-Bus (`net.reactivated.Fprint`).
 
 How login works: `/usr/lib/luxos/luxos-fingerprint-pam` inserts a managed block with
 `pam_fprintd.so` into the PAM services `lightdm`, `sudo`, `polkit-1` and `xfce4-screensaver`. The
-block sits between the markers `# LuxOS fingerprint: begin/end`. A pacman hook
+block sits between the markers `# LuxOS fingerprint: begin/end`. A libalpm hook
 (`luxos-fingerprint.hook`) re-runs `sync` after fprintd, lightdm, sudo, polkit, xfce4-screensaver
 or luxos-desktop are installed, upgraded or removed.
 

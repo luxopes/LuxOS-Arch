@@ -5,7 +5,7 @@
 
 pkgname=luxdrop
 pkgver=1.0.0
-pkgrel=2
+pkgrel=3
 pkgdesc="LuxOS LuxDrop - securely send files to nearby LuxOS computers and LocalSend apps"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"

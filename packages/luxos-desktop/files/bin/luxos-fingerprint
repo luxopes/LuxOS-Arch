@@ -2,7 +2,7 @@
 """LuxOS - Otisk prstu: pridani a odebrani otisku pro prihlaseni, zamek, sudo a polkit.
 
 Mluvi s fprintd pres D-Bus (net.reactivated.Fprint) - prubeh snimani ukazuje primo v okne.
-Prihlasovani otiskem zapina luxos-fingerprint-pam (pacman hook po instalaci fprintd).
+Prihlasovani otiskem zapina luxos-fingerprint-pam (hook spravce baliku po instalaci fprintd).
 LUXOS_FPRINT_BUS=session nebo adresa unix:...: fprintd na session / vlastni sbernici (testy s napodobenou sluzbou).
 """
 import math

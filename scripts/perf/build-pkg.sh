@@ -16,8 +16,13 @@ for src in "$@"; do
     p=${src##*/}; b=/tmp/build/$p
     rm -rf "$b"; mkdir -p /tmp/build; cp -r "$src" "$b"; find "$b" -name __pycache__ -prune -exec rm -rf {} +
     chown -R builder: "$b" /out /luxos/out/sources
+    # jen zavislosti z repozitaru Archu (vlastni baliky LuxOS tam nejsou a pacman -S by pak nenainstaloval nic);
+    # drive sestavene baliky z tohoto behu (napr. lsl pro luxos-desktop) uz jsou nainstalovane nize pres pacman -U
     (set +u; makedepends=(); checkdepends=(); depends=(); source "$b/PKGBUILD"
-     deps=("${makedepends[@]}" "${checkdepends[@]}" "${depends[@]}")
+     deps=()
+     for d in "${makedepends[@]}" "${checkdepends[@]}" "${depends[@]}"; do
+         pacman -Si "${d%%[<>=]*}" >/dev/null 2>&1 && deps+=("$d")
+     done
      ((${#deps[@]})) && pacman -S --needed --noconfirm "${deps[@]}" >/dev/null 2>&1 || true)
     (cd "$b" && sudo -u builder env SRCDEST=/luxos/out/sources PKGDEST=/out makepkg --force --nodeps --noconfirm --cleanbuild)
     pacman -U --noconfirm /out/"$p"-*.pkg.tar.zst >/dev/null 2>&1 || true

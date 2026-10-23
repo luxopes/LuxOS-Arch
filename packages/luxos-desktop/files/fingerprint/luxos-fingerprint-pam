@@ -8,7 +8,7 @@
 #   status  vypise stav sluzeb
 #
 # Soubory v /etc/pam.d patri jinym balikum (lightdm, sudo, polkit, xfce4-screensaver), proto
-# je nenahrazujeme cele: menime jen vlastni blok mezi znackami a pacman hook ho po kazde
+# je nenahrazujeme cele: menime jen vlastni blok mezi znackami a hook spravce baliku ho po kazde
 # aktualizaci techto baliku obnovi. Radky "-auth" PAM tise preskoci, kdyz modul chybi,
 # a pam_fprintd bez ctecky / bez ulozenych otisku / pri vzdalenem prihlaseni hned vraci
 # PAM_AUTHINFO_UNAVAIL - heslo tak funguje vzdy.

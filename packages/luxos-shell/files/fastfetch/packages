@@ -1,0 +1,15 @@
+#!/bin/sh
+# LuxOS - radek Packages ve fastfetch. Modul "packages" fastfetche cte databazi na pevne ceste
+# /var/lib/pacman/local; v LuxOS je databaze lux v /var/lib/lux/local. Pocet adresaru jmeno-verze
+# (bez spusteni spravce baliku), Flatpak jen kdyz nejake aplikace jsou.
+db=/var/lib/lux/local
+[ -d "$db" ] || db=/var/lib/pacman/local      # pred prechodem z LuxOS 0.9.5 (do restartu)
+n=0
+for d in "$db"/*-*; do [ -d "$d" ] && n=$((n + 1)); done
+out="$n (lux)"
+f=0
+for d in /var/lib/flatpak/app/* "${XDG_DATA_HOME:-$HOME/.local/share}"/flatpak/app/*; do
+    [ -d "$d" ] && f=$((f + 1))
+done
+[ "$f" -gt 0 ] && out="$out, $f (flatpak)"
+echo "$out"

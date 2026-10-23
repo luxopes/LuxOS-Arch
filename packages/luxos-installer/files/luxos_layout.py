@@ -28,7 +28,7 @@ MIN_BOOT = 300 * MiB
 FSTYPES = ("btrfs", "ext4", "xfs", "f2fs", "vfat")
 MOUNTS = ("/", "/home", "/var", "/tmp", "/opt", "/srv", "/var/log", "/boot", "/efi")
 FORBIDDEN = {"/usr", "/etc", "/bin", "/sbin", "/lib", "/lib64", "/proc", "/sys", "/dev", "/run", "/boot/efi",
-             "/var/lib/pacman"}
+             "/var/lib/lux", "/var/lib/pacman"}
 RESIZABLE = ("ext4", "btrfs", "ntfs")
 
 # Texty chyb a varovani - stejne anglicke vety jako ly_error_text v layout.sh (spolecne preklady)

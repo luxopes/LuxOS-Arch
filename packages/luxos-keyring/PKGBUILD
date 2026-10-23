@@ -3,7 +3,7 @@
 
 pkgname=luxos-keyring
 pkgver=2026.10.20
-pkgrel=2
+pkgrel=3
 pkgdesc="LuxOS package signing keys"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"

@@ -1042,7 +1042,6 @@ Updates install automatically in the background - not on metered networks, with 
 A previous kernel is kept, so the computer always has a working version to start.	Poprzednie jądro jest zachowywane, więc komputer zawsze ma działającą wersję do uruchomienia.
 LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash.	LuxOS sam się naprawia. Poważne problemy diagnozuje LuxAI Flash.
 No automatic updates or repairs - standard Arch Linux behaviour.	Bez automatycznych uaktualnień i napraw – standardowe zachowanie Arch Linuksa.
-You manage the system yourself with lux or pacman.	Samodzielnie zarządzasz systemem za pomocą lux lub pacman.
 You only get a notification when updates are available.	Otrzymujesz tylko powiadomienie, gdy dostępne są uaktualnienia.
 Choose whether LuxOS takes care of itself, or whether you want full control.	Wybierz, czy LuxOS ma dbać sam o siebie, czy chcesz mieć pełną kontrolę.
 Downloading %s of %s	Pobieranie %s z %s
@@ -1547,7 +1546,6 @@ install the same version again	instaluje ponownie tę samą wersję
 remove dependencies nothing needs any more	usuwa zależności, których nic już nie potrzebuje
 repair a locked database and the signing keys	naprawia zablokowaną bazę i klucze podpisu
 show all details (and raw errors)	pokazuje wszystkie szczegóły (i surowe błędy)
-pacman stays available for advanced use; lux and pacman share the same package database.	pacman pozostaje dostępny dla zaawansowanych; lux i pacman korzystają z tej samej bazy pakietów.
 Another app is installing software right now. Try it again in a moment.	Inna aplikacja właśnie instaluje oprogramowanie. Spróbuj ponownie za chwilę.
 The app conflicts with files of another package.	Aplikacja jest w konflikcie z plikami innego pakietu.
 The app conflicts with an installed package.	Aplikacja jest w konflikcie z zainstalowanym pakietem.
@@ -1637,9 +1635,7 @@ LuxDrop sends files to computers and phones nearby – it also works with the Lo
 Found a bug or have an idea? Feedback sends it straight to the author of LuxOS. All keyboard shortcuts are listed in Keyboard Shortcuts. Enjoy LuxOS!	Znalazłeś błąd lub masz pomysł? Opinie wyślą go prosto do autora LuxOS. Wszystkie skróty znajdziesz w Skrótach klawiszowych. Miłego korzystania z LuxOS!
 LuxOS uses lux to manage software.	LuxOS zarządza oprogramowaniem za pomocą lux.
 All lux commands: %s	Wszystkie polecenia lux: %s
-Experts can still run pacman directly: %s	Zaawansowani użytkownicy mogą nadal uruchomić pacman bezpośrednio: %s
 The package manager core is missing (%s). Repair it with: %s	Brak rdzenia menedżera pakietów (%s). Napraw go poleceniem: %s
-pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman jest tylko dla zaawansowanych (LUX_ALLOW_PACMAN=1 pacman …); lux i pacman używają tej samej bazy pakietów.
 The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	Rdzeń menedżera pakietów %s jest starszy niż w Arch Linux (%s); aktualizacja LuxOS wkrótce
 You manage the system yourself with lux.	Samodzielnie zarządzasz systemem za pomocą lux.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
@@ -2392,3 +2388,25 @@ Save Screenshot	Zapisz zrzut ekranu
 Save Recording	Zapisz nagranie
 The screenshot could not be copied to the clipboard.	Nie udało się skopiować zrzutu ekranu do schowka.
 The file could not be moved to the Trash.	Nie udało się przenieść pliku do kosza.
+lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check	lux nie zadziała, dopóki konfiguracja nie zostanie poprawiona (/etc/lux/lux.conf). Sprawdź ją: lux config check
+Usage: lux config [check|show|edit|engine]	Użycie: lux config [check|show|edit|engine]
+check or edit /etc/lux/lux.conf	sprawdzenie lub edycja /etc/lux/lux.conf
+reflector is not installed (lux install reflector)	reflector nie jest zainstalowany (lux install reflector)
+New version of %s from an update	Nowa wersja %s z aktualizacji
+[u] use the new version  [k] keep yours  [e] edit yours  [s] skip: 	[u] użyj nowej wersji  [k] zachowaj swoją  [e] edytuj swoją  [s] pomiń: 
+Using the new version (yours is saved as %s)	Używana jest nowa wersja (Twoja zapisana jako %s)
+Kept your version	Zachowano Twoją wersję
+Saved configuration of a removed package: %s	Zapisana konfiguracja usuniętego pakietu: %s
+[d] delete it  [r] restore it as %s  [s] skip: 	[d] usuń  [r] przywróć jako %s  [s] pomiń: 
+Deleted	Usunięto
+Restored	Przywrócono
+Package manager configuration OK	Konfiguracja menedżera pakietów jest poprawna
+The package manager configuration has an error - run: lux config check	Konfiguracja menedżera pakietów zawiera błąd – uruchom: lux config check
+Old package manager files are cleaned up after the next restart	Stare pliki menedżera pakietów zostaną usunięte po następnym ponownym uruchomieniu
+The package manager configuration has an error: %s	Konfiguracja menedżera pakietów zawiera błąd: %s
+Fix it and check it with: lux config check	Popraw ją i sprawdź: lux config check
+The package manager configuration has an error. Check it with: lux config check	Konfiguracja menedżera pakietów zawiera błąd. Sprawdź ją: lux config check
+Removed %d old package files from the cache (%s freed)	Usunięto z pamięci podręcznej %d starych plików pakietów (zwolniono %s)
+The package cache is already clean	Pamięć podręczna pakietów jest już czysta
+The package manager uses /etc/lux and /var/lib/lux	Menedżer pakietów używa /etc/lux i /var/lib/lux
+The package manager configuration of the live system is broken.	Konfiguracja menedżera pakietów systemu live jest uszkodzona.

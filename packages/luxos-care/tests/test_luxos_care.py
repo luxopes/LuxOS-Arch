@@ -140,7 +140,7 @@ class PowerSysfs(Root):
         self.assertEqual(care.power_supplies(), (None, []))
 
 
-# ---- pacman -----------------------------------------------------------------------------
+# ---- spravce baliku -----------------------------------------------------------------------------
 class Pacman(unittest.TestCase):
     def test_stale_lock(self):
         self.assertTrue(care.stale_lock(True, False, 600))
@@ -149,13 +149,13 @@ class Pacman(unittest.TestCase):
         self.assertFalse(care.stale_lock(False, False, 6000))
 
     def test_errors(self):
-        self.assertEqual(care.classify_pacman_error("error: failed to init transaction (unable to lock database)"),
+        self.assertEqual(care.classify_engine_error("error: failed to init transaction (unable to lock database)"),
                          "locked")
-        self.assertEqual(care.classify_pacman_error("error: foo: signature from \"X\" is unknown trust"), "keyring")
-        self.assertEqual(care.classify_pacman_error("error: failed retrieving file 'core.db'"), "network")
-        self.assertEqual(care.classify_pacman_error("a: /usr/bin/x exists in filesystem\nconflicting files"), "conflict")
-        self.assertEqual(care.classify_pacman_error("error: Partition / too full: not enough free disk space"), "disk")
-        self.assertEqual(care.classify_pacman_error("something odd"), "unknown")
+        self.assertEqual(care.classify_engine_error("error: foo: signature from \"X\" is unknown trust"), "keyring")
+        self.assertEqual(care.classify_engine_error("error: failed retrieving file 'core.db'"), "network")
+        self.assertEqual(care.classify_engine_error("a: /usr/bin/x exists in filesystem\nconflicting files"), "conflict")
+        self.assertEqual(care.classify_engine_error("error: Partition / too full: not enough free disk space"), "disk")
+        self.assertEqual(care.classify_engine_error("something odd"), "unknown")
 
     def test_interrupted(self):
         ok = ["[x] [ALPM] transaction started\n", "[x] [ALPM] upgraded a\n", "[x] [ALPM] transaction completed\n"]
@@ -655,35 +655,65 @@ class LuxBackend(unittest.TestCase):
         self.assertEqual(care.lux_command(["-Sy", "--needed", "archlinux-keyring", "luxos-keyring"]),
                          base + ["install", "--refresh", "--needed", "--", "archlinux-keyring", "luxos-keyring"])
         self.assertEqual(care.lux_command(["-S", "linux"]), base + ["install", "--", "linux"])
-        self.assertEqual(care.lux_command(["-U", "/var/cache/pacman/pkg/linux-6.11-1-x86_64.pkg.tar.zst"]),
-                         base + ["install", "--", "/var/cache/pacman/pkg/linux-6.11-1-x86_64.pkg.tar.zst"])
-        # nezname nebo podezrele argumenty -> jen pacman
+        self.assertEqual(care.lux_command(["-U", "/var/cache/lux/pkg/linux-6.11-1-x86_64.pkg.tar.zst"]),
+                         base + ["install", "--", "/var/cache/lux/pkg/linux-6.11-1-x86_64.pkg.tar.zst"])
+        # nezname nebo podezrele argumenty -> jen lux-engine
         self.assertIsNone(care.lux_command(["-Rns", "x"]))
         self.assertIsNone(care.lux_command(["-S", "--overwrite", "*", "x"]))
         self.assertIsNone(care.lux_command(["-S", "a;b"]))
         self.assertIsNone(care.lux_command(["-U", "relative.pkg.tar.zst"]))
         self.assertIsNone(care.lux_command([]))
 
-    def test_pm_uses_lux_or_pacman(self):
+    def test_pm_uses_lux_or_engine(self):
         care._lux_ok = True
         self.assertEqual(care.pm(["-Su"])[0], care.LUX_ALPM)
-        self.assertEqual(care.pm(["-Rns", "x"])[:2], [care.PACMAN, "--noconfirm"])
+        self.assertEqual(care.pm(["-Rns", "x"])[:2], [care.ENGINE, "--noconfirm"])
         care._lux_ok = False
-        self.assertEqual(care.pm(["-Su"]), [care.PACMAN, "--noconfirm", "--noprogressbar", "--color", "never", "-Su"])
+        self.assertEqual(care.pm(["-Su"]), [care.ENGINE, "--noconfirm", "--noprogressbar", "--color", "never", "-Su"])
         self.assertEqual(care.pm(["-Syu", "--noconfirm", "--noprogressbar"]),
-                         [care.PACMAN, "--noconfirm", "--noprogressbar", "--color", "never", "-Syu"])
+                         [care.ENGINE, "--noconfirm", "--noprogressbar", "--color", "never", "-Syu"])
 
-    def test_fallback_uses_real_pacman(self):
-        """Bez lux vola pacman z jadra lux (lux-engine, /usr/lib/lux/alpm/bin), ne pacman z PATH."""
+    def test_fallback_uses_engine_tool(self):
+        """Bez lux vola nastroj jadra lux-engine (/usr/lib/lux/alpm/bin), zadny prikaz pacman."""
         care._lux_ok = False
-        with mock.patch.object(care, "PACMAN", "/usr/lib/lux/alpm/bin/pacman"):
-            self.assertEqual(care.pm(["-Su"])[0], "/usr/lib/lux/alpm/bin/pacman")
+        self.assertEqual(care.ENGINE, "/usr/lib/lux/alpm/bin/lux-engine")
+        self.assertEqual(care.pm(["-Su"])[0], "/usr/lib/lux/alpm/bin/lux-engine")
         with open(care.__file__) as f:
             src = f.read()
-        self.assertNotRegex(src, r'\[\s*"pacman"\s*,')
+        self.assertNotRegex(src, r'\[\s*"(pacman|pacman-key|paccache|checkupdates)"\s*,')
+        for path in ("/var/lib/pacman", "/var/cache/pacman", "/var/log/pacman.log"):
+            self.assertNotIn(path, src)
+
+    def test_paths(self):
+        self.assertEqual((care.DB_LOCK, care.ENGINE_LOG, care.PKG_CACHE),
+                         ("/var/lib/lux/db.lck", "/var/log/lux.log", "/var/cache/lux/pkg"))
+
+    def test_check_updates_uses_lux(self):
+        out = "glibc 2.42-1 -> 2.42-2\nfirefox 131.0-1 -> 132.0-1\n"
+        with mock.patch.object(care.os, "access", return_value=True), \
+                mock.patch.object(care, "run", return_value=(0, out)) as r:
+            self.assertEqual(care.check_updates(), [("glibc", "2.42-1", "2.42-2"), ("firefox", "131.0-1", "132.0-1")])
+            cmd = r.call_args[0][0]
+            self.assertEqual(cmd[0], care.LUX_ALPM)
+            self.assertIn("check-updates", cmd)
+            self.assertEqual(cmd[cmd.index("--db") + 1], care.check_updates_db())
+        with mock.patch.object(care.os, "access", return_value=True), \
+                mock.patch.object(care, "run", return_value=(2, "")):
+            self.assertEqual(care.check_updates(), [])
+        with mock.patch.object(care.os, "access", return_value=True), \
+                mock.patch.object(care, "run", return_value=(1, "network")):
+            self.assertIsNone(care.check_updates())
+
+    def test_clean_cache_uses_lux(self):
+        with mock.patch.object(care.os, "access", return_value=True), \
+                mock.patch.object(care, "run", return_value=(0, "")) as r:
+            care.clean_cache(keep=1)
+            cmd = r.call_args[0][0]
+            self.assertEqual(cmd[0], care.LUX_ALPM)
+            self.assertEqual(cmd[cmd.index("clean"):], ["clean", "--keep", "1", "--keep-uninstalled", "0"])
 
     def test_commands_get_engine_tools_on_path(self):
-        """Spoustene prikazy (checkupdates, paccache, pacman-key, hooky transakci) najdou nastroje jadra;
+        """Spoustene prikazy (lux-engine, lux-engine-key, hooky transakci) najdou nastroje jadra;
         proces sam PATH nemeni (modul nacitaji i aplikace v relaci uzivatele)."""
         with mock.patch.dict(os.environ, {"PATH": "/usr/bin:/bin"}):
             rc, out = care.run(["sh", "-c", 'echo "$PATH"'])
@@ -731,7 +761,7 @@ class LuxBackend(unittest.TestCase):
         with mock.patch.object(care.subprocess, "Popen", P), \
                 mock.patch.object(care, "set_progress", lambda *a, **k: prog.append((a, k))), \
                 mock.patch.object(care, "have", return_value=False):
-            rc, text = care.Updater().pacman(["-Su"], "install", total=2, base=0.6, span=0.37)
+            rc, text = care.Updater().transact(["-Su"], "install", total=2, base=0.6, span=0.37)
         self.assertEqual(rc, 0)
         self.assertEqual(seen[0][0], care.LUX_ALPM)
         self.assertEqual([k.get("done") for _a, k in prog if k.get("done")], [1, 2])
@@ -739,10 +769,10 @@ class LuxBackend(unittest.TestCase):
         err = "error: failed to commit transaction (conflicting files)\n" \
               "linux: /usr/lib/modules/6.11.2-arch1-1/vmlinuz exists in filesystem\n" \
               "@@ERROR conflict Some files of the new packages already exist on the system (file conflict).\n"
-        self.assertEqual(care.classify_pacman_error(err), "conflict")
-        self.assertEqual(care.classify_pacman_error(
+        self.assertEqual(care.classify_engine_error(err), "conflict")
+        self.assertEqual(care.classify_engine_error(
             "error: failed to init transaction (unable to lock database)\n@@ERROR locked x"), "locked")
-        self.assertEqual(care.classify_pacman_error(
+        self.assertEqual(care.classify_engine_error(
             "error: failed retrieving file 'a.pkg.tar.zst' from m : timeout\n@@ERROR network x"), "network")
 
 

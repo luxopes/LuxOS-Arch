@@ -664,7 +664,10 @@ about_os (void)
   if (f)
     fclose (f);
   n = 0;
-  d = opendir ("/var/lib/pacman/local");
+  /* databaze lux; do prechodu z LuxOS 0.9.5 (restart) jeste stara cesta */
+  d = opendir ("/var/lib/lux/local");
+  if (!d)
+    d = opendir ("/var/lib/pacman/local");
   if (d)
     {
       while ((e = readdir (d)))

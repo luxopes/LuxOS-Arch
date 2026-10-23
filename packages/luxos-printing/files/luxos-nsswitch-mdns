@@ -2,7 +2,7 @@
 """LuxOS - prida mdns_minimal do radku hosts v /etc/nsswitch.conf (adresy *.local tiskaren a skeneru).
 
 Meni jen radek hosts, jen kdyz tam mdns jeste neni; zbytek souboru, prava a vlastnik zustanou.
-Spousti luxos-printing.install a pacman hook (po aktualizaci baliku filesystem).
+Spousti luxos-printing.install a hook spravce baliku (po aktualizaci baliku filesystem).
 """
 import os
 import sys

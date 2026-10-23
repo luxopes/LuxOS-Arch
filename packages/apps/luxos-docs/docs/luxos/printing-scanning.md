@@ -17,7 +17,7 @@ USB). Classic USB printers get the best installed driver. Scanners work through 
 | USB trigger | `/usr/lib/udev/rules.d/70-luxos-printing.rules` → `luxos-printing-sync.service` | runs the helper when a USB printer or scanner is plugged in |
 | helper (root) | `/usr/lib/luxos/printing/luxos-printing-helper` | creates the queues and installs drivers |
 | notifications | `/usr/lib/luxos/printing/luxos-printing-notify` | "Printer “X” is ready" etc. in the user session |
-| mDNS in nsswitch | `/usr/lib/luxos/printing/luxos-nsswitch-mdns` (+ pacman hook) | adds `mdns_minimal` to the `hosts:` line of `/etc/nsswitch.conf` |
+| mDNS in nsswitch | `/usr/lib/luxos/printing/luxos-nsswitch-mdns` (+ libalpm hook) | adds `mdns_minimal` to the `hosts:` line of `/etc/nsswitch.conf` |
 | polkit | `org.luxos.printing.manage` | lets the active user run the helper through `pkexec` without a password |
 
 The package's install script enables `cups.socket`, `avahi-daemon.service` and

@@ -3,7 +3,7 @@
 
 pkgname=lsh
 pkgver=1.0.0
-pkgrel=2
+pkgrel=3
 _bashver=5.3
 _patchlevel=020
 pkgdesc="lsh - the Lux shell (GNU bash fork with LuxOS and LSL integration)"

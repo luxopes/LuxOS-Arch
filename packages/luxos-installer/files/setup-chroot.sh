@@ -70,9 +70,8 @@ fi
 echo "--> Initramfs"
 modules=""
 # Rane nacteni NVIDIA jen bez integrovane grafiky (u hybridni jen zpomaluje start)
-pac=/usr/lib/lux/alpm/bin/pacman   # pacman z jadra lux (lux-engine), mimo PATH
-[[ -x $pac ]] || pac=pacman
-if ((${NVIDIA_EARLY:-1})) && "$pac" -Qq 2>/dev/null | grep -xE 'nvidia-open-dkms|nvidia-[0-9]+xx-dkms' >/dev/null; then
+engine=/usr/lib/lux/alpm/bin/lux-engine   # jadro lux (lux-engine), mimo PATH
+if ((${NVIDIA_EARLY:-1})) && "$engine" -Qq 2>/dev/null | grep -xE 'nvidia-open-dkms|nvidia-[0-9]+xx-dkms' >/dev/null; then
     modules="nvidia nvidia_modeset nvidia_uvm nvidia_drm"
 fi
 # Sifrovany / (sd-encrypt: rd.luks.* + /etc/crypttab.initramfs) a / na LVM (lvm2); poradi: block sd-encrypt lvm2
@@ -123,8 +122,8 @@ for f in "vmlinuz-$KERNEL" "initramfs-$KERNEL.img"; do
     mv -f "$ESP_DIR/$f.new" "$ESP_DIR/$f"
 done
 S
-    # Po kazde transakci pacmanu (po mkinitcpio) a po rucnim mkinitcpio
-    install -Dm644 /dev/stdin /etc/pacman.d/hooks/99-luxos-esp-sync.hook <<'H'
+    # Po kazde transakci spravce baliku (po mkinitcpio) a po rucnim mkinitcpio
+    install -Dm644 /dev/stdin /etc/lux/hooks/99-luxos-esp-sync.hook <<'H'
 [Trigger]
 Type = Package
 Operation = Install

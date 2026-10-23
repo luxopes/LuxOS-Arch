@@ -2,12 +2,12 @@
 
 pkgname=luxos-tweaks
 pkgver=1.0.0
-pkgrel=3
+pkgrel=4
 pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, low-memory safeguard (earlyoom), Battery/Data Saver system parts"
 arch=(any)
 url="https://github.com/luxos"
 license=(MIT)
-depends=(systemd zram-generator pacman-contrib reflector earlyoom dbus)
+depends=(systemd zram-generator reflector earlyoom dbus)
 install=luxos-tweaks.install
 backup=(etc/systemd/zram-generator.conf)
 
@@ -33,6 +33,9 @@ package() {
     install -Dm644 "$f/power/50-luxos-powersaver.rules" "$pkgdir/usr/share/polkit-1/rules.d/50-luxos-powersaver.rules"
     # Sporic dat: stahovani systemovych sluzeb na pozadi se na merenem pripojeni preskoci
     install -Dm755 "$f/power/luxos-unmetered" "$pkgdir/usr/lib/luxos/luxos-unmetered"
+    # Zrcadla lux: reflector.service uklada do /etc/lux/mirrorlist (format lux, lux-config)
+    install -Dm755 "$f/luxos-reflector" "$pkgdir/usr/lib/luxos/luxos-reflector"
+    install -Dm644 "$f/reflector-lux.conf" "$pkgdir/usr/lib/systemd/system/reflector.service.d/40-luxos-mirrors.conf"
     local u
     for u in reflector archlinux-keyring-wkd-sync; do
         install -Dm644 "$f/power/50-luxos-datasaver.conf" "$pkgdir/usr/lib/systemd/system/$u.service.d/50-luxos-datasaver.conf"

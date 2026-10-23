@@ -1,0 +1,9 @@
+# LuxOS - download mirrors for Arch Linux repositories (one address per line, best first)
+# Change with: lux mirrors
+# Worldwide (nearest mirror chosen automatically), then reliable HTTPS mirrors as backup.
+https://geo.mirror.pkgbuild.com/$repo/os/$arch
+https://fastly.mirror.pkgbuild.com/$repo/os/$arch
+https://mirror.rackspace.com/archlinux/$repo/os/$arch
+https://mirrors.kernel.org/archlinux/$repo/os/$arch
+https://ftp.fau.de/archlinux/$repo/os/$arch
+https://mirror.leaseweb.net/archlinux/$repo/os/$arch

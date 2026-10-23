@@ -1,0 +1,12 @@
+# LuxOS (lux-engine): konfigurace jadra /run/lux/engine.conf z /etc/lux/lux.conf hned po startu
+# (lux a nastroje jadra si ji jinak vytvori samy pri prvnim spusteni)
+[Unit]
+Description=Package manager configuration (lux)
+After=local-fs.target
+ConditionPathExists=/etc/lux/lux.conf
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/lux/lux-config ensure --quiet
+# rozbita lux.conf nesmi zdrzet start (lux ji pak ohlasi s cislem radku)
+SuccessExitStatus=1 2

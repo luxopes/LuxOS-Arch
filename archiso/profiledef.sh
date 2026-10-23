@@ -10,6 +10,7 @@ install_dir="luxos"
 buildmodes=('iso')
 bootmodes=('bios.syslinux'
            'uefi.systemd-boot')
+# konfigurace pro mkarchiso na sestavovacim hostiteli (Arch Linux s pacmanem); live system: airootfs/etc/lux/lux.conf
 pacman_conf="pacman.conf"
 airootfs_image_type="squashfs"
 # zstd: rychlejsi start live systemu nez xz

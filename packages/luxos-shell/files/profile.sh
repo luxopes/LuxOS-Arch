@@ -5,7 +5,7 @@ case ":${XDG_CONFIG_DIRS:-}:" in
     *) export XDG_CONFIG_DIRS="/etc/xdg/luxos:${XDG_CONFIG_DIRS:-/etc/xdg}" ;;
 esac
 
-# Prekryti .desktop souboru: kratke nazvy aplikaci (/var/lib/luxos/apps, generuje pacman hook)
+# Prekryti .desktop souboru: kratke nazvy aplikaci (/var/lib/luxos/apps, generuje hook spravce baliku)
 # a skryti technickych polozek z Launchpadu a menu (/usr/share/luxos/xdg)
 case ":${XDG_DATA_DIRS:-}:" in
     *:/usr/share/luxos/xdg:*) ;;

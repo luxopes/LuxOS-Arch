@@ -1,6 +1,6 @@
 # LuxOS - zakladni sada baliku instalovaneho systemu
 base
-# jadro lux (libalpm a nastroje pacmanu z Archu, bez prikazu pacman); spravcem baliku je lux
+# jadro lux (libalpm a nastroje z Arch Linuxu, bez prikazu pacman); spravcem baliku je lux
 lux-engine
 linux-zen
 linux-firmware
@@ -20,7 +20,7 @@ nano
 man-db
 man-pages
 networkmanager
-# explicitne kvuli volbe poskytovatelu (jinak by pacman vybral jack2)
+# explicitne kvuli volbe poskytovatelu (jinak by jadro vybralo jack2)
 pipewire-jack
 noto-fonts
 luxos-greeter

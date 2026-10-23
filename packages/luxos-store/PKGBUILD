@@ -3,12 +3,12 @@
 
 pkgname=luxos-store
 pkgver=1.0.0
-pkgrel=9
+pkgrel=10
 pkgdesc="LuxOS Store - install apps from LuxOS and Arch Linux"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
 license=(MIT)
-depends=(python python-gobject gtk3 appstream archlinux-appstream-data expac pacman-contrib polkit lux luxos-i18n)
+depends=(python python-gobject gtk3 appstream archlinux-appstream-data polkit lux luxos-i18n)
 
 package() {
     local f="$startdir/files"

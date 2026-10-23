@@ -1,0 +1,18 @@
+{
+  "version": "0.9.6",
+  "codename": "Polaris",
+  "items": [
+    {"icon": "system-software-install-symbolic",
+     "title": {"en": "lux has its own configuration", "cs": "lux má vlastní nastavení"},
+     "text": {"en": "Package repositories, mirrors and held packages are set in /etc/lux/lux.conf in a simple format of its own. Your settings were carried over automatically.",
+              "cs": "Repozitáře, zrcadla a podržené balíčky se nastavují v /etc/lux/lux.conf ve vlastním jednoduchém formátu. Vaše nastavení se převedlo samo."}},
+    {"icon": "dialog-password-symbolic",
+     "title": {"en": "LuxAI administrator mode", "cs": "Režim správce v LuxAI"},
+     "text": {"en": "In LuxAI › Settings › Agent permissions you can let the Flash model run administrator commands without a password. Destructive commands are always refused.",
+              "cs": "V LuxAI › Nastavení › Oprávnění agenta můžete modelu Flash povolit příkazy správce bez hesla. Ničivé příkazy se odmítnou vždy."}},
+    {"icon": "preferences-system-time-symbolic",
+     "title": {"en": "A quicker top bar", "cs": "Rychlejší horní lišta"},
+     "text": {"en": "Battery, clock, app name and network check in the top bar are now native programs written in LSL – up to 6× faster.",
+              "cs": "Baterie, hodiny, název aplikace a kontrola internetu v horní liště jsou nově programy v LSL – až 6× rychlejší."}}
+  ]
+}

@@ -2,7 +2,7 @@
 
 Pouziva aplikace Ovladace (/usr/bin/luxos-drivers), jeji pomocnik pro root
 (/usr/lib/luxos/drivers/luxos-drivers-helper) a upozorneni po prihlaseni
-(luxos_drivers_session v luxos-hub). Nic nemeni - jen cte sysfs a databazi pacmanu.
+(luxos_drivers_session v luxos-hub). Nic nemeni - jen cte sysfs a databazi baliku (lux).
 """
 import json
 import os
@@ -11,10 +11,12 @@ import subprocess
 
 ROOT = ""                                   # testy: docasny koren
 HWDETECT = "/usr/bin/luxos-hwdetect"
-LOCAL_DB = "/var/lib/pacman/local"
-# pacman z jadra lux (lux-engine, mimo PATH); jinde nez v LuxOS z PATH
+LOCAL_DB = "/var/lib/lux/local"
+# do prechodu na lux (LuxOS do 0.9.5, viz lux-engine-migrate) byla databaze v /var/lib/pacman
+OLD_LOCAL_DB = "/var/lib/pacman/local"
+# nastroj jadra lux (lux-engine, mimo PATH)
 ENGINE_BIN = "/usr/lib/lux/alpm/bin"
-PACMAN = ENGINE_BIN + "/pacman" if os.access(ENGINE_BIN + "/pacman", os.X_OK) else "pacman"
+ENGINE = ENGINE_BIN + "/lux-engine"
 
 WORKING, INSTALLED, RESTART, AVAILABLE = "working", "installed", "restart", "available"
 
@@ -46,10 +48,11 @@ def detect(timeout=60):
 
 
 def installed_packages():
-    """Jmena nainstalovanych baliku primo z databaze pacmanu (adresare jmeno-verze-vydani)."""
+    """Jmena nainstalovanych baliku primo z databaze (adresare jmeno-verze-vydani)."""
     names = set()
+    db = P(LOCAL_DB) if os.path.isdir(P(LOCAL_DB)) else P(OLD_LOCAL_DB)
     try:
-        entries = os.listdir(P(LOCAL_DB))
+        entries = os.listdir(db)
     except OSError:
         return names
     for e in entries:
@@ -168,7 +171,7 @@ def boot_id():
 
 def _pac_version(args):
     try:
-        r = subprocess.run([PACMAN, *args], capture_output=True, text=True, timeout=60,
+        r = subprocess.run([ENGINE, *args], capture_output=True, text=True, timeout=60,
                            env=dict(os.environ, LC_ALL="C"))
     except (OSError, subprocess.TimeoutExpired):
         return None

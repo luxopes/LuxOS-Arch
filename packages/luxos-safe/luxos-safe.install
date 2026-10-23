@@ -6,7 +6,7 @@ post_install() {
     systemctl enable luxos-safe-guard.service >/dev/null 2>&1 || true
     if [ -d /run/systemd/system ]; then
         systemctl daemon-reload >/dev/null 2>&1 || true
-        # Pres systemd: pripojeni vznikne v hlavnim jmennem prostoru, i kdyz pacman bezi v izolovane sluzbe
+        # Pres systemd: pripojeni vznikne v hlavnim jmennem prostoru, i kdyz spravce baliku bezi v izolovane sluzbe
         systemctl restart luxos-safe-guard.service >/dev/null 2>&1 || true
     fi
 }

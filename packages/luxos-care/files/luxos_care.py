@@ -48,14 +48,14 @@ LOCK = RUN_DIR + "/lock"
 KSTATE = STATE_DIR + "/kernel"
 STAGING = KSTATE + "/staging"
 MODULES = "/usr/lib/modules"
-PACMAN_LOCK = "/var/lib/pacman/db.lck"
-PACMAN_LOG = "/var/log/pacman.log"
-PKG_CACHE = "/var/cache/pacman/pkg"
-# Nastroje jadra lux (pacman, pacman-key, pacman-conf z lux-engine) jsou mimo PATH. Spoustene prikazy
-# (lux, pacman, checkupdates, paccache) i hooky transakci je dostanou v PATH (engine_env); proces
-# sam PATH nemeni (modul nacita i aplikace v relaci uzivatele). Jinde nez v LuxOS pacman z PATH.
+DB_LOCK = "/var/lib/lux/db.lck"
+ENGINE_LOG = "/var/log/lux.log"
+PKG_CACHE = "/var/cache/lux/pkg"
+# Nastroje jadra lux (lux-engine, lux-engine-key, lux-engine-conf) jsou mimo PATH. Spoustene prikazy
+# (lux, lux-engine) i hooky transakci je dostanou v PATH (engine_env); proces sam PATH nemeni (modul
+# nacita i aplikace v relaci uzivatele). Konfiguraci jadra (/run/lux/engine.conf) zajisti nastroje samy.
 ENGINE_BIN = "/usr/lib/lux/alpm/bin"
-PACMAN = ENGINE_BIN + "/pacman" if os.access(ENGINE_BIN + "/pacman", os.X_OK) else "pacman"
+ENGINE = ENGINE_BIN + "/lux-engine"
 
 
 def engine_env(**extra):
@@ -427,12 +427,13 @@ def update_due(st, t=None, every=UPDATE_EVERY):
     return t - last >= every
 
 
-# ---- pacman: blokovani a aktualizace -----------------------------------------------------
-PKG_MANAGERS = {"pacman", "yay", "paru", "pamac", "pacman-key", "makepkg", "pacstrap", "lux_alpm.py"}
+# ---- spravce baliku: blokovani a aktualizace ---------------------------------------------------
+PKG_MANAGERS = {"lux-engine", "lux-engine-key", "pacman", "yay", "paru", "pamac", "pacman-key", "makepkg",
+                "pacstrap", "lux_alpm.py"}
 
-# Transakce dela lux (libalpm: stejna databaze, podpisy a hooky jako pacman) ve strojovem rezimu;
-# jeho vystup obsahuje i radky ve stylu pacmanu ("upgrading x...", "error: ...", "x: /f exists in
-# filesystem"), takze prubeh i rozpoznani chyb zustavaji stejne. Bez lux/pyalpm se pouzije pacman.
+# Transakce dela lux (libalpm: stejna databaze, podpisy a hooky jako jadro) ve strojovem rezimu;
+# jeho vystup obsahuje i radky ve stylu jadra ("upgrading x...", "error: ...", "x: /f exists in
+# filesystem"), takze prubeh i rozpoznani chyb zustavaji stejne. Bez lux/pyalpm se pouzije lux-engine.
 LUX_ALPM = os.environ.get("LUXOS_CARE_LUX_ALPM", "/usr/lib/lux/lux_alpm.py")
 _lux_ok = None
 
@@ -445,7 +446,7 @@ def lux_available():
 
 
 def lux_command(args):
-    """Argumenty pacmanu, ktere LuxOS Care pouziva -> prikaz lux; None = jen pacman."""
+    """Argumenty jadra, ktere LuxOS Care pouziva -> prikaz lux; None = jen lux-engine."""
     a = [x for x in args if x not in ("--noconfirm", "--noprogressbar")]
     base = [LUX_ALPM, "--machine", "-y", "--color=never"]
     if not a:
@@ -468,13 +469,13 @@ def lux_command(args):
 
 
 def pm(args):
-    """Prikaz pro transakci: lux, kdyz je k dispozici, jinak pacman (bez otazek a progress baru)."""
+    """Prikaz pro transakci: lux, kdyz je k dispozici, jinak lux-engine (bez otazek a progress baru)."""
     cmd = lux_command(args) if lux_available() else None
-    return cmd or [PACMAN, "--noconfirm", "--noprogressbar", "--color", "never"] + \
+    return cmd or [ENGINE, "--noconfirm", "--noprogressbar", "--color", "never"] + \
         [x for x in args if x not in ("--noconfirm", "--noprogressbar")]
 
 
-def pacman_running():
+def engine_running():
     for pid in os.listdir("/proc"):
         if not pid.isdigit() or int(pid) == os.getpid():
             continue
@@ -493,21 +494,50 @@ def stale_lock(lock_exists, manager_running, lock_age, min_age=120):
 
 
 def remove_stale_lock():
-    path = P(PACMAN_LOCK)
+    path = P(DB_LOCK)
     try:
         age = time.time() - os.stat(path).st_mtime
     except OSError:
         return False
-    if stale_lock(True, pacman_running(), age):
+    if stale_lock(True, engine_running(), age):
         os.unlink(path)
         return True
     return False
 
 
+def check_updates_db():
+    """Docasna databaze lux_alpm.py check-updates (stejna cesta jako check_updates_db v lux_alpm)."""
+    return os.path.join(os.environ.get("TMPDIR") or "/tmp", f"lux-checkupdates-{os.getuid()}")
+
+
+def check_updates_engine():
+    """Zaloha bez pyalpm: totez nastrojem jadra (docasna kopie databaze, systemova se nemeni)."""
+    db = check_updates_db()
+    try:
+        os.makedirs(os.path.join(db, "sync"), mode=0o700, exist_ok=True)
+        if not os.path.lexists(os.path.join(db, "local")):
+            os.symlink("/var/lib/lux/local", os.path.join(db, "local"))
+        for f in os.listdir("/var/lib/lux/sync"):
+            src = os.path.join("/var/lib/lux/sync", f)
+            if os.path.isfile(src):
+                shutil.copy2(src, os.path.join(db, "sync", f))
+    except OSError as e:
+        return 1, str(e)
+    rc, out = run([ENGINE, "-Sy", "--dbpath", db, "--logfile", "/dev/null", "--disable-sandbox"], timeout=600)
+    if rc != 0:
+        return 1, out
+    rc, out = run([ENGINE, "-Qu", "--dbpath", db], timeout=120)
+    return (0 if out.strip() else 2), out
+
+
 def check_updates():
     """Seznam cekajicich aktualizaci [(nazev, stara, nova)] bez zasahu do systemove databaze
-    (checkupdates synchronizuje do docasne kopie). None = nepodarilo se zjistit."""
-    rc, out = run(["checkupdates", "--nocolor"], timeout=600)
+    (lux check-updates synchronizuje do docasne kopie). None = nepodarilo se zjistit."""
+    if not os.access(LUX_ALPM, os.X_OK):
+        return None
+    rc, out = run([LUX_ALPM, "--color=never", "check-updates", "--db", check_updates_db()], timeout=600)
+    if rc == 3:
+        rc, out = check_updates_engine()
     if rc not in (0, 2):          # 2 = zadne aktualizace
         return None
     res = []
@@ -518,7 +548,7 @@ def check_updates():
     return res
 
 
-PACMAN_ERRORS = [
+ENGINE_ERRORS = [
     ("unable to lock database", "locked"),
     ("could not lock database", "locked"),
     ("signature from", "keyring"),
@@ -538,8 +568,8 @@ PACMAN_ERRORS = [
 ]
 
 
-def classify_pacman_error(output):
-    for needle, kind in PACMAN_ERRORS:
+def classify_engine_error(output):
+    for needle, kind in ENGINE_ERRORS:
         if needle.lower() in (output or "").lower():
             return kind
     return "unknown"
@@ -561,8 +591,8 @@ class Updater:
         if p is not None and getattr(p, "luxos_phase", "") == "download" and p.poll() is None:
             p.send_signal(signal.SIGINT)
 
-    def pacman(self, args, phase, total=0, sizes=None, base=0.0, span=1.0, timeout=7200):
-        """Spusti transakci (lux, jinak pacman) a z vystupu pocita prubeh. Vraci (rc, vystup)."""
+    def transact(self, args, phase, total=0, sizes=None, base=0.0, span=1.0, timeout=7200):
+        """Spusti transakci (lux, jinak lux-engine) a z vystupu pocita prubeh. Vraci (rc, vystup)."""
         cmd = pm(args)
         if have("systemd-inhibit") and os.path.exists("/run/systemd/system") and phase == "install":
             cmd = ["systemd-inhibit", "--what=shutdown:sleep:handle-lid-switch", "--who=LuxOS",
@@ -616,7 +646,7 @@ class Updater:
 
     def download_plan(self):
         """{nazev souboru: velikost} pro balicky, ktere jeste nejsou v cache."""
-        rc, out = run([PACMAN, "-Sup", "--print-format", "%l %s"], timeout=120)
+        rc, out = run([ENGINE, "-Sup", "--print-format", "%l %s"], timeout=120)
         sizes = {}
         if rc != 0:
             return sizes
@@ -631,9 +661,9 @@ class Updater:
     def run_update(self):
         """-> dict(result=ok|nothing|failed|stopped, error, packages, kernel)"""
         set_progress("check", 0.02, "")
-        if pacman_running():
+        if engine_running():
             return {"result": "busy"}              # uzivatel prave pracuje s balicky - pozdeji
-        if os.path.exists(P(PACMAN_LOCK)):
+        if os.path.exists(P(DB_LOCK)):
             if not remove_stale_lock():
                 return {"result": "failed", "error": "locked"}
             history("repair", action="remove_db_lock", source="rule", ok=True, title="Removed a stale package manager lock")
@@ -649,29 +679,29 @@ class Updater:
         keyrings = [k for k in ("archlinux-keyring", "luxos-keyring") if k in names]
         if keyrings and not self.stopping:
             set_progress("keyring", 0.06, " ".join(keyrings))
-            rc, out = self.retry(lambda: self.pacman(["-Sy", "--needed"] + keyrings, "keyring"))
+            rc, out = self.retry(lambda: self.transact(["-Sy", "--needed"] + keyrings, "keyring"))
             if rc != 0:
-                return {"result": "failed", "error": classify_pacman_error(out), "packages": names}
+                return {"result": "failed", "error": classify_engine_error(out), "packages": names}
 
         # 2. Stazeni vseho (synchronizace databaze + -w); preruseni je bezpecne
         if self.stopping:
             return {"result": "stopped"}
         sizes = self.download_plan_after_sync()
-        rc, out = self.retry(lambda: self.pacman(["-Syuw"], "download", sizes=sizes, base=0.08, span=0.52))
+        rc, out = self.retry(lambda: self.transact(["-Syuw"], "download", sizes=sizes, base=0.08, span=0.52))
         if self.stopping:
             return {"result": "stopped"}
         if rc != 0:
-            return {"result": "failed", "error": classify_pacman_error(out), "packages": names}
+            return {"result": "failed", "error": classify_engine_error(out), "packages": names}
 
         # 3. Instalace z cache (bez site, nepreruzi se vypnutim - viz TimeoutStopSec)
-        rc, out = run([PACMAN, "-Qu"], timeout=60)
+        rc, out = run([ENGINE, "-Qu"], timeout=60)
         total = len([x for x in out.splitlines() if x.strip()]) if rc == 0 else len(names)
         kernel_before = installed_version(config()["KERNEL"])
-        rc, out = self.pacman(["-Su"], "install", total=max(total, 1), base=0.6, span=0.37)
+        rc, out = self.transact(["-Su"], "install", total=max(total, 1), base=0.6, span=0.37)
         if rc != 0 and release_kept_conflicts(out):
-            rc, out = self.pacman(["-Su"], "install", total=max(total, 1), base=0.6, span=0.37)
+            rc, out = self.transact(["-Su"], "install", total=max(total, 1), base=0.6, span=0.37)
         if rc != 0:
-            return {"result": "failed", "error": classify_pacman_error(out), "packages": names}
+            return {"result": "failed", "error": classify_engine_error(out), "packages": names}
         kernel_after = installed_version(config()["KERNEL"])
         set_progress("cleanup", 0.98, "")
         clean_cache()
@@ -679,10 +709,10 @@ class Updater:
                 "kernel_version": kernel_after}
 
     def download_plan_after_sync(self):
-        # Velikosti stahovani zname az po synchronizaci; -Sup s docasnou databazi z checkupdates
-        dbpath = os.path.join(os.environ.get("TMPDIR", "/tmp"), f"checkup-db-{os.getuid()}")
+        # Velikosti stahovani zname az po synchronizaci; -Sup s docasnou databazi z check-updates
+        dbpath = check_updates_db()
         if os.path.isdir(dbpath):
-            rc, out = run([PACMAN, "-Sup", "--dbpath", dbpath, "--logfile", "/dev/null",
+            rc, out = run([ENGINE, "-Sup", "--dbpath", dbpath, "--logfile", "/dev/null",
                            "--print-format", "%l %s"], timeout=120)
             sizes = {}
             if rc == 0:
@@ -700,7 +730,7 @@ class Updater:
         rc, out = 1, ""
         for i in range(attempts):
             rc, out = fn()
-            if rc == 0 or self.stopping or classify_pacman_error(out) != "network":
+            if rc == 0 or self.stopping or classify_engine_error(out) != "network":
                 return rc, out
             if i < attempts - 1:
                 time.sleep(delays[min(i, len(delays) - 1)])
@@ -708,15 +738,15 @@ class Updater:
 
 
 def installed_version(pkg):
-    rc, out = run([PACMAN, "-Q", pkg], timeout=30)
+    rc, out = run([ENGINE, "-Q", pkg], timeout=30)
     return out.split()[1] if rc == 0 and len(out.split()) >= 2 else ""
 
 
-def clean_cache():
-    """Cache pacmanu: 2 posledni verze instalovanych (oprava z cache), odinstalovane pryc."""
-    if have("paccache"):
-        run(["paccache", "-rk2"], timeout=300)
-        run(["paccache", "-ruk0"], timeout=300)
+def clean_cache(keep=2):
+    """Cache balicku: posledni verze instalovanych (oprava z cache), odinstalovane pryc."""
+    if os.access(LUX_ALPM, os.X_OK):
+        run([LUX_ALPM, "--machine", "--color=never", "clean", "--keep", str(keep), "--keep-uninstalled", "0"],
+            timeout=300)
 
 
 def find_pacnew():
@@ -858,7 +888,7 @@ def pkgbase(ver):
 
 
 def owned_by_package(path):
-    rc, _o = run([PACMAN, "-Qoq", "--", path], timeout=60)
+    rc, _o = run([ENGINE, "-Qoq", "--", path], timeout=60)
     return rc == 0
 
 
@@ -1487,14 +1517,14 @@ def execute_action(action, target=None):
     if action == "remove_db_lock":
         return remove_stale_lock(), ""
     if action == "complete_upgrade":
-        if pacman_running():
+        if engine_running():
             return False, "busy"
         rc, out = run(pm(["-Syu"]), timeout=7200)
         if rc != 0 and release_kept_conflicts(out):
             rc, out = run(pm(["-Su"]), timeout=7200)
         return rc == 0, out[-3000:]
     if action == "refresh_keyring":
-        rc1, o1 = run(["pacman-key", "--populate"], timeout=600)
+        rc1, o1 = run(["lux-engine-key", "--populate"], timeout=600)
         rc2, o2 = run(pm(["-Sy", "--needed", "archlinux-keyring"]), timeout=1200)
         return rc1 == 0 and rc2 == 0, (o1 + o2)[-3000:]
     if action == "rebuild_initramfs":
@@ -1511,7 +1541,7 @@ def execute_action(action, target=None):
         rc, out = run(["dkms", "autoinstall", "-k", target], timeout=3600)
         return rc == 0, out[-3000:]
     if action == "reinstall_package":
-        rc, _o = run([PACMAN, "-Q", target], timeout=30)
+        rc, _o = run([ENGINE, "-Q", target], timeout=30)
         if rc != 0:
             return False, "not installed"
         ver = installed_version(target)
@@ -1532,9 +1562,7 @@ def execute_action(action, target=None):
             return a in ("active", "activating", "inactive"), out
         return False, out
     if action == "clean_cache":
-        clean_cache()
-        if have("paccache"):
-            run(["paccache", "-rk1"], timeout=300)
+        clean_cache(keep=1)
         run(["journalctl", "--vacuum-size=200M"], timeout=300)
         return True, ""
     if action == "retry_new_kernel":
@@ -1603,12 +1631,12 @@ def unit_package(unit):
     path = out.strip()
     if rc != 0 or not path.startswith("/usr/"):
         return ""
-    rc, out = run([PACMAN, "-Qoq", path], timeout=30)
+    rc, out = run([ENGINE, "-Qoq", path], timeout=30)
     return out.strip() if rc == 0 and PKG_RE.match(out.strip()) else ""
 
 
 def interrupted_transaction(log_tail):
-    """Posledni transakce v pacman.log zacala, ale neskoncila."""
+    """Posledni transakce v logu jadra (lux.log) zacala, ale neskoncila."""
     started = completed = -1
     for i, line in enumerate(log_tail):
         if "[ALPM] transaction started" in line:
@@ -1681,15 +1709,15 @@ def detect_problems():
 
     # 1. Opusteny zamek databaze balicku
     try:
-        age = time.time() - os.stat(P(PACMAN_LOCK)).st_mtime
-        if stale_lock(True, pacman_running(), age, min_age=600):
+        age = time.time() - os.stat(P(DB_LOCK)).st_mtime
+        if stale_lock(True, engine_running(), age, min_age=600):
             probs.append(make_problem("stale_lock", "The package manager was left locked",
                                       rules=["remove_db_lock"], options=[("remove_db_lock", None)]))
     except OSError:
         pass
 
     # 2. Prerusena aktualizace (napr. vypnuti uprostred)
-    if not pacman_running() and interrupted_transaction(tail(PACMAN_LOG)):
+    if not engine_running() and interrupted_transaction(tail(ENGINE_LOG)):
         probs.append(make_problem("interrupted_update", "A system update was interrupted",
                                   rules=["remove_db_lock", "complete_upgrade"],
                                   options=[("complete_upgrade", None), ("refresh_keyring", None)]))
@@ -1733,7 +1761,7 @@ def detect_problems():
                                   options=opts, unit=u, args=[u]))
 
     # 7. Plny disk
-    for mnt, limit in (("/", 2 * 1024 ** 3), ("/var/cache/pacman/pkg", 1024 ** 3)):
+    for mnt, limit in (("/", 2 * 1024 ** 3), (PKG_CACHE, 1024 ** 3)):
         try:
             s = os.statvfs(P(mnt))
         except OSError:
@@ -1792,7 +1820,7 @@ def diagnosis(problem):
                       "--no-hostname"], timeout=30)
         parts.append(f"journal of {u}:\n{o}")
     elif pid in ("interrupted_update",) or pid.startswith("update_failing"):
-        parts.append("pacman.log:\n" + "".join(tail(PACMAN_LOG, 40)))
+        parts.append("lux.log (package manager log):\n" + "".join(tail(ENGINE_LOG, 40)))
         parts.append("last error output:\n" + str(load_state().get("last_error_output", ""))[-1500:])
     elif pid in ("fallback_kernel", "dkms_failed", "initramfs_missing"):
         _rc, o = run(["dkms", "status"], timeout=60) if have("dkms") else (0, "")

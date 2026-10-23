@@ -1,4 +1,4 @@
-"""Testy baliku lux-engine (jadro lux: libalpm a nastroje pacmanu z Arch Linuxu, bez prikazu pacman).
+"""Testy baliku lux-engine (jadro lux: libalpm a nastroje z pacmanu Arch Linuxu, bez prikazu pacman).
 
     python3 -m unittest discover -s packages/lux-engine/tests -v
 
@@ -18,6 +18,7 @@ PKG = os.path.normpath(os.path.join(HERE, ".."))
 ROOT = os.path.normpath(os.path.join(PKG, "..", ".."))
 ENGINE_BIN = "/usr/lib/lux/alpm/bin"
 TOOLS = ("pacman", "pacman-key", "pacman-conf", "pacman-db-upgrade")
+ENGINE_TOOLS = ("lux-engine", "lux-engine-key", "lux-engine-conf", "lux-engine-db-upgrade")
 OTHER_BIN = ("makepkg", "makepkg-template", "repo-add", "repo-elephant", "repo-remove", "testpkg", "vercmp")
 MAN8 = ("makepkg", "pacman", "pacman-conf", "pacman-db-upgrade", "pacman-key", "repo-add", "repo-remove",
         "testpkg", "vercmp")
@@ -41,6 +42,29 @@ _pacman_comp "$@"
 """
 
 
+# Radky meson.build z pacmanu 7.1.0 (meson.build radky 72-77 a smycka mkdir), ktere LuxOS meni
+MESON_SNIPPET = """conf.set_quoted('SYSHOOKDIR', join_paths(DATAROOTDIR, 'libalpm/hooks/'))
+conf.set_quoted('CONFFILE', join_paths(SYSCONFDIR, 'pacman.conf'))
+conf.set_quoted('DBPATH', join_paths(LOCALSTATEDIR, 'lib/pacman/'))
+conf.set_quoted('GPGDIR', join_paths(SYSCONFDIR, 'pacman.d/gnupg/'))
+conf.set_quoted('LOGFILE', join_paths(LOCALSTATEDIR, 'log/pacman.log'))
+conf.set_quoted('CACHEDIR', join_paths(LOCALSTATEDIR, 'cache/pacman/pkg/'))
+conf.set_quoted('HOOKDIR', join_paths(SYSCONFDIR, 'pacman.d/hooks/'))
+configure_file(
+  input : 'etc/pacman.conf.in',
+  output : 'pacman.conf',
+  configuration : substs,
+  install_dir : SYSCONFDIR)
+foreach path : [
+	join_paths(LOCALSTATEDIR, 'lib/pacman/'),
+	join_paths(LOCALSTATEDIR, 'cache/pacman/pkg/'),
+	join_paths(DATAROOTDIR, 'makepkg-template/'),
+	]
+endforeach
+  '       conf file           : @0@'.format(join_paths(SYSCONFDIR, 'pacman.conf')),
+"""
+
+
 def pkgbuild(expr):
     r = subprocess.run(["bash", "-c", f'set -e; cd "{PKG}"; source PKGBUILD; {expr}'],
                        capture_output=True, text=True)
@@ -51,7 +75,8 @@ def pkgbuild(expr):
 
 class Pkgbuild(unittest.TestCase):
     def test_syntax(self):
-        for f in ("PKGBUILD", "makepkg-lux-engine.conf", "lux-engine-keyrings"):
+        for f in ("PKGBUILD", "makepkg-lux-engine.conf", "lux-engine-keyrings", "lux-engine-wrapper",
+                  "lux-engine-wkd-sync"):
             r = subprocess.run(["bash", "-n", os.path.join(PKG, f)], capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, (f, r.stderr))
 
@@ -65,8 +90,11 @@ class Pkgbuild(unittest.TestCase):
         self.assertEqual(replaces.split(), ["pacman", "luxos-pacman"])
         self.assertEqual(nsrc, nsum)
         self.assertIn("!debug", options)
-        self.assertEqual(backup.split(), ["etc/pacman.conf", "etc/makepkg.conf", "etc/makepkg.conf.d/fortran.conf",
-                                          "etc/makepkg.conf.d/rust.conf"])
+        self.assertEqual(backup.split(), ["etc/lux/lux.conf", "etc/lux/mirrorlist", "etc/makepkg.conf",
+                                          "etc/makepkg.conf.d/fortran.conf", "etc/makepkg.conf.d/rust.conf"])
+        deps = pkgbuild('printf "%s\\n" "${depends[@]}"').split()
+        self.assertNotIn("pacman-mirrorlist", deps)
+        self.assertIn("python", deps)       # lux-config a migrace
         self.assertNotIn("pacman for", desc)
         # verze odpovida tagu Archu v hlavicce a patch level commitu
         self.assertRegex(ver, r"^\d+\.\d+\.\d+(\.r\d+\.g[0-9a-f]{7})?$")
@@ -94,11 +122,47 @@ class Pkgbuild(unittest.TestCase):
         fprs = pkgbuild('printf "%s\\n" "${validpgpkeys[@]}"').split()
         self.assertEqual(sorted(f + ".asc" for f in fprs), sorted(os.listdir(os.path.join(PKG, "keys", "pgp"))))
 
-    def test_pacman_conf_is_luxos_installer_conf(self):
-        """Stejny obsah jako konfigurace instalatoru: nahrazeni baliku nevytvori .pacnew."""
-        with open(os.path.join(PKG, "pacman.conf"), "rb") as a, \
-                open(os.path.join(ROOT, "packages", "luxos-installer", "files", "pacman.conf"), "rb") as b:
+    def test_lux_conf_is_luxos_installer_conf(self):
+        """Stejny obsah jako konfigurace instalatoru: aktualizace baliku nevytvori .pacnew."""
+        with open(os.path.join(PKG, "lux.conf"), "rb") as a, \
+                open(os.path.join(ROOT, "packages", "luxos-installer", "files", "lux.conf"), "rb") as b:
             self.assertEqual(a.read(), b.read())
+
+    def test_no_pacman_conf_in_package_sources(self):
+        self.assertFalse(os.path.exists(os.path.join(PKG, "pacman.conf")))
+
+    def test_prepare_paths(self):
+        """prepare(): sed nad radky meson.build a skriptu z pacmanu 7.1 (stejne jako ve zdrojich Archu)."""
+        tmp = tempfile.mkdtemp(prefix="lux-engine-prep-")
+        try:
+            os.makedirs(os.path.join(tmp, "pacman", "scripts"))
+            with open(os.path.join(tmp, "pacman", "meson.build"), "w") as f:
+                f.write(MESON_SNIPPET)
+            with open(os.path.join(tmp, "pacman", "scripts", "pacman-key.sh.in"), "w") as f:
+                f.write("CONFIG=${CONFIG:-@sysconfdir@/pacman.conf}\nprintf x '@sysconfdir@/pacman.d/gnupg'\n")
+            with open(os.path.join(tmp, "pacman", "scripts", "pacman-db-upgrade.sh.in"), "w") as f:
+                f.write("conffile=${conffile:-@sysconfdir@/pacman.conf}\n")
+            script = (f'source "{PKG}/PKGBUILD"; error() {{ echo "ERROR: $*" >&2; }}; msg2() {{ :; }}; '
+                      f'git() {{ :; }}; _git_patch_level_commit=; source=(); srcdir="{tmp}"; cd "{tmp}"; prepare')
+            r = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            with open(os.path.join(tmp, "pacman", "meson.build")) as f:
+                m = f.read()
+            for want in ("'CONFFILE', '/run/lux/engine.conf'", "'lib/lux/'", "'lux/keyring/'", "'log/lux.log'",
+                         "'cache/lux/pkg/'", "'lux/hooks/'"):
+                self.assertIn(want, m)
+            self.assertNotIn("lib/pacman", m)
+            self.assertNotIn("pacman.d", m)
+            with open(os.path.join(tmp, "pacman", "scripts", "pacman-key.sh.in")) as f:
+                self.assertEqual(f.read(), "CONFIG=${CONFIG:-/run/lux/engine.conf}\nprintf x '/etc/lux/keyring'\n")
+            # zmena v Archu (radek jinak) = chyba, ne tichy pacman
+            with open(os.path.join(tmp, "pacman", "meson.build"), "w") as f:
+                f.write(MESON_SNIPPET.replace("'CONFFILE', join_paths(SYSCONFDIR, 'pacman.conf')",
+                                              "'CONFFILE', join_paths(SYSCONFDIR, 'pacman2.conf')"))
+            r = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+            self.assertNotEqual(r.returncode, 0)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
 
 
 class Package(unittest.TestCase):
@@ -124,6 +188,12 @@ meson() {{
     mkdir -p "$d/usr/bin" "$d/etc/makepkg.conf.d" "$d/usr/share/man/man5" "$d/usr/share/man/man8" \\
         "$d/usr/share/bash-completion/completions" "$d/usr/share/zsh/site-functions" "$d/usr/lib"
     for f in {' '.join(TOOLS + OTHER_BIN)}; do printf '#!/bin/sh\\n' >"$d/usr/bin/$f"; chmod 755 "$d/usr/bin/$f"; done
+    printf 'ELF /run/lux/engine.conf /var/lib/lux/\\n' >"$d/usr/bin/pacman"
+    printf 'ELF /run/lux/engine.conf\\n' >"$d/usr/bin/pacman-conf"
+    printf '#!/bin/bash\\nCONFIG=${{CONFIG:-/run/lux/engine.conf}}\\nd=$(pacman-conf --config="$CONFIG" gpgdir)\\n' >"$d/usr/bin/pacman-key"
+    printf '#!/bin/bash\\ndbroot=$(pacman-conf --config="$conffile" dbpath)\\n' >"$d/usr/bin/pacman-db-upgrade"
+    printf '#!/bin/bash\\nPACMAN=${{PACMAN:-pacman}}\\nlockfile="$(pacman-conf DBPath)/db.lck"\\n' >"$d/usr/bin/makepkg"
+    : >"$d/etc/pacman.conf"
     for f in {' '.join(MAN8)}; do : >"$d/usr/share/man/man8/$f.8"; done
     for f in {' '.join(MAN5)}; do : >"$d/usr/share/man/man5/$f.5"; done
     cp "{fx}/bash" "$d/usr/share/bash-completion/completions/pacman"
@@ -157,20 +227,62 @@ error() {{ echo "ERROR: $*" >&2; }}
         for f in OTHER_BIN:
             self.assertTrue(os.access(self.p("usr/bin", f), os.X_OK), f)
 
-    def test_engine_tools_moved(self):
-        for t in TOOLS:
+    def test_engine_tools_renamed(self):
+        with open(os.path.join(PKG, "lux-engine-wrapper"), "rb") as f:
+            wrapper = f.read()
+        for t in ENGINE_TOOLS:
             self.assertTrue(os.access(self.p(ENGINE_BIN.lstrip("/"), t), os.X_OK), t)
-        # odkaz pro volajici z LuxOS 0.9
-        link = self.p("usr/lib/lux/alpm/pacman")
-        self.assertTrue(os.path.islink(link))
-        self.assertEqual(os.readlink(link), "bin/pacman")
-        self.assertTrue(os.path.exists(link))
+            with open(self.p(ENGINE_BIN.lstrip("/"), t), "rb") as f:
+                self.assertEqual(f.read(), wrapper, t)          # spousteci skript
+            self.assertTrue(os.access(self.p("usr/lib/lux/alpm/libexec", t), os.X_OK), t)
+        # zadny soubor pacman* v jadre lux (ani odkaz z LuxOS 0.9 - docasne ho vytvori jen migrace)
+        for d, _dirs, files in os.walk(self.p("usr/lib/lux")):
+            for f in files + _dirs:
+                self.assertNotIn("pacman", f, os.path.join(d, f))
+        self.assertFalse(os.path.lexists(self.p("usr/lib/lux/alpm/pacman")))
+
+    def test_internal_tool_names(self):
+        with open(self.p("usr/bin/makepkg")) as f:
+            mk = f.read()
+        self.assertIn("PACMAN=${PACMAN:-lux-engine}\n", mk)
+        self.assertIn("$(lux-engine-conf DBPath)", mk)
+        for t in ("lux-engine-key", "lux-engine-db-upgrade"):
+            with open(self.p("usr/lib/lux/alpm/libexec", t)) as f:
+                text = f.read()
+            self.assertIn("lux-engine-conf --config", text)
+            self.assertNotIn("pacman-conf", text)
+
+    def test_lux_conf_and_mirrorlist(self):
+        self.assertFalse(os.path.exists(self.p("etc/pacman.conf")))
+        for a, b in (("etc/lux/lux.conf", "lux.conf"), ("usr/share/lux/lux.conf.default", "lux.conf"),
+                     ("etc/lux/mirrorlist", "mirrorlist"), ("usr/share/lux/mirrorlist.default", "mirrorlist")):
+            with open(self.p(a)) as f, open(os.path.join(PKG, b)) as g:
+                self.assertEqual(f.read(), g.read(), a)
+        self.assertTrue(os.path.isdir(self.p("etc/lux/conf.d")))
+        self.assertTrue(os.access(self.p("usr/lib/lux/lux_config.py"), os.X_OK))
+        self.assertEqual(os.readlink(self.p("usr/lib/lux/lux-config")), "lux_config.py")
+
+    def test_gnupg_sockets_for_lux_keyring(self):
+        wants = sorted(os.listdir(self.p("usr/lib/systemd/system/sockets.target.wants")))
+        self.assertIn("gpg-agent@etc-lux-keyring.socket", wants)
+        self.assertFalse([w for w in wants if "pacman" in w])
+
+    def test_migration_hook(self):
+        with open(self.p("usr/share/libalpm/hooks/00-lux-engine-migrate.hook")) as f:
+            text = f.read()
+        for line in ("Type = Package", "Target = lux-engine", "When = PostTransaction",
+                     "Exec = /usr/share/libalpm/scripts/lux-engine-migrate hook"):
+            self.assertIn(line + "\n", text)
+        self.assertTrue(os.access(self.p("usr/share/libalpm/scripts/lux-engine-migrate"), os.X_OK))
+        # bezi pred ostatnimi hooky (klicenky uz potrebuji /etc/lux/keyring a lux.conf)
+        hooks = sorted(os.listdir(self.p("usr/share/libalpm/hooks")))
+        self.assertEqual(hooks[0], "00-lux-engine-migrate.hook")
 
     def test_no_pacman_manuals(self):
         for m in ("man8/pacman.8", "man8/pacman-key.8", "man8/pacman-conf.8", "man8/pacman-db-upgrade.8",
-                  "man5/pacman-hooks.5"):
+                  "man5/pacman-hooks.5", "man5/pacman.conf.5"):
             self.assertFalse(os.path.lexists(self.p("usr/share/man", m)), m)
-        for m in ("man8/makepkg.8", "man8/vercmp.8", "man5/PKGBUILD.5", "man5/alpm-hooks.5", "man5/pacman.conf.5"):
+        for m in ("man8/makepkg.8", "man8/vercmp.8", "man5/PKGBUILD.5", "man5/alpm-hooks.5"):
             self.assertTrue(os.path.exists(self.p("usr/share/man", m)), m)
 
     def test_completions_only_for_makepkg(self):
@@ -195,18 +307,20 @@ error() {{ echo "ERROR: $*" >&2; }}
         self.assertFalse(os.path.exists(self.p("etc/makepkg.conf.d/luxos-pacman.conf")))
 
     def test_systemd_dropins(self):
-        for unit in ("archlinux-keyring-wkd-sync", "paccache", "pacman-filesdb-refresh"):
-            path = self.p("usr/lib/systemd/system", f"{unit}.service.d", "lux-engine.conf")
-            cp = configparser.ConfigParser(strict=False, interpolation=None)
-            cp.optionxform = str
-            with open(path) as f:
-                text = f.read()
-            self.assertIn("Environment=PATH=/usr/lib/lux/alpm/bin:/usr/local/sbin:/usr/local/bin:/usr/bin\n", text)
-            self.assertIn("[Service]", text)
-            if unit == "pacman-filesdb-refresh":
-                # ExecStart z pacman-contrib je /usr/bin/pacman: nejdrive vynulovat, pak nova cesta
-                lines = [ln for ln in text.splitlines() if ln.startswith("ExecStart=")]
-                self.assertEqual(lines, ["ExecStart=", "ExecStart=/usr/lib/lux/alpm/bin/pacman -Fy --noprogressbar"])
+        units = sorted(os.listdir(self.p("usr/lib/systemd/system")))
+        self.assertFalse([u for u in units if "paccache" in u or "pacman" in u], units)
+        path = self.p("usr/lib/systemd/system", "archlinux-keyring-wkd-sync.service.d", "lux-engine.conf")
+        with open(path) as f:
+            text = f.read()
+        self.assertIn("Environment=PATH=/usr/lib/lux/alpm/bin:/usr/local/sbin:/usr/local/bin:/usr/bin\n", text)
+        lines = [ln for ln in text.splitlines() if ln.startswith(("ExecStart=", "ReadWritePaths=", "Condition"))]
+        self.assertEqual(lines, ["ConditionPathIsDirectory=", "ConditionPathIsReadWrite=",
+                                 "ConditionPathIsDirectory=/etc/lux/keyring/", "ConditionPathIsReadWrite=/etc/lux/keyring/",
+                                 "ExecStart=", "ExecStart=/usr/lib/lux/alpm/lux-engine-wkd-sync",
+                                 "ReadWritePaths=", "ReadWritePaths=/etc/lux/keyring"])
+        self.assertTrue(os.access(self.p("usr/lib/lux/alpm/lux-engine-wkd-sync"), os.X_OK))
+        self.assertEqual(os.readlink(self.p("usr/lib/systemd/system/multi-user.target.wants/lux-engine-config.service")),
+                         "../lux-engine-config.service")
         # zadna globalni zmena PATH (system.conf.d by se dostala i do relaci uzivatelu pres lightdm)
         self.assertFalse(os.path.exists(self.p("usr/lib/systemd/system.conf.d")))
 
@@ -231,7 +345,7 @@ class MakepkgDropin(unittest.TestCase):
         return r.stdout.strip()
 
     def test_pacman_and_path(self):
-        self.assertEqual(self.source("unset PACMAN", 'echo "$PACMAN"'), ENGINE_BIN + "/pacman")
+        self.assertEqual(self.source("unset PACMAN", 'echo "$PACMAN"'), ENGINE_BIN + "/lux-engine")
         self.assertEqual(self.source("PACMAN=powerpill", 'echo "$PACMAN"'), "powerpill")
         # pacman-conf (zamek databaze v makepkg) jmenem; PATH bez duplicit i pri dvojim nacteni
         self.assertEqual(self.source(":", 'echo "$PATH"'), ENGINE_BIN + ":/usr/bin:/bin")
@@ -251,7 +365,7 @@ class MakepkgDropin(unittest.TestCase):
 
 
 class KeyringScript(unittest.TestCase):
-    """lux-engine-keyrings: pacman-key --populate pro klicenky z cilu hooku."""
+    """lux-engine-keyrings: lux-engine-key --populate pro klicenky z cilu hooku."""
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="lux-engine-keys-")
@@ -260,12 +374,12 @@ class KeyringScript(unittest.TestCase):
         self.log = os.path.join(self.tmp, "log")
         self.gpg = os.path.join(self.tmp, "gnupg")
         os.makedirs(self.gpg)
-        with open(os.path.join(self.bin, "pacman-key"), "w") as f:
-            f.write('#!/bin/bash\necho "pacman-key $*" >>"$KEYS_LOG"\n'
+        with open(os.path.join(self.bin, "lux-engine-key"), "w") as f:
+            f.write('#!/bin/bash\necho "lux-engine-key $*" >>"$KEYS_LOG"\n'
                     '[[ $1 == -l ]] && exit "${KEYS_LIST_RC:-0}"\nexit 0\n')
-        with open(os.path.join(self.bin, "pacman-conf"), "w") as f:
+        with open(os.path.join(self.bin, "lux-engine-conf"), "w") as f:
             f.write(f'#!/bin/bash\necho "{self.gpg}/"\n')
-        for n in ("pacman-key", "pacman-conf"):
+        for n in ("lux-engine-key", "lux-engine-conf"):
             os.chmod(os.path.join(self.bin, n), 0o755)
         with open(os.path.join(PKG, "lux-engine-keyrings")) as f:
             src = f.read()
@@ -292,12 +406,12 @@ class KeyringScript(unittest.TestCase):
     def test_populates_triggered_keyrings(self):
         rc, calls = self.run_script("usr/share/pacman/keyrings/archlinux.gpg\nusr/share/pacman/keyrings/luxos.gpg\n")
         self.assertEqual(rc, 0)
-        self.assertEqual(calls, ["pacman-key -l", "pacman-key --populate archlinux luxos"])
+        self.assertEqual(calls, ["lux-engine-key -l", "lux-engine-key --populate archlinux luxos"])
 
     def test_uninitialized_keyring_is_left_alone(self):
         rc, calls = self.run_script("usr/share/pacman/keyrings/archlinux.gpg\n", env={"KEYS_LIST_RC": "1"})
         self.assertEqual(rc, 0)
-        self.assertEqual(calls, ["pacman-key -l"])
+        self.assertEqual(calls, ["lux-engine-key -l"])
 
     def test_no_targets(self):
         rc, calls = self.run_script("")

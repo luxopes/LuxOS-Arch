@@ -49,7 +49,8 @@ and the package list.
 | Fingerprint reader (libfprint hwdb list, else known vendors) | `fprintd` — set up in Settings › Fingerprint |
 | Accelerometer (2-in-1) | `iio-sensor-proxy` (automatic screen rotation) |
 
-32-bit (`lib32-*`) packages are added only when `[multilib]` is enabled in `/etc/pacman.conf`.
+32-bit (`lib32-*`) packages are added only when the `multilib` repository is enabled in
+`/etc/lux/lux.conf` (or `/etc/lux/conf.d/*.conf`), e.g. by `sudo /usr/lib/lux/lux-config enable-repo multilib`.
 DKMS drivers get the matching `<kernel>-headers` (e.g. `linux-zen-headers`).
 
 ### NVIDIA generations

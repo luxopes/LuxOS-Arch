@@ -1,0 +1,505 @@
+#!/usr/bin/python3
+"""lux-engine-migrate - prechod instalaci LuxOS (do 0.9.5) z rozlozeni pacmanu na rozlozeni lux.
+
+  lux-engine-migrate hook            z hooku 00-lux-engine-migrate.hook (PostTransaction, cil lux-engine);
+                                     nikdy neselze (transakce uz probehla), chyby jen vypise
+  lux-engine-migrate auto            z lux_alpm.py (root, zamek drzi volajici): migrace, kdyz je potreba,
+                                     a uklid, kdyz uz je bezpecny
+  lux-engine-migrate finish [--now]  uklid pozustatku (odkazy, stare soubory /etc/pacman*)
+  lux-engine-migrate status          co jeste zbyva (0 = nic)
+  volby: --root DIR (testy, instalator), --ignore-pid PID,
+         --ignore-processes (instalator v chrootu: bezici procesy patri zivemu systemu, ne cili)
+
+Kroky (kazdy samostatne idempotentni - po vypadku proudu se jen zopakuje):
+  1. presuny: /var/lib/pacman -> /var/lib/lux, /var/cache/pacman/pkg -> /var/cache/lux/pkg,
+     /etc/pacman.d/gnupg -> /etc/lux/keyring, /etc/pacman.d/hooks -> /etc/lux/hooks,
+     /var/log/pacman.log -> /var/log/lux.log. Prejmenovani na stejnem souborovem systemu (atomicke);
+     na starem miste zustane relativni odkaz: stary proces jadra (ten, ktery prave instaluje novy
+     lux-engine a drzi zamek /var/lib/pacman/db.lck) tak zamek odstrani a zapise log.
+  2. seznam zrcadel /etc/pacman.d/mirrorlist (serazeny instalatorem / lux mirrors) -> /etc/lux/mirrorlist
+  3. /etc/pacman.conf (.pacsave) a lux.conf ve starem formatu (AUR=1 ...) -> /etc/lux/lux.conf
+  4. docasne odkazy pacman, pacman-conf, pacman-key v /usr/lib/lux/alpm/bin na nove nastroje (bezici
+     stary lux, LuxOS Care a Obchod je volaji jeste po aktualizaci)
+  5. znacka /var/lib/lux/migrated-from-pacman/done
+Uklid (finish) az po restartu (zadny stary proces uz nebezi) a bez zamku: odstrani odkazy z kroku 1
+a 4 a stare konfiguracni soubory (kopie zustane v /var/lib/lux/migrated-from-pacman/ - zachovat
+do dalsiho vydani LuxOS, pak lze adresar smazat).
+"""
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+sys.path.insert(0, os.environ.get("LUX_LIB", "/usr/lib/lux"))
+import lux_config  # noqa: E402
+
+MOVES = [  # (stare, nove, druh)
+    ("var/lib/pacman", "var/lib/lux", "dir"),
+    ("var/cache/pacman/pkg", "var/cache/lux/pkg", "dir"),
+    ("etc/pacman.d/gnupg", "etc/lux/keyring", "dir"),
+    ("etc/pacman.d/hooks", "etc/lux/hooks", "dir"),
+    ("var/log/pacman.log", "var/log/lux.log", "file"),
+]
+BACKUP = "var/lib/lux/migrated-from-pacman"
+COMPAT = [("usr/lib/lux/alpm/bin/pacman", "lux-engine"), ("usr/lib/lux/alpm/bin/pacman-conf", "lux-engine-conf"),
+          ("usr/lib/lux/alpm/bin/pacman-key", "lux-engine-key"), ("usr/lib/lux/alpm/pacman", "bin/lux-engine")]
+OLD_CONFIGS = ["etc/pacman.conf", "etc/pacman.conf.pacsave", "etc/pacman.conf.pacnew",
+               "etc/pacman.d/mirrorlist", "etc/pacman.d/mirrorlist.pacsave", "etc/pacman.d/mirrorlist.pacnew",
+               "etc/pacman.d/mirrorlist.luxos-orig"]
+BUILD_ONLY = "LuxOS ISO build only"     # /etc/pacman.conf jen pro mkarchiso (archiso/airootfs)
+PKG_MANAGERS = {"pacman", "lux-engine", "lux_alpm.py", "makepkg", "pacstrap", "pacman-key", "lux-engine-key",
+                "yay", "paru", "pamac", "pamac-daemon", "packagekitd"}
+
+
+def log(msg):
+    print(f"lux-engine-migrate: {msg}", file=sys.stderr)
+
+
+class Migration:
+    def __init__(self, root="/", ignore_pids=(), check_processes=True):
+        self.root = root
+        self.check_processes = check_processes
+        self.ignore = {str(p) for p in ignore_pids} | {str(os.getpid())}
+        self.errors = []
+        self.moved = False
+        self._owned = None
+
+    def p(self, rel):
+        return os.path.join(self.root, rel)
+
+    # ---- stav -------------------------------------------------------------------------------
+    def old_real(self, rel):
+        path = self.p(rel)
+        return os.path.lexists(path) and not os.path.islink(path)
+
+    def needs(self):
+        out = []
+        for old, _new, _k in MOVES:
+            if self.old_real(old):
+                out.append("move " + old)
+        if not os.path.exists(self.p(BACKUP + "/config-done")):
+            if self.old_pacman_conf() or self.lux_conf_legacy():
+                out.append("config")
+        return out
+
+    def leftovers(self):
+        out = [old for old, _n, _k in MOVES if os.path.islink(self.p(old))]
+        out += [c for c, _t in COMPAT if os.path.islink(self.p(c))]
+        out += [c for c in OLD_CONFIGS if os.path.lexists(self.p(c)) and not self.owned(c)]
+        return out
+
+    def old_pacman_conf(self):
+        for rel in ("etc/pacman.conf.pacsave", "etc/pacman.conf"):
+            path = self.p(rel)
+            if os.path.isfile(path):
+                try:
+                    with open(path, encoding="utf-8", errors="replace") as f:
+                        if BUILD_ONLY in f.read():
+                            continue
+                except OSError:
+                    continue
+                return rel
+        return None
+
+    def read(self, rel):
+        try:
+            with open(self.p(rel), encoding="utf-8") as f:
+                return f.read()
+        except (OSError, UnicodeDecodeError):
+            return None
+
+    def lux_conf_legacy(self, rel="etc/lux/lux.conf"):
+        text = self.read(rel)
+        return text is not None and is_legacy(text)
+
+    # ---- 1. presuny ---------------------------------------------------------------------------
+    def same_fs(self, a, b):
+        try:
+            return os.stat(a).st_dev == os.stat(b).st_dev
+        except OSError:
+            return False
+
+    def link_old(self, old, new):
+        """Stare misto -> relativni odkaz na nove (atomicky: docasny odkaz a prejmenovani)."""
+        target = os.path.relpath(new, os.path.dirname(old))
+        tmp = old + ".lux-migrate"
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+        os.symlink(target, tmp)
+        os.replace(tmp, old)
+
+    def move(self, old_rel, new_rel, kind):
+        old, new = self.p(old_rel), self.p(new_rel)
+        if os.path.islink(old) or not os.path.lexists(old):
+            return
+        os.makedirs(os.path.dirname(new), exist_ok=True)
+        if not self.same_fs(os.path.dirname(old), os.path.dirname(new)):
+            # jiny souborovy system (vlastni oddil /var/cache/pacman...): data zustanou, nove misto
+            # na ne ukazuje odkazem - funkcni, uklid ho necha byt
+            if not os.path.lexists(new):
+                self.link_old(new, old)
+                log(f"{old} is on another filesystem - {new} now points to it")
+            return
+        if kind == "file":
+            self.move_file(old, new)
+            return
+        if os.path.isdir(new) and not os.path.islink(new):
+            # nove misto uz existuje (/var/lib/lux s balicky .lux): presun po polozkach
+            for name in sorted(os.listdir(old)):
+                src, dst = os.path.join(old, name), os.path.join(new, name)
+                if os.path.lexists(dst):
+                    if os.path.isdir(dst) and not os.path.islink(dst) and not os.listdir(dst):
+                        os.rmdir(dst)      # prazdne misto (napr. novy prazdny adresar) - prednost ma stare
+                    else:
+                        keep = os.path.join(self.p(BACKUP), "conflicts", old_rel, name)
+                        os.makedirs(os.path.dirname(keep), exist_ok=True)
+                        log(f"{dst} already exists - the old {src} is kept as {keep}")
+                        os.replace(src, keep)
+                        continue
+                os.replace(src, dst)
+            os.rmdir(old)
+        elif os.path.lexists(new):
+            keep = os.path.join(self.p(BACKUP), "conflicts", new_rel)
+            os.makedirs(os.path.dirname(keep), exist_ok=True)
+            os.replace(new, keep)
+            os.replace(old, new)
+        else:
+            os.replace(old, new)
+        self.link_old(old, new)
+        self.moved = True
+
+    def move_file(self, old, new):
+        if not os.path.lexists(new):
+            os.replace(old, new)
+        else:
+            # oba logy: stary pred novy (jednou - po vypadku proudu uz je stary na zacatku noveho)
+            with open(old, "rb") as f:
+                old_data = f.read()
+            with open(new, "rb") as f:
+                new_data = f.read()
+            if not new_data.startswith(old_data):
+                tmp = new + ".lux-migrate"
+                with open(tmp, "wb") as f:
+                    f.write(old_data + new_data)
+                    f.flush()
+                    os.fsync(f.fileno())
+                shutil.copymode(new, tmp)
+                os.replace(tmp, new)
+            os.unlink(old)
+        self.link_old(old, new)
+        self.moved = True
+
+    def stop_gpg_agent(self):
+        if self.root != "/" or not self.old_real("etc/pacman.d/gnupg"):
+            return
+        try:
+            subprocess.run(["gpgconf", "--homedir", "/etc/pacman.d/gnupg", "--kill", "all"],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+
+    # ---- zalohy --------------------------------------------------------------------------------
+    def backup(self, rel):
+        src = self.p(rel)
+        if not os.path.isfile(src) or os.path.islink(src):
+            return
+        dst = os.path.join(self.p(BACKUP), rel)
+        if os.path.exists(dst):
+            return
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copy2(src, dst + ".tmp")
+        os.replace(dst + ".tmp", dst)
+
+    # ---- 2. seznam zrcadel -------------------------------------------------------------------------
+    def migrate_mirrorlist(self):
+        done = self.p(BACKUP + "/mirrorlist-done")
+        if os.path.exists(done):
+            return
+        new_rel = "etc/lux/mirrorlist"
+        cur = self.read(new_rel)
+        default = self.read("usr/share/lux/mirrorlist.default")
+        for rel in ("etc/pacman.d/mirrorlist.pacsave", "etc/pacman.d/mirrorlist"):
+            text = self.read(rel)
+            if text is None:
+                continue
+            self.backup(rel)
+            try:
+                urls = lux_config.read_mirrorlist_text(text, rel)
+            except lux_config.ConfigError as e:
+                log(f"old mirror list not converted: {e}")
+                break
+            if not urls:
+                continue
+            if cur is None or cur == default:
+                lux_config.atomic_write(self.p(new_rel), lux_config.mirrorlist_text(
+                    urls, "converted from /" + rel.replace(".pacsave", "")))
+            break
+        touch(done)
+
+    # ---- 3. konfigurace ---------------------------------------------------------------------------
+    def migrate_config(self):
+        done = self.p(BACKUP + "/config-done")
+        if os.path.exists(done):
+            return
+        conf_rel = "etc/lux/lux.conf"
+        text = self.read(conf_rel)
+        template = self.read("usr/share/lux/lux.conf.default")
+        pacnew = self.read(conf_rel + ".pacnew")
+        old_rel = self.old_pacman_conf()
+        if old_rel:
+            self.backup(old_rel)
+        legacy_texts = [t for t in (text, self.read(conf_rel + ".pacsave")) if t is not None and is_legacy(t)]
+        if text is not None and is_legacy(text):
+            self.backup(conf_rel)
+        if self.read(conf_rel + ".pacsave") is not None:
+            self.backup(conf_rel + ".pacsave")
+        base = template
+        if pacnew is not None and not is_legacy(pacnew):
+            base = base or pacnew
+        if text is not None and not is_legacy(text) and (template is None or text != template):
+            # lux.conf v novem formatu uz nastavil spravce, instalator nebo live ISO - nechat
+            if old_rel:
+                log(f"/etc/lux/lux.conf is already configured - old /{old_rel} only saved in /{BACKUP}")
+            self.drop_pacnew(conf_rel, template)
+            touch(done)
+            return
+        if base is None:
+            log("no default lux.conf found - configuration not converted")
+            return
+        new = base
+        if old_rel:
+            try:
+                conv, extra, warns = lux_config.convert_pacman_conf("/" + old_rel, self.root if self.root != "/"
+                                                                    else "")
+                for w in warns:
+                    log(w)
+                for path, data in extra.items():
+                    if not os.path.exists(self.p(path.lstrip("/"))):
+                        lux_config.atomic_write(self.p(path.lstrip("/")), data)
+                if self.semantic(conv) != self.semantic(base):
+                    new = conv
+            except (lux_config.ConfigError, OSError, StopIteration) as e:
+                log(f"/{old_rel} could not be converted ({e}) - using the LuxOS defaults, "
+                    f"the old file is in /{BACKUP}")
+        for lt in legacy_texts:
+            new = apply_cli(new, lt)
+            break
+        try:
+            self.parse_text(new)
+        except lux_config.ConfigError as e:
+            log(f"converted configuration is not valid ({e}) - using the LuxOS defaults")
+            new = apply_cli(base, legacy_texts[0]) if legacy_texts else base
+        lux_config.atomic_write(self.p(conf_rel), new)
+        self.drop_pacnew(conf_rel, template)
+        for t in (conf_rel + ".pacsave",):
+            if self.read(t) is not None and is_legacy(self.read(t)):
+                os.unlink(self.p(t))
+        touch(done)
+
+    def drop_pacnew(self, conf_rel, template):
+        pn = self.read(conf_rel + ".pacnew")
+        if pn is not None and template is not None and pn == template:
+            os.unlink(self.p(conf_rel + ".pacnew"))
+
+    def parse_text(self, text):
+        return lux_config.parse("/etc/lux/lux.conf", root=self.root if self.root != "/" else "", text=text)
+
+    def semantic(self, text):
+        try:
+            return lux_config.semantic(self.parse_text(text))
+        except lux_config.ConfigError:
+            return None
+
+    # ---- 4. docasne odkazy ------------------------------------------------------------------------
+    def compat_links(self):
+        for rel, target in COMPAT:
+            path = self.p(rel)
+            if os.path.lexists(path) or not os.path.isdir(os.path.dirname(path)):
+                continue
+            os.symlink(target, path)
+
+    # ---- hlavni kroky -----------------------------------------------------------------------------
+    def step(self, fn, *a):
+        try:
+            fn(*a)
+        except Exception as e:  # noqa: BLE001 - kazdy krok samostatne, zbytek pokracuje
+            self.errors.append(f"{fn.__name__}{a}: {e}")
+            log(f"{fn.__name__} {' '.join(map(str, a))}: {e}")
+
+    def migrate(self, mode):
+        had_old = bool(self.needs())
+        self.step(self.stop_gpg_agent)
+        for old, new, kind in MOVES:
+            self.step(self.move, old, new, kind)
+        self.step(self.migrate_mirrorlist)
+        self.step(self.migrate_config)
+        if (self.moved or had_old) and mode in ("hook", "auto"):
+            self.step(self.compat_links)
+        if not self.errors and not self.needs():
+            if had_old or not os.path.exists(self.p(BACKUP + "/done")):
+                os.makedirs(self.p(BACKUP), exist_ok=True)
+                with open(self.p(BACKUP + "/done"), "w") as f:
+                    f.write(time.strftime("%Y-%m-%dT%H:%M:%S%z") + "\n")
+        return 0 if not self.errors else 1
+
+    # ---- uklid ------------------------------------------------------------------------------------
+    def owned(self, rel):
+        """Patri soubor nainstalovanemu balicku (napr. pacman-mirrorlist)? Pak ho uklid necha."""
+        if self._owned is None:
+            self._owned = set()
+            local = self.p("var/lib/lux/local")
+            try:
+                entries = os.listdir(local)
+            except OSError:
+                entries = []
+            for e in entries:
+                try:
+                    with open(os.path.join(local, e, "files"), encoding="utf-8", errors="replace") as f:
+                        lines = set(f.read().splitlines())
+                except OSError:
+                    continue
+                self._owned |= lines & set(OLD_CONFIGS)
+        return rel in self._owned
+
+    def busy(self):
+        if os.path.lexists(self.p("var/lib/lux/db.lck")):
+            return "the package database is locked"
+        if self.root != "/" or not self.check_processes:
+            return None
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit() or pid in self.ignore:
+                continue
+            try:
+                with open(f"/proc/{pid}/comm") as f:
+                    comm = f.read().strip()
+            except OSError:
+                continue
+            if comm in PKG_MANAGERS:
+                return f"{comm} is running"
+        return None
+
+    def rebooted_since_migration(self):
+        try:
+            mtime = os.stat(self.p(BACKUP + "/done")).st_mtime
+            with open("/proc/stat") as f:
+                btime = next(int(line.split()[1]) for line in f if line.startswith("btime "))
+            return btime > mtime
+        except (OSError, StopIteration, ValueError):
+            return False
+
+    def finish(self, now=False):
+        if not os.path.exists(self.p(BACKUP + "/done")) or self.needs():
+            return 0
+        left = self.leftovers()
+        if not left:
+            return 0
+        if not now and not self.rebooted_since_migration():
+            return 0
+        why = self.busy()
+        if why:
+            log(f"cleanup postponed: {why}")
+            return 0
+        for old, new, _k in MOVES:
+            path = self.p(old)
+            if os.path.islink(path) and os.path.realpath(path) == os.path.realpath(self.p(new)):
+                os.unlink(path)
+        for rel, _t in COMPAT:
+            if os.path.islink(self.p(rel)):
+                os.unlink(self.p(rel))
+        for rel in OLD_CONFIGS:
+            if os.path.lexists(self.p(rel)) and not self.owned(rel):
+                self.backup(rel)
+                os.unlink(self.p(rel))
+        for rel in ("var/cache/pacman", "etc/pacman.d"):
+            path = self.p(rel)
+            if os.path.isdir(path) and not os.path.islink(path):
+                try:
+                    os.rmdir(path)
+                except OSError:
+                    pass       # vlastni soubory spravce zustanou
+        return 0
+
+
+def is_legacy(text):
+    """lux.conf do LuxOS 0.9.5: jen nastaveni lux v syntaxi shellu (AUR=1 ...)."""
+    legacy = re.search(r"^\s*(AUR|REVIEW_PKGBUILD|FLATPAK|CLEAN_KEEP)=", text, re.M)
+    return bool(legacy) and not re.search(r"^repo\s", text, re.M)
+
+
+def apply_cli(text, legacy_text):
+    """Nastaveni lux ze stareho lux.conf (AUR=0 ...) do noveho textu."""
+    vals = {}
+    for line in legacy_text.splitlines():
+        m = re.match(r"^\s*(AUR|REVIEW_PKGBUILD|FLATPAK|CLEAN_KEEP)=[\"']?([^\"'\s#]*)", line)
+        if m:
+            key = lux_config.LEGACY_SHELL[m.group(1)]
+            v = m.group(2)
+            if key != "clean-keep":
+                v = "off" if v in ("0", "") else "on"
+            elif not v.isdigit():
+                continue
+            vals[key] = v
+    for key, v in vals.items():
+        pat = re.compile(rf"^({re.escape(key)}\s+)(\S+)", re.M)
+        if pat.search(text):
+            text = pat.sub(lambda m: m.group(1) + v, text, count=1)
+        elif v != lux_config.DEFAULTS[key]:
+            text = text.rstrip("\n") + f"\n{key}  {v}\n"
+    return text
+
+
+def touch(path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "a"):
+        pass
+
+
+def main(argv):
+    args = list(argv)
+    root = "/"
+    ignore = []
+    if "--root" in args:
+        i = args.index("--root")
+        root = os.path.abspath(args[i + 1])
+        del args[i:i + 2]
+    while "--ignore-pid" in args:
+        i = args.index("--ignore-pid")
+        ignore.append(args[i + 1])
+        del args[i:i + 2]
+    now = "--now" in args
+    procs = "--ignore-processes" not in args
+    args = [a for a in args if a not in ("--now", "--ignore-processes")]
+    cmd = args[0] if args else "status"
+    m = Migration(root, ignore, procs)
+    if cmd == "hook":
+        # stdin s cili hooku (NeedsTargets) se necte; hook nesmi rozbit transakci
+        try:
+            m.migrate("hook")
+        except Exception as e:  # noqa: BLE001
+            log(f"migration failed: {e}")
+        return 0
+    if cmd == "auto":
+        rc = m.migrate("auto") if m.needs() else 0
+        m.finish(now)
+        return rc
+    if cmd == "migrate":
+        return m.migrate("manual")
+    if cmd == "finish":
+        return m.finish(now)
+    if cmd == "status":
+        need, left = m.needs(), m.leftovers()
+        for n in need:
+            print("needed: " + n)
+        for x in left:
+            print("leftover: " + x)
+        return 1 if need or left else 0
+    print(__doc__, file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -42,7 +42,8 @@ The app switches mode through `pkexec /usr/lib/luxos/care/luxos-care-helper set-
 ## How an update is done
 
 1. If another package manager is running → postponed (`busy`). A stale `db.lck` is removed.
-2. `checkupdates` lists pending updates.
+2. `lux_alpm.py check-updates` lists pending updates (refresh into a temporary database copy,
+   the system database is not touched).
 3. `archlinux-keyring` / `luxos-keyring` are updated first.
 4. Everything is downloaded (`-Syuw`); download is safe to interrupt (shutdown stops it).
 5. Installation from the cache (`-Su`) under `systemd-inhibit` (blocks shutdown, sleep and lid
@@ -51,7 +52,8 @@ The app switches mode through `pkexec /usr/lib/luxos/care/luxos-care-helper set-
 7. Old cache cleaned, `.pacnew` files recorded, reboot flagged if the kernel changed, then a
    problem check runs.
 
-Updates go through `lux` (libalpm) when available, otherwise the internal pacman. Network errors are
+Updates go through `lux` (libalpm) when available, otherwise the internal tool `lux-engine`.
+The log of all transactions is `/var/log/lux.log`, the lock `/var/lib/lux/db.lck`. Network errors are
 retried within one run (after 20 s and 90 s).
 
 ## Software Update app
@@ -99,7 +101,7 @@ Useful one-liners: `systemctl start luxos-care-update-now.service` (needs wheel)
 
 ## Previous kernel fallback
 
-- pacman hook `10-luxos-care-kernel-pre.hook`: when the kernel package (`linux-zen` by default,
+- libalpm hook `10-luxos-care-kernel-pre.hook`: when the kernel package (`linux-zen` by default,
   `KERNEL=` in care.conf or `/etc/luxos/esp.conf`) is replaced, the version that last booted
   successfully is saved.
 - `95-luxos-care-kernel-post.hook`: it is restored as a boot entry **"LuxOS (previous kernel)"**
@@ -130,7 +132,7 @@ update and at boot). Detected serious problems:
 In Carefree mode built-in rules run at most once per day per problem. Only actions from a fixed
 catalog are ever executed: remove stale lock, finish interrupted upgrade, refresh signing keys,
 rebuild initramfs (`mkinitcpio -P`), `dkms autoinstall`, reinstall a package, restart a failed unit,
-clean cache (paccache + journal vacuum to 200 MB), retry the new kernel, use the previous kernel.
+clean cache (`lux_alpm.py clean` + journal vacuum to 200 MB), retry the new kernel, use the previous kernel.
 For unknown serious problems the session part (in `luxos-hub`) sends a redacted diagnosis to
 LuxAI Flash with the user's LuxAI account; the AI may only pick the number of one of the prepared
 options, root re-validates it, max 3 AI actions per day. Without a LuxAI account the user gets a

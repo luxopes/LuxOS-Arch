@@ -12,7 +12,7 @@ Nejde o ochranu proti cílenému útoku na jádro Linuxu (viz Co izolované NEN�
 
 | Vrstva | Co dělá |
 |---|---|
-| `luxos-sandbox-helper` (root, přes `pkexec`, akce `org.luxos.sandbox.create`, `auth_admin_keep`) | jen vytvoření / smazání sandboxu volajícího uživatele (`PKEXEC_UID`); `pacstrap -c -K` s oficiálními repozitáři Arch Linuxu, odstranění setuid/setgid a file capabilities, `chown` na uživatele, atomické přejmenování na místo |
+| `luxos-sandbox-helper` (root, přes `pkexec`, akce `org.luxos.sandbox.create`, `auth_admin_keep`) | jen vytvoření / smazání sandboxu volajícího uživatele (`PKEXEC_UID`); `pacstrap -c -K -M` s oficiálními repozitáři Arch Linuxu (konfigurace `/usr/share/luxos/sandbox/lux.conf` převedená `lux-config`, nástroje jádra `lux-engine` jen pro běh pacstrapu pod jmény, která pacstrap očekává), odstranění setuid/setgid a file capabilities, `chown` na uživatele, atomické přejmenování na místo |
 | `systemd-run --user --scope` | limity: `MemoryMax=50%`, `MemorySwapMax=1G`, `TasksMax=512`, `CPUQuota=75 % jader` |
 | `pasta` (jen s `--net`) | nový síťový namespace s NAT; nikdy síť hostitele |
 | `bwrap` (bubblewrap, bez setuid) | namespaces user/pid/ipc/uts/cgroup/net/mount, `--cap-drop ALL`, `--die-with-parent`, `--new-session`, seccomp, `no_new_privs` |
@@ -72,11 +72,11 @@ Vše kromě vytvoření/smazání běží **bez root práv** jako uživatel.
   součástí botnetu) z vaší IP adresy. DNS dotazy jdou přes resolver hostitele. Blokace LAN je řešena
   směrováním v namespace; sítě, které se na hostiteli objeví až za běhu, se nezablokují (adresy hostitele
   se čtou při spuštění) – privátní rozsahy jsou ale blokované vždy.
-- **Instalace (`install`):** pacman běží jako „falešný root“ v namespace s jedním UID. Změna vlastníka
+- **Instalace (`install`):** správce balíků Archu uvnitř sandboxu (balík `pacman` – sandbox je minimální Arch Linux, ne LuxOS) běží jako „falešný root“ v namespace s jedním UID. Změna vlastníka
   na jiné UID není možná, proto seccomp volání `chown*()` předstírá úspěch – všechny soubory patří
   uživateli, aplikace spoléhající na oddělené systémové uživatele (systémové služby, `setuid`) nebudou fungovat.
   Některé hooky (`systemd-tmpfiles`, ACL) vypíšou chyby, instalace přesto doběhne. Podpisy balíčků
-  ověřuje pacman uvnitř podle klíčenky sandboxu (archlinux-keyring) – sandbox ji ale může sám změnit,
+  ověřuje správce balíků uvnitř podle klíčenky sandboxu (archlinux-keyring) – sandbox ji ale může sám změnit,
   takže balíčky v sandboxu jsou stejně důvěryhodné jako sandbox sám.
 - **Pomocník (root):** jediná privilegovaná část. Přijímá jen `create|reset|destroy`, uživatele bere
   z `PKEXEC_UID` (UID ≥ `UID_MIN`, < 60000). `pacstrap` běží jako root nad prázdným adresářem s balíky

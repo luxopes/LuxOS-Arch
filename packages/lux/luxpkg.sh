@@ -2,7 +2,7 @@
 #
 # Balicek .lux = tar.zst:
 #   lux.json      metadata (format, name, version, release, arch, summary, description, license,
-#                 url, depends.system[] (repozitare, lux/pacman), depends.lux[], bin{prikaz: cesta v app/})
+#                 url, depends.system[] (repozitare, lux), depends.lux[], bin{prikaz: cesta v app/})
 #   app/          aplikace -> /opt/lux/<name>/
 #   share/        applications/*.desktop, icons/hicolor/... -> /usr/local/share/
 #   scripts/      post_install, pre_remove (bash, spousti se jako root)
@@ -100,12 +100,12 @@ lp_install_file() {  # lp_install_file SOUBOR.lux [overeno=1]
         fi
     fi
 
-    # zavislosti: systemove balicky (pacman), pak dalsi balicky lux
+    # zavislosti: systemove balicky (repozitare), pak dalsi balicky lux
     local -a sys=() dep
     mapfile -t sys < <(jq -r '.depends.system // [] | .[]' <<<"$meta")
     if ((${#sys[@]})); then
         say "$(T "Installing dependencies: %s" "${sys[*]}")"
-        # souhlas uz padl (lux install / Obchod) - bez dalsi otazky, pres libalpm nebo pacman
+        # souhlas uz padl (lux install / Obchod) - bez dalsi otazky, pres libalpm nebo lux-engine
         (YES=1; repo_install "${sys[@]}") || die "$(T "Dependencies could not be installed")"
     fi
     while read -r dep; do

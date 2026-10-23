@@ -161,10 +161,15 @@ class RootTree(unittest.TestCase):
     def test_installed_packages(self):
         for d in ("nvidia-utils-615.78.08-1", "lib32-nvidia-580xx-utils-580.178.04-1", "linux-zen-7.2.11.zen1-1",
                   "python-gobject-3.54.0-2"):
-            self.mk("/var/lib/pacman/local/" + d)
-        open(self.root + "/var/lib/pacman/local/ALPM_DB_VERSION", "w").close()
+            self.mk("/var/lib/lux/local/" + d)
+        open(self.root + "/var/lib/lux/local/ALPM_DB_VERSION", "w").close()
         self.assertEqual(drv.installed_packages(),
                          {"nvidia-utils", "lib32-nvidia-580xx-utils", "linux-zen", "python-gobject"})
+
+    def test_installed_packages_old_layout(self):
+        """Pred prechodem na lux (LuxOS do 0.9.5) je databaze v /var/lib/pacman."""
+        self.mk("/var/lib/pacman/local/nvidia-utils-615.78.08-1")
+        self.assertEqual(drv.installed_packages(), {"nvidia-utils"})
 
     def test_installed_packages_no_db(self):
         self.assertEqual(drv.installed_packages(), set())
@@ -295,7 +300,7 @@ class Helper(unittest.TestCase):
                 mock.patch.object(self.h.drv, "headers_out_of_sync", return_value=list(out_of_sync)), \
                 mock.patch.object(self.h, "lux_available", return_value=lux), \
                 mock.patch.object(self.h, "run", side_effect=fake_run), \
-                mock.patch.object(self.h, "pacman_retry", side_effect=lambda a: calls.append(["pacman", *a]) or rc), \
+                mock.patch.object(self.h, "engine_retry", side_effect=lambda a: calls.append(["lux-engine", *a]) or rc), \
                 mock.patch.object(self.h.subprocess, "run", side_effect=fake_sub_run), \
                 mock.patch.object(self.h.os.path, "isdir",
                                   side_effect=lambda p: live if p == "/run/archiso" else real_isdir(p)), \
@@ -346,9 +351,9 @@ class Helper(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertNotIn("@@REBOOT", out)
 
-    def test_pacman_fallback(self):
+    def test_engine_fallback(self):
         code, calls, *_ = self.call(["h", "install"], lux=False)
-        self.assertEqual(calls, [["pacman", "-S", "--needed", "--noconfirm", "--", "nvidia-open-dkms",
+        self.assertEqual(calls, [["lux-engine", "-S", "--needed", "--noconfirm", "--", "nvidia-open-dkms",
                                   "linux-zen-headers"]])
 
     def test_alternative_passed_to_plan(self):

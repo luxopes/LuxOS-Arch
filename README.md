@@ -32,8 +32,8 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
 - **Splash screeny:** Plymouth (tónované pozadí + logo se září + tenký progress bar, i pro zadání hesla k LUKS;
   varianty modrá/fialová/oranžová/zelená/bílá v Nastavení › Plocha a Dock nebo `luxos-splash set <varianta>`), skrytý zavaděč
   (systemd-boot `timeout 0`), přihlašovací obrazovka uprostřed (lightdm-gtk-greeter), ISO boot menu v barvách LuxOS.
-- **`lux`** – správce balíků LuxOS místo pacmanu: repozitáře přes libalpm (`pyalpm`, stejná databáze a podpisy jako pacman),
-  AUR, Flatpak a balíky `.lux`; krátký barevný výstup, příkazy jako u apt; `lux` bez parametrů otevře interaktivní
+- **`lux`** – správce balíků LuxOS místo pacmanu: repozitáře přes libalpm (`pyalpm`), vlastní konfigurace
+  `/etc/lux/lux.conf` (formát LuxOS, žádný `/etc/pacman.conf`), AUR, Flatpak a balíky `.lux`; krátký barevný výstup, příkazy jako u apt; `lux` bez parametrů otevře interaktivní
   obchod v terminálu (TUI) s balíky z repozitářů LuxOS i Arch Linuxu. Příkaz `pacman` v LuxOS není (jádro `lux-engine`,
   viz níže); kdo ho napíše, uvidí odpovídající příkaz `lux`.
 - **Obchod LuxOS** – grafický obchod s aplikacemi z repozitářů LuxOS a Arch Linuxu (metadata AppStream),
@@ -150,21 +150,27 @@ lux install hello-lux                      # z repozitáře LuxOS
 
 ## lux
 
-Výchozí správce balíků. Transakce dělá přes libalpm (`pyalpm`, `/usr/lib/lux/lux_alpm.py`) se stejnou
-databází, `pacman.conf`, podpisy a hooky jako pacman v Archu. Bez `pyalpm` (nebo `LUX_BACKEND=pacman`) volá
-pacman z jádra `/usr/lib/lux/alpm/bin/pacman`. Obchod LuxOS a LuxOS Care volají `lux_alpm.py --machine` (řádky `@@…`).
-Podrobně: [packages/lux/lux.md](packages/lux/lux.md).
+Výchozí správce balíků. Transakce dělá přes libalpm (`pyalpm`, `/usr/lib/lux/lux_alpm.py`): databáze
+`/var/lib/lux`, cache `/var/cache/lux/pkg`, log `/var/log/lux.log`, klíčenka `/etc/lux/keyring`, konfigurace
+`/etc/lux/lux.conf` ve vlastním formátu (`klíč hodnota`, bloky `repo NÁZEV`, `hold`, `include /etc/lux/conf.d/*.conf`)
+a zrcadla `/etc/lux/mirrorlist` (jedna adresa na řádek). Konfiguraci jádra `/run/lux/engine.conf` z ní generuje
+`lux-config` (nikdo ji neupravuje); chyba v `lux.conf` = hlášení se souborem a řádkem, `lux config check`.
+Bez `pyalpm` (nebo `LUX_BACKEND=engine`) volá nástroj jádra `/usr/lib/lux/alpm/bin/lux-engine`. Obchod LuxOS
+a LuxOS Care volají `lux_alpm.py --machine` (řádky `@@…`). Podrobně: [packages/lux/lux.md](packages/lux/lux.md).
 
 **Jádro `lux-engine`**: libalpm a nástroje pacmanu z Arch Linuxu sestavené ze stejných zdrojů a součtů jako
-v Archu (libalpm, makepkg, `vercmp`, `repo-add`, hooky). Příkaz `pacman` v systému není: `pacman`, `pacman-key`,
-`pacman-conf` a `pacman-db-upgrade` jsou interní nástroje v `/usr/lib/lux/alpm/bin` (mimo `PATH`, bez manuálů
-a doplňování). Dostane je `lux` (a hooky a skriptlety jeho transakcí), `makepkg`
-(`/etc/makepkg.conf.d/lux-engine.conf`), služby z `pacman-contrib`/`archlinux-keyring` (drop-iny) a nástroje
-LuxOS; podrobně v [packages/lux/lux.md](packages/lux/lux.md). Shell LuxOS na `pacman …` odpoví odpovídajícím
+v Archu (libalpm, makepkg, `vercmp`, `repo-add`, hooky); LuxOS mění jen názvy, cesty a balení. Příkaz `pacman`
+v systému není: interní nástroje `lux-engine`, `lux-engine-key`, `lux-engine-conf` a `lux-engine-db-upgrade` jsou
+v `/usr/lib/lux/alpm/bin` (mimo `PATH`, bez manuálů a doplňování). Dostane je `lux` (a hooky a skriptlety jeho
+transakcí), `makepkg` (`/etc/makepkg.conf.d/lux-engine.conf`), služba `archlinux-keyring-wkd-sync` (drop-in)
+a nástroje LuxOS; `pacman-contrib`, `pacman-mirrorlist` ani `expac` LuxOS nepotřebuje. Starší instalace převede
+při aktualizaci hook `00-lux-engine-migrate` (`/var/lib/pacman` → `/var/lib/lux`, `/etc/pacman.conf` →
+`/etc/lux/lux.conf` …); podrobně v [packages/lux/lux.md](packages/lux/lux.md). Shell LuxOS na `pacman …` odpoví odpovídajícím
 příkazem `lux` (`pacman -Syu` → `lux update`). `lux-engine` nahrazuje `pacman` i `luxos-pacman` z LuxOS 0.9
 (`replaces`/`provides`) a musí držet krok s verzí v Archu (`pyalpm` z Archu se sestavuje proti jeho
 `libalpm.so`) – `build.sh` varuje, když je Arch novější; postup aktualizace je v hlavičce
 `packages/lux-engine/PKGBUILD`. Testy: `python3 -m unittest discover -s packages/lux-engine/tests`
+(formát `lux.conf`, generování konfigurace jádra a migrace na falešném kořeni)
 (nápověda a shell: `packages/lux/tests/test_pacman_hint.py`).
 
 | Příkaz | Co dělá |
@@ -216,7 +222,7 @@ packages/                   vlastní balíky LuxOS (lokální repozitář [luxos
   luxos-installer           luxos-install
   luxdrop                   LuxDrop – bezpečné posílání souborů v síti, kompatibilní s LocalSend (GTK, CLI, protokol)
   lux                       správce balíků
-  lux-engine                jádro lux: libalpm a nástroje pacmanu z Archu (makepkg…), bez příkazu pacman
+  lux-engine                jádro lux: libalpm a nástroje z pacmanu Archu (makepkg…), lux.conf, lux-config, bez příkazu pacman
   gdk-pixbuf2               náhrada balíku z Archu bez glycinu: obrázky a ikony se dekódují v procesu aplikace
   luxos-pixbuf-svg          zavaděč SVG pro gdk-pixbuf (librsvg, v procesu)
   blesh                     ble.sh

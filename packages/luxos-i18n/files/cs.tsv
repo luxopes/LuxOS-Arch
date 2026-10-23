@@ -1042,7 +1042,6 @@ Updates install automatically in the background - not on metered networks, with 
 A previous kernel is kept, so the computer always has a working version to start.	Předchozí jádro zůstává uložené, takže počítač má vždy funkční verzi, ze které nastartuje.
 LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash.	LuxOS se opravuje sám. Vážné problémy diagnostikuje LuxAI Flash.
 No automatic updates or repairs - standard Arch Linux behaviour.	Žádné automatické aktualizace ani opravy – standardní chování Arch Linuxu.
-You manage the system yourself with lux or pacman.	Systém spravujete sami pomocí lux nebo pacman.
 You only get a notification when updates are available.	Jen dostanete upozornění, když jsou k dispozici aktualizace.
 Choose whether LuxOS takes care of itself, or whether you want full control.	Vyberte, jestli se LuxOS má starat sám o sebe, nebo chcete mít plnou kontrolu.
 Downloading %s of %s	Stahuji %s z %s
@@ -1546,7 +1545,6 @@ install the same version again	znovu nainstaluje stejnou verzi
 remove dependencies nothing needs any more	odebere závislosti, které už nic nepotřebuje
 repair a locked database and the signing keys	opraví zamčenou databázi a podpisové klíče
 show all details (and raw errors)	zobrazí všechny podrobnosti (i původní chyby)
-pacman stays available for advanced use; lux and pacman share the same package database.	pacman zůstává k dispozici pro pokročilé; lux a pacman sdílejí stejnou databázi balíků.
 Another app is installing software right now. Try it again in a moment.	Jiná aplikace právě instaluje software. Zkuste to za chvíli znovu.
 The app conflicts with files of another package.	Aplikace je v konfliktu se soubory jiného balíku.
 The app conflicts with an installed package.	Aplikace je v konfliktu s nainstalovaným balíkem.
@@ -1636,9 +1634,7 @@ LuxDrop sends files to computers and phones nearby – it also works with the Lo
 Found a bug or have an idea? Feedback sends it straight to the author of LuxOS. All keyboard shortcuts are listed in Keyboard Shortcuts. Enjoy LuxOS!	Našli jste chybu nebo máte nápad? Zpětná vazba ji pošle přímo autorovi LuxOS. Všechny klávesové zkratky najdete v Klávesových zkratkách. Užijte si LuxOS!
 LuxOS uses lux to manage software.	LuxOS spravuje software pomocí lux.
 All lux commands: %s	Všechny příkazy lux: %s
-Experts can still run pacman directly: %s	Pokročilí mohou pacman dál spustit přímo: %s
 The package manager core is missing (%s). Repair it with: %s	Chybí jádro správce balíků (%s). Opravíte ho příkazem: %s
-pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman je jen pro pokročilé (LUX_ALLOW_PACMAN=1 pacman …); lux a pacman sdílejí stejnou databázi balíků.
 The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	Jádro správce balíků %s je starší než v Arch Linuxu (%s); aktualizace LuxOS bude následovat
 You manage the system yourself with lux.	Systém spravujete sami pomocí lux.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
@@ -2391,3 +2387,25 @@ Save Screenshot	Uložit snímek obrazovky
 Save Recording	Uložit nahrávku
 The screenshot could not be copied to the clipboard.	Snímek obrazovky se nepodařilo zkopírovat do schránky.
 The file could not be moved to the Trash.	Soubor se nepodařilo přesunout do koše.
+lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check	lux nic neprovede, dokud nebude konfigurace opravena (/etc/lux/lux.conf). Zkontrolujte ji: lux config check
+Usage: lux config [check|show|edit|engine]	Použití: lux config [check|show|edit|engine]
+check or edit /etc/lux/lux.conf	kontrola nebo úprava /etc/lux/lux.conf
+reflector is not installed (lux install reflector)	reflector není nainstalovaný (lux install reflector)
+New version of %s from an update	Nová verze %s z aktualizace
+[u] use the new version  [k] keep yours  [e] edit yours  [s] skip: 	[u] použít novou verzi  [k] ponechat svou  [e] upravit svou  [s] přeskočit: 
+Using the new version (yours is saved as %s)	Použita nová verze (vaše je uložená jako %s)
+Kept your version	Vaše verze zůstala
+Saved configuration of a removed package: %s	Uložená konfigurace odebraného balíku: %s
+[d] delete it  [r] restore it as %s  [s] skip: 	[d] smazat  [r] obnovit jako %s  [s] přeskočit: 
+Deleted	Smazáno
+Restored	Obnoveno
+Package manager configuration OK	Konfigurace správce balíků je v pořádku
+The package manager configuration has an error - run: lux config check	Konfigurace správce balíků obsahuje chybu – spusťte: lux config check
+Old package manager files are cleaned up after the next restart	Staré soubory správce balíků se uklidí po příštím restartu
+The package manager configuration has an error: %s	Konfigurace správce balíků obsahuje chybu: %s
+Fix it and check it with: lux config check	Opravte ji a zkontrolujte: lux config check
+The package manager configuration has an error. Check it with: lux config check	Konfigurace správce balíků obsahuje chybu. Zkontrolujte ji: lux config check
+Removed %d old package files from the cache (%s freed)	Z cache odstraněno %d starých souborů balíků (uvolněno %s)
+The package cache is already clean	Cache balíků už je čistá
+The package manager uses /etc/lux and /var/lib/lux	Správce balíků používá /etc/lux a /var/lib/lux
+The package manager configuration of the live system is broken.	Konfigurace správce balíků v živém systému je poškozená.

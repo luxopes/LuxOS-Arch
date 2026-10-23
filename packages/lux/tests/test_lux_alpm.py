@@ -8,6 +8,8 @@ rezim a srozumitelne chyby. Skutecne libalpm (podpisy, hooky, konflikty) se tu n
 import importlib.util
 import io
 import os
+import shutil
+import tempfile
 import sys
 import types
 import unittest
@@ -28,12 +30,12 @@ os.environ.pop("NO_COLOR", None)
 
 CONF = """[options]
 RootDir = /
-DBPath = /var/lib/pacman/
-CacheDir = /var/cache/pacman/pkg/
-HookDir = /etc/pacman.d/hooks/
-GPGDir = /etc/pacman.d/gnupg/
-LogFile = /var/log/pacman.log
-HoldPkg = pacman glibc
+DBPath = /var/lib/lux/
+CacheDir = /var/cache/lux/pkg/
+HookDir = /etc/lux/hooks/
+GPGDir = /etc/lux/keyring/
+LogFile = /var/log/lux.log
+HoldPkg = lux-engine glibc
 Architecture = x86_64
 CheckSpace
 ParallelDownloads = 10
@@ -110,7 +112,7 @@ def make_api():
     return api
 
 
-def run(argv, tty=False, answer="", api=None, prepare=None):
+def run(argv, tty=False, answer="", api=None, prepare=None, conf=CONF):
     """-> (rc, vystup, handle)"""
     api = api or make_api()
     out = TTY() if tty else io.StringIO()
@@ -126,7 +128,7 @@ def run(argv, tty=False, answer="", api=None, prepare=None):
                 orig_init(self, root, dbpath)
                 prepare(self)
             api.Handle.__init__ = init
-        rc = lux_alpm.main(argv, api=api, conf=lux_alpm.PacmanConf(CONF), out=out, inp=inp)
+        rc = lux_alpm.main(argv, api=api, conf=lux_alpm.EngineConf(conf), out=out, inp=inp)
     finally:
         sys.stderr = old
     return rc, out.getvalue() + err.getvalue(), api.Handle.last
@@ -207,8 +209,8 @@ class Format(unittest.TestCase):
 # ---- konfigurace -----------------------------------------------------------------------------
 class Config(unittest.TestCase):
     def test_parse(self):
-        c = lux_alpm.PacmanConf(CONF)
-        self.assertEqual(c.list("HoldPkg"), ["pacman", "glibc"])
+        c = lux_alpm.EngineConf(CONF)
+        self.assertEqual(c.list("HoldPkg"), ["lux-engine", "glibc"])
         self.assertTrue(c.has("CheckSpace"))
         self.assertFalse(c.has("Color"))
         self.assertEqual([r["name"] for r in c.repos], ["luxos", "luxos-apps", "core", "extra"])
@@ -229,13 +231,13 @@ class Config(unittest.TestCase):
         with self.assertRaises(lux_alpm.LuxError):
             lux_alpm.parse_siglevel(["Sometimes"])
 
-    def test_handle_like_pacman(self):
+    def test_handle_like_engine(self):
         api = make_api()
-        h, extra = lux_alpm.build_handle(api, lux_alpm.PacmanConf(CONF))
-        self.assertEqual(h.gpgdir, "/etc/pacman.d/gnupg/")
-        self.assertEqual(h.logfile, "/var/log/pacman.log")
-        self.assertEqual(h.cachedirs, ["/var/cache/pacman/pkg/"])
-        self.assertIn("/etc/pacman.d/hooks/", h.hookdirs)
+        h, extra = lux_alpm.build_handle(api, lux_alpm.EngineConf(CONF))
+        self.assertEqual(h.gpgdir, "/etc/lux/keyring/")
+        self.assertEqual(h.logfile, "/var/log/lux.log")
+        self.assertEqual(h.cachedirs, ["/var/cache/lux/pkg/"])
+        self.assertIn("/etc/lux/hooks/", h.hookdirs)
         self.assertIn("/usr/share/libalpm/hooks/", h.hookdirs)
         self.assertEqual(h.parallel_downloads, 10)
         self.assertEqual([d.name for d in h.get_syncdbs()], ["luxos", "luxos-apps", "core", "extra"])
@@ -247,7 +249,7 @@ class Config(unittest.TestCase):
     def test_unsupported_config_falls_back(self):
         api = make_api()
         with self.assertRaises(lux_alpm.LuxError) as cm:
-            lux_alpm.build_handle(api, lux_alpm.PacmanConf(CONF.replace("CheckSpace", "XferCommand = /usr/bin/wget %u")))
+            lux_alpm.build_handle(api, lux_alpm.EngineConf(CONF.replace("CheckSpace", "XferCommand = /usr/bin/wget %u")))
         self.assertEqual(cm.exception.rc, lux_alpm.EXIT_UNAVAILABLE)
 
         class Strict:
@@ -261,7 +263,7 @@ class Config(unittest.TestCase):
                 return fake.DB(name, siglevel=sig)
         api.Handle = Strict
         with self.assertRaises(lux_alpm.LuxError) as cm:
-            lux_alpm.build_handle(api, lux_alpm.PacmanConf(CONF))
+            lux_alpm.build_handle(api, lux_alpm.EngineConf(CONF))
         self.assertEqual(cm.exception.rc, 3)
         self.assertIn("GPGDir", cm.exception.message)
 
@@ -269,7 +271,7 @@ class Config(unittest.TestCase):
         saved = sys.modules.get("pyalpm")
         sys.modules["pyalpm"] = None          # import selze
         try:
-            rc = lux_alpm.main(["available"], conf=lux_alpm.PacmanConf(CONF), out=io.StringIO())
+            rc = lux_alpm.main(["available"], conf=lux_alpm.EngineConf(CONF), out=io.StringIO())
         finally:
             if saved is not None:
                 sys.modules["pyalpm"] = saved
@@ -627,7 +629,7 @@ class Transactions(unittest.TestCase):
                 raise KeyboardInterrupt
         api = make_api()
         out = TTY()
-        rc = lux_alpm.main(["install", "htop"], api=api, conf=lux_alpm.PacmanConf(CONF), out=out, inp=Boom())
+        rc = lux_alpm.main(["install", "htop"], api=api, conf=lux_alpm.EngineConf(CONF), out=out, inp=Boom())
         self.assertEqual(rc, 130)
         self.assertTrue(api.Handle.last.transactions[-1].released)
 
@@ -770,6 +772,56 @@ class Queries(unittest.TestCase):
         self.assertNotIn("glibc", out)
         rc, out, _h = run(["list", "--", "HT"])
         self.assertEqual(out.splitlines(), ["htop 3.3.0-1"])
+
+    def test_list_sync(self):
+        """Seznam balicku repozitaru pro TUI lux a Obchod (drive expac)."""
+        rc, out, _h = run(["list", "--sync"])
+        self.assertEqual(rc, 0, out)
+        rows = [ln.split("\t") for ln in out.splitlines()]
+        self.assertTrue(all(len(r) == 5 for r in rows), rows)
+        self.assertIn(["extra", "htop", "3.3.0-2"], [r[:3] for r in rows])
+        self.assertTrue(all(r[3].isdigit() for r in rows))
+
+    def test_check_updates_uses_temporary_db(self):
+        tmp = tempfile.mkdtemp(prefix="lux-cu-test-")
+        try:
+            db = os.path.join(tmp, "db")
+            rc, out, h = run(["check-updates", "--db", db])
+            self.assertEqual(rc, 0, out)
+            self.assertEqual(out.splitlines(), ["archlinux-keyring 20260901-1 -> 20261001-1", "htop 3.3.0-1 -> 3.3.0-2"])
+            self.assertEqual(h.dbpath, db)                        # systemova databaze se nemeni
+            self.assertTrue(all(d.updated for d in h.sync))
+            self.assertEqual(os.readlink(os.path.join(db, "local")), "/var/lib/lux/local")
+
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_cache_plan(self):
+        files = ["/c/htop-3.3.0-1-x86_64.pkg.tar.zst", "/c/htop-3.3.0-2-x86_64.pkg.tar.zst",
+                 "/c/htop-3.2.0-1-x86_64.pkg.tar.zst", "/c/htop-3.10.0-1-x86_64.pkg.tar.zst",
+                 "/c/gone-1.0-1-any.pkg.tar.zst", "/c/lib32-x-1-1-x86_64.pkg.tar.xz", "/c/readme.txt",
+                 "/c/my-tool-git-r10.abc-1-x86_64.pkg.tar.zst"]
+        plan = lux_alpm.cache_plan(files, {"htop", "lib32-x", "my-tool-git"}, fake.vercmp, 2, 0)
+        # nejnovejsi 2 verze (3.10.0 > 3.3.0 - porovnani verzi, ne textu), odinstalovane vsechny
+        self.assertEqual(plan, ["/c/gone-1.0-1-any.pkg.tar.zst", "/c/htop-3.2.0-1-x86_64.pkg.tar.zst",
+                                "/c/htop-3.3.0-1-x86_64.pkg.tar.zst"])
+        self.assertEqual(lux_alpm.cache_plan(files, {"htop"}, fake.vercmp, 1, 1),
+                         ["/c/htop-3.2.0-1-x86_64.pkg.tar.zst", "/c/htop-3.3.0-1-x86_64.pkg.tar.zst",
+                          "/c/htop-3.3.0-2-x86_64.pkg.tar.zst"])
+
+    def test_clean_removes_old_versions(self):
+        tmp = tempfile.mkdtemp(prefix="lux-clean-test-")
+        try:
+            for f in ("htop-3.3.0-1-x86_64.pkg.tar.zst", "htop-3.3.0-1-x86_64.pkg.tar.zst.sig",
+                      "htop-3.3.0-2-x86_64.pkg.tar.zst", "htop-3.2.0-1-x86_64.pkg.tar.zst", "gone-1-1-any.pkg.tar.zst"):
+                with open(os.path.join(tmp, f), "w") as fh:
+                    fh.write("x" * 10)
+            rc, out, _h = run(["clean", "--keep", "1"], conf=CONF.replace("/var/cache/lux/pkg/", tmp + "/"))
+            self.assertEqual(rc, 0, out)
+            self.assertEqual(sorted(os.listdir(tmp)), ["htop-3.3.0-2-x86_64.pkg.tar.zst"])
+            self.assertIn("Removed 3 old package files", out)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
 
     def test_files_and_owns(self):
         rc, out, _h = run(["files", "htop"])

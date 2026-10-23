@@ -5,7 +5,7 @@
 #   spravci baliku (apt, apt-get, apt-cache, aptitude, dpkg, dnf, yum, zypper, snap) -> lux
 #   dpkg-reconfigure -> timedatectl/localectl, sitove nastroje (ifconfig, netstat, ...) -> iproute2/systemd,
 #   which -> command -v
-# Nikdy nic neinstaluje ani nespousti. Pacman resi /usr/lib/lux/pacman-hint (balik lux).
+# Nikdy nic neinstaluje ani nespousti. Prikaz pacman (zvyk z Archu) resi /usr/lib/lux/pacman-hint (balik lux).
 [[ -r /usr/lib/luxos/i18n.sh ]] && . /usr/lib/luxos/i18n.sh
 declare -F T >/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
 

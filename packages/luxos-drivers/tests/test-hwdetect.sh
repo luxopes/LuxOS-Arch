@@ -17,7 +17,8 @@ machine() {  # novy prazdny koren
     ROOT=$TMP/$1
     rm -rf "$ROOT"
     mkdir -p "$ROOT/sys/bus/pci/devices" "$ROOT/sys/bus/usb/devices" "$ROOT/proc" "$ROOT/etc"
-    printf '[options]\n\n[core]\nInclude = /etc/pacman.d/mirrorlist\n' >"$ROOT/etc/pacman.conf"
+    mkdir -p "$ROOT/etc/lux/conf.d"
+    printf 'repo core\n    mirrors  /etc/lux/mirrorlist\n' >"$ROOT/etc/lux/lux.conf"
     : >"$ROOT/proc/cpuinfo"
     unset LUXOS_HW_VIRT
 }
@@ -37,7 +38,8 @@ kernel() {  # kernel PKGBASE VERZE
     mkdir -p "$ROOT/usr/lib/modules/$2"
     echo "$1" >"$ROOT/usr/lib/modules/$2/pkgbase"
 }
-multilib() { printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >>"$ROOT/etc/pacman.conf"; }
+multilib() { printf '\nrepo multilib\n    mirrors  /etc/lux/mirrorlist\n' >>"$ROOT/etc/lux/lux.conf"; }
+multilib_confd() { printf 'repo multilib   # Steam\n    mirrors  /etc/lux/mirrorlist\n' >"$ROOT/etc/lux/conf.d/multilib.conf"; }
 pciids() {
     mkdir -p "$ROOT/usr/share/hwdata"
     printf '%s\n' '# test' '10de  NVIDIA Corporation' $'\t2684  AD102 [GeForce RTX 4090]' \
@@ -164,6 +166,17 @@ machine amd-multilib; cpu AuthenticAMD; pci 0000:03:00.0 030000 1002 73bf; multi
 run_case "AMD with multilib"
 has lib32-vulkan-radeon lib32-mesa
 json_py 'd["multilib"] is True'
+
+# --- multilib v /etc/lux/conf.d; zakomentovany blok se nepocita ---
+machine amd-multilib-confd; cpu AuthenticAMD; pci 0000:03:00.0 030000 1002 73bf; multilib_confd
+run_case "AMD with multilib in conf.d"
+has lib32-vulkan-radeon
+json_py 'd["multilib"] is True'
+machine amd-multilib-off; cpu AuthenticAMD; pci 0000:03:00.0 030000 1002 73bf
+printf '#repo multilib\n#    mirrors  /etc/lux/mirrorlist\n' >>"$ROOT/etc/lux/lux.conf"
+run_case "AMD with multilib commented out"
+lacks lib32-vulkan-radeon
+json_py 'd["multilib"] is False'
 
 # --- NVIDIA + multilib ---
 machine nv-multilib; pci 0000:01:00.0 030000 10de 2684; multilib

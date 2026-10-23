@@ -29,9 +29,12 @@ step() { :; }; progress() { :; }; info() { echo "INFO $*" >>"$OUT/log"; }
 rank_mirrors() { :; }; pac_cleanup() { :; }; wait_internet() { :; }; sleep() { :; }
 pac_filter() { cat >/dev/null; }
 layout_packages() { :; }
-install() { :; }                                   # kopie pacman.conf do cile
-pacstrap() { printf '%s\n' "$@" >"$OUT/pacstrap"; return "${PACSTRAP_RC:-0}"; }
-chroot_pacman() { printf '%s\n' "$@" >>"$OUT/chroot"; return "${CHROOT_RC:-0}"; }
+install_engine_config() { :; }                     # kopie lux.conf a zrcadel do cile
+engine_shim() { ENGINE_SHIM=$OUT/shim; }
+LUX_CONFIG_TOOL=$OUT/lux-config                     # lux-config ensure -> konfigurace jadra live systemu
+printf '#!/bin/sh\necho /run/lux/engine.conf\n' >"$LUX_CONFIG_TOOL"; chmod +x "$LUX_CONFIG_TOOL"
+pacstrap() { printf '%s\n' "$@" >"$OUT/pacstrap"; printf '%s\n' "$PATH" >"$OUT/pacstrap.path"; return "${PACSTRAP_RC:-0}"; }
+chroot_engine() { printf '%s\n' "$@" >>"$OUT/chroot"; return "${CHROOT_RC:-0}"; }
 fail() { echo "FAIL-CALLED $*" >>"$OUT/log"; return 1; }
 # Skutecny luxos-hwdetect z repozitare misto prikazu v PATH
 eval 'luxos-hwdetect() { "$DRIVERS/luxos-hwdetect" "$@"; }'
@@ -67,6 +70,9 @@ check "open: nvidia-open-dkms in pacstrap" in_file pacstrap nvidia-open-dkms
 check "open: headers in pacstrap" in_file pacstrap linux-zen-headers
 check "open: nothing downloaded online" test ! -e "$OUT/chroot"
 check "open: NVIDIA_EARLY=1 without iGPU" test "$NVIDIA_EARLY" = 1
+check "pacstrap uses the engine config of the live system" bash -c "grep -A1 -x -- -C '$OUT/pacstrap' | grep -qx /run/lux/engine.conf"
+check "pacstrap does not copy a mirror list (-M)" in_file pacstrap -M
+check "pacstrap gets the engine tools under Arch names (shim first in PATH)" bash -c "grep -q '^$OUT/shim:' '$OUT/pacstrap.path'"
 
 # --- Pascal (580xx z online [luxos]) ---
 machine "0000:01:00.0 030000 10de 1c03"

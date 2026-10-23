@@ -24,7 +24,8 @@ What it does:
 - **LuxOS Store** shows "Data Saver is on - updates are not checked automatically."
 - `lux` still downloads when you run it yourself (passes `--datasaver` to the backend, which only
   reminds you of the download size before asking).
-- System background downloads `reflector.service` (mirror list) and `archlinux-keyring-wkd-sync.service`
+- System background downloads `reflector.service` (mirror list `/etc/lux/mirrorlist`, converted by
+  the `luxos-tweaks` drop-in) and `archlinux-keyring-wkd-sync.service`
   are skipped on any metered connection (Data Saver, or a phone hotspot NetworkManager guesses as
   metered): drop-in `ExecCondition=/usr/lib/luxos/luxos-unmetered` (package `luxos-tweaks`). They run
   again at the next timer elapse on an unmetered connection.
@@ -164,7 +165,7 @@ udev rule `60-luxos-ioschedulers.rules`: NVMe → `none`, SSD/eMMC → `mq-deadl
 ## Services enabled by the installer
 
 From `/usr/lib/luxos/services`: NetworkManager, lightdm, bluetooth, cups.socket, avahi-daemon,
-power-profiles-daemon, systemd-timesyncd, earlyoom, fstrim.timer, paccache.timer, reflector.timer.
+power-profiles-daemon, systemd-timesyncd, earlyoom, fstrim.timer, reflector.timer (writes `/etc/lux/mirrorlist`; the package cache is cleaned by LuxOS Care, not `paccache.timer`).
 
 ## NVIDIA runtime power management
 

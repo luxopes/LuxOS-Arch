@@ -46,7 +46,14 @@
             "which app",
             "tasks",
             "sandbox",
-            "safe"
+            "safe",
+            "lux.conf",
+            "pacman.conf",
+            "never pacman",
+            "add repository",
+            "hold",
+            "mirrors",
+            "lux-engine"
           ]
         },
         {
@@ -75,13 +82,22 @@
             "keyboard layout",
             "no internet",
             "out of memory",
-            "pacman not found"
+            "pacman not found",
+            "lux.conf error",
+            "error in the configuration",
+            "lux config check",
+            "/var/lib/lux/db.lck",
+            "migration",
+            "pacman leftovers",
+            "/var/lib/pacman",
+            "pacman.conf",
+            "cache"
           ]
         },
         {
           "path": "luxos/package-management.md",
           "title": "Package management with lux",
-          "summary": "All lux commands and options (install, remove, update, search, info, list, clean, fix, configs, history, drivers, mirrors, doctor, pack), lux.conf, AUR, Flatpak, TUI and fixing a locked database.",
+          "summary": "All lux commands and the full /etc/lux/lux.conf reference (repo, server, mirrors, hold, signatures, include), mirror list, AUR, Flatpak, TUI, errors and migration from pacman.conf.",
           "keywords": [
             "lux",
             "install",
@@ -99,18 +115,50 @@
             "lux doctor",
             "lux clean",
             "lux configs",
-            "pacnew",
             "lux history",
             "lux mirrors",
             "lux.conf",
             "sudo",
-            "pkexec"
+            "pkexec",
+            "/etc/lux/lux.conf",
+            "configuration",
+            "repository",
+            "repo",
+            "add repository",
+            "server",
+            "mirror",
+            "mirrors",
+            "mirrorlist",
+            "/etc/lux/mirrorlist",
+            "hold",
+            "hold package",
+            "IgnorePkg",
+            "ignore-group",
+            "signatures",
+            "include",
+            "conf.d",
+            "pacman.conf",
+            "pacman",
+            "no pacman",
+            "lux config",
+            "lux config check",
+            "cache",
+            "/var/cache/lux/pkg",
+            "/var/lib/lux",
+            "lux.log",
+            "clean-keep",
+            "aur off",
+            "disable AUR",
+            "multilib",
+            "migration",
+            "check-updates",
+            "pacnew"
           ]
         },
         {
           "path": "luxos/lux-engine-and-repos.md",
           "title": "lux-engine, repositories and signing",
-          "summary": "Why there is no pacman command, lux-engine internals and pacman-to-lux command mapping, the [luxos] and [luxos-apps] repositories, pacman.conf and the LuxOS signing key.",
+          "summary": "lux-engine (libalpm and tools from Arch's pacman, renamed lux-engine*), paths /etc/lux and /var/lib/lux, the pacman hint, repositories, signing keys and migration from the pacman layout.",
           "keywords": [
             "pacman",
             "lux-engine",
@@ -126,7 +174,23 @@
             "multilib",
             "luxos-keyring",
             "signature",
-            "luxos-pacman"
+            "luxos-pacman",
+            "lux-engine-key",
+            "lux-engine-conf",
+            "/usr/lib/lux/alpm/bin",
+            "engine.conf",
+            "/run/lux/engine.conf",
+            "no pacman",
+            "repo",
+            "repositories",
+            "mirror",
+            "keyring",
+            "/etc/lux/keyring",
+            "signing key",
+            "migration",
+            "/var/lib/pacman",
+            "pacman-mirrorlist",
+            "pacman-contrib"
           ]
         },
         {
@@ -182,7 +246,10 @@
             "LuxAI Flash",
             "timer",
             "metered",
-            "battery"
+            "battery",
+            "check-updates",
+            "lux.log",
+            "cache cleaning"
           ]
         },
         {
@@ -214,7 +281,9 @@
             "fingerprint",
             "accelerometer",
             "lux drivers",
-            "DKMS"
+            "DKMS",
+            "multilib",
+            "lib32"
           ]
         },
         {
@@ -240,7 +309,11 @@
             "--check-layout",
             "templates",
             "freespace",
-            "existing partition"
+            "existing partition",
+            "lux.conf",
+            "mirrorlist",
+            "mirrors",
+            "reflector"
           ]
         },
         {
@@ -446,7 +519,9 @@
             "isolation",
             "xephyr",
             "pasta",
-            "security"
+            "security",
+            "sandbox lux.conf",
+            "pacman inside sandbox"
           ]
         },
         {
@@ -466,7 +541,9 @@
             "sysctl",
             "performance",
             "power profile",
-            "metered"
+            "metered",
+            "reflector.timer",
+            "mirrorlist"
           ]
         },
         {
@@ -527,7 +604,10 @@
             "care.conf",
             "reset",
             "defaults",
-            "settings files"
+            "settings files",
+            "/etc/lux/lux.conf",
+            "mirrorlist",
+            "engine.conf"
           ]
         }
       ]

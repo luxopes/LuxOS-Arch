@@ -2,7 +2,7 @@
 # Lux Simple Lang - oficialni binarni vydani (staticke ELF, stdlib vedle v /usr/lib/lsl)
 
 pkgname=lsl
-pkgver=0.10.2
+pkgver=0.10.5
 pkgrel=1
 pkgdesc="Lux Simple Lang - self-hosted programming language and toolchain"
 arch=(x86_64)
@@ -11,7 +11,7 @@ license=(MIT)
 depends=(binutils curl)
 options=(!strip !debug)
 source=("https://lsl.lux-ai.cz/downloads/lsl-$pkgver-linux-x86_64.tar.gz")
-sha256sums=('387993aae033ace1d77b035e3682e7ba0c12d11a1a8c8be4a9d8737843eaa1fb')
+sha256sums=('9970387c6aa25f50699f0181c59bb859abd8488f8a9641bd08329f5809d828fc')
 
 package() {
     cd "lsl-$pkgver"

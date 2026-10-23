@@ -1,8 +1,7 @@
 # bash completion pro lux
 _lux() {
-    local cur=${COMP_WORDS[COMP_CWORD]} cmd=${COMP_WORDS[1]} pac=/usr/lib/lux/alpm/bin/pacman
-    [[ -x $pac ]] || pac=pacman
-    local cmds="install remove reinstall update upgrade search info list files owns autoremove clean fix configs history pack drivers mirrors doctor"
+    local cur=${COMP_WORDS[COMP_CWORD]} cmd=${COMP_WORDS[1]} pac=/usr/lib/lux/alpm/bin/lux-engine
+    local cmds="install remove reinstall update upgrade search info list files owns autoremove clean fix configs config history pack drivers mirrors doctor"
     if ((COMP_CWORD == 1)); then
         COMPREPLY=($(compgen -W "$cmds --help --version --yes --verbose" -- "$cur")); return
     fi
@@ -12,6 +11,7 @@ _lux() {
         owns|owner) COMPREPLY=($(compgen -f -- "$cur")) ;;
         list) COMPREPLY=($(compgen -W "--installed --upgradable --explicit --aur --lux --orphans" -- "$cur")) ;;
         pack) COMPREPLY=($(compgen -d -- "$cur")) ;;
+        config) COMPREPLY=($(compgen -W "check show edit engine" -- "$cur")) ;;
     esac
 }
 complete -F _lux lux

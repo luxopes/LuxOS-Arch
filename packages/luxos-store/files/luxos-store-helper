@@ -2,8 +2,8 @@
 # LuxOS Store - instalace a odinstalace aplikaci (spousti pkexec, viz org.luxos.store.policy)
 #   luxos-store-helper install|remove BALIK... | upgrade
 # Balicky z repozitaru instaluje lux (libalpm, /usr/lib/lux/lux_alpm.py) ve strojovem rezimu:
-# radky "@@PHASE/@@PROGRESS/@@ERROR/@@RETRY" pro prubeh a anglicke radky ve stylu pacmanu.
-# Bez pyalpm pouzije pacman z jadra lux (vystup anglicky kvuli prubehu, pri vypadku site "@@RETRY n").
+# radky "@@PHASE/@@PROGRESS/@@ERROR/@@RETRY" pro prubeh a anglicke radky jadra (installing x...).
+# Bez pyalpm pouzije nastroj jadra lux-engine (vystup anglicky kvuli prubehu, pri vypadku site "@@RETRY n").
 set -uo pipefail
 export LC_ALL=C.UTF-8
 # pkexec nastavi vlastni PATH: nastroje jadra (lux-engine) pro hooky a skriptlety transakci
@@ -15,9 +15,8 @@ for p in "$@"; do
 done
 
 LUX_ALPM=/usr/lib/lux/lux_alpm.py
-# Bez pyalpm pacman z jadra lux (lux-engine)
-PACMAN=/usr/lib/lux/alpm/bin/pacman
-[[ -x $PACMAN ]] || PACMAN=pacman
+# Bez pyalpm nastroj jadra lux (lux-engine)
+ENGINE=/usr/lib/lux/alpm/bin/lux-engine
 if [[ -x $LUX_ALPM ]] && "$LUX_ALPM" available >/dev/null 2>&1; then
     lux_alpm() { exec "$LUX_ALPM" --machine -y "$@"; }
     case $action in
@@ -27,14 +26,14 @@ if [[ -x $LUX_ALPM ]] && "$LUX_ALPM" available >/dev/null 2>&1; then
     esac
 fi
 
-# pacman s opakovanim: jen kdyz selhalo stahovani (ne pri konfliktu apod.)
-pacman_retry() {
+# lux-engine s opakovanim: jen kdyz selhalo stahovani (ne pri konfliktu apod.)
+engine_retry() {
     local attempt log rc
     log=$(mktemp)
     trap 'rm -f "$log"' RETURN
     for attempt in 1 2 3; do
         ((attempt > 1)) && { echo "@@RETRY $attempt"; sleep 3; }
-        "$PACMAN" "$@" 2>&1 | tee "$log"
+        "$ENGINE" "$@" 2>&1 | tee "$log"
         rc=${PIPESTATUS[0]}
         ((rc == 0)) && return 0
         grep -qE 'failed retrieving file|failed to retrieve some files|too many errors from' "$log" || return "$rc"
@@ -43,9 +42,9 @@ pacman_retry() {
 }
 
 case $action in
-    install) (($#)) && { pacman_retry -S --needed --noconfirm -- "$@"; exit; } ;;
-    remove)  (($#)) && exec "$PACMAN" -Rns --noconfirm -- "$@" ;;
-    upgrade) pacman_retry -Syu --noconfirm; exit ;;
+    install) (($#)) && { engine_retry -S --needed --noconfirm -- "$@"; exit; } ;;
+    remove)  (($#)) && exec "$ENGINE" -Rns --noconfirm -- "$@" ;;
+    upgrade) engine_retry -Syu --noconfirm; exit ;;
     lux-install) (($#)) && exec lux __lux-install "$1" ;;
     lux-remove)  (($#)) && exec lux __lux-remove "$1" ;;
 esac

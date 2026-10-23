@@ -2,238 +2,238 @@
 
 `lux` is the LuxOS package manager and the only supported way to install, update and remove
 software from the command line. It manages packages from the LuxOS and Arch Linux repositories
-directly through **libalpm** (the pacman library, used from Python via `pyalpm`), and also handles
-the AUR, Flatpak (Flathub) and the LuxOS `.lux` app format.
+directly through **libalpm** (used from Python via `pyalpm`), and also handles the AUR, Flatpak
+(Flathub) and the LuxOS `.lux` app format.
 
-There is **no `pacman` command** in LuxOS. See [lux-engine-and-repos.md](lux-engine-and-repos.md)
-for the engine behind lux, the repositories and what happens when someone types `pacman`.
+There is **no `pacman` command and no `/etc/pacman.conf`** in LuxOS. The configuration is
+`/etc/lux/lux.conf` in its own format (see [Configuration](#configuration-etcluxluxconf)). The engine
+behind lux is the `lux-engine` package (libalpm and tools taken from Arch Linux pacman) — see
+[lux-engine-and-repos.md](lux-engine-and-repos.md).
 
-- Program: `/usr/bin/lux` (bash), version shown by `lux --version` (lux 0.3.0 at the time of writing).
-- Transaction backend: `/usr/lib/lux/lux_alpm.py`.
+- Program: `/usr/bin/lux` (bash); transaction backend `/usr/lib/lux/lux_alpm.py`.
 - `.lux` support: `/usr/lib/lux/luxpkg.sh` (see [lux-packages.md](lux-packages.md)).
-- Reference docs installed with the package: `/usr/share/doc/lux/lux.md`,
-  `/usr/share/doc/lux/lux-package-format.md`.
-- Bash completion: `/usr/share/bash-completion/completions/lux`.
+- Reference installed with the package: `/usr/share/doc/lux/lux.md`.
+
+## Files
+
+| Path | What it is |
+|---|---|
+| `/etc/lux/lux.conf` | configuration: repositories, signatures, held packages, lux settings |
+| `/etc/lux/conf.d/*.conf` | more files in the same format (repositories added by packages or the admin) |
+| `/etc/lux/mirrorlist` | Arch Linux download mirrors, one address per line (`lux mirrors`) |
+| `~/.config/lux/lux.conf` | per-user lux settings (only `aur`, `review-pkgbuild`, `flatpak`, `clean-keep`) |
+| `/var/lib/lux/` | package database (`local/`, `sync/`, lock `db.lck`); `installed/` = `.lux` apps |
+| `/var/cache/lux/pkg/` | downloaded packages |
+| `/var/log/lux.log` | transaction log (`lux history`) |
+| `/etc/lux/keyring/` | GnuPG keyring for package signatures (`lux fix` repairs it) |
+| `/etc/lux/hooks/` | admin hooks (`*.hook`, alpm-hooks format) |
+| `/run/lux/engine.conf` | **generated** engine configuration — never edit, it is rebuilt from lux.conf |
 
 ## Commands
 
-| Command (aliases) | What it does | pacman equivalent |
-|---|---|---|
-| `lux` (no arguments) | interactive store in the terminal (TUI, needs `fzf` and `expac`) | |
-| `lux install <pkg...>` (`i`, `add`) | install from repositories → LuxOS `.lux` → AUR → Flathub; also a local `.lux` or `.pkg.tar.*` file; already installed packages are skipped | `-S --needed`, `-U` |
-| `lux remove <pkg...>` (`rm`, `uninstall`) | remove packages with their no longer needed dependencies and config backups | `-Rns` |
-| `lux update` (`upgrade`, `up`) | refresh databases, update signing keys first, then the whole system; then AUR, `.lux` apps and Flatpak | `-Sy` + `-Su` |
-| `lux search <term>` (`s`, `find`) | search repositories, the LuxOS `.lux` repo and the AUR (top 20 by popularity) | `-Ss` |
-| `lux info <pkg>` (`show`) | details: installed package, else from a repository, then `.lux`, then AUR | `-Qi` / `-Si` |
-| `lux list` / `lux list --installed` (`ls`) | installed packages (including `.lux`) | `-Q` |
-| `lux list --upgradable` (`--updates`) | available updates according to the last database refresh (plus `.lux` updates) | `-Qu` |
-| `lux list --explicit` | explicitly installed packages | `-Qe` |
-| `lux list --aur` (`--foreign`) | packages not from any repository (AUR, manual builds) | `-Qm` |
-| `lux list --orphans` | dependencies nothing needs any more | `-Qdt` |
-| `lux list --lux` | installed `.lux` apps | |
-| `lux list <pattern>` | installed packages matching a pattern | |
-| `lux reinstall <pkg...>` | install the same version again (from repository, else from cache) | `-S` / `-U` |
-| `lux autoremove` | remove orphaned dependencies | `-Rns $(pacman -Qdtq)` |
-| `lux files <pkg>` | files installed by a package | `-Ql` |
-| `lux owns <file>` (`owner`) | which package owns a file (also a command name from `PATH`) | `-Qo` |
-| `lux clean` | clean the package cache (keeps `CLEAN_KEEP` versions, removes cached versions of uninstalled packages), offers `autoremove`, deletes AUR build packages older than 30 days | `paccache -rk2`, `paccache -ruk0` |
-| `lux fix` | repair a locked database and the signing keys (see below) | |
-| `lux configs` | review and merge new config files from updates (`.pacnew`, `.pacsave`) using `pacdiff` | `pacdiff` |
-| `lux history [n] [pkg]` | recent package changes from `pacman.log` (default 25 lines) | |
-| `lux drivers` | detect hardware and install missing drivers (see [drivers.md](drivers.md)) | |
-| `lux mirrors` | pick the fastest download mirrors with `reflector` | |
-| `lux doctor` | system health check | |
-| `lux pack <dir> [out]` | build a `.lux` package from a directory with `lux.json` | |
-
-### Options
-
-| Option | Meaning |
+| Command (aliases) | What it does |
 |---|---|
-| `-y`, `--yes` | do not ask for confirmation (otherwise lux always asks) |
-| `-v`, `--verbose` | show package lists, script output and raw libalpm errors |
-| `--repo` | only official repositories (no AUR, no `.lux` updates, no Flatpak) |
-| `--aur` | only AUR |
-| `-h`, `--help` | help |
-| `-V`, `--version` | version |
+| `lux` (no arguments) | interactive store in the terminal (TUI, needs `fzf`) |
+| `lux install <pkg...>` (`i`, `add`) | install from repositories → LuxOS `.lux` → AUR → Flathub; also a local `.lux` or `.pkg.tar.*` file; installed packages are skipped |
+| `lux remove <pkg...>` (`rm`) | remove with no longer needed dependencies and config backups |
+| `lux update` (`upgrade`, `up`) | refresh databases, signing keys first, then the whole system; then AUR, `.lux` apps, Flatpak |
+| `lux search <term>` (`s`) | search repositories, the LuxOS `.lux` repo and the AUR |
+| `lux info <pkg>` (`show`) | details (installed, else repository, `.lux`, AUR) |
+| `lux list [--installed]` (`ls`) | installed packages (including `.lux`); `lux list <pattern>` filters |
+| `lux list --upgradable` | available updates according to the last database refresh |
+| `lux list --explicit` / `--aur` / `--orphans` / `--lux` | explicitly installed / not from a repository / unneeded / `.lux` apps |
+| `lux reinstall <pkg...>` | same version again (repository, else cache) |
+| `lux autoremove` | remove orphaned dependencies |
+| `lux files <pkg>` / `lux owns <file>` | files of a package / which package owns a file |
+| `lux clean` | clean the cache (keeps `clean-keep` versions, removes uninstalled packages), offers `autoremove` |
+| `lux fix` | repair a locked database, unfinished downloads and the signing keys |
+| `lux configs` | review new config files from updates (`.pacnew`, `.pacsave`): diff, use new, keep yours, edit |
+| `lux config [check\|show\|edit\|engine]` | check, show or edit `/etc/lux/lux.conf`; `engine` prints the generated engine config |
+| `lux history [n] [pkg]` | recent package changes from `/var/log/lux.log` |
+| `lux mirrors` | fastest mirrors (`reflector`) written to `/etc/lux/mirrorlist` |
+| `lux drivers` / `lux doctor` / `lux pack <dir>` | drivers ([drivers.md](drivers.md)), health check, build a `.lux` |
 
-Examples:
+Options: `-y`/`--yes` (no questions — otherwise lux always asks), `-v`/`--verbose` (package lists,
+script output, raw errors), `--repo` (only official repositories), `--aur` (only AUR), `-h`, `-V`.
 
 ```bash
-lux install firefox              # from the repositories
+lux install firefox
 lux install ./myapp-1.0-1-any.lux
-lux install org.gimp.GIMP        # Flatpak app ID (only if flatpak is installed)
-lux remove gimp
-lux update                       # full system update
-lux -y update                    # without questions
-lux search video editor
-lux info lsl
+lux install org.gimp.GIMP        # Flatpak app ID (if flatpak is installed)
+lux -y update
 lux owns /usr/bin/fastfetch
 lux history 50 linux-zen
 ```
 
-## Install resolution order
-
-`lux install NAME` decides per target:
-
-1. A `.lux` file path → installed as a `.lux` package (signature checked).
-2. A `.pkg.tar.*` file path → installed through libalpm like `pacman -U`.
-3. Found in the configured repositories (name, `repo/name`, group or a `provides`) → libalpm.
-4. Found in the signed LuxOS `.lux` index → downloaded, checksum and signature verified, installed.
-5. Found in the AUR (and `AUR=1`) → built from the AUR (see below).
-6. Name looks like a Flatpak app ID (contains at least two dots, e.g. `org.gimp.GIMP`) and `flatpak`
-   is installed → `flatpak install -y flathub <id>`.
-7. Otherwise: `Package 'X' not found. Try: lux search X`.
-
-Installing directly from a URL is not supported; download the file first.
-
-## Output and confirmation
-
-```
-Install 3 packages (73 MB download, +259 MB disk)? [Y/n]
-✓ Downloading ████████████████████ 100%  73 MB / 73 MB · 9.1 MB/s
-✓ Verifying   ████████████████████ 100%
-✓ Installing  ████████████████████ 100%  3/3 firefox
-✓ Installed firefox 131.0-1 (+2 deps) in 8.2 s
-```
-
-- One line per phase (refresh, download, verify, install/remove, hooks); errors as one plain
-  sentence (details with `--verbose`).
-- Colors and progress bars only on a terminal and without `NO_COLOR`; redirected output is plain
-  text (`name version` like `pacman -Q`).
-- Network failures are retried up to 3 times without asking again.
-- Ctrl+C during installation finishes the package being installed and then stops safely.
-- Removing a package listed in `HoldPkg` (pacman.conf) triggers a warning that it is essential.
-- With Data Saver on, lux still downloads (the user started it) but reminds about the download size.
-- Messages are English with translations from `luxos-i18n`.
-
-## Administrator rights
-
-Run lux as a normal user. It asks for root by itself:
-
-- in a terminal: `sudo`,
-- in a graphical session without a terminal: `pkexec` (graphical password dialog),
-- when running as root already: directly.
-
-Through sudo/pkexec lux passes a fixed `PATH=/usr/lib/lux/alpm/bin:/usr/local/sbin:/usr/local/bin:/usr/bin`,
-`LANG`, color settings and `LUX_BACKEND`. AUR packages must be built as a regular user — never run
-`sudo lux install <aur-package>`.
+Arch habits are translated: typing `pacman -Syu` (or `lux -Syu`) prints the matching lux command
+(`lux update`), `pacman -S x` → `lux install x`.
 
 ## Configuration: /etc/lux/lux.conf
 
-System file `/etc/lux/lux.conf` (pacman `backup` file), per-user override
-`~/.config/lux/lux.conf` (`$XDG_CONFIG_HOME/lux/lux.conf`). Both are bash `KEY=value` files.
+LuxOS format: one `key  value` per line (separated by spaces), `#` starts a comment to the end of
+the line. Lines indented with spaces or a tab belong to the `repo NAME` line above them. Edit as
+root (`lux config edit` opens it and checks it afterwards), then run `lux config check`.
 
-| Key | Default | Meaning |
+```
+architecture        auto
+parallel-downloads  10
+signatures          required          # required | optional | never
+hold                linux-firmware    # keep at the current version
+aur                 on
+
+repo luxos
+    server  https://lsl.lux-ai.cz/luxos/$repo/$arch
+
+repo core
+    mirrors  /etc/lux/mirrorlist
+
+include  /etc/lux/conf.d/*.conf
+```
+
+### Global keys
+
+| Key | Value (default) | Meaning |
 |---|---|---|
-| `AUR` | `1` | enable AUR (community packages) |
-| `REVIEW_PKGBUILD` | `1` | offer to review the PKGBUILD before building from AUR |
-| `FLATPAK` | `1` | `lux update` also updates Flatpak apps (if flatpak is installed) |
-| `CLEAN_KEEP` | `2` | how many versions of each package `lux clean` keeps in the cache |
+| `architecture` | `auto` | package architecture |
+| `parallel-downloads` | number ≥ 1 (`10`) | files downloaded at once |
+| `signatures` | `required` \| `optional` (`required`) | package/database signature checks; `never` only for a local `file://` repo |
+| `local-signatures` | `required` \| `optional` \| `never` (`optional`) | packages installed from a file (AUR builds) |
+| `hold` | package names, repeatable | held packages: `lux update` skips them (pacman's `IgnorePkg`) |
+| `ignore-group` | group names, repeatable | the same for package groups |
+| `protect` | package names (`lux-engine glibc`) | `lux remove` warns and never removes them with `-y` |
+| `no-upgrade` | paths without leading `/`, repeatable | files updates never overwrite (new version saved as `.pacnew`) |
+| `no-extract` | path patterns, repeatable | files never extracted (e.g. `usr/share/doc/*`) |
+| `color`, `candy`, `verbose-lists`, `check-space` | `on` \| `off` (`on`) | colors, Pac-Man progress bar, detailed lists, free space check |
+| `syslog` | `on` \| `off` (`off`) | also log to the system journal |
+| `download-timeout` | `on` \| `off` (`on`) | `off` = no timeout for slow mirrors |
+| `download-user` | user \| `none` (`alpm`) | unprivileged user that downloads |
+| `download-sandbox` | `on` \| `off` (`on`) | restrict the download process |
+| `cache`, `hooks` | absolute path, repeatable | other cache / hook directories |
+| `database`, `log`, `keyring` | absolute path | other database, log, keyring |
+| `include` | path or pattern | load more files in the same format |
+| `aur` | `on` \| `off` (`on`) | AUR packages (built on this computer) |
+| `review-pkgbuild` | `on` \| `off` (`on`) | offer to read the build script before an AUR build |
+| `flatpak` | `on` \| `off` (`on`) | `lux update` also updates Flatpak apps |
+| `clean-keep` | number (`2`) | versions per package `lux clean` keeps |
 
-Environment variables: `LUX_BACKEND=pacman` (force the internal pacman fallback), `NO_COLOR`,
-`LUX_LOCK_WAIT` (seconds to wait for another package manager, default 300),
-`LUX_INDEX_URL` (`.lux` repository URL).
+### Repositories
 
-## AUR
+`repo NAME` starts a block; indented keys belong to it. Block order is search order (the first
+repository that has a package wins).
 
-- Needs `jq`, `git` and `base-devel`; if missing, lux offers to install `base-devel` and `git`.
-- Must run as a regular user (`AUR packages must be built as a regular user (run lux without sudo)`).
-- Dependencies are resolved recursively through the AUR RPC (`https://aur.archlinux.org/rpc/v5`);
-  repository dependencies are installed normally, AUR dependencies are built first (as dependencies).
-- lux prints `AUR packages to build: …` and warns that AUR packages are maintained by the community,
-  not by LuxOS, then asks `Continue?`.
-- With `REVIEW_PKGBUILD=1` and without `-y` it asks `Review PKGBUILD of X before building?`
-  (opens `bat` or `less`) and `Build and install X?`.
-- Sources are cloned to `~/.cache/lux/aur/<pkgbase>` and built with `makepkg -si`.
-- `lux update` checks installed foreign packages (`-Qm`) against the AUR and rebuilds newer ones
-  (only when not running as root and not with `--repo`).
+| Key in block | Value | Meaning |
+|---|---|---|
+| `server` | `https://`, `http://`, `ftp://` or `file://` address, repeatable | `$repo` and `$arch` are filled in |
+| `mirrors` | path to a mirror list, repeatable | addresses from the file (e.g. `/etc/lux/mirrorlist`) |
+| `signatures` | `required` \| `optional` \| `never` | overrides the global setting (`never` only for `file://`) |
+| `usage` | `sync search install upgrade all` | what the repository is used for (default `all`) |
 
-## Flatpak
+### Mirror list: /etc/lux/mirrorlist
 
-Flatpak is optional (`flatpak` is an optional dependency of lux). `lux install <app.id>` installs
-from Flathub, and `lux update` runs `flatpak update -y --noninteractive` when `FLATPAK=1`.
+One address per line, best first, `#` comments. The default is the worldwide mirror
+`geo.mirror.pkgbuild.com` (picks the nearest) plus a few reliable HTTPS mirrors. `lux mirrors`
+replaces it with the fastest mirrors; `reflector.timer` refreshes it weekly. `Server = …` lines from
+other tools are accepted when reading, but lux writes plain addresses.
+
+```
+https://geo.mirror.pkgbuild.com/$repo/os/$arch
+https://mirror.rackspace.com/archlinux/$repo/os/$arch
+```
+
+### Examples
+
+- **Add a repository** — create `/etc/lux/conf.d/myrepo.conf`, then `lux update`:
+  ```
+  repo myrepo
+      server  https://example.org/$repo/$arch
+  ```
+  Import its signing key with `sudo /usr/lib/lux/alpm/bin/lux-engine-key --recv-keys ID` and
+  `--lsign-key ID`. `multilib` (Steam): `sudo /usr/lib/lux/lux-config enable-repo multilib`.
+- **Hold a package**: add `hold  linux-firmware` (several names per line or several lines).
+- **Change mirrors**: `lux mirrors`, or edit `/etc/lux/mirrorlist` (one address per line).
+- **Disable AUR**: `aur  off` in lux.conf; for one user `aur off` in `~/.config/lux/lux.conf`.
+
+### Errors
+
+Unknown keys, wrong values and pacman.conf syntax (`[options]`, `Key = value`) are errors with the
+file and line number:
+
+```
+lux: error in the configuration: /etc/lux/lux.conf:12: unknown key 'paralel-downloads' (did you mean 'parallel-downloads'?)
+lux: the package manager keeps using the last working configuration until this is fixed
+✗ lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check
+```
+
+With a broken config lux, LuxOS Store and LuxOS Care install and update nothing until it is fixed;
+hooks and `makepkg` keep the last working generated config. Other messages: `repository 'x' has no
+'server' or 'mirrors' line`, `mirror list … does not exist`, `mirror list … has no mirrors`,
+`'signatures never' is only allowed for a local repository (file://)`, `repository 'x' is already
+defined at FILE:LINE`, `indented line '…' does not belong to any 'repo' block`, `'server' belongs to
+a repository: indent it under a 'repo NAME' line`, `'parallel-downloads' must be a whole number of
+at least 1`, `'color' must be on or off`.
+
+### How it works and migration from pacman
+
+`lux-config` (`/usr/lib/lux/lux-config`) turns lux.conf, included files and mirror lists into
+`/run/lux/engine.conf` for the engine and regenerates it whenever a source changes. Updating
+LuxOS 0.9.5 or older moves `/var/lib/pacman` → `/var/lib/lux`, `/var/cache/pacman/pkg` →
+`/var/cache/lux/pkg`, `/etc/pacman.d/gnupg` → `/etc/lux/keyring`, `/var/log/pacman.log` →
+`/var/log/lux.log`, converts custom repositories and options from `/etc/pacman.conf`
+(`[multilib]`, `IgnorePkg` → `hold`, …) into lux.conf and the ranked mirror list into
+`/etc/lux/mirrorlist`. Leftover links are cleaned after the next restart; copies stay in
+`/var/lib/lux/migrated-from-pacman/`.
+
+## Administrator rights
+
+Run lux as a normal user; it asks for root itself (`sudo` in a terminal, `pkexec` in a graphical
+session). AUR packages must be built as a regular user — never `sudo lux install <aur-package>`.
+Environment: `LUX_BACKEND=engine` (force the `lux-engine` fallback), `NO_COLOR`, `LUX_LOCK_WAIT`
+(seconds to wait for another package manager, default 300).
+
+## AUR and Flatpak
+
+- AUR needs `jq`, `git` and `base-devel` (lux offers to install them); dependencies are resolved
+  through the AUR RPC; lux warns that AUR packages are maintained by the community, asks
+  `Continue?` and with `review-pkgbuild on` offers to show the PKGBUILD. Sources go to
+  `~/.cache/lux/aur/<pkgbase>`, built with `makepkg -si`.
+- `lux update` rebuilds newer AUR versions of foreign packages (not as root, not with `--repo`).
+- `lux install <app.id>` installs from Flathub; `lux update` runs `flatpak update` when `flatpak on`.
 
 ## lux update in detail
 
-1. Waits for another running package manager (LuxOS Care, LuxOS Store, …) up to 5 minutes; a stale
-   lock with no package manager running is removed automatically
-   (`Removed a stale database lock left by an interrupted update.`).
-2. Refreshes the databases.
-3. Updates `archlinux-keyring` / `luxos-keyring` first if newer ones exist.
-4. Full system upgrade (no partial upgrades).
-5. AUR packages, `.lux` apps (`Updating LuxOS apps`), Flatpak apps.
-6. Lists new `*.pacnew` files (`New config files to review:`) and warns
-   `Kernel was updated - restart to use it.` when the running kernel's modules are gone.
+1. Waits up to 5 minutes for another package manager (LuxOS Care, Store); a stale lock with nothing
+   running is removed (`Removed a stale database lock left by an interrupted update.`).
+2. Refreshes databases, updates `archlinux-keyring` / `luxos-keyring` first, then the full system.
+3. AUR packages, `.lux` apps, Flatpak apps; lists new `*.pacnew` files and warns when a restart is needed.
 
-Automatic background updates are done by LuxOS Care, not by lux — see [care-updates.md](care-updates.md).
+Automatic background updates are done by LuxOS Care — see [care-updates.md](care-updates.md).
 
-## lux fix: locked database and signing keys
+## lux fix, doctor, clean
 
-`lux fix` (runs as root via sudo/pkexec) does:
-
-1. Checks `/var/lib/pacman/db.lck` (path from `pacman-conf DBPath`).
-   - If a package manager is running (`pacman`, `lux_alpm.py`, `makepkg`, `pacstrap`, `yay`, `paru`,
-     `pamac`, `pamac-daemon`, `packagekitd`): `Another package manager is running (…) - wait until it finishes.`
-   - Otherwise asks `The package database is locked, but no package manager is running. Remove the stale lock?`
-2. When nothing is running, deletes unfinished downloads (`*.part`, `download-*` dirs) in the cache.
-3. Initializes the keyring if empty (`pacman-key --init`) and runs `pacman-key --populate`.
-4. Warns if the clock is not NTP synchronized (`timedatectl set-ntp true`) — wrong time breaks signatures.
-5. Reinstalls `archlinux-keyring` and `luxos-keyring` with a database refresh.
-
-Recovering a locked database: never delete `db.lck` by hand while an update is running. Run
-`lux fix`; if it says another package manager is running, wait (LuxOS Care may be installing
-updates — see the Software Update app). LuxOS Care also removes a lock older than 10 minutes when
-nothing is running.
-
-## lux doctor
-
-Checks and prints:
-
-- failed systemd services (`systemctl --failed`),
-- pending `.pacnew` files (suggests `lux configs`),
-- root filesystem usage (warning above 90 %),
-- orphaned packages (suggests `lux clean`),
-- available updates via `checkupdates` (suggests `lux update`),
-- whether `lux-engine` is older than pacman in Arch Linux (a LuxOS update will follow),
-- whether the running kernel was replaced (restart needed),
-- number of error messages in this boot's journal (`journalctl -b -p err`).
-
-Exit code 1 when issues were found, otherwise `Everything looks good`.
-
-## lux mirrors, history, configs
-
-- `lux mirrors` runs `reflector --latest 20 --protocol https --sort rate --fastest 10 --save /etc/pacman.d/mirrorlist`.
-- `lux history [n] [pkg]` shows `installed/removed/upgraded/downgraded/reinstalled` entries from
-  `/var/log/pacman.log` (date, action, package, versions).
-- `lux configs` says `No pending config files` or runs `pacdiff` as root to compare and merge
-  `.pacnew`/`.pacsave` files.
+- `lux fix` (as root): checks `/var/lib/lux/db.lck` — if a package manager runs (`lux-engine`,
+  `lux_alpm.py`, `makepkg`, …) it says `Another package manager is running (…)`, otherwise offers to
+  remove the stale lock; deletes unfinished downloads; initializes/populates the keyring
+  (`lux-engine-key --init/--populate`); warns about an unsynchronized clock; reinstalls the keyrings.
+  Never delete `db.lck` by hand while an update runs.
+- `lux doctor`: failed services, `.pacnew` files, disk usage, orphans, available updates (checked
+  into a temporary database copy), configuration errors, old package manager files waiting for
+  cleanup, engine version vs. Arch, replaced kernel, journal errors.
+- `lux clean`: own cache cleaner (no pacman-contrib): keeps `clean-keep` newest versions of
+  installed packages, removes cached uninstalled packages, then offers `autoremove`.
 
 ## Interactive terminal store (TUI)
 
-`lux` without arguments in a terminal opens an fzf-based store listing packages from the LuxOS and
-Arch repositories (LuxOS apps first, `●` = installed, preview on the right). If the system has no
-package databases yet it downloads them first.
-
-| Key | Action |
-|---|---|
-| Enter | install the selected package(s) |
-| Ctrl-R | remove selected |
-| Ctrl-U | update the system |
-| Tab | select more packages |
-| Alt-L | LuxOS apps only |
-| Alt-I | installed only |
-| Alt-A | all packages |
-| Esc | quit |
+`lux` without arguments opens an fzf store (LuxOS apps first, `●` = installed). Keys: Enter install,
+Ctrl-R remove, Ctrl-U update, Tab select more, Alt-L LuxOS apps, Alt-I installed, Alt-A all, Esc quit.
 
 ## Machine mode (for apps)
 
-LuxOS Store, LuxOS Care and the Drivers app call
-`/usr/lib/lux/lux_alpm.py --machine -y COMMAND`, which prints lines such as
-`@@PLAN`, `@@PHASE`, `@@PROGRESS`, `@@RETRY`, `@@SUMMARY`, `@@ERROR <kind> <sentence>`,
-`@@UNAVAILABLE` and `@@DONE <code>`. Error kinds: `locked`, `network`, `keyring`, `disk`,
-`conflict`, `pkgconflict`, `deps`, `corrupt`, `notfound`, `notinstalled`, `permission`,
-`confirm`, `cancelled`, `unknown`. Exit codes: 0 ok, 1 error, 2 usage, 3 pyalpm unusable
-(fall back to pacman), 130 interrupted. Full description: `/usr/share/doc/lux/lux.md`.
+LuxOS Store, LuxOS Care and the Drivers app call `/usr/lib/lux/lux_alpm.py --machine -y COMMAND`
+(`@@PLAN`, `@@PHASE`, `@@PROGRESS`, `@@ERROR <kind> <sentence>`, `@@DONE <code>` …). Error kinds:
+`locked`, `network`, `keyring`, `disk`, `conflict`, `pkgconflict`, `deps`, `corrupt`, `notfound`,
+`notinstalled`, `permission`, `confirm`, `cancelled`, `config`, `unknown`. Exit codes: 0 ok,
+1 error, 2 usage, 3 pyalpm unusable (fall back to `lux-engine`), 130 interrupted. Also
+`check-updates` (0 updates, 2 none), `clean`, `list --sync`, `migrate`.
 
 ## Error messages and what to do
 
@@ -243,7 +243,7 @@ LuxOS Store, LuxOS Care and the Drivers app call
 | A package signature could not be verified … (`keyring`) | `lux fix`; check the clock |
 | Some packages could not be downloaded … (`network`) | check internet; `lux mirrors` |
 | Not enough free disk space … (`disk`) | `lux clean` |
-| A downloaded package is damaged … (`corrupt`) | try again; if it repeats `lux clean` |
-| file conflict (`conflict`) | a file exists on disk; `lux owns <file>` to find the owner |
-| Dependencies can not be satisfied (`deps`) | usually a partial update; run `lux update` first |
+| file conflict (`conflict`) | `lux owns <file>` to find the owner |
+| Dependencies can not be satisfied (`deps`) | usually a partial update; `lux update` first |
+| configuration has an error (`config`) | `lux config check`, fix the reported line |
 | Package 'X' not found (`notfound`) | `lux search X` |

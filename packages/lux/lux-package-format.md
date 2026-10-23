@@ -40,7 +40,7 @@ scripts/                 volitelné: post_install, pre_remove (bash, běží jak
 | `format` | verze formátu (teď `1`); novější balíček starý `lux` odmítne |
 | `name` | identifikátor: malá písmena, číslice, `.` `_` `+` `-` |
 | `title` | zobrazovaný název (Obchod), nepovinné |
-| `version`, `release` | verze aplikace a vydání balíčku (porovnává se jako u pacmanu) |
+| `version`, `release` | verze aplikace a vydání balíčku (porovnává se jako verze ostatních balíků – `vercmp`) |
 | `arch` | `any` nebo `x86_64` |
 | `summary`, `description`, `license`, `url`, `categories` | informace pro Obchod a `lux info`; kategorie podle freedesktop (`Utility`, `Development`, `Graphics`…) |
 | `depends.system` | balíčky z repozitářů LuxOS/Arch (instaluje je `lux` přes libalpm), nainstalují se před aplikací |
