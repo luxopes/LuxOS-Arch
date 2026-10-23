@@ -4,18 +4,19 @@
 
 pkgname=luxai
 pkgver=1.0.0
-pkgrel=9
+pkgrel=10
 pkgdesc="LuxAI - AI assistant that can work with your computer (chat and agent mode)"
 arch=(any)
 url="https://lux-ai.cz"
 license=(custom)
-depends=(python python-gobject gtk3 xdotool wmctrl luxos-account luxos-i18n luxos-docs)
+depends=(python python-gobject gtk3 xdotool wmctrl polkit luxos-account luxos-i18n luxos-docs)
 optdepends=('libnotify: desktop notifications from the agent'
             'xdg-utils: open links and files'
             'xclip: clipboard fallback outside GTK'
             'grim: screenshots on Wayland')
+install=luxai.install
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('6cbd6e924199778675f6f70e65c511cc2e4470d98123f06c4481d8d84ceaf7d6')
+sha256sums=('b3160e0b77dc3f6178efd02e05b96f596628900ef319a596a2db1061164ba176')
 
 package() {
     cd "$pkgname-$pkgver"
@@ -38,4 +39,12 @@ SH
         install -Dm644 "data/icons/luxai-$s.png" "$pkgdir/usr/share/icons/hicolor/${s}x$s/apps/luxai.png"
     done
     install -Dm644 README.md "$pkgdir/usr/share/doc/luxai/README.md"
+    # Rezim spravce: pomocnik spousteny pres pkexec (luxai-root vzdy heslo, luxai-root-auto bez hesla jen
+    # s pravidlem 49-luxai-root-<uzivatel>.rules, ktere zapina/vypina luxai-root-setup). Kopie, ne odkaz:
+    # polkit rozlisuje akce podle cesty programu.
+    install -Dm755 data/root/luxai-root "$lib/luxai-root"
+    install -Dm755 data/root/luxai-root "$lib/luxai-root-auto"
+    install -Dm755 data/root/luxai-root-setup "$lib/luxai-root-setup"
+    install -Dm644 data/root/org.luxai.root.policy "$pkgdir/usr/share/polkit-1/actions/org.luxai.root.policy"
+    rm -rf "$lib/data/root"
 }
