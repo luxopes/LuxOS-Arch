@@ -2,7 +2,7 @@
 # LuxOS - upozorneni "!" v horni liste: pripojeno k siti, ale internet neni dostupny (jako v Androidu)
 #   luxos-netcheck          vystup pro plugin genmon (prazdny, kdyz je vse v poradku)
 #   luxos-netcheck click    klik na ikonu: prihlasovaci stranka site, nebo Ovladaci centrum
-# Obnovu pluginu pri zmene site posila luxos-daemon (bez pravidelneho dotazovani).
+# Obnovu pluginu pri zmene site posila luxos-hub (bez pravidelneho dotazovani).
 . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
 
 state() {  # full | limited | portal | none | unknown | offline

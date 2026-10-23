@@ -1,7 +1,7 @@
 [Unit]
 Description=LuxOS Safe - lock on logout
 
-# Zamceni pri zamceni obrazovky a pred uspanim hlida luxos-daemon (jeden proces relace);
+# Zamceni pri zamceni obrazovky a pred uspanim hlida luxos-hub (jeden proces relace);
 # tato sluzba jen zamkne Trezor pri odhlaseni (konec uzivatelske instance systemd).
 [Service]
 Type=oneshot

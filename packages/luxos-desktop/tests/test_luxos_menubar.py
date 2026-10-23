@@ -1,7 +1,7 @@
 """Testy pro luxos-menubar: tuknuti na samotnou klavesu Super otevre Launchpad.
 
 Stavovy automat (files/src/luxos-super-tap.h) se testuje harnessem tests/super-tap/harness.c,
-cely demon pak pod Xvfb (raw udalosti XInput2 z xdotool, falesny luxos-launchpad).
+cely program pak pod Xvfb (raw udalosti XInput2 z xdotool, falesny luxos-launchpad).
 
 Spusteni:  python3 -m unittest packages/luxos-desktop/tests/test_luxos_menubar.py -v
 X cast:    env -u DISPLAY xvfb-run -a python3 -m unittest packages/luxos-desktop/tests/test_luxos_menubar.py -v
@@ -95,7 +95,7 @@ class TapStateMachine(unittest.TestCase):
                          [0, 0, 0, 0, 0, 1])
 
     def test_release_without_press(self):
-        # Demon spusten pri drzene Super / ztracena udalost: samotne uvolneni nic nespusti
+        # Program spusten pri drzene Super / ztracena udalost: samotne uvolneni nic nespusti
         self.assertEqual(self.run_events(f"r {SUPER} 1 1000\nr {KEY_E} 0 1010\n"), [0, 0])
 
     def test_sync_stale_key(self):
@@ -126,7 +126,7 @@ int main(void)
 
 
 @unittest.skipUnless(HAVE_DISPLAY and CC and shutil.which("xdotool"), "jen pod xvfb-run s xdotool a gcc")
-class Daemon(unittest.TestCase):
+class Running(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.menubar = build("luxos-menubar", [os.path.join(SRC, "luxos-menubar.c")],

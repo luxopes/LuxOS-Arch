@@ -758,7 +758,7 @@ Transfer failed: %s (%s)	Не вдалося передати: %s (%s)
 WARNING: someone may be impersonating this device. Nothing was sent. If the device was reinstalled, remove it with 'luxdrop trust remove ID' and pair again.	УВАГА: можливо, хтось видає себе за цей пристрій. Нічого не надіслано. Якщо пристрій було перевстановлено, вилучіть його командою «luxdrop trust remove ID» і створіть пару знову.
 Receiving as "%s" (ID %s) on port %d, mode: %s, folder: %s	Отримання як «%s» (ID %s) на порту %d, режим: %s, папка: %s
 Nearby devices:	Пристрої поблизу:
-No devices found nearby (is avahi-daemon running?).	Поблизу не знайдено пристроїв (чи запущено avahi-daemon?).
+No devices found nearby (is Avahi running?).	Поблизу не знайдено пристроїв (чи запущено Avahi?).
 No trusted devices.	Немає довірених пристроїв.
 Name: %s	Назва: %s
 ID: %s	ID: %s
@@ -832,7 +832,7 @@ Clear	Очистити
 Received	Отримано
 Choose folder	Виберіть папку
 Choose files	Виберіть файли
-Nearby devices cannot be found because avahi-daemon is not running. You can still connect by address.	Неможливо знайти пристрої поблизу, бо avahi-daemon не запущено. Ви все одно можете під’єднатися за адресою.
+Nearby devices cannot be found because Avahi is not running. You can still connect by address.	Неможливо знайти пристрої поблизу, бо Avahi не запущено. Ви все одно можете під’єднатися за адресою.
 Connect by address	Під’єднатися за адресою
 Verify code	Перевірка коду
 Remember this device (no code next time)	Запам’ятати цей пристрій (наступного разу без коду)
@@ -995,7 +995,7 @@ systemd-boot on %s is already in the UEFI boot menu.	systemd-boot на %s уже
 Could not show the boot menu; hold Space while starting to see it.	Не вдалося показати меню завантаження; щоб його побачити, утримуйте Пробіл під час запуску.
 Invalid DISK_MODE (use erase, freespace or manual)	Недійсне значення DISK_MODE (використайте erase, freespace або manual)
 Invalid BOOTLOADER (use auto or none)	Недійсне значення BOOTLOADER (використайте auto або none)
-# luxos-daemon (Bluetooth agent)
+# luxos-hub (Bluetooth agent)
 Allow “%s” to pair with this computer?	Дозволити «%s» створити пару з цим комп’ютером?
 Allow “%s” to connect?	Дозволити «%s» під’єднатися?
 Only allow devices you know.	Дозволяйте лише пристрої, які ви знаєте.
@@ -1415,7 +1415,7 @@ No device answers at %s.	За адресою %s не відповідає жод
 Cannot receive from LocalSend apps: port %d is in use. Is LocalSend running on this computer?	Не вдається отримувати з програм LocalSend: порт %d зайнятий. Чи не запущено LocalSend на цьому комп’ютері?
 LocalSend compatibility needs the python-pyopenssl package.	Для сумісності з LocalSend потрібен пакет python-pyopenssl.
 %d:%02d left	Залишилося %d:%02d
-Nearby LuxOS computers cannot be found because avahi-daemon is not running.	Неможливо знайти комп’ютери з LuxOS поблизу, бо avahi-daemon не запущено.
+Nearby LuxOS computers cannot be found because Avahi is not running.	Неможливо знайти комп’ютери з LuxOS поблизу, бо Avahi не запущено.
 Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Автоматичний пошук пристроїв LocalSend недоступний (%s). Скористайтеся «Сканувати локальну мережу».
 LuxDrop: message from %s	LuxDrop: повідомлення від %s
 %s remaining	залишилося %s

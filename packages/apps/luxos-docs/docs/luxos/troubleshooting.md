@@ -108,8 +108,8 @@ See [settings-apps.md](settings-apps.md#displays).
 - Use **Bluetooth** (`luxos-bluetooth`): turn on, then **Connect** pairs, trusts and connects.
 - "No Bluetooth adapter was found" – no adapter or it is blocked; check `rfkill list` and
   `systemctl status bluetooth`.
-- Pairing started from the phone/headphones is answered by the agent inside `luxos-daemon`
-  (blueman-applet is disabled); if it fails, make sure `luxos-daemon` is running (log out and in).
+- Pairing started from the phone/headphones is answered by the agent inside `luxos-hub`
+  (blueman-applet is disabled); if it fails, make sure `luxos-hub` is running (log out and in).
 - "Make sure the device is on, close by and in pairing mode".
 
 ## Printing and scanning

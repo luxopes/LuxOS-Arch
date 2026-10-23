@@ -79,7 +79,7 @@ contain defaults for the **Plank Dock** (`net.launchpad.plank.dock.settings`
 | `dock-zoom` | luxos-powersaver (older versions) | Dock zoom value to restore |
 | `powersaver.saved` | luxos-powersaver | original values restored when Battery Saver turns off |
 | `sleep-while-playing` | Battery & Power | flag: sleep even while media plays (option off) |
-| `sleep-override` | luxos-daemon | xfce4-power-manager values replaced while media plays |
+| `sleep-override` | luxos-hub | xfce4-power-manager values replaced while media plays |
 | `datasaver` | luxos-datasaver | flag: Data Saver on |
 | `powersaver` | luxos-powersaver | flag: Battery Saver on |
 | `powersaver-auto` | Battery & Power | flag: automatic Battery Saver at 20 % |
@@ -93,7 +93,7 @@ contain defaults for the **Plank Dock** (`net.launchpad.plank.dock.settings`
 | `safe.json` | Safe | `idle_minutes`, `lock_on_screen_lock` |
 | `shell.conf` | bash/lsh/zsh setup | `LUXOS_BLESH=0`, `LUXOS_FASTFETCH=0` |
 | `drivers-ignored` | Drivers notifier | hardware the user chose to ignore |
-| `netcheck-added` | luxos-daemon | top-bar network check plugin added |
+| `netcheck-added` | luxos-hub | top-bar network check plugin added |
 | `calendar-clock-migrated` | Calendar | one-time migration flag |
 | `tour-done`, `welcome-done` | Tour / Welcome | first-login windows already shown |
 | `whats-new-seen` | What's New | last version whose news were shown |

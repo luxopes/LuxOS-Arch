@@ -17,7 +17,7 @@ What it does:
 - State file `~/.config/luxos/datasaver` (exists = on).
 - Marks every active NetworkManager connection as **metered** (`nmcli device modify <dev>
   connection.metered yes`), so apps that honour metered connections limit background downloads.
-- Networks connected later are marked too: `luxos-daemon` watches NetworkManager and runs
+- Networks connected later are marked too: `luxos-hub` watches NetworkManager and runs
   `luxos-datasaver reapply`; `luxos-session` also reapplies it at login.
 - **LuxOS Care** does not update automatically on a metered connection (reason shown: "The connection
   is metered (Data Saver)").
@@ -76,10 +76,10 @@ automatically (marker `$XDG_RUNTIME_DIR/luxos-powersaver-auto-on`).
 
 Battery & Power › Screen and sleep › *Stay awake while music or video is playing* (default on; off =
 `~/.config/luxos/sleep-while-playing` exists). xfce4-power-manager handles the lid (it holds logind's
-`handle-lid-switch` inhibitor), so `luxos-daemon` watches MPRIS players over D-Bus (no polling) and
+`handle-lid-switch` inhibitor), so `luxos-hub` watches MPRIS players over D-Bus (no polling) and
 while something plays temporarily sets xfce4-power-manager's lid action to *Turn off the screen* (if it
 was Sleep/Hibernate) and sleep-on-inactivity to *Never*. The originals are in
-`~/.config/luxos/sleep-override` (restored after 30 s without playback, and at daemon start after a
+`~/.config/luxos/sleep-override` (restored after 30 s without playback, and at luxos-hub start after a
 crash). If the lid was closed while playing, the computer then goes to sleep (via
 xfce4-power-manager, which locks the screen). Battery & Power edits the originals while the override
 is active.
@@ -100,11 +100,11 @@ earlyoom -m 4,2 -s 8,4 -r 0 -n --avoid "<protected>" --prefer "<preferred>"
 - When free RAM < 4 % **and** free swap (zram) < 8 %, the largest process gets `SIGTERM`; below 2 % / 4 %
   it gets `SIGKILL`.
 - Protected (`--avoid`): Xorg/Xwayland, lightdm, systemd*, xfce4-session, xfwm4, xfce4-panel,
-  xfdesktop, xfsettingsd, plank, luxos-daemon, luxos-menubar, luxos-greeter, PipeWire, WirePlumber,
+  xfdesktop, xfsettingsd, plank, luxos-hub, luxos-menubar, luxos-greeter, PipeWire, WirePlumber,
   NetworkManager, wpa_supplicant, D-Bus, polkitd, udisksd, sshd, earlyoom.
 - Preferred victims (`--prefer`): browser tabs/content processes, chromium/chrome, electron, code,
   node, java, qemu-system-x86.
-- `luxos-daemon` shows a critical notification **"Memory is running low – “<app>” used too much memory
+- `luxos-hub` shows a critical notification **"Memory is running low – “<app>” used too much memory
   and was closed so the computer would not freeze."**
 
 Related cgroup limits:

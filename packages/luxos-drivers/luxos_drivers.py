@@ -2,7 +2,7 @@
 
 Pouziva aplikace Ovladace (/usr/bin/luxos-drivers), jeji pomocnik pro root
 (/usr/lib/luxos/drivers/luxos-drivers-helper) a upozorneni po prihlaseni
-(luxos_drivers_session v luxos-daemon). Nic nemeni - jen cte sysfs a databazi pacmanu.
+(luxos_drivers_session v luxos-hub). Nic nemeni - jen cte sysfs a databazi pacmanu.
 """
 import json
 import os

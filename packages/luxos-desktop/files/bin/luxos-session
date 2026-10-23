@@ -56,7 +56,7 @@ else
     rm -f "$cfg/dock-autohide"
 fi
 pgrep -u "$USER" -x luxos-menubar >/dev/null || { luxos-menubar & }
-# Trezor: zamceni pri odhlaseni (sluzba) a zalozka v Souborech; zamceni obrazovky a uspani hlida luxos-daemon
+# Trezor: zamceni pri odhlaseni (sluzba) a zalozka v Souborech; zamceni obrazovky a uspani hlida luxos-hub
 if command -v luxos-safe >/dev/null; then
     systemctl --user start luxos-safe-watch.service 2>/dev/null &
     bm="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/bookmarks"
@@ -69,7 +69,7 @@ fi
 # Jeden proces pro Ovladaci centrum, Kalendar (predem nactene, klik v liste je ukaze okamzite),
 # Trezor, Sporic dat a automaticky vzhled. Pri padu se znovu spusti (dokud bezi X).
 (
-    until luxos-daemon; do
+    until luxos-hub; do
         xprop -root _NET_SUPPORTED >/dev/null 2>&1 || break
         sleep 2
     done

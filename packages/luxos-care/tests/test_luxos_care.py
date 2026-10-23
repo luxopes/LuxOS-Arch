@@ -760,7 +760,7 @@ class Redact(unittest.TestCase):
         self.assertIn("/home/USER", out)
 
 
-# ---- relace (luxos-daemon) --------------------------------------------------------------
+# ---- relace (luxos-hub) --------------------------------------------------------------
 class Session(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

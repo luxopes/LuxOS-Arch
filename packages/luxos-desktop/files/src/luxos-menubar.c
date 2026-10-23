@@ -2,7 +2,7 @@
  * luxos-menubar - prepinani mezi nabidkami horni listy jednim klikem (jako v macOS).
  *
  * Otevrena nabidka pluginu (popup) drzi grab mysi, takze klik na jinou ikonu
- * v liste ji jen zavre nebo se ztrati. Demon sleduje kliky pres XInput2 raw
+ * v liste ji jen zavre nebo se ztrati. Program sleduje kliky pres XInput2 raw
  * udalosti (chodi i behem grabu) a kdyz klik na jiny plugin nic neotevrel,
  * zavre starou nabidku klavesou Escape a klik zopakuje pres XTest.
  *

@@ -1,6 +1,6 @@
 """LuxOS Kalendar - minimalni, odolne cteni a zapis iCalendar (RFC 5545) a datumova matematika.
 
-Bez zavislosti mimo standardni knihovnu (python-icalendar je zbytecne tezky pro demona).
+Bez zavislosti mimo standardni knihovnu (python-icalendar je zbytecne tezky pro proces na pozadi).
 Podporuje VEVENT: SUMMARY, DTSTART/DTEND/DURATION (datum, UTC, TZID, plovouci cas),
 RRULE (FREQ=DAILY/WEEKLY/MONTHLY/YEARLY, INTERVAL, COUNT, UNTIL, BYDAY, BYMONTHDAY, BYMONTH),
 EXDATE, RECURRENCE-ID, COLOR (RFC 7986) a VALARM. Nezname vlastnosti a komponenty se

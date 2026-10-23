@@ -86,7 +86,7 @@ status — **Working**, **Installed**, **Restart required**, **Driver available*
 
 ## Check after login
 
-Inside `luxos-daemon`, at most once per boot and about 45 s after login, `luxos-hwdetect --json` is
+Inside `luxos-hub`, at most once per boot and about 45 s after login, `luxos-hwdetect --json` is
 compared with installed packages. If drivers are missing (new GPU, USB adapter…), a notification
 "Additional drivers are available" appears with **Show drivers** and **Don't remind me**
 (remembered in `~/.config/luxos/drivers-ignored` until the hardware changes). Silent in the live system.

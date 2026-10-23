@@ -52,7 +52,7 @@ class Discovery:
             self.error = e.message
 
     def available(self):
-        """Bezi avahi-daemon? (nespoustime ho sami pres D-Bus aktivaci)."""
+        """Bezi Avahi? (nespoustime ho sami pres D-Bus aktivaci)."""
         if self.bus is None:
             return False
         try:
@@ -73,7 +73,7 @@ class Discovery:
     def publish(self, name, dev_id, port):
         self.unpublish()
         if not self.available():
-            self.error = "avahi-daemon is not running"
+            self.error = "Avahi is not running"
             return False
         try:
             path = self._call("/", "Server", "EntryGroupNew", None, "(o)").unpack()[0]
@@ -103,7 +103,7 @@ class Discovery:
         """Spusti hledani (potrebuje bezici GLib main loop)."""
         if self.browser or not self.available():
             if not self.browser:
-                self.error = "avahi-daemon is not running"
+                self.error = "Avahi is not running"
             return bool(self.browser)
         for sig in ("ItemNew", "ItemRemove"):
             self._subs.append(self.bus.signal_subscribe(AVAHI, "org.freedesktop.Avahi.ServiceBrowser", sig,

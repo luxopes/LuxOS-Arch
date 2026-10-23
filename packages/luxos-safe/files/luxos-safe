@@ -117,7 +117,7 @@ def save_settings(data):
 
 def run_pw(args, password_lines):
     """gocryptfs s heslem na stdin (nikdy v argumentech ani prostredi)."""
-    # Chyby do docasneho souboru, ne do roury: demon gocryptfs by ji drzel otevrenou
+    # Chyby do docasneho souboru, ne do roury: proces gocryptfs by ji drzel otevrenou
     # a subprocess by cekal az do timeoutu
     with tempfile.TemporaryFile("w+") as err:
         try:
@@ -286,7 +286,7 @@ def _unmount(lazy=False):
     return r.returncode == 0 or not is_unlocked()
 
 
-def _daemon_pids():
+def _gocryptfs_pids():
     """Procesy gocryptfs obsluhujici prave tento Trezor."""
     pids = []
     for pid in os.listdir("/proc"):
@@ -305,7 +305,7 @@ def _daemon_pids():
 
 def holders():
     """Procesy s otevrenymi soubory (nebo pracovnim adresarem) v Trezoru: [(pid, nazev)]."""
-    skip = {os.getpid(), *_daemon_pids()}
+    skip = {os.getpid(), *_gocryptfs_pids()}
     pids = set()
     try:
         r = subprocess.run(["fuser", "-m", MOUNT], capture_output=True, text=True, timeout=10)
@@ -374,7 +374,7 @@ def lock(mode="manual"):
                 return None
         # Posledni moznost: bez gocryptfs (a klice v jeho pameti) uz obsah nikdo neprecte;
         # odpojit pak lze i "line" - mrtve pripojeni uz nic neobslouzi.
-        for pid in _daemon_pids():
+        for pid in _gocryptfs_pids():
             try:
                 os.kill(pid, signal.SIGKILL)
             except OSError:
@@ -414,7 +414,7 @@ def take_sleep_inhibitor(system):
 
 
 def subscribe():
-    """Zamykani pri zamceni obrazovky a pred uspanim (pouziva i luxos-daemon). Zamyka se ve vlakne,
+    """Zamykani pri zamceni obrazovky a pred uspanim (pouziva i luxos-hub). Zamyka se ve vlakne,
     aby cekani na zavreni souboru neblokovalo hlavni smycku."""
     from gi.repository import Gio
 

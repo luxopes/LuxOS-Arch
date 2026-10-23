@@ -74,7 +74,7 @@ Vše kromě vytvoření/smazání běží **bez root práv** jako uživatel.
   se čtou při spuštění) – privátní rozsahy jsou ale blokované vždy.
 - **Instalace (`install`):** pacman běží jako „falešný root“ v namespace s jedním UID. Změna vlastníka
   na jiné UID není možná, proto seccomp volání `chown*()` předstírá úspěch – všechny soubory patří
-  uživateli, aplikace spoléhající na oddělené systémové uživatele (démoni, `setuid`) nebudou fungovat.
+  uživateli, aplikace spoléhající na oddělené systémové uživatele (systémové služby, `setuid`) nebudou fungovat.
   Některé hooky (`systemd-tmpfiles`, ACL) vypíšou chyby, instalace přesto doběhne. Podpisy balíčků
   ověřuje pacman uvnitř podle klíčenky sandboxu (archlinux-keyring) – sandbox ji ale může sám změnit,
   takže balíčky v sandboxu jsou stejně důvěryhodné jako sandbox sám.

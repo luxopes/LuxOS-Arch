@@ -160,7 +160,7 @@ class Unlock(Base):
 
 
 class Holders(Base):
-    def test_fuser_parsing_excludes_self_and_daemon(self):
+    def test_fuser_parsing_excludes_self_and_gocryptfs(self):
         me = os.getpid()
         out = types.SimpleNamespace(stdout=f" 4242 {me} 777c 31337", stderr=f"{MNT}:  ", returncode=0)
         comms = {4242: "soffice.bin", 777: "bash", 31337: "gocryptfs"}
@@ -186,7 +186,7 @@ class Holders(Base):
             return real_open(path, *a, **kw)
 
         with mock.patch.object(safe.subprocess, "run", return_value=out) as run, \
-                mock.patch.object(safe, "_daemon_pids", return_value=[31337]), \
+                mock.patch.object(safe, "_gocryptfs_pids", return_value=[31337]), \
                 mock.patch("builtins.open", fopen):
             res = safe.holders()
         self.assertEqual(run.call_args[0][0], ["fuser", "-m", MNT])
@@ -267,12 +267,12 @@ class Lock(Base):
         self.assertFalse(self.lazy_used())
         self.assertEqual(self.notes, [])
 
-    def test_logout_terminates_holders_then_kills_daemon_before_lazy(self):
+    def test_logout_terminates_holders_then_kills_gocryptfs_before_lazy(self):
         events = []
 
         def kill(pid, sig):
             events.append((pid, sig))
-        with mock.patch.object(safe.os, "kill", kill), mock.patch.object(safe, "_daemon_pids", lambda: [31337]):
+        with mock.patch.object(safe.os, "kill", kill), mock.patch.object(safe, "_gocryptfs_pids", lambda: [31337]):
             orig_run = safe.subprocess.run
 
             def run(args, **kw):
@@ -287,7 +287,7 @@ class Lock(Base):
     def test_logout_holder_closes_after_sigterm(self):
         def kill(pid, sig):
             self.busy = False
-        with mock.patch.object(safe.os, "kill", kill), mock.patch.object(safe, "_daemon_pids", lambda: [31337]):
+        with mock.patch.object(safe.os, "kill", kill), mock.patch.object(safe, "_gocryptfs_pids", lambda: [31337]):
             self.assertIsNone(safe.lock("logout"))
         self.assertFalse(self.lazy_used())
 

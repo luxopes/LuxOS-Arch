@@ -758,7 +758,7 @@ Transfer failed: %s (%s)	Przesyłanie nie powiodło się: %s (%s)
 WARNING: someone may be impersonating this device. Nothing was sent. If the device was reinstalled, remove it with 'luxdrop trust remove ID' and pair again.	OSTRZEŻENIE: ktoś może podszywać się pod to urządzenie. Niczego nie wysłano. Jeśli system na urządzeniu został przeinstalowany, usuń je poleceniem „luxdrop trust remove ID” i sparuj ponownie.
 Receiving as "%s" (ID %s) on port %d, mode: %s, folder: %s	Odbieranie jako „%s” (ID %s) na porcie %d, tryb: %s, folder: %s
 Nearby devices:	Urządzenia w pobliżu:
-No devices found nearby (is avahi-daemon running?).	Nie znaleziono urządzeń w pobliżu (czy avahi-daemon działa?).
+No devices found nearby (is Avahi running?).	Nie znaleziono urządzeń w pobliżu (czy Avahi działa?).
 No trusted devices.	Brak zaufanych urządzeń.
 Name: %s	Nazwa: %s
 ID: %s	ID: %s
@@ -832,7 +832,7 @@ Clear	Wyczyść
 Received	Odebrane
 Choose folder	Wybierz folder
 Choose files	Wybierz pliki
-Nearby devices cannot be found because avahi-daemon is not running. You can still connect by address.	Nie można znaleźć urządzeń w pobliżu, ponieważ avahi-daemon nie działa. Nadal możesz połączyć się za pomocą adresu.
+Nearby devices cannot be found because Avahi is not running. You can still connect by address.	Nie można znaleźć urządzeń w pobliżu, ponieważ Avahi nie działa. Nadal możesz połączyć się za pomocą adresu.
 Connect by address	Połącz za pomocą adresu
 Verify code	Weryfikacja kodu
 Remember this device (no code next time)	Zapamiętaj to urządzenie (następnym razem bez kodu)
@@ -995,7 +995,7 @@ systemd-boot on %s is already in the UEFI boot menu.	systemd-boot na %s jest ju�
 Could not show the boot menu; hold Space while starting to see it.	Nie można wyświetlić menu rozruchowego; aby je zobaczyć, przytrzymaj spację podczas uruchamiania.
 Invalid DISK_MODE (use erase, freespace or manual)	Nieprawidłowy DISK_MODE (użyj erase, freespace lub manual)
 Invalid BOOTLOADER (use auto or none)	Nieprawidłowy BOOTLOADER (użyj auto lub none)
-# luxos-daemon (Bluetooth agent)
+# luxos-hub (Bluetooth agent)
 Allow “%s” to pair with this computer?	Zezwolić urządzeniu „%s” na sparowanie z tym komputerem?
 Allow “%s” to connect?	Zezwolić urządzeniu „%s” na połączenie?
 Only allow devices you know.	Zezwalaj tylko urządzeniom, które znasz.
@@ -1415,7 +1415,7 @@ No device answers at %s.	Pod adresem %s nie odpowiada żadne urządzenie.
 Cannot receive from LocalSend apps: port %d is in use. Is LocalSend running on this computer?	Nie można odbierać z aplikacji LocalSend: port %d jest zajęty. Czy LocalSend działa na tym komputerze?
 LocalSend compatibility needs the python-pyopenssl package.	Zgodność z LocalSend wymaga pakietu python-pyopenssl.
 %d:%02d left	Pozostało %d:%02d
-Nearby LuxOS computers cannot be found because avahi-daemon is not running.	Nie można znaleźć pobliskich komputerów z LuxOS, ponieważ avahi-daemon nie działa.
+Nearby LuxOS computers cannot be found because Avahi is not running.	Nie można znaleźć pobliskich komputerów z LuxOS, ponieważ Avahi nie działa.
 Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Automatyczne wykrywanie urządzeń LocalSend jest niedostępne (%s). Użyj opcji „Przeszukaj sieć lokalną”.
 LuxDrop: message from %s	LuxDrop: wiadomość od %s
 %s remaining	pozostało %s

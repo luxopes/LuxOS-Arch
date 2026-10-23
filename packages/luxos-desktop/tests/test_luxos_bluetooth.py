@@ -136,9 +136,9 @@ class BusFixture(unittest.TestCase):
             raise unittest.SkipTest("dbus-daemon is missing")
         cls.tmp = tempfile.mkdtemp(prefix="luxos-bt-test.")
         cls.log = os.path.join(cls.tmp, "calls.jsonl")
-        cls.daemon = subprocess.Popen(["dbus-daemon", "--session", "--nofork", "--print-address=1"],
+        cls.bus_proc = subprocess.Popen(["dbus-daemon", "--session", "--nofork", "--print-address=1"],
                                       stdout=subprocess.PIPE, text=True)
-        cls.addr = cls.daemon.stdout.readline().strip()
+        cls.addr = cls.bus_proc.stdout.readline().strip()
         env = dict(os.environ, FAKE_BLUEZ_ADDR=cls.addr, FAKE_BLUEZ_LOG=cls.log)
         cls.fake = subprocess.Popen([sys.executable, "-c", FAKE_BLUEZ], env=env, stdout=subprocess.PIPE, text=True)
         assert cls.fake.stdout.readline().strip() == "READY"
@@ -151,9 +151,9 @@ class BusFixture(unittest.TestCase):
     def tearDownClass(cls):
         bt.BUS = bt.system_bus
         cls.fake.terminate()
-        cls.daemon.terminate()
+        cls.bus_proc.terminate()
         cls.fake.wait(5)
-        cls.daemon.wait(5)
+        cls.bus_proc.wait(5)
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
     def setUp(self):

@@ -131,14 +131,14 @@ In Carefree mode built-in rules run at most once per day per problem. Only actio
 catalog are ever executed: remove stale lock, finish interrupted upgrade, refresh signing keys,
 rebuild initramfs (`mkinitcpio -P`), `dkms autoinstall`, reinstall a package, restart a failed unit,
 clean cache (paccache + journal vacuum to 200 MB), retry the new kernel, use the previous kernel.
-For unknown serious problems the session part (in `luxos-daemon`) sends a redacted diagnosis to
+For unknown serious problems the session part (in `luxos-hub`) sends a redacted diagnosis to
 LuxAI Flash with the user's LuxAI account; the AI may only pick the number of one of the prepared
 options, root re-validates it, max 3 AI actions per day. Without a LuxAI account the user gets a
 notification "Sign in to LuxAI to let LuxOS fix unknown problems."
 
 ## Notifications
 
-Shown by `luxos-daemon` in the user session: "LuxOS was updated", "Restart to finish the kernel
+Shown by `luxos-hub` in the user session: "LuxOS was updated", "Restart to finish the kernel
 update" (Restart / Details), "Updates are available" (Classic), "Updates could not be installed",
 "Update postponed", "LuxOS fixed a problem", "LuxOS found a problem". Details opens Software Update.
 

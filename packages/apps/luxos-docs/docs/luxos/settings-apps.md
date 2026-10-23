@@ -125,7 +125,7 @@ BlueZ over D-Bus.
   pairing mode."). **Connect** pairs, trusts and connects in one step.
 - If the device asks for a code, a dialog appears: confirm the code, type the code shown, or enter
   the PIN ("Usually 0000 or 1234").
-- Pairing started from a phone or headphones is handled by the agent in `luxos-daemon`
+- Pairing started from a phone or headphones is handled by the agent in `luxos-hub`
   (blueman-applet is disabled).
 
 If connecting fails, the app says "Make sure the device is on, close by and in pairing mode." With

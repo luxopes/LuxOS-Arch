@@ -1,4 +1,4 @@
-"""LuxOS Care - cast v relaci uzivatele (bezi uvnitr luxos-daemon, zadny dalsi proces).
+"""LuxOS Care - cast v relaci uzivatele (bezi uvnitr luxos-hub, zadny dalsi proces).
 
 - hlida /var/lib/luxos-care (udalost souboru, zadne dotazovani) a ukazuje upozorneni
   ("LuxOS byl aktualizovan", "Restartujte pro dokonceni aktualizace jadra", "LuxOS opravil problem"),
@@ -32,7 +32,7 @@ _state = {"bus": None, "sys": None, "actions": {}, "asking": False, "monitor": N
 
 
 def log(msg):
-    print(f"luxos-daemon: care: {msg}", file=sys.stderr, flush=True)
+    print(f"luxos-hub: care: {msg}", file=sys.stderr, flush=True)
 
 
 def read_json(name, default):
@@ -121,7 +121,7 @@ def notify(title, body, actions=()):
             _state["actions"][b.call_finish(res).unpack()[0]] = True
         except GLib.Error as e:
             log(f"notify: {e.message}")
-    # Asynchronne: zaseknuty server upozorneni nesmi blokovat luxos-daemon
+    # Asynchronne: zaseknuty server upozorneni nesmi blokovat luxos-hub
     bus.call("org.freedesktop.Notifications", "/org/freedesktop/Notifications",
              "org.freedesktop.Notifications", "Notify",
              GLib.Variant("(susssasa{sv}i)", ("LuxOS", 0, "system-software-update", title, body, acts,
@@ -302,7 +302,7 @@ def on_change(*_a):
 
 
 def subscribe():
-    """Volano z luxos-daemon pri startu relace."""
+    """Volano z luxos-hub pri startu relace."""
     try:
         _state["bus"] = Gio.bus_get_sync(Gio.BusType.SESSION)
         _state["bus"].signal_subscribe("org.freedesktop.Notifications", "org.freedesktop.Notifications",

@@ -8,7 +8,7 @@ Rezim je v /etc/luxos/care.conf (MODE=carefree|classic, chybi = carefree):
 
 Stav pro aplikaci a relaci (vse citelne pro uzivatele, nic tajneho):
   /var/lib/luxos-care/state.json     posledni aktualizace, cekajici aktualizace, problemy
-  /var/lib/luxos-care/events.json    posledni udalosti pro upozorneni (luxos-daemon)
+  /var/lib/luxos-care/events.json    posledni udalosti pro upozorneni (luxos-hub)
   /var/lib/luxos-care/history.jsonl  auditni zaznam (aktualizace, opravy, rozhodnuti AI)
   /run/luxos-care/progress.json      prubeh prave bezici aktualizace
 
@@ -182,7 +182,7 @@ def update_state(**kw):
 
 
 def add_event(kind, **data):
-    """Udalost pro upozorneni v relaci; luxos-daemon si pamatuje posledni videne seq."""
+    """Udalost pro upozorneni v relaci; luxos-hub si pamatuje posledni videne seq."""
     ev = read_json(EVENTS, {"seq": 0, "events": []})
     ev["seq"] = int(ev.get("seq", 0)) + 1
     item = {"seq": ev["seq"], "time": now(), "kind": kind}
