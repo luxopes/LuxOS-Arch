@@ -1,0 +1,4 @@
+# LuxAI - po odinstalovani smazat pravidla rezimu spravce (bez pomocnika by byla k nicemu)
+post_remove() {
+    rm -f /etc/polkit-1/rules.d/49-luxai-root-*.rules
+}
