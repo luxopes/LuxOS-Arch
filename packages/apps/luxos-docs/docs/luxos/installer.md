@@ -8,7 +8,7 @@ The installer is the package `luxos-installer`: a bash backend `luxos-install` (
 - The installation takes about 10 minutes and **needs internet**: current packages are downloaded;
   LuxOS packages come from the local repository on the ISO (`/opt/luxos-repo`).
 - Log: `/var/log/luxos-install.log` (copied to the installed system).
-- Shared files: `/usr/share/luxos/installer/` (`packages`, `install.conf.example`, `pacman.conf`,
+- Shared files: `/usr/share/luxos/installer/` (`packages`, `install.conf.example`, `lux.conf`,
   `templates/*.list`, `setup-chroot.sh`, `layout.sh`).
 
 ## Steps
@@ -47,7 +47,7 @@ Minimum disk size is 20 GB.
 - Kernel: `linux-zen`.
 
 With a shared ESP mounted at `/efi`, the kernel is copied to `EFI/LuxOS/<id>` by
-`/usr/local/sbin/luxos-esp-sync` (pacman hook `99-luxos-esp-sync.hook`) and systemd-boot is only
+`/usr/local/sbin/luxos-esp-sync` (hook `/etc/lux/hooks/99-luxos-esp-sync.hook`) and systemd-boot is only
 installed if none is present; a boot menu with a 3 s timeout is created when other systems exist.
 
 ### Manual partitioning
@@ -170,6 +170,10 @@ Always installed (`/usr/share/luxos/installer/packages`): `base`, `lux-engine`, 
 `luxos-desktop`, `luxdrop`, `luxai`, `luxos-safe`, `luxos-sandbox`, `luxos-care`, plus drivers from
 `luxos-hwdetect` (see [drivers.md](drivers.md)) and `efibootmgr` (UEFI) or `grub` (BIOS).
 Downloads are retried up to 3 times (fewer parallel downloads on retry); mirrors are ranked first.
+The fastest mirrors for your country (reflector) are written to `/etc/lux/mirrorlist` of the new
+system; the installer also writes `/etc/lux/lux.conf` (the LuxOS default: online `[luxos]`,
+`[luxos-apps]`, Arch `[core]`/`[extra]`; the Gaming template adds `multilib`). The installed system
+has the lux layout from the start (`/var/lib/lux`, `/etc/lux/keyring`), no pacman files.
 
 ## LuxAI account
 

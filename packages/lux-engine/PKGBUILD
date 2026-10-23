@@ -1,37 +1,50 @@
 # Maintainer: LuxOS Team
 # Upstream PKGBUILD: Levente Polyak <anthraxx[at]archlinux[dot]org>, Morten Linderud <foxboron@archlinux.org>
 #
-# lux-engine: jadro spravce baliku lux - libalpm a nastroje pacmanu z Arch Linuxu (libalpm pro pyalpm
-# a lux, makepkg, vercmp, repo-add, hooky a konfigurace). Zdroje, kontrolni soucty, zaplaty, build()
-# a check() jsou PRESNE podle Arch Linuxu: https://gitlab.archlinux.org/archlinux/packaging/packages/pacman
+# lux-engine: jadro spravce baliku lux - libalpm a nastroje z pacmanu Arch Linuxu (libalpm pro pyalpm
+# a lux, makepkg, vercmp, repo-add, hooky). Zdroje, kontrolni soucty, zaplaty, build() a check() jsou
+# PRESNE podle Arch Linuxu: https://gitlab.archlinux.org/archlinux/packaging/packages/pacman
 # tag 7.1.0.r9.g54d9411-3 (soubory 0001-*.patch, 0002-*.patch, makepkg.conf, alpm.sysusers,
 # fortran.conf, rust.conf a keys/pgp/ jsou z tohoto tagu beze zmeny).
 #
-# Rozdily oproti Archu (jen v package(), zamerne co nejmensi):
-#  - v LuxOS neni zadny prikaz pacman: pacman, pacman-key, pacman-conf a pacman-db-upgrade jsou
-#    interni nastroje lux v /usr/lib/lux/alpm/bin (mimo PATH). Pouzivaji je lux, makepkg (pres
-#    /etc/makepkg.conf.d/lux-engine.conf), hooky a skriptlety (dedi PATH od lux), sluzby
-#    (drop-iny v /usr/lib/systemd/system/*.d/lux-engine.conf) a nastroje LuxOS (PATH si nastavi samy).
-#    /usr/lib/lux/alpm/pacman je odkaz pro starsi volajici (LuxOS 0.9).
-#  - bez manualovych stranek a doplnovani prikazu pacman*; doplnovani makepkg zustava
+# Rozdily oproti Archu (zamerne co nejmensi):
+#  - prepare(): vychozi cesty jadra jsou cesty LuxOS (sed v meson.build a skriptech, kontrola grepem):
+#      konfigurace jadra  /run/lux/engine.conf  (generuje ji lux-config z /etc/lux/lux.conf - vlastni
+#                                               format LuxOS, nikdo ji nepise rucne; misto /etc/pacman.conf)
+#      databaze           /var/lib/lux/         (misto /var/lib/pacman/)
+#      cache              /var/cache/lux/pkg/   (misto /var/cache/pacman/pkg/)
+#      log                /var/log/lux.log      (misto /var/log/pacman.log)
+#      klicenka GnuPG     /etc/lux/keyring/     (misto /etc/pacman.d/gnupg/)
+#      hooky spravce      /etc/lux/hooks/       (misto /etc/pacman.d/hooks/)
+#    /usr/share/libalpm/hooks a /usr/share/pacman/keyrings (cesty baliku Archu) zustavaji.
+#  - v LuxOS neni zadny prikaz pacman: nastroje jadra jsou /usr/lib/lux/alpm/bin/lux-engine,
+#    lux-engine-key, lux-engine-conf a lux-engine-db-upgrade (mimo PATH). Jsou to spousteci skripty
+#    (lux-engine-wrapper), ktere pred spustenim overi /run/lux/engine.conf (lux-config) a spusti
+#    skutecny program z /usr/lib/lux/alpm/libexec. Vnitrni volani (pacman-key -> pacman-conf,
+#    makepkg -> pacman-conf a PACMAN=pacman, pacman-db-upgrade -> pacman-conf) jsou prejmenovana.
+#    Pouzivaji je lux, makepkg (/etc/makepkg.conf.d/lux-engine.conf), hooky a skriptlety (dedi PATH
+#    od lux), sluzby (drop-iny v /usr/lib/systemd/system/*.d/lux-engine.conf) a nastroje LuxOS.
+#  - /etc/lux/lux.conf, /etc/lux/mirrorlist (vlastni seznam zrcadel, bez pacman-mirrorlist)
+#    a lux-config (/usr/lib/lux/lux_config.py) jsou soucasti jadra
+#  - prechod starsich instalaci: hook 00-lux-engine-migrate (lux-engine-migrate, viz jeho hlavicka)
+#  - bez manualovych stranek pacman* a doplnovani prikazu pacman*; doplnovani makepkg zustava
 #  - klice z klicenek (archlinux-keyring, luxos-keyring) nacita hook lux-engine-keyrings: jejich
 #    instalacni skripty volaji /usr/bin/pacman-key, ktery v LuxOS neni
-#  - /etc/pacman.conf je konfigurace LuxOS (shodna s luxos-installer/files/pacman.conf, aby
-#    nahrazeni baliku na existujicich instalacich nevytvorilo pacman.conf.pacnew)
 #  - $pkgname -> $_srcname (adresar zdroju), options=(!debug) jako ostatni baliky LuxOS
 #  - provides/conflicts/replaces: nahrazuje pacman i luxos-pacman (LuxOS 0.9); zavislosti "pacman"
-#    a libalpm.so plati dal
+#    (virtualni jmeno, maji ho baliky Archu) a libalpm.so plati dal
 #
 # Aktualizace (vzdy, kdyz Arch vyda novy pacman - container-build.sh na to upozorni):
 #   prevzit z noveho tagu pkgver, pkgrel, _git_tag, _git_patch_level_commit, source, sha256sums,
 #   validpgpkeys, keys/pgp, soubory zaplat a konfigurace; build()/check()/package() porovnat.
+#   Kontroly v prepare() a package() selzou, kdyz se zmeni radky, ktere LuxOS upravuje.
 #   pyalpm v Archu se sestavuje proti pacmanu z Archu (libalpm.so) - lux-engine musi drzet krok.
 #   pkgrel je pkgrel Archu (tag v hlavicce); jen sestaveni LuxOS bez zmeny v Archu: X.1, X.2, ...
 
 pkgname=lux-engine
 _srcname=pacman
 pkgver=7.1.0.r9.g54d9411
-pkgrel=3.1
+pkgrel=3.2
 # use annotated tag and patch level commit from release branch (can be empty for no patches)
 _git_tag=7.1.0
 _git_patch_level_commit=54d94116164b0b2202c6061c4a59c6f3e70820d8
@@ -51,7 +64,7 @@ depends=(
   grep
   libarchive libarchive.so
   openssl libcrypto.so
-  pacman-mirrorlist
+  python
   systemd
   libmakepkg-dropins
 )
@@ -73,13 +86,14 @@ provides=("pacman=${pkgver}" 'libalpm.so' "luxos-pacman=${pkgver}")
 conflicts=('pacman' 'luxos-pacman')
 replaces=('pacman' 'luxos-pacman')
 options=(!debug)
-backup=(etc/pacman.conf
+backup=(etc/lux/lux.conf
+        etc/lux/mirrorlist
         etc/makepkg.conf
         etc/makepkg.conf.d/fortran.conf
         etc/makepkg.conf.d/rust.conf)
 validpgpkeys=('6645B0A8C7005E78DB1D7864F99FFE0FEAE999BD'  # Allan McRae <allan@archlinux.org>
               'B8151B117037781095514CA7BBDFFC92306B1121') # Andrew Gregory (pacman) <andrew@archlinux.org>
-# Arch: jeste pacman.conf (LuxOS ma vlastni, viz package())
+# Arch: jeste pacman.conf (LuxOS: /etc/lux/lux.conf, viz package())
 source=("git+https://gitlab.archlinux.org/pacman/pacman.git?signed#tag=v${_git_tag}"
         "revertme-makepkg-remove-libdepends-and-libprovides.patch::https://gitlab.archlinux.org/pacman/pacman/-/commit/354a300cd26bb1c7e6551473596be5ecced921de.patch"
         "patch-reproducible-builds.patch::https://gitlab.archlinux.org/pacman/pacman/-/commit/f4bdb77470528019aaba4d8b8f947e918c6db17d.patch"
@@ -133,6 +147,18 @@ prepare() {
       fi
     done
   fi
+
+  # LuxOS: vychozi cesty jadra (viz hlavicka)
+  sed -i -e "s|conf.set_quoted('CONFFILE', join_paths(SYSCONFDIR, 'pacman.conf'))|conf.set_quoted('CONFFILE', '/run/lux/engine.conf')|" \
+         -e 's|lib/pacman/|lib/lux/|g' -e 's|cache/pacman/pkg/|cache/lux/pkg/|g' -e 's|log/pacman\.log|log/lux.log|g' \
+         -e 's|pacman\.d/gnupg/|lux/keyring/|g' -e 's|pacman\.d/hooks/|lux/hooks/|g' meson.build
+  sed -i -e 's|@sysconfdir@/pacman\.conf|/run/lux/engine.conf|g' -e 's|@sysconfdir@/pacman\.d/gnupg|/etc/lux/keyring|g' \
+      scripts/pacman-key.sh.in scripts/pacman-db-upgrade.sh.in
+  if grep -nE "pacman\.conf'|lib/pacman|cache/pacman|pacman\.log|pacman\.d" meson.build | grep -v "etc/pacman.conf.in\|output : 'pacman.conf'\|conf file" ||
+     ! grep -q "'CONFFILE', '/run/lux/engine.conf'" meson.build ||
+     grep -n '@sysconfdir@/pacman' scripts/pacman-key.sh.in scripts/pacman-db-upgrade.sh.in; then
+    error "LuxOS paths not applied (upstream changed?)"; return 1
+  fi
 }
 
 build() {
@@ -162,8 +188,15 @@ package() {
 
   # install Arch specific stuff
   install -dm755 "$pkgdir/etc"
-  # LuxOS: pacman.conf LuxOS misto Archu
-  install -m644 "$startdir/pacman.conf" "$pkgdir/etc"
+  # LuxOS: misto pacman.conf vlastni /etc/lux/lux.conf a seznam zrcadel (vychozi kopie pro migraci)
+  rm "$pkgdir/etc/pacman.conf"
+  install -Dm644 "$startdir/lux.conf" "$pkgdir/etc/lux/lux.conf"
+  install -Dm644 "$startdir/mirrorlist" "$pkgdir/etc/lux/mirrorlist"
+  install -Dm644 "$startdir/lux.conf" "$pkgdir/usr/share/lux/lux.conf.default"
+  install -Dm644 "$startdir/mirrorlist" "$pkgdir/usr/share/lux/mirrorlist.default"
+  install -dm755 "$pkgdir/etc/lux/conf.d" "$pkgdir/etc/lux/hooks"
+  install -Dm755 "$startdir/lux_config.py" "$pkgdir/usr/lib/lux/lux_config.py"
+  ln -s lux_config.py "$pkgdir/usr/lib/lux/lux-config"
   install -m644 "$srcdir/makepkg.conf" "$pkgdir/etc"
   install -D -m644 "$srcdir/alpm.sysusers" "${pkgdir}"/usr/lib/sysusers.d/alpm.conf
   install -m644 "$srcdir/fortran.conf" "$pkgdir/etc/makepkg.conf.d"
@@ -174,33 +207,53 @@ package() {
 
   local unit
   for unit in dirmngr gpg-agent gpg-agent-{browser,extra,ssh} keyboxd; do
-    ln -s "../${unit}@.socket" "$wantsdir/${unit}@etc-pacman.d-gnupg.socket"
+    ln -s "../${unit}@.socket" "$wantsdir/${unit}@etc-lux-keyring.socket"
   done
 
-  # LuxOS: nastroje jadra mimo PATH (prikaz pacman v LuxOS neni, spravcem baliku je lux)
-  local engine="$pkgdir/usr/lib/lux/alpm" tool
-  install -dm755 "$engine/bin"
+  # LuxOS: nastroje jadra mimo PATH a bez jmena pacman (spravcem baliku je lux): skutecne programy
+  # v libexec, v bin spousteci skript, ktery zajisti aktualni /run/lux/engine.conf
+  local engine="$pkgdir/usr/lib/lux/alpm" tool new
+  install -dm755 "$engine/bin" "$engine/libexec"
   for tool in pacman pacman-key pacman-conf pacman-db-upgrade; do
-    mv "$pkgdir/usr/bin/$tool" "$engine/bin/$tool"
+    new=lux-engine${tool#pacman}
+    mv "$pkgdir/usr/bin/$tool" "$engine/libexec/$new"
+    install -m755 "$startdir/lux-engine-wrapper" "$engine/bin/$new"
   done
-  ln -s bin/pacman "$engine/pacman"   # cesta z LuxOS 0.9
-  if compgen -G "$pkgdir/usr/bin/*pacman*" >/dev/null; then
-    error "pacman command left in /usr/bin"; return 1
+  # vnitrni volani nastroju jmenem (pacman-conf, PACMAN=pacman)
+  sed -i -e 's/\bpacman-conf\b/lux-engine-conf/g' "$engine/libexec/lux-engine-key" "$engine/libexec/lux-engine-db-upgrade" \
+         "$pkgdir/usr/bin/makepkg"
+  sed -i -e 's/^PACMAN=\${PACMAN:-pacman}$/PACMAN=${PACMAN:-lux-engine}/' "$pkgdir/usr/bin/makepkg"
+  if find "$pkgdir/usr/bin" "$pkgdir/usr/lib/lux" -name '*pacman*' | grep -q . ||
+     grep -nE '(^|[^-])\bpacman-conf\b' "$engine/libexec/lux-engine-key" "$engine/libexec/lux-engine-db-upgrade" "$pkgdir/usr/bin/makepkg" ||
+     ! grep -q '^PACMAN=\${PACMAN:-lux-engine}$' "$pkgdir/usr/bin/makepkg" ||
+     ! grep -qa '/run/lux/engine.conf' "$engine/libexec/lux-engine" ||
+     ! grep -qa '/var/lib/lux/' "$engine/libexec/lux-engine" ||
+     grep -qa '/etc/pacman.conf\|/var/lib/pacman' "$engine/libexec/lux-engine" "$engine/libexec/lux-engine-conf" \
+         "$engine/libexec/lux-engine-key"; then
+    error "pacman name or path left in the engine tools"; return 1
   fi
   install -m644 "$startdir/makepkg-lux-engine.conf" "$pkgdir/etc/makepkg.conf.d/lux-engine.conf"
 
-  # sluzby, ktere nastroje jadra volaji jmenem (pacman-contrib, archlinux-keyring)
-  for unit in archlinux-keyring-wkd-sync paccache pacman-filesdb-refresh; do
-    install -Dm644 "$startdir/systemd/$unit.conf" "$pkgdir/usr/lib/systemd/system/$unit.service.d/lux-engine.conf"
-  done
+  # sluzba z archlinux-keyring vola pacman-conf jmenem a pouziva /etc/pacman.d/gnupg
+  install -Dm644 "$startdir/systemd/archlinux-keyring-wkd-sync.conf" \
+    "$pkgdir/usr/lib/systemd/system/archlinux-keyring-wkd-sync.service.d/lux-engine.conf"
+  install -Dm755 "$startdir/lux-engine-wkd-sync" "$engine/lux-engine-wkd-sync"
+  # konfigurace jadra hned po startu (pro nastroje, ktere nespousti lux)
+  install -Dm644 "$startdir/systemd/lux-engine-config.service" "$pkgdir/usr/lib/systemd/system/lux-engine-config.service"
+  install -dm755 "$pkgdir/usr/lib/systemd/system/multi-user.target.wants"
+  ln -s ../lux-engine-config.service "$pkgdir/usr/lib/systemd/system/multi-user.target.wants/lux-engine-config.service"
 
   # klice z klicenek (jejich instalacni skripty hledaji /usr/bin/pacman-key)
   install -Dm644 "$startdir/lux-engine-keyrings.hook" "$pkgdir/usr/share/libalpm/hooks/lux-engine-keyrings.hook"
   install -Dm755 "$startdir/lux-engine-keyrings" "$pkgdir/usr/share/libalpm/scripts/lux-engine-keyrings"
+  # prechod instalaci LuxOS do 0.9.5 (databaze, cache, klicenka a konfigurace pacmanu -> lux)
+  install -Dm644 "$startdir/00-lux-engine-migrate.hook" "$pkgdir/usr/share/libalpm/hooks/00-lux-engine-migrate.hook"
+  install -Dm755 "$startdir/lux-engine-migrate" "$pkgdir/usr/share/libalpm/scripts/lux-engine-migrate"
 
   # bez manualovych stranek a doplnovani prikazu pacman*; doplnovani makepkg zustava
   local man
-  for man in man8/pacman.8 man8/pacman-key.8 man8/pacman-conf.8 man8/pacman-db-upgrade.8 man5/pacman-hooks.5; do
+  for man in man8/pacman.8 man8/pacman-key.8 man8/pacman-conf.8 man8/pacman-db-upgrade.8 man5/pacman-hooks.5 \
+             man5/pacman.conf.5; do
     rm -f "$pkgdir/usr/share/man/$man"
   done
   local bc="$pkgdir/usr/share/bash-completion/completions"
@@ -211,7 +264,7 @@ package() {
   mv "$zc/_pacman" "$zc/_makepkg"
   sed -i '1s/^#compdef .*/#compdef makepkg/' "$zc/_makepkg"
   if grep -q '^complete .*pacman' "$bc/makepkg" || [[ $(head -1 "$zc/_makepkg") != '#compdef makepkg' ]] ||
-     compgen -G "$pkgdir/usr/share/man/man8/pacman*" >/dev/null; then
+     compgen -G "$pkgdir/usr/share/man/man[58]/pacman*" >/dev/null; then
     error "pacman completion or manual page left"; return 1
   fi
 }

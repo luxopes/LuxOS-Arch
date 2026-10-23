@@ -116,8 +116,9 @@ Other per-user locations:
 
 | Path | Owner | Purpose |
 |---|---|---|
-| `/etc/lux/lux.conf` | lux | `AUR=1`, `REVIEW_PKGBUILD=1`, `FLATPAK=1`, `CLEAN_KEEP=2` (bash `KEY=value`) |
-| `/etc/pacman.conf`, `/etc/pacman.d/` | lux-engine | repositories and mirrors used by lux (libalpm) |
+| `/etc/lux/lux.conf` | lux-engine | package manager configuration in LuxOS format (`key value`, `repo NAME` blocks): repositories, signatures, `hold`, `aur`, `flatpak`, `clean-keep` – see [package-management.md](package-management.md#configuration-etcluxluxconf) |
+| `/etc/lux/conf.d/*.conf`, `/etc/lux/mirrorlist` | admin / lux-engine | extra repositories; Arch mirrors (one address per line, `lux mirrors`) |
+| `/run/lux/engine.conf` | lux-config | generated engine config – never edit (there is no `/etc/pacman.conf`) |
 | `/etc/luxos/care.conf` | LuxOS Care | `MODE=carefree` (default if missing) or `classic` |
 | `/etc/luxos/esp.conf` | installer / LuxOS Care | EFI system partition directory and kernel (`ESP_DIR`, `KERNEL`) |
 | `/etc/luxos/templates.conf` | installer | app sets chosen at installation (`TEMPLATES=…`) |

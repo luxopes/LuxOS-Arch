@@ -34,7 +34,7 @@ LY_LUKS_HEADER=$((16 * LY_MiB))
 LY_LUKS_OFFSET=32768
 LY_PE_START=$((1 * LY_MiB))
 LY_EXTENT=$((4 * LY_MiB))
-LY_FORBIDDEN_MOUNTS=" /usr /etc /bin /sbin /lib /lib64 /proc /sys /dev /run /boot/efi /var/lib/pacman "
+LY_FORBIDDEN_MOUNTS=" /usr /etc /bin /sbin /lib /lib64 /proc /sys /dev /run /boot/efi /var/lib/lux /var/lib/pacman "
 
 ly_err()  { LY_ERR+=("$1|${2-}"); }
 ly_isblk() { [[ -b $1 ]]; }   # testy nahrazuji (zarizeni bez roota neexistuji)

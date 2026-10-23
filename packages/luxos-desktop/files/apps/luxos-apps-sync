@@ -1,6 +1,6 @@
 #!/bin/bash
 # LuxOS - prepis nazvu (a ikon) aplikaci podle /usr/share/luxos/apps/rename.conf
-# Spousti pacman hook pri kazde zmene .desktop souboru; vystup v /var/lib/luxos/apps
+# Spousti hook spravce baliku pri kazde zmene .desktop souboru; vystup v /var/lib/luxos/apps
 # je v XDG_DATA_DIRS pred /usr/share (viz /etc/profile.d/luxos.sh).
 conf=/usr/share/luxos/apps/rename.conf
 out=/var/lib/luxos/apps/applications

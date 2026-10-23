@@ -20,9 +20,18 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 
 BASE = "/var/lib/luxos/sandbox"
-CONF = "/usr/share/luxos/sandbox/pacman.conf"
+# Konfigurace sandboxu ve formatu lux.conf; z ni lux-config (balik lux-engine) vygeneruje syntaxi
+# spravce baliku Archu - pro pacstrap i jako /etc/pacman.conf uvnitr sandboxu (minimalni Arch Linux
+# s vlastnim balikem pacman, oddeleny od LuxOS). Zrcadla z /etc/lux/mirrorlist se do ni rozepisou.
+CONF = "/usr/share/luxos/sandbox/lux.conf"
+LUX_LIB = "/usr/lib/lux"
+ENGINE_BIN = "/usr/lib/lux/alpm/bin"
+# pacstrap (arch-install-scripts) vola nastroje spravce baliku jmeny z Archu: jen pro jeho beh je dostane
+# v docasnem adresari jako odkazy na nastroje jadra lux (v systemu zadne soubory s temito jmeny nejsou)
+PACSTRAP_SHIM = {"pacman": "lux-engine", "pacman-key": "lux-engine-key", "pacman-conf": "lux-engine-conf"}
 TMPFILES_PKG = "/usr/lib/tmpfiles.d/luxos-sandbox.conf"
 TMPFILES_USER = "/etc/tmpfiles.d/luxos-sandbox-{user}.conf"
 PACKAGES = ["filesystem", "bash", "coreutils", "pacman", "archlinux-keyring", "ca-certificates",
@@ -170,11 +179,31 @@ def subdir(top_fd, rel, create=True, mode=0o755):
     return fd
 
 
-def configure(top_fd, pw):
+def engine_conf():
+    """Konfigurace sandboxu (lux.conf) -> syntaxe spravce baliku Archu (bez hlavicky #@ lux-config)."""
+    if LUX_LIB not in sys.path:
+        sys.path.insert(0, LUX_LIB)
+    try:
+        import lux_config
+        text = lux_config.render_engine(lux_config.parse(CONF), CONF)
+    except ImportError:
+        die("lux-config is missing (package lux-engine)")
+    except lux_config.ConfigError as e:
+        die(f"invalid sandbox configuration: {e}")
+    return "".join(line + "\n" for line in text.splitlines() if not line.startswith("#@"))
+
+
+def pacstrap_env(shim):
+    """PATH pro pacstrap: docasne odkazy pacman* -> nastroje jadra lux, pak nastroje jadra a /usr/bin."""
+    for name, target in PACSTRAP_SHIM.items():
+        os.symlink(os.path.join(ENGINE_BIN, target), os.path.join(shim, name))
+    return dict(os.environ, PATH=f"{shim}:{ENGINE_BIN}:/usr/bin")
+
+
+def configure(top_fd, pw, conf_text):
     """Nastaveni korene po pacstrapu (jeste jako root, uzivatel k nemu nema pristup)."""
     etc = subdir(top_fd, "etc")
-    with open(CONF) as f:
-        write_file(etc, "pacman.conf", f.read())
+    write_file(etc, "pacman.conf", conf_text)
     # DNS: resolv.conf dodava luxos-sandbox pri --net do /run/luxos (tmpfs)
     try:
         os.unlink("resolv.conf", dir_fd=etc)
@@ -239,17 +268,27 @@ def create(base_fd, pw):
         die("unexpected owner of build directory")
     # Cesta je stabilni: vsechny komponenty patri rootovi a uzivatel do nich nesmi
     path = f"{BASE}/{build}"
+    conf_text = engine_conf()
+    work = tempfile.mkdtemp(prefix="luxos-sandbox-")      # jen root (0700)
     try:
-        r = subprocess.run(["pacstrap", "-c", "-K", "-C", CONF, path, *PACKAGES])
+        conf = os.path.join(work, "sandbox.conf")
+        with open(conf, "w") as f:
+            f.write(conf_text)
+        shim = os.path.join(work, "bin")
+        os.mkdir(shim, 0o700)
+        # -M: seznam zrcadel uz je v konfiguraci (zadny /etc/pacman.d/mirrorlist v LuxOS neni)
+        r = subprocess.run(["pacstrap", "-c", "-K", "-M", "-C", conf, path, *PACKAGES], env=pacstrap_env(shim))
         if r.returncode != 0:
             die("pacstrap failed")
-        configure(top_fd, pw)
+        configure(top_fd, pw, conf_text)
         secure_tree(top_fd, pw.pw_uid, pw.pw_gid)
         os.rename(build, name, src_dir_fd=base_fd, dst_dir_fd=base_fd)
     except BaseException:
         os.close(top_fd)
         remove_tree(base_fd, build)
         raise
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
     os.close(top_fd)
     tmpfiles(pw, True)
     print(f"{BASE}/{name}")
@@ -270,8 +309,8 @@ def main():
         die("usage: luxos-sandbox-helper create|reset|destroy")
     pw = caller()
     os.umask(0o022)
-    # pacstrap vola pacman, pacman-conf a pacman-key jmenem: nastroje jadra lux (lux-engine) mimo /usr/bin
-    os.environ["PATH"] = "/usr/lib/lux/alpm/bin:/usr/bin"
+    # nastroje jadra lux (lux-engine) jsou mimo /usr/bin; pro pacstrap viz pacstrap_env
+    os.environ["PATH"] = ENGINE_BIN + ":/usr/bin"
     base_fd = open_base()
     # Jen jedna operace najednou (pacstrap trva dlouho)
     fcntl.flock(base_fd, fcntl.LOCK_EX)

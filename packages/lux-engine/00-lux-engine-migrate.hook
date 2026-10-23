@@ -1,0 +1,15 @@
+# LuxOS (lux-engine): prechod instalaci LuxOS do 0.9.5 z rozlozeni pacmanu (/var/lib/pacman,
+# /etc/pacman.conf, /etc/pacman.d/...) na lux (/var/lib/lux, /etc/lux/...). Bezi prvni (00-) ve stejne
+# transakci, ve ktere stary proces jadra instaluje novy lux-engine; na starych mistech zustanou
+# odkazy, dokud ho po restartu neuklidi lux (lux-engine-migrate finish). Na nove instalaci jen presune
+# databazi, kterou pacstrap/mkarchiso vytvori v /var/lib/pacman.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = lux-engine
+
+[Action]
+Description = Moving package manager data to /var/lib/lux and /etc/lux...
+When = PostTransaction
+Exec = /usr/share/libalpm/scripts/lux-engine-migrate hook

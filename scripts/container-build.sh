@@ -13,7 +13,7 @@ PROFILE=/tmp/luxos-profile
 target=${1:-all}
 
 # Repozitar [luxos]: system LuxOS, poradi = zavislosti vlastnich baliku prvni
-# (lux-engine = jadro lux: libalpm a nastroje pacmanu z Archu bez prikazu pacman; potrebuji ho lux, pyalpm i base;
+# (lux-engine = jadro lux: libalpm a nastroje z pacmanu Arch Linuxu, bez prikazu pacman; potrebuji ho lux, pyalpm i base;
 #  gdk-pixbuf2 = nahrada baliku z Archu bez glycinu, obrazky se dekoduji v procesu, luxos-pixbuf-svg = zavadec SVG)
 PACKAGES=(lux-engine gdk-pixbuf2 luxos-pixbuf-svg luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-printing luxos-desktop luxos-installer
           # Legacy ovladace NVIDIA z AUR (Maxwell/Pascal/Volta 580xx, Kepler 470xx) - jen online, ne v ISO
@@ -48,10 +48,20 @@ build_one() {  # build_one ADRESAR_BALIKU CIL_PKGDEST
     # mezipameti Pythonu z testu (py_compile, import skriptu) do balicku nepatri - a "install -t dir/*" na nich selze
     find "$BUILD/$p" -name __pycache__ -type d -prune -exec rm -rf {} +
     chown -R builder: "$BUILD/$p"
-    # makepkg bezi s --nodeps (zavislosti na vlastnich balicich), makedepends a checkdepends instalujeme zvlast
+    # makepkg bezi s --nodeps (zavislosti na vlastnich balicich), makedepends a checkdepends instalujeme zvlast.
+    # Zavislost z vlastniho repozitare (napr. lsl z [luxos-apps] pro luxos-desktop) neni v repozitarich
+    # Archu: nainstaluje se balik sestaveny drive v tomto behu (aplikace se stavi pred [luxos]).
     (set +u; makedepends=(); checkdepends=(); source "$BUILD/$p/PKGBUILD"
-     deps=("${makedepends[@]}" "${checkdepends[@]}")
-     ((${#deps[@]})) && pacman -S --needed --noconfirm "${deps[@]}" >/dev/null || true)
+     sync=(); local_pkgs=()
+     for d in "${makedepends[@]}" "${checkdepends[@]}"; do
+         n=${d%%[<>=]*}
+         if pacman -Si "$n" &>/dev/null; then sync+=("$d"); continue; fi
+         f=("$BUILD"/pkgs/*/"$n"-[0-9]*.pkg.tar.zst)
+         if [[ -e ${f[0]} ]]; then local_pkgs+=("${f[0]}"); else echo "WARNING: build dependency $d of $p not found" >&2; fi
+     done
+     ((${#sync[@]})) && { pacman -S --needed --noconfirm "${sync[@]}" >/dev/null || true; }
+     ((${#local_pkgs[@]})) && { pacman -U --needed --noconfirm "${local_pkgs[@]}" >/dev/null || true; }
+     true)   # bez zavislosti by posledni (( )) vratilo 1 a set -e ukoncil sestaveni
     # Podepsane zdroje (source=...?signed, validpgpkeys): verejne klice z keys/pgp jako v Arch devtools
     if compgen -G "$BUILD/$p/keys/pgp/*.asc" >/dev/null; then
         sudo -u builder env -u GNUPGHOME gpg --batch --quiet --import "$BUILD/$p"/keys/pgp/*.asc
@@ -205,6 +215,7 @@ build_iso() {
     cleanup_work
     rm -rf "$PROFILE"
     cp -a "$ROOT/archiso" "$PROFILE"
+    # pacman.conf profilu = konfigurace mkarchiso na tomto hostiteli (ne live system)
     sed -i "s|@LUXOS_REPO@|$REPO|" "$PROFILE/pacman.conf"
     # ISO pojmenovane podle verze LuxOS (packages/luxos-branding/files/version): luxos-0.9.0-x86_64.iso
     local VERSION

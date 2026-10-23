@@ -5,10 +5,14 @@ LuxOS computer. LuxOS is Arch-based, but several Arch habits are wrong here.
 
 ## Golden rules
 
-1. **Use `lux`, never `pacman`.** There is no `pacman` command. Install `lux install NAME`, remove
-   `lux remove NAME`, update `lux update`, search `lux search TERM`, info `lux info NAME`, owner of a
-   file `lux owns PATH`. Read-only debugging with `/usr/lib/lux/alpm/bin/pacman -Q…` is possible,
-   but never change the system with it.
+1. **Use `lux`, never `pacman`.** There is no `pacman` command and no `/etc/pacman.conf` or
+   `/etc/pacman.d` — never suggest them, `yay`, `paru` or `pacman-contrib` tools. Install
+   `lux install NAME`, remove `lux remove NAME`, update `lux update`, search `lux search TERM`, info
+   `lux info NAME`, owner of a file `lux owns PATH`. Repositories, held packages and mirrors are in
+   `/etc/lux/lux.conf` (LuxOS format, **not** pacman INI) and `/etc/lux/mirrorlist`; see
+   [package management](package-management.md#configuration-etcluxluxconf). The engine tools in
+   `/usr/lib/lux/alpm/bin` (`lux-engine`, `lux-engine-key`, `lux-engine-conf`) are only for advanced
+   cases (read-only `lux-engine -Q…`, importing a repository key); never change packages with them.
 2. **Never guess, ask for, store or pipe passwords.** Do not run `echo PASSWORD | sudo -S`, do not
    ask the user to type a password into the chat. LuxOS tools request administrator rights
    themselves: `lux` uses `sudo` in a terminal and a **polkit dialog (`pkexec`)** when it has no
@@ -34,7 +38,8 @@ LuxOS computer. LuxOS is Arch-based, but several Arch habits are wrong here.
 |---|---|---|
 | Install / remove / update software | `lux install`, `lux remove`, `lux update`; GUI: LuxOS Store (`luxos-store [search]`) | Store shows repo desktop apps, `[luxos-apps]` and `.lux` apps (no AUR/Flatpak) |
 | Automatic updates, update status | Software Update (`luxos-update`), `luxos-care status` | mode: `luxos-care mode carefree\|classic` (root) |
-| Fix a locked package database / keys | `lux fix` | never delete `db.lck` during an update |
+| Fix a locked package database / keys | `lux fix` | never delete `/var/lib/lux/db.lck` during an update |
+| Add a repository, hold a package, mirrors | `/etc/lux/conf.d/NAME.conf` with `repo NAME` + indented `server URL`; `hold PKG` in `/etc/lux/lux.conf`; `lux mirrors` | check with `lux config check`; `multilib`: `sudo /usr/lib/lux/lux-config enable-repo multilib` |
 | System health | `lux doctor` | |
 | Drivers | Drivers (`luxos-drivers`), `lux drivers`, `luxos-hwdetect --report` | restart after installing |
 | Wallpaper, light/dark/auto, Dock, top bar, boot splash | Desktop & Dock (`luxos-settings`); `luxos-appearance light\|dark\|auto\|toggle\|wallpaper FILE\|bar-opacity N\|dock-opacity N` | |
@@ -128,6 +133,9 @@ starting at [LSL overview](../lsl/overview.md).
 ## Things that are different from Arch Linux
 
 - No `pacman`, no `yay`/`paru` needed – `lux` covers repositories, AUR, Flatpak and `.lux`.
+- No `/etc/pacman.conf`: configuration is `/etc/lux/lux.conf` (`key value` lines, `repo NAME` blocks,
+  `hold` instead of `IgnorePkg`), database `/var/lib/lux`, cache `/var/cache/lux/pkg`, log
+  `/var/log/lux.log`, keyring `/etc/lux/keyring`. The engine is based on Arch's libalpm (pacman code).
 - Default shell is `lsh` (bash-compatible). `~/.lshrc` instead of `~/.bashrc`.
 - Kernel is `linux-zen`; initramfs built with `mkinitcpio`; Btrfs subvolumes `@`, `@home`, `@log`,
   `@cache`.

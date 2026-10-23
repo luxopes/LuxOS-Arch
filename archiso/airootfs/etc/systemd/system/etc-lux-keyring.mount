@@ -1,0 +1,8 @@
+[Unit]
+Description=Temporary /etc/lux/keyring directory
+
+[Mount]
+What=tmpfs
+Where=/etc/lux/keyring
+Type=tmpfs
+Options=mode=0755,noswap

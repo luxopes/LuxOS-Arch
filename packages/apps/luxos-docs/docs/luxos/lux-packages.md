@@ -44,7 +44,7 @@ scripts/                 optional: post_install, pre_remove (bash, run as root)
 | `format` | format version (currently `1`); an older lux refuses newer packages (`This package needs a newer lux`) |
 | `name` | identifier: lowercase letters, digits, `.` `_` `+` `-`, must start with a letter or digit |
 | `title` | display name (Store), optional |
-| `version`, `release` | app version and package release (compared like pacman versions); `release` defaults to 1 |
+| `version`, `release` | app version and package release (compared like other package versions, `vercmp`); `release` defaults to 1 |
 | `arch` | `any` or `x86_64` (default `any`) |
 | `summary`, `description`, `license`, `url`, `categories` | info for the Store and `lux info`; freedesktop categories (`Utility`, `Development`, `Graphics`, …) |
 | `depends.system` | packages from the LuxOS/Arch repositories, installed first through libalpm |

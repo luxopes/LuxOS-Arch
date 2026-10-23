@@ -6,7 +6,7 @@
 
 pkgname=luxos-docs
 pkgver=1.0.0
-pkgrel=3
+pkgrel=4
 pkgdesc="Offline LuxOS and LSL reference library for AI assistants (LuxAI, Lux Code)"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"

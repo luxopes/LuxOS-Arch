@@ -1,0 +1,12 @@
+[Unit]
+Description=LuxOS live: remove leftovers of the ISO build (old package manager paths)
+ConditionPathExists=/run/archiso
+# Az po inicializaci klicenky - behem ni bezi nastroj jadra a uklid by se odlozil
+After=lux-keyring-init.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/share/libalpm/scripts/lux-engine-migrate finish --now
+
+[Install]
+WantedBy=multi-user.target

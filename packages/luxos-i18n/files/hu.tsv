@@ -1042,7 +1042,6 @@ Updates install automatically in the background - not on metered networks, with 
 A previous kernel is kept, so the computer always has a working version to start.	Az előző kernel megmarad, így a számítógépnek mindig van működő, indítható verziója.
 LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash.	A LuxOS megjavítja önmagát. A súlyos problémákat a LuxAI Flash diagnosztizálja.
 No automatic updates or repairs - standard Arch Linux behaviour.	Nincs automatikus frissítés vagy javítás – szabványos Arch Linux-működés.
-You manage the system yourself with lux or pacman.	A rendszert te magad kezeled a lux vagy a pacman segítségével.
 You only get a notification when updates are available.	Csak értesítést kapsz, ha frissítések érhetők el.
 Choose whether LuxOS takes care of itself, or whether you want full control.	Válaszd ki, hogy a LuxOS gondoskodjon-e önmagáról, vagy te szeretnéd teljesen irányítani.
 Downloading %s of %s	Letöltés: %s / %s
@@ -1546,7 +1545,6 @@ install the same version again	ugyanazt a verziót újratelepíti
 remove dependencies nothing needs any more	eltávolítja a már nem szükséges függőségeket
 repair a locked database and the signing keys	javítja a zárolt adatbázist és az aláíró kulcsokat
 show all details (and raw errors)	minden részlet (és a nyers hibák) megjelenítése
-pacman stays available for advanced use; lux and pacman share the same package database.	a pacman haladóknak továbbra is elérhető; a lux és a pacman ugyanazt a csomagadatbázist használja.
 Another app is installing software right now. Try it again in a moment.	Egy másik alkalmazás éppen szoftvert telepít. Próbáld újra egy kicsit később.
 The app conflicts with files of another package.	Az alkalmazás ütközik egy másik csomag fájljaival.
 The app conflicts with an installed package.	Az alkalmazás ütközik egy telepített csomaggal.
@@ -1636,9 +1634,7 @@ LuxDrop sends files to computers and phones nearby – it also works with the Lo
 Found a bug or have an idea? Feedback sends it straight to the author of LuxOS. All keyboard shortcuts are listed in Keyboard Shortcuts. Enjoy LuxOS!	Hibát találtál, vagy ötleted van? A Visszajelzés egyenesen a LuxOS szerzőjének küldi. Az összes billentyűparancs a Billentyűparancsok között található. Jó szórakozást a LuxOS-hez!
 LuxOS uses lux to manage software.	A LuxOS a lux segítségével kezeli a szoftvereket.
 All lux commands: %s	Az összes lux parancs: %s
-Experts can still run pacman directly: %s	Haladó felhasználók továbbra is közvetlenül futtathatják a pacmant: %s
 The package manager core is missing (%s). Repair it with: %s	Hiányzik a csomagkezelő magja (%s). Javítsd ezzel: %s
-pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	A pacman csak haladóknak való (LUX_ALLOW_PACMAN=1 pacman …); a lux és a pacman ugyanazt a csomagadatbázist használja.
 The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	A csomagkezelő magja (%s) régebbi, mint az Arch Linuxé (%s) – hamarosan érkezik LuxOS-frissítés
 You manage the system yourself with lux.	A rendszert te magad kezeled a lux segítségével.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
@@ -2391,3 +2387,25 @@ Save Screenshot	Képernyőkép mentése
 Save Recording	Felvétel mentése
 The screenshot could not be copied to the clipboard.	A képernyőkép nem másolható a vágólapra.
 The file could not be moved to the Trash.	A fájl nem helyezhető a Kukába.
+lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check	A lux addig nem működik, amíg a beállítás nincs javítva (/etc/lux/lux.conf). Ellenőrzés: lux config check
+Usage: lux config [check|show|edit|engine]	Használat: lux config [check|show|edit|engine]
+check or edit /etc/lux/lux.conf	az /etc/lux/lux.conf ellenőrzése vagy szerkesztése
+reflector is not installed (lux install reflector)	A reflector nincs telepítve (lux install reflector)
+New version of %s from an update	%s új változata egy frissítésből
+[u] use the new version  [k] keep yours  [e] edit yours  [s] skip: 	[u] új változat használata  [k] saját megtartása  [e] saját szerkesztése  [s] kihagyás: 
+Using the new version (yours is saved as %s)	Az új változat van használatban (a sajátja mentve: %s)
+Kept your version	A saját változat megmaradt
+Saved configuration of a removed package: %s	Eltávolított csomag mentett beállításai: %s
+[d] delete it  [r] restore it as %s  [s] skip: 	[d] törlés  [r] visszaállítás ide: %s  [s] kihagyás: 
+Deleted	Törölve
+Restored	Visszaállítva
+Package manager configuration OK	A csomagkezelő beállításai rendben vannak
+The package manager configuration has an error - run: lux config check	A csomagkezelő beállításaiban hiba van – futtassa: lux config check
+Old package manager files are cleaned up after the next restart	A csomagkezelő régi fájljai a következő újraindítás után törlődnek
+The package manager configuration has an error: %s	A csomagkezelő beállításaiban hiba van: %s
+Fix it and check it with: lux config check	Javítsa, majd ellenőrizze: lux config check
+The package manager configuration has an error. Check it with: lux config check	A csomagkezelő beállításaiban hiba van. Ellenőrzés: lux config check
+Removed %d old package files from the cache (%s freed)	%d régi csomagfájl törölve a gyorsítótárból (%s felszabadítva)
+The package cache is already clean	A csomag-gyorsítótár már tiszta
+The package manager uses /etc/lux and /var/lib/lux	A csomagkezelő az /etc/lux és a /var/lib/lux könyvtárat használja
+The package manager configuration of the live system is broken.	Az élő rendszer csomagkezelő-beállítása sérült.

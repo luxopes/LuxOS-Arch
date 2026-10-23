@@ -1042,7 +1042,6 @@ Updates install automatically in the background - not on metered networks, with 
 A previous kernel is kept, so the computer always has a working version to start.	Попереднє ядро зберігається, тож комп’ютер завжди має робочу версію для запуску.
 LuxOS repairs itself. Serious problems are diagnosed by LuxAI Flash.	LuxOS сама себе відновлює. Серйозні проблеми діагностує LuxAI Flash.
 No automatic updates or repairs - standard Arch Linux behaviour.	Без автоматичних оновлень і відновлень – стандартна поведінка Arch Linux.
-You manage the system yourself with lux or pacman.	Ви самі керуєте системою за допомогою lux або pacman.
 You only get a notification when updates are available.	Ви лише отримуєте сповіщення, коли доступні оновлення.
 Choose whether LuxOS takes care of itself, or whether you want full control.	Виберіть, чи LuxOS дбатиме про себе сама, чи ви хочете мати повний контроль.
 Downloading %s of %s	Завантаження %s з %s
@@ -1547,7 +1546,6 @@ install the same version again	встановити ту саму версію �
 remove dependencies nothing needs any more	видалити залежності, які більше нічому не потрібні
 repair a locked database and the signing keys	виправити заблоковану базу та ключі підпису
 show all details (and raw errors)	показати всі подробиці (і сирі помилки)
-pacman stays available for advanced use; lux and pacman share the same package database.	pacman залишається для досвідчених; lux і pacman використовують ту саму базу пакетів.
 Another app is installing software right now. Try it again in a moment.	Інша програма зараз встановлює ПЗ. Спробуйте ще раз за мить.
 The app conflicts with files of another package.	Програма конфліктує з файлами іншого пакета.
 The app conflicts with an installed package.	Програма конфліктує зі встановленим пакетом.
@@ -1637,9 +1635,7 @@ LuxDrop sends files to computers and phones nearby – it also works with the Lo
 Found a bug or have an idea? Feedback sends it straight to the author of LuxOS. All keyboard shortcuts are listed in Keyboard Shortcuts. Enjoy LuxOS!	Знайшли помилку чи маєте ідею? Відгук надішле її просто автору LuxOS. Усі скорочення є в розділі «Клавіатурні скорочення». Насолоджуйтеся LuxOS!
 LuxOS uses lux to manage software.	LuxOS керує програмами за допомогою lux.
 All lux commands: %s	Усі команди lux: %s
-Experts can still run pacman directly: %s	Досвідчені користувачі й далі можуть запускати pacman напряму: %s
 The package manager core is missing (%s). Repair it with: %s	Відсутнє ядро менеджера пакетів (%s). Відновіть його командою: %s
-pacman is for experts only (LUX_ALLOW_PACMAN=1 pacman …); lux and pacman share the same package database.	pacman — лише для досвідчених (LUX_ALLOW_PACMAN=1 pacman …); lux і pacman використовують одну базу пакетів.
 The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow	Ядро менеджера пакетів %s старіше, ніж в Arch Linux (%s); оновлення LuxOS незабаром
 You manage the system yourself with lux.	Ви самі керуєте системою за допомогою lux.
 # Instalator: rucni rozdeleni disku (LVM, LUKS2, oddily)
@@ -2392,3 +2388,25 @@ Save Screenshot	Зберегти знімок екрана
 Save Recording	Зберегти запис
 The screenshot could not be copied to the clipboard.	Не вдалося скопіювати знімок екрана до буфера обміну.
 The file could not be moved to the Trash.	Не вдалося перемістити файл у кошик.
+lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check	lux не працюватиме, доки конфігурацію не виправлено (/etc/lux/lux.conf). Перевірте: lux config check
+Usage: lux config [check|show|edit|engine]	Використання: lux config [check|show|edit|engine]
+check or edit /etc/lux/lux.conf	перевірити або змінити /etc/lux/lux.conf
+reflector is not installed (lux install reflector)	reflector не встановлено (lux install reflector)
+New version of %s from an update	Нова версія %s з оновлення
+[u] use the new version  [k] keep yours  [e] edit yours  [s] skip: 	[u] нова версія  [k] залишити свою  [e] редагувати свою  [s] пропустити:
+Using the new version (yours is saved as %s)	Використано нову версію (вашу збережено як %s)
+Kept your version	Вашу версію залишено
+Saved configuration of a removed package: %s	Збережена конфігурація вилученого пакета: %s
+[d] delete it  [r] restore it as %s  [s] skip: 	[d] видалити  [r] відновити як %s  [s] пропустити:
+Deleted	Видалено
+Restored	Відновлено
+Package manager configuration OK	Конфігурація менеджера пакетів у порядку
+The package manager configuration has an error - run: lux config check	У конфігурації менеджера пакетів є помилка – виконайте: lux config check
+Old package manager files are cleaned up after the next restart	Старі файли менеджера пакетів буде прибрано після наступного перезапуску
+The package manager configuration has an error: %s	У конфігурації менеджера пакетів є помилка: %s
+Fix it and check it with: lux config check	Виправте її та перевірте: lux config check
+The package manager configuration has an error. Check it with: lux config check	У конфігурації менеджера пакетів є помилка. Перевірте: lux config check
+Removed %d old package files from the cache (%s freed)	Вилучено %d старих файлів пакетів із кешу (звільнено %s)
+The package cache is already clean	Кеш пакетів уже чистий
+The package manager uses /etc/lux and /var/lib/lux	Менеджер пакетів використовує /etc/lux і /var/lib/lux
+The package manager configuration of the live system is broken.	Конфігурацію менеджера пакетів живої системи пошкоджено.

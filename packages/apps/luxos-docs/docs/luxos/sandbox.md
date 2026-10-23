@@ -25,9 +25,10 @@ It is **not** a VM and not a chroot you enter as root: programs are started insi
 (polkit action `org.luxos.sandbox.create`, `auth_admin_keep` – asks for the administrator password).
 The helper:
 
-1. runs `pacstrap -c -K` with `/usr/share/luxos/sandbox/pacman.conf` – **only official Arch Linux
-   repositories** `[core]` and `[extra]`, no LuxOS repos, no AUR; man pages/docs/most locales are not
-   extracted,
+1. runs `pacstrap -c -K` with the configuration `/usr/share/luxos/sandbox/lux.conf` (LuxOS lux.conf
+   format, converted by `lux-config`; mirrors from `/etc/lux/mirrorlist`) – **only official Arch
+   Linux repositories** `[core]` and `[extra]`, no LuxOS repos, no AUR; man pages/docs/most locales are
+   not extracted,
 2. installs a small base: `filesystem bash coreutils pacman archlinux-keyring ca-certificates sed grep
    gawk findutils tar gzip xz zstd less nano which procps-ng curl file diffutils glibc`,
 3. removes setuid/setgid bits and file capabilities, adds user `sandbox` (your UID) with home
@@ -65,7 +66,9 @@ Options for `run` (before the command): `--net`, `--gui`, `--shared`.
 
 ### Installing apps
 
-`install` runs `pacman -Syu --needed --noconfirm` **inside** the sandbox as a fake root (network is
+The sandbox is a minimal plain Arch Linux, separate from LuxOS: inside it, Arch's own package
+manager (the `pacman` package, with its `/etc/pacman.conf` generated from the sandbox lux.conf) is
+used – this is the only place with a `pacman` command. `install` runs `pacman -Syu --needed --noconfirm` **inside** the sandbox as a fake root (network is
 enabled only for this step) and deletes downloaded packages afterwards. Package names must match
 `^[a-z0-9@_+][a-z0-9@._+-]*$`. Only Arch `[core]`/`[extra]` packages are available. Use
 `luxos-sandbox`, not `lux`, for sandbox apps – `lux` manages the host system.
@@ -124,7 +127,7 @@ Environment inside: `HOME=/home/sandbox`, `USER=sandbox`, `LUXOS_SANDBOX=1`, `LA
 - **Shared folder:** anything written to `~/Sandbox` is untrusted (malicious documents, symlinks).
 - **With `--net`:** the app can do anything on the internet from your IP address. Networks that appear
   on the host after start are not blocked by host-address rules (private ranges always are).
-- **Installs:** pacman runs as a fake root with one UID; `chown*()` pretends to succeed, so system services
+- **Installs:** the sandbox's package manager runs as a fake root with one UID; `chown*()` pretends to succeed, so system services
   needing separate system users or setuid will not work; some hooks print errors. Signature checks
   use the sandbox's own keyring, which the sandbox itself can change.
 - **Disk:** no quota – the sandbox can fill `/var`.

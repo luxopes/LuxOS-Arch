@@ -6,7 +6,7 @@
 
 Co se instaluje, rozhoduje helper sam podle luxos-hwdetect (volajici preda jen volbu).
 Baliky instaluje lux (libalpm) ve strojovem rezimu - radky "@@..." viz /usr/share/doc/lux/lux.md;
-bez pyalpm skutecny pacman. Navic posila:
+bez pyalpm nastroj jadra lux-engine. Navic posila:
   @@STEP update|install|services   faze
   @@REBOOT                         ovladace zacnou fungovat az po restartu
 """
@@ -48,13 +48,13 @@ def run(cmd):
     return p.wait()
 
 
-def pacman_retry(args):
-    """pacman s opakovanim, jen kdyz selhalo stahovani (stejne jako Obchod LuxOS)."""
+def engine_retry(args):
+    """lux-engine s opakovanim, jen kdyz selhalo stahovani (stejne jako Obchod LuxOS)."""
     rc = 1
     for attempt in (1, 2, 3):
         if attempt > 1:
             say(f"@@RETRY {attempt}")
-        p = subprocess.Popen([drv.PACMAN, *args], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        p = subprocess.Popen([drv.ENGINE, *args], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                              bufsize=1)
         out = []
         for line in p.stdout:
@@ -98,14 +98,14 @@ def main(argv):
         # Kdyz se databaze repozitaru a system rozesly, nejdriv cela aktualizace (zadna castecna).
         if drv.headers_out_of_sync(pkgs):
             say("@@STEP update")
-            rc = run([LUX_ALPM, "--machine", "-y", "update"]) if use_lux else pacman_retry(["-Syu", "--noconfirm"])
+            rc = run([LUX_ALPM, "--machine", "-y", "update"]) if use_lux else engine_retry(["-Syu", "--noconfirm"])
             if rc != 0:
                 return rc
         say("@@STEP install")
         if use_lux:
             rc = run([LUX_ALPM, "--machine", "-y", "install", "--needed", "--", *pkgs])
         else:
-            rc = pacman_retry(["-S", "--needed", "--noconfirm", "--", *pkgs])
+            rc = engine_retry(["-S", "--needed", "--noconfirm", "--", *pkgs])
         if rc != 0:
             return rc
 

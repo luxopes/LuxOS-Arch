@@ -1,0 +1,56 @@
+#!/bin/bash
+# LuxOS (lux-engine): spousteci skript nastroju jadra (/usr/lib/lux/alpm/bin/lux-engine, lux-engine-key,
+# lux-engine-conf, lux-engine-db-upgrade -> skutecne programy v /usr/lib/lux/alpm/libexec).
+# Jadro cte konfiguraci /run/lux/engine.conf, kterou z /etc/lux/lux.conf generuje lux-config.
+# Pred spustenim se overi, ze odpovida aktualnim zdrojum (hlavicka #@source: cas zmeny a velikost);
+# jinak ji lux-config vygeneruje znovu (root), resp. vytvori kopii pro uzivatele (--config).
+# Vlastni --config (instalator, testy) ma prednost a nic se negeneruje.
+# Docasne odkazy po migraci (bin/pacman -> lux-engine) a pomocne odkazy: jmeno podle cile odkazu
+self=$0
+[[ -L $self ]] && self=$(readlink -- "$self")
+real=${LUX_ENGINE_LIBEXEC:-/usr/lib/lux/alpm/libexec}/${self##*/}
+# vychozi konfigurace jadra (zkompilovana v lux-engine); LUX_ENGINE_CONF_FILE = jina (kopie uzivatele
+# bez prav k /run/lux, kterou lux predava dal), pak se jadru preda --config
+default=${LUX_ENGINE_DEFAULT_CONF:-/run/lux/engine.conf}
+conf=${LUX_ENGINE_CONF_FILE:-$default}
+luxconfig=${LUX_CONFIG_TOOL:-/usr/lib/lux/lux-config}
+
+for a in "$@"; do
+    case $a in
+        --config|--config=*) exec "$real" "$@" ;;
+        --) break ;;
+    esac
+done
+
+# Stejna kontrola jako lux_config.is_fresh (rychle, bez Pythonu)
+engine_conf_fresh() {
+    local tag path mtime size rest cur self=0 LC_COLLATE=C
+    [[ -r $1 ]] || return 1
+    while IFS=$'\t' read -r tag path mtime size rest; do
+        case $tag in
+            '#@source')
+                cur=$(stat -c '%.9Y %s' -- "$path" 2>/dev/null) || return 1
+                [[ $cur == "$mtime $size" ]] || return 1
+                [[ $path == */lux_config.py ]] && self=1 ;;
+            '#@glob')
+                local -a want=() have=() f
+                IFS=$'\t' read -r -a want <<<"$mtime${size:+$'\t'$size}${rest:+$'\t'$rest}"
+                for f in $path; do [[ -e $f ]] && have+=("${f##*/}"); done
+                [[ "${have[*]}" == "${want[*]}" ]] || return 1 ;;
+            '[options]') break ;;
+        esac
+    done <"$1"
+    ((self))
+}
+
+if ! engine_conf_fresh "$conf"; then
+    out=$("$luxconfig" ensure --quiet)
+    rc=$?
+    if ((rc != 0 && rc != 2)) || [[ -z $out ]]; then
+        echo "${0##*/}: no usable package manager configuration (see: lux config check)" >&2
+        exit 1
+    fi
+    conf=$out
+fi
+[[ $conf == "$default" ]] && exec "$real" "$@"
+exec "$real" --config "$conf" "$@"

@@ -526,7 +526,7 @@ hooks_for() {  # hooks_for "ENCRYPT=0 ENCRYPT_HOOK=1 LVM_HOOK=1" -> radek HOOKS
     local tmp; tmp=$(mktemp -d)
     sed -n '/^modules=""/,/^M$/p' "$FILES/setup-chroot.sh" |
         sed "s|/etc/mkinitcpio.conf.d/luxos.conf|$tmp/luxos.conf|" >"$tmp/s.sh"
-    (eval "$1"; NVIDIA_EARLY=0; pacman() { return 1; }; . "$tmp/s.sh")
+    (eval "$1"; NVIDIA_EARLY=0; . "$tmp/s.sh")
     grep '^HOOKS' "$tmp/luxos.conf" | tr -s ' '; rm -rf "$tmp"
 }
 expect "L: puvodni sifrovani (erase)" test "$(hooks_for 'ENCRYPT=1')" == "HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)"

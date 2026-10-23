@@ -4,10 +4,24 @@ Verze: `X.Y.Z` – `Y` roste s každým novým ISO, `Z` s opravami chyb. Každá
 Číslo verze je v `packages/luxos-branding/files/version` (os-release, O tomto počítači, fastfetch, název ISO).
 LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z jakého stavu systém vychází.
 
-## 0.9.6 „Polaris“ – připravuje se
+## 0.9.6 „Polaris“ – 2026-10-23 (beta)
+
+### Nové
+- LuxAI 1.0.0-10: režim správce – Nastavení › Oprávnění agenta › Příkazy správce (pokaždé heslo / bez hesla s potvrzením / bez hesla a bez ptaní; bez hesla jen model Flash). Tvrdé bloky (smazání systému, formátování disků, zavaděč, účty, sudo/polkit/PAM, podpisy balíků) platí vždy; záznam v `~/.local/state/luxai/root-commands.log` a `journalctl -t luxai-root`.
+
+### Rychlost
+- Často spouštěné programy horní lišty jsou v LSL místo bashe (`packages/luxos-desktop/files/lsl`, překládá `lslc` 0.10.5 při sestavení): baterie každých 20 s 9,6 ms → 1,6 ms bez procesu awk, název aplikace při každém přepnutí okna 7,4 ms → 1,5 ms, hodiny každé 3 s 1,7 ms → 1,4 ms, klik na Ovládací centrum a hodiny 4,5–5,3 ms → 1,0 ms, kontrola internetu přímo z NetworkManageru přes D-Bus (11,6 ms → 4,6 ms). Stejný výstup a překlady (TSV `luxos-i18n`); opraven neplatný markup `<`/`>` v názvu aplikace. Měření a plán dalších přepisů: `docs/perf/lsl-rewrite-plan.md`.
+
+### Žádný pacman
+- LuxOS už nemá ani konfiguraci pacmanu: správce balíků se nastavuje v `/etc/lux/lux.conf` ve vlastním formátu (`klíč hodnota`, bloky `repo NÁZEV` s odsazenými `server`/`mirrors`, `hold` místo `IgnorePkg`, `include /etc/lux/conf.d/*.conf`, nastavení `aur`, `flatpak`, `clean-keep` v témže souboru). Chyby hlásí soubor a řádek, `lux config check`/`edit`/`show`/`engine`. Konfiguraci jádra `/run/lux/engine.conf` generuje `lux-config` a nikdo ji neupravuje.
+- Nová místa: databáze `/var/lib/lux`, cache `/var/cache/lux/pkg`, log `/var/log/lux.log`, klíčenka `/etc/lux/keyring`, hooky `/etc/lux/hooks`, zrcadla `/etc/lux/mirrorlist` (jedna adresa na řádek; `lux mirrors` a reflector.timer převádějí výstup reflectoru).
+- Interní nástroje jádra se jmenují `lux-engine`, `lux-engine-key`, `lux-engine-conf`, `lux-engine-db-upgrade` (`/usr/lib/lux/alpm/bin`); žádný soubor `pacman*` v systému. Jádro zůstává libalpm z Arch Linuxu.
+- Bez `pacman-contrib`, `pacman-mirrorlist` a `expac`: vlastní čištění cache (`lux clean`, LuxOS Care), kontrola aktualizací do dočasné kopie databáze (`lux_alpm.py check-updates`, Obchod, `lux doctor`), slučování `.pacnew`/`.pacsave` (`lux configs`) a seznam balíků pro TUI a Obchod.
+- Přechod při aktualizaci: hook `00-lux-engine-migrate` přesune databázi, cache, klíčenku, hooky a log (přejmenováním, odolné vůči výpadku proudu), převede vlastní repozitáře a volby z `/etc/pacman.conf` a seřazená zrcadla; staré cesty zůstanou do restartu jako odkazy, pak je `lux` uklidí (kopie v `/var/lib/lux/migrated-from-pacman/`).
 
 ### Změny
 - Proces relace `luxos-daemon` se jmenuje `luxos-hub` (Kalendář a Ovládací centrum na pozadí: `--background`); v textech LuxOS už není slovo „daemon“ (LuxDrop: „Avahi“). Po aktualizaci se nový název projeví po odhlášení a přihlášení.
+- Balík `lsl` v `[luxos-apps]` je 0.10.5 (cíl `linux-x86_64-gnu`, moduly glib/gio/gtk, malé programy s ~136 kB paměti). Programy lišty startují pod 1 ms (baterie 0,94 ms, hodiny 0,73 ms, název aplikace 0,57 ms ve VM).
 
 ## 0.9.5 „Polaris“ – 2026-10-22 (beta)
 

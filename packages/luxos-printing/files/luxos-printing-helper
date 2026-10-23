@@ -35,9 +35,10 @@ ENGINE_BIN = "/usr/lib/lux/alpm/bin"
 if ENGINE_BIN not in os.environ.get("PATH", "").split(":"):
     os.environ["PATH"] = ENGINE_BIN + ":" + os.environ.get("PATH", "/usr/local/sbin:/usr/local/bin:/usr/bin")
 ENV_C = dict(os.environ, LC_ALL="C")
-# Instalace ovladacu: lux (libalpm), bez pyalpm pacman z jadra lux
+# Instalace ovladacu: lux (libalpm), bez pyalpm nastroj jadra lux-engine
 LUX_ALPM = "/usr/lib/lux/lux_alpm.py"
-PACMAN = ENGINE_BIN + "/pacman" if os.access(ENGINE_BIN + "/pacman", os.X_OK) else "pacman"
+ENGINE = ENGINE_BIN + "/lux-engine"
+DB_LOCK = "/var/lib/lux/db.lck"
 
 
 def log(msg):
@@ -188,22 +189,22 @@ def queue_for(dev, queues):
 
 
 def installed(pkg):
-    return run([PACMAN, "-Q", pkg], 20)[0] == 0
+    return run([ENGINE, "-Q", pkg], 20)[0] == 0
 
 
 def install_driver(pkg):
     """Doinstaluje balik s ovladacem (bez -y: zadna castecna aktualizace systemu)."""
     if installed(pkg) or os.environ.get("LUXOS_PRINTING_NO_INSTALL"):
         return False
-    if os.path.exists("/var/lib/pacman/db.lck"):
-        log(f"pacman is busy, {pkg} later")
+    if os.path.exists(DB_LOCK):
+        log(f"the package manager is busy, {pkg} later")
         return False
     log(f"installing printer driver {pkg}")
     rc = 3
     if os.access(LUX_ALPM, os.X_OK):
         rc, _out, err = run([LUX_ALPM, "--machine", "-y", "--color=never", "install", "--needed", "--", pkg], 900)
-    if rc == 3:                 # pyalpm nepouzitelne (nebo lux chybi) -> pacman
-        rc, _out, err = run([PACMAN, "-S", "--noconfirm", "--needed", "--", pkg], 900)
+    if rc == 3:                 # pyalpm nepouzitelne (nebo lux chybi) -> lux-engine
+        rc, _out, err = run([ENGINE, "-S", "--noconfirm", "--needed", "--", pkg], 900)
     if rc:
         log(f"installing {pkg} failed: {err[-300:]}")
     return rc == 0

@@ -20,21 +20,47 @@ cat /etc/os-release        # LuxOS version
 Expected: LuxOS has no `pacman` command. Use `lux` – the shell prints the matching command
 (`pacman -Syu` → `lux update`, `pacman -S x` → `lux install x`, `pacman -Rns x` → `lux remove x`).
 Scripts or AUR helpers that call `pacman` directly do not work; `makepkg` is configured to use
-the internal engine automatically. See [lux-engine-and-repos.md](lux-engine-and-repos.md).
+the internal engine (`/usr/lib/lux/alpm/bin/lux-engine`) automatically. There is also no
+`/etc/pacman.conf`: repositories, `hold` (instead of `IgnorePkg`) and mirrors are in
+`/etc/lux/lux.conf` and `/etc/lux/mirrorlist`. See [lux-engine-and-repos.md](lux-engine-and-repos.md).
+
+## "error in the configuration" (lux.conf)
+
+```
+lux: error in the configuration: /etc/lux/lux.conf:12: unknown key 'paralel-downloads' (did you mean 'parallel-downloads'?)
+✗ lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check
+```
+
+Open the file (`lux config edit`), fix the reported line and run `lux config check`. Typical
+causes: pacman syntax (`[options]`, `Key = value`) – lux.conf uses `key value` and `repo NAME`
+blocks; a repository key (`server`, `mirrors`) that is not indented under `repo NAME`; an empty or
+missing mirror list. Until fixed, lux, the Store and LuxOS Care do not install anything; the engine
+keeps the last working configuration. Format: [package-management.md](package-management.md#configuration-etcluxluxconf).
+
+## Old pacman files after updating from LuxOS 0.9.5
+
+`/var/lib/pacman`, `/var/cache/pacman/pkg`, `/etc/pacman.d/gnupg`, `/var/log/pacman.log` are
+links to the new `/var/lib/lux`, `/var/cache/lux/pkg`, `/etc/lux/keyring`, `/var/log/lux.log` until
+the next restart; then lux removes them together with `/etc/pacman.conf` (copies stay in
+`/var/lib/lux/migrated-from-pacman/`). `lux doctor` mentions it; check with
+`/usr/share/libalpm/scripts/lux-engine-migrate status`, finish now with
+`sudo /usr/lib/lux/lux_alpm.py migrate --now`. `/etc/pacman.d/mirrorlist` stays while the unneeded
+`pacman-mirrorlist` package is installed – `lux autoremove` offers to remove it.
 
 ## Updates fail
 
 | Symptom / message | Fix |
 |---|---|
-| "The package database is locked" / Store: "Another app is installing software right now" | Wait – LuxOS Care, the Store or another `lux` may be running (lux waits up to 5 minutes by itself). If nothing is running: `lux fix`. Never delete `/var/lib/pacman/db.lck` while an update runs. |
+| "The package database is locked" / Store: "Another app is installing software right now" | Wait – LuxOS Care, the Store or another `lux` may be running (lux waits up to 5 minutes by itself). If nothing is running: `lux fix`. Never delete `/var/lib/lux/db.lck` while an update runs. |
 | "A package signature could not be verified" | `lux fix` (re-initializes and re-populates keys, reinstalls `archlinux-keyring` and `luxos-keyring`). Check the clock: `timedatectl` – enable sync with `timedatectl set-ntp true`. |
 | "Some packages could not be downloaded" | check the internet connection; `lux mirrors` picks fast mirrors; lux already retries 3× |
 | "Not enough free disk space" | `lux clean` (cache, offers `autoremove`); check `df -h /` |
 | "A downloaded package is damaged" | try again; if it repeats, `lux clean` and retry |
 | file conflict ("… exists in filesystem") | `lux owns <file>` shows the owner; files not owned by any package were created manually – move them away only after checking |
 | "Dependencies can not be satisfied" / "unresolvable package conflicts" | usually a partial update – run a full `lux update` first (since 0.9.2 old installs update cleanly) |
-| `pyalpm` problems after an Arch pacman update | lux falls back to the internal pacman automatically; `lux doctor` reports when `lux-engine` is behind Arch; diagnose with `/usr/lib/lux/lux_alpm.py --verbose available`, force with `LUX_BACKEND=pacman lux update` |
-| new config files from updates | `lux configs` (merge `.pacnew`/`.pacsave`) |
+| `pyalpm` problems after an Arch Linux engine update | lux falls back to the internal `lux-engine` tool automatically; `lux doctor` reports when `lux-engine` is behind Arch; diagnose with `/usr/lib/lux/lux_alpm.py --verbose available`, force with `LUX_BACKEND=engine lux update` |
+| new config files from updates | `lux configs` (review `.pacnew`/`.pacsave`: use new, keep yours, edit) |
+| "The package manager configuration has an error" | `lux config check`, see above |
 | "Kernel was updated - restart to use it." | restart |
 
 AUR builds must run as a normal user (never `sudo lux install <aur-package>`) and need `git`,

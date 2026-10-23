@@ -5,7 +5,7 @@
 
 pkgname=luxos-printing
 pkgver=1.0.0
-pkgrel=5
+pkgrel=6
 pkgdesc="LuxOS plug-and-play printing and scanning, Printers & Scanners and Scanner apps"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"

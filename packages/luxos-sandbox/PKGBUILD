@@ -4,7 +4,7 @@
 
 pkgname=luxos-sandbox
 pkgver=1.0.0
-pkgrel=2
+pkgrel=3
 pkgdesc="LuxOS Sandbox - isolated per-user system for untrusted applications"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
@@ -19,7 +19,7 @@ package() {
     install -Dm755 "$f/luxos-sandbox-gui" "$pkgdir/usr/bin/luxos-sandbox-gui"
     install -Dm755 "$f/luxos-sandbox-helper" "$pkgdir/usr/lib/luxos/sandbox/luxos-sandbox-helper"
     install -Dm644 "$f/luxos_sandbox_seccomp.py" "$pkgdir/usr/lib/luxos/python/luxos_sandbox_seccomp.py"
-    install -Dm644 "$f/pacman.conf" "$pkgdir/usr/share/luxos/sandbox/pacman.conf"
+    install -Dm644 "$f/lux.conf" "$pkgdir/usr/share/luxos/sandbox/lux.conf"
     install -Dm644 "$f/org.luxos.sandbox.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.sandbox.policy"
     install -Dm644 "$f/luxos-sandbox.tmpfiles" "$pkgdir/usr/lib/tmpfiles.d/luxos-sandbox.conf"
     install -Dm644 "$f/luxos-sandbox.desktop" "$pkgdir/usr/share/applications/luxos-sandbox.desktop"

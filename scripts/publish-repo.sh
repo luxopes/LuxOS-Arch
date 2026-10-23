@@ -79,13 +79,14 @@ Last update: $(date -u '+%Y-%m-%d %H:%M UTC').</p>
 <h2>System <small>[luxos]</small></h2>
 <table>$(pkglist luxos)</table>
 <h2>Repositories</h2>
-<p>LuxOS has both repositories set up already. For another Arch-based system, add them to the package
-configuration (<code>/etc/pacman.conf</code>; in LuxOS it belongs to <code>lux</code>):</p>
-<pre>[luxos]
-Server = $URL/\$repo/\$arch
+<p>LuxOS has both repositories set up already in <code>/etc/lux/lux.conf</code>. To add them again
+(for example after editing the file), put this into <code>/etc/lux/conf.d/luxos.conf</code> and run
+<code>lux config check</code>:</p>
+<pre>repo luxos
+    server  $URL/\$repo/\$arch
 
-[luxos-apps]
-Server = $URL/\$repo/\$arch</pre>
+repo luxos-apps
+    server  $URL/\$repo/\$arch</pre>
 <p>Signing key: <a href="luxos.gpg">luxos.gpg</a> (package <code>luxos-keyring</code>).</p>
 </body></html>
 EOF

@@ -1,21 +1,26 @@
 #!/usr/bin/python3
-"""lux_alpm - transakce a dotazy balicku pro lux pres libalpm (pyalpm), bez CLI pacmanu.
+"""lux_alpm - transakce a dotazy balicku pro lux pres libalpm (pyalpm).
 
-Pouziva databazi (/var/lib/pacman), konfiguraci (/etc/pacman.conf, nactenou pres pacman-conf
-z jadra lux-engine - presne jako ji cte pacman), overovani podpisu, cache a hooky jako pacman
-v Arch Linuxu. Spousti ho /usr/bin/lux; Obchod LuxOS a LuxOS Care s --machine.
+Pouziva databazi (/var/lib/lux), konfiguraci (/etc/lux/lux.conf -> /run/lux/engine.conf z lux-config,
+nactenou pres lux-engine-conf z jadra lux-engine - presne jako ji cte jadro), overovani podpisu, cache
+a hooky jadra. Spousti ho /usr/bin/lux; Obchod LuxOS a LuxOS Care s --machine.
 
   lux_alpm.py [volby] PRIKAZ [argumenty]
 
-  available                       0 = pyalpm a konfigurace pouzitelne (jinak kod 3: lux pouzije pacman)
+  available                       0 = pyalpm a konfigurace pouzitelne (jinak kod 3: lux pouzije lux-engine)
   sync [--force]                  obnovi databaze repozitaru                         (root)
   install [--needed] [--asdeps] [--refresh] CIL...  nazev, repo/nazev, skupina, provides, soubor .pkg.tar.*
   reinstall BALIK...              znovu z repozitare, jinak z cache                  (root)
-  remove BALIK...                 odebere i nepotrebne zavislosti a zalohy konfigurace (= pacman -Rns)
-  autoremove                      odebere nepotrebne zavislosti (= pacman -Rns $(pacman -Qdtq))
+  remove BALIK...                 odebere i nepotrebne zavislosti a zalohy konfigurace (= lux-engine -Rns)
+  autoremove                      odebere nepotrebne zavislosti (= lux-engine -Rns $(lux-engine -Qdtq))
   upgrade [--refresh] [--download-only] [--keyring-first]   (update = vse z toho)
   search VYRAZ... | info BALIK | list [--installed|--upgradable|--explicit|--foreign|--orphans] [VZOR]
+  list --sync                     vsechny balicky repozitaru: repo<TAB>nazev<TAB>verze<TAB>velikost<TAB>popis
   files BALIK | owns CESTA... | resolve CIL...
+  check-updates [--db ADRESAR]    dostupne aktualizace bez zasahu do databaze systemu (obnova do
+                                  docasne kopie; 0 = jsou, 2 = nejsou, 1 = chyba)      (uzivatel)
+  clean [--keep N] [--keep-uninstalled N]   cache balicku: N poslednich verzi       (root)
+  migrate [--now]                 prechod z rozlozeni pacmanu (LuxOS do 0.9.5) a uklid   (root)
 
 Volby: -y/--yes, -v/--verbose, --machine, --color=auto|always|never, --lang KOD, --datasaver
 Navratove kody: 0 ok, 1 chyba, 2 spatne pouziti, 3 pyalpm/konfigurace nelze pouzit, 130 preruseno.
@@ -33,10 +38,22 @@ import time
 
 VERSION = "0.3.0"
 EXIT_UNAVAILABLE = 3
-# Nastroje jadra (pacman-conf, pacman-key... z lux-engine) jsou mimo PATH; potrebuje je lux_alpm
+# Nastroje jadra (lux-engine-conf, lux-engine-key... z lux-engine) jsou mimo PATH; potrebuje je lux_alpm
 # i hooky a skriptlety transakci (dedi prostredi tohoto procesu)
 ENGINE_BIN = "/usr/lib/lux/alpm/bin"
 DEFAULT_PATH = "/usr/local/sbin:/usr/local/bin:/usr/bin"
+DEFAULT_DBPATH = "/var/lib/lux/"
+DEFAULT_CACHEDIR = "/var/cache/lux/pkg/"
+MIGRATE = os.environ.get("LUX_MIGRATE", "/usr/share/libalpm/scripts/lux-engine-migrate")
+
+# lux-config (balik lux-engine): /usr/lib/lux, pri spusteni z repozitare ../lux-engine
+for _d in ("/usr/lib/lux", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lux-engine")):
+    if os.path.isfile(os.path.join(_d, "lux_config.py")) and _d not in sys.path:
+        sys.path.append(_d)
+try:
+    import lux_config
+except ImportError:
+    lux_config = None
 
 
 def engine_path(path):
@@ -181,7 +198,8 @@ ERROR_KINDS = [  # (text v chybe libalpm/pacmanu, druh) - stejne texty cte LuxOS
 
 
 # Spravci baliku, kteri drzi zamek databaze (jmeno procesu), a nastroje LuxOS v Pythonu (skript v argumentech)
-PKG_MANAGERS = {"pacman", "makepkg", "pacstrap", "yay", "paru", "pamac", "pamac-daemon", "packagekitd"}
+PKG_MANAGERS = {"lux-engine", "lux-engine-key", "pacman", "makepkg", "pacstrap", "yay", "paru", "pamac",
+                "pamac-daemon", "packagekitd"}
 PKG_SCRIPTS = {"lux_alpm.py": "lux", "luxos-care": "LuxOS Care", "luxos_care.py": "LuxOS Care",
                "luxos-update": "LuxOS Care", "luxos-store-helper": "LuxOS Store"}
 LOCK_WAIT = float(os.environ.get("LUX_LOCK_WAIT", "300"))     # s: jak dlouho cekat na jinou aktualizaci
@@ -255,6 +273,7 @@ def plain_message(kind, detail=""):
         "network": _("Some packages could not be downloaded. Check your internet connection and try again."),
         "notfound": _("Package '%s' not found. Try: lux search %s") % (detail, detail) if detail else
         _("Package not found."),
+        "config": _("The package manager configuration has an error. Check it with: lux config check"),
     }
     return m.get(kind, _("The package operation failed."))
 
@@ -295,7 +314,7 @@ def describe_data(data):
     return out
 
 
-# ---- konfigurace pacmanu (pacman-conf = parser pacmanu) ----------------------------------------
+# ---- konfigurace jadra (lux-engine-conf = parser jadra) ------------------------------------------
 def sig_bits(api=None):
     g = (lambda n, d: getattr(api, n, d)) if api is not None else (lambda n, d: d)
     return {
@@ -337,8 +356,8 @@ def parse_siglevel(tokens, base=None, api=None):
     return level
 
 
-class PacmanConf:
-    """Vystup `pacman-conf` (plne vyhodnoceny pacman.conf vcetne Include)."""
+class EngineConf:
+    """Vystup `lux-engine-conf` (plne vyhodnocena konfigurace jadra z /run/lux/engine.conf)."""
 
     def __init__(self, text):
         self.options = {}
@@ -367,24 +386,51 @@ class PacmanConf:
         return v[-1] if v else default
 
     def list(self, key):
-        """Opakovatelna volba; hodnoty oddelene mezerami jako u pacmanu (HoldPkg = pacman glibc)."""
+        """Opakovatelna volba; hodnoty oddelene mezerami (HoldPkg = lux-engine glibc)."""
         return [w for v in (self.options.get(key) or []) for w in v.split()]
 
     def has(self, key):
         return key in self.options
 
+    def with_options(self, set_=None, drop=()):
+        """Kopie s jinymi volbami (napr. docasna databaze pro check-updates)."""
+        c = EngineConf("")
+        c.options = {k: list(v) for k, v in self.options.items() if k not in drop}
+        for k, v in (set_ or {}).items():
+            c.options[k] = [v]
+        c.repos = [dict(r) for r in self.repos]
+        return c
 
-def load_pacman_conf():
-    cmd = ["pacman-conf"]
-    if os.environ.get("LUX_PACMAN_CONF"):
-        cmd += ["--config", os.environ["LUX_PACMAN_CONF"]]
+
+def engine_conf_path():
+    """/run/lux/engine.conf (z /etc/lux/lux.conf, viz lux-config). Rozbita lux.conf: lux nepokracuje."""
+    if os.environ.get("LUX_ENGINE_CONF"):
+        return os.environ["LUX_ENGINE_CONF"]
+    if lux_config is None:
+        raise LuxError("config", "lux-config is missing (package lux-engine)", rc=EXIT_UNAVAILABLE)
+    import io
+    err = io.StringIO()
+    path, state = lux_config.ensure(err=err)
+    if state != "ok":
+        lines = [ln.replace("lux: error in the configuration: ", "") for ln in err.getvalue().splitlines()]
+        raise LuxError("config", _("The package manager configuration has an error: %s") % (lines[0] if lines else "?")
+                       + "\n" + _("Fix it and check it with: lux config check"), lines[1:])
+    return path
+
+
+def load_engine_conf():
+    if lux_config is None and not os.environ.get("LUX_ENGINE_CONF"):
+        # jadro z LuxOS 0.9.0 (luxos-pacman, /etc/pacman.conf) do vymeny za lux-engine
+        cmd = ["lux-engine-conf" if shutil.which("lux-engine-conf") else "pacman-conf"]
+    else:
+        cmd = ["lux-engine-conf", "--config", engine_conf_path()]
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     except (OSError, subprocess.TimeoutExpired) as e:
-        raise LuxError("config", f"pacman-conf: {e}", rc=EXIT_UNAVAILABLE)
+        raise LuxError("config", f"lux-engine-conf: {e}", rc=EXIT_UNAVAILABLE)
     if r.returncode != 0:
-        raise LuxError("config", "pacman-conf: " + (r.stderr or "").strip(), rc=EXIT_UNAVAILABLE)
-    return PacmanConf(r.stdout)
+        raise LuxError("config", "lux-engine-conf: " + (r.stderr or "").strip(), rc=EXIT_UNAVAILABLE)
+    return EngineConf(r.stdout)
 
 
 def usage_mask(tokens):
@@ -404,10 +450,10 @@ def _try_set(obj, name, value):
 
 
 def build_handle(api, conf):
-    """pyalpm.Handle nastaveny jako pacman. Co pyalpm neumi a v konfiguraci se pouziva, je chyba
-    (vyjimka s rc 3) - lux pak radeji pouzije pacman, nez aby se choval jinak."""
+    """pyalpm.Handle nastaveny jako jadro. Co pyalpm neumi a v konfiguraci se pouziva, je chyba
+    (vyjimka s rc 3) - lux pak radeji pouzije lux-engine, nez aby se choval jinak."""
     root = conf.get("RootDir", "/")
-    dbpath = conf.get("DBPath", "/var/lib/pacman/")
+    dbpath = conf.get("DBPath", DEFAULT_DBPATH)
     h = api.Handle(root, dbpath)
     missing = []
 
@@ -428,7 +474,7 @@ def build_handle(api, conf):
         if not vals:
             continue
         if attr == "hookdirs":
-            # hooky z /usr/share/libalpm/hooks pridava libalpm sam; HookDir (napr. /etc/pacman.d/hooks)
+            # hooky z /usr/share/libalpm/hooks pridava libalpm sam; HookDir (napr. /etc/lux/hooks)
             # je nutne jen kdyz v nem nejake hooky jsou
             needed = any(glob.glob(os.path.join(root, d.lstrip("/"), "*.hook")) for d in vals)
         else:
@@ -888,7 +934,7 @@ class Lux:
             if self.api is None:
                 self.api = import_pyalpm()
             if self.conf is None:
-                self.conf = load_pacman_conf()
+                self.conf = load_engine_conf()
             self._h, self.extra = build_handle(self.api, self.conf)
             # libalpm 13+ hlasi stahovani udalostmi (soubor, udalost, data); pyalpm 0.12 misto dat
             # posila ukazatel, takze se nesmi brat jako (soubor, stazeno, celkem)
@@ -968,7 +1014,7 @@ class Lux:
         try:
             dbpath = self.h.dbpath
         except AttributeError:
-            dbpath = (self.conf.get("DBPath") if self.conf is not None else None) or "/var/lib/pacman/"
+            dbpath = (self.conf.get("DBPath") if self.conf is not None else None) or DEFAULT_DBPATH
         return os.path.join(dbpath, "db.lck")
 
     def wait_for_lock(self):
@@ -1447,7 +1493,7 @@ def cached_file(lux, name, version):
         dirs = list(lux.h.cachedirs or [])
     except AttributeError:
         dirs = []
-    dirs = dirs or ["/var/cache/pacman/pkg/"]
+    dirs = dirs or [DEFAULT_CACHEDIR]
     pat = re.compile(re.escape(f"{name}-{version}-") + r"[a-z0-9_]+\.pkg\.tar\.(zst|xz)$")
     for d in dirs:
         try:
@@ -1650,6 +1696,15 @@ def cmd_list(lux, args):
     local = lux.localdb
     plain = not (ui.tty or ui.color)
     rx = re.compile(re.escape(args.pattern), re.I) if args.pattern else None
+    if args.mode == "sync":
+        # vsechny balicky repozitaru pro TUI lux a Obchod (drive expac -S '%r %n %v %m %d')
+        for db in lux.syncdbs("Search"):
+            for p in db.pkgcache:
+                if rx and not rx.search(p.name):
+                    continue
+                desc = (p.desc or "").replace("\t", " ").replace("\n", " ")
+                ui.write(f"{db.name}\t{p.name}\t{p.version}\t{getattr(p, 'isize', 0) or 0}\t{desc}")
+        return 0
     if args.mode == "upgradable":
         dbs = lux.syncdbs("Upgrade")
         n = 0
@@ -1747,6 +1802,177 @@ def cmd_resolve(lux, args):
 
 
 # ---- prikazova radka --------------------------------------------------------------------------
+# ---- kontrola aktualizaci, cache, prechod ---------------------------------------------------------
+def check_updates_db(path=None):
+    """Docasna databaze pro check-updates (zustava pro dalsi beh a pro vypocet velikosti stahovani)."""
+    if path:
+        return path
+    base = os.environ.get("TMPDIR") or "/tmp"
+    return os.path.join(base, f"lux-checkupdates-{os.getuid()}")
+
+
+def cmd_check_updates(lux, args):
+    """Jako checkupdates z pacman-contrib: obnovi databaze repozitaru do docasne kopie (bez zamku
+    a bez prav roota), systemova databaze se nemeni. 0 = jsou aktualizace, 2 = nejsou, 1 = chyba."""
+    conf = lux.conf if lux.conf is not None else load_engine_conf()
+    real = conf.get("DBPath", DEFAULT_DBPATH)
+    tmp = check_updates_db(args.db)
+    os.makedirs(os.path.join(tmp, "sync"), mode=0o700, exist_ok=True)
+    st = os.lstat(tmp)
+    if st.st_uid != os.getuid() or os.path.islink(tmp):
+        raise LuxError("permission", f"{tmp} does not belong to this user")
+    local = os.path.join(tmp, "local")
+    if os.path.islink(local) and os.readlink(local) != os.path.join(real, "local"):
+        os.unlink(local)
+    if not os.path.lexists(local):
+        os.symlink(os.path.join(real, "local"), local)
+    # posledni stazene databaze systemu jako zaklad (stahuje se jen to, co se zmenilo)
+    src = os.path.join(real, "sync")
+    try:
+        for f in os.listdir(src):
+            a, b = os.path.join(src, f), os.path.join(tmp, "sync", f)
+            if os.path.isfile(a) and (not os.path.exists(b) or os.path.getmtime(a) > os.path.getmtime(b)):
+                shutil.copy2(a, b)
+    except OSError:
+        pass
+    tconf = conf.with_options({"DBPath": tmp, "LogFile": "/dev/null"}, drop=("DownloadUser",))
+    tl = Lux(lux.ui, api=lux.api, conf=tconf)
+    tl.h
+    tl.cb.reset("refresh")
+    failed = []
+    for db in tl.syncdbs("Sync"):
+        try:
+            db.update(False)
+        except tl.api.error as e:
+            failed.append(f"{db.name}: {alpm_error_parts(e)[0]}")
+    if failed:
+        raise LuxError("network", plain_message("network"), failed)
+    tl.conf = tconf
+    dbs = tl.syncdbs("Upgrade")
+    n = 0
+    for p in sorted(tl.localdb.pkgcache, key=lambda x: x.name):
+        new = tl.api.sync_newversion(p, dbs)
+        if new is None:
+            continue
+        n += 1
+        lux.ui.write(f"{p.name} {p.version} -> {new.version}")
+    return 0 if n else 2
+
+
+PKG_FILE = re.compile(r"^(?P<name>.+)-(?P<ver>[^-]+-[^-]+)-(?P<arch>[^-]+)\.pkg\.tar(\.[a-z0-9]+)?$")
+
+
+def cache_plan(files, installed, vercmp, keep, keep_uninstalled):
+    """Soubory k odstraneni z cache: u kazdeho balicku nechat `keep` nejnovejsich verzi, u
+    odinstalovanych `keep_uninstalled` (jako paccache -rk2 a -ruk0)."""
+    groups = {}
+    for f in files:
+        m = PKG_FILE.match(os.path.basename(f))
+        if m:
+            groups.setdefault((m["name"], m["arch"]), []).append((m["ver"], f))
+    out = []
+    import functools
+    for (name, _arch), items in groups.items():
+        items.sort(key=functools.cmp_to_key(lambda a, b: vercmp(a[0], b[0])), reverse=True)
+        n = keep if name in installed else keep_uninstalled
+        out += [f for _v, f in items[n:]]
+    return sorted(out)
+
+
+def cmd_clean(lux, args):
+    lux.need_root()
+    try:
+        dirs = list(lux.h.cachedirs or [])
+    except AttributeError:
+        dirs = []
+    dirs = dirs or [DEFAULT_CACHEDIR]
+    files = []
+    for d in dirs:
+        try:
+            files += [os.path.join(d, f) for f in os.listdir(d) if PKG_FILE.match(f)]
+        except OSError:
+            continue
+    installed = {p.name for p in lux.localdb.pkgcache}
+    remove = cache_plan(files, installed, lux.api.vercmp, args.keep, args.keep_uninstalled)
+    freed = 0
+    for f in remove:
+        for path in (f, f + ".sig"):
+            try:
+                freed += os.path.getsize(path)
+                os.unlink(path)
+            except OSError:
+                pass
+    lux.ui.emit("SUMMARY", "clean", len(remove), 0, -freed, 0)
+    if remove:
+        lux.ui.ok(_("Removed %d old package files from the cache (%s freed)") % (len(remove), human_size(freed)))
+    else:
+        lux.ui.ok(_("The package cache is already clean"))
+    return 0
+
+
+def human_size(n):
+    for unit in ("B", "kB", "MB", "GB"):
+        if abs(n) < 1024 or unit == "GB":
+            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+        n /= 1024
+    return str(n)
+
+
+def migration_pending(root="/"):
+    """Zbytky rozlozeni pacmanu (LuxOS do 0.9.5) - rychla kontrola bez spusteni skriptu."""
+    p = lambda rel: os.path.join(root, rel)  # noqa: E731
+    return any((os.path.lexists(p("var/lib/pacman")), os.path.lexists(p("etc/pacman.conf")),
+                os.path.lexists(p("etc/pacman.conf.pacsave")), os.path.islink(p("usr/lib/lux/alpm/bin/pacman")),
+                os.path.lexists(p("var/log/pacman.log")), os.path.islink(p("var/cache/pacman/pkg"))))
+
+
+def maybe_migrate(ui, now=False, force=False):
+    """Root: dokonci prechod z pacmanu, kdyz ho hook pri aktualizaci nestihl (stary proces jadra,
+    instalace s --nohooks...), a po restartu uklidi pozustatky. Zamek: stara cesta /var/lib/pacman/db.lck
+    (ji respektuje i pripadny starsi proces), migrace ho presune do /var/lib/lux."""
+    if os.geteuid() != 0 or not os.access(MIGRATE, os.X_OK) or not (force or migration_pending()):
+        return 0
+    if running_package_managers():
+        return 0
+    lock = None
+    if os.path.isdir("/var/lib/pacman") and not os.path.islink("/var/lib/pacman"):
+        if os.path.exists("/var/lib/pacman/db.lck") or os.path.exists(DEFAULT_DBPATH + "db.lck"):
+            return 0
+        try:
+            os.close(os.open("/var/lib/pacman/db.lck", os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644))
+            lock = True
+        except OSError:
+            return 0
+    try:
+        r = subprocess.run([MIGRATE, "auto"] + (["--now"] if now else []) + ["--ignore-pid", str(os.getpid())],
+                           capture_output=True, text=True, timeout=600)
+        for line in (r.stderr or "").splitlines():
+            ui.note(line)
+        return r.returncode
+    except (OSError, subprocess.TimeoutExpired) as e:
+        ui.note(f"lux-engine-migrate: {e}")
+        return 1
+    finally:
+        if lock:
+            for path in (DEFAULT_DBPATH + "db.lck", "/var/lib/pacman/db.lck"):
+                try:
+                    os.unlink(path)
+                    break
+                except OSError:
+                    continue
+
+
+def cmd_migrate(lux, args):
+    lux.need_root()
+    rc = maybe_migrate(lux.ui, now=args.now, force=True)
+    if rc == 0:
+        lux.ui.ok(_("The package manager uses /etc/lux and /var/lib/lux"))
+    return rc
+
+
+ROOT_CMDS = {"sync", "install", "reinstall", "remove", "autoremove", "upgrade", "update", "clean"}
+
+
 def build_parser():
     p = argparse.ArgumentParser(prog="lux_alpm.py", add_help=True)
     p.add_argument("-y", "--yes", "--noconfirm", action="store_true")
@@ -1793,7 +2019,7 @@ def build_parser():
     s.set_defaults(fn=cmd_info)
     s = sub.add_parser("list")
     g = s.add_mutually_exclusive_group()
-    for m in ("installed", "upgradable", "explicit", "foreign", "orphans"):
+    for m in ("installed", "upgradable", "explicit", "foreign", "orphans", "sync"):
         g.add_argument(f"--{m}", dest="mode", action="store_const", const=m)
     s.add_argument("pattern", nargs="?")
     s.set_defaults(fn=cmd_list, mode="installed")
@@ -1806,6 +2032,16 @@ def build_parser():
     s = sub.add_parser("resolve")
     s.add_argument("targets", nargs="+")
     s.set_defaults(fn=cmd_resolve)
+    s = sub.add_parser("check-updates")
+    s.add_argument("--db", default=None)
+    s.set_defaults(fn=cmd_check_updates)
+    s = sub.add_parser("clean")
+    s.add_argument("--keep", type=int, default=2)
+    s.add_argument("--keep-uninstalled", type=int, default=0)
+    s.set_defaults(fn=cmd_clean)
+    s = sub.add_parser("migrate")
+    s.add_argument("--now", action="store_true")
+    s.set_defaults(fn=cmd_migrate)
     return p
 
 
@@ -1824,6 +2060,8 @@ def main(argv=None, api=None, conf=None, out=None, inp=None):
     lux = Lux(ui, api=api, conf=conf)
     lux.install_signals()
     rc = 0
+    if args.cmd in ROOT_CMDS and conf is None:
+        maybe_migrate(ui)
     try:
         rc = args.fn(lux, args) or 0
     except LuxError as e:

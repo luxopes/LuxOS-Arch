@@ -4,14 +4,15 @@
 
 pkgname=luxos-care
 pkgver=1.0.0
-pkgrel=7
+pkgrel=8
 pkgdesc="LuxOS Care - automatic updates, previous kernel fallback and self-repair"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
 license=(MIT)
-# "pacman" = virtualni zavislost (lux-engine, drive luxos-pacman i pacman z Archu): starsi lux/Obchod,
-# ktere nahrazeni baliku odmitnou, tak aktualizuji vse ostatni a lux-engine nahradi az novy lux
-depends=(python python-gobject gtk3 pacman pacman-contrib mkinitcpio systemd polkit luxos-i18n)
+# "pacman" = virtualni zavislost (poskytuje ji lux-engine, drive luxos-pacman): starsi lux/Obchod,
+# ktere nahrazeni baliku odmitnou, tak aktualizuji vse ostatni a lux-engine nahradi az novy lux.
+# Kontrolu aktualizaci a cisteni cache dela lux (lux_alpm.py check-updates / clean), ne pacman-contrib.
+depends=(python python-gobject gtk3 pacman mkinitcpio systemd polkit luxos-i18n)
 optdepends=('lux: updates through libalpm (pyalpm) with the same progress output'
             'luxos-account: LuxAI Flash chooses repairs for unknown problems'
             'networkmanager: skip updates on metered connections (Data Saver)'

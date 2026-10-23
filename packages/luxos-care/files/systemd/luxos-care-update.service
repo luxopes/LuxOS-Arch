@@ -7,7 +7,7 @@ ConditionPathExists=!/run/archiso
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/luxos-care update
-# Stahovani se pri vypnuti prerusi, instalace dobehne (luxos-care ceka na pacman)
+# Stahovani se pri vypnuti prerusi, instalace dobehne (luxos-care ceka na dokonceni transakce)
 KillMode=mixed
 TimeoutStopSec=30min
 Nice=10

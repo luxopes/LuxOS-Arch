@@ -46,7 +46,7 @@ are also not listed (search them with `lux search`).
 
 ## Updates page
 
-- **Check for Updates** runs `checkupdates` (no root needed, does not touch the system databases).
+- **Check for Updates** runs `lux_alpm.py check-updates` (no root needed, does not touch the system databases).
 - **Update All** (only enabled when updates exist) runs `luxos-store-helper upgrade` = full
   `lux update` of repository packages ("Updating system…").
 - With Data Saver on, updates are not checked automatically when the page opens
@@ -76,4 +76,4 @@ luxos-store-helper lux-install|lux-remove NAME # .lux packages
 ```
 
 Package names are validated (`^[a-z0-9@._+][a-z0-9@._+-]*$`). Without a usable `pyalpm` the
-helper falls back to the internal pacman with up to 3 retries on network errors.
+helper falls back to the internal tool `lux-engine` with up to 3 retries on network errors.

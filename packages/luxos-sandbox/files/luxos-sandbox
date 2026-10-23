@@ -54,7 +54,8 @@ SHARED_IN = SANDBOX_HOME + "/Shared"
 DNS_ADDR = "169.254.1.53"
 # Trvale adresare korene (ostatni cesty v / jsou docasne - tmpfs)
 PERSIST_DIRS = ("usr", "etc", "var", "opt", "srv", "root", "mnt")
-# Balicky zakladniho systemu (shodne s pomocnikem) - nejsou to "aplikace"
+# Balicky zakladniho systemu (shodne s pomocnikem) - nejsou to "aplikace". Sandbox je minimalni Arch Linux
+# se spravcem baliku Archu (balik pacman, /usr/bin/pacman uvnitr sandboxu) - ne LuxOS s lux.
 BASE_PACKAGES = ("base", "filesystem", "bash", "coreutils", "pacman", "archlinux-keyring", "ca-certificates",
                  "sed", "grep", "gawk", "findutils", "tar", "gzip", "xz", "zstd", "less", "nano",
                  "which", "procps-ng", "curl", "file", "diffutils", "glibc")

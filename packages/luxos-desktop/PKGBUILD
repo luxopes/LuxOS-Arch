@@ -3,13 +3,17 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=32
+pkgrel=33
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
-options=(!debug)
+# !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
+# ("exec format error"); programy a knihovny z C se zmensi rucne v build()
+options=(!debug !strip)
 url="https://github.com/luxos"
 license=(MIT)
-makedepends=(python xfce4-settings xfce4-session libxi libxtst libxrandr gtk3 pkgconf)
+# lsl >= 0.10.4: prekladac lslc s moduly glib/gio (cil linux-x86_64-gnu) pro programy v files/lsl;
+# balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni
+makedepends=(python xfce4-settings xfce4-session libxi libxtst libxrandr gtk3 pkgconf 'lsl>=0.10.5')
 install=luxos-desktop.install
 depends=(
     # LuxOS
@@ -56,6 +60,16 @@ build() {
     # Zamykaci obrazovka: bez prazdne informacni listy (cerny pruh dole) po probuzeni
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-lock-fix.so "$startdir/files/src/luxos-lock-fix.c" \
         $(pkg-config --cflags --libs gtk+-3.0)
+    strip --strip-all luxos-menubar
+    strip --strip-unneeded libluxos-rgba-menus.so libluxos-lock-fix.so
+
+    # Casto spoustene programy horni listy v LSL (files/lsl, viz docs/perf/lsl-rewrite-plan.md):
+    # hodiny kazde 3 s, baterie kazdych 20 s, nazev aplikace pri kazdem prepnuti okna, prepinace
+    # po kliknuti. Cil linux-x86_64-gnu: dynamicky linkovane nad glibc a GLib/GIO (D-Bus) stroje.
+    local p
+    for p in luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname; do
+        lslc --target linux-x86_64-gnu "$startdir/files/lsl/$p.lsl" "$p"
+    done
 }
 
 package() {
@@ -68,8 +82,11 @@ package() {
     python3 "$f/merge-xfconf.py" /etc/xdg/xfce4/xfconf/xfce-perchannel-xml \
         "$f/xdg/xfce4/xfconf/xfce-perchannel-xml" "$pkgdir/etc/xdg/luxos/xfce4/xfconf/xfce-perchannel-xml"
 
-    install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar
+    install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar \
+        luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname
     ln -s luxos-search "$pkgdir/usr/bin/luxos-spotlight"   # starsi zkratky v xfconf
+    # Sledovani aktivniho okna (bash, xprop -spy) pro "luxos-appname watch"
+    install -Dm755 "$f/luxos-appname-watch" "$pkgdir/usr/lib/luxos/luxos-appname-watch"
     install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f"/python/*.py
     # Predkompilovany bajtkod: uzivatel do /usr nezapisuje, jinak by se moduly prekladaly pri kazdem startu
     # (checked-hash: platnost podle obsahu, ne casu souboru - makepkg casy prepisuje)
@@ -100,7 +117,7 @@ package() {
     done
     install -Dm644 "$f/rofi/config.rasi" "$pkgdir/etc/rofi.rasi"   # system-wide config rofi 2.x
 
-    # Kratke nazvy aplikaci (pacman hook prepise .desktop do /var/lib/luxos/apps)
+    # Kratke nazvy aplikaci (hook spravce baliku prepise .desktop do /var/lib/luxos/apps)
     install -Dm644 "$f/apps/rename.conf" "$pkgdir/usr/share/luxos/apps/rename.conf"
     install -Dm755 "$f/apps/luxos-apps-sync" "$pkgdir/usr/lib/luxos/luxos-apps-sync"
     install -Dm644 "$f/hooks/luxos-apps.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-apps.hook"

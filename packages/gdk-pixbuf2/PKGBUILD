@@ -7,7 +7,7 @@
 # kazda nabidka s ikonami ma desitky dalsich. Kali/Debian (gdk-pixbuf 2.42) to nema - odtud
 # cast rozdilu v rychlosti. LuxOS proto stavi gdk-pixbuf s klasickymi zavadeci (png a jpeg
 # vestavene, ostatni jako moduly v /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders, SVG z balicku
-# luxos-pixbuf-svg). Repozitar [luxos] je v pacman.conf pred [extra], takze ma tento balik
+# luxos-pixbuf-svg). Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik
 # prednost pred stejnojmennym z Archu; pri nove verzi v Archu zvysit pkgver a sjednotit pkgrel.
 # Stejne verze, vyssi pkgrel nez Arch (2.44.8-1), aby se nainstalovane systemy aktualizovaly.
 
@@ -44,7 +44,7 @@ build() {
 
 package() {
     meson install -C build --destdir "$pkgdir"
-    # Cache zavadecu (loaders.cache) vytvari a maze pacman hook na cilovem systemu
+    # Cache zavadecu (loaders.cache) vytvari a maze hook spravce baliku na cilovem systemu
     install -Dm644 "$startdir/files/gdk-pixbuf-query-loaders.hook" \
         "$pkgdir/usr/share/libalpm/hooks/gdk-pixbuf-query-loaders.hook"
     install -Dm644 "$startdir/files/gdk-pixbuf-remove-loaders-cache.hook" \

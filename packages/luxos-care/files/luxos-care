@@ -8,8 +8,8 @@
   luxos-care check [--updates]      (root, luxos-care-check.service)
   luxos-care apply ID-N             (root, luxos-care-apply@ID-N.service: volba LuxAI)
   luxos-care boot-check             (root, pred boot-complete.target)
-  luxos-care kernel-pre|kernel-post (root, hooky pacmanu; cile na stdin)
-  luxos-care release-kept           (root) vystup pacmanu na stdin: uvolni zalozni jadro
+  luxos-care kernel-pre|kernel-post (root, hooky jadra lux; cile na stdin)
+  luxos-care release-kept           (root) vystup transakce na stdin: uvolni zalozni jadro
                                     se stejnou verzi, jaka se ma nainstalovat
 """
 import json
@@ -108,7 +108,7 @@ def main(argv):
             care.log(f"check after boot failed: {e}")
         return rc
     if cmd == "release-kept":
-        # pacman -S ... 2>&1 | luxos-care release-kept: uvolni zalozni jadro kolidujici s instalaci
+        # lux-engine -S ... 2>&1 | luxos-care release-kept: uvolni zalozni jadro kolidujici s instalaci
         need_root()
         print(" ".join(care.release_kept_conflicts(sys.stdin.read())))
         return 0
@@ -117,7 +117,7 @@ def main(argv):
         targets = [] if sys.stdin.isatty() else sys.stdin.read().split()
         try:
             return (care.kernel_pre if cmd == "kernel-pre" else care.kernel_post)(targets)
-        except Exception as e:  # noqa: BLE001 - hook nesmi rozbit transakci pacmanu
+        except Exception as e:  # noqa: BLE001 - hook nesmi rozbit transakci
             care.log(f"{cmd} failed: {e}")
             return 0
     print(__doc__.strip(), file=sys.stderr)

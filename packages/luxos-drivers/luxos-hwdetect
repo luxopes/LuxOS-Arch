@@ -82,7 +82,8 @@ for d in "$R"/sys/bus/usb/devices/*; do
 done
 
 multilib=0
-grep -qs '^\[multilib\]' "$R/etc/pacman.conf" && multilib=1
+# repozitar multilib (Steam) zapnuty v /etc/lux/lux.conf nebo /etc/lux/conf.d
+grep -Eqs '^repo[[:space:]]+multilib([[:space:]]|#|$)' "$R/etc/lux/lux.conf" "$R"/etc/lux/conf.d/*.conf && multilib=1
 live=0
 [[ -d $R/run/archiso ]] && live=1
 laptop=0

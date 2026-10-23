@@ -1,0 +1,9 @@
+#!/bin/bash
+# LuxOS (lux-engine): archlinux-keyring-wkd-sync z balicku archlinux-keyring zjistuje klicenku
+# prikazem "pacman-conf GPGDir". V LuxOS je to lux-engine-conf - jen pro tento beh ho dostane
+# pod ocekavanym jmenem v docasnem adresari (sluzba ma vlastni /tmp).
+set -e
+shim=$(mktemp -d)
+trap 'rm -rf "$shim"' EXIT
+ln -s /usr/lib/lux/alpm/bin/lux-engine-conf "$shim/pacman-conf"
+PATH="$shim:/usr/lib/lux/alpm/bin:/usr/local/sbin:/usr/local/bin:/usr/bin" /usr/bin/archlinux-keyring-wkd-sync "$@"

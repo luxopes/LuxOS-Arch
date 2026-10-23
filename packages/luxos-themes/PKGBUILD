@@ -43,7 +43,7 @@ package() {
 
     # Ikony: WhiteSur, WhiteSur-light, WhiteSur-dark
     # -a: prekreslene alternativy misto napodobenin ikon Applu (Finder, App Store, Nastaveni...)
-    # install.sh vola gtk-update-icon-cache; cache vytvori pacman hook az na cilovem systemu
+    # install.sh vola gtk-update-icon-cache; cache vytvori hook spravce baliku az na cilovem systemu
     mkdir -p "$srcdir/stub"
     printf '#!/bin/sh\nexit 0\n' > "$srcdir/stub/gtk-update-icon-cache"
     chmod +x "$srcdir/stub/gtk-update-icon-cache"

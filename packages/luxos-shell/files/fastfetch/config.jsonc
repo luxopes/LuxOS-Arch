@@ -25,9 +25,10 @@
       "format": "{name}{?version} ({version}){?}" },
     { "type": "kernel",   "key": "  Kernel",   "keyColor": "38;2;95;211;141" },
     { "type": "uptime",   "key": "󰅐  Uptime",   "keyColor": "38;2;90;200;250" },
-    // Baliky spravuje lux (databaze libalpm = "pacman" ve fastfetch); Flatpak/Snap/Nix jen kdyz nejake jsou
-    { "type": "packages", "key": "󰏖  Packages", "keyColor": "38;2;180;140;255",
-      "format": "{pacman} (lux){?flatpak-all}, {flatpak-all} (flatpak){?}{?snap}, {snap} (snap){?}{?nix-all}, {nix-all} (nix){?}" },
+    // Baliky spravuje lux (databaze /var/lib/lux - modul "packages" fastfetche zna jen cestu Archu);
+    // Flatpak jen kdyz nejake aplikace jsou
+    { "type": "command",  "key": "󰏖  Packages", "keyColor": "38;2;180;140;255", "shell": "/bin/sh",
+      "text": "/usr/lib/luxos/fastfetch-packages" },
     { "type": "shell",    "key": "󰆍  Shell",    "keyColor": "38;2;255;122;217" },
     // Prostredi a terminal LuxOS pod vlastnimi jmeny (ne Xfce / xfce4-terminal)
     { "type": "command",  "key": "󰧨  Desktop",  "keyColor": "38;2;91;140;255", "shell": "/bin/sh",

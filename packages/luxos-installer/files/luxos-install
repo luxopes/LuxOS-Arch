@@ -19,9 +19,12 @@ set -Eeuo pipefail
 LOG=/var/log/luxos-install.log
 TARGET=/mnt
 SHARE=/usr/share/luxos/installer
-# pacstrap a setup-chroot.sh (pres arch-chroot) volaji pacman, pacman-key a pacman-conf jmenem: jsou to
-# nastroje jadra lux (lux-engine) mimo PATH. sudo/pkexec PATH nastavi po svem, proto az tady.
+# Nastroje jadra lux (lux-engine, lux-engine-key, lux-engine-conf) jsou mimo PATH. sudo/pkexec PATH
+# nastavi po svem, proto az tady. pacstrap (arch-install-scripts) je vola jmeny z Archu - dostane je
+# jen on, z docasneho adresare (engine_shim).
 export PATH="/usr/lib/lux/alpm/bin:${PATH:-/usr/local/sbin:/usr/local/bin:/usr/bin}"
+LUX_CONFIG_TOOL=/usr/lib/lux/lux-config
+LUX_MIGRATE=/usr/share/libalpm/scripts/lux-engine-migrate
 . /usr/lib/luxos/i18n.sh
 ui_lang() { export LANG=$1; . /usr/lib/luxos/i18n.sh; }   # jazyk pruvodce podle volby
 # Rucni rozdeleni disku (DISK_MODE=layout): parser, kontrola a provedeni LAYOUT
@@ -1300,7 +1303,7 @@ prepare_freespace() {
 }
 
 # --- Sit: rychle mirrory, prubeh stahovani, srozumitelne chyby --------------
-MIRRORLIST=/etc/pacman.d/mirrorlist
+MIRRORLIST=/etc/lux/mirrorlist   # format lux: jedna adresa na radek
 
 tz_country() {  # tz_country Europe/Prague -> CZ
     awk -v tz="$1" '$1 !~ /^#/ && $3 == tz {print $1; exit}' /usr/share/zoneinfo/zone.tab 2>/dev/null || true
@@ -1308,6 +1311,8 @@ tz_country() {  # tz_country Europe/Prague -> CZ
 
 # Nejrychlejsi mirrory v zemi podle casoveho pasma (reflector, kratke timeouty); puvodni seznam
 # zustava za nimi jako zaloha. Live system ho pouzije pro pacstrap, configure_system ho kopiruje do cile.
+# reflector pise radky "Server = ..."; lux-config mirrors-import je prevede do formatu lux.
+mirror_urls() { grep -oE '^[[:space:]]*(Server[[:space:]]*=[[:space:]]*)?(https?|ftp|file)://[^[:space:]#]+' "$1" | sed -E 's/^[[:space:]]*(Server[[:space:]]*=[[:space:]]*)?//'; }
 rank_mirrors() {
     local orig=$MIRRORLIST.luxos-orig cc tmp n
     [[ -e $orig ]] || cp "$MIRRORLIST" "$orig" 2>/dev/null || return 0
@@ -1320,28 +1325,25 @@ rank_mirrors() {
     printf '+ reflector --country %s\n' "$cc" >>"$LOG"
     if timeout 45 reflector --country "$cc" --protocol https --latest 12 --sort rate --number 8 \
             --connection-timeout 3 --download-timeout 5 --threads 4 --save "$tmp" >>"$LOG" 2>&1; then
-        n=$(grep -c '^Server *=' "$tmp" || true)
+        n=$(mirror_urls "$tmp" | wc -l)
     else
         n=0
     fi
-    if ((n >= 2)); then
-        {
-            echo "# LuxOS: fastest mirrors for $cc (reflector), then the default list as a fallback"
-            grep '^Server *=' "$tmp"
-            echo
-            grep '^Server *=' "$orig" | grep -vxF -f <(grep '^Server *=' "$tmp") || true
-        } >"$MIRRORLIST.new"
-        mv -f "$MIRRORLIST.new" "$MIRRORLIST"
+    if ((n >= 2)) && {
+            echo "# fastest mirrors for $cc (reflector), then the default list as a fallback"
+            mirror_urls "$tmp"
+            mirror_urls "$orig" | grep -vxF -f <(mirror_urls "$tmp") || true
+        } >"$tmp.all" && "$LUX_CONFIG_TOOL" mirrors-import "$tmp.all" --output "$MIRRORLIST" >>"$LOG" 2>&1; then
         info "$(T "Using %s fast download servers near you." "$n")"
     else
         cp -f "$orig" "$MIRRORLIST"
         info "$(T "Using the default download servers.")"
     fi
     progress "STATUS "
-    rm -f "$tmp"
+    rm -f "$tmp" "$tmp.all"
 }
 
-pac_friendly() {  # surovy radek pacmanu -> srozumitelna veta (prazdny vystup = radek beze zmeny)
+pac_friendly() {  # surovy radek jadra -> srozumitelna veta (prazdny vystup = radek beze zmeny)
     local l=$1 host why
     if [[ $l =~ ^error:\ failed\ retrieving\ file\ \'[^\']*\'\ from\ ([^\ ]+)\ :\ (.*)$ ]]; then
         host=${BASH_REMATCH[1]} why=${BASH_REMATCH[2]}
@@ -1365,14 +1367,15 @@ pac_friendly() {  # surovy radek pacmanu -> srozumitelna veta (prazdny vystup = 
 
 human_bytes() { numfmt --to=si --suffix=B --format=%.1f "$1" 2>/dev/null || echo "$1 B"; }
 
-# Prubeh stahovani: velikost cache v cili (pacstrap stahuje do $TARGET/var/cache/pacman/pkg)
-# kazde ~2 s -> "@@NET B/s stazeno celkem"; v TUI kazdych 15 s radek s rychlosti
+# Prubeh stahovani: velikost cache v cili - pacstrap stahuje do $TARGET/var/cache/pacman/pkg (cesta
+# z arch-install-scripts; po hooku lux-engine-migrate odkaz na var/cache/lux/pkg), jadro v cili do
+# /var/cache/lux/pkg (PAC_CACHE). "/." za cestou: du projde i odkaz. Kazde ~2 s -> "@@NET B/s stazeno celkem"; v TUI kazdych 15 s radek s rychlosti
 net_sample() {
     ((net == 1)) || return 0
     local now cur d r
     now=${EPOCHREALTIME//[.,]/}
     ((now - net_t >= 1900000)) || return 0
-    cur=$(du -sb "$cache" 2>/dev/null | cut -f1 || true)
+    cur=$(du -sb "$cache/." 2>/dev/null | cut -f1 || true)
     d=$((${cur:-0} - base))
     ((d > dl_total)) && d=$dl_total
     r=0
@@ -1411,11 +1414,11 @@ net_end() {
     progress "NET END"
 }
 
-# Vystup pacstrapu: surove do logu, na stdout (GUI Podrobnosti / terminal) srozumitelne vety misto chyb site
+# Vystup pacstrapu a jadra: surove do logu, na stdout (GUI Podrobnosti / terminal) srozumitelne vety misto chyb site
 pac_filter() {
     local line part="" rc eof=0 friendly last_friendly=""
     local total=0 dl=0 inst=0 pct last=-1
-    local net=0 dl_total=0 base=0 got=0 rate=0 net_t=0 tui_t=0 cache="$TARGET/var/cache/pacman/pkg"
+    local net=0 dl_total=0 base=0 got=0 rate=0 net_t=0 tui_t=0 cache=${PAC_CACHE:-$TARGET/var/cache/lux/pkg}
     while ((!eof)); do
         if IFS= read -r -t 2 line; then
             line=$part$line part=""
@@ -1446,7 +1449,7 @@ pac_filter() {
         elif [[ $line =~ ^Total\ Download\ Size:\ +([0-9.]+)\ +([KMG]?i?B) ]]; then
             dl_total=$(awk -v n="${BASH_REMATCH[1]}" -v u="${BASH_REMATCH[2]}" 'BEGIN {
                 m = u == "KiB" ? 1024 : u == "MiB" ? 1048576 : u == "GiB" ? 1073741824 : 1; printf "%.0f", n * m }')
-            base=$(du -sb "$cache" 2>/dev/null | cut -f1 || true)
+            base=$(du -sb "$cache/." 2>/dev/null | cut -f1 || true)
             base=${base:-0} got=0 rate=0 net=1
             net_t=${EPOCHREALTIME//[.,]/} tui_t=$net_t
             ((dl_total > 0)) && progress "NET 0 0 $dl_total" || net=0
@@ -1464,13 +1467,29 @@ pac_filter() {
 }
 
 # Po nepovedenem pokusu: zamek databaze, nedokoncena stahovani a gpg-agent z predchoziho behu
+# (stare cesty z pacstrapu i nove z jadra v cili; po migraci jsou stare odkazy - "/." projde odkaz)
 pac_cleanup() {
-    gpgconf --homedir "$TARGET/etc/pacman.d/gnupg" --kill all >/dev/null 2>&1 || true
-    rm -f "$TARGET/var/lib/pacman/db.lck"
-    find "$TARGET/var/cache/pacman/pkg" "$TARGET/var/lib/pacman/sync" -name '*.part' -delete 2>/dev/null || true
-    find "$TARGET/var/cache/pacman/pkg" -mindepth 1 -maxdepth 1 -type d -name 'download-*' \
-        -exec rm -rf {} + 2>/dev/null || true
+    local d
+    for d in "$TARGET/etc/pacman.d/gnupg" "$TARGET/etc/lux/keyring"; do
+        [[ -d $d ]] && { gpgconf --homedir "$d" --kill all >/dev/null 2>&1 || true; }
+    done
+    rm -f "$TARGET/var/lib/pacman/db.lck" "$TARGET/var/lib/lux/db.lck"
+    for d in "$TARGET/var/cache/pacman/pkg" "$TARGET/var/cache/lux/pkg" "$TARGET/var/lib/pacman/sync" "$TARGET/var/lib/lux/sync"; do
+        [[ -d $d ]] || continue
+        find "$d/." -maxdepth 1 -name '*.part' -delete 2>/dev/null || true
+        find "$d/." -mindepth 1 -maxdepth 1 -type d -name 'download-*' -exec rm -rf {} + 2>/dev/null || true
+    done
     return 0
+}
+
+# pacstrap vola pacman, pacman-key a pacman-conf jmenem: docasny adresar s odkazy na nastroje jadra
+# (spousteci skript jadra pozna nastroj podle cile odkazu). V systemu zadny soubor pacman neni.
+ENGINE_SHIM=
+engine_shim() {
+    [[ -n $ENGINE_SHIM && -d $ENGINE_SHIM ]] && return 0
+    ENGINE_SHIM=$(mktemp -d /run/luxos-install-engine.XXXXXX)
+    local n
+    for n in "" -key -conf; do ln -s "/usr/lib/lux/alpm/bin/lux-engine$n" "$ENGINE_SHIM/pacman$n"; done
 }
 
 wait_internet() {  # pri vypadku pripojeni pockat (max. ~10 min), pak to zkusit tak jako tak
@@ -1515,11 +1534,15 @@ install_packages() {
 
     step "$(T "Installing packages (this is the longest step)")"
     rank_mirrors
-    local attempt retry_conf=/run/luxos-install-retry.conf
-    local -a conf=()
+    local attempt retry_conf=/run/luxos-install-retry.conf engine_conf
+    # konfigurace jadra live systemu (z /etc/lux/lux.conf; repozitare LuxOS z ISO)
+    engine_conf=$("$LUX_CONFIG_TOOL" ensure --quiet) || fail "$(T "The package manager configuration of the live system is broken.")"
+    local -a conf=(-C "$engine_conf")
+    engine_shim
     for attempt in 1 2 3; do
-        # anglicky vystup pacmanu kvuli rozpoznani prubehu a chyb
-        if LC_ALL=C.UTF-8 pacstrap "${conf[@]}" -K "$TARGET" --needed "${pkgs[@]}" 2>&1 | pac_filter; then
+        # anglicky vystup jadra kvuli rozpoznani prubehu a chyb; -M: seznam zrcadel kopiruje configure_system
+        if LC_ALL=C.UTF-8 PATH="$ENGINE_SHIM:$PATH" \
+                pacstrap "${conf[@]}" -K -M "$TARGET" --needed "${pkgs[@]}" 2>&1 | PAC_CACHE="$TARGET/var/cache/pacman/pkg" pac_filter; then
             progress "STATUS "
             install_online_drivers
             return 0
@@ -1530,8 +1553,8 @@ install_packages() {
         pac_cleanup
         sleep $((attempt * 5))
         wait_internet
-        # Dalsi pokus s mene soubeznymi stahovanimi: pomale linky pak nespadnou pod limit pacmanu
-        sed -E 's/^#?[[:space:]]*ParallelDownloads.*/ParallelDownloads = 3/' /etc/pacman.conf >"$retry_conf"
+        # Dalsi pokus s mene soubeznymi stahovanimi: pomale linky pak nespadnou pod limit jadra
+        sed -E 's/^#?[[:space:]]*ParallelDownloads.*/ParallelDownloads = 3/' "$engine_conf" >"$retry_conf"
         conf=(-C "$retry_conf")
     done
     fail "$(T "Packages could not be installed. Check the internet connection.")"
@@ -1539,17 +1562,23 @@ install_packages() {
 
 # Legacy ovladace NVIDIA z online [luxos] (v ISO nejsou). Chyba instalaci nezastavi:
 # zustane ovladac nouveau z jadra a po prvnim prihlaseni se ovladac nabidne v aplikaci Ovladace.
+# /etc/lux/lux.conf (shodna s lux-engine, tedy bez .pacnew) a serazena zrcadla live systemu
+install_engine_config() {
+    install -Dm644 "$SHARE/lux.conf" "$TARGET/etc/lux/lux.conf"
+    install -Dm644 "$MIRRORLIST" "$TARGET/etc/lux/mirrorlist"
+}
+
 install_online_drivers() {
     ((${#HW_ONLINE[@]})) || return 0
     progress "STATUS $(T "Downloading the NVIDIA driver…")"
     info "$(T "Downloading the NVIDIA driver…")"
-    # Repozitare LuxOS ze serveru (configure_system pak pacman.conf zapise znovu, stejny obsah)
-    install -m644 /usr/share/luxos/installer/pacman.conf "$TARGET/etc/pacman.conf"
-    install -m644 /etc/pacman.d/mirrorlist "$TARGET/etc/pacman.d/mirrorlist"
+    # Repozitare LuxOS ze serveru (configure_system pak lux.conf zapise znovu, stejny obsah)
+    install_engine_config
     local attempt
     for attempt in 1 2 3; do
-        # -Sy: online databaze [luxos] (pacstrap pouzil mistni z ISO); system je cerstve nainstalovany
-        if chroot_pacman -Sy --needed --noconfirm "${HW_ONLINE[@]}" 2>&1 | pac_filter; then
+        # -Syy: vzdy znovu stahnout online databaze [luxos] (pacstrap pouzil mistni z ISO; ta muze byt
+        # novejsi nez server a If-Modified-Since by nechal starou databazi s novym podpisem)
+        if chroot_engine -Syy --needed --noconfirm "${HW_ONLINE[@]}" 2>&1 | pac_filter; then
             progress "STATUS "
             return 0
         fi
@@ -1584,9 +1613,8 @@ configure_system() {
         lvm_hook=${hooks##*LVM_HOOK=}
     fi
 
-    # pacman: repozitare LuxOS ze serveru (podepsane), Arch ze stejnych mirroru jako live system
-    install -m644 /usr/share/luxos/installer/pacman.conf "$TARGET/etc/pacman.conf"
-    install -m644 /etc/pacman.d/mirrorlist "$TARGET/etc/pacman.d/mirrorlist"
+    # lux: repozitare LuxOS ze serveru (podepsane), Arch ze stejnych mirroru jako live system
+    install_engine_config
 
     local console_km
     console_km=$(x11_to_console "$XKB_LAYOUT" "$XKB_VARIANT")
@@ -1753,10 +1781,8 @@ tpl_resolve() {  # tpl_resolve ID -> baliky sablony (podminky a jazyk vyhodnocen
     done <"$TEMPLATE_DIR/$1.list"
 }
 
-chroot_pacman() {  # pacman z jadra lux v cili (lux-engine), anglicky vystup kvuli pac_filter
-    local pac=pacman
-    [[ -x $TARGET/usr/lib/lux/alpm/bin/pacman ]] && pac=/usr/lib/lux/alpm/bin/pacman
-    LC_ALL=C.UTF-8 arch-chroot "$TARGET" "$pac" "$@"
+chroot_engine() {  # jadro lux v cili (lux-engine), anglicky vystup kvuli pac_filter
+    LC_ALL=C.UTF-8 arch-chroot "$TARGET" /usr/lib/lux/alpm/bin/lux-engine "$@"
 }
 
 install_templates() {
@@ -1769,14 +1795,16 @@ install_templates() {
 
     # Steam apod.: repozitar multilib (zustane zapnuty kvuli aktualizacim)
     for id in "${TEMPLATE_IDS[@]}"; do
-        if [[ $(tpl_field "$id" repo) == multilib ]] && ! grep -q '^\[multilib\]' "$TARGET/etc/pacman.conf"; then
-            printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >>"$TARGET/etc/pacman.conf"
-            info "$(T "Enabled the multilib repository.")"
+        if [[ $(tpl_field "$id" repo) == multilib ]] && ! arch-chroot "$TARGET" "$LUX_CONFIG_TOOL" has-repo multilib >/dev/null 2>&1; then
+            # v chrootu: cesta /etc/lux/mirrorlist v lux.conf je cesta cile
+            if arch-chroot "$TARGET" "$LUX_CONFIG_TOOL" enable-repo multilib >>"$LOG" 2>&1; then
+                info "$(T "Enabled the multilib repository.")"
+            fi
         fi
     done
 
     for attempt in 1 2 3; do
-        if chroot_pacman -Sy --noconfirm >>"$LOG" 2>&1; then ok=1; break; fi
+        if chroot_engine -Syy --noconfirm >>"$LOG" 2>&1; then ok=1; break; fi
         pac_cleanup
         sleep $((attempt * 5))
         wait_internet
@@ -1787,8 +1815,8 @@ install_templates() {
         rm -f "$TPL_MISSING"
         return 0
     fi
-    avail=$(chroot_pacman -Slq 2>>"$LOG" | sort -u) || avail=""
-    installed=$(chroot_pacman -Qq 2>>"$LOG") || installed=""
+    avail=$(chroot_engine -Slq 2>>"$LOG" | sort -u) || avail=""
+    installed=$(chroot_engine -Qq 2>>"$LOG") || installed=""
 
     for id in "${TEMPLATE_IDS[@]}"; do
         mapfile -t -O "${#pkgs[@]}" pkgs < <(tpl_resolve "$id")
@@ -1802,7 +1830,7 @@ install_templates() {
         ok=0
         for attempt in 1 2 3; do
             # -Su: databaze jsou cerstve (-Sy), bez castecne aktualizace
-            if chroot_pacman -Su --needed --noconfirm "${pkgs[@]}" 2>&1 | pac_filter; then ok=1; break; fi
+            if chroot_engine -Su --needed --noconfirm "${pkgs[@]}" 2>&1 | pac_filter; then ok=1; break; fi
             ((attempt < 3)) || break
             progress "STATUS $(T "Download failed (attempt %s), retrying…" "$attempt")"
             info "$(T "Download failed (attempt %s), retrying…" "$attempt")"
@@ -1819,7 +1847,7 @@ install_templates() {
                 i=$((i + 1))
                 progress "PCT $((i * 100 / ${#pkgs[@]}))"
                 pac_cleanup
-                chroot_pacman -S --needed --noconfirm "$p" >>"$LOG" 2>&1 || failed+=("$p")
+                chroot_engine -S --needed --noconfirm "$p" >>"$LOG" 2>&1 || failed+=("$p")
             done
         fi
     fi
@@ -1862,10 +1890,20 @@ shared_esp_entry() {
 
 finish() {
     step "$(T "Finishing")"
+    # Pozustatky z pacstrapu (databaze v /var/lib/pacman ap.) presunul hook lux-engine-migrate; odkazy
+    # na stara mista uz nic nepotrebuje - nainstalovany system je ma mit ciste (jinak je uklidi lux
+    # po prvnim restartu)
+    # gpg-agent spusteny pacstrapem (-K) by drzel $TARGET pripojeny; ukoncit pred uklidem - agent je
+    # svazany s cestou, se kterou byl spusten (stara cesta je do uklidu odkaz na /etc/lux/keyring)
+    local d
+    for d in "$TARGET/etc/pacman.d/gnupg" "$TARGET/etc/lux/keyring"; do
+        [[ -d $d ]] && { gpgconf --homedir "$d" --kill all >/dev/null 2>&1 || true; }
+    done
+    # procesy zivého systemu (Obchod...) s cilovou instalaci nesouvisi
+    arch-chroot "$TARGET" "$LUX_MIGRATE" finish --now --ignore-processes >>"$LOG" 2>&1 || true
+    [[ -n $ENGINE_SHIM ]] && rm -rf "$ENGINE_SHIM"
     cp "$LOG" "$TARGET/var/log/luxos-install.log" 2>/dev/null || true
     sync
-    # gpg-agent spusteny pacstrapem (-K) by drzel $TARGET pripojeny
-    gpgconf --homedir "$TARGET/etc/pacman.d/gnupg" --kill all >/dev/null 2>&1 || true
     local i
     for i in 1 2 3 4 5; do   # agent konci asynchronne
         mountpoint -q "$TARGET" || break

@@ -8,5 +8,4 @@ power-profiles-daemon.service
 systemd-timesyncd.service
 earlyoom.service
 fstrim.timer
-paccache.timer
 reflector.timer

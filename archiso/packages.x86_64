@@ -1,6 +1,6 @@
 # --- Zaklad live systemu (archiso) ---
 base
-# jadro lux (libalpm, makepkg a nastroje pacmanu z Archu v /usr/lib/lux/alpm/bin, bez prikazu pacman)
+# jadro lux (libalpm, makepkg a nastroje z Arch Linuxu; lux-engine* v /usr/lib/lux/alpm/bin, bez prikazu pacman)
 lux-engine
 linux
 linux-firmware

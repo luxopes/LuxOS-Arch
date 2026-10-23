@@ -1,14 +1,19 @@
 #!/bin/bash
 # LuxOS Sandbox - test pomocnika (pacstrap, vlastnictvi, odkaz /dev/sandbox, negativni pripady)
 # v kontejneru jako root (bez pkexec):
-#   podman run --rm --privileged -v packages/luxos-sandbox:/src:ro,z -v packages/luxos-sandbox/tests/helper-container-test.sh:/t.sh:ro,z luxos-builder bash /t.sh
+#   podman run --rm --privileged -v packages/luxos-sandbox:/src:ro,z -v packages/lux-engine:/lux-engine:ro,z -v packages/luxos-sandbox/tests/helper-container-test.sh:/t.sh:ro,z luxos-builder bash /t.sh
 set -u
 F=/src/files
 pacman -Sy --noconfirm --needed bubblewrap arch-install-scripts python passt iproute2 >/dev/null 2>&1 || echo "pacman deps failed"
 install -Dm755 $F/luxos-sandbox /usr/bin/luxos-sandbox
 install -Dm755 $F/luxos-sandbox-helper /usr/lib/luxos/sandbox/luxos-sandbox-helper
 install -Dm644 $F/luxos_sandbox_seccomp.py /usr/lib/luxos/python/luxos_sandbox_seccomp.py
-install -Dm644 $F/pacman.conf /usr/share/luxos/sandbox/pacman.conf
+install -Dm644 $F/lux.conf /usr/share/luxos/sandbox/lux.conf
+# lux-config a seznam zrcadel z lux-engine; v kontejneru (Arch) jsou nastroje jadra lux odkazy na pacman Archu
+install -Dm755 /lux-engine/lux_config.py /usr/lib/lux/lux_config.py || echo "mount packages/lux-engine at /lux-engine"
+[[ -s /etc/lux/mirrorlist ]] || { mkdir -p /etc/lux; grep -h '^Server' /etc/pacman.d/mirrorlist | sed 's/^Server *= *//' >/etc/lux/mirrorlist; }
+mkdir -p /usr/lib/lux/alpm/bin
+for t in "" -key -conf; do ln -sf /usr/bin/pacman$t /usr/lib/lux/alpm/bin/lux-engine$t; done
 install -Dm644 $F/luxos-sandbox.tmpfiles /usr/lib/tmpfiles.d/luxos-sandbox.conf
 systemd-tmpfiles --create /usr/lib/tmpfiles.d/luxos-sandbox.conf
 id tester >/dev/null 2>&1 || useradd -m -u 1500 tester
@@ -31,7 +36,7 @@ R=/var/lib/luxos/sandbox/tester
 echo "files not owned by tester: $(find $R ! -user tester | wc -l)"
 echo "setuid/setgid files: $(find $R -perm /6000 | wc -l)"
 echo "device nodes: $(find $R -type b -o -type c | wc -l)"
-readlink $R/etc/resolv.conf; grep sandbox $R/etc/passwd; grep -c '^\[' $R/etc/pacman.conf; grep -n DownloadUser $R/etc/pacman.conf
+readlink $R/etc/resolv.conf; grep sandbox $R/etc/passwd; grep -c '^\[' $R/etc/pacman.conf; grep -n DownloadUser $R/etc/pacman.conf; grep -c '^#@' $R/etc/pacman.conf; grep -c '^Server' $R/etc/pacman.conf
 du -sh $R
 echo "== create again (must refuse)";         PKEXEC_UID=1500 $H create; echo "rc=$?"
 echo "== CLI as tester"
