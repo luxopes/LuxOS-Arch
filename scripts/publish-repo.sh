@@ -78,7 +78,9 @@ Last update: $(date -u '+%Y-%m-%d %H:%M UTC').</p>
 <table>$(luxlist)</table>
 <h2>System <small>[luxos]</small></h2>
 <table>$(pkglist luxos)</table>
-<h2>pacman.conf</h2>
+<h2>Repositories</h2>
+<p>LuxOS has both repositories set up already. For another Arch-based system, add them to the package
+configuration (<code>/etc/pacman.conf</code>; in LuxOS it belongs to <code>lux</code>):</p>
 <pre>[luxos]
 Server = $URL/\$repo/\$arch
 
