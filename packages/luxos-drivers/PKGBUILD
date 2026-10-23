@@ -22,7 +22,7 @@ package() {
     install -Dm644 "$startdir/luxos-nvidia-pm.conf" "$pkgdir/usr/lib/modprobe.d/luxos-nvidia-pm.conf"
     install -Dm644 "$startdir/80-luxos-nvidia-pm.rules" "$pkgdir/usr/lib/udev/rules.d/80-luxos-nvidia-pm.rules"
 
-    # Aplikace Ovladace, pomocnik pro root (pkexec) a kontrola po prihlaseni (luxos-daemon)
+    # Aplikace Ovladace, pomocnik pro root (pkexec) a kontrola po prihlaseni (luxos-hub)
     install -Dm755 "$startdir/luxos-drivers" "$pkgdir/usr/bin/luxos-drivers"
     install -Dm755 "$startdir/luxos-drivers-helper" "$pkgdir/usr/lib/luxos/drivers/luxos-drivers-helper"
     install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$startdir/luxos_drivers.py" "$startdir/luxos_drivers_session.py"

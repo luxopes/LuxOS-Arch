@@ -758,7 +758,7 @@ Transfer failed: %s (%s)	Prenos sa nepodaril: %s (%s)
 WARNING: someone may be impersonating this device. Nothing was sent. If the device was reinstalled, remove it with 'luxdrop trust remove ID' and pair again.	VAROVANIE: niekto sa možno vydáva za toto zariadenie. Nič nebolo odoslané. Ak bolo zariadenie preinštalované, odstráňte ho príkazom „luxdrop trust remove ID“ a spárujte znova.
 Receiving as "%s" (ID %s) on port %d, mode: %s, folder: %s	Príjem ako „%s“ (ID %s) na porte %d, režim: %s, priečinok: %s
 Nearby devices:	Zariadenia v okolí:
-No devices found nearby (is avahi-daemon running?).	V okolí sa nenašli žiadne zariadenia (beží avahi-daemon?).
+No devices found nearby (is Avahi running?).	V okolí sa nenašli žiadne zariadenia (beží Avahi?).
 No trusted devices.	Žiadne dôveryhodné zariadenia.
 Name: %s	Názov: %s
 ID: %s	ID: %s
@@ -832,7 +832,7 @@ Clear	Vymazať
 Received	Prijaté
 Choose folder	Vyberte priečinok
 Choose files	Vyberte súbory
-Nearby devices cannot be found because avahi-daemon is not running. You can still connect by address.	Zariadenia v okolí sa nedajú nájsť, pretože nebeží avahi-daemon. Pripojiť sa môžete adresou.
+Nearby devices cannot be found because Avahi is not running. You can still connect by address.	Zariadenia v okolí sa nedajú nájsť, pretože nebeží Avahi. Pripojiť sa môžete adresou.
 Connect by address	Pripojiť adresou
 Verify code	Overenie kódu
 Remember this device (no code next time)	Zapamätať si zariadenie (nabudúce bez kódu)
@@ -995,7 +995,7 @@ systemd-boot on %s is already in the UEFI boot menu.	systemd-boot na %s už je v
 Could not show the boot menu; hold Space while starting to see it.	Ponuku spúšťania nemožno zobraziť; pri štarte ju vyvoláte podržaním medzerníka.
 Invalid DISK_MODE (use erase, freespace or manual)	Neplatný DISK_MODE (použite erase, freespace alebo manual)
 Invalid BOOTLOADER (use auto or none)	Neplatný BOOTLOADER (použite auto alebo none)
-# luxos-daemon (Bluetooth agent)
+# luxos-hub (Bluetooth agent)
 Allow “%s” to pair with this computer?	Povoliť spárovanie zariadenia „%s“ s týmto počítačom?
 Allow “%s” to connect?	Povoliť pripojenie zariadenia „%s“?
 Only allow devices you know.	Povoľujte len zariadenia, ktoré poznáte.
@@ -1415,7 +1415,7 @@ No device answers at %s.	Na adrese %s neodpovedá žiadne zariadenie.
 Cannot receive from LocalSend apps: port %d is in use. Is LocalSend running on this computer?	Nedá sa prijímať z aplikácií LocalSend: port %d je obsadený. Nebeží na tomto počítači LocalSend?
 LocalSend compatibility needs the python-pyopenssl package.	Kompatibilita s LocalSend vyžaduje balík python-pyopenssl.
 %d:%02d left	zostáva %d:%02d
-Nearby LuxOS computers cannot be found because avahi-daemon is not running.	Počítače s LuxOS v okolí sa nedajú nájsť, pretože nebeží avahi-daemon.
+Nearby LuxOS computers cannot be found because Avahi is not running.	Počítače s LuxOS v okolí sa nedajú nájsť, pretože nebeží Avahi.
 Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Automatické hľadanie zariadení LocalSend nie je k dispozícii (%s). Použite „Prehľadať miestnu sieť“.
 LuxDrop: message from %s	LuxDrop: správa od %s
 %s remaining	zostáva %s

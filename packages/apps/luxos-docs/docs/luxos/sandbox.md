@@ -124,7 +124,7 @@ Environment inside: `HOME=/home/sandbox`, `USER=sandbox`, `LUXOS_SANDBOX=1`, `LA
 - **Shared folder:** anything written to `~/Sandbox` is untrusted (malicious documents, symlinks).
 - **With `--net`:** the app can do anything on the internet from your IP address. Networks that appear
   on the host after start are not blocked by host-address rules (private ranges always are).
-- **Installs:** pacman runs as a fake root with one UID; `chown*()` pretends to succeed, so daemons
+- **Installs:** pacman runs as a fake root with one UID; `chown*()` pretends to succeed, so system services
   needing separate system users or setuid will not work; some hooks print errors. Signature checks
   use the sandbox's own keyring, which the sandbox itself can change.
 - **Disk:** no quota – the sandbox can fill `/var`.

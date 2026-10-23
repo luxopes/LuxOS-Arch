@@ -63,7 +63,7 @@ There is no command-line way to type the password non-interactively; unlocking a
 | Sleep / suspend | **always** locks before sleep; a logind *delay* inhibitor holds sleep until it is locked. |
 | Logout | **always** locks (`luxos-safe-watch.service`, user unit, `ExecStop=luxos-safe lock --logout`). |
 
-Screen-lock and sleep handling run inside the session daemon `luxos-daemon` (one process for the whole
+Screen-lock and sleep handling run inside the session process `luxos-hub` (one process for the whole
 session); `luxos-session` starts `luxos-safe-watch.service` for the logout case.
 
 Settings are stored in `~/.config/luxos/safe.json`:

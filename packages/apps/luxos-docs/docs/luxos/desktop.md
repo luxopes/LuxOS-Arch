@@ -33,7 +33,7 @@ Its items, from left to right:
 | Notifications | notification plugin (notification history) | - |
 | Clock | e.g. "Wed 22. Oct  14:05" (`luxos-clock`, refreshed every 3 s) | opens or closes the Calendar |
 
-`luxos-menubar` (a small C daemon) lets you switch between open menus of the top bar with a single
+`luxos-menubar` (a small C program running in the background) lets you switch between open menus of the top bar with a single
 click, as in macOS. It also watches monitor hotplug through RandR events and pushes the pointer to
 the screen edge so an auto-hidden Dock comes out.
 
@@ -43,7 +43,7 @@ Panel plugins without menus (genmon, systray) run inside the panel process to sa
 ## Control Center
 
 Open it with the Control Center icon in the top bar (or run `luxos-control-center`). A second click
-closes it, and so do Esc and clicking elsewhere. It runs inside `luxos-daemon`, so it appears
+closes it, and so do Esc and clicking elsewhere. It runs inside `luxos-hub`, so it appears
 immediately (`luxos-cc-toggle` sends SIGUSR1).
 
 Contents:
@@ -98,7 +98,7 @@ running.
 
 Notifications come from xfce4-notifyd. They are slightly translucent and follow light or dark mode
 (themes in `luxos-themes`), and they disappear after 6 s. Do Not Disturb is in Control Center. The
-bell in the top bar shows the history. `luxos-daemon` also sends notifications about low memory
+bell in the top bar shows the history. `luxos-hub` also sends notifications about low memory
 (earlyoom), missing drivers and no internet.
 
 ## Light, dark and auto appearance
@@ -120,7 +120,7 @@ luxos-appearance dock-opacity 0-100|default
   preferences (`APPEARANCE_AUTO`, `BAR_OPACITY`, `DOCK_OPACITY`) in `~/.config/luxos/appearance.conf`.
 - **Auto** computes sunrise and sunset offline from the time zone (`luxos_sun.py`, using the
   coordinates of the zone's city in `/usr/share/zoneinfo/zone1970.tab`, NOAA formula; Prague if the
-  zone is unknown). `luxos-daemon` checks every 5 minutes. To see today's times, run
+  zone is unknown). `luxos-hub` checks every 5 minutes. To see today's times, run
   `python3 /usr/lib/luxos/python/luxos_sun.py times`.
 - The same switch is in Control Center (Dark Mode), Desktop & Dock (Light / Dark / Auto), Welcome
   and the LuxOS Tour.
@@ -167,19 +167,19 @@ selects this greeter. To preview it without LightDM: `luxos-greeter --demo` (the
 The screen locks with `xflock4` (`Super+L`, `Ctrl+Super+Q`). The lock settings are in Screen Saver &
 Lock.
 
-## Session startup and luxos-daemon
+## Session startup and luxos-hub
 
 `luxos-session` runs at every login (autostart). It:
 
 - on first login: creates the standard folders and applies the default look;
 - re-applies saved display settings (`luxos-displays auto`) and software brightness;
 - starts `luxos-appname watch`, `luxos-menubar`, the Safe watcher (`luxos-safe-watch` user
-  service, plus a "Safe" bookmark in Files) and **`luxos-daemon`** (restarted if it crashes);
+  service, plus a "Safe" bookmark in Files) and **`luxos-hub`** (restarted if it crashes);
 - re-applies Data Saver (`luxos-datasaver reapply`) and the wallpaper for new monitors;
 - on first login starts the LuxOS Tour and then Welcome. After an update to a new LuxOS version it
   shows What's New.
 
-`luxos-daemon` is one light process that replaces several daemons:
+`luxos-hub` is one light process that replaces several background programs:
 
 - keeps Control Center (SIGUSR1) and Calendar (SIGUSR2) preloaded;
 - locks the Safe on screen lock and before sleep;

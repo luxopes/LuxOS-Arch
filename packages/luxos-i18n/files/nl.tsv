@@ -758,7 +758,7 @@ Transfer failed: %s (%s)	Overdracht mislukt: %s (%s)
 WARNING: someone may be impersonating this device. Nothing was sent. If the device was reinstalled, remove it with 'luxdrop trust remove ID' and pair again.	WAARSCHUWING: iemand doet zich mogelijk voor als dit apparaat. Er is niets verstuurd. Als het apparaat opnieuw is geïnstalleerd, verwijder het dan met ‘luxdrop trust remove ID’ en koppel het opnieuw.
 Receiving as "%s" (ID %s) on port %d, mode: %s, folder: %s	Ontvangen als “%s” (ID %s) op poort %d, modus: %s, map: %s
 Nearby devices:	Apparaten in de buurt:
-No devices found nearby (is avahi-daemon running?).	Geen apparaten in de buurt gevonden (draait avahi-daemon?).
+No devices found nearby (is Avahi running?).	Geen apparaten in de buurt gevonden (draait Avahi?).
 No trusted devices.	Geen vertrouwde apparaten.
 Name: %s	Naam: %s
 ID: %s	ID: %s
@@ -832,7 +832,7 @@ Clear	Wis
 Received	Ontvangen
 Choose folder	Kies map
 Choose files	Kies bestanden
-Nearby devices cannot be found because avahi-daemon is not running. You can still connect by address.	Apparaten in de buurt kunnen niet worden gevonden omdat avahi-daemon niet draait. Je kunt nog steeds verbinding maken via adres.
+Nearby devices cannot be found because Avahi is not running. You can still connect by address.	Apparaten in de buurt kunnen niet worden gevonden omdat Avahi niet draait. Je kunt nog steeds verbinding maken via adres.
 Connect by address	Maak verbinding via adres
 Verify code	Verifieer code
 Remember this device (no code next time)	Onthoud dit apparaat (de volgende keer geen code)
@@ -995,7 +995,7 @@ systemd-boot on %s is already in the UEFI boot menu.	systemd-boot op %s staat al
 Could not show the boot menu; hold Space while starting to see it.	Kan het opstartmenu niet tonen; houd tijdens het starten de spatiebalk ingedrukt om het te zien.
 Invalid DISK_MODE (use erase, freespace or manual)	Ongeldige DISK_MODE (gebruik erase, freespace of manual)
 Invalid BOOTLOADER (use auto or none)	Ongeldige BOOTLOADER (gebruik auto of none)
-# luxos-daemon (Bluetooth-agent)
+# luxos-hub (Bluetooth-agent)
 Allow “%s” to pair with this computer?	“%s” toestaan om met deze computer te koppelen?
 Allow “%s” to connect?	“%s” toestaan om verbinding te maken?
 Only allow devices you know.	Sta alleen apparaten toe die je kent.
@@ -1415,7 +1415,7 @@ No device answers at %s.	Geen apparaat antwoordt op %s.
 Cannot receive from LocalSend apps: port %d is in use. Is LocalSend running on this computer?	Kan niet ontvangen van LocalSend-apps: poort %d is in gebruik. Draait LocalSend op deze computer?
 LocalSend compatibility needs the python-pyopenssl package.	Compatibiliteit met LocalSend vereist het pakket python-pyopenssl.
 %d:%02d left	Nog %d:%02d
-Nearby LuxOS computers cannot be found because avahi-daemon is not running.	LuxOS-computers in de buurt kunnen niet worden gevonden omdat avahi-daemon niet draait.
+Nearby LuxOS computers cannot be found because Avahi is not running.	LuxOS-computers in de buurt kunnen niet worden gevonden omdat Avahi niet draait.
 Automatic discovery of LocalSend devices is not available (%s). Use “Scan the local network”.	Automatische detectie van LocalSend-apparaten is niet beschikbaar (%s). Gebruik “Doorzoek het lokale netwerk”.
 LuxDrop: message from %s	LuxDrop: bericht van %s
 %s remaining	nog %s

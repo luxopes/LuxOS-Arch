@@ -1,6 +1,6 @@
 """LuxOS - prehravace hudby a videa (MPRIS) rizene udalostmi D-Bus, bez dotazovani.
 
-Jeden sdileny hlidac na proces (v luxos-daemon ho pouziva Ovladaci centrum
+Jeden sdileny hlidac na proces (v luxos-hub ho pouziva Ovladaci centrum
 i volba "neuspavat pri prehravani"):
 
     w = luxos_mpris.watcher()

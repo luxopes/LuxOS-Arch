@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Blueman Applet
-Comment=LuxOS: Bluetooth pairing agent runs in luxos-daemon, Bluetooth app and Control Center replace the applet
+Comment=LuxOS: Bluetooth pairing agent runs in luxos-hub, Bluetooth app and Control Center replace the applet
 Exec=blueman-applet
 Icon=blueman
 OnlyShowIn=XFCE;

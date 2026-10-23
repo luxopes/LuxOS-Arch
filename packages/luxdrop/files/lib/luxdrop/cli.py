@@ -355,7 +355,7 @@ def cmd_devices(args):
             print("  %-28s %-16s %-18s %s  %s" % (d["name"], d["id"], kind, transfer.fmt_addr(d["host"], d["port"]),
                                                   mark))
     else:
-        print(_("No devices found nearby (is avahi-daemon running?)."))
+        print(_("No devices found nearby (is Avahi running?)."))
     return EXIT_OK
 
 

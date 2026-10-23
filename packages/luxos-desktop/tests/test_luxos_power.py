@@ -583,13 +583,13 @@ class KeepAwakeTest(Bus):
     def setUp(self):
         super().setUp()
         self.cfg = tempfile.mkdtemp(prefix="luxos-awake-")
-        self.daemon = load_program("luxos_daemon_test", os.path.join(BIN, "luxos-daemon"))
-        self.daemon.SLEEP_OVERRIDE = os.path.join(self.cfg, "sleep-override")
-        self.daemon.SLEEP_WHILE_PLAYING = os.path.join(self.cfg, "sleep-while-playing")
-        self.daemon.PLAYBACK_GRACE = 1
-        self.daemon.read_override.__defaults__ = (self.daemon.SLEEP_OVERRIDE,)
-        self.daemon.write_override.__defaults__ = (self.daemon.SLEEP_OVERRIDE,)
-        self.daemon.external_monitor = lambda: False
+        self.hub = load_program("luxos_hub_test", os.path.join(BIN, "luxos-hub"))
+        self.hub.SLEEP_OVERRIDE = os.path.join(self.cfg, "sleep-override")
+        self.hub.SLEEP_WHILE_PLAYING = os.path.join(self.cfg, "sleep-while-playing")
+        self.hub.PLAYBACK_GRACE = 1
+        self.hub.read_override.__defaults__ = (self.hub.SLEEP_OVERRIDE,)
+        self.hub.write_override.__defaults__ = (self.hub.SLEEP_OVERRIDE,)
+        self.hub.external_monitor = lambda: False
         self.xf = FakeXfconf(self.svc, self.address, {"lid-action-on-battery": 1, "lid-action-on-ac": 3,
                                             "inactivity-on-battery": 30, "inactivity-on-ac": 14})
         self.slept = []
@@ -602,7 +602,7 @@ class KeepAwakeTest(Bus):
 
     def make(self):
         w = FakeWatcher()
-        ka = self.daemon.KeepAwake(self.bus, None, w)
+        ka = self.hub.KeepAwake(self.bus, None, w)
         ka.upower = lambda prop: {"OnBattery": True, "LidIsClosed": self.lid}[prop]
         ka.sleep = self.slept.append
         return w, ka
@@ -611,7 +611,7 @@ class KeepAwakeTest(Bus):
         return {k: (v.unpack() if hasattr(v, "unpack") else v) for k, v in self.xf.values.items()}
 
     def test_pure(self):
-        d = self.daemon
+        d = self.hub
         self.assertEqual(d.plan_override({"lid-action-on-battery": 1, "lid-action-on-ac": 3,
                                           "inactivity-on-battery": 14, "inactivity-on-ac": 60}),
                          {"lid-action-on-battery": (1, 0), "inactivity-on-ac": (60, 14)})
@@ -630,16 +630,16 @@ class KeepAwakeTest(Bus):
         write(f"{drm}/card1-eDP-1/status", "connected\n")
         write(f"{drm}/card1-HDMI-A-1/status", "disconnected\n")
         os.makedirs(f"{drm}/card1")
-        self.assertFalse(load_program("d2", os.path.join(BIN, "luxos-daemon")).external_monitor(drm))
+        self.assertFalse(load_program("d2", os.path.join(BIN, "luxos-hub")).external_monitor(drm))
         write(f"{drm}/card1-HDMI-A-1/status", "connected\n")
-        self.assertTrue(load_program("d3", os.path.join(BIN, "luxos-daemon")).external_monitor(drm))
+        self.assertTrue(load_program("d3", os.path.join(BIN, "luxos-hub")).external_monitor(drm))
 
     def test_play_with_lid_closed_then_stop(self):
         w, ka = self.make()
         w.set(True)
         self.assertEqual(self.vals(), {"lid-action-on-battery": 0, "lid-action-on-ac": 3,
                                        "inactivity-on-battery": 14, "inactivity-on-ac": 14})
-        self.assertTrue(os.path.exists(self.daemon.SLEEP_OVERRIDE))
+        self.assertTrue(os.path.exists(self.hub.SLEEP_OVERRIDE))
         self.lid = True                       # vik zavren behem hrani - xfpm jen vypne obrazovku
         w.set(False)
         w.set(True)                           # mezera mezi skladbami: nic se nevraci
@@ -650,14 +650,14 @@ class KeepAwakeTest(Bus):
         self.assertEqual(self.slept, ["Suspend"])
         self.assertEqual(self.vals(), {"lid-action-on-battery": 1, "lid-action-on-ac": 3,
                                        "inactivity-on-battery": 30, "inactivity-on-ac": 14})
-        self.assertFalse(os.path.exists(self.daemon.SLEEP_OVERRIDE))
+        self.assertFalse(os.path.exists(self.hub.SLEEP_OVERRIDE))
 
     def test_lid_open_no_sleep_and_option_off(self):
         w, ka = self.make()
         w.set(True)
-        open(self.daemon.SLEEP_WHILE_PLAYING, "w").close()      # uzivatel volbu vypnul behem hrani
+        open(self.hub.SLEEP_WHILE_PLAYING, "w").close()      # uzivatel volbu vypnul behem hrani
         ka.changed()
-        self.assertTrue(spin(lambda: not os.path.exists(self.daemon.SLEEP_OVERRIDE), 3))
+        self.assertTrue(spin(lambda: not os.path.exists(self.hub.SLEEP_OVERRIDE), 3))
         self.assertEqual(self.vals()["lid-action-on-battery"], 1)
         self.assertEqual(self.slept, [])
         w.set(False)
@@ -666,10 +666,10 @@ class KeepAwakeTest(Bus):
 
     def test_crash_recovery(self):
         self.xf.values["lid-action-on-battery"] = 0
-        self.daemon.write_override({"lid-action-on-battery": 1})
-        self.make()                                             # novy start demona
+        self.hub.write_override({"lid-action-on-battery": 1})
+        self.make()                                             # novy start luxos-hub
         self.assertEqual(self.vals()["lid-action-on-battery"], 1)
-        self.assertFalse(os.path.exists(self.daemon.SLEEP_OVERRIDE))
+        self.assertFalse(os.path.exists(self.hub.SLEEP_OVERRIDE))
 
 
 if __name__ == "__main__":

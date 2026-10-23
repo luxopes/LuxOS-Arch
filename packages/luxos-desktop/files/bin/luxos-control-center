@@ -462,7 +462,7 @@ class ControlCenter(Gtk.Window):
         self.connect("key-press-event", self.on_key)
         self.connect("realize", lambda *_a: self.place())
         self.connect("configure-event", lambda *_a: GLib.idle_add(self.on_size) and False)
-        # Demon: zavreni okno jen skryje, dalsi klik v liste ho hned ukaze (SIGUSR1)
+        # Na pozadi: zavreni okno jen skryje, dalsi klik v liste ho hned ukaze (SIGUSR1)
         self.connect("delete-event", lambda *_a: self.hide() or True)
         self.refresh_fast()
         threading.Thread(target=self.refresh_slow, daemon=True).start()
@@ -617,7 +617,7 @@ class ControlCenter(Gtk.Window):
         return False
 
     def periodic(self):
-        # Obnova jen pri zobrazenem okne (skryty demon se zbytecne nebudi)
+        # Obnova jen pri zobrazenem okne (skryte okno na pozadi se zbytecne nebudi)
         if self.get_visible():
             threading.Thread(target=self.refresh_slow, daemon=True).start()
             return True
@@ -683,13 +683,13 @@ class ControlCenter(Gtk.Window):
 
 
 def running_pid():
-    """PID bezici instance (demon nebo luxos-daemon) nebo None."""
+    """PID bezici instance (na pozadi nebo luxos-hub) nebo None."""
     try:
         with open(PIDFILE) as f:
             pid = int(f.read())
         with open(f"/proc/{pid}/cmdline", "rb") as f:
             cmd = f.read()
-        if b"luxos-control-center" in cmd or b"luxos-daemon" in cmd:
+        if b"luxos-control-center" in cmd or b"luxos-hub" in cmd:
             return pid
     except (OSError, ValueError):
         pass
@@ -697,7 +697,7 @@ def running_pid():
 
 
 def create():
-    """Skryte okno Ovladaciho centra se styly podle tematu (pouziva i luxos-daemon)."""
+    """Skryte okno Ovladaciho centra se styly podle tematu (pouziva i luxos-hub)."""
     provider = Gtk.CssProvider()
 
     def load_css(*_a):
@@ -709,14 +709,14 @@ def create():
     Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
                                              Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
     win = ControlCenter()
-    with warnings.catch_warnings():     # vlastni WM_CLASS i ve sdilenem procesu luxos-daemon
+    with warnings.catch_warnings():     # vlastni WM_CLASS i ve sdilenem procesu luxos-hub
         warnings.simplefilter("ignore", DeprecationWarning)
         win.set_wmclass("luxos-control-center", "Luxos-control-center")
     return win
 
 
 def main():
-    # Klik v liste (luxos-control-center bez --daemon): bezici okno jen prepne
+    # Klik v liste (luxos-control-center bez --background): bezici okno jen prepne
     pid = running_pid()
     if pid and pid != os.getpid():
         os.kill(pid, signal.SIGUSR1)
@@ -729,7 +729,7 @@ def main():
     win.connect("destroy", Gtk.main_quit)
     signal.signal(signal.SIGTERM, lambda *_a: GLib.idle_add(Gtk.main_quit))
     signal.signal(signal.SIGUSR1, lambda *_a: GLib.idle_add(win.toggle))
-    if "--daemon" not in sys.argv:
+    if "--background" not in sys.argv:
         win.toggle()
     try:
         Gtk.main()

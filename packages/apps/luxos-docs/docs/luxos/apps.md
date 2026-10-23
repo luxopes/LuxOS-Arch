@@ -104,8 +104,8 @@ Click the clock in the top bar (`luxos-calendar-toggle`), or run `luxos-calendar
   Supported: VEVENT with SUMMARY, DTSTART/DTEND/DURATION, time zones, RRULE (DAILY, WEEKLY,
   MONTHLY, YEARLY with INTERVAL, COUNT, UNTIL, BYDAY, BYMONTHDAY, BYMONTH), EXDATE, RECURRENCE-ID,
   COLOR, VALARM. Unknown properties are kept unchanged.
-- Reminders are sent as desktop notifications by the calendar running inside `luxos-daemon` (or
-  `luxos-calendar --daemon`).
+- Reminders are sent as desktop notifications by the calendar running inside `luxos-hub` (or
+  `luxos-calendar --background`).
 
 ## Camera
 

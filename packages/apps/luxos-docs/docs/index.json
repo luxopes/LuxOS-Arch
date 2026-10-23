@@ -246,7 +246,7 @@
         {
           "path": "luxos/desktop.md",
           "title": "The LuxOS Desktop",
-          "summary": "Top bar, Control Center, Dock, Launchpad, Search, notifications, light/dark/auto mode, wallpapers, boot splash, login screen, luxos-daemon, multiple monitors and touchpad.",
+          "summary": "Top bar, Control Center, Dock, Launchpad, Search, notifications, light/dark/auto mode, wallpapers, boot splash, login screen, luxos-hub, multiple monitors and touchpad.",
           "keywords": [
             "desktop",
             "top bar",
@@ -269,7 +269,7 @@
             "login screen",
             "luxos-greeter",
             "lightdm",
-            "luxos-daemon",
+            "luxos-hub",
             "luxos-session",
             "touchpad",
             "xfce"

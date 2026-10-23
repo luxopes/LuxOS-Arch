@@ -543,7 +543,7 @@ class Window(Gtk.ApplicationWindow):
             elif kind == "localsend_missing":
                 msgs.append(_("LocalSend compatibility needs the python-pyopenssl package."))
             elif kind == "avahi":
-                msgs.append(_("Nearby LuxOS computers cannot be found because avahi-daemon is not running."))
+                msgs.append(_("Nearby LuxOS computers cannot be found because Avahi is not running."))
             elif kind == "multicast":
                 msgs.append(_("Automatic discovery of LocalSend devices is not available (%s). "
                               "Use “Scan the local network”.") % err)

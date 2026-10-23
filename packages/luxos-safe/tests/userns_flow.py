@@ -270,7 +270,7 @@ holder.wait()
 assert safe.lock() is None and safe.state() == "locked"
 assert safe.mounts() == [("tmpfs", helper.PLACEHOLDER)]
 assert not os.path.exists(os.path.join(mnt, "doc.txt"))
-assert not safe._daemon_pids()
+assert not safe._gocryptfs_pids()
 step("lock: gocryptfs unmounted and exited, placeholder visible again")
 res = as_user(write_file(os.path.join(mnt, "after-lock.txt")))
 assert res.startswith("err:"), res
@@ -298,12 +298,12 @@ stubborn = subprocess.Popen([sys.executable, "-c",
                              "f=open(sys.argv[1]); print('ready', flush=True); time.sleep(60)",
                              os.path.join(mnt, "doc.txt")], stdout=subprocess.PIPE, text=True)
 assert stubborn.stdout.readline().strip() == "ready"
-daemons = safe._daemon_pids()
-assert daemons
+procs = safe._gocryptfs_pids()
+assert procs
 assert safe.lock("logout") is None
 assert safe.state() == "locked" and safe.mounts() == [("tmpfs", helper.PLACEHOLDER)], safe.mounts()
 time.sleep(0.3)
-assert not any(os.path.exists(f"/proc/{p}") and open(f"/proc/{p}/stat").read().split()[2] != "Z" for p in daemons)
+assert not any(os.path.exists(f"/proc/{p}") and open(f"/proc/{p}/stat").read().split()[2] != "Z" for p in procs)
 try:
     stubborn.kill()
     stubborn.wait()

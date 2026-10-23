@@ -1,4 +1,4 @@
-"""LuxOS Ovladace - kontrola po prihlaseni (bezi uvnitr luxos-daemon, zadny dalsi proces).
+"""LuxOS Ovladace - kontrola po prihlaseni (bezi uvnitr luxos-hub, zadny dalsi proces).
 
 Nejvys jednou za start pocitace (boot_id) chvili po prihlaseni spusti luxos-hwdetect --json
 (~0,1 s, jen sysfs) a porovna ho s nainstalovanymi baliky. Kdyz nejaky ovladac chybi
@@ -28,7 +28,7 @@ _state = {"bus": None, "ids": set()}
 
 
 def log(msg):
-    print(f"luxos-daemon: drivers: {msg}", file=sys.stderr, flush=True)
+    print(f"luxos-hub: drivers: {msg}", file=sys.stderr, flush=True)
 
 
 def _read(path):
@@ -110,7 +110,7 @@ def check():
         return
     try:
         states = drv.evaluate(drv.detect(timeout=30))
-    except Exception as e:  # noqa: BLE001 - kontrola nesmi shodit luxos-daemon
+    except Exception as e:  # noqa: BLE001 - kontrola nesmi shodit luxos-hub
         log(f"detect: {e}")
         return
     try:
@@ -122,7 +122,7 @@ def check():
 
 
 def subscribe():
-    """Volano z luxos-daemon pri startu relace."""
+    """Volano z luxos-hub pri startu relace."""
     try:
         _state["bus"] = Gio.bus_get_sync(Gio.BusType.SESSION)
         _state["bus"].signal_subscribe("org.freedesktop.Notifications", "org.freedesktop.Notifications",

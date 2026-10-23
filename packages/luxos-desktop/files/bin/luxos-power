@@ -30,8 +30,8 @@ STATE_CHARGING, STATE_DISCHARGING, STATE_EMPTY, STATE_FULL, STATE_PENDING_CHARGE
 PM = "xfce4-power-manager"
 SAVER_STATE = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver")
 AUTO_SAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver-auto")
-# Neuspavat pri prehravani (luxos-daemon): priznak vypnute volby a puvodni hodnoty xfce4-power-manager,
-# ktere demon behem prehravani docasne prepsal - aplikace pak ukazuje a meni tyto puvodni hodnoty
+# Neuspavat pri prehravani (luxos-hub): priznak vypnute volby a puvodni hodnoty xfce4-power-manager,
+# ktere luxos-hub behem prehravani docasne prepsal - aplikace pak ukazuje a meni tyto puvodni hodnoty
 SLEEP_WHILE_PLAYING = os.path.join(os.path.dirname(SAVER_STATE), "sleep-while-playing")
 SLEEP_OVERRIDE = os.path.join(os.path.dirname(SAVER_STATE), "sleep-override")
 
@@ -522,7 +522,7 @@ class PowerWindow(Gtk.Window):
             c.set_active(0)
 
         def changed(combo):
-            # Behem prehravani drzi luxos-daemon docasnou hodnotu: zmenit puvodni, kterou pak vrati
+            # Behem prehravani drzi luxos-hub docasnou hodnotu: zmenit puvodni, kterou pak vrati
             over = read_override()
             for p in filter(None, (prop, also)):
                 if p in over:
@@ -535,7 +535,7 @@ class PowerWindow(Gtk.Window):
         return c
 
     def toggle_playing(self, switch, _p):
-        # luxos-daemon sleduje priznak (inotify) a pripadne hned vrati nastaveni uspavani
+        # luxos-hub sleduje priznak (inotify) a pripadne hned vrati nastaveni uspavani
         if switch.get_active():
             if os.path.exists(SLEEP_WHILE_PLAYING):
                 os.unlink(SLEEP_WHILE_PLAYING)

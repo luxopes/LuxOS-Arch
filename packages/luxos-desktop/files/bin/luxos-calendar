@@ -7,7 +7,7 @@ Rok: 12 malych mesicu, klik otevre mesic. Tlacitko + pridava udalosti, klik na k
 je upravi nebo smaze. Data: ~/.local/share/luxos/calendar/events.ics (iCalendar),
 dalsi *.ics ve slozce se nacitaji jen pro cteni (napr. export z Google).
 
-Demon (--daemon) drzi okno skryte a hlida pripominky (notify-send 10 minut predem);
+Na pozadi (--background) drzi okno skryte a hlida pripominky (notify-send 10 minut predem);
 klik na hodiny posle SIGUSR1 (luxos-calendar-toggle) a okno se ukaze okamzite.
 """
 import datetime as dt
@@ -876,7 +876,7 @@ class CalendarWindow(Gtk.Window):
 
     # ---- pohledy ----
     def view(self, name):
-        if name not in self.views:  # pohledy se tvori az pri prvnim pouziti (rychly start demona)
+        if name not in self.views:  # pohledy se tvori az pri prvnim pouziti (rychly start na pozadi)
             cls = {"day": DayView, "month": MonthView, "year": YearView}[name]
             self.views[name] = cls(self)
         return self.views[name]
@@ -989,7 +989,7 @@ class CalendarWindow(Gtk.Window):
 
 # ---- pripominky -----------------------------------------------------------------------
 class Reminders:
-    """Casovac v demonovi: notify-send pred udalosti podle VALARM. Budi se jen kdyz je treba
+    """Casovac na pozadi: notify-send pred udalosti podle VALARM. Budi se jen kdyz je treba
     (nejblizsi pripominka, nejdele po 15 minutach) a po probuzeni z uspani (logind)."""
 
     MAX_WAIT = 900
@@ -1098,13 +1098,13 @@ def migrate_panel():
 
 # ---- start ----------------------------------------------------------------------------
 def running_pid():
-    """(pid, signal) bezici instance: vlastni demon SIGUSR1, luxos-daemon SIGUSR2."""
+    """(pid, signal) bezici instance: samostatna instance na pozadi SIGUSR1, luxos-hub SIGUSR2."""
     try:
         with open(PIDFILE) as f:
             pid = int(f.read())
         with open(f"/proc/{pid}/cmdline", "rb") as f:
             cmd = f.read()
-        if b"luxos-daemon" in cmd:
+        if b"luxos-hub" in cmd:
             return pid, signal.SIGUSR2
         if b"luxos-calendar" in cmd:
             return pid, signal.SIGUSR1
@@ -1154,12 +1154,12 @@ def signal_add(sig, cb):
         GLib.unix_signal_add(GLib.PRIORITY_HIGH, sig, cb)
 
 
-def create(daemon=True):
-    """Skryte okno kalendare s pripominkami a hlidanim souboru (pouziva i luxos-daemon)."""
+def create(background=True):
+    """Skryte okno kalendare s pripominkami a hlidanim souboru (pouziva i luxos-hub)."""
     store = ics.Store()
     store.reload_if_changed()
     win = CalendarWindow(store)
-    with warnings.catch_warnings():     # vlastni WM_CLASS i ve sdilenem procesu luxos-daemon
+    with warnings.catch_warnings():     # vlastni WM_CLASS i ve sdilenem procesu luxos-hub
         warnings.simplefilter("ignore", DeprecationWarning)
         win.set_wmclass("luxos-calendar", "Luxos-calendar")
     theme = Theme(win)
@@ -1191,7 +1191,7 @@ def create(daemon=True):
         pass
 
     reminders.schedule()
-    if daemon:
+    if background:
         GLib.timeout_add_seconds(5, lambda: migrate_panel() and False)
     return win
 
@@ -1205,12 +1205,12 @@ def main():
         f.write(str(os.getpid()))
     GLib.set_prgname("luxos-calendar")
     GLib.set_application_name(_("Calendar"))
-    daemon = "--daemon" in sys.argv
-    win = create(daemon)
+    background = "--background" in sys.argv
+    win = create(background)
     win.connect("destroy", Gtk.main_quit)
     signal_add(signal.SIGTERM, lambda *_a: Gtk.main_quit() or True)
     signal_add(signal.SIGUSR1, lambda *_a: win.toggle() or True)
-    if not daemon:
+    if not background:
         win.toggle()
     try:
         Gtk.main()
