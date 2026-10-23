@@ -188,6 +188,17 @@ earlyoom closed the biggest process because RAM < 4 % and swap < 8 %. Close heav
 check memory with System Monitor (`luxos-monitor`). See
 [power-and-performance.md](power-and-performance.md#low-memory-protection-earlyoom).
 
+## A downloaded program does not start (Lux Guard)
+
+- "Permission denied" or a **Lux Guard** dialog: the file came from outside (Downloads, USB,
+  attachment). `luxos-guard scan FILE` shows why; `journalctl -t luxos-guard -n 20` the decisions.
+- Risky (unknown) file you trust: **Run Anyway** in the dialog, or `luxos-guard allow FILE`.
+- Critical file: it runs only in the Sandbox (**Run in Sandbox**). Delete it unless you are sure.
+- No dialog appears and risky files are refused: the session helper is not running –
+  `luxos-guard status`; log out and in, or start `luxos-guard-agent &`.
+- Files deleted or encrypted: `luxos-guard restore PATH` or Lux Guard › Restore files. See
+  [guard.md](guard.md).
+
 ## Safe, Sandbox, LuxAI, LuxDrop
 
 - **Safe** will not lock: "These apps keep files in the Safe open: …" – close those apps, then

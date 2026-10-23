@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=33
+pkgrel=34
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -11,9 +11,9 @@ arch=(x86_64)
 options=(!debug !strip)
 url="https://github.com/luxos"
 license=(MIT)
-# lsl >= 0.10.4: prekladac lslc s moduly glib/gio (cil linux-x86_64-gnu) pro programy v files/lsl;
+# lsl >= 0.10.6: prekladac lslc s moduly glib/gio/gtk/cairo/pango (cil linux-x86_64-gnu) pro programy v files/lsl;
 # balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni
-makedepends=(python xfce4-settings xfce4-session libxi libxtst libxrandr gtk3 pkgconf 'lsl>=0.10.5')
+makedepends=(python xfce4-settings xfce4-session libxi libxtst libxrandr gtk3 cairo pango pkgconf 'lsl>=0.10.6')
 install=luxos-desktop.install
 depends=(
     # LuxOS
@@ -27,6 +27,8 @@ depends=(
     xfce4-power-manager xfce4-screensaver xfce4-terminal ffmpeg xfce4-taskmanager
     xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xfce4-xkb-plugin xorg-setxkbmap xorg-xprop libxi libxtst libxrandr
     brightnessctl luxos-i18n luxos-store luxos-account
+    # Lux Guard: kontrola stazenych programu a snimky /home (i u starsich instalaci pres lux update)
+    luxos-guard
     # Snimek obrazovky: obrazek ve schrance drzi xclip i po skonceni programu
     xclip
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
@@ -70,6 +72,9 @@ build() {
     for p in luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname; do
         lslc --target linux-x86_64-gnu "$startdir/files/lsl/$p.lsl" "$p"
     done
+    # Proces relace luxos-hub s okny Ovladaciho centra a Kalendare (drive tri programy v Pythonu + GTK):
+    # jeden program, pod jmeny luxos-control-center a luxos-calendar jen posila signal bezicimu hubu
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-hub.lsl" luxos-hub
 }
 
 package() {
@@ -83,7 +88,11 @@ package() {
         "$f/xdg/xfce4/xfconf/xfce-perchannel-xml" "$pkgdir/etc/xdg/luxos/xfce4/xfconf/xfce-perchannel-xml"
 
     install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar \
-        luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname
+        luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub
+    # Ovladaci centrum a Kalendar jsou tentyz program (chova se podle jmena); profily panelu uzivatelu
+    # volaji "luxos-control-center --panel", relace "luxos-hub"
+    ln -s luxos-hub "$pkgdir/usr/bin/luxos-control-center"
+    ln -s luxos-hub "$pkgdir/usr/bin/luxos-calendar"
     ln -s luxos-search "$pkgdir/usr/bin/luxos-spotlight"   # starsi zkratky v xfconf
     # Sledovani aktivniho okna (bash, xprop -spy) pro "luxos-appname watch"
     install -Dm755 "$f/luxos-appname-watch" "$pkgdir/usr/lib/luxos/luxos-appname-watch"

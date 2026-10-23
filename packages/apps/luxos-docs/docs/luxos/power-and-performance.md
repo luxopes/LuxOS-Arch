@@ -156,7 +156,20 @@ udev rule `60-luxos-ioschedulers.rules`: NVMe → `none`, SSD/eMMC → `mq-deadl
 
 ## Kernel, file system, builds
 
-- The installer installs the **linux-zen** kernel.
+- The kernel is **linux-luxos** (since LuxOS 0.9.7): vanilla stable Linux from kernel.org (signature
+  checked), Arch Linux's configuration as the base (every driver as a module – any hardware works
+  out of the box) plus LuxOS settings (`recipe/config-luxos`: BBR TCP congestion control, `NR_CPUS=512`
+  instead of 8192, transparent huge pages only on request). No out-of-tree patches.
+- Built and released automatically by GitHub Actions (<https://github.com/luxopes/luxos-kernel>): every
+  6 hours it checks kernel.org, builds the chosen version, boots it in QEMU and loads ~50 typical
+  drivers (storage, USB, graphics, Wi-Fi, Bluetooth, sound) before publishing. Version policy: newest
+  stable series once it has at least 3 point releases (e.g. 7.3.3), until then the newest point
+  release of the current series; never a release candidate, never an older series.
+- The LuxOS repository picks a release up only after checking its SHA256SUMS and build provenance
+  attestation (`scripts/fetch-kernel.sh`), then signs it with the LuxOS key.
+- Headers for DKMS drivers (NVIDIA): `linux-luxos-headers` (installed together with the driver).
+- Older installs used `linux-zen`; LuxOS Care switches them automatically (see
+  [Care and updates](care-updates.md), "Switch to the LuxOS kernel").
 - Btrfs with `compress=zstd:1,noatime` (subvolumes `@`, `@home`, `@log`, `@cache`) – see
   [Installer](installer.md).
 - `/etc/makepkg.conf.d/luxos.conf`: `MAKEFLAGS="-j$(nproc)"`, multithreaded zstd, LTO – faster AUR

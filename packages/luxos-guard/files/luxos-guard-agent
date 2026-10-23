@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""Lux Guard - pomocnik v sezeni uzivatele (automaticke spusteni po prihlaseni).
+
+Maly proces bez GTK (par MB pameti): drzi spojeni se sluzbou luxos-guard a teprve kdyz je potreba,
+spusti okno luxos-guard-gui (dotaz u rizikoveho programu, zprava o zablokovani) nebo upozorneni.
+Volby uzivatele "Spustit v sandboxu" a "Presunout do kose" provadi sam (jako uzivatel).
+"""
+import json
+import os
+import socket
+import subprocess
+import sys
+import threading
+import time
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+try:
+    from luxos_i18n import _  # noqa: E402
+except ImportError:
+    def _(text):
+        return text
+import luxos_guard_core as core  # noqa: E402
+from luxos_guard_session import notify, run_in_sandbox, trash  # noqa: E402
+
+_HERE_GUI = os.path.join(os.path.dirname(os.path.realpath(__file__)), "luxos-guard-gui")
+GUI = os.environ.get("LUXOS_GUARD_GUI") or (_HERE_GUI if os.path.exists(_HERE_GUI) else "luxos-guard-gui")
+def dialog(msg, timeout):
+    """Okno luxos-guard-gui; vraci volbu (run|sandbox|deny|trash|close)."""
+    try:
+        r = subprocess.run([GUI, "dialog"], input=json.dumps(msg), capture_output=True, text=True, timeout=timeout)
+        out = (r.stdout or "").strip().splitlines()
+        return out[-1] if out else "deny"
+    except (OSError, subprocess.TimeoutExpired):
+        return "deny"
+
+
+class Agent:
+    def __init__(self, sock_path=None):
+        self.sock_path = sock_path or os.environ.get("LUXOS_GUARD_SOCKET") or core.SOCKET
+        self.sock = None
+        self.lock = threading.Lock()
+        self.showing = set()        # cesty, ke kterym je prave otevrene okno o zablokovani
+
+    def send(self, obj):
+        data = (json.dumps(obj) + "\n").encode()
+        with self.lock:
+            try:
+                self.sock.sendall(data)
+            except (OSError, AttributeError):
+                pass
+
+    def handle(self, msg):
+        op = msg.get("op")
+        if op == "ask":
+            threading.Thread(target=self.ask, args=(msg,), daemon=True).start()
+        elif op == "blocked":
+            if msg.get("path") in self.showing:
+                return
+            self.showing.add(msg.get("path"))
+            threading.Thread(target=self.blocked, args=(msg,), daemon=True).start()
+        elif op == "found":
+            notify(_("Lux Guard: dangerous file"),
+                   "%s\n%s\n%s" % (os.path.basename(msg.get("path") or ""),
+                                    "; ".join(_(r) for r in msg.get("reasons") or []),
+                                    _("It will not run outside the sandbox.")), "critical")
+
+    def ask(self, msg):
+        choice = dialog({**msg, "mode": "ask"}, core.ASK_TIMEOUT - 5)
+        if choice not in ("run", "sandbox", "trash"):
+            choice = "deny"
+        self.send({"op": "answer", "id": msg.get("id"), "choice": choice})
+        self.act(choice, msg)
+
+    def blocked(self, msg):
+        try:
+            choice = dialog({**msg, "mode": "blocked"}, 600)
+            self.act(choice, msg)
+        finally:
+            self.showing.discard(msg.get("path"))
+
+    def act(self, choice, msg):
+        path = msg.get("path") or ""
+        if choice == "sandbox":
+            # chvili pockat: odmitnuty proces muze soubor jeste drzet
+            time.sleep(0.3)
+            run_in_sandbox(path, msg.get("kind"))
+        elif choice == "trash":
+            trash(path)
+
+    def run(self):
+        delay = 1
+        while True:
+            try:
+                s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM | socket.SOCK_CLOEXEC)
+                s.connect(self.sock_path)
+            except OSError:
+                time.sleep(delay)
+                delay = min(delay * 2, 30)
+                continue
+            delay = 1
+            self.sock = s
+            self.send({"op": "hello", "role": "agent"})
+            buf = b""
+            while True:
+                try:
+                    chunk = s.recv(65536)
+                except OSError:
+                    chunk = b""
+                if not chunk:
+                    break
+                buf += chunk
+                while b"\n" in buf:
+                    line, buf = buf.split(b"\n", 1)
+                    try:
+                        msg = json.loads(line)
+                    except ValueError:
+                        continue
+                    if isinstance(msg, dict):
+                        self.handle(msg)
+            self.sock = None
+            try:
+                s.close()
+            except OSError:
+                pass
+            time.sleep(1)
+
+
+def watch_session():
+    """Konec sezeni: pomocnik nesmi zustat bezet po odhlaseni (rodic skoncil nebo zmizel X server)."""
+    ppid = os.getppid()
+    disp = os.environ.get("DISPLAY", "")
+    xsock = None
+    if disp.startswith(":"):
+        xsock = "/tmp/.X11-unix/X" + disp[1:].split(".")[0]
+        if not os.path.exists(xsock):
+            xsock = None
+    while True:
+        time.sleep(20)
+        if ppid != 1 and os.getppid() != ppid or xsock and not os.path.exists(xsock):
+            os._exit(0)
+
+
+def main():
+    if os.getuid() == 0:
+        return 0
+    threading.Thread(target=watch_session, daemon=True).start()
+    try:
+        Agent().run()
+    except KeyboardInterrupt:
+        return 0
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

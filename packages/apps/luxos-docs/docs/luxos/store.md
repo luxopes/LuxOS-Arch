@@ -14,7 +14,7 @@ install with one click, open, remove and update apps from the LuxOS and Arch Lin
 | Source | How it appears |
 |---|---|
 | Arch Linux repositories (`[core]`, `[extra]`, …) | desktop apps described by AppStream metadata (`archlinux-appstream-data`) whose package exists in the synced databases |
-| `[luxos-apps]` | all packages, even without AppStream; name and summary from the package description (`Name - summary`), icons downloaded from `https://lsl.lux-ai.cz/luxos/luxos-apps/x86_64/icons` |
+| `[luxos-apps]` | all packages, even without AppStream; name and summary from the package description (`Name - summary`), icons downloaded from `https://luxos.lux-ai.cz/repo/luxos-apps/x86_64/icons` |
 | `.lux` repository | packages from the signed index (`lux __index`), labelled "LuxOS package (.lux)" |
 
 The Store does **not** show AUR packages or Flatpak apps; use `lux install` for those

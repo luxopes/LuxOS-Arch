@@ -114,7 +114,7 @@ Instalace stahuje aktuální balíky z internetu; balíky LuxOS bere z lokální
 
 ## Repozitáře balíků
 
-LuxOS má dva podepsané repozitáře na `https://lsl.lux-ai.cz/luxos/` (přehled: <https://lsl.lux-ai.cz/luxos/>):
+LuxOS má dva podepsané repozitáře na `https://luxos.lux-ai.cz/repo/` (přehled: <https://luxos.lux-ai.cz/repo/>):
 
 - `[luxos]` – systém LuxOS (`packages/*`),
 - `[luxos-apps]` – aplikace ke stažení, např. LSL, LSL IDE, Lux Code (`packages/apps/*`).
@@ -140,7 +140,7 @@ a `publish-repo.sh` odmítne nahrávat). Na serveru: `/srv/luxos-repo/{releases,
 Vlastní formát aplikací: archiv `tar.zst` s `lux.json` (metadata, závislosti, příkazy), aplikací v `app/`
 a soubory pro systém v `share/`; podepsaný klíčem LuxOS. Specifikace: [docs/lux-package-format.md](docs/lux-package-format.md),
 vzor `docs/examples/hello-lux`. Balíčky patří do `lux-packages/<název>/`, repozitář je
-`https://lsl.lux-ai.cz/luxos/lux/` (Obchod LuxOS je nabízí mezi aplikacemi LuxOS).
+`https://luxos.lux-ai.cz/repo/lux/` (Obchod LuxOS je nabízí mezi aplikacemi LuxOS).
 
 ```bash
 lux pack lux-packages/moje-aplikace out/   # sestavit

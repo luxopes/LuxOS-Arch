@@ -346,7 +346,7 @@ if ((${#kernels[@]} == 0)); then
         k=$(<"$f")
         [[ $k =~ ^[a-z0-9][a-z0-9._+-]*$ ]] && kernels+=("$k")
     done
-    ((${#kernels[@]})) || kernels=(linux-zen)
+    ((${#kernels[@]})) || kernels=(linux-luxos)
 fi
 dedup() { printf '%s\n' "$@" | awk 'NF && !seen[$0]++'; }
 mapfile -t kernels < <(dedup "${kernels[@]}")

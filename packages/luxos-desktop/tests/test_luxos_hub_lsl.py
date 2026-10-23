@@ -1,0 +1,501 @@
+"""Testy luxos-hub v LSL (files/lsl/luxos-hub.lsl): okna Ovladaciho centra a Kalendare na signaly,
+"!" pro sit bez internetu, upozorneni earlyoom, Trezor, neuspavani pri prehravani, agent BlueZ,
+LuxOS Care a Ovladace. Vse na soukrome sbernici D-Bus (Gio.TestDBus slouzi jako session i system bus)
+s falesnymi sluzbami a falesnymi programy v PATH; okna pod Xvfb.
+
+Spusteni: env -u DISPLAY xvfb-run -a python3 -m unittest packages/luxos-desktop/tests/test_luxos_hub_lsl.py -v
+LUXOS_LSLC: prekladac lslc (LSL >= 0.10.6, jinak se testy preskoci). Nikdy ne na skutecne obrazovce.
+"""
+import glob
+import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+import unittest
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+LSL = os.path.join(HERE, "..", "files", "lsl")
+I18N_DIR = os.path.normpath(os.path.join(HERE, "..", "..", "luxos-i18n", "files"))
+TMP = tempfile.mkdtemp(prefix="luxos-lslhub-")   # bez "luxos-hub" v ceste: podle ni se pozna bezici hub
+LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
+sys.path.insert(0, HERE)
+sys.path.insert(0, I18N_DIR)
+
+import gi  # noqa: E402
+
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio, GLib  # noqa: E402
+
+from test_luxos_power import PLAYER_XML, FakePlayer, FakeXfconf, ServiceThread, spin  # noqa: E402,F401
+
+
+def translation(key):
+    with open(os.path.join(I18N_DIR, "cs.tsv"), encoding="utf-8") as f:
+        for line in f:
+            k, _, v = line.rstrip("\n").partition("\t")
+            if k == key:
+                return v
+    raise KeyError(key)
+
+
+def build():
+    """Prelozi luxos-hub (a jeho dve jmena) z files/lsl; None bez vhodneho prekladace."""
+    if not LSLC or not os.environ.get("DISPLAY"):
+        return None
+    src = os.path.join(TMP, "src")
+    os.makedirs(src, exist_ok=True)
+    for f in glob.glob(os.path.join(LSL, "*.lsl")):
+        shutil.copy(f, src)
+    out = os.path.join(TMP, "bin")
+    os.makedirs(out, exist_ok=True)
+    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(src, "luxos-hub.lsl"), os.path.join(out, "luxos-hub")],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        print(r.stdout + r.stderr)
+        return None
+    for name in ("luxos-control-center", "luxos-calendar"):
+        os.symlink("luxos-hub", os.path.join(out, name))
+    return out
+
+
+BIN = build()
+DISPLAY = os.environ.get("DISPLAY")
+
+NM_XML = """<node><interface name="org.freedesktop.NetworkManager">
+  <property name="State" type="u" access="read"/><property name="Connectivity" type="u" access="read"/>
+</interface></node>"""
+PANEL_XML = """<node><interface name="org.xfce.Panel">
+  <method name="PluginEvent"><arg type="s" direction="in"/><arg type="s" direction="in"/><arg type="v" direction="in"/></method>
+</interface></node>"""
+NOTIFY_XML = """<node><interface name="org.freedesktop.Notifications">
+  <method name="Notify"><arg type="s" direction="in"/><arg type="u" direction="in"/><arg type="s" direction="in"/>
+    <arg type="s" direction="in"/><arg type="s" direction="in"/><arg type="as" direction="in"/><arg type="a{sv}" direction="in"/>
+    <arg type="i" direction="in"/><arg type="u" direction="out"/></method>
+  <signal name="ActionInvoked"><arg type="u"/><arg type="s"/></signal>
+</interface></node>"""
+LOGIN_XML = """<node><interface name="org.freedesktop.login1.Manager">
+  <method name="Inhibit"><arg type="s" direction="in"/><arg type="s" direction="in"/><arg type="s" direction="in"/>
+    <arg type="s" direction="in"/><arg type="h" direction="out"/></method>
+  <signal name="PrepareForSleep"><arg type="b"/></signal>
+</interface></node>"""
+BLUEZ_XML = """<node><interface name="org.bluez.AgentManager1">
+  <method name="RegisterAgent"><arg type="o" direction="in"/><arg type="s" direction="in"/></method>
+  <method name="RequestDefaultAgent"><arg type="o" direction="in"/></method>
+</interface></node>"""
+DEVICE_XML = """<node><interface name="org.freedesktop.DBus.Properties">
+  <method name="GetAll"><arg type="s" direction="in"/><arg type="a{sv}" direction="out"/></method>
+</interface></node>"""
+
+
+class FakeService:
+    """Falesna sluzba na soukrome sbernici: jmeno, objekty s XML a obsluhou volani; zaznam volani."""
+
+    def __init__(self, svc, address, name, objects, properties=None):
+        self.svc, self.calls, self.properties = svc, [], properties or {}
+        svc.run(self._init, address, name, objects)
+
+    def _init(self, address, name, objects):
+        self.conn = Gio.DBusConnection.new_for_address_sync(
+            address, Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION, None, None)
+        for path, xml in objects:
+            node = Gio.DBusNodeInfo.new_for_xml(xml)
+            self.conn.register_object(path, node.interfaces[0], self.on_call, self.on_get, None)
+        self.conn.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName",
+                            GLib.Variant("(su)", (name, 4)), None, 0, 2000, None)
+
+    def on_get(self, _c, _s, path, iface, prop):
+        return self.properties[prop]
+
+    def on_call(self, _c, _s, path, iface, method, params, inv):
+        args = params.unpack()
+        self.calls.append((method, args))
+        if method == "Notify":
+            inv.return_value(GLib.Variant("(u)", (len(self.calls) + 40,)))
+        elif method == "Inhibit":
+            fds = Gio.UnixFDList.new()
+            r, w = os.pipe()
+            os.close(w)
+            idx = fds.append(r)
+            os.close(r)
+            inv.return_value_with_unix_fd_list(GLib.Variant("(h)", (idx,)), fds)
+        elif method == "GetAll":
+            inv.return_value(GLib.Variant("(a{sv})", ({k: v for k, v in self.properties.items()},)))
+        else:
+            inv.return_value(None)
+
+    def emit(self, path, iface, name, variant):
+        self.svc.run(self.conn.emit_signal, None, path, iface, name, variant)
+
+    def close(self):
+        self.svc.run(self.conn.close_sync, None)
+
+
+@unittest.skipUnless(BIN, "chybi lslc (LSL >= 0.10.6, LUXOS_LSLC) nebo DISPLAY (spustit pod xvfb-run)")
+class Hub(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tdbus = Gio.TestDBus.new(Gio.TestDBusFlags.NONE)
+        cls.tdbus.up()
+        cls.address = cls.tdbus.get_bus_address()
+        cls.svc = ServiceThread()
+        cls.fake = os.path.join(TMP, "fake")
+        os.makedirs(cls.fake, exist_ok=True)
+        for name in ("notify-send", "luxos-datasaver", "luxos-appearance", "luxos-safe", "luxos-powersaver", "brightnessctl",
+                     "luxos-displays", "xfce4-panel", "luxos-update", "luxos-drivers", "xfce4-session-logout", "nmcli", "pactl"):
+            with open(os.path.join(cls.fake, name), "w") as f:
+                f.write('#!/bin/sh\nprintf "%s\\n" "$(basename "$0") $*" >>"$FAKE_LOG"\n')
+            os.chmod(os.path.join(cls.fake, name), 0o755)
+        # xfconf-query: panel s pluginem luxos-netcheck (id 5), jinak nic
+        with open(os.path.join(cls.fake, "xfconf-query"), "w") as f:
+            f.write('#!/bin/sh\nprintf "%s\\n" "xfconf-query $*" >>"$FAKE_LOG"\n'
+                    'case "$*" in\n  "-c xfce4-panel -l -p /plugins") printf "/plugins/plugin-1\\n/plugins/plugin-5\\n/plugins/plugin-5/command\\n";;\n'
+                    '  "-c xfce4-panel -p /plugins/plugin-5/command") echo luxos-netcheck;;\n  *) echo false;;\nesac\n')
+        os.chmod(os.path.join(cls.fake, "xfconf-query"), 0o755)
+        # okno prihlaseni do site: zapise se a ceka, dokud ho hub neukonci
+        with open(os.path.join(cls.fake, "luxos-network-login"), "w") as f:
+            f.write('#!/bin/sh\necho "luxos-network-login $$" >>"$FAKE_LOG"\nexec sleep 60\n')
+        os.chmod(os.path.join(cls.fake, "luxos-network-login"), 0o755)
+        # pomocne programy Care a Ovladacu (misto Pythonu s HTTPS / luxos-hwdetect)
+        cls.care_helper = os.path.join(TMP, "care_helper.py")
+        with open(cls.care_helper, "w") as f:
+            f.write('import json, os, sys\nopen(os.environ["FAKE_LOG"], "a").write("care-ask " + sys.argv[2] + "\\n")\n'
+                    'print(json.dumps({"option": None, "info": "signed_out", "started": False}))\n')
+        cls.drivers_helper = os.path.join(TMP, "drivers_helper.py")
+        with open(cls.drivers_helper, "w") as f:
+            f.write('import json, os\nopen(os.environ["FAKE_LOG"], "a").write("drivers-check\\n")\n'
+                    'print(json.dumps({"notify": True, "names": ["Grafika NVIDIA"], "key": "nvidia-open-dkms nvidia-utils"}))\n')
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.svc.stop()
+        cls.tdbus.down()
+
+    def setUp(self):
+        self.home = tempfile.mkdtemp(prefix="home-", dir=TMP)
+        self.runtime = os.path.join(self.home, "run")
+        self.cfg = os.path.join(self.home, ".config", "luxos")
+        self.cache = os.path.join(self.home, ".cache", "luxos")
+        for d in (self.runtime, self.cfg, self.cache):
+            os.makedirs(d)
+        self.log = os.path.join(self.home, "calls.log")
+        self.services = []
+        self.hub = None
+
+    def tearDown(self):
+        if self.hub and self.hub.poll() is None:
+            self.hub.send_signal(signal.SIGTERM)
+            try:
+                self.hub.wait(5)
+            except subprocess.TimeoutExpired:
+                self.hub.kill()
+        for s in self.services:
+            s.close()
+
+    def service(self, name, objects, properties=None):
+        s = FakeService(self.svc, self.address, name, objects, properties)
+        self.services.append(s)
+        return s
+
+    def env(self, **extra):
+        env = {"PATH": self.fake + ":/usr/bin:/bin", "HOME": self.home, "XDG_RUNTIME_DIR": self.runtime,
+               "XDG_CONFIG_HOME": os.path.join(self.home, ".config"), "XDG_CACHE_HOME": os.path.join(self.home, ".cache"),
+               "LUXOS_I18N_DIR": I18N_DIR, "LANG": "cs_CZ.UTF-8", "FAKE_LOG": self.log, "DISPLAY": DISPLAY,
+               "DBUS_SESSION_BUS_ADDRESS": self.address, "DBUS_SYSTEM_BUS_ADDRESS": self.address, "NO_AT_BRIDGE": "1",
+               "LUXOS_HUB_PREBUILD_DELAY": "1", "LUXOS_HUB_NETCHECK_DELAY": "1", "LUXOS_PLAYBACK_GRACE": "1",
+               "LUXOS_CC_TEST_LOG": os.path.join(self.home, "cc.log"), "LUXOS_CAL_TEST_LOG": os.path.join(self.home, "cal.log"),
+               "LUXOS_CALENDAR_DIR": os.path.join(self.home, "calendar"), "LUXOS_POWER_SUPPLY": os.path.join(self.home, "nosupply"),
+               "LUXOS_BACKLIGHT": os.path.join(self.home, "nobacklight"), "LUXOS_CARE_HELPER": self.care_helper,
+               "LUXOS_DRIVERS_HELPER": self.drivers_helper, "LUXOS_CARE_ROOT": os.path.join(self.home, "root"),
+               "LUXOS_CARE_DELAY": "1", "LUXOS_DRIVERS_DELAY": "1", "LUXOS_DRM_DIR": os.path.join(self.home, "drm"),
+               "LUXOS_MOUNTINFO": os.path.join(self.home, "mountinfo"), "GTK_THEME": "Adwaita:dark",
+               "LUXOS_HUB_NO_AUTOHIDE": "1"}      # pod Xvfb bez spravce oken by se okno hned zavrelo ztratou fokusu
+        if "XAUTHORITY" in os.environ:
+            env["XAUTHORITY"] = os.environ["XAUTHORITY"]
+        env.update(extra)
+        return env
+
+    def start_hub(self, **extra):
+        self.err_path = os.path.join(self.home, "hub.err")
+        self.err_file = open(self.err_path, "w")
+        self.hub = subprocess.Popen([os.path.join(BIN, "luxos-hub")], env=self.env(**extra), stderr=self.err_file, text=True)
+        self.assertTrue(self.wait_for(lambda: os.path.exists(os.path.join(self.runtime, "luxos-calendar.pid")), 10), "hub se nespustil")
+        time.sleep(1.5)          # start GTK a predpripravena okna (LUXOS_HUB_PREBUILD_DELAY=1)
+        return self.hub
+
+    def hub_err(self):
+        with open(self.err_path) as f:
+            return f.read()
+
+    def wait_for(self, cond, timeout=5.0):
+        end = time.monotonic() + timeout
+        while time.monotonic() < end:
+            if cond():
+                return True
+            time.sleep(0.05)
+        return cond()
+
+    def calls(self):
+        if not os.path.exists(self.log):
+            return []
+        with open(self.log) as f:
+            return f.read().splitlines()
+
+    def ui_log(self, name):
+        path = os.path.join(self.home, name)
+        if not os.path.exists(path):
+            return []
+        with open(path) as f:
+            return f.read().split()
+
+    def run_prog(self, name, *args, **extra):
+        return subprocess.run([os.path.join(BIN, name), *args], env=self.env(**extra), capture_output=True, text=True, timeout=20)
+
+    # ---- okna, signaly, pid soubory ------------------------------------------------------------------
+    def test_windows_on_signals_and_clean_exit(self):
+        hub = self.start_hub()
+        pid = str(hub.pid)
+        for name in ("luxos-hub.pid", "luxos-control-center.pid", "luxos-calendar.pid"):
+            with open(os.path.join(self.runtime, name)) as f:
+                self.assertEqual(f.read().strip(), pid)
+        hub.send_signal(signal.SIGUSR1)
+        self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log") == ["shown"]), (self.ui_log("cc.log"), self.hub_err()))
+        hub.send_signal(signal.SIGUSR1)
+        self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log") == ["shown", "hidden"]), self.ui_log("cc.log"))
+        hub.send_signal(signal.SIGUSR2)
+        self.assertTrue(self.wait_for(lambda: "shown" in self.ui_log("cal.log")))
+        # stejny program pod jmenem luxos-control-center / luxos-calendar jen posle signal bezicimu hubu
+        self.assertEqual(self.run_prog("luxos-control-center").returncode, 0)
+        self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log") == ["shown", "hidden", "shown"]))
+        self.assertEqual(self.run_prog("luxos-calendar").returncode, 0)
+        self.assertTrue(self.wait_for(lambda: self.ui_log("cal.log").count("hidden") == 1))
+        out = self.run_prog("luxos-control-center", "--panel")
+        self.assertEqual(out.stdout, "<icon>luxos-control-center-symbolic</icon><iconclick>luxos-cc-toggle</iconclick><tool>"
+                         + translation("Control Center") + "</tool>\n")
+        hub.send_signal(signal.SIGTERM)
+        self.assertEqual(hub.wait(5), 0)
+        self.assertEqual(sorted(os.listdir(self.runtime)), [])
+        err = self.hub_err()
+        self.assertNotIn("CRITICAL", err, err)
+        self.assertNotIn("LSL callback error", err, err)
+
+    def test_standalone_control_center_and_calendar(self):
+        err = open(os.path.join(self.home, "cc.err"), "w")
+        cc = subprocess.Popen([os.path.join(BIN, "luxos-control-center"), "--background"], env=self.env(), stderr=err, text=True)
+        try:
+            self.assertTrue(self.wait_for(lambda: os.path.exists(os.path.join(self.runtime, "luxos-control-center.pid"))))
+            time.sleep(1.0)
+            self.assertEqual(self.run_prog("luxos-control-center").returncode, 0)        # druhe spusteni = prepnuti
+            self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log") == ["shown"]), (self.ui_log("cc.log"), open(os.path.join(self.home, "cc.err")).read()))
+            self.assertEqual(self.run_prog("luxos-control-center").returncode, 0)
+            self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log") == ["shown", "hidden"]))
+        finally:
+            cc.send_signal(signal.SIGTERM)
+            self.assertEqual(cc.wait(5), 0)
+        self.assertFalse(os.path.exists(os.path.join(self.runtime, "luxos-control-center.pid")))
+        cal = subprocess.Popen([os.path.join(BIN, "luxos-calendar"), "--background"], env=self.env(), stderr=err, text=True)
+        try:
+            self.assertTrue(self.wait_for(lambda: os.path.exists(os.path.join(self.runtime, "luxos-calendar.pid"))))
+            time.sleep(1.0)
+            self.assertEqual(self.run_prog("luxos-calendar").returncode, 0)
+            self.assertTrue(self.wait_for(lambda: "shown" in self.ui_log("cal.log")))
+        finally:
+            cal.send_signal(signal.SIGTERM)
+            self.assertEqual(cal.wait(5), 0)
+
+    # ---- sit bez internetu, Sporic dat ----------------------------------------------------------------
+    def test_connectivity_and_networks(self):
+        nm = self.service("org.freedesktop.NetworkManager", [("/org/freedesktop/NetworkManager", NM_XML)],
+                          {"State": GLib.Variant("u", 70), "Connectivity": GLib.Variant("u", 3)})
+        panel = self.service("org.xfce.Panel", [("/org/xfce/Panel", PANEL_XML)])
+        open(os.path.join(self.cfg, "datasaver"), "w").close()
+        self.start_hub()
+        # po prihlaseni: obnova pluginu "!" a jedno upozorneni (bez internetu)
+        self.assertTrue(self.wait_for(lambda: ("PluginEvent", ("genmon-5", "refresh", True)) in panel.calls, 8))
+        self.assertTrue(self.wait_for(lambda: any(c.startswith("notify-send") for c in self.calls())))
+        notes = [c for c in self.calls() if c.startswith("notify-send")]
+        self.assertEqual(len(notes), 1)
+        self.assertIn(translation("No internet connection"), notes[0])
+        self.assertIn(translation("You are connected to the network, but the internet is not available."), notes[0])
+        # zmena Connectivity -> obnova pluginu, bez dalsiho upozorneni (stav 3 -> 3 neni zmena)
+        panel.calls.clear()
+        nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"Connectivity": GLib.Variant("u", 3)}, [])))
+        self.assertTrue(self.wait_for(lambda: panel.calls, 5))
+        time.sleep(0.5)
+        self.assertEqual(len([c for c in self.calls() if c.startswith("notify-send")]), 1)
+        # portal -> druhe upozorneni az po plnem pripojeni a navratu
+        nm.properties["Connectivity"] = GLib.Variant("u", 4)
+        nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"Connectivity": GLib.Variant("u", 4)}, [])))
+        time.sleep(1.5)
+        nm.properties["Connectivity"] = GLib.Variant("u", 2)
+        nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"State": GLib.Variant("u", 70)}, [])))
+        self.assertTrue(self.wait_for(lambda: len([c for c in self.calls() if c.startswith("notify-send")]) == 2, 5))
+        portal_note = [c for c in self.calls() if c.startswith("notify-send")][-1]
+        self.assertIn(translation("This network requires you to sign in before you can use the internet."), portal_note)
+        self.assertIn("-A login=" + translation("Sign In"), portal_note)
+        # sit s portalem: okno pro prihlaseni se otevre samo, jen jednou
+        self.assertTrue(self.wait_for(lambda: any(c.startswith("luxos-network-login") for c in self.calls()), 5))
+        login_pid = int([c for c in self.calls() if c.startswith("luxos-network-login")][0].split()[1])
+        nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"State": GLib.Variant("u", 70)}, [])))
+        time.sleep(1.5)
+        self.assertEqual(len([c for c in self.calls() if c.startswith("luxos-network-login")]), 1)
+        # prihlaseno -> okno se zavre, upozorneni "Pripojeno"
+        nm.properties["Connectivity"] = GLib.Variant("u", 4)
+        nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"Connectivity": GLib.Variant("u", 4)}, [])))
+        self.assertTrue(self.wait_for(lambda: not os.path.exists(f"/proc/{login_pid}") or
+                                      open(f"/proc/{login_pid}/stat").read().split()[2] == "Z", 5))
+        self.assertTrue(self.wait_for(lambda: translation("Connected to the internet") in self.calls()[-1], 5))
+        # nove pripojeni -> Sporic dat znovu (jen s priznakem datasaver)
+        nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"ActiveConnections": GLib.Variant("ao", [])}, [])))
+        self.assertTrue(self.wait_for(lambda: "luxos-datasaver reapply" in self.calls(), 5))
+
+    # ---- nedostatek pameti -------------------------------------------------------------------------------
+    def test_low_memory_notification(self):
+        earlyoom = self.service("net.nuetzlich.Fake", [("/", NM_XML)], {"State": GLib.Variant("u", 0), "Connectivity": GLib.Variant("u", 0)})
+        self.start_hub()
+        time.sleep(0.5)
+        earlyoom.emit("/", "net.nuetzlich.SystemNotifications", "Notify",
+                      GLib.Variant("(ss)", ("Low memory! Killing process 4242 firefox. ...", "")))
+        self.assertTrue(self.wait_for(lambda: any("firefox" in c for c in self.calls()), 5))
+        note = [c for c in self.calls() if c.startswith("notify-send")][0]
+        self.assertIn("-u critical", note)
+        self.assertIn(translation("Memory is running low"), note)
+        self.assertIn(translation("“%s” used too much memory and was closed so the computer would not freeze.").replace("%s", "firefox"), note)
+        # davka stejnych signalu -> jedno upozorneni
+        earlyoom.emit("/", "net.nuetzlich.SystemNotifications", "Notify", GLib.Variant("(ss)", ("process 4242 firefox;", "")))
+        time.sleep(0.7)
+        self.assertEqual(len([c for c in self.calls() if c.startswith("notify-send")]), 1)
+
+    # ---- Trezor --------------------------------------------------------------------------------------------
+    def test_safe_locks_on_screen_lock_and_sleep(self):
+        login = self.service("org.freedesktop.login1", [("/org/freedesktop/login1", LOGIN_XML)])
+        saver = self.service("org.xfce.ScreenSaver", [("/org/xfce/ScreenSaver", NM_XML)], {"State": GLib.Variant("u", 0), "Connectivity": GLib.Variant("u", 0)})
+        self.start_hub()
+        self.assertTrue(self.wait_for(lambda: ("Inhibit", ("sleep", translation("Safe"), "Lock the Safe before sleep", "delay")) in login.calls, 5))
+        saver.emit("/org/xfce/ScreenSaver", "org.xfce.ScreenSaver", "ActiveChanged", GLib.Variant("(b)", (True,)))
+        self.assertTrue(self.wait_for(lambda: "luxos-safe lock --force" in self.calls(), 5))
+        # volba "zamknout pri zamceni obrazovky" vypnuta -> nic
+        with open(os.path.join(self.cfg, "safe.json"), "w") as f:
+            json.dump({"lock_on_screen_lock": False}, f)
+        saver.emit("/org/xfce/ScreenSaver", "org.xfce.ScreenSaver", "ActiveChanged", GLib.Variant("(b)", (True,)))
+        time.sleep(0.7)
+        self.assertEqual(self.calls().count("luxos-safe lock --force"), 1)
+        # pred uspanim vzdy; po probuzeni novy inhibitor
+        login.calls.clear()
+        login.emit("/org/freedesktop/login1", "org.freedesktop.login1.Manager", "PrepareForSleep", GLib.Variant("(b)", (True,)))
+        self.assertTrue(self.wait_for(lambda: self.calls().count("luxos-safe lock --force") == 2, 5))
+        login.emit("/org/freedesktop/login1", "org.freedesktop.login1.Manager", "PrepareForSleep", GLib.Variant("(b)", (False,)))
+        self.assertTrue(self.wait_for(lambda: any(c[0] == "Inhibit" for c in login.calls), 5))
+
+    # ---- neuspavat pri prehravani ----------------------------------------------------------------------------
+    def test_keep_awake_while_playing(self):
+        xf = FakeXfconf(self.svc, self.address, {"lid-action-on-battery": 1, "lid-action-on-ac": 3,
+                                                 "inactivity-on-battery": 30, "inactivity-on-ac": 14})
+        self.services.append(type("S", (), {"close": lambda s: self.svc.run(xf.conn.close_sync, None)})())
+        player = FakePlayer(self.svc, self.address, status="Playing")
+        self.start_hub()
+        override = os.path.join(self.cfg, "sleep-override")
+        self.assertTrue(self.wait_for(lambda: os.path.exists(override), 8))
+        vals = lambda: {k: (v.unpack() if hasattr(v, "unpack") else v) for k, v in xf.values.items()}  # noqa: E731
+        self.assertEqual(vals(), {"lid-action-on-battery": 0, "lid-action-on-ac": 3, "inactivity-on-battery": 14, "inactivity-on-ac": 14})
+        with open(override) as f:
+            self.assertEqual(sorted(f.read().split()), ["inactivity-on-battery=30", "lid-action-on-battery=1"])
+        player.set_status("Paused")
+        self.assertTrue(self.wait_for(lambda: not os.path.exists(override), 8))      # po 1 s ticha (LUXOS_PLAYBACK_GRACE)
+        self.assertEqual(vals(), {"lid-action-on-battery": 1, "lid-action-on-ac": 3, "inactivity-on-battery": 30, "inactivity-on-ac": 14})
+        player.quit()
+
+    # ---- agent BlueZ ---------------------------------------------------------------------------------------------
+    def test_bluetooth_agent_registers_and_answers(self):
+        bluez = self.service("org.bluez", [("/org/bluez", BLUEZ_XML), ("/org/bluez/hci0/dev_AA", DEVICE_XML)],
+                             {"Alias": GLib.Variant("s", "Sluchatka"), "Trusted": GLib.Variant("b", True)})
+        self.start_hub()
+        self.assertTrue(self.wait_for(lambda: ("RegisterAgent", ("/org/luxos/bluetooth/agent", "KeyboardDisplay")) in bluez.calls
+                                      and ("RequestDefaultAgent", ("/org/luxos/bluetooth/agent",)) in bluez.calls, 8))
+        # hub ma dve spojeni (session i system na teze sbernici) bez vlastniho jmena: agent je na tom,
+        # ktere odpovi; kandidati podle PID
+        names = self.svc.run(bluez.conn.call_sync, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+                             "ListNames", None, None, 0, 2000, None).unpack()[0]
+
+        def call_agent(method, params):
+            for n in names:
+                if not n.startswith(":"):
+                    continue
+                try:
+                    pid = self.svc.run(bluez.conn.call_sync, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+                                       "GetConnectionUnixProcessID", GLib.Variant("(s)", (n,)), None, 0, 2000, None).unpack()[0]
+                except (GLib.Error, AttributeError):
+                    continue
+                if pid != self.hub.pid:
+                    continue
+                try:
+                    return bluez.conn.call_sync(n, "/org/luxos/bluetooth/agent", "org.bluez.Agent1", method, params, None, 0, 5000, None)
+                except GLib.Error as e:
+                    if "UnknownMethod" not in e.message and "objekt neexistuje" not in e.message:
+                        raise
+            self.fail("agent hubu nenalezen na sbernici")
+        # duveryhodne zarizeni: AuthorizeService bez dialogu, Release bez odpovedi s hodnotou
+        r = call_agent("AuthorizeService", GLib.Variant("(os)", ("/org/bluez/hci0/dev_AA", "0000110b-0000-1000-8000-00805f9b34fb")))
+        self.assertEqual(r.unpack(), ())
+        r = call_agent("Release", None)
+        self.assertEqual(r.unpack(), ())
+
+    # ---- LuxOS Care a Ovladace -----------------------------------------------------------------------------------
+    def test_care_and_drivers_notifications(self):
+        notes = self.service("org.freedesktop.Notifications", [("/org/freedesktop/Notifications", NOTIFY_XML)])
+        root = os.path.join(self.home, "root", "var", "lib", "luxos-care")
+        os.makedirs(root)
+        now = int(time.time())
+        with open(os.path.join(root, "events.json"), "w") as f:
+            json.dump({"seq": 2, "events": [{"seq": 1, "kind": "updated", "count": 7, "time": now - 60},
+                                            {"seq": 2, "kind": "problem", "title": "Disk %s is almost full", "args": ["/"], "time": now}]}, f)
+        with open(os.path.join(root, "state.json"), "w") as f:
+            json.dump({"problems": [{"id": "p1", "title": "x", "ai": {"request_id": "0123456789ab", "status": "pending", "options": []}}]}, f)
+        self.start_hub()
+        self.assertTrue(self.wait_for(lambda: len([c for c in notes.calls if c[0] == "Notify"]) >= 3, 10), notes.calls)
+        titles = [c[1][3] for c in notes.calls if c[0] == "Notify"]
+        self.assertIn(translation("LuxOS was updated"), titles)
+        self.assertIn(translation("LuxOS found a problem"), titles)
+        self.assertIn(translation("Additional drivers are available"), titles)
+        bodies = [c[1][4] for c in notes.calls if c[0] == "Notify"]
+        self.assertIn(translation("%d packages were updated.").replace("%d", "7"), bodies)
+        self.assertTrue(any("Grafika NVIDIA" in b for b in bodies))
+        self.assertTrue(self.wait_for(lambda: "care-ask 0123456789ab" in self.calls() and "drivers-check" in self.calls(), 5))
+        # odpoved "neprihlasen" -> dalsi upozorneni s vyzvou k prihlaseni
+        self.assertTrue(self.wait_for(lambda: any(translation("Sign in to LuxAI to let LuxOS fix unknown problems.") in c[1][4]
+                                                  for c in notes.calls if c[0] == "Notify"), 5))
+        with open(os.path.join(self.cache, "care-seen")) as f:
+            self.assertEqual(f.read().strip(), "2")
+        with open(os.path.join(self.cache, "care-ai-asked")) as f:
+            self.assertEqual(f.read().split(), ["0123456789ab"])
+        # akce upozorneni: "open" u Care otevre luxos-update, "ignore" u Ovladacu zapise odmitnute baliky
+        ids = {c[1][3]: 41 + i for i, c in enumerate(notes.calls) if c[0] == "Notify"}
+        notes.emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications", "ActionInvoked",
+                   GLib.Variant("(us)", (ids[translation("LuxOS was updated")], "open")))
+        self.assertTrue(self.wait_for(lambda: "luxos-update " in self.calls(), 5))
+        notes.emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications", "ActionInvoked",
+                   GLib.Variant("(us)", (ids[translation("Additional drivers are available")], "ignore")))
+        ignored = os.path.join(self.cfg, "drivers-ignored")
+        self.assertTrue(self.wait_for(lambda: os.path.exists(ignored), 5))
+        with open(ignored) as f:
+            self.assertEqual(f.read().strip(), "nvidia-open-dkms nvidia-utils")
+        # nova udalost v souboru -> dalsi upozorneni (sledovani slozky)
+        before = len(notes.calls)
+        with open(os.path.join(root, "events.json.tmp"), "w") as f:
+            json.dump({"seq": 3, "events": [{"seq": 3, "kind": "updates_available", "count": 4, "time": now}]}, f)
+        os.replace(os.path.join(root, "events.json.tmp"), os.path.join(root, "events.json"))
+        self.assertTrue(self.wait_for(lambda: len(notes.calls) > before, 8))
+        self.assertEqual(notes.calls[-1][1][3], translation("Updates are available"))
+
+
+if __name__ == "__main__":
+    unittest.main()

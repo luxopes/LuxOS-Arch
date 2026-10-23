@@ -1,0 +1,11 @@
+[Unit]
+Description=Lux Guard - read-only snapshot of /home (protection against deleted or encrypted files)
+Documentation=file:///usr/share/luxos/docs/luxos/guard.md
+ConditionPathExists=!/run/archiso
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/luxos-guard snapshot
+Nice=10
+IOSchedulingClass=idle
+SyslogIdentifier=luxos-guard

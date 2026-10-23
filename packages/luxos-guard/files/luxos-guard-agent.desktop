@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Lux Guard
+Comment=Asks before programs from outside this computer run
+Comment[cs]=Zeptá se před spuštěním programů, které přišly zvenku
+Exec=luxos-guard-agent
+Icon=luxos-guard
+NoDisplay=true
+Terminal=false

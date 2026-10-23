@@ -8,7 +8,7 @@
   "summary": "Example app in the LuxOS package format",
   "description": "Shows a greeting. Use it as a template for your own .lux packages.",
   "license": "MIT",
-  "url": "https://lsl.lux-ai.cz/luxos/",
+  "url": "https://luxos.lux-ai.cz/repo/",
   "categories": ["Utility"],
   "depends": {
     "system": ["yad"],

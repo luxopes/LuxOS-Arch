@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Lux Guard
+Comment=Protection against harmful programs and restoring deleted files
+Comment[cs]=Ochrana před škodlivými programy a obnova smazaných souborů
+Exec=luxos-guard-gui
+Icon=luxos-guard
+Terminal=false
+Categories=System;Security;
+Keywords=guard;virus;antivirus;malware;security;restore;snapshot;backup;ochrana;obnova;záloha;
+StartupWMClass=luxos-guard

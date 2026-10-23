@@ -26,6 +26,7 @@ translations) and the light/dark mode.
 | Software Update | `luxos-update` | updates ([care-updates.md](care-updates.md)) |
 | LuxOS Store | `luxos-store` | install apps ([store.md](store.md)) |
 | Safe, Sandbox | `luxos-safe`, `luxos-sandbox` | [safe.md](safe.md), [sandbox.md](sandbox.md) |
+| Lux Guard | `luxos-guard-gui` | watched downloaded programs, recent decisions, restore files from snapshots ([guard.md](guard.md)) |
 | Settings apps | `luxos-settings`, `luxos-display-settings`, … | [settings-apps.md](settings-apps.md) |
 
 Standard apps that are installed by default: Firefox, Files (Thunar), Terminal (xfce4-terminal with

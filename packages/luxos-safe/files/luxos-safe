@@ -16,6 +16,7 @@ zamceni brani (zadne line odpojeni); okno i upozorneni rekne, ktere aplikace je 
                            --logout: pri odhlaseni ukoncit aplikace s otevrenymi soubory)
   luxos-safe status        locked | unlocked | none
   luxos-safe --watch       hlidac (spousti relace): zamkne pri zamceni obrazovky a uspani
+  luxos-safe --trust-launcher  oznaci spoustec "Odemknout Trezor" v zamcene slozce za duveryhodny (luxos-hub)
 """
 import datetime
 import getpass
@@ -729,6 +730,9 @@ def main():
         return gui("open" if "--open" in args else "unlock")
     if cmd == "--watch":
         watch()
+        return 0
+    if cmd == "--trust-launcher":
+        trust_launcher()          # luxos-hub (LSL) po prihlaseni se zamcenym Trezorem
         return 0
     print(__doc__)
     return 2

@@ -3,10 +3,10 @@
 
 pkgname=luxos-i18n
 pkgver=1.0.0
-pkgrel=29
+pkgrel=30
 pkgdesc="LuxOS translations (English, Czech, Slovak, Polish, Ukrainian, Hungarian, German, French, Spanish, Italian, Portuguese, Dutch, Swedish)"
 arch=(any)
-url="https://lsl.lux-ai.cz/luxos/"
+url="https://luxos.lux-ai.cz/repo/"
 license=(MIT)
 makedepends=(python)
 

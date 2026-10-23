@@ -1,0 +1,28 @@
+# Lux Guard: sluzbu a casovac snimku zapnout hned pri instalaci (i v chrootu instalatoru)
+# a po aktualizaci restartovat (nova pravidla). Snimky se v live ISO nedelaji (Condition v jednotce).
+_units="luxos-guard.service luxos-guard-snapshot.timer"
+
+post_install() {
+    # shellcheck disable=SC2086  # seznam jednotek se zamerne rozdeli na slova
+    systemctl enable $_units >/dev/null 2>&1 || true
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload >/dev/null 2>&1 || true
+        # shellcheck disable=SC2086
+        systemctl start $_units >/dev/null 2>&1 || true
+    fi
+}
+
+post_upgrade() {
+    # shellcheck disable=SC2086
+    systemctl enable $_units >/dev/null 2>&1 || true
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload >/dev/null 2>&1 || true
+        systemctl try-restart luxos-guard.service >/dev/null 2>&1 || true
+        systemctl start luxos-guard.service luxos-guard-snapshot.timer >/dev/null 2>&1 || true
+    fi
+}
+
+pre_remove() {
+    # shellcheck disable=SC2086
+    systemctl disable --now $_units >/dev/null 2>&1 || true
+}

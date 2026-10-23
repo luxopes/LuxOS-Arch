@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Network Sign-In
+Name[cs]=Přihlášení do sítě
+Name[sk]=Prihlásenie do siete
+Name[de]=Netzwerkanmeldung
+Name[pl]=Logowanie do sieci
+Comment=Sign in to a Wi-Fi network that requires it (hotel, train, airport)
+Comment[cs]=Přihlášení k Wi-Fi, která ho vyžaduje (hotel, vlak, letiště)
+Exec=luxos-network-login
+Icon=network-wireless
+Terminal=false
+NoDisplay=true
+Categories=Network;
+StartupWMClass=luxos-network-login

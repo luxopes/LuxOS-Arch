@@ -413,6 +413,16 @@ cmd_update() {
         say "$(T "Updating Flatpak apps")"; flatpak update -y --noninteractive
     fi
 
+    # Kroky jinych baliku LuxOS po aktualizaci (napr. luxos-care: prechod na jadro LuxOS);
+    # bezi mimo transakci, takze smi instalovat. Chyba kroku aktualizaci nezastavi.
+    if [[ $ONLY == "" ]]; then
+        local hook
+        for hook in /usr/lib/lux/after-update.d/*; do
+            [[ -x $hook ]] || continue
+            as_root "$hook" || warn "$(T "Step after the update failed:") ${hook##*/}"
+        done
+    fi
+
     local pacnew
     pacnew=$(find /etc -name '*.pacnew' 2>/dev/null)
     [[ -n $pacnew ]] && warn "$(T "New config files to review:")"$'\n'"$pacnew"

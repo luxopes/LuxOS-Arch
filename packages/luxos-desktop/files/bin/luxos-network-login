@@ -1,0 +1,59 @@
+#!/bin/bash
+# LuxOS - prihlaseni do site s portalem (hotel, letiste, vlak, kavarna)
+#
+#   luxos-network-login        otevre prihlasovaci stranku site (spousti luxos-hub pri stavu "portal")
+#
+# Portal zachyti obycejny pozadavek HTTP a presmeruje ho na svou prihlasovaci stranku. Otevira se
+# proto adresa kontroly pripojeni NetworkManageru (http://, jen text) - v siti s portalem misto ni
+# prijde stranka portalu. Bezpecnost: jednorazove okno Firefoxu s prazdnym profilem v pameti
+# ($XDG_RUNTIME_DIR): nevidi cookies, hesla, historii ani doplnky uzivatele, nic si nepamatuje
+# a po zavreni se smaze cele (i se stazenymi soubory). Okno zavre luxos-hub, jakmile je internet.
+set -u
+
+uri=$(gdbus call --system -d org.freedesktop.NetworkManager -o /org/freedesktop/NetworkManager \
+        -m org.freedesktop.DBus.Properties.Get org.freedesktop.NetworkManager ConnectivityCheckUri 2>/dev/null |
+      sed -n "s/^(<'\(http:\/\/[^' ]*\)'>,)\$/\1/p")
+[[ -n $uri ]] || uri=http://ping.archlinux.org/nm-check.txt
+
+base=${XDG_RUNTIME_DIR:-}
+[[ -n $base && -d $base && -O $base ]] || base=${TMPDIR:-/tmp}
+dir=$(mktemp -d "$base/luxos-network-login.XXXXXX") || exit 1
+trap 'rm -rf "$dir"' EXIT
+mkdir -m 700 "$dir/downloads"
+
+cat > "$dir/user.js" <<P
+// LuxOS - jednorazovy profil pro prihlaseni do site (luxos-network-login)
+user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("browser.startup.homepage_override.mstone", "ignore");
+user_pref("browser.aboutwelcome.enabled", false);
+user_pref("browser.newtabpage.enabled", false);
+user_pref("browser.tabs.warnOnClose", false);
+user_pref("browser.sessionstore.resume_from_crash", false);
+user_pref("datareporting.policy.dataSubmissionEnabled", false);
+user_pref("datareporting.healthreport.uploadEnabled", false);
+user_pref("toolkit.telemetry.enabled", false);
+user_pref("app.update.enabled", false);
+user_pref("app.normandy.enabled", false);
+user_pref("extensions.autoDisableScopes", 15);
+user_pref("extensions.enabledScopes", 0);
+user_pref("xpinstall.enabled", false);
+user_pref("signon.rememberSignons", false);
+user_pref("signon.autofillForms", false);
+user_pref("extensions.formautofill.addresses.enabled", false);
+user_pref("extensions.formautofill.creditCards.enabled", false);
+user_pref("places.history.enabled", false);
+user_pref("browser.formfill.enable", false);
+user_pref("network.captive-portal-service.enabled", false);
+user_pref("dom.security.https_only_mode", false);
+user_pref("browser.download.useDownloadDir", true);
+user_pref("browser.download.dir", "$dir/downloads");
+user_pref("browser.download.folderList", 2);
+user_pref("geo.enabled", false);
+user_pref("media.navigator.enabled", false);
+user_pref("dom.webnotifications.enabled", false);
+P
+
+firefox --no-remote --new-instance --profile "$dir" --class luxos-network-login --width 960 --height 720 "$uri" &
+child=$!
+trap 'kill "$child" 2>/dev/null; wait "$child" 2>/dev/null; rm -rf "$dir"' EXIT TERM INT
+wait "$child"

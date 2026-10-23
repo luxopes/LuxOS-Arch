@@ -492,6 +492,101 @@ class KernelHooks(Root):
         self.assertTrue(os.path.exists(self.root + "/boot/loader/entries/luxos+3.conf"))   # pokusy nezmeneny
 
 
+class KernelSwitch(Root):
+    """Prechod linux-zen -> linux-luxos: nove jadro v zavadeci, puvodni jako zalozni, 3 pokusy."""
+    ZEN, LUX = "7.2.11-zen1-1-zen", "7.2.12-1-luxos"
+
+    def setUp(self):
+        super().setUp()
+        self.w("/boot/loader/loader.conf", ERASE_LOADER)
+        self.w("/boot/loader/entries/luxos.conf", MAIN_ENTRY)
+        self.w("/boot/loader/entries/luxos-fallback.conf",
+               "title   LuxOS (safe mode)\nlinux   /vmlinuz-linux-zen\ninitrd  /initramfs-linux-zen-fallback.img\n")
+        self.pkgs = {"linux-zen": "7.2.11.zen1-1", "linux-zen-headers": "7.2.11.zen1-1"}
+        self.add_kernel(self.ZEN, "linux-zen")
+        self.w("/boot/initramfs-linux-zen.img", "BOOTED INITRD " + self.ZEN)
+        care.kwrite("good", self.ZEN)
+        self.calls = []
+        self.dkms_built = True
+        self.patches = [
+            mock.patch.object(care, "installed_version", side_effect=lambda p: self.pkgs.get(p, "")),
+            mock.patch.object(care, "owned_by_package", return_value=False),
+            mock.patch.object(care, "run", side_effect=self.fake_run),
+            mock.patch.object(care, "running_kernel", return_value=self.ZEN),
+            mock.patch.object(care, "have", side_effect=lambda c: c in ("mkinitcpio", "dkms")),
+        ]
+        for p in self.patches:
+            p.start()
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+        super().tearDown()
+
+    def add_kernel(self, v, base):
+        self.w(f"/usr/lib/modules/{v}/vmlinuz", "KERNEL " + v)
+        self.w(f"/usr/lib/modules/{v}/pkgbase", base + "\n")
+        self.w(f"/usr/lib/modules/{v}/updates/dkms/nvidia.ko.zst", "nvidia for " + v)
+        self.w(f"/boot/vmlinuz-{base}", "KERNEL " + v)
+        self.w(f"/boot/initramfs-{base}.img", "INITRD " + v)
+
+    def fake_run(self, cmd, timeout=600, input=None, env=None):
+        self.calls.append(cmd)
+        if cmd[:2] == [care.ENGINE, "-S"]:
+            for p in cmd[4:]:
+                self.pkgs[p] = "7.2.12-1"
+            self.add_kernel(self.LUX, "linux-luxos")
+            self.w("/usr/src/nvidia-580/dkms.conf", "x")
+        elif cmd[:2] == [care.ENGINE, "-R"]:
+            care.kernel_pre([f"usr/lib/modules/{self.ZEN}/vmlinuz"])
+            shutil.rmtree(self.root + f"/usr/lib/modules/{self.ZEN}")
+            for f in ("/boot/vmlinuz-linux-zen", "/boot/initramfs-linux-zen.img"):
+                os.unlink(self.root + f)
+            for p in cmd[3:]:
+                self.pkgs.pop(p, None)
+            care.kernel_post([f"usr/lib/modules/{self.ZEN}/vmlinuz"])
+        elif cmd[:2] == ["dkms", "status"]:
+            return 0, ("nvidia/580, %s, x86_64: installed\n" % cmd[3]) if self.dkms_built else ""
+        elif cmd[:1] == ["mkinitcpio"]:
+            care.atomic_write(self.root + cmd[-1], "BUILT " + cmd[2])
+        return 0, ""
+
+    def test_switch(self):
+        ok, why = care.kernel_switch()
+        self.assertTrue(ok, why)
+        self.assertIn([care.ENGINE, "-S", "--needed", "--noconfirm", "linux-luxos", "linux-luxos-headers"], self.calls)
+        self.assertIn([care.ENGINE, "-R", "--noconfirm", "linux-zen", "linux-zen-headers"], self.calls)
+        self.assertEqual(care.config()["KERNEL"], "linux-luxos")
+        main = self.r("/boot/loader/entries/luxos+3.conf")              # nove jadro: 3 pokusy
+        self.assertIn("linux   /vmlinuz-linux-luxos", main)
+        self.assertIn("initrd  /initramfs-linux-luxos.img", main)
+        self.assertIn("options root=UUID=1234 rw rootflags=subvol=@ quiet splash", main)
+        self.assertIn("/initramfs-linux-luxos-fallback.img", self.r("/boot/loader/entries/luxos-fallback.conf"))
+        # puvodni jadro (i s moduly DKMS a initramfs, se kterym nabehlo) je zalozni
+        self.assertEqual(care.kread("prev"), self.ZEN)
+        self.assertEqual(self.r(f"/usr/lib/modules/{self.ZEN}/updates/dkms/nvidia.ko.zst"), "nvidia for " + self.ZEN)
+        self.assertEqual(self.r("/boot/vmlinuz-linux-luxos-prev"), "KERNEL " + self.ZEN)
+        self.assertEqual(self.r("/boot/initramfs-linux-luxos-prev.img"), "BOOTED INITRD " + self.ZEN)
+        prev = self.r("/boot/loader/entries/luxos-prev.conf")
+        self.assertIn("linux   /vmlinuz-linux-luxos-prev", prev)
+        self.assertIn("title   LuxOS (previous kernel)", prev)
+        self.assertEqual(care.kread("switch_from"), "")
+        self.assertEqual(care.kernel_switch(), (True, "already"))
+
+    def test_dkms_not_built_keeps_old_kernel(self):
+        self.dkms_built = False
+        self.assertEqual(care.kernel_switch(), (False, "dkms"))
+        self.assertEqual(care.config()["KERNEL"], "linux-zen")
+        self.assertIn("vmlinuz-linux-zen", self.r("/boot/loader/entries/luxos.conf"))
+        self.assertFalse(any(c[:2] == [care.ENGINE, "-R"] for c in self.calls))
+
+    def test_install_failure_changes_nothing(self):
+        with mock.patch.object(care, "run", return_value=(1, "error: failed to retrieve")):
+            self.assertEqual(care.kernel_switch(), (False, "install_failed"))
+        self.assertEqual(care.config()["KERNEL"], "linux-zen")
+        self.assertEqual(self.r("/boot/loader/entries/luxos.conf"), MAIN_ENTRY)
+
+
 class Reboot(Root):
     def test_needs_reboot(self):
         self.w("/usr/lib/modules/7.2.11-zen1-1-zen/vmlinuz", "k")

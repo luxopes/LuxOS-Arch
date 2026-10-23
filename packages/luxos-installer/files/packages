@@ -2,7 +2,8 @@
 base
 # jadro lux (libalpm a nastroje z Arch Linuxu, bez prikazu pacman); spravcem baliku je lux
 lux-engine
-linux-zen
+# jadro LuxOS (stabilni jadro z kernel.org, konfigurace Archu, https://github.com/luxopes/luxos-kernel)
+linux-luxos
 linux-firmware
 sof-firmware
 alsa-firmware
@@ -31,3 +32,4 @@ luxai
 luxos-safe
 luxos-sandbox
 luxos-care
+luxos-guard

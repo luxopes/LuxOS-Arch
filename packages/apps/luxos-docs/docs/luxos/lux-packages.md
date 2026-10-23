@@ -32,7 +32,7 @@ scripts/                 optional: post_install, pre_remove (bash, run as root)
   "summary": "Example app in the LuxOS package format",
   "description": "Shows a greeting. Use it as a template for your own .lux packages.",
   "license": "MIT",
-  "url": "https://lsl.lux-ai.cz/luxos/",
+  "url": "https://luxos.lux-ai.cz/repo/",
   "categories": ["Utility"],
   "depends": { "system": ["yad"], "lux": [] },
   "bin": { "hello-lux": "hello-lux" }
@@ -82,7 +82,7 @@ scripts/                 optional: post_install, pre_remove (bash, run as root)
 
 ## Repository
 
-`https://lsl.lux-ai.cz/luxos/lux/`:
+`https://luxos.lux-ai.cz/repo/lux/`:
 
 - `index.json` + `index.json.sig` — list of packages (`name`, `title`, `version`, `release`, `arch`,
   `summary`, `description`, `depends`, `license`, `url`, `categories`, `file`, `size`, `sha256`, optional `icon`),

@@ -16,7 +16,7 @@ luxos-hwdetect [--kernel NAME]... [--packages|--services|--report|--json]
   --report    readable overview for the user
   --json      machine description per device (Drivers app, login check)
   --kernel    kernel whose headers are needed for DKMS (repeatable);
-              default: installed kernels (/usr/lib/modules/*/pkgbase), else linux-zen
+              default: installed kernels (/usr/lib/modules/*/pkgbase), else linux-luxos
 ```
 
 Example: `luxos-hwdetect --report` prints `LuxOS hardware detection` with one bullet per finding
@@ -51,7 +51,7 @@ and the package list.
 
 32-bit (`lib32-*`) packages are added only when the `multilib` repository is enabled in
 `/etc/lux/lux.conf` (or `/etc/lux/conf.d/*.conf`), e.g. by `sudo /usr/lib/lux/lux-config enable-repo multilib`.
-DKMS drivers get the matching `<kernel>-headers` (e.g. `linux-zen-headers`).
+DKMS drivers get the matching `<kernel>-headers` (e.g. `linux-luxos-headers`).
 
 ### NVIDIA generations
 
@@ -104,7 +104,7 @@ enables services (NVIDIA suspend services are enabled but not started) and ends 
 
 ## Installer
 
-The installer runs `luxos-hwdetect --packages --kernel linux-zen` and installs the result with the
+The installer runs `luxos-hwdetect --packages --kernel linux-luxos` and installs the result with the
 base system. Legacy NVIDIA drivers (`nvidia-580xx-*`, `nvidia-470xx-*`) are not on the ISO; they
 are downloaded from the online `[luxos]` repository after the base system. If that fails, nouveau
 stays in use and the driver is offered later in Drivers.

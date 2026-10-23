@@ -1,0 +1,395 @@
+#!/usr/bin/env python3
+"""Lux Guard - okna: dotaz u rizikoveho programu, zprava o zablokovani a okno Lux Guard (stav, obnova).
+
+  luxos-guard-gui                 okno Lux Guard (hlidane soubory, posledni rozhodnuti, Obnovit soubory)
+  luxos-guard-gui dialog          dotaz/zprava podle JSON na stdin (spousti luxos-guard-agent);
+                                  volbu (run|sandbox|deny|trash|close) vypise na stdout
+"""
+import datetime
+import json
+import os
+import subprocess
+import sys
+import threading
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+try:
+    from luxos_i18n import _  # noqa: E402
+except ImportError:
+    def _(text):
+        return text
+import luxos_guard_core as core  # noqa: E402
+import luxos_guard_snap as snap  # noqa: E402
+from luxos_guard_session import run_in_sandbox  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+
+CSS = b"""
+@define-color lg_accent #3d7bff;
+@define-color lg_danger #e5484d;
+@define-color lg_warn #f5a524;
+@define-color lg_ok #30a46c;
+.hero-title { font-size: 20px; font-weight: 800; }
+.hero-sub { font-size: 12px; opacity: 0.75; }
+.reason { font-weight: 600; color: @lg_danger; }
+.note { opacity: 0.8; }
+.path { font-family: monospace; font-size: 11px; opacity: 0.7; }
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }
+.row { padding: 8px 14px; }
+.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
+.hint { font-size: 11px; opacity: 0.6; }
+.badge { border-radius: 8px; padding: 2px 8px; font-size: 11px; font-weight: 700; color: #ffffff; background-color: @lg_ok; }
+.badge.off { background-color: @lg_danger; }
+.badge.critical { background-color: @lg_danger; }
+.badge.risky { background-color: @lg_warn; }
+.primary { background-image: none; background-color: @lg_accent; color: #ffffff; border-color: @lg_accent; }
+.danger { color: @lg_danger; }
+"""
+
+
+def setup_css():
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+
+def label(text, cls=None, **kw):
+    lb = Gtk.Label(label=text, xalign=0, wrap=True, max_width_chars=kw.pop("width", 58), **kw)
+    if cls:
+        lb.get_style_context().add_class(cls)
+    return lb
+
+
+def kind_text(kind, interp=None):
+    t = {"elf": _("program"), "appimage": "AppImage", "script": _("script"), "desktop": _("launcher"),
+         "jar": _("Java program"), "windows": _("Windows program")}.get(kind, _("program"))
+    return t + (f" ({interp})" if interp and kind == "script" else "")
+
+
+# ---- dotaz / zprava ----------------------------------------------------------------------------
+class GuardDialog(Gtk.Window):
+    """mode=ask: Nespoustet / Spustit v sandboxu / Presto spustit. mode=blocked: OK / Sandbox / Kos."""
+
+    def __init__(self, msg):
+        super().__init__(title="Lux Guard")
+        self.msg = msg
+        self.choice = "deny" if msg.get("mode") == "ask" else "close"
+        self.set_icon_name("luxos-guard")
+        self.set_resizable(False)
+        self.set_keep_above(True)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.set_urgency_hint(True)
+        self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title="Lux Guard"))
+        self.connect("key-press-event", self.on_key)
+        critical = msg.get("level") == core.CRITICAL or msg.get("mode") == "blocked"
+        name = os.path.basename(msg.get("path") or "") or "?"
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin=20, margin_top=14)
+        self.add(box)
+        top = Gtk.Box(spacing=14)
+        icon = Gtk.Image.new_from_icon_name("luxos-guard", Gtk.IconSize.DIALOG)
+        icon.set_pixel_size(56)
+        icon.set_valign(Gtk.Align.START)
+        top.pack_start(icon, False, False, 0)
+        tb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        if critical:
+            title = _("Lux Guard blocked a dangerous program")
+        else:
+            title = _("Run a program from outside this computer?")
+        # Uzsi radky vedle ikony: velke pismo nadpisu by se jinak v okne bez zmeny velikosti orizlo
+        # (GTK 3 pocita sirku zalomeneho popisku podle max_width_chars v beznem pismu)
+        tb.pack_start(label(title, "hero-title", width=30), False, False, 0)
+        origin = _(core.describe_origin(msg.get("origin"), msg.get("origin_detail")))
+        tb.pack_start(label(_("“%s” (%s) – %s.") % (name, kind_text(msg.get("kind"), msg.get("interp")), origin),
+                            width=46), False, False, 0)
+        top.pack_start(tb, True, True, 0)
+        box.pack_start(top, False, False, 0)
+
+        if critical:
+            reasons = msg.get("reasons") or []
+            if reasons:
+                box.pack_start(label(_("This program:")), False, False, 0)
+                for r in reasons:
+                    box.pack_start(label("•  " + _(r), "reason"), False, False, 0)
+            box.pack_start(label(_("It cannot run outside the sandbox. In the sandbox it cannot see or delete "
+                                   "your files.")), False, False, 0)
+        else:
+            box.pack_start(label(_("Lux Guard does not know this program. Programs from unknown sources can "
+                                   "delete or steal your files. Run it only if you trust where it came from.")),
+                           False, False, 0)
+            for n in msg.get("notes") or []:
+                box.pack_start(label("•  " + _(n), "note"), False, False, 0)
+            box.pack_start(label(_("Run in Sandbox starts it in an isolated system without access to your files."),
+                                 "hint"), False, False, 0)
+        path = label(msg.get("path") or "", "path")
+        box.pack_start(path, False, False, 0)
+
+        bb = Gtk.Box(spacing=8, margin_top=6)
+        bb.set_halign(Gtk.Align.END)
+        if critical:
+            bb.pack_start(self.btn(_("Move to Trash"), "trash", "danger"), False, False, 0)
+            bb.pack_start(self.btn(_("Run in Sandbox"), "sandbox"), False, False, 0)
+            ok = self.btn(_("OK"), "close", "primary")
+            bb.pack_start(ok, False, False, 0)
+            self.default = ok
+        else:
+            bb.pack_start(self.btn(_("Run Anyway"), "run"), False, False, 0)
+            bb.pack_start(self.btn(_("Run in Sandbox"), "sandbox"), False, False, 0)
+            no = self.btn(_("Don't Run"), "deny", "primary")
+            bb.pack_start(no, False, False, 0)
+            self.default = no
+        box.pack_start(bb, False, False, 0)
+        self.show_all()
+        self.default.grab_focus()
+        self.present_with_time(Gdk.CURRENT_TIME)
+
+    def btn(self, text, choice, cls=None):
+        b = Gtk.Button(label=text)
+        if cls:
+            b.get_style_context().add_class(cls)
+        b.connect("clicked", lambda _b: self.done(choice))
+        return b
+
+    def on_key(self, _w, ev):
+        if ev.keyval == Gdk.KEY_Escape:
+            self.destroy()
+            return True
+        return False
+
+    def done(self, choice):
+        self.choice = choice
+        self.destroy()
+
+
+def run_dialog():
+    try:
+        msg = json.loads(sys.stdin.read() or "{}")
+    except ValueError:
+        msg = {}
+    if not isinstance(msg, dict) or not msg.get("path"):
+        print("deny")
+        return 1
+    setup_css()
+    GLib.set_prgname("luxos-guard")
+    d = GuardDialog(msg)
+    d.connect("destroy", lambda _w: Gtk.main_quit())
+    Gtk.main()
+    print(d.choice, flush=True)
+    return 0
+
+
+# ---- okno Lux Guard ----------------------------------------------------------------------------------
+def request(msg, timeout=5):
+    import socket
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM | socket.SOCK_CLOEXEC)
+    s.settimeout(timeout)
+    try:
+        s.connect(os.environ.get("LUXOS_GUARD_SOCKET") or core.SOCKET)
+        s.sendall((json.dumps(msg) + "\n").encode())
+        buf = b""
+        while b"\n" not in buf:
+            c = s.recv(65536)
+            if not c:
+                break
+            buf += c
+        return json.loads(buf.split(b"\n", 1)[0]) if buf else None
+    except (OSError, ValueError):
+        return None
+    finally:
+        s.close()
+
+
+class Group(Gtk.Box):
+    def __init__(self, parent, title):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        self.get_style_context().add_class("group")
+        t = label(title, "group-title")
+        parent.pack_start(t, False, False, 0)
+        parent.pack_start(self, False, False, 0)
+        self.n = 0
+
+    def row(self, widget):
+        r = Gtk.Box(spacing=10)
+        r.get_style_context().add_class("row")
+        if self.n:
+            r.get_style_context().add_class("row-sep")
+        r.pack_start(widget, True, True, 0)
+        self.pack_start(r, False, False, 0)
+        self.n += 1
+        return r
+
+    def clear(self):
+        for c in self.get_children():
+            self.remove(c)
+            c.destroy()
+        self.n = 0
+
+
+class GuardWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="Lux Guard")
+        self.set_default_size(620, 680)
+        self.set_icon_name("luxos-guard")
+        self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title="Lux Guard"))
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.add(scroll)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=22, margin_top=12)
+        scroll.add(page)
+        hero = Gtk.Box(spacing=14)
+        icon = Gtk.Image.new_from_icon_name("luxos-guard", Gtk.IconSize.DIALOG)
+        icon.set_pixel_size(64)
+        hero.pack_start(icon, False, False, 0)
+        tb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, valign=Gtk.Align.CENTER)
+        trow = Gtk.Box(spacing=8)
+        trow.pack_start(label("Lux Guard", "hero-title"), False, False, 0)
+        self.badge = Gtk.Label(label="")
+        self.badge.get_style_context().add_class("badge")
+        self.badge.set_valign(Gtk.Align.CENTER)
+        trow.pack_start(self.badge, False, False, 0)
+        tb.pack_start(trow, False, False, 0)
+        tb.pack_start(label(_("Checks programs from downloads, e-mail attachments and USB drives before they run. "
+                              "Dangerous ones run only in the sandbox."), "hero-sub"), False, False, 0)
+        hero.pack_start(tb, True, True, 0)
+        page.pack_start(hero, False, False, 0)
+
+        self.g_files = Group(page, _("Watched files"))
+        self.g_log = Group(page, _("Recent decisions"))
+        self.g_snap = Group(page, _("Restore files"))
+        self.state_label = label("", "hint")
+        page.pack_start(self.state_label, False, False, 8)
+        self.connect("destroy", Gtk.main_quit)
+        self.show_all()
+        self.refresh()
+
+    def refresh(self):
+        def work():
+            st = request({"op": "status"})
+            lst = request({"op": "list"})
+            snaps = snap.list_snapshots()
+            btrfs = snap.fs_type(snap.HOME) == "btrfs"
+            GLib.idle_add(self.fill, st, lst, snaps, btrfs)
+        threading.Thread(target=work, daemon=True).start()
+
+    def fill(self, st, lst, snaps, btrfs):
+        ctx = self.badge.get_style_context()
+        if st and st.get("op") == "status":
+            self.badge.set_text(_("Active"))
+            ctx.remove_class("off")
+        else:
+            self.badge.set_text(_("Not running"))
+            ctx.add_class("off")
+        self.g_files.clear()
+        entries = sorted(((lst or {}).get("entries") or []), key=lambda e: -(e.get("t") or 0))
+        if not entries:
+            self.g_files.row(label(_("No programs from outside this computer yet."), "hint"))
+        for e in entries[:30]:
+            b = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            top = Gtk.Box(spacing=8)
+            top.pack_start(label(os.path.basename(e.get("path") or "")), False, False, 0)
+            lvl = e.get("level")
+            badge = Gtk.Label(label=_("Allowed") if e.get("status") == core.ALLOWED else
+                              (_("Critical") if lvl == core.CRITICAL else _("Risky")))
+            badge.get_style_context().add_class("badge")
+            if e.get("status") != core.ALLOWED:
+                badge.get_style_context().add_class("critical" if lvl == core.CRITICAL else "risky")
+            top.pack_start(badge, False, False, 0)
+            b.pack_start(top, False, False, 0)
+            for r in e.get("reasons") or []:
+                b.pack_start(label(_(r), "reason"), False, False, 0)
+            b.pack_start(label(e.get("path") or "", "path"), False, False, 0)
+            r = self.g_files.row(b)
+            if lvl != core.CRITICAL or e.get("status") == core.ALLOWED:
+                continue
+            sb = Gtk.Button(label=_("Run in Sandbox"))
+            sb.set_valign(Gtk.Align.CENTER)
+            sb.connect("clicked", lambda _b, e=e: self.sandbox(e))
+            r.pack_end(sb, False, False, 0)
+        self.g_log.clear()
+        log = ((lst or {}).get("log") or [])[-12:]
+        if not log:
+            self.g_log.row(label(_("Nothing yet."), "hint"))
+        names = {"found": _("found"), "blocked": _("blocked"), "allowed": _("allowed"), "denied": _("not run"),
+                 "sandbox": _("run in sandbox"), "trash": _("moved to trash"),
+                 "denied-no-session": _("not run (no session)")}
+        for x in reversed(log):
+            t = datetime.datetime.fromtimestamp(x.get("t", 0)).strftime("%d.%m. %H:%M")
+            self.g_log.row(label(f"{t}  {names.get(x.get('action'), x.get('action'))}  "
+                                 f"{os.path.basename(x.get('path') or '')}"))
+        self.g_snap.clear()
+        if not btrfs:
+            self.g_snap.row(label(_("Snapshots need the btrfs file system (standard LuxOS installation)."), "hint"))
+        elif not snaps:
+            self.g_snap.row(label(_("No snapshots yet. Lux Guard saves your home folder every hour."), "hint"))
+        else:
+            self.g_snap.row(label(_("Lux Guard saves your home folder every hour (kept 1 day, then one per day "
+                                    "for 7 days). Programs cannot change or delete these copies."), "hint"))
+            for t, p in reversed(snaps[-24:]):
+                rb = Gtk.Box(spacing=8)
+                rb.pack_start(label(t.strftime("%Y-%m-%d  %H:%M")), True, True, 0)
+                for text, cb in ((_("Show Files"), self.show_snapshot), (_("Restore Deleted"), self.restore_missing),
+                                 (_("Restore All…"), self.restore_all)):
+                    b = Gtk.Button(label=text)
+                    b.connect("clicked", lambda _b, cb=cb, t=t, p=p: cb(t, p))
+                    rb.pack_start(b, False, False, 0)
+                self.g_snap.row(rb)
+        self.show_all()
+        return False
+
+    def sandbox(self, e):
+        run_in_sandbox(e.get("path"), e.get("kind"))
+
+    def user_dir(self, p):
+        return snap.user_snapshot_dir(p, os.path.realpath(os.path.expanduser("~")))
+
+    def show_snapshot(self, t, p):
+        d = self.user_dir(p)
+        subprocess.Popen(["xdg-open", d], start_new_session=True)
+
+    def restore_missing(self, t, p):
+        self.restore(t, p, False)
+
+    def restore_all(self, t, p):
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
+                                buttons=Gtk.ButtonsType.NONE,
+                                text=_("Restore all files to %s?") % t.strftime("%Y-%m-%d %H:%M"))
+        dlg.format_secondary_text(_("Files changed since then (for example encrypted by ransomware) are replaced "
+                                    "by the saved version. Files created later are kept."))
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Restore"), Gtk.ResponseType.OK)
+        ok = dlg.run() == Gtk.ResponseType.OK
+        dlg.destroy()
+        if ok:
+            self.restore(t, p, True)
+
+    def restore(self, t, p, overwrite):
+        home = os.path.realpath(os.path.expanduser("~"))
+        self.state_label.set_text(_("Restoring files…"))
+
+        def work():
+            try:
+                done, kept = snap.restore(self.user_dir(p), home, overwrite=overwrite, skip_top=(".cache",))
+                text = _("Restored %d files from %s (%d unchanged or newer kept).") % (
+                    done, t.strftime("%Y-%m-%d %H:%M"), kept)
+            except OSError as e:
+                text = str(e)
+            GLib.idle_add(self.state_label.set_text, text)
+        threading.Thread(target=work, daemon=True).start()
+
+
+def main():
+    if sys.argv[1:2] == ["dialog"]:
+        return run_dialog()
+    setup_css()
+    GLib.set_prgname("luxos-guard")
+    GuardWindow()
+    Gtk.main()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

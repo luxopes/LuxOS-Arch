@@ -1513,7 +1513,7 @@ install_packages() {
         if [[ $BOOTMODE == uefi ]]; then pkgs+=(efibootmgr); else pkgs+=(grub); fi
     fi
     uses_layout && mapfile -t -O "${#pkgs[@]}" pkgs < <(layout_packages)
-    mapfile -t hw < <(luxos-hwdetect --packages --kernel linux-zen)
+    mapfile -t hw < <(luxos-hwdetect --packages --kernel linux-luxos)
     luxos-hwdetect --report | sed 's/^/  /'
     # Legacy ovladace NVIDIA (nvidia-580xx-*, nvidia-470xx-*: [luxos], ~0,5 GB) v ISO nejsou;
     # nainstaluji se po zakladnim systemu z online [luxos] (install_online_drivers).
@@ -1662,7 +1662,7 @@ CMDLINE=$(printf %q "$rootspec $cmdline")
 HW_SERVICES=$(printf %q "${hw_svcs[*]}")
 ENV
     # Rezim udrzby pro luxos-care
-    install -Dm644 /dev/stdin "$TARGET/etc/luxos/care.conf" <<<"MODE=$CARE_MODE"
+    printf "MODE=%s\nKERNEL=linux-luxos\n" "$CARE_MODE" | install -Dm644 /dev/stdin "$TARGET/etc/luxos/care.conf"
     install -m700 "$SHARE/setup-chroot.sh" "$TARGET/root/luxos-setup.sh"
     arch-chroot "$TARGET" /root/luxos-setup.sh 2>&1 | tee -a "$LOG"
     printf '%s:%s\n' "$USERNAME" "$PASSWORD" | arch-chroot "$TARGET" chpasswd

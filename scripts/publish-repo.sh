@@ -6,14 +6,14 @@
 #                                      z aktualniho vydani na serveru (po ./build.sh apps)
 #
 # Na serveru: /srv/luxos-repo/releases/<cas>/{luxos,luxos-apps}/x86_64, odkaz current
-# ukazuje na posledni vydani (Caddy: https://lsl.lux-ai.cz/luxos/). Prepnuti je
+# ukazuje na posledni vydani (Caddy: https://luxos.lux-ai.cz/repo/). Prepnuti je
 # atomicke a ponechavaji se 3 posledni vydani pro pripadny navrat.
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")/.."
 
 HOST=${LUXOS_REPO_HOST:-root@185.183.156.25}
 BASE=${LUXOS_REPO_DIR:-/srv/luxos-repo}
-URL=${LUXOS_REPO_URL:-https://lsl.lux-ai.cz/luxos}
+URL=${LUXOS_REPO_URL:-https://luxos.lux-ai.cz/repo}
 REPO=out/repo
 KEEP=3
 apps_only=0

@@ -14,6 +14,12 @@ post_install() {
 post_upgrade() {
     # Nove jednotky i u starsich instalaci (enable je idempotentni)
     systemctl enable $_units >/dev/null 2>&1 || true
+    # Prechod na jadro LuxOS (LuxOS 0.9.7) hned po teto aktualizaci, ne az pri dalsi: bezi mimo
+    # transakci a pocka na jeji konec (luxos-care kernel-switch; uz prepnuty system nic nedela)
+    if [ -d /run/systemd/system ] && ! grep -qs '^KERNEL=linux-luxos' /etc/luxos/care.conf; then
+        systemd-run --quiet --no-block --on-active=20 --unit="luxos-kernel-switch-$$" \
+            /usr/bin/luxos-care kernel-switch >/dev/null 2>&1 || true
+    fi
 }
 
 pre_remove() {

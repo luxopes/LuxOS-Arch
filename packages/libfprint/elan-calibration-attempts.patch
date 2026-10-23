@@ -1,0 +1,21 @@
+elan: wait longer for the sensor calibration
+
+The calibration status goes 0x03 -> 0x01 -> 0x03 and the driver checks it every 50 ms. Some
+sensors (04f3:0c4f in the Acer Aspire 7 A715-42G) are still at 0x01 after 10 checks (measured: 4-19 checks, up to 1 s), so every
+enroll and identify fails with "Calibration failed!". 0x0c58 already needed 30 checks; allow 100
+(5 s) for all sensors - the limit only matters while a calibration is running.
+
+--- a/libfprint/drivers/elan.h
++++ b/libfprint/drivers/elan.h
+@@ -46,9 +46,8 @@
+ 
+ /* times to retry reading calibration status during one session
+  * generally prevents calibration from looping indefinitely */
+-#define ELAN_DEFAULT_CALIBRATION_ATTEMPTS 10
+-#define ELAN_CALIBRATION_ATTEMPTS(dev_type) \
+-  ((dev_type) == ELAN_0C58 ? 30 : ELAN_DEFAULT_CALIBRATION_ATTEMPTS)
++#define ELAN_DEFAULT_CALIBRATION_ATTEMPTS 100
++#define ELAN_CALIBRATION_ATTEMPTS(dev_type) ELAN_DEFAULT_CALIBRATION_ATTEMPTS
+ 
+ /* min and max frames in a capture */
+ #define ELAN_MIN_FRAMES 7

@@ -110,7 +110,7 @@ Ponecháno beze změny (a proč):
 
 Pořadí podle zisku:
 
-1. **luxos-hub** (72 MB RSS / 38 MB PSS Python; LSL démon s hlavní smyčkou + D-Bus měřen na 43 MB
+1. **luxos-hub** (72 MB RSS / 38 MB PSS Python; LSL služba s hlavní smyčkou + D-Bus měřena na 43 MB
    PSS místo 60 MB, 0.10.5 ještě méně). Hub drží skrytá okna Ovládacího centra a Kalendáře,
    proto jeho přepis dává smysl až spolu s nimi (jinak by GTK Python zůstal v paměti kvůli oknům).
    Části hubu bez oken (sledování sítě, paměti, Bluetooth agent, uspávání při přehrávání, Spořič dat,
@@ -204,3 +204,124 @@ Chyby/omezení LSL 0.10.4 nalezené při práci (k nahlášení):
 - Výstup na stderr není ve veřejném API (jen `print` na stdout).
 - Program cíle gnu startuje v locale "C"; GTK/strftime potřebují `setlocale(LC_ALL, "")`
   (v LSL dostupné jen přes `internal-abi`).
+
+## 6. Přepis luxos-hub, Ovládacího centra a Kalendáře do LSL (krok 2)
+
+Stav k 2026-10-23. Tři programy v Pythonu (`luxos-hub`, `luxos-control-center`, `luxos-calendar`, celkem
+2 591 řádků včetně `luxos_calendar_ics.py` a `luxos_mpris.py`) nahradil **jeden program v LSL**
+`packages/luxos-desktop/files/lsl/luxos-hub.lsl` (překlad `lslc --target linux-x86_64-gnu`, binárka 792 kB,
+překlad ~3 s). `luxos-control-center` a `luxos-calendar` jsou symbolické odkazy na `luxos-hub`: program se
+chová podle jména, pod kterým byl spuštěn (`--panel`, `--background`, druhé spuštění pošle SIGUSR1/SIGUSR2
+běžící instanci – přepínače `luxos-cc-toggle`/`luxos-calendar-toggle` a profily panelu uživatelů se nemění).
+Chování, vzhled (stejné CSS, světlý/tmavý režim podle motivu, překlady z TSV přes `luxos_i18n.lsl`) i CLI jsou
+stejné; snímky z Xvfb (Ovládací centrum, Kalendář den/měsíc/rok/formulář) jsou pixelově shodné s Pythonem.
+
+Vyžaduje **LSL 0.10.6** (vývojová verze, větev `work/native-hosts` v ~/lsl-0.9.1, commit 5b94803): moduly
+`gio` s hodnotami LSL místo textu GVariant, `register_object`, `file_monitor`, rozšířený `gtk`, nové `cairo`
+a `pango`, `Float` do C jako `double`, `readfile` na procfs. Dokud 0.10.6 není vydána, balík se nesestaví
+v kontejneru (`makedepends=('lsl>=0.10.6')`); překladač pro vývoj: export zdrojů commitu do pracovního
+adresáře, `./compiler/lslc compiler/pure/lslc_qbe.lsl lslc-next build/luxir/luxir` a runtime cíle gnu
+`python3 tools/runtime/build.py --compiler lslc-next --backend build/luxir/luxir --bootstrap-runtime
+compiler/qbe/runtime.o --target linux-x86_64-gnu --output build/qbe/runtime-linux-x86_64-gnu.o`
+(LuxIR 0.4.1 stačí; `strip` dál vyžaduje LuxIR 0.4.2, proto zůstává `options=(!strip)`).
+
+### Moduly
+
+| Modul | Obsah |
+|---|---|
+| `luxos-hub.lsl` | hlavní program: režimy podle jména, pid soubory, signály, "!" pro síť bez internetu (včetně jednorázového přidání pluginu genmon do panelu přes xfconf-query), Spořič dat při nové síti, upozornění earlyoom, automatický vzhled (každých 5 min a po probuzení), Bluetooth agent, LuxOS Care, Ovladače, Trezor |
+| `luxos_cc.lsl` | Ovládací centrum (dlaždice, posuvníky, baterie, MPRIS, patička); údaje ze služeb (`nmcli`, `pactl`, `xfconf-query`) asynchronně přes `spawn_capture` po zobrazení okna (Python je měl ve vlákně) |
+| `luxos_cal.lsl` | Kalendář: pohledy den/měsíc/rok (rok kreslený cairo + Pango), formulář události, připomínky (`notify-send`), sledování složky s .ics, jednorázová migrace pluginu hodin |
+| `luxos_ics.lsl`, `luxos_date.lsl` | iCalendar (RFC 5545) a datumová matematika; datum = pořadové číslo dne jako v Pythonu, čas bez pásma = sekundy; UTC a TZID přes libc (`timegm`, `mktime` s dočasným `TZ`) |
+| `luxos_mpris.lsl` | sdílený hlídač přehrávačů MPRIS (události, bez dotazování) |
+| `luxos_awake.lsl` | neuspávat při přehrávání (xfce4-power-manager přes xfconf D-Bus, `sleep-override`) |
+| `luxos_bt_agent.lsl` | agent BlueZ (`org.bluez.Agent1`) s dialogy GTK |
+| `luxos_care_hub.lsl`, `luxos_drivers_hub.lsl`, `luxos_safe_hub.lsl` | části relace LuxOS Care, Ovladačů a Trezoru (viz "co zůstává v Pythonu") |
+| `luxos_sun.lsl` | východ/západ slunce (NOAA) z `zone1970.tab`; `acos` Newtonovou metodou (modul `math` ho nemá) |
+| `luxos_text.lsl` | pomůcky pro text (`is_digits`, `rfind`, `partition`, `pad`, `format`, `parse_kv`) |
+| `luxos_glib.lsl`, `luxos_gio.lsl`, `luxos_gtk.lsl` | **vlastní vazby jen pro to, co 0.10.6 ještě nemá** (níže); programy je načítají `load luxos_gtk, gtk as gtk`, takže po doplnění do standardní knihovny se jen smaže modul a upraví řádek `load` |
+
+Vlastní vazby, které v LSL 0.10.6 chybí (návrh do standardní knihovny):
+
+| Modul | Funkce | Proč |
+|---|---|---|
+| `luxos_glib` | `connect_data(obj, signál, nargs, f, data)`, `timeout_add_data`, `timeout_add_seconds_data`, `idle_add_data`, `spawn_watched_data(argv, f, data)` | LSL nemá uzávěry ani vázané metody: obsluha potřebuje vázanou hodnotu (`f(data, …)`); přes `glib.record_bound` + vlastní registr záznamů (`glib.handlers` standardní knihovny by rostl bez konce) |
+| `luxos_glib` | `spawn_capture(argv, f, data)` → `f(data, stdout, status)` | asynchronní čtení výstupu programu (`g_spawn_async_with_pipes` + `g_unix_fd_add` + child watch); Python používal vlákna |
+| `luxos_glib` | `spawn`/`spawn_quiet` v nové relaci (`setsid` jako `child_setup`) | `subprocess.Popen(start_new_session=True)` |
+| `luxos_glib` | `localtime(t)`, `gmtime(t)`, `mktime(...)`, `timegm(...)`, `set_tz(name)`/`unset_tz()`, `now()` | `glib` 0.10.6 má jen `local_date`/`format_unix`; kalendář potřebuje převody UTC/TZID → místní čas |
+| `luxos_glib` | `stat(path)` → `[velikost, mtime_ns]`, `rename`, `unlink`, `mkdir_p`, `is_dir`, `realpath`, `readlink`, `write_atomic`, `read_text`, `list_dir` (bez chyby), `object_ref_sink`, `close_fd` | soubory a atomický zápis; vlastní reference na widget, který se vyjímá z kontejneru a znovu vkládá (PyGObject ji drží sám – bez ní GTK widget zničí) |
+| `luxos_gio` | `call_async(bus, …, hodnoty, podpis, ms, f, data)` | asynchronní volání (`g_dbus_connection_call` + `_finish`): MPRIS, Notifications |
+| `luxos_gio` | `subscribe_data(bus, sender, iface, member, path, arg0, flags, f, data)`, `watch_name_data` | filtr `arg0` a `G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_NAMESPACE` (MPRIS `NameOwnerChanged`), vázaná hodnota |
+| `luxos_gio` | `inhibit_fd(bus, what, who, why, mode)`, `name_has_owner` | logind `Inhibit` vrací popisovač souboru (`g_dbus_connection_call_with_unix_fd_list_sync` má 13 argumentů, limit intrinsik je 12 → přes `GDBusMessage`) |
+| `luxos_gtk` | `bin_get_child`, `image_new`, `widget_set_no_show_all`, `widget_has_class`, `widget_set_class`, `window_set_wmclass`, `widget_get_preferred_height/width`, `scrolled_window_set_propagate_natural_height`, `scrolled_window_get_max_content_height`, `widget_get_font_family`, `entry_set_width_chars`, `dialog_*` (`gtk_dialog_new`, `add_button`, `get_content_area`, `set_default_response`, `run`), `css_set(provider, css)`, `settings_theme_name/prefer_dark`, `window_set_rgba`, `pointer_position`, `screen_active_window`, konstanty `ICON_MENU/LARGE_TOOLBAR/DIALOG`, `RESPONSE_OK/CANCEL` | okna u lišty, dialogy agenta, přepnutí CSS za běhu, vlastní WM_CLASS ve sdíleném procesu |
+
+Poznatky k LSL 0.10.6 při přepisu (k nahlášení):
+
+- `# lsl: internal-abi` modul: dynamická hodnota `Int 0` je uvnitř modulu k nerozeznání od `None`
+  (`type()`, `== None`, `Float(0)` selže); ukazatele se testují `== 0`, čísla se s `None` neporovnávají.
+  Mimo internal-abi (v programu) je 0 normální `Int`.
+- Hodnota vrácená funkcí jiného modulu v internal-abi je zabalená: do C jde přes `ptr()`; ruční `glib.box()`
+  na typovaný `Int` vede k dvojímu zabalení (chyba, na kterou jsme narazili u `register_object`).
+- Instance tříd nelze používat dynamicky (parametr `Any`, hodnota ze slovníku/seznamu: "member value requires
+  a class or instance"), vázané metody nejsou hodnoty (`obj.metoda` je `KeyError`). Stav proto drží slovníky
+  a obsluhy signálů jsou funkce modulu s vázanými daty. Lokální proměnná/parametr se jménem funkce modulu
+  (`view`) nebo modulu (`lo`) se rozliší špatně: pojmenovat jinak.
+- Víceřádkový řetězec `A = "…"
+    + "…"` se bez závorek rozpadne na samostatné příkazy (CSS bylo zkrácené
+  na první řádek bez chyby překladu); nutné `A = ("…"
+    + "…")`.
+- `Error(Typ: zpráva)` nesmí ve zprávě obsahovat jméno modulu (`date`): zpráva je token, ne text.
+- `run(program, args)` nehledá v PATH (`glib.find_program_in_path`), `listdir` neexistující složky je `FileError`.
+- Widget vyjmutý z kontejneru (`gtk_container_remove`) GTK zničí, pokud program nedrží vlastní referenci
+  (`g_object_ref_sink`); PyGObject to dělá automaticky.
+- Testy: zprávy z `print` v programu, který spadne, se ztratí (vyrovnávací paměť); `eprint` jde hned.
+
+### Měření ve VM (LuxOS 0.9.6 live, 4 vCPU, 3 GB, `scripts/perf/hub-probe.py`)
+
+Starý = `python3 /usr/bin/luxos-hub` z ISO, nový = binárka LSL zkopírovaná do VM (`vmctl put`), spuštěná
+v téže relaci uživatele lux; klidový stav po 60 s, přepnutí = medián z 5 (čas od spuštění `luxos-cc-toggle`
+/ `luxos-calendar-toggle` do viditelného okna podle `xdotool search --onlyvisible`, včetně startu přepínače
+a 5ms kroku dotazu; okna předpřipravená).
+
+| Měření | Starý (Python + GTK) | Nový (LSL) |
+|---|---|---|
+| Klidová paměť procesu relace: RSS / PSS / anonymní PSS | 72,3 / **38,7** / 29,8 MB | 43,8 / **15,7** / 13,4 MB |
+| Vlákna | 5 | 5 (pracovní vlákna GLib/GDBus) |
+| CPU od startu (po ~1,5 min relace, včetně předpřipravených oken) | 720 ms | 100–110 ms |
+| CPU v klidu za 60 s / probuzení za s | 0 ms / 0,03 | 0 ms / 0,12 |
+| Klik → okno (teplé): Ovládací centrum | 114 ms (90–219) | 118 ms (109–161; 146 před přesunem obnovy služeb za zobrazení) |
+| Klik → okno (teplé): Kalendář | 101 ms (88–136) | 97–110 ms (68–128) |
+| Paměť po otevření obou oken: RSS / PSS | 97,7 / **43,1** MB | 68,1 / **19,0** MB |
+
+Výsledek: −23 MB PSS v klidu (−24 MB s otevřenými okny), 7× méně CPU při startu relace, odezva kliknutí stejná
+v mezích šumu (±20 ms; v Xfce ji určuje mapování okna správcem oken, ne jazyk). Hub tedy **nahrazuje** Python
+verzi; žádná část nezůstává v paměti jako Python.
+
+### Co zůstává v Pythonu (spouští se jen na vyžádání, v klidu 0 B)
+
+- `luxos_care_session.py ask <id>` – dotaz na LuxAI Flash (HTTPS s tokenem uživatele, modul `luxai_account`)
+  a spuštění jednotky `luxos-care-apply@…`: LSL nemá TLS. Hub ho spustí jen při čekajícím problému
+  (`spawn_capture`), výsledek JSON. Upozornění a jejich akce dělá hub.
+- `luxos_drivers_session.py check` – `luxos-hwdetect --json` + porovnání s databází balíků (`luxos_drivers.py`,
+  testy zůstávají v Pythonu); jednou za start počítače, 45 s po přihlášení; výsledek JSON, upozornění a akce
+  ("Neupozorňovat") dělá hub.
+- `luxos-safe lock --force` a nové `luxos-safe --trust-launcher` – zamykání gocryptfs s otevřenými soubory
+  a upozorněními; hub drží zpožďovací inhibitor logind (`Inhibit` → fd) a uvolní ho, až zamykání skončí.
+- Původní programy jsou v `packages/luxos-desktop/files/python-legacy/` (neinstalují se; `test_luxos_power.py`
+  je dál testuje jako referenci). `luxos_calendar_ics.py` a `luxos_mpris.py` zůstávají v `files/python`
+  kvůli testům a ostatním aplikacím.
+
+### Testy
+
+- `tests/test_lsl_calendar.py` (34 testů) – stejné případy jako `test_luxos_calendar_ics.py` pro Python,
+  přes testovací program `tests/lsl/luxos-ics-test.lsl` (čtení/zápis, opakování, pásma, úložiště).
+- `tests/test_luxos_hub_lsl.py` (8 testů, `env -u DISPLAY xvfb-run -a …`) – okna na signály a pid soubory,
+  stejný program pod třemi jmény, "!" a Spořič dat (falešný NetworkManager a xfce4-panel), earlyoom, Trezor
+  (falešný login1 s `Inhibit`, ScreenSaver), neuspávání při přehrávání (falešný xfconfd a MPRIS), agent BlueZ
+  (registrace a odpověď na `AuthorizeService`/`Release`), LuxOS Care a Ovladače (falešné Notifications s akcemi,
+  pomocné programy, sledování složky).
+- `tests/test_lsl_tools.py` a `test_luxos_power.py`, `test_luxos_calendar_ics.py`, testy luxos-care,
+  luxos-drivers, luxos-safe procházejí s překladačem 0.10.6 i po změnách pomocných programů.
+- Neověřeno: dialogy agenta BlueZ s reálným párováním (jen `AuthorizeService` důvěryhodného zařízení
+  a `Release`), skutečné uspání/vík notebooku, LuxAI Flash proti serveru, sestavení balíku v kontejneru
+  (čeká na vydání LSL 0.10.6; PKGBUILD `lsl>=0.10.6`, pkgrel 34; luxos-care 9, luxos-drivers 8, luxos-safe 6).

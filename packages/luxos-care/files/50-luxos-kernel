@@ -1,0 +1,3 @@
+#!/bin/sh
+# lux update -> prechod na jadro LuxOS (linux-luxos), viz luxos-care kernel-switch
+exec /usr/bin/luxos-care kernel-switch

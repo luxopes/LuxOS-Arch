@@ -44,7 +44,7 @@ Minimum disk size is 20 GB.
   `noatime,compress=zstd:1`.
 - Encryption: LUKS2 on the Btrfs partition (`cryptroot`); the password is asked at every start.
 - Swap: zram (no swap partition).
-- Kernel: `linux-zen`.
+- Kernel: `linux-luxos` (LuxOS kernel, see [Power and performance](power-and-performance.md)).
 
 With a shared ESP mounted at `/efi`, the kernel is copied to `EFI/LuxOS/<id>` by
 `/usr/local/sbin/luxos-esp-sync` (hook `/etc/lux/hooks/99-luxos-esp-sync.hook`) and systemd-boot is only
@@ -163,7 +163,7 @@ If some template apps fail to install, the installation continues with a warning
 
 ## Base system
 
-Always installed (`/usr/share/luxos/installer/packages`): `base`, `lux-engine`, `linux-zen`,
+Always installed (`/usr/share/luxos/installer/packages`): `base`, `lux-engine`, `linux-luxos`,
 `linux-firmware`, `sof-firmware`, `alsa-firmware`, CPU microcode, `btrfs-progs`, `dosfstools`,
 `e2fsprogs`, `exfatprogs`, `ntfs-3g`, `cryptsetup`, `plymouth`, `sudo`, `nano`, man pages,
 `networkmanager`, `pipewire-jack`, `noto-fonts`, `luxos-greeter`, `luxos-printing`,

@@ -101,9 +101,9 @@ Useful one-liners: `systemctl start luxos-care-update-now.service` (needs wheel)
 
 ## Previous kernel fallback
 
-- libalpm hook `10-luxos-care-kernel-pre.hook`: when the kernel package (`linux-zen` by default,
-  `KERNEL=` in care.conf or `/etc/luxos/esp.conf`) is replaced, the version that last booted
-  successfully is saved.
+- libalpm hook `10-luxos-care-kernel-pre.hook`: when the kernel package (`KERNEL=` in care.conf or
+  `/etc/luxos/esp.conf`: `linux-luxos`; `linux-zen` on older installs until they switch) is replaced,
+  the version that last booted successfully is saved.
 - `95-luxos-care-kernel-post.hook`: it is restored as a boot entry **"LuxOS (previous kernel)"**
   (systemd-boot entry, or `/etc/grub.d/11_luxos_previous` with files in `/boot/luxos-prev`).
 - A new kernel gets 3 boot attempts: systemd-boot boot counting (`+3` entry) or GRUB variable
@@ -113,6 +113,26 @@ Useful one-liners: `systemctl start luxos-care-update-now.service` (needs wheel)
 - Automatic fallback works with GRUB and with a LuxOS-owned systemd-boot; with a shared ESP owned by
   another system the user picks "LuxOS (previous kernel)" in the boot menu manually.
 - If the boot partition is full the entry cannot be prepared ("The boot partition is full.").
+
+
+## Switch to the LuxOS kernel
+
+Installs from before LuxOS 0.9.7 run `linux-zen`. After an update (`lux update` runs
+`/usr/lib/lux/after-update.d/50-luxos-kernel`, LuxOS Care after its automatic update) LuxOS Care
+switches them to `linux-luxos` (`luxos-care kernel-switch`, root):
+
+1. installs `linux-luxos` (and `linux-luxos-headers` when `linux-zen-headers` was installed for DKMS
+   drivers such as NVIDIA);
+2. checks that the initramfs exists and every DKMS module is built for the new kernel – otherwise it
+   stops and the system stays on `linux-zen` unchanged (state `kernel_switch_error` in
+   `luxos-care status --json`; it tries again after the next update);
+3. points the boot entries (`linux`/`initrd` lines, safe mode entry, shared ESP copy) at
+   `linux-luxos` and writes `KERNEL=linux-luxos` to `/etc/luxos/care.conf`;
+4. removes `linux-zen`; the kernel pre hook keeps it (modules, DKMS modules and the initramfs it
+   booted with) as **"LuxOS (previous kernel)"**, and the new kernel gets 3 boot attempts – if it does
+   not start, the boot loader goes back to `linux-zen` by itself.
+
+A restart finishes the switch ("Restart to finish the kernel update").
 
 ## Self-repair
 

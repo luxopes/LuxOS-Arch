@@ -2,7 +2,7 @@
 base
 # jadro lux (libalpm, makepkg a nastroje z Arch Linuxu; lux-engine* v /usr/lib/lux/alpm/bin, bez prikazu pacman)
 lux-engine
-linux
+linux-luxos
 linux-firmware
 sof-firmware
 alsa-firmware
@@ -60,3 +60,4 @@ luxos-installer
 luxai
 luxos-safe
 luxos-care
+luxos-guard

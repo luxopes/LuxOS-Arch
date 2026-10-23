@@ -1,0 +1,12 @@
+[Unit]
+Description=Lux Guard - hourly snapshot of /home
+ConditionPathExists=!/run/archiso
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=5min
+AccuracySec=5min
+
+[Install]
+WantedBy=timers.target

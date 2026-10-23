@@ -1495,7 +1495,7 @@ Import the missing signing key?	Ontbrekende ondertekeningssleutel importeren?
 Install a package from IgnorePkg anyway?	Toch een pakket uit IgnorePkg installeren?
 These packages are essential for the system: %s	Deze pakketten zijn essentieel voor het systeem: %s
 Remove them anyway?	Toch verwijderen?
-New config files to review: %d (run: pacdiff)	Nieuwe configuratiebestanden om na te kijken: %d (voer uit: pacdiff)
+New config files to review: %d (run: lux configs)	Nieuwe configuratiebestanden om na te kijken: %d (voer uit: lux configs)
 Stopping after the current package…	Stoppen na het huidige pakket…
 Installing from a URL is not supported, download the file first: %s	Installeren vanaf een URL wordt niet ondersteund, download eerst het bestand: %s
 Cannot read package file %s	Kan pakketbestand %s niet lezen
@@ -2409,3 +2409,129 @@ Removed %d old package files from the cache (%s freed)	%d oude pakketbestanden u
 The package cache is already clean	De pakketcache is al schoon
 The package manager uses /etc/lux and /var/lib/lux	Pakketbeheer gebruikt /etc/lux en /var/lib/lux
 The package manager configuration of the live system is broken.	De configuratie van pakketbeheer van het live-systeem is beschadigd.
+Another update check is still running. Try again later.	Er loopt nog een andere controle op updates. Probeer het later opnieuw.
+The package lists could not be refreshed. Check your internet connection and try again.	De pakketlijsten konden niet worden vernieuwd. Controleer de internetverbinding en probeer het opnieuw.
+Would restore %d files (%d unchanged or newer kept).	Zou %d bestanden herstellen (%d ongewijzigd of nieuwer blijven behouden).
+Restored %d files from %s (%d unchanged or newer kept).	%d bestanden hersteld van %s (%d ongewijzigd of nieuwer behouden).
+Lux Guard: not running	Lux Guard: niet actief
+Lux Guard: active	Lux Guard: actief
+Usage: luxos-guard scan FILE...	Gebruik: luxos-guard scan BESTAND...
+Usage: luxos-guard allow FILE	Gebruik: luxos-guard allow BESTAND
+Lux Guard is not running.	Lux Guard is niet actief.
+Allowed: %s	Toegestaan: %s
+No watched files.	Geen bewaakte bestanden.
+allowed	toegestaan
+No snapshots.	Geen momentopnamen.
+No snapshot that old.	Geen zo oude momentopname.
+Run restore as the user whose files you restore, not root.	Voer het herstel uit als de gebruiker van wie de bestanden zijn, niet als root.
+Only files in your home folder can be restored.	Alleen bestanden in uw thuismap kunnen worden hersteld.
+Snapshots are made by the system (root).	Momentopnamen worden door het systeem gemaakt (root).
+protection against harmful programs from downloads, attachments and USB drives	bescherming tegen schadelijke programma's uit downloads, bijlagen en USB-sticks
+protection and snapshot status	status van bescherming en momentopnamen
+check a file	een bestand controleren
+allow a risky file (like Run Anyway)	een riskant bestand toestaan (zoals Toch uitvoeren)
+watched files and recent decisions	bewaakte bestanden en recente beslissingen
+times of /home snapshots	tijden van /home-momentopnamen
+restore files from a snapshot (without --overwrite only missing files)	bestanden herstellen uit een momentopname (zonder --overwrite alleen ontbrekende)
+CRITICAL - blocked outside the sandbox	KRITIEK – geblokkeerd buiten de sandbox
+RISKY - asks before running	RISKANT – vraagt voor het uitvoeren
+Watched files: %d (critical: %d)	Bewaakte bestanden: %d (kritiek: %d)
+Warning: the Lux Guard session helper is not running - risky programs are blocked without asking.	Waarschuwing: de sessiehulp van Lux Guard draait niet – riskante programma's worden zonder vragen geblokkeerd.
+Snapshots of /home: %d, newest %s	Momentopnamen van /home: %d, nieuwste %s
+Snapshots of /home: none yet	Momentopnamen van /home: nog geen
+Snapshots of /home: not available (needs btrfs)	Momentopnamen van /home: niet beschikbaar (btrfs nodig)
+This file belongs to another user.	Dit bestand is van een andere gebruiker.
+Recent decisions:	Recente beslissingen:
+Unknown time: %s	Onbekende tijd: %s
+%s is not in the snapshot from %s.	%s staat niet in de momentopname van %s.
+Removable media: %s	Verwisselbare media: %s
+Not a program or script - Lux Guard does not check it.	Geen programma of script – Lux Guard controleert het niet.
+program	programma
+script	script
+launcher	starter
+Java program	Java-programma
+Windows program	Windows-programma
+Type: %s	Type: %s
+No dangerous behaviour found.	Geen gevaarlijk gedrag gevonden.
+This file is critical - it can only be run in the sandbox: luxos-sandbox run %s	Dit bestand is kritiek – het kan alleen in de sandbox worden uitgevoerd: luxos-sandbox run %s
+Dangerous: %s	Gevaarlijk: %s
+Notes: %s	Opmerkingen: %s
+Origin: %s	Herkomst: %s
+Lux Guard: not from outside this computer, not watched	Lux Guard: niet van buiten deze computer, niet bewaakt
+Lux Guard: %s	Lux Guard: %s
+Lux Guard: dangerous file	Lux Guard: gevaarlijk bestand
+It will not run outside the sandbox.	Het wordt niet buiten de sandbox uitgevoerd.
+Lux Guard blocked a dangerous program	Lux Guard heeft een gevaarlijk programma geblokkeerd
+Run a program from outside this computer?	Een programma van buiten deze computer uitvoeren?
+Watched files	Bewaakte bestanden
+Recent decisions	Recente beslissingen
+Restore files	Bestanden herstellen
+found	gevonden
+blocked	geblokkeerd
+not run	niet uitgevoerd
+run in sandbox	uitgevoerd in de sandbox
+moved to trash	naar de prullenbak verplaatst
+not run (no session)	niet uitgevoerd (geen sessie)
+Files changed since then (for example encrypted by ransomware) are replaced by the saved version. Files created later are kept.	Bestanden die sindsdien zijn gewijzigd (bijvoorbeeld versleuteld door ransomware) worden vervangen door de opgeslagen versie. Later gemaakte bestanden blijven.
+Restore	Herstellen
+Restoring files…	Bestanden herstellen…
+Don't Run	Niet uitvoeren
+Checks programs from downloads, e-mail attachments and USB drives before they run. Dangerous ones run only in the sandbox.	Controleert programma's uit downloads, e-mailbijlagen en USB-sticks voordat ze starten. Gevaarlijke draaien alleen in de sandbox.
+Active	Actief
+Not running	Niet actief
+“%s” (%s) – %s.	‘%s’ (%s) – %s.
+It cannot run outside the sandbox. In the sandbox it cannot see or delete your files.	Het kan niet buiten de sandbox draaien. In de sandbox kan het uw bestanden niet zien of verwijderen.
+Lux Guard does not know this program. Programs from unknown sources can delete or steal your files. Run it only if you trust where it came from.	Lux Guard kent dit programma niet. Programma's uit onbekende bronnen kunnen uw bestanden verwijderen of stelen. Voer het alleen uit als u de herkomst vertrouwt.
+Run in Sandbox starts it in an isolated system without access to your files.	‘Uitvoeren in sandbox’ start het in een geïsoleerd systeem zonder toegang tot uw bestanden.
+Move to Trash	Naar prullenbak
+Run in Sandbox	Uitvoeren in sandbox
+Run Anyway	Toch uitvoeren
+No programs from outside this computer yet.	Nog geen programma's van buitenaf.
+Nothing yet.	Nog niets.
+Snapshots need the btrfs file system (standard LuxOS installation).	Momentopnamen vereisen het bestandssysteem btrfs (standaardinstallatie van LuxOS).
+Restore all files to %s?	Alle bestanden herstellen naar %s?
+This program:	Dit programma:
+Allowed	Toegestaan
+No snapshots yet. Lux Guard saves your home folder every hour.	Nog geen momentopnamen. Lux Guard bewaart uw thuismap elk uur.
+Lux Guard saves your home folder every hour (kept 1 day, then one per day for 7 days). Programs cannot change or delete these copies.	Lux Guard bewaart uw thuismap elk uur (1 dag bewaard, daarna één per dag gedurende 7 dagen). Programma's kunnen deze kopieën niet wijzigen of verwijderen.
+Critical	Kritiek
+Risky	Riskant
+Show Files	Bestanden tonen
+Restore Deleted	Verwijderde herstellen
+Restore All…	Alles herstellen…
+Sandbox is not installed	Sandbox is niet geïnstalleerd
+Install the luxos-sandbox package.	Installeer het pakket luxos-sandbox.
+Create the sandbox first	Maak eerst de sandbox
+The Sandbox window opens. Click Create, then try the program again.	Het venster Sandbox opent. Klik op Maken en probeer het programma opnieuw.
+Moved to Trash	Naar prullenbak verplaatst
+Could not move to Trash	Kon niet naar prullenbak verplaatsen
+Sandbox	Sandbox
+deletes your files, your home folder or the whole system	verwijdert uw bestanden, uw thuismap of het hele systeem
+removes the bootloader, kernels or core system packages	verwijdert de bootloader, kernels of essentiële systeempakketten
+formats, wipes or overwrites a disk	formatteert, wist of overschrijft een schijf
+freezes the computer (fork bomb)	laat de computer vastlopen (fork-bom)
+breaks permissions of the whole system or a system folder	beschadigt de rechten van het hele systeem of een systeemmap
+crashes or instantly restarts the computer	laat de computer crashen of herstart hem direct
+changes sudo, polkit or login (PAM) security settings	wijzigt beveiligingsinstellingen van sudo, polkit of aanmelding (PAM)
+tries to switch off Lux Guard or delete its backups	probeert Lux Guard uit te schakelen of zijn back-ups te verwijderen
+downloads code from the internet and runs it immediately without any check	downloadt code van internet en voert die meteen zonder controle uit
+runs hidden (encoded) code	voert verborgen (gecodeerde) code uit
+encrypts your files (ransomware behaviour)	versleutelt uw bestanden (ransomwaregedrag)
+changes user accounts or passwords	wijzigt gebruikersaccounts of wachtwoorden
+disables package signature checks	schakelt controle van pakketsignaturen uit
+feeds a password to sudo or su	geeft een wachtwoord door aan sudo of su
+downloads more code from the internet and runs it	downloadt meer code van internet en voert die uit
+asks for administrator rights	vraagt om beheerdersrechten
+adds a program to startup	voegt een programma toe aan het opstarten
+downloaded from the internet	gedownload van internet
+an e-mail or web attachment	een e-mail- of webbijlage
+from a USB drive or memory card	van een USB-stick of geheugenkaart
+from the sandbox shared folder	uit de gedeelde map van de sandbox
+a copy of a file from outside this computer	een kopie van een bestand van buitenaf
+created by a program from outside this computer	gemaakt door een programma van buitenaf
+from outside this computer	van buiten deze computer
+Sign in to the network	Aanmelden bij het netwerk
+This network requires you to sign in before you can use the internet.	Dit netwerk vereist dat u zich aanmeldt voordat u internet kunt gebruiken.
+Connected to the internet	Verbonden met internet
+You are signed in to the network.	U bent aangemeld bij het netwerk.
+Step after the update failed:	Stap na de update mislukt:

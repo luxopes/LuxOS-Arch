@@ -1,0 +1,22 @@
+{
+  "version": "0.9.7",
+  "codename": "Polaris",
+  "items": [
+    {"icon": "security-high-symbolic",
+     "title": {"en": "Lux Guard", "cs": "Lux Guard"},
+     "text": {"en": "Programs and scripts from the internet or a USB stick are checked before they run. Risky ones ask first, dangerous ones (for example ones that would erase your files) only run in the Sandbox. Your home folder is also snapshotted every hour, so deleted files can be restored.",
+              "cs": "Programy a skripty z internetu nebo z USB se před spuštěním zkontrolují. Rizikové se nejdřív zeptají, nebezpečné (třeba ty, co by smazaly vaše soubory) poběží jen v Sandboxu. Domovská složka se navíc každou hodinu zálohuje do snímku, takže smazané soubory jde obnovit."}},
+    {"icon": "network-wireless-symbolic",
+     "title": {"en": "Sign in to Wi-Fi networks automatically", "cs": "Přihlášení k Wi-Fi samo"},
+     "text": {"en": "In hotels, trains or airports the network sign-in page opens by itself in a separate window that does not see your browser data, and closes once you are online.",
+              "cs": "V hotelu, ve vlaku nebo na letišti se přihlašovací stránka sítě otevře sama v odděleném okně, které nevidí data vašeho prohlížeče, a po připojení se zavře."}},
+    {"icon": "preferences-system-symbolic",
+     "title": {"en": "The LuxOS kernel", "cs": "Jádro LuxOS"},
+     "text": {"en": "LuxOS now has its own kernel: the newest stable Linux, built and tested automatically. Your computer switches to it after the update; the previous kernel stays as a fallback.",
+              "cs": "LuxOS má vlastní jádro: nejnovější stabilní Linux, sestavený a otestovaný automaticky. Počítač na něj po aktualizaci přejde sám, předchozí jádro zůstane jako záloha."}},
+    {"icon": "preferences-desktop-symbolic",
+     "title": {"en": "Lighter Control Center and Calendar", "cs": "Lehčí Ovládací centrum a Kalendář"},
+     "text": {"en": "Control Center, Calendar and the background service are now one native program written in LSL – it uses about 23 MB less memory and starts seven times faster.",
+              "cs": "Ovládací centrum, Kalendář a služba na pozadí jsou nově jeden program v LSL – zabere asi o 23 MB méně paměti a spouští se sedmkrát rychleji."}}
+  ]
+}

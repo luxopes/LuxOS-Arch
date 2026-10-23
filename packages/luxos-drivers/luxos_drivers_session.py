@@ -130,3 +130,41 @@ def subscribe():
     except GLib.Error as e:
         log(f"session bus: {e.message}")
     GLib.timeout_add_seconds(DELAY, lambda: threading.Thread(target=check, daemon=True).start() or False)
+
+
+# ---- pomocny program pro luxos-hub v LSL -------------------------------------------------------------
+def check_main():
+    """`luxos_drivers_session.py check`: detekce a porovnani s nainstalovanymi baliky (jednou za start
+    pocitace); vypise JSON {"notify": bool, "names": [nazvy zarizeni], "key": chybejici baliky}.
+    Upozorneni a jeho akce obsluhuje luxos-hub."""
+    import json
+    out = {"notify": False, "names": [], "key": ""}
+    boot = drv.boot_id()
+    if should_check(boot):
+        try:
+            states = drv.evaluate(drv.detect(timeout=30))
+        except Exception as e:  # noqa: BLE001
+            log(f"detect: {e}")
+            print(json.dumps(out), flush=True)
+            return 1
+        try:
+            _write(CHECKED, boot)
+        except OSError as e:
+            log(f"state: {e}")
+        if should_notify(states, _read(IGNORED)):
+            names = []
+            for s in states:
+                if s["status"] == drv.AVAILABLE:
+                    t = _(s["device"].get("title", ""))
+                    if t and t not in names:
+                        names.append(t)
+            out = {"notify": True, "names": names, "key": drv.notify_key(states)}
+    print(json.dumps(out), flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    if len(sys.argv) >= 2 and sys.argv[1] == "check":
+        sys.exit(check_main())
+    print(__doc__)
+    sys.exit(2)

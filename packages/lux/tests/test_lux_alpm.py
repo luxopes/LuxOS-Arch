@@ -796,6 +796,33 @@ class Queries(unittest.TestCase):
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
+    def test_check_updates_removes_stale_lock_and_waits(self):
+        """Zbyly db.lck v docasne slozce (preruseny beh) kontrolu neblokuje; soubezna kontrola pocka."""
+        import fcntl
+        tmp = tempfile.mkdtemp(prefix="lux-cu-test-")
+        try:
+            db = os.path.join(tmp, "db")
+            os.makedirs(os.path.join(db, "sync"))
+            open(os.path.join(db, "db.lck"), "w").close()
+            rc, out, _h = run(["check-updates", "--db", db])
+            self.assertEqual(rc, 0, out)
+            self.assertFalse(os.path.exists(os.path.join(db, "db.lck")))
+            # jina kontrola drzi zamek: po CHECK_UPDATES_WAIT srozumitelna chyba, ne hlaska o internetu
+            holder = open(os.path.join(db, ".check-updates.lock"), "a")
+            fcntl.flock(holder, fcntl.LOCK_EX)
+            old = lux_alpm.CHECK_UPDATES_WAIT
+            lux_alpm.CHECK_UPDATES_WAIT = 0.6
+            try:
+                rc, out, _h = run(["check-updates", "--db", db])
+            finally:
+                lux_alpm.CHECK_UPDATES_WAIT = old
+                holder.close()
+            self.assertNotIn(rc, (0, 2))
+            self.assertIn("Another update check is still running", out)
+            self.assertNotIn("internet", out)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
     def test_cache_plan(self):
         files = ["/c/htop-3.3.0-1-x86_64.pkg.tar.zst", "/c/htop-3.3.0-2-x86_64.pkg.tar.zst",
                  "/c/htop-3.2.0-1-x86_64.pkg.tar.zst", "/c/htop-3.10.0-1-x86_64.pkg.tar.zst",
