@@ -115,6 +115,22 @@ class Drivers(unittest.TestCase):
         self.assertEqual(lp.driver_package("Hewlett-Packard"), "hplip")
         self.assertEqual(lp.driver_package("Canon"), "gutenprint")
 
+    def test_samsung_spl(self):
+        """Samsung Xpress M2026: v repozitarich nic (SPL, zadny obecny jazyk) -> ovladac z AUR, PPD rady."""
+        did = "MFG:Samsung;CMD:SPL,FWV,PIC,BDN,EXT;MDL:M2020 Series;CLS:PRINTER;"
+        self.assertIsNone(lp.pick_ppd(self.models, did))
+        self.assertIsNone(lp.generic_ppd(did))
+        self.assertEqual(lp.aur_driver(did), "samsung-unified-driver-printer")
+        self.assertIsNone(lp.aur_driver("MFG:HP;MDL:LaserJet;"))
+        uld = lp.parse_lpinfo('Model: name = uld-samsung/Samsung_M2020_Series.ppd\n'
+                              '        natural_language = en\n        make-and-model = Samsung M2020 Series\n'
+                              '        device-id = \n', "Model")
+        self.assertEqual(lp.pick_ppd(uld, did), "uld-samsung/Samsung_M2020_Series.ppd")
+        # model z rady (Xpress M2026) -> PPD cele rady M2020; jina rada ne
+        self.assertEqual(lp.pick_ppd(uld, "MFG:Samsung;MDL:Xpress M2026;CMD:SPL;"),
+                         "uld-samsung/Samsung_M2020_Series.ppd")
+        self.assertIsNone(lp.pick_ppd(uld, "MFG:Samsung;MDL:Xpress M2070;CMD:SPL;"))
+
     def test_usb_serial(self):
         self.assertEqual(lp.usb_serial("usb://HP/LaserJet%201020?serial=AB%2012&interface=1"), "AB 12")
 
@@ -213,3 +229,74 @@ class ScanOptions(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HelperAurDriver(unittest.TestCase):
+    """luxos-printing-helper: USB tiskarna s ovladacem jen v AUR -> zadna fronta, upozorneni s balikem."""
+
+    def setUp(self):
+        import importlib.machinery
+        import importlib.util
+        import tempfile
+        self.tmp = tempfile.mkdtemp()
+        os.environ["LUXOS_PRINTING_NOTIFY_LOG"] = os.path.join(self.tmp, "notify")
+        os.environ["LUXOS_PRINTING_STATE"] = os.path.join(self.tmp, "state.json")
+        os.environ["LUXOS_PRINTING_LOCK"] = os.path.join(self.tmp, "lock")
+        path = os.path.join(HERE, "..", "files", "luxos-printing-helper")
+        loader = importlib.machinery.SourceFileLoader("luxos_printing_helper", path)
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        self.h = importlib.util.module_from_spec(spec)
+        loader.exec_module(self.h)
+        did = "MFG:Samsung;CMD:SPL,FWV,PIC,BDN,EXT;MDL:M2020 Series;CLS:PRINTER;"
+        self.dev = {"key": "usb://Samsung/M2020%20Series?serial=08HV", "uri": "usb://Samsung/M2020%20Series?serial=08HV",
+                    "name": "Samsung M2020 Series", "model": "Samsung M2020 Series", "usb": True, "classic": True,
+                    "device_id": did}
+        h = self.h
+        h.cups_queues = lambda: {}
+        h.cups_default = lambda: None
+        h.usb_printers = lambda: [dict(self.dev)]
+        h.usb_scanners = lambda: {}
+        h.browse = lambda types: ""
+        h.models = lambda: []
+        h.installed = lambda pkg: False
+        h.install_driver = lambda pkg: False
+        self.cmds = []
+        h.run = lambda cmd, timeout=60: (self.cmds.append(cmd), (0, "", ""))[1]
+
+    def tearDown(self):
+        import shutil
+        for k in ("LUXOS_PRINTING_NOTIFY_LOG", "LUXOS_PRINTING_STATE", "LUXOS_PRINTING_LOCK"):
+            os.environ.pop(k, None)
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def notes(self):
+        try:
+            with open(os.environ["LUXOS_PRINTING_NOTIFY_LOG"]) as f:
+                return f.read().splitlines()
+        except OSError:
+            return []
+
+    def test_sync_notifies_aur_driver_once(self):
+        st = self.h.load_state()
+        self.assertEqual(self.h.cmd_sync(st), [])
+        self.assertFalse(any(c[:1] == ["lpadmin"] for c in self.cmds))       # zadna rozbita fronta
+        self.assertEqual(self.notes(), ["aurdriver\tSamsung M2020 Series\tsamsung-unified-driver-printer"])
+        self.h.cmd_sync(st)
+        self.assertEqual(len(self.notes()), 1)                               # stejny den znovu ne
+
+    def test_add_reports_package(self):
+        import contextlib
+        import io
+        out = io.StringIO()
+        geteuid = os.geteuid
+        os.geteuid = lambda: 0
+        try:
+            with contextlib.redirect_stdout(out):
+                rc = self.h.main(["add", self.dev["key"]])
+        finally:
+            os.geteuid = geteuid
+        self.assertEqual(rc, 1)
+        import json
+        res = json.loads(out.getvalue())
+        self.assertEqual((res["queue"], res["needs"], res["package"]),
+                         (None, "aurdriver", "samsung-unified-driver-printer"))

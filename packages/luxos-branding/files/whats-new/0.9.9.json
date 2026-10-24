@@ -1,0 +1,72 @@
+{
+  "version": "0.9.9",
+  "codename": "Polaris",
+  "items": [
+    {
+      "icon": "dialog-password-symbolic",
+      "title": {
+        "en": "Safer start of encrypted disks",
+        "cs": "Spolehlivější start šifrovaného disku"
+      },
+      "text": {
+        "en": "A wrong disk password now says so and lets you try again as often as you need. If the start ever fails, LuxOS explains what happened and saves a log to the EFI partition.",
+        "cs": "Při špatném heslu k disku LuxOS napíše, že je heslo špatně, a nechá vás to zkusit znovu, kolikrát potřebujete. Kdyby start přesto selhal, vysvětlí, co se stalo, a uloží záznam na EFI oddíl."
+      }
+    },
+    {
+      "icon": "drive-harddisk-symbolic",
+      "title": {
+        "en": "Better installer for dual boot",
+        "cs": "Lepší instalace vedle jiného systému"
+      },
+      "text": {
+        "en": "Installing next to Debian, Ubuntu or another Linux in an encrypted LVM works, the other systems appear in the start menu and LuxOS is started first. Passwords can be shown with the eye icon.",
+        "cs": "Instalace vedle Debianu, Ubuntu nebo jiného Linuxu do šifrovaného LVM funguje, ostatní systémy se objeví v nabídce při startu a LuxOS se spouští jako první. Hesla jde zobrazit ikonou oka."
+      }
+    },
+    {
+      "icon": "printer-symbolic",
+      "title": {
+        "en": "Printers, scanners and fingerprint",
+        "cs": "Tiskárny, skenery a otisk prstu"
+      },
+      "text": {
+        "en": "Printers that need a manufacturer driver now say so and offer to install it. The Scanner app no longer mistakes the camera for a scanner and finds a scanner switched on later. Fingerprint setup has a Try Again button.",
+        "cs": "Tiskárny, které potřebují ovladač výrobce, to teď řeknou a nabídnou jeho instalaci. Skener už nepovažuje kameru za skener a najde i skener zapnutý později. Nastavení otisku prstu má tlačítko Zkusit znovu."
+      }
+    },
+    {
+      "icon": "view-app-grid-symbolic",
+      "title": {
+        "en": "Launchpad, Lux Store and LuxAI",
+        "cs": "Launchpad, Lux Store a LuxAI"
+      },
+      "text": {
+        "en": "Launchpad no longer scrolls when the mouse moves and Enter opens the best match. Lux Store checks for updates reliably, LuxAI carries out the steps it announces, and the false \"No internet\" notice after login is gone.",
+        "cs": "Launchpad se už neposouvá pohybem myši a Enter otevře nejlepší shodu. Lux Store spolehlivě kontroluje aktualizace, LuxAI provede kroky, které ohlásí, a zmizelo falešné upozornění „Internet není k dispozici“ po přihlášení."
+      }
+    },
+    {
+      "icon": "media-removable-symbolic",
+      "title": {
+        "en": "Starts from Ventoy",
+        "cs": "Start z Ventoye"
+      },
+      "text": {
+        "en": "The installation USB starts faster and works with Ventoy in normal mode.",
+        "cs": "Instalační USB startuje rychleji a funguje i s Ventoyem v běžném režimu."
+      }
+    },
+    {
+      "icon": "utilities-terminal-symbolic",
+      "title": {
+        "en": "lux check and man lux",
+        "cs": "lux check a man lux"
+      },
+      "text": {
+        "en": "lux check lists available updates without installing them, man lux shows the full manual, and a damaged download is fetched again automatically.",
+        "cs": "lux check vypíše dostupné aktualizace bez instalace, man lux ukáže celý manuál a poškozený stažený balíček se sám stáhne znovu."
+      }
+    }
+  ]
+}

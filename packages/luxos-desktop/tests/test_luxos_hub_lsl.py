@@ -205,7 +205,7 @@ class Hub(unittest.TestCase):
                "XDG_CONFIG_HOME": os.path.join(self.home, ".config"), "XDG_CACHE_HOME": os.path.join(self.home, ".cache"),
                "LUXOS_I18N_DIR": I18N_DIR, "LANG": "cs_CZ.UTF-8", "FAKE_LOG": self.log, "DISPLAY": DISPLAY,
                "DBUS_SESSION_BUS_ADDRESS": self.address, "DBUS_SYSTEM_BUS_ADDRESS": self.address, "NO_AT_BRIDGE": "1",
-               "LUXOS_HUB_PREBUILD_DELAY": "1", "LUXOS_HUB_NETCHECK_DELAY": "1", "LUXOS_PLAYBACK_GRACE": "1",
+               "LUXOS_HUB_PREBUILD_DELAY": "1", "LUXOS_HUB_NETCHECK_DELAY": "1", "LUXOS_HUB_NOINET_DELAY": "1", "LUXOS_HUB_NOINET_GRACE": "0", "LUXOS_PLAYBACK_GRACE": "1",
                "LUXOS_CC_TEST_LOG": os.path.join(self.home, "cc.log"), "LUXOS_CAL_TEST_LOG": os.path.join(self.home, "cal.log"),
                "LUXOS_CALENDAR_DIR": os.path.join(self.home, "calendar"), "LUXOS_POWER_SUPPLY": os.path.join(self.home, "nosupply"),
                "LUXOS_BACKLIGHT": os.path.join(self.home, "nobacklight"), "LUXOS_CARE_HELPER": self.care_helper,
@@ -357,6 +357,19 @@ class Hub(unittest.TestCase):
         nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
                 GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"ActiveConnections": GLib.Variant("ao", [])}, [])))
         self.assertTrue(self.wait_for(lambda: "luxos-datasaver reapply" in self.calls(), 5))
+
+    def test_no_internet_notice_waits_for_lasting_state(self):
+        """Po prihlaseni NM chvili hlasi omezene pripojeni: bez upozorneni, kdyz se do limitu pripoji."""
+        nm = self.service("org.freedesktop.NetworkManager", [("/org/freedesktop/NetworkManager", NM_XML)],
+                          {"State": GLib.Variant("u", 70), "Connectivity": GLib.Variant("u", 3)})
+        self.service("org.xfce.Panel", [("/org/xfce/Panel", PANEL_XML)])
+        self.start_hub(LUXOS_HUB_NOINET_DELAY="4")
+        time.sleep(2.0)
+        nm.properties["Connectivity"] = GLib.Variant("u", 4)
+        nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"Connectivity": GLib.Variant("u", 4)}, [])))
+        time.sleep(5.0)
+        self.assertFalse(any(translation("No internet connection") in c for c in self.calls()), self.calls())
 
     # ---- nedostatek pameti -------------------------------------------------------------------------------
     def test_low_memory_notification(self):

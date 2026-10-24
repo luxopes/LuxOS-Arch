@@ -115,6 +115,13 @@ def main():
     # Pouzit stare /home bez formatovani, novy / na nvme volnem miste (sifrovany), ESP Windows v /efi
     home = next(n for n in L.lvs_of(vg.id) if n.name == "home")
     L.set_use(home.id, {"type": "fs", "mount": "/home", "fstype": "ext4", "format": False})
+    # Dual boot do existujici sifrovane VG (jako Debian): novy LV pro / -> VG s pvs (sd-encrypt + rd.luks)
+    trial = L.add_lv(vg.id, "luxos", 0, True)
+    L.set_use(trial.id, {"type": "fs", "mount": "/", "fstype": "btrfs", "format": True})
+    txt = L.to_text()
+    vgline = next((ln for ln in txt.splitlines() if ln.startswith("vg ") and "name=oldvg" in ln), "")
+    check("existujici VG pod novym / ma pvs (LUKS)", "keep=1" in vgline and f"pvs={luks.id}" in vgline, vgline)
+    L.remove(trial.id)
     oldroot = next(n for n in L.lvs_of(vg.id) if n.name == "root")
     L.remove(oldroot.id)
     esp = next(n for n in L.of("part") if n.dev == "/dev/nvme0n1p1")

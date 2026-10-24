@@ -44,7 +44,7 @@ SIGTERM = 15
 NM = "org.freedesktop.NetworkManager"
 NM_PATH = "/org/freedesktop/NetworkManager"
 
-hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0, "cover_pid": 0}
+hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0, "cover_pid": 0, "start": 0, "noinet_timer": False}
 
 function runtime_dir():
     value = env.get("XDG_RUNTIME_DIR", "")
@@ -220,7 +220,7 @@ function connectivity_update():
         call portal_open()
         call glib.spawn_capture(["notify-send", "-a", "LuxOS", "-i", "luxos-network-no-internet-symbolic", "-w", "-A", "login=" + i18n.T("Sign In"), i18n.T("Sign in to the network"), i18n.T("This network requires you to sign in before you can use the internet.")], on_portal_notification, 0)
     elif c == 3 and not (last == 2 or last == 3):
-        call glib.spawn(["notify-send", "-a", "LuxOS", "-i", "luxos-network-no-internet-symbolic", i18n.T("No internet connection"), i18n.T("You are connected to the network, but the internet is not available.")])
+        call noinet_schedule()
     end
     if c == 4 and last == 2:
         # prihlaseno: okno portalu uz neni potreba
@@ -231,6 +231,31 @@ function connectivity_update():
         call glib.spawn(["notify-send", "-a", "LuxOS", "-i", "network-wireless-symbolic", i18n.T("Connected to the internet"), i18n.T("You are signed in to the network.")])
     end
     hub["connectivity"] = c
+    return False
+end
+
+# "Bez internetu" az kdyz stav trva: po prihlaseni NetworkManager chvili hlasi omezene pripojeni,
+# nez Wi-Fi dobehne (falesne upozorneni pri kazdem prihlaseni). Upozorni se jen, kdyz je stav 3
+# porad i po LUXOS_HUB_NOINET_DELAY s (20) a nejdriv LUXOS_HUB_NOINET_GRACE s (45) po startu.
+function noinet_schedule():
+    if hub["noinet_timer"]:
+        return 0
+    end
+    delay = text.to_int(env.get("LUXOS_HUB_NOINET_DELAY", ""), 20)
+    left = text.to_int(env.get("LUXOS_HUB_NOINET_GRACE", ""), 45) - (glib.now() - hub["start"])
+    if left > delay:
+        delay = left
+    end
+    hub["noinet_timer"] = True
+    call glib.timeout_add_seconds(delay, noinet_check)
+    return 0
+end
+
+function noinet_check():
+    hub["noinet_timer"] = False
+    if hub["connectivity"] == 3 and connectivity() == 3:
+        call glib.spawn(["notify-send", "-a", "LuxOS", "-i", "luxos-network-no-internet-symbolic", i18n.T("No internet connection"), i18n.T("You are connected to the network, but the internet is not available.")])
+    end
     return False
 end
 
@@ -537,6 +562,7 @@ end
 # ---- hlavni program ------------------------------------------------------------------------------------------------
 
 function main_hub():
+    hub["start"] = glib.now()
     call write_pidfiles(["luxos-hub.pid", "luxos-control-center.pid", "luxos-calendar.pid"])
     # signaly hned po zapsani pid souboru (klik v liste behem startu by jinak proces ukoncil)
     call glib.unix_signal_add(SIGUSR1, on_sigusr1)

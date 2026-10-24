@@ -1,0 +1,197 @@
+.\" LuxOS - manualova stranka lux(1); prikazy musi odpovidat "lux --help" (test_lux_cli.py ji kontroluje)
+.TH LUX 1 "2026-10-24" "LuxOS" "LuxOS Manual"
+.SH NAME
+lux \- LuxOS package manager (repositories, AUR, Flatpak and .lux apps)
+.SH SYNOPSIS
+.B lux
+.RI [ options ]
+.I command
+.RI [ arguments ]
+.br
+.B lux
+(no command: interactive app store in the terminal)
+.SH DESCRIPTION
+.B lux
+installs, updates and removes software on LuxOS.
+Packages from the LuxOS and Arch Linux repositories are handled directly through libalpm
+(the package core is the
+.B lux-engine
+package); applications from the AUR and Flathub and LuxOS
+.B .lux
+packages are supported as well.
+Commands that change the system ask for the administrator password themselves
+(sudo in a terminal, a graphical prompt otherwise), so
+.B lux
+is normally run without sudo.
+.PP
+There is no
+.B pacman
+command on LuxOS. Typing a pacman command (for example
+.BR "pacman \-Syu" " or " "lux \-S firefox" )
+shows the matching
+.B lux
+command instead.
+.SH COMMANDS
+.TP
+.B (no command)
+Interactive app store in the terminal (fzf): search, install, remove and update.
+.TP
+.BR install ", " i " " \fIpkg\fR...
+Install packages: the repositories first, then the AUR or Flathub.
+.TP
+.BR remove ", " rm " " \fIpkg\fR...
+Remove packages and the dependencies nothing else needs.
+.TP
+.BR update ", " upgrade ", " up
+Update everything: the system, AUR packages, Flatpak apps and .lux apps.
+Configuration steps of other packages run afterwards (/usr/lib/lux/after-update.d).
+.TP
+.BR check ", " check\-updates
+Show available updates without installing them. The package lists are refreshed into a
+temporary copy, so this needs no administrator rights and changes nothing on the system.
+.TP
+.BR search ", " s " " \fIterm\fR
+Search the repositories and the AUR.
+.TP
+.BI info " pkg"
+Show package details.
+.TP
+.BR list " [" \-\-installed ]
+List installed packages.
+.TP
+.B list \-\-upgradable
+List available updates (from the last downloaded package lists; see
+.BR check ).
+.TP
+.BR "list \-\-lux" ", " "list \-\-aur"
+List LuxOS (.lux) or AUR packages.
+.TP
+.BI reinstall " pkg..."
+Install the same version again.
+.TP
+.B autoremove
+Remove dependencies nothing needs any more.
+.TP
+.BI files " pkg"
+Files installed by a package.
+.TP
+.BI owns " file"
+Which package owns a file.
+.TP
+.B clean
+Clean the package cache (keeps the number of versions set by
+.BR clean\-keep )
+and remove unneeded packages.
+.TP
+.B fix
+Repair a locked package database and the signing keys.
+.TP
+.B configs
+Review and merge new configuration files (.pacnew) left by updates.
+.TP
+.BR "config check" ", " "config edit"
+Check or edit /etc/lux/lux.conf
+.RB ( "config show" " prints the effective settings).
+.TP
+.BR history " [" \fIn\fR "] [" \fIpkg\fR ]
+Recent package changes (from /var/log/lux.log).
+.TP
+.BR pack " " \fIdir\fR " [" \fIout\fR ]
+Build a .lux package from a directory with lux.json.
+.TP
+.B drivers
+Detect and install missing drivers.
+.TP
+.B mirrors
+Pick the fastest download mirrors.
+.TP
+.B doctor
+Check system health (services, disk space, configuration, updates).
+.SH OPTIONS
+.TP
+.BR \-y ", " \-\-yes
+Do not ask for confirmation.
+.TP
+.BR \-v ", " \-\-verbose
+Show all details (and raw errors).
+.TP
+.B \-\-repo
+Only the official repositories.
+.TP
+.B \-\-aur
+Only the AUR.
+.TP
+.BR \-h ", " \-\-help
+Show the help.
+.TP
+.BR \-V ", " \-\-version
+Show the version.
+.SH CONFIGURATION
+.B /etc/lux/lux.conf
+holds the repositories, signature checking, held packages and the settings of
+.BR lux .
+Each line is
+.RI \(dq key " " value \(dq;
+lines indented under
+.RI \(dq "repo NAME" \(dq
+belong to that repository.
+After editing run
+.BR "lux config check" ,
+or use
+.B lux config edit
+which checks the file right away.
+The full format is described in /usr/share/doc/lux/lux.md and in the LuxOS documentation
+(/usr/share/luxos/docs, also on https://luxos.lux\-ai.cz/docs/).
+.SH FILES
+.TP
+.B /etc/lux/lux.conf
+Configuration (repositories, signatures, settings).
+.TP
+.B /etc/lux/conf.d/*.conf
+More configuration in the same format.
+.TP
+.B /etc/lux/mirrorlist
+Arch Linux mirrors (lux mirrors).
+.TP
+.B ~/.config/lux/lux.conf
+Per\-user settings (aur, review\-pkgbuild, flatpak, clean\-keep).
+.TP
+.B /var/lib/lux/
+Package database; installed/ holds the .lux packages.
+.TP
+.B /var/cache/lux/pkg/
+Downloaded packages. A damaged file found there is deleted and downloaded again.
+.TP
+.B /var/log/lux.log
+Log of package changes (lux history).
+.SH EXIT STATUS
+.TP
+.B 0
+Success (for
+.BR check :
+the check worked, whether or not updates are available).
+.TP
+.B 1
+Error: the message says what failed and what to do.
+.SH EXAMPLES
+.TP
+.B lux update
+Update the whole system.
+.TP
+.B lux check
+See what an update would install.
+.TP
+.B lux install firefox vlc
+Install two applications.
+.TP
+.B lux search \-\-aur spotify
+Search only the AUR.
+.TP
+.B lux history 50 firefox
+The last changes of one package.
+.TP
+.B lux \-y remove vlc
+Remove without asking.
+.SH SEE ALSO
+.BR makepkg (8),
+/usr/share/doc/lux/lux.md

@@ -2568,3 +2568,25 @@ Brightness	Jas
 Lower the screen to 60 Hz	Znížiť obrazovku na 60 Hz
 A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	O niečo dlhšia výdrž pri obrazovkách 90–165 Hz. Pri zapnutí a vypnutí Šetriča batérie obrazovka na okamih stmavne.
 Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Dlhšia výdrž batérie: pomalší procesor bez turba, o niečo nižší jas, bez animácií, nepoužívané zariadenia sa uspia a úlohy na pozadí sa pozastavia.
+Could not put LuxOS first in the UEFI boot order; choose it in the boot menu (F12).	LuxOS sa nepodarilo dať na prvé miesto v poradí spúšťania UEFI; vyberte ho v ponuke spúšťania (F12).
+# Start systemu (initramfs, luxos-boot)
+Wrong password, try again.	Nesprávne heslo, skúste to znova.
+LuxOS could not start.	LuxOS sa nepodarilo spustiť.
+The start-up log was saved to the EFI partition as %s.	Záznam štartu bol uložený na EFI oddiel ako %s.
+The start-up log could not be saved.	Záznam štartu sa nepodarilo uložiť.
+Restart the computer with Ctrl+Alt+Delete.	Reštartujte počítač klávesmi Ctrl+Alt+Delete.
+In the start menu choose the previous kernel or another system.	V ponuke pri štarte zvoľte predchádzajúce jadro alebo iný systém.
+If the disk is encrypted, check the password and the keyboard layout.	Ak je disk šifrovaný, skontrolujte heslo a rozloženie klávesnice.
+The system disk did not appear in time.	Systémový disk sa neobjavil včas.
+show available updates without installing them	zobraziť dostupné aktualizácie bez inštalácie
+Downloaded package %s was damaged, downloading it again…	Stiahnutý balík %s bol poškodený, sťahujem ho znova…
+A downloaded package was damaged, downloading it again…	Stiahnutý balík bol poškodený, sťahujem ho znova…
+The package %s was damaged again after a new download. The server may be updating it - try again later.	Balík %s bol poškodený aj po novom stiahnutí. Server ho možno práve aktualizuje – skúste to neskôr.
+A downloaded package was damaged again after a new download. The server may be updating it - try again later.	Stiahnutý balík bol poškodený aj po novom stiahnutí. Server ho možno práve aktualizuje – skúste to neskôr.
+Printer “%s” needs a driver from the manufacturer	Tlačiareň „%s“ potrebuje ovládač od výrobcu
+Click Install Driver. LuxOS downloads and builds it (this takes a few minutes and asks for your password), then sets up the printer.	Kliknite na Nainštalovať ovládač. LuxOS ho stiahne a zostaví (trvá to pár minút a opýta sa na heslo), potom tlačiareň nastaví.
+Install Driver	Nainštalovať ovládač
+Done. You can close this window.	Hotovo. Okno môžete zavrieť.
+Search for scanners again	Znova hľadať skenery
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Zapnite skener a pripojte ho káblom USB alebo k rovnakej sieti Wi‑Fi ako tento počítač. Objaví sa tu sám, len čo ho LuxOS nájde.
+The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	Čítačka nedokázala prst dostatočne prečítať. Utrite senzor aj prst a kliknite na Skúsiť znova.

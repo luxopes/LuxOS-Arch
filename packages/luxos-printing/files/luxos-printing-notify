@@ -1,6 +1,7 @@
 #!/bin/bash
 # LuxOS - upozorneni "Tiskarna ... je pripravena" (bezi v relaci uzivatele, spousti luxos-printing-helper)
 # Pouziti: luxos-printing-notify printer|scanner|both|driver|manual|plugin NAZEV
+#         luxos-printing-notify aurdriver NAZEV BALIK   (ovladac z AUR, tlacitko Nainstalovat ovladac)
 # shellcheck disable=SC1091,SC2059,SC1111  # preklady z i18n.sh, typograficke uvozovky jsou zamerne
 . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
 name=$2
@@ -12,6 +13,11 @@ case $1 in
              body=$(T "LuxOS will set it up automatically once you are connected to the internet.") ;;
     manual)  title=$(T "Printer “%s” needs to be set up" "$name")
              body=$(T "It does not support driverless printing. Open Printers & Scanners and choose Advanced….") ;;
+    aurdriver)
+             pkg=${3-}
+             [[ $pkg =~ ^[a-z0-9][a-z0-9._+-]*$ ]] || exit 2
+             title=$(T "Printer “%s” needs a driver from the manufacturer" "$name")
+             body=$(T "Click Install Driver. LuxOS downloads and builds it (this takes a few minutes and asks for your password), then sets up the printer.") ;;
     plugin)  title=$(T "Printer “%s” needs an add-on from HP" "$name")
              body=$(T "Open Terminal and run: hp-plugin") ;;
     *) exit 2 ;;
@@ -20,6 +26,17 @@ icon=printer app=luxos-printers appname=$(T "Printers & Scanners")
 # Samotny skener: "Otevrit" spusti jednoduchou aplikaci Skener (luxos-scan)
 [[ $1 == scanner ]] && icon=luxos-scan app=luxos-scan appname=$(T "Scanner")
 # -A ceka na kliknuti: "Otevrit" spusti aplikaci
+if [[ $1 == aurdriver ]]; then
+    # Ovladac z AUR: sestavi ho lux pod uzivatelem v Terminalu (hesla se ptaji sudo/pkexec),
+    # pak luxos-printing-helper sync tiskarnu nastavi
+    action=$(notify-send -a "$appname" -i "$icon" -h "string:desktop-entry:$app" \
+        -A "install=$(T "Install Driver")" "$title" "$body" 2>/dev/null)
+    [[ $action == install ]] || exit 0
+    done_msg=$(T "Done. You can close this window.")
+    exec xfce4-terminal --title="$(T "Install Driver")" -x bash -c \
+        'lux install "$1" && pkexec /usr/lib/luxos/printing/luxos-printing-helper sync; echo; echo "$2"; read -r' \
+        _ "$pkg" "$done_msg"
+fi
 action=$(notify-send -a "$appname" -i "$icon" -h "string:desktop-entry:$app" \
     -A "open=$(T "Open")" "$title" "$body" 2>/dev/null)
 [[ $action == open ]] && exec "$app"

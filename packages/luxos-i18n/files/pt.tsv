@@ -2567,3 +2567,25 @@ Brightness	Brilho
 Lower the screen to 60 Hz	Baixar o ecrã para 60 Hz
 A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Um pouco mais de bateria em ecrãs de 90–165 Hz. O ecrã escurece por um momento ao ligar ou desligar a Poupança de bateria.
 Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Mais autonomia: processador mais lento sem turbo, brilho um pouco mais baixo, sem animações, dispositivos sem uso suspendem e as tarefas em segundo plano pausam.
+Could not put LuxOS first in the UEFI boot order; choose it in the boot menu (F12).	Não foi possível colocar o LuxOS em primeiro na ordem de arranque UEFI; escolha-o no menu de arranque (F12).
+# Start systemu (initramfs, luxos-boot)
+Wrong password, try again.	Palavra-passe errada, tente novamente.
+LuxOS could not start.	Não foi possível iniciar o LuxOS.
+The start-up log was saved to the EFI partition as %s.	O registo de arranque foi guardado na partição EFI como %s.
+The start-up log could not be saved.	Não foi possível guardar o registo de arranque.
+Restart the computer with Ctrl+Alt+Delete.	Reinicie o computador com Ctrl+Alt+Delete.
+In the start menu choose the previous kernel or another system.	No menu de arranque escolha o kernel anterior ou outro sistema.
+If the disk is encrypted, check the password and the keyboard layout.	Se o disco estiver cifrado, verifique a palavra-passe e o esquema de teclado.
+The system disk did not appear in time.	O disco do sistema não apareceu a tempo.
+show available updates without installing them	mostrar as atualizações disponíveis sem as instalar
+Downloaded package %s was damaged, downloading it again…	O pacote transferido %s estava danificado, a transferir de novo…
+A downloaded package was damaged, downloading it again…	Um pacote transferido estava danificado, a transferir de novo…
+The package %s was damaged again after a new download. The server may be updating it - try again later.	O pacote %s continuava danificado após nova transferência. O servidor pode estar a atualizá-lo – tente mais tarde.
+A downloaded package was damaged again after a new download. The server may be updating it - try again later.	Um pacote transferido continuava danificado após nova transferência. O servidor pode estar a atualizá-lo – tente mais tarde.
+Printer “%s” needs a driver from the manufacturer	A impressora “%s” precisa de um controlador do fabricante
+Click Install Driver. LuxOS downloads and builds it (this takes a few minutes and asks for your password), then sets up the printer.	Clique em Instalar controlador. O LuxOS transfere-o e compila-o (demora alguns minutos e pede a sua palavra-passe) e depois configura a impressora.
+Install Driver	Instalar controlador
+Done. You can close this window.	Concluído. Pode fechar esta janela.
+Search for scanners again	Procurar scanners novamente
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Ligue o scanner e conecte-o por cabo USB ou à mesma rede Wi‑Fi deste computador. Aparece aqui sozinho assim que o LuxOS o encontrar.
+The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	O leitor não conseguiu ler bem o dedo. Limpe o sensor e o dedo e clique em Tentar novamente.

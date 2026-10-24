@@ -983,13 +983,16 @@ class Layout:
         while pending:
             progress = False
             for n in list(pending):
-                deps = {"luks": [n.on], "vg": [] if n.existing else n.pvs, "lv": [n.vg]}[n.kind]
+                # existujici VG take s pvs: backend podle nich pozna, ze / lezi v LUKS (sd-encrypt, rd.luks.*)
+                vg_pvs = [p for p in n.pvs if p in need] if n.kind == "vg" else []
+                deps = {"luks": [n.on], "vg": vg_pvs if n.existing else n.pvs, "lv": [n.vg]}[n.kind]
                 if all(d in done for d in deps):
                     if n.kind == "luks":
                         lines.append(f"luks id={n.id} on={n.on} name={names[n.id]}" + (" keep=1" if n.existing else ""))
                     elif n.kind == "vg":
                         lines.append(f"vg id={n.id} name={n.name}" +
-                                     (" keep=1" if n.existing else f" pvs={','.join(n.pvs)}"))
+                                     ((" keep=1" + (f" pvs={','.join(vg_pvs)}" if vg_pvs else "")) if n.existing
+                                      else f" pvs={','.join(n.pvs)}"))
                     else:
                         lines.append(f"lv id={n.id} vg={n.vg} name={n.name}" +
                                      (" keep=1" if n.existing else f" size={'rest' if n.rest else size_spec(n.size)}"))

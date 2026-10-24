@@ -1,0 +1,29 @@
+#!/bin/bash
+# LuxOS - mkinitcpio hook "luxos-boot" (systemd initramfs): zprava pri spatnem hesle k disku,
+# neomezene pokusy, cekani na systemovy disk bez limitu do odemknuti a pri neuspechu zaznam
+# startu na EFI oddilu + vysvetleni. Pridava ho /etc/mkinitcpio.conf.d/zz-luxos-boot.conf.
+
+build() {
+    local f=/usr/lib/luxos/boot
+    add_binary bash
+    add_binary /usr/lib/luxos/luxos-boot-failure
+    add_binary "$f/luxos-boot-watch" /usr/lib/luxos/luxos-boot-watch
+    map add_binary journalctl systemctl plymouth mountpoint findmnt lsblk blkid date sort sync mount umount modprobe timeout \
+        awk head tail sed tr wc cut cat grep ls rm mkdir sleep
+    map add_module vfat nls_cp437 'nls_iso8859-1?' 'nls_ascii?'
+    add_file "$f/luxos-boot-watch.service" /usr/lib/systemd/system/luxos-boot-watch.service
+    add_symlink /usr/lib/systemd/system/sysinit.target.wants/luxos-boot-watch.service ../luxos-boot-watch.service
+    add_file "$f/luxos-retry.conf" /usr/lib/systemd/system/systemd-cryptsetup@.service.d/luxos-retry.conf
+    add_file "$f/luxos-emergency.conf" /usr/lib/systemd/system/emergency.service.d/luxos-boot-failure.conf
+    add_file "$f/luxos-device-timeout.conf" /etc/systemd/system.conf.d/luxos-device-timeout.conf
+    # Texty v jazyce systemu (luxos-i18n podle /etc/locale.conf), v initramfs bez prekladu
+    add_file <(/usr/lib/luxos/luxos-boot-failure --messages 2>/dev/null) /etc/luxos-boot.msg 644
+}
+
+help() {
+    cat <<HELPEOF
+LuxOS: message on a wrong disk password, unlimited password attempts, no time limit while
+typing it, and on a failed start a saved log on the EFI system partition with an explanation.
+Needs the systemd hook.
+HELPEOF
+}

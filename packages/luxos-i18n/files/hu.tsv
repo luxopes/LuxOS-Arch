@@ -2567,3 +2567,25 @@ Brightness	Fényerő
 Lower the screen to 60 Hz	Képernyő 60 Hz-re csökkentése
 A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Kicsit hosszabb üzemidő 90–165 Hz-es képernyőkön. Az Akkumulátorkímélő be- és kikapcsolásakor a képernyő egy pillanatra elsötétül.
 Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Hosszabb akkumulátor-üzemidő: lassabb processzor turbó nélkül, kissé alacsonyabb fényerő, animációk nélkül, a nem használt eszközök alvó módba lépnek, a háttérfeladatok szünetelnek.
+Could not put LuxOS first in the UEFI boot order; choose it in the boot menu (F12).	A LuxOS-t nem sikerült az UEFI rendszerindítási sorrend elejére tenni; válassza ki a rendszerindító menüben (F12).
+# Start systemu (initramfs, luxos-boot)
+Wrong password, try again.	Hibás jelszó, próbálja újra.
+LuxOS could not start.	A LuxOS nem tudott elindulni.
+The start-up log was saved to the EFI partition as %s.	Az indítási napló az EFI partícióra került ezen a néven: %s.
+The start-up log could not be saved.	Az indítási naplót nem sikerült menteni.
+Restart the computer with Ctrl+Alt+Delete.	Indítsa újra a számítógépet a Ctrl+Alt+Delete billentyűkkel.
+In the start menu choose the previous kernel or another system.	Az indítómenüben válassza az előző kernelt vagy egy másik rendszert.
+If the disk is encrypted, check the password and the keyboard layout.	Ha a lemez titkosított, ellenőrizze a jelszót és a billentyűzetkiosztást.
+The system disk did not appear in time.	A rendszerlemez nem jelent meg időben.
+show available updates without installing them	elérhető frissítések megjelenítése telepítés nélkül
+Downloaded package %s was damaged, downloading it again…	A letöltött %s csomag sérült volt, újraletöltés…
+A downloaded package was damaged, downloading it again…	Egy letöltött csomag sérült volt, újraletöltés…
+The package %s was damaged again after a new download. The server may be updating it - try again later.	A(z) %s csomag újraletöltés után is sérült. Lehet, hogy a szerver éppen frissíti – próbálja újra később.
+A downloaded package was damaged again after a new download. The server may be updating it - try again later.	Egy letöltött csomag újraletöltés után is sérült. Lehet, hogy a szerver éppen frissíti – próbálja újra később.
+Printer “%s” needs a driver from the manufacturer	A(z) „%s” nyomtatóhoz a gyártó illesztőprogramja kell
+Click Install Driver. LuxOS downloads and builds it (this takes a few minutes and asks for your password), then sets up the printer.	Kattintson az Illesztőprogram telepítése gombra. A LuxOS letölti és lefordítja (néhány perc, és kéri a jelszavát), majd beállítja a nyomtatót.
+Install Driver	Illesztőprogram telepítése
+Done. You can close this window.	Kész. Bezárhatja ezt az ablakot.
+Search for scanners again	Szkennerek újbóli keresése
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Kapcsolja be a szkennert, és csatlakoztassa USB-kábellel vagy ugyanahhoz a Wi‑Fi-hálózathoz, mint ezt a számítógépet. Magától megjelenik itt, amint a LuxOS megtalálja.
+The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	Az olvasó nem tudta elég jól beolvasni az ujját. Tisztítsa meg az érzékelőt és az ujját, majd kattintson az Újra gombra.

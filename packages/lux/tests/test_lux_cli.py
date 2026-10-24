@@ -26,6 +26,7 @@ case "$(basename "$0")" in
     for a in "$@"; do
       case $a in
         available) exit ${ALPM_AVAILABLE_RC:-0} ;;
+        check-updates) printf '%b' "${CHECK_OUT-}"; exit ${CHECK_RC:-2} ;;
         resolve) shift_done=1 ;;
       esac
     done
@@ -141,6 +142,43 @@ class CLI(unittest.TestCase):
             self.assertIn(cmd, out)
         self.assertNotIn("pacman", out)
         self.assertIn("config check, edit", out)
+
+    def test_man_page_covers_help(self):
+        """lux(1) popisuje kazdy prikaz a volbu z lux --help (pri novem prikazu doplnit i lux.1)."""
+        import re
+        rc, out = self.lux("--help", env={"NO_COLOR": "1"})
+        self.assertEqual(rc, 0)
+        with open(os.path.join(HERE, "..", "lux.1")) as f:
+            man = f.read().replace("\\-", "-")
+        words = set()
+        for line in out.splitlines():
+            m = re.match(r"^  (\S.*?)\s{2,}\S", line)
+            if not m or m.group(1).startswith("("):
+                continue
+            for w in re.split(r"[ ,]+", m.group(1)):
+                if w and not w.startswith(("<", "[")):
+                    words.add(w.strip("[]"))
+        self.assertIn("check", words)
+        self.assertIn("--verbose", words)
+        missing = sorted(w for w in words if not re.search(r"(?<![\w-])" + re.escape(w) + r"(?![\w-])", man))
+        self.assertEqual(missing, [], "lux.1 does not describe: " + ", ".join(missing))
+
+    def test_check_lists_updates(self):
+        """lux check: dostupne aktualizace z docasne kopie seznamu (bez roota), pocet a co dal."""
+        rc, out = self.lux("check", env={"NO_COLOR": "1", "CHECK_RC": "0",
+                                         "CHECK_OUT": "firefox 131.0-1 -> 132.0-1\\nvlc 3.0.21-1 -> 3.0.22-1\\n"})
+        self.assertEqual(rc, 0, out)
+        self.assertIn("firefox 131.0-1 → 132.0-1", out)
+        self.assertIn("2 update(s) available - run: lux update", out)
+        self.assertIn("check-updates", self.backend())
+        self.assertEqual(self.calls("sudo"), [])
+        rc, out = self.lux("check-updates", env={"NO_COLOR": "1"})       # CHECK_RC 2 = zadne
+        self.assertEqual(rc, 0, out)
+        self.assertIn("System up to date", out)
+        rc, out = self.lux("check", env={"NO_COLOR": "1", "CHECK_RC": "1",
+                                         "CHECK_OUT": "The package lists could not be refreshed.\\n"})
+        self.assertEqual(rc, 1)
+        self.assertIn("could not be refreshed", out)
 
     def test_broken_config_refuses(self):
         """Chyba v /etc/lux/lux.conf: lux nic neudela, rekne soubor a radek a jak to zkontrolovat."""

@@ -178,12 +178,17 @@ sám přejde na záložní cestu níže. `lux-engine` nahrazuje `luxos-pacman` z
 
 ## Příkazy
 
+Úplný přehled je i v manuálové stránce `man lux` (soubor `lux.1`, musí odpovídat `lux --help`).
+Poškozený balík v `/var/cache/lux/pkg` lux smaže sám a jednou stáhne znovu; když je poškozený i potom, hlásí
+jméno balíku (`@@ERROR corrupt`).
+
 | Příkaz | Co dělá | v pacmanu (Arch) |
 |---|---|---|
 | `lux` | interaktivní obchod v terminálu (Enter instalovat, Ctrl-R odebrat, Ctrl-U aktualizovat) | |
 | `lux install <balík…>` | instalace z repozitářů → LuxOS (`.lux`) → AUR → Flathub; i soubor `.lux` nebo `.pkg.tar.zst`; už nainstalované přeskočí | `-S --needed`, `-U` |
 | `lux remove <balík…>` | odebrání i s nepotřebnými závislostmi a zálohami konfigurace | `-Rns` |
 | `lux update` (`upgrade`, `up`) | obnoví databáze, nejdřív podpisové klíče, pak celý systém; dál AUR, `.lux` a Flatpak | `-Sy` + `-Su` |
+| `lux check` (`check-updates`) | dostupné aktualizace z čerstvých seznamů (dočasná kopie, bez roota, systém beze změny) | `checkupdates` |
 | `lux search <výraz>` | hledání v repozitářích, LuxOS a AUR | `-Ss` |
 | `lux info <balík>` | podrobnosti (nainstalovaný, jinak z repozitáře; LuxOS, AUR) | `-Qi` / `-Si` |
 | `lux list [--installed]` | nainstalované balíky (i `.lux`) | `-Q` |

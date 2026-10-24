@@ -4,9 +4,10 @@ if pkill -x rofi; then exit 0; fi
 . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
 extra=(-theme-str "entry { placeholder: \"$(T "Search or ask LuxAI")\"; }")
 [[ $(luxos-appearance status) == light ]] && extra+=(-theme-str '@import "luxos-light-colors"')
+# Bez -hover-select: Enter spusti prvni (nejlepsi) shodu, ne polozku pod kurzorem mysi
 # Aplikace + LuxAI: text bez shody s aplikaci (nebo Ctrl+Enter) je dotaz pro LuxAI (luxos-luxai-rofi)
 exec rofi -show combi -modi 'combi,window,filebrowser,run' -combi-modi 'luxai:luxos-luxai-rofi,drun' -combi-hide-mode-prefix \
     -theme luxos-search "${extra[@]}" \
     -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf \
     -display-combi "$(T "Apps")" -display-window "$(T "Windows")" -display-filebrowser "$(T "Files")" -display-run "$(T "Run")" \
-    -hover-select -me-select-entry '' -me-accept-entry MousePrimary
+    -me-select-entry '' -me-accept-entry MousePrimary

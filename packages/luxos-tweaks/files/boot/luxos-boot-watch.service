@@ -1,0 +1,11 @@
+[Unit]
+Description=LuxOS: disk password messages and system disk watch
+DefaultDependencies=no
+After=systemd-journald.socket
+Conflicts=initrd-switch-root.target shutdown.target emergency.target
+Before=initrd-switch-root.target shutdown.target
+ConditionPathExists=/etc/initrd-release
+
+[Service]
+ExecStart=/usr/lib/luxos/luxos-boot-watch
+KillMode=control-group

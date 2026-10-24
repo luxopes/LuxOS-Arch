@@ -1,0 +1,101 @@
+#!/bin/bash
+# LuxOS - initramfs: hlidani startu (luxos-boot-watch.service, jen v initramfs)
+#
+# 1) Spatne heslo k disku: systemd-cryptsetup zapise "Passphrase incorrect?" -> zprava na
+#    uvodni obrazovce (plymouth) i v konzoli. Pokusu je neomezene (systemd-cryptsetup@ se po
+#    3 neuspesnych pokusech spusti znovu, viz luxos-retry.conf) - preklep nikdy neskonci
+#    nouzovym rezimem.
+# 2) Systemovy disk: na zarizeni se ceka bez casoveho limitu (psani hesla muze trvat libovolne
+#    dlouho). Mimo cekani na heslo se ale pocita nejvys LUXOS_ROOT_WAIT s (90, parametr jadra
+#    luxos.root_wait=); kdyz se koren do te doby neobjevi, spusti se nouzovy rezim:
+#    luxos-boot-failure ulozi zaznam na EFI oddil a vypise, co delat.
+set -u
+ROOT=${LUXOS_BOOT_ROOT:-}
+SYSROOT=${LUXOS_BOOT_SYSROOT:-/sysroot}
+WAIT=90
+for a in $(cat "$ROOT/proc/cmdline" 2>/dev/null); do
+    case $a in luxos.root_wait=*) WAIT=${a#*=} ;; esac
+done
+[[ $WAIT =~ ^[0-9]+$ ]] || WAIT=90
+WAIT=${LUXOS_ROOT_WAIT:-$WAIT}
+TICK=${LUXOS_BOOT_TICK:-1}
+
+MSG_WRONG="Wrong password, try again."
+MSG_ROOT_TIMEOUT="The system disk did not appear in time."
+TTY_WRONG=$MSG_WRONG
+TTY_ROOT_TIMEOUT=$MSG_ROOT_TIMEOUT
+# shellcheck disable=SC1090
+[[ -r ${LUXOS_BOOT_MSG:-$ROOT/etc/luxos-boot.msg} ]] && . "${LUXOS_BOOT_MSG:-$ROOT/etc/luxos-boot.msg}"
+
+is_wrong_password() {  # radek zurnalu systemd-cryptsetup -> 0 pri spatnem hesle
+    case $1 in
+        *"Passphrase incorrect"*|*"passphrase incorrect"*|*"Key incorrect"*|*"No key available with this passphrase"*) return 0 ;;
+    esac
+    return 1
+}
+
+say() {  # say TEXT TEXT_KONZOLE: zprava na uvodni obrazovce i v textove konzoli
+    # Vykreslovac pisma uvodni obrazovky v initramfs (label-freetype) neumi znaky mimo ASCII
+    # (misto "S" s hackem ctverecek) - i tam text bez diakritiky jako v konzoli
+    plymouth display-message --text="${2:-$1}" >/dev/null 2>&1
+    printf '\n%s\n' "${2:-$1}" >"${LUXOS_BOOT_CONSOLE:-/dev/console}" 2>/dev/null
+}
+
+watch_passwords() {
+    # Hlidac startuje driv nez zurnal (journalctl -f by hned skoncil "No journal files"): pockat na
+    # zurnal a po kazdem skonceni journalctl ho spustit znovu. Zpravy se cisluji, takze stejny
+    # spatny pokus se po opakovanem spusteni neohlasi dvakrat.
+    local count=${LUXOS_BOOT_COUNT:-$ROOT/run/luxos-boot-wrong}
+    : >"$count" 2>/dev/null
+    while :; do
+        until compgen -G "$ROOT/run/log/journal/*" >/dev/null || [[ -n ${LUXOS_BOOT_JOURNAL_READY-} ]]; do
+            sleep 0.3
+        done
+        local n=0
+        while IFS= read -r line; do
+            is_wrong_password "$line" || continue
+            n=$((n + 1))
+            if ((n > $(wc -l <"$count" 2>/dev/null || echo 0))); then
+                echo x >>"$count"
+                say "$MSG_WRONG" "$TTY_WRONG"
+            fi
+        done < <(journalctl -f -n all -o cat -t systemd-cryptsetup 2>/dev/null)
+        [[ -n ${LUXOS_BOOT_ONCE-} ]] && return 0
+        sleep 1
+    done
+}
+
+asking() {  # ceka se na heslo (systemd-ask-password) - cas na psani se nepocita
+    compgen -G "$ROOT/run/systemd/ask-password/ask.*" >/dev/null
+}
+
+timeout_now() {
+    echo "$TTY_ROOT_TIMEOUT" >"$ROOT/run/luxos-boot-reason" 2>/dev/null
+    say "$MSG_ROOT_TIMEOUT" "$TTY_ROOT_TIMEOUT"
+    systemctl --no-block start emergency.target
+}
+
+watch_root() {
+    # Pocita se jen cas, kdy se neceka na heslo: chybejici disk (ani sifrovany oddil, ani koren)
+    # tak skonci nouzovym rezimem se zaznamem, i kdyz je na zarizeni limit vypnuty
+    local waited=0
+    until mountpoint -q "$SYSROOT"; do
+        if asking; then
+            waited=0
+        elif ((waited >= WAIT)); then
+            timeout_now
+            return 1
+        fi
+        sleep "$TICK"
+        asking || waited=$((waited + TICK))
+    done
+    return 0
+}
+
+main() {
+    watch_passwords &
+    watch_root
+    wait
+}
+
+[[ ${LUXOS_BOOT_SOURCE_ONLY-} == 1 ]] || main

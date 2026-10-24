@@ -1,7 +1,7 @@
 # bash completion pro lux
 _lux() {
     local cur=${COMP_WORDS[COMP_CWORD]} cmd=${COMP_WORDS[1]} pac=/usr/lib/lux/alpm/bin/lux-engine
-    local cmds="install remove reinstall update upgrade search info list files owns autoremove clean fix configs config history pack drivers mirrors doctor"
+    local cmds="install remove reinstall update upgrade check search info list files owns autoremove clean fix configs config history pack drivers mirrors doctor"
     if ((COMP_CWORD == 1)); then
         COMPREPLY=($(compgen -W "$cmds --help --version --yes --verbose" -- "$cur")); return
     fi

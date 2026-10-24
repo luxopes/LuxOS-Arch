@@ -2,7 +2,8 @@
 """Falesny scanimage pro testy luxos-scan (bez skeneru). Chovani urcuje FAKE_SCAN:
 
   ok (vychozi) | busy | jam | adf (2 listy, pak prazdny podavac) | adf-empty | slow (ceka na SIGTERM)
-  | partial (preruseny zapis) | none (zadny skener)
+  | partial (preruseny zapis) | none (zadny skener) | camera (jen kamera notebooku, v4l)
+  FAKE_SCAN_MODE_FILE: soubor s rezimem, cte se pri kazdem spusteni
 """
 import os
 import signal
@@ -10,6 +11,9 @@ import sys
 import time
 
 mode = os.environ.get("FAKE_SCAN", "ok")
+if os.environ.get("FAKE_SCAN_MODE_FILE") and os.path.exists(os.environ["FAKE_SCAN_MODE_FILE"]):
+    with open(os.environ["FAKE_SCAN_MODE_FILE"]) as _f:
+        mode = _f.read().strip() or mode       # zmena za behu (skener zapnuty pozdeji)
 args = sys.argv[1:]
 
 
@@ -23,7 +27,9 @@ def opt(name):
 
 
 if "-f" in args:
-    if mode != "none":
+    if mode == "camera":
+        sys.stdout.write("v4l:/dev/video0\tNoname\tIntegrated Camera\tvirtual device\n")
+    elif mode != "none":
         sys.stdout.write("airscan:e0:HP LaserJet MFP M140w\tHP\tHP LaserJet MFP M140w (A1B2C3)\teSCL network scanner\n"
                          "airscan:w1:HP LaserJet MFP M140w\tHP\tHP LaserJet MFP M140w (A1B2C3)\tWSD network scanner\n"
                          "pixma:04A91234_ABC\tCANON\tCanon TS5300 series\tmultifunction peripheral\n")

@@ -34,6 +34,12 @@ on purpose.
   installs `hplip` (HP) or `gutenprint` (others) through `lux` (`lux_alpm.py`; it waits if the
   package database is busy). If that is not possible either, it uses a generic PostScript or PCL
   driver.
+- Printers whose only driver is in the AUR (Samsung SPL/QPDL lasers such as the Xpress M2020/M2026
+  series; `luxos_printing.AUR_DRIVERS`) get no queue. AUR packages cannot be built as root, so the
+  notification "needs a driver from the manufacturer" has an **Install Driver** button: it opens
+  Terminal with `lux install samsung-unified-driver-printer` and then runs
+  `pkexec luxos-printing-helper sync`. The Samsung PPD is per series ("M2020 Series" covers M2026).
+  "Add" in Printers & Scanners offers the same.
 - Some HP models need HP's proprietary plugin. The notification then says: "Open Terminal and run:
   hp-plugin".
 - A network printer without driverless support gets no queue automatically. The notification says
@@ -85,6 +91,9 @@ Run `luxos-scan` (optionally `--device <SANE device>`). It is a simple scanner w
   (`xdg-user-dir DOCUMENTS`, otherwise `~/Documents`). Temporary pages are kept in
   `~/.cache/luxos-scan`.
 - Scanning runs `scanimage` in a background thread. Cancel sends SIGTERM.
+- The laptop camera (SANE `v4l` backend) is never listed as a scanner.
+- With no scanner found the app keeps looking every few seconds, so a scanner switched on later
+  appears by itself. The refresh button in the title bar searches again at any time.
 
 ## Troubleshooting
 

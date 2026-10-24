@@ -697,6 +697,37 @@ cmd_config() {
     esac
 }
 
+cmd_check() {  # lux check: dostupne aktualizace (cerstve seznamy, bez prav roota, system beze zmeny)
+    local out rc n=0 lines=() l name old new
+    if alpm_ok; then
+        out=$(alpm check-updates 2>&1); rc=$?
+        if ((rc == 1)); then
+            printf '%s\n' "$out" >&2
+            return 1
+        fi
+        ((rc == 0)) && mapfile -t lines <<<"$out"
+    else
+        "$LUX_ENGINE" -Sy &>/dev/null || true
+        mapfile -t lines < <("$LUX_ENGINE" -Qu 2>/dev/null | awk '{print $1, $2, "->", $4}')
+    fi
+    for l in "${lines[@]}"; do
+        read -r name old _ new <<<"$l"
+        [[ -n $name && -n $new ]] || continue
+        printf '  %s%s%s %s%s%s → %s%s%s\n' "$B" "$name" "$R" "$D" "$old" "$R" "$G" "$new" "$R"
+        ((n++))
+    done
+    while read -r name old new; do
+        [[ -n $name ]] || continue
+        printf '  %s%s%s %s%s%s → %s%s%s %s(LuxOS)%s\n' "$B" "$name" "$R" "$D" "$old" "$R" "$G" "$new" "$R" "$C" "$R"
+        ((n++))
+    done < <(lp_updates 2>/dev/null)
+    if ((n)); then
+        say "$(T "%s update(s) available - run: lux update" "$n")"
+    else
+        ok "$(T "System up to date")"
+    fi
+}
+
 cmd_doctor() {
     local issues=0 n
     say "$(T "LuxOS system check")"
@@ -755,6 +786,7 @@ usage() {
 install, i <pkg...>|install packages (repositories, then AUR / Flathub)
 remove, rm <pkg...>|remove packages and their unneeded dependencies
 update, upgrade, up|update everything (system, AUR, Flatpak)
+check, check-updates|show available updates without installing them
 search, s <term>|search repositories and AUR
 info <pkg>|show package details
 list [--installed]|list installed packages
@@ -887,6 +919,7 @@ case $cmd in
     remove|rm|uninstall) cmd_remove "$@" ;;
     reinstall)          cmd_reinstall "$@" ;;
     update|up|upgrade)  cmd_update ;;
+    check|check-updates) cmd_check ;;
     search|s|find)      cmd_search "$@" ;;
     info|show)          cmd_info "$@" ;;
     list|ls)            cmd_list "$@" ;;

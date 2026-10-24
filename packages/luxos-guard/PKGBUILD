@@ -5,7 +5,7 @@
 
 pkgname=luxos-guard
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Lux Guard - checks programs from downloads, attachments and USB drives before they run; /home snapshots"
 arch=(any)
 url="https://luxos.lux-ai.cz/"

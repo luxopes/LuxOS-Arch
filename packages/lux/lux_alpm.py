@@ -476,8 +476,10 @@ def build_handle(api, conf):
             continue
         if attr == "hookdirs":
             # hooky z /usr/share/libalpm/hooks pridava libalpm sam; HookDir (napr. /etc/lux/hooks)
-            # je nutne jen kdyz v nem nejake hooky jsou
-            needed = any(glob.glob(os.path.join(root, d.lstrip("/"), "*.hook")) for d in vals)
+            # je nutne jen kdyz v nem nejake hooky jsou a jen pro transakce: kontrola aktualizaci,
+            # hledani a informace nic neinstaluji (sdileny ESP ma v /etc/lux/hooks hook kopie jadra,
+            # pyalpm bez hookdirs pak odmital i "check-updates" Obchodu)
+            needed = TRANSACTION and any(glob.glob(os.path.join(root, d.lstrip("/"), "*.hook")) for d in vals)
         else:
             needed = True
         if hasattr(h, adder):
@@ -760,6 +762,7 @@ class Callbacks:
         self.pacnew = 0
         self.hosts = set()
         self.failed_hosts = []
+        self.corrupted = []         # poskozene stazene balicky (cesty z otazky libalpm)
 
     # stahovani
     def dl(self, *args):
@@ -896,6 +899,14 @@ class Callbacks:
         """Otazky libalpm. S -y (a ve strojovem rezimu) odpovi jako pacman --noconfirm."""
         q = next((a for a in args if isinstance(a, int)), 0)
         text = " ".join(str(a) for a in args if isinstance(a, str))
+        if q == Q_CORRUPTED_PKG:
+            # poskozeny soubor v mezipameti se vzdy smaze (bez otazky) a stahne znovu - viz _transaction
+            for a in args:
+                if isinstance(a, (str, bytes)):
+                    a = a.decode(errors="replace") if isinstance(a, bytes) else a
+                    if ".pkg.tar" in a and a not in self.corrupted:
+                        self.corrupted.append(a)
+            return 1
         defaults = {Q_INSTALL_IGNOREPKG: True, Q_REPLACE_PKG: True, Q_CONFLICT_PKG: False,
                     Q_CORRUPTED_PKG: True, Q_REMOVE_PKGS: False, Q_SELECT_PROVIDER: 0, Q_IMPORT_KEY: True}
         default = defaults.get(q, False)
@@ -1148,9 +1159,29 @@ class Lux:
         add = list(add)
         check_gpu = True
         attempt = 1
+        corrupt_retried = []
         while True:
             try:
                 return self._transaction(action, add, remove, sysupgrade, flags, explicit, confirmed, check_gpu)
+            except _RetryCorrupt as r:
+                # poskozeny balik v mezipameti: libalpm ho smazal, jednou stahnout znovu
+                confirmed = True
+                names = [n for n in (r.names or corrupt_retried) if n != "?"]
+                if corrupt_retried:
+                    if names:
+                        msg = _("The package %s was damaged again after a new download. "
+                                "The server may be updating it - try again later.") % ", ".join(names)
+                    else:
+                        msg = _("A downloaded package was damaged again after a new download. "
+                                "The server may be updating it - try again later.")
+                    raise LuxError("corrupt", msg, r.error.details)
+                corrupt_retried = names or ["?"]
+                self.ui.emit("RETRY", "corrupt")
+                if not self.ui.machine:
+                    self.ui.write(self.ui.yellow("↻ ") + (
+                        _("Downloaded package %s was damaged, downloading it again…") % ", ".join(names) if names
+                        else _("A downloaded package was damaged, downloading it again…")))
+                continue
             except _Reprovide as r:
                 # jen jednou a nepocita se mezi opakovani pri chybe site
                 check_gpu = False
@@ -1229,6 +1260,14 @@ class Lux:
                 # sit: nic se jeste neinstalovalo (stahuje se pred instalaci) -> zopakovat
                 if kind == "network" and self.cb.current is None:
                     raise _Retry(err)
+                # poskozeny balik z mezipameti (kontrola probiha pred instalaci): smazat a stahnout znovu
+                if kind == "corrupt" and self.cb.current is None:
+                    for f in self.cb.corrupted:
+                        try:
+                            os.unlink(f)
+                        except OSError:
+                            pass
+                    raise _RetryCorrupt(err, sorted({package_from_file(f) for f in self.cb.corrupted}))
                 raise err
             ui.phase_done(True)
             self.summary(action, plan, to_add, to_remove, explicit, time.time() - start, flags)
@@ -1372,6 +1411,21 @@ class _Reprovide(Exception):
     def __init__(self, extra):
         super().__init__("reprovide")
         self.extra = extra
+
+
+def package_from_file(path):
+    """/var/cache/lux/pkg/firefox-132.0-1-x86_64.pkg.tar.zst -> firefox"""
+    base = os.path.basename(path)
+    base = re.sub(r"\.pkg\.tar(\.[a-z0-9]+)?(\.sig)?$", "", base)
+    parts = base.rsplit("-", 3)
+    return parts[0] if len(parts) == 4 else base
+
+
+class _RetryCorrupt(Exception):
+    def __init__(self, error, names):
+        super().__init__(error.message)
+        self.error = error
+        self.names = names
 
 
 class _Retry(Exception):
@@ -1849,12 +1903,35 @@ def cmd_check_updates(lux, args):
     src = os.path.join(real, "sync")
     try:
         for f in os.listdir(src):
+            if not f.endswith(".db"):
+                continue
             a, b = os.path.join(src, f), os.path.join(tmp, "sync", f)
             if os.path.isfile(a) and (not os.path.exists(b) or os.path.getmtime(a) > os.path.getmtime(b)):
+                # databaze a jeji podpis vzdy spolu: stary podpis k novejsi databazi by neprosel
+                # overenim ("signature is invalid") a kontrola aktualizaci v Obchode by selhala
                 shutil.copy2(a, b)
+                if os.path.isfile(a + ".sig"):
+                    shutil.copy2(a + ".sig", b + ".sig")
+                elif os.path.exists(b + ".sig"):
+                    os.unlink(b + ".sig")
     except OSError:
         pass
-    tconf = conf.with_options({"DBPath": tmp, "LogFile": "/dev/null"}, drop=("DownloadUser",))
+    opts = {"DBPath": tmp, "LogFile": "/dev/null"}
+    if os.geteuid() != 0:
+        # gpgme (overeni podpisu databazi) potrebuje do slozky klicu zapisovat (zamky, trustdb);
+        # /etc/lux/keyring patri rootovi -> bezny uzivatel (Obchod) pracuje s kopii verejnych klicu
+        gdir = conf.get("GPGDir", "/etc/lux/keyring")
+        mine = os.path.join(tmp, "gnupg")
+        os.makedirs(mine, mode=0o700, exist_ok=True)
+        for f in ("pubring.gpg", "pubring.kbx", "trustdb.gpg", "gpg.conf"):
+            a, b = os.path.join(gdir, f), os.path.join(mine, f)
+            try:
+                if os.path.isfile(a) and (not os.path.exists(b) or os.path.getmtime(a) > os.path.getmtime(b)):
+                    shutil.copy2(a, b)
+            except OSError:
+                pass
+        opts["GPGDir"] = mine
+    tconf = conf.with_options(opts, drop=("DownloadUser",))
     tl = Lux(lux.ui, api=lux.api, conf=tconf)
     tl.h
     tl.cb.reset("refresh")
@@ -1862,8 +1939,18 @@ def cmd_check_updates(lux, args):
     for db in tl.syncdbs("Sync"):
         try:
             db.update(False)
-        except tl.api.error as e:
-            failed.append(f"{db.name}: {alpm_error_parts(e)[0]}")
+        except tl.api.error:
+            # kopie ze systemu nemusi sedet (databaze a podpis z ruznych chvil, prerusena
+            # aktualizace): docasnou kopii zahodit a stahnout nacisto
+            for suffix in (".db", ".db.sig"):
+                try:
+                    os.unlink(os.path.join(tmp, "sync", db.name + suffix))
+                except OSError:
+                    pass
+            try:
+                db.update(True)
+            except tl.api.error as e:
+                failed.append(f"{db.name}: {alpm_error_parts(e)[0]}")
     if failed:
         raise LuxError("refresh", _("The package lists could not be refreshed. Check your internet connection and try again."), failed)
     tl.conf = tconf
@@ -1990,6 +2077,7 @@ def cmd_migrate(lux, args):
 
 
 ROOT_CMDS = {"sync", "install", "reinstall", "remove", "autoremove", "upgrade", "update", "clean"}
+TRANSACTION = True      # main(): False pro prikazy bez zmen systemu (hooky se nespousti)
 
 
 def build_parser():
@@ -2081,6 +2169,8 @@ def main(argv=None, api=None, conf=None, out=None, inp=None):
     rc = 0
     if args.cmd in ROOT_CMDS and conf is None:
         maybe_migrate(ui)
+    global TRANSACTION
+    TRANSACTION = args.cmd in ROOT_CMDS
     try:
         rc = args.fn(lux, args) or 0
     except LuxError as e:

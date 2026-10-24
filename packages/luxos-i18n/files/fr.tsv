@@ -2567,3 +2567,25 @@ Brightness	Luminosité
 Lower the screen to 60 Hz	Réduire l’écran à 60 Hz
 A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Un peu plus d’autonomie sur les écrans 90–165 Hz. L’écran devient noir un instant à l’activation ou la désactivation de l’Économiseur de batterie.
 Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Meilleure autonomie : processeur plus lent sans turbo, luminosité un peu plus faible, sans animations, les appareils inutilisés se mettent en veille et les tâches de fond sont suspendues.
+Could not put LuxOS first in the UEFI boot order; choose it in the boot menu (F12).	Impossible de placer LuxOS en premier dans l’ordre de démarrage UEFI ; choisissez-le dans le menu de démarrage (F12).
+# Start systemu (initramfs, luxos-boot)
+Wrong password, try again.	Mot de passe incorrect, réessayez.
+LuxOS could not start.	Impossible de démarrer LuxOS.
+The start-up log was saved to the EFI partition as %s.	Le journal de démarrage a été enregistré sur la partition EFI sous %s.
+The start-up log could not be saved.	Le journal de démarrage n’a pas pu être enregistré.
+Restart the computer with Ctrl+Alt+Delete.	Redémarrez l’ordinateur avec Ctrl+Alt+Suppr.
+In the start menu choose the previous kernel or another system.	Dans le menu de démarrage, choisissez le noyau précédent ou un autre système.
+If the disk is encrypted, check the password and the keyboard layout.	Si le disque est chiffré, vérifiez le mot de passe et la disposition du clavier.
+The system disk did not appear in time.	Le disque système n’est pas apparu à temps.
+show available updates without installing them	afficher les mises à jour disponibles sans les installer
+Downloaded package %s was damaged, downloading it again…	Le paquet téléchargé %s était endommagé, nouveau téléchargement…
+A downloaded package was damaged, downloading it again…	Un paquet téléchargé était endommagé, nouveau téléchargement…
+The package %s was damaged again after a new download. The server may be updating it - try again later.	Le paquet %s était encore endommagé après un nouveau téléchargement. Le serveur est peut-être en cours de mise à jour – réessayez plus tard.
+A downloaded package was damaged again after a new download. The server may be updating it - try again later.	Un paquet téléchargé était encore endommagé après un nouveau téléchargement. Le serveur est peut-être en cours de mise à jour – réessayez plus tard.
+Printer “%s” needs a driver from the manufacturer	L’imprimante « %s » a besoin d’un pilote du fabricant
+Click Install Driver. LuxOS downloads and builds it (this takes a few minutes and asks for your password), then sets up the printer.	Cliquez sur Installer le pilote. LuxOS le télécharge et le compile (quelques minutes, votre mot de passe sera demandé), puis configure l’imprimante.
+Install Driver	Installer le pilote
+Done. You can close this window.	Terminé. Vous pouvez fermer cette fenêtre.
+Search for scanners again	Rechercher à nouveau les scanners
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Allumez le scanner et connectez-le par câble USB ou au même réseau Wi‑Fi que cet ordinateur. Il apparaîtra ici automatiquement dès que LuxOS le trouvera.
+The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	Le lecteur n’a pas pu lire votre doigt correctement. Nettoyez le capteur et votre doigt, puis cliquez sur Réessayer.

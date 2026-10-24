@@ -15,7 +15,8 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "files"))
-import luxos_scan as ls  # noqa: E402
+import luxos_scan as ls
+import luxos_printing as lp  # noqa: E402
 
 FAKE = os.path.join(HERE, "fake")
 
@@ -40,6 +41,7 @@ LIST = ("airscan:w1:HP LaserJet MFP M140w\tHP\tHP LaserJet MFP M140w (A1B2C3)\tW
         "pixma:04A91234_ABC\tCANON\tCanon TS5300 series\tmultifunction peripheral\n"
         "airscan:e1:Brother USB\tBrother\tDCP-L2530DW USB\teSCL network scanner\n"
         "hpaio:/usb/Deskjet_2130?serial=CN1\tHewlett-Packard\tDeskjet 2130\tall-in-one\n"
+        "v4l:/dev/video0\tNoname\tIntegrated Camera: Integrated C\tvirtual device\n"
         "garbage line\n\n")
 
 
@@ -57,6 +59,10 @@ class Devices(FakePath):
         self.assertEqual(d[1]["conn"], "")
         self.assertEqual(d[2]["conn"], "usb")
         self.assertEqual(ls.parse_devices(""), [])
+        # kamera notebooku (SANE v4l) neni skener
+        self.assertFalse(any(x["id"].startswith("v4l:") for x in d))
+        self.assertTrue(lp.is_camera("v4l:/dev/video2", "virtual device"))
+        self.assertFalse(lp.is_camera("pixma:04A91234_ABC", "multifunction peripheral"))
 
     def test_list_fake(self):
         d = ls.list_devices()

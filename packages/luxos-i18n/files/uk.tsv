@@ -2568,3 +2568,25 @@ Brightness	Яскравість
 Lower the screen to 60 Hz	Знизити екран до 60 Гц
 A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Трохи довше від батареї на екранах 90–165 Гц. Під час увімкнення та вимкнення Економії батареї екран на мить темніє.
 Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Довша робота від батареї: повільніший процесор без турбо, трохи нижча яскравість, без анімацій, невикористовувані пристрої засинають, а фонові завдання призупиняються.
+Could not put LuxOS first in the UEFI boot order; choose it in the boot menu (F12).	Не вдалося поставити LuxOS першим у порядку завантаження UEFI; виберіть його в меню завантаження (F12).
+# Start systemu (initramfs, luxos-boot)
+Wrong password, try again.	Неправильний пароль, спробуйте ще раз.
+LuxOS could not start.	Не вдалося запустити LuxOS.
+The start-up log was saved to the EFI partition as %s.	Журнал запуску збережено на розділі EFI як %s.
+The start-up log could not be saved.	Не вдалося зберегти журнал запуску.
+Restart the computer with Ctrl+Alt+Delete.	Перезапустіть комп’ютер клавішами Ctrl+Alt+Delete.
+In the start menu choose the previous kernel or another system.	У меню запуску виберіть попереднє ядро або іншу систему.
+If the disk is encrypted, check the password and the keyboard layout.	Якщо диск зашифровано, перевірте пароль і розкладку клавіатури.
+The system disk did not appear in time.	Системний диск не з’явився вчасно.
+show available updates without installing them	показати доступні оновлення без встановлення
+Downloaded package %s was damaged, downloading it again…	Завантажений пакет %s був пошкоджений, завантажую його знову…
+A downloaded package was damaged, downloading it again…	Завантажений пакет був пошкоджений, завантажую його знову…
+The package %s was damaged again after a new download. The server may be updating it - try again later.	Пакет %s був пошкоджений і після повторного завантаження. Можливо, сервер саме його оновлює – спробуйте пізніше.
+A downloaded package was damaged again after a new download. The server may be updating it - try again later.	Завантажений пакет був пошкоджений і після повторного завантаження. Можливо, сервер саме його оновлює – спробуйте пізніше.
+Printer “%s” needs a driver from the manufacturer	Принтеру «%s» потрібен драйвер від виробника
+Click Install Driver. LuxOS downloads and builds it (this takes a few minutes and asks for your password), then sets up the printer.	Натисніть «Встановити драйвер». LuxOS завантажить і збере його (це займе кілька хвилин і запитає пароль), а потім налаштує принтер.
+Install Driver	Встановити драйвер
+Done. You can close this window.	Готово. Можна закрити це вікно.
+Search for scanners again	Знову шукати сканери
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Увімкніть сканер і під’єднайте його USB-кабелем або до тієї ж мережі Wi‑Fi, що й цей комп’ютер. Він з’явиться тут сам, щойно LuxOS його знайде.
+The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	Зчитувач не зміг достатньо добре прочитати палець. Протріть сенсор і палець, потім натисніть «Спробувати знову».

@@ -2567,3 +2567,25 @@ Brightness	Helderheid
 Lower the screen to 60 Hz	Scherm verlagen naar 60 Hz
 A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Iets meer accuduur op schermen van 90–165 Hz. Het scherm wordt even zwart wanneer Batterijbesparing aan- of uitgaat.
 Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Langere accuduur: tragere processor zonder turbo, iets lagere helderheid, geen animaties, ongebruikte apparaten slapen en achtergrondtaken pauzeren.
+Could not put LuxOS first in the UEFI boot order; choose it in the boot menu (F12).	LuxOS kon niet als eerste in de UEFI-opstartvolgorde worden gezet; kies het in het opstartmenu (F12).
+# Start systemu (initramfs, luxos-boot)
+Wrong password, try again.	Onjuist wachtwoord, probeer het opnieuw.
+LuxOS could not start.	LuxOS kon niet starten.
+The start-up log was saved to the EFI partition as %s.	Het opstartlogboek is op de EFI-partitie opgeslagen als %s.
+The start-up log could not be saved.	Het opstartlogboek kon niet worden opgeslagen.
+Restart the computer with Ctrl+Alt+Delete.	Start de computer opnieuw met Ctrl+Alt+Delete.
+In the start menu choose the previous kernel or another system.	Kies in het opstartmenu de vorige kernel of een ander systeem.
+If the disk is encrypted, check the password and the keyboard layout.	Is de schijf versleuteld, controleer dan het wachtwoord en de toetsenbordindeling.
+The system disk did not appear in time.	De systeemschijf verscheen niet op tijd.
+show available updates without installing them	beschikbare updates tonen zonder ze te installeren
+Downloaded package %s was damaged, downloading it again…	Het gedownloade pakket %s was beschadigd, opnieuw downloaden…
+A downloaded package was damaged, downloading it again…	Een gedownload pakket was beschadigd, opnieuw downloaden…
+The package %s was damaged again after a new download. The server may be updating it - try again later.	Het pakket %s was ook na opnieuw downloaden beschadigd. De server werkt het misschien net bij – probeer het later opnieuw.
+A downloaded package was damaged again after a new download. The server may be updating it - try again later.	Een gedownload pakket was ook na opnieuw downloaden beschadigd. De server werkt het misschien net bij – probeer het later opnieuw.
+Printer “%s” needs a driver from the manufacturer	Printer ‘%s’ heeft een stuurprogramma van de fabrikant nodig
+Click Install Driver. LuxOS downloads and builds it (this takes a few minutes and asks for your password), then sets up the printer.	Klik op Stuurprogramma installeren. LuxOS downloadt en bouwt het (duurt een paar minuten en vraagt om je wachtwoord) en stelt daarna de printer in.
+Install Driver	Stuurprogramma installeren
+Done. You can close this window.	Klaar. Je kunt dit venster sluiten.
+Search for scanners again	Opnieuw naar scanners zoeken
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Zet de scanner aan en sluit hem aan met een USB-kabel of op hetzelfde wifinetwerk als deze computer. Hij verschijnt hier vanzelf zodra LuxOS hem vindt.
+The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	De lezer kon je vinger niet goed genoeg lezen. Maak de sensor en je vinger schoon en klik op Opnieuw proberen.

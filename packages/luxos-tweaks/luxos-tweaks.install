@@ -1,9 +1,19 @@
 # LuxOS - prechod ze systemd-oomd na earlyoom u stavajicich instalaci
+# Hook initramfs "luxos-boot": drop-in v /etc (mkinitcpio cte jen /etc/mkinitcpio.conf.d), vlastni
+# zmeny uzivatele se neprepisuji. Initramfs se znovu sestavi sam (hook mkinitcpio na usr/lib/initcpio).
+_boot_hook() {
+    local d=/etc/mkinitcpio.conf.d f=/etc/mkinitcpio.conf.d/zz-luxos-boot.conf
+    [ -e "$f" ] && return 0
+    mkdir -p "$d" && install -m644 /usr/lib/luxos/boot/zz-luxos-boot.conf "$f"
+}
+
 post_install() {
     systemctl enable earlyoom.service >/dev/null 2>&1 || true
+    _boot_hook
 }
 
 post_upgrade() {
+    _boot_hook
     systemctl disable systemd-oomd.service systemd-oomd.socket >/dev/null 2>&1 || true
     # Cache balicku cisti LuxOS Care (lux); paccache.timer z pacman-contrib uz LuxOS nepouziva
     systemctl disable paccache.timer >/dev/null 2>&1 || true
@@ -14,4 +24,8 @@ post_upgrade() {
         systemctl stop paccache.timer >/dev/null 2>&1 || true
         systemctl restart earlyoom.service >/dev/null 2>&1 || true
     fi
+}
+
+post_remove() {
+    rm -f /etc/mkinitcpio.conf.d/zz-luxos-boot.conf
 }

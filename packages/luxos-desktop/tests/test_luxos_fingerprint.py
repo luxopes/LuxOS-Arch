@@ -160,7 +160,7 @@ class Gui(unittest.TestCase):
         self.win.enroll("left-index-finger")
         self.assertTrue(pump(3, lambda: "Didn't catch" in self.win.enroll_status.get_text()))
         self.assertIn("error", self.win.enroll_status.get_style_context().list_classes())
-        self.assertTrue(pump(3, lambda: "Could not add" in self.win.enroll_status.get_text()))
+        self.assertTrue(pump(3, lambda: "could not read your finger" in self.win.enroll_status.get_text()))
         self.assertTrue(self.win.enroll_cancel.get_visible())
         self.assertEqual(self.win.enroll_cancel.get_label(), "Back")
         self.assertFalse(self.win.enroll_done.get_visible())
@@ -170,6 +170,21 @@ class Gui(unittest.TestCase):
         pump(0.2)
         c = self.calls()
         self.assertEqual(c.count("Claim "), c.count("Release"))
+
+    def test_enroll_try_again(self):
+        """Po neuspechu tlacitko Zkusit znovu: stejny prst znovu, az po uvolneni ctecky."""
+        self.start("--enroll-script", "enroll-failed")
+        self.wait_main()
+        self.win.enroll("left-index-finger")
+        self.assertTrue(pump(3, lambda: self.win.enroll_retry.get_visible() and self.win.enroll_retry.get_sensitive()))
+        c = self.calls()
+        self.assertEqual(c.count("Claim "), c.count("Release"))
+        self.win.enroll_retry.clicked()
+        self.assertEqual(self.win.enroll_title.get_text(), "Left index finger")
+        self.assertFalse(self.win.enroll_retry.get_visible())
+        self.assertEqual(self.win.enroll_cancel.get_label(), "Cancel")
+        self.assertTrue(pump(3, lambda: sum(c.startswith("EnrollStart") for c in self.calls()) == 2))
+        self.assertTrue(pump(3, lambda: self.win.enroll_retry.get_visible()))
 
     def test_cancel_enroll(self):
         self.start("--stages", "40")
