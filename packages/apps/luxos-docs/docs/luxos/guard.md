@@ -135,3 +135,9 @@ On ext4/xfs or when `/home` is not a subvolume there are no snapshots (`luxos-gu
 
 Related: [sandbox.md](sandbox.md), [for-ai-assistants.md](for-ai-assistants.md),
 [troubleshooting.md](troubleshooting.md).
+
+## Live system
+
+In the live system started from the USB stick (`/run/archiso` exists) Lux Guard does not run: the
+installer itself runs disk tools (`mkfs`, `cryptsetup`, `dd`) and nothing in the live session is kept.
+The installed system has Lux Guard from the first start.

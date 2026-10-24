@@ -2567,3 +2567,25 @@ Brightness	Ljusstyrka
 Lower the screen to 60 Hz	Sänk skärmen till 60 Hz
 A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Lite längre batteritid på skärmar med 90–165 Hz. Skärmen blir svart ett ögonblick när Batterisparläge slås på eller av.
 Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Längre batteritid: långsammare processor utan turbo, något lägre ljusstyrka, inga animationer, oanvända enheter viloläge och bakgrundsuppgifter pausas.
+Could not put LuxOS first in the UEFI boot order; choose it in the boot menu (F12).	LuxOS kunde inte placeras först i UEFI-startordningen; välj det i startmenyn (F12).
+# Start systemu (initramfs, luxos-boot)
+Wrong password, try again.	Fel lösenord, försök igen.
+LuxOS could not start.	LuxOS kunde inte starta.
+The start-up log was saved to the EFI partition as %s.	Startloggen sparades på EFI-partitionen som %s.
+The start-up log could not be saved.	Startloggen kunde inte sparas.
+Restart the computer with Ctrl+Alt+Delete.	Starta om datorn med Ctrl+Alt+Delete.
+In the start menu choose the previous kernel or another system.	Välj den tidigare kärnan eller ett annat system i startmenyn.
+If the disk is encrypted, check the password and the keyboard layout.	Om disken är krypterad, kontrollera lösenordet och tangentbordslayouten.
+The system disk did not appear in time.	Systemdisken dök inte upp i tid.
+show available updates without installing them	visa tillgängliga uppdateringar utan att installera dem
+Downloaded package %s was damaged, downloading it again…	Det hämtade paketet %s var skadat, hämtar det igen…
+A downloaded package was damaged, downloading it again…	Ett hämtat paket var skadat, hämtar det igen…
+The package %s was damaged again after a new download. The server may be updating it - try again later.	Paketet %s var skadat även efter en ny hämtning. Servern uppdaterar det kanske just nu – försök igen senare.
+A downloaded package was damaged again after a new download. The server may be updating it - try again later.	Ett hämtat paket var skadat även efter en ny hämtning. Servern uppdaterar det kanske just nu – försök igen senare.
+Printer “%s” needs a driver from the manufacturer	Skrivaren ”%s” behöver en drivrutin från tillverkaren
+Click Install Driver. LuxOS downloads and builds it (this takes a few minutes and asks for your password), then sets up the printer.	Klicka på Installera drivrutin. LuxOS hämtar och bygger den (tar några minuter och frågar efter ditt lösenord) och ställer sedan in skrivaren.
+Install Driver	Installera drivrutin
+Done. You can close this window.	Klart. Du kan stänga fönstret.
+Search for scanners again	Sök efter skannrar igen
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Slå på skannern och anslut den med en USB-kabel eller till samma wifi-nätverk som den här datorn. Den visas här av sig själv så snart LuxOS hittar den.
+The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	Läsaren kunde inte läsa fingret tillräckligt bra. Rengör sensorn och fingret och klicka sedan på Försök igen.

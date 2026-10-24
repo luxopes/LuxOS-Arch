@@ -159,7 +159,8 @@ class Handle:
         self.logfile = ""
         self.arch = ""
         self.dlcb = self.progresscb = self.eventcb = self.logcb = self.questioncb = None
-        self.commit_errors = []       # vyjimky, ktere vyhodi dalsi commit (testy chyb a opakovani)
+        self.commit_errors = []
+        self.commit_questions = []    # otazky libalpm pred chybou commitu (napr. poskozeny balik)       # vyjimky, ktere vyhodi dalsi commit (testy chyb a opakovani)
         self.prepare_errors = []
         self.transactions = []
         self.locked = False
@@ -279,6 +280,8 @@ class Transaction:
         h = self.h
         if self.h.commit_errors:
             err = self.h.commit_errors.pop(0)
+            if h.commit_questions and h.questioncb:
+                h.questioncb(*h.commit_questions.pop(0))
             if h.dlcb:
                 h.dlcb(self.to_add[0].filename if self.to_add else "x", 0, (False,))
             if h.logcb:

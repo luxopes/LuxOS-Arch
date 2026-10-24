@@ -435,6 +435,17 @@ ly_busy() {  # zarizeni nebo neco nad nim je pripojene / aktivni swap (mimo $TAR
     return 1
 }
 
+ly_vg_locked() {  # ly_vg_locked VG_ID: existujici skupina na existujicim LUKS, ktery jeste neni odemceny
+    local p base
+    local v=${L[$1.pvs]-}
+    for p in ${v//,/ }; do
+        [[ ${L[$p.kind]-} == luks && ${L[$p.keep]-0} == 1 ]] || continue
+        base=${L[${L[$p.on]}.dev]-}
+        [[ -n $base && -z $(ly_luks_dev_of "$base") ]] && return 0
+    done
+    return 1
+}
+
 ly_luks_dev_of() {  # mapper otevreneho LUKS na zarizeni (nebo nic)
     lsblk -nrpo NAME,TYPE "$1" 2>/dev/null | awk '$2 == "crypt" {print $1; exit}'
 }
@@ -521,11 +532,14 @@ layout_check_devices() {  # zarizeni existuji, nejsou pouzivana, existujici LUKS
     ((${#LY_ERR[@]})) || ly_capacity
     for id in $(ly_ids vg); do
         if [[ ${L[$id.keep]-0} == 1 ]]; then
+            # Skupina v zamcenem LUKS (instalace z konfigurace): overi ji az vgchange po odemceni
+            ly_vg_locked "$id" && continue
             vgs "${L[$id.name]}" >/dev/null 2>&1 || ly_err vg_missing "${L[$id.name]}"
         fi
     done
     for id in $(ly_ids lv); do
         if [[ ${L[$id.keep]-0} == 1 ]]; then
+            ly_vg_locked "${L[$id.vg]}" && continue
             lvs "${L[${L[$id.vg]}.name]}/${L[$id.name]}" >/dev/null 2>&1 || ly_err lv_missing "${L[$id.name]}"
         fi
     done
@@ -613,12 +627,14 @@ ly_alloc_vg() {  # ly_alloc_vg ID: misto ve skupine -> L[lv.bytes], chyba vg_ful
     L[$id.alloc]=1
     vg=${L[$id.name]}
     if [[ ${L[$id.keep]-0} == 1 ]]; then
-        free=$(vgs --noheadings --units b --nosuffix -o vg_free "$vg" 2>/dev/null | tr -d ' ')
-        free=${free:-0}
+        free=$({ vgs --noheadings --units b --nosuffix -o vg_free "$vg" 2>/dev/null || true; } | tr -d ' ')
+        # Skupina zatim neni videt (lezi v LUKS, ktery se odemkne az pri provedeni - instalace z
+        # konfigurace bez GUI): misto nejde overit predem, lvcreate pri provedeni ohlasi pripadny nedostatek
+        [[ $free =~ ^[0-9]+$ ]] || free=$((1 << 62))
         # mazane LV uvolni misto
         for dl in $(ly_ids delete); do
             if [[ ${L[$dl.dev]} == /dev/$vg/* ]]; then
-                b=$(lvs --noheadings --units b --nosuffix -o lv_size "${L[$dl.dev]}" 2>/dev/null | tr -d ' ')
+                b=$({ lvs --noheadings --units b --nosuffix -o lv_size "${L[$dl.dev]}" 2>/dev/null || true; } | tr -d ' ')
                 free=$((free + ${b:-0}))
             fi
         done

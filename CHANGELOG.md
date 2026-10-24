@@ -4,6 +4,25 @@ Verze: `X.Y.Z` – `Y` roste s každým novým ISO, `Z` s opravami chyb. Každá
 Číslo verze je v `packages/luxos-branding/files/version` (os-release, O tomto počítači, fastfetch, název ISO).
 LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z jakého stavu systém vychází.
 
+## 0.9.9 „Polaris“ – 2026-10-24 (beta)
+
+### Nové
+- **Šifrovaný disk nikdy nespadne potichu** (hook `luxos-boot` v `luxos-tweaks`): při špatném hesle hláška „Spatne heslo, zkuste to znovu.“ na úvodní obrazovce i v konzoli, pokusů neomezeně (`systemd-cryptsetup@` se po 3 chybách spustí znovu), na zařízení se při psaní hesla nečeká s limitem. Když se systémový disk neobjeví do 90 s nebo start skončí v nouzovém režimu, uloží se záznam startu na EFI oddíl (`\EFI\LuxOS\boot-failure-*.log`, posledních 5) a vypíše se vysvětlení a co dělat.
+- `lux check` (dostupné aktualizace bez instalace), manuálová stránka `man lux`; poškozený stažený balíček lux sám smaže a stáhne znovu (i v Lux Store).
+- Instalátor přidá ostatní systémy ze sdíleného EFI oddílu (Debian, Ubuntu, Fedora, …) do nabídky při startu a dá LuxOS na první místo v pořadí UEFI.
+- Tiskárny, pro které je ovladač jen u výrobce (AUR, např. Samsung Xpress M2026/SPL): místo nefunkční tiskárny upozornění s tlačítkem „Nainstalovat ovladač“.
+- Skener: kamera už není nabízena jako skener, skener zapnutý později se najde sám (hledání každých 6 s, tlačítko „Hledat znovu“). Otisk prstu: tlačítko „Zkusit znovu“ po neúspěšném snímání.
+
+### Opravy
+- **Instalace vedle jiného systému do existujícího LUKS + LVM** (Debian): chybělo odemčení disku při startu (`rd.luks.name`, `sd-encrypt`) – systém skončil v nouzovém režimu; instalace z konfiguračního souboru se zastavila na kontrole zamčené skupiny LVM; jméno nového svazku se neuložilo (vždy „root“, kolize se svazkem Debianu).
+- Instalátor: ikona oka u všech polí s heslem, větší okno (pole pro heslo šifrování viditelná bez celé obrazovky).
+- Ventoy v běžném režimu („INIT NOT FOUND“): initramfs live ISO bez hooku `kms` (229 → 66 MB), ISO 2,42 → 2,10 GB.
+- Lux Store „Aktualizace se nepodařilo zkontrolovat“: na počítačích se sdíleným EFI odmítal `lux_alpm` kvůli `HookDir` (jen pro transakce), ověření podpisů pod uživatelem (kopie klíčů), nesouhlasná kopie databáze a podpisu (stáhne se načisto).
+- Lux Guard v živém systému z USB neběží (varoval před vlastním instalátorem).
+- Launchpad a Hledání: bez výběru najetím myši – neposouvá se samo a Enter spustí první (nejlepší) shodu.
+- „Internet není k dispozici“ po každém přihlášení: upozornění až po 20 s trvalého výpadku, ne v první minutě.
+- LuxAI 1.0.0-12: agent neohlásí akci bez provedení (jednou se sám dovede k akci), příkazy roota bez `pkexec` (režim správce).
+
 ## 0.9.8 „Polaris“ – 2026-10-24 (beta)
 
 ### Nové

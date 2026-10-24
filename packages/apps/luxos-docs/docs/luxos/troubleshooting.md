@@ -215,3 +215,19 @@ check memory with System Monitor (`luxos-monitor`). See
 
 **Feedback** (`luxos-feedback`, also in About This Computer › Send Feedback…) sends a report to the
 LuxOS author. See [apps.md](apps.md#feedback).
+
+## LuxOS does not start (emergency mode)
+
+The initramfs hook `luxos-boot` (package luxos-tweaks, added to every systemd initramfs by
+`/etc/mkinitcpio.conf.d/zz-luxos-boot.conf`) makes a failed start visible:
+
+- A wrong disk password shows "Wrong password, try again." on the splash screen and the console;
+  attempts are unlimited (`systemd-cryptsetup@` restarts after 3 failures), so a typo never ends
+  in emergency mode. While the password prompt is open there is no time limit.
+- Outside the password prompt LuxOS waits at most 90 s for the system disk (kernel parameter
+  `luxos.root_wait=SECONDS`), then starts emergency mode.
+- In emergency mode (initramfs or the started system) `luxos-boot-failure` saves the start-up log
+  to the EFI system partition as `\EFI\LuxOS\boot-failure-<time>.log` (the last 5 are kept) and
+  prints what happened and what to do. From another system the logs are e.g. in
+  `/boot/efi/EFI/LuxOS/` (Debian/Ubuntu) or `/efi/EFI/LuxOS/` (LuxOS).
+

@@ -573,11 +573,33 @@ class DiskBar(Gtk.DrawingArea):
         return False
 
 
+def PasswordEntry(**kw):
+    """Pole pro heslo s ikonou oka: klik heslo ukaze/skryje (preklep v hesle disku = nespustitelny system)."""
+    e = Gtk.Entry(visibility=False, **kw)
+    pos = Gtk.EntryIconPosition.SECONDARY
+
+    def show(entry, visible):
+        entry.set_visibility(visible)
+        entry.set_icon_from_icon_name(pos, "view-conceal-symbolic" if visible else "view-reveal-symbolic")
+        entry.set_icon_tooltip_text(pos, _("Hide password") if visible else _("Show password"))
+
+    show(e, False)
+    e.connect("icon-press", lambda entry, _p, _ev: show(entry, not entry.get_visibility()))
+    return e
+
+
 # ---- okno ------------------------------------------------------------------------
 class Installer(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Install LuxOS"))
-        self.set_default_size(860, 600)
+        # Vetsi okno na vetsich obrazovkach: Rucni rozdeleni (strom + heslo sifrovani) se vejde bez posouvani
+        w, h = 860, 600
+        mon = Gdk.Display.get_default().get_primary_monitor() if Gdk.Display.get_default() else None
+        if mon is not None:
+            geo = mon.get_workarea()
+            w = max(w, min(1100, int(geo.width * 0.8)))
+            h = max(h, min(820, int(geo.height * 0.85)))
+        self.set_default_size(w, h)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_icon_name("luxos-installer")
         self.header = Gtk.HeaderBar(show_close_button=True, title=_("Install LuxOS"))
@@ -910,8 +932,8 @@ class Installer(Gtk.Window):
 
     def password_pair(self, box, key1, key2, label1, label2):
         """Dve pole hesla + kontrola shody; vraci popisek chyby."""
-        e1 = Gtk.Entry(visibility=False, placeholder_text=label1, input_purpose=Gtk.InputPurpose.PASSWORD)
-        e2 = Gtk.Entry(visibility=False, placeholder_text=label2, input_purpose=Gtk.InputPurpose.PASSWORD)
+        e1 = PasswordEntry(placeholder_text=label1, input_purpose=Gtk.InputPurpose.PASSWORD)
+        e2 = PasswordEntry(placeholder_text=label2, input_purpose=Gtk.InputPurpose.PASSWORD)
         e1.set_text(self.s[key1])
         e2.set_text(self.s[key2])
         msg = self.hint("", "error")
@@ -985,7 +1007,7 @@ class Installer(Gtk.Window):
         sw.add(lb)
         page.pack_start(sw, True, True, 0)
         pwrow = Gtk.Box(spacing=8)
-        pw = Gtk.Entry(visibility=False, placeholder_text=_("Wi-Fi password"), hexpand=True)
+        pw = PasswordEntry(placeholder_text=_("Wi-Fi password"), hexpand=True)
         connect = Gtk.Button(label=_("Connect"))
         connect.get_style_context().add_class("primary")
         spinner = Gtk.Spinner()
@@ -1689,7 +1711,7 @@ class Installer(Gtk.Window):
                 r.set_property("xalign", 1.0)
             tv.append_column(c)
         tv.expand_all()
-        sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, min_content_height=280)
+        sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, min_content_height=200)
         sw.get_style_context().add_class("list")
         sw.add(tv)
         page.pack_start(sw, True, True, 0)
@@ -1728,8 +1750,8 @@ class Installer(Gtk.Window):
             t.get_style_context().add_class("card-title")
             enc.pack_start(t, False, False, 0)
             row = Gtk.Box(spacing=10)
-            e1 = Gtk.Entry(visibility=False, placeholder_text=_("Encryption password"))
-            e2 = Gtk.Entry(visibility=False, placeholder_text=_("Confirm password"))
+            e1 = PasswordEntry(placeholder_text=_("Encryption password"))
+            e2 = PasswordEntry(placeholder_text=_("Confirm password"))
             e1.set_text(self.s["luks1"])
             e2.set_text(self.s["luks2"])
             row.pack_start(e1, True, True, 0)
@@ -2017,8 +2039,8 @@ class Installer(Gtk.Window):
         enc = Gtk.CheckButton(label=_("Encrypt (LUKS2)"), active=luks is not None)
         enc.set_sensitive(not (luks is not None and luks.existing))
         row("", enc)
-        own_pass = Gtk.Entry(visibility=False, placeholder_text=_("Passphrase for this volume"))
-        own_pass2 = Gtk.Entry(visibility=False, placeholder_text=_("Confirm password"))
+        own_pass = PasswordEntry(placeholder_text=_("Passphrase for this volume"))
+        own_pass2 = PasswordEntry(placeholder_text=_("Confirm password"))
         if luks is not None and not luks.existing:
             own_pass.set_text(luks.passphrase)
             own_pass2.set_text(luks.passphrase)
@@ -2072,6 +2094,10 @@ class Installer(Gtk.Window):
         size = int(size_spin.get_value() * lay.GiB) // lay.MiB * lay.MiB if size_spin else 0
         is_rest = bool(rest and rest.get_active())
         mp = mount.get_child().get_text().strip().rstrip("/") or "/"
+        # jmeno precist pred dlg.destroy() - po zniceni okna uz Gtk.Entry vraci prazdny text
+        # (novy svazek pak dostal vychozi jmeno "root" i pres vlastni nazev)
+        name_text = name_e.get_text().strip() if name_e is not None else ""
+        name_editable = name_e is not None and name_e.get_sensitive()
         newuse = None
         if k == "fs":
             newuse = {"type": "fs", "mount": mp, "fstype": fs_combo.get_active_id() or "btrfs",
@@ -2086,14 +2112,22 @@ class Installer(Gtk.Window):
         # Zapis do modelu
         if node is None:
             if kind == "lv":
-                node = L.add_lv(vg, name_e.get_text().strip() or self.lv_name(newuse), size, is_rest)
+                name = name_text or self.lv_name(newuse)
+                taken = {n.name for n in L.of("lv") if n.vg == vg}
+                if not name_text and name in taken:
+                    # existujici skupina jineho systemu (napr. Debian ma svazek "root")
+                    base = "luxos" if newuse and newuse.get("mount") == "/" else name
+                    name, i = base, 2
+                    while name in taken:
+                        name, i = f"{base}{i}", i + 1
+                node = L.add_lv(vg, name, size, is_rest)
             else:
                 node = L.add_part(disk, size, is_rest)
         else:
             if size_spin is not None:
                 node.size, node.rest = size, is_rest
-            if name_e is not None and name_e.get_sensitive():
-                node.name = name_e.get_text().strip() or node.name
+            if name_editable:
+                node.name = name_text or node.name
         if node.kind == "part" and not node.existing:
             node.ptype = k if k in ("esp", "bios") else ""
         if resize_spin is not None:
@@ -2180,7 +2214,7 @@ class Installer(Gtk.Window):
         box.set_spacing(8)
         box.set_border_width(16)
         box.pack_start(self.hint(_("Enter the passphrase to see what is inside. Nothing is changed.")), False, False, 0)
-        pw = Gtk.Entry(visibility=False, activates_default=True)
+        pw = PasswordEntry(activates_default=True)
         box.pack_start(pw, False, False, 0)
         msg = self.hint("", "error")
         box.pack_start(msg, False, False, 0)

@@ -41,6 +41,9 @@ ENGINE = ENGINE_BIN + "/lux-engine"
 DB_LOCK = "/var/lib/lux/db.lck"
 
 
+FAILED = {}    # klic zarizeni -> {"why", "package"} posledniho neuspesneho pridani (prikaz add)
+
+
 def log(msg):
     print(f"luxos-printing: {msg}", file=sys.stderr, flush=True)
 
@@ -232,6 +235,12 @@ def create_queue(dev, queues):
             elif not installed(pkg):
                 missing = pkg
         ppd = ppd or lp.generic_ppd(dev["device_id"])
+        aur = lp.aur_driver(dev["device_id"])
+        if not ppd and aur and not installed(aur):
+            # Ovladac jen v AUR (napr. Samsung SPL): sestavit ho smi uzivatel pres lux, ne root -
+            # upozorneni s tlacitkem Nainstalovat ovladac (luxos-printing-notify)
+            dev["aur_package"] = aur
+            return None, "aurdriver"
         # Napr. HP LaserJet 1020: ovladac hplip potrebuje firmware HP (hp-plugin) - uzivateli to rekneme
         mm = next((m.get("make-and-model", "") for m in models_cache if m.get("name") == ppd), "")
         dev["needs_plugin"] = "proprietary plugin" in mm
@@ -275,18 +284,18 @@ def sessions():
     return res
 
 
-def notify(kind, name):
+def notify(kind, name, package=""):
     """Upozorneni v jazyce uzivatele: skript bezi pod jeho uzivatelskym spravcem systemd."""
     test_log = os.environ.get("LUXOS_PRINTING_NOTIFY_LOG")
     if test_log:
         with open(test_log, "a") as f:
-            f.write(f"{kind}\t{name}\n")
+            f.write(f"{kind}\t{name}" + (f"\t{package}" if package else "") + "\n")
         return
     for user, _uid, display in sessions():
         if not user:
             continue
         run(["systemd-run", "--quiet", "--collect", "--user", f"--machine={user}@.host",
-             f"--setenv=DISPLAY={display}", NOTIFY, kind, name], 15)
+             f"--setenv=DISPLAY={display}", NOTIFY, kind, name, *([package] if package else [])], 15)
 
 
 # ---- prikazy ----
@@ -341,9 +350,14 @@ def cmd_sync(st, only_key=None):
             if dev.get("needs_plugin"):
                 notify("plugin", d["name"])
             d["queue"] = name
-        elif why in ("driver", "manual") and st["notified"].get("driver:" + d["key"]) is None:
+        elif why in ("driver", "manual", "aurdriver") and (
+                st["notified"].get("driver:" + d["key"]) is None or
+                # ovladac z AUR: pri dalsim pripojeni pripomenout (nejvys jednou za den)
+                why == "aurdriver" and now - st["notified"]["driver:" + d["key"]] > 86400):
             st["notified"]["driver:" + d["key"]] = now
-            notify(why, d["name"])
+            notify(why, d["name"], dev.get("aur_package", ""))
+        if why and only_key is not None:
+            FAILED[d["key"]] = {"why": why, "package": dev.get("aur_package", "")}
     # Vychozi tiskarna, kdyz zadna neni
     if added and not cups_default():
         run(["lpadmin", "-d", added[0][0]], 20)
@@ -398,7 +412,9 @@ def main(argv):
                 print(json.dumps(devs))
             elif cmd == "add" and len(args) == 1:
                 added = cmd_sync(st, only_key=args[0])
-                print(json.dumps({"queue": added[0] if added else None}))
+                fail = FAILED.get(args[0], {})
+                print(json.dumps({"queue": added[0] if added else None, "needs": fail.get("why"),
+                                  "package": fail.get("package") or None}))
                 if not added:
                     return 1
             elif cmd == "remove" and len(args) == 1:

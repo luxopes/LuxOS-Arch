@@ -143,6 +143,8 @@ def watch_session():
 def main():
     if os.getuid() == 0:
         return 0
+    if os.path.exists("/run/archiso"):
+        return 0                # live system z USB: sluzba nebezi (instalace)
     threading.Thread(target=watch_session, daemon=True).start()
     try:
         Agent().run()

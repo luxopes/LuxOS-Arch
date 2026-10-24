@@ -3,6 +3,39 @@
 set -Eeuo pipefail
 . /root/luxos-setup.env
 
+# Jine systemy se zavadecem EFI na stejnem ESP (Debian, Ubuntu, Fedora...) do nabidky systemd-boot.
+# Windows najde systemd-boot sam; existujici polozky (i rucne psane) se nikdy neprepisuji.
+other_systems_entries() {  # other_systems_entries ESP -> pocet systemu v nabidce na stdout
+    local esp=$1 d name file f title id count=0 lower
+    mkdir -p "$esp/loader/entries"
+    for d in "$esp"/[Ee][Ff][Ii]/*/; do
+        [[ -d $d ]] || continue
+        name=${d%/}; name=${name##*/}
+        lower=${name,,}
+        case $lower in boot|systemd|luxos|linux|microsoft) continue ;; esac
+        file=""
+        for f in shimx64.efi grubx64.efi; do
+            file=$(find "$d" -maxdepth 1 -iname "$f" -printf '%f\n' 2>/dev/null | head -n1)
+            [[ -n $file ]] && break
+        done
+        [[ -n $file ]] || continue
+        # Uz v nabidce (jakakoli polozka se stejnym adresarem zavadece)?
+        if grep -qisF "/EFI/$name/" "$esp"/loader/entries/*.conf 2>/dev/null; then
+            count=$((count + 1)); continue
+        fi
+        case $lower in
+            debian) title=Debian ;; ubuntu) title=Ubuntu ;; fedora) title=Fedora ;;
+            opensuse) title=openSUSE ;; kali) title="Kali Linux" ;; *) title=${name^} ;;
+        esac
+        id=$(printf '%s' "$lower" | tr -c 'a-z0-9-' '-')
+        # bez sort-key: radi se za LuxOS (polozky se sort-key maji prednost, pak podle nazvu souboru)
+        [[ -e $esp/loader/entries/other-$id.conf ]] || printf 'title   %s\nefi     /EFI/%s/%s\n' \
+            "$title" "$name" "$file" >"$esp/loader/entries/other-$id.conf"
+        count=$((count + 1))
+    done
+    echo "$count"
+}
+
 echo "--> Locale ($LOCALE)"
 sed -i -E "s/^#\s*(${LOCALE//./\\.}\s)/\1/; s/^#\s*(en_US\.UTF-8\s)/\1/" /etc/locale.gen
 locale-gen
@@ -163,6 +196,8 @@ linux   /$dir/vmlinuz-$kernel
 initrd  /$dir/initramfs-$kernel.img
 options $CMDLINE
 E
+    others=$(other_systems_entries "$esp")
+    ((others == 0)) || echo "   other systems in the boot menu: $others"
     systemctl enable systemd-boot-update.service
 elif [[ $BOOTMODE == uefi ]]; then
     if ((${ESP_KEEP:-0})); then
@@ -195,6 +230,10 @@ linux   /vmlinuz-$kernel
 initrd  /initramfs-$kernel.img
 options $CMDLINE
 E
+    if ((${ESP_KEEP:-0})); then
+        others=$(other_systems_entries /boot)
+        ((others == 0)) || echo "   other systems in the boot menu: $others"
+    fi
     if [[ -e /boot/initramfs-$kernel-fallback.img ]]; then
         cat > /boot/loader/entries/luxos-fallback.conf <<E
 title   LuxOS (safe mode)

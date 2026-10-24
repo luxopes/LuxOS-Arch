@@ -297,6 +297,34 @@ LUKS_PASS_CO=spatne LUKS_PASS=nove scenario F2 uefi "vda:40G vdb:32G" "$LF" "$PR
 expect "F2: spatne heslo stareho LUKS odhaleno pred zmenami" bash -c "rc=\$(cat '$OUT/F2/rc'); [[ \$rc == 3 ]] && grep -q '^luks_open|/dev/vdb2' '$OUT/F2/errors'"
 
 # ---------------------------------------------------------------------------------
+echo "## F3: dual boot do existujiciho sifrovaneho LVM (Debian): novy LV pro / ve stare VG"
+PREP_F3='
+cat >"$MOCK/disks/vda.tbl" <<T
+1 2048 1953791 ef00 EFI
+2 1953792 3907583 8300 boot
+3 3907584 83886046 8309 crypt
+T
+printf stare >"$MOCK/luks/vda3"; echo vfat >"$MOCK/fs/vda1"
+echo /dev/mapper/cryptlvm >"$MOCK/vg/gabriel-vg"; : >"$MOCK/lv/gabriel-vg-root"; : >"$MOCK/lv/gabriel-vg-home"
+'
+LF3='
+use  id=esp dev=/dev/vda1
+use  id=p3 dev=/dev/vda3
+luks id=cl on=p3 name=cryptlvm keep=1
+vg   id=gv name=gabriel-vg keep=1 pvs=cl
+lv   id=lx vg=gv name=luxos size=rest
+fs   on=esp mount=/efi type=vfat format=0
+fs   on=lx mount=/ type=btrfs
+'
+LUKS_PASS=stare scenario F3 uefi "vda:40G" "$LF3" "$PREP_F3"
+expect "F3: probehlo" rc_is F3 0
+expect "F3: odemknuti v initramfs (rd.luks.name)" grep -q "rd.luks.name=luks-uuid-vda3=cryptlvm" "$OUT/F3/cmdline"
+expect "F3: sd-encrypt a lvm2 hook" test "$(cat "$OUT/F3/hooks")" = "ENCRYPT_HOOK=1 LVM_HOOK=1"
+expect "F3: crypttab.initramfs" has "$OUT/F3/crypttab.initramfs" "cryptlvm UUID=luks-uuid-vda3 none luks,discard"
+expect "F3: stary LUKS bez luksFormat" hasnot "$OUT/F3/cmds" "luksFormat"
+expect "F3: ESP se neformatuje" hasnot "$OUT/F3/cmds" "mkfs.vfat"
+
+# ---------------------------------------------------------------------------------
 echo "## G: chyby a varovani kontroly (bash)"
 vcheck() {  # vcheck POPIS BOOTMODE KOD LAYOUT  -> kontrola obsahuje KOD
     local d=$1 bm=$2 code=$3 lay=$4

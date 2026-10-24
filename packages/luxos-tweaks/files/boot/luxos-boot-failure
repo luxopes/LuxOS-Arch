@@ -1,0 +1,159 @@
+#!/bin/bash
+# LuxOS - neuspesny start nesmi skoncit potichu (initramfs i spusteny system).
+#
+#   luxos-boot-failure             spousti emergency.service (ExecStartPre): ulozi zaznam startu
+#                                  na EFI oddil a vypise, co se stalo a co delat
+#   luxos-boot-failure --messages  texty v jazyce systemu jako promenne (pro hook initramfs)
+#
+# Zaznam: <ESP>/EFI/LuxOS/boot-failure-<cas>.log, nejvic LUXOS_BOOT_KEEP (5) poslednich.
+# Testy prepisuji: LUXOS_BOOT_ROOT (koren cest), LUXOS_BOOT_MSG, LUXOS_I18N_DIR, LUXOS_BOOT_ESP_DEV,
+# LUXOS_BOOT_NOW a prikazy pres PATH.
+set -u
+ROOT=${LUXOS_BOOT_ROOT:-}
+KEEP=${LUXOS_BOOT_KEEP:-5}
+ESP_GUID=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
+
+# ---- texty --------------------------------------------------------------------------------
+tty_text() {  # tty_text TEXT ANGLICKY: konzole bez pisma s diakritikou (FONT ve vconsole.conf) -> ASCII
+    local text=$1 en=$2 font="" out
+    [[ -r $ROOT/etc/vconsole.conf ]] && font=$(sed -n 's/^FONT=//p' "$ROOT/etc/vconsole.conf" | tr -d '"')
+    if [[ -n $font ]] || ! printf '%s' "$text" | LC_ALL=C grep -q '[^ -~]'; then
+        printf '%s' "$text"
+        return
+    fi
+    out=$(printf '%s' "$text" | LC_ALL=C.UTF-8 iconv -f UTF-8 -t ASCII//TRANSLIT 2>/dev/null)
+    # pismo bez latinky (napr. ukrajinstina) -> anglicky
+    if [[ -z $out || $out == *'?'* && $text != *'?'* ]]; then out=$en; fi
+    printf '%s' "$out"
+}
+
+messages() {  # promenne MSG_* v jazyce /etc/locale.conf (luxos-i18n), jinak anglicky
+    local LANG=en_US.UTF-8 LC_ALL= LC_MESSAGES=
+    [[ -r $ROOT/etc/locale.conf ]] && . "$ROOT/etc/locale.conf" 2>/dev/null
+    export LANG LC_ALL LC_MESSAGES
+    # shellcheck disable=SC1091
+    . "$ROOT/usr/lib/luxos/i18n.sh" 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+    local k en v
+    for k in WRONG TITLE SAVED NOSAVE WHAT1 WHAT2 WHAT3 ROOT_TIMEOUT; do
+        case $k in
+            WRONG)  en="Wrong password, try again." ;;
+            TITLE)  en="LuxOS could not start." ;;
+            SAVED)  en="The start-up log was saved to the EFI partition as %s." ;;
+            NOSAVE) en="The start-up log could not be saved." ;;
+            WHAT1)  en="Restart the computer with Ctrl+Alt+Delete." ;;
+            WHAT2)  en="In the start menu choose the previous kernel or another system." ;;
+            WHAT3)  en="If the disk is encrypted, check the password and the keyboard layout." ;;
+            ROOT_TIMEOUT) en="The system disk did not appear in time." ;;
+        esac
+        v=$(T "$en" "%s")                   # %s (cesta k zaznamu) zustava pro report
+        printf 'MSG_%s=%q\n' "$k" "$v"                       # uvodni obrazovka (plymouth, UTF-8)
+        printf 'TTY_%s=%q\n' "$k" "$(tty_text "$v" "$en")"   # textova konzole
+    done
+}
+
+load_messages() {
+    local f=${LUXOS_BOOT_MSG:-$ROOT/etc/luxos-boot.msg}
+    if [[ -r $f ]]; then
+        # shellcheck disable=SC1090
+        . "$f"
+    else
+        eval "$(messages)"
+    fi
+}
+
+# ---- EFI oddil -----------------------------------------------------------------------------
+find_esp() {  # zarizeni EFI oddilu (typ GPT), prvni nalezene
+    [[ -n ${LUXOS_BOOT_ESP_DEV-} ]] && { echo "$LUXOS_BOOT_ESP_DEV"; return 0; }
+    local dev t
+    while read -r dev t; do
+        [[ ${t,,} == "$ESP_GUID" ]] && { echo "$dev"; return 0; }
+    done < <(lsblk -nrpo PATH,PARTTYPE 2>/dev/null)
+    # bez udev databaze (initramfs): primo z tabulky oddilu
+    for dev in /dev/nvme*n*p* /dev/sd*[0-9] /dev/vd*[0-9] /dev/mmcblk*p*; do
+        [[ -b $dev ]] || continue
+        t=$(blkid -p -s PART_ENTRY_TYPE -o value "$dev" 2>/dev/null)
+        [[ ${t,,} == "$ESP_GUID" ]] && { echo "$dev"; return 0; }
+    done
+    return 1
+}
+
+rotate() {  # rotate DIR: nechat jen KEEP poslednich zaznamu
+    local dir=$1 f
+    local -a logs
+    mapfile -t logs < <(cd "$dir" && ls -1 boot-failure-*.log 2>/dev/null | sort)
+    while ((${#logs[@]} > KEEP)); do
+        f=${logs[0]}; logs=("${logs[@]:1}")
+        rm -f -- "$dir/$f"
+    done
+}
+
+save_log() {  # -> jmeno ulozeneho souboru (\EFI\LuxOS\...), navrat 1 kdyz nejde
+    local dev mnt="" own=0 dir name stamp
+    dev=$(find_esp) || return 1
+    mnt=$(findmnt -nro TARGET --source "$dev" 2>/dev/null | head -n1)
+    if [[ -z $mnt ]]; then
+        mnt=$ROOT/run/luxos-esp
+        mkdir -p "$mnt" || return 1
+        modprobe -q vfat 2>/dev/null
+        mount -t vfat -o rw,noatime "$dev" "$mnt" 2>/dev/null || return 1
+        own=1
+    fi
+    dir=$mnt/EFI/LuxOS
+    stamp=${LUXOS_BOOT_NOW:-$(date +%Y%m%d-%H%M%S)}
+    name=boot-failure-$stamp.log
+    if mkdir -p "$dir" && {
+            echo "# LuxOS boot failure $stamp"
+            echo "# cmdline: $(cat /proc/cmdline 2>/dev/null)"
+            echo "# initrd: $([[ -e /etc/initrd-release ]] && echo yes || echo no)"
+            echo "# failed units:"
+            systemctl --failed --no-legend --plain 2>/dev/null
+            echo
+            journalctl -b --no-pager -o short-monotonic 2>/dev/null
+        } >"$dir/$name"; then
+        sync
+        rotate "$dir"
+    else
+        name=""
+    fi
+    ((own)) && umount "$mnt" 2>/dev/null
+    [[ -n $name ]] && printf '\\EFI\\LuxOS\\%s' "$name"
+    [[ -n $name ]]
+}
+
+report() {  # report ULOZENO|"" DUVOD
+    local saved=$1 reason=${2-} failed
+    failed=$(systemctl --failed --no-legend --plain 2>/dev/null | awk '{print $1}' | head -n 5 | tr '\n' ' ')
+    echo
+    echo "=================================================================="
+    echo "  $TTY_TITLE"
+    [[ -n $reason ]] && echo "  $reason"
+    [[ -n $failed ]] && echo "  ($failed)"
+    echo
+    if [[ -n $saved ]]; then
+        # shellcheck disable=SC2059
+        echo "  $(printf "$TTY_SAVED" "$saved")"
+    else
+        echo "  $TTY_NOSAVE"
+    fi
+    echo
+    echo "  - $TTY_WHAT1"
+    echo "  - $TTY_WHAT2"
+    echo "  - $TTY_WHAT3"
+    echo "=================================================================="
+    echo
+}
+
+main() {
+    if [[ ${1-} == --messages ]]; then
+        messages
+        return 0
+    fi
+    load_messages
+    local reason="" saved
+    [[ -r $ROOT/run/luxos-boot-reason ]] && reason=$(<"$ROOT/run/luxos-boot-reason")
+    saved=$(save_log) || saved=""
+    report "$saved" "$reason"
+    return 0
+}
+
+[[ ${LUXOS_BOOT_SOURCE_ONLY-} == 1 ]] || main "$@"

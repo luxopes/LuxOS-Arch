@@ -1681,6 +1681,7 @@ ENV
             efibootmgr -q -B -L LuxOS >/dev/null 2>&1 || true
             run efibootmgr --create --disk "$DISK" --part 1 --label LuxOS \
                 --loader '\EFI\systemd\systemd-bootx64.efi' --unicode || info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
+            uefi_luxos_first "${ESP_PART-}"
         elif [[ $DISK_MODE == freespace ]]; then
             shared_esp_entry
         elif uses_layout && [[ -n ${ESP_PART-} ]]; then
@@ -1691,6 +1692,7 @@ ENV
                 run efibootmgr --create --disk "$(ly_parent_disk "$ESP_PART")" --part "$(ly_partnum "$ESP_PART")" \
                     --label LuxOS --loader '\EFI\systemd\systemd-bootx64.efi' --unicode ||
                     info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
+                uefi_luxos_first "$ESP_PART"
             fi
         fi
     fi
@@ -1869,6 +1871,30 @@ install_templates() {
     return 0
 }
 
+# Polozka LuxOS (systemd-boot na nasem ESP) na prvni misto BootOrder; poradi ostatnich zustava.
+# efibootmgr --create ji sice dava dopredu, ale "uz existujici" polozka nebo firmware (Acer: zalozni
+# \EFI\Boot\grubx64.efi jineho systemu) ji nechaji az za USB - pak by se misto nabidky spustil jiny system.
+uefi_luxos_first() {  # uefi_luxos_first [ESP_ODDIL]
+    local esp=${1-} partuuid="" out order num first rest="" n
+    [[ -n $esp ]] && partuuid=$(lsblk -no PARTUUID "$esp" 2>/dev/null | tr -d ' ')
+    out=$(efibootmgr -v 2>/dev/null) || return 0
+    order=$(sed -n 's/^BootOrder: *//p' <<<"$out" | head -n1)
+    [[ -n $order ]] || return 0
+    num=$(awk -v u="${partuuid,,}" '
+        /^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]/ {
+            id = substr($1, 5, 4); low = tolower($0)
+            ours = index(low, "systemd-bootx64.efi") && (u == "" || index(low, u))
+            if (ours && $0 ~ /[* ]LuxOS([ \t]|$)/) { print id; exit }
+            if (ours && first == "") first = id
+        }
+        END { if (first != "") print first }' <<<"$out" | head -n1)
+    [[ -n $num ]] || return 0
+    first=${order%%,*}
+    [[ ${first^^} == "${num^^}" ]] && return 0
+    for n in ${order//,/ }; do [[ ${n^^} == "${num^^}" ]] || rest+=",$n"; done
+    run efibootmgr -q -o "$num$rest" || info "$(T "Could not put LuxOS first in the UEFI boot order; choose it in the boot menu (F12).")"
+}
+
 # Sdileny ESP: polozku UEFI pridat jen pokud tam systemd-boot jeste nema vlastni; menu musi byt videt
 shared_esp_entry() {
     local partn partuuid entries timeout
@@ -1881,6 +1907,7 @@ shared_esp_entry() {
         run efibootmgr --create --disk "$DISK" --part "$partn" --label LuxOS \
             --loader '\EFI\systemd\systemd-bootx64.efi' --unicode || info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
     fi
+    uefi_luxos_first "$ESP_PART"
     # Cizi loader.conf se neprepisuje; skryte menu zviditelnit promennou EFI (LoaderConfigTimeout)
     timeout=$(awk '$1 == "timeout" {print $2}' "$TARGET${ESP_MOUNT:-/efi}/loader/loader.conf" 2>/dev/null | tail -1 || true)
     if [[ -z $timeout || $timeout == 0 || $timeout == menu-hidden ]]; then

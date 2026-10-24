@@ -1,4 +1,7 @@
 [Unit]
+# Live system z USB (instalace): bez kontroly - instalator spousti nastroje na disky (mkfs,
+# cryptsetup, dd) a nic se tu trvale neuklada
+ConditionPathExists=!/run/archiso
 Description=Lux Guard - checks programs from downloads, attachments and USB drives before they run
 Documentation=file:///usr/share/luxos/docs/luxos/guard.md
 After=local-fs.target

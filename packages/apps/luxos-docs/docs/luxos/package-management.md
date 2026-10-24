@@ -40,6 +40,7 @@ behind lux is the `lux-engine` package (libalpm and tools taken from Arch Linux 
 | `lux search <term>` (`s`) | search repositories, the LuxOS `.lux` repo and the AUR |
 | `lux info <pkg>` (`show`) | details (installed, else repository, `.lux`, AUR) |
 | `lux list [--installed]` (`ls`) | installed packages (including `.lux`); `lux list <pattern>` filters |
+| `lux check` (`check-updates`) | available updates from freshly downloaded lists (temporary copy, no root, nothing changes) |
 | `lux list --upgradable` | available updates according to the last database refresh |
 | `lux list --explicit` / `--aur` / `--orphans` / `--lux` | explicitly installed / not from a repository / unneeded / `.lux` apps |
 | `lux reinstall <pkg...>` | same version again (repository, else cache) |
@@ -247,3 +248,6 @@ LuxOS Store, LuxOS Care and the Drivers app call `/usr/lib/lux/lux_alpm.py --mac
 | Dependencies can not be satisfied (`deps`) | usually a partial update; `lux update` first |
 | configuration has an error (`config`) | `lux config check`, fix the reported line |
 | Package 'X' not found (`notfound`) | `lux search X` |
+| The package X was damaged again after a new download (`corrupt`) | lux already deleted the damaged file from `/var/cache/lux/pkg` and downloaded it once more; if it is damaged again, the server is probably being updated – try later |
+
+The full command reference is also in the manual page: `man lux`.

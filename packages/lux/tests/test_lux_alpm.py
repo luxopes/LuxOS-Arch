@@ -267,6 +267,38 @@ class Config(unittest.TestCase):
         self.assertEqual(cm.exception.rc, 3)
         self.assertIn("GPGDir", cm.exception.message)
 
+    def test_hookdir_only_needed_for_transactions(self):
+        """Sdileny ESP: hook v /etc/lux/hooks a pyalpm bez hookdirs -> kontrola aktualizaci (Obchod)
+        funguje, instalace radeji pres lux-engine (rc 3)."""
+        api = make_api()
+        root = tempfile.mkdtemp()
+        os.makedirs(os.path.join(root, "etc/lux/hooks"))
+        with open(os.path.join(root, "etc/lux/hooks/99-luxos-esp-sync.hook"), "w") as f:
+            f.write("[Trigger]\n")
+
+        class NoHooks(api.Handle):
+            def __init__(self, *a):
+                super().__init__(*a)
+                self._ready = True
+
+            def __setattr__(self, name, value):
+                if name == "hookdirs" and getattr(self, "_ready", False):
+                    raise AttributeError(name)      # starsi pyalpm: hookdirs jen pro cteni
+                object.__setattr__(self, name, value)
+        api.Handle = NoHooks
+        conf = lux_alpm.EngineConf(CONF.replace("RootDir = /", "RootDir = " + root))
+        saved = lux_alpm.TRANSACTION
+        try:
+            lux_alpm.TRANSACTION = False
+            lux_alpm.build_handle(api, conf)          # bez vyjimky
+            lux_alpm.TRANSACTION = True
+            with self.assertRaises(lux_alpm.LuxError) as cm:
+                lux_alpm.build_handle(api, conf)
+            self.assertIn("HookDir", cm.exception.message)
+        finally:
+            lux_alpm.TRANSACTION = saved
+            shutil.rmtree(root, ignore_errors=True)
+
     def test_available_without_pyalpm(self):
         saved = sys.modules.get("pyalpm")
         sys.modules["pyalpm"] = None          # import selze
@@ -458,6 +490,35 @@ class Transactions(unittest.TestCase):
         self.assertIn("@@RETRY 3", out)
         self.assertIn("@@ERROR network Some packages could not be downloaded.", out)
         self.assertIn("error: failed to commit transaction (failed to retrieve some files)", out)
+
+    def test_corrupted_cache_file_deleted_and_downloaded_again(self):
+        """Poskozeny balik v mezipameti: smaze se bez otazky, stahne znovu a instalace dobehne."""
+        import tempfile
+        d = tempfile.mkdtemp(prefix="lux-cache-")
+        bad = os.path.join(d, "htop-3.3.0-2-x86_64.pkg.tar.zst")
+        open(bad, "w").write("poskozeno")
+
+        def prep(h):
+            h.commit_questions.append((lux_alpm.Q_CORRUPTED_PKG, bad, "invalid or corrupted package (checksum)"))
+            h.commit_errors.append(fake.error("invalid or corrupted package (checksum)", 41, None))
+        rc, out, h = run(["install", "htop"], tty=True, answer="y\n", prepare=prep)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(strip(out).count("[Y/n]"), 1)          # bez dalsi otazky (ani na smazani)
+        self.assertIn("Downloaded package htop was damaged, downloading it again", out)
+        self.assertFalse(os.path.exists(bad))
+        self.assertEqual(h.local.get_pkg("htop").version, "3.3.0-2")
+
+    def test_corrupted_twice_names_package(self):
+        def prep(h):
+            for _i in range(2):
+                h.commit_questions.append((lux_alpm.Q_CORRUPTED_PKG, "/var/cache/lux/pkg/htop-3.3.0-2-x86_64.pkg.tar.zst",
+                                           "invalid or corrupted package (checksum)"))
+                h.commit_errors.append(fake.error("invalid or corrupted package (checksum)", 41, None))
+        rc, out, h = run(["--machine", "-y", "install", "htop"], prepare=prep)
+        self.assertEqual(rc, 1, out)
+        self.assertIn("@@RETRY corrupt", out)
+        self.assertIn("@@ERROR corrupt The package htop was damaged again after a new download.", out)
+        self.assertEqual(lux_alpm.package_from_file("/x/lib32-gcc-libs-15.1.1+r7-1-x86_64.pkg.tar.zst"), "lib32-gcc-libs")
 
     def test_file_conflict_plain_and_verbose(self):
         def prep(h):
@@ -793,6 +854,30 @@ class Queries(unittest.TestCase):
             self.assertTrue(all(d.updated for d in h.sync))
             self.assertEqual(os.readlink(os.path.join(db, "local")), "/var/lib/lux/local")
 
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_check_updates_redownloads_mismatched_copy(self):
+        """Kopie databaze ze systemu neprojde (podpis z jine chvile): smazat a stahnout nacisto."""
+        tmp = tempfile.mkdtemp(prefix="lux-cu-test-")
+        try:
+            db = os.path.join(tmp, "db")
+            os.makedirs(os.path.join(db, "sync"))
+            for f in ("luxos.db", "luxos.db.sig"):
+                open(os.path.join(db, "sync", f), "w").close()
+            api = make_api()
+            orig = api.Handle.register_syncdb
+
+            def reg(self, name, sig):
+                d = orig(self, name, sig)
+                if name == "luxos":
+                    d.update_errors.append(fake.error("unable to update database", 99, None))
+                return d
+            api.Handle.register_syncdb = reg
+            rc, out, h = run(["check-updates", "--db", db], api=api)
+            self.assertEqual(rc, 0, out)
+            self.assertFalse(os.path.exists(os.path.join(db, "sync", "luxos.db.sig")))
+            self.assertTrue(all(d.updated for d in h.sync))
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 

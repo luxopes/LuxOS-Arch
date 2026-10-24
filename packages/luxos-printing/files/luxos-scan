@@ -29,6 +29,7 @@ gi.require_version("PangoCairo", "1.0")
 from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango, PangoCairo  # noqa: E402
 
 APP = "luxos-scan"
+RESCAN_SECONDS = 6                 # bez skeneru: jak casto hledat znovu
 CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"), "luxos-scan")
 CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "luxos/scan.json")
 PREVIEW_MAX = 1400          # nahled v pameti (plny sken zustava jen na disku)
@@ -180,6 +181,8 @@ class ScanWindow(Gtk.Window):
         self.cfg = load_config()
         self.want_device = want_device
         self.devices = []
+        self.rescan_id = 0              # tiche hledani, dokud zadny skener neni (zapnuti pozdeji)
+        self.rescanning = False
         self.dev = None
         self.opts = {}
         self.probing = False
@@ -200,6 +203,12 @@ class ScanWindow(Gtk.Window):
         self.dev_combo.set_no_show_all(True)
         self.dev_handler = self.dev_combo.connect("changed", self.on_device_changed)
         hb.pack_end(self.dev_combo)
+        # Hledat znovu: skener zapnuty nebo pripojeny az po spusteni aplikace
+        self.refresh_btn = Gtk.Button.new_from_icon_name("view-refresh-symbolic", Gtk.IconSize.BUTTON)
+        self.refresh_btn.set_tooltip_text(_("Search for scanners again"))
+        self.refresh_btn.connect("clicked", lambda _b: self.scan is None and self.find_devices())
+        hb.pack_end(self.refresh_btn)
+        self.refresh_btn.show()
         hb.show()                       # okno nevola show_all (skryte casti), lista se musi ukazat sama
 
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, transition_duration=150)
@@ -239,7 +248,7 @@ class ScanWindow(Gtk.Window):
             "looking": ("scanner", _("Looking for scanners…"), ""),
             "none": ("scanner", _("No scanner found"),
                      _("Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network "
-                       "as this computer. Then click Try Again.")),
+                       "as this computer. It appears here by itself as soon as LuxOS finds it.")),
             "missing": ("dialog-warning-symbolic", _("Scanning support is not installed"),
                         _("Install the luxos-printing package from the Store.")),
             "error": ("dialog-warning-symbolic", _("Scanners could not be found"),
@@ -259,6 +268,24 @@ class ScanWindow(Gtk.Window):
         self.st_details.set_visible(bool(details))
         self.stack.set_visible_child_name("state")
         self.dev_combo.hide()
+        if state == "none" and not self.rescan_id:
+            self.rescan_id = GLib.timeout_add_seconds(RESCAN_SECONDS, self.auto_rescan)
+
+    def auto_rescan(self):
+        """Bez skeneru se kazdych par sekund hleda znovu (bez prepnuti na "Hledam…")."""
+        if self.stack.get_visible_child_name() != "state" or self.devices:
+            self.rescan_id = 0
+            return False
+        if self.rescanning:
+            return True
+        self.rescanning = True
+
+        def done(res):
+            self.rescanning = False
+            if self.rescan_id and isinstance(res, list) and res:
+                self.apply_devices(res)
+        in_thread(ls.list_devices, done)
+        return True
 
     # ---- hlavni stranka ----
     def build_main_page(self):
@@ -391,34 +418,37 @@ class ScanWindow(Gtk.Window):
     # ---- skenery ----
     def find_devices(self):
         self.show_state("looking")
+        in_thread(ls.list_devices, self.apply_devices)
 
-        def done(res):
-            if isinstance(res, OSError):
-                self.show_state("missing", str(res))
-                return
-            if isinstance(res, Exception):
-                self.show_state("error", str(res))
-                return
-            devs = list(res)
-            if self.want_device and not any(d["id"] == self.want_device for d in devs):
-                # zarizeni z Tiskaren a skeneru, ktere se ted v seznamu neukazalo - zkusit primo
-                devs.insert(0, {"id": self.want_device, "name": _("Scanner"), "type": "", "conn": ""})
-            self.devices = devs
-            if not devs:
-                self.show_state("none")
-                return
-            self.dev_combo.handler_block(self.dev_handler)
-            self.dev_combo.remove_all()
-            for d in devs:
-                self.dev_combo.append(d["id"], d["name"])
-            want = self.want_device or self.cfg.get("device")
-            pick = next((d for d in devs if d["id"] == want), devs[0])
-            self.dev_combo.set_active_id(pick["id"])
-            self.dev_combo.handler_unblock(self.dev_handler)
-            self.dev_combo.set_visible(len(devs) > 1)
-            self.stack.set_visible_child_name("main")
-            self.select_device(pick)
-        in_thread(ls.list_devices, done)
+    def apply_devices(self, res):
+        if isinstance(res, OSError):
+            self.show_state("missing", str(res))
+            return
+        if isinstance(res, Exception):
+            self.show_state("error", str(res))
+            return
+        if self.rescan_id:
+            GLib.source_remove(self.rescan_id)
+            self.rescan_id = 0
+        devs = list(res)
+        if self.want_device and not any(d["id"] == self.want_device for d in devs):
+            # zarizeni z Tiskaren a skeneru, ktere se ted v seznamu neukazalo - zkusit primo
+            devs.insert(0, {"id": self.want_device, "name": _("Scanner"), "type": "", "conn": ""})
+        self.devices = devs
+        if not devs:
+            self.show_state("none")
+            return
+        self.dev_combo.handler_block(self.dev_handler)
+        self.dev_combo.remove_all()
+        for d in devs:
+            self.dev_combo.append(d["id"], d["name"])
+        want = self.want_device or self.cfg.get("device")
+        pick = next((d for d in devs if d["id"] == want), devs[0])
+        self.dev_combo.set_active_id(pick["id"])
+        self.dev_combo.handler_unblock(self.dev_handler)
+        self.dev_combo.set_visible(len(devs) > 1)
+        self.stack.set_visible_child_name("main")
+        self.select_device(pick)
 
     def on_device_changed(self, combo):
         d = next((d for d in self.devices if d["id"] == combo.get_active_id()), None)

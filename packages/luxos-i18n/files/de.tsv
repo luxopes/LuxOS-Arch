@@ -2567,3 +2567,25 @@ Brightness	Helligkeit
 Lower the screen to 60 Hz	Bildschirm auf 60 Hz senken
 A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Etwas mehr Akkulaufzeit bei 90–165-Hz-Bildschirmen. Beim Ein- und Ausschalten des Stromsparmodus wird der Bildschirm kurz dunkel.
 Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Längere Akkulaufzeit: langsamerer Prozessor ohne Turbo, etwas geringere Helligkeit, keine Animationen, ungenutzte Geräte ruhen und Hintergrundaufgaben pausieren.
+Could not put LuxOS first in the UEFI boot order; choose it in the boot menu (F12).	LuxOS konnte nicht an die erste Stelle der UEFI-Startreihenfolge gesetzt werden; wählen Sie es im Startmenü (F12).
+# Start systemu (initramfs, luxos-boot)
+Wrong password, try again.	Falsches Passwort, bitte erneut versuchen.
+LuxOS could not start.	LuxOS konnte nicht gestartet werden.
+The start-up log was saved to the EFI partition as %s.	Das Startprotokoll wurde auf der EFI-Partition als %s gespeichert.
+The start-up log could not be saved.	Das Startprotokoll konnte nicht gespeichert werden.
+Restart the computer with Ctrl+Alt+Delete.	Starten Sie den Computer mit Strg+Alt+Entf neu.
+In the start menu choose the previous kernel or another system.	Wählen Sie im Startmenü den vorherigen Kernel oder ein anderes System.
+If the disk is encrypted, check the password and the keyboard layout.	Ist die Festplatte verschlüsselt, prüfen Sie Passwort und Tastaturbelegung.
+The system disk did not appear in time.	Das Systemlaufwerk ist nicht rechtzeitig erschienen.
+show available updates without installing them	verfügbare Updates anzeigen, ohne sie zu installieren
+Downloaded package %s was damaged, downloading it again…	Das heruntergeladene Paket %s war beschädigt, es wird erneut heruntergeladen…
+A downloaded package was damaged, downloading it again…	Ein heruntergeladenes Paket war beschädigt, es wird erneut heruntergeladen…
+The package %s was damaged again after a new download. The server may be updating it - try again later.	Das Paket %s war auch nach erneutem Herunterladen beschädigt. Der Server aktualisiert es vielleicht gerade – versuchen Sie es später erneut.
+A downloaded package was damaged again after a new download. The server may be updating it - try again later.	Ein heruntergeladenes Paket war auch nach erneutem Herunterladen beschädigt. Der Server aktualisiert es vielleicht gerade – versuchen Sie es später erneut.
+Printer “%s” needs a driver from the manufacturer	Der Drucker „%s“ braucht einen Treiber des Herstellers
+Click Install Driver. LuxOS downloads and builds it (this takes a few minutes and asks for your password), then sets up the printer.	Klicken Sie auf Treiber installieren. LuxOS lädt ihn herunter und erstellt ihn (dauert einige Minuten und fragt nach Ihrem Passwort), dann wird der Drucker eingerichtet.
+Install Driver	Treiber installieren
+Done. You can close this window.	Fertig. Sie können dieses Fenster schließen.
+Search for scanners again	Erneut nach Scannern suchen
+Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Schalten Sie den Scanner ein und verbinden Sie ihn per USB-Kabel oder mit demselben WLAN wie diesen Computer. Er erscheint hier von selbst, sobald LuxOS ihn findet.
+The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	Der Sensor konnte den Finger nicht gut genug lesen. Reinigen Sie Sensor und Finger und klicken Sie dann auf Erneut versuchen.

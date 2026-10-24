@@ -185,6 +185,24 @@ def driver_package(mfg):
     return "hplip" if norm_mfg(mfg) == "hp" else "gutenprint"
 
 
+# Ovladace jen v AUR (v repozitarich nic): instaluje je uzivatel pres lux (AUR se nesmi stavet jako root).
+# Samsung SPL/QPDL (napr. Xpress M2020/M2026, ML-2160): oficialni Samsung Unified Linux Driver.
+AUR_DRIVERS = {"samsung": "samsung-unified-driver-printer"}
+
+
+def aur_driver(device_id):
+    """Balik z AUR pro tiskarnu bez ovladace v repozitarich (nebo None)."""
+    return AUR_DRIVERS.get(norm_mfg(parse_device_id(device_id).get("MFG")))
+
+
+def _family(mfg, mdl):
+    """Samsung: model rady ("xpress m2026") -> zaklad rady ("m202"), PPD ULD je pro "M2020 Series"."""
+    if mfg != "samsung":
+        return None
+    m = re.fullmatch(r"(?:xpress )?([a-z]+ ?\d{3})\d[a-z]*", mdl)
+    return m.group(1).replace(" ", "") if m else None
+
+
 def _ppd_rank(ppd):
     name, mm = ppd.get("name", ""), ppd.get("make-and-model", "").lower()
     r = 0
@@ -221,6 +239,9 @@ def pick_ppd(models, device_id):
             mm = re.split(r",| - | cups| foomatic", mm)[0].strip()
             if norm_mdl(mfg, mm) == mdl and (mm.startswith(mfg + " ") or mfg == "hp" and mm.startswith("hp ")):
                 score = 80
+            elif mm.startswith(mfg + " ") and _family(mfg, mdl) and \
+                    re.fullmatch(re.escape(_family(mfg, mdl)) + "0", norm_mdl(mfg, mm).replace(" ", "")):
+                score = 60              # Samsung ULD: jedno PPD pro celou radu (M2026 -> "M2020 Series")
         if not score:
             continue
         # oba zpusoby shody urcuji stejny model - rozhoduje kvalita ovladace, pak presnost shody
@@ -242,6 +263,12 @@ def generic_ppd(device_id):
     if "PCL" in cmd or "PCL5" in cmd or "PCL5E" in cmd:
         return "drv:///sample.drv/laserjet.ppd"
     return None
+
+
+def is_camera(dev, typ=""):
+    """Kamera notebooku (SANE backend v4l) neni skener - v seznamech skeneru se neukazuje."""
+    return (dev or "").lower().startswith(("v4l:", "v4l2:")) or \
+        (typ or "").strip().lower() in ("webcam", "video camera", "camera")
 
 
 def usb_serial(uri):

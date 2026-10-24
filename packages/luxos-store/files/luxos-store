@@ -1023,9 +1023,18 @@ class Store(Gtk.Window):
                     GLib.idle_add(show, 0.5 + 0.48 * pct, verb % name if name else None)
                 elif phase == "hooks":
                     GLib.idle_add(show, 0.98 + 0.02 * pct, _("Finishing…"))
+            elif kind == "ERROR" and len(parts) > 1 and parts[1] == "corrupt":
+                # lux: poskozeny balik ani po novem stazeni (jmeno balicku z anglicke hlasky)
+                m = re.search(r"package (\S+(?:, \S+)*) was damaged", line)
+                prog["err"] = (_("The package %s was damaged again after a new download. "
+                                 "The server may be updating it - try again later.") % m.group(1) if m else
+                               _("A downloaded package was damaged again after a new download. "
+                                 "The server may be updating it - try again later."))
             elif kind == "ERROR" and len(parts) > 1:
                 prog["err"] = errors.get(parts[1]) or (line.split(" ", 2)[2] if line.count(" ") >= 2 else "")
                 prog["net"] = parts[1] == "network"
+            elif kind == "RETRY" and parts[-1] == "corrupt":
+                GLib.idle_add(show, prog["frac"], _("A downloaded package was damaged, downloading it again…"))
             elif kind == "RETRY":
                 GLib.idle_add(show, prog["frac"],
                               _("Download failed, trying again (attempt %s)…") % parts[-1])

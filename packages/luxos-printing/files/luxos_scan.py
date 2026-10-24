@@ -29,6 +29,8 @@ def parse_devices(text):
         if len(f) < 4 or not f[0].strip():
             continue
         dev, vendor, model, typ = (x.strip() for x in f[:4])
+        if lp.is_camera(dev, typ):
+            continue
         name = model if model.lower().startswith(vendor.lower()) else f"{vendor} {model}".strip()
         name = lp.friendly_name(name or dev)
         prio = 0 if dev.startswith("airscan:e") else 2 if dev.startswith("airscan:w") else 1

@@ -2,7 +2,7 @@
 
 pkgname=lux
 pkgver=0.3.0
-pkgrel=12
+pkgrel=13
 pkgdesc="LuxOS package manager (libalpm via pyalpm, AUR, Flatpak and .lux apps)"
 arch=(any)
 url="https://github.com/luxos"
@@ -21,6 +21,7 @@ package() {
     install -Dm755 "$startdir/lux_alpm.py" "$pkgdir/usr/lib/lux/lux_alpm.py"
     install -Dm755 "$startdir/pacman-hint" "$pkgdir/usr/lib/lux/pacman-hint"
     install -Dm644 "$startdir/lux.md" "$pkgdir/usr/share/doc/lux/lux.md"
+    install -Dm644 "$startdir/lux.1" "$pkgdir/usr/share/man/man1/lux.1"   # makepkg ji zabali do lux.1.gz
     install -Dm644 "$startdir/lux-package-format.md" "$pkgdir/usr/share/doc/lux/lux-package-format.md"
     install -dm755 "$pkgdir/opt/lux" "$pkgdir/var/lib/lux/installed"
     install -Dm644 "$startdir/lux.bash-completion" "$pkgdir/usr/share/bash-completion/completions/lux"

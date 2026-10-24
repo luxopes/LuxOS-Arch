@@ -45,7 +45,8 @@ ENROLL = {
     "enroll-finger-not-centered": ("Center your finger on the sensor and try again.", False, True),
     "enroll-remove-and-retry": ("Lift your finger and try again.", False, True),
     "enroll-completed": ("Fingerprint added", True, False),
-    "enroll-failed": ("Could not add the fingerprint. Try again.", True, True),
+    "enroll-failed": ("The reader could not read your finger well enough. Clean the sensor and your finger, "
+                      "then click Try Again.", True, True),
     "enroll-data-full": ("The reader cannot store more fingerprints. Remove one first.", True, True),
     "enroll-duplicate": ("This fingerprint is already added.", True, True),
     "enroll-disconnected": ("The fingerprint reader was disconnected.", True, True),
@@ -404,10 +405,16 @@ class FingerprintWindow(Gtk.Window):
         bar = Gtk.Box(spacing=8, halign=Gtk.Align.CENTER, margin_top=10)
         self.enroll_cancel = Gtk.Button(label=_("Cancel"))
         self.enroll_cancel.connect("clicked", self.on_enroll_cancel)
+        # Po neuspesnem pridani: znovu stejny prst (bez navratu na seznam a volby prstu)
+        self.enroll_retry = Gtk.Button(label=_("Try Again"))
+        self.enroll_retry.get_style_context().add_class("suggested-action")
+        self.enroll_retry.connect("clicked", lambda _b: self.enroll(self.finger))
+        self.enroll_retry.set_no_show_all(True)
         self.enroll_done = Gtk.Button(label=_("Done"))
         self.enroll_done.get_style_context().add_class("suggested-action")
         self.enroll_done.connect("clicked", lambda _b: self.refresh())
         bar.pack_start(self.enroll_cancel, False, False, 0)
+        bar.pack_start(self.enroll_retry, False, False, 0)
         bar.pack_start(self.enroll_done, False, False, 0)
         page.pack_start(bar, False, False, 0)
         self.stack.add_named(page, "enroll")
@@ -583,9 +590,11 @@ class FingerprintWindow(Gtk.Window):
         self.set_enroll_status(_("Swipe your finger across the sensor.") if self.fp.swipe else
                                _("Place your finger on the sensor, then lift it."))
         self.enroll_count.set_text("")
+        self.enroll_cancel.set_label(_("Cancel"))
         self.enroll_cancel.set_visible(True)
         self.enroll_cancel.set_sensitive(True)
         self.enroll_done.set_visible(False)
+        self.enroll_retry.set_visible(False)
         self.stack.set_visible_child_name("enroll")
         self.enrolling = True
         self.fp.enroll_start(finger, self.on_enroll_status, lambda: None, self.enroll_failed)
@@ -614,10 +623,14 @@ class FingerprintWindow(Gtk.Window):
             ok = result == "enroll-completed"
             self.enrolling = False
             self.enroll_count.set_text("")
-            self.fp.enroll_stop()
             self.enroll_cancel.set_label(_("Back"))
             self.enroll_cancel.set_visible(not ok)
             self.enroll_done.set_visible(ok)
+            # Zkusit znovu az po uvolneni ctecky (jinak by nove pridani narazilo na AlreadyInUse)
+            again = not ok and result not in ("enroll-data-full", "enroll-duplicate")
+            self.enroll_retry.set_visible(again)
+            self.enroll_retry.set_sensitive(False)
+            self.fp.enroll_stop(lambda: self.enroll_retry.set_sensitive(True))
 
     def enroll_failed(self, e):
         print("luxos-fingerprint:", e.message, file=sys.stderr)
@@ -625,6 +638,9 @@ class FingerprintWindow(Gtk.Window):
         self.ridges.set(0)
         self.set_enroll_status(error_message(e), True)
         self.enroll_cancel.set_label(_("Back"))
+        # ctecka uz je uvolnena (enroll_start pri chybe vola release)
+        self.enroll_retry.set_visible(True)
+        self.enroll_retry.set_sensitive(True)
 
     def on_enroll_cancel(self, _b):
         self.enroll_cancel.set_label(_("Cancel"))
