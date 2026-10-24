@@ -148,7 +148,8 @@ class LslTools(unittest.TestCase):
         out = self.both("luxos-battery", **env)
         self.assertEqual(out, "<icon>battery-level-60-symbolic</icon><txt> 57 %</txt><tool>57 % · "
                          + translation("On battery") + " · " + translation("%s remaining").replace("%s", "3 h 0 min")
-                         + "</tool><iconclick>luxos-cc-toggle</iconclick><txtclick>luxos-cc-toggle</txtclick>\n")
+                         + "</tool><iconclick>luxos-cc-toggle</iconclick><txtclick>luxos-cc-toggle</txtclick>"
+                         "<scroll>luxos-brightness</scroll>\n")
 
     def test_battery_charging_minutes(self):
         env = self.battery(capacity=80, status="Charging", energy_now=40000000, energy_full=50000000,

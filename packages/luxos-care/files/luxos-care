@@ -105,6 +105,8 @@ def main(argv):
         rc = care.boot_check()
         try:
             with care.CareLock(wait=True):
+                if rc == 0:
+                    care.tsc_fix()
                 care.do_check(boot=True)
         except Exception as e:  # noqa: BLE001 - vysledek startu rozhoduje boot_check
             care.log(f"check after boot failed: {e}")

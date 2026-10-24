@@ -98,10 +98,12 @@ Run `luxos-power`, or use Control Center › Battery…. The data comes from UPo
   by this battery", use battery health instead), energy (Wh).
 - Charts: battery level and power usage over the last 24 hours.
 - **Power mode** (power-profiles-daemon): Power Saver, Balanced (recommended), Performance.
-- **Battery Saver**: power-saver profile, no CPU turbo, 60 Hz built-in screen, slightly lower
+- **Battery Saver**: power-saver profile, no CPU turbo, slightly lower
   brightness, no animations, idle devices sleep, background tasks pause (details in
   [Power and performance](power-and-performance.md)). The switch
-  "Turn on automatically at 20 %" stores its state in `~/.config/luxos/powersaver-auto`. Battery
+  "Turn on automatically at 20 %" stores its state in `~/.config/luxos/powersaver-auto`;
+  "Lower the screen to 60 Hz" (off by default, the screen goes dark for a moment when switching)
+  in `~/.config/luxos/powersaver-60hz`. Battery
   Saver turns off again when the computer charges. From the command line:
   `luxos-powersaver on|off|toggle|status`.
 - **Screen and sleep** (xfce4-power-manager): turn off the screen on battery / on power adapter

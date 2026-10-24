@@ -217,6 +217,35 @@ function new_events(events, seen, first_run, now):
     return order
 end
 
+# Cas startu systemu (btime z /proc/stat), 0 kdyz nejde zjistit
+function boot_time():
+    for line in read_lines(root() + "/proc/stat"):
+        if line.startswith("btime "):
+            return text.to_int(line[6:].strip(), 0)
+        end
+    end
+    return 0
+end
+
+# "Restartujte" k udalosti z doby pred timto startem uz neplati (restart probehl)
+function drop_done_reboot(ev, booted):
+    if ev.get("kind") != "updated" or ev.get("reboot") != True or booted == 0:
+        return ev
+    end
+    if text.to_int(String(ev.get("time", 0)), 0) >= booted:
+        return ev
+    end
+    if count_of(ev) == 0:
+        return None
+    end
+    out = {}
+    for key in ev.keys():
+        out[key] = ev[key]
+    end
+    out["reboot"] = False
+    return out
+end
+
 function process_events():
     data = read_json("events.json", {"seq": 0, "events": []})
     lines = read_lines(cache_dir() + "/care-seen")
@@ -233,7 +262,12 @@ function process_events():
     if type(events) != "List":
         events = []
     end
-    for ev in new_events(events, seen, first, glib.now()):
+    booted = boot_time()
+    for raw in new_events(events, seen, first, glib.now()):
+        ev = drop_done_reboot(raw, booted)
+        if ev == None:
+            continue
+        end
         n = notification_for(ev)
         if n != None:
             call notify(n[0], n[1], n[2])

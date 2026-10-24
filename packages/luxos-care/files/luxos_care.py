@@ -1311,6 +1311,87 @@ def update_grub(force):
         log(f"grub-mkconfig failed: {out[-500:]}")
 
 
+# -- casovac procesoru (TSC) --
+TSC_PARAM = "tsc=nowatchdog"
+TSC_UNSTABLE_RE = re.compile(r"Marking clocksource '?tsc(?:-early)?'? (?:as )?unstable")
+
+
+def tsc_false_alarm(kernel_log, cpuinfo, cmdline, clocksource):
+    """Jadro pri startu oznacilo TSC za nestabilni (kontrola proti HPET), i kdyz procesor ma
+    invariantni TSC (constant_tsc + nonstop_tsc) - znamy plany poplach napr. u notebooku s Ryzen
+    5000. Cas pak cte pomaly HPET (systemove volani misto vDSO) a zpomaluje vse, co se casto pta na cas."""
+    if "tsc=" in cmdline or clocksource.strip() == "tsc":
+        return False
+    flags = set()
+    for line in cpuinfo.splitlines():
+        if line.startswith("flags"):
+            flags = set(line.split(":", 1)[1].split())
+            break
+    if not {"constant_tsc", "nonstop_tsc"} <= flags:
+        return False
+    return bool(TSC_UNSTABLE_RE.search(kernel_log))
+
+
+def add_kernel_param(text, param):
+    """options radky polozky systemd-boot: pridat parametr (jen jednou)."""
+    out = []
+    for line in text.splitlines():
+        s = line.strip()
+        if s.split(None, 1)[0:1] == ["options"] and param not in s.split():
+            line = line.rstrip() + " " + param
+        out.append(line)
+    return "\n".join(out) + ("\n" if text.endswith("\n") else "")
+
+
+def tsc_fix():
+    """Po startu: pri planem poplachu TSC jednou doplnit tsc=nowatchdog do polozek LuxOS
+    (plati od dalsiho startu, puvodni hodnota v historii). -> True, kdyz se neco zmenilo."""
+    try:
+        with open(P("/proc/cpuinfo")) as f:
+            cpuinfo = f.read()
+        with open(P("/proc/cmdline")) as f:
+            cmdline = f.read()
+        with open(P("/sys/devices/system/clocksource/clocksource0/current_clocksource")) as f:
+            clocksource = f.read()
+    except OSError:
+        return False
+    rc, klog = run(["journalctl", "-k", "-b", "0", "-o", "cat", "--no-pager", "-g", "clocksource"], timeout=60)
+    if rc != 0 or not tsc_false_alarm(klog, cpuinfo, cmdline, clocksource):
+        return False
+    lay = detect_layout()
+    changed = []
+    if lay["kind"] == "sdboot" and lay.get("main"):
+        entries = P(lay["entries"])
+        for f in sorted(os.listdir(entries)):
+            if not (f.startswith(lay["name"]) and f.endswith(".conf")):
+                continue
+            path = os.path.join(entries, f)
+            with open(path) as fh:
+                text = fh.read()
+            new = add_kernel_param(text, TSC_PARAM)
+            if new != text:
+                atomic_write(path, new)
+                changed.append(f)
+    elif lay["kind"] == "grub":
+        path = P("/etc/default/grub")
+        try:
+            with open(path) as fh:
+                text = fh.read()
+        except OSError:
+            return False
+        new = re.sub(r'^(GRUB_CMDLINE_LINUX_DEFAULT=")([^"]*)"',
+                     lambda m: m.group(0) if TSC_PARAM in m.group(2).split()
+                     else f'{m.group(1)}{(m.group(2) + " " + TSC_PARAM).strip()}"', text, flags=re.M)
+        if new != text:
+            atomic_write(path, new)
+            update_grub(force=True)
+            changed.append("grub")
+    if changed:
+        log(f"TSC falsely marked unstable (clocksource {clocksource.strip()}): added {TSC_PARAM} to {' '.join(changed)}")
+        history("tsc_fix", ok=True, entries=changed, clocksource=clocksource.strip())
+    return bool(changed)
+
+
 def arm_trial(lay):
     """Nove jadro: 3 pokusy o start, pak zavadec sam pouzije zalozni (automatic boot assessment)."""
     if lay["kind"] == "sdboot" and lay.get("main"):

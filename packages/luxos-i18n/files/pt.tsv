@@ -2535,3 +2535,35 @@ This network requires you to sign in before you can use the internet.	Esta rede 
 Connected to the internet	Ligado à Internet
 You are signed in to the network.	Tem sessão iniciada na rede.
 Step after the update failed:	Falhou um passo após a atualização:
+%d updates	%d atualizações
+1 update	1 atualização
+Updating your computer…	Atualizando o computador…
+You can keep working. Some apps may need to be restarted afterwards.	Você pode continuar trabalhando. Alguns apps podem precisar ser reiniciados depois.
+Preparing…	Preparando…
+Your computer is up to date	O computador está atualizado
+All updates were installed.	Todas as atualizações foram instaladas.
+Restart your computer to finish the update.	Reinicie o computador para concluir a atualização.
+Updated	Atualizado
+The update was cancelled	A atualização foi cancelada
+The update could not be finished	Não foi possível concluir a atualização
+Check Again	Verificar novamente
+Could not check for updates	Não foi possível verificar atualizações
+1 update available	1 atualização disponível
+Updates bring new features, fixes and security improvements.	As atualizações trazem novidades, correções e mais segurança.
+The time changes tonight	A hora muda esta noite
+Summer time starts tonight	O horário de verão começa esta noite
+Winter time starts tonight	O horário de inverno começa esta noite
+Clocks go back from %s to %s. Your computer changes the time automatically.	Os relógios atrasam das %s para as %s. O computador muda a hora automaticamente.
+Clocks go forward from %s to %s. Your computer changes the time automatically.	Os relógios adiantam das %s para as %s. O computador muda a hora automaticamente.
+The time has changed	A hora mudou
+Summer time has started	O horário de verão começou
+Winter time has started	O horário de inverno começou
+Clocks went back from %s to %s.	Os relógios atrasaram das %s para as %s.
+Clocks went forward from %s to %s.	Os relógios adiantaram das %s para as %s.
+Turn Off	Desativar
+Notify about summer and winter time	Avisar sobre o horário de verão e de inverno
+In the evening before the clocks change and in the morning after.	Na noite antes da mudança de hora e na manhã seguinte.
+Brightness	Brilho
+Lower the screen to 60 Hz	Baixar o ecrã para 60 Hz
+A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Um pouco mais de bateria em ecrãs de 90–165 Hz. O ecrã escurece por um momento ao ligar ou desligar a Poupança de bateria.
+Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Mais autonomia: processador mais lento sem turbo, brilho um pouco mais baixo, sem animações, dispositivos sem uso suspendem e as tarefas em segundo plano pausam.

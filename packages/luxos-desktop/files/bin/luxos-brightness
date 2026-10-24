@@ -1,0 +1,42 @@
+#!/bin/bash
+# LuxOS - jas displeje o krok nahoru/dolu (kolecko mysi nad baterii v horni liste)
+#
+#   luxos-brightness up|down     o 5 % (nejmene 10 %, jako posuvnik v Ovladacim centru)
+#
+# Ukaze stejny prubeh jako klavesy jasu (oznameni s hodnotou, dalsi krok ho nahradi).
+# Bez podsviceni (stolni monitor) meni softwarovy jas jako Ovladaci centrum.
+set -u
+. /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
+
+STEP=5
+MIN=10
+
+case ${1-} in
+    up) sign=1 ;;
+    down) sign=-1 ;;
+    *) echo "usage: luxos-brightness up|down" >&2; exit 2 ;;
+esac
+
+if [[ -n $(ls /sys/class/backlight 2>/dev/null) ]]; then
+    cur=$(brightnessctl get 2>/dev/null) max=$(brightnessctl max 2>/dev/null)
+    [[ $cur =~ ^[0-9]+$ && $max =~ ^[0-9]+$ && $max -gt 0 ]] || exit 1
+    pct=$(( (cur * 100 + max / 2) / max ))
+    new=$(( pct + sign * STEP ))
+    (( new < MIN )) && new=$MIN
+    (( new > 100 )) && new=100
+    brightnessctl -q set "$new%" || exit 1
+else
+    conf=${XDG_CONFIG_HOME:-$HOME/.config}/luxos
+    pct=$(cat "$conf/brightness" 2>/dev/null)
+    [[ $pct =~ ^[0-9]+$ ]] || pct=100
+    new=$(( pct + sign * STEP ))
+    (( new < MIN )) && new=$MIN
+    (( new > 100 )) && new=100
+    mkdir -p "$conf" && printf '%s' "$new" > "$conf/brightness"
+    luxos-displays brightness "$new" >/dev/null 2>&1
+fi
+
+notify-send -a LuxOS -i display-brightness-symbolic -t 1500 -u low \
+    -h "int:value:$new" -h string:x-canonical-private-synchronous:luxos-brightness \
+    "$(T "Brightness")" "$new %" 2>/dev/null
+exit 0

@@ -4,6 +4,25 @@ Verze: `X.Y.Z` – `Y` roste s každým novým ISO, `Z` s opravami chyb. Každá
 Číslo verze je v `packages/luxos-branding/files/version` (os-release, O tomto počítači, fastfetch, název ISO).
 LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z jakého stavu systém vychází.
 
+## 0.9.8 „Polaris“ – 2026-10-24 (beta)
+
+### Nové
+- **Jas kolečkem myši** nad baterií v horní liště (`luxos-brightness up|down`, kroky po 5 %, nejméně 10 %, ukazatel jako u kláves jasu). Vlastní balík `xfce4-genmon-plugin` (4.3.0-1.1) se značkou `<scroll>příkaz</scroll>`.
+- **Upozornění na letní/zimní čas** (`luxos_timechange` v `luxos-hub`): jen v pásmech se změnou času, večer předem (18:00) a ráno po změně, vypínač v Ploše a Docku › Horní lišta a tlačítko Vypnout v upozornění.
+- **Lux Store: formátovaný průběh aktualizace** – krok, ukazatel průběhu, seznam balíčků (stará → nová verze, stav), shrnutí a doporučení restartu; technický výpis pod „Podrobnosti“.
+
+### Opravy
+- **Jádro LuxOS na starších instalacích**: instalace bez `luxos-care` (starší instalátor) na `linux-luxos` nikdy nepřešly. `luxos-desktop` teď `luxos-care` vyžaduje a jeho instalace přechod spustí (mimo chroot instalátoru).
+- Otevřená nabídka horní lišty (např. Zvuk) blokovala klávesové zkratky a pravé tlačítko: zkratky se Super, Ctrl+Alt, Alt+Tab, Alt+F4 a PrtSc nabídku zavřou a provedou se; pravým tlačítkem se mezi nabídkami přepíná jako levým; tuknutí na Super otevře Launchpad i s otevřenou nabídkou.
+- Kontextové nabídky horní lišty nezačínají šedým názvem pluginu, na který nejde kliknout (např. „Rozložení klávesnice“) – GTK modul `luxos-panel-menus`.
+- Odhlášení, restart a vypnutí: místo oken s černými pruhy (konec kompozitoru) obrazovka plynule zčerná (`luxos-session-cover`).
+- Spořič baterie už obrazovku nepřepíná na 60 Hz (přepnutí frekvence ji na okamžik zčernalo); volitelně „Snížit obrazovku na 60 Hz“ v Baterii a napájení.
+- Launchpad se kolečkem posouvá po řádcích místo skoku o celou stránku.
+- fastfetch v každém novém okně terminálu (ne ve vnořeném shellu).
+- Časovač procesoru (TSC) falešně označený za nestabilní (např. Ryzen 5000 v noteboocích, systém pak četl čas z pomalého HPET): LuxOS Care po startu doplní do položek LuxOS jednou `tsc=nowatchdog`, jen u procesorů s invariantním TSC.
+- Chyběly `rtkit` (PipeWire bez priority v reálném čase) a `wireless-regdb` (Wi-Fi bez pravidel země) – závislosti `luxos-desktop`.
+- Pravidlo I/O plánovače se zkoušelo i na oddíly (varování v záznamu startu).
+
 ## 0.9.7 „Polaris“ – 2026-10-23 (beta)
 
 ### Nové

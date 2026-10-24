@@ -1,4 +1,4 @@
-# LuxOS - baterie v horni liste (plugin genmon): ikona + procenta, klik = Ovladaci centrum
+# LuxOS - baterie v horni liste (plugin genmon): ikona + procenta, klik = Ovladaci centrum, kolecko = jas
 # Spousti se kazdych 20 s; v LSL bez dalsich procesu (bash potreboval awk na kazdy preklad).
 # LUXOS_POWER_SUPPLY prepise /sys/class/power_supply (testy).
 load env, os, fd
@@ -161,4 +161,4 @@ end
 if exists(saver):
     tip = tip + " · " + i18n.T("Battery Saver")
 end
-print "<icon>" + icon + "-symbolic</icon><txt> " + cap_text + " %</txt><tool>" + cap_text + " % · " + tip + "</tool><iconclick>luxos-cc-toggle</iconclick><txtclick>luxos-cc-toggle</txtclick>"
+print "<icon>" + icon + "-symbolic</icon><txt> " + cap_text + " %</txt><tool>" + cap_text + " % · " + tip + "</tool><iconclick>luxos-cc-toggle</iconclick><txtclick>luxos-cc-toggle</txtclick><scroll>luxos-brightness</scroll>"

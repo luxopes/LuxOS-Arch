@@ -2535,3 +2535,35 @@ This network requires you to sign in before you can use the internet.	Det här n
 Connected to the internet	Ansluten till internet
 You are signed in to the network.	Du är inloggad på nätverket.
 Step after the update failed:	Ett steg efter uppdateringen misslyckades:
+%d updates	%d uppdateringar
+1 update	1 uppdatering
+Updating your computer…	Uppdaterar datorn…
+You can keep working. Some apps may need to be restarted afterwards.	Du kan fortsätta arbeta. Vissa appar kan behöva startas om efteråt.
+Preparing…	Förbereder…
+Your computer is up to date	Datorn är uppdaterad
+All updates were installed.	Alla uppdateringar har installerats.
+Restart your computer to finish the update.	Starta om datorn för att slutföra uppdateringen.
+Updated	Uppdaterad
+The update was cancelled	Uppdateringen avbröts
+The update could not be finished	Uppdateringen kunde inte slutföras
+Check Again	Kontrollera igen
+Could not check for updates	Det gick inte att söka efter uppdateringar
+1 update available	1 uppdatering tillgänglig
+Updates bring new features, fixes and security improvements.	Uppdateringar ger nya funktioner, rättningar och bättre säkerhet.
+The time changes tonight	I natt ändras tiden
+Summer time starts tonight	I natt börjar sommartid
+Winter time starts tonight	I natt börjar vintertid
+Clocks go back from %s to %s. Your computer changes the time automatically.	Klockan ställs tillbaka från %s till %s. Datorn ändrar tiden automatiskt.
+Clocks go forward from %s to %s. Your computer changes the time automatically.	Klockan ställs fram från %s till %s. Datorn ändrar tiden automatiskt.
+The time has changed	Tiden har ändrats
+Summer time has started	Sommartid har börjat
+Winter time has started	Vintertid har börjat
+Clocks went back from %s to %s.	Klockan ställdes tillbaka från %s till %s.
+Clocks went forward from %s to %s.	Klockan ställdes fram från %s till %s.
+Turn Off	Stäng av
+Notify about summer and winter time	Meddela om sommar- och vintertid
+In the evening before the clocks change and in the morning after.	Kvällen före tidsomställningen och morgonen efter.
+Brightness	Ljusstyrka
+Lower the screen to 60 Hz	Sänk skärmen till 60 Hz
+A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Lite längre batteritid på skärmar med 90–165 Hz. Skärmen blir svart ett ögonblick när Batterisparläge slås på eller av.
+Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Längre batteritid: långsammare processor utan turbo, något lägre ljusstyrka, inga animationer, oanvända enheter viloläge och bakgrundsuppgifter pausas.

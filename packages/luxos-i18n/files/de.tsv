@@ -2535,3 +2535,35 @@ This network requires you to sign in before you can use the internet.	Dieses Net
 Connected to the internet	Mit dem Internet verbunden
 You are signed in to the network.	Sie sind im Netzwerk angemeldet.
 Step after the update failed:	Schritt nach der Aktualisierung fehlgeschlagen:
+%d updates	%d Updates
+1 update	1 Update
+Updating your computer…	Computer wird aktualisiert…
+You can keep working. Some apps may need to be restarted afterwards.	Sie können weiterarbeiten. Einige Apps müssen danach eventuell neu gestartet werden.
+Preparing…	Wird vorbereitet…
+Your computer is up to date	Ihr Computer ist auf dem neuesten Stand
+All updates were installed.	Alle Updates wurden installiert.
+Restart your computer to finish the update.	Starten Sie den Computer neu, um das Update abzuschließen.
+Updated	Aktualisiert
+The update was cancelled	Das Update wurde abgebrochen
+The update could not be finished	Das Update konnte nicht abgeschlossen werden
+Check Again	Erneut prüfen
+Could not check for updates	Updates konnten nicht geprüft werden
+1 update available	1 Update verfügbar
+Updates bring new features, fixes and security improvements.	Updates bringen neue Funktionen, Fehlerbehebungen und mehr Sicherheit.
+The time changes tonight	Heute Nacht wird die Uhr umgestellt
+Summer time starts tonight	Heute Nacht beginnt die Sommerzeit
+Winter time starts tonight	Heute Nacht beginnt die Winterzeit
+Clocks go back from %s to %s. Your computer changes the time automatically.	Die Uhr wird von %s auf %s zurückgestellt. Ihr Computer stellt die Zeit automatisch um.
+Clocks go forward from %s to %s. Your computer changes the time automatically.	Die Uhr wird von %s auf %s vorgestellt. Ihr Computer stellt die Zeit automatisch um.
+The time has changed	Die Uhr wurde umgestellt
+Summer time has started	Die Sommerzeit hat begonnen
+Winter time has started	Die Winterzeit hat begonnen
+Clocks went back from %s to %s.	Die Uhr wurde von %s auf %s zurückgestellt.
+Clocks went forward from %s to %s.	Die Uhr wurde von %s auf %s vorgestellt.
+Turn Off	Ausschalten
+Notify about summer and winter time	Über Sommer- und Winterzeit informieren
+In the evening before the clocks change and in the morning after.	Am Abend vor der Zeitumstellung und am Morgen danach.
+Brightness	Helligkeit
+Lower the screen to 60 Hz	Bildschirm auf 60 Hz senken
+A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Etwas mehr Akkulaufzeit bei 90–165-Hz-Bildschirmen. Beim Ein- und Ausschalten des Stromsparmodus wird der Bildschirm kurz dunkel.
+Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Längere Akkulaufzeit: langsamerer Prozessor ohne Turbo, etwas geringere Helligkeit, keine Animationen, ungenutzte Geräte ruhen und Hintergrundaufgaben pausieren.

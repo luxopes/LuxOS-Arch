@@ -63,6 +63,7 @@ def wallpaper_thumb(path):
 DOCK_SCHEMA = "net.launchpad.plank.dock.settings"
 DOCK_PATH = "/net/launchpad/plank/docks/dock1/"
 PREFS = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/appearance.conf")
+NOTIFY_PREFS = os.path.join(os.path.dirname(PREFS), "notifications.conf")
 
 CSS = b"""
 .group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
@@ -95,6 +96,35 @@ def read_prefs():
     except OSError:
         pass
     return prefs
+
+
+def read_kv(path):
+    out = {}
+    try:
+        with open(path) as f:
+            for line in f:
+                k, sep, v = line.strip().partition("=")
+                if sep:
+                    out[k] = v
+    except OSError:
+        pass
+    return out
+
+
+def write_kv(path, key, value):
+    """KEY=hodnota v souboru (ostatni radky beze zmeny)."""
+    lines = []
+    try:
+        with open(path) as f:
+            lines = [ln for ln in f.read().splitlines() if ln and not ln.startswith(key + "=")]
+    except OSError:
+        pass
+    lines.append(f"{key}={value}")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.replace(tmp, path)
 
 
 class Group(Gtk.Box):
@@ -452,6 +482,14 @@ class Settings(Gtk.Window):
         group = Group(page, _("Menu Bar"))
         group.row(_("Menu bar opacity"), slider(0, 100, int(self.prefs["BAR_OPACITY"] or 62),
                                                 lambda v: subprocess.Popen(["luxos-appearance", "bar-opacity", str(v)])))
+        # Upozorneni na letni/zimni cas (luxos-hub, luxos_timechange.lsl); jen kde se cas meni
+        timechange = Gtk.Switch(active=read_kv(NOTIFY_PREFS).get("TIME_CHANGE") != "0")
+        timechange.connect("notify::active", self.toggle_timechange)
+        group.row(_("Notify about summer and winter time"), timechange,
+                  _("In the evening before the clocks change and in the morning after."))
+
+    def toggle_timechange(self, switch, _p):
+        write_kv(NOTIFY_PREFS, "TIME_CHANGE", "1" if switch.get_active() else "0")
 
 
 def main():

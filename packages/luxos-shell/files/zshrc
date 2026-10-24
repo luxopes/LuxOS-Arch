@@ -71,8 +71,12 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'
 [[ -r /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && \
     . /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
-if [[ $LUXOS_FASTFETCH == 1 && $TERM != linux && -n ${XDG_RUNTIME_DIR-} && ! -e $XDG_RUNTIME_DIR/luxos-greeted ]] \
-    && (( $+commands[fastfetch] )); then
-    : > "$XDG_RUNTIME_DIR/luxos-greeted"
-    fastfetch
+if [[ $LUXOS_FASTFETCH == 1 && $TERM != linux ]] && (( $+commands[fastfetch] )); then
+    luxos_parent=
+    read -r luxos_parent < /proc/$PPID/comm 2>/dev/null
+    case $luxos_parent in
+        bash|zsh|sh|lsh|fish|dash|su|sudo|login) ;;
+        *) fastfetch ;;
+    esac
+    unset luxos_parent
 fi

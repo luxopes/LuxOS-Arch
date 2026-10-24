@@ -81,7 +81,29 @@ CSS = b"""
 .status progressbar progress { min-height: 10px; border-radius: 5px; border: none;
                                background-image: none; background-color: #3d7bff; }
 .status-pct { font-weight: 800; color: #3d7bff; min-width: 44px; }
+.upd-card { border-radius: 14px; padding: 16px 18px; background-color: alpha(currentColor, 0.05); }
+.upd-head { font-size: 17px; font-weight: 800; }
+.upd-step { font-weight: 600; }
+.upd-pct { font-weight: 800; color: #3d7bff; min-width: 44px; }
+.upd-card progressbar trough { min-height: 8px; border-radius: 4px; border: none;
+                               background-image: none; background-color: alpha(currentColor, 0.12); }
+.upd-card progressbar progress { min-height: 8px; border-radius: 4px; border: none;
+                                 background-image: none; background-color: #3d7bff; }
+.upd-list { border-radius: 14px; background-color: alpha(currentColor, 0.04); }
+.upd-list row { padding: 8px 14px; border-bottom: 1px solid alpha(currentColor, 0.07); }
+.upd-list row:last-child { border-bottom: none; }
+.upd-name { font-weight: 700; }
+.upd-ver { font-size: 12px; opacity: 0.65; }
+.upd-ok { color: #2fb457; }
+.upd-err { color: #ff453a; }
+.upd-blue { color: #3d7bff; }
+.upd-pending { opacity: 0.35; }
+.upd-log { font-family: monospace; font-size: 11px; padding: 8px; }
 """
+
+# Balicky, po jejichz aktualizaci je potreba restart (jadro, ovladace, zakladni knihovny)
+REBOOT_PKGS = re.compile(r"^(linux(-[a-z]+)?|linux-.*-headers|nvidia.*|systemd|glibc|mesa|amd-ucode|intel-ucode|"
+                         r"xorg-server|dbus.*|lux-engine)$")
 
 
 # ---- data -----------------------------------------------------------------
@@ -172,6 +194,7 @@ class Catalog:
         self.apps = {}
         self.installed = set()
         self.updates = []
+        self.update_info = {}
         self.pending_icons = []
 
     def load(self):
@@ -284,7 +307,14 @@ class Catalog:
             lines = [ln.strip().lstrip("✗").strip() for ln in (r.stderr or "").splitlines() if ln.strip()]
             self.update_error = lines[0] if lines else None
             return False
-        self.updates = [line.split()[0] for line in r.stdout.splitlines() if line.strip()]
+        # "nazev stara -> nova"
+        self.update_info = {}
+        for line in r.stdout.splitlines():
+            parts = line.split()
+            if parts:
+                self.update_info[parts[0]] = (parts[1] if len(parts) > 1 else "",
+                                              parts[3] if len(parts) > 3 else "")
+        self.updates = list(self.update_info)
         return True
 
 
@@ -341,6 +371,254 @@ class AppCard(Gtk.EventBox):
             self.button.set_label(_("Open") if self.app.pkg in self.store.catalog.installed else _("Get"))
 
 
+class UpdateView(Gtk.Box):
+    """Stranka aktualizaci: souhrn, prubeh (krok, ukazatel, procenta), seznam balicku se stavem
+    a verzemi a skryty podrobny vypis."""
+    STATES = {"pending": ("content-loading-symbolic", "upd-pending"), "done": ("emblem-ok-symbolic", "upd-ok"),
+              "failed": ("dialog-error-symbolic", "upd-err")}
+
+    def __init__(self, store):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        self.store = store
+        self.running = False
+        self.finished = False       # aktualizace probehla (vysledek zustava na strance)
+        self.rows = {}
+        self.order = []
+        self.current = None
+
+        # souhrn: ikona, nadpis, podrobnost
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        card.get_style_context().add_class("upd-card")
+        head = Gtk.Box(spacing=14)
+        self.icon_stack = Gtk.Stack()
+        self.icon = Gtk.Image()
+        self.icon.set_pixel_size(40)
+        self.spinner = Gtk.Spinner()
+        self.spinner.set_size_request(40, 40)
+        self.icon_stack.add_named(self.icon, "icon")
+        self.icon_stack.add_named(self.spinner, "spin")
+        head.pack_start(self.icon_stack, False, False, 0)
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, valign=Gtk.Align.CENTER)
+        self.headline = Gtk.Label(xalign=0, wrap=True)
+        self.headline.get_style_context().add_class("upd-head")
+        self.sub = Gtk.Label(xalign=0, wrap=True)
+        self.sub.get_style_context().add_class("dim")
+        text.pack_start(self.headline, False, False, 0)
+        text.pack_start(self.sub, False, False, 0)
+        head.pack_start(text, True, True, 0)
+        self.buttons = Gtk.Box(spacing=8, valign=Gtk.Align.CENTER)
+        head.pack_end(self.buttons, False, False, 0)
+        card.pack_start(head, False, False, 0)
+
+        # prubeh
+        self.prog_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.prog_box.set_no_show_all(True)
+        line = Gtk.Box(spacing=10)
+        self.step = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END)
+        self.step.get_style_context().add_class("upd-step")
+        self.pct = Gtk.Label(xalign=1)
+        self.pct.get_style_context().add_class("upd-pct")
+        line.pack_start(self.step, True, True, 0)
+        line.pack_end(self.pct, False, False, 0)
+        self.bar = Gtk.ProgressBar()
+        self.prog_box.pack_start(line, False, False, 0)
+        self.prog_box.pack_start(self.bar, False, False, 0)
+        for w in (line, self.step, self.pct, self.bar):
+            w.show()
+        card.pack_start(self.prog_box, False, False, 0)
+        self.pack_start(card, False, False, 0)
+
+        # seznam balicku
+        self.list_title = self.store.section("")
+        self.list_title.set_no_show_all(True)
+        self.pack_start(self.list_title, False, False, 0)
+        self.listbox = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        self.listbox.get_style_context().add_class("upd-list")
+        self.listbox.set_no_show_all(True)
+        self.pack_start(self.listbox, False, False, 0)
+
+        # podrobny vypis (pro pokrocile a pro hlaseni chyb)
+        self.expander = Gtk.Expander(label=_("Details"))
+        self.expander.set_no_show_all(True)
+        self.logbuf = Gtk.TextBuffer()
+        tv = Gtk.TextView(buffer=self.logbuf, editable=False, cursor_visible=False,
+                          wrap_mode=Gtk.WrapMode.WORD_CHAR, monospace=True)
+        tv.get_style_context().add_class("upd-log")
+        self.log_view = tv
+        sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        sw.set_size_request(-1, 200)
+        sw.add(tv)
+        sw.show_all()
+        self.expander.add(sw)
+        self.pack_start(self.expander, False, False, 0)
+
+    # ---- souhrn ----
+    def summary(self, icon, css, headline, sub="", spin=False):
+        if spin:
+            self.spinner.start()
+            self.icon_stack.set_visible_child_name("spin")
+        else:
+            self.spinner.stop()
+            self.icon.set_from_icon_name(icon, Gtk.IconSize.DIALOG)
+            self.icon.set_pixel_size(40)
+            ctx = self.icon.get_style_context()
+            for c in ("upd-ok", "upd-err", "upd-blue"):
+                ctx.remove_class(c)
+            if css:
+                ctx.add_class(css)
+            self.icon_stack.set_visible_child_name("icon")
+        self.headline.set_text(headline)
+        self.sub.set_text(sub)
+        self.sub.set_visible(bool(sub))
+
+    def set_buttons(self, *buttons):
+        for c in self.buttons.get_children():
+            self.buttons.remove(c)
+        for b in buttons:
+            self.buttons.pack_start(b, False, False, 0)
+        self.buttons.show_all()
+
+    # ---- seznam ----
+    def set_packages(self, info):
+        for c in self.listbox.get_children():
+            self.listbox.remove(c)
+        self.rows, self.current = {}, None
+        apps = self.store.catalog.apps
+        # aplikace (s ikonou a nazvem) nahore, systemove soucasti pod nimi
+        self.order = sorted(info, key=lambda n: (n not in apps, (apps[n].name if n in apps else n).lower()))
+        for name in self.order:
+            old, new = info[name]
+            row = Gtk.ListBoxRow(activatable=False)
+            box = Gtk.Box(spacing=12)
+            img = Gtk.Image()
+            pix = apps[name].icon_pixbuf(32) if name in apps else None
+            if pix:
+                img.set_from_pixbuf(pix)
+            else:
+                img.set_from_icon_name("luxos-app" if name.startswith("lux") else "package-x-generic",
+                                       Gtk.IconSize.DND)
+                img.set_pixel_size(32)
+            box.pack_start(img, False, False, 0)
+            text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+            title = Gtk.Label(label=apps[name].name if name in apps else name, xalign=0,
+                              ellipsize=Pango.EllipsizeMode.END)
+            title.get_style_context().add_class("upd-name")
+            text.pack_start(title, False, False, 0)
+            ver = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.MIDDLE)
+            ver.set_markup("%s  →  <b>%s</b>" % (GLib.markup_escape_text(old), GLib.markup_escape_text(new))
+                           if old or new else "")
+            ver.get_style_context().add_class("upd-ver")
+            text.pack_start(ver, False, False, 0)
+            box.pack_start(text, True, True, 0)
+            stack = Gtk.Stack()
+            state = Gtk.Image()
+            state.set_pixel_size(16)
+            sp = Gtk.Spinner()
+            stack.add_named(state, "icon")
+            stack.add_named(sp, "spin")
+            box.pack_end(stack, False, False, 0)
+            row.add(box)
+            row.show_all()
+            stack.set_no_show_all(True)
+            stack.hide()
+            self.rows[name] = (stack, state, sp)
+            self.listbox.add(row)
+        n = len(self.order)
+        self.list_title.set_text(_("%d updates") % n if n != 1 else _("1 update"))
+        self.list_title.set_visible(bool(n))
+        self.listbox.set_visible(bool(n))
+
+    def set_state(self, name, state):
+        if name not in self.rows:
+            return
+        stack, img, sp = self.rows[name]
+        stack.show()
+        stack.show_all()
+        if state == "busy":
+            sp.start()
+            stack.set_visible_child_name("spin")
+        else:
+            sp.stop()
+            icon, css = self.STATES[state]
+            img.set_from_icon_name(icon, Gtk.IconSize.MENU)
+            ctx = img.get_style_context()
+            for c in ("upd-ok", "upd-err", "upd-pending"):
+                ctx.remove_class(c)
+            ctx.add_class(css)
+            stack.set_visible_child_name("icon")
+
+    # ---- prubeh aktualizace ----
+    def start(self):
+        self.running = True
+        self.logbuf.set_text("")
+        self.summary(None, None, _("Updating your computer…"),
+                     _("You can keep working. Some apps may need to be restarted afterwards."), spin=True)
+        self.set_buttons()
+        self.step.set_text(_("Preparing…"))
+        self.bar.set_fraction(0)
+        self.pct.set_text("0 %")
+        self.prog_box.show()
+        self.expander.show()
+        for name in self.rows:
+            self.set_state(name, "pending")
+
+    def progress(self, frac, text):
+        frac = max(0.0, min(1.0, frac))
+        self.bar.set_fraction(frac)
+        self.pct.set_text("%d %%" % round(frac * 100))
+        if text:
+            self.step.set_text(text)
+
+    def package(self, name):
+        """Prave se instaluje balicek name: predchozi je hotovy."""
+        if name == self.current:
+            return
+        if self.current:
+            self.set_state(self.current, "done")
+        self.current = name
+        self.set_state(name, "busy")
+
+    def log(self, line):
+        end = self.logbuf.get_end_iter()
+        self.logbuf.insert(end, line + "\n")
+        if self.expander.get_expanded():
+            self.log_view.scroll_to_iter(self.logbuf.get_end_iter(), 0, False, 0, 1)
+
+    def finish(self, ok, message="", cancelled=False):
+        self.running = False
+        self.finished = True
+        self.prog_box.hide()
+        n = len(self.rows)
+        if ok:
+            for name in self.rows:
+                self.set_state(name, "done")
+            reboot = any(REBOOT_PKGS.match(nm) for nm in self.rows)
+            self.summary("emblem-ok-symbolic", "upd-ok", _("Your computer is up to date"),
+                         (_("%d packages were updated.") % n if n else _("All updates were installed.")) +
+                         ("  " + _("Restart your computer to finish the update.") if reboot else ""))
+            self.list_title.set_text(_("Updated"))
+        else:
+            for name in self.rows:
+                stack, img, sp = self.rows[name]
+                if name == self.current:
+                    self.set_state(name, "failed")
+                elif sp.get_property("active"):
+                    self.set_state(name, "pending")
+            if self.current is None and not cancelled:
+                for name in self.rows:
+                    self.set_state(name, "pending")
+            if cancelled:
+                self.summary("dialog-information-symbolic", "upd-blue", _("The update was cancelled"),
+                             _("Nothing was changed."))
+            else:
+                self.summary("dialog-error-symbolic", "upd-err", _("The update could not be finished"),
+                             message or _("unknown error"))
+                self.expander.set_expanded(True)
+        retry = Gtk.Button(label=_("Check for Updates"))
+        retry.connect("clicked", lambda _b: self.store.show_page("updates", "check"))
+        self.set_buttons(retry)
+
+
 class Store(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("LuxOS Store"))
@@ -349,6 +627,7 @@ class Store(Gtk.Window):
         self.catalog = Catalog()
         self.busy = {}
         self.cards = []
+        self.update_view = None
 
         header = Gtk.HeaderBar(show_close_button=True, title=_("LuxOS Store"))
         self.back = Gtk.Button.new_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON)
@@ -489,7 +768,7 @@ class Store(Gtk.Window):
             inst = [a for a in apps.values() if a.pkg in self.catalog.installed]
             box.pack_start(self.grid(sorted(inst, key=lambda a: a.name.lower())), False, False, 0)
         elif key == "updates":
-            box.pack_start(self.updates_page(), False, False, 0)
+            box.pack_start(self.updates_page(arg), False, False, 0)
         elif key == "search":
             box.pack_start(self.title(_("Results for “%s”") % arg), False, False, 0)
             box.pack_start(self.grid(self.find(arg)), False, False, 0)
@@ -558,45 +837,59 @@ class Store(Gtk.Window):
             flow.add(card)
         return flow
 
-    def updates_page(self):
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+    def updates_page(self, arg=None):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
         box.pack_start(self.title(_("Updates")), False, False, 0)
-        row = Gtk.Box(spacing=8)
-        check = Gtk.Button(label=_("Check for Updates"), always_show_image=True,
-                           image=Gtk.Image.new_from_icon_name("view-refresh-symbolic", Gtk.IconSize.BUTTON))
+        view = self.update_view
+        if view and (view.running or (view.finished and arg != "check")):
+            # probihajici nebo dokoncena aktualizace zustava pri navratu na stranku
+            if view.get_parent():
+                view.get_parent().remove(view)
+            box.pack_start(view, False, False, 0)
+            return box
+        view = self.update_view = UpdateView(self)
+        box.pack_start(view, False, False, 0)
+        check = Gtk.Button(label=_("Check Again"))
         update = Gtk.Button(label=_("Update All"))
         update.get_style_context().add_class("get")
         update.get_style_context().add_class("primary")
-        # aktualizovat lze az po kontrole, ktera neco nasla
-        update.set_sensitive(bool(self.catalog.updates))
-        row.pack_start(check, False, False, 0)
-        row.pack_start(update, False, False, 0)
-        box.pack_start(row, False, False, 0)
-        info = self.dim("")
-        box.pack_start(info, False, False, 0)
 
         def show_result(ok):
             ups = self.catalog.updates
             if not ok:
-                info.set_text(getattr(self.catalog, "update_error", None) or
-                              _("Could not check for updates. Check your internet connection and try again."))
+                view.summary("dialog-warning-symbolic", "upd-err", _("Could not check for updates"),
+                             getattr(self.catalog, "update_error", None) or
+                             _("Could not check for updates. Check your internet connection and try again."))
+                view.set_buttons(check)
+            elif not ups:
+                view.summary("emblem-ok-symbolic", "upd-ok", _("Your computer is up to date"),
+                             _("Everything is up to date."))
+                view.set_buttons(check)
             else:
-                info.set_text(_("Everything is up to date.") if not ups else
-                              _("%d updates available: %s") % (len(ups), ", ".join(ups[:30]) + (" …" if len(ups) > 30 else "")))
-            check.set_sensitive(True)
-            update.set_sensitive(bool(ups))
+                view.summary("software-update-available-symbolic", "upd-blue",
+                             _("%d updates available") % len(ups) if len(ups) != 1 else _("1 update available"),
+                             _("Updates bring new features, fixes and security improvements."))
+                view.set_buttons(check, update)
+            view.set_packages(self.catalog.update_info if ok else {})
+            return False
 
         def do_check(_b=None):
-            check.set_sensitive(False)
-            update.set_sensitive(False)
-            info.set_text(_("Checking for updates…"))
+            view.summary(None, None, _("Checking for updates…"), spin=True)
+            view.set_buttons()
             threading.Thread(target=lambda: GLib.idle_add(show_result, self.catalog.check_updates()),
                              daemon=True).start()
 
+        def do_update(_b):
+            view.start()
+            self.run_helper("upgrade", [], _("Updating system…"), view=view)
+
         check.connect("clicked", do_check)
-        update.connect("clicked", lambda _b: self.run_helper("upgrade", [], _("Updating system…")))
-        if os.path.exists(DATASAVER):
-            info.set_text(_("Data Saver is on - updates are not checked automatically."))
+        update.connect("clicked", do_update)
+        if os.path.exists(DATASAVER) and arg != "check":
+            view.summary("network-cellular-symbolic", None, _("Updates"),
+                         _("Data Saver is on - updates are not checked automatically."))
+            check.set_label(_("Check for Updates"))
+            view.set_buttons(check)
         else:
             do_check()
         return box
@@ -684,7 +977,7 @@ class Store(Gtk.Window):
         self.status.set_text(text)
         self.status_bar.show()
 
-    def run_helper(self, action, pkgs, message, app=None):
+    def run_helper(self, action, pkgs, message, app=None, view=None):
         """Operace pres pkexec s prubehem (stahovani 0-50 %, instalace 50-100 %). lux posila radky
         "@@PHASE/@@PROGRESS/@@ERROR" (/usr/share/doc/lux/lux.md), zalozni lux-engine svuj bezny vystup."""
         if app:
@@ -692,12 +985,16 @@ class Store(Gtk.Window):
             for c in self.cards:
                 if c.app is app:
                     c.update()
-        self.flash(message)
-        self.progress.set_fraction(0)
-        self.progress.show()
-        self.progress_pct.set_text("0 %")
-        self.progress_pct.show()
-        prog = {"total": 0, "down": 0, "inst": 0, "err": "", "net": False, "machine": False}
+        if view:
+            # prubeh ukazuje stranka aktualizaci, spodni lista zustava skryta
+            self.status_bar.hide()
+        else:
+            self.flash(message)
+            self.progress.set_fraction(0)
+            self.progress.show()
+            self.progress_pct.set_text("0 %")
+            self.progress_pct.show()
+        prog = {"frac": 0.0, "total": 0, "down": 0, "inst": 0, "err": "", "net": False, "machine": False}
         errors = {"network": _("The internet connection is too slow or unavailable. Try it again later."),
                   "locked": _("Another app is installing software right now. Try it again in a moment."),
                   "disk": _("Not enough free disk space."),
@@ -730,10 +1027,14 @@ class Store(Gtk.Window):
                 prog["err"] = errors.get(parts[1]) or (line.split(" ", 2)[2] if line.count(" ") >= 2 else "")
                 prog["net"] = parts[1] == "network"
             elif kind == "RETRY":
-                GLib.idle_add(show, self.progress.get_fraction(),
+                GLib.idle_add(show, prog["frac"],
                               _("Download failed, trying again (attempt %s)…") % parts[-1])
 
         def show(frac, text):
+            prog["frac"] = frac
+            if view:
+                view.progress(frac, text)
+                return False
             self.progress.set_fraction(max(0.0, min(1.0, frac)))
             self.progress_pct.set_text("%d %%" % round(max(0.0, min(1.0, frac)) * 100))
             if text:
@@ -746,6 +1047,14 @@ class Store(Gtk.Window):
             return False
 
         def parse(line):
+            if view:
+                if not line.startswith("@@"):
+                    GLib.idle_add(view.log, line)
+                # radek jadra "upgrading jmeno..." (lux i zalozni lux-engine): balicek, ktery se prave instaluje
+                m = re.match(r"^(?:\(\s*\d+/\d+\) )?(?:installing|upgrading|reinstalling|downgrading) (\S+?)(?:\.\.\.)?$",
+                             line)
+                if m:
+                    GLib.idle_add(view.package, m.group(1))
             if line.startswith("@@"):
                 prog["machine"] = True
                 parse_machine(line)
@@ -775,11 +1084,11 @@ class Store(Gtk.Window):
             if "failed retrieving file" in line or "too many errors from" in line:
                 if not prog["net"]:
                     prog["net"] = True
-                    GLib.idle_add(show, self.progress.get_fraction(),
+                    GLib.idle_add(show, prog["frac"],
                                   _("The connection is slow, trying another server…"))
                 return
             if line.startswith("@@RETRY"):
-                GLib.idle_add(show, self.progress.get_fraction(),
+                GLib.idle_add(show, prog["frac"],
                               _("Download failed, trying again (attempt %s)…") % line.split()[-1])
                 return
             if line.startswith("error:"):
@@ -797,6 +1106,13 @@ class Store(Gtk.Window):
             GLib.idle_add(done, p.wait(), prog["err"])
 
         def done(rc, err):
+            if view:
+                if rc == 0:
+                    self.catalog.updates, self.catalog.update_info = [], {}
+                view.finish(rc == 0, _("The internet connection is too slow or unavailable. Try it again later.")
+                            if prog["net"] and rc != 0 else err, cancelled=rc in (126, 127))
+                self.catalog.refresh_installed()
+                return False
             self.progress.hide()
             self.progress_pct.hide()
             if app:

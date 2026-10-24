@@ -29,6 +29,7 @@ DEMO = os.environ.get("LUXOS_POWER_DEMO") == "1"
 STATE_CHARGING, STATE_DISCHARGING, STATE_EMPTY, STATE_FULL, STATE_PENDING_CHARGE = 1, 2, 3, 4, 5
 PM = "xfce4-power-manager"
 SAVER_STATE = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver")
+SAVER_60HZ = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver-60hz")
 AUTO_SAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver-auto")
 # Neuspavat pri prehravani (luxos-hub): priznak vypnute volby a puvodni hodnoty xfce4-power-manager,
 # ktere luxos-hub behem prehravani docasne prepsal - aplikace pak ukazuje a meni tyto puvodni hodnoty
@@ -447,12 +448,17 @@ class PowerWindow(Gtk.Window):
             ["luxos-powersaver", "on" if s.get_active() else "off"], stdout=subprocess.DEVNULL,
             start_new_session=True))
         self.row(group, _("Battery Saver"), saver,
-                 _("Longer battery life: slower processor without turbo, 60 Hz screen, slightly lower "
-                   "brightness, no animations, idle devices sleep and background tasks pause."))
+                 _("Longer battery life: slower processor without turbo, slightly lower brightness, "
+                   "no animations, idle devices sleep and background tasks pause."))
         auto = Gtk.Switch(active=os.path.exists(AUTO_SAVER))
         auto.connect("notify::active", self.toggle_auto)
         self.row(group, _("Turn on automatically at 20 %"), auto,
                  _("Turns off again when the computer is charging."))
+        cap = Gtk.Switch(active=os.path.exists(SAVER_60HZ))
+        cap.connect("notify::active", lambda s, _p: self.toggle_flag(SAVER_60HZ, s.get_active()))
+        self.row(group, _("Lower the screen to 60 Hz"), cap,
+                 _("A little more battery on 90-165 Hz screens. The screen goes dark for a moment when "
+                   "Battery Saver turns on or off."))
 
         group = self.group(page, _("Screen and sleep"))
         times = [(0, _("Never")), (1, _("1 minute")), (2, _("2 minutes")), (5, _("5 minutes")),
@@ -542,6 +548,13 @@ class PowerWindow(Gtk.Window):
         else:
             os.makedirs(os.path.dirname(SLEEP_WHILE_PLAYING), exist_ok=True)
             open(SLEEP_WHILE_PLAYING, "w").close()
+
+    def toggle_flag(self, path, on):
+        if on:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            open(path, "w").close()
+        elif os.path.exists(path):
+            os.unlink(path)
 
     def toggle_auto(self, switch, _p):
         if switch.get_active():

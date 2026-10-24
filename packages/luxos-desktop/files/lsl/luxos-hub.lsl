@@ -14,11 +14,12 @@
 #   Svetly/tmavy      automaticky rezim podle vychodu a zapadu slunce
 #   Prehravani        pri hrajici hudbe/videu neuspava (ani zavreny vik), viz luxos_awake
 #   Ovladace          jednou za start upozorneni na chybejici ovladace (luxos-drivers)
+#   Zmena casu        vecer pred prechodem na letni/zimni cas a rano po nem (luxos_timechange)
 #
 # Stejny program bezi i jako `luxos-control-center [--panel|--background]` a `luxos-calendar [--background]`
 # (podle nazvu, pod kterym byl spusten): bezici instance (hub nebo samostatna) jen dostane signal.
-# Vsechno je rizene udalostmi (D-Bus, signaly); jediny casovac je kontrola automatickeho vzhledu
-# jednou za 5 minut, bez spousteni dalsich procesu.
+# Vsechno je rizene udalostmi (D-Bus, signaly); casovace jsou jen kontrola automatickeho vzhledu jednou
+# za 5 minut a zmeny casu dvakrat denne, bez spousteni dalsich procesu.
 load env, fd
 load luxos_glib, glib as glib
 load luxos_gio, gio as gio
@@ -34,6 +35,7 @@ load luxos_bt_agent as agent
 load luxos_care_hub as care
 load luxos_drivers_hub as drivers
 load luxos_safe_hub as safe
+load luxos_timechange as timechange
 
 SIGINT = 2
 SIGUSR1 = 10
@@ -42,7 +44,7 @@ SIGTERM = 15
 NM = "org.freedesktop.NetworkManager"
 NM_PATH = "/org/freedesktop/NetworkManager"
 
-hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0}
+hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0, "cover_pid": 0}
 
 function runtime_dir():
     value = env.get("XDG_RUNTIME_DIR", "")
@@ -232,6 +234,44 @@ function connectivity_update():
     return False
 end
 
+# ---- konec relace ------------------------------------------------------------------------------------------------
+# xfce4-session: 3 = SHUTDOWN (programy se jeste mohou ptat na ulozeni), 4 = SHUTDOWNPHASE2 (konci).
+# luxos-session-cover se pripravi hned, zatmi az pri 4 nebo po konci kompozitoru.
+function on_session_state(sender, path, interface, signal, values):
+    if len(values) < 2:
+        return 0
+    end
+    state = values[1]
+    if state == 3 and hub["cover_pid"] == 0:
+        hub["cover_pid"] = glib.spawn_watched_data(["luxos-session-cover"], on_cover_closed, 0)
+    elif state == 4:
+        if hub["cover_pid"] == 0:
+            hub["cover_pid"] = glib.spawn_watched_data(["luxos-session-cover"], on_cover_closed, 0)
+        end
+        if hub["cover_pid"] != 0:
+            call glib.kill(hub["cover_pid"], SIGUSR1)
+        end
+    elif state < 3:
+        call on_session_cancelled(sender, path, interface, signal, values)
+    end
+    return 0
+end
+
+function on_session_cancelled(sender, path, interface, signal, values):
+    if hub["cover_pid"] != 0:
+        call glib.kill(hub["cover_pid"], SIGTERM)
+        hub["cover_pid"] = 0
+    end
+    return 0
+end
+
+function on_cover_closed(bound, pid, status):
+    if hub["cover_pid"] == pid:
+        hub["cover_pid"] = 0
+    end
+    return 0
+end
+
 # Okno pro prihlaseni do site s portalem: jednorazovy profil prohlizece bez dat uzivatele
 function portal_open():
     if hub["portal_pid"] != 0 or env.get("LUXOS_HUB_NO_PORTAL", "") == "1":
@@ -373,8 +413,18 @@ function on_sleep(sender, path, interface, signal, values):
     # Po probuzeni (vecer otevreny notebook) hned zkontrolovat vzhled
     if len(values) > 0 and values[0] == False:
         call glib.timeout_add_seconds(3, appearance_check_once)
+        call glib.timeout_add_seconds(5, timechange_check_once)
     end
     return 0
+end
+
+function timechange_check_once():
+    try:
+        call timechange.check()
+    else:
+        call log("time change: " + String(last_error()))
+    end
+    return False
 end
 
 # ---- okna a signaly ----------------------------------------------------------------------------------------------
@@ -532,6 +582,23 @@ function main_hub():
         else:
             call log("drivers: " + String(last_error()))
         end
+    end
+
+    # Odhlaseni/vypnuti: cerne zakryti misto oken s cernymi pruhy po konci kompozitoru
+    if hub["session"] != 0:
+        try:
+            call gio.subscribe_values(hub["session"], "org.xfce.SessionManager", "org.xfce.Session.Manager", "StateChanged", "/org/xfce/SessionManager", on_session_state)
+            call gio.subscribe_values(hub["session"], "org.xfce.SessionManager", "org.xfce.Session.Manager", "ShutdownCancelled", "/org/xfce/SessionManager", on_session_cancelled)
+        else:
+            call log("session state: " + String(last_error()))
+        end
+    end
+
+    # Zmena casu (letni/zimni): upozorneni vecer pred ni a rano po ni
+    try:
+        call timechange.subscribe()
+    else:
+        call log("time change: " + String(last_error()))
     end
 
     if hub["system"] != 0:

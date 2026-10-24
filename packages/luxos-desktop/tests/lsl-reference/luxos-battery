@@ -55,5 +55,5 @@ if [[ -n $now && -n $full && ${rate:-0} -gt 0 ]]; then
     fi
 fi
 [[ -e $saver ]] && tip+=" · $(T "Battery Saver")"
-printf '<icon>%s-symbolic</icon><txt> %s %%</txt><tool>%s %% · %s</tool><iconclick>luxos-cc-toggle</iconclick><txtclick>luxos-cc-toggle</txtclick>\n' \
+printf '<icon>%s-symbolic</icon><txt> %s %%</txt><tool>%s %% · %s</tool><iconclick>luxos-cc-toggle</iconclick><txtclick>luxos-cc-toggle</txtclick><scroll>luxos-brightness</scroll>\n' \
     "$icon" "$cap" "$cap" "$tip"

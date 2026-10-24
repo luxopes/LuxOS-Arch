@@ -2535,3 +2535,35 @@ This network requires you to sign in before you can use the internet.	Dit netwer
 Connected to the internet	Verbonden met internet
 You are signed in to the network.	U bent aangemeld bij het netwerk.
 Step after the update failed:	Stap na de update mislukt:
+%d updates	%d updates
+1 update	1 update
+Updating your computer…	Computer wordt bijgewerkt…
+You can keep working. Some apps may need to be restarted afterwards.	Je kunt gewoon doorwerken. Sommige apps moeten daarna mogelijk opnieuw worden gestart.
+Preparing…	Voorbereiden…
+Your computer is up to date	Je computer is up-to-date
+All updates were installed.	Alle updates zijn geïnstalleerd.
+Restart your computer to finish the update.	Start de computer opnieuw op om de update af te ronden.
+Updated	Bijgewerkt
+The update was cancelled	De update is geannuleerd
+The update could not be finished	De update kon niet worden voltooid
+Check Again	Opnieuw controleren
+Could not check for updates	Kan niet op updates controleren
+1 update available	1 update beschikbaar
+Updates bring new features, fixes and security improvements.	Updates brengen nieuwe functies, oplossingen en betere beveiliging.
+The time changes tonight	Vannacht verandert de tijd
+Summer time starts tonight	Vannacht begint de zomertijd
+Winter time starts tonight	Vannacht begint de wintertijd
+Clocks go back from %s to %s. Your computer changes the time automatically.	De klok gaat terug van %s naar %s. Je computer past de tijd automatisch aan.
+Clocks go forward from %s to %s. Your computer changes the time automatically.	De klok gaat vooruit van %s naar %s. Je computer past de tijd automatisch aan.
+The time has changed	De tijd is veranderd
+Summer time has started	De zomertijd is begonnen
+Winter time has started	De wintertijd is begonnen
+Clocks went back from %s to %s.	De klok is teruggezet van %s naar %s.
+Clocks went forward from %s to %s.	De klok is vooruitgezet van %s naar %s.
+Turn Off	Uitschakelen
+Notify about summer and winter time	Melden bij zomer- en wintertijd
+In the evening before the clocks change and in the morning after.	De avond voor de tijdwisseling en de ochtend erna.
+Brightness	Helderheid
+Lower the screen to 60 Hz	Scherm verlagen naar 60 Hz
+A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Iets meer accuduur op schermen van 90–165 Hz. Het scherm wordt even zwart wanneer Batterijbesparing aan- of uitgaat.
+Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Langere accuduur: tragere processor zonder turbo, iets lagere helderheid, geen animaties, ongebruikte apparaten slapen en achtergrondtaken pauzeren.

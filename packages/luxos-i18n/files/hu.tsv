@@ -2535,3 +2535,35 @@ This network requires you to sign in before you can use the internet.	Ez a hál�
 Connected to the internet	Csatlakozva az internethez
 You are signed in to the network.	Bejelentkezett a hálózatba.
 Step after the update failed:	A frissítés utáni lépés nem sikerült:
+%d updates	%d frissítés
+1 update	1 frissítés
+Updating your computer…	A számítógép frissítése…
+You can keep working. Some apps may need to be restarted afterwards.	Nyugodtan dolgozhat tovább. Egyes alkalmazásokat utána újra kell indítani.
+Preparing…	Előkészítés…
+Your computer is up to date	A számítógép naprakész
+All updates were installed.	Minden frissítés telepítve.
+Restart your computer to finish the update.	A frissítés befejezéséhez indítsa újra a számítógépet.
+Updated	Frissítve
+The update was cancelled	A frissítés megszakadt
+The update could not be finished	A frissítést nem sikerült befejezni
+Check Again	Ellenőrzés újra
+Could not check for updates	Nem sikerült frissítéseket keresni
+1 update available	1 frissítés érhető el
+Updates bring new features, fixes and security improvements.	A frissítések újdonságokat, javításokat és jobb biztonságot hoznak.
+The time changes tonight	Ma éjjel átállítják az órát
+Summer time starts tonight	Ma éjjel kezdődik a nyári időszámítás
+Winter time starts tonight	Ma éjjel kezdődik a téli időszámítás
+Clocks go back from %s to %s. Your computer changes the time automatically.	Az órát %s-ról %s-ra visszaállítják. A számítógép automatikusan átállítja az időt.
+Clocks go forward from %s to %s. Your computer changes the time automatically.	Az órát %s-ról %s-ra előreállítják. A számítógép automatikusan átállítja az időt.
+The time has changed	Az idő megváltozott
+Summer time has started	Elkezdődött a nyári időszámítás
+Winter time has started	Elkezdődött a téli időszámítás
+Clocks went back from %s to %s.	Az órát %s-ról %s-ra visszaállították.
+Clocks went forward from %s to %s.	Az órát %s-ról %s-ra előreállították.
+Turn Off	Kikapcsolás
+Notify about summer and winter time	Értesítés a nyári és téli időszámításról
+In the evening before the clocks change and in the morning after.	Az óraátállítás előtti estén és utána reggel.
+Brightness	Fényerő
+Lower the screen to 60 Hz	Képernyő 60 Hz-re csökkentése
+A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Kicsit hosszabb üzemidő 90–165 Hz-es képernyőkön. Az Akkumulátorkímélő be- és kikapcsolásakor a képernyő egy pillanatra elsötétül.
+Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Hosszabb akkumulátor-üzemidő: lassabb processzor turbó nélkül, kissé alacsonyabb fényerő, animációk nélkül, a nem használt eszközök alvó módba lépnek, a háttérfeladatok szünetelnek.

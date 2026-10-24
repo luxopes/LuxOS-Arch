@@ -169,3 +169,15 @@ update" (Restart / Details), "Updates are available" (Classic), "Updates could n
 Prefer Classic mode. To stop the timers completely:
 `sudo systemctl disable --now luxos-care-update.timer luxos-care-check.timer` (and
 `luxos-care-boot.service` disables boot confirmation). The package re-enables the units on upgrade.
+
+## Processor timer (TSC) false alarm
+
+Some laptops (for example with AMD Ryzen 5000) mark the processor timer (TSC) as unstable at
+boot ("Marking clocksource tsc unstable due to frequency skew") even though the CPU has an
+invariant TSC (`constant_tsc` + `nonstop_tsc`). The kernel then reads time from the slow HPET,
+which makes everything that asks for the time often a little slower. After a successful boot
+`luxos-care boot-check` detects this case and adds `tsc=nowatchdog` once to the LuxOS boot
+entries (systemd-boot `options` lines of `luxos*.conf`, or `GRUB_CMDLINE_LINUX_DEFAULT` +
+`grub-mkconfig`). It applies from the next boot; the change is logged in the Care history
+(`tsc_fix`). Nothing changes if the parameter `tsc=` is already set or the alarm did not happen.
+To undo it, remove `tsc=nowatchdog` from the entry and add `tsc=unstable` there instead (Care then leaves it alone).

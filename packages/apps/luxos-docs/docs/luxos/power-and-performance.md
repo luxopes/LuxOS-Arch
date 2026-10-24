@@ -44,7 +44,9 @@ luxos-powersaver on|off|toggle|status
 - State file `~/.config/luxos/powersaver`; original values in `~/.config/luxos/powersaver.saved`.
 - On (like macOS Low Power Mode), session part:
   - power-profiles-daemon profile **power-saver** (EPP "power", platform_profile low-power);
-  - built-in display (eDP/LVDS/DSI) above 60 Hz is switched to ~60 Hz (also after monitor changes);
+  - only when `~/.config/luxos/powersaver-60hz` exists (Battery & Power, off by default - the mode
+    change blanks the screen for a moment): built-in display (eDP/LVDS/DSI) above 60 Hz is switched
+    to ~60 Hz (also after monitor changes);
   - backlight dimmed by 20 % (not below 40 %, only when above 40 %);
   - GTK animations off (xsettings `/Gtk/EnableAnimations`), no Dock magnification.
 - System part `luxos-powersaver.service` (root, started without a password by polkit rule
