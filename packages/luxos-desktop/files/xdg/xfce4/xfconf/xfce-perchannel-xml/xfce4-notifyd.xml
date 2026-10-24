@@ -5,4 +5,12 @@
   <property name="do-fadeout" type="bool" value="true"/>
   <property name="do-slideout" type="bool" value="true"/>
   <property name="theme" type="string" value="WhiteSur-Light"/>
+  <!-- Centrum oznameni (zvonek v liste): ukladat vsechna oznameni vsech aplikaci, nejen zmeskana
+       behem Nerusit (vychozi "not-fully-shown"). Docasna oznameni (hint "transient": hlasitost,
+       jas) se neukladaji. Uchovava se poslednich 100. -->
+  <property name="notification-log" type="bool" value="true"/>
+  <property name="log-level" type="string" value="always"/>
+  <property name="log-level-apps" type="string" value="all"/>
+  <property name="log-max-size-enabled" type="bool" value="true"/>
+  <property name="log-max-size" type="uint" value="100"/>
 </channel>

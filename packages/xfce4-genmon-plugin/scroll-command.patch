@@ -1,5 +1,5 @@
 diff --git a/panel-plugin/main.c b/panel-plugin/main.c
-index df9cc6e..643f166 100644
+index df9cc6e..d4f6cff 100644
 --- a/panel-plugin/main.c
 +++ b/panel-plugin/main.c
 @@ -85,6 +85,8 @@ typedef struct monitor_t
@@ -93,11 +93,16 @@ index df9cc6e..643f166 100644
      g_free (poPlugin->acValue);
      g_free (poPlugin);
      xfconf_shutdown ();
-@@ -1376,6 +1439,10 @@ static void genmon_construct (XfcePanelPlugin *plugin)
+@@ -1376,6 +1439,15 @@ static void genmon_construct (XfcePanelPlugin *plugin)
      g_signal_connect (G_OBJECT (genmon->oMonitor.wValButton), "clicked",
          G_CALLBACK (ExecOnValClickCmd), genmon);        
  
++    /* Ikona a text s <iconclick>/<txtclick> jsou tlacitka s vlastnim vstupnim oknem bez masky
++       kolecka - bez ni GDK posle kolecko az rodicovskemu oknu panelu a wEventBox (bez vlastniho
++       okna) ho nikdy nedostane. S maskou udalost z tlacitka probubla do wEventBox. */
 +    gtk_widget_add_events (genmon->oMonitor.wEventBox, GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK);
++    gtk_widget_add_events (genmon->oMonitor.wButton, GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK);
++    gtk_widget_add_events (genmon->oMonitor.wValButton, GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK);
 +    g_signal_connect (G_OBJECT (genmon->oMonitor.wEventBox), "scroll-event",
 +        G_CALLBACK (OnScroll), genmon);
 +

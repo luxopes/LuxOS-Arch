@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """LuxOS - setrice obrazovky (styly vybira --style):
 
-  wallpapers  tapety LuxOS s pomalym prolinanim a velke hodiny (vychozi)
+  desktop     tapeta plochy uzivatele a velke hodiny (vychozi; jako zamykaci obrazovka macOS)
+  wallpapers  tapety LuxOS s pomalym prolinanim a velke hodiny
   clock       velke hodiny na cernem pozadi, pomalu se posouvaji (setri OLED)
   aurora      plynule se prelevajici barevne svetlo
   photos      prezentace fotek z ~/Pictures (bez fotek tapety LuxOS)
@@ -35,9 +36,37 @@ FADE = 3.0        # delka prolinani
 FPS = 15
 
 
-STYLES = ("wallpapers", "clock", "aurora", "photos", "logo", "blank")
+STYLES = ("desktop", "wallpapers", "clock", "aurora", "photos", "logo", "blank")
 PHOTO_EXT = (".jpg", ".jpeg", ".png", ".webp")
 LOGO = "/usr/share/icons/hicolor/scalable/apps/luxos-logo.svg"
+
+
+def desktop_wallpaper(monitor=None):
+    """Tapeta plochy z xfconf (xfce4-desktop) ve stejnem poradi jako zamykaci dialog xfce4-screensaver:
+    monitor<nazev>/workspace0, monitor<nazev>, monitor0/workspace0, pak kterykoli monitor;
+    bez tapety vychozi tapeta LuxOS aktualniho rezimu (svetly/tmavy)."""
+    have = {}
+    try:
+        out = subprocess.run(["xfconf-query", "-c", "xfce4-desktop", "-l", "-v"],
+                             capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        out = ""
+    for line in out.splitlines():
+        prop, _sep, val = line.partition(" ")
+        if prop.startswith("/backdrop/screen0/monitor") and prop.endswith("/last-image") and val.strip():
+            have[prop[len("/backdrop/screen0/"):-len("/last-image")]] = val.strip()
+    keys = ([f"monitor{monitor}/workspace0", f"monitor{monitor}"] if monitor else []) + ["monitor0/workspace0"]
+    keys += sorted(k for k in have if k.endswith("/workspace0")) + sorted(have)
+    for k in keys:
+        if k in have and os.path.isfile(have[k]):
+            return have[k]
+    cfg = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
+    try:
+        with open(os.path.join(cfg, "luxos", "appearance"), encoding="utf-8") as f:
+            mode = "dark" if f.read().strip() == "dark" else "light"
+    except OSError:
+        mode = "light"
+    return f"/usr/share/backgrounds/luxos/luxos-{mode}.jpg"
 
 
 def photo_list():
@@ -58,13 +87,15 @@ def photo_list():
 
 
 class Saver:
-    def __init__(self, style="wallpapers"):
+    def __init__(self, style="desktop", monitor=None):
         self.images = {}
         self.start = time.monotonic()
-        self.style = style if style in STYLES else "wallpapers"
+        self.style = style if style in STYLES else "desktop"
         self.slides = WALLS
         if self.style == "photos":
             self.slides = photo_list() or WALLS
+        elif self.style == "desktop":
+            self.slides = [desktop_wallpaper(monitor)]
         self.logo = None
         self.phase = random.random() * 100
 
@@ -88,7 +119,13 @@ class Saver:
         else:
             cr.set_source_rgb(0.04, 0.04, 0.08)
         cr.paint()
-        if self.style in ("wallpapers", "photos"):
+        if self.style == "desktop":
+            # tapeta stoji (stejna jako na plose), jen hodiny
+            self.paint_wall(cr, self.slides[0], w, h, 1.0, None)
+            cr.set_source_rgba(0, 0, 0, 0.28)
+            cr.paint()
+            self.clock(cr, w, h)
+        elif self.style in ("wallpapers", "photos"):
             if self.slides:
                 idx = int(t // SLIDE)
                 phase = t - idx * SLIDE
@@ -162,9 +199,11 @@ class Saver:
         if not img:
             return
         pix, sw, sh = img
-        # pomaly pohyb (Ken Burns) po zbyle plose obrazku
-        dx = (sw - w) * (0.5 + 0.5 * math.sin(t / 37))
-        dy = (sh - h) * (0.5 + 0.5 * math.cos(t / 53))
+        if t is None:      # bez pohybu, vystredene (jako tapeta plochy "Zvetsit")
+            dx, dy = (sw - w) / 2, (sh - h) / 2
+        else:              # pomaly pohyb (Ken Burns) po zbyle plose obrazku
+            dx = (sw - w) * (0.5 + 0.5 * math.sin(t / 37))
+            dy = (sh - h) * (0.5 + 0.5 * math.cos(t / 53))
         Gdk.cairo_set_source_pixbuf(cr, pix, -dx, -dy)
         cr.paint_with_alpha(alpha)
 
@@ -191,14 +230,21 @@ class Saver:
         cr.show_text(day)
 
 
-def run_foreign(xid, saver):
-    """Kresleni do okna, ktere vytvoril xfce4-screensaver."""
+def fps(saver):
+    # stojici tapeta s hodinami staci jednou za sekundu (setri procesor)
+    return 1 if saver.style == "desktop" else FPS
+
+
+def run_foreign(xid, style):
+    """Kresleni do okna, ktere vytvoril xfce4-screensaver (jedno okno na monitor)."""
     gi.require_version("GdkX11", "3.0")
     from gi.repository import GdkX11
     display = Gdk.Display.get_default()
     win = GdkX11.X11Window.foreign_new_for_display(display, xid)
     if win is None:
         sys.exit(1)
+    mon = display.get_monitor_at_window(win)
+    saver = Saver(style, mon.get_model() if mon else None)
 
     def tick():
         w, h = win.get_width(), win.get_height()
@@ -208,7 +254,7 @@ def run_foreign(xid, saver):
         win.end_draw_frame(ctx)
         return True
 
-    GLib.timeout_add(int(1000 / FPS), tick)
+    GLib.timeout_add(int(1000 / fps(saver)), tick)
     tick()
     Gtk.main()
 
@@ -224,21 +270,20 @@ def run_window(saver, fullscreen):
         win.connect("key-press-event", lambda *_a: Gtk.main_quit())
         win.connect("button-press-event", lambda *_a: Gtk.main_quit())
     win.connect("destroy", Gtk.main_quit)
-    GLib.timeout_add(int(1000 / FPS), lambda: area.queue_draw() or True)
+    GLib.timeout_add(int(1000 / fps(saver)), lambda: area.queue_draw() or True)
     win.show_all()
     Gtk.main()
 
 
 def main():
-    style = "wallpapers"
+    style = "desktop"
     if "--style" in sys.argv[:-1]:
         style = sys.argv[sys.argv.index("--style") + 1]
-    saver = Saver(style)
     xid = os.environ.get("XSCREENSAVER_WINDOW")
     if xid and "--window" not in sys.argv:
-        run_foreign(int(xid, 0), saver)
+        run_foreign(int(xid, 0), style)
     else:
-        run_window(saver, "--window" in sys.argv)
+        run_window(Saver(style), "--window" in sys.argv)
 
 
 if __name__ == "__main__":

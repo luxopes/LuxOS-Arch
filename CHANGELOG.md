@@ -4,6 +4,22 @@ Verze: `X.Y.Z` – `Y` roste s každým novým ISO, `Z` s opravami chyb. Každá
 Číslo verze je v `packages/luxos-branding/files/version` (os-release, O tomto počítači, fastfetch, název ISO).
 LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z jakého stavu systém vychází.
 
+## 0.9.11 „Polaris“ – 2026-10-24 (beta)
+
+### Nové
+- **LuxAI hledá na webu** (`web_search`, `web_fetch`) ve všech režimech: hledání přes server LuxAI, jinak DuckDuckGo; čtení stránek jen veřejných adres (žádná domácí síť ani localhost, i po přesměrování), max. 2 MB. Obsah z webu je označený jako nedůvěryhodná data; jakmile je v konverzaci, každý příkaz v režimu Agent vyžaduje potvrzení (i v režimu správce) a adresy, které nenapsal uživatel ani nevrátilo hledání, se otevřou jen po potvrzení.
+- LuxAI: vzorce LaTeX se vykreslí (zlomky, sumy, integrály, indexy, řecká písmena), barevné zvýraznění kódu (Python, LSL, Bash, JS, C/C++ a další), kopírování textu (Ctrl+C, tlačítko Kopírovat u odpovědí a bloků kódu).
+- **Manuálové stránky** z dokumentace LuxOS: `man luxos`, `man lux.conf`, `man lsl`, `man 7 lsl`, `man lslc`, `man luxos-sandbox`, `luxos-safe`, `luxos-guard`, `luxos-care`, `luxdrop`.
+- **Historie oznámení** – zvonek v horní liště uchová posledních 100 oznámení (změna času, Kalendář, LuxOS Care…); hlasitost a jas se neukládají.
+- Instalátor: větší sady **Každodenní použití** (VLC a kodeky, KeePassXC, PDF Arranger, Disky, Transmission, písma kompatibilní s Office) a **Programování** (openssh, curl, wget, rsync, clang, cmake, gdb, Go, Rust, Podman, neovim, tmux, ripgrep, fzf, …).
+
+### Opraveno
+- **Jas posouváním na ikoně baterie** – tlačítka ikony a procent v `xfce4-genmon-plugin` neposílala události kolečka dál (oprava 0.9.8 fungovala jen na prázdném okraji). Po aktualizaci je potřeba se jednou odhlásit.
+- **Launchpad** zvýrazňuje aplikaci pod myší, aniž by se mřížka sama posouvala (upravené `rofi`, volba `-hover-no-scroll`); Launchpad už neukazuje sám sebe.
+- **Zamčená a přihlašovací obrazovka** ukazují tapetu plochy uživatele (podle světlého/tmavého režimu) místo střídání jiných tapet; nový výchozí spořič „Tapeta plochy a hodiny“.
+- **Snímky obrazovky** se ukládají do Obrázky › Snímky obrazovky, ne na plochu.
+- Účet LuxAI: silné heslo je zelené (ne červené), na kartě Nový účet chybí zbytečný odkaz „Vytvořit účet“.
+
 ## 0.9.10 „Polaris“ – 2026-10-24 (beta)
 
 ### Nové

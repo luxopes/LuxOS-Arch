@@ -2689,3 +2689,6 @@ install script outside the package directory: %s	inštalačný skript mimo adres
 the install script name cannot be determined: %s	názov inštalačného skriptu sa nedá určiť: %s
 LuxAI could not see all files of the package	LuxAI nevidela všetky súbory balíka
 Install it now?	Nainštalovať teraz?
+Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Editory kódu, Git a GitHub, prekladače a ladiace nástroje, Python, Node.js, Go a Rust, kontajnery, SSH a každodenné nástroje príkazového riadka.
+Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Kancelársky balík, e-mail, prehrávač médií so všetkými bežnými kodekmi, správca hesiel, nástroje na PDF a disky a ďalšie písma pre dokumenty.
+Desktop wallpaper and clock	Tapeta plochy a hodiny

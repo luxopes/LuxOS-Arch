@@ -1,0 +1,168 @@
+diff --git a/include/settings.h b/include/settings.h
+index 4681e0c..a3b5f69 100644
+--- a/include/settings.h
++++ b/include/settings.h
+@@ -148,6 +148,8 @@ typedef struct {
+   unsigned int sidebar_mode;
+   /** Mouse hover automatically selects */
+   gboolean hover_select;
++  /** LuxOS: hover-select jen zvyrazni, plynule posouvani nehybe pohledem (Launchpad) */
++  gboolean hover_no_scroll;
+   /** Lazy filter limit. */
+   unsigned int lazy_filter_limit;
+   /** Auto select. */
+diff --git a/source/view.c b/source/view.c
+index 28d6fb0..ee8efac 100644
+--- a/source/view.c
++++ b/source/view.c
+@@ -859,6 +859,11 @@ static gboolean rofi_view_refilter_real(RofiViewState *state) {
+   }
+   TICK_N("Filter matching done");
+   listview_set_num_elements(state->list_view, state->filtered_lines);
++  // LuxOS (-hover-no-scroll): po zmene hledaneho textu je vybrana nejlepsi
++  // shoda (prvni), ne dlazdice na miste drive zvyraznene mysi
++  if (config.hover_no_scroll) {
++    listview_set_selected(state->list_view, 0);
++  }
+ 
+   if (state->tb_filtered_rows) {
+     char *r = g_strdup_printf("%u", state->filtered_lines);
+diff --git a/source/widgets/listview.c b/source/widgets/listview.c
+index 03e94d3..9838a45 100644
+--- a/source/widgets/listview.c
++++ b/source/widgets/listview.c
+@@ -348,6 +348,77 @@ static unsigned int scroll_continious_rows(listview *lv) {
+   return offset;
+ }
+ 
++// LuxOS (-hover-no-scroll): mrizka po radcich, pohled se posune jen kdyz by
++// vyber byl mimo nej (a jen o nutny pocet radku). Najeti mysi tak jen
++// zvyrazni dlazdici - pohled pod ukazatelem se nehne a nevznikne smycka
++// "vyber se vycentruje, pod mysi je jina dlazdice, vyber se posune".
++static unsigned int scroll_keep_rows(listview *lv) {
++  unsigned int cols = MAX(1u, lv->menu_columns);
++  unsigned int rows = MAX(1u, lv->max_rows);
++  unsigned int req_rows = (lv->req_elements + cols - 1) / cols;
++  unsigned int first = lv->cur_page / cols;
++  unsigned int selected = lv->selected / cols;
++  if (selected < first) {
++    first = selected;
++  } else if (selected >= first + rows) {
++    first = selected - rows + 1;
++  }
++  // Na konci seznamu nenechavat prazdne radky (po filtrovani apod.)
++  if (req_rows <= rows) {
++    first = 0;
++  } else if (first > req_rows - rows) {
++    first = req_rows - rows;
++  }
++  unsigned int offset = first * cols;
++  if (offset != lv->cur_page) {
++    lv->cur_page = offset;
++    lv->rchanged = TRUE;
++  }
++  return offset;
++}
++
++// LuxOS (-hover-no-scroll): kolecko posune pohled o radek a vyber s nim, takze
++// zvyraznena zustava dlazdice na stejnem miste (pod ukazatelem mysi).
++static void listview_scroll_rows(listview *lv, int dir) {
++  unsigned int cols = MAX(1u, lv->menu_columns);
++  unsigned int rows = MAX(1u, lv->max_rows);
++  unsigned int req_rows = (lv->req_elements + cols - 1) / cols;
++  unsigned int first = lv->cur_page / cols;
++  if (lv->req_elements == 0 || req_rows <= rows) {
++    return;
++  }
++  if (dir > 0) {
++    if (first >= req_rows - rows) {
++      return;
++    }
++    lv->cur_page = (first + 1) * cols;
++    lv->selected = MIN(lv->req_elements - 1, lv->selected + cols);
++  } else {
++    if (first == 0) {
++      return;
++    }
++    lv->cur_page = (first - 1) * cols;
++    lv->selected = lv->selected >= cols ? lv->selected - cols : 0;
++  }
++  // Vyber musi zustat v novem pohledu (posledni radek muze byt kratsi)
++  if (lv->selected < lv->cur_page) {
++    lv->selected = lv->cur_page;
++  } else if (lv->selected >= lv->cur_page + rows * cols) {
++    lv->selected = MIN(lv->req_elements - 1, lv->cur_page + rows * cols - 1);
++  }
++  lv->rchanged = TRUE;
++  lv->barview.direction = LEFT_TO_RIGHT;
++  if (lv->sc_callback) {
++    lv->sc_callback(lv, lv->selected, lv->sc_udata);
++  }
++  widget_queue_redraw(WIDGET(lv));
++}
++
++static gboolean listview_keep_rows(listview *lv) {
++  return config.hover_no_scroll && lv->scroll_type != LISTVIEW_SCROLL_PER_PAGE &&
++         lv->pack_direction != ROFI_ORIENTATION_VERTICAL && !lv->reverse;
++}
++
+ static void update_element(listview *lv, unsigned int tb, unsigned int index,
+                            gboolean full) {
+   // Select drawing mode
+@@ -454,6 +525,8 @@ static void listview_draw(widget *wid, cairo_t *draw) {
+   listview *lv = (listview *)wid;
+   if (lv->scroll_type == LISTVIEW_SCROLL_PER_PAGE) {
+     offset = scroll_per_page(lv);
++  } else if (listview_keep_rows(lv)) {
++    offset = scroll_keep_rows(lv);
+   } else if (lv->pack_direction == ROFI_ORIENTATION_VERTICAL) {
+     offset = scroll_continious_elements(lv);
+   } else {
+@@ -722,6 +795,11 @@ listview_trigger_action(widget *wid, MouseBindingListviewAction action,
+                         G_GNUC_UNUSED gint x, G_GNUC_UNUSED gint y,
+                         G_GNUC_UNUSED void *user_data) {
+   listview *lv = (listview *)wid;
++  if (listview_keep_rows(lv) &&
++      (action == SCROLL_DOWN || action == SCROLL_UP)) {
++    listview_scroll_rows(lv, action == SCROLL_DOWN ? 1 : -1);
++    return WIDGET_TRIGGER_ACTION_RESULT_HANDLED;
++  }
+   switch (action) {
+   case SCROLL_LEFT:
+     listview_nav_left(lv);
+diff --git a/source/xcb/view.c b/source/xcb/view.c
+index 1fa04c9..0d61abe 100644
+--- a/source/xcb/view.c
++++ b/source/xcb/view.c
+@@ -430,8 +430,12 @@ static void xcb_rofi_view_ping_mouse(RofiViewState *state) {
+     return;
+   }
+ 
++  // LuxOS (-hover-no-scroll): pri otevreni nevybirat dlazdici pod stojicim
++  // ukazatelem - vyber zacina na prvni (nejlepsi) polozce, mys ho prevezme
++  // az pohybem
+   rofi_view_handle_mouse_motion(state, pointer_reply->win_x,
+-                                pointer_reply->win_y, config.hover_select);
++                                pointer_reply->win_y,
++                                config.hover_select && !config.hover_no_scroll);
+ 
+   free(pointer_reply);
+ }
+diff --git a/source/xrmoptions.c b/source/xrmoptions.c
+index b535a20..ec2f826 100644
+--- a/source/xrmoptions.c
++++ b/source/xrmoptions.c
+@@ -316,6 +316,13 @@ static XrmOption xrmOptions[] = {
+      NULL,
+      "Enable hover-select",
+      CONFIG_DEFAULT},
++    {xrm_Boolean,
++     "hover-no-scroll",
++     {.snum = &config.hover_no_scroll},
++     NULL,
++     "Continuous scrolling keeps the view while the selection is visible "
++     "(hover only highlights, the wheel scrolls the view)",
++     CONFIG_DEFAULT},
+     {xrm_SNumber,
+      "eh",
+      {.snum = &config.element_height},

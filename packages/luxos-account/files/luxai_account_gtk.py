@@ -44,6 +44,9 @@ CSS = """
 .luxai-terms { font-size: 13px; }
 levelbar.luxai-strength trough { min-height: 5px; border-radius: 3px; }
 levelbar.luxai-strength block { min-height: 5px; border-radius: 3px; }
+levelbar.luxai-strength block.weak { background: #ff453a; background-image: none; border-color: #ff453a; }
+levelbar.luxai-strength block.medium { background: #ff9f0a; background-image: none; border-color: #ff9f0a; }
+levelbar.luxai-strength block.strong { background: #30d158; background-image: none; border-color: #30d158; }
 """.replace("ACCENT", ACCENT).encode()
 _css_done = [False]
 
@@ -399,9 +402,12 @@ class SignInPanel(Gtk.Box):
         strength = Gtk.Box(spacing=10)
         self.reg_bar = css(Gtk.LevelBar(min_value=0, max_value=3, width_request=90, valign=Gtk.Align.CENTER),
                            "luxai-strength")
-        self.reg_bar.add_offset_value("low", 1)
-        self.reg_bar.add_offset_value("high", 2)
-        self.reg_bar.add_offset_value("full", 3)
+        # vlastni nazvy urovni: motiv barvi "full" cervene - silne heslo ma byt zelene
+        for name in ("low", "high", "full"):
+            self.reg_bar.remove_offset_value(name)
+        self.reg_bar.add_offset_value("weak", 1)
+        self.reg_bar.add_offset_value("medium", 2)
+        self.reg_bar.add_offset_value("strong", 3)
         self.reg_hint = css(Gtk.Label(xalign=0, wrap=True), "luxai-hint")
         strength.pack_start(self.reg_bar, False, False, 0)
         strength.pack_start(self.reg_hint, True, True, 0)
@@ -440,6 +446,8 @@ class SignInPanel(Gtk.Box):
                     e.set_text(email)
         self.say("")
         self.show_stage()
+        if getattr(self, "on_mode", None):
+            self.on_mode(mode)
 
     def set_stage(self, stage):
         self.stage[self.mode] = stage

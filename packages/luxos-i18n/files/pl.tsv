@@ -2690,3 +2690,6 @@ install script outside the package directory: %s	skrypt instalacyjny poza katalo
 the install script name cannot be determined: %s	nie można ustalić nazwy skryptu instalacyjnego: %s
 LuxAI could not see all files of the package	LuxAI nie widziała wszystkich plików pakietu
 Install it now?	Zainstalować teraz?
+Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Edytory kodu, Git i GitHub, kompilatory i debugery, Python, Node.js, Go i Rust, kontenery, SSH i codzienne narzędzia wiersza poleceń.
+Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Pakiet biurowy, poczta, odtwarzacz multimediów ze wszystkimi popularnymi kodekami, menedżer haseł, narzędzia do PDF i dysków oraz więcej czcionek do dokumentów.
+Desktop wallpaper and clock	Tapeta biurka i zegar

@@ -15,6 +15,7 @@
 #   Prehravani        pri hrajici hudbe/videu neuspava (ani zavreny vik), viz luxos_awake
 #   Ovladace          jednou za start upozorneni na chybejici ovladace (luxos-drivers)
 #   Zmena casu        vecer pred prechodem na letni/zimni cas a rano po nem (luxos_timechange)
+#   Tapeta            tapeta plochy i na prihlasovaci obrazovce (luxos-appearance greeter-sync)
 #
 # Stejny program bezi i jako `luxos-control-center [--panel|--background]` a `luxos-calendar [--background]`
 # (podle nazvu, pod kterym byl spusten): bezici instance (hub nebo samostatna) jen dostane signal.
@@ -452,6 +453,31 @@ function timechange_check_once():
     return False
 end
 
+# ---- Tapeta prihlasovaci obrazovky ---------------------------------------------------------------------------
+# Zmena tapety plochy (Plocha a Dock, nastaveni plochy Xfce, svetly/tmavy rezim) -> stejna tapeta
+# na prihlasovaci obrazovce a pri prepnuti uzivatele (luxos-appearance greeter-sync, AccountsService).
+# Jedna davka zmen (vsechny monitory a plochy) = jedno spusteni.
+
+wallsync = {"debounce": 0}
+
+function greeter_sync():
+    call glib.spawn_quiet(["luxos-appearance", "greeter-sync"])
+    return 0
+end
+
+function on_xfconf_changed(sender, path, interface, signal, values):
+    if len(values) >= 2 and values[0] == "xfce4-desktop" and String(values[1]).endswith("/last-image"):
+        call debounce_trigger(wallsync["debounce"])
+    end
+    return 0
+end
+
+function watch_wallpaper():
+    wallsync["debounce"] = debounce_new(text.to_int(env.get("LUXOS_HUB_WALLSYNC_DELAY", ""), 2000), greeter_sync)
+    call gio.subscribe_values(hub["session"], "org.xfce.Xfconf", "org.xfce.Xfconf", "PropertyChanged", "/org/xfce/Xfconf", on_xfconf_changed)
+    return 0
+end
+
 # ---- okna a signaly ----------------------------------------------------------------------------------------------
 
 function prebuild():
@@ -617,6 +643,12 @@ function main_hub():
             call gio.subscribe_values(hub["session"], "org.xfce.SessionManager", "org.xfce.Session.Manager", "ShutdownCancelled", "/org/xfce/SessionManager", on_session_cancelled)
         else:
             call log("session state: " + String(last_error()))
+        end
+        # Tapeta plochy i na prihlasovaci obrazovce
+        try:
+            call watch_wallpaper()
+        else:
+            call log("wallpaper: " + String(last_error()))
         end
     end
 

@@ -62,7 +62,7 @@ from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, Pango, PangoCairo  # noqa: 
 CONF = os.environ.get("LUXOS_GREETER_CONF", "/etc/lightdm/luxos-greeter.conf")
 KEYBOARD_CONF = os.environ.get("LUXOS_GREETER_KEYBOARD_CONF", "/etc/X11/xorg.conf.d/00-keyboard.conf")
 ACCOUNTS_ICONS = "/var/lib/AccountsService/icons"
-DEFAULT_BG = "/usr/share/backgrounds/luxos/luxos-dark.jpg"
+DEFAULT_BG = "/usr/share/backgrounds/luxos/luxos-light.jpg"   # vychozi rezim plochy je svetly
 LANG = (os.environ.get("LC_ALL") or os.environ.get("LC_TIME") or os.environ.get("LANG") or "en").split("_")[0].split(".")[0]
 
 
@@ -225,6 +225,9 @@ class DemoBackend:
         img = os.environ.get("LUXOS_GREETER_DEMO_AVATAR")
         if img:
             demo[0].image = img
+        # tapety uzivatelu (AccountsService BackgroundFile), oddelene ":" v poradi uzivatelu
+        for u, bg in zip(demo, os.environ.get("LUXOS_GREETER_DEMO_BACKGROUND", "").split(":")):
+            u.background = bg or None
         return demo[:max(1, self.n_users)]
 
     def select_hint(self):

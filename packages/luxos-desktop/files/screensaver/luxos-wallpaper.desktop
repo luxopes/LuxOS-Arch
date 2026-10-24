@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Desktop Wallpaper
+Name[cs]=Tapeta plochy
+Comment=Your desktop wallpaper with a large clock
+Comment[cs]=Tapeta plochy s velkými hodinami
+Exec=/usr/lib/xfce4-screensaver/luxos --style desktop
+TryExec=/usr/lib/xfce4-screensaver/luxos
+StartupNotify=false
+Terminal=false
+Categories=Screensaver;
+OnlyShowIn=XFCE;
+Hidden=true

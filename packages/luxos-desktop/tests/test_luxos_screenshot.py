@@ -129,20 +129,94 @@ class TestOptions(unittest.TestCase):
         os.makedirs(os.path.dirname(self.path))
         with open(self.path, "w") as f:
             json.dump({"save_to": "other"}, f)
+        self.assertEqual(shot.load_options(self.path)["save_to"], "screenshots")
+
+    def write_raw(self, data):
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        with open(self.path, "w") as f:
+            json.dump(data, f)
+
+    def test_default_is_screenshots_folder(self):
+        self.assertEqual(shot.DEFAULTS["save_to"], "screenshots")
+        self.assertEqual(shot.save_dir(shot.load_options(self.path)), shot.screenshots_dir())
+
+    def test_old_desktop_default_migrated(self):
+        """Do 0.9.10 se "desktop" ukladal jako vychozi i bez volby uzivatele -> nova vychozi slozka."""
+        self.write_raw({"save_to": "desktop", "timer": 5, "mode": "screen"})
+        o = shot.load_options(self.path)
+        self.assertEqual((o["save_to"], o["timer"], o["mode"]), ("screenshots", 5, "screen"))
+        # Jine starsi volby uzivatele zustanou
+        for to, extra in (("pictures", {}), ("clipboard", {}), ("other", {"other_dir": TMP})):
+            self.write_raw(dict({"save_to": to}, **extra))
+            self.assertEqual(shot.load_options(self.path)["save_to"], to)
+
+    def test_desktop_chosen_after_update_kept(self):
+        """Plocha vybrana v nove verzi (soubor s "version") se uz neprevadi."""
+        shot.save_options(dict(shot.DEFAULTS, save_to="desktop"), self.path)
+        with open(self.path) as f:
+            self.assertEqual(json.load(f)["version"], shot.OPTIONS_VERSION)
         self.assertEqual(shot.load_options(self.path)["save_to"], "desktop")
+        self.write_raw({"save_to": "desktop", "version": 1})        # neznama starsi verze = stary soubor
+        self.assertEqual(shot.load_options(self.path)["save_to"], "screenshots")
 
     def test_save_dir(self):
         o = dict(shot.DEFAULTS)
         self.assertIsNone(shot.save_dir(dict(o, save_to="clipboard")))
-        # video do schranky nejde -> plocha
-        self.assertEqual(shot.save_dir(dict(o, save_to="clipboard"), video=True), shot.user_dir("desktop"))
+        # video do schranky nejde -> Snimky obrazovky
+        self.assertEqual(shot.save_dir(dict(o, save_to="clipboard"), video=True), shot.screenshots_dir())
+        self.assertEqual(shot.save_dir(dict(o, save_to="screenshots")), shot.screenshots_dir())
+        self.assertEqual(shot.save_dir(dict(o, save_to="screenshots"), video=True), shot.screenshots_dir())
+        self.assertEqual(shot.save_dir(dict(o, save_to="desktop")), shot.user_dir("desktop"))
         self.assertEqual(shot.save_dir(dict(o, save_to="pictures")), shot.user_dir("pictures"))
+        self.assertEqual(os.path.dirname(shot.screenshots_dir()), shot.user_dir("pictures"))
         d = tempfile.mkdtemp(dir=TMP)
         self.assertEqual(shot.save_dir(dict(o, save_to="other", other_dir=d)), d)
-        # smazana jina slozka -> plocha
-        self.assertEqual(shot.save_dir(dict(o, save_to="other", other_dir=d + "-gone")), shot.user_dir("desktop"))
+        # smazana jina slozka -> Snimky obrazovky
+        self.assertEqual(shot.save_dir(dict(o, save_to="other", other_dir=d + "-gone")), shot.screenshots_dir())
         self.assertEqual(shot.save_dir(dict(o, save_to="clipboard"), override=d), d)
         self.assertNotEqual(os.path.realpath(shot.user_dir("desktop")), os.path.realpath(os.path.expanduser("~")))
+
+
+def screenshots_dir_in(home, lang, pictures=None):
+    """screenshots_dir() v oddelenem procesu s HOME v TMP (GLib si uzivatelske slozky pamatuje)."""
+    cfg = os.path.join(home, ".config")
+    os.makedirs(cfg, exist_ok=True)
+    if pictures:
+        with open(os.path.join(cfg, "user-dirs.dirs"), "w", encoding="utf-8") as f:
+            f.write('XDG_PICTURES_DIR="$HOME/%s"\n' % pictures)
+    code = ("import sys; src = open(sys.argv[1], encoding='utf-8').read().split('# ---- GTK')[0];"
+            "g = {'__name__': 's', '__file__': sys.argv[1]}; exec(compile(src, sys.argv[1], 'exec'), g);"
+            "print(g['screenshots_dir']())")
+    env = dict(os.environ, HOME=home, XDG_CONFIG_HOME=cfg, LANG=lang, LUXOS_I18N_DIR=I18N, PYTHONPATH=I18N)
+    r = subprocess.run([sys.executable, "-c", code, BIN], capture_output=True, text=True, env=env, timeout=20)
+    return r.stdout.strip() or r.stderr
+
+
+class TestScreenshotsFolder(unittest.TestCase):
+    def test_english_default(self):
+        home = tempfile.mkdtemp(dir=TMP)
+        self.assertEqual(screenshots_dir_in(home, "en_US.UTF-8"), os.path.join(home, "Pictures", "Screenshots"))
+
+    def test_localized_pictures_and_name(self):
+        home = tempfile.mkdtemp(dir=TMP)
+        self.assertEqual(screenshots_dir_in(home, "cs_CZ.UTF-8", "Obrázky"),
+                         os.path.join(home, "Obrázky", "Snímky obrazovky"))
+        home = tempfile.mkdtemp(dir=TMP)
+        self.assertEqual(screenshots_dir_in(home, "de_DE.UTF-8", "Bilder"), os.path.join(home, "Bilder", "Bildschirmfotos"))
+
+    def test_folder_not_created_in_advance(self):
+        home = tempfile.mkdtemp(dir=TMP)
+        screenshots_dir_in(home, "en_US.UTF-8")
+        self.assertFalse(os.path.exists(os.path.join(home, "Pictures")))
+
+    def test_every_language_has_folder_name(self):
+        for tsv in sorted(os.listdir(I18N)):
+            if not tsv.endswith(".tsv"):
+                continue
+            with open(os.path.join(I18N, tsv), encoding="utf-8") as f:
+                names = [ln.rstrip("\n").split("\t", 1)[1] for ln in f if ln.startswith("Screenshots\t")]
+            self.assertEqual(len(names), 1, tsv)
+            self.assertTrue(names[0].strip() and "/" not in names[0], tsv)
 
 
 class TestGeometry(unittest.TestCase):
@@ -493,10 +567,12 @@ class TestGui(unittest.TestCase):
             tb.hover("close")
             self.assertEqual((cap.name.get_text(), cap.key.get_text()), ("Close", "Esc"))
             tb.hover("options")
+            self.assertEqual(cap.name.get_text(), "Save to: Screenshots")
+            app.set_opt("save_to", "desktop")
             self.assertEqual(cap.name.get_text(), "Save to: Desktop")
             app.set_opt("save_to", "clipboard")
             self.assertEqual(cap.name.get_text(), "Save to: Clipboard")
-            app.set_opt("save_to", "desktop")
+            app.set_opt("save_to", "screenshots")
             tb.hover("capture")
             self.assertEqual(cap.key.get_text(), "Enter")
             self.assertIn("Ctrl", cap.hint.get_text())
@@ -931,6 +1007,38 @@ class TestCli(unittest.TestCase):
         sizes = sorted(png_size(os.path.join(out, f)) for f in files)
         self.assertEqual(sizes[0], (300, 200))
         self.assertGreater(sizes[1][0], 300)
+
+    def run_cli_home(self, home, *args):
+        env = dict(os.environ, PYTHONPATH=I18N, HOME=home, XDG_CONFIG_HOME=os.path.join(home, ".config"),
+                   LUXOS_I18N_DIR=I18N, LANG="cs_CZ.UTF-8")
+        return subprocess.run([sys.executable, BIN, *args], capture_output=True, text=True, timeout=20, env=env)
+
+    def test_default_location_created_on_demand(self):
+        home = tempfile.mkdtemp(dir=TMP)
+        r = self.run_cli_home(home, "--portion", "--region", "1,2,30,20", "--no-thumbnail")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        folder = os.path.join(home, "Pictures", "Snímky obrazovky")
+        files = os.listdir(folder)
+        self.assertEqual(len(files), 1, files)
+        self.assertEqual(png_size(os.path.join(folder, files[0])), (30, 20))
+        self.assertFalse(os.path.exists(os.path.join(home, "Desktop")))
+
+    def test_old_desktop_setting_goes_to_screenshots(self):
+        home = tempfile.mkdtemp(dir=TMP)
+        os.makedirs(os.path.join(home, ".config", "luxos"))
+        with open(os.path.join(home, ".config", "luxos", "screenshot.json"), "w") as f:
+            json.dump({"save_to": "desktop", "other_dir": "", "timer": 0, "pointer": False,
+                       "remember": True, "selection": None, "mode": "portion"}, f)     # soubor z 0.9.10
+        r = self.run_cli_home(home, "--screen", "--no-thumbnail")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(len(os.listdir(os.path.join(home, "Pictures", "Snímky obrazovky"))), 1)
+        self.assertFalse(os.path.exists(os.path.join(home, "Desktop")))
+        # Plocha vybrana uzivatelem v nove verzi plati
+        with open(os.path.join(home, ".config", "luxos", "screenshot.json"), "w") as f:
+            json.dump({"save_to": "desktop", "version": 2}, f)
+        r = self.run_cli_home(home, "--screen", "--no-thumbnail")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(len(os.listdir(os.path.join(home, "Desktop"))), 1)
 
     def test_clipboard_survives_exit(self):
         """--clipboard: proces skonci hned a obrazek ve schrance zustane (drzi ho xclip)."""

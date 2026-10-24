@@ -1,20 +1,66 @@
 # LuxOS - sablona softwaru "Programovani" (format viz everyday.list)
 @name Programming
-@description A code editor, Git, compilers, Python and Node.js for software development.
-@apps Lux Code · Code - OSS · Git · GCC · Python · Node.js · Meld
+@description Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.
+@apps Lux Code · Code - OSS · Git · GCC · Clang · Python · Node.js · Go · Rust · Podman · Meld
 @icon applications-development
 @order 20
-@download 370
+@download 750
+# Editory a verzovani
 code
+lux-code
+neovim
+meld
 git
 git-lfs
 github-cli
+lazygit
+# Prekladace, sestaveni, ladeni
 base-devel
-openssh
+clang
+lldb
+cmake
+ninja
+meson
+gdb
+valgrind
+strace
+ltrace
+# Jazyky a spravci balicku
 python
 python-pip
+python-pipx
+uv
 nodejs
 npm
+pnpm
+go
+rustup
+# Kontejnery (bez rootu, prikaz docker = podman)
+podman
+podman-compose
+podman-docker
+# Sit a vzdaleny pristup
+openssh
+curl
+wget
+rsync
+httpie
+openbsd-netcat
+bind
+# Prace v terminalu
+tmux
+ripgrep
+fd
+fzf
+bat
+eza
+tree
+htop
+btop
+ncdu
 jq
-meld
-lux-code
+go-yq
+shellcheck
+sqlite
+direnv
+man-pages

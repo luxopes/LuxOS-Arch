@@ -8,8 +8,10 @@ extra=(-theme-str "entry { placeholder: \"$(T "Search apps or ask LuxAI")\"; }")
 # X-LuxOS-Launchpad: vybrane panely Nastaveni (Tiskarny a skenery, Ovladace) maji kopii s OnlyShowIn jen pro Launchpad
 export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-XFCE}:X-LuxOS-Launchpad"
 # -scroll-method 1: kolecko/touchpad posouva mrizku plynule po radcich (ne skok o celou stranu)
-# Bez -hover-select: najeti mysi nemeni vyber ani neposouva mrizku; Enter spusti prvni (nejlepsi)
-# shodu, jinou aplikaci jen vyslovne klikem
+# -hover-select -hover-no-scroll (rofi z [luxos]): zvyraznena je dlazdice pod mysi jako v macOS,
+# ale pohled se najetim nehne (puvodni rofi vyber vycentroval a mrizka sama ujizdela); kolecko
+# posune pohled o radek i se zvyraznenim. Sipky zvyrazneni posouvaji dal, Enter spusti zvyraznenou
+# aplikaci, po psani nejlepsi shodu. Mys mimo mrizku zvyrazneni nemeni.
 exec rofi -show combi -modi combi -combi-modi "luxai:luxos-luxai-rofi,drun" -combi-hide-mode-prefix -theme luxos-launchpad -drun-exclude-categories 'X-XFCE-SettingsDialog,X-Xfce-Toplevel' "${extra[@]}" \
     -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf -scroll-method 1 \
-    -me-select-entry '' -me-accept-entry MousePrimary
+    -hover-select -hover-no-scroll -me-select-entry '' -me-accept-entry MousePrimary

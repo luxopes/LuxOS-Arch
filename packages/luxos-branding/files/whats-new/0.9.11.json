@@ -1,0 +1,22 @@
+{
+  "version": "0.9.11",
+  "codename": "Polaris",
+  "items": [
+    {"icon": "view-app-grid-symbolic",
+     "title": {"en": "Launchpad follows the pointer", "cs": "Launchpad sleduje myš"},
+     "text": {"en": "The app under the pointer is highlighted and the grid no longer moves by itself. Brightness changes again by scrolling over the battery in the menu bar.",
+              "cs": "Zvýrazní se aplikace pod myší a mřížka se sama neposouvá. Jas jde znovu měnit posouváním nad baterií v horní liště."}},
+    {"icon": "preferences-system-notifications-symbolic",
+     "title": {"en": "Notification history and matching wallpapers", "cs": "Historie oznámení a stejná tapeta"},
+     "text": {"en": "The bell keeps your last 100 notifications, such as time changes and calendar events. The lock and login screens show your desktop wallpaper. Screenshots are saved to Pictures › Screenshots.",
+              "cs": "Zvonek uchová posledních 100 oznámení, třeba změnu času a události z Kalendáře. Zamčená a přihlašovací obrazovka ukazují tapetu vaší plochy. Snímky obrazovky se ukládají do Obrázky › Snímky obrazovky."}},
+    {"icon": "system-search-symbolic",
+     "title": {"en": "LuxAI searches the web", "cs": "LuxAI hledá na webu"},
+     "text": {"en": "LuxAI can search the web and read pages in every mode, safely: web content never runs commands without your approval. Answers show formulas and colored code, and text can be copied.",
+              "cs": "LuxAI umí hledat na webu a číst stránky v každém režimu, bezpečně: obsah z webu nikdy nespustí příkaz bez vašeho souhlasu. Odpovědi zobrazují vzorce a barevný kód a text jde kopírovat."}},
+    {"icon": "help-contents-symbolic",
+     "title": {"en": "Manual pages and more apps", "cs": "Manuálové stránky a víc aplikací"},
+     "text": {"en": "man luxos, man lsl, man lux.conf and pages for LuxOS tools. The Everyday and Programming app sets in the installer contain much more, from VLC and codecs to SSH, Go, Rust and Podman.",
+              "cs": "man luxos, man lsl, man lux.conf a stránky nástrojů LuxOS. Sady Každodenní použití a Programování v instalátoru obsahují mnohem víc, od VLC a kodeků po SSH, Go, Rust a Podman."}}
+  ]
+}
