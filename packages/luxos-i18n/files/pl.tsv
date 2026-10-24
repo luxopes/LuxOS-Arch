@@ -2590,3 +2590,103 @@ Done. You can close this window.	Gotowe. Możesz zamknąć to okno.
 Search for scanners again	Wyszukaj skanery ponownie
 Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Włącz skaner i podłącz go kablem USB lub do tej samej sieci Wi‑Fi co ten komputer. Pojawi się tu sam, gdy tylko LuxOS go znajdzie.
 The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	Czytnik nie odczytał dobrze palca. Wyczyść czujnik i palec, a potem kliknij Spróbuj ponownie.
+Too many failed attempts. The account is locked for %d min, then try again.	Zbyt wiele nieudanych prób. Konto jest zablokowane na %d min, potem spróbuj ponownie.
+Too many failed attempts. Wait a moment, then try again.	Zbyt wiele nieudanych prób. Poczekaj chwilę i spróbuj ponownie.
+# 0.9.10: community (AUR) sandbox install, Flathub
+%s comes from the community source (AUR): scripts by other users, not checked by LuxOS.	%s pochodzi ze źródła społeczności (AUR): skrypty innych użytkowników, niesprawdzone przez LuxOS.
+%s is installed from Flathub (isolated Flatpak app)	%s jest instalowany z Flathub (izolowana aplikacja Flatpak)
+%s is only in the community source (AUR). LuxAI does not install community packages - run in Terminal: lux install %s	%s jest tylko w źródle społeczności (AUR). LuxAI nie instaluje pakietów społeczności – uruchom w Terminalu: lux install %s
+A dangerous build script is never installed into the system.	Niebezpieczny skrypt budowania nigdy nie jest instalowany w systemie.
+Apps from Flathub need %sflatpak%s.	Aplikacje z Flathub wymagają %sflatpak%s.
+Apps from Flathub run isolated from the system (Flatpak).	Aplikacje z Flathub działają w izolacji od systemu (Flatpak).
+Build and install %s in the sandbox?	Zbudować i zainstalować %s w piaskownicy?
+Build of %s in the sandbox failed	Budowanie %s w piaskownicy nie powiodło się
+Building %s %s(community)%s	Budowanie %s %s(społeczność)%s
+Building %s %s(community)%s in the sandbox	Budowanie %s %s(społeczność)%s w piaskownicy
+Building %s in the sandbox failed.	Budowanie %s w piaskownicy nie powiodło się.
+Building %s in the sandbox...	Budowanie %s w piaskownicy...
+Checking the build script of %s (LuxAI Lite)	Sprawdzanie skryptu budowania %s (LuxAI Lite)
+Choose 1 or 2:	Wybierz 1 lub 2:
+Choose a number (Enter = none):	Wybierz numer (Enter = żaden):
+Community packages are installed as a regular user (run lux without sudo)	Pakiety społeczności instaluje się jako zwykły użytkownik (uruchom lux bez sudo)
+Community packages are updated only when you run it yourself: lux update	Pakiety społeczności są aktualizowane tylko wtedy, gdy sam uruchomisz: lux update
+Community packages to build: %s	Pakiety społeczności do zbudowania: %s
+Community packages were not updated	Pakiety społeczności nie zostały zaktualizowane
+Copying the build files into the sandbox failed.	Kopiowanie plików budowania do piaskownicy nie powiodło się.
+Creating your sandbox first	Najpierw zostanie utworzona Twoja piaskownica
+Download %s, on disk %s - includes the shared runtime %s (%s), which other Flatpak apps use too.	Pobieranie %s, na dysku %s – w tym wspólne środowisko %s (%s), z którego korzystają też inne aplikacje Flatpak.
+Download:	Pobieranie:
+From Flathub	Z Flathub
+Install %s into the sandbox anyway?	Mimo to zainstalować %s w piaskownicy?
+Install %s into the system anyway?	Mimo to zainstalować %s w systemie?
+Installed in the sandbox: %s	Zainstalowano w piaskownicy: %s
+Installing %s from Flathub…	Instalowanie %s z Flathub…
+Installing %s into the sandbox failed.	Instalacja %s w piaskownicy nie powiodła się.
+Installing into the sandbox instead.	Zamiast tego instalacja w piaskownicy.
+Installing the build tools into the sandbox failed.	Instalacja narzędzi do budowania w piaskownicy nie powiodła się.
+Isolated app from Flathub. Its data stays in ~/.var/app.	Izolowana aplikacja z Flathub. Jej dane zostają w ~/.var/app.
+LuxAI did not answer (%s)	LuxAI nie odpowiedział (%s)
+LuxAI found nothing suspicious in the build script.	LuxAI nie znalazł w skrypcie budowania nic podejrzanego.
+LuxAI gave no clear answer	LuxAI nie dał jasnej odpowiedzi
+LuxAI is not installed	LuxAI nie jest zainstalowany
+LuxAI is not reachable (offline?)	LuxAI jest nieosiągalny (brak połączenia?)
+Not found? Community packages (AUR) are installed in Terminal with lux install and go into your sandbox.	Nie znaleziono? Pakiety społeczności (AUR) instaluje się w Terminalu poleceniem lux install i trafiają do Twojej piaskownicy.
+Nothing found on Flathub.	Nic nie znaleziono na Flathub.
+Preparing build tools in the sandbox...	Przygotowywanie narzędzi do budowania w piaskownicy...
+Removed: %s	Usunięto: %s
+Sandbox - isolated from your files and system (recommended)	Piaskownica – odizolowana od Twoich plików i systemu (zalecane)
+Several apps on Flathub match '%s':	Kilka aplikacji na Flathub pasuje do „%s”:
+Show the build script (PKGBUILD) of %s?	Pokazać skrypt budowania (PKGBUILD) %s?
+Start it with: %s	Uruchom poleceniem: %s
+System - full access to the computer	System – pełny dostęp do komputera
+The build directory is expected as a tar archive on standard input.	Katalog budowania jest oczekiwany jako archiwum tar na standardowym wejściu.
+The build script looks dangerous:	Skrypt budowania wygląda niebezpiecznie:
+The build script looks suspicious:	Skrypt budowania wygląda podejrzanie:
+The build script was not checked by LuxAI.	Skrypt budowania nie został sprawdzony przez LuxAI.
+The sandbox is not installed (lux install luxos-sandbox), or install into the system with --system	Piaskownica nie jest zainstalowana (lux install luxos-sandbox) albo zainstaluj w systemie z --system
+Type %s to confirm installing community code into the system:	Wpisz %s, aby potwierdzić instalację kodu społeczności w systemie:
+Where should it be installed?	Gdzie zainstalować?
+Without a clean check it needs your confirmation (run without -y).	Bez czystego sprawdzenia potrzebne jest Twoje potwierdzenie (uruchom bez -y).
+adds scheduled tasks	dodaje zaplanowane zadania
+asks for administrator rights inside the build script	prosi o uprawnienia administratora w skrypcie budowania
+build a PKGBUILD (community/AUR, used by lux) and install it	zbudować PKGBUILD (społeczność/AUR, używane przez lux) i zainstalować
+calculating…	obliczanie…
+changes shell start-up files	zmienia pliki startowe powłoki
+community - installed into the sandbox	społeczność – zainstalowano w piaskownicy
+community package into the system instead of the sandbox	pakiet społeczności w systemie zamiast w piaskownicy
+contains a long encoded blob	zawiera długi zakodowany blok
+decodes hidden base64 content	dekoduje ukrytą zawartość base64
+deletes system or home directories	usuwa katalogi systemowe lub domowe
+downloads a script and runs it directly (curl | sh)	pobiera skrypt i od razu go uruchamia (curl | sh)
+downloads are not checked with checksums (SKIP)	pobrane pliki nie są sprawdzane sumami kontrolnymi (SKIP)
+downloads over unencrypted %s: %s	pobiera przez nieszyfrowane %s: %s
+enables a system service	włącza usługę systemową
+includes the shared runtime %s (used by other Flatpak apps too)	w tym wspólne środowisko %s (używane też przez inne aplikacje Flatpak)
+install packages (repositories, LuxOS, Flathub, then community/AUR)	instalowanie pakietów (repozytoria, LuxOS, Flathub, potem społeczność/AUR)
+isolated app (Flatpak)	izolowana aplikacja (Flatpak)
+no PKGBUILD found	nie znaleziono PKGBUILD
+on disk:	na dysku:
+only the community source (AUR)	tylko źródło społeczności (AUR)
+opens a remote shell	otwiera zdalną powłokę
+remove packages (also Flatpak apps) and unneeded dependencies	usuwanie pakietów (także aplikacji Flatpak) i zbędnych zależności
+runs generated code with eval	uruchamia wygenerowany kod przez eval
+runs inline code of another language	uruchamia osadzony kod innego języka
+search repositories, Flathub and community (AUR)	szukanie w repozytoriach, Flathub i społeczności (AUR)
+sets world-writable or setuid permissions	ustawia uprawnienia zapisu dla wszystkich lub setuid
+the build script is unusually long	skrypt budowania jest nietypowo długi
+touches accounts, sudo or SSH keys	dotyka kont, sudo lub kluczy SSH
+uses the network while installing	używa sieci podczas instalacji
+writes outside the package directory: %s	zapisuje poza katalogiem pakietu: %s
+you are not signed in to LuxAI	nie jesteś zalogowany do LuxAI
+%s contains symbolic links - community packages with links are refused	%s zawiera dowiązania symboliczne – pakiety społeczności z dowiązaniami są odrzucane
+Community packages are installed into the system only from an interactive terminal (without --system they go to the sandbox).	Pakiety społeczności instaluje się w systemie tylko z interaktywnego terminala (bez --system trafiają do piaskownicy).
+contains a symbolic link: %s	zawiera dowiązanie symboliczne: %s
+contains a file that is not a regular file: %s	zawiera plik, który nie jest zwykłym plikiem: %s
+contains too many files to check	zawiera zbyt wiele plików do sprawdzenia
+file too large to check: %s	plik jest zbyt duży do sprawdzenia: %s
+file could not be read: %s	nie można odczytać pliku: %s
+binary file that cannot be checked: %s	plik binarny, którego nie można sprawdzić: %s
+install script outside the package directory: %s	skrypt instalacyjny poza katalogiem pakietu: %s
+the install script name cannot be determined: %s	nie można ustalić nazwy skryptu instalacyjnego: %s
+LuxAI could not see all files of the package	LuxAI nie widziała wszystkich plików pakietu
+Install it now?	Zainstalować teraz?

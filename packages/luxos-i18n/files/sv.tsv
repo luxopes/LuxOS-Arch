@@ -2589,3 +2589,103 @@ Done. You can close this window.	Klart. Du kan stänga fönstret.
 Search for scanners again	Sök efter skannrar igen
 Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Slå på skannern och anslut den med en USB-kabel eller till samma wifi-nätverk som den här datorn. Den visas här av sig själv så snart LuxOS hittar den.
 The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	Läsaren kunde inte läsa fingret tillräckligt bra. Rengör sensorn och fingret och klicka sedan på Försök igen.
+Too many failed attempts. The account is locked for %d min, then try again.	För många misslyckade försök. Kontot är låst i %d min, försök sedan igen.
+Too many failed attempts. Wait a moment, then try again.	För många misslyckade försök. Vänta en stund och försök igen.
+# 0.9.10: community (AUR) sandbox install, Flathub
+%s comes from the community source (AUR): scripts by other users, not checked by LuxOS.	%s kommer från communitykällan (AUR): skript från andra användare, inte granskade av LuxOS.
+%s is installed from Flathub (isolated Flatpak app)	%s installeras från Flathub (isolerad Flatpak-app)
+%s is only in the community source (AUR). LuxAI does not install community packages - run in Terminal: lux install %s	%s finns bara i communitykällan (AUR). LuxAI installerar inte communitypaket – kör i Terminal: lux install %s
+A dangerous build script is never installed into the system.	Ett farligt byggskript installeras aldrig i systemet.
+Apps from Flathub need %sflatpak%s.	Appar från Flathub behöver %sflatpak%s.
+Apps from Flathub run isolated from the system (Flatpak).	Appar från Flathub körs isolerade från systemet (Flatpak).
+Build and install %s in the sandbox?	Bygga och installera %s i sandlådan?
+Build of %s in the sandbox failed	Bygget av %s i sandlådan misslyckades
+Building %s %s(community)%s	Bygger %s %s(community)%s
+Building %s %s(community)%s in the sandbox	Bygger %s %s(community)%s i sandlådan
+Building %s in the sandbox failed.	Bygget av %s i sandlådan misslyckades.
+Building %s in the sandbox...	Bygger %s i sandlådan...
+Checking the build script of %s (LuxAI Lite)	Kontrollerar byggskriptet för %s (LuxAI Lite)
+Choose 1 or 2:	Välj 1 eller 2:
+Choose a number (Enter = none):	Välj ett nummer (Enter = inget):
+Community packages are installed as a regular user (run lux without sudo)	Communitypaket installeras som vanlig användare (kör lux utan sudo)
+Community packages are updated only when you run it yourself: lux update	Communitypaket uppdateras bara när du själv kör: lux update
+Community packages to build: %s	Communitypaket att bygga: %s
+Community packages were not updated	Communitypaketen uppdaterades inte
+Copying the build files into the sandbox failed.	Kopieringen av byggfilerna till sandlådan misslyckades.
+Creating your sandbox first	Din sandlåda skapas först
+Download %s, on disk %s - includes the shared runtime %s (%s), which other Flatpak apps use too.	Nedladdning %s, på disk %s – inklusive delad runtime %s (%s) som även andra Flatpak-appar använder.
+Download:	Nedladdning:
+From Flathub	Från Flathub
+Install %s into the sandbox anyway?	Installera %s i sandlådan ändå?
+Install %s into the system anyway?	Installera %s i systemet ändå?
+Installed in the sandbox: %s	Installerat i sandlådan: %s
+Installing %s from Flathub…	Installerar %s från Flathub…
+Installing %s into the sandbox failed.	Installationen av %s i sandlådan misslyckades.
+Installing into the sandbox instead.	Installerar i sandlådan i stället.
+Installing the build tools into the sandbox failed.	Installationen av byggverktygen i sandlådan misslyckades.
+Isolated app from Flathub. Its data stays in ~/.var/app.	Isolerad app från Flathub. Dess data stannar i ~/.var/app.
+LuxAI did not answer (%s)	LuxAI svarade inte (%s)
+LuxAI found nothing suspicious in the build script.	LuxAI hittade inget misstänkt i byggskriptet.
+LuxAI gave no clear answer	LuxAI gav inget tydligt svar
+LuxAI is not installed	LuxAI är inte installerat
+LuxAI is not reachable (offline?)	LuxAI går inte att nå (offline?)
+Not found? Community packages (AUR) are installed in Terminal with lux install and go into your sandbox.	Hittar du det inte? Communitypaket (AUR) installeras i Terminal med lux install och hamnar i din sandlåda.
+Nothing found on Flathub.	Inget hittades på Flathub.
+Preparing build tools in the sandbox...	Förbereder byggverktyg i sandlådan...
+Removed: %s	Borttaget: %s
+Sandbox - isolated from your files and system (recommended)	Sandlåda – isolerad från dina filer och systemet (rekommenderas)
+Several apps on Flathub match '%s':	Flera appar på Flathub matchar ”%s”:
+Show the build script (PKGBUILD) of %s?	Visa byggskriptet (PKGBUILD) för %s?
+Start it with: %s	Starta med: %s
+System - full access to the computer	System – full åtkomst till datorn
+The build directory is expected as a tar archive on standard input.	Byggkatalogen förväntas som tar-arkiv på standard in.
+The build script looks dangerous:	Byggskriptet ser farligt ut:
+The build script looks suspicious:	Byggskriptet ser misstänkt ut:
+The build script was not checked by LuxAI.	Byggskriptet har inte kontrollerats av LuxAI.
+The sandbox is not installed (lux install luxos-sandbox), or install into the system with --system	Sandlådan är inte installerad (lux install luxos-sandbox), eller installera i systemet med --system
+Type %s to confirm installing community code into the system:	Skriv %s för att bekräfta installation av communitykod i systemet:
+Where should it be installed?	Var ska det installeras?
+Without a clean check it needs your confirmation (run without -y).	Utan en ren kontroll krävs din bekräftelse (kör utan -y).
+adds scheduled tasks	lägger till schemalagda uppgifter
+asks for administrator rights inside the build script	begär administratörsrättigheter i byggskriptet
+build a PKGBUILD (community/AUR, used by lux) and install it	bygga ett PKGBUILD (community/AUR, används av lux) och installera det
+calculating…	beräknar…
+changes shell start-up files	ändrar skalets startfiler
+community - installed into the sandbox	community – installerat i sandlådan
+community package into the system instead of the sandbox	communitypaket i systemet i stället för sandlådan
+contains a long encoded blob	innehåller ett långt kodat block
+decodes hidden base64 content	avkodar dolt base64-innehåll
+deletes system or home directories	tar bort system- eller hemkataloger
+downloads a script and runs it directly (curl | sh)	laddar ner ett skript och kör det direkt (curl | sh)
+downloads are not checked with checksums (SKIP)	nedladdningar kontrolleras inte med kontrollsummor (SKIP)
+downloads over unencrypted %s: %s	laddar ner via okrypterat %s: %s
+enables a system service	aktiverar en systemtjänst
+includes the shared runtime %s (used by other Flatpak apps too)	inklusive delad runtime %s (används även av andra Flatpak-appar)
+install packages (repositories, LuxOS, Flathub, then community/AUR)	installera paket (förråd, LuxOS, Flathub, sedan community/AUR)
+isolated app (Flatpak)	isolerad app (Flatpak)
+no PKGBUILD found	inget PKGBUILD hittades
+on disk:	på disk:
+only the community source (AUR)	endast communitykällan (AUR)
+opens a remote shell	öppnar ett fjärrskal
+remove packages (also Flatpak apps) and unneeded dependencies	ta bort paket (även Flatpak-appar) och onödiga beroenden
+runs generated code with eval	kör genererad kod med eval
+runs inline code of another language	kör inbäddad kod i ett annat språk
+search repositories, Flathub and community (AUR)	sök i förråd, Flathub och community (AUR)
+sets world-writable or setuid permissions	sätter rättigheter som alla kan skriva eller setuid
+the build script is unusually long	byggskriptet är ovanligt långt
+touches accounts, sudo or SSH keys	rör konton, sudo eller SSH-nycklar
+uses the network while installing	använder nätverket under installationen
+writes outside the package directory: %s	skriver utanför paketkatalogen: %s
+you are not signed in to LuxAI	du är inte inloggad på LuxAI
+%s contains symbolic links - community packages with links are refused	%s innehåller symboliska länkar – communitypaket med länkar nekas
+Community packages are installed into the system only from an interactive terminal (without --system they go to the sandbox).	Communitypaket installeras i systemet bara från en interaktiv terminal (utan --system hamnar de i sandlådan).
+contains a symbolic link: %s	innehåller en symbolisk länk: %s
+contains a file that is not a regular file: %s	innehåller en fil som inte är en vanlig fil: %s
+contains too many files to check	innehåller för många filer att kontrollera
+file too large to check: %s	filen är för stor att kontrollera: %s
+file could not be read: %s	filen kunde inte läsas: %s
+binary file that cannot be checked: %s	binär fil som inte kan kontrolleras: %s
+install script outside the package directory: %s	installationsskript utanför paketkatalogen: %s
+the install script name cannot be determined: %s	installationsskriptets namn kan inte avgöras: %s
+LuxAI could not see all files of the package	LuxAI kunde inte se alla filer i paketet
+Install it now?	Installera nu?

@@ -1,0 +1,124 @@
+{
+  "_comment": "Povolene domeny zdroju podle vyrobce (shoda konce jmena hostitele). http je povolene jen se zapichnutym sha256 v manifest.json (integrita = kontrolni soucet, ne TLS).",
+  "vendors": {
+    "brother": {
+      "prefixes": [
+        "brother-",
+        "brscan",
+        "brother_"
+      ],
+      "domains": [
+        "download.brother.com",
+        "www.brother.com",
+        "support.brother.com",
+        "www.brother.co.jp",
+        "download.brother.co.jp",
+        "support.brother.co.jp"
+      ]
+    },
+    "epson": {
+      "prefixes": [
+        "epson-",
+        "epsonscan",
+        "iscan",
+        "imagescan"
+      ],
+      "domains": [
+        "download.ebz.epson.net",
+        "download2.ebz.epson.net",
+        "download3.ebz.epson.net",
+        "download-center.epson.com",
+        "epson.com",
+        "files.support.epson.com",
+        "support.epson.net"
+      ]
+    },
+    "canon": {
+      "prefixes": [
+        "cnrdrvcups",
+        "cndrvcups",
+        "cnijfilter",
+        "scangearmp",
+        "canon-"
+      ],
+      "domains": [
+        "gdlp01.c-wss.com",
+        "files.canon-europe.com",
+        "pdisp01.c-wss.com"
+      ]
+    },
+    "samsung": {
+      "prefixes": [
+        "samsung-unified",
+        "samsung-m2",
+        "samsung-ml",
+        "samsung-scantopc",
+        "samsung-clp",
+        "samsung-clx",
+        "samsung-scx",
+        "samsung-sl-"
+      ],
+      "domains": [
+        "downloadcenter.samsung.com",
+        "ftp.hp.com",
+        "ftp.ext.hp.com",
+        "ftp.hp.com.cn"
+      ]
+    },
+    "hp": {
+      "prefixes": [
+        "hplip-plugin"
+      ],
+      "domains": [
+        "developers.hp.com",
+        "www.openprinting.org",
+        "ftp.hp.com",
+        "ftp.ext.hp.com"
+      ]
+    },
+    "kyocera": {
+      "prefixes": [
+        "kyocera"
+      ],
+      "domains": [
+        "www.kyoceradocumentsolutions.eu",
+        "www.kyoceradocumentsolutions.us",
+        "www.kyoceradocumentsolutions.com",
+        "kyoceradocumentsolutions.eu"
+      ]
+    },
+    "ricoh": {
+      "prefixes": [
+        "ricoh"
+      ],
+      "domains": [
+        "support.ricoh.com",
+        "www.openprinting.org"
+      ]
+    },
+    "xerox": {
+      "prefixes": [
+        "xerox"
+      ],
+      "domains": [
+        "download.support.xerox.com",
+        "www.support.xerox.com"
+      ]
+    }
+  },
+  "include_extra": [
+    "samsung-unified-driver",
+    "cnrdrvcups-lb",
+    "epsonscan2",
+    "brscan4",
+    "brscan5",
+    "brscan3",
+    "brscan2",
+    "brscan-skey",
+    "iscan"
+  ],
+  "exclude_suffixes": [
+    "-git",
+    "-bin-git"
+  ]
+}

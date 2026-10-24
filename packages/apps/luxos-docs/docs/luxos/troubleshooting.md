@@ -231,3 +231,12 @@ The initramfs hook `luxos-boot` (package luxos-tweaks, added to every systemd in
   prints what happened and what to do. From another system the logs are e.g. in
   `/boot/efi/EFI/LuxOS/` (Debian/Ubuntu) or `/efi/EFI/LuxOS/` (LuxOS).
 
+## "Incorrect password" although the password is right (account temporarily locked)
+
+LuxOS practically never locks an account: only a brute-force rate of **20 failed logins within 30 seconds** (impossible by hand, PAM waits ~2 s after each failure) locks it for **1 minute** (`pam_faillock`;
+Arch's default of 3 failures / 10 minutes is replaced by `luxos-tweaks` via
+`/usr/lib/luxos/luxos-faillock-setup`, values in `/etc/security/faillock.conf`). A cancelled
+unlock dialog (for example while waiting for a fingerprint) also counts as a failure. While the
+account is locked even the correct password is refused; the login screen says "Too many failed
+attempts. The account is locked for N min". Check or clear the counter as root:
+`faillock --user NAME` and `faillock --user NAME --reset`.

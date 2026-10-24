@@ -34,7 +34,7 @@ case "$(basename "$0")" in
       for a in "${@:$#}"; do :; done
       seen=0
       for a in "$@"; do
-        ((seen)) && { [[ $a == nope ]] && printf 'none\\t%s\\n' "$a" || printf 'repo\\t%s\\n' "$a"; }
+        ((seen)) && { [[ $a == nope || " ${NOT_IN_REPO-} " == *" $a "* ]] && printf 'none\\t%s\\n' "$a" || printf 'repo\\t%s\\n' "$a"; }
         [[ $a == -- ]] && seen=1
       done
     fi
@@ -44,6 +44,7 @@ case "$(basename "$0")" in
     case $1 in
       -Qdtq) echo orphan-lib ;;
       -Q) [[ $2 == archlinux-keyring ]] && exit 0; exit 1 ;;
+      -Sp|-Sg) for a; do [[ " ${NOT_IN_REPO-} " == *" $a "* ]] && exit 1; done; exit 0 ;;
     esac
     exit 0 ;;
   lux-engine-conf)

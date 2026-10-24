@@ -39,6 +39,13 @@ if ((apps_only)); then
 else
     cp -a "$REPO"/. "$stage/"
 fi
+# [luxos-drivers] (overene ovladace z AUR) se stavi zvlast (./build.sh drivers) - jinak zustava ze serveru
+if [[ -f out/drivers-repo/luxos-drivers/x86_64/luxos-drivers.db.tar.gz ]]; then
+    rm -rf "$stage/luxos-drivers"
+    cp -a out/drivers-repo/luxos-drivers "$stage/"
+elif ssh "$HOST" "test -d '$BASE/current/luxos-drivers'"; then
+    rsync -a "$HOST:$BASE/current/luxos-drivers/" "$stage/luxos-drivers/"
+fi
 
 # Prehledova stranka repozitare (seznam aplikaci a nastaveni pacmanu)
 pkglist() {  # pkglist REPO -> radky tabulky "nazev verze popis"
@@ -78,6 +85,10 @@ Last update: $(date -u '+%Y-%m-%d %H:%M UTC').</p>
 <table>$(luxlist)</table>
 <h2>System <small>[luxos]</small></h2>
 <table>$(pkglist luxos)</table>
+<h2>Printer and scanner drivers <small>[luxos-drivers]</small></h2>
+<p>Manufacturer drivers from the AUR, each version checked before it is built (sources only from the
+manufacturer, no network access while building, every update re-checked).</p>
+<table>$(pkglist luxos-drivers)</table>
 <h2>Repositories</h2>
 <p>LuxOS has both repositories set up already in <code>/etc/lux/lux.conf</code>. To add them again
 (for example after editing the file), put this into <code>/etc/lux/conf.d/luxos.conf</code> and run
@@ -86,6 +97,9 @@ Last update: $(date -u '+%Y-%m-%d %H:%M UTC').</p>
     server  $URL/\$repo/\$arch
 
 repo luxos-apps
+    server  $URL/\$repo/\$arch
+
+repo luxos-drivers
     server  $URL/\$repo/\$arch</pre>
 <p>Signing key: <a href="luxos.gpg">luxos.gpg</a> (package <code>luxos-keyring</code>).</p>
 </body></html>
@@ -105,7 +119,7 @@ ssh "$HOST" "set -e
     ln -sfn 'releases/$release' current.new && mv -T current.new current
     ls -1d releases/* | sort | head -n -$KEEP | xargs -r rm -rf"
 
-for r in luxos luxos-apps; do
+for r in luxos luxos-apps luxos-drivers; do
     code=$(curl -s -o /dev/null -w '%{http_code}' "$URL/$r/x86_64/$r.db")
     echo "    $URL/$r/x86_64/$r.db -> HTTP $code"
 done

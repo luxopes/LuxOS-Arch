@@ -73,6 +73,24 @@ enabled only for this step) and deletes downloaded packages afterwards. Package 
 `^[a-z0-9@_+][a-z0-9@._+-]*$`. Only Arch `[core]`/`[extra]` packages are available. Use
 `luxos-sandbox`, not `lux`, for sandbox apps – `lux` manages the host system.
 
+### Community (AUR) packages
+
+`lux install <name>` installs packages that exist only in the community source (AUR) into the
+sandbox by default (see [package-management.md](package-management.md)). It uses
+`luxos-sandbox build-install [--asdeps] [--deps "a b"] <name>` with the checked build directory as a
+tar archive on standard input:
+
+1. as the sandbox's fake root with network: `pacman -Syu --needed base-devel git` and the
+   repository dependencies (`--asdeps`);
+2. the archive is unpacked into `/home/sandbox/.cache/lux-build/<name>` and `makepkg -f` runs as the
+   sandbox user with network (the build script never runs on the host);
+3. `pacman -U` installs the built packages (without `-debug` packages) and the build directory is
+   deleted.
+
+Errors: "Building %s in the sandbox failed." (the build script failed – see the output above it),
+"Installing the build tools into the sandbox failed." (no network or a broken sandbox:
+`luxos-sandbox reset`).
+
 ### Running a downloaded file
 
 If the first argument is a host file (relative path with `/`, `~/…`, or a path under your home, `/tmp`,

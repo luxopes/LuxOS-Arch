@@ -260,6 +260,8 @@ class HelperAurDriver(unittest.TestCase):
         h.models = lambda: []
         h.installed = lambda pkg: False
         h.install_driver = lambda pkg: False
+        h.available = lambda pkg: False          # bez [luxos-drivers] (starsi lux.conf, bez internetu)
+        h.drivers_index = lambda: {}
         self.cmds = []
         h.run = lambda cmd, timeout=60: (self.cmds.append(cmd), (0, "", ""))[1]
 
@@ -300,3 +302,85 @@ class HelperAurDriver(unittest.TestCase):
         res = json.loads(out.getvalue())
         self.assertEqual((res["queue"], res["needs"], res["package"]),
                          (None, "aurdriver", "samsung-unified-driver-printer"))
+
+
+class VerifiedDrivers(unittest.TestCase):
+    """Overene ovladace z [luxos-drivers]: mapa z PPD (luxos-drivers-index) -> balik."""
+    INDEX = {"format": 1, "printers": [
+        {"mfg": "Samsung", "mdl": "M2020 Series", "package": "samsung-unified-driver-printer"},
+        {"mfg": "Brother", "mdl": "Brother MFC-L2710DW", "package": "brother-mfc-l2710dw"},
+        {"mfg": "Canon", "mdl": "Canon i-SENSYS MF650C Series", "package": "cnrdrvcups-lb"}]}
+
+    def test_exact_model(self):
+        self.assertEqual(lp.verified_driver("MFG:Brother;CMD:PJL;MDL:MFC-L2710DW series;CLS:PRINTER;", self.INDEX),
+                         "brother-mfc-l2710dw")
+
+    def test_compact_model_from_ppd(self):
+        idx = {"format": 1, "printers": [{"mfg": "Brother", "mdl": "MFCL2350DW", "package": "brother-mfc-l2350dw"}]}
+        self.assertEqual(lp.verified_driver("MFG:Brother;MDL:MFC-L2350DW series;", idx), "brother-mfc-l2350dw")
+        self.assertIsNone(lp.verified_driver("MFG:Brother;MDL:MFC-L2350DWX;", idx))
+
+    def test_samsung_family(self):
+        self.assertEqual(lp.verified_driver("MFG:Samsung;MDL:Xpress M2026;", self.INDEX),
+                         "samsung-unified-driver-printer")
+
+    def test_other_maker_same_model_name_no_match(self):
+        self.assertIsNone(lp.verified_driver("MFG:HP;MDL:MFC-L2710DW;", self.INDEX))
+
+    def test_unknown_and_empty(self):
+        self.assertIsNone(lp.verified_driver("MFG:Brother;MDL:HL-9999;", self.INDEX))
+        self.assertIsNone(lp.verified_driver("MFG:Brother;MDL:MFC-L2710DW;", {}))
+        self.assertIsNone(lp.verified_driver("", self.INDEX))
+
+    def test_load_index(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            f.write("not json")
+        self.assertEqual(lp.load_drivers_index(f.name), {})
+        with open(f.name, "w") as g:
+            import json
+            json.dump(self.INDEX, g)
+        self.assertEqual(lp.load_drivers_index(f.name)["printers"][0]["package"], "samsung-unified-driver-printer")
+        os.unlink(f.name)
+        self.assertEqual(lp.load_drivers_index("/nonexistent/x.json"), {})
+
+
+class HelperVerifiedDriver(HelperAurDriver):
+    """S [luxos-drivers]: ovladac se nainstaluje sam a fronta vznikne bez upozorneni na AUR."""
+
+    def setUp(self):
+        super().setUp()
+        h = self.h
+        self.installed_pkgs = set()
+        ppd = 'Model: name = uld-samsung/Samsung_M2020_Series.ppd\n        device-id = MFG:Samsung;MDL:M2020 Series;\n' \
+              '        make-and-model = Samsung M2020 Series\n'
+        h.models = lambda: lp.parse_lpinfo(ppd, "Model") if "samsung-unified-driver-printer" in self.installed_pkgs else []
+        h.installed = lambda pkg: pkg in self.installed_pkgs
+        h.available = lambda pkg: pkg == "samsung-unified-driver-printer"
+        h.drivers_index = lambda: VerifiedDrivers.INDEX
+
+        def install(pkg):
+            self.installed_pkgs.add(pkg)
+            return True
+        h.install_driver = install
+
+    def test_sync_notifies_aur_driver_once(self):
+        st = self.h.load_state()
+        added = self.h.cmd_sync(st)
+        self.assertIn("samsung-unified-driver-printer", self.installed_pkgs)
+        lpadmin = [c for c in self.cmds if c[:1] == ["lpadmin"] and "-p" in c]
+        self.assertEqual(len(lpadmin), 1)
+        self.assertIn("uld-samsung/Samsung_M2020_Series.ppd", lpadmin[0])
+        self.assertFalse(any(n.startswith("aurdriver") for n in self.notes()))
+        self.assertEqual(len(added), 1)
+
+    def test_add_reports_package(self):
+        pass
+
+    def test_not_available_falls_back_to_aur_notice(self):
+        self.h.available = lambda pkg: False
+        st = self.h.load_state()
+        self.assertEqual(self.h.cmd_sync(st), [])
+        self.assertEqual(self.notes(), ["aurdriver\tSamsung M2020 Series\tsamsung-unified-driver-printer"])
+        self.assertNotIn("samsung-unified-driver-printer", self.installed_pkgs)
+

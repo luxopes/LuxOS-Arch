@@ -2,7 +2,7 @@
 
 pkgname=luxos-tweaks
 pkgver=1.0.0
-pkgrel=6
+pkgrel=7
 pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, low-memory safeguard (earlyoom), Battery/Data Saver system parts, boot failure reporting"
 arch=(any)
 url="https://github.com/luxos"
@@ -39,6 +39,8 @@ package() {
     # Start nesmi selhat potichu: zprava pri spatnem hesle k disku, neomezene pokusy a pri
     # neuspechu zaznam startu na EFI oddilu (hook initramfs "luxos-boot" + nouzovy rezim systemu)
     install -Dm755 "$f/boot/luxos-boot-failure" "$pkgdir/usr/lib/luxos/luxos-boot-failure"
+    # Mirnejsi docasne zamceni uctu (10 chyb / 15 min -> 1 minuta), viz luxos.install
+    install -Dm755 "$f/security/luxos-faillock-setup" "$pkgdir/usr/lib/luxos/luxos-faillock-setup"
     install -Dm755 "$f/boot/luxos-boot-watch" "$pkgdir/usr/lib/luxos/boot/luxos-boot-watch"
     install -Dm644 -t "$pkgdir/usr/lib/luxos/boot" "$f/boot/luxos-boot-watch.service" "$f/boot/luxos-retry.conf" \
         "$f/boot/luxos-emergency.conf" "$f/boot/luxos-device-timeout.conf"

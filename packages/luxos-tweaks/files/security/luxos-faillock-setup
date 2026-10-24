@@ -1,0 +1,26 @@
+#!/bin/bash
+# LuxOS - mirnejsi docasne zamceni uctu po neuspesnych prihlasenich (pam_faillock)
+#
+# Arch: 3 chyby -> ucet zamceny na 10 minut. Na notebooku to zamyka vlastnika: zruseny dialog
+# zamku obrazovky (cekani na otisk prstu) se pocita jako chyba a behem zamku se i spravne heslo
+# hlasi jako "nespravne". LuxOS heslo prakticky nezamyka: jen tempo jasneho utoku hrubou silou -
+# 20 chyb behem 30 s (po kazde chybe PAM ceka ~2 s, rucne to nejde) -> zamceni na 1 minutu.
+# Meni jen vychozi (zakomentovane) hodnoty v /etc/security/faillock.conf; co si nastavil
+# spravce sam (nezakomentovany radek), zustava.
+#   luxos-faillock-setup [SOUBOR]
+set -eu
+f=${1:-${LUXOS_ROOT:-}/etc/security/faillock.conf}
+[ -f "$f" ] || exit 0
+set_key() {  # set_key KLIC HODNOTA
+    if grep -Eq "^[[:space:]]*$1[[:space:]]*=" "$f"; then
+        return 0                                  # nastavene rucne nebo uz LuxOS
+    fi
+    if grep -Eq "^#[[:space:]]*$1[[:space:]]*=" "$f"; then
+        sed -i -E "0,/^#[[:space:]]*$1[[:space:]]*=.*/s//$1 = $2/" "$f"
+    else
+        printf '%s = %s\n' "$1" "$2" >>"$f"
+    fi
+}
+set_key deny 20
+set_key fail_interval 30
+set_key unlock_time 60

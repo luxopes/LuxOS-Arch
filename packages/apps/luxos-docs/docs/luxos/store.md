@@ -17,7 +17,12 @@ install with one click, open, remove and update apps from the LuxOS and Arch Lin
 | `[luxos-apps]` | all packages, even without AppStream; name and summary from the package description (`Name - summary`), icons downloaded from `https://luxos.lux-ai.cz/repo/luxos-apps/x86_64/icons` |
 | `.lux` repository | packages from the signed index (`lux __index`), labelled "LuxOS package (.lux)" |
 
-The Store does **not** show AUR packages or Flatpak apps; use `lux install` for those
+| Flathub | **search results only**: section "From Flathub" under the search results (Flathub API through `/usr/lib/lux/lux_community.py`, max 12, apps already in the repositories are skipped, not with Data Saver on), badge "Flathub", detail with size incl. a shared runtime that is not installed yet; installed Flatpak apps also appear in Installed |
+
+Flathub apps are installed and removed with `lux -y install|remove <app ID>` (no Store helper:
+flatpak asks for permission itself; progress is a pulsing bar). Removing also deletes Flatpak
+runtimes nothing uses. The Store does **not** show community (AUR) packages: the search page says
+to use `lux install <name>` in Terminal, which installs them into the sandbox
 (see [package-management.md](package-management.md)). Command-line tools without a desktop app
 are also not listed (search them with `lux search`).
 

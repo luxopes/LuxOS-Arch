@@ -2590,3 +2590,102 @@ Done. You can close this window.	Hotovo. Okno môžete zavrieť.
 Search for scanners again	Znova hľadať skenery
 Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Zapnite skener a pripojte ho káblom USB alebo k rovnakej sieti Wi‑Fi ako tento počítač. Objaví sa tu sám, len čo ho LuxOS nájde.
 The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	Čítačka nedokázala prst dostatočne prečítať. Utrite senzor aj prst a kliknite na Skúsiť znova.
+Too many failed attempts. The account is locked for %d min, then try again.	Príliš veľa neúspešných pokusov. Účet je zamknutý na %d min, potom to skúste znova.
+Too many failed attempts. Wait a moment, then try again.	Príliš veľa neúspešných pokusov. Chvíľu počkajte a skúste to znova.
+Checking the build script of %s (LuxAI Lite)	Kontrolujem zostavovací skript balíka %s (LuxAI Lite)
+LuxAI found nothing suspicious in the build script.	LuxAI v zostavovacom skripte nenašla nič podozrivé.
+The build script looks suspicious:	Zostavovací skript vyzerá podozrivo:
+The build script looks dangerous:	Zostavovací skript vyzerá nebezpečne:
+The build script was not checked by LuxAI.	Zostavovací skript LuxAI neskontrolovala.
+Where should it be installed?	Kam ho nainštalovať?
+Sandbox - isolated from your files and system (recommended)	Sandbox – oddelený od vašich súborov a systému (odporúčané)
+System - full access to the computer	Systém – plný prístup k počítaču
+Choose 1 or 2:	Zvoľte 1 alebo 2:
+Type %s to confirm installing community code into the system:	Na potvrdenie inštalácie kódu komunity do systému napíšte %s:
+Installing into the sandbox instead.	Inštalujem teda do sandboxu.
+A dangerous build script is never installed into the system.	Nebezpečný zostavovací skript sa do systému nikdy neinštaluje.
+Install %s into the sandbox anyway?	Napriek tomu nainštalovať %s do sandboxu?
+Without a clean check it needs your confirmation (run without -y).	Bez čistej kontroly je potrebné vaše potvrdenie (spustite bez -y).
+Install %s into the system anyway?	Napriek tomu nainštalovať %s do systému?
+Build and install %s in the sandbox?	Zostaviť a nainštalovať %s v sandboxe?
+Show the build script (PKGBUILD) of %s?	Zobraziť zostavovací skript (PKGBUILD) balíka %s?
+Building %s %s(community)%s in the sandbox	Zostavujem %s %s(komunita)%s v sandboxe
+Build of %s in the sandbox failed	Zostavenie %s v sandboxe zlyhalo
+Building %s %s(community)%s	Zostavujem %s %s(komunita)%s
+%s is only in the community source (AUR). LuxAI does not install community packages - run in Terminal: lux install %s	%s je len v zdroji komunity (AUR). LuxAI balíky komunity neinštaluje – spustite v Termináli: lux install %s
+Community packages are installed as a regular user (run lux without sudo)	Balíky komunity sa inštalujú ako bežný používateľ (spustite lux bez sudo)
+%s comes from the community source (AUR): scripts by other users, not checked by LuxOS.	%s pochádza zo zdroja komunity (AUR): skripty iných používateľov, LuxOS ich nekontroluje.
+The sandbox is not installed (lux install luxos-sandbox), or install into the system with --system	Sandbox nie je nainštalovaný (lux install luxos-sandbox), alebo inštalujte do systému s --system
+Creating your sandbox first	Najprv vytváram váš sandbox
+Community packages to build: %s	Balíky komunity na zostavenie: %s
+Installed in the sandbox: %s	Nainštalované v sandboxe: %s
+Start it with: %s	Spustíte ho príkazom: %s
+Several apps on Flathub match '%s':	Výrazu '%s' zodpovedá na Flathube viac aplikácií:
+Choose a number (Enter = none):	Zvoľte číslo (Enter = žiadna):
+Apps from Flathub need %sflatpak%s.	Aplikácie z Flathubu potrebujú %sflatpak%s.
+%s is installed from Flathub (isolated Flatpak app)	%s sa nainštaluje z Flathubu (oddelená aplikácia Flatpak)
+Download:	Stiahnutie:
+on disk:	na disku:
+includes the shared runtime %s (used by other Flatpak apps too)	vrátane zdieľaného prostredia %s (používajú ho aj ďalšie aplikácie Flatpak)
+Removed: %s	Odstránené: %s
+community - installed into the sandbox	komunita – inštaluje sa do sandboxu
+Community packages are updated only when you run it yourself: lux update	Balíky komunity sa aktualizujú, len keď to spustíte sami: lux update
+Community packages were not updated	Balíky komunity neboli aktualizované
+install packages (repositories, LuxOS, Flathub, then community/AUR)	nainštalovať balíky (repozitáre, LuxOS, Flathub, potom komunita/AUR)
+search repositories, Flathub and community (AUR)	hľadať v repozitároch, na Flathube a v komunite (AUR)
+only the community source (AUR)	len zdroj komunity (AUR)
+community package into the system instead of the sandbox	balík komunity do systému namiesto do sandboxu
+remove packages (also Flatpak apps) and unneeded dependencies	odstrániť balíky (aj aplikácie Flatpak) a nepotrebné závislosti
+downloads a script and runs it directly (curl | sh)	sťahuje skript a rovno ho spúšťa (curl | sh)
+decodes hidden base64 content	dekóduje skrytý obsah v base64
+contains a long encoded blob	obsahuje dlhý zakódovaný blok
+runs generated code with eval	spúšťa generovaný kód cez eval
+deletes system or home directories	maže systémové alebo domovské priečinky
+touches accounts, sudo or SSH keys	siaha na účty, sudo alebo kľúče SSH
+opens a remote shell	otvára vzdialený shell
+sets world-writable or setuid permissions	nastavuje práva zápisu pre všetkých alebo setuid
+asks for administrator rights inside the build script	žiada v zostavovacom skripte o práva správcu
+enables a system service	zapína systémovú službu
+adds scheduled tasks	pridáva naplánované úlohy
+changes shell start-up files	mení spúšťacie súbory shellu
+runs inline code of another language	spúšťa vložený kód iného jazyka
+no PKGBUILD found	PKGBUILD sa nenašiel
+the build script is unusually long	zostavovací skript je nezvyčajne dlhý
+downloads over unencrypted %s: %s	sťahuje cez nešifrované %s: %s
+downloads are not checked with checksums (SKIP)	stiahnuté súbory sa nekontrolujú kontrolnými súčtami (SKIP)
+writes outside the package directory: %s	zapisuje mimo adresára balíka: %s
+uses the network while installing	pri inštalácii používa sieť
+LuxAI is not installed	LuxAI nie je nainštalovaná
+you are not signed in to LuxAI	nie ste prihlásení do LuxAI
+LuxAI is not reachable (offline?)	LuxAI nie je dostupná (offline?)
+LuxAI did not answer (%s)	LuxAI neodpovedala (%s)
+LuxAI gave no clear answer	LuxAI nedala jasnú odpoveď
+The build directory is expected as a tar archive on standard input.	Adresár na zostavenie sa očakáva ako archív tar na štandardnom vstupe.
+Preparing build tools in the sandbox...	Pripravujem nástroje na zostavenie v sandboxe...
+Installing the build tools into the sandbox failed.	Inštalácia nástrojov na zostavenie do sandboxu zlyhala.
+Copying the build files into the sandbox failed.	Kopírovanie súborov na zostavenie do sandboxu zlyhalo.
+Building %s in the sandbox...	Zostavujem %s v sandboxe...
+Building %s in the sandbox failed.	Zostavenie %s v sandboxe zlyhalo.
+Installing %s into the sandbox failed.	Inštalácia %s do sandboxu zlyhala.
+build a PKGBUILD (community/AUR, used by lux) and install it	zostaviť PKGBUILD (komunita/AUR, používa lux) a nainštalovať ho
+isolated app (Flatpak)	oddelená aplikácia (Flatpak)
+From Flathub	Z Flathubu
+Apps from Flathub run isolated from the system (Flatpak).	Aplikácie z Flathubu bežia oddelene od systému (Flatpak).
+Not found? Community packages (AUR) are installed in Terminal with lux install and go into your sandbox.	Nenašli ste? Balíky komunity (AUR) sa inštalujú v Termináli príkazom lux install a idú do vášho sandboxu.
+Nothing found on Flathub.	Na Flathube sa nič nenašlo.
+Isolated app from Flathub. Its data stays in ~/.var/app.	Oddelená aplikácia z Flathubu. Jej dáta zostávajú v ~/.var/app.
+calculating…	počítam…
+Download %s, on disk %s - includes the shared runtime %s (%s), which other Flatpak apps use too.	Stiahnutie %s, na disku %s – vrátane zdieľaného prostredia %s (%s), ktoré používajú aj ďalšie aplikácie Flatpak.
+Installing %s from Flathub…	Inštalujem %s z Flathubu…
+%s contains symbolic links - community packages with links are refused	%s obsahuje symbolické odkazy – balíky komunity s odkazmi sa odmietajú
+Community packages are installed into the system only from an interactive terminal (without --system they go to the sandbox).	Balíky komunity sa do systému inštalujú len z interaktívneho terminálu (bez --system idú do sandboxu).
+contains a symbolic link: %s	obsahuje symbolický odkaz: %s
+contains a file that is not a regular file: %s	obsahuje súbor, ktorý nie je bežný súbor: %s
+contains too many files to check	obsahuje príliš veľa súborov na kontrolu
+file too large to check: %s	súbor je príliš veľký na kontrolu: %s
+file could not be read: %s	súbor sa nedá prečítať: %s
+binary file that cannot be checked: %s	binárny súbor, ktorý sa nedá skontrolovať: %s
+install script outside the package directory: %s	inštalačný skript mimo adresára balíka: %s
+the install script name cannot be determined: %s	názov inštalačného skriptu sa nedá určiť: %s
+LuxAI could not see all files of the package	LuxAI nevidela všetky súbory balíka
+Install it now?	Nainštalovať teraz?

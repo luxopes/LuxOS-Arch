@@ -292,6 +292,23 @@ run_case "live ISO"
 json_py 'd["live"] is True'
 
 # --- Rozhrani ---
+# Skener s overenym ovladacem z [luxos-drivers] (mapa USB ID z luxos-drivers-index)
+machine scanner
+usb 1-2 04b8 0110
+usb 1-3 04b8 0110
+usb 1-4 1d6b 0002
+mkdir -p "$ROOT/usr/share/luxos"
+printf '# USB\n04b8:0110\tepsonscan2\n04b8:0111\tepsonscan2\nbad:id\tevil;rm\n' >"$ROOT/usr/share/luxos/drivers-usb.tsv"
+run_case scanner
+has epsonscan2
+lacks 'evil;rm'
+[[ $(grep -o '"kind": *"scanner"' <<<"$JS" | wc -l) == 1 ]] && ok || bad "one scanner device expected: $JS"
+report_has "epsonscan2"
+machine noscanmap
+usb 1-2 04b8 0110
+run_case noscanmap
+lacks epsonscan2
+
 CASE=interface
 if hw --bogus >/dev/null 2>&1; then bad "unknown option accepted"; else ok; fi
 if hw --kernel >/dev/null 2>&1; then bad "--kernel without value accepted"; else ok; fi

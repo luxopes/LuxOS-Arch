@@ -1,0 +1,1438 @@
+{
+ "brother-brgenml1": {
+  "checked": "2026-10-24",
+  "commit": "a4df9a94a0fa80a634d0a8754c3b1ad9f1287644",
+  "problems": [
+   "line 6: command substitution outside functions (runs when the PKGBUILD is read)",
+   "line 7: command substitution outside functions (runs when the PKGBUILD is read)"
+  ],
+  "rules": 4
+ },
+ "brother-color-label-printer": {
+  "checked": "2026-10-24",
+  "commit": "dcfbe913ba2848a147884caaa8f9d45b71bea057",
+  "problems": [
+   "source from a domain that is not the vendor's: gitlab.com"
+  ],
+  "rules": 4
+ },
+ "brother-cups-wrapper-ac": {
+  "checked": "2026-10-24",
+  "commit": "2862b9adcaf6319ecc7edf6013e23ba51f03328c",
+  "problems": [
+   "source from a domain that is not the vendor's: mirrors.kernel.org"
+  ],
+  "rules": 4
+ },
+ "brother-cups-wrapper-common": {
+  "checked": "2026-10-24",
+  "commit": "7b7a95e428ed915769f568cbf7f3b094c4dd824c",
+  "problems": [
+   "source from a domain that is not the vendor's: ubuntu-master.mirror.tudos.de"
+  ],
+  "rules": 4
+ },
+ "brother-cups-wrapper-laser": {
+  "checked": "2026-10-24",
+  "commit": "8d6173192a364af42c594020d2f155688c7d8455",
+  "problems": [
+   "source from a domain that is not the vendor's: mirrors.kernel.org"
+  ],
+  "rules": 4
+ },
+ "brother-dcp-197c": {
+  "checked": "2026-10-24",
+  "commit": "f3657c3ab8b707c6e69ee2e2465d7fb94f5ed0b1",
+  "problems": [
+   ".install line 10: command not allowed: brprintconf_dcp197c",
+   "no checksum for dcp197clpr-1.1.3-1.i386.rpm",
+   "no checksum for dcp197ccupswrapper-1.1.3-1.i386.rpm",
+   "no checksum for cupswrapper-license.txt",
+   "no checksum for lpr-license.txt"
+  ],
+  "rules": 4
+ },
+ "brother-dcp-9020cdn": {
+  "checked": "2026-10-24",
+  "commit": "cb5a46d974a55e3bcdf5d5b665981bdf7ec23f55",
+  "problems": [
+   "source from a domain that is not the vendor's: d.brother-movie.com",
+   "source from a domain that is not the vendor's: d.brother-movie.com"
+  ],
+  "rules": 4
+ },
+ "brother-dcp-9030cdn": {
+  "checked": "2026-10-24",
+  "commit": "99091dd8e5b1acae98a9537b9408bc84c8d7468e",
+  "problems": [
+   "source from a domain that is not the vendor's: d.brother-movie.com"
+  ],
+  "rules": 4
+ },
+ "brother-dcp195c": {
+  "checked": "2026-10-24",
+  "commit": "4f704e9673320c63f375bf2aaad167b49c821372",
+  "problems": [
+   ".install line 10: command not allowed: brprintconf_dcp195c"
+  ],
+  "rules": 4
+ },
+ "brother-dcp197c": {
+  "checked": "2026-10-24",
+  "commit": "9366c8b5c6d144c4225e12cbb3a233e8c8e90cb5",
+  "problems": [
+   ".install line 10: command not allowed: brprintconf_dcp197c"
+  ],
+  "rules": 4
+ },
+ "brother-dcp375cw": {
+  "checked": "2026-10-24",
+  "commit": "1e72b4b8b2331b35a70a131889880b0c4ee24ada",
+  "problems": [
+   ".install line 8: privilege escalation: bash sudo systemctl restart org.cups.cupsd.service",
+   ".install line 8: command not allowed: bash"
+  ],
+  "rules": 4
+ },
+ "brother-dcp560cn": {
+  "checked": "2026-10-24",
+  "commit": "afc1ce1252c9cf1d18dece2c2f76bbf44d2b7a71",
+  "problems": [
+   ".install line 3: writes outside driver directories: /var/spool/lpd"
+  ],
+  "rules": 4
+ },
+ "brother-dcp7040": {
+  "checked": "2026-10-24",
+  "commit": "d128a4068cbc4ff32fa3df85940015301941831b",
+  "problems": [
+   ".install line 13: writes outside driver directories: /usr/share/bdc7040/inf/brDCP7040rc"
+  ],
+  "rules": 4
+ },
+ "brother-dcp7057-cups-bin": {
+  "checked": "2026-10-24",
+  "commit": "cc2c69ae9e717173b8d00ae27e216cc21079e395",
+  "problems": [
+   "source from a domain that is not the vendor's: d.brother-movie.com"
+  ],
+  "rules": 4
+ },
+ "brother-dcp7070dw-cups": {
+  "checked": "2026-10-24",
+  "commit": "987c81adb6b818181e9e9398e09e7604040f8b59",
+  "problems": [
+   ".install line 5: privilege escalation: sudo /usr/local/Brother/Printer/DCP7070DW/cupswrapper/cupswrapperDCP7070DW-${pkgver%_*}",
+   ".install line 5: command not allowed: sudo",
+   ".install line 17: privilege escalation: sudo /usr/local/Brother/Printer/DCP7070DW/cupswrapper/cupswrapperDCP7070DW-${pkgver%_*} -e",
+   ".install line 17: command not allowed: sudo"
+  ],
+  "rules": 4
+ },
+ "brother-dcp7190dw-printer": {
+  "checked": "2026-10-24",
+  "commit": "0a9f99ff60bf45f0224357ed9ad386fd4cd9dcef",
+  "problems": [
+   "source from a domain that is not the vendor's: d.brother-movie.com"
+  ],
+  "rules": 4
+ },
+ "brother-dcp9010cn": {
+  "checked": "2026-10-24",
+  "commit": "12e87265af0c88f51de2318fabae5af80bd2af7e",
+  "problems": [
+   "line 13: command substitution outside functions (runs when the PKGBUILD is read)",
+   "line 13: command outside functions: if [ \"$(uname -m)\" = \"x86_64\" ]"
+  ],
+  "rules": 4
+ },
+ "brother-dcp9055cdn": {
+  "checked": "2026-10-24",
+  "commit": "1248cebaa28031b5b4fa3448a550841b4c809a0a",
+  "problems": [
+   "line 12: command substitution outside functions (runs when the PKGBUILD is read)"
+  ],
+  "rules": 4
+ },
+ "brother-dcpj1140dw": {
+  "checked": "2026-10-24",
+  "commit": "78f862de7503a754a79a58d72d83cc943563ea25",
+  "problems": [
+   ".install line 2: writes to a path that cannot be checked: $pkgdir/var/spool/lpd"
+  ],
+  "rules": 4
+ },
+ "brother-dcpj1200w": {
+  "checked": "2026-10-24",
+  "commit": "04dd2b9193374d28c0d652865b2ca347c1d41473",
+  "problems": [
+   ".install line 2: writes to a path that cannot be checked: $pkgdir/var/spool/lpd"
+  ],
+  "rules": 4
+ },
+ "brother-dcpl2535dw": {
+  "checked": "2026-10-24",
+  "commit": "d53999369808905a1739b414fb337714ab9507ea",
+  "problems": [
+   "source from a domain that is not the vendor's: d.brother-movie.com"
+  ],
+  "rules": 4
+ },
+ "brother-dcpt220": {
+  "checked": "2026-10-24",
+  "commit": "92239a3665ff9a98498b5b5697520a6a01254291",
+  "problems": [
+   ".install line 77: command not allowed: unlink"
+  ],
+  "rules": 4
+ },
+ "brother-dcpt300": {
+  "checked": "2026-10-24",
+  "commit": "0c8ded688064b5336af9e0049db1f46d2c8a5fc0",
+  "problems": [
+   ".install line 2: systemctl only for CUPS/scanner services: if systemctl is-active --quiet cups.service; then",
+   ".install line 14: systemctl only for CUPS/scanner services: if systemctl is-active --quiet cups.service; then"
+  ],
+  "rules": 4
+ },
+ "brother-dcpt430w": {
+  "checked": "2026-10-24",
+  "commit": "7833ae457a63b2508cdb456b1296a5fc407ed7bd",
+  "problems": [
+   ".install line 76: command not allowed: unlink"
+  ],
+  "rules": 4
+ },
+ "brother-dcpt436w": {
+  "checked": "2026-10-24",
+  "commit": "b0bab8216ece03320fad99b7eaf2157911f30621",
+  "problems": [
+   ".install line 76: command not allowed: unlink"
+  ],
+  "rules": 4
+ },
+ "brother-dcpt525w": {
+  "checked": "2026-10-24",
+  "commit": "d25e028e38b3b946d55fb94ee38154564a2839e4",
+  "problems": [
+   ".install line 17: command not allowed: >>",
+   ".install line 18: command not allowed: >>",
+   ".install line 19: command not allowed: >>",
+   ".install line 25: command not allowed: \"S\"",
+   ".install line 25: command not allowed: >>",
+   ".install line 68: command not allowed: >>",
+   ".install line 69: command not allowed: >>",
+   ".install line 75: command not allowed: \"S\"",
+   ".install line 75: command not allowed: >>",
+   ".install line 85: command not allowed: \"S\"",
+   ".install line 85: command not allowed: >>",
+   ".install line 86: command not allowed: >>"
+  ],
+  "rules": 4
+ },
+ "brother-dcpt720dw": {
+  "checked": "2026-10-24",
+  "commit": "49b481c230866d0ad41948cef1d093d9d04d75fd",
+  "problems": [
+   ".install line 17: command not allowed: >>",
+   ".install line 18: command not allowed: >>",
+   ".install line 19: command not allowed: >>",
+   ".install line 25: command not allowed: \"S\"",
+   ".install line 25: command not allowed: >>",
+   ".install line 68: command not allowed: >>",
+   ".install line 69: command not allowed: >>",
+   ".install line 75: command not allowed: \"S\"",
+   ".install line 75: command not allowed: >>",
+   ".install line 85: command not allowed: \"S\"",
+   ".install line 85: command not allowed: >>",
+   ".install line 86: command not allowed: >>"
+  ],
+  "rules": 4
+ },
+ "brother-dcpt725dw": {
+  "checked": "2026-10-24",
+  "commit": "3914254127b5f2b223678ad00a755eb65869dc68",
+  "problems": [
+   ".install line 17: command not allowed: >>",
+   ".install line 18: command not allowed: >>",
+   ".install line 19: command not allowed: >>",
+   ".install line 25: command not allowed: \"S\"",
+   ".install line 25: command not allowed: >>",
+   ".install line 68: command not allowed: >>",
+   ".install line 69: command not allowed: >>",
+   ".install line 75: command not allowed: \"S\"",
+   ".install line 75: command not allowed: >>",
+   ".install line 85: command not allowed: \"S\"",
+   ".install line 85: command not allowed: >>",
+   ".install line 86: command not allowed: >>"
+  ],
+  "rules": 4
+ },
+ "brother-dcpt730dw": {
+  "checked": "2026-10-24",
+  "commit": "ec2ea15690682b7c437a8883ce42f12f57b7c2b3",
+  "problems": [
+   ".install line 17: command not allowed: >>",
+   ".install line 18: command not allowed: >>",
+   ".install line 19: command not allowed: >>",
+   ".install line 25: command not allowed: \"S\"",
+   ".install line 25: command not allowed: >>",
+   ".install line 68: command not allowed: >>",
+   ".install line 69: command not allowed: >>",
+   ".install line 75: command not allowed: \"S\"",
+   ".install line 75: command not allowed: >>",
+   ".install line 85: command not allowed: \"S\"",
+   ".install line 85: command not allowed: >>",
+   ".install line 86: command not allowed: >>"
+  ],
+  "rules": 4
+ },
+ "brother-dcpt735dw": {
+  "checked": "2026-10-24",
+  "commit": "7e3ca356d9d8ec3ab298d0dba674039c5163fec8",
+  "problems": [
+   "source from a domain that is not the vendor's: d.brother-movie.com"
+  ],
+  "rules": 4
+ },
+ "brother-dcpt820dw": {
+  "checked": "2026-10-24",
+  "commit": "d190c3f604f7fe67ae7d8ac04f3bd4892f3630cc",
+  "problems": [
+   ".install line 17: command not allowed: >>",
+   ".install line 18: command not allowed: >>",
+   ".install line 19: command not allowed: >>",
+   ".install line 25: command not allowed: \"S\"",
+   ".install line 25: command not allowed: >>",
+   ".install line 68: command not allowed: >>",
+   ".install line 69: command not allowed: >>",
+   ".install line 75: command not allowed: \"S\"",
+   ".install line 75: command not allowed: >>",
+   ".install line 85: command not allowed: \"S\"",
+   ".install line 85: command not allowed: >>",
+   ".install line 86: command not allowed: >>"
+  ],
+  "rules": 4
+ },
+ "brother-hl1208": {
+  "checked": "2026-10-24",
+  "commit": "56495061aec2791823ce52c3d9b51025e13933cb",
+  "problems": [
+   "source from a domain that is not the vendor's: www.brother.cn",
+   "source from a domain that is not the vendor's: www.brother.cn"
+  ],
+  "rules": 4
+ },
+ "brother-hl4140cn": {
+  "checked": "2026-10-24",
+  "commit": "c381f2cbc6a407e37c82d268a8c1d14d189efa55",
+  "problems": [
+   ".install line 29: writes outside driver directories: /usr/share/Brother/Printer/hl4140cn/inf/brPrintList"
+  ],
+  "rules": 4
+ },
+ "brother-hl4150cdn": {
+  "checked": "2026-10-24",
+  "commit": "eeb41fb92c069912e6e600029b1c85b56a737ab8",
+  "problems": [
+   ".install line 29: writes outside driver directories: /usr/share/Brother/Printer/hl4150cdn/inf/brPrintList"
+  ],
+  "rules": 4
+ },
+ "brother-hll1222": {
+  "checked": "2026-10-24",
+  "commit": "00f2180f77eedfe19986cb1e950994dedaf2e431",
+  "problems": [
+   ".install line 4: systemctl only for CUPS/scanner services: systemctl try-restart cups.service >/dev/null 2>&1 || true",
+   ".install line 4: command not allowed: 1",
+   ".install line 12: systemctl only for CUPS/scanner services: systemctl try-restart cups.service >/dev/null 2>&1 || true",
+   ".install line 12: command not allowed: 1"
+  ],
+  "rules": 4
+ },
+ "brother-hll2305w": {
+  "checked": "2026-10-24",
+  "commit": "d34775fcb2998fd510a27d9283c75d6335a7237d",
+  "problems": [
+   "line 6: command substitution outside functions (runs when the PKGBUILD is read)",
+   "line 7: command substitution outside functions (runs when the PKGBUILD is read)"
+  ],
+  "rules": 4
+ },
+ "brother-hll2340dw": {
+  "checked": "2026-10-24",
+  "commit": "83737a85a0f498c33824becea45b6499645ce17b",
+  "problems": [
+   "line 6: command substitution outside functions (runs when the PKGBUILD is read)",
+   "line 7: command substitution outside functions (runs when the PKGBUILD is read)"
+  ],
+  "rules": 4
+ },
+ "brother-hll2400dwe-bin": {
+  "checked": "2026-10-24",
+  "commit": "ea71db14e281c6e8f26dc39a94a4830d51d9fcbe",
+  "problems": [
+   "line 16: command outside functions: if [ \"$CARCH\" == \"x86_64\" ]",
+   "line 17: command outside functions: then depends+=('lib32-glibc')"
+  ],
+  "rules": 4
+ },
+ "brother-hll2402d": {
+  "checked": "2026-10-24",
+  "commit": "e978741c1fceeab86929414408e8622bfd207bde",
+  "problems": [
+   "line 16: command outside functions: if [ \"$CARCH\" == \"x86_64\" ]",
+   "line 17: command outside functions: then depends+=('lib32-glibc')"
+  ],
+  "rules": 4
+ },
+ "brother-hll2460dw": {
+  "checked": "2026-10-24",
+  "commit": "54ac2d34b5f70298fdfc0c6be0ef4762cdd66607",
+  "problems": [
+   "line 6: command substitution outside functions (runs when the PKGBUILD is read)",
+   "line 7: command substitution outside functions (runs when the PKGBUILD is read)"
+  ],
+  "rules": 4
+ },
+ "brother-hll2865dw": {
+  "checked": "2026-10-24",
+  "commit": "5ac66ef9d632e6a91e36f40a1ca2fc79ed91abef",
+  "problems": [
+   "line 6: command substitution outside functions (runs when the PKGBUILD is read)",
+   "line 7: command substitution outside functions (runs when the PKGBUILD is read)"
+  ],
+  "rules": 4
+ },
+ "brother-hll3230cdw": {
+  "checked": "2026-10-24",
+  "commit": "fff95422bd86626e8fc849f32bb9a9228283535c",
+  "problems": [
+   "line 21: command outside functions: ! [ \"$CARCH\" = 'x86_64' ] || depends+=('lib32-glibc')"
+  ],
+  "rules": 4
+ },
+ "brother-hll6250dw": {
+  "checked": "2026-10-24",
+  "commit": "38f01574c50bd2a04dd54c85ac71d451be905de1",
+  "problems": [
+   "download failed: http://download.brother.com/welcome/dlf102567/hll6250dwlpr-3.2.0-1.i386.rpm: HTTP Error 404: Not Found",
+   "download failed: http://download.brother.com/welcome/dlf102568/hll6250dwcupswrapper-3.2.0-1.i386.rpm: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "brother-lpr-drivers-ac": {
+  "checked": "2026-10-24",
+  "commit": "1a9ef70f5c634219f9dfd482ca14c62cb8081e11",
+  "problems": [
+   "source from a domain that is not the vendor's: mirrors.kernel.org"
+  ],
+  "rules": 4
+ },
+ "brother-lpr-drivers-common": {
+  "checked": "2026-10-24",
+  "commit": "bc42799f3df40b49d58f206e1addfd0e9336bd02",
+  "problems": [
+   "source from a domain that is not the vendor's: mirrors.kernel.org"
+  ],
+  "rules": 4
+ },
+ "brother-lpr-drivers-laser": {
+  "checked": "2026-10-24",
+  "commit": "818133a814627acfcd17b5a29d7c3d3a027c4a04",
+  "problems": [
+   "source from a domain that is not the vendor's: mirrors.kernel.org"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-410cn": {
+  "checked": "2026-10-24",
+  "commit": "16d25fc054fafc05e475a36893216e2080d38f8d",
+  "problems": [
+   "_fn_libconflict() line 318: pipe into a shell: grep -ae '^ln -s' \"${_postin}\" |  sed -e 's:/usr/lib/::'  -e \"s:/usr/lib/:${pkgdir}&:g\"  -e '# Preve"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-420cn": {
+  "checked": "2026-10-24",
+  "commit": "e598613aca48bf85074b7d28576fd5c26ea2d3a2",
+  "problems": [
+   "_fn_libconflict() line 316: pipe into a shell: grep -ae '^ln -s' \"${_postin}\" |  sed -e 's:/usr/lib/::'  -e \"s:/usr/lib/:${pkgdir}&:g\"  -e '# Preve"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-j2340dw": {
+  "checked": "2026-10-24",
+  "commit": "909792f06c4a5588458312b5a1d90c6959e3d455",
+  "problems": [
+   "source from a domain that is not the vendor's: d.brother-movie.com"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-j415w": {
+  "checked": "2026-10-24",
+  "commit": "c9a2b7abad7171cbf78a73772f892c94630aeb3a",
+  "problems": [
+   "line 43: command outside functions: \"$cupswrapper\" > \"$filter_wrapper\"",
+   "line 44: command outside functions: chmod 0755 \"$filter_wrapper\"",
+   "line 45: command outside functions: if \"$filter_wrapper\" > \"$filter_file\"; then",
+   "line 46: command outside functions: rm \"$filter_wrapper\"",
+   "line 47: command outside functions: rm \"$cupswrapper\"",
+   "line 51: command substitution outside functions (runs when the PKGBUILD is read)",
+   "line 51: command outside functions: mv \"$(find -iname '*'$_model'*.ppd' -print -quit)\" \"$ppd_file\"",
+   "line 54: command outside functions: find \"$srcdir\" -type f -name 'setupPrintcap*' -delete",
+   "line 55: command outside functions: }"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-j425w": {
+  "checked": "2026-10-24",
+  "commit": "e9f3b4db99838de11f23321309138a7843b1a22e",
+  "problems": [
+   "line 44: command outside functions: \"$cupswrapper\" > \"$filter_wrapper\"",
+   "line 45: command outside functions: chmod 0755 \"$filter_wrapper\"",
+   "line 46: command outside functions: if \"$filter_wrapper\" > \"$filter_file\"; then",
+   "line 47: command outside functions: rm \"$filter_wrapper\"",
+   "line 48: command outside functions: rm \"$cupswrapper\"",
+   "line 52: command substitution outside functions (runs when the PKGBUILD is read)",
+   "line 52: command outside functions: mv \"$(find -iname '*'$_model'*.ppd' -print -quit)\" \"$ppd_file\"",
+   "line 55: command outside functions: find \"$srcdir\" -type f -name 'setupPrintcap*' -delete",
+   "line 56: command outside functions: }"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-j430w": {
+  "checked": "2026-10-24",
+  "commit": "a717bd555e70b8613ee9c4e5dd7bf24ddfbb1122",
+  "problems": [
+   "line 15: command substitution outside functions (runs when the PKGBUILD is read)"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-j5730dw": {
+  "checked": "2026-10-24",
+  "commit": "c4ef58e143436bb801b8fa909fea000b08290fbb",
+  "problems": [
+   "checksum mismatch for mfcj5730dw-1.0.1_0.inf"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-j6710dw": {
+  "checked": "2026-10-24",
+  "commit": "481175d9d2f191b0ffe6fb3b5a9ea2d90188b230",
+  "problems": [
+   ".install line 19: command not allowed: BEGIN",
+   ".install line 23: command not allowed: BEGINFILE",
+   ".install line 29: command not allowed: /Brother",
+   ".install line 30: command not allowed: $0",
+   ".install line 31: command not allowed: /^\\*%OpenUI",
+   ".install line 32: command not allowed: /^\\*CloseUI:",
+   ".install line 33: command not allowed: ENDFILE",
+   ".install line 34: command not allowed: fmodel",
+   ".install line 34: command not allowed: f1",
+   ".install line 35: command not allowed: print",
+   ".install line 38: command not allowed: 'S'",
+   ".install line 40: command not allowed: shopt"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-j6910dw": {
+  "checked": "2026-10-24",
+  "commit": "ae1263effcf3ccfc13e8b8af95f923abf71a5c95",
+  "problems": [
+   ".install line 19: command not allowed: BEGIN",
+   ".install line 23: command not allowed: BEGINFILE",
+   ".install line 29: command not allowed: /Brother",
+   ".install line 30: command not allowed: $0",
+   ".install line 31: command not allowed: /^\\*%OpenUI",
+   ".install line 32: command not allowed: /^\\*CloseUI:",
+   ".install line 33: command not allowed: ENDFILE",
+   ".install line 34: command not allowed: fmodel",
+   ".install line 34: command not allowed: f1",
+   ".install line 35: command not allowed: print",
+   ".install line 38: command not allowed: 'S'",
+   ".install line 40: command not allowed: shopt"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-j6920dw": {
+  "checked": "2026-10-24",
+  "commit": "7c4e30518ec1f44b6dbb9ce01ca9fb246947c325",
+  "problems": [
+   "line 26: command outside functions: cat <<EOF > \"${startdir}/${pkgname}.install\"",
+   "line 40: command outside functions: EOF"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-j6935dw": {
+  "checked": "2026-10-24",
+  "commit": "7e547a4df46439282e6a6fe1334861ee7ac74aa1",
+  "problems": [
+   "checksum mismatch for mfcj6935dw-1.0.1_0.inf"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-j895dw": {
+  "checked": "2026-10-24",
+  "commit": "5f7e957842847e87155d9e5a9a904009c214efcb",
+  "problems": [
+   "_fn_libconflict() line 290: pipe into a shell: grep -ae '^ln -s' \"${_postin}\" |  sed -e 's:/usr/lib/::'  -e \"s:/usr/lib/:${pkgdir}&:g\"  -e '# Preve"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-j995dw-scan-driver": {
+  "checked": "2026-10-24",
+  "commit": "85c47625f402cf9d3c3113313c83d47ec84bf4e1",
+  "problems": [
+   "download failed: https://download.brother.com/welcome/dlf006646/brscan4-0.4.8-1.i386.deb: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-l2700dn": {
+  "checked": "2026-10-24",
+  "commit": "2d575aa1247c4e36e052aaca2fb61c9c5e3356b6",
+  "problems": [
+   ".install line 6: privilege escalation: sudo ln -s /opt/brother/Printers/MFCL2700DN/cupswrapper/brother_lpdwrapper_MFCL2700DN /usr/lib/cups/",
+   ".install line 6: command not allowed: sudo",
+   ".install line 7: privilege escalation: sudo ln -s /opt/brother/Printers/MFCL2700DN/cupswrapper/brother-MFCL2700DN-cups-en.ppd /usr/share/pp",
+   ".install line 7: command not allowed: sudo",
+   ".install line 18: privilege escalation: sudo rm /usr/lib/cups/filter/brother_lpdwrapper_MFCL2700DN",
+   ".install line 18: command not allowed: sudo",
+   ".install line 19: privilege escalation: sudo rm /usr/share/ppd/cupsfilters/brother-MFCL2700DN-cups-en.ppd",
+   ".install line 19: command not allowed: sudo"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-l3760cdw": {
+  "checked": "2026-10-24",
+  "commit": "febf425adb0fcdba99862f17ef8860d956d62a92",
+  "problems": [
+   ".install line 17: command not allowed: paper",
+   ".install line 20: privilege escalation: sudo sed -i 's/^PageSize=Letter/PageSize=A4/' /opt/brother/Printers/mfcl3760cdw/inf/brmfcl3760cdwrc",
+   ".install line 20: command not allowed: sudo",
+   ".install line 25: systemctl only for CUPS/scanner services: if systemctl is-active --quiet cups; then",
+   ".install line 28: systemctl only for CUPS/scanner services: elif systemctl is-active --quiet lpd; then",
+   ".install line 46: systemctl only for CUPS/scanner services: if systemctl is-active --quiet cups; then",
+   ".install line 49: systemctl only for CUPS/scanner services: elif systemctl is-active --quiet lpd; then"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-l5710dw": {
+  "checked": "2026-10-24",
+  "commit": "f3e68fb456f8549af41086f81a9d7bf575d74094",
+  "problems": [
+   "download failed: https://download.brother.com/welcome/dlf105855/mfcl5710dwpdrv-4.0.3-1.i386.rpm: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-l8610cdw": {
+  "checked": "2026-10-24",
+  "commit": "9ed74fd7a05b644088ed047c348bd24551a70a30",
+  "problems": [
+   "checksum mismatch for mfcl8610cdw-1.5.0_0.inf"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-l8690cdw": {
+  "checked": "2026-10-24",
+  "commit": "29e5c752a4f023c864d24eb1e708217cb3325c94",
+  "problems": [
+   ".install line 18: systemctl only for CUPS/scanner services: if systemctl is-active --quiet cups; then",
+   ".install line 21: systemctl only for CUPS/scanner services: elif systemctl is-active --quiet lpd; then",
+   ".install line 47: systemctl only for CUPS/scanner services: if systemctl is-active --quiet cups; then",
+   ".install line 50: systemctl only for CUPS/scanner services: elif systemctl is-active --quiet lpd; then"
+  ],
+  "rules": 4
+ },
+ "brother-mfc-l8900cdw": {
+  "checked": "2026-10-24",
+  "commit": "a424dd89220da4021f5a1d8b3744ba0a2a350d02",
+  "problems": [
+   "no checksum for mfcl8900cdwlpr-1.5.0-0.i386.rpm",
+   "no checksum for mfcl8900cdwcupswrapper-1.5.0-0.i386.rpm"
+  ],
+  "rules": 4
+ },
+ "brother-mfc7320-lpr": {
+  "checked": "2026-10-24",
+  "commit": "196248ac6802f8f14fe95e578b9626f612b47624",
+  "problems": [
+   ".install line 7: writes outside driver directories: /usr/lib32/libbrcomplpr2.so",
+   ".install line 20: writes outside driver directories: /usr/lib32/libbrcomplpr2.so"
+  ],
+  "rules": 4
+ },
+ "brother-mfc8950dw": {
+  "checked": "2026-10-24",
+  "commit": "7d6d3967a715620e5455ffb7f33a77296b9c82f6",
+  "problems": [
+   "post_install() line 35: systemctl during build: systemctl restart cups.service"
+  ],
+  "rules": 4
+ },
+ "brother-mfcl8900cdw-cups": {
+  "checked": "2026-10-24",
+  "commit": "26e2bfb0d216c2eb355b35c02f2a528bd54b212d",
+  "problems": [
+   ".install line 18: command not allowed: click",
+   ".install line 20: command not allowed: /usr/share/cups/model/brother_mfcl8900cd",
+   ".install line 22: command not allowed: and"
+  ],
+  "rules": 4
+ },
+ "brother_hl-l2325dw-cups-bin": {
+  "checked": "2026-10-24",
+  "commit": "c7a178daf491b156e762670b1deacee90cf62ff5",
+  "problems": [
+   "download failed: https://download.brother.com/welcome/dlf006893/linux-brprinter-installer-2.2.3-1.gz: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "brscan": {
+  "checked": "2026-10-24",
+  "commit": "eb8f33a40f3c5f22646a2562c16f8beb228da90c",
+  "problems": [
+   "source from a domain that is not the vendor's: github.com"
+  ],
+  "rules": 4
+ },
+ "brscan-skey": {
+  "checked": "2026-10-24",
+  "commit": "a3b4bb4a101a0284e764c5002ca2b2153f83f10c",
+  "problems": [
+   ".install line 4: command not allowed: >",
+   ".install line 5: command not allowed: >",
+   ".install line 5: command not allowed: useradd",
+   ".install line 16: command not allowed: vercmp",
+   ".install line 19: command not allowed: vercmp",
+   ".install line 23: command not allowed: vercmp",
+   ".install line 41: command not allowed: >",
+   ".install line 41: command not allowed: userdel",
+   ".install line 42: command not allowed: >",
+   ".install line 42: command not allowed: groupdel"
+  ],
+  "rules": 4
+ },
+ "brscan2": {
+  "checked": "2026-10-24",
+  "commit": "3261f903d1880649092fda617781c5f5549da858",
+  "problems": [
+   ".install line 2: command not allowed: 1",
+   ".install line 13: command not allowed: 1"
+  ],
+  "rules": 4
+ },
+ "canon-lbp2900-capt": {
+  "checked": "2026-10-24",
+  "commit": "a0d9dce3fc446c3b264f0ebad09dc8c96e447149",
+  "problems": [
+   "source from a domain that is not the vendor's: github.com"
+  ],
+  "rules": 4
+ },
+ "canon-pixma-gseries-tool": {
+  "checked": "2026-10-24",
+  "commit": "2aacae516dd7e131ab6c56d50d4c1fa23fc84271",
+  "problems": [
+   ".install line 4: writes outside driver directories: 2>/dev/null",
+   "source not allowed (git+https): git+https://github.com/9M2PJU/9M2PJU-Canon-PIXMA-GSeries-Tool.git"
+  ],
+  "rules": 4
+ },
+ "canon-pixma-mg3000-complete-fixed": {
+  "checked": "2026-10-24",
+  "commit": "d35e44f999561fb24dd2f774cdc5a022f67c934b",
+  "problems": [
+   "checksum mismatch for canon-pixma-mg3000-complete-scangear-fixed.desktop"
+  ],
+  "rules": 4
+ },
+ "canon-pixma-mg5200-complete": {
+  "checked": "2026-10-24",
+  "commit": "cd7e175764ac1c4b7f1d60dec208533065e98ce1",
+  "problems": [
+   "download failed: http://files.canon-europe.com/files/soft40259/Software/MG5200series-printer_driver.tar: HTTP Error 504: Gateway Time-out",
+   "download failed: http://files.canon-europe.com/files/soft40260/Software/MG5200series-scanner_driver.tar: HTTP Error 504: Gateway Time-out"
+  ],
+  "rules": 4
+ },
+ "canon-pixma-mg5700-complete": {
+  "checked": "2026-10-24",
+  "commit": "8c9f9ad874d3b8570deb2d86e39043c6389d042f",
+  "problems": [
+   "no checksum for canon-pixma-mg5700-complete.license",
+   "no checksum for canon-pixma-mg5700-complete-scangear.desktop",
+   "no checksum for canon-pixma-mg5700-complete-scangear-icon.png"
+  ],
+  "rules": 4
+ },
+ "canon-pixma-mg6100-complete": {
+  "checked": "2026-10-24",
+  "commit": "34b07a18796ec194647a755967ba9efe5a2fe4dd",
+  "problems": [
+   "download failed: http://files.canon-europe.com/files/soft40261/Software/MG6100series-printer_driver.tar: HTTP Error 504: Gateway Time-out",
+   "download failed: http://files.canon-europe.com/files/soft40264/Software/MG6100series-scanner_driver.tar: HTTP Error 504: Gateway Time-out"
+  ],
+  "rules": 4
+ },
+ "canon-pixma-mp240-complete": {
+  "checked": "2026-10-24",
+  "commit": "c59b4eedd07947c32703bf44eddda384174de951",
+  "problems": [
+   "source from a domain that is not the vendor's: web.archive.org"
+  ],
+  "rules": 4
+ },
+ "canon-pixma-mx410-complete": {
+  "checked": "2026-10-24",
+  "commit": "6e49ccdacdf14636b908bc01831daa37105efc2a",
+  "problems": [
+   ".install line 9: command not allowed: 2"
+  ],
+  "rules": 4
+ },
+ "canon-pixma-mx510-complete": {
+  "checked": "2026-10-24",
+  "commit": "f1f48f6205b542798bb304c48adfa8bf40d55add",
+  "problems": [
+   ".install line 9: command not allowed: 2"
+  ],
+  "rules": 4
+ },
+ "canon-pixma-mx870-complete": {
+  "checked": "2026-10-24",
+  "commit": "76d9a2bdd955e1eb1b9f16dcac7b346abbaa0310",
+  "problems": [
+   ".install line 23: writes to a path that cannot be checked: ${_cups_path2}/${ppd_name}",
+   ".install line 32: writes outside driver directories: /usr/lib32/gimp/2.0/plug-ins/scangearmp",
+   ".install line 32: writes outside driver directories: /usr/lib32/gimp/2.0/plug-ins/scangearmp",
+   ".install line 34: writes outside driver directories: /usr/lib/gimp/2.0/plug-ins/scangearmp",
+   ".install line 34: writes outside driver directories: /usr/lib/gimp/2.0/plug-ins/scangearmp",
+   ".install line 53: command not allowed: unlink",
+   ".install line 57: writes outside driver directories: /usr/lib/bjlib",
+   ".install line 74: command not allowed: unlink",
+   ".install line 80: writes outside driver directories: /usr/share/locale/*/LC_MESSAGES",
+   ".install line 81: writes to a path that cannot be checked: /usr/share/cngpijmon${model_name}",
+   ".install line 82: writes to a path that cannot be checked: /usr/share/printui${model_name}",
+   ".install line 86: command not allowed: unlink"
+  ],
+  "rules": 4
+ },
+ "cndrvcups-lb-bin": {
+  "checked": "2026-10-24",
+  "commit": "0b1a2425673c83a4a36587cf8d0482559ece4cad",
+  "problems": [
+   "line 93: command outside functions: if [ \"${_opt_altver}\" -ge 1 ] && [ \"${_opt_altver}\" -le 2 ]; then",
+   "line 139: command outside functions: case \"${_opt_use_other}\" in",
+   "line 170: command substitution outside functions (runs when the PKGBUILD is read)",
+   "line 190: command outside functions: if [ \"${_inst_lb}\" -ne 0 ] && [ \"${_opt_debug_cnpkmoduleufr2}\" -ne 0 ]; then"
+  ],
+  "rules": 4
+ },
+ "cnijfilter-common": {
+  "checked": "2026-10-24",
+  "commit": "3f8ebdae3ae887e30a6e8857533f0e999ebdd8da",
+  "problems": [
+   ".install line 17: writes to a path that cannot be checked: /usr/lib32/${LIBS}.so"
+  ],
+  "rules": 4
+ },
+ "cnijfilter-e510": {
+  "checked": "2026-10-24",
+  "commit": "0425e53e4be0360e23e4a00482b80e1cc3111055",
+  "problems": [
+   ".install line 19: writes to a path that cannot be checked: /usr/lib32/${LIBS}${MODELNUM}.so"
+  ],
+  "rules": 4
+ },
+ "cnijfilter-mp495-x86_64": {
+  "checked": "2026-10-24",
+  "commit": "2f29535ccfa9e4e47a6b0f16cc6e84561413748f",
+  "problems": [
+   "download failed: http://files.canon-europe.com/files/soft40269/Software/MP495series_printer_driver.tar: HTTP Error 504: Gateway Time-out"
+  ],
+  "rules": 4
+ },
+ "cnijfilter-mp550": {
+  "checked": "2026-10-24",
+  "commit": "4935fec8ff94543cbd1b238ccdad9861cf7155a7",
+  "problems": [
+   ".install line 19: writes to a path that cannot be checked: /usr/lib32/${LIBS}${MODELNUM}.so"
+  ],
+  "rules": 4
+ },
+ "cnijfilter-mp560": {
+  "checked": "2026-10-24",
+  "commit": "de1b3b2751d36417e5ad1cb92302189518a0451d",
+  "problems": [
+   "no x86_64 build (arch=i686)"
+  ],
+  "rules": 4
+ },
+ "cnijfilter-mp620": {
+  "checked": "2026-10-24",
+  "commit": "ecb08d3d09257065261c7e722491a01edc3bf79c",
+  "problems": [
+   ".install line 4: systemctl only for CUPS/scanner services: systemctl restart cups.service > /dev/null && echo \"done\"",
+   ".install line 6: command not allowed: Canon",
+   ".install line 14: systemctl only for CUPS/scanner services: systemctl restart cups.service > /dev/null && echo \"done\"",
+   ".install line 21: systemctl only for CUPS/scanner services: systemctl restart cups.service > /dev/null && echo \"done\"",
+   "source from a domain that is not the vendor's: downloads.sourceforge.net",
+   "source from a domain that is not the vendor's: downloads.sourceforge.net"
+  ],
+  "rules": 4
+ },
+ "cnijfilter-mp640": {
+  "checked": "2026-10-24",
+  "commit": "7e62170bb0764fbc9d81e0fafa16b04550716556",
+  "problems": [
+   ".install line 19: writes to a path that cannot be checked: /usr/lib32/${LIBS}${MODELNUM}.so"
+  ],
+  "rules": 4
+ },
+ "cnijfilter-mx920": {
+  "checked": "2026-10-24",
+  "commit": "7c0ec3b065eb7b7867b210f00eaa7bf268c997db",
+  "problems": [
+   ".install line 19: writes to a path that cannot be checked: /usr/lib32/${LIBS}${MODELNUM}.so"
+  ],
+  "rules": 4
+ },
+ "epson-inkjet-printer-escpr2-clos-bin": {
+  "checked": "2026-10-24",
+  "commit": "00efbe69cde5b789c14807e28a0238101c270cf8",
+  "problems": [
+   ".install line 4: writes outside driver directories: /etc/modprobe.d/no-usblp.conf",
+   ".install line 26: writes outside driver directories: /etc/modprobe.d/no-usblp.conf",
+   "source from a domain that is not the vendor's: eposs.epson.com.cn"
+  ],
+  "rules": 4
+ },
+ "epson-inkjet-printer-l8050": {
+  "checked": "2026-10-24",
+  "commit": "9a707801a70814bf0dbdcf1582eb7ccfdc98441a",
+  "problems": [
+   ".install line 4: writes outside driver directories: /etc/modprobe.d/no-usblp.conf",
+   ".install line 26: writes outside driver directories: /etc/modprobe.d/no-usblp.conf",
+   "source from a domain that is not the vendor's: eposs.epson.com.cn"
+  ],
+  "rules": 4
+ },
+ "epson-inkjet-printer-px-h7000-h9000-series": {
+  "checked": "2026-10-24",
+  "commit": "89cea23af51175568d086607d29f9f210bf6960c",
+  "problems": [
+   "line 5: command substitution outside functions (runs when the PKGBUILD is read)",
+   "line 34: command outside functions: i?86)   _bit=\"\" ;;"
+  ],
+  "rules": 4
+ },
+ "epson-label-printer-utility-community-bin": {
+  "checked": "2026-10-24",
+  "commit": "8a2d03737d5938b0d7e401c3d16059f2dcb873ee",
+  "problems": [
+   "source from a domain that is not the vendor's: eposs.epson.com.cn"
+  ],
+  "rules": 4
+ },
+ "epson-perfection-v10-v100-scanner-driver-aio": {
+  "checked": "2026-10-24",
+  "commit": "0c98b1dc61b996cbcbb86f54392661ed88183ade",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 14: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "epson-printer-io-community-bin": {
+  "checked": "2026-10-24",
+  "commit": "002ab2e202e7db06f42dddb851b8dde2e000588c",
+  "problems": [
+   "source from a domain that is not the vendor's: eposs.epson.com.cn"
+  ],
+  "rules": 4
+ },
+ "hplip-plugin": {
+  "checked": "2026-10-24",
+  "commit": "cd99dc73dfcdbe8d3cfbe78d1bcf36cf91f90077",
+  "problems": [
+   "download failed: https://developers.hp.com/sites/default/files/2026-09/hplip-3.26.6-plugin.run: HTTP Error 403: Forbidden",
+   "no checksum for hplip-plugin-3.26.6.run.asc"
+  ],
+  "rules": 4
+ },
+ "imagescan": {
+  "checked": "2026-10-24",
+  "commit": "6570289ee6dc3c6933137d9ba09a9262e26dd8dc",
+  "problems": [
+   "source from a domain that is not the vendor's: sources.archlinux.org"
+  ],
+  "rules": 4
+ },
+ "imagescan-plugin-networkscan": {
+  "checked": "2026-10-24",
+  "commit": "706e9911a7d7c198298bc494a735abd920239541",
+  "problems": [
+   "source from a domain that is not the vendor's: buzo.eu"
+  ],
+  "rules": 4
+ },
+ "iscan": {
+  "checked": "2026-10-24",
+  "commit": "a8bccbc94fd83238f533975d2d1fbd922527743f",
+  "problems": [
+   "source from a domain that is not the vendor's: sourceforge.net",
+   "no checksum for iscan-2.30.4.2-c99.patch",
+   "no checksum for iscan-2.30.3_fix-sscanf-modifier-in-cfg-obj.patch"
+  ],
+  "rules": 4
+ },
+ "iscan-data": {
+  "checked": "2026-10-24",
+  "commit": "4197bf3602946979ad385bfced8ed1a6c6f09a39",
+  "problems": [
+   "source from a domain that is not the vendor's: sourceforge.net"
+  ],
+  "rules": 4
+ },
+ "iscan-for-epson-v500-photo": {
+  "checked": "2026-10-24",
+  "commit": "9b3c5731386b2ba6f8709a7ad6db2efe5f64415c",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 8: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-cx4400": {
+  "checked": "2026-10-24",
+  "commit": "d903e070bad0024425847a832ebf161d4805b695",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 9: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-ds-30": {
+  "checked": "2026-10-24",
+  "commit": "2e707cd1e0f154bb9d7fb39d19a09700a57cb047",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 9: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-gt-1500": {
+  "checked": "2026-10-24",
+  "commit": "4ebe44bd5cdf47084cd1de89336c2d574877914c",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 8: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-gt-f670": {
+  "checked": "2026-10-24",
+  "commit": "4d040bdc150f820a324b6ee9bf7aa7631e8049cf",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 8: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-gt-f700": {
+  "checked": "2026-10-24",
+  "commit": "070f082145f3b6d7411967ab5b0fe94768b49b1d",
+  "problems": [
+   "line 17: command outside functions: if [ \"$CARCH\" = 'x86_64' ]"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-gt-f720": {
+  "checked": "2026-10-24",
+  "commit": "b2e49c45b5a243128c459c5d7080136c0104ccf5",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 10: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-gt-s600": {
+  "checked": "2026-10-24",
+  "commit": "31629cb622fe07dd9a588af8a18195d937e99676",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 9: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-gt-s650": {
+  "checked": "2026-10-24",
+  "commit": "ec05a3d5f2d8982a08d7ec0fde004ee21cc87334",
+  "problems": [
+   ".install line 4: command not allowed: iscan-registry",
+   ".install line 13: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-gt-s80": {
+  "checked": "2026-10-24",
+  "commit": "1962729947680182bf6bb6d45c213164599ceaa6",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 8: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-gt-x770": {
+  "checked": "2026-10-24",
+  "commit": "ab14f6982b91a6245e8a03decb08f48934ec8a73",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 10: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-gt-x820": {
+  "checked": "2026-10-24",
+  "commit": "bc363a7f17e84ba65c4fee79be1d952151393a99",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 8: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-gt-x830": {
+  "checked": "2026-10-24",
+  "commit": "50cd4fa23a2149b7011fa648ba8e528e91c7bc97",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 8: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-network": {
+  "checked": "2026-10-24",
+  "commit": "2d5ec37ace74a66dadf58a71c7a405c4f8dc61c3",
+  "problems": [
+   ".install line 3: command not allowed: see"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-perfection-v330": {
+  "checked": "2026-10-24",
+  "commit": "d0e24f073833c60e7c1b9e089b9ddbee76273e8b",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 8: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-perfection-v370": {
+  "checked": "2026-10-24",
+  "commit": "1f7fd1716b5f410f7cd942cb61ce119e4a3106a4",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 10: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscan-plugin-perfection-v550": {
+  "checked": "2026-10-24",
+  "commit": "f0fe81f139470b698a04102ce30a19f29de10ff3",
+  "problems": [
+   ".install line 3: command not allowed: iscan-registry",
+   ".install line 9: command not allowed: iscan-registry"
+  ],
+  "rules": 4
+ },
+ "iscanimage": {
+  "checked": "2026-10-24",
+  "commit": "83a797179b44278a0a29eaf68961f117070e0f8c",
+  "problems": [
+   "source from a domain that is not the vendor's: github.com"
+  ],
+  "rules": 4
+ },
+ "kyocera-cups": {
+  "checked": "2026-10-24",
+  "commit": "f6bfd17d24c1f0acd559bef45fd4f7c2f4fd79ef",
+  "problems": [
+   "line 72: command outside functions: :; md5sums+=('5426711f3aac491c49dadcf420207b4b')",
+   "line 73: command outside functions: :; sha256sums+=('8eedb636fbbb208b45dc355a795237d946141d00c63f3fe1fc96c4614070e01",
+   "line 77: command outside functions: declare -gA _bittage=([i686]='32bit' [x86_64]='64bit')"
+  ],
+  "rules": 4
+ },
+ "kyocera-fs11001300d": {
+  "checked": "2026-10-24",
+  "commit": "509fb24fd46aec65645b9d121f1b336ec62e95ba",
+  "problems": [
+   "source from a domain that is not the vendor's: cdn.kyostatics.net"
+  ],
+  "rules": 4
+ },
+ "kyocera-print-driver": {
+  "checked": "2026-10-24",
+  "commit": "c4e77a1dd72636d3a8a909396c41e3092af05bae",
+  "problems": [
+   "download failed: https://www.kyoceradocumentsolutions.eu/content/download-center/eu/drivers/all/LinuxDrv_1_1203_FS_1x2xMFP_zip.download.zip: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "kyocera-sane": {
+  "checked": "2026-10-24",
+  "commit": "a75a8addc8d820a3421300adda6353d8b6112713",
+  "problems": [
+   "line 25: command substitution outside functions (runs when the PKGBUILD is read)",
+   "_get_pkgver() line 19: writes outside the package: printf '%s\\n' \"  >> Getting upstream software version for architecture '${CARCH}' ...\" > /dev/stderr",
+   "_get_pkgver() line 20: network tool: _ver=\"$(curl -L \"${_upstreamlistingurl}\" 2>/dev/null| grep --binary-files=text -E \"SANE Driver \\([0-"
+  ],
+  "rules": 4
+ },
+ "kyocera-taskalfa-1800-2200": {
+  "checked": "2026-10-24",
+  "commit": "e9bfe523f594b375d580bce94fb12e99858413f1",
+  "problems": [
+   "download failed: https://www.kyoceradocumentsolutions.eu/content/download-center/eu/drivers/all/LinuxDrv_8_1305_TASKalfa1801_2201_zip.download.zip: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "kyocera-utax-ta": {
+  "checked": "2026-10-24",
+  "commit": "d0383a07b995fd166dacb74872be1baf1ae21e9d",
+  "problems": [
+   "source from a domain that is not the vendor's: catalogue-prod.utax.de"
+  ],
+  "rules": 4
+ },
+ "kyocera_universal": {
+  "checked": "2026-10-24",
+  "commit": "a43cc4c651686523e1d8b9f2cc6c1c8c6671226b",
+  "problems": [
+   "line 14: command substitution outside functions (runs when the PKGBUILD is read)",
+   "line 15: command substitution outside functions (runs when the PKGBUILD is read)",
+   "line 16: command substitution outside functions (runs when the PKGBUILD is read)"
+  ],
+  "rules": 4
+ },
+ "ricoh-sp150su-sane": {
+  "checked": "2026-10-24",
+  "commit": "83877dd8be2d0040032c7ce18d4c928a8b14358f",
+  "problems": [
+   "line 63: command outside functions: EOF",
+   "line 64: command outside functions: gcc -shared \"$srcdir/alto_nogetifaddrs.c\" -o \"$srcdir/alto_nogetifaddrs.so\"",
+   "line 66: command outside functions: cat <<EOF > \"$srcdir/symbols-rename.txt\"",
+   "line 67: command outside functions: getifaddrs alto_nogetifaddrs",
+   "line 68: command outside functions: EOF",
+   "line 69: command outside functions: patchelf --add-needed alto_nogetifaddrs.so --add-rpath '$ORIGIN' \\",
+   "line 70: command outside functions: --rename-dynamic-symbols \"$srcdir/symbols-rename.txt\" \\",
+   "line 71: command outside functions: \"$srcdir/RICOH-SP-150SU-Scan_v1.00/64bit/${_mylibsane}\"",
+   "line 72: command outside functions: }"
+  ],
+  "rules": 4
+ },
+ "ricoh-sp210-211-ppd": {
+  "checked": "2026-10-24",
+  "commit": "521335d406948d4ff62ce1ae9035280fef8e82af",
+  "problems": [
+   "source not allowed (git+https): git+https://github.com/droidzone/ricohsp210"
+  ],
+  "rules": 4
+ },
+ "samsung-ml1860series": {
+  "checked": "2026-10-24",
+  "commit": "582fbef0a596621f753eaed924877d566bdcd4c6",
+  "problems": [
+   "download failed: http://org.downloadcenter.samsung.com/content/DR/201403/20140312133051625/ULD_V1.00.21.tar.gz: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "samsung-ml191x-series": {
+  "checked": "2026-10-24",
+  "commit": "0b577cd097d443d9b7b32180b97581a43b431f76",
+  "problems": [
+   "download failed: http://org.downloadcenter.samsung.com/content/DR/201403/20140312133051625/ULD_V1.00.21.tar.gz: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "samsung-scantopc": {
+  "checked": "2026-10-24",
+  "commit": "e02b82771cddb188dc6097a0493b864a397e7496",
+  "problems": [
+   "source from a domain that is not the vendor's: github.com"
+  ],
+  "rules": 4
+ },
+ "samsung-scantopc-webui": {
+  "checked": "2026-10-24",
+  "commit": "b2190a151687fc459978498a7f69ee4e48857f4d",
+  "problems": [
+   "source from a domain that is not the vendor's: github.com"
+  ],
+  "rules": 4
+ },
+ "scangearmp": {
+  "checked": "2026-10-24",
+  "commit": "424cf76ad96fc4516b6d66e1ef6673d890d3a51d",
+  "problems": [
+   "build() line 59: ln on an absolute path outside the package: /usr/bin/libtool"
+  ],
+  "rules": 4
+ },
+ "scangearmp-mg8100series": {
+  "checked": "2026-10-24",
+  "commit": "800f22d52b0574d6dd18a2acfd162e2800bf7125",
+  "problems": [
+   "download failed: http://files.canon-europe.com/files/soft40247/Software/scangearmp-source-1.60-1.tar.gz: HTTP Error 504: Gateway Time-out"
+  ],
+  "rules": 4
+ },
+ "scangearmp2-mg7500": {
+  "checked": "2026-10-24",
+  "commit": "cc3a1ab24a92e924ef32d61ad9c097a38853c2b1",
+  "problems": [
+   ".install line 27: writes to a path that cannot be checked: /usr/lib/${LIBS}.so"
+  ],
+  "rules": 4
+ },
+ "xerox-docucentre-driver": {
+  "checked": "2026-10-24",
+  "commit": "a8757f375163fd5c2c2ad10f347334ad38cb605d",
+  "problems": [
+   "source from a domain that is not the vendor's: www.fujifilm.com"
+  ],
+  "rules": 4
+ },
+ "xerox-office-prtdrv": {
+  "checked": "2026-10-24",
+  "commit": "1b42f930370f380ccd0aba50f23680b22ca5c927",
+  "problems": [
+   "service: service line 23: systemctl during build: systemctl $COMMAND $SERVICE",
+   ".install line 3: command not allowed: /opt/XeroxOffice/prtsys/xeroxofficequemg",
+   ".install line 10: command not allowed: env",
+   ".install line 14: command not allowed: mandb",
+   ".install line 14: command not allowed: 1",
+   ".install line 16: command not allowed: makewhatis",
+   ".install line 16: command not allowed: 1",
+   ".install line 19: command not allowed: /opt/XeroxOffice/prtsys/PatchSELinuxPoli",
+   ".install line 22: command not allowed: /opt/XeroxOffice/prtsys/PatchAppArmorPol",
+   ".install line 30: command not allowed: xhost",
+   ".install line 33: writes outside driver directories: /etc/cups/interfaces",
+   ".install line 34: writes outside driver directories: /var/spool/lpd"
+  ],
+  "rules": 4
+ },
+ "xerox-phaser-3020": {
+  "checked": "2026-10-24",
+  "commit": "047df820247dcc4c26c7d78e8be6dada54f9004b",
+  "problems": [
+   "source from a domain that is not the vendor's: web.archive.org"
+  ],
+  "rules": 4
+ },
+ "xerox-phaser-3040": {
+  "checked": "2026-10-24",
+  "commit": "7b190d738dfdb51554bf057f193dce1e52e120ad",
+  "problems": [
+   "download failed: http://download.support.xerox.com/pub/drivers/3010/drivers/linux/en_GB/Xerox-Phaser-3010_3040-1.0-28.i586.zip: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "xerox-phaser-3320": {
+  "checked": "2026-10-24",
+  "commit": "11067e0a8aff7e044df0d63a4fbaba54007f2b50",
+  "problems": [
+   "download failed: https://www.support.xerox.com/download/121251: HTTP Error 301: The HTTP server returned a redirect error that would lead to an infinite loop.\nThe last 30x error message was:\nMoved Permanently"
+  ],
+  "rules": 4
+ },
+ "xerox-phaser-6000-6010": {
+  "checked": "2026-10-24",
+  "commit": "4548f8b431e06e131cf5f94bbe82e6fc7e1a5448",
+  "problems": [
+   "download failed: https://www.support.xerox.com/download/116070: HTTP Error 301: The HTTP server returned a redirect error that would lead to an infinite loop.\nThe last 30x error message was:\nMoved Permanently",
+   "source from a domain that is not the vendor's: raw.githubusercontent.com"
+  ],
+  "rules": 4
+ },
+ "xerox-phaser-6020": {
+  "checked": "2026-10-24",
+  "commit": "1eed2716c69c38101ccbfaa69c8e205eac6fd513",
+  "problems": [
+   "download failed: http://download.support.xerox.com/pub/drivers/6020/drivers/linux/pt_BR/xerox-phaser-6020_1.0-25.zip: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "xerox-phaser-6022": {
+  "checked": "2026-10-24",
+  "commit": "a8cb0aefe68bee99baef75a07e70b60f188cb11b",
+  "problems": [
+   "download failed: http://download.support.xerox.com/pub/drivers/6022/drivers/linux/pt_BR/Xerox-Phaser-6022-1.0-21.noarch.zip: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "xerox-phaser-6280": {
+  "checked": "2026-10-24",
+  "commit": "e9aff8b6567bfb4ee2ba747732a3fd64de085621",
+  "problems": [
+   "download failed: https://download.support.xerox.com/pub/drivers/6280/drivers/linux/en/6280_Linux.tar: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "xerox-workcentre-3045b-3045ni": {
+  "checked": "2026-10-24",
+  "commit": "10c89a764a1c86a8a5a5633d2c2702734863ed0c",
+  "problems": [
+   "download failed: https://www.support.xerox.com/download/118990: HTTP Error 301: The HTTP server returned a redirect error that would lead to an infinite loop.\nThe last 30x error message was:\nMoved Permanently"
+  ],
+  "rules": 4
+ },
+ "xerox-workcentre-5135-5150": {
+  "checked": "2026-10-24",
+  "commit": "6caae01b64d8d72cd2a1265d80f70779a31d07fb",
+  "problems": [
+   "download failed: http://download.support.xerox.com/pub/drivers/WC5135_WC5150/drivers/wins2003/en_GB/WC5135_5150_EnglishB.zip: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "xerox-workcentre-6015": {
+  "checked": "2026-10-24",
+  "commit": "44715be56a3bb828d98711221e30c2cbc603ad21",
+  "problems": [
+   "download failed: https://download.support.xerox.com/pub/drivers/WC6015/drivers/linux/en_GB/Xerox-WorkCentre-6015B_6015N_6015NI-1.0-28.i586.zip: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "xerox-workcentre-6027": {
+  "checked": "2026-10-24",
+  "commit": "4a3762f863fe7bf3c5c16194cb23f12f17c0b5af",
+  "problems": [
+   "download failed: https://download.support.xerox.com/pub/drivers/WC6027/drivers/linux/pt_BR/xerox-workcentre-6027_1.0-22_all.zip: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "xerox-workcentre-6505": {
+  "checked": "2026-10-24",
+  "commit": "23f2b2f71a283a6588fb18e8b09fbd1381fdfd64",
+  "problems": [
+   "download failed: http://download.support.xerox.com/pub/drivers/WC6505/drivers/linux/en_GB/Xerox-WorkCentre-6505-Linux.rpm: HTTP Error 404: Not Found"
+  ],
+  "rules": 4
+ },
+ "xeroxprtdrv": {
+  "checked": "2026-10-24",
+  "commit": "219f50b54a60a92346b7ac661fe697f9153d8bb6",
+  "problems": [
+   "service: service line 23: systemctl during build: systemctl $COMMAND $SERVICE",
+   ".install line 12: command not allowed: cd",
+   ".install line 12: command not allowed: /opt/Xerox/prtsys/xeroxquemgr",
+   ".install line 15: command not allowed: env",
+   ".install line 17: command not allowed: /opt/Xerox/prtsys/PatchAppArmorPolicy",
+   ".install line 22: command not allowed: xhost",
+   "xeroxprtmgr: xeroxprtmgr line 3: ln on an absolute path outside the package: /bin/service",
+   "xeroxprtmgr: xeroxprtmgr line 7: rm on an absolute path outside the package: /bin/service"
+  ],
+  "rules": 4
+ }
+}

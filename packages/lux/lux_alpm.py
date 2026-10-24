@@ -1858,6 +1858,9 @@ def cmd_resolve(lux, args):
 
 # ---- prikazova radka --------------------------------------------------------------------------
 # ---- kontrola aktualizaci, cache, prechod ---------------------------------------------------------
+_CHECK_LOCKS = []   # otevrene zamky kontroly aktualizaci (viz cmd_check_updates)
+
+
 def check_updates_db(path=None):
     """Docasna databaze pro check-updates (zustava pro dalsi beh a pro vypocet velikosti stahovani)."""
     if path:
@@ -1881,6 +1884,9 @@ def cmd_check_updates(lux, args):
     # db.lck je zbytek preruseneho behu a muze se smazat.
     import fcntl
     lockf = open(os.path.join(tmp, ".check-updates.lock"), "a")
+    # zamek drzet do konce prikazu (bez odkazu by ho uvolnil uz garbage collector po navratu z funkce;
+    # uvolni ho main)
+    _CHECK_LOCKS.append(lockf)
     deadline = time.monotonic() + CHECK_UPDATES_WAIT
     while True:
         try:
@@ -2194,6 +2200,9 @@ def main(argv=None, api=None, conf=None, out=None, inp=None):
             ui.phase_done(False)
         ui.fail(_("Cancelled"))
         rc = 130
+    finally:
+        while _CHECK_LOCKS:
+            _CHECK_LOCKS.pop().close()
     ui.emit("DONE", rc)
     return rc
 

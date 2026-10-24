@@ -3,6 +3,7 @@
 Jen cista logika bez vedlejsich efektu (cteni vystupu avahi-browse a lpinfo, nazvy front,
 volba ovladace, uprava nsswitch.conf) - testy v tests/test_luxos_printing.py.
 """
+import json
 import re
 import urllib.parse
 
@@ -185,14 +186,48 @@ def driver_package(mfg):
     return "hplip" if norm_mfg(mfg) == "hp" else "gutenprint"
 
 
-# Ovladace jen v AUR (v repozitarich nic): instaluje je uzivatel pres lux (AUR se nesmi stavet jako root).
+# Ovladace vyrobcu z AUR: LuxOS je overuje a stavi do repozitare [luxos-drivers] (drivers/ v LuxOS),
+# pomocnik je pak nainstaluje sam. Kdyz v repozitari nejsou (stary lux.conf, bez internetu), muze
+# ho uzivatel sestavit pres lux z AUR (nikdy jako root).
 # Samsung SPL/QPDL (napr. Xpress M2020/M2026, ML-2160): oficialni Samsung Unified Linux Driver.
 AUR_DRIVERS = {"samsung": "samsung-unified-driver-printer"}
+DRIVERS_INDEX = "/usr/share/luxos/drivers-index.json"
+DRIVERS_INDEX_PACKAGE = "luxos-drivers-index"
 
 
 def aur_driver(device_id):
     """Balik z AUR pro tiskarnu bez ovladace v repozitarich (nebo None)."""
     return AUR_DRIVERS.get(norm_mfg(parse_device_id(device_id).get("MFG")))
+
+
+def load_drivers_index(path=DRIVERS_INDEX):
+    """Mapa model -> balik z [luxos-drivers] (balik luxos-drivers-index); chybi = {}."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) and data.get("format") == 1 else {}
+
+
+def verified_driver(device_id, index):
+    """Overeny ovladac z [luxos-drivers] pro tiskarnu (presny model, u Samsungu i rada), jinak None."""
+    dev = parse_device_id(device_id)
+    mfg, mdl = norm_mfg(dev.get("MFG")), norm_mdl(dev.get("MFG"), dev.get("MDL"))
+    if not mfg or not mdl:
+        return None
+    compact = re.sub(r"[^a-z0-9]", "", mdl)       # "MFC-L2710DW series" = "MFCL2710DW" z PPD
+    family = None
+    fam = _family(mfg, mdl)
+    for e in index.get("printers", []):
+        if norm_mfg(e.get("mfg")) != mfg:
+            continue
+        m = norm_mdl(e.get("mfg"), e.get("mdl"))
+        if re.sub(r"[^a-z0-9]", "", m) == compact:
+            return e.get("package")
+        if fam and family is None and _family(mfg, m) == fam:
+            family = e.get("package")
+    return family
 
 
 def _family(mfg, mdl):

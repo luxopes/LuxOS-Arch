@@ -27,16 +27,23 @@ LuxOS computer. LuxOS is Arch-based, but several Arch habits are wrong here.
    use `luxos-account status`. Never ask for or handle the Safe password.
 6. **No partial updates.** Do not refresh databases without upgrading; `lux update` does the full,
    correct sequence (keys first, then everything).
-7. **AUR packages are built as the normal user** – never `sudo lux install <aur-package>`. Warn the
-   user that AUR packages are community-maintained.
-8. **Root shells are rarely needed.** Use `pkexec` for a single command that really needs root
+7. **Community (AUR) packages: never install them yourself.** `lux install` tries the repositories,
+   LuxOS apps and Flathub first; a package that exists only in the community source (AUR) is built
+   by the user in a terminal (`lux install NAME`, no sudo) and goes into their sandbox by default –
+   `--system` only on the user's explicit request. LuxAI's agent is refused by lux. Tell the user
+   that community packages are not checked by LuxOS.
+8. **Printer or scanner driver missing?** Prefer the verified package from `[luxos-drivers]`
+   (`lux-engine -Ss NAME`, then `lux install NAME`) over building the same driver from the AUR; the
+   printing helper installs it by itself when the printer is connected (`pkexec
+   /usr/lib/luxos/printing/luxos-printing-helper sync`).
+9. **Root shells are rarely needed.** Use `pkexec` for a single command that really needs root
    (wheel users may also use `sudo` in a terminal); don't start interactive root shells.
 
 ## Which tool for which task
 
 | Task | Use | Notes |
 |---|---|---|
-| Install / remove / update software | `lux install`, `lux remove`, `lux update`; GUI: LuxOS Store (`luxos-store [search]`) | Store shows repo desktop apps, `[luxos-apps]` and `.lux` apps (no AUR/Flatpak) |
+| Install / remove / update software | `lux install`, `lux remove`, `lux update`; GUI: LuxOS Store (`luxos-store [search]`) | Store shows repo desktop apps, `[luxos-apps]`, `.lux` apps and Flathub search results (no AUR) |
 | Automatic updates, update status | Software Update (`luxos-update`), `luxos-care status` | mode: `luxos-care mode carefree\|classic` (root) |
 | Fix a locked package database / keys | `lux fix` | never delete `/var/lib/lux/db.lck` during an update |
 | Add a repository, hold a package, mirrors | `/etc/lux/conf.d/NAME.conf` with `repo NAME` + indented `server URL`; `hold PKG` in `/etc/lux/lux.conf`; `lux mirrors` | check with `lux config check`; `multilib`: `sudo /usr/lib/lux/lux-config enable-repo multilib` |
@@ -144,7 +151,7 @@ starting at [LSL overview](../lsl/overview.md).
 
 ## Things that are different from Arch Linux
 
-- No `pacman`, no `yay`/`paru` needed – `lux` covers repositories, AUR, Flatpak and `.lux`.
+- No `pacman`, no `yay`/`paru` needed – `lux` covers repositories, Flathub, community/AUR (sandbox) and `.lux`.
 - No `/etc/pacman.conf`: configuration is `/etc/lux/lux.conf` (`key value` lines, `repo NAME` blocks,
   `hold` instead of `IgnorePkg`), database `/var/lib/lux`, cache `/var/cache/lux/pkg`, log
   `/var/log/lux.log`, keyring `/etc/lux/keyring`. The engine is based on Arch's libalpm (pacman code).

@@ -50,6 +50,11 @@ LUX_ALPM=${LUX_ALPM:-/usr/lib/lux/lux_alpm.py}
 LUX_ENGINE=${LUX_ENGINE:-$LUX_ENGINE_BIN/lux-engine}
 # jadro z LuxOS 0.9.0 (luxos-pacman) do vymeny za lux-engine
 [[ -x $LUX_ENGINE || ! -x $LUX_ENGINE_BIN/pacman ]] || LUX_ENGINE=$LUX_ENGINE_BIN/pacman
+# Zdroj komunita (AUR) a Flathub: kontrola skriptu (LuxAI Lite) a vyhledani aplikaci
+LUX_COMMUNITY=${LUX_COMMUNITY:-/usr/lib/lux/lux_community.py}
+[[ -x $LUX_COMMUNITY ]] || LUX_COMMUNITY="$(dirname "$LUX_SELF")/lux_community.py"
+LUX_SANDBOX=${LUX_SANDBOX:-/usr/bin/luxos-sandbox}
+SYSTEM_OK=0   # --system: balik z komunity smi do systemu (jinak sandbox)
 # Napoveda pro zvyk z Archu (lux -Syu): /usr/lib/lux/pacman-hint, pri spusteni z repozitare vedle skriptu
 LUX_HINT=${LUX_HINT:-/usr/lib/lux/pacman-hint}
 [[ -x $LUX_HINT ]] || LUX_HINT="$(dirname "$LUX_SELF")/pacman-hint"
@@ -234,9 +239,10 @@ aur_info() {
 
 aur_exists() { [[ $(aur_info "$1" | jq 'length') -gt 0 ]]; }
 
-# Rekurzivne vyresi AUR zavislosti; vysledek v poli AUR_ORDER (zavislosti prvni)
+# Rekurzivne vyresi AUR zavislosti; vysledek v poli AUR_ORDER (zavislosti prvni), zavislosti
+# z repozitaru v AUR_REPODEPS[balik]. Pro sandbox se nehledi na to, co je nainstalovane v systemu.
 declare -a AUR_ORDER=()
-declare -A AUR_SEEN=() AUR_BASE=()
+declare -A AUR_SEEN=() AUR_BASE=() AUR_REPODEPS=()
 aur_resolve() {
     local pkg=$1 info deps d name
     [[ -n ${AUR_SEEN[$pkg]-} ]] && return 0
@@ -245,31 +251,144 @@ aur_resolve() {
     [[ $(jq 'length' <<<"$info") -gt 0 ]] || die "$(T "Package '%s' was not found in repositories or AUR" "$pkg")"
     AUR_BASE[$pkg]=$(jq -r '.[0].PackageBase' <<<"$info")
     mapfile -t deps < <(jq -r '.[0] | (.Depends // []) + (.MakeDepends // []) + (.CheckDepends // []) | .[]' <<<"$info")
+    AUR_REPODEPS[$pkg]=""
     for d in "${deps[@]}"; do
         name=$(strip_ver "$d")
-        installed "$d" && continue
-        in_repos "$name" && continue
+        [[ $COMMUNITY_TARGET == system ]] && installed "$d" && continue
+        if in_repos "$name"; then AUR_REPODEPS[$pkg]+=" $name"; continue; fi
         aur_resolve "$name"
     done
     AUR_ORDER+=("$pkg")
 }
 
-aur_build() {  # aur_build pkg [asdeps]
-    local pkg=$1 asdeps=${2:-0} base=${AUR_BASE[$1]:-$1} dir
-    dir="$LUX_CACHE/aur/$base"
-    mkdir -p "$LUX_CACHE/aur"
-    if [[ -d $dir/.git ]]; then
-        git -C "$dir" pull --ff-only -q || die "$(T "Cannot update %s from AUR" "$base")"
+# Stazeni skriptu z AUR (git clone nic nespousti) do mezipameti uzivatele. Kontroluje a sestavuje se
+# cisty export commitu HEAD (git archive) v AUR_DIR - zadne zbytky starych sestaveni ani neverzovane soubory.
+aur_fetch() {  # aur_fetch base -> adresar v AUR_DIR
+    local base=$1 git_dir
+    # jmeno z AUR RPC slouzi jako cesta (a pak rm -rf) - jen platne jmeno baliku
+    [[ $base =~ ^[A-Za-z0-9@_+][A-Za-z0-9@._+-]*$ ]] || die "$(T "Cannot clone %s from AUR" "$base")"
+    git_dir="$LUX_CACHE/aur/$base"
+    AUR_DIR="$LUX_CACHE/aur-build/$base"
+    mkdir -p "$LUX_CACHE/aur" "$LUX_CACHE/aur-build"
+    if [[ -d $git_dir/.git ]]; then
+        git -C "$git_dir" fetch -q origin && git -C "$git_dir" reset -q --hard FETCH_HEAD ||
+            die "$(T "Cannot update %s from AUR" "$base")"
     else
-        git clone -q "$LUX_AUR_GIT/$base.git" "$dir" || die "$(T "Cannot clone %s from AUR" "$base")"
+        git clone -q "$LUX_AUR_GIT/$base.git" "$git_dir" || die "$(T "Cannot clone %s from AUR" "$base")"
     fi
-    if ((REVIEW_PKGBUILD)) && ((!YES)); then
-        if ask "$(T "Review PKGBUILD of %s before building?" "${B}$base${R}")" Y; then
+    # symbolicke odkazy (a podmoduly) by mohly ukazovat mimo repozitar - takovy balik se odmita
+    if git -C "$git_dir" ls-tree -r --full-tree HEAD | grep -qE '^(120000|160000) '; then
+        die "$(T "%s contains symbolic links - community packages with links are refused" "$base")"
+    fi
+    rm -rf "$AUR_DIR"
+    mkdir -p "$AUR_DIR" || die "$(T "Cannot update %s from AUR" "$base")"
+    if ! git -C "$git_dir" archive --format=tar HEAD | tar -x --no-same-owner -C "$AUR_DIR" -f -; then
+        die "$(T "Cannot update %s from AUR" "$base")"
+    fi
+}
+
+# Kontrola sestavovaciho skriptu: pevna pravidla + LuxAI Lite (lux_community.py review).
+# Nastavi REVIEW_VERDICT (safe|suspicious|dangerous|unreviewed) a vypise vysledek.
+REVIEW_VERDICT=unreviewed
+aur_review() {  # aur_review adresar base
+    local dir=$1 base=$2 kind a b c out
+    REVIEW_VERDICT=unreviewed
+    say "$(T "Checking the build script of %s (LuxAI Lite)" "${B}$base${R}")"
+    out=$("$LUX_COMMUNITY" review "$dir" "$base" 2>/dev/null) || out=$'VERDICT\tunreviewed'
+    while IFS=$'\t' read -r kind a b c; do
+        case $kind in
+            VERDICT) [[ $a == @(safe|suspicious|dangerous|unreviewed) ]] && REVIEW_VERDICT=$a ;;
+        esac
+    done <<<"$out"
+    case $REVIEW_VERDICT in
+        safe)       ok "$(T "LuxAI found nothing suspicious in the build script.")" ;;
+        suspicious) warn "$(T "The build script looks suspicious:")" ;;
+        dangerous)  printf '%s✗%s %s\n' "$E" "$R" "$(T "The build script looks dangerous:")" >&2 ;;
+        *)          warn "$(T "The build script was not checked by LuxAI.")" ;;
+    esac
+    while IFS=$'\t' read -r kind a b c; do
+        case $kind in
+            REASON)  printf '    • %s\n' "$a" ;;
+            FINDING) [[ $a == low ]] && ((!VERBOSE)) && continue
+                     printf '    • %s%s%s\n' "$D" "$b" "$R" ;;
+            NOTE)    printf '    %s(%s)%s\n' "$D" "$a" "$R" ;;
+        esac
+    done <<<"$out"
+}
+
+# Kam se balik z komunity nainstaluje: vychozi je sandbox, do systemu jen po vyslovnem svoleni
+# (--system nebo napsane slovo "system"). S chybejicim terminalem (napr. LuxAI) jen sandbox.
+COMMUNITY_TARGET=""
+choose_target() {
+    local a
+    [[ -n $COMMUNITY_TARGET ]] && return 0
+    if ((SYSTEM_OK)); then COMMUNITY_TARGET=system; return 0; fi    # bez terminalu odmitne aur_install
+    COMMUNITY_TARGET=sandbox
+    ((YES)) && return 0
+    [[ -t 0 ]] || return 0
+    printf '%s\n' "$(T "Where should it be installed?")"
+    printf '  %s1%s  %s\n' "$B" "$R" "$(T "Sandbox - isolated from your files and system (recommended)")"
+    printf '  %s2%s  %s\n' "$B" "$R" "$(T "System - full access to the computer")"
+    read -rp "$B$(T "Choose 1 or 2:")$R [1] " a
+    if [[ $a == 2 ]]; then
+        read -rp "$B$(T "Type %s to confirm installing community code into the system:" "system")$R " a
+        if [[ ${a,,} == system || ${a,,} == "$(T "system")" ]]; then COMMUNITY_TARGET=system
+        else say "$(T "Installing into the sandbox instead.")"; fi
+    fi
+}
+
+# Do systemu jen z interaktivniho terminalu (ne automat, ne presmerovany vstup)
+system_needs_tty() {
+    [[ $COMMUNITY_TARGET != system || -t 0 ]] && return 0
+    warn "$(T "Community packages are installed into the system only from an interactive terminal (without --system they go to the sandbox).")"
+    return 1
+}
+
+# Po kontrole: smi se pokracovat? (nebezpecny skript nikdy do systemu, s -y vubec)
+review_allows() {  # review_allows base
+    system_needs_tty || return 1
+    case $REVIEW_VERDICT in
+        safe) ask "$(T "Build and install %s?" "${B}$1${R}")" Y ;;
+        dangerous)
+            [[ $COMMUNITY_TARGET == system ]] && { warn "$(T "A dangerous build script is never installed into the system.")"; return 1; }
+            ((YES)) && return 1
+            YES=0 ask "$(T "Install %s into the sandbox anyway?" "${B}$1${R}")" n ;;
+        *)
+            if [[ $COMMUNITY_TARGET == system ]]; then
+                ((YES)) && { warn "$(T "Without a clean check it needs your confirmation (run without -y).")"; return 1; }
+                YES=0 ask "$(T "Install %s into the system anyway?" "${B}$1${R}")" n
+            else
+                ask "$(T "Build and install %s in the sandbox?" "${B}$1${R}")" Y
+            fi ;;
+    esac
+}
+
+aur_build() {  # aur_build pkg [asdeps]
+    local pkg=$1 asdeps=${2:-0} base=${AUR_BASE[$1]:-$1}
+    aur_fetch "$base"
+    local dir=$AUR_DIR
+    if ((REVIEW_PKGBUILD)); then
+        aur_review "$dir" "$base"
+        if ((!YES)) && [[ -t 0 ]] && ask "$(T "Show the build script (PKGBUILD) of %s?" "${B}$base${R}")" n; then
             if command -v bat &>/dev/null; then bat --paging=always -l bash "$dir/PKGBUILD"; else less "$dir/PKGBUILD"; fi
         fi
-        ask "$(T "Build and install %s?" "${B}$base${R}")" Y || die "$(T "Cancelled")"
+        review_allows "$base" || die "$(T "Cancelled")"
+    elif [[ $COMMUNITY_TARGET == system ]]; then
+        # kontrola vypnuta (REVIEW_PKGBUILD=0): do systemu jako nezkontrolovany skript
+        REVIEW_VERDICT=unreviewed
+        warn "$(T "The build script was not checked by LuxAI.")"
+        review_allows "$base" || die "$(T "Cancelled")"
     fi
-    say "$(T "Building %s %s(AUR)%s" "${B}$base${R}" "${D}" "${R}")"
+    if [[ $COMMUNITY_TARGET == sandbox ]]; then
+        say "$(T "Building %s %s(community)%s in the sandbox" "${B}$base${R}" "${D}" "${R}")"
+        local -a sflags=()
+        ((asdeps)) && sflags+=(--asdeps)
+        [[ -n ${AUR_REPODEPS[$pkg]// /} ]] && sflags+=(--deps "${AUR_REPODEPS[$pkg]# }")
+        tar -C "$dir" -cf - . | "$LUX_SANDBOX" build-install "${sflags[@]}" "$base" ||
+            die "$(T "Build of %s in the sandbox failed" "$base")"
+        return 0
+    fi
+    say "$(T "Building %s %s(community)%s" "${B}$base${R}" "${D}" "${R}")"
     local flags=(-si --needed --noconfirm)
     ((asdeps)) && flags+=(--asdeps)
     (cd "$dir" && PACMAN=$LUX_ENGINE makepkg "${flags[@]}") || die "$(T "Build of %s failed (see %s)" "$base" "$dir")"
@@ -277,24 +396,113 @@ aur_build() {  # aur_build pkg [asdeps]
 
 aur_install() {
     (($#)) || return 0
-    need_aur_tools
-    AUR_ORDER=(); AUR_SEEN=(); AUR_BASE=()
+    ((AUR)) || die "$(T "AUR is disabled in lux.conf")"
+    # LuxAI (a jine automaty) balik z komunity nikdy neinstaluji - jen uzivatel sam
+    if [[ ${LUXAI_AGENT-} == 1 ]]; then
+        die "$(T "%s is only in the community source (AUR). LuxAI does not install community packages - run in Terminal: lux install %s" "$*" "$*")"
+    fi
+    ((EUID == 0)) && die "$(T "Community packages are installed as a regular user (run lux without sudo)")"
+    printf '%s!%s %s\n' "$Y" "$R" "$(T "%s comes from the community source (AUR): scripts by other users, not checked by LuxOS." "${B}$*${R}")" >&2
+    choose_target
+    system_needs_tty || exit 1
+    if [[ $COMMUNITY_TARGET == sandbox ]]; then
+        command -v jq &>/dev/null || die "$(T "jq is required for AUR support")"
+        command -v git &>/dev/null || { (YES=1; repo_install git) || exit 1; }
+        [[ -x $LUX_SANDBOX ]] || die "$(T "The sandbox is not installed (lux install luxos-sandbox), or install into the system with --system")"
+        if ! "$LUX_SANDBOX" status --json 2>/dev/null | grep -q '"exists": true'; then
+            say "$(T "Creating your sandbox first")"
+            "$LUX_SANDBOX" create || exit 1
+        fi
+    else
+        need_aur_tools
+    fi
+    AUR_ORDER=(); AUR_SEEN=(); AUR_BASE=(); AUR_REPODEPS=()
     local p
     for p in "$@"; do aur_resolve "$p"; done
-    say "$(T "AUR packages to build: %s" "${B}${AUR_ORDER[*]}${R}")"
-    warn "$(T "AUR packages are maintained by the community, not by LuxOS.")"
-    ask "$(T "Continue?")" Y || exit 1
+    ((${#AUR_ORDER[@]} > $#)) && say "$(T "Community packages to build: %s" "${B}${AUR_ORDER[*]}${R}")"
     declare -A wanted=()
     for p in "$@"; do wanted[$p]=1; done
     for p in "${AUR_ORDER[@]}"; do
         if [[ -n ${wanted[$p]-} ]]; then aur_build "$p" 0; else aur_build "$p" 1; fi
     done
+    if [[ $COMMUNITY_TARGET == sandbox ]]; then
+        ok "$(T "Installed in the sandbox: %s" "$*")"
+        say "$(T "Start it with: %s" "${B}luxos-sandbox run --gui --net $1${R}")"
+    fi
+}
+
+# --- Flathub ----------------------------------------------------------------
+# Aplikace z Flathubu (pred komunitou/AUR): bezi ve vlastnim izolovanem prostredi Flatpaku.
+# flathub_resolve nazev -> FLATHUB_ID (zoom -> us.zoom.Zoom); vice shod = nabidka (bez terminalu nic)
+FLATHUB_ID=""
+APP_ID_RE='^[A-Za-z][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+){2,}$'   # jako APP_ID v lux_community.py
+flathub_resolve() {
+    local out state i
+    local -a ids=()
+    FLATHUB_ID=""
+    out=$("$LUX_COMMUNITY" flathub "$1" 2>/dev/null) || return 1
+    state=${out%%$'\t'*}
+    read -ra ids <<<"${out#*$'\t'}"
+    case $state in
+        ok) FLATHUB_ID=${ids[0]} ;;
+        ambiguous)
+            ((YES)) || [[ ! -t 0 ]] && return 1
+            say "$(T "Several apps on Flathub match '%s':" "$1")"
+            for i in "${!ids[@]}"; do printf '  %s%d%s  %s\n' "$B" $((i + 1)) "$R" "${ids[$i]}"; done
+            read -rp "$B$(T "Choose a number (Enter = none):")$R " i
+            [[ $i =~ ^[0-9]+$ ]] && ((i >= 1 && i <= ${#ids[@]})) || return 1
+            FLATHUB_ID=${ids[$((i - 1))]} ;;
+        *) return 1 ;;
+    esac
+}
+
+need_flatpak() {
+    command -v flatpak &>/dev/null && return 0
+    say "$(T "Apps from Flathub need %sflatpak%s." "${B}" "${R}")"
+    ask "$(T "Install it now?")" || exit 1
+    (YES=1; repo_install flatpak) || exit 1
+}
+
+flathub_install() {
+    (($#)) || return 0
+    need_flatpak
+    flatpak remote-list --columns=name 2>/dev/null | grep -qx flathub ||
+        as_root flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || exit 1
+    local id sz dl inst rt
+    for id in "$@"; do
+        say "$(T "%s is installed from Flathub (isolated Flatpak app)" "${B}$id${R}")"
+        if sz=$("$LUX_COMMUNITY" flathub-size "$id" 2>/dev/null); then
+            dl=$(jq -r '.download + .runtime_download' <<<"$sz")
+            inst=$(jq -r '.installed + .runtime_installed' <<<"$sz")
+            rt=$(jq -r 'if .runtime_present or .runtime == "" then "" else .runtime end' <<<"$sz")
+            printf '    %s %s, %s %s\n' "$(T "Download:")" "$(numfmt --to=iec-i --suffix=B "$dl" 2>/dev/null || echo "$dl")" \
+                "$(T "on disk:")" "$(numfmt --to=iec-i --suffix=B "$inst" 2>/dev/null || echo "$inst")"
+            [[ -n $rt ]] && printf '    %s%s%s\n' "$D" "$(T "includes the shared runtime %s (used by other Flatpak apps too)" "${rt%%/*}")" "$R"
+        fi
+        ask "$(T "Install %s?" "${B}$id${R}")" Y || die "$(T "Cancelled")"
+        flatpak install -y --noninteractive flathub "$id" || exit 1
+    done
+}
+
+# Flatpak aplikace k odebrani: ID nebo nazev nainstalovane aplikace -> ID
+# (jen cele ID nebo presny nazev bez ohledu na velikost pismen; vic aplikaci se stejnym nazvem = nic)
+flatpak_installed_id() {
+    command -v flatpak &>/dev/null || return 1
+    flatpak list --app --columns=application,name 2>/dev/null | awk -F'\t' -v q="${1,,}" '
+        tolower($1) == q { print $1; found = 1; exit }
+        tolower($2) == q { ids[++n] = $1 }
+        END { if (!found && n == 1) print ids[1] }' | grep .
+}
+
+flatpak_cleanup() {  # nepouzivana prostredi (runtime) po odebrani a aktualizaci
+    command -v flatpak &>/dev/null || return 0
+    flatpak uninstall --unused -y --noninteractive >/dev/null 2>&1 || true
 }
 
 # --- Prikazy ----------------------------------------------------------------
 cmd_install() {
     (($#)) || die "$(T "Usage: lux install <package...>")"
-    local repo=() aur=() luxp=() p kind
+    local repo=() aur=() luxp=() flat=() p kind
     local -A inrepo=()
     # Ktere cile jsou v repozitarich (nazev, repo/nazev, skupina, provides) - jednim dotazem
     if [[ $ONLY != aur ]] && alpm_ok; then
@@ -310,9 +518,9 @@ cmd_install() {
         elif [[ $p == *.pkg.tar* && -f $p ]]; then repo+=("$(readlink -f "$p")")
         elif [[ $ONLY != aur ]] && if alpm_ok; then [[ -n ${inrepo[$p]-} ]]; else in_repos "$p"; fi; then repo+=("$p")
         elif [[ $ONLY != aur ]] && [[ -n $(lp_index_entry "$p") ]]; then luxp+=("$p")
-        elif [[ $ONLY != repo ]] && ((AUR)) && aur_exists "$p"; then aur+=("$p")
-        elif [[ $ONLY != repo && $p == *.*.* ]] && command -v flatpak &>/dev/null; then
-            say "$(T "Installing %s from Flathub" "${B}$p${R}")"; flatpak install -y flathub "$p" || exit 1
+        elif [[ -z $ONLY ]] && ((FLATPAK)) && flathub_resolve "$p"; then flat+=("$FLATHUB_ID")
+        # ID aplikace Flathubu (org.example.App) nikdy nepropadne do komunity, jen s vyslovnym --aur
+        elif [[ $ONLY != repo ]] && ((AUR)) && [[ $ONLY == aur || ! $p =~ $APP_ID_RE ]] && aur_exists "$p"; then aur+=("$p")
         else
             warn "$(T "Package '%s' not found. Try: lux search %s" "${B}$p${R}" "$p")"; return 1
         fi
@@ -323,17 +531,27 @@ cmd_install() {
     for p in "${luxp[@]}"; do
         as_root "$LUX_SELF" __lux-install "$p" || exit 1
     done
+    flathub_install "${flat[@]}"
     aur_install "${aur[@]}"
 }
 
 cmd_remove() {
     (($#)) || die "$(T "Usage: lux remove <package...>")"
-    local -a pac=()
-    local p
+    local -a pac=() flat=()
+    local p id
     for p in "$@"; do
         if lp_installed "$p"; then as_root "$LUX_SELF" __lux-remove "$p" || exit 1
+        elif ! "$LUX_ENGINE" -Q -- "$p" &>/dev/null && id=$(flatpak_installed_id "$p"); then flat+=("$id")
         else pac+=("$p"); fi
     done
+    if ((${#flat[@]})); then
+        # bez terminalu a bez -y se nic neodebira (vychozi odpoved "ne")
+        ask "$(T "Remove %s?" "${B}${flat[*]}${R}")" "$([[ -t 0 ]] && echo Y || echo n)" || die "$(T "Cancelled")"
+        # data aplikaci (~/.var/app) zustavaji
+        flatpak uninstall -y --noninteractive "${flat[@]}" || exit 1
+        flatpak_cleanup
+        ok "$(T "Removed: %s" "${flat[*]}")"
+    fi
     ((${#pac[@]})) || return 0
     if alpm_ok; then alpm_root remove -- "${pac[@]}"
     else as_root "$LUX_ENGINE" -Rns $(pac_yes) "${pac[@]}"; fi
@@ -392,7 +610,12 @@ cmd_update() {
                 nv=$(jq -r --arg n "$n" '.[] | select(.Name==$n) | .Version' <<<"$info")
                 [[ -n $nv ]] && (( $(vercmp "$nv" "$v") > 0 )) && outdated+=("$n") && printf '  %s %s%s%s → %s%s%s\n' "$n" "$D" "$v" "$R" "$G" "$nv" "$R"
             done
-            if ((${#outdated[@]})); then aur_install "${outdated[@]}"; else ok "$(T "AUR packages are up to date")"; fi
+            if ((${#outdated[@]})) && [[ ${LUXAI_AGENT-} == 1 ]]; then
+                warn "$(T "Community packages are updated only when you run it yourself: lux update")"
+            elif ((${#outdated[@]})); then
+                # balicky z komunity uz v systemu jsou (uzivatel je tam svolil); novy skript se znovu kontroluje
+                (COMMUNITY_TARGET=system; aur_install "${outdated[@]}") || warn "$(T "Community packages were not updated")"
+            else ok "$(T "AUR packages are up to date")"; fi
         fi
     fi
 
@@ -411,6 +634,7 @@ cmd_update() {
 
     if ((FLATPAK)) && command -v flatpak &>/dev/null && [[ $ONLY == "" ]]; then
         say "$(T "Updating Flatpak apps")"; flatpak update -y --noninteractive
+        flatpak_cleanup
     fi
 
     # Kroky jinych baliku LuxOS po aktualizaci (napr. luxos-care: prechod na jadro LuxOS);
@@ -446,8 +670,17 @@ cmd_search() {
                 printf '%slux/%s%s %s%s%s %s(LuxOS)%s\n    %s\n' "$C" "$n" "$R" "$G" "$v" "$R" "$D" "$R" "$d"
             done
     fi
+    if [[ -z $ONLY ]] && ((FLATPAK)); then
+        local fl
+        if fl=$("$LUX_COMMUNITY" flathub-search "$@" 2>/dev/null) && [[ -n $fl ]]; then
+            printf '\n%sFlathub%s\n' "$B" "$R"
+            head -n 10 <<<"$fl" | while IFS=$'\t' read -r n t d _icon; do
+                printf '%sflathub/%s%s %s%s%s\n    %s\n' "$C" "$n" "$R" "$B" "$t" "$R" "$d"
+            done
+        fi
+    fi
     if [[ $ONLY != repo ]] && ((AUR)) && command -v jq &>/dev/null; then
-        printf '\n%sAUR%s %s(community)%s\n' "$B" "$R" "$D" "$R"
+        printf '\n%sAUR%s %s(%s)%s\n' "$B" "$R" "$D" "$(T "community - installed into the sandbox")" "$R"
         curl -fsSL --max-time 20 "$LUX_AUR_RPC/search/$(jq -rn --arg v "$1" '$v|@uri')?by=name-desc" |
             jq -r '.results | sort_by(-.Popularity) | .[:20][] | "\(.Name)\t\(.Version)\t\(.Description // "")"' |
             while IFS=$'\t' read -r n v d; do
@@ -541,6 +774,7 @@ cmd_clean() {
     fi
     cmd_autoremove
     [[ -d $LUX_CACHE/aur ]] && find "$LUX_CACHE/aur" -maxdepth 2 -name '*.pkg.tar.*' -mtime +30 -delete 2>/dev/null
+    rm -rf "$LUX_CACHE/aur-build"   # exporty ke kontrole a sestaveni (pri dalsim sestaveni se vytvori znovu)
     ok "$(T "Clean")"
 }
 
@@ -783,11 +1017,11 @@ usage() {
         printf '  %-22s%s\n' "$cmd" "$(T "$desc")"
     done <<'CMDS'
 (no command)|interactive app store in the terminal
-install, i <pkg...>|install packages (repositories, then AUR / Flathub)
-remove, rm <pkg...>|remove packages and their unneeded dependencies
+install, i <pkg...>|install packages (repositories, LuxOS, Flathub, then community/AUR)
+remove, rm <pkg...>|remove packages (also Flatpak apps) and unneeded dependencies
 update, upgrade, up|update everything (system, AUR, Flatpak)
 check, check-updates|show available updates without installing them
-search, s <term>|search repositories and AUR
+search, s <term>|search repositories, Flathub and community (AUR)
 info <pkg>|show package details
 list [--installed]|list installed packages
 list --upgradable|list available updates
@@ -813,7 +1047,8 @@ CMDS
 -y, --yes|do not ask for confirmation
 -v, --verbose|show all details (and raw errors)
     --repo|only official repositories
-    --aur|only AUR
+    --aur, --community|only the community source (AUR)
+    --system|community package into the system instead of the sandbox
 -h, --help|this help
 -V, --version|version
 OPTS
@@ -897,7 +1132,9 @@ while (($#)); do
         -y|--yes) YES=1 ;;
         -v|--verbose) VERBOSE=1 ;;
         --repo) ONLY=repo ;;
-        --aur) ONLY=aur ;;
+        --aur|--community) ONLY=aur ;;
+        --system) SYSTEM_OK=1 ;;
+        --sandbox) COMMUNITY_TARGET=sandbox ;;
         -h|--help) usage; exit 0 ;;
         -V|--version) echo "lux $LUX_VERSION"; exit 0 ;;
         *) args+=("$1") ;;

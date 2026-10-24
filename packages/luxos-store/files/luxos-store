@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 from html import unescape
 
 sys.path.insert(0, "/usr/lib/luxos/python")
@@ -36,6 +37,9 @@ LUX_INDEX_URL = os.environ.get("LUX_INDEX_URL", "https://luxos.lux-ai.cz/repo/lu
 APPS_ICON_URL = "https://luxos.lux-ai.cz/repo/luxos-apps/x86_64/icons"
 ICON_CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "luxos-store/icons")
 ICON_SIZE = 56
+# Flathub: vyhledani a velikosti pres lux (API Flathubu, funguje i bez nainstalovaneho flatpaku)
+LUX_COMMUNITY = "/usr/lib/lux/lux_community.py"
+FLATHUB_SEARCH_LIMIT = 12
 DATASAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/datasaver")
 
 CATEGORIES = [
@@ -63,6 +67,7 @@ CSS = b"""
 .card-name { font-weight: 700; }
 .card-sub { font-size: 11px; opacity: 0.65; }
 .badge { font-size: 10px; font-weight: 700; color: #7b6cff; }
+.badge-flathub { font-size: 10px; font-weight: 700; color: #4a90d9; }
 .get { border-radius: 999px; padding: 2px 14px; font-weight: 700; background-image: none;
        background-color: alpha(#3d7bff, 0.14); color: #3d7bff; border: none; box-shadow: none; }
 .get:hover { background-color: alpha(#3d7bff, 0.24); }
@@ -125,12 +130,20 @@ class App:
     def is_lux_format(self):
         return self.repo == "lux"
 
+    @property
+    def is_flatpak(self):
+        return self.repo == "flathub"
+
     def source_label(self):
+        if self.is_flatpak:
+            return "Flathub · " + _("isolated app (Flatpak)")
         if self.is_lux_format:
             return "LuxOS · " + _("LuxOS package (.lux)")
         return "LuxOS" if self.is_luxos else f"Arch Linux · {self.repo}"
 
     def desktop_id(self):
+        if self.is_flatpak:
+            return f"{self.pkg}.desktop"
         if self.component:
             lc = self.component.get_launchable(AppStream.LaunchableKind.DESKTOP_ID)
             if lc and lc.get_entries():
@@ -196,6 +209,7 @@ class Catalog:
         self.updates = []
         self.update_info = {}
         self.pending_icons = []
+        self.flathub_apps = []
 
     def load(self):
         sync = {}
@@ -259,7 +273,10 @@ class Catalog:
                 if os.path.exists(path) and os.path.getsize(path):
                     if pkg in self.apps:
                         self.apps[pkg].icon_file = path
-                        changed = True
+                    for a in self.flathub_apps:
+                        if a.pkg == pkg:
+                            a.icon_file = path
+                    changed = True
                     break
                 if os.path.exists(path):
                     os.unlink(path)
@@ -271,6 +288,44 @@ class Catalog:
             self.installed |= {f[:-5] for f in os.listdir(LUX_DB) if f.endswith(".json")}
         except OSError:
             pass
+        self.installed |= set(run("flatpak", "list", "--app", "--columns=application", timeout=20).split())
+
+    def flathub_search(self, text):
+        """Aplikace z Flathubu pro hledany text (bez tech, ktere uz jsou v repozitarich)."""
+        out = run(LUX_COMMUNITY, "flathub-search", text, timeout=25)
+        known = {a.name.lower() for a in self.apps.values()}
+        apps = []
+        for line in out.splitlines():
+            parts = line.split("\t")
+            if len(parts) < 3 or not re.match(r"^[A-Za-z][\w-]*(\.[\w-]+){2,}$", parts[0]):
+                continue
+            app_id, name, summary = parts[0], parts[1] or parts[0], parts[2]
+            if name.lower() in known:
+                continue
+            icon = None
+            path = os.path.join(ICON_CACHE, "flathub-" + app_id + ".png")
+            if os.path.exists(path) and os.path.getsize(path):
+                icon = path
+            elif len(parts) > 3 and parts[3].startswith("https://dl.flathub.org/"):
+                self.pending_icons.append((app_id, [(parts[3], path)]))
+            apps.append(App(app_id, name, summary, "flathub", icon_file=icon))
+            if len(apps) >= FLATHUB_SEARCH_LIMIT:
+                break
+        return apps
+
+    def installed_flatpaks(self):
+        apps = []
+        for line in run("flatpak", "list", "--app", "--columns=application,name", timeout=20).splitlines():
+            app_id, _t, name = line.partition("\t")
+            if app_id:
+                apps.append(App(app_id, name or app_id, "", "flathub"))
+        return apps
+
+    def flathub_size(self, app_id):
+        try:
+            return json.loads(run(LUX_COMMUNITY, "flathub-size", app_id, timeout=40) or "null")
+        except ValueError:
+            return None
 
     def load_lux(self, apps):
         """Balicky ve vlastnim formatu LuxOS (overeny index z lux __index)."""
@@ -333,9 +388,9 @@ class AppCard(Gtk.EventBox):
         name = Gtk.Label(label=app.name, xalign=0, ellipsize=Pango.EllipsizeMode.END)
         name.get_style_context().add_class("card-name")
         text.pack_start(name, False, False, 0)
-        if app.is_luxos:
-            badge = Gtk.Label(label="✦ LuxOS", xalign=0)
-            badge.get_style_context().add_class("badge")
+        if app.is_luxos or app.is_flatpak:
+            badge = Gtk.Label(label="✦ LuxOS" if app.is_luxos else "Flathub", xalign=0)
+            badge.get_style_context().add_class("badge" if app.is_luxos else "badge-flathub")
             text.pack_start(badge, False, False, 0)
         sub = Gtk.Label(label=app.summary, xalign=0, wrap=True, lines=2,
                         ellipsize=Pango.EllipsizeMode.END, max_width_chars=30)
@@ -766,12 +821,14 @@ class Store(Gtk.Window):
             self.catalog.refresh_installed()
             box.pack_start(self.title(_("Installed")), False, False, 0)
             inst = [a for a in apps.values() if a.pkg in self.catalog.installed]
+            inst += [a for a in self.catalog.installed_flatpaks() if a.pkg not in apps]
             box.pack_start(self.grid(sorted(inst, key=lambda a: a.name.lower())), False, False, 0)
         elif key == "updates":
             box.pack_start(self.updates_page(arg), False, False, 0)
         elif key == "search":
             box.pack_start(self.title(_("Results for “%s”") % arg), False, False, 0)
             box.pack_start(self.grid(self.find(arg)), False, False, 0)
+            box.pack_start(self.flathub_section(arg), False, False, 0)
         else:
             for ckey, label, cats, _icon in CATEGORIES:
                 if ckey == key:
@@ -780,6 +837,45 @@ class Store(Gtk.Window):
                     found.sort(key=lambda a: (a.pkg not in POPULAR, a.name.lower()))
                     box.pack_start(self.grid(found), False, False, 0)
         self.set_content(box)
+
+    def flathub_section(self, text):
+        """Vysledky z Flathubu (nacitaji se na pozadi; mezitim kolecko)."""
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        if os.path.exists(DATASAVER) or not os.path.exists(LUX_COMMUNITY):
+            return box
+        box.pack_start(self.section(_("From Flathub")), False, False, 0)
+        box.pack_start(self.dim(_("Apps from Flathub run isolated from the system (Flatpak).")), False, False, 0)
+        spinner = Gtk.Spinner(active=True, halign=Gtk.Align.START)
+        box.pack_start(spinner, False, False, 0)
+        hint = self.dim(_("Not found? Community packages (AUR) are installed in Terminal with lux install "
+                          "and go into your sandbox."))
+
+        def show(apps):
+            if self.current != ("search", text) or not box.get_parent():
+                return False
+            self.catalog.flathub_apps = apps + [a for a in self.catalog.flathub_apps if a not in apps][:60]
+            spinner.destroy()
+            if apps:
+                box.pack_start(self.grid(apps), False, False, 0)
+            else:
+                box.pack_start(self.dim(_("Nothing found on Flathub.")), False, False, 0)
+            box.pack_start(hint, False, False, 0)
+            box.show_all()
+            if self.catalog.pending_icons:
+                threading.Thread(target=lambda: self.catalog.fetch_icons() and
+                                 GLib.idle_add(lambda: [c.load_icon() for c in self.cards] and False),
+                                 daemon=True).start()
+            return False
+
+        def work():
+            time.sleep(0.4)        # psani do vyhledavani: hledat az po chvili klidu
+            if self.current != ("search", text):
+                return
+            apps = self.catalog.flathub_search(text)
+            GLib.idle_add(show, apps)
+
+        threading.Thread(target=work, daemon=True).start()
+        return box
 
     def find(self, text):
         t = text.lower()
@@ -929,14 +1025,20 @@ class Store(Gtk.Window):
         box.pack_start(top, False, False, 0)
 
         facts = Gtk.Box(spacing=28)
-        for label, value in ((_("Version"), app.version),
+        size_value = None
+        for label, value in ((_("Version"), app.version or "-"),
                              (_("Size"), GLib.format_size(app.size) if app.size else "-"),
                              (_("Package"), app.pkg)):
             col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             col.pack_start(self.dim(label), False, False, 0)
-            col.pack_start(Gtk.Label(label=value, xalign=0, selectable=True), False, False, 0)
+            val = Gtk.Label(label=value, xalign=0, selectable=True)
+            col.pack_start(val, False, False, 0)
             facts.pack_start(col, False, False, 0)
+            if label == _("Size"):
+                size_value = val
         box.pack_start(facts, False, False, 0)
+        if app.is_flatpak:
+            box.pack_start(self.flathub_facts(app, size_value), False, False, 0)
         desc = description_text(app.component) if app.component else app.description
         if desc:
             box.pack_start(self.section(_("About")), False, False, 0)
@@ -948,6 +1050,29 @@ class Store(Gtk.Window):
             box.pack_start(link, False, False, 0)
         self.set_content(box)
 
+    def flathub_facts(self, app, size_label):
+        """Velikost aplikace z Flathubu vcetne sdileneho prostredi (runtime), ktere jeste neni nainstalovane."""
+        note = self.dim(_("Isolated app from Flathub. Its data stays in ~/.var/app."))
+        size_label.set_text(_("calculating…"))
+
+        def show(sz):
+            if not size_label.get_parent():
+                return False
+            if not sz:
+                size_label.set_text("-")
+                return False
+            total = sz.get("installed", 0) + sz.get("runtime_installed", 0)
+            size_label.set_text(GLib.format_size(total))
+            if sz.get("runtime_installed"):
+                note.set_text(_("Download %s, on disk %s - includes the shared runtime %s (%s), which other "
+                                "Flatpak apps use too.") % (
+                    GLib.format_size(sz.get("download", 0) + sz.get("runtime_download", 0)), GLib.format_size(total),
+                    sz.get("runtime", "").split("/")[0], GLib.format_size(sz["runtime_installed"])))
+            return False
+
+        threading.Thread(target=lambda: GLib.idle_add(show, self.catalog.flathub_size(app.pkg)), daemon=True).start()
+        return note
+
     # ---- akce ----
     def primary_action(self, app):
         if app.pkg in self.catalog.installed:
@@ -957,8 +1082,13 @@ class Store(Gtk.Window):
                 info = None
             if info:
                 info.launch([], None)
+            elif app.is_flatpak:
+                subprocess.Popen(["flatpak", "run", app.pkg], start_new_session=True,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
                 self.flash(_("%s is installed, but has no window to open.") % app.name)
+        elif app.is_flatpak:
+            self.run_lux("install", app, _("Installing %s from Flathub…") % app.name)
         elif app.is_lux_format:
             self.run_helper("lux-install", [app.pkg], _("Installing %s…") % app.name, app)
         else:
@@ -969,13 +1099,70 @@ class Store(Gtk.Window):
                                 buttons=Gtk.ButtonsType.OK_CANCEL, text=_("Remove %s?") % app.name)
         dlg.format_secondary_text(_("The app will be removed from this computer. Your files stay untouched."))
         if dlg.run() == Gtk.ResponseType.OK:
-            self.run_helper("lux-remove" if app.is_lux_format else "remove", [app.pkg],
-                            _("Removing %s…") % app.name, app)
+            if app.is_flatpak:
+                self.run_lux("remove", app, _("Removing %s…") % app.name)
+            else:
+                self.run_helper("lux-remove" if app.is_lux_format else "remove", [app.pkg],
+                                _("Removing %s…") % app.name, app)
         dlg.destroy()
 
     def flash(self, text):
         self.status.set_text(text)
         self.status_bar.show()
+
+    def run_lux(self, action, app, message):
+        """Flatpak aplikace pres lux (bez pkexec - lux a flatpak si o opravneni reknou samy, kdyz je treba).
+        Prubeh flatpaku neni strojove citelny: jen pulzujici ukazatel."""
+        self.busy[app.pkg] = "…"
+        for c in self.cards:
+            if c.app is app:
+                c.update()
+        self.flash(message)
+        self.progress.show()
+        self.progress_pct.hide()
+        state = {"running": True, "last": ""}
+
+        def pulse():
+            if not state["running"]:
+                return False
+            self.progress.pulse()
+            return True
+        GLib.timeout_add(150, pulse)
+
+        def work():
+            try:
+                p = subprocess.Popen(["lux", "-y", action, app.pkg], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                     stdin=subprocess.DEVNULL, text=True, bufsize=1,
+                                     env=dict(ENGINE_ENV, NO_COLOR="1", LUX_COLOR="never"))
+            except OSError as e:
+                GLib.idle_add(done, 1, str(e))
+                return
+            for line in p.stdout:
+                line = line.strip()
+                if line:
+                    state["last"] = line.lstrip("✗!✦✓ ").strip()
+            GLib.idle_add(done, p.wait(), state["last"])
+
+        def done(rc, last):
+            state["running"] = False
+            self.progress.hide()
+            self.busy.pop(app.pkg, None)
+            self.catalog.refresh_installed()
+            if rc == 0:
+                self.flash(_("Done."))
+                GLib.timeout_add_seconds(4, lambda: self.status_bar.hide() or False)
+            else:
+                self.flash(_("Failed: %s") % (last or _("unknown error")))
+            for c in self.cards:
+                c.update()
+            if self.current[0] == "detail":
+                cur = self.current[1]
+                if self.history:
+                    self.history.pop()
+                self.show_detail(cur)
+            return False
+
+        threading.Thread(target=work, daemon=True).start()
 
     def run_helper(self, action, pkgs, message, app=None, view=None):
         """Operace pres pkexec s prubehem (stahovani 0-50 %, instalace 50-100 %). lux posila radky

@@ -1,7 +1,7 @@
 .\" LuxOS - manualova stranka lux(1); prikazy musi odpovidat "lux --help" (test_lux_cli.py ji kontroluje)
 .TH LUX 1 "2026-10-24" "LuxOS" "LuxOS Manual"
 .SH NAME
-lux \- LuxOS package manager (repositories, AUR, Flatpak and .lux apps)
+lux \- LuxOS package manager (repositories, Flathub, community/AUR and .lux apps)
 .SH SYNOPSIS
 .B lux
 .RI [ options ]
@@ -37,13 +37,32 @@ command instead.
 Interactive app store in the terminal (fzf): search, install, remove and update.
 .TP
 .BR install ", " i " " \fIpkg\fR...
-Install packages: the repositories first, then the AUR or Flathub.
+Install packages. Sources are tried in this order: the LuxOS and Arch Linux repositories,
+LuxOS
+.B .lux
+apps, Flathub (for example
+.B lux install zoom
+installs us.zoom.Zoom), and last the community source (AUR).
+.IP
+Community packages are build scripts written by other users and are not checked by LuxOS.
+Before building, the script is checked by fixed rules and by LuxAI Lite (when you are signed in
+to LuxAI). The package is then built and installed into your
+.B sandbox
+(luxos\-sandbox), isolated from your files and the system.
+It goes into the system only with
+.B \-\-system
+or when you choose it and type the word
+.BR system ;
+a dangerous script is never installed into the system and an unchecked one never without your
+confirmation. LuxAI never installs community packages.
 .TP
 .BR remove ", " rm " " \fIpkg\fR...
-Remove packages and the dependencies nothing else needs.
+Remove packages and the dependencies nothing else needs. Flatpak apps (by ID or name) are
+removed as well, together with runtimes no app needs any more; their data in ~/.var/app stays.
 .TP
 .BR update ", " upgrade ", " up
-Update everything: the system, AUR packages, Flatpak apps and .lux apps.
+Update everything: the system, community (AUR) packages in the system, Flatpak apps and .lux apps.
+New community build scripts are checked again before they are built. Unused Flatpak runtimes are removed.
 Configuration steps of other packages run afterwards (/usr/lib/lux/after-update.d).
 .TP
 .BR check ", " check\-updates
@@ -51,7 +70,7 @@ Show available updates without installing them. The package lists are refreshed 
 temporary copy, so this needs no administrator rights and changes nothing on the system.
 .TP
 .BR search ", " s " " \fIterm\fR
-Search the repositories and the AUR.
+Search the repositories, LuxOS apps, Flathub and the community source (AUR).
 .TP
 .BI info " pkg"
 Show package details.
@@ -118,8 +137,11 @@ Show all details (and raw errors).
 .B \-\-repo
 Only the official repositories.
 .TP
-.B \-\-aur
-Only the AUR.
+.BR \-\-aur ", " \-\-community
+Only the community source (AUR).
+.TP
+.B \-\-system
+Install a community package into the system instead of the sandbox (explicit permission).
 .TP
 .BR \-h ", " \-\-help
 Show the help.
@@ -185,7 +207,10 @@ See what an update would install.
 Install two applications.
 .TP
 .B lux search \-\-aur spotify
-Search only the AUR.
+Search only the community source (AUR).
+.TP
+.B lux install zoom
+Install Zoom from Flathub.
 .TP
 .B lux history 50 firefox
 The last changes of one package.
@@ -194,4 +219,6 @@ The last changes of one package.
 Remove without asking.
 .SH SEE ALSO
 .BR makepkg (8),
+.B luxos\-sandbox \-\-help,
+.BR flatpak (1),
 /usr/share/doc/lux/lux.md

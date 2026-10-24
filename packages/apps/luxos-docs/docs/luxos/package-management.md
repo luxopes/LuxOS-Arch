@@ -2,8 +2,9 @@
 
 `lux` is the LuxOS package manager and the only supported way to install, update and remove
 software from the command line. It manages packages from the LuxOS and Arch Linux repositories
-directly through **libalpm** (used from Python via `pyalpm`), and also handles the AUR, Flatpak
-(Flathub) and the LuxOS `.lux` app format.
+directly through **libalpm** (used from Python via `pyalpm`), and also handles Flathub (Flatpak),
+the community source (AUR, built and installed into your sandbox by default) and the LuxOS `.lux`
+app format.
 
 There is **no `pacman` command and no `/etc/pacman.conf`** in LuxOS. The configuration is
 `/etc/lux/lux.conf` in its own format (see [Configuration](#configuration-etcluxluxconf)). The engine
@@ -34,10 +35,10 @@ behind lux is the `lux-engine` package (libalpm and tools taken from Arch Linux 
 | Command (aliases) | What it does |
 |---|---|
 | `lux` (no arguments) | interactive store in the terminal (TUI, needs `fzf`) |
-| `lux install <pkg...>` (`i`, `add`) | install from repositories → LuxOS `.lux` → AUR → Flathub; also a local `.lux` or `.pkg.tar.*` file; installed packages are skipped |
+| `lux install <pkg...>` (`i`, `add`) | install from repositories → LuxOS `.lux` → Flathub → community (AUR, into the sandbox); also a local `.lux` or `.pkg.tar.*` file; installed packages are skipped |
 | `lux remove <pkg...>` (`rm`) | remove with no longer needed dependencies and config backups |
-| `lux update` (`upgrade`, `up`) | refresh databases, signing keys first, then the whole system; then AUR, `.lux` apps, Flatpak |
-| `lux search <term>` (`s`) | search repositories, the LuxOS `.lux` repo and the AUR |
+| `lux update` (`upgrade`, `up`) | refresh databases, signing keys first, then the whole system; then community (AUR) packages in the system, `.lux` apps, Flatpak (+ unused runtimes removed) |
+| `lux search <term>` (`s`) | search repositories, the LuxOS `.lux` repo, Flathub and the community source (AUR) |
 | `lux info <pkg>` (`show`) | details (installed, else repository, `.lux`, AUR) |
 | `lux list [--installed]` (`ls`) | installed packages (including `.lux`); `lux list <pattern>` filters |
 | `lux check` (`check-updates`) | available updates from freshly downloaded lists (temporary copy, no root, nothing changes) |
@@ -55,12 +56,15 @@ behind lux is the `lux-engine` package (libalpm and tools taken from Arch Linux 
 | `lux drivers` / `lux doctor` / `lux pack <dir>` | drivers ([drivers.md](drivers.md)), health check, build a `.lux` |
 
 Options: `-y`/`--yes` (no questions — otherwise lux always asks), `-v`/`--verbose` (package lists,
-script output, raw errors), `--repo` (only official repositories), `--aur` (only AUR), `-h`, `-V`.
+script output, raw errors), `--repo` (only official repositories), `--aur`/`--community` (only the
+community source), `--system` (community package into the system instead of the sandbox), `-h`, `-V`.
 
 ```bash
 lux install firefox
 lux install ./myapp-1.0-1-any.lux
-lux install org.gimp.GIMP        # Flatpak app ID (if flatpak is installed)
+lux install zoom                 # not in the repositories -> Flathub (us.zoom.Zoom)
+lux install org.gimp.GIMP        # Flatpak app ID
+lux remove zoom                  # also removes Flatpak apps (+ runtimes nothing uses)
 lux -y update
 lux owns /usr/bin/fastfetch
 lux history 50 linux-luxos
@@ -187,25 +191,52 @@ LuxOS 0.9.5 or older moves `/var/lib/pacman` → `/var/lib/lux`, `/var/cache/pac
 ## Administrator rights
 
 Run lux as a normal user; it asks for root itself (`sudo` in a terminal, `pkexec` in a graphical
-session). AUR packages must be built as a regular user — never `sudo lux install <aur-package>`.
+session). Community (AUR) packages are built as a regular user — never `sudo lux install <aur-package>`.
 Environment: `LUX_BACKEND=engine` (force the `lux-engine` fallback), `NO_COLOR`, `LUX_LOCK_WAIT`
 (seconds to wait for another package manager, default 300).
 
-## AUR and Flatpak
+## Flathub and the community source (AUR)
 
-- AUR needs `jq`, `git` and `base-devel` (lux offers to install them); dependencies are resolved
-  through the AUR RPC; lux warns that AUR packages are maintained by the community, asks
-  `Continue?` and with `review-pkgbuild on` offers to show the PKGBUILD. Sources go to
-  `~/.cache/lux/aur/<pkgbase>`, built with `makepkg -si`.
-- `lux update` rebuilds newer AUR versions of foreign packages (not as root, not with `--repo`).
-- `lux install <app.id>` installs from Flathub; `lux update` runs `flatpak update` when `flatpak on`.
+Order of sources for `lux install <name>`: LuxOS and Arch Linux repositories → LuxOS `.lux` apps →
+**Flathub** → **community (AUR)**. The first source that has the name wins.
+
+**Flathub** (`flatpak on`):
+- The name is looked up with the Flathub API (works before flatpak is installed): an app ID
+  (`us.zoom.Zoom`), an exact app name or the last part of the ID (`zoom`). Several matches → a
+  numbered choice (none with `-y`).
+- lux offers to install `flatpak`, adds the `flathub` remote if missing and shows the download and
+  disk size, **including the shared runtime** (for example `org.freedesktop.Platform`, 0.5–1 GB)
+  when it is not installed yet. Runtimes are shared by all Flatpak apps.
+- `lux remove <id or name>` removes the app and then runs `flatpak uninstall --unused` (runtimes
+  no app needs); `lux update` does the same after `flatpak update`. App data in `~/.var/app` stays.
+
+**Community (AUR)** — build scripts written by other users, not checked by LuxOS:
+- Before building, the PKGBUILD (and `.install` files) is checked: fixed rules (curl | sh, hidden
+  base64, writes outside `$pkgdir`, sudo/SSH/accounts, network in `.install`, plain-HTTP sources…)
+  and **LuxAI Lite** when you are signed in to LuxAI (verdict safe / suspicious / dangerous with
+  reasons; only the script text is sent). Without LuxAI the verdict is "not checked".
+- **Default target: your sandbox** ([sandbox.md](sandbox.md)). lux copies the checked directory into
+  the sandbox (`luxos-sandbox build-install`), installs `base-devel`/dependencies there, runs
+  `makepkg` inside as the sandbox user and installs the result with the sandbox's own `pacman`. The
+  build script never runs on your system. Start the app with `luxos-sandbox run --gui --net <command>`.
+- **Into the system only with explicit permission**: `--system`, or choose "2 System" and type the
+  word `system`. A **dangerous** script is never installed into the system; an unchecked or
+  suspicious one only after you confirm without `-y`. System builds use `makepkg -si`
+  (`jq`, `git`, `base-devel` are offered), sources in `~/.cache/lux/aur/<pkgbase>`.
+- `lux update` rebuilds newer versions of community packages already in the system and checks the
+  new build script again (not as root, not with `--repo`).
+- **LuxAI never installs community packages**: lux refuses them when run by the LuxAI agent
+  (`LUXAI_AGENT=1`) and LuxAI tells you to run `lux install <name>` yourself.
+- Hardware drivers people need (printers, scanners) are verified and shipped in the LuxOS
+  repository instead — see [drivers.md](drivers.md).
 
 ## lux update in detail
 
 1. Waits up to 5 minutes for another package manager (LuxOS Care, Store); a stale lock with nothing
    running is removed (`Removed a stale database lock left by an interrupted update.`).
 2. Refreshes databases, updates `archlinux-keyring` / `luxos-keyring` first, then the full system.
-3. AUR packages, `.lux` apps, Flatpak apps; lists new `*.pacnew` files and warns when a restart is needed.
+3. Community (AUR) packages in the system, `.lux` apps, Flatpak apps (then unused Flatpak runtimes are
+   removed); lists new `*.pacnew` files and warns when a restart is needed.
 
 Automatic background updates are done by LuxOS Care — see [care-updates.md](care-updates.md).
 

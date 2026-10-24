@@ -16,6 +16,7 @@ import ctypes
 import locale
 import math
 import os
+import re
 import sys
 import time
 import warnings
@@ -397,6 +398,16 @@ def read(path, default=""):
 # do FPRINT_SKIP (pam_listfile) a autentizaci spustime znovu - PAM otisk preskoci a hned chce heslo.
 FPRINT_SKIP = "/run/luxos-fingerprint/password-only"
 DEMO_FPRINT = os.environ.get("LUXOS_GREETER_DEMO_FPRINT", "")   # demo: match | nomatch | wait
+
+
+def account_locked(text):
+    """Zprava pam_faillock o zamcenem uctu -> zbyvajici minuty (0 = neznamo), jinak None.
+    Linux-PAM ji prekladat muze: anglicky "account is locked", cesky "zamčen"/"uzamčen"."""
+    t = (text or "").lower()
+    if not any(k in t for k in ("account is locked", "is locked due to", "left to unlock", "zamčen", "uzamčen", "zablokov", "do odemčení")):
+        return None
+    m = re.search(r"(\d+)\s*(?:minute|minut)", t)
+    return int(m.group(1)) if m else 0
 
 
 def fprint_enabled(demo=False):
@@ -1572,6 +1583,15 @@ class Greeter(Gtk.Window):
 
     def on_message(self, text, is_error):
         debug("message", repr(text), "error" if is_error else "info")
+        # pam_faillock: ucet docasne zamceny po mnoha chybach - behem zamku neprojde ani spravne
+        # heslo, proto to rict jasne (ne "nespravne heslo" ani "otisk nebyl rozpoznan")
+        mins = account_locked(text)
+        if mins is not None:
+            self.locked_hint = (_("Too many failed attempts. The account is locked for %d min, then try again.") % mins
+                                if mins > 0 else _("Too many failed attempts. Wait a moment, then try again."))
+            self.show_hint(self.locked_hint, True)
+            self.error_shown = True
+            return
         # zpravy pam_fprintd prichazeji pred vyzvou k heslu (jejich text muze byt v jinem jazyce)
         if self.fprint and not self.prompted and not self.password_only and self.user.name:
             if not is_error:
@@ -1616,7 +1636,10 @@ class Greeter(Gtk.Window):
                 self.set_placeholder(_("Log In"))
                 self.go_area.queue_draw()
             return
-        if not self.error_shown:
+        if getattr(self, "locked_hint", None):
+            self.show_hint(self.locked_hint, True)
+            self.locked_hint = None
+        elif not self.error_shown:
             self.show_hint(_("Incorrect password. Try again."), True)
         self.error_shown = True
         self.shake()
