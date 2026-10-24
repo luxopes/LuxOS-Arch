@@ -2689,3 +2689,6 @@ install script outside the package directory: %s	telepítőszkript a csomagköny
 the install script name cannot be determined: %s	a telepítőszkript neve nem határozható meg: %s
 LuxAI could not see all files of the package	a LuxAI nem látta a csomag összes fájlját
 Install it now?	Telepíti most?
+Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Kódszerkesztők, Git és GitHub, fordítók és hibakeresők, Python, Node.js, Go és Rust, konténerek, SSH és mindennapi parancssori eszközök.
+Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Irodai csomag, e-mail, médialejátszó minden gyakori kodekkel, jelszókezelő, PDF- és lemezeszközök, valamint további betűtípusok dokumentumokhoz.
+Desktop wallpaper and clock	Íróasztal-háttérkép és óra

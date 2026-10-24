@@ -109,8 +109,11 @@ running.
 
 Notifications come from xfce4-notifyd. They are slightly translucent and follow light or dark mode
 (themes in `luxos-themes`), and they disappear after 6 s. Do Not Disturb is in Control Center. The
-bell in the top bar shows the history. `luxos-hub` also sends notifications about low memory
-(earlyoom), missing drivers and no internet.
+bell in the top bar shows the history: every notification of every app is kept (xfconf
+`xfce4-notifyd` `/notification-log=true`, `/log-level=always`, the last 100), not only the ones
+missed during Do Not Disturb. Short on-screen indicators sent with the `transient` hint (volume) are
+not kept. `luxos-hub` also sends notifications about low memory (earlyoom), missing drivers, no
+internet and the daylight saving time change; the Calendar reminds of events.
 
 ## Light, dark and auto appearance
 
@@ -125,6 +128,7 @@ luxos-appearance mode                    # light | dark | auto (the setting)
 luxos-appearance wallpaper FILE          # wallpaper on all monitors and workspaces
 luxos-appearance bar-opacity 0-100       # top bar opacity (default 62)
 luxos-appearance dock-opacity 0-100|default
+luxos-appearance greeter-sync            # same wallpaper on the login screen (done automatically)
 ```
 
 - Light mode is the default. The state is stored in `~/.config/luxos/appearance`, and the
@@ -175,8 +179,17 @@ The configuration file is `/etc/lightdm/luxos-greeter.conf`, with keys `backgrou
 selects this greeter. To preview it without LightDM: `luxos-greeter --demo` (the password is
 `luxos`).
 
+The login screen and the screen shown when switching users use the wallpaper of the user's desktop
+(in the current light or dark mode): `luxos-appearance greeter-sync` writes it to AccountsService
+(`BackgroundFile`) at login, when the mode changes and, through `luxos-hub`, whenever the desktop
+wallpaper changes. A wallpaper the login screen cannot read (in the home folder) is replaced by the
+LuxOS wallpaper of the current mode; a `BackgroundFile` set by other means is left alone.
+`LOGIN_WALLPAPER=0` in `~/.config/luxos/appearance.conf` turns this off; `user-background=false` in
+`luxos-greeter.conf` makes the login screen always use `background`.
+
 The screen locks with `xflock4` (`Super+L`, `Ctrl+Super+Q`). The lock settings are in Screen Saver &
-Lock.
+Lock. The default screen saver of the locked screen, "Desktop wallpaper and clock", shows the same
+wallpaper as the desktop with a large clock; the password dialog uses it too.
 
 ## Session startup and luxos-hub
 

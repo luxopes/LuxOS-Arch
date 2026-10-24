@@ -22,7 +22,9 @@
             "rolling release",
             "differences",
             "components",
-            "what is new"
+            "what is new",
+            "man",
+            "manual pages"
           ]
         },
         {
@@ -53,7 +55,9 @@
             "add repository",
             "hold",
             "mirrors",
-            "lux-engine"
+            "lux-engine",
+            "man",
+            "manual pages"
           ]
         },
         {
@@ -975,7 +979,8 @@
             "NO_COLOR",
             "lslc",
             "luxir",
-            "lsl version"
+            "lsl version",
+            "man"
           ]
         },
         {

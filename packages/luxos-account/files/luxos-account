@@ -160,6 +160,9 @@ class AccountWindow(Gtk.Window):
         new.pack_start(create, False, False, 0)
         box.pack_end(new, False, False, 0)
         self.replace(box)
+        # na karte Novy ucet je odkaz "Vytvorit ucet" zbytecny
+        self.panel.on_mode = lambda m: new.set_visible(m != "register")
+        new.set_visible(self.panel.mode != "register")
 
     def busy(self, on, text=""):
         (self.spinner.start if on else self.spinner.stop)()

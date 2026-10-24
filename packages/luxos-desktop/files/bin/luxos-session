@@ -83,6 +83,8 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do
     sleep 0.5
 done
 luxos-appearance reapply
+# Stejna tapeta i na prihlasovaci obrazovce (i u profilu z drivejsich verzi; dalsi zmeny hlida luxos-hub)
+luxos-appearance greeter-sync &
 # Pripojeni/odpojeni monitoru hlida luxos-menubar (udalosti RandR, bez dotazovani)
 
 # Live ISO: ikona instalatoru na plose

@@ -5,3 +5,5 @@ Comment=Show all applications
 Exec=luxos-launchpad
 Icon=luxos-launchpad
 Categories=System;
+# Launchpad sam sebe v mrizce nezobrazuje (v Hledani a menu zustava)
+NotShowIn=X-LuxOS-Launchpad;

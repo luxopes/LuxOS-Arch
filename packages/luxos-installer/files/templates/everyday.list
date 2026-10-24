@@ -5,15 +5,34 @@
 #   %lang% / %lang_%  jazyk systemu (cs_CZ -> cs-cz nebo cs / cs_cz nebo cs); balik se
 #                     pouzije, jen pokud existuje (jinak se tise vynecha)
 @name Everyday
-@description Office suite for documents, spreadsheets and presentations, an e-mail client and a calculator.
-@apps LibreOffice · Thunderbird · Galculator
+@description Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.
+@apps LibreOffice · Thunderbird · VLC · KeePassXC · PDF Arranger · Disks · Transmission
 @icon x-office-document
 @order 10
 # priblizna velikost stahovani v MB nad zakladni system (odhad podle repozitaru 2026-10)
-@download 320
+@download 760
+# Kancelar a posta
 libreoffice-fresh
 libreoffice-fresh-%lang%
 hunspell-%lang_%
+hyphen-%lang_%
 thunderbird
 thunderbird-i18n-%lang%
 galculator
+pdfarranger
+# Multimedia: prehravac a kodeky (H.264/H.265, AAC, DVD titulky apod. i v prohlizeci a Celluloidu)
+vlc
+vlc-plugins-all
+gst-libav
+gst-plugins-bad
+gst-plugins-ugly
+# Hesla, disky, stahovani
+keepassxc
+gnome-disk-utility
+baobab
+transmission-gtk
+# Pisma pro dokumenty (kompatibilni s Office, CJK, emoji uz je v zakladu)
+ttf-dejavu
+ttf-carlito
+ttf-caladea
+noto-fonts-cjk

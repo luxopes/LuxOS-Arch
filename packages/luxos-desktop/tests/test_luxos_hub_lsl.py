@@ -71,6 +71,9 @@ NM_XML = """<node><interface name="org.freedesktop.NetworkManager">
 PANEL_XML = """<node><interface name="org.xfce.Panel">
   <method name="PluginEvent"><arg type="s" direction="in"/><arg type="s" direction="in"/><arg type="v" direction="in"/></method>
 </interface></node>"""
+XFCONF_SIGNAL_XML = """<node><interface name="org.xfce.Xfconf">
+  <signal name="PropertyChanged"><arg type="s"/><arg type="s"/><arg type="v"/></signal>
+</interface></node>"""
 NOTIFY_XML = """<node><interface name="org.freedesktop.Notifications">
   <method name="Notify"><arg type="s" direction="in"/><arg type="u" direction="in"/><arg type="s" direction="in"/>
     <arg type="s" direction="in"/><arg type="s" direction="in"/><arg type="as" direction="in"/><arg type="a{sv}" direction="in"/>
@@ -461,6 +464,35 @@ class Hub(unittest.TestCase):
         self.assertEqual(r.unpack(), ())
         r = call_agent("Release", None)
         self.assertEqual(r.unpack(), ())
+
+    # ---- tapeta prihlasovaci obrazovky ---------------------------------------------------------------------------
+    def test_wallpaper_change_syncs_login_screen(self):
+        """Zmena tapety plochy (xfconf xfce4-desktop .../last-image) -> jedno luxos-appearance greeter-sync."""
+        xfconf = self.service("org.xfce.Xfconf", [("/org/xfce/Xfconf", XFCONF_SIGNAL_XML)])
+        self.start_hub(LUXOS_HUB_WALLSYNC_DELAY="300")
+
+        def emit(channel, prop, value):
+            xfconf.emit("/org/xfce/Xfconf", "org.xfce.Xfconf", "PropertyChanged",
+                        GLib.Variant("(ssv)", (channel, prop, GLib.Variant("s", value))))
+
+        def syncs():
+            return [c for c in self.calls() if c == "luxos-appearance greeter-sync"]
+        # jine vlastnosti a kanaly nic nespousti
+        emit("xfce4-desktop", "/backdrop/screen0/monitoreDP-1/workspace0/image-style", "5")
+        emit("xfce4-panel", "/plugins/plugin-1/last-image", "x")
+        time.sleep(1.0)
+        self.assertEqual(syncs(), [])
+        # davka zmen (vsechny monitory a plochy) -> jedno spusteni
+        for mon in ("eDP-1", "HDMI-1"):
+            for ws in range(4):
+                emit("xfce4-desktop", f"/backdrop/screen0/monitor{mon}/workspace{ws}/last-image", "/usr/share/backgrounds/luxos/luxos-dark.jpg")
+        self.assertTrue(self.wait_for(lambda: len(syncs()) == 1, 5), self.calls())
+        time.sleep(0.8)
+        self.assertEqual(len(syncs()), 1)
+        # dalsi zmena pozdeji -> dalsi spusteni
+        emit("xfce4-desktop", "/backdrop/screen0/monitoreDP-1/workspace0/last-image", "/usr/share/backgrounds/luxos/luxos-light.jpg")
+        self.assertTrue(self.wait_for(lambda: len(syncs()) == 2, 5), self.calls())
+        self.assertEqual(self.hub.poll(), None)
 
     # ---- LuxOS Care a Ovladace -----------------------------------------------------------------------------------
     def test_care_restart_notice_after_reboot(self):

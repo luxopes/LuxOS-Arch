@@ -137,3 +137,17 @@ one for rollback. `--allow-downgrade` is a developer override.
 `lslc` (low-level trust-core compiler), `luxir` (LuxIR backend: code generation, built-in
 assembler and linker for x86, x86_64, ARM, ARM64, RISC-V 64), `lsl-configure` (native
 configuration evaluator generator), `lsl-cuda-worker` (CUDA worker process).
+
+## lslc
+
+```text
+lslc [--safe | --unsafe | --sandbox] [--target NAME] SOURCE OUTPUT [LSL-QBE]
+```
+
+`lslc` compiles one source file into a native executable like `lsl compile`, but it is the
+explicit trust-core developer tool: the safety policy of the `lsl` command is not applied to it.
+`--safe` is checked compilation (the default for normal sources), `--unsafe` the unsafe compiler
+mode (the default for internal sources starting with `# lsl: internal-abi`), `--sandbox` also
+refuses `unsafe:` blocks (code meant for a sandbox). `--target NAME` cross-compiles like
+`lsl compile --target`; the optional `LSL-QBE` selects another backend. Wrong usage prints the
+usage line and exits with status 2. For normal programs use `lsl compile`.

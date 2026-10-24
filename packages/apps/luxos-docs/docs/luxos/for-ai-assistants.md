@@ -164,5 +164,13 @@ starting at [LSL overview](../lsl/overview.md).
 - Updates may run automatically in the background (LuxOS Care); if the package database is locked,
   wait instead of forcing.
 
+## Manual pages
+
+The same documentation is installed as manual pages (generated from these files, so they never
+differ): `man luxos` (overview: what is where), `man lux` and `man lux.conf` (packages and
+`/etc/lux/lux.conf`), `man luxos-care`, `man luxos-sandbox`, `man luxos-safe`, `man luxos-guard`,
+`man luxdrop`, and for LSL `man lsl` (command line), `man 7 lsl` (language and standard library)
+and `man lslc`. Suggest them to users who prefer the terminal; `man -k luxos` lists them.
+
 When something fails, follow [troubleshooting.md](troubleshooting.md) and report the exact error
 message to the user instead of guessing.

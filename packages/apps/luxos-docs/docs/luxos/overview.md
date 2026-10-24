@@ -8,9 +8,9 @@ started from.
 
 ## Version and codenames
 
-- Current version: **0.9.2 "Polaris"** (beta, 2026-10-22).
+- Current version: **0.9.11 "Polaris"** (beta, 2026-10-24). The exact installed version is always in `/usr/lib/os-release`.
 - Single source of the version: `/usr/lib/os-release` (written by `luxos-branding`):
-  `ID=luxos`, `ID_LIKE=arch`, `VERSION_ID=0.9.2`, `PRETTY_NAME="LuxOS … Polaris"`, `BUILD_ID` =
+  `ID=luxos`, `ID_LIKE=arch`, `VERSION_ID=0.9.11`, `PRETTY_NAME="LuxOS … Polaris"`, `BUILD_ID` =
   build day. `/etc/os-release` links to it. The same version appears in About This Computer,
   fastfetch and the ISO name.
 - Numbering `X.Y.Z`: `Y` grows with every new ISO, `Z` with bug-fix releases. Every major version
@@ -24,6 +24,15 @@ started from.
 | 0.9.0 | first numbered version: macOS-like desktop over Xfce, LuxOS apps (Store, LuxAI, Lux Code, LSL IDE, Calculator, Camera, Scanner, Printers & Scanners, Drivers, System Monitor, Bluetooth, Battery & Power, Safe, LuxDrop, Feedback), `lux` with signed `[luxos]`/`[luxos-apps]` repos, automatic driver detection, earlyoom, Data/Battery Saver, automatic maintenance, 13 languages, installer with whole disk / free space / existing partition / manual LVM+LUKS2 and app sets, LuxAI account in the installer |
 | 0.9.1 | Screenshot tool with recording, Displays (resolution, refresh rate, rotation with 15 s confirmation, text size), fingerprint login, What's New, `lux configs`; **no `pacman` command any more** – the engine is `lux-engine` |
 | 0.9.2 | several keyboard layouts (installer and Keyboard Layouts app), editable Keyboard Shortcuts, automatic switch to newly connected audio outputs, fix for "unresolvable package conflicts" on older installs |
+| 0.9.3 | stronger Data/Battery Saver, closing the lid keeps media playing, `adduser`/`service`/`about` commands in lsh, installer secure erase, new Alt+Tab |
+| 0.9.4 | faster startup and lower memory use (image loaders, lazy windows) |
+| 0.9.5 | Screenshot copy/save actions, named LuxAI conversations, Super alone opens Launchpad |
+| 0.9.6 | no pacman at all: own `/etc/lux/lux.conf` format, `lux-engine`; more parts rewritten in LSL |
+| 0.9.7 | own `linux-luxos` kernel, Lux Guard (blocks dangerous downloads outside the Sandbox), captive portal sign-in, Control Center and Calendar in LSL |
+| 0.9.8 | LuxOS kernel on older installs, brightness by scrolling on the battery, daylight saving time reminders, formatted Store updates |
+| 0.9.9 | encrypted disk start never fails silently (wrong password message, unlimited tries, boot failure log), dual-boot installer fixes, Ventoy, `lux check`, `man lux` |
+| 0.9.10 | verified printer/scanner drivers in `[luxos-drivers]`, community (AUR) packages reviewed and installed into the Sandbox, Flathub in `lux` and Lux Store, no password lockouts (only brute-force rate) |
+| 0.9.11 | Launchpad highlights the app under the pointer, notification history, lock/login screen use the desktop wallpaper, screenshots in Pictures/Screenshots, brightness scrolling fixed, LuxAI web search/fetch with prompt-injection protection, copy, math and code highlighting, man pages (`man luxos`), bigger Everyday/Programming app sets |
 
 What's New after an update shows these items (data in `/usr/share/luxos/whats-new/<version>.json`).
 
@@ -69,7 +78,8 @@ What's New after an update shows these items (data in `/usr/share/luxos/whats-ne
 Where settings are stored: [configuration.md](configuration.md). Fixing problems:
 [troubleshooting.md](troubleshooting.md). Guidance for AI assistants working on a LuxOS computer:
 [for-ai-assistants.md](for-ai-assistants.md). The programming language LSL:
-[LSL overview](../lsl/overview.md).
+[LSL overview](../lsl/overview.md). The same pages are installed as manual pages generated from
+this documentation: start with `man luxos`, then e.g. `man lux.conf`, `man luxos-care`, `man lsl`.
 
 ## Default software
 

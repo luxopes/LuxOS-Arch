@@ -1,6 +1,6 @@
 #!/bin/bash
 # LuxOS - vzhled: svetly/tmavy rezim, tapeta, pruhlednost horni listy a docku
-# Pouziti: luxos-appearance [dark|light|auto|toggle|status|mode|watch|reapply]
+# Pouziti: luxos-appearance [dark|light|auto|toggle|status|mode|watch|reapply|greeter-sync]
 #          auto = podle vychodu/zapadu slunce (poloha z casoveho pasma), watch = hlidani v relaci
 #          luxos-appearance wallpaper SOUBOR | bar-opacity 0-100 | dock-opacity 0-100|default
 set -u
@@ -12,6 +12,7 @@ wall_dir=/usr/share/backgrounds/luxos
 BAR_OPACITY=62
 DOCK_OPACITY=
 APPEARANCE_AUTO=0
+LOGIN_WALLPAPER=1    # 0 = prihlasovaci obrazovka si necha vlastni tapetu
 [[ -r $prefs ]] && . "$prefs"
 
 set_pref() {  # set_pref KLIC HODNOTA
@@ -70,6 +71,68 @@ set_wallpaper() {
             fi
         done
     done
+}
+
+# Tapeta plochy na hlavnim monitoru (plocha 0, stejne jako zamykaci dialog xfce4-screensaver)
+desktop_wallpaper() {
+    local mon line prop val first=
+    local -A have=()
+    while IFS= read -r line; do
+        [[ $line == /backdrop/screen0/monitor*/last-image* ]] || continue
+        prop=${line%%[[:space:]]*}
+        val=${line#"$prop"}
+        val=${val#"${val%%[![:space:]]*}"}
+        [[ -n $val ]] || continue
+        have[$prop]=$val
+        [[ -n $first || $prop != */workspace0/last-image ]] || first=$val
+    done < <(xfconf-query -c xfce4-desktop -l -v 2>/dev/null)
+    # hlavni monitor (*) prvni, pak ostatni
+    for mon in $(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1 {p = ($2 ~ /\*/) ? 0 : 1; print p, $NF}' | sort -s -k1,1 | cut -d' ' -f2); do
+        val=${have[/backdrop/screen0/monitor$mon/workspace0/last-image]-}
+        [[ -n $val ]] && { printf '%s\n' "$val"; return; }
+    done
+    [[ -n $first ]] && printf '%s\n' "$first"
+}
+
+# Muze soubor cist i jiny uzivatel (prihlasovaci obrazovka bezi jako lightdm)? Tapety
+# v domovske slozce (prava 700) ne - pak vychozi tapeta LuxOS pro aktualni rezim.
+world_readable() {
+    local p
+    p=$(realpath -e -- "$1" 2>/dev/null) || return 1
+    [[ -f $p && $(stat -c %A -- "$p") == ???????r?? ]] || return 1
+    p=${p%/*}
+    while [[ -n $p ]]; do
+        [[ $(stat -c %A -- "$p") == ?????????[xt] ]] || return 1
+        p=${p%/*}
+    done
+}
+
+# Tapeta prihlasovaci obrazovky a obrazovky pri prepnuti uzivatele = tapeta plochy (luxos-greeter
+# ji bere z AccountsService, BackgroundFile). Jinou tapetu nastavenou mimo LuxOS nemeni:
+# prepisuje jen prazdnou, vychozi LuxOS nebo tu, kterou sem drive zapsal sam (greeter-wallpaper).
+# Vypnuti: LOGIN_WALLPAPER=0 v appearance.conf.
+greeter_sync() {
+    local img user cur last synced="$state_dir/greeter-wallpaper"
+    [[ ${LOGIN_WALLPAPER:-1} == 0 ]] && return 0
+    command -v busctl >/dev/null || return 0
+    img=$(desktop_wallpaper)
+    [[ -n $img ]] && world_readable "$img" || img="$wall_dir/luxos-$(current).jpg"
+    user=$(busctl --system call org.freedesktop.Accounts /org/freedesktop/Accounts \
+        org.freedesktop.Accounts FindUserById x "$(id -u)" 2>/dev/null) || return 0
+    user=${user#o \"}
+    user=${user%\"}
+    cur=$(busctl --system get-property org.freedesktop.Accounts "$user" \
+        org.freedesktop.DisplayManager.AccountsService BackgroundFile 2>/dev/null) || return 0
+    cur=${cur#s \"}
+    cur=${cur%\"}
+    [[ $cur == "$img" ]] && { mkdir -p "$state_dir"; printf '%s\n' "$img" >"$synced"; return 0; }
+    last=$(cat "$synced" 2>/dev/null)
+    if [[ -z $cur || $cur == "$last" || $cur == "$wall_dir"/luxos-@(dark|light).jpg ]]; then
+        busctl --system set-property org.freedesktop.Accounts "$user" \
+            org.freedesktop.DisplayManager.AccountsService BackgroundFile s "$img" 2>/dev/null || return 0
+        mkdir -p "$state_dir"
+        printf '%s\n' "$img" >"$synced"
+    fi
 }
 
 # Barva textu horni listy: WhiteSur pocita s tmavou listou, ve svetlem rezimu ji prebarvime.
@@ -132,10 +195,10 @@ apply() {
 }
 
 case ${1:-status} in
-    dark|light) set_pref APPEARANCE_AUTO 0; apply "$1"; set_wallpaper "$1" 1 ;;
+    dark|light) set_pref APPEARANCE_AUTO 0; apply "$1"; set_wallpaper "$1" 1; greeter_sync ;;
     toggle)     set_pref APPEARANCE_AUTO 0
-                m=$([[ $(current) == dark ]] && echo light || echo dark); apply "$m"; set_wallpaper "$m" 1 ;;
-    auto)       set_pref APPEARANCE_AUTO 1; m=$(sun_mode); apply "$m"; set_wallpaper "$m" 1 ;;
+                m=$([[ $(current) == dark ]] && echo light || echo dark); apply "$m"; set_wallpaper "$m" 1; greeter_sync ;;
+    auto)       set_pref APPEARANCE_AUTO 1; m=$(sun_mode); apply "$m"; set_wallpaper "$m" 1; greeter_sync ;;
     mode)       [[ $APPEARANCE_AUTO == 1 ]] && echo auto || current ;;
     watch)
         # Automaticky rezim: kontrola kazdych 5 minut (zmena nastaveni se nacte znovu)
@@ -144,9 +207,10 @@ case ${1:-status} in
             [[ -r $prefs ]] && . "$prefs"
             [[ $APPEARANCE_AUTO == 1 ]] || continue
             m=$(sun_mode)
-            [[ $m == "$(current)" ]] || { apply "$m"; set_wallpaper "$m" 1; }
+            [[ $m == "$(current)" ]] || { apply "$m"; set_wallpaper "$m" 1; greeter_sync; }
         done ;;
     reapply)    set_wallpaper "$(current)" 0 ;;
+    greeter-sync) greeter_sync ;;
     status)     current ;;
     wallpaper)
         [[ -r ${2-} ]] || { echo "Usage: luxos-appearance wallpaper FILE" >&2; exit 2; }
@@ -155,7 +219,8 @@ case ${1:-status} in
                 xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor$mon/workspace$ws/last-image" -n -t string -s "$2"
                 xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor$mon/workspace$ws/image-style" -n -t int -s 5
             done
-        done ;;
+        done
+        greeter_sync ;;
     bar-opacity|dock-opacity)
         v=${2-}
         [[ $1 == dock-opacity && $v == default ]] && v=
@@ -163,5 +228,5 @@ case ${1:-status} in
         if [[ $1 == bar-opacity ]]; then BAR_OPACITY=$v; set_pref BAR_OPACITY "$v"
         else DOCK_OPACITY=$v; set_pref DOCK_OPACITY "$v"; fi
         apply "$(current)" ;;
-    *) echo "Usage: luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE|bar-opacity N|dock-opacity N]" >&2; exit 2 ;;
+    *) echo "Usage: luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE|greeter-sync|bar-opacity N|dock-opacity N]" >&2; exit 2 ;;
 esac

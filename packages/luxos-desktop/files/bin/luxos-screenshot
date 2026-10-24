@@ -34,10 +34,14 @@ RUNTIME = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
 PIDFILE = os.path.join(RUNTIME, "luxos-screenshot.pid")
 
 MODES = ("screen", "window", "portion", "rec_screen", "rec_portion")
-SAVE_TO = ("desktop", "pictures", "clipboard", "other")
+# "screenshots" = Obrazky/Snimky obrazovky (nazev slozky podle jazyka), vytvori se az pri ulozeni
+SAVE_TO = ("screenshots", "desktop", "pictures", "clipboard", "other")
 TIMERS = (0, 5, 10)
-DEFAULTS = {"save_to": "desktop", "other_dir": "", "timer": 0, "pointer": False,
+DEFAULTS = {"save_to": "screenshots", "other_dir": "", "timer": 0, "pointer": False,
             "remember": True, "selection": None, "mode": "portion"}
+# Verze souboru voleb: do 0.9.10 (bez klice "version") byla vychozi Plocha a ukladala se
+# i bez vyberu uzivatele, takze "desktop" ze starsiho souboru se prevede na novou vychozi slozku
+OPTIONS_VERSION = 2
 HIDE_DELAY = 180        # ms: cas na prekresleni obrazovky po skryti listy
 THUMB_TIME = 5000       # ms: jak dlouho je videt nahled po ulozeni
 
@@ -55,6 +59,8 @@ def load_options(path=CFG_FILE):
         return opts
     if data.get("save_to") in SAVE_TO:
         opts["save_to"] = data["save_to"]
+    if opts["save_to"] == "desktop" and data.get("version") != OPTIONS_VERSION:
+        opts["save_to"] = DEFAULTS["save_to"]
     if isinstance(data.get("other_dir"), str):
         opts["other_dir"] = data["other_dir"]
     if data.get("timer") in TIMERS and not isinstance(data.get("timer"), bool):
@@ -69,7 +75,7 @@ def load_options(path=CFG_FILE):
             and sel[2] > 0 and sel[3] > 0):
         opts["selection"] = sel
     if opts["save_to"] == "other" and not opts["other_dir"]:
-        opts["save_to"] = "desktop"
+        opts["save_to"] = DEFAULTS["save_to"]
     return opts
 
 
@@ -78,7 +84,9 @@ def save_options(opts, path=CFG_FILE):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         tmp = path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump({k: opts.get(k, v) for k, v in DEFAULTS.items()}, f, indent=1)
+            data = {k: opts.get(k, v) for k, v in DEFAULTS.items()}
+            data["version"] = OPTIONS_VERSION
+            json.dump(data, f, indent=1)
         os.replace(tmp, path)
     except OSError:
         pass
@@ -118,16 +126,24 @@ def user_dir(kind):
     return d
 
 
+def screenshots_dir():
+    """Obrazky/Snimky obrazovky - nazev podslozky podle jazyka (cs: Snimky obrazovky)."""
+    name = (_("Screenshots") or "Screenshots").replace("/", "-").strip() or "Screenshots"
+    return os.path.join(user_dir("pictures"), name)
+
+
 def save_dir(opts, video=False, override=None):
     """Kam ulozit soubor; None = schranka (jen u snimku, video do schranky nejde)."""
     if override:
         return override
     to = opts.get("save_to")
     if to == "clipboard":
-        return user_dir("desktop") if video else None
+        return screenshots_dir() if video else None
     if to == "other" and opts.get("other_dir") and os.path.isdir(opts["other_dir"]):
         return opts["other_dir"]
-    return user_dir("pictures" if to == "pictures" else "desktop")
+    if to in ("desktop", "pictures"):
+        return user_dir(to)
+    return screenshots_dir()
 
 
 def clamp_rect(rect, width, height):
@@ -750,7 +766,8 @@ class Toolbar(Popup):
         if key == "close":
             return _("Close"), "Esc", None
         if key == "options":
-            dest = {"desktop": _("Desktop"), "pictures": _("Pictures"), "clipboard": _("Clipboard")}.get(
+            dest = {"screenshots": _("Screenshots"), "desktop": _("Desktop"), "pictures": _("Pictures"),
+                    "clipboard": _("Clipboard")}.get(
                 self.app.opts["save_to"]) or os.path.basename(self.app.opts["other_dir"].rstrip("/"))
             try:
                 return _("Save to: %s") % dest, None, None
@@ -1591,7 +1608,8 @@ class App:
 
         header(_("Save to"))
         g = None
-        for key, label in (("desktop", _("Desktop")), ("pictures", _("Pictures")), ("clipboard", _("Clipboard"))):
+        for key, label in (("screenshots", _("Screenshots")), ("desktop", _("Desktop")), ("pictures", _("Pictures")),
+                           ("clipboard", _("Clipboard"))):
             g = radio(g, label, o["save_to"] == key, lambda k=key: self.set_opt("save_to", k))
         # Napoveda pod Schrankou: kopie jednoho snimku bez zmeny volby
         hint = Gtk.MenuItem(sensitive=False)

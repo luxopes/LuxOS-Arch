@@ -7,7 +7,7 @@
 
 pkgname=xfce4-genmon-plugin
 pkgver=4.3.0
-pkgrel=1.1
+pkgrel=1.2
 pkgdesc="plugin that monitors customizable programs stdout for the Xfce4 panel (LuxOS: scroll command)"
 arch=('x86_64')
 license=('LGPL-2.1-only')
@@ -19,7 +19,7 @@ options=(!debug)
 source=("git+https://gitlab.xfce.org/panel-plugins/xfce4-genmon-plugin.git#tag=$pkgname-$pkgver"
         scroll-command.patch)
 sha256sums=('f4b2bd32cd4385c65b3a432191be467ed0e1fbad424cac5a7484a438e6062811'
-            '969b8f473923815cf9d6ab7e8772086bfea9630ef081c447bc091cfea101d612')
+            '8d46df641e5ac85f5aac75bd04931caea11ad2a5c9eb2364b593eb4453abbf95')
 
 prepare() {
   cd $pkgname

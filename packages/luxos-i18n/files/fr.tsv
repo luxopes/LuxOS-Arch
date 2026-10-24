@@ -2689,3 +2689,6 @@ install script outside the package directory: %s	script d’installation en deho
 the install script name cannot be determined: %s	le nom du script d’installation ne peut pas être déterminé : %s
 LuxAI could not see all files of the package	LuxAI n’a pas pu voir tous les fichiers du paquet
 Install it now?	L'installer maintenant ?
+Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Éditeurs de code, Git et GitHub, compilateurs et débogueurs, Python, Node.js, Go et Rust, conteneurs, SSH et outils en ligne de commande du quotidien.
+Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Suite bureautique, messagerie, un lecteur multimédia avec tous les codecs courants, un gestionnaire de mots de passe, des outils PDF et disques et plus de polices pour les documents.
+Desktop wallpaper and clock	Fond d’écran du bureau et horloge

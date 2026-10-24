@@ -3,7 +3,7 @@
 
 pkgname=luxos-greeter
 pkgver=1.0.0
-pkgrel=5
+pkgrel=6
 pkgdesc="LuxOS login screen for LightDM (clock, frosted password field, power buttons)"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"

@@ -19,7 +19,8 @@ from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 CH = "xfce4-screensaver"
 SAVER = "/usr/lib/xfce4-screensaver/luxos"
 # id tematu xfce4-screensaver (screensavers-<soubor .desktop>) -> styl luxos-screensaver
-THEMES = [("screensavers-luxos", "wallpapers", "LuxOS - wallpapers and clock"),
+THEMES = [("screensavers-luxos-wallpaper", "desktop", "Desktop wallpaper and clock"),
+          ("screensavers-luxos", "wallpapers", "LuxOS - wallpapers and clock"),
           ("screensavers-luxos-clock", "clock", "Clock"),
           ("screensavers-luxos-aurora", "aurora", "Aurora"),
           ("screensavers-luxos-photos", "photos", "Photos"),
@@ -103,7 +104,7 @@ class LockSettings(Gtk.Window):
         g.row(_("Start after inactivity of"), start)
         current = "blank"
         if get("/saver/mode", "0") == "2":
-            current = (get("/saver/themes/list", "").splitlines() or ["screensavers-luxos"])[-1].strip()
+            current = (get("/saver/themes/list", "").splitlines() or ["screensavers-luxos-wallpaper"])[-1].strip()
         kind = combo([(t, _(label)) for t, _s, label in THEMES], current)
         kind.connect("changed", self.on_kind)
         preview = Gtk.Button(label=_("Preview"))

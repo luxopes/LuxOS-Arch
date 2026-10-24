@@ -2690,3 +2690,6 @@ install script outside the package directory: %s	скрипт встановле
 the install script name cannot be determined: %s	неможливо визначити назву скрипту встановлення: %s
 LuxAI could not see all files of the package	LuxAI не побачила всіх файлів пакета
 Install it now?	Встановити зараз?
+Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Редактори коду, Git і GitHub, компілятори та налагоджувачі, Python, Node.js, Go і Rust, контейнери, SSH і щоденні інструменти командного рядка.
+Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Офісний пакет, пошта, медіапрогравач з усіма поширеними кодеками, менеджер паролів, інструменти для PDF і дисків та більше шрифтів для документів.
+Desktop wallpaper and clock	Шпалери робочого столу й годинник
