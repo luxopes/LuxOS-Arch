@@ -2535,3 +2535,35 @@ This network requires you to sign in before you can use the internet.	Questa ret
 Connected to the internet	Connesso a Internet
 You are signed in to the network.	Hai effettuato l'accesso alla rete.
 Step after the update failed:	Un passaggio dopo l'aggiornamento non è riuscito:
+%d updates	%d aggiornamenti
+1 update	1 aggiornamento
+Updating your computer…	Aggiornamento del computer…
+You can keep working. Some apps may need to be restarted afterwards.	Puoi continuare a lavorare. Alcune app potrebbero dover essere riavviate dopo.
+Preparing…	Preparazione…
+Your computer is up to date	Il computer è aggiornato
+All updates were installed.	Tutti gli aggiornamenti sono stati installati.
+Restart your computer to finish the update.	Riavvia il computer per completare l’aggiornamento.
+Updated	Aggiornato
+The update was cancelled	L’aggiornamento è stato annullato
+The update could not be finished	Impossibile completare l’aggiornamento
+Check Again	Controlla di nuovo
+Could not check for updates	Impossibile cercare aggiornamenti
+1 update available	1 aggiornamento disponibile
+Updates bring new features, fixes and security improvements.	Gli aggiornamenti portano novità, correzioni e più sicurezza.
+The time changes tonight	Stanotte cambia l’ora
+Summer time starts tonight	Stanotte inizia l’ora legale
+Winter time starts tonight	Stanotte inizia l’ora solare
+Clocks go back from %s to %s. Your computer changes the time automatically.	Gli orologi tornano indietro dalle %s alle %s. Il computer cambia l’ora automaticamente.
+Clocks go forward from %s to %s. Your computer changes the time automatically.	Gli orologi vanno avanti dalle %s alle %s. Il computer cambia l’ora automaticamente.
+The time has changed	L’ora è cambiata
+Summer time has started	È iniziata l’ora legale
+Winter time has started	È iniziata l’ora solare
+Clocks went back from %s to %s.	Gli orologi sono tornati indietro dalle %s alle %s.
+Clocks went forward from %s to %s.	Gli orologi sono andati avanti dalle %s alle %s.
+Turn Off	Disattiva
+Notify about summer and winter time	Avvisa del cambio tra ora legale e solare
+In the evening before the clocks change and in the morning after.	La sera prima del cambio dell’ora e la mattina dopo.
+Brightness	Luminosità
+Lower the screen to 60 Hz	Ridurre lo schermo a 60 Hz
+A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Un po’ più di batteria sugli schermi da 90–165 Hz. Lo schermo si oscura per un istante quando il Risparmio batteria si attiva o si disattiva.
+Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Batteria più duratura: processore più lento senza turbo, luminosità leggermente ridotta, niente animazioni, i dispositivi inutilizzati vanno in sospensione e le attività in background si mettono in pausa.

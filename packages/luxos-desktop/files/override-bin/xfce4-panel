@@ -1,0 +1,8 @@
+#!/bin/sh
+# LuxOS - horni lista s modulem luxos-panel-menus (kontextove nabidky pluginu bez sedeho nazvu
+# pluginu); externi pluginy (wrapper-2.0) promennou zdedi
+case ":${GTK_MODULES:-}:" in
+    *:luxos-panel-menus:*) ;;
+    *) GTK_MODULES="${GTK_MODULES:+$GTK_MODULES:}luxos-panel-menus"; export GTK_MODULES ;;
+esac
+exec /usr/bin/xfce4-panel "$@"

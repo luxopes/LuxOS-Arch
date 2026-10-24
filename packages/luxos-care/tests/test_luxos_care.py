@@ -933,3 +933,60 @@ class Session(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TscFix(Root):
+    """Plany poplach TSC (Ryzen 5000): tsc=nowatchdog do polozek LuxOS, jen jednou a jen kdyz plati."""
+    CPU = "processor\t: 0\nflags\t\t: fpu tsc constant_tsc nonstop_tsc rdtscp\n"
+    KLOG_OLD = "clocksource: Marking clocksource tsc-early unstable due to frequency skew\n"
+    KLOG_NEW = "clocksource: Marking clocksource 'tsc' as unstable because the skew is too large:\n"
+
+    def setUp(self):
+        super().setUp()
+        self.w("/proc/cpuinfo", self.CPU)
+        self.w("/proc/cmdline", "root=UUID=1234 rw quiet splash\n")
+        self.w("/sys/devices/system/clocksource/clocksource0/current_clocksource", "hpet\n")
+        self.w("/boot/loader/loader.conf", ERASE_LOADER)
+        self.w("/boot/loader/entries/luxos.conf", MAIN_ENTRY)
+        self.w("/boot/loader/entries/luxos-fallback.conf",
+               "title   LuxOS (safe mode)\nlinux   /vmlinuz-linux-zen\ninitrd  /initramfs-linux-zen-fallback.img\n"
+               "options root=UUID=1234 rw\n")
+        self.w("/boot/loader/entries/windows.conf", "title Windows\nefi /EFI/x.efi\noptions keep\n")
+        self.klog = self.KLOG_OLD
+        self.p = mock.patch.object(care, "run", side_effect=lambda cmd, **kw: (0, self.klog))
+        self.p.start()
+
+    def tearDown(self):
+        self.p.stop()
+        super().tearDown()
+
+    def test_detection(self):
+        f = care.tsc_false_alarm
+        self.assertTrue(f(self.KLOG_OLD, self.CPU, "quiet", "hpet"))
+        self.assertTrue(f(self.KLOG_NEW, self.CPU, "quiet", "hpet"))
+        self.assertFalse(f("", self.CPU, "quiet", "hpet"))                             # zadny poplach
+        self.assertFalse(f(self.KLOG_OLD, "flags\t: fpu tsc\n", "quiet", "hpet"))      # TSC neni invariantni
+        self.assertFalse(f(self.KLOG_OLD, self.CPU, "quiet tsc=nowatchdog", "hpet"))   # uz nastaveno
+        self.assertFalse(f(self.KLOG_OLD, self.CPU, "quiet tsc=unstable", "hpet"))     # rozhodl uzivatel
+        self.assertFalse(f(self.KLOG_OLD, self.CPU, "quiet", "tsc"))
+
+    def test_sdboot_entries(self):
+        self.assertTrue(care.tsc_fix())
+        self.assertIn("options root=UUID=1234 rw rootflags=subvol=@ quiet splash tsc=nowatchdog\n",
+                      self.r("/boot/loader/entries/luxos.conf"))
+        self.assertIn("options root=UUID=1234 rw tsc=nowatchdog\n", self.r("/boot/loader/entries/luxos-fallback.conf"))
+        self.assertEqual(self.r("/boot/loader/entries/windows.conf"), "title Windows\nefi /EFI/x.efi\noptions keep\n")
+        before = self.r("/boot/loader/entries/luxos.conf")
+        self.assertFalse(care.tsc_fix())                                   # podruhe nic
+        self.assertEqual(self.r("/boot/loader/entries/luxos.conf"), before)
+
+    def test_no_alarm_no_change(self):
+        self.klog = "clocksource: Switched to clocksource tsc\n"
+        self.assertFalse(care.tsc_fix())
+        self.assertEqual(self.r("/boot/loader/entries/luxos.conf"), MAIN_ENTRY)
+
+    def test_previous_kernel_entry_inherits(self):
+        care.tsc_fix()
+        lay = care.detect_layout()
+        text = care.prev_entry_text(self.r("/boot/loader/entries/luxos.conf"), lay, "7.2.11-zen1-1-zen")
+        self.assertIn("tsc=nowatchdog", text)

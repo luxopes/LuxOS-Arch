@@ -91,11 +91,15 @@ else
     PS1='\[\e[38;2;167;123;255m\]✦\[\e[0m\] \[\e[1m\]\w\[\e[0m\] \$ '
 fi
 
-# Uvitani - fastfetch jen v prvnim terminalu relace
-if [[ $LUXOS_FASTFETCH == 1 && $TERM != linux && -n ${XDG_RUNTIME_DIR-} && ! -e $XDG_RUNTIME_DIR/luxos-greeted ]] \
-    && command -v fastfetch &>/dev/null; then
-    : > "$XDG_RUNTIME_DIR/luxos-greeted"
-    fastfetch
+# Uvitani - fastfetch v kazdem novem okne terminalu (ne ve vnorenem shellu)
+if [[ $LUXOS_FASTFETCH == 1 && $TERM != linux ]] && command -v fastfetch &>/dev/null; then
+    luxos_parent=
+    read -r luxos_parent < /proc/$PPID/comm 2>/dev/null
+    case $luxos_parent in
+        bash|zsh|sh|lsh|fish|dash|su|sudo|login) ;;
+        *) fastfetch ;;
+    esac
+    unset luxos_parent
 fi
 
 [[ ${BLE_VERSION-} ]] && ble-attach

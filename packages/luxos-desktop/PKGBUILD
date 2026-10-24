@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=34
+pkgrel=35
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -13,7 +13,7 @@ url="https://github.com/luxos"
 license=(MIT)
 # lsl >= 0.10.6: prekladac lslc s moduly glib/gio/gtk/cairo/pango (cil linux-x86_64-gnu) pro programy v files/lsl;
 # balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni
-makedepends=(python xfce4-settings xfce4-session libxi libxtst libxrandr gtk3 cairo pango pkgconf 'lsl>=0.10.6')
+makedepends=(python xfce4-settings xfce4-session libxi libxtst libxrandr libxfixes gtk3 cairo pango pkgconf 'lsl>=0.10.6')
 install=luxos-desktop.install
 depends=(
     # LuxOS
@@ -29,6 +29,11 @@ depends=(
     brightnessctl luxos-i18n luxos-store luxos-account
     # Lux Guard: kontrola stazenych programu a snimky /home (i u starsich instalaci pres lux update)
     luxos-guard
+    # LuxOS Care: aktualizace, zalozni jadro a prechod na jadro LuxOS (starsi instalace ho nemely)
+    luxos-care
+    # Zvuk s prioritou v realnem case (PipeWire bez praskani pri zatezi) a pravidla Wi-Fi podle
+    # zeme (bez regulatory.db jen omezene kanaly a vykon)
+    rtkit wireless-regdb
     # Snimek obrazovky: obrazek ve schrance drzi xclip i po skonceni programu
     xclip
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
@@ -62,8 +67,13 @@ build() {
     # Zamykaci obrazovka: bez prazdne informacni listy (cerny pruh dole) po probuzeni
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-lock-fix.so "$startdir/files/src/luxos-lock-fix.c" \
         $(pkg-config --cflags --libs gtk+-3.0)
-    strip --strip-all luxos-menubar
-    strip --strip-unneeded libluxos-rgba-menus.so libluxos-lock-fix.so
+    # Cerne zakryti obrazovky pri odhlaseni a vypnuti (spousti luxos-hub)
+    gcc $CFLAGS $LDFLAGS -o luxos-session-cover "$startdir/files/src/luxos-session-cover.c" -lX11 -lXfixes
+    # Kontextove nabidky horni listy bez sedeho nazvu pluginu
+    gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-panel-menus.so "$startdir/files/src/luxos-panel-menus.c" \
+        $(pkg-config --cflags --libs gtk+-3.0)
+    strip --strip-all luxos-menubar luxos-session-cover
+    strip --strip-unneeded libluxos-rgba-menus.so libluxos-lock-fix.so libluxos-panel-menus.so
 
     # Casto spoustene programy horni listy v LSL (files/lsl, viz docs/perf/lsl-rewrite-plan.md):
     # hodiny kazde 3 s, baterie kazdych 20 s, nazev aplikace pri kazdem prepnuti okna, prepinace
@@ -87,7 +97,7 @@ package() {
     python3 "$f/merge-xfconf.py" /etc/xdg/xfce4/xfconf/xfce-perchannel-xml \
         "$f/xdg/xfce4/xfconf/xfce-perchannel-xml" "$pkgdir/etc/xdg/luxos/xfce4/xfconf/xfce-perchannel-xml"
 
-    install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar \
+    install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub
     # Ovladaci centrum a Kalendar jsou tentyz program (chova se podle jmena); profily panelu uzivatelu
     # volaji "luxos-control-center --panel", relace "luxos-hub"
@@ -161,6 +171,7 @@ package() {
         "$f/lightdm/luxos-greeter-wrapper"
     install -Dm755 libluxos-rgba-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-rgba-menus.so"
     install -Dm755 libluxos-lock-fix.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-lock-fix.so"
+    install -Dm755 libluxos-panel-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-panel-menus.so"
     install -Dm644 "$f/lightdm/lightdm-gtk-greeter.conf" \
         "$pkgdir/usr/share/lightdm/lightdm-gtk-greeter.conf.d/50-luxos.conf"
 

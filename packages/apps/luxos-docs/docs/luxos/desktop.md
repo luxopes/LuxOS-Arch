@@ -28,17 +28,28 @@ Its items, from left to right:
 | Tray | status icons (systray, symbolic) | - |
 | "!" network warning | shown only when you are connected but there is no internet (`luxos-netcheck`) | opens the captive-portal sign-in page (`http://ping.archlinux.org/`) or Control Center |
 | Sound | PulseAudio plugin (volume, media keys) | mixer: `pavucontrol` |
-| Battery | icon and percentage (`luxos-battery`); hidden on computers without a battery | opens Control Center |
+| Battery | icon and percentage (`luxos-battery`); hidden on computers without a battery | opens Control Center; the scroll wheel changes screen brightness (`luxos-brightness up/down`, 5 % steps, not below 10 %) |
 | Control Center | `luxos-control-center --panel` | opens or closes Control Center |
 | Notifications | notification plugin (notification history) | - |
 | Clock | e.g. "Wed 22. Oct  14:05" (`luxos-clock`, refreshed every 3 s) | opens or closes the Calendar |
 
 `luxos-menubar` (a small C program running in the background) lets you switch between open menus of the top bar with a single
-click, as in macOS. It also watches monitor hotplug through RandR events and pushes the pointer to
+click (left or right button), as in macOS. While a menu is open, shortcuts with Super, Ctrl+Alt,
+Alt+Tab, Alt+F4 and PrtSc close it and still run. It also watches monitor hotplug through RandR events and pushes the pointer to
 the screen edge so an auto-hidden Dock comes out.
 
 Panel plugins without menus (genmon, systray) run inside the panel process to save memory
-(`/usr/lib/luxos/panel`). Plugins with menus stay external.
+(`/usr/lib/luxos/panel`). Plugins with menus stay external. LuxOS ships a patched genmon
+(`xfce4-genmon-plugin` in [luxos]) with an extra tag `<scroll>command</scroll>`: the scroll wheel
+runs `command up` / `command down`. The GTK module `luxos-panel-menus` (loaded by
+`/usr/lib/luxos/override-bin/xfce4-panel`) removes the grey plugin name from right-click menus.
+
+When you log out, restart or shut down, `luxos-hub` starts `luxos-session-cover`: the screen fades
+to black before the compositor stops, so windows never show black edges.
+
+Daylight saving time: in time zones with summer/winter time `luxos-hub` notifies the evening
+before the change (18:00) and the morning after. Turn it off in Desktop & Dock → Top bar or with
+`TIME_CHANGE=0` in `~/.config/luxos/notifications.conf`.
 
 ## Control Center
 

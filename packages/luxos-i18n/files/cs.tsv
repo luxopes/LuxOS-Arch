@@ -2535,3 +2535,35 @@ This network requires you to sign in before you can use the internet.	Tato síť
 Connected to the internet	Připojeno k internetu
 You are signed in to the network.	Jste přihlášeni do sítě.
 Step after the update failed:	Krok po aktualizaci selhal:
+%d updates	Aktualizace: %d
+1 update	1 aktualizace
+Updating your computer…	Aktualizuji počítač…
+You can keep working. Some apps may need to be restarted afterwards.	Můžete dál pracovat. Některé aplikace bude potřeba potom znovu spustit.
+Preparing…	Připravuji…
+Your computer is up to date	Počítač je aktuální
+All updates were installed.	Všechny aktualizace byly nainstalovány.
+Restart your computer to finish the update.	Aktualizaci dokončíte restartem počítače.
+Updated	Aktualizováno
+The update was cancelled	Aktualizace byla zrušena
+The update could not be finished	Aktualizaci se nepodařilo dokončit
+Check Again	Zkontrolovat znovu
+Could not check for updates	Aktualizace se nepodařilo zkontrolovat
+1 update available	Dostupná 1 aktualizace
+Updates bring new features, fixes and security improvements.	Aktualizace přinášejí novinky, opravy a lepší zabezpečení.
+The time changes tonight	Dnes v noci se mění čas
+Summer time starts tonight	Dnes v noci začíná letní čas
+Winter time starts tonight	Dnes v noci začíná zimní čas
+Clocks go back from %s to %s. Your computer changes the time automatically.	Hodiny se posunou zpět z %s na %s. Počítač změní čas sám.
+Clocks go forward from %s to %s. Your computer changes the time automatically.	Hodiny se posunou dopředu z %s na %s. Počítač změní čas sám.
+The time has changed	Čas se změnil
+Summer time has started	Začal letní čas
+Winter time has started	Začal zimní čas
+Clocks went back from %s to %s.	Hodiny se posunuly zpět z %s na %s.
+Clocks went forward from %s to %s.	Hodiny se posunuly dopředu z %s na %s.
+Turn Off	Vypnout
+Notify about summer and winter time	Upozorňovat na letní a zimní čas
+In the evening before the clocks change and in the morning after.	Večer před změnou času a ráno po ní.
+Brightness	Jas
+Lower the screen to 60 Hz	Snížit obrazovku na 60 Hz
+A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	O něco delší výdrž u obrazovek 90–165 Hz. Při zapnutí a vypnutí Spořiče baterie obrazovka na okamžik ztmavne.
+Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Delší výdrž baterie: pomalejší procesor bez turba, o něco nižší jas, bez animací, nepoužívaná zařízení se uspí a úlohy na pozadí se pozastaví.

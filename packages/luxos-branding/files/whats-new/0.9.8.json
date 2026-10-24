@@ -1,0 +1,26 @@
+{
+  "version": "0.9.8",
+  "codename": "Polaris",
+  "items": [
+    {"icon": "system-software-update-symbolic",
+     "title": {"en": "Clearer updates in Lux Store", "cs": "Přehlednější aktualizace v Lux Store"},
+     "text": {"en": "Updates now show the current step, a progress bar and every package with its old and new version. The technical output is hidden under Details.",
+              "cs": "Aktualizace teď ukazují, co se právě děje, ukazatel průběhu a každý balíček se starou a novou verzí. Technický výpis je schovaný pod Podrobnostmi."}},
+    {"icon": "display-brightness-symbolic",
+     "title": {"en": "Brightness with the scroll wheel", "cs": "Jas kolečkem myši"},
+     "text": {"en": "Scroll over the battery in the menu bar to change the screen brightness, just like scrolling over the volume icon changes the volume.",
+              "cs": "Otočte kolečkem nad baterií v horní liště a změníte jas obrazovky, stejně jako kolečko nad hlasitostí mění hlasitost."}},
+    {"icon": "preferences-system-time-symbolic",
+     "title": {"en": "Daylight saving time reminders", "cs": "Upozornění na změnu času"},
+     "text": {"en": "Where clocks change between summer and winter time, LuxOS reminds you the evening before and tells you once it has happened. You can turn it off in Desktop & Dock.",
+              "cs": "V zemích, kde se střídá letní a zimní čas, vás LuxOS večer předem upozorní a ráno řekne, že se čas změnil. Vypnout to jde v Ploše a Docku."}},
+    {"icon": "view-app-grid-symbolic",
+     "title": {"en": "Smoother Launchpad and menu bar", "cs": "Plynulejší Launchpad a horní lišta"},
+     "text": {"en": "Launchpad scrolls row by row, shortcuts and right-clicks work while a menu bar menu is open, and logging out or turning on Battery Saver no longer flashes black.",
+              "cs": "Launchpad se posouvá po řádcích, klávesové zkratky a pravé tlačítko fungují i s otevřenou nabídkou horní lišty a odhlášení ani zapnutí Spořiče baterie už neproblikne černou."}},
+    {"icon": "preferences-system-symbolic",
+     "title": {"en": "The LuxOS kernel on older installations", "cs": "Jádro LuxOS i na starších instalacích"},
+     "text": {"en": "Computers installed with an older LuxOS now switch to the LuxOS kernel too. Wi-Fi follows your country's rules and sound gets real-time priority.",
+              "cs": "Počítače nainstalované starší verzí LuxOS teď také přejdou na jádro LuxOS. Wi-Fi se řídí pravidly vaší země a zvuk má přednost v reálném čase."}}
+  ]
+}

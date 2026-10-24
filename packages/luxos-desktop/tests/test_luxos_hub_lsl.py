@@ -1,6 +1,6 @@
 """Testy luxos-hub v LSL (files/lsl/luxos-hub.lsl): okna Ovladaciho centra a Kalendare na signaly,
 "!" pro sit bez internetu, upozorneni earlyoom, Trezor, neuspavani pri prehravani, agent BlueZ,
-LuxOS Care a Ovladace. Vse na soukrome sbernici D-Bus (Gio.TestDBus slouzi jako session i system bus)
+LuxOS Care, Ovladace a upozorneni na zmenu casu. Vse na soukrome sbernici D-Bus (Gio.TestDBus slouzi jako session i system bus)
 s falesnymi sluzbami a falesnymi programy v PATH; okna pod Xvfb.
 
 Spusteni: env -u DISPLAY xvfb-run -a python3 -m unittest packages/luxos-desktop/tests/test_luxos_hub_lsl.py -v
@@ -450,6 +450,28 @@ class Hub(unittest.TestCase):
         self.assertEqual(r.unpack(), ())
 
     # ---- LuxOS Care a Ovladace -----------------------------------------------------------------------------------
+    def test_care_restart_notice_after_reboot(self):
+        """Prechod/aktualizace jadra pred restartem: po restartu uz "Restartujte" nechodi."""
+        notes = self.service("org.freedesktop.Notifications", [("/org/freedesktop/Notifications", NOTIFY_XML)])
+        root = os.path.join(self.home, "root")
+        os.makedirs(os.path.join(root, "var", "lib", "luxos-care"))
+        os.makedirs(os.path.join(root, "proc"))
+        now = int(time.time())
+        with open(os.path.join(root, "proc", "stat"), "w") as f:
+            f.write(f"cpu  1 2 3\nbtime {now - 30}\nprocesses 5\n")
+        with open(os.path.join(root, "var", "lib", "luxos-care", "events.json"), "w") as f:
+            json.dump({"seq": 2, "events": [{"seq": 1, "kind": "updated", "count": 0, "reboot": True, "time": now - 120},
+                                            {"seq": 2, "kind": "problem", "title": "Disk %s is almost full", "args": ["/"], "time": now}]}, f)
+        with open(os.path.join(root, "var", "lib", "luxos-care", "state.json"), "w") as f:
+            json.dump({"problems": []}, f)
+        self.start_hub()
+        self.assertTrue(self.wait_for(lambda: any(c[1][3] == translation("LuxOS found a problem")
+                                                  for c in notes.calls if c[0] == "Notify"), 10), notes.calls)
+        time.sleep(0.5)
+        titles = [c[1][3] for c in notes.calls if c[0] == "Notify"]
+        self.assertNotIn(translation("Restart to finish the kernel update"), titles)
+        self.assertNotIn(translation("LuxOS was updated"), titles)
+
     def test_care_and_drivers_notifications(self):
         notes = self.service("org.freedesktop.Notifications", [("/org/freedesktop/Notifications", NOTIFY_XML)])
         root = os.path.join(self.home, "root", "var", "lib", "luxos-care")
@@ -495,6 +517,84 @@ class Hub(unittest.TestCase):
         os.replace(os.path.join(root, "events.json.tmp"), os.path.join(root, "events.json"))
         self.assertTrue(self.wait_for(lambda: len(notes.calls) > before, 8))
         self.assertEqual(notes.calls[-1][1][3], translation("Updates are available"))
+
+
+    # ---- zmena casu (letni/zimni) ----------------------------------------------------------------------
+    def time_change_hub(self, tz, local, **extra):
+        """Hub s "ted" posunutym na mistni cas `local` (rok, mesic, den, hodina, minuta) v pasmu tz."""
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        target = datetime(*local, tzinfo=ZoneInfo(tz)).timestamp()
+        return self.start_hub(TZ=tz, LUXOS_TIME_OFFSET=str(int(target - time.time())), LUXOS_TIMECHANGE_DELAY="1", **extra)
+
+    def read(self, path):
+        with open(path) as f:
+            return f.read()
+
+    def time_notes(self):
+        return [c for c in self.calls() if c.startswith("notify-send") and "preferences-system-time" in c]
+
+    def test_time_change_evening_before_and_morning_after(self):
+        # 25. 10. 2026 ve 3:00 SELC -> 2:00 SEC; vecer predtim upozorneni s tlacitkem Vypnout
+        self.time_change_hub("Europe/Prague", (2026, 10, 24, 19, 0))
+        self.assertTrue(self.wait_for(lambda: self.time_notes(), 8), self.calls())
+        note = self.time_notes()[0]
+        self.assertIn(translation("Winter time starts tonight"), note)
+        self.assertIn(translation("Clocks go back from %s to %s. Your computer changes the time automatically.")
+                      .replace("%s", "03:00", 1).replace("%s", "02:00", 1), note)
+        self.assertIn("-A off=" + translation("Turn Off"), note)
+        with open(os.path.join(self.cfg, "time-change.state")) as f:
+            self.assertEqual(f.read(), "BEFORE=1792890000\n")
+        # znovu po probuzeni: uz neupozorni
+        self.hub.send_signal(signal.SIGTERM)
+        self.hub.wait(5)
+        self.time_change_hub("Europe/Prague", (2026, 10, 24, 22, 0))
+        time.sleep(2.5)
+        self.assertEqual(len(self.time_notes()), 1)
+        # rano po zmene
+        self.hub.send_signal(signal.SIGTERM)
+        self.hub.wait(5)
+        self.time_change_hub("Europe/Prague", (2026, 10, 25, 9, 30))
+        self.assertTrue(self.wait_for(lambda: len(self.time_notes()) == 2, 8), self.calls())
+        self.assertIn(translation("Winter time has started"), self.time_notes()[1])
+        self.assertIn(translation("Clocks went back from %s to %s.").replace("%s", "03:00", 1).replace("%s", "02:00", 1),
+                      self.time_notes()[1])
+
+    def test_time_change_spring_timer_and_turn_off(self):
+        # 10 s pred 18:00 den pred letnim casem: upozorni casovac; tlacitko Vypnout zapise TIME_CHANGE=0
+        answer = os.path.join(self.home, "answer")
+        os.makedirs(answer)
+        with open(os.path.join(answer, "notify-send"), "w") as f:
+            f.write('#!/bin/sh\nprintf "%s\\n" "notify-send $*" >>"$FAKE_LOG"\ncase "$*" in *off=*) echo off;; esac\n')
+        os.chmod(os.path.join(answer, "notify-send"), 0o755)
+        with open(os.path.join(self.cfg, "notifications.conf"), "w") as f:
+            f.write("OTHER=1\n")
+        self.time_change_hub("America/New_York", (2027, 3, 13, 17, 59, 50), PATH=answer + ":" + self.env()["PATH"])
+        time.sleep(1.5)
+        self.assertEqual(self.time_notes(), [])
+        self.assertTrue(self.wait_for(lambda: self.time_notes(), 15), self.calls())
+        note = self.time_notes()[0]
+        self.assertIn(translation("Summer time starts tonight"), note)
+        self.assertIn(translation("Clocks go forward from %s to %s. Your computer changes the time automatically.")
+                      .replace("%s", "02:00", 1).replace("%s", "03:00", 1), note)
+        conf = os.path.join(self.cfg, "notifications.conf")
+        self.assertTrue(self.wait_for(lambda: "TIME_CHANGE=0" in self.read(conf), 5))
+        with open(conf) as f:
+            self.assertEqual(f.read(), "OTHER=1\nTIME_CHANGE=0\n")
+
+    def test_time_change_off_and_zones_without_change(self):
+        with open(os.path.join(self.cfg, "notifications.conf"), "w") as f:
+            f.write("TIME_CHANGE=0\n")
+        self.time_change_hub("Europe/Prague", (2026, 10, 24, 19, 0))
+        time.sleep(2.5)
+        self.assertEqual(self.time_notes(), [])
+        self.hub.send_signal(signal.SIGTERM)
+        self.hub.wait(5)
+        os.unlink(os.path.join(self.cfg, "notifications.conf"))
+        self.time_change_hub("Asia/Tokyo", (2026, 10, 24, 19, 0))
+        time.sleep(2.5)
+        self.assertEqual(self.time_notes(), [])
+        self.assertFalse(os.path.exists(os.path.join(self.cfg, "time-change.state")))
 
 
 if __name__ == "__main__":

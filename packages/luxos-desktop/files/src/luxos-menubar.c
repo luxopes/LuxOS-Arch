@@ -19,6 +19,10 @@
  * A: pripojeni/odpojeni monitoru (udalost RandR, zadne dotazovani) spusti
  * "luxos-displays auto" - rozlozeni obrazovek, okna z odpojeneho monitoru, tapeta.
  *
+ * A: klavesova zkratka (Super+..., Ctrl+Alt+..., Alt+Tab, PrtSc) pri otevrene nabidce: nabidka
+ * drzi grab klavesnice, takze by zkratka nefungovala. Nabidka se zavre (Escape poslany primo
+ * jejimu oknu) a stisk se zopakuje pres XTest. Kliky pravym tlacitkem se prepinaji jako levym.
+ *
  * A: samotne tuknuti na klavesu Super otevre Launchpad (jako Start ve Windows).
  * Raw udalosti klaves (pasivne, bez grabu); rozpoznani je v luxos-super-tap.h.
  * Super+klavesa nebo Super+mys Launchpad neotevre. Pri zamcene obrazovce, otevrene
@@ -63,6 +67,7 @@ static unsigned long popup_client; /* X klient (plugin), kteremu nabidka patri *
 
 static struct {
     int active;
+    int button;
     long long due;
     Window old;
     unsigned long client;
@@ -70,6 +75,8 @@ static struct {
 
 static long long replay_until;
 static Window popup_at_press;   /* nabidka otevrena v okamziku stisku tlacitka */
+static int press_button;        /* tlacitko (1 nebo 3), ke kteremu patri popup_at_press */
+static KeyCode kc_mod[6];       /* Super_L/R, Control_L/R, Alt_L/R */
 
 static long long now_ms(void)
 {
@@ -227,7 +234,7 @@ static void select_xi(void)
     XISetMask(bits, XI_RawButtonRelease);
     if (autohide)
         XISetMask(bits, XI_RawMotion);
-    if (super_on > 0) {
+    if (super_on > 0 || popup) {
         XISetMask(bits, XI_RawKeyPress);
         XISetMask(bits, XI_RawKeyRelease);
     }
@@ -344,6 +351,71 @@ static int own_process_running(const char *name)
     return found;
 }
 
+static void wait_closed(Window w, int ms);
+
+/* Zavrit otevrenou nabidku: Escape primo jejimu oknu (fyzicky drzene modifikatory nevadi) */
+static int close_popup(void)
+{
+    Window w = popup;
+    if (!w)
+        return 1;
+    Window target = popup_client_window(w);
+    XKeyEvent k;
+    memset(&k, 0, sizeof k);
+    k.type = KeyPress;
+    k.display = dpy;
+    k.window = target;
+    k.root = root;
+    k.subwindow = None;
+    k.time = CurrentTime;
+    k.same_screen = True;
+    k.keycode = XKeysymToKeycode(dpy, XK_Escape);
+    XSendEvent(dpy, target, True, KeyPressMask, (XEvent *)&k);
+    k.type = KeyRelease;
+    XSendEvent(dpy, target, True, KeyReleaseMask, (XEvent *)&k);
+    XFlush(dpy);
+    wait_closed(w, CLOSE_WAIT_MS);
+    if (popup == w) {
+        send_key(XK_Escape);    /* okno synteticke udalosti ignoruje */
+        wait_closed(w, CLOSE_WAIT_MS);
+    }
+    return popup != w;
+}
+
+/* Zkratka pri otevrene nabidce: zavrit nabidku a stisk zopakovat */
+static void popup_shortcut(int kc)
+{
+    char keys[32];
+    KeySym ks = XkbKeycodeToKeysym(dpy, (KeyCode)kc, 0, 0);
+    int held[6] = {0};
+    if (IsModifierKey(ks) || ks == XK_Escape)
+        return;
+    XQueryKeymap(dpy, keys);
+    for (int i = 0; i < 6; i++)
+        held[i] = kc_mod[i] && (keys[kc_mod[i] / 8] & (1 << (kc_mod[i] % 8)));
+    int super = held[0] || held[1], ctrl = held[2] || held[3], alt = held[4] || held[5];
+    if (!(super || (ctrl && alt) || (alt && (ks == XK_Tab || ks == XK_F4)) || ks == XK_Print))
+        return;
+    if (!close_popup())
+        return;
+    /* Modifikatory, ktere uz uzivatel mezitim pustil, se zopakuji s klavesou (jinak by
+     * Super+A po zavreni nabidky bylo jen "a"); stale drzene se nechaji byt */
+    int faked[6] = {0};
+    XQueryKeymap(dpy, keys);
+    for (int i = 0; i < 6; i++) {
+        if (held[i] && !(keys[kc_mod[i] / 8] & (1 << (kc_mod[i] % 8)))) {
+            XTestFakeKeyEvent(dpy, kc_mod[i], True, CurrentTime);
+            faked[i] = 1;
+        }
+    }
+    XTestFakeKeyEvent(dpy, (unsigned)kc, True, CurrentTime);
+    XTestFakeKeyEvent(dpy, (unsigned)kc, False, CurrentTime);
+    for (int i = 5; i >= 0; i--)
+        if (faked[i])
+            XTestFakeKeyEvent(dpy, kc_mod[i], False, CurrentTime);
+    XFlush(dpy);
+}
+
 /* Tuknuti na Super: otevrit (nebo zavrit) Launchpad */
 static void super_launchpad(void)
 {
@@ -353,6 +425,8 @@ static void super_launchpad(void)
     if (r == GrabSuccess)
         XUngrabKeyboard(dpy, CurrentTime);
     XFlush(dpy);
+    if (r != GrabSuccess && popup && close_popup())
+        r = GrabSuccess;        /* klavesnici drzela otevrena nabidka horni listy */
     if (r != GrabSuccess && !own_process_running("rofi"))
         return;
     if (fork() == 0) {
@@ -407,10 +481,10 @@ static void run_pending(void)
         if (popup == pending.old)
             return;             /* nabidka se nezavrela, nic nevynucovat */
     }
-    /* Zopakovat klik na nove ikone */
+    /* Zopakovat klik na nove ikone (stejnym tlacitkem) */
     replay_until = now_ms() + 300;
-    XTestFakeButtonEvent(dpy, 1, True, CurrentTime);
-    XTestFakeButtonEvent(dpy, 1, False, CurrentTime);
+    XTestFakeButtonEvent(dpy, (unsigned)pending.button, True, CurrentTime);
+    XTestFakeButtonEvent(dpy, (unsigned)pending.button, False, CurrentTime);
     XFlush(dpy);
 }
 
@@ -424,23 +498,36 @@ static void handle_event(XEvent *ev)
     if (ev->type == MapNotify) {
         Window w = ev->xmap.window;
         if (is_popup(w)) {
+            int had = popup != None;
             popup = w;
             popup_client = CLIENT(popup_client_window(w));
+            if (!had)
+                select_xi();
         }
     } else if (ev->type == UnmapNotify) {
-        if (ev->xunmap.window == popup)
+        if (ev->xunmap.window == popup) {
             popup = None;
+            select_xi();
+        }
     } else if (ev->type == DestroyNotify) {
-        if (ev->xdestroywindow.window == popup)
+        if (ev->xdestroywindow.window == popup) {
             popup = None;
+            select_xi();
+        }
     } else if (ev->type == GenericEvent) {
         XGenericEventCookie *ck = &ev->xcookie;
         if (!XGetEventData(dpy, ck))
             return;
         XIRawEvent *re = ck->data;
         if (ck->evtype == XI_RawKeyPress || ck->evtype == XI_RawKeyRelease) {
+            int kc = re->detail;
             if (super_on > 0)
                 super_key(re, ck->evtype == XI_RawKeyPress);
+            if (popup && ck->evtype == XI_RawKeyPress && now_ms() >= replay_until) {
+                XFreeEventData(dpy, ck);
+                popup_shortcut(kc);
+                return;
+            }
             XFreeEventData(dpy, ck);
             return;
         }
@@ -449,14 +536,16 @@ static void handle_event(XEvent *ev)
         if (ck->evtype == XI_RawMotion) {
             if (!edge_due)
                 edge_due = now_ms() + EDGE_COALESCE_MS;
-        } else if (re->detail == 1 && now_ms() >= replay_until) {
+        } else if ((re->detail == 1 || re->detail == 3) && now_ms() >= replay_until) {
             /* GTK otevira nabidku uz pri stisku, proto rozhoduje stav pred nim */
             if (ck->evtype == XI_RawButtonPress) {
                 popup_at_press = popup;
-            } else if (popup_at_press && !pending.active) {
+                press_button = re->detail;
+            } else if (popup_at_press && !pending.active && re->detail == press_button) {
                 Window w = panel_window_at();
                 if (w) {
                     pending.active = 1;
+                    pending.button = press_button;
                     pending.due = now_ms() + CHECK_DELAY_MS;
                     pending.old = popup_at_press;
                     pending.client = CLIENT(w);
@@ -504,6 +593,11 @@ int main(void)
     a_menu[0] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_POPUP_MENU", False);
     a_menu[1] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DROPDOWN_MENU", False);
     a_menu[2] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_MENU", False);
+    {
+        static const KeySym mods[6] = {XK_Super_L, XK_Super_R, XK_Control_L, XK_Control_R, XK_Alt_L, XK_Alt_R};
+        for (int i = 0; i < 6; i++)
+            kc_mod[i] = XKeysymToKeycode(dpy, mods[i]);
+    }
 
     XSelectInput(dpy, root, SubstructureNotifyMask);
     check_flag();

@@ -7,13 +7,16 @@
 #     procesor bez turbo/boost, usporny zvukovy kodek, nepouzivana USB zarizeni (kamera, ctecka
 #     karet) se uspavaji, mene probouzeni disku zapisem, pozastavene tezke ulohy na pozadi
 #     (man-db, kontrola LuxOS Care) a bez automatickych aktualizaci na baterii
-#   - vestaveny displej nejvys 60 Hz, jas o petinu nizsi, bez animaci GTK a zvetsovani v Docku
+#   - jas o petinu nizsi, bez animaci GTK a zvetsovani v Docku
+#   - volitelne (~/.config/luxos/powersaver-60hz, Baterie a napajeni) displej nejvys 60 Hz: zmena
+#     frekvence obrazovku na okamzik zcerna, proto jen na prani
 # Puvodni hodnoty relace: ~/.config/luxos/powersaver.saved ("klic=hodnota"), systemove /run/luxos.
 # Priznak ~/.config/luxos/powersaver plati i po restartu: luxos-session vola "reapply".
 . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
 cfg=${XDG_CONFIG_HOME:-$HOME/.config}/luxos
 state=$cfg/powersaver
 saved=$cfg/powersaver.saved
+cap60=$cfg/powersaver-60hz
 dock=net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/
 unit=luxos-powersaver.service
 displays=${LUXOS_DISPLAYS_PY:-/usr/lib/luxos/python/luxos_displays.py}
@@ -67,7 +70,7 @@ apply_on() {  # apply_on [first] - "first" = prvni zapnuti (ulozit puvodni hodno
     # GTK bez animaci (prechody, posuvniky, spinnery): mene prekreslovani a probouzeni GPU
     xfconf-query -c xsettings -p /Gtk/EnableAnimations -n -t bool -s false 2>/dev/null
     # Displeje s 90-165 Hz: 60 Hz setri asi 0,5-1,5 W (vyrobce panelu i macOS to delaji stejne)
-    if [[ -n ${DISPLAY:-} && -r $displays ]]; then
+    if [[ -e $cap60 && -n ${DISPLAY:-} && -r $displays ]]; then
         while read -r name mode rate; do
             [[ -n $rate ]] && put "rate-$name" "$mode $rate"
         done < <(python3 -I "$displays" rate-cap 2>/dev/null)

@@ -1,0 +1,106 @@
+diff --git a/panel-plugin/main.c b/panel-plugin/main.c
+index df9cc6e..643f166 100644
+--- a/panel-plugin/main.c
++++ b/panel-plugin/main.c
+@@ -85,6 +85,8 @@ typedef struct monitor_t
+         GtkCssProvider *cssProvider;
+         char           *onClickCmd;
+         char           *onValClickCmd;
++        char           *onScrollCmd;   /* <scroll>: prikaz + " up" / " down" (LuxOS) */
++        gdouble         scrollDelta;   /* soucet plynulych posunu touchpadu */
+         int             iconused;
+         char           *iconName;
+     } monitor_t;
+@@ -145,6 +147,58 @@ static void ExecOnValClickCmd (GtkWidget *p_wSc, void *p_pvPlugin)
+ 
+ }
+ 
++/**************************************************************/
++static void ExecOnScrollCmd (struct genmon_t *poPlugin, const char *dir)
++/* LuxOS: <scroll> command with "up" / "down" */
++{
++    GError *error = NULL;
++    char *cmd = g_strdup_printf ("%s %s", poPlugin->oMonitor.onScrollCmd, dir);
++
++    xfce_spawn_command_line (gdk_screen_get_default (), cmd, 0, 0, 1, &error);
++    if (error)
++        g_error_free (error);
++    g_free (cmd);
++}
++
++static gboolean OnScroll (GtkWidget *w, GdkEventScroll *ev, void *p_pvPlugin)
++{
++    struct genmon_t *poPlugin = (genmon_t *) p_pvPlugin;
++    struct monitor_t *poMonitor = &(poPlugin->oMonitor);
++    gdouble dx, dy;
++
++    if (!poMonitor->onScrollCmd || !poMonitor->onScrollCmd[0])
++        return FALSE;
++    switch (ev->direction)
++        {
++        case GDK_SCROLL_UP:
++        case GDK_SCROLL_RIGHT:
++            ExecOnScrollCmd (poPlugin, "up");
++            break;
++        case GDK_SCROLL_DOWN:
++        case GDK_SCROLL_LEFT:
++            ExecOnScrollCmd (poPlugin, "down");
++            break;
++        case GDK_SCROLL_SMOOTH:
++            /* touchpad: jeden krok za kazdy cely "zub" kolecka */
++            if (gdk_event_get_scroll_deltas ((GdkEvent *) ev, &dx, &dy))
++                poMonitor->scrollDelta += dy;
++            while (poMonitor->scrollDelta <= -1.0)
++                {
++                    poMonitor->scrollDelta += 1.0;
++                    ExecOnScrollCmd (poPlugin, "up");
++                }
++            while (poMonitor->scrollDelta >= 1.0)
++                {
++                    poMonitor->scrollDelta -= 1.0;
++                    ExecOnScrollCmd (poPlugin, "down");
++                }
++            break;
++        default:
++            break;
++        }
++    return TRUE;
++}
++
+ /**************************************************************/
+ static int DisplayCmdOutput (struct genmon_t *p_poPlugin)
+  /* Launch the command, get its output and display it in the panel-docked
+@@ -258,6 +312,14 @@ static int DisplayCmdOutput (struct genmon_t *p_poPlugin)
+             newVersion=1;
+         }
+ 
++    /* LuxOS: kolecko mysi nad pluginem spusti <scroll>prikaz</scroll> s "up" nebo "down" */
++    g_free (poMonitor->onScrollCmd);
++    poMonitor->onScrollCmd = NULL;
++    begin=strstr(p_poPlugin->acValue, "<scroll>");
++    end=strstr(p_poPlugin->acValue, "</scroll>");
++    if (begin && end && begin < end)
++        poMonitor->onScrollCmd = g_strndup (begin + 8, end - begin - 8);
++
+     /* Test if the result is a Text */
+     begin=strstr(p_poPlugin->acValue, "<txt>");
+     end=strstr(p_poPlugin->acValue, "</txt>");
+@@ -674,6 +736,7 @@ static void genmon_free (XfcePanelPlugin *plugin, genmon_t *poPlugin)
+     g_free (poPlugin->oConf.oParam.acFont);
+     g_free (poPlugin->oConf.oParam.acFonttmp);
+     g_free (poPlugin->oMonitor.onClickCmd);
++    g_free (poPlugin->oMonitor.onScrollCmd);
+     g_free (poPlugin->acValue);
+     g_free (poPlugin);
+     xfconf_shutdown ();
+@@ -1376,6 +1439,10 @@ static void genmon_construct (XfcePanelPlugin *plugin)
+     g_signal_connect (G_OBJECT (genmon->oMonitor.wValButton), "clicked",
+         G_CALLBACK (ExecOnValClickCmd), genmon);        
+ 
++    gtk_widget_add_events (genmon->oMonitor.wEventBox, GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK);
++    g_signal_connect (G_OBJECT (genmon->oMonitor.wEventBox), "scroll-event",
++        G_CALLBACK (OnScroll), genmon);
++
+     DisplayCmdOutput (genmon);
+     SetTimer (genmon);
+ }

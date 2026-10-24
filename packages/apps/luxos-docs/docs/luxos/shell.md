@@ -92,7 +92,7 @@ Unlike bash, an interactive **login** lsh (TTY, ssh) also reads the lshrc files.
 - **starship** prompt in graphical terminals (single line, `❯`); simple `✦ dir $` prompt on TTYs.
 - **fzf** key bindings/completion, **zoxide** (`z`), history 50 000 entries with timestamps,
   `autocd`, `globstar`, case-insensitive completion.
-- **fastfetch** greeting only in the first terminal of a session.
+- **fastfetch** greeting in every new terminal window (not in nested shells started from a shell, `su` or `sudo`).
 
 ## Aliases (aliases.sh)
 

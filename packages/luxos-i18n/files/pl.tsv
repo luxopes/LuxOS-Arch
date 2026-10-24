@@ -2536,3 +2536,35 @@ This network requires you to sign in before you can use the internet.	Ta sieć w
 Connected to the internet	Połączono z internetem
 You are signed in to the network.	Zalogowano do sieci.
 Step after the update failed:	Krok po aktualizacji nie powiódł się:
+%d updates	Aktualizacje: %d
+1 update	1 aktualizacja
+Updating your computer…	Aktualizowanie komputera…
+You can keep working. Some apps may need to be restarted afterwards.	Możesz dalej pracować. Niektóre aplikacje trzeba będzie potem uruchomić ponownie.
+Preparing…	Przygotowywanie…
+Your computer is up to date	Komputer jest aktualny
+All updates were installed.	Zainstalowano wszystkie aktualizacje.
+Restart your computer to finish the update.	Uruchom ponownie komputer, aby dokończyć aktualizację.
+Updated	Zaktualizowano
+The update was cancelled	Aktualizacja została anulowana
+The update could not be finished	Nie udało się dokończyć aktualizacji
+Check Again	Sprawdź ponownie
+Could not check for updates	Nie udało się sprawdzić aktualizacji
+1 update available	Dostępna 1 aktualizacja
+Updates bring new features, fixes and security improvements.	Aktualizacje przynoszą nowości, poprawki i lepsze bezpieczeństwo.
+The time changes tonight	Dziś w nocy zmiana czasu
+Summer time starts tonight	Dziś w nocy zaczyna się czas letni
+Winter time starts tonight	Dziś w nocy zaczyna się czas zimowy
+Clocks go back from %s to %s. Your computer changes the time automatically.	Zegary cofną się z %s na %s. Komputer zmieni czas automatycznie.
+Clocks go forward from %s to %s. Your computer changes the time automatically.	Zegary przesuną się do przodu z %s na %s. Komputer zmieni czas automatycznie.
+The time has changed	Czas się zmienił
+Summer time has started	Rozpoczął się czas letni
+Winter time has started	Rozpoczął się czas zimowy
+Clocks went back from %s to %s.	Zegary cofnęły się z %s na %s.
+Clocks went forward from %s to %s.	Zegary przesunęły się do przodu z %s na %s.
+Turn Off	Wyłącz
+Notify about summer and winter time	Powiadamiaj o czasie letnim i zimowym
+In the evening before the clocks change and in the morning after.	Wieczorem przed zmianą czasu i rano po niej.
+Brightness	Jasność
+Lower the screen to 60 Hz	Obniż ekran do 60 Hz
+A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Nieco dłuższa praca na baterii przy ekranach 90–165 Hz. Przy włączaniu i wyłączaniu Oszczędzania baterii ekran na chwilę ciemnieje.
+Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Dłuższa praca na baterii: wolniejszy procesor bez turbo, nieco niższa jasność, bez animacji, nieużywane urządzenia usypiają, a zadania w tle są wstrzymywane.

@@ -7,6 +7,8 @@
   vmctl.py key ctrl-alt-t          stiskne kombinaci klaves (nazvy QEMU qcode)
   vmctl.py click X Y [W H]         klik levym tlacitkem (souradnice obrazovky, vychozi 1280x800)
   vmctl.py move X Y [W H]          presune kurzor
+vmctl.py rclick X Y [W H]        klik pravym tlacitkem
+vmctl.py scrollup|scrolldown X Y [W H]  jeden zub kolecka mysi
   vmctl.py put SOUBOR CIL          nahraje soubor do hosta
   vmctl.py ping                    ceka na guest agenta
   vmctl.py wakeup                  probudi uspaneho hosta (QMP system_wakeup)
@@ -108,7 +110,7 @@ def main():
             if ch in SHIFTED: send(["shift", SHIFTED[ch]])
             elif ch.isupper(): send(["shift", ch.lower()])
             else: send([KEYMAP.get(ch, ch)])
-    elif c in ("click", "move"):
+    elif c in ("click", "move", "rclick", "scrollup", "scrolldown"):
         x, y = int(a[1]), int(a[2])
         w, h = (int(a[3]), int(a[4])) if len(a) > 4 else (1280, 800)
         ax, ay = x * 32767 // (w - 1), y * 32767 // (h - 1)
@@ -119,8 +121,9 @@ def main():
                 {"type": "abs", "data": {"axis": "y", "value": ay}}]})
             time.sleep(0.05)
         time.sleep(0.15)
-        for down in ((True, False) if c == "click" else ()):
-            qmp("input-send-event", {"events": [{"type": "btn", "data": {"down": down, "button": "left"}}]})
+        button = {"click": "left", "rclick": "right", "scrollup": "wheel-up", "scrolldown": "wheel-down"}.get(c)
+        for down in ((True, False) if button else ()):
+            qmp("input-send-event", {"events": [{"type": "btn", "data": {"down": down, "button": button}}]})
             time.sleep(0.08)
     elif c == "key":
         send(a[1].split("-"))

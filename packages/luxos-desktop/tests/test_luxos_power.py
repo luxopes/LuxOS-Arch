@@ -251,7 +251,7 @@ class PowersaverScript(unittest.TestCase):
         self.assertEqual(read(f"{self.state}/profile"), "power-saver")
         self.assertEqual(read(f"{self.state}/gs-zoom-enabled"), "false")
         self.assertEqual(read(f"{self.state}/xf-xsettings_Gtk_EnableAnimations"), "false")
-        self.assertEqual(self.rate(), ["2560x1600", "60.00"])
+        self.assertEqual(self.rate(), ["2560x1600", "165.00"])   # 60 Hz jen na prani (displej zcerna)
         self.assertEqual(read(f"{self.bl}/bl/brightness"), "720")         # 90 % -> 72 %
         self.assertIn("systemctl --no-ask-password --no-block start luxos-powersaver.service", self.log())
         # druhe zapnuti (napr. automaticke) nesmi ztlumit znovu ani prepsat puvodni hodnoty
@@ -267,6 +267,13 @@ class PowersaverScript(unittest.TestCase):
         self.assertIn("stop luxos-powersaver.service", self.log())
         self.assertFalse(os.path.exists(f"{self.cfg}/luxos/powersaver.saved"))
 
+    def test_60hz_opt_in(self):
+        write(f"{self.cfg}/luxos/powersaver-60hz", "")
+        self.ps("on")
+        self.assertEqual(self.rate(), ["2560x1600", "60.00"])
+        self.ps("off")
+        self.assertEqual(self.rate(), ["2560x1600", "165.00"])
+
     def test_user_brightness_change_kept(self):
         self.ps("on")
         write(f"{self.bl}/bl/brightness", "300")       # uzivatel si jas zmenil sam
@@ -281,6 +288,7 @@ class PowersaverScript(unittest.TestCase):
         self.assertEqual(read(f"{self.bl}/bl/brightness"), "350")
 
     def test_reapply_after_reboot(self):
+        write(f"{self.cfg}/luxos/powersaver-60hz", "")
         self.ps("on")
         # restart: 165 Hz z ulozenych Monitoru, systemova cast pryc
         with open(self.xr) as f:

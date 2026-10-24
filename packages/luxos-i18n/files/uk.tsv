@@ -2536,3 +2536,35 @@ This network requires you to sign in before you can use the internet.	Ця ме�
 Connected to the internet	Підключено до інтернету
 You are signed in to the network.	Ви увійшли в мережу.
 Step after the update failed:	Крок після оновлення не вдався:
+%d updates	Оновлень: %d
+1 update	1 оновлення
+Updating your computer…	Оновлення комп’ютера…
+You can keep working. Some apps may need to be restarted afterwards.	Можна далі працювати. Деякі застосунки потім доведеться перезапустити.
+Preparing…	Підготовка…
+Your computer is up to date	Комп’ютер оновлено
+All updates were installed.	Усі оновлення встановлено.
+Restart your computer to finish the update.	Перезавантажте комп’ютер, щоб завершити оновлення.
+Updated	Оновлено
+The update was cancelled	Оновлення скасовано
+The update could not be finished	Не вдалося завершити оновлення
+Check Again	Перевірити знову
+Could not check for updates	Не вдалося перевірити оновлення
+1 update available	Доступне 1 оновлення
+Updates bring new features, fixes and security improvements.	Оновлення приносять нові функції, виправлення та кращий захист.
+The time changes tonight	Сьогодні вночі переводять годинник
+Summer time starts tonight	Сьогодні вночі починається літній час
+Winter time starts tonight	Сьогодні вночі починається зимовий час
+Clocks go back from %s to %s. Your computer changes the time automatically.	Годинник переведуть назад з %s на %s. Комп’ютер змінить час автоматично.
+Clocks go forward from %s to %s. Your computer changes the time automatically.	Годинник переведуть уперед з %s на %s. Комп’ютер змінить час автоматично.
+The time has changed	Час змінився
+Summer time has started	Почався літній час
+Winter time has started	Почався зимовий час
+Clocks went back from %s to %s.	Годинник переведено назад з %s на %s.
+Clocks went forward from %s to %s.	Годинник переведено вперед з %s на %s.
+Turn Off	Вимкнути
+Notify about summer and winter time	Сповіщати про літній і зимовий час
+In the evening before the clocks change and in the morning after.	Увечері перед переведенням годинника і вранці після нього.
+Brightness	Яскравість
+Lower the screen to 60 Hz	Знизити екран до 60 Гц
+A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Трохи довше від батареї на екранах 90–165 Гц. Під час увімкнення та вимкнення Економії батареї екран на мить темніє.
+Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Довша робота від батареї: повільніший процесор без турбо, трохи нижча яскравість, без анімацій, невикористовувані пристрої засинають, а фонові завдання призупиняються.
