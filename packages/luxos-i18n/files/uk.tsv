@@ -2590,3 +2590,103 @@ Done. You can close this window.	Готово. Можна закрити це в
 Search for scanners again	Знову шукати сканери
 Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Увімкніть сканер і під’єднайте його USB-кабелем або до тієї ж мережі Wi‑Fi, що й цей комп’ютер. Він з’явиться тут сам, щойно LuxOS його знайде.
 The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	Зчитувач не зміг достатньо добре прочитати палець. Протріть сенсор і палець, потім натисніть «Спробувати знову».
+Too many failed attempts. The account is locked for %d min, then try again.	Забагато невдалих спроб. Обліковий запис заблоковано на %d хв, потім спробуйте ще раз.
+Too many failed attempts. Wait a moment, then try again.	Забагато невдалих спроб. Зачекайте трохи й спробуйте ще раз.
+# 0.9.10: community (AUR) sandbox install, Flathub
+%s comes from the community source (AUR): scripts by other users, not checked by LuxOS.	%s походить із джерела спільноти (AUR): скрипти інших користувачів, LuxOS їх не перевіряв.
+%s is installed from Flathub (isolated Flatpak app)	%s встановлюється з Flathub (ізольований застосунок Flatpak)
+%s is only in the community source (AUR). LuxAI does not install community packages - run in Terminal: lux install %s	%s є лише в джерелі спільноти (AUR). LuxAI не встановлює пакети спільноти – виконайте в Терміналі: lux install %s
+A dangerous build script is never installed into the system.	Небезпечний скрипт збирання ніколи не встановлюється в систему.
+Apps from Flathub need %sflatpak%s.	Застосункам із Flathub потрібен %sflatpak%s.
+Apps from Flathub run isolated from the system (Flatpak).	Застосунки з Flathub працюють ізольовано від системи (Flatpak).
+Build and install %s in the sandbox?	Зібрати й установити %s у пісочниці?
+Build of %s in the sandbox failed	Не вдалося зібрати %s у пісочниці
+Building %s %s(community)%s	Збирання %s %s(спільнота)%s
+Building %s %s(community)%s in the sandbox	Збирання %s %s(спільнота)%s у пісочниці
+Building %s in the sandbox failed.	Збирання %s у пісочниці не вдалося.
+Building %s in the sandbox...	Збирання %s у пісочниці...
+Checking the build script of %s (LuxAI Lite)	Перевірка скрипту збирання %s (LuxAI Lite)
+Choose 1 or 2:	Виберіть 1 або 2:
+Choose a number (Enter = none):	Виберіть номер (Enter = жоден):
+Community packages are installed as a regular user (run lux without sudo)	Пакети спільноти встановлюються від звичайного користувача (запускайте lux без sudo)
+Community packages are updated only when you run it yourself: lux update	Пакети спільноти оновлюються лише тоді, коли ви самі запускаєте: lux update
+Community packages to build: %s	Пакети спільноти для збирання: %s
+Community packages were not updated	Пакети спільноти не оновлено
+Copying the build files into the sandbox failed.	Не вдалося скопіювати файли збирання в пісочницю.
+Creating your sandbox first	Спочатку створюється ваша пісочниця
+Download %s, on disk %s - includes the shared runtime %s (%s), which other Flatpak apps use too.	Завантаження %s, на диску %s – разом зі спільним середовищем %s (%s), яке використовують і інші застосунки Flatpak.
+Download:	Завантаження:
+From Flathub	З Flathub
+Install %s into the sandbox anyway?	Усе одно встановити %s у пісочницю?
+Install %s into the system anyway?	Усе одно встановити %s у систему?
+Installed in the sandbox: %s	Встановлено в пісочницю: %s
+Installing %s from Flathub…	Встановлення %s з Flathub…
+Installing %s into the sandbox failed.	Не вдалося встановити %s у пісочницю.
+Installing into the sandbox instead.	Натомість буде встановлено в пісочницю.
+Installing the build tools into the sandbox failed.	Не вдалося встановити інструменти збирання в пісочницю.
+Isolated app from Flathub. Its data stays in ~/.var/app.	Ізольований застосунок із Flathub. Його дані зберігаються в ~/.var/app.
+LuxAI did not answer (%s)	LuxAI не відповів (%s)
+LuxAI found nothing suspicious in the build script.	LuxAI не знайшов у скрипті збирання нічого підозрілого.
+LuxAI gave no clear answer	LuxAI не дав чіткої відповіді
+LuxAI is not installed	LuxAI не встановлено
+LuxAI is not reachable (offline?)	LuxAI недоступний (немає мережі?)
+Not found? Community packages (AUR) are installed in Terminal with lux install and go into your sandbox.	Не знайшли? Пакети спільноти (AUR) встановлюються в Терміналі командою lux install і потрапляють у вашу пісочницю.
+Nothing found on Flathub.	На Flathub нічого не знайдено.
+Preparing build tools in the sandbox...	Підготовка інструментів збирання в пісочниці...
+Removed: %s	Видалено: %s
+Sandbox - isolated from your files and system (recommended)	Пісочниця – ізольовано від ваших файлів і системи (рекомендовано)
+Several apps on Flathub match '%s':	Кілька застосунків на Flathub відповідають «%s»:
+Show the build script (PKGBUILD) of %s?	Показати скрипт збирання (PKGBUILD) %s?
+Start it with: %s	Запустіть командою: %s
+System - full access to the computer	Система – повний доступ до комп’ютера
+The build directory is expected as a tar archive on standard input.	Каталог збирання очікується як архів tar на стандартному вводі.
+The build script looks dangerous:	Скрипт збирання виглядає небезпечним:
+The build script looks suspicious:	Скрипт збирання виглядає підозрілим:
+The build script was not checked by LuxAI.	LuxAI не перевірив скрипт збирання.
+The sandbox is not installed (lux install luxos-sandbox), or install into the system with --system	Пісочницю не встановлено (lux install luxos-sandbox) або встановіть у систему з --system
+Type %s to confirm installing community code into the system:	Введіть %s, щоб підтвердити встановлення коду спільноти в систему:
+Where should it be installed?	Куди встановити?
+Without a clean check it needs your confirmation (run without -y).	Без чистої перевірки потрібне ваше підтвердження (запустіть без -y).
+adds scheduled tasks	додає заплановані завдання
+asks for administrator rights inside the build script	просить права адміністратора в скрипті збирання
+build a PKGBUILD (community/AUR, used by lux) and install it	зібрати PKGBUILD (спільнота/AUR, використовує lux) і встановити
+calculating…	обчислення…
+changes shell start-up files	змінює файли запуску оболонки
+community - installed into the sandbox	спільнота – встановлено в пісочницю
+community package into the system instead of the sandbox	пакет спільноти в систему замість пісочниці
+contains a long encoded blob	містить довгий закодований блок
+decodes hidden base64 content	декодує прихований вміст base64
+deletes system or home directories	видаляє системні або домашні каталоги
+downloads a script and runs it directly (curl | sh)	завантажує скрипт і одразу запускає його (curl | sh)
+downloads are not checked with checksums (SKIP)	завантаження не перевіряються контрольними сумами (SKIP)
+downloads over unencrypted %s: %s	завантажує через незашифрований %s: %s
+enables a system service	вмикає системну службу
+includes the shared runtime %s (used by other Flatpak apps too)	разом зі спільним середовищем %s (його використовують і інші застосунки Flatpak)
+install packages (repositories, LuxOS, Flathub, then community/AUR)	встановлення пакетів (репозиторії, LuxOS, Flathub, потім спільнота/AUR)
+isolated app (Flatpak)	ізольований застосунок (Flatpak)
+no PKGBUILD found	PKGBUILD не знайдено
+on disk:	на диску:
+only the community source (AUR)	лише джерело спільноти (AUR)
+opens a remote shell	відкриває віддалену оболонку
+remove packages (also Flatpak apps) and unneeded dependencies	видалення пакетів (і застосунків Flatpak) та непотрібних залежностей
+runs generated code with eval	запускає згенерований код через eval
+runs inline code of another language	запускає вбудований код іншої мови
+search repositories, Flathub and community (AUR)	пошук у репозиторіях, Flathub і спільноті (AUR)
+sets world-writable or setuid permissions	встановлює права запису для всіх або setuid
+the build script is unusually long	скрипт збирання незвично довгий
+touches accounts, sudo or SSH keys	торкається облікових записів, sudo або ключів SSH
+uses the network while installing	використовує мережу під час встановлення
+writes outside the package directory: %s	записує поза каталогом пакета: %s
+you are not signed in to LuxAI	ви не ввійшли в LuxAI
+%s contains symbolic links - community packages with links are refused	%s містить символічні посилання – пакети спільноти з посиланнями відхиляються
+Community packages are installed into the system only from an interactive terminal (without --system they go to the sandbox).	Пакети спільноти встановлюються в систему лише з інтерактивного терміналу (без --system вони йдуть у пісочницю).
+contains a symbolic link: %s	містить символічне посилання: %s
+contains a file that is not a regular file: %s	містить файл, який не є звичайним файлом: %s
+contains too many files to check	містить забагато файлів для перевірки
+file too large to check: %s	файл завеликий для перевірки: %s
+file could not be read: %s	не вдалося прочитати файл: %s
+binary file that cannot be checked: %s	двійковий файл, який неможливо перевірити: %s
+install script outside the package directory: %s	скрипт встановлення поза каталогом пакета: %s
+the install script name cannot be determined: %s	неможливо визначити назву скрипту встановлення: %s
+LuxAI could not see all files of the package	LuxAI не побачила всіх файлів пакета
+Install it now?	Встановити зараз?

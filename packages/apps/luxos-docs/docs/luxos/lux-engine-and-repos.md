@@ -140,6 +140,9 @@ repo luxos
 repo luxos-apps
     server  https://luxos.lux-ai.cz/repo/$repo/$arch
 
+repo luxos-drivers
+    server  https://luxos.lux-ai.cz/repo/$repo/$arch
+
 repo core
     mirrors  /etc/lux/mirrorlist
 
@@ -153,6 +156,7 @@ include  /etc/lux/conf.d/*.conf
 |---|---|
 | `[luxos]` | the LuxOS system: lux-engine, lux, luxos-desktop, luxos-care, luxos-drivers, luxos-installer, lsh, themes, branding, LuxDrop, … and legacy NVIDIA drivers (`nvidia-580xx-*`, `nvidia-470xx-*`, built from AUR, online only) |
 | `[luxos-apps]` | downloadable apps, e.g. `lsl` (Lux Simple Lang), `lsl-ide`, `lux-code`, `luxai`, `luxos-docs` |
+| `[luxos-drivers]` | verified printer and scanner drivers of manufacturers, built from checked AUR versions (see drivers.md) |
 | `[core]`, `[extra]` | Arch Linux, via `/etc/lux/mirrorlist` (`lux mirrors` refreshes it) |
 | `.lux` repo | `https://luxos.lux-ai.cz/repo/lux/` (`index.json` + signatures), see [lux-packages.md](lux-packages.md) |
 

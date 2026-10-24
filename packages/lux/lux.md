@@ -185,11 +185,11 @@ jméno balíku (`@@ERROR corrupt`).
 | Příkaz | Co dělá | v pacmanu (Arch) |
 |---|---|---|
 | `lux` | interaktivní obchod v terminálu (Enter instalovat, Ctrl-R odebrat, Ctrl-U aktualizovat) | |
-| `lux install <balík…>` | instalace z repozitářů → LuxOS (`.lux`) → AUR → Flathub; i soubor `.lux` nebo `.pkg.tar.zst`; už nainstalované přeskočí | `-S --needed`, `-U` |
+| `lux install <balík…>` | instalace z repozitářů → LuxOS (`.lux`) → Flathub → komunita (AUR, do sandboxu; do systému jen s `--system`); i soubor `.lux` nebo `.pkg.tar.zst`; už nainstalované přeskočí | `-S --needed`, `-U` |
 | `lux remove <balík…>` | odebrání i s nepotřebnými závislostmi a zálohami konfigurace | `-Rns` |
-| `lux update` (`upgrade`, `up`) | obnoví databáze, nejdřív podpisové klíče, pak celý systém; dál AUR, `.lux` a Flatpak | `-Sy` + `-Su` |
+| `lux update` (`upgrade`, `up`) | obnoví databáze, nejdřív podpisové klíče, pak celý systém; dál balíky komunity (AUR) v systému, `.lux` a Flatpak (+ úklid nepoužívaných prostředí) | `-Sy` + `-Su` |
 | `lux check` (`check-updates`) | dostupné aktualizace z čerstvých seznamů (dočasná kopie, bez roota, systém beze změny) | `checkupdates` |
-| `lux search <výraz>` | hledání v repozitářích, LuxOS a AUR | `-Ss` |
+| `lux search <výraz>` | hledání v repozitářích, LuxOS, na Flathubu a v komunitě (AUR) | `-Ss` |
 | `lux info <balík>` | podrobnosti (nainstalovaný, jinak z repozitáře; LuxOS, AUR) | `-Qi` / `-Si` |
 | `lux list [--installed]` | nainstalované balíky (i `.lux`) | `-Q` |
 | `lux list --upgradable` | dostupné aktualizace podle posledního obnovení databází | `-Qu` |
@@ -207,8 +207,17 @@ jméno balíku (`@@ERROR corrupt`).
 | `lux drivers`, `lux doctor`, `lux pack` | ovladače, kontrola systému (i konfigurace), sestavení `.lux` | |
 
 Volby: `-y` (bez otázek – jinak se `lux` vždy zeptá), `-v`/`--verbose` (seznam balíků, výstup skriptů
-a surové chyby libalpm), `--repo`, `--aur`. Práva správce si `lux` vyžádá sám: v terminálu `sudo`,
+a surové chyby libalpm), `--repo`, `--aur`/`--community`, `--system` (balík komunity do systému místo sandboxu). Práva správce si `lux` vyžádá sám: v terminálu `sudo`,
 v grafické relaci bez terminálu `pkexec`.
+
+**Flathub a komunita (AUR).** Název, který není v repozitářích ani mezi aplikacemi LuxOS, se hledá
+přes API Flathubu (`zoom` → `us.zoom.Zoom`); `lux` ukáže velikost včetně sdíleného prostředí
+(runtime), které ještě není nainstalované. `lux remove` odebere i aplikace Flatpak a po odebrání
+i aktualizaci smaže nepoužívaná prostředí (`flatpak uninstall --unused`). Až potom přijde komunita
+(AUR): skript PKGBUILD zkontrolují pevná pravidla a LuxAI Lite (`/usr/lib/lux/lux_community.py
+review`), balík se pak sestaví a nainstaluje **v sandboxu** (`luxos-sandbox build-install`). Do
+systému jen s `--system` nebo volbou „2“ a napsaným slovem `system`; nebezpečný skript nikdy,
+neověřený jen s potvrzením bez `-y`. Agent LuxAI (`LUXAI_AGENT=1`) balíky komunity instalovat nesmí.
 
 ## Výstup
 

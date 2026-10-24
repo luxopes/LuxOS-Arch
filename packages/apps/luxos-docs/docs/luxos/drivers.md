@@ -109,6 +109,50 @@ base system. Legacy NVIDIA drivers (`nvidia-580xx-*`, `nvidia-470xx-*`) are not 
 are downloaded from the online `[luxos]` repository after the base system. If that fails, nouveau
 stays in use and the driver is offered later in Drivers.
 
+## Verified drivers ([luxos-drivers])
+
+Many printer and scanner drivers exist only in the AUR (user-submitted build scripts). LuxOS does
+not let normal users build them blindly. Instead the drivers people need are **verified, built and
+signed by LuxOS** into the repository `[luxos-drivers]` (`/etc/lux/lux.conf`; added to older
+installs once by the `lux-engine` update, `lux_config.add_drivers_repo`; whoever removes it keeps
+it removed).
+
+How a driver gets into the repository (`drivers/luxdrv.py` in the LuxOS source tree):
+
+1. `luxdrv.py discover` lists AUR packages of known vendors (`drivers/vendors.json`: Brother,
+   Epson, Canon, Samsung, Kyocera, Ricoh, Xerox, HP plugin).
+2. `luxdrv.py verify` checks **every new AUR commit** - also every update of an already verified
+   driver - against strict rules:
+   - outside functions the PKGBUILD may only assign variables (and test `$CARCH`); it is read
+     with no network and an empty environment
+   - sources only from the vendor's own domains, no git/svn, every source has a real checksum
+     (no `SKIP`); the file is downloaded, compared and its SHA-256 pinned in
+     `drivers/state/manifest.json`
+   - no network tools, `| sh`, `sh -c`, `eval`, `base64 -d`, `sudo`, setuid/setgid, writes
+     outside `$pkgdir`/`$srcdir` in the build functions
+   - the `.install` script (runs as root on the user's computer) may only use an allowlist of
+     commands, may restart only CUPS/scanner services and write only into driver directories
+     (`/opt`, `/usr/share/cups`, `/etc/sane.d`, …)
+   - a new AUR committer since the last verified version, or rewritten history, needs a manual
+     review; the diff against the last verified commit is saved to `out/drivers/diffs/`
+   - optional extra review command `LUXOS_DRIVERS_REVIEW` (e.g. LuxAI) gets the PKGBUILD,
+     `.install` and diff as JSON; a non-zero exit rejects the version
+   Anything that fails is **not built**; reasons are in `drivers/state/rejected.json`. If an update
+   fails, the last verified version stays in the repository.
+3. `./build.sh drivers` builds only verified commits, from a local copy of the AUR history, with
+   the already verified sources and **no network access during the build**, then signs the
+   packages and the repository with the LuxOS key. It also builds `luxos-drivers-index`: the map
+   printer model (PPD `*1284DeviceID`) and scanner USB ID (udev rules) → package.
+4. `scripts/publish-repo.sh` uploads `[luxos-drivers]` together with the other repositories.
+
+Plug and play: `luxos-printing-helper` installs the printer driver by model (see
+[Printing and scanning](printing-scanning.md)); `luxos-hwdetect` reads
+`/usr/share/luxos/drivers-usb.tsv` and lists the scanner driver for a connected USB scanner, so the
+Drivers app and the check after login offer it (device kind `scanner`).
+
+Maintenance: `drivers/update.sh` (re-verify everything that changed in the AUR, show the
+diffs, build, then publish by hand).
+
 ## Troubleshooting
 
 - Driver says "Restart required": restart; DKMS modules load only with the new initramfs.

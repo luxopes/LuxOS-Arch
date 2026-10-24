@@ -639,6 +639,61 @@ def cmd_install(args):
     return launch(spec)
 
 
+BUILD_DIR = SANDBOX_HOME + "/.cache/lux-build"
+
+
+def cmd_build_install(args):
+    """Sestaveni a instalace balicku ze skriptu PKGBUILD (zdroj komunita/AUR) uvnitr sandboxu.
+
+    luxos-sandbox build-install [--asdeps] [--deps "a b"] NAZEV < tar
+    Na stdin je tar adresare s PKGBUILD (lux ho stahl a zkontroloval na hostiteli - sestavuje se presne ten).
+    Postup: zavislosti z repozitaru Archu (jako root sandboxu) -> rozbaleni a makepkg jako uzivatel sandboxu
+    (se siti, skript bezi jen uvnitr) -> pacman -U (root sandboxu). Na hostitele se nic nezapisuje."""
+    require_sandbox()
+    args = list(args)
+    asdeps = "--asdeps" in args
+    deps = []
+    while args and args[0].startswith("--"):
+        a = args.pop(0)
+        if a == "--deps" and args:
+            deps = args.pop(0).split()
+        elif a != "--asdeps":
+            die(_("Unknown option: %s") % a)
+    if len(args) != 1:
+        die(_("Usage: luxos-sandbox build-install [--asdeps] [--deps \"a b\"] <name> < directory.tar"))
+    name = valid_pkgs(args)[0]
+    deps = valid_pkgs(deps) if deps else []
+    tty = sys.stdin.isatty()
+    if tty:
+        die(_("The build directory is expected as a tar archive on standard input."))
+    # 1) nastroje pro sestaveni a zavislosti (jen repozitare Archu v sandboxu)
+    script = ('/usr/bin/pacman -Syu --needed --noconfirm --disable-sandbox base-devel git && '
+              'if [ $# -gt 0 ]; then /usr/bin/pacman -S --needed --asdeps --noconfirm --disable-sandbox -- "$@"; fi; '
+              'rc=$?; rm -f /var/cache/pacman/pkg/*.pkg.tar.* /var/cache/pacman/pkg/*.sig 2>/dev/null; exit $rc')
+    print(_("Preparing build tools in the sandbox..."), file=sys.stderr)
+    if launch(base_spec(["/bin/sh", "-c", script, "sh", *deps], mode="install", net=True, tty=False),
+              stdin=subprocess.DEVNULL) != 0:
+        die(_("Installing the build tools into the sandbox failed."))
+    # 2) rozbaleni (data jdou pres stdin) a sestaveni jako uzivatel sandboxu
+    d = f"{BUILD_DIR}/{name}"
+    unpack = f'rm -rf "{d}" && mkdir -p "{d}" && tar -x --no-same-owner --no-same-permissions -C "{d}" -f -'
+    if launch(base_spec(["/bin/sh", "-c", unpack], tty=False), stdin=sys.stdin.buffer) != 0:
+        die(_("Copying the build files into the sandbox failed."))
+    print(_("Building %s in the sandbox...") % name, file=sys.stderr)
+    build = f'cd "{d}" && makepkg -f --noconfirm --noprogressbar'
+    if launch(base_spec(["/bin/sh", "-c", build], net=True, tty=False), stdin=subprocess.DEVNULL) != 0:
+        die(_("Building %s in the sandbox failed.") % name)
+    # 3) instalace vysledku (bez ladicich -debug balicku)
+    inst = (f'set -- $(ls "{d}"/*.pkg.tar.* 2>/dev/null | grep -v -- "-debug-" | grep -v "\\.sig$"); '
+            '[ $# -gt 0 ] || { echo "no package was built" >&2; exit 1; }; '
+            f'/usr/bin/pacman -U --needed --noconfirm --disable-sandbox {"--asdeps " if asdeps else ""}-- "$@"; rc=$?; '
+            f'rm -rf "{d}"; exit $rc')
+    rc = launch(base_spec(["/bin/sh", "-c", inst], mode="install", tty=False), stdin=subprocess.DEVNULL)
+    if rc != 0:
+        die(_("Installing %s into the sandbox failed.") % name)
+    return 0
+
+
 def cmd_remove_app(args):
     require_sandbox()
     pkgs = valid_pkgs(args)
@@ -685,6 +740,7 @@ USAGE = (
     ("run [--net] [--gui] [--shared] <command|./file> [args...]",
      "run a command (a file from your computer is copied in first)"),
     ("install <package...>", "install apps from the Arch Linux repositories into the sandbox"),
+    ("build-install [--asdeps] <name> < dir.tar", "build a PKGBUILD (community/AUR, used by lux) and install it"),
     ("remove-app <package...>", "remove apps from the sandbox"),
     ("reset [--yes]", "wipe the sandbox and create it again"),
     ("destroy [--yes]", "delete the sandbox"),
@@ -718,7 +774,7 @@ def main():
         die(_("Run luxos-sandbox as a normal user, not root."))
     cmd, args = argv[0], argv[1:]
     table = {"create": cmd_create, "status": cmd_status, "shell": cmd_shell, "run": cmd_run,
-             "install": cmd_install, "remove-app": cmd_remove_app, "reset": cmd_reset,
+             "install": cmd_install, "build-install": cmd_build_install, "remove-app": cmd_remove_app, "reset": cmd_reset,
              "destroy": cmd_destroy, "__query": cmd_query}
     if cmd == "__enter":
         enter()

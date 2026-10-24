@@ -2589,3 +2589,103 @@ Done. You can close this window.	Fatto. Puoi chiudere questa finestra.
 Search for scanners again	Cerca di nuovo gli scanner
 Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Accendi lo scanner e collegalo con un cavo USB o alla stessa rete Wi‑Fi di questo computer. Apparirà qui da solo non appena LuxOS lo trova.
 The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	Il lettore non è riuscito a leggere bene il dito. Pulisci il sensore e il dito, poi fai clic su Riprova.
+Too many failed attempts. The account is locked for %d min, then try again.	Troppi tentativi falliti. L'account è bloccato per %d min, poi riprova.
+Too many failed attempts. Wait a moment, then try again.	Troppi tentativi falliti. Attendi un momento e riprova.
+# 0.9.10: community (AUR) sandbox install, Flathub
+%s comes from the community source (AUR): scripts by other users, not checked by LuxOS.	%s proviene dalla fonte della community (AUR): script di altri utenti, non verificati da LuxOS.
+%s is installed from Flathub (isolated Flatpak app)	%s viene installato da Flathub (app Flatpak isolata)
+%s is only in the community source (AUR). LuxAI does not install community packages - run in Terminal: lux install %s	%s è solo nella fonte della community (AUR). LuxAI non installa pacchetti della community: esegui nel Terminale: lux install %s
+A dangerous build script is never installed into the system.	Uno script di compilazione pericoloso non viene mai installato nel sistema.
+Apps from Flathub need %sflatpak%s.	Le app di Flathub richiedono %sflatpak%s.
+Apps from Flathub run isolated from the system (Flatpak).	Le app di Flathub funzionano isolate dal sistema (Flatpak).
+Build and install %s in the sandbox?	Compilare e installare %s nella sandbox?
+Build of %s in the sandbox failed	Compilazione di %s nella sandbox non riuscita
+Building %s %s(community)%s	Compilazione di %s %s(community)%s
+Building %s %s(community)%s in the sandbox	Compilazione di %s %s(community)%s nella sandbox
+Building %s in the sandbox failed.	La compilazione di %s nella sandbox non è riuscita.
+Building %s in the sandbox...	Compilazione di %s nella sandbox...
+Checking the build script of %s (LuxAI Lite)	Controllo dello script di compilazione di %s (LuxAI Lite)
+Choose 1 or 2:	Scegli 1 o 2:
+Choose a number (Enter = none):	Scegli un numero (Invio = nessuno):
+Community packages are installed as a regular user (run lux without sudo)	I pacchetti della community si installano come utente normale (esegui lux senza sudo)
+Community packages are updated only when you run it yourself: lux update	I pacchetti della community si aggiornano solo quando lo esegui tu: lux update
+Community packages to build: %s	Pacchetti della community da compilare: %s
+Community packages were not updated	I pacchetti della community non sono stati aggiornati
+Copying the build files into the sandbox failed.	Copia dei file di compilazione nella sandbox non riuscita.
+Creating your sandbox first	Prima viene creata la tua sandbox
+Download %s, on disk %s - includes the shared runtime %s (%s), which other Flatpak apps use too.	Download %s, su disco %s – incluso il runtime condiviso %s (%s), usato anche da altre app Flatpak.
+Download:	Download:
+From Flathub	Da Flathub
+Install %s into the sandbox anyway?	Installare comunque %s nella sandbox?
+Install %s into the system anyway?	Installare comunque %s nel sistema?
+Installed in the sandbox: %s	Installato nella sandbox: %s
+Installing %s from Flathub…	Installazione di %s da Flathub…
+Installing %s into the sandbox failed.	Installazione di %s nella sandbox non riuscita.
+Installing into the sandbox instead.	Verrà installato invece nella sandbox.
+Installing the build tools into the sandbox failed.	Installazione degli strumenti di compilazione nella sandbox non riuscita.
+Isolated app from Flathub. Its data stays in ~/.var/app.	App isolata da Flathub. I suoi dati restano in ~/.var/app.
+LuxAI did not answer (%s)	LuxAI non ha risposto (%s)
+LuxAI found nothing suspicious in the build script.	LuxAI non ha trovato nulla di sospetto nello script di compilazione.
+LuxAI gave no clear answer	LuxAI non ha dato una risposta chiara
+LuxAI is not installed	LuxAI non è installato
+LuxAI is not reachable (offline?)	LuxAI non è raggiungibile (offline?)
+Not found? Community packages (AUR) are installed in Terminal with lux install and go into your sandbox.	Non trovato? I pacchetti della community (AUR) si installano nel Terminale con lux install e finiscono nella tua sandbox.
+Nothing found on Flathub.	Nulla trovato su Flathub.
+Preparing build tools in the sandbox...	Preparazione degli strumenti di compilazione nella sandbox...
+Removed: %s	Rimosso: %s
+Sandbox - isolated from your files and system (recommended)	Sandbox – isolata dai tuoi file e dal sistema (consigliato)
+Several apps on Flathub match '%s':	Più app su Flathub corrispondono a «%s»:
+Show the build script (PKGBUILD) of %s?	Mostrare lo script di compilazione (PKGBUILD) di %s?
+Start it with: %s	Avvialo con: %s
+System - full access to the computer	Sistema – accesso completo al computer
+The build directory is expected as a tar archive on standard input.	La cartella di compilazione è attesa come archivio tar sullo standard input.
+The build script looks dangerous:	Lo script di compilazione sembra pericoloso:
+The build script looks suspicious:	Lo script di compilazione sembra sospetto:
+The build script was not checked by LuxAI.	Lo script di compilazione non è stato controllato da LuxAI.
+The sandbox is not installed (lux install luxos-sandbox), or install into the system with --system	La sandbox non è installata (lux install luxos-sandbox), oppure installa nel sistema con --system
+Type %s to confirm installing community code into the system:	Digita %s per confermare l’installazione di codice della community nel sistema:
+Where should it be installed?	Dove installarlo?
+Without a clean check it needs your confirmation (run without -y).	Senza un controllo pulito serve la tua conferma (esegui senza -y).
+adds scheduled tasks	aggiunge attività pianificate
+asks for administrator rights inside the build script	chiede diritti di amministratore nello script di compilazione
+build a PKGBUILD (community/AUR, used by lux) and install it	compilare un PKGBUILD (community/AUR, usato da lux) e installarlo
+calculating…	calcolo…
+changes shell start-up files	modifica i file di avvio della shell
+community - installed into the sandbox	community – installato nella sandbox
+community package into the system instead of the sandbox	pacchetto della community nel sistema invece che nella sandbox
+contains a long encoded blob	contiene un lungo blocco codificato
+decodes hidden base64 content	decodifica contenuto base64 nascosto
+deletes system or home directories	elimina cartelle di sistema o personali
+downloads a script and runs it directly (curl | sh)	scarica uno script e lo esegue direttamente (curl | sh)
+downloads are not checked with checksums (SKIP)	i download non sono verificati con checksum (SKIP)
+downloads over unencrypted %s: %s	scarica tramite %s non cifrato: %s
+enables a system service	attiva un servizio di sistema
+includes the shared runtime %s (used by other Flatpak apps too)	incluso il runtime condiviso %s (usato anche da altre app Flatpak)
+install packages (repositories, LuxOS, Flathub, then community/AUR)	installare pacchetti (repository, LuxOS, Flathub, poi community/AUR)
+isolated app (Flatpak)	app isolata (Flatpak)
+no PKGBUILD found	nessun PKGBUILD trovato
+on disk:	su disco:
+only the community source (AUR)	solo la fonte della community (AUR)
+opens a remote shell	apre una shell remota
+remove packages (also Flatpak apps) and unneeded dependencies	rimuovere pacchetti (anche app Flatpak) e dipendenze non necessarie
+runs generated code with eval	esegue codice generato con eval
+runs inline code of another language	esegue codice incorporato di un altro linguaggio
+search repositories, Flathub and community (AUR)	cercare in repository, Flathub e community (AUR)
+sets world-writable or setuid permissions	imposta permessi scrivibili da tutti o setuid
+the build script is unusually long	lo script di compilazione è insolitamente lungo
+touches accounts, sudo or SSH keys	tocca account, sudo o chiavi SSH
+uses the network while installing	usa la rete durante l’installazione
+writes outside the package directory: %s	scrive fuori dalla cartella del pacchetto: %s
+you are not signed in to LuxAI	non hai effettuato l’accesso a LuxAI
+%s contains symbolic links - community packages with links are refused	%s contiene collegamenti simbolici – i pacchetti della community con collegamenti vengono rifiutati
+Community packages are installed into the system only from an interactive terminal (without --system they go to the sandbox).	I pacchetti della community si installano nel sistema solo da un terminale interattivo (senza --system vanno nella sandbox).
+contains a symbolic link: %s	contiene un collegamento simbolico: %s
+contains a file that is not a regular file: %s	contiene un file che non è un file normale: %s
+contains too many files to check	contiene troppi file da controllare
+file too large to check: %s	file troppo grande da controllare: %s
+file could not be read: %s	impossibile leggere il file: %s
+binary file that cannot be checked: %s	file binario che non può essere controllato: %s
+install script outside the package directory: %s	script di installazione fuori dalla cartella del pacchetto: %s
+the install script name cannot be determined: %s	impossibile determinare il nome dello script di installazione: %s
+LuxAI could not see all files of the package	LuxAI non ha potuto vedere tutti i file del pacchetto
+Install it now?	Installarlo ora?

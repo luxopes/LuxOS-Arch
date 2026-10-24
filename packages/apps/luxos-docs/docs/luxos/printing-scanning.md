@@ -34,12 +34,18 @@ on purpose.
   installs `hplip` (HP) or `gutenprint` (others) through `lux` (`lux_alpm.py`; it waits if the
   package database is busy). If that is not possible either, it uses a generic PostScript or PCL
   driver.
-- Printers whose only driver is in the AUR (Samsung SPL/QPDL lasers such as the Xpress M2020/M2026
-  series; `luxos_printing.AUR_DRIVERS`) get no queue. AUR packages cannot be built as root, so the
-  notification "needs a driver from the manufacturer" has an **Install Driver** button: it opens
+- Printers that need a **manufacturer driver** (Samsung SPL/QPDL lasers such as the Xpress
+  M2020/M2026, Brother, Canon UFR II, Epson inkjets) get it from the repository `[luxos-drivers]`:
+  verified driver packages built by LuxOS from the AUR (see [Verified drivers](drivers.md#verified-drivers-luxos-drivers)).
+  The helper looks the printer model up in `/usr/share/luxos/drivers-index.json` (package
+  `luxos-drivers-index`, installed by the helper when missing; `luxos_printing.verified_driver`),
+  installs the driver as root through `lux` and creates the queue - no AUR build, no password.
+  The Samsung PPD is per series ("M2020 Series" covers M2026).
+- Only when the driver is not in the configured repositories (old `lux.conf` without
+  `[luxos-drivers]`, or the repository database not downloaded yet) the printer gets no queue and
+  the notification "needs a driver from the manufacturer" has an **Install Driver** button: it opens
   Terminal with `lux install samsung-unified-driver-printer` and then runs
-  `pkexec luxos-printing-helper sync`. The Samsung PPD is per series ("M2020 Series" covers M2026).
-  "Add" in Printers & Scanners offers the same.
+  `pkexec luxos-printing-helper sync`. "Add" in Printers & Scanners offers the same.
 - Some HP models need HP's proprietary plugin. The notification then says: "Open Terminal and run:
   hp-plugin".
 - A network printer without driverless support gets no queue automatically. The notification says

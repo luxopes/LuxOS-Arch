@@ -10,7 +10,8 @@
 #               Vychozi: nainstalovana jadra (/usr/lib/modules/*/pkgbase), jinak linux-zen.
 set -euo pipefail
 # Promenne pro testy: LUXOS_HW_ROOT (koren s falesnym /sys, /proc, /etc, /usr/lib/modules),
-# LUXOS_HW_VIRT (vysledek systemd-detect-virt), LUXOS_HW_DATA (adresar s nvidia-legacy.ids).
+# LUXOS_HW_VIRT (vysledek systemd-detect-virt), LUXOS_HW_DATA (adresar s nvidia-legacy.ids),
+# LUXOS_HW_DRIVERS_MAP (USB ID -> balik z [luxos-drivers], vychozi /usr/share/luxos/drivers-usb.tsv).
 # Cte jen sysfs/procfs (bez lspci) - musi byt rychle, bezi i po kazdem prihlaseni.
 
 R=${LUXOS_HW_ROOT:-}
@@ -256,6 +257,26 @@ for u in "${USB[@]}"; do
             break ;;
     esac
 done
+
+# --- Skenery s overenym ovladacem vyrobce z [luxos-drivers] -------------------------
+# Mapa USB ID -> balik (luxos-drivers-index, sestavena z pravidel udev v balicich ovladacu)
+drv_map=${LUXOS_HW_DRIVERS_MAP:-$R/usr/share/luxos/drivers-usb.tsv}
+if [[ -r $drv_map ]] && ((${#USB[@]})); then
+    declare -A drv_usb=()
+    while IFS=$'\t' read -r id pkg; do
+        [[ $id == \#* || -z $pkg ]] && continue
+        [[ -z ${drv_usb[$id]+x} ]] && drv_usb[$id]=$pkg
+    done <"$drv_map"
+    declare -A drv_seen=()
+    for u in "${USB[@]}"; do
+        pkg=${drv_usb[$u]-}
+        [[ -n $pkg && -z ${drv_seen[$u]+x} && $pkg =~ ^[a-z0-9][a-z0-9._+-]*$ ]] || continue
+        drv_seen[$u]=1
+        device "scanner-$u" scanner "Scanner ($u)"
+        add "$pkg"
+        note "Scanner $u: manufacturer driver $pkg (verified, [luxos-drivers])"
+    done
+fi
 
 # --- Thunderbolt / USB4: autorizace pripojenych zarizeni ---------------------------
 if compgen -G "$R/sys/bus/thunderbolt/devices/domain*" >/dev/null; then

@@ -111,6 +111,18 @@ pump(0.7)
 check("wrong password: then correct one logs in", w.launched == [("anna", "xfce")], w.launched)
 done(w)
 
+# 4b. ucet docasne zamceny (pam_faillock) behem cekani na otisk -> jasna hlaska, ne "otisk/heslo spatne"
+w = greeter("wait")
+w.on_message("The account is locked due to 10 failed logins.", True)
+w.on_message("(1 minutes left to unlock)", True)
+check("locked: clear message with minutes", "locked for 1 min" in hint(w), hint(w))
+w.backend.state = "wait"
+w.backend.ok = False
+w.on_complete()
+pump(0.1)
+check("locked: failure keeps the lock message", "locked" in hint(w) and "Incorrect" not in hint(w), hint(w))
+done(w)
+
 # 5. Enter v prazdnem poli behem cekani -> prepnuti na heslo
 w = greeter("wait")
 w.submit()

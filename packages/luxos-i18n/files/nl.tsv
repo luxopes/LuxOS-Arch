@@ -2589,3 +2589,103 @@ Done. You can close this window.	Klaar. Je kunt dit venster sluiten.
 Search for scanners again	Opnieuw naar scanners zoeken
 Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Zet de scanner aan en sluit hem aan met een USB-kabel of op hetzelfde wifinetwerk als deze computer. Hij verschijnt hier vanzelf zodra LuxOS hem vindt.
 The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	De lezer kon je vinger niet goed genoeg lezen. Maak de sensor en je vinger schoon en klik op Opnieuw proberen.
+Too many failed attempts. The account is locked for %d min, then try again.	Te veel mislukte pogingen. Het account is %d min geblokkeerd, probeer het daarna opnieuw.
+Too many failed attempts. Wait a moment, then try again.	Te veel mislukte pogingen. Wacht even en probeer het opnieuw.
+# 0.9.10: community (AUR) sandbox install, Flathub
+%s comes from the community source (AUR): scripts by other users, not checked by LuxOS.	%s komt uit de communitybron (AUR): scripts van andere gebruikers, niet gecontroleerd door LuxOS.
+%s is installed from Flathub (isolated Flatpak app)	%s wordt geïnstalleerd vanaf Flathub (geïsoleerde Flatpak-app)
+%s is only in the community source (AUR). LuxAI does not install community packages - run in Terminal: lux install %s	%s staat alleen in de communitybron (AUR). LuxAI installeert geen communitypakketten – voer uit in Terminal: lux install %s
+A dangerous build script is never installed into the system.	Een gevaarlijk bouwscript wordt nooit in het systeem geïnstalleerd.
+Apps from Flathub need %sflatpak%s.	Apps van Flathub hebben %sflatpak%s nodig.
+Apps from Flathub run isolated from the system (Flatpak).	Apps van Flathub draaien geïsoleerd van het systeem (Flatpak).
+Build and install %s in the sandbox?	%s bouwen en installeren in de sandbox?
+Build of %s in the sandbox failed	Bouwen van %s in de sandbox mislukt
+Building %s %s(community)%s	%s wordt gebouwd %s(community)%s
+Building %s %s(community)%s in the sandbox	%s wordt in de sandbox gebouwd %s(community)%s
+Building %s in the sandbox failed.	Het bouwen van %s in de sandbox is mislukt.
+Building %s in the sandbox...	%s wordt in de sandbox gebouwd...
+Checking the build script of %s (LuxAI Lite)	Bouwscript van %s wordt gecontroleerd (LuxAI Lite)
+Choose 1 or 2:	Kies 1 of 2:
+Choose a number (Enter = none):	Kies een nummer (Enter = geen):
+Community packages are installed as a regular user (run lux without sudo)	Communitypakketten worden als gewone gebruiker geïnstalleerd (voer lux uit zonder sudo)
+Community packages are updated only when you run it yourself: lux update	Communitypakketten worden alleen bijgewerkt als u het zelf uitvoert: lux update
+Community packages to build: %s	Te bouwen communitypakketten: %s
+Community packages were not updated	Communitypakketten zijn niet bijgewerkt
+Copying the build files into the sandbox failed.	Kopiëren van de bouwbestanden naar de sandbox mislukt.
+Creating your sandbox first	Eerst wordt uw sandbox aangemaakt
+Download %s, on disk %s - includes the shared runtime %s (%s), which other Flatpak apps use too.	Download %s, op schijf %s – inclusief gedeelde runtime %s (%s), die ook andere Flatpak-apps gebruiken.
+Download:	Download:
+From Flathub	Van Flathub
+Install %s into the sandbox anyway?	%s toch in de sandbox installeren?
+Install %s into the system anyway?	%s toch in het systeem installeren?
+Installed in the sandbox: %s	Geïnstalleerd in de sandbox: %s
+Installing %s from Flathub…	%s wordt geïnstalleerd vanaf Flathub…
+Installing %s into the sandbox failed.	Installeren van %s in de sandbox mislukt.
+Installing into the sandbox instead.	In plaats daarvan wordt in de sandbox geïnstalleerd.
+Installing the build tools into the sandbox failed.	Installeren van de bouwhulpmiddelen in de sandbox mislukt.
+Isolated app from Flathub. Its data stays in ~/.var/app.	Geïsoleerde app van Flathub. De gegevens blijven in ~/.var/app.
+LuxAI did not answer (%s)	LuxAI antwoordde niet (%s)
+LuxAI found nothing suspicious in the build script.	LuxAI vond niets verdachts in het bouwscript.
+LuxAI gave no clear answer	LuxAI gaf geen duidelijk antwoord
+LuxAI is not installed	LuxAI is niet geïnstalleerd
+LuxAI is not reachable (offline?)	LuxAI is niet bereikbaar (offline?)
+Not found? Community packages (AUR) are installed in Terminal with lux install and go into your sandbox.	Niet gevonden? Communitypakketten (AUR) worden in Terminal geïnstalleerd met lux install en komen in uw sandbox.
+Nothing found on Flathub.	Niets gevonden op Flathub.
+Preparing build tools in the sandbox...	Bouwhulpmiddelen in de sandbox worden voorbereid...
+Removed: %s	Verwijderd: %s
+Sandbox - isolated from your files and system (recommended)	Sandbox – afgeschermd van uw bestanden en het systeem (aanbevolen)
+Several apps on Flathub match '%s':	Meerdere apps op Flathub komen overeen met '%s':
+Show the build script (PKGBUILD) of %s?	Bouwscript (PKGBUILD) van %s tonen?
+Start it with: %s	Start het met: %s
+System - full access to the computer	Systeem – volledige toegang tot de computer
+The build directory is expected as a tar archive on standard input.	De bouwmap wordt verwacht als tar-archief op standaardinvoer.
+The build script looks dangerous:	Het bouwscript lijkt gevaarlijk:
+The build script looks suspicious:	Het bouwscript lijkt verdacht:
+The build script was not checked by LuxAI.	Het bouwscript is niet door LuxAI gecontroleerd.
+The sandbox is not installed (lux install luxos-sandbox), or install into the system with --system	De sandbox is niet geïnstalleerd (lux install luxos-sandbox), of installeer in het systeem met --system
+Type %s to confirm installing community code into the system:	Typ %s om het installeren van communitycode in het systeem te bevestigen:
+Where should it be installed?	Waar moet het worden geïnstalleerd?
+Without a clean check it needs your confirmation (run without -y).	Zonder schone controle is uw bevestiging nodig (voer uit zonder -y).
+adds scheduled tasks	voegt geplande taken toe
+asks for administrator rights inside the build script	vraagt beheerdersrechten in het bouwscript
+build a PKGBUILD (community/AUR, used by lux) and install it	een PKGBUILD bouwen (community/AUR, gebruikt door lux) en installeren
+calculating…	berekenen…
+changes shell start-up files	wijzigt opstartbestanden van de shell
+community - installed into the sandbox	community – geïnstalleerd in de sandbox
+community package into the system instead of the sandbox	communitypakket in het systeem in plaats van de sandbox
+contains a long encoded blob	bevat een lang gecodeerd blok
+decodes hidden base64 content	decodeert verborgen base64-inhoud
+deletes system or home directories	verwijdert systeem- of thuismappen
+downloads a script and runs it directly (curl | sh)	downloadt een script en voert het direct uit (curl | sh)
+downloads are not checked with checksums (SKIP)	downloads worden niet met controlesommen gecontroleerd (SKIP)
+downloads over unencrypted %s: %s	downloadt via onversleuteld %s: %s
+enables a system service	schakelt een systeemdienst in
+includes the shared runtime %s (used by other Flatpak apps too)	inclusief gedeelde runtime %s (ook gebruikt door andere Flatpak-apps)
+install packages (repositories, LuxOS, Flathub, then community/AUR)	pakketten installeren (repositories, LuxOS, Flathub, daarna community/AUR)
+isolated app (Flatpak)	geïsoleerde app (Flatpak)
+no PKGBUILD found	geen PKGBUILD gevonden
+on disk:	op schijf:
+only the community source (AUR)	alleen de communitybron (AUR)
+opens a remote shell	opent een externe shell
+remove packages (also Flatpak apps) and unneeded dependencies	pakketten verwijderen (ook Flatpak-apps) en onnodige afhankelijkheden
+runs generated code with eval	voert gegenereerde code uit met eval
+runs inline code of another language	voert ingesloten code van een andere taal uit
+search repositories, Flathub and community (AUR)	zoeken in repositories, Flathub en community (AUR)
+sets world-writable or setuid permissions	stelt rechten in die voor iedereen schrijfbaar of setuid zijn
+the build script is unusually long	het bouwscript is ongewoon lang
+touches accounts, sudo or SSH keys	raakt accounts, sudo of SSH-sleutels aan
+uses the network while installing	gebruikt het netwerk tijdens de installatie
+writes outside the package directory: %s	schrijft buiten de pakketmap: %s
+you are not signed in to LuxAI	u bent niet aangemeld bij LuxAI
+%s contains symbolic links - community packages with links are refused	%s bevat symbolische koppelingen – communitypakketten met koppelingen worden geweigerd
+Community packages are installed into the system only from an interactive terminal (without --system they go to the sandbox).	Communitypakketten worden alleen vanuit een interactieve terminal in het systeem geïnstalleerd (zonder --system gaan ze naar de sandbox).
+contains a symbolic link: %s	bevat een symbolische koppeling: %s
+contains a file that is not a regular file: %s	bevat een bestand dat geen gewoon bestand is: %s
+contains too many files to check	bevat te veel bestanden om te controleren
+file too large to check: %s	bestand te groot om te controleren: %s
+file could not be read: %s	bestand kon niet worden gelezen: %s
+binary file that cannot be checked: %s	binair bestand dat niet kan worden gecontroleerd: %s
+install script outside the package directory: %s	installatiescript buiten de pakketmap: %s
+the install script name cannot be determined: %s	de naam van het installatiescript kan niet worden bepaald: %s
+LuxAI could not see all files of the package	LuxAI kon niet alle bestanden van het pakket zien
+Install it now?	Nu installeren?

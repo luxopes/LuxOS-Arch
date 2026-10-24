@@ -1,6 +1,6 @@
 #!/bin/bash
 # LuxOS - sestaveni baliku a ISO (bezi uvnitr Arch kontejneru, viz build.sh)
-# Pouziti: container-build.sh [all|packages|apps|iso|one BALIK]
+# Pouziti: container-build.sh [all|packages|apps|drivers|iso|one BALIK]
 set -euo pipefail
 
 ROOT=/luxos
@@ -219,6 +219,155 @@ build_apps() {
     make_repo luxos-apps "$BUILD/pkgs/luxos-apps"
 }
 
+# Repozitar [luxos-drivers]: overene ovladace tiskaren a skeneru z AUR (drivers/luxdrv.py verify).
+# Stavi se jen zapichnuty commit z drivers/state/manifest.json (z mistniho zrcadla out/drivers/aur.git),
+# zdroje jsou uz stazene a overene (out/drivers/src) a makepkg bezi BEZ SITE. Hotove baliky zustavaji v out/drivers-repo (build_packages
+# maze out/repo), znovu se stavi jen balik, jehoz overeny commit se zmenil.
+drv_pkgfiles() {  # drv_pkgfiles ADRESAR NAZEV -> soubory presne tohoto baliku (ne "nazev-dalsi")
+    local f rest
+    for f in "$1/$2"-*.pkg.tar.zst; do
+        [[ -e $f ]] || continue
+        rest=${f##*/}; rest=${rest#"$2"-}
+        [[ $rest =~ ^[^-]+-[^-]+-[^-]+\.pkg\.tar\.zst$ ]] && echo "$f"
+    done
+    return 0
+}
+
+build_drivers() {
+    local DREPO=$OUT/drivers-repo manifest=$ROOT/drivers/state/manifest.json
+    [[ -f $manifest ]] || { echo "No drivers/state/manifest.json (drivers/luxdrv.py verify)" >&2; exit 1; }
+    # 32bitove knihovny (lib32-*) potrebuji nektere starsi ovladace - jen v kontejneru
+    grep -q '^\[multilib\]' /etc/pacman.conf || printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >>/etc/pacman.conf
+    msg "Updating build container"
+    pacman -Syu --noconfirm --needed >/dev/null
+    setup_signing
+    mkdir -p "$DREPO/pkgs" "$DREPO/built" "$OUT/drivers/src" "$BUILD"
+    # zdroje jen ke cteni (makepkg je nestahuje - bez site); vlastnika v out/ nemenit
+    chown -R builder: "$BUILD"
+    local base commit dir n=0 failed=() rest progress f line
+    mapfile -t rest < <(jq -r 'to_entries[] | "\(.key) \(.value.commit)"' "$manifest" | sort)
+    # jen vybrane (./build.sh drivers BALIK...), jinak vsechny overene
+    if (($#)); then
+        local want=" $* " sel=()
+        for line in "${rest[@]}"; do [[ $want == *" ${line%% *} "* ]] && sel+=("$line"); done
+        rest=("${sel[@]}")
+    fi
+    # ovladace, ktere uz nejsou overene (odebrane z manifestu), z repozitare pryc
+    for f in "$DREPO"/built/*; do
+        base=${f##*/}
+        [[ -e $f && $base != luxos-drivers-index ]] || continue
+        jq -e --arg b "$base" 'has($b)' "$manifest" >/dev/null && continue
+        msg "Removing driver $base (no longer verified)"
+        tail -n +2 "$f" | while read -r nm; do drv_pkgfiles "$DREPO/pkgs" "$nm" | xargs -r rm -f; done
+        rm -f "$f"
+    done
+    while ((${#rest[@]})); do
+        progress=0
+        local next=()
+        for line in "${rest[@]}"; do
+            read -r base commit <<<"$line"
+            # balik se stejnym jmenem jako v Archu by ho v systemu nahradil - takovy se nestavi (a pryc)
+            local clash=
+            while read -r nm; do
+                pacman -Si "$nm" &>/dev/null && { clash=$nm; break; }
+            done < <(jq -r --arg b "$base" '.[$b].pkgnames[]' "$manifest")
+            if [[ -n $clash ]]; then
+                if [[ -f $DREPO/built/$base ]]; then
+                    tail -n +2 "$DREPO/built/$base" | while read -r nm; do drv_pkgfiles "$DREPO/pkgs" "$nm" | xargs -r rm -f; done
+                    rm -f "$DREPO/built/$base"
+                fi
+                failed+=("$base (package $clash already exists in Arch Linux)"); continue
+            fi
+            [[ $(head -1 "$DREPO/built/$base" 2>/dev/null) == "$commit" ]] && continue
+            dir=$BUILD/drv/$base
+            rm -rf "$dir"
+            # soubory presne overeneho commitu z mistniho zrcadla AUR (drivers/luxdrv.py verify)
+            mkdir -p "$dir"
+            git -c safe.directory='*' --git-dir="$OUT/drivers/aur.git" archive "$commit" | tar -x -C "$dir" ||
+                { failed+=("$base (commit $commit not in out/drivers/aur.git)"); continue; }
+            chown -R builder: "$dir"
+            # zavislosti: z Archu, nebo jiny overeny ovladac (musi byt sestaveny driv)
+            local missing=0 nm
+            # (PKGBUILD cte uzivatel builder bez site, ne root)
+            # shellcheck disable=SC2016  # promenne rozvine az bash uzivatele builder
+            (cd "$dir" && unshare -n sudo -u builder bash -c 'set +u; depends=(); makedepends=(); CARCH=x86_64
+                source ./PKGBUILD >/dev/null 2>&1
+                for d in "${depends[@]}" "${makedepends[@]}"; do echo "${d%%[<>=]*}"; done') >"$dir/.deps"
+            while read -r nm; do
+                [[ -n $nm ]] || continue
+                pacman -Si "$nm" &>/dev/null && { pacman -S --needed --noconfirm "$nm" &>/dev/null || true; continue; }
+                pacman -Qq "$nm" &>/dev/null && continue
+                f=$(drv_pkgfiles "$DREPO/pkgs" "$nm" | head -1)
+                if [[ -n $f ]]; then pacman -U --needed --noconfirm "$f" &>/dev/null || missing=1
+                else missing=1; fi
+            done <"$dir/.deps"
+            if ((missing)); then next+=("$line"); continue; fi
+
+            msg "Building driver $base ($commit)"
+            # SRCDEST (makepkg ho chce zapisovatelny): odkazy na overene zdroje out/drivers/src/SHA256/NAZEV
+            rm -rf "$BUILD/drvsrc"; mkdir -p "$BUILD/drvsrc" "$BUILD/drvout"
+            local srcok=1 sf sh
+            while read -r sf sh; do
+                [[ -f $dir/$sf ]] && continue      # soubor primo v AUR (zaplata) - je v overenem commitu
+                [[ -f $OUT/drivers/src/$sh/$sf ]] || { srcok=0; break; }
+                cp "$OUT/drivers/src/$sh/$sf" "$BUILD/drvsrc/$sf"   # kopie: prepare() smi menit prava zdroju
+            done < <(jq -r --arg b "$base" '.[$b].sources | to_entries[] | "\(.key) \(.value)"' "$manifest")
+            ((srcok)) || { failed+=("$base (verified source $sf missing - run drivers/luxdrv.py verify)"); continue; }
+            chown -R builder: "$BUILD/drvsrc" "$BUILD/drvout"
+            if (cd "$dir" && unshare -n sudo -u builder env -u GNUPGHOME SRCDEST="$BUILD/drvsrc" \
+                    PKGDEST="$BUILD/drvout" makepkg --force --nodeps --noconfirm --cleanbuild >"$dir/.log" 2>&1); then
+                # stare verze baliku z tohoto pkgbase pryc, nove dovnitr (znacka: commit + nazvy baliku)
+                echo "$commit" >"$DREPO/built/$base.new"
+                rm -f "$BUILD"/drvout/*-debug-*.pkg.tar.zst
+                for f in "$BUILD"/drvout/*.pkg.tar.zst; do
+                    nm=$(tar --zstd -xOf "$f" .PKGINFO | awk -F' = ' '$1=="pkgname"{print $2; exit}')
+                    drv_pkgfiles "$DREPO/pkgs" "$nm" | xargs -r rm -f
+                    echo "$nm" >>"$DREPO/built/$base.new"
+                done
+                mv "$BUILD"/drvout/*.pkg.tar.zst "$DREPO/pkgs/"
+                mv "$DREPO/built/$base.new" "$DREPO/built/$base"
+                n=$((n + 1)); progress=1
+            else
+                mkdir -p "$DREPO/logs"; cp "$dir/.log" "$DREPO/logs/$base.log"
+                failed+=("$base (makepkg: $(grep -m1 -E 'ERROR|error' "$dir/.log" || tail -1 "$dir/.log"))")
+            fi
+            rm -rf "$dir" "$BUILD/drvout"
+        done
+        rest=("${next[@]}")
+        ((progress)) || { for line in "${rest[@]}"; do failed+=("${line%% *} (missing dependency)"); done; break; }
+    done
+    # luxos-drivers-index: ktere zarizeni potrebuje ktery balik (luxos-printing, luxos-hwdetect)
+    local idx=$BUILD/luxos-drivers-index sum
+    rm -rf "$idx"; mkdir -p "$idx"
+    python3 "$ROOT/drivers/luxdrv.py" index "$DREPO/pkgs" "$idx"
+    sum=$(cat "$idx"/drivers-index.json "$idx"/drivers-usb.tsv | sha256sum | cut -d' ' -f1)
+    if [[ $(cat "$DREPO/built/luxos-drivers-index" 2>/dev/null) != "$sum" ]] ||
+            ! compgen -G "$DREPO/pkgs/luxos-drivers-index-[0-9]*.pkg.tar.zst" >/dev/null; then
+        cat >"$idx/PKGBUILD" <<EOF
+pkgname=luxos-drivers-index
+pkgver=$(date -u +%Y%m%d.%H%M)
+pkgrel=1
+pkgdesc='LuxOS - which printer or scanner needs which verified driver from [luxos-drivers]'
+arch=(any)
+license=(MIT)
+source=(drivers-index.json drivers-usb.tsv)
+sha256sums=(SKIP SKIP)
+package() {
+    install -Dm644 -t "\$pkgdir/usr/share/luxos" drivers-index.json drivers-usb.tsv
+}
+EOF
+        chown -R builder: "$idx"
+        rm -f "$DREPO"/pkgs/luxos-drivers-index-[0-9]*.pkg.tar.zst
+        (cd "$idx" && sudo -u builder env -u GNUPGHOME PKGDEST="$idx/out" makepkg --force --nodeps --noconfirm >/dev/null)
+        mv "$idx"/out/*.pkg.tar.zst "$DREPO/pkgs/"
+        echo "$sum" >"$DREPO/built/luxos-drivers-index"
+    fi
+    rm -f "$DREPO"/pkgs/*.sig
+    REPO=$DREPO make_repo luxos-drivers "$DREPO/pkgs"
+    printf '%s\n' "${failed[@]}" >"$DREPO/failed.txt"
+    msg "Drivers: $n built, ${#failed[@]} failed (out/drivers-repo/failed.txt)"
+}
+
 build_iso() {
     [[ -f $REPO/luxos/$ARCH/luxos.db.tar.gz ]] || { echo "Build packages first" >&2; exit 1; }
     msg "Preparing archiso profile"
@@ -295,6 +444,7 @@ case $target in
     apps)     build_apps ;;
     iso)      build_iso ;;
     all)      build_packages; build_iso ;;
+    drivers)  shift; build_drivers "$@" ;;
     one)      build_single "${2:-}" ;;
-    *) echo "Usage: $0 [all|packages|apps|iso|one PACKAGE]" >&2; exit 2 ;;
+    *) echo "Usage: $0 [all|packages|apps|drivers [PKGBASE...]|iso|one PACKAGE]" >&2; exit 2 ;;
 esac

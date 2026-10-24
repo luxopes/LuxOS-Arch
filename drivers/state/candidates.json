@@ -1,0 +1,8431 @@
+{
+ "brother-9320cw-cups-bin": {
+  "maintainer": "meckhert",
+  "names": [
+   "brother-9320cw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-9320cw-lpr-bin": {
+  "maintainer": "meckhert",
+  "names": [
+   "brother-9320cw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-bradmin-light": {
+  "maintainer": "severach",
+  "names": [
+   "brother-bradmin-light"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-brgenml1": {
+  "maintainer": "swearchnick",
+  "names": [
+   "brother-brgenml1"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 33
+ },
+ "brother-color-label-printer": {
+  "maintainer": "lenchan139",
+  "names": [
+   "brother-color-label-printer"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-cups-wrapper-ac": {
+  "maintainer": "charleskensy",
+  "names": [
+   "brother-cups-wrapper-ac"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 11
+ },
+ "brother-cups-wrapper-common": {
+  "maintainer": "quenyen",
+  "names": [
+   "brother-cups-wrapper-common"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 53
+ },
+ "brother-cups-wrapper-laser": {
+  "maintainer": "severach",
+  "names": [
+   "brother-cups-wrapper-laser"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 14
+ },
+ "brother-dcp-145c": {
+  "maintainer": "judge",
+  "names": [
+   "brother-dcp-145c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp-197c": {
+  "maintainer": "tejonaco",
+  "names": [
+   "brother-dcp-197c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-9015cdw": {
+  "maintainer": "juanmafont",
+  "names": [
+   "brother-dcp-9015cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp-9020cdn": {
+  "maintainer": "libook",
+  "names": [
+   "brother-dcp-9020cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp-9020cdw": {
+  "maintainer": "parchd",
+  "names": [
+   "brother-dcp-9020cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 9
+ },
+ "brother-dcp-9022cdw": {
+  "maintainer": null,
+  "names": [
+   "brother-dcp-9022cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-dcp-9030cdn": {
+  "maintainer": "bittervan",
+  "names": [
+   "brother-dcp-9030cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-9270cdn": {
+  "maintainer": "nekonyuu",
+  "names": [
+   "brother-dcp-9270cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-b7500d": {
+  "maintainer": "budnyjj",
+  "names": [
+   "brother-dcp-b7500d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-b7520dw": {
+  "maintainer": "pawroman",
+  "names": [
+   "brother-dcp-b7520dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-b7535dw": {
+  "maintainer": "mandeepsan",
+  "names": [
+   "brother-dcp-b7535dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp-b7620dw": {
+  "maintainer": "lifelessPixels",
+  "names": [
+   "brother-dcp-b7620dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-j1050dw": {
+  "maintainer": "Zerist",
+  "names": [
+   "brother-dcp-j1050dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp-j1360dw": {
+  "maintainer": "StephanT",
+  "names": [
+   "brother-dcp-j1360dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-j1800dw": {
+  "maintainer": "Schiriki",
+  "names": [
+   "brother-dcp-j1800dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-j515w": {
+  "maintainer": "Zulkar",
+  "names": [
+   "brother-dcp-j515w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-j752dw": {
+  "maintainer": "thetestspecimen",
+  "names": [
+   "brother-dcp-j752dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-l2500d": {
+  "maintainer": "tmn505",
+  "names": [
+   "brother-dcp-l2500d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp-l2510d": {
+  "maintainer": "JakeFK",
+  "names": [
+   "brother-dcp-l2510d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp-l2530dw": {
+  "maintainer": "lhark",
+  "names": [
+   "brother-dcp-l2530dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-dcp-l2540dw-cups-bin": {
+  "maintainer": "gidrek",
+  "names": [
+   "brother-dcp-l2540dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-l2540dw-lpr-bin": {
+  "maintainer": "gidrek",
+  "names": [
+   "brother-dcp-l2540dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-l2550dw": {
+  "maintainer": "james",
+  "names": [
+   "brother-dcp-l2550dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-dcp-l2660dw": {
+  "maintainer": "gjasso",
+  "names": [
+   "brother-dcp-l2660dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp-l2665dw": {
+  "maintainer": "priarc",
+  "names": [
+   "brother-dcp-l2665dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-l8400cdn": {
+  "maintainer": "vS0uz4",
+  "names": [
+   "brother-dcp-l8400cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp-l8450cdw": {
+  "maintainer": "svenstaro",
+  "names": [
+   "brother-dcp-l8450cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp-t230": {
+  "maintainer": "fede_a",
+  "names": [
+   "brother-dcp-t230"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-t426w": {
+  "maintainer": "wjes",
+  "names": [
+   "brother-dcp-t426w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-t430w-bin": {
+  "maintainer": "Samsagax",
+  "names": [
+   "brother-dcp-t430w-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp-t536dw": {
+  "maintainer": "tleican",
+  "names": [
+   "brother-dcp-t536dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp-t710w-lpr-bin": {
+  "maintainer": "polv",
+  "names": [
+   "brother-dcp-t710w-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp-t780dw": {
+  "maintainer": "Kfftfuftur",
+  "names": [
+   "brother-dcp-t780dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp110c": {
+  "maintainer": "nomisge",
+  "names": [
+   "brother-dcp110c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp130c": {
+  "maintainer": "ewolnux",
+  "names": [
+   "brother-dcp130c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp135c": {
+  "maintainer": "severach",
+  "names": [
+   "brother-dcp135c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcp150c": {
+  "maintainer": "Eisfreak7",
+  "names": [
+   "brother-dcp150c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp1510": {
+  "maintainer": "marcosbox",
+  "names": [
+   "brother-dcp1510"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 7
+ },
+ "brother-dcp1602-cups-bin": {
+  "maintainer": "federin",
+  "names": [
+   "brother-dcp1602-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp1602-lpr-bin": {
+  "maintainer": "federin",
+  "names": [
+   "brother-dcp1602-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp1610w": {
+  "maintainer": "nyxkn",
+  "names": [
+   "brother-dcp1610w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 11
+ },
+ "brother-dcp1618w": {
+  "maintainer": "felix_lim",
+  "names": [
+   "brother-dcp1618w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp1622we-cups-bin": {
+  "maintainer": "phaleth",
+  "names": [
+   "brother-dcp1622we-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp1622we-lpr-bin": {
+  "maintainer": "phaleth",
+  "names": [
+   "brother-dcp1622we-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp1623we-cups-bin": {
+  "maintainer": "mjun",
+  "names": [
+   "brother-dcp1623we-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp1623we-lpr-bin": {
+  "maintainer": "mjun",
+  "names": [
+   "brother-dcp1623we-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp165c": {
+  "maintainer": "lucasheld",
+  "names": [
+   "brother-dcp165c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp195c": {
+  "maintainer": "severach",
+  "names": [
+   "brother-dcp195c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 10
+ },
+ "brother-dcp197c": {
+  "maintainer": "tejonaco",
+  "names": [
+   "brother-dcp197c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp330c": {
+  "maintainer": "severach",
+  "names": [
+   "brother-dcp330c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp353c": {
+  "maintainer": "auipga",
+  "names": [
+   "brother-dcp353c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp365cn": {
+  "maintainer": "lucasheld",
+  "names": [
+   "brother-dcp365cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp375cw": {
+  "maintainer": "wasowski02",
+  "names": [
+   "brother-dcp375cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp385c-cups-bin": {
+  "maintainer": "No1ne",
+  "names": [
+   "brother-dcp385c-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp385c-lpr-bin": {
+  "maintainer": "No1ne",
+  "names": [
+   "brother-dcp385c-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp395cn": {
+  "maintainer": "Thulinma",
+  "names": [
+   "brother-dcp395cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp540cn-cups-bin": {
+  "maintainer": "Mutzman",
+  "names": [
+   "brother-dcp540cn-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp540cn-lpr-bin": {
+  "maintainer": "Mutzman",
+  "names": [
+   "brother-dcp540cn-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp560cn": {
+  "maintainer": "severach",
+  "names": [
+   "brother-dcp560cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcp585cw": {
+  "maintainer": "notizblock",
+  "names": [
+   "brother-dcp585cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-dcp7030": {
+  "maintainer": "aaronfischer",
+  "names": [
+   "brother-dcp7030"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 17
+ },
+ "brother-dcp7040": {
+  "maintainer": "severach",
+  "names": [
+   "brother-dcp7040"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcp7045n": {
+  "maintainer": "lupylucke",
+  "names": [
+   "brother-dcp7045n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp7055": {
+  "maintainer": "ewolnux",
+  "names": [
+   "brother-dcp7055"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 13
+ },
+ "brother-dcp7055w-cups-bin": {
+  "maintainer": "dreieck",
+  "names": [
+   "brother-dcp7055w-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp7055w-lpr-bin": {
+  "maintainer": "gitterrost4",
+  "names": [
+   "brother-dcp7055w-lpr-bin"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp7057": {
+  "maintainer": "MartianReunion",
+  "names": [
+   "brother-dcp7057"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp7057-cups-bin": {
+  "maintainer": null,
+  "names": [
+   "brother-dcp7057-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp7057-lpr-bin": {
+  "maintainer": null,
+  "names": [
+   "brother-dcp7057-lpr-bin"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp7057w-cups-bin": {
+  "maintainer": "IvanBell",
+  "names": [
+   "brother-dcp7057w-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp7057w-lpr-bin": {
+  "maintainer": "IvanBell",
+  "names": [
+   "brother-dcp7057w-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp7060d": {
+  "maintainer": "ewolnux",
+  "names": [
+   "brother-dcp7060d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp7065dn": {
+  "maintainer": "ghostbuster",
+  "names": [
+   "brother-dcp7065dn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 16
+ },
+ "brother-dcp7070dw-cups": {
+  "maintainer": "erikw",
+  "names": [
+   "brother-dcp7070dw-cups"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcp7070dw-lpr": {
+  "maintainer": "erikw",
+  "names": [
+   "brother-dcp7070dw-lpr"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp7090dw": {
+  "maintainer": "securecrt",
+  "names": [
+   "brother-dcp7090dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcp7180dn": {
+  "maintainer": "breezy",
+  "names": [
+   "brother-dcp7180dn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp7190dw-printer": {
+  "maintainer": "sanxi",
+  "names": [
+   "brother-dcp7190dw-printer"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcp9010cn": {
+  "maintainer": "TheBitFighter",
+  "names": [
+   "brother-dcp9010cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcp9017cdw": {
+  "maintainer": "wlhlm",
+  "names": [
+   "brother-dcp9017cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcp9055cdn": {
+  "maintainer": "rdoursenaud",
+  "names": [
+   "brother-dcp9055cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcpb7500d": {
+  "maintainer": "ous50",
+  "names": [
+   "brother-dcpb7500d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpb7535dw-bin": {
+  "maintainer": "dest_demo",
+  "names": [
+   "brother-dcpb7535dw-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpj100-lpr-cups-bin": {
+  "maintainer": "katekarin",
+  "names": [
+   "brother-dcpj100-lpr-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj105": {
+  "maintainer": "1Conan",
+  "names": [
+   "brother-dcpj105"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpj1100dw": {
+  "maintainer": "exilko",
+  "names": [
+   "brother-dcpj1100dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj1140dw": {
+  "maintainer": "ManU",
+  "names": [
+   "brother-dcpj1140dw"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcpj1200w": {
+  "maintainer": "gleb.zhulik",
+  "names": [
+   "brother-dcpj1200w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpj125": {
+  "maintainer": "swiftgeek",
+  "names": [
+   "brother-dcpj125"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-dcpj132w": {
+  "maintainer": "severach",
+  "names": [
+   "brother-dcpj132w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpj140w": {
+  "maintainer": "medaminezghal",
+  "names": [
+   "brother-dcpj140w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcpj140w-cups-bin": {
+  "maintainer": "Billuc",
+  "names": [
+   "brother-dcpj140w-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj140w-lpr-bin": {
+  "maintainer": "Billuc",
+  "names": [
+   "brother-dcpj140w-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj152w": {
+  "maintainer": "bilux",
+  "names": [
+   "brother-dcpj152w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpj315w": {
+  "maintainer": "h8red",
+  "names": [
+   "brother-dcpj315w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-dcpj4110dw": {
+  "maintainer": "mirco",
+  "names": [
+   "brother-dcpj4110dw"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-dcpj4120dw": {
+  "maintainer": "foonly",
+  "names": [
+   "brother-dcpj4120dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-dcpj4120dw-cups-bin": {
+  "maintainer": "batistadasilva",
+  "names": [
+   "brother-dcpj4120dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcpj4120dw-lpr-bin": {
+  "maintainer": "batistadasilva",
+  "names": [
+   "brother-dcpj4120dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcpj525w": {
+  "maintainer": "Dekat",
+  "names": [
+   "brother-dcpj525w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj552dw": {
+  "maintainer": "mrejdak",
+  "names": [
+   "brother-dcpj552dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-dcpj562dw": {
+  "maintainer": "shaddow",
+  "names": [
+   "brother-dcpj562dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-dcpj562dw-cups-bin": {
+  "maintainer": "marlxx",
+  "names": [
+   "brother-dcpj562dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj562dw-lpr-bin": {
+  "maintainer": "marlxx",
+  "names": [
+   "brother-dcpj562dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj572dw": {
+  "maintainer": "pointhi",
+  "names": [
+   "brother-dcpj572dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcpj577n": {
+  "maintainer": "Archiso",
+  "names": [
+   "brother-dcpj577n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj582n": {
+  "maintainer": "mtzk",
+  "names": [
+   "brother-dcpj582n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj772dw": {
+  "maintainer": "klaudrup",
+  "names": [
+   "brother-dcpj772dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj785dw": {
+  "maintainer": null,
+  "names": [
+   "brother-dcpj785dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpj925dw": {
+  "maintainer": "hawkeye116477",
+  "names": [
+   "brother-dcpj925dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpj928n": {
+  "maintainer": "ar4499",
+  "names": [
+   "brother-dcpj928n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj963n": {
+  "maintainer": "ray45422",
+  "names": [
+   "brother-dcpj963n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj968n": {
+  "maintainer": "masuke5",
+  "names": [
+   "brother-dcpj968n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj972n": {
+  "maintainer": "HighPon",
+  "names": [
+   "brother-dcpj972n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj973n": {
+  "maintainer": "kt0k",
+  "names": [
+   "brother-dcpj973n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj983n": {
+  "maintainer": "wallace11",
+  "names": [
+   "brother-dcpj983n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpj987n-cups-bin": {
+  "maintainer": "BenjaminJPrice",
+  "names": [
+   "brother-dcpj987n-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl2510d": {
+  "maintainer": "Rokic",
+  "names": [
+   "brother-dcpl2510d"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpl2520d-cups-bin": {
+  "maintainer": "onprem",
+  "names": [
+   "brother-dcpl2520d-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpl2520d-lpr-bin": {
+  "maintainer": "onprem",
+  "names": [
+   "brother-dcpl2520d-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpl2520dw": {
+  "maintainer": "tasnad",
+  "names": [
+   "brother-dcpl2520dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-dcpl2530dw": {
+  "maintainer": "mschaeuble",
+  "names": [
+   "brother-dcpl2530dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-dcpl2535dw": {
+  "maintainer": "Novite",
+  "names": [
+   "brother-dcpl2535dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl2540dn-cups": {
+  "maintainer": "tintin",
+  "names": [
+   "brother-dcpl2540dn-cups"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpl2540dn-lpr": {
+  "maintainer": "tintin",
+  "names": [
+   "brother-dcpl2540dn-lpr"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl2540dw-cups": {
+  "maintainer": "cmatheson",
+  "names": [
+   "brother-dcpl2540dw-cups"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 7
+ },
+ "brother-dcpl2540dw-lpr": {
+  "maintainer": "cmatheson",
+  "names": [
+   "brother-dcpl2540dw-lpr"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-dcpl2550dn": {
+  "maintainer": "metlinux",
+  "names": [
+   "brother-dcpl2550dn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-dcpl2550dw": {
+  "maintainer": "cweagans",
+  "names": [
+   "brother-dcpl2550dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-dcpl2620dw": {
+  "maintainer": "dhurum",
+  "names": [
+   "brother-dcpl2620dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl2622dw": {
+  "maintainer": "dymekblazej",
+  "names": [
+   "brother-dcpl2622dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpl2627dw": {
+  "maintainer": "elParaguayo",
+  "names": [
+   "brother-dcpl2627dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl2627dwe": {
+  "maintainer": "victordejong",
+  "names": [
+   "brother-dcpl2627dwe"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl2640dw": {
+  "maintainer": "rickey",
+  "names": [
+   "brother-dcpl2640dw"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcpl3510cdw-drv-bin": {
+  "maintainer": "roberthawdon",
+  "names": [
+   "brother-dcpl3510cdw-drv-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpl3515cdw": {
+  "maintainer": "Dasug",
+  "names": [
+   "brother-dcpl3515cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl3550cdw": {
+  "maintainer": "rp9",
+  "names": [
+   "brother-dcpl3550cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 10
+ },
+ "brother-dcpl3551cdw": {
+  "maintainer": "passcod",
+  "names": [
+   "brother-dcpl3551cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl3560cdw-cups-bin": {
+  "maintainer": "freaknils",
+  "names": [
+   "brother-dcpl3560cdw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl3560cdw-lpr-bin": {
+  "maintainer": "perforatedhorse",
+  "names": [
+   "brother-dcpl3560cdw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl5500dn": {
+  "maintainer": "aschinel",
+  "names": [
+   "brother-dcpl5500dn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl660dw-cups-bin": {
+  "maintainer": "mathieu.clabaut",
+  "names": [
+   "brother-dcpl660dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl660dw-lpr-bin": {
+  "maintainer": "mathieu.clabaut",
+  "names": [
+   "brother-dcpl660dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl8410cdw-cups-bin": {
+  "maintainer": "filipg",
+  "names": [
+   "brother-dcpl8410cdw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpl8410cdw-lpr-bin": {
+  "maintainer": "filipg",
+  "names": [
+   "brother-dcpl8410cdw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt220": {
+  "maintainer": "Mxzcabel",
+  "names": [
+   "brother-dcpt220"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt300": {
+  "maintainer": "icouldbreathe",
+  "names": [
+   "brother-dcpt300"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpt310": {
+  "maintainer": "HurricanePootis",
+  "names": [
+   "brother-dcpt310"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcpt420w": {
+  "maintainer": "realasking",
+  "names": [
+   "brother-dcpt420w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt430w": {
+  "maintainer": "truongan",
+  "names": [
+   "brother-dcpt430w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt436w": {
+  "maintainer": "Mxzcabel",
+  "names": [
+   "brother-dcpt436w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt500w": {
+  "maintainer": "geosam",
+  "names": [
+   "brother-dcpt500w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-dcpt500w-cups-bin": {
+  "maintainer": "Nubiru3600",
+  "names": [
+   "brother-dcpt500w-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt500w-lpr-bin": {
+  "maintainer": "Nubiru3600",
+  "names": [
+   "brother-dcpt500w-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt510w": {
+  "maintainer": "shahril",
+  "names": [
+   "brother-dcpt510w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-dcpt520w": {
+  "maintainer": null,
+  "names": [
+   "brother-dcpt520w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt525w": {
+  "maintainer": "Nickolay",
+  "names": [
+   "brother-dcpt525w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-dcpt530dw": {
+  "maintainer": "gabrielassis",
+  "names": [
+   "brother-dcpt530dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt535dw": {
+  "maintainer": "arcticblaze",
+  "names": [
+   "brother-dcpt535dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpt700w": {
+  "maintainer": "severach",
+  "names": [
+   "brother-dcpt700w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-dcpt720dw": {
+  "maintainer": "UrosV",
+  "names": [
+   "brother-dcpt720dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-dcpt725dw": {
+  "maintainer": "zllr",
+  "names": [
+   "brother-dcpt725dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt730dw": {
+  "maintainer": "leodip",
+  "names": [
+   "brother-dcpt730dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt735dw": {
+  "maintainer": "zhdbk",
+  "names": [
+   "brother-dcpt735dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt820dw": {
+  "maintainer": "Xavius",
+  "names": [
+   "brother-dcpt820dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-dcpt830dw": {
+  "maintainer": "nvidiahater",
+  "names": [
+   "brother-dcpt830dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-fax2840": {
+  "maintainer": "Osly",
+  "names": [
+   "brother-fax2840"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-fax2940": {
+  "maintainer": "Osly",
+  "names": [
+   "brother-fax2940"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl-1110": {
+  "maintainer": "spasd",
+  "names": [
+   "brother-hl-1110"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-hl-1112": {
+  "maintainer": null,
+  "names": [
+   "brother-hl-1112"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hl-2230": {
+  "maintainer": "severach",
+  "names": [
+   "brother-hl-2230"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl-b2180dw": {
+  "maintainer": "kernel_daemon",
+  "names": [
+   "brother-hl-b2180dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl-j6000dw": {
+  "maintainer": "trizt",
+  "names": [
+   "brother-hl-j6000dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl-l1230w": {
+  "maintainer": null,
+  "names": [
+   "brother-hl-l1230w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl-l2370dw": {
+  "maintainer": "butforme",
+  "names": [
+   "brother-hl-l2370dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl-l2380dw": {
+  "maintainer": "apaugh",
+  "names": [
+   "brother-hl-l2380dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-hl-l2420dw": {
+  "maintainer": "ColonelThirtyTwo",
+  "names": [
+   "brother-hl-l2420dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hl-l3210cw": {
+  "maintainer": "PeterSR",
+  "names": [
+   "brother-hl-l3210cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-hl-l3220cdw": {
+  "maintainer": "ava1ar",
+  "names": [
+   "brother-hl-l3220cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-hl-l3220cw": {
+  "maintainer": "theRedCyclops",
+  "names": [
+   "brother-hl-l3220cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-hl-l3230cdw": {
+  "maintainer": "ajacocks",
+  "names": [
+   "brother-hl-l3230cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl-l3270cdw": {
+  "maintainer": "michael.manley",
+  "names": [
+   "brother-hl-l3270cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl-l3290cdw": {
+  "maintainer": "ragnese",
+  "names": [
+   "brother-hl-l3290cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-hl-l3295cdw": {
+  "maintainer": "aaronsb",
+  "names": [
+   "brother-hl-l3295cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hl-l3300cdw": {
+  "maintainer": "hwkiller",
+  "names": [
+   "brother-hl-l3300cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl-l5000d": {
+  "maintainer": "kamilpajek",
+  "names": [
+   "brother-hl-l5000d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl-l8250cdn": {
+  "maintainer": "Spielkind",
+  "names": [
+   "brother-hl-l8250cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hl-l8260cdw": {
+  "maintainer": "Tetrapyle",
+  "names": [
+   "brother-hl-l8260cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-hl1118": {
+  "maintainer": "modinfo",
+  "names": [
+   "brother-hl1118"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 13
+ },
+ "brother-hl1200": {
+  "maintainer": "erickpires",
+  "names": [
+   "brother-hl1200"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hl1202": {
+  "maintainer": "benjamin.moraga",
+  "names": [
+   "brother-hl1202"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl1208": {
+  "maintainer": "NameSetter",
+  "names": [
+   "brother-hl1208"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hl1210w": {
+  "maintainer": "ayr-ton",
+  "names": [
+   "brother-hl1210w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 12
+ },
+ "brother-hl2030": {
+  "maintainer": "b1nb4sh",
+  "names": [
+   "brother-hl2030"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 38
+ },
+ "brother-hl2040": {
+  "maintainer": "severach",
+  "names": [
+   "brother-hl2040"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-hl2130": {
+  "maintainer": "nexero",
+  "names": [
+   "brother-hl2130"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hl2135w": {
+  "maintainer": "AlexanderStephan",
+  "names": [
+   "brother-hl2135w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl2140": {
+  "maintainer": "severach",
+  "names": [
+   "brother-hl2140"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 15
+ },
+ "brother-hl2150n": {
+  "maintainer": "hikhvar",
+  "names": [
+   "brother-hl2150n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-hl2170w": {
+  "maintainer": "cryptkicker",
+  "names": [
+   "brother-hl2170w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-hl2240-cups-bin": {
+  "maintainer": "BRUHmobile",
+  "names": [
+   "brother-hl2240-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl2240-lpr-bin": {
+  "maintainer": "BRUHmobile",
+  "names": [
+   "brother-hl2240-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl2240d": {
+  "maintainer": "severach",
+  "names": [
+   "brother-hl2240d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-hl2250dn": {
+  "maintainer": null,
+  "names": [
+   "brother-hl2250dn"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-hl2270dw": {
+  "maintainer": "mh00h",
+  "names": [
+   "brother-hl2270dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 24
+ },
+ "brother-hl2280dw": {
+  "maintainer": "sergiodlc",
+  "names": [
+   "brother-hl2280dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 9
+ },
+ "brother-hl3040cn": {
+  "maintainer": "nullptr_t",
+  "names": [
+   "brother-hl3040cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 7
+ },
+ "brother-hl3070cw": {
+  "maintainer": "devord",
+  "names": [
+   "brother-hl3070cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl3140cw": {
+  "maintainer": "ggilestro",
+  "names": [
+   "brother-hl3140cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-hl3140cw-cups-bin": {
+  "maintainer": "jholz88",
+  "names": [
+   "brother-hl3140cw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl3140cw-lpr-bin": {
+  "maintainer": "jholz88",
+  "names": [
+   "brother-hl3140cw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl3142cw-cups-bin": {
+  "maintainer": "lion7",
+  "names": [
+   "brother-hl3142cw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl3142cw-lpr-bin": {
+  "maintainer": "lion7",
+  "names": [
+   "brother-hl3142cw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl3150cdn": {
+  "maintainer": "rodrigog83",
+  "names": [
+   "brother-hl3150cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-hl3150cdw": {
+  "maintainer": "simongeisler",
+  "names": [
+   "brother-hl3150cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-hl3152cdw": {
+  "maintainer": "Xeranor",
+  "names": [
+   "brother-hl3152cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-hl3170cdw": {
+  "maintainer": "dpflug",
+  "names": [
+   "brother-hl3170cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 10
+ },
+ "brother-hl3170cdw-cups-bin": {
+  "maintainer": "jagurscape",
+  "names": [
+   "brother-hl3170cdw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl3170cdw-lpr-bin": {
+  "maintainer": "jagurscape",
+  "names": [
+   "brother-hl3170cdw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl3172cdw": {
+  "maintainer": "runaz",
+  "names": [
+   "brother-hl3172cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hl3180cdw": {
+  "maintainer": "xente",
+  "names": [
+   "brother-hl3180cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hl4140cn": {
+  "maintainer": "Aram1d",
+  "names": [
+   "brother-hl4140cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl4150cdn": {
+  "maintainer": "freswa",
+  "names": [
+   "brother-hl4150cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-hl5250dn-cups-ppd": {
+  "maintainer": "hhdev",
+  "names": [
+   "brother-hl5250dn-cups-ppd"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl5250dn-lpr": {
+  "maintainer": "hhdev",
+  "names": [
+   "brother-hl5250dn-lpr"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl5350dn-cups-bin": {
+  "maintainer": "nimdanitro",
+  "names": [
+   "brother-hl5350dn-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl5350dn-lpr-bin": {
+  "maintainer": "nimdanitro",
+  "names": [
+   "brother-hl5350dn-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl5440d-cups-bin": {
+  "maintainer": "sofamaniac",
+  "names": [
+   "brother-hl5440d-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl5440d-lpr-bin": {
+  "maintainer": "sofamaniac",
+  "names": [
+   "brother-hl5440d-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hl5450dn": {
+  "maintainer": "codeThatThinks",
+  "names": [
+   "brother-hl5450dn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-hl5470dw": {
+  "maintainer": "kageurufu",
+  "names": [
+   "brother-hl5470dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hl6180dw-cups-bin": {
+  "maintainer": "ViBoSchu",
+  "names": [
+   "brother-hl6180dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hl6180dw-lpr-bin": {
+  "maintainer": "ViBoSchu",
+  "names": [
+   "brother-hl6180dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hl8350cdw": {
+  "maintainer": "bytesize",
+  "names": [
+   "brother-hl8350cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-hlb2080dw": {
+  "maintainer": "Kiwwiaq",
+  "names": [
+   "brother-hlb2080dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll1222": {
+  "maintainer": "lmarcondes95",
+  "names": [
+   "brother-hll1222"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll2300d": {
+  "maintainer": "ukolka",
+  "names": [
+   "brother-hll2300d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 11
+ },
+ "brother-hll2305w": {
+  "maintainer": "nglen",
+  "names": [
+   "brother-hll2305w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hll2310d": {
+  "maintainer": "b3niup",
+  "names": [
+   "brother-hll2310d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hll2315dw": {
+  "maintainer": "tbevan",
+  "names": [
+   "brother-hll2315dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-hll2320d": {
+  "maintainer": "xanx",
+  "names": [
+   "brother-hll2320d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 8
+ },
+ "brother-hll2325dw": {
+  "maintainer": "sfranchi",
+  "names": [
+   "brother-hll2325dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll2335d": {
+  "maintainer": "coearth",
+  "names": [
+   "brother-hll2335d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll2340d": {
+  "maintainer": "Schmeidenbacher",
+  "names": [
+   "brother-hll2340d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-hll2340dw": {
+  "maintainer": "Luken",
+  "names": [
+   "brother-hll2340dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 10
+ },
+ "brother-hll2350dw": {
+  "maintainer": "romasch",
+  "names": [
+   "brother-hll2350dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 22
+ },
+ "brother-hll2360d": {
+  "maintainer": "hysteric",
+  "names": [
+   "brother-hll2360d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 11
+ },
+ "brother-hll2360dw-cups-bin": {
+  "maintainer": "manymanyrai",
+  "names": [
+   "brother-hll2360dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll2360dw-lpr-bin": {
+  "maintainer": "manymanyrai",
+  "names": [
+   "brother-hll2360dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll2370dn": {
+  "maintainer": "Bonnee",
+  "names": [
+   "brother-hll2370dn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-hll2370dw": {
+  "maintainer": "patrickjennings",
+  "names": [
+   "brother-hll2370dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 6
+ },
+ "brother-hll2375dw": {
+  "maintainer": "fettouhi",
+  "names": [
+   "brother-hll2375dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-hll2380dw": {
+  "maintainer": "Forty-Bot",
+  "names": [
+   "brother-hll2380dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-hll2390dw": {
+  "maintainer": "malbeth",
+  "names": [
+   "brother-hll2390dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-hll2395dw": {
+  "maintainer": "dewyatt",
+  "names": [
+   "brother-hll2395dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 6
+ },
+ "brother-hll2400dw": {
+  "maintainer": "Phils3r",
+  "names": [
+   "brother-hll2400dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll2400dwe-bin": {
+  "maintainer": "ettolrach",
+  "names": [
+   "brother-hll2400dwe-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hll2402d": {
+  "maintainer": "Andy3153",
+  "names": [
+   "brother-hll2402d"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll2405w": {
+  "maintainer": "aquova",
+  "names": [
+   "brother-hll2405w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll2442dw-cups-bin": {
+  "maintainer": "debskik",
+  "names": [
+   "brother-hll2442dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll2445dw-lpr-bin": {
+  "maintainer": "314eter",
+  "names": [
+   "brother-hll2445dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hll2460dw": {
+  "maintainer": "viper2642",
+  "names": [
+   "brother-hll2460dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hll2865dw": {
+  "maintainer": "misayre",
+  "names": [
+   "brother-hll2865dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll3230cdw": {
+  "maintainer": "lkrms",
+  "names": [
+   "brother-hll3230cdw"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-hll3240cdw-bin": {
+  "maintainer": "314eter",
+  "names": [
+   "brother-hll3240cdw-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll3270cdw": {
+  "maintainer": "BenTheTechGuy",
+  "names": [
+   "brother-hll3270cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-hll3270cdw-lpr-bin": {
+  "maintainer": "evan",
+  "names": [
+   "brother-hll3270cdw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll3280cdw": {
+  "maintainer": "skh-br3280",
+  "names": [
+   "brother-hll3280cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll5050dn-cups-bin": {
+  "maintainer": "severach",
+  "names": [
+   "brother-hll5050dn-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll5050dn-lpr-bin": {
+  "maintainer": "severach",
+  "names": [
+   "brother-hll5050dn-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll5100dn-cups-bin": {
+  "maintainer": "Kernald",
+  "names": [
+   "brother-hll5100dn-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll5100dn-lpr-bin": {
+  "maintainer": "Kernald",
+  "names": [
+   "brother-hll5100dn-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll5102dw-cups-bin": {
+  "maintainer": "clebermatheus",
+  "names": [
+   "brother-hll5102dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hll5102dw-lpr-bin": {
+  "maintainer": "clebermatheus",
+  "names": [
+   "brother-hll5102dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hll5200dw-cups-bin": {
+  "maintainer": "ericw31415",
+  "names": [
+   "brother-hll5200dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hll5200dw-lpr-bin": {
+  "maintainer": "ericw31415",
+  "names": [
+   "brother-hll5200dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll5210dn": {
+  "maintainer": "drrossum",
+  "names": [
+   "brother-hll5210dn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll5210dw": {
+  "maintainer": "bobolin",
+  "names": [
+   "brother-hll5210dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll6200dw": {
+  "maintainer": "simongeisler",
+  "names": [
+   "brother-hll6200dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-hll6250dw": {
+  "maintainer": "neo_ar",
+  "names": [
+   "brother-hll6250dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-hll8240cdw": {
+  "maintainer": "jiko",
+  "names": [
+   "brother-hll8240cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hll8360cdw-cups-bin": {
+  "maintainer": "chicagomint",
+  "names": [
+   "brother-hll8360cdw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-hll8360cdw-lpr-bin": {
+  "maintainer": "chicagomint",
+  "names": [
+   "brother-hll8360cdw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-hll9200cdw-cups-bin": {
+  "maintainer": "franky303",
+  "names": [
+   "brother-hll9200cdw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-hll9200cdw-lpr-bin": {
+  "maintainer": "franky303",
+  "names": [
+   "brother-hll9200cdw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-lpr-drivers-ac": {
+  "maintainer": "alcasa",
+  "names": [
+   "brother-lpr-drivers-ac"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 11
+ },
+ "brother-lpr-drivers-common": {
+  "maintainer": "alcasa",
+  "names": [
+   "brother-lpr-drivers-common"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 55
+ },
+ "brother-lpr-drivers-laser": {
+  "maintainer": "severach",
+  "names": [
+   "brother-lpr-drivers-laser"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 16
+ },
+ "brother-mfc-1810": {
+  "maintainer": "nuerich",
+  "names": [
+   "brother-mfc-1810"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-1910w": {
+  "maintainer": "OdinEidolon",
+  "names": [
+   "brother-mfc-1910w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-mfc-210c": {
+  "maintainer": "pmattern",
+  "names": [
+   "brother-mfc-210c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 9
+ },
+ "brother-mfc-235c-bin": {
+  "maintainer": "joern_h",
+  "names": [
+   "brother-mfc-235c-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-255cw": {
+  "maintainer": "sdw113322",
+  "names": [
+   "brother-mfc-255cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-260c": {
+  "maintainer": "benibr",
+  "names": [
+   "brother-mfc-260c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-290c": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-290c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-410cn": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-410cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-420cn": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-420cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-440cn": {
+  "maintainer": "ibbonkers",
+  "names": [
+   "brother-mfc-440cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-5460cn": {
+  "maintainer": "salkin",
+  "names": [
+   "brother-mfc-5460cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-5490cn": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-5490cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-5890cn": {
+  "maintainer": "nilsw",
+  "names": [
+   "brother-mfc-5890cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-mfc-5895cw": {
+  "maintainer": "ninov",
+  "names": [
+   "brother-mfc-5895cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-6490cw": {
+  "maintainer": "daprussiaduck",
+  "names": [
+   "brother-mfc-6490cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-6580cdw-jpn": {
+  "maintainer": "katsuoryuu",
+  "names": [
+   "brother-mfc-6580cdw-jpn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-7360n": {
+  "maintainer": "core_contingency",
+  "names": [
+   "brother-mfc-7360n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-7460dn": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-7460dn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-7840w": {
+  "maintainer": "niq000",
+  "names": [
+   "brother-mfc-7840w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-7860dw": {
+  "maintainer": "WoefulDerelict",
+  "names": [
+   "brother-mfc-7860dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 7
+ },
+ "brother-mfc-790cw": {
+  "maintainer": "cyprien",
+  "names": [
+   "brother-mfc-790cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-8510dn-cups-bin": {
+  "maintainer": "duaneg",
+  "names": [
+   "brother-mfc-8510dn-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-8510dn-lpr-bin": {
+  "maintainer": "duaneg",
+  "names": [
+   "brother-mfc-8510dn-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-8950dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-8950dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-9010cn": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-9010cn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-9130cw": {
+  "maintainer": "LawnGnome",
+  "names": [
+   "brother-mfc-9130cw"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-9140cdn": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-9140cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-9142cdn": {
+  "maintainer": "blueyed",
+  "names": [
+   "brother-mfc-9142cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-930cdn": {
+  "maintainer": "mich",
+  "names": [
+   "brother-mfc-930cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-9325cw": {
+  "maintainer": "core_contingency",
+  "names": [
+   "brother-mfc-9325cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-9330cdw": {
+  "maintainer": "daftaupe",
+  "names": [
+   "brother-mfc-9330cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 9
+ },
+ "brother-mfc-9332cdw": {
+  "maintainer": "windy",
+  "names": [
+   "brother-mfc-9332cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 6
+ },
+ "brother-mfc-9335cdw": {
+  "maintainer": "ForgotUmbrella",
+  "names": [
+   "brother-mfc-9335cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-9340cdw": {
+  "maintainer": "twasiluk",
+  "names": [
+   "brother-mfc-9340cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 8
+ },
+ "brother-mfc-9342cdw": {
+  "maintainer": "genofire",
+  "names": [
+   "brother-mfc-9342cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-9460cdn": {
+  "maintainer": "a-ludi",
+  "names": [
+   "brother-mfc-9460cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-9465cdn": {
+  "maintainer": "ulaktar",
+  "names": [
+   "brother-mfc-9465cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-9560cdw": {
+  "maintainer": "terickson001",
+  "names": [
+   "brother-mfc-9560cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-990cw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-990cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-9970cdw": {
+  "maintainer": "abdulhakeem",
+  "names": [
+   "brother-mfc-9970cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-mfc-b7715dw": {
+  "maintainer": "avc",
+  "names": [
+   "brother-mfc-b7715dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j1010dw": {
+  "maintainer": "purpleleaf",
+  "names": [
+   "brother-mfc-j1010dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j1205w": {
+  "maintainer": "codebus",
+  "names": [
+   "brother-mfc-j1205w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j1300dw": {
+  "maintainer": "bverhagen",
+  "names": [
+   "brother-mfc-j1300dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j200": {
+  "maintainer": "kszonek",
+  "names": [
+   "brother-mfc-j200"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j220": {
+  "maintainer": "auruser",
+  "names": [
+   "brother-mfc-j220"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j2340dw": {
+  "maintainer": "sicalxy",
+  "names": [
+   "brother-mfc-j2340dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j265w": {
+  "maintainer": "beanaroo",
+  "names": [
+   "brother-mfc-j265w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j280w": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j280w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j285dw": {
+  "maintainer": "POINTS",
+  "names": [
+   "brother-mfc-j285dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j3540dw": {
+  "maintainer": "domryba",
+  "names": [
+   "brother-mfc-j3540dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j3940dw": {
+  "maintainer": "2M1R",
+  "names": [
+   "brother-mfc-j3940dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j415w": {
+  "maintainer": "izilly",
+  "names": [
+   "brother-mfc-j415w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j425w": {
+  "maintainer": "amcollie",
+  "names": [
+   "brother-mfc-j425w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j430w": {
+  "maintainer": "simongeisler",
+  "names": [
+   "brother-mfc-j430w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-mfc-j432w": {
+  "maintainer": "Shad0wsDieThrice",
+  "names": [
+   "brother-mfc-j432w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j4335dw": {
+  "maintainer": "LA-MJ",
+  "names": [
+   "brother-mfc-j4335dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-j4340dw": {
+  "maintainer": "andrewchen",
+  "names": [
+   "brother-mfc-j4340dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j435w": {
+  "maintainer": "arbitar",
+  "names": [
+   "brother-mfc-j435w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-j4410dw": {
+  "maintainer": "Martchus",
+  "names": [
+   "brother-mfc-j4410dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j4420dw": {
+  "maintainer": "pfrenssen",
+  "names": [
+   "brother-mfc-j4420dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-j4440dw": {
+  "maintainer": "iftclerk",
+  "names": [
+   "brother-mfc-j4440dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j450dw": {
+  "maintainer": "u8sand",
+  "names": [
+   "brother-mfc-j450dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j4510dw": {
+  "maintainer": "vlowrian",
+  "names": [
+   "brother-mfc-j4510dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-j4540dw": {
+  "maintainer": "protree",
+  "names": [
+   "brother-mfc-j4540dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j4550dw": {
+  "maintainer": "l0nax",
+  "names": [
+   "brother-mfc-j4550dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j460dw": {
+  "maintainer": null,
+  "names": [
+   "brother-mfc-j460dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j4610dw": {
+  "maintainer": "jooch",
+  "names": [
+   "brother-mfc-j4610dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-j4620dw": {
+  "maintainer": "ava1ar",
+  "names": [
+   "brother-mfc-j4620dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 6
+ },
+ "brother-mfc-j4625dw": {
+  "maintainer": "tangodaddy",
+  "names": [
+   "brother-mfc-j4625dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-j470dw": {
+  "maintainer": "ChaosKid42",
+  "names": [
+   "brother-mfc-j470dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-mfc-j4710dw": {
+  "maintainer": "jchm",
+  "names": [
+   "brother-mfc-j4710dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j475dw": {
+  "maintainer": "atondwal",
+  "names": [
+   "brother-mfc-j475dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j480dw": {
+  "maintainer": "stick",
+  "names": [
+   "brother-mfc-j480dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-mfc-j485dw": {
+  "maintainer": "msmol",
+  "names": [
+   "brother-mfc-j485dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j4910cdw": {
+  "maintainer": "rokoucha",
+  "names": [
+   "brother-mfc-j4910cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j491dw": {
+  "maintainer": "mattydebie",
+  "names": [
+   "brother-mfc-j491dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-j497dw": {
+  "maintainer": "lambroisie",
+  "names": [
+   "brother-mfc-j497dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-j5330dw": {
+  "maintainer": "surt91",
+  "names": [
+   "brother-mfc-j5330dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j5335dw": {
+  "maintainer": "FredericChopin",
+  "names": [
+   "brother-mfc-j5335dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-j5340dw": {
+  "maintainer": "mroetsc",
+  "names": [
+   "brother-mfc-j5340dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j5345dw": {
+  "maintainer": "tkeil69575",
+  "names": [
+   "brother-mfc-j5345dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j5520dw": {
+  "maintainer": "cF1nny",
+  "names": [
+   "brother-mfc-j5520dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-j5620dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j5620dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-j5625dw": {
+  "maintainer": "t.rehn",
+  "names": [
+   "brother-mfc-j5625dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j5720dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j5720dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-j5730dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j5730dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-mfc-j5740dw": {
+  "maintainer": "tare",
+  "names": [
+   "brother-mfc-j5740dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j5845dw": {
+  "maintainer": "jundar",
+  "names": [
+   "brother-mfc-j5845dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j5910dw": {
+  "maintainer": "blob42",
+  "names": [
+   "brother-mfc-j5910dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-j5930dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j5930dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j5945dw-cups": {
+  "maintainer": "jundar",
+  "names": [
+   "brother-mfc-j5945dw-cups"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j615w": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j615w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-j625dw": {
+  "maintainer": "lgm",
+  "names": [
+   "brother-mfc-j625dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-j650dw": {
+  "maintainer": "rools",
+  "names": [
+   "brother-mfc-j650dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j6510dw": {
+  "maintainer": "lswest",
+  "names": [
+   "brother-mfc-j6510dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-mfc-j6520dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j6520dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j6530dw": {
+  "maintainer": "waynej4",
+  "names": [
+   "brother-mfc-j6530dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j6710dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j6710dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j6720dw": {
+  "maintainer": "dinicachy",
+  "names": [
+   "brother-mfc-j6720dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j680dw": {
+  "maintainer": "blat",
+  "names": [
+   "brother-mfc-j680dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j6910dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j6910dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-j6920dw": {
+  "maintainer": "jnogueira",
+  "names": [
+   "brother-mfc-j6920dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-j6925dw": {
+  "maintainer": "sankhesh",
+  "names": [
+   "brother-mfc-j6925dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j6930dw": {
+  "maintainer": "lepokle",
+  "names": [
+   "brother-mfc-j6930dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-j6935dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j6935dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j6945dw": {
+  "maintainer": "michalf",
+  "names": [
+   "brother-mfc-j6945dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j6947dw": {
+  "maintainer": "maxaubry",
+  "names": [
+   "brother-mfc-j6947dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j805dw": {
+  "maintainer": "SolarAquarion",
+  "names": [
+   "brother-mfc-j805dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j825dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j825dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 6
+ },
+ "brother-mfc-j870dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j870dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-mfc-j875dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j875dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j880dw": {
+  "maintainer": "duczen",
+  "names": [
+   "brother-mfc-j880dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-j885dw": {
+  "maintainer": "doorknob60",
+  "names": [
+   "brother-mfc-j885dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j895dw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-j895dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-j985dw": {
+  "maintainer": "AngryUbuntuNerd",
+  "names": [
+   "brother-mfc-j985dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-mfc-j995dw-print-driver": {
+  "maintainer": "e-leclercq",
+  "names": [
+   "brother-mfc-j995dw-print-driver"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-j995dw-scan-driver": {
+  "maintainer": "e-leclercq",
+  "names": [
+   "brother-mfc-j995dw-scan-driver"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l2400dw": {
+  "maintainer": "sklarsa",
+  "names": [
+   "brother-mfc-l2400dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-l2680w": {
+  "maintainer": "X-san",
+  "names": [
+   "brother-mfc-l2680w"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l2700dn": {
+  "maintainer": "ciil",
+  "names": [
+   "brother-mfc-l2700dn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-l2700dw": {
+  "maintainer": "stefano",
+  "names": [
+   "brother-mfc-l2700dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 11
+ },
+ "brother-mfc-l2705dw": {
+  "maintainer": "mybluevan",
+  "names": [
+   "brother-mfc-l2705dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l2710dn": {
+  "maintainer": "Hoeman42",
+  "names": [
+   "brother-mfc-l2710dn"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-l2710dw": {
+  "maintainer": "robertfoster",
+  "names": [
+   "brother-mfc-l2710dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 8
+ },
+ "brother-mfc-l2713dw": {
+  "maintainer": "projectgus",
+  "names": [
+   "brother-mfc-l2713dw"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l2717dw": {
+  "maintainer": "cyberdork33",
+  "names": [
+   "brother-mfc-l2717dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l2720dw": {
+  "maintainer": "shinob",
+  "names": [
+   "brother-mfc-l2720dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-l2730dw": {
+  "maintainer": "samsim",
+  "names": [
+   "brother-mfc-l2730dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l2730dw-bin": {
+  "maintainer": "samsim",
+  "names": [
+   "brother-mfc-l2730dw-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l2740dw": {
+  "maintainer": "shinob",
+  "names": [
+   "brother-mfc-l2740dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 8
+ },
+ "brother-mfc-l2750dw": {
+  "maintainer": "eddie",
+  "names": [
+   "brother-mfc-l2750dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 11
+ },
+ "brother-mfc-l2800dw": {
+  "maintainer": "aoz",
+  "names": [
+   "brother-mfc-l2800dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l2820dw": {
+  "maintainer": "eepp",
+  "names": [
+   "brother-mfc-l2820dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l2827dw-lpr-bin": {
+  "maintainer": "mosis99",
+  "names": [
+   "brother-mfc-l2827dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l2860dwe": {
+  "maintainer": "benji",
+  "names": [
+   "brother-mfc-l2860dwe"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l2880dw": {
+  "maintainer": "codebus",
+  "names": [
+   "brother-mfc-l2880dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l3710cw": {
+  "maintainer": "kurtmc",
+  "names": [
+   "brother-mfc-l3710cw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-l3720cdw": {
+  "maintainer": "slashinfty",
+  "names": [
+   "brother-mfc-l3720cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l3730cdn": {
+  "maintainer": "dreieck",
+  "names": [
+   "brother-mfc-l3730cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l3735cdn": {
+  "maintainer": "hansfbaier",
+  "names": [
+   "brother-mfc-l3735cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l3740cdw": {
+  "maintainer": "hv15",
+  "names": [
+   "brother-mfc-l3740cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-l3750cdw": {
+  "maintainer": "fwalter",
+  "names": [
+   "brother-mfc-l3750cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-l3760cdw": {
+  "maintainer": "genuineparts",
+  "names": [
+   "brother-mfc-l3760cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l3770cdw": {
+  "maintainer": "kwrazi",
+  "names": [
+   "brother-mfc-l3770cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-mfc-l3780cdw": {
+  "maintainer": "CaptainKnots",
+  "names": [
+   "brother-mfc-l3780cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-l5700-dn": {
+  "maintainer": "phuhl",
+  "names": [
+   "brother-mfc-l5700-dn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l5710dw": {
+  "maintainer": "pfrenssen",
+  "names": [
+   "brother-mfc-l5710dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l5750dw": {
+  "maintainer": "tgrosch",
+  "names": [
+   "brother-mfc-l5750dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l5755dw": {
+  "maintainer": "markw",
+  "names": [
+   "brother-mfc-l5755dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l5900dw": {
+  "maintainer": "monkeynaleo",
+  "names": [
+   "brother-mfc-l5900dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc-l5902dw": {
+  "maintainer": "tiagocardoso",
+  "names": [
+   "brother-mfc-l5902dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l8390cdw": {
+  "maintainer": "Grifs",
+  "names": [
+   "brother-mfc-l8390cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-l8600cdw": {
+  "maintainer": "lzlarryli",
+  "names": [
+   "brother-mfc-l8600cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-l8610cdw": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc-l8610cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l8650cdw": {
+  "maintainer": null,
+  "names": [
+   "brother-mfc-l8650cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-mfc-l8690cdw": {
+  "maintainer": "binom",
+  "names": [
+   "brother-mfc-l8690cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 8
+ },
+ "brother-mfc-l8850cdw": {
+  "maintainer": "loqy",
+  "names": [
+   "brother-mfc-l8850cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-mfc-l8900cdw": {
+  "maintainer": "Bonnee",
+  "names": [
+   "brother-mfc-l8900cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-l9550cdw": {
+  "maintainer": "petoknm",
+  "names": [
+   "brother-mfc-l9550cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-l9570cdw": {
+  "maintainer": "azon",
+  "names": [
+   "brother-mfc-l9570cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc-t800w-bin": {
+  "maintainer": "ihipop",
+  "names": [
+   "brother-mfc-t800w-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc-t980dw": {
+  "maintainer": "ctag",
+  "names": [
+   "brother-mfc-t980dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc240c": {
+  "maintainer": "eldon111",
+  "names": [
+   "brother-mfc240c"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc6490cw-cupswrapper": {
+  "maintainer": "m4ng0squ4sh",
+  "names": [
+   "brother-mfc6490cw-cupswrapper"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc6490cw-lpr": {
+  "maintainer": "m4ng0squ4sh",
+  "names": [
+   "brother-mfc6490cw-lpr"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfc685cw-cups-bin": {
+  "maintainer": "gaborszita",
+  "names": [
+   "brother-mfc685cw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc685cw-lpr-bin": {
+  "maintainer": "gaborszita",
+  "names": [
+   "brother-mfc685cw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc7240-cups-bin": {
+  "maintainer": "liraymond04",
+  "names": [
+   "brother-mfc7240-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc7240-lpr-bin": {
+  "maintainer": "liraymond04",
+  "names": [
+   "brother-mfc7240-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc7320-cups": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc7320-cups"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc7320-lpr": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc7320-lpr"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfc7340": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc7340"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 4
+ },
+ "brother-mfc7360n": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc7360n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 6
+ },
+ "brother-mfc7440n-cups-bin": {
+  "maintainer": "RedDoor",
+  "names": [
+   "brother-mfc7440n-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc7440n-lpr-bin": {
+  "maintainer": "RedDoor",
+  "names": [
+   "brother-mfc7440n-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc8680dn-cups-bin": {
+  "maintainer": "sckzor",
+  "names": [
+   "brother-mfc8680dn-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc8680dn-lpr-bin": {
+  "maintainer": "sckzor",
+  "names": [
+   "brother-mfc8680dn-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc8690dw-cups-bin": {
+  "maintainer": "kartik",
+  "names": [
+   "brother-mfc8690dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc8690dw-lpr-bin": {
+  "maintainer": "kartik",
+  "names": [
+   "brother-mfc8690dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc8710dw-cups-bin": {
+  "maintainer": "IrreleventIdiot",
+  "names": [
+   "brother-mfc8710dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc8710dw-lpr-bin": {
+  "maintainer": "IrreleventIdiot",
+  "names": [
+   "brother-mfc8710dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc8810dw-cups-bin": {
+  "maintainer": "severach",
+  "names": [
+   "brother-mfc8810dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc8860dn-cups-bin": {
+  "maintainer": "beniaminogreen",
+  "names": [
+   "brother-mfc8860dn-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc8860dn-lpr-bin": {
+  "maintainer": "beniaminogreen",
+  "names": [
+   "brother-mfc8860dn-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfc8950dw": {
+  "maintainer": "tirip",
+  "names": [
+   "brother-mfc8950dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj1170dw-cups-bin": {
+  "maintainer": "victortrac",
+  "names": [
+   "brother-mfcj1170dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj2330dw-cups-bin": {
+  "maintainer": "phuwit",
+  "names": [
+   "brother-mfcj2330dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj2330dw-lpr-bin": {
+  "maintainer": "phuwit",
+  "names": [
+   "brother-mfcj2330dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj245": {
+  "maintainer": "bilux",
+  "names": [
+   "brother-mfcj245"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfcj2720-cups-bin": {
+  "maintainer": "m_r",
+  "names": [
+   "brother-mfcj2720-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj2720-lpr-bin": {
+  "maintainer": "m_r",
+  "names": [
+   "brother-mfcj2720-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj430w-cups-bin": {
+  "maintainer": "Manos",
+  "names": [
+   "brother-mfcj430w-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj430w-lpr-bin": {
+  "maintainer": "svavs",
+  "names": [
+   "brother-mfcj430w-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj4310dw-cups-bin": {
+  "maintainer": "Oxy8",
+  "names": [
+   "brother-mfcj4310dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj4310dw-lpr-bin": {
+  "maintainer": "Oxy8",
+  "names": [
+   "brother-mfcj4310dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj4320dw-cups-bin": {
+  "maintainer": "dsteven99",
+  "names": [
+   "brother-mfcj4320dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj4320dw-lpr-bin": {
+  "maintainer": "dsteven99",
+  "names": [
+   "brother-mfcj4320dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj435w-cups-bin": {
+  "maintainer": "Quantum_C",
+  "names": [
+   "brother-mfcj435w-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj435w-lpr-bin": {
+  "maintainer": "Quantum_C",
+  "names": [
+   "brother-mfcj435w-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj4510dw-cups-bin": {
+  "maintainer": "Sandelinos",
+  "names": [
+   "brother-mfcj4510dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj4510dw-lpr-bin": {
+  "maintainer": "Sandelinos",
+  "names": [
+   "brother-mfcj4510dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj4535dw-cups-bin": {
+  "maintainer": "banzr",
+  "names": [
+   "brother-mfcj4535dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj4620dw-cups-bin": {
+  "maintainer": "jlake18",
+  "names": [
+   "brother-mfcj4620dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj4620dw-lpr-bin": {
+  "maintainer": "jlake18",
+  "names": [
+   "brother-mfcj4620dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj4710dw-cups-bin": {
+  "maintainer": "grendelson",
+  "names": [
+   "brother-mfcj4710dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj4710dw-lpr-bin": {
+  "maintainer": "grendelson",
+  "names": [
+   "brother-mfcj4710dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj5330dw-cups-bin": {
+  "maintainer": null,
+  "names": [
+   "brother-mfcj5330dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj5330dw-lpr-bin": {
+  "maintainer": null,
+  "names": [
+   "brother-mfcj5330dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj6940dw-bin": {
+  "maintainer": "Oreste",
+  "names": [
+   "brother-mfcj6940dw-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcj835dw-cups-bin": {
+  "maintainer": "victortrac",
+  "names": [
+   "brother-mfcj835dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfcj835dw-lpr-bin": {
+  "maintainer": "victortrac",
+  "names": [
+   "brother-mfcj835dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfcl2685dw-cups-bin": {
+  "maintainer": "PapistPenguin",
+  "names": [
+   "brother-mfcl2685dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfcl2685dw-lpr-bin": {
+  "maintainer": "PapistPenguin",
+  "names": [
+   "brother-mfcl2685dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfcl2690dw-cups-bin": {
+  "maintainer": "sunaku",
+  "names": [
+   "brother-mfcl2690dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfcl2700dw-cups-bin": {
+  "maintainer": "duy-nguyen",
+  "names": [
+   "brother-mfcl2700dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl2700dw-lpr-bin": {
+  "maintainer": "duy-nguyen",
+  "names": [
+   "brother-mfcl2700dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl2732dw": {
+  "maintainer": "MadScientist",
+  "names": [
+   "brother-mfcl2732dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl2740dw-cups-bin": {
+  "maintainer": "orangesnowfox",
+  "names": [
+   "brother-mfcl2740dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl2740dw-lpr-bin": {
+  "maintainer": "orangesnowfox",
+  "names": [
+   "brother-mfcl2740dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl2802dn-cups-bin": {
+  "maintainer": "n3b0j5a",
+  "names": [
+   "brother-mfcl2802dn-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl5705dw-lpr": {
+  "maintainer": "usable7491",
+  "names": [
+   "brother-mfcl5705dw-lpr"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl6900dw-cups-bin": {
+  "maintainer": "ziweixu",
+  "names": [
+   "brother-mfcl6900dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl6900dw-lpr-bin": {
+  "maintainer": "ziweixu",
+  "names": [
+   "brother-mfcl6900dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl8690cdw-cups-bin": {
+  "maintainer": "pat883",
+  "names": [
+   "brother-mfcl8690cdw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl8690cdw-lpr-bin": {
+  "maintainer": "pat883",
+  "names": [
+   "brother-mfcl8690cdw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl8900cdw-cups": {
+  "maintainer": "colinkeenan",
+  "names": [
+   "brother-mfcl8900cdw-cups"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl8900cdw-cups-bin": {
+  "maintainer": "staticrealm",
+  "names": [
+   "brother-mfcl8900cdw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl8900cdw-lpr": {
+  "maintainer": "colinkeenan",
+  "names": [
+   "brother-mfcl8900cdw-lpr"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfcl8900cdw-lpr-bin": {
+  "maintainer": "staticrealm",
+  "names": [
+   "brother-mfcl8900cdw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-mfct910dw": {
+  "maintainer": "hristov",
+  "names": [
+   "brother-mfct910dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-mfct920dw": {
+  "maintainer": "fbf-prog64",
+  "names": [
+   "brother-mfct920dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-mfct930dw": {
+  "maintainer": "fbf-prog64",
+  "names": [
+   "brother-mfct930dw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-pj723": {
+  "maintainer": "doakey3",
+  "names": [
+   "brother-pj723"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-pt9800pcn": {
+  "maintainer": "marcel83",
+  "names": [
+   "brother-pt9800pcn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brother-ql1050": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql1050"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-ql1050n": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql1050n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-ql1060n": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql1060n"
+  ],
+  "out_of_date": true,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-ql1100": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql1100"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-ql1100nwb": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql1100nwb"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-ql1110nwb": {
+  "maintainer": "james.cherti",
+  "names": [
+   "brother-ql1110nwb"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-ql500": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql500"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 5
+ },
+ "brother-ql570": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql570"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 6
+ },
+ "brother-ql580n": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql580n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-ql600": {
+  "maintainer": "johnhamelink",
+  "names": [
+   "brother-ql600"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-ql650td": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql650td"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-ql700": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql700"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-ql710w": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql710w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-ql720nw": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql720nw"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-ql800": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql800"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-ql810w": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql810w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-ql820nwb": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-ql820nwb"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 3
+ },
+ "brother-td2020": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-td2020"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-td2120n": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-td2120n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-td2130n": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-td2130n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-td4000": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-td4000"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother-td4100n": {
+  "maintainer": "kbabioch",
+  "names": [
+   "brother-td4100n"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 2
+ },
+ "brother-td4520dn": {
+  "maintainer": "metoj",
+  "names": [
+   "brother-td4520dn"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother_hl-l2325dw-cups-bin": {
+  "maintainer": "graylott",
+  "names": [
+   "brother_hl-l2325dw-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brother_hl-l2325dw-lpr-bin": {
+  "maintainer": "graylott",
+  "names": [
+   "brother_hl-l2325dw-lpr-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "brscan": {
+  "maintainer": "ihipop",
+  "names": [
+   "brscan"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 0
+ },
+ "brscan-skey": {
+  "maintainer": "0x2501",
+  "names": [
+   "brscan-skey"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 75
+ },
+ "brscan2": {
+  "maintainer": "pmattern",
+  "names": [
+   "brscan2"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 38
+ },
+ "brscan3": {
+  "maintainer": "ortrudmargraf",
+  "names": [
+   "brscan3"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 72
+ },
+ "brscan4": {
+  "maintainer": "Harvey",
+  "names": [
+   "brscan4"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 179
+ },
+ "brscan5": {
+  "maintainer": "agsimmons0",
+  "names": [
+   "brscan5"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 36
+ },
+ "brscanads2200ads2700w": {
+  "maintainer": "calebmckay",
+  "names": [
+   "brscanads2200ads2700w"
+  ],
+  "out_of_date": false,
+  "vendor": "brother",
+  "votes": 1
+ },
+ "canon-cque": {
+  "maintainer": "severach",
+  "names": [
+   "canon-cque"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 11
+ },
+ "canon-lbp2900-capt": {
+  "maintainer": "gauravyad69",
+  "names": [
+   "canon-lbp2900-capt"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "canon-maxify-mb5100-complete": {
+  "maintainer": "tac-shell",
+  "names": [
+   "canon-maxify-mb5100-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "canon-pixma-g6000-complete": {
+  "maintainer": "matt-hires",
+  "names": [
+   "canon-pixma-g6000-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "canon-pixma-gseries-tool": {
+  "maintainer": "9M2PJU",
+  "names": [
+   "canon-pixma-gseries-tool"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "canon-pixma-ip1500": {
+  "maintainer": "severach",
+  "names": [
+   "canon-pixma-ip1500"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "canon-pixma-ip7200-printer": {
+  "maintainer": "JohnyPea",
+  "names": [
+   "canon-pixma-ip7200-printer"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "canon-pixma-lt7500-complete": {
+  "maintainer": "m3thodic",
+  "names": [
+   "canon-pixma-lt7500-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "canon-pixma-mg2200-complete": {
+  "maintainer": "severach",
+  "names": [
+   "canon-pixma-mg2200-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "canon-pixma-mg2400-complete": {
+  "maintainer": "severach",
+  "names": [
+   "canon-pixma-mg2400-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 4
+ },
+ "canon-pixma-mg2500-complete": {
+  "maintainer": "amezin",
+  "names": [
+   "canon-pixma-mg2500-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 5
+ },
+ "canon-pixma-mg3000-complete": {
+  "maintainer": null,
+  "names": [
+   "canon-pixma-mg3000-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "canon-pixma-mg3000-complete-fixed": {
+  "maintainer": "felinedachgeldt",
+  "names": [
+   "canon-pixma-mg3000-complete-fixed"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "canon-pixma-mg5200-complete": {
+  "maintainer": null,
+  "names": [
+   "canon-pixma-mg5200-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "canon-pixma-mg5500-complete": {
+  "maintainer": null,
+  "names": [
+   "canon-pixma-mg5500-complete"
+  ],
+  "out_of_date": true,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "canon-pixma-mg5700-complete": {
+  "maintainer": "nop-90",
+  "names": [
+   "canon-pixma-mg5700-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "canon-pixma-mg6100-complete": {
+  "maintainer": "davidovitch",
+  "names": [
+   "canon-pixma-mg6100-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "canon-pixma-mg6300-complete": {
+  "maintainer": "Fenisu",
+  "names": [
+   "canon-pixma-mg6300-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "canon-pixma-mp230-complete": {
+  "maintainer": "ryuzy",
+  "names": [
+   "canon-pixma-mp230-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 6
+ },
+ "canon-pixma-mp240-complete": {
+  "maintainer": "swyter",
+  "names": [
+   "canon-pixma-mp240-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "canon-pixma-mx350-complete": {
+  "maintainer": "Ayceman",
+  "names": [
+   "canon-pixma-mx350-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "canon-pixma-mx390-complete": {
+  "maintainer": "ryuzy",
+  "names": [
+   "canon-pixma-mx390-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "canon-pixma-mx410-complete": {
+  "maintainer": "invik",
+  "names": [
+   "canon-pixma-mx410-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 4
+ },
+ "canon-pixma-mx495-printer": {
+  "maintainer": "crondrift",
+  "names": [
+   "canon-pixma-mx495-printer"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "canon-pixma-mx510-complete": {
+  "maintainer": "viphe",
+  "names": [
+   "canon-pixma-mx510-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "canon-pixma-mx860-complete": {
+  "maintainer": "ryuzy",
+  "names": [
+   "canon-pixma-mx860-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 4
+ },
+ "canon-pixma-mx870-complete": {
+  "maintainer": "morgenstern",
+  "names": [
+   "canon-pixma-mx870-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 6
+ },
+ "canon-pixma-mx920-complete": {
+  "maintainer": "mkoskar",
+  "names": [
+   "canon-pixma-mx920-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 11
+ },
+ "canon-pixma-ts5055-complete": {
+  "maintainer": "severach",
+  "names": [
+   "canon-pixma-ts5055-complete"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 9
+ },
+ "canon-tr8600-series": {
+  "maintainer": "edapa",
+  "names": [
+   "canon-tr8600-series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "canon-ts9020": {
+  "maintainer": "snostorm",
+  "names": [
+   "canon-ts9020"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cndrvcups-lb-bin": {
+  "maintainer": "severach",
+  "names": [
+   "cndrvcups-lb-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 32
+ },
+ "cndrvcups-lt": {
+  "maintainer": "zhou13",
+  "names": [
+   "cndrvcups-lt"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 5
+ },
+ "cnijfilter-5200": {
+  "maintainer": "mueslo",
+  "names": [
+   "cnijfilter-mg5200"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-common": {
+  "maintainer": "tobiaswesterburg",
+  "names": [
+   "cnijfilter-common"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 37
+ },
+ "cnijfilter-common-mg2400": {
+  "maintainer": "oberon2007",
+  "names": [
+   "cnijfilter-common-mg2400"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "cnijfilter-common-mg2500": {
+  "maintainer": "oberon2007",
+  "names": [
+   "cnijfilter-common-mg2500"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "cnijfilter-common-mg5400": {
+  "maintainer": "simongeisler",
+  "names": [
+   "cnijfilter-common-mg5400"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 5
+ },
+ "cnijfilter-e400series": {
+  "maintainer": "aeolwyr",
+  "names": [
+   "cnijfilter-e400series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-e510": {
+  "maintainer": null,
+  "names": [
+   "cnijfilter-e510"
+  ],
+  "out_of_date": true,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-e560series": {
+  "maintainer": "lizr2004",
+  "names": [
+   "cnijfilter-e560series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-ip100": {
+  "maintainer": null,
+  "names": [
+   "cnijfilter-ip100"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "cnijfilter-ip110": {
+  "maintainer": null,
+  "names": [
+   "cnijfilter-ip110"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 7
+ },
+ "cnijfilter-ip2700series": {
+  "maintainer": "cyker",
+  "names": [
+   "cnijfilter-ip2700series"
+  ],
+  "out_of_date": true,
+  "vendor": "canon",
+  "votes": 7
+ },
+ "cnijfilter-ip2800series": {
+  "maintainer": null,
+  "names": [
+   "cnijfilter-ip2800series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-ip4500": {
+  "maintainer": null,
+  "names": [
+   "cnijfilter-ip4500"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-ip7200": {
+  "maintainer": null,
+  "names": [
+   "cnijfilter-ip7200"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-mg2100": {
+  "maintainer": "oberon2007",
+  "names": [
+   "cnijfilter-mg2100"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "cnijfilter-mg2400series": {
+  "maintainer": "oberon2007",
+  "names": [
+   "cnijfilter-mg2400series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "cnijfilter-mg2500series": {
+  "maintainer": "oberon2007",
+  "names": [
+   "cnijfilter-mg2500series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "cnijfilter-mg3100": {
+  "maintainer": null,
+  "names": [
+   "cnijfilter-mg3100"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "cnijfilter-mg3200": {
+  "maintainer": null,
+  "names": [
+   "cnijfilter-mg3200"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "cnijfilter-mg3500series": {
+  "maintainer": "cafehaine",
+  "names": [
+   "cnijfilter-mg3500series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 9
+ },
+ "cnijfilter-mg4100": {
+  "maintainer": "oberon2007",
+  "names": [
+   "cnijfilter-mg4100"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-mg4200": {
+  "maintainer": "WilliamImm",
+  "names": [
+   "cnijfilter-mg4200"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 8
+ },
+ "cnijfilter-mg5300": {
+  "maintainer": "williberthenck",
+  "names": [
+   "cnijfilter-mg5300"
+  ],
+  "out_of_date": true,
+  "vendor": "canon",
+  "votes": 8
+ },
+ "cnijfilter-mg6100": {
+  "maintainer": "oberon2007",
+  "names": [
+   "cnijfilter-mg6100"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "cnijfilter-mg6200": {
+  "maintainer": "Lopo",
+  "names": [
+   "cnijfilter-mg6200"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 7
+ },
+ "cnijfilter-mg6300": {
+  "maintainer": "oberon2007",
+  "names": [
+   "cnijfilter-mg6300"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "cnijfilter-mg6400series": {
+  "maintainer": "oberon2007",
+  "names": [
+   "cnijfilter-mg6400series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "cnijfilter-mg8100series": {
+  "maintainer": "sourcesmith",
+  "names": [
+   "cnijfilter-mg8100series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-mp280": {
+  "maintainer": "vova7890",
+  "names": [
+   "cnijfilter-mp280"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 13
+ },
+ "cnijfilter-mp495-x86_64": {
+  "maintainer": "tbw",
+  "names": [
+   "cnijfilter-mp495-x86_64"
+  ],
+  "out_of_date": true,
+  "vendor": "canon",
+  "votes": 5
+ },
+ "cnijfilter-mp550": {
+  "maintainer": "zsomborszabo",
+  "names": [
+   "cnijfilter-mp550"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 10
+ },
+ "cnijfilter-mp560": {
+  "maintainer": null,
+  "names": [
+   "cnijfilter-mp560"
+  ],
+  "out_of_date": true,
+  "vendor": "canon",
+  "votes": 4
+ },
+ "cnijfilter-mp620": {
+  "maintainer": null,
+  "names": [
+   "cnijfilter-mp620"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 7
+ },
+ "cnijfilter-mp630": {
+  "maintainer": "Bevan",
+  "names": [
+   "cnijfilter-mp630"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-mp640": {
+  "maintainer": null,
+  "names": [
+   "cnijfilter-mp640"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "cnijfilter-mx340": {
+  "maintainer": "Ayakael",
+  "names": [
+   "cnijfilter-mx340"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-mx470series": {
+  "maintainer": "scachemaille",
+  "names": [
+   "cnijfilter-mx470series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-mx520series": {
+  "maintainer": "Al3xG",
+  "names": [
+   "cnijfilter-mx520series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-mx530series": {
+  "maintainer": "VxlerieUwU",
+  "names": [
+   "cnijfilter-mx530series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-mx720series": {
+  "maintainer": "trissylegs",
+  "names": [
+   "cnijfilter-mx720series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "cnijfilter-mx880": {
+  "maintainer": "m3thodic",
+  "names": [
+   "cnijfilter-mx880"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "cnijfilter-mx920": {
+  "maintainer": "maxqia",
+  "names": [
+   "cnijfilter-mx920"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "cnijfilter-ts7450series": {
+  "maintainer": "lesebas",
+  "names": [
+   "cnijfilter-ts7450series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 1
+ },
+ "cnijfilter2": {
+  "maintainer": "pzarycki",
+  "names": [
+   "cnijfilter2"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 58
+ },
+ "cnijfilter2-g3010": {
+  "maintainer": "sonmi-451",
+  "names": [
+   "cnijfilter2-g3010"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "cnijfilter2-mg3600": {
+  "maintainer": "crazyboycjr",
+  "names": [
+   "cnijfilter2-mg3600"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "cnijfilter2-mg7500": {
+  "maintainer": "yuntan_t",
+  "names": [
+   "cnijfilter2-mg7500"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 10
+ },
+ "cnijfilter2-mg7700": {
+  "maintainer": "xiota",
+  "names": [
+   "cnijfilter2-mg7700"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 10
+ },
+ "cnrdrvcups-lb": {
+  "maintainer": "Lone_Wolf",
+  "names": [
+   "cnrdrvcups-lb"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 39
+ },
+ "cnrdrvcups-lb-bin": {
+  "maintainer": "severach",
+  "names": [
+   "cnrdrvcups-lb-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 8
+ },
+ "cnrdrvcups-sfp": {
+  "maintainer": "Linaro",
+  "names": [
+   "cnrdrvcups-sfp"
+  ],
+  "out_of_date": true,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "epson-alc1100-filter": {
+  "maintainer": "Vain",
+  "names": [
+   "epson-alc1100-filter"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201101w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201101w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 7
+ },
+ "epson-inkjet-printer-201102j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201102j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201102w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201102w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-201103j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201103j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201104w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201104w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 2
+ },
+ "epson-inkjet-printer-201105j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201105j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-201105w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201105w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 7
+ },
+ "epson-inkjet-printer-201106j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201106j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201106w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201106w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 6
+ },
+ "epson-inkjet-printer-201107w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201107w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 3
+ },
+ "epson-inkjet-printer-201108j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201108j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201108w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201108w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 7
+ },
+ "epson-inkjet-printer-201109w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201109w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201110j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201110j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201110w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201110w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201111j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201111j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201111w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201111w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201112j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201112j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201112w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201112w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 8
+ },
+ "epson-inkjet-printer-201113j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201113j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201113w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201113w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 4
+ },
+ "epson-inkjet-printer-201114j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201114j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201114w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201114w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-201115j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201115j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201115w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201115w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201116j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201116j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201201w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201201w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 5
+ },
+ "epson-inkjet-printer-201202w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201202w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 7
+ },
+ "epson-inkjet-printer-201203j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201203j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201203w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201203w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 3
+ },
+ "epson-inkjet-printer-201204j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201204j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201204w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201204w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 6
+ },
+ "epson-inkjet-printer-201205j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201205j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201206w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201206w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201207w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201207w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 28
+ },
+ "epson-inkjet-printer-201208w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201208w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201209j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201209j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201209w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201209w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-201210j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201210j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201211j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201211j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201211w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201211w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 9
+ },
+ "epson-inkjet-printer-201212j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201212j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201212w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201212w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 17
+ },
+ "epson-inkjet-printer-201213j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201213j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201213w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201213w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201214j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201214j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201214w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201214w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201215w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201215w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-201301w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201301w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 3
+ },
+ "epson-inkjet-printer-201302w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201302w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-201303j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201303j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201303w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201303w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 6
+ },
+ "epson-inkjet-printer-201304j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201304j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201304w": {
+  "maintainer": "gcb0",
+  "names": [
+   "epson-inkjet-printer-201304w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 5
+ },
+ "epson-inkjet-printer-201305j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201305j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201305w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201305w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201306j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201306j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201307j": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201307j"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201308w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201308w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 3
+ },
+ "epson-inkjet-printer-201309w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201309w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201310w": {
+  "maintainer": "kichirouhoshino",
+  "names": [
+   "epson-inkjet-printer-201310w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 5
+ },
+ "epson-inkjet-printer-201311w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201311w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-201312w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201312w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-201401w": {
+  "maintainer": "linkmoises",
+  "names": [
+   "epson-inkjet-printer-201401w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 19
+ },
+ "epson-inkjet-printer-201601w": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-201601w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 3
+ },
+ "epson-inkjet-printer-202101w": {
+  "maintainer": "razein97",
+  "names": [
+   "epson-inkjet-printer-202101w"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-am-c400": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-am-c400"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-am-c4000": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-am-c4000"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-am-c5000": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-am-c5000"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-am-c550": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-am-c550"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-am-c6000": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-am-c6000"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-artisan-725-835-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-artisan-725-835-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-em-c7100": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-em-c7100"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-em-c7100bam": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-em-c7100bam"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-em-c800": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-em-c800"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-em-c800bam": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-em-c800bam"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-ep-302": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-ep-302"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-ep-702a": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-ep-702a"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-ep-703a": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-ep-703a"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-ep-803a-903f-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-ep-803a-903f-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-ep-902a-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-ep-902a-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-escpr": {
+  "maintainer": "hcartiaux",
+  "names": [
+   "epson-inkjet-printer-escpr"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 104
+ },
+ "epson-inkjet-printer-escpr2": {
+  "maintainer": "AngryUbuntuNerd",
+  "names": [
+   "epson-inkjet-printer-escpr2"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 58
+ },
+ "epson-inkjet-printer-escpr2-clos-bin": {
+  "maintainer": "alexandrenavarro",
+  "names": [
+   "epson-inkjet-printer-escpr2-clos-bin"
+  ],
+  "out_of_date": true,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-filter": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-filter"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 2
+ },
+ "epson-inkjet-printer-k100-k200-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-k100-k200-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-l100l200": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-l100l200"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-l15180": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-l15180"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-l6580": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-l6580"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-l800": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-l800"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 4
+ },
+ "epson-inkjet-printer-l805": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-l805"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-l8050": {
+  "maintainer": "harryloong",
+  "names": [
+   "epson-inkjet-printer-l8050"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-lm-c400": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-lm-c400"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-lm-c4000": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-lm-c4000"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-lm-c5000": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-lm-c5000"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-lm-c6000": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-lm-c6000"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-m105": {
+  "maintainer": "mighty-baseplate",
+  "names": [
+   "epson-inkjet-printer-m105"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-n10-nx127": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-n10-nx127"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 8
+ },
+ "epson-inkjet-printer-nx420": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-nx420"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 14
+ },
+ "epson-inkjet-printer-px-20000": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-px-20000"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-px-402a": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-px-402a"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-px-502a": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-px-502a"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-px-503a-203-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-px-503a-203-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-px-5v": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-px-5v"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-px-602f": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-px-602f"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-px-673f": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-px-673f"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-px-f8000-f10000-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-px-f8000-f10000-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-px-h7000-h9000-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-px-h7000-h9000-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-px-k100": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-px-k100"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-p20k10k-jp": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-p20k10k-jp"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-p20k10k-ww": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-p20k10k-ww"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-p5000-jp": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-p5000-jp"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-p5000-ww": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-p5000-ww"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-p5300": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-p5300"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-p7500p9500": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-p7500p9500"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-p8500d": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-p8500d"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-p9k8k7k6k-jp": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-p9k8k7k6k-jp"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-p9k8k7k6k-ww": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-p9k8k7k6k-ww"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-t2100": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-t2100"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-t3100m": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-t3100m"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-t3100t5100": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-t3100t5100"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-t3400t5400": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-t3400t5400"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-t3k5k7k-jp": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-t3k5k7k-jp"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-t3k5k7k-ww": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-t3k5k7k-ww"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-t5100m": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-t5100m"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-t7700d": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-t7700d"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-tx200-jp": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-tx200-jp"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-sc-tx200-ww": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-sc-tx200-ww"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-stylus-nx110-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-nx110-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 13
+ },
+ "epson-inkjet-printer-stylus-office-tx510fn-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-office-tx510fn-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-stylus-office-tx610fw-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-office-tx610fw-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-stylus-photo-px660-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-photo-px660-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-stylus-photo-px810fw-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-photo-px810fw-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 3
+ },
+ "epson-inkjet-printer-stylus-photo-r3000": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-photo-r3000"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-stylus-photo-t50-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-photo-t50-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 3
+ },
+ "epson-inkjet-printer-stylus-photo-tx650-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-photo-tx650-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 2
+ },
+ "epson-inkjet-printer-stylus-pro-11880-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-pro-11880-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-stylus-pro-4450-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-pro-4450-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-stylus-pro-4880-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-pro-4880-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-stylus-pro-4900-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-pro-4900-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-stylus-pro-7700-9700-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-pro-7700-9700-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-stylus-pro-7890-9890-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-pro-7890-9890-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-stylus-s21-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-s21-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-stylus-tx550w-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-stylus-tx550w-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 4
+ },
+ "epson-inkjet-printer-wf-5190": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-wf-5190"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-wf-5690": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-wf-5690"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-wf-6090": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-wf-6090"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-wf-6590": {
+  "maintainer": null,
+  "names": [
+   "epson-inkjet-printer-wf-6590"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-inkjet-printer-workforce-320-sx218": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-workforce-320-sx218"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 11
+ },
+ "epson-inkjet-printer-workforce-525": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-workforce-525"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-inkjet-printer-workforce-635-nx625-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-workforce-635-nx625-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 5
+ },
+ "epson-inkjet-printer-workforce-840-series": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-inkjet-printer-workforce-840-series"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-label-printer-utility-community-bin": {
+  "maintainer": "taotieren",
+  "names": [
+   "epson-label-printer-utility-community-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-c300dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-c300dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-c300n": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-c300n"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-c9500dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-c9500dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-m220dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-m220dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-m300": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-m300"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-m310dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-m310dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-m320dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-m320dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-m7100dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-m7100dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-m7150dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-m7150dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-m8100dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-m8100dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-m8150dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-m8150dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-m8200dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-m8200dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-al-m8250dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-al-m8250dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-filter": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-laser-printer-filter"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-m8040": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-lp-m8040"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-m8170": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-lp-m8170"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-m8180f": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-laser-printer-lp-m8180f"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s180d": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-laser-printer-lp-s180d"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s180dn": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-laser-printer-lp-s180dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s280dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-lp-s280dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s3250": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-lp-s3250"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s3550": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-lp-s3550"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s380dn": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-lp-s380dn"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s4250": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-lp-s4250"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s4290": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-laser-printer-lp-s4290"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s6160": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-laser-printer-lp-s6160"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s7160": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-laser-printer-lp-s7160"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s8160": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-lp-s8160"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s8180": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-laser-printer-lp-s8180"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s9070": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-lp-s9070"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-laser-printer-lp-s950": {
+  "maintainer": null,
+  "names": [
+   "epson-laser-printer-lp-s950"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-pc-fax": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-pc-fax"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-pc-fax-bin": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-pc-fax-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-pc-fax2": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-pc-fax2"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-perfection-v10-v100-scanner-driver-aio": {
+  "maintainer": "figue",
+  "names": [
+   "epson-perfection-v10-v100-scanner-driver-aio"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 1
+ },
+ "epson-printer-io-community-bin": {
+  "maintainer": "taotieren",
+  "names": [
+   "epson-printer-io-community-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "epson-printer-utility": {
+  "maintainer": "darkelectron",
+  "names": [
+   "epson-printer-utility"
+  ],
+  "out_of_date": true,
+  "vendor": "epson",
+  "votes": 20
+ },
+ "epson-tm-series-printer-driver": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "epson-tm-series-printer-impact-receipt",
+   "epson-tm-series-printer-impact-slip",
+   "epson-tm-series-printer-thermal-receipt"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 2
+ },
+ "epsonscan2": {
+  "maintainer": "tecnotercio",
+  "names": [
+   "epsonscan2"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 27
+ },
+ "epsonscan2-bin": {
+  "maintainer": "Eirikr",
+  "names": [
+   "epsonscan2-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 2
+ },
+ "hplip-plugin": {
+  "maintainer": "ZhangHua",
+  "names": [
+   "hplip-plugin"
+  ],
+  "out_of_date": false,
+  "vendor": "hp",
+  "votes": 409
+ },
+ "imagescan": {
+  "maintainer": "polr",
+  "names": [
+   "imagescan"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 4
+ },
+ "imagescan-plugin-networkscan": {
+  "maintainer": "buzo",
+  "names": [
+   "imagescan-plugin-networkscan"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 28
+ },
+ "iscan": {
+  "maintainer": "FabioLolix",
+  "names": [
+   "iscan"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 11
+ },
+ "iscan-data": {
+  "maintainer": "FabioLolix",
+  "names": [
+   "iscan-data"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 7
+ },
+ "iscan-for-epson-v500-photo": {
+  "maintainer": "zoe",
+  "names": [
+   "iscan-for-epson-v500-photo"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 4
+ },
+ "iscan-plugin-cx4400": {
+  "maintainer": "jorgicio",
+  "names": [
+   "iscan-plugin-cx4400"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "iscan-plugin-ds-30": {
+  "maintainer": "Muflone",
+  "names": [
+   "iscan-plugin-ds-30"
+  ],
+  "out_of_date": true,
+  "vendor": "epson",
+  "votes": 3
+ },
+ "iscan-plugin-gt-1500": {
+  "maintainer": "Tamriel",
+  "names": [
+   "iscan-plugin-gt-1500"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 3
+ },
+ "iscan-plugin-gt-f670": {
+  "maintainer": "FoolEcho",
+  "names": [
+   "iscan-plugin-gt-f670"
+  ],
+  "out_of_date": true,
+  "vendor": "epson",
+  "votes": 8
+ },
+ "iscan-plugin-gt-f700": {
+  "maintainer": "sashkent3",
+  "names": [
+   "iscan-plugin-gt-f700"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "iscan-plugin-gt-f720": {
+  "maintainer": "Muflone",
+  "names": [
+   "iscan-plugin-gt-f720"
+  ],
+  "out_of_date": true,
+  "vendor": "epson",
+  "votes": 11
+ },
+ "iscan-plugin-gt-s600": {
+  "maintainer": "Vain",
+  "names": [
+   "iscan-plugin-gt-s600"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 5
+ },
+ "iscan-plugin-gt-s650": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "iscan-plugin-gt-s650"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 12
+ },
+ "iscan-plugin-gt-s80": {
+  "maintainer": "xiota",
+  "names": [
+   "iscan-plugin-gt-s80"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 2
+ },
+ "iscan-plugin-gt-x770": {
+  "maintainer": "vitaliikuzhdin",
+  "names": [
+   "iscan-plugin-gt-x770"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 5
+ },
+ "iscan-plugin-gt-x820": {
+  "maintainer": "severach",
+  "names": [
+   "iscan-plugin-gt-x820"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 7
+ },
+ "iscan-plugin-gt-x830": {
+  "maintainer": "nikinbaidar",
+  "names": [
+   "iscan-plugin-gt-x830"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 0
+ },
+ "iscan-plugin-network": {
+  "maintainer": "alexdw",
+  "names": [
+   "iscan-plugin-network"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 67
+ },
+ "iscan-plugin-perfection-v330": {
+  "maintainer": "Kewl",
+  "names": [
+   "iscan-plugin-perfection-v330"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 11
+ },
+ "iscan-plugin-perfection-v370": {
+  "maintainer": "Muflone",
+  "names": [
+   "iscan-plugin-perfection-v370"
+  ],
+  "out_of_date": true,
+  "vendor": "epson",
+  "votes": 4
+ },
+ "iscan-plugin-perfection-v550": {
+  "maintainer": "dinux",
+  "names": [
+   "iscan-plugin-perfection-v550"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 3
+ },
+ "iscanimage": {
+  "maintainer": "justinyaodu",
+  "names": [
+   "iscanimage"
+  ],
+  "out_of_date": false,
+  "vendor": "epson",
+  "votes": 2
+ },
+ "kyocera-cups": {
+  "maintainer": "severach",
+  "names": [
+   "kyocera-cups"
+  ],
+  "out_of_date": false,
+  "vendor": "kyocera",
+  "votes": 26
+ },
+ "kyocera-ecosys-m2035dn": {
+  "maintainer": "den23513",
+  "names": [
+   "kyocera-ecosys-m2035dn"
+  ],
+  "out_of_date": false,
+  "vendor": "kyocera",
+  "votes": 3
+ },
+ "kyocera-ecosys-m552x-p502x": {
+  "maintainer": "codeworkx",
+  "names": [
+   "kyocera-ecosys-m552x-p502x"
+  ],
+  "out_of_date": false,
+  "vendor": "kyocera",
+  "votes": 5
+ },
+ "kyocera-ecosys-p5021cdw": {
+  "maintainer": "Sleipnir",
+  "names": [
+   "kyocera-ecosys-p5021cdw"
+  ],
+  "out_of_date": false,
+  "vendor": "kyocera",
+  "votes": 0
+ },
+ "kyocera-ecosys-p6035cdn": {
+  "maintainer": "niq000",
+  "names": [
+   "kyocera-ecosys-p6035cdn"
+  ],
+  "out_of_date": false,
+  "vendor": "kyocera",
+  "votes": 1
+ },
+ "kyocera-fs11001300d": {
+  "maintainer": null,
+  "names": [
+   "kyocera-fs11001300d"
+  ],
+  "out_of_date": false,
+  "vendor": "kyocera",
+  "votes": 3
+ },
+ "kyocera-print-driver": {
+  "maintainer": "mutoroglin",
+  "names": [
+   "kyocera-print-driver"
+  ],
+  "out_of_date": false,
+  "vendor": "kyocera",
+  "votes": 2
+ },
+ "kyocera-sane": {
+  "maintainer": "dreieck",
+  "names": [
+   "kyocera-sane"
+  ],
+  "out_of_date": false,
+  "vendor": "kyocera",
+  "votes": 2
+ },
+ "kyocera-taskalfa-1800-2200": {
+  "maintainer": "asmeron",
+  "names": [
+   "kyocera-taskalfa-1800-2200"
+  ],
+  "out_of_date": false,
+  "vendor": "kyocera",
+  "votes": 0
+ },
+ "kyocera-utax-ta": {
+  "maintainer": "severach",
+  "names": [
+   "kyocera-utax-ta"
+  ],
+  "out_of_date": false,
+  "vendor": "kyocera",
+  "votes": 0
+ },
+ "kyocera_universal": {
+  "maintainer": "HartmutS",
+  "names": [
+   "kyocera_universal"
+  ],
+  "out_of_date": false,
+  "vendor": "kyocera",
+  "votes": 9
+ },
+ "ricoh-mp2014-gdi": {
+  "maintainer": "NeroBlackstone",
+  "names": [
+   "ricoh-mp2014-gdi"
+  ],
+  "out_of_date": false,
+  "vendor": "ricoh",
+  "votes": 0
+ },
+ "ricoh-rpcs-cups-bin": {
+  "maintainer": "mforthewin",
+  "names": [
+   "ricoh-rpcs-cups-bin"
+  ],
+  "out_of_date": false,
+  "vendor": "ricoh",
+  "votes": 0
+ },
+ "ricoh-sp-c260series-ppd": {
+  "maintainer": "hrko",
+  "names": [
+   "ricoh-sp-c260series-ppd"
+  ],
+  "out_of_date": false,
+  "vendor": "ricoh",
+  "votes": 0
+ },
+ "ricoh-sp150-ppd": {
+  "maintainer": "der_fenix",
+  "names": [
+   "ricoh-sp150-ppd"
+  ],
+  "out_of_date": false,
+  "vendor": "ricoh",
+  "votes": 1
+ },
+ "ricoh-sp150su-sane": {
+  "maintainer": "aineko",
+  "names": [
+   "ricoh-sp150su-sane"
+  ],
+  "out_of_date": false,
+  "vendor": "ricoh",
+  "votes": 1
+ },
+ "ricoh-sp210-211-ppd": {
+  "maintainer": "zoli111",
+  "names": [
+   "ricoh-sp210-211-ppd"
+  ],
+  "out_of_date": false,
+  "vendor": "ricoh",
+  "votes": 0
+ },
+ "ricoh-sp2200-sp3xx-ppds": {
+  "maintainer": "guotsuan",
+  "names": [
+   "ricoh-sp2200-sp3xx-ppds"
+  ],
+  "out_of_date": false,
+  "vendor": "ricoh",
+  "votes": 0
+ },
+ "ricoh-sp3700-ppds": {
+  "maintainer": null,
+  "names": [
+   "ricoh-sp3700-ppds"
+  ],
+  "out_of_date": false,
+  "vendor": "ricoh",
+  "votes": 1
+ },
+ "ricoh-spc260series-sane": {
+  "maintainer": "GelatinousSlime",
+  "names": [
+   "ricoh-spc260series-sane"
+  ],
+  "out_of_date": false,
+  "vendor": "ricoh",
+  "votes": 0
+ },
+ "ricoh-spc261-ppd": {
+  "maintainer": null,
+  "names": [
+   "ricoh-spc261-ppd"
+  ],
+  "out_of_date": false,
+  "vendor": "ricoh",
+  "votes": 0
+ },
+ "ricoh-spc261sfnw-ppd": {
+  "maintainer": null,
+  "names": [
+   "ricoh-spc261sfnw-ppd"
+  ],
+  "out_of_date": false,
+  "vendor": "ricoh",
+  "votes": 0
+ },
+ "samsung-m262x-m282x": {
+  "maintainer": "loh.tar",
+  "names": [
+   "samsung-m262x-m282x"
+  ],
+  "out_of_date": false,
+  "vendor": "samsung",
+  "votes": 1
+ },
+ "samsung-m283x": {
+  "maintainer": "peregrinus",
+  "names": [
+   "samsung-m283x"
+  ],
+  "out_of_date": false,
+  "vendor": "samsung",
+  "votes": 0
+ },
+ "samsung-ml-1915": {
+  "maintainer": null,
+  "names": [
+   "samsung-ml-1915"
+  ],
+  "out_of_date": false,
+  "vendor": "samsung",
+  "votes": 1
+ },
+ "samsung-ml1640": {
+  "maintainer": "oberon2007",
+  "names": [
+   "samsung-ml1640"
+  ],
+  "out_of_date": false,
+  "vendor": "samsung",
+  "votes": 3
+ },
+ "samsung-ml1710": {
+  "maintainer": null,
+  "names": [
+   "samsung-ml1710"
+  ],
+  "out_of_date": false,
+  "vendor": "samsung",
+  "votes": 0
+ },
+ "samsung-ml1860series": {
+  "maintainer": "oberon2007",
+  "names": [
+   "samsung-ml1860series"
+  ],
+  "out_of_date": false,
+  "vendor": "samsung",
+  "votes": 1
+ },
+ "samsung-ml191x-series": {
+  "maintainer": null,
+  "names": [
+   "samsung-ml191x-series"
+  ],
+  "out_of_date": true,
+  "vendor": "samsung",
+  "votes": 0
+ },
+ "samsung-ml2160": {
+  "maintainer": "TioDuke",
+  "names": [
+   "samsung-ml2160"
+  ],
+  "out_of_date": false,
+  "vendor": "samsung",
+  "votes": 10
+ },
+ "samsung-scantopc": {
+  "maintainer": "kleest",
+  "names": [
+   "samsung-scantopc"
+  ],
+  "out_of_date": false,
+  "vendor": "samsung",
+  "votes": 0
+ },
+ "samsung-scantopc-webui": {
+  "maintainer": "kleest",
+  "names": [
+   "samsung-scantopc-webui"
+  ],
+  "out_of_date": false,
+  "vendor": "samsung",
+  "votes": 0
+ },
+ "samsung-unified-driver": {
+  "maintainer": "christoph.gysin",
+  "names": [
+   "samsung-unified-driver",
+   "samsung-unified-driver-common",
+   "samsung-unified-driver-printer",
+   "samsung-unified-driver-scanner"
+  ],
+  "out_of_date": false,
+  "vendor": "samsung",
+  "votes": 227
+ },
+ "scangearmp": {
+  "maintainer": null,
+  "names": [
+   "scangearmp-mp250series",
+   "scangearmp-mp270series",
+   "scangearmp-mp490series",
+   "scangearmp-mp550series",
+   "scangearmp-mp560series",
+   "scangearmp-mp640series",
+   "scangearmp-mpseries-common"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 4
+ },
+ "scangearmp-common": {
+  "maintainer": null,
+  "names": [
+   "scangearmp-common"
+  ],
+  "out_of_date": true,
+  "vendor": "canon",
+  "votes": 5
+ },
+ "scangearmp-common-mg3500series": {
+  "maintainer": null,
+  "names": [
+   "scangearmp-common-mg3500series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 4
+ },
+ "scangearmp-mg3200": {
+  "maintainer": null,
+  "names": [
+   "scangearmp-mg3200"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "scangearmp-mg3500": {
+  "maintainer": "Ayakael",
+  "names": [
+   "scangearmp-mg3500"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "scangearmp-mg3500series": {
+  "maintainer": "lauradestrigter",
+  "names": [
+   "scangearmp-mg3500series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 6
+ },
+ "scangearmp-mg4200": {
+  "maintainer": "kjkent",
+  "names": [
+   "scangearmp-mg4200"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 2
+ },
+ "scangearmp-mg6200": {
+  "maintainer": "Lopo",
+  "names": [
+   "scangearmp-mg6200"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 3
+ },
+ "scangearmp-mg8100series": {
+  "maintainer": "sourcesmith",
+  "names": [
+   "scangearmp-mg8100series"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "scangearmp-mp280": {
+  "maintainer": "hidayat.pcd",
+  "names": [
+   "scangearmp-mp280"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 7
+ },
+ "scangearmp-mx340": {
+  "maintainer": "Ayakael",
+  "names": [
+   "scangearmp-mx340"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "scangearmp-mx510series-x86_64": {
+  "maintainer": "s3lph",
+  "names": [
+   "scangearmp-mx510series-x86_64"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "scangearmp-mx520series-x86_64": {
+  "maintainer": null,
+  "names": [
+   "scangearmp-mx520series-x86_64"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 0
+ },
+ "scangearmp2": {
+  "maintainer": "pvdl1984",
+  "names": [
+   "scangearmp2"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 22
+ },
+ "scangearmp2-mg7500": {
+  "maintainer": "yuntan_t",
+  "names": [
+   "scangearmp2-mg7500"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 4
+ },
+ "scangearmp2-mg7700": {
+  "maintainer": "xiota",
+  "names": [
+   "scangearmp2-mg7700"
+  ],
+  "out_of_date": false,
+  "vendor": "canon",
+  "votes": 4
+ },
+ "xerox-docucentre-driver": {
+  "maintainer": "kumagiyomu",
+  "names": [
+   "xerox-docucentre-driver"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 4
+ },
+ "xerox-docuprint-cp405": {
+  "maintainer": "plague-doctor",
+  "names": [
+   "xerox-docuprint-cp405"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 2
+ },
+ "xerox-office-prtdrv": {
+  "maintainer": "asmeron",
+  "names": [
+   "xerox-office-prtdrv"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 1
+ },
+ "xerox-phaser-3020": {
+  "maintainer": "krant",
+  "names": [
+   "xerox-phaser-3020"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 8
+ },
+ "xerox-phaser-3040": {
+  "maintainer": "dcelasun",
+  "names": [
+   "xerox-phaser-3040"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 9
+ },
+ "xerox-phaser-3320": {
+  "maintainer": "yannleretaille",
+  "names": [
+   "xerox-phaser-3320"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 1
+ },
+ "xerox-phaser-6000-6010": {
+  "maintainer": "melindajuhasz",
+  "names": [
+   "xerox-phaser-6000-6010"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 7
+ },
+ "xerox-phaser-6020": {
+  "maintainer": "javum",
+  "names": [
+   "xerox-phaser-6020"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 0
+ },
+ "xerox-phaser-6022": {
+  "maintainer": null,
+  "names": [
+   "xerox-phaser-6022"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 1
+ },
+ "xerox-phaser-6280": {
+  "maintainer": "mishakmak",
+  "names": [
+   "xerox-phaser-6280"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 0
+ },
+ "xerox-spl-driver": {
+  "maintainer": "asmeron",
+  "names": [
+   "xerox-spl-driver",
+   "xerox-spl-driver-common",
+   "xerox-spl-driver-printer",
+   "xerox-spl-driver-scanner"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 1
+ },
+ "xerox-workcentre-3045b-3045ni": {
+  "maintainer": "hoky",
+  "names": [
+   "xerox-workcentre-3045b-3045ni"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 3
+ },
+ "xerox-workcentre-5135-5150": {
+  "maintainer": "heavysink",
+  "names": [
+   "xerox-workcentre-5135-5150"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 0
+ },
+ "xerox-workcentre-5845-5855": {
+  "maintainer": "gmanev",
+  "names": [
+   "xerox-workcentre-5845-5855"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 0
+ },
+ "xerox-workcentre-6015": {
+  "maintainer": "noraj",
+  "names": [
+   "xerox-workcentre-6015"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 0
+ },
+ "xerox-workcentre-6027": {
+  "maintainer": "nemSoma",
+  "names": [
+   "xerox-workcentre-6027"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 0
+ },
+ "xerox-workcentre-6505": {
+  "maintainer": "stick",
+  "names": [
+   "xerox-workcentre-6505"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 0
+ },
+ "xerox-workcentre-6515": {
+  "maintainer": "stick",
+  "names": [
+   "xerox-workcentre-6515"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 0
+ },
+ "xerox-workcentre-6515-6510": {
+  "maintainer": null,
+  "names": [
+   "xerox-workcentre-6515-6510"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 1
+ },
+ "xerox-workcentre-72xx": {
+  "maintainer": "severach",
+  "names": [
+   "xerox-workcentre-72xx"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 0
+ },
+ "xerox-workcentre-78xx": {
+  "maintainer": "oniram",
+  "names": [
+   "xerox-workcentre-78xx"
+  ],
+  "out_of_date": false,
+  "vendor": "xerox",
+  "votes": 4
+ },
+ "xeroxprtdrv": {
+  "maintainer": "a-st",
+  "names": [
+   "xeroxprtdrv"
+  ],
+  "out_of_date": true,
+  "vendor": "xerox",
+  "votes": 7
+ }
+}

@@ -4,6 +4,17 @@ Verze: `X.Y.Z` – `Y` roste s každým novým ISO, `Z` s opravami chyb. Každá
 Číslo verze je v `packages/luxos-branding/files/version` (os-release, O tomto počítači, fastfetch, název ISO).
 LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z jakého stavu systém vychází.
 
+## 0.9.10 „Polaris“ – 2026-10-24 (beta)
+
+### Nové
+- **Ověřené ovladače tiskáren a skenerů** – nový podepsaný repozitář `[luxos-drivers]`: ovladače výrobců z AUR (Brother, Canon, Epson, Kyocera, Ricoh, Samsung, Xerox) kontroluje `drivers/luxdrv.py` (povolené zdroje výrobců, instalační skripty, změny proti poslední schválené verzi při každé aktualizaci), sestavují se bez sítě z ověřených souborů. 689 ovladačů, index 4 354 modelů tiskáren a 233 USB ID skenerů. Po připojení tiskárny se ovladač nainstaluje sám (např. Samsung Xpress M2026 → `samsung-unified-driver-printer`), bez hesla. Stávající instalace dostanou repozitář při aktualizaci `lux-engine`.
+- **Komunitní balíčky (AUR) bezpečně** – `lux install` hledá v pořadí: repozitáře LuxOS/Arch → aplikace `.lux` → Flathub → komunita (AUR). Skript balíčku zkontrolují pevná pravidla (všechny soubory balíčku, i instalační skript s libovolným jménem; symbolické odkazy zakázané) a LuxAI Lite; sestaví a nainstaluje se v Sandboxu, do systému jen s `--system` nebo napsáním slova „system“ v terminálu, nikdy nebezpečný skript. LuxAI komunitní balíčky neinstaluje.
+- **Flathub v lux a Lux Store** – např. `lux install zoom`; velikost včetně sdíleného runtime, `lux remove` odebere i aplikace Flatpak (s potvrzením) a nepoužívané runtimy, `lux update` je uklidí také.
+
+### Opraveno
+- **Heslo už nezamyká účet** – místo výchozích 3 chyb / 10 minut zamkne `pam_faillock` jen tempo útoku hrubou silou (20 chyb za 30 s) na 1 minutu; nepovedený otisk prstu ani zavřený dialog zámku tak účet nezamknou. Přihlašovací obrazovka při zámku napíše „Příliš mnoho neúspěšných pokusů…“ místo „Nesprávné heslo“.
+- `lux check`: zámek databáze se uvolňoval příliš brzy.
+
 ## 0.9.9 „Polaris“ – 2026-10-24 (beta)
 
 ### Nové

@@ -3,6 +3,7 @@
     python3 -m unittest discover -s packages/lux-engine/tests -v
 """
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -48,7 +49,7 @@ class Base(unittest.TestCase):
 class Format(Base):
     def test_default_config(self):
         cfg = self.parse()
-        self.assertEqual([r.name for r in cfg.repos], ["luxos", "luxos-apps", "core", "extra"])
+        self.assertEqual([r.name for r in cfg.repos], ["luxos", "luxos-apps", "luxos-drivers", "core", "extra"])
         eng = lc.render_engine(cfg)
         body = eng.split("[options]", 1)[1]
         for line in ("Architecture = auto", "ParallelDownloads = 10", "SigLevel = Required DatabaseOptional",
@@ -69,7 +70,7 @@ class Format(Base):
         self.assertEqual(extra, {})
         self.assertEqual(lc.semantic(self.parse(text)),
                          lc.semantic(lc.parse("/etc/lux/lux.conf", root=self.root,
-                                              text=open(os.path.join(PKG, "lux.conf")).read())))
+                                              text=lc.without_drivers_repo(open(os.path.join(PKG, "lux.conf")).read()))))
 
     def test_comments_and_indent(self):
         cfg = self.parse("# a\nhold  linux   # keep\n\nrepo r1\n\tserver https://x.example/$repo/$arch # main\n"
@@ -117,7 +118,7 @@ class Format(Base):
         self.write("etc/lux/conf.d/10-a.conf", "repo a\n    server https://a.example/$arch\n")
         self.write("etc/lux/conf.d/readme.txt", "garbage\n")
         cfg = self.parse()
-        self.assertEqual([r.name for r in cfg.repos], ["luxos", "luxos-apps", "core", "extra", "a", "my"])
+        self.assertEqual([r.name for r in cfg.repos], ["luxos", "luxos-apps", "luxos-drivers", "core", "extra", "a", "my"])
         self.assertEqual(cfg.lists["hold"], ["vim"])
         self.assertIn(self.path("etc/lux/conf.d/50-my.conf"), cfg.sources)
 
@@ -472,3 +473,37 @@ class MovedServers(Base):
         self.assertEqual(open(conf).read(), text.replace("https://lsl.lux-ai.cz/luxos/$repo", "https://luxos.lux-ai.cz/repo/$repo"))
         self.assertTrue(os.path.exists(conf + ".pacnew"))
 
+
+class DriversRepo(Base):
+    def conf(self, text):
+        conf = os.path.join(self.root, "etc/lux/lux.conf")
+        os.makedirs(os.path.dirname(conf), exist_ok=True)
+        with open(conf, "w") as f:
+            f.write(text)
+        return conf, os.path.join(self.root, "var/lib/lux/luxos-drivers-repo")
+
+    def test_added_once_to_old_install(self):
+        pkg = open(os.path.join(PKG, "lux.conf")).read()
+        old = lc.without_drivers_repo(pkg)
+        self.assertNotIn("luxos-drivers", old)
+        conf, stamp = self.conf(old)
+        self.assertTrue(lc.add_drivers_repo(conf, stamp))
+        self.assertIn("repo luxos-drivers\n    server  https://luxos.lux-ai.cz/repo/$repo/$arch\n", open(conf).read())
+        self.assertEqual(open(conf).read().count("repo luxos-drivers"), 1)
+        # odebrano uzivatelem -> uz se nevrati
+        with open(conf, "w") as f:
+            f.write(old)
+        self.assertFalse(lc.add_drivers_repo(conf, stamp))
+        self.assertNotIn("luxos-drivers", open(conf).read())
+
+    def test_new_install_already_has_it(self):
+        conf, stamp = self.conf(open(os.path.join(PKG, "lux.conf")).read())
+        before = open(conf).read()
+        self.assertFalse(lc.add_drivers_repo(conf, stamp))
+        self.assertEqual(open(conf).read(), before)
+        self.assertTrue(os.path.exists(stamp))
+
+    def test_not_added_without_luxos_repo(self):
+        conf, stamp = self.conf("repo core\n    server  https://example.invalid/$repo/os/$arch\n")
+        self.assertFalse(lc.add_drivers_repo(conf, stamp))
+        self.assertNotIn("luxos-drivers", open(conf).read())

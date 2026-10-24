@@ -195,6 +195,20 @@ def installed(pkg):
     return run([ENGINE, "-Q", pkg], 20)[0] == 0
 
 
+def available(pkg):
+    """Balik je v nastavenych repozitarich (napr. overeny ovladac v [luxos-drivers])."""
+    return run([ENGINE, "-Si", "--", pkg], 30)[0] == 0
+
+
+def drivers_index():
+    """Mapa model -> overeny ovladac; balik luxos-drivers-index se doinstaluje, kdyz chybi."""
+    idx = lp.load_drivers_index()
+    if not idx and not installed(lp.DRIVERS_INDEX_PACKAGE) and available(lp.DRIVERS_INDEX_PACKAGE):
+        install_driver(lp.DRIVERS_INDEX_PACKAGE)
+        idx = lp.load_drivers_index()
+    return idx
+
+
 def install_driver(pkg):
     """Doinstaluje balik s ovladacem (bez -y: zadna castecna aktualizace systemu)."""
     if installed(pkg) or os.environ.get("LUXOS_PRINTING_NO_INSTALL"):
@@ -234,9 +248,17 @@ def create_queue(dev, queues):
                 ppd = lp.pick_ppd(models_cache, dev["device_id"])
             elif not installed(pkg):
                 missing = pkg
+        if not ppd:
+            # overeny ovladac vyrobce z [luxos-drivers] (napr. Samsung, Brother, Canon, Epson) - sam
+            vpkg = lp.verified_driver(dev["device_id"], drivers_index()) or lp.aur_driver(dev["device_id"])
+            if vpkg and not installed(vpkg) and available(vpkg) and install_driver(vpkg):
+                models_cache = models()
+                ppd = lp.pick_ppd(models_cache, dev["device_id"])
+                if ppd:
+                    dev["verified_driver"] = vpkg
         ppd = ppd or lp.generic_ppd(dev["device_id"])
         aur = lp.aur_driver(dev["device_id"])
-        if not ppd and aur and not installed(aur):
+        if not ppd and aur and not installed(aur) and not available(aur):
             # Ovladac jen v AUR (napr. Samsung SPL): sestavit ho smi uzivatel pres lux, ne root -
             # upozorneni s tlacitkem Nainstalovat ovladac (luxos-printing-notify)
             dev["aur_package"] = aur

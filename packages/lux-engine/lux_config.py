@@ -618,6 +618,39 @@ def update_moved_servers(conf=LUX_CONF):
     return changed
 
 
+DRIVERS_REPO = "luxos-drivers"
+DRIVERS_STAMP = "/var/lib/lux/luxos-drivers-repo"
+
+
+def without_drivers_repo(text):
+    """lux.conf bez bloku [luxos-drivers] (vychozi konfigurace pred LuxOS 0.9.10)."""
+    return re.sub(r"\n(#[^\n]*\n)?repo[ \t]+luxos-drivers[ \t]*\n([ \t]+[^\n]*\n)*", "\n", text)
+
+
+def add_drivers_repo(conf=LUX_CONF, stamp=DRIVERS_STAMP):
+    """LuxOS 0.9.10: repozitar [luxos-drivers] do lux.conf starsich instalaci - jednou (znacka stamp),
+    jen kdyz je nastaveny [luxos]; kdo ho pak odebere, tomu se uz nevrati. Vraci True pri zmene."""
+    if os.path.exists(stamp):
+        return False
+    try:
+        with open(conf, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return False
+    # jen text (bez parse): v chrootu/testu nemusi existovat seznamy zrcadel z lux.conf
+    has = lambda name: re.search(r"^repo[ \t]+%s[ \t]*(#.*)?$" % re.escape(name), text, re.M) is not None  # noqa: E731
+    changed = False
+    if has("luxos") and not has(DRIVERS_REPO):
+        block = (f"\n# overene ovladace tiskaren a skeneru vyrobcu (z AUR, kazda verze zkontrolovana, podepsane)\n"
+                 f"repo {DRIVERS_REPO}\n    server  https://luxos.lux-ai.cz/repo/$repo/$arch\n")
+        atomic_write(conf, text.rstrip("\n") + "\n" + block, os.stat(conf).st_mode & 0o7777)
+        changed = True
+    os.makedirs(os.path.dirname(stamp), exist_ok=True)
+    with open(stamp, "w", encoding="utf-8") as f:
+        f.write("added\n" if changed else "present\n")
+    return changed
+
+
 def convert_pacman_conf(path, root=""):
     """Stary pacman.conf -> (text lux.conf, {cesta: obsah dalsich seznamu zrcadel}, [varovani]).
     Include se seznamem zrcadel -> 'mirrors' (soubor prevedeny do formatu lux), ostatni Include se vlozi."""

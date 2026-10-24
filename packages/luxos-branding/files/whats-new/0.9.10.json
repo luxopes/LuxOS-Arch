@@ -1,0 +1,18 @@
+{
+  "version": "0.9.10",
+  "codename": "Polaris",
+  "items": [
+    {"icon": "dialog-password-symbolic",
+     "title": {"en": "Your password never locks you out", "cs": "Heslo vás už nezamkne"},
+     "text": {"en": "Typos, failed fingerprints or a closed unlock dialog no longer lock the account. Only a clear brute-force attack (20 wrong passwords in 30 seconds) pauses logins for a minute, and the login screen says so.",
+              "cs": "Překlepy, nepovedený otisk prstu ani zavřený dialog zámku už účet nezamknou. Jen zjevný útok (20 špatných hesel za 30 sekund) přihlašování na minutu pozastaví a přihlašovací obrazovka to řekne."}},
+    {"icon": "printer-symbolic",
+     "title": {"en": "Verified printer and scanner drivers", "cs": "Ověřené ovladače tiskáren a skenerů"},
+     "text": {"en": "Manufacturer drivers that are not in the official repositories are now checked by LuxOS, built and signed in its own repository. When you connect such a printer, the driver installs by itself.",
+              "cs": "Ovladače výrobců, které nejsou v oficiálních repozitářích, LuxOS nově kontroluje, sestavuje a podepisuje ve vlastním repozitáři. Po připojení takové tiskárny se ovladač nainstaluje sám."}},
+    {"icon": "system-software-install-symbolic",
+     "title": {"en": "Safer software installation", "cs": "Bezpečnější instalace programů"},
+     "text": {"en": "lux and Lux Store prefer Flathub over community packages (AUR). Community packages are checked by LuxAI Lite and installed into the Sandbox; into the system only when you explicitly ask. Removing Flatpak apps also cleans up unused runtimes.",
+              "cs": "lux a Lux Store dávají přednost Flathubu před komunitními balíčky (AUR). Komunitní balíčky zkontroluje LuxAI Lite a nainstalují se do Sandboxu, do systému jen na výslovné přání. Odebrání aplikací z Flathubu uklidí i nepoužívané runtimy."}}
+  ]
+}

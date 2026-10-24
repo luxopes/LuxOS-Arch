@@ -2589,3 +2589,103 @@ Done. You can close this window.	Kész. Bezárhatja ezt az ablakot.
 Search for scanners again	Szkennerek újbóli keresése
 Turn the scanner on and connect it with a USB cable or to the same Wi‑Fi network as this computer. It appears here by itself as soon as LuxOS finds it.	Kapcsolja be a szkennert, és csatlakoztassa USB-kábellel vagy ugyanahhoz a Wi‑Fi-hálózathoz, mint ezt a számítógépet. Magától megjelenik itt, amint a LuxOS megtalálja.
 The reader could not read your finger well enough. Clean the sensor and your finger, then click Try Again.	Az olvasó nem tudta elég jól beolvasni az ujját. Tisztítsa meg az érzékelőt és az ujját, majd kattintson az Újra gombra.
+Too many failed attempts. The account is locked for %d min, then try again.	Túl sok sikertelen próbálkozás. A fiók %d percre zárolva, utána próbálja újra.
+Too many failed attempts. Wait a moment, then try again.	Túl sok sikertelen próbálkozás. Várjon egy kicsit, majd próbálja újra.
+# 0.9.10: community (AUR) sandbox install, Flathub
+%s comes from the community source (AUR): scripts by other users, not checked by LuxOS.	A(z) %s a közösségi forrásból (AUR) származik: más felhasználók szkriptjei, a LuxOS nem ellenőrizte őket.
+%s is installed from Flathub (isolated Flatpak app)	A(z) %s a Flathubról települ (elkülönített Flatpak-alkalmazás)
+%s is only in the community source (AUR). LuxAI does not install community packages - run in Terminal: lux install %s	A(z) %s csak a közösségi forrásban (AUR) érhető el. A LuxAI nem telepít közösségi csomagokat – futtassa a Terminálban: lux install %s
+A dangerous build script is never installed into the system.	Veszélyes build-szkript soha nem kerül telepítésre a rendszerbe.
+Apps from Flathub need %sflatpak%s.	A Flathub-alkalmazásokhoz %sflatpak%s szükséges.
+Apps from Flathub run isolated from the system (Flatpak).	A Flathub-alkalmazások a rendszertől elkülönítve futnak (Flatpak).
+Build and install %s in the sandbox?	Lefordítja és telepíti a(z) %s csomagot a homokozóba?
+Build of %s in the sandbox failed	A(z) %s fordítása a homokozóban sikertelen
+Building %s %s(community)%s	%s fordítása %s(közösségi)%s
+Building %s %s(community)%s in the sandbox	%s fordítása %s(közösségi)%s a homokozóban
+Building %s in the sandbox failed.	A(z) %s fordítása a homokozóban sikertelen volt.
+Building %s in the sandbox...	%s fordítása a homokozóban...
+Checking the build script of %s (LuxAI Lite)	A(z) %s build-szkriptjének ellenőrzése (LuxAI Lite)
+Choose 1 or 2:	Válasszon: 1 vagy 2:
+Choose a number (Enter = none):	Válasszon számot (Enter = egyik sem):
+Community packages are installed as a regular user (run lux without sudo)	A közösségi csomagok normál felhasználóként települnek (futtassa a lux-ot sudo nélkül)
+Community packages are updated only when you run it yourself: lux update	A közösségi csomagok csak akkor frissülnek, ha ön futtatja: lux update
+Community packages to build: %s	Fordítandó közösségi csomagok: %s
+Community packages were not updated	A közösségi csomagok nem frissültek
+Copying the build files into the sandbox failed.	A build-fájlok másolása a homokozóba sikertelen.
+Creating your sandbox first	Először létrejön a homokozója
+Download %s, on disk %s - includes the shared runtime %s (%s), which other Flatpak apps use too.	Letöltés %s, lemezen %s – beleértve a közös %s futtatókörnyezetet (%s), amelyet más Flatpak-alkalmazások is használnak.
+Download:	Letöltés:
+From Flathub	A Flathubról
+Install %s into the sandbox anyway?	Mégis telepíti a(z) %s csomagot a homokozóba?
+Install %s into the system anyway?	Mégis telepíti a(z) %s csomagot a rendszerbe?
+Installed in the sandbox: %s	Telepítve a homokozóba: %s
+Installing %s from Flathub…	%s telepítése a Flathubról…
+Installing %s into the sandbox failed.	A(z) %s telepítése a homokozóba sikertelen.
+Installing into the sandbox instead.	Helyette a homokozóba települ.
+Installing the build tools into the sandbox failed.	A build-eszközök telepítése a homokozóba sikertelen.
+Isolated app from Flathub. Its data stays in ~/.var/app.	Elkülönített alkalmazás a Flathubról. Adatai a ~/.var/app mappában maradnak.
+LuxAI did not answer (%s)	A LuxAI nem válaszolt (%s)
+LuxAI found nothing suspicious in the build script.	A LuxAI nem talált gyanúsat a build-szkriptben.
+LuxAI gave no clear answer	A LuxAI nem adott egyértelmű választ
+LuxAI is not installed	A LuxAI nincs telepítve
+LuxAI is not reachable (offline?)	A LuxAI nem érhető el (offline?)
+Not found? Community packages (AUR) are installed in Terminal with lux install and go into your sandbox.	Nem találja? A közösségi csomagokat (AUR) a Terminálban a lux install paranccsal lehet telepíteni, és a homokozóba kerülnek.
+Nothing found on Flathub.	Nincs találat a Flathubon.
+Preparing build tools in the sandbox...	Build-eszközök előkészítése a homokozóban...
+Removed: %s	Eltávolítva: %s
+Sandbox - isolated from your files and system (recommended)	Homokozó – elkülönítve a fájljaitól és a rendszertől (ajánlott)
+Several apps on Flathub match '%s':	Több Flathub-alkalmazás egyezik ezzel: „%s”:
+Show the build script (PKGBUILD) of %s?	Megjeleníti a(z) %s build-szkriptjét (PKGBUILD)?
+Start it with: %s	Indítás: %s
+System - full access to the computer	Rendszer – teljes hozzáférés a számítógéphez
+The build directory is expected as a tar archive on standard input.	A build-könyvtárat tar-archívumként várja a szabványos bemeneten.
+The build script looks dangerous:	A build-szkript veszélyesnek tűnik:
+The build script looks suspicious:	A build-szkript gyanúsnak tűnik:
+The build script was not checked by LuxAI.	A build-szkriptet a LuxAI nem ellenőrizte.
+The sandbox is not installed (lux install luxos-sandbox), or install into the system with --system	A homokozó nincs telepítve (lux install luxos-sandbox), vagy telepítse a rendszerbe a --system kapcsolóval
+Type %s to confirm installing community code into the system:	Írja be: %s – így megerősíti a közösségi kód rendszerbe telepítését:
+Where should it be installed?	Hova telepítse?
+Without a clean check it needs your confirmation (run without -y).	Tiszta ellenőrzés nélkül az ön megerősítése szükséges (futtassa -y nélkül).
+adds scheduled tasks	ütemezett feladatokat ad hozzá
+asks for administrator rights inside the build script	rendszergazdai jogokat kér a build-szkriptben
+build a PKGBUILD (community/AUR, used by lux) and install it	PKGBUILD fordítása (közösségi/AUR, a lux használja) és telepítése
+calculating…	számítás…
+changes shell start-up files	módosítja a shell indítófájljait
+community - installed into the sandbox	közösségi – a homokozóba telepítve
+community package into the system instead of the sandbox	közösségi csomag a rendszerbe a homokozó helyett
+contains a long encoded blob	hosszú kódolt blokkot tartalmaz
+decodes hidden base64 content	rejtett base64-tartalmat dekódol
+deletes system or home directories	rendszer- vagy saját mappákat töröl
+downloads a script and runs it directly (curl | sh)	letölt egy szkriptet és közvetlenül futtatja (curl | sh)
+downloads are not checked with checksums (SKIP)	a letöltéseket nem ellenőrzi ellenőrzőösszeggel (SKIP)
+downloads over unencrypted %s: %s	titkosítatlan %s-en tölt le: %s
+enables a system service	rendszerszolgáltatást engedélyez
+includes the shared runtime %s (used by other Flatpak apps too)	beleértve a közös %s futtatókörnyezetet (más Flatpak-alkalmazások is használják)
+install packages (repositories, LuxOS, Flathub, then community/AUR)	csomagok telepítése (tárolók, LuxOS, Flathub, majd közösségi/AUR)
+isolated app (Flatpak)	elkülönített alkalmazás (Flatpak)
+no PKGBUILD found	nem található PKGBUILD
+on disk:	lemezen:
+only the community source (AUR)	csak a közösségi forrás (AUR)
+opens a remote shell	távoli shellt nyit
+remove packages (also Flatpak apps) and unneeded dependencies	csomagok eltávolítása (Flatpak-alkalmazások is) és a felesleges függőségek
+runs generated code with eval	generált kódot futtat eval-lal
+runs inline code of another language	más nyelvű beágyazott kódot futtat
+search repositories, Flathub and community (AUR)	keresés a tárolókban, a Flathubon és a közösségi forrásban (AUR)
+sets world-writable or setuid permissions	mindenki által írható vagy setuid jogosultságot állít be
+the build script is unusually long	a build-szkript szokatlanul hosszú
+touches accounts, sudo or SSH keys	fiókokhoz, sudóhoz vagy SSH-kulcsokhoz nyúl
+uses the network while installing	telepítés közben a hálózatot használja
+writes outside the package directory: %s	a csomagkönyvtáron kívülre ír: %s
+you are not signed in to LuxAI	nincs bejelentkezve a LuxAI-ba
+%s contains symbolic links - community packages with links are refused	%s szimbolikus linkeket tartalmaz – a linkeket tartalmazó közösségi csomagokat elutasítjuk
+Community packages are installed into the system only from an interactive terminal (without --system they go to the sandbox).	A közösségi csomagok csak interaktív terminálból települhetnek a rendszerbe (--system nélkül a homokozóba kerülnek).
+contains a symbolic link: %s	szimbolikus linket tartalmaz: %s
+contains a file that is not a regular file: %s	nem szabályos fájlt tartalmaz: %s
+contains too many files to check	túl sok fájlt tartalmaz az ellenőrzéshez
+file too large to check: %s	a fájl túl nagy az ellenőrzéshez: %s
+file could not be read: %s	a fájl nem olvasható: %s
+binary file that cannot be checked: %s	nem ellenőrizhető bináris fájl: %s
+install script outside the package directory: %s	telepítőszkript a csomagkönyvtáron kívül: %s
+the install script name cannot be determined: %s	a telepítőszkript neve nem határozható meg: %s
+LuxAI could not see all files of the package	a LuxAI nem látta a csomag összes fájlját
+Install it now?	Telepíti most?

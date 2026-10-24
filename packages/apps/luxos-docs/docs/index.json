@@ -97,7 +97,7 @@
         {
           "path": "luxos/package-management.md",
           "title": "Package management with lux",
-          "summary": "All lux commands and the full /etc/lux/lux.conf reference (repo, server, mirrors, hold, signatures, include), mirror list, AUR, Flatpak, TUI, errors and migration from pacman.conf.",
+          "summary": "All lux commands and the full /etc/lux/lux.conf reference (repo, server, mirrors, hold, signatures, include), mirror list, Flathub, community (AUR) packages in the sandbox with LuxAI Lite review, TUI, errors and migration from pacman.conf.",
           "keywords": [
             "lux",
             "install",
@@ -107,6 +107,9 @@
             "search",
             "package",
             "AUR",
+            "community",
+            "Flathub",
+            "zoom",
             "Flatpak",
             "flathub",
             "lux fix",
