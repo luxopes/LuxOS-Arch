@@ -5,8 +5,8 @@ pkgver=0.3.0
 pkgrel=14
 pkgdesc="LuxOS package manager (libalpm via pyalpm, Flathub, community/AUR in the sandbox and .lux apps)"
 arch=(any)
-url="https://github.com/luxos"
-license=(MIT)
+url="https://github.com/luxopes/LuxOS-Arch"
+license=(GPL-3.0-or-later)
 # "pacman" = virtualni zavislost (poskytuje ji lux-engine, drive luxos-pacman): starsi lux/Obchod,
 # ktere nahrazeni baliku odmitnou, tak aktualizuji vse ostatni a lux-engine nahradi az novy lux.
 # /etc/lux/lux.conf a lux-config jsou od LuxOS 0.9.6 v lux-engine (konfigurace i jadra).

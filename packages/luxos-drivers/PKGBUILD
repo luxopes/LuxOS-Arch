@@ -5,8 +5,8 @@ pkgver=1.0.0
 pkgrel=9
 pkgdesc="LuxOS hardware detection and the Drivers app: picks GPU, Wi-Fi, camera, VM and other drivers automatically"
 arch=(any)
-url="https://github.com/luxos"
-license=(MIT)
+url="https://github.com/luxopes/LuxOS-Arch"
+license=(GPL-3.0-or-later)
 # hwdata: nazvy zarizeni (pci.ids); python-gobject/gtk3/polkit: aplikace Ovladace
 depends=(bash systemd hwdata python python-gobject gtk3 polkit luxos-i18n)
 optdepends=('lux: installs drivers through libalpm with progress'

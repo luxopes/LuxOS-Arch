@@ -8,7 +8,7 @@ pkgrel=10
 pkgdesc="LuxOS Care - automatic updates, previous kernel fallback and self-repair"
 arch=(any)
 url="https://luxos.lux-ai.cz/repo/"
-license=(MIT)
+license=(GPL-3.0-or-later)
 # "pacman" = virtualni zavislost (poskytuje ji lux-engine, drive luxos-pacman): starsi lux/Obchod,
 # ktere nahrazeni baliku odmitnou, tak aktualizuji vse ostatni a lux-engine nahradi az novy lux.
 # Kontrolu aktualizaci a cisteni cache dela lux (lux_alpm.py check-updates / clean), ne pacman-contrib.

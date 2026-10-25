@@ -9,7 +9,7 @@ pkgrel=3
 pkgdesc="LuxOS LuxDrop - securely send files to nearby LuxOS computers and LocalSend apps"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
-license=(MIT)
+license=(GPL-3.0-or-later)
 depends=(python python-gobject gtk3 python-cairo python-cryptography python-pyopenssl avahi nss-mdns luxos-i18n
          xdg-utils)
 makedepends=(python-cryptography)  # jen pro check()

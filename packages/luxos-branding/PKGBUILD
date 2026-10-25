@@ -6,8 +6,8 @@ pkgver=1.1.0
 pkgrel=22
 pkgdesc="LuxOS branding: logo, wallpapers, Plymouth boot splash and os-release"
 arch=(any)
-url="https://github.com/luxos"
-license=(MIT)
+url="https://github.com/luxopes/LuxOS-Arch"
+license=(GPL-3.0-or-later)
 depends=(plymouth)
 makedepends=(librsvg imagemagick python python-pillow python-numpy)
 
