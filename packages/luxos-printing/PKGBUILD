@@ -9,7 +9,7 @@ pkgrel=8
 pkgdesc="LuxOS plug-and-play printing and scanning, Printers & Scanners and Scanner apps"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
-license=(MIT)
+license=(GPL-3.0-or-later)
 depends=(cups cups-filters ghostscript ipp-usb avahi nss-mdns sane sane-airscan
          python python-gobject python-cairo python-pycups gtk3 gdk-pixbuf2 libnotify systemd polkit luxos-i18n)
 optdepends=('hplip: HP printers without driverless support (installed automatically when needed)'

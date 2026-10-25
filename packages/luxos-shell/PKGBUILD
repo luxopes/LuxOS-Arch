@@ -5,8 +5,8 @@ pkgver=1.1.0
 pkgrel=13
 pkgdesc="LuxOS shell experience: lsh (Lux shell) with ble.sh, zsh, starship prompt, fastfetch"
 arch=(any)
-url="https://github.com/luxos"
-license=(MIT)
+url="https://github.com/luxopes/LuxOS-Arch"
+license=(GPL-3.0-or-later)
 # shadow: adduser/deluser (useradd, userdel, gpasswd, passwd); lsb-release: lsb_release (branding prepise /etc/lsb-release)
 depends=(bash lsh lsl bash-completion blesh starship fzf zoxide eza bat fastfetch xclip
          zsh zsh-autosuggestions zsh-syntax-highlighting ttf-jetbrains-mono-nerd shadow lsb-release)

@@ -2,6 +2,11 @@
 
 Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
 
+> **English:** LuxOS is a fast, lightweight Arch Linux based distribution with a macOS-like desktop
+> (Xfce underneath), its own package manager `lux`, its own kernel build, hassle-free drivers, the LuxAI
+> assistant and its own language [LSL](https://lsl.lux-ai.cz). Download: <https://luxos.lux-ai.cz>.
+> License: GPL-3.0-or-later (see [LICENSE](LICENSE)); bundled third-party packages keep their own licenses.
+
 - **Rychlost a nenáročnost:** Xfce + vestavěný kompozitor xfwm4 (žádný těžký shell), jádro `linux-zen`,
   zram swap (zstd), ladění sysctl, I/O plánovače podle typu disku, systemd-oomd, Btrfs se zstd kompresí,
   systemd initramfs, squashfs ISO v zstd (rychlý start live systému). Relace bez pravidelného dotazování:
@@ -251,3 +256,17 @@ takže LuxOS nepřepisuje soubory jiných balíků a uživatelské změny mají 
 ## Licence
 
 Vlastní skripty a konfigurace LuxOS: MIT. lsh: GPL‑3.0 (fork GNU bash). LSL: MIT. Témata WhiteSur © vinceliuice (MIT/GPL‑3.0), ble.sh © Koichi Murase (BSD‑3).
+
+## Licence
+
+Kód LuxOS (balíčky `luxos-*`, `lux`, `luxdrop`, skripty a instalátor) je pod licencí
+**GPL-3.0-or-later** – viz [LICENSE](LICENSE). Balíčky a záplaty třetích stran (rofi, xfce4-genmon-plugin,
+ovladače NVIDIA, jádro Linux, LSL…) mají vlastní licence uvedené v jejich `PKGBUILD`.
+
+## Sestavení
+
+- Lokálně: `./build.sh` (podman nebo docker), viz začátek `build.sh`.
+- GitHub Actions: workflow **Build** (`.github/workflows/build.yml`) – `packages` sestaví balíčky
+  (nepodepsané), `iso` sestaví ISO ze zveřejněných podepsaných repozitářů. Soukromý podpisový klíč
+  LuxOS na GitHubu není: balíčky a ISO podepisuje správce lokálně.
+

@@ -7,7 +7,7 @@ pkgrel=6
 pkgdesc="LuxOS login screen for LightDM (clock, frosted password field, power buttons)"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
-license=(MIT)
+license=(GPL-3.0-or-later)
 depends=(lightdm python python-gobject gtk3 python-cairo luxos-i18n accountsservice)
 optdepends=('inter-font: default font of the login screen'
             'light-locker: lock the screen with this greeter')

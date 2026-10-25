@@ -7,7 +7,7 @@ pkgrel=3
 pkgdesc="LuxOS package signing keys"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
-license=(MIT)
+license=(GPL-3.0-or-later)
 install=luxos-keyring.install
 
 package() {

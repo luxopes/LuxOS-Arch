@@ -13,7 +13,7 @@ pkgrel=9
 pkgdesc="Offline LuxOS and LSL reference library for AI assistants (LuxAI, Lux Code)"
 arch=(any)
 url="https://luxos.lux-ai.cz/repo/"
-license=(MIT)
+license=(GPL-3.0-or-later)
 makedepends=(python)
 checkdepends=(python)   # groff (je-li nainstalovan) navic overi stranky: groff -man -ww
 

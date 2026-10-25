@@ -9,7 +9,7 @@ pkgrel=2
 pkgdesc="Lux Guard - checks programs from downloads, attachments and USB drives before they run; /home snapshots"
 arch=(any)
 url="https://luxos.lux-ai.cz/"
-license=(MIT)
+license=(GPL-3.0-or-later)
 # btrfs-progs: snimky /home; libnotify: upozorneni; glib2: gio trash; luxos-sandbox: "Spustit v sandboxu"
 depends=(python python-gobject gtk3 glib2 libnotify btrfs-progs luxos-i18n luxos-sandbox)
 checkdepends=(python-pytest)

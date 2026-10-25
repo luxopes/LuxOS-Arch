@@ -20,8 +20,10 @@ PACKAGES=(lux-engine gdk-pixbuf2 luxos-pixbuf-svg libfprint xfce4-genmon-plugin 
           nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-470xx-utils lib32-nvidia-470xx-utils)
 # Baliky, ktere se nekopiruji do mistniho repozitare v ISO (velke, potrebuje je jen malo pocitacu;
 # instalator je stahuje z online [luxos], viz install_online_drivers v luxos-install)
-# (hlavicky jadra jen pro moduly DKMS, napr. NVIDIA - instaluji se spolu s ovladacem)
-ISO_ONLINE_ONLY=('*nvidia-[0-9]*xx*' 'linux-luxos-headers-[0-9]*')
+# Hlavicky jadra (linux-luxos-headers, ~90 MB) v ISO byt MUSI: luxos-hwdetect je pridava do prvni
+# instalace pro ovladace DKMS (nvidia-open-dkms, broadcom-wl-dkms) a [luxos] je v live systemu jen
+# mistni repozitar - bez nich instalace skoncila "target not found: linux-luxos-headers" (0.9.7-0.9.11).
+ISO_ONLINE_ONLY=('*nvidia-[0-9]*xx*')
 # Repozitar [luxos-apps]: aplikace ke stazeni (kazdy adresar v packages/apps)
 mapfile -t APPS < <(find "$ROOT/packages/apps" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort)
 ARCH=x86_64

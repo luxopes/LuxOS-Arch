@@ -7,7 +7,7 @@ pkgrel=6
 pkgdesc="LuxOS Safe - encrypted /safe/<user> folder unlocked with its own password"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
-license=(MIT)
+license=(GPL-3.0-or-later)
 depends=(python python-gobject gtk3 gocryptfs fuse3 polkit glib2 psmisc util-linux libnotify luxos-i18n)
 install=luxos-safe.install
 
