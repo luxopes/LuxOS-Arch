@@ -124,10 +124,82 @@ class Finish(unittest.TestCase):
         self.assertTrue(oem.valid_user("jana"))
 
 
+class Domain(unittest.TestCase):
+    XKB = ("us", "", "")
+
+    def org(self, **kw):
+        return state(org=True, domain="Firma.Local ", domain_user=" admin ", domain_pw="domenove heslo",
+                     domain_ou="OU=PC,DC=firma,DC=local", **kw)
+
+    def test_steps(self):
+        st = oem.steps(False, domain=True)
+        self.assertEqual(st.index("organization"), st.index("account") + 1)
+        self.assertLess(st.index("organization"), st.index("luxai"))
+        self.assertNotIn("organization", oem.steps(True))
+
+    def test_available_follows_cli(self):
+        d = tempfile.mkdtemp()
+        cli = os.path.join(d, "lux-domain")
+        old = oem.DOMAIN_CLI
+        try:
+            oem.DOMAIN_CLI = cli
+            self.assertFalse(oem.domain_available())
+            with open(cli, "w") as f:
+                f.write("#!/bin/sh\n")
+            os.chmod(cli, 0o755)
+            self.assertTrue(oem.domain_available())
+        finally:
+            oem.DOMAIN_CLI = old
+
+    def test_valid_domain(self):
+        for good in ("firma.local", "ad.firma.cz", "a-b.c1.org"):
+            self.assertTrue(oem.valid_domain(good), good)
+        for bad in ("", "firma", "Firma.local", "-a.b", "a..b", "a b.c", "a.b/c", "a." + "b" * 64):
+            self.assertFalse(oem.valid_domain(bad), bad)
+
+    def test_problems(self):
+        self.assertEqual(oem.domain_problem(state()), "")               # osobni pocitac
+        self.assertEqual(oem.domain_problem(self.org()), "")
+        self.assertEqual(oem.domain_problem(dict(self.org(), domain="firma")), "domain")
+        self.assertEqual(oem.domain_problem(dict(self.org(), domain_user=" ")), "user")
+        self.assertEqual(oem.domain_problem(dict(self.org(), domain_pw="")), "password")
+
+    def test_finish_values(self):
+        d = parse(oem.finish_input(self.org(), self.XKB, False))
+        self.assertEqual((d["DOMAIN"], d["DOMAIN_USER"], d["DOMAIN_OU"]),
+                         ("firma.local", "admin", "OU=PC,DC=firma,DC=local"))
+        self.assertEqual(d["DOMAIN_PASSWORD"], "domenove heslo")
+        personal = parse(oem.finish_input(dict(self.org(), org=False), self.XKB, False))
+        self.assertEqual([personal[k] for k in ("DOMAIN", "DOMAIN_USER", "DOMAIN_PASSWORD", "DOMAIN_OU")],
+                         ["", "", "", ""])
+        with self.assertRaises(ValueError):
+            oem.finish_input(dict(self.org(), domain_pw="a\nUSERNAME=root"), self.XKB, False)
+
+    def test_progress_without_domain_password(self):
+        path = os.path.join(tempfile.mkdtemp(), "p.json")
+        oem.save_progress(dict(self.org(), step="organization"), path)
+        with open(path, encoding="utf-8") as f:
+            raw = f.read()
+        self.assertNotIn("domenove heslo", raw)
+        back = oem.load_progress(path)
+        self.assertEqual((back["org"], back["domain"], back["step"]), (True, "Firma.Local ", "organization"))
+        self.assertNotIn("domain_pw", back)
+
+    def test_discover(self):
+        ok = oem.parse_discover('{"ok": true, "realm": "FIRMA.LOCAL", "controllers": ["dc1"]}')
+        self.assertTrue(ok["ok"])
+        self.assertEqual(ok["realm"], "FIRMA.LOCAL")
+        fail = oem.parse_discover('{"ok": false, "error": "dns", "message": "No DC"}')
+        self.assertEqual((fail["ok"], fail["error"], fail["message"]), (False, "dns", "No DC"))
+        for broken in ("", "nonsense", "[1]"):
+            self.assertFalse(oem.parse_discover(broken)["ok"])
+
+
 class Output(unittest.TestCase):
     def test_lines(self):
         self.assertEqual(oem.parse_line("@@STEP 2 5 Creating your account"), ("step", "Creating your account", 2, 5))
         self.assertEqual(oem.parse_line("@@ERROR Invalid user name."), ("error", "Invalid user name."))
+        self.assertEqual(oem.parse_line("@@WARN Not joined."), ("warn", "Not joined."))
         self.assertEqual(oem.parse_line("@@DONE"), ("done", ""))
         self.assertEqual(oem.parse_line("hello")[0], "log")
 

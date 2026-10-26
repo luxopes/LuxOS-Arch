@@ -1,7 +1,7 @@
 # bash completion pro lux
 _lux() {
     local cur=${COMP_WORDS[COMP_CWORD]} cmd=${COMP_WORDS[1]} pac=/usr/lib/lux/alpm/bin/lux-engine
-    local cmds="install remove reinstall update upgrade check search info list files owns autoremove clean fix configs config history pack drivers mirrors doctor snapshots snapshot rollback system"
+    local cmds="install remove reinstall update upgrade check search info list files owns autoremove clean fix configs config history pack drivers mirrors doctor snapshots snapshot rollback system domain"
     if ((COMP_CWORD == 1)); then
         COMPREPLY=($(compgen -W "$cmds --help --version --yes --verbose --repo --aur --community --system" -- "$cur")); return
     fi
@@ -13,8 +13,16 @@ _lux() {
         pack) COMPREPLY=($(compgen -d -- "$cur")) ;;
         config) COMPREPLY=($(compgen -W "check show edit engine" -- "$cur")) ;;
         system)
-            if ((COMP_CWORD == 2)); then COMPREPLY=($(compgen -W "show init edit check diff apply help" -- "$cur"))
-            else COMPREPLY=($(compgen -W "--json --no-snapshot --force --yes" -- "$cur") $(compgen -f -X '!*.lsl' -- "$cur")); fi ;;
+            if ((COMP_CWORD == 2)); then COMPREPLY=($(compgen -W "show init edit check diff apply locks help" -- "$cur"))
+            else COMPREPLY=($(compgen -W "--json --no-snapshot --force --yes --origin --no-policies" -- "$cur") $(compgen -f -X '!*.lsl' -- "$cur")); fi ;;
+        domain)
+            case $COMP_CWORD:${COMP_WORDS[2]} in
+                2:*) COMPREPLY=($(compgen -W "discover join leave status admins login set share printer sync-time help" -- "$cur")) ;;
+                3:admins|3:share|3:printer) COMPREPLY=($(compgen -W "add remove list" -- "$cur")) ;;
+                3:login) COMPREPLY=($(compgen -W "allow deny list" -- "$cur")) ;;
+                3:set) COMPREPLY=($(compgen -W "offline-days admin-offline-days" -- "$cur")) ;;
+                *) COMPREPLY=($(compgen -W "--json --yes -U --ou --computer-name --admins --password-stdin" -- "$cur")) ;;
+            esac ;;
     esac
 }
 complete -F _lux lux

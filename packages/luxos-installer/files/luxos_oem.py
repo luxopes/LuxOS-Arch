@@ -12,17 +12,31 @@ import tempfile
 PROGRESS = os.environ.get("LUXOS_SETUP_STATE") or os.path.expanduser("~/.local/state/luxos-setup/progress.json")
 # Ulozene volby (zadna hesla ani ucet LuxAI - ten se po vypadku prihlasi znovu)
 SAVED_KEYS = ("locale", "xkb", "xkb_switch", "timezone", "fullname", "username", "user_edited", "hostname",
-              "host_edited", "autologin", "care", "disk_same", "step")
+              "host_edited", "autologin", "care", "disk_same", "org", "domain", "domain_user", "domain_ou", "step")
+# Firemni sit (domena Active Directory, luxos-domain): heslo spravce domeny jen v DOMAIN_PASSWORD
+# na stdin luxos-oem finish -> stdin "lux-domain join --password-stdin"; nikdy se neuklada
 FINISH_KEYS = ("LOCALE", "XKB_LAYOUT", "XKB_VARIANT", "XKB_OPTIONS", "TIMEZONE", "FULLNAME", "USERNAME",
-               "PASSWORD", "HOSTNAME", "AUTOLOGIN", "CARE_MODE", "LUXAI_ACCOUNT", "PHOTO", "DISK_PASS")
+               "PASSWORD", "HOSTNAME", "AUTOLOGIN", "CARE_MODE", "LUXAI_ACCOUNT", "PHOTO", "DISK_PASS",
+               "DOMAIN", "DOMAIN_USER", "DOMAIN_PASSWORD", "DOMAIN_OU")
+DOMAIN_CLI = os.environ.get("LUXOS_DOMAIN_CLI", "/usr/bin/lux-domain")
+DOMAIN_RE = re.compile(r"(?=.{3,253}$)[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+")
 # Systemova jmena (shodne s luxos-install-gui RESERVED_USERS a luxos-oem RESERVED)
 RESERVED_USERS = {"root", "bin", "daemon", "mail", "ftp", "http", "nobody", "dbus", "uuidd", "polkitd", "avahi",
                   "lightdm", "git", "rtkit", "colord", "alpm", "tss", "usbmux", "geoclue", "lux", "sddm", "gdm"}
 
 
-def steps(luks_pending):
-    """Poradi stranek: jazyk, klavesnice, Wi-Fi, casove pasmo, ucet, LuxAI, [heslo disku], udrzba, dokonceni."""
-    out = ["welcome", "keyboard", "network", "timezone", "account", "luxai"]
+def domain_available():
+    """Krok Firemni sit jen s nainstalovanym luxos-domain (lux-domain)."""
+    return os.access(DOMAIN_CLI, os.X_OK)
+
+
+def steps(luks_pending, domain=False):
+    """Poradi stranek: jazyk, klavesnice, Wi-Fi, casove pasmo, ucet, [firemni sit], LuxAI, [heslo disku],
+    udrzba, dokonceni."""
+    out = ["welcome", "keyboard", "network", "timezone", "account"]
+    if domain:
+        out.append("organization")
+    out.append("luxai")
     if luks_pending:
         out.append("diskpass")
     out += ["care", "finish"]
@@ -81,6 +95,44 @@ def valid_user(u):
     return bool(re.fullmatch(r"[a-z_][a-z0-9_-]{0,31}", u or "")) and u not in RESERVED_USERS
 
 
+def valid_domain(d):
+    """firma.local, ad.firma.cz (aspon dve casti, mala pismena)."""
+    return bool(DOMAIN_RE.fullmatch(d or ""))
+
+
+def domain_problem(state):
+    """Proc nejde pokracovat na strance Firemni sit ("" = v poradku nebo osobni pocitac)."""
+    if not state.get("org"):
+        return ""
+    if not valid_domain(state.get("domain", "").strip().lower()):
+        return "domain"
+    if not state.get("domain_user", "").strip():
+        return "user"
+    if not state.get("domain_pw"):
+        return "password"
+    return ""
+
+
+def domain_values(state):
+    """DOMAIN, DOMAIN_USER, DOMAIN_PASSWORD, DOMAIN_OU (prazdne = osobni pocitac)."""
+    if not state.get("org"):
+        return {"DOMAIN": "", "DOMAIN_USER": "", "DOMAIN_PASSWORD": "", "DOMAIN_OU": ""}
+    return {"DOMAIN": state.get("domain", "").strip().lower(), "DOMAIN_USER": state.get("domain_user", "").strip(),
+            "DOMAIN_PASSWORD": state.get("domain_pw", ""), "DOMAIN_OU": state.get("domain_ou", "").strip()}
+
+
+def parse_discover(text):
+    """JSON z "lux-domain discover --json" -> dict (vzdy s klicem ok)."""
+    try:
+        data = json.loads(text or "")
+    except ValueError:
+        return {"ok": False, "error": "failed", "message": ""}
+    if not isinstance(data, dict):
+        return {"ok": False, "error": "failed", "message": ""}
+    data["ok"] = bool(data.get("ok"))
+    return data
+
+
 def disk_password(state):
     """Heslo disku: stejne jako heslo uctu (vychozi, jako FileVault) nebo vlastni."""
     return state.get("pw1", "") if state.get("disk_same", True) else state.get("disk1", "")
@@ -109,6 +161,7 @@ def finish_input(state, xkb_values, luks_pending, photo=""):
         "PHOTO": photo or "",
         "DISK_PASS": disk_password(state) if luks_pending else "",
     }
+    values.update(domain_values(state))
     lines = []
     for k in FINISH_KEYS:
         v = str(values[k])
@@ -119,7 +172,8 @@ def finish_input(state, xkb_values, luks_pending, photo=""):
 
 
 def parse_line(line):
-    """Radek vystupu luxos-oem finish -> ("step", text) | ("error", text) | ("done", "") | ("log", radek)."""
+    """Radek vystupu luxos-oem finish -> ("step", text) | ("error", text) | ("warn", text) | ("done", "")
+    | ("log", radek). @@WARN = nezavazny problem (napr. pocitac se nepripojil k domene)."""
     if line.startswith("@@STEP "):
         parts = line[7:].split(" ", 2)
         if len(parts) == 3 and parts[0].isdigit() and parts[1].isdigit():
@@ -127,6 +181,8 @@ def parse_line(line):
         return ("step", line[7:], 0, 0)
     if line.startswith("@@ERROR "):
         return ("error", line[8:])
+    if line.startswith("@@WARN "):
+        return ("warn", line[7:])
     if line.strip() == "@@DONE":
         return ("done", "")
     return ("log", line)

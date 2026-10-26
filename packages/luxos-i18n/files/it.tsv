@@ -3576,3 +3576,232 @@ Repair reinstalls: %s	La riparazione reinstalla: %s
 System files were changed	Alcuni file di sistema sono stati modificati
 %d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.	File di sistema modificati o mancanti: %d. LuxOS può ripararli reinstallando i pacchetti interessati.
 Invalid PROTECT (use 0 or 1)	PROTECT non valido (usare 0 o 1)
+"%s" is not a printer address (smb://server/printer).	"%s" non è un indirizzo di stampante (smb://server/printer).
+"%s" is not a shared folder address (smb://server/folder).	"%s" non è un indirizzo di cartella condivisa (smb://server/folder).
+"%s" is not a valid domain name (e.g. firma.local).	"%s" non è un nome di dominio valido (es. firma.local).
+"%s" is not a valid group name.	"%s" non è un nome di gruppo valido.
+"%s" is not a valid user name.	"%s" non è un nome utente valido.
+"policy" belongs only to organization policies in %s	"policy" appartiene solo ai criteri dell’organizzazione in %s
+%d controllers	%d controller
+%s could not be restored; check it.	Impossibile ripristinare %s; controllalo.
+%s more days (of %d)	ancora %s giorni (su %d)
+%s: set by the organization %s, it cannot be changed here	%s: impostato dall’organizzazione %s, non può essere modificato qui
+%s: the policies %s and %s set different values	%s: i criteri %s e %s impostano valori diversi
+(%d more days)	(ancora %d giorni)
+(at most %d days offline)	(al massimo %d giorni offline)
+1 controller	1 controller
+A computer of a company or school can join its Windows domain (Active Directory): people then sign in with their work account.	Un computer di un’azienda o di una scuola può unirsi al suo dominio Windows (Active Directory): le persone accedono poi con il loro account di lavoro.
+A computer with this name already exists in the domain.	Nel dominio esiste già un computer con questo nome.
+A personal computer with local accounts.	Un computer personale con account locali.
+Add a group	Aggiungi un gruppo
+Administrator	Amministratore
+Administrator rights	Diritti di amministratore
+Administrator rights cannot last longer offline than the sign-in.	I diritti di amministratore non possono durare offline più a lungo dell’accesso.
+Administrators	Amministratori
+Administrators from the domain: %s	Amministratori dal dominio: %s
+Administrators of this computer	Amministratori di questo computer
+Advanced	Avanzate
+Also remove the computer account from the domain (needs a domain administrator)	Rimuovi anche l’account del computer dal dominio (serve un amministratore del dominio)
+An account that may add computers to the domain.	Un account che può aggiungere computer al dominio.
+An organization (Active Directory domain)	Un’organizzazione (dominio Active Directory)
+An organization (Windows domain)	Un’organizzazione (dominio Windows)
+Apply	Applica
+Authorization was cancelled. Nothing was changed.	Autorizzazione annullata. Non è stato modificato nulla.
+Computer name in the domain	Nome del computer nel dominio
+Connect this computer to the Windows domain (Active Directory) of your company or school. Then people sign in with their organization account, get shared folders and printers without another password, and IT can manage the computer.	Collega questo computer al dominio Windows (Active Directory) della tua azienda o scuola. Le persone accedono poi con l’account dell’organizzazione, ottengono cartelle condivise e stampanti senza un’altra password e il reparto IT può gestire il computer.
+Controllers	Controller
+Creating the computer account in the domain…	Creazione dell’account del computer nel dominio…
+Current Password	Password attuale
+DOMAIN needs DOMAIN_PASSWORD	DOMAIN richiede DOMAIN_PASSWORD
+DOMAIN needs DOMAIN_USER (a domain administrator)	DOMAIN richiede DOMAIN_USER (un amministratore del dominio)
+Domain	Dominio
+Domain (e.g. firma.local)	Dominio (es. firma.local)
+Domain accounts will no longer sign in here. Their home folders and personal files stay.	Gli account del dominio non potranno più accedere qui. Le cartelle home e i file personali restano.
+Domain administrator	Amministratore del dominio
+Domain administrator (allowed to add computers)	Amministratore del dominio (autorizzato ad aggiungere computer)
+Domain group	Gruppo del dominio
+Domain name	Nome del dominio
+Done. Log out and sign in with your organization account.	Fatto. Esci e accedi con l’account dell’organizzazione.
+Enter a number of days.	Inserisci un numero di giorni.
+Enter the address of the shared folder (smb://server/folder).	Inserisci l’indirizzo della cartella condivisa (smb://server/folder).
+Enter the administrator password.	Inserisci la password dell’amministratore.
+Enter the domain administrator.	Inserisci l’amministratore del dominio.
+Enter the domain name (e.g. firma.local).	Inserisci il nome del dominio (es. firma.local).
+Enter the name of the domain group.	Inserisci il nome del gruppo del dominio.
+Enter the password of the domain administrator.	Inserisci la password dell’amministratore del dominio.
+Enter the printer name.	Inserisci il nome della stampante.
+Error: %s	Errore: %s
+Fix it with: sudo lux domain sync-time	Correggilo con: sudo lux domain sync-time
+For example firma.local or ad.school.cz	Per esempio firma.local o ad.school.cz
+Found: Active Directory %s (domain controllers: %s)	Trovato: Active Directory %s (controller di dominio: %s)
+Full names	Nomi completi
+Home folders of domain users stay: %s	Le cartelle home degli utenti del dominio restano: %s
+Ignored policy file %s (not a regular file)	File di criteri %s ignorato (non è un file normale)
+Ignored policy file %s (the name must be NN-name.lsl)	File di criteri %s ignorato (il nome deve essere NN-name.lsl)
+Incorrect password, or this account has not signed in on this computer yet (the first sign-in needs a connection to the organization network).	Password errata, oppure questo account non ha ancora effettuato l’accesso su questo computer (il primo accesso richiede una connessione alla rete dell’organizzazione).
+Invalid DOMAIN (e.g. firma.local)	DOMAIN non valido (es. firma.local)
+Invalid DOMAIN_USER, DOMAIN_PASSWORD, OU or DOMAIN_ADMINS	DOMAIN_USER, DOMAIN_PASSWORD, OU o DOMAIN_ADMINS non validi
+Invalid domain name: %s	Nome di dominio non valido: %s
+Join an Organization Network	Entra in una Rete dell’organizzazione
+Join the domain %s?	Unirsi al dominio %s?
+Join: sudo lux domain join DOMAIN -U ADMINISTRATOR	Join: sudo lux domain join DOMAIN -U ADMINISTRATOR
+Joined	Connesso
+Joining a domain needs the administrator name and password.	Per unirsi a un dominio servono il nome e la password dell’amministratore.
+Joining failed.	Unione non riuscita.
+Joining failed: %s	Unione non riuscita: %s
+Joining the organization network	Connessione alla rete dell’organizzazione
+Joining the organization network %s…	Connessione alla rete dell’organizzazione %s…
+Last contact	Ultimo contatto
+Last contact with the domain: %s	Ultimo contatto con il dominio: %s
+Leave	Esci
+Leave the Organization Network	Esci dalla Rete dell’organizzazione
+Leave the Organization Network…	Esci dalla Rete dell’organizzazione…
+Leave the domain %s?	Uscire dal dominio %s?
+Leaving the organization network…	Uscita dalla rete dell’organizzazione…
+Looking for the domain controllers…	Ricerca dei controller di dominio…
+Looking for the domain…	Ricerca del dominio…
+Me	Io
+Me (personal computer)	Io (computer personale)
+Members of this domain group may install software and change settings.	I membri di questo gruppo del dominio possono installare software e modificare le impostazioni.
+Microsoft Active Directory	Microsoft Active Directory
+Microsoft Active Directory or Samba. You need a domain administrator to join.	Microsoft Active Directory o Samba. Per unirsi serve un amministratore del dominio.
+Microsoft Active Directory – %s – %d controllers	Microsoft Active Directory – %s – %d controller
+Name (%s or %s)	Nome (%s o %s)
+New Password	Nuova password
+No domain controller answered for this domain. Check the name and the network.	Nessun controller di dominio ha risposto per questo dominio. Controlla il nome e la rete.
+No domain group – only local administrators.	Nessun gruppo del dominio – solo amministratori locali.
+No organization network with this name was found.	Non è stata trovata nessuna rete dell’organizzazione con questo nome.
+No settings are locked by the organization.	Nessuna impostazione è bloccata dall’organizzazione.
+Nothing was changed. Confirm with --yes when running without a terminal.	Non è stato modificato nulla. Conferma con --yes quando esegui senza terminale.
+Offline sign-in	Accesso offline
+Offline – you will sign in with your saved password	Offline – accederai con la password salvata
+Organization	Organizzazione
+Organization Network	Rete dell’organizzazione
+Organization accounts will no longer be able to sign in on this computer and the settings of the organization stop applying. Personal files in home folders stay on this computer and are not deleted. Local accounts keep working.	Gli account dell’organizzazione non potranno più accedere a questo computer e le impostazioni dell’organizzazione smetteranno di essere applicate. I file personali nelle cartelle home restano su questo computer e non vengono eliminati. Gli account locali continuano a funzionare.
+Organization network	Rete dell’organizzazione
+Organization network: Windows domain (Active Directory)	Rete dell’organizzazione: dominio Windows (Active Directory)
+Organization networks need the package luxos-domain (lux install luxos-domain).	Le reti dell’organizzazione richiedono il pacchetto luxos-domain (lux install luxos-domain).
+Organization policies: %s	Criteri dell’organizzazione: %s
+Organizational unit (OU)	Unità organizzativa (OU)
+Organizational unit for the computer (optional)	Unità organizzativa per il computer (facoltativa)
+Organizational unit for the computer (optional, Enter = default)	Unità organizzativa per il computer (facoltativa, Invio = predefinita)
+Password of %s (used once, never saved)	Password di %s (usata una sola volta, mai salvata)
+Password of %s in %s: 	Password di %s in %s: 
+People who signed in here before can sign in with their saved password this many days without a connection to the domain. 0 = always needs the connection.	Chi ha già effettuato l’accesso qui può accedere con la password salvata per questo numero di giorni senza connessione al dominio. 0 = serve sempre la connessione.
+Printers updated.	Stampanti aggiornate.
+Removing the computer account from the domain…	Rimozione dell’account del computer dal dominio…
+Removing the domain sign-in data…	Rimozione dei dati di accesso al dominio…
+Repeat New Password	Ripeti la nuova password
+Restoring the original settings…	Ripristino delle impostazioni originali…
+SSSD could not be started: %s	Impossibile avviare SSSD: %s
+Saved passwords work for %d more days.	Le password salvate funzionano ancora per %d giorni.
+Saving the current settings…	Salvataggio delle impostazioni attuali…
+Set the Clock from the Domain	Imposta l’orologio dal dominio
+Setting the clock from the domain…	Impostazione dell’orologio dal dominio…
+Setting up administrators…	Configurazione degli amministratori…
+Setting up sign-in with domain accounts…	Configurazione dell’accesso con gli account del dominio…
+Shared folders and printers	Cartelle condivise e stampanti
+Shared folders updated; they appear in Files after the next sign-in.	Cartelle condivise aggiornate; appariranno in File dopo il prossimo accesso.
+Short name	Nome breve
+Sign in to domain %s	Accedi al dominio %s
+Sign out and sign in with a domain account (name or name@%s).	Esci e accedi con un account del dominio (nome o nome@%s).
+Sign-in without connection	Accesso senza connessione
+Signed in offline with your saved password.	Accesso offline con la password salvata.
+Some of the entered values are not valid.	Alcuni dei valori inseriti non sono validi.
+Starting the services…	Avvio dei servizi…
+Stopping the services…	Arresto dei servizi…
+Suspended	Sospesi
+Taking a system snapshot…	Creazione di un’istantanea del sistema…
+The account is disabled or expired in the domain. Contact your IT department.	L’account è disattivato o scaduto nel dominio. Contatta il reparto IT.
+The account is locked by the domain administrator. Contact your IT department.	L’account è bloccato dall’amministratore del dominio. Contatta il reparto IT.
+The administrator name or password is not correct.	Il nome o la password dell’amministratore non sono corretti.
+The administrators group could not be set: %s	Impossibile impostare il gruppo degli amministratori: %s
+The clock could not be set: %s	Impossibile impostare l’orologio: %s
+The clock now matches the domain.	Ora l’orologio corrisponde al dominio.
+The clock of this computer differs from the domain by more than 5 minutes.	L’orologio di questo computer differisce da quello del dominio di più di 5 minuti.
+The clock was set from the domain: %s	L’orologio è stato impostato dal dominio: %s
+The computer account stays in the domain (%s); your IT administrator can remove it.	L’account del computer resta nel dominio (%s); l’amministratore IT può rimuoverlo.
+The computer could not join the domain %s: %s. Join it later in Settings > Organization Network.	Il computer non è riuscito a unirsi al dominio %s: %s. Puoi unirlo più tardi in Impostazioni > Rete dell’organizzazione.
+The computer has not reached the domain for more than %d days. Administrator rights of domain groups return with the next connection.	Il computer non raggiunge il dominio da più di %d giorni. I diritti di amministratore dei gruppi del dominio torneranno alla prossima connessione.
+The computer joined the domain %s.	Il computer si è unito al dominio %s.
+The domain cannot be checked here; the computer joins it at the end of the installation.	Il dominio non può essere verificato qui; il computer vi si unirà al termine dell’installazione.
+The domain controller cannot be reached. Check the network connection.	Il controller di dominio non è raggiungibile. Controlla la connessione di rete.
+The domain controller could not be found. Check the domain name and that this computer uses the DNS server of the organization.	Impossibile trovare il controller di dominio. Controlla il nome del dominio e che questo computer usi il server DNS dell’organizzazione.
+The domain has not been reached yet.	Il dominio non è ancora stato raggiunto.
+The domain tools are missing (lux install luxos-domain).	Mancano gli strumenti del dominio (lux install luxos-domain).
+The domain was not found.	Dominio non trovato.
+The name or password of the domain administrator is not correct.	Il nome o la password dell’amministratore del dominio non sono corretti.
+The network is not available. Connect to the network of the organization and try again.	La rete non è disponibile. Connettiti alla rete dell’organizzazione e riprova.
+The number of days must be between 0 and 180.	Il numero di giorni deve essere compreso tra 0 e 180.
+The operation failed.	Operazione non riuscita.
+The password is used only once to join the domain and is never saved. Your own account stays an administrator of this computer.	La password viene usata una sola volta per unirsi al dominio e non viene mai salvata. Il tuo account resta amministratore di questo computer.
+The printer could not be added: %s	Impossibile aggiungere la stampante: %s
+The printer name may contain only letters, digits, - and _.	Il nome della stampante può contenere solo lettere, cifre, - e _.
+The sudo rule for the administrator groups is not valid: %s	La regola sudo per i gruppi di amministratori non è valida: %s
+The system snapshot could not be taken: %s	Impossibile creare l’istantanea del sistema: %s
+This account is not allowed to add computers to the domain.	Questo account non è autorizzato ad aggiungere computer al dominio.
+This account may not add computers to the domain. Ask your IT administrator.	Questo account non può aggiungere computer al dominio. Chiedi all’amministratore IT.
+This computer has no organization policies (%s is empty).	Questo computer non ha criteri dell’organizzazione (%s è vuota).
+This computer is already in a domain.	Questo computer è già in un dominio.
+This computer is already in an organization network. Leave it first.	Questo computer è già in una rete dell’organizzazione. Esci prima da quella.
+This computer is in the organization network	Questo computer è nella rete dell’organizzazione
+This computer is not in a domain.	Questo computer non è in un dominio.
+This computer is not in an organization network.	Questo computer non è in una rete dell’organizzazione.
+This computer is now in the domain %s.	Questo computer ora è nel dominio %s.
+This computer left the domain %s.	Questo computer è uscito dal dominio %s.
+This is not a valid domain name (e.g. firma.local).	Questo non è un nome di dominio valido (es. firma.local).
+This is not an Active Directory domain (Microsoft or Samba).	Questo non è un dominio Active Directory (Microsoft o Samba).
+This needs administrator rights (run it with sudo).	Servono i diritti di amministratore (eseguilo con sudo).
+Unknown setting %s	Impostazione sconosciuta %s
+Use this domain anyway? (it is joined at the end of the installation)	Usare comunque questo dominio? (l’unione avverrà al termine dell’installazione)
+Used only to join; it is not saved.	Usata solo per unirsi; non viene salvata.
+Where the computer account is created. Empty = default.	Dove viene creato l’account del computer. Vuoto = predefinito.
+Who does this computer belong to?	A chi appartiene questo computer?
+Who may sign in	Chi può accedere
+Who may sign in: %s	Chi può accedere: %s
+Without a connection to the domain, administrator rights end after %d days.	Senza connessione al dominio, i diritti di amministratore terminano dopo %d giorni.
+Your password has expired. Choose a new one.	La password è scaduta. Scegline una nuova.
+active	attivo
+administrator rights offline: %s → %s days	diritti di amministratore offline: %s → %s giorni
+administrators: add domain group %s	amministratori: aggiungi il gruppo del dominio %s
+administrators: remove domain group %s	amministratori: rimuovi il gruppo del dominio %s
+days	giorni
+domain %s (administrator %s)	dominio %s (amministratore %s)
+domain groups that administer this computer	gruppi del dominio che amministrano questo computer
+domain, online or offline, offline sign-in, administrators	dominio, online o offline, accesso offline, amministratori
+domain: the organization network tools are not installed (lux install luxos-domain).	domain: gli strumenti della rete dell’organizzazione non sono installati (lux install luxos-domain).
+everybody in the domain	tutti nel dominio
+find the domain controllers and check the clock	trova i controller di dominio e controlla l’orologio
+how many days administrator rights last offline	per quanti giorni durano offline i diritti di amministratore
+how many days domain accounts may sign in offline	per quanti giorni gli account del dominio possono accedere offline
+join this computer (asks for the domain administrator password)	unisci questo computer (chiede la password dell’amministratore del dominio)
+leave the domain; home folders and personal files stay	esci dal dominio; le cartelle home e i file personali restano
+local file %s	file locale %s
+locked	bloccato
+luxos-domain is not installed	luxos-domain non è installato
+merged configuration with organization policies and the origin of each value	configurazione unita con i criteri dell’organizzazione e l’origine di ogni valore
+must be between 0 and 180	deve essere tra 0 e 180
+must not be longer than domain.offline_days	non deve superare domain.offline_days
+no (personal computer)	no (computer personale)
+offline	offline
+offline sign-in: %s → %s days	accesso offline: %s → %s giorni
+online	online
+organization	organizzazione
+organization network: Windows domain, Active Directory (lux domain help)	rete dell’organizzazione: dominio Windows, Active Directory (lux domain help)
+printers of a Windows print server (Kerberos)	stampanti di un server di stampa Windows (Kerberos)
+set the clock from the domain	imposta l’orologio dal dominio
+settings locked by an organization (/etc/luxos/system.d)	impostazioni bloccate da un’organizzazione (/etc/luxos/system.d)
+shared folders of the organization in Files	cartelle condivise dell’organizzazione in File
+sign-in allowed for domain group %s	accesso consentito al gruppo del dominio %s
+sign-in no longer limited to domain group %s	accesso non più limitato al gruppo del dominio %s
+suspended until the next connection	sospeso fino alla prossima connessione
+unknown	sconosciuto
+who may sign in (empty = everybody in the domain)	chi può accedere (vuoto = tutti nel dominio)
+The policy file %s may be changed by other users than root; fix it with: sudo chown root:root %s && sudo chmod 644 %s	Il file dei criteri %s può essere modificato da utenti diversi da root; correggilo con: sudo chown root:root %s && sudo chmod 644 %s
+domain: this computer is not in an organization network; join it first with: sudo lux domain join DOMAIN	domain: questo computer non è in una rete dell’organizzazione; prima uniscilo con: sudo lux domain join DOMAIN
+The computer joins the domain %s: domain accounts can sign in, the administrators of the domain become administrators of this computer.	Il computer si unisce al dominio %s: gli account del dominio potranno accedere e gli amministratori del dominio diventeranno amministratori di questo computer.
+"%s" is not a valid organizational unit (e.g. OU=Computers,DC=firma,DC=local).	«%s» non è un’unità organizzativa valida (es. OU=Computers,DC=firma,DC=local).
+A computer with this name is already in the domain. Choose another name or ask your IT administrator to remove the old account.	Nel dominio esiste già un computer con questo nome. Scegli un altro nome o chiedi all’amministratore IT di rimuovere il vecchio account.
+The clock of this computer differs from the domain by more than 5 minutes. Set the clock from the domain and try again.	L’orologio di questo computer differisce dal dominio di oltre 5 minuti. Imposta l’orologio dal dominio e riprova.
+The computer name for the domain may have at most 15 letters, digits and hyphens.	Il nome del computer per il dominio può avere al massimo 15 lettere, cifre e trattini.
+The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Il dominio non è stato trovato nel DNS. Verifica che il computer usi il server DNS dell’organizzazione (di solito da DHCP) o inserisci l’indirizzo di un controller di dominio.

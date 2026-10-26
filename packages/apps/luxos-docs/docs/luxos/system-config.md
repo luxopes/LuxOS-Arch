@@ -32,6 +32,11 @@ generated file describes the computer exactly, so `lux system diff` right after 
 | `lux system check [FILE]` | evaluate and validate the file, nothing is changed |
 | `lux system diff [FILE] [--json]` | list the changes `apply` would make (needs administrator rights to read password hashes, firewall rules and boot entries) |
 | `lux system apply [FILE] [-y] [--no-snapshot]` | snapshot, changes, confirmation, apply |
+| `lux system show --origin [--json]` | the merged configuration (organization policies + your file) with the origin of every value and 🔒 for locked values |
+| `lux system locks [--json]` | the settings an organization has locked (`config.mkForce` in `/etc/luxos/system.d`) |
+
+`check`, `diff` and `plan` accept `--no-policies` to look at your file alone; `apply` always
+includes the organization policies.
 
 Without `FILE` the commands use `/etc/luxos/system.lsl`. `lux system` alone prints a short help.
 Nothing is ever applied without showing the changes and a confirmation, unless `-y` is given.
@@ -115,6 +120,10 @@ can be as short as `config = {"packages": ["htop"]}`.
 | `firewall.enable` | firewall on/off (ufw; added to the packages automatically when on) | `ufw enable`, `ufw.service` |
 | `firewall.allow` | incoming ports allowed from anywhere: `"22/tcp"`, `"8000:8010/udp"`, `"53"` | `ufw allow`, `ufw delete allow` |
 | `kernel.params` | extra kernel parameters | `options` of the LuxOS systemd-boot entries or `GRUB_CMDLINE_LINUX_DEFAULT` + `grub-mkconfig` |
+| `domain.admins` | domain groups that administer this computer (only in a domain, see `domain.md`) | `lux domain admins add/remove` (sudo + polkit) |
+| `domain.allow_groups` | domain groups allowed to sign in; `[]` = everybody in the domain | `lux domain login allow/deny` |
+| `domain.offline_days` | days a domain account may sign in without the domain controller (0-180, default 30) | `lux domain set offline-days` |
+| `domain.admin_offline_days` | days administrator rights from the domain last offline (0-180, default 7, at most `offline_days`) | `lux domain set admin-offline-days` |
 
 ### Users
 
@@ -143,6 +152,59 @@ can be as short as `config = {"packages": ["htop"]}`.
 - Users are never deleted, and system accounts (`root`, UID under 1000) cannot be managed.
 - At least one user must stay in `wheel` (administrator); a change that would remove the last
   administrator is refused.
+
+## Organization policies (/etc/luxos/system.d)
+
+A computer managed by an organization (a Windows domain, later LuxOS Directory) gets **policy
+fragments** next to your file. They are LSL files like `system.lsl`, owned by root, named
+`NN-name.lsl` and merged in the order of their names:
+
+```
+/etc/luxos/system.d/
+  20-org-base.lsl        from LuxOS Directory (do not edit)
+  30-org-group-ucetni.lsl
+  40-domain-gpo.lsl      from the Group Policy of a Windows domain
+/etc/luxos/system.lsl    your own file (or the local IT)
+```
+
+A fragment may name its organization and policy, which then appear in every message:
+
+```lsl
+load config
+
+config = {
+    "policy": {"organization": "Firma s.r.o.", "name": "Základ"}
+    "packages": ["libreoffice-fresh", "firefox"]
+    "firewall": {"enable": config.mkForce(True)}
+    "care": {"mode": config.mkForce("carefree"), "keep_snapshots": config.mkDefault(8)}
+}
+```
+
+Merge rules:
+
+| Value in a fragment | Meaning |
+|---|---|
+| plain value | the organization's setting; **your file wins** when it sets the same key; a later fragment (higher number) wins over an earlier one |
+| `config.mkDefault(v)` | only a recommendation, weaker than any other value |
+| `config.mkForce(v)` | **locked**: your file may set the same value, a different one is an error: `firewall.enable: set by the organization Firma s.r.o. „Základ“ (20-org-base.lsl), it cannot be changed here`. `mkForce` on a dictionary locks the whole section, also keys the policy does not list. Two fragments forcing different values are an error too. |
+
+- Lists of packages, Flathub apps, groups, services, firewall ports, kernel parameters and the
+  `domain` group lists are **joined** (organization + yours). A forced item cannot be turned the
+  other way locally (e.g. a service the organization forces on cannot be in your `disable`).
+- `lux system diff` lists the policies and marks each change that comes from one, e.g.
+  `+ install: libreoffice-fresh  [Firma s.r.o. „Základ“ (20-org-base.lsl)]`; `--json` adds
+  `"origin"`. `lux system show --origin` answers "why is it set like this?" for every value.
+- A fragment that other users than root could change (group/world-writable, not owned by root)
+  stops `lux system` with an error; files with other names are ignored with a warning.
+- **Leaving the organization** removes its fragments: the locks disappear and the values stay as
+  they are. Packages, apps, services and kernel parameters that came only from a policy are never
+  removed because the policy disappeared - only items of your own file are tracked for removal.
+- Each apply keeps copies of the fragments in `/var/lib/lux/system/history/DATE.d/` and writes the
+  locks to `/var/lib/lux/system/policy.json` (readable by all, no secrets) so that settings apps can
+  show "set by your organization". `lux rollback` returns the whole system to the snapshot taken
+  before the apply, as for your own file.
+- Locks are not a security boundary against `root` (who can edit the fragments); they protect
+  organization settings from accidental local changes and make the result explainable.
 
 ## What gets removed
 
@@ -224,7 +286,9 @@ while LuxOS runs from a snapshot (keep that version with `lux rollback` first) a
 | Path | Purpose |
 |---|---|
 | `/etc/luxos/system.lsl` | the configuration (root-owned) |
+| `/etc/luxos/system.d/NN-name.lsl` | organization policies (root-owned, merged before your file) |
 | `/var/lib/lux/system/applied.json` | what the file managed at the last apply (for removals) |
-| `/var/lib/lux/system/history/` | copies of the last 20 applied files |
+| `/var/lib/lux/system/policy.json` | policies and locked settings of the last apply (readable by all) |
+| `/var/lib/lux/system/history/` | copies of the last 20 applied files (and policies in `DATE.d/`) |
 | `/usr/share/doc/lux/system.lsl.example` | commented example |
 | `/usr/lib/lux/lux_system.py` | evaluation, diff and apply |

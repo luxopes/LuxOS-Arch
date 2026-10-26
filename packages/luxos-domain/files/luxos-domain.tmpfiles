@@ -1,0 +1,3 @@
+# LuxOS - stav organizacni site pro prihlasovaci obrazovku (bez tajemstvi)
+d /run/luxos/domain 0755 root root -
+d /var/lib/luxos/domain 0755 root root -

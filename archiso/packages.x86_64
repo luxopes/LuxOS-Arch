@@ -62,3 +62,5 @@ luxos-safe
 luxos-care
 luxos-guard
 luxos-backup
+# firemni sit (Active Directory): Najit v instalatoru, Nastaveni > Firemni sit; sluzby se zapnou az pri pripojeni
+luxos-domain

@@ -1,0 +1,35 @@
+#%PAM-1.0
+# LuxOS - mistni ucty a ucty organizace (luxos-domain). Puvodni soubor je v zaloze
+# /var/lib/luxos/domain/backup a vrati ho "lux domain leave".
+# Mistni ucet: pam_unix uspeje a preskoci SSSD. Ucet domeny: heslo overi pam_sss (online pres
+# Kerberos, offline z cache SSSD). pam_faillock plati pro oba (LuxOS: 20 chyb za 30 s -> 1 min).
+
+auth       required                    pam_faillock.so      preauth
+-auth      [success=3 default=ignore]  pam_systemd_home.so
+auth       [success=2 default=ignore]  pam_unix.so          try_first_pass nullok
+auth       [success=1 default=ignore]  pam_sss.so           use_first_pass
+auth       [default=die]               pam_faillock.so      authfail
+auth       optional                    pam_permit.so
+auth       required                    pam_env.so
+auth       required                    pam_faillock.so      authsucc
+
+# mistni ucet (pam_localuser) SSSD vubec nepta - porucha SSSD nikdy nezamkne mistniho spravce
+-account   [success=1 default=ignore]  pam_systemd_home.so
+account    required                    pam_unix.so
+account    [success=1 default=ignore]  pam_localuser.so
+account    [default=bad success=ok user_unknown=ignore authinfo_unavail=ignore] pam_sss.so
+account    optional                    pam_permit.so
+account    required                    pam_time.so
+
+-password  [success=3 default=ignore]  pam_systemd_home.so
+password   [success=1 default=ignore]  pam_localuser.so
+password   [success=2 default=die]     pam_sss.so
+password   required                    pam_unix.so          try_first_pass nullok shadow
+password   optional                    pam_permit.so
+
+-session   optional                    pam_systemd_home.so
+session    required                    pam_limits.so
+session    required                    pam_mkhomedir.so     skel=/etc/skel/ umask=0077
+session    required                    pam_unix.so
+session    optional                    pam_sss.so
+session    optional                    pam_permit.so

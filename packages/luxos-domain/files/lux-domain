@@ -1,0 +1,352 @@
+#!/usr/bin/env python3
+"""lux domain - LuxOS v organizacni siti (domena Microsoft Active Directory / Samba AD).
+
+  lux domain discover DOMENA [--json]         najde radice domeny, overi hodiny (bez prav roota)
+  lux domain join DOMENA -U SPRAVCE [--ou OU] [--computer-name JMENO] [--admins "Skupina,..."]
+                                              pripoji pocitac (zepta se na heslo spravce domeny)
+  lux domain leave [-U SPRAVCE]               odpoji (s -U smaze i ucet pocitace v domene);
+                                              domovske slozky a osobni data zustanou
+  lux domain status [--json]                  domena, online/offline, offline prihlaseni, spravci
+  lux domain admins add|remove SKUPINA | list spravci tohoto PC z domeny (sudo + polkit)
+  lux domain login allow|deny SKUPINA | list  kdo se smi prihlasit (prazdne = vsichni z domeny)
+  lux domain set offline-days N | admin-offline-days N   offline prihlaseni / prava spravce (dny)
+  lux domain share add URL [NAZEV] | remove URL | list    sdilene slozky v Souborech (zalozky)
+  lux domain printer add NAZEV URI | remove NAZEV | list  tiskarny tiskoveho serveru (Kerberos)
+  lux domain sync-time                        hodiny podle radice domeny
+  lux domain refresh | repair | session       casovac / hook spravce baliku / prihlaseni uzivatele
+
+Volby: --yes (bez potvrzeni), --json, --password-stdin (heslo = prvni radek stdin, nikdy argument),
+       --progress (radky @@STEP/@@ERROR/@@DONE pro instalator a Nastaveni), --no-snapshot,
+       --offline-install (uvnitr instalatoru v arch-chroot).
+"""
+import argparse
+import getpass
+import json
+import os
+import sys
+
+HERE = os.path.dirname(os.path.realpath(__file__))
+for _p in (os.environ.get("LUXOS_DOMAIN_PYTHON"), "/usr/lib/luxos/python", HERE):
+    if _p and os.path.isfile(os.path.join(_p, "luxos_domain.py")):
+        sys.path.insert(0, _p)
+        break
+import luxos_domain as dom  # noqa: E402
+from luxos_domain import DomainError, _  # noqa: E402
+
+COLOR = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
+B, D, R, G, Y, E = (("\033[1m", "\033[2m", "\033[0m", "\033[32m", "\033[33m", "\033[31m") if COLOR else ("",) * 6)
+
+ROOT_CMDS = {"join", "leave", "set", "refresh", "repair", "sync-time"}
+ROOT_SUB = {"admins": ("add", "remove"), "login": ("allow", "deny"), "share": ("add", "remove"),
+            "printer": ("add", "remove")}
+
+
+def ok(msg):
+    print(f"{G}✓{R} {msg}", flush=True)
+
+
+def need_root(args, argv):
+    """Zmeny systemu jen jako root; z terminalu se znovu spusti pres sudo (jako lux)."""
+    if os.geteuid() == 0 or dom.ROOT:
+        return
+    if sys.stdin.isatty() and not args.password_stdin:
+        os.execvp("sudo", ["sudo", "--", sys.executable, os.path.realpath(__file__)] + argv)
+    raise DomainError("invalid", _("This needs administrator rights (run it with sudo)."))
+
+
+def ask(question, default_yes):
+    try:
+        a = input(f"{B}{question}{R} {'[Y/n]' if default_yes else '[y/N]'} ").strip().lower()
+    except EOFError:
+        return False
+    return (not a and default_yes) or a[:1] in ("y", "a", "j")
+
+
+def read_password(args, prompt):
+    if args.password_stdin:
+        line = sys.stdin.readline()
+        return line[:-1] if line.endswith("\n") else line
+    if not sys.stdin.isatty():
+        raise DomainError("password", _("Enter the password of the domain administrator."))
+    return getpass.getpass(prompt)
+
+
+def fmt_time(s):
+    t = dom.parse_iso(s)
+    if t is None:
+        return "-"
+    import datetime
+    return datetime.datetime.fromtimestamp(t).strftime("%Y-%m-%d %H:%M")
+
+
+# ---- prikazy --------------------------------------------------------------------------------------
+def cmd_discover(args):
+    try:
+        info = dom.discover(args.domain)
+    except DomainError as e:
+        if args.json:
+            print(json.dumps({"ok": False, "error": e.code, "message": str(e)}, ensure_ascii=False))
+            return 1
+        raise
+    if args.json:
+        print(json.dumps(info, ensure_ascii=False))
+        return 0
+    n = len(info["controllers"])
+    ok(_("Microsoft Active Directory – %s – %d controllers") % (info["domain"], n))
+    print(f"  {_('Short name')}: {info['short']}   {_('Controllers')}: {', '.join(info['controllers'])}")
+    skew = info["clock_skew"]
+    if skew is not None and abs(skew) > dom.MAX_CLOCK_SKEW:
+        print(f"{Y}!{R} " + dom.error_text("clock") + " " + _("Fix it with: sudo lux domain sync-time"))
+    return 0
+
+
+def cmd_join(args):
+    prog = dom.Progress(machine=args.progress)
+    domain = dom.check_domain(args.domain)
+    user = dom.check_login(args.user)
+    admins = dom.parse_groups(args.admins) if args.admins else None
+    if not args.yes and not args.progress:
+        if not sys.stdin.isatty():
+            raise DomainError("invalid", _("Nothing was changed. Confirm with --yes when running without a terminal."))
+        print(_("The computer joins the domain %s: domain accounts can sign in, the administrators of the "
+                "domain become administrators of this computer.") % domain)
+        if not ask(_("Join the domain %s?") % domain, True):
+            raise DomainError("invalid", _("Cancelled. Nothing was changed."))
+    password = read_password(args, _("Password of %s in %s: ") % (user, domain))
+    state = dom.join(domain, user, password, ou=args.ou or "", computer=args.computer_name or "", admins=admins,
+                     snapshot=not args.no_snapshot, chroot=args.offline_install, prog=prog)
+    password = None
+    if args.progress:
+        print("@@DONE", flush=True)
+        return 0
+    ok(_("This computer is now in the domain %s.") % state["domain"])
+    print(_("Sign out and sign in with a domain account (name or name@%s).") % state["domain"])
+    return 0
+
+
+def cmd_leave(args):
+    prog = dom.Progress(machine=args.progress)
+    state = dom.require_joined()
+    if not args.yes and not args.progress:
+        if not sys.stdin.isatty():
+            raise DomainError("invalid", _("Nothing was changed. Confirm with --yes when running without a terminal."))
+        print(_("Domain accounts will no longer sign in here. Their home folders and personal files stay."))
+        if not ask(_("Leave the domain %s?") % state["domain"], False):
+            raise DomainError("invalid", _("Cancelled. Nothing was changed."))
+    password = read_password(args, _("Password of %s in %s: ") % (args.user, state["domain"])) if args.user else ""
+    warnings, homes = dom.leave(args.user or "", password, prog=prog, snapshot=not args.no_snapshot)
+    password = None
+    if args.progress:
+        print("@@DONE", flush=True)
+        return 0
+    ok(_("This computer left the domain %s.") % state["domain"])
+    if homes:
+        print(_("Home folders of domain users stay: %s") % ", ".join(homes))
+    return 0
+
+
+def cmd_status(args):
+    st = dom.status()
+    if args.json:
+        print(json.dumps(st, ensure_ascii=False))
+        return 0
+    if not st["joined"]:
+        print(_("This computer is not in an organization network."))
+        print(D + _("Join: sudo lux domain join DOMAIN -U ADMINISTRATOR") + R)
+        return 0
+    online = {True: G + _("online") + R, False: Y + _("offline") + R}.get(st["online"], _("unknown"))
+    rows = [(_("Domain"), f"{st['domain']} ({st['short']})"), (_("Computer"), st["computer"] or "-"),
+            (_("Connection"), online), (_("Last contact"), fmt_time(st["last_online"])),
+            (_("Offline sign-in"), _("%s more days (of %d)") % (st["offline_left_days"] if st["offline_left_days"]
+                                                                 is not None else "-", st["offline_days"])),
+            (_("Administrators"), ", ".join(st["admin_groups"]) or "-"),
+            (_("Administrator rights"), (_("active") if st["admins_active"] else
+                                         Y + _("suspended until the next connection") + R)
+             + "  " + D + _("(at most %d days offline)") % st["admin_offline_days"] + R),
+            (_("Who may sign in"), ", ".join(st["allow_groups"]) or _("everybody in the domain"))]
+    if st["clashes"]:
+        rows.append((_("Full names"), ", ".join(dom.full_name(n, st["domain"]) for n in st["clashes"])))
+    w = max(len(k) for k, _v in rows) + 2
+    for k, v in rows:
+        print(f"{B}{k + ':':<{w}}{R}{v}")
+    return 0
+
+
+def cmd_list(kind):
+    st = dom.status()
+    if not st["joined"]:
+        raise DomainError("not-joined", dom.error_text("not-joined"))
+    items = {"admins": st["admin_groups"], "login": st["allow_groups"],
+             "share": [f"{s['url']}  {s['name']}" for s in st["shares"]],
+             "printer": [f"{p['name']}  {p['uri']}" for p in st["printers"]]}[kind]
+    for i in items:
+        print(i)
+    if kind == "login" and not items:
+        print(D + _("everybody in the domain") + R)
+    return 0
+
+
+def cmd_admins(args):
+    if args.action == "list":
+        return cmd_list("admins")
+    groups = dom.admins_change(args.group, args.action == "add")
+    ok(_("Administrators from the domain: %s") % (", ".join(groups) or "-"))
+    return 0
+
+
+def cmd_login(args):
+    if args.action == "list":
+        return cmd_list("login")
+    groups = dom.login_change(args.group, args.action == "allow")
+    ok(_("Who may sign in: %s") % (", ".join(groups) or _("everybody in the domain")))
+    return 0
+
+
+def cmd_set(args):
+    v = dom.set_option(args.name, args.value)
+    ok(f"{args.name} = {v}")
+    return 0
+
+
+def cmd_share(args):
+    if args.action == "list":
+        return cmd_list("share")
+    if not args.url:
+        raise DomainError("invalid", _("Enter the address of the shared folder (smb://server/folder)."))
+    dom.shares_change(args.url, args.name, args.action == "add")
+    ok(_("Shared folders updated; they appear in Files after the next sign-in."))
+    return 0
+
+
+def cmd_printer(args):
+    if args.action == "list":
+        return cmd_list("printer")
+    if not args.name:
+        raise DomainError("invalid", _("Enter the printer name."))
+    dom.printers_change(args.name, args.uri or "", args.action == "add", model=args.model)
+    ok(_("Printers updated."))
+    return 0
+
+
+def cmd_sync_time(args):
+    stamp = dom.sync_time()
+    ok(_("The clock was set from the domain: %s") % stamp)
+    return 0
+
+
+def cmd_refresh(args):
+    st = dom.refresh()
+    if args.json:
+        print(json.dumps(st))
+    return 0
+
+
+def cmd_repair(args):
+    dom.repair()
+    return 0
+
+
+def cmd_session(args):
+    dom.session_bookmarks()
+    return 0
+
+
+def parser():
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("-y", "--yes", action="store_true")
+    common.add_argument("--json", action="store_true")
+    common.add_argument("--progress", action="store_true")
+    common.add_argument("--password-stdin", action="store_true")
+    common.add_argument("--no-snapshot", action="store_true")
+    p = argparse.ArgumentParser(prog="lux domain", parents=[common],
+                                description=_("Organization network: Windows domain (Active Directory)"))
+    sub = p.add_subparsers(dest="cmd")
+    s = sub.add_parser("discover", parents=[common])
+    s.add_argument("domain")
+    s = sub.add_parser("join", parents=[common])
+    s.add_argument("domain")
+    s.add_argument("-U", "--user", required=True)
+    s.add_argument("--ou", default="")
+    s.add_argument("--computer-name", default="")
+    s.add_argument("--admins", default="")
+    s.add_argument("--offline-install", action="store_true")
+    s = sub.add_parser("leave", parents=[common])
+    s.add_argument("-U", "--user", default="")
+    sub.add_parser("status", parents=[common])
+    s = sub.add_parser("admins", parents=[common])
+    s.add_argument("action", choices=("add", "remove", "list"))
+    s.add_argument("group", nargs="?", default="")
+    s = sub.add_parser("login", parents=[common])
+    s.add_argument("action", choices=("allow", "deny", "list"))
+    s.add_argument("group", nargs="?", default="")
+    s = sub.add_parser("set", parents=[common])
+    s.add_argument("name", choices=("offline-days", "admin-offline-days"))
+    s.add_argument("value")
+    s = sub.add_parser("share", parents=[common])
+    s.add_argument("action", choices=("add", "remove", "list"))
+    s.add_argument("url", nargs="?", default="")
+    s.add_argument("name", nargs="?", default="")
+    s = sub.add_parser("printer", parents=[common])
+    s.add_argument("action", choices=("add", "remove", "list"))
+    s.add_argument("name", nargs="?", default="")
+    s.add_argument("uri", nargs="?", default="")
+    s.add_argument("--model", default="drv:///sample.drv/generic.ppd")
+    for name in ("sync-time", "refresh", "repair", "session"):
+        sub.add_parser(name, parents=[common])
+    sub.add_parser("help", parents=[common])
+    return p
+
+
+HELP = (("discover DOMAIN", "find the domain controllers and check the clock"),
+        ("join DOMAIN -U ADMIN [--ou OU]", "join this computer (asks for the domain administrator password)"),
+        ("leave [-U ADMIN]", "leave the domain; home folders and personal files stay"),
+        ("status [--json]", "domain, online or offline, offline sign-in, administrators"),
+        ("admins add|remove|list GROUP", "domain groups that administer this computer"),
+        ("login allow|deny|list GROUP", "who may sign in (empty = everybody in the domain)"),
+        ("set offline-days N", "how many days domain accounts may sign in offline"),
+        ("set admin-offline-days N", "how many days administrator rights last offline"),
+        ("share add|remove|list URL [NAME]", "shared folders of the organization in Files"),
+        ("printer add|remove|list NAME URI", "printers of a Windows print server (Kerberos)"),
+        ("sync-time", "set the clock from the domain"))
+
+HANDLERS = {"discover": cmd_discover, "join": cmd_join, "leave": cmd_leave, "status": cmd_status,
+            "admins": cmd_admins, "login": cmd_login, "set": cmd_set, "share": cmd_share,
+            "printer": cmd_printer, "sync-time": cmd_sync_time, "refresh": cmd_refresh, "repair": cmd_repair,
+            "session": cmd_session}
+
+
+def main(argv):
+    p = parser()
+    args = p.parse_args(argv)
+    if args.cmd in (None, "help"):
+        print(f"{B}{_('Usage:')}{R} lux domain <{_('command')}>\n")
+        for c, d in HELP:
+            print(f"  {c:<34}{_(d)}")
+        return 0 if args.cmd == "help" else 2
+    try:
+        if args.cmd in ROOT_CMDS or getattr(args, "action", None) in ROOT_SUB.get(args.cmd, ()):
+            need_root(args, argv)
+        if args.cmd in ("admins", "login") and args.action != "list" and not args.group:
+            raise DomainError("invalid", _("Enter the name of the domain group."))
+        rc = HANDLERS[args.cmd](args)
+        if rc == 0 and args.progress and args.cmd not in ("join", "leave"):
+            print("@@DONE", flush=True)
+        return rc
+    except DomainError as e:
+        if args.progress:
+            print(f"@@ERROR {e.code} {e}", flush=True)
+        else:
+            print(f"{E}✗{R} {e}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        print("", file=sys.stderr)
+        return 130
+    except OSError as e:
+        msg = _("Error: %s") % e
+        print(f"@@ERROR failed {msg}" if args.progress else f"{E}✗{R} {msg}", file=sys.stdout if args.progress
+              else sys.stderr, flush=True)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

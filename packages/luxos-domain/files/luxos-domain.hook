@@ -1,0 +1,13 @@
+# LuxOS - pocitac v domene: SSSD v /etc/nsswitch.conf a /etc/pam.d/system-auth i po aktualizaci
+# baliku, ktere tyto soubory vlastni (filesystem, glibc, pambase)
+[Trigger]
+Type = Path
+Operation = Install
+Operation = Upgrade
+Target = etc/nsswitch.conf
+Target = etc/pam.d/system-auth
+
+[Action]
+Description = Keeping sign-in with organization accounts...
+When = PostTransaction
+Exec = /usr/bin/lux-domain repair

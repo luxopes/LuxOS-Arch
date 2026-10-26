@@ -22,6 +22,10 @@ Existujici oddil (Destination > Replace an existing partition): vhodne oddily a 
 (radky PART=...), backend dostane DISK_MODE=partition, ROOT_PART a volitelne HOME_PART.
 Bezpecne smazani (souhrn > Erase securely first): WIPE=zero; behem mazani (@@WIPE START/END) tlacitko
 "Skip Erasing" vytvori soubor WIPE_CANCEL_FILE (backend ho kontroluje mezi kusy a pokracuje bez mazani).
+Firemni sit (krok Organization): DOMAIN, DOMAIN_USER, DOMAIN_PASSWORD, OU jdou backendu stejne jako ostatni
+hesla (stdin); tlacitko Najit vola "lux-domain discover DOMENA --json" (LUXOS_DOMAIN_CLI), kdyz je v live
+systemu. Nezdar pripojeni hlasi backend radkem "@@NOTICE text" (instalace pokracuje).
+  LUXOS_INSTALL_FAKE_DOMAIN_FAIL=1  (s FAKE) pripojeni k domene se nepovede (jen upozorneni na konci)
 """
 import json
 import os
@@ -41,6 +45,7 @@ sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))   # test ze zdroj
 import luxos_i18n  # noqa: E402
 from luxos_i18n import _  # noqa: E402
 import luxos_layout as lay  # noqa: E402
+import luxos_oem as oem  # noqa: E402 - spolecna kontrola kroku Firemni sit (i Pruvodce nastavenim)
 
 try:
     import luxai_account as acc  # noqa: E402
@@ -619,7 +624,10 @@ class Installer(Gtk.Window):
             "wipe": False,
             # OEM: priprava pro jineho cloveka (ucet si zalozi majitel v Pruvodci nastavenim)
             "oem": False, "oem_prepare": False, "oem_pw1": "", "oem_pw2": "",
+            # Firemni sit (domena Active Directory): heslo spravce domeny jen pro backend (stdin)
+            "org": False, "domain": "", "domain_user": "", "domain_pw": "", "domain_ou": "",
         }
+        self.notices = []         # nezavazna upozorneni backendu (@@NOTICE), ukazou se na konci
         self.luxai_panel = None   # panel prihlaseni LuxAI (drzi stav mezi prekreslenim)
         self.layout = None        # rucni rozdeleni (luxos_layout.Layout), vznikne v kroku Partitions
         self.layout_sel = None    # vybrany radek editoru (id uzlu / ("free", disk) / ("vgfree", vg))
@@ -668,8 +676,8 @@ class Installer(Gtk.Window):
         nav.pack_end(self.btn_back, False, False, 0)
         nav.pack_end(self.btn_extra, False, False, 0)
 
-        self.steps = ["welcome", "keyboard", "timezone", "disk", "account", "care", "software", "luxai", "summary",
-                      "install", "done"]
+        self.steps = ["welcome", "keyboard", "timezone", "disk", "account", "organization", "care", "software",
+                      "luxai", "summary", "install", "done"]
         if not self.templates:
             self.steps.remove("software")
         self.idx = 0
@@ -742,7 +750,8 @@ class Installer(Gtk.Window):
         return self.steps[self.idx]
 
     STEP_NAMES = {"welcome": "Introduction", "network": "Network", "keyboard": "Keyboard", "timezone": "Time Zone",
-                  "disk": "Destination", "partitions": "Partitions", "account": "Account", "care": "Maintenance", "software": "Software", "luxai": "LuxAI", "summary": "Summary",
+                  "disk": "Destination", "partitions": "Partitions", "account": "Account",
+                  "organization": "Organization", "care": "Maintenance", "software": "Software", "luxai": "LuxAI", "summary": "Summary",
                   "install": "Installation", "done": "Finish"}
 
     def render_sidebar(self):
@@ -998,6 +1007,12 @@ class Installer(Gtk.Window):
             self.steps.remove("luxai")
         elif not on and "luxai" not in self.steps:
             self.steps.insert(self.steps.index("summary"), "luxai")
+        # OEM: firemni sit nastavi majitel v Pruvodci nastavenim
+        if on and "organization" in self.steps:
+            self.steps.remove("organization")
+            self.s["org"] = False
+        elif not on and "organization" not in self.steps:
+            self.steps.insert(self.steps.index("account") + 1, "organization")
         self.render_sidebar()
 
     def choose_lang(self, locale):
@@ -2448,6 +2463,116 @@ class Installer(Gtk.Window):
             self.s["oem_prepare"] = on
             GLib.idle_add(lambda: self.render() and False)
 
+    # ---- 6b. firemni sit (domena Active Directory) ----
+    def page_organization(self, page):
+        self.heading(page, _("Who does this computer belong to?"),
+                     _("A computer of a company or school can join its Windows domain (Active Directory): "
+                       "people then sign in with their work account."))
+        me = self.card(_("Me"), _("A personal computer with local accounts."), not self.s["org"],
+                       lambda: self.pick_org(False), icon="avatar-default")
+        org = self.card(_("An organization (Active Directory domain)"),
+                        _("Microsoft Active Directory or Samba. You need a domain administrator to join."),
+                        self.s["org"], lambda: self.pick_org(True), icon="network-workgroup")
+        page.pack_start(me, False, False, 0)
+        page.pack_start(org, False, False, 0)
+        self.valid = lambda: not oem.domain_problem(self.s)
+        self.why = lambda: {"domain": _("Enter the domain name (e.g. firma.local)."),
+                            "user": _("Enter the domain administrator."),
+                            "password": _("Enter the administrator password.")}.get(oem.domain_problem(self.s), "")
+        if not self.s["org"]:
+            return
+        grid = Gtk.Grid(column_spacing=14, row_spacing=6)
+        page.pack_start(grid, False, False, 0)
+        rows = [0]
+
+        def add(label, widget):
+            lab = Gtk.Label(label=label, xalign=1)
+            lab.get_style_context().add_class("subtitle")
+            grid.attach(lab, 0, rows[0], 1, 1)
+            widget.set_hexpand(True)
+            grid.attach(widget, 1, rows[0], 1, 1)
+            rows[0] += 1
+
+        dom = Gtk.Entry(text=self.s["domain"], placeholder_text="firma.local")
+        find = Gtk.Button(label=_("Find"))
+        drow = Gtk.Box(spacing=8)
+        drow.pack_start(dom, True, True, 0)
+        drow.pack_start(find, False, False, 0)
+        add(_("Domain"), drow)
+        found = self.hint("")
+        grid.attach(found, 1, rows[0], 1, 1)
+        rows[0] += 1
+        user = Gtk.Entry(text=self.s["domain_user"], placeholder_text="administrator")
+        add(_("Administrator"), user)
+        pw = PasswordEntry(placeholder_text=_("Password"), input_purpose=Gtk.InputPurpose.PASSWORD)
+        pw.set_text(self.s["domain_pw"])
+        add(_("Password"), pw)
+        exp = Gtk.Expander(label=_("Advanced"), expanded=bool(self.s["domain_ou"]))
+        ou = Gtk.Entry(text=self.s["domain_ou"], placeholder_text="OU=Computers,DC=firma,DC=local")
+        ou_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, margin_top=6)
+        ou_box.pack_start(self.hint(_("Organizational unit for the computer (optional)")), False, False, 0)
+        ou_box.pack_start(ou, False, False, 0)
+        exp.add(ou_box)
+        add("", exp)
+        page.pack_start(self.hint(_("The password is used only once to join the domain and is never saved. "
+                                    "Your own account stays an administrator of this computer.")), False, False, 0)
+        self.domain_found = found
+        self.domain_widgets = {"domain": dom, "user": user, "password": pw, "ou": ou, "find": find}
+
+        def changed(_e):
+            self.s["domain"] = dom.get_text().strip().lower()
+            self.s["domain_user"] = user.get_text()
+            self.s["domain_pw"] = pw.get_text()
+            self.s["domain_ou"] = ou.get_text()
+            find.set_sensitive(oem.valid_domain(self.s["domain"]))
+            self.update_nav()
+        for e in (dom, user, pw, ou):
+            e.connect("changed", changed)
+        dom.connect("changed", lambda _e: say(found, ""))
+        find.connect("clicked", lambda _b: self.find_domain(find))
+        changed(None)
+        GLib.idle_add(lambda: (dom.grab_focus_without_selecting(), dom.set_position(-1)) and False)
+
+    def pick_org(self, on):
+        if on != self.s["org"]:
+            self.s["org"] = on
+            GLib.idle_add(lambda: self.render() and False)
+
+    def find_domain(self, button):
+        """Najit: lux-domain discover (jen cte, bez prav roota); bez luxos-domain v live systemu jen kontrola."""
+        domain, label = self.s["domain"], self.domain_found
+        ctx = label.get_style_context()
+        for c in ("error", "good"):
+            ctx.remove_class(c)
+        if not os.access(oem.DOMAIN_CLI, os.X_OK):
+            say(label, _("The domain cannot be checked here; the computer joins it at the end of the installation."))
+            return
+        button.set_sensitive(False)
+        say(label, _("Looking for the domain…"))
+
+        def work():
+            try:
+                r = subprocess.run([oem.DOMAIN_CLI, "discover", domain, "--json"], capture_output=True, text=True,
+                                   timeout=40)
+                return oem.parse_discover(r.stdout)
+            except (OSError, subprocess.TimeoutExpired):
+                return oem.parse_discover("")
+
+        def done(res, _err):
+            res = res or oem.parse_discover("")
+            button.set_sensitive(True)
+            if label is not self.domain_found or self.s["domain"] != domain:
+                return     # stranka se mezitim zmenila
+            if res["ok"]:
+                text = _("Found: Active Directory %s (domain controllers: %s)") % (
+                    res.get("realm") or res.get("domain") or domain, len(res.get("controllers") or []))
+                ctx.add_class("good")
+            else:
+                text = res.get("message") or _("The domain was not found.")
+                ctx.add_class("error")
+            say(label, text)
+        run_async(work, done)
+
     # ---- 7. udrzba (carefree / classic) ----
     CARE = {
         "carefree": ("Carefree", "emblem-default", [
@@ -2672,6 +2797,9 @@ class Installer(Gtk.Window):
                  else _("Carefree - automatic updates and repairs")),
                 (_("Software"), self.templates_text()),
                 ("LuxAI", _("signed in") if self.s["luxai"] else _("not signed in"))]
+        if self.s["org"] and not self.s["oem"]:
+            rows.append((_("Organization"), _("domain %s (administrator %s)") % (self.s["domain"],
+                                                                                 self.s["domain_user"].strip())))
         if self.s["oem"]:
             # OEM: ucet, nazev pocitace a LuxAI nastavi majitel
             who = _("the owner creates it at the first start (OEM)")
@@ -2961,6 +3089,13 @@ class Installer(Gtk.Window):
             s = Gtk.Label(label=_("Remove the installation media and restart your computer."), wrap=True)
             s.get_style_context().add_class("subtitle")
             page.pack_start(s, False, False, 0)
+            for text in self.notices:
+                warn = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, margin_top=10)
+                warn.get_style_context().add_class("warn")
+                lab = Gtk.Label(label=text, xalign=0, wrap=True, max_width_chars=70)
+                lab.get_style_context().add_class("warn-text")
+                warn.pack_start(lab, False, False, 0)
+                page.pack_start(warn, False, False, 0)
             self.extra_action = lambda: Gtk.main_quit()
             self.btn_extra.set_label(_("Later"))
             return
@@ -3027,6 +3162,10 @@ class Installer(Gtk.Window):
             "TEMPLATES": ",".join(s["templates"]),
             "WIPE": "zero" if s["wipe"] else "none", "WIPE_CANCEL_FILE": self.wipe_cancel_file(),
         }
+        if s["org"] and not s["oem"]:
+            d = oem.domain_values(s)
+            values.update({"DOMAIN": d["DOMAIN"], "DOMAIN_USER": d["DOMAIN_USER"],
+                           "DOMAIN_PASSWORD": d["DOMAIN_PASSWORD"], "OU": d["DOMAIN_OU"]})
         if s["oem"]:
             values.update({"OEM": "1", "OEM_SEAL": "0" if s["oem_prepare"] else "1", "USERNAME": "", "FULLNAME": "",
                            "PASSWORD": s["oem_pw1"] if s["oem_prepare"] else "", "HOSTNAME_SEL": "luxos",
@@ -3100,6 +3239,7 @@ class Installer(Gtk.Window):
         self.net = None                   # {"rate", "got", "total", "avg", "idle", "slow"} behem stahovani
         self.status_until = 0.0
         self.error_text, self.done_flag = "", False
+        self.notices = []
         if FAKE:
             cmd = ["bash", "-c", FAKE_BACKEND]
         elif self.root:
@@ -3181,6 +3321,8 @@ class Installer(Gtk.Window):
             self.show_status(text, hold=12, force=not text)
         elif line.startswith("@@ERROR "):
             self.error_text = self.error_text or line[8:]
+        elif line.startswith("@@NOTICE "):
+            self.notices.append(line[9:])
         elif line == "@@DONE":
             self.done_flag = True
         else:
@@ -3364,6 +3506,7 @@ echo "fake backend: FULLNAME=$FULLNAME, password length ${#PASSWORD}, LuxAI=${LU
 echo "fake backend: TEMPLATES=${TEMPLATES-}"
 [[ ${OEM:-0} == 1 ]] && echo "fake backend: OEM=1 OEM_SEAL=$OEM_SEAL, password length ${#PASSWORD}"
 [[ $DISK_MODE == partition ]] && echo "fake backend: ROOT_PART=$ROOT_PART HOME_PART=${HOME_PART-}"
+[[ -n ${DOMAIN-} ]] && echo "fake backend: DOMAIN=$DOMAIN DOMAIN_USER=$DOMAIN_USER OU=${OU-}, domain password length ${#DOMAIN_PASSWORD}"
 d=${LUXOS_INSTALL_FAKE_DELAY:-0.4}
 # Stahovani jako v luxos-install (pac_filter): @@NET kazde "2 s", srozumitelne hlasky o serverech
 fake_download() {
@@ -3468,6 +3611,12 @@ for s in "${steps[@]}"; do
         done
     else
         sleep "$d"
+    fi
+    if [[ $s == "Configuring the system" && -n ${DOMAIN-} ]]; then
+        echo "@@STATUS Joining the organization network $DOMAIN…"
+        if [[ ${LUXOS_INSTALL_FAKE_DOMAIN_FAIL-} == 1 ]]; then
+            echo "@@NOTICE The computer could not join the domain $DOMAIN: Wrong administrator name or password. Join it later in Settings > Organization Network."
+        fi
     fi
 done
 echo "@@DONE"

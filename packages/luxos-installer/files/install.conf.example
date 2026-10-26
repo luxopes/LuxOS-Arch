@@ -46,6 +46,16 @@ LUXAI_EMAIL=
 LUXAI_PASSWORD=
 # ... nebo uz prihlaseny ucet jako JSON (obsah ~/.config/luxai/account.json, pouziva GUI)
 LUXAI_ACCOUNT=
+# Nepovinne: firemni sit - pripojeni k domene Microsoft Active Directory / Samba AD (balik luxos-domain).
+# Pocitac se pripoji na konci instalace (lux-domain join v novem systemu); lokalni ucet USERNAME zustava
+# spravcem pro nouzi. Nepovede-li se to (spatne heslo, DNS, hodiny), instalace se dokonci a pripojit jde
+# pozdeji v Nastaveni > Firemni sit nebo "sudo lux domain join". Heslo se pouzije jen jednou (stdin
+# lux-domain) a nikam se nezapisuje - konfiguraci s heslem posilejte radeji pres --config - (stdin).
+#DOMAIN=firma.local          # DNS jmeno domeny (prazdne = osobni pocitac)
+#DOMAIN_USER=administrator   # ucet, ktery smi pridavat pocitace do domeny
+#DOMAIN_PASSWORD=
+#OU="OU=Pocitace,DC=firma,DC=local"   # nepovinne: organizacni jednotka pro ucet pocitace (alias DOMAIN_OU=)
+#DOMAIN_ADMINS="Domain Admins,LuxOS Admins"   # nepovinne: domenove skupiny = spravci tohoto pocitace
 # Nepovinne: priprava pro jineho cloveka (OEM) - bez osobniho uctu; ucet, jazyk, Wi-Fi a heslo disku
 # si majitel nastavi v Pruvodci nastavenim pri prvnim startu (USERNAME a LUKS_PASS se nezadavaji;
 # sifrovani = docasny klic v initramfs, do prvniho startu bez hesla)

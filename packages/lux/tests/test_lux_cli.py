@@ -136,6 +136,21 @@ class CLI(unittest.TestCase):
             out.append(" ".join(words))
         return out
 
+    def test_domain(self):
+        """lux domain: preda vse prikazu lux-domain (balik luxos-domain), -y jako --yes; bez baliku rada."""
+        stub = os.path.join(self.bin, "lux-domain")
+        with open(stub, "w") as f:
+            f.write(STUB)
+        os.chmod(stub, 0o755)
+        rc, out = self.lux("-y", "domain", "join", "firma.local", "-U", "admin", env={"LUX_DOMAIN": stub})
+        self.assertEqual(rc, 0, out)
+        rc, out = self.lux("domain", "status", "--json", env={"LUX_DOMAIN": stub})
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(self.calls("lux-domain"), ["join firma.local -U admin --yes", "status --json"])
+        rc, out = self.lux("domain", "status", env={"LUX_DOMAIN": os.path.join(self.tmp, "missing")})
+        self.assertEqual(rc, 1)
+        self.assertIn("lux install luxos-domain", out)
+
     def test_system(self):
         """lux system: show/check bez roota, diff/apply/init pres sudo, -y se preda dal."""
         rc, out = self.lux("system", "show")

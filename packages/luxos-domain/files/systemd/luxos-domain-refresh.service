@@ -1,0 +1,11 @@
+[Unit]
+Description=LuxOS organization network: connection state, administrator rights, user names
+Documentation=man:luxos-domain(7)
+ConditionPathExists=/var/lib/luxos/domain/state.json
+After=sssd.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/lux-domain refresh
+Nice=10
+IOSchedulingClass=idle

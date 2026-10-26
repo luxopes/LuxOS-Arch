@@ -1,0 +1,701 @@
+#!/usr/bin/env python3
+"""LuxOS - Nastaveni > Firemni sit: pripojeni pocitace do domeny Active Directory (Microsoft / Samba).
+
+  luxos-domain-settings      okno: pripojit (najit domenu, jmeno a heslo spravce domeny, prubeh)
+                             nebo stav (spojeni, offline prihlaseni, spravci pocitace, odpojit)
+
+Cteni stavu bez prav: lux-domain status/discover --json. Zmeny jen pres pkexec
+/usr/lib/luxos/domain/luxos-domain-helper (pevne akce); heslo spravce domeny jde jen na stdin
+pomocnika, nikdy do argumentu, prostredi ani na disk. Dlouhe akce bezi ve vlakne, vysledek
+se do GTK predava pres GLib.idle_add.
+
+Testy: LUXOS_DOMAIN_CLI (misto /usr/bin/lux-domain), LUXOS_DOMAIN_HELPER_CMD (misto pkexec + pomocnik),
+LUXOS_DOMAIN_RESOLV (misto /etc/resolv.conf pro predvyplneni domeny).
+"""
+import datetime
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+import threading
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+try:
+    from luxos_i18n import _
+except ImportError:  # mimo LuxOS (testy bez luxos-i18n)
+    def _(text):
+        return text
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+
+APP = "luxos-domain-settings"
+CLI = os.environ.get("LUXOS_DOMAIN_CLI") or "/usr/bin/lux-domain"
+HELPER = (shlex.split(os.environ["LUXOS_DOMAIN_HELPER_CMD"]) if os.environ.get("LUXOS_DOMAIN_HELPER_CMD")
+          else ["pkexec", "/usr/lib/luxos/domain/luxos-domain-helper"])
+RESOLV = os.environ.get("LUXOS_DOMAIN_RESOLV") or "/etc/resolv.conf"
+DEFAULT_ADMINS = "Domain Admins"
+CLOCK_LIMIT = 300            # Kerberos snese rozdil hodin nejvys 5 minut
+DOMAIN_RE = re.compile(r"^(?=.{1,253}$)[A-Za-z0-9]([A-Za-z0-9-]{0,62}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,62}[A-Za-z0-9])?)+$")
+
+CSS = b"""
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }
+.row { padding: 10px 14px; }
+.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
+.hint { font-size: 11px; opacity: 0.65; }
+.hero-title { font-size: 20px; font-weight: 700; }
+.good { color: #2e9d48; font-weight: 600; }
+.warn { color: #c57d00; font-weight: 600; }
+.error { color: #d6453b; }
+"""
+
+# Chybove kody z protokolu @@ERROR (kontrakt luxos-domain) -> lidska hlaska, kdyz pomocnik zadnou neposle
+ERRORS = {
+    "password": "The name or password of the domain administrator is not correct.",
+    "rights": "This account is not allowed to add computers to the domain.",
+    "dns": "The domain controller could not be found. Check the domain name and that this computer "
+           "uses the DNS server of the organization.",
+    "not-found": "No organization network with this name was found.",
+    "clock": "The clock of this computer differs from the domain by more than 5 minutes.",
+    "exists": "A computer with this name already exists in the domain.",
+    "network": "The network is not available. Connect to the network of the organization and try again.",
+    "already-joined": "This computer is already in a domain.",
+    "not-joined": "This computer is not in a domain.",
+    "invalid": "Some of the entered values are not valid.",
+    "failed": "The operation failed.",
+    "cancelled": "Authorization was cancelled. Nothing was changed.",
+}
+
+
+# ---- ciste funkce (testovane bez GTK) ------------------------------------------------------------
+def parse_line(line):
+    """Radek pomocnika -> ("step", text, n, total) | ("error", code, text) | ("done",) | ("log", radek)."""
+    line = line.rstrip("\n")
+    if line.startswith("@@STEP "):
+        parts = line[7:].split(" ", 2)
+        if len(parts) == 3 and parts[0].isdigit() and parts[1].isdigit():
+            return ("step", parts[2], int(parts[0]), int(parts[1]))
+        return ("step", line[7:], 0, 0)
+    if line.startswith("@@ERROR "):
+        code, _sep, text = line[8:].partition(" ")
+        return ("error", code, text.strip())
+    if line.strip() == "@@DONE":
+        return ("done",)
+    return ("log", line)
+
+
+def error_text(code, text=""):
+    """Hlaska pomocnika (uz prelozena v luxos-domain) ma prednost; jinak text podle kodu."""
+    if text:
+        return text
+    return _(ERRORS.get(code, ERRORS["failed"]))
+
+
+def describe(disc):
+    """Vysledek discover -> "Microsoft Active Directory – firma.local – 2 controllers"."""
+    n = len(disc.get("controllers") or [])
+    kind = _("Microsoft Active Directory") if disc.get("type", "active-directory") == "active-directory" \
+        else str(disc.get("type"))
+    count = _("1 controller") if n == 1 else _("%d controllers") % n
+    return " – ".join(x for x in (kind, disc.get("domain", ""), count if n else "") if x)
+
+
+def search_domain(path=RESOLV):
+    """Predvyplneni pole Domena: prvni "search"/"domain" z resolv.conf (z DHCP), mimo .local mDNS."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return ""
+    for line in lines:
+        p = line.split()
+        if len(p) >= 2 and p[0] in ("search", "domain"):
+            for d in p[1:]:
+                d = d.rstrip(".")
+                if DOMAIN_RE.match(d) and d not in ("lan", "home", "localdomain"):
+                    return d
+    return ""
+
+
+def valid_domain(d):
+    return bool(DOMAIN_RE.match(d or ""))
+
+
+def when(iso):
+    """ISO cas -> kratky mistni text ("26. 10. 14:05" / "Oct 26 14:05") nebo ""."""
+    if not iso:
+        return ""
+    try:
+        t = datetime.datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+    except ValueError:
+        return str(iso)
+    if t.tzinfo:
+        t = t.astimezone()
+    return t.strftime("%x %H:%M")
+
+
+def helper_argv(action, *args):
+    return HELPER + [action] + [str(a) for a in args if a is not None and a != ""]
+
+
+def run_helper(action, args, password=None, on_line=None):
+    """Spusti pomocnika (blokujici - volat ve vlakne). Heslo jen jako prvni radek stdin.
+    -> (ok, kod chyby, text chyby)."""
+    try:
+        p = subprocess.Popen(helper_argv(action, *args), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, text=True, bufsize=1)
+    except OSError as e:
+        return False, "failed", str(e)
+    try:
+        p.stdin.write((password or "") + "\n" if password is not None else "")
+        p.stdin.close()
+    except (BrokenPipeError, OSError):
+        pass
+    code, text, log = "", "", []
+    for line in p.stdout:
+        item = parse_line(line)
+        if item[0] == "error":
+            code, text = item[1], item[2]
+        elif item[0] == "log" and item[1].strip():
+            log.append(item[1].strip())
+        if on_line:
+            on_line(item)
+    rc = p.wait()
+    if rc == 0 and not code:
+        return True, "", ""
+    if not code:
+        # pkexec: 126 = zruseno uzivatelem, 127 = neopravneno / pomocnik chybi
+        code = "cancelled" if rc in (126, 127) else "failed"
+        text = "" if code == "cancelled" else (log[-1] if log else "")
+    return False, code, text
+
+
+def run_cli(args, timeout=60):
+    """lux-domain ... --json -> slovnik (i pri chybe discover: {"ok": False, ...})."""
+    try:
+        r = subprocess.run([CLI] + args + ["--json"], capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return {"ok": False, "error": "failed", "message": str(e)}
+    try:
+        data = json.loads(r.stdout or "{}")
+    except ValueError:
+        data = None
+    if not isinstance(data, dict):
+        return {"ok": False, "error": "failed", "message": (r.stderr or r.stdout or "").strip()[-300:]}
+    return data
+
+
+def background(fn, done):
+    """fn() ve vlakne, done(vysledek) v hlavnim vlakne GTK."""
+    def work():
+        res = fn()
+        GLib.idle_add(lambda: done(res) and False)
+    t = threading.Thread(target=work, daemon=True)
+    t.start()
+    return t
+
+
+# ---- GTK -----------------------------------------------------------------------------------------
+class Group(Gtk.Box):
+    def __init__(self, page, title):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        label = Gtk.Label(label=title, xalign=0)
+        label.get_style_context().add_class("group-title")
+        page.pack_start(label, False, False, 0)
+        self.get_style_context().add_class("group")
+        page.pack_start(self, False, False, 0)
+        self.rows = 0
+
+    def row(self, title, widget=None, hint=None):
+        box = Gtk.Box(spacing=12)
+        box.get_style_context().add_class("row")
+        if self.rows:
+            box.get_style_context().add_class("row-sep")
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        t = Gtk.Label(label=title, xalign=0, wrap=True, max_width_chars=40)
+        text.pack_start(t, False, False, 0)
+        h = None
+        if hint is not None:
+            h = Gtk.Label(label=hint, xalign=0, wrap=True, max_width_chars=48)
+            h.get_style_context().add_class("hint")
+            text.pack_start(h, False, False, 0)
+        box.pack_start(text, True, True, 0)
+        if widget is not None:
+            widget.set_valign(Gtk.Align.CENTER)
+            box.pack_end(widget, False, False, 0)
+        self.pack_start(box, False, False, 0)
+        self.rows += 1
+        box.title, box.hint = t, h
+        return box
+
+
+def styled(widget, *classes):
+    for c in classes:
+        widget.get_style_context().add_class(c)
+    return widget
+
+
+class DomainWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Organization Network"))
+        self.set_default_size(600, 640)
+        self.set_icon_name("network-workgroup")
+        self.set_wmclass(APP, APP)
+        self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("Organization Network")))
+        prov = Gtk.CssProvider()
+        prov.load_from_data(CSS)
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), prov,
+                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.add(self.sw)
+        self.status = None
+        self.discovered = None
+        self.busy_op = None          # bezici akce (jmeno) - zabranuje dvojimu spusteni
+        self.last_threads = []
+        self.show_loading()
+        self.reload()
+
+    # -- spolecne --
+    def set_page(self, box):
+        child = self.sw.get_child()
+        if child is not None:
+            self.sw.remove(child)
+        self.page = box
+        self.sw.add(box)
+        self.sw.show_all()
+
+    def new_page(self):
+        return Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, margin=22, margin_top=10)
+
+    def show_loading(self):
+        box = self.new_page()
+        sp = Gtk.Spinner(active=True, halign=Gtk.Align.CENTER, margin_top=80)
+        box.pack_start(sp, False, False, 0)
+        self.page_name = "loading"
+        self.set_page(box)
+
+    def reload(self):
+        self.last_threads.append(background(lambda: run_cli(["status"]), self.loaded))
+
+    def loaded(self, st):
+        self.status = st if isinstance(st, dict) else {}
+        if self.status.get("joined"):
+            self.show_joined()
+        else:
+            self.show_join(self.status.get("message") if self.status.get("ok") is False else None)
+
+    def say(self, label, text, kind="hint"):
+        ctx = label.get_style_context()
+        for c in ("hint", "good", "warn", "error"):
+            ctx.remove_class(c)
+        if kind:
+            ctx.add_class(kind)
+        label.set_text(text or "")
+        label.set_visible(bool(text))
+
+    def msg_label(self):
+        lbl = Gtk.Label(xalign=0, wrap=True, max_width_chars=60, selectable=True)
+        lbl.set_no_show_all(True)
+        return lbl
+
+    # -- pripojeni --
+    def show_join(self, problem=None):
+        self.page_name = "join"
+        box = self.new_page()
+        hero = Gtk.Label(label=_("Join an Organization Network"), xalign=0, margin_top=6)
+        styled(hero, "hero-title")
+        box.pack_start(hero, False, False, 0)
+        intro = Gtk.Label(label=_("Connect this computer to the Windows domain (Active Directory) of your company or "
+                                  "school. Then people sign in with their organization account, get shared folders "
+                                  "and printers without another password, and IT can manage the computer."),
+                          xalign=0, wrap=True, max_width_chars=70, margin_top=4)
+        styled(intro, "hint")
+        box.pack_start(intro, False, False, 0)
+
+        g = Group(box, _("Domain"))
+        self.domain_entry = Gtk.Entry(placeholder_text="firma.local", width_chars=24, activates_default=False)
+        self.domain_entry.set_text(search_domain())
+        self.domain_entry.connect("changed", self.on_domain_changed)
+        self.domain_entry.connect("activate", lambda _e: self.find())
+        self.find_btn = Gtk.Button(label=_("Find"))
+        self.find_btn.connect("clicked", lambda _b: self.find())
+        dbox = Gtk.Box(spacing=6)
+        dbox.pack_start(self.domain_entry, False, False, 0)
+        dbox.pack_start(self.find_btn, False, False, 0)
+        g.row(_("Domain name"), dbox, _("For example firma.local or ad.school.cz"))
+        res = Gtk.Box(spacing=8, margin_start=14, margin_end=14, margin_bottom=8)
+        self.find_spin = Gtk.Spinner()
+        self.find_spin.set_no_show_all(True)
+        self.found = self.msg_label()
+        res.pack_start(self.find_spin, False, False, 0)
+        res.pack_start(self.found, True, True, 0)
+        g.pack_start(res, False, False, 0)
+        self.clock_btn = Gtk.Button(label=_("Set the Clock from the Domain"), halign=Gtk.Align.START,
+                                    margin_start=14, margin_bottom=10)
+        self.clock_btn.set_no_show_all(True)
+        self.clock_btn.connect("clicked", lambda _b: self.sync_time())
+        g.pack_start(self.clock_btn, False, False, 0)
+
+        g = Group(box, _("Domain administrator"))
+        self.user_entry = Gtk.Entry(placeholder_text=_("Administrator"), width_chars=24)
+        self.user_entry.connect("changed", lambda _e: self.update_join_button())
+        g.row(_("Name"), self.user_entry, _("An account that may add computers to the domain."))
+        self.pw_entry = Gtk.Entry(visibility=False, width_chars=24, input_purpose=Gtk.InputPurpose.PASSWORD)
+        self.pw_entry.connect("changed", lambda _e: self.update_join_button())
+        self.pw_entry.connect("activate", lambda _e: self.join())
+        g.row(_("Password"), self.pw_entry, _("Used only to join; it is not saved."))
+
+        exp = Gtk.Expander(label=_("Advanced"), margin_top=12)
+        adv = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        g = Group(adv, _("Advanced"))
+        self.ou_entry = Gtk.Entry(placeholder_text="OU=Computers,DC=firma,DC=local", width_chars=28)
+        g.row(_("Organizational unit (OU)"), self.ou_entry, _("Where the computer account is created. Empty = default."))
+        self.admins_entry = Gtk.Entry(width_chars=24)
+        self.admins_entry.set_text(DEFAULT_ADMINS)
+        g.row(_("Administrators of this computer"), self.admins_entry,
+              _("Members of this domain group may install software and change settings."))
+        exp.add(adv)
+        box.pack_start(exp, False, False, 0)
+
+        act = Gtk.Box(spacing=10, margin_top=18)
+        self.join_btn = styled(Gtk.Button(label=_("Join")), "suggested-action")
+        self.join_btn.connect("clicked", lambda _b: self.join())
+        act.pack_end(self.join_btn, False, False, 0)
+        self.progress = Gtk.ProgressBar(show_text=False, valign=Gtk.Align.CENTER)
+        self.progress.set_no_show_all(True)
+        act.pack_start(self.progress, True, True, 0)
+        box.pack_start(act, False, False, 0)
+        self.step_label = self.msg_label()
+        box.pack_start(self.step_label, False, False, 4)
+        self.result = self.msg_label()
+        box.pack_start(self.result, False, False, 4)
+        self.set_page(box)
+        if problem:
+            self.say(self.result, problem, "error")
+        self.update_join_button()
+
+    def on_domain_changed(self, _e):
+        self.discovered = None
+        self.say(self.found, "")
+        self.clock_btn.hide()
+        self.update_join_button()
+
+    def join_values(self):
+        return (self.domain_entry.get_text().strip().lower(), self.user_entry.get_text().strip(),
+                self.pw_entry.get_text(), self.ou_entry.get_text().strip(), self.admins_entry.get_text().strip())
+
+    def update_join_button(self):
+        d, u, pw, _ou, _a = self.join_values()
+        self.join_btn.set_sensitive(self.busy_op is None and valid_domain(d) and bool(u) and bool(pw))
+        self.find_btn.set_sensitive(self.busy_op is None and valid_domain(d))
+
+    def set_busy(self, op):
+        self.busy_op = op
+        for w in (self.domain_entry, self.user_entry, self.pw_entry, self.ou_entry, self.admins_entry):
+            w.set_sensitive(op is None)
+        self.update_join_button()
+
+    def find(self):
+        d = self.domain_entry.get_text().strip().lower()
+        if not valid_domain(d) or self.busy_op:
+            return
+        self.set_busy("find")
+        self.find_spin.show()
+        self.find_spin.start()
+        self.say(self.found, _("Looking for the domain controllers…"))
+        self.last_threads.append(background(lambda: run_cli(["discover", d], timeout=90), self.found_done))
+
+    def found_done(self, res):
+        self.find_spin.stop()
+        self.find_spin.hide()
+        self.set_busy(None)
+        if not res.get("ok"):
+            self.discovered = None
+            self.say(self.found, error_text(res.get("error", "failed"), res.get("message", "")), "error")
+            self.clock_btn.set_visible(res.get("error") == "clock")
+            return
+        self.discovered = res
+        skew = res.get("clock_skew")
+        if isinstance(skew, (int, float)) and abs(skew) > CLOCK_LIMIT:
+            self.say(self.found, describe(res) + "\n" + error_text("clock"), "warn")
+            self.clock_btn.show()
+        else:
+            self.say(self.found, describe(res), "good")
+            self.clock_btn.hide()
+
+    def sync_time(self):
+        if self.busy_op:
+            return
+        self.set_busy("clock")
+        self.say(self.found, _("Setting the clock from the domain…"))
+        self.last_threads.append(background(lambda: run_helper("sync-time", []), self.sync_done))
+
+    def sync_done(self, res):
+        ok, code, text = res
+        self.set_busy(None)
+        if ok:
+            self.clock_btn.hide()
+            self.say(self.found, _("The clock now matches the domain."), "good")
+        else:
+            self.say(self.found, error_text(code, text), "error")
+
+    def join(self):
+        d, u, pw, ou, admins = self.join_values()
+        if self.busy_op or not (valid_domain(d) and u and pw):
+            return
+        self.set_busy("join")
+        self.progress.set_fraction(0.0)
+        self.progress.show()
+        self.say(self.result, "")
+        self.say(self.step_label, _("Preparing…"))
+        self.clock_btn.hide()
+        self.pw_entry.set_text("")          # heslo nezustava v okne ani po chybe
+        add_admins = admins and admins.lower() != DEFAULT_ADMINS.lower()
+
+        def work():
+            ok, code, text = run_helper("join", [d, u, ou], password=pw,
+                                        on_line=lambda item: GLib.idle_add(self.on_progress, item))
+            if ok and add_admins:
+                ok2, code2, text2 = run_helper("admins-add", [admins])
+                return True, ("admins", error_text(code2, text2)) if not ok2 else None
+            return ok, (code, text)
+        self.last_threads.append(background(work, self.join_done))
+
+    def on_progress(self, item):
+        if item[0] == "step":
+            _k, text, n, total = item
+            self.say(self.step_label, text)
+            if total:
+                self.progress.set_fraction(min(1.0, n / total))
+            else:
+                self.progress.pulse()
+        return False
+
+    def join_done(self, res):
+        ok, detail = res
+        self.set_busy(None)
+        self.progress.hide()
+        if ok:
+            self.say(self.step_label, "")
+            done = _("Done. Log out and sign in with your organization account.")
+            if detail:
+                done += "\n" + _("The administrators group could not be set: %s") % detail[1]
+            self.joined_message = done
+            self.reload()
+            return
+        code, text = detail
+        self.say(self.step_label, "")
+        self.say(self.result, error_text(code, text), "error")
+        if code == "clock":
+            self.clock_btn.show()
+
+    # -- pripojeno --
+    def show_joined(self):
+        self.page_name = "joined"
+        st = self.status
+        box = self.new_page()
+        hero = Gtk.Label(label=_("This computer is in the organization network"), xalign=0, margin_top=6)
+        styled(hero, "hero-title")
+        box.pack_start(hero, False, False, 0)
+        note = getattr(self, "joined_message", None)
+        if note:
+            box.pack_start(styled(Gtk.Label(label=note, xalign=0, wrap=True, max_width_chars=70), "good"),
+                           False, False, 4)
+            self.joined_message = None
+
+        g = Group(box, _("Domain"))
+        g.row(_("Domain"), styled(Gtk.Label(label=st.get("domain", ""), selectable=True), "dim"),
+              st.get("realm") or None)
+        if st.get("computer"):
+            g.row(_("Computer name in the domain"), Gtk.Label(label=st["computer"], selectable=True))
+        online = st.get("online")
+        if online is True:
+            conn = styled(Gtk.Label(label=_("Connected")), "good")
+            hint = None
+        elif online is False:
+            conn = styled(Gtk.Label(label=_("Offline")), "warn")
+            hint = (_("Last contact with the domain: %s") % when(st["last_online"])) if st.get("last_online") \
+                else _("The domain has not been reached yet.")
+        else:
+            conn = styled(Gtk.Label(label=_("Unknown")), "hint")
+            hint = None
+        self.conn_row = g.row(_("Connection"), conn, hint)
+        if st.get("joined_at"):
+            g.row(_("Joined"), Gtk.Label(label=when(st["joined_at"])))
+
+        g = Group(box, _("Sign-in without connection"))
+        days = st.get("offline_days") or 30
+        self.offline_spin = Gtk.SpinButton.new_with_range(0, 180, 1)
+        self.offline_spin.set_value(days)
+        left = st.get("offline_left_days")
+        hint = _("People who signed in here before can sign in with their saved password this many days "
+                 "without a connection to the domain. 0 = always needs the connection.")
+        if online is False and isinstance(left, int):
+            hint = _("Saved passwords work for %d more days.") % left + " " + hint
+        ob = Gtk.Box(spacing=6)
+        ob.pack_start(self.offline_spin, False, False, 0)
+        ob.pack_start(Gtk.Label(label=_("days")), False, False, 0)
+        self.offline_apply = Gtk.Button(label=_("Apply"))
+        self.offline_apply.connect("clicked", lambda _b: self.set_offline_days())
+        ob.pack_start(self.offline_apply, False, False, 0)
+        g.row(_("Offline sign-in"), ob, hint)
+
+        g = Group(box, _("Administrators of this computer"))
+        groups = st.get("admin_groups") or []
+        for grp in groups:
+            rm = Gtk.Button(label=_("Remove"))
+            rm.connect("clicked", lambda _b, x=grp: self.admins("admins-remove", x))
+            g.row(grp, rm, _("Domain group"))
+        if not groups:
+            g.row(_("No domain group – only local administrators."))
+        add = Gtk.Box(spacing=6)
+        self.admin_entry = Gtk.Entry(placeholder_text=_("Domain group"), width_chars=20)
+        self.admin_entry.connect("activate", lambda _e: self.admins("admins-add", self.admin_entry.get_text().strip()))
+        addb = Gtk.Button(label=_("Add"))
+        addb.connect("clicked", lambda _b: self.admins("admins-add", self.admin_entry.get_text().strip()))
+        add.pack_start(self.admin_entry, False, False, 0)
+        add.pack_start(addb, False, False, 0)
+        g.row(_("Add a group"), add)
+        adays = st.get("admin_offline_days") or 7
+        if st.get("admins_active", True):
+            state = styled(Gtk.Label(label=_("Active")), "good")
+            ah = _("Without a connection to the domain, administrator rights end after %d days.") % adays
+        else:
+            state = styled(Gtk.Label(label=_("Suspended")), "warn")
+            ah = _("The computer has not reached the domain for more than %d days. Administrator rights of "
+                   "domain groups return with the next connection.") % adays
+        self.admins_row = g.row(_("Administrator rights"), state, ah)
+
+        shares = st.get("shares") or []
+        printers = st.get("printers") or []
+        if shares or printers:
+            g = Group(box, _("Shared folders and printers"))
+            for s in shares:
+                g.row(s.get("name") or s.get("url", ""), None, s.get("url"))
+            for p in printers:
+                g.row(p.get("name") or p.get("url", ""), None, p.get("url"))
+
+        act = Gtk.Box(spacing=10, margin_top=18)
+        self.leave_btn = styled(Gtk.Button(label=_("Leave the Organization Network…")), "destructive-action")
+        self.leave_btn.connect("clicked", lambda _b: self.ask_leave())
+        act.pack_start(self.leave_btn, False, False, 0)
+        self.spin = Gtk.Spinner()
+        self.spin.set_no_show_all(True)
+        act.pack_end(self.spin, False, False, 0)
+        box.pack_start(act, False, False, 0)
+        self.step_label = self.msg_label()
+        box.pack_start(self.step_label, False, False, 4)
+        self.result = self.msg_label()
+        box.pack_start(self.result, False, False, 4)
+        self.set_page(box)
+
+    def joined_action(self, action, args, password=None, after=None):
+        """Akce pomocnika na strance Pripojeno; po uspechu znovu nacist stav."""
+        if self.busy_op:
+            return
+        self.busy_op = action
+        self.spin.show()
+        self.spin.start()
+        self.say(self.result, "")
+
+        def done(res):
+            ok, code, text = res
+            self.busy_op = None
+            self.spin.stop()
+            self.spin.hide()
+            if ok:
+                if after:
+                    after()
+                self.reload()
+            else:
+                self.say(self.step_label, "")
+                self.say(self.result, error_text(code, text), "error")
+        self.last_threads.append(background(
+            lambda: run_helper(action, args, password=password,
+                               on_line=lambda item: GLib.idle_add(self.on_joined_progress, item)), done))
+
+    def on_joined_progress(self, item):
+        if item[0] == "step":
+            self.say(self.step_label, item[1])
+        return False
+
+    def set_offline_days(self):
+        self.joined_action("set-offline-days", [int(self.offline_spin.get_value())])
+
+    def admins(self, action, group):
+        if not group:
+            return
+        self.joined_action(action, [group])
+
+    def leave_dialog(self):
+        """Potvrzeni odpojeni (vraci dialog; odpoved resi on_leave_response)."""
+        d = Gtk.Dialog(title=_("Leave the Organization Network"), transient_for=self, modal=True)
+        d.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("Leave the Organization Network")))
+        d.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        styled(d.add_button(_("Leave"), Gtk.ResponseType.OK), "destructive-action")
+        area = d.get_content_area()
+        area.set_spacing(10)
+        area.set_border_width(16)
+        area.pack_start(Gtk.Label(label=_(
+            "Organization accounts will no longer be able to sign in on this computer and the settings of the "
+            "organization stop applying. Personal files in home folders stay on this computer and are not "
+            "deleted. Local accounts keep working."), xalign=0, wrap=True, max_width_chars=60), False, False, 0)
+        d.remove_check = Gtk.CheckButton(label=_("Also remove the computer account from the domain "
+                                                 "(needs a domain administrator)"))
+        area.pack_start(d.remove_check, False, False, 0)
+        grid = Gtk.Grid(column_spacing=10, row_spacing=6, margin_start=24)
+        d.user = Gtk.Entry(placeholder_text=_("Administrator"), width_chars=22)
+        d.pw = Gtk.Entry(visibility=False, width_chars=22, input_purpose=Gtk.InputPurpose.PASSWORD)
+        grid.attach(Gtk.Label(label=_("Name"), xalign=0), 0, 0, 1, 1)
+        grid.attach(d.user, 1, 0, 1, 1)
+        grid.attach(Gtk.Label(label=_("Password"), xalign=0), 0, 1, 1, 1)
+        grid.attach(d.pw, 1, 1, 1, 1)
+        grid.set_no_show_all(True)
+        for w in grid.get_children():
+            w.show()
+        area.pack_start(grid, False, False, 0)
+        d.remove_check.connect("toggled", lambda c: grid.set_visible(c.get_active()))
+        d.connect("response", self.on_leave_response)
+        d.show_all()
+        return d
+
+    def ask_leave(self):
+        if not self.busy_op:
+            self.leave_d = self.leave_dialog()
+
+    def on_leave_response(self, d, resp):
+        remove = d.remove_check.get_active()
+        user, pw = d.user.get_text().strip(), d.pw.get_text()
+        if resp == Gtk.ResponseType.OK and remove and not (user and pw):
+            d.user.grab_focus()
+            return                          # bez jmena a hesla nelze ucet v domene smazat
+        d.destroy()
+        if resp != Gtk.ResponseType.OK:
+            return
+        self.leave(user if remove else None, pw if remove else None)
+
+    def leave(self, user=None, password=None):
+        self.say(self.step_label, _("Leaving the organization network…"))
+        self.joined_action("leave", [user] if user else [], password=password if user else None,
+                           after=lambda: setattr(self, "joined_message", None))
+
+
+def main():
+    if Gdk.Display.get_default() is None:
+        print("luxos-domain-settings: no display", file=sys.stderr)
+        return 1
+    win = DomainWindow()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    Gtk.main()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,11 @@
+[Unit]
+Description=Check the organization network every 10 minutes
+ConditionPathExists=/var/lib/luxos/domain/state.json
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=10min
+RandomizedDelaySec=30s
+
+[Install]
+WantedBy=timers.target

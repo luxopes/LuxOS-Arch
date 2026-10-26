@@ -3576,3 +3576,232 @@ Repair reinstalls: %s	A javítás újratelepíti: %s
 System files were changed	A rendszerfájlok módosultak
 %d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.	Módosult vagy hiányzó rendszerfájlok: %d. A LuxOS az érintett csomagok újratelepítésével javíthatja őket.
 Invalid PROTECT (use 0 or 1)	Érvénytelen PROTECT (0 vagy 1 lehet)
+"%s" is not a printer address (smb://server/printer).	„%s” nem nyomtatócím (smb://server/printer).
+"%s" is not a shared folder address (smb://server/folder).	„%s” nem megosztott mappa címe (smb://server/folder).
+"%s" is not a valid domain name (e.g. firma.local).	„%s” nem érvényes tartománynév (pl. firma.local).
+"%s" is not a valid group name.	„%s” nem érvényes csoportnév.
+"%s" is not a valid user name.	„%s” nem érvényes felhasználónév.
+"policy" belongs only to organization policies in %s	A „policy” csak a szervezeti házirendekbe tartozik, itt: %s
+%d controllers	%d tartományvezérlő
+%s could not be restored; check it.	%s nem állítható vissza; ellenőrizd.
+%s more days (of %d)	még %s nap (%d napból)
+%s: set by the organization %s, it cannot be changed here	%s: a(z) %s szervezet állította be, itt nem módosítható
+%s: the policies %s and %s set different values	%s: a(z) %s és a(z) %s házirend eltérő értéket ad meg
+(%d more days)	(még %d nap)
+(at most %d days offline)	(legfeljebb %d nap offline)
+1 controller	1 tartományvezérlő
+A computer of a company or school can join its Windows domain (Active Directory): people then sign in with their work account.	Egy cég vagy iskola számítógépe csatlakozhat a Windows-tartományához (Active Directory): ezután a felhasználók a munkahelyi fiókjukkal jelentkeznek be.
+A computer with this name already exists in the domain.	Ilyen nevű számítógép már létezik a tartományban.
+A personal computer with local accounts.	Személyes számítógép helyi fiókokkal.
+Add a group	Csoport hozzáadása
+Administrator	Rendszergazda
+Administrator rights	Rendszergazdai jogosultság
+Administrator rights cannot last longer offline than the sign-in.	A rendszergazdai jogosultság offline nem tarthat tovább, mint a bejelentkezés.
+Administrators	Rendszergazdák
+Administrators from the domain: %s	Rendszergazdák a tartományból: %s
+Administrators of this computer	A számítógép rendszergazdái
+Advanced	Speciális
+Also remove the computer account from the domain (needs a domain administrator)	A számítógépfiók eltávolítása a tartományból is (tartományi rendszergazda szükséges)
+An account that may add computers to the domain.	Olyan fiók, amely számítógépeket adhat a tartományhoz.
+An organization (Active Directory domain)	Egy szervezeté (Active Directory-tartomány)
+An organization (Windows domain)	Egy szervezeté (Windows-tartomány)
+Apply	Alkalmaz
+Authorization was cancelled. Nothing was changed.	Az engedélyezés megszakadt. Semmi sem változott.
+Computer name in the domain	A számítógép neve a tartományban
+Connect this computer to the Windows domain (Active Directory) of your company or school. Then people sign in with their organization account, get shared folders and printers without another password, and IT can manage the computer.	Csatlakoztasd ezt a számítógépet a céged vagy iskolád Windows-tartományához (Active Directory). Ezután a felhasználók a szervezeti fiókjukkal jelentkeznek be, további jelszó nélkül érik el a megosztott mappákat és nyomtatókat, az informatikusok pedig kezelhetik a számítógépet.
+Controllers	Tartományvezérlők
+Creating the computer account in the domain…	Számítógépfiók létrehozása a tartományban…
+Current Password	Jelenlegi jelszó
+DOMAIN needs DOMAIN_PASSWORD	A DOMAIN megadásához DOMAIN_PASSWORD is kell
+DOMAIN needs DOMAIN_USER (a domain administrator)	A DOMAIN megadásához DOMAIN_USER is kell (tartományi rendszergazda)
+Domain	Tartomány
+Domain (e.g. firma.local)	Tartomány (pl. firma.local)
+Domain accounts will no longer sign in here. Their home folders and personal files stay.	A tartományi fiókok többé nem jelentkezhetnek be itt. A saját mappáik és személyes fájljaik megmaradnak.
+Domain administrator	Tartományi rendszergazda
+Domain administrator (allowed to add computers)	Tartományi rendszergazda (számítógépeket adhat hozzá)
+Domain group	Tartományi csoport
+Domain name	Tartománynév
+Done. Log out and sign in with your organization account.	Kész. Jelentkezz ki, majd jelentkezz be a szervezeti fiókoddal.
+Enter a number of days.	Add meg a napok számát.
+Enter the address of the shared folder (smb://server/folder).	Add meg a megosztott mappa címét (smb://server/folder).
+Enter the administrator password.	Add meg a rendszergazdai jelszót.
+Enter the domain administrator.	Add meg a tartományi rendszergazdát.
+Enter the domain name (e.g. firma.local).	Add meg a tartomány nevét (pl. firma.local).
+Enter the name of the domain group.	Add meg a tartományi csoport nevét.
+Enter the password of the domain administrator.	Add meg a tartományi rendszergazda jelszavát.
+Enter the printer name.	Add meg a nyomtató nevét.
+Error: %s	Hiba: %s
+Fix it with: sudo lux domain sync-time	Javítás: sudo lux domain sync-time
+For example firma.local or ad.school.cz	Például firma.local vagy ad.school.cz
+Found: Active Directory %s (domain controllers: %s)	Megtalálva: Active Directory %s (tartományvezérlők: %s)
+Full names	Teljes nevek
+Home folders of domain users stay: %s	A tartományi felhasználók saját mappái megmaradnak: %s
+Ignored policy file %s (not a regular file)	Kihagyott házirendfájl: %s (nem normál fájl)
+Ignored policy file %s (the name must be NN-name.lsl)	Kihagyott házirendfájl: %s (a név formája NN-name.lsl kell legyen)
+Incorrect password, or this account has not signed in on this computer yet (the first sign-in needs a connection to the organization network).	Hibás jelszó, vagy ez a fiók még nem jelentkezett be ezen a számítógépen (az első bejelentkezéshez kapcsolat kell a szervezeti hálózattal).
+Invalid DOMAIN (e.g. firma.local)	Érvénytelen DOMAIN (pl. firma.local)
+Invalid DOMAIN_USER, DOMAIN_PASSWORD, OU or DOMAIN_ADMINS	Érvénytelen DOMAIN_USER, DOMAIN_PASSWORD, OU vagy DOMAIN_ADMINS
+Invalid domain name: %s	Érvénytelen tartománynév: %s
+Join an Organization Network	Csatlakozás a szervezeti hálózathoz
+Join the domain %s?	Csatlakozol a(z) %s tartományhoz?
+Join: sudo lux domain join DOMAIN -U ADMINISTRATOR	Csatlakozás: sudo lux domain join DOMAIN -U ADMINISTRATOR
+Joined	Csatlakozva
+Joining a domain needs the administrator name and password.	A tartományhoz csatlakozáshoz meg kell adni a rendszergazda nevét és jelszavát.
+Joining failed.	A csatlakozás nem sikerült.
+Joining failed: %s	A csatlakozás nem sikerült: %s
+Joining the organization network	Csatlakozás a szervezeti hálózathoz
+Joining the organization network %s…	Csatlakozás a(z) %s szervezeti hálózathoz…
+Last contact	Utolsó kapcsolat
+Last contact with the domain: %s	Utolsó kapcsolat a tartománnyal: %s
+Leave	Kilépés
+Leave the Organization Network	Kilépés a szervezeti hálózatból
+Leave the Organization Network…	Kilépés a szervezeti hálózatból…
+Leave the domain %s?	Kilépsz a(z) %s tartományból?
+Leaving the organization network…	Kilépés a szervezeti hálózatból…
+Looking for the domain controllers…	Tartományvezérlők keresése…
+Looking for the domain…	Tartomány keresése…
+Me	Az enyém
+Me (personal computer)	Az enyém (személyes számítógép)
+Members of this domain group may install software and change settings.	Ennek a tartományi csoportnak a tagjai szoftvert telepíthetnek és módosíthatják a beállításokat.
+Microsoft Active Directory	Microsoft Active Directory
+Microsoft Active Directory or Samba. You need a domain administrator to join.	Microsoft Active Directory vagy Samba. A csatlakozáshoz tartományi rendszergazda kell.
+Microsoft Active Directory – %s – %d controllers	Microsoft Active Directory – %s – %d tartományvezérlő
+Name (%s or %s)	Név (%s vagy %s)
+New Password	Új jelszó
+No domain controller answered for this domain. Check the name and the network.	Egyetlen tartományvezérlő sem válaszolt ehhez a tartományhoz. Ellenőrizd a nevet és a hálózatot.
+No domain group – only local administrators.	Nincs tartományi csoport – csak helyi rendszergazdák.
+No organization network with this name was found.	Nem található ilyen nevű szervezeti hálózat.
+No settings are locked by the organization.	A szervezet egyetlen beállítást sem zárolt.
+Nothing was changed. Confirm with --yes when running without a terminal.	Semmi sem változott. Terminál nélküli futtatáskor erősítsd meg a --yes kapcsolóval.
+Offline sign-in	Offline bejelentkezés
+Offline – you will sign in with your saved password	Offline – a mentett jelszavaddal jelentkezel be
+Organization	Szervezet
+Organization Network	Szervezeti hálózat
+Organization accounts will no longer be able to sign in on this computer and the settings of the organization stop applying. Personal files in home folders stay on this computer and are not deleted. Local accounts keep working.	A szervezeti fiókok többé nem tudnak bejelentkezni ezen a számítógépen, és a szervezet beállításai már nem érvényesek. A saját mappákban lévő személyes fájlok a számítógépen maradnak, nem törlődnek. A helyi fiókok továbbra is működnek.
+Organization network	Szervezeti hálózat
+Organization network: Windows domain (Active Directory)	Szervezeti hálózat: Windows-tartomány (Active Directory)
+Organization networks need the package luxos-domain (lux install luxos-domain).	A szervezeti hálózatokhoz a luxos-domain csomag szükséges (lux install luxos-domain).
+Organization policies: %s	Szervezeti házirendek: %s
+Organizational unit (OU)	Szervezeti egység (OU)
+Organizational unit for the computer (optional)	A számítógép szervezeti egysége (nem kötelező)
+Organizational unit for the computer (optional, Enter = default)	A számítógép szervezeti egysége (nem kötelező, Enter = alapértelmezett)
+Password of %s (used once, never saved)	%s jelszava (csak egyszer használjuk, sosem mentjük)
+Password of %s in %s: 	%s jelszava itt: %s: 
+People who signed in here before can sign in with their saved password this many days without a connection to the domain. 0 = always needs the connection.	Akik korábban már bejelentkeztek itt, ennyi napig jelentkezhetnek be a mentett jelszavukkal a tartománnyal való kapcsolat nélkül. 0 = mindig kell a kapcsolat.
+Printers updated.	Nyomtatók frissítve.
+Removing the computer account from the domain…	Számítógépfiók eltávolítása a tartományból…
+Removing the domain sign-in data…	Tartományi bejelentkezési adatok eltávolítása…
+Repeat New Password	Új jelszó újra
+Restoring the original settings…	Eredeti beállítások visszaállítása…
+SSSD could not be started: %s	Az SSSD nem indítható el: %s
+Saved passwords work for %d more days.	A mentett jelszavak még %d napig működnek.
+Saving the current settings…	Jelenlegi beállítások mentése…
+Set the Clock from the Domain	Óra beállítása a tartomány alapján
+Setting the clock from the domain…	Óra beállítása a tartomány alapján…
+Setting up administrators…	Rendszergazdák beállítása…
+Setting up sign-in with domain accounts…	Bejelentkezés beállítása tartományi fiókokkal…
+Shared folders and printers	Megosztott mappák és nyomtatók
+Shared folders updated; they appear in Files after the next sign-in.	A megosztott mappák frissültek; a következő bejelentkezés után megjelennek a Fájlokban.
+Short name	Rövid név
+Sign in to domain %s	Bejelentkezés a(z) %s tartományba
+Sign out and sign in with a domain account (name or name@%s).	Jelentkezz ki, majd jelentkezz be egy tartományi fiókkal (név vagy név@%s).
+Sign-in without connection	Bejelentkezés kapcsolat nélkül
+Signed in offline with your saved password.	Offline bejelentkezve a mentett jelszavaddal.
+Some of the entered values are not valid.	A megadott értékek egy része érvénytelen.
+Starting the services…	Szolgáltatások indítása…
+Stopping the services…	Szolgáltatások leállítása…
+Suspended	Felfüggesztve
+Taking a system snapshot…	Rendszer-pillanatkép készítése…
+The account is disabled or expired in the domain. Contact your IT department.	A fiók le van tiltva vagy lejárt a tartományban. Fordulj az informatikai részleghez.
+The account is locked by the domain administrator. Contact your IT department.	A fiókot a tartományi rendszergazda zárolta. Fordulj az informatikai részleghez.
+The administrator name or password is not correct.	A rendszergazda neve vagy jelszava hibás.
+The administrators group could not be set: %s	A rendszergazdacsoport nem állítható be: %s
+The clock could not be set: %s	Az óra nem állítható be: %s
+The clock now matches the domain.	Az óra most egyezik a tartományéval.
+The clock of this computer differs from the domain by more than 5 minutes.	A számítógép órája több mint 5 perccel eltér a tartományétól.
+The clock was set from the domain: %s	Az óra a tartomány alapján beállítva: %s
+The computer account stays in the domain (%s); your IT administrator can remove it.	A számítógépfiók a tartományban marad (%s); az informatikus eltávolíthatja.
+The computer could not join the domain %s: %s. Join it later in Settings > Organization Network.	A számítógép nem tudott csatlakozni a(z) %s tartományhoz: %s. Csatlakoztasd később itt: Beállítások > Szervezeti hálózat.
+The computer has not reached the domain for more than %d days. Administrator rights of domain groups return with the next connection.	A számítógép több mint %d napja nem érte el a tartományt. A tartományi csoportok rendszergazdai jogosultsága a következő kapcsolódáskor visszatér.
+The computer joined the domain %s.	A számítógép csatlakozott a(z) %s tartományhoz.
+The domain cannot be checked here; the computer joins it at the end of the installation.	A tartomány itt nem ellenőrizhető; a számítógép a telepítés végén csatlakozik hozzá.
+The domain controller cannot be reached. Check the network connection.	A tartományvezérlő nem érhető el. Ellenőrizd a hálózati kapcsolatot.
+The domain controller could not be found. Check the domain name and that this computer uses the DNS server of the organization.	A tartományvezérlő nem található. Ellenőrizd a tartomány nevét, és hogy ez a számítógép a szervezet DNS-kiszolgálóját használja-e.
+The domain has not been reached yet.	A számítógép még nem érte el a tartományt.
+The domain tools are missing (lux install luxos-domain).	Hiányoznak a tartományi eszközök (lux install luxos-domain).
+The domain was not found.	A tartomány nem található.
+The name or password of the domain administrator is not correct.	A tartományi rendszergazda neve vagy jelszava hibás.
+The network is not available. Connect to the network of the organization and try again.	A hálózat nem érhető el. Csatlakozz a szervezet hálózatához, és próbáld újra.
+The number of days must be between 0 and 180.	A napok száma 0 és 180 között lehet.
+The operation failed.	A művelet nem sikerült.
+The password is used only once to join the domain and is never saved. Your own account stays an administrator of this computer.	A jelszót csak egyszer, a tartományhoz csatlakozáshoz használjuk, és sosem mentjük. A saját fiókod a számítógép rendszergazdája marad.
+The printer could not be added: %s	A nyomtató nem adható hozzá: %s
+The printer name may contain only letters, digits, - and _.	A nyomtató neve csak betűket, számjegyeket, - és _ karaktert tartalmazhat.
+The sudo rule for the administrator groups is not valid: %s	A rendszergazdacsoportok sudo-szabálya érvénytelen: %s
+The system snapshot could not be taken: %s	A rendszer-pillanatkép nem készíthető el: %s
+This account is not allowed to add computers to the domain.	Ez a fiók nem adhat számítógépeket a tartományhoz.
+This account may not add computers to the domain. Ask your IT administrator.	Ez a fiók nem adhat számítógépeket a tartományhoz. Kérdezd meg az informatikust.
+This computer has no organization policies (%s is empty).	Ennek a számítógépnek nincsenek szervezeti házirendjei (%s üres).
+This computer is already in a domain.	Ez a számítógép már egy tartomány tagja.
+This computer is already in an organization network. Leave it first.	Ez a számítógép már egy szervezeti hálózat tagja. Előbb lépj ki belőle.
+This computer is in the organization network	Ez a számítógép a szervezeti hálózat tagja
+This computer is not in a domain.	Ez a számítógép nem tagja tartománynak.
+This computer is not in an organization network.	Ez a számítógép nem tagja szervezeti hálózatnak.
+This computer is now in the domain %s.	Ez a számítógép mostantól a(z) %s tartomány tagja.
+This computer left the domain %s.	Ez a számítógép kilépett a(z) %s tartományból.
+This is not a valid domain name (e.g. firma.local).	Ez nem érvényes tartománynév (pl. firma.local).
+This is not an Active Directory domain (Microsoft or Samba).	Ez nem Active Directory-tartomány (Microsoft vagy Samba).
+This needs administrator rights (run it with sudo).	Ehhez rendszergazdai jogosultság kell (futtasd sudo-val).
+Unknown setting %s	Ismeretlen beállítás: %s
+Use this domain anyway? (it is joined at the end of the installation)	Mégis ezt a tartományt használod? (a telepítés végén csatlakozik hozzá)
+Used only to join; it is not saved.	Csak a csatlakozáshoz használjuk, nem mentjük.
+Where the computer account is created. Empty = default.	Ahol a számítógépfiók létrejön. Üres = alapértelmezett.
+Who does this computer belong to?	Kié ez a számítógép?
+Who may sign in	Ki jelentkezhet be
+Who may sign in: %s	Ki jelentkezhet be: %s
+Without a connection to the domain, administrator rights end after %d days.	A tartománnyal való kapcsolat nélkül a rendszergazdai jogosultság %d nap után megszűnik.
+Your password has expired. Choose a new one.	A jelszavad lejárt. Válassz újat.
+active	aktív
+administrator rights offline: %s → %s days	rendszergazdai jogosultság offline: %s → %s nap
+administrators: add domain group %s	rendszergazdák: %s tartományi csoport hozzáadása
+administrators: remove domain group %s	rendszergazdák: %s tartományi csoport eltávolítása
+days	nap
+domain %s (administrator %s)	%s tartomány (rendszergazda: %s)
+domain groups that administer this computer	a számítógépet felügyelő tartományi csoportok
+domain, online or offline, offline sign-in, administrators	tartomány, online vagy offline, offline bejelentkezés, rendszergazdák
+domain: the organization network tools are not installed (lux install luxos-domain).	domain: a szervezeti hálózat eszközei nincsenek telepítve (lux install luxos-domain).
+everybody in the domain	a tartományban mindenki
+find the domain controllers and check the clock	tartományvezérlők keresése és az óra ellenőrzése
+how many days administrator rights last offline	hány napig érvényes offline a rendszergazdai jogosultság
+how many days domain accounts may sign in offline	hány napig jelentkezhetnek be offline a tartományi fiókok
+join this computer (asks for the domain administrator password)	a számítógép csatlakoztatása (bekéri a tartományi rendszergazda jelszavát)
+leave the domain; home folders and personal files stay	kilépés a tartományból; a saját mappák és személyes fájlok megmaradnak
+local file %s	helyi fájl: %s
+locked	zárolva
+luxos-domain is not installed	A luxos-domain nincs telepítve
+merged configuration with organization policies and the origin of each value	egyesített konfiguráció a szervezeti házirendekkel és az egyes értékek forrásával
+must be between 0 and 180	0 és 180 között kell lennie
+must not be longer than domain.offline_days	nem lehet hosszabb, mint a domain.offline_days
+no (personal computer)	nem (személyes számítógép)
+offline	offline
+offline sign-in: %s → %s days	offline bejelentkezés: %s → %s nap
+online	online
+organization	szervezet
+organization network: Windows domain, Active Directory (lux domain help)	szervezeti hálózat: Windows-tartomány, Active Directory (lux domain help)
+printers of a Windows print server (Kerberos)	Windows-nyomtatókiszolgáló nyomtatói (Kerberos)
+set the clock from the domain	az óra beállítása a tartomány alapján
+settings locked by an organization (/etc/luxos/system.d)	szervezet által zárolt beállítások (/etc/luxos/system.d)
+shared folders of the organization in Files	a szervezet megosztott mappái a Fájlokban
+sign-in allowed for domain group %s	bejelentkezés engedélyezve a(z) %s tartományi csoportnak
+sign-in no longer limited to domain group %s	a bejelentkezés már nem korlátozódik a(z) %s tartományi csoportra
+suspended until the next connection	felfüggesztve a következő kapcsolódásig
+unknown	ismeretlen
+who may sign in (empty = everybody in the domain)	ki jelentkezhet be (üres = a tartományban mindenki)
+The policy file %s may be changed by other users than root; fix it with: sudo chown root:root %s && sudo chmod 644 %s	A(z) %s házirendfájlt a rooton kívül mások is módosíthatják; javítsd így: sudo chown root:root %s && sudo chmod 644 %s
+domain: this computer is not in an organization network; join it first with: sudo lux domain join DOMAIN	domain: ez a számítógép nincs szervezeti hálózatban; előbb csatlakoztasd: sudo lux domain join DOMAIN
+The computer joins the domain %s: domain accounts can sign in, the administrators of the domain become administrators of this computer.	A számítógép csatlakozik a(z) %s tartományhoz: a tartományi fiókokkal be lehet jelentkezni, a tartomány rendszergazdái ennek a gépnek is rendszergazdái lesznek.
+"%s" is not a valid organizational unit (e.g. OU=Computers,DC=firma,DC=local).	A(z) „%s” nem érvényes szervezeti egység (pl. OU=Computers,DC=firma,DC=local).
+A computer with this name is already in the domain. Choose another name or ask your IT administrator to remove the old account.	Ilyen nevű számítógép már van a tartományban. Válassz másik nevet, vagy kérd meg az informatikust, hogy törölje a régi fiókot.
+The clock of this computer differs from the domain by more than 5 minutes. Set the clock from the domain and try again.	A gép órája több mint 5 perccel eltér a tartományétól. Állítsd be az órát a tartomány szerint, és próbáld újra.
+The computer name for the domain may have at most 15 letters, digits and hyphens.	A számítógép tartományi neve legfeljebb 15 betűből, számjegyből és kötőjelből állhat.
+The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	A tartomány nem található a DNS-ben. Ellenőrizd, hogy a gép a szervezet DNS-kiszolgálóját használja-e (általában DHCP-ből), vagy add meg egy tartományvezérlő címét.

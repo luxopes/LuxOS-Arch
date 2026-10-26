@@ -388,6 +388,54 @@ check "  ... stary rozpracovany ucet smazan" bash -c "! grep -q '^jana:' '$R/etc
 check "  ... novy ucet" grep -q '^petr:' "$R/etc/passwd"
 
 # =====================================================================================================
+echo "## luxos-oem finish: firemni sit (lux-domain join, heslo jen na stdin)"
+FAKE_DOMAIN=$TMP/lux-domain
+cat >"$FAKE_DOMAIN" <<EOF
+#!/bin/bash
+printf '%s\n' "\$@" >"$TMP/domain.argv"
+cat >"$TMP/domain.stdin"
+echo "@@STEP 1 3 Finding the domain"
+if [[ -e "$TMP/domain.fail" ]]; then echo "@@ERROR clock The clock differs from the domain by 12 minutes."; exit 1; fi
+echo "@@DONE"
+EOF
+chmod +x "$FAKE_DOMAIN"
+export LUXOS_DOMAIN_CLI=$FAKE_DOMAIN
+DOM=("DOMAIN=Firma.Local" "DOMAIN_USER=admin" "DOMAIN_PASSWORD=domenove heslo" "DOMAIN_OU=OU=PC,DC=firma,DC=local")
+setup_root 0 ""
+(load_oem; main seal --chroot --yes) >/dev/null 2>&1
+(load_oem; main finish < <(printf '%s\n' "$INPUT" "${DOM[@]}")) >"$TMP/out" 2>&1
+check "domena: @@DONE" grep -qx "@@DONE" "$TMP/out"
+check "domena: krok Pripojeni (4 kroky)" grep -qx "@@STEP 3 4 Joining the organization network" "$TMP/out"
+eq "domena: argumenty" "join firma.local -U admin --ou OU=PC,DC=firma,DC=local --password-stdin --yes --progress" \
+    "$(paste -sd' ' "$TMP/domain.argv")"
+eq "domena: heslo jen na stdin" "domenove heslo" "$(cat "$TMP/domain.stdin")"
+check "domena: heslo neni v argumentech" bash -c "! grep -q 'domenove heslo' '$TMP/domain.argv'"
+check "domena: heslo neni v journalu" bash -c "! grep -rq 'domenove heslo' '$R/var/lib/luxos/oem'"
+check "domena: journal" grep -qx "DOMAIN=firma.local" "$R/var/lib/luxos/oem/journal"
+check "domena: bez upozorneni" bash -c "! grep -q '^@@WARN' '$TMP/out'"
+check "domena: kroky lux-domain se neprenasi" bash -c "! grep -q 'Finding the domain' '$TMP/out'"
+
+setup_root 0 ""
+(load_oem; main seal --chroot --yes) >/dev/null 2>&1
+: >"$TMP/domain.fail"
+(load_oem; main finish < <(printf '%s\n' "$INPUT" "${DOM[@]}")) >"$TMP/out" 2>&1
+rm -f "$TMP/domain.fail"
+check "domena selze: dokonceni pokracuje (@@DONE)" grep -qx "@@DONE" "$TMP/out"
+check "domena selze: @@WARN s duvodem" grep -q "^@@WARN The computer could not join the domain firma.local: The clock differs from the domain by 12 minutes. Join it later" "$TMP/out"
+check "domena selze: ucet hotovy" grep -q '^jana:' "$R/etc/passwd"
+check "domena selze: bez zaznamu v journalu" bash -c "! grep -q '^DOMAIN=' '$R/var/lib/luxos/oem/journal'"
+
+setup_root 0 ""
+(load_oem; main seal --chroot --yes) >/dev/null 2>&1
+(load_oem; main finish < <(printf '%s\n' "$INPUT" "DOMAIN=firma" "DOMAIN_USER=a" "DOMAIN_PASSWORD=b")) >"$TMP/out" 2>&1
+check "neplatna domena: chyba" grep -q "Invalid domain name" "$TMP/out"
+(load_oem; main finish < <(printf '%s\n' "$INPUT" "DOMAIN=firma.local" "DOMAIN_USER=a")) >"$TMP/out" 2>&1
+check "domena bez hesla: chyba" grep -q "needs the administrator name and password" "$TMP/out"
+(load_oem; LUXOS_DOMAIN_CLI=$TMP/none; DOMAIN_CLI=$TMP/none; main finish < <(printf '%s\n' "$INPUT" "${DOM[@]}")) >"$TMP/out" 2>&1
+check "luxos-domain chybi: upozorneni, dokonceno" bash -c "grep -q 'luxos-domain is not installed' '$TMP/out' && grep -qx '@@DONE' '$TMP/out'"
+unset LUXOS_DOMAIN_CLI
+
+# =====================================================================================================
 echo "## LUKS: heslo zakaznika misto docasneho klice"
 luks_keys() { local f; for f in "$TMP"/luks/slot.*; do [[ -e $f ]] && cat "$f" && echo; done | sort | paste -sd' '; }
 setup_root 1 ""
