@@ -1,0 +1,9 @@
+#!/bin/sh
+# LuxOS Zalohy: SSH_ASKPASS pro sitovy disk SFTP - heslo z klicenky (libsecret), nikdy na disku.
+# Na jine dotazy ssh (napr. otisk klice serveru) neodpovida, zaloha pak skonci chybou.
+case $1 in
+    *assword*|*passphrase*) ;;
+    *) exit 1 ;;
+esac
+[ -n "$LUXOS_BACKUP_DISK" ] || exit 1
+exec secret-tool lookup service luxos-backup disk "$LUXOS_BACKUP_DISK"

@@ -2702,3 +2702,162 @@ More details: run the command again with --verbose	Altri dettagli: esegui di nuo
 The list of apps is out of date. Install the updates first, then try again.	L'elenco delle app non è aggiornato. Installa prima gli aggiornamenti, poi riprova.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	La data e l'ora del computer sono errate, quindi non è possibile una connessione sicura. Controlla le impostazioni dell'ora.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Batteria più duratura: processore più lento senza turbo, luminosità leggermente ridotta, nessun ingrandimento nel Dock, i dispositivi inattivi vanno in sospensione e le attività in background si mettono in pausa.
+# LuxOS Zalohy (luxos-backup)
+Paused on battery – backs up when the computer is charging	In pausa con la batteria – il backup riprende quando il computer è in carica
+Paused by Battery Saver	In pausa per Risparmio batteria
+Paused on a metered connection	In pausa su una connessione a consumo
+Backup disk is not connected	Il disco di backup non è collegato
+Automatic backups are off	I backup automatici sono disattivati
+No backup disk	Nessun disco di backup
+Backups	Backup
+restored %s	ripristinato %s
+Use this disk for backups?	Usare questo disco per i backup?
+There are no backups yet.	Non ci sono ancora backup.
+Unknown backup time: %s	Ora di backup sconosciuta: %s
+No backup disk is set up. Add one with: luxos-backup disk add	Nessun disco di backup configurato. Aggiungine uno con: luxos-backup disk add
+Unknown backup disk: %s	Disco di backup sconosciuto: %s
+Use a network address like smb://user@server/share	Usa un indirizzo di rete come smb://user@server/share
+The network disk is not available.	Il disco di rete non è disponibile.
+No backup disk is set up.	Nessun disco di backup configurato.
+A backup is already running.	Un backup è già in corso.
+Several computers have backups here, choose one with --machine: %s	Qui ci sono backup di più computer, scegline uno con --machine: %s
+Home folder restored from the backup from %s.	Cartella Home ripristinata dal backup del %s.
+Use a network address like sftp://user@server/folder	Usa un indirizzo di rete come sftp://user@server/folder
+Backup disk	Disco di backup
+%s can keep automatic backups of your files.	%s può conservare backup automatici dei tuoi file.
+No backup from %s or earlier.	Nessun backup del %s o precedente.
+Could not save the password in the keyring: %s	Impossibile salvare la password nel portachiavi: %s
+Could not mount %s	Impossibile montare %s
+Could not unlock the backup disk	Impossibile sbloccare il disco di backup
+The backup disk is not connected.	Il disco di backup non è collegato.
+The backup image was not found on the network disk.	L’immagine di backup non è stata trovata sul disco di rete.
+Could not connect to the server.	Impossibile connettersi al server.
+This disk uses %s, which cannot keep backups efficiently. Prepare (erase) it for backups first.	Questo disco usa %s, che non può conservare i backup in modo efficiente. Preparalo (cancellandolo) per i backup.
+Disk is full - deleting the oldest backup %s	Disco pieno - eliminazione del backup più vecchio %s
+Old backups deleted	Backup vecchi eliminati
+Connect your backup disk to back up this computer.	Collega il disco di backup per eseguire il backup di questo computer.
+No backups of %s in %s	Nessun backup di %s in %s
+Invalid path: %s	Percorso non valido: %s
+To restore the whole home folder use: luxos-backup restore --all	Per ripristinare l’intera cartella Home usa: luxos-backup restore --all
+Restored %s to %s	%s ripristinato in %s
+Replaced files were moved to %s	I file sostituiti sono stati spostati in %s
+Apps installed on the old system: %s (install them with: lux install $(cat FILE))	App installate sul vecchio sistema: %s (installale con: lux install $(cat FILE))
+Folder not found: %s	Cartella non trovata: %s
+This disk is already used for backups.	Questo disco è già usato per i backup.
+LuxOS Backups: %s	LuxOS Backup: %s
+The network disk needs at least 8 GB of free space.	Il disco di rete richiede almeno 8 GB di spazio libero.
+Could not open the backup image	Impossibile aprire l’immagine di backup
+%s is not an external disk.	%s non è un disco esterno.
+%s holds the running system.	%s contiene il sistema in uso.
+Use for Backups	Usa per i backup
+The backup disk is not mounted.	Il disco di backup non è montato.
+Could not create the backup folder on the server.	Impossibile creare la cartella di backup sul server.
+Could not create the backup folder: %s	Impossibile creare la cartella di backup: %s
+The backup disk was full, so the oldest backups were deleted (%d).	Il disco di backup era pieno, quindi i backup più vecchi sono stati eliminati (%d).
+No backup for %d days	Nessun backup da %d giorni
+No LuxOS backups found in %s	Nessun backup di LuxOS trovato in %s
+%s is not in the backup from %s	%s non è nel backup del %s
+Cannot write to %s: %s	Impossibile scrivere in %s: %s
+Could not prepare the disk: %s	Impossibile preparare il disco: %s
+The backup disk is locked.	Il disco di backup è bloccato.
+The password for the encrypted backup disk is not in the keyring.	La password del disco di backup cifrato non è nel portachiavi.
+Backing up to %s…	Backup su %s…
+Backup failed	Backup non riuscito
+Backup finished: %s	Backup completato: %s
+The server needs rsync for backups.	Il server richiede rsync per i backup.
+The backup disk is full.	Il disco di backup è pieno.
+The backup disk %s is full even after deleting old backups.	Il disco di backup %s è pieno anche dopo l’eliminazione dei backup vecchi.
+Backup to %s failed: %s	Backup su %s non riuscito: %s
+(%d files could not be read)	(%d file non leggibili)
+Automatic backups: %s	Backup automatici: %s
+Last backup: %s	Ultimo backup: %s
+on	attivi
+off	disattivati
+LuxOS Backups	LuxOS Backup
+Backing up… %d %%	Backup in corso… %d %%
+Give the files to restore, or --all for the whole home folder.	Indica i file da ripristinare, o --all per l’intera cartella Home.
+Backups will go to %s (%s).	I backup andranno su %s (%s).
+Password for the backup disk: 	Password del disco di backup: 
+%s is no longer used for backups. Backups already on it were kept.	%s non è più usato per i backup. I backup già presenti sono stati mantenuti.
+Last backup failed: %s	Ultimo backup non riuscito: %s
+Password for %s: 	Password per %s: 
+Everything on %s will be erased. Continue? [y/N] 	Tutto il contenuto di %s verrà cancellato. Continuare? [y/N] 
+%d existing files were kept (use --replace to replace them).	%d file esistenti sono stati mantenuti (usa --replace per sostituirli).
+A password is needed for encryption.	Per la cifratura serve una password.
+Repeat the password: 	Ripeti la password: 
+The passwords do not match.	Le password non corrispondono.
+Everything on %s will be erased. Add --yes to confirm.	Tutto il contenuto di %s verrà cancellato. Aggiungi --yes per confermare.
+Yesterday	Ieri
+Today %s	Oggi %s
+Yesterday %s	Ieri %s
+Use Disk	Usa disco
+Server address	Indirizzo del server
+The password is kept in the keyring. A shared folder (SMB) gets one backup image file.	La password viene conservata nel portachiavi. Una cartella condivisa (SMB) riceve un unico file immagine di backup.
+Encrypt backups	Cifra i backup
+The disk is erased and protected with a password. Without the password nobody can read the backups – keep it safe.	Il disco viene cancellato e protetto con una password. Senza la password nessuno può leggere i backup – conservala con cura.
+Backup disks	Dischi di backup
+Excluded folders	Cartelle escluse
+Exclude	Escludi
+Preparing the disk…	Preparazione del disco…
+Up	Su
+Connecting to the backup disk…	Connessione al disco di backup…
+Restore Here	Ripristina qui
+Restoring…	Ripristino…
+Add Backup Disk	Aggiungi disco di backup
+External disks	Dischi esterni
+empty	vuoto
+No external disk is connected.	Nessun disco esterno collegato.
+Network disk	Disco di rete
+Password for the backup disk	Password del disco di backup
+Repeat the password	Ripeti la password
+Back Up Now	Esegui backup ora
+Restore Files…	Ripristina file…
+Add Disk…	Aggiungi disco…
+Back up automatically	Backup automatico
+Every hour while the computer is charging. Paused on battery, in Battery Saver and – for network disks – on a metered connection.	Ogni ora mentre il computer è in carica. In pausa con la batteria, con Risparmio batteria e – per i dischi di rete – su una connessione a consumo.
+Back up system settings	Backup delle impostazioni di sistema
+Readable files from /etc and the list of installed apps.	File leggibili da /etc e l’elenco delle app installate.
+Back up the Downloads folder	Backup della cartella Download
+Back up virtual machines	Backup delle macchine virtuali
+Disk images of virtual machines are very large.	Le immagini disco delle macchine virtuali sono molto grandi.
+Caches and the trash are never backed up.	Cache e cestino non vengono mai inclusi nel backup.
+Exclude Folder…	Escludi cartella…
+No backup disk yet	Ancora nessun disco di backup
+Stop using this disk	Non usare più questo disco
+Nothing excluded	Nessuna esclusione
+Back up again	Esegui di nuovo il backup
+Backing up…	Backup in corso…
+You can keep working, or close this window.	Puoi continuare a lavorare o chiudere questa finestra.
+Backups already on the disk are kept.	I backup già presenti sul disco vengono mantenuti.
+Stop Using	Non usare più
+Exclude Folder	Escludi cartella
+Modified	Modificato
+Restore Everything…	Ripristina tutto…
+Restore To…	Ripristina in…
+Restore To	Ripristina in
+Restored %d items.	%d elementi ripristinati.
+The whole home folder is restored from this backup. Files that differ are replaced; the current versions are moved to the folder .luxos-backup-replaced in your home folder, nothing is deleted.	L’intera cartella Home viene ripristinata da questo backup. I file diversi vengono sostituiti; le versioni attuali vengono spostate nella cartella .luxos-backup-replaced della tua cartella Home, nulla viene eliminato.
+Restore Everything	Ripristina tutto
+Everything was restored. Log out and back in to load the restored settings.	È stato ripristinato tutto. Esci e accedi di nuovo per caricare le impostazioni ripristinate.
+Connect a USB disk, or use a network disk.	Collega un disco USB o usa un disco di rete.
+Add an external or network disk to start backing up.	Aggiungi un disco esterno o di rete per iniziare i backup.
+No backups yet	Ancora nessun backup
+Add a backup disk to protect your files.	Aggiungi un disco di backup per proteggere i tuoi file.
+Stop backing up to %s?	Interrompere i backup su %s?
+Type the same password twice.	Digita la stessa password due volte.
+Encryption needs an empty disk.	La cifratura richiede un disco vuoto.
+The disk could not be used	Impossibile usare il disco
+Back up now?	Eseguire il backup ora?
+The first backup can take a while. You can keep working.	Il primo backup può richiedere un po’ di tempo. Puoi continuare a lavorare.
+Backup from %s	Backup del %s
+Restore failed	Ripristino non riuscito
+Files that already exist were kept; the restored copies have “restored” in their name.	I file già esistenti sono stati mantenuti; le copie ripristinate hanno “ripristinato” nel nome.
+Restore everything from %s?	Ripristinare tutto dal backup del %s?
+External disk	Disco esterno
+Network disk (SFTP)	Disco di rete (SFTP)
+Network disk (SMB)	Disco di rete (SMB)
+This disk is not ready for backups (%s).	Questo disco non è pronto per i backup (%s).
+Erase and Use	Cancella e usa
+empty folder	cartella vuota
+Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Tutto il contenuto verrà cancellato e il disco verrà preparato per i backup. L’operazione non può essere annullata.
+Backs up every hour.	Esegue il backup ogni ora.
