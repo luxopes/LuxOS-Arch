@@ -14,8 +14,8 @@ pkgdesc="LuxOS Maps - OpenStreetMap maps, place search, routes, public transport
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
-depends=(python python-gobject python-cairo gtk3 luxos-i18n hicolor-icon-theme)
-optdepends=('geoclue: precise location (otherwise approximate location from the IP address)')
+# GeoClue: poloha z Wi-Fi siti v okoli (BeaconDB) - presnost desitky metru misto mesta podle IP
+depends=(python python-gobject python-cairo gtk3 luxos-i18n hicolor-icon-theme geoclue)
 makedepends=(python)
 checkdepends=(python)
 
@@ -33,4 +33,5 @@ package() {
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 "$f/luxos-maps.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-maps.svg"
     install -Dm644 "$f/luxos-maps.desktop" "$pkgdir/usr/share/applications/luxos-maps.desktop"
+    install -Dm644 "$f/90-luxos-maps.conf" "$pkgdir/etc/geoclue/conf.d/90-luxos-maps.conf"
 }
