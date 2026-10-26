@@ -15,6 +15,38 @@ fi
 # listy hned po prihlaseni zakryje prechod na plochu (luxos-session-cover --login).
 [[ -e $cfg/search-icon-added ]] || luxos-search --add-to-panel &
 
+# Terminal LuxOS misto xfce4-terminal i u profilu z drivejsich verzi (jednou): zkratky Super+T
+# a Ctrl+Alt+T, ikona v Docku, oblibene v nabidce, vlastni volba terminalu pro exo (Otevrit
+# terminal zde). Meni se jen puvodni hodnoty "xfce4-terminal", vlastni volba zustava.
+if [[ ! -e $cfg/terminal-migrated ]] && command -v luxos-terminal >/dev/null; then
+    for k in '<Super>t' '<Primary><Alt>t'; do
+        [[ $(xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$k" 2>/dev/null) == xfce4-terminal ]] &&
+            xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$k" -s luxos-terminal 2>/dev/null
+    done
+    launchers="${XDG_CONFIG_HOME:-$HOME/.config}/plank/dock1/launchers"
+    if [[ -f $launchers/xfce4-terminal.dockitem ]]; then
+        printf '[PlankDockItemPreferences]\nLauncher=file:///usr/share/applications/luxos-terminal.desktop\n' \
+            >"$launchers/luxos-terminal.dockitem"
+        rm -f "$launchers/xfce4-terminal.dockitem"
+        dock=net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/
+        items=$(gsettings get "$dock" dock-items 2>/dev/null)
+        [[ $items == *"'xfce4-terminal.dockitem'"* ]] &&
+            gsettings set "$dock" dock-items "${items//\'xfce4-terminal.dockitem\'/\'luxos-terminal.dockitem\'}" 2>/dev/null
+    fi
+    fav=$(xfconf-query -c xfce4-panel -p /plugins/plugin-1/favorites 2>/dev/null | tail -n +3)
+    if grep -qx 'xfce4-terminal.desktop' <<<"$fav"; then
+        fav_args=()
+        while read -r f; do
+            [[ -n $f ]] && fav_args+=(-t string -s "${f/#xfce4-terminal.desktop/luxos-terminal.desktop}")
+        done <<<"$fav"
+        xfconf-query -c xfce4-panel -p /plugins/plugin-1/favorites -n "${fav_args[@]}" 2>/dev/null
+    fi
+    helpers="${XDG_CONFIG_HOME:-$HOME/.config}/xfce4/helpers.rc"
+    [[ -f $helpers ]] && sed -i 's/^TerminalEmulator=xfce4-terminal$/TerminalEmulator=luxos-terminal/' "$helpers"
+    : >"$cfg/terminal-migrated"
+    unset k launchers dock items fav fav_args f helpers
+fi
+
 # Kompozitor xfwm4 (stiny, pruhlednost): zapnout i po pokusu s picom, ktery ho vypinal
 pgrep -u "$USER" -x picom >/dev/null || xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s true 2>/dev/null
 

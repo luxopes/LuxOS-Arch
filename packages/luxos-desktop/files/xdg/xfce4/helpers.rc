@@ -1,0 +1,8 @@
+#
+# LuxOS - vychozi aplikace pro exo-open (Soubory: "Otevrit terminal zde", odkazy, posta)
+# Vlastni volba uzivatele: ~/.config/xfce4/helpers.rc
+#
+WebBrowser=firefox
+MailReader=thunderbird
+TerminalEmulator=luxos-terminal
+FileManager=thunar

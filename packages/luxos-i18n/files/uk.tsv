@@ -3446,3 +3446,20 @@ The connection was closed.	З’єднання закрито.
 Search applications…	Пошук програм…
 Lock Screen	Заблокувати екран
 Power Off	Вимкнути
+# Terminal LuxOS (luxos-terminal)
+New Tab	Нова вкладка
+New Window	Нове вікно
+Close Tab	Закрити вкладку
+Select All	Виділити все
+Find…	Знайти…
+Find	Знайти
+Find Previous	Знайти попереднє
+Find Next	Знайти наступне
+Open Link	Відкрити посилання
+Copy Link Address	Копіювати адресу посилання
+Close this tab?	Закрити цю вкладку?
+Close this window?	Закрити це вікно?
+A process is still running in this tab: %s	У цій вкладці ще працює процес: %s
+A process is still running in this window: %s	У цьому вікні ще працює процес: %s
+Processes are still running in this window.	У цьому вікні ще працюють процеси.
+Process completed	Процес завершено

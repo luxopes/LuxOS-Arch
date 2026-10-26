@@ -24,7 +24,7 @@ ENV = dict(os.environ, DISPLAY=":0", XAUTHORITY=f"{pw.pw_dir}/.Xauthority", HOME
            LANG="cs_CZ.UTF-8")
 # aplikace: prikaz, hledany retezec ve WM_CLASS
 APPS = [
-    (["xfce4-terminal"], "xfce4-terminal"),
+    (["luxos-terminal"], "luxos-terminal"),
     (["thunar"], "thunar"),
     (["mousepad"], "mousepad"),
     (["luxos-control-center"], "luxos-control-center"),

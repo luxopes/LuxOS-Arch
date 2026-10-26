@@ -102,7 +102,7 @@ process inside the sandbox and made executable; the original location is never m
 The GUI shows status (Ready / Not created), **Create Sandbox**, **Installed apps** (Run / Remove),
 **Install app** (package name), **Run app** (command or *Choose File…*), switches **Network**
 (default off), **Window** (default on = `--gui`), **Shared folder** (default off), **Open Terminal**
-(needs `xfce4-terminal`), **Open** shared folder, **Reset…**, and a *Details* log.
+(opens `luxos-terminal`), **Open** shared folder, **Reset…**, and a *Details* log.
 
 ## What is isolated
 

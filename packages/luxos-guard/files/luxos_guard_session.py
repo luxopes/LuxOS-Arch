@@ -46,7 +46,7 @@ def run_in_sandbox(path, kind):
         return subprocess.Popen(cmd, stdin=subprocess.DEVNULL, start_new_session=True)
     # skripty: v terminalu, aby byl videt vystup
     cmd = [SANDBOX_CLI, "run", "--", path]
-    term = shutil.which("xfce4-terminal")
+    term = shutil.which("luxos-terminal") or shutil.which("xfce4-terminal")
     if term:
         return subprocess.Popen([term, "--title", _("Sandbox"), "--hold", "-x", *cmd], start_new_session=True)
     if shutil.which("x-terminal-emulator"):

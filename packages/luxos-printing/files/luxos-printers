@@ -1356,7 +1356,7 @@ class Window(Gtk.Window):
         dlg.destroy()
         if r != Gtk.ResponseType.OK:
             return
-        subprocess.Popen(["xfce4-terminal", "--title=" + _("Install Driver"), "-x", "bash", "-c",
+        subprocess.Popen(["luxos-terminal", "--title=" + _("Install Driver"), "-x", "bash", "-c",
                           'lux install "$1" && pkexec /usr/lib/luxos/printing/luxos-printing-helper sync; '
                           'echo; echo "$2"; read -r', "_", pkg, _("Done. You can close this window.")],
                          start_new_session=True)

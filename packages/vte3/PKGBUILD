@@ -1,0 +1,210 @@
+# Maintainer: LuxOS Team
+# VTE z Archu + obnovena podpora obrazku SIXEL pro Terminal LuxOS (packages/luxos-terminal).
+# Stabilni vetve VTE (0.76+) SIXEL z kodu odstranuji (upstream commit 3bd4f9a3 "all: Remove SIXEL
+# support from stable branch" - na vyvojove vetvi kod zustava a vyviji se dal). restore-sixel.patch je
+# presne obraceny tento commit pro 0.84.1, sestaveni s -D sixel=true. Kresleni obrazku ale ani na vyvojove
+# vetvi neni (po prepisu kresleni pro GTK4 zustalo jako FIXME - obrazek se nacte, ale nezobrazi):
+# sixel-draw-gtk3.patch ho doplnuje pro GTK3 (cairo, Image::paint z image.cc). SIXEL je ve VTE vychozi
+# vypnuty (VTE_SIXEL_ENABLED_DEFAULT false): zapina ho jen aplikace pres vte_terminal_set_enable_sixel()
+# (luxos-terminal), ostatni aplikace s VTE (i vte4) se nemeni.
+# Repozitar [luxos] je pred [extra], takze ma tento balik prednost; pri nove verzi v Archu zvysit pkgver
+# (a b2sums), patch obnovit (git revert commitu "Remove SIXEL support" z nove stabilni vetve), pkgrel X.1.
+# Puvodni PKGBUILD Archu (udrzovatele Jan Alexander Steffens, Fabian Bornschein) je v PKGBUILD.arch.
+
+pkgbase=vte3
+pkgname=(
+  vte-common
+  vte3
+  vte3-utils
+  vte4
+  vte4-utils
+  vte-docs
+)
+pkgver=0.84.1
+pkgrel=1.1
+pkgdesc="Virtual Terminal Emulator widget (LuxOS: SIXEL images)"
+url="https://gitlab.gnome.org/GNOME/vte"
+arch=(x86_64)
+license=(
+  # Library
+  LGPL-3.0-or-later
+
+  # Demo app, some supporting files
+  GPL-3.0-or-later
+)
+depends=(
+  cairo
+  fribidi
+  glib2
+  glibc
+  gnutls
+  icu
+  libgcc
+  libstdc++
+  lz4
+  pango
+  pcre2
+  simdutf
+  systemd
+  systemd-libs
+)
+makedepends=(
+  at-spi2-core
+  fast_float
+  fmt
+  gi-docgen
+  git
+  glib2-devel
+  gobject-introspection
+  gperf
+  graphene
+  gtk3
+  gtk4
+  meson
+  vala
+)
+options=(!lto)
+source=("git+https://gitlab.gnome.org/GNOME/vte.git#tag=$pkgver"
+        restore-sixel.patch
+        sixel-draw-gtk3.patch)
+b2sums=('f8f03ea82a08697d28a8e7a76729c39cb2088335380eb21b0af54f04519fb293f257a334c8b41948707b50cebbb8bb9c792a2c745b38f3834c9351ae730610ce'
+        '4610e8517829d3885c35f4b78709745a635c48d27ce51ae46a3b2cd11df1549cc2140ce7339dd1152ce3d5c8da5a1a1a0fac85a399d279452d38f0c6563871d1'
+        '52d7d0870577313f8678dac500c0322c77b5029e480f03717faea3bd6858a1c043ede9c05cf22b26cb79c3855e1afce6446f23f446c2c32a6d84bac8dd515d8f')
+
+prepare() {
+  cd vte
+  # LuxOS: SIXEL zpet (obraceny upstream commit 3bd4f9a3)
+  patch -Np1 -i ../restore-sixel.patch
+  # LuxOS: kresleni obrazku SIXEL v GTK3
+  patch -Np1 -i ../sixel-draw-gtk3.patch
+}
+
+build() {
+  local meson_options=(
+    -D docs=true
+    -D sixel=true
+  )
+
+  arch-meson vte build "${meson_options[@]}"
+  meson compile -C build
+}
+
+check() {
+  meson test -C build --print-errorlogs
+}
+
+_pick() {
+  local p="$1" f d; shift
+  for f; do
+    d="$srcdir/$p/${f#$pkgdir/}"
+    mkdir -p "$(dirname "$d")"
+    mv "$f" "$d"
+    rmdir -p --ignore-fail-on-non-empty "$(dirname "$f")"
+  done
+}
+
+package_vte-common() {
+  pkgdesc+=" (common files)"
+  depends=(glibc)
+
+  meson install -C build --destdir "$pkgdir"
+
+  cd "$pkgdir"
+
+  _pick vte3 usr/include/vte-2.91
+  _pick vte3 usr/lib/libvte-2.91.so*
+  _pick vte3 usr/lib/pkgconfig/vte-2.91.pc
+  _pick vte3 usr/lib/girepository-1.0/Vte-2.91.typelib
+  _pick vte3 usr/share/gir-1.0/Vte-2.91.gir
+  _pick vte3 usr/share/glade
+  _pick vte3 usr/share/vala/vapi/vte-2.91.{deps,vapi}
+
+  _pick vte3-utils usr/bin/vte-2.91
+  _pick vte3-utils usr/share/applications/org.gnome.Vte.App.Gtk3.desktop
+  _pick vte3-utils usr/share/xdg-terminals/org.gnome.Vte.App.Gtk3.desktop
+
+  _pick vte4 usr/include/vte-2.91-gtk4
+  _pick vte4 usr/lib/libvte-2.91-gtk4.so*
+  _pick vte4 usr/lib/pkgconfig/vte-2.91-gtk4.pc
+  _pick vte4 usr/lib/girepository-1.0/Vte-3.91.typelib
+  _pick vte4 usr/share/gir-1.0/Vte-3.91.gir
+  _pick vte4 usr/share/vala/vapi/vte-2.91-gtk4.{deps,vapi}
+
+  _pick vte4-utils usr/bin/vte-2.91-gtk4
+  _pick vte4-utils usr/share/applications/org.gnome.Vte.App.Gtk4.desktop
+  _pick vte4-utils usr/share/xdg-terminals/org.gnome.Vte.App.Gtk4.desktop
+
+  _pick docs usr/share/doc
+}
+
+
+package_vte3() {
+  pkgdesc+=" (GTK3)"
+  license=(LGPL-3.0-or-later)
+  depends+=(
+    at-spi2-core
+    gtk3
+    vte-common
+  )
+  provides+=(libvte-2.91.so)
+
+  mv vte3/* "$pkgdir"
+}
+
+package_vte3-utils() {
+  pkgdesc="VTE3 test utilities"
+  license=(GPL-3.0-or-later)
+  depends=(
+    cairo
+    gdk-pixbuf2
+    glib2
+    glibc
+    gtk3
+    libgcc
+    libstdc++
+    pango
+    vte3
+  )
+
+  mv vte3-utils/* "$pkgdir"
+}
+
+package_vte4() {
+  pkgdesc+=" (GTK4)"
+  license=(LGPL-3.0-or-later)
+  depends+=(
+    graphene
+    gtk4
+    vte-common
+  )
+  provides+=(libvte-2.91-gtk4.so)
+
+  mv vte4/* "$pkgdir"
+}
+
+package_vte4-utils() {
+  pkgdesc="VTE4 test utilities"
+  license=(GPL-3.0-or-later)
+  depends=(
+    cairo
+    gdk-pixbuf2
+    glib2
+    glibc
+    gtk4
+    libgcc
+    libstdc++
+    pango
+    vte4
+  )
+
+  mv vte4-utils/* "$pkgdir"
+}
+
+package_vte-docs() {
+  pkgdesc+=" (documentation)"
+  depends=()
+
+  mv docs/* "$pkgdir"
+}
+
+# vim:set sw=2 sts=-1 et:

@@ -755,7 +755,7 @@
         {
           "path": "luxos/shell.md",
           "title": "Shell: lsh (Lux Shell), aliases and fastfetch",
-          "summary": "lsh bash fork: about builtin, LSL lines in the shell, ./script.lsl, pip warning, config files, aliases, pacman hint, fastfetch",
+          "summary": "lsh bash fork: about builtin, LSL lines in the shell, ./script.lsl, pip warning, config files, aliases, pacman hint, fastfetch (Unicode logo, real logo image in Terminal)",
           "keywords": [
             "lsh",
             "shell",
@@ -773,6 +773,34 @@
             "zsh",
             "lshrc",
             "pacman hint"
+          ]
+        },
+        {
+          "path": "luxos/terminal.md",
+          "title": "Terminal (luxos-terminal)",
+          "summary": "Default terminal since 1.0 (GTK3 + VTE, replaces xfce4-terminal): tabs, keyboard shortcuts, light/dark profiles following the system, find, links, SIXEL images via LuxOS vte3, fastfetch logo as an image, terminal.conf, command-line options, default-terminal integration, speed and memory.",
+          "keywords": [
+            "terminal",
+            "luxos-terminal",
+            "Terminál",
+            "xfce4-terminal",
+            "tabs",
+            "sixel",
+            "images",
+            "img2sixel",
+            "chafa",
+            "vte",
+            "vte3",
+            "fastfetch logo",
+            "terminal.conf",
+            "Super+T",
+            "Ctrl+Alt+T",
+            "open terminal here",
+            "xdg-terminal-exec",
+            "helpers.rc",
+            "font size",
+            "dark mode",
+            "copy paste"
           ]
         },
         {

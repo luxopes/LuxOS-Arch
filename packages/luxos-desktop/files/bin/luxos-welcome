@@ -34,7 +34,7 @@ $(T "Fast, light and beautifully simple.")
     case $rc in
         10) setsid -f luxos-install-gui; break ;;
         11) luxos-appearance toggle ;;
-        13) xfce4-terminal --title="$(T "Update")" -x lsh -c "lux update; echo; read -rp '$pause'" ;;
+        13) luxos-terminal --title="$(T "Update")" -x lsh -c "lux update; echo; read -rp '$pause'" ;;
         14) luxos-shortcuts ;;
         15) setsid -f luxos-store ;;
         16) luxos-account login ;;

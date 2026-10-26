@@ -3445,3 +3445,20 @@ The connection was closed.	La connessione è stata chiusa.
 Search applications…	Cerca applicazioni…
 Lock Screen	Blocca schermo
 Power Off	Spegni
+# Terminal LuxOS (luxos-terminal)
+New Tab	Nuova scheda
+New Window	Nuova finestra
+Close Tab	Chiudi scheda
+Select All	Seleziona tutto
+Find…	Trova…
+Find	Trova
+Find Previous	Trova precedente
+Find Next	Trova successivo
+Open Link	Apri collegamento
+Copy Link Address	Copia indirizzo del collegamento
+Close this tab?	Chiudere questa scheda?
+Close this window?	Chiudere questa finestra?
+A process is still running in this tab: %s	In questa scheda è ancora in esecuzione un processo: %s
+A process is still running in this window: %s	In questa finestra è ancora in esecuzione un processo: %s
+Processes are still running in this window.	In questa finestra ci sono ancora processi in esecuzione.
+Process completed	Processo terminato

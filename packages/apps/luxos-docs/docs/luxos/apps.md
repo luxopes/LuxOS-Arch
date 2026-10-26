@@ -32,8 +32,8 @@ translations) and the light/dark mode.
 | Backups (Zálohy) | `luxos-backup-gui` | automatic backups to a USB or network disk, browse backups by time and restore files ([backups.md](backups.md)) |
 | Settings apps | `luxos-settings`, `luxos-display-settings`, … | [settings-apps.md](settings-apps.md) |
 
-Standard apps that are installed by default: Firefox, Files (Thunar), Terminal (xfce4-terminal with
-the `lsh` shell), Mousepad (text editor), Ristretto (images), Evince (documents), Xarchiver,
+Standard apps that are installed by default: Firefox, Files (Thunar), Terminal (`luxos-terminal`
+with the `lsh` shell, [terminal.md](terminal.md)), Mousepad (text editor), Ristretto (images), Evince (documents), Xarchiver,
 Celluloid (video). In the top bar, some of them get short names such as "Files", "Terminal", "Text
 Editor", "Image Viewer" and "Document Viewer".
 

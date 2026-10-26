@@ -3445,3 +3445,20 @@ The connection was closed.	Anslutningen stängdes.
 Search applications…	Sök program…
 Lock Screen	Lås skärmen
 Power Off	Stäng av
+# Terminal LuxOS (luxos-terminal)
+New Tab	Ny flik
+New Window	Nytt fönster
+Close Tab	Stäng flik
+Select All	Markera allt
+Find…	Sök…
+Find	Sök
+Find Previous	Sök föregående
+Find Next	Sök nästa
+Open Link	Öppna länk
+Copy Link Address	Kopiera länkadress
+Close this tab?	Stäng den här fliken?
+Close this window?	Stäng det här fönstret?
+A process is still running in this tab: %s	En process körs fortfarande i den här fliken: %s
+A process is still running in this window: %s	En process körs fortfarande i det här fönstret: %s
+Processes are still running in this window.	Processer körs fortfarande i det här fönstret.
+Process completed	Processen avslutades
