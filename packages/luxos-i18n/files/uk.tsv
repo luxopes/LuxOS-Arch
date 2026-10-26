@@ -2703,3 +2703,18 @@ More details: run the command again with --verbose	Докладніше: зап�
 The list of apps is out of date. Install the updates first, then try again.	Список застосунків застарів. Спочатку встановіть оновлення, а потім спробуйте знову.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Дата й час комп'ютера неправильні, тому безпечне з'єднання неможливе. Перевірте налаштування часу.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Довша робота від батареї: повільніший процесор без турбо, трохи нижча яскравість, без збільшення в Dock, невикористовувані пристрої засинають, фонові завдання призупиняються.
+Profile Picture	Фото профілю
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Показується на екрані входу та блокування, у меню LuxOS і в Центрі керування.
+Choose Photo…	Вибрати фото…
+Choose Photo	Вибрати фото
+Remove Picture	Видалити фото
+Images	Зображення
+This file is not a picture LuxOS can open.	Цей файл не є зображенням, яке LuxOS може відкрити.
+The picture could not be removed: %s	Не вдалося видалити фото: %s
+Picture removed.	Фото видалено.
+Drag to move the photo, scroll to zoom.	Перетягніть, щоб посунути фото, прокрутіть, щоб збільшити.
+Zoom	Масштаб
+The picture is saved, but the login screen could not be updated: %s	Фото збережено, але не вдалося оновити екран входу: %s
+Saved. The new picture appears on the login screen and in the menu.	Збережено. Нове фото з’явиться на екрані входу та в меню.
+Change Picture	Змінити фото
+Account on this computer	Обліковий запис на цьому комп’ютері

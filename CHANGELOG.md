@@ -7,6 +7,9 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 ## Připravuje se
 
 ### Nové
+- **Profilová fotka** (`luxos-profile-picture`, v Nastavení, z Účtu LuxAI tlačítkem Změnit fotku nebo klikem na fotku): fotka ze souboru nebo z webkamery, oříznutí do kruhu (posun tažením, zvětšení kolečkem nebo posuvníkem). Ukáže se na přihlašovací i zamykací obrazovce, v nabídce LuxOS, v Ovládacím centru a v Účtu LuxAI; bez fotky zůstává kolečko s počátečním písmenem. Ukládá se do `~/.face` a přes AccountsService (bez hesla).
+- **Přechod po přihlášení** – přihlašovací obrazovka po ověření nechá jen tapetu a ta zakryje skládání plochy; jakmile jsou plocha, lišta a Dock vykreslené, za ~0,3 s se rozplyne do hotové plochy (`luxos-session-cover --login`). Přihlášení nezdržuje (relace startuje nejvýš o jeden snímek později, myš a klávesnice fungují hned, nejdéle 5 s); se Spořičem baterie nebo vypnutými animacemi bez animace.
+- **Lupa v horní liště** před Ovládacím centrem otevře Hledání (jako `Super+Mezerník`); stávající profily ji dostanou jednou po přihlášení (když ji odeberete, už se nevrátí).
 - **Graf vytížení CPU** jde přidat do horní lišty (pravým tlačítkem na lištu › Panel › Přidat nové položky › CPU Graph); ve výchozí liště není.
 
 ### Opraveno

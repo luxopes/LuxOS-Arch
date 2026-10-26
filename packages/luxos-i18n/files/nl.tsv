@@ -2702,3 +2702,18 @@ More details: run the command again with --verbose	Meer details: voer de opdrach
 The list of apps is out of date. Install the updates first, then try again.	De lijst met apps is verouderd. Installeer eerst de updates en probeer het opnieuw.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	De datum en tijd van de computer kloppen niet, dus een beveiligde verbinding is niet mogelijk. Controleer de tijdinstellingen.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Langere batterijduur: tragere processor zonder turbo, iets lagere helderheid, geen vergroting in het Dock, ongebruikte apparaten slapen en achtergrondtaken pauzeren.
+Profile Picture	Profielfoto
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Wordt getoond op het inlog- en vergrendelscherm, in het LuxOS-menu en in het Bedieningspaneel.
+Choose Photo…	Foto kiezen…
+Choose Photo	Foto kiezen
+Remove Picture	Foto verwijderen
+Images	Afbeeldingen
+This file is not a picture LuxOS can open.	Dit bestand is geen afbeelding die LuxOS kan openen.
+The picture could not be removed: %s	De foto kon niet worden verwijderd: %s
+Picture removed.	Foto verwijderd.
+Drag to move the photo, scroll to zoom.	Sleep om de foto te verplaatsen, scroll om te zoomen.
+Zoom	Zoom
+The picture is saved, but the login screen could not be updated: %s	De foto is opgeslagen, maar het inlogscherm kon niet worden bijgewerkt: %s
+Saved. The new picture appears on the login screen and in the menu.	Opgeslagen. De nieuwe foto verschijnt op het inlogscherm en in het menu.
+Change Picture	Foto wijzigen
+Account on this computer	Account op deze computer

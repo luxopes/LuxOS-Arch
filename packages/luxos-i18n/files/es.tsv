@@ -2702,3 +2702,18 @@ More details: run the command again with --verbose	Más detalles: vuelve a ejecu
 The list of apps is out of date. Install the updates first, then try again.	La lista de aplicaciones está desactualizada. Instala primero las actualizaciones y vuelve a intentarlo.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	La fecha y la hora del ordenador son incorrectas, por lo que no es posible una conexión segura. Revisa la configuración de la hora.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Más autonomía: procesador más lento sin turbo, brillo algo menor, sin ampliación en el Dock, los dispositivos inactivos se suspenden y las tareas en segundo plano se pausan.
+Profile Picture	Foto de perfil
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Se muestra en la pantalla de inicio de sesión y de bloqueo, en el menú de LuxOS y en el Centro de control.
+Choose Photo…	Elegir foto…
+Choose Photo	Elegir foto
+Remove Picture	Quitar foto
+Images	Imágenes
+This file is not a picture LuxOS can open.	Este archivo no es una imagen que LuxOS pueda abrir.
+The picture could not be removed: %s	No se pudo quitar la foto: %s
+Picture removed.	Foto quitada.
+Drag to move the photo, scroll to zoom.	Arrastra para mover la foto y desplázate para hacer zoom.
+Zoom	Zoom
+The picture is saved, but the login screen could not be updated: %s	La foto se ha guardado, pero no se pudo actualizar la pantalla de inicio de sesión: %s
+Saved. The new picture appears on the login screen and in the menu.	Guardado. La nueva foto aparece en la pantalla de inicio de sesión y en el menú.
+Change Picture	Cambiar foto
+Account on this computer	Cuenta en este ordenador

@@ -706,6 +706,7 @@ class Greeter(Gtk.Window):
         self.bg_surf = self.blur_surf = None
         self._battery = self._network = None
         self._caps_hint = False
+        self.leaving = False        # overeno: posledni snimek jen tapeta (prechod na plochu)
 
         self.users = self.backend.users()
         self.sessions = self.backend.sessions()
@@ -1052,6 +1053,9 @@ class Greeter(Gtk.Window):
         # jemne ztmaveni pri prihlaseni
         cr.set_source_rgba(0, 0, 0, 0.10 + 0.14 * e)
         cr.paint()
+        if self.leaving:
+            # jen ztmavena tapeta: prechod (luxos-session-cover) ji rozjasni do plochy se stejnou tapetou
+            return False
         m = self.mon
         u = self.u
         now = time.localtime()
@@ -1656,15 +1660,47 @@ class Greeter(Gtk.Window):
         self.show_hint(hint, err)
 
     def launch(self):
+        """Prechod na plochu: posledni snimek je jen (ztmavena) tapeta bez hodin a formulare. X server ho po
+        skonceni greeteru drzi (X -background none) a luxos-session-cover --login s nim zakryje
+        skladani plochy, pak se rozplyne do hotove plochy se stejnou tapetou. Ceka se jen na jeden
+        snimek (nejvys 100 ms), relace se spousti hned."""
+        if self.leaving:
+            return                  # relace uz se spousti
         debug("start session", self.session, "user", self.user.name)
         self._save_state()
+        self.leaving = True
+        for w in (self.login, self.power, self.status):
+            w.hide()
+        self.bg.queue_draw()
+        clock = self.get_frame_clock()
+        state = {"done": False, "ids": []}
+
+        def go(*_a):
+            if state["done"]:
+                return False
+            state["done"] = True
+            if state["ids"]:
+                clock.disconnect(state["ids"][0])
+            Gdk.Display.get_default().sync()   # snimek je opravdu na obrazovce
+            GLib.idle_add(self.start_session)
+            return False
+        if clock is not None:
+            state["ids"].append(clock.connect("after-paint", go))
+        GLib.timeout_add(100, go)
+
+    def start_session(self):
         try:
             self.backend.start_session(self.session)
         except GLib.Error as e:
             log("start session:", e.message)
+            self.leaving = False
+            for w in (self.login, self.power, self.status):
+                w.show()
+            self.bg.queue_draw()
             self.show_hint(_("Could not start the session."), True)
             self.shake()
             self.start_auth_keep_hint()
+        return False
 
     def submit(self):
         self.touch()

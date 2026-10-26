@@ -406,6 +406,9 @@ function create():
     end
     created = True
     cc["provider"] = gtk.css_load(css_text())
+    # Profilova fotka (~/.face) jako pozadi kolecka profilu - vlastni styl, meni se jen s fotkou
+    cc["face_provider"] = gtk.css_load("")
+    cc["face_key"] = ""
     call gtk.connect(gtk.settings_get_default(), "notify::gtk-theme-name", on_theme_changed)
     cc["player"] = None
     cc["media_art"] = None
@@ -692,6 +695,31 @@ function on_off(on):
     return i18n.T("Off")
 end
 
+# Profilova fotka uctu (~/.face z luxos-profile-picture) misto pismena; styl se meni jen po zmene souboru
+function face_update():
+    path = glib.home_dir() + "/.face"
+    st = glib.stat(path)
+    key = ""
+    if len(st) > 0 and st[0] > 0:
+        key = path + ":" + String(st[1])
+    end
+    if key == cc["face_key"]:
+        return 0
+    end
+    cc["face_key"] = key
+    css = ""
+    if key != "":
+        uri = "file://" + path.replace("%", "%25").replace(" ", "%20").replace("\"", "%22")
+        css = ".avatar.photo { background-image: url(\"" + uri + "\"); background-size: cover; background-position: center; color: transparent; }\n"
+    end
+    call gtk.css_set(cc["face_provider"], css)
+    call gtk.widget_set_class(cc["p_avatar"], "photo", key != "")
+    if key != "":
+        call log_test("photo")
+    end
+    return 0
+end
+
 # Okamzite udaje (soubory v ~/.config a /sys) - bez spousteni programu
 function refresh_fast():
     user = account_user()
@@ -707,6 +735,7 @@ function refresh_fast():
         initial = name[0:1].upper()
     end
     call gtk.label_set_text(cc["p_avatar"], initial)
+    call face_update()
     if user != None:
         call gtk.label_set_text(cc["p_title"], name)
         call gtk.label_set_text(cc["p_sub"], i18n.T("LuxAI Account"))

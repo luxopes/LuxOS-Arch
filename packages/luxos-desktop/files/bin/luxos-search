@@ -1,7 +1,61 @@
 #!/bin/bash
 # LuxOS - Hledani (Super+Space): hledani aplikaci, souboru a oken
-if pkill -x rofi; then exit 0; fi
+#   luxos-search                  otevrit / zavrit Hledani
+#   luxos-search --panel          lupa v horni liste (vystup pro plugin genmon, klik = Hledani)
+#   luxos-search --add-to-panel   starsim profilum jednou prida lupu do listy pred Ovladaci centrum
 . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
+
+if [[ $1 == --panel ]]; then
+    printf '<icon>luxos-search-symbolic</icon><iconclick>luxos-search</iconclick><tool>%s</tool>\n' "$(T "Search")"
+    exit 0
+fi
+
+if [[ $1 == --add-to-panel ]]; then
+    # Znacka: lupa uz v liste je nebo byla (kdo ji odebral, tomu se nevrati)
+    mark=${XDG_CONFIG_HOME:-$HOME/.config}/luxos/search-icon-added
+    [[ -e $mark ]] && exit 0
+    q() { xfconf-query -c xfce4-panel "$@" 2>/dev/null; }
+    props=$(q -l -p /plugins) || exit 0          # xfconf jeste nebezi: zkusit pri dalsim prihlaseni
+    cc='' max=0
+    while read -r p; do
+        if [[ $p =~ ^/plugins/plugin-([0-9]+)$ ]]; then
+            (( BASH_REMATCH[1] > max )) && max=${BASH_REMATCH[1]}
+        elif [[ $p =~ ^/plugins/plugin-([0-9]+)/command$ ]]; then
+            id=${BASH_REMATCH[1]}
+            c=$(q -p "$p")
+            [[ $c == "luxos-search --panel"* ]] && { mkdir -p "${mark%/*}"; : >"$mark"; exit 0; }
+            [[ -z $cc && $c == "luxos-control-center --panel"* ]] && cc=$id
+        fi
+    done <<<"$props"
+    mkdir -p "${mark%/*}"
+    if [[ -n $cc ]]; then
+        new=$((max + 1))
+        for panel in $(q -l -p /panels | grep -E '^/panels/panel-[0-9]+/plugin-ids$'); do
+            mapfile -t order < <(q -p "$panel" | grep -E '^[0-9]+$')
+            [[ " ${order[*]} " == *" $cc "* ]] || continue
+            args=()
+            for v in "${order[@]}"; do
+                [[ $v == "$cc" ]] && args+=(-t int -s "$new")
+                args+=(-t int -s "$v")
+            done
+            base=/plugins/plugin-$new
+            q -p "$base" -n -t string -s genmon
+            q -p "$base/command" -n -t string -s "luxos-search --panel"
+            q -p "$base/update-period" -n -t int -s 86400000
+            q -p "$base/use-label" -n -t bool -s false
+            q -p "$base/enable-single-row" -n -t bool -s true
+            q -p "$panel" --force-array "${args[@]}"
+            : >"$mark"
+            # Panel novy plugin nacte az po restartu (pri prihlaseni to zakryva prechod na plochu)
+            pgrep -u "$USER" -x xfce4-panel >/dev/null && xfce4-panel -r 2>/dev/null
+            exit 0
+        done
+    fi
+    : >"$mark"                                   # vlastni lista bez Ovladaciho centra: nemenit
+    exit 0
+fi
+
+if pkill -x rofi; then exit 0; fi
 extra=(-theme-str "entry { placeholder: \"$(T "Search or ask LuxAI")\"; }")
 [[ $(luxos-appearance status) == light ]] && extra+=(-theme-str '@import "luxos-light-colors"')
 # Bez -hover-select: Enter spusti prvni (nejlepsi) shodu, ne polozku pod kurzorem mysi

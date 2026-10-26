@@ -2702,3 +2702,18 @@ More details: run the command again with --verbose	További részletek: futtassa
 The list of apps is out of date. Install the updates first, then try again.	Az alkalmazáslista elavult. Előbb telepítse a frissítéseket, majd próbálja újra.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	A számítógép dátuma és ideje hibás, ezért nem lehetséges biztonságos kapcsolat. Ellenőrizze az időbeállításokat.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Hosszabb akkumulátor-üzemidő: lassabb processzor turbó nélkül, kissé kisebb fényerő, nincs nagyítás a Dockban, a nem használt eszközök alvó állapotba kerülnek, a háttérfeladatok szünetelnek.
+Profile Picture	Profilkép
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Megjelenik a bejelentkezési és a zárolási képernyőn, a LuxOS menüben és a Vezérlőközpontban.
+Choose Photo…	Fénykép kiválasztása…
+Choose Photo	Fénykép kiválasztása
+Remove Picture	Kép eltávolítása
+Images	Képek
+This file is not a picture LuxOS can open.	Ez a fájl nem olyan kép, amelyet a LuxOS meg tud nyitni.
+The picture could not be removed: %s	A képet nem sikerült eltávolítani: %s
+Picture removed.	Kép eltávolítva.
+Drag to move the photo, scroll to zoom.	Húzással mozgathatod a képet, görgetéssel nagyíthatsz.
+Zoom	Nagyítás
+The picture is saved, but the login screen could not be updated: %s	A kép mentve, de a bejelentkezési képernyőt nem sikerült frissíteni: %s
+Saved. The new picture appears on the login screen and in the menu.	Mentve. Az új kép megjelenik a bejelentkezési képernyőn és a menüben.
+Change Picture	Kép módosítása
+Account on this computer	Fiók ezen a számítógépen
