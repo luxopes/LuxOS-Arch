@@ -1647,6 +1647,9 @@ def _merge(dst_c, dst_n, c, n):
 
 def classify(data, name=""):
     """Obsah souboru -> Verdict, nebo None (neni spustitelny obsah)."""
+    # Prazdny soubor (nebo jen mezery) nic nespusti: prazdne __init__.py ve venv, nepovedene stazeni
+    if not data.strip():
+        return None
     kind = detect_kind(data[:64], name)
     if kind is None:
         return None

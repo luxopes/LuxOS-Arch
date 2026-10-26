@@ -238,6 +238,32 @@ def test_copy_of_flagged_file_is_flagged(g):
     assert e and e["origin"] == "copy" and e["level"] == C.CRITICAL and ident(q) in g.fan.marks
 
 
+def test_empty_download_and_empty_files_not_flagged(g):
+    """Prazdny stazeny skript (nepovedene stazeni) se neoznaci a prazdne __init__.py ve venv nejsou jeho kopie."""
+    p = write(g.home / "Downloads" / "installer.py", b"", mode=0o644)
+    close_write(g, p, 52)
+    assert g.state.get(ident(p)) is None
+    # oznaceny maly skript: prazdne soubory s nim stejny otisk nemaji, ale i kdyby - pod limitem se neposuzuji
+    venv = g.home / "proj" / ".venv" / "lib" / "site-packages" / "pip"
+    venv.mkdir(parents=True)
+    g.fp.add(62, "/usr/bin/python3.14", ["python3", "-m", "venv", ".venv"], loginuid=1000)
+    q = write(venv / "__init__.py", b"", mode=0o644)
+    close_write(g, q, 62)
+    assert g.state.get(ident(q)) is None and ident(q) not in g.fan.marks
+
+
+def test_tiny_identical_file_is_not_a_copy(g):
+    tiny = b"#!/bin/sh\nrm ~\n"
+    assert len(tiny) < S.MIN_COPY_SIZE
+    p = write(g.home / "Downloads" / "t.sh", tiny)
+    close_write(g, p, 52)
+    assert g.state.get(ident(p))                                 # stazeny: posouzen
+    q = write(g.home / "bin" / "t2.sh", tiny)
+    g.fp.add(63, "/usr/bin/cp", ["cp"], loginuid=1000)
+    close_write(g, q, 63)
+    assert g.state.get(ident(q)) is None                         # stejny otisk, ale pod limitem kopie
+
+
 def test_own_build_not_watched(g):
     elf = bytearray(64)
     elf[0:4] = b"\x7fELF"
