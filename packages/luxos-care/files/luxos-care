@@ -22,6 +22,11 @@ Snimky systemu (btrfs, viz /usr/lib/luxos/python/luxos_snapshots.py):
   luxos-care boot-entries           (root) obnovit polozky snimku a obnovy v zavadeci
   luxos-care snapshot-pre           (root, hook 05-luxos-snapshot; baliky na stdin)
   luxos-care after-rollback         (root, prvni start po navratu)
+
+Obnova (LuxOS Recovery, /usr/lib/luxos/care/luxos-recovery):
+  luxos-care disk-check [--repair] [--json]
+                                    (root) kontrola disku, bez --repair nic nezapisuje
+  luxos-care reinstall --yes        (root) preinstalace systemu se zachovanim /home a uctu
 """
 import json
 import os
@@ -31,6 +36,7 @@ import time
 sys.path.insert(0, "/usr/lib/luxos/python")
 import luxos_care as care  # noqa: E402
 import luxos_snapshots as snap  # noqa: E402
+import luxos_recovery as rec  # noqa: E402
 from luxos_i18n import _  # noqa: E402
 
 
@@ -81,6 +87,11 @@ SNAP_ERRORS = {
     "snapshot_failed": "The snapshot could not be created: %s",
     "subvolume_failed": "The snapshot could not be created: %s",
     "delete_failed": "The snapshot could not be deleted: %s",
+    "no_packages": "The list of installed packages could not be read.",
+    "kernel_not_saved": "The current kernel could not be saved, the reinstall was not started.",
+    "install_failed": "Installing the packages failed (is the internet connected?): %s",
+    "initramfs_failed": "Creating the initramfs failed: %s",
+    "bootloader_failed": "Updating the boot loader failed: %s",
 }
 UNSUPPORTED = {
     "live": "Snapshots are not available in the live system.",
@@ -183,6 +194,46 @@ def cmd_boot_entries(_args):
     return 0
 
 
+def cmd_disk_check(args):
+    need_root()
+    repair = "--repair" in args
+    try:
+        with snap.snapshot_lock(), snap.top_level() as top:
+            res = rec.disk_check(top, repair=repair, out=lambda t: None if "--json" in args else print("… " + t))
+    except snap.SnapshotError as e:
+        sys.exit(snap_error(e))
+    if "--json" in args:
+        print(rec.results_json(res))
+    else:
+        for title, ok, out in res:
+            print(("✓ " if ok else "✗ ") + title)
+            if not ok and out:
+                print("\n".join("    " + ln for ln in out.splitlines()[-15:]))
+        bad = [t for t, ok, _o in res if not ok]
+        print(_("No problems found.") if not bad else _("Problems found: %d") % len(bad))
+    return 0 if all(ok for _t, ok, _o in res) else 1
+
+
+def cmd_reinstall(args):
+    need_root()
+    if "--yes" not in args:
+        sys.exit(_("Add --yes to confirm (LuxOS Recovery asks first)."))
+    ok, why = snap.supported()
+    if not ok and why != "snapshot_boot":
+        sys.exit(_(UNSUPPORTED.get(why, why)))
+    try:
+        with snap.snapshot_lock(), snap.top_level() as top:
+            res = rec.reinstall(top, out=lambda t: print("… " + t, flush=True))
+    except snap.SnapshotError as e:
+        care.history("reinstall", ok=False, error=e.code)
+        sys.exit(snap_error(e))
+    print(_("LuxOS was reinstalled. Your files and accounts were kept."))
+    print(_("The previous system was kept as the snapshot %s (nothing was deleted).") % res["kept"])
+    if res["foreign"]:
+        print(_("Not reinstalled (not from the repositories): %s") % " ".join(res["foreign"]))
+    return 0
+
+
 def main(argv):
     cmd = argv[1] if len(argv) > 1 else "status"
     args = argv[2:]
@@ -261,7 +312,7 @@ def main(argv):
         need_root()
         return snap.after_rollback()
     handlers = {"snapshots": cmd_snapshots, "snapshot": cmd_snapshot, "rollback": cmd_rollback,
-                "boot-entries": cmd_boot_entries}
+                "boot-entries": cmd_boot_entries, "disk-check": cmd_disk_check, "reinstall": cmd_reinstall}
     if cmd in handlers:
         return handlers[cmd](args)
     if cmd in ("kernel-pre", "kernel-post"):

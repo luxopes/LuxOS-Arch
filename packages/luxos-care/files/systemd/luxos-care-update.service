@@ -3,6 +3,7 @@ Description=LuxOS Care: automatic system update
 Wants=network-online.target
 After=network-online.target NetworkManager.service
 ConditionPathExists=!/run/archiso
+ConditionKernelCommandLine=!luxos.snapshot
 
 [Service]
 Type=oneshot

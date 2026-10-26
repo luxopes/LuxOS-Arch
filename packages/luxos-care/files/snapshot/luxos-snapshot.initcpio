@@ -1,0 +1,22 @@
+#!/bin/bash
+# LuxOS - mkinitcpio hook "luxos-snapshot" (systemd initramfs): start ze snimku systemu jen pro cteni.
+# Polozka snimku ma systemd.volatile=overlay: systemd-volatile-root polozi na snimek docasnou
+# zapisovatelnou vrstvu v pameti (zmeny po restartu zmizi). Pridava ho
+# /etc/mkinitcpio.conf.d/zz-luxos-snapshot.conf.
+
+build() {
+    add_module overlay
+    if declare -F add_systemd_unit >/dev/null; then
+        add_systemd_unit systemd-volatile-root.service
+    else
+        add_binary /usr/lib/systemd/systemd-volatile-root
+        add_file /usr/lib/systemd/system/systemd-volatile-root.service
+    fi
+}
+
+help() {
+    cat <<HELPEOF
+LuxOS: start a read-only system snapshot from the boot menu with a temporary writable layer
+(systemd.volatile=overlay). Needs the systemd hook.
+HELPEOF
+}

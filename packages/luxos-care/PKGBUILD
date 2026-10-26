@@ -1,23 +1,26 @@
 # Maintainer: LuxOS Team
 # LuxOS Care - system bez udrzby: automaticke aktualizace (Sporic dat, baterie), zalozni jadro
 # s automatickym navratem (systemd-boot boot counting / GRUB) a samooprava (pravidla + LuxAI Flash)
+# Snimky systemu (btrfs) pred kazdou zmenou baliku, start snimku z nabidky zavadece, lux rollback
+# a LuxOS Recovery (kontrola disku, navrat ke snimku, preinstalace se zachovanim /home)
 
 pkgname=luxos-care
 pkgver=1.0.0
-pkgrel=10
-pkgdesc="LuxOS Care - automatic updates, previous kernel fallback and self-repair"
+pkgrel=11
+pkgdesc="LuxOS Care - automatic updates, previous kernel fallback, self-repair, system snapshots and recovery"
 arch=(any)
 url="https://luxos.lux-ai.cz/repo/"
 license=(GPL-3.0-or-later)
 # "pacman" = virtualni zavislost (poskytuje ji lux-engine, drive luxos-pacman): starsi lux/Obchod,
 # ktere nahrazeni baliku odmitnou, tak aktualizuji vse ostatni a lux-engine nahradi az novy lux.
 # Kontrolu aktualizaci a cisteni cache dela lux (lux_alpm.py check-updates / clean), ne pacman-contrib.
-depends=(python python-gobject gtk3 pacman mkinitcpio systemd polkit luxos-i18n)
+depends=(python python-gobject gtk3 pacman mkinitcpio systemd polkit luxos-i18n btrfs-progs dosfstools e2fsprogs)
 optdepends=('lux: updates through libalpm (pyalpm) with the same progress output'
             'luxos-account: LuxAI Flash chooses repairs for unknown problems'
             'networkmanager: skip updates on metered connections (Data Saver)'
             'grub: previous kernel entry on BIOS installs'
-            'dkms: keep NVIDIA and other DKMS modules for the previous kernel')
+            'dkms: keep NVIDIA and other DKMS modules for the previous kernel'
+            'gum: nicer menus in LuxOS Recovery')
 makedepends=(python)
 install=luxos-care.install
 
@@ -27,11 +30,20 @@ package() {
     install -Dm755 "$f/luxos-update" "$pkgdir/usr/bin/luxos-update"
     install -Dm755 "$f/50-luxos-kernel" "$pkgdir/usr/lib/lux/after-update.d/50-luxos-kernel"
     install -Dm755 "$f/luxos-care-helper" "$pkgdir/usr/lib/luxos/care/luxos-care-helper"
-    install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f/luxos_care.py" "$f/luxos_care_session.py"
+    install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f/luxos_care.py" "$f/luxos_care_session.py" \
+        "$f/luxos_snapshots.py" "$f/luxos_recovery.py"
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f"/systemd/*
     install -Dm644 -t "$pkgdir/usr/share/libalpm/hooks" "$f"/hooks/*.hook
     install -Dm755 "$f/grub/11_luxos_previous" "$pkgdir/etc/grub.d/11_luxos_previous"
+    # Snimky systemu: start z nabidky zavadece (hook initramfs, drop-in kopiruje luxos-care.install)
+    install -Dm755 "$f/grub/12_luxos_snapshots" "$pkgdir/etc/grub.d/12_luxos_snapshots"
+    install -Dm644 "$f/snapshot/luxos-snapshot.initcpio" "$pkgdir/usr/lib/initcpio/install/luxos-snapshot"
+    install -Dm644 "$f/snapshot/zz-luxos-snapshot.conf" "$pkgdir/usr/lib/luxos/care/zz-luxos-snapshot.conf"
+    install -Dm644 "$f/snapshot/remount-fs-snapshot.conf" \
+        "$pkgdir/usr/lib/systemd/system/systemd-remount-fs.service.d/luxos-snapshot.conf"
+    # LuxOS Recovery (polozka zavadece, systemd.unit=luxos-recovery.target)
+    install -Dm755 "$f/recovery/luxos-recovery" "$pkgdir/usr/lib/luxos/care/luxos-recovery"
     install -Dm644 "$f/org.luxos.care.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.care.policy"
     install -Dm644 "$f/50-luxos-care.rules" "$pkgdir/usr/share/polkit-1/rules.d/50-luxos-care.rules"
     install -Dm644 "$f/luxos-update.desktop" "$pkgdir/usr/share/applications/luxos-update.desktop"

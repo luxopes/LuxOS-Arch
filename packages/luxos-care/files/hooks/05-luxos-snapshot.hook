@@ -1,0 +1,17 @@
+# LuxOS Care: snimek systemu pred kazdou zmenou baliku (lux, LuxOS Care, Obchod - vse pres libalpm).
+# Chyba snimku transakci nezastavi; pri startu ze snimku (luxos.snapshot=) se transakce odmitne -
+# zmeny by se po restartu ztratily a jadro by se zapsalo do /boot hlavniho systemu.
+# Bezi pred 10-luxos-care-kernel-pre.
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Target = *
+
+[Action]
+Description = Saving a snapshot of the system (rollback from the boot menu)...
+When = PreTransaction
+Exec = /usr/bin/luxos-care snapshot-pre
+NeedsTargets
+AbortOnFail

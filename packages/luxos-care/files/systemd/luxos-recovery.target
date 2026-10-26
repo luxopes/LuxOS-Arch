@@ -1,0 +1,6 @@
+[Unit]
+Description=LuxOS Recovery
+Documentation=man:luxos-care(8)
+Requires=sysinit.target luxos-recovery.service
+After=sysinit.target luxos-recovery.service
+AllowIsolate=yes
