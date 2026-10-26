@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- QR kod Wi-Fi: rohy QR kodu a vlny Wi-Fi (vlastni kresba) -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4c8dff"/>
+      <stop offset="1" stop-color="#5a4be0"/>
+    </linearGradient>
+  </defs>
+  <rect x="40" y="40" width="432" height="432" rx="100" fill="url(#bg)"/>
+  <rect x="40" y="40" width="432" height="216" rx="100" fill="#ffffff" opacity="0.08"/>
+  <rect x="96" y="96" width="320" height="320" rx="44" fill="#ffffff"/>
+  <g fill="#1d1d2b">
+    <path d="M128 128h88v88h-88zM148 148v48h48v-48z" fill-rule="evenodd"/>
+    <path d="M296 128h88v88h-88zM316 148v48h48v-48z" fill-rule="evenodd"/>
+    <path d="M128 296h88v88h-88zM148 316v48h48v-48z" fill-rule="evenodd"/>
+    <rect x="160" y="160" width="24" height="24"/>
+    <rect x="328" y="160" width="24" height="24"/>
+    <rect x="160" y="328" width="24" height="24"/>
+    <rect x="236" y="128" width="24" height="24"/>
+    <rect x="236" y="176" width="24" height="24"/>
+    <rect x="128" y="236" width="24" height="24"/>
+    <rect x="176" y="236" width="24" height="24"/>
+  </g>
+  <g fill="none" stroke="#3d7bff" stroke-width="18" stroke-linecap="round">
+    <path d="M250 290a96 96 0 0 1 136 0"/>
+    <path d="M276 322a56 56 0 0 1 84 0"/>
+  </g>
+  <circle cx="318" cy="362" r="16" fill="#3d7bff"/>
+</svg>

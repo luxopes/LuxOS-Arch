@@ -2,13 +2,14 @@
 # Den: velke cislo dne + den v tydnu a dnesni udalosti jako barevne karty. Mesic: mrizka dnu (dnesek
 # zvyrazneny, tecka = udalost), klik na den ukaze jeho udalosti. Rok: 12 malych mesicu (cairo + Pango),
 # klik otevre mesic. Tlacitko + pridava udalosti, klik na kartu je upravi nebo smaze.
+# Pod dneskem pocasi z aplikace Pocasi (jen cerstvy souhrn, Kalendar sam nic nestahuje).
 # Data: ~/.local/share/luxos/calendar/events.ics, dalsi *.ics ve slozce jen pro cteni (luxos_ics).
 # Na pozadi drzi okno skryte a hlida pripominky (notify-send 10 minut predem).
 #
 #   call cal.create(background)   skryte okno + pripominky + sledovani slozky (pouziva luxos-hub i samostatny program)
 #   call cal.toggle()             ukaze/skryje okno (klik na hodiny)
 # Stav drzi slovniky (zadne tridy): cal (okno), store (uloziste), views, form, reminders.
-load env, cairo, pango
+load env, cairo, pango, json
 load luxos_glib, glib as glib
 load luxos_gio, gio as gio
 load luxos_gtk, gtk as gtk
@@ -47,6 +48,8 @@ CSS = ("window.lc { background: transparent; }\n"
     + "button.lc-icon { border-radius: 999px; min-width: 24px; min-height: 24px; padding: 0; background: none; border: none; box-shadow: none; color: @lc_fg; outline: none; }\n"
     + "button.lc-icon:hover { background-color: @lc_tile_hover; }\n"
     + "button.lc-add { background-color: @lc_tile; }\n"
+    + "button.lc-wx { padding: 0; min-height: 0; border: none; background: none; box-shadow: none; font-size: 12px; }\n"
+    + "button.lc-wx:hover label { text-decoration: underline; }\n"
     + "button.lc-pill { border-radius: 999px; padding: 1px 10px; min-height: 22px; font-size: 11px; font-weight: 600; background-color: @lc_tile; border: none; box-shadow: none; color: @lc_fg; outline: none; }\n"
     + "button.lc-pill:hover { background-color: @lc_tile_hover; }\n"
     + "button.lc-pill:disabled { opacity: 0.4; }\n"
@@ -454,6 +457,18 @@ function day_view_new():
     vw["my"] = label("", ["lc-monthyear", "dim"], 0)
     call gtk.box_pack_start(column, vw["wd"], False, False, 0)
     call gtk.box_pack_start(column, vw["my"], False, False, 0)
+    wx = gtk.button_new("")
+    call gtk.widget_set_can_focus(wx, False)
+    call gtk.widget_add_class(wx, "lc-wx")
+    call gtk.widget_set_halign(wx, gtk.ALIGN_START)
+    call gtk.widget_set_tooltip(wx, i18n.T("Weather"))
+    call gtk.widget_set_no_show_all(wx, True)
+    wx_label = gtk.bin_get_child(wx)
+    call gtk.label_set_ellipsize(wx_label, gtk.ELLIPSIZE_END)
+    call gtk.label_set_max_width_chars(wx_label, 22)
+    call gtk.connect(wx, "clicked", on_weather_click)
+    vw["wx"] = wx
+    call gtk.box_pack_start(column, wx, False, False, 0)
     call gtk.box_pack_start(head, column, True, True, 0)
     nav = gtk.box_new(gtk.HORIZONTAL, 2)
     call gtk.widget_set_valign(nav, gtk.ALIGN_CENTER)
@@ -484,6 +499,40 @@ function go_day_delta(delta):
     return 0
 end
 
+# Souhrn z aplikace Pocasi ($XDG_CACHE_HOME/luxos/weather/summary.json), starsi nez 3 hodiny se neukaze
+function weather_line():
+    base = env.get("XDG_CACHE_HOME", "")
+    if base == None or base == "":
+        base = glib.home_dir() + "/.cache"
+    end
+    raw = glib.read_text(base + "/luxos/weather/summary.json")
+    if raw == "":
+        return ""
+    end
+    data = None
+    try:
+        data = json.decode(raw)
+    else:
+        data = None
+    end
+    if data == None or type(data) != "Dictionary":
+        return ""
+    end
+    fetched = data.get("fetched")
+    temp = data.get("temp")
+    if fetched == None or temp == None or glib.now() - fetched > 10800:
+        return ""
+    end
+    return String(temp) + "°  " + i18n.T(String(data.get("condition"))) + " · " + String(data.get("name"))
+end
+
+function on_weather_click(button):
+    call log_test("weather")
+    call glib.spawn_quiet(["luxos-weather"])
+    call hide()
+    return 0
+end
+
 function day_view_refresh(vw):
     d = cal["day"]
     ymd = date.from_ordinal(d)
@@ -491,6 +540,15 @@ function day_view_refresh(vw):
     call gtk.label_set_text(vw["wd"], weekday_name(d).upper())
     call gtk.label_set_text(vw["my"], month_name(ymd[1]) + " " + String(ymd[0]))
     call gtk.widget_set_sensitive(vw["today_btn"], d != date.today())
+    wx = ""
+    if d == date.today():
+        wx = weather_line()
+    end
+    call gtk.button_set_label(vw["wx"], wx)
+    call gtk.widget_set_visible(vw["wx"], wx != "")
+    if wx != "":
+        call log_test("weather-line")
+    end
     empty = i18n.T("No events")
     if d == date.today():
         empty = i18n.T("No events today")

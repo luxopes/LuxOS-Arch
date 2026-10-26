@@ -75,6 +75,9 @@ Contents:
   - **Data Saver**: `luxos-datasaver toggle` (marks the connection as metered and skips background
     update checks).
   - **Battery Saver**: `luxos-powersaver toggle` (power-saver profile, no Dock magnification).
+- **Share Wi-Fi with QR Code…** under the tiles while connected to Wi-Fi (`luxos-wifi-qr`), or
+  **Join Wi-Fi with QR Code…** when Wi-Fi is on but not connected (`luxos-wifi-qr --scan`); see
+  [wifi-qr.md](wifi-qr.md).
 - **Display** slider: brightness. With a backlight it uses `brightnessctl`. Without one (desktop
   monitor, VM) it uses software brightness of all outputs (`luxos-displays brightness N`, saved in
   `~/.config/luxos/brightness`). The minimum is 10 %. Clicking the brightness icon opens Displays.

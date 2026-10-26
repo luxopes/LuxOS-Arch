@@ -2969,3 +2969,110 @@ The picture is saved, but the login screen could not be updated: %s	Fotka je ulo
 Saved. The new picture appears on the login screen and in the menu.	Uloženo. Nová fotka se ukáže na přihlašovací obrazovce a v nabídce.
 Change Picture	Změnit fotku
 Account on this computer	Účet v tomto počítači
+Extreme	Extrémní
+Low	Nízký
+Moderate	Střední
+High	Vysoký
+Very High	Velmi vysoký
+Weather	Počasí
+Finding your city…	Hledám vaše město…
+Searching…	Hledám…
+Weather will ask the ipinfo.io service where your internet address is. Your address is sent to that service; the location is only approximate (usually your city or provider).	Počasí se zeptá služby ipinfo.io, kde je vaše internetová adresa. Adresa se této službě odešle; poloha je jen přibližná (obvykle vaše město nebo poskytovatel).
+Use Location	Použít polohu
+Finding your location…	Zjišťuji vaši polohu…
+Feels like	Pocitově
+Add a location	Přidat místo
+Menu	Nabídka
+Search for a city	Hledat město
+Use My Approximate Location…	Použít moji přibližnou polohu…
+Search failed. Check your internet connection.	Hledání se nezdařilo. Zkontrolujte připojení k internetu.
+No city found.	Žádné město nenalezeno.
+Use your approximate location?	Použít vaši přibližnou polohu?
+Your location could not be found	Polohu se nepodařilo zjistit
+Search for your city with the + button instead.	Vyhledejte raději své město tlačítkem +.
+Add a city	Přidejte město
+Search for a city with the + button to see its weather.	Tlačítkem + vyhledejte město a uvidíte jeho počasí.
+Add a City…	Přidat město…
+Units	Jednotky
+Automatic	Automaticky
+Celsius (°C, km/h)	Celsius (°C, km/h)
+Fahrenheit (°F, mph)	Fahrenheit (°F, mph)
+Remove Location	Odebrat místo
+Weather data: Open-Meteo.com (CC BY 4.0)	Data o počasí: Open-Meteo.com (CC BY 4.0)
+Loading the forecast…	Načítám předpověď…
+Hourly forecast	Předpověď po hodinách
+7-day forecast	Předpověď na 7 dní
+Humidity	Vlhkost
+Wind	Vítr
+Precipitation	Srážky
+UV index	UV index
+Pressure	Tlak
+Sunrise	Východ slunce
+Remove “%s”	Odebrat „%s“
+The forecast could not be loaded	Předpověď se nepodařilo načíst
+Check your internet connection and try again.	Zkontrolujte připojení k internetu a zkuste to znovu.
+H: %s  L: %s	Max. %s  Min. %s
+Sunset: %s	Západ: %s
+Updated at %s · Open-Meteo.com	Aktualizováno v %s · Open-Meteo.com
+Offline – showing the forecast from %s	Bez připojení – předpověď z %s
+Scan the code with a phone camera to join this network.	Naskenujte kód fotoaparátem telefonu a připojte se k této síti.
+Scan a Wi-Fi QR code with the camera and connect	Naskenovat QR kód Wi‑Fi kamerou a připojit se
+Reading the network settings…	Čtu nastavení sítě…
+Wi-Fi QR Code	QR kód Wi‑Fi
+Copy QR code image	Kopírovat obrázek QR kódu
+Show Password…	Zobrazit heslo…
+Join a Network with a QR Code…	Připojit se k síti QR kódem…
+QR codes are not available	QR kódy nejsou k dispozici
+The zxing-cpp library is missing. Install it with: lux install zxing-cpp	Chybí knihovna zxing-cpp. Nainstalujte ji příkazem: lux install zxing-cpp
+Not connected to Wi-Fi	Nejste připojeni k Wi‑Fi
+Connect to a Wi-Fi network to share it with a QR code.	Připojte se k síti Wi‑Fi a pak ji můžete sdílet QR kódem.
+The network settings could not be read	Nastavení sítě se nepodařilo přečíst
+This network uses a company or school login (802.1X). It cannot be shared with a QR code.	Tato síť používá firemní nebo školní přihlášení (802.1X). Nelze ji sdílet QR kódem.
+The Wi-Fi password is stored for the whole computer. To show it in the QR code, confirm with the administrator password.	Heslo Wi‑Fi je uložené pro celý počítač. Pro zobrazení v QR kódu ho potvrďte heslem správce.
+Open network – no password needed.	Otevřená síť – heslo není potřeba.
+Password:	Heslo:
+The QR code could not be created	QR kód se nepodařilo vytvořit
+Join Wi-Fi with QR Code	Připojení k Wi‑Fi QR kódem
+Hold a Wi-Fi QR code in front of the camera.	Podržte QR kód Wi‑Fi před kamerou.
+Join	Připojit
+You can close this window.	Toto okno můžete zavřít.
+The network could not be joined	K síti se nepodařilo připojit
+This QR code is not a Wi-Fi network.	Tento QR kód není síť Wi‑Fi.
+Joining “%s”…	Připojuji k „%s“…
+Connected to “%s”	Připojeno k „%s“
+Join the Wi-Fi network “%s”?	Připojit se k síti Wi‑Fi „%s“?
+Could not join “%s”: %s	K „%s“ se nepodařilo připojit: %s
+Share Wi-Fi with QR Code…	Sdílet Wi‑Fi QR kódem…
+Join Wi-Fi with QR Code…	Připojit k Wi‑Fi QR kódem…
+Clear Sky	Jasno
+Mostly Clear	Skoro jasno
+Partly Cloudy	Polojasno
+Cloudy	Zataženo
+Fog	Mlha
+Freezing Fog	Mrznoucí mlha
+Light Drizzle	Slabé mrholení
+Drizzle	Mrholení
+Heavy Drizzle	Silné mrholení
+Freezing Drizzle	Mrznoucí mrholení
+Light Rain	Slabý déšť
+Rain	Déšť
+Heavy Rain	Silný déšť
+Freezing Rain	Mrznoucí déšť
+Light Snow	Slabé sněžení
+Snow	Sněžení
+Heavy Snow	Husté sněžení
+Snow Grains	Sněhová zrna
+Showers	Přeháňky
+Heavy Showers	Silné přeháňky
+Snow Showers	Sněhové přeháňky
+Heavy Snow Showers	Silné sněhové přeháňky
+Thunderstorm	Bouřka
+Thunderstorm with Hail	Bouřka s krupobitím
+North wind	Severní vítr
+Northeast wind	Severovýchodní vítr
+East wind	Východní vítr
+Southeast wind	Jihovýchodní vítr
+South wind	Jižní vítr
+Southwest wind	Jihozápadní vítr
+West wind	Západní vítr
+Northwest wind	Severozápadní vítr

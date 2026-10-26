@@ -64,6 +64,10 @@ def build():
 
 BIN = build()
 DISPLAY = os.environ.get("DISPLAY")
+# Snimek cele (virtualni) obrazovky pro LUXOS_TEST_SHOTS
+SHOT = ("import sys, gi\ngi.require_version('Gdk', '3.0')\nfrom gi.repository import Gdk\n"
+        "r = Gdk.get_default_root_window()\n"
+        "Gdk.pixbuf_get_from_window(r, 0, 0, r.get_width(), r.get_height()).savev(sys.argv[1], 'png', [], [])\n")
 
 NM_XML = """<node><interface name="org.freedesktop.NetworkManager">
   <property name="State" type="u" access="read"/><property name="Connectivity" type="u" access="read"/>
@@ -329,6 +333,65 @@ class Hub(unittest.TestCase):
         finally:
             cal.send_signal(signal.SIGTERM)
             self.assertEqual(cal.wait(5), 0)
+
+    def test_control_center_wifi_qr_link(self):
+        """Pod dlazdicemi odkaz na QR kod Wi-Fi: pripojeno = sdilet, bez site = naskenovat, vypnuto = nic."""
+        fake = os.path.join(self.home, "fake-nm")
+        os.makedirs(fake)
+        state = os.path.join(self.home, "nmstate")
+        with open(os.path.join(fake, "nmcli"), "w") as f:
+            f.write('#!/bin/sh\nst=$(cat "%s")\ncase "$*" in\n'
+                    '  "radio wifi") [ "$st" = off ] && echo disabled || echo enabled;;\n'
+                    '  "-t -f ACTIVE,SSID device wifi") [ "$st" = on ] && printf "no:Soused\\nyes:Domov\\n" || echo "no:Soused";;\n'
+                    '  "-t -f TYPE,STATE device") echo "wifi:disconnected";;\n'
+                    'esac\n' % state)
+        os.chmod(os.path.join(fake, "nmcli"), 0o755)
+        hub = self.start_hub(PATH=fake + ":" + self.fake + ":/usr/bin:/bin")
+        shown = 0
+        for st, expect in (("on", "wifi-qr:share"), ("noconn", "wifi-qr:scan"), ("off", "wifi-qr:")):
+            with open(state, "w") as f:
+                f.write(st)
+            hub.send_signal(signal.SIGUSR1)
+            shown += 1
+            self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log").count("shown") == shown))
+            self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log")[-1] == expect), (st, self.ui_log("cc.log")))
+            if st == "on" and os.environ.get("LUXOS_TEST_SHOTS"):
+                time.sleep(0.5)
+                subprocess.run([sys.executable, "-c", SHOT, os.path.join(os.environ["LUXOS_TEST_SHOTS"], "cc-wifi-qr.png")],
+                               env=dict(os.environ), timeout=20)
+            hub.send_signal(signal.SIGUSR1)
+            self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log")[-1] == "hidden"))
+        err = self.hub_err()
+        self.assertNotIn("LSL callback error", err, err)
+
+    def test_calendar_weather_line(self):
+        """Kalendar ukaze pod dneskem souhrn z aplikace Pocasi, jen kdyz je cerstvy (do 3 h)."""
+        wdir = os.path.join(self.cache, "weather")
+        os.makedirs(wdir)
+        summary = {"name": "Praha", "fetched": int(time.time()) - 600, "units": "metric", "temp": 13, "max": 13,
+                   "min": 6, "code": 2, "is_day": True, "condition": "Partly Cloudy", "icon": "partly-cloudy-day"}
+        with open(os.path.join(wdir, "summary.json"), "w") as f:
+            json.dump(summary, f)
+        hub = self.start_hub()
+        hub.send_signal(signal.SIGUSR2)
+        self.assertTrue(self.wait_for(lambda: "weather-line" in self.ui_log("cal.log")), (self.ui_log("cal.log"), self.hub_err()))
+        if os.environ.get("LUXOS_TEST_SHOTS"):
+            time.sleep(0.5)
+            subprocess.run([sys.executable, "-c", SHOT, os.path.join(os.environ["LUXOS_TEST_SHOTS"], "calendar-weather.png")],
+                           env=dict(os.environ), timeout=20)
+        hub.send_signal(signal.SIGUSR2)
+        self.assertTrue(self.wait_for(lambda: self.ui_log("cal.log")[-1] == "hidden"))
+        # stary souhrn (4 h) se neukaze
+        summary["fetched"] -= 4 * 3600
+        with open(os.path.join(wdir, "summary.json"), "w") as f:
+            json.dump(summary, f)
+        hub.send_signal(signal.SIGUSR2)
+        self.assertTrue(self.wait_for(lambda: self.ui_log("cal.log").count("shown") == 2))
+        time.sleep(0.5)
+        log = self.ui_log("cal.log")
+        self.assertNotIn("weather-line", log[len(log) - 1 - log[::-1].index("hidden"):], log)
+        err = self.hub_err()
+        self.assertNotIn("LSL callback error", err, err)
 
     # ---- sit bez internetu, Sporic dat ----------------------------------------------------------------
     def test_connectivity_and_networks(self):

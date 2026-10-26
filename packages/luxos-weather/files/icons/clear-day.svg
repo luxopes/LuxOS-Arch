@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- LuxOS Pocasi: clear-day (vlastni kresba) -->
+  <defs>
+    <linearGradient id="cl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dde3ee"/></linearGradient>
+    <linearGradient id="cd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9d0dc"/><stop offset="1" stop-color="#9aa4b5"/></linearGradient>
+    <radialGradient id="sun" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffe066"/><stop offset="1" stop-color="#ffb400"/></radialGradient>
+    <linearGradient id="moon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset="1" stop-color="#f2cf63"/></linearGradient>
+  </defs>
+  <path d="M48.5 32.0L53.0 32.0" stroke="#ffb400" stroke-width="3.2" stroke-linecap="round"/><path d="M43.7 43.7L46.8 46.8" stroke="#ffb400" stroke-width="3.2" stroke-linecap="round"/><path d="M32.0 48.5L32.0 53.0" stroke="#ffb400" stroke-width="3.2" stroke-linecap="round"/><path d="M20.3 43.7L17.2 46.8" stroke="#ffb400" stroke-width="3.2" stroke-linecap="round"/><path d="M15.5 32.0L11.0 32.0" stroke="#ffb400" stroke-width="3.2" stroke-linecap="round"/><path d="M20.3 20.3L17.2 17.2" stroke="#ffb400" stroke-width="3.2" stroke-linecap="round"/><path d="M32.0 15.5L32.0 11.0" stroke="#ffb400" stroke-width="3.2" stroke-linecap="round"/><path d="M43.7 20.3L46.8 17.2" stroke="#ffb400" stroke-width="3.2" stroke-linecap="round"/><circle cx="32" cy="32" r="13" fill="url(#sun)"/>
+</svg>
