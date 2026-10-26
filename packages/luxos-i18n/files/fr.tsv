@@ -3145,3 +3145,69 @@ Mirror displays	Recopier les écrans
 Show the same picture on all displays.	Afficher la même image sur tous les écrans.
 The displays show the same picture. Turn off mirroring to arrange them.	Les écrans affichent la même image. Désactivez la recopie pour les disposer.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Un seul écran est utilisé. Choisissez Étendre dans Plusieurs écrans pour les disposer.
+LuxAI adapts the length and detail to how complex your question is.	LuxAI adapte la longueur et le niveau de détail à la complexité de votre question.
+Concise	Concis
+Answers are as direct as possible, without repetition or filler.	Les réponses sont aussi directes que possible, sans répétitions ni remplissage.
+Detailed	Détaillé
+LuxAI adds more context, explanations, caveats and suitable examples.	LuxAI ajoute plus de contexte, d'explications, de réserves et d'exemples adaptés.
+Technical	Technique
+Answers prefer precise terminology, assumptions and implementation details.	Les réponses privilégient une terminologie précise, les hypothèses et les détails d'implémentation.
+Friendly	Amical
+Answers are more approachable and friendly, but still accurate and professional.	Les réponses sont plus accessibles et chaleureuses, tout en restant exactes et professionnelles.
+Your public identifier for LuxAI and connected services. 3-32 lowercase letters, digits and . _ -	Identifiant public de votre compte LuxAI, transmis aussi aux services connectés. 3 à 32 minuscules, chiffres et . _ -
+Other sessions are signed out after the change; this computer stays signed in. If you have just signed in with an e-mail code, you can leave the current password empty.	Après la modification, les autres sessions sont déconnectées ; cet ordinateur reste connecté. Si vous venez de vous connecter avec un code reçu par e-mail, vous pouvez laisser le mot de passe actuel vide.
+New password again	Confirmer le nouveau mot de passe
+Sessions and Devices	Sessions et appareils
+Changing the password…	Modification du mot de passe…
+AI Answer Style	Style des réponses de l'IA
+Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	S'applique aux nouvelles réponses du chat LuxAI. Ne change ni le modèle choisi ni la limite de jetons.
+Appearance on the Web	Apparence sur le web
+Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	Enregistré dans votre compte LuxAI et utilisé sur lux-ai.cz sur tous vos appareils. L'apparence de LuxOS se règle dans Paramètres › Apparence.
+Export Your Data	Exporter vos données
+Saves your profile, settings, AI usage and your LuxAI web chat history to a JSON file on this computer. The sign-in token is never included.	Enregistre votre profil, vos paramètres, votre utilisation de l'IA et l'historique du chat web LuxAI dans un fichier JSON sur cet ordinateur. Le jeton de connexion n'est jamais inclus.
+Terms and Privacy	Conditions et confidentialité
+The LuxAI Terms of Use also describe which personal data LuxAI processes and why.	Les conditions d'utilisation de LuxAI décrivent aussi quelles données personnelles LuxAI traite et pourquoi.
+Delete Account	Supprimer le compte
+Exporting…	Exportation…
+Open on the Web	Ouvrir sur le web
+Profile	Profil
+Password & Security	Mot de passe et sécurité
+Preferences	Préférences
+Privacy & Data	Confidentialité et données
+LuxAI does not offer changing the e-mail address yet. Write to LuxAI support if you need to change it.	LuxAI ne permet pas encore de changer l'adresse e-mail. Écrivez à l'assistance LuxAI si vous devez la modifier.
+Contact Support	Contacter l'assistance
+The picture is stored on this computer (login screen, menu, LuxAI Account). The LuxAI website does not use profile pictures.	La photo est enregistrée sur cet ordinateur (écran de connexion, menu, Compte LuxAI). Le site LuxAI n'utilise pas de photos de profil.
+The username is saved.	Le nom d'utilisateur est enregistré.
+New password (at least %d characters)	Nouveau mot de passe (au moins %d caractères)
+LuxAI cannot list your other devices and browsers yet. To sign them all out, change your password.	LuxAI ne peut pas encore lister vos autres appareils et navigateurs. Pour tous les déconnecter, changez votre mot de passe.
+The new passwords do not match.	Les nouveaux mots de passe ne correspondent pas.
+The password was changed and other sessions were signed out.	Le mot de passe a été modifié et les autres sessions ont été déconnectées.
+The answer style is saved.	Le style des réponses est enregistré.
+The appearance is saved.	L'apparence est enregistrée.
+Export…	Exporter…
+Read the Terms	Lire les conditions
+LuxAI deletes accounts on request sent to support (%s). Your account, chat history and settings will be removed and LuxAI, Lux Code and LSL IDE will stop working with it.	LuxAI supprime les comptes sur demande envoyée à l'assistance (%s). Le compte, l'historique du chat et les paramètres seront supprimés, et LuxAI, Lux Code et LSL IDE ne fonctionneront plus avec ce compte.
+Request Account Deletion…	Demander la suppression du compte…
+Delete LuxAI Account	Supprimer le compte LuxAI
+I understand that my LuxAI account and data will be deleted	Je comprends que mon compte LuxAI et mes données seront supprimés
+Write Deletion Request	Rédiger la demande de suppression
+Light mode	Mode clair
+Exported to %s (web chats: %d).	Exporté vers %s (chats web : %d).
+Exported to %s. The web chat history could not be included.	Exporté vers %s. L'historique du chat web n'a pas pu être inclus.
+Deleting the account cannot be undone.	La suppression du compte est irréversible.
+Type your e-mail address to confirm:	Saisissez votre adresse e-mail pour confirmer :
+Your e-mail program opens with a prepared request to %s. The account is deleted after you send it.	Votre logiciel de messagerie s'ouvre avec une demande préparée pour %s. Le compte est supprimé une fois la demande envoyée.
+Your e-mail program opened with the deletion request. Send it to finish.	Votre logiciel de messagerie s'est ouvert avec la demande de suppression. Envoyez-la pour terminer.
+smarter, can see images	plus intelligent, voit les images
+faster, larger limit	plus rapide, limite plus élevée
+All chats, settings and the usage history of %s will be deleted. Export your data first if you want to keep it.	Tous les chats, paramètres et l'historique d'utilisation de %s seront supprimés. Exportez d'abord vos données si vous voulez les conserver.
+The limits reset on %s (in %d days).	Les limites seront réinitialisées le %s (jours restants : %d).
+Downloading chat %d of %d…	Téléchargement du chat %d sur %d…
+%s of %s tokens	%s sur %s jetons
+Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Utilisez 3 à 32 minuscules, chiffres ou . _ - ; le premier caractère doit être une lettre ou un chiffre.
+This username is already used by another account.	Ce nom d'utilisateur est déjà utilisé par un autre compte.
+The current password is not correct.	Le mot de passe actuel est incorrect.
+The new password must be different from the current one.	Le nouveau mot de passe doit être différent de l'actuel.
+This change is not available from LuxOS yet. Make it on the web.	Cette modification n'est pas encore possible depuis LuxOS. Faites-la sur le web.
+The new password must have at least 12 characters.	Le nouveau mot de passe doit comporter au moins 12 caractères.
+The change could not be saved (%s).	La modification n'a pas pu être enregistrée (%s).

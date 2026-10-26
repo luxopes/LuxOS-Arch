@@ -3238,3 +3238,69 @@ Mirror displays	Zrcadlit monitory
 Show the same picture on all displays.	Na všech monitorech stejný obraz.
 The displays show the same picture. Turn off mirroring to arrange them.	Monitory ukazují stejný obraz. Chcete-li je uspořádat, vypněte zrcadlení.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Používá se jen jeden monitor. Chcete-li monitory uspořádat, zvolte Rozšířit v části Více monitorů.
+LuxAI adapts the length and detail to how complex your question is.	LuxAI přizpůsobí délku a míru detailu složitosti vaší otázky.
+Concise	Stručný
+Answers are as direct as possible, without repetition or filler.	Odpovědi budou co nejpřímější, bez zbytečného opakování a omáčky.
+Detailed	Podrobný
+LuxAI adds more context, explanations, caveats and suitable examples.	LuxAI přidá více souvislostí, vysvětlení, výhrad a vhodných příkladů.
+Technical	Technický
+Answers prefer precise terminology, assumptions and implementation details.	Odpovědi upřednostní přesnou terminologii, předpoklady a implementační detaily.
+Friendly	Přátelský
+Answers are more approachable and friendly, but still accurate and professional.	Odpovědi budou přístupnější a přátelštější, ale stále přesné a profesionální.
+Your public identifier for LuxAI and connected services. 3-32 lowercase letters, digits and . _ -	Veřejný identifikátor vašeho účtu LuxAI, předává se i propojeným službám. 3–32 malých písmen, číslic a znaků . _ -
+Other sessions are signed out after the change; this computer stays signed in. If you have just signed in with an e-mail code, you can leave the current password empty.	Po změně odhlásíme ostatní relace, tento počítač zůstane přihlášený. Pokud jste se právě přihlásili kódem z e-mailu, můžete současné heslo nechat prázdné.
+New password again	Nové heslo znovu
+Sessions and Devices	Relace a zařízení
+Changing the password…	Měním heslo…
+AI Answer Style	Styl odpovědí AI
+Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Platí pro nové odpovědi v chatu LuxAI. Nemění zvolený model ani tokenový limit.
+Appearance on the Web	Vzhled na webu
+Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	Uloží se do účtu LuxAI a použije se na lux-ai.cz na všech vašich zařízeních. Vzhled LuxOS nastavíte v Nastavení › Vzhled.
+Export Your Data	Export dat
+Saves your profile, settings, AI usage and your LuxAI web chat history to a JSON file on this computer. The sign-in token is never included.	Uloží profil, nastavení, spotřebu AI a historii webového chatu LuxAI do souboru JSON v tomto počítači. Přihlašovací token v něm nikdy není.
+Terms and Privacy	Podmínky a soukromí
+The LuxAI Terms of Use also describe which personal data LuxAI processes and why.	Podmínky používání LuxAI popisují i to, jaké osobní údaje LuxAI zpracovává a proč.
+Delete Account	Zrušení účtu
+Exporting…	Exportuji…
+Open on the Web	Otevřít na webu
+Profile	Profil
+Password & Security	Heslo a zabezpečení
+Preferences	Předvolby
+Privacy & Data	Soukromí a data
+LuxAI does not offer changing the e-mail address yet. Write to LuxAI support if you need to change it.	LuxAI zatím neumožňuje změnit e-mailovou adresu. Pokud ji potřebujete změnit, napište podpoře LuxAI.
+Contact Support	Napsat podpoře
+The picture is stored on this computer (login screen, menu, LuxAI Account). The LuxAI website does not use profile pictures.	Fotka se ukládá v tomto počítači (přihlašovací obrazovka, nabídka, Účet LuxAI). Web LuxAI profilové fotky nepoužívá.
+The username is saved.	Uživatelské jméno je uložené.
+New password (at least %d characters)	Nové heslo (alespoň %d znaků)
+LuxAI cannot list your other devices and browsers yet. To sign them all out, change your password.	LuxAI zatím neumí zobrazit vaše ostatní zařízení a prohlížeče. Odhlásíte je všechny změnou hesla.
+The new passwords do not match.	Nová hesla se neshodují.
+The password was changed and other sessions were signed out.	Heslo bylo změněno a ostatní relace byly odhlášeny.
+The answer style is saved.	Styl odpovědí je uložený.
+The appearance is saved.	Vzhled je uložený.
+Export…	Exportovat…
+Read the Terms	Přečíst podmínky
+LuxAI deletes accounts on request sent to support (%s). Your account, chat history and settings will be removed and LuxAI, Lux Code and LSL IDE will stop working with it.	LuxAI ruší účty na žádost zaslanou podpoře (%s). Účet, historie chatu a nastavení budou smazány a LuxAI, Lux Code a LSL IDE s ním přestanou fungovat.
+Request Account Deletion…	Požádat o zrušení účtu…
+Delete LuxAI Account	Zrušit účet LuxAI
+I understand that my LuxAI account and data will be deleted	Rozumím, že můj účet LuxAI a data budou smazány
+Write Deletion Request	Napsat žádost o zrušení
+Light mode	Světlý režim
+Exported to %s (web chats: %d).	Exportováno do %s (webové chaty: %d).
+Exported to %s. The web chat history could not be included.	Exportováno do %s. Historii webového chatu se nepodařilo přidat.
+Deleting the account cannot be undone.	Zrušení účtu nejde vrátit.
+Type your e-mail address to confirm:	Pro potvrzení napište svou e-mailovou adresu:
+Your e-mail program opens with a prepared request to %s. The account is deleted after you send it.	Otevře se e-mailový program s připravenou žádostí pro %s. Účet bude zrušen po jejím odeslání.
+Your e-mail program opened with the deletion request. Send it to finish.	Otevřel se e-mailový program se žádostí o zrušení. Dokončete ji odesláním.
+smarter, can see images	chytřejší, vidí obrázky
+faster, larger limit	rychlejší, větší limit
+All chats, settings and the usage history of %s will be deleted. Export your data first if you want to keep it.	Všechny chaty, nastavení a historie spotřeby účtu %s budou smazány. Pokud si je chcete ponechat, nejdřív data exportujte.
+The limits reset on %s (in %d days).	Limity se obnoví %s (zbývá dní: %d).
+Downloading chat %d of %d…	Stahuji chat %d z %d…
+%s of %s tokens	%s z %s tokenů
+Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Použijte 3–32 malých písmen, číslic nebo znaků . _ -; první znak musí být písmeno nebo číslice.
+This username is already used by another account.	Toto uživatelské jméno už používá jiný účet.
+The current password is not correct.	Současné heslo není správné.
+The new password must be different from the current one.	Nové heslo musí být jiné než současné.
+This change is not available from LuxOS yet. Make it on the web.	Tuto změnu zatím z LuxOS provést nejde. Proveďte ji na webu.
+The new password must have at least 12 characters.	Nové heslo musí mít alespoň 12 znaků.
+The change could not be saved (%s).	Změnu se nepodařilo uložit (%s).

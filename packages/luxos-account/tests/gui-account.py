@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LuxOS - okno Ucet LuxAI: prihlaseni kodem a zalozeni uctu primo v aplikaci (lokalni napodoba serveru).
+"""LuxOS - okno Ucet LuxAI: prihlaseni kodem, zalozeni uctu a sprava uctu primo v aplikaci (lokalni napodoba serveru).
 
     xvfb-run -a python3 packages/luxos-account/tests/gui-account.py [--shots DIR]
 """
@@ -173,6 +173,124 @@ def run(lang):
     OPENED.clear()
 
 
+def manage(lang):
+    """Sprava uctu: prehled se spotrebou, uzivatelske jmeno, heslo, predvolby, export, zadost o zruseni."""
+    sfx = "-" + lang
+    SRV.accounts.clear()
+    SRV.sessions.clear()
+    SRV.chats.clear()
+    SRV.native_settings = SRV.native_history = True
+    SRV.accounts["jan@example.cz"] = {"password": PW, "displayName": "Jan Novák", "username": "jan",
+                                      "usage": {"fastTokens": 31250, "fastLimit": 50000,
+                                                "liteTokens": 120000, "liteLimit": 1000000}}
+    SRV.accounts["eva@example.cz"] = {"password": PW, "displayName": "Eva", "username": "eva"}
+    SRV.chats["jan@example.cz"] = [{"id": "c1", "title": "Ahoj", "updatedAt": "2026-10-01", "messages": []}]
+    acc.forget()
+    acc.login_password("jan@example.cz", PW)
+    n_me = sum(1 for x in SRV.log if x[1] == "/api/me")
+    win = app.AccountWindow(False)
+    win.show_all()
+    check("sprava: /api/me nacteno", wait(lambda: sum(1 for x in SRV.log if x[1] == "/api/me") > n_me))
+    pump(0.4)
+    names = [win.pages.child_get_property(c, "name") for c in win.pages.get_children()]
+    check("sprava: stranky", names == ["overview", "profile", "security", "preferences", "privacy"], names)
+    check("sprava: titulek okna s krizkem", win.get_titlebar().get_show_close_button())
+    labels = [w.get_text() for w in walk(win.usage_body) if isinstance(w, Gtk.Label)]
+    check("prehled: spotreba Flash 63 %", "63 %" in labels, labels)
+    check("prehled: datum vynulovani", any(t == _("The limits reset on %s (in %d days).")
+                                           % (time.strftime("%x", acc.usage_reset({})),
+                                              acc.days_until(acc.usage_reset({}))) for t in labels), labels)
+    shot(win, "manage-overview" + sfx)
+
+    # uzivatelske jmeno
+    win.pages.set_visible_child_name("profile")
+    check("profil: jmeno z /api/me", win.username.get_text() == "jan")
+    check("profil: Ulozit neaktivni bez zmeny", not win.username_btn.get_sensitive())
+    win.username.set_text("Ja")
+    check("profil: neplatne jmeno", not win.username_btn.get_sensitive() and win.username_status.get_visible())
+    win.username.set_text("eva")
+    win.save_username()
+    check("profil: obsazene jmeno", wait(lambda: win.username_status.get_text()
+                                         == _("This username is already used by another account.")),
+          win.username_status.get_text())
+    win.username.set_text("jan.novak")
+    win.save_username()
+    check("profil: jmeno ulozeno", wait(lambda: SRV.accounts["jan@example.cz"]["username"] == "jan.novak"
+                                        and win.username_status.get_text() == _("The username is saved.")))
+    check("profil: hlavicka @jan.novak", all("@jan.novak" in e.get_text() for _n, e in win.ident))
+    check("profil: account.json", acc.load()["user"]["username"] == "jan.novak")
+    shot(win, "manage-profile" + sfx)
+
+    # heslo
+    win.pages.set_visible_child_name("security")
+    win.pw_current.set_text("wrong password!")
+    win.pw_new.set_text("brand new password")
+    win.pw_again.set_text("brand new passwor")
+    check("heslo: neshodna hesla", not win.pw_btn.get_sensitive())
+    win.pw_again.set_text("brand new password")
+    check("heslo: tlacitko aktivni", win.pw_btn.get_sensitive())
+    win.save_password()
+    check("heslo: spatne soucasne", wait(lambda: win.pw_status.get_text()
+                                         == _("The current password is not correct.")))
+    win.pw_current.set_text(PW)
+    win.save_password()
+    check("heslo: zmeneno", wait(lambda: SRV.accounts["jan@example.cz"]["password"] == "brand new password"
+                                 and "good" in win.pw_status.get_style_context().list_classes()))
+    check("heslo: pole vymazana", win.pw_new.get_text() == "" and win.pw_current.get_text() == "")
+    shot(win, "manage-security" + sfx)
+
+    # predvolby
+    win.pages.set_visible_child_name("preferences")
+    win.style.set_active_id("technical")
+    check("styl: popis", win.style_desc.get_text() == _(app.AccountWindow.STYLES["technical"][1]))
+    win.save_style()
+    check("styl: ulozen", wait(lambda: SRV.accounts["jan@example.cz"]["settings"]["aiResponseStyle"] == "technical"))
+    win.theme.set_active(True)
+    check("vzhled: svetly", wait(lambda: SRV.accounts["jan@example.cz"]["settings"]["theme"] == "light"
+                                 and win.theme.get_sensitive()))
+    SRV.native_settings = False
+    win.theme.set_active(False)
+    check("vzhled: 403 -> Otevrit na webu", wait(lambda: win.theme_status.web.get_visible()),
+          win.theme_status.get_text())
+    check("vzhled: prepinac vracen", win.theme.get_active())
+    shot(win, "manage-preferences" + sfx)
+    win.theme_status.web.clicked()
+    check("vzhled: web /settings", OPENED[-1:] == [SRV.origin + "/settings"], OPENED)
+    SRV.native_settings = True
+
+    # export a zruseni
+    win.pages.set_visible_child_name("privacy")
+    path = os.path.join(os.environ["XDG_CONFIG_HOME"], "export-%s.json" % lang)
+    win.export_to(path)
+    check("export: hotovo", wait(lambda: os.path.exists(path) and win.export_btn.get_sensitive()),
+          win.export_status.get_text())
+    check("export: bez tokenu", acc.load()["sessionToken"] not in open(path).read())
+    check("export: hlaska", path in win.export_status.get_text(), win.export_status.get_text())
+    shot(win, "manage-privacy" + sfx)
+    dlg = win.confirm_delete()
+    pump(0.3)
+    check("zruseni: tlacitko zamcene", not dlg.delete_go.get_sensitive())
+    dlg.delete_entry.set_text("jan@example.cz")
+    check("zruseni: chybi zaskrtnuti", not dlg.delete_go.get_sensitive())
+    dlg.delete_sure.set_active(True)
+    check("zruseni: odemceno", dlg.delete_go.get_sensitive())
+    shot(dlg, "manage-delete" + sfx)
+    dlg.response(Gtk.ResponseType.ACCEPT)
+    pump(0.2)
+    check("zruseni: rozepsany e-mail podpore", OPENED[-1:] and OPENED[-1].startswith("mailto:info@lux-ai.cz?"),
+          OPENED)
+    check("zruseni: ucet zustava (nic se neodeslalo)", "jan@example.cz" in SRV.accounts)
+
+    # vyprsela session
+    SRV.sessions.clear()
+    win.pages.set_visible_child_name("preferences")
+    win.style.set_active_id("friendly")
+    win.save_style()
+    check("vyprsela session -> prihlaseni", wait(lambda: hasattr(win, "panel") and win.panel.get_parent() is not None))
+    win.destroy()
+    OPENED.clear()
+
+
 def walk(w):
     yield w
     if isinstance(w, Gtk.Container):
@@ -191,6 +309,7 @@ def main():
     for lang in ("en", "cs"):
         print("---", lang)
         run(lang)
+        manage(lang)
     SRV.stop()
     print("\n%d chyb" % len(FAILS) if FAILS else "\nvse OK")
     return 1 if FAILS else 0

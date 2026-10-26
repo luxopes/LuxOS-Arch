@@ -39,20 +39,49 @@ Dostupná API (stejná jako pro LSL IDE, viz `~/lsl-ide/server/patch_lux_account
 | `POST /api/ide/chat/completions` | OpenAI-kompatibilní chat (tools, `stream: true` = SSE), účtuje se do limitu účtu |
 | `GET/PUT/DELETE /api/ide/cloud/...` | cloudové soubory |
 | `POST /api/ide/logout` | zneplatní session |
+| `PATCH /api/account/settings` | `{username \| theme \| aiResponseStyle}` → `{user}` |
+| `POST /api/account/password` | `{currentPassword, newPassword}`, odhlásí ostatní relace |
+| `GET /api/chat/history[/ID]` | historie webového chatu (export) |
+
+## Správa účtu (aplikace Účet LuxAI)
+
+Náhrada stránky `https://lux-ai.cz/settings`, stejná API. Po přihlášení postranní seznam stránek:
+
+- **Přehled** – jméno, `@username`, e-mail, spotřeba Flash a Lite (pruh, procenta, „x z y tokenů“)
+  a datum obnovení limitů (1. den dalšího měsíce, případně `usage.resetAt` z `/api/me`).
+- **Profil** – změna uživatelského jména (`PATCH /api/account/settings {username}`, 3–32 znaků
+  `[a-z0-9][a-z0-9._-]`; chyby `invalid_username`, `username_taken`, `rate`). E-mail jen zobrazení –
+  API pro změnu není, tlačítko **Napsat podpoře** (`info@lux-ai.cz`). Profilová fotka je jen
+  v počítači (`luxos-profile-picture`), web fotky nemá.
+- **Heslo a zabezpečení** – změna hesla (`POST /api/account/password`; chyby
+  `invalid_current_password`, `weak_password`, `same_password`, `rate`; po přihlášení kódem smí být
+  současné heslo prázdné). Server odhlásí ostatní relace, tento počítač zůstane přihlášený.
+  Seznam relací server nemá – jen „Tento počítač“ s **Odhlásit se**.
+- **Předvolby** – styl odpovědí AI (`balanced`, `concise`, `detailed`, `technical`, `friendly`)
+  a světlý režim webu (`theme`), obojí `PATCH /api/account/settings`.
+- **Soukromí a data** – export do JSON (`0600`, bez tokenu): `/api/me` + historie webového chatu;
+  podmínky v aplikaci nebo na webu; **zrušení účtu**: API není, podle podmínek se žádá e-mailem
+  podpoře – silné potvrzení (napsat e-mail účtu + zaškrtnout) a pak se otevře připravený e-mail
+  (`deletion_mailto()`), nic se neodesílá samo.
+
+Odpoví-li server na změnu z aplikace `403` (např. `{"error": "origin"}`), karta ukáže „Tuto změnu
+zatím z LuxOS provést nejde“ s tlačítkem **Otevřít na webu**; `401` vrátí okno na přihlášení.
+API klíče stránka účtu nemá (dokumentace API: `https://api.lux-ai.cz/docs`).
 
 ## Pomocné nástroje
 
 - Python: `/usr/lib/luxos/python/luxai_account.py` – `load()`, `me()`, `request(...)`,
   `login_password`, `request_code` + `login_code`, `WebLogin` (PKCE přes `/ide/connect?app=…`), `logout()`;
   bez uložení (instalátor): `password_session`, `verify_code`; registrace `register_start`,
-  podmínky jako text `fetch_terms()`, hlášky k chybovým kódům `error_text(err, _)`.
+  podmínky jako text `fetch_terms()`, hlášky k chybovým kódům `error_text(err, _)`;
+  správa účtu `set_username`, `set_theme`, `set_response_style`, `change_password`,
+  `export_data(path)`, `deletion_mailto(user)`, `usage_reset(usage)`, `account_error_text(err, _)`.
 - GTK: `/usr/lib/luxos/python/luxai_account_gtk.py` – `SignInPanel` (heslo / kód z e-mailu / nový účet)
   a `show_terms()`; používá ho `luxos-account` i grafický instalátor.
 - Příkazová řádka (i pro LSL / Lux Code):
   - `luxos-account status` → JSON `{"signedIn": true, "user": {...}}` (bez tokenu),
   - `luxos-account token` → vypíše session token (jen pro aplikace téhož uživatele),
   - `luxos-account login` → otevře okno přihlášení (vrátí 0 po přihlášení),
-  - `luxos-account register` → totéž, rovnou se založením nového účtu,
   - `luxos-account register` → totéž, rovnou se založením nového účtu,
   - `luxos-account logout`.
 

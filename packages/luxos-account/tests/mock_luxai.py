@@ -10,6 +10,14 @@ Endpointy a chybove kody podle /opt/lux-account/server.js (popis v zadani):
   POST /api/auth/password/login  {email, password}
   GET  /api/me                   cookie lux_account_session
   GET  /terms                    HTML podminek
+Sprava uctu (jako stranka /settings webu):
+  PATCH /api/account/settings    {username | theme | aiResponseStyle} -> {user}
+                                 invalid_username, username_taken, rate (jmeno "busy-*")
+  POST /api/account/password     {currentPassword, newPassword}; prazdne soucasne heslo jen po
+                                 prihlaseni kodem; odhlasi ostatni relace
+  GET  /api/chat/history[/ID]    historie weboveho chatu (pro export)
+  POST /api/ide/logout           zneplatni session
+native_settings = False / native_history = False -> 403 {"error": "origin"} pro X-Lux-Client.
 Specialni domeny vyvolaji chyby: blocked.test, review.test, down.test, busy.test.
 allow_native = False napodobi dnesni stav: registrace z aplikaci -> 403 {"error": "origin"}
 (z jineho procesu: POST /__mock/allow_native {"value": false}).
@@ -22,6 +30,7 @@ import secrets
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import unquote
 
 TERMS_HTML = """<!doctype html><html lang="cs"><head><meta charset="utf-8"><title>Podmínky — LuxAI</title>
 <script>var x = "<p>nezobrazovat</p>";</script><style>p{color:red}</style></head>
@@ -42,6 +51,10 @@ class MockLuxAI:
         self.code = code
         self.cooldown = cooldown
         self.allow_native = True
+        self.native_settings = True
+        self.native_history = True
+        self.fresh = set()     # session z prihlaseni kodem (zmena hesla bez soucasneho hesla)
+        self.chats = {}        # email -> [{"id", "title", "updatedAt", "messages": [...]}]
         self.accounts = {}     # email -> {"password", "displayName"}
         self.pending = {}      # email -> {"code", "register": {...} | None, "fails"}
         self.last_sent = {}    # email -> cas posledniho kodu
@@ -69,28 +82,41 @@ class MockLuxAI:
                 self.end_headers()
                 self.wfile.write(raw)
 
+            def token(self):
+                m = re.search(r"lux_account_session=([\w-]+)", self.headers.get("Cookie") or "")
+                return m.group(1) if m else ""
+
             def do_GET(self):  # noqa: N802
-                mock.log.append(("GET", self.path, None, self.headers.get("X-Lux-Client")))
+                client = self.headers.get("X-Lux-Client")
+                mock.log.append(("GET", self.path, None, client))
                 if self.path == "/terms":
                     return self.reply(200, TERMS_HTML, ctype="text/html")
-                if self.path == "/api/me":
-                    m = re.search(r"lux_account_session=([\w-]+)", self.headers.get("Cookie") or "")
-                    email = m and mock.sessions.get(m.group(1))
-                    if not email or email not in mock.accounts:
-                        return self.reply(401, {"error": "unauthorized"})
-                    return self.reply(200, {"user": mock.user(email)})
-                self.reply(404, {"error": "not_found"})
+                with mock.lock:
+                    status, out, headers = mock.handle_get(self.path, self.token(), client)
+                self.reply(status, out, headers)
 
-            def do_POST(self):  # noqa: N802
+            def body(self):
                 n = int(self.headers.get("Content-Length") or 0)
                 try:
                     body = json.loads(self.rfile.read(n) or b"{}")
                 except ValueError:
                     body = {}
+                return body if isinstance(body, dict) else {}
+
+            def do_POST(self):  # noqa: N802
+                body = self.body()
                 client = self.headers.get("X-Lux-Client")
                 mock.log.append(("POST", self.path, body, client))
                 with mock.lock:
-                    status, out, headers = mock.handle(self.path, body, client)
+                    status, out, headers = mock.handle(self.path, body, client, self.token())
+                self.reply(status, out, headers)
+
+            def do_PATCH(self):  # noqa: N802
+                body = self.body()
+                client = self.headers.get("X-Lux-Client")
+                mock.log.append(("PATCH", self.path, body, client))
+                with mock.lock:
+                    status, out, headers = mock.handle_patch(self.path, body, client, self.token())
                 self.reply(status, out, headers)
 
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
@@ -106,13 +132,89 @@ class MockLuxAI:
     # ---- logika ----
     def user(self, email):
         a = self.accounts[email]
+        a.setdefault("username", re.sub(r"[^a-z0-9._-]", "", email.split("@")[0]) or "user")
+        a.setdefault("settings", {"theme": "dark", "aiResponseStyle": "balanced"})
+        a.setdefault("usage", {"fastTokens": 0, "fastLimit": 50000, "liteTokens": 0, "liteLimit": 1000000})
         return {"id": "u-" + email.split("@")[0], "email": email, "displayName": a["displayName"],
-                "usage": {"fastTokens": 0, "fastLimit": 50000, "liteTokens": 0, "liteLimit": 1000000}}
+                "username": a["username"], "settings": dict(a["settings"]), "usage": dict(a["usage"])}
 
-    def session(self, email):
+    def session(self, email, fresh=False):
         token = secrets.token_urlsafe(16)
         self.sessions[token] = email
+        if fresh:
+            self.fresh.add(token)
         return {"ok": True, "user": self.user(email), "sessionToken": token}
+
+    def authed(self, token):
+        email = self.sessions.get(token)
+        return email if email in self.accounts else None
+
+    def handle_get(self, path, token, client):
+        email = self.authed(token)
+        if not email:
+            return 401, {"error": "unauthorized"}, None
+        if path == "/api/me":
+            return 200, {"user": self.user(email)}, None
+        if path.startswith("/api/chat/history"):
+            if client and not self.native_history:
+                return 403, {"error": "origin"}, None
+            chats = self.chats.get(email, [])
+            if path == "/api/chat/history":
+                return 200, {"conversations": [{"id": c["id"], "title": c["title"], "updatedAt": c["updatedAt"],
+                                                "messageCount": len(c["messages"])} for c in chats]}, None
+            cid = unquote(path.rsplit("/", 1)[-1])
+            for c in chats:
+                if c["id"] == cid:
+                    return 200, {"conversation": c}, None
+        return 404, {"error": "not_found"}, None
+
+    def handle_patch(self, path, body, client, token):
+        email = self.authed(token)
+        if not email:
+            return 401, {"error": "unauthorized"}, None
+        if path != "/api/account/settings":
+            return 404, {"error": "not_found"}, None
+        if client and not self.native_settings:
+            return 403, {"error": "origin"}, None
+        a = self.accounts[email]
+        self.user(email)
+        if "username" in body:
+            name = str(body["username"])
+            if name.startswith("busy"):
+                return 429, {"error": "rate"}, None
+            if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,31}", name):
+                return 400, {"error": "invalid_username"}, None
+            if any(o is not a and o.get("username") == name for o in self.accounts.values()):
+                return 409, {"error": "username_taken"}, None
+            a["username"] = name
+        if "theme" in body:
+            if body["theme"] not in ("dark", "light"):
+                return 400, {"error": "invalid_theme"}, None
+            a["settings"]["theme"] = body["theme"]
+        if "aiResponseStyle" in body:
+            if body["aiResponseStyle"] not in ("balanced", "concise", "detailed", "technical", "friendly"):
+                return 400, {"error": "invalid_style"}, None
+            a["settings"]["aiResponseStyle"] = body["aiResponseStyle"]
+        u = self.user(email)
+        u.pop("usage")   # web dostava user i bez spotreby - klient ji nesmi ztratit
+        return 200, {"ok": True, "user": u}, None
+
+    def change_password(self, body, token):
+        email = self.authed(token)
+        if not email:
+            return 401, {"error": "unauthorized"}, None
+        a = self.accounts[email]
+        cur, new = body.get("currentPassword") or "", body.get("newPassword")
+        if not (cur == a["password"] or (not cur and token in self.fresh)):
+            return 400, {"error": "invalid_current_password"}, None
+        if not isinstance(new, str) or not 12 <= len(new) <= 128:
+            return 400, {"error": "weak_password"}, None
+        if new == a["password"]:
+            return 400, {"error": "same_password"}, None
+        a["password"] = new
+        for t in [t for t, e in self.sessions.items() if e == email and t != token]:
+            del self.sessions[t]   # ostatni relace odhlasit
+        return 200, {"ok": True}, None
 
     def send_code(self, email, register=None):
         now = time.monotonic()
@@ -123,7 +225,14 @@ class MockLuxAI:
         self.sent_codes.append((email, self.code))
         return 200, {"ok": True}, None
 
-    def handle(self, path, body, client):
+    def handle(self, path, body, client, token=""):
+        if path == "/api/account/password":
+            if client and not self.native_settings:
+                return 403, {"error": "origin"}, None
+            return self.change_password(body, token)
+        if path == "/api/ide/logout":
+            self.sessions.pop(token, None)
+            return 200, {"ok": True}, None
         if path == "/__mock/allow_native":   # jen pro testy v jinem procesu (TUI)
             self.allow_native = bool(body.get("value"))
             return 200, {"ok": True}, None
@@ -171,7 +280,7 @@ class MockLuxAI:
             del self.pending[email]
             if p["register"]:
                 self.accounts[email] = p["register"]
-            return 200, self.session(email), None
+            return 200, self.session(email, fresh=True), None
         if path == "/api/auth/password/login":
             a = self.accounts.get(email)
             if not a or a["password"] != body.get("password"):

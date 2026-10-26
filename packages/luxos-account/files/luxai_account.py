@@ -1,5 +1,10 @@
 """LuxOS - sdileny ucet LuxAI pro system a aplikace (LSL IDE, Lux Code, LuxAI).
 
+Sprava uctu (jako stranka lux-ai.cz/settings): set_username() / set_theme() / set_response_style()
+pres PATCH /api/account/settings, change_password() pres POST /api/account/password, export_data()
+(GET /api/me + historie weboveho chatu /api/chat/history). Zmenu e-mailu, seznam relaci, API klice ani
+smazani uctu server nenabizi - o zruseni uctu se zada e-mailem podpore (deletion_mailto()).
+
 Ucet je ulozeny v ~/.config/luxai/account.json (adresar 0700, soubor 0600):
 
     {"version": 1, "origin": "https://lux-ai.cz", "sessionToken": "...",
@@ -25,6 +30,7 @@ import tempfile
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -44,6 +50,13 @@ TERMS_VERSION = "2026-09-24.1"
 REGISTER_URL = ORIGIN + "/register"
 TERMS_URL = ORIGIN + "/terms"
 CODE_COOLDOWN = 60    # sekund mezi odeslanim kodu (server: slow_down + Retry-After 60)
+SETTINGS_URL = ORIGIN + "/settings"      # webova stranka uctu (nastaveni, heslo)
+SUPPORT_EMAIL = "info@lux-ai.cz"          # podpora - mimo jine zadost o zruseni uctu (podminky)
+API_DOCS_URL = "https://api.lux-ai.cz/docs"
+# Uzivatelske jmeno jako na webu: 3-32 malych pismen, cislic a . _ -, prvni pismeno nebo cislice
+USERNAME_RE = r"[a-z0-9][a-z0-9._-]{2,31}"
+# Styl odpovedi AI (PATCH /api/account/settings {"aiResponseStyle"}) - poradi jako na webu
+RESPONSE_STYLES = ("balanced", "concise", "detailed", "technical", "friendly")
 
 
 class AccountError(Exception):
@@ -74,6 +87,14 @@ ERROR_TEXTS = {
     "origin": "Creating an account from LuxOS is not available yet - create it at %s",
     "no_token": "The server did not finish the sign-in. Try again.",
     "server": "LuxAI is having problems right now. Try again later.",
+    # sprava uctu (/api/account/...)
+    "invalid_username": "Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.",
+    "username_taken": "This username is already used by another account.",
+    "invalid_current_password": "The current password is not correct.",
+    "same_password": "The new password must be different from the current one.",
+    "password_mismatch": "The new passwords do not match.",
+    "signed_out": "Your session has expired. Please sign in again.",
+    "web_only": "This change is not available from LuxOS yet. Make it on the web.",
 }
 
 
@@ -87,6 +108,27 @@ def error_text(err, tr=lambda t: t):
     if getattr(err, "status", 0) >= 500:
         return tr(ERROR_TEXTS["server"])
     return tr("Sign-in failed (%s).") % code
+
+
+def web_only(err):
+    """Server zmenu z aplikace nepovolil (403) - nabidnout stranku na webu."""
+    code = getattr(err, "code", "")
+    return code in ("origin", "forbidden", "csrf", "web_only") or \
+        (getattr(err, "status", 0) == 403 and code not in ERROR_TEXTS)
+
+
+def account_error_text(err, tr=lambda t: t):
+    """Hlaska k chybe spravy uctu (zmena jmena, hesla, nastaveni, export)."""
+    code = getattr(err, "code", "") or "error"
+    if web_only(err):
+        return tr(ERROR_TEXTS["web_only"])
+    if code == "weak_password":
+        return tr("The new password must have at least 12 characters.")
+    if code in ERROR_TEXTS:
+        return tr(ERROR_TEXTS[code])
+    if getattr(err, "status", 0) >= 500:
+        return tr(ERROR_TEXTS["server"])
+    return tr("The change could not be saved (%s).") % code
 
 
 # ---- ulozeni ------------------------------------------------------------------
@@ -379,6 +421,158 @@ def me(account=None):
         raise AccountError("signed_out")
     save(account["sessionToken"], user, account.get("origin", ORIGIN))
     return r
+
+
+# ---- sprava uctu (stejna API jako webova stranka /settings) ------------------------
+def _authed(method, path, body=None, account=None):
+    """Pozadavek s cookie uctu; 401 = vyprsela session (AccountError "signed_out")."""
+    account = account or load()
+    if not account:
+        raise AccountError("signed_out")
+    try:
+        return request(method, path, body, token=account["sessionToken"], origin=account.get("origin", ORIGIN))
+    except AccountError as e:
+        if e.status == 401:
+            raise AccountError("signed_out", 401) from None
+        raise
+
+
+def _store_user(user, account=None):
+    """Ulozi aktualizovaneho uzivatele (PATCH vraci user, spotreba v nem byt nemusi)."""
+    account = account or load()
+    if account and isinstance(user, dict) and user:
+        merged = dict(account.get("user") or {})
+        merged.update(user)
+        save(account["sessionToken"], merged, account.get("origin", ORIGIN))
+        return merged
+    return user
+
+
+def username_problem(username):
+    return "" if re.fullmatch(USERNAME_RE, username or "") else "invalid_username"
+
+
+def update_settings(fields, account=None):
+    """PATCH /api/account/settings {username | theme | aiResponseStyle} -> aktualni user (a ulozi ho).
+    Chyby: invalid_username, username_taken, rate (429), signed_out (401), 403 = jen na webu."""
+    account = account or load()
+    r = _authed("PATCH", "/api/account/settings", fields, account)
+    return _store_user(r.get("user") or {}, account)
+
+
+def set_username(username, account=None):
+    username = (username or "").strip().lower()
+    if username_problem(username):
+        raise AccountError("invalid_username")
+    return update_settings({"username": username}, account)
+
+
+def set_theme(theme, account=None):
+    return update_settings({"theme": "light" if theme == "light" else "dark"}, account)
+
+
+def set_response_style(style, account=None):
+    return update_settings({"aiResponseStyle": style if style in RESPONSE_STYLES else "balanced"}, account)
+
+
+def change_password(current, new, account=None):
+    """POST /api/account/password; server pak odhlasi ostatni relace (tento pocitac zustane prihlaseny).
+    Chyby: invalid_current_password, weak_password, same_password, rate. Prazdne soucasne heslo
+    projde jen po cerstvem prihlaseni kodem (stejne jako na webu)."""
+    if password_problem(new):
+        raise AccountError("weak_password")
+    if current and current == new:
+        raise AccountError("same_password")
+    return _authed("POST", "/api/account/password", {"currentPassword": current or "", "newPassword": new}, account)
+
+
+def usage_reset(usage=None, now=None):
+    """Kdy se vynuluje mesicni spotreba: z /api/me (resetAt / periodEnd, je-li tam), jinak 1. den
+    dalsiho kalendarniho mesice (mistni cas). Vraci time.struct_time (pulnoc)."""
+    for key in ("resetAt", "periodEnd", "resetsAt"):
+        v = (usage or {}).get(key)
+        if isinstance(v, str) and re.match(r"\d{4}-\d{2}-\d{2}", v):
+            return time.strptime(v[:10], "%Y-%m-%d")
+    t = time.localtime(now)
+    y, m = (t.tm_year + 1, 1) if t.tm_mon == 12 else (t.tm_year, t.tm_mon + 1)
+    return time.strptime(f"{y:04d}-{m:02d}-01", "%Y-%m-%d")
+
+
+def days_until(when, now=None):
+    t = time.localtime(now)
+    today = time.mktime((t.tm_year, t.tm_mon, t.tm_mday, 0, 0, 0, 0, 0, -1))
+    target = time.mktime((when.tm_year, when.tm_mon, when.tm_mday, 0, 0, 0, 0, 0, -1))
+    return max(0, round((target - today) / 86400))
+
+
+def _get_retry(path, account):
+    """GET s cekanim pri 429 (ochrana serveru proti navalu pozadavku), max. 3 pokusy."""
+    for attempt in range(3):
+        try:
+            return _authed("GET", path, None, account)
+        except AccountError as e:
+            if e.status != 429 or attempt == 2:
+                raise
+            time.sleep(min(e.retry_after or 2, 10))
+
+
+def export_data(path, account=None, progress=None, pause=0.25):
+    """Export dat uctu do JSON (soubor 0600): profil, nastaveni a spotreba z /api/me a historie
+    weboveho chatu (/api/chat/history). Session token do exportu nikdy nepatri.
+    progress(hotovo, celkem) se vola behem stahovani konverzaci (z vlakna).
+    Vraci {"conversations": n, "history": bool, "path": path}."""
+    account = account or load()
+    user = dict(_authed("GET", "/api/me", None, account).get("user") or {})
+    user.pop("sessionToken", None)
+    out = {"format": "luxai-account-export", "version": 1, "origin": account.get("origin", ORIGIN),
+           "exportedAt": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "user": user, "chatHistory": None}
+    try:
+        listing = _get_retry("/api/chat/history", account)
+        convs = listing.get("conversations") if isinstance(listing, dict) else None
+        convs = convs if isinstance(convs, list) else []
+        full = []
+        for i, c in enumerate(convs):
+            if progress:
+                progress(i, len(convs))
+            cid = str((c or {}).get("id") or "") if isinstance(c, dict) else ""
+            if not cid:
+                continue
+            full.append(_get_retry("/api/chat/history/" + urllib.parse.quote(cid, safe=""), account))
+            if pause and i + 1 < len(convs):
+                time.sleep(pause)
+        out["chatHistory"] = {"conversations": full}
+    except AccountError as e:
+        if e.code in ("signed_out", "network"):
+            raise
+        out["chatHistoryError"] = e.code   # historie z aplikace dostupna neni - export jen profilu
+    d = os.path.dirname(os.path.abspath(path))
+    fd, tmp = tempfile.mkstemp(dir=d, prefix=".luxai-export-")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(out, f, indent=1, ensure_ascii=False)
+        os.chmod(tmp, 0o600)
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+    hist = out["chatHistory"]
+    return {"conversations": len(hist["conversations"]) if hist else 0, "history": hist is not None, "path": path}
+
+
+def deletion_mailto(user):
+    """Rozepsany e-mail podpore se zadosti o zruseni uctu (server API pro smazani nema; podminky:
+    "O zruseni sveho uctu muzete pozadat prostrednictvim kontaktniho e-mailu"). Nic se neodesila -
+    otevre se postovni program a uzivatel zpravu odesle sam."""
+    user = user or {}
+    subject = "Žádost o zrušení účtu LuxAI / LuxAI account deletion request"
+    body = ("Dobrý den,\n\nžádám o zrušení svého účtu LuxAI a smazání souvisejících dat.\n"
+            "Please delete my LuxAI account and the related data.\n\n"
+            f"E-mail: {user.get('email', '')}\nUsername: {user.get('username', '')}\nID: {user.get('id', '')}\n")
+    q = urllib.parse.urlencode({"subject": subject, "body": body}, quote_via=urllib.parse.quote)
+    return f"mailto:{SUPPORT_EMAIL}?{q}"
 
 
 def logout():
