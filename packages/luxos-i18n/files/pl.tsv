@@ -2703,3 +2703,162 @@ More details: run the command again with --verbose	Więcej szczegółów: urucho
 The list of apps is out of date. Install the updates first, then try again.	Lista aplikacji jest nieaktualna. Najpierw zainstaluj aktualizacje, a potem spróbuj ponownie.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Data i godzina komputera są nieprawidłowe, więc bezpieczne połączenie nie jest możliwe. Sprawdź ustawienia czasu.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Dłuższa praca na baterii: wolniejszy procesor bez turbo, nieco niższa jasność, bez powiększania w Docku, nieużywane urządzenia usypiają, a zadania w tle są wstrzymywane.
+# LuxOS Zalohy (luxos-backup)
+Paused on battery – backs up when the computer is charging	Wstrzymano na baterii – kopia powstanie, gdy komputer będzie ładowany
+Paused by Battery Saver	Wstrzymano przez Oszczędzanie baterii
+Paused on a metered connection	Wstrzymano na połączeniu taryfowym
+Backup disk is not connected	Dysk kopii zapasowych nie jest podłączony
+Automatic backups are off	Automatyczne kopie zapasowe są wyłączone
+No backup disk	Brak dysku kopii zapasowych
+Backups	Kopie zapasowe
+restored %s	przywrócono %s
+Use this disk for backups?	Używać tego dysku do kopii zapasowych?
+There are no backups yet.	Nie ma jeszcze kopii zapasowych.
+Unknown backup time: %s	Nieznany czas kopii zapasowej: %s
+No backup disk is set up. Add one with: luxos-backup disk add	Nie skonfigurowano dysku kopii zapasowych. Dodaj go poleceniem: luxos-backup disk add
+Unknown backup disk: %s	Nieznany dysk kopii zapasowych: %s
+Use a network address like smb://user@server/share	Użyj adresu sieciowego, np. smb://user@server/share
+The network disk is not available.	Dysk sieciowy jest niedostępny.
+No backup disk is set up.	Nie skonfigurowano dysku kopii zapasowych.
+A backup is already running.	Tworzenie kopii zapasowej już trwa.
+Several computers have backups here, choose one with --machine: %s	Jest tu kilka komputerów z kopiami zapasowymi, wybierz jeden za pomocą --machine: %s
+Home folder restored from the backup from %s.	Przywrócono folder domowy z kopii zapasowej z %s.
+Use a network address like sftp://user@server/folder	Użyj adresu sieciowego, np. sftp://user@server/folder
+Backup disk	Dysk kopii zapasowych
+%s can keep automatic backups of your files.	%s może automatycznie tworzyć kopie zapasowe twoich plików.
+No backup from %s or earlier.	Brak kopii zapasowej z %s ani wcześniejszej.
+Could not save the password in the keyring: %s	Nie udało się zapisać hasła w bazie kluczy: %s
+Could not mount %s	Nie udało się zamontować %s
+Could not unlock the backup disk	Nie udało się odblokować dysku kopii zapasowych
+The backup disk is not connected.	Dysk kopii zapasowych nie jest podłączony.
+The backup image was not found on the network disk.	Nie znaleziono obrazu kopii zapasowej na dysku sieciowym.
+Could not connect to the server.	Nie udało się połączyć z serwerem.
+This disk uses %s, which cannot keep backups efficiently. Prepare (erase) it for backups first.	Ten dysk używa %s, który nie pozwala wydajnie przechowywać kopii zapasowych. Najpierw przygotuj (wymaż) go do kopii zapasowych.
+Disk is full - deleting the oldest backup %s	Dysk jest pełny – usuwanie najstarszej kopii zapasowej %s
+Old backups deleted	Usunięto stare kopie zapasowe
+Connect your backup disk to back up this computer.	Podłącz dysk kopii zapasowych, aby utworzyć kopię zapasową tego komputera.
+No backups of %s in %s	Brak kopii zapasowych %s w %s
+Invalid path: %s	Nieprawidłowa ścieżka: %s
+To restore the whole home folder use: luxos-backup restore --all	Aby przywrócić cały folder domowy, użyj: luxos-backup restore --all
+Restored %s to %s	Przywrócono %s do %s
+Replaced files were moved to %s	Zastąpione pliki przeniesiono do %s
+Apps installed on the old system: %s (install them with: lux install $(cat FILE))	Aplikacje zainstalowane w starym systemie: %s (zainstaluj je poleceniem: lux install $(cat FILE))
+Folder not found: %s	Nie znaleziono folderu: %s
+This disk is already used for backups.	Ten dysk jest już używany do kopii zapasowych.
+LuxOS Backups: %s	Kopie zapasowe LuxOS: %s
+The network disk needs at least 8 GB of free space.	Dysk sieciowy potrzebuje co najmniej 8 GB wolnego miejsca.
+Could not open the backup image	Nie udało się otworzyć obrazu kopii zapasowej
+%s is not an external disk.	%s nie jest dyskiem zewnętrznym.
+%s holds the running system.	Na %s działa bieżący system.
+Use for Backups	Używaj do kopii zapasowych
+The backup disk is not mounted.	Dysk kopii zapasowych nie jest zamontowany.
+Could not create the backup folder on the server.	Nie udało się utworzyć folderu kopii zapasowych na serwerze.
+Could not create the backup folder: %s	Nie udało się utworzyć folderu kopii zapasowych: %s
+The backup disk was full, so the oldest backups were deleted (%d).	Dysk kopii zapasowych był pełny, więc usunięto najstarsze kopie (%d).
+No backup for %d days	Brak kopii zapasowej od %d dni
+No LuxOS backups found in %s	Nie znaleziono kopii zapasowych LuxOS w %s
+%s is not in the backup from %s	%s nie ma w kopii zapasowej z %s
+Cannot write to %s: %s	Nie można zapisać do %s: %s
+Could not prepare the disk: %s	Nie udało się przygotować dysku: %s
+The backup disk is locked.	Dysk kopii zapasowych jest zablokowany.
+The password for the encrypted backup disk is not in the keyring.	Hasła do zaszyfrowanego dysku kopii zapasowych nie ma w bazie kluczy.
+Backing up to %s…	Tworzenie kopii zapasowej na %s…
+Backup failed	Tworzenie kopii zapasowej nie powiodło się
+Backup finished: %s	Ukończono kopię zapasową: %s
+The server needs rsync for backups.	Serwer potrzebuje rsync do kopii zapasowych.
+The backup disk is full.	Dysk kopii zapasowych jest pełny.
+The backup disk %s is full even after deleting old backups.	Dysk kopii zapasowych %s jest pełny nawet po usunięciu starych kopii.
+Backup to %s failed: %s	Kopia zapasowa na %s nie powiodła się: %s
+(%d files could not be read)	(nie udało się odczytać plików: %d)
+Automatic backups: %s	Automatyczne kopie zapasowe: %s
+Last backup: %s	Ostatnia kopia zapasowa: %s
+on	włączone
+off	wyłączone
+LuxOS Backups	Kopie zapasowe LuxOS
+Backing up… %d %%	Tworzenie kopii… %d %%
+Give the files to restore, or --all for the whole home folder.	Podaj pliki do przywrócenia albo --all dla całego folderu domowego.
+Backups will go to %s (%s).	Kopie zapasowe będą zapisywane na %s (%s).
+Password for the backup disk: 	Hasło do dysku kopii zapasowych: 
+%s is no longer used for backups. Backups already on it were kept.	%s nie jest już używany do kopii zapasowych. Kopie, które już się na nim znajdują, zostały zachowane.
+Last backup failed: %s	Ostatnia kopia zapasowa nie powiodła się: %s
+Password for %s: 	Hasło do %s: 
+Everything on %s will be erased. Continue? [y/N] 	Wszystko na %s zostanie wymazane. Kontynuować? [y/N] 
+%d existing files were kept (use --replace to replace them).	Zachowano istniejące pliki: %d (użyj --replace, aby je zastąpić).
+A password is needed for encryption.	Do szyfrowania potrzebne jest hasło.
+Repeat the password: 	Powtórz hasło: 
+The passwords do not match.	Hasła nie są zgodne.
+Everything on %s will be erased. Add --yes to confirm.	Wszystko na %s zostanie wymazane. Dodaj --yes, aby potwierdzić.
+Yesterday	Wczoraj
+Today %s	Dzisiaj %s
+Yesterday %s	Wczoraj %s
+Use Disk	Użyj dysku
+Server address	Adres serwera
+The password is kept in the keyring. A shared folder (SMB) gets one backup image file.	Hasło jest przechowywane w bazie kluczy. W folderze udostępnionym (SMB) powstaje jeden plik obrazu kopii zapasowej.
+Encrypt backups	Szyfruj kopie zapasowe
+The disk is erased and protected with a password. Without the password nobody can read the backups – keep it safe.	Dysk zostanie wymazany i zabezpieczony hasłem. Bez hasła nikt nie odczyta kopii zapasowych – przechowuj je bezpiecznie.
+Backup disks	Dyski kopii zapasowych
+Excluded folders	Wykluczone foldery
+Exclude	Wyklucz
+Preparing the disk…	Przygotowywanie dysku…
+Up	W górę
+Connecting to the backup disk…	Łączenie z dyskiem kopii zapasowych…
+Restore Here	Przywróć tutaj
+Restoring…	Przywracanie…
+Add Backup Disk	Dodaj dysk kopii zapasowych
+External disks	Dyski zewnętrzne
+empty	pusty
+No external disk is connected.	Nie podłączono żadnego dysku zewnętrznego.
+Network disk	Dysk sieciowy
+Password for the backup disk	Hasło do dysku kopii zapasowych
+Repeat the password	Powtórz hasło
+Back Up Now	Utwórz kopię teraz
+Restore Files…	Przywróć pliki…
+Add Disk…	Dodaj dysk…
+Back up automatically	Twórz kopie automatycznie
+Every hour while the computer is charging. Paused on battery, in Battery Saver and – for network disks – on a metered connection.	Co godzinę, gdy komputer jest ładowany. Wstrzymane na baterii, przy Oszczędzaniu baterii oraz – w przypadku dysków sieciowych – na połączeniu taryfowym.
+Back up system settings	Kopiuj ustawienia systemu
+Readable files from /etc and the list of installed apps.	Czytelne pliki z /etc i lista zainstalowanych aplikacji.
+Back up the Downloads folder	Kopiuj folder Pobrane
+Back up virtual machines	Kopiuj maszyny wirtualne
+Disk images of virtual machines are very large.	Obrazy dysków maszyn wirtualnych są bardzo duże.
+Caches and the trash are never backed up.	Pamięć podręczna i kosz nigdy nie są kopiowane.
+Exclude Folder…	Wyklucz folder…
+No backup disk yet	Brak dysku kopii zapasowych
+Stop using this disk	Przestań używać tego dysku
+Nothing excluded	Nic nie wykluczono
+Back up again	Utwórz kopię ponownie
+Backing up…	Tworzenie kopii zapasowej…
+You can keep working, or close this window.	Możesz dalej pracować albo zamknąć to okno.
+Backups already on the disk are kept.	Kopie zapasowe, które już są na dysku, zostaną zachowane.
+Stop Using	Przestań używać
+Exclude Folder	Wyklucz folder
+Modified	Zmodyfikowano
+Restore Everything…	Przywróć wszystko…
+Restore To…	Przywróć do…
+Restore To	Przywróć do
+Restored %d items.	Przywrócono elementy: %d.
+The whole home folder is restored from this backup. Files that differ are replaced; the current versions are moved to the folder .luxos-backup-replaced in your home folder, nothing is deleted.	Cały folder domowy zostanie przywrócony z tej kopii zapasowej. Pliki, które się różnią, zostaną zastąpione; ich bieżące wersje zostaną przeniesione do folderu .luxos-backup-replaced w folderze domowym, nic nie zostanie usunięte.
+Restore Everything	Przywróć wszystko
+Everything was restored. Log out and back in to load the restored settings.	Przywrócono wszystko. Wyloguj się i zaloguj ponownie, aby wczytać przywrócone ustawienia.
+Connect a USB disk, or use a network disk.	Podłącz dysk USB lub użyj dysku sieciowego.
+Add an external or network disk to start backing up.	Dodaj dysk zewnętrzny lub sieciowy, aby zacząć tworzyć kopie zapasowe.
+No backups yet	Brak kopii zapasowych
+Add a backup disk to protect your files.	Dodaj dysk kopii zapasowych, aby chronić swoje pliki.
+Stop backing up to %s?	Przestać tworzyć kopie zapasowe na %s?
+Type the same password twice.	Wpisz dwa razy to samo hasło.
+Encryption needs an empty disk.	Szyfrowanie wymaga pustego dysku.
+The disk could not be used	Nie można użyć dysku
+Back up now?	Utworzyć kopię zapasową teraz?
+The first backup can take a while. You can keep working.	Pierwsza kopia zapasowa może chwilę potrwać. Możesz dalej pracować.
+Backup from %s	Kopia zapasowa z %s
+Restore failed	Przywracanie nie powiodło się
+Files that already exist were kept; the restored copies have “restored” in their name.	Istniejące pliki zostały zachowane; przywrócone kopie mają w nazwie „przywrócono”.
+Restore everything from %s?	Przywrócić wszystko z kopii zapasowej z %s?
+External disk	Dysk zewnętrzny
+Network disk (SFTP)	Dysk sieciowy (SFTP)
+Network disk (SMB)	Dysk sieciowy (SMB)
+This disk is not ready for backups (%s).	Ten dysk nie jest przygotowany do kopii zapasowych (%s).
+Erase and Use	Wymaż i użyj
+empty folder	pusty folder
+Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Wszystko na nim zostanie wymazane, a dysk zostanie przygotowany do kopii zapasowych. Tego nie można cofnąć.
+Backs up every hour.	Tworzy kopię zapasową co godzinę.

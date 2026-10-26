@@ -21,6 +21,7 @@ apps=(
     packages/luxos-printing/files/luxos-{printers,scan}
     packages/luxos-safe/files/luxos-safe
     packages/luxos-guard/files/luxos-guard-gui
+    packages/luxos-backup/files/luxos-backup-gui
     packages/luxos-sandbox/files/luxos-sandbox-gui
     packages/luxos-store/files/luxos-store      # potrebuje AppStream (na LuxOS je)
     packages/luxos-care/files/luxos-update

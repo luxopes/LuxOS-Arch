@@ -1,0 +1,10 @@
+[Unit]
+Description=LuxOS Backups - disk %I connected
+ConditionPathExists=!/run/archiso
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/luxos-backup plugged /dev/%I
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=12h

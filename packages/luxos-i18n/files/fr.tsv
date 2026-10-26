@@ -2702,3 +2702,162 @@ More details: run the command again with --verbose	Plus de détails : relancez l
 The list of apps is out of date. Install the updates first, then try again.	La liste des applications est obsolète. Installez d'abord les mises à jour, puis réessayez.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	La date et l'heure de l'ordinateur sont incorrectes, une connexion sécurisée est donc impossible. Vérifiez les réglages de l'heure.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Autonomie prolongée : processeur plus lent sans turbo, luminosité légèrement réduite, pas d'agrandissement du Dock, les appareils inactifs se mettent en veille et les tâches de fond sont suspendues.
+# LuxOS Zalohy (luxos-backup)
+Paused on battery – backs up when the computer is charging	En pause sur batterie – sauvegarde pendant la charge de l’ordinateur
+Paused by Battery Saver	En pause (économiseur de batterie)
+Paused on a metered connection	En pause sur une connexion limitée
+Backup disk is not connected	Le disque de sauvegarde n’est pas connecté
+Automatic backups are off	Les sauvegardes automatiques sont désactivées
+No backup disk	Aucun disque de sauvegarde
+Backups	Sauvegardes
+restored %s	restauré %s
+Use this disk for backups?	Utiliser ce disque pour les sauvegardes ?
+There are no backups yet.	Aucune sauvegarde pour l’instant.
+Unknown backup time: %s	Heure de sauvegarde inconnue : %s
+No backup disk is set up. Add one with: luxos-backup disk add	Aucun disque de sauvegarde n’est configuré. Ajoutez-en un avec : luxos-backup disk add
+Unknown backup disk: %s	Disque de sauvegarde inconnu : %s
+Use a network address like smb://user@server/share	Utilisez une adresse réseau comme smb://user@server/share
+The network disk is not available.	Le disque réseau n’est pas disponible.
+No backup disk is set up.	Aucun disque de sauvegarde n’est configuré.
+A backup is already running.	Une sauvegarde est déjà en cours.
+Several computers have backups here, choose one with --machine: %s	Ce disque contient les sauvegardes de plusieurs ordinateurs, choisissez-en un avec --machine : %s
+Home folder restored from the backup from %s.	Dossier personnel restauré à partir de la sauvegarde du %s.
+Use a network address like sftp://user@server/folder	Utilisez une adresse réseau comme sftp://user@server/folder
+Backup disk	Disque de sauvegarde
+%s can keep automatic backups of your files.	%s peut sauvegarder automatiquement vos fichiers.
+No backup from %s or earlier.	Aucune sauvegarde du %s ou antérieure.
+Could not save the password in the keyring: %s	Impossible d’enregistrer le mot de passe dans le trousseau : %s
+Could not mount %s	Impossible de monter %s
+Could not unlock the backup disk	Impossible de déverrouiller le disque de sauvegarde
+The backup disk is not connected.	Le disque de sauvegarde n’est pas connecté.
+The backup image was not found on the network disk.	L’image de sauvegarde est introuvable sur le disque réseau.
+Could not connect to the server.	Impossible de se connecter au serveur.
+This disk uses %s, which cannot keep backups efficiently. Prepare (erase) it for backups first.	Ce disque utilise %s, qui ne permet pas de conserver des sauvegardes efficacement. Préparez-le (effacez-le) d’abord pour les sauvegardes.
+Disk is full - deleting the oldest backup %s	Disque plein – suppression de la plus ancienne sauvegarde %s
+Old backups deleted	Anciennes sauvegardes supprimées
+Connect your backup disk to back up this computer.	Connectez votre disque de sauvegarde pour sauvegarder cet ordinateur.
+No backups of %s in %s	Aucune sauvegarde de %s dans %s
+Invalid path: %s	Chemin non valide : %s
+To restore the whole home folder use: luxos-backup restore --all	Pour restaurer tout le dossier personnel, utilisez : luxos-backup restore --all
+Restored %s to %s	%s restauré vers %s
+Replaced files were moved to %s	Les fichiers remplacés ont été déplacés vers %s
+Apps installed on the old system: %s (install them with: lux install $(cat FILE))	Applications installées sur l’ancien système : %s (installez-les avec : lux install $(cat FILE))
+Folder not found: %s	Dossier introuvable : %s
+This disk is already used for backups.	Ce disque est déjà utilisé pour les sauvegardes.
+LuxOS Backups: %s	Sauvegardes LuxOS : %s
+The network disk needs at least 8 GB of free space.	Le disque réseau doit disposer d’au moins 8 Go d’espace libre.
+Could not open the backup image	Impossible d’ouvrir l’image de sauvegarde
+%s is not an external disk.	%s n’est pas un disque externe.
+%s holds the running system.	%s contient le système en cours d’exécution.
+Use for Backups	Utiliser pour les sauvegardes
+The backup disk is not mounted.	Le disque de sauvegarde n’est pas monté.
+Could not create the backup folder on the server.	Impossible de créer le dossier de sauvegarde sur le serveur.
+Could not create the backup folder: %s	Impossible de créer le dossier de sauvegarde : %s
+The backup disk was full, so the oldest backups were deleted (%d).	Le disque de sauvegarde était plein, les plus anciennes sauvegardes ont donc été supprimées (%d).
+No backup for %d days	Aucune sauvegarde depuis %d jours
+No LuxOS backups found in %s	Aucune sauvegarde LuxOS trouvée dans %s
+%s is not in the backup from %s	%s ne figure pas dans la sauvegarde du %s
+Cannot write to %s: %s	Impossible d’écrire dans %s : %s
+Could not prepare the disk: %s	Impossible de préparer le disque : %s
+The backup disk is locked.	Le disque de sauvegarde est verrouillé.
+The password for the encrypted backup disk is not in the keyring.	Le mot de passe du disque de sauvegarde chiffré n’est pas dans le trousseau.
+Backing up to %s…	Sauvegarde vers %s…
+Backup failed	Échec de la sauvegarde
+Backup finished: %s	Sauvegarde terminée : %s
+The server needs rsync for backups.	Le serveur doit disposer de rsync pour les sauvegardes.
+The backup disk is full.	Le disque de sauvegarde est plein.
+The backup disk %s is full even after deleting old backups.	Le disque de sauvegarde %s est plein même après la suppression des anciennes sauvegardes.
+Backup to %s failed: %s	Échec de la sauvegarde vers %s : %s
+(%d files could not be read)	(%d fichiers n’ont pas pu être lus)
+Automatic backups: %s	Sauvegardes automatiques : %s
+Last backup: %s	Dernière sauvegarde : %s
+on	activées
+off	désactivées
+LuxOS Backups	Sauvegardes LuxOS
+Backing up… %d %%	Sauvegarde… %d %%
+Give the files to restore, or --all for the whole home folder.	Indiquez les fichiers à restaurer, ou --all pour tout le dossier personnel.
+Backups will go to %s (%s).	Les sauvegardes iront sur %s (%s).
+Password for the backup disk: 	Mot de passe du disque de sauvegarde : 
+%s is no longer used for backups. Backups already on it were kept.	%s n’est plus utilisé pour les sauvegardes. Les sauvegardes déjà présentes ont été conservées.
+Last backup failed: %s	Échec de la dernière sauvegarde : %s
+Password for %s: 	Mot de passe pour %s : 
+Everything on %s will be erased. Continue? [y/N] 	Tout le contenu de %s sera effacé. Continuer ? [y/N] 
+%d existing files were kept (use --replace to replace them).	%d fichiers existants ont été conservés (utilisez --replace pour les remplacer).
+A password is needed for encryption.	Un mot de passe est nécessaire pour le chiffrement.
+Repeat the password: 	Répétez le mot de passe : 
+The passwords do not match.	Les mots de passe ne correspondent pas.
+Everything on %s will be erased. Add --yes to confirm.	Tout le contenu de %s sera effacé. Ajoutez --yes pour confirmer.
+Yesterday	Hier
+Today %s	Aujourd’hui %s
+Yesterday %s	Hier %s
+Use Disk	Utiliser le disque
+Server address	Adresse du serveur
+The password is kept in the keyring. A shared folder (SMB) gets one backup image file.	Le mot de passe est conservé dans le trousseau. Un dossier partagé (SMB) reçoit un seul fichier image de sauvegarde.
+Encrypt backups	Chiffrer les sauvegardes
+The disk is erased and protected with a password. Without the password nobody can read the backups – keep it safe.	Le disque est effacé et protégé par un mot de passe. Sans ce mot de passe, personne ne peut lire les sauvegardes – conservez-le en lieu sûr.
+Backup disks	Disques de sauvegarde
+Excluded folders	Dossiers exclus
+Exclude	Exclure
+Preparing the disk…	Préparation du disque…
+Up	Dossier parent
+Connecting to the backup disk…	Connexion au disque de sauvegarde…
+Restore Here	Restaurer ici
+Restoring…	Restauration…
+Add Backup Disk	Ajouter un disque de sauvegarde
+External disks	Disques externes
+empty	vide
+No external disk is connected.	Aucun disque externe n’est connecté.
+Network disk	Disque réseau
+Password for the backup disk	Mot de passe du disque de sauvegarde
+Repeat the password	Répétez le mot de passe
+Back Up Now	Sauvegarder maintenant
+Restore Files…	Restaurer des fichiers…
+Add Disk…	Ajouter un disque…
+Back up automatically	Sauvegarder automatiquement
+Every hour while the computer is charging. Paused on battery, in Battery Saver and – for network disks – on a metered connection.	Toutes les heures pendant la charge de l’ordinateur. En pause sur batterie, avec l’économiseur de batterie et – pour les disques réseau – sur une connexion limitée.
+Back up system settings	Sauvegarder les réglages du système
+Readable files from /etc and the list of installed apps.	Fichiers lisibles de /etc et liste des applications installées.
+Back up the Downloads folder	Sauvegarder le dossier Téléchargements
+Back up virtual machines	Sauvegarder les machines virtuelles
+Disk images of virtual machines are very large.	Les images disque des machines virtuelles sont très volumineuses.
+Caches and the trash are never backed up.	Les caches et la corbeille ne sont jamais sauvegardés.
+Exclude Folder…	Exclure un dossier…
+No backup disk yet	Aucun disque de sauvegarde pour l’instant
+Stop using this disk	Ne plus utiliser ce disque
+Nothing excluded	Aucune exclusion
+Back up again	Sauvegarder à nouveau
+Backing up…	Sauvegarde…
+You can keep working, or close this window.	Vous pouvez continuer à travailler ou fermer cette fenêtre.
+Backups already on the disk are kept.	Les sauvegardes déjà présentes sur le disque sont conservées.
+Stop Using	Ne plus utiliser
+Exclude Folder	Exclure un dossier
+Modified	Modifié
+Restore Everything…	Tout restaurer…
+Restore To…	Restaurer vers…
+Restore To	Restaurer vers
+Restored %d items.	%d éléments restaurés.
+The whole home folder is restored from this backup. Files that differ are replaced; the current versions are moved to the folder .luxos-backup-replaced in your home folder, nothing is deleted.	Tout le dossier personnel est restauré à partir de cette sauvegarde. Les fichiers différents sont remplacés ; les versions actuelles sont déplacées dans le dossier .luxos-backup-replaced de votre dossier personnel, rien n’est supprimé.
+Restore Everything	Tout restaurer
+Everything was restored. Log out and back in to load the restored settings.	Tout a été restauré. Déconnectez-vous puis reconnectez-vous pour charger les réglages restaurés.
+Connect a USB disk, or use a network disk.	Connectez un disque USB ou utilisez un disque réseau.
+Add an external or network disk to start backing up.	Ajoutez un disque externe ou réseau pour commencer à sauvegarder.
+No backups yet	Aucune sauvegarde pour l’instant
+Add a backup disk to protect your files.	Ajoutez un disque de sauvegarde pour protéger vos fichiers.
+Stop backing up to %s?	Arrêter de sauvegarder sur %s ?
+Type the same password twice.	Saisissez deux fois le même mot de passe.
+Encryption needs an empty disk.	Le chiffrement nécessite un disque vide.
+The disk could not be used	Le disque n’a pas pu être utilisé
+Back up now?	Sauvegarder maintenant ?
+The first backup can take a while. You can keep working.	La première sauvegarde peut prendre un moment. Vous pouvez continuer à travailler.
+Backup from %s	Sauvegarde du %s
+Restore failed	Échec de la restauration
+Files that already exist were kept; the restored copies have “restored” in their name.	Les fichiers existants ont été conservés ; les copies restaurées ont « restauré » dans leur nom.
+Restore everything from %s?	Tout restaurer à partir du %s ?
+External disk	Disque externe
+Network disk (SFTP)	Disque réseau (SFTP)
+Network disk (SMB)	Disque réseau (SMB)
+This disk is not ready for backups (%s).	Ce disque n’est pas prêt pour les sauvegardes (%s).
+Erase and Use	Effacer et utiliser
+empty folder	dossier vide
+Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Tout son contenu sera effacé et il sera préparé pour les sauvegardes. Cette action est irréversible.
+Backs up every hour.	Sauvegarde toutes les heures.

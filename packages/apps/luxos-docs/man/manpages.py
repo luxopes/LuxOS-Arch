@@ -39,7 +39,7 @@ PAGES = [
             ("~/.config/luxos/", "per-user LuxOS settings"),
         ],
         "see_also": ["lux(1)", "lux.conf(5)", "luxos-care(8)", "luxos-sandbox(1)", "luxos-safe(1)",
-                     "luxos-guard(1)", "luxdrop(1)", "lsl(1)", "lsl(7)", "lslc(1)"],
+                     "luxos-guard(1)", "luxos-backup(1)", "luxdrop(1)", "lsl(1)", "lsl(7)", "lslc(1)"],
     },
     {
         "name": "lux.conf", "section": 5, "source": "LuxOS",
@@ -123,7 +123,38 @@ PAGES = [
             "**luxos-guard service** | **snapshot**",
         ],
         "sources": [("luxos/guard.md", "body", {})],
-        "see_also": ["luxos-sandbox(1)", "luxos-safe(1)", "luxos(7)"],
+        "see_also": ["luxos-sandbox(1)", "luxos-safe(1)", "luxos-backup(1)", "luxos(7)"],
+    },
+    {
+        "name": "luxos-backup", "section": 1, "source": "LuxOS",
+        "names": ["luxos-backup", "luxos-backup-gui"],
+        "desc": "automatic backups to an external or network disk and restoring files (Backups)",
+        "synopsis": [
+            "**luxos-backup** [**status**] [**--json**]",
+            "**luxos-backup now** [**--disk** *ID*]",
+            "**luxos-backup list** [**--disk** *ID* | **--source** *DIR*] [**--json**]",
+            "**luxos-backup files** [**--from** *TIME*] [**--disk** *ID* | **--source** *DIR*] [*PATH*]",
+            "**luxos-backup restore** [**--from** *TIME*] [**--to** *DIR*] [**--disk** *ID* | **--source** *DIR*] "
+            "*PATH*...",
+            "**luxos-backup restore --all** [**--from** *TIME*] [**--target** *DIR*] [**--replace**] "
+            "[**--source** *DIR* [**--machine** *NAME*]]",
+            "**luxos-backup disk** [**list** | **candidates**]",
+            "**luxos-backup disk add** *FOLDER* | *sftp://USER@SERVER/FOLDER* | *smb://USER@SERVER/SHARE* "
+            "[**--name** *NAME*] [**--password-stdin**]",
+            "**luxos-backup disk prepare** *DEVICE* [**--encrypt**] [**--yes**]",
+            "**luxos-backup disk remove** *ID*",
+            "**luxos-backup exclude** [**list** | **add** *PATH* | **remove** *PATH*]",
+            "**luxos-backup auto** [**on** | **off**]",
+            "**luxos-backup option** **system** | **downloads** | **vms** **on** | **off**",
+        ],
+        "sources": [("luxos/backups.md", "body", {})],
+        "files": [
+            ("~/.config/luxos/backup/config.json", "disks, options and excluded folders"),
+            ("~/.local/state/luxos/backup/status.json", "state of the last backup"),
+            ("/usr/lib/systemd/user/luxos-backup.timer", "hourly backup (user timer)"),
+            ("DISK/LuxOS-Backups/COMPUTER-USER/", "the backups"),
+        ],
+        "see_also": ["luxos-guard(1)", "luxos(7)"],
     },
     {
         "name": "luxdrop", "section": 1, "source": "LuxOS",
@@ -210,6 +241,7 @@ DOC_OWNER = {
     "luxos/sandbox.md": ("luxos-sandbox", 1),
     "luxos/safe.md": ("luxos-safe", 1),
     "luxos/guard.md": ("luxos-guard", 1),
+    "luxos/backups.md": ("luxos-backup", 1),
     "luxos/luxdrop.md": ("luxdrop", 1),
     "lsl/overview.md": ("lsl", 1),
     "lsl/cli-and-tooling.md": ("lsl", 1),

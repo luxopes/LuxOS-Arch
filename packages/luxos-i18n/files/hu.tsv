@@ -2702,3 +2702,162 @@ More details: run the command again with --verbose	További részletek: futtassa
 The list of apps is out of date. Install the updates first, then try again.	Az alkalmazáslista elavult. Előbb telepítse a frissítéseket, majd próbálja újra.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	A számítógép dátuma és ideje hibás, ezért nem lehetséges biztonságos kapcsolat. Ellenőrizze az időbeállításokat.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Hosszabb akkumulátor-üzemidő: lassabb processzor turbó nélkül, kissé kisebb fényerő, nincs nagyítás a Dockban, a nem használt eszközök alvó állapotba kerülnek, a háttérfeladatok szünetelnek.
+# LuxOS Zalohy (luxos-backup)
+Paused on battery – backs up when the computer is charging	Akkumulátoros üzemben szünetel – töltés közben ment
+Paused by Battery Saver	Az Akkukímélő miatt szünetel
+Paused on a metered connection	Forgalomkorlátos kapcsolaton szünetel
+Backup disk is not connected	A mentési lemez nincs csatlakoztatva
+Automatic backups are off	Az automatikus mentés ki van kapcsolva
+No backup disk	Nincs mentési lemez
+Backups	Biztonsági mentések
+restored %s	visszaállítva %s
+Use this disk for backups?	Ezt a lemezt használod a mentésekhez?
+There are no backups yet.	Még nincsenek mentések.
+Unknown backup time: %s	Ismeretlen mentési időpont: %s
+No backup disk is set up. Add one with: luxos-backup disk add	Nincs beállítva mentési lemez. Hozzáadás: luxos-backup disk add
+Unknown backup disk: %s	Ismeretlen mentési lemez: %s
+Use a network address like smb://user@server/share	Adj meg egy hálózati címet, például smb://user@server/share
+The network disk is not available.	A hálózati lemez nem érhető el.
+No backup disk is set up.	Nincs beállítva mentési lemez.
+A backup is already running.	Már fut egy mentés.
+Several computers have backups here, choose one with --machine: %s	Itt több számítógép mentései is vannak, válassz egyet a --machine kapcsolóval: %s
+Home folder restored from the backup from %s.	A saját mappa visszaállítva a(z) %s időpontú mentésből.
+Use a network address like sftp://user@server/folder	Adj meg egy hálózati címet, például sftp://user@server/folder
+Backup disk	Mentési lemez
+%s can keep automatic backups of your files.	A(z) %s automatikusan biztonsági mentést tud készíteni a fájljaidról.
+No backup from %s or earlier.	Nincs mentés %s időpontból vagy korábbról.
+Could not save the password in the keyring: %s	Nem sikerült menteni a jelszót a kulcstartóba: %s
+Could not mount %s	Nem sikerült csatolni: %s
+Could not unlock the backup disk	Nem sikerült feloldani a mentési lemezt
+The backup disk is not connected.	A mentési lemez nincs csatlakoztatva.
+The backup image was not found on the network disk.	A mentési képfájl nem található a hálózati lemezen.
+Could not connect to the server.	Nem sikerült kapcsolódni a kiszolgálóhoz.
+This disk uses %s, which cannot keep backups efficiently. Prepare (erase) it for backups first.	Ez a lemez %s fájlrendszert használ, amely nem alkalmas a hatékony mentésre. Előbb készítsd elő (töröld) a mentésekhez.
+Disk is full - deleting the oldest backup %s	A lemez megtelt – a legrégebbi mentés törlése: %s
+Old backups deleted	Régi mentések törölve
+Connect your backup disk to back up this computer.	Csatlakoztasd a mentési lemezt a számítógép mentéséhez.
+No backups of %s in %s	Nincs mentés erről: %s, itt: %s
+Invalid path: %s	Érvénytelen útvonal: %s
+To restore the whole home folder use: luxos-backup restore --all	A teljes saját mappa visszaállítása: luxos-backup restore --all
+Restored %s to %s	%s visszaállítva ide: %s
+Replaced files were moved to %s	A lecserélt fájlok áthelyezve ide: %s
+Apps installed on the old system: %s (install them with: lux install $(cat FILE))	A régi rendszerre telepített alkalmazások: %s (telepítés: lux install $(cat FILE))
+Folder not found: %s	A mappa nem található: %s
+This disk is already used for backups.	Ez a lemez már mentésre van használva.
+LuxOS Backups: %s	LuxOS Biztonsági mentések: %s
+The network disk needs at least 8 GB of free space.	A hálózati lemezen legalább 8 GB szabad hely kell.
+Could not open the backup image	Nem sikerült megnyitni a mentési képfájlt
+%s is not an external disk.	%s nem külső lemez.
+%s holds the running system.	%s tartalmazza a futó rendszert.
+Use for Backups	Használat mentéshez
+The backup disk is not mounted.	A mentési lemez nincs csatolva.
+Could not create the backup folder on the server.	Nem sikerült létrehozni a mentési mappát a kiszolgálón.
+Could not create the backup folder: %s	Nem sikerült létrehozni a mentési mappát: %s
+The backup disk was full, so the oldest backups were deleted (%d).	A mentési lemez megtelt, ezért a legrégebbi mentések törlődtek (%d).
+No backup for %d days	%d napja nincs mentés
+No LuxOS backups found in %s	Nem található LuxOS-mentés itt: %s
+%s is not in the backup from %s	%s nincs benne a(z) %s időpontú mentésben
+Cannot write to %s: %s	Nem lehet írni ide: %s: %s
+Could not prepare the disk: %s	Nem sikerült előkészíteni a lemezt: %s
+The backup disk is locked.	A mentési lemez zárolva van.
+The password for the encrypted backup disk is not in the keyring.	A titkosított mentési lemez jelszava nincs a kulcstartóban.
+Backing up to %s…	Mentés ide: %s…
+Backup failed	A mentés nem sikerült
+Backup finished: %s	A mentés kész: %s
+The server needs rsync for backups.	A kiszolgálón rsync szükséges a mentéshez.
+The backup disk is full.	A mentési lemez megtelt.
+The backup disk %s is full even after deleting old backups.	A(z) %s mentési lemez a régi mentések törlése után is megtelt.
+Backup to %s failed: %s	A(z) %s helyre történő mentés nem sikerült: %s
+(%d files could not be read)	(%d fájl nem olvasható)
+Automatic backups: %s	Automatikus mentés: %s
+Last backup: %s	Utolsó mentés: %s
+on	be
+off	ki
+LuxOS Backups	LuxOS Biztonsági mentések
+Backing up… %d %%	Mentés… %d %%
+Give the files to restore, or --all for the whole home folder.	Add meg a visszaállítandó fájlokat, vagy a --all kapcsolót a teljes saját mappához.
+Backups will go to %s (%s).	A mentések helye: %s (%s).
+Password for the backup disk: 	A mentési lemez jelszava: 
+%s is no longer used for backups. Backups already on it were kept.	A(z) %s többé nem mentési lemez. A rajta lévő mentések megmaradtak.
+Last backup failed: %s	Az utolsó mentés nem sikerült: %s
+Password for %s: 	%s jelszava: 
+Everything on %s will be erased. Continue? [y/N] 	A(z) %s teljes tartalma törlődik. Folytatod? [y/N] 
+%d existing files were kept (use --replace to replace them).	%d meglévő fájl megmaradt (cseréhez használd a --replace kapcsolót).
+A password is needed for encryption.	A titkosításhoz jelszó szükséges.
+Repeat the password: 	Jelszó újra: 
+The passwords do not match.	A jelszavak nem egyeznek.
+Everything on %s will be erased. Add --yes to confirm.	A(z) %s teljes tartalma törlődik. A megerősítéshez add hozzá a --yes kapcsolót.
+Yesterday	Tegnap
+Today %s	Ma %s
+Yesterday %s	Tegnap %s
+Use Disk	Lemez használata
+Server address	Kiszolgáló címe
+The password is kept in the keyring. A shared folder (SMB) gets one backup image file.	A jelszó a kulcstartóban tárolódik. Megosztott mappán (SMB) a mentés egyetlen képfájlba kerül.
+Encrypt backups	Mentések titkosítása
+The disk is erased and protected with a password. Without the password nobody can read the backups – keep it safe.	A lemez törlődik, és jelszóval lesz védve. Jelszó nélkül senki sem olvashatja a mentéseket – őrizd meg biztonságos helyen.
+Backup disks	Mentési lemezek
+Excluded folders	Kizárt mappák
+Exclude	Kizárás
+Preparing the disk…	A lemez előkészítése…
+Up	Fel
+Connecting to the backup disk…	Kapcsolódás a mentési lemezhez…
+Restore Here	Visszaállítás ide
+Restoring…	Visszaállítás…
+Add Backup Disk	Mentési lemez hozzáadása
+External disks	Külső lemezek
+empty	üres
+No external disk is connected.	Nincs csatlakoztatva külső lemez.
+Network disk	Hálózati lemez
+Password for the backup disk	A mentési lemez jelszava
+Repeat the password	Jelszó újra
+Back Up Now	Mentés most
+Restore Files…	Fájlok visszaállítása…
+Add Disk…	Lemez hozzáadása…
+Back up automatically	Automatikus mentés
+Every hour while the computer is charging. Paused on battery, in Battery Saver and – for network disks – on a metered connection.	Óránként, amíg a számítógép töltődik. Akkumulátoros üzemben, Akkukímélő módban és – hálózati lemeznél – forgalomkorlátos kapcsolaton szünetel.
+Back up system settings	Rendszerbeállítások mentése
+Readable files from /etc and the list of installed apps.	Az /etc olvasható fájljai és a telepített alkalmazások listája.
+Back up the Downloads folder	A Letöltések mappa mentése
+Back up virtual machines	Virtuális gépek mentése
+Disk images of virtual machines are very large.	A virtuális gépek lemezképei nagyon nagyok.
+Caches and the trash are never backed up.	A gyorsítótárak és a Kuka sosem kerülnek mentésre.
+Exclude Folder…	Mappa kizárása…
+No backup disk yet	Még nincs mentési lemez
+Stop using this disk	Lemez használatának befejezése
+Nothing excluded	Nincs kizárt mappa
+Back up again	Mentés újra
+Backing up…	Mentés…
+You can keep working, or close this window.	Dolgozhatsz tovább, vagy bezárhatod ezt az ablakot.
+Backups already on the disk are kept.	A lemezen lévő mentések megmaradnak.
+Stop Using	Nem használom
+Exclude Folder	Mappa kizárása
+Modified	Módosítva
+Restore Everything…	Minden visszaállítása…
+Restore To…	Visszaállítás máshová…
+Restore To	Visszaállítás máshová
+Restored %d items.	%d elem visszaállítva.
+The whole home folder is restored from this backup. Files that differ are replaced; the current versions are moved to the folder .luxos-backup-replaced in your home folder, nothing is deleted.	A teljes saját mappa visszaáll ebből a mentésből. Az eltérő fájlok lecserélődnek; a jelenlegi változatok a saját mappád .luxos-backup-replaced mappájába kerülnek, semmi sem törlődik.
+Restore Everything	Minden visszaállítása
+Everything was restored. Log out and back in to load the restored settings.	Minden visszaállítva. Jelentkezz ki, majd be újra a visszaállított beállítások betöltéséhez.
+Connect a USB disk, or use a network disk.	Csatlakoztass egy USB-lemezt, vagy használj hálózati lemezt.
+Add an external or network disk to start backing up.	Adj hozzá egy külső vagy hálózati lemezt a mentés indításához.
+No backups yet	Még nincsenek mentések
+Add a backup disk to protect your files.	Adj hozzá egy mentési lemezt a fájljaid védelméhez.
+Stop backing up to %s?	Leállítod a mentést ide: %s?
+Type the same password twice.	Írd be kétszer ugyanazt a jelszót.
+Encryption needs an empty disk.	A titkosításhoz üres lemez kell.
+The disk could not be used	A lemez nem használható
+Back up now?	Mentés most?
+The first backup can take a while. You can keep working.	Az első mentés eltarthat egy ideig. Közben dolgozhatsz tovább.
+Backup from %s	Mentés: %s
+Restore failed	A visszaállítás nem sikerült
+Files that already exist were kept; the restored copies have “restored” in their name.	A már létező fájlok megmaradtak; a visszaállított másolatok nevében szerepel a „visszaállítva” szó.
+Restore everything from %s?	Mindent visszaállítasz a(z) %s időpontú mentésből?
+External disk	Külső lemez
+Network disk (SFTP)	Hálózati lemez (SFTP)
+Network disk (SMB)	Hálózati lemez (SMB)
+This disk is not ready for backups (%s).	Ez a lemez nem áll készen a mentésre (%s).
+Erase and Use	Törlés és használat
+empty folder	üres mappa
+Everything on it will be erased and it will be prepared for backups. This cannot be undone.	A rajta lévő összes adat törlődik, és a lemez előkészül a mentésekhez. Ez nem vonható vissza.
+Backs up every hour.	Óránként készít mentést.
