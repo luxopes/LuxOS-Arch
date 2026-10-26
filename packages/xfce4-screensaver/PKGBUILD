@@ -1,0 +1,59 @@
+# Maintainer: LuxOS Team
+# xfce4-screensaver z Archu + zamykaci dialog ve vzhledu LuxOS: po pohybu mysi / klavese
+# vypada odemykani jako zamykaci obrazovka luxos-greeter (tapeta plochy, datum a velke hodiny,
+# kulaty avatar z AccountsService, jmeno, matne pole pro heslo se sipkou, hlasky Caps Lock,
+# spatne heslo, zamceny ucet z pam_faillock a otisk prstu, rozlozeni klavesnice, sit, baterie,
+# Prepnout uzivatele / Uspat / Restartovat / Vypnout) s plynulym prechodem ze setrice
+# "Tapeta plochy a hodiny" (luxos-desktop) a zpet. Bezpecnost zustava v xfce4-screensaver:
+# grab vstupu, overeni PAM v procesu dialogu, necinnost a zamykani se nemeni.
+#   luxos-lock-ui.c/.h                 vzhled (kresleni podle luxos-greeter, preklady luxos-i18n)
+#   xfce4-screensaver-dialog.ui/.css   nahrazuji puvodni rozvrzeni a styl dialogu
+#   luxos-lock-dialog.patch            napojeni na gs-lock-plug.c a xfce4-screensaver-dialog.c,
+#                                      gs-window.c: setric zustane videt, dokud dialog nema okno
+#                                      (driv cerna obrazovka pri kazdem probuzeni zamku)
+# Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
+# verzi v Archu zvysit pkgver (a sha256sums), pkgrel nechat X.1.
+# Puvodni PKGBUILD Archu (udrzovatele Christian Hesse, Robin Candau) je v PKGBUILD.arch.
+
+pkgname=xfce4-screensaver
+pkgver=4.20.2
+pkgrel=1.1
+pkgdesc='Xfce Screensaver (LuxOS: lock screen in the style of the LuxOS login screen)'
+arch=('x86_64')
+url='https://docs.xfce.org/apps/screensaver/start'
+license=('LGPL-2.1-only')
+groups=('xfce4-goodies')
+depends=('libxss' 'libxklavier' 'libwnck3' 'garcon' 'dbus-glib' 'python' 'python-gobject')
+optdepends=('onboard: on screen keyboard for unlocking'
+            'xscreensaver: additional themes'
+            'luxos-i18n: translations of the LuxOS lock screen')
+makedepends=('git' 'glib2-devel' 'meson' 'ninja' 'xfce4-dev-tools' 'xmlto' 'xscreensaver')
+backup=('etc/pam.d/xfce4-screensaver')
+source=("git+https://gitlab.xfce.org/apps/xfce4-screensaver.git#tag=$pkgname-$pkgver"
+        'luxos-lock-dialog.patch'
+        'luxos-lock-ui.c'
+        'luxos-lock-ui.h'
+        'xfce4-screensaver-dialog.ui'
+        'xfce4-screensaver-dialog.css')
+sha256sums=('bc84a11d51fbc4222ca43831671de2935e759229d21ee7136443e7250c78498f'
+            '302bf40a2ce63374ed2da2f44b5fe405bf9d87c86980c176b919da3cfa2db4cd'
+            '812263d47cc4918b31e043c45e3f11f901ddf676f04027fd3dcac8337e4f3bf7'
+            '21bd4eb6eda38bb6b08a10ccadbdbcc7c7a60fb29b70f0f7dd8851e943d4d3ff'
+            'ab3fc7734f8191eed891665e5f2fe199aa72bf2a1454d2ea5b3ce3026bcaec07'
+            '9b194137f753b78192a694c9192642789b7488c612368d730b9eca808f74f082')
+
+prepare() {
+  cd $pkgname
+  # LuxOS: zamykaci dialog jako luxos-greeter
+  patch -Np1 -i "$srcdir/luxos-lock-dialog.patch"
+  cp "$srcdir"/luxos-lock-ui.{c,h} "$srcdir"/xfce4-screensaver-dialog.{ui,css} src/
+}
+
+build() {
+  arch-meson "${pkgname}" build
+  meson compile -C build
+}
+
+package() {
+  meson install -C build --destdir "${pkgdir}"
+}
