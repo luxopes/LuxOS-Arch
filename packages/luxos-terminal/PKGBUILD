@@ -31,8 +31,10 @@ build() {
 
 check() {
     # okna jen ve virtualni obrazovce (xvfb-run), nikdy na skutecne; SIXEL jen s VTE z [luxos]
-    LUXOS_TERMINAL_BIN="$PWD/luxos-terminal" env -u DISPLAY xvfb-run -a -s "-screen 0 1280x900x24" \
-        dbus-run-session -- python3 -m unittest "$startdir/tests/test_luxos_terminal.py"
+    local bin="$PWD/luxos-terminal"
+    cd "$startdir/tests"
+    LUXOS_TERMINAL_BIN="$bin" env -u DISPLAY xvfb-run -a -s "-screen 0 1280x900x24" \
+        dbus-run-session -- python3 -m unittest -v test_luxos_terminal
 }
 
 package() {

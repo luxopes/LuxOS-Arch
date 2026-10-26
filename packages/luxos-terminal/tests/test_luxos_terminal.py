@@ -19,6 +19,9 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
+# Sestaveni baliku (makepkg) kopiruje jen adresar baliku - zdroje ostatnich baliku pak nejsou k dispozici
+IN_REPO = os.path.isdir(os.path.join(ROOT, "packages", "luxos-i18n", "files"))
+I18N_DIR = os.path.join(ROOT, "packages/luxos-i18n/files") if IN_REPO else "/usr/share/luxos/i18n"
 BIN = os.environ.get("LUXOS_TERMINAL_BIN") or shutil.which("luxos-terminal") or ""
 UNDER_XVFB = bool(os.environ.get("DISPLAY")) and "xvfb-run" in os.environ.get("XAUTHORITY", "")
 
@@ -39,6 +42,8 @@ def read(path):
 def logo_source():
     """Barevne logo LuxOS ze zdroju (SVG, potrebuje zavadec SVG pro gdk-pixbuf), jinak None."""
     svg = os.path.join(ROOT, "packages/luxos-branding/files/logo/luxos-logo.svg")
+    if not os.path.isfile(svg):
+        svg = "/usr/share/luxos/logo/luxos-logo.svg"
     try:
         import gi
         gi.require_version("GdkPixbuf", "2.0")
@@ -55,6 +60,7 @@ def has_sixel():
 
 
 class SourceTest(unittest.TestCase):
+    @unittest.skipUnless(IN_REPO, "needs the LuxOS source tree")
     def test_translations(self):
         """Kazdy text T("...") z luxos-terminal.c je prelozeny ve vsech 12 jazycich (stejne %s)."""
         import re
@@ -264,7 +270,9 @@ class GuiTest(unittest.TestCase):
         self.assertTrue(self.windows())
 
     def test_default_title_translated(self):
-        env = dict(self.env, LANG="cs_CZ.UTF-8", LUXOS_I18N_DIR=os.path.join(ROOT, "packages/luxos-i18n/files"))
+        if not os.path.isfile(os.path.join(I18N_DIR, "cs.tsv")):
+            self.skipTest("no translations")
+        env = dict(self.env, LANG="cs_CZ.UTF-8", LUXOS_I18N_DIR=I18N_DIR)
         self.start("-x", "sh", "-c", "sleep 30", env=env)
         wid = self.wait_window()[0]
         time.sleep(0.5)
@@ -375,10 +383,10 @@ class GuiTest(unittest.TestCase):
         """fastfetch s logem LuxOS jako obrazkem (jako bashrc v Terminalu LuxOS)."""
         if not has_sixel():
             self.skipTest("VTE without SIXEL (needs vte3 from [luxos])")
-        if not logo_source() or not shutil.which("fastfetch"):
-            self.skipTest("needs fastfetch and an SVG loader")
-        self.config("[terminal]\ntheme=dark\n")
         conf = os.path.join(ROOT, "packages/luxos-shell/files/fastfetch/config.jsonc")
+        if not logo_source() or not shutil.which("fastfetch") or not os.path.isfile(conf):
+            self.skipTest("needs fastfetch, the LuxOS source tree and an SVG loader")
+        self.config("[terminal]\ntheme=dark\n")
         env = dict(self.env, LUXOS_TERMINAL_LOGO_SOURCE=logo_source())
         self.start("-x", "sh", "-c", f'fastfetch -c "{conf}" --logo-type raw --logo "$LUXOS_TERMINAL_LOGO"; sleep 30',
                    env=env)
