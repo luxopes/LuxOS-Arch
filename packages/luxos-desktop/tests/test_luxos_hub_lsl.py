@@ -160,8 +160,12 @@ class Hub(unittest.TestCase):
         os.chmod(os.path.join(cls.fake, "xfconf-query"), 0o755)
         # okno prihlaseni do site: zapise se a ceka, dokud ho hub neukonci
         with open(os.path.join(cls.fake, "luxos-network-login"), "w") as f:
-            f.write('#!/bin/sh\necho "luxos-network-login $$" >>"$FAKE_LOG"\nexec sleep 60\n')
+            f.write('#!/bin/sh\necho "luxos-network-login $$ $*" >>"$FAKE_LOG"\nexec sleep 60\n')
         os.chmod(os.path.join(cls.fake, "luxos-network-login"), 0o755)
+        # vlastni kontrola portalu (DNS site): odpoved z FAKE_PORTAL, jinak "none"
+        with open(os.path.join(cls.fake, "luxos-portal-check"), "w") as f:
+            f.write('#!/bin/sh\necho "luxos-portal-check" >>"$FAKE_LOG"\necho "${FAKE_PORTAL:-none}"\n')
+        os.chmod(os.path.join(cls.fake, "luxos-portal-check"), 0o755)
         # pomocne programy Care a Ovladacu (misto Pythonu s HTTPS / luxos-hwdetect)
         cls.care_helper = os.path.join(TMP, "care_helper.py")
         with open(cls.care_helper, "w") as f:
@@ -360,6 +364,38 @@ class Hub(unittest.TestCase):
         nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
                 GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"ActiveConnections": GLib.Variant("ao", [])}, [])))
         self.assertTrue(self.wait_for(lambda: "luxos-datasaver reapply" in self.calls(), 5))
+
+    def test_portal_behind_vpn_dns(self):
+        """NM hlasi jen omezene pripojeni (Tailscale DNS za portalem): portal najde luxos-portal-check."""
+        nm = self.service("org.freedesktop.NetworkManager", [("/org/freedesktop/NetworkManager", NM_XML)],
+                          {"State": GLib.Variant("u", 70), "Connectivity": GLib.Variant("u", 3)})
+        self.service("org.xfce.Panel", [("/org/xfce/Panel", PANEL_XML)])
+        self.start_hub(FAKE_PORTAL="portal http://login.portal.test/guest 10.5.0.2", LUXOS_HUB_NOINET_DELAY="3")
+        self.assertTrue(self.wait_for(lambda: any(c.startswith("luxos-network-login") for c in self.calls()), 8))
+        login = [c for c in self.calls() if c.startswith("luxos-network-login")]
+        self.assertEqual(login[0].split()[2:], ["http://login.portal.test/guest", "10.5.0.2"])
+        self.assertTrue(self.wait_for(lambda: any(translation("Sign in to the network") in c for c in self.calls()), 5))
+        time.sleep(4.5)
+        # portal: zadne "Bez internetu", okno jen jednou i pres dalsi kontroly
+        self.assertFalse(any(translation("No internet connection") in c for c in self.calls()), self.calls())
+        self.assertEqual(len([c for c in self.calls() if c.startswith("luxos-network-login")]), 1)
+        login_pid = int(login[0].split()[1])
+        nm.properties["Connectivity"] = GLib.Variant("u", 4)
+        nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"Connectivity": GLib.Variant("u", 4)}, [])))
+        self.assertTrue(self.wait_for(lambda: not os.path.exists(f"/proc/{login_pid}") or
+                                      open(f"/proc/{login_pid}/stat").read().split()[2] == "Z", 5))
+        self.assertTrue(self.wait_for(lambda: translation("Connected to the internet") in self.calls()[-1], 5))
+
+    def test_limited_without_portal_still_warns(self):
+        """Omezene pripojeni bez portalu (kontrola vraci none): po limitu upozorneni Bez internetu."""
+        self.service("org.freedesktop.NetworkManager", [("/org/freedesktop/NetworkManager", NM_XML)],
+                     {"State": GLib.Variant("u", 70), "Connectivity": GLib.Variant("u", 3)})
+        self.service("org.xfce.Panel", [("/org/xfce/Panel", PANEL_XML)])
+        self.start_hub(LUXOS_HUB_NOINET_DELAY="2")
+        self.assertTrue(self.wait_for(lambda: any(translation("No internet connection") in c for c in self.calls()), 8))
+        self.assertIn("luxos-portal-check", self.calls())
+        self.assertFalse(any(c.startswith("luxos-network-login") for c in self.calls()))
 
     def test_no_internet_notice_waits_for_lasting_state(self):
         """Po prihlaseni NM chvili hlasi omezene pripojeni: bez upozorneni, kdyz se do limitu pripoji."""
