@@ -36,9 +36,9 @@ with *Open Terminal Here* in Files.
   title a program sets.
 - Closing a tab or window with a running program (not just the shell) asks first.
 - The **window size** (columns × rows) of the last closed window is remembered for new windows.
-- **Light/dark**: the colours follow the system appearance (Appearance, automatic switching at
-  sunrise/sunset) immediately, also in open windows. Dark: background `#1c1c22` slightly
-  transparent (94 %), light: white (96 %), purple cursor.
+- **Colours**: dark profile by default – black background, very slightly transparent (95 %),
+  purple cursor – in light and dark system appearance alike. `theme=auto` in the settings file makes
+  it follow the system appearance (immediately, also in open windows), `theme=light` is white.
 - One process serves all windows (like xfce4-terminal): another `luxos-terminal` only passes the
   request to the running process, so a new window opens in about 50 ms.
 
@@ -74,10 +74,11 @@ cache can be deleted at any time.
 ```ini
 [terminal]
 font=JetBrainsMono Nerd Font 11
-theme=auto          # auto (follow the system), light or dark
-opacity=0.94        # background opacity 0.3–1.0 (default 0.94 dark, 0.96 light)
+theme=dark          # dark (default, black), light, or auto (follow the system appearance)
+opacity=0.95        # background opacity 0.3–1.0 (1 = opaque)
 scrollback=10000
-sixel=true          # false = no images (and the Unicode logo in fastfetch)
+sixel=true          # false = no images at all (and the Unicode logo in fastfetch)
+logo=true           # false = keep images, but the Unicode logo in fastfetch
 
 [state]
 columns=100

@@ -1,5 +1,80 @@
---- a/src/vte.cc	2026-10-26 15:46:45.306317232 +0100
-+++ b/src/vte.cc	2026-10-26 15:46:33.463962566 +0100
+diff -ruN a/src/image.cc b/src/image.cc
+--- a/src/image.cc	2026-10-26 17:32:59.951486756 +0100
++++ b/src/image.cc	2026-10-26 17:33:18.235017752 +0100
+@@ -58,7 +58,41 @@
+ 
+         cairo_rectangle(cr, real_offset_x, real_offset_y, m_width_pixels, m_height_pixels);
+         cairo_clip(cr);
+-        cairo_set_source_surface(cr, m_surface.get(), real_offset_x, real_offset_y);
++
++        /* LuxOS: nothing of the image is in the area being repainted - skip it */
++        double x1, y1, x2, y2;
++        cairo_clip_extents(cr, &x1, &y1, &x2, &y2);
++        if (x2 <= x1 || y2 <= y1) {
++                cairo_restore(cr);
++                return;
++        }
++
++        /* LuxOS: paint from a device-side copy (created once) instead of the client-side image */
++        auto source = m_surface.get();
++        auto const target = cairo_get_target(cr);
++        if (cairo_surface_get_type(target) != CAIRO_SURFACE_TYPE_IMAGE) {
++                if (!m_device_surface ||
++                    cairo_surface_get_device(m_device_surface.get()) != cairo_surface_get_device(target) ||
++                    cairo_surface_get_type(m_device_surface.get()) != cairo_surface_get_type(target)) {
++                        auto dev = cairo_surface_create_similar(target, CAIRO_CONTENT_COLOR_ALPHA,
++                                                                m_width_pixels, m_height_pixels);
++                        if (cairo_surface_status(dev) == CAIRO_STATUS_SUCCESS) {
++                                auto dcr = cairo_create(dev);
++                                cairo_set_operator(dcr, CAIRO_OPERATOR_SOURCE);
++                                cairo_set_source_surface(dcr, m_surface.get(), 0, 0);
++                                cairo_paint(dcr);
++                                cairo_destroy(dcr);
++                                m_device_surface = vte::take_freeable(dev);
++                        } else {
++                                cairo_surface_destroy(dev);
++                                m_device_surface.reset();
++                        }
++                }
++                if (m_device_surface)
++                        source = m_device_surface.get();
++        }
++
++        cairo_set_source_surface(cr, source, real_offset_x, real_offset_y);
+         cairo_paint(cr);
+         cairo_restore(cr);
+ }
+diff -ruN a/src/image.hh b/src/image.hh
+--- a/src/image.hh	2026-10-26 17:32:59.951524317 +0100
++++ b/src/image.hh	2026-10-26 17:33:18.234885571 +0100
+@@ -30,6 +30,11 @@
+         // Image data, device-independent
+         vte::Freeable<cairo_surface_t> m_surface{};
+ 
++        // LuxOS: copy of the image on the drawing device (X server pixmap), made on the first
++        // paint. Without it every repaint that touches the image uploads all its pixels to the
++        // X server again (cursor blink, scrolling, output next to the image).
++        mutable vte::Freeable<cairo_surface_t> m_device_surface{};
++
+         // Draw/prune priority, must be unique
+         size_t m_priority;
+ 
+diff -ruN a/src/ring.cc b/src/ring.cc
+--- a/src/ring.cc	2026-10-26 17:32:59.951931672 +0100
++++ b/src/ring.cc	2026-10-26 17:33:18.238891753 +0100
+@@ -31,7 +31,8 @@
+ 
+ /* We should be able to hold a single fullscreen 4K image at most.
+  * 35MiB equals 3840 * 2160 * 4 plus a little extra. */
+-#define IMAGE_FAST_MEMORY_USED_MAX (35 * 1024 * 1024)
++/* LuxOS: 16 MiB (upstream 35): images also live on the X server as device copies */
++#define IMAGE_FAST_MEMORY_USED_MAX (16 * 1024 * 1024)
+ 
+ /* Hard limit on number of images to keep around. This limits the impact
+  * of potential issues related to algorithmic complexity. */
+diff -ruN a/src/vte.cc b/src/vte.cc
+--- a/src/vte.cc	2026-10-26 17:32:59.960411840 +0100
++++ b/src/vte.cc	2026-10-26 17:33:18.237891727 +0100
 @@ -10212,6 +10212,27 @@
                    m_cell_width,
                    m_cell_height);
@@ -7,7 +82,7 @@
 +#if WITH_SIXEL && VTE_GTK == 3
 +        /* LuxOS: draw SIXEL images over the text rows (upstream left this as a FIXME
 +         * since the drawing rework; GTK 3 only, with the cairo drawing context). */
-+        if (m_images_enabled) {
++        if (m_images_enabled && !m_screen->row_data->image_map().empty()) {
 +                auto const last_row = last_displayed_row();
 +                auto cr = m_draw.cairo();
 +                auto const& image_map = m_screen->row_data->image_map();
