@@ -31,6 +31,7 @@
         <value type="int" value="14"/>
         <value type="int" value="5"/>
         <value type="int" value="10"/>
+        <value type="int" value="15"/>
         <value type="int" value="12"/>
         <value type="int" value="7"/>
         <value type="int" value="8"/>
@@ -123,6 +124,13 @@
       <property name="caps-lock-indicator" type="bool" value="true"/>
       <property name="display-tooltip-icon" type="bool" value="false"/>
       <property name="group-policy" type="uint" value="0"/>
+    </property>
+    <!-- Lupa: Hledani (jako Super+Mezernik) -->
+    <property name="plugin-15" type="string" value="genmon">
+      <property name="command" type="string" value="luxos-search --panel"/>
+      <property name="update-period" type="int" value="86400000"/>
+      <property name="use-label" type="bool" value="false"/>
+      <property name="enable-single-row" type="bool" value="true"/>
     </property>
     <!-- Ovladaci centrum -->
     <property name="plugin-12" type="string" value="genmon">

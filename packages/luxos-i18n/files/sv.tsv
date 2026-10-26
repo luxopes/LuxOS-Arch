@@ -2861,3 +2861,18 @@ Erase and Use	Radera och använd
 empty folder	tom mapp
 Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Allt på den raderas och den förbereds för säkerhetskopior. Detta kan inte ångras.
 Backs up every hour.	Säkerhetskopierar varje timme.
+Profile Picture	Profilbild
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Visas på inloggnings- och låsskärmen, i LuxOS-menyn och i Kontrollcenter.
+Choose Photo…	Välj foto…
+Choose Photo	Välj foto
+Remove Picture	Ta bort bild
+Images	Bilder
+This file is not a picture LuxOS can open.	Filen är ingen bild som LuxOS kan öppna.
+The picture could not be removed: %s	Bilden kunde inte tas bort: %s
+Picture removed.	Bilden har tagits bort.
+Drag to move the photo, scroll to zoom.	Dra för att flytta fotot, scrolla för att zooma.
+Zoom	Zoom
+The picture is saved, but the login screen could not be updated: %s	Bilden har sparats, men inloggningsskärmen kunde inte uppdateras: %s
+Saved. The new picture appears on the login screen and in the menu.	Sparat. Den nya bilden visas på inloggningsskärmen och i menyn.
+Change Picture	Byt bild
+Account on this computer	Konto på den här datorn

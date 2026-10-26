@@ -2861,3 +2861,18 @@ Erase and Use	Apagar e usar
 empty folder	pasta vazia
 Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Tudo nele será apagado e ele será preparado para backups. Isso não pode ser desfeito.
 Backs up every hour.	Faz backup a cada hora.
+Profile Picture	Foto do perfil
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Aparece na tela de login e de bloqueio, no menu do LuxOS e na Central de Controle.
+Choose Photo…	Escolher foto…
+Choose Photo	Escolher foto
+Remove Picture	Remover foto
+Images	Imagens
+This file is not a picture LuxOS can open.	Este arquivo não é uma imagem que o LuxOS consiga abrir.
+The picture could not be removed: %s	Não foi possível remover a foto: %s
+Picture removed.	Foto removida.
+Drag to move the photo, scroll to zoom.	Arraste para mover a foto e role para ampliar.
+Zoom	Zoom
+The picture is saved, but the login screen could not be updated: %s	A foto foi salva, mas não foi possível atualizar a tela de login: %s
+Saved. The new picture appears on the login screen and in the menu.	Salvo. A nova foto aparece na tela de login e no menu.
+Change Picture	Alterar foto
+Account on this computer	Conta neste computador

@@ -2861,3 +2861,18 @@ Erase and Use	Wis en gebruik
 empty folder	lege map
 Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Alles erop wordt gewist en de schijf wordt voorbereid voor back-ups. Dit kan niet ongedaan worden gemaakt.
 Backs up every hour.	Maakt elk uur een back-up.
+Profile Picture	Profielfoto
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Wordt getoond op het inlog- en vergrendelscherm, in het LuxOS-menu en in het Bedieningspaneel.
+Choose Photo…	Foto kiezen…
+Choose Photo	Foto kiezen
+Remove Picture	Foto verwijderen
+Images	Afbeeldingen
+This file is not a picture LuxOS can open.	Dit bestand is geen afbeelding die LuxOS kan openen.
+The picture could not be removed: %s	De foto kon niet worden verwijderd: %s
+Picture removed.	Foto verwijderd.
+Drag to move the photo, scroll to zoom.	Sleep om de foto te verplaatsen, scroll om te zoomen.
+Zoom	Zoom
+The picture is saved, but the login screen could not be updated: %s	De foto is opgeslagen, maar het inlogscherm kon niet worden bijgewerkt: %s
+Saved. The new picture appears on the login screen and in the menu.	Opgeslagen. De nieuwe foto verschijnt op het inlogscherm en in het menu.
+Change Picture	Foto wijzigen
+Account on this computer	Account op deze computer

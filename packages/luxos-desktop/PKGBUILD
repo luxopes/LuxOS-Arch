@@ -72,7 +72,7 @@ build() {
     # Zamykaci obrazovka: bez prazdne informacni listy (cerny pruh dole) po probuzeni
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-lock-fix.so "$startdir/files/src/luxos-lock-fix.c" \
         $(pkg-config --cflags --libs gtk+-3.0)
-    # Cerne zakryti obrazovky pri odhlaseni a vypnuti (spousti luxos-hub)
+    # Cerne zakryti obrazovky pri odhlaseni a vypnuti (spousti luxos-hub), s --login prechod po prihlaseni
     gcc $CFLAGS $LDFLAGS -o luxos-session-cover "$startdir/files/src/luxos-session-cover.c" -lX11 -lXfixes
     # Kontextove nabidky horni listy bez sedeho nazvu pluginu
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-panel-menus.so "$startdir/files/src/luxos-panel-menus.c" \
@@ -172,6 +172,8 @@ package() {
     install -Dm644 "$f/dconf/10-luxos" "$pkgdir/etc/dconf/db/local.d/10-luxos"
 
     install -Dm644 "$f/lightdm/50-luxos.conf" "$pkgdir/etc/lightdm/lightdm.conf.d/50-luxos.conf"
+    # Prechod po prihlaseni: posledni snimek prihlaseni zakryje skladani plochy (luxos-session-cover --login)
+    install -Dm755 "$f/xinit/60-luxos-login-cover.sh" "$pkgdir/etc/X11/xinit/xinitrc.d/60-luxos-login-cover.sh"
     install -Dm755 -t "$pkgdir/usr/lib/luxos/lightdm" "$f/lightdm/luxos-greeter-setup" "$f/lightdm/luxos-session-setup" \
         "$f/lightdm/luxos-greeter-wrapper"
     install -Dm755 libluxos-rgba-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-rgba-menus.so"

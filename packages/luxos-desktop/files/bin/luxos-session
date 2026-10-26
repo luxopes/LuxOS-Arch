@@ -11,6 +11,10 @@ if [[ ! -e $cfg/initialized ]]; then
     : > "$cfg/initialized"
 fi
 
+# Lupa (Hledani) v horni liste i u profilu z drivejsich verzi: jednou, pred Ovladaci centrum. Restart
+# listy hned po prihlaseni zakryje prechod na plochu (luxos-session-cover --login).
+[[ -e $cfg/search-icon-added ]] || luxos-search --add-to-panel &
+
 # Kompozitor xfwm4 (stiny, pruhlednost): zapnout i po pokusu s picom, ktery ho vypinal
 pgrep -u "$USER" -x picom >/dev/null || xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s true 2>/dev/null
 

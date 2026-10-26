@@ -289,6 +289,23 @@ class Hub(unittest.TestCase):
         self.assertNotIn("CRITICAL", err, err)
         self.assertNotIn("LSL callback error", err, err)
 
+    def test_profile_picture_in_control_center(self):
+        # ~/.face z Profilove fotky: kolecko profilu ukaze fotku (styl .avatar.photo) misto pismena
+        gi.require_version("GdkPixbuf", "2.0")
+        from gi.repository import GdkPixbuf
+        pb = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, 64, 64)
+        pb.fill(0xe03030ff)
+        pb.savev(os.path.join(self.home, ".face"), "png", [], [])
+        hub = self.start_hub()
+        hub.send_signal(signal.SIGUSR1)
+        self.assertTrue(self.wait_for(lambda: "shown" in self.ui_log("cc.log")), self.hub_err())
+        self.assertIn("photo", self.ui_log("cc.log"))
+        hub.send_signal(signal.SIGTERM)
+        self.assertEqual(hub.wait(5), 0)
+        err = self.hub_err()
+        self.assertNotIn("CRITICAL", err, err)
+        self.assertNotIn("Theme parsing error", err, err)
+
     def test_standalone_control_center_and_calendar(self):
         err = open(os.path.join(self.home, "cc.err"), "w")
         cc = subprocess.Popen([os.path.join(BIN, "luxos-control-center"), "--background"], env=self.env(), stderr=err, text=True)
