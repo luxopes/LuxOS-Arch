@@ -95,6 +95,9 @@ fi
         sleep 2
     done
 ) &
+# Hlidani zamrznuti plochy: kdyz X nebo spravce oken 30 s neodpovida, zapise hlaseni
+# (~/.local/share/luxos/freeze-reports, oprava z konzole: luxos-unfreeze)
+luxos-unfreeze --watch &
 # Sporic dat: merene pripojeni plati jen do odpojeni, po prihlaseni znovu
 luxos-datasaver reapply &
 

@@ -2702,3 +2702,9 @@ More details: run the command again with --verbose	Meer details: voer de opdrach
 The list of apps is out of date. Install the updates first, then try again.	De lijst met apps is verouderd. Installeer eerst de updates en probeer het opnieuw.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	De datum en tijd van de computer kloppen niet, dus een beveiligde verbinding is niet mogelijk. Controleer de tijdinstellingen.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Langere batterijduur: tragere processor zonder turbo, iets lagere helderheid, geen vergroting in het Dock, ongebruikte apparaten slapen en achtergrondtaken pauzeren.
+No graphical session of this user is running.	Er draait geen grafische sessie van deze gebruiker.
+Collecting information about the frozen desktop…	Informatie over het vastgelopen bureaublad verzamelen…
+Report saved:	Rapport opgeslagen:
+The window manager and the panel were restarted. Open apps keep running.	Vensterbeheer en paneel zijn opnieuw gestart. Geopende apps blijven draaien.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	De grafische server reageert niet. Sla je werk op in andere sessies en herstart de computer: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Terug naar het bureaublad: Ctrl+Alt+F1 (of F7).

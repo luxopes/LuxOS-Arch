@@ -2702,3 +2702,9 @@ More details: run the command again with --verbose	Weitere Details: Befehl erneu
 The list of apps is out of date. Install the updates first, then try again.	Die App-Liste ist veraltet. Installieren Sie zuerst die Updates und versuchen Sie es dann erneut.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datum und Uhrzeit des Computers sind falsch, daher ist keine sichere Verbindung möglich. Prüfen Sie die Zeiteinstellungen.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Längere Akkulaufzeit: langsamerer Prozessor ohne Turbo, etwas geringere Helligkeit, keine Dock-Vergrößerung, ungenutzte Geräte ruhen und Hintergrundaufgaben pausieren.
+No graphical session of this user is running.	Für diesen Benutzer läuft keine grafische Sitzung.
+Collecting information about the frozen desktop…	Informationen über den eingefrorenen Desktop werden gesammelt…
+Report saved:	Bericht gespeichert:
+The window manager and the panel were restarted. Open apps keep running.	Fenstermanager und Leiste wurden neu gestartet. Geöffnete Apps laufen weiter.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Der Displayserver antwortet nicht. Sichern Sie Ihre Arbeit in anderen Sitzungen und starten Sie den Computer neu: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Zurück zum Desktop: Strg+Alt+F1 (oder F7).

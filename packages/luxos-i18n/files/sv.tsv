@@ -2702,3 +2702,9 @@ More details: run the command again with --verbose	Mer information: kör kommand
 The list of apps is out of date. Install the updates first, then try again.	Applistan är inaktuell. Installera uppdateringarna först och försök sedan igen.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datorns datum och tid är fel, så en säker anslutning är inte möjlig. Kontrollera tidsinställningarna.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Längre batteritid: långsammare processor utan turbo, något lägre ljusstyrka, ingen förstoring i Dock, oanvända enheter går i viloläge och bakgrundsuppgifter pausas.
+No graphical session of this user is running.	Ingen grafisk session för den här användaren körs.
+Collecting information about the frozen desktop…	Samlar information om det frusna skrivbordet…
+Report saved:	Rapport sparad:
+The window manager and the panel were restarted. Open apps keep running.	Fönsterhanteraren och panelen startades om. Öppna appar fortsätter att köra.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Grafikservern svarar inte. Spara ditt arbete i andra sessioner och starta om datorn: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Tillbaka till skrivbordet: Ctrl+Alt+F1 (eller F7).

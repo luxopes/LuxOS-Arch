@@ -2703,3 +2703,9 @@ More details: run the command again with --verbose	Докладніше: зап�
 The list of apps is out of date. Install the updates first, then try again.	Список застосунків застарів. Спочатку встановіть оновлення, а потім спробуйте знову.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Дата й час комп'ютера неправильні, тому безпечне з'єднання неможливе. Перевірте налаштування часу.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Довша робота від батареї: повільніший процесор без турбо, трохи нижча яскравість, без збільшення в Dock, невикористовувані пристрої засинають, фонові завдання призупиняються.
+No graphical session of this user is running.	Для цього користувача не запущено графічного сеансу.
+Collecting information about the frozen desktop…	Збирання відомостей про завислий робочий стіл…
+Report saved:	Звіт збережено:
+The window manager and the panel were restarted. Open apps keep running.	Менеджер вікон і панель перезапущено. Відкриті застосунки працюють далі.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Графічний сервер не відповідає. Збережіть роботу в інших сеансах і перезапустіть комп’ютер: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Назад до робочого столу: Ctrl+Alt+F1 (або F7).

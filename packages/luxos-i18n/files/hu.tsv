@@ -2702,3 +2702,9 @@ More details: run the command again with --verbose	További részletek: futtassa
 The list of apps is out of date. Install the updates first, then try again.	Az alkalmazáslista elavult. Előbb telepítse a frissítéseket, majd próbálja újra.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	A számítógép dátuma és ideje hibás, ezért nem lehetséges biztonságos kapcsolat. Ellenőrizze az időbeállításokat.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Hosszabb akkumulátor-üzemidő: lassabb processzor turbó nélkül, kissé kisebb fényerő, nincs nagyítás a Dockban, a nem használt eszközök alvó állapotba kerülnek, a háttérfeladatok szünetelnek.
+No graphical session of this user is running.	Ennek a felhasználónak nem fut grafikus munkamenete.
+Collecting information about the frozen desktop…	Információk gyűjtése a lefagyott asztalról…
+Report saved:	Jelentés mentve:
+The window manager and the panel were restarted. Open apps keep running.	Az ablakkezelő és a panel újraindult. A megnyitott alkalmazások tovább futnak.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	A grafikus kiszolgáló nem válaszol. Mentse a munkáját más munkamenetekben, és indítsa újra a számítógépet: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Vissza az asztalra: Ctrl+Alt+F1 (vagy F7).

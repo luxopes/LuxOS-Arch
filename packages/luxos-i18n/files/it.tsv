@@ -2702,3 +2702,9 @@ More details: run the command again with --verbose	Altri dettagli: esegui di nuo
 The list of apps is out of date. Install the updates first, then try again.	L'elenco delle app non è aggiornato. Installa prima gli aggiornamenti, poi riprova.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	La data e l'ora del computer sono errate, quindi non è possibile una connessione sicura. Controlla le impostazioni dell'ora.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Batteria più duratura: processore più lento senza turbo, luminosità leggermente ridotta, nessun ingrandimento nel Dock, i dispositivi inattivi vanno in sospensione e le attività in background si mettono in pausa.
+No graphical session of this user is running.	Nessuna sessione grafica di questo utente è in esecuzione.
+Collecting information about the frozen desktop…	Raccolta di informazioni sul desktop bloccato…
+Report saved:	Rapporto salvato:
+The window manager and the panel were restarted. Open apps keep running.	Il gestore delle finestre e il pannello sono stati riavviati. Le app aperte continuano a funzionare.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Il server grafico non risponde. Salva il lavoro in altre sessioni e riavvia il computer: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Torna al desktop: Ctrl+Alt+F1 (o F7).
