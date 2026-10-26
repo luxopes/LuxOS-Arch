@@ -17,8 +17,10 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 XDG = os.path.normpath(os.path.join(HERE, "..", "files", "xdg"))
-NOTIFYD = next((p for p in ("/usr/lib/xfce4/notifyd/xfce4-notifyd",
+NOTIFYD = os.environ.get("LUXOS_NOTIFYD") or next((p for p in ("/usr/lib/xfce4/notifyd/xfce4-notifyd",
                             "/usr/lib/x86_64-linux-gnu/xfce4/notifyd/xfce4-notifyd") if os.path.exists(p)), None)
+# xfce4-notifyd s upravou LuxOS (packages/xfce4-notifyd) - pri testu proti neupravenemu z Archu jen puvodni chovani
+PATCHED = bool(NOTIFYD) and b"x-luxos-keep" in open(NOTIFYD, "rb").read()
 TOOLS = all(shutil.which(t) for t in ("dbus-run-session", "notify-send", "xfconf-query"))
 UNDER_XVFB = "xvfb-run" in os.environ.get("XAUTHORITY", "")
 
@@ -34,8 +36,8 @@ for _ in $(seq 50); do
         org.freedesktop.Notifications 2>/dev/null | grep -q true && break
     sleep 0.1
 done
-notify-send -a LuxOS -i preferences-system-time "Tonight the clocks go back" "03:00 -> 02:00"
-notify-send -a Calendar -i x-office-calendar "Dentist" "Today 10:00"
+notify-send -a LuxOS -h boolean:x-luxos-keep:true -i preferences-system-time "Tonight the clocks go back" "03:00 -> 02:00"
+notify-send -a Calendar -h boolean:x-luxos-keep:true -i x-office-calendar "Dentist" "Today 10:00"
 notify-send -a LuxOS -u critical -i dialog-warning "Memory is running low" "Firefox was closed"
 notify-send -a LuxOS -u low "No internet connection" "body"
 notify-send -a Volume -e -h int:value:40 "Volume" "40 %"
@@ -76,8 +78,12 @@ class NotificationLog(unittest.TestCase):
 
     def test_new_user_logs_important_notices(self):
         got = self.run_notifyd()
-        self.assertEqual(sorted(got), sorted(["Tonight the clocks go back", "Dentist", "Memory is running low",
-                                              "No internet connection"]))
+        if PATCHED:
+            # LuxOS xfce4-notifyd: do historie jen oznameni s hintem x-luxos-keep (zmena casu, Kalendar)
+            self.assertEqual(sorted(got), sorted(["Tonight the clocks go back", "Dentist"]))
+        else:
+            self.assertEqual(sorted(got), sorted(["Tonight the clocks go back", "Dentist", "Memory is running low",
+                                                  "No internet connection"]))
 
     def test_existing_profile_gets_new_defaults(self):
         # profil z drivejsi verze: xfconf uz ma kanal (tema od luxos-appearance, znama aplikace),
