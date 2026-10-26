@@ -1,0 +1,23 @@
+[Desktop Entry]
+Type=Application
+Name=Backups
+Name[cs]=Zálohy
+Name[sk]=Zálohy
+Name[pl]=Kopie zapasowe
+Name[uk]=Резервні копії
+Name[hu]=Biztonsági mentések
+Name[de]=Datensicherung
+Name[fr]=Sauvegardes
+Name[es]=Copias de seguridad
+Name[it]=Backup
+Name[pt]=Cópias de segurança
+Name[nl]=Back-ups
+Name[sv]=Säkerhetskopior
+Comment=Automatic backups to an external or network disk and restoring files
+Comment[cs]=Automatické zálohy na externí nebo síťový disk a obnova souborů
+Exec=luxos-backup-gui
+Icon=luxos-backup
+Terminal=false
+Categories=System;Utility;Archiving;
+Keywords=backup;restore;snapshot;history;external disk;záloha;zálohy;obnova;obnovit;historie;
+StartupWMClass=luxos-backup

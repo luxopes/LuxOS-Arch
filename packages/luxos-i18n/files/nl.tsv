@@ -2702,3 +2702,162 @@ More details: run the command again with --verbose	Meer details: voer de opdrach
 The list of apps is out of date. Install the updates first, then try again.	De lijst met apps is verouderd. Installeer eerst de updates en probeer het opnieuw.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	De datum en tijd van de computer kloppen niet, dus een beveiligde verbinding is niet mogelijk. Controleer de tijdinstellingen.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Langere batterijduur: tragere processor zonder turbo, iets lagere helderheid, geen vergroting in het Dock, ongebruikte apparaten slapen en achtergrondtaken pauzeren.
+# LuxOS Zalohy (luxos-backup)
+Paused on battery – backs up when the computer is charging	Gepauzeerd op batterij – maakt een back-up wanneer de computer oplaadt
+Paused by Battery Saver	Gepauzeerd door Batterijbesparing
+Paused on a metered connection	Gepauzeerd op een verbinding met datalimiet
+Backup disk is not connected	Back-upschijf is niet aangesloten
+Automatic backups are off	Automatische back-ups staan uit
+No backup disk	Geen back-upschijf
+Backups	Back-ups
+restored %s	hersteld %s
+Use this disk for backups?	Deze schijf gebruiken voor back-ups?
+There are no backups yet.	Er zijn nog geen back-ups.
+Unknown backup time: %s	Onbekend back-uptijdstip: %s
+No backup disk is set up. Add one with: luxos-backup disk add	Er is geen back-upschijf ingesteld. Voeg er een toe met: luxos-backup disk add
+Unknown backup disk: %s	Onbekende back-upschijf: %s
+Use a network address like smb://user@server/share	Gebruik een netwerkadres zoals smb://user@server/share
+The network disk is not available.	De netwerkschijf is niet beschikbaar.
+No backup disk is set up.	Er is geen back-upschijf ingesteld.
+A backup is already running.	Er loopt al een back-up.
+Several computers have backups here, choose one with --machine: %s	Hier staan back-ups van meerdere computers, kies er een met --machine: %s
+Home folder restored from the backup from %s.	Thuismap hersteld uit de back-up van %s.
+Use a network address like sftp://user@server/folder	Gebruik een netwerkadres zoals sftp://user@server/folder
+Backup disk	Back-upschijf
+%s can keep automatic backups of your files.	%s kan automatisch back-ups van je bestanden bewaren.
+No backup from %s or earlier.	Geen back-up van %s of eerder.
+Could not save the password in the keyring: %s	Kon het wachtwoord niet in de sleutelbos opslaan: %s
+Could not mount %s	Kon %s niet koppelen
+Could not unlock the backup disk	Kon de back-upschijf niet ontgrendelen
+The backup disk is not connected.	De back-upschijf is niet aangesloten.
+The backup image was not found on the network disk.	Het back-upimage is niet gevonden op de netwerkschijf.
+Could not connect to the server.	Kon geen verbinding maken met de server.
+This disk uses %s, which cannot keep backups efficiently. Prepare (erase) it for backups first.	Deze schijf gebruikt %s, dat back-ups niet efficiënt kan bewaren. Bereid de schijf eerst voor op back-ups (dit wist de schijf).
+Disk is full - deleting the oldest backup %s	Schijf is vol - oudste back-up %s wordt verwijderd
+Old backups deleted	Oude back-ups verwijderd
+Connect your backup disk to back up this computer.	Sluit je back-upschijf aan om een back-up van deze computer te maken.
+No backups of %s in %s	Geen back-ups van %s in %s
+Invalid path: %s	Ongeldig pad: %s
+To restore the whole home folder use: luxos-backup restore --all	Gebruik om de hele thuismap te herstellen: luxos-backup restore --all
+Restored %s to %s	%s hersteld naar %s
+Replaced files were moved to %s	Vervangen bestanden zijn verplaatst naar %s
+Apps installed on the old system: %s (install them with: lux install $(cat FILE))	Apps geïnstalleerd op het oude systeem: %s (installeer ze met: lux install $(cat FILE))
+Folder not found: %s	Map niet gevonden: %s
+This disk is already used for backups.	Deze schijf wordt al gebruikt voor back-ups.
+LuxOS Backups: %s	LuxOS Back-ups: %s
+The network disk needs at least 8 GB of free space.	De netwerkschijf heeft minstens 8 GB vrije ruimte nodig.
+Could not open the backup image	Kon het back-upimage niet openen
+%s is not an external disk.	%s is geen externe schijf.
+%s holds the running system.	%s bevat het draaiende systeem.
+Use for Backups	Gebruik voor back-ups
+The backup disk is not mounted.	De back-upschijf is niet gekoppeld.
+Could not create the backup folder on the server.	Kon de back-upmap niet aanmaken op de server.
+Could not create the backup folder: %s	Kon de back-upmap niet aanmaken: %s
+The backup disk was full, so the oldest backups were deleted (%d).	De back-upschijf was vol, daarom zijn de oudste back-ups verwijderd (%d).
+No backup for %d days	Al %d dagen geen back-up
+No LuxOS backups found in %s	Geen LuxOS-back-ups gevonden in %s
+%s is not in the backup from %s	%s staat niet in de back-up van %s
+Cannot write to %s: %s	Kan niet schrijven naar %s: %s
+Could not prepare the disk: %s	Kon de schijf niet voorbereiden: %s
+The backup disk is locked.	De back-upschijf is vergrendeld.
+The password for the encrypted backup disk is not in the keyring.	Het wachtwoord voor de versleutelde back-upschijf staat niet in de sleutelbos.
+Backing up to %s…	Back-up maken naar %s…
+Backup failed	Back-up mislukt
+Backup finished: %s	Back-up voltooid: %s
+The server needs rsync for backups.	De server heeft rsync nodig voor back-ups.
+The backup disk is full.	De back-upschijf is vol.
+The backup disk %s is full even after deleting old backups.	De back-upschijf %s is vol, zelfs na het verwijderen van oude back-ups.
+Backup to %s failed: %s	Back-up naar %s mislukt: %s
+(%d files could not be read)	(%d bestanden konden niet worden gelezen)
+Automatic backups: %s	Automatische back-ups: %s
+Last backup: %s	Laatste back-up: %s
+on	aan
+off	uit
+LuxOS Backups	LuxOS Back-ups
+Backing up… %d %%	Back-up maken… %d %%
+Give the files to restore, or --all for the whole home folder.	Geef de bestanden op die hersteld moeten worden, of --all voor de hele thuismap.
+Backups will go to %s (%s).	Back-ups gaan naar %s (%s).
+Password for the backup disk: 	Wachtwoord voor de back-upschijf: 
+%s is no longer used for backups. Backups already on it were kept.	%s wordt niet meer gebruikt voor back-ups. Back-ups die er al op staan, zijn bewaard.
+Last backup failed: %s	Laatste back-up mislukt: %s
+Password for %s: 	Wachtwoord voor %s: 
+Everything on %s will be erased. Continue? [y/N] 	Alles op %s wordt gewist. Doorgaan? [y/N] 
+%d existing files were kept (use --replace to replace them).	%d bestaande bestanden zijn bewaard (gebruik --replace om ze te vervangen).
+A password is needed for encryption.	Voor versleuteling is een wachtwoord nodig.
+Repeat the password: 	Herhaal het wachtwoord: 
+The passwords do not match.	De wachtwoorden komen niet overeen.
+Everything on %s will be erased. Add --yes to confirm.	Alles op %s wordt gewist. Voeg --yes toe om te bevestigen.
+Yesterday	Gisteren
+Today %s	Vandaag %s
+Yesterday %s	Gisteren %s
+Use Disk	Gebruik schijf
+Server address	Serveradres
+The password is kept in the keyring. A shared folder (SMB) gets one backup image file.	Het wachtwoord wordt bewaard in de sleutelbos. Een gedeelde map (SMB) krijgt één back-upimagebestand.
+Encrypt backups	Versleutel back-ups
+The disk is erased and protected with a password. Without the password nobody can read the backups – keep it safe.	De schijf wordt gewist en beveiligd met een wachtwoord. Zonder het wachtwoord kan niemand de back-ups lezen – bewaar het goed.
+Backup disks	Back-upschijven
+Excluded folders	Uitgesloten mappen
+Exclude	Sluit uit
+Preparing the disk…	Schijf voorbereiden…
+Up	Omhoog
+Connecting to the backup disk…	Verbinding maken met de back-upschijf…
+Restore Here	Herstel hier
+Restoring…	Herstellen…
+Add Backup Disk	Voeg back-upschijf toe
+External disks	Externe schijven
+empty	leeg
+No external disk is connected.	Er is geen externe schijf aangesloten.
+Network disk	Netwerkschijf
+Password for the backup disk	Wachtwoord voor de back-upschijf
+Repeat the password	Herhaal het wachtwoord
+Back Up Now	Maak nu een back-up
+Restore Files…	Herstel bestanden…
+Add Disk…	Voeg schijf toe…
+Back up automatically	Automatisch back-ups maken
+Every hour while the computer is charging. Paused on battery, in Battery Saver and – for network disks – on a metered connection.	Elk uur terwijl de computer oplaadt. Gepauzeerd op batterij, met Batterijbesparing en – voor netwerkschijven – op een verbinding met datalimiet.
+Back up system settings	Back-up van systeeminstellingen
+Readable files from /etc and the list of installed apps.	Leesbare bestanden uit /etc en de lijst met geïnstalleerde apps.
+Back up the Downloads folder	Back-up van de map Downloads
+Back up virtual machines	Back-up van virtuele machines
+Disk images of virtual machines are very large.	Schijfimages van virtuele machines zijn erg groot.
+Caches and the trash are never backed up.	Caches en de prullenbak komen nooit in de back-up.
+Exclude Folder…	Sluit map uit…
+No backup disk yet	Nog geen back-upschijf
+Stop using this disk	Gebruik deze schijf niet meer
+Nothing excluded	Niets uitgesloten
+Back up again	Maak opnieuw een back-up
+Backing up…	Back-up maken…
+You can keep working, or close this window.	Je kunt doorwerken of dit venster sluiten.
+Backups already on the disk are kept.	Back-ups die al op de schijf staan, blijven bewaard.
+Stop Using	Stop met gebruiken
+Exclude Folder	Sluit map uit
+Modified	Gewijzigd
+Restore Everything…	Herstel alles…
+Restore To…	Herstel naar…
+Restore To	Herstel naar
+Restored %d items.	%d items hersteld.
+The whole home folder is restored from this backup. Files that differ are replaced; the current versions are moved to the folder .luxos-backup-replaced in your home folder, nothing is deleted.	De hele thuismap wordt hersteld uit deze back-up. Bestanden die verschillen worden vervangen; de huidige versies worden verplaatst naar de map .luxos-backup-replaced in je thuismap, er wordt niets verwijderd.
+Restore Everything	Herstel alles
+Everything was restored. Log out and back in to load the restored settings.	Alles is hersteld. Meld je af en weer aan om de herstelde instellingen te laden.
+Connect a USB disk, or use a network disk.	Sluit een USB-schijf aan of gebruik een netwerkschijf.
+Add an external or network disk to start backing up.	Voeg een externe schijf of netwerkschijf toe om back-ups te gaan maken.
+No backups yet	Nog geen back-ups
+Add a backup disk to protect your files.	Voeg een back-upschijf toe om je bestanden te beschermen.
+Stop backing up to %s?	Stoppen met back-ups naar %s?
+Type the same password twice.	Typ twee keer hetzelfde wachtwoord.
+Encryption needs an empty disk.	Voor versleuteling is een lege schijf nodig.
+The disk could not be used	De schijf kon niet worden gebruikt
+Back up now?	Nu een back-up maken?
+The first backup can take a while. You can keep working.	De eerste back-up kan even duren. Je kunt gewoon doorwerken.
+Backup from %s	Back-up van %s
+Restore failed	Herstellen mislukt
+Files that already exist were kept; the restored copies have “restored” in their name.	Bestaande bestanden zijn bewaard; de herstelde kopieën hebben “hersteld” in hun naam.
+Restore everything from %s?	Alles herstellen uit de back-up van %s?
+External disk	Externe schijf
+Network disk (SFTP)	Netwerkschijf (SFTP)
+Network disk (SMB)	Netwerkschijf (SMB)
+This disk is not ready for backups (%s).	Deze schijf is niet klaar voor back-ups (%s).
+Erase and Use	Wis en gebruik
+empty folder	lege map
+Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Alles erop wordt gewist en de schijf wordt voorbereid voor back-ups. Dit kan niet ongedaan worden gemaakt.
+Backs up every hour.	Maakt elk uur een back-up.

@@ -1,0 +1,316 @@
+#!/usr/bin/env python3
+"""LuxOS Zalohy - prikaz luxos-backup (stav, zaloha, seznam, obnova, disky).
+
+  luxos-backup [status] [--json]
+  luxos-backup now [--disk ID]
+  luxos-backup list [--disk ID | --source DIR] [--json]
+  luxos-backup files [--from TIME] [--disk ID | --source DIR] [PATH]
+  luxos-backup restore [--from TIME] [--to DIR] [--disk ID | --source DIR] PATH...
+  luxos-backup restore --all [--from TIME] [--target DIR] [--replace] [--disk ID | --source DIR]
+  luxos-backup disk [list]
+  luxos-backup disk add FOLDER | sftp://USER@SERVER/FOLDER | smb://USER@SERVER/SHARE [--name NAME] [--password-stdin]
+  luxos-backup disk prepare DEVICE [--encrypt] [--name NAME] [--yes]
+  luxos-backup disk remove ID
+  luxos-backup exclude [list | add PATH | remove PATH]
+  luxos-backup auto [on | off]
+  luxos-backup option system|downloads|vms on|off
+  luxos-backup service | plugged DEVICE        (casovac a udev, ne pro rucni pouziti)
+
+--source DIR: obnova bez nastaveni (LuxOS Recovery, novy system) - slozka se zalohami nebo
+koren disku zaloh; --machine POCITAC-UZIVATEL vybere pocitac, kdyz jich je na disku vic.
+"""
+import argparse
+import getpass
+import json
+import os
+import sys
+import time
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, "/usr/lib/luxos/python")
+import luxos_backup as core  # noqa: E402
+from luxos_backup import _  # noqa: E402
+
+
+def out(text=""):
+    print(text, flush=True)
+
+
+def human(n):
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if abs(n) < 1000 or unit == "TB":
+            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+        n /= 1000.0
+    return str(n)
+
+
+def ago(t):
+    if not t:
+        return _("never")
+    return time.strftime("%Y-%m-%d %H:%M", time.localtime(t))
+
+
+def cmd_status(a):
+    cfg = core.load_config()
+    st = core.load_status()
+    if a.json:
+        out(json.dumps({"config": cfg, "status": st}, indent=1, ensure_ascii=False))
+        return 0
+    out(_("Automatic backups: %s") % (_("on") if cfg.get("auto", True) else _("off")))
+    if not cfg["disks"]:
+        out(_("No backup disk is set up. Add one with: luxos-backup disk add"))
+    for d in cfg["disks"]:
+        enc = " · " + _("encrypted") if d.get("encrypted") else ""
+        out(f"  [{d['id']}] {core.disk_label(d)} ({d['kind']}{enc})")
+    out(_("Last backup: %s") % ago(st.get("last_success")))
+    state = st.get("state", "idle")
+    if state == "running":
+        out(_("Backing up… %d %%") % st.get("progress", 0))
+    elif state == "error" and st.get("last_error"):
+        out(_("Last backup failed: %s") % st["last_error"])
+    elif st.get("reason") in core.PAUSE_TEXT:
+        out(_(core.PAUSE_TEXT[st["reason"]]))
+    return 0
+
+
+def cmd_now(a):
+    rc = core.run_backup(a.disk, manual=True, log=out)
+    if rc == 2:
+        return 0
+    return rc
+
+
+def cmd_service(_a):
+    cfg = core.load_config()
+    if not cfg["disks"] or not cfg.get("auto", True):
+        return 0
+    if not core.due(cfg):
+        return 0
+    return core.run_backup(log=out)
+
+
+def cmd_list(a):
+    with core.open_source(a.disk, a.source, a.machine) as sess:
+        names = core.list_snapshots(sess)
+    if a.json:
+        out(json.dumps([{"name": n, "time": core.snap_time(n), "label": core.snap_label(n)} for n in names],
+                       indent=1))
+        return 0
+    if not names:
+        out(_("There are no backups yet."))
+    for n in names:
+        out(f"{core.snap_label(n)}   {n}")
+    return 0
+
+
+def cmd_files(a):
+    with core.open_source(a.disk, a.source, a.machine) as sess:
+        name = core.parse_when(a.when, core.list_snapshots(sess))
+        for fn, is_dir, size, _m in core.list_dir(sess, name, a.path or ""):
+            out(f"{fn}/" if is_dir else f"{fn}  ({human(size)})")
+    return 0
+
+
+def cmd_restore(a):
+    if a.all == bool(a.paths):
+        sys.stderr.write(_("Give the files to restore, or --all for the whole home folder.") + "\n")
+        return 2
+    if a.target and not a.all:
+        sys.stderr.write("--target: only with --all (use --to DIR)\n")
+        return 2
+    with core.open_source(a.disk, a.source, a.machine) as sess:
+        name = core.parse_when(a.when, core.list_snapshots(sess))
+        if a.all:
+            target = a.target or core.home()
+            skipped = core.restore_all(sess, name, target, replace=a.replace, log=out)
+            if skipped:
+                out(_("%d existing files were kept (use --replace to replace them).") % skipped)
+            return 0
+        if a.to:
+            os.makedirs(a.to, exist_ok=True)
+        core.restore(sess, name, a.paths, to=os.path.abspath(a.to) if a.to else None, log=out)
+    return 0
+
+
+def read_password(a, prompt):
+    if a.password_stdin:
+        return sys.stdin.readline().rstrip("\n")
+    if sys.stdin.isatty():
+        return getpass.getpass(prompt)
+    return None
+
+
+def cmd_disk(a):
+    cfg = core.load_config()
+    action = a.action or "list"
+    if action == "list":
+        if not cfg["disks"]:
+            out(_("No backup disk is set up. Add one with: luxos-backup disk add"))
+        for d in cfg["disks"]:
+            out(f"{d['id']}  {d['kind']:5}  {core.disk_label(d)}" + ("  (" + _("encrypted") + ")" if d.get("encrypted") else ""))
+        return 0
+    if action == "candidates":
+        for d in core.external_disks():
+            out(f"{d['path']}  {d['fstype'] or '-':12} {human(d['size']):>9}  {d['label'] or d['model']}"
+                + (f"  ({d['mount']})" if d["mount"] else ""))
+        return 0
+    if action == "add":
+        if not a.target:
+            sys.stderr.write("usage: luxos-backup disk add FOLDER|sftp://...|smb://...\n")
+            return 2
+        t = a.target
+        if t.startswith(("sftp://", "ssh://")):
+            pw = read_password(a, _("Password for %s: ") % t)
+            disk = core.add_sftp_disk(cfg, t, pw, a.name)
+        elif t.startswith("smb://"):
+            pw = read_password(a, _("Password for %s: ") % t)
+            disk = core.add_smb_disk(cfg, t, pw, name=a.name)
+        else:
+            disk = core.add_local_disk(cfg, t, a.name)
+        out(_("Backups will go to %s (%s).") % (core.disk_label(disk), disk["id"]))
+        return 0
+    if action == "prepare":
+        if not a.target:
+            sys.stderr.write("usage: luxos-backup disk prepare DEVICE [--encrypt]\n")
+            return 2
+        if not a.yes:
+            if not sys.stdin.isatty():
+                sys.stderr.write(_("Everything on %s will be erased. Add --yes to confirm.") % a.target + "\n")
+                return 2
+            ans = input(_("Everything on %s will be erased. Continue? [y/N] ") % a.target)
+            if ans.strip().lower() not in ("y", "yes", "a", "ano"):
+                return 1
+        pw = None
+        if a.encrypt:
+            pw = read_password(a, _("Password for the backup disk: "))
+            if not pw:
+                sys.stderr.write(_("A password is needed for encryption.") + "\n")
+                return 2
+            if not a.password_stdin and getpass.getpass(_("Repeat the password: ")) != pw:
+                sys.stderr.write(_("The passwords do not match.") + "\n")
+                return 2
+        disk = core.prepare_disk(cfg, a.target, pw, a.name)
+        out(_("Backups will go to %s (%s).") % (core.disk_label(disk), disk["id"]))
+        return 0
+    if action == "remove":
+        disk = core.remove_disk(cfg, a.target)
+        out(_("%s is no longer used for backups. Backups already on it were kept.") % core.disk_label(disk))
+        return 0
+    return 2
+
+
+def cmd_exclude(a):
+    cfg = core.load_config()
+    if a.action in (None, "list"):
+        for p in core.excludes(cfg):
+            out(p)
+        return 0
+    if not a.path:
+        return 2
+    path = a.path
+    if not any(c in path for c in "*?["):
+        if path == "~" or path.startswith("~/"):
+            path = core.home() + path[1:]
+        path = os.path.abspath(path)
+    if a.action == "add":
+        if path not in cfg["excludes"]:
+            cfg["excludes"].append(path)
+    else:
+        cfg["excludes"] = [e for e in cfg["excludes"] if e not in (path, a.path)]
+    core.save_config(cfg)
+    return 0
+
+
+def cmd_auto(a):
+    cfg = core.load_config()
+    if a.state:
+        cfg["auto"] = a.state == "on"
+        core.save_config(cfg)
+    out(_("on") if cfg.get("auto", True) else _("off"))
+    return 0
+
+
+def cmd_option(a):
+    cfg = core.load_config()
+    cfg[a.name] = a.state == "on"
+    core.save_config(cfg)
+    return 0
+
+
+def cmd_plugged(a):
+    out(core.plugged(core.load_config(), a.device))
+    return 0
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(prog="luxos-backup", description=_("LuxOS Backups"))
+    sub = p.add_subparsers(dest="cmd")
+
+    def src(sp):
+        sp.add_argument("--disk")
+        sp.add_argument("--source", help="folder with backups (no configuration needed)")
+        sp.add_argument("--machine")
+
+    s = sub.add_parser("status")
+    s.add_argument("--json", action="store_true")
+    s.set_defaults(fn=cmd_status)
+    s = sub.add_parser("now")
+    s.add_argument("--disk")
+    s.set_defaults(fn=cmd_now)
+    s = sub.add_parser("list")
+    src(s)
+    s.add_argument("--json", action="store_true")
+    s.set_defaults(fn=cmd_list)
+    s = sub.add_parser("files")
+    src(s)
+    s.add_argument("--from", dest="when")
+    s.add_argument("path", nargs="?")
+    s.set_defaults(fn=cmd_files)
+    s = sub.add_parser("restore")
+    src(s)
+    s.add_argument("--from", dest="when")
+    s.add_argument("--to")
+    s.add_argument("--all", action="store_true")
+    s.add_argument("--target")
+    s.add_argument("--replace", action="store_true")
+    s.add_argument("paths", nargs="*")
+    s.set_defaults(fn=cmd_restore)
+    s = sub.add_parser("disk")
+    s.add_argument("action", nargs="?", choices=["list", "candidates", "add", "prepare", "remove"])
+    s.add_argument("target", nargs="?")
+    s.add_argument("--name")
+    s.add_argument("--encrypt", action="store_true")
+    s.add_argument("--password-stdin", action="store_true")
+    s.add_argument("--yes", action="store_true")
+    s.set_defaults(fn=cmd_disk)
+    s = sub.add_parser("exclude")
+    s.add_argument("action", nargs="?", choices=["list", "add", "remove"])
+    s.add_argument("path", nargs="?")
+    s.set_defaults(fn=cmd_exclude)
+    s = sub.add_parser("auto")
+    s.add_argument("state", nargs="?", choices=["on", "off"])
+    s.set_defaults(fn=cmd_auto)
+    s = sub.add_parser("option")
+    s.add_argument("name", choices=["system", "downloads", "vms"])
+    s.add_argument("state", choices=["on", "off"])
+    s.set_defaults(fn=cmd_option)
+    s = sub.add_parser("service")
+    s.set_defaults(fn=cmd_service)
+    s = sub.add_parser("plugged")
+    s.add_argument("device")
+    s.set_defaults(fn=cmd_plugged)
+
+    a = p.parse_args(argv)
+    if not a.cmd:
+        a = p.parse_args(["status"] + (argv or sys.argv[1:]))
+    try:
+        return a.fn(a)
+    except core.BackupError as e:
+        sys.stderr.write(f"luxos-backup: {e}\n")
+        return 1
+    except KeyboardInterrupt:
+        return 130
+
+
+if __name__ == "__main__":
+    sys.exit(main())

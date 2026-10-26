@@ -2702,3 +2702,162 @@ More details: run the command again with --verbose	Weitere Details: Befehl erneu
 The list of apps is out of date. Install the updates first, then try again.	Die App-Liste ist veraltet. Installieren Sie zuerst die Updates und versuchen Sie es dann erneut.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datum und Uhrzeit des Computers sind falsch, daher ist keine sichere Verbindung möglich. Prüfen Sie die Zeiteinstellungen.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Längere Akkulaufzeit: langsamerer Prozessor ohne Turbo, etwas geringere Helligkeit, keine Dock-Vergrößerung, ungenutzte Geräte ruhen und Hintergrundaufgaben pausieren.
+# LuxOS Zalohy (luxos-backup)
+Paused on battery – backs up when the computer is charging	Im Akkubetrieb pausiert – sichert, wenn der Computer lädt
+Paused by Battery Saver	Durch Stromsparmodus pausiert
+Paused on a metered connection	In getakteter Verbindung pausiert
+Backup disk is not connected	Sicherungsfestplatte ist nicht verbunden
+Automatic backups are off	Automatische Sicherungen sind aus
+No backup disk	Keine Sicherungsfestplatte
+Backups	Datensicherung
+restored %s	wiederhergestellt %s
+Use this disk for backups?	Diese Festplatte für Sicherungen verwenden?
+There are no backups yet.	Es gibt noch keine Sicherungen.
+Unknown backup time: %s	Unbekannter Sicherungszeitpunkt: %s
+No backup disk is set up. Add one with: luxos-backup disk add	Keine Sicherungsfestplatte eingerichtet. Fügen Sie eine hinzu mit: luxos-backup disk add
+Unknown backup disk: %s	Unbekannte Sicherungsfestplatte: %s
+Use a network address like smb://user@server/share	Verwenden Sie eine Netzwerkadresse wie smb://user@server/share
+The network disk is not available.	Die Netzwerkfestplatte ist nicht verfügbar.
+No backup disk is set up.	Keine Sicherungsfestplatte eingerichtet.
+A backup is already running.	Es läuft bereits eine Sicherung.
+Several computers have backups here, choose one with --machine: %s	Hier liegen Sicherungen mehrerer Computer, wählen Sie einen mit --machine: %s
+Home folder restored from the backup from %s.	Persönlicher Ordner aus der Sicherung vom %s wiederhergestellt.
+Use a network address like sftp://user@server/folder	Verwenden Sie eine Netzwerkadresse wie sftp://user@server/folder
+Backup disk	Sicherungsfestplatte
+%s can keep automatic backups of your files.	%s kann automatisch Sicherungen Ihrer Dateien anlegen.
+No backup from %s or earlier.	Keine Sicherung vom %s oder früher.
+Could not save the password in the keyring: %s	Passwort konnte nicht im Schlüsselbund gespeichert werden: %s
+Could not mount %s	%s konnte nicht eingehängt werden
+Could not unlock the backup disk	Sicherungsfestplatte konnte nicht entsperrt werden
+The backup disk is not connected.	Die Sicherungsfestplatte ist nicht verbunden.
+The backup image was not found on the network disk.	Das Sicherungsabbild wurde auf der Netzwerkfestplatte nicht gefunden.
+Could not connect to the server.	Verbindung zum Server fehlgeschlagen.
+This disk uses %s, which cannot keep backups efficiently. Prepare (erase) it for backups first.	Diese Festplatte verwendet %s und kann Sicherungen nicht effizient speichern. Bereiten Sie sie zuerst für Sicherungen vor (dabei wird sie gelöscht).
+Disk is full - deleting the oldest backup %s	Festplatte ist voll – älteste Sicherung %s wird gelöscht
+Old backups deleted	Alte Sicherungen gelöscht
+Connect your backup disk to back up this computer.	Verbinden Sie Ihre Sicherungsfestplatte, um diesen Computer zu sichern.
+No backups of %s in %s	Keine Sicherungen von %s in %s
+Invalid path: %s	Ungültiger Pfad: %s
+To restore the whole home folder use: luxos-backup restore --all	Um den gesamten persönlichen Ordner wiederherzustellen: luxos-backup restore --all
+Restored %s to %s	%s wiederhergestellt nach %s
+Replaced files were moved to %s	Ersetzte Dateien wurden nach %s verschoben
+Apps installed on the old system: %s (install them with: lux install $(cat FILE))	Auf dem alten System installierte Apps: %s (installieren mit: lux install $(cat FILE))
+Folder not found: %s	Ordner nicht gefunden: %s
+This disk is already used for backups.	Diese Festplatte wird bereits für Sicherungen verwendet.
+LuxOS Backups: %s	LuxOS Datensicherung: %s
+The network disk needs at least 8 GB of free space.	Die Netzwerkfestplatte benötigt mindestens 8 GB freien Speicher.
+Could not open the backup image	Sicherungsabbild konnte nicht geöffnet werden
+%s is not an external disk.	%s ist keine externe Festplatte.
+%s holds the running system.	%s enthält das laufende System.
+Use for Backups	Für Sicherungen verwenden
+The backup disk is not mounted.	Die Sicherungsfestplatte ist nicht eingehängt.
+Could not create the backup folder on the server.	Sicherungsordner konnte auf dem Server nicht erstellt werden.
+Could not create the backup folder: %s	Sicherungsordner konnte nicht erstellt werden: %s
+The backup disk was full, so the oldest backups were deleted (%d).	Die Sicherungsfestplatte war voll, daher wurden die ältesten Sicherungen gelöscht (%d).
+No backup for %d days	Seit %d Tagen keine Sicherung
+No LuxOS backups found in %s	Keine LuxOS-Sicherungen in %s gefunden
+%s is not in the backup from %s	%s ist nicht in der Sicherung vom %s enthalten
+Cannot write to %s: %s	In %s kann nicht geschrieben werden: %s
+Could not prepare the disk: %s	Festplatte konnte nicht vorbereitet werden: %s
+The backup disk is locked.	Die Sicherungsfestplatte ist gesperrt.
+The password for the encrypted backup disk is not in the keyring.	Das Passwort für die verschlüsselte Sicherungsfestplatte ist nicht im Schlüsselbund.
+Backing up to %s…	Sichern auf %s…
+Backup failed	Sicherung fehlgeschlagen
+Backup finished: %s	Sicherung abgeschlossen: %s
+The server needs rsync for backups.	Der Server benötigt rsync für Sicherungen.
+The backup disk is full.	Die Sicherungsfestplatte ist voll.
+The backup disk %s is full even after deleting old backups.	Die Sicherungsfestplatte %s ist auch nach dem Löschen alter Sicherungen voll.
+Backup to %s failed: %s	Sicherung auf %s fehlgeschlagen: %s
+(%d files could not be read)	(%d Dateien konnten nicht gelesen werden)
+Automatic backups: %s	Automatische Sicherungen: %s
+Last backup: %s	Letzte Sicherung: %s
+on	an
+off	aus
+LuxOS Backups	LuxOS Datensicherung
+Backing up… %d %%	Wird gesichert… %d %%
+Give the files to restore, or --all for the whole home folder.	Geben Sie die wiederherzustellenden Dateien an oder --all für den gesamten persönlichen Ordner.
+Backups will go to %s (%s).	Sicherungen werden auf %s (%s) gespeichert.
+Password for the backup disk: 	Passwort für die Sicherungsfestplatte: 
+%s is no longer used for backups. Backups already on it were kept.	%s wird nicht mehr für Sicherungen verwendet. Vorhandene Sicherungen darauf wurden behalten.
+Last backup failed: %s	Letzte Sicherung fehlgeschlagen: %s
+Password for %s: 	Passwort für %s: 
+Everything on %s will be erased. Continue? [y/N] 	Alles auf %s wird gelöscht. Fortfahren? [y/N] 
+%d existing files were kept (use --replace to replace them).	%d vorhandene Dateien wurden behalten (mit --replace ersetzen).
+A password is needed for encryption.	Für die Verschlüsselung wird ein Passwort benötigt.
+Repeat the password: 	Passwort wiederholen: 
+The passwords do not match.	Die Passwörter stimmen nicht überein.
+Everything on %s will be erased. Add --yes to confirm.	Alles auf %s wird gelöscht. Fügen Sie zur Bestätigung --yes hinzu.
+Yesterday	Gestern
+Today %s	Heute %s
+Yesterday %s	Gestern %s
+Use Disk	Festplatte verwenden
+Server address	Serveradresse
+The password is kept in the keyring. A shared folder (SMB) gets one backup image file.	Das Passwort wird im Schlüsselbund gespeichert. Ein freigegebener Ordner (SMB) erhält eine einzelne Sicherungsabbild-Datei.
+Encrypt backups	Sicherungen verschlüsseln
+The disk is erased and protected with a password. Without the password nobody can read the backups – keep it safe.	Die Festplatte wird gelöscht und mit einem Passwort geschützt. Ohne das Passwort kann niemand die Sicherungen lesen – bewahren Sie es sicher auf.
+Backup disks	Sicherungsfestplatten
+Excluded folders	Ausgeschlossene Ordner
+Exclude	Ausschließen
+Preparing the disk…	Festplatte wird vorbereitet…
+Up	Nach oben
+Connecting to the backup disk…	Verbindung mit der Sicherungsfestplatte…
+Restore Here	Hier wiederherstellen
+Restoring…	Wird wiederhergestellt…
+Add Backup Disk	Sicherungsfestplatte hinzufügen
+External disks	Externe Festplatten
+empty	leer
+No external disk is connected.	Keine externe Festplatte verbunden.
+Network disk	Netzwerkfestplatte
+Password for the backup disk	Passwort für die Sicherungsfestplatte
+Repeat the password	Passwort wiederholen
+Back Up Now	Jetzt sichern
+Restore Files…	Dateien wiederherstellen…
+Add Disk…	Festplatte hinzufügen…
+Back up automatically	Automatisch sichern
+Every hour while the computer is charging. Paused on battery, in Battery Saver and – for network disks – on a metered connection.	Stündlich, während der Computer lädt. Pausiert im Akkubetrieb, im Stromsparmodus und – bei Netzwerkfestplatten – in getakteten Verbindungen.
+Back up system settings	Systemeinstellungen sichern
+Readable files from /etc and the list of installed apps.	Lesbare Dateien aus /etc und die Liste der installierten Apps.
+Back up the Downloads folder	Den Ordner Downloads sichern
+Back up virtual machines	Virtuelle Maschinen sichern
+Disk images of virtual machines are very large.	Festplattenabbilder virtueller Maschinen sind sehr groß.
+Caches and the trash are never backed up.	Caches und der Papierkorb werden nie gesichert.
+Exclude Folder…	Ordner ausschließen…
+No backup disk yet	Noch keine Sicherungsfestplatte
+Stop using this disk	Diese Festplatte nicht mehr verwenden
+Nothing excluded	Nichts ausgeschlossen
+Back up again	Erneut sichern
+Backing up…	Wird gesichert…
+You can keep working, or close this window.	Sie können weiterarbeiten oder dieses Fenster schließen.
+Backups already on the disk are kept.	Vorhandene Sicherungen auf der Festplatte bleiben erhalten.
+Stop Using	Nicht mehr verwenden
+Exclude Folder	Ordner ausschließen
+Modified	Geändert
+Restore Everything…	Alles wiederherstellen…
+Restore To…	Wiederherstellen nach…
+Restore To	Wiederherstellen nach
+Restored %d items.	%d Objekte wiederhergestellt.
+The whole home folder is restored from this backup. Files that differ are replaced; the current versions are moved to the folder .luxos-backup-replaced in your home folder, nothing is deleted.	Der gesamte persönliche Ordner wird aus dieser Sicherung wiederhergestellt. Abweichende Dateien werden ersetzt; die aktuellen Versionen werden in den Ordner .luxos-backup-replaced in Ihrem persönlichen Ordner verschoben, nichts wird gelöscht.
+Restore Everything	Alles wiederherstellen
+Everything was restored. Log out and back in to load the restored settings.	Alles wurde wiederhergestellt. Melden Sie sich ab und wieder an, um die wiederhergestellten Einstellungen zu laden.
+Connect a USB disk, or use a network disk.	Schließen Sie eine USB-Festplatte an oder verwenden Sie eine Netzwerkfestplatte.
+Add an external or network disk to start backing up.	Fügen Sie eine externe oder Netzwerkfestplatte hinzu, um mit der Sicherung zu beginnen.
+No backups yet	Noch keine Sicherungen
+Add a backup disk to protect your files.	Fügen Sie eine Sicherungsfestplatte hinzu, um Ihre Dateien zu schützen.
+Stop backing up to %s?	Sicherung auf %s beenden?
+Type the same password twice.	Geben Sie zweimal dasselbe Passwort ein.
+Encryption needs an empty disk.	Für die Verschlüsselung wird eine leere Festplatte benötigt.
+The disk could not be used	Die Festplatte konnte nicht verwendet werden
+Back up now?	Jetzt sichern?
+The first backup can take a while. You can keep working.	Die erste Sicherung kann eine Weile dauern. Sie können weiterarbeiten.
+Backup from %s	Sicherung vom %s
+Restore failed	Wiederherstellung fehlgeschlagen
+Files that already exist were kept; the restored copies have “restored” in their name.	Bereits vorhandene Dateien wurden behalten; die wiederhergestellten Kopien enthalten „wiederhergestellt“ im Namen.
+Restore everything from %s?	Alles aus der Sicherung vom %s wiederherstellen?
+External disk	Externe Festplatte
+Network disk (SFTP)	Netzwerkfestplatte (SFTP)
+Network disk (SMB)	Netzwerkfestplatte (SMB)
+This disk is not ready for backups (%s).	Diese Festplatte ist nicht für Sicherungen bereit (%s).
+Erase and Use	Löschen und verwenden
+empty folder	leerer Ordner
+Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Alles darauf wird gelöscht und sie wird für Sicherungen vorbereitet. Dies kann nicht rückgängig gemacht werden.
+Backs up every hour.	Sichert stündlich.

@@ -65,6 +65,7 @@ LuxOS computer. LuxOS is Arch-based, but several Arch habits are wrong here.
 | Encrypted folder | Safe (`luxos-safe`; `luxos-safe status`, `luxos-safe lock`) | user unlocks in the dialog |
 | Run untrusted software | Sandbox (`luxos-sandbox`) | see below |
 | Why a downloaded program does not start, restore deleted files | Lux Guard (`luxos-guard scan FILE`, `luxos-guard list`, `luxos-guard restore PATH`) | see below |
+| Back up to an external/network disk, restore an older version, restore everything on a new install | Backups (`luxos-backup status`, `luxos-backup list`, `luxos-backup restore [--from TIME] PATH`, `luxos-backup restore --all --source DISK`) | [backups.md](backups.md) |
 | LuxAI account | LuxAI Account (`luxos-account`), `luxos-account login\|status\|logout` | |
 | System info | About This Computer (`luxos-about`), `about os`, `fastfetch`, `cat /etc/os-release` | |
 | Processes, force quit | System Monitor (`luxos-monitor`, Super+Alt+Esc) | |
@@ -168,7 +169,7 @@ starting at [LSL overview](../lsl/overview.md).
 
 The same documentation is installed as manual pages (generated from these files, so they never
 differ): `man luxos` (overview: what is where), `man lux` and `man lux.conf` (packages and
-`/etc/lux/lux.conf`), `man luxos-care`, `man luxos-sandbox`, `man luxos-safe`, `man luxos-guard`,
+`/etc/lux/lux.conf`), `man luxos-care`, `man luxos-sandbox`, `man luxos-safe`, `man luxos-guard`, `man luxos-backup`,
 `man luxdrop`, and for LSL `man lsl` (command line), `man 7 lsl` (language and standard library)
 and `man lslc`. Suggest them to users who prefer the terminal; `man -k luxos` lists them.
 

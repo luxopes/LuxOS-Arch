@@ -24,7 +24,7 @@ GROFF = shutil.which("groff")
 MACROS = {"TH", "SH", "SS", "PP", "TP", "IP", "RS", "RE", "EX", "EE", "br", "sp", "ad", "ds", "nh", "nr", "so", '\\"'}
 
 EXPECTED = {
-    "man1/lsl.1", "man1/lslc.1", "man1/luxdrop.1", "man1/luxos-guard.1", "man1/luxos-safe.1",
+    "man1/lsl.1", "man1/lslc.1", "man1/luxdrop.1", "man1/luxos-backup.1", "man1/luxos-guard.1", "man1/luxos-safe.1",
     "man1/luxos-sandbox.1", "man5/lux.conf.5", "man7/lsl.7", "man7/luxos.7", "man8/luxos-care.8",
     "man8/luxos-update.8",
 }
@@ -245,6 +245,7 @@ class PagesTest(unittest.TestCase):
         src = {
             "luxos-sandbox": "luxos-sandbox/files/luxos-sandbox",
             "luxos-guard": "luxos-guard/files/luxos-guard",
+            "luxos-backup": "luxos-backup/files/luxos-backup",
             "luxos-safe": "luxos-safe/files/luxos-safe",
             "luxos-care": "luxos-care/files/luxos-care",
         }
