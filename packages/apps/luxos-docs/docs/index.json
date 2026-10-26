@@ -417,7 +417,7 @@
         {
           "path": "luxos/apps.md",
           "title": "LuxOS Apps",
-          "summary": "Commands and features of LuxOS apps: About, Welcome, Tour, What's New, Calculator, Calendar, Camera, System Monitor, Screenshot, Feedback, network warning.",
+          "summary": "Commands and features of LuxOS apps: About, Welcome, Tour, What's New, Calculator, Calendar, Camera (Wi-Fi QR scan mode), Weather, Wi-Fi QR Code, System Monitor, Screenshot, Feedback, network warning.",
           "keywords": [
             "apps",
             "luxos-about",
@@ -441,7 +441,71 @@
             "feedback",
             "bug report",
             "luxos-feedback",
-            "luxos-netcheck"
+            "luxos-netcheck",
+            "luxos-weather",
+            "luxos-wifi-qr",
+            "scan-wifi"
+          ]
+        },
+        {
+          "path": "luxos/weather.md",
+          "title": "Weather",
+          "summary": "Weather app (luxos-weather): current conditions, hourly and 7-day forecast from Open-Meteo, saved places, city search, approximate location only after consent, units, 30-minute cache and offline use, weather in the Calendar.",
+          "keywords": [
+            "weather",
+            "forecast",
+            "počasí",
+            "luxos-weather",
+            "Open-Meteo",
+            "temperature",
+            "rain",
+            "snow",
+            "wind",
+            "humidity",
+            "UV index",
+            "sunrise",
+            "sunset",
+            "hourly",
+            "7-day",
+            "location",
+            "city",
+            "ipinfo",
+            "units",
+            "celsius",
+            "fahrenheit",
+            "cache",
+            "offline",
+            "weather.json",
+            "summary.json",
+            "calendar weather"
+          ]
+        },
+        {
+          "path": "luxos/wifi-qr.md",
+          "title": "Wi-Fi QR codes",
+          "summary": "Share the current Wi-Fi as a QR code (luxos-wifi-qr, Control Center) and join a network by scanning a Wi-Fi QR code with the camera (luxos-camera --scan-wifi); WIFI: format, password from NetworkManager, zxing-cpp.",
+          "keywords": [
+            "wifi",
+            "wi-fi",
+            "QR code",
+            "qr",
+            "share wifi",
+            "wifi password",
+            "show wifi password",
+            "join wifi",
+            "scan",
+            "camera",
+            "luxos-wifi-qr",
+            "luxos-camera --scan-wifi",
+            "nmcli",
+            "show-secrets",
+            "WIFI:",
+            "zxing-cpp",
+            "zxing",
+            "802.1X",
+            "hidden network",
+            "WPA3",
+            "SAE"
           ]
         },
         {

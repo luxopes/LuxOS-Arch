@@ -58,6 +58,10 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
 - **Přihlášení jako v macOS** (`luxos-greeter`) – obrazovka s hodinami, po kliknutí avatar a heslo;
   plynulý přechod ze splashe bez černé obrazovky.
 - **Kalendář** pod hodinami v liště – den s událostmi, měsíc a rok, události v `.ics` s připomínkami.
+- **Počasí** (`luxos-weather`) – aktuální počasí, předpověď na 24 hodin a 7 dní pro uložená místa (Open-Meteo),
+  bez internetu poslední data; souhrn i v Kalendáři.
+- **QR kód Wi‑Fi** (`luxos-wifi-qr`) – sdílení připojené sítě QR kódem pro telefon, připojení k síti naskenováním
+  QR kódu kamerou (z Ovládacího centra).
 - **Hudba** v Ovládacím centru (MPRIS: Firefox, Spotify, VLC…), **jas displeje**, **profil LuxAI**.
 - **Účet LuxAI** (`luxos-account`) – jedno přihlášení pro LuxAI, Lux Code a LSL IDE; volitelně už při instalaci.
 - **Trezor** (`luxos-safe`) – šifrovaná složka `/safe/<uživatel>` s vlastním heslem, zamyká se sama.

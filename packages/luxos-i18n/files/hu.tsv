@@ -2702,3 +2702,110 @@ More details: run the command again with --verbose	További részletek: futtassa
 The list of apps is out of date. Install the updates first, then try again.	Az alkalmazáslista elavult. Előbb telepítse a frissítéseket, majd próbálja újra.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	A számítógép dátuma és ideje hibás, ezért nem lehetséges biztonságos kapcsolat. Ellenőrizze az időbeállításokat.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Hosszabb akkumulátor-üzemidő: lassabb processzor turbó nélkül, kissé kisebb fényerő, nincs nagyítás a Dockban, a nem használt eszközök alvó állapotba kerülnek, a háttérfeladatok szünetelnek.
+Extreme	Extrém
+Low	Alacsony
+Moderate	Mérsékelt
+High	Magas
+Very High	Nagyon magas
+Weather	Időjárás
+Finding your city…	A város keresése…
+Searching…	Keresés…
+Weather will ask the ipinfo.io service where your internet address is. Your address is sent to that service; the location is only approximate (usually your city or provider).	Az Időjárás megkérdezi az ipinfo.io szolgáltatást, hol van az internetcíme. A cím eljut ehhez a szolgáltatáshoz; a hely csak közelítő (általában a városa vagy a szolgáltatója).
+Use Location	Hely használata
+Finding your location…	A hely meghatározása…
+Feels like	Hőérzet
+Add a location	Hely hozzáadása
+Menu	Menü
+Search for a city	Város keresése
+Use My Approximate Location…	Közelítő helyem használata…
+Search failed. Check your internet connection.	A keresés nem sikerült. Ellenőrizze az internetkapcsolatot.
+No city found.	Nincs találat.
+Use your approximate location?	Használja a közelítő helyét?
+Your location could not be found	A helyet nem sikerült meghatározni
+Search for your city with the + button instead.	Keresse meg inkább a városát a + gombbal.
+Add a city	Adjon hozzá egy várost
+Search for a city with the + button to see its weather.	Keressen várost a + gombbal, és megjelenik az időjárása.
+Add a City…	Város hozzáadása…
+Units	Mértékegységek
+Automatic	Automatikus
+Celsius (°C, km/h)	Celsius (°C, km/h)
+Fahrenheit (°F, mph)	Fahrenheit (°F, mph)
+Remove Location	Hely eltávolítása
+Weather data: Open-Meteo.com (CC BY 4.0)	Időjárásadatok: Open-Meteo.com (CC BY 4.0)
+Loading the forecast…	Előrejelzés betöltése…
+Hourly forecast	Óránkénti előrejelzés
+7-day forecast	7 napos előrejelzés
+Humidity	Páratartalom
+Wind	Szél
+Precipitation	Csapadék
+UV index	UV-index
+Pressure	Légnyomás
+Sunrise	Napkelte
+Remove “%s”	„%s” eltávolítása
+The forecast could not be loaded	Az előrejelzést nem sikerült betölteni
+Check your internet connection and try again.	Ellenőrizze az internetkapcsolatot, és próbálja újra.
+H: %s  L: %s	Max. %s  Min. %s
+Sunset: %s	Napnyugta: %s
+Updated at %s · Open-Meteo.com	Frissítve: %s · Open-Meteo.com
+Offline – showing the forecast from %s	Offline – előrejelzés ekkorról: %s
+Scan the code with a phone camera to join this network.	Olvassa be a kódot a telefon kamerájával, és csatlakozzon a hálózathoz.
+Scan a Wi-Fi QR code with the camera and connect	Wi‑Fi QR-kód beolvasása kamerával és csatlakozás
+Reading the network settings…	Hálózati beállítások olvasása…
+Wi-Fi QR Code	Wi‑Fi QR-kód
+Copy QR code image	QR-kód képének másolása
+Show Password…	Jelszó megjelenítése…
+Join a Network with a QR Code…	Csatlakozás hálózathoz QR-kóddal…
+QR codes are not available	A QR-kódok nem érhetők el
+The zxing-cpp library is missing. Install it with: lux install zxing-cpp	Hiányzik a zxing-cpp könyvtár. Telepítse ezzel: lux install zxing-cpp
+Not connected to Wi-Fi	Nincs Wi‑Fi-kapcsolat
+Connect to a Wi-Fi network to share it with a QR code.	Csatlakozzon egy Wi‑Fi-hálózathoz, hogy QR-kóddal megoszthassa.
+The network settings could not be read	A hálózati beállításokat nem sikerült beolvasni
+This network uses a company or school login (802.1X). It cannot be shared with a QR code.	Ez a hálózat céges vagy iskolai bejelentkezést használ (802.1X). QR-kóddal nem osztható meg.
+The Wi-Fi password is stored for the whole computer. To show it in the QR code, confirm with the administrator password.	A Wi‑Fi-jelszó az egész számítógéphez van mentve. A QR-kódban való megjelenítéshez erősítse meg a rendszergazdai jelszóval.
+Open network – no password needed.	Nyílt hálózat – nem kell jelszó.
+Password:	Jelszó:
+The QR code could not be created	A QR-kódot nem sikerült létrehozni
+Join Wi-Fi with QR Code	Wi‑Fi-csatlakozás QR-kóddal
+Hold a Wi-Fi QR code in front of the camera.	Tartson egy Wi‑Fi QR-kódot a kamera elé.
+Join	Csatlakozás
+You can close this window.	Bezárhatja ezt az ablakot.
+The network could not be joined	Nem sikerült csatlakozni a hálózathoz
+This QR code is not a Wi-Fi network.	Ez a QR-kód nem Wi‑Fi-hálózat.
+Joining “%s”…	Csatlakozás: „%s”…
+Connected to “%s”	Csatlakozva: „%s”
+Join the Wi-Fi network “%s”?	Csatlakozik a(z) „%s” Wi‑Fi-hálózathoz?
+Could not join “%s”: %s	Nem sikerült csatlakozni ehhez: „%s”: %s
+Share Wi-Fi with QR Code…	Wi‑Fi megosztása QR-kóddal…
+Join Wi-Fi with QR Code…	Csatlakozás Wi‑Fi-hez QR-kóddal…
+Clear Sky	Derült
+Mostly Clear	Többnyire derült
+Partly Cloudy	Részben felhős
+Cloudy	Borult
+Fog	Köd
+Freezing Fog	Zúzmarás köd
+Light Drizzle	Gyenge szitálás
+Drizzle	Szitálás
+Heavy Drizzle	Erős szitálás
+Freezing Drizzle	Ónos szitálás
+Light Rain	Gyenge eső
+Rain	Eső
+Heavy Rain	Erős eső
+Freezing Rain	Ónos eső
+Light Snow	Gyenge havazás
+Snow	Havazás
+Heavy Snow	Erős havazás
+Snow Grains	Szemcsés hó
+Showers	Záporok
+Heavy Showers	Erős záporok
+Snow Showers	Hózáporok
+Heavy Snow Showers	Erős hózáporok
+Thunderstorm	Zivatar
+Thunderstorm with Hail	Zivatar jégesővel
+North wind	Északi szél
+Northeast wind	Északkeleti szél
+East wind	Keleti szél
+Southeast wind	Délkeleti szél
+South wind	Déli szél
+Southwest wind	Délnyugati szél
+West wind	Nyugati szél
+Northwest wind	Északnyugati szél

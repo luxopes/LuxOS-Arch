@@ -2702,3 +2702,110 @@ More details: run the command again with --verbose	Mer information: kör kommand
 The list of apps is out of date. Install the updates first, then try again.	Applistan är inaktuell. Installera uppdateringarna först och försök sedan igen.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datorns datum och tid är fel, så en säker anslutning är inte möjlig. Kontrollera tidsinställningarna.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Längre batteritid: långsammare processor utan turbo, något lägre ljusstyrka, ingen förstoring i Dock, oanvända enheter går i viloläge och bakgrundsuppgifter pausas.
+Extreme	Extrem
+Low	Låg
+Moderate	Måttlig
+High	Hög
+Very High	Mycket hög
+Weather	Väder
+Finding your city…	Söker efter din stad …
+Searching…	Söker …
+Weather will ask the ipinfo.io service where your internet address is. Your address is sent to that service; the location is only approximate (usually your city or provider).	Väder frågar tjänsten ipinfo.io var din internetadress finns. Adressen skickas till tjänsten; platsen är bara ungefärlig (oftast din stad eller leverantör).
+Use Location	Använd plats
+Finding your location…	Söker efter din plats …
+Feels like	Känns som
+Add a location	Lägg till en plats
+Menu	Meny
+Search for a city	Sök efter en stad
+Use My Approximate Location…	Använd min ungefärliga plats …
+Search failed. Check your internet connection.	Sökningen misslyckades. Kontrollera internetanslutningen.
+No city found.	Ingen stad hittades.
+Use your approximate location?	Använda din ungefärliga plats?
+Your location could not be found	Det gick inte att hitta din plats
+Search for your city with the + button instead.	Sök efter din stad med knappen + i stället.
+Add a city	Lägg till en stad
+Search for a city with the + button to see its weather.	Sök efter en stad med knappen + för att se vädret.
+Add a City…	Lägg till stad …
+Units	Enheter
+Automatic	Automatiskt
+Celsius (°C, km/h)	Celsius (°C, km/h)
+Fahrenheit (°F, mph)	Fahrenheit (°F, mph)
+Remove Location	Ta bort plats
+Weather data: Open-Meteo.com (CC BY 4.0)	Väderdata: Open-Meteo.com (CC BY 4.0)
+Loading the forecast…	Läser in prognosen …
+Hourly forecast	Timprognos
+7-day forecast	7-dygnsprognos
+Humidity	Luftfuktighet
+Wind	Vind
+Precipitation	Nederbörd
+UV index	UV-index
+Pressure	Lufttryck
+Sunrise	Soluppgång
+Remove “%s”	Ta bort ”%s”
+The forecast could not be loaded	Prognosen kunde inte läsas in
+Check your internet connection and try again.	Kontrollera internetanslutningen och försök igen.
+H: %s  L: %s	H: %s  L: %s
+Sunset: %s	Solnedgång: %s
+Updated at %s · Open-Meteo.com	Uppdaterad %s · Open-Meteo.com
+Offline – showing the forecast from %s	Offline – prognos från %s
+Scan the code with a phone camera to join this network.	Skanna koden med en mobilkamera för att ansluta till nätverket.
+Scan a Wi-Fi QR code with the camera and connect	Skanna en QR-kod för wifi med kameran och anslut
+Reading the network settings…	Läser nätverksinställningar …
+Wi-Fi QR Code	QR-kod för wifi
+Copy QR code image	Kopiera bild av QR-koden
+Show Password…	Visa lösenord …
+Join a Network with a QR Code…	Anslut till ett nätverk med QR-kod …
+QR codes are not available	QR-koder är inte tillgängliga
+The zxing-cpp library is missing. Install it with: lux install zxing-cpp	Biblioteket zxing-cpp saknas. Installera det med: lux install zxing-cpp
+Not connected to Wi-Fi	Inte ansluten till wifi
+Connect to a Wi-Fi network to share it with a QR code.	Anslut till ett wifi-nätverk för att dela det med en QR-kod.
+The network settings could not be read	Nätverksinställningarna kunde inte läsas
+This network uses a company or school login (802.1X). It cannot be shared with a QR code.	Nätverket använder företags- eller skolinloggning (802.1X). Det kan inte delas med en QR-kod.
+The Wi-Fi password is stored for the whole computer. To show it in the QR code, confirm with the administrator password.	Wifi-lösenordet är sparat för hela datorn. Bekräfta med administratörslösenordet för att visa det i QR-koden.
+Open network – no password needed.	Öppet nätverk – inget lösenord behövs.
+Password:	Lösenord:
+The QR code could not be created	QR-koden kunde inte skapas
+Join Wi-Fi with QR Code	Anslut till wifi med QR-kod
+Hold a Wi-Fi QR code in front of the camera.	Håll en QR-kod för wifi framför kameran.
+Join	Anslut
+You can close this window.	Du kan stänga fönstret.
+The network could not be joined	Det gick inte att ansluta till nätverket
+This QR code is not a Wi-Fi network.	QR-koden är inte ett wifi-nätverk.
+Joining “%s”…	Ansluter till ”%s” …
+Connected to “%s”	Ansluten till ”%s”
+Join the Wi-Fi network “%s”?	Ansluta till wifi-nätverket ”%s”?
+Could not join “%s”: %s	Kunde inte ansluta till ”%s”: %s
+Share Wi-Fi with QR Code…	Dela wifi med QR-kod …
+Join Wi-Fi with QR Code…	Anslut till wifi med QR-kod …
+Clear Sky	Klart
+Mostly Clear	Mestadels klart
+Partly Cloudy	Växlande molnighet
+Cloudy	Mulet
+Fog	Dimma
+Freezing Fog	Underkyld dimma
+Light Drizzle	Lätt duggregn
+Drizzle	Duggregn
+Heavy Drizzle	Kraftigt duggregn
+Freezing Drizzle	Underkylt duggregn
+Light Rain	Lätt regn
+Rain	Regn
+Heavy Rain	Kraftigt regn
+Freezing Rain	Underkylt regn
+Light Snow	Lätt snöfall
+Snow	Snö
+Heavy Snow	Kraftigt snöfall
+Snow Grains	Kornsnö
+Showers	Skurar
+Heavy Showers	Kraftiga skurar
+Snow Showers	Snöbyar
+Heavy Snow Showers	Kraftiga snöbyar
+Thunderstorm	Åska
+Thunderstorm with Hail	Åska med hagel
+North wind	Nordlig vind
+Northeast wind	Nordostlig vind
+East wind	Östlig vind
+Southeast wind	Sydostlig vind
+South wind	Sydlig vind
+Southwest wind	Sydvästlig vind
+West wind	Västlig vind
+Northwest wind	Nordvästlig vind

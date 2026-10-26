@@ -2702,3 +2702,110 @@ More details: run the command again with --verbose	Altri dettagli: esegui di nuo
 The list of apps is out of date. Install the updates first, then try again.	L'elenco delle app non è aggiornato. Installa prima gli aggiornamenti, poi riprova.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	La data e l'ora del computer sono errate, quindi non è possibile una connessione sicura. Controlla le impostazioni dell'ora.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Batteria più duratura: processore più lento senza turbo, luminosità leggermente ridotta, nessun ingrandimento nel Dock, i dispositivi inattivi vanno in sospensione e le attività in background si mettono in pausa.
+Extreme	Estremo
+Low	Basso
+Moderate	Moderato
+High	Alto
+Very High	Molto alto
+Weather	Meteo
+Finding your city…	Ricerca della tua città…
+Searching…	Ricerca…
+Weather will ask the ipinfo.io service where your internet address is. Your address is sent to that service; the location is only approximate (usually your city or provider).	Meteo chiederà al servizio ipinfo.io dove si trova il tuo indirizzo Internet. L’indirizzo viene inviato a quel servizio; la posizione è solo approssimativa (di solito la tua città o il tuo provider).
+Use Location	Usa posizione
+Finding your location…	Ricerca della posizione…
+Feels like	Percepita
+Add a location	Aggiungi un luogo
+Menu	Menu
+Search for a city	Cerca una città
+Use My Approximate Location…	Usa la mia posizione approssimativa…
+Search failed. Check your internet connection.	Ricerca non riuscita. Controlla la connessione a Internet.
+No city found.	Nessuna città trovata.
+Use your approximate location?	Usare la posizione approssimativa?
+Your location could not be found	Impossibile trovare la posizione
+Search for your city with the + button instead.	Cerca invece la tua città con il pulsante +.
+Add a city	Aggiungi una città
+Search for a city with the + button to see its weather.	Cerca una città con il pulsante + per vederne il meteo.
+Add a City…	Aggiungi una città…
+Units	Unità
+Automatic	Automatico
+Celsius (°C, km/h)	Celsius (°C, km/h)
+Fahrenheit (°F, mph)	Fahrenheit (°F, mph)
+Remove Location	Rimuovi luogo
+Weather data: Open-Meteo.com (CC BY 4.0)	Dati meteo: Open-Meteo.com (CC BY 4.0)
+Loading the forecast…	Caricamento delle previsioni…
+Hourly forecast	Previsioni orarie
+7-day forecast	Previsioni a 7 giorni
+Humidity	Umidità
+Wind	Vento
+Precipitation	Precipitazioni
+UV index	Indice UV
+Pressure	Pressione
+Sunrise	Alba
+Remove “%s”	Rimuovi «%s»
+The forecast could not be loaded	Impossibile caricare le previsioni
+Check your internet connection and try again.	Controlla la connessione a Internet e riprova.
+H: %s  L: %s	Max %s  Min %s
+Sunset: %s	Tramonto: %s
+Updated at %s · Open-Meteo.com	Aggiornato alle %s · Open-Meteo.com
+Offline – showing the forecast from %s	Offline – previsioni delle %s
+Scan the code with a phone camera to join this network.	Scansiona il codice con la fotocamera di un telefono per connetterti a questa rete.
+Scan a Wi-Fi QR code with the camera and connect	Scansiona un codice QR Wi‑Fi con la fotocamera e connettiti
+Reading the network settings…	Lettura delle impostazioni di rete…
+Wi-Fi QR Code	Codice QR Wi‑Fi
+Copy QR code image	Copia l’immagine del codice QR
+Show Password…	Mostra password…
+Join a Network with a QR Code…	Connettiti a una rete con un codice QR…
+QR codes are not available	I codici QR non sono disponibili
+The zxing-cpp library is missing. Install it with: lux install zxing-cpp	Manca la libreria zxing-cpp. Installala con: lux install zxing-cpp
+Not connected to Wi-Fi	Non connesso al Wi‑Fi
+Connect to a Wi-Fi network to share it with a QR code.	Connettiti a una rete Wi‑Fi per condividerla con un codice QR.
+The network settings could not be read	Impossibile leggere le impostazioni di rete
+This network uses a company or school login (802.1X). It cannot be shared with a QR code.	Questa rete usa un accesso aziendale o scolastico (802.1X). Non può essere condivisa con un codice QR.
+The Wi-Fi password is stored for the whole computer. To show it in the QR code, confirm with the administrator password.	La password Wi‑Fi è salvata per l’intero computer. Per mostrarla nel codice QR, conferma con la password di amministratore.
+Open network – no password needed.	Rete aperta – nessuna password necessaria.
+Password:	Password:
+The QR code could not be created	Impossibile creare il codice QR
+Join Wi-Fi with QR Code	Connessione Wi‑Fi con codice QR
+Hold a Wi-Fi QR code in front of the camera.	Tieni un codice QR Wi‑Fi davanti alla fotocamera.
+Join	Connetti
+You can close this window.	Puoi chiudere questa finestra.
+The network could not be joined	Impossibile connettersi alla rete
+This QR code is not a Wi-Fi network.	Questo codice QR non è una rete Wi‑Fi.
+Joining “%s”…	Connessione a «%s»…
+Connected to “%s”	Connesso a «%s»
+Join the Wi-Fi network “%s”?	Connettersi alla rete Wi‑Fi «%s»?
+Could not join “%s”: %s	Impossibile connettersi a «%s»: %s
+Share Wi-Fi with QR Code…	Condividi Wi‑Fi con codice QR…
+Join Wi-Fi with QR Code…	Connetti al Wi‑Fi con codice QR…
+Clear Sky	Sereno
+Mostly Clear	Prevalentemente sereno
+Partly Cloudy	Parzialmente nuvoloso
+Cloudy	Nuvoloso
+Fog	Nebbia
+Freezing Fog	Nebbia gelata
+Light Drizzle	Pioviggine leggera
+Drizzle	Pioviggine
+Heavy Drizzle	Pioviggine intensa
+Freezing Drizzle	Pioviggine gelata
+Light Rain	Pioggia leggera
+Rain	Pioggia
+Heavy Rain	Pioggia forte
+Freezing Rain	Pioggia gelata
+Light Snow	Neve leggera
+Snow	Neve
+Heavy Snow	Neve intensa
+Snow Grains	Neve granulosa
+Showers	Rovesci
+Heavy Showers	Forti rovesci
+Snow Showers	Rovesci di neve
+Heavy Snow Showers	Forti rovesci di neve
+Thunderstorm	Temporale
+Thunderstorm with Hail	Temporale con grandine
+North wind	Vento da nord
+Northeast wind	Vento da nord-est
+East wind	Vento da est
+Southeast wind	Vento da sud-est
+South wind	Vento da sud
+Southwest wind	Vento da sud-ovest
+West wind	Vento da ovest
+Northwest wind	Vento da nord-ovest
