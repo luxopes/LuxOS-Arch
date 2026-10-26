@@ -91,9 +91,11 @@ on the map as yellow stars (click one to open it).
 ## My location
 
 **Show My Location** (the location button) asks once whether Maps may use your location. After you
-allow it, Maps uses the system location service **GeoClue** when it is installed and allows it
-(`geoclue` package, precise), otherwise it finds your approximate location from your internet
-address with **ipinfo.io** (your address is sent to that service; usually your city or provider).
+allow it, Maps uses the system location service **GeoClue** (installed with Maps): it looks at the
+Wi-Fi networks around you and asks the open database **BeaconDB** where they are (usually tens of
+metres in towns; nothing is submitted back – `/etc/geoclue/conf.d/90-luxos-maps.conf`). Without
+Wi-Fi or when GeoClue gives no answer, it falls back to your internet address via **ipinfo.io**
+(usually your city or provider).
 Your position is a blue dot with a circle showing its accuracy. Maps never looks for your location
 by itself; **⋯ › Allow My Location** turns the permission off again.
 
@@ -264,5 +266,6 @@ $ luxos-maps --json route "Staroměstské náměstí, Praha" "Pražský hrad" --
   overloaded; Maps waits 30 s before asking again. Try again later.
 - **No connections or departures**: Transitous has no timetable for that area (see
   [its data sources](https://transitous.org/sources/)), or there is no service at that time.
-- **My location is far off**: without GeoClue the location comes from the internet address and may
-  point to your provider's city; install `geoclue` (`lux install geoclue`) for a precise position.
+- **My location is far off**: turn Wi-Fi on (also when connected by cable) – GeoClue needs to see
+  nearby networks; without them the location comes from the internet address and may point to your
+  provider's city. Where BeaconDB knows few networks (countryside), accuracy is lower.
