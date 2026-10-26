@@ -141,7 +141,42 @@ function notification_for(ev):
     if k == "problem":
         return [i18n.T("LuxOS found a problem"), problem_text(ev), [["open", i18n.T("Details")]]]
     end
+    if k == "rolled_back":
+        return [i18n.T("LuxOS was restored"), i18n.TF("LuxOS is back in the state: %s", [String(ev.get("label", ""))]), []]
+    end
     return None
+end
+
+# Start ze snimku (luxos.snapshot= v /proc/cmdline): jmeno snimku, jinak ""
+function booted_snapshot():
+    for line in read_lines(root() + "/proc/cmdline"):
+        for word in line.split(" "):
+            if word.startswith("luxos.snapshot="):
+                return word[15:].strip()
+            end
+        end
+    end
+    return ""
+end
+
+# Datum ze jmena snimku RRRR-MM-DD_HH-MM-SS -> "RRRR-MM-DD HH:MM"
+function snapshot_date(name):
+    if len(name) < 16:
+        return name
+    end
+    return name[0:10] + " " + name[11:13] + ":" + name[14:16]
+end
+
+# Po prihlaseni do systemu spusteneho ze snimku: zmeny se po restartu ztrati, nabidnout trvaly navrat
+function snapshot_notice():
+    name = booted_snapshot()
+    if name == "":
+        return False
+    end
+    call notify(i18n.T("LuxOS is running from a snapshot"),
+                i18n.TF("This is LuxOS before the update of %s. Changes are lost after a restart.", [snapshot_date(name)]),
+                [["keep", i18n.T("Keep this version")]])
+    return False
 end
 
 # Asynchronne: zaseknuty server upozorneni nesmi blokovat luxos-hub
@@ -177,6 +212,9 @@ function on_action(sender, path, interface, signal, values):
     call state["actions"].pop(nid, None)
     if action == "restart":
         call glib.spawn(["xfce4-session-logout", "--reboot", "--fast"])
+    elif action == "keep":
+        # lux rollback v terminalu: zepta se, overi heslo a vypise vysledek
+        call glib.spawn(["xfce4-terminal", "--hold", "-x", "lux", "rollback"])
     elif action == "open" or action == "default":
         call glib.spawn([APP])
     end
@@ -408,5 +446,6 @@ function subscribe(session, system):
     end
     # Po prihlaseni: co se stalo pred chvili (napr. oprava pri startu)
     call glib.timeout_add_seconds(text.to_int(env.get("LUXOS_CARE_DELAY", ""), 20), on_change)
+    call glib.timeout_add_seconds(text.to_int(env.get("LUXOS_CARE_DELAY", ""), 20), snapshot_notice)
     return 0
 end
