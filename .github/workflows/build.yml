@@ -13,8 +13,12 @@ on:
       target:
         description: What to build
         type: choice
-        options: [iso, packages]
+        options: [iso, packages, one]
         default: iso
+      package:
+        description: "Package for target 'one' (directory in packages/ or packages/apps/)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -45,13 +49,23 @@ jobs:
         env:
           # ./build.sh packages stahuje jadro z luxopes/luxos-kernel (gh + overeni attestace)
           GH_TOKEN: ${{ github.token }}
-        run: ./build.sh ${{ inputs.target }}
+          PKG: ${{ inputs.package }}
+        run: |
+          if [ "${{ inputs.target }}" = one ]; then
+            case "$PKG" in ''|*[!A-Za-z0-9._+-]*) echo "Bad package name: '$PKG'" >&2; exit 1 ;; esac
+            ./build.sh one "$PKG"
+          else
+            ./build.sh "${{ inputs.target }}"
+          fi
 
       - name: Checksums
         run: |
           cd out
-          if [ "${{ inputs.target }}" = iso ]; then sha256sum luxos-*.iso > SHA256SUMS; else
-            find repo -name '*.pkg.tar.zst' -print0 | xargs -0 sha256sum > SHA256SUMS; fi
+          case "${{ inputs.target }}" in
+            iso) sha256sum luxos-*.iso > SHA256SUMS ;;
+            one) find single -name '*.pkg.tar.zst' -print0 | xargs -0 sha256sum > SHA256SUMS ;;
+            *)   find repo -name '*.pkg.tar.zst' -print0 | xargs -0 sha256sum > SHA256SUMS ;;
+          esac
           cat SHA256SUMS | head -60
 
       - name: Upload ISO
@@ -72,6 +86,17 @@ jobs:
           name: packages
           path: |
             out/repo/*/x86_64/*.pkg.tar.zst
+            out/SHA256SUMS
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload single package
+        if: inputs.target == 'one'
+        uses: actions/upload-artifact@v4
+        with:
+          name: single
+          path: |
+            out/single/*.pkg.tar.zst
             out/SHA256SUMS
           compression-level: 0
           retention-days: 14
