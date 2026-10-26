@@ -16,7 +16,7 @@
 
 Snimky systemu (btrfs, viz /usr/lib/luxos/python/luxos_snapshots.py):
   luxos-care snapshots [--json]     (root) seznam snimku
-  luxos-care snapshot               (root) novy snimek hned
+  luxos-care snapshot [--kind system]  (root) novy snimek hned (system = pred lux system apply)
   luxos-care rollback JMENO|--booted --yes
                                     (root) snimek se stane systemem od pristiho startu
   luxos-care boot-entries           (root) obnovit polozky snimku a obnovy v zavadeci
@@ -146,7 +146,9 @@ def cmd_snapshot(_args):
     try:
         with snap.snapshot_lock(), snap.top_level() as top:
             lay = care.detect_layout()
-            meta = snap.create(top, "manual", lay=lay)
+            # --kind system: lux system apply (snimek pred zmenou konfigurace systemu)
+            kind = "system" if "--kind" in _args and "system" in _args else "manual"
+            meta = snap.create(top, kind, lay=lay)
             snap.prune(top)
             snaps = snap.list_snapshots(top)
             snap.gc_kernels(lay, top, snaps)

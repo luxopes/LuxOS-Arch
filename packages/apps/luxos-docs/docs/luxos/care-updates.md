@@ -141,7 +141,8 @@ Btrfs: `@snapshots/.kernels`). Snapshots with the same kernel and initramfs shar
 sets are removed. Without space for the kernel the snapshot is kept but has no boot entry.
 
 **Boot menu.** Every snapshot with a kernel set gets an entry **"LuxOS (before update of
-YYYY-MM-DD HH:MM)"** (systemd-boot `loader/entries/snapshot-<entry>-<name>.conf`, GRUB
+YYYY-MM-DD HH:MM)"** (a snapshot taken by `lux system apply` is "before system change of …",
+see [system-config.md](system-config.md); systemd-boot `loader/entries/snapshot-<entry>-<name>.conf`, GRUB
 `/boot/grub/luxos-snapshots.cfg` loaded by `/etc/grub.d/12_luxos_snapshots`). The menu is hidden:
 hold **Space** (systemd-boot) or press **Esc** (GRUB) while the computer starts. Such an entry starts
 the snapshot read-only with a temporary writable layer in memory (`systemd.volatile=overlay`,

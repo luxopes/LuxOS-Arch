@@ -188,6 +188,8 @@ class Pure(unittest.TestCase):
                          "LuxOS (snapshot of 2026-10-26 14:03)")
         self.assertEqual(snap.label({"name": "2026-10-26_14-03-12", "kind": "before-reinstall"}),
                          "LuxOS (before reinstall of 2026-10-26 14:03)")
+        self.assertEqual(snap.label({"name": "2026-10-26_14-03-12", "kind": "system"}),
+                         "LuxOS (before system change of 2026-10-26 14:03)")
 
     def test_prune_keeps_five_and_one_before_kernel_change(self):
         s = [{"name": f"2026-10-{d:02d}_10-00-00", "kver": "A" if d < 4 else "B"} for d in range(1, 11)]
@@ -444,6 +446,14 @@ class SdBoot(Env):
         kept = {s["kset"] for s in snap.list_snapshots(self.top)}
         self.assertEqual(set(os.listdir(self.root + "/boot/luxos-snapshots")), kept)
         self.assertEqual(len(kept), 2)
+
+    def test_pre_transaction_skipped_after_system_apply_snapshot(self):
+        # lux system apply uz snimek udelal (kind "system"); transakce uvnitr apply druhy nedela
+        meta = snap.create(self.top, "system", now=self.at(0))
+        self.assertEqual(meta["kind"], "system")
+        with mock.patch.dict(os.environ, {"LUXOS_SNAPSHOT_TAKEN": "1"}):
+            self.assertEqual(snap.pre_transaction(["htop"], now=self.at(1)), 0)
+        self.assertEqual([s["name"] for s in snap.list_snapshots(self.top)], [meta["name"]])
 
     def test_pre_transaction_never_fails_update(self):
         with mock.patch.object(snap, "create", side_effect=OSError("disk full")):

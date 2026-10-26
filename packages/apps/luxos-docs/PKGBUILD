@@ -3,7 +3,7 @@
 # Kontrakt pro ctenare: /usr/share/luxos/docs/index.json + luxos/*.md a lsl/*.md (viz tests/test_docs.py).
 # Obsah je napsany podle kodu v tomto repozitari a podle oficialni reference LSL; pri zmene
 # dokumentu zvysit pkgrel (nainstalovane systemy jinak zmenu nedostanou).
-# Manualove stranky (man luxos, lux.conf, luxos-care, luxos-sandbox, luxos-safe, luxos-guard,
+# Manualove stranky (man luxos, lux.conf, luxos-system, luxos-care, luxos-sandbox, luxos-safe, luxos-guard,
 # luxdrop, lsl, lslc) se generuji z tychz souboru v build() (man/manpages.py, bez pandocu),
 # takze man a dokumentace pro LuxAI se nerozejdou. lux(1) je rucne psana v balicku lux.
 

@@ -3211,3 +3211,153 @@ The new password must be different from the current one.	Az új jelszónak kül�
 This change is not available from LuxOS yet. Make it on the web.	Ez a módosítás egyelőre nem érhető el a LuxOS-ből. Végezze el a weben.
 The new password must have at least 12 characters.	Az új jelszónak legalább 12 karakterből kell állnia.
 The change could not be saved (%s).	A módosítást nem sikerült menteni (%s).
+# lux system - cely system v jednom souboru LSL (/etc/luxos/system.lsl)
+Reading the configuration took too long (endless loop?).	A konfiguráció beolvasása túl sokáig tartott (végtelen ciklus?).
+Edit it (sudo lux system edit), then: lux system diff and sudo lux system apply	Szerkessze (sudo lux system edit), majd: lux system diff és sudo lux system apply
+LSL is needed to read the configuration (lux install lsl).	A konfiguráció beolvasásához LSL szükséges (lux install lsl).
+The configuration must set config = { ... } (a dictionary).	A konfigurációnak be kell állítania: config = { ... } (szótár).
+Hint: items of a list [ ] are separated by commas, without a comma after the last one.	Tipp: a lista [ ] elemeit vessző választja el, az utolsó után nincs vessző.
+No user would be an administrator (group wheel). Add "wheel" to the groups of one user.	Egyik felhasználó sem lenne rendszergazda (wheel csoport). Adja hozzá a „wheel” csoportot egy felhasználóhoz.
+Kernel parameters can be read only with administrator rights (lux system diff asks for them).	A kernelparaméterek csak rendszergazdai jogokkal olvashatók (a lux system diff kéri őket).
+LuxOS Care is not installed (lux install luxos-care).	A LuxOS Care nincs telepítve (lux install luxos-care).
+The system already matches the configuration. Nothing to do.	A rendszer már megfelel a konfigurációnak. Nincs teendő.
+LuxOS - configuration of the whole system in one file (LSL)	LuxOS – az egész rendszer konfigurációja egy fájlban (LSL)
+Check: lux system check   ·   What would change: lux system diff	Ellenőrzés: lux system check   ·   Mi változna: lux system diff
+Apply: sudo lux system apply (a snapshot is taken first, undo with: lux rollback)	Alkalmazás: sudo lux system apply (előbb pillanatkép készül, visszavonás: lux rollback)
+A setting you delete is no longer managed (it stays as it is). Help: man luxos-system	A törölt beállítást a rendszer többé nem kezeli (marad, ahogy van). Súgó: man luxos-system
+Computer name in the network	A számítógép neve a hálózaton
+Packages from the LuxOS and Arch Linux repositories (lux search NAME)	Csomagok a LuxOS és az Arch Linux tárolóiból (lux search NÉV)
+Deleting a line removes the package at the next apply.	A törölt sor a következő apply-nál eltávolítja a csomagot.
+True = also remove packages and apps that are not listed here (careful)	True = az itt nem szereplő csomagok és alkalmazások eltávolítása is (óvatosan)
+Services started at boot (a removed line turns the service off at the next apply)	Indításkor futó szolgáltatások (a törölt sor a következő apply-nál kikapcsolja a szolgáltatást)
+Extra groups	További csoportok
+Users (passwords never go here; "wheel" = administrator).	Felhasználók (jelszó soha nem kerül ide; „wheel” = rendszergazda).
+Optional "password_hash": output of 'openssl passwd -6'. Users are never deleted.	Opcionális „password_hash”: az 'openssl passwd -6' kimenete. Felhasználót sosem töröl.
+LuxOS Care: "carefree" = automatic updates, "classic" = only notify	LuxOS Care: „carefree” = automatikus frissítések, „classic” = csak értesítés
+Firewall (ufw): allowed incoming ports, e.g. ["22/tcp"]	Tűzfal (ufw): engedélyezett bejövő portok, pl. ["22/tcp"]
+This needs administrator rights (run it through lux system ...).	Ehhez rendszergazdai jogok kellenek (futtassa a lux system ... paranccsal).
+Written %s from this computer.	%s megírva erről a számítógépről.
+The configuration %s is valid.	A(z) %s konfiguráció rendben van.
+Done: %d changes.	Kész: %d módosítás.
+Restart the computer to use the new kernel parameters.	Indítsa újra a számítógépet az új kernelparaméterek használatához.
+The configuration file %s does not exist. Create it from this computer with: sudo lux system init	A(z) %s konfigurációs fájl nem létezik. Hozza létre erről a számítógépről: sudo lux system init
+Hint: the configuration may only use 'load config'; it cannot run programs or read files.	Tipp: a konfiguráció csak a 'load config'-ot használhatja; nem futtathat programokat és nem olvashat fájlokat.
+computer name: %s → %s	számítógépnév: %s → %s
+time zone: %s → %s	időzóna: %s → %s
+language (locale): %s → %s	nyelv (locale): %s → %s
+Group %s does not exist yet; it is created if no package creates it.	A(z) %s csoport még nem létezik; létrejön, ha egy csomag nem hozza létre.
+The firewall (ufw) is not installed; add "ufw" to packages.	A tűzfal (ufw) nincs telepítve; adja hozzá az „ufw”-t a packages listához.
+turn on the firewall	tűzfal bekapcsolása
+turn off the firewall	tűzfal kikapcsolása
+Kernel parameters: no LuxOS boot entry found (systemd-boot or GRUB).	Kernelparaméterek: nem található LuxOS rendszerbetöltő-bejegyzés (systemd-boot vagy GRUB).
+(after a restart)	(újraindítás után)
+Generated by 'lux system show' on %s from this computer.	A 'lux system show' készítette %s napon erről a számítógépről.
+Time zone (list: timedatectl list-timezones)	Időzóna (lista: timedatectl list-timezones)
+Language and formats (e.g. "cs_CZ.UTF-8", "en_US.UTF-8")	Nyelv és formátumok (pl. "hu_HU.UTF-8", "en_US.UTF-8")
+Keyboard layouts (the first is the default, at most 4) and how to switch them	Billentyűzetkiosztások (az első az alapértelmezett, legfeljebb 4) és váltásuk módja
+Apps from Flathub (app ID, e.g. "org.mozilla.firefox")	Alkalmazások a Flathubról (alkalmazásazonosító, pl. "org.mozilla.firefox")
+Lux Guard: protection against harmful downloads, hourly snapshots of /home	Lux Guard: védelem a kártékony letöltések ellen, óránkénti pillanatképek a /home-ról
+Kernel parameters: run 'sudo lux system show' to include them	Kernelparaméterek: futtassa a 'sudo lux system show' parancsot, hogy bekerüljenek
+%s already exists. Show the differences with: lux system diff (or init --force to overwrite it).	%s már létezik. A különbségeket mutatja: lux system diff (vagy az init --force felülírja).
+The previous file was kept as %s	Az előző fájl megmaradt ezen a néven: %s
+Taking a system snapshot first	Előbb rendszer-pillanatkép készül
+%s failed (exit code %d)	%s sikertelen (kilépési kód: %d)
+Hint: the configuration cannot run programs, read files or use the network.	Tipp: a konfiguráció nem futtathat programokat, nem olvashat fájlokat és nem használhat hálózatot.
+(did you mean "%s"?)	("%s"-re gondolt?)
+unknown setting "%s"	ismeretlen beállítás: "%s"
+must be %s	ennek kell lennie: %s
+"%s" is not a valid %s	"%s" nem érvényes érték: %s
+unknown time zone "%s" (e.g. "Europe/Prague")	ismeretlen időzóna: "%s" (pl. "Europe/Budapest")
+unknown language setting "%s" (e.g. "cs_CZ.UTF-8")	ismeretlen nyelvi beállítás: "%s" (pl. "hu_HU.UTF-8")
+at least one layout is needed (e.g. ["us", "cz"])	legalább egy kiosztás kell (pl. ["us", "hu"])
+Cannot read the installed packages: %s	A telepített csomagok nem olvashatók: %s
+The package lists could not be checked; run lux update if installing fails.	A csomaglisták nem ellenőrizhetők; ha a telepítés sikertelen, futtassa: lux update.
+install: %s	telepítés: %s
+keep as wanted (now only a dependency): %s	megtartás kívántként (most csak függőség): %s
+remove: %s	eltávolítás: %s
+keyboard layouts: %s → %s	billentyűzetkiosztások: %s → %s
+create group %s	%s csoport létrehozása
+turn on %s	%s bekapcsolása
+turn off %s	%s kikapcsolása
+create user %s	%s felhasználó létrehozása
+Another lux system apply is running.	Már fut egy másik lux system apply.
+Kernel parameters (disk and encryption parameters are not managed here)	Kernelparaméterek (a lemez és a titkosítás paramétereit itt nem kezeli)
+Managed: %s	Kezelve: %s
+Nothing was changed. Confirm with -y when running without a terminal.	Semmi sem változott. Terminál nélkül erősítse meg a -y kapcsolóval.
+Apply these changes?	Alkalmazza ezeket a módosításokat?
+Cancelled. Nothing was changed.	Megszakítva. Semmi sem változott.
+Cannot read the configuration: %s	A konfiguráció nem olvasható: %s
+Error in the configuration %s:	Hiba a(z) %s konfigurációban:
+computer name	számítógépnév
+at most 4 layouts	legfeljebb 4 kiosztás
+%s is both in enable and disable	%s az enable és a disable listában is szerepel
+%s is set in "guard"; remove it from services	%s a „guard” részben van beállítva; törölje a services részből
+%s is set in "firewall"; remove it from services	%s a „firewall” részben van beállítva; törölje a services részből
+Cannot read the services: %s	A szolgáltatások nem olvashatók: %s
+Kept, LuxOS needs them: %s	Megtartva, a LuxOS-nek szüksége van rájuk: %s
+%d installed packages are not in the file; they stay ("remove_unlisted": True would remove them).	%d telepített csomag nincs a fájlban; megmaradnak (a „remove_unlisted”: True eltávolítaná őket).
+%d installed Flathub apps are not in the file; they stay.	%d telepített Flathub-alkalmazás nincs a fájlban; megmaradnak.
+Unknown service %s (no such unit on this computer).	Ismeretlen szolgáltatás: %s (nincs ilyen egység ezen a számítógépen).
+Lux Guard is not installed (lux install luxos-guard).	A Lux Guard nincs telepítve (lux install luxos-guard).
+User %s has no password yet; set it with: sudo passwd %s	%s felhasználónak még nincs jelszava; állítsa be: sudo passwd %s
+users.%s: this is a system account, it cannot be managed here.	users.%s: ez rendszerfiók, itt nem kezelhető.
+%s: set password (from password_hash)	%s: jelszó beállítása (password_hash alapján)
+allow incoming %s	bejövő %s engedélyezése
+stop allowing incoming %s	bejövő %s engedélyezésének megszüntetése
+The snapshot could not be taken: %s	Nem sikerült pillanatképet készíteni: %s
+Nothing was changed. To apply without a snapshot use --no-snapshot.	Semmi sem változott. Pillanatkép nélküli alkalmazáshoz használja: --no-snapshot.
+Continue without a snapshot (no way back with lux rollback)?	Folytatja pillanatkép nélkül (a lux rollback nem tud visszaállni)?
+%d of %d changes were made.	%d / %d módosítás elkészült.
+Snapshot before the change: %s (undo: lux rollback %s)	Pillanatkép a módosítás előtt: %s (visszavonás: lux rollback %s)
+%s is needed by LuxOS and cannot be turned off here	%s a LuxOS működéséhez kell, itt nem kapcsolható ki
+must not contain ':' or control characters	nem tartalmazhat ':' vagy vezérlőkaraktert
+must be between 1000 and 59999	1000 és 59999 között kell lennie
+this is not a password hash (it must start with $y$, $6$ ...; create it with: openssl passwd -6)	ez nem jelszó-hash (ezzel kell kezdődnie: $y$, $6$ ...; létrehozás: openssl passwd -6)
+must be "carefree" or "classic"	"carefree" vagy "classic" lehet
+%s is set by the installer (disk, encryption) and cannot be changed here	%s értékét a telepítő állítja be (lemez, titkosítás), itt nem módosítható
+Check the names with: lux search NAME	Ellenőrizze a neveket: lux search NÉV
+%s: full name → %s	%s: teljes név → %s
+%s: shell %s → %s	%s: héj %s → %s
+users.%s.uid: the user already exists with UID %d; changing it is not supported.	users.%s.uid: a felhasználó már létezik %d UID-vel; a módosítás nem támogatott.
+service name	szolgáltatásnév
+user name	felhasználónév
+never write passwords into the file; use password_hash (from: openssl passwd -6) or set the password with: sudo passwd %s	soha ne írjon jelszót a fájlba; használja a password_hash-t (openssl passwd -6) vagy állítsa be a jelszót: sudo passwd %s
+"%s" is not in /etc/shells	"%s" nincs az /etc/shells fájlban
+%s: add to groups %s	%s: hozzáadás a csoportokhoz: %s
+%s: remove from groups %s	%s: eltávolítás a csoportokból: %s
+Back to the state before: lux rollback %s	Vissza a korábbi állapotra: lux rollback %s
+must be between 2 and 50	2 és 50 között kell lennie
+These packages are not in the repositories: %s	Ezek a csomagok nincsenek a tárolókban: %s
+Unknown option %s	Ismeretlen kapcsoló: %s
+port (e.g. "22/tcp")	port (pl. "22/tcp")
+Too many arguments	Túl sok argumentum
+Packages	Csomagok
+Flathub apps	Flathub-alkalmazások
+Users and groups	Felhasználók és csoportok
+Services	Szolgáltatások
+LuxOS Care	LuxOS Care
+Lux Guard	Lux Guard
+Firewall	Tűzfal
+Kernel parameters	Kernelparaméterek
+a text	szöveg
+a list of texts	szöveglista
+a dictionary { }	szótár { }
+True or False	True vagy False
+a number	szám
+package name	csomagnév
+Flathub app ID	Flathub-alkalmazásazonosító
+group name	csoportnév
+keyboard layout	billentyűzetkiosztás
+keyboard option	billentyűzetbeállítás
+kernel parameter	kernelparaméter
+%s does not exist yet. Create it from this computer with: lux system init	%s még nem létezik. Hozza létre erről a számítógépről: lux system init
+Show the changes with: lux system diff	A módosításokat mutatja: lux system diff
+print a configuration file made from this computer	konfigurációs fájl kiírása erről a számítógépről
+write /etc/luxos/system.lsl from this computer	/etc/luxos/system.lsl megírása erről a számítógépről
+edit /etc/luxos/system.lsl and check it	/etc/luxos/system.lsl szerkesztése és ellenőrzése
+check the configuration without changing anything	a konfiguráció ellenőrzése módosítás nélkül
+show what apply would change	megmutatja, mit módosítana az apply
+take a snapshot, show the changes, confirm and apply	pillanatkép, módosítások megjelenítése, megerősítés és alkalmazás
+Undo the last apply: lux rollback · Help: man luxos-system	Az utolsó apply visszavonása: lux rollback · Súgó: man luxos-system
+whole system in one file /etc/luxos/system.lsl (lux system help)	az egész rendszer egy fájlban: /etc/luxos/system.lsl (lux system help)
+LuxOS is running from a snapshot, changes would be lost after a restart. To keep this version, run: lux rollback	A LuxOS pillanatképről fut, a módosítások újraindítás után elvesznének. A verzió megtartásához futtassa: lux rollback
