@@ -901,6 +901,23 @@ function on_root_event(bound, kind, window, detail, mods):
 end
 
 function restack_idle(bound):
+    # pojistka proti preteku s jinym programem, ktery se taky drzi navrchu: nejvys 20x za sekundu
+    now = glib.monotonic_time()
+    if now - S.get("restack_since", 0) > 1000000:
+        S["restack_since"] = now
+        S["restack_count"] = 0
+    end
+    S["restack_count"] = S["restack_count"] + 1
+    if S["restack_count"] > 20:
+        call glib.timeout_add_data(1000, restack_later, 0)
+        return False
+    end
+    S["restack_pending"] = False
+    call restack()
+    return False
+end
+
+function restack_later(bound):
     S["restack_pending"] = False
     call restack()
     return False
