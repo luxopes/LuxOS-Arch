@@ -3211,3 +3211,153 @@ The new password must be different from the current one.	Das neue Passwort muss 
 This change is not available from LuxOS yet. Make it on the web.	Diese Änderung ist in LuxOS noch nicht möglich. Nehmen Sie sie im Web vor.
 The new password must have at least 12 characters.	Das neue Passwort muss mindestens 12 Zeichen haben.
 The change could not be saved (%s).	Die Änderung konnte nicht gespeichert werden (%s).
+# lux system - cely system v jednom souboru LSL (/etc/luxos/system.lsl)
+Reading the configuration took too long (endless loop?).	Das Lesen der Konfiguration hat zu lange gedauert (Endlosschleife?).
+Edit it (sudo lux system edit), then: lux system diff and sudo lux system apply	Bearbeiten Sie sie (sudo lux system edit), dann: lux system diff und sudo lux system apply
+LSL is needed to read the configuration (lux install lsl).	Zum Lesen der Konfiguration wird LSL benötigt (lux install lsl).
+The configuration must set config = { ... } (a dictionary).	Die Konfiguration muss config = { ... } setzen (ein Wörterbuch).
+Hint: items of a list [ ] are separated by commas, without a comma after the last one.	Tipp: Listeneinträge [ ] werden durch Kommas getrennt, nach dem letzten steht kein Komma.
+No user would be an administrator (group wheel). Add "wheel" to the groups of one user.	Kein Benutzer wäre Administrator (Gruppe wheel). Fügen Sie „wheel“ zu den Gruppen eines Benutzers hinzu.
+Kernel parameters can be read only with administrator rights (lux system diff asks for them).	Kernelparameter können nur mit Administratorrechten gelesen werden (lux system diff fragt danach).
+LuxOS Care is not installed (lux install luxos-care).	LuxOS Care ist nicht installiert (lux install luxos-care).
+The system already matches the configuration. Nothing to do.	Das System entspricht bereits der Konfiguration. Nichts zu tun.
+LuxOS - configuration of the whole system in one file (LSL)	LuxOS – Konfiguration des ganzen Systems in einer Datei (LSL)
+Check: lux system check   ·   What would change: lux system diff	Prüfen: lux system check   ·   Was sich ändern würde: lux system diff
+Apply: sudo lux system apply (a snapshot is taken first, undo with: lux rollback)	Anwenden: sudo lux system apply (zuerst wird ein Schnappschuss erstellt, rückgängig: lux rollback)
+A setting you delete is no longer managed (it stays as it is). Help: man luxos-system	Eine gelöschte Einstellung wird nicht mehr verwaltet (bleibt, wie sie ist). Hilfe: man luxos-system
+Computer name in the network	Name des Computers im Netzwerk
+Packages from the LuxOS and Arch Linux repositories (lux search NAME)	Pakete aus den Paketquellen von LuxOS und Arch Linux (lux search NAME)
+Deleting a line removes the package at the next apply.	Eine gelöschte Zeile entfernt das Paket beim nächsten apply.
+True = also remove packages and apps that are not listed here (careful)	True = auch Pakete und Apps entfernen, die hier nicht stehen (Vorsicht)
+Services started at boot (a removed line turns the service off at the next apply)	Beim Start gestartete Dienste (eine gelöschte Zeile schaltet den Dienst beim nächsten apply aus)
+Extra groups	Weitere Gruppen
+Users (passwords never go here; "wheel" = administrator).	Benutzer (Passwörter gehören nie hierher; „wheel“ = Administrator).
+Optional "password_hash": output of 'openssl passwd -6'. Users are never deleted.	Optional „password_hash“: Ausgabe von 'openssl passwd -6'. Benutzer werden nie gelöscht.
+LuxOS Care: "carefree" = automatic updates, "classic" = only notify	LuxOS Care: „carefree“ = automatische Updates, „classic“ = nur benachrichtigen
+Firewall (ufw): allowed incoming ports, e.g. ["22/tcp"]	Firewall (ufw): erlaubte eingehende Ports, z. B. ["22/tcp"]
+This needs administrator rights (run it through lux system ...).	Dafür sind Administratorrechte nötig (über lux system ... starten).
+Written %s from this computer.	%s aus diesem Computer geschrieben.
+The configuration %s is valid.	Die Konfiguration %s ist gültig.
+Done: %d changes.	Fertig: %d Änderungen.
+Restart the computer to use the new kernel parameters.	Starten Sie den Computer neu, um die neuen Kernelparameter zu verwenden.
+The configuration file %s does not exist. Create it from this computer with: sudo lux system init	Die Konfigurationsdatei %s existiert nicht. Erstellen Sie sie aus diesem Computer: sudo lux system init
+Hint: the configuration may only use 'load config'; it cannot run programs or read files.	Tipp: Die Konfiguration darf nur 'load config' verwenden; sie kann keine Programme starten oder Dateien lesen.
+computer name: %s → %s	Computername: %s → %s
+time zone: %s → %s	Zeitzone: %s → %s
+language (locale): %s → %s	Sprache (Locale): %s → %s
+Group %s does not exist yet; it is created if no package creates it.	Die Gruppe %s existiert noch nicht; sie wird erstellt, falls kein Paket sie anlegt.
+The firewall (ufw) is not installed; add "ufw" to packages.	Die Firewall (ufw) ist nicht installiert; fügen Sie „ufw“ zu packages hinzu.
+turn on the firewall	Firewall einschalten
+turn off the firewall	Firewall ausschalten
+Kernel parameters: no LuxOS boot entry found (systemd-boot or GRUB).	Kernelparameter: kein LuxOS-Booteintrag gefunden (systemd-boot oder GRUB).
+(after a restart)	(nach einem Neustart)
+Generated by 'lux system show' on %s from this computer.	Erstellt von 'lux system show' am %s aus diesem Computer.
+Time zone (list: timedatectl list-timezones)	Zeitzone (Liste: timedatectl list-timezones)
+Language and formats (e.g. "cs_CZ.UTF-8", "en_US.UTF-8")	Sprache und Formate (z. B. "de_DE.UTF-8", "en_US.UTF-8")
+Keyboard layouts (the first is the default, at most 4) and how to switch them	Tastaturbelegungen (die erste ist Standard, höchstens 4) und wie man sie wechselt
+Apps from Flathub (app ID, e.g. "org.mozilla.firefox")	Apps von Flathub (App-ID, z. B. "org.mozilla.firefox")
+Lux Guard: protection against harmful downloads, hourly snapshots of /home	Lux Guard: Schutz vor schädlichen Downloads, stündliche Schnappschüsse von /home
+Kernel parameters: run 'sudo lux system show' to include them	Kernelparameter: 'sudo lux system show' ausführen, um sie aufzunehmen
+%s already exists. Show the differences with: lux system diff (or init --force to overwrite it).	%s existiert bereits. Unterschiede zeigt: lux system diff (oder init --force überschreibt sie).
+The previous file was kept as %s	Die vorherige Datei wurde als %s behalten
+Taking a system snapshot first	Zuerst wird ein Systemschnappschuss erstellt
+%s failed (exit code %d)	%s fehlgeschlagen (Exit-Code %d)
+Hint: the configuration cannot run programs, read files or use the network.	Tipp: Die Konfiguration kann keine Programme starten, keine Dateien lesen und kein Netzwerk nutzen.
+(did you mean "%s"?)	(meinten Sie "%s"?)
+unknown setting "%s"	unbekannte Einstellung "%s"
+must be %s	muss %s sein
+"%s" is not a valid %s	"%s" ist kein gültiger Wert: %s
+unknown time zone "%s" (e.g. "Europe/Prague")	unbekannte Zeitzone "%s" (z. B. "Europe/Berlin")
+unknown language setting "%s" (e.g. "cs_CZ.UTF-8")	unbekannte Spracheinstellung "%s" (z. B. "de_DE.UTF-8")
+at least one layout is needed (e.g. ["us", "cz"])	mindestens eine Belegung ist nötig (z. B. ["us", "de"])
+Cannot read the installed packages: %s	Die installierten Pakete können nicht gelesen werden: %s
+The package lists could not be checked; run lux update if installing fails.	Die Paketlisten konnten nicht geprüft werden; falls die Installation fehlschlägt, lux update ausführen.
+install: %s	installieren: %s
+keep as wanted (now only a dependency): %s	als gewünscht behalten (jetzt nur Abhängigkeit): %s
+remove: %s	entfernen: %s
+keyboard layouts: %s → %s	Tastaturbelegungen: %s → %s
+create group %s	Gruppe %s erstellen
+turn on %s	%s einschalten
+turn off %s	%s ausschalten
+create user %s	Benutzer %s erstellen
+Another lux system apply is running.	Ein anderes lux system apply läuft bereits.
+Kernel parameters (disk and encryption parameters are not managed here)	Kernelparameter (Parameter für Festplatte und Verschlüsselung werden hier nicht verwaltet)
+Managed: %s	Verwaltet: %s
+Nothing was changed. Confirm with -y when running without a terminal.	Nichts wurde geändert. Ohne Terminal mit -y bestätigen.
+Apply these changes?	Diese Änderungen anwenden?
+Cancelled. Nothing was changed.	Abgebrochen. Nichts wurde geändert.
+Cannot read the configuration: %s	Die Konfiguration kann nicht gelesen werden: %s
+Error in the configuration %s:	Fehler in der Konfiguration %s:
+computer name	Computername
+at most 4 layouts	höchstens 4 Belegungen
+%s is both in enable and disable	%s steht sowohl in enable als auch in disable
+%s is set in "guard"; remove it from services	%s ist in „guard“ gesetzt; entfernen Sie es aus services
+%s is set in "firewall"; remove it from services	%s ist in „firewall“ gesetzt; entfernen Sie es aus services
+Cannot read the services: %s	Die Dienste können nicht gelesen werden: %s
+Kept, LuxOS needs them: %s	Behalten, LuxOS braucht sie: %s
+%d installed packages are not in the file; they stay ("remove_unlisted": True would remove them).	%d installierte Pakete stehen nicht in der Datei; sie bleiben („remove_unlisted“: True würde sie entfernen).
+%d installed Flathub apps are not in the file; they stay.	%d installierte Flathub-Apps stehen nicht in der Datei; sie bleiben.
+Unknown service %s (no such unit on this computer).	Unbekannter Dienst %s (keine solche Unit auf diesem Computer).
+Lux Guard is not installed (lux install luxos-guard).	Lux Guard ist nicht installiert (lux install luxos-guard).
+User %s has no password yet; set it with: sudo passwd %s	Benutzer %s hat noch kein Passwort; setzen Sie es mit: sudo passwd %s
+users.%s: this is a system account, it cannot be managed here.	users.%s: das ist ein Systemkonto, es kann hier nicht verwaltet werden.
+%s: set password (from password_hash)	%s: Passwort setzen (aus password_hash)
+allow incoming %s	eingehend %s erlauben
+stop allowing incoming %s	eingehend %s nicht mehr erlauben
+The snapshot could not be taken: %s	Der Schnappschuss konnte nicht erstellt werden: %s
+Nothing was changed. To apply without a snapshot use --no-snapshot.	Nichts wurde geändert. Zum Anwenden ohne Schnappschuss --no-snapshot verwenden.
+Continue without a snapshot (no way back with lux rollback)?	Ohne Schnappschuss fortfahren (kein Zurück mit lux rollback)?
+%d of %d changes were made.	%d von %d Änderungen wurden vorgenommen.
+Snapshot before the change: %s (undo: lux rollback %s)	Schnappschuss vor der Änderung: %s (rückgängig: lux rollback %s)
+%s is needed by LuxOS and cannot be turned off here	%s wird von LuxOS benötigt und kann hier nicht ausgeschaltet werden
+must not contain ':' or control characters	darf kein ':' und keine Steuerzeichen enthalten
+must be between 1000 and 59999	muss zwischen 1000 und 59999 liegen
+this is not a password hash (it must start with $y$, $6$ ...; create it with: openssl passwd -6)	das ist kein Passwort-Hash (er muss mit $y$, $6$ ... beginnen; erstellen mit: openssl passwd -6)
+must be "carefree" or "classic"	muss "carefree" oder "classic" sein
+%s is set by the installer (disk, encryption) and cannot be changed here	%s wird vom Installationsprogramm gesetzt (Festplatte, Verschlüsselung) und kann hier nicht geändert werden
+Check the names with: lux search NAME	Namen prüfen mit: lux search NAME
+%s: full name → %s	%s: vollständiger Name → %s
+%s: shell %s → %s	%s: Shell %s → %s
+users.%s.uid: the user already exists with UID %d; changing it is not supported.	users.%s.uid: der Benutzer existiert bereits mit UID %d; eine Änderung wird nicht unterstützt.
+service name	Dienstname
+user name	Benutzername
+never write passwords into the file; use password_hash (from: openssl passwd -6) or set the password with: sudo passwd %s	schreiben Sie nie Passwörter in die Datei; verwenden Sie password_hash (aus: openssl passwd -6) oder setzen Sie das Passwort mit: sudo passwd %s
+"%s" is not in /etc/shells	"%s" steht nicht in /etc/shells
+%s: add to groups %s	%s: zu Gruppen hinzufügen: %s
+%s: remove from groups %s	%s: aus Gruppen entfernen: %s
+Back to the state before: lux rollback %s	Zurück zum vorherigen Zustand: lux rollback %s
+must be between 2 and 50	muss zwischen 2 und 50 liegen
+These packages are not in the repositories: %s	Diese Pakete sind nicht in den Paketquellen: %s
+Unknown option %s	Unbekannte Option %s
+port (e.g. "22/tcp")	Port (z. B. "22/tcp")
+Too many arguments	Zu viele Argumente
+Packages	Pakete
+Flathub apps	Flathub-Apps
+Users and groups	Benutzer und Gruppen
+Services	Dienste
+LuxOS Care	LuxOS Care
+Lux Guard	Lux Guard
+Firewall	Firewall
+Kernel parameters	Kernelparameter
+a text	ein Text
+a list of texts	eine Liste von Texten
+a dictionary { }	ein Wörterbuch { }
+True or False	True oder False
+a number	eine Zahl
+package name	Paketname
+Flathub app ID	Flathub-App-ID
+group name	Gruppenname
+keyboard layout	Tastaturbelegung
+keyboard option	Tastaturoption
+kernel parameter	Kernelparameter
+%s does not exist yet. Create it from this computer with: lux system init	%s existiert noch nicht. Erstellen Sie sie aus diesem Computer: lux system init
+Show the changes with: lux system diff	Änderungen zeigt: lux system diff
+print a configuration file made from this computer	eine Konfigurationsdatei aus diesem Computer ausgeben
+write /etc/luxos/system.lsl from this computer	/etc/luxos/system.lsl aus diesem Computer schreiben
+edit /etc/luxos/system.lsl and check it	/etc/luxos/system.lsl bearbeiten und prüfen
+check the configuration without changing anything	die Konfiguration prüfen, ohne etwas zu ändern
+show what apply would change	zeigen, was apply ändern würde
+take a snapshot, show the changes, confirm and apply	Schnappschuss erstellen, Änderungen zeigen, bestätigen und anwenden
+Undo the last apply: lux rollback · Help: man luxos-system	Letztes apply rückgängig machen: lux rollback · Hilfe: man luxos-system
+whole system in one file /etc/luxos/system.lsl (lux system help)	ganzes System in einer Datei /etc/luxos/system.lsl (lux system help)
+LuxOS is running from a snapshot, changes would be lost after a restart. To keep this version, run: lux rollback	LuxOS läuft aus einem Schnappschuss, Änderungen gingen nach einem Neustart verloren. Um diese Version zu behalten, führen Sie aus: lux rollback

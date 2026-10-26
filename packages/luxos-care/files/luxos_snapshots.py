@@ -58,7 +58,7 @@ RECOVERY_BIN = "/usr/lib/luxos/care/luxos-recovery"
 RECOVERY_TARGET = "luxos-recovery.target"
 AFTER_ROLLBACK = "/var/lib/luxos-care/after-rollback"
 PAUSE_AFTER_ROLLBACK = 3 * 24 * 3600     # automaticke aktualizace po navratu (stejna chyba znovu)
-KINDS = ("update", "manual", "before-rollback", "before-reinstall")
+KINDS = ("update", "manual", "system", "before-rollback", "before-reinstall")
 # Parametry, ktere polozka snimku a obnovy sama nastavuje (z hlavni polozky se neprebiraji)
 OWN_PARAMS = ("BOOT_IMAGE=", "initrd=", "luxos.snapshot=", "systemd.volatile=", "systemd.unit=",
               "rootflags=", "plymouth.enable=")
@@ -341,6 +341,8 @@ def label(meta):
         return f"LuxOS (before reinstall of {t})"
     if kind == "manual":
         return f"LuxOS (snapshot of {t})"
+    if kind == "system":
+        return f"LuxOS (before system change of {t})"
     return f"LuxOS (before update of {t})"
 
 
@@ -590,7 +592,7 @@ def recovery_snapshot(lay, top, snaps):
     """Obnova startuje z nejnovejsiho snimku, ktery ji obsahuje (system po vadne aktualizaci
     nemusi nabehnout ani do obnovy); bez nej ze soucasneho systemu."""
     for s in reversed(snaps):
-        if s.get("recovery") and s.get("kind") in ("update", "manual") and bootable(lay, top, s):
+        if s.get("recovery") and s.get("kind") in ("update", "manual", "system") and bootable(lay, top, s):
             return s
     return None
 
@@ -847,6 +849,9 @@ def pre_transaction(targets, now=None):
         return 0
     if booted_snapshot():
         return 1
+    # lux system apply: snimek "pred zmenou systemu" uz je hotovy, druhy by jen vytlacil starsi
+    if os.environ.get("LUXOS_SNAPSHOT_TAKEN") == "1":
+        return 0
     ok, why = supported()
     if not ok:
         return 0

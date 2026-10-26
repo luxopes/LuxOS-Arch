@@ -114,6 +114,10 @@ Other per-user locations:
 
 ## System-wide files
 
+The whole system (packages, services, users, computer name, language, keyboard, Care, Guard,
+firewall, kernel parameters) can also be described in one LSL file, `/etc/luxos/system.lsl`,
+applied with `lux system apply` - see [system-config.md](system-config.md).
+
 | Path | Owner | Purpose |
 |---|---|---|
 | `/etc/lux/lux.conf` | lux-engine | package manager configuration in LuxOS format (`key value`, `repo NAME` blocks): repositories, signatures, `hold`, `aur`, `flatpak`, `clean-keep` – see [package-management.md](package-management.md#configuration-etcluxluxconf) |

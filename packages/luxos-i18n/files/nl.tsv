@@ -3211,3 +3211,153 @@ The new password must be different from the current one.	Het nieuwe wachtwoord m
 This change is not available from LuxOS yet. Make it on the web.	Deze wijziging is nog niet mogelijk vanuit LuxOS. Doe het op het web.
 The new password must have at least 12 characters.	Het nieuwe wachtwoord moet minstens 12 tekens hebben.
 The change could not be saved (%s).	De wijziging kon niet worden opgeslagen (%s).
+# lux system - cely system v jednom souboru LSL (/etc/luxos/system.lsl)
+Reading the configuration took too long (endless loop?).	Het lezen van de configuratie duurde te lang (oneindige lus?).
+Edit it (sudo lux system edit), then: lux system diff and sudo lux system apply	Bewerk het (sudo lux system edit), daarna: lux system diff en sudo lux system apply
+LSL is needed to read the configuration (lux install lsl).	Om de configuratie te lezen is LSL nodig (lux install lsl).
+The configuration must set config = { ... } (a dictionary).	De configuratie moet config = { ... } instellen (een woordenboek).
+Hint: items of a list [ ] are separated by commas, without a comma after the last one.	Tip: items van een lijst [ ] worden door komma’s gescheiden, zonder komma na het laatste.
+No user would be an administrator (group wheel). Add "wheel" to the groups of one user.	Geen enkele gebruiker zou beheerder zijn (groep wheel). Voeg „wheel” toe aan de groepen van één gebruiker.
+Kernel parameters can be read only with administrator rights (lux system diff asks for them).	Kernelparameters kunnen alleen met beheerdersrechten worden gelezen (lux system diff vraagt erom).
+LuxOS Care is not installed (lux install luxos-care).	LuxOS Care is niet geïnstalleerd (lux install luxos-care).
+The system already matches the configuration. Nothing to do.	Het systeem komt al overeen met de configuratie. Niets te doen.
+LuxOS - configuration of the whole system in one file (LSL)	LuxOS – configuratie van het hele systeem in één bestand (LSL)
+Check: lux system check   ·   What would change: lux system diff	Controleren: lux system check   ·   Wat zou veranderen: lux system diff
+Apply: sudo lux system apply (a snapshot is taken first, undo with: lux rollback)	Toepassen: sudo lux system apply (eerst wordt een momentopname gemaakt, ongedaan maken: lux rollback)
+A setting you delete is no longer managed (it stays as it is). Help: man luxos-system	Een verwijderde instelling wordt niet meer beheerd (blijft zoals ze is). Hulp: man luxos-system
+Computer name in the network	Naam van de computer in het netwerk
+Packages from the LuxOS and Arch Linux repositories (lux search NAME)	Pakketten uit de pakketbronnen van LuxOS en Arch Linux (lux search NAAM)
+Deleting a line removes the package at the next apply.	Een verwijderde regel verwijdert het pakket bij de volgende apply.
+True = also remove packages and apps that are not listed here (careful)	True = ook pakketten en apps verwijderen die hier niet staan (voorzichtig)
+Services started at boot (a removed line turns the service off at the next apply)	Diensten die bij het opstarten starten (een verwijderde regel zet de dienst uit bij de volgende apply)
+Extra groups	Extra groepen
+Users (passwords never go here; "wheel" = administrator).	Gebruikers (nooit wachtwoorden hier; „wheel” = beheerder).
+Optional "password_hash": output of 'openssl passwd -6'. Users are never deleted.	Optioneel „password_hash”: uitvoer van 'openssl passwd -6'. Gebruikers worden nooit verwijderd.
+LuxOS Care: "carefree" = automatic updates, "classic" = only notify	LuxOS Care: „carefree” = automatische updates, „classic” = alleen melden
+Firewall (ufw): allowed incoming ports, e.g. ["22/tcp"]	Firewall (ufw): toegestane inkomende poorten, bijv. ["22/tcp"]
+This needs administrator rights (run it through lux system ...).	Hiervoor zijn beheerdersrechten nodig (start het via lux system ...).
+Written %s from this computer.	%s geschreven vanaf deze computer.
+The configuration %s is valid.	De configuratie %s is geldig.
+Done: %d changes.	Klaar: %d wijzigingen.
+Restart the computer to use the new kernel parameters.	Start de computer opnieuw op om de nieuwe kernelparameters te gebruiken.
+The configuration file %s does not exist. Create it from this computer with: sudo lux system init	Het configuratiebestand %s bestaat niet. Maak het aan vanaf deze computer: sudo lux system init
+Hint: the configuration may only use 'load config'; it cannot run programs or read files.	Tip: de configuratie mag alleen 'load config' gebruiken; ze kan geen programma’s starten of bestanden lezen.
+computer name: %s → %s	computernaam: %s → %s
+time zone: %s → %s	tijdzone: %s → %s
+language (locale): %s → %s	taal (locale): %s → %s
+Group %s does not exist yet; it is created if no package creates it.	Groep %s bestaat nog niet; hij wordt aangemaakt als geen pakket hem aanmaakt.
+The firewall (ufw) is not installed; add "ufw" to packages.	De firewall (ufw) is niet geïnstalleerd; voeg „ufw” toe aan packages.
+turn on the firewall	firewall aanzetten
+turn off the firewall	firewall uitzetten
+Kernel parameters: no LuxOS boot entry found (systemd-boot or GRUB).	Kernelparameters: geen LuxOS-opstartitem gevonden (systemd-boot of GRUB).
+(after a restart)	(na een herstart)
+Generated by 'lux system show' on %s from this computer.	Gemaakt door 'lux system show' op %s vanaf deze computer.
+Time zone (list: timedatectl list-timezones)	Tijdzone (lijst: timedatectl list-timezones)
+Language and formats (e.g. "cs_CZ.UTF-8", "en_US.UTF-8")	Taal en notaties (bijv. "nl_NL.UTF-8", "en_US.UTF-8")
+Keyboard layouts (the first is the default, at most 4) and how to switch them	Toetsenbordindelingen (de eerste is standaard, hoogstens 4) en hoe je wisselt
+Apps from Flathub (app ID, e.g. "org.mozilla.firefox")	Apps van Flathub (app-ID, bijv. "org.mozilla.firefox")
+Lux Guard: protection against harmful downloads, hourly snapshots of /home	Lux Guard: bescherming tegen schadelijke downloads, elk uur momentopnamen van /home
+Kernel parameters: run 'sudo lux system show' to include them	Kernelparameters: voer 'sudo lux system show' uit om ze op te nemen
+%s already exists. Show the differences with: lux system diff (or init --force to overwrite it).	%s bestaat al. Verschillen tonen: lux system diff (of init --force om het te overschrijven).
+The previous file was kept as %s	Het vorige bestand is bewaard als %s
+Taking a system snapshot first	Eerst wordt een momentopname van het systeem gemaakt
+%s failed (exit code %d)	%s mislukt (afsluitcode %d)
+Hint: the configuration cannot run programs, read files or use the network.	Tip: de configuratie kan geen programma’s starten, geen bestanden lezen en geen netwerk gebruiken.
+(did you mean "%s"?)	(bedoelde u "%s"?)
+unknown setting "%s"	onbekende instelling "%s"
+must be %s	moet %s zijn
+"%s" is not a valid %s	"%s" is geen geldige waarde: %s
+unknown time zone "%s" (e.g. "Europe/Prague")	onbekende tijdzone "%s" (bijv. "Europe/Amsterdam")
+unknown language setting "%s" (e.g. "cs_CZ.UTF-8")	onbekende taalinstelling "%s" (bijv. "nl_NL.UTF-8")
+at least one layout is needed (e.g. ["us", "cz"])	minstens één indeling is nodig (bijv. ["us", "nl"])
+Cannot read the installed packages: %s	Kan de geïnstalleerde pakketten niet lezen: %s
+The package lists could not be checked; run lux update if installing fails.	De pakketlijsten konden niet worden gecontroleerd; voer lux update uit als installeren mislukt.
+install: %s	installeren: %s
+keep as wanted (now only a dependency): %s	als gewenst behouden (nu alleen afhankelijkheid): %s
+remove: %s	verwijderen: %s
+keyboard layouts: %s → %s	toetsenbordindelingen: %s → %s
+create group %s	groep %s aanmaken
+turn on %s	%s aanzetten
+turn off %s	%s uitzetten
+create user %s	gebruiker %s aanmaken
+Another lux system apply is running.	Er draait al een andere lux system apply.
+Kernel parameters (disk and encryption parameters are not managed here)	Kernelparameters (die voor schijf en versleuteling worden hier niet beheerd)
+Managed: %s	Beheerd: %s
+Nothing was changed. Confirm with -y when running without a terminal.	Er is niets gewijzigd. Bevestig zonder terminal met -y.
+Apply these changes?	Deze wijzigingen toepassen?
+Cancelled. Nothing was changed.	Geannuleerd. Er is niets gewijzigd.
+Cannot read the configuration: %s	Kan de configuratie niet lezen: %s
+Error in the configuration %s:	Fout in de configuratie %s:
+computer name	computernaam
+at most 4 layouts	hoogstens 4 indelingen
+%s is both in enable and disable	%s staat zowel in enable als in disable
+%s is set in "guard"; remove it from services	%s is ingesteld in „guard”; verwijder het uit services
+%s is set in "firewall"; remove it from services	%s is ingesteld in „firewall”; verwijder het uit services
+Cannot read the services: %s	Kan de diensten niet lezen: %s
+Kept, LuxOS needs them: %s	Behouden, LuxOS heeft ze nodig: %s
+%d installed packages are not in the file; they stay ("remove_unlisted": True would remove them).	%d geïnstalleerde pakketten staan niet in het bestand; ze blijven („remove_unlisted”: True zou ze verwijderen).
+%d installed Flathub apps are not in the file; they stay.	%d geïnstalleerde Flathub-apps staan niet in het bestand; ze blijven.
+Unknown service %s (no such unit on this computer).	Onbekende dienst %s (geen zo’n unit op deze computer).
+Lux Guard is not installed (lux install luxos-guard).	Lux Guard is niet geïnstalleerd (lux install luxos-guard).
+User %s has no password yet; set it with: sudo passwd %s	Gebruiker %s heeft nog geen wachtwoord; stel het in met: sudo passwd %s
+users.%s: this is a system account, it cannot be managed here.	users.%s: dit is een systeemaccount, het kan hier niet worden beheerd.
+%s: set password (from password_hash)	%s: wachtwoord instellen (uit password_hash)
+allow incoming %s	inkomend %s toestaan
+stop allowing incoming %s	inkomend %s niet meer toestaan
+The snapshot could not be taken: %s	De momentopname kon niet worden gemaakt: %s
+Nothing was changed. To apply without a snapshot use --no-snapshot.	Er is niets gewijzigd. Gebruik --no-snapshot om zonder momentopname toe te passen.
+Continue without a snapshot (no way back with lux rollback)?	Doorgaan zonder momentopname (geen weg terug met lux rollback)?
+%d of %d changes were made.	%d van %d wijzigingen zijn uitgevoerd.
+Snapshot before the change: %s (undo: lux rollback %s)	Momentopname vóór de wijziging: %s (ongedaan maken: lux rollback %s)
+%s is needed by LuxOS and cannot be turned off here	%s is nodig voor LuxOS en kan hier niet worden uitgezet
+must not contain ':' or control characters	mag geen ':' of stuurtekens bevatten
+must be between 1000 and 59999	moet tussen 1000 en 59999 liggen
+this is not a password hash (it must start with $y$, $6$ ...; create it with: openssl passwd -6)	dit is geen wachtwoordhash (hij moet beginnen met $y$, $6$ ...; maak hem met: openssl passwd -6)
+must be "carefree" or "classic"	moet "carefree" of "classic" zijn
+%s is set by the installer (disk, encryption) and cannot be changed here	%s wordt ingesteld door het installatieprogramma (schijf, versleuteling) en kan hier niet worden gewijzigd
+Check the names with: lux search NAME	Controleer de namen met: lux search NAAM
+%s: full name → %s	%s: volledige naam → %s
+%s: shell %s → %s	%s: shell %s → %s
+users.%s.uid: the user already exists with UID %d; changing it is not supported.	users.%s.uid: de gebruiker bestaat al met UID %d; wijzigen wordt niet ondersteund.
+service name	dienstnaam
+user name	gebruikersnaam
+never write passwords into the file; use password_hash (from: openssl passwd -6) or set the password with: sudo passwd %s	schrijf nooit wachtwoorden in het bestand; gebruik password_hash (uit: openssl passwd -6) of stel het wachtwoord in met: sudo passwd %s
+"%s" is not in /etc/shells	"%s" staat niet in /etc/shells
+%s: add to groups %s	%s: toevoegen aan groepen %s
+%s: remove from groups %s	%s: verwijderen uit groepen %s
+Back to the state before: lux rollback %s	Terug naar de vorige toestand: lux rollback %s
+must be between 2 and 50	moet tussen 2 en 50 liggen
+These packages are not in the repositories: %s	Deze pakketten staan niet in de pakketbronnen: %s
+Unknown option %s	Onbekende optie %s
+port (e.g. "22/tcp")	poort (bijv. "22/tcp")
+Too many arguments	Te veel argumenten
+Packages	Pakketten
+Flathub apps	Flathub-apps
+Users and groups	Gebruikers en groepen
+Services	Diensten
+LuxOS Care	LuxOS Care
+Lux Guard	Lux Guard
+Firewall	Firewall
+Kernel parameters	Kernelparameters
+a text	een tekst
+a list of texts	een lijst van teksten
+a dictionary { }	een woordenboek { }
+True or False	True of False
+a number	een getal
+package name	pakketnaam
+Flathub app ID	Flathub-app-ID
+group name	groepsnaam
+keyboard layout	toetsenbordindeling
+keyboard option	toetsenbordoptie
+kernel parameter	kernelparameter
+%s does not exist yet. Create it from this computer with: lux system init	%s bestaat nog niet. Maak het aan vanaf deze computer: lux system init
+Show the changes with: lux system diff	Wijzigingen tonen: lux system diff
+print a configuration file made from this computer	een configuratiebestand van deze computer tonen
+write /etc/luxos/system.lsl from this computer	/etc/luxos/system.lsl schrijven vanaf deze computer
+edit /etc/luxos/system.lsl and check it	/etc/luxos/system.lsl bewerken en controleren
+check the configuration without changing anything	de configuratie controleren zonder iets te wijzigen
+show what apply would change	tonen wat apply zou wijzigen
+take a snapshot, show the changes, confirm and apply	momentopname maken, wijzigingen tonen, bevestigen en toepassen
+Undo the last apply: lux rollback · Help: man luxos-system	Laatste apply ongedaan maken: lux rollback · Hulp: man luxos-system
+whole system in one file /etc/luxos/system.lsl (lux system help)	hele systeem in één bestand /etc/luxos/system.lsl (lux system help)
+LuxOS is running from a snapshot, changes would be lost after a restart. To keep this version, run: lux rollback	LuxOS draait vanaf een momentopname, wijzigingen gaan na een herstart verloren. Voer uit om deze versie te houden: lux rollback
