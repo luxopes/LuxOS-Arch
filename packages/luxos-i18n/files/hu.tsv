@@ -3576,3 +3576,73 @@ Repair reinstalls: %s	A javítás újratelepíti: %s
 System files were changed	A rendszerfájlok módosultak
 %d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.	Módosult vagy hiányzó rendszerfájlok: %d. A LuxOS az érintett csomagok újratelepítésével javíthatja őket.
 Invalid PROTECT (use 0 or 1)	Érvénytelen PROTECT (0 vagy 1 lehet)
+# Mapy: MHD (Transitous), odjezdy, mista v okoli
+Transit	Közlekedés
+Public transport	Tömegközlekedés
+Leave Now	Indulás most
+Depart At	Indulás ekkor
+Arrive By	Érkezés eddig
+HH:MM	ÓÓ:PP
+Time today, e.g. 17:30 (press Enter)	Mai időpont, pl. 17:30 (nyomja meg az Entert)
+Enter the time as HH:MM.	Adja meg az időt ÓÓ:PP formában.
+Connection details	A csatlakozás részletei
+Data sources	Adatforrások
+Public transport: Transitous (MOTIS) with open timetable data, map data © OpenStreetMap contributors.	Tömegközlekedés: Transitous (MOTIS) nyílt menetrendi adatokkal, térképadatok © OpenStreetMap közreműködők.
+No public transport connection found for this time.	Erre az időpontra nem található tömegközlekedési kapcsolat.
+The public transport service is busy. Try again in a moment.	A tömegközlekedési szolgáltatás túlterhelt. Próbálja újra egy kis idő múlva.
+The connections could not be loaded. Check your internet connection.	A kapcsolatokat nem sikerült betölteni. Ellenőrizze az internetkapcsolatot.
+Direct	Átszállás nélkül
+1 transfer	1 átszállás
+%d transfers	%d átszállás
+from %s at %s	innen: %s, %s-kor
+Platform %s	%s. kocsiállás
+(changed from %s)	(változás, eredetileg %s)
+1 stop	1 megálló
+%d stops	%d megálló
+Show departures from %s	Indulások innen: %s
+to %s	ide: %s
+Departures	Indulások
+Arrivals	Érkezések
+Departures from this stop	Indulások erről a megállóról
+Departures Nearby	Indulások a közelben
+Stops near this point	Megállók e pont közelében
+Departures could not be loaded. Check your internet connection.	Az indulásokat nem sikerült betölteni. Ellenőrizze az internetkapcsolatot.
+No departures found.	Nincs indulás.
+No arrivals found.	Nincs érkezés.
+Updated %s	Frissítve: %s
+Timetable data: Transitous and open-data providers	Menetrendi adatok: Transitous és nyílt adatszolgáltatók
+On time	Időben
+from %s	innen: %s
+Nearby	A közelben
+Find places near this place	Helyek keresése a közelben
+Nothing found nearby.	A közelben nincs találat.
+The map data service (Overpass) is busy. Try again in a moment.	A térképadat-szolgáltatás (Overpass) túlterhelt. Próbálja újra egy kis idő múlva.
+Platforms: %s	Kocsiállások: %s
+Opening hours: %s	Nyitvatartás: %s
+Phone: %s	Telefon: %s
+Website: %s	Weboldal: %s
+Restaurants	Éttermek
+Cafés	Kávézók
+Groceries	Élelmiszerboltok
+Fuel	Benzinkutak
+Charging Stations	Töltőállomások
+Parking	Parkolók
+Pharmacies	Gyógyszertárak
+Hospitals and Doctors	Kórházak és orvosok
+Hotels	Szállások
+Attractions	Látnivalók
+Public Transport Stops	Megállók
+Toilets	Mosdók
+Playgrounds	Játszóterek
+Bus	Busz
+Tram	Villamos
+Metro	Metró
+Train	Vonat
+Coach	Távolsági busz
+Trolleybus	Trolibusz
+Ferry	Komp
+Plane	Repülő
+Funicular	Sikló
+Cable car	Kabinos felvonó
+On-demand	Igény szerinti
+Shared bike	Közbringa

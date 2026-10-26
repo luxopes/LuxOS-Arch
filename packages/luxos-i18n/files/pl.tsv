@@ -3577,3 +3577,73 @@ Repair reinstalls: %s	Naprawa zainstaluje ponownie: %s
 System files were changed	Pliki systemowe zostały zmienione
 %d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.	Zmienione lub brakujące pliki systemowe: %d. LuxOS może je naprawić, instalując ponownie te pakiety.
 Invalid PROTECT (use 0 or 1)	Nieprawidłowe PROTECT (użyj 0 lub 1)
+# Mapy: MHD (Transitous), odjezdy, mista v okoli
+Transit	Komunikacja
+Public transport	Transport publiczny
+Leave Now	Wyjazd teraz
+Depart At	Wyjazd o
+Arrive By	Przyjazd do
+HH:MM	GG:MM
+Time today, e.g. 17:30 (press Enter)	Godzina dzisiaj, np. 17:30 (naciśnij Enter)
+Enter the time as HH:MM.	Wpisz godzinę w formacie GG:MM.
+Connection details	Szczegóły połączenia
+Data sources	Źródła danych
+Public transport: Transitous (MOTIS) with open timetable data, map data © OpenStreetMap contributors.	Transport publiczny: Transitous (MOTIS) z otwartymi danymi rozkładów jazdy, dane mapy © współtwórcy OpenStreetMap.
+No public transport connection found for this time.	Nie znaleziono połączenia transportem publicznym na ten czas.
+The public transport service is busy. Try again in a moment.	Usługa transportu publicznego jest przeciążona. Spróbuj ponownie za chwilę.
+The connections could not be loaded. Check your internet connection.	Nie udało się wczytać połączeń. Sprawdź połączenie z internetem.
+Direct	Bez przesiadek
+1 transfer	1 przesiadka
+%d transfers	Przesiadki: %d
+from %s at %s	z %s o %s
+Platform %s	Peron %s
+(changed from %s)	(zmiana z %s)
+1 stop	1 przystanek
+%d stops	Przystanki: %d
+Show departures from %s	Pokaż odjazdy z przystanku %s
+to %s	do %s
+Departures	Odjazdy
+Arrivals	Przyjazdy
+Departures from this stop	Odjazdy z tego przystanku
+Departures Nearby	Odjazdy w pobliżu
+Stops near this point	Przystanki w pobliżu tego punktu
+Departures could not be loaded. Check your internet connection.	Nie udało się wczytać odjazdów. Sprawdź połączenie z internetem.
+No departures found.	Brak odjazdów.
+No arrivals found.	Brak przyjazdów.
+Updated %s	Zaktualizowano %s
+Timetable data: Transitous and open-data providers	Dane rozkładów: Transitous i dostawcy otwartych danych
+On time	Punktualnie
+from %s	z %s
+Nearby	W pobliżu
+Find places near this place	Znajdź miejsca w pobliżu
+Nothing found nearby.	Nic nie znaleziono w pobliżu.
+The map data service (Overpass) is busy. Try again in a moment.	Usługa danych mapy (Overpass) jest przeciążona. Spróbuj ponownie za chwilę.
+Platforms: %s	Perony: %s
+Opening hours: %s	Godziny otwarcia: %s
+Phone: %s	Telefon: %s
+Website: %s	Strona: %s
+Restaurants	Restauracje
+Cafés	Kawiarnie
+Groceries	Sklepy spożywcze
+Fuel	Stacje paliw
+Charging Stations	Stacje ładowania
+Parking	Parkingi
+Pharmacies	Apteki
+Hospitals and Doctors	Szpitale i lekarze
+Hotels	Hotele
+Attractions	Atrakcje
+Public Transport Stops	Przystanki komunikacji
+Toilets	Toalety
+Playgrounds	Place zabaw
+Bus	Autobus
+Tram	Tramwaj
+Metro	Metro
+Train	Pociąg
+Coach	Autokar
+Trolleybus	Trolejbus
+Ferry	Prom
+Plane	Samolot
+Funicular	Kolej linowo-terenowa
+Cable car	Kolej gondolowa
+On-demand	Na żądanie
+Shared bike	Rower miejski
