@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=41
+pkgrel=42
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -40,8 +40,8 @@ depends=(
     # Zvuk s prioritou v realnem case (PipeWire bez praskani pri zatezi) a pravidla Wi-Fi podle
     # zeme (bez regulatory.db jen omezene kanaly a vykon)
     rtkit wireless-regdb
-    # Snimek obrazovky: obrazek ve schrance drzi xclip i po skonceni programu
-    xclip
+    # Snimek obrazovky: obrazek ve schrance drzi xclip i po skonceni programu; kurzor ve snimku (XFixes)
+    xclip libxfixes
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
     # Dock, Hledani, prihlaseni
     # rofi z [luxos]: Launchpad potrebuje -hover-no-scroll (packages/rofi)
@@ -99,6 +99,10 @@ build() {
     # Proces relace luxos-hub s okny Ovladaciho centra a Kalendare (drive tri programy v Pythonu + GTK):
     # jeden program, pod jmeny luxos-control-center a luxos-calendar jen posila signal bezicimu hubu
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-hub.lsl" luxos-hub
+    # Snimek obrazovky: lista bezi v luxos-hub (okna pripravena predem); luxos-screenshot je maly klient
+    # jen s libc, bez hubu spusti samostatny proces luxos-screenshot-ui se stejnym modulem luxos_shot
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-screenshot.lsl" luxos-screenshot
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-screenshot-ui.lsl" luxos-screenshot-ui
 }
 
 package() {
@@ -112,7 +116,9 @@ package() {
         "$f/xdg/xfce4/xfconf/xfce-perchannel-xml" "$pkgdir/etc/xdg/luxos/xfce4/xfconf/xfce-perchannel-xml"
 
     install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar luxos-session-cover \
-        luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub
+        luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
+        luxos-screenshot
+    install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
     # Ovladaci centrum a Kalendar jsou tentyz program (chova se podle jmena); profily panelu uzivatelu
     # volaji "luxos-control-center --panel", relace "luxos-hub"
     ln -s luxos-hub "$pkgdir/usr/bin/luxos-control-center"
