@@ -133,7 +133,7 @@ end
 
 function notify(change, before, key, state):
     m = message(change, before)
-    call glib.spawn_capture(["notify-send", "-a", "LuxOS", "-i", "preferences-system-time", "-w",
+    call glib.spawn_capture(["notify-send", "-a", "LuxOS", "-h", "boolean:x-luxos-keep:true", "-i", "preferences-system-time", "-w",
                              "-A", "off=" + i18n.T("Turn Off"), m[0], m[1]], on_action, 0)
     state[key] = String(change)
     call glib.mkdir_p(config_dir())

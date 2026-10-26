@@ -1,0 +1,38 @@
+diff --git a/xfce4-notifyd/xfce-notify-daemon.c b/xfce4-notifyd/xfce-notify-daemon.c
+index 106bf80..51864b4 100644
+--- a/xfce4-notifyd/xfce-notify-daemon.c
++++ b/xfce4-notifyd/xfce-notify-daemon.c
+@@ -1197,6 +1197,8 @@ notify_notify(XfceNotifyFdoGBus *skeleton,
+     gboolean value_hint_set = FALSE;
+     gboolean icon_only = FALSE;
+     gboolean transient = FALSE;
++    /* LuxOS: do historie jen oznameni s hintem x-luxos-keep (zmena casu, Kalendar) */
++    gboolean luxos_keep = FALSE;
+     gboolean actions_are_icon_names = FALSE;
+     gboolean log_level_ok = FALSE;
+     gboolean log_level_apps_ok = FALSE;
+@@ -1283,6 +1285,16 @@ notify_notify(XfceNotifyFdoGBus *skeleton,
+         {
+             transient = TRUE;
+             g_variant_unref(value);
++        }
++        else if (g_strcmp0 (key, "x-luxos-keep") == 0)
++        {
++            if (g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
++                luxos_keep = g_variant_get_boolean (value);
++            else if (g_variant_is_of_type (value, G_VARIANT_TYPE_BYTE))
++                luxos_keep = g_variant_get_byte (value) != 0;
++            else if (g_variant_is_of_type (value, G_VARIANT_TYPE_INT32))
++                luxos_keep = g_variant_get_int32 (value) != 0;
++            g_variant_unref(value);
+         } else if (g_strcmp0(key, "action-icons") == 0) {
+             if (g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
+                 actions_are_icon_names = g_variant_get_boolean(value);
+@@ -1412,6 +1424,7 @@ notify_notify(XfceNotifyFdoGBus *skeleton,
+         log_level_ok &&
+         log_level_apps_ok &&
+         !transient &&
++        luxos_keep &&
+         !g_hash_table_contains(xndaemon->excluded_from_log, new_app_name))
+     {
+         icon_id = xfce_notify_log_cache_icon(image_data,
