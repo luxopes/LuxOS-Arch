@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """LuxOS - setrice obrazovky (styly vybira --style):
 
-  desktop     tapeta plochy uzivatele a velke hodiny (vychozi; jako zamykaci obrazovka macOS)
+  desktop     tapeta plochy uzivatele a velke hodiny (vychozi; jako zamykaci obrazovka macOS) - presne
+              jako klidovy stav luxos-greeter a zamykaciho dialogu xfce4-screensaver LuxOS
+              (luxos-lock-ui.c), takze prechod setric -> dialog s heslem je plynuly
   wallpapers  tapety LuxOS s pomalym prolinanim a velke hodiny
   clock       velke hodiny na cernem pozadi, pomalu se posouvaji (setri OLED)
   aurora      plynule se prelevajici barevne svetlo
@@ -12,6 +14,7 @@ xfce4-screensaver ho spousti s XSCREENSAVER_WINDOW (X okno, do ktereho se kresli
 Bez teto promenne (nahled v nastaveni, test) otevre vlastni okno; --window na cele
 obrazovce, jinak 640x400.
 """
+import configparser
 import glob
 import math
 import os
@@ -27,7 +30,9 @@ import gi
 gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
+gi.require_version("Pango", "1.0")
+gi.require_version("PangoCairo", "1.0")
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, Pango, PangoCairo  # noqa: E402
 
 WALLS = sorted(glob.glob("/usr/share/backgrounds/luxos/luxos-*.jpg"))
 WALLS = sorted({os.path.realpath(w) for w in WALLS if not w.endswith(("luxos-dark.jpg", "luxos-light.jpg"))})
@@ -39,6 +44,46 @@ FPS = 15
 STYLES = ("desktop", "wallpapers", "clock", "aurora", "photos", "logo", "blank")
 PHOTO_EXT = (".jpg", ".jpeg", ".png", ".webp")
 LOGO = "/usr/share/icons/hicolor/scalable/apps/luxos-logo.svg"
+GREETER_CONF = os.environ.get("LUXOS_GREETER_CONF", "/etc/lightdm/luxos-greeter.conf")
+
+
+def greeter_formats():
+    """Pismo a formaty hodin/data jako luxos-greeter (stejny soubor nastaveni)."""
+    lang = (os.environ.get("LC_ALL") or os.environ.get("LC_TIME") or os.environ.get("LANG") or "en")
+    lang = lang.split("_")[0].split(".")[0] or "en"
+    cp = configparser.ConfigParser(interpolation=None)
+    try:
+        cp.read(GREETER_CONF, encoding="utf-8")
+    except (OSError, configparser.Error):
+        pass
+    g = cp["greeter"] if cp.has_section("greeter") else {}
+    v = str(g.get("clock-24h", "")).strip().lower()
+    h24 = lang != "en" if v in ("", "auto") else v in ("1", "true", "yes", "on")
+    return (str(g.get("font", "")).strip() or "Inter",
+            str(g.get("clock-format", "")).strip() or ("%-H:%M" if h24 else "%-I:%M"),
+            str(g.get("date-format", "")).strip() or ("%A %-d. %B" if lang == "cs" else "%A, %B %-d"))
+
+
+def text_layout(cr, text, px, weight, family):
+    lay = PangoCairo.create_layout(cr)
+    fd = Pango.FontDescription()
+    fd.set_family(f"{family},Inter,Cantarell,Noto Sans,sans-serif")
+    fd.set_weight(weight)
+    fd.set_absolute_size(px * Pango.SCALE)
+    lay.set_font_description(fd)
+    lay.set_text(text, -1)
+    return lay
+
+
+def shadow_text(cr, lay, x, y, alpha, blur):
+    # mekky stin: nekolik posunutych kopii s malou pruhlednosti (jako luxos-greeter)
+    for dx, dy in ((0, 1), (0, 2), (-1, 1.5), (1, 1.5), (0, 3)):
+        cr.move_to(x + dx * blur * 0.35, y + dy * blur * 0.45)
+        cr.set_source_rgba(0, 0, 0, 0.055 * alpha)
+        PangoCairo.show_layout(cr, lay)
+    cr.move_to(x, y)
+    cr.set_source_rgba(1, 1, 1, alpha)
+    PangoCairo.show_layout(cr, lay)
 
 
 def desktop_wallpaper(monitor=None):
@@ -98,6 +143,8 @@ class Saver:
             self.slides = [desktop_wallpaper(monitor)]
         self.logo = None
         self.phase = random.random() * 100
+        self.frame = None           # desktop: tapeta s ztmavenim (kresli se jen jednou)
+        self.formats = greeter_formats() if self.style == "desktop" else None
 
     def pixbuf(self, path, w, h):
         key = (path, w, h)
@@ -120,11 +167,18 @@ class Saver:
             cr.set_source_rgb(0.04, 0.04, 0.08)
         cr.paint()
         if self.style == "desktop":
-            # tapeta stoji (stejna jako na plose), jen hodiny
-            self.paint_wall(cr, self.slides[0], w, h, 1.0, None)
-            cr.set_source_rgba(0, 0, 0, 0.28)
+            # tapeta stoji (stejna jako na plose), jen hodiny - jako klid luxos-greeter
+            if self.frame is None or self.frame[1:] != (w, h):
+                surf = cairo.ImageSurface(cairo.FORMAT_RGB24, max(1, w), max(1, h))
+                c = cairo.Context(surf)
+                self.paint_wall(c, self.slides[0], w, h, 1.0, None)
+                c.set_source_rgba(0, 0, 0, 0.10)
+                c.paint()
+                self.frame = (surf, w, h)
+                self.images = {}
+            cr.set_source_surface(self.frame[0], 0, 0)
             cr.paint()
-            self.clock(cr, w, h)
+            self.greeter_clock(cr, w, h)
         elif self.style in ("wallpapers", "photos"):
             if self.slides:
                 idx = int(t // SLIDE)
@@ -195,17 +249,43 @@ class Saver:
         cr.paint_with_alpha(0.9)
 
     def paint_wall(self, cr, path, w, h, alpha, t):
+        if t is None:      # bez pohybu, vystredene (jako tapeta plochy "Zvetsit" a luxos-greeter)
+            try:
+                src = GdkPixbuf.Pixbuf.new_from_file(path)
+            except GLib.Error:
+                return
+            sc = max(w / src.get_width(), h / src.get_height())
+            tw, th = max(1, round(src.get_width() * sc)), max(1, round(src.get_height() * sc))
+            Gdk.cairo_set_source_pixbuf(cr, src.scale_simple(tw, th, GdkPixbuf.InterpType.BILINEAR),
+                                        (w - tw) / 2, (h - th) / 2)
+            cr.paint_with_alpha(alpha)
+            return
         img = self.pixbuf(path, w, h)
         if not img:
             return
         pix, sw, sh = img
-        if t is None:      # bez pohybu, vystredene (jako tapeta plochy "Zvetsit")
-            dx, dy = (sw - w) / 2, (sh - h) / 2
-        else:              # pomaly pohyb (Ken Burns) po zbyle plose obrazku
-            dx = (sw - w) * (0.5 + 0.5 * math.sin(t / 37))
-            dy = (sh - h) * (0.5 + 0.5 * math.cos(t / 53))
+        # pomaly pohyb (Ken Burns) po zbyle plose obrazku
+        dx = (sw - w) * (0.5 + 0.5 * math.sin(t / 37))
+        dy = (sh - h) * (0.5 + 0.5 * math.cos(t / 53))
         Gdk.cairo_set_source_pixbuf(cr, pix, -dx, -dy)
         cr.paint_with_alpha(alpha)
+
+    def greeter_clock(self, cr, w, h):
+        """Datum a velke tenke hodiny presne jako luxos-greeter v klidu (draw_bg, t = 0)."""
+        font, clock_fmt, date_fmt = self.formats
+        u = max(0.55, h / 1080.0)
+        now = time.localtime()
+        try:
+            clock, date = time.strftime(clock_fmt, now), time.strftime(date_fmt, now)
+        except ValueError:
+            clock, date = time.strftime("%H:%M", now), time.strftime("%x", now)
+        y0 = h * 0.105
+        dl = text_layout(cr, date, 27 * u, Pango.Weight.SEMIBOLD, font)
+        _ink, logi = dl.get_pixel_extents()
+        shadow_text(cr, dl, w / 2 - logi.width / 2, y0, 0.92, 2 * u)
+        cl = text_layout(cr, clock, 180 * u, Pango.Weight.ULTRALIGHT, font)
+        ink, _l = cl.get_pixel_extents()
+        shadow_text(cr, cl, w / 2 - ink.x - ink.width / 2, y0 + logi.height + 14 * u - ink.y, 1.0, 4 * u)
 
     def clock(self, cr, w, h, alpha=0.95):
         now = time.localtime()
