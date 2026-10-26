@@ -1,0 +1,40 @@
+# Maintainer: LuxOS Team
+# LuxOS Zalohy: automaticke prirustkove zalohy domovske slozky na externi disk (USB) nebo sitovy disk
+# (SFTP, SMB), protrideni (hodinove 24 h, denni mesic, tydenni starsi), obnova souboru podle casu
+# a obnova vseho na novem systemu (luxos-backup restore --all --source DISK, i z LuxOS Recovery).
+# Samostatny balik, ne soucast luxos-care: zalohy bezi pod uzivatelem (uzivatelsky casovac systemd,
+# klicenka, disky pripojene pres udisks v jeho relaci), luxos-care je systemova sluzba roota.
+
+pkgname=luxos-backup
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS Backups - automatic incremental backups to an external or network disk and restoring files"
+arch=(any)
+url="https://github.com/luxopes/LuxOS-Arch"
+license=(GPL-3.0-or-later)
+# rsync: kopie s pevnymi odkazy; udisks2: pripojeni, odemceni a priprava disku bez roota (polkit);
+# libsecret: secret-tool (hesla k sitovym a sifrovanym diskum); btrfs-progs: snimky na disku btrfs
+depends=(python python-gobject gtk3 rsync udisks2 libsecret libnotify btrfs-progs openssh util-linux luxos-i18n)
+optdepends=('gvfs-smb: backups to a shared folder (SMB)'
+            'networkmanager: pause network-disk backups on a metered connection')
+checkdepends=(python)
+install=luxos-backup.install
+
+check() {
+    cd "$startdir"
+    # okno se testuje jen pod xvfb-run (tests/test_gui.py se samo preskoci)
+    python -m unittest discover -s tests
+}
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 "$f/luxos-backup" "$pkgdir/usr/bin/luxos-backup"
+    install -Dm755 "$f/luxos-backup-gui" "$pkgdir/usr/bin/luxos-backup-gui"
+    install -Dm755 "$f/luxos-backup-askpass" "$pkgdir/usr/lib/luxos/backup/luxos-backup-askpass"
+    install -Dm644 "$f/luxos_backup.py" "$pkgdir/usr/lib/luxos/python/luxos_backup.py"
+    python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
+    install -Dm644 -t "$pkgdir/usr/lib/systemd/user" "$f"/systemd/*
+    install -Dm644 "$f/70-luxos-backup.rules" "$pkgdir/usr/lib/udev/rules.d/70-luxos-backup.rules"
+    install -Dm644 "$f/luxos-backup.desktop" "$pkgdir/usr/share/applications/luxos-backup.desktop"
+    install -Dm644 "$f/luxos-backup.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-backup.svg"
+}

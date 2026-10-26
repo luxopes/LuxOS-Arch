@@ -1,0 +1,754 @@
+#!/usr/bin/env python3
+"""LuxOS Zalohy - okno: stav zaloh, disky, volby, vyjimky a obnova souboru podle casu.
+
+  luxos-backup-gui                 hlavni okno
+  luxos-backup-gui --add DEVICE    rovnou pridani disku (z upozorneni po pripojeni disku)
+  luxos-backup-gui --restore       rovnou prochazeni zaloh
+"""
+import os
+import subprocess
+import sys
+import threading
+import time
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, "/usr/lib/luxos/python")
+import luxos_backup as core  # noqa: E402
+from luxos_backup import _  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GLib, Gtk, Pango  # noqa: E402
+
+APP = "luxos-backup"
+CSS = b"""
+@define-color lb_accent #3d7bff;
+@define-color lb_danger #e5484d;
+@define-color lb_ok #30a46c;
+.hero-title { font-size: 20px; font-weight: 800; }
+.hero-sub { font-size: 12px; opacity: 0.75; }
+.hero-sub.error { color: @lb_danger; opacity: 1; }
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }
+.row { padding: 8px 14px; }
+.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
+.hint { font-size: 11px; opacity: 0.6; }
+.badge { border-radius: 8px; padding: 1px 7px; font-size: 10px; font-weight: 700; color: #ffffff; background-color: @lb_ok; }
+.primary { background-image: none; background-color: @lb_accent; color: #ffffff; border-color: @lb_accent; }
+.danger { color: @lb_danger; }
+.timeline row { padding: 8px 12px; }
+.timeline .day { font-weight: 700; font-size: 11px; opacity: 0.6; padding: 10px 12px 2px; }
+.path { font-family: monospace; font-size: 11px; opacity: 0.75; }
+"""
+
+
+def setup_css():
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+
+def human(n):
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if abs(n) < 1000 or unit == "TB":
+            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+        n /= 1000.0
+    return str(n)
+
+
+def when_text(t):
+    """'Dnes 14:00', 'Vcera 9:00' nebo datum."""
+    if not t:
+        return _("Never")
+    lt = time.localtime(t)
+    today = time.localtime()
+    hm = time.strftime("%H:%M", lt)
+    if lt[:3] == today[:3]:
+        return _("Today %s") % hm
+    if lt[:3] == time.localtime(time.time() - 86400)[:3]:
+        return _("Yesterday %s") % hm
+    return time.strftime("%Y-%m-%d %H:%M", lt)
+
+
+def day_text(t):
+    lt = time.localtime(t)
+    if lt[:3] == time.localtime()[:3]:
+        return _("Today")
+    if lt[:3] == time.localtime(time.time() - 86400)[:3]:
+        return _("Yesterday")
+    return time.strftime("%Y-%m-%d", lt)
+
+
+def in_thread(work, done):
+    """work() v jinem vlakne, done(vysledek, chyba) zpet v hlavnim."""
+    def go():
+        try:
+            res, err = work(), None
+        except Exception as e:      # noqa: BLE001 - chybu ukaze okno
+            res, err = None, e
+        GLib.idle_add(lambda: done(res, err) and False)
+    threading.Thread(target=go, daemon=True).start()
+
+
+def message(parent, title, text, kind=Gtk.MessageType.INFO):
+    d = Gtk.MessageDialog(transient_for=parent, modal=True, message_type=kind, buttons=Gtk.ButtonsType.OK,
+                          text=title)
+    d.format_secondary_text(text)
+    d.run()
+    d.destroy()
+
+
+def confirm(parent, title, text, ok_label, danger=False):
+    d = Gtk.MessageDialog(transient_for=parent, modal=True, message_type=Gtk.MessageType.QUESTION,
+                          buttons=Gtk.ButtonsType.NONE, text=title)
+    d.format_secondary_text(text)
+    d.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+    b = d.add_button(ok_label, Gtk.ResponseType.OK)
+    b.get_style_context().add_class("destructive-action" if danger else "suggested-action")
+    d.set_default_response(Gtk.ResponseType.CANCEL)
+    r = d.run()
+    d.destroy()
+    return r == Gtk.ResponseType.OK
+
+
+class Group(Gtk.Box):
+    """Skupina radku v ramecku (jako v ostatnich aplikacich LuxOS)."""
+
+    def __init__(self):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        self.get_style_context().add_class("group")
+
+    def clear(self):
+        for c in self.get_children():
+            self.remove(c)
+
+    def row(self, title, widget=None, hint=None, extra=None):
+        box = Gtk.Box(spacing=12)
+        box.get_style_context().add_class("row")
+        if self.get_children():
+            box.get_style_context().add_class("row-sep")
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        head = Gtk.Box(spacing=6)
+        lab = Gtk.Label(label=title, xalign=0, ellipsize=Pango.EllipsizeMode.MIDDLE)
+        head.pack_start(lab, False, False, 0)
+        if extra:
+            head.pack_start(extra, False, False, 0)
+        text.pack_start(head, False, False, 0)
+        if hint:
+            h = Gtk.Label(label=hint, xalign=0, wrap=True)
+            h.get_style_context().add_class("hint")
+            text.pack_start(h, False, False, 0)
+        box.pack_start(text, True, True, 0)
+        if widget:
+            widget.set_valign(Gtk.Align.CENTER)
+            box.pack_end(widget, False, False, 0)
+        self.pack_start(box, False, False, 0)
+        box.show_all()
+        return box
+
+
+def section(page, title):
+    lab = Gtk.Label(label=title, xalign=0)
+    lab.get_style_context().add_class("group-title")
+    page.pack_start(lab, False, False, 0)
+    g = Group()
+    page.pack_start(g, False, False, 0)
+    return g
+
+
+# ---- pridani disku -------------------------------------------------------------------
+class AddDiskDialog(Gtk.Dialog):
+    """Vyber externiho nebo sitoveho disku; volitelne sifrovani pri priprave."""
+
+    def __init__(self, parent, preselect=None):
+        super().__init__(title=_("Add Backup Disk"), transient_for=parent, modal=True, use_header_bar=True)
+        self.set_default_size(520, -1)
+        self.get_header_bar().set_show_close_button(True)
+        self.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        self.ok = self.add_button(_("Use Disk"), Gtk.ResponseType.OK)
+        self.ok.get_style_context().add_class("suggested-action")
+        box = self.get_content_area()
+        box.set_spacing(8)
+        box.set_border_width(16)
+
+        lab = Gtk.Label(label=_("External disks"), xalign=0)
+        lab.get_style_context().add_class("group-title")
+        box.pack_start(lab, False, False, 0)
+        self.disks = core.external_disks()
+        self.group = Group()
+        box.pack_start(self.group, False, False, 0)
+        first = None
+        self.radios = []
+        for d in self.disks:
+            rb = Gtk.RadioButton.new_from_widget(first)
+            first = first or rb
+            fs = d["inner_fstype"] or d["fstype"] or _("empty")
+            hint = f"{human(d['size'])} · {fs}" + (" · " + _("encrypted") if d["encrypted"] else "")
+            self.group.row(d["label"] or d["model"] or d["path"], rb, hint)
+            rb.set_active(d["path"] == preselect)
+            self.radios.append((rb, d))
+        if not self.disks:
+            self.group.row(_("No external disk is connected."), hint=_("Connect a USB disk, or use a network disk."))
+
+        lab = Gtk.Label(label=_("Network disk"), xalign=0)
+        lab.get_style_context().add_class("group-title")
+        box.pack_start(lab, False, False, 0)
+        net = Group()
+        box.pack_start(net, False, False, 0)
+        self.net_radio = Gtk.RadioButton.new_from_widget(first)
+        self.address = Gtk.Entry(placeholder_text="sftp://user@server/folder  ·  smb://user@server/share",
+                                 width_chars=34)
+        self.address.connect("changed", lambda *_a: self.net_radio.set_active(bool(self.address.get_text())))
+        self.net_pw = Gtk.Entry(visibility=False, placeholder_text=_("Password"),
+                                input_purpose=Gtk.InputPurpose.PASSWORD)
+        self.net_pw.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "view-reveal-symbolic")
+        self.net_pw.connect("icon-press", lambda e, *_a: e.set_visibility(not e.get_visibility()))
+        addr_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        addr_box.pack_start(self.address, False, False, 0)
+        addr_box.pack_start(self.net_pw, False, False, 0)
+        net.row(_("Server address"), self.net_radio,
+                _("The password is kept in the keyring. A shared folder (SMB) gets one backup image file."))
+        net.pack_start(addr_box, False, False, 0)
+        addr_box.set_margin_start(14)
+        addr_box.set_margin_end(14)
+        addr_box.set_margin_bottom(10)
+        if not self.disks:
+            self.net_radio.set_active(True)
+
+        enc = Group()
+        box.pack_start(enc, False, False, 8)
+        self.encrypt = Gtk.Switch()
+        enc.row(_("Encrypt backups"), self.encrypt,
+                _("The disk is erased and protected with a password. Without the password nobody can "
+                  "read the backups – keep it safe."))
+        self.pw1 = Gtk.Entry(visibility=False, placeholder_text=_("Password for the backup disk"))
+        self.pw2 = Gtk.Entry(visibility=False, placeholder_text=_("Repeat the password"))
+        self.pw_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_start=14, margin_end=14,
+                              margin_bottom=10)
+        self.pw_box.pack_start(self.pw1, False, False, 0)
+        self.pw_box.pack_start(self.pw2, False, False, 0)
+        enc.pack_start(self.pw_box, False, False, 0)
+        self.encrypt.connect("notify::active", lambda *_a: self.pw_box.set_visible(self.encrypt.get_active()))
+        self.show_all()
+        self.pw_box.set_visible(False)
+
+    def choice(self):
+        """("local", disk) | ("net", adresa, heslo) a heslo sifrovani (nebo None, nebo False = nesouhlasi)."""
+        pw = None
+        if self.encrypt.get_active():
+            pw = self.pw1.get_text()
+            if not pw or pw != self.pw2.get_text():
+                return None, False
+        if self.net_radio.get_active():
+            return ("net", self.address.get_text().strip(), self.net_pw.get_text()), pw
+        for rb, d in self.radios:
+            if rb.get_active():
+                return ("local", d), pw
+        return None, pw
+
+
+# ---- hlavni okno ---------------------------------------------------------------------
+class BackupWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Backups"))
+        self.set_default_size(760, 680)
+        self.set_icon_name(APP)
+        self.header = Gtk.HeaderBar(show_close_button=True, title=_("Backups"))
+        self.set_titlebar(self.header)
+        self.back = Gtk.Button.new_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON)
+        self.back.set_tooltip_text(_("Back"))
+        self.back.connect("clicked", lambda _b: self.show_main())
+        self.header.pack_start(self.back)
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        self.add(self.stack)
+        self.cfg = core.load_config()
+        self.build_main()
+        self.browser = None
+        self.connect("destroy", lambda _w: self.browser and self.browser.close())
+        GLib.timeout_add_seconds(2, self.poll)
+
+    # ---- hlavni stranka ----
+    def build_main(self):
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin=22)
+        scroll.add(page)
+        self.stack.add_named(scroll, "main")
+
+        hero = Gtk.Box(spacing=16)
+        icon = Gtk.Image.new_from_icon_name(APP, Gtk.IconSize.DIALOG)
+        icon.set_pixel_size(72)
+        hero.pack_start(icon, False, False, 0)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER, spacing=4)
+        self.title = Gtk.Label(xalign=0)
+        self.title.get_style_context().add_class("hero-title")
+        self.sub = Gtk.Label(xalign=0, wrap=True)
+        self.sub.get_style_context().add_class("hero-sub")
+        self.progress = Gtk.ProgressBar(no_show_all=True)
+        texts.pack_start(self.title, False, False, 0)
+        texts.pack_start(self.sub, False, False, 0)
+        texts.pack_start(self.progress, False, False, 0)
+        hero.pack_start(texts, True, True, 0)
+        btns = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, valign=Gtk.Align.CENTER)
+        self.now_btn = Gtk.Button(label=_("Back Up Now"))
+        self.now_btn.get_style_context().add_class("primary")
+        self.now_btn.connect("clicked", self.on_now)
+        self.restore_btn = Gtk.Button(label=_("Restore Files…"))
+        self.restore_btn.connect("clicked", lambda _b: self.show_browser())
+        btns.pack_start(self.now_btn, False, False, 0)
+        btns.pack_start(self.restore_btn, False, False, 0)
+        hero.pack_end(btns, False, False, 0)
+        page.pack_start(hero, False, False, 6)
+
+        self.disks_group = section(page, _("Backup disks"))
+        add = Gtk.Button(label=_("Add Disk…"), halign=Gtk.Align.START, margin_top=6)
+        add.connect("clicked", lambda _b: self.add_disk())
+        page.pack_start(add, False, False, 0)
+
+        opts = section(page, _("Options"))
+        for key, title, hint in (
+                ("auto", _("Back up automatically"),
+                 _("Every hour while the computer is charging. Paused on battery, in Battery Saver and – for "
+                   "network disks – on a metered connection.")),
+                ("system", _("Back up system settings"),
+                 _("Readable files from /etc and the list of installed apps.")),
+                ("downloads", _("Back up the Downloads folder"), None),
+                ("vms", _("Back up virtual machines"), _("Disk images of virtual machines are very large."))):
+            sw = Gtk.Switch(active=bool(self.cfg.get(key, core.DEFAULTS[key])))
+            sw.connect("notify::active", self.on_option, key)
+            opts.row(title, sw, hint)
+
+        self.excl_group = section(page, _("Excluded folders"))
+        hint = Gtk.Label(label=_("Caches and the trash are never backed up."), xalign=0)
+        hint.get_style_context().add_class("hint")
+        page.pack_start(hint, False, False, 2)
+        addx = Gtk.Button(label=_("Exclude Folder…"), halign=Gtk.Align.START, margin_top=4)
+        addx.connect("clicked", lambda _b: self.add_exclude())
+        page.pack_start(addx, False, False, 0)
+        self.fill_disks()
+        self.fill_excludes()
+        self.refresh_status()
+
+    def fill_disks(self):
+        g = self.disks_group
+        g.clear()
+        last = core.load_status().get("last_by_disk") or {}
+        if not self.cfg["disks"]:
+            g.row(_("No backup disk yet"), hint=_("Add an external or network disk to start backing up."))
+        for d in self.cfg["disks"]:
+            kind = {"local": _("External disk"), "sftp": _("Network disk (SFTP)"),
+                    "smb": _("Network disk (SMB)")}.get(d["kind"], d["kind"])
+            rm = Gtk.Button.new_from_icon_name("list-remove-symbolic", Gtk.IconSize.BUTTON)
+            rm.set_tooltip_text(_("Stop using this disk"))
+            rm.connect("clicked", self.on_remove_disk, d)
+            badge = None
+            if d.get("encrypted"):
+                badge = Gtk.Label(label=_("Encrypted"))
+                badge.get_style_context().add_class("badge")
+            g.row(core.disk_label(d), rm, f"{kind} · " + _("Last backup: %s") % when_text(last.get(d["id"])),
+                  extra=badge)
+
+    def fill_excludes(self):
+        g = self.excl_group
+        g.clear()
+        if not self.cfg["excludes"]:
+            g.row(_("Nothing excluded"))
+        for e in self.cfg["excludes"]:
+            rm = Gtk.Button.new_from_icon_name("list-remove-symbolic", Gtk.IconSize.BUTTON)
+            rm.set_tooltip_text(_("Back up again"))
+            rm.connect("clicked", self.on_remove_exclude, e)
+            h = core.home().rstrip("/") + "/"
+            g.row("~/" + e[len(h):] if e.startswith(h) else e, rm)
+
+    def refresh_status(self):
+        st = core.load_status()
+        running = st.get("state") == "running" and self.backup_alive()
+        sub_ctx = self.sub.get_style_context()
+        sub_ctx.remove_class("error")
+        if running:
+            self.title.set_text(_("Backing up…"))
+            self.sub.set_text(_("You can keep working, or close this window."))
+            self.progress.show()
+            self.progress.set_fraction(min(1.0, (st.get("progress") or 0) / 100))
+        else:
+            self.progress.hide()
+            last = st.get("last_success")
+            self.title.set_text(_("Last backup: %s") % when_text(last) if last else _("No backups yet"))
+            if not self.cfg["disks"]:
+                self.sub.set_text(_("Add a backup disk to protect your files."))
+            elif st.get("state") == "error" and st.get("last_error"):
+                self.sub.set_text(_("Last backup failed: %s") % st["last_error"])
+                sub_ctx.add_class("error")
+            elif not self.cfg.get("auto", True):
+                self.sub.set_text(_(core.PAUSE_TEXT["off"]))
+            elif st.get("reason") in core.PAUSE_TEXT:
+                self.sub.set_text(_(core.PAUSE_TEXT[st["reason"]]))
+            else:
+                self.sub.set_text(_("Backs up every hour."))
+        self.now_btn.set_sensitive(bool(self.cfg["disks"]) and not running)
+        self.restore_btn.set_sensitive(bool(self.cfg["disks"]))
+
+    def backup_alive(self):
+        """Stav "probiha" plati, jen kdyz proces zalohy jeste bezi (jinak spadl). Zamek se tu
+        nezkousi - zaloha spustena casovacem by ho v tu chvili nedostala."""
+        st = core.load_status()
+        if time.time() - (st.get("started") or 0) < 15:
+            return True
+        pid = st.get("pid")
+        return bool(pid) and os.path.exists(f"/proc/{pid}")
+
+    def poll(self):
+        if self.stack.get_visible_child_name() == "main":
+            was = getattr(self, "_running", False)
+            self.refresh_status()
+            self._running = not self.now_btn.get_sensitive() and bool(self.cfg["disks"])
+            if was and not self._running:
+                self.fill_disks()
+        return True
+
+    def on_now(self, _b):
+        subprocess.Popen(["luxos-backup", "now"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+        core.update_status(state="running", progress=0, started=time.time(), pid=None)
+        self.now_btn.set_sensitive(False)
+        GLib.timeout_add(700, lambda: self.refresh_status() and False)
+
+    def on_option(self, sw, _p, key):
+        self.cfg = core.load_config()
+        self.cfg[key] = sw.get_active()
+        core.save_config(self.cfg)
+        self.refresh_status()
+
+    def on_remove_disk(self, _b, disk):
+        if not confirm(self, _("Stop backing up to %s?") % core.disk_label(disk),
+                       _("Backups already on the disk are kept."), _("Stop Using")):
+            return
+        self.cfg = core.load_config()
+        core.remove_disk(self.cfg, disk["id"])
+        self.cfg = core.load_config()
+        self.fill_disks()
+        self.refresh_status()
+
+    def add_exclude(self):
+        d = Gtk.FileChooserDialog(title=_("Exclude Folder"), transient_for=self,
+                                  action=Gtk.FileChooserAction.SELECT_FOLDER)
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Exclude"), Gtk.ResponseType.OK)
+        d.set_current_folder(core.home())
+        if d.run() == Gtk.ResponseType.OK:
+            path = d.get_filename()
+            self.cfg = core.load_config()
+            if path and path not in self.cfg["excludes"]:
+                self.cfg["excludes"].append(path)
+                core.save_config(self.cfg)
+        d.destroy()
+        self.fill_excludes()
+
+    def on_remove_exclude(self, _b, entry):
+        self.cfg = core.load_config()
+        self.cfg["excludes"] = [e for e in self.cfg["excludes"] if e != entry]
+        core.save_config(self.cfg)
+        self.fill_excludes()
+
+    # ---- pridani disku ----
+    def add_disk(self, preselect=None):
+        dlg = AddDiskDialog(self, preselect)
+        while True:
+            if dlg.run() != Gtk.ResponseType.OK:
+                dlg.destroy()
+                return
+            what, pw = dlg.choice()
+            if pw is False:
+                message(dlg, _("The passwords do not match."), _("Type the same password twice."),
+                        Gtk.MessageType.WARNING)
+                continue
+            if what is None or (what[0] == "net" and not what[1]):
+                continue
+            break
+        dlg.destroy()
+        cfg = core.load_config()
+        if what[0] == "net":
+            addr, netpw = what[1], what[2] or None
+            if addr.startswith("smb://"):
+                work = lambda: core.add_smb_disk(cfg, addr, netpw, encrypt_pw=pw)  # noqa: E731
+            else:
+                work = lambda: core.add_sftp_disk(cfg, addr, netpw)  # noqa: E731
+        else:
+            d = what[1]
+            fs = d["inner_fstype"] or d["fstype"]
+            usable = d["mount"] and fs in core.POSIX_FS and not pw
+            if usable:
+                work = lambda: core.add_local_disk(cfg, d["mount"], d["label"] or d["model"])  # noqa: E731
+            else:
+                why = (_("Encryption needs an empty disk.") if pw else
+                       _("This disk is not ready for backups (%s).") % (fs or _("empty")))
+                if not confirm(self, _("Erase %s?") % (d["label"] or d["model"] or d["path"]),
+                               why + " " + _("Everything on it will be erased and it will be prepared for "
+                                             "backups. This cannot be undone."), _("Erase and Use"), danger=True):
+                    return
+                work = lambda: core.prepare_disk(cfg, d["path"], pw, d["label"] or d["model"])  # noqa: E731
+        self.title.set_text(_("Preparing the disk…"))
+        self.sub.set_text("")
+
+        def done(disk, err):
+            if err:
+                message(self, _("The disk could not be used"), str(err), Gtk.MessageType.ERROR)
+            self.cfg = core.load_config()
+            self.fill_disks()
+            self.refresh_status()
+            if disk and not err and confirm(self, _("Back up now?"),
+                                            _("The first backup can take a while. You can keep working."),
+                                            _("Back Up Now")):
+                self.on_now(None)
+        in_thread(work, done)
+
+    # ---- obnova ----
+    def show_browser(self):
+        if self.browser is None:
+            self.browser = Browser(self)
+            self.stack.add_named(self.browser, "browse")
+        self.browser.show_all()
+        self.stack.set_visible_child_name("browse")
+        self.back.show()
+        self.header.set_subtitle(_("Restore files"))
+        self.browser.load()
+
+    def show_main(self):
+        self.stack.set_visible_child_name("main")
+        self.back.hide()
+        self.header.set_subtitle(None)
+        if self.browser:
+            self.browser.close()
+
+
+class Browser(Gtk.Box):
+    """Casova osa zaloh vlevo, obsah slozky vpravo, tlacitka obnovy dole."""
+
+    def __init__(self, win):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        self.win = win
+        self.sess = None
+        self.names = []
+        self.name = None
+        self.rel = ""
+        paned = Gtk.Paned()
+        self.pack_start(paned, True, True, 0)
+
+        left = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, width_request=210)
+        self.timeline = Gtk.ListBox()
+        self.timeline.get_style_context().add_class("timeline")
+        self.timeline.set_header_func(self.day_header)
+        self.timeline.connect("row-selected", self.on_pick)
+        left.add(self.timeline)
+        paned.pack1(left, False, False)
+
+        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin=10)
+        nav = Gtk.Box(spacing=6)
+        self.up = Gtk.Button.new_from_icon_name("go-up-symbolic", Gtk.IconSize.BUTTON)
+        self.up.set_tooltip_text(_("Up"))
+        self.up.connect("clicked", lambda _b: self.go(os.path.dirname(self.rel)))
+        self.path_label = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.START)
+        self.path_label.get_style_context().add_class("path")
+        nav.pack_start(self.up, False, False, 0)
+        nav.pack_start(self.path_label, True, True, 0)
+        right.pack_start(nav, False, False, 0)
+        # ikona, jmeno, velikost, zmeneno, je_slozka
+        self.store = Gtk.ListStore(str, str, str, str, bool)
+        self.view = Gtk.TreeView(model=self.store, headers_visible=True)
+        self.view.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
+        col = Gtk.TreeViewColumn(_("Name"))
+        ri = Gtk.CellRendererPixbuf()
+        rt = Gtk.CellRendererText(ellipsize=Pango.EllipsizeMode.END)
+        col.pack_start(ri, False)
+        col.pack_start(rt, True)
+        col.add_attribute(ri, "icon-name", 0)
+        col.add_attribute(rt, "text", 1)
+        col.set_expand(True)
+        self.view.append_column(col)
+        for i, title in ((2, _("Size")), (3, _("Modified"))):
+            r = Gtk.CellRendererText(xalign=1.0 if i == 2 else 0.0)
+            self.view.append_column(Gtk.TreeViewColumn(title, r, text=i))
+        self.view.connect("row-activated", self.on_activate)
+        self.view.get_selection().connect("changed", lambda _s: self.update_buttons())
+        sw = Gtk.ScrolledWindow()
+        sw.add(self.view)
+        right.pack_start(sw, True, True, 0)
+        self.state = Gtk.Label(xalign=0, wrap=True)
+        self.state.get_style_context().add_class("hint")
+        right.pack_start(self.state, False, False, 0)
+        paned.pack2(right, True, False)
+
+        bar = Gtk.Box(spacing=8, margin=10)
+        self.all_btn = Gtk.Button(label=_("Restore Everything…"))
+        self.all_btn.connect("clicked", self.on_restore_all)
+        bar.pack_start(self.all_btn, False, False, 0)
+        self.restore_btn = Gtk.Button(label=_("Restore"))
+        self.restore_btn.get_style_context().add_class("primary")
+        self.restore_btn.connect("clicked", lambda _b: self.on_restore(None))
+        self.to_btn = Gtk.Button(label=_("Restore To…"))
+        self.to_btn.connect("clicked", lambda _b: self.on_restore(self.ask_folder()))
+        bar.pack_end(self.restore_btn, False, False, 0)
+        bar.pack_end(self.to_btn, False, False, 0)
+        self.pack_start(bar, False, False, 0)
+        self.update_buttons()
+
+    def day_header(self, row, before):
+        day = day_text(core.snap_time(row.name))
+        if before is None or day_text(core.snap_time(before.name)) != day:
+            lab = Gtk.Label(label=day, xalign=0)
+            lab.get_style_context().add_class("day")
+            row.set_header(lab)
+        else:
+            row.set_header(None)
+
+    def load(self):
+        self.state.set_text(_("Connecting to the backup disk…"))
+        for r in self.timeline.get_children():
+            self.timeline.remove(r)
+        self.store.clear()
+
+        def work():
+            self.close()
+            sess = core.open_source()
+            sess.__enter__()
+            self.sess = sess
+            return core.list_snapshots(sess)
+
+        def done(names, err):
+            if err:
+                self.state.set_text(str(err))
+                return
+            self.names = names
+            if not names:
+                self.state.set_text(_("There are no backups yet."))
+            for n in reversed(names):
+                row = Gtk.ListBoxRow()
+                row.name = n
+                row.add(Gtk.Label(label=time.strftime("%H:%M", time.localtime(core.snap_time(n))), xalign=0))
+                self.timeline.add(row)
+            self.timeline.show_all()
+            if names:
+                self.timeline.select_row(self.timeline.get_row_at_index(0))
+            self.update_buttons()
+        in_thread(work, done)
+
+    def close(self):
+        if self.sess:
+            try:
+                self.sess.__exit__(None, None, None)
+            finally:
+                self.sess = None
+
+    def on_pick(self, _lb, row):
+        if row is None:
+            return
+        self.name = row.name
+        self.go(self.rel)
+
+    def go(self, rel):
+        if not self.sess or not self.name:
+            return
+        self.store.clear()
+        try:
+            items = core.list_dir(self.sess, self.name, rel)
+        except core.BackupError:
+            if rel:                                   # slozka v teto zaloze neni
+                return self.go(os.path.dirname(rel))
+            items = []
+        self.rel = rel
+        self.path_label.set_text("~/" + rel if rel else "~")
+        self.up.set_sensitive(bool(rel))
+        for fn, is_dir, size, mtime in items:
+            self.store.append(["folder" if is_dir else "text-x-generic", fn, "" if is_dir else human(size),
+                               time.strftime("%Y-%m-%d %H:%M", time.localtime(mtime)), is_dir])
+        self.state.set_text(_("Backup from %s") % core.snap_label(self.name) +
+                            (" · " + _("empty folder") if not items else ""))
+        self.update_buttons()
+
+    def on_activate(self, _v, path, _c):
+        row = self.store[path]
+        if row[4]:
+            self.go(os.path.join(self.rel, row[1]) if self.rel else row[1])
+        elif self.sess and self.sess.root:
+            # nahled: otevrit primo ze zalohy (jen pro cteni, nic se nemeni)
+            subprocess.Popen(["xdg-open", os.path.join(core.snapshot_home(self.sess, self.name), self.rel, row[1])],
+                             start_new_session=True)
+
+    def selected(self):
+        model, paths = self.view.get_selection().get_selected_rows()
+        return [os.path.join(self.rel, model[p][1]) if self.rel else model[p][1] for p in paths]
+
+    def update_buttons(self):
+        has = bool(self.sess and self.name)
+        sel = has and bool(self.selected())
+        self.restore_btn.set_sensitive(sel)
+        self.to_btn.set_sensitive(sel)
+        self.all_btn.set_sensitive(has)
+
+    def ask_folder(self):
+        d = Gtk.FileChooserDialog(title=_("Restore To"), transient_for=self.win,
+                                  action=Gtk.FileChooserAction.SELECT_FOLDER)
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Restore Here"), Gtk.ResponseType.OK)
+        d.set_current_folder(core.home())
+        folder = d.get_filename() if d.run() == Gtk.ResponseType.OK else None
+        d.destroy()
+        return folder or False
+
+    def on_restore(self, to):
+        if to is False:
+            return
+        rels = self.selected()
+        sess, name = self.sess, self.name
+        self.state.set_text(_("Restoring…"))
+
+        def done(res, err):
+            if err:
+                message(self.win, _("Restore failed"), str(err), Gtk.MessageType.ERROR)
+                self.state.set_text("")
+                return
+            renamed = [dst for rel, dst in res if dst != os.path.join(core.home(), rel) and not to]
+            text = _("Restored %d items.") % len(res)
+            if renamed:
+                text += " " + _("Files that already exist were kept; the restored copies have “restored” in "
+                                "their name.")
+            self.state.set_text(text)
+        in_thread(lambda: core.restore(sess, name, rels, to=to, log=lambda *_a: None), done)
+
+    def on_restore_all(self, _b):
+        if not confirm(self.win, _("Restore everything from %s?") % core.snap_label(self.name),
+                       _("The whole home folder is restored from this backup. Files that differ are "
+                         "replaced; the current versions are moved to the folder .luxos-backup-replaced in "
+                         "your home folder, nothing is deleted."), _("Restore Everything")):
+            return
+        sess, name = self.sess, self.name
+        self.state.set_text(_("Restoring…"))
+
+        def done(_r, err):
+            if err:
+                message(self.win, _("Restore failed"), str(err), Gtk.MessageType.ERROR)
+                self.state.set_text("")
+                return
+            self.state.set_text(_("Everything was restored. Log out and back in to load the restored settings."))
+        in_thread(lambda: core.restore_all(sess, name, replace=True, log=lambda *_a: None), done)
+
+
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    GLib.set_prgname(APP)
+    setup_css()
+    win = BackupWindow()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    win.back.hide()
+    if "--add" in argv:
+        i = argv.index("--add")
+        dev = argv[i + 1] if i + 1 < len(argv) else None
+        GLib.idle_add(lambda: win.add_disk(dev) and False)
+    elif "--restore" in argv:
+        win.show_browser()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

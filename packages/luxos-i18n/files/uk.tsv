@@ -2703,3 +2703,162 @@ More details: run the command again with --verbose	Докладніше: зап�
 The list of apps is out of date. Install the updates first, then try again.	Список застосунків застарів. Спочатку встановіть оновлення, а потім спробуйте знову.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Дата й час комп'ютера неправильні, тому безпечне з'єднання неможливе. Перевірте налаштування часу.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Довша робота від батареї: повільніший процесор без турбо, трохи нижча яскравість, без збільшення в Dock, невикористовувані пристрої засинають, фонові завдання призупиняються.
+# LuxOS Zalohy (luxos-backup)
+Paused on battery – backs up when the computer is charging	Призупинено на батареї – копіювання почнеться, коли комп’ютер заряджатиметься
+Paused by Battery Saver	Призупинено Економією заряду
+Paused on a metered connection	Призупинено на лімітному з’єднанні
+Backup disk is not connected	Диск резервних копій не під’єднано
+Automatic backups are off	Автоматичне резервне копіювання вимкнено
+No backup disk	Немає диска резервних копій
+Backups	Резервні копії
+restored %s	відновлено %s
+Use this disk for backups?	Використовувати цей диск для резервних копій?
+There are no backups yet.	Резервних копій ще немає.
+Unknown backup time: %s	Невідомий час резервної копії: %s
+No backup disk is set up. Add one with: luxos-backup disk add	Диск резервних копій не налаштовано. Додайте його командою: luxos-backup disk add
+Unknown backup disk: %s	Невідомий диск резервних копій: %s
+Use a network address like smb://user@server/share	Використовуйте мережеву адресу, наприклад smb://user@server/share
+The network disk is not available.	Мережевий диск недоступний.
+No backup disk is set up.	Диск резервних копій не налаштовано.
+A backup is already running.	Резервне копіювання вже виконується.
+Several computers have backups here, choose one with --machine: %s	Тут є резервні копії кількох комп’ютерів, виберіть один за допомогою --machine: %s
+Home folder restored from the backup from %s.	Домашню теку відновлено з резервної копії від %s.
+Use a network address like sftp://user@server/folder	Використовуйте мережеву адресу, наприклад sftp://user@server/folder
+Backup disk	Диск резервних копій
+%s can keep automatic backups of your files.	%s може автоматично створювати резервні копії ваших файлів.
+No backup from %s or earlier.	Немає резервної копії від %s або раніше.
+Could not save the password in the keyring: %s	Не вдалося зберегти пароль у сховищі ключів: %s
+Could not mount %s	Не вдалося змонтувати %s
+Could not unlock the backup disk	Не вдалося розблокувати диск резервних копій
+The backup disk is not connected.	Диск резервних копій не під’єднано.
+The backup image was not found on the network disk.	Образ резервної копії не знайдено на мережевому диску.
+Could not connect to the server.	Не вдалося з’єднатися із сервером.
+This disk uses %s, which cannot keep backups efficiently. Prepare (erase) it for backups first.	Цей диск використовує %s – так резервні копії не можна зберігати ефективно. Спершу підготуйте (зітріть) його для резервних копій.
+Disk is full - deleting the oldest backup %s	Диск заповнено – видалення найстарішої резервної копії %s
+Old backups deleted	Старі резервні копії видалено
+Connect your backup disk to back up this computer.	Під’єднайте диск резервних копій, щоб створити резервну копію цього комп’ютера.
+No backups of %s in %s	Немає резервних копій %s у %s
+Invalid path: %s	Неправильний шлях: %s
+To restore the whole home folder use: luxos-backup restore --all	Щоб відновити всю домашню теку, виконайте: luxos-backup restore --all
+Restored %s to %s	%s відновлено до %s
+Replaced files were moved to %s	Замінені файли переміщено до %s
+Apps installed on the old system: %s (install them with: lux install $(cat FILE))	Програми, інстальовані в старій системі: %s (інсталюйте їх командою: lux install $(cat FILE))
+Folder not found: %s	Теку не знайдено: %s
+This disk is already used for backups.	Цей диск уже використовується для резервних копій.
+LuxOS Backups: %s	Резервні копії LuxOS: %s
+The network disk needs at least 8 GB of free space.	Мережевому диску потрібно щонайменше 8 ГБ вільного місця.
+Could not open the backup image	Не вдалося відкрити образ резервної копії
+%s is not an external disk.	%s не є зовнішнім диском.
+%s holds the running system.	На %s працює поточна система.
+Use for Backups	Використовувати для резервних копій
+The backup disk is not mounted.	Диск резервних копій не змонтовано.
+Could not create the backup folder on the server.	Не вдалося створити теку для резервних копій на сервері.
+Could not create the backup folder: %s	Не вдалося створити теку для резервних копій: %s
+The backup disk was full, so the oldest backups were deleted (%d).	Диск резервних копій був заповнений, тому найстаріші копії видалено (%d).
+No backup for %d days	Немає резервної копії вже %d дн.
+No LuxOS backups found in %s	У %s не знайдено резервних копій LuxOS
+%s is not in the backup from %s	%s немає в резервній копії від %s
+Cannot write to %s: %s	Не вдається записати до %s: %s
+Could not prepare the disk: %s	Не вдалося підготувати диск: %s
+The backup disk is locked.	Диск резервних копій заблоковано.
+The password for the encrypted backup disk is not in the keyring.	Пароля до зашифрованого диска резервних копій немає у сховищі ключів.
+Backing up to %s…	Резервне копіювання на %s…
+Backup failed	Не вдалося створити резервну копію
+Backup finished: %s	Резервне копіювання завершено: %s
+The server needs rsync for backups.	Для резервних копій на сервері потрібен rsync.
+The backup disk is full.	Диск резервних копій заповнено.
+The backup disk %s is full even after deleting old backups.	Диск резервних копій %s заповнено навіть після видалення старих копій.
+Backup to %s failed: %s	Не вдалося створити резервну копію на %s: %s
+(%d files could not be read)	(не вдалося прочитати файлів: %d)
+Automatic backups: %s	Автоматичне резервне копіювання: %s
+Last backup: %s	Остання резервна копія: %s
+on	увімкнено
+off	вимкнено
+LuxOS Backups	Резервні копії LuxOS
+Backing up… %d %%	Резервне копіювання… %d %%
+Give the files to restore, or --all for the whole home folder.	Вкажіть файли для відновлення або --all для всієї домашньої теки.
+Backups will go to %s (%s).	Резервні копії зберігатимуться на %s (%s).
+Password for the backup disk: 	Пароль до диска резервних копій: 
+%s is no longer used for backups. Backups already on it were kept.	%s більше не використовується для резервних копій. Наявні на ньому копії збережено.
+Last backup failed: %s	Остання резервна копія не вдалася: %s
+Password for %s: 	Пароль до %s: 
+Everything on %s will be erased. Continue? [y/N] 	Усе на %s буде стерто. Продовжити? [y/N] 
+%d existing files were kept (use --replace to replace them).	Збережено наявних файлів: %d (щоб замінити їх, використайте --replace).
+A password is needed for encryption.	Для шифрування потрібен пароль.
+Repeat the password: 	Повторіть пароль: 
+The passwords do not match.	Паролі не збігаються.
+Everything on %s will be erased. Add --yes to confirm.	Усе на %s буде стерто. Додайте --yes для підтвердження.
+Yesterday	Учора
+Today %s	Сьогодні %s
+Yesterday %s	Учора %s
+Use Disk	Використати диск
+Server address	Адреса сервера
+The password is kept in the keyring. A shared folder (SMB) gets one backup image file.	Пароль зберігається у сховищі ключів. У спільній теці (SMB) створюється один файл образу резервної копії.
+Encrypt backups	Шифрувати резервні копії
+The disk is erased and protected with a password. Without the password nobody can read the backups – keep it safe.	Диск буде стерто й захищено паролем. Без пароля ніхто не зможе прочитати резервні копії – зберігайте його надійно.
+Backup disks	Диски резервних копій
+Excluded folders	Виключені теки
+Exclude	Виключити
+Preparing the disk…	Підготовка диска…
+Up	Вгору
+Connecting to the backup disk…	З’єднання з диском резервних копій…
+Restore Here	Відновити сюди
+Restoring…	Відновлення…
+Add Backup Disk	Додати диск резервних копій
+External disks	Зовнішні диски
+empty	порожній
+No external disk is connected.	Не під’єднано жодного зовнішнього диска.
+Network disk	Мережевий диск
+Password for the backup disk	Пароль до диска резервних копій
+Repeat the password	Повторіть пароль
+Back Up Now	Створити копію зараз
+Restore Files…	Відновити файли…
+Add Disk…	Додати диск…
+Back up automatically	Автоматичне резервне копіювання
+Every hour while the computer is charging. Paused on battery, in Battery Saver and – for network disks – on a metered connection.	Щогодини, коли комп’ютер заряджається. Призупиняється на батареї, з Економією заряду і – для мережевих дисків – на лімітному з’єднанні.
+Back up system settings	Копіювати системні налаштування
+Readable files from /etc and the list of installed apps.	Доступні для читання файли з /etc і список інстальованих програм.
+Back up the Downloads folder	Копіювати теку Завантаження
+Back up virtual machines	Копіювати віртуальні машини
+Disk images of virtual machines are very large.	Образи дисків віртуальних машин дуже великі.
+Caches and the trash are never backed up.	Кеш і смітник ніколи не копіюються.
+Exclude Folder…	Виключити теку…
+No backup disk yet	Ще немає диска резервних копій
+Stop using this disk	Припинити використання цього диска
+Nothing excluded	Нічого не виключено
+Back up again	Створити копію знову
+Backing up…	Резервне копіювання…
+You can keep working, or close this window.	Можете продовжувати роботу або закрити це вікно.
+Backups already on the disk are kept.	Резервні копії, які вже є на диску, буде збережено.
+Stop Using	Припинити використання
+Exclude Folder	Виключити теку
+Modified	Змінено
+Restore Everything…	Відновити все…
+Restore To…	Відновити до…
+Restore To	Відновити до
+Restored %d items.	Відновлено елементів: %d.
+The whole home folder is restored from this backup. Files that differ are replaced; the current versions are moved to the folder .luxos-backup-replaced in your home folder, nothing is deleted.	Усю домашню теку буде відновлено з цієї резервної копії. Файли, що відрізняються, буде замінено; їхні поточні версії буде переміщено до теки .luxos-backup-replaced у вашій домашній теці, нічого не видаляється.
+Restore Everything	Відновити все
+Everything was restored. Log out and back in to load the restored settings.	Усе відновлено. Вийдіть і знову увійдіть, щоб завантажити відновлені налаштування.
+Connect a USB disk, or use a network disk.	Під’єднайте USB-диск або використайте мережевий диск.
+Add an external or network disk to start backing up.	Додайте зовнішній або мережевий диск, щоб почати резервне копіювання.
+No backups yet	Резервних копій ще немає
+Add a backup disk to protect your files.	Додайте диск резервних копій, щоб захистити свої файли.
+Stop backing up to %s?	Припинити резервне копіювання на %s?
+Type the same password twice.	Введіть той самий пароль двічі.
+Encryption needs an empty disk.	Для шифрування потрібен порожній диск.
+The disk could not be used	Не вдалося використати диск
+Back up now?	Створити резервну копію зараз?
+The first backup can take a while. You can keep working.	Перша резервна копія може створюватися довго. Можете продовжувати роботу.
+Backup from %s	Резервна копія від %s
+Restore failed	Не вдалося відновити
+Files that already exist were kept; the restored copies have “restored” in their name.	Наявні файли збережено; відновлені копії мають у назві «відновлено».
+Restore everything from %s?	Відновити все з резервної копії від %s?
+External disk	Зовнішній диск
+Network disk (SFTP)	Мережевий диск (SFTP)
+Network disk (SMB)	Мережевий диск (SMB)
+This disk is not ready for backups (%s).	Цей диск не підготовлено для резервних копій (%s).
+Erase and Use	Стерти й використати
+empty folder	порожня тека
+Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Усе на ньому буде стерто, а диск буде підготовлено для резервних копій. Це не можна скасувати.
+Backs up every hour.	Створює резервну копію щогодини.

@@ -68,6 +68,7 @@ What's New after an update shows these items (data in `/usr/share/luxos/whats-ne
 | `luxdrop` | LuxDrop file sharing (LocalSend compatible) | [luxdrop.md](luxdrop.md) |
 | `luxos-safe`, `luxos-sandbox` | encrypted folder, isolated app system | [safe.md](safe.md), [sandbox.md](sandbox.md) |
 | `luxos-guard` | Lux Guard: check of downloaded programs, `/home` snapshots | [guard.md](guard.md) |
+| `luxos-backup` | Backups: hourly backups of the home folder to an external or network disk, restore | [backups.md](backups.md) |
 | `luxos-tweaks` | zram, sysctl, earlyoom, journald, I/O | [power-and-performance.md](power-and-performance.md) |
 | `lsh`, `luxos-shell`, `blesh` | shell, prompt, aliases, fastfetch | [shell.md](shell.md) |
 | `luxos-installer` | `luxos-install` (text and GUI) | [installer.md](installer.md) |

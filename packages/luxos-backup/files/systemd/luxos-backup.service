@@ -1,0 +1,13 @@
+[Unit]
+Description=LuxOS Backups - back up the home folder
+Documentation=man:luxos-backup(1)
+ConditionPathExists=!/run/archiso
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/luxos-backup service
+# Zaloha nesmi zpomalit praci: nejnizsi priorita procesoru i disku
+Nice=19
+CPUSchedulingPolicy=batch
+IOSchedulingClass=idle
+TimeoutStartSec=12h

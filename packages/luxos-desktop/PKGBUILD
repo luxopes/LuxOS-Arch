@@ -33,6 +33,8 @@ depends=(
     luxos-guard
     # LuxOS Care: aktualizace, zalozni jadro a prechod na jadro LuxOS (starsi instalace ho nemely)
     luxos-care
+    # Zalohy: automaticke zalohy domovske slozky na externi/sitovy disk (uzivatelsky casovac)
+    luxos-backup
     # Zvuk s prioritou v realnem case (PipeWire bez praskani pri zatezi) a pravidla Wi-Fi podle
     # zeme (bez regulatory.db jen omezene kanaly a vykon)
     rtkit wireless-regdb

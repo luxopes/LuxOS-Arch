@@ -7,6 +7,7 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 ## Připravuje se
 
 ### Nové
+- **Zálohy** (`luxos-backup`, aplikace Zálohy) – automatické přírůstkové zálohy domovské složky na externí disk (USB) nebo síťový disk (SFTP, sdílená složka SMB) každou hodinu, jen při nabíjení (pauza na baterii, ve Spořiči baterie a u síťového disku na měřeném připojení). Po připojení nového disku nabídka „Použít tento disk pro zálohy?“; disk FAT/exFAT/NTFS se po potvrzení připraví (btrfs se zstd), volitelně šifrovaný (LUKS2, heslo v klíčence). Na disku btrfs snímky jen pro čtení, jinak složky s pevnými odkazy (`rsync --link-dest`) – nezměněné soubory nezabírají místo. Ponechá vše za 24 h, jednu zálohu denně za měsíc a týdně starší; plný disk smaže nejstarší zálohy s upozorněním. Bez mezipaměti a koše, Stažené a virtuální stroje volitelně, vlastní výjimky. Obnova: časová osa záloh, procházení složek, obnovení na původní místo nebo jinam – existující soubor se nikdy nepřepíše (kopie „obnoveno …“); „Obnovit vše“ i na novém systému (`luxos-backup restore --all --source DISK`, použitelné z instalátoru a LuxOS Recovery). Dokumentace `man luxos-backup`.
 - **Graf vytížení CPU** jde přidat do horní lišty (pravým tlačítkem na lištu › Panel › Přidat nové položky › CPU Graph); ve výchozí liště není.
 
 ### Opraveno

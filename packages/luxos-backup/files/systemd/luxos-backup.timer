@@ -1,0 +1,13 @@
+[Unit]
+Description=LuxOS Backups - hourly backup
+ConditionPathExists=!/run/archiso
+
+[Timer]
+OnCalendar=hourly
+OnStartupSec=10min
+Persistent=true
+RandomizedDelaySec=5min
+AccuracySec=5min
+
+[Install]
+WantedBy=timers.target

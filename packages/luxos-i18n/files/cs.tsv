@@ -2701,3 +2701,162 @@ More details: run the command again with --verbose	Další podrobnosti: spusťte
 The list of apps is out of date. Install the updates first, then try again.	Seznam aplikací je zastaralý. Nejdřív nainstalujte aktualizace a pak to zkuste znovu.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datum a čas počítače nejsou správně, proto není možné zabezpečené připojení. Zkontrolujte nastavení času.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Delší výdrž baterie: pomalejší procesor bez turba, o něco nižší jas, bez zvětšování v Docku, nepoužívaná zařízení se uspí a úlohy na pozadí se pozastaví.
+# LuxOS Zalohy (luxos-backup)
+Paused on battery – backs up when the computer is charging	Pozastaveno na baterii – zálohuje se, když se počítač nabíjí
+Paused by Battery Saver	Pozastaveno Spořičem baterie
+Paused on a metered connection	Pozastaveno na měřeném připojení
+Backup disk is not connected	Zálohovací disk není připojen
+Automatic backups are off	Automatické zálohy jsou vypnuté
+No backup disk	Žádný zálohovací disk
+Backups	Zálohy
+restored %s	obnoveno %s
+Use this disk for backups?	Použít tento disk pro zálohy?
+There are no backups yet.	Zatím nejsou žádné zálohy.
+Unknown backup time: %s	Neznámý čas zálohy: %s
+No backup disk is set up. Add one with: luxos-backup disk add	Není nastaven žádný zálohovací disk. Přidejte ho příkazem: luxos-backup disk add
+Unknown backup disk: %s	Neznámý zálohovací disk: %s
+Use a network address like smb://user@server/share	Použijte síťovou adresu jako smb://user@server/share
+The network disk is not available.	Síťový disk není dostupný.
+No backup disk is set up.	Není nastaven žádný zálohovací disk.
+A backup is already running.	Zálohování už probíhá.
+Several computers have backups here, choose one with --machine: %s	Jsou zde zálohy více počítačů, vyberte jeden pomocí --machine: %s
+Home folder restored from the backup from %s.	Domovská složka obnovena ze zálohy z %s.
+Use a network address like sftp://user@server/folder	Použijte síťovou adresu jako sftp://user@server/folder
+Backup disk	Zálohovací disk
+%s can keep automatic backups of your files.	%s může automaticky zálohovat vaše soubory.
+No backup from %s or earlier.	Žádná záloha z %s ani starší.
+Could not save the password in the keyring: %s	Heslo se nepodařilo uložit do klíčenky: %s
+Could not mount %s	%s se nepodařilo připojit
+Could not unlock the backup disk	Zálohovací disk se nepodařilo odemknout
+The backup disk is not connected.	Zálohovací disk není připojen.
+The backup image was not found on the network disk.	Obraz zálohy nebyl na síťovém disku nalezen.
+Could not connect to the server.	Nepodařilo se připojit k serveru.
+This disk uses %s, which cannot keep backups efficiently. Prepare (erase) it for backups first.	Tento disk používá %s, který zálohy nedokáže efektivně uchovávat. Nejprve ho pro zálohy připravte (smažte).
+Disk is full - deleting the oldest backup %s	Disk je plný – mažu nejstarší zálohu %s
+Old backups deleted	Staré zálohy smazány
+Connect your backup disk to back up this computer.	Připojte zálohovací disk, abyste mohli tento počítač zálohovat.
+No backups of %s in %s	Žádné zálohy %s v %s
+Invalid path: %s	Neplatná cesta: %s
+To restore the whole home folder use: luxos-backup restore --all	Celou domovskou složku obnovíte příkazem: luxos-backup restore --all
+Restored %s to %s	%s obnoveno do %s
+Replaced files were moved to %s	Nahrazené soubory byly přesunuty do %s
+Apps installed on the old system: %s (install them with: lux install $(cat FILE))	Aplikace nainstalované ve starém systému: %s (nainstalujete je příkazem: lux install $(cat FILE))
+Folder not found: %s	Složka nenalezena: %s
+This disk is already used for backups.	Tento disk se už pro zálohy používá.
+LuxOS Backups: %s	Zálohy LuxOS: %s
+The network disk needs at least 8 GB of free space.	Síťový disk potřebuje alespoň 8 GB volného místa.
+Could not open the backup image	Obraz zálohy se nepodařilo otevřít
+%s is not an external disk.	%s není externí disk.
+%s holds the running system.	%s obsahuje běžící systém.
+Use for Backups	Použít pro zálohy
+The backup disk is not mounted.	Zálohovací disk není připojen do systému.
+Could not create the backup folder on the server.	Na serveru se nepodařilo vytvořit složku pro zálohy.
+Could not create the backup folder: %s	Složku pro zálohy se nepodařilo vytvořit: %s
+The backup disk was full, so the oldest backups were deleted (%d).	Zálohovací disk byl plný, proto byly smazány nejstarší zálohy (%d).
+No backup for %d days	Žádná záloha už %d dní
+No LuxOS backups found in %s	V %s nebyly nalezeny žádné zálohy LuxOS
+%s is not in the backup from %s	%s není v záloze z %s
+Cannot write to %s: %s	Do %s nelze zapisovat: %s
+Could not prepare the disk: %s	Disk se nepodařilo připravit: %s
+The backup disk is locked.	Zálohovací disk je zamčený.
+The password for the encrypted backup disk is not in the keyring.	Heslo k šifrovanému zálohovacímu disku není v klíčence.
+Backing up to %s…	Zálohuji na %s…
+Backup failed	Zálohování selhalo
+Backup finished: %s	Zálohování dokončeno: %s
+The server needs rsync for backups.	Server potřebuje pro zálohy rsync.
+The backup disk is full.	Zálohovací disk je plný.
+The backup disk %s is full even after deleting old backups.	Zálohovací disk %s je plný i po smazání starých záloh.
+Backup to %s failed: %s	Zálohování na %s selhalo: %s
+(%d files could not be read)	(nepodařilo se přečíst souborů: %d)
+Automatic backups: %s	Automatické zálohy: %s
+Last backup: %s	Poslední záloha: %s
+on	zapnuto
+off	vypnuto
+LuxOS Backups	Zálohy LuxOS
+Backing up… %d %%	Zálohuji… %d %%
+Give the files to restore, or --all for the whole home folder.	Zadejte soubory k obnovení, nebo --all pro celou domovskou složku.
+Backups will go to %s (%s).	Zálohy se budou ukládat na %s (%s).
+Password for the backup disk: 	Heslo k zálohovacímu disku: 
+%s is no longer used for backups. Backups already on it were kept.	%s se už pro zálohy nepoužívá. Zálohy, které na něm už jsou, zůstaly zachovány.
+Last backup failed: %s	Poslední zálohování selhalo: %s
+Password for %s: 	Heslo pro %s: 
+Everything on %s will be erased. Continue? [y/N] 	Vše na %s bude smazáno. Pokračovat? [y/N] 
+%d existing files were kept (use --replace to replace them).	Existující soubory byly zachovány: %d (k nahrazení použijte --replace).
+A password is needed for encryption.	Pro šifrování je potřeba heslo.
+Repeat the password: 	Zopakujte heslo: 
+The passwords do not match.	Hesla se neshodují.
+Everything on %s will be erased. Add --yes to confirm.	Vše na %s bude smazáno. Pro potvrzení přidejte --yes.
+Yesterday	Včera
+Today %s	Dnes %s
+Yesterday %s	Včera %s
+Use Disk	Použít disk
+Server address	Adresa serveru
+The password is kept in the keyring. A shared folder (SMB) gets one backup image file.	Heslo se uloží do klíčenky. Ve sdílené složce (SMB) vznikne jeden soubor s obrazem zálohy.
+Encrypt backups	Šifrovat zálohy
+The disk is erased and protected with a password. Without the password nobody can read the backups – keep it safe.	Disk bude smazán a chráněn heslem. Bez hesla nikdo zálohy nepřečte – dobře si ho uschovejte.
+Backup disks	Zálohovací disky
+Excluded folders	Vyloučené složky
+Exclude	Vyloučit
+Preparing the disk…	Připravuji disk…
+Up	Nahoru
+Connecting to the backup disk…	Připojuji se k zálohovacímu disku…
+Restore Here	Obnovit sem
+Restoring…	Obnovuji…
+Add Backup Disk	Přidat zálohovací disk
+External disks	Externí disky
+empty	prázdný
+No external disk is connected.	Není připojen žádný externí disk.
+Network disk	Síťový disk
+Password for the backup disk	Heslo k zálohovacímu disku
+Repeat the password	Zopakujte heslo
+Back Up Now	Zálohovat nyní
+Restore Files…	Obnovit soubory…
+Add Disk…	Přidat disk…
+Back up automatically	Zálohovat automaticky
+Every hour while the computer is charging. Paused on battery, in Battery Saver and – for network disks – on a metered connection.	Každou hodinu, když se počítač nabíjí. Pozastaveno na baterii, ve Spořiči baterie a – u síťových disků – na měřeném připojení.
+Back up system settings	Zálohovat nastavení systému
+Readable files from /etc and the list of installed apps.	Čitelné soubory z /etc a seznam nainstalovaných aplikací.
+Back up the Downloads folder	Zálohovat složku Stažené
+Back up virtual machines	Zálohovat virtuální počítače
+Disk images of virtual machines are very large.	Obrazy disků virtuálních počítačů jsou velmi velké.
+Caches and the trash are never backed up.	Mezipaměti a koš se nikdy nezálohují.
+Exclude Folder…	Vyloučit složku…
+No backup disk yet	Zatím žádný zálohovací disk
+Stop using this disk	Přestat používat tento disk
+Nothing excluded	Nic není vyloučeno
+Back up again	Zálohovat znovu
+Backing up…	Zálohuji…
+You can keep working, or close this window.	Můžete dál pracovat, nebo toto okno zavřít.
+Backups already on the disk are kept.	Zálohy, které už jsou na disku, zůstanou zachovány.
+Stop Using	Přestat používat
+Exclude Folder	Vyloučit složku
+Modified	Změněno
+Restore Everything…	Obnovit vše…
+Restore To…	Obnovit do…
+Restore To	Obnovit do
+Restored %d items.	Obnoveno položek: %d.
+The whole home folder is restored from this backup. Files that differ are replaced; the current versions are moved to the folder .luxos-backup-replaced in your home folder, nothing is deleted.	Celá domovská složka se obnoví z této zálohy. Odlišné soubory budou nahrazeny; jejich aktuální verze se přesunou do složky .luxos-backup-replaced ve vaší domovské složce, nic se nesmaže.
+Restore Everything	Obnovit vše
+Everything was restored. Log out and back in to load the restored settings.	Vše bylo obnoveno. Odhlaste se a znovu přihlaste, aby se načetla obnovená nastavení.
+Connect a USB disk, or use a network disk.	Připojte USB disk, nebo použijte síťový disk.
+Add an external or network disk to start backing up.	Přidejte externí nebo síťový disk a začněte zálohovat.
+No backups yet	Zatím žádné zálohy
+Add a backup disk to protect your files.	Přidejte zálohovací disk a chraňte své soubory.
+Stop backing up to %s?	Přestat zálohovat na %s?
+Type the same password twice.	Zadejte dvakrát stejné heslo.
+Encryption needs an empty disk.	Šifrování vyžaduje prázdný disk.
+The disk could not be used	Disk nelze použít
+Back up now?	Zálohovat nyní?
+The first backup can take a while. You can keep working.	První zálohování může chvíli trvat. Můžete dál pracovat.
+Backup from %s	Záloha z %s
+Restore failed	Obnovení selhalo
+Files that already exist were kept; the restored copies have “restored” in their name.	Soubory, které už existují, zůstaly zachovány; obnovené kopie mají v názvu „obnoveno“.
+Restore everything from %s?	Obnovit vše ze zálohy z %s?
+External disk	Externí disk
+Network disk (SFTP)	Síťový disk (SFTP)
+Network disk (SMB)	Síťový disk (SMB)
+This disk is not ready for backups (%s).	Tento disk není připraven pro zálohy (%s).
+Erase and Use	Smazat a použít
+empty folder	prázdná složka
+Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Vše na něm bude smazáno a disk bude připraven pro zálohy. Tuto akci nelze vrátit zpět.
+Backs up every hour.	Zálohuje každou hodinu.

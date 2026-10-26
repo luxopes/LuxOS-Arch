@@ -2702,3 +2702,162 @@ More details: run the command again with --verbose	Mer information: kör kommand
 The list of apps is out of date. Install the updates first, then try again.	Applistan är inaktuell. Installera uppdateringarna först och försök sedan igen.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datorns datum och tid är fel, så en säker anslutning är inte möjlig. Kontrollera tidsinställningarna.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Längre batteritid: långsammare processor utan turbo, något lägre ljusstyrka, ingen förstoring i Dock, oanvända enheter går i viloläge och bakgrundsuppgifter pausas.
+# LuxOS Zalohy (luxos-backup)
+Paused on battery – backs up when the computer is charging	Pausad på batteri – säkerhetskopierar när datorn laddas
+Paused by Battery Saver	Pausad av Batterisparläge
+Paused on a metered connection	Pausad på en anslutning med datapriser
+Backup disk is not connected	Säkerhetskopieringsdisken är inte ansluten
+Automatic backups are off	Automatiska säkerhetskopior är avstängda
+No backup disk	Ingen säkerhetskopieringsdisk
+Backups	Säkerhetskopior
+restored %s	återställd %s
+Use this disk for backups?	Använda den här disken för säkerhetskopior?
+There are no backups yet.	Det finns inga säkerhetskopior än.
+Unknown backup time: %s	Okänd tidpunkt för säkerhetskopia: %s
+No backup disk is set up. Add one with: luxos-backup disk add	Ingen säkerhetskopieringsdisk är konfigurerad. Lägg till en med: luxos-backup disk add
+Unknown backup disk: %s	Okänd säkerhetskopieringsdisk: %s
+Use a network address like smb://user@server/share	Använd en nätverksadress som smb://user@server/share
+The network disk is not available.	Nätverksdisken är inte tillgänglig.
+No backup disk is set up.	Ingen säkerhetskopieringsdisk är konfigurerad.
+A backup is already running.	En säkerhetskopiering pågår redan.
+Several computers have backups here, choose one with --machine: %s	Flera datorer har säkerhetskopior här, välj en med --machine: %s
+Home folder restored from the backup from %s.	Hemmappen återställdes från säkerhetskopian från %s.
+Use a network address like sftp://user@server/folder	Använd en nätverksadress som sftp://user@server/folder
+Backup disk	Säkerhetskopieringsdisk
+%s can keep automatic backups of your files.	%s kan spara automatiska säkerhetskopior av dina filer.
+No backup from %s or earlier.	Ingen säkerhetskopia från %s eller tidigare.
+Could not save the password in the keyring: %s	Kunde inte spara lösenordet i nyckelringen: %s
+Could not mount %s	Kunde inte montera %s
+Could not unlock the backup disk	Kunde inte låsa upp säkerhetskopieringsdisken
+The backup disk is not connected.	Säkerhetskopieringsdisken är inte ansluten.
+The backup image was not found on the network disk.	Säkerhetskopians avbild hittades inte på nätverksdisken.
+Could not connect to the server.	Kunde inte ansluta till servern.
+This disk uses %s, which cannot keep backups efficiently. Prepare (erase) it for backups first.	Den här disken använder %s, som inte kan spara säkerhetskopior effektivt. Förbered (radera) den för säkerhetskopior först.
+Disk is full - deleting the oldest backup %s	Disken är full - raderar den äldsta säkerhetskopian %s
+Old backups deleted	Gamla säkerhetskopior raderade
+Connect your backup disk to back up this computer.	Anslut din säkerhetskopieringsdisk för att säkerhetskopiera den här datorn.
+No backups of %s in %s	Inga säkerhetskopior av %s i %s
+Invalid path: %s	Ogiltig sökväg: %s
+To restore the whole home folder use: luxos-backup restore --all	Återställ hela hemmappen med: luxos-backup restore --all
+Restored %s to %s	Återställde %s till %s
+Replaced files were moved to %s	Ersatta filer flyttades till %s
+Apps installed on the old system: %s (install them with: lux install $(cat FILE))	Appar installerade på det gamla systemet: %s (installera dem med: lux install $(cat FILE))
+Folder not found: %s	Mappen hittades inte: %s
+This disk is already used for backups.	Den här disken används redan för säkerhetskopior.
+LuxOS Backups: %s	LuxOS Säkerhetskopior: %s
+The network disk needs at least 8 GB of free space.	Nätverksdisken behöver minst 8 GB ledigt utrymme.
+Could not open the backup image	Kunde inte öppna säkerhetskopians avbild
+%s is not an external disk.	%s är inte en extern disk.
+%s holds the running system.	%s innehåller det körande systemet.
+Use for Backups	Använd för säkerhetskopior
+The backup disk is not mounted.	Säkerhetskopieringsdisken är inte monterad.
+Could not create the backup folder on the server.	Kunde inte skapa mappen för säkerhetskopior på servern.
+Could not create the backup folder: %s	Kunde inte skapa mappen för säkerhetskopior: %s
+The backup disk was full, so the oldest backups were deleted (%d).	Säkerhetskopieringsdisken var full, så de äldsta säkerhetskopiorna raderades (%d).
+No backup for %d days	Ingen säkerhetskopia på %d dagar
+No LuxOS backups found in %s	Inga LuxOS-säkerhetskopior hittades i %s
+%s is not in the backup from %s	%s finns inte i säkerhetskopian från %s
+Cannot write to %s: %s	Kan inte skriva till %s: %s
+Could not prepare the disk: %s	Kunde inte förbereda disken: %s
+The backup disk is locked.	Säkerhetskopieringsdisken är låst.
+The password for the encrypted backup disk is not in the keyring.	Lösenordet för den krypterade säkerhetskopieringsdisken finns inte i nyckelringen.
+Backing up to %s…	Säkerhetskopierar till %s…
+Backup failed	Säkerhetskopieringen misslyckades
+Backup finished: %s	Säkerhetskopieringen är klar: %s
+The server needs rsync for backups.	Servern behöver rsync för säkerhetskopior.
+The backup disk is full.	Säkerhetskopieringsdisken är full.
+The backup disk %s is full even after deleting old backups.	Säkerhetskopieringsdisken %s är full även efter att gamla säkerhetskopior raderats.
+Backup to %s failed: %s	Säkerhetskopiering till %s misslyckades: %s
+(%d files could not be read)	(%d filer kunde inte läsas)
+Automatic backups: %s	Automatiska säkerhetskopior: %s
+Last backup: %s	Senaste säkerhetskopia: %s
+on	på
+off	av
+LuxOS Backups	LuxOS Säkerhetskopior
+Backing up… %d %%	Säkerhetskopierar… %d %%
+Give the files to restore, or --all for the whole home folder.	Ange filerna som ska återställas, eller --all för hela hemmappen.
+Backups will go to %s (%s).	Säkerhetskopiorna hamnar på %s (%s).
+Password for the backup disk: 	Lösenord för säkerhetskopieringsdisken: 
+%s is no longer used for backups. Backups already on it were kept.	%s används inte längre för säkerhetskopior. Säkerhetskopior som redan finns på den behölls.
+Last backup failed: %s	Senaste säkerhetskopieringen misslyckades: %s
+Password for %s: 	Lösenord för %s: 
+Everything on %s will be erased. Continue? [y/N] 	Allt på %s kommer att raderas. Fortsätta? [y/N] 
+%d existing files were kept (use --replace to replace them).	%d befintliga filer behölls (använd --replace för att ersätta dem).
+A password is needed for encryption.	Ett lösenord behövs för kryptering.
+Repeat the password: 	Upprepa lösenordet: 
+The passwords do not match.	Lösenorden stämmer inte överens.
+Everything on %s will be erased. Add --yes to confirm.	Allt på %s kommer att raderas. Lägg till --yes för att bekräfta.
+Yesterday	I går
+Today %s	I dag %s
+Yesterday %s	I går %s
+Use Disk	Använd disk
+Server address	Serveradress
+The password is kept in the keyring. A shared folder (SMB) gets one backup image file.	Lösenordet sparas i nyckelringen. En delad mapp (SMB) får en enda avbildsfil för säkerhetskopior.
+Encrypt backups	Kryptera säkerhetskopior
+The disk is erased and protected with a password. Without the password nobody can read the backups – keep it safe.	Disken raderas och skyddas med ett lösenord. Utan lösenordet kan ingen läsa säkerhetskopiorna – förvara det säkert.
+Backup disks	Säkerhetskopieringsdiskar
+Excluded folders	Undantagna mappar
+Exclude	Undanta
+Preparing the disk…	Förbereder disken…
+Up	Upp
+Connecting to the backup disk…	Ansluter till säkerhetskopieringsdisken…
+Restore Here	Återställ hit
+Restoring…	Återställer…
+Add Backup Disk	Lägg till säkerhetskopieringsdisk
+External disks	Externa diskar
+empty	tom
+No external disk is connected.	Ingen extern disk är ansluten.
+Network disk	Nätverksdisk
+Password for the backup disk	Lösenord för säkerhetskopieringsdisken
+Repeat the password	Upprepa lösenordet
+Back Up Now	Säkerhetskopiera nu
+Restore Files…	Återställ filer…
+Add Disk…	Lägg till disk…
+Back up automatically	Säkerhetskopiera automatiskt
+Every hour while the computer is charging. Paused on battery, in Battery Saver and – for network disks – on a metered connection.	Varje timme medan datorn laddas. Pausad på batteri, i Batterisparläge och – för nätverksdiskar – på en anslutning med datapriser.
+Back up system settings	Säkerhetskopiera systeminställningar
+Readable files from /etc and the list of installed apps.	Läsbara filer från /etc och listan över installerade appar.
+Back up the Downloads folder	Säkerhetskopiera mappen Hämtade filer
+Back up virtual machines	Säkerhetskopiera virtuella maskiner
+Disk images of virtual machines are very large.	Diskavbilder för virtuella maskiner är mycket stora.
+Caches and the trash are never backed up.	Cacheminnen och papperskorgen säkerhetskopieras aldrig.
+Exclude Folder…	Undanta mapp…
+No backup disk yet	Ingen säkerhetskopieringsdisk än
+Stop using this disk	Sluta använda den här disken
+Nothing excluded	Inget undantaget
+Back up again	Säkerhetskopiera igen
+Backing up…	Säkerhetskopierar…
+You can keep working, or close this window.	Du kan fortsätta arbeta eller stänga det här fönstret.
+Backups already on the disk are kept.	Säkerhetskopior som redan finns på disken behålls.
+Stop Using	Sluta använda
+Exclude Folder	Undanta mapp
+Modified	Ändrad
+Restore Everything…	Återställ allt…
+Restore To…	Återställ till…
+Restore To	Återställ till
+Restored %d items.	%d objekt återställdes.
+The whole home folder is restored from this backup. Files that differ are replaced; the current versions are moved to the folder .luxos-backup-replaced in your home folder, nothing is deleted.	Hela hemmappen återställs från den här säkerhetskopian. Filer som skiljer sig ersätts; de nuvarande versionerna flyttas till mappen .luxos-backup-replaced i din hemmapp, inget raderas.
+Restore Everything	Återställ allt
+Everything was restored. Log out and back in to load the restored settings.	Allt har återställts. Logga ut och in igen för att läsa in de återställda inställningarna.
+Connect a USB disk, or use a network disk.	Anslut en USB-disk eller använd en nätverksdisk.
+Add an external or network disk to start backing up.	Lägg till en extern disk eller nätverksdisk för att börja säkerhetskopiera.
+No backups yet	Inga säkerhetskopior än
+Add a backup disk to protect your files.	Lägg till en säkerhetskopieringsdisk för att skydda dina filer.
+Stop backing up to %s?	Sluta säkerhetskopiera till %s?
+Type the same password twice.	Skriv samma lösenord två gånger.
+Encryption needs an empty disk.	Kryptering kräver en tom disk.
+The disk could not be used	Disken kunde inte användas
+Back up now?	Säkerhetskopiera nu?
+The first backup can take a while. You can keep working.	Den första säkerhetskopieringen kan ta en stund. Du kan fortsätta arbeta.
+Backup from %s	Säkerhetskopia från %s
+Restore failed	Återställningen misslyckades
+Files that already exist were kept; the restored copies have “restored” in their name.	Filer som redan fanns behölls; de återställda kopiorna har ”återställd” i namnet.
+Restore everything from %s?	Återställa allt från säkerhetskopian från %s?
+External disk	Extern disk
+Network disk (SFTP)	Nätverksdisk (SFTP)
+Network disk (SMB)	Nätverksdisk (SMB)
+This disk is not ready for backups (%s).	Den här disken är inte redo för säkerhetskopior (%s).
+Erase and Use	Radera och använd
+empty folder	tom mapp
+Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Allt på den raderas och den förbereds för säkerhetskopior. Detta kan inte ångras.
+Backs up every hour.	Säkerhetskopierar varje timme.

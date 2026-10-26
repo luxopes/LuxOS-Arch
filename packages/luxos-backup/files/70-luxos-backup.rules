@@ -1,0 +1,5 @@
+# LuxOS Zalohy: pripojeny externi disk spusti uzivatelskou sluzbu luxos-backup-plug@ u kazdeho
+# prihlaseneho uzivatele (znamy disk = zaloha, novy = nabidka "Pouzit pro zalohy?").
+# Zadny stale bezici proces - systemd sluzbu spusti jen pri pripojeni disku.
+ACTION=="add", SUBSYSTEM=="block", ENV{ID_FS_USAGE}=="filesystem|crypto", ENV{ID_BUS}=="usb", \
+  TAG+="systemd", ENV{SYSTEMD_USER_WANTS}+="luxos-backup-plug@%k.service"
