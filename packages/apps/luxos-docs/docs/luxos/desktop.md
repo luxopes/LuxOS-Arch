@@ -29,6 +29,7 @@ Its items, from left to right:
 | "!" network warning | shown only when you are connected but there is no internet (`luxos-netcheck`) | opens the captive-portal sign-in page (`http://ping.archlinux.org/`) or Control Center |
 | Sound | PulseAudio plugin (volume, media keys) | mixer: `pavucontrol` |
 | Battery | icon and percentage (`luxos-battery`); hidden on computers without a battery | opens Control Center; the scroll wheel changes screen brightness (`luxos-brightness up/down`, 5 % steps, not below 10 %) |
+| Search (magnifier) | `luxos-search --panel` (genmon) | opens or closes Search, same as `Super+Space` |
 | Control Center | `luxos-control-center --panel` | opens or closes Control Center |
 | Notifications | notification plugin (notification history) | - |
 | Clock | e.g. "Wed 22. Oct  14:05" (`luxos-clock`, refreshed every 3 s) | opens or closes the Calendar |
@@ -43,6 +44,11 @@ Panel plugins without menus (genmon, systray) run inside the panel process to sa
 (`xfce4-genmon-plugin` in [luxos]) with an extra tag `<scroll>command</scroll>`: the scroll wheel
 runs `command up` / `command down`. The GTK module `luxos-panel-menus` (loaded by
 `/usr/lib/luxos/override-bin/xfce4-panel`) removes the grey plugin name from right-click menus.
+
+Older profiles get the Search magnifier once, before Control Center: `luxos-session` runs
+`luxos-search --add-to-panel` at login (it restarts the panel; the mark
+`~/.config/luxos/search-icon-added` makes sure it is never added again after you remove it). To
+remove it: right-click the magnifier → Remove.
 
 When you log out, restart or shut down, `luxos-hub` starts `luxos-session-cover`: the screen fades
 to black before the compositor stops, so windows never show black edges.
@@ -59,7 +65,8 @@ immediately (`luxos-cc-toggle` sends SIGUSR1).
 
 Contents:
 
-- **LuxAI profile** at the top: "Sign in to LuxAI" or your account. Opens `luxos-account`.
+- **LuxAI profile** at the top: "Sign in to LuxAI" or your account, with your profile picture
+  (`~/.face`) or the first letter of the name. Opens `luxos-account`.
 - **Tiles:**
   - **Wi-Fi**: turns the Wi-Fi radio on or off (`nmcli radio wifi on|off`).
   - **Bluetooth**: opens the Bluetooth app (`luxos-bluetooth`).
@@ -186,6 +193,21 @@ wallpaper changes. A wallpaper the login screen cannot read (in the home folder)
 LuxOS wallpaper of the current mode; a `BackgroundFile` set by other means is left alone.
 `LOGIN_WALLPAPER=0` in `~/.config/luxos/appearance.conf` turns this off; `user-background=false` in
 `luxos-greeter.conf` makes the login screen always use `background`.
+
+The avatar is the user's profile picture from AccountsService (`IconFile`,
+`/var/lib/AccountsService/icons/<user>`); without one the screen shows the first letter of the name on
+a blue-violet circle. Change it in **Profile Picture** (see [settings-apps.md](settings-apps.md#profile-picture)).
+
+**After login** the greeter hides the clock and the form and leaves only the (slightly dimmed)
+wallpaper as the last frame; the session starts at most one frame later. The X server keeps that
+frame (`X -background none`), and `luxos-session-cover --login` (started by
+`/etc/X11/xinit/xinitrc.d/60-luxos-login-cover.sh` before the session) covers the desktop while it is
+being put together. As soon as the desktop (xfdesktop) and the top bar or Dock are mapped, it waits
+200 ms for them to draw and then dissolves in about 0.3 s through the xfwm4 compositor, so the
+wallpaper brightens and the top bar and Dock appear. It never delays anything: input goes through it,
+without a compositor it waits for one at most 1.2 s, and it always ends within 5 s. With Battery
+Saver on, or with GTK animations turned off (xsettings `EnableAnimations`), it just disappears
+without the fade.
 
 The screen locks with `xflock4` (`Super+L`, `Ctrl+Super+Q`). The lock settings are in Screen Saver &
 Lock. The default screen saver of the locked screen, "Desktop wallpaper and clock", shows the same

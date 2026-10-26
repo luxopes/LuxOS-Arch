@@ -9,6 +9,8 @@
   luxos-account logout     odhlaseni (zneplatni session na serveru)
 """
 import json
+import math
+import os
 import subprocess
 import sys
 import threading
@@ -52,14 +54,23 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
 
 import luxai_account_gtk as accgtk  # noqa: E402
+
+try:   # profilova fotka uctu v pocitaci (luxos-desktop)
+    import luxos_avatar  # noqa: E402
+except ImportError:
+    luxos_avatar = None
+
+import cairo  # noqa: E402
 
 CSS = b"""
 .hero { border-radius: 18px; padding: 22px; color: white;
         background-image: linear-gradient(120deg, #3d6bff, #7b4dff 60%, #b14dff); }
 .hero-title { font-size: 22px; font-weight: 800; }
+.photo, .photo:hover { padding: 0; border: none; background: none; box-shadow: none; border-radius: 999px; }
 .avatar { border-radius: 999px; min-width: 72px; min-height: 72px; font-size: 30px; font-weight: 800;
           color: white; background-image: linear-gradient(135deg, #3d7bff, #8b4dff); }
 .name { font-size: 20px; font-weight: 800; }
@@ -84,6 +95,77 @@ def run_async(work, done):
     threading.Thread(target=target, daemon=True).start()
 
 
+class PhotoButton(Gtk.Button):
+    """Profilova fotka uctu v pocitaci (jako na prihlasovaci obrazovce); klik otevre Profilovou fotku."""
+
+    def __init__(self, size, name):
+        super().__init__(relief=Gtk.ReliefStyle.NONE, tooltip_text=_("Change Picture"))
+        self.get_style_context().add_class("photo")
+        self.size, self.name, self.pix, self.stamp = size, name, None, None
+        area = Gtk.DrawingArea()
+        area.set_size_request(size, size)
+        area.connect("draw", self.draw)
+        self.add(area)
+        self.set_valign(Gtk.Align.CENTER)
+        self.connect("clicked", lambda _b: open_picture())
+        self.reload()
+
+    def reload(self):
+        path = luxos_avatar.current() if luxos_avatar else None
+        try:
+            stamp = (path, os.stat(path).st_mtime_ns) if path else None
+        except OSError:
+            stamp = None
+        if stamp == self.stamp and self.stamp is not None:
+            return
+        self.stamp, self.pix = stamp, None
+        if path:
+            try:
+                self.pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, self.size * 2, self.size * 2, True)
+            except GLib.Error:
+                self.pix = None
+        self.queue_draw()
+
+    def draw(self, w, cr):
+        d = min(w.get_allocated_width(), w.get_allocated_height())
+        cx = cy = d / 2
+        cr.arc(cx, cy, d / 2, 0, 2 * math.pi)
+        cr.clip()
+        if self.pix:
+            s = d / min(self.pix.get_width(), self.pix.get_height())
+            cr.translate(cx, cy)
+            cr.scale(s, s)
+            Gdk.cairo_set_source_pixbuf(cr, self.pix, -self.pix.get_width() / 2, -self.pix.get_height() / 2)
+            cr.paint()
+            return False
+        g = cairo.LinearGradient(0, 0, d, d)
+        g.add_color_stop_rgb(0, 0.24, 0.48, 1.0)
+        g.add_color_stop_rgb(1, 0.55, 0.30, 1.0)
+        cr.set_source(g)
+        cr.paint()
+        cr.select_font_face("Inter", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+        cr.set_font_size(d * 0.42)
+        t = (self.name.strip()[:1] or "?").upper()
+        ext = cr.text_extents(t)
+        cr.move_to(cx - ext.width / 2 - ext.x_bearing, cy - ext.height / 2 - ext.y_bearing)
+        cr.set_source_rgb(1, 1, 1)
+        cr.show_text(t)
+        return False
+
+
+def open_picture():
+    try:
+        subprocess.Popen(["luxos-profile-picture"])
+    except OSError:
+        pass
+
+
+def computer_name():
+    """Jmeno uctu v pocitaci (GECOS), jinak prihlasovaci jmeno."""
+    name = GLib.get_real_name()
+    return name if name and name != "Unknown" else GLib.get_user_name()
+
+
 class AccountWindow(Gtk.Window):
     def __init__(self, login_mode, start_mode="password"):
         super().__init__(title=_("LuxAI Account"))
@@ -97,11 +179,19 @@ class AccountWindow(Gtk.Window):
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE)
         self.add(self.stack)
         self.connect("destroy", lambda *_a: self.web and self.web.close())
+        # fotka zmenena v Profilove fotce: po navratu do okna ukazat novou
+        self.photos = []
+        self.connect("focus-in-event", lambda *_a: [p.reload() for p in self.photos] and False)
         self.show_page()
 
     def page(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=24)
         return box
+
+    def photo(self, size, name):
+        btn = PhotoButton(size, name)
+        self.photos = [p for p in self.photos if p.get_parent() is not None] + [btn]
+        return btn
 
     def replace(self, box):
         for child in self.stack.get_children():
@@ -120,6 +210,22 @@ class AccountWindow(Gtk.Window):
     # ---- prihlaseni ----
     def show_login(self, message=None, mode="password"):
         box = self.page()
+        if luxos_avatar:
+            me = Gtk.Box(spacing=12)
+            me.pack_start(self.photo(44, computer_name()), False, False, 0)
+            who = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+            n = Gtk.Label(label=computer_name(), xalign=0)
+            n.get_style_context().add_class("card-title")
+            who.pack_start(n, False, False, 0)
+            sub = Gtk.Label(label=_("Account on this computer"), xalign=0)
+            sub.get_style_context().add_class("dim")
+            who.pack_start(sub, False, False, 0)
+            me.pack_start(who, True, True, 0)
+            change = Gtk.Button(label=_("Change Picture"), valign=Gtk.Align.CENTER)
+            change.get_style_context().add_class("link")
+            change.connect("clicked", lambda _b: open_picture())
+            me.pack_end(change, False, False, 0)
+            box.pack_start(me, False, False, 0)
         hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         hero.get_style_context().add_class("hero")
         t = Gtk.Label(label=_("Sign in to LuxAI"), xalign=0)
@@ -210,8 +316,11 @@ class AccountWindow(Gtk.Window):
         box = self.page()
         top = Gtk.Box(spacing=16)
         name = user.get("displayName") or user.get("username") or user.get("email", "")
-        avatar = Gtk.Label(label=(name[:1] or "?").upper())
-        avatar.get_style_context().add_class("avatar")
+        if luxos_avatar:
+            avatar = self.photo(72, name)
+        else:
+            avatar = Gtk.Label(label=(name[:1] or "?").upper())
+            avatar.get_style_context().add_class("avatar")
         top.pack_start(avatar, False, False, 0)
         texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
         n = Gtk.Label(label=name, xalign=0)

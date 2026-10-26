@@ -2862,3 +2862,18 @@ Erase and Use	Wymaż i użyj
 empty folder	pusty folder
 Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Wszystko na nim zostanie wymazane, a dysk zostanie przygotowany do kopii zapasowych. Tego nie można cofnąć.
 Backs up every hour.	Tworzy kopię zapasową co godzinę.
+Profile Picture	Zdjęcie profilowe
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Widoczne na ekranie logowania i blokady, w menu LuxOS i w Centrum sterowania.
+Choose Photo…	Wybierz zdjęcie…
+Choose Photo	Wybierz zdjęcie
+Remove Picture	Usuń zdjęcie
+Images	Obrazy
+This file is not a picture LuxOS can open.	Ten plik nie jest obrazem, który LuxOS potrafi otworzyć.
+The picture could not be removed: %s	Nie udało się usunąć zdjęcia: %s
+Picture removed.	Zdjęcie usunięte.
+Drag to move the photo, scroll to zoom.	Przeciągnij, aby przesunąć zdjęcie, przewiń, aby powiększyć.
+Zoom	Powiększenie
+The picture is saved, but the login screen could not be updated: %s	Zdjęcie zostało zapisane, ale nie udało się zaktualizować ekranu logowania: %s
+Saved. The new picture appears on the login screen and in the menu.	Zapisano. Nowe zdjęcie pojawi się na ekranie logowania i w menu.
+Change Picture	Zmień zdjęcie
+Account on this computer	Konto na tym komputerze

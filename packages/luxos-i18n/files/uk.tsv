@@ -2862,3 +2862,18 @@ Erase and Use	Стерти й використати
 empty folder	порожня тека
 Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Усе на ньому буде стерто, а диск буде підготовлено для резервних копій. Це не можна скасувати.
 Backs up every hour.	Створює резервну копію щогодини.
+Profile Picture	Фото профілю
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Показується на екрані входу та блокування, у меню LuxOS і в Центрі керування.
+Choose Photo…	Вибрати фото…
+Choose Photo	Вибрати фото
+Remove Picture	Видалити фото
+Images	Зображення
+This file is not a picture LuxOS can open.	Цей файл не є зображенням, яке LuxOS може відкрити.
+The picture could not be removed: %s	Не вдалося видалити фото: %s
+Picture removed.	Фото видалено.
+Drag to move the photo, scroll to zoom.	Перетягніть, щоб посунути фото, прокрутіть, щоб збільшити.
+Zoom	Масштаб
+The picture is saved, but the login screen could not be updated: %s	Фото збережено, але не вдалося оновити екран входу: %s
+Saved. The new picture appears on the login screen and in the menu.	Збережено. Нове фото з’явиться на екрані входу та в меню.
+Change Picture	Змінити фото
+Account on this computer	Обліковий запис на цьому комп’ютері

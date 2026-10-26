@@ -2954,3 +2954,18 @@ Erase and Use	Smazat a použít
 empty folder	prázdná složka
 Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Vše na něm bude smazáno a disk bude připraven pro zálohy. Tuto akci nelze vrátit zpět.
 Backs up every hour.	Zálohuje každou hodinu.
+Profile Picture	Profilová fotka
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Zobrazí se na přihlašovací a zamykací obrazovce, v nabídce LuxOS a v Ovládacím centru.
+Choose Photo…	Vybrat fotku…
+Choose Photo	Vybrat fotku
+Remove Picture	Odebrat fotku
+Images	Obrázky
+This file is not a picture LuxOS can open.	Tento soubor není obrázek, který LuxOS umí otevřít.
+The picture could not be removed: %s	Fotku se nepodařilo odebrat: %s
+Picture removed.	Fotka odebrána.
+Drag to move the photo, scroll to zoom.	Tažením fotku posunete, kolečkem myši zvětšíte.
+Zoom	Přiblížení
+The picture is saved, but the login screen could not be updated: %s	Fotka je uložená, ale přihlašovací obrazovku se nepodařilo aktualizovat: %s
+Saved. The new picture appears on the login screen and in the menu.	Uloženo. Nová fotka se ukáže na přihlašovací obrazovce a v nabídce.
+Change Picture	Změnit fotku
+Account on this computer	Účet v tomto počítači

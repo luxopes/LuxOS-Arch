@@ -2861,3 +2861,18 @@ Erase and Use	Cancella e usa
 empty folder	cartella vuota
 Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Tutto il contenuto verrà cancellato e il disco verrà preparato per i backup. L’operazione non può essere annullata.
 Backs up every hour.	Esegue il backup ogni ora.
+Profile Picture	Immagine del profilo
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Viene mostrata nella schermata di accesso e di blocco, nel menu di LuxOS e nel Centro di Controllo.
+Choose Photo…	Scegli foto…
+Choose Photo	Scegli foto
+Remove Picture	Rimuovi immagine
+Images	Immagini
+This file is not a picture LuxOS can open.	Questo file non è un’immagine che LuxOS può aprire.
+The picture could not be removed: %s	Impossibile rimuovere l’immagine: %s
+Picture removed.	Immagine rimossa.
+Drag to move the photo, scroll to zoom.	Trascina per spostare la foto, scorri per ingrandire.
+Zoom	Zoom
+The picture is saved, but the login screen could not be updated: %s	L’immagine è stata salvata, ma non è stato possibile aggiornare la schermata di accesso: %s
+Saved. The new picture appears on the login screen and in the menu.	Salvato. La nuova immagine appare nella schermata di accesso e nel menu.
+Change Picture	Cambia immagine
+Account on this computer	Account su questo computer

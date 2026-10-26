@@ -2861,3 +2861,18 @@ Erase and Use	Löschen und verwenden
 empty folder	leerer Ordner
 Everything on it will be erased and it will be prepared for backups. This cannot be undone.	Alles darauf wird gelöscht und sie wird für Sicherungen vorbereitet. Dies kann nicht rückgängig gemacht werden.
 Backs up every hour.	Sichert stündlich.
+Profile Picture	Profilbild
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Wird auf dem Anmelde- und Sperrbildschirm, im LuxOS-Menü und im Kontrollzentrum angezeigt.
+Choose Photo…	Foto auswählen…
+Choose Photo	Foto auswählen
+Remove Picture	Bild entfernen
+Images	Bilder
+This file is not a picture LuxOS can open.	Diese Datei ist kein Bild, das LuxOS öffnen kann.
+The picture could not be removed: %s	Das Bild konnte nicht entfernt werden: %s
+Picture removed.	Bild entfernt.
+Drag to move the photo, scroll to zoom.	Ziehen, um das Foto zu verschieben, scrollen zum Zoomen.
+Zoom	Zoom
+The picture is saved, but the login screen could not be updated: %s	Das Bild ist gespeichert, aber der Anmeldebildschirm konnte nicht aktualisiert werden: %s
+Saved. The new picture appears on the login screen and in the menu.	Gespeichert. Das neue Bild erscheint auf dem Anmeldebildschirm und im Menü.
+Change Picture	Bild ändern
+Account on this computer	Konto auf diesem Computer

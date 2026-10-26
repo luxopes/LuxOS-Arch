@@ -10,16 +10,27 @@
  *   - kompozitor skoncil (vlastnik vyberu _NET_WM_CM_Sn, XFixes): cerna okamzite
  *   - SIGTERM (odhlaseni zruseno): konec bez zakryti
  * Cerne okno bez spravce oken se drzi navrchu, dokud neskonci X server.
+ *
+ * luxos-session-cover --login - prechod po prihlaseni (spousti /etc/X11/xinit/xinitrc.d/60-luxos-login-cover.sh
+ * pred startem relace): okno pres celou obrazovku s poslednim snimkem prihlasovaci obrazovky (greeter pred
+ * spustenim relace ukaze jen tapetu, X server snimek po skonceni greeteru drzi - "X -background none")
+ * zakryje skladani plochy. Jakmile je plocha (okno typu DESKTOP) i lista (DOCK) a probehne kresleni, okno
+ * se behem ~0,28 s rozplyne (pruhlednost pres kompozitor xfwm4) a skonci. Na nic neceka: vstup (mys,
+ * klavesnice) jde skrz (prazdny vstupni tvar), nejdele po LOGIN_MAX_MS konci vzdy. Bez animace (jen
+ * odkryti) pri zapnutem Sporici baterie (~/.config/luxos/powersaver) nebo vypnutych animacich (xsettings).
  */
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/Xfixes.h>
+#include <X11/extensions/shape.h>
 #include <errno.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #define FADE_MS 150
 #define STEPS 6
@@ -75,7 +86,7 @@ static void show(int fade)
     shown = 2;
 }
 
-int main(void)
+static int logout_main(void)
 {
     struct sigaction sa;
     memset(&sa, 0, sizeof sa);
@@ -137,4 +148,188 @@ int main(void)
             break;
     }
     return 0;
+}
+
+/* ---- prechod po prihlaseni --------------------------------------------------------------------- */
+
+#define LOGIN_SETTLE_MS 200      /* plocha a lista jsou namapovane: chvile na prvni vykresleni */
+#define LOGIN_FADE_MS 280
+#define LOGIN_FADE_STEPS 14
+#define LOGIN_WAIT_CM_MS 1200    /* po pripraveni plochy jeste chvili pockat na kompozitor (rozplynuti) */
+#define LOGIN_MAX_MS 5000        /* vzdy skoncit (relace bez listy, jine prostredi) */
+
+static long now_ms(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000L + ts.tv_nsec / 1000000L;
+}
+
+/* Soubor (male nastaveni) obsahuje text */
+static int file_contains(const char *path, const char *needle)
+{
+    static char buf[65536];
+    FILE *f = fopen(path, "r");
+    if (!f)
+        return 0;
+    size_t n = fread(buf, 1, sizeof buf - 1, f);
+    fclose(f);
+    buf[n] = 0;
+    return strstr(buf, needle) != NULL;
+}
+
+/* Sporic baterie nebo vypnute animace GTK = bez rozplynuti (jen odkryti) */
+static int motion_allowed(void)
+{
+    char base[4096], path[4200];
+    const char *xdg = getenv("XDG_CONFIG_HOME"), *home = getenv("HOME");
+    if (xdg && *xdg)
+        snprintf(base, sizeof base, "%s", xdg);
+    else if (home && *home)
+        snprintf(base, sizeof base, "%s/.config", home);
+    else
+        return 1;
+    snprintf(path, sizeof path, "%s/luxos/powersaver", base);
+    if (access(path, F_OK) == 0)
+        return 0;
+    snprintf(path, sizeof path, "%s/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml", base);
+    return !file_contains(path, "name=\"EnableAnimations\" type=\"bool\" value=\"false\"");
+}
+
+static Atom a_clients, a_type, a_desktop, a_dock;
+
+/* Plocha (DESKTOP) a lista nebo dock (DOCK) uz jsou mezi okny spravce oken */
+static int desktop_ready(void)
+{
+    Atom type;
+    int fmt, desk = 0, dock = 0;
+    unsigned long n = 0, rest;
+    unsigned char *data = NULL;
+    if (XGetWindowProperty(dpy, root, a_clients, 0, 4096, False, AnyPropertyType, &type, &fmt, &n, &rest, &data) != Success
+        || !data)
+        return 0;
+    Window *w = (Window *)data;
+    for (unsigned long i = 0; i < n && !(desk && dock); i++) {
+        unsigned char *t = NULL;
+        unsigned long tn = 0;
+        if (XGetWindowProperty(dpy, w[i], a_type, 0, 8, False, XA_ATOM, &type, &fmt, &tn, &rest, &t) == Success && t) {
+            Atom *at = (Atom *)t;
+            for (unsigned long j = 0; j < tn; j++) {
+                if (at[j] == a_desktop)
+                    desk = 1;
+                else if (at[j] == a_dock)
+                    dock = 1;
+            }
+            XFree(t);
+        }
+    }
+    XFree(data);
+    return desk && dock;
+}
+
+static int ignore_errors(Display *d, XErrorEvent *e)
+{
+    (void)d;
+    (void)e;
+    return 0;                   /* okno ze seznamu mezitim zaniklo */
+}
+
+static int login_main(void)
+{
+    dpy = XOpenDisplay(NULL);
+    if (!dpy)
+        return 1;
+    XSetErrorHandler(ignore_errors);
+    int scr = DefaultScreen(dpy), xf_event, xf_error;
+    root = RootWindow(dpy, scr);
+    XWindowAttributes ra;
+    XGetWindowAttributes(dpy, root, &ra);
+    a_opacity = XInternAtom(dpy, "_NET_WM_WINDOW_OPACITY", False);
+    char cm[32];
+    snprintf(cm, sizeof cm, "_NET_WM_CM_S%d", scr);
+    a_cm = XInternAtom(dpy, cm, False);
+    a_clients = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
+    a_type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+    a_desktop = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
+    a_dock = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
+    if (desktop_ready())
+        return 0;               /* plocha uz bezi (napr. druhe spusteni) */
+
+    /* Posledni snimek obrazovky (konec prihlaseni) jako pozadi okna: kopie na serveru, bez prenosu obrazu */
+    unsigned w = (unsigned)ra.width, h = (unsigned)ra.height;
+    Pixmap snap = XCreatePixmap(dpy, root, w, h, (unsigned)ra.depth);
+    XGCValues gv;
+    gv.subwindow_mode = IncludeInferiors;
+    GC gc = XCreateGC(dpy, root, GCSubwindowMode, &gv);
+    XCopyArea(dpy, root, snap, gc, 0, 0, w, h, 0, 0);
+    XFreeGC(dpy, gc);
+
+    XSetWindowAttributes a;
+    a.override_redirect = True;
+    a.background_pixmap = snap;
+    win = XCreateWindow(dpy, root, 0, 0, w, h, 0, ra.depth, InputOutput, ra.visual,
+                        CWOverrideRedirect | CWBackPixmap, &a);
+    XStoreName(dpy, win, "luxos-login-cover");
+    /* Mys a klavesnice jdou skrz: prechod nikdy neblokuje praci */
+    if (XFixesQueryExtension(dpy, &xf_event, &xf_error)) {
+        XserverRegion empty = XFixesCreateRegion(dpy, NULL, 0);
+        XFixesSetWindowShapeRegion(dpy, win, ShapeInput, 0, 0, empty);
+        XFixesDestroyRegion(dpy, empty);
+    }
+    /* Nepatrne mene nez nepruhledne: kompozitor (xfwm4 unredirect_overlays) jinak okno pres celou
+     * obrazovku muze vynechat (bez rozplynuti); obraz je stejny */
+    set_opacity(0xfffffffeUL);
+    XMapRaised(dpy, win);
+    XSelectInput(dpy, root, PropertyChangeMask);
+    XFlush(dpy);
+
+    int motion = motion_allowed(), check = 1;
+    long start = now_ms(), ready_at = 0;
+    struct pollfd pfd = {ConnectionNumber(dpy), POLLIN, 0};
+    for (;;) {
+        while (XPending(dpy)) {
+            XEvent ev;
+            XNextEvent(dpy, &ev);
+            if (ev.type == PropertyNotify && ev.xproperty.atom == a_clients)
+                check = 1;
+        }
+        long t = now_ms();
+        if (check && !ready_at && desktop_ready())
+            ready_at = t;
+        check = 0;
+        if (t - start >= LOGIN_MAX_MS)
+            break;
+        if (ready_at && t - ready_at >= LOGIN_SETTLE_MS
+            && (!motion || XGetSelectionOwner(dpy, a_cm) != None || t - ready_at >= LOGIN_SETTLE_MS + LOGIN_WAIT_CM_MS))
+            break;
+        XRaiseWindow(dpy, win);     /* lista a plocha se mapuji nad nas - drzet navrchu */
+        XFlush(dpy);
+        if (poll(&pfd, 1, 40) < 0 && errno != EINTR)
+            return 0;
+        if (pfd.revents & (POLLHUP | POLLERR))
+            return 0;
+    }
+
+    if (motion && XGetSelectionOwner(dpy, a_cm) != None) {
+        for (int i = LOGIN_FADE_STEPS - 1; i > 0; i--) {
+            double p = (double)i / LOGIN_FADE_STEPS;
+            set_opacity((unsigned long)(0xffffffffUL * (p * p)));   /* rychle odkryti, jemny konec */
+            XRaiseWindow(dpy, win);
+            XFlush(dpy);
+            sleep_ms(LOGIN_FADE_MS / LOGIN_FADE_STEPS);
+            if (XGetSelectionOwner(dpy, a_cm) == None)
+                break;
+        }
+    }
+    XDestroyWindow(dpy, win);
+    XFreePixmap(dpy, snap);
+    XCloseDisplay(dpy);
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc > 1 && strcmp(argv[1], "--login") == 0)
+        return login_main();
+    return logout_main();
 }

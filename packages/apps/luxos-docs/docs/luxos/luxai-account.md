@@ -8,6 +8,10 @@ The account belongs to the service at `https://lux-ai.cz`.
 
 - App **LuxAI Account** (`luxos-account`, package `luxos-account`): sign in, profile, monthly AI
   usage, sign out.
+  It also shows the account on this computer with its profile picture (the same picture as on the
+  login screen); clicking the picture or **Change Picture** opens Profile Picture
+  (`luxos-profile-picture`, see [settings-apps.md](settings-apps.md#profile-picture)). The user
+  button of the LuxOS menu opens this app.
 - The welcome window after first login.
 - Optionally already in the **installer** (graphical and text): password, code sent by e-mail, or
   creating a new account.

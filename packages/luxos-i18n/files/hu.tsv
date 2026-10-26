@@ -2861,3 +2861,18 @@ Erase and Use	Törlés és használat
 empty folder	üres mappa
 Everything on it will be erased and it will be prepared for backups. This cannot be undone.	A rajta lévő összes adat törlődik, és a lemez előkészül a mentésekhez. Ez nem vonható vissza.
 Backs up every hour.	Óránként készít mentést.
+Profile Picture	Profilkép
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Megjelenik a bejelentkezési és a zárolási képernyőn, a LuxOS menüben és a Vezérlőközpontban.
+Choose Photo…	Fénykép kiválasztása…
+Choose Photo	Fénykép kiválasztása
+Remove Picture	Kép eltávolítása
+Images	Képek
+This file is not a picture LuxOS can open.	Ez a fájl nem olyan kép, amelyet a LuxOS meg tud nyitni.
+The picture could not be removed: %s	A képet nem sikerült eltávolítani: %s
+Picture removed.	Kép eltávolítva.
+Drag to move the photo, scroll to zoom.	Húzással mozgathatod a képet, görgetéssel nagyíthatsz.
+Zoom	Nagyítás
+The picture is saved, but the login screen could not be updated: %s	A kép mentve, de a bejelentkezési képernyőt nem sikerült frissíteni: %s
+Saved. The new picture appears on the login screen and in the menu.	Mentve. Az új kép megjelenik a bejelentkezési képernyőn és a menüben.
+Change Picture	Kép módosítása
+Account on this computer	Fiók ezen a számítógépen
