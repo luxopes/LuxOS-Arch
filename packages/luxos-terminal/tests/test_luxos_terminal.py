@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """LuxOS Terminal - testy programu luxos-terminal.
 
-    LUXOS_TERMINAL_BIN=cesta/k/luxos-terminal \\
-    env -u DISPLAY xvfb-run -a -s "-screen 0 1280x900x24" python3 -m unittest packages/luxos-terminal/tests/test_luxos_terminal.py -v
+    LUXOS_TERMINAL_BIN=cesta/k/luxos-terminal XDG_RUNTIME_DIR=$(mktemp -d) \\
+    env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS xvfb-run -a -s "-screen 0 1280x900x24" dbus-run-session -- python3 -m unittest packages/luxos-terminal/tests/test_luxos_terminal.py -v
 
 Okna se testuji jen pod xvfb-run (nikdy na skutecne obrazovce), kazdy test ve vlastnim procesu
 terminalu (LUXOS_TERMINAL_NEW_PROCESS=1) a s docasnym HOME. Kontroluje se snimek obrazovky:
@@ -116,7 +116,7 @@ class CliTest(unittest.TestCase):
         from sixel_decode import decode
         with tempfile.TemporaryDirectory() as tmp:
             env = dict(os.environ, XDG_CACHE_HOME=tmp, LUXOS_TERMINAL_LOGO_SOURCE=logo_source())
-            for cell, mode, bg in (("9x20", "dark", (0x1c, 0x1c, 0x22)), ("12x26", "light", (255, 255, 255))):
+            for cell, mode, bg in (("9x20", "dark", (0, 0, 0)), ("12x26", "light", (255, 255, 255))):
                 r = subprocess.run([BIN, "--logo-sixel", cell, mode], capture_output=True, env=env, timeout=30)
                 self.assertEqual(r.returncode, 0, r.stderr)
                 data, path = r.stdout.decode("latin-1").rsplit("\n", 2)[:2]
@@ -129,7 +129,7 @@ class CliTest(unittest.TestCase):
                 blue = sum(1 for (r_, g, b) in px.values() if b > r_ + 40 and b > 150)
                 self.assertGreater(blue, w * h * 0.08, "blue/violet logo pixels")
                 # okraje smichane s pozadim profilu: zadny bod nema barvu "druheho" profilu
-                other = (255, 255, 255) if mode == "dark" else (0x1c, 0x1c, 0x22)
+                other = (255, 255, 255) if mode == "dark" else (0, 0, 0)
                 self.assertNotIn(other, set(px.values()))
             # podruhe z mezipameti (stejny soubor)
             r = subprocess.run([BIN, "--logo-sixel", "9x20", "dark"], capture_output=True, env=env, timeout=30)
@@ -175,8 +175,8 @@ class GuiTest(unittest.TestCase):
         with open(os.path.join(d, "terminal.conf"), "w") as f:
             f.write(text)
 
-    def start(self, *args, env=None):
-        p = subprocess.Popen([BIN, *args], env=env or self.env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    def start(self, *args, env=None, stderr=subprocess.DEVNULL):
+        p = subprocess.Popen([BIN, *args], env=env or self.env, stdout=subprocess.DEVNULL, stderr=stderr)
         self.procs.append(p)
         return p
 
@@ -222,12 +222,25 @@ class GuiTest(unittest.TestCase):
                     hits += 1
         return hits
 
+    def window_area(self, pb):
+        """Vyrez snimku s oknem terminalu (koren obrazovky xvfb je cerny jako tmavy profil)."""
+        w = self.windows()
+        if not w:
+            return pb
+        geo = subprocess.run(["xdotool", "getwindowgeometry", "--shell", w[0]], capture_output=True,
+                             text=True, env=self.env).stdout
+        g = dict(line.split("=", 1) for line in geo.split() if "=" in line)
+        x, y = max(0, int(g["X"])), max(0, int(g["Y"]))
+        width = min(int(g["WIDTH"]), pb.get_width() - x)
+        height = min(int(g["HEIGHT"]), pb.get_height() - y)
+        return pb.new_subpixbuf(x, y, width, height)
+
     def wait_pixels(self, rgb, minimum, name, timeout=8):
         end = time.time() + timeout
         hits = 0
         while time.time() < end:
             time.sleep(0.3)
-            pb = self.screenshot()
+            pb = self.window_area(self.screenshot())
             hits = self.count(pb, rgb)
             if hits >= minimum:
                 break
@@ -240,8 +253,57 @@ class GuiTest(unittest.TestCase):
         # cervene pozadi (paleta 1 = #ff6b81) pres 10 znaku
         self.start("-H", "-x", "sh", "-c", r"printf '\033[41m%s\033[0m\n' '          '; sleep 30")
         self.wait_window()
-        self.assertGreater(self.wait_pixels((0x1c, 0x1c, 0x22), 100000, "dark"), 100000, "dark background")
+        self.assertGreater(self.wait_pixels((0, 0, 0), 100000, "dark"), 100000, "dark background")
         self.assertGreater(self.count(self.screenshot(), (0xff, 0x6b, 0x81)), 500, "red cells (palette)")
+
+    def test_default_dark_opaque(self):
+        """Bez nastaveni: tmavy profil i ve svetlem vzhledu systemu, pozadi nepruhledne."""
+        d = os.path.join(self.home, ".config", "gtk-3.0")
+        os.makedirs(d)
+        with open(os.path.join(d, "settings.ini"), "w") as f:
+            f.write("[Settings]\ngtk-theme-name=WhiteSur-Light\n")
+        env = dict(self.env)
+        env.pop("GTK_THEME")
+        self.start("-x", "sh", "-c", "sleep 30", env=env)
+        self.wait_window()
+        self.assertGreater(self.wait_pixels((0, 0, 0), 100000, "default-dark"), 100000)
+
+    def test_auto_follows_light_system(self):
+        self.config("[terminal]\ntheme=auto\n")
+        d = os.path.join(self.home, ".config", "gtk-3.0")
+        os.makedirs(d)
+        with open(os.path.join(d, "settings.ini"), "w") as f:
+            f.write("[Settings]\ngtk-theme-name=WhiteSur-Light\n")
+        env = dict(self.env)
+        env.pop("GTK_THEME")
+        self.start("-x", "sh", "-c", "sleep 30", env=env)
+        self.wait_window()
+        self.assertGreater(self.wait_pixels((0xff, 0xff, 0xff), 100000, "auto-light"), 100000)
+
+    def test_no_warnings(self):
+        """Bezny beh (OSC 7 adresar, novy panel, hledani, zoom, prepnuti panelu) bez VTE/GTK varovani."""
+        err = os.path.join(self.home, "stderr")
+        with open(err, "w") as ef:
+            self.start("-x", "bash", "--norc", "-c",
+                       'printf "\\033]7;file://%s%s\\007\\033]0;title\\007" "$(hostname)" "$PWD"; '
+                       "echo https://luxos.example; sleep 30", stderr=ef)
+            self.wait_window()
+            time.sleep(1)
+            for keys in ("ctrl+shift+t", "ctrl+Page_Up", "ctrl+shift+f", "Escape", "ctrl+plus", "ctrl+0",
+                         "ctrl+shift+n"):
+                # bez spravce oken jde klavesnice do okna pod mysi (okno se zoomem zmensuje)
+                subprocess.run(["xdotool", "mousemove", "--window", self.windows()[0], "40", "70"], env=self.env)
+                subprocess.run(["xdotool", "key", keys], env=self.env)
+                time.sleep(0.4)
+            time.sleep(1)
+        text = read(err)
+        for bad in ("CRITICAL", "WARNING", "Gtk-", "VTE-"):
+            self.assertNotIn(bad, text, text)
+        for _ in range(50):
+            if len(self.windows()) == 2:
+                break
+            time.sleep(0.1)
+        self.assertEqual(len(self.windows()), 2, "Ctrl+Shift+N opens a second window")
 
     def test_light_profile(self):
         self.config("[terminal]\ntheme=light\n")
@@ -255,11 +317,12 @@ class GuiTest(unittest.TestCase):
         os.makedirs(d)
         with open(os.path.join(d, "settings.ini"), "w") as f:
             f.write("[Settings]\ngtk-theme-name=WhiteSur-Dark\n")
+        self.config("[terminal]\ntheme=auto\n")
         env = dict(self.env)
         env.pop("GTK_THEME")
         self.start("-x", "sh", "-c", "sleep 30", env=env)
         self.wait_window()
-        self.assertGreater(self.wait_pixels((0x1c, 0x1c, 0x22), 100000, "auto-dark"), 100000)
+        self.assertGreater(self.wait_pixels((0, 0, 0), 100000, "auto-dark"), 100000)
 
     def test_title_and_hold(self):
         self.start("-T", "Hello LuxOS", "-H", "-x", "true")
@@ -410,6 +473,72 @@ class GuiTest(unittest.TestCase):
         self.assertGreater(blue, 3000, "LuxOS logo image not drawn")
         caches = os.listdir(os.path.join(self.home, ".cache", "luxos", "terminal"))
         self.assertTrue(any(c.endswith("-dark.six") for c in caches), caches)
+
+    def x_server_ticks(self):
+        """Cas CPU (tiky) X serveru teto virtualni obrazovky."""
+        disp = os.environ["DISPLAY"]
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
+                continue
+            try:
+                with open(f"/proc/{pid}/cmdline", "rb") as f:
+                    cmd = f.read().split(b"\0")
+                if os.path.basename(cmd[0]) == b"Xvfb" and disp.encode() in cmd:
+                    with open(f"/proc/{pid}/stat") as f:
+                        st = f.read().rsplit(")", 1)[1].split()
+                    return int(st[11]) + int(st[12])
+            except (OSError, IndexError):
+                continue
+        self.skipTest("Xvfb process not found")
+
+    def test_x_server_load_with_image(self):
+        """Obrazek na obrazovce nesmi zatezovat X server: necinnost (blikajici kurzor) ~0,
+        pravidelny vystup vedle obrazku omezeny (regrese: zatizeni X a zamrznuti relace)."""
+        if not has_sixel():
+            self.skipTest("VTE without SIXEL (needs vte3 from [luxos])")
+        img = os.path.join(self.home, "big.six")
+        with open(img, "w") as f:
+            f.write(sixel_square(600, 300, (20, 60, 90)))
+        go = os.path.join(self.home, "go")
+        self.start("-x", "sh", "-c", f'cat "{img}"; echo; while [ ! -e "{go}" ]; do sleep 0.2; done; '
+                   'i=0; while [ $i -lt 100 ]; do printf "\\r%s" $i; i=$((i+1)); sleep 0.1; done; sleep 30')
+        self.wait_window()
+        time.sleep(2)
+        hz = os.sysconf("SC_CLK_TCK")
+        t0 = self.x_server_ticks()
+        time.sleep(10)
+        idle = (self.x_server_ticks() - t0) / hz / 10 * 100
+        open(go, "w").close()
+        t0 = self.x_server_ticks()
+        time.sleep(8)
+        busy = (self.x_server_ticks() - t0) / hz / 8 * 100
+        self.screenshot("x-load")
+        print(f"\nX server CPU: idle {idle:.1f} %, output every 100 ms {busy:.1f} %", file=sys.stderr)
+        self.assertLess(idle, 2.0, f"X server CPU while idle: {idle:.1f} %")
+        self.assertLess(busy, 25.0, f"X server CPU with output every 100 ms: {busy:.1f} %")
+
+    def test_open_close_stress(self):
+        """Opakovane otevirani a zavirani panelu a oken v jednom procesu (regrese: pad pri zavirani -
+        uvolneny Win v signalech panelu pri ruseni okna). Uvolnena pamet se prepisuje (MALLOC_PERTURB_),
+        takze pristup k ni spadne; proces musi skoncit s kodem 0 a bez varovani."""
+        env = dict(self.env, MALLOC_PERTURB_="165", MALLOC_CHECK_="3", G_SLICE="always-malloc",
+                   G_DEBUG="fatal-criticals")
+        env.pop("LUXOS_TERMINAL_NEW_PROCESS")
+        err = os.path.join(self.home, "stderr")
+        with open(err, "w") as ef:
+            main = self.start("-x", "sh", "-c", "sleep 9", env=env, stderr=ef)
+            self.wait_window()
+            for i in range(6):
+                for args in (["--tab", "-x", "sleep", "0.2"], ["-x", "sleep", "0.2"], ["--tab", "-x", "true"],
+                             ["-T", "w", "-x", "sh", "-c", "sleep 0.4"]):
+                    subprocess.run([BIN, *args], env=env, timeout=10, stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL)
+                time.sleep(0.5)
+            rc = main.wait(30)
+        text = read(err)
+        self.assertEqual(rc, 0, text)
+        for bad in ("CRITICAL", "WARNING", "free()", "corrupted"):
+            self.assertNotIn(bad, text, text)
 
     def test_sixel_disabled_by_config(self):
         if not has_sixel():
