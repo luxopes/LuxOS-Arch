@@ -100,6 +100,8 @@ Template: `/usr/share/luxos/installer/install.conf.example`. Keys (bash variable
 | `LUXAI_EMAIL`, `LUXAI_PASSWORD` or `LUXAI_ACCOUNT` | optional LuxAI sign-in (account JSON as in `~/.config/luxai/account.json`) |
 | `LAYOUT` / `LAYOUT_FILE` | manual layout for `DISK_MODE=layout` |
 | `LUKS_PASS_<ID>` | per-volume LUKS passwords in a layout |
+| `OEM` | `1` = prepare for another person (no personal account, see below); then `USERNAME` and `LUKS_PASS` are not needed |
+| `OEM_SEAL` | with `OEM=1`: `1` (default) = sealed right away; `0` = temporary admin account `oem` with `PASSWORD` |
 
 ### LAYOUT syntax
 
@@ -175,6 +177,38 @@ system; the installer also writes `/etc/lux/lux.conf` (the LuxOS default: online
 `[luxos-apps]`, Arch `[core]`/`[extra]`; the Gaming template adds `multilib`). The installed system
 has the lux layout from the start (`/var/lib/lux`, `/etc/lux/keyring`), no pacman files.
 
+## Preparing for another person (OEM)
+
+For shops and IT: install LuxOS without a personal account; the owner sets the computer up at the
+first start, like on a new Mac. GUI: **Prepare for another person (OEM)** on the first page; text
+UI: "Who will use this computer?"; unattended: `OEM=1`.
+
+- **Seal now** (`OEM_SEAL=1`, default): the installed system starts straight into the setup
+  assistant. **Prepare first** (`OEM_SEAL=0`): sign in as `oem` (password from the installer),
+  add apps, test the hardware, then **Seal for Customer** (icon on the desktop, also shown after
+  login) or `sudo luxos-oem seal [--keep-wifi] [--poweroff]`.
+- Sealing removes logs (except `/var/log/luxos-install.log`), the journal, package cache, root's
+  history, DHCP leases and saved Wi-Fi networks (unless `--keep-wifi`), resets
+  `/etc/machine-id`, removes SSH host keys and locks `oem`. At the next start
+  `luxos-oem-firstboot.service` deletes `oem` and creates new SSH host keys.
+- **Setup assistant** (`luxos-setup-assistant`, full screen, runs as the LightDM greeter
+  `luxos-setup`): Language → Keyboard → Wi-Fi → Time Zone → Account (name, user name, password
+  with an eye icon, optional photo, computer name) → LuxAI (optional) → Disk Password (only when
+  encrypted) → Updates (Carefree/Classic) → it signs in to the new account and the LuxOS Tour
+  starts. Back on every page; the power button offers Restart / Shut Down.
+- Choices (no passwords) are saved in `/var/lib/lightdm/.local/state/luxos-setup/`; after a crash or
+  power loss the assistant starts again on the same page. The root part is
+  `sudo luxos-oem finish` (allowed for `lightdm` only while sealed); every step is journaled in
+  `/var/lib/luxos/oem/journal` and can be repeated. `luxos-oem status` shows the state.
+- **Encryption**: the disk is encrypted with a random temporary key that is also in the initramfs
+  (`/etc/cryptsetup-keys.d/cryptroot.key`), so the computer starts without a password until the
+  owner chooses one (default: the account password). The assistant adds and verifies the owner's
+  password, rebuilds the initramfs without the key, then removes the temporary key slot. At any
+  moment either the initramfs key or the owner's verified password unlocks the disk. Only
+  "Encrypt LuxOS" (one volume), not LUKS in manual partitioning. The LUKS volume key itself is
+  not changed (whoever prepared the computer could have read it); for full protection run
+  `cryptsetup reencrypt` later.
+
 ## LuxAI account
 
 Optional step "Sign in to your LuxAI account now?": **Sign in with a password**,
@@ -191,4 +225,5 @@ On first login the LuxOS Tour starts. Updates afterwards: `lux update` or Softwa
 ## Installer tests (developers)
 
 `packages/luxos-installer/tests/` in the LuxOS source: `test-layout.sh` (no root),
-`gui-smoke.py` (GUI), `vm-layout-test.sh` (as root in a VM).
+`gui-smoke.py` (GUI), `vm-layout-test.sh` (as root in a VM); OEM: `test-oem.sh` (sealing, finish,
+LUKS key change with a power loss at every step), `test_oem_logic.py`, `gui-oem.py` (GUI, Xvfb).

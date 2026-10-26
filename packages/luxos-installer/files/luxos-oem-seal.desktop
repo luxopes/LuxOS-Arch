@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Seal for Customer
+Name[cs]=Zapečetit pro zákazníka
+Comment=Finish the preparation: at the next start the owner creates their account
+Comment[cs]=Dokončit přípravu: při dalším startu si majitel založí účet
+Exec=luxos-setup-assistant --seal-dialog
+Icon=luxos-installer
+Terminal=false
+Categories=System;
+NoDisplay=true

@@ -45,6 +45,11 @@ LUXAI_EMAIL=
 LUXAI_PASSWORD=
 # ... nebo uz prihlaseny ucet jako JSON (obsah ~/.config/luxai/account.json, pouziva GUI)
 LUXAI_ACCOUNT=
+# Nepovinne: priprava pro jineho cloveka (OEM) - bez osobniho uctu; ucet, jazyk, Wi-Fi a heslo disku
+# si majitel nastavi v Pruvodci nastavenim pri prvnim startu (USERNAME a LUKS_PASS se nezadavaji;
+# sifrovani = docasny klic v initramfs, do prvniho startu bez hesla)
+#OEM=1
+#OEM_SEAL=1           # 1 = zapecetit hned; 0 = docasny ucet oem (heslo PASSWORD) pro pripravu, pak "luxos-oem seal"
 
 # --- Rucni rozdeleni disku: DISK_MODE=layout -----------------------------------------
 # LAYOUT (nebo LAYOUT_FILE=/cesta) popisuje oddily radek po radku: "druh klic=hodnota ...".

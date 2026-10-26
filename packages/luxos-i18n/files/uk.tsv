@@ -2984,3 +2984,92 @@ South wind	Південний вітер
 Southwest wind	Південно-західний вітер
 West wind	Західний вітер
 Northwest wind	Північно-західний вітер
+# OEM - priprava pro jineho cloveka, Pruvodce nastavenim
+Applying language and region	Застосування мови та регіону
+At the first start the owner chooses language, keyboard, Wi-Fi and creates their account.	Під час першого запуску власник вибере мову, клавіатуру, Wi‑Fi і створить свій обліковий запис.
+At the first start the owner sees a setup assistant: language, keyboard, Wi-Fi, time zone, their account and disk password. Then LuxOS starts with the tour.	Під час першого запуску власник побачить помічника налаштування: мова, клавіатура, Wi‑Fi, часовий пояс, власний обліковий запис і пароль диска. Потім LuxOS запуститься з оглядом.
+Choose a password for the disk.	Виберіть пароль диска.
+Continue? [y/N] 	Продовжити? [y/N] 
+Could not create the account.	Не вдалося створити обліковий запис.
+Could not delete the account %s.	Не вдалося видалити обліковий запис %s.
+Could not enable %s.	Не вдалося увімкнути %s.
+Could not rebuild the boot image.	Не вдалося перебудувати завантажувальний образ.
+Could not remove the temporary disk key.	Не вдалося видалити тимчасовий ключ диска.
+Could not seal the system for the owner.	Не вдалося запечатати систему для власника.
+Could not set the disk password.	Не вдалося встановити пароль диска.
+Could not set the keyboard layout.	Не вдалося встановити розкладку клавіатури.
+Could not set the password.	Не вдалося встановити пароль.
+Creating your account	Створення вашого облікового запису
+Disk Password	Пароль диска
+Disk password	Пароль диска
+Enter the disk password twice.	Введіть пароль диска двічі.
+Enter the password for the temporary account oem twice.	Введіть пароль тимчасового облікового запису oem двічі.
+Finish Setup	Завершити налаштування
+For shops and IT: LuxOS is installed without a personal account. At the first start the owner chooses language, Wi-Fi and creates their account.	Для магазинів та ІТ: LuxOS встановлюється без особистого облікового запису. Під час першого запуску власник вибере мову, Wi‑Fi і створить обліковий запис.
+Go back and choose your account password.	Поверніться і виберіть пароль облікового запису.
+Invalid OEM (use 0 or 1)	Неправильне OEM (використайте 0 або 1)
+Invalid OEM_SEAL (use 1 or 0)	Неправильне OEM_SEAL (використайте 1 або 0)
+Invalid computer name.	Неправильна назва комп'ютера.
+Invalid language.	Неправильна мова.
+Invalid setup data.	Неправильні дані налаштування.
+Invalid time zone.	Неправильний часовий пояс.
+Invalid user name.	Неправильне ім'я користувача.
+Keep saved Wi-Fi networks (their passwords stay on the computer)	Залишити збережені мережі Wi‑Fi (їхні паролі залишаться на комп'ютері)
+Let's set up your computer. It only takes a few minutes.	Налаштуймо ваш комп'ютер. Це займе лише кілька хвилин.
+Logs, caches and command history are removed.	Журнали, кеш та історію команд буде видалено.
+Me - set up my account now	Я – створити мій обліковий запис зараз
+New SSH keys and a new machine ID are created at the next start.	Під час наступного запуску буде створено нові ключі SSH і новий ідентифікатор комп'ютера.
+Not Now	Не зараз
+Nothing is lost: go back to change something or try again.	Нічого не втрачено: поверніться, щоб щось змінити, або спробуйте знову.
+OEM_SEAL=0 needs PASSWORD (temporary account oem)	OEM_SEAL=0 потребує PASSWORD (тимчасовий обліковий запис oem)
+Password for the temporary account oem	Пароль тимчасового облікового запису oem
+Photo (optional)	Фото (необов'язково)
+Prepare first	Спочатку підготувати
+Prepare for another person	Підготовка для іншої людини
+Prepare for another person (OEM)	Підготувати для іншої людини (OEM)
+Prepare the computer first (temporary account oem, then Seal for Customer)?	Спочатку підготувати комп'ютер (тимчасовий обліковий запис oem, потім Запечатати для клієнта)?
+Preparing for another person (OEM) does not support encryption in manual partitioning. Use Encrypt LuxOS instead.	Підготовка для іншої людини (OEM) не підтримує шифрування при ручному розбитті. Використайте натомість Шифрувати LuxOS.
+Preparing the encrypted disk	Підготовка зашифрованого диска
+Ready to hand over this computer?	Готово до передачі комп'ютера?
+Run as root (sudo).	Запустіть від імені root (sudo).
+Seal and Shut Down	Запечатати й вимкнути
+Seal for Customer	Запечатати для клієнта
+Seal for customer:	Запечатування для клієнта:
+Seal now	Запечатати одразу
+Sealed. At the next start the setup assistant welcomes the owner.	Запечатано. Під час наступного запуску власника привітає помічник налаштування.
+Sealing failed.	Не вдалося запечатати.
+Set Up LuxOS	Налаштування LuxOS
+Setting the disk password	Встановлення пароля диска
+Setting up your computer	Налаштування вашого комп'ютера
+Setup could not be finished (exit code %s).	Не вдалося завершити налаштування (код виходу %s).
+Shut Down or Restart	Вимкнути або перезапустити
+Sign in as oem to add apps and test the hardware, then click Seal for Customer (or run luxos-oem seal).	Увійдіть як oem, додайте застосунки та перевірте обладнання, потім натисніть Запечатати для клієнта (або виконайте luxos-oem seal).
+Signing in…	Вхід…
+Some of your entries contain unsupported characters.	Деякі введені дані містять непідтримувані символи.
+The computer is ready to hand over right after the installation.	Комп'ютер готовий до передачі одразу після встановлення.
+The encrypted disk was not found.	Зашифрований диск не знайдено.
+The owner chooses the disk password in the setup assistant at the first start. Until then the computer starts without asking.	Пароль диска власник вибере в помічнику налаштування під час першого запуску. До того комп'ютер запускається без запиту.
+The owner chooses the disk password in the setup assistant.	Пароль диска власник вибере в помічнику налаштування.
+The owner creates their account in the setup assistant at the first start.	Власник створить обліковий запис у помічнику налаштування під час першого запуску.
+The setup assistant has already finished on this computer.	Помічник налаштування вже завершився на цьому комп'ютері.
+The setup assistant is not active on this computer.	Помічник налаштування не активний на цьому комп'ютері.
+The temporary account oem is deleted at the next start.	Тимчасовий обліковий запис oem буде видалено під час наступного запуску.
+The temporary disk key does not work.	Тимчасовий ключ диска не працює.
+The user name %s is already taken.	Ім'я користувача %s уже зайняте.
+This computer was not installed for another person (OEM). Nothing to seal.	Цей комп'ютер не встановлено для іншої людини (OEM). Нічого запечатувати.
+This computer was prepared for another person. Install apps and test the hardware, then seal it. The computer shuts down; at the next start the owner creates their account.	Цей комп'ютер підготовлено для іншої людини. Встановіть застосунки й перевірте обладнання, потім запечатайте його. Комп'ютер вимкнеться; під час наступного запуску власник створить обліковий запис.
+This picture cannot be used.	Це зображення не можна використати.
+This takes a moment. Please do not turn off the computer.	Це займе трохи часу. Не вимикайте комп'ютер.
+Use my account password	Використовувати пароль мого облікового запису
+Welcome	Ласкаво просимо
+Welcome, %s!	Ласкаво просимо, %s!
+Who will use this computer?	Хто користуватиметься цим комп'ютером?
+You can also skip this and connect later in the top bar.	Цей крок можна пропустити й підключитися пізніше на верхній панелі.
+Your account is ready. Restart the computer and sign in with your new password.	Ваш обліковий запис готовий. Перезапустіть комп'ютер і увійдіть з новим паролем.
+Your disk is encrypted. You will enter this password every time the computer starts.	Ваш диск зашифровано. Цей пароль ви вводитимете під час кожного запуску комп'ютера.
+at the next start the owner creates their account in the setup assistant	під час наступного запуску власник створить обліковий запис у помічнику налаштування
+logs, caches and command history are removed	журнали, кеш та історію команд буде видалено
+saved Wi-Fi networks and their passwords are removed	збережені мережі Wi‑Fi та їхні паролі буде видалено
+the owner creates it at the first start (OEM)	власник створить його під час першого запуску (OEM)
+the owner creates it at the first start (OEM); until sealing: temporary account %s	власник створить його під час першого запуску (OEM); до запечатування тимчасовий обліковий запис %s
+the temporary account %s is deleted at the next start	тимчасовий обліковий запис %s буде видалено під час наступного запуску

@@ -38,6 +38,10 @@ other_systems_entries() {  # other_systems_entries ESP -> pocet systemu v nabidc
 
 echo "--> Locale ($LOCALE)"
 sed -i -E "s/^#\s*(${LOCALE//./\\.}\s)/\1/; s/^#\s*(en_US\.UTF-8\s)/\1/" /etc/locale.gen
+# OEM: vsechny jazyky LuxOS predem - majitel si jazyk vybere v Pruvodci nastavenim bez cekani
+for l in ${OEM_LOCALES-}; do
+    sed -i -E "s/^#\s*(${l//./\\.}\s)/\1/" /etc/locale.gen
+done
 locale-gen
 echo "LANG=$LOCALE" > /etc/locale.conf
 
@@ -78,19 +82,22 @@ cat > /etc/hosts <<H
 127.0.1.1   $HOSTNAME_SEL.localdomain $HOSTNAME_SEL
 H
 
-echo "--> User ($USERNAME)"
-groups=wheel
-for g in video audio input lp storage scanner network rfkill sys; do
-    getent group "$g" >/dev/null && groups+=",$g"
-done
-id "$USERNAME" &>/dev/null || useradd -m -G "$groups" -s /usr/bin/lsh -c "$FULLNAME" "$USERNAME"
+echo "--> User (${USERNAME:-none})"
+# OEM zapeceteny hned: zadny ucet, zalozi ho majitel v Pruvodci nastavenim (luxos-oem finish)
+if [[ -n $USERNAME ]]; then
+    groups=wheel
+    for g in video audio input lp storage scanner network rfkill sys; do
+        getent group "$g" >/dev/null && groups+=",$g"
+    done
+    id "$USERNAME" &>/dev/null || useradd -m -G "$groups" -s /usr/bin/lsh -c "$FULLNAME" "$USERNAME"
+fi
 passwd -l root >/dev/null
 install -Dm440 /dev/stdin /etc/sudoers.d/10-luxos <<S
 %wheel ALL=(ALL:ALL) ALL
 Defaults pwfeedback
 Defaults timestamp_timeout=15
 S
-if ((AUTOLOGIN)); then
+if ((AUTOLOGIN)) && [[ -n $USERNAME ]]; then
     groupadd -rf autologin
     gpasswd -a "$USERNAME" autologin >/dev/null
     install -Dm644 /dev/stdin /etc/lightdm/lightdm.conf.d/60-autologin.conf <<A
