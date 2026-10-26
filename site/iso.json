@@ -1,7 +1,7 @@
 {
-  "version": "0.9.9",
-  "file": "luxos-0.9.9-x86_64.iso",
-  "size": 2096791552,
-  "date": "2026-10-24",
-  "sha256": "a07656e19782e4849d86cbb9b2ab0edadcc62d922ea984006b253cca831f43d2"
+  "version": "0.9.12",
+  "file": "luxos-0.9.12-x86_64.iso",
+  "size": 2190508032,
+  "date": "2026-10-26",
+  "sha256": "dab0013269eb9f79a46226c36371839c0ccbe874f7b9ef3c49642d0455db7981"
 }
