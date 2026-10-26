@@ -230,6 +230,137 @@ class Terms(Base):
         self.assertEqual(self.err(acc.fetch_terms, "http://127.0.0.1:9").code, "network")
 
 
+class Manage(Base):
+    """Sprava uctu jako na lux-ai.cz/settings: jmeno, vzhled, styl AI, heslo, export, zruseni."""
+
+    def setUp(self):
+        super().setUp()
+        SRV.native_settings = SRV.native_history = True
+        SRV.chats.clear()
+        SRV.accounts["jan@example.cz"] = {"password": GOOD_PW, "displayName": "Jan"}
+        SRV.accounts["eva@example.cz"] = {"password": GOOD_PW, "displayName": "Eva", "username": "eva"}
+        acc.login_password("jan@example.cz", GOOD_PW)
+        SRV.log.clear()
+
+    def test_me_has_username_settings_usage(self):
+        u = acc.me()["user"]
+        self.assertEqual((u["username"], u["settings"]["theme"]), ("jan", "dark"))
+        self.assertIn("fastLimit", u["usage"])
+
+    def test_set_username(self):
+        u = acc.set_username("  Jan.Novak ")
+        self.assertEqual(SRV.log[-1][:2], ("PATCH", "/api/account/settings"))
+        self.assertEqual(SRV.log[-1][2], {"username": "jan.novak"})
+        self.assertEqual(SRV.log[-1][3], "luxos")
+        self.assertEqual(u["username"], "jan.novak")
+        saved = acc.load()["user"]
+        self.assertEqual(saved["username"], "jan.novak")
+        self.assertIn("usage", saved, "PATCH bez spotreby nesmi smazat ulozenou spotrebu")
+
+    def test_username_errors(self):
+        for bad in ("ab", "-abc", "Ab c", "x" * 33):
+            with self.subTest(bad=bad):
+                self.assertEqual(self.err(acc.set_username, bad).code, "invalid_username")
+        self.assertEqual(SRV.log, [], "lokalni kontrola nic neposila")
+        e = self.err(acc.set_username, "eva")
+        self.assertEqual((e.code, e.status), ("username_taken", 409))
+        self.assertIn("already used", acc.account_error_text(e))
+        self.assertEqual(self.err(acc.set_username, "busy-one").code, "rate")
+
+    def test_theme_and_style(self):
+        self.assertEqual(acc.set_theme("light")["settings"]["theme"], "light")
+        self.assertEqual(acc.set_theme("weird")["settings"]["theme"], "dark")
+        for style in acc.RESPONSE_STYLES:
+            self.assertEqual(acc.set_response_style(style)["settings"]["aiResponseStyle"], style)
+        self.assertEqual(acc.set_response_style("nonsense")["settings"]["aiResponseStyle"], "balanced")
+        self.assertEqual(acc.load()["user"]["settings"]["aiResponseStyle"], "balanced")
+
+    def test_web_only_fallback(self):
+        SRV.native_settings = False
+        e = self.err(acc.set_theme, "light")
+        self.assertEqual((e.code, e.status), ("origin", 403))
+        self.assertTrue(acc.web_only(e))
+        self.assertIn("on the web", acc.account_error_text(e))
+        self.assertFalse(acc.web_only(acc.AccountError("username_taken", 409)))
+
+    def test_expired_session(self):
+        SRV.sessions.clear()
+        e = self.err(acc.set_theme, "light")
+        self.assertEqual((e.code, e.status), ("signed_out", 401))
+        acc.forget()
+        self.assertEqual(self.err(acc.change_password, GOOD_PW, "another long pass").code, "signed_out")
+
+    def test_change_password_signs_out_other_sessions(self):
+        other = acc.password_session("jan@example.cz", GOOD_PW)["sessionToken"]
+        e = self.err(acc.change_password, "wrong password!", "brand new password")
+        self.assertEqual(e.code, "invalid_current_password")
+        SRV.log.clear()
+        self.assertEqual(self.err(acc.change_password, GOOD_PW, "short").code, "weak_password")
+        self.assertEqual(self.err(acc.change_password, GOOD_PW, GOOD_PW).code, "same_password")
+        self.assertEqual(SRV.log, [], "lokalni chyby nic neposilaji")
+        acc.change_password(GOOD_PW, "brand new password")
+        self.assertEqual(SRV.log[-1][2], {"currentPassword": GOOD_PW, "newPassword": "brand new password"})
+        self.assertNotIn(other, SRV.sessions, "ostatni relace odhlasene")
+        self.assertEqual(acc.me()["user"]["email"], "jan@example.cz", "tento pocitac zustava prihlaseny")
+        self.assertTrue(acc.login_password("jan@example.cz", "brand new password"))
+
+    def test_change_password_after_code_login_without_current(self):
+        self.assertEqual(self.err(acc.change_password, "", "brand new password").code, "invalid_current_password")
+        acc.request_code("jan@example.cz")
+        acc.login_code("jan@example.cz", "123456")
+        acc.change_password("", "brand new password")
+        self.assertEqual(SRV.accounts["jan@example.cz"]["password"], "brand new password")
+
+    def test_usage_reset(self):
+        import time as t
+        dec = t.mktime((2026, 12, 15, 12, 0, 0, 0, 0, -1))
+        self.assertEqual(t.strftime("%Y-%m-%d", acc.usage_reset({}, dec)), "2027-01-01")
+        oct_ = t.mktime((2026, 10, 26, 9, 0, 0, 0, 0, -1))
+        r = acc.usage_reset(None, oct_)
+        self.assertEqual(t.strftime("%Y-%m-%d", r), "2026-11-01")
+        self.assertEqual(acc.days_until(r, oct_), 6)
+        self.assertEqual(t.strftime("%Y-%m-%d", acc.usage_reset({"resetAt": "2026-11-03T00:00:00Z"})), "2026-11-03")
+
+    def test_export(self):
+        SRV.chats["jan@example.cz"] = [
+            {"id": "c 1", "title": "Ahoj", "updatedAt": "2026-10-01", "messages": [{"role": "user", "content": "Ahoj"}]},
+            {"id": "c2", "title": "Druhy", "updatedAt": "2026-10-02", "messages": []}]
+        path = os.path.join(TMP, "export.json")
+        seen = []
+        r = acc.export_data(path, progress=lambda i, n: seen.append((i, n)), pause=0)
+        self.assertEqual(r, {"conversations": 2, "history": True, "path": path})
+        self.assertEqual(seen, [(0, 2), (1, 2)])
+        self.assertEqual(os.stat(path).st_mode & 0o777, 0o600)
+        raw = open(path, encoding="utf-8").read()
+        self.assertNotIn(acc.load()["sessionToken"], raw, "token nikdy v exportu")
+        import json as j
+        data = j.loads(raw)
+        self.assertEqual(data["user"]["email"], "jan@example.cz")
+        self.assertEqual(data["chatHistory"]["conversations"][0]["conversation"]["title"], "Ahoj")
+        self.assertIn(("GET", "/api/chat/history/c%201"), [x[:2] for x in SRV.log])
+
+    def test_export_without_history_access(self):
+        SRV.native_history = False
+        path = os.path.join(TMP, "export2.json")
+        r = acc.export_data(path, pause=0)
+        self.assertEqual(r["history"], False)
+        import json as j
+        self.assertEqual(j.load(open(path))["chatHistoryError"], "origin")
+
+    def test_deletion_mailto(self):
+        url = acc.deletion_mailto(acc.load()["user"])
+        self.assertTrue(url.startswith("mailto:info@lux-ai.cz?subject="))
+        self.assertIn("jan%40example.cz", url)
+        self.assertNotIn(acc.load()["sessionToken"], url)
+        self.assertEqual(SRV.log, [], "nic se neodesila")
+
+    def test_logout_invalidates_session(self):
+        token = acc.load()["sessionToken"]
+        acc.logout()
+        self.assertNotIn(token, SRV.sessions)
+        self.assertIsNone(acc.load())
+
+
 if __name__ == "__main__":
     try:
         unittest.main()

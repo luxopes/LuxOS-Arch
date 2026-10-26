@@ -3145,3 +3145,69 @@ Mirror displays	Kijelzők tükrözése
 Show the same picture on all displays.	Ugyanaz a kép minden kijelzőn.
 The displays show the same picture. Turn off mirroring to arrange them.	A kijelzők ugyanazt a képet mutatják. Az elrendezéshez kapcsolja ki a tükrözést.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Csak egy kijelző van használatban. Az elrendezéshez válassza a Kiterjesztés lehetőséget a Több kijelző részben.
+LuxAI adapts the length and detail to how complex your question is.	A LuxAI a kérdés összetettségéhez igazítja a válasz hosszát és részletességét.
+Concise	Tömör
+Answers are as direct as possible, without repetition or filler.	A válaszok a lehető legegyenesebbek, ismétlés és töltelék nélkül.
+Detailed	Részletes
+LuxAI adds more context, explanations, caveats and suitable examples.	A LuxAI több hátteret, magyarázatot, kikötést és megfelelő példát ad.
+Technical	Technikai
+Answers prefer precise terminology, assumptions and implementation details.	A válaszok a pontos szakszavakat, feltételezéseket és megvalósítási részleteket részesítik előnyben.
+Friendly	Barátságos
+Answers are more approachable and friendly, but still accurate and professional.	A válaszok közvetlenebbek és barátságosabbak, de továbbra is pontosak és szakszerűek.
+Your public identifier for LuxAI and connected services. 3-32 lowercase letters, digits and . _ -	A LuxAI-fiók nyilvános azonosítója, a kapcsolt szolgáltatások is megkapják. 3–32 kisbetű, számjegy és . _ -
+Other sessions are signed out after the change; this computer stays signed in. If you have just signed in with an e-mail code, you can leave the current password empty.	A módosítás után a többi munkamenetet kijelentkeztetjük, ez a számítógép bejelentkezve marad. Ha most e-mailes kóddal jelentkezett be, a jelenlegi jelszót üresen hagyhatja.
+New password again	Új jelszó újra
+Sessions and Devices	Munkamenetek és eszközök
+Changing the password…	Jelszó módosítása…
+AI Answer Style	AI-válaszok stílusa
+Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Az új LuxAI-csevegőválaszokra vonatkozik. Nem változtatja a kiválasztott modellt és a tokenkeretet.
+Appearance on the Web	Megjelenés a weben
+Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	A LuxAI-fiókba kerül, és a lux-ai.cz oldalon minden eszközén érvényes. A LuxOS kinézetét a Beállítások › Megjelenés részen állíthatja.
+Export Your Data	Adatok exportálása
+Saves your profile, settings, AI usage and your LuxAI web chat history to a JSON file on this computer. The sign-in token is never included.	A profilt, a beállításokat, az AI-használatot és a LuxAI webes csevegési előzményeit JSON-fájlba menti ezen a számítógépen. A bejelentkezési token sosem kerül bele.
+Terms and Privacy	Feltételek és adatvédelem
+The LuxAI Terms of Use also describe which personal data LuxAI processes and why.	A LuxAI felhasználási feltételei azt is leírják, milyen személyes adatokat kezel a LuxAI és miért.
+Delete Account	Fiók törlése
+Exporting…	Exportálás…
+Open on the Web	Megnyitás a weben
+Profile	Profil
+Password & Security	Jelszó és biztonság
+Preferences	Beállítások
+Privacy & Data	Adatvédelem és adatok
+LuxAI does not offer changing the e-mail address yet. Write to LuxAI support if you need to change it.	A LuxAI egyelőre nem teszi lehetővé az e-mail-cím módosítását. Ha módosítani kell, írjon a LuxAI ügyfélszolgálatának.
+Contact Support	Kapcsolat az ügyfélszolgálattal
+The picture is stored on this computer (login screen, menu, LuxAI Account). The LuxAI website does not use profile pictures.	A kép ezen a számítógépen tárolódik (bejelentkezési képernyő, menü, LuxAI-fiók). A LuxAI webhelye nem használ profilképet.
+The username is saved.	A felhasználónév elmentve.
+New password (at least %d characters)	Új jelszó (legalább %d karakter)
+LuxAI cannot list your other devices and browsers yet. To sign them all out, change your password.	A LuxAI egyelőre nem tudja listázni a többi eszközét és böngészőjét. Mindegyik kijelentkeztetéséhez módosítsa a jelszavát.
+The new passwords do not match.	Az új jelszavak nem egyeznek.
+The password was changed and other sessions were signed out.	A jelszó módosult, a többi munkamenet kijelentkezett.
+The answer style is saved.	A válaszstílus elmentve.
+The appearance is saved.	A megjelenés elmentve.
+Export…	Exportálás…
+Read the Terms	Feltételek elolvasása
+LuxAI deletes accounts on request sent to support (%s). Your account, chat history and settings will be removed and LuxAI, Lux Code and LSL IDE will stop working with it.	A LuxAI az ügyfélszolgálatnak (%s) küldött kérésre törli a fiókokat. A fiók, a csevegési előzmények és a beállítások törlődnek, és a LuxAI, a Lux Code és az LSL IDE nem működik tovább vele.
+Request Account Deletion…	Fióktörlés kérése…
+Delete LuxAI Account	LuxAI-fiók törlése
+I understand that my LuxAI account and data will be deleted	Tudomásul veszem, hogy a LuxAI-fiókom és adataim törlődnek
+Write Deletion Request	Törlési kérés megírása
+Light mode	Világos mód
+Exported to %s (web chats: %d).	Exportálva ide: %s (webes csevegések: %d).
+Exported to %s. The web chat history could not be included.	Exportálva ide: %s. A webes csevegési előzményeket nem sikerült hozzáadni.
+Deleting the account cannot be undone.	A fiók törlése nem vonható vissza.
+Type your e-mail address to confirm:	A megerősítéshez írja be az e-mail-címét:
+Your e-mail program opens with a prepared request to %s. The account is deleted after you send it.	Megnyílik a levelezőprogram egy előkészített kéréssel ide: %s. A fiók az elküldése után törlődik.
+Your e-mail program opened with the deletion request. Send it to finish.	Megnyílt a levelezőprogram a törlési kéréssel. A befejezéshez küldje el.
+smarter, can see images	okosabb, látja a képeket
+faster, larger limit	gyorsabb, nagyobb keret
+All chats, settings and the usage history of %s will be deleted. Export your data first if you want to keep it.	A(z) %s összes csevegése, beállítása és használati előzménye törlődik. Ha meg szeretné tartani, előbb exportálja az adatait.
+The limits reset on %s (in %d days).	A keretek ekkor állnak vissza: %s (hátralévő napok: %d).
+Downloading chat %d of %d…	%d. csevegés letöltése ennyiből: %d…
+%s of %s tokens	%s / %s token
+Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Használjon 3–32 kisbetűt, számjegyet vagy . _ - jelet; az első karakter betű vagy számjegy legyen.
+This username is already used by another account.	Ezt a felhasználónevet már egy másik fiók használja.
+The current password is not correct.	A jelenlegi jelszó nem helyes.
+The new password must be different from the current one.	Az új jelszónak különböznie kell a jelenlegitől.
+This change is not available from LuxOS yet. Make it on the web.	Ez a módosítás egyelőre nem érhető el a LuxOS-ből. Végezze el a weben.
+The new password must have at least 12 characters.	Az új jelszónak legalább 12 karakterből kell állnia.
+The change could not be saved (%s).	A módosítást nem sikerült menteni (%s).

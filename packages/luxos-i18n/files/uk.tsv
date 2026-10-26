@@ -3146,3 +3146,69 @@ Mirror displays	Дзеркалити дисплеї
 Show the same picture on all displays.	Однакове зображення на всіх дисплеях.
 The displays show the same picture. Turn off mirroring to arrange them.	Дисплеї показують однакове зображення. Вимкніть дзеркалення, щоб розташувати їх.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Використовується лише один дисплей. Щоб розташувати дисплеї, виберіть «Розширити» в розділі «Кілька дисплеїв».
+LuxAI adapts the length and detail to how complex your question is.	LuxAI підлаштовує довжину й деталізацію під складність вашого питання.
+Concise	Стислий
+Answers are as direct as possible, without repetition or filler.	Відповіді максимально прямі, без повторів і зайвих слів.
+Detailed	Докладний
+LuxAI adds more context, explanations, caveats and suitable examples.	LuxAI додає більше контексту, пояснень, застережень і доречних прикладів.
+Technical	Технічний
+Answers prefer precise terminology, assumptions and implementation details.	Відповіді надають перевагу точній термінології, припущенням і деталям реалізації.
+Friendly	Дружній
+Answers are more approachable and friendly, but still accurate and professional.	Відповіді доступніші й дружніші, але й далі точні та професійні.
+Your public identifier for LuxAI and connected services. 3-32 lowercase letters, digits and . _ -	Публічний ідентифікатор облікового запису LuxAI, передається й пов'язаним службам. 3–32 малі літери, цифри та . _ -
+Other sessions are signed out after the change; this computer stays signed in. If you have just signed in with an e-mail code, you can leave the current password empty.	Після зміни інші сеанси буде завершено, цей комп'ютер залишиться в системі. Якщо ви щойно увійшли кодом з e-mail, поточний пароль можна залишити порожнім.
+New password again	Новий пароль ще раз
+Sessions and Devices	Сеанси та пристрої
+Changing the password…	Зміна пароля…
+AI Answer Style	Стиль відповідей ШІ
+Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Діє для нових відповідей у чаті LuxAI. Не змінює вибрану модель чи ліміт токенів.
+Appearance on the Web	Вигляд на вебсайті
+Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	Зберігається в обліковому записі LuxAI й діє на lux-ai.cz на всіх ваших пристроях. Вигляд LuxOS налаштовується в Налаштування › Вигляд.
+Export Your Data	Експорт даних
+Saves your profile, settings, AI usage and your LuxAI web chat history to a JSON file on this computer. The sign-in token is never included.	Зберігає профіль, налаштування, використання ШІ та історію вебчату LuxAI у файл JSON на цьому комп'ютері. Токен входу ніколи не включається.
+Terms and Privacy	Умови та конфіденційність
+The LuxAI Terms of Use also describe which personal data LuxAI processes and why.	Умови використання LuxAI також описують, які персональні дані обробляє LuxAI і навіщо.
+Delete Account	Видалення облікового запису
+Exporting…	Експорт…
+Open on the Web	Відкрити на вебсайті
+Profile	Профіль
+Password & Security	Пароль і безпека
+Preferences	Параметри
+Privacy & Data	Конфіденційність і дані
+LuxAI does not offer changing the e-mail address yet. Write to LuxAI support if you need to change it.	LuxAI поки не дозволяє змінити адресу e-mail. Якщо потрібно її змінити, напишіть у підтримку LuxAI.
+Contact Support	Написати в підтримку
+The picture is stored on this computer (login screen, menu, LuxAI Account). The LuxAI website does not use profile pictures.	Фото зберігається на цьому комп'ютері (екран входу, меню, Обліковий запис LuxAI). Вебсайт LuxAI фото профілю не використовує.
+The username is saved.	Ім'я користувача збережено.
+New password (at least %d characters)	Новий пароль (щонайменше %d символів)
+LuxAI cannot list your other devices and browsers yet. To sign them all out, change your password.	LuxAI поки не може показати ваші інші пристрої та браузери. Щоб вийти на всіх, змініть пароль.
+The new passwords do not match.	Нові паролі не збігаються.
+The password was changed and other sessions were signed out.	Пароль змінено, інші сеанси завершено.
+The answer style is saved.	Стиль відповідей збережено.
+The appearance is saved.	Вигляд збережено.
+Export…	Експортувати…
+Read the Terms	Прочитати умови
+LuxAI deletes accounts on request sent to support (%s). Your account, chat history and settings will be removed and LuxAI, Lux Code and LSL IDE will stop working with it.	LuxAI видаляє облікові записи за запитом до підтримки (%s). Обліковий запис, історію чату й налаштування буде видалено, і LuxAI, Lux Code та LSL IDE перестануть із ним працювати.
+Request Account Deletion…	Запросити видалення облікового запису…
+Delete LuxAI Account	Видалити обліковий запис LuxAI
+I understand that my LuxAI account and data will be deleted	Я розумію, що мій обліковий запис LuxAI і дані буде видалено
+Write Deletion Request	Написати запит на видалення
+Light mode	Світлий режим
+Exported to %s (web chats: %d).	Експортовано в %s (вебчати: %d).
+Exported to %s. The web chat history could not be included.	Експортовано в %s. Історію вебчату додати не вдалося.
+Deleting the account cannot be undone.	Видалення облікового запису неможливо скасувати.
+Type your e-mail address to confirm:	Для підтвердження введіть свою адресу e-mail:
+Your e-mail program opens with a prepared request to %s. The account is deleted after you send it.	Відкриється поштова програма з підготовленим запитом до %s. Обліковий запис буде видалено після його надсилання.
+Your e-mail program opened with the deletion request. Send it to finish.	Відкрилася поштова програма із запитом на видалення. Надішліть його, щоб завершити.
+smarter, can see images	розумніша, бачить зображення
+faster, larger limit	швидша, більший ліміт
+All chats, settings and the usage history of %s will be deleted. Export your data first if you want to keep it.	Усі чати, налаштування та історію використання %s буде видалено. Якщо хочете їх зберегти, спершу експортуйте дані.
+The limits reset on %s (in %d days).	Ліміти оновляться %s (залишилося днів: %d).
+Downloading chat %d of %d…	Завантаження чату %d з %d…
+%s of %s tokens	%s з %s токенів
+Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Використайте 3–32 малі літери, цифри або . _ -; перший символ має бути літерою або цифрою.
+This username is already used by another account.	Це ім'я користувача вже використовує інший обліковий запис.
+The current password is not correct.	Поточний пароль неправильний.
+The new password must be different from the current one.	Новий пароль має відрізнятися від поточного.
+This change is not available from LuxOS yet. Make it on the web.	Цю зміну поки не можна зробити з LuxOS. Зробіть її на вебсайті.
+The new password must have at least 12 characters.	Новий пароль має містити щонайменше 12 символів.
+The change could not be saved (%s).	Не вдалося зберегти зміну (%s).
