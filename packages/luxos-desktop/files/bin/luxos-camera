@@ -2,6 +2,7 @@
 """LuxOS - Kamera: fotky a videa z webkamery (ve stylu Photo Booth).
 
   luxos-camera                 okno s nahledem z kamery
+  luxos-camera --scan-wifi     naskenovat QR kod site Wi-Fi a pripojit se (luxos_qr, zxing-cpp)
 
 Nahled: v4l2src -> (jpegdec) -> videoflip (zrcadleni) -> tee -> appsink, snimky kresli
 cairo do Gtk.DrawingArea (gtksink je v Archu v gst-plugin-gtk, ktery tahne gst-plugins-bad-libs).
@@ -10,6 +11,7 @@ do $(xdg-user-dir VIDEOS)/Camera. Nahravani video jen prestavi pipeline s vetvi 
 
 Testovani bez kamery: LUXOS_CAMERA_TEST=1 (jedna testovaci kamera videotestsrc), 2 (dve),
 none (zadna kamera), busy (kamera obsazena), denied (chybi opravneni).
+LUXOS_CAMERA_TEST_IMAGE=obrazek.png: testovaci kamera ukazuje tento obrazek (napr. QR kod).
 """
 import fcntl
 import glob
@@ -24,6 +26,7 @@ import time
 
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_i18n import _  # noqa: E402
+import luxos_qr  # noqa: E402
 
 import cairo  # noqa: E402
 import gi  # noqa: E402
@@ -35,6 +38,8 @@ from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gst, Gtk  # noqa: E402
 
 APP = "luxos-camera"
 TEST = os.environ.get("LUXOS_CAMERA_TEST", "").strip().lower()
+TEST_IMAGE = os.environ.get("LUXOS_CAMERA_TEST_IMAGE", "")
+SCAN_INTERVAL_MS = 300      # jak casto zkouset precist QR kod (snimek se cte ve vlakne)
 CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/camera.json")
 MAX_WIDTH = 1280            # vetsi rozliseni zbytecne zatezuje CPU (dekodovani, kresleni, kodovani)
 TIMER_SECONDS = 3
@@ -59,6 +64,8 @@ CSS = b"""
 .dim { opacity: 0.65; }
 .code { font-family: monospace; padding: 6px 10px; border-radius: 8px;
         background-color: alpha(currentColor, 0.07); }
+.scan-hint { background-color: alpha(black, 0.55); color: white; border-radius: 999px;
+             padding: 6px 16px; margin-bottom: 18px; font-weight: 600; }
 .primary { border-radius: 999px; padding: 6px 22px; font-weight: 700; background-image: none;
            background-color: #3d7bff; color: white; border: none; box-shadow: none; }
 """
@@ -259,8 +266,14 @@ def rounded(cr, x, y, w, h, r):
 
 # ---- okno -------------------------------------------------------------------------
 class CameraWindow(Gtk.Window):
-    def __init__(self):
-        super().__init__(title=_("Camera"))
+    def __init__(self, scan=False):
+        title = _("Join Wi-Fi with QR Code") if scan else _("Camera")
+        super().__init__(title=title)
+        self.scan = scan             # rezim cteni QR kodu site Wi-Fi (bez fotek a videa)
+        self.scan_busy = False       # snimek se prave cte ve vlakne
+        self.scan_last = 0
+        self.scan_paused = False     # nalezena sit - ceka se na potvrzeni / pripojeni
+        self.scan_notice_id = None
         self.set_default_size(860, 660)
         self.set_size_request(480, 420)
         self.set_icon_name("luxos-camera")
@@ -282,7 +295,7 @@ class CameraWindow(Gtk.Window):
         self.nodes = None
         self.state = None
 
-        header = Gtk.HeaderBar(show_close_button=True, title=_("Camera"))
+        header = Gtk.HeaderBar(show_close_button=True, title=title)
         self.set_titlebar(header)
         self.mirror_btn = Gtk.ToggleButton(tooltip_text=_("Mirror preview"))
         self.mirror_btn.add(Gtk.Image(icon_name="object-flip-horizontal-symbolic"))
@@ -323,6 +336,12 @@ class CameraWindow(Gtk.Window):
         self.flash.set_no_show_all(True)
         overlay.add_overlay(self.flash)
         overlay.set_overlay_pass_through(self.flash, True)
+        # Rezim QR: napoveda / hlaseni dole v nahledu
+        self.scan_label = label(_("Hold a Wi-Fi QR code in front of the camera."), "scan-hint",
+                                halign=Gtk.Align.CENTER, valign=Gtk.Align.END)
+        self.scan_label.set_no_show_all(True)
+        overlay.add_overlay(self.scan_label)
+        overlay.set_overlay_pass_through(self.scan_label, True)
 
         # Spodni lista: posledni snimek | spoust | fotka/video + casovac
         bar = Gtk.Box(spacing=12)
@@ -369,6 +388,9 @@ class CameraWindow(Gtk.Window):
         modes.pack_start(self.video_btn, False, False, 0)
         right.pack_start(self.timer_btn, False, False, 0)
         right.pack_start(modes, False, False, 0)
+        if scan:
+            bar.set_no_show_all(True)   # v rezimu QR neni co fotit
+            bar.hide()
 
         self.connect("key-press-event", self.on_key)
         self.connect("delete-event", self.on_close)
@@ -398,8 +420,8 @@ class CameraWindow(Gtk.Window):
         return box
 
     def show_state(self, state, detail=""):
-        """Stavy: starting, none, busy, denied, error."""
-        self.state = state
+        """Stavy: starting, none, busy, denied, error; v rezimu QR i connecting, connected."""
+        prev, self.state = self.state, state
         texts = {
             "starting": ("camera-web-symbolic", _("Starting the camera…"), ""),
             "none": ("camera-disabled-symbolic", _("No camera found"),
@@ -412,12 +434,18 @@ class CameraWindow(Gtk.Window):
                        _("Your user account is not allowed to use the camera. Log out and log in "
                          "again; if that does not help, add yourself to the video group and restart:")),
             "error": ("dialog-warning-symbolic", _("The camera could not be started"), detail),
+            "connecting": ("network-wireless-symbolic", _("Joining “%s”…") % detail, ""),
+            "connected": ("network-wireless-signal-excellent-symbolic", _("Connected to “%s”") % detail,
+                          _("You can close this window.")),
         }
+        if state == "error" and self.scan and prev == "connecting":
+            texts["error"] = ("dialog-warning-symbolic", _("The network could not be joined"), detail)
         icon, title, hint = texts.get(state, texts["error"])
         self.state_icon.set_from_icon_name(icon, Gtk.IconSize.DIALOG)
-        self.state_icon.set_visible(state != "starting")
-        self.state_spinner.set_visible(state == "starting")
-        if state == "starting":
+        self.scan_label.hide()
+        self.state_icon.set_visible(state not in ("starting", "connecting"))
+        self.state_spinner.set_visible(state in ("starting", "connecting"))
+        if state in ("starting", "connecting"):
             self.state_spinner.start()
         else:
             self.state_spinner.stop()
@@ -531,7 +559,10 @@ class CameraWindow(Gtk.Window):
         return False
 
     def build_pipeline(self, dev, record):
-        if dev["path"].startswith("test:"):
+        if dev["path"].startswith("test:") and TEST_IMAGE:
+            src = ("filesrc name=img ! decodebin ! videoconvert ! imagefreeze is-live=true ! "
+                   "video/x-raw,framerate=15/1 ! ")
+        elif dev["path"].startswith("test:"):
             pattern = "smpte" if dev["path"] == "test:0" else "ball"
             src = (f"videotestsrc name=src is-live=true pattern={pattern} ! "
                    "video/x-raw,width=1280,height=720,framerate=30/1 ! ")
@@ -559,8 +590,11 @@ class CameraWindow(Gtk.Window):
             return
         if not dev["path"].startswith("test:"):
             pipe.get_by_name("src").set_property("device", dev["path"])
+        elif TEST_IMAGE:
+            pipe.get_by_name("img").set_property("location", TEST_IMAGE)
         if record:
             pipe.get_by_name("out").set_property("location", record["path"])
+        self.scan_paused = False
         Gst.util_set_object_arg(pipe.get_by_name("flip"), "method",
                                 "horizontal-flip" if self.mirror_btn.get_active() else "none")
         pipe.get_by_name("view").connect("new-sample", self.on_frame)
@@ -625,6 +659,8 @@ class CameraWindow(Gtk.Window):
         w, h = s.get_int("width")[1], s.get_int("height")[1]
         buf = sample.get_buffer()
         data = buf.extract_dup(0, buf.get_size())
+        if self.scan:
+            self.scan_frame(data, w, h)
         with self.frame_lock:
             self.frame = (data, w, h)
             if self.frame_pending:
@@ -633,12 +669,88 @@ class CameraWindow(Gtk.Window):
         GLib.idle_add(self.frame_ready)
         return Gst.FlowReturn.OK
 
+    # ---- QR kod site Wi-Fi ----
+    def scan_frame(self, data, w, h):
+        """Streamovaci vlakno: kazdych SCAN_INTERVAL_MS jeden snimek ke cteni ve vlastnim vlakne."""
+        now = GLib.get_monotonic_time()
+        if self.scan_busy or self.scan_paused or now - self.scan_last < SCAN_INTERVAL_MS * 1000:
+            return
+        self.scan_busy = True
+        self.scan_last = now
+
+        def work():
+            try:
+                texts = luxos_qr.decode(data, w, h, luxos_qr.FORMAT_BGRA)
+            except Exception as e:  # noqa: BLE001 - chybejici knihovna apod.
+                print(f"luxos-camera: QR: {e}", file=sys.stderr)
+                texts = []
+            GLib.idle_add(self.scan_result, texts)
+        threading.Thread(target=work, daemon=True).start()
+
+    def scan_result(self, texts):
+        self.scan_busy = False
+        if self.scan_paused or not texts:
+            return False
+        info = next((i for i in map(luxos_qr.parse_wifi, texts) if i), None)
+        if info is None:
+            self.scan_notice(_("This QR code is not a Wi-Fi network."))
+            return False
+        self.scan_paused = True
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
+                                buttons=Gtk.ButtonsType.NONE,
+                                text=_("Join the Wi-Fi network “%s”?") % info["ssid"])
+        if info["security"] == "nopass":
+            dlg.format_secondary_text(_("Open network – no password needed."))
+        dlg.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        dlg.add_button(_("Join"), Gtk.ResponseType.OK)
+        dlg.set_default_response(Gtk.ResponseType.OK)
+        dlg.connect("response", self.scan_answer, info)
+        dlg.show_all()
+        return False
+
+    def scan_answer(self, dlg, response, info):
+        dlg.destroy()
+        if response != Gtk.ResponseType.OK:
+            GLib.timeout_add(1500, self.scan_resume)   # stejny kod hned znovu nenabizet
+            return
+        self.stop_pipeline()
+        self.show_state("connecting", info["ssid"])
+
+        def work():
+            ok, message = luxos_qr.connect(info)
+            GLib.idle_add(self.scan_connected, info, ok, message)
+        threading.Thread(target=work, daemon=True).start()
+
+    def scan_connected(self, info, ok, message):
+        if ok:
+            self.show_state("connected", info["ssid"])
+        else:
+            print(f"luxos-camera: nmcli: {message}", file=sys.stderr)
+            self.show_state("error", _("Could not join “%s”: %s") % (info["ssid"], message or "nmcli"))
+        return False
+
+    def scan_resume(self):
+        self.scan_paused = False
+        return False
+
+    def scan_notice(self, text):
+        self.scan_label.set_text(text)
+        if self.scan_notice_id:
+            GLib.source_remove(self.scan_notice_id)
+
+        def back():
+            self.scan_notice_id = None
+            self.scan_label.set_text(_("Hold a Wi-Fi QR code in front of the camera."))
+            return False
+        self.scan_notice_id = GLib.timeout_add(3000, back)
+
     def frame_ready(self):
         with self.frame_lock:
             self.frame_pending = False
         if self.state != "preview" and self.pipeline:
             self.state = "preview"
             self.stack.set_visible_child_name("preview")
+            self.scan_label.set_visible(self.scan)
             self.update_controls()
         self.view.queue_draw()
         return False
@@ -703,6 +815,8 @@ class CameraWindow(Gtk.Window):
 
     def on_key(self, _w, event):
         key = event.keyval
+        if self.scan:
+            return False
         if key in (Gdk.KEY_space, Gdk.KEY_Return, Gdk.KEY_KP_Enter):
             if self.shutter.get_sensitive():
                 self.on_shutter(None)
@@ -965,13 +1079,14 @@ class CameraWindow(Gtk.Window):
 
 
 def main():
+    scan = "--scan-wifi" in sys.argv[1:]
     GLib.set_prgname(APP)
     Gst.init(None)
     provider = Gtk.CssProvider()
     provider.load_from_data(CSS)
     Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
                                              Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-    win = CameraWindow()
+    win = CameraWindow(scan=scan)
     win.connect("destroy", Gtk.main_quit)
     win.show_all()
     win.camera_combo.set_visible(len(win.devices) > 1)

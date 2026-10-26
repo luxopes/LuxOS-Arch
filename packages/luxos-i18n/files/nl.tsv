@@ -2702,3 +2702,110 @@ More details: run the command again with --verbose	Meer details: voer de opdrach
 The list of apps is out of date. Install the updates first, then try again.	De lijst met apps is verouderd. Installeer eerst de updates en probeer het opnieuw.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	De datum en tijd van de computer kloppen niet, dus een beveiligde verbinding is niet mogelijk. Controleer de tijdinstellingen.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Langere batterijduur: tragere processor zonder turbo, iets lagere helderheid, geen vergroting in het Dock, ongebruikte apparaten slapen en achtergrondtaken pauzeren.
+Extreme	Extreem
+Low	Laag
+Moderate	Matig
+High	Hoog
+Very High	Zeer hoog
+Weather	Weer
+Finding your city…	Je stad zoeken…
+Searching…	Zoeken…
+Weather will ask the ipinfo.io service where your internet address is. Your address is sent to that service; the location is only approximate (usually your city or provider).	Weer vraagt de dienst ipinfo.io waar je internetadres zich bevindt. Je adres wordt naar die dienst gestuurd; de locatie is slechts bij benadering (meestal je stad of provider).
+Use Location	Locatie gebruiken
+Finding your location…	Je locatie bepalen…
+Feels like	Gevoel
+Add a location	Locatie toevoegen
+Menu	Menu
+Search for a city	Stad zoeken
+Use My Approximate Location…	Mijn geschatte locatie gebruiken…
+Search failed. Check your internet connection.	Zoeken mislukt. Controleer je internetverbinding.
+No city found.	Geen stad gevonden.
+Use your approximate location?	Je geschatte locatie gebruiken?
+Your location could not be found	Je locatie kon niet worden gevonden
+Search for your city with the + button instead.	Zoek je stad in plaats daarvan met de knop +.
+Add a city	Voeg een stad toe
+Search for a city with the + button to see its weather.	Zoek een stad met de knop + om het weer te zien.
+Add a City…	Stad toevoegen…
+Units	Eenheden
+Automatic	Automatisch
+Celsius (°C, km/h)	Celsius (°C, km/u)
+Fahrenheit (°F, mph)	Fahrenheit (°F, mph)
+Remove Location	Locatie verwijderen
+Weather data: Open-Meteo.com (CC BY 4.0)	Weergegevens: Open-Meteo.com (CC BY 4.0)
+Loading the forecast…	Verwachting laden…
+Hourly forecast	Verwachting per uur
+7-day forecast	Verwachting voor 7 dagen
+Humidity	Luchtvochtigheid
+Wind	Wind
+Precipitation	Neerslag
+UV index	Uv-index
+Pressure	Luchtdruk
+Sunrise	Zonsopkomst
+Remove “%s”	‘%s’ verwijderen
+The forecast could not be loaded	De verwachting kon niet worden geladen
+Check your internet connection and try again.	Controleer je internetverbinding en probeer het opnieuw.
+H: %s  L: %s	H: %s  L: %s
+Sunset: %s	Zonsondergang: %s
+Updated at %s · Open-Meteo.com	Bijgewerkt om %s · Open-Meteo.com
+Offline – showing the forecast from %s	Offline – verwachting van %s
+Scan the code with a phone camera to join this network.	Scan de code met een telefooncamera om met dit netwerk te verbinden.
+Scan a Wi-Fi QR code with the camera and connect	Een wifi-QR-code scannen met de camera en verbinden
+Reading the network settings…	Netwerkinstellingen lezen…
+Wi-Fi QR Code	Wifi-QR-code
+Copy QR code image	Afbeelding van QR-code kopiëren
+Show Password…	Wachtwoord tonen…
+Join a Network with a QR Code…	Verbinden met een netwerk via QR-code…
+QR codes are not available	QR-codes zijn niet beschikbaar
+The zxing-cpp library is missing. Install it with: lux install zxing-cpp	De bibliotheek zxing-cpp ontbreekt. Installeer deze met: lux install zxing-cpp
+Not connected to Wi-Fi	Niet verbonden met wifi
+Connect to a Wi-Fi network to share it with a QR code.	Maak verbinding met een wifinetwerk om het via een QR-code te delen.
+The network settings could not be read	De netwerkinstellingen konden niet worden gelezen
+This network uses a company or school login (802.1X). It cannot be shared with a QR code.	Dit netwerk gebruikt een bedrijfs- of schoolaanmelding (802.1X). Het kan niet via een QR-code worden gedeeld.
+The Wi-Fi password is stored for the whole computer. To show it in the QR code, confirm with the administrator password.	Het wifiwachtwoord is opgeslagen voor de hele computer. Bevestig met het beheerderswachtwoord om het in de QR-code te tonen.
+Open network – no password needed.	Open netwerk – geen wachtwoord nodig.
+Password:	Wachtwoord:
+The QR code could not be created	De QR-code kon niet worden gemaakt
+Join Wi-Fi with QR Code	Wifi verbinden via QR-code
+Hold a Wi-Fi QR code in front of the camera.	Houd een wifi-QR-code voor de camera.
+Join	Verbinden
+You can close this window.	Je kunt dit venster sluiten.
+The network could not be joined	Kon geen verbinding maken met het netwerk
+This QR code is not a Wi-Fi network.	Deze QR-code is geen wifinetwerk.
+Joining “%s”…	Verbinden met ‘%s’…
+Connected to “%s”	Verbonden met ‘%s’
+Join the Wi-Fi network “%s”?	Verbinden met wifinetwerk ‘%s’?
+Could not join “%s”: %s	Kon niet verbinden met ‘%s’: %s
+Share Wi-Fi with QR Code…	Wifi delen via QR-code…
+Join Wi-Fi with QR Code…	Wifi verbinden via QR-code…
+Clear Sky	Helder
+Mostly Clear	Overwegend helder
+Partly Cloudy	Half bewolkt
+Cloudy	Bewolkt
+Fog	Mist
+Freezing Fog	IJzel-mist
+Light Drizzle	Lichte motregen
+Drizzle	Motregen
+Heavy Drizzle	Zware motregen
+Freezing Drizzle	IJzel (motregen)
+Light Rain	Lichte regen
+Rain	Regen
+Heavy Rain	Zware regen
+Freezing Rain	IJzel
+Light Snow	Lichte sneeuw
+Snow	Sneeuw
+Heavy Snow	Zware sneeuwval
+Snow Grains	Motsneeuw
+Showers	Buien
+Heavy Showers	Zware buien
+Snow Showers	Sneeuwbuien
+Heavy Snow Showers	Zware sneeuwbuien
+Thunderstorm	Onweer
+Thunderstorm with Hail	Onweer met hagel
+North wind	Noordenwind
+Northeast wind	Noordoostenwind
+East wind	Oostenwind
+Southeast wind	Zuidoostenwind
+South wind	Zuidenwind
+Southwest wind	Zuidwestenwind
+West wind	Westenwind
+Northwest wind	Noordwestenwind

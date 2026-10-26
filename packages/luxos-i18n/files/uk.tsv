@@ -2703,3 +2703,110 @@ More details: run the command again with --verbose	Докладніше: зап�
 The list of apps is out of date. Install the updates first, then try again.	Список застосунків застарів. Спочатку встановіть оновлення, а потім спробуйте знову.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Дата й час комп'ютера неправильні, тому безпечне з'єднання неможливе. Перевірте налаштування часу.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Довша робота від батареї: повільніший процесор без турбо, трохи нижча яскравість, без збільшення в Dock, невикористовувані пристрої засинають, фонові завдання призупиняються.
+Extreme	Екстремальний
+Low	Низький
+Moderate	Помірний
+High	Високий
+Very High	Дуже високий
+Weather	Погода
+Finding your city…	Пошук вашого міста…
+Searching…	Пошук…
+Weather will ask the ipinfo.io service where your internet address is. Your address is sent to that service; the location is only approximate (usually your city or provider).	Погода запитає сервіс ipinfo.io, де розташована ваша інтернет-адреса. Адресу буде надіслано цьому сервісу; розташування лише приблизне (зазвичай ваше місто або провайдер).
+Use Location	Використати розташування
+Finding your location…	Визначення розташування…
+Feels like	Відчувається як
+Add a location	Додати місце
+Menu	Меню
+Search for a city	Пошук міста
+Use My Approximate Location…	Використати моє приблизне розташування…
+Search failed. Check your internet connection.	Пошук не вдався. Перевірте підключення до інтернету.
+No city found.	Місто не знайдено.
+Use your approximate location?	Використати ваше приблизне розташування?
+Your location could not be found	Не вдалося визначити розташування
+Search for your city with the + button instead.	Натомість знайдіть своє місто кнопкою +.
+Add a city	Додайте місто
+Search for a city with the + button to see its weather.	Знайдіть місто кнопкою +, щоб побачити погоду.
+Add a City…	Додати місто…
+Units	Одиниці
+Automatic	Автоматично
+Celsius (°C, km/h)	Цельсій (°C, км/год)
+Fahrenheit (°F, mph)	Фаренгейт (°F, миль/год)
+Remove Location	Видалити місце
+Weather data: Open-Meteo.com (CC BY 4.0)	Дані про погоду: Open-Meteo.com (CC BY 4.0)
+Loading the forecast…	Завантаження прогнозу…
+Hourly forecast	Погодинний прогноз
+7-day forecast	Прогноз на 7 днів
+Humidity	Вологість
+Wind	Вітер
+Precipitation	Опади
+UV index	УФ-індекс
+Pressure	Тиск
+Sunrise	Схід сонця
+Remove “%s”	Видалити «%s»
+The forecast could not be loaded	Не вдалося завантажити прогноз
+Check your internet connection and try again.	Перевірте підключення до інтернету й спробуйте ще раз.
+H: %s  L: %s	Макс. %s  Мін. %s
+Sunset: %s	Захід: %s
+Updated at %s · Open-Meteo.com	Оновлено о %s · Open-Meteo.com
+Offline – showing the forecast from %s	Офлайн – прогноз від %s
+Scan the code with a phone camera to join this network.	Відскануйте код камерою телефона, щоб підключитися до цієї мережі.
+Scan a Wi-Fi QR code with the camera and connect	Відсканувати QR-код Wi‑Fi камерою та підключитися
+Reading the network settings…	Читання налаштувань мережі…
+Wi-Fi QR Code	QR-код Wi‑Fi
+Copy QR code image	Копіювати зображення QR-коду
+Show Password…	Показати пароль…
+Join a Network with a QR Code…	Підключитися до мережі за QR-кодом…
+QR codes are not available	QR-коди недоступні
+The zxing-cpp library is missing. Install it with: lux install zxing-cpp	Бракує бібліотеки zxing-cpp. Встановіть її командою: lux install zxing-cpp
+Not connected to Wi-Fi	Немає підключення до Wi‑Fi
+Connect to a Wi-Fi network to share it with a QR code.	Підключіться до мережі Wi‑Fi, щоб поділитися нею через QR-код.
+The network settings could not be read	Не вдалося прочитати налаштування мережі
+This network uses a company or school login (802.1X). It cannot be shared with a QR code.	Ця мережа використовує корпоративний або шкільний вхід (802.1X). Нею не можна поділитися через QR-код.
+The Wi-Fi password is stored for the whole computer. To show it in the QR code, confirm with the administrator password.	Пароль Wi‑Fi збережено для всього комп’ютера. Щоб показати його в QR-коді, підтвердьте паролем адміністратора.
+Open network – no password needed.	Відкрита мережа – пароль не потрібен.
+Password:	Пароль:
+The QR code could not be created	Не вдалося створити QR-код
+Join Wi-Fi with QR Code	Підключення до Wi‑Fi за QR-кодом
+Hold a Wi-Fi QR code in front of the camera.	Піднесіть QR-код Wi‑Fi до камери.
+Join	Підключитися
+You can close this window.	Можете закрити це вікно.
+The network could not be joined	Не вдалося підключитися до мережі
+This QR code is not a Wi-Fi network.	Цей QR-код не є мережею Wi‑Fi.
+Joining “%s”…	Підключення до «%s»…
+Connected to “%s”	Підключено до «%s»
+Join the Wi-Fi network “%s”?	Підключитися до мережі Wi‑Fi «%s»?
+Could not join “%s”: %s	Не вдалося підключитися до «%s»: %s
+Share Wi-Fi with QR Code…	Поділитися Wi‑Fi через QR-код…
+Join Wi-Fi with QR Code…	Підключитися до Wi‑Fi за QR-кодом…
+Clear Sky	Ясно
+Mostly Clear	Переважно ясно
+Partly Cloudy	Мінлива хмарність
+Cloudy	Хмарно
+Fog	Туман
+Freezing Fog	Морозний туман
+Light Drizzle	Легка мряка
+Drizzle	Мряка
+Heavy Drizzle	Сильна мряка
+Freezing Drizzle	Крижана мряка
+Light Rain	Невеликий дощ
+Rain	Дощ
+Heavy Rain	Сильний дощ
+Freezing Rain	Крижаний дощ
+Light Snow	Невеликий сніг
+Snow	Сніг
+Heavy Snow	Сильний сніг
+Snow Grains	Снігова крупа
+Showers	Зливи
+Heavy Showers	Сильні зливи
+Snow Showers	Снігові зливи
+Heavy Snow Showers	Сильні снігові зливи
+Thunderstorm	Гроза
+Thunderstorm with Hail	Гроза з градом
+North wind	Північний вітер
+Northeast wind	Північно-східний вітер
+East wind	Східний вітер
+Southeast wind	Південно-східний вітер
+South wind	Південний вітер
+Southwest wind	Південно-західний вітер
+West wind	Західний вітер
+Northwest wind	Північно-західний вітер

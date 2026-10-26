@@ -8,6 +8,8 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 
 ### Nové
 - **Graf vytížení CPU** jde přidat do horní lišty (pravým tlačítkem na lištu › Panel › Přidat nové položky › CPU Graph); ve výchozí liště není.
+- **Počasí** (`luxos-weather`, nový balík v základní instalaci): aktuální počasí, předpověď na 24 hodin a 7 dní, více uložených míst a hledání měst, pozadí podle oblohy, vlastní ikony. Data z Open-Meteo (bez klíče), mezipaměť 30 minut, bez internetu poslední stažená předpověď. První místo podle časového pásma; přibližná poloha podle IP adresy (ipinfo.io) jen po potvrzení. Jednotky podle jazyka (°C a km/h, v USA °F a mph), přepnutelné. Kalendář pod hodinami ukáže pod dneškem počasí vybraného místa (např. „13°  Polojasno · Praha“).
+- **QR kód Wi‑Fi** (`luxos-wifi-qr`): Ovládací centrum › „Sdílet Wi‑Fi QR kódem…“ ukáže připojenou síť jako QR kód pro telefon (heslo z NetworkManageru, u sítí uložených pro celý počítač po zadání hesla správce; obrázek jde zkopírovat). Bez připojení „Připojit k Wi‑Fi QR kódem…“: Kamera naskenuje QR kód sítě a po potvrzení se k ní připojí (`luxos-camera --scan-wifi`). QR kódy kreslí i čte knihovna `zxing-cpp` (~2 MB).
 
 ### Opraveno
 - **Přepínač ploch** (pokud si ho přidáte do lišty) ukazuje čísla ploch v barvách lišty, aktivní plocha modře, místo šedých bloků s miniaturami; miniatury jdou zapnout v jeho nastavení a pak mají průhledné pozadí. Plochy s výchozími názvy „Workspace N“ se pojmenují čísly.

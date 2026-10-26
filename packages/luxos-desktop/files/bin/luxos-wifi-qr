@@ -1,0 +1,280 @@
+#!/usr/bin/env python3
+"""LuxOS - QR kod Wi-Fi: sdileni pripojene site QR kodem a pripojeni k siti z QR kodu kamerou.
+
+  luxos-wifi-qr            okno s QR kodem aktualni site Wi-Fi (telefon se pripoji naskenovanim)
+  luxos-wifi-qr --scan     naskenovat QR kod site kamerou a pripojit se (luxos-camera --scan-wifi)
+
+Heslo cte z NetworkManageru (nmcli --show-secrets). Systemova pripojeni muze NetworkManager bez
+overeni nevydat - pak tlacitko "Zobrazit heslo" pozada o heslo spravce (pkexec nmcli).
+Testy: LUXOS_NMCLI (falesny nmcli), LUXOS_PKEXEC, LUXOS_ZXING_LIB, LUXOS_CAMERA_TEST.
+"""
+import glob
+import os
+import subprocess
+import sys
+import threading
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_i18n import _  # noqa: E402
+import luxos_qr as qr  # noqa: E402
+
+import cairo  # noqa: E402
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+
+APP = "luxos-wifi-qr"
+QUIET = 4          # okraj QR kodu v modulech (norma: 4)
+
+CSS = b"""
+.qr-card { background-color: white; border-radius: 18px; padding: 14px;
+           box-shadow: 0 2px 10px alpha(black, 0.18); }
+.ssid { font-size: 20px; font-weight: 800; }
+.dim { opacity: 0.65; }
+.state-title { font-size: 18px; font-weight: 800; }
+.primary { border-radius: 999px; padding: 6px 22px; font-weight: 700; background-image: none;
+           background-color: #3d7bff; color: white; border: none; box-shadow: none; }
+.pill { border-radius: 999px; padding: 4px 16px; }
+"""
+
+
+def has_camera():
+    if os.environ.get("LUXOS_CAMERA_TEST", "").strip().lower() not in ("", "none"):
+        return True
+    return bool(glob.glob("/dev/video*"))
+
+
+def scan():
+    """Skenovani dela Kamera (stejna pipeline GStreamer, vyber kamery, chybove stavy)."""
+    try:
+        os.execvp("luxos-camera", ["luxos-camera", "--scan-wifi"])
+    except OSError as e:
+        print(f"{APP}: luxos-camera: {e}", file=sys.stderr)
+        return 1
+
+
+def label(text, cls=None, **kw):
+    lbl = Gtk.Label(label=text, wrap=kw.pop("wrap", True), justify=Gtk.Justification.CENTER, **kw)
+    for c in (cls or "").split():
+        lbl.get_style_context().add_class(c)
+    return lbl
+
+
+class QRWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Wi-Fi QR Code"))
+        self.set_default_size(420, 600)
+        self.set_icon_name("luxos-wifi-qr")
+        self.matrix = None
+        self.info = None
+        header = Gtk.HeaderBar(show_close_button=True, title=_("Wi-Fi QR Code"))
+        self.set_titlebar(header)
+        self.copy_btn = Gtk.Button(tooltip_text=_("Copy QR code image"))
+        self.copy_btn.add(Gtk.Image(icon_name="edit-copy-symbolic"))
+        self.copy_btn.connect("clicked", self.copy_image)
+        self.copy_btn.set_no_show_all(True)
+        header.pack_end(self.copy_btn)
+        refresh = Gtk.Button(tooltip_text=_("Refresh"))
+        refresh.add(Gtk.Image(icon_name="view-refresh-symbolic"))
+        refresh.connect("clicked", lambda _b: self.load())
+        header.pack_start(refresh)
+
+        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin=24)
+        self.add(root)
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, vexpand=True)
+        root.pack_start(self.stack, True, True, 0)
+
+        # QR kod site
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, valign=Gtk.Align.CENTER)
+        card = Gtk.EventBox(halign=Gtk.Align.CENTER)
+        card.get_style_context().add_class("qr-card")
+        self.area = Gtk.DrawingArea()
+        self.area.set_size_request(260, 260)
+        self.area.connect("draw", self.draw_qr)
+        card.add(self.area)
+        page.pack_start(card, False, False, 0)
+        self.ssid_label = label("", "ssid", selectable=True)
+        page.pack_start(self.ssid_label, False, False, 6)
+        self.hint = label(_("Scan the code with a phone camera to join this network."), "dim",
+                          max_width_chars=40)
+        page.pack_start(self.hint, False, False, 0)
+        self.pw_box = Gtk.Box(spacing=8, halign=Gtk.Align.CENTER, margin_top=6)
+        self.pw_box.pack_start(Gtk.Label(label=_("Password:")), False, False, 0)
+        self.pw_entry = Gtk.Entry(editable=False, visibility=False, width_chars=18, can_focus=False)
+        self.pw_entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "view-reveal-symbolic")
+        self.pw_entry.set_icon_tooltip_text(Gtk.EntryIconPosition.SECONDARY, _("Show password"))
+        self.pw_entry.connect("icon-press", self.toggle_password)
+        self.pw_box.pack_start(self.pw_entry, False, False, 0)
+        page.pack_start(self.pw_box, False, False, 0)
+        self.stack.add_named(page, "qr")
+
+        # Stavova stranka (neni Wi-Fi, chybi heslo, podnikova sit, chyba)
+        state = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, valign=Gtk.Align.CENTER)
+        self.state_icon = Gtk.Image(pixel_size=64)
+        self.state_icon.get_style_context().add_class("dim")
+        self.state_title = label("", "state-title")
+        self.state_hint = label("", "dim", max_width_chars=44)
+        self.spinner = Gtk.Spinner(width_request=32, height_request=32)
+        self.spinner.set_no_show_all(True)
+        self.unlock_btn = Gtk.Button(label=_("Show Password…"), halign=Gtk.Align.CENTER, margin_top=6)
+        self.unlock_btn.get_style_context().add_class("primary")
+        self.unlock_btn.set_no_show_all(True)
+        self.unlock_btn.connect("clicked", lambda _b: self.load(root=True))
+        for w in (self.state_icon, self.spinner, self.state_title, self.state_hint, self.unlock_btn):
+            state.pack_start(w, False, False, 0)
+        self.stack.add_named(state, "state")
+        page.show_all()       # Gtk.Stack prepne jen na viditelnou stranku (i pred show_all okna)
+        state.show_all()
+
+        self.scan_btn = Gtk.Button(label=_("Join a Network with a QR Code…"), halign=Gtk.Align.CENTER)
+        self.scan_btn.get_style_context().add_class("pill")
+        self.scan_btn.set_tooltip_text(_("Scan a Wi-Fi QR code with the camera and connect"))
+        self.scan_btn.connect("clicked", self.on_scan)
+        self.scan_btn.set_no_show_all(True)
+        self.scan_btn.set_visible(has_camera() and qr.available())
+        root.pack_end(self.scan_btn, False, False, 0)
+        self.load()
+
+    # ---- stav ----
+    def show_state(self, icon, title, hint="", unlock=False, busy=False):
+        self.state_icon.set_from_icon_name(icon, Gtk.IconSize.DIALOG)
+        self.state_icon.set_visible(not busy)
+        self.spinner.set_visible(busy)
+        if busy:
+            self.spinner.start()
+        else:
+            self.spinner.stop()
+        self.state_title.set_text(title)
+        self.state_hint.set_text(hint)
+        self.state_hint.set_visible(bool(hint))
+        self.unlock_btn.set_visible(unlock)
+        self.copy_btn.hide()
+        self.stack.set_visible_child_name("state")
+
+    def load(self, root=False):
+        self.show_state("network-wireless-symbolic", _("Reading the network settings…"), busy=True)
+
+        def work():
+            act = qr.active_wifi()
+            info, err = (None, None)
+            if act:
+                info, err = qr.wifi_details(act["uuid"], secrets=True, root=root)
+            GLib.idle_add(self.loaded, act, info, err, root)
+        threading.Thread(target=work, daemon=True).start()
+
+    def loaded(self, act, info, err, root):
+        if not qr.available():
+            self.show_state("dialog-warning-symbolic", _("QR codes are not available"),
+                            _("The zxing-cpp library is missing. Install it with: lux install zxing-cpp"))
+            return False
+        if not act:
+            self.show_state("network-wireless-offline-symbolic", _("Not connected to Wi-Fi"),
+                            _("Connect to a Wi-Fi network to share it with a QR code."))
+            return False
+        if err == "cancelled":
+            err = None
+            info = self.info if self.info and self.info.get("uuid") == act["uuid"] else None
+            if info is None:
+                info, err = qr.wifi_details(act["uuid"], secrets=False)
+        if err or not info:
+            self.show_state("dialog-warning-symbolic", _("The network settings could not be read"), err or "")
+            return False
+        info["uuid"] = act["uuid"]
+        self.info = info
+        name = info["ssid"] or act["name"]
+        if info["security"] is None:
+            self.show_state("network-wireless-encrypted-symbolic", name,
+                            _("This network uses a company or school login (802.1X). "
+                              "It cannot be shared with a QR code."))
+            return False
+        if info["need_auth"]:
+            self.show_state("changes-prevent-symbolic", name,
+                            _("The Wi-Fi password is stored for the whole computer. "
+                              "To show it in the QR code, confirm with the administrator password."),
+                            unlock=True)
+            return False
+        try:
+            self.matrix = qr.encode(qr.wifi_payload(info["ssid"], info["password"], info["security"],
+                                                    info["hidden"]))
+        except (qr.QRError, ValueError) as e:
+            self.show_state("dialog-warning-symbolic", _("The QR code could not be created"), str(e))
+            return False
+        self.ssid_label.set_text(name)
+        self.pw_entry.set_text(info["password"])
+        self.pw_box.set_visible(bool(info["password"]))
+        self.hint.set_text(_("Scan the code with a phone camera to join this network.")
+                           if info["password"] else _("Open network – no password needed."))
+        self.copy_btn.show()
+        self.area.queue_draw()
+        self.stack.set_visible_child_name("qr")
+        return False
+
+    # ---- akce ----
+    def toggle_password(self, entry, _pos, _ev):
+        show = not entry.get_visibility()
+        entry.set_visibility(show)
+        entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY,
+                                      "view-conceal-symbolic" if show else "view-reveal-symbolic")
+        entry.set_icon_tooltip_text(Gtk.EntryIconPosition.SECONDARY,
+                                    _("Hide password") if show else _("Show password"))
+
+    def on_scan(self, _b):
+        try:
+            subprocess.Popen(["luxos-camera", "--scan-wifi"], stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, start_new_session=True)
+        except OSError:
+            return
+        self.close()
+
+    def render(self, cr, size):
+        n = len(self.matrix) + 2 * QUIET
+        mod = size / n
+        cr.set_source_rgb(1, 1, 1)
+        cr.rectangle(0, 0, size, size)
+        cr.fill()
+        cr.set_source_rgb(0, 0, 0)
+        for y, row in enumerate(self.matrix):
+            for x, v in enumerate(row):
+                if v:
+                    cr.rectangle((x + QUIET) * mod, (y + QUIET) * mod, mod + 0.02, mod + 0.02)
+        cr.fill()
+
+    def draw_qr(self, widget, cr):
+        if not self.matrix:
+            return
+        w, h = widget.get_allocated_width(), widget.get_allocated_height()
+        n = len(self.matrix) + 2 * QUIET
+        size = (min(w, h) // n) * n or min(w, h)    # cele pixely na modul = ostre hrany
+        cr.translate((w - size) // 2, (h - size) // 2)
+        self.render(cr, size)
+
+    def copy_image(self, _b):
+        if not self.matrix:
+            return
+        n = len(self.matrix) + 2 * QUIET
+        size = n * 10
+        surf = cairo.ImageSurface(cairo.FORMAT_RGB24, size, size)
+        self.render(cairo.Context(surf), size)
+        pix = Gdk.pixbuf_get_from_surface(surf, 0, 0, size, size)
+        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_image(pix)
+
+
+def main():
+    if "--scan" in sys.argv[1:]:
+        return scan()
+    GLib.set_prgname(APP)
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = QRWindow()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    Gtk.main()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

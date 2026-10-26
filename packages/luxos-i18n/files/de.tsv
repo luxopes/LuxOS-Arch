@@ -2702,3 +2702,110 @@ More details: run the command again with --verbose	Weitere Details: Befehl erneu
 The list of apps is out of date. Install the updates first, then try again.	Die App-Liste ist veraltet. Installieren Sie zuerst die Updates und versuchen Sie es dann erneut.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datum und Uhrzeit des Computers sind falsch, daher ist keine sichere Verbindung möglich. Prüfen Sie die Zeiteinstellungen.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Längere Akkulaufzeit: langsamerer Prozessor ohne Turbo, etwas geringere Helligkeit, keine Dock-Vergrößerung, ungenutzte Geräte ruhen und Hintergrundaufgaben pausieren.
+Extreme	Extrem
+Low	Niedrig
+Moderate	Mäßig
+High	Hoch
+Very High	Sehr hoch
+Weather	Wetter
+Finding your city…	Ihre Stadt wird gesucht …
+Searching…	Suche …
+Weather will ask the ipinfo.io service where your internet address is. Your address is sent to that service; the location is only approximate (usually your city or provider).	Wetter fragt den Dienst ipinfo.io, wo sich Ihre Internetadresse befindet. Ihre Adresse wird an diesen Dienst gesendet; der Standort ist nur ungefähr (meist Ihre Stadt oder Ihr Anbieter).
+Use Location	Standort verwenden
+Finding your location…	Standort wird ermittelt …
+Feels like	Gefühlt
+Add a location	Ort hinzufügen
+Menu	Menü
+Search for a city	Stadt suchen
+Use My Approximate Location…	Meinen ungefähren Standort verwenden …
+Search failed. Check your internet connection.	Suche fehlgeschlagen. Prüfen Sie Ihre Internetverbindung.
+No city found.	Keine Stadt gefunden.
+Use your approximate location?	Ungefähren Standort verwenden?
+Your location could not be found	Ihr Standort konnte nicht ermittelt werden
+Search for your city with the + button instead.	Suchen Sie Ihre Stadt stattdessen mit der Taste +.
+Add a city	Stadt hinzufügen
+Search for a city with the + button to see its weather.	Suchen Sie mit der Taste + eine Stadt, um ihr Wetter zu sehen.
+Add a City…	Stadt hinzufügen …
+Units	Einheiten
+Automatic	Automatisch
+Celsius (°C, km/h)	Celsius (°C, km/h)
+Fahrenheit (°F, mph)	Fahrenheit (°F, mph)
+Remove Location	Ort entfernen
+Weather data: Open-Meteo.com (CC BY 4.0)	Wetterdaten: Open-Meteo.com (CC BY 4.0)
+Loading the forecast…	Vorhersage wird geladen …
+Hourly forecast	Stündliche Vorhersage
+7-day forecast	7-Tage-Vorhersage
+Humidity	Luftfeuchtigkeit
+Wind	Wind
+Precipitation	Niederschlag
+UV index	UV-Index
+Pressure	Luftdruck
+Sunrise	Sonnenaufgang
+Remove “%s”	„%s“ entfernen
+The forecast could not be loaded	Die Vorhersage konnte nicht geladen werden
+Check your internet connection and try again.	Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.
+H: %s  L: %s	H: %s  T: %s
+Sunset: %s	Untergang: %s
+Updated at %s · Open-Meteo.com	Aktualisiert um %s · Open-Meteo.com
+Offline – showing the forecast from %s	Offline – Vorhersage von %s
+Scan the code with a phone camera to join this network.	Scannen Sie den Code mit der Handykamera, um sich mit diesem Netzwerk zu verbinden.
+Scan a Wi-Fi QR code with the camera and connect	WLAN-QR-Code mit der Kamera scannen und verbinden
+Reading the network settings…	Netzwerkeinstellungen werden gelesen …
+Wi-Fi QR Code	WLAN-QR-Code
+Copy QR code image	QR-Code-Bild kopieren
+Show Password…	Passwort anzeigen …
+Join a Network with a QR Code…	Mit QR-Code einem Netzwerk beitreten …
+QR codes are not available	QR-Codes sind nicht verfügbar
+The zxing-cpp library is missing. Install it with: lux install zxing-cpp	Die Bibliothek zxing-cpp fehlt. Installieren Sie sie mit: lux install zxing-cpp
+Not connected to Wi-Fi	Nicht mit einem WLAN verbunden
+Connect to a Wi-Fi network to share it with a QR code.	Verbinden Sie sich mit einem WLAN, um es per QR-Code zu teilen.
+The network settings could not be read	Die Netzwerkeinstellungen konnten nicht gelesen werden
+This network uses a company or school login (802.1X). It cannot be shared with a QR code.	Dieses Netzwerk nutzt eine Firmen- oder Schulanmeldung (802.1X). Es kann nicht per QR-Code geteilt werden.
+The Wi-Fi password is stored for the whole computer. To show it in the QR code, confirm with the administrator password.	Das WLAN-Passwort ist für den ganzen Computer gespeichert. Bestätigen Sie mit dem Administratorpasswort, um es im QR-Code anzuzeigen.
+Open network – no password needed.	Offenes Netzwerk – kein Passwort nötig.
+Password:	Passwort:
+The QR code could not be created	Der QR-Code konnte nicht erstellt werden
+Join Wi-Fi with QR Code	WLAN per QR-Code beitreten
+Hold a Wi-Fi QR code in front of the camera.	Halten Sie einen WLAN-QR-Code vor die Kamera.
+Join	Beitreten
+You can close this window.	Sie können dieses Fenster schließen.
+The network could not be joined	Verbindung mit dem Netzwerk fehlgeschlagen
+This QR code is not a Wi-Fi network.	Dieser QR-Code ist kein WLAN.
+Joining “%s”…	Verbindung mit „%s“ …
+Connected to “%s”	Mit „%s“ verbunden
+Join the Wi-Fi network “%s”?	Dem WLAN „%s“ beitreten?
+Could not join “%s”: %s	Verbindung mit „%s“ fehlgeschlagen: %s
+Share Wi-Fi with QR Code…	WLAN per QR-Code teilen …
+Join Wi-Fi with QR Code…	WLAN per QR-Code beitreten …
+Clear Sky	Klar
+Mostly Clear	Überwiegend klar
+Partly Cloudy	Teilweise bewölkt
+Cloudy	Bewölkt
+Fog	Nebel
+Freezing Fog	Gefrierender Nebel
+Light Drizzle	Leichter Nieselregen
+Drizzle	Nieselregen
+Heavy Drizzle	Starker Nieselregen
+Freezing Drizzle	Gefrierender Nieselregen
+Light Rain	Leichter Regen
+Rain	Regen
+Heavy Rain	Starker Regen
+Freezing Rain	Gefrierender Regen
+Light Snow	Leichter Schneefall
+Snow	Schnee
+Heavy Snow	Starker Schneefall
+Snow Grains	Schneegriesel
+Showers	Schauer
+Heavy Showers	Starke Schauer
+Snow Showers	Schneeschauer
+Heavy Snow Showers	Starke Schneeschauer
+Thunderstorm	Gewitter
+Thunderstorm with Hail	Gewitter mit Hagel
+North wind	Nordwind
+Northeast wind	Nordostwind
+East wind	Ostwind
+Southeast wind	Südostwind
+South wind	Südwind
+Southwest wind	Südwestwind
+West wind	Westwind
+Northwest wind	Nordwestwind

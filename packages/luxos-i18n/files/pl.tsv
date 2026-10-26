@@ -2703,3 +2703,110 @@ More details: run the command again with --verbose	Więcej szczegółów: urucho
 The list of apps is out of date. Install the updates first, then try again.	Lista aplikacji jest nieaktualna. Najpierw zainstaluj aktualizacje, a potem spróbuj ponownie.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Data i godzina komputera są nieprawidłowe, więc bezpieczne połączenie nie jest możliwe. Sprawdź ustawienia czasu.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Dłuższa praca na baterii: wolniejszy procesor bez turbo, nieco niższa jasność, bez powiększania w Docku, nieużywane urządzenia usypiają, a zadania w tle są wstrzymywane.
+Extreme	Ekstremalny
+Low	Niski
+Moderate	Umiarkowany
+High	Wysoki
+Very High	Bardzo wysoki
+Weather	Pogoda
+Finding your city…	Szukanie Twojego miasta…
+Searching…	Wyszukiwanie…
+Weather will ask the ipinfo.io service where your internet address is. Your address is sent to that service; the location is only approximate (usually your city or provider).	Pogoda zapyta usługę ipinfo.io, gdzie znajduje się Twój adres internetowy. Adres zostanie wysłany do tej usługi; lokalizacja jest tylko przybliżona (zwykle Twoje miasto lub dostawca).
+Use Location	Użyj lokalizacji
+Finding your location…	Ustalanie lokalizacji…
+Feels like	Odczuwalna
+Add a location	Dodaj miejsce
+Menu	Menu
+Search for a city	Szukaj miasta
+Use My Approximate Location…	Użyj mojej przybliżonej lokalizacji…
+Search failed. Check your internet connection.	Wyszukiwanie nie powiodło się. Sprawdź połączenie z internetem.
+No city found.	Nie znaleziono miasta.
+Use your approximate location?	Użyć przybliżonej lokalizacji?
+Your location could not be found	Nie udało się ustalić lokalizacji
+Search for your city with the + button instead.	Zamiast tego wyszukaj swoje miasto przyciskiem +.
+Add a city	Dodaj miasto
+Search for a city with the + button to see its weather.	Wyszukaj miasto przyciskiem +, aby zobaczyć jego pogodę.
+Add a City…	Dodaj miasto…
+Units	Jednostki
+Automatic	Automatycznie
+Celsius (°C, km/h)	Celsjusz (°C, km/h)
+Fahrenheit (°F, mph)	Fahrenheit (°F, mph)
+Remove Location	Usuń miejsce
+Weather data: Open-Meteo.com (CC BY 4.0)	Dane pogodowe: Open-Meteo.com (CC BY 4.0)
+Loading the forecast…	Wczytywanie prognozy…
+Hourly forecast	Prognoza godzinowa
+7-day forecast	Prognoza na 7 dni
+Humidity	Wilgotność
+Wind	Wiatr
+Precipitation	Opady
+UV index	Indeks UV
+Pressure	Ciśnienie
+Sunrise	Wschód słońca
+Remove “%s”	Usuń „%s”
+The forecast could not be loaded	Nie udało się wczytać prognozy
+Check your internet connection and try again.	Sprawdź połączenie z internetem i spróbuj ponownie.
+H: %s  L: %s	Maks. %s  Min. %s
+Sunset: %s	Zachód: %s
+Updated at %s · Open-Meteo.com	Zaktualizowano o %s · Open-Meteo.com
+Offline – showing the forecast from %s	Offline – prognoza z %s
+Scan the code with a phone camera to join this network.	Zeskanuj kod aparatem telefonu, aby połączyć się z tą siecią.
+Scan a Wi-Fi QR code with the camera and connect	Zeskanuj kod QR Wi‑Fi kamerą i połącz się
+Reading the network settings…	Odczytywanie ustawień sieci…
+Wi-Fi QR Code	Kod QR Wi‑Fi
+Copy QR code image	Kopiuj obraz kodu QR
+Show Password…	Pokaż hasło…
+Join a Network with a QR Code…	Połącz z siecią za pomocą kodu QR…
+QR codes are not available	Kody QR są niedostępne
+The zxing-cpp library is missing. Install it with: lux install zxing-cpp	Brak biblioteki zxing-cpp. Zainstaluj ją poleceniem: lux install zxing-cpp
+Not connected to Wi-Fi	Brak połączenia z Wi‑Fi
+Connect to a Wi-Fi network to share it with a QR code.	Połącz się z siecią Wi‑Fi, aby udostępnić ją kodem QR.
+The network settings could not be read	Nie udało się odczytać ustawień sieci
+This network uses a company or school login (802.1X). It cannot be shared with a QR code.	Ta sieć używa logowania firmowego lub szkolnego (802.1X). Nie można jej udostępnić kodem QR.
+The Wi-Fi password is stored for the whole computer. To show it in the QR code, confirm with the administrator password.	Hasło Wi‑Fi jest zapisane dla całego komputera. Aby pokazać je w kodzie QR, potwierdź hasłem administratora.
+Open network – no password needed.	Sieć otwarta – hasło nie jest potrzebne.
+Password:	Hasło:
+The QR code could not be created	Nie udało się utworzyć kodu QR
+Join Wi-Fi with QR Code	Połączenie z Wi‑Fi kodem QR
+Hold a Wi-Fi QR code in front of the camera.	Przytrzymaj kod QR Wi‑Fi przed kamerą.
+Join	Połącz
+You can close this window.	Możesz zamknąć to okno.
+The network could not be joined	Nie udało się połączyć z siecią
+This QR code is not a Wi-Fi network.	Ten kod QR nie jest siecią Wi‑Fi.
+Joining “%s”…	Łączenie z „%s”…
+Connected to “%s”	Połączono z „%s”
+Join the Wi-Fi network “%s”?	Połączyć z siecią Wi‑Fi „%s”?
+Could not join “%s”: %s	Nie udało się połączyć z „%s”: %s
+Share Wi-Fi with QR Code…	Udostępnij Wi‑Fi kodem QR…
+Join Wi-Fi with QR Code…	Połącz z Wi‑Fi kodem QR…
+Clear Sky	Bezchmurnie
+Mostly Clear	Przeważnie bezchmurnie
+Partly Cloudy	Częściowe zachmurzenie
+Cloudy	Pochmurno
+Fog	Mgła
+Freezing Fog	Marznąca mgła
+Light Drizzle	Lekka mżawka
+Drizzle	Mżawka
+Heavy Drizzle	Silna mżawka
+Freezing Drizzle	Marznąca mżawka
+Light Rain	Lekki deszcz
+Rain	Deszcz
+Heavy Rain	Ulewa
+Freezing Rain	Marznący deszcz
+Light Snow	Lekki śnieg
+Snow	Śnieg
+Heavy Snow	Intensywny śnieg
+Snow Grains	Śnieg ziarnisty
+Showers	Przelotne opady
+Heavy Showers	Silne przelotne opady
+Snow Showers	Przelotne opady śniegu
+Heavy Snow Showers	Silne przelotne opady śniegu
+Thunderstorm	Burza
+Thunderstorm with Hail	Burza z gradem
+North wind	Wiatr północny
+Northeast wind	Wiatr północno-wschodni
+East wind	Wiatr wschodni
+Southeast wind	Wiatr południowo-wschodni
+South wind	Wiatr południowy
+Southwest wind	Wiatr południowo-zachodni
+West wind	Wiatr zachodni
+Northwest wind	Wiatr północno-zachodni

@@ -2702,3 +2702,110 @@ More details: run the command again with --verbose	Ďalšie podrobnosti: spustit
 The list of apps is out of date. Install the updates first, then try again.	Zoznam aplikácií je zastaraný. Najprv nainštalujte aktualizácie a potom to skúste znova.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Dátum a čas počítača nie sú správne, preto nie je možné zabezpečené pripojenie. Skontrolujte nastavenie času.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Dlhšia výdrž batérie: pomalší procesor bez turba, o niečo nižší jas, bez zväčšovania v Docku, nepoužívané zariadenia sa uspia a úlohy na pozadí sa pozastavia.
+Extreme	Extrémny
+Low	Nízky
+Moderate	Stredný
+High	Vysoký
+Very High	Veľmi vysoký
+Weather	Počasie
+Finding your city…	Hľadám vaše mesto…
+Searching…	Hľadám…
+Weather will ask the ipinfo.io service where your internet address is. Your address is sent to that service; the location is only approximate (usually your city or provider).	Počasie sa opýta služby ipinfo.io, kde je vaša internetová adresa. Adresa sa tejto službe odošle; poloha je len približná (zvyčajne vaše mesto alebo poskytovateľ).
+Use Location	Použiť polohu
+Finding your location…	Zisťujem vašu polohu…
+Feels like	Pocitovo
+Add a location	Pridať miesto
+Menu	Ponuka
+Search for a city	Hľadať mesto
+Use My Approximate Location…	Použiť moju približnú polohu…
+Search failed. Check your internet connection.	Hľadanie zlyhalo. Skontrolujte pripojenie k internetu.
+No city found.	Nenašlo sa žiadne mesto.
+Use your approximate location?	Použiť vašu približnú polohu?
+Your location could not be found	Polohu sa nepodarilo zistiť
+Search for your city with the + button instead.	Vyhľadajte radšej svoje mesto tlačidlom +.
+Add a city	Pridajte mesto
+Search for a city with the + button to see its weather.	Tlačidlom + vyhľadajte mesto a uvidíte jeho počasie.
+Add a City…	Pridať mesto…
+Units	Jednotky
+Automatic	Automaticky
+Celsius (°C, km/h)	Celzius (°C, km/h)
+Fahrenheit (°F, mph)	Fahrenheit (°F, mph)
+Remove Location	Odobrať miesto
+Weather data: Open-Meteo.com (CC BY 4.0)	Údaje o počasí: Open-Meteo.com (CC BY 4.0)
+Loading the forecast…	Načítavam predpoveď…
+Hourly forecast	Predpoveď po hodinách
+7-day forecast	Predpoveď na 7 dní
+Humidity	Vlhkosť
+Wind	Vietor
+Precipitation	Zrážky
+UV index	UV index
+Pressure	Tlak
+Sunrise	Východ slnka
+Remove “%s”	Odobrať „%s“
+The forecast could not be loaded	Predpoveď sa nepodarilo načítať
+Check your internet connection and try again.	Skontrolujte pripojenie k internetu a skúste to znova.
+H: %s  L: %s	Max. %s  Min. %s
+Sunset: %s	Západ: %s
+Updated at %s · Open-Meteo.com	Aktualizované o %s · Open-Meteo.com
+Offline – showing the forecast from %s	Bez pripojenia – predpoveď z %s
+Scan the code with a phone camera to join this network.	Naskenujte kód fotoaparátom telefónu a pripojte sa k tejto sieti.
+Scan a Wi-Fi QR code with the camera and connect	Naskenovať QR kód Wi‑Fi kamerou a pripojiť sa
+Reading the network settings…	Čítam nastavenia siete…
+Wi-Fi QR Code	QR kód Wi‑Fi
+Copy QR code image	Kopírovať obrázok QR kódu
+Show Password…	Zobraziť heslo…
+Join a Network with a QR Code…	Pripojiť sa k sieti QR kódom…
+QR codes are not available	QR kódy nie sú k dispozícii
+The zxing-cpp library is missing. Install it with: lux install zxing-cpp	Chýba knižnica zxing-cpp. Nainštalujte ju príkazom: lux install zxing-cpp
+Not connected to Wi-Fi	Nie ste pripojení k Wi‑Fi
+Connect to a Wi-Fi network to share it with a QR code.	Pripojte sa k sieti Wi‑Fi a potom ju môžete zdieľať QR kódom.
+The network settings could not be read	Nastavenia siete sa nepodarilo prečítať
+This network uses a company or school login (802.1X). It cannot be shared with a QR code.	Táto sieť používa firemné alebo školské prihlásenie (802.1X). Nedá sa zdieľať QR kódom.
+The Wi-Fi password is stored for the whole computer. To show it in the QR code, confirm with the administrator password.	Heslo Wi‑Fi je uložené pre celý počítač. Na zobrazenie v QR kóde ho potvrďte heslom správcu.
+Open network – no password needed.	Otvorená sieť – heslo nie je potrebné.
+Password:	Heslo:
+The QR code could not be created	QR kód sa nepodarilo vytvoriť
+Join Wi-Fi with QR Code	Pripojenie k Wi‑Fi QR kódom
+Hold a Wi-Fi QR code in front of the camera.	Podržte QR kód Wi‑Fi pred kamerou.
+Join	Pripojiť
+You can close this window.	Toto okno môžete zavrieť.
+The network could not be joined	K sieti sa nepodarilo pripojiť
+This QR code is not a Wi-Fi network.	Tento QR kód nie je sieť Wi‑Fi.
+Joining “%s”…	Pripájam k „%s“…
+Connected to “%s”	Pripojené k „%s“
+Join the Wi-Fi network “%s”?	Pripojiť sa k sieti Wi‑Fi „%s“?
+Could not join “%s”: %s	K „%s“ sa nepodarilo pripojiť: %s
+Share Wi-Fi with QR Code…	Zdieľať Wi‑Fi QR kódom…
+Join Wi-Fi with QR Code…	Pripojiť k Wi‑Fi QR kódom…
+Clear Sky	Jasno
+Mostly Clear	Takmer jasno
+Partly Cloudy	Polojasno
+Cloudy	Zamračené
+Fog	Hmla
+Freezing Fog	Mrznúca hmla
+Light Drizzle	Slabé mrholenie
+Drizzle	Mrholenie
+Heavy Drizzle	Silné mrholenie
+Freezing Drizzle	Mrznúce mrholenie
+Light Rain	Slabý dážď
+Rain	Dážď
+Heavy Rain	Silný dážď
+Freezing Rain	Mrznúci dážď
+Light Snow	Slabé sneženie
+Snow	Sneženie
+Heavy Snow	Husté sneženie
+Snow Grains	Snehové zrná
+Showers	Prehánky
+Heavy Showers	Silné prehánky
+Snow Showers	Snehové prehánky
+Heavy Snow Showers	Silné snehové prehánky
+Thunderstorm	Búrka
+Thunderstorm with Hail	Búrka s krupobitím
+North wind	Severný vietor
+Northeast wind	Severovýchodný vietor
+East wind	Východný vietor
+Southeast wind	Juhovýchodný vietor
+South wind	Južný vietor
+Southwest wind	Juhozápadný vietor
+West wind	Západný vietor
+Northwest wind	Severozápadný vietor

@@ -1,0 +1,782 @@
+#!/usr/bin/env python3
+"""LuxOS Pocasi - aktualni pocasi, predpoved na 24 hodin a 7 dni pro ulozena mista (Open-Meteo).
+
+  luxos-weather            okno aplikace
+
+Data: luxos_weather (Open-Meteo bez klice, mezipamet 30 min v ~/.cache/luxos/weather, bez site
+posledni data). Vychozi misto: mesto podle casoveho pasma systemu; priblizna poloha podle IP adresy
+jen po potvrzeni uzivatelem. Jednotky podle jazyka (cs: °C, km/h), lze prepnout v nabidce.
+Testy: LUXOS_WEATHER_API/GEO/IP (falesny server), LUXOS_WEATHER_TZ, LUXOS_WEATHER_ICONS.
+"""
+import os
+import sys
+import threading
+import time
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_i18n import _  # noqa: E402
+import luxos_weather as lw  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, Pango  # noqa: E402
+
+APP = "luxos-weather"
+ICONS = os.environ.get("LUXOS_WEATHER_ICONS") or "/usr/share/luxos/weather/icons"
+LANG = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES") or os.environ.get("LANG") or "en")
+LANG = LANG.split("_")[0].split(".")[0] or "en"
+CHECK_SECONDS = 300          # jak casto se kontroluje stari dat otevreneho okna
+WEEKDAYS = ("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su")
+
+CSS = b"""
+.sky { color: white; }
+.sky scrolledwindow, .sky viewport, .sky list { background: transparent; }
+.sky-clear { background-image: linear-gradient(180deg, #2f7cf6, #79bdfb); }
+.sky-cloudy { background-image: linear-gradient(180deg, #5f7594, #9aabc2); }
+.sky-fog { background-image: linear-gradient(180deg, #6d7a8c, #a6b0bd); }
+.sky-rain { background-image: linear-gradient(180deg, #3f5674, #6f87a6); }
+.sky-storm { background-image: linear-gradient(180deg, #2c3049, #545a7c); }
+.sky-snow { background-image: linear-gradient(180deg, #6684a8, #9fb6d2); }
+.sky-clear-night { background-image: linear-gradient(180deg, #0b1633, #29407a); }
+.sky-cloudy-night, .sky-fog-night { background-image: linear-gradient(180deg, #232a39, #465065); }
+.sky-rain-night, .sky-storm-night { background-image: linear-gradient(180deg, #1c2233, #3b4560); }
+.sky-snow-night { background-image: linear-gradient(180deg, #2a3650, #56688a); }
+.sky-none { background-image: linear-gradient(180deg, #4d6a90, #8aa3c2); }
+.place { font-size: 26px; font-weight: 600; }
+.big-temp { font-size: 76px; font-weight: 200; }
+.cond { font-size: 17px; font-weight: 600; }
+.hilo { font-size: 15px; font-weight: 600; }
+.card { background-color: alpha(white, 0.16); border-radius: 14px; }
+.card-title { font-size: 11px; font-weight: 700; opacity: 0.7; }
+.hour-time { font-size: 13px; font-weight: 600; }
+.hour-temp { font-size: 16px; font-weight: 600; }
+.pop { font-size: 11px; font-weight: 700; color: #dff0ff; }
+.day-name { font-size: 15px; font-weight: 600; }
+.day-min { font-size: 15px; font-weight: 600; opacity: 0.6; }
+.day-max { font-size: 15px; font-weight: 600; }
+.tile-value { font-size: 24px; font-weight: 500; }
+.tile-sub { font-size: 12px; opacity: 0.8; }
+.footer { font-size: 11px; opacity: 0.75; }
+.offline { font-weight: 700; opacity: 1; }
+.sidebar row { padding: 8px 12px; border-radius: 10px; margin: 2px 6px; }
+.side-name { font-weight: 700; }
+.side-sub { font-size: 11px; opacity: 0.7; }
+.side-temp { font-size: 22px; font-weight: 300; }
+.state-title { font-size: 20px; font-weight: 800; }
+.primary { border-radius: 999px; padding: 6px 22px; font-weight: 700; background-image: none;
+           background-color: #3d7bff; color: white; border: none; box-shadow: none; }
+.dim { opacity: 0.7; }
+"""
+
+_PIX = {}
+
+
+def weather_image(name, size):
+    """Ikona pocasi ze SVG (ostra i pri HiDPI: Cairo surface s meritkem okna)."""
+    scale = max(1, Gdk.Screen.get_default().get_monitor_scale_factor(0) if Gdk.Screen.get_default() else 1)
+    key = (name, size, scale)
+    pix = _PIX.get(key)
+    if pix is None:
+        try:
+            pix = GdkPixbuf.Pixbuf.new_from_file_at_size(os.path.join(ICONS, name + ".svg"),
+                                                         size * scale, size * scale)
+        except GLib.Error:
+            pix = False
+        _PIX[key] = pix
+    if not pix:
+        return Gtk.Image(icon_name="weather-overcast-symbolic", pixel_size=size)
+    surf = Gdk.cairo_surface_create_from_pixbuf(pix, scale, None)
+    return Gtk.Image.new_from_surface(surf)
+
+
+def label(text="", cls=None, xalign=0.5, **kw):
+    lbl = Gtk.Label(label=text, xalign=xalign, **kw)
+    for c in (cls or "").split():
+        lbl.get_style_context().add_class(c)
+    return lbl
+
+
+def card(title, child):
+    box = Gtk.EventBox()
+    box.get_style_context().add_class("card")
+    # GTK3 EventBox nezna CSS padding - okraj ma vnitrni box
+    inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_start=14, margin_end=14,
+                    margin_top=10, margin_bottom=12)
+    if title:
+        inner.pack_start(label(title.upper(), "card-title", xalign=0), False, False, 0)
+    inner.pack_start(child, True, True, 0)
+    box.add(inner)
+    return box
+
+
+def deg(value):
+    return "–" if value is None else f"{round(value)}°"
+
+
+def parse_local(text):
+    """'2026-10-26T14:00' (mistni cas mista) -> GLib.DateTime bez pasma (jen k formatovani)."""
+    try:
+        date, _sep, clock = text.partition("T")
+        y, m, d = (int(x) for x in date.split("-"))
+        hh, mm = (int(x) for x in (clock or "00:00").split(":")[:2])
+        return GLib.DateTime.new_utc(y, m, d, hh, mm, 0)
+    except (ValueError, TypeError):
+        return None
+
+
+def hour_label(text, units):
+    dt = parse_local(text)
+    if dt is None:
+        return text[11:13]
+    return dt.format("%l %p").strip() if units == "imperial" else dt.format("%H")
+
+
+def clock_label(text, units):
+    dt = parse_local(text)
+    if dt is None:
+        return ""
+    return dt.format("%l:%M %p").strip() if units == "imperial" else dt.format("%H:%M")
+
+
+def day_label(text, index):
+    if index == 0:
+        return _("Today")
+    dt = parse_local(text + "T12:00")
+    if dt is None:
+        return text
+    # zkratky dnu z prekladu LuxOS (Kalendar), nezavisle na nainstalovanych locale
+    return _(WEEKDAYS[dt.get_day_of_week() - 1]).capitalize()
+
+
+def uv_text(uv):
+    if uv is None:
+        return ""
+    if uv < 3:
+        return _("Low")
+    if uv < 6:
+        return _("Moderate")
+    if uv < 8:
+        return _("High")
+    if uv < 11:
+        return _("Very High")
+    return _("Extreme")
+
+
+def place_title(loc):
+    parts = [loc.get("admin") or "", loc.get("country") or ""]
+    return ", ".join(p for p in parts if p and p != loc["name"])
+
+
+class RangeBar(Gtk.DrawingArea):
+    """Pruh rozsahu teplot dne v ramci celeho tydne (jako v aplikacich pocasi v telefonu)."""
+
+    def __init__(self, lo, hi, week_lo, week_hi, metric):
+        super().__init__()
+        self.set_size_request(110, 6)
+        self.set_valign(Gtk.Align.CENTER)
+        self.vals = (lo, hi, week_lo, week_hi, metric)
+        self.connect("draw", self.draw)
+
+    @staticmethod
+    def color(t, metric):
+        c = t if metric else (t - 32) / 1.8
+        stops = [(-10, (0.45, 0.65, 1.0)), (5, (0.3, 0.8, 0.95)), (15, (0.45, 0.85, 0.35)),
+                 (22, (1.0, 0.78, 0.15)), (30, (1.0, 0.45, 0.15))]
+        if c <= stops[0][0]:
+            return stops[0][1]
+        for (t0, c0), (t1, c1) in zip(stops, stops[1:]):
+            if c <= t1:
+                k = (c - t0) / (t1 - t0)
+                return tuple(a + (b - a) * k for a, b in zip(c0, c1))
+        return stops[-1][1]
+
+    def draw(self, widget, cr):
+        import cairo
+        w, h = widget.get_allocated_width(), widget.get_allocated_height()
+        lo, hi, wlo, whi, metric = self.vals
+        r = h / 2
+
+        def pill(x0, x1):
+            cr.new_sub_path()
+            cr.arc(x0 + r, r, r, 1.5708, 4.7124)
+            cr.arc(max(x0 + r, x1 - r), r, r, -1.5708, 1.5708)
+            cr.close_path()
+        cr.set_source_rgba(0, 0, 0, 0.16)
+        pill(0, w)
+        cr.fill()
+        span = max(0.1, whi - wlo)
+        x0 = (lo - wlo) / span * (w - 2 * r)
+        x1 = (hi - wlo) / span * (w - 2 * r) + 2 * r
+        grad = cairo.LinearGradient(x0, 0, x1, 0)
+        grad.add_color_stop_rgb(0, *self.color(lo, metric))
+        grad.add_color_stop_rgb(1, *self.color(hi, metric))
+        cr.set_source(grad)
+        pill(x0, x1)
+        cr.fill()
+
+
+class WeatherWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Weather"))
+        self.set_default_size(900, 680)
+        self.set_size_request(640, 480)
+        self.set_icon_name(APP)
+        self.cfg = lw.load_config()
+        self.results = {}           # index mista -> vysledek lw.forecast
+        self.loading = set()
+        self.search_gen = 0
+        self.search_id = None
+
+        header = Gtk.HeaderBar(show_close_button=True, title=_("Weather"))
+        self.set_titlebar(header)
+        self.add_btn = Gtk.MenuButton(tooltip_text=_("Add a location"))
+        self.add_btn.add(Gtk.Image(icon_name="list-add-symbolic"))
+        self.add_btn.set_popover(self.build_search())
+        header.pack_start(self.add_btn)
+        self.menu_btn = Gtk.MenuButton(tooltip_text=_("Menu"))
+        self.menu_btn.add(Gtk.Image(icon_name="open-menu-symbolic"))
+        self.menu_btn.set_popover(self.build_menu())
+        header.pack_end(self.menu_btn)
+        self.refresh_btn = Gtk.Button(tooltip_text=_("Refresh"))
+        self.refresh_btn.add(Gtk.Image(icon_name="view-refresh-symbolic"))
+        self.refresh_btn.connect("clicked", lambda _b: self.refresh_selected(force=True))
+        header.pack_end(self.refresh_btn)
+
+        root = Gtk.Box()
+        self.add(root)
+        side = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        side.set_size_request(230, -1)
+        self.listbox = Gtk.ListBox(selection_mode=Gtk.SelectionMode.BROWSE)
+        self.listbox.get_style_context().add_class("sidebar")
+        self.listbox.connect("row-selected", self.on_row_selected)
+        self.listbox.connect("button-press-event", self.on_list_button)
+        side.add(self.listbox)
+        root.pack_start(side, False, False, 0)
+        root.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 0)
+
+        self.sky = Gtk.EventBox()
+        self.sky.get_style_context().add_class("sky")
+        self.sky_class = None
+        root.pack_start(self.sky, True, True, 0)
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, transition_duration=150)
+        self.sky.add(self.stack)
+        self.detail_scroller = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.stack.add_named(self.detail_scroller, "detail")
+        self.detail = None
+        self.stack.add_named(self.build_state_page(), "state")
+        self.set_sky(None)
+
+        self.rebuild_list()
+        GLib.timeout_add_seconds(CHECK_SECONDS, self.periodic)
+        if not self.cfg["locations"]:
+            self.first_run()
+        else:
+            self.refresh_all()
+
+    # ---- stavova stranka ----
+    def build_state_page(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10,
+                      halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, margin=30)
+        self.state_icon = Gtk.Image(pixel_size=64)
+        self.state_spinner = Gtk.Spinner(width_request=32, height_request=32)
+        self.state_spinner.set_no_show_all(True)
+        self.state_title = label("", "state-title", wrap=True, justify=Gtk.Justification.CENTER)
+        self.state_hint = label("", "dim", wrap=True, justify=Gtk.Justification.CENTER, max_width_chars=48)
+        self.state_btn = Gtk.Button(halign=Gtk.Align.CENTER, margin_top=8)
+        self.state_btn.get_style_context().add_class("primary")
+        self.state_btn.set_no_show_all(True)
+        self.state_btn.connect("clicked", self.on_state_button)
+        self.state_action = None
+        for w in (self.state_icon, self.state_spinner, self.state_title, self.state_hint, self.state_btn):
+            box.pack_start(w, False, False, 0)
+        return box
+
+    def show_state(self, icon, title, hint="", button=None, action=None, busy=False):
+        self.state_icon.set_from_icon_name(icon, Gtk.IconSize.DIALOG)
+        self.state_icon.set_visible(not busy)
+        self.state_spinner.set_visible(busy)
+        if busy:
+            self.state_spinner.start()
+        else:
+            self.state_spinner.stop()
+        self.state_title.set_text(title)
+        self.state_hint.set_text(hint)
+        self.state_hint.set_visible(bool(hint))
+        self.state_btn.set_visible(bool(button))
+        if button:
+            self.state_btn.set_label(button)
+        self.state_action = action
+        self.stack.set_visible_child_name("state")
+
+    def on_state_button(self, _b):
+        if self.state_action:
+            self.state_action()
+
+    # ---- prvni spusteni: mesto podle casoveho pasma ----
+    def first_run(self):
+        self.set_sky(None)
+        self.show_state("find-location-symbolic", _("Finding your city…"), busy=True)
+
+        def work():
+            try:
+                loc = lw.timezone_city(LANG)
+            except lw.WeatherError:
+                loc = None
+            GLib.idle_add(self.first_run_done, loc)
+        threading.Thread(target=work, daemon=True).start()
+
+    def first_run_done(self, loc):
+        if loc and not self.cfg["locations"]:
+            self.add_location(loc)
+        elif not self.cfg["locations"]:
+            self.show_state("find-location-symbolic", _("Add a city"),
+                            _("Search for a city with the + button to see its weather."),
+                            _("Add a City…"), lambda: self.add_btn.set_active(True))
+        return False
+
+    # ---- vyhledavani mist ----
+    def build_search(self):
+        pop = Gtk.Popover()
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin=10)
+        box.set_size_request(320, -1)
+        self.search_entry = Gtk.SearchEntry(placeholder_text=_("Search for a city"))
+        self.search_entry.connect("search-changed", self.on_search_changed)
+        self.search_entry.connect("activate", self.on_search_activate)
+        box.pack_start(self.search_entry, False, False, 0)
+        here = Gtk.ModelButton(text=_("Use My Approximate Location…"))
+        here.connect("clicked", self.on_ip_location)
+        box.pack_start(here, False, False, 0)
+        self.search_status = label("", "dim", xalign=0, wrap=True)
+        self.search_status.set_no_show_all(True)
+        box.pack_start(self.search_status, False, False, 0)
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, max_content_height=320,
+                                    propagate_natural_height=True)
+        self.search_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE, activate_on_single_click=True)
+        self.search_list.connect("row-activated", self.on_search_pick)
+        scroll.add(self.search_list)
+        box.pack_start(scroll, True, True, 0)
+        box.show_all()
+        pop.add(box)
+        pop.connect("closed", lambda _p: self.search_entry.set_text(""))
+        return pop
+
+    def set_search_status(self, text):
+        self.search_status.set_text(text)
+        self.search_status.set_visible(bool(text))
+
+    def on_search_changed(self, entry):
+        if self.search_id:
+            GLib.source_remove(self.search_id)
+        self.search_id = GLib.timeout_add(450, self.run_search)
+
+    def on_search_activate(self, _e):
+        row = self.search_list.get_row_at_index(0)
+        if row is not None:
+            self.on_search_pick(self.search_list, row)
+
+    def run_search(self):
+        self.search_id = None
+        text = self.search_entry.get_text().strip()
+        self.search_gen += 1
+        gen = self.search_gen
+        for row in self.search_list.get_children():
+            row.destroy()
+        if len(text) < 2:
+            self.set_search_status("")
+            return False
+        self.set_search_status(_("Searching…"))
+
+        def work():
+            try:
+                res, err = lw.search(text, LANG), None
+            except lw.WeatherError as e:
+                res, err = [], str(e)
+            GLib.idle_add(self.search_done, gen, res, err)
+        threading.Thread(target=work, daemon=True).start()
+        return False
+
+    def search_done(self, gen, places, err):
+        if gen != self.search_gen:
+            return False
+        for row in self.search_list.get_children():
+            row.destroy()
+        if err:
+            self.set_search_status(_("Search failed. Check your internet connection."))
+            return False
+        self.set_search_status("" if places else _("No city found."))
+        for p in places:
+            row = Gtk.ListBoxRow()
+            row.place = p
+            b = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=6)
+            b.pack_start(label(p["name"], "side-name", xalign=0), False, False, 0)
+            sub = place_title(p)
+            if sub:
+                b.pack_start(label(sub, "side-sub", xalign=0, ellipsize=Pango.EllipsizeMode.END), False, False, 0)
+            row.add(b)
+            self.search_list.add(row)
+        self.search_list.show_all()
+        return False
+
+    def on_search_pick(self, _lb, row):
+        place = getattr(row, "place", None)
+        if place:
+            self.add_btn.get_popover().popdown()
+            self.add_location(place)
+
+    def on_ip_location(self, _b):
+        self.add_btn.get_popover().popdown()
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
+                                buttons=Gtk.ButtonsType.NONE, text=_("Use your approximate location?"))
+        dlg.format_secondary_text(_("Weather will ask the ipinfo.io service where your internet "
+                                    "address is. Your address is sent to that service; the location "
+                                    "is only approximate (usually your city or provider)."))
+        dlg.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        dlg.add_button(_("Use Location"), Gtk.ResponseType.OK)
+        dlg.set_default_response(Gtk.ResponseType.CANCEL)
+        resp = dlg.run()
+        dlg.destroy()
+        if resp != Gtk.ResponseType.OK:
+            return
+        self.show_state("find-location-symbolic", _("Finding your location…"), busy=True)
+
+        def work():
+            try:
+                loc, err = lw.ip_location(), None
+            except lw.WeatherError as e:
+                loc, err = None, str(e)
+            GLib.idle_add(self.ip_done, loc, err)
+        threading.Thread(target=work, daemon=True).start()
+
+    def ip_done(self, loc, err):
+        if loc:
+            self.add_location(loc)
+        else:
+            self.show_state("dialog-warning-symbolic", _("Your location could not be found"),
+                            _("Search for your city with the + button instead."))
+        return False
+
+    # ---- mista ----
+    def add_location(self, place):
+        locs = self.cfg["locations"]
+        for i, l in enumerate(locs):
+            if lw.same_place(l, place):
+                self.select(i)
+                return
+        keep = ("name", "lat", "lon", "admin", "country", "country_code", "tz")
+        locs.append({k: place[k] for k in keep if k in place})
+        self.cfg["selected"] = len(locs) - 1
+        lw.save_config(self.cfg)
+        self.rebuild_list()
+        self.refresh(len(locs) - 1)
+
+    def remove_location(self, index):
+        locs = self.cfg["locations"]
+        if not 0 <= index < len(locs):
+            return
+        del locs[index]
+        self.results = {i - (i > index): r for i, r in self.results.items() if i != index}
+        self.cfg["selected"] = min(self.cfg["selected"], max(0, len(locs) - 1))
+        lw.save_config(self.cfg)
+        self.rebuild_list()
+        if not locs:
+            self.set_sky(None)
+            self.show_state("find-location-symbolic", _("Add a city"),
+                            _("Search for a city with the + button to see its weather."),
+                            _("Add a City…"), lambda: self.add_btn.set_active(True))
+
+    def select(self, index):
+        row = self.listbox.get_row_at_index(index)
+        if row is not None:
+            self.listbox.select_row(row)
+
+    def rebuild_list(self):
+        for row in self.listbox.get_children():
+            row.destroy()
+        for i, loc in enumerate(self.cfg["locations"]):
+            row = Gtk.ListBoxRow()
+            row.index = i
+            box = Gtk.Box(spacing=8)
+            col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            col.pack_start(label(loc["name"], "side-name", xalign=0, ellipsize=Pango.EllipsizeMode.END),
+                           False, False, 0)
+            row.sub = label("", "side-sub", xalign=0, ellipsize=Pango.EllipsizeMode.END)
+            col.pack_start(row.sub, False, False, 0)
+            box.pack_start(col, True, True, 0)
+            row.temp = label("", "side-temp", xalign=1)
+            box.pack_end(row.temp, False, False, 0)
+            row.add(box)
+            self.listbox.add(row)
+            self.update_row(i)
+        self.listbox.show_all()
+        if self.cfg["locations"]:
+            self.select(self.cfg["selected"])
+        self.refresh_btn.set_sensitive(bool(self.cfg["locations"]))
+
+    def update_row(self, index):
+        row = self.listbox.get_row_at_index(index)
+        res = self.results.get(index)
+        if row is None:
+            return
+        if res and res.get("data"):
+            cur = res["data"]["current"]
+            row.temp.set_text(deg(cur["temp"]))
+            row.sub.set_text(_(lw.condition(cur["code"])))
+        else:
+            row.temp.set_text("")
+            row.sub.set_text(_("Loading…") if index in self.loading else "")
+
+    def on_row_selected(self, _lb, row):
+        if row is None:
+            return
+        self.cfg["selected"] = row.index
+        lw.save_config(self.cfg)
+        self.show_detail(row.index)
+        res = self.results.get(row.index)
+        if not res or res.get("stale"):
+            self.refresh(row.index)
+
+    def on_list_button(self, _lb, event):
+        if event.button != 3:
+            return False
+        row = self.listbox.get_row_at_y(int(event.y))
+        if row is None:
+            return False
+        menu = Gtk.Menu()
+        item = Gtk.MenuItem(label=_("Remove “%s”") % self.cfg["locations"][row.index]["name"])
+        item.connect("activate", lambda _i, i=row.index: self.remove_location(i))
+        menu.append(item)
+        menu.show_all()
+        menu.attach_to_widget(self.listbox, None)
+        menu.popup_at_pointer(event)
+        return True
+
+    # ---- nabidka ----
+    def build_menu(self):
+        pop = Gtk.Popover()
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, margin=10)
+        box.pack_start(label(_("Units"), "card-title", xalign=0), False, False, 4)
+        group = None
+        current = self.cfg["units"]
+        for key, text in (("auto", _("Automatic")), ("metric", _("Celsius (°C, km/h)")),
+                          ("imperial", _("Fahrenheit (°F, mph)"))):
+            b = Gtk.RadioButton(label=text, group=group)
+            group = group or b
+            b.set_active(key == current)
+            b.connect("toggled", self.on_units, key)
+            box.pack_start(b, False, False, 0)
+        box.pack_start(Gtk.Separator(margin_top=6, margin_bottom=6), False, False, 0)
+        rm = Gtk.ModelButton(text=_("Remove Location"))
+        rm.connect("clicked", lambda _b: self.remove_location(self.cfg["selected"]))
+        box.pack_start(rm, False, False, 0)
+        box.pack_start(label(_("Weather data: Open-Meteo.com (CC BY 4.0)"), "dim", xalign=0,
+                             margin_top=6), False, False, 0)
+        box.show_all()
+        pop.add(box)
+        return pop
+
+    def on_units(self, button, key):
+        if not button.get_active() or self.cfg["units"] == key:
+            return
+        self.cfg["units"] = key
+        lw.save_config(self.cfg)
+        self.results = {}
+        self.refresh_all()
+
+    def units(self):
+        return lw.resolve_units(self.cfg["units"])
+
+    # ---- data ----
+    def refresh_all(self):
+        """Nejdriv data z mezipameti (okamzite, i bez site), pak zastarala stahnout."""
+        units = self.units()
+        for i, loc in enumerate(self.cfg["locations"]):
+            if i not in self.results:
+                cached = lw.cached_forecast(loc, units)
+                if cached:
+                    self.results[i] = cached
+            self.update_row(i)
+        if self.cfg["locations"]:
+            self.show_detail(self.cfg["selected"])
+        for i in range(len(self.cfg["locations"])):
+            res = self.results.get(i)
+            if not res or res.get("stale"):
+                self.refresh(i)
+
+    def refresh_selected(self, force=False):
+        if self.cfg["locations"]:
+            self.refresh(self.cfg["selected"], force=force)
+
+    def refresh(self, index, force=False):
+        if index in self.loading or not 0 <= index < len(self.cfg["locations"]):
+            return
+        loc = dict(self.cfg["locations"][index])
+        units = self.units()
+        self.loading.add(index)
+        self.update_row(index)
+        if index == self.cfg["selected"] and index not in self.results:
+            self.set_sky(None)
+            self.show_state("weather-overcast-symbolic", _("Loading the forecast…"), busy=True)
+
+        def work():
+            res = lw.forecast(loc, units, force=force)
+            GLib.idle_add(self.refreshed, index, loc, units, res)
+        threading.Thread(target=work, daemon=True).start()
+
+    def refreshed(self, index, loc, units, res):
+        self.loading.discard(index)
+        locs = self.cfg["locations"]
+        if index >= len(locs) or not lw.same_place(locs[index], loc) or units != self.units():
+            return False      # misto mezitim odebrane nebo zmenene jednotky
+        old = self.results.get(index)
+        if res.get("data") is None and old and old.get("data"):
+            old = dict(old, stale=True, error=res.get("error"))
+            res = old
+        self.results[index] = res
+        self.update_row(index)
+        if index == self.cfg["selected"]:
+            self.show_detail(index)
+            lw.write_summary(loc, res, units)
+        return False
+
+    def periodic(self):
+        for i, res in list(self.results.items()):
+            if res.get("data") and time.time() - res.get("fetched", 0) >= lw.TTL and i < len(self.cfg["locations"]):
+                self.refresh(i)
+        return True
+
+    # ---- detail ----
+    def set_sky(self, name):
+        ctx = self.sky.get_style_context()
+        if self.sky_class:
+            ctx.remove_class(self.sky_class)
+        self.sky_class = f"sky-{name or 'none'}"
+        ctx.add_class(self.sky_class)
+
+    def show_detail(self, index):
+        if not 0 <= index < len(self.cfg["locations"]):
+            return
+        loc = self.cfg["locations"][index]
+        res = self.results.get(index)
+        if not res or not res.get("data"):
+            self.set_sky(None)
+            if index in self.loading or not res:
+                self.show_state("weather-overcast-symbolic", _("Loading the forecast…"), busy=True)
+            else:
+                self.show_state("network-offline-symbolic", _("The forecast could not be loaded"),
+                                _("Check your internet connection and try again."), _("Try Again"),
+                                lambda: self.refresh(index, force=True))
+            return
+        data, units = res["data"], self.units()
+        cur = data["current"]
+        self.set_sky(lw.sky(cur["code"], cur["is_day"]))
+        old = self.detail_scroller.get_child()   # Gtk.Viewport kolem predchozi stranky
+        if old is not None:
+            old.destroy()
+        self.detail = self.build_detail(loc, res, units)
+        self.detail_scroller.add(self.detail)
+        self.detail.show_all()
+        self.stack.set_visible_child_name("detail")
+
+    def build_detail(self, loc, res, units):
+        data = res["data"]
+        cur, today = data["current"], data["daily"][0]
+        lab = lw.unit_labels(units)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=22)
+        page.set_size_request(380, -1)
+
+        head = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0, halign=Gtk.Align.CENTER)
+        head.pack_start(label(loc["name"], "place"), False, False, 0)
+        head.pack_start(label(deg(cur["temp"]), "big-temp"), False, False, 0)
+        head.pack_start(label(_(lw.condition(cur["code"])), "cond"), False, False, 0)
+        head.pack_start(label(_("H: %s  L: %s") % (deg(today["max"]), deg(today["min"])), "hilo"), False, False, 2)
+        fetched = time.strftime("%H:%M", time.localtime(res["fetched"])) if res.get("fetched") else "–"
+        offline = bool(res.get("stale") and res.get("error"))
+        if offline:
+            pill = Gtk.EventBox(halign=Gtk.Align.CENTER, margin_top=8)
+            pill.get_style_context().add_class("card")
+            pill.add(label(_("Offline – showing the forecast from %s") % fetched, "offline",
+                           margin_start=12, margin_end=12, margin_top=4, margin_bottom=4))
+            head.pack_start(pill, False, False, 0)
+        page.pack_start(head, False, False, 4)
+
+        # 24 hodin
+        hours = Gtk.Box(spacing=4)
+        for i, h in enumerate(data["hourly"]):
+            col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            col.set_size_request(52, -1)
+            col.pack_start(label(_("Now") if i == 0 else hour_label(h["time"], units), "hour-time"), False, False, 0)
+            col.pack_start(weather_image(lw.icon_name(h["code"], h["is_day"]), 32), False, False, 0)
+            pop = label(f"{round(h['pop'])} %" if h["pop"] and h["pop"] >= 20 else " ", "pop")
+            col.pack_start(pop, False, False, 0)
+            col.pack_start(label(deg(h["temp"]), "hour-temp"), False, False, 0)
+            hours.pack_start(col, False, False, 0)
+        hscroll = Gtk.ScrolledWindow(vscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_height=True)
+        hscroll.add(hours)
+        page.pack_start(card(_("Hourly forecast"), hscroll), False, False, 0)
+
+        # 7 dni
+        grid = Gtk.Grid(column_spacing=12, row_spacing=10)
+        wlo = min(d["min"] for d in data["daily"])
+        whi = max(d["max"] for d in data["daily"])
+        for i, d in enumerate(data["daily"]):
+            grid.attach(label(day_label(d["date"], i), "day-name", xalign=0, width_chars=7), 0, i, 1, 1)
+            grid.attach(weather_image(lw.icon_name(d["code"], True), 28), 1, i, 1, 1)
+            grid.attach(label(f"{round(d['pop'])} %" if d["pop"] and d["pop"] >= 20 else "", "pop",
+                              width_chars=5), 2, i, 1, 1)
+            grid.attach(label(deg(d["min"]), "day-min", xalign=1, width_chars=4), 3, i, 1, 1)
+            bar = RangeBar(d["min"], d["max"], wlo, whi, units == "metric")
+            bar.set_hexpand(True)
+            grid.attach(bar, 4, i, 1, 1)
+            grid.attach(label(deg(d["max"]), "day-max", xalign=0, width_chars=4), 5, i, 1, 1)
+        page.pack_start(card(_("7-day forecast"), grid), False, False, 0)
+
+        # Podrobnosti
+        tiles = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, column_spacing=10,
+                            row_spacing=10, min_children_per_line=2, max_children_per_line=4)
+
+        def tile(title, value, sub=""):
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            box.pack_start(label(value, "tile-value", xalign=0), False, False, 0)
+            if sub:
+                box.pack_start(label(sub, "tile-sub", xalign=0, wrap=True), False, False, 0)
+            tiles.add(card(title, box))
+        tile(_("Feels like"), deg(cur["feels"]))
+        if cur["humidity"] is not None:
+            tile(_("Humidity"), f"{round(cur['humidity'])} %")
+        if cur["wind"] is not None:
+            tile(_("Wind"), f"{round(cur['wind'])} {lab['wind']}", _(lw.compass(cur["wind_dir"])))
+        if today["precip"] is not None:
+            amount = f"{today['precip']:.1f}" if units == "metric" else f"{today['precip']:.2f}"
+            tile(_("Precipitation"), f"{amount} {lab['precip']}", _("Today"))
+        if today["uv"] is not None:
+            tile(_("UV index"), str(round(today["uv"])), uv_text(round(today["uv"])))
+        if cur["pressure"] is not None:
+            tile(_("Pressure"), f"{round(cur['pressure'])} hPa")
+        if today["sunrise"]:
+            tile(_("Sunrise"), clock_label(today["sunrise"], units),
+                 _("Sunset: %s") % clock_label(today["sunset"], units))
+        page.pack_start(tiles, False, False, 0)
+
+        # Stav dat (bez site je upozorneni nahore)
+        page.pack_start(label(_("Updated at %s · Open-Meteo.com") % fetched, "footer", wrap=True), False, False, 0)
+        return page
+
+
+def main():
+    GLib.set_prgname(APP)
+    GLib.set_application_name(_("Weather"))
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = WeatherWindow()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    Gtk.main()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
