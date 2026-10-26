@@ -276,8 +276,8 @@ function root_watch(on):
             if state["mask"] == -1:
                 state["mask"] = __lsl_qbe_call1(__lsl_symbol("gdk_window_get_events"), root)
             end
-            # GDK_PROPERTY_CHANGE_MASK 1 << 16 | GDK_SUBSTRUCTURE_MASK 1 << 21
-            call __lsl_qbe_call2(__lsl_symbol("gdk_window_set_events"), root, ptr(state["mask"]) | 65536 | 2097152)
+            # GDK_PROPERTY_CHANGE_MASK 1 << 16 | GDK_SUBSTRUCTURE_MASK 1 << 20
+            call __lsl_qbe_call2(__lsl_symbol("gdk_window_set_events"), root, ptr(state["mask"]) | 65536 | 1048576)
         elif state["mask"] != -1:
             call __lsl_qbe_call2(__lsl_symbol("gdk_window_set_events"), root, ptr(state["mask"]))
             state["mask"] = -1
