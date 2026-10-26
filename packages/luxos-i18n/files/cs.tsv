@@ -2701,3 +2701,93 @@ More details: run the command again with --verbose	Další podrobnosti: spusťte
 The list of apps is out of date. Install the updates first, then try again.	Seznam aplikací je zastaralý. Nejdřív nainstalujte aktualizace a pak to zkuste znovu.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datum a čas počítače nejsou správně, proto není možné zabezpečené připojení. Zkontrolujte nastavení času.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Delší výdrž baterie: pomalejší procesor bez turba, o něco nižší jas, bez zvětšování v Docku, nepoužívaná zařízení se uspí a úlohy na pozadí se pozastaví.
+# OEM - priprava pro jineho cloveka, Pruvodce nastavenim
+Applying language and region	Nastavuji jazyk a oblast
+At the first start the owner chooses language, keyboard, Wi-Fi and creates their account.	Při prvním startu si majitel zvolí jazyk, klávesnici, Wi‑Fi a založí si účet.
+At the first start the owner sees a setup assistant: language, keyboard, Wi-Fi, time zone, their account and disk password. Then LuxOS starts with the tour.	Při prvním startu uvidí majitel průvodce nastavením: jazyk, klávesnice, Wi‑Fi, časové pásmo, vlastní účet a heslo disku. Pak se LuxOS spustí s prohlídkou.
+Choose Photo…	Vybrat fotku…
+Choose a password for the disk.	Zvolte heslo disku.
+Continue? [y/N] 	Pokračovat? [a/N] 
+Could not create the account.	Účet se nepodařilo vytvořit.
+Could not delete the account %s.	Účet %s se nepodařilo smazat.
+Could not enable %s.	%s se nepodařilo zapnout.
+Could not rebuild the boot image.	Startovací obraz se nepodařilo znovu vytvořit.
+Could not remove the temporary disk key.	Dočasný klíč disku se nepodařilo odebrat.
+Could not seal the system for the owner.	Systém se nepodařilo zapečetit pro majitele.
+Could not set the disk password.	Heslo disku se nepodařilo nastavit.
+Could not set the keyboard layout.	Rozložení klávesnice se nepodařilo nastavit.
+Could not set the password.	Heslo se nepodařilo nastavit.
+Creating your account	Zakládám váš účet
+Disk Password	Heslo disku
+Disk password	Heslo disku
+Enter the disk password twice.	Zadejte heslo disku dvakrát.
+Enter the password for the temporary account oem twice.	Zadejte heslo dočasného účtu oem dvakrát.
+Finish Setup	Dokončit nastavení
+For shops and IT: LuxOS is installed without a personal account. At the first start the owner chooses language, Wi-Fi and creates their account.	Pro obchody a IT: LuxOS se nainstaluje bez osobního účtu. Při prvním startu si majitel zvolí jazyk, Wi‑Fi a založí si účet.
+Go back and choose your account password.	Vraťte se a zvolte heslo účtu.
+Invalid OEM (use 0 or 1)	Neplatné OEM (použijte 0 nebo 1)
+Invalid OEM_SEAL (use 1 or 0)	Neplatné OEM_SEAL (použijte 1 nebo 0)
+Invalid computer name.	Neplatný název počítače.
+Invalid language.	Neplatný jazyk.
+Invalid setup data.	Neplatná data nastavení.
+Invalid time zone.	Neplatné časové pásmo.
+Invalid user name.	Neplatné uživatelské jméno.
+Keep saved Wi-Fi networks (their passwords stay on the computer)	Ponechat uložené sítě Wi‑Fi (jejich hesla zůstanou v počítači)
+Let's set up your computer. It only takes a few minutes.	Pojďme nastavit váš počítač. Zabere to jen pár minut.
+Logs, caches and command history are removed.	Smažou se záznamy, mezipaměti a historie příkazů.
+Me - set up my account now	Já – založit si účet hned
+New SSH keys and a new machine ID are created at the next start.	Při dalším startu se vytvoří nové klíče SSH a nové ID počítače.
+Not Now	Teď ne
+Nothing is lost: go back to change something or try again.	Nic se neztratilo: vraťte se a něco změňte, nebo to zkuste znovu.
+OEM_SEAL=0 needs PASSWORD (temporary account oem)	OEM_SEAL=0 vyžaduje PASSWORD (dočasný účet oem)
+Password for the temporary account oem	Heslo dočasného účtu oem
+Photo (optional)	Fotka (nepovinná)
+Prepare first	Nejdřív připravit
+Prepare for another person	Příprava pro jiného člověka
+Prepare for another person (OEM)	Připravit pro jiného člověka (OEM)
+Prepare the computer first (temporary account oem, then Seal for Customer)?	Nejdřív počítač připravit (dočasný účet oem, pak Zapečetit pro zákazníka)?
+Preparing for another person (OEM) does not support encryption in manual partitioning. Use Encrypt LuxOS instead.	Příprava pro jiného člověka (OEM) nepodporuje šifrování v ručním rozdělení. Použijte místo toho Šifrovat LuxOS.
+Preparing the encrypted disk	Připravuji šifrovaný disk
+Ready to hand over this computer?	Připraveno k předání počítače?
+Run as root (sudo).	Spusťte jako root (sudo).
+Seal and Shut Down	Zapečetit a vypnout
+Seal for Customer	Zapečetit pro zákazníka
+Seal for customer:	Zapečetit pro zákazníka:
+Seal now	Zapečetit hned
+Sealed. At the next start the setup assistant welcomes the owner.	Zapečetěno. Při dalším startu majitele přivítá průvodce nastavením.
+Sealing failed.	Zapečetění se nezdařilo.
+Set Up LuxOS	Nastavení LuxOS
+Setting the disk password	Nastavuji heslo disku
+Setting up your computer	Nastavuji váš počítač
+Setup could not be finished (exit code %s).	Nastavení se nepodařilo dokončit (návratový kód %s).
+Shut Down or Restart	Vypnout nebo restartovat
+Sign in as oem to add apps and test the hardware, then click Seal for Customer (or run luxos-oem seal).	Přihlaste se jako oem, přidejte aplikace a vyzkoušejte hardware, pak klikněte na Zapečetit pro zákazníka (nebo spusťte luxos-oem seal).
+Signing in…	Přihlašuji…
+Some of your entries contain unsupported characters.	Některé údaje obsahují nepodporované znaky.
+The computer is ready to hand over right after the installation.	Počítač je hned po instalaci připravený k předání.
+The encrypted disk was not found.	Šifrovaný disk nebyl nalezen.
+The owner chooses the disk password in the setup assistant at the first start. Until then the computer starts without asking.	Heslo disku si majitel zvolí v průvodci nastavením při prvním startu. Do té doby se počítač spouští bez dotazu.
+The owner chooses the disk password in the setup assistant.	Heslo disku si majitel zvolí v průvodci nastavením.
+The owner creates their account in the setup assistant at the first start.	Majitel si při prvním startu založí účet v průvodci nastavením.
+The setup assistant has already finished on this computer.	Průvodce nastavením už na tomto počítači proběhl.
+The setup assistant is not active on this computer.	Průvodce nastavením na tomto počítači není aktivní.
+The temporary account oem is deleted at the next start.	Dočasný účet oem se při dalším startu smaže.
+The temporary disk key does not work.	Dočasný klíč disku nefunguje.
+The user name %s is already taken.	Uživatelské jméno %s už je obsazené.
+This computer was not installed for another person (OEM). Nothing to seal.	Tento počítač nebyl nainstalován pro jiného člověka (OEM). Není co zapečetit.
+This computer was prepared for another person. Install apps and test the hardware, then seal it. The computer shuts down; at the next start the owner creates their account.	Tento počítač je připravený pro jiného člověka. Nainstalujte aplikace a vyzkoušejte hardware, pak ho zapečeťte. Počítač se vypne; při dalším startu si majitel založí účet.
+This picture cannot be used.	Tento obrázek nejde použít.
+This takes a moment. Please do not turn off the computer.	Chvíli to potrvá. Prosím, nevypínejte počítač.
+Use my account password	Použít heslo mého účtu
+Welcome	Vítejte
+Welcome, %s!	Vítejte, %s!
+Who will use this computer?	Kdo bude počítač používat?
+You can also skip this and connect later in the top bar.	Tento krok můžete přeskočit a připojit se později v horní liště.
+Your account is ready. Restart the computer and sign in with your new password.	Váš účet je připravený. Restartujte počítač a přihlaste se novým heslem.
+Your disk is encrypted. You will enter this password every time the computer starts.	Váš disk je šifrovaný. Toto heslo zadáte při každém startu počítače.
+at the next start the owner creates their account in the setup assistant	při dalším startu si majitel založí účet v průvodci nastavením
+logs, caches and command history are removed	smažou se záznamy, mezipaměti a historie příkazů
+saved Wi-Fi networks and their passwords are removed	smažou se uložené sítě Wi‑Fi a jejich hesla
+the owner creates it at the first start (OEM)	založí si ho majitel při prvním startu (OEM)
+the owner creates it at the first start (OEM); until sealing: temporary account %s	založí si ho majitel při prvním startu (OEM); do zapečetění dočasný účet %s
+the temporary account %s is deleted at the next start	dočasný účet %s se při dalším startu smaže

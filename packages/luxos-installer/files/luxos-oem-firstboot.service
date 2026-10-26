@@ -1,0 +1,15 @@
+# LuxOS - prvni start po zapeceteni pro zakaznika (luxos-oem seal): smazat docasny ucet oem,
+# vytvorit nove klice SSH; pred prihlasovaci obrazovkou (Pruvodce nastavenim)
+[Unit]
+Description=LuxOS first start after OEM preinstallation
+ConditionPathExists=|/var/lib/luxos/oem/cleanup
+ConditionPathExists=|/var/lib/luxos/oem/armed
+After=local-fs.target systemd-machine-id-commit.service
+Before=display-manager.service systemd-user-sessions.service sshd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/luxos-oem firstboot
+
+[Install]
+WantedBy=multi-user.target
