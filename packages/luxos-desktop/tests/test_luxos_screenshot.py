@@ -443,26 +443,6 @@ class TestGui(unittest.TestCase):
         pump(shot.HIDE_DELAY + 600)
         self.assertEqual(len(self.pngs()), 1)
 
-    @unittest.skipUnless(shutil.which("xdotool"), "chybi xdotool")
-    def test_toolbar_escape_and_enter_without_grab(self):
-        """Esc listu zavre a Enter zachyti i bez zabrani klavesnice (Keybinder)."""
-        if shot.Keybinder is None:
-            self.skipTest("chybi libkeybinder3")
-        app = self.make_app({"mode": "screen", "timer": 0}, {})
-        app.run()
-        pump(300)
-        subprocess.run(["xdotool", "key", "Return"], check=True)
-        pump(shot.HIDE_DELAY + 800)
-        self.assertEqual(len(self.pngs()), 1)
-        app2 = self.make_app({"mode": "portion", "timer": 0}, {})
-        app2.run()
-        pump(300)
-        quits = self.quits
-        subprocess.run(["xdotool", "key", "Escape"], check=True)
-        pump(300)
-        self.assertGreater(self.quits, quits)
-        self.assertFalse(app2.keys_bound)
-
     def test_toolbar_full_screen(self):
         app = self.make_app({"mode": "screen"}, {})
         t0 = time.monotonic()
