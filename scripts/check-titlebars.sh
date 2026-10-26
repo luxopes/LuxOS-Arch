@@ -10,6 +10,10 @@ if [[ ${XAUTHORITY-} != *xvfb-run* && ${LUXOS_TEST_X-} != 1 ]]; then
 fi
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 export HOME=$tmp XDG_CONFIG_HOME=$tmp/config XDG_CACHE_HOME=$tmp/cache XDG_DATA_HOME=$tmp/data
+# Vlastni XDG_RUNTIME_DIR: testy nesmi sdilet /run/user/UID skutecne relace (portaly, gvfs, klicenka,
+# at-spi by se pripojily ke skutecnym sluzbam uzivatele)
+mkdir -p "$tmp/run"; chmod 700 "$tmp/run"
+export XDG_RUNTIME_DIR=$tmp/run GTK_USE_PORTAL=0 GIO_USE_VFS=local NO_AT_BRIDGE=1 GNOME_KEYRING_CONTROL= SSH_AUTH_SOCK=
 export PYTHONPATH=$PWD/scripts/titlebar-check:$PWD/packages/luxos-guard/files:$PWD/packages/luxos-i18n/files:$PWD/packages/luxos-desktop/files/python:$PWD/packages/luxos-weather/files:$PWD/packages/luxos-account/files
 # Co je noveho: novinky ze zdroju, verze "nejnovejsi"
 export LUXOS_WHATS_NEW_DIR=$PWD/packages/luxos-branding/files/whats-new LUXOS_VERSION_FILE=$PWD/packages/luxos-branding/files/version
