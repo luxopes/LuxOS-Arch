@@ -189,3 +189,25 @@ Run `luxos-lock-settings`. It writes the xfconf channel `xfce4-screensaver`.
 - **Lock Now** (`xflock4`). Shortcuts: `Super+L`, `Ctrl+Super+Q`.
 
 The Safe (`/safe/<user>`) also locks itself when the screen locks. See [safe.md](safe.md).
+
+## Reset App Settings
+
+Run `luxos-app-reset` (Settings › Reset App Settings, Czech "Výchozí nastavení aplikací"). It lists
+apps with settings in the home folder – `~/.config/<name>`, `~/.local/share/<name>` and
+`~/.cache/<name>`, Flatpak apps (`~/.var/app/<id>`) and `~/.mozilla` / `~/.thunderbird` – with the
+app name and icon from its `.desktop` file, the size and the folders; folders without a matching
+app are listed under "Other folders with settings".
+
+**Reset…** (only when the app is not running) moves all its folders to
+`~/.local/share/luxos/app-settings-backups/<YYYY-MM-DD_HH-MM-SS>-<app>/` (with `manifest.json`);
+nothing is deleted. **Backups › Restore** puts them back (settings the app created meanwhile go to a
+new backup first). Never offered: the keyring (passwords), GnuPG, the LuxAI account, Trash, fonts,
+icons, themes, Flatpak installations, dconf, the Xfce/LuxOS desktop, the shell and LuxOS's own
+settings. Apps that keep settings only in dconf (GSettings) are not covered.
+
+```bash
+luxos-app-reset list [--json]
+luxos-app-reset reset vlc [--yes] [--force]
+luxos-app-reset backups
+luxos-app-reset restore ~/.local/share/luxos/app-settings-backups/2026-10-26_15-00-00-vlc
+```

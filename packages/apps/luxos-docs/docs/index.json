@@ -236,7 +236,7 @@
         {
           "path": "luxos/care-updates.md",
           "title": "LuxOS Care and Software Update",
-          "summary": "Automatic updates (Carefree/Classic modes, conditions, timers), the Software Update app, previous-kernel fallback, self-repair catalog, notifications and how to disable it.",
+          "summary": "Automatic updates (Carefree/Classic modes, conditions, timers), the Software Update app, previous-kernel fallback, system snapshots with rollback from the boot menu, LuxOS Recovery, self-repair catalog, notifications and how to disable it.",
           "keywords": [
             "LuxOS Care",
             "luxos-care",
@@ -256,7 +256,14 @@
             "battery",
             "check-updates",
             "lux.log",
-            "cache cleaning"
+            "cache cleaning",
+            "snapshot",
+            "rollback",
+            "lux rollback",
+            "btrfs",
+            "LuxOS Recovery",
+            "reinstall",
+            "boot menu"
           ]
         },
         {
@@ -384,7 +391,7 @@
         {
           "path": "luxos/settings-apps.md",
           "title": "LuxOS Settings Apps",
-          "summary": "Desktop & Dock, Displays (Super+P, 15 s confirm), Battery & Power, Bluetooth, Fingerprint (PAM), Screen Saver & Lock and automatic audio output switching.",
+          "summary": "Desktop & Dock, Displays (Super+P, 15 s confirm), Battery & Power, Bluetooth, Fingerprint (PAM), Screen Saver & Lock, automatic audio output switching and Reset App Settings.",
           "keywords": [
             "settings",
             "luxos-settings",
@@ -411,7 +418,10 @@
             "lock",
             "luxos-lock-settings",
             "audio output",
-            "pipewire"
+            "pipewire",
+            "Reset App Settings",
+            "luxos-app-reset",
+            "default settings"
           ]
         },
         {
