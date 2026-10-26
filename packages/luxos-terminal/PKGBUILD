@@ -31,9 +31,13 @@ build() {
 
 check() {
     # okna jen ve virtualni obrazovce (xvfb-run), nikdy na skutecne; SIXEL jen s VTE z [luxos]
-    local bin="$PWD/luxos-terminal"
+    local bin="$PWD/luxos-terminal" rt
+    # vlastni XDG_RUNTIME_DIR: sluzby testovaci relace D-Bus (portaly, gvfs, keyring) nesmi sahat do
+    # /run/user/UID skutecne relace (pri sestaveni mimo kontejner)
+    rt=$(mktemp -d)
     cd "$startdir/tests"
-    LUXOS_TERMINAL_BIN="$bin" env -u DISPLAY xvfb-run -a -s "-screen 0 1280x900x24" \
+    XDG_RUNTIME_DIR="$rt" GTK_USE_PORTAL=0 GIO_USE_VFS=local NO_AT_BRIDGE=1 \
+    LUXOS_TERMINAL_BIN="$bin" env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS xvfb-run -a -s "-screen 0 1280x900x24" \
         dbus-run-session -- python3 -m unittest -v test_luxos_terminal
 }
 
