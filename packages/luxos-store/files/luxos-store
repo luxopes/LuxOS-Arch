@@ -1189,7 +1189,8 @@ class Store(Gtk.Window):
                   "conflict": _("The app conflicts with files of another package."),
                   "pkgconflict": _("The app conflicts with an installed package."),
                   "deps": _("Some required packages are not available."),
-                  "notfound": _("The app is no longer available in the repository.")}
+                  "notfound": _("The app is no longer available in the repository."),
+                  "outdated": _("The list of apps is out of date. Install the updates first, then try again.")}
 
         def parse_machine(line):
             parts = line[2:].split(" ", 3)

@@ -1100,7 +1100,7 @@ cmd_tui() {
             --header="$header" --header-first --delimiter=$'\t' --with-nth=1 \
             --preview='lux __preview {2}' --preview-window='right,45%,border-left,wrap' \
             --color='border:#7b6cff,label:#a77bff,prompt:#a77bff,pointer:#a77bff,marker:#5fd7a7,hl:#ffb86c,hl+:#ffb86c' \
-            --pointer='▌' --marker='✓' --tiebreak=begin,length \
+            --pointer='▌' --marker='✓' --tiebreak=begin,length --no-hscroll --ellipsis='…' \
             --expect=enter,ctrl-r,ctrl-u,alt-l,alt-i,alt-a) || return 0
         key=$(head -n1 <<<"$out")
         mapfile -t sel < <(tail -n +2 <<<"$out" | cut -f2)
@@ -1119,8 +1119,9 @@ cmd_tui() {
 
 cmd_preview() {  # nahled pro TUI (bez ladicich hlasek jadra)
     [[ -n ${1-} ]] || return 0
+    # --color=always: nazev pole zacina barevnym kodem, proto (\e[..m)* pred nazvem
     "$LUX_ENGINE" -Si --color=always -- "$1" 2>/dev/null |
-        grep -vE '^(Architecture|Packager|Build Date|Validated By|MD5|SHA256|Signatures|Conflicts With|Replaces|Optional Deps|Architektura|Sestaveno)' 
+        grep -vE $'^(\e\\[[0-9;]*m)*(Architecture|Packager|Build Date|Validated By|MD5|SHA256|Signatures|Conflicts With|Replaces|Optional Deps|Architektura|Sestaveno)' 
     if "$LUX_ENGINE" -Q -- "$1" &>/dev/null; then
         printf '\n\e[32m● %s\e[0m\n' "$(T "Installed")"
     fi

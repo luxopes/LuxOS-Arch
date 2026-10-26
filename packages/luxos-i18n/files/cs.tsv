@@ -2691,3 +2691,13 @@ Install it now?	Nainstalovat teď?
 Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Editory kódu, Git a GitHub, překladače a ladicí nástroje, Python, Node.js, Go a Rust, kontejnery, SSH a každodenní nástroje příkazové řádky.
 Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Kancelářský balík, e-mail, přehrávač médií se všemi běžnými kodeky, správce hesel, nástroje na PDF a disky a další písma pro dokumenty.
 Desktop wallpaper and clock	Tapeta plochy a hodiny
+The installation medium is missing packages: %s. Download the current LuxOS ISO.	Instalačnímu médiu chybí balíky: %s. Stáhněte aktuální ISO LuxOS.
+Closing the window now would interrupt the installation and leave the disk unusable. Please wait until the installation finishes.	Zavřením okna teď byste instalaci přerušili a disk by zůstal nepoužitelný. Počkejte prosím, až instalace skončí.
+Quit the installation?	Ukončit instalaci?
+Closing the window interrupts the installation. LuxOS will not be installed and your choices will be lost.	Zavřením okna se instalace přeruší. LuxOS se nenainstaluje a vaše volby se ztratí.
+Continue Installing	Pokračovat v instalaci
+The package lists are out of date: the server no longer has this version. Update the system first (lux update), then try again.	Seznamy balíků jsou zastaralé: server už tuto verzi nemá. Nejdřív aktualizujte systém (lux update) a pak to zkuste znovu.
+More details: run the command again with --verbose	Další podrobnosti: spusťte příkaz znovu s --verbose
+The list of apps is out of date. Install the updates first, then try again.	Seznam aplikací je zastaralý. Nejdřív nainstalujte aktualizace a pak to zkuste znovu.
+The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datum a čas počítače nejsou správně, proto není možné zabezpečené připojení. Zkontrolujte nastavení času.
+Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Delší výdrž baterie: pomalejší procesor bez turba, o něco nižší jas, bez zvětšování v Docku, nepoužívaná zařízení se uspí a úlohy na pozadí se pozastaví.

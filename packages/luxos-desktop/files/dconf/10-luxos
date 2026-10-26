@@ -32,3 +32,9 @@ monospace-font-name='JetBrainsMono Nerd Font 10'
 
 [org/gnome/desktop/wm/preferences]
 button-layout='close,minimize,maximize:'
+
+# Oznameni nm-applet o kazdem pripojeni/odpojeni site nejsou pro uzivatele zajimava (stav je v liste;
+# chybu pripojeni a VPN dal hlasi)
+[org/gnome/nm-applet]
+disable-connected-notifications=true
+disable-disconnected-notifications=true

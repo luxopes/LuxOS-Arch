@@ -7,7 +7,8 @@
 #     procesor bez turbo/boost, usporny zvukovy kodek, nepouzivana USB zarizeni (kamera, ctecka
 #     karet) se uspavaji, mene probouzeni disku zapisem, pozastavene tezke ulohy na pozadi
 #     (man-db, kontrola LuxOS Care) a bez automatickych aktualizaci na baterii
-#   - jas o petinu nizsi, bez animaci GTK a zvetsovani v Docku
+#   - jas o petinu nizsi, bez zvetsovani v Docku (animace GTK zustavaji: bez nich stoji i ukazatele
+#     prubehu - kolecko v Obchode vypadalo jako zaseknute - a usetri se temer nic)
 #   - volitelne (~/.config/luxos/powersaver-60hz, Baterie a napajeni) displej nejvys 60 Hz: zmena
 #     frekvence obrazovku na okamzik zcerna, proto jen na prani
 # Puvodni hodnoty relace: ~/.config/luxos/powersaver.saved ("klic=hodnota"), systemove /run/luxos.
@@ -57,18 +58,29 @@ bright_pct() {  # aktualni jas v % nebo nic
     m=$(<"$b/max_brightness") && c=$(<"$b/brightness") && (( m > 0 )) && echo $(( (c * 100 + m / 2) / m ))
 }
 
+# Do LuxOS 0.9.11 sporic vypinal animace GTK: puvodni hodnotu vratit (jednou) i se zapnutym sporicem
+restore_animations() {
+    local v
+    grep -q '^animations=' "$saved" 2>/dev/null || return 0
+    v=$(get animations)
+    if [[ -z $v || $v == unset ]]; then
+        xfconf-query -c xsettings -p /Gtk/EnableAnimations -r 2>/dev/null
+    else
+        xfconf-query -c xsettings -p /Gtk/EnableAnimations -n -t bool -s "$v" 2>/dev/null
+    fi
+    sed -i '/^animations=/d' "$saved"
+}
+
 apply_on() {  # apply_on [first] - "first" = prvni zapnuti (ulozit puvodni hodnoty, ztlumit)
     local p name mode rate
     if [[ ${1:-} == first ]]; then
         p=$(get_profile); [[ -n $p && $p != power-saver ]] && put profile "$p"
         put dock-zoom "$(cat "$cfg/dock-zoom" 2>/dev/null || gsettings get "$dock" zoom-enabled 2>/dev/null || echo true)"
-        put animations "$(xfconf-query -c xsettings -p /Gtk/EnableAnimations 2>/dev/null || echo unset)"
     fi
     set_profile power-saver
     system_part start
     gsettings set "$dock" zoom-enabled false 2>/dev/null
-    # GTK bez animaci (prechody, posuvniky, spinnery): mene prekreslovani a probouzeni GPU
-    xfconf-query -c xsettings -p /Gtk/EnableAnimations -n -t bool -s false 2>/dev/null
+    restore_animations
     # Displeje s 90-165 Hz: 60 Hz setri asi 0,5-1,5 W (vyrobce panelu i macOS to delaji stejne)
     if [[ -e $cap60 && -n ${DISPLAY:-} && -r $displays ]]; then
         while read -r name mode rate; do
@@ -90,12 +102,7 @@ apply_off() {
     v=$(get profile); set_profile "${v:-balanced}"
     system_part stop
     v=$(get dock-zoom); gsettings set "$dock" zoom-enabled "${v:-true}" 2>/dev/null
-    v=$(get animations)
-    if [[ -z $v || $v == unset ]]; then
-        xfconf-query -c xsettings -p /Gtk/EnableAnimations -r 2>/dev/null
-    else
-        xfconf-query -c xsettings -p /Gtk/EnableAnimations -n -t bool -s "$v" 2>/dev/null
-    fi
+    restore_animations
     if [[ -n ${DISPLAY:-} && -r $displays && -f $saved ]]; then
         while IFS= read -r line; do
             name=${line%%=*}; name=${name#rate-}

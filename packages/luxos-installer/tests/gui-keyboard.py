@@ -92,7 +92,7 @@ def main():
     # Vychozi stav podle jazyka
     win.choose_lang("cs_CZ.UTF-8")
     pump()
-    check("cs: vychozi cz + us", win.s["xkb"] == [("cz", ""), ("us", "")], str(win.s["xkb"]))
+    check("cs: vychozi us + cz", win.s["xkb"] == [("us", ""), ("cz", "")], str(win.s["xkb"]))
     win.choose_lang("en_US.UTF-8")
     pump()
     check("en: jen us", win.s["xkb"] == [("us", "")], str(win.s["xkb"]))
@@ -107,7 +107,7 @@ def main():
     check("2 stitky rozlozeni", len(chips) == 2)
     check("prepinani viditelne pro 2 rozlozeni", ui["switch_row"].get_visible())
     check("setxkbmap v live systemu s obema rozlozenimi",
-          last_call() == "-layout cz,us -variant , -option  -option grp:shifts_toggle", last_call())
+          last_call() == "-layout us,cz -variant , -option  -option grp:shifts_toggle", last_call())
     check("tlacitko + u pouziteho rozlozeni neaktivni", not ui["add"][("cz", "")].get_sensitive())
     check("tlacitko + u noveho rozlozeni aktivni", ui["add"][("de", "")].get_sensitive())
 

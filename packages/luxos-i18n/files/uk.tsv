@@ -2693,3 +2693,13 @@ Install it now?	Встановити зараз?
 Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Редактори коду, Git і GitHub, компілятори та налагоджувачі, Python, Node.js, Go і Rust, контейнери, SSH і щоденні інструменти командного рядка.
 Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Офісний пакет, пошта, медіапрогравач з усіма поширеними кодеками, менеджер паролів, інструменти для PDF і дисків та більше шрифтів для документів.
 Desktop wallpaper and clock	Шпалери робочого столу й годинник
+The installation medium is missing packages: %s. Download the current LuxOS ISO.	На інсталяційному носії бракує пакунків: %s. Завантажте актуальний ISO LuxOS.
+Closing the window now would interrupt the installation and leave the disk unusable. Please wait until the installation finishes.	Якщо закрити вікно зараз, встановлення перерветься, а диск стане непридатним. Зачекайте, доки встановлення завершиться.
+Quit the installation?	Вийти з встановлення?
+Closing the window interrupts the installation. LuxOS will not be installed and your choices will be lost.	Закриття вікна перерве встановлення. LuxOS не буде встановлено, а ваш вибір буде втрачено.
+Continue Installing	Продовжити встановлення
+The package lists are out of date: the server no longer has this version. Update the system first (lux update), then try again.	Списки пакунків застаріли: на сервері вже немає цієї версії. Спочатку оновіть систему (lux update), а потім спробуйте знову.
+More details: run the command again with --verbose	Докладніше: запустіть команду знову з --verbose
+The list of apps is out of date. Install the updates first, then try again.	Список застосунків застарів. Спочатку встановіть оновлення, а потім спробуйте знову.
+The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Дата й час комп'ютера неправильні, тому безпечне з'єднання неможливе. Перевірте налаштування часу.
+Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Довша робота від батареї: повільніший процесор без турбо, трохи нижча яскравість, без збільшення в Dock, невикористовувані пристрої засинають, фонові завдання призупиняються.

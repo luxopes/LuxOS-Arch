@@ -48,7 +48,9 @@ luxos-powersaver on|off|toggle|status
     change blanks the screen for a moment): built-in display (eDP/LVDS/DSI) above 60 Hz is switched
     to ~60 Hz (also after monitor changes);
   - backlight dimmed by 20 % (not below 40 %, only when above 40 %);
-  - GTK animations off (xsettings `/Gtk/EnableAnimations`), no Dock magnification.
+  - no Dock magnification. GTK animations stay on: without them progress spinners stop and apps
+    look frozen, for practically no energy saved (until 0.9.11 the saver turned them off; the
+    original value is restored once).
 - System part `luxos-powersaver.service` (root, started without a password by polkit rule
   `50-luxos-powersaver.rules`, helper `/usr/lib/luxos/luxos-powersaver-helper`, originals in
   `/run/luxos/powersaver.saved`):
@@ -60,7 +62,7 @@ luxos-powersaver on|off|toggle|status
   - pauses `man-db.timer` and `luxos-care-check.timer` (they catch up when the saver turns off);
   - marker `/run/luxos/powersaver`: LuxOS Care does not update automatically unless charging.
 - Off: everything restored (previous power profile, refresh rate, brightness if you did not change
-  it meanwhile, animations, Dock zoom; the service's stop restores the system values).
+  it meanwhile, Dock zoom; the service's stop restores the system values).
 - After reboot `/run` is empty; `luxos-session` runs `luxos-powersaver reapply` at login.
 - Deliberately not changed: Wi-Fi power save (already on by default in the kernel), PCIe ASPM
   (`powersave` can disable L1 substates and use more power, `powersupersave` is unstable on some

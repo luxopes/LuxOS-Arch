@@ -229,7 +229,7 @@ function connectivity_update():
             call glib.kill(hub["portal_pid"], SIGTERM)
             hub["portal_pid"] = 0
         end
-        call glib.spawn(["notify-send", "-a", "LuxOS", "-i", "network-wireless-symbolic", i18n.T("Connected to the internet"), i18n.T("You are signed in to the network.")])
+        call glib.spawn(["notify-send", "-a", "LuxOS", "-e", "-i", "network-wireless-symbolic", i18n.T("Connected to the internet"), i18n.T("You are signed in to the network.")])
     end
     hub["connectivity"] = c
     return False
@@ -237,12 +237,12 @@ end
 
 # "Bez internetu" az kdyz stav trva: po prihlaseni NetworkManager chvili hlasi omezene pripojeni,
 # nez Wi-Fi dobehne (falesne upozorneni pri kazdem prihlaseni). Upozorni se jen, kdyz je stav 3
-# porad i po LUXOS_HUB_NOINET_DELAY s (20) a nejdriv LUXOS_HUB_NOINET_GRACE s (45) po startu.
+# porad i po LUXOS_HUB_NOINET_DELAY s (60; po probuzeni Wi-Fi dobiha dele) a nejdriv LUXOS_HUB_NOINET_GRACE s (45) po startu.
 function noinet_schedule():
     if hub["noinet_timer"]:
         return 0
     end
-    delay = text.to_int(env.get("LUXOS_HUB_NOINET_DELAY", ""), 20)
+    delay = text.to_int(env.get("LUXOS_HUB_NOINET_DELAY", ""), 60)
     left = text.to_int(env.get("LUXOS_HUB_NOINET_GRACE", ""), 45) - (glib.now() - hub["start"])
     if left > delay:
         delay = left
@@ -255,7 +255,8 @@ end
 function noinet_check():
     hub["noinet_timer"] = False
     if hub["connectivity"] == 3 and connectivity() == 3:
-        call glib.spawn(["notify-send", "-a", "LuxOS", "-i", "luxos-network-no-internet-symbolic", i18n.T("No internet connection"), i18n.T("You are connected to the network, but the internet is not available.")])
+        # -e: prechodne (stav je videt na ikone site), do historie oznameni nepatri
+        call glib.spawn(["notify-send", "-a", "LuxOS", "-e", "-i", "luxos-network-no-internet-symbolic", i18n.T("No internet connection"), i18n.T("You are connected to the network, but the internet is not available.")])
     end
     return False
 end

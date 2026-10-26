@@ -3,7 +3,7 @@
 
 pkgname=luxos-account
 pkgver=1.0.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxAI account for LuxOS (sign in once, used by LuxAI, Lux Code and LSL IDE)"
 arch=(any)
 url="https://lux-ai.cz"

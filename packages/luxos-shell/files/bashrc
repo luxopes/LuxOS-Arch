@@ -86,7 +86,17 @@ fi
 # Prompt: starship v grafickem terminalu, jednoduchy prompt na TTY
 if [[ $TERM != linux ]] && command -v starship &>/dev/null; then
     [[ -r ${XDG_CONFIG_HOME:-$HOME/.config}/starship.toml ]] || export STARSHIP_CONFIG=/usr/share/luxos/shell/starship.toml
-    eval "$(starship init bash)"
+    # Prompt s casovym limitem: zaseknuty souborovy system (napr. sshfs po ztrate spojeni) jinak
+    # zablokuje starship a s nim cely terminal - bez vyzvy, bez Ctrl+C. Po limitu nouzova vyzva.
+    _luxos_starship() {
+        local out
+        if out=$(timeout -k 0.5 2 /usr/bin/starship "$@" 2>/dev/null); then
+            printf '%s' "$out"
+        elif [[ $1 == prompt && " $* " != *" --right "* && " $* " != *" --continuation "* ]]; then
+            printf '%s' '\[\e[1m\]\w\[\e[0m\] \[\e[1;38;2;167;123;255m\]❯\[\e[0m\] '
+        fi
+    }
+    eval "$(starship init bash --print-full-init | sed 's#/usr/bin/starship prompt#_luxos_starship prompt#g')"
 else
     PS1='\[\e[38;2;167;123;255m\]✦\[\e[0m\] \[\e[1m\]\w\[\e[0m\] \$ '
 fi

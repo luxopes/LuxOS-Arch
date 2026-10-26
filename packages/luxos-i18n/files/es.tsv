@@ -2692,3 +2692,13 @@ Install it now?	¿Instalarlo ahora?
 Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Editores de código, Git y GitHub, compiladores y depuradores, Python, Node.js, Go y Rust, contenedores, SSH y herramientas de línea de comandos para el día a día.
 Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Suite ofimática, correo, un reproductor multimedia con todos los códecs habituales, un gestor de contraseñas, herramientas de PDF y discos y más fuentes para documentos.
 Desktop wallpaper and clock	Fondo del escritorio y reloj
+The installation medium is missing packages: %s. Download the current LuxOS ISO.	Faltan paquetes en el medio de instalación: %s. Descarga la ISO actual de LuxOS.
+Closing the window now would interrupt the installation and leave the disk unusable. Please wait until the installation finishes.	Cerrar la ventana ahora interrumpiría la instalación y dejaría el disco inutilizable. Espera a que termine la instalación.
+Quit the installation?	¿Salir de la instalación?
+Closing the window interrupts the installation. LuxOS will not be installed and your choices will be lost.	Cerrar la ventana interrumpe la instalación. LuxOS no se instalará y se perderán tus selecciones.
+Continue Installing	Continuar la instalación
+The package lists are out of date: the server no longer has this version. Update the system first (lux update), then try again.	Las listas de paquetes están desactualizadas: el servidor ya no tiene esta versión. Actualiza primero el sistema (lux update) y vuelve a intentarlo.
+More details: run the command again with --verbose	Más detalles: vuelve a ejecutar el comando con --verbose
+The list of apps is out of date. Install the updates first, then try again.	La lista de aplicaciones está desactualizada. Instala primero las actualizaciones y vuelve a intentarlo.
+The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	La fecha y la hora del ordenador son incorrectas, por lo que no es posible una conexión segura. Revisa la configuración de la hora.
+Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Más autonomía: procesador más lento sin turbo, brillo algo menor, sin ampliación en el Dock, los dispositivos inactivos se suspenden y las tareas en segundo plano se pausan.

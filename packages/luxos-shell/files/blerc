@@ -18,3 +18,23 @@ ble-face -s command_builtin fg=111
 ble-face -s command_alias fg=111
 ble-face -s command_function fg=111
 ble-face -s command_file fg=111
+
+# Enter spusti i viceradkovy prikaz (napr. vlozeny ze schranky), pokud je syntakticky uplny;
+# jinak (neuzavrene if/uvozovky...) vlozi novy radek. Vychozi ble.sh u viceradkoveho textu Enterem
+# jen pridava radky a spoustelo se az Ctrl+J, coz nikdo nehada.
+function ble/widget/luxos/accept-or-newline {
+  # vlozeni bez "bracketed paste" (radky prichazeji jako klavesy): odradkovat, ne spoustet po radcich
+  if [[ $_ble_edit_str ]] && ble/decode/has-input &&
+       ((0<=bleopt_accept_line_threshold&&bleopt_accept_line_threshold<=_ble_decode_input_count+ble_decode_char_rest)); then
+    ble/widget/newline
+    return
+  fi
+  ble-edit/content/update-syntax
+  if [[ ! $_ble_edit_str ]] || ble/syntax:bash/is-complete; then
+    ble/widget/accept-line
+  else
+    ble/widget/newline
+  fi
+}
+ble-bind -m emacs -f 'C-m' luxos/accept-or-newline
+ble-bind -m emacs -f 'RET' luxos/accept-or-newline

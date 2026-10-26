@@ -99,7 +99,7 @@ Run `luxos-power`, or use Control Center › Battery…. The data comes from UPo
 - Charts: battery level and power usage over the last 24 hours.
 - **Power mode** (power-profiles-daemon): Power Saver, Balanced (recommended), Performance.
 - **Battery Saver**: power-saver profile, no CPU turbo, slightly lower
-  brightness, no animations, idle devices sleep, background tasks pause (details in
+  brightness, no Dock magnification, idle devices sleep, background tasks pause (details in
   [Power and performance](power-and-performance.md)). The switch
   "Turn on automatically at 20 %" stores its state in `~/.config/luxos/powersaver-auto`;
   "Lower the screen to 60 Hz" (off by default, the screen goes dark for a moment when switching)

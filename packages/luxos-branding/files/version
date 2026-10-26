@@ -1,4 +1,4 @@
 # LuxOS - verze systemu (jediny zdroj: os-release, O tomto pocitaci, fastfetch, nazev ISO)
 # VERSION: X.Y.Z - Y s kazdym novym ISO, Z s opravami; CODENAME: hvezda (dalsi: Sirius, Vega, Rigel, Altair, ...)
-VERSION=0.9.11
+VERSION=0.9.12
 CODENAME=Polaris

@@ -449,7 +449,7 @@ class PowerWindow(Gtk.Window):
             start_new_session=True))
         self.row(group, _("Battery Saver"), saver,
                  _("Longer battery life: slower processor without turbo, slightly lower brightness, "
-                   "no animations, idle devices sleep and background tasks pause."))
+                   "no Dock magnification, idle devices sleep and background tasks pause."))
         auto = Gtk.Switch(active=os.path.exists(AUTO_SAVER))
         auto.connect("notify::active", self.toggle_auto)
         self.row(group, _("Turn on automatically at 20 %"), auto,
