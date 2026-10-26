@@ -18,6 +18,7 @@ redirected to the LuxOS apps through wrappers in `/usr/lib/luxos/override-bin`:
 | Battery & Power | `luxos-power` | battery info, power mode, Battery Saver, screen-off and sleep times, lid |
 | Bluetooth | `luxos-bluetooth` | turn Bluetooth on or off, pair and connect devices |
 | Fingerprint | `luxos-fingerprint` | fingerprints for login, lock, sudo, polkit |
+| Profile Picture | `luxos-profile-picture` | the picture of your account (login and lock screen, menu, Control Center) |
 | Screen Saver & Lock | `luxos-lock-settings` | screen saver, when to ask for the password |
 | Control Center | `luxos-control-center` | quick toggles ([desktop.md](desktop.md#control-center)) |
 | Printers & Scanners | `luxos-printers` | [printing-scanning.md](printing-scanning.md) |
@@ -166,6 +167,30 @@ or luxos-desktop are installed, upgraded or removed.
 - The password always works. Without a reader or enrolled fingers, pam_fprintd returns
   "unavailable" at once.
 - Check or repair (root): `/usr/lib/luxos/luxos-fingerprint-pam status|sync|apply|remove`.
+
+## Profile Picture
+
+Run `luxos-profile-picture` (also: LuxAI Account → **Change Picture**, or click the picture there;
+the user name in the LuxOS menu opens LuxAI Account). The window shows your current picture or the
+fallback avatar (first letter of your name on a blue-violet circle).
+
+- **Choose Photo…**: any image GdkPixbuf can open (JPEG, PNG, WebP…); EXIF rotation is applied.
+  `luxos-profile-picture FILE` opens a file directly.
+- **Take Photo**: a live, mirrored preview from the webcam, the same way as the Camera app
+  (`luxos_camera`: v4l2src, MJPEG through jpegdec). The shutter (or Space/Enter) takes the picture.
+  `luxos-profile-picture --camera` starts here. No camera, a busy camera or missing access are
+  explained in the window.
+- **Crop**: the photo sits under a circle. Drag to move it, scroll (or the slider, +/−) to zoom up to
+  4×, arrow keys move it. The circle is always fully covered. **Save** (Enter) or **Cancel** (Esc).
+- **Remove Picture** goes back to the letter avatar.
+
+Saving writes a 384×384 PNG to `~/.face` (read by the lock screen of xfce4-screensaver and by
+Control Center) and calls AccountsService `SetIconFile` on your user over D-Bus. AccountsService
+copies it to `/var/lib/AccountsService/icons/<user>`, where the login screen (`luxos-greeter`) and the
+user button of the LuxOS menu (Whisker Menu) read it. Changing your own picture needs no password
+(polkit `org.freedesktop.accounts.change-own-user-data` for the active local session). If
+AccountsService fails, the picture is still saved in `~/.face` and the window says so. The Python
+helper is `/usr/lib/luxos/python/luxos_avatar.py`.
 
 ## Screen Saver & Lock
 

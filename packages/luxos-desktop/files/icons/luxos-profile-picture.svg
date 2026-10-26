@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4d85ff"/>
+      <stop offset="1" stop-color="#a86bfa"/>
+    </linearGradient>
+    <clipPath id="c"><circle cx="64" cy="64" r="54"/></clipPath>
+  </defs>
+  <circle cx="64" cy="66" r="55" fill="#000" opacity="0.18"/>
+  <circle cx="64" cy="64" r="54" fill="url(#bg)"/>
+  <g clip-path="url(#c)" fill="#fff" opacity="0.95">
+    <circle cx="64" cy="50" r="20"/>
+    <path d="M24 122c0-24 18-42 40-42s40 18 40 42z"/>
+  </g>
+  <circle cx="64" cy="64" r="53.5" fill="none" stroke="#fff" stroke-opacity="0.35"/>
+  <!-- fotoaparat: zmena fotky -->
+  <circle cx="98" cy="98" r="19" fill="#fff"/>
+  <path fill="#3d6bff" d="M89 92h4l2-3h6l2 3h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H89a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z"/>
+  <circle cx="98" cy="98.5" r="3.6" fill="#fff"/>
+</svg>

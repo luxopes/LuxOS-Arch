@@ -1,0 +1,636 @@
+#!/usr/bin/env python3
+"""LuxOS - Profilova fotka: fotka uctu z obrazku nebo z kamery, orez do kruhu.
+
+  luxos-profile-picture            okno s aktualni fotkou (Vybrat fotku, Vyfotit, Odebrat)
+  luxos-profile-picture SOUBOR     rovnou orez obrazku
+  luxos-profile-picture --camera   rovnou kamera
+
+Fotka se ukaze na prihlasovaci a zamykaci obrazovce, v nabidce LuxOS a v Ovladacim centru
+(ulozeni: luxos_avatar - ~/.face a AccountsService). Kamera stejne jako aplikace Kamera
+(luxos_camera: v4l2src, MJPEG -> jpegdec, zrcadleny nahled do appsink, kresli cairo).
+"""
+import math
+import os
+import sys
+import threading
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_i18n import _  # noqa: E402
+import luxos_avatar as av  # noqa: E402
+
+import cairo  # noqa: E402
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("Gst", "1.0")
+from gi.repository import Gdk, GdkPixbuf, GLib, Gst, Gtk  # noqa: E402
+
+APP = "luxos-profile-picture"
+VIEW = 280            # prumer kruhu orezu a nahledu kamery (px)
+
+CSS = b"""
+.name { font-size: 20px; font-weight: 800; }
+.dim { opacity: 0.65; }
+.hint { font-size: 12px; }
+.error { color: #ff453a; }
+.primary { border-radius: 999px; padding: 6px 18px; font-weight: 700; background-image: none;
+           background-color: #3d7bff; color: white; border: none; box-shadow: none; }
+.primary:disabled { opacity: 0.5; }
+.pill { border-radius: 999px; padding: 6px 16px; }
+.shutter, .shutter:hover, .shutter:active, .shutter:disabled {
+    background-image: none; background-color: transparent; border: none; box-shadow: none;
+    padding: 0; min-width: 0; min-height: 0; }
+.stage { background-color: #141418; }
+.flash { background-color: white; }
+"""
+
+
+def circle_initials(cr, cx, cy, d, text):
+    """Nahradni avatar: modrofialovy prechod s pocatecnim pismenem (jako prihlasovaci obrazovka)."""
+    g = cairo.LinearGradient(cx - d / 2, cy - d / 2, cx + d / 2, cy + d / 2)
+    g.add_color_stop_rgb(0, 0.30, 0.52, 1.0)
+    g.add_color_stop_rgb(1, 0.66, 0.42, 0.98)
+    cr.arc(cx, cy, d / 2, 0, 2 * math.pi)
+    cr.set_source(g)
+    cr.fill()
+    cr.select_font_face("Inter", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+    cr.set_font_size(d * 0.42)
+    ext = cr.text_extents(text)
+    cr.move_to(cx - ext.width / 2 - ext.x_bearing, cy - ext.height / 2 - ext.y_bearing)
+    cr.set_source_rgba(1, 1, 1, 0.97)
+    cr.show_text(text)
+
+
+def circle_pixbuf(cr, cx, cy, d, pb):
+    cr.save()
+    cr.arc(cx, cy, d / 2, 0, 2 * math.pi)
+    cr.clip()
+    s = d / min(pb.get_width(), pb.get_height())
+    cr.translate(cx, cy)
+    cr.scale(s, s)
+    Gdk.cairo_set_source_pixbuf(cr, pb, -pb.get_width() / 2, -pb.get_height() / 2)
+    cr.get_source().set_filter(cairo.FILTER_GOOD)
+    cr.paint()
+    cr.restore()
+
+
+def dim_outside(cr, w, h, cx, cy, d):
+    """Ztmaveni mimo kruh a tenky bily okraj kruhu."""
+    cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+    cr.rectangle(0, 0, w, h)
+    cr.arc(cx, cy, d / 2, 0, 2 * math.pi)
+    cr.set_source_rgba(0.08, 0.08, 0.10, 0.62)
+    cr.fill()
+    cr.set_fill_rule(cairo.FILL_RULE_WINDING)
+    cr.arc(cx, cy, d / 2, 0, 2 * math.pi)
+    cr.set_source_rgba(1, 1, 1, 0.85)
+    cr.set_line_width(2)
+    cr.stroke()
+
+
+class CropView(Gtk.DrawingArea):
+    """Obrazek pod kruhem: tazenim posunout, kolečkem nebo posuvnikem zvetsit."""
+
+    def __init__(self, on_zoom):
+        super().__init__()
+        self.pix = None
+        self.zoom, self.ox, self.oy = 1.0, 0.0, 0.0
+        self.drag = None
+        self.on_zoom = on_zoom
+        self.set_size_request(VIEW + 60, VIEW + 60)
+        self.get_style_context().add_class("stage")
+        self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK
+                        | Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.SCROLL_MASK
+                        | Gdk.EventMask.SMOOTH_SCROLL_MASK)
+        self.connect("draw", self.on_draw)
+        self.connect("button-press-event", self.on_press)
+        self.connect("button-release-event", lambda *_a: setattr(self, "drag", None))
+        self.connect("motion-notify-event", self.on_motion)
+        self.connect("scroll-event", self.on_scroll)
+        self.set_can_focus(True)
+        self.connect("key-press-event", self.on_key)
+
+    def set_pixbuf(self, pix):
+        self.pix = pix
+        self.zoom, self.ox, self.oy = 1.0, 0.0, 0.0
+        self.queue_draw()
+
+    def set_zoom(self, z):
+        self.zoom = max(1.0, min(av.MAX_ZOOM, z))
+        self.clamp()
+        self.queue_draw()
+
+    def clamp(self):
+        if self.pix:
+            self.ox, self.oy = av.clamp_offset(self.pix.get_width(), self.pix.get_height(), VIEW,
+                                               self.zoom, self.ox, self.oy)
+
+    def rect(self):
+        return av.crop_rect(self.pix.get_width(), self.pix.get_height(), VIEW, self.zoom, self.ox, self.oy)
+
+    def on_draw(self, _w, cr):
+        w, h = self.get_allocated_width(), self.get_allocated_height()
+        cr.set_source_rgb(0.08, 0.08, 0.10)
+        cr.paint()
+        if not self.pix:
+            return False
+        cx, cy = w / 2, h / 2
+        pw, ph = self.pix.get_width(), self.pix.get_height()
+        s = av.base_scale(pw, ph, VIEW) * self.zoom
+        cr.save()
+        cr.translate(cx + self.ox, cy + self.oy)
+        cr.scale(s, s)
+        Gdk.cairo_set_source_pixbuf(cr, self.pix, -pw / 2, -ph / 2)
+        cr.get_source().set_filter(cairo.FILTER_GOOD)
+        cr.paint()
+        cr.restore()
+        dim_outside(cr, w, h, cx, cy, VIEW)
+        return False
+
+    def on_press(self, _w, ev):
+        self.grab_focus()
+        if ev.button == 1:
+            self.drag = (ev.x, ev.y, self.ox, self.oy)
+        return True
+
+    def on_motion(self, _w, ev):
+        if self.drag and self.pix:
+            x0, y0, ox, oy = self.drag
+            self.ox, self.oy = ox + ev.x - x0, oy + ev.y - y0
+            self.clamp()
+            self.queue_draw()
+        return True
+
+    def on_scroll(self, _w, ev):
+        dy = 0
+        if ev.direction == Gdk.ScrollDirection.UP:
+            dy = -1
+        elif ev.direction == Gdk.ScrollDirection.DOWN:
+            dy = 1
+        elif ev.direction == Gdk.ScrollDirection.SMOOTH:
+            dy = ev.get_scroll_deltas()[2]
+        if dy:
+            self.on_zoom(self.zoom * (0.9 ** dy))
+        return True
+
+    def on_key(self, _w, ev):
+        step = 10
+        moves = {Gdk.KEY_Left: (step, 0), Gdk.KEY_Right: (-step, 0), Gdk.KEY_Up: (0, step), Gdk.KEY_Down: (0, -step)}
+        if ev.keyval in moves:
+            dx, dy = moves[ev.keyval]
+            self.ox, self.oy = self.ox + dx, self.oy + dy
+            self.clamp()
+            self.queue_draw()
+            return True
+        if ev.keyval in (Gdk.KEY_plus, Gdk.KEY_KP_Add, Gdk.KEY_equal):
+            self.on_zoom(self.zoom * 1.1)
+            return True
+        if ev.keyval in (Gdk.KEY_minus, Gdk.KEY_KP_Subtract):
+            self.on_zoom(self.zoom / 1.1)
+            return True
+        return False
+
+
+class PictureWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=_("Profile Picture"))
+        self.set_default_size(460, 560)
+        self.set_icon_name("avatar-default")
+        self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("Profile Picture")))
+        self.current = None           # GdkPixbuf aktualni fotky
+        self.pipeline = None
+        self.cam = None               # luxos_camera (nacita se az pri prvnim pouziti kamery)
+        self.frame = None
+        self.frame_lock = threading.Lock()
+        self.frame_pending = False
+        self.camera_on = False
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, transition_duration=150)
+        self.add(self.stack)
+        self.stack.add_named(self.build_main(), "main")
+        self.stack.add_named(self.build_crop(), "crop")
+        self.stack.add_named(self.build_camera(), "camera")
+        self.connect("destroy", lambda *_a: self.stop_camera())
+        self.connect("key-press-event", self.on_key)
+        self.load_current()
+
+    # ---- hlavni stranka ----
+    def build_main(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=28,
+                      valign=Gtk.Align.CENTER)
+        self.avatar = Gtk.DrawingArea()
+        self.avatar.set_size_request(168, 168)
+        self.avatar.set_halign(Gtk.Align.CENTER)
+        self.avatar.connect("draw", self.draw_avatar)
+        box.pack_start(self.avatar, False, False, 0)
+        name = Gtk.Label(label=av.real_name())
+        name.get_style_context().add_class("name")
+        box.pack_start(name, False, False, 0)
+        info = Gtk.Label(label=_("Shown on the login and lock screen, in the LuxOS menu and in Control Center."),
+                         wrap=True, justify=Gtk.Justification.CENTER, max_width_chars=44)
+        info.get_style_context().add_class("dim")
+        box.pack_start(info, False, False, 0)
+
+        buttons = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, halign=Gtk.Align.CENTER,
+                          margin_top=8)
+        self.choose_btn = Gtk.Button(label=_("Choose Photo…"))
+        self.choose_btn.get_style_context().add_class("primary")
+        self.choose_btn.connect("clicked", self.choose_file)
+        self.camera_btn = Gtk.Button(label=_("Take Photo"))
+        self.camera_btn.get_style_context().add_class("pill")
+        self.camera_btn.connect("clicked", lambda _b: self.open_camera())
+        self.remove_btn = Gtk.Button(label=_("Remove Picture"))
+        self.remove_btn.get_style_context().add_class("pill")
+        self.remove_btn.connect("clicked", self.remove_picture)
+        for b in (self.choose_btn, self.camera_btn, self.remove_btn):
+            buttons.pack_start(b, False, False, 0)
+        box.pack_start(buttons, False, False, 0)
+        self.hint = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, max_width_chars=44)
+        self.hint.get_style_context().add_class("hint")
+        box.pack_start(self.hint, False, False, 0)
+        return box
+
+    def load_current(self):
+        self.current = None
+        path = av.current()
+        if path:
+            try:
+                self.current = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, 336, 336, True)
+            except GLib.Error:
+                self.current = None
+        self.remove_btn.set_visible(self.current is not None)
+        self.remove_btn.set_no_show_all(True)
+        self.avatar.queue_draw()
+
+    def draw_avatar(self, w, cr):
+        a = w.get_allocation()
+        d = min(a.width, a.height) - 4
+        cx, cy = a.width / 2, a.height / 2
+        if self.current:
+            circle_pixbuf(cr, cx, cy, d, self.current)
+        else:
+            circle_initials(cr, cx, cy, d, av.initials(av.real_name()))
+        return False
+
+    def say(self, text, error=False):
+        self.hint.set_text(text or "")
+        ctx = self.hint.get_style_context()
+        (ctx.add_class if error else ctx.remove_class)("error")
+
+    def choose_file(self, _b):
+        dlg = Gtk.FileChooserNative.new(_("Choose Photo"), self, Gtk.FileChooserAction.OPEN, _("Open"), _("Cancel"))
+        flt = Gtk.FileFilter()
+        flt.set_name(_("Images"))
+        flt.add_pixbuf_formats()
+        dlg.add_filter(flt)
+        pics = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES)
+        if pics and os.path.isdir(pics):
+            dlg.set_current_folder(pics)
+        if dlg.run() == Gtk.ResponseType.ACCEPT:
+            self.open_file(dlg.get_filename())
+        dlg.destroy()
+
+    def open_file(self, path):
+        try:
+            pix = av.load(path)
+        except GLib.Error:
+            self.stack.set_visible_child_name("main")
+            self.say(_("This file is not a picture LuxOS can open."), True)
+            return False
+        self.show_crop(pix)
+        return True
+
+    def remove_picture(self, _b):
+        err = av.remove()
+        self.load_current()
+        if err:
+            self.say(_("The picture could not be removed: %s") % err, True)
+        else:
+            self.say(_("Picture removed."))
+
+    # ---- orez ----
+    def build_crop(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.crop = CropView(self.set_zoom)
+        box.pack_start(self.crop, True, True, 0)
+        tip = Gtk.Label(label=_("Drag to move the photo, scroll to zoom."), margin_top=10)
+        tip.get_style_context().add_class("dim")
+        box.pack_start(tip, False, False, 0)
+        zrow = Gtk.Box(spacing=8, margin_start=40, margin_end=40, margin_top=6)
+        zrow.pack_start(Gtk.Image(icon_name="zoom-out-symbolic"), False, False, 0)
+        self.zoom = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 1.0, av.MAX_ZOOM, 0.01)
+        self.zoom.set_draw_value(False)
+        self.zoom.set_tooltip_text(_("Zoom"))
+        self.zoom.connect("value-changed", lambda s: self.crop.set_zoom(s.get_value()))
+        zrow.pack_start(self.zoom, True, True, 0)
+        zrow.pack_start(Gtk.Image(icon_name="zoom-in-symbolic"), False, False, 0)
+        box.pack_start(zrow, False, False, 0)
+        bar = Gtk.Box(spacing=8, margin=14)
+        cancel = Gtk.Button(label=_("Cancel"))
+        cancel.get_style_context().add_class("pill")
+        cancel.connect("clicked", lambda _b: self.back())
+        self.save_btn = Gtk.Button(label=_("Save"))
+        self.save_btn.get_style_context().add_class("primary")
+        self.save_btn.connect("clicked", self.save)
+        bar.pack_start(cancel, False, False, 0)
+        bar.pack_end(self.save_btn, False, False, 0)
+        box.pack_start(bar, False, False, 0)
+        return box
+
+    def set_zoom(self, z):
+        self.zoom.set_value(max(1.0, min(av.MAX_ZOOM, z)))
+
+    def show_crop(self, pix):
+        self.stop_camera()
+        self.crop.set_pixbuf(pix)
+        self.zoom.set_value(1.0)
+        self.stack.set_visible_child_name("crop")
+        self.save_btn.grab_focus()
+
+    def save(self, _b):
+        if not self.crop.pix:
+            return
+        out = av.render(self.crop.pix, self.crop.rect())
+        err = av.save(out)
+        self.load_current()
+        self.back()
+        if err:
+            self.say(_("The picture is saved, but the login screen could not be updated: %s") % err, True)
+        else:
+            self.say(_("Saved. The new picture appears on the login screen and in the menu."))
+
+    def back(self):
+        self.stop_camera()
+        self.stack.set_visible_child_name("main")
+
+    # ---- kamera ----
+    def build_camera(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        overlay = Gtk.Overlay()
+        box.pack_start(overlay, True, True, 0)
+        self.cam_stack = Gtk.Stack()
+        overlay.add(self.cam_stack)
+        self.preview = Gtk.DrawingArea()
+        self.preview.set_size_request(VIEW + 60, VIEW + 60)
+        self.preview.connect("draw", self.draw_preview)
+        self.cam_stack.add_named(self.preview, "preview")
+        state = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin=30,
+                        halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        self.cam_icon = Gtk.Image(pixel_size=64)
+        self.cam_icon.get_style_context().add_class("dim")
+        self.cam_spinner = Gtk.Spinner(width_request=32, height_request=32)
+        self.cam_title = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, max_width_chars=40)
+        self.cam_title.get_style_context().add_class("name")
+        self.cam_text = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, max_width_chars=44)
+        self.cam_text.get_style_context().add_class("dim")
+        for w in (self.cam_icon, self.cam_spinner, self.cam_title, self.cam_text):
+            state.pack_start(w, False, False, 0)
+        self.cam_stack.add_named(state, "state")
+        self.flash = Gtk.EventBox()
+        self.flash.get_style_context().add_class("flash")
+        self.flash.set_no_show_all(True)
+        overlay.add_overlay(self.flash)
+        overlay.set_overlay_pass_through(self.flash, True)
+
+        bar = Gtk.Box(spacing=8, margin=12)
+        cancel = Gtk.Button(label=_("Cancel"))
+        cancel.get_style_context().add_class("pill")
+        cancel.set_valign(Gtk.Align.CENTER)
+        cancel.connect("clicked", lambda _b: self.back())
+        bar.pack_start(cancel, False, False, 0)
+        self.shutter = Gtk.Button(relief=Gtk.ReliefStyle.NONE, tooltip_text=_("Take Photo"))
+        self.shutter.get_style_context().add_class("shutter")
+        area = Gtk.DrawingArea()
+        area.set_size_request(60, 60)
+        area.connect("draw", self.draw_shutter)
+        self.shutter.add(area)
+        self.shutter.connect("clicked", self.take_photo)
+        bar.set_center_widget(self.shutter)
+        box.pack_start(bar, False, False, 0)
+        return box
+
+    def cam_state(self, state, detail=""):
+        texts = {
+            "starting": ("camera-web-symbolic", _("Starting the camera…"), ""),
+            "none": ("camera-disabled-symbolic", _("No camera found"),
+                     _("Connect a webcam, or check that the built-in camera is turned on. Some laptops "
+                       "have a camera switch, a privacy shutter or a key with a camera symbol.")),
+            "busy": ("camera-web-symbolic", _("The camera is being used by another app"),
+                     _("Close the other app that uses the camera (a video call, a browser tab…) "
+                       "and try again.")),
+            "denied": ("changes-prevent-symbolic", _("Camera access is not allowed"), ""),
+            "error": ("dialog-warning-symbolic", _("The camera could not be started"), detail),
+        }
+        icon, title, text = texts.get(state, texts["error"])
+        self.cam_icon.set_from_icon_name(icon, Gtk.IconSize.DIALOG)
+        self.cam_icon.set_visible(state != "starting")
+        self.cam_spinner.set_visible(state == "starting")
+        (self.cam_spinner.start if state == "starting" else self.cam_spinner.stop)()
+        self.cam_title.set_text(title)
+        self.cam_text.set_text(text)
+        self.cam_text.set_visible(bool(text))
+        self.cam_stack.set_visible_child_name("state")
+        self.shutter.set_sensitive(False)
+
+    def open_camera(self):
+        if self.cam is None:
+            import luxos_camera
+            self.cam = luxos_camera
+        self.say("")
+        self.stack.set_visible_child_name("camera")
+        self.camera_on = True
+        self.cam_state("starting")
+        devices, denied = self.cam.scan_devices()
+        if not devices or self.cam.TEST == "denied":
+            self.cam_state("denied" if denied or self.cam.TEST == "denied" else "none")
+            return
+        if self.cam.TEST == "busy":
+            self.cam_state("busy")
+            return
+        dev = devices[0]
+        if dev["path"].startswith("test:"):
+            self.build_pipeline(dev, None, False)
+            return
+
+        def work():
+            caps, jpeg, err = self.cam.probe_caps(dev["path"])
+            GLib.idle_add(self.probed, dev, caps, jpeg, err)
+        threading.Thread(target=work, daemon=True).start()
+
+    def probed(self, dev, caps, jpeg, err):
+        if not self.camera_on:
+            return False
+        if err == "missing":
+            self.cam_state("error", _("The GStreamer plugin for cameras (gst-plugins-good) is missing."))
+        elif err == "open":
+            self.cam_state("denied" if not os.access(dev["path"], os.R_OK | os.W_OK) else "busy")
+        else:
+            self.build_pipeline(dev, caps, jpeg)
+        return False
+
+    def build_pipeline(self, dev, caps, jpeg):
+        if dev["path"].startswith("test:"):
+            src = "videotestsrc is-live=true pattern=smpte ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
+        else:
+            src = "v4l2src name=src ! " + (f"{caps} ! " if caps else "") + ("jpegdec ! " if jpeg else "")
+        desc = (src + "videoconvert ! videoflip method=horizontal-flip ! videoconvert ! video/x-raw,format=BGRx ! "
+                "appsink name=view sync=false drop=true max-buffers=1 emit-signals=true")
+        try:
+            pipe = Gst.parse_launch(desc)
+        except GLib.Error as e:
+            self.cam_state("error", e.message)
+            return
+        if not dev["path"].startswith("test:"):
+            pipe.get_by_name("src").set_property("device", dev["path"])
+        pipe.get_by_name("view").connect("new-sample", self.on_frame)
+        bus = pipe.get_bus()
+        bus.add_signal_watch()
+        bus.connect("message::error", self.on_error)
+        self.pipeline = pipe
+        pipe.set_state(Gst.State.PLAYING)
+
+    def on_error(self, _bus, msg):
+        err, _dbg = msg.parse_error()
+        busy = err.matches(Gst.ResourceError.quark(), Gst.ResourceError.BUSY) or "busy" in err.message.lower()
+        self.stop_camera(keep_page=True)
+        self.cam_state("busy" if busy else "error", err.message)
+
+    def stop_camera(self, keep_page=False):
+        if not keep_page:
+            self.camera_on = False
+        if self.pipeline:
+            self.pipeline.get_bus().remove_signal_watch()
+            self.pipeline.set_state(Gst.State.NULL)
+            self.pipeline = None
+        with self.frame_lock:
+            self.frame = None
+
+    def on_frame(self, sink):
+        sample = sink.emit("pull-sample")
+        if sample is None:
+            return Gst.FlowReturn.OK
+        s = sample.get_caps().get_structure(0)
+        w, h = s.get_int("width")[1], s.get_int("height")[1]
+        buf = sample.get_buffer()
+        data = buf.extract_dup(0, buf.get_size())
+        with self.frame_lock:
+            self.frame = (data, w, h)
+            if self.frame_pending:
+                return Gst.FlowReturn.OK
+            self.frame_pending = True
+        GLib.idle_add(self.frame_ready)
+        return Gst.FlowReturn.OK
+
+    def frame_ready(self):
+        with self.frame_lock:
+            self.frame_pending = False
+        if self.pipeline and self.cam_stack.get_visible_child_name() != "preview":
+            self.cam_stack.set_visible_child_name("preview")
+            self.shutter.set_sensitive(True)
+            self.shutter.grab_focus()
+        self.preview.queue_draw()
+        return False
+
+    def frame_surface(self):
+        with self.frame_lock:
+            frame = self.frame
+        if not frame:
+            return None
+        data, w, h = frame
+        if len(data) < w * 4 * h:
+            return None
+        return cairo.ImageSurface.create_for_data(bytearray(data), cairo.FORMAT_RGB24, w, h, w * 4)
+
+    def draw_preview(self, w, cr):
+        aw, ah = w.get_allocated_width(), w.get_allocated_height()
+        cr.set_source_rgb(0.08, 0.08, 0.10)
+        cr.paint()
+        surf = self.frame_surface()
+        if surf:
+            fw, fh = surf.get_width(), surf.get_height()
+            s = VIEW / min(fw, fh)        # kruh vyplni kratsi strana snimku
+            s = max(s, min(aw / fw, ah / fh))
+            cr.save()
+            cr.translate(aw / 2, ah / 2)
+            cr.scale(s, s)
+            cr.set_source_surface(surf, -fw / 2, -fh / 2)
+            cr.get_source().set_filter(cairo.FILTER_GOOD)
+            cr.paint()
+            cr.restore()
+        dim_outside(cr, aw, ah, aw / 2, ah / 2, VIEW)
+        return False
+
+    def draw_shutter(self, w, cr):
+        a = w.get_allocation()
+        cx, cy, r = a.width / 2, a.height / 2, min(a.width, a.height) / 2 - 3
+        alpha = 1.0 if self.shutter.get_sensitive() else 0.4
+        fg = w.get_style_context().get_color(w.get_state_flags())
+        cr.arc(cx, cy, r, 0, 2 * math.pi)
+        cr.set_source_rgba(fg.red, fg.green, fg.blue, 0.85 * alpha)
+        cr.set_line_width(4)
+        cr.stroke()
+        cr.arc(cx, cy, r - 6, 0, 2 * math.pi)
+        cr.set_source_rgba(1, 1, 1, alpha)
+        cr.fill_preserve()
+        cr.set_source_rgba(0, 0, 0, 0.15 * alpha)
+        cr.set_line_width(1)
+        cr.stroke()
+        return False
+
+    def take_photo(self, _b):
+        surf = self.frame_surface()
+        if surf is None:
+            return
+        pix = Gdk.pixbuf_get_from_surface(surf, 0, 0, surf.get_width(), surf.get_height())
+        self.flash.set_opacity(1.0)
+        self.flash.show()
+        start = GLib.get_monotonic_time()
+
+        def fade():
+            p = (GLib.get_monotonic_time() - start) / 250000
+            if p >= 1:
+                self.flash.hide()
+                self.show_crop(pix)
+                return False
+            self.flash.set_opacity(1 - p)
+            return True
+        GLib.timeout_add(16, fade)
+
+    def on_key(self, _w, ev):
+        page = self.stack.get_visible_child_name()
+        if ev.keyval == Gdk.KEY_Escape and page in ("crop", "camera"):
+            self.back()
+            return True
+        if page == "camera" and ev.keyval in (Gdk.KEY_space, Gdk.KEY_Return, Gdk.KEY_KP_Enter):
+            if self.shutter.get_sensitive():
+                self.take_photo(None)
+            return True
+        if page == "crop" and ev.keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter):
+            self.save(None)
+            return True
+        return False
+
+
+def main():
+    GLib.set_prgname(APP)
+    GLib.set_application_name(_("Profile Picture"))
+    Gst.init(None)
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = PictureWindow()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    win.load_current()
+    args = sys.argv[1:]
+    if "--camera" in args:
+        win.open_camera()
+    elif args and not args[0].startswith("-"):
+        win.open_file(args[0])
+    Gtk.main()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

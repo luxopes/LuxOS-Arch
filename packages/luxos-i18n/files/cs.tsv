@@ -2701,3 +2701,18 @@ More details: run the command again with --verbose	Další podrobnosti: spusťte
 The list of apps is out of date. Install the updates first, then try again.	Seznam aplikací je zastaralý. Nejdřív nainstalujte aktualizace a pak to zkuste znovu.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datum a čas počítače nejsou správně, proto není možné zabezpečené připojení. Zkontrolujte nastavení času.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Delší výdrž baterie: pomalejší procesor bez turba, o něco nižší jas, bez zvětšování v Docku, nepoužívaná zařízení se uspí a úlohy na pozadí se pozastaví.
+Profile Picture	Profilová fotka
+Shown on the login and lock screen, in the LuxOS menu and in Control Center.	Zobrazí se na přihlašovací a zamykací obrazovce, v nabídce LuxOS a v Ovládacím centru.
+Choose Photo…	Vybrat fotku…
+Choose Photo	Vybrat fotku
+Remove Picture	Odebrat fotku
+Images	Obrázky
+This file is not a picture LuxOS can open.	Tento soubor není obrázek, který LuxOS umí otevřít.
+The picture could not be removed: %s	Fotku se nepodařilo odebrat: %s
+Picture removed.	Fotka odebrána.
+Drag to move the photo, scroll to zoom.	Tažením fotku posunete, kolečkem myši zvětšíte.
+Zoom	Přiblížení
+The picture is saved, but the login screen could not be updated: %s	Fotka je uložená, ale přihlašovací obrazovku se nepodařilo aktualizovat: %s
+Saved. The new picture appears on the login screen and in the menu.	Uloženo. Nová fotka se ukáže na přihlašovací obrazovce a v nabídce.
+Change Picture	Změnit fotku
+Account on this computer	Účet v tomto počítači

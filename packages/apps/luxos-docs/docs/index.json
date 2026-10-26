@@ -326,7 +326,7 @@
         {
           "path": "luxos/desktop.md",
           "title": "The LuxOS Desktop",
-          "summary": "Top bar, Control Center, Dock, Launchpad, Search, notifications, light/dark/auto mode, wallpapers, boot splash, login screen, luxos-hub, multiple monitors and touchpad.",
+          "summary": "Top bar, Control Center, Dock, Launchpad, Search, notifications, light/dark/auto mode, wallpapers, boot splash, login screen, login transition, luxos-hub, multiple monitors and touchpad.",
           "keywords": [
             "desktop",
             "top bar",
@@ -352,7 +352,10 @@
             "luxos-hub",
             "luxos-session",
             "touchpad",
-            "xfce"
+            "xfce",
+            "search icon",
+            "login animation",
+            "luxos-session-cover"
           ]
         },
         {
@@ -384,7 +387,7 @@
         {
           "path": "luxos/settings-apps.md",
           "title": "LuxOS Settings Apps",
-          "summary": "Desktop & Dock, Displays (Super+P, 15 s confirm), Battery & Power, Bluetooth, Fingerprint (PAM), Screen Saver & Lock and automatic audio output switching.",
+          "summary": "Desktop & Dock, Displays (Super+P, 15 s confirm), Battery & Power, Bluetooth, Fingerprint (PAM), Profile Picture, Screen Saver & Lock and automatic audio output switching.",
           "keywords": [
             "settings",
             "luxos-settings",
@@ -411,7 +414,12 @@
             "lock",
             "luxos-lock-settings",
             "audio output",
-            "pipewire"
+            "pipewire",
+            "profile picture",
+            "avatar",
+            "luxos-profile-picture",
+            "accountsservice",
+            ".face"
           ]
         },
         {
