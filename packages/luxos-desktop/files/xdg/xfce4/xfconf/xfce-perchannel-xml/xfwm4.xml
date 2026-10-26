@@ -19,9 +19,11 @@
     <property name="popup_opacity" type="int" value="100"/>
     <property name="placement_mode" type="string" value="center"/>
     <property name="placement_ratio" type="int" value="50"/>
-    <!-- Alt+Tab ve stylu macOS: velke ikony aplikaci (vzhled v luxos-gtk3.css, #xfwm-tabwin),
-         bez nahledu oken a ramecku kolem vybraneho okna -->
-    <property name="cycle_preview" type="bool" value="false"/>
+    <!-- Alt+Tab ve stylu macOS (vzhled v luxos-gtk3.css, #xfwm-tabwin): nahled obsahu kazdeho okna
+         s ikonou aplikace - vic oken stejne aplikace (terminaly) jde rozlisit; bez ramecku kolem okna -->
+    <property name="cycle_preview" type="bool" value="true"/>
+    <!-- vybrane okno se pri Alt+Tab hned vysune dopredu: je videt cely jeho obsah -->
+    <property name="cycle_raise" type="bool" value="true"/>
     <property name="cycle_tabwin_mode" type="int" value="0"/>
     <property name="cycle_draw_frame" type="bool" value="false"/>
     <property name="snap_to_border" type="bool" value="true"/>

@@ -111,7 +111,7 @@ XfdesktopIconView.view.cell:selected:hover {
    zaobleni + ramecku + paddingu. */
 #xfwm-tabwin {
     -XfwmTabwinWidget-icon-size: 96;
-    -XfwmTabwinWidget-preview-size: 192;
+    -XfwmTabwinWidget-preview-size: 256;
     -XfwmTabwinWidget-listview-icon-size: 32;
     padding: 0;
     border-radius: 22px;
