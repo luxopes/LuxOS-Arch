@@ -3623,3 +3623,73 @@ Your location could not be found.	Vaši polohu se nepodařilo zjistit.
 Zoom In	Přiblížit
 Zoom Out	Oddálit
 © OpenStreetMap contributors	© přispěvatelé OpenStreetMap
+# Mapy: MHD (Transitous), odjezdy, mista v okoli
+Transit	MHD
+Public transport	Veřejná doprava
+Leave Now	Odjezd teď
+Depart At	Odjezd v
+Arrive By	Příjezd do
+HH:MM	HH:MM
+Time today, e.g. 17:30 (press Enter)	Čas dnes, např. 17:30 (potvrďte Enterem)
+Enter the time as HH:MM.	Zadejte čas ve tvaru HH:MM.
+Connection details	Podrobnosti spojení
+Data sources	Zdroje dat
+Public transport: Transitous (MOTIS) with open timetable data, map data © OpenStreetMap contributors.	Veřejná doprava: Transitous (MOTIS) s otevřenými daty jízdních řádů, mapová data © přispěvatelé OpenStreetMap.
+No public transport connection found for this time.	Pro tento čas se nenašlo žádné spojení veřejnou dopravou.
+The public transport service is busy. Try again in a moment.	Služba veřejné dopravy je přetížená. Zkuste to za chvíli znovu.
+The connections could not be loaded. Check your internet connection.	Spojení se nepodařilo načíst. Zkontrolujte připojení k internetu.
+Direct	Bez přestupu
+1 transfer	1 přestup
+%d transfers	Přestupy: %d
+from %s at %s	z %s v %s
+Platform %s	Nástupiště %s
+(changed from %s)	(změna z %s)
+1 stop	1 zastávka
+%d stops	Zastávky: %d
+Show departures from %s	Zobrazit odjezdy ze zastávky %s
+to %s	do %s
+Departures	Odjezdy
+Arrivals	Příjezdy
+Departures from this stop	Odjezdy z této zastávky
+Departures Nearby	Odjezdy v okolí
+Stops near this point	Zastávky u tohoto místa
+Departures could not be loaded. Check your internet connection.	Odjezdy se nepodařilo načíst. Zkontrolujte připojení k internetu.
+No departures found.	Žádné odjezdy.
+No arrivals found.	Žádné příjezdy.
+Updated %s	Aktualizováno %s
+Timetable data: Transitous and open-data providers	Data jízdních řádů: Transitous a poskytovatelé otevřených dat
+On time	Včas
+from %s	z %s
+Nearby	V okolí
+Find places near this place	Najít místa v okolí
+Nothing found nearby.	V okolí se nic nenašlo.
+The map data service (Overpass) is busy. Try again in a moment.	Služba mapových dat (Overpass) je přetížená. Zkuste to za chvíli znovu.
+Platforms: %s	Nástupiště: %s
+Opening hours: %s	Otevírací doba: %s
+Phone: %s	Telefon: %s
+Website: %s	Web: %s
+Restaurants	Restaurace
+Cafés	Kavárny
+Groceries	Potraviny
+Fuel	Čerpací stanice
+Charging Stations	Nabíjecí stanice
+Parking	Parkoviště
+Pharmacies	Lékárny
+Hospitals and Doctors	Nemocnice a lékaři
+Hotels	Hotely
+Attractions	Zajímavosti
+Public Transport Stops	Zastávky MHD
+Toilets	Toalety
+Playgrounds	Dětská hřiště
+Bus	Autobus
+Tram	Tramvaj
+Metro	Metro
+Train	Vlak
+Coach	Dálkový autobus
+Trolleybus	Trolejbus
+Ferry	Přívoz
+Plane	Letadlo
+Funicular	Pozemní lanovka
+Cable car	Kabinová lanovka
+On-demand	Na zavolání
+Shared bike	Sdílené kolo

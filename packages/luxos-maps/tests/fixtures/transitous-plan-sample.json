@@ -1,0 +1,189 @@
+{
+ "itineraries": [
+  {
+   "duration": 1140,
+   "startTime": "2026-08-24T08:01:00Z",
+   "endTime": "2026-08-24T08:20:00Z",
+   "transfers": 0,
+   "legs": [
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "START",
+      "lat": 50.0875,
+      "lon": 14.4213,
+      "tz": "Europe/Prague"
+     },
+     "to": {
+      "name": "Staroměstská",
+      "lat": 50.0881,
+      "lon": 14.4176
+     },
+     "duration": 540,
+     "distance": 606,
+     "startTime": "2026-08-24T08:01:00Z",
+     "endTime": "2026-08-24T08:10:00Z",
+     "realTime": false,
+     "legGeometry": {
+      "points": "_p~iF~ps|U_ulLnnqC",
+      "precision": 6,
+      "length": 2
+     }
+    },
+    {
+     "mode": "SUBWAY",
+     "displayName": "A",
+     "headsign": "Skalka",
+     "routeColor": "00a562",
+     "realTime": true,
+     "from": {
+      "name": "Staroměstská",
+      "lat": 50.0881,
+      "lon": 14.4176
+     },
+     "to": {
+      "name": "Můstek",
+      "lat": 50.0839,
+      "lon": 14.4235
+     },
+     "duration": 120,
+     "startTime": "2026-08-24T08:10:00Z",
+     "endTime": "2026-08-24T08:12:00Z",
+     "legGeometry": {
+      "points": "_ulLnnqC_mqNvxq`@",
+      "precision": 6,
+      "length": 2
+     }
+    }
+   ]
+  },
+  {
+   "duration": 1320,
+   "startTime": "2026-08-24T08:04:00Z",
+   "endTime": "2026-08-24T08:26:00Z",
+   "transfers": 1,
+   "legs": [
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "START",
+      "lat": 50.0875,
+      "lon": 14.4213,
+      "tz": "Europe/Prague",
+      "departure": "2026-08-24T08:04:00Z",
+      "scheduledDeparture": "2026-08-24T08:04:00Z"
+     },
+     "to": {
+      "name": "Staroměstská",
+      "stopId": "cz-PID_U703Z101P",
+      "lat": 50.0881,
+      "lon": 14.4176,
+      "tz": "Europe/Prague",
+      "track": "1"
+     },
+     "duration": 360,
+     "distance": 290,
+     "startTime": "2026-08-24T08:04:00Z",
+     "endTime": "2026-08-24T08:10:00Z",
+     "scheduledStartTime": "2026-08-24T08:04:00Z",
+     "scheduledEndTime": "2026-08-24T08:10:00Z",
+     "realTime": false,
+     "legGeometry": {
+      "points": "wcbp~AgreoZ_XnoBoKvuB",
+      "precision": 6,
+      "length": 3
+     }
+    },
+    {
+     "mode": "SUBWAY",
+     "displayName": "A",
+     "routeShortName": "A",
+     "headsign": "Depo Hostivař",
+     "routeColor": "00a562",
+     "routeTextColor": "ffffff",
+     "realTime": true,
+     "agencyName": "Pražská integrovaná doprava",
+     "from": {
+      "name": "Staroměstská",
+      "stopId": "cz-PID_U703Z101P",
+      "lat": 50.0881,
+      "lon": 14.4176,
+      "tz": "Europe/Prague",
+      "track": "1",
+      "scheduledTrack": "1",
+      "departure": "2026-08-24T08:11:00Z",
+      "scheduledDeparture": "2026-08-24T08:10:00Z"
+     },
+     "to": {
+      "name": "Muzeum",
+      "stopId": "cz-PID_U400Z101P",
+      "lat": 50.0794,
+      "lon": 14.4307,
+      "tz": "Europe/Prague",
+      "track": "1",
+      "arrival": "2026-08-24T08:15:00Z",
+      "scheduledArrival": "2026-08-24T08:14:00Z"
+     },
+     "duration": 240,
+     "startTime": "2026-08-24T08:11:00Z",
+     "endTime": "2026-08-24T08:15:00Z",
+     "scheduledStartTime": "2026-08-24T08:10:00Z",
+     "scheduledEndTime": "2026-08-24T08:14:00Z",
+     "intermediateStops": [
+      {
+       "name": "Můstek",
+       "lat": 50.0839,
+       "lon": 14.4235
+      }
+     ],
+     "legGeometry": {
+      "points": "gicp~A_k~nZneGwoJfxG_aM",
+      "precision": 6,
+      "length": 3
+     }
+    },
+    {
+     "mode": "TRAM",
+     "displayName": "17",
+     "routeShortName": "17",
+     "headsign": "Libuš",
+     "routeColor": "7a0603",
+     "routeTextColor": "ffffff",
+     "realTime": true,
+     "cancelled": true,
+     "agencyName": "Pražská integrovaná doprava",
+     "from": {
+      "name": "Muzeum",
+      "stopId": "cz-PID_U400Z3P",
+      "lat": 50.0794,
+      "lon": 14.4307,
+      "tz": "Europe/Prague",
+      "track": "B",
+      "scheduledTrack": "A",
+      "departure": "2026-08-24T08:18:00Z",
+      "scheduledDeparture": "2026-08-24T08:18:00Z"
+     },
+     "to": {
+      "name": "I. P. Pavlova",
+      "stopId": "cz-PID_U190Z4P",
+      "lat": 50.0753,
+      "lon": 14.4304,
+      "tz": "Europe/Prague",
+      "arrival": "2026-08-24T08:26:00Z",
+      "scheduledArrival": "2026-08-24T08:26:00Z"
+     },
+     "duration": 480,
+     "startTime": "2026-08-24T08:18:00Z",
+     "endTime": "2026-08-24T08:26:00Z",
+     "scheduledStartTime": "2026-08-24T08:18:00Z",
+     "scheduledEndTime": "2026-08-24T08:26:00Z",
+     "legGeometry": {
+      "points": "oiro~Aw}woZvuBfEnhCnK",
+      "precision": 6,
+      "length": 3
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,41 @@
+{
+ "stopTimes": [
+  {
+   "place": {
+    "name": "Masná",
+    "tz": "Europe/Prague",
+    "departure": "2026-08-24T08:04:00Z",
+    "scheduledDeparture": "2026-08-24T08:02:00Z",
+    "track": "B",
+    "scheduledTrack": "A",
+    "cancelled": false
+   },
+   "mode": "BUS",
+   "displayName": "194",
+   "headsign": "Florenc",
+   "realTime": true,
+   "cancelled": false,
+   "tripCancelled": false,
+   "agencyName": "Pražská integrovaná doprava"
+  },
+  {
+   "place": {
+    "name": "Staroměstská",
+    "tz": "Europe/Prague",
+    "departure": "2026-08-24T08:05:00Z",
+    "scheduledDeparture": "2026-08-24T08:05:00Z",
+    "track": "1"
+   },
+   "mode": "TRAM",
+   "routeShortName": "17",
+   "headsign": "Libuš",
+   "realTime": false,
+   "tripCancelled": true
+  }
+ ],
+ "place": {
+  "name": "center",
+  "lat": 50.0876,
+  "lon": 14.4212
+ }
+}
