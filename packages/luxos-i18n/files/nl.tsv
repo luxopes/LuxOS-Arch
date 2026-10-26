@@ -3531,3 +3531,73 @@ Your location could not be found.	Je locatie kon niet worden bepaald.
 Zoom In	Inzoomen
 Zoom Out	Uitzoomen
 © OpenStreetMap contributors	© OpenStreetMap-bijdragers
+# Mapy: MHD (Transitous), odjezdy, mista v okoli
+Transit	OV
+Public transport	Openbaar vervoer
+Leave Now	Nu vertrekken
+Depart At	Vertrek om
+Arrive By	Aankomst voor
+HH:MM	UU:MM
+Time today, e.g. 17:30 (press Enter)	Tijd vandaag, bijv. 17:30 (druk op Enter)
+Enter the time as HH:MM.	Voer de tijd in als UU:MM.
+Connection details	Details van de verbinding
+Data sources	Gegevensbronnen
+Public transport: Transitous (MOTIS) with open timetable data, map data © OpenStreetMap contributors.	Openbaar vervoer: Transitous (MOTIS) met open dienstregelingsgegevens, kaartgegevens © OpenStreetMap-bijdragers.
+No public transport connection found for this time.	Geen ov-verbinding gevonden voor dit tijdstip.
+The public transport service is busy. Try again in a moment.	De ov-dienst is overbelast. Probeer het zo opnieuw.
+The connections could not be loaded. Check your internet connection.	De verbindingen konden niet worden geladen. Controleer je internetverbinding.
+Direct	Zonder overstap
+1 transfer	1 overstap
+%d transfers	%d overstappen
+from %s at %s	vanaf %s om %s
+Platform %s	Perron %s
+(changed from %s)	(gewijzigd, was %s)
+1 stop	1 halte
+%d stops	%d haltes
+Show departures from %s	Vertrektijden vanaf %s tonen
+to %s	naar %s
+Departures	Vertrek
+Arrivals	Aankomst
+Departures from this stop	Vertrektijden van deze halte
+Departures Nearby	Vertrektijden in de buurt
+Stops near this point	Haltes bij dit punt
+Departures could not be loaded. Check your internet connection.	De vertrektijden konden niet worden geladen. Controleer je internetverbinding.
+No departures found.	Geen vertrektijden gevonden.
+No arrivals found.	Geen aankomsten gevonden.
+Updated %s	Bijgewerkt om %s
+Timetable data: Transitous and open-data providers	Dienstregelingsgegevens: Transitous en open-dataleveranciers
+On time	Op tijd
+from %s	van %s
+Nearby	In de buurt
+Find places near this place	Plaatsen in de buurt zoeken
+Nothing found nearby.	Niets gevonden in de buurt.
+The map data service (Overpass) is busy. Try again in a moment.	De kaartgegevensdienst (Overpass) is overbelast. Probeer het zo opnieuw.
+Platforms: %s	Perrons: %s
+Opening hours: %s	Openingstijden: %s
+Phone: %s	Telefoon: %s
+Website: %s	Website: %s
+Restaurants	Restaurants
+Cafés	Cafés
+Groceries	Supermarkten
+Fuel	Tankstations
+Charging Stations	Laadpalen
+Parking	Parkeren
+Pharmacies	Apotheken
+Hospitals and Doctors	Ziekenhuizen en artsen
+Hotels	Hotels
+Attractions	Bezienswaardigheden
+Public Transport Stops	Ov-haltes
+Toilets	Toiletten
+Playgrounds	Speeltuinen
+Bus	Bus
+Tram	Tram
+Metro	Metro
+Train	Trein
+Coach	Touringcar
+Trolleybus	Trolleybus
+Ferry	Veerboot
+Plane	Vliegtuig
+Funicular	Kabelspoorweg
+Cable car	Kabelbaan
+On-demand	Op afroep
+Shared bike	Deelfiets

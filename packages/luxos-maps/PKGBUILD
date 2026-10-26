@@ -3,12 +3,14 @@
 # (OSRM na routing.openstreetmap.de), oblibena mista, moje poloha jen po souhlasu, odkazy geo:, tmava mapa.
 # GTK3 misto GTK4/libshumate: prvni snimek okna 0,38 s / PSS 38 MB proti 0,44 s / 98 MB (GTK4 s cairo)
 # a 2 s / 207 MB (GTK4 s GL) - mereno pod xvfb jeste bez knihovny map; cele okno Map 0,45 s / 44 MB.
-# Rozhrani pro LuxAI a skripty: luxos-maps --json search|reverse|route|where-am-i|open.
+# MHD a odjezdy v realnem case (Transitous/MOTIS), mista v okoli (Overpass), obrazek trasy pro LuxAI.
+# Rozhrani pro LuxAI a skripty: luxos-maps --json search|reverse|route|transit-route|timetable|nearby|
+# where-am-i|open a luxos-maps --render-preview.
 
 pkgname=luxos-maps
 pkgver=1.0.0
 pkgrel=1
-pkgdesc="LuxOS Maps - OpenStreetMap maps, place search, routes, favorites and geo: links"
+pkgdesc="LuxOS Maps - OpenStreetMap maps, place search, routes, public transport with live departures, nearby places, favorites and geo: links"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
@@ -18,7 +20,8 @@ makedepends=(python)
 checkdepends=(python)
 
 check() {
-    # dlazdice, mezipamet, hledani, trasy, geo: a --json proti falesnemu serveru HTTP (bez skutecnych pozadavku);
+    # dlazdice, mezipamet, hledani, trasy, MHD, okoli, nahled trasy, geo: a --json proti falesnemu serveru HTTP
+    # (bez skutecnych pozadavku);
     # okno jen pod xvfb-run
     env -u DISPLAY python3 -m unittest "$startdir/tests/test_luxos_maps.py"
 }

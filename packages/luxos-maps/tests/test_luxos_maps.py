@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""LuxOS Mapy - testy dlazdic, mezipameti, hledani, tras, odkazu geo:, rozhrani --json a okna.
+"""LuxOS Mapy - testy dlazdic, mezipameti, hledani, tras, MHD, okoli, nahledu trasy, odkazu geo:,
+rozhrani --json a okna.
 
     python3 -m unittest packages/luxos-maps/tests/test_luxos_maps.py -v
     (okno jen pod xvfb-run s vlastnim XDG_RUNTIME_DIR, viz scripts/check-titlebars.sh)
 
-Zadny skutecny pozadavek: dlazdice OSM, Nominatim, routing.openstreetmap.de a ipinfo.io nahrazuje
-mistni falesny server HTTP. Fixtures (tests/fixtures) jsou ulozene odpovedi skutecnych sluzeb z 2026-10-26:
-dlazdice 0/0/0 (© OpenStreetMap contributors, CC BY-SA), hledani "Karlovo namesti Praha" a trasa
-Staromestske namesti -> Thunovska autem a pesky (© OpenStreetMap contributors, ODbL). Ostatni dlazdice
-kresli server sam (svetla mrizka s cislem dlazdice). Snimky okna do LUXOS_TEST_SHOTS.
+Zadny skutecny pozadavek: dlazdice OSM, Nominatim, routing.openstreetmap.de, ipinfo.io, Transitous
+a Overpass nahrazuje mistni falesny server HTTP. Fixtures (tests/fixtures) jsou ulozene odpovedi skutecnych
+sluzeb z 2026-10-26: dlazdice 0/0/0 (© OpenStreetMap contributors, CC BY-SA), hledani "Karlovo namesti
+Praha" a trasa Staromestske namesti -> Thunovska autem a pesky (© OpenStreetMap contributors, ODbL),
+spojeni MHD Karlovo namesti -> Prazsky hrad (transitous-plan.json) a odjezdy z Karlova namesti
+(transitous-stoptimes.json; Transitous, data PID). transitous-*-sample.json a overpass-cafes.json jsou
+vzorky z testu mobilni LuxAI (OpenStreetMapClientTest; plan doplneny o spojeni s prestupem a zrusenym
+spojem). overpass-public-transport.json je umely (Overpass byl pri tvorbe fixtures pretizeny, 502):
+schema odpovedi Overpass, nazvy, souradnice a nastupiste zastavek ze skutecne odpovedi Transitous.
+Ostatni dlazdice kresli server sam (svetla mrizka s cislem dlazdice). Snimky okna do LUXOS_TEST_SHOTS.
 """
 import http.server
 import importlib.machinery
@@ -74,11 +80,14 @@ def synthetic_tile(z, x, y):
 
 
 class FakeServer:
-    """Falesne dlazdice (/tiles), Nominatim (/search, /reverse), OSRM (/routed-*) a ipinfo (/ip)."""
+    """Falesne dlazdice (/tiles), Nominatim (/search, /reverse), OSRM (/routed-*), ipinfo (/ip),
+    Transitous (/transitous/plan, /transitous/stoptimes) a Overpass (/overpass)."""
 
     def __init__(self):
         self.requests = []
+        self.raw = []
         self.headers = []
+        self.busy = False
         self.fail = False
         self.delay = 0.0
         self.active = 0
@@ -108,6 +117,7 @@ class FakeServer:
                 q = dict(urllib.parse.parse_qsl(url.query))
                 with server.lock:
                     server.requests.append((url.path, q))
+                    server.raw.append(url.query)
                     server.headers.append(dict(self.headers))
                     server.active += 1
                     server.max_active = max(server.max_active, server.active)
@@ -172,12 +182,58 @@ class FakeServer:
                     self.send(200, json.dumps({"city": "Praha", "loc": "50.0880,14.4208",
                                                "country": "CZ"}).encode())
                     return
+                if url.path.startswith(("/transitous/", "/overpass")) and server.busy:
+                    self.send(502, b"# 502 Gateway Timeout\n\nThis Overpass API server is currently at capacity.",
+                              "text/plain")
+                    return
+                if url.path == "/transitous/plan":
+                    frm = q.get("fromPlace", "")
+                    if frm.startswith("0.000000"):
+                        body = {"itineraries": [], "direct": []}
+                    elif frm.startswith("50.087500"):
+                        body = fixture("transitous-plan-sample.json")
+                    else:
+                        body = fixture("transitous-plan.json")
+                    body["itineraries"] = body["itineraries"][:int(q.get("numItineraries", 5))]
+                    self.send(200, json.dumps(body).encode())
+                    return
+                if url.path == "/transitous/stoptimes":
+                    if q.get("center", "").startswith("50.087600"):
+                        body = fixture("transitous-stoptimes-sample.json")
+                    else:
+                        body = fixture("transitous-stoptimes.json")
+                        if q.get("stopId"):
+                            body["stopTimes"] = [st for st in body["stopTimes"]
+                                                 if st["place"].get("stopId") == q["stopId"]]
+                    body["stopTimes"] = body["stopTimes"][:int(q.get("n", 20))]
+                    self.send(200, json.dumps(body).encode())
+                    return
+                if url.path == "/overpass":
+                    data = q.get("data", "")
+                    if '["public_transport"]' in data:
+                        body = fixture("overpass-public-transport.json")
+                    elif '"cafe"' in data or '["name"~' in data:
+                        body = fixture("overpass-cafes.json")
+                    else:
+                        body = {"elements": []}
+                    self.send(200, json.dumps(body).encode())
+                    return
                 self.send(404, b"{}")
 
         self.httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.httpd.daemon_threads = True
         self.base = f"http://127.0.0.1:{self.httpd.server_address[1]}"
         threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+
+    def last_raw(self, prefix):
+        """Dotaz (query) posledniho pozadavku na cestu prefix (okno mezitim stahuje dlazdice)."""
+        with self.lock:
+            return next((r for (p, _q), r in zip(reversed(self.requests), reversed(self.raw))
+                         if p.startswith(prefix)), "")
+
+    def last_q(self, prefix):
+        with self.lock:
+            return next((q for p, q in reversed(self.requests) if p.startswith(prefix)), {})
 
     def count(self, prefix):
         with self.lock:
@@ -186,9 +242,11 @@ class FakeServer:
     def reset(self):
         with self.lock:
             self.requests.clear()
+            self.raw.clear()
             self.headers.clear()
             self.max_active = 0
         self.fail = False
+        self.busy = False
         self.delay = 0.0
 
     def close(self):
@@ -204,6 +262,9 @@ os.environ.update({
     "LUXOS_MAPS_REVERSE": SERVER.base + "/reverse",
     "LUXOS_MAPS_ROUTE": SERVER.base + "/routed-{profile}/route/v1/driving/{coords}",
     "LUXOS_MAPS_IP": SERVER.base + "/ip",
+    "LUXOS_MAPS_TRANSIT_PLAN": SERVER.base + "/transitous/plan",
+    "LUXOS_MAPS_STOPTIMES": SERVER.base + "/transitous/stoptimes",
+    "LUXOS_MAPS_OVERPASS": SERVER.base + "/overpass",
     "LUXOS_MAPS_GEOCLUE": "0",
     "LUXOS_MAPS_RATE": "0.05",
     "LUXOS_I18N_DIR": os.path.join(ROOT, "luxos-i18n", "files"),
@@ -395,6 +456,308 @@ class TestSearchAndRoute(unittest.TestCase):
             lm.route(a, b, "plane")
 
 
+def age_api_cache(seconds):
+    """Odpovedi Transitous/Overpass v mezipameti o tolik sekund starsi."""
+    d = os.path.join(TMP, "cache", "luxos", "maps", "api")
+    for n in os.listdir(d):
+        with open(os.path.join(d, n)) as f:
+            data = json.load(f)
+        data["t"] -= seconds
+        with open(os.path.join(d, n), "w") as f:
+            json.dump(data, f)
+
+
+class TestTransit(unittest.TestCase):
+    def setUp(self):
+        clean_state()
+
+    def test_plan_request_and_parse(self):
+        a, b = {"lat": 50.0757, "lon": 14.4199}, {"lat": 50.0905, "lon": 14.3995}
+        res = lm.transit_plan(a, b)
+        raw = SERVER.raw[-1]
+        self.assertIn("fromPlace=50.075700%2C14.419900", raw)
+        self.assertIn("transitModes=TRANSIT&directModes=&detailedLegs=true", raw)
+        self.assertIn("maxTransfers=3", raw)
+        self.assertNotIn("time=", raw)
+        self.assertTrue(SERVER.headers[-1]["User-Agent"].startswith("LuxOS-Maps/"))
+        self.assertEqual(res["timezone"], "Europe/Prague")
+        its = res["itineraries"]
+        self.assertEqual(len(its), 3)
+        it = its[0]
+        # 18:10Z = 19:10 v Praze (zimni cas), ne v pasmu pocitace
+        self.assertEqual((it["departure_time"], it["arrival_time"], it["duration"], it["transfers"]),
+                         ("19:10", "19:33", "23 min", 0))
+        self.assertEqual(it["departure"], "2026-10-26T19:10:00+01:00")
+        tram = it["legs"][1]
+        self.assertEqual((tram["mode"], tram["mode_name"], tram["line"], tram["headsign"]),
+                         ("TRAM", "Tram", "22", "Vypich"))
+        self.assertEqual((tram["color"], tram["text_color"]), ("#7A0603", "#FFFFFF"))
+        self.assertEqual((tram["delay_min"], tram["scheduled_departure_time"], tram["departure_time"]),
+                         (1, "19:10", "19:11"))
+        self.assertEqual((tram["from"]["platform"], tram["from"]["stop_id"]), ("C", "cz-PID_U237Z3P"))
+        self.assertTrue(tram["realtime"])
+        self.assertEqual(tram["operator"], "Pražská integrovaná doprava")
+        self.assertGreater(tram["stops"], 2)
+        self.assertEqual(it["legs"][0]["mode"], "WALK")
+        self.assertFalse(it["legs"][0]["transit"])
+        self.assertIn("Tram 22 toward Vypich", it["summary"])
+        pts = lm.leg_points(tram)
+        self.assertGreater(len(pts), 50)
+        self.assertAlmostEqual(pts[0][0], 50.0759, places=3)
+        # mezipamet: stejny dotaz bez dalsiho pozadavku, po PLAN_TTL znovu
+        lm.transit_plan(a, b)
+        self.assertEqual(SERVER.count("/transitous/plan"), 1)
+        age_api_cache(lm.PLAN_TTL + 1)
+        lm.transit_plan(a, b)
+        self.assertEqual(SERVER.count("/transitous/plan"), 2)
+        with self.assertRaises(lm.MapsError) as cm:
+            lm.transit_plan({"lat": 0, "lon": 0}, b)
+        self.assertEqual(str(cm.exception), "NoRoute")
+
+    def test_mobile_sample_plan(self):
+        # stejny vstup a ocekavani jako OpenStreetMapClientTest (mobilni LuxAI)
+        when = lm.parse_user_time("2026-08-24T10:00:00+02:00")
+        res = lm.transit_plan({"lat": 50.0875, "lon": 14.4213}, {"lat": 50.0755, "lon": 14.4378}, when,
+                              max_transfers=2, limit=2)
+        raw = SERVER.raw[-1]
+        self.assertIn("time=2026-08-24T08%3A00%3A00Z", raw)
+        self.assertIn("maxTransfers=2", raw)
+        self.assertIn("arriveBy=false", raw)
+        it = res["itineraries"][0]
+        self.assertEqual(it["departure_time"], "10:01")
+        self.assertEqual((it["legs"][1]["mode_name"], it["legs"][1]["line"], it["legs"][1]["headsign"]),
+                         ("Metro", "A", "Skalka"))
+        self.assertEqual(it["legs"][1]["departure_time"], "10:10")       # pasmo ze spojeni
+        self.assertTrue(it["legs"][1]["realtime"])
+        self.assertEqual(it["legs"][1]["color"], "#00A562")
+        self.assertIn("Metro A toward Skalka", it["summary"])
+        it2 = res["itineraries"][1]
+        self.assertEqual(it2["transfers"], 1)
+        self.assertTrue(it2["cancelled"])
+        tram = it2["legs"][2]
+        self.assertTrue(tram["cancelled"])
+        self.assertEqual((tram["from"]["platform"], tram["from"]["scheduled_platform"]), ("B", "A"))
+        self.assertTrue(tram["from"]["platform_changed"])
+        self.assertIn("CANCELLED", it2["summary"])
+        lm.transit_plan({"lat": 50.0875, "lon": 14.4213}, {"lat": 50.0755, "lon": 14.4378}, when, arrive_by=True)
+        self.assertIn("arriveBy=true", SERVER.raw[-1])
+
+    def test_times(self):
+        dt = lm.parse_user_time("2026-08-24T10:00:00+02:00")
+        self.assertEqual(lm.api_time(dt), "2026-08-24T08:00:00Z")
+        self.assertEqual(lm.api_time(lm.parse_iso("2026-08-24T08:00:00Z")), "2026-08-24T08:00:00Z")
+        self.assertIsNone(lm.parse_user_time(None))
+        self.assertIsNone(lm.parse_user_time("now"))
+        t = lm.parse_user_time("17:30")
+        self.assertEqual((t.hour, t.minute), (17, 30))
+        self.assertIsNotNone(t.tzinfo)
+        for bad in ("25:00", "tomorrow", "2026-13-01T10:00"):
+            with self.assertRaises(lm.MapsError):
+                lm.parse_user_time(bad)
+        self.assertEqual(lm.hhmm(lm.parse_iso("2026-01-10T12:00:00Z"), lm.zone("Europe/Prague")), "13:00")
+        self.assertEqual(lm.hhmm(lm.parse_iso("2026-07-10T12:00:00Z"), lm.zone("Europe/Prague")), "14:00")
+        self.assertEqual(lm.hhmm(lm.parse_iso("2026-07-10T12:00:00Z"), lm.zone("America/New_York")), "08:00")
+        self.assertIsNotNone(lm.zone("Not/AZone"))
+
+    def test_timetable_realtime(self):
+        tt = lm.timetable(50.0759, 14.419612, radius=200, limit=20)
+        raw = SERVER.raw[-1]
+        for part in ("center=50.075900%2C14.419612", "radius=200", "exactRadius=true", "n=20",
+                     "direction=LATER", "realtimeMode=REALTIME", "arriveBy=false"):
+            self.assertIn(part, raw)
+        rows = tt["stop_times"]
+        self.assertEqual(len(rows), 20)
+        self.assertEqual(tt["stops"], ["Karlovo náměstí", "Novoměstská radnice"])
+        r = rows[6]
+        self.assertEqual((r["time"], r["scheduled_time"], r["delay_min"], r["line"], r["headsign"], r["platform"]),
+                         ("19:11", "19:10", 1, "22", "Vypich", "C"))
+        self.assertEqual((r["mode_name"], r["color"], r["stop_id"]), ("Tram", "#7A0603", "cz-PID_U237Z3P"))
+        self.assertTrue(r["realtime"])
+        self.assertEqual(rows[2]["mode"], "BUS")
+        self.assertEqual(rows[2]["color"], "#007DA8")
+        # zastavka podle stopId
+        tt = lm.timetable(stop_id="cz-PID_U237Z3P", limit=5)
+        self.assertIn("stopId=cz-PID_U237Z3P", SERVER.raw[-1])
+        self.assertNotIn("center=", SERVER.raw[-1])
+        self.assertTrue(all(r["platform"] == "C" for r in tt["stop_times"]))
+        # mezipamet 45 s; Obnovit (max_age=15) po 20 s stahne znovu
+        n = SERVER.count("/transitous/stoptimes")
+        lm.timetable(50.0759, 14.419612, radius=200, limit=20)
+        self.assertEqual(SERVER.count("/transitous/stoptimes"), n)
+        age_api_cache(20)
+        lm.timetable(50.0759, 14.419612, radius=200, limit=20)
+        self.assertEqual(SERVER.count("/transitous/stoptimes"), n)
+        lm.timetable(50.0759, 14.419612, radius=200, limit=20, max_age=15)
+        self.assertEqual(SERVER.count("/transitous/stoptimes"), n + 1)
+
+    def test_mobile_sample_timetable(self):
+        when = lm.parse_user_time("2026-08-24T10:00:00+02:00")
+        tt = lm.timetable(50.0876, 14.4212, when, radius=200, limit=2)
+        self.assertIn("time=2026-08-24T08%3A00%3A00Z", SERVER.raw[-1])
+        a, b = tt["stop_times"]
+        self.assertTrue(a["summary"].startswith("10:04 · 194 toward Florenc · Masná · +2 min"))
+        self.assertIn("platform B (scheduled A)", a["summary"])
+        self.assertEqual((a["delay_min"], a["platform_changed"], a["operator"]),
+                         (2, True, "Pražská integrovaná doprava"))
+        self.assertIn("17 toward Libuš · Staroměstská", b["summary"])
+        self.assertTrue(b["cancelled"])
+        self.assertIn("CANCELLED", b["summary"])
+        self.assertIn("https://transitous.org/sources/", lm.TRANSIT_ATTRIBUTION)
+
+    def test_busy_backoff(self):
+        SERVER.busy = True
+        with self.assertRaises(lm.BusyError):
+            lm.timetable(50.0759, 14.419612)
+        self.assertEqual(SERVER.count("/transitous/"), 1)
+        SERVER.busy = False
+        with self.assertRaises(lm.BusyError):          # pauza: pozadavek vubec neodejde
+            lm.transit_plan({"lat": 50.0757, "lon": 14.4199}, {"lat": 50.0905, "lon": 14.3995})
+        self.assertEqual(SERVER.count("/transitous/"), 1)
+        os.utime(lm._backoff_path("transitous"), (time.time(), time.time() - 1))
+        self.assertTrue(lm.transit_plan({"lat": 50.0757, "lon": 14.4199}, {"lat": 50.0905, "lon": 14.3995}))
+
+    def test_rate_limit_shared(self):
+        os.environ["LUXOS_MAPS_RATE"] = "0.4"
+        try:
+            t0 = time.time()
+            lm.timetable(50.07, 14.41)
+            lm.timetable(50.06, 14.41)
+            lm.transit_plan({"lat": 50.0757, "lon": 14.4199}, {"lat": 50.0905, "lon": 14.3995})
+            self.assertGreaterEqual(time.time() - t0, 0.75)
+        finally:
+            os.environ["LUXOS_MAPS_RATE"] = "0.05"
+
+    def test_colors(self):
+        self.assertEqual(lm.leg_color("TRAM", ""), "#E11D48")
+        self.assertEqual(lm.leg_color("BUS", "00a562"), "#00A562")
+        self.assertEqual(lm.leg_color("WALK", ""), "#64748B")
+        self.assertEqual(lm.leg_color("XYZ", "bad"), "#0891B2")
+        self.assertEqual(lm.text_color("#FFE000"), "#000000")
+        self.assertEqual(lm.text_color("#7A0603"), "#FFFFFF")
+
+
+class TestNearby(unittest.TestCase):
+    def setUp(self):
+        clean_state()
+
+    def test_public_transport_merged(self):
+        res = lm.nearby(50.0757, 14.4199, "public_transport", radius=300, limit=20)
+        q = SERVER.requests[-1][1]["data"]
+        self.assertEqual(q, '[out:json][timeout:20];nwr(around:300,50.075700,14.419900)["public_transport"];'
+                            'out center 60;')
+        names = [p["name"] for p in res]
+        self.assertEqual(names, ["Karlovo náměstí", "Novoměstská radnice"])     # nastupiste sloucena
+        self.assertTrue(all(p["transit"] for p in res))
+        self.assertTrue(lm.is_transit_place(res[0]))
+        self.assertGreaterEqual(len(res[0]["platforms"]), 3)
+        self.assertLess(res[0]["distance_m"], res[1]["distance_m"])
+        self.assertTrue(res[0]["osm_url"].startswith("https://www.openstreetmap.org/node/"))
+        lm.nearby(50.0757, 14.4199, "public_transport", radius=300, limit=20)
+        self.assertEqual(SERVER.count("/overpass"), 1)
+
+    def test_mobile_sample_name_query(self):
+        # stejne jako mobilni test: razeni podle vzdalenosti, escapovany regularni vyraz
+        res = lm.nearby(50.0875, 14.4213, name='Cafe "A.*"', radius=800)
+        q = SERVER.requests[-1][1]["data"]
+        self.assertIn('["name"~"Cafe \\"A\\.\\*\\"",i]', q)
+        self.assertIn("around:800,", q)
+        self.assertEqual([p["name"] for p in res], ["Near Café", "Far Café"])
+        self.assertEqual(res[0]["opening_hours"], "Mo-Fr 08:00-18:00")
+        self.assertEqual(res[0]["osm_url"], "https://www.openstreetmap.org/node/1")
+        self.assertEqual(res[0]["kind"], "amenity=cafe")
+
+    def test_validation_and_busy(self):
+        for kw in ({"category": "spaceports"}, {}, {"name": "x" * 81}):
+            with self.assertRaises(lm.MapsError):
+                lm.nearby(50.0, 14.0, **kw)
+        with self.assertRaises(lm.MapsError):
+            lm.nearby(95.0, 14.0, "cafes")
+        self.assertEqual(SERVER.count("/overpass"), 0)
+        self.assertEqual(lm.nearby(50.0, 14.0, "toilets", radius=99999, limit=999), [])
+        self.assertIn("around:10000,", SERVER.requests[-1][1]["data"])
+        self.assertIn("out center 50;", SERVER.requests[-1][1]["data"])
+        SERVER.busy = True
+        with self.assertRaises(lm.BusyError):
+            lm.nearby(50.0, 14.0, "pharmacies")
+        n = SERVER.count("/overpass")
+        with self.assertRaises(lm.BusyError):
+            lm.nearby(50.0, 14.0, "hotels")
+        self.assertEqual(SERVER.count("/overpass"), n)          # po 502 chvili nic
+
+
+class TestPreview(unittest.TestCase):
+    def setUp(self):
+        clean_state()
+
+    def test_polyline_roundtrip_and_preview(self):
+        pts = [(50.0876, 14.4213), (50.0901, 14.4011), (49.9, 14.0)]
+        for prec in (5, 6):
+            back = lm.decode_polyline(lm.encode_polyline(pts, prec), prec)
+            for (a, b), (c, d) in zip(pts, back):
+                self.assertAlmostEqual(a, c, places=prec - 1)
+                self.assertAlmostEqual(b, d, places=prec - 1)
+        self.assertEqual(lm.decode_polyline("mjbp~AwleoZ", 6)[0], (50.087607, 14.421212))   # mobilni test
+        self.assertEqual(len(lm.thin_points(list(range(1000)), 400)), 400)
+        pv = lm.make_preview("walk", {"lat": 50.0876, "lon": 14.4213, "label": "A"},
+                             {"lat": 49.9, "lon": 14.0, "label": "B"},
+                             [{"mode": "WALK", "label": "Walk", "color": "#2563EB", "points": pts}])
+        self.assertEqual(pv["version"], 1)
+        self.assertEqual(pv["bbox"], [49.9, 14.0, 50.0901, 14.4213])
+        self.assertEqual(pv["legs"][0]["precision"], 6)
+        self.assertIs(lm.preview_from_json({"ok": True, "preview": pv}), pv)
+        self.assertIs(lm.preview_from_json(pv), pv)
+        with self.assertRaises(lm.MapsError):
+            lm.preview_from_json({"ok": True})
+
+    def test_render_only_visible_tiles(self):
+        import cairo
+        code, out = lm.cli(["route", "50.0875,14.4208", "50.0903,14.4005", "--mode", "car"])
+        self.assertEqual(code, 0, out)
+        src = os.path.join(TMP, "route.json")
+        with open(src, "w") as f:
+            json.dump(out, f)
+        png = os.path.join(TMP, "shots", "preview.png")
+        code, info = lm.render_cli([src, "--size", "400x240", "--out", png])
+        self.assertEqual(code, 0, info)
+        img = cairo.ImageSurface.create_from_png(png)
+        self.assertEqual((img.get_width(), img.get_height()), (400, 240))
+        tiles = [p for p, _q in SERVER.requests if p.startswith("/tiles/")]
+        self.assertEqual(len(tiles), info["tiles"])
+        self.assertLessEqual(len(tiles), (400 // 256 + 2) * (240 // 256 + 2))
+        self.assertTrue(all(t.startswith(f"/tiles/{info['zoom']}/") for t in tiles))
+        self.assertEqual(info["missing_tiles"], 0)
+        self.assertTrue(SERVER.headers[-1]["User-Agent"].startswith("LuxOS-Maps/"))
+        # znovu: dlazdice z mezipameti, zadne stahovani
+        SERVER.reset()
+        code, info = lm.render_cli([src, "--size", "400x240", "--out", png])
+        self.assertEqual((code, info["downloaded"], SERVER.count("/tiles/")), (0, 0, 0))
+        # bez site: obrazek se vytvori i tak (chybejici dlazdice = pozadi)
+        SERVER.fail = True
+        code, info = lm.render_cli([src, "--size", "900x500", "--out", png])
+        self.assertEqual(code, 0, info)
+        self.assertGreater(info["missing_tiles"], 0)
+        shots = os.environ.get("LUXOS_TEST_SHOTS")
+        SERVER.fail = False
+        # MHD: nahled prvniho spojeni; jine spojeni jen s --geometry
+        code, tr = lm.cli(["transit-route", "50.0757,14.4199", "50.0905,14.3995"])
+        with open(src, "w") as f:
+            json.dump(tr, f)
+        code, info = lm.render_cli([src, "--size", "480x270", "--out", png])
+        self.assertEqual(code, 0, info)
+        if shots:
+            shutil.copy(png, os.path.join(shots, "maps-preview-transit.png"))
+        code, info = lm.render_cli([src, "--size", "480x270", "--out", png, "--itinerary", "2"])
+        self.assertEqual(code, 1)
+        code, tr = lm.cli(["transit-route", "50.0757,14.4199", "50.0905,14.3995", "--geometry"])
+        with open(src, "w") as f:
+            json.dump(tr, f)
+        code, info = lm.render_cli([src, "--size", "480x270", "--out", png, "--itinerary", "2"])
+        self.assertEqual(code, 0, info)
+        for bad in (["--size", "5000x10"], ["--size", "abc"], []):
+            self.assertEqual(lm.render_cli([src, "--out", png, *bad])[0] if bad else
+                             lm.render_cli([src, "--size", "100x100"])[0], 1)
+
+
 class TestTiles(unittest.TestCase):
     def setUp(self):
         clean_state()
@@ -539,6 +902,93 @@ class TestCli(unittest.TestCase):
         self.assertEqual(lm.cli(["fly"])[0], 2)
         self.assertIn("usage", lm.cli([])[1]["help"])
 
+    def test_transit_timetable_nearby_json(self):
+        code, out = lm.cli(["transit-route", "50.0757,14.4199", "50.0905,14.3995", "--limit", "2",
+                            "--max-transfers", "1"])
+        self.assertEqual(code, 0, out)
+        self.assertIn("maxTransfers=1", SERVER.raw[-1])
+        self.assertEqual(len(out["itineraries"]), 2)
+        self.assertEqual(out["search"], {"time": "now", "arrive_by": False})
+        self.assertNotIn("geometry", out["itineraries"][0]["legs"][1])       # jen s --geometry
+        pv = out["preview"]
+        self.assertEqual((pv["mode"], pv["version"], len(pv["legs"])), ("transit", 1, 3))
+        self.assertEqual(pv["legs"][1]["color"], "#7A0603")
+        self.assertIn("transitous.org/sources", out["attribution"])
+        self.assertIn("OpenStreetMap", out["attribution"])
+        code, out2 = lm.cli(["route", "50.0757,14.4199", "50.0905,14.3995", "--mode", "transit", "--no-preview"])
+        self.assertEqual(code, 0, out2)
+        self.assertNotIn("preview", out2)
+        code, out = lm.cli(["transit-route", "50.0875,14.4213", "50.0755,14.4378", "--time",
+                            "2026-08-24T10:00:00+02:00", "--arrive"])
+        self.assertEqual(code, 0, out)
+        self.assertIn("arriveBy=true", SERVER.raw[-1])
+        self.assertEqual(out["search"]["arrive_by"], True)
+        self.assertEqual(lm.cli(["transit-route", "a", "b", "--time", "soon"])[1]["error"][:12], "invalid time")
+        code, out = lm.cli(["transit-route", "0,0", "50.0905,14.3995"])
+        self.assertEqual((code, out["error"]), (1, "NoRoute"))
+        # odjezdy
+        code, out = lm.cli(["timetable", "50.0759,14.419612", "--radius", "200", "--limit", "5"])
+        self.assertEqual(code, 0, out)
+        self.assertEqual((out["type"], len(out["connections"]), out["radius_m"]), ("departures", 5, 200))
+        self.assertIn("transitous.org/sources", out["attribution"])
+        c = out["connections"][0]
+        for key in ("time", "datetime", "scheduled_time", "delay_min", "realtime", "line", "mode", "headsign",
+                    "stop", "platform", "cancelled", "operator", "color", "summary"):
+            self.assertIn(key, c)
+        code, out = lm.cli(["timetable", "--stop-id", "cz-PID_U237Z3P", "--type", "arrivals"])
+        self.assertEqual(code, 0, out)
+        self.assertIn("arriveBy=true", SERVER.raw[-1])
+        self.assertEqual(lm.cli(["timetable", "50.07,14.41", "--type", "x"])[0], 1)
+        self.assertEqual(lm.cli(["timetable", "50.07,14.41", "--radius", "5"])[0], 1)
+        code, out = lm.cli(["timetable", "Karlovo náměstí"])        # nazev -> Nominatim -> odjezdy
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["near"]["name"], "Karlovo náměstí")
+        # okoli
+        code, out = lm.cli(["nearby", "50.0757,14.4199", "--category", "public_transport", "--radius", "300"])
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["results"][0]["name"], "Karlovo náměstí")
+        self.assertTrue(out["results"][0]["geo_uri"].startswith("geo:"))
+        self.assertIn("distance", out["results"][0])
+        self.assertIn("Overpass", out["attribution"])
+        code, out = lm.cli(["nearby", "50.0875,14.4213", "--name", "Cafe"])
+        self.assertEqual([r["name"] for r in out["results"]], ["Near Café", "Far Café"])
+        code, out = lm.cli(["nearby", "50.0875,14.4213", "--category", "bars"])
+        self.assertEqual(code, 1)
+        self.assertIn("pharmacies", out["error"])
+        self.assertEqual(lm.cli(["nearby", "50.0875,14.4213"])[0], 1)
+        self.assertIn("public_transport", lm.cli([])[1]["nearby_categories"])
+        SERVER.busy = True
+        code, out = lm.cli(["nearby", "50.0, 14.0", "--category", "fuel"])
+        self.assertEqual((code, out["error"]), (1, "busy"))
+
+    def test_route_preview_json(self):
+        code, out = lm.cli(["route", "50.0875,14.4208", "50.0903,14.4005", "--mode", "walk"])
+        self.assertEqual(code, 0, out)
+        pv = out["preview"]
+        self.assertEqual((pv["mode"], pv["legs"][0]["mode"], pv["legs"][0]["color"]), ("walk", "WALK", "#2563EB"))
+        self.assertIn("engine=fossgis_osrm_foot", out["open_map_url"])
+        self.assertEqual(pv["open_map_url"], out["open_map_url"])
+        s, w, n, e = pv["bbox"]
+        self.assertTrue(s <= 50.0875 <= n and w <= 14.4208 <= e)
+        self.assertGreater(len(lm.decode_polyline(pv["legs"][0]["polyline"], 6)), 10)
+
+    def test_render_entry_point(self):
+        import subprocess
+        code, out = lm.cli(["route", "50.0875,14.4208", "50.0903,14.4005"])
+        src = os.path.join(TMP, "r.json")
+        with open(src, "w") as f:
+            json.dump(out, f)
+        png = os.path.join(TMP, "r.png")
+        res = subprocess.run([sys.executable, os.path.join(FILES, "luxos-maps"), "--render-preview", src,
+                              "--size", "320x200", "--out", png], capture_output=True, text=True, timeout=60,
+                             env=dict(os.environ, PYTHONPATH=FILES + os.pathsep + os.path.join(
+                                 ROOT, "luxos-i18n", "files"), DISPLAY=""))
+        self.assertEqual(res.returncode, 0, res.stderr)
+        data = json.loads(res.stdout)
+        self.assertEqual((data["ok"], data["width"], data["height"]), (True, 320, 200))
+        self.assertTrue(os.path.getsize(png) > 1000)
+        self.assertNotIn("Gtk", res.stderr)
+
     def test_location_needs_consent(self):
         code, out = lm.cli(["where-am-i"])
         self.assertEqual((code, out["error"]), (1, "consent"))
@@ -570,7 +1020,12 @@ class TestPackaging(unittest.TestCase):
         # vicerakove texty _( "..." "..." )
         for m in re.finditer(r'_\(\s*((?:"(?:[^"\\]|\\.)*"\s*)+)\)', src):
             found.add("".join(re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(1))))
-        found |= {t for _k, t in re.findall(r'\("(car|bike|walk)", "([^"]+)"\)', src)}
+        found |= {t for _k, t in re.findall(r'\("(car|bike|walk|transit)", "([^"]+)"\)', src)}
+        app = types.SimpleNamespace()
+        exec(compile(re.search(r"^NEARBY_LABELS = .*?\)\)\n", src, re.S | re.M).group(0), "labels", "exec"),
+             {}, app.__dict__)
+        found |= {t for _k, t in app.NEARBY_LABELS}
+        found |= {name for name, _c in lm.TRANSIT_MODES.values()} | {"Public transport"}
         found |= set(lm.TURNS.values())
         found |= {"Depart", "Continue straight", "Arrive at your destination", "Destination is on the left", "Destination is on the right",
                   "Enter the roundabout and take exit %s", "Enter the roundabout", "Keep left", "Keep right",
@@ -773,6 +1228,173 @@ class TestWindow(unittest.TestCase):
         win.map.fly_to(-33.86, 151.2, 12)
         self.assertTrue(self.pump(lambda: win.offline_rev.get_reveal_child(), timeout=8))
         self.shot(win, "maps-offline.png")
+
+    def find_texts(self, widget):
+        out = []
+        if isinstance(widget, self.Gtk.Label):
+            out.append(widget.get_text())
+        if isinstance(widget, self.Gtk.Container):
+            for c in widget.get_children():
+                out += self.find_texts(c)
+        return out
+
+    def find_classes(self, widget, cls):
+        out = []
+        if isinstance(widget, self.Gtk.Label) and widget.get_style_context().has_class(cls):
+            out.append(widget.get_text())
+        if isinstance(widget, self.Gtk.Container):
+            for c in widget.get_children():
+                out += self.find_classes(c, cls)
+        return out
+
+    def test_transit_directions_and_departures(self):
+        win = self.window((50.083, 14.41, 14), mode="car")
+        _ = self.app._
+        self.assertFalse(win.transit_opts.get_visible())
+        win.mode_buttons["transit"].set_active(True)
+        self.assertTrue(win.transit_opts.get_visible())
+        self.assertFalse(win.steps_list.get_visible())
+        self.assertEqual(lm.load_config()["mode"], "transit")
+        self.assertIn("Transitous", win.rt_attr.get_text())
+        win.directions_to({"name": "Pražský hrad", "lat": 50.0905, "lon": 14.3995})
+        win.from_entry.set_text("50.0757, 14.4199")
+        win.from_entry.emit("activate")
+        self.assertTrue(self.pump(lambda: len(win.itin_list.get_children()) == 3))
+        self.assertEqual(SERVER.count("/transitous/plan"), 1)
+        self.assertEqual(SERVER.count("/routed-"), 0)
+        self.assertIn("fromPlace=50.075700%2C14.419900", SERVER.last_raw("/transitous"))
+        self.assertEqual(win.rt_dist.get_text(), "19:10 – 19:33")
+        self.assertEqual(win.rt_time.get_text(), "23 min")
+        row0 = self.find_texts(win.itin_list.get_row_at_index(0))
+        self.assertIn("19:10 – 19:33", row0)
+        self.assertIn("+" + _("%d min") % 1, row0)                    # zpozdeni tramvaje
+        self.assertEqual(len(win.legs_list.get_children()), 3)
+        self.assertEqual(win.map.route["mode"], "transit")
+        self.assertEqual(len(win.map.route["legs"]), 3)
+        self.assertEqual([lg["walk"] for lg in win.map.route["legs"]], [True, False, True])
+        self.assertEqual([s["name"] for s in win.map.stops], ["Karlovo náměstí", "Malostranské náměstí"])
+        legs = self.find_texts(win.legs_list)
+        self.assertIn(_("Tram") + " 22 → Vypich", legs)
+        self.assertTrue(any(_("Platform %s") % "C" in t for t in legs), legs)
+        self.assertEqual(self.find_classes(win.legs_list, "late"), ["+" + _("%d min") % 1])
+        win.itin_list.select_row(win.itin_list.get_row_at_index(1))
+        self.assertEqual(win.rt_dist.get_text(), "19:16 – 19:39")
+        self.assertTrue(self.pump(lambda: win.map.anim is None))
+        self.assertTrue(self.pump(self.tiles_loaded(win)))
+        self.shot(win, "maps-transit.png")
+        # klik na usek tramvaje: odjezdy z te zastavky (stopId)
+        win.legs_list.emit("row-activated", win.legs_list.get_row_at_index(1))
+        self.assertEqual(win.stack.get_visible_child_name(), "departures")
+        self.assertTrue(self.pump(lambda: len(win.dep_list.get_children()) > 0))
+        self.assertIn("stopId=cz-PID_U237Z3P", SERVER.last_raw("/transitous"))
+        self.assertIn("n=20", SERVER.last_raw("/transitous"))
+        self.assertEqual(win.dep_name.get_text(), "Karlovo náměstí")
+        self.assertIsNotNone(win.dep_timer)                            # obnovuje se, dokud je videt
+        win.departures_back()
+        self.assertEqual(win.stack.get_visible_child_name(), "directions")
+        # klik na zastavku na mape
+        x, y = win.map.latlon_to_screen(win.map.stops[1]["lat"], win.map.stops[1]["lon"])
+        self.assertEqual(win.map.hit_marker(x, y), ("stop", 1))
+        win.on_marker_click(("stop", 1))
+        self.assertEqual(win.dep_name.get_text(), "Malostranské náměstí")
+        self.assertTrue(self.pump(lambda: "stopId=cz-PID_U361Z2P" in SERVER.last_raw("/transitous")))
+        win.departures_back()
+        # cela tabule Karlova namesti (okoli bodu): 20 odjezdu, zpozdeni cervene, preskrtnuty planovany cas
+        win.close_directions()
+        win.show_departures({"name": "Karlovo náměstí", "lat": 50.0759, "lon": 14.419612})
+        self.assertTrue(self.pump(lambda: len(win.dep_list.get_children()) == 20))
+        self.assertIn("center=50.075900%2C14.419612", SERVER.last_raw("/transitous"))
+        self.assertIn("radius=300", SERVER.last_raw("/transitous"))
+        late = self.find_classes(win.dep_list, "late")
+        self.assertGreaterEqual(len(late), 3)
+        self.assertTrue(all(t.startswith("+") for t in late))
+        row = self.find_texts(win.dep_list.get_row_at_index(6))
+        self.assertIn("19:11", row)
+        self.assertIn("19:10", row)                                     # planovany cas (preskrtnuty)
+        self.assertIn("Vypich", row)
+        self.assertIn(self.app._("Updated %s") % time.strftime("%H:%M"), win.dep_updated.get_text())
+        n = SERVER.count("/transitous/stoptimes")
+        win.load_departures(True)                                       # Obnovit hned: z mezipameti
+        self.settle(0.4)
+        self.assertEqual(SERVER.count("/transitous/stoptimes"), n)
+        age_api_cache(20)
+        win.load_departures(True)                                       # Obnovit po 20 s: znovu
+        self.assertTrue(self.pump(lambda: SERVER.count("/transitous/stoptimes") == n + 1))
+        self.assertTrue(self.pump(lambda: len(win.dep_list.get_children()) == 20))
+        self.assertTrue(self.pump(lambda: win.map.anim is None))
+        self.assertTrue(self.pump(self.tiles_loaded(win)))
+        self.shot(win, "maps-departures.png")
+        win.dep_kind["arrivals"].set_active(True)
+        self.assertTrue(self.pump(lambda: "arriveBy=true" in SERVER.last_raw("/transitous")))
+        self.assertEqual(win.dep_title.get_text(), _("Arrivals").upper())
+        ev = self.Gdk.Event.new(self.Gdk.EventType.KEY_PRESS)
+        ev.keyval = self.Gdk.KEY_Escape
+        ev.state = 0
+        win.map.grab_focus()
+        win.on_key(win, ev)
+        self.assertNotEqual(win.stack.get_visible_child_name(), "departures")
+        # sluzba pretizena: srozumitelna hlaska
+        SERVER.busy = True
+        win.show_directions(False)
+        win.when_combo.set_active_id("depart")
+        win.when_entry.set_text("8:15")
+        win.compute_route()
+        self.assertTrue(self.pump(lambda: not win.rt_spinner.get_property("active")))
+        self.assertIn("time=", SERVER.last_raw("/transitous"))
+        self.assertEqual(win.rt_status.get_text(),
+                         _("The public transport service is busy. Try again in a moment."))
+        win.when_entry.set_text("99:99")
+        win.compute_route()
+        self.assertEqual(win.rt_status.get_text(), _("Enter the time as HH:MM."))
+
+    def test_nearby_and_place_departures(self):
+        win = self.window((50.0757, 14.4199, 16))
+        _ = self.app._
+        win.select_place({"name": "Karlovo náměstí", "lat": 50.0757, "lon": 14.4199, "category": "place",
+                          "type": "square"}, zoom=16)
+        self.assertFalse(win.pl_departures.get_visible())
+        items = win.pl_nearby.get_popup().get_children()
+        self.assertEqual(len(items), 13)
+        self.assertIn(_("Public Transport Stops"), [i.get_label() for i in items])
+        items[[i.get_label() for i in items].index(_("Pharmacies"))].activate()
+        self.assertTrue(self.pump(lambda: SERVER.count("/overpass") == 1 and not win.res_spinner.get_property(
+            "active")))
+        self.assertIn('["amenity"="pharmacy"]', SERVER.last_q("/overpass")["data"])
+        self.assertEqual(win.res_status.get_text(), _("Nothing found nearby."))
+        win.show_nearby(50.0757, 14.4199, "public_transport")
+        self.assertTrue(self.pump(lambda: len(win.res_list.get_children()) == 2))
+        self.assertIn("around:600,", SERVER.last_q("/overpass")["data"])
+        self.assertEqual(win.res_title.get_text(), _("Public Transport Stops").upper())
+        self.assertEqual([r.place["name"] for r in win.res_list.get_children()],
+                         ["Karlovo náměstí", "Novoměstská radnice"])
+        self.assertEqual(len(win.map.results), 2)
+        self.assertTrue(self.pump(lambda: win.map.anim is None))
+        self.assertTrue(self.pump(self.tiles_loaded(win)))
+        self.shot(win, "maps-nearby.png")
+        win.res_list.emit("row-activated", win.res_list.get_row_at_index(0))
+        self.assertEqual(win.stack.get_visible_child_name(), "place")
+        self.assertTrue(win.pl_departures.get_visible())
+        self.assertIn(_("Platforms: %s") % "", win.pl_extra.get_text())
+        win.pl_departures.clicked()
+        self.assertEqual(win.stack.get_visible_child_name(), "departures")
+        self.assertTrue(self.pump(lambda: len(win.dep_list.get_children()) > 0))
+        self.assertIn("radius=300", SERVER.last_raw("/transitous"))
+        win.departures_back()
+        self.assertEqual(win.stack.get_visible_child_name(), "place")
+        win.place_back()
+        self.assertEqual(win.stack.get_visible_child_name(), "results")   # zpet na seznam okoli
+        # klik na bod vysledku na mape
+        x, y = win.map.latlon_to_screen(win.map.results[1]["lat"], win.map.results[1]["lon"])
+        hit = win.map.hit_marker(x, y)
+        self.assertEqual(hit, ("result", 1))
+        win.on_marker_click(hit)
+        self.assertEqual(win.pl_name.get_text(), "Novoměstská radnice")
+        # Overpass pretizeny
+        SERVER.busy = True
+        win.show_nearby(50.0757, 14.4199, "cafes")
+        self.assertTrue(self.pump(lambda: win.res_status.get_visible()))
+        self.assertEqual(win.res_status.get_text(),
+                         _("The map data service (Overpass) is busy. Try again in a moment."))
 
     def test_location_consent(self):
         win = self.window((50.08, 14.42, 12))
