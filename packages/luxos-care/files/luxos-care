@@ -284,6 +284,11 @@ def main(argv):
                 care.do_check(boot=True)
         except Exception as e:  # noqa: BLE001 - vysledek startu rozhoduje boot_check
             care.log(f"check after boot failed: {e}")
+        if rc == 0:
+            try:
+                snap.ensure_entries()
+            except Exception as e:  # noqa: BLE001
+                care.log(f"snapshot boot entries: {e}")
         return rc
     if cmd == "kernel-switch":
         need_root()

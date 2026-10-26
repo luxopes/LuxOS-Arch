@@ -351,6 +351,15 @@ class SdBoot(Env):
         self.assertIn("rootflags=subvol=@ systemd.unit=luxos-recovery.target", r)
         self.assertNotIn("luxos.snapshot", r)
 
+    def test_ensure_entries_once_after_install(self):
+        """Cerstva instalace (zadny snimek): obnova se do nabidky prida po prvnim startu, jen jednou."""
+        self.assertTrue(snap.ensure_entries())
+        self.assertIn("recovery-luxos.conf", self.entries())
+        self.assertFalse(snap.ensure_entries())
+        self.w("/run/archiso", "")
+        os.unlink(self.root + "/boot/loader/entries/recovery-luxos.conf")
+        self.assertFalse(snap.ensure_entries())
+
     def test_stale_entries_removed_foreign_kept(self):
         a = snap.create(self.top, now=self.at(1))
         snap.sync_boot(self.top)
