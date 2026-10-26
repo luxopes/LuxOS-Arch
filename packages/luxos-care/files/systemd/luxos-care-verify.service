@@ -1,0 +1,15 @@
+[Unit]
+Description=LuxOS Care: verify system files against the package database
+Documentation=man:luxos-care(8)
+# Spousti ji jednou tydne luxos-care check (luxos-care-check.timer), jen na nabijecce;
+# pri odpojeni nabijecky se prerusi. Upozorni jen pri nalezu.
+ConditionPathExists=!/run/archiso
+ConditionKernelCommandLine=!luxos.snapshot
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/luxos-care verify --auto
+TimeoutStartSec=6h
+Nice=19
+CPUSchedulingPolicy=idle
+IOSchedulingClass=idle

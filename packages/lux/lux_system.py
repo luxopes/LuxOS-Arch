@@ -496,8 +496,11 @@ def normalize(raw):
                         ck.err("care.keep_snapshots", _("must be between 2 and 50"))
                     elif isinstance(v, int) and not isinstance(v, bool):
                         nc["keep_snapshots"] = v
+                elif k in ("protect", "verify"):
+                    if ck.typed("care." + k, v, (bool,), "True or False"):
+                        nc[k] = v
                 else:
-                    ck.unknown("care", k, ("mode", "snapshots", "keep_snapshots"))
+                    ck.unknown("care", k, ("mode", "snapshots", "keep_snapshots", "protect", "verify"))
             cfg["care"] = nc
     if "guard" in raw:
         gu = raw["guard"]
@@ -691,7 +694,10 @@ class State:
         keep = c.get("SNAPSHOT_KEEP", "")
         return {"mode": c.get("MODE") if c.get("MODE") in ("carefree", "classic") else "carefree",
                 "snapshots": c.get("SNAPSHOTS", "yes").lower() not in ("no", "0", "false", "off"),
-                "keep_snapshots": int(keep) if keep.isdigit() else 5}
+                "keep_snapshots": int(keep) if keep.isdigit() else 5,
+                # ochrana systemu: chybi = vypnuto (nove instalace maji PROTECT=yes)
+                "protect": c.get("PROTECT", "no").lower() in ("yes", "1", "true", "on"),
+                "verify": c.get("VERIFY", "yes").lower() not in ("no", "0", "false", "off")}
 
     def firewall(self):
         installed = "ufw" in self.installed() if have("lux-engine") else have("ufw")
@@ -1082,7 +1088,11 @@ def apply_locale(loc):
         if not re.search(r"^" + re.escape(loc) + r"\s", text, re.M):
             new = pat.sub(r"\1", text, count=1) if pat.search(text) else text.rstrip("\n") + f"\n{loc} {charset}\n"
             atomic_write(path, new)
-            run([tool("locale-gen")])
+            # locale-gen zapisuje do /usr/lib/locale - pri ochrane systemu jen pres luxos-care
+            if have("luxos-care"):
+                run([tool("luxos-care"), "protect", "exec", "--", tool("locale-gen")])
+            else:
+                run([tool("locale-gen")])
     set_kv("/etc/locale.conf", {"LANG": loc})
 
 
@@ -1104,7 +1114,14 @@ def apply_care(want):
         values["SNAPSHOTS"] = "yes" if want["snapshots"] else "no"
     if "keep_snapshots" in want:
         values["SNAPSHOT_KEEP"] = str(want["keep_snapshots"])
+    if "protect" in want:
+        values["PROTECT"] = "yes" if want["protect"] else "no"
+    if "verify" in want:
+        values["VERIFY"] = "yes" if want["verify"] else "no"
     set_kv(CARE_CONF, values, header="# LuxOS Care - carefree (automatic updates and repairs) | classic (notify only)")
+    # Ochrana systemu hned (bez restartu): /usr jen pro cteni, resp. zase zapisovatelny
+    if "protect" in want and have("luxos-care"):
+        run([tool("luxos-care"), "protect", "apply"])
 
 
 def apply_kernel(lay, add, remove):

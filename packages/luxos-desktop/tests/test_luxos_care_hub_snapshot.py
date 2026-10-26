@@ -1,5 +1,6 @@
 """Testy casti LuxOS Care v luxos-hub (files/lsl/luxos_care_hub.lsl) pro snimky systemu bez GUI:
-upozorneni "LuxOS byl obnoven" a poznani startu ze snimku (luxos.snapshot= v /proc/cmdline).
+upozorneni "LuxOS byl obnoven" a poznani startu ze snimku (luxos.snapshot= v /proc/cmdline),
+upozorneni na zmenene systemove soubory (ochrana systemu).
 Maly program v LSL nacte modul a vypise vysledky; prelozi se do docasneho adresare.
 
 Spusteni: python3 -m unittest packages/luxos-desktop/tests/test_luxos_care_hub_snapshot.py -v
@@ -25,6 +26,10 @@ n = care.notification_for({"kind": "rolled_back", "label": "LuxOS (before update
 print(n[0])
 print(n[1])
 print(len(n[2]))
+n = care.notification_for({"kind": "integrity", "count": 3, "packages": ["coreutils"]})
+print(n[0])
+print(n[1])
+print(n[2][0][0])
 """
 
 
@@ -80,6 +85,16 @@ class CareHubSnapshot(unittest.TestCase):
             "%s", "LuxOS (before update of 2026-10-26 14:03)"))
         self.assertEqual(out[4], "0")
         self.assertNotEqual(translation("LuxOS was restored"), "LuxOS was restored")   # cesky preklad existuje
+
+    def test_integrity_notification(self):
+        """Zmenene systemove soubory (luxos-care verify --auto): upozorneni s tlacitkem Podrobnosti."""
+        out = self.run_prog("root=UUID=x rw quiet splash")
+        self.assertEqual(out[5], translation("System files were changed"))
+        key = ("%d system files were changed or are missing. LuxOS can repair them by reinstalling "
+               "the affected packages.")
+        self.assertEqual(out[6], translation(key).replace("%d", "3"))
+        self.assertEqual(out[7], "open")
+        self.assertNotEqual(translation("System files were changed"), "System files were changed")
 
 
 if __name__ == "__main__":
