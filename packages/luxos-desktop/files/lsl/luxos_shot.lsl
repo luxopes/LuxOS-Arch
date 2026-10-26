@@ -110,7 +110,17 @@ function log(message):
     return 0
 end
 
+# LUXOS_SCREENSHOT_TEST_LOG: radky o stavu oken pro testy (lista, popisek, nahled, konec relace)
+function tlog(message):
+    path = env.get("LUXOS_SCREENSHOT_TEST_LOG", "")
+    if path != None and path != "":
+        call appendfile(path, message + "\n")
+    end
+    return 0
+end
+
 function notify(message):
+    call tlog("notify " + message)
     call log(message)
     call glib.spawn_quiet(["notify-send", "-a", T("Screenshot"), "-i", "dialog-warning", T("Screenshot"), message])
     return 0
@@ -732,6 +742,7 @@ function update_caption():
         return 0
     end
     TB["caption"] = values
+    call tlog("caption " + values[0] + "|" + values[1] + "|" + values[2])
     call gtk.label_set_text(W["cap_name"], values[0])
     call gtk.label_set_text(W["cap_key"], values[1])
     call gtk.widget_set_visible(W["cap_key"], values[1] != "")
@@ -768,13 +779,14 @@ end
 # Drzeny Ctrl: tlacitko ukaze Kopirovat (snimek pujde do schranky)
 function tb_set_ctrl(held):
     TB["ctrl"] = held
+    label = T("Capture")
     if TB["mode"].startswith("rec_"):
-        call gtk.button_set_label(W["capture"], T("Record"))
+        label = T("Record")
     elif held:
-        call gtk.button_set_label(W["capture"], T("Copy"))
-    else:
-        call gtk.button_set_label(W["capture"], T("Capture"))
+        label = T("Copy")
     end
+    call gtk.button_set_label(W["capture"], label)
+    call tlog("label " + label)
     return 0
 end
 
@@ -800,6 +812,9 @@ function show_toolbar():
     call update_caption()
     call gtk.widget_show(W["caption"])
     call restack()
+    pos = gtk.window_get_position(W["toolbar"])
+    size = preferred_size(W["toolbar"])
+    call tlog("toolbar " + String(pos[0]) + " " + String(pos[1]) + " " + String(size[0]) + " " + String(size[1]) + " " + TB["mode"])
     # Celou klavesnici nezabirat (psani a zkratky v aplikacich funguji), jen Esc a Enter
     call keys_update()
     return 0
@@ -1079,6 +1094,7 @@ function ov_open(mode, selection, quick, live):
     call ov_set_mode(mode)
     call gtk.widget_show(W["overlay"])
     call ov_set_cursor()
+    call tlog("overlay " + mode + " quick=" + String(quick) + " live=" + String(live))
     return 0
 end
 
@@ -1386,6 +1402,7 @@ function thumb_open(path, pb, copied, video):
     size = preferred_size(W["thumb"])
     call gtk.window_move(W["thumb"], g[0] + g[2] - size[0] - 24, g[1] + g[3] - size[1] - 96)
     call gtk.widget_show(W["thumb"])
+    call tlog("thumb " + text.join(acts, ",") + " " + String(size[0]) + " " + String(size[1]))
     call gtk.widget_queue_draw(W["thumb_image"])
     call restack()
     call keys_update()
@@ -2078,6 +2095,7 @@ function countdown_tick(job):
 end
 
 function countdown_show(n):
+    call tlog("countdown " + String(n))
     call gtk.label_set_text(W["count_label"], String(n))
     g = gtk.monitor_at_pointer()
     size = preferred_size(W["countdown"])
@@ -2471,6 +2489,7 @@ function end_session(code):
     call gtk.seat_ungrab()
     call unfreeze()
     call keys_update()
+    call tlog("end")
     call sink_finish(sink, code)
     if S["standalone"]:
         call glib.idle_add_data(standalone_check, 0)
