@@ -14,12 +14,13 @@ fi
 # Kompozitor xfwm4 (stiny, pruhlednost): zapnout i po pokusu s picom, ktery ho vypinal
 pgrep -u "$USER" -x picom >/dev/null || xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s true 2>/dev/null
 
-# Alt+Tab ve stylu macOS: velke ikony aplikaci misto nahledu oken, bez ramecku kolem okna.
-# Starsi profily maji v xfconf cely kanal xfwm4 (i puvodni hodnoty) - prepnout jednou.
-if [[ ! -e $cfg/alttab-icons ]]; then
-    xfconf-query -c xfwm4 -p /general/cycle_preview -n -t bool -s false 2>/dev/null
+# Alt+Tab: nahled obsahu oken s ikonou aplikace (rozlisi vic terminalu), vybrane okno se vysune
+# dopredu, bez ramecku. Starsi profily maji v xfconf cely kanal xfwm4 - prepnout jednou.
+if [[ ! -e $cfg/alttab-previews ]]; then
+    xfconf-query -c xfwm4 -p /general/cycle_preview -n -t bool -s true 2>/dev/null
+    xfconf-query -c xfwm4 -p /general/cycle_raise -n -t bool -s true 2>/dev/null
     xfconf-query -c xfwm4 -p /general/cycle_draw_frame -n -t bool -s false 2>/dev/null
-    : >"$cfg/alttab-icons"
+    : >"$cfg/alttab-previews"
 fi
 
 # Prepinac ploch (pager), pokud si ho uzivatel prida do listy: cisla ploch misto miniatur (sede
