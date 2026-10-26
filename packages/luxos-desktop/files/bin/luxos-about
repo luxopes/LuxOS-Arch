@@ -37,6 +37,6 @@ rc=$?
 [[ $rc == 5 ]] && exec luxos-whats-new  # Co je noveho v teto verzi
 if [[ $rc == 2 ]]; then
     command -v luxos-update >/dev/null && exec luxos-update   # Aktualizace softwaru (luxos-care)
-    exec xfce4-terminal --title="$(T "Update")" -x lsh -c "lux update; echo; read -rp '$(T "Press Enter to close")'"
+    exec luxos-terminal --title="$(T "Update")" -x lsh -c "lux update; echo; read -rp '$(T "Press Enter to close")'"
 fi
 exit 0

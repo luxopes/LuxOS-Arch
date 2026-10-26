@@ -10,7 +10,8 @@ PLUGIN=genmon-2
 
 # Kratke nazvy pro aplikace, jejichz Name= je zbytecne dlouhe
 declare -A SHORT=(
-    [thunar]=Files [xfce4-terminal]=Terminal [org.xfce.mousepad]="Text Editor" [mousepad]="Text Editor"
+    [thunar]=Files [luxos-terminal]=Terminal [xfce4-terminal]=Terminal
+    [org.xfce.mousepad]="Text Editor" [mousepad]="Text Editor"
     [xfce4-settings-manager]=Settings [xfdesktop]=Desktop [org.xfce.ristretto]="Image Viewer" [ristretto]="Image Viewer"
     [org.gnome.evince]="Document Viewer" [evince]="Document Viewer" [xfce4-taskmanager]="System Monitor"
     [yad]=LuxOS [luxos-calendar]=Calendar [luxos-control-center]="Control Center"

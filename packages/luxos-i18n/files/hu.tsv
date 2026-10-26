@@ -3445,3 +3445,20 @@ The connection was closed.	A kapcsolat megszakadt.
 Search applications…	Alkalmazások keresése…
 Lock Screen	Képernyő zárolása
 Power Off	Kikapcsolás
+# Terminal LuxOS (luxos-terminal)
+New Tab	Új lap
+New Window	Új ablak
+Close Tab	Lap bezárása
+Select All	Az összes kijelölése
+Find…	Keresés…
+Find	Keresés
+Find Previous	Előző találat
+Find Next	Következő találat
+Open Link	Hivatkozás megnyitása
+Copy Link Address	Hivatkozás címének másolása
+Close this tab?	Bezárja ezt a lapot?
+Close this window?	Bezárja ezt az ablakot?
+A process is still running in this tab: %s	Ezen a lapon még fut egy folyamat: %s
+A process is still running in this window: %s	Ebben az ablakban még fut egy folyamat: %s
+Processes are still running in this window.	Ebben az ablakban még futnak folyamatok.
+Process completed	A folyamat befejeződött

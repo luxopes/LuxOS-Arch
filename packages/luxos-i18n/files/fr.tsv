@@ -3445,3 +3445,20 @@ The connection was closed.	La connexion a été fermée.
 Search applications…	Rechercher des applications…
 Lock Screen	Verrouiller l’écran
 Power Off	Éteindre
+# Terminal LuxOS (luxos-terminal)
+New Tab	Nouvel onglet
+New Window	Nouvelle fenêtre
+Close Tab	Fermer l’onglet
+Select All	Tout sélectionner
+Find…	Rechercher…
+Find	Rechercher
+Find Previous	Rechercher le précédent
+Find Next	Rechercher le suivant
+Open Link	Ouvrir le lien
+Copy Link Address	Copier l’adresse du lien
+Close this tab?	Fermer cet onglet ?
+Close this window?	Fermer cette fenêtre ?
+A process is still running in this tab: %s	Un processus est toujours en cours dans cet onglet : %s
+A process is still running in this window: %s	Un processus est toujours en cours dans cette fenêtre : %s
+Processes are still running in this window.	Des processus sont toujours en cours dans cette fenêtre.
+Process completed	Processus terminé

@@ -36,7 +36,7 @@ Therefore, when the package is built, `merge-xfconf.py` deep-merges every LuxOS 
 Xfce default file (LuxOS values win; for keyboard shortcuts Xfce defaults are copied into `custom`).
 
 Channels shipped by LuxOS: `xsettings`, `xfwm4`, `xfce4-panel`, `xfce4-desktop`, `xfce4-session`,
-`xfce4-power-manager`, `xfce4-screensaver`, `xfce4-notifyd`, `xfce4-terminal`,
+`xfce4-power-manager`, `xfce4-screensaver`, `xfce4-notifyd`, `xfce4-terminal` (only for systems that still have it),
 `xfce4-keyboard-shortcuts`, `keyboard-layout`, `displays`, `thunar`.
 
 Properties LuxOS tools read/write (examples):
