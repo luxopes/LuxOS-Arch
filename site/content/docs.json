@@ -1,0 +1,25 @@
+{
+  "comment": "Strankam navic k luxos-docs (psane pro web podle zdrojaku). Zdroje: content/en/<soubor>, content/cs/<soubor>; after = za jaky dokument v sidebaru.",
+  "files": [
+    {"path": "luxos/luxai.md", "after": "luxos/overview.md",
+     "title": {"en": "LuxAI – the AI assistant", "cs": "LuxAI – AI asistent"},
+     "summary": {"en": "LuxAI is the AI assistant of LuxOS: Chat and Agent modes, web search, offline manual, permissions, LuxAI account and privacy.",
+                 "cs": "LuxAI je AI asistent systému LuxOS: režimy Chat a Agent, hledání na webu, offline příručka, oprávnění, účet LuxAI a soukromí."}},
+    {"path": "luxos/lux-code.md", "after": "luxos/luxai.md",
+     "title": {"en": "Lux Code – terminal AI coding agent", "cs": "Lux Code – terminálový AI agent"},
+     "summary": {"en": "Lux Code, the terminal AI coding agent of LuxOS: installation, sign-in with the LuxAI account, commands, tools, permissions and configuration.",
+                 "cs": "Lux Code, terminálový AI agent pro programování v LuxOS: instalace, přihlášení účtem LuxAI, příkazy, nástroje, oprávnění a nastavení."}},
+    {"path": "luxos/hardware.md", "after": "luxos/installer.md",
+     "title": {"en": "Hardware support", "cs": "Podporovaný hardware"},
+     "summary": {"en": "Hardware supported by LuxOS: x86_64, UEFI and BIOS, Intel, AMD and NVIDIA graphics, Wi-Fi, audio, cameras, fingerprint readers, printers and virtual machines.",
+                 "cs": "Hardware podporovaný v LuxOS: x86_64, UEFI a BIOS, grafika Intel, AMD a NVIDIA, Wi-Fi, zvuk, kamery, čtečky otisků, tiskárny a virtuální počítače."}},
+    {"path": "luxos/shortcuts.md", "after": "luxos/keyboard.md",
+     "title": {"en": "Keyboard shortcuts", "cs": "Klávesové zkratky"},
+     "summary": {"en": "All LuxOS keyboard shortcuts: Search, Launchpad, windows, screenshots, lock screen, displays, LuxAI and Lux Code.",
+                 "cs": "Všechny klávesové zkratky LuxOS: Hledání, Launchpad, okna, snímky obrazovky, zámek, monitory, LuxAI a Lux Code."}},
+    {"path": "luxos/faq.md", "after": "luxos/overview.md",
+     "title": {"en": "FAQ", "cs": "Časté otázky"},
+     "summary": {"en": "Frequently asked questions about LuxOS: installation, dual boot, updates, lux instead of pacman, LuxAI, security, drivers and languages.",
+                 "cs": "Časté otázky o LuxOS: instalace, dual boot, aktualizace, lux místo pacmanu, LuxAI, bezpečnost, ovladače a jazyky."}}
+  ]
+}
