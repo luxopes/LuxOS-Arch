@@ -3144,3 +3144,20 @@ Mirror displays	Espelhar ecrãs
 Show the same picture on all displays.	Mostrar a mesma imagem em todos os ecrãs.
 The displays show the same picture. Turn off mirroring to arrange them.	Os ecrãs mostram a mesma imagem. Desative o espelhamento para os dispor.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Só um ecrã está em uso. Escolha Estender em Vários ecrãs para os dispor.
+# Terminal LuxOS (luxos-terminal)
+New Tab	Novo separador
+New Window	Nova janela
+Close Tab	Fechar separador
+Select All	Selecionar tudo
+Find…	Procurar…
+Find	Procurar
+Find Previous	Procurar anterior
+Find Next	Procurar seguinte
+Open Link	Abrir ligação
+Copy Link Address	Copiar endereço da ligação
+Close this tab?	Fechar este separador?
+Close this window?	Fechar esta janela?
+A process is still running in this tab: %s	Ainda há um processo em execução neste separador: %s
+A process is still running in this window: %s	Ainda há um processo em execução nesta janela: %s
+Processes are still running in this window.	Ainda há processos em execução nesta janela.
+Process completed	Processo terminado

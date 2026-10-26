@@ -57,7 +57,7 @@
         <value type="string" value="luxos-about.desktop"/>
         <value type="string" value="firefox.desktop"/>
         <value type="string" value="thunar.desktop"/>
-        <value type="string" value="xfce4-terminal.desktop"/>
+        <value type="string" value="luxos-terminal.desktop"/>
         <value type="string" value="org.xfce.mousepad.desktop"/>
         <value type="string" value="luxos-welcome.desktop"/>
         <value type="string" value="xfce-settings-manager.desktop"/>

@@ -3144,3 +3144,20 @@ Mirror displays	Bildschirme spiegeln
 Show the same picture on all displays.	Auf allen Bildschirmen dasselbe Bild zeigen.
 The displays show the same picture. Turn off mirroring to arrange them.	Die Bildschirme zeigen dasselbe Bild. Schalten Sie die Spiegelung aus, um sie anzuordnen.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Es wird nur ein Bildschirm verwendet. Wählen Sie unter „Mehrere Bildschirme“ „Erweitern“, um sie anzuordnen.
+# Terminal LuxOS (luxos-terminal)
+New Tab	Neuer Tab
+New Window	Neues Fenster
+Close Tab	Tab schließen
+Select All	Alles auswählen
+Find…	Suchen…
+Find	Suchen
+Find Previous	Vorheriges suchen
+Find Next	Nächstes suchen
+Open Link	Link öffnen
+Copy Link Address	Link-Adresse kopieren
+Close this tab?	Diesen Tab schließen?
+Close this window?	Dieses Fenster schließen?
+A process is still running in this tab: %s	In diesem Tab läuft noch ein Prozess: %s
+A process is still running in this window: %s	In diesem Fenster läuft noch ein Prozess: %s
+Processes are still running in this window.	In diesem Fenster laufen noch Prozesse.
+Process completed	Prozess beendet

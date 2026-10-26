@@ -1,0 +1,44 @@
+# Maintainer: LuxOS Team
+# Terminal LuxOS (luxos-terminal): vlastni lehky terminal v C (GTK3 + VTE) misto xfce4-terminal -
+# panely, svetly/tmavy profil podle vzhledu systemu, obrazky SIXEL (vte3 z [luxos]), hledani, odkazy,
+# zvetseni pisma, pamatuje si velikost okna, jeden proces pro vsechna okna (nove okno ~50 ms).
+# Mereni proti xfce4-terminal 1.2 (xvfb, stejne VTE z [luxos], cas do namapovani okna, median 12 behu):
+# novy proces 175 vs 203 ms, dalsi okno v bezicim procesu 53 vs 108 ms, PSS 31,0 vs 32,8 MB
+# (RSS 54,8 vs 50,4 MB - navic jen sdilene pismo Inter pro horni listu a panely).
+
+pkgname=luxos-terminal
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS Terminal - light GTK3/VTE terminal with tabs, light/dark profiles and SIXEL images"
+arch=(x86_64)
+url="https://github.com/luxopes/LuxOS-Arch"
+license=(GPL-3.0-or-later)
+# vte3 >= 0.84.1-1.1: VTE z [luxos] s obrazky SIXEL (s vte3 z Archu terminal funguje, jen bez obrazku)
+# xdg-terminal-exec: aplikace s Terminal=true (htop, vim z nabidky) - GLib ho zkousi jako prvni
+# luxos-i18n: preklady (/usr/share/luxos/i18n), luxos-branding: logo pro fastfetch
+# ttf-jetbrains-mono-nerd: vychozi pismo (JetBrainsMono Nerd Font 11, ikony ve vyzve starship)
+depends=(gtk3 'vte3>=0.84.1-1.1' glib2 pango cairo gdk-pixbuf2 xdg-terminal-exec luxos-i18n luxos-branding
+         ttf-jetbrains-mono-nerd)
+makedepends=(gcc pkgconf pcre2)
+checkdepends=(python python-gobject xorg-server-xvfb xorg-xauth xdotool dbus ttf-jetbrains-mono-nerd)
+
+build() {
+    gcc $CPPFLAGS $CFLAGS $LDFLAGS -DLUXOS_TERMINAL_VERSION="\"$pkgver\"" -o luxos-terminal \
+        "$startdir/files/luxos-terminal.c" $(pkg-config --cflags --libs vte-2.91 gtk+-3.0)
+}
+
+check() {
+    # okna jen ve virtualni obrazovce (xvfb-run), nikdy na skutecne; SIXEL jen s VTE z [luxos]
+    LUXOS_TERMINAL_BIN="$PWD/luxos-terminal" env -u DISPLAY xvfb-run -a -s "-screen 0 1280x900x24" \
+        dbus-run-session -- python3 -m unittest "$startdir/tests/test_luxos_terminal.py"
+}
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 luxos-terminal "$pkgdir/usr/bin/luxos-terminal"
+    install -Dm644 "$f/luxos-terminal.desktop" "$pkgdir/usr/share/applications/luxos-terminal.desktop"
+    # Pomocna aplikace Xfce (exo-open --launch TerminalEmulator: "Otevrit terminal zde" v Souborech)
+    install -Dm644 "$f/luxos-terminal-helper.desktop" "$pkgdir/usr/share/xfce4/helpers/luxos-terminal.desktop"
+    # Vychozi terminal pro xdg-terminal-exec (Terminal=true v .desktop)
+    install -Dm644 "$f/xdg-terminals.list" "$pkgdir/etc/xdg/xdg-terminals.list"
+}

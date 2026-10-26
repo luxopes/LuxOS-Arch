@@ -214,7 +214,7 @@ function on_action(sender, path, interface, signal, values):
         call glib.spawn(["xfce4-session-logout", "--reboot", "--fast"])
     elif action == "keep":
         # lux rollback v terminalu: zepta se, overi heslo a vypise vysledek
-        call glib.spawn(["xfce4-terminal", "--hold", "-x", "lux", "rollback"])
+        call glib.spawn(["luxos-terminal", "--hold", "-x", "lux", "rollback"])
     elif action == "open" or action == "default":
         call glib.spawn([APP])
     end

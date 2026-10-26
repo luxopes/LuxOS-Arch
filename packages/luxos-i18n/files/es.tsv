@@ -3144,3 +3144,20 @@ Mirror displays	Duplicar pantallas
 Show the same picture on all displays.	Mostrar la misma imagen en todas las pantallas.
 The displays show the same picture. Turn off mirroring to arrange them.	Las pantallas muestran la misma imagen. Desactiva la duplicación para colocarlas.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Solo se usa una pantalla. Elige Extender en Varias pantallas para colocarlas.
+# Terminal LuxOS (luxos-terminal)
+New Tab	Pestaña nueva
+New Window	Ventana nueva
+Close Tab	Cerrar pestaña
+Select All	Seleccionar todo
+Find…	Buscar…
+Find	Buscar
+Find Previous	Buscar anterior
+Find Next	Buscar siguiente
+Open Link	Abrir enlace
+Copy Link Address	Copiar dirección del enlace
+Close this tab?	¿Cerrar esta pestaña?
+Close this window?	¿Cerrar esta ventana?
+A process is still running in this tab: %s	Todavía hay un proceso en ejecución en esta pestaña: %s
+A process is still running in this window: %s	Todavía hay un proceso en ejecución en esta ventana: %s
+Processes are still running in this window.	Todavía hay procesos en ejecución en esta ventana.
+Process completed	Proceso terminado

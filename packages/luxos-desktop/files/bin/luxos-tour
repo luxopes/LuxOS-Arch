@@ -1125,7 +1125,7 @@ def pages():
         (_("Installing Apps"),
          _("LuxOS Store offers apps sorted into categories with one-click installs and updates. "
            "In the Terminal (Super + T) the lux command does the same: lux install, lux search, lux update."),
-         draw_store, [(_("Open LuxOS Store"), ("luxos-store",)), (_("Open Terminal"), ("xfce4-terminal",))]),
+         draw_store, [(_("Open LuxOS Store"), ("luxos-store",)), (_("Open Terminal"), ("luxos-terminal",))]),
         (_("Light, Dark or Auto"),
          _("Choose how LuxOS looks. Auto switches between light and dark at sunrise and sunset. Wallpaper, "
            "Dock and much more are in Settings (Super + ,)."),

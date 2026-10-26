@@ -1,0 +1,3 @@
+# LuxOS - vychozi terminal pro xdg-terminal-exec (aplikace s Terminal=true)
+# Vlastni volba: ~/.config/xdg-terminals.list
+luxos-terminal.desktop

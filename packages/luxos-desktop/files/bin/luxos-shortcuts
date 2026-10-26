@@ -272,7 +272,7 @@ def installed_apps():
             continue
         command = ls.strip_field_codes(cmd)
         if isinstance(app, Gio.DesktopAppInfo) and app.get_boolean("Terminal"):
-            command = "xfce4-terminal -x " + command
+            command = "luxos-terminal -x " + command
         if (name, command) in seen:
             continue
         seen.add((name, command))

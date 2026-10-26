@@ -124,7 +124,9 @@ anything. See [Package management](package-management.md).
 
 System config `/etc/xdg/luxos/fastfetch/config.jsonc` (found via `XDG_CONFIG_DIRS`; a personal
 `~/.config/fastfetch/config.jsonc` wins). It shows the LuxOS logo (`/usr/share/luxos/fastfetch/logo.ans`,
-Unicode block art), "LuxOS – SIMPLE · FAST · SECURE", OS with version, host, kernel, uptime, packages
+Unicode block art; in Terminal the real logo as a SIXEL image from `LUXOS_TERMINAL_LOGO`, see
+[terminal.md](terminal.md#fastfetch-logo)), "LuxOS – SIMPLE · FAST · SECURE", OS with version, host, kernel, uptime, packages
 counted as `(lux)` plus Flatpak/Snap/Nix if present, shell, **Desktop** (`LuxOS Desktop` instead of
-Xfce), **Terminal** (`LuxOS Terminal` for xfce4-terminal, via `/usr/lib/luxos/fastfetch-terminal`),
+Xfce), **Terminal** (`LuxOS Terminal 1.0.0` for luxos-terminal, `Xfce Terminal` for xfce4-terminal, via
+`/usr/lib/luxos/fastfetch-terminal`),
 CPU, GPU, memory, disk `/` and colours.

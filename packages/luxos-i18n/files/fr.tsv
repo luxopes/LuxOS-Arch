@@ -3144,3 +3144,20 @@ Mirror displays	Recopier les écrans
 Show the same picture on all displays.	Afficher la même image sur tous les écrans.
 The displays show the same picture. Turn off mirroring to arrange them.	Les écrans affichent la même image. Désactivez la recopie pour les disposer.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Un seul écran est utilisé. Choisissez Étendre dans Plusieurs écrans pour les disposer.
+# Terminal LuxOS (luxos-terminal)
+New Tab	Nouvel onglet
+New Window	Nouvelle fenêtre
+Close Tab	Fermer l’onglet
+Select All	Tout sélectionner
+Find…	Rechercher…
+Find	Rechercher
+Find Previous	Rechercher le précédent
+Find Next	Rechercher le suivant
+Open Link	Ouvrir le lien
+Copy Link Address	Copier l’adresse du lien
+Close this tab?	Fermer cet onglet ?
+Close this window?	Fermer cette fenêtre ?
+A process is still running in this tab: %s	Un processus est toujours en cours dans cet onglet : %s
+A process is still running in this window: %s	Un processus est toujours en cours dans cette fenêtre : %s
+Processes are still running in this window.	Des processus sont toujours en cours dans cette fenêtre.
+Process completed	Processus terminé

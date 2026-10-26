@@ -3145,3 +3145,20 @@ Mirror displays	Odbicie lustrzane ekranów
 Show the same picture on all displays.	Ten sam obraz na wszystkich ekranach.
 The displays show the same picture. Turn off mirroring to arrange them.	Ekrany pokazują ten sam obraz. Wyłącz odbicie lustrzane, aby je rozmieścić.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Używany jest tylko jeden ekran. Aby rozmieścić ekrany, wybierz Rozszerz w sekcji Wiele ekranów.
+# Terminal LuxOS (luxos-terminal)
+New Tab	Nowa karta
+New Window	Nowe okno
+Close Tab	Zamknij kartę
+Select All	Zaznacz wszystko
+Find…	Znajdź…
+Find	Znajdź
+Find Previous	Znajdź poprzednie
+Find Next	Znajdź następne
+Open Link	Otwórz odnośnik
+Copy Link Address	Kopiuj adres odnośnika
+Close this tab?	Zamknąć tę kartę?
+Close this window?	Zamknąć to okno?
+A process is still running in this tab: %s	W tej karcie nadal działa proces: %s
+A process is still running in this window: %s	W tym oknie nadal działa proces: %s
+Processes are still running in this window.	W tym oknie nadal działają procesy.
+Process completed	Proces zakończony

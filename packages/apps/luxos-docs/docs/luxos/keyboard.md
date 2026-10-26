@@ -112,8 +112,8 @@ as well. They appear under "Other Xfce Shortcuts".
 | Super+A | Launchpad | `luxos-launchpad` |
 | Launch A key (XF86LaunchA) | Launchpad | `luxos-launchpad` |
 | Super+E | Files | `thunar` |
-| Super+T | Terminal | `xfce4-terminal` |
-| Ctrl+Alt+T | Terminal | `xfce4-terminal` |
+| Super+T | Terminal | `luxos-terminal` |
+| Ctrl+Alt+T | Terminal | `luxos-terminal` |
 | Super+, (comma) | Settings | `xfce4-settings-manager` |
 | Super+L | Lock screen | `xflock4` |
 | Ctrl+Super+Q | Lock screen | `xflock4` |
