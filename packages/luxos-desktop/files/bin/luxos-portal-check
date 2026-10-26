@@ -1,0 +1,174 @@
+#!/usr/bin/env python3
+"""LuxOS - je za "omezenym pripojenim" sit s portalem (hotel, skola, vlak)?
+
+  luxos-portal-check        vypise jeden radek: "online", "portal URL IP" nebo "none"
+
+NetworkManager pozna portal jen kdyz funguje systemove DNS. S Tailscale (resolv.conf ukazuje na
+100.100.100.100) nebo jinym VPN DNS se za portalem neprelozi nic a NM hlasi jen "omezene pripojeni"
+- okno pro prihlaseni se pak neotevrelo. Tady se adresa kontroly pripojeni preklada primo DNS
+serverem site (z DHCP, NetworkManager ho zna i pod VPN) a pozadavek HTTP jde na ziskanou IP:
+odpoved jina nez text kontroly (presmerovani, prihlasovaci stranka) = portal.
+
+Testy: LUXOS_PORTAL_DNS (servery oddelene carkou, i "IP:port"), LUXOS_PORTAL_URI,
+LUXOS_PORTAL_RESPONSE, LUXOS_PORTAL_HTTP_PORT.
+"""
+import os
+import random
+import re
+import socket
+import struct
+import subprocess
+import sys
+from urllib.parse import urljoin, urlsplit
+
+DEFAULT_URI = "http://ping.archlinux.org/nm-check.txt"
+DEFAULT_RESPONSE = "NetworkManager is online"
+TIMEOUT = 3
+
+
+def run(argv):
+    try:
+        return subprocess.run(argv, capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def dns_servers():
+    """DNS servery z DHCP pripojenych zarizeni (Wi-Fi, kabel), ne z /etc/resolv.conf."""
+    forced = os.environ.get("LUXOS_PORTAL_DNS")
+    if forced is not None:
+        return [s.strip() for s in forced.split(",") if s.strip()]
+    servers = []
+    for line in run(["nmcli", "-t", "-f", "DEVICE,TYPE,STATE", "device"]).splitlines():
+        parts = line.split(":")
+        if len(parts) < 3 or parts[1] not in ("wifi", "ethernet") or not parts[2].startswith("connected"):
+            continue
+        out = run(["nmcli", "-g", "IP4.DNS", "device", "show", parts[0]])
+        for s in re.split(r"[|\s]+", out):
+            if re.fullmatch(r"\d+\.\d+\.\d+\.\d+", s) and s not in servers:
+                servers.append(s)
+    return servers
+
+
+def check_uri():
+    uri = os.environ.get("LUXOS_PORTAL_URI")
+    if uri:
+        return uri
+    out = run(["gdbus", "call", "--system", "-d", "org.freedesktop.NetworkManager", "-o",
+               "/org/freedesktop/NetworkManager", "-m", "org.freedesktop.DBus.Properties.Get",
+               "org.freedesktop.NetworkManager", "ConnectivityCheckUri"])
+    m = re.search(r"'(http://[^' ]+)'", out)
+    return m.group(1) if m else DEFAULT_URI
+
+
+def resolve(host, server):
+    """Dotaz A primo na server (UDP); prvni IPv4 adresa nebo None."""
+    if re.fullmatch(r"\d+\.\d+\.\d+\.\d+", host):
+        return host
+    addr, _, port = server.partition(":")
+    qid = random.randint(0, 0xFFFF)
+    q = struct.pack(">HHHHHH", qid, 0x0100, 1, 0, 0, 0)
+    for label in host.rstrip(".").split("."):
+        q += bytes([len(label)]) + label.encode("idna")
+    q += b"\x00" + struct.pack(">HH", 1, 1)
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.settimeout(TIMEOUT)
+        try:
+            s.sendto(q, (addr, int(port or 53)))
+            data, _ = s.recvfrom(4096)
+        except OSError:
+            return None
+    if len(data) < 12 or struct.unpack(">H", data[:2])[0] != qid:
+        return None
+    ancount = struct.unpack(">H", data[6:8])[0]
+    pos = 12
+    pos = skip_name(data, pos) + 4                      # otazka
+    for _ in range(ancount):
+        pos = skip_name(data, pos)
+        if pos + 10 > len(data):
+            return None
+        rtype, _cls, _ttl, rdlen = struct.unpack(">HHIH", data[pos:pos + 10])
+        pos += 10
+        if rtype == 1 and rdlen == 4:
+            return socket.inet_ntoa(data[pos:pos + 4])
+        pos += rdlen
+    return None
+
+
+def skip_name(data, pos):
+    while pos < len(data):
+        n = data[pos]
+        if n == 0:
+            return pos + 1
+        if n & 0xC0 == 0xC0:
+            return pos + 2
+        pos += n + 1
+    return pos
+
+
+def http_get(ip, host, path):
+    """(status, hlavicky dict, telo) nebo None; bez nasledovani presmerovani."""
+    port = int(os.environ.get("LUXOS_PORTAL_HTTP_PORT", "80"))
+    try:
+        with socket.create_connection((ip, port), timeout=TIMEOUT) as s:
+            s.settimeout(TIMEOUT)
+            s.sendall(("GET %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: LuxOS\r\nConnection: close\r\n\r\n"
+                       % (path, host)).encode())
+            raw = b""
+            while len(raw) < 65536:
+                chunk = s.recv(8192)
+                if not chunk:
+                    break
+                raw += chunk
+    except OSError:
+        return None
+    head, _, body = raw.partition(b"\r\n\r\n")
+    lines = head.decode("latin-1").split("\r\n")
+    m = re.match(r"HTTP/\d(?:\.\d)?\s+(\d{3})", lines[0] if lines else "")
+    if not m:
+        return None
+    headers = {}
+    for line in lines[1:]:
+        k, _, v = line.partition(":")
+        headers[k.strip().lower()] = v.strip()
+    return int(m.group(1)), headers, body.decode("utf-8", "replace")
+
+
+def page_url(body, base):
+    """Prihlasovaci adresa z HTML bez presmerovani (meta refresh / window.location)."""
+    m = re.search(r"""http-equiv=["']?refresh["']?[^>]*url=([^"'>\s]+)""", body, re.I) or \
+        re.search(r"""(?:window\.)?location(?:\.href)?\s*=\s*["']([^"']+)""", body)
+    return urljoin(base, m.group(1)) if m else base
+
+
+def main():
+    uri = check_uri()
+    expected = os.environ.get("LUXOS_PORTAL_RESPONSE", DEFAULT_RESPONSE)
+    parts = urlsplit(uri)
+    host, path = parts.hostname or "", (parts.path or "/") + ("?" + parts.query if parts.query else "")
+    for server in dns_servers():
+        ip = resolve(host, server)
+        if not ip:
+            continue
+        res = http_get(ip, parts.netloc, path)
+        if res is None:
+            continue
+        status, headers, body = res
+        if 200 <= status < 300 and body.strip().startswith(expected):
+            print("online")
+            return 0
+        if 300 <= status < 400 and headers.get("location"):
+            url = urljoin(uri, headers["location"])
+        else:
+            url = page_url(body, uri)
+        # IP prihlasovaci stranky (systemove DNS ji neprelozi): pro okno prihlaseni
+        target = urlsplit(url).hostname or host
+        target_ip = ip if target == host else (resolve(target, server) or "")
+        print("portal %s %s" % (url, target_ip))
+        return 0
+    print("none")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

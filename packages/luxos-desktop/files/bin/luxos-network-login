@@ -1,7 +1,9 @@
 #!/bin/bash
 # LuxOS - prihlaseni do site s portalem (hotel, letiste, vlak, kavarna)
 #
-#   luxos-network-login        otevre prihlasovaci stranku site (spousti luxos-hub pri stavu "portal")
+#   luxos-network-login [URL [IP]]   otevre prihlasovaci stranku site (spousti luxos-hub pri stavu "portal")
+#
+# URL a IP posila luxos-hub z luxos-portal-check (portal, ktery NetworkManager neprozna kvuli VPN DNS).
 #
 # Portal zachyti obycejny pozadavek HTTP a presmeruje ho na svou prihlasovaci stranku. Otevira se
 # proto adresa kontroly pripojeni NetworkManageru (http://, jen text) - v siti s portalem misto ni
@@ -14,6 +16,16 @@ uri=$(gdbus call --system -d org.freedesktop.NetworkManager -o /org/freedesktop/
         -m org.freedesktop.DBus.Properties.Get org.freedesktop.NetworkManager ConnectivityCheckUri 2>/dev/null |
       sed -n "s/^(<'\(http:\/\/[^' ]*\)'>,)\$/\1/p")
 [[ -n $uri ]] || uri=http://ping.archlinux.org/nm-check.txt
+force_ip=""
+if [[ ${1-} == http://* || ${1-} == https://* ]]; then
+    uri=$1
+    host=${uri#*://}; host=${host%%[/:?#]*}
+    # Systemove DNS adresu portalu neprelozi (Tailscale/VPN DNS za portalem): prohlizec dostane IP
+    # portalu napevno - jen v tomto jednorazovem profilu
+    if [[ ${2-} =~ ^[0-9]+(\.[0-9]+){3}$ ]] && ! timeout 3 getent hosts "$host" >/dev/null 2>&1; then
+        force_ip=$2
+    fi
+fi
 
 base=${XDG_RUNTIME_DIR:-}
 [[ -n $base && -d $base && -O $base ]] || base=${TMPDIR:-/tmp}
@@ -21,6 +33,8 @@ dir=$(mktemp -d "$base/luxos-network-login.XXXXXX") || exit 1
 trap 'rm -rf "$dir"' EXIT
 mkdir -m 700 "$dir/downloads"
 
+force_pref=""
+[[ -n $force_ip ]] && force_pref="user_pref(\"network.dns.forceResolve\", \"$force_ip\");"
 cat > "$dir/user.js" <<P
 // LuxOS - jednorazovy profil pro prihlaseni do site (luxos-network-login)
 user_pref("browser.shell.checkDefaultBrowser", false);
@@ -49,6 +63,7 @@ user_pref("browser.download.useDownloadDir", true);
 user_pref("browser.download.dir", "$dir/downloads");
 user_pref("browser.download.folderList", 2);
 user_pref("geo.enabled", false);
+$force_pref
 user_pref("media.navigator.enabled", false);
 user_pref("dom.webnotifications.enabled", false);
 P
