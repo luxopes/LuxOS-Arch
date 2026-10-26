@@ -159,3 +159,217 @@ XfdesktopIconView.view.cell:selected:hover {
     font-weight: 600;
     color: @theme_fg_color;
 }
+
+/* Nabidka LuxOS (Whisker Menu, upraveny balik xfce4-whiskermenu-plugin): poloprusvitny zaobleny
+   panel jako ostatni nabidky, nahore fotka, jmeno a hledani, vlevo oblibene aplikace (ikony 32 px),
+   vpravo kategorie se sipkou, dole Zamknout obrazovku a kulata tlacitka s popisky.
+   Pruhledne rohy umoznuje menu-opacity < 100 (vizual RGBA); pozadi kresli az ramecek. */
+window#whiskermenu-window {
+    background-color: transparent;
+    border-radius: 16px;
+}
+
+window#whiskermenu-window > frame > border {
+    margin: 8px;
+    padding: 12px 10px 10px;
+    border-radius: 16px;
+    border: 1px solid alpha(@theme_fg_color, 0.12);
+    background-color: alpha(mix(@theme_base_color, @theme_bg_color, 0.25), 0.88);
+    box-shadow: 0 4px 10px alpha(black, 0.18);
+}
+
+/* zahlavi: kulata fotka (nebo iniciala), jmeno, vpravo Odhlasit */
+window#whiskermenu-window .title-area {
+    padding: 0 4px 4px 6px;
+}
+
+window#whiskermenu-window .profile-username {
+    margin-left: 4px;
+    color: @theme_fg_color;
+}
+
+/* hledani nahore: zaoblene pole s lupou */
+window#whiskermenu-window .search-area entry {
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid alpha(@theme_fg_color, 0.10);
+    background-color: alpha(@theme_fg_color, 0.06);
+    box-shadow: none;
+}
+
+window#whiskermenu-window .search-area entry:focus {
+    border-color: alpha(#3d7bff, 0.7);
+    background-color: alpha(@theme_base_color, 0.9);
+    box-shadow: 0 0 0 3px alpha(#3d7bff, 0.22);
+}
+
+window#whiskermenu-window .search-area entry image {
+    color: alpha(@theme_fg_color, 0.55);
+}
+
+/* seznamy aplikaci bez ramecku, radky ~40 px, vyber = mekka modra zaoblena "pilulka" */
+window#whiskermenu-window scrolledwindow.frame,
+window#whiskermenu-window scrolledwindow.frame > border {
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background-color: transparent;
+    box-shadow: none;
+}
+
+window#whiskermenu-window treeview.view {
+    -GtkTreeView-vertical-separator: 8;
+    -GtkTreeView-horizontal-separator: 10;
+    border-radius: 10px;
+    background-color: transparent;
+    color: @theme_fg_color;
+}
+
+window#whiskermenu-window treeview.view:hover,
+window#whiskermenu-window treeview.view:selected,
+window#whiskermenu-window treeview.view:selected:hover,
+window#whiskermenu-window treeview.view:selected:focus,
+window#whiskermenu-window scrolledwindow.frame treeview.view:selected:hover {
+    border-radius: 10px;
+    background-color: alpha(#3d7bff, 0.16);
+    color: @theme_fg_color;
+}
+
+/* kategorie: radky ~36 px, vpravo sipka */
+window#whiskermenu-window box.categories > button.radio {
+    min-height: 28px;
+    margin: 1px 0;
+    padding: 3px 26px 3px 6px;
+    border: none;
+    border-radius: 10px;
+    box-shadow: none;
+    color: @theme_fg_color;
+    background-color: transparent;
+    background-image: -gtk-icontheme("pan-end-symbolic");
+    background-repeat: no-repeat;
+    background-position: 95% center;
+    background-size: 12px 12px;
+}
+
+window#whiskermenu-window box.categories > button.radio:hover {
+    background-color: alpha(@theme_fg_color, 0.07);
+    background-image: -gtk-icontheme("pan-end-symbolic");
+}
+
+window#whiskermenu-window box.categories > button.radio:checked,
+window#whiskermenu-window box.categories > button.radio:active,
+window#whiskermenu-window box.categories > button.radio:checked:hover,
+window#whiskermenu-window box.categories > button.radio:active:hover {
+    background-color: alpha(#3d7bff, 0.16);
+    background-image: -gtk-icontheme("pan-end-symbolic");
+    color: @theme_fg_color;
+}
+
+window#whiskermenu-window box.categories > button.radio image {
+    min-width: 24px;
+    min-height: 24px;
+    margin-right: 6px;
+}
+
+/* Oblibene a Nedavno pouzite maji jednobarevne ikony: podklad jako ikona aplikace */
+window#whiskermenu-window box.categories > button.radio:nth-child(1) image,
+window#whiskermenu-window box.categories > button.radio:nth-child(2) image {
+    border-radius: 7px;
+    background-color: alpha(@theme_fg_color, 0.08);
+}
+
+window#whiskermenu-window box.categories > button.radio label {
+    color: @theme_fg_color;
+}
+
+window#whiskermenu-window box.categories > separator {
+    margin: 4px 10px;
+    min-height: 1px;
+    background-color: alpha(@theme_fg_color, 0.10);
+}
+
+/* dolni lista: vlevo Zamknout obrazovku (pilulka), vpravo kulata tlacitka s popisky */
+window#whiskermenu-window .commands-area.luxos-bar {
+    margin-top: 6px;
+    padding: 8px 2px 0;
+    border-top: 1px solid alpha(@theme_fg_color, 0.10);
+}
+
+window#whiskermenu-window .commands-area.luxos-bar > button.command-button {
+    min-width: 58px;
+    margin: 0 1px;
+    padding: 2px;
+    border: none;
+    border-radius: 12px;
+    box-shadow: none;
+    background: transparent;
+    color: @theme_fg_color;
+}
+
+window#whiskermenu-window .commands-area.luxos-bar > button.command-button image {
+    min-width: 34px;
+    min-height: 34px;
+    margin-bottom: 3px;
+    border-radius: 999px;
+    background-color: alpha(@theme_fg_color, 0.08);
+    color: @theme_fg_color;
+}
+
+window#whiskermenu-window .commands-area.luxos-bar > button.command-button label {
+    font-size: 0.85em;
+    color: alpha(@theme_fg_color, 0.85);
+}
+
+window#whiskermenu-window .commands-area.luxos-bar > button.command-button:hover image {
+    background-color: alpha(@theme_fg_color, 0.15);
+}
+
+window#whiskermenu-window .commands-area.luxos-bar > button#command-shutdown image {
+    color: #ff453a;
+}
+
+window#whiskermenu-window .commands-area.luxos-bar > button#command-shutdown:hover image {
+    background-color: alpha(#ff453a, 0.16);
+}
+
+window#whiskermenu-window .commands-area.luxos-bar > button#command-lockscreen {
+    min-width: 0;
+    margin-top: 6px;
+    margin-bottom: 18px;
+    padding: 0 14px 0 8px;
+    border-radius: 999px;
+    background-color: alpha(@theme_fg_color, 0.08);
+}
+
+window#whiskermenu-window .commands-area.luxos-bar > button#command-lockscreen:hover {
+    background-color: alpha(@theme_fg_color, 0.15);
+}
+
+window#whiskermenu-window .commands-area.luxos-bar > button#command-lockscreen image {
+    min-width: 20px;
+    min-height: 20px;
+    margin: 0 6px 0 0;
+    background: transparent;
+}
+
+window#whiskermenu-window .commands-area.luxos-bar > button#command-lockscreen label {
+    font-size: 1em;
+    color: @theme_fg_color;
+}
+
+/* Odhlasit v zahlavi: male kulate tlacitko */
+window#whiskermenu-window .title-area > button.command-button {
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    box-shadow: none;
+    background: transparent;
+    color: alpha(@theme_fg_color, 0.75);
+}
+
+window#whiskermenu-window .title-area > button.command-button:hover {
+    background-color: alpha(@theme_fg_color, 0.10);
+}

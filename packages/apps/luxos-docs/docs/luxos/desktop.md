@@ -21,7 +21,7 @@ Its items, from left to right:
 
 | Item | What it is | Click |
 |---|---|---|
-| LuxOS logo | Whisker Menu with the LuxOS logo. Favourites: About This Computer, Firefox, Files, Terminal, Mousepad, Welcome, Settings. Lock, sleep, restart, log out and shut down. | opens the system menu; clicking the user name opens LuxAI Account (`luxos-account`) |
+| LuxOS logo | Whisker Menu with the LuxOS logo (see [The LuxOS menu](#the-luxos-menu)). Favourites: About This Computer, Firefox, Files, Terminal, Mousepad, Welcome, Settings. | opens the system menu; clicking the user name or photo opens LuxAI Account (`luxos-account`) |
 | App name | name of the active application in bold (`luxos-appname`, genmon) | - |
 | Open windows | icons of open windows (tasklist, grouped) | switch to that window |
 | Keyboard flag | xkb plugin: the flag of the current keyboard layout, Caps Lock indicator | switches layout; "Keyboard settings" opens Keyboard Layouts (`luxos-keyboard`) |
@@ -44,6 +44,29 @@ Panel plugins without menus (genmon, systray) run inside the panel process to sa
 (`xfce4-genmon-plugin` in [luxos]) with an extra tag `<scroll>command</scroll>`: the scroll wheel
 runs `command up` / `command down`. The GTK module `luxos-panel-menus` (loaded by
 `/usr/lib/luxos/override-bin/xfce4-panel`) removes the grey plugin name from right-click menus.
+
+### The LuxOS menu
+
+The menu under the LuxOS logo is Whisker Menu (patched package `xfce4-whiskermenu-plugin` in
+[luxos], style in `luxos.css` of the WhiteSur themes, light and dark):
+
+- a translucent rounded panel like the other LuxOS menus;
+- at the top your profile photo (round; without a photo a coloured circle with your initial, as
+  on the login screen) and name, on the right a **Log Out…** button (the Xfce dialog also offers
+  Switch User, Restart and Shut Down); below it the search field "Search applications…";
+- on the left your favourite applications (32 px icons), on the right the categories with an
+  arrow; the selected row is a soft blue rounded highlight;
+- at the bottom **Lock Screen** on the left and round **Restart**, **Sleep** and **Power Off**
+  buttons with labels on the right (Restart and Power Off ask for confirmation).
+
+Applications that Chromium installs as "Chromium Apps" appear in the Internet category instead of
+a category of their own: the menu uses `/etc/xdg/luxos/menus/luxos-applications.menu` (the Xfce menu
+plus a `<Move>` of `chrome-apps`; the files in `~/.config/menus` stay untouched). The labels come
+from the LuxOS translations (luxos-i18n). Settings are in the `xfce4-panel` xfconf channel
+(`/plugins/plugin-1`: `position-commands-alternate=false` = bar at the bottom, `custom-menu-file`,
+`menu-width` 480, `menu-height` 640). Older profiles get the new layout once at login
+(`luxos-session`, mark `~/.config/luxos/menu-layout-2`); favourites and other menu settings stay.
+If you later change the layout in the menu settings, it is not overwritten again.
 
 Older profiles get the Search magnifier once, before Control Center: `luxos-session` runs
 `luxos-search --add-to-panel` at login (it restarts the panel; the mark

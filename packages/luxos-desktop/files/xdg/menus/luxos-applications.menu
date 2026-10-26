@@ -1,0 +1,18 @@
+<!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN"
+  "http://www.freedesktop.org/standards/menu-spec/1.0/menu.dtd">
+<!-- LuxOS - nabidka aplikaci pro Whisker Menu (custom-menu-file v kanalu xfce4-panel):
+     standardni nabidka Xfce, jen kategorie "Chromium Apps" (aplikace nainstalovane z Chromia,
+     ~/.config/menus/applications-merged/user-chrome-apps.menu) se slouci do Internetu.
+     Soubory uzivatele zustavaji beze zmeny. -->
+<Menu>
+    <Name>Xfce</Name>
+    <MergeFile type="path">/etc/xdg/menus/xfce-applications.menu</MergeFile>
+    <Move>
+        <Old>chrome-apps</Old>
+        <New>Network</New>
+    </Move>
+    <Move>
+        <Old>chromium-apps</Old>
+        <New>Network</New>
+    </Move>
+</Menu>
