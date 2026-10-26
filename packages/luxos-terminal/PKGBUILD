@@ -13,13 +13,15 @@ pkgdesc="LuxOS Terminal - light GTK3/VTE terminal with tabs, light/dark profiles
 arch=(x86_64)
 url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
-# vte3 >= 0.84.1-1.1: VTE z [luxos] s obrazky SIXEL (s vte3 z Archu terminal funguje, jen bez obrazku)
+# vte3: VTE z [luxos] (0.84.1-1.1+) s obrazky SIXEL - [luxos] ma prednost pred [extra]; s vte3 z Archu
+# terminal funguje, jen bez obrazku. Bez verze: sestavovaci kontejner instaluje depends z repozitaru
+# jednim prikazem a verze, ktera tam jeste neni, by zastavila instalaci vsech zavislosti.
 # xdg-terminal-exec: aplikace s Terminal=true (htop, vim z nabidky) - GLib ho zkousi jako prvni
 # luxos-i18n: preklady (/usr/share/luxos/i18n), luxos-branding: logo pro fastfetch
 # ttf-jetbrains-mono-nerd: vychozi pismo (JetBrainsMono Nerd Font 11, ikony ve vyzve starship)
-depends=(gtk3 'vte3>=0.84.1-1.1' glib2 pango cairo gdk-pixbuf2 xdg-terminal-exec luxos-i18n luxos-branding
+depends=(gtk3 vte3 glib2 pango cairo gdk-pixbuf2 xdg-terminal-exec luxos-i18n luxos-branding
          ttf-jetbrains-mono-nerd)
-makedepends=(gcc pkgconf pcre2)
+makedepends=(gcc pkgconf pcre2 gtk3 vte3)
 checkdepends=(python python-gobject xorg-server-xvfb xorg-xauth xdotool dbus ttf-jetbrains-mono-nerd)
 
 build() {
