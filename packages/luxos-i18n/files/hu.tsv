@@ -3144,3 +3144,84 @@ Mirror displays	Kijelzők tükrözése
 Show the same picture on all displays.	Ugyanaz a kép minden kijelzőn.
 The displays show the same picture. Turn off mirroring to arrange them.	A kijelzők ugyanazt a képet mutatják. Az elrendezéshez kapcsolja ki a tükrözést.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Csak egy kijelző van használatban. Az elrendezéshez válassza a Kiterjesztés lehetőséget a Több kijelző részben.
+# LuxDrop - soubory jineho pocitace (Pripojit k pocitaci, sdilene slozky)
+Shared folders	Megosztott mappák
+Share folders	Mappák megosztása
+Other LuxOS computers can open these folders after you allow it. Read-only unless you also allow changes.	Más LuxOS-gépek az engedélyed után megnyithatják ezeket a mappákat. Csak olvasható, hacsak a módosítást is nem engedélyezed.
+Add folder…	Mappa hozzáadása…
+Connect to Computer…	Csatlakozás számítógéphez…
+Connect to Computer	Csatlakozás számítógéphez
+Computers with access	Hozzáféréssel rendelkező gépek
+Computers with access:	Hozzáféréssel rendelkező gépek:
+Share your whole home folder?	Megosztod a teljes saját mappádat?
+Hidden files and folders (settings, keys, passwords) are never shared. Each computer still needs your permission.	A rejtett fájlok és mappák (beállítások, kulcsok, jelszavak) soha nincsenek megosztva. Minden gépnek továbbra is az engedélyedre van szüksége.
+Only folders in your home folder or on external drives can be shared, not hidden folders.	Csak a saját mappádban vagy külső meghajtón lévő mappák oszthatók meg, rejtett mappák nem.
+No shared folders.	Nincs megosztott mappa.
+No computers yet. Each new computer must be allowed first.	Még nincs gép. Minden új gépet előbb engedélyezni kell.
+Can change files	Módosíthat fájlokat
+can change files	módosíthat fájlokat
+Read-only	Csak olvasható
+read-only	csak olvasható
+Read-only.	Csak olvasható.
+Share	Megosztás
+Deny	Elutasítás
+Allow once	Engedélyezés egyszer
+Always allow	Mindig engedélyez
+Access to shared folders	Hozzáférés a megosztott mappákhoz
+LuxDrop: access to shared folders	LuxDrop: hozzáférés a megosztott mappákhoz
+“%s” wants to access your shared folders	A(z) „%s” hozzá szeretne férni a megosztott mappáidhoz
+“%s” wants to access and change your shared folders	A(z) „%s” hozzá szeretne férni a megosztott mappáidhoz, és módosítani szeretné őket
+Allow only if the other computer shows the same code.	Csak akkor engedélyezd, ha a másik gép ugyanazt a kódot mutatja.
+Also allow changes (copy in, rename and delete files)	Módosítások engedélyezése is (bemásolás, átnevezés és fájlok törlése)
+Also allow changes (copy in, rename and delete files)? [y/N]: 	Módosítások engedélyezése is (bemásolás, átnevezés és fájlok törlése)? [y/N]: 
+Read-only: the other computer can open and copy your shared files, but cannot change them.	Csak olvasható: a másik gép megnyithatja és másolhatja a megosztott fájljaidat, de nem módosíthatja őket.
+Allow? [o]nce / [a]lways / [N]o: 	Engedélyezed? [o] egyszer / [a] mindig / [N] nem: 
+The other computer cancelled the request.	A másik gép visszavonta a kérést.
+Sharing is turned off. Turn it on with: luxdrop share on	A megosztás ki van kapcsolva. Bekapcsolás: luxdrop share on
+sftp-server (openssh) is not installed	Az sftp-server (openssh) nincs telepítve
+Sharing as "%s" (ID %s) on port %d: %s	Megosztás „%s” néven (ID %s), port: %d: %s
+Sharing is off.	A megosztás ki van kapcsolva.
+Sharing is on: %s	A megosztás be van kapcsolva: %s
+Sharing: %s	Megosztás: %s
+Shared: %s	Megosztva: %s
+Removed %d folder(s)	%d mappa eltávolítva
+Changed %d device(s)	%d eszköz módosítva
+None (every connection is asked first).	Nincs (minden kapcsolat előtt rákérdez).
+Share your whole home folder? Hidden files and folders (settings, keys, passwords) are never shared.	Megosztod a teljes saját mappádat? A rejtett fájlok és mappák (beállítások, kulcsok, jelszavak) soha nincsenek megosztva.
+Share the home folder? [y/N]: 	Megosztod a saját mappát? [y/N]: 
+Computer '%s' not found on the network. Use its address: luxdrop connect HOST	A(z) „%s” gép nem található a hálózaton. Használd a címét: luxdrop connect HOST
+Connected to %s (%s): %s	Csatlakozva: %s (%s): %s
+Connected to %s	Csatlakozva: %s
+Disconnected from %s	Leválasztva: %s
+Disconnected %d computer(s)	%d gép leválasztva
+Not connected to any computer.	Nincs csatlakoztatott gép.
+Cannot connect: %s (%s)	Nem sikerült csatlakozni: %s (%s)
+Cannot connect: %s	Nem sikerült csatlakozni: %s
+Cannot connect to %s: %s	Nem sikerült csatlakozni ehhez: %s: %s
+share folders with other LuxOS computers	mappák megosztása más LuxOS-gépekkel
+folder (add/remove) or device ID/name (forget/allow-write/read-only)	mappa (add/remove) vagy eszközazonosító/név (forget/allow-write/read-only)
+do not ask before sharing the home folder	ne kérdezzen rá a saját mappa megosztása előtt
+open the shared folders of another LuxOS computer in Files	egy másik LuxOS-gép megosztott mappáinak megnyitása a Fájlokban
+computer name, ID, HOST[:PORT] or NAME@HOST[:PORT]; without it a window opens	gépnév, ID, HOST[:PORT] vagy NÉV@HOST[:PORT]; nélküle ablak nyílik meg
+ask for permission to change files	engedély kérése fájlok módosítására
+Ask for permission to change files	Engedély kérése fájlok módosítására
+do not open a Files window	ne nyisson Fájlok ablakot
+disconnect from another computer	leválasztás egy másik gépről
+list connected computers	csatlakoztatott gépek listázása
+Waiting for “%s” to allow access…	Várakozás, hogy a(z) „%s” engedélyezze a hozzáférést…
+The other computer must share folders (LuxDrop › Settings › Share folders) and allow your access.	A másik gépnek meg kell osztania mappákat (LuxDrop › Beállítások › Mappák megosztása), és engedélyeznie kell a hozzáférésedet.
+Computers nearby	Közeli gépek
+Address, e.g. 192.168.1.20	Cím, pl. 192.168.1.20
+Cancelled: the codes were not confirmed.	Megszakítva: a kódokat nem erősítetted meg.
+Open the files of another LuxOS computer next to yours	Nyisd meg egy másik LuxOS-gép fájljait a sajátjaid mellett
+Looking for computers… On the other computer turn on LuxDrop › Settings › Share folders.	Gépek keresése… A másik gépen kapcsold be: LuxDrop › Beállítások › Mappák megosztása.
+Opening the shared folders…	A megosztott mappák megnyitása…
+The files of “%s” are in the sidebar of Files.	A(z) „%s” fájljai a Fájlok oldalsávjában vannak.
+“%s” denied access.	A(z) „%s” elutasította a hozzáférést.
+“%s” did not answer in time.	A(z) „%s” nem válaszolt időben.
+“%s” is busy. Try again later.	A(z) „%s” foglalt. Próbáld újra később.
+“%s” does not share any folders.	A(z) „%s” nem oszt meg mappákat.
+“%s” presented a different key than expected. Someone may be impersonating it. If it was reinstalled, remove it from Trusted devices and try again.	A(z) „%s” a vártnál eltérő kulcsot mutatott. Lehet, hogy valaki kiadja magát érte. Ha újratelepítették, távolítsd el a Megbízható eszközök közül, és próbáld újra.
+Enter the address of the other computer.	Add meg a másik gép címét.
+Continue only if “%s” shows the same code.	Csak akkor folytasd, ha a(z) „%s” ugyanazt a kódot mutatja.
+The connection was closed.	A kapcsolat megszakadt.

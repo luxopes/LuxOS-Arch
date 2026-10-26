@@ -1,0 +1,22 @@
+# LuxDrop - sdilene slozky pro jine pocitace LuxOS (na druhem pocitaci "Pripojit k pocitaci").
+# Zapina se v Nastaveni LuxDropu ("Share folders") nebo "luxdrop share on"
+# (-> systemctl --user enable --now luxdrop-files.service); ve vychozim stavu vypnuto.
+# Kazde nove spojeni se musi povolit (dialog/oznameni); sftp-server bezi v bubblewrap jen se sdilenymi slozkami.
+[Unit]
+Description=LuxDrop shared folders for other LuxOS computers
+Documentation=man:luxdrop(1) file:///usr/share/doc/luxdrop/PROTOCOL.md
+After=dbus.socket
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/luxdrop share serve --service
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=default.target

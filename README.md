@@ -70,6 +70,7 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
 - **Trezor** (`luxos-safe`) – šifrovaná složka `/safe/<uživatel>` s vlastním heslem, zamyká se sama.
 - **Sandbox** (`luxos-sandbox`) – izolovaný systém pro nedůvěryhodné aplikace (`/dev/sandbox/<uživatel>`).
 - **LuxDrop** – šifrovaný přenos souborů mezi počítači LuxOS (ověření kódem, připnuté klíče) a s aplikací LocalSend (telefony, tablety, Windows, Linux; protokol v2, HTTPS + mTLS).
+- **Připojit k počítači** – sdílené složky jiného počítače LuxOS v Souborech vedle vašich (rozdělené okno, přetahování); každý počítač musí majitel povolit, jen pro čtení, SFTP v sandboxu přes TLS LuxDropu.
 - **Světlý režim** jako výchozí, přepínatelný nebo automatický podle východu a západu slunce;
   spořiče obrazovky (tapety, hodiny, polární záře, fotky, logo).
 - **Čeština i angličtina** – aplikace a skripty LuxOS podle jazyka systému (`luxos-i18n`,

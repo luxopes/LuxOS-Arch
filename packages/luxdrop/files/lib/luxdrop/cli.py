@@ -392,7 +392,8 @@ def cmd_mode(args):
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    cmds = {"send", "receive", "devices", "trust", "id", "mode", "gui", "-h", "--help"}
+    cmds = {"send", "receive", "devices", "trust", "id", "mode", "gui", "share", "connect", "disconnect",
+            "connections", "-h", "--help"}
     if not argv or argv[0] not in cmds:
         # luxdrop [soubory...] -> graficka aplikace (Thunar, "Otevrit pomoci")
         from .gui import main as gui_main
@@ -434,9 +435,11 @@ def main(argv=None):
     m = sub.add_parser("mode", help=_("show or set who can send to this computer"))
     m.add_argument("mode", nargs="?", choices=store.MODES)
     m.add_argument("--minutes", type=int, help=_("with everyone: only for this many minutes (max. 10)"))
+    from . import remote_cli
+    remote_cmds = remote_cli.add_parsers(sub)
     a = ap.parse_args(argv)
     fn = {"send": cmd_send, "receive": cmd_receive, "devices": cmd_devices, "trust": cmd_trust,
-          "id": cmd_id, "mode": cmd_mode}[a.cmd]
+          "id": cmd_id, "mode": cmd_mode, **remote_cmds}[a.cmd]
     try:
         return fn(a)
     except RuntimeError as e:

@@ -3237,3 +3237,84 @@ Mirror displays	Zrcadlit monitory
 Show the same picture on all displays.	Na všech monitorech stejný obraz.
 The displays show the same picture. Turn off mirroring to arrange them.	Monitory ukazují stejný obraz. Chcete-li je uspořádat, vypněte zrcadlení.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Používá se jen jeden monitor. Chcete-li monitory uspořádat, zvolte Rozšířit v části Více monitorů.
+# LuxDrop - soubory jineho pocitace (Pripojit k pocitaci, sdilene slozky)
+Shared folders	Sdílené složky
+Share folders	Sdílet složky
+Other LuxOS computers can open these folders after you allow it. Read-only unless you also allow changes.	Jiné počítače LuxOS mohou tyto složky otevřít, až jim to povolíte. Jen pro čtení, pokud nepovolíte i změny.
+Add folder…	Přidat složku…
+Connect to Computer…	Připojit k počítači…
+Connect to Computer	Připojit k počítači
+Computers with access	Počítače s přístupem
+Computers with access:	Počítače s přístupem:
+Share your whole home folder?	Sdílet celou domovskou složku?
+Hidden files and folders (settings, keys, passwords) are never shared. Each computer still needs your permission.	Skryté soubory a složky (nastavení, klíče, hesla) se nikdy nesdílí. Každý počítač stále potřebuje vaše svolení.
+Only folders in your home folder or on external drives can be shared, not hidden folders.	Sdílet lze jen složky v domovské složce nebo na externích discích, ne skryté složky.
+No shared folders.	Žádné sdílené složky.
+No computers yet. Each new computer must be allowed first.	Zatím žádné počítače. Každý nový počítač musíte nejdřív povolit.
+Can change files	Může měnit soubory
+can change files	může měnit soubory
+Read-only	Jen pro čtení
+read-only	jen pro čtení
+Read-only.	Jen pro čtení.
+Share	Sdílet
+Deny	Odmítnout
+Allow once	Povolit jednou
+Always allow	Vždy povolit
+Access to shared folders	Přístup ke sdíleným složkám
+LuxDrop: access to shared folders	LuxDrop: přístup ke sdíleným složkám
+“%s” wants to access your shared folders	„%s“ chce přístup k vašim sdíleným složkám
+“%s” wants to access and change your shared folders	„%s“ chce přístup k vašim sdíleným složkám a měnit je
+Allow only if the other computer shows the same code.	Povolte, jen když druhý počítač ukazuje stejný kód.
+Also allow changes (copy in, rename and delete files)	Povolit i změny (kopírování dovnitř, přejmenování a mazání souborů)
+Also allow changes (copy in, rename and delete files)? [y/N]: 	Povolit i změny (kopírování dovnitř, přejmenování a mazání souborů)? [y/N]: 
+Read-only: the other computer can open and copy your shared files, but cannot change them.	Jen pro čtení: druhý počítač může vaše sdílené soubory otevírat a kopírovat, ale nemůže je měnit.
+Allow? [o]nce / [a]lways / [N]o: 	Povolit? [o] jednou / [a] vždy / [N] ne: 
+The other computer cancelled the request.	Druhý počítač žádost zrušil.
+Sharing is turned off. Turn it on with: luxdrop share on	Sdílení je vypnuté. Zapnete ho příkazem: luxdrop share on
+sftp-server (openssh) is not installed	sftp-server (openssh) není nainstalovaný
+Sharing as "%s" (ID %s) on port %d: %s	Sdílí se jako „%s“ (ID %s) na portu %d: %s
+Sharing is off.	Sdílení je vypnuté.
+Sharing is on: %s	Sdílení je zapnuté: %s
+Sharing: %s	Sdílení: %s
+Shared: %s	Sdíleno: %s
+Removed %d folder(s)	Odebráno složek: %d
+Changed %d device(s)	Změněno zařízení: %d
+None (every connection is asked first).	Žádné (na každé spojení se nejdřív zeptá).
+Share your whole home folder? Hidden files and folders (settings, keys, passwords) are never shared.	Sdílet celou domovskou složku? Skryté soubory a složky (nastavení, klíče, hesla) se nikdy nesdílí.
+Share the home folder? [y/N]: 	Sdílet domovskou složku? [y/N]: 
+Computer '%s' not found on the network. Use its address: luxdrop connect HOST	Počítač „%s“ nebyl v síti nalezen. Použijte jeho adresu: luxdrop connect HOST
+Connected to %s (%s): %s	Připojeno k %s (%s): %s
+Connected to %s	Připojeno k %s
+Disconnected from %s	Odpojeno od %s
+Disconnected %d computer(s)	Odpojeno počítačů: %d
+Not connected to any computer.	Nejste připojeni k žádnému počítači.
+Cannot connect: %s (%s)	Nelze se připojit: %s (%s)
+Cannot connect: %s	Nelze se připojit: %s
+Cannot connect to %s: %s	Nelze se připojit k %s: %s
+share folders with other LuxOS computers	sdílet složky s jinými počítači LuxOS
+folder (add/remove) or device ID/name (forget/allow-write/read-only)	složka (add/remove) nebo ID či jméno zařízení (forget/allow-write/read-only)
+do not ask before sharing the home folder	neptat se před sdílením domovské složky
+open the shared folders of another LuxOS computer in Files	otevřít sdílené složky jiného počítače LuxOS v Souborech
+computer name, ID, HOST[:PORT] or NAME@HOST[:PORT]; without it a window opens	jméno počítače, ID, HOST[:PORT] nebo JMÉNO@HOST[:PORT]; bez něj se otevře okno
+ask for permission to change files	požádat o svolení měnit soubory
+Ask for permission to change files	Požádat o svolení měnit soubory
+do not open a Files window	neotevírat okno Souborů
+disconnect from another computer	odpojit se od jiného počítače
+list connected computers	vypsat připojené počítače
+Waiting for “%s” to allow access…	Čeká se, až „%s“ povolí přístup…
+The other computer must share folders (LuxDrop › Settings › Share folders) and allow your access.	Druhý počítač musí sdílet složky (LuxDrop › Nastavení › Sdílet složky) a povolit vám přístup.
+Computers nearby	Počítače v okolí
+Address, e.g. 192.168.1.20	Adresa, např. 192.168.1.20
+Cancelled: the codes were not confirmed.	Zrušeno: kódy nebyly potvrzeny.
+Open the files of another LuxOS computer next to yours	Otevřete soubory jiného počítače LuxOS vedle svých
+Looking for computers… On the other computer turn on LuxDrop › Settings › Share folders.	Hledají se počítače… Na druhém počítači zapněte LuxDrop › Nastavení › Sdílet složky.
+Opening the shared folders…	Otevírají se sdílené složky…
+The files of “%s” are in the sidebar of Files.	Soubory počítače „%s“ najdete v postranním panelu Souborů.
+“%s” denied access.	„%s“ přístup odmítl.
+“%s” did not answer in time.	„%s“ neodpověděl včas.
+“%s” is busy. Try again later.	„%s“ je zaneprázdněný. Zkuste to později.
+“%s” does not share any folders.	„%s“ nesdílí žádné složky.
+“%s” presented a different key than expected. Someone may be impersonating it. If it was reinstalled, remove it from Trusted devices and try again.	„%s“ předložil jiný klíč, než se čekalo. Někdo se za něj možná vydává. Pokud byl přeinstalován, odeberte ho z Důvěryhodných zařízení a zkuste to znovu.
+Enter the address of the other computer.	Zadejte adresu druhého počítače.
+Continue only if “%s” shows the same code.	Pokračujte, jen když „%s“ ukazuje stejný kód.
+The connection was closed.	Spojení bylo ukončeno.
