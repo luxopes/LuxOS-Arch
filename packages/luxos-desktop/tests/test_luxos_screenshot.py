@@ -417,6 +417,32 @@ class TestGui(unittest.TestCase):
             os.makedirs(d, exist_ok=True)
             shot.grab().savev(os.path.join(d, name), "png", [], [])
 
+    def test_toolbar_leaves_desktop_usable(self):
+        """S listou se obrazovka nezmrazi a klavesnice se nezabere: dal jde otevirat a klikat."""
+        app = self.make_app({"mode": "portion", "timer": 0}, {})
+        app.run()
+        pump(200)
+        self.assertIsNotNone(app.overlay)
+        if self.Gdk.Screen.get_default().get_rgba_visual() is None:
+            self.skipTest("bez RGBA visualu (zadny kompozitor) zustava zmrazeny vyber")
+        self.assertTrue(app.overlay.live)
+        self.assertIsNone(app.frozen)
+        seat = self.Gdk.Display.get_default().get_default_seat()
+        # zadne zachyceni: jine okno muze dostat klavesnici
+        other = self.Gtk.Window(title="other")
+        entry = self.Gtk.Entry()
+        other.add(entry)
+        other.show_all()
+        pump(100)
+        st = seat.grab(other.get_window(), self.Gdk.SeatCapabilities.KEYBOARD, True, None, None, None, None)
+        self.assertEqual(st, self.Gdk.GrabStatus.SUCCESS)
+        seat.ungrab()
+        other.destroy()
+        # zachyceni vyberu bere zivou obrazovku (bez zmrazeneho snimku)
+        app.capture()
+        pump(shot.HIDE_DELAY + 600)
+        self.assertEqual(len(self.pngs()), 1)
+
     def test_toolbar_full_screen(self):
         app = self.make_app({"mode": "screen"}, {})
         t0 = time.monotonic()
@@ -584,10 +610,9 @@ class TestGui(unittest.TestCase):
             # Tlacitka nemaji pomaly tooltip GTK, ale maji jmeno pro ctecku obrazovky
             self.assertIsNone(tb.modes["portion"].get_tooltip_text())
             self.assertEqual(tb.modes["portion"].get_accessible().get_name(), "Capture Selected Portion")
-            # Prepnuti rezimu: popisek ukaze novy rezim; lista se skryva -> popisek taky
+            # Prepnuti rezimu: lista zustava (zivy prekryv bez zmrazeni), popisek hned ukaze novy rezim
             app.set_mode("rec_portion")
-            self.assertFalse(cap.get_visible())
-            pump(shot.HIDE_DELAY + 200)
+            pump(50)
             self.assertTrue(cap.get_visible())
             self.assertEqual(cap.name.get_text(), "Record Selected Portion")
             self.save_look("caption-rec-portion.png")
