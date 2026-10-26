@@ -169,7 +169,14 @@ luxos-screenshot --record-screen | --record-portion | --stop
   --output DIR           save into DIR
   --region X,Y,W,H       capture this rectangle without selecting
   --no-thumbnail
+luxos-screenshot --close   close an open bar, selection or thumbnail
 ```
+
+**Esc** closes the tool in every state (bar, selection, timer countdown, thumbnail) even when another
+app has the keyboard focus; an open Options or thumbnail menu closes first. While recording, Esc is
+left to the recorded apps – use **Stop** or run the tool again. The bar and its windows live in the
+session process `luxos-hub`, so the bar appears instantly; without it `luxos-screenshot` starts the
+same tool on its own (`/usr/lib/luxos/luxos-screenshot-ui`).
 
 Old `xfce4-screenshooter` launchers open this tool too.
 
