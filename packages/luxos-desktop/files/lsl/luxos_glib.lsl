@@ -387,13 +387,13 @@ end
 
 function realpath(path):
     unsafe:
-        out = __lsl_qbe_call2(__lsl_symbol("realpath"), cstr(path), 0)
+        # vlastni buffer (PATH_MAX): starsi verze symbolu realpath v glibc s NULL nepracuje
+        buffer = __lsl_byte_zeros(4096)
+        out = __lsl_qbe_call2(__lsl_symbol("realpath"), cstr(path), data(buffer))
         if out == 0:
             return ""
         end
-        text = glib.from_c(out)
-        call __lsl_qbe_call1(__lsl_symbol("free"), out)
-        return text
+        return glib.from_c(out)
     end
 end
 
