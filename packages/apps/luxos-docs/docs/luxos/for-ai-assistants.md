@@ -195,8 +195,10 @@ from where they are – never proactively, repeatedly or in the background.
 `country_codes` and `language` of `map_geocode`/`map_reverse` are not needed on LuxOS (Maps uses
 the system language and prefers places near the map/the `--near` point).
 
-LuxAI has no dedicated map tool yet; in Agent mode run these commands with `run_command` (they only
-read data, except `open`, which shows a window, and `--render-preview`, which writes the PNG).
+LuxAI (native, from 1.0) has built-in tools `map_geocode`, `map_reverse`, `map_nearby`, `map_route`,
+`map_transit_route`, `transit_timetable`, `current_location` (Chat and Agent, read-only) and `map_open`
+(Agent, open apps permission); they call these commands and show a route card with a preview. Other
+assistants run the commands directly (read-only, except `open` and `--render-preview`).
 
 ## Sandbox for untrusted programs
 
