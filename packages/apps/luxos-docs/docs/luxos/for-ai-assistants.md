@@ -198,6 +198,9 @@ starting at [LSL overview](../lsl/overview.md).
 - earlyoom, not systemd-oomd, handles low memory; zram is the swap.
 - Updates may run automatically in the background (LuxOS Care); if the package database is locked,
   wait instead of forcing.
+- `/usr` is usually read-only (system protection): never copy files into it, install with `lux`;
+  own programs go to `/usr/local` or `~/.local`. "Read-only file system" in `/usr` is expected
+  ([system-protection.md](system-protection.md)).
 
 ## Manual pages
 

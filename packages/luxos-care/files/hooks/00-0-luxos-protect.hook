@@ -1,0 +1,16 @@
+# LuxOS - ochrana systemu: pred transakci /usr zapisovatelny (bez aktivni ochrany nic nedela).
+# Prvni ze vsech hooku (i pred 00-lux-engine-migrate). Kdyz se /usr zapisovatelny udelat nepodari,
+# transakce se zastavi drive, nez cokoli zmeni (AbortOnFail) - jinak by skoncila v pulce.
+# lux sam odemyka uz pred kontrolou mista (CheckSpace); tento hook plati pro ostatni (lux-engine).
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Target = *
+
+[Action]
+Description = Opening protected system files for the update...
+When = PreTransaction
+Exec = /usr/bin/luxos-care protect unlock
+AbortOnFail

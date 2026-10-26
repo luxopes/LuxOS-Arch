@@ -6,7 +6,10 @@ polkit.addRule(function(action, subject) {
         !subject.isInGroup("wheel") || action.lookup("verb") != "start")
         return polkit.Result.NOT_HANDLED;
     var unit = action.lookup("unit");
+    // Kontrola systemovych souboru a jeji oprava (preinstalace baliku z posledni kontroly
+    // z podepsanych repozitaru - ktere balicky, rozhoduje root, ne aplikace)
     if (unit == "luxos-care-update-now.service" || unit == "luxos-care-check-now.service" ||
+        unit == "luxos-care-verify-now.service" || unit == "luxos-care-repair-now.service" ||
         /^luxos-care-apply@[0-9a-f]{12}-[0-9]{1,2}\.service$/.test(unit))
         return polkit.Result.YES;
     return polkit.Result.NOT_HANDLED;

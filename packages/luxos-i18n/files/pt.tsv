@@ -3531,3 +3531,48 @@ Your location could not be found.	Não foi possível encontrar a sua localizaç�
 Zoom In	Aproximar
 Zoom Out	Afastar
 © OpenStreetMap contributors	© contribuidores do OpenStreetMap
+System protection	Proteção do sistema
+System protection: On	Proteção do sistema: ativada
+System protection: On (system files are open for an update)	Proteção do sistema: ativada (os arquivos do sistema estão abertos para uma atualização)
+System protection: On after the next restart	Proteção do sistema: ativada após a próxima reinicialização
+System protection: Off	Proteção do sistema: desativada
+System files verified on %s	Arquivos do sistema verificados em %s
+%d system files were changed or are missing	Arquivos do sistema alterados ou ausentes: %d
+System files were not verified yet.	Os arquivos do sistema ainda não foram verificados.
+Protected system files could not be opened for the update.	Não foi possível abrir os arquivos protegidos do sistema para a atualização.
+System files become read-only after the current update or the next restart.	Os arquivos do sistema ficarão somente leitura após a atualização atual ou a próxima reinicialização.
+System files could not be protected: %s	Não foi possível proteger os arquivos do sistema: %s
+System files could not be made read-only (a program is writing to /usr?).	Não foi possível tornar os arquivos do sistema somente leitura (algum programa está gravando em /usr?).
+changed	alterado
+missing	ausente
+replaced	substituído
+link changed	link alterado
+permissions changed	permissões alteradas
+No modified system files - nothing to repair.	Nenhum arquivo do sistema alterado – nada a reparar.
+Reinstalling %s	Reinstalando %s
+Repaired: %s	Reparado: %s
+Could not be repaired: %s	Não foi possível reparar: %s
+Not from the repositories (cannot be reinstalled): %s	Não vem dos repositórios (não pode ser reinstalado): %s
+Not due yet.	Ainda não é hora.
+Weekly verification is turned off (VERIFY=no).	A verificação semanal está desativada (VERIFY=no).
+Postponed: waiting for the charger.	Adiado: aguardando o carregador.
+Stopped: running on battery.	Interrompido: funcionando na bateria.
+Another verification is running.	Outra verificação já está em andamento.
+Checked %d files of %d packages.	Verificados %d arquivos de %d pacotes.
+Repair: luxos-care verify --repair (reinstalls %s)	Reparar: luxos-care verify --repair (reinstala %s)
+No modified system files.	Nenhum arquivo do sistema alterado.
+Repaired system files	Arquivos do sistema reparados
+System files could not be repaired	Não foi possível reparar os arquivos do sistema
+Verify Now	Verificar agora
+System files are open for an update right now.	Os arquivos do sistema estão abertos para uma atualização neste momento.
+System files (/usr) are read-only. Only updates and app installations can change them.	Os arquivos do sistema (/usr) são somente leitura. Só atualizações e instalações de aplicativos podem alterá-los.
+Turn On	Ativar
+When it is on, programs cannot change system files outside of updates.	Quando está ativada, os programas não podem alterar os arquivos do sistema fora das atualizações.
+Verifying system files… %d %%	Verificando os arquivos do sistema… %d %%
+LuxOS checks them once a week while the computer is charging.	O LuxOS os verifica uma vez por semana enquanto o computador está carregando.
+Repair	Reparar
+Verified %s	Verificado %s
+Repair reinstalls: %s	O reparo reinstala: %s
+System files were changed	Arquivos do sistema foram alterados
+%d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.	Arquivos do sistema alterados ou ausentes: %d. O LuxOS pode repará-los reinstalando os pacotes afetados.
+Invalid PROTECT (use 0 or 1)	PROTECT inválido (use 0 ou 1)

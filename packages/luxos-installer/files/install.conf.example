@@ -35,6 +35,7 @@ HOSTNAME_SEL=luxos
 AUTOLOGIN=0
 CARE_MODE=carefree     # carefree = automaticke aktualizace na pozadi, zalozni jadro, samoopravy (LuxAI Flash)
                        # classic = bez automatickych aktualizaci a oprav (pro IT profesionaly), jen upozorneni
+PROTECT=1              # ochrana systemu: /usr jen pro cteni, meni ho jen aktualizace a instalace (0 = vypnuto)
 # Nepovinne: sablony softwaru (aplikace navic), vice oddelenych carkou; prazdne/none = jen zaklad
 #   everyday, programming, creative, gaming, security  (seznamy v /usr/share/luxos/installer/templates)
 TEMPLATES=

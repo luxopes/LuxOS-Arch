@@ -1,0 +1,12 @@
+[Unit]
+Description=LuxOS Care: verify system files now
+Documentation=man:luxos-care(8)
+ConditionPathExists=!/run/archiso
+
+[Service]
+Type=oneshot
+# Rucne z Aktualizace softwaru: hned (i na baterii), ale stale nizkou prioritou
+ExecStart=/usr/bin/luxos-care verify
+TimeoutStartSec=6h
+Nice=10
+IOSchedulingClass=idle

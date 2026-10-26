@@ -61,6 +61,7 @@ config = {
         "mode": "carefree"
         "snapshots": True
         "keep_snapshots": 5
+        "protect": True
     }
     "guard": {
         "enable": True

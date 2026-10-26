@@ -144,6 +144,11 @@ function notification_for(ev):
     if k == "rolled_back":
         return [i18n.T("LuxOS was restored"), i18n.TF("LuxOS is back in the state: %s", [String(ev.get("label", ""))]), []]
     end
+    if k == "integrity":
+        return [i18n.T("System files were changed"),
+                i18n.TF("%d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.", [count_of(ev)]),
+                [["open", i18n.T("Details")]]]
+    end
     return None
 end
 
@@ -191,6 +196,27 @@ function notify(title, body, actions):
     end
     call gio.call_async(state["bus"], "org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "Notify",
                         ["LuxOS", 0, "system-software-update", title, body, acts, {"desktop-entry": ["s", APP]}, -1], "(susssasa{sv}i)", 5000, on_notified, 0)
+    return 0
+end
+
+# Zmenene systemove soubory (luxos-care verify): kriticke upozorneni, ktere zustane v historii
+# upozorneni (hint x-luxos-keep); notify-send -w ceka na tlacitko
+function notify_critical(title, body, actions):
+    argv = ["notify-send", "-a", "LuxOS", "-u", "critical", "-h", "boolean:x-luxos-keep:true", "-i", "dialog-warning", "-w"]
+    for pair in actions:
+        argv.append("-A")
+        argv.append(pair[0] + "=" + pair[1])
+    end
+    argv.append(title)
+    argv.append(body)
+    call glib.spawn_capture(argv, on_critical_action, 0)
+    return 0
+end
+
+function on_critical_action(unused, output, status):
+    if output.strip() == "open":
+        call glib.spawn([APP])
+    end
     return 0
 end
 
@@ -307,7 +333,9 @@ function process_events():
             continue
         end
         n = notification_for(ev)
-        if n != None:
+        if n != None and ev.get("kind") == "integrity":
+            call notify_critical(n[0], n[1], n[2])
+        elif n != None:
             call notify(n[0], n[1], n[2])
         end
     end

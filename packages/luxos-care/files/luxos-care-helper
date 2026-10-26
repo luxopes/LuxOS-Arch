@@ -1,9 +1,12 @@
 #!/bin/bash
-# LuxOS Care - zmena rezimu z aplikace (pkexec, viz org.luxos.care.policy)
+# LuxOS Care - zmeny nastaveni z aplikace (pkexec, viz org.luxos.care.policy)
 #   luxos-care-helper set-mode carefree|classic
+#   luxos-care-helper set-protect on|off       ochrana systemu (/usr jen pro cteni)
 set -euo pipefail
 case ${1-}:${2-} in
     set-mode:carefree|set-mode:classic) exec /usr/bin/luxos-care mode "$2" ;;
+    set-protect:on) exec /usr/bin/luxos-care protect enable ;;
+    set-protect:off) exec /usr/bin/luxos-care protect disable ;;
 esac
-echo "usage: luxos-care-helper set-mode carefree|classic" >&2
+echo "usage: luxos-care-helper set-mode carefree|classic | set-protect on|off" >&2
 exit 2

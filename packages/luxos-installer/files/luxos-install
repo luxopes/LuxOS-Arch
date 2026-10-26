@@ -1802,8 +1802,9 @@ HW_SERVICES=$(printf %q "${hw_svcs[*]}")
 OEM=${OEM:-0}
 OEM_LOCALES=$(printf %q "$oem_locales")
 ENV
-    # Rezim udrzby pro luxos-care
-    printf "MODE=%s\nKERNEL=linux-luxos\n" "$CARE_MODE" | install -Dm644 /dev/stdin "$TARGET/etc/luxos/care.conf"
+    # Rezim udrzby pro luxos-care; ochrana systemu (/usr jen pro cteni) od prvniho startu
+    printf "MODE=%s\nKERNEL=linux-luxos\nPROTECT=%s\n" "$CARE_MODE" "$( ((${PROTECT:-1})) && echo yes || echo no)" |
+        install -Dm644 /dev/stdin "$TARGET/etc/luxos/care.conf"
     install -m700 "$SHARE/setup-chroot.sh" "$TARGET/root/luxos-setup.sh"
     ((${OEM:-0})) && oem_prepare_target
     arch-chroot "$TARGET" /root/luxos-setup.sh 2>&1 | tee -a "$LOG"
@@ -2230,6 +2231,8 @@ main() {
     check_wipe
     : "${CARE_MODE:=carefree}"
     [[ $CARE_MODE == carefree || $CARE_MODE == classic ]] || fail "$(T "Invalid CARE_MODE (use carefree or classic)")"
+    : "${PROTECT:=1}"
+    [[ $PROTECT == @(0|1) ]] || fail "$(T "Invalid PROTECT (use 0 or 1)")"
     [[ -n $CONFIG ]] && parse_templates
     if [[ $DISK_MODE == manual ]]; then STEP_TOTAL=4
     elif uses_layout; then STEP_TOTAL=$(($(layout_steps) + 4))

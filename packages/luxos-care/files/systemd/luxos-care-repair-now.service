@@ -1,0 +1,12 @@
+[Unit]
+Description=LuxOS Care: reinstall packages with modified system files
+Documentation=man:luxos-care(8)
+After=network-online.target
+ConditionPathExists=!/run/archiso
+ConditionKernelCommandLine=!luxos.snapshot
+
+[Service]
+Type=oneshot
+# Jen balicky z posledni kontroly (vybira root, ne aplikace), z podepsanych repozitaru
+ExecStart=/usr/bin/luxos-care verify --repair
+TimeoutStartSec=2h

@@ -1,0 +1,53 @@
+#!/bin/bash
+# LuxOS - ochrana systemu pri startu (luxos-protect.service, pred sysinit.target):
+# /usr se stane vazanym pripojenim jen pro cteni (priznak pripojeni, souborovy system i snimky
+# zustavaji zapisovatelne), /usr/local zustane zapisovatelne. Zapisovat do /usr pak smi jen
+# transakce baliku (lux, LuxOS Care, Obchod - viz /usr/lib/luxos/python/luxos_protect.py).
+# Zapnuti PROTECT=yes v /etc/luxos/care.conf, pro jeden start vypnout parametrem jadra luxos.protect=0.
+# Kdyz cokoli selze, nic se nezmeni a start pokracuje jako bez ochrany (navratovy kod vzdy 0).
+# Bez Pythonu (start nesmi zdrzet): jen bash a mount.
+conf=${LUXOS_PROTECT_CONF:-/etc/luxos/care.conf}
+cmdline=${LUXOS_PROTECT_CMDLINE:-/proc/cmdline}
+usr=${LUXOS_PROTECT_USR:-/usr}
+live=${LUXOS_PROTECT_LIVE:-/run/archiso}
+
+log() { echo "luxos-protect: $*" >&2; }
+
+[[ -r $conf && ! -e $live ]] || exit 0
+on=0
+while IFS='=' read -r key value; do
+    key=${key//[[:space:]]/}
+    [[ $key == PROTECT ]] || continue
+    value=${value//[[:space:]\"\']/}
+    case ${value,,} in
+        yes|1|true|on) on=1 ;;
+        *) on=0 ;;
+    esac
+done <"$conf"
+((on)) || exit 0
+
+# Start ze snimku (koren je docasna vrstva), LuxOS Recovery, vypnuti pro jeden start
+read -r -a words <"$cmdline" 2>/dev/null
+for w in "${words[@]}"; do
+    case $w in
+        luxos.protect=0|luxos.protect=no|luxos.protect=off|luxos.snapshot=*|systemd.unit=luxos-recovery.target)
+            exit 0 ;;
+    esac
+done
+
+bound=0
+if ! mountpoint -q "$usr"; then
+    # --rbind: pripadna pripojeni pod /usr zustanou videt
+    mount --rbind "$usr" "$usr" || { log "could not bind $usr, system files stay writable"; exit 0; }
+    bound=1
+fi
+if [[ -d $usr/local ]] && ! mountpoint -q "$usr/local"; then
+    if mount --bind "$usr/local" "$usr/local"; then
+        mount -o remount,bind,rw "$usr/local" || log "$usr/local could not be made writable"
+    fi
+fi
+if ! mount -o remount,bind,ro "$usr"; then
+    log "could not make $usr read-only, system files stay writable"
+    ((bound)) && log "($usr stays a writable bind mount until the next start)"
+fi
+exit 0
