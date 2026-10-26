@@ -22,6 +22,27 @@ if [[ ! -e $cfg/alttab-icons ]]; then
     : >"$cfg/alttab-icons"
 fi
 
+# Prepinac ploch (pager), pokud si ho uzivatel prida do listy: cisla ploch misto miniatur (sede
+# bloky; miniatury jdou zapnout v jeho nastaveni - pak uz se to nemeni) a plochy s vychozimi
+# nazvy "Workspace N" pojmenovane cisly (tlacitka by jinak byla dlouha)
+for p in $(xfconf-query -c xfce4-panel -l 2>/dev/null | grep -E '^/plugins/plugin-[0-9]+$'); do
+    [[ $(xfconf-query -c xfce4-panel -p "$p" 2>/dev/null) == pager ]] || continue
+    xfconf-query -c xfce4-panel -p "$p/miniature-view" >/dev/null 2>&1 ||
+        xfconf-query -c xfce4-panel -p "$p/miniature-view" -n -t bool -s false 2>/dev/null
+done
+mapfile -t ws_names < <(xfconf-query -c xfwm4 -p /general/workspace_names 2>/dev/null | tail -n +3)
+ws_count=$(xfconf-query -c xfwm4 -p /general/workspace_count 2>/dev/null)
+if [[ $ws_count =~ ^[0-9]+$ ]] && ! printf '%s\n' "${ws_names[@]}" | grep -qvE '^(Workspace [0-9]+|[0-9]+|)$'; then
+    ws_nums=() ws_args=()
+    for ((i = 1; i <= ws_count; i++)); do ws_nums+=("$i"); ws_args+=(-t string -s "$i"); done
+    [[ ${ws_names[*]} == "${ws_nums[*]}" ]] ||
+        xfconf-query -c xfwm4 -p /general/workspace_names -n "${ws_args[@]}" 2>/dev/null
+fi
+unset p ws_names ws_count ws_nums ws_args i
+
+# Spravovany blok v ~/.config/gtk-3.0/gtk.css (barvy listy, vzhled prepinace ploch) po aktualizaci LuxOS
+luxos-appearance panel-css 2>/dev/null
+
 # Starsi profily: klik na uzivatele v nabidce otevre Ucet LuxAI (mugshot neni nainstalovany)
 [[ $(xfconf-query -c xfce4-panel -p /plugins/plugin-1/command-profile 2>/dev/null) == luxos-account ]] ||
     xfconf-query -c xfce4-panel -p /plugins/plugin-1/command-profile -n -t string -s luxos-account 2>/dev/null

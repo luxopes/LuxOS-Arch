@@ -136,19 +136,35 @@ greeter_sync() {
 }
 
 # Barva textu horni listy: WhiteSur pocita s tmavou listou, ve svetlem rezimu ji prebarvime.
+# Prepinac ploch (pager, jde pridat do listy): plugin si nastavi vlastni CSS s prioritou uzivatele
+# (sede bloky), proto styl v uzivatelskem gtk.css, ne v tematu - cisla ploch, aktivni modre.
 # Spravovany blok v ~/.config/gtk-3.0/gtk.css (ostatni obsah souboru zustava).
+# Navratovy kod 0 = blok se zmenil (panel ho nacte az po restartu).
 panel_css() {
-    local mode=$1 css="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/gtk.css"
+    local mode=$1 css="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/gtk.css" fg block old
     mkdir -p "${css%/*}"
     touch "$css"
+    fg='#ffffff'
+    [[ $mode == light ]] && fg='#1d1d1f'
+    block="/* LuxOS appearance begin */"$'\n'
+    [[ $mode == light ]] &&
+        block+=".xfce4-panel, .xfce4-panel label, .xfce4-panel button, .xfce4-panel image { color: $fg; }"$'\n'
+    # pager v rezimu cisel (vychozi LuxOS, luxos-session): tlacitka v mrizce - jine pluginy listy mrizku nemaji
+    block+=".xfce4-panel grid > button { min-width: 20px; min-height: 0; padding: 0 4px; margin: 4px 1px; border-radius: 6px; background: transparent; box-shadow: none; border: none; }"$'\n'
+    block+=".xfce4-panel grid > button label { color: alpha($fg, 0.55); font-weight: 600; }"$'\n'
+    block+=".xfce4-panel grid > button:hover { background: alpha($fg, 0.08); }"$'\n'
+    block+=".xfce4-panel grid > button:checked { background: alpha(#3d7bff, 0.22); }"$'\n'
+    block+=".xfce4-panel grid > button:checked label { color: $fg; }"$'\n'
+    # miniatury (zapnute v nastaveni pageru): bez sedych bloku; ztmaveni neaktivnich ploch kresli libwnck napevno
+    block+=".xfce4-panel wnck-pager { background: transparent; }"$'\n'
+    block+=".xfce4-panel wnck-pager:hover { background: alpha($fg, 0.08); }"$'\n'
+    block+=".xfce4-panel wnck-pager:selected { background: alpha(#3d7bff, 0.22); }"$'\n'
+    block+="/* LuxOS appearance end */"
+    old=$(sed -n '/\/\* LuxOS appearance begin \*\//,/\/\* LuxOS appearance end \*\//p' "$css")
+    [[ $old == "$block" ]] && return 1
     sed -i '/\/\* LuxOS appearance begin \*\//,/\/\* LuxOS appearance end \*\//d' "$css"
-    if [[ $mode == light ]]; then
-        cat >> "$css" <<'CSS'
-/* LuxOS appearance begin */
-.xfce4-panel, .xfce4-panel label, .xfce4-panel button, .xfce4-panel image { color: #1d1d1f; }
-/* LuxOS appearance end */
-CSS
-    fi
+    printf '%s\n' "$block" >>"$css"
+    return 0
 }
 
 apply() {
@@ -185,7 +201,7 @@ apply() {
     fi
     local old
     old=$(cat "$state_file" 2>/dev/null)
-    panel_css "$mode"
+    panel_css "$mode" || true
     mkdir -p "$state_dir"
     echo "$mode" > "$state_file"
     # Panel nacita gtk.css jen pri startu
@@ -195,6 +211,10 @@ apply() {
 }
 
 case ${1:-status} in
+    # Po aktualizaci LuxOS (luxos-session pri prihlaseni): obnovit spravovany blok, panel jen pri zmene
+    panel-css)  if panel_css "$(current)" && pgrep -u "$USER" -x xfce4-panel >/dev/null; then
+                    xfce4-panel -r >/dev/null 2>&1 &
+                fi ;;
     dark|light) set_pref APPEARANCE_AUTO 0; apply "$1"; set_wallpaper "$1" 1; greeter_sync ;;
     toggle)     set_pref APPEARANCE_AUTO 0
                 m=$([[ $(current) == dark ]] && echo light || echo dark); apply "$m"; set_wallpaper "$m" 1; greeter_sync ;;

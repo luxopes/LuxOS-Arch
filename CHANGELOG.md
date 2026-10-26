@@ -4,6 +4,14 @@ Verze: `X.Y.Z` – `Y` roste s každým novým ISO, `Z` s opravami chyb. Každá
 Číslo verze je v `packages/luxos-branding/files/version` (os-release, O tomto počítači, fastfetch, název ISO).
 LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z jakého stavu systém vychází.
 
+## Připravuje se
+
+### Nové
+- **Graf vytížení CPU** jde přidat do horní lišty (pravým tlačítkem na lištu › Panel › Přidat nové položky › CPU Graph); ve výchozí liště není.
+
+### Opraveno
+- **Přepínač ploch** (pokud si ho přidáte do lišty) ukazuje čísla ploch v barvách lišty, aktivní plocha modře, místo šedých bloků s miniaturami; miniatury jdou zapnout v jeho nastavení a pak mají průhledné pozadí. Plochy s výchozími názvy „Workspace N“ se pojmenují čísly.
+
 ## 0.9.12 „Polaris“ – 2026-10-26 (beta)
 
 Nové ISO: ISO 0.9.7–0.9.11 končilo na počítačích s ovladači DKMS (NVIDIA, Broadcom) chybou „target not found: linux-luxos-headers“ – hlavičky jádra jsou zpět v ISO.
