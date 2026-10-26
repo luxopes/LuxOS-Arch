@@ -834,12 +834,22 @@ def monitor_at_pointer(disp):
 
 
 class Overlay(Popup):
-    """Ztmaveny zmrazeny snimek pres celou plochu: vyber vyrezu nebo okna."""
+    """Vyber vyrezu nebo okna pres celou plochu.
+
+    quick (zkratka bez listy): ztmaveny zmrazeny snimek, mys i klavesnice jen pro vyber.
+    S listou je prekryv zivy a pruhledny (surface None): mys zachyti jen ramecek vyberu, mimo nej
+    jdou kliknuti do aplikaci pod nim - pri otevrene liste jde dal otevirat a klikat."""
     HANDLE = 9
 
     def __init__(self, app, surface, mode, selection=None, quick=False):
         super().__init__()
         self.app, self.surface, self.quick = app, surface, quick
+        self.live = surface is None
+        if self.live:
+            vis = self.get_screen().get_rgba_visual()
+            if vis:
+                self.set_visual(vis)
+            self.set_app_paintable(True)
         root = root_window()
         self.sw, self.sh = root.get_width(), root.get_height()
         self.move(0, 0)
@@ -875,12 +885,34 @@ class Overlay(Popup):
             self.sel = [(self.sw - w) // 2, (self.sh - h) // 2, w, h]
         self.hover = None
         self.set_cursor("crosshair" if self.mode == "portion" else "default")
+        self.update_input()
         self.queue_draw()
+
+    def update_input(self):
+        """Zivy prekryv: mys jen v ramecku vyberu (+uchyty); v rezimu okna cela plocha (klik vybere okno)."""
+        if not self.live:
+            return
+        sel = self.norm() if self.mode == "portion" else None
+        if self.mode == "portion" and sel and not self.drag:
+            m = self.HANDLE + 2
+            x, y, w, h = sel
+            region = cairo.Region(cairo.RectangleInt(int(x - m), int(y - m), int(w + 2 * m), int(h + 2 * m)))
+        else:
+            region = None
+        self.input_shape_combine_region(region)
+
+    def queue_draw(self):
+        super().queue_draw()
+        if getattr(self, "live", False) and self.get_realized():
+            self.update_input()
 
     # -- kresleni
     def on_draw(self, _w, cr):
         cr.set_operator(cairo.OPERATOR_SOURCE)
-        cr.set_source_surface(self.surface, 0, 0)
+        if self.live:
+            cr.set_source_rgba(0, 0, 0, 0)
+        else:
+            cr.set_source_surface(self.surface, 0, 0)
         cr.paint()
         cr.set_operator(cairo.OPERATOR_OVER)
         if self.mode == "window":
@@ -895,7 +927,7 @@ class Overlay(Popup):
         sel = self.norm()
         if sel:
             cr.rectangle(*sel)
-        cr.set_source_rgba(0, 0, 0, 0.38)
+        cr.set_source_rgba(0, 0, 0, 0.22 if self.live else 0.38)
         cr.fill()
         if not sel:
             return
@@ -1024,6 +1056,7 @@ class Overlay(Popup):
         self.sel = list(sel)
         if self.quick:
             self.app.selected(sel, ctrl=bool(ev.state & Gdk.ModifierType.CONTROL_MASK))
+        self.queue_draw()           # zivy prekryv: zachytavani mysi zase jen v ramecku
         return True
 
     def on_key(self, w, ev):
@@ -1553,12 +1586,9 @@ class App:
         elif self.overlay:
             self.overlay.set_mode(mode)
             self.show_toolbar()
-        elif initial:
-            self.freeze()            # lista jeste neni videt: snimek hned
-            self.show_overlay(mode)
         else:
-            self.toolbar.hide()
-            GLib.timeout_add(HIDE_DELAY, lambda: (self.freeze(), self.show_overlay(mode)) and False)
+            # S listou zivy prekryv bez zmrazeni: snimek se porizuje az pri Zachytit
+            self.show_overlay(mode)
 
     def show_toolbar(self):
         tb = self.toolbar
@@ -1566,7 +1596,8 @@ class App:
         tb.show()
         tb.get_window().raise_()
         tb.show_caption()
-        grab_keyboard(self.overlay or tb)
+        # Klavesnici nezabirat: pri otevrene liste funguji zkratky a psani v aplikacich
+        # (Esc/Enter jen u rychleho vyberu bez listy, jinak tlacitka listy)
 
     def freeze(self):
         pb = grab()
@@ -1575,7 +1606,10 @@ class App:
         self.surface = Gdk.cairo_surface_create_from_pixbuf(pb, self.scale, None) if pb else None
 
     def show_overlay(self, mode, quick=False):
-        if not self.surface:
+        live = not quick and self.toolbar is not None and Gdk.Screen.get_default().get_rgba_visual() is not None
+        if not live and not self.surface:
+            self.freeze()
+        if not live and not self.surface:
             notify(_("The screenshot could not be taken."))
             self.cancel()
             return
@@ -1583,7 +1617,7 @@ class App:
         if not quick and self.opts["remember"] and self.opts["selection"]:
             root = root_window()
             sel = clamp_rect(self.opts["selection"], root.get_width(), root.get_height())
-        self.overlay = Overlay(self, self.surface, mode, sel, quick=quick)
+        self.overlay = Overlay(self, None if live else self.surface, mode, sel, quick=quick)
         self.overlay.show()
         if self.toolbar:
             self.show_toolbar()
@@ -1638,7 +1672,7 @@ class App:
         menu.attach_to_widget(button, None)
         # Po zavreni nabidky GTK uvolni vsechna zachyceni: klavesnici vzit zpet
         menu.connect("deactivate", lambda _m: GLib.idle_add(
-            lambda: self.toolbar and self.toolbar.get_visible() and grab_keyboard(self.overlay or self.toolbar)))
+            lambda: self.overlay and self.overlay.quick and grab_keyboard(self.overlay)))
         self.menu = menu
         menu.popup_at_widget(button, Gdk.Gravity.NORTH_WEST, Gdk.Gravity.SOUTH_WEST, None)
 
