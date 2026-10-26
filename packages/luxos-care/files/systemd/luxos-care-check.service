@@ -2,6 +2,7 @@
 Description=LuxOS Care: look for serious problems and repair them
 After=network-online.target
 ConditionPathExists=!/run/archiso
+ConditionKernelCommandLine=!luxos.snapshot
 
 [Service]
 Type=oneshot

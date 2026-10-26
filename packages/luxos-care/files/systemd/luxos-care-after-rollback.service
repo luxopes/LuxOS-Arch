@@ -1,0 +1,14 @@
+[Unit]
+Description=LuxOS Care: finish returning to a snapshot (new initramfs)
+ConditionPathExists=/var/lib/luxos-care/after-rollback
+ConditionKernelCommandLine=!luxos.snapshot
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/luxos-care after-rollback
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=multi-user.target

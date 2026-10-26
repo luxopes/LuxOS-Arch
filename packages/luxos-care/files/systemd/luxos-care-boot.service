@@ -6,6 +6,7 @@ Documentation=https://systemd.io/AUTOMATIC_BOOT_ASSESSMENT/
 After=graphical.target multi-user.target display-manager.service
 Before=boot-complete.target
 ConditionPathExists=!/run/archiso
+ConditionKernelCommandLine=!luxos.snapshot
 
 [Service]
 Type=oneshot

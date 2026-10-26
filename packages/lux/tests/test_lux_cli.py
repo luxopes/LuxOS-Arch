@@ -368,6 +368,65 @@ class CLI(unittest.TestCase):
         self.assertIn("vlc", out)
         self.assertEqual(len(out.splitlines()), 1)
 
+    # -- snimky systemu (luxos-care) --
+    SNAPS = ('[{"name": "2026-10-25_10-00-00", "label": "LuxOS (before update of 2026-10-25 10:00)"},'
+             ' {"name": "2026-10-26_14-03-12", "label": "LuxOS (before update of 2026-10-26 14:03)"}]')
+
+    def care_stub(self, cmdline="quiet splash"):
+        care = os.path.join(self.bin, "luxos-care")
+        with open(care, "w") as f:
+            f.write('#!/bin/bash\nprintf "%s\\n" "$*" >>"$LOG/luxos-care.log"\n'
+                    '[[ $1 == snapshots && $2 == --json ]] && printf "%s" "$SNAPS"\nexit 0\n')
+        os.chmod(care, 0o755)
+        os.unlink(os.path.join(self.bin, "jq"))           # skutecny jq
+        cl = os.path.join(self.tmp, "cmdline")
+        with open(cl, "w") as f:
+            f.write(cmdline + "\n")
+        return {"LUX_CARE": care, "LUX_CMDLINE": cl, "SNAPS": self.SNAPS, "NO_COLOR": "1"}
+
+    def lux_input(self, text, *args, env=None):
+        r = subprocess.run(["bash", LUX] + list(args), env=dict(self.env, **(env or {})), input=text,
+                           capture_output=True, text=True, timeout=60)
+        return r.returncode, r.stdout + r.stderr
+
+    @unittest.skipUnless(shutil.which("jq"), "jq")
+    def test_snapshots_and_snapshot(self):
+        env = self.care_stub()
+        rc, out = self.lux("snapshots", env=env)
+        self.assertEqual(rc, 0, out)
+        rc, out = self.lux("snapshot", env=env)
+        self.assertEqual(self.calls("luxos-care"), ["snapshots", "snapshot"])
+
+    @unittest.skipUnless(shutil.which("jq"), "jq")
+    def test_rollback_choose_and_confirm(self):
+        env = self.care_stub()
+        rc, out = self.lux_input("1\ny\n", "rollback", env=env)
+        self.assertEqual(rc, 0, out)
+        self.assertLess(out.index("2026-10-26 14:03"), out.index("2026-10-25 10:00"))     # nejnovejsi prvni
+        self.assertEqual(self.calls("luxos-care"), ["snapshots --json", "rollback 2026-10-26_14-03-12 --yes"])
+
+    @unittest.skipUnless(shutil.which("jq"), "jq")
+    def test_rollback_default_no(self):
+        env = self.care_stub()
+        rc, out = self.lux_input("2\n\n", "rollback", env=env)
+        self.assertNotEqual(rc, 0)
+        self.assertEqual(self.calls("luxos-care"), ["snapshots --json"])
+        rc, out = self.lux_input("", "rollback", "2020-01-01_00-00-00", env=env)
+        self.assertIn("No such snapshot", out)
+
+    @unittest.skipUnless(shutil.which("jq"), "jq")
+    def test_rollback_booted_snapshot(self):
+        env = self.care_stub("rw luxos.snapshot=2026-10-25_10-00-00 systemd.volatile=overlay")
+        rc, out = self.lux("-y", "rollback", env=env)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("running from a snapshot", out)
+        self.assertEqual(self.calls("luxos-care")[-1], "rollback 2026-10-25_10-00-00 --yes")
+
+    def test_rollback_without_care(self):
+        rc, out = self.lux("rollback", env={"LUX_CARE": "/nonexistent"})
+        self.assertNotEqual(rc, 0)
+        self.assertIn("LuxOS Care", out)
+
     @unittest.skipUnless(shutil.which("unshare") and subprocess.run(["unshare", "-r", "true"]).returncode == 0,
                          "unshare -r neni k dispozici")
     def test_fix_removes_stale_lock_and_refreshes_keys(self):

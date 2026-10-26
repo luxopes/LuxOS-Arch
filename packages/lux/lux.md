@@ -205,6 +205,8 @@ jméno balíku (`@@ERROR corrupt`).
 | `lux history [počet] [balík]` | poslední změny balíků z `/var/log/lux.log` | |
 | `lux mirrors` | nejrychlejší zrcadla (`reflector`) do `/etc/lux/mirrorlist` | |
 | `lux drivers`, `lux doctor`, `lux pack` | ovladače, kontrola systému (i konfigurace), sestavení `.lux` | |
+| `lux snapshots`, `lux snapshot` | snímky systému (LuxOS Care dělá snímek před každou změnou balíků), nový snímek hned | |
+| `lux rollback [snímek]` | návrat systému ke snímku od příštího startu (současný systém zůstane jako snímek, `/home` se nemění) | |
 
 Volby: `-y` (bez otázek – jinak se `lux` vždy zeptá), `-v`/`--verbose` (seznam balíků, výstup skriptů
 a surové chyby libalpm), `--repo`, `--aur`/`--community`, `--system` (balík komunity do systému místo sandboxu). Práva správce si `lux` vyžádá sám: v terminálu `sudo`,

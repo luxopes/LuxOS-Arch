@@ -1,0 +1,9 @@
+#!/bin/sh
+# LuxOS Care - GRUB: polozky snimku systemu a "LuxOS Recovery". Pise je luxos-care do
+# /boot/grub/luxos-snapshots.cfg pri kazdem snimku; grub.cfg ho jen nacte (bez grub-mkconfig).
+set -e
+cat <<'CFG'
+if [ -f "${prefix}/luxos-snapshots.cfg" ]; then
+    source "${prefix}/luxos-snapshots.cfg"
+fi
+CFG

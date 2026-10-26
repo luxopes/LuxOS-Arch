@@ -126,6 +126,22 @@ Pick the fastest download mirrors.
 .TP
 .B doctor
 Check system health (services, disk space, configuration, updates).
+.TP
+.B snapshots
+List system snapshots. LuxOS Care takes a read\-only Btrfs snapshot of the system before every
+package change (lux, Software Update, Store) and keeps the last 5 plus the last one with the
+previous kernel. Each snapshot is in the boot menu as "LuxOS (before update of ...)" (hold Space
+while the computer starts); a snapshot started from the menu runs with a temporary writable layer.
+.TP
+.B snapshot
+Take a system snapshot now.
+.TP
+.BR rollback " [" \fIsnapshot\fR ]
+Make a snapshot the system from the next start (asks first). Without a name: the snapshot LuxOS is
+running from, otherwise a list to choose from. The current system is kept as a snapshot and
+/home is not changed. See
+.BR luxos\-care (8)
+and "LuxOS Recovery" in the boot menu.
 .SH OPTIONS
 .TP
 .BR \-y ", " \-\-yes
@@ -218,6 +234,7 @@ The last changes of one package.
 .B lux \-y remove vlc
 Remove without asking.
 .SH SEE ALSO
+.BR luxos\-care (8),
 .BR makepkg (8),
 .B luxos\-sandbox \-\-help,
 .BR flatpak (1),

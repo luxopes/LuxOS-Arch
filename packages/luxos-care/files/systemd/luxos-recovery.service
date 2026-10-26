@@ -1,0 +1,24 @@
+[Unit]
+Description=LuxOS Recovery (disk check, snapshots, reinstall)
+DefaultDependencies=no
+Conflicts=shutdown.target
+After=sysinit.target plymouth-start.service
+Before=shutdown.target
+
+[Service]
+Type=idle
+Environment=HOME=/root TERM=linux
+WorkingDirectory=-/root
+ExecStartPre=-/usr/bin/plymouth quit
+ExecStart=/usr/lib/luxos/care/luxos-recovery
+StandardInput=tty-force
+StandardOutput=inherit
+StandardError=inherit
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+KillMode=process
+IgnoreSIGPIPE=no
+SendSIGHUP=yes
+Restart=always
+RestartSec=1

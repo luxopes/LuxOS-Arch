@@ -1,0 +1,181 @@
+#!/bin/bash
+# LuxOS Recovery - obnova systemu (polozka "LuxOS Recovery" v nabidce zavadece,
+# systemd.unit=luxos-recovery.target). Bezi na tty1 jako root.
+#
+# Kontrola disku, navrat ke snimku a preinstalace se zachovanim /home a uctu. Vsechno dela
+# luxos-care (luxos_recovery.py, luxos_snapshots.py); tady je jen nabidka a potvrzeni.
+# Kroky, ktere neco meni, chteji vyslovne potvrzeni (u preinstalace napsat slovo).
+# gum (je-li nainstalovany) jen pro hezci nabidky; bez nej obycejne cislovane nabidky.
+#
+# Testy: LUXOS_RECOVERY_PLAIN=1 (bez gum), LUXOS_CARE (cesta k luxos-care), LUXOS_RECOVERY_ONCE=1
+# (po jedne akci konec misto opakovani nabidky).
+set -u
+
+CARE=${LUXOS_CARE:-/usr/bin/luxos-care}
+ROOT=${LUXOS_RECOVERY_ROOT-}
+
+# Jazyk systemu; konzole bez pisma s diakritikou (eurlatgr) by ukazala otazniky
+if [[ -z ${LANG-} || $LANG == C* ]] && [[ -r $ROOT/etc/locale.conf ]]; then
+    LANG=$(sed -n 's/^LANG=//p' "$ROOT/etc/locale.conf" | tr -d '"' | head -1)
+fi
+export LANG=${LANG:-C.UTF-8}
+if [[ -z ${LUXOS_RECOVERY_PLAIN-} && -t 0 ]] && command -v setfont >/dev/null; then
+    case ${LANG%%_*} in
+        uk) export LANG=C.UTF-8 ;;          # cyrilice v konzoli neni - anglicky
+        *) setfont eurlatgr 2>/dev/null || true ;;
+    esac
+fi
+[[ -r /usr/lib/luxos/i18n.sh ]] && . /usr/lib/luxos/i18n.sh
+declare -F T >/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+
+GUM=0
+[[ -z ${LUXOS_RECOVERY_PLAIN-} ]] && command -v gum >/dev/null && GUM=1
+
+title() {
+    if ((GUM)); then gum style --border rounded --padding "0 2" --border-foreground 141 --bold "$@"
+    else printf '\n== %s ==\n' "$*"; fi
+}
+
+# choose "otazka" polozka... -> cislo polozky (1..n) na stdout, prazdne = zpet
+choose() {
+    local q=$1; shift
+    local -a items=("$@")
+    if ((GUM)); then
+        local pick i
+        pick=$(gum choose --header "$q" "${items[@]}") || return 0
+        for i in "${!items[@]}"; do [[ ${items[i]} == "$pick" ]] && { echo $((i + 1)); return 0; }; done
+        return 0
+    fi
+    local i a
+    printf '%s\n' "$q" >&2
+    for i in "${!items[@]}"; do printf '  %d) %s\n' $((i + 1)) "${items[i]}" >&2; done
+    printf '> ' >&2
+    read -r a || exit 0
+    [[ $a =~ ^[0-9]+$ ]] && ((a >= 1 && a <= ${#items[@]})) && echo "$a"
+    return 0
+}
+
+confirm() {  # confirm "otazka" -> 0 = ano (vychozi ne)
+    if ((GUM)); then gum confirm --default=false "$1"; return; fi
+    local a
+    printf '%s [y/N] ' "$1" >&2
+    read -r a || return 1
+    [[ $a == [yYaA]* ]]
+}
+
+pause() {
+    local a
+    printf '\n%s' "$(T "Press Enter to continue")" >&2
+    read -r a || true
+}
+
+# ---- kontrola disku ----
+disk_check() {
+    title "$(T "Check the disk")"
+    echo "$(T "Checking the disk without changing anything. This can take several minutes.")"
+    if "$CARE" disk-check; then
+        pause; return
+    fi
+    echo
+    echo "$(T "LuxOS can repair what is safe to repair: data with a second copy on the disk and the boot partition.")"
+    if confirm "$(T "Repair now?")"; then
+        "$CARE" disk-check --repair
+    fi
+    pause
+}
+
+# ---- navrat ke snimku ----
+rollback() {
+    title "$(T "Restore a snapshot")"
+    local json
+    if ! json=$("$CARE" snapshots --json 2>&1); then
+        echo "$json"; pause; return
+    fi
+    local -a names=() labels=()
+    while IFS=$'\t' read -r n l; do
+        [[ -n $n ]] && names+=("$n") && labels+=("$l")
+    done < <(python3 -c 'import json,sys
+for s in reversed(json.load(sys.stdin)):
+    print(s["name"] + "\t" + s["label"] + ("  *" if s.get("booted") else ""))' <<<"$json")
+    if ((${#names[@]} == 0)); then
+        echo "$(T "No snapshots yet. One is taken before every update.")"; pause; return
+    fi
+    local n
+    n=$(choose "$(T "Which state should LuxOS return to?")" "${labels[@]}" "$(T "Back")")
+    [[ -z $n || $n -gt ${#names[@]} ]] && return
+    local name=${names[n - 1]}
+    echo
+    echo "$(T "LuxOS will start as it was: %s" "${labels[n - 1]}")"
+    echo "$(T "Your files in /home are not changed. The current system is kept as a snapshot.")"
+    if confirm "$(T "Restore this snapshot?")"; then
+        "$CARE" rollback "$name" --yes && echo && echo "$(T "Restart the computer to finish.")"
+    fi
+    pause
+}
+
+# ---- preinstalace ----
+reinstall() {
+    title "$(T "Reinstall LuxOS")"
+    echo "$(T "LuxOS will be downloaded and installed again with the same apps. Kept: your files (/home),")"
+    echo "$(T "user accounts and passwords, language, keyboard, Wi-Fi networks and disk encryption.")"
+    echo "$(T "System settings you changed yourself are reset. The current system is kept as a snapshot.")"
+    echo "$(T "Needs the internet and takes a while (like an update of the whole system).")"
+    echo
+    local word
+    word=$(T "REINSTALL")
+    printf '%s ' "$(T "Type %s to continue:" "$word")" >&2
+    local a
+    read -r a || return
+    if [[ $a != "$word" && $a != REINSTALL ]]; then
+        echo "$(T "Cancelled.")"; pause; return
+    fi
+    if ! net_ok; then
+        echo "$(T "The internet is not connected.")"
+        confirm "$(T "Connect to Wi-Fi now?")" && network
+        net_ok || { echo "$(T "Cancelled.")"; pause; return; }
+    fi
+    "$CARE" reinstall --yes && echo && echo "$(T "Restart the computer to finish.")"
+    pause
+}
+
+net_ok() {
+    [[ -n ${LUXOS_RECOVERY_NET-} ]] && return "$LUXOS_RECOVERY_NET"
+    systemctl start NetworkManager.service >/dev/null 2>&1 || true
+    local i
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+        [[ $(nmcli -t -f CONNECTIVITY general 2>/dev/null) == full ]] && return 0
+        sleep 1
+    done
+    return 1
+}
+
+network() {
+    systemctl start NetworkManager.service >/dev/null 2>&1 || true
+    if command -v nmtui >/dev/null; then nmtui connect; else nmcli device wifi list; pause; fi
+}
+
+main_menu() {
+    while true; do
+        ((GUM)) && clear
+        title "LuxOS Recovery"
+        local n
+        n=$(choose "$(T "What do you want to do?")" \
+            "$(T "Check the disk")" \
+            "$(T "Restore a snapshot (state before an update)")" \
+            "$(T "Reinstall LuxOS (keeps your files and accounts)")" \
+            "$(T "Connect to the internet")" \
+            "$(T "Restart")" \
+            "$(T "Shut down")")
+        case $n in
+            1) disk_check ;;
+            2) rollback ;;
+            3) reinstall ;;
+            4) network ;;
+            5) systemctl reboot; exit 0 ;;
+            6) systemctl poweroff; exit 0 ;;
+        esac
+        [[ -n ${LUXOS_RECOVERY_ONCE-} ]] && exit 0
+    done
+}
+
+main_menu

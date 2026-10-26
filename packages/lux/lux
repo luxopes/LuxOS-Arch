@@ -54,6 +54,9 @@ LUX_ENGINE=${LUX_ENGINE:-$LUX_ENGINE_BIN/lux-engine}
 LUX_COMMUNITY=${LUX_COMMUNITY:-/usr/lib/lux/lux_community.py}
 [[ -x $LUX_COMMUNITY ]] || LUX_COMMUNITY="$(dirname "$LUX_SELF")/lux_community.py"
 LUX_SANDBOX=${LUX_SANDBOX:-/usr/bin/luxos-sandbox}
+# Snimky systemu a navrat (LuxOS Care, luxos_snapshots.py)
+LUX_CARE=${LUX_CARE:-/usr/bin/luxos-care}
+LUX_CMDLINE=${LUX_CMDLINE:-/proc/cmdline}
 SYSTEM_OK=0   # --system: balik z komunity smi do systemu (jinak sandbox)
 # Napoveda pro zvyk z Archu (lux -Syu): /usr/lib/lux/pacman-hint, pri spusteni z repozitare vedle skriptu
 LUX_HINT=${LUX_HINT:-/usr/lib/lux/pacman-hint}
@@ -995,6 +998,38 @@ cmd_doctor() {
     ((issues)) && return 1 || ok "$(T "Everything looks good")"
 }
 
+# --- Snimky systemu (LuxOS Care): pred kazdou aktualizaci, navrat i z nabidky zavadece ---------
+need_care() { [[ -x $LUX_CARE ]] || die "$(T "System snapshots need LuxOS Care (lux install luxos-care).")"; }
+cmd_snapshots() { need_care; as_root "$LUX_CARE" snapshots "$@"; }
+cmd_snapshot() { need_care; as_root "$LUX_CARE" snapshot; }
+cmd_rollback() {  # lux rollback [jmeno]: bez jmena snimek, ze ktereho system bezi, jinak vyber
+    need_care
+    local name=${1-} booted json n label
+    booted=$(tr ' ' '\n' <"$LUX_CMDLINE" 2>/dev/null | sed -n 's/^luxos\.snapshot=//p' | tail -1)
+    json=$(as_root "$LUX_CARE" snapshots --json) || exit 1
+    local -a names=() labels=()
+    mapfile -t names < <(jq -r 'reverse | .[].name' <<<"$json")
+    mapfile -t labels < <(jq -r 'reverse | .[].label' <<<"$json")
+    ((${#names[@]})) || die "$(T "No snapshots yet. One is taken before every update.")"
+    if [[ -z $name && -n $booted ]]; then
+        name=$booted
+        say "$(T "LuxOS is running from a snapshot. Rollback keeps this version for good.")"
+    elif [[ -z $name ]]; then
+        ((YES)) && die "$(T "Usage: lux rollback <snapshot> (see lux snapshots)")"
+        for n in "${!names[@]}"; do printf '  %s%2d%s  %s\n' "$B" $((n + 1)) "$R" "${labels[n]}"; done
+        read -rp "$B$(T "Return to which state? (number)")$R " n
+        [[ $n =~ ^[0-9]+$ ]] && ((n >= 1 && n <= ${#names[@]})) || die "$(T "Cancelled.")"
+        name=${names[n - 1]}
+    fi
+    label=""
+    for n in "${!names[@]}"; do [[ ${names[n]} == "$name" ]] && label=${labels[n]}; done
+    [[ -n $label ]] || die "$(T "No such snapshot: %s" "$name")"
+    printf '%s\n' "$(T "Your files in /home are not changed. The current system is kept as a snapshot.")"
+    ask "$(T "Return LuxOS to: %s?" "$label")" n || die "$(T "Cancelled.")"
+    as_root "$LUX_CARE" rollback "$name" --yes || exit 1
+    ok "$(T "Restart the computer to finish.")"
+}
+
 cmd_history() {  # lux history [pocet] [balik]
     local n=25 pkg="" a log
     for a in "$@"; do if [[ $a =~ ^[0-9]+$ ]]; then n=$a; else pkg=$a; fi; done
@@ -1039,6 +1074,9 @@ pack <dir> [out]|build a .lux package from a directory with lux.json
 drivers|detect and install missing drivers
 mirrors|pick the fastest download mirrors
 doctor|check system health
+snapshots|list system snapshots (one before every update)
+snapshot|take a system snapshot now
+rollback [snapshot]|return the system to a snapshot (also from the boot menu)
 CMDS
     printf '\n%s%s%s\n' "$B" "$(T "Options:")" "$R"
     while IFS='|' read -r opt desc; do
@@ -1175,6 +1213,9 @@ case $cmd in
     mirrors)            cmd_mirrors ;;
     doctor)             cmd_doctor ;;
     history)            cmd_history "$@" ;;
+    snapshots)          cmd_snapshots "$@" ;;
+    snapshot)           cmd_snapshot ;;
+    rollback)           cmd_rollback "$@" ;;
     tui|store)          cmd_tui ;;
     pack)               (($#)) || die "$(T "Usage: lux pack <directory> [output]")"; lp_pack "$@" ;;
     __lux-file)         ((EUID == 0)) || exit 1; lp_install_file "$1" ;;
