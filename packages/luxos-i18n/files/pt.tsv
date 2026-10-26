@@ -2983,3 +2983,92 @@ South wind	Vento de sul
 Southwest wind	Vento de sudoeste
 West wind	Vento de oeste
 Northwest wind	Vento de noroeste
+# OEM - priprava pro jineho cloveka, Pruvodce nastavenim
+Applying language and region	Aplicando idioma e região
+At the first start the owner chooses language, keyboard, Wi-Fi and creates their account.	Na primeira inicialização, o proprietário escolhe idioma, teclado e Wi‑Fi e cria a própria conta.
+At the first start the owner sees a setup assistant: language, keyboard, Wi-Fi, time zone, their account and disk password. Then LuxOS starts with the tour.	Na primeira inicialização, o proprietário vê um assistente de configuração: idioma, teclado, Wi‑Fi, fuso horário, a própria conta e a senha do disco. Depois o LuxOS inicia com o tour.
+Choose a password for the disk.	Escolha uma senha para o disco.
+Continue? [y/N] 	Continuar? [s/N] 
+Could not create the account.	Não foi possível criar a conta.
+Could not delete the account %s.	Não foi possível excluir a conta %s.
+Could not enable %s.	Não foi possível ativar %s.
+Could not rebuild the boot image.	Não foi possível recriar a imagem de inicialização.
+Could not remove the temporary disk key.	Não foi possível remover a chave temporária do disco.
+Could not seal the system for the owner.	Não foi possível selar o sistema para o proprietário.
+Could not set the disk password.	Não foi possível definir a senha do disco.
+Could not set the keyboard layout.	Não foi possível definir o layout do teclado.
+Could not set the password.	Não foi possível definir a senha.
+Creating your account	Criando sua conta
+Disk Password	Senha do disco
+Disk password	Senha do disco
+Enter the disk password twice.	Digite a senha do disco duas vezes.
+Enter the password for the temporary account oem twice.	Digite duas vezes a senha da conta temporária oem.
+Finish Setup	Concluir configuração
+For shops and IT: LuxOS is installed without a personal account. At the first start the owner chooses language, Wi-Fi and creates their account.	Para lojas e TI: o LuxOS é instalado sem conta pessoal. Na primeira inicialização, o proprietário escolhe idioma e Wi‑Fi e cria a própria conta.
+Go back and choose your account password.	Volte e escolha a senha da conta.
+Invalid OEM (use 0 or 1)	OEM inválido (use 0 ou 1)
+Invalid OEM_SEAL (use 1 or 0)	OEM_SEAL inválido (use 1 ou 0)
+Invalid computer name.	Nome do computador inválido.
+Invalid language.	Idioma inválido.
+Invalid setup data.	Dados de configuração inválidos.
+Invalid time zone.	Fuso horário inválido.
+Invalid user name.	Nome de usuário inválido.
+Keep saved Wi-Fi networks (their passwords stay on the computer)	Manter as redes Wi‑Fi salvas (as senhas ficam no computador)
+Let's set up your computer. It only takes a few minutes.	Vamos configurar seu computador. Leva só alguns minutos.
+Logs, caches and command history are removed.	Registros, caches e histórico de comandos são removidos.
+Me - set up my account now	Eu – criar minha conta agora
+New SSH keys and a new machine ID are created at the next start.	Na próxima inicialização são criadas novas chaves SSH e um novo ID de máquina.
+Not Now	Agora não
+Nothing is lost: go back to change something or try again.	Nada foi perdido: volte para alterar algo ou tente novamente.
+OEM_SEAL=0 needs PASSWORD (temporary account oem)	OEM_SEAL=0 requer PASSWORD (conta temporária oem)
+Password for the temporary account oem	Senha da conta temporária oem
+Photo (optional)	Foto (opcional)
+Prepare first	Preparar primeiro
+Prepare for another person	Preparar para outra pessoa
+Prepare for another person (OEM)	Preparar para outra pessoa (OEM)
+Prepare the computer first (temporary account oem, then Seal for Customer)?	Preparar o computador primeiro (conta temporária oem, depois Selar para o cliente)?
+Preparing for another person (OEM) does not support encryption in manual partitioning. Use Encrypt LuxOS instead.	A preparação para outra pessoa (OEM) não suporta criptografia no particionamento manual. Use Criptografar o LuxOS.
+Preparing the encrypted disk	Preparando o disco criptografado
+Ready to hand over this computer?	Pronto para entregar este computador?
+Run as root (sudo).	Execute como root (sudo).
+Seal and Shut Down	Selar e desligar
+Seal for Customer	Selar para o cliente
+Seal for customer:	Selar para o cliente:
+Seal now	Selar agora
+Sealed. At the next start the setup assistant welcomes the owner.	Selado. Na próxima inicialização, o assistente de configuração recebe o proprietário.
+Sealing failed.	Falha ao selar.
+Set Up LuxOS	Configurar o LuxOS
+Setting the disk password	Definindo a senha do disco
+Setting up your computer	Configurando seu computador
+Setup could not be finished (exit code %s).	Não foi possível concluir a configuração (código de saída %s).
+Shut Down or Restart	Desligar ou reiniciar
+Sign in as oem to add apps and test the hardware, then click Seal for Customer (or run luxos-oem seal).	Entre como oem para adicionar aplicativos e testar o hardware; depois clique em Selar para o cliente (ou execute luxos-oem seal).
+Signing in…	Entrando…
+Some of your entries contain unsupported characters.	Alguns dos seus dados contêm caracteres não suportados.
+The computer is ready to hand over right after the installation.	O computador fica pronto para entrega logo após a instalação.
+The encrypted disk was not found.	O disco criptografado não foi encontrado.
+The owner chooses the disk password in the setup assistant at the first start. Until then the computer starts without asking.	O proprietário escolhe a senha do disco no assistente de configuração na primeira inicialização. Até lá, o computador inicia sem pedi-la.
+The owner chooses the disk password in the setup assistant.	O proprietário escolhe a senha do disco no assistente de configuração.
+The owner creates their account in the setup assistant at the first start.	O proprietário cria a conta no assistente de configuração na primeira inicialização.
+The setup assistant has already finished on this computer.	O assistente de configuração já foi concluído neste computador.
+The setup assistant is not active on this computer.	O assistente de configuração não está ativo neste computador.
+The temporary account oem is deleted at the next start.	A conta temporária oem é excluída na próxima inicialização.
+The temporary disk key does not work.	A chave temporária do disco não funciona.
+The user name %s is already taken.	O nome de usuário %s já está em uso.
+This computer was not installed for another person (OEM). Nothing to seal.	Este computador não foi instalado para outra pessoa (OEM). Nada para selar.
+This computer was prepared for another person. Install apps and test the hardware, then seal it. The computer shuts down; at the next start the owner creates their account.	Este computador foi preparado para outra pessoa. Instale aplicativos e teste o hardware; depois sele-o. O computador desliga; na próxima inicialização o proprietário cria a própria conta.
+This picture cannot be used.	Esta imagem não pode ser usada.
+This takes a moment. Please do not turn off the computer.	Isso leva um momento. Não desligue o computador.
+Use my account password	Usar a senha da minha conta
+Welcome	Bem-vindo
+Welcome, %s!	Bem-vindo, %s!
+Who will use this computer?	Quem vai usar este computador?
+You can also skip this and connect later in the top bar.	Você também pode pular esta etapa e se conectar depois na barra superior.
+Your account is ready. Restart the computer and sign in with your new password.	Sua conta está pronta. Reinicie o computador e entre com sua nova senha.
+Your disk is encrypted. You will enter this password every time the computer starts.	Seu disco está criptografado. Você digitará esta senha sempre que o computador iniciar.
+at the next start the owner creates their account in the setup assistant	na próxima inicialização o proprietário cria a conta no assistente de configuração
+logs, caches and command history are removed	registros, caches e histórico de comandos são removidos
+saved Wi-Fi networks and their passwords are removed	as redes Wi‑Fi salvas e suas senhas são removidas
+the owner creates it at the first start (OEM)	o proprietário cria na primeira inicialização (OEM)
+the owner creates it at the first start (OEM); until sealing: temporary account %s	o proprietário cria na primeira inicialização (OEM); até selar: conta temporária %s
+the temporary account %s is deleted at the next start	a conta temporária %s é excluída na próxima inicialização

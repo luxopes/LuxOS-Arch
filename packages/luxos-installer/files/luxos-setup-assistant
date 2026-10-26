@@ -1,0 +1,699 @@
+#!/usr/bin/env python3
+"""LuxOS - Pruvodce nastavenim: prvni start pocitace pripraveneho pro jineho cloveka (OEM).
+
+  luxos-setup-assistant                 pod LightDM misto prihlasovaci obrazovky (luxos-oem seal)
+  luxos-setup-assistant --demo          ukazka v okne bez LightDM a bez zmen v systemu (testy)
+  luxos-setup-assistant --seal-dialog [--reminder]
+                                        okno "Zapecetit pro zakaznika" v docasnem uctu oem
+
+Stranky jako v macOS: jazyk, klavesnice, Wi-Fi, casove pasmo, ucet (jmeno, heslo s okem, fotka),
+LuxAI, heslo disku (jen sifrovany disk), udrzba. Stranky jazyka, klavesnice, Wi-Fi, casu, uctu,
+LuxAI a udrzby jsou z instalatoru (luxos-install-gui, trida Installer), zadna kopie.
+Konec: "sudo luxos-oem finish" (data na stdin) a prihlaseni do noveho uctu pres LightDM; prvni
+prihlaseni spusti Prohlidku LuxOS (luxos-session). Rozpracovane volby (bez hesel) se ukladaji,
+po vypadku proudu nebo padu se Pruvodce spusti znovu (luxos-setup-greeter) a pokracuje.
+
+Testy:  LUXOS_SETUP_HELPER="prikaz"   misto "sudo -n /usr/bin/luxos-oem"
+        LUXOS_SETUP_STATE=soubor      ulozeny prubeh (vychozi ~/.local/state/luxos-setup/progress.json)
+        LUXOS_INSTALL_GUI=cesta       instalator, ze ktereho se berou stranky
+"""
+import argparse
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+from importlib.machinery import SourceFileLoader
+from importlib.util import module_from_spec, spec_from_loader
+
+
+def system_locale():
+    """LightDM spousti greeter bez LANG: jazyk ze systemoveho nastaveni (/etc/locale.conf)."""
+    if os.environ.get("LANG", "C") not in ("", "C", "POSIX", "C.UTF-8"):
+        return
+    try:
+        with open("/etc/locale.conf", encoding="utf-8") as f:
+            for line in f:
+                k, _sep, v = line.partition("=")
+                if k.strip() == "LANG" and v.strip():
+                    os.environ["LANG"] = v.strip().strip("\"'")
+    except OSError:
+        pass
+
+
+system_locale()
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, "/usr/lib/luxos/python")
+sys.path.insert(1, HERE)   # test ze zdrojaku: luxos_oem.py vedle skriptu
+import luxos_oem as oem  # noqa: E402
+
+
+def load_installer():
+    """Modul instalatoru (stranky Installer) - nainstalovany, jinak vedle skriptu (testy)."""
+    path = os.environ.get("LUXOS_INSTALL_GUI") or next(
+        (p for p in ("/usr/bin/luxos-install-gui", os.path.join(HERE, "luxos-install-gui")) if os.path.exists(p)),
+        "/usr/bin/luxos-install-gui")
+    loader = SourceFileLoader("luxos_install_gui", path)
+    mod = module_from_spec(spec_from_loader("luxos_install_gui", loader))
+    loader.exec_module(mod)
+    return mod
+
+
+gui = load_installer()
+_ = gui._
+Gtk, Gdk, GLib = gui.Gtk, gui.Gdk, gui.GLib
+
+HELPER = shlex.split(os.environ["LUXOS_SETUP_HELPER"]) if os.environ.get("LUXOS_SETUP_HELPER") \
+    else ["sudo", "-n", "/usr/bin/luxos-oem"]
+SESSION = "luxos"
+
+CSS = b"""
+.setup-top { padding: 10px 18px; }
+.setup-brand { font-size: 15px; font-weight: 800; }
+.setup-column { margin: 0; }
+.setup-dot { border-radius: 99px; min-width: 7px; min-height: 7px; background-color: alpha(currentColor, 0.2); }
+.setup-dot.current { background-color: #3d7bff; min-width: 20px; }
+.setup-dot.done { background-color: alpha(#3d7bff, 0.55); }
+.avatar-frame { border-radius: 99px; border: 1px solid alpha(currentColor, 0.15); padding: 2px; }
+.power { border-radius: 99px; padding: 4px; }
+"""
+
+
+def run_helper(args, data=None, timeout=600):
+    """luxos-oem jako root (sudo -n); vraci (navratovy kod, stdout)."""
+    try:
+        r = subprocess.run(HELPER + args, input=data, capture_output=True, text=True, timeout=timeout)
+        return r.returncode, r.stdout
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return 1, f"@@ERROR {e}\n"
+
+
+# ---- prihlaseni do noveho uctu -----------------------------------------------------------------------
+class GreeterLogin:
+    """LightDM: overit nove heslo a spustit relaci (stejny postup jako luxos-greeter)."""
+
+    def __init__(self):
+        gi = gui.gi
+        gi.require_version("LightDM", "1")
+        from gi.repository import LightDM
+        self.L = LightDM
+        self.g = LightDM.Greeter()
+        self.password, self.done = "", None
+        self.g.connect("show-prompt", self._prompt)
+        self.g.connect("authentication-complete", self._complete)
+        try:
+            self.g.connect_to_daemon_sync()
+        except AttributeError:
+            self.g.connect_sync()
+
+    def _prompt(self, _g, _text, ptype):
+        if ptype == self.L.PromptType.SECRET:
+            self.g.respond(self.password)
+
+    def _complete(self, _g):
+        cb, self.done = self.done, None
+        if not self.g.get_is_authenticated():
+            cb and cb(False)
+            return
+        for key in (SESSION, None):
+            try:
+                self.g.start_session_sync(key)
+                cb and cb(True)
+                return
+            except Exception:  # noqa: BLE001 - zkusit vychozi relaci
+                continue
+        cb and cb(False)
+
+    def login(self, user, password, done):
+        self.password, self.done = password, done
+        if self.g.get_in_authentication():
+            self.g.cancel_authentication()
+        self.g.authenticate(user)
+
+    def power(self, what):
+        {"restart": self.L.restart, "shutdown": self.L.shutdown}[what]()
+
+
+class DemoLogin:
+    """Bez LightDM (--demo, testy): nic se nespousti ani nevypina."""
+
+    def __init__(self):
+        self.calls = []
+
+    def login(self, user, _password, done):
+        self.calls.append(("login", user))
+        print(f"DEMO: login {user}", flush=True)
+        GLib.idle_add(lambda: done(os.environ.get("LUXOS_SETUP_DEMO_LOGIN_FAIL") != "1") and False)
+
+    def power(self, what):
+        self.calls.append((what,))
+        print(f"DEMO: {what}", flush=True)
+
+
+# ---- Pruvodce ------------------------------------------------------------------------------------------
+class SetupAssistant(gui.Installer):
+
+    def __init__(self, login, status, windowed=False):
+        Gtk.Window.__init__(self, title=_("Set Up LuxOS"))
+        self.login_backend = login
+        self.windowed = windowed
+        lang = os.environ.get("LANG", "en_US.UTF-8")
+        locale = next((loc for _l, loc in gui.LANGS if loc.split(".")[0] == lang.split(".")[0]), "en_US.UTF-8")
+        self.s = {
+            "locale": locale, "xkb": [("us", "")], "xkb_switch": gui.XKB_SWITCHES[0][0], "timezone": "UTC",
+            "tz_detected": "", "fullname": "", "username": "", "user_edited": False, "pw1": "", "pw2": "",
+            "hostname": "", "host_edited": False, "autologin": False, "luxai": None, "luxai_email": "",
+            "care": "carefree", "templates": [], "disk_same": True, "disk1": "", "disk2": "",
+            "encrypt": False, "mode": None, "oem": False,
+        }
+        saved = oem.load_progress()
+        self.s["xkb"] = self.default_xkb(saved.get("locale", locale))
+        self.s.update(saved)
+        gui.set_ui_lang(self.s["locale"])
+        self.luks_pending = status.get("LUKS") == "pending"
+        self.steps = oem.steps(self.luks_pending)
+        self.idx = 0
+        if saved.get("step") in self.steps:
+            # preruseno pri dokoncovani: posledni stranka pred dokoncenim (Dokoncit nastaveni znovu)
+            self.idx = self.steps.index(saved["step"]) - (saved["step"] == "finish")
+        self.luxai_panel = None
+        self.layouts = self.zones = None
+        self.online = None
+        self.root = True
+        self.result = None
+        self.photo = None          # PNG 256 px pro luxos-oem (docasny soubor)
+        self.photo_dir = None
+        self.finishing = False
+        self.finish_error = ""
+        self.finish_text = ""
+        self.tz_asked = False
+        self.templates = []
+        self.valid = lambda: True
+        self.why = lambda: ""
+
+        width = 760   # sirka obsahu (jako okno instalatoru)
+        if windowed:
+            self.set_default_size(980, 700)
+            self.set_position(Gtk.WindowPosition.CENTER)
+            self.header = Gtk.HeaderBar(show_close_button=True, title=_("Set Up LuxOS"))
+            self.set_titlebar(self.header)
+        else:
+            # Pod LightDM neni spravce oken: cela obrazovka rucne
+            mon = None
+            disp = Gdk.Display.get_default()
+            if disp is not None:
+                mon = disp.get_primary_monitor() or disp.get_monitor(0)
+            geo = mon.get_geometry() if mon is not None else None
+            if geo is not None:
+                width = min(width, max(geo.width - 40, 480))   # male obrazovky (starsi notebooky, VM)
+            if geo is not None:
+                self.move(geo.x, geo.y)
+                self.set_default_size(geo.width, geo.height)
+            self.set_decorated(False)
+            self.fullscreen()
+            self.header = None
+        self.connect("delete-event", self.on_delete)
+
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.add(outer)
+        top = Gtk.Box(spacing=10)
+        top.get_style_context().add_class("setup-top")
+        top.pack_start(gui.logo_image(26), False, False, 0)
+        brand = Gtk.Label(label="LuxOS", xalign=0)
+        brand.get_style_context().add_class("setup-brand")
+        top.pack_start(brand, False, False, 0)
+        self.dots = Gtk.Box(spacing=6, valign=Gtk.Align.CENTER, halign=Gtk.Align.CENTER)
+        top.set_center_widget(self.dots)
+        power = Gtk.MenuButton(relief=Gtk.ReliefStyle.NONE, tooltip_text=_("Shut Down or Restart"))
+        power.add(Gtk.Image.new_from_icon_name("system-shutdown-symbolic", Gtk.IconSize.BUTTON))
+        power.get_style_context().add_class("power")
+        menu = Gtk.Menu()
+        for what, label in (("restart", _("Restart")), ("shutdown", _("Shut Down"))):
+            item = Gtk.MenuItem(label=label)
+            item.connect("activate", lambda _i, w=what: self.login_backend.power(w))
+            menu.append(item)
+        menu.show_all()
+        power.set_popup(menu)
+        self.power_btn = power
+        top.pack_end(power, False, False, 0)
+        outer.pack_start(top, False, False, 0)
+
+        # Obsah uprostred (sirka jako okno instalatoru)
+        self.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        center = Gtk.Box(halign=Gtk.Align.CENTER)
+        center.pack_start(self.scroll, True, True, 0)
+        self.scroll.set_size_request(width, -1)
+        outer.pack_start(center, True, True, 0)
+
+        nav = Gtk.Box(spacing=8, margin=14, width_request=width - 28, halign=Gtk.Align.CENTER)
+        self.nav_hint = Gtk.Label(xalign=0, wrap=True)
+        self.nav_hint.get_style_context().add_class("hint")
+        nav.pack_start(self.nav_hint, True, True, 0)
+        self.btn_next = Gtk.Button()
+        for c in ("primary", "navbtn"):
+            self.btn_next.get_style_context().add_class(c)
+        self.btn_next.connect("clicked", lambda _b: self.go_next())
+        self.btn_back = Gtk.Button()
+        self.btn_back.get_style_context().add_class("navbtn")
+        self.btn_back.connect("clicked", lambda _b: self.go_back())
+        self.btn_extra = Gtk.Button()
+        self.btn_extra.get_style_context().add_class("navbtn")
+        self.btn_extra.connect("clicked", lambda _b: self.extra_action and self.extra_action())
+        self.extra_action = None
+        nav.pack_end(self.btn_next, False, False, 0)
+        nav.pack_end(self.btn_back, False, False, 0)
+        nav.pack_end(self.btn_extra, False, False, 0)
+        navwrap = Gtk.Box()
+        navwrap.get_style_context().add_class("navbar")
+        navwrap.pack_start(nav, True, False, 0)
+        outer.pack_end(navwrap, False, False, 0)
+
+        self.show_all()
+        self.render()
+        self.check_online()
+
+    # ---- pozadi ----
+    def check_online(self):
+        gui.run_async(gui.have_internet, self.online_checked)
+
+    def online_checked(self, ok, _err):
+        was = self.online
+        self.online = bool(ok)
+        if self.online and not self.tz_asked:
+            self.tz_asked = True
+            gui.run_async(self.detect_timezone, self.tz_detected)
+        if was != self.online and self.current() in ("network", "luxai"):
+            self.render()
+
+    # ---- navigace ----
+    def render_sidebar(self):
+        for c in self.dots.get_children():
+            self.dots.remove(c)
+        for i, _key in enumerate(self.steps):
+            d = Gtk.Box(valign=Gtk.Align.CENTER)
+            ctx = d.get_style_context()
+            ctx.add_class("setup-dot")
+            if i == self.idx:
+                ctx.add_class("current")
+            elif i < self.idx:
+                ctx.add_class("done")
+            self.dots.pack_start(d, False, False, 0)
+        self.dots.show_all()
+
+    def render(self):
+        if self.header is not None:
+            self.header.set_title(_("Set Up LuxOS"))
+        self.render_sidebar()
+        child = self.scroll.get_child()
+        if child:
+            self.scroll.remove(child)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=28, margin_top=26)
+        self.valid = lambda: True
+        self.why = lambda: ""
+        self.extra_action = None
+        getattr(self, "page_" + self.current())(page)
+        self.scroll.add(page)
+        self.scroll.get_vadjustment().set_value(0)
+        self.scroll.show_all()
+        self.update_nav()
+
+    def update_nav(self):
+        key = self.current()
+        self.btn_back.set_label(_("Back"))
+        self.btn_back.set_visible(self.idx > 0 and not self.finishing and self.result != "ok")
+        labels = {"luxai": _("Continue") if self.s["luxai"] else _("Skip"),
+                  "network": _("Continue") if self.online else _("Skip"),
+                  "care": _("Finish Setup")}
+        self.btn_next.set_label(labels.get(key, _("Continue")))
+        if key == "finish":
+            self.btn_next.set_label(_("Try Again"))
+            self.btn_next.set_visible(bool(self.finish_error) and not self.finishing)
+        else:
+            self.btn_next.set_visible(True)
+        self.btn_extra.set_visible(self.extra_action is not None)
+        self.btn_next.set_sensitive(bool(self.valid()))
+        self.nav_hint.set_text("" if self.btn_next.get_sensitive() else self.why())
+
+    def go_next(self):
+        key = self.current()
+        if key == "finish":
+            if self.finish_error and not self.finishing:
+                self.start_finish()
+            return
+        if not self.valid():
+            return
+        self.idx += 1
+        self.save()
+        self.render()
+        if self.current() == "finish":
+            self.start_finish()
+
+    def go_back(self):
+        if self.finishing or self.idx == 0 or self.result == "ok":
+            return
+        self.idx -= 1
+        self.finish_error = ""
+        self.save()
+        self.render()
+
+    def save(self):
+        """Rozpracovane volby (bez hesel) pro pripad vypadku proudu."""
+        try:
+            oem.save_progress(dict(self.s, step=self.current()))
+        except OSError:
+            pass
+
+    def on_delete(self, *_a):
+        if not self.windowed or self.finishing:
+            return True   # celou obrazovku nelze zavrit (zpet: tlacitko Zpet)
+        Gtk.main_quit()
+        return False
+
+    # ---- stranky (ostatni z instalatoru) ----
+    def page_welcome(self, page):
+        top = Gtk.Box(spacing=18)
+        top.pack_start(gui.logo_image(72), False, False, 0)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, valign=Gtk.Align.CENTER)
+        t = Gtk.Label(label=_("Welcome"), xalign=0)
+        t.get_style_context().add_class("big-title")
+        texts.pack_start(t, False, False, 0)
+        s = Gtk.Label(label=_("Let's set up your computer. It only takes a few minutes."), xalign=0, wrap=True)
+        s.get_style_context().add_class("subtitle")
+        texts.pack_start(s, False, False, 0)
+        top.pack_start(texts, True, True, 0)
+        page.pack_start(top, False, False, 6)
+        page.pack_start(self.hint(_("Choose your language")), False, False, 0)
+        items = [(loc, label, label + " " + loc) for label, loc in gui.LANGS]
+        self.search_list(page, items, self.s["locale"], self.choose_lang, height=250)
+
+    def page_network(self, page):
+        gui.Installer.page_network(self, page)
+        # Bez internetu jde pokracovat (Wi-Fi i LuxAI se daji nastavit pozdeji)
+        self.valid = lambda: True
+        if not self.online:
+            page.pack_start(self.hint(_("You can also skip this and connect later in the top bar.")), False, False, 0)
+
+    def page_account(self, page):
+        gui.Installer.page_account(self, page)
+        row = Gtk.Box(spacing=14)
+        frame = Gtk.Box()
+        frame.get_style_context().add_class("avatar-frame")
+        self.avatar = Gtk.Image()
+        frame.pack_start(self.avatar, False, False, 0)
+        row.pack_start(frame, False, False, 0)
+        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, valign=Gtk.Align.CENTER)
+        col.pack_start(Gtk.Label(label=_("Photo (optional)"), xalign=0), False, False, 0)
+        btns = Gtk.Box(spacing=8)
+        choose = Gtk.Button(label=_("Choose Photo…"))
+        choose.connect("clicked", lambda _b: self.choose_photo())
+        btns.pack_start(choose, False, False, 0)
+        remove = Gtk.Button(label=_("Remove"))
+        remove.connect("clicked", lambda _b: self.set_photo(None))
+        remove.set_sensitive(self.photo is not None)
+        self.photo_remove = remove
+        btns.pack_start(remove, False, False, 0)
+        col.pack_start(btns, False, False, 0)
+        row.pack_start(col, False, False, 0)
+        page.pack_start(row, False, False, 6)
+        self.show_avatar()
+
+    def show_avatar(self):
+        pix = None
+        if self.photo:
+            from gi.repository import GdkPixbuf
+            try:
+                pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(self.photo, 64, 64, True)
+            except GLib.Error:
+                pix = None
+        if pix is not None:
+            self.avatar.set_from_pixbuf(pix)
+        else:
+            self.avatar.set_from_icon_name("avatar-default-symbolic", Gtk.IconSize.DIALOG)
+            self.avatar.set_pixel_size(64)
+
+    def choose_photo(self):
+        dlg = Gtk.FileChooserDialog(title=_("Choose Photo…"), transient_for=self, modal=True,
+                                    action=Gtk.FileChooserAction.OPEN)
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Choose"), Gtk.ResponseType.OK)
+        flt = Gtk.FileFilter()
+        flt.set_name(_("Pictures"))
+        flt.add_pixbuf_formats()
+        dlg.add_filter(flt)
+        pictures = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES)
+        for d in ("/usr/share/luxos/avatars", pictures):
+            if d and os.path.isdir(d):
+                dlg.set_current_folder(d)
+                break
+        path = dlg.get_filename() if dlg.run() == Gtk.ResponseType.OK else None
+        dlg.destroy()
+        if path:
+            self.set_photo(path)
+
+    def set_photo(self, path):
+        """Zmensit na 256 px PNG (luxos-oem prijme jen PNG do 5 MB); None = bez fotky."""
+        if path is None:
+            self.photo = None
+        else:
+            from gi.repository import GdkPixbuf
+            try:
+                pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, 256, 256, True)
+            except GLib.Error:
+                self.nav_hint.set_text(_("This picture cannot be used."))
+                return
+            if not self.photo_dir:
+                self.photo_dir = tempfile.mkdtemp(prefix="luxos-setup-")
+            out = os.path.join(self.photo_dir, "photo.png")
+            try:
+                pix.savev(out, "png", [], [])
+            except GLib.Error:
+                self.nav_hint.set_text(_("This picture cannot be used."))
+                return
+            os.chmod(out, 0o644)
+            os.chmod(self.photo_dir, 0o755)
+            self.photo = out
+        if getattr(self, "photo_remove", None) is not None:
+            self.photo_remove.set_sensitive(self.photo is not None)
+        if getattr(self, "avatar", None) is not None:
+            self.show_avatar()
+
+    def page_diskpass(self, page):
+        self.heading(page, _("Disk Password"),
+                     _("Your disk is encrypted. You will enter this password every time the computer starts."))
+        same = Gtk.CheckButton(label=_("Use my account password"), active=self.s["disk_same"])
+        page.pack_start(same, False, False, 0)
+        rev = Gtk.Revealer(reveal_child=not self.s["disk_same"])
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.password_pair(box, "disk1", "disk2", _("Disk password"), _("Confirm password"))
+        rev.add(box)
+        page.pack_start(rev, False, False, 0)
+        page.pack_start(self.hint(_("If you forget this password, your data cannot be recovered.")), False, False, 0)
+
+        def toggled(b):
+            self.s["disk_same"] = b.get_active()
+            rev.set_reveal_child(not b.get_active())
+            self.update_nav()
+        same.connect("toggled", toggled)
+        self.valid = lambda: not oem.disk_problem(self.s)
+        self.why = lambda: {"account": _("Go back and choose your account password."),
+                            "mismatch": _("Passwords do not match."),
+                            "empty": _("Enter the disk password twice.")}.get(oem.disk_problem(self.s), "")
+
+    def page_finish(self, page):
+        if self.result == "ok":
+            icon = Gtk.Image.new_from_icon_name("emblem-ok-symbolic", Gtk.IconSize.DIALOG)
+            icon.set_pixel_size(72)
+            icon.get_style_context().add_class("done-icon")
+            page.pack_start(icon, False, False, 16)
+            t = Gtk.Label(label=_("Welcome, %s!") % (self.s["fullname"].strip() or self.s["username"]))
+            t.get_style_context().add_class("big-title")
+            page.pack_start(t, False, False, 0)
+            self.finish_label = Gtk.Label(label=self.finish_text or _("Signing in…"), wrap=True)
+            self.finish_label.get_style_context().add_class("subtitle")
+            page.pack_start(self.finish_label, False, False, 0)
+            if self.finish_text:   # prihlaseni selhalo: ucet je hotovy, staci restart
+                b = Gtk.Button(label=_("Restart"), halign=Gtk.Align.CENTER)
+                b.get_style_context().add_class("primary")
+                b.connect("clicked", lambda _b: self.login_backend.power("restart"))
+                page.pack_start(b, False, False, 8)
+            return
+        self.heading(page, _("Setting up your computer"), _("This takes a moment. Please do not turn off the computer."))
+        self.finish_label = Gtk.Label(label=self.finish_text, xalign=0, wrap=True)
+        page.pack_start(self.finish_label, False, False, 0)
+        self.finish_bar = Gtk.ProgressBar()
+        page.pack_start(self.finish_bar, False, False, 0)
+        if self.finish_error:
+            err = Gtk.Label(label=self.finish_error, xalign=0, wrap=True, selectable=True)
+            err.get_style_context().add_class("error")
+            page.pack_start(err, False, False, 0)
+            page.pack_start(self.hint(_("Nothing is lost: go back to change something or try again.")), False, False, 0)
+        self.valid = lambda: not self.finishing
+
+    # ---- dokonceni ----
+    def start_finish(self):
+        try:
+            data = oem.finish_input(self.s, self.xkb_values(), self.luks_pending, self.photo or "")
+        except ValueError:
+            self.finish_error = _("Some of your entries contain unsupported characters.")
+            self.render()
+            return
+        self.finishing, self.finish_error, self.finish_text = True, "", _("Starting…")
+        self.save()
+        self.render()
+        self.pulse = GLib.timeout_add(120, lambda: (self.finishing and self.finish_bar.pulse()) or self.finishing)
+
+        def work():
+            try:
+                p = subprocess.Popen(HELPER + ["finish"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT, text=True, bufsize=1)
+            except OSError as e:
+                GLib.idle_add(self.finished, 1, str(e))
+                return
+            try:
+                p.stdin.write(data)
+                p.stdin.close()
+            except OSError:
+                pass
+            err = ""
+            done = False
+            for line in p.stdout:
+                kind = oem.parse_line(line.rstrip("\n"))
+                if kind[0] == "step":
+                    GLib.idle_add(self.finish_step, kind[1])
+                elif kind[0] == "error":
+                    err = err or kind[1]
+                elif kind[0] == "done":
+                    done = True
+            rc = p.wait()
+            GLib.idle_add(self.finished, 0 if rc == 0 and done else (rc or 1), err)
+        threading.Thread(target=work, daemon=True).start()
+
+    def finish_step(self, text):
+        self.finish_text = text
+        if self.current() == "finish" and getattr(self, "finish_label", None):
+            self.finish_label.set_text(text)
+        return False
+
+    def finished(self, rc, err):
+        self.finishing = False
+        if rc != 0:
+            self.finish_error = err or _("Setup could not be finished (exit code %s).") % rc
+            self.render()
+            return False
+        self.result, self.finish_text = "ok", ""
+        if self.photo_dir:
+            shutil.rmtree(self.photo_dir, ignore_errors=True)
+        self.render()
+        self.login_backend.login(self.s["username"], self.s["pw1"], self.logged_in)
+        return False
+
+    def logged_in(self, ok):
+        if ok:
+            Gtk.main_quit()
+            return
+        self.finish_text = _("Your account is ready. Restart the computer and sign in with your new password.")
+        self.render()
+
+
+# ---- Zapecetit pro zakaznika (docasny ucet oem) -----------------------------------------------------
+class SealDialog(Gtk.Window):
+    def __init__(self, reminder=False):
+        super().__init__(title=_("Seal for Customer"))
+        self.set_default_size(560, -1)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.set_icon_name("luxos-installer")
+        hb = Gtk.HeaderBar(show_close_button=True, title=_("Seal for Customer"))
+        self.set_titlebar(hb)
+        self.connect("delete-event", lambda *_a: Gtk.main_quit())
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin=24)
+        self.add(box)
+        t = Gtk.Label(label=_("Ready to hand over this computer?"), xalign=0, wrap=True)
+        t.get_style_context().add_class("title")
+        box.pack_start(t, False, False, 0)
+        intro = _("This computer was prepared for another person. Install apps and test the hardware, then "
+                  "seal it. The computer shuts down; at the next start the owner creates their account.")
+        box.pack_start(gui.Installer.hint(intro), False, False, 0)
+        for line in (_("Logs, caches and command history are removed."),
+                     _("The temporary account oem is deleted at the next start."),
+                     _("New SSH keys and a new machine ID are created at the next start.")):
+            box.pack_start(gui.Installer.hint("•  " + line), False, False, 0)
+        self.keep_wifi = Gtk.CheckButton(label=_("Keep saved Wi-Fi networks (their passwords stay on the computer)"))
+        box.pack_start(self.keep_wifi, False, False, 4)
+        self.msg = gui.Installer.hint("", "error")
+        box.pack_start(self.msg, False, False, 0)
+        row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
+        later = Gtk.Button(label=_("Not Now") if reminder else _("Cancel"))
+        later.connect("clicked", lambda _b: Gtk.main_quit())
+        self.seal_btn = Gtk.Button(label=_("Seal and Shut Down"))
+        self.seal_btn.get_style_context().add_class("primary")
+        self.seal_btn.connect("clicked", self.seal)
+        row.pack_start(later, False, False, 0)
+        row.pack_start(self.seal_btn, False, False, 0)
+        box.pack_start(row, False, False, 0)
+        self.show_all()
+
+    def command(self):
+        cmd = ["pkexec", "/usr/bin/luxos-oem", "seal", "--yes", "--poweroff"]
+        if self.keep_wifi.get_active():
+            cmd.append("--keep-wifi")
+        return cmd
+
+    def seal(self, _b):
+        self.seal_btn.set_sensitive(False)
+        cmd = self.command()
+        if os.environ.get("LUXOS_SETUP_DEMO") == "1":
+            print("DEMO: " + " ".join(cmd), flush=True)
+            Gtk.main_quit()
+            return
+
+        def done(r, _err):
+            if r is None or r.returncode != 0:
+                gui.say(self.msg, (r.stdout.strip().splitlines() or [""])[-1] if r else _("Sealing failed."))
+                self.seal_btn.set_sensitive(True)
+        gui.run_async(lambda: subprocess.run(cmd, capture_output=True, text=True), done)
+
+
+def apply_css():
+    for data in (gui.CSS, CSS):
+        provider = Gtk.CssProvider()
+        provider.load_from_data(data)
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+
+def main():
+    ap = argparse.ArgumentParser(description="LuxOS setup assistant (first start after OEM preinstallation)")
+    ap.add_argument("--demo", action="store_true", help="run in a window without LightDM and without changes")
+    ap.add_argument("--seal-dialog", action="store_true", help="window 'Seal for Customer' (account oem)")
+    ap.add_argument("--reminder", action="store_true", help="with --seal-dialog: shown after login")
+    args = ap.parse_args()
+    GLib.set_prgname("luxos-setup-assistant")
+    if Gdk.Display.get_default() is None:
+        print("luxos-setup-assistant: no display", file=sys.stderr)
+        return 1
+    apply_css()
+    if args.seal_dialog:
+        if args.reminder and not os.path.exists("/etc/luxos/oem.conf"):
+            return 0
+        SealDialog(args.reminder)
+        Gtk.main()
+        return 0
+    if args.demo:
+        os.environ["LUXOS_SETUP_DEMO"] = "1"
+        login = DemoLogin()
+    else:
+        login = GreeterLogin()
+        root = Gdk.get_default_root_window()
+        disp = Gdk.Display.get_default()
+        root.set_cursor(Gdk.Cursor.new_from_name(disp, "default"))
+    _rc, out = run_helper(["status"], timeout=30)
+    status = oem.parse_status(out)
+    win = SetupAssistant(login, status, windowed=args.demo)
+    win.present()
+    Gtk.main()
+    return 0 if win.result == "ok" else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=LuxOS Setup Assistant
+Comment=First start after preinstallation: language, Wi-Fi and your account
+Exec=/usr/lib/luxos/oem/luxos-setup-greeter
+Type=Application

@@ -2983,3 +2983,92 @@ South wind	Vent du sud
 Southwest wind	Vent du sud-ouest
 West wind	Vent d’ouest
 Northwest wind	Vent du nord-ouest
+# OEM - priprava pro jineho cloveka, Pruvodce nastavenim
+Applying language and region	Application de la langue et de la région
+At the first start the owner chooses language, keyboard, Wi-Fi and creates their account.	Au premier démarrage, le propriétaire choisit la langue, le clavier, le Wi‑Fi et crée son compte.
+At the first start the owner sees a setup assistant: language, keyboard, Wi-Fi, time zone, their account and disk password. Then LuxOS starts with the tour.	Au premier démarrage, le propriétaire voit un assistant de configuration : langue, clavier, Wi‑Fi, fuseau horaire, son compte et le mot de passe du disque. LuxOS démarre ensuite avec la visite guidée.
+Choose a password for the disk.	Choisissez un mot de passe pour le disque.
+Continue? [y/N] 	Continuer ? [o/N] 
+Could not create the account.	Impossible de créer le compte.
+Could not delete the account %s.	Impossible de supprimer le compte %s.
+Could not enable %s.	Impossible d'activer %s.
+Could not rebuild the boot image.	Impossible de reconstruire l'image de démarrage.
+Could not remove the temporary disk key.	Impossible de supprimer la clé temporaire du disque.
+Could not seal the system for the owner.	Impossible de sceller le système pour le propriétaire.
+Could not set the disk password.	Impossible de définir le mot de passe du disque.
+Could not set the keyboard layout.	Impossible de définir la disposition du clavier.
+Could not set the password.	Impossible de définir le mot de passe.
+Creating your account	Création de votre compte
+Disk Password	Mot de passe du disque
+Disk password	Mot de passe du disque
+Enter the disk password twice.	Saisissez deux fois le mot de passe du disque.
+Enter the password for the temporary account oem twice.	Saisissez deux fois le mot de passe du compte temporaire oem.
+Finish Setup	Terminer la configuration
+For shops and IT: LuxOS is installed without a personal account. At the first start the owner chooses language, Wi-Fi and creates their account.	Pour les boutiques et l'informatique : LuxOS est installé sans compte personnel. Au premier démarrage, le propriétaire choisit la langue, le Wi‑Fi et crée son compte.
+Go back and choose your account password.	Revenez en arrière et choisissez le mot de passe du compte.
+Invalid OEM (use 0 or 1)	OEM invalide (utilisez 0 ou 1)
+Invalid OEM_SEAL (use 1 or 0)	OEM_SEAL invalide (utilisez 1 ou 0)
+Invalid computer name.	Nom d'ordinateur invalide.
+Invalid language.	Langue invalide.
+Invalid setup data.	Données de configuration invalides.
+Invalid time zone.	Fuseau horaire invalide.
+Invalid user name.	Nom d'utilisateur invalide.
+Keep saved Wi-Fi networks (their passwords stay on the computer)	Conserver les réseaux Wi‑Fi enregistrés (leurs mots de passe restent sur l'ordinateur)
+Let's set up your computer. It only takes a few minutes.	Configurons votre ordinateur. Cela ne prend que quelques minutes.
+Logs, caches and command history are removed.	Les journaux, caches et l'historique des commandes sont supprimés.
+Me - set up my account now	Moi – créer mon compte maintenant
+New SSH keys and a new machine ID are created at the next start.	De nouvelles clés SSH et un nouvel identifiant de machine sont créés au prochain démarrage.
+Not Now	Pas maintenant
+Nothing is lost: go back to change something or try again.	Rien n'est perdu : revenez en arrière pour modifier quelque chose ou réessayez.
+OEM_SEAL=0 needs PASSWORD (temporary account oem)	OEM_SEAL=0 nécessite PASSWORD (compte temporaire oem)
+Password for the temporary account oem	Mot de passe du compte temporaire oem
+Photo (optional)	Photo (facultative)
+Prepare first	Préparer d'abord
+Prepare for another person	Préparer pour une autre personne
+Prepare for another person (OEM)	Préparer pour une autre personne (OEM)
+Prepare the computer first (temporary account oem, then Seal for Customer)?	Préparer d'abord l'ordinateur (compte temporaire oem, puis Sceller pour le client) ?
+Preparing for another person (OEM) does not support encryption in manual partitioning. Use Encrypt LuxOS instead.	La préparation pour une autre personne (OEM) ne prend pas en charge le chiffrement avec le partitionnement manuel. Utilisez plutôt Chiffrer LuxOS.
+Preparing the encrypted disk	Préparation du disque chiffré
+Ready to hand over this computer?	Prêt à remettre cet ordinateur ?
+Run as root (sudo).	Exécutez en tant que root (sudo).
+Seal and Shut Down	Sceller et éteindre
+Seal for Customer	Sceller pour le client
+Seal for customer:	Scellement pour le client :
+Seal now	Sceller maintenant
+Sealed. At the next start the setup assistant welcomes the owner.	Scellé. Au prochain démarrage, l'assistant de configuration accueille le propriétaire.
+Sealing failed.	Le scellement a échoué.
+Set Up LuxOS	Configurer LuxOS
+Setting the disk password	Définition du mot de passe du disque
+Setting up your computer	Configuration de votre ordinateur
+Setup could not be finished (exit code %s).	La configuration n'a pas pu être terminée (code de sortie %s).
+Shut Down or Restart	Éteindre ou redémarrer
+Sign in as oem to add apps and test the hardware, then click Seal for Customer (or run luxos-oem seal).	Connectez-vous en tant que oem pour ajouter des applications et tester le matériel, puis cliquez sur Sceller pour le client (ou lancez luxos-oem seal).
+Signing in…	Connexion…
+Some of your entries contain unsupported characters.	Certaines de vos saisies contiennent des caractères non pris en charge.
+The computer is ready to hand over right after the installation.	L'ordinateur est prêt à être remis juste après l'installation.
+The encrypted disk was not found.	Le disque chiffré est introuvable.
+The owner chooses the disk password in the setup assistant at the first start. Until then the computer starts without asking.	Le propriétaire choisit le mot de passe du disque dans l'assistant de configuration au premier démarrage. D'ici là, l'ordinateur démarre sans le demander.
+The owner chooses the disk password in the setup assistant.	Le propriétaire choisit le mot de passe du disque dans l'assistant de configuration.
+The owner creates their account in the setup assistant at the first start.	Le propriétaire crée son compte dans l'assistant de configuration au premier démarrage.
+The setup assistant has already finished on this computer.	L'assistant de configuration est déjà terminé sur cet ordinateur.
+The setup assistant is not active on this computer.	L'assistant de configuration n'est pas actif sur cet ordinateur.
+The temporary account oem is deleted at the next start.	Le compte temporaire oem est supprimé au prochain démarrage.
+The temporary disk key does not work.	La clé temporaire du disque ne fonctionne pas.
+The user name %s is already taken.	Le nom d'utilisateur %s est déjà pris.
+This computer was not installed for another person (OEM). Nothing to seal.	Cet ordinateur n'a pas été installé pour une autre personne (OEM). Rien à sceller.
+This computer was prepared for another person. Install apps and test the hardware, then seal it. The computer shuts down; at the next start the owner creates their account.	Cet ordinateur a été préparé pour une autre personne. Installez des applications et testez le matériel, puis scellez-le. L'ordinateur s'éteint ; au prochain démarrage, le propriétaire crée son compte.
+This picture cannot be used.	Cette image ne peut pas être utilisée.
+This takes a moment. Please do not turn off the computer.	Cela prend un instant. N'éteignez pas l'ordinateur.
+Use my account password	Utiliser le mot de passe de mon compte
+Welcome	Bienvenue
+Welcome, %s!	Bienvenue, %s !
+Who will use this computer?	Qui utilisera cet ordinateur ?
+You can also skip this and connect later in the top bar.	Vous pouvez aussi passer cette étape et vous connecter plus tard dans la barre supérieure.
+Your account is ready. Restart the computer and sign in with your new password.	Votre compte est prêt. Redémarrez l'ordinateur et connectez-vous avec votre nouveau mot de passe.
+Your disk is encrypted. You will enter this password every time the computer starts.	Votre disque est chiffré. Vous saisirez ce mot de passe à chaque démarrage de l'ordinateur.
+at the next start the owner creates their account in the setup assistant	au prochain démarrage, le propriétaire crée son compte dans l'assistant de configuration
+logs, caches and command history are removed	les journaux, caches et l'historique des commandes sont supprimés
+saved Wi-Fi networks and their passwords are removed	les réseaux Wi‑Fi enregistrés et leurs mots de passe sont supprimés
+the owner creates it at the first start (OEM)	le propriétaire le crée au premier démarrage (OEM)
+the owner creates it at the first start (OEM); until sealing: temporary account %s	le propriétaire le crée au premier démarrage (OEM) ; jusqu'au scellement : compte temporaire %s
+the temporary account %s is deleted at the next start	le compte temporaire %s est supprimé au prochain démarrage

@@ -2983,3 +2983,92 @@ South wind	Déli szél
 Southwest wind	Délnyugati szél
 West wind	Nyugati szél
 Northwest wind	Északnyugati szél
+# OEM - priprava pro jineho cloveka, Pruvodce nastavenim
+Applying language and region	Nyelv és régió beállítása
+At the first start the owner chooses language, keyboard, Wi-Fi and creates their account.	Az első indításkor a tulajdonos kiválasztja a nyelvet, a billentyűzetet, a Wi‑Fi-t, és létrehozza a fiókját.
+At the first start the owner sees a setup assistant: language, keyboard, Wi-Fi, time zone, their account and disk password. Then LuxOS starts with the tour.	Az első indításkor a tulajdonos egy beállítási varázslót lát: nyelv, billentyűzet, Wi‑Fi, időzóna, saját fiók és lemezjelszó. Ezután a LuxOS a bemutatóval indul.
+Choose a password for the disk.	Válasszon jelszót a lemezhez.
+Continue? [y/N] 	Folytatja? [i/N] 
+Could not create the account.	Nem sikerült létrehozni a fiókot.
+Could not delete the account %s.	Nem sikerült törölni a(z) %s fiókot.
+Could not enable %s.	Nem sikerült engedélyezni: %s.
+Could not rebuild the boot image.	Nem sikerült újra létrehozni a rendszerindító képet.
+Could not remove the temporary disk key.	Nem sikerült eltávolítani az ideiglenes lemezkulcsot.
+Could not seal the system for the owner.	Nem sikerült lezárni a rendszert a tulajdonos számára.
+Could not set the disk password.	Nem sikerült beállítani a lemezjelszót.
+Could not set the keyboard layout.	Nem sikerült beállítani a billentyűzetkiosztást.
+Could not set the password.	Nem sikerült beállítani a jelszót.
+Creating your account	A fiók létrehozása
+Disk Password	Lemezjelszó
+Disk password	Lemezjelszó
+Enter the disk password twice.	Írja be kétszer a lemezjelszót.
+Enter the password for the temporary account oem twice.	Írja be kétszer az ideiglenes oem fiók jelszavát.
+Finish Setup	Beállítás befejezése
+For shops and IT: LuxOS is installed without a personal account. At the first start the owner chooses language, Wi-Fi and creates their account.	Boltoknak és IT-nak: a LuxOS személyes fiók nélkül települ. Az első indításkor a tulajdonos kiválasztja a nyelvet, a Wi‑Fi-t, és létrehozza a fiókját.
+Go back and choose your account password.	Lépjen vissza, és válasszon fiókjelszót.
+Invalid OEM (use 0 or 1)	Érvénytelen OEM (0 vagy 1)
+Invalid OEM_SEAL (use 1 or 0)	Érvénytelen OEM_SEAL (1 vagy 0)
+Invalid computer name.	Érvénytelen számítógépnév.
+Invalid language.	Érvénytelen nyelv.
+Invalid setup data.	Érvénytelen beállítási adatok.
+Invalid time zone.	Érvénytelen időzóna.
+Invalid user name.	Érvénytelen felhasználónév.
+Keep saved Wi-Fi networks (their passwords stay on the computer)	Mentett Wi‑Fi-hálózatok megtartása (jelszavaik a számítógépen maradnak)
+Let's set up your computer. It only takes a few minutes.	Állítsuk be a számítógépet. Csak néhány percet vesz igénybe.
+Logs, caches and command history are removed.	A naplók, gyorsítótárak és a parancselőzmények törlődnek.
+Me - set up my account now	Én – a fiókom létrehozása most
+New SSH keys and a new machine ID are created at the next start.	A következő indításkor új SSH-kulcsok és új gépazonosító jön létre.
+Not Now	Most nem
+Nothing is lost: go back to change something or try again.	Semmi sem veszett el: lépjen vissza a módosításhoz, vagy próbálja újra.
+OEM_SEAL=0 needs PASSWORD (temporary account oem)	Az OEM_SEAL=0 PASSWORD-ot igényel (ideiglenes oem fiók)
+Password for the temporary account oem	Az ideiglenes oem fiók jelszava
+Photo (optional)	Fénykép (nem kötelező)
+Prepare first	Előbb előkészítés
+Prepare for another person	Előkészítés más személy számára
+Prepare for another person (OEM)	Előkészítés más személy számára (OEM)
+Prepare the computer first (temporary account oem, then Seal for Customer)?	Előbb előkészíti a számítógépet (ideiglenes oem fiók, majd Lezárás az ügyfél számára)?
+Preparing for another person (OEM) does not support encryption in manual partitioning. Use Encrypt LuxOS instead.	A más személy számára történő előkészítés (OEM) nem támogatja a titkosítást kézi particionálásnál. Használja helyette a LuxOS titkosítása lehetőséget.
+Preparing the encrypted disk	A titkosított lemez előkészítése
+Ready to hand over this computer?	Készen áll a számítógép átadására?
+Run as root (sudo).	Futtassa rootként (sudo).
+Seal and Shut Down	Lezárás és leállítás
+Seal for Customer	Lezárás az ügyfél számára
+Seal for customer:	Lezárás az ügyfél számára:
+Seal now	Lezárás most
+Sealed. At the next start the setup assistant welcomes the owner.	Lezárva. A következő indításkor a beállítási varázsló üdvözli a tulajdonost.
+Sealing failed.	A lezárás nem sikerült.
+Set Up LuxOS	LuxOS beállítása
+Setting the disk password	A lemezjelszó beállítása
+Setting up your computer	A számítógép beállítása
+Setup could not be finished (exit code %s).	A beállítást nem sikerült befejezni (kilépési kód: %s).
+Shut Down or Restart	Leállítás vagy újraindítás
+Sign in as oem to add apps and test the hardware, then click Seal for Customer (or run luxos-oem seal).	Jelentkezzen be oem-ként, telepítsen alkalmazásokat és tesztelje a hardvert, majd kattintson a Lezárás az ügyfél számára gombra (vagy futtassa: luxos-oem seal).
+Signing in…	Bejelentkezés…
+Some of your entries contain unsupported characters.	Néhány megadott adat nem támogatott karaktert tartalmaz.
+The computer is ready to hand over right after the installation.	A számítógép közvetlenül a telepítés után átadható.
+The encrypted disk was not found.	A titkosított lemez nem található.
+The owner chooses the disk password in the setup assistant at the first start. Until then the computer starts without asking.	A lemezjelszót a tulajdonos választja ki a beállítási varázslóban az első indításkor. Addig a számítógép kérdés nélkül indul.
+The owner chooses the disk password in the setup assistant.	A lemezjelszót a tulajdonos választja ki a beállítási varázslóban.
+The owner creates their account in the setup assistant at the first start.	A tulajdonos az első indításkor a beállítási varázslóban hozza létre a fiókját.
+The setup assistant has already finished on this computer.	A beállítási varázsló ezen a számítógépen már lefutott.
+The setup assistant is not active on this computer.	A beállítási varázsló ezen a számítógépen nem aktív.
+The temporary account oem is deleted at the next start.	Az ideiglenes oem fiók a következő indításkor törlődik.
+The temporary disk key does not work.	Az ideiglenes lemezkulcs nem működik.
+The user name %s is already taken.	A(z) %s felhasználónév már foglalt.
+This computer was not installed for another person (OEM). Nothing to seal.	Ez a számítógép nem más személy számára lett telepítve (OEM). Nincs mit lezárni.
+This computer was prepared for another person. Install apps and test the hardware, then seal it. The computer shuts down; at the next start the owner creates their account.	Ez a számítógép más személy számára készült. Telepítsen alkalmazásokat és tesztelje a hardvert, majd zárja le. A számítógép leáll; a következő indításkor a tulajdonos létrehozza a fiókját.
+This picture cannot be used.	Ez a kép nem használható.
+This takes a moment. Please do not turn off the computer.	Ez eltart egy ideig. Kérjük, ne kapcsolja ki a számítógépet.
+Use my account password	A fiókom jelszavának használata
+Welcome	Üdvözöljük
+Welcome, %s!	Üdvözöljük, %s!
+Who will use this computer?	Ki fogja használni ezt a számítógépet?
+You can also skip this and connect later in the top bar.	Ezt ki is hagyhatja, és később csatlakozhat a felső sávban.
+Your account is ready. Restart the computer and sign in with your new password.	A fiókja elkészült. Indítsa újra a számítógépet, és jelentkezzen be az új jelszóval.
+Your disk is encrypted. You will enter this password every time the computer starts.	A lemeze titkosított. Ezt a jelszót minden indításkor meg kell adnia.
+at the next start the owner creates their account in the setup assistant	a következő indításkor a tulajdonos a beállítási varázslóban hozza létre a fiókját
+logs, caches and command history are removed	a naplók, gyorsítótárak és a parancselőzmények törlődnek
+saved Wi-Fi networks and their passwords are removed	a mentett Wi‑Fi-hálózatok és jelszavaik törlődnek
+the owner creates it at the first start (OEM)	a tulajdonos hozza létre az első indításkor (OEM)
+the owner creates it at the first start (OEM); until sealing: temporary account %s	a tulajdonos hozza létre az első indításkor (OEM); a lezárásig ideiglenes fiók: %s
+the temporary account %s is deleted at the next start	az ideiglenes %s fiók a következő indításkor törlődik

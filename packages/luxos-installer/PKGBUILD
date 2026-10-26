@@ -9,7 +9,7 @@ url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
 depends=(bash gum arch-install-scripts gptfdisk dosfstools e2fsprogs btrfs-progs cryptsetup parted lvm2 xfsprogs f2fs-tools
          util-linux curl reflector "lux-engine>=7.1.0.r9.g54d9411-3.2" luxos-drivers luxos-i18n "luxos-account>=1.0.0-3" networkmanager
-         python python-gobject gtk3 sudo xorg-setxkbmap)
+         python python-gobject gtk3 sudo xorg-setxkbmap lightdm polkit)
 
 package() {
     local f="$startdir/files"
@@ -24,4 +24,11 @@ package() {
     # Sablony softwaru (TEMPLATES=, krok Software v GUI)
     install -Dm644 -t "$pkgdir/usr/share/luxos/installer/templates" "$f"/templates/*.list
     install -Dm644 "$f/luxos-install.desktop" "$pkgdir/usr/share/applications/luxos-install.desktop"
+    # OEM: Pruvodce nastavenim (prvni start, greeter LightDM), luxos-oem (zapeceteni, dokonceni)
+    install -Dm755 -t "$pkgdir/usr/bin" "$f/luxos-oem" "$f/luxos-setup-assistant"
+    install -Dm644 "$f/luxos_oem.py" "$pkgdir/usr/lib/luxos/python/luxos_oem.py"
+    install -Dm755 "$f/luxos-setup-greeter" "$pkgdir/usr/lib/luxos/oem/luxos-setup-greeter"
+    install -Dm644 "$f/luxos-setup.desktop" "$pkgdir/usr/share/xgreeters/luxos-setup.desktop"
+    install -Dm644 "$f/luxos-oem-seal.desktop" "$pkgdir/usr/share/applications/luxos-oem-seal.desktop"
+    install -Dm644 "$f/luxos-oem-firstboot.service" "$pkgdir/usr/lib/systemd/system/luxos-oem-firstboot.service"
 }

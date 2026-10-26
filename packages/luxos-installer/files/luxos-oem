@@ -1,0 +1,463 @@
+#!/bin/bash
+# LuxOS - OEM predinstalace (obchod / IT pripravi pocitac, zakaznik si pri prvnim startu zalozi ucet)
+#
+#   sudo luxos-oem seal [--keep-wifi] [--poweroff] [--yes]
+#                       zapecetit pro zakaznika: smaze stopy pripravy (zaznamy, cache, historie, Wi-Fi,
+#                       machine-id; klice SSH se vytvori znovu pri prvnim startu), docasny ucet oem se
+#                       smaze pri dalsim startu a misto prihlasovaci obrazovky se spusti Pruvodce nastavenim
+#   luxos-oem seal --chroot --yes   totez z instalatoru (arch-chroot, bez behu systemd)
+#   sudo luxos-oem status           stav pro Pruvodce nastavenim (KLIC=hodnota)
+#   sudo luxos-oem finish           dokonceni Pruvodce: nastaveni na stdin (radky KLIC=hodnota, hesla
+#                                   jen tudy); prubeh "@@STEP text", chyba "@@ERROR text", konec "@@DONE"
+#   luxos-oem firstboot             sluzba luxos-oem-firstboot.service (pred prihlasovaci obrazovkou)
+#
+# Stav:   /etc/luxos/oem.conf               zapise instalator (OEM=1, OEM_USER, LUKS_NAME)
+#         /var/lib/luxos/oem/armed          zapeceteno: LightDM spousti Pruvodce nastavenim
+#         /var/lib/luxos/oem/cleanup        prvni start po zapeceteni (ucet oem ke smazani, klice SSH)
+#         /var/lib/luxos/oem/journal        hotove kroky dokonceni (vypadek proudu = Pruvodce znovu,
+#                                           kazdy krok jde zopakovat)
+# Sifrovany disk: instalator zasifruje / docasnym nahodnym klicem (/etc/cryptsetup-keys.d/<svazek>.key,
+# i v initramfs - start bez hesla). Pruvodce prida heslo zakaznika, overi ho, pak initramfs bez klice
+# a docasny klic se z LUKS odebere. V kazdem okamziku funguje bud klic v initramfs, nebo overene heslo
+# zakaznika (viz luks_customer_key, luks_finalize).
+set -Eeuo pipefail
+
+R=${OEM_ROOT:-}                     # koren souboru (testy); prikazy se v testech nahrazuji funkcemi
+CONF=$R/etc/luxos/oem.conf
+STATE=$R/var/lib/luxos/oem
+GREETER_CONF=$R/etc/lightdm/lightdm.conf.d/90-luxos-oem.conf
+SUDOERS=$R/etc/sudoers.d/90-luxos-oem
+POLKIT_RULE=$R/etc/polkit-1/rules.d/49-luxos-oem.rules
+INITCPIO_CONF=$R/etc/mkinitcpio.conf.d/luxos-oem.conf
+KEYDIR=$R/etc/cryptsetup-keys.d
+SETUP_HOME=$R/var/lib/lightdm      # domov uzivatele lightdm (rozpracovany Pruvodce)
+UNIT=luxos-oem-firstboot.service
+SELF=/usr/bin/luxos-oem
+
+if [[ -r $R/usr/lib/luxos/i18n.sh ]]; then . "$R/usr/lib/luxos/i18n.sh"
+elif ! declare -F T >/dev/null; then T() { local f=$1; shift; printf -- "$f" "$@"; }; fi
+
+say()  { printf '%s\n' "$*"; }
+step() { printf '@@STEP %s\n' "$*"; }
+die()  { printf '@@ERROR %s\n' "$*"; printf 'luxos-oem: %s\n' "$*" >&2; exit 1; }
+
+load_conf() {  # /etc/luxos/oem.conf -> OEM, OEM_USER, LUKS_NAME (jen zname klice, zadny eval)
+    OEM=0 OEM_USER="" LUKS_NAME=""
+    [[ -r $CONF ]] || return 0
+    local k v
+    while IFS='=' read -r k v; do
+        case $k in
+            OEM) [[ $v == 1 ]] && OEM=1 ;;
+            OEM_USER) [[ $v =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] && OEM_USER=$v ;;
+            LUKS_NAME) [[ $v =~ ^[A-Za-z0-9_-]{1,64}$ ]] && LUKS_NAME=$v ;;
+        esac
+    done <"$CONF"
+    return 0
+}
+
+need_root() { [[ -n $R ]] || ((EUID == 0)) || die "$(T "Run as root (sudo).")"; }
+armed() { [[ -e $STATE/armed ]]; }
+
+# --- journal dokonceni: KLIC=hodnota, posledni radek plati ---------------------------------------
+jget() { [[ -r $STATE/journal ]] && awk -F= -v k="$1" '$1 == k {v = substr($0, length(k) + 2)} END {printf "%s", v}' "$STATE/journal"; return 0; }
+jset() {
+    mkdir -p "$STATE"
+    printf '%s=%s\n' "$1" "$2" >>"$STATE/journal"
+    sync "$STATE/journal" 2>/dev/null || sync
+}
+
+# --- zapeceteni -------------------------------------------------------------------------------
+GREETER_TEXT='# LuxOS - OEM: misto prihlasovaci obrazovky Pruvodce nastavenim (luxos-oem seal, odstrani luxos-oem finish)
+[Seat:*]
+greeter-session=luxos-setup
+greeter-setup-script=/usr/bin/true
+greeter-wrapper=/usr/bin/env
+autologin-user=
+'
+
+arm() {  # zapne Pruvodce nastavenim (soubory + sluzba prvniho startu)
+    install -Dm644 /dev/stdin "$GREETER_CONF" <<<"$GREETER_TEXT"
+    # Pruvodce bezi jako lightdm (greeter): jen dva prikazy jako root, jen dokud je zapeceteno
+    install -d -m750 "${SUDOERS%/*}"
+    install -m440 /dev/stdin "$SUDOERS" <<S
+# LuxOS - OEM: Pruvodce nastavenim (uzivatel lightdm) smi jen tohle; smaze luxos-oem finish
+lightdm ALL=(root) NOPASSWD: $SELF status, $SELF finish
+S
+    # Wi-Fi v Pruvodci (nmcli jako lightdm, ulozi systemove spojeni)
+    install -Dm644 /dev/stdin "$POLKIT_RULE" <<'P'
+// LuxOS - OEM: Pruvodce nastavenim (lightdm) smi pripojit Wi-Fi; smaze luxos-oem finish
+polkit.addRule(function (action, subject) {
+    if (subject.user == "lightdm" && action.id.indexOf("org.freedesktop.NetworkManager.") == 0)
+        return polkit.Result.YES;
+});
+P
+    systemctl enable "$UNIT" >/dev/null 2>&1 || say "$(T "Could not enable %s." "$UNIT")"
+    mkdir -p "$STATE"
+    rm -f "$STATE/journal" "$STATE/done"
+    : >"$STATE/armed"
+}
+
+wifi_files() {  # ulozena spojeni Wi-Fi v NetworkManageru
+    local f
+    for f in "$R"/etc/NetworkManager/system-connections/*; do
+        [[ -f $f ]] && grep -qE '^type=(wifi|802-11-wireless)$' "$f" && printf '%s\n' "$f"
+    done
+    return 0
+}
+
+scrub() {  # scrub CHROOT KEEP_WIFI: stopy pripravy pocitace
+    local chroot=$1 keep_wifi=$2 f
+    # zaznamy (instalacni zaznam zustava: bez hesel, pro podporu)
+    if ((!chroot)) && [[ -z $R ]]; then
+        journalctl --rotate >/dev/null 2>&1 || true
+        journalctl --vacuum-time=1s >/dev/null 2>&1 || true
+    fi
+    rm -rf "$R"/var/log/journal/*/ 2>/dev/null || true
+    for f in "$R"/var/log/*.log "$R"/var/log/*.log.* "$R"/var/log/Xorg.* "$R"/var/log/lightdm/* "$R"/var/log/cups/*; do
+        [[ -f $f && ${f##*/} != luxos-install.log ]] || continue
+        : >"$f"
+    done
+    rm -f "$R"/var/log/btmp "$R"/var/log/wtmp "$R"/var/log/lastlog 2>/dev/null || true
+    : >"$R/var/log/wtmp" 2>/dev/null || true
+    # klice SSH serveru: nove vytvori sluzba prvniho startu (kazdy pocitac vlastni)
+    rm -f "$R"/etc/ssh/ssh_host_*key "$R"/etc/ssh/ssh_host_*key.pub
+    # machine-id: systemd vytvori nove pri prvnim startu (ConditionFirstBoot)
+    if [[ -e $R/etc/machine-id ]]; then printf 'uninitialized\n' >"$R/etc/machine-id"; fi
+    [[ -f $R/var/lib/dbus/machine-id && ! -L $R/var/lib/dbus/machine-id ]] && rm -f "$R/var/lib/dbus/machine-id"
+    rm -f "$R/var/lib/systemd/random-seed" "$R/var/lib/systemd/credential.secret"
+    # cache a docasne soubory
+    rm -rf "$R"/var/cache/pacman/pkg/* "$R"/var/cache/lux/* "$R"/var/tmp/* 2>/dev/null || true
+    rm -rf "$R"/root/.cache "$R"/root/.local/share/recently-used.xbel "$R"/root/.*_history "$R"/root/.lesshst 2>/dev/null || true
+    # prihlasovaci obrazovka si pamatuje posledniho uzivatele
+    rm -rf "$SETUP_HOME"/.cache "$SETUP_HOME"/.local "$R"/var/lib/lightdm-data/* "$R"/var/cache/lightdm/* 2>/dev/null || true
+    # site: zapujcky DHCP vzdy, ulozena Wi-Fi (hesla) jen bez --keep-wifi
+    rm -f "$R"/var/lib/NetworkManager/*.lease "$R"/var/lib/NetworkManager/seen-bssids \
+          "$R"/var/lib/NetworkManager/timestamps 2>/dev/null || true
+    if ((!keep_wifi)); then
+        wifi_files | while IFS= read -r f; do rm -f "$f"; done
+    fi
+    # automaticke prihlaseni pripravneho uctu
+    rm -f "$R/etc/lightdm/lightdm.conf.d/60-autologin.conf"
+    return 0
+}
+
+cmd_seal() {
+    local chroot=0 keep_wifi=0 poweroff=0 yes=0 a
+    for a in "$@"; do
+        case $a in
+            --chroot) chroot=1 ;;
+            --keep-wifi) keep_wifi=1 ;;
+            --forget-wifi) keep_wifi=0 ;;
+            --poweroff) poweroff=1 ;;
+            --yes|-y) yes=1 ;;
+            *) die "$(T "Unknown option: %s" "$a")" ;;
+        esac
+    done
+    need_root
+    load_conf
+    ((OEM)) || die "$(T "This computer was not installed for another person (OEM). Nothing to seal.")"
+    [[ -e $STATE/done ]] && die "$(T "The setup assistant has already finished on this computer.")"
+    if ((!yes)); then
+        say "$(T "Seal for customer:")"
+        say "  - $(T "logs, caches and command history are removed")"
+        ((keep_wifi)) || say "  - $(T "saved Wi-Fi networks and their passwords are removed")"
+        [[ -n $OEM_USER ]] && say "  - $(T "the temporary account %s is deleted at the next start" "$OEM_USER")"
+        say "  - $(T "at the next start the owner creates their account in the setup assistant")"
+        local ans
+        read -r -p "$(T "Continue? [y/N] ")" ans || ans=""
+        [[ $ans == [yYaAjJtTiIoOsS]* ]] || exit 1
+    fi
+    scrub "$chroot" "$keep_wifi"
+    if [[ -n $OEM_USER ]] && getent passwd "$OEM_USER" >/dev/null 2>&1; then
+        # Ucet se smaze pri dalsim startu (ted v nem nejspis bezi relace); prihlasit se uz nepujde
+        passwd -l "$OEM_USER" >/dev/null 2>&1 || true
+    fi
+    arm
+    {
+        [[ -n $OEM_USER ]] && printf 'OEM_USER=%s\n' "$OEM_USER"
+        echo "SSH_KEYS=1"
+    } >"$STATE/cleanup"
+    sync
+    say "$(T "Sealed. At the next start the setup assistant welcomes the owner.")"
+    if ((poweroff && !chroot)) && [[ -z $R ]]; then systemctl poweroff; fi
+    return 0
+}
+
+# --- prvni start po zapeceteni (pred prihlasovaci obrazovkou) ----------------------------------
+cmd_firstboot() {
+    need_root
+    load_conf
+    if [[ -e $STATE/cleanup ]]; then
+        local user k v
+        user=""
+        while IFS='=' read -r k v; do [[ $k == OEM_USER && $v =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] && user=$v; done <"$STATE/cleanup"
+        if [[ -n $user ]] && getent passwd "$user" >/dev/null 2>&1; then
+            userdel -r -f "$user" >/dev/null 2>&1 || say "$(T "Could not delete the account %s." "$user")"
+        fi
+        rm -f "$R/var/lib/AccountsService/users/$user" "$R/var/lib/AccountsService/icons/$user" 2>/dev/null || true
+        if command -v ssh-keygen >/dev/null && [[ -d $R/etc/ssh ]]; then ssh-keygen -A >/dev/null 2>&1 || true; fi
+        rm -f "$STATE/cleanup"
+        sync
+    fi
+    # Zapeceteno, ale chybi soubory (napr. rucni zasah): Pruvodce musi zustat dostupny
+    if armed && [[ ! -e $STATE/done ]]; then
+        [[ -e $GREETER_CONF && -e $SUDOERS ]] || arm
+    fi
+    return 0
+}
+
+# --- stav pro Pruvodce ---------------------------------------------------------------------------
+luks_state() {
+    # none     disk neni sifrovany (nebo neni OEM)
+    # pending  docasny klic v initramfs: Pruvodce se zepta na heslo disku
+    # finalize heslo zakaznika uz plati a initramfs je bez klice (start se na nej uz ptal) - zbyva
+    #          jen odebrat docasny klic (preruseny konec drivejsiho behu), bez noveho dotazu
+    # done     hotovo
+    [[ -n $LUKS_NAME ]] || { echo none; return; }
+    if [[ $(jget LUKS_DONE) == 1 || ! -e $KEYDIR/$LUKS_NAME.key ]]; then echo done
+    elif [[ $(jget INITRAMFS) == 1 ]]; then echo finalize
+    else echo pending; fi
+}
+
+cmd_status() {
+    load_conf
+    printf 'OEM=%s\nARMED=%s\nDONE=%s\nLUKS=%s\nUSER=%s\n' "$OEM" "$(armed && echo 1 || echo 0)" \
+        "$([[ -e $STATE/done ]] && echo 1 || echo 0)" "$(luks_state)" "$(jget USER)"
+}
+
+# --- dokonceni Pruvodce ----------------------------------------------------------------------------
+FIN_KEYS=" LOCALE XKB_LAYOUT XKB_VARIANT XKB_OPTIONS TIMEZONE FULLNAME USERNAME PASSWORD HOSTNAME AUTOLOGIN CARE_MODE LUXAI_ACCOUNT PHOTO DISK_PASS "
+declare -gA V=()
+
+read_input() {  # stdin: radky KLIC=hodnota (bez eval; nezname klice = chyba)
+    local line k
+    while IFS= read -r line || [[ -n $line ]]; do
+        [[ -z $line ]] && continue
+        k=${line%%=*}
+        [[ $line == *=* && $FIN_KEYS == *" $k "* ]] || die "$(T "Invalid setup data.")"
+        V[$k]=${line#*=}
+    done
+    return 0
+}
+
+valid_user() { [[ $1 =~ ^[a-z_][a-z0-9_-]{0,31}$ && $1 != root ]]; }
+valid_host() { [[ $1 =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]]; }
+# Jmena systemovych uctu (shodne s RESERVED_USERS v luxos-install-gui)
+RESERVED=" root bin daemon mail ftp http nobody dbus uuidd polkitd avahi lightdm git rtkit colord alpm tss usbmux geoclue lux sddm gdm "
+
+validate() {
+    local u=${V[USERNAME]-} h=${V[HOSTNAME]-} l=${V[LOCALE]-} tz=${V[TIMEZONE]-}
+    valid_user "$u" && [[ $RESERVED != *" $u "* ]] || die "$(T "Invalid user name.")"
+    # Existujici ucet jen ten, ktery zalozil predchozi (preruseny) beh Pruvodce
+    if getent passwd "$u" >/dev/null 2>&1 && [[ $(jget USER) != "$u" ]]; then
+        die "$(T "The user name %s is already taken." "$u")"
+    fi
+    [[ -n ${V[PASSWORD]-} ]] || die "$(T "Password cannot be empty.")"
+    [[ -z $h ]] && h="$u-luxos" && V[HOSTNAME]=$h
+    valid_host "$h" || die "$(T "Invalid computer name.")"
+    [[ $l =~ ^[a-zA-Z_@]+\.UTF-8$ ]] || die "$(T "Invalid language.")"
+    [[ $tz =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$ && -e $R/usr/share/zoneinfo/$tz ]] || die "$(T "Invalid time zone.")"
+    local lay=${V[XKB_LAYOUT]-us} var=${V[XKB_VARIANT]-} opt=${V[XKB_OPTIONS]-}
+    [[ $lay =~ ^[a-z][a-z0-9_-]{0,31}(,[a-z][a-z0-9_-]{0,31}){0,3}$ && $var =~ ^[A-Za-z0-9_,-]{0,200}$ ]] ||
+        die "$(T "Invalid keyboard layout: %s" "$lay")"
+    [[ $opt =~ ^([A-Za-z0-9_]+:[A-Za-z0-9_]+(,[A-Za-z0-9_]+:[A-Za-z0-9_]+)*)?$ ]] || die "$(T "Invalid XKB_OPTIONS: %s" "$opt")"
+    [[ ${V[CARE_MODE]:=carefree} == @(carefree|classic) ]] || die "$(T "Invalid CARE_MODE (use carefree or classic)")"
+    [[ ${V[AUTOLOGIN]:=0} == @(0|1) ]] || die "$(T "Invalid setup data.")"
+    if [[ $(luks_state) == pending && -z ${V[DISK_PASS]-} ]]; then die "$(T "Choose a password for the disk.")"; fi
+    if [[ -n ${V[PHOTO]-} ]]; then
+        # obrazek pripravi Pruvodce (PNG, zmenseny); zadne odkazy ani obri soubory
+        [[ -f ${V[PHOTO]} && ! -L ${V[PHOTO]} ]] && (($(stat -c %s "${V[PHOTO]}") <= 5 * 1024 * 1024)) &&
+            [[ $(head -c 8 "${V[PHOTO]}" | od -An -tx1 | tr -d ' \n') == 89504e470d0a1a0a ]] || V[PHOTO]=""
+    fi
+    return 0
+}
+
+apply_system() {  # jazyk, klavesnice, casove pasmo, nazev pocitace (opakovatelne)
+    local l=${V[LOCALE]} h=${V[HOSTNAME]}
+    # Jazyky LuxOS pripravil instalator (locale-gen); jiny jazyk vygenerovat ted
+    if ! locale -a 2>/dev/null | grep -qix "${l%%.*}\.utf-\?8"; then
+        sed -i -E "s/^#\s*(${l//./\\.}\s)/\1/" "$R/etc/locale.gen" 2>/dev/null || true
+        locale-gen >/dev/null 2>&1 || true
+    fi
+    localectl set-locale "LANG=$l" >/dev/null 2>&1 || printf 'LANG=%s\n' "$l" >"$R/etc/locale.conf"
+    # set-x11-keymap prevede rozlozeni i pro konzoli (vconsole.conf) a zapise 00-keyboard.conf
+    localectl set-x11-keymap "${V[XKB_LAYOUT]:-us}" "" "${V[XKB_VARIANT]-}" "${V[XKB_OPTIONS]-}" >/dev/null 2>&1 ||
+        say "$(T "Could not set the keyboard layout.")"
+    timedatectl set-timezone "${V[TIMEZONE]}" >/dev/null 2>&1 || ln -sf "/usr/share/zoneinfo/${V[TIMEZONE]}" "$R/etc/localtime"
+    hostnamectl set-hostname "$h" >/dev/null 2>&1 || printf '%s\n' "$h" >"$R/etc/hostname"
+    if [[ -f $R/etc/hosts ]]; then
+        sed -i -E "s/^127\.0\.1\.1[[:space:]].*/127.0.1.1   $h.localdomain $h/" "$R/etc/hosts"
+        grep -q '^127\.0\.1\.1' "$R/etc/hosts" || printf '127.0.1.1   %s.localdomain %s\n' "$h" "$h" >>"$R/etc/hosts"
+    fi
+    printf 'MODE=%s\nKERNEL=linux-luxos\n' "${V[CARE_MODE]}" | install -Dm644 /dev/stdin "$R/etc/luxos/care.conf"
+}
+
+apply_user() {
+    local u=${V[USERNAME]} old groups g home
+    old=$(jget USER)
+    # Preruseny drivejsi beh s jinym jmenem: jeho (prazdny) ucet pryc
+    if [[ -n $old && $old != "$u" ]] && getent passwd "$old" >/dev/null 2>&1; then
+        userdel -r -f "$old" >/dev/null 2>&1 || true
+    fi
+    # Zamer zapsat pred useradd: vypadek mezi nimi nesmi nechat "cizi" ucet, ktery by validate odmitla
+    jset USER "$u"
+    if ! getent passwd "$u" >/dev/null 2>&1; then
+        groups=wheel
+        for g in video audio input lp storage scanner network rfkill sys; do
+            getent group "$g" >/dev/null 2>&1 && groups+=",$g"
+        done
+        useradd -m -G "$groups" -s /usr/bin/lsh -c "${V[FULLNAME]-}" "$u" || die "$(T "Could not create the account.")"
+    else
+        usermod -c "${V[FULLNAME]-}" "$u" >/dev/null 2>&1 || true
+    fi
+    printf '%s:%s\n' "$u" "${V[PASSWORD]}" | chpasswd || die "$(T "Could not set the password.")"
+    home=$(getent passwd "$u" | cut -d: -f6)
+    [[ -n $home ]] || home=/home/$u
+    home=$R$home
+    # Fotka: AccountsService (prihlasovaci obrazovka) a ~/.face
+    if [[ -n ${V[PHOTO]-} ]]; then
+        install -Dm644 "${V[PHOTO]}" "$R/var/lib/AccountsService/icons/$u"
+        install -Dm644 /dev/stdin "$R/var/lib/AccountsService/users/$u" <<A
+[User]
+Icon=/var/lib/AccountsService/icons/$u
+A
+        install -m644 "${V[PHOTO]}" "$home/.face" && chown "$u:" "$home/.face" 2>/dev/null || true
+    fi
+    # Ucet LuxAI (JSON bez hesla) do ~/.config/luxai/account.json (0700/0600)
+    if [[ -n ${V[LUXAI_ACCOUNT]-} ]]; then
+        install -d -m700 "$home/.config" "$home/.config/luxai"
+        (umask 077; printf '%s\n' "${V[LUXAI_ACCOUNT]}" >"$home/.config/luxai/account.json")
+        chown -R "$u:" "$home/.config" 2>/dev/null || true
+    fi
+    if [[ ${V[AUTOLOGIN]} == 1 ]]; then
+        groupadd -rf autologin 2>/dev/null || true
+        gpasswd -a "$u" autologin >/dev/null 2>&1 || true
+        install -Dm644 /dev/stdin "$R/etc/lightdm/lightdm.conf.d/60-autologin.conf" <<A
+[Seat:*]
+autologin-user=$u
+autologin-session=luxos
+A
+    else
+        rm -f "$R/etc/lightdm/lightdm.conf.d/60-autologin.conf"
+    fi
+}
+
+# --- LUKS: heslo zakaznika misto docasneho klice ------------------------------------------------
+luks_dev() {
+    cryptsetup status "$LUKS_NAME" 2>/dev/null | awk '$1 == "device:" {print $2; exit}'
+}
+
+luks_slots() {  # aktivni sloty (LUKS2 luksDump: sekce Keyslots, radky "  N: luks2")
+    cryptsetup luksDump "$1" 2>/dev/null | awk '/^Keyslots:/ {s = 1; next} /^[A-Z]/ {s = 0} s && /^  [0-9]+: / {sub(":", "", $1); print $1}'
+}
+
+luks_slot_of() {  # luks_slot_of DEV KLICOVY_SOUBOR -> cislo slotu, ve kterem klic plati
+    local s
+    for s in $(luks_slots "$1"); do
+        cryptsetup open --test-passphrase --key-slot "$s" --key-file "$2" "$1" >/dev/null 2>&1 && { echo "$s"; return 0; }
+    done
+    return 1
+}
+
+luks_customer_key() {  # prida a overi heslo zakaznika; ostatni sloty krome docasneho klice smaze
+    local dev=$1 key=$KEYDIR/$LUKS_NAME.key tmp new tslot nslot s
+    tmp=$(mktemp -d "${TMPDIR_OEM:-/run}/luxos-oem.XXXXXX")
+    chmod 700 "$tmp"
+    new=$tmp/new
+    (umask 077; printf '%s' "${V[DISK_PASS]}" >"$new")
+    tslot=$(luks_slot_of "$dev" "$key") || { rm -rf "$tmp"; die "$(T "The temporary disk key does not work.")"; }
+    # Heslo uz plati (opakovany beh se stejnym heslem)? Jinak pridat
+    if ! nslot=$(luks_slot_of "$dev" "$new"); then
+        cryptsetup luksAddKey --batch-mode --key-file "$key" "$dev" "$new" >/dev/null 2>&1 ||
+            { rm -rf "$tmp"; die "$(T "Could not set the disk password.")"; }
+        nslot=$(luks_slot_of "$dev" "$new") || { rm -rf "$tmp"; die "$(T "Could not set the disk password.")"; }
+    fi
+    # Az s overenym novym heslem: hesla z prerusenych pokusu pryc (zustane docasny klic + nove heslo)
+    for s in $(luks_slots "$dev"); do
+        [[ $s == "$tslot" || $s == "$nslot" ]] && continue
+        cryptsetup luksKillSlot --batch-mode --key-file "$key" "$dev" "$s" >/dev/null 2>&1 || true
+    done
+    shred -u "$new" 2>/dev/null || rm -f "$new"
+    rm -rf "$tmp"
+    jset LUKS_KEY 1
+}
+
+luks_finalize() {  # initramfs bez docasneho klice, pak klic z LUKS pryc (bod bez navratu)
+    local dev=$1 key=$KEYDIR/$LUKS_NAME.key
+    # Vzdy znovu (i kdyz drivejsi beh soubor smazal a prerusil se pred dokoncenim mkinitcpio)
+    if [[ $(jget INITRAMFS) != 1 ]]; then
+        rm -f "$INITCPIO_CONF"
+        if ! mkinitcpio -P >/dev/null 2>&1; then
+            install -Dm644 /dev/stdin "$INITCPIO_CONF" <<<"FILES+=(/etc/cryptsetup-keys.d/$LUKS_NAME.key)"
+            die "$(T "Could not rebuild the boot image.")"
+        fi
+        sync
+        jset INITRAMFS 1
+    fi
+    if [[ -e $key ]]; then
+        # uz odebrany (preruseny drivejsi beh) = v poradku
+        if luks_slot_of "$dev" "$key" >/dev/null; then
+            cryptsetup luksRemoveKey --batch-mode --key-file "$key" "$dev" >/dev/null 2>&1 ||
+                die "$(T "Could not remove the temporary disk key.")"
+        fi
+        shred -u "$key" 2>/dev/null || rm -f "$key"
+    fi
+    sync
+    jset LUKS_DONE 1
+}
+
+disarm() {
+    rm -f "$GREETER_CONF" "$POLKIT_RULE"
+    systemctl disable "$UNIT" >/dev/null 2>&1 || true
+    rm -rf "$SETUP_HOME/.local/state/luxos-setup" 2>/dev/null || true
+    : >"$STATE/done"
+    rm -f "$STATE/armed"
+    sync
+    # posledni: Pruvodce (lightdm) uz nesmi nic dalsiho
+    rm -f "$SUDOERS"
+}
+
+cmd_finish() {
+    need_root
+    load_conf
+    armed || die "$(T "The setup assistant is not active on this computer.")"
+    read_input
+    validate
+    local total=3 dev="" lstate
+    lstate=$(luks_state)
+    [[ $lstate == pending ]] && total=5
+    [[ $lstate == finalize ]] && total=4
+    step "1 $total $(T "Applying language and region")"
+    apply_system
+    step "2 $total $(T "Creating your account")"
+    apply_user
+    if [[ $lstate == @(pending|finalize) ]]; then
+        dev=$(luks_dev)
+        [[ -n $dev ]] || die "$(T "The encrypted disk was not found.")"
+        if [[ $lstate == pending ]]; then
+            step "3 $total $(T "Setting the disk password")"
+            luks_customer_key "$dev"
+        fi
+        step "$((total - 1)) $total $(T "Preparing the encrypted disk")"
+        luks_finalize "$dev"
+    fi
+    step "$total $total $(T "Finishing")"
+    disarm
+    printf '@@DONE\n'
+}
+
+main() {
+    local cmd=${1-}
+    shift || true
+    case $cmd in
+        seal) cmd_seal "$@" ;;
+        firstboot) cmd_firstboot ;;
+        status) cmd_status ;;
+        finish) cmd_finish ;;
+        -h|--help|"") sed -n '2,15p' "$0" | sed 's/^# \?//' ;;
+        *) die "$(T "Unknown command: %s" "$cmd")" ;;
+    esac
+}
+
+[[ ${BASH_SOURCE[0]} == "$0" ]] && main "$@"
+return 0 2>/dev/null || true

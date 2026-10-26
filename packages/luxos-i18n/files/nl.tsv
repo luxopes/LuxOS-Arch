@@ -2983,3 +2983,92 @@ South wind	Zuidenwind
 Southwest wind	Zuidwestenwind
 West wind	Westenwind
 Northwest wind	Noordwestenwind
+# OEM - priprava pro jineho cloveka, Pruvodce nastavenim
+Applying language and region	Taal en regio toepassen
+At the first start the owner chooses language, keyboard, Wi-Fi and creates their account.	Bij de eerste start kiest de eigenaar taal, toetsenbord en wifi en maakt een eigen account aan.
+At the first start the owner sees a setup assistant: language, keyboard, Wi-Fi, time zone, their account and disk password. Then LuxOS starts with the tour.	Bij de eerste start ziet de eigenaar een configuratie-assistent: taal, toetsenbord, wifi, tijdzone, een eigen account en het schijfwachtwoord. Daarna start LuxOS met de rondleiding.
+Choose a password for the disk.	Kies een wachtwoord voor de schijf.
+Continue? [y/N] 	Doorgaan? [j/N] 
+Could not create the account.	Het account kon niet worden aangemaakt.
+Could not delete the account %s.	Het account %s kon niet worden verwijderd.
+Could not enable %s.	%s kon niet worden ingeschakeld.
+Could not rebuild the boot image.	Het opstartimage kon niet opnieuw worden gemaakt.
+Could not remove the temporary disk key.	De tijdelijke schijfsleutel kon niet worden verwijderd.
+Could not seal the system for the owner.	Het systeem kon niet voor de eigenaar worden verzegeld.
+Could not set the disk password.	Het schijfwachtwoord kon niet worden ingesteld.
+Could not set the keyboard layout.	De toetsenbordindeling kon niet worden ingesteld.
+Could not set the password.	Het wachtwoord kon niet worden ingesteld.
+Creating your account	Uw account wordt aangemaakt
+Disk Password	Schijfwachtwoord
+Disk password	Schijfwachtwoord
+Enter the disk password twice.	Voer het schijfwachtwoord twee keer in.
+Enter the password for the temporary account oem twice.	Voer het wachtwoord voor het tijdelijke account oem twee keer in.
+Finish Setup	Configuratie voltooien
+For shops and IT: LuxOS is installed without a personal account. At the first start the owner chooses language, Wi-Fi and creates their account.	Voor winkels en IT: LuxOS wordt zonder persoonlijk account geïnstalleerd. Bij de eerste start kiest de eigenaar taal en wifi en maakt een account aan.
+Go back and choose your account password.	Ga terug en kies het wachtwoord van uw account.
+Invalid OEM (use 0 or 1)	Ongeldige OEM (gebruik 0 of 1)
+Invalid OEM_SEAL (use 1 or 0)	Ongeldige OEM_SEAL (gebruik 1 of 0)
+Invalid computer name.	Ongeldige computernaam.
+Invalid language.	Ongeldige taal.
+Invalid setup data.	Ongeldige configuratiegegevens.
+Invalid time zone.	Ongeldige tijdzone.
+Invalid user name.	Ongeldige gebruikersnaam.
+Keep saved Wi-Fi networks (their passwords stay on the computer)	Opgeslagen wifinetwerken behouden (hun wachtwoorden blijven op de computer)
+Let's set up your computer. It only takes a few minutes.	Laten we uw computer instellen. Het duurt maar een paar minuten.
+Logs, caches and command history are removed.	Logboeken, caches en opdrachtgeschiedenis worden verwijderd.
+Me - set up my account now	Ik – nu mijn account instellen
+New SSH keys and a new machine ID are created at the next start.	Bij de volgende start worden nieuwe SSH-sleutels en een nieuwe machine-ID aangemaakt.
+Not Now	Niet nu
+Nothing is lost: go back to change something or try again.	Er is niets verloren: ga terug om iets te wijzigen of probeer het opnieuw.
+OEM_SEAL=0 needs PASSWORD (temporary account oem)	OEM_SEAL=0 vereist PASSWORD (tijdelijk account oem)
+Password for the temporary account oem	Wachtwoord voor het tijdelijke account oem
+Photo (optional)	Foto (optioneel)
+Prepare first	Eerst voorbereiden
+Prepare for another person	Voorbereiden voor iemand anders
+Prepare for another person (OEM)	Voorbereiden voor iemand anders (OEM)
+Prepare the computer first (temporary account oem, then Seal for Customer)?	Computer eerst voorbereiden (tijdelijk account oem, daarna Verzegelen voor klant)?
+Preparing for another person (OEM) does not support encryption in manual partitioning. Use Encrypt LuxOS instead.	Voorbereiden voor iemand anders (OEM) ondersteunt geen versleuteling bij handmatig partitioneren. Gebruik in plaats daarvan LuxOS versleutelen.
+Preparing the encrypted disk	Versleutelde schijf voorbereiden
+Ready to hand over this computer?	Klaar om deze computer over te dragen?
+Run as root (sudo).	Uitvoeren als root (sudo).
+Seal and Shut Down	Verzegelen en afsluiten
+Seal for Customer	Verzegelen voor klant
+Seal for customer:	Verzegelen voor klant:
+Seal now	Nu verzegelen
+Sealed. At the next start the setup assistant welcomes the owner.	Verzegeld. Bij de volgende start verwelkomt de configuratie-assistent de eigenaar.
+Sealing failed.	Verzegelen mislukt.
+Set Up LuxOS	LuxOS instellen
+Setting the disk password	Schijfwachtwoord instellen
+Setting up your computer	Uw computer wordt ingesteld
+Setup could not be finished (exit code %s).	De configuratie kon niet worden voltooid (afsluitcode %s).
+Shut Down or Restart	Afsluiten of herstarten
+Sign in as oem to add apps and test the hardware, then click Seal for Customer (or run luxos-oem seal).	Meld u aan als oem om apps toe te voegen en de hardware te testen en klik daarna op Verzegelen voor klant (of voer luxos-oem seal uit).
+Signing in…	Aanmelden…
+Some of your entries contain unsupported characters.	Sommige invoer bevat niet-ondersteunde tekens.
+The computer is ready to hand over right after the installation.	De computer is direct na de installatie klaar om over te dragen.
+The encrypted disk was not found.	De versleutelde schijf is niet gevonden.
+The owner chooses the disk password in the setup assistant at the first start. Until then the computer starts without asking.	De eigenaar kiest het schijfwachtwoord bij de eerste start in de configuratie-assistent. Tot dan start de computer zonder ernaar te vragen.
+The owner chooses the disk password in the setup assistant.	De eigenaar kiest het schijfwachtwoord in de configuratie-assistent.
+The owner creates their account in the setup assistant at the first start.	De eigenaar maakt bij de eerste start een account aan in de configuratie-assistent.
+The setup assistant has already finished on this computer.	De configuratie-assistent is op deze computer al voltooid.
+The setup assistant is not active on this computer.	De configuratie-assistent is op deze computer niet actief.
+The temporary account oem is deleted at the next start.	Het tijdelijke account oem wordt bij de volgende start verwijderd.
+The temporary disk key does not work.	De tijdelijke schijfsleutel werkt niet.
+The user name %s is already taken.	De gebruikersnaam %s is al in gebruik.
+This computer was not installed for another person (OEM). Nothing to seal.	Deze computer is niet voor iemand anders geïnstalleerd (OEM). Er valt niets te verzegelen.
+This computer was prepared for another person. Install apps and test the hardware, then seal it. The computer shuts down; at the next start the owner creates their account.	Deze computer is voorbereid voor iemand anders. Installeer apps en test de hardware en verzegel hem daarna. De computer wordt afgesloten; bij de volgende start maakt de eigenaar een account aan.
+This picture cannot be used.	Deze afbeelding kan niet worden gebruikt.
+This takes a moment. Please do not turn off the computer.	Dit duurt even. Zet de computer niet uit.
+Use my account password	Wachtwoord van mijn account gebruiken
+Welcome	Welkom
+Welcome, %s!	Welkom, %s!
+Who will use this computer?	Wie gaat deze computer gebruiken?
+You can also skip this and connect later in the top bar.	U kunt dit ook overslaan en later verbinden via de bovenbalk.
+Your account is ready. Restart the computer and sign in with your new password.	Uw account is klaar. Herstart de computer en meld u aan met uw nieuwe wachtwoord.
+Your disk is encrypted. You will enter this password every time the computer starts.	Uw schijf is versleuteld. U voert dit wachtwoord in telkens wanneer de computer start.
+at the next start the owner creates their account in the setup assistant	bij de volgende start maakt de eigenaar een account aan in de configuratie-assistent
+logs, caches and command history are removed	logboeken, caches en opdrachtgeschiedenis worden verwijderd
+saved Wi-Fi networks and their passwords are removed	opgeslagen wifinetwerken en hun wachtwoorden worden verwijderd
+the owner creates it at the first start (OEM)	de eigenaar maakt het aan bij de eerste start (OEM)
+the owner creates it at the first start (OEM); until sealing: temporary account %s	de eigenaar maakt het aan bij de eerste start (OEM); tot het verzegelen: tijdelijk account %s
+the temporary account %s is deleted at the next start	het tijdelijke account %s wordt bij de volgende start verwijderd
