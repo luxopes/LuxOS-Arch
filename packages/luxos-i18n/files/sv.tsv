@@ -3144,3 +3144,69 @@ Mirror displays	Spegla skärmar
 Show the same picture on all displays.	Visa samma bild på alla skärmar.
 The displays show the same picture. Turn off mirroring to arrange them.	Skärmarna visar samma bild. Stäng av speglingen för att placera dem.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Endast en skärm används. Välj Utöka under Flera skärmar för att placera dem.
+LuxAI adapts the length and detail to how complex your question is.	LuxAI anpassar längd och detaljnivå efter hur komplex frågan är.
+Concise	Koncis
+Answers are as direct as possible, without repetition or filler.	Svaren är så raka som möjligt, utan upprepningar eller utfyllnad.
+Detailed	Utförlig
+LuxAI adds more context, explanations, caveats and suitable examples.	LuxAI lägger till mer sammanhang, förklaringar, förbehåll och lämpliga exempel.
+Technical	Teknisk
+Answers prefer precise terminology, assumptions and implementation details.	Svaren prioriterar exakt terminologi, antaganden och implementationsdetaljer.
+Friendly	Vänlig
+Answers are more approachable and friendly, but still accurate and professional.	Svaren är mer lättillgängliga och vänliga, men fortfarande korrekta och professionella.
+Your public identifier for LuxAI and connected services. 3-32 lowercase letters, digits and . _ -	Ditt offentliga ID för LuxAI-kontot, delas även med anslutna tjänster. 3–32 gemener, siffror och . _ -
+Other sessions are signed out after the change; this computer stays signed in. If you have just signed in with an e-mail code, you can leave the current password empty.	Efter ändringen loggas andra sessioner ut; den här datorn förblir inloggad. Om du nyss loggade in med en e-postkod kan du lämna nuvarande lösenord tomt.
+New password again	Nytt lösenord igen
+Sessions and Devices	Sessioner och enheter
+Changing the password…	Byter lösenord…
+AI Answer Style	AI-svarsstil
+Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Gäller nya svar i LuxAI-chatten. Ändrar inte vald modell eller tokengränsen.
+Appearance on the Web	Utseende på webben
+Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	Sparas i ditt LuxAI-konto och används på lux-ai.cz på alla dina enheter. LuxOS utseende ställs in i Inställningar › Utseende.
+Export Your Data	Exportera dina data
+Saves your profile, settings, AI usage and your LuxAI web chat history to a JSON file on this computer. The sign-in token is never included.	Sparar profil, inställningar, AI-användning och LuxAI-webbchattens historik i en JSON-fil på den här datorn. Inloggningstoken tas aldrig med.
+Terms and Privacy	Villkor och integritet
+The LuxAI Terms of Use also describe which personal data LuxAI processes and why.	LuxAI:s användarvillkor beskriver också vilka personuppgifter LuxAI behandlar och varför.
+Delete Account	Radera konto
+Exporting…	Exporterar…
+Open on the Web	Öppna på webben
+Profile	Profil
+Password & Security	Lösenord och säkerhet
+Preferences	Inställningar
+Privacy & Data	Integritet och data
+LuxAI does not offer changing the e-mail address yet. Write to LuxAI support if you need to change it.	LuxAI kan ännu inte byta e-postadress. Skriv till LuxAI-supporten om du behöver ändra den.
+Contact Support	Kontakta supporten
+The picture is stored on this computer (login screen, menu, LuxAI Account). The LuxAI website does not use profile pictures.	Bilden sparas på den här datorn (inloggningsskärm, meny, LuxAI-konto). LuxAI:s webbplats använder inga profilbilder.
+The username is saved.	Användarnamnet är sparat.
+New password (at least %d characters)	Nytt lösenord (minst %d tecken)
+LuxAI cannot list your other devices and browsers yet. To sign them all out, change your password.	LuxAI kan ännu inte visa dina andra enheter och webbläsare. Byt lösenord för att logga ut dem alla.
+The new passwords do not match.	De nya lösenorden stämmer inte överens.
+The password was changed and other sessions were signed out.	Lösenordet har bytts och andra sessioner har loggats ut.
+The answer style is saved.	Svarsstilen är sparad.
+The appearance is saved.	Utseendet är sparat.
+Export…	Exportera…
+Read the Terms	Läs villkoren
+LuxAI deletes accounts on request sent to support (%s). Your account, chat history and settings will be removed and LuxAI, Lux Code and LSL IDE will stop working with it.	LuxAI raderar konton på begäran till supporten (%s). Konto, chatthistorik och inställningar tas bort och LuxAI, Lux Code och LSL IDE slutar fungera med det.
+Request Account Deletion…	Begär radering av konto…
+Delete LuxAI Account	Radera LuxAI-konto
+I understand that my LuxAI account and data will be deleted	Jag förstår att mitt LuxAI-konto och mina data raderas
+Write Deletion Request	Skriv raderingsbegäran
+Light mode	Ljust läge
+Exported to %s (web chats: %d).	Exporterat till %s (webbchattar: %d).
+Exported to %s. The web chat history could not be included.	Exporterat till %s. Webbchattens historik kunde inte tas med.
+Deleting the account cannot be undone.	Det går inte att ångra raderingen av kontot.
+Type your e-mail address to confirm:	Skriv din e-postadress för att bekräfta:
+Your e-mail program opens with a prepared request to %s. The account is deleted after you send it.	Ditt e-postprogram öppnas med en förberedd begäran till %s. Kontot raderas när du har skickat den.
+Your e-mail program opened with the deletion request. Send it to finish.	Ditt e-postprogram öppnades med raderingsbegäran. Skicka den för att slutföra.
+smarter, can see images	smartare, kan se bilder
+faster, larger limit	snabbare, högre gräns
+All chats, settings and the usage history of %s will be deleted. Export your data first if you want to keep it.	Alla chattar, inställningar och användningshistorik för %s raderas. Exportera dina data först om du vill behålla dem.
+The limits reset on %s (in %d days).	Gränserna nollställs %s (dagar kvar: %d).
+Downloading chat %d of %d…	Hämtar chatt %d av %d…
+%s of %s tokens	%s av %s token
+Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Använd 3–32 gemener, siffror eller . _ -; första tecknet måste vara en bokstav eller siffra.
+This username is already used by another account.	Användarnamnet används redan av ett annat konto.
+The current password is not correct.	Nuvarande lösenord är fel.
+The new password must be different from the current one.	Det nya lösenordet måste skilja sig från det nuvarande.
+This change is not available from LuxOS yet. Make it on the web.	Den här ändringen går inte att göra från LuxOS än. Gör den på webben.
+The new password must have at least 12 characters.	Det nya lösenordet måste ha minst 12 tecken.
+The change could not be saved (%s).	Ändringen kunde inte sparas (%s).

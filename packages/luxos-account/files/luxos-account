@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """LuxOS - Ucet LuxAI: prihlaseni, profil a spotreba AI pro cely system.
 
-  luxos-account            okno uctu (prihlaseni / profil)
+  luxos-account            okno uctu (prihlaseni / sprava uctu: prehled a spotreba, profil, heslo,
+                           predvolby, export dat a zadost o zruseni uctu - jako lux-ai.cz/settings)
   luxos-account login      okno prihlaseni; navratovy kod 0 = prihlaseno
   luxos-account register   totez, rovnou zalozeni noveho uctu (jmeno, e-mail, heslo, kod z e-mailu)
   luxos-account status     JSON {"signedIn": bool, "user": {...}} (bez tokenu)
@@ -14,16 +15,19 @@ import os
 import subprocess
 import sys
 import threading
+import time
 
 sys.path.insert(0, "/usr/lib/luxos/python")
 import luxai_account as acc  # noqa: E402
 from luxos_i18n import _  # noqa: E402
 
-ACCOUNT_URL = acc.ORIGIN + "/"
-
-
 def human(err):
     return acc.error_text(err, _)
+
+
+def group(n):
+    """1234567 -> "1 234 567" (mezera po tisicich jako v LuxAI)."""
+    return f"{n:,}".replace(",", "\u202f")
 
 
 # ---- prikazova radka (bez GTK) ---------------------------------------------------
@@ -81,6 +85,15 @@ CSS = b"""
            background-color: #3d7bff; color: white; border: none; box-shadow: none; }
 .link { border: none; background: none; box-shadow: none; color: #3d7bff; }
 .error { color: #ff453a; }
+.good { color: #30d158; }
+.page-title { font-size: 20px; font-weight: 800; }
+.side { background-color: alpha(currentColor, 0.03); }
+.side stacksidebar list { background: none; }
+.side stacksidebar row { padding: 8px 14px; border-radius: 8px; margin: 2px 8px; }
+.danger-card { border: 1px solid alpha(#ff453a, 0.45); }
+levelbar.usage trough { min-height: 8px; border-radius: 4px; }
+levelbar.usage block { min-height: 8px; border-radius: 4px; }
+levelbar.usage block.filled { background-color: #3d7bff; background-image: none; border-color: #3d7bff; }
 entry { border-radius: 10px; padding: 6px 10px; min-height: 30px; }
 """
 
@@ -310,71 +323,546 @@ class AccountWindow(Gtk.Window):
         web = self.web
         run_async(web.wait, self.signed)
 
-    # ---- profil ----
+    # ---- profil a sprava uctu (jako stranka lux-ai.cz/settings) ----
     def show_profile(self, a, data=None):
-        user = (data or {}).get("user") or a.get("user") or {}
-        box = self.page()
+        """Prihlaseny ucet: postranni seznam stranek (Prehled, Profil, Heslo a zabezpeceni,
+        Predvolby, Soukromi a data) a vlevo dole Otevrit na webu / Odhlasit se."""
+        self.user = dict((data or {}).get("user") or a.get("user") or {})
+        keep = self.pages.get_visible_child_name() if getattr(self, "pages", None) else None
+        if self.get_allocated_width() < 720:
+            self.resize(780, 640)
+        outer = self.outer = Gtk.Box()
+        self.pages = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, transition_duration=120)
+        side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, width_request=210)
+        side.get_style_context().add_class("side")
+        bar = Gtk.StackSidebar(stack=self.pages, vexpand=True)
+        side.pack_start(bar, True, True, 0)
+        foot = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin=10)
+        web = Gtk.Button(label=_("Open on the Web"), tooltip_text=acc.SETTINGS_URL)
+        web.connect("clicked", lambda b: accgtk.open_url(b, acc.SETTINGS_URL))
+        out = Gtk.Button(label=_("Sign Out"))
+        out.connect("clicked", self.sign_out)
+        foot.pack_start(web, False, False, 0)
+        foot.pack_start(out, False, False, 0)
+        side.pack_end(foot, False, False, 0)
+        outer.pack_start(side, False, False, 0)
+        outer.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 0)
+        outer.pack_start(self.pages, True, True, 0)
+        self.ident = []          # (jmeno, podtitulek) - aktualizuji se po zmene uzivatelskeho jmena
+        for name, title, build in (("overview", _("Overview"), self.page_overview),
+                                   ("profile", _("Profile"), self.page_profile),
+                                   ("security", _("Password & Security"), self.page_security),
+                                   ("preferences", _("Preferences"), self.page_preferences),
+                                   ("privacy", _("Privacy & Data"), self.page_privacy)):
+            sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=22)
+            heading = Gtk.Label(label=title, xalign=0)
+            heading.get_style_context().add_class("page-title")
+            box.pack_start(heading, False, False, 0)
+            build(box)
+            sw.add(box)
+            self.pages.add_titled(sw, name, title)
+        self.replace(outer)
+        if keep:
+            self.pages.set_visible_child_name(keep)
+        self.update_user(self.user)
+
+    def card(self, box, title, text=None, danger=False):
+        c = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        c.get_style_context().add_class("card")
+        if danger:
+            c.get_style_context().add_class("danger-card")
+        t = Gtk.Label(label=title, xalign=0)
+        t.get_style_context().add_class("card-title")
+        c.pack_start(t, False, False, 0)
+        if text:
+            d = Gtk.Label(label=text, xalign=0, wrap=True, max_width_chars=70)
+            d.get_style_context().add_class("dim")
+            c.pack_start(d, False, False, 0)
+        box.pack_start(c, False, False, 0)
+        return c
+
+    def status_row(self, card):
+        """Radek hlasky karty + (skryte) tlacitko Otevrit na webu pro zmeny, ktere server z aplikace nepovoli."""
+        row = Gtk.Box(spacing=8)
+        lbl = Gtk.Label(xalign=0, wrap=True, max_width_chars=60)
+        lbl.set_no_show_all(True)
+        web = Gtk.Button(label=_("Open on the Web"))
+        web.get_style_context().add_class("link")
+        web.connect("clicked", lambda b: accgtk.open_url(b, acc.SETTINGS_URL))
+        web.set_no_show_all(True)
+        row.pack_start(lbl, True, True, 0)
+        row.pack_end(web, False, False, 0)
+        card.pack_start(row, False, False, 0)
+        lbl.web = web
+        return lbl
+
+    def say(self, lbl, text, kind="dim"):
+        ctx = lbl.get_style_context()
+        for c in ("error", "good", "dim"):
+            ctx.remove_class(c)
+        ctx.add_class(kind)
+        lbl.set_text(text)
+        lbl.set_visible(bool(text))
+        lbl.web.set_visible(False)
+
+    def failed(self, lbl, err):
+        """Chyba spravy uctu: vyprsela session -> prihlaseni, 403 -> tlacitko na web, jinak hlaska."""
+        if err.code == "signed_out":
+            self.show_login(_("Your session has expired. Please sign in again."))
+            return
+        self.say(lbl, acc.account_error_text(err, _), "error")
+        lbl.web.set_visible(acc.web_only(err))
+
+    def identity(self, box, size=72):
         top = Gtk.Box(spacing=16)
-        name = user.get("displayName") or user.get("username") or user.get("email", "")
+        name = self.user.get("displayName") or self.user.get("username") or self.user.get("email", "")
         if luxos_avatar:
-            avatar = self.photo(72, name)
+            avatar = self.photo(size, name)
         else:
             avatar = Gtk.Label(label=(name[:1] or "?").upper())
             avatar.get_style_context().add_class("avatar")
         top.pack_start(avatar, False, False, 0)
-        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
-        n = Gtk.Label(label=name, xalign=0)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER, spacing=2)
+        n = Gtk.Label(xalign=0, ellipsize=3)
         n.get_style_context().add_class("name")
-        e = Gtk.Label(label=user.get("email", ""), xalign=0)
+        e = Gtk.Label(xalign=0, ellipsize=3, selectable=True)
         e.get_style_context().add_class("dim")
         texts.pack_start(n, False, False, 0)
         texts.pack_start(e, False, False, 0)
         top.pack_start(texts, True, True, 0)
         box.pack_start(top, False, False, 0)
+        self.ident.append((n, e))
 
-        usage = user.get("usage") or {}
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        card.get_style_context().add_class("card")
-        t = Gtk.Label(label=_("AI usage this month"), xalign=0)
-        t.get_style_context().add_class("card-title")
-        card.pack_start(t, False, False, 0)
-        if usage.get("unlimited"):
-            card.pack_start(Gtk.Label(label=_("Unlimited"), xalign=0), False, False, 0)
-        elif usage:
-            for label, used, limit in (("Flash", usage.get("fastTokens", 0), usage.get("fastLimit", 0)),
-                                       ("Lite", usage.get("liteTokens", 0), usage.get("liteLimit", 0))):
-                row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-                row.pack_start(Gtk.Label(label=_("%s: %s of %s tokens") % (label, f"{used:,}".replace(",", " "),
-                                                                            f"{limit:,}".replace(",", " ")),
-                                         xalign=0), False, False, 0)
-                bar = Gtk.LevelBar(min_value=0, max_value=max(limit, 1), value=min(used, max(limit, 1)))
-                row.pack_start(bar, False, False, 0)
-                card.pack_start(row, False, False, 0)
-        else:
-            card.pack_start(Gtk.Label(label=_("Loading…"), xalign=0), False, False, 0)
-        box.pack_start(card, False, False, 0)
-
-        apps = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        apps.get_style_context().add_class("card")
-        t = Gtk.Label(label=_("Used by"), xalign=0)
-        t.get_style_context().add_class("card-title")
-        apps.pack_start(t, False, False, 0)
+    # -- Prehled: kdo jsem, spotreba AI za mesic (GET /api/me) --
+    def page_overview(self, box):
+        self.identity(box)
+        self.usage_card = self.card(box, _("AI usage this month"))
+        self.usage_body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.usage_card.pack_start(self.usage_body, False, False, 0)
+        apps = self.card(box, _("Used by"))
         apps.pack_start(Gtk.Label(label="LuxAI · Lux Code · LSL IDE", xalign=0), False, False, 0)
-        box.pack_start(apps, False, False, 0)
 
+    def fill_usage(self, usage):
+        for c in self.usage_body.get_children():
+            self.usage_body.remove(c)
+        b = self.usage_body
+        if usage.get("unlimited"):
+            b.pack_start(Gtk.Label(label=_("Unlimited"), xalign=0), False, False, 0)
+        elif usage:
+            for label, desc, used, limit in (
+                    ("Flash", _("smarter, can see images"), usage.get("fastTokens", 0), usage.get("fastLimit", 0)),
+                    ("Lite", _("faster, larger limit"), usage.get("liteTokens", 0), usage.get("liteLimit", 0))):
+                used, limit = int(used or 0), int(limit or 0)
+                row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+                head = Gtk.Box(spacing=8)
+                t = Gtk.Label(label=label, xalign=0)
+                t.get_style_context().add_class("card-title")
+                head.pack_start(t, False, False, 0)
+                d = Gtk.Label(label=desc, xalign=0)
+                d.get_style_context().add_class("dim")
+                head.pack_start(d, False, False, 0)
+                pct = min(100, int(used * 100 / limit + 0.5)) if limit else 0   # jako Math.round na webu
+                p = Gtk.Label(label=f"{pct} %")
+                p.get_style_context().add_class("pct" if pct < 90 else "error")
+                head.pack_end(p, False, False, 0)
+                row.pack_start(head, False, False, 0)
+                bar = Gtk.LevelBar(min_value=0, max_value=max(limit, 1), value=min(used, max(limit, 1)))
+                bar.get_style_context().add_class("usage")
+                row.pack_start(bar, False, False, 0)
+                row.pack_start(Gtk.Label(label=_("%s of %s tokens") % (group(used), group(limit)), xalign=0),
+                               False, False, 0)
+                b.pack_start(row, False, False, 0)
+            when = acc.usage_reset(usage)
+            days = acc.days_until(when)
+            reset = Gtk.Label(label=_("The limits reset on %s (in %d days).") % (time.strftime("%x", when), days),
+                              xalign=0, wrap=True)
+            reset.get_style_context().add_class("dim")
+            b.pack_start(reset, False, False, 0)
+        else:
+            b.pack_start(Gtk.Label(label=_("Loading…"), xalign=0), False, False, 0)
+        b.show_all()
+
+    # -- Profil: uzivatelske jmeno (PATCH /api/account/settings), e-mail, fotka --
+    def page_profile(self, box):
+        self.identity(box, 56)
+        c = self.card(box, _("Username"), _("Your public identifier for LuxAI and connected services. "
+                                            "3-32 lowercase letters, digits and . _ -"))
         row = Gtk.Box(spacing=8)
-        web = Gtk.Button(label=_("Manage on lux-ai.cz"))
-        web.connect("clicked", lambda _b: Gtk.show_uri_on_window(self, ACCOUNT_URL, Gdk.CURRENT_TIME))
-        out = Gtk.Button(label=_("Sign Out"))
+        self.username = Gtk.Entry(max_length=32, hexpand=True)
+        self.username.connect("changed", self.username_changed)
+        self.username.connect("activate", lambda _e: self.save_username())
+        self.username_btn = Gtk.Button(label=_("Save"))
+        self.username_btn.get_style_context().add_class("primary")
+        self.username_btn.connect("clicked", lambda _b: self.save_username())
+        row.pack_start(self.username, True, True, 0)
+        row.pack_start(self.username_btn, False, False, 0)
+        c.pack_start(row, False, False, 0)
+        self.username_status = self.status_row(c)
+
+        c = self.card(box, _("E-mail"))
+        self.email_label = Gtk.Label(xalign=0, selectable=True)
+        c.pack_start(self.email_label, False, False, 0)
+        d = Gtk.Label(label=_("LuxAI does not offer changing the e-mail address yet. "
+                              "Write to LuxAI support if you need to change it."), xalign=0, wrap=True,
+                      max_width_chars=70)
+        d.get_style_context().add_class("dim")
+        c.pack_start(d, False, False, 0)
+        btn = Gtk.Button(label=_("Contact Support"), halign=Gtk.Align.START)
+        btn.connect("clicked", lambda b: accgtk.open_url(b, "mailto:" + acc.SUPPORT_EMAIL))
+        c.pack_start(btn, False, False, 0)
+
+        if luxos_avatar:
+            c = self.card(box, _("Profile Picture"), _("The picture is stored on this computer (login screen, "
+                                                       "menu, LuxAI Account). The LuxAI website does not use "
+                                                       "profile pictures."))
+            btn = Gtk.Button(label=_("Change Picture"), halign=Gtk.Align.START)
+            btn.connect("clicked", lambda _b: open_picture())
+            c.pack_start(btn, False, False, 0)
+
+    def username_changed(self, entry):
+        if getattr(self, "_filling", False):
+            return
+        name = entry.get_text().strip().lower()
+        ok = not acc.username_problem(name) and name != self.user.get("username")
+        self.username_btn.set_sensitive(ok)
+        if name and acc.username_problem(name):
+            self.say(self.username_status, acc.account_error_text(acc.AccountError("invalid_username"), _), "dim")
+        else:
+            self.say(self.username_status, "")
+
+    def save_username(self):
+        if not self.username_btn.get_sensitive():
+            return
+        name = self.username.get_text()
+        self.username_btn.set_sensitive(False)
+        self.say(self.username_status, _("Saving…"))
+
+        def done(user, err):
+            if err:
+                self.username_btn.set_sensitive(True)
+                self.failed(self.username_status, err)
+                return
+            self.update_user(user)
+            self.say(self.username_status, _("The username is saved."), "good")
+        accgtk.run_async(lambda: acc.set_username(name), done)
+
+    # -- Heslo a zabezpeceni: POST /api/account/password, relace --
+    def page_security(self, box):
+        c = self.card(box, _("Change Password"),
+                      _("Other sessions are signed out after the change; this computer stays signed in. "
+                        "If you have just signed in with an e-mail code, you can leave the current password empty."))
+        self.pw_current = accgtk.password_entry(_("Current password"))
+        self.pw_new = accgtk.password_entry(_("New password (at least %d characters)") % acc.PASSWORD_MIN)
+        self.pw_again = accgtk.password_entry(_("New password again"))
+        for e in (self.pw_current, self.pw_new, self.pw_again):
+            c.pack_start(e, False, False, 0)
+            e.connect("changed", lambda _e: self.password_changed())
+        self.pw_again.connect("activate", lambda _e: self.save_password())
+        strength = Gtk.Box(spacing=10)
+        self.pw_bar = Gtk.LevelBar(min_value=0, max_value=3, width_request=90, valign=Gtk.Align.CENTER)
+        self.pw_bar.get_style_context().add_class("luxai-strength")
+        for name in ("low", "high", "full"):
+            self.pw_bar.remove_offset_value(name)
+        for i, name in enumerate(("weak", "medium", "strong"), 1):
+            self.pw_bar.add_offset_value(name, i)
+        self.pw_hint = Gtk.Label(xalign=0, wrap=True)
+        self.pw_hint.get_style_context().add_class("dim")
+        strength.pack_start(self.pw_bar, False, False, 0)
+        strength.pack_start(self.pw_hint, True, True, 0)
+        c.pack_start(strength, False, False, 0)
+        self.pw_btn = Gtk.Button(label=_("Change Password"), halign=Gtk.Align.START)
+        self.pw_btn.get_style_context().add_class("primary")
+        self.pw_btn.connect("clicked", lambda _b: self.save_password())
+        c.pack_start(self.pw_btn, False, False, 0)
+        self.pw_status = self.status_row(c)
+        self.password_changed()
+
+        c = self.card(box, _("Sessions and Devices"))
+        row = Gtk.Box(spacing=12)
+        icon = Gtk.Image.new_from_icon_name("computer-symbolic", Gtk.IconSize.DND)
+        row.pack_start(icon, False, False, 0)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        t = Gtk.Label(label=_("This computer"), xalign=0)
+        t.get_style_context().add_class("card-title")
+        texts.pack_start(t, False, False, 0)
+        host = Gtk.Label(label="%s · LuxOS" % (GLib.get_host_name() or "luxos"), xalign=0)
+        host.get_style_context().add_class("dim")
+        texts.pack_start(host, False, False, 0)
+        row.pack_start(texts, True, True, 0)
+        out = Gtk.Button(label=_("Sign Out"), valign=Gtk.Align.CENTER)
         out.connect("clicked", self.sign_out)
-        row.pack_start(web, False, False, 0)
         row.pack_end(out, False, False, 0)
-        box.pack_end(row, False, False, 0)
-        self.replace(box)
+        c.pack_start(row, False, False, 0)
+        d = Gtk.Label(label=_("LuxAI cannot list your other devices and browsers yet. To sign them all out, "
+                              "change your password."), xalign=0, wrap=True, max_width_chars=70)
+        d.get_style_context().add_class("dim")
+        c.pack_start(d, False, False, 0)
+
+    def password_changed(self):
+        new, again = self.pw_new.get_text(), self.pw_again.get_text()
+        level, text = accgtk.password_strength(new)
+        self.pw_bar.set_value(level)
+        self.pw_hint.set_text(text)
+        ok = not acc.password_problem(new) and new == again
+        self.pw_btn.set_sensitive(ok)
+        if again and new != again and len(again) >= len(new):
+            self.pw_btn.set_tooltip_text(_("The new passwords do not match."))
+        else:
+            self.pw_btn.set_tooltip_text(None)
+
+    def save_password(self):
+        cur, new, again = self.pw_current.get_text(), self.pw_new.get_text(), self.pw_again.get_text()
+        if new != again:
+            self.say(self.pw_status, _("The new passwords do not match."), "error")
+            return
+        if not self.pw_btn.get_sensitive():
+            return
+        self.pw_btn.set_sensitive(False)
+        self.say(self.pw_status, _("Changing the password…"))
+
+        def done(_res, err):
+            self.password_changed()
+            if err:
+                self.failed(self.pw_status, err)
+                return
+            for e in (self.pw_current, self.pw_new, self.pw_again):
+                e.set_text("")
+            self.say(self.pw_status, _("The password was changed and other sessions were signed out."), "good")
+        accgtk.run_async(lambda: acc.change_password(cur, new), done)
+
+    # -- Predvolby: styl odpovedi AI a vzhled webu (PATCH /api/account/settings) --
+    STYLES = {"balanced": ("Balanced", "LuxAI adapts the length and detail to how complex your question is."),
+              "concise": ("Concise", "Answers are as direct as possible, without repetition or filler."),
+              "detailed": ("Detailed", "LuxAI adds more context, explanations, caveats and suitable examples."),
+              "technical": ("Technical", "Answers prefer precise terminology, assumptions and implementation details."),
+              "friendly": ("Friendly", "Answers are more approachable and friendly, but still accurate and "
+                                       "professional.")}
+
+    def page_preferences(self, box):
+        c = self.card(box, _("AI Answer Style"), _("Applies to new answers in LuxAI chat. It does not change the "
+                                                   "selected model or the token limit."))
+        self.style = Gtk.ComboBoxText(halign=Gtk.Align.START)
+        for key in acc.RESPONSE_STYLES:
+            self.style.append(key, _(self.STYLES[key][0]))
+        self.style_desc = Gtk.Label(xalign=0, wrap=True, max_width_chars=70)
+        self.style.connect("changed", self.style_changed)
+        row = Gtk.Box(spacing=8)
+        row.pack_start(self.style, False, False, 0)
+        self.style_btn = Gtk.Button(label=_("Save"))
+        self.style_btn.get_style_context().add_class("primary")
+        self.style_btn.connect("clicked", lambda _b: self.save_style())
+        row.pack_start(self.style_btn, False, False, 0)
+        c.pack_start(row, False, False, 0)
+        c.pack_start(self.style_desc, False, False, 0)
+        self.style_status = self.status_row(c)
+
+        c = self.card(box, _("Appearance on the Web"),
+                      _("Saved to your LuxAI account and used on lux-ai.cz on all your devices. "
+                        "The look of LuxOS is set in Settings › Appearance."))
+        row = Gtk.Box(spacing=12)
+        row.pack_start(Gtk.Label(label=_("Light mode"), xalign=0), True, True, 0)
+        self.theme = Gtk.Switch(valign=Gtk.Align.CENTER)
+        self.theme_handler = self.theme.connect("notify::active", lambda *_a: self.save_theme())
+        row.pack_end(self.theme, False, False, 0)
+        c.pack_start(row, False, False, 0)
+        self.theme_status = self.status_row(c)
+
+    def style_changed(self, combo):
+        key = combo.get_active_id() or "balanced"
+        self.style_desc.set_text(_(self.STYLES[key][1]))
+        saved = (self.user.get("settings") or {}).get("aiResponseStyle") or "balanced"
+        self.style_btn.set_sensitive(key != saved)
+
+    def save_style(self):
+        key = self.style.get_active_id() or "balanced"
+        self.style_btn.set_sensitive(False)
+        self.say(self.style_status, _("Saving…"))
+
+        def done(user, err):
+            if err:
+                self.style_btn.set_sensitive(True)
+                self.failed(self.style_status, err)
+                return
+            self.update_user(user)
+            self.say(self.style_status, _("The answer style is saved."), "good")
+        accgtk.run_async(lambda: acc.set_response_style(key), done)
+
+    def save_theme(self):
+        theme = "light" if self.theme.get_active() else "dark"
+        self.theme.set_sensitive(False)
+        self.say(self.theme_status, _("Saving…"))
+
+        def done(user, err):
+            self.theme.set_sensitive(True)
+            if err:
+                self.set_theme_switch((self.user.get("settings") or {}).get("theme"))
+                self.failed(self.theme_status, err)
+                return
+            self.update_user(user)
+            self.say(self.theme_status, _("The appearance is saved."), "good")
+        accgtk.run_async(lambda: acc.set_theme(theme), done)
+
+    def set_theme_switch(self, theme):
+        self.theme.handler_block(self.theme_handler)
+        self.theme.set_active(theme == "light")
+        self.theme.handler_unblock(self.theme_handler)
+
+    # -- Soukromi a data: export, podminky, zruseni uctu --
+    def page_privacy(self, box):
+        c = self.card(box, _("Export Your Data"),
+                      _("Saves your profile, settings, AI usage and your LuxAI web chat history to a JSON file "
+                        "on this computer. The sign-in token is never included."))
+        row = Gtk.Box(spacing=10)
+        self.export_btn = Gtk.Button(label=_("Export…"))
+        self.export_btn.connect("clicked", lambda _b: self.choose_export())
+        self.export_spin = Gtk.Spinner()
+        self.export_spin.set_no_show_all(True)
+        row.pack_start(self.export_btn, False, False, 0)
+        row.pack_start(self.export_spin, False, False, 0)
+        c.pack_start(row, False, False, 0)
+        self.export_status = self.status_row(c)
+
+        c = self.card(box, _("Terms and Privacy"),
+                      _("The LuxAI Terms of Use also describe which personal data LuxAI processes and why."))
+        row = Gtk.Box(spacing=8)
+        read = Gtk.Button(label=_("Read the Terms"))
+        read.connect("clicked", lambda _b: accgtk.show_terms(self))
+        web = Gtk.Button(label=_("Open on the Web"))
+        web.connect("clicked", lambda b: accgtk.open_url(b, acc.TERMS_URL))
+        row.pack_start(read, False, False, 0)
+        row.pack_start(web, False, False, 0)
+        c.pack_start(row, False, False, 0)
+
+        c = self.card(box, _("Delete Account"),
+                      _("LuxAI deletes accounts on request sent to support (%s). Your account, chat history "
+                        "and settings will be removed and LuxAI, Lux Code and LSL IDE will stop working "
+                        "with it.") % acc.SUPPORT_EMAIL, danger=True)
+        btn = Gtk.Button(label=_("Request Account Deletion…"), halign=Gtk.Align.START)
+        btn.get_style_context().add_class("destructive-action")
+        btn.connect("clicked", lambda _b: self.confirm_delete())
+        c.pack_start(btn, False, False, 0)
+        self.delete_status = self.status_row(c)
+
+    def choose_export(self):
+        dlg = Gtk.FileChooserDialog(title=_("Export Your Data"), transient_for=self,
+                                    action=Gtk.FileChooserAction.SAVE)
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Save"), Gtk.ResponseType.ACCEPT)
+        dlg.set_do_overwrite_confirmation(True)
+        folder = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOCUMENTS) or GLib.get_home_dir()
+        dlg.set_current_folder(folder)
+        dlg.set_current_name("luxai-account-%s.json" % time.strftime("%Y-%m-%d"))
+        path = dlg.get_filename() if dlg.run() == Gtk.ResponseType.ACCEPT else None
+        dlg.destroy()
+        if path:
+            self.export_to(path)
+
+    def export_to(self, path):
+        self.export_btn.set_sensitive(False)
+        self.export_spin.show()
+        self.export_spin.start()
+        self.say(self.export_status, _("Exporting…"))
+
+        def progress(i, n):
+            GLib.idle_add(lambda: self.say(self.export_status, _("Downloading chat %d of %d…") % (i + 1, n)) and False)
+
+        def done(res, err):
+            self.export_btn.set_sensitive(True)
+            self.export_spin.stop()
+            self.export_spin.hide()
+            if err:
+                self.failed(self.export_status, err)
+                return
+            if res["history"]:
+                text = _("Exported to %s (web chats: %d).") % (res["path"], res["conversations"])
+            else:
+                text = _("Exported to %s. The web chat history could not be included.") \
+                    % res["path"]
+            self.say(self.export_status, text, "good")
+            self.export_status.web.set_visible(not res["history"])
+        accgtk.run_async(lambda: acc.export_data(path, progress=progress), done)
+
+    def confirm_delete(self):
+        """Silne potvrzeni: napsat e-mail uctu a zaskrtnout, ze to nejde vratit. Pak se otevre
+        rozepsany e-mail podpore (nic se neodesle samo)."""
+        email = self.user.get("email", "")
+        dlg = Gtk.Dialog(title=_("Delete LuxAI Account"), transient_for=self, modal=True, use_header_bar=True)
+        dlg.get_header_bar().set_show_close_button(True)   # horni lista s krizkem, tlacitka dole
+        dlg.set_default_size(480, -1)
+        area = dlg.get_content_area()
+        area.set_spacing(10)
+        area.set_border_width(18)
+        warn = Gtk.Label(xalign=0, wrap=True, max_width_chars=60)
+        warn.set_markup("<b>%s</b>" % GLib.markup_escape_text(_("Deleting the account cannot be undone.")))
+        area.pack_start(warn, False, False, 0)
+        area.pack_start(Gtk.Label(label=_("All chats, settings and the usage history of %s will be deleted. "
+                                          "Export your data first if you want to keep it.") % email,
+                                  xalign=0, wrap=True, max_width_chars=60), False, False, 0)
+        area.pack_start(Gtk.Label(label=_("Type your e-mail address to confirm:"), xalign=0), False, False, 0)
+        entry = Gtk.Entry(placeholder_text=email)
+        area.pack_start(entry, False, False, 0)
+        sure = Gtk.CheckButton(label=_("I understand that my LuxAI account and data will be deleted"))
+        area.pack_start(sure, False, False, 0)
+        hint = Gtk.Label(label=_("Your e-mail program opens with a prepared request to %s. "
+                                 "The account is deleted after you send it.") % acc.SUPPORT_EMAIL,
+                         xalign=0, wrap=True, max_width_chars=60)
+        hint.get_style_context().add_class("dim")
+        area.pack_start(hint, False, False, 0)
+        buttons = Gtk.Box(spacing=8, halign=Gtk.Align.END, margin_top=6)
+        cancel = Gtk.Button(label=_("Cancel"))
+        cancel.connect("clicked", lambda _b: dlg.response(Gtk.ResponseType.CANCEL))
+        go = Gtk.Button(label=_("Write Deletion Request"), sensitive=False)
+        go.get_style_context().add_class("destructive-action")
+        go.connect("clicked", lambda _b: dlg.response(Gtk.ResponseType.ACCEPT))
+        buttons.pack_start(cancel, False, False, 0)
+        buttons.pack_start(go, False, False, 0)
+        area.pack_start(buttons, False, False, 0)
+
+        def update(*_a):
+            go.set_sensitive(bool(email) and entry.get_text().strip().lower() == email.lower() and sure.get_active())
+        entry.connect("changed", update)
+        sure.connect("toggled", update)
+        dlg.delete_entry, dlg.delete_sure, dlg.delete_go = entry, sure, go   # pro testy
+        self.delete_dialog = dlg
+
+        def response(d, resp):
+            if resp == Gtk.ResponseType.ACCEPT and go.get_sensitive():
+                accgtk.open_url(self, acc.deletion_mailto(self.user))
+                self.say(self.delete_status, _("Your e-mail program opened with the deletion request. "
+                                               "Send it to finish."), "good")
+            d.destroy()
+            self.delete_dialog = None
+        dlg.connect("response", response)
+        dlg.show_all()
+        return dlg
+
+    # -- aktualizace po /api/me nebo po ulozeni zmeny (bez prestavby stranek) --
+    def update_user(self, user):
+        if user:
+            self.user = dict(user)
+        u = self.user
+        name = u.get("displayName") or u.get("username") or u.get("email", "")
+        sub = " · ".join(x for x in ("@" + u["username"] if u.get("username") else "", u.get("email", "")) if x)
+        for n, e in self.ident:
+            n.set_text(name)
+            e.set_text(sub)
+        self.fill_usage(u.get("usage") or {})
+        self._filling = True
+        if u.get("username") is not None:
+            self.username.set_text(u.get("username") or "")
+        self.username_btn.set_sensitive(False)
+        self._filling = False
+        self.email_label.set_text(u.get("email", ""))
+        settings = u.get("settings") or {}
+        self.style.set_active_id(settings.get("aiResponseStyle") or "balanced")
+        self.style_changed(self.style)
+        self.set_theme_switch(settings.get("theme"))
 
     def profile_loaded(self, data, err):
         if err and err.code == "signed_out":
             self.show_login(_("Your session has expired. Please sign in again."))
+        elif data and data.get("user") and getattr(self, "outer", None) and self.outer.get_parent():
+            self.update_user(data["user"])
         elif data:
             self.show_profile(acc.load() or {}, data)
         return False
