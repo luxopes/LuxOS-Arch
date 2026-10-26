@@ -57,6 +57,10 @@ LUX_SANDBOX=${LUX_SANDBOX:-/usr/bin/luxos-sandbox}
 # Snimky systemu a navrat (LuxOS Care, luxos_snapshots.py)
 LUX_CARE=${LUX_CARE:-/usr/bin/luxos-care}
 LUX_CMDLINE=${LUX_CMDLINE:-/proc/cmdline}
+# Konfigurace celeho systemu v jednom souboru LSL (/etc/luxos/system.lsl): lux system ...
+LUX_SYSTEM=${LUX_SYSTEM:-/usr/lib/lux/lux_system.py}
+[[ -x $LUX_SYSTEM ]] || LUX_SYSTEM="$(dirname "$LUX_SELF")/lux_system.py"
+LUX_SYSTEM_FILE=${LUX_SYSTEM_FILE:-/etc/luxos/system.lsl}
 SYSTEM_OK=0   # --system: balik z komunity smi do systemu (jinak sandbox)
 # Napoveda pro zvyk z Archu (lux -Syu): /usr/lib/lux/pacman-hint, pri spusteni z repozitare vedle skriptu
 LUX_HINT=${LUX_HINT:-/usr/lib/lux/pacman-hint}
@@ -1030,6 +1034,37 @@ cmd_rollback() {  # lux rollback [jmeno]: bez jmena snimek, ze ktereho system be
     ok "$(T "Restart the computer to finish.")"
 }
 
+# --- Cely system v jednom souboru (/etc/luxos/system.lsl, LSL) ----------------------------------
+# Soubor vyhodnocuje "lsl config" (cisty, bez souboru/site/procesu), zmeny dela lux_system.py
+cmd_system() {
+    local sub=${1-} rc
+    shift 2>/dev/null
+    local -a fl=()
+    ((YES)) && fl+=(-y)
+    case $sub in
+        show|check|plan) "$LUX_SYSTEM" "$sub" "${fl[@]}" "$@" ;;
+        diff|apply|init) as_root "$LUX_SYSTEM" "$sub" "${fl[@]}" "$@" ;;
+        edit)
+            [[ -e $LUX_SYSTEM_FILE ]] || die "$(T "%s does not exist yet. Create it from this computer with: lux system init" "$LUX_SYSTEM_FILE")"
+            if ((EUID == 0)); then "${EDITOR:-nano}" "$LUX_SYSTEM_FILE"
+            elif command -v sudoedit &>/dev/null; then SUDO_EDITOR=${EDITOR:-nano} sudoedit "$LUX_SYSTEM_FILE"
+            else as_root "${EDITOR:-nano}" "$LUX_SYSTEM_FILE"; fi
+            "$LUX_SYSTEM" check "$LUX_SYSTEM_FILE" && say "$(T "Show the changes with: lux system diff")" ;;
+        ""|help)
+            printf '%s%s%s lux system <%s>\n\n' "$B" "$(T "Usage:")" "$R" "$(T "command")"
+            while IFS='|' read -r c d; do printf '  %-26s%s\n' "$c" "$(T "$d")"; done <<'SYS'
+show|print a configuration file made from this computer
+init [--force]|write /etc/luxos/system.lsl from this computer
+edit|edit /etc/luxos/system.lsl and check it
+check [file]|check the configuration without changing anything
+diff [file] [--json]|show what apply would change
+apply [file] [-y]|take a snapshot, show the changes, confirm and apply
+SYS
+            printf '\n%s\n' "$(T "Undo the last apply: lux rollback · Help: man luxos-system")" ;;
+        *) die "$(T "Unknown command '%s' (see lux --help)" "system $sub")" ;;
+    esac
+}
+
 cmd_history() {  # lux history [pocet] [balik]
     local n=25 pkg="" a log
     for a in "$@"; do if [[ $a =~ ^[0-9]+$ ]]; then n=$a; else pkg=$a; fi; done
@@ -1077,6 +1112,7 @@ doctor|check system health
 snapshots|list system snapshots (one before every update)
 snapshot|take a system snapshot now
 rollback [snapshot]|return the system to a snapshot (also from the boot menu)
+system show, diff, apply|whole system in one file /etc/luxos/system.lsl (lux system help)
 CMDS
     printf '\n%s%s%s\n' "$B" "$(T "Options:")" "$R"
     while IFS='|' read -r opt desc; do
@@ -1216,6 +1252,7 @@ case $cmd in
     snapshots)          cmd_snapshots "$@" ;;
     snapshot)           cmd_snapshot ;;
     rollback)           cmd_rollback "$@" ;;
+    system|sys)         cmd_system "$@" ;;
     tui|store)          cmd_tui ;;
     pack)               (($#)) || die "$(T "Usage: lux pack <directory> [output]")"; lp_pack "$@" ;;
     __lux-file)         ((EUID == 0)) || exit 1; lp_install_file "$1" ;;

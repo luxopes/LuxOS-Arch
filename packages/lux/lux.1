@@ -142,6 +142,23 @@ running from, otherwise a list to choose from. The current system is kept as a s
 /home is not changed. See
 .BR luxos\-care (8)
 and "LuxOS Recovery" in the boot menu.
+.TP
+.BR system " " show | init | edit | check | diff | apply " [" \fIfile\fR ]
+The whole system in one LSL file,
+.IR /etc/luxos/system.lsl :
+packages, Flathub apps, services, users and groups, computer name, language, time zone, keyboard,
+LuxOS Care, Lux Guard, firewall and kernel parameters.
+.B show
+prints a file made from this computer,
+.B init
+writes it,
+.B diff
+lists the changes and
+.B apply
+takes a snapshot, shows the changes, asks and applies them (undo with
+.BR "lux rollback" ).
+See
+.BR luxos\-system (5).
 .SH OPTIONS
 .TP
 .BR \-y ", " \-\-yes
@@ -235,6 +252,7 @@ The last changes of one package.
 Remove without asking.
 .SH SEE ALSO
 .BR luxos\-care (8),
+.BR luxos\-system (5),
 .BR makepkg (8),
 .B luxos\-sandbox \-\-help,
 .BR flatpak (1),

@@ -3145,3 +3145,153 @@ Mirror displays	Дзеркалити дисплеї
 Show the same picture on all displays.	Однакове зображення на всіх дисплеях.
 The displays show the same picture. Turn off mirroring to arrange them.	Дисплеї показують однакове зображення. Вимкніть дзеркалення, щоб розташувати їх.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Використовується лише один дисплей. Щоб розташувати дисплеї, виберіть «Розширити» в розділі «Кілька дисплеїв».
+# lux system - cely system v jednom souboru LSL (/etc/luxos/system.lsl)
+Reading the configuration took too long (endless loop?).	Читання конфігурації тривало надто довго (нескінченний цикл?).
+Edit it (sudo lux system edit), then: lux system diff and sudo lux system apply	Відредагуйте його (sudo lux system edit), потім: lux system diff і sudo lux system apply
+LSL is needed to read the configuration (lux install lsl).	Для читання конфігурації потрібен LSL (lux install lsl).
+The configuration must set config = { ... } (a dictionary).	Конфігурація має задати config = { ... } (словник).
+Hint: items of a list [ ] are separated by commas, without a comma after the last one.	Порада: елементи списку [ ] розділяються комами, після останнього коми немає.
+No user would be an administrator (group wheel). Add "wheel" to the groups of one user.	Жоден користувач не був би адміністратором (група wheel). Додайте «wheel» до груп одного користувача.
+Kernel parameters can be read only with administrator rights (lux system diff asks for them).	Параметри ядра можна прочитати лише з правами адміністратора (lux system diff їх попросить).
+LuxOS Care is not installed (lux install luxos-care).	LuxOS Care не встановлено (lux install luxos-care).
+The system already matches the configuration. Nothing to do.	Система вже відповідає конфігурації. Нічого робити.
+LuxOS - configuration of the whole system in one file (LSL)	LuxOS – конфігурація всієї системи в одному файлі (LSL)
+Check: lux system check   ·   What would change: lux system diff	Перевірка: lux system check   ·   Що змінилося б: lux system diff
+Apply: sudo lux system apply (a snapshot is taken first, undo with: lux rollback)	Застосувати: sudo lux system apply (спочатку створюється знімок, скасування: lux rollback)
+A setting you delete is no longer managed (it stays as it is). Help: man luxos-system	Видалене налаштування перестає керуватися (лишається як є). Довідка: man luxos-system
+Computer name in the network	Назва комп’ютера в мережі
+Packages from the LuxOS and Arch Linux repositories (lux search NAME)	Пакунки з репозиторіїв LuxOS та Arch Linux (lux search НАЗВА)
+Deleting a line removes the package at the next apply.	Видалений рядок вилучає пакунок під час наступного apply.
+True = also remove packages and apps that are not listed here (careful)	True = вилучити також пакунки й застосунки, яких тут немає (обережно)
+Services started at boot (a removed line turns the service off at the next apply)	Служби, що запускаються під час старту (видалений рядок вимикає службу під час наступного apply)
+Extra groups	Додаткові групи
+Users (passwords never go here; "wheel" = administrator).	Користувачі (паролі сюди ніколи; «wheel» = адміністратор).
+Optional "password_hash": output of 'openssl passwd -6'. Users are never deleted.	Необов’язково «password_hash»: вивід 'openssl passwd -6'. Користувачі ніколи не видаляються.
+LuxOS Care: "carefree" = automatic updates, "classic" = only notify	LuxOS Care: «carefree» = автоматичні оновлення, «classic» = лише сповіщати
+Firewall (ufw): allowed incoming ports, e.g. ["22/tcp"]	Брандмауер (ufw): дозволені вхідні порти, напр. ["22/tcp"]
+This needs administrator rights (run it through lux system ...).	Для цього потрібні права адміністратора (запускайте через lux system ...).
+Written %s from this computer.	Записано %s з цього комп’ютера.
+The configuration %s is valid.	Конфігурація %s правильна.
+Done: %d changes.	Готово: змін — %d.
+Restart the computer to use the new kernel parameters.	Перезапустіть комп’ютер, щоб застосувати нові параметри ядра.
+The configuration file %s does not exist. Create it from this computer with: sudo lux system init	Файл конфігурації %s не існує. Створіть його з цього комп’ютера: sudo lux system init
+Hint: the configuration may only use 'load config'; it cannot run programs or read files.	Порада: конфігурація може використовувати лише 'load config'; вона не може запускати програми чи читати файли.
+computer name: %s → %s	назва комп’ютера: %s → %s
+time zone: %s → %s	часовий пояс: %s → %s
+language (locale): %s → %s	мова (locale): %s → %s
+Group %s does not exist yet; it is created if no package creates it.	Групи %s ще не існує; її буде створено, якщо її не створить пакунок.
+The firewall (ufw) is not installed; add "ufw" to packages.	Брандмауер (ufw) не встановлено; додайте «ufw» до packages.
+turn on the firewall	увімкнути брандмауер
+turn off the firewall	вимкнути брандмауер
+Kernel parameters: no LuxOS boot entry found (systemd-boot or GRUB).	Параметри ядра: не знайдено запис LuxOS у завантажувачі (systemd-boot чи GRUB).
+(after a restart)	(після перезапуску)
+Generated by 'lux system show' on %s from this computer.	Створено 'lux system show' %s з цього комп’ютера.
+Time zone (list: timedatectl list-timezones)	Часовий пояс (список: timedatectl list-timezones)
+Language and formats (e.g. "cs_CZ.UTF-8", "en_US.UTF-8")	Мова та формати (напр. "uk_UA.UTF-8", "en_US.UTF-8")
+Keyboard layouts (the first is the default, at most 4) and how to switch them	Розкладки клавіатури (перша — типова, щонайбільше 4) і як їх перемикати
+Apps from Flathub (app ID, e.g. "org.mozilla.firefox")	Застосунки з Flathub (ID застосунку, напр. "org.mozilla.firefox")
+Lux Guard: protection against harmful downloads, hourly snapshots of /home	Lux Guard: захист від шкідливих завантажень, щогодинні знімки /home
+Kernel parameters: run 'sudo lux system show' to include them	Параметри ядра: запустіть 'sudo lux system show', щоб їх додати
+%s already exists. Show the differences with: lux system diff (or init --force to overwrite it).	%s вже існує. Відмінності покаже: lux system diff (або init --force перезапише файл).
+The previous file was kept as %s	Попередній файл збережено як %s
+Taking a system snapshot first	Спочатку створюється знімок системи
+%s failed (exit code %d)	%s завершився з помилкою (код виходу %d)
+Hint: the configuration cannot run programs, read files or use the network.	Порада: конфігурація не може запускати програми, читати файли чи використовувати мережу.
+(did you mean "%s"?)	(можливо, ви мали на увазі "%s"?)
+unknown setting "%s"	невідоме налаштування "%s"
+must be %s	має бути %s
+"%s" is not a valid %s	"%s" — неправильне значення: %s
+unknown time zone "%s" (e.g. "Europe/Prague")	невідомий часовий пояс "%s" (напр. "Europe/Kyiv")
+unknown language setting "%s" (e.g. "cs_CZ.UTF-8")	невідоме налаштування мови "%s" (напр. "uk_UA.UTF-8")
+at least one layout is needed (e.g. ["us", "cz"])	потрібна принаймні одна розкладка (напр. ["us", "ua"])
+Cannot read the installed packages: %s	Не вдається прочитати встановлені пакунки: %s
+The package lists could not be checked; run lux update if installing fails.	Не вдалося перевірити списки пакунків; якщо встановлення не вдасться, запустіть lux update.
+install: %s	встановити: %s
+keep as wanted (now only a dependency): %s	залишити як бажані (зараз лише залежність): %s
+remove: %s	вилучити: %s
+keyboard layouts: %s → %s	розкладки клавіатури: %s → %s
+create group %s	створити групу %s
+turn on %s	увімкнути %s
+turn off %s	вимкнути %s
+create user %s	створити користувача %s
+Another lux system apply is running.	Вже виконується інший lux system apply.
+Kernel parameters (disk and encryption parameters are not managed here)	Параметри ядра (параметри диска та шифрування тут не керуються)
+Managed: %s	Керується: %s
+Nothing was changed. Confirm with -y when running without a terminal.	Нічого не змінено. Без термінала підтвердьте параметром -y.
+Apply these changes?	Застосувати ці зміни?
+Cancelled. Nothing was changed.	Скасовано. Нічого не змінено.
+Cannot read the configuration: %s	Не вдається прочитати конфігурацію: %s
+Error in the configuration %s:	Помилка в конфігурації %s:
+computer name	назва комп’ютера
+at most 4 layouts	щонайбільше 4 розкладки
+%s is both in enable and disable	%s є і в enable, і в disable
+%s is set in "guard"; remove it from services	%s задано в «guard»; вилучіть її зі services
+%s is set in "firewall"; remove it from services	%s задано в «firewall»; вилучіть її зі services
+Cannot read the services: %s	Не вдається прочитати служби: %s
+Kept, LuxOS needs them: %s	Залишено, LuxOS їх потребує: %s
+%d installed packages are not in the file; they stay ("remove_unlisted": True would remove them).	Встановлених пакунків, яких немає у файлі: %d; вони залишаться («remove_unlisted»: True їх вилучило б).
+%d installed Flathub apps are not in the file; they stay.	Встановлених застосунків з Flathub, яких немає у файлі: %d; вони залишаться.
+Unknown service %s (no such unit on this computer).	Невідома служба %s (на цьому комп’ютері немає такого юніта).
+Lux Guard is not installed (lux install luxos-guard).	Lux Guard не встановлено (lux install luxos-guard).
+User %s has no password yet; set it with: sudo passwd %s	Користувач %s ще не має пароля; задайте його: sudo passwd %s
+users.%s: this is a system account, it cannot be managed here.	users.%s: це системний обліковий запис, тут ним керувати не можна.
+%s: set password (from password_hash)	%s: задати пароль (з password_hash)
+allow incoming %s	дозволити вхідні %s
+stop allowing incoming %s	більше не дозволяти вхідні %s
+The snapshot could not be taken: %s	Не вдалося створити знімок: %s
+Nothing was changed. To apply without a snapshot use --no-snapshot.	Нічого не змінено. Щоб застосувати без знімка, використайте --no-snapshot.
+Continue without a snapshot (no way back with lux rollback)?	Продовжити без знімка (без повернення через lux rollback)?
+%d of %d changes were made.	Виконано %d з %d змін.
+Snapshot before the change: %s (undo: lux rollback %s)	Знімок перед зміною: %s (скасування: lux rollback %s)
+%s is needed by LuxOS and cannot be turned off here	%s потрібна LuxOS, тут її вимкнути не можна
+must not contain ':' or control characters	не може містити ':' або керівні символи
+must be between 1000 and 59999	має бути від 1000 до 59999
+this is not a password hash (it must start with $y$, $6$ ...; create it with: openssl passwd -6)	це не хеш пароля (він має починатися з $y$, $6$ ...; створіть його: openssl passwd -6)
+must be "carefree" or "classic"	має бути "carefree" або "classic"
+%s is set by the installer (disk, encryption) and cannot be changed here	%s задає інсталятор (диск, шифрування), тут його змінити не можна
+Check the names with: lux search NAME	Перевірте назви: lux search НАЗВА
+%s: full name → %s	%s: повне ім’я → %s
+%s: shell %s → %s	%s: оболонка %s → %s
+users.%s.uid: the user already exists with UID %d; changing it is not supported.	users.%s.uid: користувач уже існує з UID %d; зміна не підтримується.
+service name	назва служби
+user name	ім’я користувача
+never write passwords into the file; use password_hash (from: openssl passwd -6) or set the password with: sudo passwd %s	ніколи не пишіть паролі у файл; використайте password_hash (з: openssl passwd -6) або задайте пароль: sudo passwd %s
+"%s" is not in /etc/shells	"%s" немає в /etc/shells
+%s: add to groups %s	%s: додати до груп %s
+%s: remove from groups %s	%s: вилучити з груп %s
+Back to the state before: lux rollback %s	Повернутися до попереднього стану: lux rollback %s
+must be between 2 and 50	має бути від 2 до 50
+These packages are not in the repositories: %s	Цих пакунків немає в репозиторіях: %s
+Unknown option %s	Невідомий параметр %s
+port (e.g. "22/tcp")	порт (напр. "22/tcp")
+Too many arguments	Забагато аргументів
+Packages	Пакунки
+Flathub apps	Застосунки з Flathub
+Users and groups	Користувачі та групи
+Services	Служби
+LuxOS Care	LuxOS Care
+Lux Guard	Lux Guard
+Firewall	Брандмауер
+Kernel parameters	Параметри ядра
+a text	текст
+a list of texts	список текстів
+a dictionary { }	словник { }
+True or False	True або False
+a number	число
+package name	назва пакунка
+Flathub app ID	ID застосунку Flathub
+group name	назва групи
+keyboard layout	розкладка клавіатури
+keyboard option	параметр клавіатури
+kernel parameter	параметр ядра
+%s does not exist yet. Create it from this computer with: lux system init	%s ще не існує. Створіть його з цього комп’ютера: lux system init
+Show the changes with: lux system diff	Зміни покаже: lux system diff
+print a configuration file made from this computer	вивести файл конфігурації за цим комп’ютером
+write /etc/luxos/system.lsl from this computer	записати /etc/luxos/system.lsl за цим комп’ютером
+edit /etc/luxos/system.lsl and check it	відредагувати /etc/luxos/system.lsl і перевірити його
+check the configuration without changing anything	перевірити конфігурацію без жодних змін
+show what apply would change	показати, що змінив би apply
+take a snapshot, show the changes, confirm and apply	створити знімок, показати зміни, підтвердити й застосувати
+Undo the last apply: lux rollback · Help: man luxos-system	Скасувати останній apply: lux rollback · Довідка: man luxos-system
+whole system in one file /etc/luxos/system.lsl (lux system help)	уся система в одному файлі /etc/luxos/system.lsl (lux system help)
+LuxOS is running from a snapshot, changes would be lost after a restart. To keep this version, run: lux rollback	LuxOS працює зі знімка, зміни буде втрачено після перезапуску. Щоб зберегти цю версію, виконайте: lux rollback

@@ -796,6 +796,41 @@
             "mirrorlist",
             "engine.conf"
           ]
+        },
+        {
+          "path": "luxos/system-config.md",
+          "title": "Whole-system configuration in one file (lux system)",
+          "summary": "/etc/luxos/system.lsl in LSL like configuration.nix: packages, Flathub apps, services, users, hostname, locale, keyboard, Care, Guard, firewall, kernel parameters; lux system show/init/check/diff/apply with snapshot and lux rollback.",
+          "keywords": [
+            "lux system",
+            "system.lsl",
+            "/etc/luxos/system.lsl",
+            "declarative",
+            "configuration.nix",
+            "NixOS",
+            "lsl config",
+            "show",
+            "init",
+            "diff",
+            "apply",
+            "check",
+            "rollback",
+            "snapshot",
+            "packages",
+            "services",
+            "users",
+            "groups",
+            "hostname",
+            "locale",
+            "timezone",
+            "keyboard",
+            "firewall",
+            "ufw",
+            "kernel parameters",
+            "remove_unlisted",
+            "password_hash",
+            "man luxos-system"
+          ]
         }
       ]
     },
