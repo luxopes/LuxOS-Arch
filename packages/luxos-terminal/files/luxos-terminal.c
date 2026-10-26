@@ -1162,7 +1162,8 @@ static void on_startup(GApplication *ga, gpointer d)
         " window.luxos-terminal notebook > header tab button { padding: 0; min-height: 16px; min-width: 16px; }",
         -1, NULL);
     gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(css),
-                                              GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                                              /* nad vlastnim stylem VTE (padding 1px) */
+                                              GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
     g_object_unref(css);
     GtkSettings *s = gtk_settings_get_default();
     g_signal_connect(s, "notify::gtk-theme-name", G_CALLBACK(on_theme_changed), NULL);
