@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS: zamykaci dialog jako zamykaci obrazovka luxos-greeter (vse pres celou obrazovku,
+     tapeta a hodiny se kresli v lock-bg, matne panely a rozmery v luxos-lock-ui.c) -->
+<interface>
+  <requires lib="gtk+" version="3.20"/>
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixel_size">16</property>
+    <property name="icon_name">input-keyboard-symbolic</property>
+    <property name="use_fallback">True</property>
+  </object>
+  <object class="GtkOverlay" id="lock-overlay">
+    <property name="name">screen</property>
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkDrawingArea" id="lock-bg">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="hexpand">True</property>
+        <property name="vexpand">True</property>
+      </object>
+    </child>
+    <!-- vpravo nahore: klavesnice, sit, baterie -->
+    <child type="overlay">
+      <object class="GtkBox" id="lock-status">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="halign">end</property>
+        <property name="valign">start</property>
+        <child>
+          <object class="GtkButton" id="kbd-button">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkLabel" id="kbd-label">
+                <property name="visible">True</property>
+                <property name="label">US</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="net-icon">
+            <property name="can_focus">False</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="bat-icon">
+            <property name="can_focus">False</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="bat-label">
+            <property name="can_focus">False</property>
+            <style>
+              <class name="status"/>
+            </style>
+          </object>
+        </child>
+      </object>
+    </child>
+    <!-- dole uprostred: uzivatel, heslo, hlaska -->
+    <child type="overlay">
+      <object class="GtkBox" id="login_window">
+        <property name="name">login_window</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="halign">fill</property>
+        <property name="valign">end</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkLabel" id="status-message-label">
+            <property name="can_focus">False</property>
+            <property name="no_show_all">True</property>
+            <property name="wrap">True</property>
+            <property name="justify">center</property>
+            <property name="max_width_chars">60</property>
+            <style>
+              <class name="small"/>
+            </style>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="users-box">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkButton" id="user-button">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="GtkDrawingArea" id="auth-face-image">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">center</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="auth-realname-label">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="ellipsize">end</property>
+                        <property name="max_width_chars">22</property>
+                        <style>
+                          <class name="name"/>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="pw-box">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkEntry" id="auth-prompt-entry">
+                <property name="name">prompt_entry</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="visibility">False</property>
+                <property name="width_chars">1</property>
+                <property name="input_purpose">password</property>
+                <style>
+                  <class name="pw"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="keyboard-toggle">
+                <property name="can_focus">False</property>
+                <property name="no_show_all">True</property>
+                <property name="valign">center</property>
+                <property name="image">image1</property>
+                <property name="relief">none</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="auth-unlock-button">
+                <property name="name">login_button</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <child>
+                  <object class="GtkDrawingArea" id="go-area">
+                    <property name="visible">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="auth-hint-label">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="wrap">True</property>
+            <property name="justify">center</property>
+            <property name="max_width_chars">60</property>
+            <style>
+              <class name="hint"/>
+            </style>
+          </object>
+        </child>
+      </object>
+    </child>
+    <!-- uplne dole: Prepnout uzivatele, Odhlasit, Uspat, Restartovat, Vypnout (luxos-lock-ui.c) -->
+    <child type="overlay">
+      <object class="GtkBox" id="auth-action-area">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="halign">center</property>
+        <property name="valign">end</property>
+        <child>
+          <object class="GtkButton" id="auth-cancel-button">
+            <property name="can_focus">False</property>
+            <property name="no_show_all">True</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
