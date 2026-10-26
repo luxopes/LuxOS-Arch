@@ -13,6 +13,15 @@
                                     jako zalozni; spousti ho i `lux update` (after-update.d)
   luxos-care release-kept           (root) vystup transakce na stdin: uvolni zalozni jadro
                                     se stejnou verzi, jaka se ma nainstalovat
+
+Snimky systemu (btrfs, viz /usr/lib/luxos/python/luxos_snapshots.py):
+  luxos-care snapshots [--json]     (root) seznam snimku
+  luxos-care snapshot               (root) novy snimek hned
+  luxos-care rollback JMENO|--booted --yes
+                                    (root) snimek se stane systemem od pristiho startu
+  luxos-care boot-entries           (root) obnovit polozky snimku a obnovy v zavadeci
+  luxos-care snapshot-pre           (root, hook 05-luxos-snapshot; baliky na stdin)
+  luxos-care after-rollback         (root, prvni start po navratu)
 """
 import json
 import os
@@ -21,6 +30,7 @@ import time
 
 sys.path.insert(0, "/usr/lib/luxos/python")
 import luxos_care as care  # noqa: E402
+import luxos_snapshots as snap  # noqa: E402
 from luxos_i18n import _  # noqa: E402
 
 
@@ -57,6 +67,119 @@ def status(as_json):
         print(_("Restart to finish the update"))
     for f in st.get("pacnew", []):
         print(_("New configuration file to review: %s") % f)
+    return 0
+
+
+SNAP_ERRORS = {
+    "not_found": "No such snapshot: %s",
+    "busy": "Another package operation is running. Try it again when it finishes.",
+    "kernel_missing": "The kernel of this snapshot (%s) was not kept, it cannot be started.",
+    "no_subvolume": "The system subvolume %s was not found.",
+    "kernel_copy_failed": "The kernel could not be copied to the boot partition: %s",
+    "mount_failed": "The system disk could not be opened: %s",
+    "no_device": "The system disk was not found.",
+    "snapshot_failed": "The snapshot could not be created: %s",
+    "subvolume_failed": "The snapshot could not be created: %s",
+    "delete_failed": "The snapshot could not be deleted: %s",
+}
+UNSUPPORTED = {
+    "live": "Snapshots are not available in the live system.",
+    "disabled": "Snapshots are turned off (SNAPSHOTS=no in /etc/luxos/care.conf).",
+    "not_btrfs": "Snapshots need the Btrfs file system (LuxOS installs on Btrfs).",
+    "no_subvolume": "Snapshots need the system on a Btrfs subvolume (LuxOS installs it as @).",
+    "snapshot_boot": "LuxOS is running from a snapshot.",
+}
+
+
+def snap_error(e):
+    msg = _(SNAP_ERRORS.get(e.code, "%s"))
+    if "%s" in msg:
+        msg = msg % (e.detail or e.code)
+    return msg
+
+
+def cmd_snapshots(args):
+    need_root()
+    ok, why = snap.supported()
+    if not ok and why != "snapshot_boot":
+        sys.exit(_(UNSUPPORTED.get(why, why)))
+    try:
+        with snap.snapshot_lock(), snap.top_level() as top:
+            items = snap.describe(top)
+    except snap.SnapshotError as e:
+        sys.exit(snap_error(e))
+    if "--json" in args:
+        print(json.dumps(items, indent=1, ensure_ascii=False))
+        return 0
+    if not items:
+        print(_("No snapshots yet. One is taken before every update."))
+        return 0
+    for i, s in enumerate(reversed(items), 1):
+        flags = []
+        if s["booted"]:
+            flags.append(_("running now"))
+        if not s["bootable"]:
+            flags.append(_("not in the boot menu"))
+        pk = " ".join(s["packages"][:6]) + (" …" if s["count"] > 6 else "")
+        print(f"{i:2}  {s['name']}  {s['label']}" + (f"  [{', '.join(flags)}]" if flags else ""))
+        if pk:
+            print("      " + pk)
+    return 0
+
+
+def cmd_snapshot(_args):
+    need_root()
+    ok, why = snap.supported()
+    if not ok:
+        sys.exit(_(UNSUPPORTED.get(why, why)))
+    try:
+        with snap.snapshot_lock(), snap.top_level() as top:
+            lay = care.detect_layout()
+            meta = snap.create(top, "manual", lay=lay)
+            snap.prune(top)
+            snaps = snap.list_snapshots(top)
+            snap.gc_kernels(lay, top, snaps)
+            snap.sync_boot(top, lay, snaps)
+    except snap.SnapshotError as e:
+        sys.exit(snap_error(e))
+    care.history("snapshot", ok=True, name=meta["name"])
+    print(_("Snapshot %s created.") % meta["name"])
+    return 0
+
+
+def cmd_rollback(args):
+    need_root()
+    name = snap.booted_snapshot() if "--booted" in args else next((a for a in args if not a.startswith("-")), "")
+    if not name:
+        sys.exit("usage: luxos-care rollback NAME|--booted --yes")
+    if "--yes" not in args:
+        sys.exit(_("Add --yes to confirm (lux rollback asks first)."))
+    ok, why = snap.supported()
+    if not ok and why != "snapshot_boot":
+        sys.exit(_(UNSUPPORTED.get(why, why)))
+    try:
+        with snap.snapshot_lock(), snap.top_level() as top:
+            res = snap.rollback(top, name)
+    except snap.SnapshotError as e:
+        care.history("rollback", ok=False, to=name, error=e.code)
+        sys.exit(snap_error(e))
+    print(_("Done. After a restart LuxOS starts as it was: %s") % res["label"])
+    print(_("The current system was kept as the snapshot %s (nothing was deleted).") % res["replaced"])
+    return 0
+
+
+def cmd_boot_entries(_args):
+    need_root()
+    ok, why = snap.supported()
+    if not ok and why != "snapshot_boot":
+        print(_(UNSUPPORTED.get(why, why)))
+        return 0
+    try:
+        with snap.snapshot_lock(), snap.top_level() as top:
+            for f in snap.sync_boot(top):
+                print(f)
+    except snap.SnapshotError as e:
+        sys.exit(snap_error(e))
     return 0
 
 
@@ -125,6 +248,22 @@ def main(argv):
         need_root()
         print(" ".join(care.release_kept_conflicts(sys.stdin.read())))
         return 0
+    if cmd == "snapshot-pre":
+        # Hook pred transakci (AbortOnFail): chyba snimku nevadi, transakce pri startu ze snimku ano
+        need_root()
+        targets = [] if sys.stdin.isatty() else sys.stdin.read().split()
+        rc = snap.pre_transaction(targets)
+        if rc:
+            print(_("LuxOS is running from a snapshot, changes would be lost after a restart. "
+                    "To keep this version, run: lux rollback"), file=sys.stderr)
+        return rc
+    if cmd == "after-rollback":
+        need_root()
+        return snap.after_rollback()
+    handlers = {"snapshots": cmd_snapshots, "snapshot": cmd_snapshot, "rollback": cmd_rollback,
+                "boot-entries": cmd_boot_entries}
+    if cmd in handlers:
+        return handlers[cmd](args)
     if cmd in ("kernel-pre", "kernel-post"):
         need_root()
         targets = [] if sys.stdin.isatty() else sys.stdin.read().split()
