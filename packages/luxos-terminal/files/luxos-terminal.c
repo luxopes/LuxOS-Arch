@@ -8,8 +8,10 @@
  * Volby kompatibilni s xfce4-terminal: -x/--execute, -e/--command, -T/--title, -w/--working-directory,
  * -H/--hold, --tab, --window, --maximize, --fullscreen, --geometry=SLOUPCExRADKY, --disable-server.
  *
- * Nastaveni: ~/.config/luxos/terminal.conf ([terminal] font, theme=auto|light|dark, opacity,
- * scrollback, sixel; [state] columns, rows - posledni velikost okna).
+ * Nastaveni: ~/.config/luxos/terminal.conf ([terminal] font, theme=dark|light|auto (vychozi dark jako
+ * drive xfce4-terminal LuxOS, cerne pozadi; auto = podle vzhledu systemu), opacity (vychozi 0.95 -
+ * jen lehce pruhledne, 1 = nepruhledne), scrollback, sixel (obrazky), logo (logo fastfetch jako obrazek);
+ * [state] columns, rows - posledni velikost okna).
  * Preklady: /usr/share/luxos/i18n/<jazyk>.tsv (LUXOS_I18N_DIR pro testy).
  */
 #define PCRE2_CODE_UNIT_WIDTH 0
@@ -86,10 +88,11 @@ static const char *T(const char *en)
 /* ---------- nastaveni ---------- */
 static struct {
     char *font;
-    char *theme;        /* auto, light, dark */
-    double opacity_dark, opacity_light;
+    char *theme;        /* dark (vychozi), light, auto */
+    double opacity;
     int scrollback;
     gboolean sixel;
+    gboolean logo;
     int columns, rows;  /* posledni velikost okna */
 } cfg;
 
@@ -107,18 +110,22 @@ static void load_config(void)
     cfg.font = g_key_file_get_string(kf, "terminal", "font", NULL);
     if (!cfg.font || !*cfg.font) { g_free(cfg.font); cfg.font = g_strdup(DEFAULT_FONT); }
     cfg.theme = g_key_file_get_string(kf, "terminal", "theme", NULL);
-    if (!cfg.theme || (strcmp(cfg.theme, "light") && strcmp(cfg.theme, "dark"))) {
+    if (cfg.theme && !strcmp(cfg.theme, "system")) { g_free(cfg.theme); cfg.theme = g_strdup("auto"); }
+    if (!cfg.theme || (strcmp(cfg.theme, "light") && strcmp(cfg.theme, "auto"))) {
         g_free(cfg.theme);
-        cfg.theme = g_strdup("auto");
+        cfg.theme = g_strdup("dark");
     }
     GError *e = NULL;
     double o = g_key_file_get_double(kf, "terminal", "opacity", &e);
-    if (e) { g_clear_error(&e); cfg.opacity_dark = 0.94; cfg.opacity_light = 0.96; }
-    else cfg.opacity_dark = cfg.opacity_light = CLAMP(o, 0.3, 1.0);
+    /* jen lehce pruhledne (vic by bylo spatne citelne - prosvital by text okna pod terminalem) */
+    if (e) { g_clear_error(&e); cfg.opacity = 0.95; }
+    else cfg.opacity = CLAMP(o, 0.3, 1.0);
     cfg.scrollback = g_key_file_get_integer(kf, "terminal", "scrollback", &e);
     if (e) { g_clear_error(&e); cfg.scrollback = 10000; }
     cfg.sixel = g_key_file_get_boolean(kf, "terminal", "sixel", &e);
     if (e) { g_clear_error(&e); cfg.sixel = TRUE; }
+    cfg.logo = g_key_file_get_boolean(kf, "terminal", "logo", &e);
+    if (e) { g_clear_error(&e); cfg.logo = TRUE; }
     cfg.columns = g_key_file_get_integer(kf, "state", "columns", NULL);
     cfg.rows = g_key_file_get_integer(kf, "state", "rows", NULL);
     if (cfg.columns < 20 || cfg.columns > 1000) cfg.columns = 100;
@@ -175,11 +182,11 @@ static void apply_colors(VteTerminal *t)
     GdkRGBA pal[16], fg, bg, cur, sel;
     for (int i = 0; i < 16; i++) gdk_rgba_parse(&pal[i], (dark ? dark_palette : light_palette)[i]);
     gdk_rgba_parse(&fg, dark ? "#e6e6f0" : "#1d1d1f");
-    gdk_rgba_parse(&bg, dark ? "#1c1c22" : "#ffffff");
+    gdk_rgba_parse(&bg, dark ? "#000000" : "#ffffff");
     gdk_rgba_parse(&cur, dark ? "#a77bff" : "#7a4dff");
     gdk_rgba_parse(&sel, dark ? "#3a3a55" : "#c9d8ff");
     GdkScreen *scr = gtk_widget_get_screen(GTK_WIDGET(t));
-    bg.alpha = scr && gdk_screen_is_composited(scr) ? (dark ? cfg.opacity_dark : cfg.opacity_light) : 1.0;
+    bg.alpha = scr && gdk_screen_is_composited(scr) ? cfg.opacity : 1.0;
     vte_terminal_set_colors(t, &fg, &bg, pal, 16);
     vte_terminal_set_color_cursor(t, &cur);
     vte_terminal_set_color_cursor_foreground(t, &bg);
@@ -195,6 +202,7 @@ typedef struct {
     GtkNotebook *nb;
     GtkWidget *search_bar, *search_entry;
     double scale;
+    gboolean dead;      /* okno se rusi: signaly potomku uz nesmi sahat na Win */
 } Win;
 
 typedef struct {
@@ -204,6 +212,9 @@ typedef struct {
     GPid pid;
     char *fixed_title;
     gboolean hold, exited;
+    gboolean closed;    /* panel zrusen, Tab se uvolni az se scroller uvolni z pameti */
+    GtkWidget *menu;    /* otevrena kontextova nabidka */
+    char *link;         /* odkaz pod mysi pri otevreni nabidky */
 } Tab;
 
 static GtkApplication *app;
@@ -242,10 +253,13 @@ static void update_tabs_visible(Win *w)
 
 static char *cwd_of(Tab *t)
 {
-    /* adresar shellu (OSC 7, jinak /proc/PID/cwd) */
-    const char *uri = vte_terminal_get_termprop_string(t->term, VTE_TERMPROP_CURRENT_DIRECTORY_URI, NULL);
-    if (uri && *uri) {
-        char *p = g_filename_from_uri(uri, NULL, NULL);
+    /* adresar shellu (OSC 7 - termprop typu URI, jinak /proc/PID/cwd) */
+    GUri *guri = vte_terminal_ref_termprop_uri(t->term, VTE_TERMPROP_CURRENT_DIRECTORY_URI);
+    if (guri) {
+        char *uri = g_uri_to_string(guri);
+        char *p = uri ? g_filename_from_uri(uri, NULL, NULL) : NULL;
+        g_free(uri);
+        g_uri_unref(guri);
         if (p && g_file_test(p, G_FILE_TEST_IS_DIR)) return p;
         g_free(p);
     }
@@ -305,14 +319,21 @@ static void remember_size(Win *w)
 static void close_tab(Tab *t, gboolean ask)
 {
     Win *w = t->w;
+    if (t->closed || w->dead) return;
     if (ask) {
         char *p = running_process(t);
         if (p) {
             char *msg = g_strdup_printf(T("A process is still running in this tab: %s"), p);
+            /* behem dialogu muze program skoncit a panel/okno zmizet - drzet odkazy a pak overit */
+            GtkWidget *sc = g_object_ref(t->scroller);
+            GtkWidget *win = g_object_ref(GTK_WIDGET(w->win));
             gboolean ok = confirm_close(w->win, T("Close this tab?"), msg);
             g_free(msg);
             g_free(p);
-            if (!ok) return;
+            gboolean gone = t->closed || w->dead;
+            g_object_unref(win);
+            g_object_unref(sc);   /* muze uvolnit t i w */
+            if (!ok || gone) return;
         }
     }
     if (gtk_notebook_get_n_pages(w->nb) == 1) {
@@ -336,20 +357,32 @@ static gboolean on_delete(GtkWidget *win, GdkEvent *ev, Win *w)
     if (running) {
         char *msg = running == 1 ? g_strdup_printf(T("A process is still running in this window: %s"), name)
                                  : g_strdup(T("Processes are still running in this window."));
+        g_object_ref(win);
         gboolean ok = confirm_close(w->win, T("Close this window?"), msg);
         g_free(msg);
         g_free(name);
-        if (!ok) return TRUE;
+        gboolean gone = w->dead;   /* vsechny panely mezitim skoncily */
+        g_object_unref(win);
+        if (!ok || gone) return TRUE;
     }
     remember_size(w);
     return FALSE;
 }
 
+/* "destroy" prijde na zacatku ruseni okna, pred rusenim potomku: jejich signaly (switch-page,
+ * page-removed, search-mode) by jinak pracovaly s uvolnenym Win. Odpojit je, Win uvolnit az
+ * s oknem (weak ref = po dispose vsech potomku). */
 static void on_win_destroy(GtkWidget *win, Win *w)
 {
+    w->dead = TRUE;
     windows = g_list_remove(windows, w);
-    g_free(w);
+    g_signal_handlers_disconnect_by_data(w->nb, w);
+    g_signal_handlers_disconnect_by_data(w->search_bar, w);
+    g_signal_handlers_disconnect_by_data(w->search_entry, w);
+    g_signal_handlers_disconnect_by_data(win, w);
 }
+
+static void win_free(gpointer w, GObject *where) { g_free(w); }
 
 /* ---------- spusteni shellu ---------- */
 typedef struct {
@@ -453,12 +486,26 @@ static void act_new_window(GtkWidget *mi, Tab *t)
 }
 static void act_open_link(GtkWidget *mi, Tab *t)
 {
-    open_uri(t->w, g_object_get_data(G_OBJECT(gtk_widget_get_parent(mi)), "luxos-link"));
+    if (t->link) open_uri(t->w, t->link);
 }
 static void act_copy_link(GtkWidget *mi, Tab *t)
 {
-    const char *l = g_object_get_data(G_OBJECT(gtk_widget_get_parent(mi)), "luxos-link");
-    gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD), l, -1);
+    if (t->link) gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD), t->link, -1);
+}
+
+/* nabidka se rusi az po aktivaci polozky (deactivate prichazi pred "activate") */
+static gboolean menu_destroy_idle(gpointer menu)
+{
+    gtk_widget_destroy(menu);
+    g_object_unref(menu);
+    return G_SOURCE_REMOVE;
+}
+
+static void on_menu_deactivate(GtkWidget *menu, Tab *t)
+{
+    if (t->menu == menu) t->menu = NULL;
+    g_signal_handlers_disconnect_by_data(menu, t);
+    g_idle_add(menu_destroy_idle, g_object_ref(menu));
 }
 
 static GtkWidget *menu_item(GtkWidget *menu, const char *label, const char *accel, GCallback cb, Tab *t)
@@ -489,10 +536,12 @@ static gboolean on_button(VteTerminal *term, GdkEventButton *ev, Tab *t)
     /* Shift+prave tlacitko a aplikace s mysi (mc, htop) dostanou klik samy */
     if (vte_terminal_get_has_selection(term) == FALSE && (ev->state & GDK_SHIFT_MASK)) return FALSE;
 
-    GtkWidget *menu = gtk_menu_new();
+    if (t->menu) gtk_widget_destroy(t->menu);
+    GtkWidget *menu = t->menu = gtk_menu_new();
     char *l = link_at(t, (GdkEvent *)ev);
+    g_free(t->link);
+    t->link = l;
     if (l) {
-        g_object_set_data_full(G_OBJECT(menu), "luxos-link", l, g_free);
         menu_item(menu, T("Open Link"), NULL, G_CALLBACK(act_open_link), t);
         menu_item(menu, T("Copy Link Address"), NULL, G_CALLBACK(act_copy_link), t);
         menu_sep(menu);
@@ -508,7 +557,8 @@ static gboolean on_button(VteTerminal *term, GdkEventButton *ev, Tab *t)
     menu_sep(menu);
     menu_item(menu, T("Close Tab"), "<Primary><Shift>w", G_CALLBACK(act_close_tab), t);
     gtk_widget_show_all(menu);
-    g_signal_connect(menu, "deactivate", G_CALLBACK(gtk_widget_destroy), NULL);
+    gtk_menu_attach_to_widget(GTK_MENU(menu), GTK_WIDGET(term), NULL);
+    g_signal_connect(menu, "deactivate", G_CALLBACK(on_menu_deactivate), t);
     gtk_menu_popup_at_pointer(GTK_MENU(menu), (GdkEvent *)ev);
     return TRUE;
 }
@@ -524,10 +574,21 @@ static gboolean on_focus_in(GtkWidget *win, GdkEvent *ev, Win *w)
     return FALSE;
 }
 
+/* Ruseni panelu: signaly terminalu odpojit hned (VTE muze behem ruseni jeste neco hlasit),
+ * Tab uvolnit az s uvolnenim scrolleru (close_tab ho muze drzet pres dialog). */
 static void tab_destroyed(GtkWidget *scroller, Tab *t)
 {
+    t->closed = TRUE;
+    g_signal_handlers_disconnect_by_data(t->term, t);
     g_object_set_data(G_OBJECT(t->term), "luxos-tab", NULL);
+    if (t->menu) gtk_widget_destroy(t->menu);
+}
+
+static void tab_free(gpointer data, GObject *where)
+{
+    Tab *t = data;
     g_free(t->fixed_title);
+    g_free(t->link);
     g_free(t);
 }
 
@@ -653,7 +714,7 @@ static char *logo_render(long cw, long ch, gboolean dark)
         if (srcs[i] && *srcs[i]) pb = gdk_pixbuf_new_from_file_at_size(srcs[i], size, size, NULL);
     if (!pb) { g_free(path); return NULL; }
     GdkRGBA bg;
-    gdk_rgba_parse(&bg, dark ? "#1c1c22" : "#ffffff");
+    gdk_rgba_parse(&bg, dark ? "#000000" : "#ffffff");
     GString *six = sixel_encode(pb, &bg);
     g_object_unref(pb);
     char *dir = g_path_get_dirname(path);
@@ -674,7 +735,7 @@ static char **child_env(char **base, VteTerminal *t)
 {
     char **env = base ? g_strdupv(base) : g_get_environ();
     char *logo = NULL;
-    if (sixel_available && cfg.sixel && (logo = logo_for(t)))
+    if (sixel_available && cfg.sixel && cfg.logo && (logo = logo_for(t)))
         env = g_environ_setenv(env, "LUXOS_TERMINAL_LOGO", logo, TRUE);
     else
         env = g_environ_unsetenv(env, "LUXOS_TERMINAL_LOGO");
@@ -733,6 +794,7 @@ static void new_tab(Win *w, Spawn *s)
     gtk_container_add(GTK_CONTAINER(t->scroller), GTK_WIDGET(term));
     g_object_set_data(G_OBJECT(t->scroller), "luxos-tab", t);
     g_signal_connect(t->scroller, "destroy", G_CALLBACK(tab_destroyed), t);
+    g_object_weak_ref(G_OBJECT(t->scroller), tab_free, t);
 
     /* stitek panelu: nazev + zaviraci tlacitko, prostrednim tlacitkem zavrit */
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
@@ -853,10 +915,21 @@ static gboolean on_search_key(GtkWidget *e, GdkEventKey *ev, Win *w)
     return FALSE;
 }
 
+/* Pole hledani dostane fokus az po zobrazeni: drive (lista se teprve vysouva) by uvolneni klaves
+ * zkratky slo do nerealizovaneho widgetu (Gtk-CRITICAL gtk_widget_event). */
+static void search_entry_mapped(GtkWidget *entry, gpointer d)
+{
+    g_signal_handlers_disconnect_by_func(entry, search_entry_mapped, d);
+    gtk_widget_grab_focus(entry);
+    gtk_editable_select_region(GTK_EDITABLE(entry), 0, -1);
+}
+
 static void show_search(Win *w)
 {
     gtk_search_bar_set_search_mode(GTK_SEARCH_BAR(w->search_bar), TRUE);
-    gtk_widget_grab_focus(w->search_entry);
+    if (gtk_widget_get_mapped(w->search_entry)) gtk_widget_grab_focus(w->search_entry);
+    else if (!g_signal_handler_find(w->search_entry, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, search_entry_mapped, NULL))
+        g_signal_connect_after(w->search_entry, "map", G_CALLBACK(search_entry_mapped), NULL);
     Tab *t = current_tab(w);
     if (t && vte_terminal_get_has_selection(t->term)) {
         char *s = vte_terminal_get_text_selected(t->term, VTE_FORMAT_TEXT);
@@ -950,7 +1023,7 @@ static Win *new_window(Spawn *s)
     gtk_window_set_icon_name(w->win, "utilities-terminal");
     GdkScreen *scr = gtk_widget_get_screen(GTK_WIDGET(w->win));
     GdkVisual *v = gdk_screen_get_rgba_visual(scr);
-    if (v && gdk_screen_is_composited(scr)) gtk_widget_set_visual(GTK_WIDGET(w->win), v);
+    if (v && gdk_screen_is_composited(scr) && cfg.opacity < 1.0) gtk_widget_set_visual(GTK_WIDGET(w->win), v);
 
     w->header = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_header_bar_set_show_close_button(w->header, TRUE);
@@ -1005,6 +1078,7 @@ static Win *new_window(Spawn *s)
     g_signal_connect(w->win, "key-press-event", G_CALLBACK(on_key), w);
     g_signal_connect(w->win, "delete-event", G_CALLBACK(on_delete), w);
     g_signal_connect(w->win, "destroy", G_CALLBACK(on_win_destroy), w);
+    g_object_weak_ref(G_OBJECT(w->win), win_free, w);
     g_signal_connect(w->win, "focus-in-event", G_CALLBACK(on_focus_in), w);
     windows = g_list_prepend(windows, w);
 
