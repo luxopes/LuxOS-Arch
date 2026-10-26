@@ -1,0 +1,20 @@
+# LuxOS - firemni sit: nic se samo nezapina; SSSD a casovac zapne az "lux domain join".
+# Po aktualizaci v domene: nova verze sablon (PAM, NSS) se projevi pres "lux domain repair".
+
+post_install() {
+    systemd-tmpfiles --create luxos-domain.conf >/dev/null 2>&1 || true
+}
+
+post_upgrade() {
+    post_install
+    if [ -f /var/lib/luxos/domain/state.json ]; then
+        /usr/bin/lux-domain repair >/dev/null 2>&1 || true
+        [ -d /run/systemd/system ] && systemctl daemon-reload >/dev/null 2>&1 || true
+    fi
+}
+
+pre_remove() {
+    if [ -f /var/lib/luxos/domain/state.json ]; then
+        echo "luxos-domain: this computer is still in a domain - run 'lux domain leave' first to restore sign-in." >&2
+    fi
+}

@@ -9,8 +9,17 @@
   diff [SOUBOR]        co by se zmenilo (--json strojove)                                   (root)
   apply [SOUBOR]       snimek systemu (LuxOS Care), rozdil, potvrzeni a provedeni           (root)
   plan [SOUBOR]        vyhodnocena konfigurace jako JSON (ladeni)
+  show --origin        sloucena konfigurace (soubor + zasady organizace) s puvodem kazde polozky
+  locks [--json]       polozky zamcene organizaci (config.mkForce v /etc/luxos/system.d)
 
-Volby: -y/--yes (bez potvrzeni), --json, --no-snapshot (apply bez snimku), --force (init)
+Volby: -y/--yes (bez potvrzeni), --json, --no-snapshot (apply bez snimku), --force (init),
+       --no-policies (jen dany soubor, bez /etc/luxos/system.d)
+
+Zasady organizace: /etc/luxos/system.d/NN-jmeno.lsl (root, needitovat; zapisuje LuxOS Directory nebo
+GPO domeny). Slucuji se v poradi jmen (vyssi cislo prepise nizsi), lokalni soubor ma prednost pred
+nimi, krome polozek s config.mkForce (zamceno - lokalni zmena je chyba). config.mkDefault = jen
+doporuceni. Seznamy balicku, sluzeb, portu ... se spojuji. Co z fragmentu zmizi (odchod z organizace),
+zustane, jak je (nic se samo neodinstaluje).
 
 Bezpecnost: soubor se vyhodnocuje prikazem "lsl config" - cisty vyhodnocovac LSL bez souboru, site,
 procesu a promennych prostredi, s casovym limitem. Root ho navic spousti jako uzivatel nobody nad
@@ -46,8 +55,11 @@ def P(path):
 
 
 CONFIG = "/etc/luxos/system.lsl"
+FRAGMENT_DIR = "/etc/luxos/system.d"
 STATE_DIR = "/var/lib/lux/system"
 APPLIED = STATE_DIR + "/applied.json"
+POLICY_STATE = STATE_DIR + "/policy.json"       # zamky a fragmenty posledniho apply (cte i GUI, 0644)
+DOMAIN_STATE = "/var/lib/luxos/domain/state.json"
 HISTORY_DIR = STATE_DIR + "/history"
 HISTORY_KEEP = 20
 LOCK = "/run/lux/system.lock"
@@ -65,6 +77,7 @@ TOOLS = {
     "useradd": "/usr/bin/useradd", "usermod": "/usr/bin/usermod", "groupadd": "/usr/bin/groupadd",
     "gpasswd": "/usr/bin/gpasswd", "chpasswd": "/usr/bin/chpasswd", "ufw": "/usr/bin/ufw",
     "luxos-care": "/usr/bin/luxos-care", "grub-mkconfig": "/usr/bin/grub-mkconfig",
+    "lux-domain": "/usr/bin/lux-domain",
 }
 
 # Balicky, bez kterych LuxOS nebo tento nastroj nefunguje - nikdy se neodeberou
@@ -263,8 +276,28 @@ def _copy_sources(path, dest):
     return main
 
 
-def evaluate(path):
-    """Soubor LSL -> slovnik (JSON z "lsl config"). Chyba -> UserError."""
+# Fragment zasad: config.mkForce/mkDefault by "lsl config" rozpustil (do JSON se priorita nedostane),
+# proto se v kopii fragmentu nahradi funkcemi, ktere hodnotu oznaci. Funkce jsou na zacatku souboru
+# (cisla radku v chybach se o POLICY_LINES posunou zpet).
+POLICY_HELPERS = """function lux_policy_force(value):
+    return {"__lux_policy": "force", "value": value}
+end
+function lux_policy_default(value):
+    return {"__lux_policy": "default", "value": value}
+end
+"""
+POLICY_LINES = POLICY_HELPERS.count("\n")
+LINE_RE = re.compile(r"(line |:)(\d+)")
+
+
+def policy_source(text):
+    return POLICY_HELPERS + text.replace("config.mkForce(", "lux_policy_force(").replace(
+        "config.mkDefault(", "lux_policy_default(")
+
+
+def evaluate(path, fragment=False):
+    """Soubor LSL -> slovnik (JSON z "lsl config"). Chyba -> UserError.
+    fragment=True: zasada z /etc/luxos/system.d (bez imports, mkForce/mkDefault oznacene)."""
     if not os.path.isfile(path):
         raise UserError(_("The configuration file %s does not exist. Create it from this computer with: "
                           "sudo lux system init") % path)
@@ -277,7 +310,14 @@ def evaluate(path):
         src = os.path.join(tmp, "src")
         os.makedirs(src)
         try:
-            target = _copy_sources(shown, src)
+            if fragment:
+                target = os.path.join(src, "policy.lsl")
+                with open(shown, encoding="utf-8", errors="replace") as f:
+                    text = f.read()
+                with open(target, "w", encoding="utf-8") as f:
+                    f.write(policy_source(text))
+            else:
+                target = _copy_sources(shown, src)
         except OSError as e:
             raise UserError(_("Cannot read the configuration: %s") % e) from e
         argv = [lsl, "config", target]
@@ -305,6 +345,8 @@ def evaluate(path):
         raise UserError(_("The configuration must set config = { ... } (a dictionary)."))
     msg = "\n".join(x for x in ((r.stdout or "").strip(), (r.stderr or "").strip()) if x)
     msg = SNAPSHOT_PATH_RE.sub(shown, msg).replace(target, shown).replace(src, os.path.dirname(shown))
+    if fragment:
+        msg = LINE_RE.sub(lambda m: m.group(1) + str(max(1, int(m.group(2)) - POLICY_LINES)), msg)
     if r.returncode == 124:
         msg = _("Reading the configuration took too long (endless loop?).")
     hint = ""
@@ -317,9 +359,319 @@ def evaluate(path):
     raise UserError(_("Error in the configuration %s:") % shown + "\n" + msg.strip() + hint)
 
 
+# ---- zasady organizace: /etc/luxos/system.d ----------------------------------------------------
+FRAGMENT_RE = re.compile(r"^\d{2}-[A-Za-z0-9][A-Za-z0-9_.-]*\.lsl$")
+LV_DEFAULT, LV_ORG, LV_LOCAL, LV_FORCE = 0, 1, 2, 3
+# Seznamy, ktere se mezi vrstvami spojuji (ostatni seznamy se nahrazuji celou hodnotou)
+UNION_PATHS = {("packages",), ("flatpaks",), ("groups",), ("services", "enable"), ("services", "disable"),
+               ("firewall", "allow"), ("kernel", "params"), ("domain", "admins"), ("domain", "allow_groups")}
+POLICY_META_KEYS = ("organization", "name")
+MISSING = object()
+
+
+class Origin:
+    """Odkud hodnota je: lokalni soubor nebo zasada organizace (fragment v system.d)."""
+
+    def __init__(self, kind, file, organization="", name=""):
+        self.kind, self.file, self.organization, self.name = kind, file, organization, name
+
+    def label(self):
+        if self.kind == "local":
+            return _("local file %s") % self.file
+        who = self.organization or _("organization")
+        pol = f" „{self.name}“" if self.name else ""
+        return f"{who}{pol} ({os.path.basename(self.file)})"
+
+    def json(self):
+        return {"kind": self.kind, "file": self.file, "organization": self.organization, "name": self.name,
+                "label": self.label()}
+
+
+def is_union(path):
+    return tuple(path) in UNION_PATHS or (len(path) == 3 and path[0] == "users" and path[2] == "groups")
+
+
+def dotted(path):
+    return ".".join(str(p) for p in path)
+
+
+def _jkey(v):
+    return json.dumps(v, sort_keys=True, ensure_ascii=False)
+
+
+class Layers:
+    """Slouceni zasad organizace a lokalniho souboru s puvodem a zamky kazde polozky.
+
+    Urovne: mkDefault v zasade < bezna hodnota zasady < lokalni soubor < mkForce v zasade.
+    Mezi zasadami stejne urovne vyhrava pozdejsi (vyssi cislo). Dva ruzne mkForce = chyba.
+    """
+
+    def __init__(self):
+        self.value = {}
+        self.level = {}        # cesta (tuple) listu -> uroven
+        self.origin = {}       # cesta listu -> Origin
+        self.locks = {}        # cesta (list nebo cely podstrom) -> Origin (config.mkForce)
+        self.items = {}        # (cesta seznamu, polozka JSON) -> [Origin, ...]
+        self.item_locks = {}   # (cesta seznamu, polozka JSON) -> Origin
+        self.fragments = []    # [(Origin, sha256)]
+        self.errors = []
+
+    # -- pristup k hodnotam --
+    def get(self, path):
+        node = self.value
+        for k in path:
+            if not isinstance(node, dict) or k not in node:
+                return MISSING
+            node = node[k]
+        return node
+
+    def set(self, path, value):
+        node = self.value
+        for k in path[:-1]:
+            if not isinstance(node.get(k), dict):
+                node[k] = {}
+            node = node[k]
+        node[path[-1]] = value
+
+    @staticmethod
+    def _under(d, path):
+        n = len(path)
+        return [p for p in d if tuple(p[:n]) == tuple(path)]
+
+    def _drop(self, path):
+        for d in (self.level, self.origin):
+            for p in self._under(d, path):
+                del d[p]
+        for key in [k for k in self.items if tuple(k[0][:len(path)]) == tuple(path)]:
+            del self.items[key]
+
+    def lock_of(self, path):
+        """Zamek na ceste nebo na nekterem z predku -> Origin | None."""
+        for i in range(len(path), 0, -1):
+            if tuple(path[:i]) in self.locks:
+                return self.locks[tuple(path[:i])]
+        return None
+
+    def _same(self, path, value):
+        return _jkey(self.get(path)) == _jkey(value)
+
+    def locked_error(self, path, org):
+        self.errors.append(_("%s: set by the organization %s, it cannot be changed here") % (dotted(path), org.label()))
+
+    def conflict_error(self, path, a, b):
+        self.errors.append(_("%s: the policies %s and %s set different values") % (dotted(path), a.label(), b.label()))
+
+    # -- slouceni --
+    def put(self, path, value, level, origin):
+        path = tuple(path)
+        if isinstance(value, dict) and "__lux_policy" in value and set(value) <= {"__lux_policy", "value"}:
+            kind = value.get("__lux_policy")
+            if origin.kind == "org":
+                level = LV_FORCE if kind == "force" else LV_DEFAULT
+            value = value.get("value")
+            if level == LV_FORCE and path:
+                prev = self.lock_of(path)
+                if prev is not None and prev is not origin and self.get(path) is not MISSING \
+                        and not self._same(path, value):
+                    self.conflict_error(path, prev, origin)
+                    return
+                if not is_union(path):
+                    # zamek celeho podstromu (i polozky, ktere zasada nevyjmenovala)
+                    self.locks.setdefault(path, origin)
+        if isinstance(value, dict) and not is_union(path):
+            cur = self.get(path) if path else self.value
+            if path and not isinstance(cur, dict):
+                if cur is not MISSING and not self._may_replace(path, level, origin, value):
+                    return
+                self._drop(path)
+                self.set(path, {})
+            for k, v in value.items():
+                self.put(path + (k,), v, level, origin)
+            return
+        if is_union(path) and isinstance(value, (list, str)):
+            self._put_union(path, [value] if isinstance(value, str) else value, level, origin)
+            return
+        cur = self.get(path)
+        if cur is MISSING:
+            lk = self.lock_of(path)
+            if lk is not None and lk is not origin and (origin.kind == "local" or level < LV_FORCE):
+                if origin.kind == "local":
+                    self.locked_error(path, lk)
+                return
+            self.set(path, value)
+            self.level[path], self.origin[path] = level, origin
+            return
+        if not self._may_replace(path, level, origin, value):
+            return
+        self._drop(path)
+        self.set(path, value)
+        self.level[path], self.origin[path] = level, origin
+
+    def _may_replace(self, path, level, origin, value):
+        """Smi hodnota s urovni level nahradit soucasnou hodnotu na ceste (vcetne podstromu)?"""
+        levels = [self.level[p] for p in self._under(self.level, path)] or [LV_DEFAULT]
+        cur_level = max(levels)
+        lk = self.lock_of(path) or next((self.locks[p] for p in self._under(self.locks, path)), None)
+        if cur_level == LV_FORCE or (lk is not None and lk is not origin):
+            if self._same(path, value):
+                return False
+            owner = lk or self.origin.get(path) or origin
+            if origin.kind == "local":
+                self.locked_error(path, owner)
+            elif level == LV_FORCE:
+                self.conflict_error(path, owner, origin)
+            return False
+        return level >= cur_level
+
+    def _put_union(self, path, values, level, origin):
+        cur = self.get(path)
+        lk = self.lock_of(path)
+        if cur is MISSING and lk is not None and lk is not origin:
+            if values and origin.kind == "local":
+                self.locked_error(path, lk)
+            return
+        if not isinstance(cur, list):
+            if cur is not MISSING:
+                self._drop(path)
+            cur = []
+        lk = self.lock_of(path)
+        for v in values:
+            key = (path, _jkey(v))
+            if v not in cur:
+                if lk is not None and lk is not origin:
+                    if origin.kind == "local":
+                        self.locked_error(path, lk)
+                    continue
+                cur.append(v)
+            owners = self.items.setdefault(key, [])
+            if origin not in owners:
+                owners.append(origin)
+            if level == LV_FORCE:
+                self.item_locks.setdefault(key, origin)
+        self.set(path, cur)
+        self.level[path] = max(self.level.get(path, LV_DEFAULT), min(level, LV_LOCAL))
+        self.origin.setdefault(path, origin)
+
+    def check_conflicts(self):
+        """Zamcena polozka "zapnout" nesmi byt lokalne ve "vypnout" (a naopak)."""
+        for a, b in ((("services", "enable"), ("services", "disable")),
+                     (("services", "disable"), ("services", "enable"))):
+            for (p, k), org in self.item_locks.items():
+                if p != a:
+                    continue
+                owners = self.items.get((b, k), [])
+                if any(o.kind == "local" for o in owners):
+                    self.locked_error(b, org)
+
+    # -- dotazy --
+    def origins(self, path, item=MISSING):
+        """Puvody hodnoty (nebo polozky seznamu) na ceste a pod ni -> [Origin]."""
+        path = tuple(path)
+        if item is not MISSING:
+            out = list(self.items.get((path, _jkey(item)), []))
+        else:
+            out = [self.origin[p] for p in self._under(self.origin, path) if not is_union(p)]
+            for (p, _k), owners in self.items.items():
+                if tuple(p[:len(path)]) == path:
+                    out += owners
+        uniq = []
+        for o in out:
+            if o not in uniq:
+                uniq.append(o)
+        return uniq
+
+    def local_items(self, path, values):
+        """Polozky seznamu, ktere chce lokalni soubor (jen ty se po odebrani ze souboru odinstaluji)."""
+        out = []
+        for v in values:
+            owners = self.items.get((tuple(path), _jkey(v)))
+            if owners is None or any(o.kind == "local" for o in owners):
+                out.append(v)
+        return out
+
+    def lock_list(self):
+        """[(cesta, polozka nebo None, Origin)] - zamcene polozky."""
+        out = [(dotted(p), None, o) for p, o in self.locks.items()]
+        out += [(dotted(p), json.loads(k), o) for (p, k), o in self.item_locks.items() if self.lock_of(p) is None]
+        return sorted(out, key=lambda x: (x[0], _jkey(x[1])))
+
+    def policy_json(self):
+        return {"fragments": [dict(o.json(), sha256=sha) for o, sha in self.fragments],
+                "locks": [{"path": p, "item": i, "origin": o.json()} for p, i, o in self.lock_list()]}
+
+
+def fragment_files():
+    """Fragmenty zasad v poradi slouceni; soubor, ktery muze menit nekdo jiny nez root -> UserError."""
+    d = P(FRAGMENT_DIR)
+    try:
+        names = sorted(os.listdir(d))
+    except OSError:
+        return []
+    out = []
+    for n in names:
+        p = os.path.join(d, n)
+        if not n.endswith(".lsl"):
+            continue
+        if not FRAGMENT_RE.match(n):
+            warn(_("Ignored policy file %s (the name must be NN-name.lsl)") % p)
+            continue
+        st = os.lstat(p)
+        if os.path.islink(p) or not os.path.isfile(p):
+            warn(_("Ignored policy file %s (not a regular file)") % p)
+            continue
+        if st.st_mode & 0o022 or (not ROOT and st.st_uid != 0):
+            raise UserError(_("The policy file %s may be changed by other users than root; fix it with: "
+                              "sudo chown root:root %s && sudo chmod 644 %s") % (p, p, p))
+        out.append(p)
+    return out
+
+
+def file_sha(path):
+    try:
+        with open(path, "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()
+    except OSError:
+        return ""
+
+
+def _kb_short(raw):
+    if isinstance(raw.get("keyboard"), (list, str)):
+        raw["keyboard"] = {"layouts": raw["keyboard"]}
+    return raw
+
+
+def merge(path, policies=True):
+    """Zasady organizace + lokalni soubor -> Layers (bez normalizace). Chyba vyhodnoceni -> UserError."""
+    lay = Layers()
+    frags = fragment_files() if policies else []
+    for f in frags:
+        raw = evaluate(f, fragment=True)
+        meta = raw.pop("policy", None) or {}
+        if not isinstance(meta, dict):
+            meta = {}
+            lay.errors.append(f"{f}: policy: " + _("must be %s") % _("a dictionary { }"))
+        for k in meta:
+            if k not in POLICY_META_KEYS:
+                lay.errors.append(f"{f}: policy: " + _("unknown setting \"%s\"") % k)
+        origin = Origin("org", f, str(meta.get("organization", "")), str(meta.get("name", "")))
+        lay.fragments.append((origin, file_sha(f)))
+        lay.put((), _kb_short(raw), LV_ORG, origin)
+    if os.path.isfile(path) or not frags:
+        raw = evaluate(path)
+        if "policy" in raw:
+            lay.errors.append("config: " + _("\"policy\" belongs only to organization policies in %s") % FRAGMENT_DIR)
+            raw.pop("policy")
+        lay.put((), _kb_short(raw), LV_LOCAL, Origin("local", path))
+    lay.check_conflicts()
+    return lay
+
+
 # ---- kontrola a normalizace -------------------------------------------------------------------
 TOP_KEYS = ("hostname", "timezone", "locale", "keyboard", "packages", "flatpaks", "remove_unlisted", "services",
-            "groups", "users", "care", "guard", "firewall", "kernel")
+            "groups", "users", "care", "guard", "firewall", "kernel", "domain")
+DOMAIN_KEYS = ("admins", "allow_groups", "offline_days", "admin_offline_days")
+# Jmeno skupiny v domene (AD): i mezery a diakritika ("Domain Admins", "Účtárna"), bez ridicich znaku
+DOMAIN_GROUP_RE = re.compile(r"^(?! )[^\x00-\x1f\x7f\"\\:,/=+<>#;]{1,64}(?<! )$")
 USER_KEYS = ("description", "groups", "shell", "uid", "password_hash")
 
 
@@ -541,6 +893,24 @@ def normalize(raw):
                 if BOOT_PARAM_RE.match(p):
                     ck.err("kernel.params", _("%s is set by the installer (disk, encryption) and cannot be changed here") % p)
             cfg["kernel"] = {"params": params}
+    if "domain" in raw:
+        dm = raw["domain"]
+        if ck.typed("domain", dm, (dict,), "a dictionary { }"):
+            nd = {}
+            for k, v in dm.items():
+                if k in ("admins", "allow_groups"):
+                    nd[k] = ck.str_list("domain." + k, v, DOMAIN_GROUP_RE, "group name")
+                elif k in ("offline_days", "admin_offline_days"):
+                    if ck.typed("domain." + k, v, (int,), "a number"):
+                        if 0 <= v <= 180:
+                            nd[k] = v
+                        else:
+                            ck.err("domain." + k, _("must be between 0 and 180"))
+                else:
+                    ck.unknown("domain", k, DOMAIN_KEYS)
+            if nd.get("admin_offline_days", 0) > nd.get("offline_days", 180):
+                ck.err("domain.admin_offline_days", _("must not be longer than domain.offline_days"))
+            cfg["domain"] = nd
     if "services" in cfg:
         managed = {u: k for k, u in GUARD_UNITS.items()} if "guard" in cfg else {}
         for u in cfg["services"]["enable"] + cfg["services"]["disable"]:
@@ -551,12 +921,44 @@ def normalize(raw):
     return cfg, ck.errors
 
 
-def load(path):
-    raw = evaluate(path)
-    cfg, errors = normalize(raw)
+LAYERS = None   # Layers posledniho load() - puvod hodnot pro diff, show --origin a record
+
+
+def load(path, policies=True):
+    """Zasady organizace (system.d) + soubor -> zkontrolovana konfigurace; puvod hodnot v LAYERS."""
+    global LAYERS
+    lay = merge(path, policies)
+    cfg, errors = normalize(lay.value)
+    errors = lay.errors + errors
     if errors:
         raise UserError(_("Error in the configuration %s:") % path + "\n" + "\n".join("  " + e for e in errors))
+    LAYERS = lay
     return cfg
+
+
+def org_labels(path, item=MISSING):
+    """Popisky zasad organizace, ze kterych hodnota na ceste je ([] = jen lokalni soubor)."""
+    if LAYERS is None or not LAYERS.fragments:
+        return []
+    return [o.label() for o in LAYERS.origins(path, item) if o.kind == "org"]
+
+
+def change_origin(c):
+    """Zasady organizace, ze kterych zmena vychazi (pro diff)."""
+    if c.section in ("packages", "flatpaks"):
+        out = []
+        for it in (c.data or []) if isinstance(c.data, list) else []:
+            out += [x for x in org_labels((c.section,), it) if x not in out]
+        return out
+    if c.section == "system":
+        return org_labels((c.target,))
+    if c.section == "users":
+        return org_labels(("users", c.target)) if c.target else org_labels(("groups",))
+    if c.section == "services":
+        return org_labels(("services", "enable"), c.target) + org_labels(("services", "disable"), c.target)
+    if c.section in ("guard", "firewall", "care", "kernel", "domain"):
+        return org_labels((c.section,))
+    return []
 
 
 # ---- soucasny stav systemu --------------------------------------------------------------------
@@ -766,7 +1168,7 @@ def set_params_text(text, kind, add, remove):
 # ---- plan zmen ---------------------------------------------------------------------------------
 SECTIONS = [("packages", "Packages"), ("flatpaks", "Flathub apps"), ("system", "System"), ("users", "Users and groups"),
             ("services", "Services"), ("care", "LuxOS Care"), ("guard", "Lux Guard"), ("firewall", "Firewall"),
-            ("kernel", "Kernel parameters")]
+            ("kernel", "Kernel parameters"), ("domain", "Organization network")]
 
 
 class Change:
@@ -947,6 +1349,10 @@ def compute(cfg, st, applied=None):
     # --- parametry jadra ---
     if "kernel" in cfg:
         compute_kernel(cfg["kernel"]["params"], applied.get("kernel_params", []), st, plan)
+
+    # --- firemni sit (domena, luxos-domain) ---
+    if cfg.get("domain"):
+        compute_domain(cfg["domain"], plan)
     plan.changes.sort(key=lambda c: c.phase)
     return plan
 
@@ -1059,6 +1465,45 @@ def compute_firewall(fw, st, plan):
                      target="ufw")
 
 
+def compute_domain(dm, plan):
+    """Spravci a prihlaseni domenovych skupin, offline prihlaseni - pres lux-domain (balik luxos-domain)."""
+    try:
+        with open(P(DOMAIN_STATE), encoding="utf-8") as f:
+            state = json.load(f)
+    except (OSError, ValueError):
+        state = {}
+    if not isinstance(state, dict) or not state.get("joined"):
+        raise UserError(_("domain: this computer is not in an organization network; join it first with: "
+                          "sudo lux domain join DOMAIN"))
+    if not have("lux-domain"):
+        raise UserError(_("domain: the organization network tools are not installed (lux install luxos-domain)."))
+    ld = tool("lux-domain")
+    for key, cur_key, label_add, label_rem, cmd in (
+            ("admins", "admin_groups", _("administrators: add domain group %s"),
+             _("administrators: remove domain group %s"), ("admins", "add", "remove")),
+            ("allow_groups", "allow_groups", _("sign-in allowed for domain group %s"),
+             _("sign-in no longer limited to domain group %s"), ("login", "allow", "deny"))):
+        if key not in dm:
+            continue
+        cur = [str(g) for g in state.get(cur_key) or []]
+        cur_cf = {g.casefold() for g in cur}
+        want_cf = {g.casefold() for g in dm[key]}
+        for g in dm[key]:
+            if g.casefold() not in cur_cf:
+                plan.add("domain", "+", label_add % g, 65,
+                         lambda g=g, c=cmd: run([ld, c[0], c[1], g]), target=key)
+        for g in cur:
+            if g.casefold() not in want_cf:
+                plan.add("domain", "-", label_rem % g, 65,
+                         lambda g=g, c=cmd: run([ld, c[0], c[2], g]), target=key)
+    for key, opt, label in (("offline_days", "offline-days", _("offline sign-in: %s → %s days")),
+                            ("admin_offline_days", "admin-offline-days",
+                             _("administrator rights offline: %s → %s days"))):
+        if key in dm and dm[key] != state.get(key):
+            plan.add("domain", "~", label % (state.get(key, "-"), dm[key]), 66,
+                     lambda o=opt, v=dm[key]: run([ld, "set", o, str(v)]), target=key)
+
+
 def compute_kernel(params, previous, st, plan):
     lay = st.boot()
     if lay is None:
@@ -1158,40 +1603,66 @@ def take_snapshot():
 
 
 def record(cfg, path):
-    """Stav po uspesnem apply (co soubor spravoval) + kopie souboru v historii."""
+    """Stav po uspesnem apply (co soubor spravoval) + kopie souboru a zasad organizace v historii.
+    Do seznamu, podle kterych se odebira (balicky, sluzby, parametry), jdou jen polozky lokalniho
+    souboru: co zmizi ze zasady organizace (odchod z organizace), zustane nainstalovane."""
+    lay = LAYERS
+
+    def local(path_, values):
+        return lay.local_items(path_, values) if lay is not None else values
     data = {"time": datetime.datetime.now().astimezone().isoformat(timespec="seconds"), "file": path}
     if "packages" in cfg:
-        data["packages"] = cfg["packages"]
+        data["packages"] = local(("packages",), cfg["packages"])
     if "flatpaks" in cfg:
-        data["flatpaks"] = cfg["flatpaks"]
+        data["flatpaks"] = local(("flatpaks",), cfg["flatpaks"])
     if "services" in cfg:
-        data["services_enable"] = cfg["services"]["enable"]
+        data["services_enable"] = local(("services", "enable"), cfg["services"]["enable"])
     if "kernel" in cfg:
-        data["kernel_params"] = cfg["kernel"]["params"]
+        data["kernel_params"] = local(("kernel", "params"), cfg["kernel"]["params"])
     try:
         with open(path, "rb") as f:
             src = f.read()
         data["sha256"] = hashlib.sha256(src).hexdigest()
     except OSError:
         src = None
+    frags = lay.fragments if lay is not None else []
+    if frags:
+        data["policies"] = [{"file": o.file, "sha256": sha} for o, sha in frags]
     atomic_write(APPLIED, json.dumps(data, indent=1, ensure_ascii=False) + "\n", 0o600)
+    # zamky pro aplikace (Nastaveni ukaze "nastaveno organizaci"), bez tajemstvi -> citelne pro vsechny
+    pol = lay.policy_json() if lay is not None else {"fragments": [], "locks": []}
+    atomic_write(POLICY_STATE, json.dumps(pol, indent=1, ensure_ascii=False) + "\n", 0o644)
+    if src is None and not frags:
+        return
+    hist = P(HISTORY_DIR)
+    os.makedirs(hist, mode=0o700, exist_ok=True)
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    base, n = stamp, 1
+    while os.path.exists(os.path.join(hist, base + ".lsl")) or os.path.exists(os.path.join(hist, base + ".d")):
+        base, n = f"{stamp}-{n}", n + 1
     if src is not None:
-        os.makedirs(P(HISTORY_DIR), mode=0o700, exist_ok=True)
-        stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        name, n = stamp + ".lsl", 1
-        while os.path.exists(os.path.join(P(HISTORY_DIR), name)):
-            name, n = f"{stamp}-{n}.lsl", n + 1
-        with open(os.path.join(P(HISTORY_DIR), name), "wb") as f:
+        with open(os.path.join(hist, base + ".lsl"), "wb") as f:
             f.write(src)
-        os.chmod(os.path.join(P(HISTORY_DIR), name), 0o600)
-        old = sorted(n for n in os.listdir(P(HISTORY_DIR)) if n.endswith(".lsl"))
-        for n in old[:-HISTORY_KEEP]:
+        os.chmod(os.path.join(hist, base + ".lsl"), 0o600)
+    if frags:
+        d = os.path.join(hist, base + ".d")
+        os.makedirs(d, mode=0o700)
+        for o, _sha in frags:
             with contextlib.suppress(OSError):
-                os.unlink(os.path.join(P(HISTORY_DIR), n))
+                shutil.copyfile(o.file, os.path.join(d, os.path.basename(o.file)))
+                os.chmod(os.path.join(d, os.path.basename(o.file)), 0o600)
+    names = os.listdir(hist)
+    stamps = sorted({n[:-4] if n.endswith(".lsl") else n[:-2] for n in names if n.endswith((".lsl", ".d"))})
+    for old in stamps[:-HISTORY_KEEP]:
+        with contextlib.suppress(OSError):
+            os.unlink(os.path.join(hist, old + ".lsl"))
+        shutil.rmtree(os.path.join(hist, old + ".d"), ignore_errors=True)
 
 
 # ---- vypis ---------------------------------------------------------------------------------------
 def print_plan(plan):
+    if LAYERS is not None and LAYERS.fragments:
+        print(D + _("Organization policies: %s") % ", ".join(o.label() for o, _s in LAYERS.fragments) + R)
     if not plan.changes:
         ok(_("The system already matches the configuration. Nothing to do."))
     else:
@@ -1201,7 +1672,8 @@ def print_plan(plan):
             if items:
                 print(f"{B}{_(title)}{R}")
                 for c in items:
-                    print(f"  {sym[c.op]} {c.text}")
+                    org = change_origin(c)
+                    print(f"  {sym[c.op]} {c.text}" + (f"  {D}[{'; '.join(org)}]{R}" if org else ""))
     for n in plan.notes:
         print(f"{D}{n}{R}")
     for w in plan.warnings:
@@ -1342,7 +1814,62 @@ def need_root():
 
 
 def cmd_show(args):
+    if args.origin:
+        return show_origin(args)
     sys.stdout.write(generate(State()))
+    return 0
+
+
+def show_origin(args):
+    """Sloucena konfigurace (zasady organizace + soubor): kazda polozka s puvodem a zamkem."""
+    load(args.file, policies=not args.no_policies)
+    lay = LAYERS
+    rows = []
+
+    def walk(path, value):
+        if isinstance(value, dict) and value and not is_union(path):
+            for k, v in value.items():
+                walk(path + (k,), v)
+            return
+        if is_union(path) and isinstance(value, list):
+            for it in value:
+                lk = lay.item_locks.get((path, _jkey(it))) or lay.lock_of(path)
+                rows.append((dotted(path) + "[]", it, lay.origins(path, it), lk))
+            return
+        rows.append((dotted(path), value, lay.origins(path), lay.lock_of(path)))
+    walk((), lay.value)
+    if args.json:
+        print(json.dumps({"config": lay.value, "policy": lay.policy_json(),
+                          "items": [{"path": p, "value": v, "origins": [o.json() for o in orgs],
+                                     "locked": lk.json() if lk else None} for p, v, orgs, lk in rows]},
+                         indent=1, ensure_ascii=False))
+        return 0
+    if lay.fragments:
+        print(D + _("Organization policies: %s") % ", ".join(o.label() for o, _s in lay.fragments) + R)
+    for p, v, orgs, lk in rows:
+        where = "; ".join(o.label() for o in orgs)
+        lock = f" {Y}🔒 {_('locked')}{R}" if lk else ""
+        print(f"{p} = {json.dumps(v, ensure_ascii=False)}  {D}← {where}{R}{lock}")
+    return 0
+
+
+def cmd_locks(args):
+    """Polozky, ktere organizace vynutila (config.mkForce) - lokalne je nelze zmenit."""
+    load(args.file, policies=True)
+    locks = LAYERS.lock_list()
+    if args.json:
+        print(json.dumps(LAYERS.policy_json(), indent=1, ensure_ascii=False))
+        return 0
+    if not LAYERS.fragments:
+        ok(_("This computer has no organization policies (%s is empty).") % FRAGMENT_DIR)
+        return 0
+    print(D + _("Organization policies: %s") % ", ".join(o.label() for o, _s in LAYERS.fragments) + R)
+    if not locks:
+        ok(_("No settings are locked by the organization."))
+        return 0
+    for p, item, o in locks:
+        what = p if item is None else f"{p}: {json.dumps(item, ensure_ascii=False)}"
+        print(f"  🔒 {what}  {D}← {o.label()}{R}")
     return 0
 
 
@@ -1358,7 +1885,8 @@ def cmd_init(args):
         shutil.copy2(path, path + ".bak")
         say(_("The previous file was kept as %s") % (CONFIG + ".bak"))
     atomic_write(CONFIG, text, 0o644)
-    cfg = load(path)
+    # bez zasad organizace: soubor popisuje tento pocitac, zamky se overi az pri diff/apply
+    cfg = load(path, policies=False)
     record(cfg, path)
     ok(_("Written %s from this computer.") % CONFIG)
     print(_("Edit it (sudo lux system edit), then: lux system diff and sudo lux system apply"))
@@ -1366,24 +1894,34 @@ def cmd_init(args):
 
 
 def cmd_check(args):
-    cfg = load(args.file)
+    cfg = load(args.file, policies=not args.no_policies)
     ok(_("The configuration %s is valid.") % args.file)
     parts = [k for k in TOP_KEYS if k in cfg]
     print(D + _("Managed: %s") % ", ".join(parts) + R)
+    if LAYERS.fragments:
+        print(D + _("Organization policies: %s") % ", ".join(o.label() for o, _s in LAYERS.fragments) + R)
     return 0
 
 
 def cmd_plan(args):
-    print(json.dumps(load(args.file), indent=1, ensure_ascii=False))
+    print(json.dumps(load(args.file, policies=not args.no_policies), indent=1, ensure_ascii=False))
     return 0
 
 
 def cmd_diff(args):
-    cfg = load(args.file)
+    cfg = load(args.file, policies=not args.no_policies)
     plan = compute(cfg, State())
     if args.json:
-        print(json.dumps({"changes": [c.json() for c in plan.changes], "notes": plan.notes,
-                          "warnings": plan.warnings, "restart": plan.restart}, indent=1, ensure_ascii=False))
+        changes = []
+        for c in plan.changes:
+            d = c.json()
+            org = change_origin(c)
+            if org:
+                d["origin"] = org
+            changes.append(d)
+        print(json.dumps({"changes": changes, "notes": plan.notes, "warnings": plan.warnings,
+                          "restart": plan.restart,
+                          "policies": [o.label() for o, _s in LAYERS.fragments]}, indent=1, ensure_ascii=False))
     else:
         print_plan(plan)
     return 0
@@ -1395,7 +1933,7 @@ def cmd_apply(args):
     if st.booted_snapshot():
         raise UserError(_("LuxOS is running from a snapshot, changes would be lost after a restart. "
                           "To keep this version, run: lux rollback"))
-    cfg = load(args.file)
+    cfg = load(args.file)   # zasady organizace plati vzdy (--no-policies jen pro check/diff)
     with apply_lock():
         plan = compute(cfg, st)
         print_plan(plan)
@@ -1441,7 +1979,7 @@ def cmd_apply(args):
 
 class Args:
     def __init__(self, argv):
-        self.yes = self.json = self.no_snapshot = self.force = False
+        self.yes = self.json = self.no_snapshot = self.force = self.origin = self.no_policies = False
         self.cmd, self.file = None, None
         for a in argv:
             if a in ("-y", "--yes"):
@@ -1450,6 +1988,10 @@ class Args:
                 self.json = True
             elif a == "--no-snapshot":
                 self.no_snapshot = True
+            elif a == "--origin":
+                self.origin = True
+            elif a == "--no-policies":
+                self.no_policies = True
             elif a == "--force":
                 self.force = True
             elif a.startswith("-") and a != "-":
@@ -1463,14 +2005,14 @@ class Args:
         self.file = self.file or P(CONFIG)
 
 
-USAGE = """lux system show | init [--force] | check [FILE] | diff [FILE] [--json] | apply [FILE] [-y] [--no-snapshot]"""
+USAGE = """lux system show [--origin] | init [--force] | check [FILE] | diff [FILE] [--json] | apply [FILE] [-y] [--no-snapshot] | locks [--json]"""
 
 
 def main(argv):
     try:
         args = Args(argv[1:])
         handlers = {"show": cmd_show, "init": cmd_init, "check": cmd_check, "diff": cmd_diff, "apply": cmd_apply,
-                    "plan": cmd_plan}
+                    "plan": cmd_plan, "locks": cmd_locks}
         if args.cmd not in handlers:
             print(_("Usage:") + " " + USAGE, file=sys.stderr)
             return 2

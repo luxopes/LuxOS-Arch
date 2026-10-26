@@ -3646,3 +3646,232 @@ Funicular	Bergbana
 Cable car	Linbana
 On-demand	Anropsstyrd
 Shared bike	Hyrcykel
+"%s" is not a printer address (smb://server/printer).	"%s" är inte en skrivaradress (smb://server/printer).
+"%s" is not a shared folder address (smb://server/folder).	"%s" är inte en adress till en delad mapp (smb://server/folder).
+"%s" is not a valid domain name (e.g. firma.local).	"%s" är inte ett giltigt domännamn (t.ex. firma.local).
+"%s" is not a valid group name.	"%s" är inte ett giltigt gruppnamn.
+"%s" is not a valid user name.	"%s" är inte ett giltigt användarnamn.
+"policy" belongs only to organization policies in %s	"policy" hör bara till organisationspolicyer i %s
+%d controllers	%d domänkontrollanter
+%s could not be restored; check it.	%s kunde inte återställas; kontrollera den.
+%s more days (of %d)	%s dagar till (av %d)
+%s: set by the organization %s, it cannot be changed here	%s: inställt av organisationen %s, kan inte ändras här
+%s: the policies %s and %s set different values	%s: policyerna %s och %s anger olika värden
+(%d more days)	(%d dagar till)
+(at most %d days offline)	(högst %d dagar offline)
+1 controller	1 domänkontrollant
+A computer of a company or school can join its Windows domain (Active Directory): people then sign in with their work account.	En dator i ett företag eller en skola kan anslutas till dess Windows-domän (Active Directory): då loggar man in med sitt jobbkonto.
+A computer with this name already exists in the domain.	Det finns redan en dator med det här namnet i domänen.
+A personal computer with local accounts.	En personlig dator med lokala konton.
+Add a group	Lägg till en grupp
+Administrator	Administratör
+Administrator rights	Administratörsrättigheter
+Administrator rights cannot last longer offline than the sign-in.	Administratörsrättigheter kan inte gälla längre offline än inloggningen.
+Administrators	Administratörer
+Administrators from the domain: %s	Administratörer från domänen: %s
+Administrators of this computer	Administratörer för den här datorn
+Advanced	Avancerat
+Also remove the computer account from the domain (needs a domain administrator)	Ta även bort datorkontot från domänen (kräver en domänadministratör)
+An account that may add computers to the domain.	Ett konto som får lägga till datorer i domänen.
+An organization (Active Directory domain)	En organisation (Active Directory-domän)
+An organization (Windows domain)	En organisation (Windows-domän)
+Apply	Verkställ
+Authorization was cancelled. Nothing was changed.	Auktoriseringen avbröts. Inget ändrades.
+Computer name in the domain	Datornamn i domänen
+Connect this computer to the Windows domain (Active Directory) of your company or school. Then people sign in with their organization account, get shared folders and printers without another password, and IT can manage the computer.	Anslut den här datorn till Windows-domänen (Active Directory) i ditt företag eller din skola. Då loggar man in med sitt organisationskonto, får delade mappar och skrivare utan ett extra lösenord, och IT-avdelningen kan hantera datorn.
+Controllers	Domänkontrollanter
+Creating the computer account in the domain…	Skapar datorkontot i domänen…
+Current Password	Nuvarande lösenord
+DOMAIN needs DOMAIN_PASSWORD	DOMAIN kräver DOMAIN_PASSWORD
+DOMAIN needs DOMAIN_USER (a domain administrator)	DOMAIN kräver DOMAIN_USER (en domänadministratör)
+Domain	Domän
+Domain (e.g. firma.local)	Domän (t.ex. firma.local)
+Domain accounts will no longer sign in here. Their home folders and personal files stay.	Domänkonton kan inte längre logga in här. Deras hemmappar och personliga filer finns kvar.
+Domain administrator	Domänadministratör
+Domain administrator (allowed to add computers)	Domänadministratör (får lägga till datorer)
+Domain group	Domängrupp
+Domain name	Domännamn
+Done. Log out and sign in with your organization account.	Klart. Logga ut och logga in med ditt organisationskonto.
+Enter a number of days.	Ange ett antal dagar.
+Enter the address of the shared folder (smb://server/folder).	Ange adressen till den delade mappen (smb://server/folder).
+Enter the administrator password.	Ange administratörslösenordet.
+Enter the domain administrator.	Ange domänadministratören.
+Enter the domain name (e.g. firma.local).	Ange domännamnet (t.ex. firma.local).
+Enter the name of the domain group.	Ange namnet på domängruppen.
+Enter the password of the domain administrator.	Ange domänadministratörens lösenord.
+Enter the printer name.	Ange skrivarens namn.
+Error: %s	Fel: %s
+Fix it with: sudo lux domain sync-time	Åtgärda med: sudo lux domain sync-time
+For example firma.local or ad.school.cz	Till exempel firma.local eller ad.school.cz
+Found: Active Directory %s (domain controllers: %s)	Hittade: Active Directory %s (domänkontrollanter: %s)
+Full names	Fullständiga namn
+Home folders of domain users stay: %s	Domänanvändarnas hemmappar finns kvar: %s
+Ignored policy file %s (not a regular file)	Policyfilen %s ignorerades (inte en vanlig fil)
+Ignored policy file %s (the name must be NN-name.lsl)	Policyfilen %s ignorerades (namnet måste vara NN-name.lsl)
+Incorrect password, or this account has not signed in on this computer yet (the first sign-in needs a connection to the organization network).	Fel lösenord, eller så har det här kontot inte loggat in på den här datorn än (första inloggningen kräver anslutning till organisationens nätverk).
+Invalid DOMAIN (e.g. firma.local)	Ogiltig DOMAIN (t.ex. firma.local)
+Invalid DOMAIN_USER, DOMAIN_PASSWORD, OU or DOMAIN_ADMINS	Ogiltig DOMAIN_USER, DOMAIN_PASSWORD, OU eller DOMAIN_ADMINS
+Invalid domain name: %s	Ogiltigt domännamn: %s
+Join an Organization Network	Anslut till ett Organisationsnätverk
+Join the domain %s?	Ansluta till domänen %s?
+Join: sudo lux domain join DOMAIN -U ADMINISTRATOR	Join: sudo lux domain join DOMAIN -U ADMINISTRATOR
+Joined	Ansluten
+Joining a domain needs the administrator name and password.	För att ansluta till en domän krävs administratörens namn och lösenord.
+Joining failed.	Anslutningen misslyckades.
+Joining failed: %s	Anslutningen misslyckades: %s
+Joining the organization network	Ansluter till organisationsnätverket
+Joining the organization network %s…	Ansluter till organisationsnätverket %s…
+Last contact	Senaste kontakt
+Last contact with the domain: %s	Senaste kontakt med domänen: %s
+Leave	Lämna
+Leave the Organization Network	Lämna Organisationsnätverket
+Leave the Organization Network…	Lämna Organisationsnätverket…
+Leave the domain %s?	Lämna domänen %s?
+Leaving the organization network…	Lämnar organisationsnätverket…
+Looking for the domain controllers…	Söker efter domänkontrollanterna…
+Looking for the domain…	Söker efter domänen…
+Me	Jag
+Me (personal computer)	Jag (personlig dator)
+Members of this domain group may install software and change settings.	Medlemmar i den här domängruppen får installera program och ändra inställningar.
+Microsoft Active Directory	Microsoft Active Directory
+Microsoft Active Directory or Samba. You need a domain administrator to join.	Microsoft Active Directory eller Samba. Du behöver en domänadministratör för att ansluta.
+Microsoft Active Directory – %s – %d controllers	Microsoft Active Directory – %s – %d domänkontrollanter
+Name (%s or %s)	Namn (%s eller %s)
+New Password	Nytt lösenord
+No domain controller answered for this domain. Check the name and the network.	Ingen domänkontrollant svarade för den här domänen. Kontrollera namnet och nätverket.
+No domain group – only local administrators.	Ingen domängrupp – bara lokala administratörer.
+No organization network with this name was found.	Inget organisationsnätverk med det här namnet hittades.
+No settings are locked by the organization.	Inga inställningar är låsta av organisationen.
+Nothing was changed. Confirm with --yes when running without a terminal.	Inget ändrades. Bekräfta med --yes när du kör utan terminal.
+Offline sign-in	Offlineinloggning
+Offline – you will sign in with your saved password	Offline – du loggar in med ditt sparade lösenord
+Organization	Organisation
+Organization Network	Organisationsnätverk
+Organization accounts will no longer be able to sign in on this computer and the settings of the organization stop applying. Personal files in home folders stay on this computer and are not deleted. Local accounts keep working.	Organisationskonton kan inte längre logga in på den här datorn och organisationens inställningar slutar gälla. Personliga filer i hemmapparna finns kvar på den här datorn och raderas inte. Lokala konton fortsätter att fungera.
+Organization network	Organisationsnätverk
+Organization network: Windows domain (Active Directory)	Organisationsnätverk: Windows-domän (Active Directory)
+Organization networks need the package luxos-domain (lux install luxos-domain).	Organisationsnätverk kräver paketet luxos-domain (lux install luxos-domain).
+Organization policies: %s	Organisationspolicyer: %s
+Organizational unit (OU)	Organisationsenhet (OU)
+Organizational unit for the computer (optional)	Organisationsenhet för datorn (valfritt)
+Organizational unit for the computer (optional, Enter = default)	Organisationsenhet för datorn (valfritt, Enter = standard)
+Password of %s (used once, never saved)	Lösenord för %s (används en gång, sparas aldrig)
+Password of %s in %s: 	Lösenord för %s i %s: 
+People who signed in here before can sign in with their saved password this many days without a connection to the domain. 0 = always needs the connection.	Den som har loggat in här tidigare kan logga in med sitt sparade lösenord så här många dagar utan anslutning till domänen. 0 = kräver alltid anslutning.
+Printers updated.	Skrivarna har uppdaterats.
+Removing the computer account from the domain…	Tar bort datorkontot från domänen…
+Removing the domain sign-in data…	Tar bort domänens inloggningsdata…
+Repeat New Password	Upprepa nytt lösenord
+Restoring the original settings…	Återställer de ursprungliga inställningarna…
+SSSD could not be started: %s	SSSD kunde inte startas: %s
+Saved passwords work for %d more days.	Sparade lösenord fungerar i %d dagar till.
+Saving the current settings…	Sparar de nuvarande inställningarna…
+Set the Clock from the Domain	Ställ klockan från domänen
+Setting the clock from the domain…	Ställer klockan från domänen…
+Setting up administrators…	Konfigurerar administratörer…
+Setting up sign-in with domain accounts…	Konfigurerar inloggning med domänkonton…
+Shared folders and printers	Delade mappar och skrivare
+Shared folders updated; they appear in Files after the next sign-in.	Delade mappar har uppdaterats; de visas i Filer efter nästa inloggning.
+Short name	Kort namn
+Sign in to domain %s	Logga in på domänen %s
+Sign out and sign in with a domain account (name or name@%s).	Logga ut och logga in med ett domänkonto (namn eller namn@%s).
+Sign-in without connection	Inloggning utan anslutning
+Signed in offline with your saved password.	Inloggad offline med ditt sparade lösenord.
+Some of the entered values are not valid.	Några av de angivna värdena är ogiltiga.
+Starting the services…	Startar tjänsterna…
+Stopping the services…	Stoppar tjänsterna…
+Suspended	Pausade
+Taking a system snapshot…	Tar en ögonblicksbild av systemet…
+The account is disabled or expired in the domain. Contact your IT department.	Kontot är inaktiverat eller har gått ut i domänen. Kontakta din IT-avdelning.
+The account is locked by the domain administrator. Contact your IT department.	Kontot har låsts av domänadministratören. Kontakta din IT-avdelning.
+The administrator name or password is not correct.	Administratörens namn eller lösenord är fel.
+The administrators group could not be set: %s	Administratörsgruppen kunde inte ställas in: %s
+The clock could not be set: %s	Klockan kunde inte ställas: %s
+The clock now matches the domain.	Klockan stämmer nu med domänen.
+The clock of this computer differs from the domain by more than 5 minutes.	Klockan i den här datorn skiljer sig från domänen med mer än 5 minuter.
+The clock was set from the domain: %s	Klockan ställdes från domänen: %s
+The computer account stays in the domain (%s); your IT administrator can remove it.	Datorkontot finns kvar i domänen (%s); din IT-administratör kan ta bort det.
+The computer could not join the domain %s: %s. Join it later in Settings > Organization Network.	Datorn kunde inte anslutas till domänen %s: %s. Anslut den senare i Inställningar > Organisationsnätverk.
+The computer has not reached the domain for more than %d days. Administrator rights of domain groups return with the next connection.	Datorn har inte nått domänen på mer än %d dagar. Domängruppernas administratörsrättigheter återkommer vid nästa anslutning.
+The computer joined the domain %s.	Datorn har anslutits till domänen %s.
+The domain cannot be checked here; the computer joins it at the end of the installation.	Domänen kan inte kontrolleras här; datorn ansluts till den i slutet av installationen.
+The domain controller cannot be reached. Check the network connection.	Domänkontrollanten kan inte nås. Kontrollera nätverksanslutningen.
+The domain controller could not be found. Check the domain name and that this computer uses the DNS server of the organization.	Domänkontrollanten hittades inte. Kontrollera domännamnet och att den här datorn använder organisationens DNS-server.
+The domain has not been reached yet.	Domänen har inte nåtts än.
+The domain tools are missing (lux install luxos-domain).	Domänverktygen saknas (lux install luxos-domain).
+The domain was not found.	Domänen hittades inte.
+The name or password of the domain administrator is not correct.	Domänadministratörens namn eller lösenord är fel.
+The network is not available. Connect to the network of the organization and try again.	Nätverket är inte tillgängligt. Anslut till organisationens nätverk och försök igen.
+The number of days must be between 0 and 180.	Antalet dagar måste vara mellan 0 och 180.
+The operation failed.	Åtgärden misslyckades.
+The password is used only once to join the domain and is never saved. Your own account stays an administrator of this computer.	Lösenordet används bara en gång för att ansluta till domänen och sparas aldrig. Ditt eget konto förblir administratör för den här datorn.
+The printer could not be added: %s	Skrivaren kunde inte läggas till: %s
+The printer name may contain only letters, digits, - and _.	Skrivarnamnet får bara innehålla bokstäver, siffror, - och _.
+The sudo rule for the administrator groups is not valid: %s	sudo-regeln för administratörsgrupperna är ogiltig: %s
+The system snapshot could not be taken: %s	Ögonblicksbilden av systemet kunde inte tas: %s
+This account is not allowed to add computers to the domain.	Det här kontot får inte lägga till datorer i domänen.
+This account may not add computers to the domain. Ask your IT administrator.	Det här kontot får inte lägga till datorer i domänen. Fråga din IT-administratör.
+This computer has no organization policies (%s is empty).	Den här datorn har inga organisationspolicyer (%s är tom).
+This computer is already in a domain.	Den här datorn är redan med i en domän.
+This computer is already in an organization network. Leave it first.	Den här datorn är redan med i ett organisationsnätverk. Lämna det först.
+This computer is in the organization network	Den här datorn är med i organisationsnätverket
+This computer is not in a domain.	Den här datorn är inte med i någon domän.
+This computer is not in an organization network.	Den här datorn är inte med i något organisationsnätverk.
+This computer is now in the domain %s.	Den här datorn är nu med i domänen %s.
+This computer left the domain %s.	Den här datorn har lämnat domänen %s.
+This is not a valid domain name (e.g. firma.local).	Det här är inte ett giltigt domännamn (t.ex. firma.local).
+This is not an Active Directory domain (Microsoft or Samba).	Det här är inte en Active Directory-domän (Microsoft eller Samba).
+This needs administrator rights (run it with sudo).	Det här kräver administratörsrättigheter (kör det med sudo).
+Unknown setting %s	Okänd inställning %s
+Use this domain anyway? (it is joined at the end of the installation)	Använda den här domänen ändå? (anslutningen görs i slutet av installationen)
+Used only to join; it is not saved.	Används bara för att ansluta; sparas inte.
+Where the computer account is created. Empty = default.	Var datorkontot skapas. Tomt = standard.
+Who does this computer belong to?	Vem tillhör den här datorn?
+Who may sign in	Vem får logga in
+Who may sign in: %s	Vem får logga in: %s
+Without a connection to the domain, administrator rights end after %d days.	Utan anslutning till domänen upphör administratörsrättigheterna efter %d dagar.
+Your password has expired. Choose a new one.	Ditt lösenord har gått ut. Välj ett nytt.
+active	aktiv
+administrator rights offline: %s → %s days	administratörsrättigheter offline: %s → %s dagar
+administrators: add domain group %s	administratörer: lägg till domängruppen %s
+administrators: remove domain group %s	administratörer: ta bort domängruppen %s
+days	dagar
+domain %s (administrator %s)	domän %s (administratör %s)
+domain groups that administer this computer	domängrupper som administrerar den här datorn
+domain, online or offline, offline sign-in, administrators	domän, online eller offline, offlineinloggning, administratörer
+domain: the organization network tools are not installed (lux install luxos-domain).	domain: verktygen för organisationsnätverk är inte installerade (lux install luxos-domain).
+everybody in the domain	alla i domänen
+find the domain controllers and check the clock	hitta domänkontrollanterna och kontrollera klockan
+how many days administrator rights last offline	hur många dagar administratörsrättigheter gäller offline
+how many days domain accounts may sign in offline	hur många dagar domänkonton får logga in offline
+join this computer (asks for the domain administrator password)	anslut den här datorn (frågar efter domänadministratörens lösenord)
+leave the domain; home folders and personal files stay	lämna domänen; hemmappar och personliga filer finns kvar
+local file %s	lokal fil %s
+locked	låst
+luxos-domain is not installed	luxos-domain är inte installerat
+merged configuration with organization policies and the origin of each value	sammanslagen konfiguration med organisationspolicyer och ursprunget för varje värde
+must be between 0 and 180	måste vara mellan 0 och 180
+must not be longer than domain.offline_days	får inte vara längre än domain.offline_days
+no (personal computer)	nej (personlig dator)
+offline	offline
+offline sign-in: %s → %s days	offlineinloggning: %s → %s dagar
+online	online
+organization	organisation
+organization network: Windows domain, Active Directory (lux domain help)	organisationsnätverk: Windows-domän, Active Directory (lux domain help)
+printers of a Windows print server (Kerberos)	skrivare på en Windows-utskriftsserver (Kerberos)
+set the clock from the domain	ställ klockan från domänen
+settings locked by an organization (/etc/luxos/system.d)	inställningar låsta av en organisation (/etc/luxos/system.d)
+shared folders of the organization in Files	organisationens delade mappar i Filer
+sign-in allowed for domain group %s	inloggning tillåten för domängruppen %s
+sign-in no longer limited to domain group %s	inloggning inte längre begränsad till domängruppen %s
+suspended until the next connection	pausad till nästa anslutning
+unknown	okänd
+who may sign in (empty = everybody in the domain)	vem får logga in (tomt = alla i domänen)
+The policy file %s may be changed by other users than root; fix it with: sudo chown root:root %s && sudo chmod 644 %s	Policyfilen %s kan ändras av andra användare än root; åtgärda med: sudo chown root:root %s && sudo chmod 644 %s
+domain: this computer is not in an organization network; join it first with: sudo lux domain join DOMAIN	domain: datorn är inte med i ett organisationsnätverk; anslut den först med: sudo lux domain join DOMAIN
+The computer joins the domain %s: domain accounts can sign in, the administrators of the domain become administrators of this computer.	Datorn ansluts till domänen %s: domänkonton kan logga in och domänens administratörer blir administratörer för den här datorn.
+"%s" is not a valid organizational unit (e.g. OU=Computers,DC=firma,DC=local).	"%s" är ingen giltig organisationsenhet (t.ex. OU=Computers,DC=firma,DC=local).
+A computer with this name is already in the domain. Choose another name or ask your IT administrator to remove the old account.	En dator med det här namnet finns redan i domänen. Välj ett annat namn eller be IT-administratören ta bort det gamla kontot.
+The clock of this computer differs from the domain by more than 5 minutes. Set the clock from the domain and try again.	Datorns klocka skiljer sig mer än 5 minuter från domänen. Ställ klockan efter domänen och försök igen.
+The computer name for the domain may have at most 15 letters, digits and hyphens.	Datornamnet för domänen får ha högst 15 bokstäver, siffror och bindestreck.
+The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Domänen hittades inte i DNS. Kontrollera att datorn använder organisationens DNS-server (oftast via DHCP) eller ange adressen till en domänkontrollant.

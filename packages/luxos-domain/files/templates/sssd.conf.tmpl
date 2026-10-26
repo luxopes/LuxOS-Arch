@@ -1,0 +1,42 @@
+# LuxOS - prihlaseni ucty organizace (luxos-domain). Generuje "lux domain" ze stavu
+# /var/lib/luxos/domain/state.json; rucni zmeny se pri dalsi zmene nastaveni prepisou.
+[sssd]
+domains = {domain}
+services = nss, pam
+config_file_version = 2
+
+[nss]
+filter_users = root
+filter_groups = root
+shell_fallback = /bin/bash
+
+[pam]
+# Offline prihlaseni z ulozeneho otisku hesla: pocet dni od posledniho spojeni s radicem (R5)
+offline_credentials_expiration = {offline_days}
+# Zadne zamykani po chybach (LuxOS: jen pam_faillock pri tempu utoku)
+offline_failed_login_attempts = 0
+pam_verbosity = 1
+pam_account_locked_message = Account is locked by the domain administrator.
+pam_account_expired_message = Account expired in the domain.
+
+[domain/{domain}]
+id_provider = ad
+auth_provider = ad
+chpass_provider = ad
+access_provider = {access}
+ad_domain = {domain}
+krb5_realm = {realm}
+realmd_tags = manages-system joined-with-adcli
+cache_credentials = {cache}
+krb5_store_password_if_offline = {cache}
+# Kratka jmena (jan); pri kolizi s mistnim uctem plne jmeno pres sss_override (R4)
+use_fully_qualified_names = False
+override_homedir = /home/%u
+default_shell = /usr/bin/lsh
+ldap_id_mapping = True
+# GPO "Allow/Deny log on locally" plati i pro LuxOS
+ad_gpo_access_control = {gpo_access}
+ad_gpo_map_interactive = +xfce4-screensaver
+ad_maximum_machine_account_password_age = 30
+krb5_renewable_lifetime = 7d
+krb5_renew_interval = 60m

@@ -1,0 +1,32 @@
+// LuxOS - spravci tohoto pocitace ze skupin domeny (luxos-domain, lux domain admins).
+// Generovano, rucni zmeny se prepisou. Prazdny seznam = prava docasne vypnuta (pocitac je dele
+// bez spojeni s domenou, nez dovoluje admin_offline_days) nebo zadna skupina.
+var luxosDomainAdmins = @GROUPS@;
+
+function luxosDomainAdmin(subject) {
+    for (var i = 0; i < luxosDomainAdmins.length; i++)
+        if (subject.isInGroup(luxosDomainAdmins[i]))
+            return true;
+    return false;
+}
+
+// Overeni spravce (auth_admin): wheel jako dosud + domenove skupiny
+polkit.addAdminRule(function(action, subject) {
+    var out = ["unix-group:wheel"];
+    for (var i = 0; i < luxosDomainAdmins.length; i++)
+        out.push("unix-group:" + luxosDomainAdmins[i]);
+    return out;
+});
+
+// LuxOS Care: stejna pravidla jako 50-luxos-care.rules pro wheel (Aktualizovat ted, kontrola, oprava)
+polkit.addRule(function(action, subject) {
+    if (action.id != "org.freedesktop.systemd1.manage-units" || !subject.local || !subject.active ||
+        !luxosDomainAdmin(subject) || action.lookup("verb") != "start")
+        return polkit.Result.NOT_HANDLED;
+    var unit = action.lookup("unit");
+    if (unit == "luxos-care-update-now.service" || unit == "luxos-care-check-now.service" ||
+        unit == "luxos-care-verify-now.service" || unit == "luxos-care-repair-now.service" ||
+        /^luxos-care-apply@[0-9a-f]{12}-[0-9]{1,2}\.service$/.test(unit))
+        return polkit.Result.YES;
+    return polkit.Result.NOT_HANDLED;
+});

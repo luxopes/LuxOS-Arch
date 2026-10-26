@@ -391,9 +391,136 @@ interactive() {
     done
     AUTOLOGIN=0
     gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Log in automatically without a password?")" && AUTOLOGIN=1
+    ask_domain
     ask_care
     ask_templates
     ask_luxai
+    return 0
+}
+
+# --- Firemni sit: pripojeni k domene Active Directory (DOMAIN=, balik luxos-domain) ----------------
+# DOMAIN_PASSWORD (heslo spravce domeny) se pouzije jen jednou: stdin "lux-domain join --password-stdin"
+# v chrootu. Nezapisuje se do cile, do zaznamu ani do argumentu procesu. Neuspech instalaci nezastavi.
+DOMAIN_NOTICE=""
+valid_domain() { [[ ${#1} -le 253 && $1 =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]]; }
+no_newline() { [[ $1 != *$'\n'* && $1 != *$'\r'* ]]; }
+
+domain_config() {  # kontrola DOMAIN, DOMAIN_USER, DOMAIN_PASSWORD, OU (alias DOMAIN_OU), DOMAIN_ADMINS
+    DOMAIN=${DOMAIN-} DOMAIN_USER=${DOMAIN_USER-} DOMAIN_PASSWORD=${DOMAIN_PASSWORD-} DOMAIN_ADMINS=${DOMAIN_ADMINS-}
+    OU=${OU:-${DOMAIN_OU-}}
+    DOMAIN=${DOMAIN,,}
+    if [[ -z $DOMAIN ]]; then
+        DOMAIN_USER="" DOMAIN_PASSWORD="" OU="" DOMAIN_ADMINS=""
+        return 0
+    fi
+    valid_domain "$DOMAIN" || fail "$(T "Invalid DOMAIN (e.g. firma.local)")"
+    [[ -n $DOMAIN_USER ]] || fail "$(T "DOMAIN needs DOMAIN_USER (a domain administrator)")"
+    [[ -n $DOMAIN_PASSWORD ]] || fail "$(T "DOMAIN needs DOMAIN_PASSWORD")"
+    no_newline "$DOMAIN_USER" && no_newline "$DOMAIN_PASSWORD" && no_newline "$OU" && no_newline "$DOMAIN_ADMINS" ||
+        fail "$(T "Invalid DOMAIN_USER, DOMAIN_PASSWORD, OU or DOMAIN_ADMINS")"
+    return 0
+}
+
+domain_text() {  # radek souhrnu
+    if [[ -n ${DOMAIN-} ]]; then T "domain %s (administrator %s)" "$DOMAIN" "$DOMAIN_USER"
+    else T "no (personal computer)"; fi
+}
+
+domain_discover_text() {  # domain_discover_text DOMENA -> citelny vysledek "lux-domain discover"; 1 = nenalezeno
+    local out res realm n msg
+    command -v lux-domain >/dev/null || return 0     # v live systemu chybi: pripojeni az v cili
+    out=$(lux-domain discover "$1" --json 2>/dev/null || true)
+    res=$(python3 -c '
+import json, sys
+try:
+    d = json.loads(sys.argv[1])
+except ValueError:
+    d = {}
+if not isinstance(d, dict):
+    d = {}
+msg = " ".join(str(d.get("message") or "").split())
+print("\x1f".join(("ok" if d.get("ok") else "fail", d.get("realm") or d.get("domain") or "",
+                 str(len(d.get("controllers") or [])), msg)))' "$out")
+    IFS=$'\x1f' read -r res realm n msg <<<"$res"
+    if [[ $res == ok ]]; then
+        T "Found: Active Directory %s (domain controllers: %s)" "$realm" "$n"
+        return 0
+    fi
+    printf '%s' "${msg:-$(T "The domain was not found.")}"
+    return 1
+}
+
+ask_domain() {  # TUI: komu pocitac patri (osobni / organizace s domenou Windows)
+    DOMAIN="" DOMAIN_USER="" DOMAIN_PASSWORD="" OU="" DOMAIN_ADMINS=""
+    title "$(T "Organization network")"
+    local me org sel msg
+    me=$(T "Me (personal computer)")
+    org=$(T "An organization (Windows domain)")
+    sel=$(gum choose --header "$(T "Who does this computer belong to?")" "$me" "$org") || return 0
+    [[ $sel == "$org" ]] || return 0
+    while :; do
+        DOMAIN=$(gum input --header "$(T "Domain (e.g. firma.local)")" --value "$DOMAIN") || { DOMAIN=""; return 0; }
+        DOMAIN=${DOMAIN,,}; DOMAIN=${DOMAIN// /}
+        [[ -z $DOMAIN ]] && return 0
+        if ! valid_domain "$DOMAIN"; then
+            info "$(T "This is not a valid domain name (e.g. firma.local).")"
+            continue
+        fi
+        if msg=$(domain_discover_text "$DOMAIN"); then
+            [[ -n $msg ]] && info "$msg"
+            break
+        fi
+        info "$msg"
+        gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" \
+            "$(T "Use this domain anyway? (it is joined at the end of the installation)")" && break
+    done
+    while [[ -z $DOMAIN_USER ]]; do
+        DOMAIN_USER=$(gum input --header "$(T "Domain administrator (allowed to add computers)")" \
+            --placeholder "administrator") || { DOMAIN=""; return 0; }
+    done
+    while [[ -z $DOMAIN_PASSWORD ]]; do
+        DOMAIN_PASSWORD=$(gum input --password --header "$(T "Password of %s (used once, never saved)" "$DOMAIN_USER")") ||
+            { DOMAIN="" DOMAIN_USER=""; return 0; }
+    done
+    OU=$(gum input --header "$(T "Organizational unit for the computer (optional, Enter = default)")" \
+        --placeholder "OU=Computers,DC=firma,DC=local") || OU=""
+    return 0
+}
+
+domain_join() {  # po setup-chroot: pripojeni cile k domene (lux-domain v chrootu, heslo na stdin)
+    [[ -n ${DOMAIN-} ]] || return 0
+    local -a args=(lux-domain join "$DOMAIN" -U "$DOMAIN_USER")
+    [[ -n ${OU-} ]] && args+=(--ou "$OU")
+    [[ -n ${DOMAIN_ADMINS-} ]] && args+=(--admins "$DOMAIN_ADMINS")
+    args+=(--password-stdin --yes --no-snapshot --offline-install --progress)
+    info "$(T "Joining the organization network %s…" "$DOMAIN")"
+    progress "STATUS $(T "Joining the organization network %s…" "$DOMAIN")"
+    printf '+ arch-chroot %s %s\n' "$TARGET" "${args[*]}" >>"$LOG"
+    local line text err="" ok=0
+    # printf je vestaveny prikaz: heslo neni v argumentech zadneho procesu, jen v rource na stdin
+    while IFS= read -r line; do
+        case $line in
+            "@@STEP "*)
+                read -r _ _ _ text <<<"$line"
+                printf '  %s\n' "$text" >>"$LOG"
+                progress "STATUS $text" ;;
+            "@@ERROR "*) err=${line#@@ERROR }; [[ $err == *" "* ]] && err=${err#* }; err=${err%.} ;;
+            "@@DONE") ok=1 ;;
+            "@@"*) ;;
+            *) printf '%s\n' "$line" >>"$LOG" ;;
+        esac
+    done < <(printf '%s\n' "$DOMAIN_PASSWORD" | arch-chroot "$TARGET" "${args[@]}" 2>&1 || true)
+    DOMAIN_PASSWORD=""
+    if ((ok)); then
+        info "$(T "The computer joined the domain %s." "$DOMAIN")"
+        progress "STATUS "
+        return 0
+    fi
+    DOMAIN_NOTICE=$(T "The computer could not join the domain %s: %s. Join it later in Settings > Organization Network." \
+        "$DOMAIN" "${err:-$(T "unknown error")}")
+    printf '! %s\n' "$DOMAIN_NOTICE" >>"$LOG"
+    info "$DOMAIN_NOTICE"
+    progress "NOTICE $DOMAIN_NOTICE"
     return 0
 }
 
@@ -789,6 +916,7 @@ summary() {
         "$(printf '%-13s%s' "$(T "Software")" "$(templates_text)")"
         "$(printf '%-13s%s' "LuxAI" "$([[ -n $LUXAI_ACCOUNT ]] && T "signed in" || T "not signed in")")"
     )
+    [[ -n ${DOMAIN-} ]] && lines+=("$(printf '%-13s%s' "$(T "Organization")" "$(domain_text)")")
     if [[ $DISK_MODE == layout ]]; then
         # Rozlozeni a seznam toho, co se smaze (nic se zatim nemeni)
         local l
@@ -1641,6 +1769,8 @@ install_packages() {
     uses_layout && mapfile -t -O "${#pkgs[@]}" pkgs < <(layout_packages)
     # OEM: Pruvodce nastavenim a luxos-oem (balik instalatoru)
     ((${OEM:-0})) && pkgs+=(luxos-installer)
+    # Firemni sit: SSSD, Kerberos, realmd/adcli (pripojeni v domain_join)
+    [[ -n ${DOMAIN-} && " ${pkgs[*]} " != *" luxos-domain "* ]] && pkgs+=(luxos-domain)
     mapfile -t hw < <(luxos-hwdetect --packages --kernel linux-luxos)
     luxos-hwdetect --report | sed 's/^/  /'
     # Legacy ovladace NVIDIA (nvidia-580xx-*, nvidia-470xx-*: [luxos], ~0,5 GB) v ISO nejsou;
@@ -1818,6 +1948,7 @@ ENV
         arch-chroot "$TARGET" chown -R "$USERNAME:" "/home/$USERNAME/.config"
     fi
     rm -f "$TARGET/root/luxos-setup.sh" "$TARGET/root/luxos-setup.env"
+    domain_join
     ((${OEM:-0})) && oem_finish_target
 
     # bootctl v chrootu nezapisuje EFI promenne - polozku "LuxOS" vytvorit z live systemu
@@ -2086,6 +2217,7 @@ finish() {
     uses_layout && layout_teardown
     if ((PROGRESS)); then
         info "$(T "LuxOS is installed")"
+        [[ -n $DOMAIN_NOTICE ]] && info "$DOMAIN_NOTICE"
         progress "DONE"
         return 0
     fi
@@ -2093,6 +2225,7 @@ finish() {
     gum style --border rounded --border-foreground "$ACCENT" --padding "1 4" --margin "1 2" --align center \
         "$(gum style --foreground "$ACCENT" --bold "✦  $(T "LuxOS is installed")")" "" \
         "$(T "Remove the installation media and restart your computer.")"
+    [[ -n $DOMAIN_NOTICE ]] && gum style --foreground 214 "  ! $DOMAIN_NOTICE"
     ((ASSUME_YES)) && return 0
     if gum confirm --affirmative "$(T "Restart")" --negative "$(T "Later")" "$(T "Restart now?")"; then systemctl reboot; fi
 }
@@ -2201,6 +2334,7 @@ main() {
         [[ -z $USERNAME ]] || valid_user "$USERNAME" || fail "$(T "Invalid USERNAME")"
         valid_host "$HOSTNAME_SEL" || fail "$(T "Invalid HOSTNAME_SEL")"
         ((ENCRYPT)) && [[ -z ${LUKS_PASS-} ]] && fail "$(T "ENCRYPT=1 needs LUKS_PASS")"
+        domain_config   # DOMAIN=: pripojeni k domene Active Directory (nepovinne)
         have_internet || fail "$(T "No internet connection")"
         # Ucet LuxAI uz prihlaseny v GUI (JSON bez hesla), jinak LUXAI_EMAIL + LUXAI_PASSWORD
         if [[ -n $LUXAI_ACCOUNT ]] && ! python3 -c 'import json, sys; assert json.load(sys.stdin)["sessionToken"]' \
@@ -2213,6 +2347,7 @@ main() {
         fi
     else
         interactive
+        domain_config
         oem_luks_key   # OEM se sifrovanim: docasny klic disku
     fi
     # Rezim disku: erase (cely disk), freespace (vedle jinych systemu), partition (existujici oddil),

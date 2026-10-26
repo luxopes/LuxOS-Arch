@@ -1,0 +1,42 @@
+# Maintainer: LuxOS Team
+# LuxOS ve firemni siti: pripojeni k domene Microsoft Active Directory nebo Samba AD (vrstva 1 navrhu
+# docs/proposals/active-directory.md). "lux domain discover|join|leave|status", Nastaveni > Firemni sit,
+# krok v instalatoru a v Pruvodci nastavenim. Prihlaseni SSSD (offline 30 dni), Kerberos (KCM),
+# domovske slozky pam_mkhomedir, spravci z domenove skupiny (sudo + polkit, offline jen 7 dni),
+# sdilene slozky (gvfs-smb) a tiskarny tiskoveho serveru s Kerberos.
+# realmd a adcli nejsou v repozitarich Archu: overene kopie z AUR jsou v [luxos] (packages/realmd,
+# packages/adcli) - pri kazde aktualizaci znovu zkontrolovat rozdil.
+
+pkgname=luxos-domain
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS organization network - join a Microsoft Active Directory or Samba AD domain"
+arch=(any)
+url="https://github.com/luxopes/LuxOS-Arch"
+license=(GPL-3.0-or-later)
+depends=(python sssd krb5 adcli realmd openldap pam polkit sudo cifs-utils gvfs-smb python-gobject gtk3 luxos-i18n)
+optdepends=('cups: printers of a Windows print server (lux domain printer add)')
+checkdepends=(python)
+install=luxos-domain.install
+
+check() {
+    cd "$startdir"
+    python tests/test_luxos_domain.py
+}
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 "$f/lux-domain" "$pkgdir/usr/bin/lux-domain"
+    install -Dm755 "$f/luxos-domain-settings" "$pkgdir/usr/bin/luxos-domain-settings"
+    install -Dm755 "$f/luxos-domain-helper" "$pkgdir/usr/lib/luxos/domain/luxos-domain-helper"
+    install -Dm644 "$f/luxos_domain.py" "$pkgdir/usr/lib/luxos/python/luxos_domain.py"
+    python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
+    install -Dm644 -t "$pkgdir/usr/share/luxos/domain" "$f"/templates/*
+    install -Dm644 "$f/org.luxos.domain.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.domain.policy"
+    install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f"/systemd/*
+    install -Dm644 "$f/luxos-domain.tmpfiles" "$pkgdir/usr/lib/tmpfiles.d/luxos-domain.conf"
+    install -Dm755 "$f/50-luxos-domain.dispatcher" "$pkgdir/usr/lib/NetworkManager/dispatcher.d/50-luxos-domain"
+    install -Dm644 "$f/luxos-domain.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-domain.hook"
+    install -Dm644 "$f/luxos-domain-session.desktop" "$pkgdir/etc/xdg/autostart/luxos-domain-session.desktop"
+    install -Dm644 "$f/luxos-domain-settings.desktop" "$pkgdir/usr/share/applications/luxos-domain-settings.desktop"
+}

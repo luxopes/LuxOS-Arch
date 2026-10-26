@@ -1,0 +1,9 @@
+#!/bin/sh
+# LuxOS - zmena site: hned zjistit, jestli je radic domeny dostupny (prihlasovaci obrazovka ukaze
+# "Offline" az po skutecne ztrate spojeni, prava spravcu se vrati po spojeni). Jen v domene.
+[ -f /var/lib/luxos/domain/state.json ] || exit 0
+case "$2" in
+    up|down|vpn-up|vpn-down|connectivity-change|dhcp4-change)
+        systemctl start --no-block luxos-domain-refresh.service ;;
+esac
+exit 0

@@ -3646,3 +3646,232 @@ Funicular	Pozemná lanovka
 Cable car	Kabínková lanovka
 On-demand	Na zavolanie
 Shared bike	Zdieľaný bicykel
+"%s" is not a printer address (smb://server/printer).	„%s“ nie je adresa tlačiarne (smb://server/printer).
+"%s" is not a shared folder address (smb://server/folder).	„%s“ nie je adresa zdieľaného priečinka (smb://server/folder).
+"%s" is not a valid domain name (e.g. firma.local).	„%s“ nie je platný názov domény (napr. firma.local).
+"%s" is not a valid group name.	„%s“ nie je platný názov skupiny.
+"%s" is not a valid user name.	„%s“ nie je platné meno používateľa.
+"policy" belongs only to organization policies in %s	„policy“ patrí len do zásad organizácie v %s
+%d controllers	Radiče: %d
+%s could not be restored; check it.	%s sa nepodarilo obnoviť; skontrolujte to.
+%s more days (of %d)	ešte %s dní (z %d)
+%s: set by the organization %s, it cannot be changed here	%s: nastavené organizáciou %s, tu sa to nedá zmeniť
+%s: the policies %s and %s set different values	%s: zásady %s a %s nastavujú rôzne hodnoty
+(%d more days)	(ešte %d dní)
+(at most %d days offline)	(najviac %d dní offline)
+1 controller	1 radič
+A computer of a company or school can join its Windows domain (Active Directory): people then sign in with their work account.	Počítač firmy alebo školy sa môže pripojiť k jej doméne Windows (Active Directory): ľudia sa potom prihlasujú svojím pracovným účtom.
+A computer with this name already exists in the domain.	Počítač s týmto názvom už v doméne existuje.
+A personal computer with local accounts.	Osobný počítač s miestnymi účtami.
+Add a group	Pridať skupinu
+Administrator	Správca
+Administrator rights	Práva správcu
+Administrator rights cannot last longer offline than the sign-in.	Práva správcu nemôžu bez pripojenia platiť dlhšie ako prihlásenie.
+Administrators	Správcovia
+Administrators from the domain: %s	Správcovia z domény: %s
+Administrators of this computer	Správcovia tohto počítača
+Advanced	Pokročilé
+Also remove the computer account from the domain (needs a domain administrator)	Odstrániť z domény aj účet počítača (vyžaduje správcu domény)
+An account that may add computers to the domain.	Účet, ktorý môže pridávať počítače do domény.
+An organization (Active Directory domain)	Organizácii (doména Active Directory)
+An organization (Windows domain)	Organizácii (doména Windows)
+Apply	Použiť
+Authorization was cancelled. Nothing was changed.	Overenie bolo zrušené. Nič sa nezmenilo.
+Computer name in the domain	Názov počítača v doméne
+Connect this computer to the Windows domain (Active Directory) of your company or school. Then people sign in with their organization account, get shared folders and printers without another password, and IT can manage the computer.	Pripojte tento počítač k doméne Windows (Active Directory) vašej firmy alebo školy. Ľudia sa potom prihlásia účtom organizácie, dostanú zdieľané priečinky a tlačiarne bez ďalšieho hesla a IT môže počítač spravovať.
+Controllers	Radiče
+Creating the computer account in the domain…	Vytvára sa účet počítača v doméne…
+Current Password	Súčasné heslo
+DOMAIN needs DOMAIN_PASSWORD	DOMAIN vyžaduje DOMAIN_PASSWORD
+DOMAIN needs DOMAIN_USER (a domain administrator)	DOMAIN vyžaduje DOMAIN_USER (správcu domény)
+Domain	Doména
+Domain (e.g. firma.local)	Doména (napr. firma.local)
+Domain accounts will no longer sign in here. Their home folders and personal files stay.	Doménové účty sa tu už nebudú prihlasovať. Ich domovské priečinky a osobné súbory zostanú.
+Domain administrator	Správca domény
+Domain administrator (allowed to add computers)	Správca domény (môže pridávať počítače)
+Domain group	Doménová skupina
+Domain name	Názov domény
+Done. Log out and sign in with your organization account.	Hotovo. Odhláste sa a prihláste sa účtom organizácie.
+Enter a number of days.	Zadajte počet dní.
+Enter the address of the shared folder (smb://server/folder).	Zadajte adresu zdieľaného priečinka (smb://server/folder).
+Enter the administrator password.	Zadajte heslo správcu.
+Enter the domain administrator.	Zadajte správcu domény.
+Enter the domain name (e.g. firma.local).	Zadajte názov domény (napr. firma.local).
+Enter the name of the domain group.	Zadajte názov doménovej skupiny.
+Enter the password of the domain administrator.	Zadajte heslo správcu domény.
+Enter the printer name.	Zadajte názov tlačiarne.
+Error: %s	Chyba: %s
+Fix it with: sudo lux domain sync-time	Opravíte to príkazom: sudo lux domain sync-time
+For example firma.local or ad.school.cz	Napríklad firma.local alebo ad.school.cz
+Found: Active Directory %s (domain controllers: %s)	Nájdené: Active Directory %s (radiče domény: %s)
+Full names	Celé mená
+Home folders of domain users stay: %s	Domovské priečinky doménových používateľov zostávajú: %s
+Ignored policy file %s (not a regular file)	Súbor zásad %s bol ignorovaný (nie je to bežný súbor)
+Ignored policy file %s (the name must be NN-name.lsl)	Súbor zásad %s bol ignorovaný (názov musí byť NN-name.lsl)
+Incorrect password, or this account has not signed in on this computer yet (the first sign-in needs a connection to the organization network).	Nesprávne heslo, alebo sa tento účet na tomto počítači ešte neprihlásil (prvé prihlásenie vyžaduje pripojenie k firemnej sieti).
+Invalid DOMAIN (e.g. firma.local)	Neplatná hodnota DOMAIN (napr. firma.local)
+Invalid DOMAIN_USER, DOMAIN_PASSWORD, OU or DOMAIN_ADMINS	Neplatná hodnota DOMAIN_USER, DOMAIN_PASSWORD, OU alebo DOMAIN_ADMINS
+Invalid domain name: %s	Neplatný názov domény: %s
+Join an Organization Network	Pripojiť k firemnej sieti
+Join the domain %s?	Pripojiť k doméne %s?
+Join: sudo lux domain join DOMAIN -U ADMINISTRATOR	Pripojenie: sudo lux domain join DOMAIN -U ADMINISTRATOR
+Joined	Pripojené
+Joining a domain needs the administrator name and password.	Pripojenie k doméne vyžaduje meno a heslo správcu.
+Joining failed.	Pripojenie zlyhalo.
+Joining failed: %s	Pripojenie zlyhalo: %s
+Joining the organization network	Pripájanie k firemnej sieti
+Joining the organization network %s…	Pripájanie k firemnej sieti %s…
+Last contact	Posledný kontakt
+Last contact with the domain: %s	Posledný kontakt s doménou: %s
+Leave	Opustiť
+Leave the Organization Network	Opustiť firemnú sieť
+Leave the Organization Network…	Opustiť firemnú sieť…
+Leave the domain %s?	Opustiť doménu %s?
+Leaving the organization network…	Odpájanie od firemnej siete…
+Looking for the domain controllers…	Hľadajú sa radiče domény…
+Looking for the domain…	Hľadá sa doména…
+Me	Mne
+Me (personal computer)	Mne (osobný počítač)
+Members of this domain group may install software and change settings.	Členovia tejto doménovej skupiny môžu inštalovať softvér a meniť nastavenia.
+Microsoft Active Directory	Microsoft Active Directory
+Microsoft Active Directory or Samba. You need a domain administrator to join.	Microsoft Active Directory alebo Samba. Na pripojenie potrebujete správcu domény.
+Microsoft Active Directory – %s – %d controllers	Microsoft Active Directory – %s – radiče: %d
+Name (%s or %s)	Meno (%s alebo %s)
+New Password	Nové heslo
+No domain controller answered for this domain. Check the name and the network.	Pre túto doménu neodpovedal žiadny radič domény. Skontrolujte názov a sieť.
+No domain group – only local administrators.	Žiadna doménová skupina – len miestni správcovia.
+No organization network with this name was found.	Firemná sieť s týmto názvom sa nenašla.
+No settings are locked by the organization.	Organizácia nezamkla žiadne nastavenia.
+Nothing was changed. Confirm with --yes when running without a terminal.	Nič sa nezmenilo. Bez terminálu potvrďte pomocou --yes.
+Offline sign-in	Prihlásenie bez pripojenia
+Offline – you will sign in with your saved password	Offline – prihlásite sa uloženým heslom
+Organization	Organizácia
+Organization Network	Firemná sieť
+Organization accounts will no longer be able to sign in on this computer and the settings of the organization stop applying. Personal files in home folders stay on this computer and are not deleted. Local accounts keep working.	Účty organizácie sa na tomto počítači už nebudú môcť prihlásiť a nastavenia organizácie prestanú platiť. Osobné súbory v domovských priečinkoch zostanú na tomto počítači a nevymažú sa. Miestne účty fungujú ďalej.
+Organization network	Firemná sieť
+Organization network: Windows domain (Active Directory)	Firemná sieť: doména Windows (Active Directory)
+Organization networks need the package luxos-domain (lux install luxos-domain).	Firemné siete vyžadujú balík luxos-domain (lux install luxos-domain).
+Organization policies: %s	Zásady organizácie: %s
+Organizational unit (OU)	Organizačná jednotka (OU)
+Organizational unit for the computer (optional)	Organizačná jednotka pre počítač (voliteľné)
+Organizational unit for the computer (optional, Enter = default)	Organizačná jednotka pre počítač (voliteľné, Enter = predvolené)
+Password of %s (used once, never saved)	Heslo používateľa %s (použije sa raz, nikdy sa neukladá)
+Password of %s in %s: 	Heslo používateľa %s v %s: 
+People who signed in here before can sign in with their saved password this many days without a connection to the domain. 0 = always needs the connection.	Ľudia, ktorí sa tu už prihlásili, sa môžu toľko dní prihlasovať uloženým heslom bez pripojenia k doméne. 0 = pripojenie je potrebné vždy.
+Printers updated.	Tlačiarne aktualizované.
+Removing the computer account from the domain…	Odstraňuje sa účet počítača z domény…
+Removing the domain sign-in data…	Odstraňujú sa prihlasovacie údaje domény…
+Repeat New Password	Zopakujte nové heslo
+Restoring the original settings…	Obnovujú sa pôvodné nastavenia…
+SSSD could not be started: %s	SSSD sa nepodarilo spustiť: %s
+Saved passwords work for %d more days.	Uložené heslá budú fungovať ešte %d dní.
+Saving the current settings…	Ukladajú sa súčasné nastavenia…
+Set the Clock from the Domain	Nastaviť hodiny podľa domény
+Setting the clock from the domain…	Nastavujú sa hodiny podľa domény…
+Setting up administrators…	Nastavujú sa správcovia…
+Setting up sign-in with domain accounts…	Nastavuje sa prihlasovanie doménovými účtami…
+Shared folders and printers	Zdieľané priečinky a tlačiarne
+Shared folders updated; they appear in Files after the next sign-in.	Zdieľané priečinky aktualizované; v aplikácii Súbory sa objavia po ďalšom prihlásení.
+Short name	Krátky názov
+Sign in to domain %s	Prihlásenie do domény %s
+Sign out and sign in with a domain account (name or name@%s).	Odhláste sa a prihláste sa doménovým účtom (meno alebo meno@%s).
+Sign-in without connection	Prihlásenie bez pripojenia
+Signed in offline with your saved password.	Prihlásené bez pripojenia uloženým heslom.
+Some of the entered values are not valid.	Niektoré zadané hodnoty nie sú platné.
+Starting the services…	Spúšťajú sa služby…
+Stopping the services…	Zastavujú sa služby…
+Suspended	Pozastavené
+Taking a system snapshot…	Vytvára sa snímka systému…
+The account is disabled or expired in the domain. Contact your IT department.	Účet je v doméne zakázaný alebo mu vypršala platnosť. Obráťte sa na oddelenie IT.
+The account is locked by the domain administrator. Contact your IT department.	Účet zamkol správca domény. Obráťte sa na oddelenie IT.
+The administrator name or password is not correct.	Meno alebo heslo správcu nie je správne.
+The administrators group could not be set: %s	Skupinu správcov sa nepodarilo nastaviť: %s
+The clock could not be set: %s	Hodiny sa nepodarilo nastaviť: %s
+The clock now matches the domain.	Hodiny teraz zodpovedajú doméne.
+The clock of this computer differs from the domain by more than 5 minutes.	Hodiny tohto počítača sa od domény líšia o viac ako 5 minút.
+The clock was set from the domain: %s	Hodiny boli nastavené podľa domény: %s
+The computer account stays in the domain (%s); your IT administrator can remove it.	Účet počítača zostáva v doméne (%s); váš správca IT ho môže odstrániť.
+The computer could not join the domain %s: %s. Join it later in Settings > Organization Network.	Počítač sa nepodarilo pripojiť k doméne %s: %s. Pripojte ho neskôr v Nastavenia > Firemná sieť.
+The computer has not reached the domain for more than %d days. Administrator rights of domain groups return with the next connection.	Počítač sa s doménou nespojil dlhšie ako %d dní. Práva správcu z doménových skupín sa vrátia pri ďalšom pripojení.
+The computer joined the domain %s.	Počítač sa pripojil k doméne %s.
+The domain cannot be checked here; the computer joins it at the end of the installation.	Doménu tu nemožno overiť; počítač sa k nej pripojí na konci inštalácie.
+The domain controller cannot be reached. Check the network connection.	Radič domény nie je dostupný. Skontrolujte pripojenie k sieti.
+The domain controller could not be found. Check the domain name and that this computer uses the DNS server of the organization.	Radič domény sa nepodarilo nájsť. Skontrolujte názov domény a to, či tento počítač používa server DNS organizácie.
+The domain has not been reached yet.	S doménou zatiaľ nebolo nadviazané spojenie.
+The domain tools are missing (lux install luxos-domain).	Chýbajú nástroje pre domény (lux install luxos-domain).
+The domain was not found.	Doména sa nenašla.
+The name or password of the domain administrator is not correct.	Meno alebo heslo správcu domény nie je správne.
+The network is not available. Connect to the network of the organization and try again.	Sieť nie je dostupná. Pripojte sa k sieti organizácie a skúste to znova.
+The number of days must be between 0 and 180.	Počet dní musí byť medzi 0 a 180.
+The operation failed.	Operácia zlyhala.
+The password is used only once to join the domain and is never saved. Your own account stays an administrator of this computer.	Heslo sa použije len raz na pripojenie k doméne a nikdy sa neukladá. Váš vlastný účet zostane správcom tohto počítača.
+The printer could not be added: %s	Tlačiareň sa nepodarilo pridať: %s
+The printer name may contain only letters, digits, - and _.	Názov tlačiarne môže obsahovať len písmená, číslice, - a _.
+The sudo rule for the administrator groups is not valid: %s	Pravidlo sudo pre skupiny správcov nie je platné: %s
+The system snapshot could not be taken: %s	Snímku systému sa nepodarilo vytvoriť: %s
+This account is not allowed to add computers to the domain.	Tento účet nemôže pridávať počítače do domény.
+This account may not add computers to the domain. Ask your IT administrator.	Tento účet nemôže pridávať počítače do domény. Požiadajte svojho správcu IT.
+This computer has no organization policies (%s is empty).	Tento počítač nemá žiadne zásady organizácie (%s je prázdny).
+This computer is already in a domain.	Tento počítač už je v doméne.
+This computer is already in an organization network. Leave it first.	Tento počítač už je vo firemnej sieti. Najprv ju opustite.
+This computer is in the organization network	Tento počítač je vo firemnej sieti
+This computer is not in a domain.	Tento počítač nie je v doméne.
+This computer is not in an organization network.	Tento počítač nie je vo firemnej sieti.
+This computer is now in the domain %s.	Tento počítač je teraz v doméne %s.
+This computer left the domain %s.	Tento počítač opustil doménu %s.
+This is not a valid domain name (e.g. firma.local).	Toto nie je platný názov domény (napr. firma.local).
+This is not an Active Directory domain (Microsoft or Samba).	Toto nie je doména Active Directory (Microsoft ani Samba).
+This needs administrator rights (run it with sudo).	Na to sú potrebné práva správcu (spustite to so sudo).
+Unknown setting %s	Neznáme nastavenie %s
+Use this domain anyway? (it is joined at the end of the installation)	Napriek tomu použiť túto doménu? (pripojí sa na konci inštalácie)
+Used only to join; it is not saved.	Použije sa len na pripojenie; neukladá sa.
+Where the computer account is created. Empty = default.	Kde sa vytvorí účet počítača. Prázdne = predvolené.
+Who does this computer belong to?	Komu patrí tento počítač?
+Who may sign in	Kto sa môže prihlásiť
+Who may sign in: %s	Kto sa môže prihlásiť: %s
+Without a connection to the domain, administrator rights end after %d days.	Bez pripojenia k doméne sa práva správcu skončia po %d dňoch.
+Your password has expired. Choose a new one.	Platnosť vášho hesla vypršala. Zvoľte nové.
+active	aktívne
+administrator rights offline: %s → %s days	práva správcu bez pripojenia: %s → %s dní
+administrators: add domain group %s	správcovia: pridať doménovú skupinu %s
+administrators: remove domain group %s	správcovia: odstrániť doménovú skupinu %s
+days	dní
+domain %s (administrator %s)	doména %s (správca %s)
+domain groups that administer this computer	doménové skupiny, ktoré spravujú tento počítač
+domain, online or offline, offline sign-in, administrators	doména, online alebo offline, prihlásenie bez pripojenia, správcovia
+domain: the organization network tools are not installed (lux install luxos-domain).	domain: nástroje firemnej siete nie sú nainštalované (lux install luxos-domain).
+everybody in the domain	všetci v doméne
+find the domain controllers and check the clock	nájsť radiče domény a skontrolovať hodiny
+how many days administrator rights last offline	koľko dní platia práva správcu bez pripojenia
+how many days domain accounts may sign in offline	koľko dní sa doménové účty môžu prihlasovať bez pripojenia
+join this computer (asks for the domain administrator password)	pripojiť tento počítač (opýta sa na heslo správcu domény)
+leave the domain; home folders and personal files stay	opustiť doménu; domovské priečinky a osobné súbory zostanú
+local file %s	miestny súbor %s
+locked	uzamknuté
+luxos-domain is not installed	luxos-domain nie je nainštalovaný
+merged configuration with organization policies and the origin of each value	zlúčená konfigurácia so zásadami organizácie a pôvodom každej hodnoty
+must be between 0 and 180	musí byť medzi 0 a 180
+must not be longer than domain.offline_days	nesmie byť dlhšie ako domain.offline_days
+no (personal computer)	nie (osobný počítač)
+offline	offline
+offline sign-in: %s → %s days	prihlásenie bez pripojenia: %s → %s dní
+online	online
+organization	organizácia
+organization network: Windows domain, Active Directory (lux domain help)	firemná sieť: doména Windows, Active Directory (lux domain help)
+printers of a Windows print server (Kerberos)	tlačiarne tlačového servera Windows (Kerberos)
+set the clock from the domain	nastaviť hodiny podľa domény
+settings locked by an organization (/etc/luxos/system.d)	nastavenia uzamknuté organizáciou (/etc/luxos/system.d)
+shared folders of the organization in Files	zdieľané priečinky organizácie v aplikácii Súbory
+sign-in allowed for domain group %s	prihlásenie povolené pre doménovú skupinu %s
+sign-in no longer limited to domain group %s	prihlásenie už nie je obmedzené na doménovú skupinu %s
+suspended until the next connection	pozastavené do ďalšieho pripojenia
+unknown	neznáme
+who may sign in (empty = everybody in the domain)	kto sa môže prihlásiť (prázdne = všetci v doméne)
+The policy file %s may be changed by other users than root; fix it with: sudo chown root:root %s && sudo chmod 644 %s	Súbor zásad %s môžu meniť aj iní používatelia ako root; opravte to príkazom: sudo chown root:root %s && sudo chmod 644 %s
+domain: this computer is not in an organization network; join it first with: sudo lux domain join DOMAIN	domain: tento počítač nie je vo firemnej sieti; najprv ho pripojte: sudo lux domain join DOMAIN
+The computer joins the domain %s: domain accounts can sign in, the administrators of the domain become administrators of this computer.	Počítač sa pripojí do domény %s: doménové účty sa budú môcť prihlásiť a správcovia domény sa stanú správcami tohto počítača.
+"%s" is not a valid organizational unit (e.g. OU=Computers,DC=firma,DC=local).	„%s“ nie je platná organizačná jednotka (napr. OU=Computers,DC=firma,DC=local).
+A computer with this name is already in the domain. Choose another name or ask your IT administrator to remove the old account.	Počítač s týmto názvom už v doméne je. Zvoľte iný názov alebo požiadajte správcu IT o odstránenie starého účtu.
+The clock of this computer differs from the domain by more than 5 minutes. Set the clock from the domain and try again.	Hodiny tohto počítača sa od domény líšia o viac ako 5 minút. Nastavte hodiny podľa domény a skúste to znova.
+The computer name for the domain may have at most 15 letters, digits and hyphens.	Názov počítača pre doménu môže mať najviac 15 písmen, číslic a pomlčiek.
+The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Doména sa v DNS nenašla. Skontrolujte, či počítač používa DNS server organizácie (zvyčajne z DHCP), alebo zadajte adresu radiča domény.

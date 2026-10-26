@@ -1042,7 +1042,7 @@ cmd_system() {
     local -a fl=()
     ((YES)) && fl+=(-y)
     case $sub in
-        show|check|plan) "$LUX_SYSTEM" "$sub" "${fl[@]}" "$@" ;;
+        show|check|plan|locks) "$LUX_SYSTEM" "$sub" "${fl[@]}" "$@" ;;
         diff|apply|init) as_root "$LUX_SYSTEM" "$sub" "${fl[@]}" "$@" ;;
         edit)
             [[ -e $LUX_SYSTEM_FILE ]] || die "$(T "%s does not exist yet. Create it from this computer with: lux system init" "$LUX_SYSTEM_FILE")"
@@ -1054,11 +1054,13 @@ cmd_system() {
             printf '%s%s%s lux system <%s>\n\n' "$B" "$(T "Usage:")" "$R" "$(T "command")"
             while IFS='|' read -r c d; do printf '  %-26s%s\n' "$c" "$(T "$d")"; done <<'SYS'
 show|print a configuration file made from this computer
+show --origin|merged configuration with organization policies and the origin of each value
 init [--force]|write /etc/luxos/system.lsl from this computer
 edit|edit /etc/luxos/system.lsl and check it
 check [file]|check the configuration without changing anything
 diff [file] [--json]|show what apply would change
 apply [file] [-y]|take a snapshot, show the changes, confirm and apply
+locks|settings locked by an organization (/etc/luxos/system.d)
 SYS
             printf '\n%s\n' "$(T "Undo the last apply: lux rollback · Help: man luxos-system")" ;;
         *) die "$(T "Unknown command '%s' (see lux --help)" "system $sub")" ;;
@@ -1113,6 +1115,7 @@ snapshots|list system snapshots (one before every update)
 snapshot|take a system snapshot now
 rollback [snapshot]|return the system to a snapshot (also from the boot menu)
 system show, diff, apply|whole system in one file /etc/luxos/system.lsl (lux system help)
+domain join, status, leave|organization network: Windows domain, Active Directory (lux domain help)
 CMDS
     printf '\n%s%s%s\n' "$B" "$(T "Options:")" "$R"
     while IFS='|' read -r opt desc; do
@@ -1253,6 +1256,10 @@ case $cmd in
     snapshot)           cmd_snapshot ;;
     rollback)           cmd_rollback "$@" ;;
     system|sys)         cmd_system "$@" ;;
+    domain)             LUX_DOMAIN=${LUX_DOMAIN:-/usr/bin/lux-domain}
+                        [[ -x $LUX_DOMAIN ]] || die "$(T "Organization networks need the package luxos-domain (lux install luxos-domain).")"
+                        ((YES)) && set -- "$@" --yes
+                        exec "$LUX_DOMAIN" "$@" ;;
     tui|store)          cmd_tui ;;
     pack)               (($#)) || die "$(T "Usage: lux pack <directory> [output]")"; lp_pack "$@" ;;
     __lux-file)         ((EUID == 0)) || exit 1; lp_install_file "$1" ;;
