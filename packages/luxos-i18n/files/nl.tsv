@@ -3144,3 +3144,84 @@ Mirror displays	Schermen spiegelen
 Show the same picture on all displays.	Hetzelfde beeld op alle schermen tonen.
 The displays show the same picture. Turn off mirroring to arrange them.	De schermen tonen hetzelfde beeld. Zet spiegelen uit om ze te rangschikken.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Er wordt maar één scherm gebruikt. Kies Uitbreiden onder Meerdere beeldschermen om ze te rangschikken.
+# LuxDrop - soubory jineho pocitace (Pripojit k pocitaci, sdilene slozky)
+Shared folders	Gedeelde mappen
+Share folders	Mappen delen
+Other LuxOS computers can open these folders after you allow it. Read-only unless you also allow changes.	Andere LuxOS-computers kunnen deze mappen openen nadat je het toestaat. Alleen-lezen, tenzij je ook wijzigingen toestaat.
+Add folder…	Map toevoegen…
+Connect to Computer…	Verbinden met computer…
+Connect to Computer	Verbinden met computer
+Computers with access	Computers met toegang
+Computers with access:	Computers met toegang:
+Share your whole home folder?	Je hele thuismap delen?
+Hidden files and folders (settings, keys, passwords) are never shared. Each computer still needs your permission.	Verborgen bestanden en mappen (instellingen, sleutels, wachtwoorden) worden nooit gedeeld. Elke computer heeft nog steeds je toestemming nodig.
+Only folders in your home folder or on external drives can be shared, not hidden folders.	Alleen mappen in je thuismap of op externe schijven kunnen worden gedeeld, geen verborgen mappen.
+No shared folders.	Geen gedeelde mappen.
+No computers yet. Each new computer must be allowed first.	Nog geen computers. Elke nieuwe computer moet eerst worden toegestaan.
+Can change files	Mag bestanden wijzigen
+can change files	mag bestanden wijzigen
+Read-only	Alleen-lezen
+read-only	alleen-lezen
+Read-only.	Alleen-lezen.
+Share	Delen
+Deny	Weigeren
+Allow once	Eenmalig toestaan
+Always allow	Altijd toestaan
+Access to shared folders	Toegang tot gedeelde mappen
+LuxDrop: access to shared folders	LuxDrop: toegang tot gedeelde mappen
+“%s” wants to access your shared folders	“%s” wil toegang tot je gedeelde mappen
+“%s” wants to access and change your shared folders	“%s” wil toegang tot je gedeelde mappen en ze wijzigen
+Allow only if the other computer shows the same code.	Sta het alleen toe als de andere computer dezelfde code toont.
+Also allow changes (copy in, rename and delete files)	Ook wijzigingen toestaan (bestanden erin kopiëren, hernoemen en verwijderen)
+Also allow changes (copy in, rename and delete files)? [y/N]: 	Ook wijzigingen toestaan (bestanden erin kopiëren, hernoemen en verwijderen)? [y/N]: 
+Read-only: the other computer can open and copy your shared files, but cannot change them.	Alleen-lezen: de andere computer kan je gedeelde bestanden openen en kopiëren, maar niet wijzigen.
+Allow? [o]nce / [a]lways / [N]o: 	Toestaan? [o] eenmalig / [a] altijd / [N] nee: 
+The other computer cancelled the request.	De andere computer heeft het verzoek geannuleerd.
+Sharing is turned off. Turn it on with: luxdrop share on	Delen staat uit. Zet het aan met: luxdrop share on
+sftp-server (openssh) is not installed	sftp-server (openssh) is niet geïnstalleerd
+Sharing as "%s" (ID %s) on port %d: %s	Delen als “%s” (ID %s) op poort %d: %s
+Sharing is off.	Delen staat uit.
+Sharing is on: %s	Delen staat aan: %s
+Sharing: %s	Delen: %s
+Shared: %s	Gedeeld: %s
+Removed %d folder(s)	%d map(pen) verwijderd
+Changed %d device(s)	%d apparaat/apparaten gewijzigd
+None (every connection is asked first).	Geen (bij elke verbinding wordt eerst gevraagd).
+Share your whole home folder? Hidden files and folders (settings, keys, passwords) are never shared.	Je hele thuismap delen? Verborgen bestanden en mappen (instellingen, sleutels, wachtwoorden) worden nooit gedeeld.
+Share the home folder? [y/N]: 	Thuismap delen? [y/N]: 
+Computer '%s' not found on the network. Use its address: luxdrop connect HOST	Computer “%s” niet gevonden in het netwerk. Gebruik het adres: luxdrop connect HOST
+Connected to %s (%s): %s	Verbonden met %s (%s): %s
+Connected to %s	Verbonden met %s
+Disconnected from %s	Verbinding met %s verbroken
+Disconnected %d computer(s)	%d computer(s) losgekoppeld
+Not connected to any computer.	Niet verbonden met een computer.
+Cannot connect: %s (%s)	Kan geen verbinding maken: %s (%s)
+Cannot connect: %s	Kan geen verbinding maken: %s
+Cannot connect to %s: %s	Kan geen verbinding maken met %s: %s
+share folders with other LuxOS computers	mappen delen met andere LuxOS-computers
+folder (add/remove) or device ID/name (forget/allow-write/read-only)	map (add/remove) of apparaat-ID/-naam (forget/allow-write/read-only)
+do not ask before sharing the home folder	niet vragen voordat de thuismap wordt gedeeld
+open the shared folders of another LuxOS computer in Files	de gedeelde mappen van een andere LuxOS-computer openen in Bestanden
+computer name, ID, HOST[:PORT] or NAME@HOST[:PORT]; without it a window opens	computernaam, ID, HOST[:PORT] of NAAM@HOST[:PORT]; zonder opent een venster
+ask for permission to change files	toestemming vragen om bestanden te wijzigen
+Ask for permission to change files	Toestemming vragen om bestanden te wijzigen
+do not open a Files window	geen Bestanden-venster openen
+disconnect from another computer	verbinding met een andere computer verbreken
+list connected computers	verbonden computers weergeven
+Waiting for “%s” to allow access…	Wachten tot “%s” toegang toestaat…
+The other computer must share folders (LuxDrop › Settings › Share folders) and allow your access.	De andere computer moet mappen delen (LuxDrop › Instellingen › Mappen delen) en je toegang toestaan.
+Computers nearby	Computers in de buurt
+Address, e.g. 192.168.1.20	Adres, bijv. 192.168.1.20
+Cancelled: the codes were not confirmed.	Geannuleerd: de codes zijn niet bevestigd.
+Open the files of another LuxOS computer next to yours	Open de bestanden van een andere LuxOS-computer naast die van jou
+Looking for computers… On the other computer turn on LuxDrop › Settings › Share folders.	Computers zoeken… Zet op de andere computer LuxDrop › Instellingen › Mappen delen aan.
+Opening the shared folders…	Gedeelde mappen openen…
+The files of “%s” are in the sidebar of Files.	De bestanden van “%s” staan in de zijbalk van Bestanden.
+“%s” denied access.	“%s” heeft de toegang geweigerd.
+“%s” did not answer in time.	“%s” heeft niet op tijd geantwoord.
+“%s” is busy. Try again later.	“%s” is bezet. Probeer het later opnieuw.
+“%s” does not share any folders.	“%s” deelt geen mappen.
+“%s” presented a different key than expected. Someone may be impersonating it. If it was reinstalled, remove it from Trusted devices and try again.	“%s” toonde een andere sleutel dan verwacht. Iemand doet zich misschien voor als deze computer. Is hij opnieuw geïnstalleerd, verwijder hem dan uit Vertrouwde apparaten en probeer het opnieuw.
+Enter the address of the other computer.	Voer het adres van de andere computer in.
+Continue only if “%s” shows the same code.	Ga alleen verder als “%s” dezelfde code toont.
+The connection was closed.	De verbinding is verbroken.

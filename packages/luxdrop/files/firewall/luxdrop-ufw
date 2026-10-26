@@ -1,5 +1,5 @@
 # LuxDrop pro ufw - jen z mistni site, napr.: sudo ufw allow from 192.168.0.0/16 to any app LuxDrop
 [LuxDrop]
 title=LuxDrop file sharing
-description=LuxOS computers (TCP 47923), LocalSend apps (TCP/UDP 53317) and mDNS (UDP 5353)
-ports=47923/tcp|53317|5353/udp
+description=LuxOS computers (TCP 47923), shared folders (TCP 47924), LocalSend apps (TCP/UDP 53317) and mDNS (UDP 5353)
+ports=47923:47924/tcp|53317|5353/udp

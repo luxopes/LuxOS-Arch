@@ -3144,3 +3144,84 @@ Mirror displays	Recopier les écrans
 Show the same picture on all displays.	Afficher la même image sur tous les écrans.
 The displays show the same picture. Turn off mirroring to arrange them.	Les écrans affichent la même image. Désactivez la recopie pour les disposer.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Un seul écran est utilisé. Choisissez Étendre dans Plusieurs écrans pour les disposer.
+# LuxDrop - soubory jineho pocitace (Pripojit k pocitaci, sdilene slozky)
+Shared folders	Dossiers partagés
+Share folders	Partager des dossiers
+Other LuxOS computers can open these folders after you allow it. Read-only unless you also allow changes.	D’autres ordinateurs LuxOS peuvent ouvrir ces dossiers après votre autorisation. En lecture seule, sauf si vous autorisez aussi les modifications.
+Add folder…	Ajouter un dossier…
+Connect to Computer…	Se connecter à un ordinateur…
+Connect to Computer	Se connecter à un ordinateur
+Computers with access	Ordinateurs ayant accès
+Computers with access:	Ordinateurs ayant accès :
+Share your whole home folder?	Partager tout votre dossier personnel ?
+Hidden files and folders (settings, keys, passwords) are never shared. Each computer still needs your permission.	Les fichiers et dossiers cachés (paramètres, clés, mots de passe) ne sont jamais partagés. Chaque ordinateur a toujours besoin de votre autorisation.
+Only folders in your home folder or on external drives can be shared, not hidden folders.	Seuls les dossiers de votre dossier personnel ou de disques externes peuvent être partagés, pas les dossiers cachés.
+No shared folders.	Aucun dossier partagé.
+No computers yet. Each new computer must be allowed first.	Aucun ordinateur pour l’instant. Chaque nouvel ordinateur doit d’abord être autorisé.
+Can change files	Peut modifier les fichiers
+can change files	peut modifier les fichiers
+Read-only	Lecture seule
+read-only	lecture seule
+Read-only.	Lecture seule.
+Share	Partager
+Deny	Refuser
+Allow once	Autoriser une fois
+Always allow	Toujours autoriser
+Access to shared folders	Accès aux dossiers partagés
+LuxDrop: access to shared folders	LuxDrop : accès aux dossiers partagés
+“%s” wants to access your shared folders	« %s » souhaite accéder à vos dossiers partagés
+“%s” wants to access and change your shared folders	« %s » souhaite accéder à vos dossiers partagés et les modifier
+Allow only if the other computer shows the same code.	N’autorisez que si l’autre ordinateur affiche le même code.
+Also allow changes (copy in, rename and delete files)	Autoriser aussi les modifications (copier, renommer et supprimer des fichiers)
+Also allow changes (copy in, rename and delete files)? [y/N]: 	Autoriser aussi les modifications (copier, renommer et supprimer des fichiers) ? [y/N] : 
+Read-only: the other computer can open and copy your shared files, but cannot change them.	Lecture seule : l’autre ordinateur peut ouvrir et copier vos fichiers partagés, mais pas les modifier.
+Allow? [o]nce / [a]lways / [N]o: 	Autoriser ? [o] une fois / [a] toujours / [N] non : 
+The other computer cancelled the request.	L’autre ordinateur a annulé la demande.
+Sharing is turned off. Turn it on with: luxdrop share on	Le partage est désactivé. Activez-le avec : luxdrop share on
+sftp-server (openssh) is not installed	sftp-server (openssh) n’est pas installé
+Sharing as "%s" (ID %s) on port %d: %s	Partage en tant que « %s » (ID %s) sur le port %d : %s
+Sharing is off.	Le partage est désactivé.
+Sharing is on: %s	Le partage est activé : %s
+Sharing: %s	Partage : %s
+Shared: %s	Partagé : %s
+Removed %d folder(s)	%d dossier(s) retiré(s)
+Changed %d device(s)	%d appareil(s) modifié(s)
+None (every connection is asked first).	Aucun (chaque connexion est d’abord demandée).
+Share your whole home folder? Hidden files and folders (settings, keys, passwords) are never shared.	Partager tout votre dossier personnel ? Les fichiers et dossiers cachés (paramètres, clés, mots de passe) ne sont jamais partagés.
+Share the home folder? [y/N]: 	Partager le dossier personnel ? [y/N] : 
+Computer '%s' not found on the network. Use its address: luxdrop connect HOST	Ordinateur « %s » introuvable sur le réseau. Utilisez son adresse : luxdrop connect HOST
+Connected to %s (%s): %s	Connecté à %s (%s) : %s
+Connected to %s	Connecté à %s
+Disconnected from %s	Déconnecté de %s
+Disconnected %d computer(s)	%d ordinateur(s) déconnecté(s)
+Not connected to any computer.	Connecté à aucun ordinateur.
+Cannot connect: %s (%s)	Connexion impossible : %s (%s)
+Cannot connect: %s	Connexion impossible : %s
+Cannot connect to %s: %s	Impossible de se connecter à %s : %s
+share folders with other LuxOS computers	partager des dossiers avec d’autres ordinateurs LuxOS
+folder (add/remove) or device ID/name (forget/allow-write/read-only)	dossier (add/remove) ou ID/nom de l’appareil (forget/allow-write/read-only)
+do not ask before sharing the home folder	ne pas demander avant de partager le dossier personnel
+open the shared folders of another LuxOS computer in Files	ouvrir les dossiers partagés d’un autre ordinateur LuxOS dans Fichiers
+computer name, ID, HOST[:PORT] or NAME@HOST[:PORT]; without it a window opens	nom de l’ordinateur, ID, HOST[:PORT] ou NOM@HOST[:PORT] ; sans cela, une fenêtre s’ouvre
+ask for permission to change files	demander l’autorisation de modifier les fichiers
+Ask for permission to change files	Demander l’autorisation de modifier les fichiers
+do not open a Files window	ne pas ouvrir de fenêtre Fichiers
+disconnect from another computer	se déconnecter d’un autre ordinateur
+list connected computers	lister les ordinateurs connectés
+Waiting for “%s” to allow access…	En attente de l’autorisation de « %s »…
+The other computer must share folders (LuxDrop › Settings › Share folders) and allow your access.	L’autre ordinateur doit partager des dossiers (LuxDrop › Paramètres › Partager des dossiers) et autoriser votre accès.
+Computers nearby	Ordinateurs à proximité
+Address, e.g. 192.168.1.20	Adresse, p. ex. 192.168.1.20
+Cancelled: the codes were not confirmed.	Annulé : les codes n’ont pas été confirmés.
+Open the files of another LuxOS computer next to yours	Ouvrez les fichiers d’un autre ordinateur LuxOS à côté des vôtres
+Looking for computers… On the other computer turn on LuxDrop › Settings › Share folders.	Recherche d’ordinateurs… Sur l’autre ordinateur, activez LuxDrop › Paramètres › Partager des dossiers.
+Opening the shared folders…	Ouverture des dossiers partagés…
+The files of “%s” are in the sidebar of Files.	Les fichiers de « %s » sont dans le panneau latéral de Fichiers.
+“%s” denied access.	« %s » a refusé l’accès.
+“%s” did not answer in time.	« %s » n’a pas répondu à temps.
+“%s” is busy. Try again later.	« %s » est occupé. Réessayez plus tard.
+“%s” does not share any folders.	« %s » ne partage aucun dossier.
+“%s” presented a different key than expected. Someone may be impersonating it. If it was reinstalled, remove it from Trusted devices and try again.	« %s » a présenté une clé différente de celle attendue. Quelqu’un se fait peut-être passer pour lui. S’il a été réinstallé, retirez-le des appareils de confiance et réessayez.
+Enter the address of the other computer.	Saisissez l’adresse de l’autre ordinateur.
+Continue only if “%s” shows the same code.	Ne continuez que si « %s » affiche le même code.
+The connection was closed.	La connexion a été fermée.

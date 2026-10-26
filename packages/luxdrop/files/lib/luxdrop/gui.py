@@ -10,7 +10,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import dialogs, lsdiscovery, proto, store, transfer  # noqa: E402
+from . import dialogs, lsdiscovery, proto, remote, store, transfer  # noqa: E402
 from .cli import _, human  # noqa: E402
 from .dialogs import device_icon, kind_label, open_path  # noqa: E402
 from .engine import Engine  # noqa: E402
@@ -214,6 +214,7 @@ class Window(Gtk.ApplicationWindow):
             self.stack.set_visible_child_name(key)
             if key == "settings":
                 self.fill_trusted()
+                self.fill_shares()
 
     def show_page(self, key):
         self.nav[key].set_active(True)
@@ -901,6 +902,31 @@ class Window(Gtk.ApplicationWindow):
         note.get_style_context().add_class("small")
         box.pack_start(note, False, False, 0)
 
+        # Sdilene slozky pro jine pocitace LuxOS (remote.py, luxdrop-files.service)
+        box.pack_start(section(_("Shared folders")), False, False, 0)
+        c = card()
+        self.share_switch = Gtk.Switch(active=remote.Shares().enabled)
+        self.share_switch.connect("notify::active", self.on_share)
+        c.add(row(_("Share folders"), self.share_switch,
+                  _("Other LuxOS computers can open these folders after you allow it. Read-only unless you "
+                    "also allow changes.")))
+        box.pack_start(c, False, False, 0)
+        self.share_list = card()
+        self.share_list.set_margin_top(6)
+        box.pack_start(self.share_list, False, False, 0)
+        btns = Gtk.Box(spacing=6, margin_top=6)
+        b = Gtk.Button(label=_("Add folder…"))
+        b.connect("clicked", lambda _b: self.add_share())
+        btns.pack_start(b, False, False, 0)
+        b = Gtk.Button(label=_("Connect to Computer…"))
+        b.set_tooltip_text(_("Open the files of another LuxOS computer next to yours"))
+        b.connect("clicked", lambda _b: self.open_connect())
+        btns.pack_end(b, False, False, 0)
+        box.pack_start(btns, False, False, 0)
+        box.pack_start(section(_("Computers with access")), False, False, 0)
+        self.access_list = card()
+        box.pack_start(self.access_list, False, False, 0)
+
         box.pack_start(section(_("Security")), False, False, 0)
         fp_text = _("Key fingerprint: %s") % proto.format_fp(self.identity.fp)
         fp = Gtk.Label(label="ID %s\n%s" % (self.identity.id, fp_text), xalign=0, selectable=True, wrap=True,
@@ -941,6 +967,96 @@ class Window(Gtk.ApplicationWindow):
                 self.engine.lsd.stop()
                 self.engine.lsd = None
         self.refresh_devices()
+
+    def on_share(self, sw, _p):
+        on = sw.get_active()
+        if on == remote.Shares().enabled:
+            return
+        from .remote_cli import set_sharing
+        threading.Thread(target=set_sharing, args=(on,), daemon=True).start()
+        GLib.timeout_add(400, lambda: (self.fill_shares(), False)[1])
+
+    def open_connect(self):
+        try:
+            subprocess.Popen(["luxdrop", "connect"])
+        except OSError as e:
+            self.show_info(str(e))
+
+    def add_share(self):
+        dlg = Gtk.FileChooserNative.new(_("Choose folder"), self, Gtk.FileChooserAction.SELECT_FOLDER,
+                                        _("Share"), _("Cancel"))
+        if dlg.run() != Gtk.ResponseType.ACCEPT:
+            return
+        path = dlg.get_filename()
+        try:
+            _real, home = remote.check_share_path(path)
+            if home:
+                q = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
+                                      buttons=Gtk.ButtonsType.NONE, text=_("Share your whole home folder?"))
+                q.format_secondary_text(_("Hidden files and folders (settings, keys, passwords) are never shared. "
+                                          "Each computer still needs your permission."))
+                q.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Share"), Gtk.ResponseType.OK)
+                r = q.run()
+                q.destroy()
+                if r != Gtk.ResponseType.OK:
+                    return
+            remote.Shares().add(path, allow_home=True)
+        except remote.ShareError:
+            self.show_info(_("Only folders in your home folder or on external drives can be shared, "
+                             "not hidden folders."))
+        self.fill_shares()
+
+    def fill_shares(self):
+        shares, access = remote.Shares(), remote.Access()
+        for lb in (self.share_list, self.access_list):
+            for ch in lb.get_children():
+                lb.remove(ch)
+        folders = shares.folders()
+        if not folders:
+            lab = Gtk.Label(label=_("No shared folders."))
+            lab.get_style_context().add_class("empty")
+            self.share_list.add(lab)
+        for f in folders:
+            r = Gtk.ListBoxRow(activatable=False)
+            h = Gtk.Box(spacing=10)
+            r.add(h)
+            h.pack_start(Gtk.Image.new_from_icon_name("folder-symbolic", Gtk.IconSize.MENU), False, False, 0)
+            v = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            v.pack_start(Gtk.Label(label=f["name"], xalign=0), False, False, 0)
+            sub = Gtk.Label(label=dialogs.home_short(f["path"]), xalign=0, ellipsize=Pango.EllipsizeMode.MIDDLE)
+            sub.get_style_context().add_class("dim")
+            sub.get_style_context().add_class("small")
+            v.pack_start(sub, False, False, 0)
+            h.pack_start(v, True, True, 0)
+            b = Gtk.Button(label=_("Remove"), valign=Gtk.Align.CENTER)
+            b.connect("clicked", lambda _b, p=f["path"]: (remote.Shares().remove(p), self.fill_shares()))
+            h.pack_end(b, False, False, 0)
+            self.share_list.add(r)
+        peers = sorted(access.peers.items(), key=lambda kv: kv[1].get("name", "").lower())
+        if not peers:
+            lab = Gtk.Label(label=_("No computers yet. Each new computer must be allowed first."), wrap=True)
+            lab.get_style_context().add_class("empty")
+            self.access_list.add(lab)
+        for fp_hex, e in peers:
+            r = Gtk.ListBoxRow(activatable=False)
+            h = Gtk.Box(spacing=10)
+            r.add(h)
+            v = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            v.pack_start(Gtk.Label(label=e.get("name", "?"), xalign=0), False, False, 0)
+            sub = Gtk.Label(label="LuxOS · ID " + e.get("id", fp_hex[:16]), xalign=0)
+            sub.get_style_context().add_class("dim")
+            sub.get_style_context().add_class("small")
+            v.pack_start(sub, False, False, 0)
+            h.pack_start(v, True, True, 0)
+            b = Gtk.Button(label=_("Remove"), valign=Gtk.Align.CENTER)
+            b.connect("clicked", lambda _b, k=fp_hex: (remote.Access().remove(k), self.fill_shares()))
+            h.pack_end(b, False, False, 0)
+            w = Gtk.CheckButton(label=_("Can change files"), active=bool(e.get("write")), valign=Gtk.Align.CENTER)
+            w.connect("toggled", lambda cb, k=fp_hex: remote.Access().set_write(k, cb.get_active()))
+            h.pack_end(w, False, False, 0)
+            self.access_list.add(r)
+        self.share_list.show_all()
+        self.access_list.show_all()
 
     def fill_trusted(self):
         for c in self.tlist.get_children():

@@ -616,6 +616,25 @@
           ]
         },
         {
+          "path": "luxos/remote-files.md",
+          "title": "Files of another computer (Connect to Computer)",
+          "summary": "Open the shared folders of another LuxOS computer in Files side by side: Share folders, Allow once/Always/Deny, read-only by default, SFTP in a bubblewrap sandbox over LuxDrop TLS, luxdrop connect/share, port 47924.",
+          "keywords": [
+            "connect to computer",
+            "remote files",
+            "shared folders",
+            "network share",
+            "split view",
+            "luxdrop connect",
+            "luxdrop share",
+            "luxdrop-files",
+            "sftp",
+            "sshfs",
+            "port 47924",
+            "připojit k počítači"
+          ]
+        },
+        {
           "path": "luxos/safe.md",
           "title": "Safe – encrypted folder (/safe/<user>)",
           "summary": "luxos-safe: gocryptfs-encrypted /safe/<user> with its own password, auto-lock rules, CLI, boot protection and limits",

@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Connect to Computer
+Name[cs]=Připojit k počítači
+GenericName=Files of another LuxOS computer
+GenericName[cs]=Soubory jiného počítače LuxOS
+Comment=Open the shared folders of another LuxOS computer next to your files
+Comment[cs]=Otevřít sdílené složky jiného počítače LuxOS vedle vašich souborů
+Exec=luxdrop connect
+Icon=network-server
+Terminal=false
+Categories=Network;FileTransfer;GTK;
+Keywords=network;remote;computer;share;folder;LAN;síť;počítač;sdílení;složka;
+StartupNotify=true
+StartupWMClass=luxdrop
