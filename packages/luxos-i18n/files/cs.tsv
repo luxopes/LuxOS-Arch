@@ -2701,3 +2701,98 @@ More details: run the command again with --verbose	Další podrobnosti: spusťte
 The list of apps is out of date. Install the updates first, then try again.	Seznam aplikací je zastaralý. Nejdřív nainstalujte aktualizace a pak to zkuste znovu.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datum a čas počítače nejsou správně, proto není možné zabezpečené připojení. Zkontrolujte nastavení času.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Delší výdrž baterie: pomalejší procesor bez turba, o něco nižší jas, bez zvětšování v Docku, nepoužívaná zařízení se uspí a úlohy na pozadí se pozastaví.
+No snapshots yet. One is taken before every update.	Zatím žádné snímky. Snímek se pořídí před každou aktualizací.
+running now	právě běží
+not in the boot menu	není v nabídce při startu
+Snapshot %s created.	Snímek %s je hotový.
+Add --yes to confirm (lux rollback asks first).	Potvrďte volbou --yes (lux rollback se nejdřív zeptá).
+Done. After a restart LuxOS starts as it was: %s	Hotovo. Po restartu se LuxOS spustí ve stavu: %s
+The current system was kept as the snapshot %s (nothing was deleted).	Současný systém zůstal jako snímek %s (nic se nesmazalo).
+No problems found.	Nenalezeny žádné problémy.
+Problems found: %d	Nalezené problémy: %d
+Add --yes to confirm (LuxOS Recovery asks first).	Potvrďte volbou --yes (Obnova LuxOS se nejdřív zeptá).
+LuxOS was reinstalled. Your files and accounts were kept.	LuxOS je přeinstalovaný. Vaše soubory a účty zůstaly.
+The previous system was kept as the snapshot %s (nothing was deleted).	Předchozí systém zůstal jako snímek %s (nic se nesmazalo).
+Not reinstalled (not from the repositories): %s	Nepřeinstalováno (není z repozitářů): %s
+LuxOS is running from a snapshot, changes would be lost after a restart. To keep this version, run: lux rollback	LuxOS běží ze snímku, změny by se po restartu ztratily. Pro trvalé ponechání této verze spusťte: lux rollback
+Usage: luxos-app-reset reset <app>	Použití: luxos-app-reset reset <aplikace>
+No settings found for %s.	Pro %s nebylo nalezeno žádné nastavení.
+%s is running. Quit it first.	%s běží. Nejdřív aplikaci ukončete.
+These folders will be moved to a backup (nothing is deleted):	Tyto složky se přesunou do zálohy (nic se nesmaže):
+Reset the settings of %s?	Vrátit %s do výchozího nastavení?
+Done. The previous settings are in %s	Hotovo. Předchozí nastavení je v %s
+Usage: luxos-app-reset restore <backup folder>	Použití: luxos-app-reset restore <složka zálohy>
+The backup could not be restored: %s	Zálohu se nepodařilo vrátit: %s
+The settings were restored.	Nastavení je vrácené.
+The settings from before the restore are in %s	Nastavení z doby před vrácením je v %s
+Reset App Settings	Výchozí nastavení aplikací
+An app that misbehaves often works again with its default settings. Resetting moves its settings to a backup folder - nothing is deleted and you can restore them later.	Aplikace, která se chová divně, často znovu funguje s výchozím nastavením. Reset přesune její nastavení do složky se zálohou – nic se nesmaže a později ho můžete vrátit.
+Looking for apps…	Hledají se aplikace…
+Other folders with settings	Další složky s nastavením
+Backups	Zálohy
+%d apps with settings	Aplikací s nastavením: %d
+%s is running	%s běží
+Quit the app first, then reset its settings.	Nejdřív aplikaci ukončete, potom vraťte její nastavení.
+The app will start as if it was just installed. These folders are moved to a backup (nothing is deleted):	Aplikace se spustí jako po instalaci. Tyto složky se přesunou do zálohy (nic se nesmaže):
+Reset	Obnovit výchozí
+The settings could not be moved	Nastavení se nepodařilo přesunout
+Settings of %s were reset	%s má výchozí nastavení
+The previous settings are in %s	Předchozí nastavení je v %s
+Show Backup	Zobrazit zálohu
+Restore the settings of %s?	Vrátit nastavení aplikace %s ze zálohy?
+Settings the app has now are moved to a new backup first.	Současné nastavení aplikace se nejdřív přesune do nové zálohy.
+Check the disk	Zkontrolovat disk
+Checking the disk without changing anything. This can take several minutes.	Kontrola disku bez jakýchkoli změn. Může trvat několik minut.
+LuxOS can repair what is safe to repair: data with a second copy on the disk and the boot partition.	LuxOS může opravit to, co jde opravit bezpečně: data s druhou kopií na disku a zaváděcí oddíl.
+Repair now?	Opravit teď?
+Restore a snapshot	Vrátit snímek
+Which state should LuxOS return to?	Do jakého stavu se má LuxOS vrátit?
+LuxOS will start as it was: %s	LuxOS se spustí ve stavu: %s
+Your files in /home are not changed. The current system is kept as a snapshot.	Vaše soubory v /home se nemění. Současný systém zůstane jako snímek.
+Restore this snapshot?	Vrátit tento snímek?
+Restart the computer to finish.	Pro dokončení restartujte počítač.
+Reinstall LuxOS	Přeinstalovat LuxOS
+LuxOS will be downloaded and installed again with the same apps. Kept: your files (/home),	LuxOS se znovu stáhne a nainstaluje se stejnými aplikacemi. Zůstanou: vaše soubory (/home),
+user accounts and passwords, language, keyboard, Wi-Fi networks and disk encryption.	uživatelské účty a hesla, jazyk, klávesnice, sítě Wi‑Fi a šifrování disku.
+System settings you changed yourself are reset. The current system is kept as a snapshot.	Systémová nastavení, která jste sami změnili, se vrátí na výchozí. Současný systém zůstane jako snímek.
+Needs the internet and takes a while (like an update of the whole system).	Potřebuje internet a chvíli trvá (jako aktualizace celého systému).
+REINSTALL	PŘEINSTALOVAT
+Type %s to continue:	Pro pokračování napište %s:
+The internet is not connected.	Internet není připojený.
+Connect to Wi-Fi now?	Připojit se teď k Wi‑Fi?
+What do you want to do?	Co chcete udělat?
+Restore a snapshot (state before an update)	Vrátit snímek (stav před aktualizací)
+Reinstall LuxOS (keeps your files and accounts)	Přeinstalovat LuxOS (soubory a účty zůstanou)
+Shut down	Vypnout
+LuxOS was restored	LuxOS je obnovený
+LuxOS is back in the state: %s	LuxOS je zpět ve stavu: %s
+LuxOS is running from a snapshot	LuxOS běží ze snímku
+This is LuxOS before the update of %s. Changes are lost after a restart.	Toto je LuxOS před aktualizací z %s. Změny se po restartu ztratí.
+Keep this version	Ponechat tuto verzi
+No such snapshot: %s	Snímek %s neexistuje
+Another package operation is running. Try it again when it finishes.	Právě běží jiná práce s balíčky. Zkuste to znovu, až skončí.
+The kernel of this snapshot (%s) was not kept, it cannot be started.	Jádro tohoto snímku (%s) se nezachovalo, snímek nejde spustit.
+The system subvolume %s was not found.	Systémový subvolume %s nebyl nalezen.
+The kernel could not be copied to the boot partition: %s	Jádro se nepodařilo zkopírovat na zaváděcí oddíl: %s
+The system disk could not be opened: %s	Systémový disk se nepodařilo otevřít: %s
+The system disk was not found.	Systémový disk nebyl nalezen.
+The snapshot could not be created: %s	Snímek se nepodařilo vytvořit: %s
+The snapshot could not be deleted: %s	Snímek se nepodařilo smazat: %s
+The list of installed packages could not be read.	Seznam nainstalovaných balíčků se nepodařilo přečíst.
+The current kernel could not be saved, the reinstall was not started.	Současné jádro se nepodařilo uložit, přeinstalace nezačala.
+Installing the packages failed (is the internet connected?): %s	Instalace balíčků selhala (je připojený internet?): %s
+Creating the initramfs failed: %s	Vytvoření initramfs selhalo: %s
+Updating the boot loader failed: %s	Aktualizace zavaděče selhala: %s
+Snapshots are not available in the live system.	V živém systému nejsou snímky k dispozici.
+Snapshots are turned off (SNAPSHOTS=no in /etc/luxos/care.conf).	Snímky jsou vypnuté (SNAPSHOTS=no v /etc/luxos/care.conf).
+Snapshots need the Btrfs file system (LuxOS installs on Btrfs).	Snímky potřebují souborový systém Btrfs (LuxOS se instaluje na Btrfs).
+Snapshots need the system on a Btrfs subvolume (LuxOS installs it as @).	Snímky potřebují systém v subvolume Btrfs (LuxOS ho instaluje jako @).
+LuxOS is running from a snapshot.	LuxOS běží ze snímku.
+System snapshots need LuxOS Care (lux install luxos-care).	Snímky systému potřebují LuxOS Care (lux install luxos-care).
+LuxOS is running from a snapshot. Rollback keeps this version for good.	LuxOS běží ze snímku. Návrat tuto verzi ponechá natrvalo.
+Usage: lux rollback <snapshot> (see lux snapshots)	Použití: lux rollback <snímek> (viz lux snapshots)
+Return to which state? (number)	Do kterého stavu se vrátit? (číslo)
+Return LuxOS to: %s?	Vrátit LuxOS do stavu: %s?
+list system snapshots (one before every update)	seznam snímků systému (snímek před každou aktualizací)
+take a system snapshot now	pořídit snímek systému hned
+return the system to a snapshot (also from the boot menu)	vrátit systém ke snímku (i z nabídky při startu)
