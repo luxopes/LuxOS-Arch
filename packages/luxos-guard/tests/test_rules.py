@@ -337,3 +337,9 @@ def test_long_lines_do_not_hang():
     # konec dlouheho radku se kontroluje dal
     payload = "#!/bin/sh\necho " + "QUFB" * 50000 + " | base64 -d | sh\n"
     assert R.R_HIDDEN in R.classify(payload.encode(), "x.sh").reasons
+
+
+@pytest.mark.parametrize("data", [b"", b"   \n\t\n"])
+def test_empty_file_is_not_executable_content(data):
+    assert R.classify(data, "__init__.py") is None
+    assert R.classify(data, "install.sh") is None

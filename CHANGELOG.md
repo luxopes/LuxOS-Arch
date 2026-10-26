@@ -13,6 +13,8 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 - **Graf vytížení CPU** jde přidat do horní lišty (pravým tlačítkem na lištu › Panel › Přidat nové položky › CPU Graph); ve výchozí liště není.
 
 ### Opraveno
+- **Lux Guard a Python venv**: prázdný stažený soubor (např. nepovedené stažení skriptu) se už neoznačí a prázdné `__init__.py` ve venv se nepovažují za jeho „kopie“ (stejný otisk mají všechny prázdné soubory) – `python -m venv` a pip v něm fungují bez dotazů a bez Sandboxu.
+- Instalátor: sada **Programování** obsahuje i `vim` (vedle `neovim`).
 - **Přihlášení do sítě s portálem i s Tailscale/VPN DNS** (např. školní SSPS-GUEST): když systémové DNS za portálem nefunguje, NetworkManager hlásil jen „omezené připojení“ a přihlašovací okno se neotevřelo. Nový `luxos-portal-check` se zeptá přímo DNS serveru sítě (z DHCP) a pozná přesměrování na portál; okno přihlášení dostane adresu i IP portálu.
 - **Přepínač ploch** (pokud si ho přidáte do lišty) ukazuje čísla ploch v barvách lišty, aktivní plocha modře, místo šedých bloků s miniaturami; miniatury jdou zapnout v jeho nastavení a pak mají průhledné pozadí. Plochy s výchozími názvy „Workspace N“ se pojmenují čísly.
 

@@ -9,6 +9,7 @@
 code
 lux-code
 neovim
+vim
 meld
 git
 git-lfs
