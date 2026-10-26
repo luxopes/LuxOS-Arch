@@ -759,7 +759,7 @@
         {
           "path": "luxos/luxai-account.md",
           "title": "LuxAI account",
-          "summary": "Shared LuxAI account: luxos-account CLI, account.json, sign-in and registration, Flash/Lite models and monthly limits, API usage",
+          "summary": "Shared LuxAI account: luxos-account CLI, account.json, sign-in and registration, account management (username, password, sessions, AI answer style, data export, account deletion), Flash/Lite models and monthly limits, API usage",
           "keywords": [
             "luxai",
             "account",
@@ -772,7 +772,14 @@
             "limit",
             "usage",
             "lux-ai.cz",
-            "register"
+            "register",
+            "username",
+            "change password",
+            "sessions",
+            "export data",
+            "delete account",
+            "answer style",
+            "settings"
           ]
         },
         {

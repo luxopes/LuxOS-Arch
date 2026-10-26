@@ -3144,3 +3144,69 @@ Mirror displays	Schermen spiegelen
 Show the same picture on all displays.	Hetzelfde beeld op alle schermen tonen.
 The displays show the same picture. Turn off mirroring to arrange them.	De schermen tonen hetzelfde beeld. Zet spiegelen uit om ze te rangschikken.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Er wordt maar één scherm gebruikt. Kies Uitbreiden onder Meerdere beeldschermen om ze te rangschikken.
+LuxAI adapts the length and detail to how complex your question is.	LuxAI past lengte en detail aan de complexiteit van je vraag aan.
+Concise	Beknopt
+Answers are as direct as possible, without repetition or filler.	Antwoorden zijn zo direct mogelijk, zonder herhaling of opvulling.
+Detailed	Uitgebreid
+LuxAI adds more context, explanations, caveats and suitable examples.	LuxAI voegt meer context, uitleg, kanttekeningen en passende voorbeelden toe.
+Technical	Technisch
+Answers prefer precise terminology, assumptions and implementation details.	Antwoorden geven voorrang aan precieze terminologie, aannames en implementatiedetails.
+Friendly	Vriendelijk
+Answers are more approachable and friendly, but still accurate and professional.	Antwoorden zijn toegankelijker en vriendelijker, maar nog steeds nauwkeurig en professioneel.
+Your public identifier for LuxAI and connected services. 3-32 lowercase letters, digits and . _ -	Openbare identificatie van je LuxAI-account, ook gedeeld met gekoppelde diensten. 3–32 kleine letters, cijfers en . _ -
+Other sessions are signed out after the change; this computer stays signed in. If you have just signed in with an e-mail code, you can leave the current password empty.	Na de wijziging worden andere sessies afgemeld; deze computer blijft aangemeld. Als je net bent aangemeld met een e-mailcode, mag je het huidige wachtwoord leeg laten.
+New password again	Nieuw wachtwoord herhalen
+Sessions and Devices	Sessies en apparaten
+Changing the password…	Wachtwoord wijzigen…
+AI Answer Style	Antwoordstijl van AI
+Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Geldt voor nieuwe antwoorden in de LuxAI-chat. Verandert het gekozen model en de tokenlimiet niet.
+Appearance on the Web	Weergave op het web
+Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	Opgeslagen in je LuxAI-account en gebruikt op lux-ai.cz op al je apparaten. Het uiterlijk van LuxOS stel je in bij Instellingen › Uiterlijk.
+Export Your Data	Je gegevens exporteren
+Saves your profile, settings, AI usage and your LuxAI web chat history to a JSON file on this computer. The sign-in token is never included.	Slaat je profiel, instellingen, AI-gebruik en de LuxAI-webchatgeschiedenis op in een JSON-bestand op deze computer. Het aanmeldtoken wordt nooit meegenomen.
+Terms and Privacy	Voorwaarden en privacy
+The LuxAI Terms of Use also describe which personal data LuxAI processes and why.	De gebruiksvoorwaarden van LuxAI beschrijven ook welke persoonsgegevens LuxAI verwerkt en waarom.
+Delete Account	Account verwijderen
+Exporting…	Exporteren…
+Open on the Web	Openen op het web
+Profile	Profiel
+Password & Security	Wachtwoord en beveiliging
+Preferences	Voorkeuren
+Privacy & Data	Privacy en gegevens
+LuxAI does not offer changing the e-mail address yet. Write to LuxAI support if you need to change it.	LuxAI biedt nog geen mogelijkheid om het e-mailadres te wijzigen. Schrijf naar LuxAI-support als je het moet wijzigen.
+Contact Support	Contact met support
+The picture is stored on this computer (login screen, menu, LuxAI Account). The LuxAI website does not use profile pictures.	De foto wordt op deze computer opgeslagen (aanmeldscherm, menu, LuxAI-account). De LuxAI-website gebruikt geen profielfoto's.
+The username is saved.	De gebruikersnaam is opgeslagen.
+New password (at least %d characters)	Nieuw wachtwoord (minstens %d tekens)
+LuxAI cannot list your other devices and browsers yet. To sign them all out, change your password.	LuxAI kan je andere apparaten en browsers nog niet tonen. Wijzig je wachtwoord om ze allemaal af te melden.
+The new passwords do not match.	De nieuwe wachtwoorden komen niet overeen.
+The password was changed and other sessions were signed out.	Het wachtwoord is gewijzigd en andere sessies zijn afgemeld.
+The answer style is saved.	De antwoordstijl is opgeslagen.
+The appearance is saved.	De weergave is opgeslagen.
+Export…	Exporteren…
+Read the Terms	Voorwaarden lezen
+LuxAI deletes accounts on request sent to support (%s). Your account, chat history and settings will be removed and LuxAI, Lux Code and LSL IDE will stop working with it.	LuxAI verwijdert accounts op verzoek aan support (%s). Je account, chatgeschiedenis en instellingen worden verwijderd en LuxAI, Lux Code en LSL IDE werken er niet meer mee.
+Request Account Deletion…	Verwijdering van account aanvragen…
+Delete LuxAI Account	LuxAI-account verwijderen
+I understand that my LuxAI account and data will be deleted	Ik begrijp dat mijn LuxAI-account en gegevens worden verwijderd
+Write Deletion Request	Verwijderverzoek opstellen
+Light mode	Lichte modus
+Exported to %s (web chats: %d).	Geëxporteerd naar %s (webchats: %d).
+Exported to %s. The web chat history could not be included.	Geëxporteerd naar %s. De webchatgeschiedenis kon niet worden meegenomen.
+Deleting the account cannot be undone.	Het verwijderen van het account kan niet ongedaan worden gemaakt.
+Type your e-mail address to confirm:	Typ je e-mailadres om te bevestigen:
+Your e-mail program opens with a prepared request to %s. The account is deleted after you send it.	Je e-mailprogramma opent met een voorbereid verzoek aan %s. Het account wordt verwijderd nadat je het hebt verzonden.
+Your e-mail program opened with the deletion request. Send it to finish.	Je e-mailprogramma is geopend met het verwijderverzoek. Verstuur het om af te ronden.
+smarter, can see images	slimmer, kan afbeeldingen zien
+faster, larger limit	sneller, hogere limiet
+All chats, settings and the usage history of %s will be deleted. Export your data first if you want to keep it.	Alle chats, instellingen en de gebruiksgeschiedenis van %s worden verwijderd. Exporteer eerst je gegevens als je ze wilt bewaren.
+The limits reset on %s (in %d days).	De limieten worden op %s teruggezet (nog %d dagen).
+Downloading chat %d of %d…	Chat %d van %d downloaden…
+%s of %s tokens	%s van %s tokens
+Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Gebruik 3–32 kleine letters, cijfers of . _ -; het eerste teken moet een letter of cijfer zijn.
+This username is already used by another account.	Deze gebruikersnaam wordt al door een ander account gebruikt.
+The current password is not correct.	Het huidige wachtwoord is onjuist.
+The new password must be different from the current one.	Het nieuwe wachtwoord moet anders zijn dan het huidige.
+This change is not available from LuxOS yet. Make it on the web.	Deze wijziging is nog niet mogelijk vanuit LuxOS. Doe het op het web.
+The new password must have at least 12 characters.	Het nieuwe wachtwoord moet minstens 12 tekens hebben.
+The change could not be saved (%s).	De wijziging kon niet worden opgeslagen (%s).
