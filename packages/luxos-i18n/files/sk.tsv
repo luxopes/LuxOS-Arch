@@ -3361,3 +3361,84 @@ take a snapshot, show the changes, confirm and apply	urobiť snímku, ukázať z
 Undo the last apply: lux rollback · Help: man luxos-system	Vrátiť posledné apply: lux rollback · Pomocník: man luxos-system
 whole system in one file /etc/luxos/system.lsl (lux system help)	celý systém v jednom súbore /etc/luxos/system.lsl (lux system help)
 LuxOS is running from a snapshot, changes would be lost after a restart. To keep this version, run: lux rollback	LuxOS beží zo snímky, zmeny by sa po reštarte stratili. Na ponechanie tejto verzie spustite: lux rollback
+# LuxDrop - soubory jineho pocitace (Pripojit k pocitaci, sdilene slozky)
+Shared folders	Zdieľané priečinky
+Share folders	Zdieľať priečinky
+Other LuxOS computers can open these folders after you allow it. Read-only unless you also allow changes.	Iné počítače LuxOS môžu tieto priečinky otvoriť, keď im to povolíte. Len na čítanie, ak nepovolíte aj zmeny.
+Add folder…	Pridať priečinok…
+Connect to Computer…	Pripojiť k počítaču…
+Connect to Computer	Pripojiť k počítaču
+Computers with access	Počítače s prístupom
+Computers with access:	Počítače s prístupom:
+Share your whole home folder?	Zdieľať celý domovský priečinok?
+Hidden files and folders (settings, keys, passwords) are never shared. Each computer still needs your permission.	Skryté súbory a priečinky (nastavenia, kľúče, heslá) sa nikdy nezdieľajú. Každý počítač stále potrebuje vaše povolenie.
+Only folders in your home folder or on external drives can be shared, not hidden folders.	Zdieľať sa dajú len priečinky v domovskom priečinku alebo na externých diskoch, nie skryté priečinky.
+No shared folders.	Žiadne zdieľané priečinky.
+No computers yet. Each new computer must be allowed first.	Zatiaľ žiadne počítače. Každý nový počítač musíte najprv povoliť.
+Can change files	Môže meniť súbory
+can change files	môže meniť súbory
+Read-only	Len na čítanie
+read-only	len na čítanie
+Read-only.	Len na čítanie.
+Share	Zdieľať
+Deny	Odmietnuť
+Allow once	Povoliť raz
+Always allow	Vždy povoliť
+Access to shared folders	Prístup k zdieľaným priečinkom
+LuxDrop: access to shared folders	LuxDrop: prístup k zdieľaným priečinkom
+“%s” wants to access your shared folders	„%s“ chce prístup k vašim zdieľaným priečinkom
+“%s” wants to access and change your shared folders	„%s“ chce prístup k vašim zdieľaným priečinkom a meniť ich
+Allow only if the other computer shows the same code.	Povoľte, len ak druhý počítač ukazuje rovnaký kód.
+Also allow changes (copy in, rename and delete files)	Povoliť aj zmeny (kopírovanie dovnútra, premenovanie a mazanie súborov)
+Also allow changes (copy in, rename and delete files)? [y/N]: 	Povoliť aj zmeny (kopírovanie dovnútra, premenovanie a mazanie súborov)? [y/N]: 
+Read-only: the other computer can open and copy your shared files, but cannot change them.	Len na čítanie: druhý počítač môže vaše zdieľané súbory otvárať a kopírovať, ale nemôže ich meniť.
+Allow? [o]nce / [a]lways / [N]o: 	Povoliť? [o] raz / [a] vždy / [N] nie: 
+The other computer cancelled the request.	Druhý počítač žiadosť zrušil.
+Sharing is turned off. Turn it on with: luxdrop share on	Zdieľanie je vypnuté. Zapnete ho príkazom: luxdrop share on
+sftp-server (openssh) is not installed	sftp-server (openssh) nie je nainštalovaný
+Sharing as "%s" (ID %s) on port %d: %s	Zdieľa sa ako „%s“ (ID %s) na porte %d: %s
+Sharing is off.	Zdieľanie je vypnuté.
+Sharing is on: %s	Zdieľanie je zapnuté: %s
+Sharing: %s	Zdieľanie: %s
+Shared: %s	Zdieľané: %s
+Removed %d folder(s)	Odobraté priečinky: %d
+Changed %d device(s)	Zmenené zariadenia: %d
+None (every connection is asked first).	Žiadne (na každé spojenie sa najprv opýta).
+Share your whole home folder? Hidden files and folders (settings, keys, passwords) are never shared.	Zdieľať celý domovský priečinok? Skryté súbory a priečinky (nastavenia, kľúče, heslá) sa nikdy nezdieľajú.
+Share the home folder? [y/N]: 	Zdieľať domovský priečinok? [y/N]: 
+Computer '%s' not found on the network. Use its address: luxdrop connect HOST	Počítač „%s“ sa v sieti nenašiel. Použite jeho adresu: luxdrop connect HOST
+Connected to %s (%s): %s	Pripojené k %s (%s): %s
+Connected to %s	Pripojené k %s
+Disconnected from %s	Odpojené od %s
+Disconnected %d computer(s)	Odpojené počítače: %d
+Not connected to any computer.	Nie ste pripojení k žiadnemu počítaču.
+Cannot connect: %s (%s)	Nedá sa pripojiť: %s (%s)
+Cannot connect: %s	Nedá sa pripojiť: %s
+Cannot connect to %s: %s	Nedá sa pripojiť k %s: %s
+share folders with other LuxOS computers	zdieľať priečinky s inými počítačmi LuxOS
+folder (add/remove) or device ID/name (forget/allow-write/read-only)	priečinok (add/remove) alebo ID či názov zariadenia (forget/allow-write/read-only)
+do not ask before sharing the home folder	nepýtať sa pred zdieľaním domovského priečinka
+open the shared folders of another LuxOS computer in Files	otvoriť zdieľané priečinky iného počítača LuxOS v Súboroch
+computer name, ID, HOST[:PORT] or NAME@HOST[:PORT]; without it a window opens	názov počítača, ID, HOST[:PORT] alebo NÁZOV@HOST[:PORT]; bez neho sa otvorí okno
+ask for permission to change files	požiadať o povolenie meniť súbory
+Ask for permission to change files	Požiadať o povolenie meniť súbory
+do not open a Files window	neotvárať okno Súborov
+disconnect from another computer	odpojiť sa od iného počítača
+list connected computers	vypísať pripojené počítače
+Waiting for “%s” to allow access…	Čaká sa, kým „%s“ povolí prístup…
+The other computer must share folders (LuxDrop › Settings › Share folders) and allow your access.	Druhý počítač musí zdieľať priečinky (LuxDrop › Nastavenia › Zdieľať priečinky) a povoliť vám prístup.
+Computers nearby	Počítače v okolí
+Address, e.g. 192.168.1.20	Adresa, napr. 192.168.1.20
+Cancelled: the codes were not confirmed.	Zrušené: kódy neboli potvrdené.
+Open the files of another LuxOS computer next to yours	Otvorte súbory iného počítača LuxOS vedľa svojich
+Looking for computers… On the other computer turn on LuxDrop › Settings › Share folders.	Hľadajú sa počítače… Na druhom počítači zapnite LuxDrop › Nastavenia › Zdieľať priečinky.
+Opening the shared folders…	Otvárajú sa zdieľané priečinky…
+The files of “%s” are in the sidebar of Files.	Súbory počítača „%s“ nájdete v bočnom paneli Súborov.
+“%s” denied access.	„%s“ prístup odmietol.
+“%s” did not answer in time.	„%s“ neodpovedal včas.
+“%s” is busy. Try again later.	„%s“ je zaneprázdnený. Skúste to neskôr.
+“%s” does not share any folders.	„%s“ nezdieľa žiadne priečinky.
+“%s” presented a different key than expected. Someone may be impersonating it. If it was reinstalled, remove it from Trusted devices and try again.	„%s“ predložil iný kľúč, než sa čakalo. Niekto sa zaň možno vydáva. Ak bol preinštalovaný, odoberte ho z Dôveryhodných zariadení a skúste to znova.
+Enter the address of the other computer.	Zadajte adresu druhého počítača.
+Continue only if “%s” shows the same code.	Pokračujte, len ak „%s“ ukazuje rovnaký kód.
+The connection was closed.	Spojenie bolo ukončené.

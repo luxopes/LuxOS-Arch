@@ -41,11 +41,12 @@ E_CANCELLED = "cancelled"
 E_INTERNAL = "internal"
 E_KEY_MISMATCH = "key_mismatch"  # jen lokalne u odesilatele: jiny klic nez pripnuty
 E_SAS_REJECTED = "sas_rejected"  # odesilatel nepotvrdil shodu kodu
+E_SHARING_OFF = "sharing_off"    # sdilene slozky (remote.py) jsou vypnute nebo zadne nejsou
 
 ERROR_CODES = {
     E_DECLINED, E_TIMEOUT, E_BUSY, E_NOT_TRUSTED, E_RECEIVING_OFF, E_TOO_LARGE, E_NO_SPACE,
     E_INVALID_OFFER, E_AUTH_FAILED, E_PROTO_VERSION, E_PROTOCOL, E_HASH_MISMATCH, E_CANCELLED,
-    E_INTERNAL, E_KEY_MISMATCH, E_SAS_REJECTED,
+    E_INTERNAL, E_KEY_MISMATCH, E_SAS_REJECTED, E_SHARING_OFF,
 }
 
 

@@ -3361,3 +3361,84 @@ take a snapshot, show the changes, confirm and apply	crea un’istantanea, mostr
 Undo the last apply: lux rollback · Help: man luxos-system	Annulla l’ultimo apply: lux rollback · Aiuto: man luxos-system
 whole system in one file /etc/luxos/system.lsl (lux system help)	intero sistema in un file /etc/luxos/system.lsl (lux system help)
 LuxOS is running from a snapshot, changes would be lost after a restart. To keep this version, run: lux rollback	LuxOS è in esecuzione da un’istantanea, le modifiche andrebbero perse al riavvio. Per mantenere questa versione esegui: lux rollback
+# LuxDrop - soubory jineho pocitace (Pripojit k pocitaci, sdilene slozky)
+Shared folders	Cartelle condivise
+Share folders	Condividi cartelle
+Other LuxOS computers can open these folders after you allow it. Read-only unless you also allow changes.	Altri computer LuxOS possono aprire queste cartelle dopo la tua autorizzazione. Sola lettura, a meno che tu non consenta anche le modifiche.
+Add folder…	Aggiungi cartella…
+Connect to Computer…	Connetti a un computer…
+Connect to Computer	Connetti a un computer
+Computers with access	Computer con accesso
+Computers with access:	Computer con accesso:
+Share your whole home folder?	Condividere l’intera cartella home?
+Hidden files and folders (settings, keys, passwords) are never shared. Each computer still needs your permission.	File e cartelle nascosti (impostazioni, chiavi, password) non vengono mai condivisi. Ogni computer ha comunque bisogno della tua autorizzazione.
+Only folders in your home folder or on external drives can be shared, not hidden folders.	Si possono condividere solo cartelle nella home o su unità esterne, non cartelle nascoste.
+No shared folders.	Nessuna cartella condivisa.
+No computers yet. Each new computer must be allowed first.	Ancora nessun computer. Ogni nuovo computer deve prima essere autorizzato.
+Can change files	Può modificare i file
+can change files	può modificare i file
+Read-only	Sola lettura
+read-only	sola lettura
+Read-only.	Sola lettura.
+Share	Condividi
+Deny	Nega
+Allow once	Consenti una volta
+Always allow	Consenti sempre
+Access to shared folders	Accesso alle cartelle condivise
+LuxDrop: access to shared folders	LuxDrop: accesso alle cartelle condivise
+“%s” wants to access your shared folders	“%s” vuole accedere alle tue cartelle condivise
+“%s” wants to access and change your shared folders	“%s” vuole accedere alle tue cartelle condivise e modificarle
+Allow only if the other computer shows the same code.	Consenti solo se l’altro computer mostra lo stesso codice.
+Also allow changes (copy in, rename and delete files)	Consenti anche le modifiche (copiare dentro, rinominare ed eliminare file)
+Also allow changes (copy in, rename and delete files)? [y/N]: 	Consentire anche le modifiche (copiare dentro, rinominare ed eliminare file)? [y/N]: 
+Read-only: the other computer can open and copy your shared files, but cannot change them.	Sola lettura: l’altro computer può aprire e copiare i tuoi file condivisi, ma non modificarli.
+Allow? [o]nce / [a]lways / [N]o: 	Consentire? [o] una volta / [a] sempre / [N] no: 
+The other computer cancelled the request.	L’altro computer ha annullato la richiesta.
+Sharing is turned off. Turn it on with: luxdrop share on	La condivisione è disattivata. Attivala con: luxdrop share on
+sftp-server (openssh) is not installed	sftp-server (openssh) non è installato
+Sharing as "%s" (ID %s) on port %d: %s	Condivisione come “%s” (ID %s) sulla porta %d: %s
+Sharing is off.	La condivisione è disattivata.
+Sharing is on: %s	La condivisione è attiva: %s
+Sharing: %s	Condivisione: %s
+Shared: %s	Condivisa: %s
+Removed %d folder(s)	%d cartella/e rimossa/e
+Changed %d device(s)	%d dispositivo/i modificato/i
+None (every connection is asked first).	Nessuno (ogni connessione viene prima richiesta).
+Share your whole home folder? Hidden files and folders (settings, keys, passwords) are never shared.	Condividere l’intera cartella home? File e cartelle nascosti (impostazioni, chiavi, password) non vengono mai condivisi.
+Share the home folder? [y/N]: 	Condividere la cartella home? [y/N]: 
+Computer '%s' not found on the network. Use its address: luxdrop connect HOST	Computer “%s” non trovato nella rete. Usa il suo indirizzo: luxdrop connect HOST
+Connected to %s (%s): %s	Connesso a %s (%s): %s
+Connected to %s	Connesso a %s
+Disconnected from %s	Disconnesso da %s
+Disconnected %d computer(s)	%d computer disconnesso/i
+Not connected to any computer.	Nessun computer connesso.
+Cannot connect: %s (%s)	Impossibile connettersi: %s (%s)
+Cannot connect: %s	Impossibile connettersi: %s
+Cannot connect to %s: %s	Impossibile connettersi a %s: %s
+share folders with other LuxOS computers	condividi cartelle con altri computer LuxOS
+folder (add/remove) or device ID/name (forget/allow-write/read-only)	cartella (add/remove) o ID/nome del dispositivo (forget/allow-write/read-only)
+do not ask before sharing the home folder	non chiedere prima di condividere la cartella home
+open the shared folders of another LuxOS computer in Files	apri le cartelle condivise di un altro computer LuxOS in File
+computer name, ID, HOST[:PORT] or NAME@HOST[:PORT]; without it a window opens	nome del computer, ID, HOST[:PORT] o NOME@HOST[:PORT]; senza si apre una finestra
+ask for permission to change files	chiedi il permesso di modificare i file
+Ask for permission to change files	Chiedi il permesso di modificare i file
+do not open a Files window	non aprire una finestra di File
+disconnect from another computer	disconnetti da un altro computer
+list connected computers	elenca i computer connessi
+Waiting for “%s” to allow access…	In attesa che “%s” consenta l’accesso…
+The other computer must share folders (LuxDrop › Settings › Share folders) and allow your access.	L’altro computer deve condividere cartelle (LuxDrop › Impostazioni › Condividi cartelle) e consentire il tuo accesso.
+Computers nearby	Computer nelle vicinanze
+Address, e.g. 192.168.1.20	Indirizzo, ad es. 192.168.1.20
+Cancelled: the codes were not confirmed.	Annullato: i codici non sono stati confermati.
+Open the files of another LuxOS computer next to yours	Apri i file di un altro computer LuxOS accanto ai tuoi
+Looking for computers… On the other computer turn on LuxDrop › Settings › Share folders.	Ricerca dei computer… Sull’altro computer attiva LuxDrop › Impostazioni › Condividi cartelle.
+Opening the shared folders…	Apertura delle cartelle condivise…
+The files of “%s” are in the sidebar of Files.	I file di “%s” sono nella barra laterale di File.
+“%s” denied access.	“%s” ha negato l’accesso.
+“%s” did not answer in time.	“%s” non ha risposto in tempo.
+“%s” is busy. Try again later.	“%s” è occupato. Riprova più tardi.
+“%s” does not share any folders.	“%s” non condivide alcuna cartella.
+“%s” presented a different key than expected. Someone may be impersonating it. If it was reinstalled, remove it from Trusted devices and try again.	“%s” ha presentato una chiave diversa da quella prevista. Qualcuno potrebbe spacciarsi per lui. Se è stato reinstallato, rimuovilo dai dispositivi attendibili e riprova.
+Enter the address of the other computer.	Inserisci l’indirizzo dell’altro computer.
+Continue only if “%s” shows the same code.	Continua solo se “%s” mostra lo stesso codice.
+The connection was closed.	La connessione è stata chiusa.

@@ -3362,3 +3362,84 @@ take a snapshot, show the changes, confirm and apply	створити знімо
 Undo the last apply: lux rollback · Help: man luxos-system	Скасувати останній apply: lux rollback · Довідка: man luxos-system
 whole system in one file /etc/luxos/system.lsl (lux system help)	уся система в одному файлі /etc/luxos/system.lsl (lux system help)
 LuxOS is running from a snapshot, changes would be lost after a restart. To keep this version, run: lux rollback	LuxOS працює зі знімка, зміни буде втрачено після перезапуску. Щоб зберегти цю версію, виконайте: lux rollback
+# LuxDrop - soubory jineho pocitace (Pripojit k pocitaci, sdilene slozky)
+Shared folders	Спільні теки
+Share folders	Спільний доступ до тек
+Other LuxOS computers can open these folders after you allow it. Read-only unless you also allow changes.	Інші комп’ютери з LuxOS можуть відкрити ці теки після вашого дозволу. Лише для читання, якщо ви не дозволите й зміни.
+Add folder…	Додати теку…
+Connect to Computer…	Під’єднатися до комп’ютера…
+Connect to Computer	Під’єднатися до комп’ютера
+Computers with access	Комп’ютери з доступом
+Computers with access:	Комп’ютери з доступом:
+Share your whole home folder?	Надати спільний доступ до всієї домашньої теки?
+Hidden files and folders (settings, keys, passwords) are never shared. Each computer still needs your permission.	Приховані файли й теки (налаштування, ключі, паролі) ніколи не стають спільними. Кожному комп’ютеру однаково потрібен ваш дозвіл.
+Only folders in your home folder or on external drives can be shared, not hidden folders.	Спільними можуть бути лише теки в домашній теці або на зовнішніх дисках, але не приховані теки.
+No shared folders.	Немає спільних тек.
+No computers yet. Each new computer must be allowed first.	Поки що немає комп’ютерів. Кожен новий комп’ютер спершу треба дозволити.
+Can change files	Може змінювати файли
+can change files	може змінювати файли
+Read-only	Лише читання
+read-only	лише читання
+Read-only.	Лише читання.
+Share	Поділитися
+Deny	Відмовити
+Allow once	Дозволити один раз
+Always allow	Завжди дозволяти
+Access to shared folders	Доступ до спільних тек
+LuxDrop: access to shared folders	LuxDrop: доступ до спільних тек
+“%s” wants to access your shared folders	«%s» хоче отримати доступ до ваших спільних тек
+“%s” wants to access and change your shared folders	«%s» хоче отримати доступ до ваших спільних тек і змінювати їх
+Allow only if the other computer shows the same code.	Дозволяйте, лише якщо інший комп’ютер показує той самий код.
+Also allow changes (copy in, rename and delete files)	Також дозволити зміни (копіювання всередину, перейменування й видалення файлів)
+Also allow changes (copy in, rename and delete files)? [y/N]: 	Також дозволити зміни (копіювання всередину, перейменування й видалення файлів)? [y/N]: 
+Read-only: the other computer can open and copy your shared files, but cannot change them.	Лише читання: інший комп’ютер може відкривати й копіювати ваші спільні файли, але не може їх змінювати.
+Allow? [o]nce / [a]lways / [N]o: 	Дозволити? [o] один раз / [a] завжди / [N] ні: 
+The other computer cancelled the request.	Інший комп’ютер скасував запит.
+Sharing is turned off. Turn it on with: luxdrop share on	Спільний доступ вимкнено. Увімкніть його командою: luxdrop share on
+sftp-server (openssh) is not installed	sftp-server (openssh) не встановлено
+Sharing as "%s" (ID %s) on port %d: %s	Спільний доступ як «%s» (ID %s) на порту %d: %s
+Sharing is off.	Спільний доступ вимкнено.
+Sharing is on: %s	Спільний доступ увімкнено: %s
+Sharing: %s	Спільний доступ: %s
+Shared: %s	Спільна: %s
+Removed %d folder(s)	Вилучено тек: %d
+Changed %d device(s)	Змінено пристроїв: %d
+None (every connection is asked first).	Немає (про кожне з’єднання спершу буде запит).
+Share your whole home folder? Hidden files and folders (settings, keys, passwords) are never shared.	Надати спільний доступ до всієї домашньої теки? Приховані файли й теки (налаштування, ключі, паролі) ніколи не стають спільними.
+Share the home folder? [y/N]: 	Надати спільний доступ до домашньої теки? [y/N]: 
+Computer '%s' not found on the network. Use its address: luxdrop connect HOST	Комп’ютер «%s» не знайдено в мережі. Використайте його адресу: luxdrop connect HOST
+Connected to %s (%s): %s	Під’єднано до %s (%s): %s
+Connected to %s	Під’єднано до %s
+Disconnected from %s	Від’єднано від %s
+Disconnected %d computer(s)	Від’єднано комп’ютерів: %d
+Not connected to any computer.	Немає під’єднаних комп’ютерів.
+Cannot connect: %s (%s)	Не вдалося під’єднатися: %s (%s)
+Cannot connect: %s	Не вдалося під’єднатися: %s
+Cannot connect to %s: %s	Не вдалося під’єднатися до %s: %s
+share folders with other LuxOS computers	спільний доступ до тек для інших комп’ютерів з LuxOS
+folder (add/remove) or device ID/name (forget/allow-write/read-only)	тека (add/remove) або ID чи назва пристрою (forget/allow-write/read-only)
+do not ask before sharing the home folder	не питати перед наданням спільного доступу до домашньої теки
+open the shared folders of another LuxOS computer in Files	відкрити спільні теки іншого комп’ютера з LuxOS у Файлах
+computer name, ID, HOST[:PORT] or NAME@HOST[:PORT]; without it a window opens	назва комп’ютера, ID, HOST[:PORT] або НАЗВА@HOST[:PORT]; без нього відкриється вікно
+ask for permission to change files	попросити дозвіл змінювати файли
+Ask for permission to change files	Попросити дозвіл змінювати файли
+do not open a Files window	не відкривати вікно Файлів
+disconnect from another computer	від’єднатися від іншого комп’ютера
+list connected computers	показати під’єднані комп’ютери
+Waiting for “%s” to allow access…	Очікування, поки «%s» дозволить доступ…
+The other computer must share folders (LuxDrop › Settings › Share folders) and allow your access.	Інший комп’ютер має надавати спільні теки (LuxDrop › Налаштування › Спільний доступ до тек) і дозволити вам доступ.
+Computers nearby	Комп’ютери поблизу
+Address, e.g. 192.168.1.20	Адреса, напр. 192.168.1.20
+Cancelled: the codes were not confirmed.	Скасовано: коди не підтверджено.
+Open the files of another LuxOS computer next to yours	Відкрийте файли іншого комп’ютера з LuxOS поруч зі своїми
+Looking for computers… On the other computer turn on LuxDrop › Settings › Share folders.	Пошук комп’ютерів… На іншому комп’ютері увімкніть LuxDrop › Налаштування › Спільний доступ до тек.
+Opening the shared folders…	Відкриття спільних тек…
+The files of “%s” are in the sidebar of Files.	Файли комп’ютера «%s» є на бічній панелі Файлів.
+“%s” denied access.	«%s» відмовив у доступі.
+“%s” did not answer in time.	«%s» не відповів вчасно.
+“%s” is busy. Try again later.	«%s» зайнятий. Спробуйте пізніше.
+“%s” does not share any folders.	«%s» не надає спільних тек.
+“%s” presented a different key than expected. Someone may be impersonating it. If it was reinstalled, remove it from Trusted devices and try again.	«%s» надав інший ключ, ніж очікувалося. Можливо, хтось видає себе за нього. Якщо його перевстановили, вилучіть його з Довірених пристроїв і спробуйте знову.
+Enter the address of the other computer.	Введіть адресу іншого комп’ютера.
+Continue only if “%s” shows the same code.	Продовжуйте, лише якщо «%s» показує той самий код.
+The connection was closed.	З’єднання закрито.

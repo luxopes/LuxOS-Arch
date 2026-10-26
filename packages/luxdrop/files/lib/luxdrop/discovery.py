@@ -37,8 +37,10 @@ def _parse_txt(aay):
 
 
 class Discovery:
-    def __init__(self, on_change=None):
+    def __init__(self, on_change=None, service_type=None):
         self.on_change = on_change or (lambda: None)
+        # _luxdrop._tcp (prijem souboru) nebo _luxdrop-files._tcp (sdilene slozky, remote.py)
+        self.service_type = service_type or proto.SERVICE_TYPE
         self.peers = {}  # klic (rozhrani, protokol, jmeno) -> zaznam
         self.bus = None
         self.group = None
@@ -80,7 +82,7 @@ class Discovery:
             inst = ("%s (%s)" % (name, dev_id[:6]))[:63]
             txt = _txt([("v", proto.PROTO_VERSION), ("id", dev_id), ("name", name)])
             self._call(path, "EntryGroup", "AddService",
-                       GLib.Variant("(iiussssqaay)", (IF_UNSPEC, PROTO_UNSPEC, 0, inst, proto.SERVICE_TYPE,
+                       GLib.Variant("(iiussssqaay)", (IF_UNSPEC, PROTO_UNSPEC, 0, inst, self.service_type,
                                                       "", "", port, txt)), None)
             self._call(path, "EntryGroup", "Commit", None, None)
             self.group = path
@@ -108,7 +110,7 @@ class Discovery:
         for sig in ("ItemNew", "ItemRemove"):
             self._subs.append(self.bus.signal_subscribe(AVAHI, "org.freedesktop.Avahi.ServiceBrowser", sig,
                                                         None, None, 0, self._on_signal))
-        args = GLib.Variant("(iissu)", (IF_UNSPEC, PROTO_UNSPEC, proto.SERVICE_TYPE, "", 0))
+        args = GLib.Variant("(iissu)", (IF_UNSPEC, PROTO_UNSPEC, self.service_type, "", 0))
         try:
             # Avahi >= 0.8: Prepare + Start (bez zavodu o prvni signaly)
             self.browser = self._call("/", "Server2", "ServiceBrowserPrepare", args, "(o)").unpack()[0]

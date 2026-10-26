@@ -3361,3 +3361,84 @@ take a snapshot, show the changes, confirm and apply	tirar um instantâneo, most
 Undo the last apply: lux rollback · Help: man luxos-system	Desfazer o último apply: lux rollback · Ajuda: man luxos-system
 whole system in one file /etc/luxos/system.lsl (lux system help)	todo o sistema num ficheiro /etc/luxos/system.lsl (lux system help)
 LuxOS is running from a snapshot, changes would be lost after a restart. To keep this version, run: lux rollback	O LuxOS está a correr a partir de um instantâneo, as alterações perder-se-iam ao reiniciar. Para manter esta versão, execute: lux rollback
+# LuxDrop - soubory jineho pocitace (Pripojit k pocitaci, sdilene slozky)
+Shared folders	Pastas compartilhadas
+Share folders	Compartilhar pastas
+Other LuxOS computers can open these folders after you allow it. Read-only unless you also allow changes.	Outros computadores LuxOS podem abrir estas pastas depois que você permitir. Somente leitura, a menos que você também permita alterações.
+Add folder…	Adicionar pasta…
+Connect to Computer…	Conectar a um computador…
+Connect to Computer	Conectar a um computador
+Computers with access	Computadores com acesso
+Computers with access:	Computadores com acesso:
+Share your whole home folder?	Compartilhar toda a sua pasta pessoal?
+Hidden files and folders (settings, keys, passwords) are never shared. Each computer still needs your permission.	Arquivos e pastas ocultos (configurações, chaves, senhas) nunca são compartilhados. Cada computador ainda precisa da sua permissão.
+Only folders in your home folder or on external drives can be shared, not hidden folders.	Só é possível compartilhar pastas da sua pasta pessoal ou de unidades externas, não pastas ocultas.
+No shared folders.	Nenhuma pasta compartilhada.
+No computers yet. Each new computer must be allowed first.	Nenhum computador ainda. Cada novo computador precisa ser permitido primeiro.
+Can change files	Pode alterar arquivos
+can change files	pode alterar arquivos
+Read-only	Somente leitura
+read-only	somente leitura
+Read-only.	Somente leitura.
+Share	Compartilhar
+Deny	Negar
+Allow once	Permitir uma vez
+Always allow	Sempre permitir
+Access to shared folders	Acesso às pastas compartilhadas
+LuxDrop: access to shared folders	LuxDrop: acesso às pastas compartilhadas
+“%s” wants to access your shared folders	“%s” quer acessar as suas pastas compartilhadas
+“%s” wants to access and change your shared folders	“%s” quer acessar e alterar as suas pastas compartilhadas
+Allow only if the other computer shows the same code.	Permita somente se o outro computador mostrar o mesmo código.
+Also allow changes (copy in, rename and delete files)	Permitir também alterações (copiar para dentro, renomear e excluir arquivos)
+Also allow changes (copy in, rename and delete files)? [y/N]: 	Permitir também alterações (copiar para dentro, renomear e excluir arquivos)? [y/N]: 
+Read-only: the other computer can open and copy your shared files, but cannot change them.	Somente leitura: o outro computador pode abrir e copiar seus arquivos compartilhados, mas não alterá-los.
+Allow? [o]nce / [a]lways / [N]o: 	Permitir? [o] uma vez / [a] sempre / [N] não: 
+The other computer cancelled the request.	O outro computador cancelou a solicitação.
+Sharing is turned off. Turn it on with: luxdrop share on	O compartilhamento está desativado. Ative-o com: luxdrop share on
+sftp-server (openssh) is not installed	sftp-server (openssh) não está instalado
+Sharing as "%s" (ID %s) on port %d: %s	Compartilhando como “%s” (ID %s) na porta %d: %s
+Sharing is off.	O compartilhamento está desativado.
+Sharing is on: %s	O compartilhamento está ativado: %s
+Sharing: %s	Compartilhamento: %s
+Shared: %s	Compartilhada: %s
+Removed %d folder(s)	%d pasta(s) removida(s)
+Changed %d device(s)	%d dispositivo(s) alterado(s)
+None (every connection is asked first).	Nenhum (cada conexão é perguntada antes).
+Share your whole home folder? Hidden files and folders (settings, keys, passwords) are never shared.	Compartilhar toda a sua pasta pessoal? Arquivos e pastas ocultos (configurações, chaves, senhas) nunca são compartilhados.
+Share the home folder? [y/N]: 	Compartilhar a pasta pessoal? [y/N]: 
+Computer '%s' not found on the network. Use its address: luxdrop connect HOST	Computador “%s” não encontrado na rede. Use o endereço dele: luxdrop connect HOST
+Connected to %s (%s): %s	Conectado a %s (%s): %s
+Connected to %s	Conectado a %s
+Disconnected from %s	Desconectado de %s
+Disconnected %d computer(s)	%d computador(es) desconectado(s)
+Not connected to any computer.	Não conectado a nenhum computador.
+Cannot connect: %s (%s)	Não foi possível conectar: %s (%s)
+Cannot connect: %s	Não foi possível conectar: %s
+Cannot connect to %s: %s	Não foi possível conectar a %s: %s
+share folders with other LuxOS computers	compartilhar pastas com outros computadores LuxOS
+folder (add/remove) or device ID/name (forget/allow-write/read-only)	pasta (add/remove) ou ID/nome do dispositivo (forget/allow-write/read-only)
+do not ask before sharing the home folder	não perguntar antes de compartilhar a pasta pessoal
+open the shared folders of another LuxOS computer in Files	abrir as pastas compartilhadas de outro computador LuxOS em Arquivos
+computer name, ID, HOST[:PORT] or NAME@HOST[:PORT]; without it a window opens	nome do computador, ID, HOST[:PORT] ou NOME@HOST[:PORT]; sem isso abre uma janela
+ask for permission to change files	pedir permissão para alterar arquivos
+Ask for permission to change files	Pedir permissão para alterar arquivos
+do not open a Files window	não abrir uma janela de Arquivos
+disconnect from another computer	desconectar de outro computador
+list connected computers	listar computadores conectados
+Waiting for “%s” to allow access…	Aguardando “%s” permitir o acesso…
+The other computer must share folders (LuxDrop › Settings › Share folders) and allow your access.	O outro computador precisa compartilhar pastas (LuxDrop › Configurações › Compartilhar pastas) e permitir o seu acesso.
+Computers nearby	Computadores próximos
+Address, e.g. 192.168.1.20	Endereço, ex.: 192.168.1.20
+Cancelled: the codes were not confirmed.	Cancelado: os códigos não foram confirmados.
+Open the files of another LuxOS computer next to yours	Abra os arquivos de outro computador LuxOS ao lado dos seus
+Looking for computers… On the other computer turn on LuxDrop › Settings › Share folders.	Procurando computadores… No outro computador, ative LuxDrop › Configurações › Compartilhar pastas.
+Opening the shared folders…	Abrindo as pastas compartilhadas…
+The files of “%s” are in the sidebar of Files.	Os arquivos de “%s” estão na barra lateral de Arquivos.
+“%s” denied access.	“%s” negou o acesso.
+“%s” did not answer in time.	“%s” não respondeu a tempo.
+“%s” is busy. Try again later.	“%s” está ocupado. Tente novamente mais tarde.
+“%s” does not share any folders.	“%s” não compartilha nenhuma pasta.
+“%s” presented a different key than expected. Someone may be impersonating it. If it was reinstalled, remove it from Trusted devices and try again.	“%s” apresentou uma chave diferente da esperada. Alguém pode estar se passando por ele. Se foi reinstalado, remova-o dos Dispositivos confiáveis e tente novamente.
+Enter the address of the other computer.	Digite o endereço do outro computador.
+Continue only if “%s” shows the same code.	Continue somente se “%s” mostrar o mesmo código.
+The connection was closed.	A conexão foi encerrada.
