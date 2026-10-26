@@ -782,6 +782,29 @@ def sync_boot(top, lay=None, snaps=None):
     return []
 
 
+def entries_present(lay):
+    """Polozka obnovy uz v zavadeci je (sdboot soubor, GRUB luxos-snapshots.cfg)."""
+    if lay["kind"] == "sdboot" and lay.get("main"):
+        return os.path.exists(P(f"{lay['entries']}/recovery-{lay['name']}.conf"))
+    if lay["kind"] == "grub":
+        return os.path.exists(P(GRUB_CFG))
+    return True
+
+
+def ensure_entries():
+    """Po startu: polozky obnovy a snimku, kdyz jeste nejsou (cerstva instalace pred prvni
+    aktualizaci). -> True, kdyz se zapisovalo."""
+    ok, _why = supported()
+    if not ok or in_chroot():
+        return False
+    lay = care.detect_layout()
+    if entries_present(lay):
+        return False
+    with snapshot_lock(), top_level() as top:
+        sync_boot(top, lay)
+    return True
+
+
 # ---- vytvoreni snimku ----------------------------------------------------------------------
 def create(top, kind="update", packages=(), now=None, lay=None, build=None):
     """Novy snimek systemoveho subvolumu (jen pro cteni) + sada jadra + popis -> popis."""
