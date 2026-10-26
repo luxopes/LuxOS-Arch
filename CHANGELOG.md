@@ -10,6 +10,7 @@ Nové ISO: ISO 0.9.7–0.9.11 končilo na počítačích s ovladači DKMS (NVIDI
 
 ### Opraveno
 - **Terminál nezamrzne** – výzva (starship) má časový limit a nouzovou výzvu; ssh/sshfs pozná mrtvé spojení do ~45 s (`/etc/ssh/ssh_config.d/50-luxos-keepalive.conf`). Dřív odpojená složka sshfs v domovské složce zasekla každý nový terminál (bez výzvy, bez Ctrl+C).
+- **Lux Code nezamrzne** u síťové složky v pracovním adresáři: snímek změn před příkazem (i `background_shell`) a nástroje `list_files`, `find_files`, `search_text`, `directory_tree` nepřecházejí do jiných připojení (sshfs) a snímek má časový limit.
 - **Víceřádkový příkaz** vložený do terminálu se spustí Enterem (neuzavřený blok jako `if` bez `fi` dál přidá řádek).
 - **Ostré ikony v Alt+Tab** – GTK3 posílá ikonu okna u ikon jen ve SVG v 48 px; LuxOS oknu doplní ikonu 128/192 px z tématu (Soubory, Ovladače, Průvodce, Baterie…).
 - **Jas kolečkem** ukazuje jeden ukazatel, ne nový pod každým krokem.

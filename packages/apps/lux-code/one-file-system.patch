@@ -1,0 +1,33 @@
+--- a/review.lsl	2026-10-26 07:42:47.602870227 +0100
++++ b/review.lsl	2026-10-26 07:42:47.614232089 +0100
+@@ -19,7 +19,9 @@
+ end
+ 
+ function paths():
+-    listing = core.run("rg --files -g '!node_modules' -g '!.build' -g '!vendor' -g '!dist' -g '!build' -g '!__pycache__' -g '!.venv' -g '!*.lock' -g '!package-lock.json' -g '!TOOLS.md' 2>/dev/null | head -n 160")
++    # --one-file-system + limit: snimek pred prikazem bezi synchronne; slozka site (sshfs) v pracovnim
++    # adresari (napr. ~/disk) jinak zablokovala cele TUI, dokud spojeni neodpovedelo
++    listing = core.run("timeout -k 1 3 rg --files --one-file-system -g '!node_modules' -g '!.build' -g '!vendor' -g '!dist' -g '!build' -g '!__pycache__' -g '!.venv' -g '!*.lock' -g '!package-lock.json' -g '!TOOLS.md' 2>/dev/null | head -n 160")
+     return listing["stdout"].split("\n")
+ end
+ 
+--- a/workspace.lsl	2026-10-26 07:42:47.602909338 +0100
++++ b/workspace.lsl	2026-10-26 07:42:47.614328890 +0100
+@@ -145,13 +145,13 @@
+     elif name == "list_directory":
+         return core.cli(["ls", "-lah", "--", filename])
+     elif name == "list_files":
+-        return core.cli(["rg", "--files", "--hidden", "-g", "!.git", "-g", "!node_modules", "--", filename])
++        return core.cli(["rg", "--files", "--hidden", "--one-file-system", "-g", "!.git", "-g", "!node_modules", "--", filename])
+     elif name == "find_files":
+-        return core.cli(["rg", "--files", "--hidden", "-g", args["pattern"], "-g", "!.git", "--", filename])
++        return core.cli(["rg", "--files", "--hidden", "--one-file-system", "-g", args["pattern"], "-g", "!.git", "--", filename])
+     elif name == "search_text":
+-        return core.cli(["rg", "-n", "--hidden", "--max-count", String(core.number(args, "max_matches", 100)), "-g", "!.git", "-g", "!node_modules", "--", args["pattern"], filename])
++        return core.cli(["rg", "-n", "--hidden", "--one-file-system", "--max-count", String(core.number(args, "max_matches", 100)), "-g", "!.git", "-g", "!node_modules", "--", args["pattern"], filename])
+     elif name == "directory_tree":
+-        return core.cli(["find", filename, "-maxdepth", String(core.number(args, "depth", 3)), "-not", "-path", "*/.git/*", "-not", "-path", "*/node_modules/*"])
++        return core.cli(["find", filename, "-xdev", "-maxdepth", String(core.number(args, "depth", 3)), "-not", "-path", "*/.git/*", "-not", "-path", "*/node_modules/*"])
+     elif name == "make_directory":
+         return core.cli(["mkdir", "-p", "--", filename])
+     elif name == "copy_file":
