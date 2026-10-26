@@ -59,6 +59,12 @@ def build():
         return None
     for name in ("luxos-control-center", "luxos-calendar"):
         os.symlink("luxos-hub", os.path.join(out, name))
+    # maly klient Snimku obrazovky (pozadavky na hub pres socket)
+    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(src, "luxos-screenshot.lsl"), os.path.join(out, "luxos-screenshot")],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        print(r.stdout + r.stderr)
+        return None
     return out
 
 
@@ -291,6 +297,32 @@ class Hub(unittest.TestCase):
         self.assertEqual(sorted(os.listdir(self.runtime)), [])
         err = self.hub_err()
         self.assertNotIn("CRITICAL", err, err)
+        self.assertNotIn("LSL callback error", err, err)
+
+    def test_screenshot_served_by_hub(self):
+        """luxos-screenshot preda pozadavek bezicimu hubu (okna pripravena predem): snimek vyrezu a lista."""
+        hub = self.start_hub()
+        out = os.path.join(self.home, "shots")
+        nothing = {"LUXOS_SCREENSHOT_UI": "/nonexistent"}            # bez hubu by klient selhal
+        r = self.run_prog("luxos-screenshot", "--portion", "--region", "1,2,30,20", "--output", out, "--no-thumbnail", **nothing)
+        self.assertEqual(r.returncode, 0, (r.stderr, self.hub_err()))
+        files = os.listdir(out)
+        self.assertEqual(len(files), 1, files)
+        self.assertEqual(r.stdout.strip(), os.path.join(out, files[0]))
+        self.assertTrue(files[0].startswith(translation("Screenshot %s at %s").split("%s")[0]))
+        with open(os.path.join(out, files[0]), "rb") as f:
+            head = f.read(24)
+        self.assertEqual((int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big")), (30, 20))
+        # lista: klient ceka, dalsi spusteni ji zavre
+        tb = subprocess.Popen([os.path.join(BIN, "luxos-screenshot")], env=self.env(**nothing), stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
+        time.sleep(0.5)
+        self.assertIsNone(tb.poll())
+        self.assertEqual(self.run_prog("luxos-screenshot", "--close", **nothing).returncode, 0)
+        self.assertEqual(tb.wait(5), 0)
+        hub.send_signal(signal.SIGTERM)
+        self.assertEqual(hub.wait(5), 0)
+        err = self.hub_err()
         self.assertNotIn("LSL callback error", err, err)
 
     def test_profile_picture_in_control_center(self):
