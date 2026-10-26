@@ -4,14 +4,14 @@
 
 pkgname=luxos-sandbox
 pkgver=1.0.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxOS Sandbox - isolated per-user system for untrusted applications"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
 license=(GPL-3.0-or-later)
 depends=(bubblewrap passt xorg-server-xephyr arch-install-scripts polkit python python-gobject gtk3
          iproute2 luxos-i18n)
-optdepends=('xfce4-terminal: Open Terminal button in the Sandbox window')
+optdepends=('luxos-terminal: Open Terminal button in the Sandbox window')
 
 package() {
     local f="$startdir/files"

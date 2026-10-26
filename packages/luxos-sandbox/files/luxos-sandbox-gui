@@ -353,7 +353,7 @@ class SandboxWindow(Gtk.Window):
             self.start(path)
 
     def terminal(self):
-        term = shutil.which("xfce4-terminal")
+        term = shutil.which("luxos-terminal") or shutil.which("xfce4-terminal")
         cmd = [CLI, "shell", *self.flags(gui=False)]
         if term:
             subprocess.Popen([term, "--title", _("Sandbox"), "-x", *cmd], start_new_session=True)

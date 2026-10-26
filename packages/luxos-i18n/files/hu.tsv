@@ -3144,3 +3144,20 @@ Mirror displays	Kijelzők tükrözése
 Show the same picture on all displays.	Ugyanaz a kép minden kijelzőn.
 The displays show the same picture. Turn off mirroring to arrange them.	A kijelzők ugyanazt a képet mutatják. Az elrendezéshez kapcsolja ki a tükrözést.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Csak egy kijelző van használatban. Az elrendezéshez válassza a Kiterjesztés lehetőséget a Több kijelző részben.
+# Terminal LuxOS (luxos-terminal)
+New Tab	Új lap
+New Window	Új ablak
+Close Tab	Lap bezárása
+Select All	Az összes kijelölése
+Find…	Keresés…
+Find	Keresés
+Find Previous	Előző találat
+Find Next	Következő találat
+Open Link	Hivatkozás megnyitása
+Copy Link Address	Hivatkozás címének másolása
+Close this tab?	Bezárja ezt a lapot?
+Close this window?	Bezárja ezt az ablakot?
+A process is still running in this tab: %s	Ezen a lapon még fut egy folyamat: %s
+A process is still running in this window: %s	Ebben az ablakban még fut egy folyamat: %s
+Processes are still running in this window.	Ebben az ablakban még futnak folyamatok.
+Process completed	A folyamat befejeződött

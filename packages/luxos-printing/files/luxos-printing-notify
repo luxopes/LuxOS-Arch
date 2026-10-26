@@ -33,7 +33,7 @@ if [[ $1 == aurdriver ]]; then
         -A "install=$(T "Install Driver")" "$title" "$body" 2>/dev/null)
     [[ $action == install ]] || exit 0
     done_msg=$(T "Done. You can close this window.")
-    exec xfce4-terminal --title="$(T "Install Driver")" -x bash -c \
+    exec luxos-terminal --title="$(T "Install Driver")" -x bash -c \
         'lux install "$1" && pkexec /usr/lib/luxos/printing/luxos-printing-helper sync; echo; echo "$2"; read -r' \
         _ "$pkg" "$done_msg"
 fi

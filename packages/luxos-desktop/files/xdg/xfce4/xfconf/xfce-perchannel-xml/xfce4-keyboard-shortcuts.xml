@@ -10,8 +10,8 @@
       <property name="&lt;Super&gt;p" type="string" value="luxos-displays menu"/>
       <property name="XF86LaunchA" type="string" value="luxos-launchpad"/>
       <property name="&lt;Super&gt;e" type="string" value="thunar"/>
-      <property name="&lt;Super&gt;t" type="string" value="xfce4-terminal"/>
-      <property name="&lt;Primary&gt;&lt;Alt&gt;t" type="string" value="xfce4-terminal"/>
+      <property name="&lt;Super&gt;t" type="string" value="luxos-terminal"/>
+      <property name="&lt;Primary&gt;&lt;Alt&gt;t" type="string" value="luxos-terminal"/>
       <property name="&lt;Super&gt;comma" type="string" value="xfce4-settings-manager"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;q" type="string" value="xflock4"/>
       <property name="&lt;Super&gt;l" type="string" value="xflock4"/>

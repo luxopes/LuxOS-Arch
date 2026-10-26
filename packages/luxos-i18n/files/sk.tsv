@@ -3144,3 +3144,20 @@ Mirror displays	Zrkadliť monitory
 Show the same picture on all displays.	Na všetkých monitoroch rovnaký obraz.
 The displays show the same picture. Turn off mirroring to arrange them.	Monitory zobrazujú rovnaký obraz. Ak ich chcete usporiadať, vypnite zrkadlenie.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Používa sa len jeden monitor. Ak chcete monitory usporiadať, zvoľte Rozšíriť v časti Viac monitorov.
+# Terminal LuxOS (luxos-terminal)
+New Tab	Nová karta
+New Window	Nové okno
+Close Tab	Zavrieť kartu
+Select All	Vybrať všetko
+Find…	Nájsť…
+Find	Nájsť
+Find Previous	Nájsť predchádzajúce
+Find Next	Nájsť ďalšie
+Open Link	Otvoriť odkaz
+Copy Link Address	Kopírovať adresu odkazu
+Close this tab?	Zavrieť túto kartu?
+Close this window?	Zavrieť toto okno?
+A process is still running in this tab: %s	V tejto karte ešte beží proces: %s
+A process is still running in this window: %s	V tomto okne ešte beží proces: %s
+Processes are still running in this window.	V tomto okne ešte bežia procesy.
+Process completed	Proces skončil
