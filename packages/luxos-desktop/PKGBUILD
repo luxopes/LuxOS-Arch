@@ -45,7 +45,7 @@ depends=(
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
     # Dock, Hledani, prihlaseni
     # rofi z [luxos]: Launchpad potrebuje -hover-no-scroll (packages/rofi)
-    plank 'rofi>=2.0.0-1.1' lightdm lightdm-gtk-greeter dconf yad
+    plank 'rofi>=2.0.0-1.1' libkeybinder3 lightdm lightdm-gtk-greeter dconf yad
     # Zvuk, sit, bluetooth, tisk
     pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber pavucontrol
     networkmanager network-manager-applet nm-connection-editor

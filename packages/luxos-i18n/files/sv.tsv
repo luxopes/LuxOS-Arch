@@ -3462,3 +3462,9 @@ A process is still running in this tab: %s	En process körs fortfarande i den h�
 A process is still running in this window: %s	En process körs fortfarande i det här fönstret: %s
 Processes are still running in this window.	Processer körs fortfarande i det här fönstret.
 Process completed	Processen avslutades
+No graphical session of this user is running.	Ingen grafisk session för den här användaren körs.
+Collecting information about the frozen desktop…	Samlar information om det frusna skrivbordet…
+Report saved:	Rapport sparad:
+The window manager and the panel were restarted. Open apps keep running.	Fönsterhanteraren och panelen startades om. Öppna appar fortsätter att köra.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Grafikservern svarar inte. Spara ditt arbete i andra sessioner och starta om datorn: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Tillbaka till skrivbordet: Ctrl+Alt+F1 (eller F7).

@@ -3463,3 +3463,9 @@ A process is still running in this tab: %s	У цій вкладці ще пра�
 A process is still running in this window: %s	У цьому вікні ще працює процес: %s
 Processes are still running in this window.	У цьому вікні ще працюють процеси.
 Process completed	Процес завершено
+No graphical session of this user is running.	Для цього користувача не запущено графічного сеансу.
+Collecting information about the frozen desktop…	Збирання відомостей про завислий робочий стіл…
+Report saved:	Звіт збережено:
+The window manager and the panel were restarted. Open apps keep running.	Менеджер вікон і панель перезапущено. Відкриті застосунки працюють далі.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Графічний сервер не відповідає. Збережіть роботу в інших сеансах і перезапустіть комп’ютер: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Назад до робочого столу: Ctrl+Alt+F1 (або F7).

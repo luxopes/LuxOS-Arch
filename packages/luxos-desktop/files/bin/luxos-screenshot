@@ -279,6 +279,12 @@ import gi  # noqa: E402
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk  # noqa: E402
+try:        # Esc/Enter pri otevrene liste bez zabrani cele klavesnice (libkeybinder3)
+    gi.require_version("Keybinder", "3.0")
+    from gi.repository import Keybinder  # noqa: E402
+    Keybinder.init()
+except (ImportError, ValueError):
+    Keybinder = None
 import cairo  # noqa: E402
 
 CSS = """
@@ -408,6 +414,23 @@ def grab_keyboard(win, tries=20):
 
 def ungrab():
     Gdk.Display.get_default().get_default_seat().ungrab()
+
+
+TOOLBAR_KEYS = ("Escape", "Return", "KP_Enter", "<Ctrl>Return", "<Ctrl>KP_Enter")
+
+
+def bind_toolbar_keys(app, on):
+    """Lista bez zabrani klavesnice: jen Esc (zavrit) a Enter (zachytit) zabrane pro celou obrazovku.
+
+    Ostatni klavesy jdou dal do aplikaci. Bez libkeybinder3 funguji tlacitka listy."""
+    if Keybinder is None or on == getattr(app, "keys_bound", False):
+        return
+    app.keys_bound = on
+    for k in TOOLBAR_KEYS:
+        if on:
+            Keybinder.bind(k, lambda key, *_a: GLib.idle_add(app.on_toolbar_key, key) and None)
+        else:
+            Keybinder.unbind(k)
 
 
 # ---- zachyceni obrazovky ----------------------------------------------------------
@@ -1505,8 +1528,18 @@ class App:
 
     # -- zivotni cyklus
     def quit(self, *_a):
+        bind_toolbar_keys(self, False)
         drop_state()
         Gtk.main_quit()
+
+    def on_toolbar_key(self, key):
+        if not (self.toolbar and self.toolbar.get_visible()):
+            return False
+        if key == "Escape":
+            self.cancel()
+        else:
+            self.capture(ctrl=key.startswith("<Ctrl>"))
+        return False
 
     def cancel(self):
         if self.rec:
@@ -1517,6 +1550,7 @@ class App:
                 w.destroy()
         self.overlay = self.toolbar = self.countdown = None
         ungrab()
+        bind_toolbar_keys(self, False)
         self.quit()
 
     def on_signal(self, sig):
@@ -1596,8 +1630,8 @@ class App:
         tb.show()
         tb.get_window().raise_()
         tb.show_caption()
-        # Klavesnici nezabirat: pri otevrene liste funguji zkratky a psani v aplikacich
-        # (Esc/Enter jen u rychleho vyberu bez listy, jinak tlacitka listy)
+        bind_toolbar_keys(self, True)
+        # Celou klavesnici nezabirat (psani a zkratky v aplikacich funguji), jen Esc a Enter
 
     def freeze(self):
         pb = grab()
@@ -1738,6 +1772,7 @@ class App:
                 shown = True
                 w.hide()
         ungrab()
+        bind_toolbar_keys(self, False)
         return HIDE_DELAY if shown else 0
 
     def after_timer(self, delay, cb):
