@@ -66,3 +66,32 @@ body.light .doc th{background:#00000008}
 @media(max-width:860px){.doc-layout{grid-template-columns:1fr}.doc-nav{position:static;max-height:none}.doc{padding:20px}.doc-index{grid-template-columns:1fr}}
 .instructions-grid>*,.download-grid>*,.features>*{min-width:0}
 .terminal pre{min-width:0}
+
+/* ---- jazyky, drobenkova navigace, o systemu, odkaz pro preskoceni ---- */
+.skip-link{position:absolute;left:-999px;top:8px;z-index:10;background:#736aff;color:#fff;padding:8px 14px;border-radius:8px}
+.skip-link:focus{left:8px}
+.lang-switch{display:flex;gap:2px;margin-left:auto;background:#212744;border-radius:100px;padding:3px;font-size:12px;font-weight:650}
+.lang-switch a{color:#c1c7ec;padding:5px 10px;border-radius:100px}
+.lang-switch a[aria-current]{background:linear-gradient(110deg,#7785ff,#655afa);color:#fff}
+.lang-switch a:not([aria-current]):hover{color:#fff}
+.desktop-nav{gap:28px;margin-left:auto}
+.desktop-nav+.lang-switch{margin-left:0}
+.theme-toggle{margin-left:0}
+@media(max-width:1100px){.lang-switch{margin-left:auto}}
+.about{padding:24px 28px;margin-top:26px}
+.about h2{font-size:22px;letter-spacing:-.4px;margin:0 0 10px}
+.about p{margin:0;line-height:1.7;color:var(--muted)}
+.about a{color:#8fa0ff}
+.docs-highlights{margin-top:10px}
+.docs-highlights .doc-index{margin-top:0}
+.breadcrumbs{font-size:13px;margin:0 0 14px;color:var(--muted)}
+.breadcrumbs ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.breadcrumbs li+li:before{content:"›";margin-right:6px}
+.doc-pager{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:36px;padding-top:18px;border-top:1px solid var(--border);font-size:14px}
+.badge-en{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;padding:1px 5px;border-radius:5px;background:#ffffff1a;color:var(--muted);vertical-align:middle}
+body.light .lang-switch{background:#e2e7f6}
+body.light .lang-switch a{color:#42506d}
+body.light .lang-switch a[aria-current]{color:#fff}
+body.light .about p,body.light .breadcrumbs,body.light .badge-en{color:#42506d}
+body.light .about a{color:#3d4fd0}
+body.light .doc-nav a.current{color:#fff}

@@ -1,5 +1,7 @@
 // LuxOS web: nabidka na mobilu, svetly/tmavy rezim (pamatuje si volbu), galerie, kopirovani,
 // aktualni vydani z /release.json (stranka uz ma hodnoty z generatoru, tady se jen obnovi).
+const isCs = document.documentElement.lang === 'cs';
+const locale = isCs ? 'cs-CZ' : 'en-GB';
 const navButton = document.querySelector('.mobile-nav-toggle');
 const mobileNav = document.querySelector('.mobile-nav');
 navButton?.addEventListener('click', () => {
@@ -50,7 +52,7 @@ const bindCopy = button => button.addEventListener('click', async () => {
     button.textContent = '✓';
     setTimeout(() => { button.textContent = previous; }, 1300);
   } catch {
-    button.title = 'Kopírování funguje jen přes HTTPS.';
+    button.title = isCs ? 'Kopírování funguje jen přes HTTPS.' : 'Copying works only over HTTPS.';
   }
 });
 document.querySelectorAll('[data-copy]').forEach(bindCopy);
@@ -92,8 +94,8 @@ lightbox?.addEventListener('touchend', e => {
 });
 
 // ---- aktualni vydani ----
-const formatSize = bytes => `${(bytes / 2 ** 30).toLocaleString('cs-CZ', { maximumFractionDigits: 1 })} GB`;
-const formatDate = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' });
+const formatSize = bytes => `${(bytes / 2 ** 30).toLocaleString(locale, { maximumFractionDigits: 1 })} GB`;
+const formatDate = iso => new Date(`${iso}T12:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 fetch('/release.json', { cache: 'no-cache' })
   .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
   .then(rel => {
