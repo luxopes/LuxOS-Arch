@@ -3468,3 +3468,66 @@ Report saved:	Rapport enregistré :
 The window manager and the panel were restarted. Open apps keep running.	Le gestionnaire de fenêtres et la barre ont été redémarrés. Les apps ouvertes continuent de fonctionner.
 The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Le serveur graphique ne répond pas. Enregistrez votre travail dans d’autres sessions et redémarrez l’ordinateur : sudo reboot
 Back to the desktop: Ctrl+Alt+F1 (or F7).	Retour au bureau : Ctrl+Alt+F1 (ou F7).
+%d h	%d h
+About Map Data	À propos des données cartographiques
+Add to Favorites	Ajouter aux favoris
+Allow Maps to use your location?	Autoriser Plans à utiliser votre position ?
+Allow My Location	Autoriser ma position
+Arrive at your destination	Vous êtes arrivé à destination
+Bike	Vélo
+Car	Voiture
+Choose Destination	Choisir la destination
+Choose Start	Choisir le départ
+Continue straight	Continuez tout droit
+Coordinates copied.	Coordonnées copiées.
+Copy Coordinates	Copier les coordonnées
+Copy Location Link	Copier le lien du lieu
+Depart	Partez
+Destination is on the left	La destination est à gauche
+Destination is on the right	La destination est à droite
+Directions	Itinéraire
+Directions from Here	Itinéraire depuis ici
+Directions to Here	Itinéraire jusqu'ici
+Enter the roundabout	Entrez dans le rond-point
+Enter the roundabout and take exit %s	Au rond-point, prenez la sortie %s
+Favorites	Favoris
+Finding route…	Recherche de l'itinéraire…
+Go straight	Allez tout droit
+Keep left	Restez à gauche
+Keep right	Restez à droite
+Location link copied.	Lien du lieu copié.
+Make a U-turn	Faites demi-tour
+Map Appearance	Apparence de la carte
+Maps	Plans
+Maps uses the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	Plans utilise le service de localisation du système (GeoClue) s'il est disponible, sinon il détermine votre position approximative à partir de votre adresse Internet via le service ipinfo.io (votre adresse est envoyée à ce service). Plans ne demande qu'une fois ; vous pouvez le désactiver dans le menu.
+Merge	Insérez-vous
+My Location	Ma position
+No places found.	Aucun lieu trouvé.
+No route found between these places.	Aucun itinéraire trouvé entre ces lieux.
+Offline – showing saved map	Hors ligne – carte enregistrée affichée
+Open in OpenStreetMap	Ouvrir dans OpenStreetMap
+Remove from Favorites	Retirer des favoris
+Report a Map Issue	Signaler un problème de carte
+Results	Résultats
+Routes: FOSSGIS routing server (OSRM), data © OpenStreetMap contributors	Itinéraires : serveur de calcul FOSSGIS (OSRM), données © contributeurs d'OpenStreetMap
+Saved	Enregistré
+Search for a place and save it with the star. Right-click the map for more.	Recherchez un lieu et enregistrez-le avec l'étoile. Clic droit sur la carte pour plus d'options.
+Search for a place or address	Rechercher un lieu ou une adresse
+Show My Location	Afficher ma position
+Show Sidebar	Afficher la barre latérale
+Swap Start and Destination	Inverser départ et destination
+Take the exit	Prenez la sortie
+Take the ramp	Prenez la bretelle
+The route could not be loaded. Check your internet connection.	Impossible de charger l'itinéraire. Vérifiez votre connexion Internet.
+Turn left	Tournez à gauche
+Turn right	Tournez à droite
+Turn sharp left	Tournez franchement à gauche
+Turn sharp right	Tournez franchement à droite
+Turn slightly left	Tournez légèrement à gauche
+Turn slightly right	Tournez légèrement à droite
+Walk	À pied
+What's Here?	Qu'y a-t-il ici ?
+Your location could not be found.	Impossible de déterminer votre position.
+Zoom In	Zoom avant
+Zoom Out	Zoom arrière
+© OpenStreetMap contributors	© contributeurs d'OpenStreetMap

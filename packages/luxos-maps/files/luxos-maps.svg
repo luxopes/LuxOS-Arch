@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- LuxOS Mapy: vlastni ikona (zaobleny ctverec, mapa s rekou, cestou a spendlikem) -->
+  <defs>
+    <linearGradient id="land" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9f3df"/>
+      <stop offset="1" stop-color="#cfe6c0"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff6a5c"/>
+      <stop offset="1" stop-color="#e2382c"/>
+    </linearGradient>
+    <clipPath id="r"><rect x="8" y="8" width="112" height="112" rx="26"/></clipPath>
+  </defs>
+  <rect x="8" y="10" width="112" height="112" rx="26" fill="#000" opacity="0.18"/>
+  <g clip-path="url(#r)">
+    <rect x="8" y="8" width="112" height="112" fill="url(#land)"/>
+    <path d="M8 92 C34 80 46 98 70 86 S106 70 120 76 V120 H8 Z" fill="#8ec9f2"/>
+    <path d="M8 92 C34 80 46 98 70 86 S106 70 120 76" fill="none" stroke="#6fb4e6" stroke-width="2"/>
+    <rect x="70" y="18" width="34" height="24" rx="5" fill="#b9dca6"/>
+    <path d="M-4 54 L132 30" stroke="#ffffff" stroke-width="10"/>
+    <path d="M40 8 L58 120" stroke="#ffffff" stroke-width="8"/>
+    <path d="M-4 54 L132 30" stroke="#ffd25a" stroke-width="5"/>
+    <path d="M22 108 C36 96 44 80 58 70 S86 56 88 50" fill="none" stroke="#3d7bff" stroke-width="5"
+          stroke-linecap="round" stroke-dasharray="1 0"/>
+  </g>
+  <rect x="8.5" y="8.5" width="111" height="111" rx="25.5" fill="none" stroke="#000" stroke-opacity="0.12"/>
+  <circle cx="22" cy="108" r="6" fill="#fff"/>
+  <circle cx="22" cy="108" r="4" fill="#2fb35a"/>
+  <path d="M88 60 C80 50 72 43 72 33 A16 16 0 0 1 104 33 C104 43 96 50 88 60 Z" fill="url(#pin)"
+        stroke="#b32a20" stroke-width="1.5"/>
+  <circle cx="88" cy="33" r="6" fill="#fff"/>
+</svg>

@@ -3468,3 +3468,66 @@ Report saved:	Rapporto salvato:
 The window manager and the panel were restarted. Open apps keep running.	Il gestore delle finestre e il pannello sono stati riavviati. Le app aperte continuano a funzionare.
 The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Il server grafico non risponde. Salva il lavoro in altre sessioni e riavvia il computer: sudo reboot
 Back to the desktop: Ctrl+Alt+F1 (or F7).	Torna al desktop: Ctrl+Alt+F1 (o F7).
+%d h	%d h
+About Map Data	Informazioni sui dati della mappa
+Add to Favorites	Aggiungi ai preferiti
+Allow Maps to use your location?	Consentire a Mappe di usare la tua posizione?
+Allow My Location	Consenti la mia posizione
+Arrive at your destination	Sei arrivato a destinazione
+Bike	Bici
+Car	Auto
+Choose Destination	Scegli la destinazione
+Choose Start	Scegli la partenza
+Continue straight	Prosegui dritto
+Coordinates copied.	Coordinate copiate.
+Copy Coordinates	Copia coordinate
+Copy Location Link	Copia link della posizione
+Depart	Parti
+Destination is on the left	La destinazione è a sinistra
+Destination is on the right	La destinazione è a destra
+Directions	Indicazioni
+Directions from Here	Indicazioni da qui
+Directions to Here	Indicazioni fino a qui
+Enter the roundabout	Entra nella rotonda
+Enter the roundabout and take exit %s	Alla rotonda prendi l'uscita %s
+Favorites	Preferiti
+Finding route…	Ricerca del percorso…
+Go straight	Vai dritto
+Keep left	Tieni la sinistra
+Keep right	Tieni la destra
+Location link copied.	Link della posizione copiato.
+Make a U-turn	Fai inversione a U
+Map Appearance	Aspetto della mappa
+Maps	Mappe
+Maps uses the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	Mappe usa il servizio di posizione del sistema (GeoClue) se disponibile, altrimenti ricava la posizione approssimativa dal tuo indirizzo Internet con il servizio ipinfo.io (il tuo indirizzo viene inviato a quel servizio). Mappe lo chiede una sola volta; puoi disattivarlo nel menu.
+Merge	Immettiti
+My Location	La mia posizione
+No places found.	Nessun luogo trovato.
+No route found between these places.	Nessun percorso trovato tra questi luoghi.
+Offline – showing saved map	Offline – viene mostrata la mappa salvata
+Open in OpenStreetMap	Apri in OpenStreetMap
+Remove from Favorites	Rimuovi dai preferiti
+Report a Map Issue	Segnala un problema della mappa
+Results	Risultati
+Routes: FOSSGIS routing server (OSRM), data © OpenStreetMap contributors	Percorsi: server di instradamento FOSSGIS (OSRM), dati © contributori di OpenStreetMap
+Saved	Salvato
+Search for a place and save it with the star. Right-click the map for more.	Cerca un luogo e salvalo con la stella. Clic destro sulla mappa per altre opzioni.
+Search for a place or address	Cerca un luogo o un indirizzo
+Show My Location	Mostra la mia posizione
+Show Sidebar	Mostra barra laterale
+Swap Start and Destination	Scambia partenza e destinazione
+Take the exit	Prendi l'uscita
+Take the ramp	Prendi la rampa
+The route could not be loaded. Check your internet connection.	Impossibile caricare il percorso. Controlla la connessione a Internet.
+Turn left	Svolta a sinistra
+Turn right	Svolta a destra
+Turn sharp left	Svolta decisamente a sinistra
+Turn sharp right	Svolta decisamente a destra
+Turn slightly left	Svolta leggermente a sinistra
+Turn slightly right	Svolta leggermente a destra
+Walk	A piedi
+What's Here?	Cosa c'è qui?
+Your location could not be found.	Impossibile trovare la tua posizione.
+Zoom In	Ingrandisci
+Zoom Out	Riduci
+© OpenStreetMap contributors	© contributori di OpenStreetMap

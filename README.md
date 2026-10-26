@@ -63,6 +63,8 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
 - **Kalendář** pod hodinami v liště – den s událostmi, měsíc a rok, události v `.ics` s připomínkami.
 - **Počasí** (`luxos-weather`) – aktuální počasí, předpověď na 24 hodin a 7 dní pro uložená místa (Open-Meteo),
   bez internetu poslední data; souhrn i v Kalendáři.
+- **Mapy** (`luxos-maps`) – plynulá mapa OpenStreetMap, hledání míst, trasy autem, na kole a pěšky, oblíbená
+  místa, moje poloha po souhlasu, odkazy `geo:`, tmavá mapa; rozhraní `luxos-maps --json` pro LuxAI.
 - **QR kód Wi‑Fi** (`luxos-wifi-qr`) – sdílení připojené sítě QR kódem pro telefon, připojení k síti naskenováním
   QR kódu kamerou (z Ovládacího centra).
 - **Hudba** v Ovládacím centru (MPRIS: Firefox, Spotify, VLC…), **jas displeje**, **profil LuxAI**.

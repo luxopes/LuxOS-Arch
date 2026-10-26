@@ -3468,3 +3468,66 @@ Report saved:	Bericht gespeichert:
 The window manager and the panel were restarted. Open apps keep running.	Fenstermanager und Leiste wurden neu gestartet. Geöffnete Apps laufen weiter.
 The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Der Displayserver antwortet nicht. Sichern Sie Ihre Arbeit in anderen Sitzungen und starten Sie den Computer neu: sudo reboot
 Back to the desktop: Ctrl+Alt+F1 (or F7).	Zurück zum Desktop: Strg+Alt+F1 (oder F7).
+%d h	%d Std.
+About Map Data	Über die Kartendaten
+Add to Favorites	Zu Favoriten hinzufügen
+Allow Maps to use your location?	Karten erlauben, Ihren Standort zu verwenden?
+Allow My Location	Meinen Standort erlauben
+Arrive at your destination	Sie haben Ihr Ziel erreicht
+Bike	Fahrrad
+Car	Auto
+Choose Destination	Ziel wählen
+Choose Start	Start wählen
+Continue straight	Geradeaus weiter
+Coordinates copied.	Koordinaten kopiert.
+Copy Coordinates	Koordinaten kopieren
+Copy Location Link	Ortslink kopieren
+Depart	Losfahren
+Destination is on the left	Das Ziel ist links
+Destination is on the right	Das Ziel ist rechts
+Directions	Route
+Directions from Here	Route von hier
+Directions to Here	Route hierher
+Enter the roundabout	In den Kreisverkehr einfahren
+Enter the roundabout and take exit %s	Im Kreisverkehr die %s. Ausfahrt nehmen
+Favorites	Favoriten
+Finding route…	Route wird gesucht…
+Go straight	Geradeaus
+Keep left	Links halten
+Keep right	Rechts halten
+Location link copied.	Ortslink kopiert.
+Make a U-turn	Wenden
+Map Appearance	Kartendarstellung
+Maps	Karten
+Maps uses the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	Karten verwendet den Ortungsdienst des Systems (GeoClue), wenn verfügbar, sonst wird Ihr ungefährer Standort anhand Ihrer Internetadresse über den Dienst ipinfo.io ermittelt (Ihre Adresse wird an diesen Dienst gesendet). Karten fragt nur einmal; im Menü können Sie es ausschalten.
+Merge	Einfädeln
+My Location	Mein Standort
+No places found.	Keine Orte gefunden.
+No route found between these places.	Zwischen diesen Orten wurde keine Route gefunden.
+Offline – showing saved map	Offline – gespeicherte Karte wird angezeigt
+Open in OpenStreetMap	In OpenStreetMap öffnen
+Remove from Favorites	Aus Favoriten entfernen
+Report a Map Issue	Kartenfehler melden
+Results	Ergebnisse
+Routes: FOSSGIS routing server (OSRM), data © OpenStreetMap contributors	Routen: FOSSGIS-Routingserver (OSRM), Daten © OpenStreetMap-Mitwirkende
+Saved	Gespeichert
+Search for a place and save it with the star. Right-click the map for more.	Suchen Sie einen Ort und speichern Sie ihn mit dem Stern. Mehr per Rechtsklick auf die Karte.
+Search for a place or address	Ort oder Adresse suchen
+Show My Location	Meinen Standort anzeigen
+Show Sidebar	Seitenleiste anzeigen
+Swap Start and Destination	Start und Ziel tauschen
+Take the exit	Ausfahrt nehmen
+Take the ramp	Auffahrt nehmen
+The route could not be loaded. Check your internet connection.	Die Route konnte nicht geladen werden. Prüfen Sie die Internetverbindung.
+Turn left	Links abbiegen
+Turn right	Rechts abbiegen
+Turn sharp left	Scharf links abbiegen
+Turn sharp right	Scharf rechts abbiegen
+Turn slightly left	Leicht links abbiegen
+Turn slightly right	Leicht rechts abbiegen
+Walk	Zu Fuß
+What's Here?	Was ist hier?
+Your location could not be found.	Ihr Standort konnte nicht ermittelt werden.
+Zoom In	Vergrößern
+Zoom Out	Verkleinern
+© OpenStreetMap contributors	© OpenStreetMap-Mitwirkende

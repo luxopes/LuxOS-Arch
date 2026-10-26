@@ -3468,3 +3468,66 @@ Report saved:	Rapport sparad:
 The window manager and the panel were restarted. Open apps keep running.	Fönsterhanteraren och panelen startades om. Öppna appar fortsätter att köra.
 The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Grafikservern svarar inte. Spara ditt arbete i andra sessioner och starta om datorn: sudo reboot
 Back to the desktop: Ctrl+Alt+F1 (or F7).	Tillbaka till skrivbordet: Ctrl+Alt+F1 (eller F7).
+%d h	%d tim
+About Map Data	Om kartdata
+Add to Favorites	Lägg till i favoriter
+Allow Maps to use your location?	Tillåt Kartor att använda din plats?
+Allow My Location	Tillåt min plats
+Arrive at your destination	Du är framme
+Bike	Cykel
+Car	Bil
+Choose Destination	Välj mål
+Choose Start	Välj start
+Continue straight	Fortsätt rakt fram
+Coordinates copied.	Koordinaterna har kopierats.
+Copy Coordinates	Kopiera koordinater
+Copy Location Link	Kopiera platslänk
+Depart	Starta
+Destination is on the left	Målet är till vänster
+Destination is on the right	Målet är till höger
+Directions	Vägbeskrivning
+Directions from Here	Vägbeskrivning härifrån
+Directions to Here	Vägbeskrivning hit
+Enter the roundabout	Kör in i rondellen
+Enter the roundabout and take exit %s	Ta avfart %s i rondellen
+Favorites	Favoriter
+Finding route…	Söker rutt…
+Go straight	Fortsätt rakt fram
+Keep left	Håll vänster
+Keep right	Håll höger
+Location link copied.	Platslänken har kopierats.
+Make a U-turn	Gör en U-sväng
+Map Appearance	Kartans utseende
+Maps	Kartor
+Maps uses the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	Kartor använder systemets platstjänst (GeoClue) när den finns, annars bestäms din ungefärliga plats utifrån din internetadress via tjänsten ipinfo.io (din adress skickas till tjänsten). Kartor frågar bara en gång; du kan stänga av det i menyn.
+Merge	Kör in i trafiken
+My Location	Min plats
+No places found.	Inga platser hittades.
+No route found between these places.	Ingen rutt hittades mellan platserna.
+Offline – showing saved map	Offline – visar sparad karta
+Open in OpenStreetMap	Öppna i OpenStreetMap
+Remove from Favorites	Ta bort från favoriter
+Report a Map Issue	Rapportera ett kartfel
+Results	Resultat
+Routes: FOSSGIS routing server (OSRM), data © OpenStreetMap contributors	Rutter: FOSSGIS ruttserver (OSRM), data © OpenStreetMap-bidragsgivare
+Saved	Sparad
+Search for a place and save it with the star. Right-click the map for more.	Sök efter en plats och spara den med stjärnan. Högerklicka på kartan för mer.
+Search for a place or address	Sök efter en plats eller adress
+Show My Location	Visa min plats
+Show Sidebar	Visa sidofält
+Swap Start and Destination	Byt plats på start och mål
+Take the exit	Ta avfarten
+Take the ramp	Ta påfarten
+The route could not be loaded. Check your internet connection.	Rutten kunde inte läsas in. Kontrollera internetanslutningen.
+Turn left	Sväng vänster
+Turn right	Sväng höger
+Turn sharp left	Sväng skarpt vänster
+Turn sharp right	Sväng skarpt höger
+Turn slightly left	Sväng svagt vänster
+Turn slightly right	Sväng svagt höger
+Walk	Gå
+What's Here?	Vad finns här?
+Your location could not be found.	Din plats kunde inte hittas.
+Zoom In	Zooma in
+Zoom Out	Zooma ut
+© OpenStreetMap contributors	© OpenStreetMap-bidragsgivare

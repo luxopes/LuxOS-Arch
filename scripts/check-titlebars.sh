@@ -14,17 +14,19 @@ export HOME=$tmp XDG_CONFIG_HOME=$tmp/config XDG_CACHE_HOME=$tmp/cache XDG_DATA_
 # at-spi by se pripojily ke skutecnym sluzbam uzivatele)
 mkdir -p "$tmp/run"; chmod 700 "$tmp/run"
 export XDG_RUNTIME_DIR=$tmp/run GTK_USE_PORTAL=0 GIO_USE_VFS=local NO_AT_BRIDGE=1 GNOME_KEYRING_CONTROL= SSH_AUTH_SOCK=
-export PYTHONPATH=$PWD/scripts/titlebar-check:$PWD/packages/luxos-guard/files:$PWD/packages/luxos-i18n/files:$PWD/packages/luxos-desktop/files/python:$PWD/packages/luxos-weather/files:$PWD/packages/luxos-account/files
+export PYTHONPATH=$PWD/scripts/titlebar-check:$PWD/packages/luxos-guard/files:$PWD/packages/luxos-i18n/files:$PWD/packages/luxos-desktop/files/python:$PWD/packages/luxos-weather/files:$PWD/packages/luxos-maps/files:$PWD/packages/luxos-account/files
 # Co je noveho: novinky ze zdroju, verze "nejnovejsi"
 export LUXOS_WHATS_NEW_DIR=$PWD/packages/luxos-branding/files/whats-new LUXOS_VERSION_FILE=$PWD/packages/luxos-branding/files/version
 export LUXOS_I18N_DIR=$PWD/packages/luxos-i18n/files
 # Pocasi a QR kod Wi-Fi bez skutecne site: nedostupne sluzby (port 9) a nmcli, ktery nic nevi
 export LUXOS_WEATHER_API=http://127.0.0.1:9/v1/forecast LUXOS_WEATHER_GEO=http://127.0.0.1:9/v1/search \
     LUXOS_WEATHER_IP=http://127.0.0.1:9/ip LUXOS_WEATHER_ICONS=$PWD/packages/luxos-weather/files/icons LUXOS_NMCLI=false
+export LUXOS_MAPS_TILES='http://127.0.0.1:9/{z}/{x}/{y}.png' LUXOS_MAPS_GEOCLUE=0
 apps=(
     packages/luxos-account/files/luxos-account
     packages/luxos-desktop/files/bin/luxos-{bluetooth,calculator,camera,display-settings,feedback,fingerprint,keyboard,lock-settings,monitor,power,profile-picture,router,settings,shortcuts,tour,whats-new,wifi-qr}
     packages/luxos-weather/files/luxos-weather
+    packages/luxos-maps/files/luxos-maps
     packages/luxos-drivers/luxos-drivers
     packages/luxos-printing/files/luxos-{printers,scan}
     packages/luxos-safe/files/luxos-safe

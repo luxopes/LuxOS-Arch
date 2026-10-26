@@ -3468,3 +3468,66 @@ Report saved:	Jelentés mentve:
 The window manager and the panel were restarted. Open apps keep running.	Az ablakkezelő és a panel újraindult. A megnyitott alkalmazások tovább futnak.
 The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	A grafikus kiszolgáló nem válaszol. Mentse a munkáját más munkamenetekben, és indítsa újra a számítógépet: sudo reboot
 Back to the desktop: Ctrl+Alt+F1 (or F7).	Vissza az asztalra: Ctrl+Alt+F1 (vagy F7).
+%d h	%d óra
+About Map Data	A térképadatokról
+Add to Favorites	Hozzáadás a kedvencekhez
+Allow Maps to use your location?	Engedélyezi, hogy a Térképek használja a tartózkodási helyét?
+Allow My Location	Saját hely engedélyezése
+Arrive at your destination	Megérkezett a célhoz
+Bike	Kerékpár
+Car	Autó
+Choose Destination	Válasszon célt
+Choose Start	Válasszon indulási helyet
+Continue straight	Haladjon tovább egyenesen
+Coordinates copied.	Koordináták másolva.
+Copy Coordinates	Koordináták másolása
+Copy Location Link	Helyhivatkozás másolása
+Depart	Induljon
+Destination is on the left	A cél balra van
+Destination is on the right	A cél jobbra van
+Directions	Útvonal
+Directions from Here	Útvonal innen
+Directions to Here	Útvonal ide
+Enter the roundabout	Hajtson be a körforgalomba
+Enter the roundabout and take exit %s	A körforgalomból a(z) %s. kijáraton hajtson ki
+Favorites	Kedvencek
+Finding route…	Útvonal keresése…
+Go straight	Menjen egyenesen
+Keep left	Tartson balra
+Keep right	Tartson jobbra
+Location link copied.	Helyhivatkozás másolva.
+Make a U-turn	Forduljon vissza
+Map Appearance	Térkép megjelenése
+Maps	Térképek
+Maps uses the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	A Térképek a rendszer helymeghatározó szolgáltatását (GeoClue) használja, ha elérhető, egyébként az internetcíme alapján az ipinfo.io szolgáltatással határozza meg a hozzávetőleges helyét (a címét elküldi ennek a szolgáltatásnak). Csak egyszer kérdez; a menüben kikapcsolható.
+Merge	Soroljon be
+My Location	Saját hely
+No places found.	Nem található hely.
+No route found between these places.	Nem található útvonal e helyek között.
+Offline – showing saved map	Offline – mentett térkép látható
+Open in OpenStreetMap	Megnyitás az OpenStreetMapen
+Remove from Favorites	Eltávolítás a kedvencek közül
+Report a Map Issue	Térképhiba bejelentése
+Results	Találatok
+Routes: FOSSGIS routing server (OSRM), data © OpenStreetMap contributors	Útvonalak: FOSSGIS útvonaltervező szerver (OSRM), adatok © OpenStreetMap közreműködők
+Saved	Mentve
+Search for a place and save it with the star. Right-click the map for more.	Keressen egy helyet, és mentse el a csillaggal. További lehetőségek: jobb kattintás a térképen.
+Search for a place or address	Hely vagy cím keresése
+Show My Location	Saját hely megjelenítése
+Show Sidebar	Oldalsáv megjelenítése
+Swap Start and Destination	Indulás és cél felcserélése
+Take the exit	Hajtson ki a lehajtón
+Take the ramp	Hajtson fel a felhajtón
+The route could not be loaded. Check your internet connection.	Az útvonalat nem sikerült betölteni. Ellenőrizze az internetkapcsolatot.
+Turn left	Forduljon balra
+Turn right	Forduljon jobbra
+Turn sharp left	Forduljon élesen balra
+Turn sharp right	Forduljon élesen jobbra
+Turn slightly left	Forduljon enyhén balra
+Turn slightly right	Forduljon enyhén jobbra
+Walk	Gyalog
+What's Here?	Mi van itt?
+Your location could not be found.	Nem sikerült meghatározni a tartózkodási helyét.
+Zoom In	Nagyítás
+Zoom Out	Kicsinyítés
+© OpenStreetMap contributors	© OpenStreetMap közreműködők

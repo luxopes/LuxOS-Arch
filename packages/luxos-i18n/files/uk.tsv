@@ -3469,3 +3469,66 @@ Report saved:	Звіт збережено:
 The window manager and the panel were restarted. Open apps keep running.	Менеджер вікон і панель перезапущено. Відкриті застосунки працюють далі.
 The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Графічний сервер не відповідає. Збережіть роботу в інших сеансах і перезапустіть комп’ютер: sudo reboot
 Back to the desktop: Ctrl+Alt+F1 (or F7).	Назад до робочого столу: Ctrl+Alt+F1 (або F7).
+%d h	%d год
+About Map Data	Про картографічні дані
+Add to Favorites	Додати до обраного
+Allow Maps to use your location?	Дозволити Картам використовувати ваше місцезнаходження?
+Allow My Location	Дозволити моє місцезнаходження
+Arrive at your destination	Ви прибули до місця призначення
+Bike	Велосипед
+Car	Авто
+Choose Destination	Виберіть пункт призначення
+Choose Start	Виберіть початок
+Continue straight	Рухайтеся прямо
+Coordinates copied.	Координати скопійовано.
+Copy Coordinates	Копіювати координати
+Copy Location Link	Копіювати посилання на місце
+Depart	Вирушайте
+Destination is on the left	Пункт призначення ліворуч
+Destination is on the right	Пункт призначення праворуч
+Directions	Маршрут
+Directions from Here	Маршрут звідси
+Directions to Here	Маршрут сюди
+Enter the roundabout	В'їжджайте на кільце
+Enter the roundabout and take exit %s	На кільці з'їжджайте на %s-му з'їзді
+Favorites	Обране
+Finding route…	Пошук маршруту…
+Go straight	Рухайтеся прямо
+Keep left	Тримайтеся лівіше
+Keep right	Тримайтеся правіше
+Location link copied.	Посилання на місце скопійовано.
+Make a U-turn	Розверніться
+Map Appearance	Вигляд карти
+Maps	Карти
+Maps uses the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	Карти використовують системну службу місцезнаходження (GeoClue), якщо вона доступна, інакше визначають приблизне місцезнаходження за вашою інтернет-адресою через службу ipinfo.io (адресу буде надіслано цій службі). Карти запитують лише один раз; вимкнути це можна в меню.
+Merge	Влийтеся в потік
+My Location	Моє місцезнаходження
+No places found.	Місць не знайдено.
+No route found between these places.	Між цими місцями маршрут не знайдено.
+Offline – showing saved map	Офлайн – показано збережену карту
+Open in OpenStreetMap	Відкрити в OpenStreetMap
+Remove from Favorites	Видалити з обраного
+Report a Map Issue	Повідомити про помилку на карті
+Results	Результати
+Routes: FOSSGIS routing server (OSRM), data © OpenStreetMap contributors	Маршрути: сервер маршрутизації FOSSGIS (OSRM), дані © учасники OpenStreetMap
+Saved	Збережено
+Search for a place and save it with the star. Right-click the map for more.	Знайдіть місце та збережіть його зірочкою. Більше можливостей – правою кнопкою на карті.
+Search for a place or address	Шукати місце або адресу
+Show My Location	Показати моє місцезнаходження
+Show Sidebar	Показати бічну панель
+Swap Start and Destination	Поміняти початок і призначення
+Take the exit	З'їжджайте з траси
+Take the ramp	Виїжджайте на трасу
+The route could not be loaded. Check your internet connection.	Не вдалося завантажити маршрут. Перевірте підключення до інтернету.
+Turn left	Поверніть ліворуч
+Turn right	Поверніть праворуч
+Turn sharp left	Різко поверніть ліворуч
+Turn sharp right	Різко поверніть праворуч
+Turn slightly left	Злегка поверніть ліворуч
+Turn slightly right	Злегка поверніть праворуч
+Walk	Пішки
+What's Here?	Що тут?
+Your location could not be found.	Не вдалося визначити ваше місцезнаходження.
+Zoom In	Збільшити
+Zoom Out	Зменшити
+© OpenStreetMap contributors	© учасники OpenStreetMap

@@ -3560,3 +3560,66 @@ Report saved:	Hlášení uloženo:
 The window manager and the panel were restarted. Open apps keep running.	Správce oken a lišta byly restartovány. Otevřené aplikace běží dál.
 The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Grafický server neodpovídá. Uložte práci v jiných relacích a restartujte počítač: sudo reboot
 Back to the desktop: Ctrl+Alt+F1 (or F7).	Zpět na plochu: Ctrl+Alt+F1 (nebo F7).
+%d h	%d h
+About Map Data	O mapových datech
+Add to Favorites	Přidat do oblíbených
+Allow Maps to use your location?	Povolit Mapám používat vaši polohu?
+Allow My Location	Povolit moji polohu
+Arrive at your destination	Jste v cíli
+Bike	Kolo
+Car	Auto
+Choose Destination	Zvolte cíl
+Choose Start	Zvolte start
+Continue straight	Pokračujte rovně
+Coordinates copied.	Souřadnice zkopírovány.
+Copy Coordinates	Kopírovat souřadnice
+Copy Location Link	Kopírovat odkaz na místo
+Depart	Vyjeďte
+Destination is on the left	Cíl je vlevo
+Destination is on the right	Cíl je vpravo
+Directions	Trasa
+Directions from Here	Trasa odsud
+Directions to Here	Trasa sem
+Enter the roundabout	Vjeďte na kruhový objezd
+Enter the roundabout and take exit %s	Na kruhovém objezdu vyjeďte %s. výjezdem
+Favorites	Oblíbená místa
+Finding route…	Hledám trasu…
+Go straight	Jeďte rovně
+Keep left	Držte se vlevo
+Keep right	Držte se vpravo
+Location link copied.	Odkaz na místo zkopírován.
+Make a U-turn	Otočte se
+Map Appearance	Vzhled mapy
+Maps	Mapy
+Maps uses the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	Mapy použijí systémovou službu polohy (GeoClue), je-li k dispozici, jinak zjistí přibližnou polohu podle vaší internetové adresy pomocí služby ipinfo.io (adresa se této službě odešle). Mapy se zeptají jen jednou; vypnout to jde v nabídce.
+Merge	Zařaďte se
+My Location	Moje poloha
+No places found.	Žádná místa nenalezena.
+No route found between these places.	Mezi těmito místy nebyla nalezena žádná trasa.
+Offline – showing saved map	Offline – zobrazuji uloženou mapu
+Open in OpenStreetMap	Otevřít v OpenStreetMap
+Remove from Favorites	Odebrat z oblíbených
+Report a Map Issue	Nahlásit chybu v mapě
+Results	Výsledky
+Routes: FOSSGIS routing server (OSRM), data © OpenStreetMap contributors	Trasy: směrovací server FOSSGIS (OSRM), data © přispěvatelé OpenStreetMap
+Saved	Uloženo
+Search for a place and save it with the star. Right-click the map for more.	Vyhledejte místo a uložte ho hvězdičkou. Další možnosti najdete pod pravým tlačítkem na mapě.
+Search for a place or address	Hledat místo nebo adresu
+Show My Location	Zobrazit moji polohu
+Show Sidebar	Zobrazit postranní panel
+Swap Start and Destination	Prohodit start a cíl
+Take the exit	Sjeďte z dálnice
+Take the ramp	Najeďte na dálnici
+The route could not be loaded. Check your internet connection.	Trasu se nepodařilo načíst. Zkontrolujte připojení k internetu.
+Turn left	Odbočte vlevo
+Turn right	Odbočte vpravo
+Turn sharp left	Odbočte ostře vlevo
+Turn sharp right	Odbočte ostře vpravo
+Turn slightly left	Odbočte mírně vlevo
+Turn slightly right	Odbočte mírně vpravo
+Walk	Pěšky
+What's Here?	Co je tady?
+Your location could not be found.	Vaši polohu se nepodařilo zjistit.
+Zoom In	Přiblížit
+Zoom Out	Oddálit
+© OpenStreetMap contributors	© přispěvatelé OpenStreetMap
