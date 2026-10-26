@@ -2702,3 +2702,75 @@ More details: run the command again with --verbose	Ďalšie podrobnosti: spustit
 The list of apps is out of date. Install the updates first, then try again.	Zoznam aplikácií je zastaraný. Najprv nainštalujte aktualizácie a potom to skúste znova.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Dátum a čas počítača nie sú správne, preto nie je možné zabezpečené pripojenie. Skontrolujte nastavenie času.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Dlhšia výdrž batérie: pomalší procesor bez turba, o niečo nižší jas, bez zväčšovania v Docku, nepoužívané zariadenia sa uspia a úlohy na pozadí sa pozastavia.
+Router (app name)	Správa siete
+Router	Router
+Overview	Prehľad
+Devices	Zariadenia
+Replies	Odpovedá
+Could not run ping	Ping sa nedá spustiť
+No reply	Bez odpovede
+%s ms	%s ms
+%d %% lost	stratených %d %%
+Reload	Načítať znova
+Connect to the router with HTTP or HTTPS	Pripojiť sa k routeru cez HTTP alebo HTTPS
+Open in Browser	Otvoriť v prehliadači
+Connection	Pripojenie
+Interface	Rozhranie
+IP address	Adresa IP
+Router (gateway)	Router (brána)
+IPv6 gateway	Brána IPv6
+DNS servers	Servery DNS
+MAC address	Adresa MAC
+Wi-Fi network	Sieť Wi‑Fi
+Ethernet (cable)	Ethernet (kábel)
+Public IP address	Verejná adresa IP
+Asks an internet service (ipify.org) for the address your network is seen from.	Opýta sa internetovej služby (ipify.org), pod akou adresou je vaša sieť vidieť.
+Quick Tests	Rýchle testy
+Ping router	Ping na router
+Ping internet	Ping do internetu
+Sends 4 packets to %s.	Pošle 4 pakety na %s.
+Name lookup (DNS)	Preklad mien (DNS)
+Looks up %s using your DNS servers.	Preloží %s cez vaše servery DNS.
+Download speed	Rýchlosť sťahovania
+Estimate: downloads 10 MB from speed.cloudflare.com.	Odhad: stiahne 10 MB zo speed.cloudflare.com.
+Test	Vyskúšať
+Measure	Zmerať
+Name lookup failed	Preklad mena zlyhal
+Works (%s ms)	Funguje (%s ms)
+Measurement failed	Meranie sa nepodarilo
+%s Mbit/s	%s Mbit/s
+Search Network	Prehľadať sieť
+Briefly contacts every address in your home network so that devices which were quiet also appear.	Krátko osloví každú adresu v domácej sieti, aby sa zobrazili aj zariadenia, ktoré práve nekomunikovali.
+Address	Adresa
+State	Stav
+Seen recently	Nedávno videné
+Checking	Overuje sa
+Fixed	Pevný záznam
+%d devices	Zariadenia: %d
+Searching %d addresses…	Prehľadáva sa %d adries…
+Private address (random MAC)	Súkromná adresa (náhodná MAC)
+The built-in web view (WebKitGTK) is not available. The router settings will open in your web browser.	Vstavané zobrazenie webu (WebKitGTK) nie je k dispozícii. Nastavenia routera sa otvoria vo webovom prehliadači.
+Not connected to a network.	Nie ste pripojení k sieti.
+The link leads outside your home network, so it was opened in your web browser.	Odkaz vedie mimo domácej siete, preto sa otvoril vo webovom prehliadači.
+The page wanted to open an address outside your home network: %s	Stránka chcela otvoriť adresu mimo domácej siete: %s
+The connection to %s is not secure (untrusted certificate). Only your router's own address can be allowed.	Pripojenie k %s nie je zabezpečené (nedôveryhodný certifikát). Povoliť možno len vlastnú adresu routera.
+The router uses its own security certificate	Router používa vlastný bezpečnostný certifikát
+Routers usually have a self-signed certificate that cannot be verified. Continue only if %s is your router. The exception applies to this address only, until you close the app.	Routery mávajú certifikát podpísaný samy sebou, ktorý sa nedá overiť. Pokračujte, len ak je %s váš router. Výnimka platí len pre túto adresu a do zatvorenia aplikácie.
+The router does not answer over HTTP. Try HTTPS.	Router cez HTTP neodpovedá. Skúste HTTPS.
+The page could not be loaded: %s	Stránku sa nedá načítať: %s
+%s asks for a user name and password. They are not saved.	%s žiada používateľské meno a heslo. Neukladajú sa.
+Encrypted connection (HTTPS)	Šifrované pripojenie (HTTPS)
+Encrypted connection, certificate allowed by you	Šifrované pripojenie, certifikát ste povolili vy
+Unencrypted connection (HTTP) inside your home network	Nešifrované pripojenie (HTTP) v domácej sieti
+No router (default gateway) found.	Router (predvolená brána) sa nenašiel.
+Router: %s	Router: %s
+Open Router Settings	Otvoriť nastavenia routera
+Saved to Downloads: %s	Uložené do Stiahnutých súborov: %s
+Arrangement	Usporiadanie
+Drag the displays to arrange them. Drag the white bar to another display to move the menu bar and Dock there.	Monitory usporiadate presunutím. Presunutím bieleho pruhu na iný monitor tam presuniete horný panel a Dock.
+Main display	Hlavný monitor
+The menu bar and Dock appear on the main display.	Horný panel a Dock sú na hlavnom monitore.
+Mirror displays	Zrkadliť monitory
+Show the same picture on all displays.	Na všetkých monitoroch rovnaký obraz.
+The displays show the same picture. Turn off mirroring to arrange them.	Monitory zobrazujú rovnaký obraz. Ak ich chcete usporiadať, vypnite zrkadlenie.
+Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Používa sa len jeden monitor. Ak chcete monitory usporiadať, zvoľte Rozšíriť v časti Viac monitorov.

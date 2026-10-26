@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""Falesny ip pro testy Spravy site: FAKE_NET = JSON {"routes": [...], "routes6": [...], "neigh": [...]}."""
+import json
+import os
+import sys
+
+with open(os.environ["FAKE_NET"]) as f:
+    net = json.load(f)
+a = sys.argv[1:]
+js = "-j" in a
+if "route" in a:
+    data = net.get("routes6" if "-6" in a else "routes", [])
+elif "neigh" in a:
+    data = net.get("neigh", [])
+else:
+    sys.exit(1)
+if js:
+    print(json.dumps(data))
+else:
+    for r in data:
+        print(f"default via {r['gateway']} dev {r['dev']} metric {r.get('metric', 0)}")

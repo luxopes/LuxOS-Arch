@@ -7,6 +7,8 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 ## Připravuje se
 
 ### Nové
+- **Uspořádání monitorů jako v macOS** (Monitory › Uspořádání): monitory jako obdélníky v měřítku, přetažením se přichytí k hraně jiného (bez mezer a překryvů, zarovnání hran), bílý pruh = hlavní monitor s horní lištou a Dockem (přetáhnout na jiný monitor nebo vybrat v Hlavní monitor), přepínač Zrcadlit monitory. Každá změna s 15s potvrzením jako rozlišení. Rozložení se ukládá pro každou sadu monitorů (konektor + EDID, při jiném konektoru podle EDID) a obnoví se po přihlášení i po opětovném připojení stejných monitorů.
+- **Správa sítě** (`luxos-router`, anglicky Router): údaje o síti (Wi‑Fi, IP, brána, DNS, veřejná IP na vyžádání), webová správa routeru přímo v aplikaci (HTTP i HTTPS, jen adresy v domácí síti – odkazy jinam se otevřou v prohlížeči; vlastní certifikát routeru jen po potvrzení a jen pro adresu brány; žádná hesla se neukládají), zařízení v síti s výrobcem podle MAC (místní seznam OUI) a hledání v síti, rychlé testy: ping routeru a internetu, DNS, odhad rychlosti stahování.
 - **Graf vytížení CPU** jde přidat do horní lišty (pravým tlačítkem na lištu › Panel › Přidat nové položky › CPU Graph); ve výchozí liště není.
 
 ### Opraveno

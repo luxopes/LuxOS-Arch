@@ -2702,3 +2702,75 @@ More details: run the command again with --verbose	Altri dettagli: esegui di nuo
 The list of apps is out of date. Install the updates first, then try again.	L'elenco delle app non è aggiornato. Installa prima gli aggiornamenti, poi riprova.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	La data e l'ora del computer sono errate, quindi non è possibile una connessione sicura. Controlla le impostazioni dell'ora.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Batteria più duratura: processore più lento senza turbo, luminosità leggermente ridotta, nessun ingrandimento nel Dock, i dispositivi inattivi vanno in sospensione e le attività in background si mettono in pausa.
+Router (app name)	Gestione rete
+Router	Router
+Overview	Panoramica
+Devices	Dispositivi
+Replies	Risponde
+Could not run ping	Impossibile eseguire ping
+No reply	Nessuna risposta
+%s ms	%s ms
+%d %% lost	%d %% persi
+Reload	Ricarica
+Connect to the router with HTTP or HTTPS	Connettiti al router tramite HTTP o HTTPS
+Open in Browser	Apri nel browser
+Connection	Connessione
+Interface	Interfaccia
+IP address	Indirizzo IP
+Router (gateway)	Router (gateway)
+IPv6 gateway	Gateway IPv6
+DNS servers	Server DNS
+MAC address	Indirizzo MAC
+Wi-Fi network	Rete Wi‑Fi
+Ethernet (cable)	Ethernet (cavo)
+Public IP address	Indirizzo IP pubblico
+Asks an internet service (ipify.org) for the address your network is seen from.	Chiede a un servizio Internet (ipify.org) con quale indirizzo è visibile la tua rete.
+Quick Tests	Test rapidi
+Ping router	Ping del router
+Ping internet	Ping di Internet
+Sends 4 packets to %s.	Invia 4 pacchetti a %s.
+Name lookup (DNS)	Risoluzione dei nomi (DNS)
+Looks up %s using your DNS servers.	Risolve %s con i tuoi server DNS.
+Download speed	Velocità di download
+Estimate: downloads 10 MB from speed.cloudflare.com.	Stima: scarica 10 MB da speed.cloudflare.com.
+Test	Prova
+Measure	Misura
+Name lookup failed	Risoluzione del nome non riuscita
+Works (%s ms)	Funziona (%s ms)
+Measurement failed	Misurazione non riuscita
+%s Mbit/s	%s Mbit/s
+Search Network	Cerca nella rete
+Briefly contacts every address in your home network so that devices which were quiet also appear.	Contatta brevemente ogni indirizzo della rete domestica, così compaiono anche i dispositivi inattivi.
+Address	Indirizzo
+State	Stato
+Seen recently	Visto di recente
+Checking	Verifica
+Fixed	Fisso
+%d devices	%d dispositivi
+Searching %d addresses…	Ricerca su %d indirizzi…
+Private address (random MAC)	Indirizzo privato (MAC casuale)
+The built-in web view (WebKitGTK) is not available. The router settings will open in your web browser.	La vista web integrata (WebKitGTK) non è disponibile. Le impostazioni del router si apriranno nel browser.
+Not connected to a network.	Non connesso a una rete.
+The link leads outside your home network, so it was opened in your web browser.	Il link porta fuori dalla rete domestica, quindi è stato aperto nel browser.
+The page wanted to open an address outside your home network: %s	La pagina voleva aprire un indirizzo fuori dalla rete domestica: %s
+The connection to %s is not secure (untrusted certificate). Only your router's own address can be allowed.	La connessione a %s non è sicura (certificato non attendibile). Si può consentire solo l’indirizzo del router.
+The router uses its own security certificate	Il router usa un proprio certificato di sicurezza
+Routers usually have a self-signed certificate that cannot be verified. Continue only if %s is your router. The exception applies to this address only, until you close the app.	I router hanno di solito un certificato autofirmato non verificabile. Continua solo se %s è il tuo router. L’eccezione vale solo per questo indirizzo, fino alla chiusura dell’app.
+The router does not answer over HTTP. Try HTTPS.	Il router non risponde via HTTP. Prova HTTPS.
+The page could not be loaded: %s	Impossibile caricare la pagina: %s
+%s asks for a user name and password. They are not saved.	%s chiede nome utente e password. Non vengono salvati.
+Encrypted connection (HTTPS)	Connessione cifrata (HTTPS)
+Encrypted connection, certificate allowed by you	Connessione cifrata, certificato consentito da te
+Unencrypted connection (HTTP) inside your home network	Connessione non cifrata (HTTP) nella rete domestica
+No router (default gateway) found.	Nessun router (gateway predefinito) trovato.
+Router: %s	Router: %s
+Open Router Settings	Apri impostazioni del router
+Saved to Downloads: %s	Salvato in Download: %s
+Arrangement	Disposizione
+Drag the displays to arrange them. Drag the white bar to another display to move the menu bar and Dock there.	Trascina gli schermi per disporli. Trascina la barra bianca su un altro schermo per spostarvi la barra dei menu e il Dock.
+Main display	Schermo principale
+The menu bar and Dock appear on the main display.	La barra dei menu e il Dock compaiono sullo schermo principale.
+Mirror displays	Duplica schermi
+Show the same picture on all displays.	Mostra la stessa immagine su tutti gli schermi.
+The displays show the same picture. Turn off mirroring to arrange them.	Gli schermi mostrano la stessa immagine. Disattiva la duplicazione per disporli.
+Only one display is in use. Choose Extend under Multiple Displays to arrange them.	È in uso un solo schermo. Scegli Estendi in Più schermi per disporli.

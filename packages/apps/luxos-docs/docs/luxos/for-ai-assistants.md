@@ -50,7 +50,8 @@ LuxOS computer. LuxOS is Arch-based, but several Arch habits are wrong here.
 | System health | `lux doctor` | |
 | Drivers | Drivers (`luxos-drivers`), `lux drivers`, `luxos-hwdetect --report` | restart after installing |
 | Wallpaper, light/dark/auto, Dock, top bar, boot splash | Desktop & Dock (`luxos-settings`); `luxos-appearance light\|dark\|auto\|toggle\|wallpaper FILE\|bar-opacity N\|dock-opacity N` | |
-| Monitors, resolution, rotation, text size | Displays (`luxos-display-settings`); quick mode menu `luxos-displays menu` (Super+P) | changes revert after 15 s unless kept |
+| Monitors, arrangement, main display, resolution, rotation, text size | Displays (`luxos-display-settings`); quick mode menu `luxos-displays menu` (Super+P) | changes revert after 15 s unless kept |
+| Router admin page, network details, devices on the LAN, ping/DNS test | Router app (`luxos-router`), see [network-admin.md](network-admin.md) | router page opens only LAN addresses; never store router passwords |
 | Keyboard layouts | Keyboard Layouts (`luxos-keyboard`) | system-wide via `localectl`, needs polkit |
 | Keyboard shortcuts | Keyboard Shortcuts (`luxos-shortcuts`) | xfconf channel `xfce4-keyboard-shortcuts` |
 | Battery, power mode, sleep, lid | Battery & Power (`luxos-power`) | |
