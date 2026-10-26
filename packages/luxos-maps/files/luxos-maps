@@ -1,0 +1,1619 @@
+#!/usr/bin/env python3
+"""LuxOS Mapy - plynula mapa OpenStreetMap, hledani mist, trasy, oblibena mista, moje poloha.
+
+  luxos-maps                         okno aplikace
+  luxos-maps geo:50.087,14.421?z=16  otevre misto (obsluha odkazu geo:, i "50.08,14.42" nebo nazev)
+  luxos-maps --route OD KAM [--mode car|bike|walk]
+  luxos-maps --json PRIKAZ ...       rozhrani pro LuxAI a skripty (JSON, bez okna; viz luxos_maps.CLI_HELP)
+
+GTK3 + cairo: dlazdice kresli DrawingArea (rychlejsi start a mene pameti nez GTK4/libshumate).
+Data: luxos_maps (mezipamet dlazdic podle hlavicek OSM, max. 2 stahovani, hledani a trasy max. 1/s).
+Poloha jen po souhlasu (GeoClue, jinak priblizne podle IP adresy). Tmava mapa = prevracene dlazdice.
+"""
+import io
+import math
+import os
+import sys
+import threading
+import time
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+import luxos_maps as lm  # noqa: E402
+
+if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] == "--json":
+    sys.exit(lm.cli_main(sys.argv[2:]))
+
+from luxos_i18n import _  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk  # noqa: E402
+import cairo  # noqa: E402
+
+APP = "luxos-maps"
+APP_ID = "cz.luxos.Maps"
+LANG = lm.lang_code()
+IMPERIAL = lm.locale_country() in lm.IMPERIAL
+MEM_TILES = 160              # dlazdic v pameti (256x256 RGB ~ 256 kB)
+RETRY_FAILED = 20            # s, za jak dlouho zkusit znovu dlazdici, ktera nesla stahnout
+ACCENT = (0.24, 0.48, 1.0)   # #3d7bff jako jinde v LuxOS
+# Vychozi pohled podle jazyka (bez site a bez sluzby polohy)
+HOME_VIEW = {
+    "cs": (49.8, 15.5, 7), "sk": (48.7, 19.5, 7), "pl": (52.0, 19.2, 6), "uk": (49.0, 31.3, 6),
+    "hu": (47.2, 19.4, 7), "de": (51.1, 10.4, 6), "fr": (46.6, 2.4, 6), "es": (40.2, -3.6, 6),
+    "it": (42.8, 12.5, 6), "pt": (39.6, -8.0, 7), "nl": (52.2, 5.3, 7), "sv": (62.0, 15.0, 5),
+}
+MODE_LABELS = (("car", "Car"), ("bike", "Bike"), ("walk", "Walk"))
+
+CSS = b"""
+.maps-sidebar { background-color: @theme_base_color; }
+.maps-sidebar list { background: transparent; }
+.maps-sidebar row { padding: 7px 10px; border-radius: 9px; margin: 1px 6px; }
+.side-title { font-size: 11px; font-weight: 700; opacity: 0.6; }
+.place-name { font-size: 21px; font-weight: 700; }
+.row-name { font-weight: 700; }
+.dim { opacity: 0.7; }
+.small { font-size: 11px; }
+.route-sum { font-size: 22px; font-weight: 700; }
+.primary { border-radius: 999px; padding: 5px 18px; font-weight: 700; background-image: none;
+           background-color: #3d7bff; color: white; border: none; box-shadow: none; }
+.map-osd { background-color: alpha(@theme_bg_color, 0.92); border-radius: 9px;
+           border: 1px solid alpha(black, 0.12); }
+.map-osd button { border: none; background: transparent; box-shadow: none; min-width: 30px; min-height: 30px; }
+.attribution { background-color: alpha(@theme_bg_color, 0.85); border-radius: 6px 0 0 0; font-size: 11px; }
+.offline-pill { background-color: alpha(#202533, 0.88); color: white; border-radius: 999px; font-weight: 700; }
+"""
+
+
+# ---- kresleni ---------------------------------------------------------------------
+def darken(src):
+    """Tmava dlazdice: prevracena svetlost, puvodni odstin (voda zustane modra), ztlumeni."""
+    w, h = src.get_width(), src.get_height()
+    out = cairo.ImageSurface(cairo.FORMAT_RGB24, w, h)
+    cr = cairo.Context(out)
+    cr.set_source_surface(src)
+    cr.paint()
+    cr.set_operator(cairo.OPERATOR_DIFFERENCE)
+    cr.set_source_rgb(1, 1, 1)
+    cr.paint()
+    cr.set_operator(cairo.OPERATOR_HSL_HUE)
+    cr.set_source_surface(src)
+    cr.paint()
+    cr.set_operator(cairo.OPERATOR_OVER)
+    cr.set_source_rgba(0.13, 0.15, 0.2, 0.3)
+    cr.paint()
+    return out
+
+
+def decode_png(data):
+    try:
+        return cairo.ImageSurface.create_from_png(io.BytesIO(data))
+    except (cairo.Error, MemoryError, ValueError):
+        pass
+    try:      # jini poskytovatele mohou posilat JPEG
+        loader = GdkPixbuf.PixbufLoader()
+        loader.write(data)
+        loader.close()
+        pix = loader.get_pixbuf()
+        surf = cairo.ImageSurface(cairo.FORMAT_RGB24, pix.get_width(), pix.get_height())
+        cr = cairo.Context(surf)
+        Gdk.cairo_set_source_pixbuf(cr, pix, 0, 0)
+        cr.paint()
+        return surf
+    except (GLib.Error, TypeError):
+        return None
+
+
+def pin_path(cr, x, y, r=11):
+    """Spendlik: spicka v (x, y)."""
+    cy = y - r * 2.1
+    a = math.acos(1 / 2.1)          # tecny ze spicky ke kruhu
+    cr.new_path()
+    cr.move_to(x, y)
+    cr.arc(x, cy, r, math.pi / 2 + a, math.pi / 2 - a + 2 * math.pi)
+    cr.close_path()
+    return cy
+
+
+def draw_pin(cr, x, y, color=(0.92, 0.26, 0.24)):
+    cr.save()
+    cr.set_source_rgba(0, 0, 0, 0.25)
+    cr.save()
+    cr.translate(x + 2, y)
+    cr.scale(1, 0.35)
+    cr.arc(0, 0, 6, 0, 2 * math.pi)
+    cr.restore()
+    cr.fill()
+    cy = pin_path(cr, x, y)
+    cr.set_source_rgb(*color)
+    cr.fill_preserve()
+    cr.set_line_width(1.5)
+    cr.set_source_rgba(0, 0, 0, 0.3)
+    cr.stroke()
+    cr.arc(x, cy, 4.2, 0, 2 * math.pi)
+    cr.set_source_rgb(1, 1, 1)
+    cr.fill()
+    cr.restore()
+
+
+def draw_dot(cr, x, y, color, r=7):
+    cr.arc(x, y, r + 2.5, 0, 2 * math.pi)
+    cr.set_source_rgb(1, 1, 1)
+    cr.fill()
+    cr.arc(x, y, r, 0, 2 * math.pi)
+    cr.set_source_rgb(*color)
+    cr.fill()
+
+
+def draw_star(cr, x, y, r):
+    cr.new_path()
+    for i in range(10):
+        a = -math.pi / 2 + i * math.pi / 5
+        rr = r if i % 2 == 0 else r * 0.45
+        cr.line_to(x + rr * math.cos(a), y + rr * math.sin(a))
+    cr.close_path()
+
+
+class TurnIcon(Gtk.DrawingArea):
+    """Sipka manevru (vlastni kresba, bez ikon tretich stran)."""
+    ANGLES = {"straight": 0, "slight right": 45, "right": 90, "sharp right": 135, "uturn": 180,
+              "slight left": -45, "left": -90, "sharp left": -135}
+
+    def __init__(self, typ, modifier):
+        super().__init__()
+        self.typ, self.mod = typ, modifier
+        self.set_size_request(28, 28)
+        self.set_valign(Gtk.Align.CENTER)
+        self.connect("draw", self.draw)
+
+    def draw(self, widget, cr):
+        c = widget.get_style_context().get_color(widget.get_state_flags())
+        w, h = widget.get_allocated_width(), widget.get_allocated_height()
+        cx, cy = w / 2, h / 2
+        cr.set_line_width(2.4)
+        cr.set_line_cap(cairo.LINE_CAP_ROUND)
+        cr.set_line_join(cairo.LINE_JOIN_ROUND)
+        if self.typ == "depart":
+            draw_dot(cr, cx, cy, (0.2, 0.7, 0.35), 6)
+            return
+        if self.typ == "arrive":
+            draw_pin(cr, cx, cy + 10)
+            return
+        cr.set_source_rgba(c.red, c.green, c.blue, c.alpha)
+        if self.typ in ("roundabout", "rotary"):
+            cr.arc(cx, cy + 2, 6, 0, 2 * math.pi)
+            cr.stroke()
+            cr.move_to(cx, cy + 14)
+            cr.line_to(cx, cy + 8)
+            cr.stroke()
+            cr.move_to(cx + 4, cy - 2)
+            cr.line_to(cx + 9, cy - 9)
+            cr.stroke()
+            return
+        if self.mod == "uturn":
+            cr.move_to(cx + 5, cy + 11)
+            cr.line_to(cx + 5, cy - 2)
+            cr.arc_negative(cx, cy - 2, 5, 0, math.pi)
+            cr.line_to(cx - 5, cy + 6)
+            cr.stroke()
+            cr.move_to(cx - 9, cy + 2)
+            cr.line_to(cx - 5, cy + 7)
+            cr.line_to(cx - 1, cy + 2)
+            cr.stroke()
+            return
+        ang = math.radians(self.ANGLES.get(self.mod, 0))
+        cr.move_to(cx, cy + 12)
+        cr.line_to(cx, cy + 1)
+        ex, ey = cx + 10 * math.sin(ang), cy + 1 - 10 * math.cos(ang)
+        cr.line_to(ex, ey)
+        cr.stroke()
+        for side in (-1, 1):
+            a2 = ang + math.pi + side * 0.6
+            cr.move_to(ex, ey)
+            cr.line_to(ex + 6 * math.sin(a2), ey - 6 * math.cos(a2))
+        cr.stroke()
+
+
+# ---- mapa ---------------------------------------------------------------------------
+class MapView(Gtk.DrawingArea):
+    """Posuvna mapa: tazeni (se setrvacnosti), kolecko/touchpad = plynuly zoom k mysi, klavesy."""
+
+    def __init__(self, tile_url, lat, lon, zoom):
+        super().__init__(can_focus=True, hexpand=True, vexpand=True)
+        self.mx, self.my = lm.to_world(lat, lon)
+        self.zoom = zoom
+        self.dark = False
+        self.mem = {}                      # (z,x,y) -> surface; poradi = LRU
+        self.failed = {}                   # (z,x,y) -> cas neuspechu
+        self.missing_sent = None
+        self.store = lm.TileStore(tile_url, self._tile_from_thread)
+        self.marker = None                 # {"lat","lon"}
+        self.results = []                  # vysledky hledani (male body)
+        self.favorites = []
+        self.me = None                     # {"lat","lon","accuracy"}
+        self.route = None                  # {"points": [(lat,lon)], "world": [(x,y)], "mode"}
+        self.route_ends = None
+        self.step_mark = None
+        self.anim = None
+        self.kinetic = None
+        self.drag = None
+        self.samples = []
+        self.on_view_changed = None
+        self.on_context = None
+        self.on_marker_click = None
+        self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK
+                        | Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.SCROLL_MASK
+                        | Gdk.EventMask.SMOOTH_SCROLL_MASK | Gdk.EventMask.KEY_PRESS_MASK)
+        self.connect("draw", self.on_draw)
+        self.connect("button-press-event", self.on_press)
+        self.connect("button-release-event", self.on_release)
+        self.connect("motion-notify-event", self.on_motion)
+        self.connect("scroll-event", self.on_scroll)
+        self.connect("destroy", lambda _w: self.store.stop())
+        self.tick_id = None
+
+    # ---- souradnice ----
+    @property
+    def scale(self):
+        return lm.TILE * (2 ** self.zoom)
+
+    def center(self):
+        return lm.from_world(self.mx, self.my)
+
+    def screen_to_world(self, sx, sy):
+        w, h = self.get_allocated_width(), self.get_allocated_height()
+        return self.mx + (sx - w / 2) / self.scale, self.my + (sy - h / 2) / self.scale
+
+    def screen_to_latlon(self, sx, sy):
+        return lm.from_world(*self.screen_to_world(sx, sy))
+
+    def world_to_screen(self, wx, wy):
+        w, h = self.get_allocated_width(), self.get_allocated_height()
+        # nejblizsi kopie sveta (mapa se opakuje do stran)
+        dx = wx - self.mx
+        dx -= round(dx)
+        return w / 2 + dx * self.scale, h / 2 + (wy - self.my) * self.scale
+
+    def latlon_to_screen(self, lat, lon):
+        return self.world_to_screen(*lm.to_world(lat, lon))
+
+    def bbox(self):
+        w, h = self.get_allocated_width(), self.get_allocated_height()
+        n, wlon = self.screen_to_latlon(0, 0)
+        s, elon = self.screen_to_latlon(w, h)
+        return s, n, wlon, elon
+
+    def set_view(self, mx, my, zoom, notify=True):
+        self.zoom = lm.clamp(zoom, 1, lm.MAX_ZOOM)
+        self.mx = mx % 1.0
+        self.my = lm.clamp(my, 0.0, 1.0)
+        self.queue_draw()
+        if notify and self.on_view_changed:
+            self.on_view_changed()
+
+    # ---- animace ----
+    def _ensure_tick(self):
+        if self.tick_id is None:
+            self.tick_id = self.add_tick_callback(self._tick)
+
+    def _tick(self, _w, clock):
+        now = clock.get_frame_time() / 1e6
+        busy = False
+        if self.anim:
+            a = self.anim
+            if a["start"] is None:
+                a["start"] = now
+            t = min(1.0, (now - a["start"]) / a["dur"])
+            k = 1 - (1 - t) ** 3            # ease-out
+            z = a["z0"] + (a["z1"] - a["z0"]) * k
+            if a.get("anchor"):
+                ax, ay, wx, wy = a["anchor"]
+                s = lm.TILE * (2 ** z)
+                mx, my = wx - ax / s, wy - ay / s
+            else:
+                dx = a["x1"] - a["x0"]
+                dx -= round(dx)
+                mx, my = a["x0"] + dx * k, a["y0"] + (a["y1"] - a["y0"]) * k
+            self.set_view(mx, my, z, notify=t >= 1.0)
+            if t >= 1.0:
+                self.anim = None
+            else:
+                busy = True
+        if self.kinetic:
+            vx, vy, last = self.kinetic
+            dt = max(0.001, now - last) if last else 1 / 60
+            decay = math.exp(-dt * 4.5)
+            vx, vy = vx * decay, vy * decay
+            self.set_view(self.mx - vx * dt / self.scale, self.my - vy * dt / self.scale, self.zoom,
+                          notify=False)
+            if math.hypot(vx, vy) < 20:
+                self.kinetic = None
+                if self.on_view_changed:
+                    self.on_view_changed()
+            else:
+                self.kinetic = (vx, vy, now)
+                busy = True
+        if not busy:
+            self.tick_id = None
+            return False
+        return True
+
+    def zoom_at(self, sx, sy, target, duration=0.22):
+        target = lm.clamp(target, 1, lm.MAX_ZOOM)
+        w, h = self.get_allocated_width(), self.get_allocated_height()
+        ax, ay = sx - w / 2, sy - h / 2
+        wx, wy = self.screen_to_world(sx, sy)
+        if duration <= 0:
+            s = lm.TILE * (2 ** target)
+            self.set_view(wx - ax / s, wy - ay / s, target)
+            return
+        self.kinetic = None
+        self.anim = {"start": None, "dur": duration, "z0": self.zoom, "z1": target, "anchor": (ax, ay, wx, wy)}
+        self._ensure_tick()
+
+    def zoom_by(self, delta):
+        w, h = self.get_allocated_width(), self.get_allocated_height()
+        base = self.anim["z1"] if self.anim and self.anim.get("anchor") else self.zoom
+        self.zoom_at(w / 2, h / 2, round(base + delta) if abs(delta) >= 1 else base + delta)
+
+    def fly_to(self, lat, lon, zoom=None, duration=0.45):
+        x1, y1 = lm.to_world(lat, lon)
+        z1 = self.zoom if zoom is None else lm.clamp(zoom, 1, lm.MAX_ZOOM)
+        # daleko (vic nez ~3 obrazovky): skok, at se nestahuji dlazdice cele cesty
+        far = math.hypot((x1 - self.mx) * self.scale, (y1 - self.my) * self.scale) > 3 * max(
+            self.get_allocated_width(), 400)
+        self.kinetic = None
+        if far or duration <= 0 or not self.get_mapped():
+            self.anim = None
+            self.set_view(x1, y1, z1)
+            return
+        self.anim = {"start": None, "dur": duration, "z0": self.zoom, "z1": z1, "x0": self.mx, "y0": self.my,
+                     "x1": x1, "y1": y1}
+        self._ensure_tick()
+
+    def fit_bbox(self, south, north, west, east, max_zoom=17):
+        w, h = max(self.get_allocated_width(), 300), max(self.get_allocated_height(), 300)
+        z = lm.zoom_for_bbox(south, north, west, east, w, h, max_zoom)
+        x0, y0 = lm.to_world(north, west)
+        x1, y1 = lm.to_world(south, east)
+        lat, lon = lm.from_world((x0 + x1) / 2, (y0 + y1) / 2)
+        self.fly_to(lat, lon, z)
+
+    def pan_by(self, dx, dy):
+        self.kinetic = None
+        lat, lon = lm.from_world(self.mx + dx / self.scale, self.my + dy / self.scale)
+        self.fly_to(lat, lon, duration=0.18)
+
+    # ---- mys ----
+    def on_press(self, _w, ev):
+        self.grab_focus()
+        if ev.type == Gdk.EventType._2BUTTON_PRESS and ev.button == 1:
+            self.zoom_at(ev.x, ev.y, round(self.zoom) + 1)
+            return True
+        if ev.type != Gdk.EventType.BUTTON_PRESS:
+            return True
+        if ev.button == 3 or (ev.button == 1 and ev.state & Gdk.ModifierType.CONTROL_MASK):
+            if self.on_context:
+                lat, lon = self.screen_to_latlon(ev.x, ev.y)
+                self.on_context(lat, lon, ev)
+            return True
+        if ev.button == 1:
+            self.anim = None
+            self.kinetic = None
+            self.drag = (ev.x, ev.y, self.mx, self.my, False)
+            self.samples = [(ev.time, ev.x, ev.y)]
+        return True
+
+    def on_motion(self, _w, ev):
+        if not self.drag:
+            return False
+        x0, y0, mx0, my0, moved = self.drag
+        if not moved and math.hypot(ev.x - x0, ev.y - y0) < 4:
+            return True
+        if not moved:
+            win = self.get_window()
+            if win:
+                win.set_cursor(Gdk.Cursor.new_from_name(self.get_display(), "grabbing"))
+        self.drag = (x0, y0, mx0, my0, True)
+        self.set_view(mx0 - (ev.x - x0) / self.scale, my0 - (ev.y - y0) / self.scale, self.zoom, notify=False)
+        self.samples.append((ev.time, ev.x, ev.y))
+        self.samples = self.samples[-6:]
+        return True
+
+    def on_release(self, _w, ev):
+        if ev.button != 1 or not self.drag:
+            return False
+        moved = self.drag[4]
+        self.drag = None
+        win = self.get_window()
+        if win:
+            win.set_cursor(None)
+        if not moved:
+            hit = self.hit_marker(ev.x, ev.y)
+            if hit is not None and self.on_marker_click:
+                self.on_marker_click(hit)
+            return True
+        # setrvacnost podle poslednich ~80 ms pohybu
+        recent = [s for s in self.samples if ev.time - s[0] <= 80]
+        if len(recent) >= 2 and recent[-1][0] > recent[0][0]:
+            dt = (recent[-1][0] - recent[0][0]) / 1000.0
+            vx, vy = (recent[-1][1] - recent[0][1]) / dt, (recent[-1][2] - recent[0][2]) / dt
+            if math.hypot(vx, vy) > 250:
+                self.kinetic = (min(max(vx, -4000), 4000), min(max(vy, -4000), 4000), None)
+                self._ensure_tick()
+                return True
+        if self.on_view_changed:
+            self.on_view_changed()
+        return True
+
+    def on_scroll(self, _w, ev):
+        if ev.direction == Gdk.ScrollDirection.SMOOTH:
+            _ok, dx, dy = ev.get_scroll_deltas()
+            if ev.get_source_device() and ev.get_source_device().get_source() == Gdk.InputSource.MOUSE \
+                    and abs(dy) >= 1:
+                step = -1 if dy > 0 else 1        # kolecko mysi: cely krok s animaci
+                base = self.anim["z1"] if self.anim and self.anim.get("anchor") else self.zoom
+                self.zoom_at(ev.x, ev.y, round(base) + step)
+            else:
+                self.anim = None
+                self.zoom_at(ev.x, ev.y, self.zoom - dy * 0.35, duration=0)
+            return True
+        step = {Gdk.ScrollDirection.UP: 1, Gdk.ScrollDirection.DOWN: -1}.get(ev.direction)
+        if step:
+            base = self.anim["z1"] if self.anim and self.anim.get("anchor") else self.zoom
+            self.zoom_at(ev.x, ev.y, round(base) + step)
+        return True
+
+    def hit_marker(self, sx, sy):
+        for i, f in enumerate(self.favorites):
+            x, y = self.latlon_to_screen(f["lat"], f["lon"])
+            if math.hypot(sx - x, sy - y) <= 12:
+                return ("favorite", i)
+        if self.me:
+            x, y = self.latlon_to_screen(self.me["lat"], self.me["lon"])
+            if math.hypot(sx - x, sy - y) <= 12:
+                return ("me", 0)
+        return None
+
+    # ---- dlazdice ----
+    def set_dark(self, dark):
+        if dark != self.dark:
+            self.dark = dark
+            self.mem.clear()
+            self.missing_sent = None
+            self.queue_draw()
+
+    def _tile_from_thread(self, key, data):
+        GLib.idle_add(self._tile_ready, key, data, priority=GLib.PRIORITY_HIGH_IDLE)
+
+    def _tile_ready(self, key, data):
+        if data is None:
+            self.failed[key] = time.time()
+        else:
+            surf = decode_png(data)
+            if surf is None:
+                self.failed[key] = time.time()
+            else:
+                self.failed.pop(key, None)
+                self.mem.pop(key, None)
+                self.mem[key] = darken(surf) if self.dark else surf
+                while len(self.mem) > MEM_TILES:
+                    self.mem.pop(next(iter(self.mem)))
+        self.queue_draw()
+        return False
+
+    def _get(self, key):
+        s = self.mem.get(key)
+        if s is not None:          # LRU: posunout na konec
+            del self.mem[key]
+            self.mem[key] = s
+        return s
+
+    def _paint_tile(self, cr, surf, x0, y0, x1, y1, sub=None):
+        """Dlazdici (nebo jeji cast sub=(ox, oy, velikost)) do obdelniku na obrazovce."""
+        ox, oy, size = sub or (0, 0, lm.TILE)
+        cr.save()
+        cr.rectangle(x0, y0, x1 - x0, y1 - y0)
+        cr.clip()
+        cr.translate(x0, y0)
+        cr.scale((x1 - x0) / size, (y1 - y0) / size)
+        cr.set_source_surface(surf, -ox, -oy)
+        pat = cr.get_source()
+        pat.set_extend(cairo.EXTEND_PAD)
+        pat.set_filter(cairo.FILTER_BILINEAR if abs(x1 - x0 - size) > 0.5 else cairo.FILTER_FAST)
+        cr.paint()
+        cr.restore()
+
+    def on_draw(self, _w, cr):
+        w, h = self.get_allocated_width(), self.get_allocated_height()
+        bg = (0.11, 0.12, 0.15) if self.dark else (0.95, 0.94, 0.91)
+        cr.set_source_rgb(*bg)
+        cr.paint()
+        tz = int(lm.clamp(math.floor(self.zoom + 0.5), 0, lm.MAX_ZOOM))
+        n = 2 ** tz
+        ts = lm.TILE * (2 ** (self.zoom - tz))
+        left = self.mx * self.scale - w / 2
+        top = self.my * self.scale - h / 2
+        ix0, ix1 = math.floor(left / ts), math.floor((left + w) / ts)
+        iy0, iy1 = max(0, math.floor(top / ts)), min(n - 1, math.floor((top + h) / ts))
+        missing = []
+        now = time.time()
+        for iy in range(iy0, iy1 + 1):
+            for ix in range(ix0, ix1 + 1):
+                x = ix % n
+                key = (tz, x, iy)
+                sx0, sy0 = round(ix * ts - left), round(iy * ts - top)
+                sx1, sy1 = round((ix + 1) * ts - left), round((iy + 1) * ts - top)
+                surf = self._get(key)
+                if surf is not None:
+                    self._paint_tile(cr, surf, sx0, sy0, sx1, sy1)
+                    continue
+                self._draw_fallback(cr, tz, x, iy, sx0, sy0, sx1, sy1)
+                if now - self.failed.get(key, 0) > RETRY_FAILED:
+                    cx, cy = (ix + 0.5) * ts - left - w / 2, (iy + 0.5) * ts - top - h / 2
+                    missing.append((cx * cx + cy * cy, key))
+        keys = tuple(k for _d, k in sorted(missing))
+        if keys != self.missing_sent:
+            self.missing_sent = keys
+            self.store.want(list(keys))
+        self._draw_overlays(cr, w, h)
+        self._draw_scale(cr, w, h)
+        return False
+
+    def _draw_fallback(self, cr, tz, x, y, sx0, sy0, sx1, sy1):
+        """Chybejici dlazdice: zvetseny vyrez z nizsiho zoomu (nebo ctvrtiny z vyssiho), jinak mrizka."""
+        for d in range(1, 7):
+            pz = tz - d
+            if pz < 0:
+                break
+            parent = self.mem.get((pz, x >> d, y >> d))
+            if parent is not None:
+                size = lm.TILE / (2 ** d)
+                ox, oy = (x - ((x >> d) << d)) * size, (y - ((y >> d) << d)) * size
+                self._paint_tile(cr, parent, sx0, sy0, sx1, sy1, (ox, oy, size))
+                return
+        drawn = False
+        if tz < lm.MAX_ZOOM:
+            mx, my = (sx0 + sx1) / 2, (sy0 + sy1) / 2
+            for cx in (0, 1):
+                for cy in (0, 1):
+                    child = self.mem.get((tz + 1, 2 * x + cx, 2 * y + cy))
+                    if child is not None:
+                        self._paint_tile(cr, child, (sx0, mx)[cx], (sy0, my)[cy], (mx, sx1)[cx], (my, sy1)[cy])
+                        drawn = True
+        if not drawn:
+            cr.set_source_rgba(0.5, 0.5, 0.5, 0.12)
+            cr.set_line_width(1)
+            cr.rectangle(sx0 + 0.5, sy0 + 0.5, sx1 - sx0 - 1, sy1 - sy0 - 1)
+            cr.stroke()
+
+    def _draw_overlays(self, cr, w, h):
+        if self.route and len(self.route["world"]) >= 2:
+            cr.save()
+            cr.set_line_cap(cairo.LINE_CAP_ROUND)
+            cr.set_line_join(cairo.LINE_JOIN_ROUND)
+            pts = [self.world_to_screen(x, y) for x, y in self.route["world"]]
+            # vynechat body blize nez 1,5 px (rychlejsi kresleni dlouhych tras)
+            simple = [pts[0]]
+            for p in pts[1:]:
+                q = simple[-1]
+                if abs(p[0] - q[0]) + abs(p[1] - q[1]) >= 1.5:
+                    simple.append(p)
+            simple.append(pts[-1])
+            for width, color in ((9, (0.1, 0.25, 0.65, 0.9)), (5.5, ACCENT + (1,))):
+                cr.new_path()
+                for x, y in simple:
+                    cr.line_to(x, y)
+                cr.set_line_width(width)
+                if self.route["mode"] == "walk" and width < 9:
+                    cr.set_dash([0.1, 9])
+                    cr.set_line_width(6)
+                    cr.set_source_rgb(1, 1, 1)
+                else:
+                    cr.set_dash([])
+                    cr.set_source_rgba(*color)
+                cr.stroke()
+            cr.restore()
+        if self.route_ends:
+            a, b = self.route_ends
+            draw_dot(cr, *self.latlon_to_screen(a["lat"], a["lon"]), (0.2, 0.7, 0.35), 6)
+            if not (self.marker and lm.same_place(self.marker, b)):
+                draw_pin(cr, *self.latlon_to_screen(b["lat"], b["lon"]))
+        if self.step_mark:
+            x, y = self.latlon_to_screen(self.step_mark["lat"], self.step_mark["lon"])
+            cr.arc(x, y, 8, 0, 2 * math.pi)
+            cr.set_source_rgb(1, 1, 1)
+            cr.fill_preserve()
+            cr.set_line_width(3)
+            cr.set_source_rgb(*ACCENT)
+            cr.stroke()
+        for p in self.results:
+            if self.marker and lm.same_place(self.marker, p):
+                continue
+            x, y = self.latlon_to_screen(p["lat"], p["lon"])
+            if -20 < x < w + 20 and -20 < y < h + 20:
+                draw_dot(cr, x, y, (0.92, 0.26, 0.24), 5.5)
+        for f in self.favorites:
+            if self.marker and lm.same_place(self.marker, f):
+                continue          # vybrane misto ukazuje spendlik
+            x, y = self.latlon_to_screen(f["lat"], f["lon"])
+            if -20 < x < w + 20 and -20 < y < h + 20:
+                cr.arc(x, y, 10, 0, 2 * math.pi)
+                cr.set_source_rgb(1, 1, 1)
+                cr.fill()
+                cr.arc(x, y, 8.5, 0, 2 * math.pi)
+                cr.set_source_rgb(1.0, 0.7, 0.0)
+                cr.fill()
+                draw_star(cr, x, y, 5.5)
+                cr.set_source_rgb(1, 1, 1)
+                cr.fill()
+        if self.me:
+            x, y = self.latlon_to_screen(self.me["lat"], self.me["lon"])
+            mpp = lm.meters_per_pixel(self.me["lat"], self.zoom)
+            r = self.me.get("accuracy", 0) / mpp
+            if r > 12:
+                cr.arc(x, y, min(r, 4 * max(w, h)), 0, 2 * math.pi)
+                cr.set_source_rgba(*ACCENT, 0.13)
+                cr.fill_preserve()
+                cr.set_line_width(1)
+                cr.set_source_rgba(*ACCENT, 0.45)
+                cr.stroke()
+            draw_dot(cr, x, y, ACCENT, 7)
+        if self.marker:
+            draw_pin(cr, *self.latlon_to_screen(self.marker["lat"], self.marker["lon"]))
+
+    def _draw_scale(self, cr, w, h):
+        lat, _lon = self.center()
+        mpp = lm.meters_per_pixel(lat, self.zoom)
+        if IMPERIAL:
+            cands = [m * 10 ** e * 0.3048 for e in range(1, 3) for m in (1, 2, 5)] + \
+                [m * 10 ** e * 1609.344 for e in range(-1, 4) for m in (1, 2, 5)]
+        else:
+            cands = [m * 10 ** e for e in range(0, 7) for m in (1, 2, 5)]
+        fits = [v for v in cands if v <= 110 * mpp]
+        if not fits:
+            return
+        best = max(fits)
+        px = best / mpp
+        txt = lm.format_distance(best, IMPERIAL)
+        x, y = 12, h - 14
+        cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+        cr.set_font_size(11)
+        fg = (0.92, 0.92, 0.92) if self.dark else (0.15, 0.15, 0.15)
+        halo = (0, 0, 0, 0.6) if self.dark else (1, 1, 1, 0.85)
+        for color, width in ((halo, 4), (fg + (1,), 1.6)):
+            cr.set_source_rgba(*color)
+            cr.set_line_width(width)
+            cr.move_to(x, y - 5)
+            cr.line_to(x, y)
+            cr.line_to(x + px, y)
+            cr.line_to(x + px, y - 5)
+            cr.stroke()
+        cr.move_to(x + 2, y - 8)
+        cr.text_path(txt)
+        cr.set_source_rgba(*halo)
+        cr.set_line_width(3)
+        cr.stroke_preserve()
+        cr.set_source_rgb(*fg)
+        cr.fill()
+
+    def set_route(self, res):
+        if res is None:
+            self.route = None
+            self.route_ends = None
+            self.step_mark = None
+        else:
+            self.route = {"mode": res["mode"], "world": [lm.to_world(a, b) for a, b in res["points"]]}
+        self.queue_draw()
+
+
+# ---- okno -----------------------------------------------------------------------------
+def label(text="", cls=None, xalign=0.0, **kw):
+    lbl = Gtk.Label(label=text, xalign=xalign, **kw)
+    for c in (cls or "").split():
+        lbl.get_style_context().add_class(c)
+    return lbl
+
+
+def icon_button(icon, tooltip, cb=None):
+    b = Gtk.Button(tooltip_text=tooltip)
+    b.add(Gtk.Image(icon_name=icon))
+    if cb:
+        b.connect("clicked", lambda _b: cb())
+    return b
+
+
+def system_dark():
+    s = Gtk.Settings.get_default()
+    return "dark" in (s.props.gtk_theme_name or "").lower() or bool(s.props.gtk_application_prefer_dark_theme)
+
+
+class MapsWindow(Gtk.Window):
+    def __init__(self, application=None):
+        super().__init__(title=_("Maps"))
+        if application:
+            self.set_application(application)
+        self.set_default_size(1120, 740)
+        self.set_size_request(560, 420)
+        self.set_icon_name(APP)
+        self.cfg = lm.load_config()
+        view = self.cfg["view"] or dict(zip(("lat", "lon", "zoom"), HOME_VIEW.get(LANG, (48.0, 12.0, 4))))
+        self.place = None
+        self.results = []
+        self.route_from = None
+        self.route_to = None
+        self.route_res = None
+        self.route_gen = 0
+        self.search_gen = 0
+        self.locating = False
+        self.save_id = None
+        self.pending_after_location = None
+        self._setting_entry = False
+        self._menu = None
+
+        header = Gtk.HeaderBar(show_close_button=True)
+        self.set_titlebar(header)
+        self.side_btn = Gtk.ToggleButton(tooltip_text=_("Show Sidebar"), active=True)
+        self.side_btn.add(Gtk.Image(icon_name="view-dual-symbolic" if Gtk.IconTheme.get_default().has_icon(
+            "view-dual-symbolic") else "sidebar-show-symbolic"))
+        self.side_btn.connect("toggled", lambda b: self.revealer.set_reveal_child(b.get_active()))
+        header.pack_start(self.side_btn)
+        self.loc_btn = icon_button("find-location-symbolic", _("Show My Location"), self.on_locate)
+        header.pack_start(self.loc_btn)
+        self.dir_btn = icon_button("mark-location-symbolic" if Gtk.IconTheme.get_default().has_icon(
+            "mark-location-symbolic") else "go-next-symbolic", _("Directions"), lambda: self.show_directions())
+        header.pack_start(self.dir_btn)
+        self.search_entry = Gtk.SearchEntry(placeholder_text=_("Search for a place or address"), width_chars=34)
+        self.search_entry.connect("activate", self.on_search)
+        self.search_entry.connect("search-changed", self.on_search_changed)
+        header.set_custom_title(self.search_entry)
+        self.menu_btn = Gtk.MenuButton(tooltip_text=_("Menu"))
+        self.menu_btn.add(Gtk.Image(icon_name="open-menu-symbolic"))
+        self.menu_btn.set_popover(self.build_menu())
+        header.pack_end(self.menu_btn)
+        self.fav_btn = icon_button("starred-symbolic", _("Favorites"), lambda: self.show_page("home"))
+        header.pack_end(self.fav_btn)
+
+        root = Gtk.Box()
+        self.add(root)
+        self.revealer = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_RIGHT,
+                                     transition_duration=160, reveal_child=True, hexpand=False)
+        side = Gtk.Box()
+        side.get_style_context().add_class("maps-sidebar")
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, transition_duration=120)
+        self.stack.set_size_request(320, -1)
+        side.pack_start(self.stack, True, True, 0)
+        side.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 0)
+        self.revealer.add(side)
+        root.pack_start(self.revealer, False, False, 0)
+
+        overlay = Gtk.Overlay()
+        root.pack_start(overlay, True, True, 0)
+        self.map = MapView(lm.service_url(self.cfg, "tile_url", "LUXOS_MAPS_TILES", lm.TILE_URL),
+                           view["lat"], view["lon"], view["zoom"])
+        self.map.favorites = self.cfg["favorites"]
+        self.map.on_view_changed = self.schedule_save
+        self.map.on_context = self.on_context
+        self.map.on_marker_click = self.on_marker_click
+        overlay.add(self.map)
+        overlay.add_overlay(self.build_osd())
+        overlay.add_overlay(self.build_attribution())
+        self.offline_rev = Gtk.Revealer(halign=Gtk.Align.CENTER, valign=Gtk.Align.START, margin_top=10,
+                                        transition_type=Gtk.RevealerTransitionType.CROSSFADE)
+        pill = Gtk.EventBox()
+        pill.get_style_context().add_class("offline-pill")
+        pill.add(label(_("Offline – showing saved map"), margin=6, margin_start=14, margin_end=14))
+        self.offline_rev.add(pill)
+        overlay.add_overlay(self.offline_rev)
+        for w in (self.offline_rev,):
+            overlay.set_overlay_pass_through(w, True)
+
+        self.stack.add_named(self.build_home(), "home")
+        self.stack.add_named(self.build_results(), "results")
+        self.stack.add_named(self.build_place(), "place")
+        self.stack.add_named(self.build_directions(), "directions")
+        self.rebuild_favorites()
+
+        self.connect("key-press-event", self.on_key)
+        self.connect("destroy", self.on_destroy)
+        settings = Gtk.Settings.get_default()
+        settings.connect("notify::gtk-theme-name", lambda *_a: self.apply_appearance())
+        settings.connect("notify::gtk-application-prefer-dark-theme", lambda *_a: self.apply_appearance())
+        self.apply_appearance()
+        GLib.timeout_add_seconds(2, self.check_offline)
+        GLib.timeout_add_seconds(15, self._prune)
+
+    # ---- postranni panel: oblibena mista ----
+    def build_home(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin=12)
+        box.pack_start(label(_("Favorites").upper(), "side-title", margin_start=6), False, False, 0)
+        self.fav_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE, activate_on_single_click=True)
+        self.fav_list.connect("row-activated", lambda _l, row: self.select_place(dict(row.place), zoom=16))
+        box.pack_start(self.fav_list, False, False, 0)
+        self.fav_empty = label(_("Search for a place and save it with the star. Right-click the map for more."),
+                               "dim", wrap=True, margin_start=6, margin_top=4)
+        self.fav_empty.set_no_show_all(True)
+        box.pack_start(self.fav_empty, False, False, 0)
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        scroll.add(box)
+        return scroll
+
+    def rebuild_favorites(self):
+        for row in self.fav_list.get_children():
+            row.destroy()
+        for i, f in enumerate(self.cfg["favorites"]):
+            row = Gtk.ListBoxRow()
+            row.place = f
+            hb = Gtk.Box(spacing=10)
+            img = Gtk.Image(icon_name="starred-symbolic")
+            hb.pack_start(img, False, False, 0)
+            vb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            vb.pack_start(label(f["name"], "row-name", ellipsize=3), False, False, 0)
+            if f.get("address"):
+                vb.pack_start(label(f["address"], "dim small", ellipsize=3), False, False, 0)
+            hb.pack_start(vb, True, True, 0)
+            rm = icon_button("window-close-symbolic", _("Remove from Favorites"))
+            rm.get_style_context().add_class("flat")
+            rm.connect("clicked", lambda _b, idx=i: self.remove_favorite(idx))
+            hb.pack_end(rm, False, False, 0)
+            row.add(hb)
+            row.show_all()
+            self.fav_list.add(row)
+        self.fav_empty.set_visible(not self.cfg["favorites"])
+        self.map.favorites = self.cfg["favorites"]
+        self.map.queue_draw()
+
+    def favorite_index(self, place):
+        for i, f in enumerate(self.cfg["favorites"]):
+            if lm.same_place(f, place):
+                return i
+        return None
+
+    def toggle_favorite(self, place=None):
+        place = place or self.place
+        if not place:
+            return
+        idx = self.favorite_index(place)
+        if idx is None:
+            self.cfg["favorites"].append({k: place[k] for k in ("name", "lat", "lon", "address") if k in place})
+        else:
+            del self.cfg["favorites"][idx]
+        lm.save_config(self.cfg)
+        self.rebuild_favorites()
+        self.update_place_buttons()
+
+    def remove_favorite(self, idx):
+        if 0 <= idx < len(self.cfg["favorites"]):
+            del self.cfg["favorites"][idx]
+            lm.save_config(self.cfg)
+            self.rebuild_favorites()
+            self.update_place_buttons()
+
+    # ---- hledani (jen po Enter - Nominatim nedovoluje naseptavani) ----
+    def build_results(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin=12)
+        top = Gtk.Box(spacing=6)
+        back = icon_button("go-previous-symbolic", _("Back"), lambda: self.show_page("home"))
+        back.get_style_context().add_class("flat")
+        top.pack_start(back, False, False, 0)
+        top.pack_start(label(_("Results").upper(), "side-title"), True, True, 0)
+        self.res_spinner = Gtk.Spinner()
+        top.pack_end(self.res_spinner, False, False, 0)
+        box.pack_start(top, False, False, 0)
+        self.res_status = label("", "dim", wrap=True, margin_start=6)
+        self.res_status.set_no_show_all(True)
+        box.pack_start(self.res_status, False, False, 0)
+        self.res_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE, activate_on_single_click=True)
+        self.res_list.connect("row-activated", lambda _l, row: self.select_place(row.place, fit=True))
+        box.pack_start(self.res_list, False, False, 0)
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        scroll.add(box)
+        return scroll
+
+    def on_search_changed(self, entry):
+        if not entry.get_text().strip():
+            self.map.results = []
+            self.map.queue_draw()
+            if self.stack.get_visible_child_name() == "results":
+                self.show_page("home")
+
+    def on_search(self, _e=None, text=None):
+        text = (text if text is not None else self.search_entry.get_text()).strip()
+        if len(text) < 2:
+            return
+        c = lm.parse_coords(text)
+        if c:
+            self.select_place({"name": c[2] or lm.format_coords(c[0], c[1]), "lat": c[0], "lon": c[1]}, zoom=16)
+            return
+        self.search_gen += 1
+        gen = self.search_gen
+        for row in self.res_list.get_children():
+            row.destroy()
+        self.res_status.set_visible(False)
+        self.res_spinner.start()
+        self.show_page("results")
+        near = self.map.bbox() if self.map.get_mapped() else None
+
+        def work():
+            try:
+                res, err = lm.search(text, LANG, near=near, cfg=self.cfg), None
+            except lm.MapsError as e:
+                res, err = [], str(e)
+            GLib.idle_add(self.search_done, gen, res, err)
+        threading.Thread(target=work, daemon=True).start()
+
+    def search_done(self, gen, res, err):
+        if gen != self.search_gen:
+            return False
+        self.res_spinner.stop()
+        self.results = res
+        self.map.results = res
+        self.map.queue_draw()
+        if err:
+            self.res_status.set_text(_("Search failed. Check your internet connection.") + f"\n({err})")
+        elif not res:
+            self.res_status.set_text(_("No places found."))
+        self.res_status.set_visible(bool(err) or not res)
+        for p in res:
+            row = Gtk.ListBoxRow()
+            row.place = p
+            vb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            vb.pack_start(label(p["name"], "row-name", ellipsize=3), False, False, 0)
+            if p.get("address"):
+                vb.pack_start(label(p["address"], "dim small", wrap=True, max_width_chars=40), False, False, 0)
+            row.add(vb)
+            row.show_all()
+            self.res_list.add(row)
+        if len(res) == 1:
+            self.select_place(res[0], fit=True)
+        elif res:
+            s = min(p["lat"] for p in res)
+            n = max(p["lat"] for p in res)
+            w = min(p["lon"] for p in res)
+            e = max(p["lon"] for p in res)
+            if n - s < 30 and e - w < 60:      # vysledky blizko sebe: ukazat vsechny
+                self.map.fit_bbox(s, n, w, e, max_zoom=15)
+        return False
+
+    # ---- misto ----
+    def build_place(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin=14)
+        top = Gtk.Box(spacing=6)
+        back = icon_button("go-previous-symbolic", _("Back"), self.place_back)
+        back.get_style_context().add_class("flat")
+        top.pack_start(back, False, False, 0)
+        box.pack_start(top, False, False, 0)
+        self.pl_name = label("", "place-name", wrap=True, selectable=True)
+        self.pl_addr = label("", "dim", wrap=True, selectable=True)
+        self.pl_coords = label("", "dim small", selectable=True)
+        for w in (self.pl_name, self.pl_addr, self.pl_coords):
+            box.pack_start(w, False, False, 0)
+        row = Gtk.Box(spacing=8, margin_top=6)
+        go = Gtk.Button(label=_("Directions"))
+        go.get_style_context().add_class("primary")
+        go.connect("clicked", lambda _b: self.directions_to(self.place))
+        row.pack_start(go, False, False, 0)
+        self.pl_star = Gtk.Button()
+        self.pl_star.connect("clicked", lambda _b: self.toggle_favorite())
+        row.pack_start(self.pl_star, False, False, 0)
+        box.pack_start(row, False, False, 0)
+        for text, cb in ((_("Copy Coordinates"), self.copy_coords),
+                         (_("Copy Location Link"), self.copy_geo),
+                         (_("Open in OpenStreetMap"), self.open_osm)):
+            b = Gtk.ModelButton(text=text)
+            b.connect("clicked", lambda _b, f=cb: f())
+            box.pack_start(b, False, False, 0)
+        self.pl_status = label("", "dim small", wrap=True)
+        box.pack_start(self.pl_status, False, False, 0)
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        scroll.add(box)
+        return scroll
+
+    def place_back(self):
+        self.place = None
+        self.map.marker = None
+        self.map.queue_draw()
+        self.show_page("results" if self.results and self.search_entry.get_text().strip() else "home")
+
+    def select_place(self, place, zoom=None, fit=False):
+        self.place = dict(place)
+        self.map.marker = {"lat": place["lat"], "lon": place["lon"]}
+        self.pl_name.set_text(place.get("name") or lm.format_coords(place["lat"], place["lon"]))
+        self.pl_addr.set_text(place.get("address") or "")
+        self.pl_addr.set_visible(bool(place.get("address")))
+        self.pl_coords.set_text(lm.format_coords(place["lat"], place["lon"]))
+        self.pl_status.set_text("")
+        self.update_place_buttons()
+        self.show_page("place")
+        bb = place.get("bbox")
+        if fit and bb and (bb[1] - bb[0] > 0.002 or bb[3] - bb[2] > 0.002):
+            self.map.fit_bbox(bb[0], bb[1], bb[2], bb[3])
+        else:
+            self.map.fly_to(place["lat"], place["lon"], zoom or max(self.map.zoom, 16))
+        self.map.queue_draw()
+
+    def update_place_buttons(self):
+        if not self.place:
+            return
+        saved = self.favorite_index(self.place) is not None
+        self.pl_star.set_label(_("Saved") if saved else _("Save"))
+        self.pl_star.set_tooltip_text(_("Remove from Favorites") if saved else _("Add to Favorites"))
+
+    def clipboard(self, text, note):
+        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(text, -1)
+        self.pl_status.set_text(note)
+
+    def copy_coords(self, place=None):
+        p = place or self.place
+        if p:
+            self.clipboard(lm.format_coords(p["lat"], p["lon"]), _("Coordinates copied."))
+
+    def copy_geo(self, place=None):
+        p = place or self.place
+        if p:
+            self.clipboard(lm.geo_uri(p["lat"], p["lon"], self.map.zoom, p.get("name")), _("Location link copied."))
+
+    def open_osm(self):
+        if self.place:
+            self.open_uri(lm.osm_url(self.place["lat"], self.place["lon"], max(self.map.zoom, 15)))
+
+    def open_uri(self, uri):
+        try:
+            Gtk.show_uri_on_window(self, uri, Gtk.get_current_event_time())
+        except GLib.Error:
+            pass
+
+    # ---- trasy ----
+    def build_directions(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin=12)
+        top = Gtk.Box(spacing=6)
+        back = icon_button("go-previous-symbolic", _("Back"), self.close_directions)
+        back.get_style_context().add_class("flat")
+        top.pack_start(back, False, False, 0)
+        top.pack_start(label(_("Directions").upper(), "side-title"), True, True, 0)
+        box.pack_start(top, False, False, 0)
+        grid = Gtk.Grid(row_spacing=6, column_spacing=6)
+        self.from_entry = Gtk.Entry(placeholder_text=_("Choose Start"), hexpand=True)
+        self.to_entry = Gtk.Entry(placeholder_text=_("Choose Destination"), hexpand=True)
+        for e, which in ((self.from_entry, "from"), (self.to_entry, "to")):
+            e.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "find-location-symbolic")
+            e.set_icon_tooltip_text(Gtk.EntryIconPosition.SECONDARY, _("My Location"))
+            e.connect("icon-press", lambda _e, _p, _ev, w=which: self.set_endpoint_me(w))
+            e.connect("activate", lambda _e, w=which: self.on_endpoint_entry(w))
+            e.connect("changed", lambda _e, w=which: self.on_endpoint_edited(w))
+        grid.attach(self.from_entry, 0, 0, 1, 1)
+        grid.attach(self.to_entry, 0, 1, 1, 1)
+        swap = icon_button("view-sort-descending-symbolic" if Gtk.IconTheme.get_default().has_icon(
+            "view-sort-descending-symbolic") else "object-flip-vertical-symbolic", _("Swap Start and Destination"),
+            self.swap_endpoints)
+        swap.set_valign(Gtk.Align.CENTER)
+        grid.attach(swap, 1, 0, 1, 2)
+        box.pack_start(grid, False, False, 0)
+        modes = Gtk.Box(homogeneous=True)
+        modes.get_style_context().add_class("linked")
+        self.mode_buttons = {}
+        group = None
+        for key, text in MODE_LABELS:
+            b = Gtk.RadioButton(label=_(text), group=group, draw_indicator=False)
+            group = group or b
+            b.set_active(self.cfg["mode"] == key)
+            b.connect("toggled", self.on_mode, key)
+            self.mode_buttons[key] = b
+            modes.pack_start(b, True, True, 0)
+        box.pack_start(modes, False, False, 0)
+        sumrow = Gtk.Box(spacing=8, margin_top=4)
+        self.rt_time = label("", "route-sum")
+        self.rt_dist = label("", "dim", valign=Gtk.Align.BASELINE)
+        sumrow.pack_start(self.rt_time, False, False, 0)
+        sumrow.pack_start(self.rt_dist, False, False, 0)
+        self.rt_spinner = Gtk.Spinner()
+        sumrow.pack_end(self.rt_spinner, False, False, 0)
+        box.pack_start(sumrow, False, False, 0)
+        self.rt_status = label("", "dim", wrap=True)
+        box.pack_start(self.rt_status, False, False, 0)
+        self.steps_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE, activate_on_single_click=True)
+        self.steps_list.connect("row-activated", self.on_step)
+        box.pack_start(self.steps_list, False, False, 0)
+        box.pack_start(label(_("Routes: FOSSGIS routing server (OSRM), data © OpenStreetMap contributors"),
+                             "dim small", wrap=True, margin_top=6), False, False, 0)
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        scroll.add(box)
+        return scroll
+
+    def endpoint_text(self, p):
+        return _("My Location") if p and p.get("me") else (p or {}).get("name", "")
+
+    def set_endpoint(self, which, place):
+        entry = self.from_entry if which == "from" else self.to_entry
+        if which == "from":
+            self.route_from = place
+        else:
+            self.route_to = place
+        self._setting_entry = True
+        entry.set_text(self.endpoint_text(place))
+        self._setting_entry = False
+        self.compute_route()
+
+    def on_endpoint_edited(self, which):
+        if getattr(self, "_setting_entry", False):
+            return
+        if which == "from":
+            self.route_from = None
+        else:
+            self.route_to = None
+
+    def on_endpoint_entry(self, which):
+        entry = self.from_entry if which == "from" else self.to_entry
+        text = entry.get_text().strip()
+        if not text:
+            return
+        if text == _("My Location"):
+            self.set_endpoint_me(which)
+            return
+        self.rt_status.set_text(_("Searching…"))
+        self.rt_spinner.start()
+        near = self.map.bbox()
+
+        def work():
+            try:
+                c = lm.parse_coords(text)
+                if c:
+                    res = [{"name": c[2] or lm.format_coords(c[0], c[1]), "lat": c[0], "lon": c[1]}]
+                else:
+                    res = lm.search(text, LANG, near=near, cfg=self.cfg, limit=1)
+                err = None
+            except lm.MapsError as e:
+                res, err = [], str(e)
+            GLib.idle_add(self.endpoint_found, which, res, err)
+        threading.Thread(target=work, daemon=True).start()
+
+    def endpoint_found(self, which, res, err):
+        self.rt_spinner.stop()
+        if not res:
+            self.rt_status.set_text(_("Search failed. Check your internet connection.") if err
+                                    else _("No places found."))
+            return False
+        self.rt_status.set_text("")
+        self.set_endpoint(which, res[0])
+        return False
+
+    def set_endpoint_me(self, which):
+        if self.map.me:
+            self.set_endpoint(which, dict(self.map.me, name=_("My Location"), me=True))
+        else:
+            self.pending_after_location = lambda: self.set_endpoint_me(which)
+            self.on_locate()
+
+    def swap_endpoints(self):
+        a, b = self.route_from, self.route_to
+        self._setting_entry = True
+        self.from_entry.set_text(self.endpoint_text(b) if b else self.to_entry.get_text())
+        self.to_entry.set_text(self.endpoint_text(a) if a else "")
+        self._setting_entry = False
+        self.route_from, self.route_to = b, a
+        self.compute_route()
+
+    def on_mode(self, button, key):
+        if button.get_active():
+            self.cfg["mode"] = key
+            lm.save_config(self.cfg)
+            self.compute_route()
+
+    def show_directions(self, focus=True):
+        self.side_btn.set_active(True)
+        self.show_page("directions")
+        if not self.route_from and self.map.me:
+            self.set_endpoint("from", dict(self.map.me, name=_("My Location"), me=True))
+        if focus:
+            (self.to_entry if self.route_from and not self.route_to else self.from_entry).grab_focus()
+
+    def directions_to(self, place):
+        if not place:
+            return
+        self.show_directions(focus=False)
+        self.set_endpoint("to", dict(place))
+        if not self.route_from:
+            self.from_entry.grab_focus()
+
+    def close_directions(self):
+        self.route_gen += 1
+        self.route_res = None
+        self.map.set_route(None)
+        self.clear_steps()
+        self.rt_time.set_text("")
+        self.rt_dist.set_text("")
+        self.rt_status.set_text("")
+        self.show_page("place" if self.place else "home")
+
+    def clear_steps(self):
+        for row in self.steps_list.get_children():
+            row.destroy()
+
+    def compute_route(self):
+        a, b = self.route_from, self.route_to
+        if not (a and b):
+            return
+        self.route_gen += 1
+        gen = self.route_gen
+        mode = self.cfg["mode"]
+        self.rt_spinner.start()
+        self.rt_status.set_text(_("Finding route…"))
+        self.map.route_ends = (a, b)
+        self.map.queue_draw()
+
+        def work():
+            try:
+                res, err = lm.route(a, b, mode, cfg=self.cfg), None
+            except lm.MapsError as e:
+                res, err = None, str(e)
+            GLib.idle_add(self.route_done, gen, res, err)
+        threading.Thread(target=work, daemon=True).start()
+
+    def route_done(self, gen, res, err):
+        if gen != self.route_gen:
+            return False
+        self.rt_spinner.stop()
+        self.clear_steps()
+        self.route_res = res
+        if not res:
+            self.map.set_route(None)
+            self.map.route_ends = (self.route_from, self.route_to)
+            self.rt_time.set_text("")
+            self.rt_dist.set_text("")
+            self.rt_status.set_text(_("No route found between these places.") if err == "NoRoute"
+                                    else _("The route could not be loaded. Check your internet connection."))
+            return False
+        self.rt_status.set_text("")
+        self.rt_time.set_text(lm.format_duration(res["duration"], _))
+        self.rt_dist.set_text(lm.format_distance(res["distance"], IMPERIAL))
+        self.map.set_route(res)
+        self.map.route_ends = (self.route_from, self.route_to)
+        for s in res["steps"]:
+            row = Gtk.ListBoxRow()
+            row.step = s
+            hb = Gtk.Box(spacing=10)
+            hb.pack_start(TurnIcon(s["type"], s["modifier"]), False, False, 0)
+            vb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            vb.pack_start(label(lm.step_instruction(s, _), "row-name", wrap=True), False, False, 0)
+            sub = " · ".join(x for x in (s["name"], lm.format_distance(s["distance"], IMPERIAL)
+                                         if s["distance"] > 0 else "") if x)
+            if sub:
+                vb.pack_start(label(sub, "dim small", wrap=True), False, False, 0)
+            hb.pack_start(vb, True, True, 0)
+            row.add(hb)
+            row.show_all()
+            self.steps_list.add(row)
+        lats = [p[0] for p in res["points"]]
+        lons = [p[1] for p in res["points"]]
+        self.map.fit_bbox(min(lats), max(lats), min(lons), max(lons), max_zoom=17)
+        return False
+
+    def on_step(self, _l, row):
+        s = row.step
+        self.map.step_mark = {"lat": s["lat"], "lon": s["lon"]}
+        self.map.fly_to(s["lat"], s["lon"], max(self.map.zoom, 17))
+
+    # ---- moje poloha (jen po souhlasu) ----
+    def on_locate(self):
+        if self.locating:
+            return
+        if not self.cfg["location_consent"]:
+            if not self.ask_consent():
+                self.pending_after_location = None
+                return
+            self.cfg["location_consent"] = True
+            lm.save_config(self.cfg)
+            self.consent_item.set_active(True)
+        self.locating = True
+        self.loc_btn.set_sensitive(False)
+
+        def work():
+            try:
+                loc, err = lm.my_location(), None
+            except lm.MapsError as e:
+                loc, err = None, str(e)
+            GLib.idle_add(self.located, loc, err)
+        threading.Thread(target=work, daemon=True).start()
+
+    def ask_consent(self):
+        """Jednou: souhlas s pouzitim polohy (GeoClue, jinak ipinfo.io podle IP adresy)."""
+        if self.cfg["location_consent"]:
+            return True
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
+                                buttons=Gtk.ButtonsType.NONE, text=_("Allow Maps to use your location?"))
+        dlg.format_secondary_text(_(
+            "Maps uses the system location service (GeoClue) when it is available, otherwise it finds your "
+            "approximate location from your internet address with the ipinfo.io service (your address is "
+            "sent to that service). Maps asks only once; you can turn it off in the menu."))
+        dlg.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        dlg.add_button(_("Allow"), Gtk.ResponseType.OK)
+        dlg.set_default_response(Gtk.ResponseType.OK)
+        ok = dlg.run() == Gtk.ResponseType.OK
+        dlg.destroy()
+        return ok
+
+    def located(self, loc, err):
+        self.locating = False
+        self.loc_btn.set_sensitive(True)
+        if not loc:
+            self.pending_after_location = None
+            dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
+                                    buttons=Gtk.ButtonsType.CLOSE, text=_("Your location could not be found."))
+            dlg.format_secondary_text(_("Check your internet connection and try again.") + (f"\n({err})" if err
+                                                                                             else ""))
+            dlg.connect("response", lambda d, _r: d.destroy())
+            dlg.show()
+            return False
+        self.map.me = loc
+        acc = loc.get("accuracy", 5000)
+        zoom = 16 if acc < 200 else 14 if acc < 1500 else 11
+        cb, self.pending_after_location = self.pending_after_location, None
+        self.map.fly_to(loc["lat"], loc["lon"], zoom)
+        if cb:
+            cb()
+        return False
+
+    # ---- kontextova nabidka mapy ----
+    def on_context(self, lat, lon, event):
+        menu = Gtk.Menu()
+        point = {"name": lm.format_coords(lat, lon), "lat": lat, "lon": lon}
+        for text, cb in ((_("What's Here?"), lambda: self.whats_here(lat, lon)),
+                         (_("Directions from Here"), lambda: (self.show_directions(False),
+                                                              self.set_endpoint("from", point))),
+                         (_("Directions to Here"), lambda: self.directions_to(point)),
+                         (_("Add to Favorites"), lambda: self.whats_here(lat, lon, favorite=True)),
+                         (_("Copy Coordinates"), lambda: Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(
+                             lm.format_coords(lat, lon), -1))):
+            item = Gtk.MenuItem(label=text)
+            item.connect("activate", lambda _i, f=cb: f())
+            menu.append(item)
+        menu.show_all()
+        menu.attach_to_widget(self.map, None)
+        menu.popup_at_pointer(event)
+        self._menu = menu
+
+    def whats_here(self, lat, lon, favorite=False):
+        point = {"name": lm.format_coords(lat, lon), "lat": lat, "lon": lon}
+        self.side_btn.set_active(True)
+        self.select_place(point, zoom=self.map.zoom)
+        self.pl_status.set_text(_("Searching…"))
+
+        def work():
+            try:
+                p = lm.reverse(lat, lon, LANG, zoom=18 if self.map.zoom >= 15 else 14, cfg=self.cfg)
+            except lm.MapsError:
+                p = None
+            GLib.idle_add(done, p)
+
+        def done(p):
+            if self.place and lm.same_place(self.place, point, 1e-9):
+                if p:
+                    named = dict(p, lat=lat, lon=lon, address=p.get("address") or "")
+                    named.pop("bbox", None)
+                    self.place = named
+                    self.pl_name.set_text(named["name"])
+                    self.pl_addr.set_text(named["address"])
+                    self.pl_addr.set_visible(bool(named["address"]))
+                self.pl_status.set_text("")
+                if favorite and self.favorite_index(self.place) is None:
+                    self.toggle_favorite()
+                self.update_place_buttons()
+            return False
+        threading.Thread(target=work, daemon=True).start()
+
+    def on_marker_click(self, hit):
+        kind, idx = hit
+        if kind == "favorite" and idx < len(self.cfg["favorites"]):
+            self.side_btn.set_active(True)
+            self.select_place(dict(self.cfg["favorites"][idx]), zoom=max(self.map.zoom, 15))
+        elif kind == "me" and self.map.me:
+            self.side_btn.set_active(True)
+            self.select_place(dict(self.map.me, name=_("My Location")), zoom=self.map.zoom)
+
+    # ---- ovladani na mape, atribuce, nabidka ----
+    def build_osd(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, halign=Gtk.Align.END, valign=Gtk.Align.END,
+                      margin_end=12, margin_bottom=30)
+        frame = Gtk.EventBox()
+        frame.get_style_context().add_class("map-osd")
+        inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        inner.pack_start(icon_button("zoom-in-symbolic", _("Zoom In") + " (+)", lambda: self.map.zoom_by(1)),
+                         False, False, 0)
+        inner.pack_start(Gtk.Separator(), False, False, 0)
+        inner.pack_start(icon_button("zoom-out-symbolic", _("Zoom Out") + " (−)", lambda: self.map.zoom_by(-1)),
+                         False, False, 0)
+        frame.add(inner)
+        box.pack_start(frame, False, False, 0)
+        return box
+
+    def build_attribution(self):
+        # OSM: atribuce vzdy viditelna, s odkazem na stranku autorskych prav
+        box = Gtk.EventBox(halign=Gtk.Align.END, valign=Gtk.Align.END)
+        box.get_style_context().add_class("attribution")
+        lbl = Gtk.Label(margin_start=7, margin_end=7, margin_top=2, margin_bottom=2)
+        lbl.set_markup('<a href="%s">%s</a>' % (lm.COPYRIGHT_URL,
+                                                GLib.markup_escape_text(_("© OpenStreetMap contributors"))))
+        lbl.connect("activate-link", lambda _l, uri: (self.open_uri(uri), True)[1])
+        self.attribution = lbl
+        box.add(lbl)
+        return box
+
+    def build_menu(self):
+        pop = Gtk.Popover()
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=10, spacing=2)
+        box.pack_start(label(_("Map Appearance"), "side-title", margin_start=6, margin_bottom=2), False, False, 0)
+        group = None
+        self.appearance_buttons = {}
+        for key, text in (("auto", _("Automatic")), ("light", _("Light")), ("dark", _("Dark"))):
+            b = Gtk.RadioButton(label=text, group=group)
+            group = group or b
+            b.set_active(self.cfg["appearance"] == key)
+            b.connect("toggled", self.on_appearance, key)
+            self.appearance_buttons[key] = b
+            box.pack_start(b, False, False, 0)
+        box.pack_start(Gtk.Separator(margin_top=6, margin_bottom=6), False, False, 0)
+        self.consent_item = Gtk.CheckButton(label=_("Allow My Location"), active=self.cfg["location_consent"])
+        self.consent_item.connect("toggled", self.on_consent_toggle)
+        box.pack_start(self.consent_item, False, False, 0)
+        box.pack_start(Gtk.Separator(margin_top=6, margin_bottom=6), False, False, 0)
+        for text, uri in ((_("Report a Map Issue"), lm.FIXTHEMAP_URL), (_("About Map Data"), lm.COPYRIGHT_URL)):
+            b = Gtk.ModelButton(text=text)
+            b.connect("clicked", lambda _b, u=uri: self.open_uri(u))
+            box.pack_start(b, False, False, 0)
+        box.show_all()
+        pop.add(box)
+        return pop
+
+    def on_consent_toggle(self, b):
+        if b.get_active() != self.cfg["location_consent"]:
+            self.cfg["location_consent"] = b.get_active()
+            if not b.get_active():
+                self.map.me = None
+                self.map.queue_draw()
+            lm.save_config(self.cfg)
+
+    def on_appearance(self, b, key):
+        if b.get_active():
+            self.cfg["appearance"] = key
+            lm.save_config(self.cfg)
+            self.apply_appearance()
+
+    def apply_appearance(self):
+        mode = self.cfg["appearance"]
+        self.map.set_dark(system_dark() if mode == "auto" else mode == "dark")
+
+    def show_page(self, name):
+        self.side_btn.set_active(True)
+        self.stack.set_visible_child_name(name)
+
+    def check_offline(self):
+        self.offline_rev.set_reveal_child(self.map.store.offline)
+        return True
+
+    def _prune(self):
+        threading.Thread(target=lm.prune_cache, daemon=True).start()
+        return False
+
+    def on_key(self, _w, ev):
+        ctrl = ev.state & Gdk.ModifierType.CONTROL_MASK
+        key = ev.keyval
+        if ctrl and key in (Gdk.KEY_f, Gdk.KEY_l):
+            self.search_entry.grab_focus()
+            return True
+        if ctrl and key in (Gdk.KEY_q, Gdk.KEY_w):
+            self.close()
+            return True
+        if key == Gdk.KEY_Escape and not isinstance(self.get_focus(), Gtk.Entry):
+            if self.stack.get_visible_child_name() == "directions":
+                self.close_directions()
+            elif self.place:
+                self.place_back()
+            return True
+        if isinstance(self.get_focus(), Gtk.Entry):
+            return False
+        if ctrl:
+            return False
+        step = 120
+        moves = {Gdk.KEY_Left: (-step, 0), Gdk.KEY_Right: (step, 0), Gdk.KEY_Up: (0, -step),
+                 Gdk.KEY_Down: (0, step)}
+        if key in moves and isinstance(self.get_focus(), (MapView, type(None))):
+            self.map.pan_by(*moves[key])
+            return True
+        if key in (Gdk.KEY_plus, Gdk.KEY_equal, Gdk.KEY_KP_Add):
+            self.map.zoom_by(1)
+            return True
+        if key in (Gdk.KEY_minus, Gdk.KEY_KP_Subtract):
+            self.map.zoom_by(-1)
+            return True
+        return False
+
+    def schedule_save(self):
+        if self.save_id:
+            GLib.source_remove(self.save_id)
+        self.save_id = GLib.timeout_add_seconds(3, self.save_view)
+
+    def save_view(self):
+        self.save_id = None
+        lat, lon = self.map.center()
+        self.cfg["view"] = {"lat": round(lat, 6), "lon": round(lon, 6), "zoom": round(self.map.zoom, 2)}
+        lm.save_config(self.cfg)
+        return False
+
+    def on_destroy(self, _w):
+        if self.save_id:
+            GLib.source_remove(self.save_id)
+        self.save_view()
+        self.map.store.stop()
+
+    # ---- prikazova radka a odkazy geo: ----
+    def handle_args(self, args):
+        args = [a for a in args if a]
+        if not args:
+            return
+        if args[0] == "--route":
+            rest = list(args[1:])
+            mode = None
+            if "--mode" in rest:
+                i = rest.index("--mode")
+                mode = rest[i + 1] if i + 1 < len(rest) else None
+                del rest[i:i + 2]
+            if mode in lm.MODES:
+                self.mode_buttons[mode].set_active(True)
+            self.show_directions(focus=False)
+            for which, text in zip(("from", "to"), rest[:2]):
+                if text.lower() in lm.HERE_WORDS:
+                    self.set_endpoint_me(which)
+                else:
+                    (self.from_entry if which == "from" else self.to_entry).set_text(text)
+                    self.on_endpoint_entry(which)
+            return
+        text = " ".join(args)
+        geo = lm.parse_geo_uri(text)
+        if geo:
+            if geo["lat"] is None:
+                self.search_entry.set_text(geo["query"])
+                self.on_search(text=geo["query"])
+            else:
+                name = geo["label"] or geo["query"] or lm.format_coords(geo["lat"], geo["lon"])
+                self.select_place({"name": name, "lat": geo["lat"], "lon": geo["lon"]}, zoom=geo["zoom"] or 16)
+            return
+        if text.startswith("-"):
+            return
+        self.search_entry.set_text(text)
+        self.on_search(text=text)
+
+
+class MapsApp(Gtk.Application):
+    def __init__(self):
+        super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
+        self.win = None
+
+    def do_startup(self):
+        Gtk.Application.do_startup(self)
+        provider = Gtk.CssProvider()
+        provider.load_from_data(CSS)
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+    def do_command_line(self, cmdline):
+        args = cmdline.get_arguments()[1:]
+        if self.win is None:
+            self.win = MapsWindow(self)
+            self.win.show_all()
+        self.win.present()
+        if args:
+            # az po prvnim vykresleni (velikost mapy pro prizpusobeni pohledu)
+            GLib.idle_add(lambda: (self.win.handle_args(args), False)[1])
+        return 0
+
+
+def main():
+    GLib.set_prgname(APP)
+    GLib.set_application_name(_("Maps"))
+    return MapsApp().run(sys.argv)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

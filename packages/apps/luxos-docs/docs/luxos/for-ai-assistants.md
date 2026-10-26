@@ -63,6 +63,7 @@ LuxOS computer. LuxOS is Arch-based, but several Arch habits are wrong here.
 | Printers, scanners | Printers & Scanners (`luxos-printers`, `--add`), Scanner (`luxos-scan`) | |
 | Screenshots, screen recording | `luxos-screenshot` (`--screen`, `--portion`, `--window`, `--record-screen`, `--stop`) | never capture the screen without the user asking |
 | Send files to phones / other PCs | LuxDrop (`luxdrop`) | LocalSend compatible |
+| Find a place or address, plan a route, "where am I", show something on a map | `luxos-maps --json search\|reverse\|route\|where-am-i\|open …` | JSON on stdout; see [Maps and places](#maps-and-places) |
 | Encrypted folder | Safe (`luxos-safe`; `luxos-safe status`, `luxos-safe lock`) | user unlocks in the dialog |
 | Run untrusted software | Sandbox (`luxos-sandbox`) | see below |
 | Why a downloaded program does not start, restore deleted files | Lux Guard (`luxos-guard scan FILE`, `luxos-guard list`, `luxos-guard restore PATH`) | see below |
@@ -108,6 +109,38 @@ Layouts (it also sets the login screen).
 Only inside the user's own graphical session: `xfconf-query -c CHANNEL -p PROPERTY -s VALUE`, or
 the `luxos-appearance` / `luxos-displays` commands. Never run GUI tools, `xrandr` or xfconf changes
 against a display that is not the user's active session. Reset with `xfconf-query … -r`.
+
+## Maps and places
+
+For places, addresses, distances, travel times and directions use the Maps command-line interface
+instead of scraping map websites. It prints one JSON object, never opens a window (except `open`) and
+shares the app's caches and rate limits (OpenStreetMap services: at most 1 request per second for
+the whole computer – do not loop over many places, never bulk-geocode or scan areas).
+
+```bash
+luxos-maps --json search "Karlovo náměstí, Praha"          # results[]: name, address, lat, lon, geo_uri, osm_url
+luxos-maps --json search "pharmacy" --near 50.08,14.42     # prefer results near a point
+luxos-maps --json reverse 50.0757,14.4199                   # place: address of a point
+luxos-maps --json route "Praha hlavní nádraží" "Pražský hrad" --mode walk   # car|bike|walk
+luxos-maps --json route here "Brno" --mode car              # "here" = the user's location (needs permission)
+luxos-maps --json where-am-i                                # lat, lon, accuracy_m, source (geoclue|ip)
+luxos-maps --json open "Pražský hrad"                       # show a place in the Maps window
+luxos-maps --json open --route here "Pražský hrad" --mode bike   # show a route in the Maps window
+```
+
+- `route` returns `distance_m`, `duration_s`, readable `distance`/`duration` and `steps[]`
+  (`instruction`, `street`, `distance_m`, `lat`, `lon`). Instructions are in English; translate
+  them for the user. `{"ok": false, "error": "NoRoute"}` means there is no route.
+- **Location is private.** `where-am-i` and `here` work only after the user allowed My Location in
+  the Maps app; otherwise the answer is `{"ok": false, "error": "consent"}` – tell the user to open
+  Maps and click the location button once. Never try other ways to find the user's location.
+- Always mention "© OpenStreetMap contributors" when you present map data (the `attribution` field).
+- A `geo:` link (`geo_uri`) opens in Maps for the user; `osm_url` opens openstreetmap.org in the browser.
+- Details: [maps.md](maps.md#for-luxai-and-scripts-luxos-maps---json).
+
+LuxAI has no dedicated map tool yet; in Agent mode run these commands with `run_command` (they only
+read data, except `open`, which shows a window). A future built-in `maps` tool would be a thin wrapper
+around the same commands.
 
 ## Sandbox for untrusted programs
 

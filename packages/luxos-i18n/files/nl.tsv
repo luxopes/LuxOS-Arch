@@ -3468,3 +3468,66 @@ Report saved:	Rapport opgeslagen:
 The window manager and the panel were restarted. Open apps keep running.	Vensterbeheer en paneel zijn opnieuw gestart. Geopende apps blijven draaien.
 The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	De grafische server reageert niet. Sla je werk op in andere sessies en herstart de computer: sudo reboot
 Back to the desktop: Ctrl+Alt+F1 (or F7).	Terug naar het bureaublad: Ctrl+Alt+F1 (of F7).
+%d h	%d u
+About Map Data	Over de kaartgegevens
+Add to Favorites	Toevoegen aan favorieten
+Allow Maps to use your location?	Kaarten toestaan je locatie te gebruiken?
+Allow My Location	Mijn locatie toestaan
+Arrive at your destination	Je bent op je bestemming
+Bike	Fiets
+Car	Auto
+Choose Destination	Kies bestemming
+Choose Start	Kies vertrekpunt
+Continue straight	Ga rechtdoor
+Coordinates copied.	Coördinaten gekopieerd.
+Copy Coordinates	Coördinaten kopiëren
+Copy Location Link	Locatielink kopiëren
+Depart	Vertrek
+Destination is on the left	De bestemming is links
+Destination is on the right	De bestemming is rechts
+Directions	Route
+Directions from Here	Route vanaf hier
+Directions to Here	Route hierheen
+Enter the roundabout	Rij de rotonde op
+Enter the roundabout and take exit %s	Neem op de rotonde afslag %s
+Favorites	Favorieten
+Finding route…	Route zoeken…
+Go straight	Ga rechtdoor
+Keep left	Links aanhouden
+Keep right	Rechts aanhouden
+Location link copied.	Locatielink gekopieerd.
+Make a U-turn	Keer om
+Map Appearance	Kaartweergave
+Maps	Kaarten
+Maps uses the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	Kaarten gebruikt de locatievoorziening van het systeem (GeoClue) als die beschikbaar is, anders bepaalt het je locatie bij benadering op basis van je internetadres via de dienst ipinfo.io (je adres wordt naar die dienst gestuurd). Kaarten vraagt dit maar één keer; je kunt het uitzetten in het menu.
+Merge	Voeg in
+My Location	Mijn locatie
+No places found.	Geen plaatsen gevonden.
+No route found between these places.	Geen route gevonden tussen deze plaatsen.
+Offline – showing saved map	Offline – opgeslagen kaart wordt getoond
+Open in OpenStreetMap	Openen in OpenStreetMap
+Remove from Favorites	Verwijderen uit favorieten
+Report a Map Issue	Kaartfout melden
+Results	Resultaten
+Routes: FOSSGIS routing server (OSRM), data © OpenStreetMap contributors	Routes: routeserver van FOSSGIS (OSRM), gegevens © OpenStreetMap-bijdragers
+Saved	Opgeslagen
+Search for a place and save it with the star. Right-click the map for more.	Zoek een plaats en bewaar die met de ster. Klik met rechts op de kaart voor meer.
+Search for a place or address	Zoek een plaats of adres
+Show My Location	Mijn locatie tonen
+Show Sidebar	Zijbalk tonen
+Swap Start and Destination	Vertrek en bestemming omwisselen
+Take the exit	Neem de afrit
+Take the ramp	Neem de oprit
+The route could not be loaded. Check your internet connection.	De route kon niet worden geladen. Controleer je internetverbinding.
+Turn left	Sla linksaf
+Turn right	Sla rechtsaf
+Turn sharp left	Sla scherp linksaf
+Turn sharp right	Sla scherp rechtsaf
+Turn slightly left	Sla flauwe bocht linksaf
+Turn slightly right	Sla flauwe bocht rechtsaf
+Walk	Lopen
+What's Here?	Wat is hier?
+Your location could not be found.	Je locatie kon niet worden bepaald.
+Zoom In	Inzoomen
+Zoom Out	Uitzoomen
+© OpenStreetMap contributors	© OpenStreetMap-bijdragers
