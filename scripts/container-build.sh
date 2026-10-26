@@ -419,6 +419,31 @@ iso_drop_online_only() {  # iso_drop_online_only ADRESAR_REPOZITARE
 }
 
 # Jeden balik z packages/ (nebo packages/apps/) do out/single bez prestavby repozitare - na zkousku
+# Zverejnene repozitare LuxOS jako zdroj zavislosti (rofi, lsl, lux-engine...) pro sestaveni
+# jednoho baliku bez stavby celeho [luxos] (GitHub Actions: target one). Podpisy povinne,
+# klic LuxOS z packages/luxos-keyring. LUXOS_PUBLISHED_REPO=0 vypne.
+use_published_repos() {
+    [[ ${LUXOS_PUBLISHED_REPO:-1} == 1 ]] || return 0
+    grep -q '^\[luxos\]' /etc/pacman.conf && return 0
+    local key=$ROOT/packages/luxos-keyring/files/luxos.gpg fpr
+    pacman-key --init >/dev/null 2>&1 || true
+    pacman-key --add "$key" >/dev/null
+    fpr=$(gpg --show-keys --with-colons "$key" | awk -F: '/^fpr/{print $10; exit}')
+    pacman-key --lsign-key "$fpr" >/dev/null
+    # [luxos] pred [core]/[extra] jako v LuxOS (vlastni rofi, gdk-pixbuf2...)
+    local conf
+    conf=$(mktemp)
+    awk -v url="${LUXOS_REPO_URL:-https://luxos.lux-ai.cz/repo}" '
+        /^\[core\]/ && !done { printf "[luxos]\nSigLevel = Required\nServer = %s/$repo/$arch\n\n[luxos-apps]\nSigLevel = Required\nServer = %s/$repo/$arch\n\n", url, url; done=1 }
+        { print }' /etc/pacman.conf >"$conf"
+    cat "$conf" >/etc/pacman.conf
+    rm -f "$conf"
+    # pacman kontejneru nikdy nenahradit balikem lux-engine (replaces=pacman)
+    sed -i 's/^#\?IgnorePkg *=.*/IgnorePkg = pacman lux-engine/' /etc/pacman.conf
+    pacman -Sy --noconfirm >/dev/null
+    msg "Dependencies also from the published LuxOS repositories"
+}
+
 build_single() {
     local p=${1:?package name} src
     src=$ROOT/packages/$p
@@ -426,6 +451,8 @@ build_single() {
     [[ -f $src/PKGBUILD ]] || { echo "No package $p" >&2; exit 2; }
     msg "Updating build container"
     pacman -Syu --noconfirm --needed >/dev/null
+    # az po aktualizaci kontejneru: lux-engine z [luxos] nahrazuje pacman (ten kontejner potrebuje)
+    use_published_repos
     rm -rf "$BUILD"
     mkdir -p "$SOURCES" "$BUILD/pkgs/single" "$OUT/single"
     chown -R builder: "$SOURCES" "$BUILD"
