@@ -2702,3 +2702,93 @@ More details: run the command again with --verbose	Altri dettagli: esegui di nuo
 The list of apps is out of date. Install the updates first, then try again.	L'elenco delle app non è aggiornato. Installa prima gli aggiornamenti, poi riprova.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	La data e l'ora del computer sono errate, quindi non è possibile una connessione sicura. Controlla le impostazioni dell'ora.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Batteria più duratura: processore più lento senza turbo, luminosità leggermente ridotta, nessun ingrandimento nel Dock, i dispositivi inattivi vanno in sospensione e le attività in background si mettono in pausa.
+# OEM - priprava pro jineho cloveka, Pruvodce nastavenim
+Applying language and region	Applicazione di lingua e regione
+At the first start the owner chooses language, keyboard, Wi-Fi and creates their account.	Al primo avvio il proprietario sceglie lingua, tastiera e Wi‑Fi e crea il proprio account.
+At the first start the owner sees a setup assistant: language, keyboard, Wi-Fi, time zone, their account and disk password. Then LuxOS starts with the tour.	Al primo avvio il proprietario vede un assistente di configurazione: lingua, tastiera, Wi‑Fi, fuso orario, il proprio account e la password del disco. Poi LuxOS si avvia con il tour.
+Choose Photo…	Scegli foto…
+Choose a password for the disk.	Scegli una password per il disco.
+Continue? [y/N] 	Continuare? [s/N] 
+Could not create the account.	Impossibile creare l'account.
+Could not delete the account %s.	Impossibile eliminare l'account %s.
+Could not enable %s.	Impossibile attivare %s.
+Could not rebuild the boot image.	Impossibile ricostruire l'immagine di avvio.
+Could not remove the temporary disk key.	Impossibile rimuovere la chiave temporanea del disco.
+Could not seal the system for the owner.	Impossibile sigillare il sistema per il proprietario.
+Could not set the disk password.	Impossibile impostare la password del disco.
+Could not set the keyboard layout.	Impossibile impostare il layout della tastiera.
+Could not set the password.	Impossibile impostare la password.
+Creating your account	Creazione del tuo account
+Disk Password	Password del disco
+Disk password	Password del disco
+Enter the disk password twice.	Inserisci due volte la password del disco.
+Enter the password for the temporary account oem twice.	Inserisci due volte la password dell'account temporaneo oem.
+Finish Setup	Completa configurazione
+For shops and IT: LuxOS is installed without a personal account. At the first start the owner chooses language, Wi-Fi and creates their account.	Per negozi e reparti IT: LuxOS viene installato senza account personale. Al primo avvio il proprietario sceglie lingua e Wi‑Fi e crea il proprio account.
+Go back and choose your account password.	Torna indietro e scegli la password dell'account.
+Invalid OEM (use 0 or 1)	OEM non valido (usa 0 o 1)
+Invalid OEM_SEAL (use 1 or 0)	OEM_SEAL non valido (usa 1 o 0)
+Invalid computer name.	Nome del computer non valido.
+Invalid language.	Lingua non valida.
+Invalid setup data.	Dati di configurazione non validi.
+Invalid time zone.	Fuso orario non valido.
+Invalid user name.	Nome utente non valido.
+Keep saved Wi-Fi networks (their passwords stay on the computer)	Mantieni le reti Wi‑Fi salvate (le password restano sul computer)
+Let's set up your computer. It only takes a few minutes.	Configuriamo il tuo computer. Ci vorranno solo pochi minuti.
+Logs, caches and command history are removed.	Registri, cache e cronologia dei comandi vengono rimossi.
+Me - set up my account now	Io – crea ora il mio account
+New SSH keys and a new machine ID are created at the next start.	Al prossimo avvio vengono create nuove chiavi SSH e un nuovo ID macchina.
+Not Now	Non ora
+Nothing is lost: go back to change something or try again.	Non è andato perso nulla: torna indietro per modificare qualcosa o riprova.
+OEM_SEAL=0 needs PASSWORD (temporary account oem)	OEM_SEAL=0 richiede PASSWORD (account temporaneo oem)
+Password for the temporary account oem	Password dell'account temporaneo oem
+Photo (optional)	Foto (facoltativa)
+Prepare first	Prepara prima
+Prepare for another person	Prepara per un'altra persona
+Prepare for another person (OEM)	Prepara per un'altra persona (OEM)
+Prepare the computer first (temporary account oem, then Seal for Customer)?	Preparare prima il computer (account temporaneo oem, poi Sigilla per il cliente)?
+Preparing for another person (OEM) does not support encryption in manual partitioning. Use Encrypt LuxOS instead.	La preparazione per un'altra persona (OEM) non supporta la crittografia con il partizionamento manuale. Usa invece Cifra LuxOS.
+Preparing the encrypted disk	Preparazione del disco cifrato
+Ready to hand over this computer?	Pronto a consegnare questo computer?
+Run as root (sudo).	Esegui come root (sudo).
+Seal and Shut Down	Sigilla e spegni
+Seal for Customer	Sigilla per il cliente
+Seal for customer:	Sigillatura per il cliente:
+Seal now	Sigilla subito
+Sealed. At the next start the setup assistant welcomes the owner.	Sigillato. Al prossimo avvio l'assistente di configurazione accoglie il proprietario.
+Sealing failed.	Sigillatura non riuscita.
+Set Up LuxOS	Configura LuxOS
+Setting the disk password	Impostazione della password del disco
+Setting up your computer	Configurazione del computer
+Setup could not be finished (exit code %s).	Impossibile completare la configurazione (codice di uscita %s).
+Shut Down or Restart	Spegni o riavvia
+Sign in as oem to add apps and test the hardware, then click Seal for Customer (or run luxos-oem seal).	Accedi come oem per aggiungere app e provare l'hardware, poi fai clic su Sigilla per il cliente (o esegui luxos-oem seal).
+Signing in…	Accesso in corso…
+Some of your entries contain unsupported characters.	Alcuni dati inseriti contengono caratteri non supportati.
+The computer is ready to hand over right after the installation.	Il computer è pronto per la consegna subito dopo l'installazione.
+The encrypted disk was not found.	Disco cifrato non trovato.
+The owner chooses the disk password in the setup assistant at the first start. Until then the computer starts without asking.	Il proprietario sceglie la password del disco nell'assistente di configurazione al primo avvio. Fino ad allora il computer si avvia senza chiederla.
+The owner chooses the disk password in the setup assistant.	Il proprietario sceglie la password del disco nell'assistente di configurazione.
+The owner creates their account in the setup assistant at the first start.	Il proprietario crea il proprio account nell'assistente di configurazione al primo avvio.
+The setup assistant has already finished on this computer.	L'assistente di configurazione è già stato completato su questo computer.
+The setup assistant is not active on this computer.	L'assistente di configurazione non è attivo su questo computer.
+The temporary account oem is deleted at the next start.	L'account temporaneo oem viene eliminato al prossimo avvio.
+The temporary disk key does not work.	La chiave temporanea del disco non funziona.
+The user name %s is already taken.	Il nome utente %s è già in uso.
+This computer was not installed for another person (OEM). Nothing to seal.	Questo computer non è stato installato per un'altra persona (OEM). Niente da sigillare.
+This computer was prepared for another person. Install apps and test the hardware, then seal it. The computer shuts down; at the next start the owner creates their account.	Questo computer è stato preparato per un'altra persona. Installa le app e prova l'hardware, poi sigillalo. Il computer si spegne; al prossimo avvio il proprietario crea il proprio account.
+This picture cannot be used.	Questa immagine non può essere usata.
+This takes a moment. Please do not turn off the computer.	Ci vorrà un momento. Non spegnere il computer.
+Use my account password	Usa la password del mio account
+Welcome	Benvenuto
+Welcome, %s!	Benvenuto, %s!
+Who will use this computer?	Chi userà questo computer?
+You can also skip this and connect later in the top bar.	Puoi anche saltare questo passaggio e connetterti più tardi dalla barra in alto.
+Your account is ready. Restart the computer and sign in with your new password.	Il tuo account è pronto. Riavvia il computer e accedi con la nuova password.
+Your disk is encrypted. You will enter this password every time the computer starts.	Il disco è cifrato. Inserirai questa password a ogni avvio del computer.
+at the next start the owner creates their account in the setup assistant	al prossimo avvio il proprietario crea il proprio account nell'assistente di configurazione
+logs, caches and command history are removed	registri, cache e cronologia dei comandi vengono rimossi
+saved Wi-Fi networks and their passwords are removed	le reti Wi‑Fi salvate e le loro password vengono rimosse
+the owner creates it at the first start (OEM)	lo crea il proprietario al primo avvio (OEM)
+the owner creates it at the first start (OEM); until sealing: temporary account %s	lo crea il proprietario al primo avvio (OEM); fino alla sigillatura: account temporaneo %s
+the temporary account %s is deleted at the next start	l'account temporaneo %s viene eliminato al prossimo avvio

@@ -7,6 +7,9 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 ## Připravuje se
 
 ### Nové
+- **Příprava pro jiného člověka (OEM)** – obchod nebo IT nainstaluje LuxOS bez osobního účtu (v instalátoru „Připravit pro jiného člověka (OEM)“, bez obsluhy `OEM=1`). Při prvním startu majitele přivítá **Průvodce nastavením** přes celou obrazovku jako na novém Macu: jazyk, klávesnice, Wi‑Fi, časové pásmo, účet (jméno, heslo s okem, volitelně fotka), LuxAI, heslo disku a údržba; pak se rovnou přihlásí do nového účtu a spustí Prohlídku LuxOS. Rozpracovaný průvodce přežije výpadek proudu (spustí se znovu na stejné stránce).
+- **Zapečetit pro zákazníka** – volitelně se počítač nejdřív připraví v dočasném účtu `oem` (aplikace, test hardwaru), pak tlačítko na ploše nebo `luxos-oem seal`: smaže záznamy, mezipaměti, historii a uložené Wi‑Fi, nové `machine-id` a klíče SSH, účet `oem` zmizí při dalším startu.
+- **Šifrovaný disk v OEM** – do prvního startu se odemyká dočasným klíčem (bez hesla), heslo disku si zvolí majitel v průvodci (výchozí = heslo účtu); dočasný klíč se pak z disku odebere. Postup je bezpečný i při výpadku proudu v kterémkoli kroku.
 - **Graf vytížení CPU** jde přidat do horní lišty (pravým tlačítkem na lištu › Panel › Přidat nové položky › CPU Graph); ve výchozí liště není.
 
 ### Opraveno

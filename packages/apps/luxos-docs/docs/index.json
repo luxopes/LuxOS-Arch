@@ -296,10 +296,16 @@
         {
           "path": "luxos/installer.md",
           "title": "Installing LuxOS",
-          "summary": "The LuxOS installer (GUI and text): steps, disk modes incl. free space, existing partition and manual LVM/LUKS layout, Btrfs defaults, unattended install.conf keys, keyboard layouts, software templates and LuxAI sign-in.",
+          "summary": "The LuxOS installer (GUI and text): steps, disk modes incl. free space, existing partition and manual LVM/LUKS layout, Btrfs defaults, unattended install.conf keys, keyboard layouts, software templates, LuxAI sign-in and OEM preinstallation (seal for customer, first-start setup assistant).",
           "keywords": [
             "installer",
             "luxos-install",
+            "OEM",
+            "preinstall",
+            "luxos-oem",
+            "seal for customer",
+            "setup assistant",
+            "first start",
             "install LuxOS",
             "partition",
             "dual boot",

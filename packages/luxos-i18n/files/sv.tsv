@@ -2702,3 +2702,93 @@ More details: run the command again with --verbose	Mer information: kör kommand
 The list of apps is out of date. Install the updates first, then try again.	Applistan är inaktuell. Installera uppdateringarna först och försök sedan igen.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datorns datum och tid är fel, så en säker anslutning är inte möjlig. Kontrollera tidsinställningarna.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Längre batteritid: långsammare processor utan turbo, något lägre ljusstyrka, ingen förstoring i Dock, oanvända enheter går i viloläge och bakgrundsuppgifter pausas.
+# OEM - priprava pro jineho cloveka, Pruvodce nastavenim
+Applying language and region	Tillämpar språk och region
+At the first start the owner chooses language, keyboard, Wi-Fi and creates their account.	Vid första starten väljer ägaren språk, tangentbord och wifi och skapar sitt konto.
+At the first start the owner sees a setup assistant: language, keyboard, Wi-Fi, time zone, their account and disk password. Then LuxOS starts with the tour.	Vid första starten ser ägaren en inställningsassistent: språk, tangentbord, wifi, tidszon, eget konto och disklösenord. Sedan startar LuxOS med rundturen.
+Choose Photo…	Välj foto…
+Choose a password for the disk.	Välj ett lösenord för disken.
+Continue? [y/N] 	Fortsätta? [j/N] 
+Could not create the account.	Kontot kunde inte skapas.
+Could not delete the account %s.	Kontot %s kunde inte tas bort.
+Could not enable %s.	%s kunde inte aktiveras.
+Could not rebuild the boot image.	Startavbildningen kunde inte byggas om.
+Could not remove the temporary disk key.	Den tillfälliga disknyckeln kunde inte tas bort.
+Could not seal the system for the owner.	Systemet kunde inte förseglas för ägaren.
+Could not set the disk password.	Disklösenordet kunde inte ställas in.
+Could not set the keyboard layout.	Tangentbordslayouten kunde inte ställas in.
+Could not set the password.	Lösenordet kunde inte ställas in.
+Creating your account	Skapar ditt konto
+Disk Password	Disklösenord
+Disk password	Disklösenord
+Enter the disk password twice.	Ange disklösenordet två gånger.
+Enter the password for the temporary account oem twice.	Ange lösenordet för det tillfälliga kontot oem två gånger.
+Finish Setup	Slutför inställningen
+For shops and IT: LuxOS is installed without a personal account. At the first start the owner chooses language, Wi-Fi and creates their account.	För butiker och IT: LuxOS installeras utan personligt konto. Vid första starten väljer ägaren språk och wifi och skapar sitt konto.
+Go back and choose your account password.	Gå tillbaka och välj ett kontolösenord.
+Invalid OEM (use 0 or 1)	Ogiltigt OEM (använd 0 eller 1)
+Invalid OEM_SEAL (use 1 or 0)	Ogiltigt OEM_SEAL (använd 1 eller 0)
+Invalid computer name.	Ogiltigt datornamn.
+Invalid language.	Ogiltigt språk.
+Invalid setup data.	Ogiltiga inställningsdata.
+Invalid time zone.	Ogiltig tidszon.
+Invalid user name.	Ogiltigt användarnamn.
+Keep saved Wi-Fi networks (their passwords stay on the computer)	Behåll sparade wifi-nätverk (deras lösenord stannar på datorn)
+Let's set up your computer. It only takes a few minutes.	Nu ställer vi in din dator. Det tar bara några minuter.
+Logs, caches and command history are removed.	Loggar, cacheminnen och kommandohistorik tas bort.
+Me - set up my account now	Jag – skapa mitt konto nu
+New SSH keys and a new machine ID are created at the next start.	Vid nästa start skapas nya SSH-nycklar och ett nytt maskin-ID.
+Not Now	Inte nu
+Nothing is lost: go back to change something or try again.	Inget har gått förlorat: gå tillbaka för att ändra något eller försök igen.
+OEM_SEAL=0 needs PASSWORD (temporary account oem)	OEM_SEAL=0 kräver PASSWORD (tillfälligt konto oem)
+Password for the temporary account oem	Lösenord för det tillfälliga kontot oem
+Photo (optional)	Foto (valfritt)
+Prepare first	Förbered först
+Prepare for another person	Förbered för en annan person
+Prepare for another person (OEM)	Förbered för en annan person (OEM)
+Prepare the computer first (temporary account oem, then Seal for Customer)?	Förbereda datorn först (tillfälligt konto oem, sedan Försegla för kund)?
+Preparing for another person (OEM) does not support encryption in manual partitioning. Use Encrypt LuxOS instead.	Förberedelse för en annan person (OEM) stöder inte kryptering vid manuell partitionering. Använd Kryptera LuxOS i stället.
+Preparing the encrypted disk	Förbereder den krypterade disken
+Ready to hand over this computer?	Redo att lämna över datorn?
+Run as root (sudo).	Kör som root (sudo).
+Seal and Shut Down	Försegla och stäng av
+Seal for Customer	Försegla för kund
+Seal for customer:	Försegla för kund:
+Seal now	Försegla nu
+Sealed. At the next start the setup assistant welcomes the owner.	Förseglad. Vid nästa start välkomnar inställningsassistenten ägaren.
+Sealing failed.	Förseglingen misslyckades.
+Set Up LuxOS	Ställ in LuxOS
+Setting the disk password	Ställer in disklösenordet
+Setting up your computer	Ställer in din dator
+Setup could not be finished (exit code %s).	Inställningen kunde inte slutföras (slutkod %s).
+Shut Down or Restart	Stäng av eller starta om
+Sign in as oem to add apps and test the hardware, then click Seal for Customer (or run luxos-oem seal).	Logga in som oem för att lägga till appar och testa hårdvaran, klicka sedan på Försegla för kund (eller kör luxos-oem seal).
+Signing in…	Loggar in…
+Some of your entries contain unsupported characters.	Några av dina uppgifter innehåller tecken som inte stöds.
+The computer is ready to hand over right after the installation.	Datorn är redo att lämnas över direkt efter installationen.
+The encrypted disk was not found.	Den krypterade disken hittades inte.
+The owner chooses the disk password in the setup assistant at the first start. Until then the computer starts without asking.	Ägaren väljer disklösenordet i inställningsassistenten vid första starten. Fram till dess startar datorn utan att fråga.
+The owner chooses the disk password in the setup assistant.	Ägaren väljer disklösenordet i inställningsassistenten.
+The owner creates their account in the setup assistant at the first start.	Ägaren skapar sitt konto i inställningsassistenten vid första starten.
+The setup assistant has already finished on this computer.	Inställningsassistenten har redan slutförts på den här datorn.
+The setup assistant is not active on this computer.	Inställningsassistenten är inte aktiv på den här datorn.
+The temporary account oem is deleted at the next start.	Det tillfälliga kontot oem tas bort vid nästa start.
+The temporary disk key does not work.	Den tillfälliga disknyckeln fungerar inte.
+The user name %s is already taken.	Användarnamnet %s är redan upptaget.
+This computer was not installed for another person (OEM). Nothing to seal.	Den här datorn installerades inte för en annan person (OEM). Inget att försegla.
+This computer was prepared for another person. Install apps and test the hardware, then seal it. The computer shuts down; at the next start the owner creates their account.	Den här datorn har förberetts för en annan person. Installera appar och testa hårdvaran och försegla den sedan. Datorn stängs av; vid nästa start skapar ägaren sitt konto.
+This picture cannot be used.	Den här bilden kan inte användas.
+This takes a moment. Please do not turn off the computer.	Det tar en stund. Stäng inte av datorn.
+Use my account password	Använd mitt kontolösenord
+Welcome	Välkommen
+Welcome, %s!	Välkommen, %s!
+Who will use this computer?	Vem ska använda datorn?
+You can also skip this and connect later in the top bar.	Du kan också hoppa över detta och ansluta senare i menyraden.
+Your account is ready. Restart the computer and sign in with your new password.	Ditt konto är klart. Starta om datorn och logga in med ditt nya lösenord.
+Your disk is encrypted. You will enter this password every time the computer starts.	Din disk är krypterad. Du anger det här lösenordet varje gång datorn startar.
+at the next start the owner creates their account in the setup assistant	vid nästa start skapar ägaren sitt konto i inställningsassistenten
+logs, caches and command history are removed	loggar, cacheminnen och kommandohistorik tas bort
+saved Wi-Fi networks and their passwords are removed	sparade wifi-nätverk och deras lösenord tas bort
+the owner creates it at the first start (OEM)	ägaren skapar det vid första starten (OEM)
+the owner creates it at the first start (OEM); until sealing: temporary account %s	ägaren skapar det vid första starten (OEM); fram till förseglingen: tillfälligt konto %s
+the temporary account %s is deleted at the next start	det tillfälliga kontot %s tas bort vid nästa start

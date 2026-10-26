@@ -1,0 +1,11 @@
+#!/bin/sh
+# LuxOS - Pruvodce nastavenim jako "greeter" LightDM (zapne luxos-oem seal).
+# Pad nebo chyba: Pruvodce znovu (rozpracovane volby si pamatuje); po dokonceni se uz nespousti.
+n=0
+while :; do
+    /usr/bin/luxos-setup-assistant && exit 0
+    [ -e /var/lib/luxos/oem/armed ] || exit 0
+    n=$((n + 1))
+    [ "$n" -ge 30 ] && exit 1
+    sleep 1
+done

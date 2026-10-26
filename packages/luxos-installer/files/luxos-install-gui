@@ -617,6 +617,8 @@ class Installer(Gtk.Window):
             "luxai": None, "luxai_email": "", "care": "carefree", "templates": [],
             "layout_ok": False, "pass_mismatch": False, "part": None, "home_part": None,
             "wipe": False,
+            # OEM: priprava pro jineho cloveka (ucet si zalozi majitel v Pruvodci nastavenim)
+            "oem": False, "oem_prepare": False, "oem_pw1": "", "oem_pw2": "",
         }
         self.luxai_panel = None   # panel prihlaseni LuxAI (drzi stav mezi prekreslenim)
         self.layout = None        # rucni rozdeleni (luxos_layout.Layout), vznikne v kroku Partitions
@@ -982,6 +984,21 @@ class Installer(Gtk.Window):
         page.pack_start(self.hint(_("Choose your language")), False, False, 0)
         items = [(loc, label, label + " " + loc) for label, loc in LANGS]
         self.search_list(page, items, self.s["locale"], self.choose_lang, height=250)
+        oem = Gtk.CheckButton(label=_("Prepare for another person (OEM)"), active=self.s["oem"])
+        oem.connect("toggled", lambda b: self.set_oem(b.get_active()))
+        page.pack_start(oem, False, False, 0)
+        page.pack_start(self.hint(_("For shops and IT: LuxOS is installed without a personal account. At the first "
+                                    "start the owner chooses language, Wi-Fi and creates their account.")),
+                        False, False, 0)
+
+    def set_oem(self, on):
+        """OEM: bez kroku LuxAI (prihlasi se majitel), heslo disku zvoli majitel."""
+        self.s["oem"] = on
+        if on and "luxai" in self.steps:
+            self.steps.remove("luxai")
+        elif not on and "luxai" not in self.steps:
+            self.steps.insert(self.steps.index("summary"), "luxai")
+        self.render_sidebar()
 
     def choose_lang(self, locale):
         if locale == self.s["locale"]:
@@ -1415,8 +1432,14 @@ class Installer(Gtk.Window):
         enc.pack_start(row, False, False, 0)
         rev = Gtk.Revealer(reveal_child=self.s["encrypt"])
         pbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        self.password_pair(pbox, "luks1", "luks2", _("Encryption password"), _("Confirm password"))
-        pbox.pack_start(self.hint(_("If you forget this password, your data cannot be recovered.")), False, False, 0)
+        if self.s["oem"]:
+            # docasny klic do prvniho startu, heslo si zvoli majitel v Pruvodci nastavenim
+            pbox.pack_start(self.hint(_("The owner chooses the disk password in the setup assistant at the first "
+                                        "start. Until then the computer starts without asking.")), False, False, 0)
+        else:
+            self.password_pair(pbox, "luks1", "luks2", _("Encryption password"), _("Confirm password"))
+            pbox.pack_start(self.hint(_("If you forget this password, your data cannot be recovered.")),
+                            False, False, 0)
         rev.add(pbox)
         enc.pack_start(rev, False, False, 0)
 
@@ -1432,7 +1455,7 @@ class Installer(Gtk.Window):
                 return False
             if self.s["mode"] == "partition" and self.partition_problem():
                 return False
-            if self.s["encrypt"] and (not self.s["luks1"] or self.s["luks1"] != self.s["luks2"]):
+            if self.s["encrypt"] and not self.s["oem"] and (not self.s["luks1"] or self.s["luks1"] != self.s["luks2"]):
                 return False
             return True
         self.valid = valid
@@ -2315,6 +2338,8 @@ class Installer(Gtk.Window):
 
     # ---- 6. ucet ----
     def page_account(self, page):
+        if self.s["oem"]:
+            return self.page_oem_account(page)
         self.heading(page, _("Create your account"), _("You will use this account to sign in and to install apps."))
         grid = Gtk.Grid(column_spacing=14, row_spacing=6)
         page.pack_start(grid, False, False, 0)
@@ -2395,6 +2420,33 @@ class Installer(Gtk.Window):
                               and self.s["pw1"] == self.s["pw2"])
         refresh()
         GLib.idle_add(lambda: (full.grab_focus_without_selecting(), full.set_position(-1)) and False)
+
+    def page_oem_account(self, page):
+        """OEM: zadny osobni ucet; volitelne docasny ucet oem pro pripravu pred zapecetenim."""
+        self.heading(page, _("Prepare for another person"),
+                     _("At the first start the owner sees a setup assistant: language, keyboard, Wi-Fi, time zone, "
+                       "their account and disk password. Then LuxOS starts with the tour."))
+        seal = self.card(_("Seal now"), _("The computer is ready to hand over right after the installation."),
+                         not self.s["oem_prepare"], lambda: self.pick_oem_prepare(False), icon="emblem-default")
+        prep = self.card(_("Prepare first"),
+                         _("Sign in as oem to add apps and test the hardware, then click Seal for Customer "
+                           "(or run luxos-oem seal)."),
+                         self.s["oem_prepare"], lambda: self.pick_oem_prepare(True), icon="applications-system")
+        page.pack_start(seal, False, False, 0)
+        page.pack_start(prep, False, False, 0)
+        if self.s["oem_prepare"]:
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            box.pack_start(self.hint(_("Password for the temporary account oem")), False, False, 0)
+            self.password_pair(box, "oem_pw1", "oem_pw2", _("Password"), _("Confirm password"))
+            page.pack_start(box, False, False, 0)
+        self.valid = lambda: (not self.s["oem_prepare"]
+                              or bool(self.s["oem_pw1"]) and self.s["oem_pw1"] == self.s["oem_pw2"])
+        self.why = lambda: _("Enter the password for the temporary account oem twice.")
+
+    def pick_oem_prepare(self, on):
+        if on != self.s["oem_prepare"]:
+            self.s["oem_prepare"] = on
+            GLib.idle_add(lambda: self.render() and False)
 
     # ---- 7. udrzba (carefree / classic) ----
     CARE = {
@@ -2620,6 +2672,13 @@ class Installer(Gtk.Window):
                  else _("Carefree - automatic updates and repairs")),
                 (_("Software"), self.templates_text()),
                 ("LuxAI", _("signed in") if self.s["luxai"] else _("not signed in"))]
+        if self.s["oem"]:
+            # OEM: ucet, nazev pocitace a LuxAI nastavi majitel
+            who = _("the owner creates it at the first start (OEM)")
+            if self.s["oem_prepare"]:
+                who = _("the owner creates it at the first start (OEM); until sealing: temporary account %s") % "oem"
+            rows = [r for r in rows if r[0] not in (_("Computer"), _("Automatic login"), "LuxAI")]
+            rows = [(k, who) if k == _("User") else (k, v) for k, v in rows]
         for i, (k, v) in enumerate(rows):
             lab = Gtk.Label(label=k, xalign=0)
             lab.get_style_context().add_class("subtitle")
@@ -2637,6 +2696,11 @@ class Installer(Gtk.Window):
         if self.s["mode"] == "partition":
             self.summary_partition(page)
         self.wipe_card(page)
+        if self.s["oem"] and manual and self.layout.of("luks"):
+            # OEM: heslo disku meni Pruvodce nastavenim jen u jednoho svazku / (Sifrovat LuxOS)
+            self.valid = lambda: False
+            self.why = lambda: _("Preparing for another person (OEM) does not support encryption in manual "
+                                 "partitioning. Use Encrypt LuxOS instead.")
 
     # ---- bezpecne smazani (WIPE) ----
     def disk_by_path(self, path):
@@ -2963,6 +3027,10 @@ class Installer(Gtk.Window):
             "TEMPLATES": ",".join(s["templates"]),
             "WIPE": "zero" if s["wipe"] else "none", "WIPE_CANCEL_FILE": self.wipe_cancel_file(),
         }
+        if s["oem"]:
+            values.update({"OEM": "1", "OEM_SEAL": "0" if s["oem_prepare"] else "1", "USERNAME": "", "FULLNAME": "",
+                           "PASSWORD": s["oem_pw1"] if s["oem_prepare"] else "", "HOSTNAME_SEL": "luxos",
+                           "AUTOLOGIN": "0", "LUXAI_ACCOUNT": "", "LUKS_PASS": ""})
         if s["mode"] == "manual" and self.layout is not None:
             values.update(self.layout.config_values())
         if s["mode"] == "partition":
@@ -3294,6 +3362,7 @@ eval "$(cat)"
 echo "fake backend: DISK=$DISK DISK_MODE=$DISK_MODE ENCRYPT=$ENCRYPT USERNAME=$USERNAME HOST=$HOSTNAME_SEL"
 echo "fake backend: FULLNAME=$FULLNAME, password length ${#PASSWORD}, LuxAI=${LUXAI_ACCOUNT:+yes}, CARE_MODE=$CARE_MODE"
 echo "fake backend: TEMPLATES=${TEMPLATES-}"
+[[ ${OEM:-0} == 1 ]] && echo "fake backend: OEM=1 OEM_SEAL=$OEM_SEAL, password length ${#PASSWORD}"
 [[ $DISK_MODE == partition ]] && echo "fake backend: ROOT_PART=$ROOT_PART HOME_PART=${HOME_PART-}"
 d=${LUXOS_INSTALL_FAKE_DELAY:-0.4}
 # Stahovani jako v luxos-install (pac_filter): @@NET kazde "2 s", srozumitelne hlasky o serverech

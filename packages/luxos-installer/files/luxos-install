@@ -315,6 +315,7 @@ interactive() {
 
     ensure_internet
 
+    ask_oem
     ask_keyboard
 
     # Casove pasmo
@@ -350,7 +351,7 @@ interactive() {
         ask_partition
         if gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Encrypt LuxOS? (you will enter a password at every start)")"; then
             ENCRYPT=1
-            LUKS_PASS=$(ask_password "$(T "Disk encryption password")")
+            ask_luks_pass
         fi
     elif [[ $sel == "$advanced" ]]; then
         DISK=manual
@@ -362,10 +363,16 @@ interactive() {
         ENCRYPT=0
         if gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Encrypt the disk? (you will enter a password at every start)")"; then
             ENCRYPT=1
-            LUKS_PASS=$(ask_password "$(T "Disk encryption password")")
+            ask_luks_pass
         fi
     fi
 
+    if ((${OEM:-0})); then
+        ask_oem_account
+        ask_care
+        ask_templates
+        return 0
+    fi
     # Uzivatel
     title "$(T "Your account")"
     FULLNAME=$(gum input --header "$(T "Full name")" --placeholder "$(T "Jane Doe")") || exit 1
@@ -388,6 +395,125 @@ interactive() {
     ask_templates
     ask_luxai
     return 0
+}
+
+# --- OEM: priprava pro jineho cloveka (ucet si zalozi majitel v Pruvodci nastavenim) --------------
+# OEM=1: bez osobniho uctu a LuxAI. OEM_SEAL=1 (vychozi) = zapeceteno hned, prvni start otevre Pruvodce
+# nastavenim; OEM_SEAL=0 = docasny ucet oem (heslo PASSWORD) pro instalaci aplikaci a zkouseni hardwaru,
+# pak "luxos-oem seal". Sifrovani: docasny nahodny klic v initramfs (start bez hesla), heslo disku
+# zvoli majitel v Pruvodci (luxos-oem finish). LUKS_PASS se v OEM nezadava.
+OEM=${OEM:-0}
+OEM_SEAL=${OEM_SEAL:-1}
+OEM_USER=oem
+OEM_LUKS_NAME=cryptroot
+
+ask_oem() {
+    title "$(T "Who will use this computer?")"
+    local me other sel
+    me=$(T "Me - set up my account now")
+    other=$(T "Prepare for another person (OEM)")
+    sel=$(gum choose --header "$(T "Who will use this computer?")" "$me" "$other") || exit 1
+    OEM=0
+    [[ $sel == "$other" ]] && OEM=1
+    ((${OEM:-0})) && info "$(T "The owner creates their account in the setup assistant at the first start.")"
+    return 0
+}
+
+ask_luks_pass() {  # heslo disku; v OEM ho zvoli majitel (docasny klic)
+    if ((${OEM:-0})); then
+        LUKS_PASS=""
+        info "$(T "The owner chooses the disk password in the setup assistant.")"
+    else
+        LUKS_PASS=$(ask_password "$(T "Disk encryption password")")
+    fi
+}
+
+ask_oem_account() {
+    title "$(T "Prepare for another person (OEM)")"
+    info "$(T "At the first start the owner chooses language, keyboard, Wi-Fi and creates their account.")"
+    OEM_SEAL=1 USERNAME="" PASSWORD="" FULLNAME="" AUTOLOGIN=0 HOSTNAME_SEL=luxos
+    if gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" \
+            "$(T "Prepare the computer first (temporary account oem, then Seal for Customer)?")"; then
+        OEM_SEAL=0 USERNAME=$OEM_USER FULLNAME="OEM"
+        PASSWORD=$(ask_password "$(T "Password for the temporary account oem")")
+    fi
+    return 0
+}
+
+oem_config() {  # OEM=1 z konfigurace: kontrola a doplneni (pred kontrolou USERNAME/PASSWORD)
+    [[ $OEM == @(0|1) ]] || fail "$(T "Invalid OEM (use 0 or 1)")"
+    ((${OEM:-0})) || return 0
+    [[ $OEM_SEAL == @(0|1) ]] || fail "$(T "Invalid OEM_SEAL (use 1 or 0)")"
+    LUXAI_ACCOUNT="" LUXAI_EMAIL="" LUXAI_PASSWORD=""
+    if ((${OEM_SEAL:-1})); then
+        USERNAME="" PASSWORD="" AUTOLOGIN=0
+    else
+        USERNAME=$OEM_USER
+        [[ -n ${PASSWORD-} ]] || fail "$(T "OEM_SEAL=0 needs PASSWORD (temporary account oem)")"
+        FULLNAME="OEM"
+    fi
+    oem_luks_key
+}
+
+oem_luks_key() {  # docasny klic disku (majitel ho v Pruvodci nahradi svym heslem)
+    if ((${OEM:-0} && ENCRYPT)) && [[ -z ${LUKS_PASS-} ]]; then
+        LUKS_PASS=$(head -c 96 /dev/urandom | base64 -w0 | tr -d '/+=' | head -c 64)
+    fi
+    return 0
+}
+
+oem_check_mode() {  # sifrovani v OEM jen jako jeden svazek / (cryptroot), ne rucni LAYOUT s LUKS
+    ((${OEM:-0})) || return 0
+    if [[ $DISK_MODE == layout && -n $(ly_ids luks) ]]; then
+        fail "$(T "Preparing for another person (OEM) does not support encryption in manual partitioning. Use Encrypt LuxOS instead.")"
+    fi
+    return 0
+}
+
+oem_user_text() {
+    if ((${OEM_SEAL:-1})); then T "the owner creates it at the first start (OEM)"
+    else T "the owner creates it at the first start (OEM); until sealing: temporary account %s" "$OEM_USER"; fi
+}
+
+oem_prepare_target() {  # pred setup-chroot (mkinitcpio): stav OEM, docasny klic disku do initramfs
+    local user="" luks=""
+    ((${OEM_SEAL:-1})) || user=$OEM_USER
+    ((ENCRYPT)) && luks=$OEM_LUKS_NAME
+    install -Dm644 /dev/stdin "$TARGET/etc/luxos/oem.conf" <<C
+# LuxOS - pocitac pripraveny pro jineho cloveka (luxos-oem)
+OEM=1
+OEM_USER=$user
+LUKS_NAME=$luks
+C
+    if ((ENCRYPT)); then
+        install -d -m700 "$TARGET/etc/cryptsetup-keys.d"
+        (umask 077; printf '%s' "$LUKS_PASS" >"$TARGET/etc/cryptsetup-keys.d/$OEM_LUKS_NAME.key")
+        chmod 0400 "$TARGET/etc/cryptsetup-keys.d/$OEM_LUKS_NAME.key"
+        install -Dm644 /dev/stdin "$TARGET/etc/mkinitcpio.conf.d/luxos-oem.conf" <<C
+# LuxOS - OEM: docasny klic disku v initramfs (start bez hesla); odstrani luxos-oem finish
+FILES+=(/etc/cryptsetup-keys.d/$OEM_LUKS_NAME.key)
+C
+    fi
+    return 0
+}
+
+oem_finish_target() {  # po setup-chroot: zapecetit hned, nebo spoustec "Zapecetit" pro ucet oem
+    if ((${OEM_SEAL:-1})); then
+        arch-chroot "$TARGET" /usr/bin/luxos-oem seal --chroot --yes >>"$LOG" 2>&1 ||
+            fail "$(T "Could not seal the system for the owner.")"
+        return 0
+    fi
+    local home="$TARGET/home/$OEM_USER" src=/usr/share/applications/luxos-oem-seal.desktop
+    [[ -e $TARGET$src ]] && src=$TARGET$src
+    if [[ -e $src ]]; then
+        sed '/^NoDisplay=/d' "$src" | install -Dm755 /dev/stdin "$home/Desktop/luxos-oem-seal.desktop"
+    fi
+    # po prihlaseni okno s pripominkou a tlacitkem Zapecetit (samo nic nezapecetuje)
+    if [[ -e $src ]]; then
+        sed 's/^Exec=.*/Exec=luxos-setup-assistant --seal-dialog --reminder/' "$src" |
+            install -Dm644 /dev/stdin "$home/.config/autostart/luxos-oem-seal.desktop"
+    fi
+    arch-chroot "$TARGET" chown -R "$OEM_USER:" "/home/$OEM_USER" >>"$LOG" 2>&1 || true
 }
 
 # Bezpecne smazani (WIPE): nabidka v TUI po vyberu disku
@@ -656,7 +782,7 @@ summary() {
         "$(printf '%-13s%s' "$(T "Disk")" "$disk_text")"
         "$(printf '%-13s%s' "$(T "Encryption")" "$([[ $enc == 1 ]] && T "yes" || T "no")")"
         "$(printf '%-13s%s' "$(T "Erase first")" "$(wipe_text)")"
-        "$(printf '%-13s%s' "$(T "User")" "$FULLNAME ($USERNAME)")"
+        "$(printf '%-13s%s' "$(T "User")" "$( ((${OEM:-0})) && oem_user_text || echo "$FULLNAME ($USERNAME)")")"
         "$(printf '%-13s%s' "$(T "Computer")" "$HOSTNAME_SEL")"
         "$(printf '%-13s%s' "$(T "Boot mode")" "$boot_text")"
         "$(printf '%-13s%s' "$(T "Maintenance")" "$(care_text "$CARE_MODE")")"
@@ -1513,6 +1639,8 @@ install_packages() {
         if [[ $BOOTMODE == uefi ]]; then pkgs+=(efibootmgr); else pkgs+=(grub); fi
     fi
     uses_layout && mapfile -t -O "${#pkgs[@]}" pkgs < <(layout_packages)
+    # OEM: Pruvodce nastavenim a luxos-oem (balik instalatoru)
+    ((${OEM:-0})) && pkgs+=(luxos-installer)
     mapfile -t hw < <(luxos-hwdetect --packages --kernel linux-luxos)
     luxos-hwdetect --report | sed 's/^/  /'
     # Legacy ovladace NVIDIA (nvidia-580xx-*, nvidia-470xx-*: [luxos], ~0,5 GB) v ISO nejsou;
@@ -1624,6 +1752,9 @@ configure_system() {
     # lux: repozitare LuxOS ze serveru (podepsane), Arch ze stejnych mirroru jako live system
     install_engine_config
 
+    # OEM: vsechny jazyky LuxOS predem (majitel si jazyk vybere v Pruvodci nastavenim)
+    local oem_locales=""
+    ((${OEM:-0})) && oem_locales=$(printf '%s ' "${LANGS[@]##*|}")
     local console_km
     console_km=$(x11_to_console "$XKB_LAYOUT" "$XKB_VARIANT")
     local -a hw_svcs
@@ -1668,20 +1799,25 @@ NVIDIA_EARLY=${NVIDIA_EARLY:-0}
 DISK=$(printf %q "$chroot_disk")
 CMDLINE=$(printf %q "$rootspec $cmdline")
 HW_SERVICES=$(printf %q "${hw_svcs[*]}")
+OEM=${OEM:-0}
+OEM_LOCALES=$(printf %q "$oem_locales")
 ENV
     # Rezim udrzby pro luxos-care
     printf "MODE=%s\nKERNEL=linux-luxos\n" "$CARE_MODE" | install -Dm644 /dev/stdin "$TARGET/etc/luxos/care.conf"
     install -m700 "$SHARE/setup-chroot.sh" "$TARGET/root/luxos-setup.sh"
+    ((${OEM:-0})) && oem_prepare_target
     arch-chroot "$TARGET" /root/luxos-setup.sh 2>&1 | tee -a "$LOG"
-    printf '%s:%s\n' "$USERNAME" "$PASSWORD" | arch-chroot "$TARGET" chpasswd
+    # OEM zapeceteny hned: zadny ucet (zalozi ho majitel v Pruvodci nastavenim)
+    [[ -n ${USERNAME-} ]] && printf '%s:%s\n' "$USERNAME" "$PASSWORD" | arch-chroot "$TARGET" chpasswd
     # Ucet LuxAI do ~/.config/luxai/account.json noveho uzivatele (0700/0600)
-    if [[ -n $LUXAI_ACCOUNT ]]; then
+    if [[ -n $LUXAI_ACCOUNT && -n ${USERNAME-} ]]; then
         local home="$TARGET/home/$USERNAME"
         install -d -m700 "$home/.config" "$home/.config/luxai"
         (umask 077; printf '%s\n' "$LUXAI_ACCOUNT" >"$home/.config/luxai/account.json")
         arch-chroot "$TARGET" chown -R "$USERNAME:" "/home/$USERNAME/.config"
     fi
     rm -f "$TARGET/root/luxos-setup.sh" "$TARGET/root/luxos-setup.env"
+    ((${OEM:-0})) && oem_finish_target
 
     # bootctl v chrootu nezapisuje EFI promenne - polozku "LuxOS" vytvorit z live systemu
     if [[ $BOOTLOADER != none && $BOOTMODE == uefi ]] && command -v efibootmgr >/dev/null; then
@@ -2051,15 +2187,17 @@ main() {
         fi
         [[ -n ${UI_LANG-} ]] && ui_lang "$UI_LANG"
         : "${LOCALE:=en_US.UTF-8}" "${XKB_LAYOUT:=us}" "${XKB_VARIANT:=}" "${TIMEZONE:=UTC}"
-        : "${ENCRYPT:=0}" "${AUTOLOGIN:=0}" "${HOSTNAME_SEL:=luxos}" "${FULLNAME:=$USERNAME}"
+        : "${ENCRYPT:=0}" "${AUTOLOGIN:=0}" "${HOSTNAME_SEL:=luxos}" "${FULLNAME:=${USERNAME-}}"
         : "${BOOTLOADER:=auto}" "${LUXAI_ACCOUNT:=}" "${TEMPLATES:=}" "${WIPE:=none}" "${WIPE_CANCEL_FILE:=}"
         xkb_normalize   # seznam rozlozeni a prepinani (viz xkb_normalize)
         [[ ${DISK_MODE-} == manual && -z ${DISK-} ]] && DISK=manual   # pripojeno v /mnt, disk neni potreba
         [[ ${DISK_MODE-} == layout && -z ${DISK-} ]] && DISK=layout   # disky jsou v LAYOUT
         # existujici oddil: disk podle oddilu
         [[ ${DISK_MODE-} == partition && -z ${DISK-} && -n ${ROOT_PART-} ]] && DISK=$(ly_parent_disk "$ROOT_PART")
-        [[ -n ${DISK-}&& -n ${USERNAME-} && -n ${PASSWORD-} ]] || fail "$(T "Config needs DISK, USERNAME and PASSWORD")"
-        valid_user "$USERNAME" || fail "$(T "Invalid USERNAME")"
+        oem_config   # OEM=1: bez osobniho uctu (USERNAME/PASSWORD jen pro docasny ucet oem)
+        [[ -n ${DISK-} ]] && { ((${OEM:-0})) || [[ -n ${USERNAME-} && -n ${PASSWORD-} ]]; } ||
+            fail "$(T "Config needs DISK, USERNAME and PASSWORD")"
+        [[ -z $USERNAME ]] || valid_user "$USERNAME" || fail "$(T "Invalid USERNAME")"
         valid_host "$HOSTNAME_SEL" || fail "$(T "Invalid HOSTNAME_SEL")"
         ((ENCRYPT)) && [[ -z ${LUKS_PASS-} ]] && fail "$(T "ENCRYPT=1 needs LUKS_PASS")"
         have_internet || fail "$(T "No internet connection")"
@@ -2074,6 +2212,7 @@ main() {
         fi
     else
         interactive
+        oem_luks_key   # OEM se sifrovanim: docasny klic disku
     fi
     # Rezim disku: erase (cely disk), freespace (vedle jinych systemu), partition (existujici oddil),
     # layout (rucni rozdeleni), manual (pripojeno v $TARGET)
@@ -2082,7 +2221,7 @@ main() {
     case $DISK_MODE in
         erase|freespace) ;;
         manual) DISK=manual ;;
-        layout) ENCRYPT=0; load_layout ;;   # sifrovani popisuje LAYOUT (luks)
+        layout) ENCRYPT=0; load_layout; oem_check_mode ;;   # sifrovani popisuje LAYOUT (luks)
         partition) part_setup ;;            # sestavi LAYOUT (ENCRYPT -> luks)
         *) fail "$(T "Invalid DISK_MODE (use erase, freespace, partition, layout or manual)")" ;;
     esac
