@@ -499,3 +499,71 @@ computers; LocalSend is used only for devices that cannot speak it. Trusting a L
 device ("Trust this device" in the accept dialog, off by default) pins the key of its
 client certificate; afterwards a different key with the same name is not trusted and the
 dialog warns about it.
+
+## 16. Part C – shared folders ("Connect to Computer")
+
+A LuxOS computer can let another LuxOS computer browse chosen folders, so that Files shows
+local and remote folders side by side and drag & drop copies between them. Instead of a new
+file protocol, LuxDrop tunnels **SFTP** (the OpenSSH SFTP protocol, version 3) through a TLS
+connection authenticated exactly like Part A. No `sshd` and no system configuration are needed.
+
+```
+ client (Alice)                                   sharing computer (Bob, port 47924)
+ mDNS browse _luxdrop-files._tcp  ─────────────▶  announced only while sharing is on
+ TLS 1.3, ALPN "luxdrop-files/1"  ◀───────────▶  same identity certificate as Part A
+ hello / auth (section 6.1)        ◀───────────▶  auth_ok
+ open {write}                     ─────────────▶  ask the owner (unless "Always" was given)
+ [Alice compares the code]                        [Bob compares the code, Allow once / Always / Deny]
+                                  ◀─────────────  opened {write, shares} | reject {code}
+ start                            ─────────────▶  spawn sftp-server in a sandbox
+ raw SFTP stream                  ◀───────────▶  raw SFTP stream (no more frames)
+```
+
+* Service type `_luxdrop-files._tcp`, TXT as in section 3, default port **47924**.
+  ALPN `luxdrop-files/1`; a Part A client cannot talk to it by mistake.
+* Messages before `start` use the framing of section 5. `open.write` (bool) asks for
+  write access. `opened.write` is the access actually granted, `opened.shares` lists the
+  top-level folder names. `reject.code` is `declined`, `timeout`, `busy` or `sharing_off`.
+* The code (SAS, section 6.2) is computed with the connecting computer as the client.
+  It is shown on both screens unless the other side's key is already pinned (trusted
+  devices of Part A).
+* After `start` both sides relay raw bytes between TLS and the SFTP endpoints.
+
+### 16.1 Server side
+
+* Sharing is **off** by default. `luxdrop share on` (or Settings › Share folders) enables
+  the user service `luxdrop-files.service` and, the first time, shares only the **Public**
+  folder (`XDG_PUBLICSHARE_DIR`, created if missing).
+* Only folders inside the home folder (not hidden ones, not inside hidden ones) or on
+  external drives (`/run/media`, `/media`, `/mnt`) can be shared. Sharing the whole home
+  folder needs an extra confirmation, and its hidden entries (`.ssh`, keyring, settings,
+  the LuxDrop key) are masked: empty read-only directories or `/dev/null`. The top level of a
+  shared home folder stays read-only even with write access; only its non-hidden
+  subfolders are bound writable.
+* Every connection from a device without an "Always" grant asks the owner: **Allow once**
+  (this connection only), **Always allow** (stored in `~/.local/share/luxdrop/file-access.json`)
+  or **Deny** (the same device is then refused for 5 minutes without asking). One request
+  at a time, 120 s timeout, at most 8 connections.
+* Access is **read-only** unless the client asked for write access and the owner ticked
+  "Also allow changes" (unchecked by default; notification buttons never grant write).
+* For each connection `sftp-server` (OpenSSH) runs inside **bubblewrap**: new user, PID,
+  network, IPC and mount namespaces, no capabilities, empty environment, `/usr` read-only,
+  a minimal `/etc/passwd`, and the shared folders bound under `/share/<name>`. Nothing
+  else of the disk exists in the sandbox, so `..`, absolute paths and symlinks cannot
+  reach other files. `/` and `/share` are read-only; read-only access binds the folders
+  read-only **and** runs `sftp-server -R`. `symlink` and `hardlink` requests are refused.
+* Turning sharing off, removing a device or taking away its write access closes its open
+  connections within a few seconds.
+
+### 16.2 Client side
+
+* `luxdrop connect` (or the "Connect to Computer" app) connects, shows the code, waits for
+  the owner and runs `sshfs -o passive` (FUSE) on a socket pair relayed to the TLS
+  connection. The mount point is `$XDG_RUNTIME_DIR/luxdrop-files/<name>` with options
+  `follow_symlinks,noexec,nosuid,nodev` (and `ro` when read-only). A bookmark appears in the
+  Files sidebar; a Files window opens split in two (remote | home).
+* TCP keepalive and `TCP_USER_TIMEOUT` detect a dead connection within about 45 s; the
+  mount, the bookmark and the entry in `connections.json` are then removed, so a vanished
+  computer does not freeze Files or terminals.
+* A pinned (trusted) computer that presents a different key is refused with
+  `key_mismatch`, as in Part A.

@@ -25,4 +25,17 @@
 	<text-files/>
 	<video-files/>
 </action>
+<action>
+	<icon>network-server</icon>
+	<name>Connect to Computer…</name>
+	<name xml:lang="cs">Připojit k počítači…</name>
+	<submenu></submenu>
+	<unique-id>luxdrop-connect-1</unique-id>
+	<command>luxdrop connect</command>
+	<description>Open the shared folders of another LuxOS computer next to your files</description>
+	<description xml:lang="cs">Otevřít sdílené složky jiného počítače LuxOS vedle vašich souborů</description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<directories/>
+</action>
 </actions>

@@ -3361,3 +3361,84 @@ take a snapshot, show the changes, confirm and apply	ta en ögonblicksbild, visa
 Undo the last apply: lux rollback · Help: man luxos-system	Ångra senaste apply: lux rollback · Hjälp: man luxos-system
 whole system in one file /etc/luxos/system.lsl (lux system help)	hela systemet i en fil /etc/luxos/system.lsl (lux system help)
 LuxOS is running from a snapshot, changes would be lost after a restart. To keep this version, run: lux rollback	LuxOS körs från en ögonblicksbild, ändringar skulle gå förlorade vid omstart. Kör detta för att behålla versionen: lux rollback
+# LuxDrop - soubory jineho pocitace (Pripojit k pocitaci, sdilene slozky)
+Shared folders	Delade mappar
+Share folders	Dela mappar
+Other LuxOS computers can open these folders after you allow it. Read-only unless you also allow changes.	Andra LuxOS-datorer kan öppna mapparna när du tillåter det. Skrivskyddat om du inte också tillåter ändringar.
+Add folder…	Lägg till mapp…
+Connect to Computer…	Anslut till dator…
+Connect to Computer	Anslut till dator
+Computers with access	Datorer med åtkomst
+Computers with access:	Datorer med åtkomst:
+Share your whole home folder?	Dela hela hemmappen?
+Hidden files and folders (settings, keys, passwords) are never shared. Each computer still needs your permission.	Dolda filer och mappar (inställningar, nycklar, lösenord) delas aldrig. Varje dator behöver fortfarande ditt tillstånd.
+Only folders in your home folder or on external drives can be shared, not hidden folders.	Bara mappar i hemmappen eller på externa enheter kan delas, inte dolda mappar.
+No shared folders.	Inga delade mappar.
+No computers yet. Each new computer must be allowed first.	Inga datorer än. Varje ny dator måste tillåtas först.
+Can change files	Får ändra filer
+can change files	får ändra filer
+Read-only	Skrivskyddad
+read-only	skrivskyddad
+Read-only.	Skrivskyddad.
+Share	Dela
+Deny	Neka
+Allow once	Tillåt en gång
+Always allow	Tillåt alltid
+Access to shared folders	Åtkomst till delade mappar
+LuxDrop: access to shared folders	LuxDrop: åtkomst till delade mappar
+“%s” wants to access your shared folders	”%s” vill komma åt dina delade mappar
+“%s” wants to access and change your shared folders	”%s” vill komma åt och ändra dina delade mappar
+Allow only if the other computer shows the same code.	Tillåt bara om den andra datorn visar samma kod.
+Also allow changes (copy in, rename and delete files)	Tillåt även ändringar (kopiera in, byta namn på och ta bort filer)
+Also allow changes (copy in, rename and delete files)? [y/N]: 	Tillåt även ändringar (kopiera in, byta namn på och ta bort filer)? [y/N]: 
+Read-only: the other computer can open and copy your shared files, but cannot change them.	Skrivskyddat: den andra datorn kan öppna och kopiera dina delade filer men inte ändra dem.
+Allow? [o]nce / [a]lways / [N]o: 	Tillåta? [o] en gång / [a] alltid / [N] nej: 
+The other computer cancelled the request.	Den andra datorn avbröt begäran.
+Sharing is turned off. Turn it on with: luxdrop share on	Delning är avstängd. Slå på den med: luxdrop share on
+sftp-server (openssh) is not installed	sftp-server (openssh) är inte installerat
+Sharing as "%s" (ID %s) on port %d: %s	Delar som ”%s” (ID %s) på port %d: %s
+Sharing is off.	Delning är avstängd.
+Sharing is on: %s	Delning är på: %s
+Sharing: %s	Delning: %s
+Shared: %s	Delad: %s
+Removed %d folder(s)	%d mapp(ar) borttagna
+Changed %d device(s)	%d enhet(er) ändrade
+None (every connection is asked first).	Inga (varje anslutning frågas först).
+Share your whole home folder? Hidden files and folders (settings, keys, passwords) are never shared.	Dela hela hemmappen? Dolda filer och mappar (inställningar, nycklar, lösenord) delas aldrig.
+Share the home folder? [y/N]: 	Dela hemmappen? [y/N]: 
+Computer '%s' not found on the network. Use its address: luxdrop connect HOST	Datorn ”%s” hittades inte i nätverket. Använd dess adress: luxdrop connect HOST
+Connected to %s (%s): %s	Ansluten till %s (%s): %s
+Connected to %s	Ansluten till %s
+Disconnected from %s	Frånkopplad från %s
+Disconnected %d computer(s)	%d dator(er) frånkopplade
+Not connected to any computer.	Inte ansluten till någon dator.
+Cannot connect: %s (%s)	Det går inte att ansluta: %s (%s)
+Cannot connect: %s	Det går inte att ansluta: %s
+Cannot connect to %s: %s	Det går inte att ansluta till %s: %s
+share folders with other LuxOS computers	dela mappar med andra LuxOS-datorer
+folder (add/remove) or device ID/name (forget/allow-write/read-only)	mapp (add/remove) eller enhets-ID/namn (forget/allow-write/read-only)
+do not ask before sharing the home folder	fråga inte innan hemmappen delas
+open the shared folders of another LuxOS computer in Files	öppna en annan LuxOS-dators delade mappar i Filer
+computer name, ID, HOST[:PORT] or NAME@HOST[:PORT]; without it a window opens	datornamn, ID, HOST[:PORT] eller NAMN@HOST[:PORT]; utan öppnas ett fönster
+ask for permission to change files	be om tillstånd att ändra filer
+Ask for permission to change files	Be om tillstånd att ändra filer
+do not open a Files window	öppna inget Filer-fönster
+disconnect from another computer	koppla från en annan dator
+list connected computers	lista anslutna datorer
+Waiting for “%s” to allow access…	Väntar på att ”%s” ska tillåta åtkomst…
+The other computer must share folders (LuxDrop › Settings › Share folders) and allow your access.	Den andra datorn måste dela mappar (LuxDrop › Inställningar › Dela mappar) och tillåta din åtkomst.
+Computers nearby	Datorer i närheten
+Address, e.g. 192.168.1.20	Adress, t.ex. 192.168.1.20
+Cancelled: the codes were not confirmed.	Avbrutet: koderna bekräftades inte.
+Open the files of another LuxOS computer next to yours	Öppna en annan LuxOS-dators filer bredvid dina
+Looking for computers… On the other computer turn on LuxDrop › Settings › Share folders.	Söker efter datorer… Slå på LuxDrop › Inställningar › Dela mappar på den andra datorn.
+Opening the shared folders…	Öppnar de delade mapparna…
+The files of “%s” are in the sidebar of Files.	Filerna från ”%s” finns i sidofältet i Filer.
+“%s” denied access.	”%s” nekade åtkomst.
+“%s” did not answer in time.	”%s” svarade inte i tid.
+“%s” is busy. Try again later.	”%s” är upptagen. Försök igen senare.
+“%s” does not share any folders.	”%s” delar inga mappar.
+“%s” presented a different key than expected. Someone may be impersonating it. If it was reinstalled, remove it from Trusted devices and try again.	”%s” visade en annan nyckel än väntat. Någon kanske utger sig för att vara den. Om den har installerats om, ta bort den från Betrodda enheter och försök igen.
+Enter the address of the other computer.	Ange den andra datorns adress.
+Continue only if “%s” shows the same code.	Fortsätt bara om ”%s” visar samma kod.
+The connection was closed.	Anslutningen stängdes.

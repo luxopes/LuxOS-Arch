@@ -81,6 +81,22 @@ When sending in a terminal, `luxdrop send` prints the receiver and the verificat
 "[y]es and remember / [o]nly this time / [N]o". Exit codes: 0 ok, 1 failure, 2 usage, 3 declined,
 4 key problem.
 
+## Files of another computer
+
+LuxDrop can also open the **shared folders** of another LuxOS computer in Files, side by side
+with your own files (drag & drop copies between the computers). The other computer turns on
+Settings › **Share folders** (only Public by default) and must allow each new computer:
+**Allow once**, **Always allow** or **Deny**. Access is read-only unless the owner also allows
+changes. See [Files of another computer](remote-files.md).
+
+```
+luxdrop connect [TARGET] [--write] [--no-open] [--port N]   # without TARGET: "Connect to Computer" window
+luxdrop disconnect [NAME | --all]
+luxdrop connections
+luxdrop share [status | on | off | add FOLDER [--yes] | remove FOLDER]
+luxdrop share forget|allow-write|read-only ID
+```
+
 ## Background receiving
 
 The user service `luxdrop-receiver.service` runs `luxdrop receive --service`. Turn it on with
@@ -97,12 +113,14 @@ or as a dialog when a display is available.
 | Settings | `~/.config/luxdrop/settings.json` (`name`, `receive_mode`, `download_dir`, `port`, `background`, `auto_accept_trusted`, `localsend`, `localsend_port`, `pin`) |
 | Identity key and certificate | `~/.local/share/luxdrop/identity-key.pem`, `identity-cert.pem` (EC P-256) |
 | Trusted devices, history | `~/.local/share/luxdrop/trusted.json`, `history.json` |
+| Shared folders, computers with access | `~/.config/luxdrop/shares.json`, `~/.local/share/luxdrop/file-access.json` |
 
 ## Ports and firewall
 
 | Port | Use |
 |---|---|
 | TCP 47923 | LuxDrop protocol (receiver) |
+| TCP 47924 | Shared folders (only while sharing is on) |
 | TCP 53317 | LocalSend HTTPS server |
 | UDP 53317 | LocalSend multicast discovery, group 224.0.0.167 (link-local) |
 | UDP 5353 | mDNS (Avahi) |
