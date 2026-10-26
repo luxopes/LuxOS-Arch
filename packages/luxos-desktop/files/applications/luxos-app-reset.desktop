@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Reset App Settings
+Name[cs]=Výchozí nastavení aplikací
+Comment=Reset an app that misbehaves to its default settings (the old settings are kept in a backup)
+Comment[cs]=Vrátí aplikaci, která nefunguje správně, do výchozího nastavení (staré nastavení zůstane v záloze)
+Exec=luxos-app-reset
+Icon=preferences-system
+Terminal=false
+Categories=Settings;DesktopSettings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;GTK;
+Keywords=reset;default;settings;config;app;broken;výchozí;nastavení;aplikace;obnovit;
+StartupWMClass=luxos-app-reset

@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""LuxOS - Vychozi nastaveni aplikaci: aplikace s nastavenim v domovske slozce a reset jedne z nich
+(nastaveni se presune do zalohy, nic se nemaze). Logika: /usr/lib/luxos/python/luxos_app_reset.py.
+
+  luxos-app-reset                   okno (Nastaveni)
+  luxos-app-reset list [--json]     aplikace s nastavenim
+  luxos-app-reset reset APLIKACE [--yes] [--force]
+                                    presune nastaveni do zalohy (--force i kdyz aplikace bezi)
+  luxos-app-reset backups           zalohy
+  luxos-app-reset restore SLOZKA    vrati zalohu (soucasne nastaveni se zalohuje)
+"""
+import json
+import os
+import subprocess
+import sys
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_i18n import _  # noqa: E402
+
+import luxos_app_reset as core  # noqa: E402
+
+
+# ---- prikazova radka -----------------------------------------------------------------------
+def describe_paths(app):
+    home = core.home_dir()
+    return [("~" + p[len(home):]) if p.startswith(home + "/") else p for _k, p in app["paths"]]
+
+
+def cli_list(args):
+    apps = core.scan()
+    if "--json" in args:
+        print(json.dumps([dict(a, paths=[p for _k, p in a["paths"]]) for a in apps], ensure_ascii=False, indent=1))
+        return 0
+    for a in apps:
+        print(f"{a['label']:<28} {a['name']:<28} {core.human_size(a['size']):>9}  {' '.join(describe_paths(a))}")
+    return 0
+
+
+def ask(question):
+    if not sys.stdin.isatty():
+        return False
+    try:
+        return input(f"{question} [y/N] ").strip().lower().startswith(("y", "a"))
+    except EOFError:
+        return False
+
+
+def cli_reset(args):
+    names = [a for a in args if not a.startswith("-")]
+    if not names:
+        print(_("Usage: luxos-app-reset reset <app>"), file=sys.stderr)
+        return 2
+    app = core.find(core.scan(with_size=False), names[0])
+    if not app:
+        print(_("No settings found for %s.") % names[0], file=sys.stderr)
+        return 1
+    if core.is_running(app) and "--force" not in args:
+        print(_("%s is running. Quit it first.") % app["name"], file=sys.stderr)
+        return 1
+    print(_("These folders will be moved to a backup (nothing is deleted):"))
+    for p in describe_paths(app):
+        print("  " + p)
+    if "--yes" not in args and not ask(_("Reset the settings of %s?") % app["name"]):
+        print(_("Cancelled."))
+        return 1
+    dest = core.reset(app)
+    print(_("Done. The previous settings are in %s") % dest)
+    return 0
+
+
+def cli_backups(_args):
+    for b in core.list_backups():
+        print(f"{b['dir']}  {b['app']}  ({b['time']})")
+    return 0
+
+
+def cli_restore(args):
+    if not args:
+        print(_("Usage: luxos-app-reset restore <backup folder>"), file=sys.stderr)
+        return 2
+    try:
+        saved = core.restore(os.path.abspath(args[0]))
+    except (OSError, ValueError) as e:
+        print(_("The backup could not be restored: %s") % e, file=sys.stderr)
+        return 1
+    print(_("The settings were restored."))
+    if saved:
+        print(_("The settings from before the restore are in %s") % saved)
+    return 0
+
+
+# ---- okno ----------------------------------------------------------------------------------
+CSS = b"""
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }
+.row { padding: 8px 14px; }
+.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
+.hint { font-size: 11px; opacity: 0.6; }
+"""
+
+
+def gui():
+    import gi
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("Gdk", "3.0")
+    from gi.repository import Gdk, GLib, Gtk
+
+    class Window(Gtk.Window):
+        def __init__(self):
+            super().__init__(title=_("Reset App Settings"))
+            self.set_default_size(640, 620)
+            self.set_icon_name("preferences-system")
+            outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin=18)
+            self.add(outer)
+            intro = Gtk.Label(xalign=0, wrap=True, max_width_chars=70)
+            intro.set_text(_("An app that misbehaves often works again with its default settings. "
+                             "Resetting moves its settings to a backup folder - nothing is deleted "
+                             "and you can restore them later."))
+            outer.pack_start(intro, False, False, 0)
+            self.search = Gtk.SearchEntry(placeholder_text=_("Search apps"), margin_top=8)
+            self.search.connect("search-changed", lambda _e: self.fill())
+            outer.pack_start(self.search, False, False, 0)
+            sw = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
+            self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            sw.add(self.box)
+            outer.pack_start(sw, True, True, 0)
+            self.status = Gtk.Label(xalign=0, wrap=True)
+            self.status.get_style_context().add_class("hint")
+            outer.pack_start(self.status, False, False, 0)
+            self.apps = []
+            self.status.set_text(_("Looking for apps…"))
+            GLib.idle_add(self.load)
+
+        def load(self):
+            self.apps = core.scan()
+            self.fill()
+            return False
+
+        def group(self, title):
+            t = Gtk.Label(label=title, xalign=0)
+            t.get_style_context().add_class("group-title")
+            self.box.pack_start(t, False, False, 0)
+            g = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            g.get_style_context().add_class("group")
+            self.box.pack_start(g, False, False, 0)
+            return g
+
+        def row(self, g, icon, title, sub, button):
+            r = Gtk.Box(spacing=12)
+            r.get_style_context().add_class("row")
+            if g.get_children():
+                r.get_style_context().add_class("row-sep")
+            img = Gtk.Image.new_from_icon_name(icon or "application-x-executable", Gtk.IconSize.DND)
+            r.pack_start(img, False, False, 0)
+            texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            texts.pack_start(Gtk.Label(label=title, xalign=0, ellipsize=3), False, False, 0)
+            s = Gtk.Label(label=sub, xalign=0, ellipsize=3)
+            s.get_style_context().add_class("hint")
+            texts.pack_start(s, False, False, 0)
+            r.pack_start(texts, True, True, 0)
+            r.pack_end(button, False, False, 0)
+            button.set_valign(Gtk.Align.CENTER)
+            g.pack_start(r, False, False, 0)
+
+        def fill(self):
+            for c in self.box.get_children():
+                self.box.remove(c)
+            q = self.search.get_text().strip().lower()
+            shown = [a for a in self.apps if not q or q in a["name"].lower() or q in a["label"].lower()]
+            known = [a for a in shown if a["known"]]
+            other = [a for a in shown if not a["known"]]
+            for title, items in ((_("Apps"), known), (_("Other folders with settings"), other)):
+                if not items:
+                    continue
+                g = self.group(title)
+                for a in items:
+                    b = Gtk.Button(label=_("Reset…"))
+                    b.connect("clicked", self.on_reset, a)
+                    sub = f"{core.human_size(a.get('size', 0))} · " + ", ".join(describe_paths(a))
+                    self.row(g, a["icon"], a["name"], sub, b)
+            backups = core.list_backups()
+            if backups and not q:
+                g = self.group(_("Backups"))
+                for bk in backups[:20]:
+                    b = Gtk.Button(label=_("Restore"))
+                    b.connect("clicked", self.on_restore, bk)
+                    self.row(g, "document-revert", bk["app"], bk["time"].replace("_", " "), b)
+            self.status.set_text(_("%d apps with settings") % len(self.apps))
+            self.box.show_all()
+
+        def message(self, kind, text, secondary, buttons=Gtk.ButtonsType.OK):
+            d = Gtk.MessageDialog(transient_for=self, modal=True, message_type=kind, buttons=buttons, text=text)
+            d.format_secondary_text(secondary)
+            return d
+
+        def on_reset(self, _b, app):
+            if core.is_running(app):
+                d = self.message(Gtk.MessageType.INFO, _("%s is running") % app["name"],
+                                 _("Quit the app first, then reset its settings."))
+                d.run()
+                d.destroy()
+                return
+            d = self.message(Gtk.MessageType.QUESTION, _("Reset the settings of %s?") % app["name"],
+                             _("The app will start as if it was just installed. These folders are moved to "
+                               "a backup (nothing is deleted):") + "\n" + "\n".join(describe_paths(app)),
+                             Gtk.ButtonsType.NONE)
+            d.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+            ok = d.add_button(_("Reset"), Gtk.ResponseType.OK)
+            ok.get_style_context().add_class("destructive-action")
+            d.set_default_response(Gtk.ResponseType.CANCEL)
+            resp = d.run()
+            d.destroy()
+            if resp != Gtk.ResponseType.OK:
+                return
+            try:
+                dest = core.reset(app)
+            except OSError as e:
+                d = self.message(Gtk.MessageType.ERROR, _("The settings could not be moved"), str(e))
+                d.run()
+                d.destroy()
+                return
+            d = self.message(Gtk.MessageType.INFO, _("Settings of %s were reset") % app["name"],
+                             _("The previous settings are in %s") % dest, Gtk.ButtonsType.NONE)
+            d.add_button(_("Show Backup"), 1)
+            d.add_button(_("OK"), Gtk.ResponseType.OK)
+            if d.run() == 1:
+                subprocess.Popen(["xdg-open", dest], start_new_session=True)
+            d.destroy()
+            self.load()
+
+        def on_restore(self, _b, bk):
+            d = self.message(Gtk.MessageType.QUESTION, _("Restore the settings of %s?") % bk["app"],
+                             _("Settings the app has now are moved to a new backup first."), Gtk.ButtonsType.OK_CANCEL)
+            resp = d.run()
+            d.destroy()
+            if resp != Gtk.ResponseType.OK:
+                return
+            try:
+                core.restore(bk["dir"])
+            except (OSError, ValueError) as e:
+                d = self.message(Gtk.MessageType.ERROR, _("The backup could not be restored: %s") % e, "")
+                d.run()
+                d.destroy()
+            self.load()
+
+    GLib.set_prgname("luxos-app-reset")
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = Window()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    if os.environ.get("LUXOS_APP_RESET_TEST_QUIT"):
+        GLib.timeout_add(int(os.environ["LUXOS_APP_RESET_TEST_QUIT"]), Gtk.main_quit)
+    Gtk.main()
+    return 0
+
+
+def main(argv):
+    cmd = argv[1] if len(argv) > 1 else ""
+    args = argv[2:]
+    handlers = {"list": cli_list, "reset": cli_reset, "backups": cli_backups, "restore": cli_restore}
+    if cmd in handlers:
+        return handlers[cmd](args)
+    if cmd in ("-h", "--help", "help"):
+        print(__doc__.strip())
+        return 0
+    if cmd:
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    return gui()
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
