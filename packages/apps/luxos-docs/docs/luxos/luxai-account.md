@@ -64,8 +64,9 @@ The account offers two AI models:
 Usage is counted per calendar month per model. The real limits are delivered by the server in
 `GET /api/me` (`usage.fastTokens` / `usage.fastLimit` for Flash, `usage.liteTokens` /
 `usage.liteLimit` for Lite, or `usage.unlimited`); the LuxAI Account window shows them as bars under
-**AI usage this month**. The LSL IDE documentation states the limits as **Flash 50k / Lite 1M tokens**
-per month – treat the values from `/api/me` as authoritative because the server may change them.
+**AI usage this month**. Standard limits (since October 2026): **Flash 1 000 000 and Lite 10 000 000
+tokens per month**; some accounts are unlimited. Treat the values from `/api/me` as authoritative
+because the server may change them.
 
 When a limit is used up, LuxAI reports "The monthly Flash limit is used up. Switch to Lite or wait for
 the next month." or "The monthly Lite limit is used up."
