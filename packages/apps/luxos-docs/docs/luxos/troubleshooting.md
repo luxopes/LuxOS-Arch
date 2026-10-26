@@ -88,6 +88,15 @@ After failures LuxOS Care waits 1 h, 2 h, 4 h … up to 24 h and notifies after 
   kernel; check **Software Update › System health**.
 - "The boot partition is full." – the previous kernel cannot be kept; free space on `/boot`.
 - An interrupted update is finished automatically by LuxOS Care (or run `lux update`).
+- Something else broke after an update: hold **Space** (GRUB: **Esc**) while the computer starts and
+  choose **"LuxOS (before update of …)"**. If it works, keep it with **Keep this version** /
+  `lux rollback`. **"LuxOS Recovery"** in the same menu checks the disk, restores a snapshot or
+  reinstalls LuxOS keeping `/home` and accounts. See [care-updates.md](care-updates.md).
+
+## An app misbehaves
+
+Settings › **Reset App Settings** (`luxos-app-reset`) moves the app's settings to a backup and the
+app starts as if just installed; see [settings-apps.md](settings-apps.md).
 
 ## Drivers and graphics
 
