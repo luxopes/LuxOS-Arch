@@ -1,6 +1,6 @@
 """Snimky na skutecnem btrfs: obraz v souboru v docasnem adresari, pripojeny pres loop (sudo -n).
 Nikdy nesaha na skutecne disky ani na /boot - koren (LUXOS_CARE_ROOT) i nejvyssi uroven btrfs
-(LUXOS_SNAPSHOT_TOP) jsou v docasnem adresari. Bez sudo -n nebo btrfs-progs se preskoci.
+(LUXOS_SNAPSHOT_TOP) jsou v docasnem adresari. Bez LUXOS_TEST_SUDO=1, sudo -n nebo btrfs-progs se preskoci.
 
     python3 -m unittest packages/luxos-care/tests/test_snapshots_btrfs.py -v
 """
@@ -17,6 +17,9 @@ FILES = os.path.join(HERE, "..", "files")
 
 
 def can_sudo():
+    # Jen na vyslovne vyzadani (VM/CI): na pocitaci vyvojare nikdy nepripojovat pres sudo
+    if os.environ.get("LUXOS_TEST_SUDO") != "1":
+        return False
     if not shutil.which("mkfs.btrfs") or not shutil.which("sudo"):
         return False
     return subprocess.run(["sudo", "-n", "true"], capture_output=True).returncode == 0
