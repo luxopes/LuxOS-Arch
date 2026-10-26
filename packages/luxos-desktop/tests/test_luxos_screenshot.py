@@ -732,6 +732,69 @@ class TestGui(unittest.TestCase):
         trash = os.path.join(self.home, ".local", "share", "Trash", "files")
         self.assertEqual(len(os.listdir(trash)), 1)
 
+    def thumb_menu(self, p, count, *keys):
+        """Pravym tlacitkem nabidka nahledu (count-ty nahled v logu) a klavesy v ni."""
+        self.assertTrue(self.wait_for(lambda: len([ln for ln in self.ui_log() if ln.startswith("thumb ")]) == count, 5))
+        tw, th = [int(v) for v in [ln for ln in self.ui_log() if ln.startswith("thumb ")][-1].split()[2:4]]
+        xdo("mousemove", 1280 - tw - 24 + 60, 800 - th - 96 + th // 2, "click", 3)
+        time.sleep(0.5)
+        xdo("key", *keys)
+
+    def test_thumbnail_copy_save_as_and_timeout(self):
+        if not shutil.which("xclip"):
+            self.skipTest("xclip missing")
+        self.resident()
+        subprocess.run(["xclip", "-selection", "clipboard", "-i"], input=b"before", timeout=10)
+        p = self.start("--portion", "--region", "10,10,64,48", "--output", self.out)
+        self.thumb_menu(p, 1, "Down", "Down", "Return")              # Open, Copy
+        time.sleep(0.5)
+        data = subprocess.run(["xclip", "-o", "-selection", "clipboard", "-t", "image/png"], capture_output=True,
+                              timeout=10).stdout
+        self.assertEqual((int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")), (64, 48))
+        self.assertIsNone(p.poll())                                  # nahled zustava
+        # Ulozit jako: dialog, cesta s priponou .jpg = JPEG
+        dest = os.path.join(self.home, "copy.jpg")
+        self.thumb_menu(p, 1, "Down", "Down", "Down", "Down", "Return")
+        time.sleep(1.5)
+        xdo("key", "ctrl+a")
+        xdo("type", dest)
+        xdo("key", "Return")
+        self.assertEqual(p.wait(10), 0)
+        with open(dest, "rb") as f:
+            self.assertEqual(f.read(3), b"\xff\xd8\xff")
+        # bez akce se nahled sam zavre po 5 s (mys mimo nahled: najeti cas zastavi)
+        xdo("mousemove", 600, 100)
+        t0 = time.monotonic()
+        p = self.start("--portion", "--region", "10,10,64,48", "--output", self.out)
+        self.assertEqual(p.wait(12), 0)
+        self.assertGreater(time.monotonic() - t0, 4.5)
+
+    def test_thumbnail_drag_and_drop(self):
+        """Nahled jde pretahnout do jine aplikace (URI souboru); pak se zavre."""
+        got = os.path.join(self.home, "dropped.txt")
+        target = subprocess.Popen([sys.executable, "-c", DROP_WINDOW, got], env=dict(os.environ, NO_AT_BRIDGE="1"))
+        try:
+            time.sleep(1.0)
+            self.resident()
+            p = self.start("--portion", "--region", "10,10,64,48", "--output", self.out)
+            self.assertTrue(self.wait_for(lambda: any(ln.startswith("thumb ") for ln in self.ui_log()), 5))
+            tw, th = [int(v) for v in [ln for ln in self.ui_log() if ln.startswith("thumb ")][-1].split()[2:4]]
+            x, y = 1280 - tw - 24 + 40, 800 - th - 96 + th // 2
+            xdo("mousemove", x, y, "mousedown", 1)
+            for i in range(1, 11):
+                xdo("mousemove", x - i * 40, y - i * 40)
+                time.sleep(0.05)
+            xdo("mousemove", 200, 200)
+            time.sleep(0.3)
+            xdo("mouseup", 1)
+            self.assertEqual(p.wait(5), 0)
+            self.assertTrue(self.wait_for(lambda: os.path.exists(got), 3))
+            with open(got) as f:
+                self.assertEqual(f.read().strip(), "file://" + self.files()[0].replace(" ", "%20"))
+        finally:
+            target.terminate()
+            target.wait(5)
+
     def test_clipboard_option_shows_copied_thumbnail(self):
         self.opts(mode="screen", save_to="clipboard")
         self.resident()
@@ -861,6 +924,11 @@ BG_WINDOW = ("import gi\ngi.require_version('Gtk', '3.0')\nfrom gi.repository im
              "w.set_app_paintable(True)\n"
              "w.connect('draw', lambda _w, cr: (cr.set_source_rgb(40 / 255, 160 / 255, 90 / 255), cr.paint()) and False)\n"
              "w.show_all(); Gtk.main()\n")
+DROP_WINDOW = ("import sys, gi\ngi.require_version('Gtk', '3.0')\nfrom gi.repository import Gtk, Gdk\n"
+               "w = Gtk.Window(type=Gtk.WindowType.POPUP); w.set_default_size(400, 400); w.move(0, 0)\n"
+               "w.drag_dest_set(Gtk.DestDefaults.ALL, [], Gdk.DragAction.COPY); w.drag_dest_add_uri_targets()\n"
+               "def got(_w, _c, _x, _y, data, _i, _t):\n    open(sys.argv[1], 'w').write('\\n'.join(data.get_uris()))\n"
+               "w.connect('drag-data-received', got)\nw.show_all(); Gtk.main()\n")
 OR_WINDOW = ("import gi\ngi.require_version('Gtk', '3.0')\nfrom gi.repository import Gtk\n"
              "w = Gtk.Window(type=Gtk.WindowType.POPUP); w.set_default_size(900, 300); w.move(150, 450)\n"
              "w.show_all(); Gtk.main()\n")
