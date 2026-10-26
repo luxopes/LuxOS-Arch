@@ -3462,3 +3462,9 @@ A process is still running in this tab: %s	Ezen a lapon még fut egy folyamat: %
 A process is still running in this window: %s	Ebben az ablakban még fut egy folyamat: %s
 Processes are still running in this window.	Ebben az ablakban még futnak folyamatok.
 Process completed	A folyamat befejeződött
+No graphical session of this user is running.	Ennek a felhasználónak nem fut grafikus munkamenete.
+Collecting information about the frozen desktop…	Információk gyűjtése a lefagyott asztalról…
+Report saved:	Jelentés mentve:
+The window manager and the panel were restarted. Open apps keep running.	Az ablakkezelő és a panel újraindult. A megnyitott alkalmazások tovább futnak.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	A grafikus kiszolgáló nem válaszol. Mentse a munkáját más munkamenetekben, és indítsa újra a számítógépet: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Vissza az asztalra: Ctrl+Alt+F1 (vagy F7).

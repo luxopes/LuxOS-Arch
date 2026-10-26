@@ -1,0 +1,147 @@
+#!/bin/bash
+# LuxOS - zachrana zamrzle plochy (mys se hybe, ale klikani a psani nefunguje, aplikace se neotviraji)
+#
+#   luxos-unfreeze            z konzole (Ctrl+Alt+F3, prihlasit se): zapise hlaseni a obnovi plochu
+#   luxos-unfreeze --report   jen hlaseni, nic nerestartuje
+#   luxos-unfreeze --watch    hlidani v relaci (spousti luxos-session): kdyz X nebo spravce oken
+#                             neodpovida, samo zapise hlaseni (nic nerestartuje)
+#
+# Hlaseni: ~/.local/share/luxos/freeze-reports/<cas>.txt (stav X serveru, xfwm4, procesu, pameti,
+# zateze, klientu X a poslednich zprav jadra). Plocha se obnovi restartem spravce oken a listy;
+# otevrene aplikace zustanou. Zpet na plochu: Ctrl+Alt+F1 (nebo F7).
+set -u
+. /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
+
+REPORTS=${XDG_DATA_HOME:-$HOME/.local/share}/luxos/freeze-reports
+mode=fix
+case ${1:-} in
+    --report) mode=report ;;
+    --watch) mode=watch ;;
+    -h|--help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    '') ;;
+    *) echo "Usage: luxos-unfreeze [--report|--watch]" >&2; exit 2 ;;
+esac
+
+# Grafická relace uzivatele: DISPLAY a XAUTHORITY z bezicich procesu (z konzole nejsou nastavene)
+find_display() {
+    [[ -n ${DISPLAY:-} ]] && return 0
+    local pid env
+    for pid in $(pgrep -u "$(id -u)" -x xfwm4) $(pgrep -u "$(id -u)" -x xfce4-session); do
+        env=$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null) || continue
+        DISPLAY=$(sed -n 's/^DISPLAY=//p' <<<"$env" | head -1)
+        XAUTHORITY=$(sed -n 's/^XAUTHORITY=//p' <<<"$env" | head -1)
+        DBUS_SESSION_BUS_ADDRESS=$(sed -n 's/^DBUS_SESSION_BUS_ADDRESS=//p' <<<"$env" | head -1)
+        [[ -n $DISPLAY ]] && { export DISPLAY XAUTHORITY DBUS_SESSION_BUS_ADDRESS; return 0; }
+    done
+    return 1
+}
+
+x_alive() { timeout 4 xprop -root -len 0 _NET_SUPPORTING_WM_CHECK >/dev/null 2>&1; }
+
+# Spravce oken odpovida? (zmena vlastnosti korenoveho okna, xfwm4 ji musi zpracovat - bez neho stoji okna)
+wm_alive() {
+    local pid
+    pid=$(pgrep -u "$(id -u)" -x xfwm4 | head -1) || return 1
+    [[ $(awk '{print $3}' "/proc/$pid/stat" 2>/dev/null) != [DTZ] ]]
+}
+
+proc_line() {  # proc_line PID -> stav, wchan, CPU (s), RSS
+    local p=$1 st wchan
+    [[ -r /proc/$p/stat ]] || return
+    st=$(awk '{printf "state=%s utime=%.1fs stime=%.1fs", $3, $14/100, $15/100}' "/proc/$p/stat")
+    wchan=$(cat "/proc/$p/wchan" 2>/dev/null)
+    printf '%-8s %-22s %s wchan=%s rss=%s\n' "$p" "$(cat /proc/$p/comm)" "$st" "${wchan:-?}" \
+        "$(awk '/VmRSS/{print $2" kB"}' "/proc/$p/status" 2>/dev/null)"
+}
+
+write_report() {  # write_report DUVOD -> cesta k hlaseni
+    mkdir -p "$REPORTS"
+    local f p
+    f=$REPORTS/$(date +%Y%m%d-%H%M%S).txt
+    {
+        echo "LuxOS freeze report $(date '+%F %T') - $1"
+        echo "kernel $(uname -r), uptime $(cut -d' ' -f1 /proc/uptime) s, load $(cut -d' ' -f1-3 /proc/loadavg)"
+        echo
+        echo "== X server responds: $(x_alive && echo yes || echo NO); window manager: $(wm_alive && echo yes || echo NO)"
+        echo "== Graphics processes"
+        for p in $(pgrep -x Xorg) $(pgrep -x X) $(pgrep -u "$(id -u)" -x xfwm4) $(pgrep -u "$(id -u)" -x xfce4-panel) \
+                 $(pgrep -u "$(id -u)" -x plank) $(pgrep -u "$(id -u)" -x rofi) $(pgrep -u "$(id -u)" -f luxos-screenshot); do
+            proc_line "$p"
+        done
+        echo
+        echo "== Pressure (PSI)"
+        for p in cpu memory io; do printf '%-7s %s\n' "$p" "$(head -1 /proc/pressure/$p 2>/dev/null)"; done
+        echo
+        echo "== Memory"
+        free -m
+        echo
+        echo "== Top CPU"
+        ps -eo pid,user,stat,pcpu,pmem,etime,comm --sort=-pcpu | head -15
+        echo
+        echo "== Processes in D state (waiting for disk/driver)"
+        ps -eo pid,stat,wchan:32,comm | awk 'NR==1 || $2 ~ /D/'
+        echo
+        if x_alive; then
+            echo "== X clients"
+            timeout 5 xlsclients -l 2>/dev/null | grep -E 'Window|Command' | paste - - | head -60
+            echo
+            echo "== Active window: $(timeout 3 xprop -root _NET_ACTIVE_WINDOW 2>/dev/null)"
+        fi
+        echo
+        echo "== Kernel messages (last 40)"
+        journalctl -k -n 40 --no-pager -o short-precise 2>/dev/null || dmesg 2>/dev/null | tail -40
+        echo
+        echo "== Session log (last 60)"
+        journalctl --user -n 60 --no-pager -o short-precise 2>/dev/null
+    } >"$f" 2>&1
+    printf '%s\n' "$f"
+}
+
+restore_desktop() {
+    # Uvolnit pripadne zabrani mysi/klavesnice: spravce oken a lista se restartuji, aplikace bezi dal
+    pkill -u "$(id -u)" -x rofi 2>/dev/null
+    pkill -u "$(id -u)" -f '/usr/bin/luxos-screenshot' 2>/dev/null
+    pkill -u "$(id -u)" -x xfce4-popup-whiskermenu 2>/dev/null
+    setsid -f xfwm4 --replace >/dev/null 2>&1 </dev/null
+    sleep 1
+    setsid -f xfce4-panel -r >/dev/null 2>&1 </dev/null
+}
+
+case $mode in
+    watch)
+        find_display || exit 0
+        # Lehke hlidani: jedno xprop za 15 s; hlaseni jen jednou za zamrznuti
+        bad=0 reported=0
+        while sleep 15; do
+            pgrep -u "$(id -u)" -x xfce4-session >/dev/null || exit 0   # relace skoncila
+            if x_alive && wm_alive; then
+                bad=0 reported=0
+                continue
+            fi
+            bad=$((bad + 1))
+            if ((bad >= 2 && !reported)); then
+                f=$(write_report "automatic: X or window manager not responding for 30 s")
+                reported=1
+                logger -t luxos-unfreeze "desktop not responding, report $f"
+            fi
+        done
+        ;;
+    report|fix)
+        if ! find_display; then
+            echo "$(T "No graphical session of this user is running.")" >&2
+            exit 1
+        fi
+        echo "$(T "Collecting information about the frozen desktop…")"
+        f=$(write_report "manual: luxos-unfreeze --$mode")
+        echo "$(T "Report saved:") $f"
+        if [[ $mode == fix ]]; then
+            if x_alive; then
+                restore_desktop
+                echo "$(T "The window manager and the panel were restarted. Open apps keep running.")"
+            else
+                echo "$(T "The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot")"
+            fi
+            echo "$(T "Back to the desktop: Ctrl+Alt+F1 (or F7).")"
+        fi
+        ;;
+esac

@@ -95,7 +95,11 @@
             "pacman leftovers",
             "/var/lib/pacman",
             "pacman.conf",
-            "cache"
+            "cache",
+            "frozen desktop",
+            "freeze",
+            "luxos-unfreeze",
+            "Ctrl+Alt+F3"
           ]
         },
         {

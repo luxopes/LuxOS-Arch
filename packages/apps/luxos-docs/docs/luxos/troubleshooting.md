@@ -93,6 +93,19 @@ After failures LuxOS Care waits 1 h, 2 h, 4 h … up to 24 h and notifies after 
   `lux rollback`. **"LuxOS Recovery"** in the same menu checks the disk, restores a snapshot or
   reinstalls LuxOS keeping `/home` and accounts. See [care-updates.md](care-updates.md).
 
+## The desktop froze (mouse moves, but clicks and typing do nothing)
+
+Do not power off the computer. Press **Ctrl+Alt+F3**, sign in with your user name and password and run:
+
+```
+luxos-unfreeze
+```
+
+It saves a report to `~/.local/share/luxos/freeze-reports/` and restarts the window manager and the
+panel; open apps keep running. Go back with **Ctrl+Alt+F1** (or F7). `luxos-unfreeze --report` only
+saves the report. When the display server or the window manager stops responding for 30 s,
+LuxOS saves such a report automatically. Send the newest report with your bug report.
+
 ## An app misbehaves
 
 Settings › **Reset App Settings** (`luxos-app-reset`) moves the app's settings to a backup and the

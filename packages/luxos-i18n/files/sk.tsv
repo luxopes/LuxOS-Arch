@@ -3462,3 +3462,9 @@ A process is still running in this tab: %s	V tejto karte ešte beží proces: %s
 A process is still running in this window: %s	V tomto okne ešte beží proces: %s
 Processes are still running in this window.	V tomto okne ešte bežia procesy.
 Process completed	Proces skončil
+No graphical session of this user is running.	Na tomto účte nebeží žiadna grafická relácia.
+Collecting information about the frozen desktop…	Zbieram informácie o zamrznutej ploche…
+Report saved:	Hlásenie uložené:
+The window manager and the panel were restarted. Open apps keep running.	Správca okien a lišta boli reštartované. Otvorené aplikácie bežia ďalej.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Grafický server neodpovedá. Uložte prácu v iných reláciách a reštartujte počítač: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Späť na plochu: Ctrl+Alt+F1 (alebo F7).

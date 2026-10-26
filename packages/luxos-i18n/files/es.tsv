@@ -3462,3 +3462,9 @@ A process is still running in this tab: %s	Todavía hay un proceso en ejecución
 A process is still running in this window: %s	Todavía hay un proceso en ejecución en esta ventana: %s
 Processes are still running in this window.	Todavía hay procesos en ejecución en esta ventana.
 Process completed	Proceso terminado
+No graphical session of this user is running.	No hay ninguna sesión gráfica de este usuario en ejecución.
+Collecting information about the frozen desktop…	Recopilando información sobre el escritorio bloqueado…
+Report saved:	Informe guardado:
+The window manager and the panel were restarted. Open apps keep running.	Se reiniciaron el gestor de ventanas y el panel. Las apps abiertas siguen funcionando.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	El servidor gráfico no responde. Guarde su trabajo en otras sesiones y reinicie el equipo: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Volver al escritorio: Ctrl+Alt+F1 (o F7).

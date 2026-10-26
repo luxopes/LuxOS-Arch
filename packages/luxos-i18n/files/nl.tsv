@@ -3462,3 +3462,9 @@ A process is still running in this tab: %s	In dit tabblad draait nog een proces:
 A process is still running in this window: %s	In dit venster draait nog een proces: %s
 Processes are still running in this window.	In dit venster draaien nog processen.
 Process completed	Proces beëindigd
+No graphical session of this user is running.	Er draait geen grafische sessie van deze gebruiker.
+Collecting information about the frozen desktop…	Informatie over het vastgelopen bureaublad verzamelen…
+Report saved:	Rapport opgeslagen:
+The window manager and the panel were restarted. Open apps keep running.	Vensterbeheer en paneel zijn opnieuw gestart. Geopende apps blijven draaien.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	De grafische server reageert niet. Sla je werk op in andere sessies en herstart de computer: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Terug naar het bureaublad: Ctrl+Alt+F1 (of F7).
