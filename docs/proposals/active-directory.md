@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Stav | **NÁVRH k rozhodnutí** – nic z toho zatím není implementováno |
+| Stav | **SCHVÁLENÝ SMĚR** (rozhodnutí z 2026-10-26, viz [kapitola 0a](#0a-schvalena-rozhodnuti)) – nic z toho zatím není implementováno |
 | Cílová verze | 1.0.0 (vrstva 1) a 1.1+ (vrstva 2), viz [Etapy](#7-etapy-a-odhad-prace) |
 | Datum | 2026-10-26 |
 | Navazuje na | `lux system` (`packages/lux/lux_system.py`, `docs/luxos/system-config.md`), účty LuxAI (`packages/luxos-account`, `docs/luxos/luxai-account.md`), OEM režim (`packages/luxos-installer/files/luxos_oem.py`), LuxOS Care, Lux Guard, LuxDrop, `luxos-greeter`, `luxos-hub` |
@@ -11,6 +11,39 @@ Místa, kde musíš rozhodnout ty, jsou označená **🟡 ROZHODNUTÍ Rx** a sou
 v [kapitole 9](#9-otevrene-otazky-a-rozhodnuti). U každého je moje doporučení.
 Už rozhodnuté body jsou označené **✅ ROZHODNUTO** (self-hosted server, šablony organizací,
 role ve stylu Discordu, účet LuxAI jen volitelně).
+
+---
+
+## 0a. Schválená rozhodnutí
+
+Rozhodnutí uživatele z 2026-10-26. Mají přednost před doporučeními v dalších kapitolách;
+kde se text níže liší, platí tato tabulka.
+
+| ID | Oblast | Rozhodnutí |
+|---|---|---|
+| R1 | Verze | LuxOS 1.0: kompatibilita s Microsoft AD / Samba AD (vrstva 1). LuxOS 1.1: základní LuxOS Directory. LuxOS 1.2+: pokročilá správa. |
+| R2 | Provoz | Self-hosted u organizace (role na LuxOS, LuxOS v režimu server, balíček/OCI obraz pro jiný Linux). |
+| R3 | Účet LuxAI | Silně doporučený, ale nepovinný. Průvodce založení organizace propojení s LuxAI doporučí a vysvětlí výhody jednotného přihlášení, vždy je k dispozici „Pokračovat bez LuxAI“. Plná základní správa funguje i bez LuxAI. |
+| R4 | Uživatelská jména | Interně `jan@firma`, na počítači zkráceně `jan`, pokud nehrozí kolize s místním účtem (jinak plné jméno). |
+| R5 | Offline režim | Přihlášení bez spojení se serverem 30 dní (nastavitelné). Administrátorská oprávnění mají kratší platnost (návrh: 7 dní). |
+| R6 | Vzdálené skripty | Ne v 1.1. Později s omezenými oprávněními, auditem a schvalováním (druhá osoba / MFA). |
+| R7 | Autentizace | Preferovat osvědčené technologie (SSSD, Kerberos, OIDC). Vlastní PAM modul jen tam, kde je nutný (např. čas u obrazovky); nejdřív ověřit SSSD `idp` provider a podobné projekty (kap. 3.4). |
+| R8 | Odpojení počítače | Odebere centrální správu (zásady, role, skupiny `lux-p-*`), osobní data uživatelů se automaticky nemažou. |
+| R9 | Vzdálený dohled | Inventář ano. Vzdálená plocha jen se souhlasem uživatele a s viditelnou indikací po celou dobu. Bez sledování polohy zařízení. |
+| R10 | Licence | Vlastní source-available licence pro server LuxOS Directory a Lux Admin (pracovní název „LuxAI License“): veřejný kód, povolené studium, úpravy, opravy a jejich zasílání do projektu; zakázané komerční přeprodávání a konkurenční placená služba bez licence, vydávání upravených verzí pod značkou LuxOS/LuxAI a odstranění licenčních a autorských označení. Viz poznámka níže. |
+| R11 | Názvy | LuxOS Directory (server), Lux Admin (administrace), příkaz `lux org`. |
+| R12 | Audit | Běžné logy 90 dní, administrativní audit 1 rok; obojí nastavitelné. |
+| R13 | Server | Primárně v LSL; databáze PostgreSQL (větší organizace) nebo SQLite (menší instalace). Bezpečnostně citlivé integrace mohou použít zavedené knihovny v jiných jazycích. Podmínka produkce: ověřit, že LSL zvládá síťové služby, kryptografii, databáze, souběžné požadavky a dlouhodobou stabilitu (prototyp a zátěžový test v E3 před plnou implementací). |
+| R14 | Kritické operace | MFA pro administrátory, druhé schválení pro hromadné destruktivní akce (vzdálené smazání, odebrání mnoha uživatelů), bezpečný nouzový režim (offline obnovovací klíč). Podpis nebezpečných akcí klíčem FIDO2 zůstává doporučenou formou MFA. |
+| R15 | Lux Security Center | Ano, ale až po dokončení a stabilizaci základních funkcí (nejdřív 1.2+) a po právní kontrole (GDPR, zákoník práce). |
+| R16 | Šablony organizací | Rodina, Škola, Firma, Úřad/knihovna, Prázdná. |
+
+**Poznámka k R10 (licence):** vlastní licence není open source podle OSI, je source-available.
+Platí jen pro kód, ke kterému má projekt práva: komponenty třetích stran (SSSD, Samba, Kerberos,
+knihovny) si ponechávají své licence a server s nimi nesmí být spojen tak, aby porušil jejich
+podmínky (např. GPL). Klientská část v LuxOS (repozitář LuxOS-Arch je pod GPL-3.0-or-later) zůstává
+pod GPL; vlastní licence se týká samostatného serveru a Lux Admin. Před zveřejněním text licence
+nechat zkontrolovat právníkem.
 
 ---
 
@@ -1067,6 +1100,8 @@ Vrstva 2 je samostatný produkt a neměl by zdržet 1.0.
 ---
 
 ## 9. Otevřené otázky a rozhodnutí
+
+> Rozhodnuto 2026-10-26, platí [kapitola 0a](#0a-schvalena-rozhodnuti). Níže původní podklady k rozhodnutí.
 
 **🟡 R1 – Pořadí:** Vrstva 1 (AD kompatibilita) v 1.0 a vrstva 2 až 1.1+?
 *Doporučení: ano.* Vrstva 1 je rychlejší, ověřená technologie a odpovídá na první otázku firem.
