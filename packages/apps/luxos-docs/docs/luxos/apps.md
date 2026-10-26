@@ -14,7 +14,9 @@ translations) and the light/dark mode.
 | What's New | `luxos-whats-new` | news of the installed LuxOS version |
 | Calculator | `luxos-calculator` | basic and scientific calculator |
 | Calendar | `luxos-calendar` | calendar under the clock, events with reminders (.ics) |
-| Camera | `luxos-camera` | photos and videos from the webcam |
+| Camera | `luxos-camera` | photos and videos from the webcam; `--scan-wifi` joins a Wi-Fi from a QR code |
+| Weather | `luxos-weather` | current weather, 24-hour and 7-day forecast ([weather.md](weather.md)) |
+| Wi-Fi QR Code | `luxos-wifi-qr` | share the Wi-Fi as a QR code, join one by scanning ([wifi-qr.md](wifi-qr.md)) |
 | System Monitor | `luxos-monitor` | performance charts, quit frozen apps |
 | Screenshot | `luxos-screenshot` | screenshots and screen recording |
 | Feedback | `luxos-feedback` | send a bug report or an idea to the author of LuxOS |
@@ -108,6 +110,9 @@ Click the clock in the top bar (`luxos-calendar-toggle`), or run `luxos-calendar
   COLOR, VALARM. Unknown properties are kept unchanged.
 - Reminders are sent as desktop notifications by the calendar running inside `luxos-hub` (or
   `luxos-calendar --background`).
+- Under today's date the Day view shows the weather of the place selected in Weather
+  ("13°  Partly Cloudy · Praha") when the Weather app downloaded it in the last 3 hours; a click
+  opens Weather ([weather.md](weather.md)).
 
 ## Camera
 
@@ -121,6 +126,7 @@ Run `luxos-camera`. It is a Photo Booth-style webcam app built on GStreamer (v4l
 - Possible errors: "No camera found", "The camera is being used by another app", "Camera access is
   not allowed", or a missing `gst-plugins-good`. Webcams that need special drivers (Intel
   IPU6/IPU7) are handled by [drivers.md](drivers.md).
+- `luxos-camera --scan-wifi` is the scan mode for Wi-Fi QR codes ([wifi-qr.md](wifi-qr.md)).
 
 ## System Monitor
 

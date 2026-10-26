@@ -1,5 +1,5 @@
 # LuxOS Control Center - rychle nastaveni z horni listy (jako v macOS); prepis luxos-control-center do LSL.
-# Dlazdice: Wi-Fi, Bluetooth, Nerusit, Tmavy rezim, Sporic dat, Sporic baterie; posuvniky jasu a hlasitosti;
+# Dlazdice: Wi-Fi (+ odkaz na QR kod site), Bluetooth, Nerusit, Tmavy rezim, Sporic dat, Sporic baterie; posuvniky jasu a hlasitosti;
 # stav baterie; prave hrajici hudba (MPRIS). Okno se zavre pri ztrate fokusu nebo klavesou Esc.
 #
 #   call cc.create()      skryte okno se styly podle motivu (pouziva luxos-hub i samostatny program)
@@ -483,6 +483,18 @@ function create():
     end
     call gtk.box_pack_start(outer, grid, False, False, 0)
 
+    # QR kod Wi-Fi: pripojeno = sdilet sit (luxos-wifi-qr), Wi-Fi zapnuta bez site = naskenovat kod
+    wifi_qr = gtk.button_new(i18n.T("Share Wi-Fi with QR Code…"))
+    call gtk.widget_set_can_focus(wifi_qr, False)
+    call gtk.widget_add_class(wifi_qr, "footer")
+    call gtk.widget_set_halign(wifi_qr, gtk.ALIGN_START)
+    call gtk.connect(wifi_qr, "clicked", on_wifi_qr_clicked)
+    call gtk.widget_set_no_show_all(wifi_qr, True)
+    cc["wifi_qr"] = wifi_qr
+    cc["wifi_qr_scan"] = False
+    cc["wifi_qr_mode"] = ""
+    call gtk.box_pack_start(outer, wifi_qr, False, False, 0)
+
     # Klik na ikonu jasu otevre Monitory (rozliseni, velikost textu)
     cc["s_bright"] = slider_new(i18n.T("Display"), "display-brightness-symbolic", set_brightness, open_displays)
     call gtk.box_pack_start(outer, cc["s_bright"]["box"], False, False, 0)
@@ -805,10 +817,44 @@ end
 function on_wifi_radio(unused, output, status):
     if status != 0:
         call tile_set_state(cc["t_wifi"], None, "")
+        call set_wifi_qr("")
         return 0
     end
     on = output.strip() == "enabled"
     call glib.spawn_capture(["nmcli", "-t", "-f", "ACTIVE,SSID", "device", "wifi"], on_wifi_list, on)
+    return 0
+end
+
+# Odkaz na QR kod Wi-Fi pod dlazdicemi: mode "share", "scan" nebo "" (skryty)
+function set_wifi_qr(mode):
+    button = cc["wifi_qr"]
+    if mode != cc["wifi_qr_mode"]:
+        call log_test("wifi-qr:" + mode)
+        cc["wifi_qr_mode"] = mode
+    end
+    if mode == "":
+        call gtk.widget_set_visible(button, False)
+        return 0
+    end
+    cc["wifi_qr_scan"] = mode == "scan"
+    if mode == "scan":
+        call gtk.button_set_label(button, i18n.T("Join Wi-Fi with QR Code…"))
+    else:
+        call gtk.button_set_label(button, i18n.T("Share Wi-Fi with QR Code…"))
+    end
+    call gtk.widget_set_visible(button, True)
+    return 0
+end
+
+function on_wifi_qr_clicked(button):
+    if cc["wifi_qr_scan"]:
+        call log_test("wifi-qr scan")
+        call glib.spawn_quiet(["luxos-wifi-qr", "--scan"])
+    else:
+        call log_test("wifi-qr share")
+        call glib.spawn_quiet(["luxos-wifi-qr"])
+    end
+    call close()
     return 0
 end
 
@@ -824,10 +870,12 @@ function on_wifi_list(on, output, status):
     end
     if not on:
         call tile_set_state(cc["t_wifi"], False, i18n.T("Off"))
+        call set_wifi_qr("")
         return 0
     end
     if ssid != "":
         call tile_set_state(cc["t_wifi"], True, ssid)
+        call set_wifi_qr("share")
         return 0
     end
     call glib.spawn_capture(["nmcli", "-t", "-f", "TYPE,STATE", "device"], on_wifi_devices, 0)
@@ -841,8 +889,10 @@ function on_wifi_devices(unused, output, status):
     end
     if wired.find("ethernet:connected") >= 0:
         call tile_set_state(cc["t_wifi"], True, i18n.T("Ethernet"))
+        call set_wifi_qr("")
     else:
         call tile_set_state(cc["t_wifi"], True, i18n.T("Not connected"))
+        call set_wifi_qr("scan")
     end
     return 0
 end

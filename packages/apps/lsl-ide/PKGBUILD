@@ -1,0 +1,39 @@
+# Maintainer: LuxOS Team
+# LSL IDE - vyvojove prostredi pro Lux Simple Lang (Python + Qt)
+# Zdrojovy archiv vytvori make-source.sh z pracovni kopie IDE (IDE nema verejny repozitar).
+
+pkgname=lsl-ide
+pkgver=1.0.0
+pkgrel=3
+pkgdesc="LSL IDE - development environment for Lux Simple Lang (editor, checker, runner, packages, manual, LuxAI agent)"
+arch=(any)
+url="https://lsl.lux-ai.cz"
+license=(custom)
+depends=(python pyside6 lsl)
+optdepends=('xdg-utils: open files and links from the IDE'
+            'luxos-account: shared LuxAI account of LuxOS (agent signs in via the system account)')
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('494046e301bf1d0b5ff83ea281f0bf8e45622adc2ae11bbdcdab8816f6146439')
+
+package() {
+    cd "$pkgname-$pkgver"
+    local lib="$pkgdir/usr/lib/lsl-ide"
+    # IDE hleda share/ relativne k lslide/, proto obe slozky vedle sebe v /usr/lib/lsl-ide
+    install -dm755 "$lib"
+    cp -r --no-preserve=ownership lslide share "$lib/"
+    chmod -R u=rwX,go=rX "$lib"
+    install -dm755 "$pkgdir/usr/bin"
+    cat >"$pkgdir/usr/bin/lsl-ide" <<'SH'
+#!/bin/sh
+# Spoustec LSL IDE (balicek lsl-ide)
+exec python3 /usr/lib/lsl-ide/lslide/__main__.py "$@"
+SH
+    chmod 755 "$pkgdir/usr/bin/lsl-ide"
+    install -Dm644 share/lsl-ide.desktop "$pkgdir/usr/share/applications/lsl-ide.desktop"
+    install -Dm644 share/x-lsl.xml "$pkgdir/usr/share/mime/packages/x-lsl.xml"
+    local s
+    for s in 16 22 24 32 48 64 128 256 512; do
+        install -Dm644 "share/icons/$s.png" "$pkgdir/usr/share/icons/hicolor/${s}x${s}/apps/lsl-ide.png"
+    done
+    install -Dm644 README.md "$pkgdir/usr/share/doc/lsl-ide/README.md"
+}

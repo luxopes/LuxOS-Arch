@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- LuxOS Pocasi: snow (vlastni kresba) -->
+  <defs>
+    <linearGradient id="cl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dde3ee"/></linearGradient>
+    <linearGradient id="cd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9d0dc"/><stop offset="1" stop-color="#9aa4b5"/></linearGradient>
+    <radialGradient id="sun" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffe066"/><stop offset="1" stop-color="#ffb400"/></radialGradient>
+    <linearGradient id="moon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset="1" stop-color="#f2cf63"/></linearGradient>
+  </defs>
+  <g transform="translate(2 -10) scale(0.95)"><path d="M18 48h30a9 9 0 0 0 0.6-18 13 13 0 0 0-24.8-3.4A10.5 10.5 0 0 0 18 48z" fill="url(#cl)" stroke="#7f8aa0" stroke-opacity="0.25" stroke-width="1"/></g><g stroke="#8ab6ff" stroke-width="2.2" stroke-linecap="round"><path d="M22 48v8M18.5 50l7 4M18.5 54l7-4"/></g><g stroke="#8ab6ff" stroke-width="2.2" stroke-linecap="round"><path d="M32 51v8M28.5 53l7 4M28.5 57l7-4"/></g><g stroke="#8ab6ff" stroke-width="2.2" stroke-linecap="round"><path d="M42 48v8M38.5 50l7 4M38.5 54l7-4"/></g>
+</svg>
