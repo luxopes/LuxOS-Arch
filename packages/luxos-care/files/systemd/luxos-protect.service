@@ -1,0 +1,22 @@
+[Unit]
+Description=LuxOS: protect system files (/usr read-only)
+Documentation=man:luxos-care(8)
+# Brzy (pred sysinit.target), ale az po pripojeni souborovych systemu. Selhani start nezastavi
+# (skript vraci vzdy 0, /usr pak zustane zapisovatelny). Zapnuti: PROTECT=yes v /etc/luxos/care.conf.
+DefaultDependencies=no
+After=local-fs.target
+Before=sysinit.target shutdown.target
+Conflicts=shutdown.target
+ConditionPathExists=!/run/archiso
+ConditionPathExists=/etc/luxos/care.conf
+ConditionKernelCommandLine=!luxos.snapshot
+ConditionKernelCommandLine=!luxos.protect=0
+ConditionKernelCommandLine=!systemd.unit=luxos-recovery.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/luxos/care/luxos-protect-boot
+
+[Install]
+WantedBy=sysinit.target

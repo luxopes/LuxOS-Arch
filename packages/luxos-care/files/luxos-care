@@ -23,6 +23,18 @@ Snimky systemu (btrfs, viz /usr/lib/luxos/python/luxos_snapshots.py):
   luxos-care snapshot-pre           (root, hook 05-luxos-snapshot; baliky na stdin)
   luxos-care after-rollback         (root, prvni start po navratu)
 
+Ochrana systemu (/usr jen pro cteni, viz /usr/lib/luxos/python/luxos_protect.py):
+  luxos-care protect [status] [--json]  stav ochrany a posledni kontroly souboru (kdokoli)
+  luxos-care protect enable|disable (root) zapne/vypne hned i trvale (PROTECT= v care.conf)
+  luxos-care protect unlock|lock    (root, hooky transakce 00-0-luxos-protect / zz-luxos-protect)
+  luxos-care protect relock         (root) zpet jen pro cteni, kdyz prave nic neinstaluje
+  luxos-care protect exec -- PRIKAZ (root) prikaz se zapisovatelnym /usr (napr. locale-gen)
+  luxos-care verify [--quick] [--json] [BALIK...]
+                                    kontrola souboru baliku podle databaze (root ulozi vysledek)
+  luxos-care verify --auto          (root, luxos-care-verify.service) tydne, jen na nabijecce
+  luxos-care verify --repair [BALIK...]
+                                    (root) preinstalace baliku se zmenenymi soubory z repozitaru
+
 Obnova (LuxOS Recovery, /usr/lib/luxos/care/luxos-recovery):
   luxos-care disk-check [--repair] [--json]
                                     (root) kontrola disku, bez --repair nic nezapisuje
@@ -37,6 +49,7 @@ sys.path.insert(0, "/usr/lib/luxos/python")
 import luxos_care as care  # noqa: E402
 import luxos_snapshots as snap  # noqa: E402
 import luxos_recovery as rec  # noqa: E402
+import luxos_protect as protect  # noqa: E402
 from luxos_i18n import _  # noqa: E402
 
 
@@ -236,6 +249,121 @@ def cmd_reinstall(args):
     return 0
 
 
+PROTECT_ERRORS = {
+    "mount_failed": "System files could not be protected: %s",
+    "remount_failed": "System files could not be made read-only (a program is writing to /usr?).",
+    "unlock_failed": "Protected system files could not be opened for the update.",
+}
+VERIFY_KINDS = {"modified": "changed", "missing": "missing", "type": "replaced", "link": "link changed",
+                "permissions": "permissions changed"}
+
+
+def cmd_protect(args):
+    sub = args[0] if args and not args[0].startswith("-") else "status"
+    if sub == "status":
+        st = protect.status()
+        if "--json" in args:
+            print(json.dumps(st, indent=1, ensure_ascii=False))
+            return 0
+        if st["enabled"] and st["state"] == "ro":
+            print(_("System protection: On"))
+        elif st["enabled"] and st["state"] == "rw":
+            print(_("System protection: On (system files are open for an update)"))
+        elif st["enabled"]:
+            print(_("System protection: On after the next restart"))
+        else:
+            print(_("System protection: Off"))
+        if st["verified"]:
+            print(_("System files verified on %s") % fmt_time(st["verified"]))
+            if st["problem_count"]:
+                print(_("%d system files were changed or are missing") % st["problem_count"] +
+                      ": " + " ".join(st["affected"][:12]))
+        else:
+            print(_("System files were not verified yet."))
+        return 0
+    need_root()
+    try:
+        if sub == "unlock":
+            rc = protect.hook_unlock()
+            if rc:
+                print(_("Protected system files could not be opened for the update."), file=sys.stderr)
+            return rc
+        if sub == "lock":
+            return protect.hook_lock()
+        if sub == "relock":
+            protect.relock()
+            return 0
+        if sub in ("enable", "disable"):
+            protect.set_conf("PROTECT", "yes" if sub == "enable" else "no")
+            state = protect.apply_config()
+            care.history("protect", ok=True, enabled=sub == "enable", state=state)
+            print(_("System protection: On") if sub == "enable" else _("System protection: Off"))
+            if sub == "enable" and state != "ro":
+                print(_("System files become read-only after the current update or the next restart."))
+            return 0
+        if sub == "apply":
+            print(protect.apply_config())
+            return 0
+        if sub == "exec":
+            cmd = args[args.index("--") + 1:] if "--" in args else args[1:]
+            if not cmd:
+                sys.exit("usage: luxos-care protect exec -- COMMAND [ARGS...]")
+            import subprocess
+            with protect.writable():
+                return subprocess.call(cmd)
+    except protect.ProtectError as e:
+        msg = _(PROTECT_ERRORS.get(e.code, "%s"))
+        sys.exit(msg % (e.detail or e.code) if "%s" in msg else msg)
+    print(__doc__.strip(), file=sys.stderr)
+    return 2
+
+
+def cmd_verify(args):
+    names = [a for a in args if not a.startswith("-")]
+    as_json = "--json" in args
+    if "--repair" in args:
+        need_root()
+        if not names:
+            names = protect.load_result().get("affected", [])
+        if not names:
+            print(_("No modified system files - nothing to repair."))
+            return 0
+        res = protect.repair(names, out=lambda t: print("… " + _("Reinstalling %s") % t, flush=True))
+        if as_json:
+            print(json.dumps({k: v for k, v in res.items() if k != "verify"}, indent=1, ensure_ascii=False))
+        else:
+            if res["repaired"]:
+                print(_("Repaired: %s") % " ".join(res["repaired"]))
+            if res["failed"]:
+                print(_("Could not be repaired: %s") % " ".join(res["failed"]))
+            if res["foreign"]:
+                print(_("Not from the repositories (cannot be reinstalled): %s") % " ".join(res["foreign"]))
+        return 0 if res["result"] in ("ok", "nothing") else 1
+    if "--auto" in args:
+        need_root()
+    res = protect.run_verify(auto="--auto" in args, full="--quick" not in args, names=names or None)
+    if as_json:
+        print(json.dumps(res, indent=1, ensure_ascii=False))
+        return 0 if res.get("result") in ("ok", "not_due", "disabled", "postponed", "busy") else 1
+    r = res.get("result")
+    if r in ("not_due", "disabled", "postponed", "busy", "stopped"):
+        print({"not_due": _("Not due yet."), "disabled": _("Weekly verification is turned off (VERIFY=no)."),
+               "postponed": _("Postponed: waiting for the charger."), "stopped": _("Stopped: running on battery."),
+               "busy": _("Another verification is running.")}[r])
+        return 0
+    for p in res.get("problems", [])[:100]:
+        print(f"{p['package']}: {p['path']} ({_(VERIFY_KINDS.get(p['kind'], p['kind']))})")
+    if res.get("problem_count", 0) > 100:
+        print(_("and %d more") % (res["problem_count"] - 100))
+    print(_("Checked %d files of %d packages.") % (res.get("files", 0), res.get("packages", 0)))
+    if r == "problems":
+        print(_("%d system files were changed or are missing") % res["problem_count"])
+        print(_("Repair: luxos-care verify --repair (reinstalls %s)") % " ".join(res.get("affected", [])[:12]))
+        return 1
+    print(_("No modified system files."))
+    return 0
+
+
 def main(argv):
     cmd = argv[1] if len(argv) > 1 else "status"
     args = argv[2:]
@@ -266,6 +394,13 @@ def main(argv):
             return 0
         if "--updates" in args:
             care.do_check_updates(force=True)
+        # Ochrana systemu: /usr zustal po nedokoncene transakci zapisovatelny -> zpet jen pro cteni;
+        # tydenni kontrola souboru na pozadi (vlastni sluzba s nizkou prioritou)
+        for fn in (protect.relock, protect.schedule_verify):
+            try:
+                fn()
+            except Exception as e:  # noqa: BLE001 - kontrola nesmi spadnout kvuli ochrane
+                care.log(f"{fn.__name__}: {e}")
         return 0
     if cmd == "apply":
         need_root()
@@ -319,7 +454,8 @@ def main(argv):
         need_root()
         return snap.after_rollback()
     handlers = {"snapshots": cmd_snapshots, "snapshot": cmd_snapshot, "rollback": cmd_rollback,
-                "boot-entries": cmd_boot_entries, "disk-check": cmd_disk_check, "reinstall": cmd_reinstall}
+                "boot-entries": cmd_boot_entries, "disk-check": cmd_disk_check, "reinstall": cmd_reinstall,
+                "protect": cmd_protect, "verify": cmd_verify}
     if cmd in handlers:
         return handlers[cmd](args)
     if cmd in ("kernel-pre", "kernel-post"):

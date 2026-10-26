@@ -219,7 +219,8 @@ class StateTest(Base):
         self.assertEqual(st.user_groups("anna"), ["audio", "family", "wheel"])
         self.assertEqual(st.shadow_hash("anna"), "$6$salt$old")
         self.assertEqual(st.firewall(), {"installed": True, "enable": False, "allow": ["22/tcp", "53"]})
-        self.assertEqual(st.care(), {"mode": "carefree", "snapshots": True, "keep_snapshots": 5})
+        self.assertEqual(st.care(), {"mode": "carefree", "snapshots": True, "keep_snapshots": 5,
+                                     "protect": False, "verify": True})
         lay = st.boot()
         self.assertEqual(lay["kind"], "sdboot")
         self.assertEqual([os.path.basename(f) for f in lay["files"]], ["luxos-fallback.conf", "luxos.conf"])
@@ -349,10 +350,19 @@ class ApplyFilesTest(Base):
             self.assertEqual(f.read(), "LANG=cs_CZ.UTF-8\nLC_TIME=cs_CZ.UTF-8\n")
         with open(self.root + "/etc/locale.gen") as f:
             self.assertEqual(f.read(), "cs_CZ.UTF-8 UTF-8\nen_US.UTF-8 UTF-8\n")
-        self.assertIn("locale-gen ", self.calls())
+        # locale-gen zapisuje do /usr: pri ochrane systemu pres luxos-care protect exec
+        self.assertTrue(any(c.startswith("luxos-care protect exec -- ") and c.endswith("/locale-gen")
+                            for c in self.calls()), self.calls())
         ls.apply_care({"mode": "classic", "snapshots": False, "keep_snapshots": 8})
         with open(self.root + ls.CARE_CONF) as f:
             self.assertEqual(f.read(), "# LuxOS Care\nMODE=classic\nSNAPSHOTS=no\nSNAPSHOT_KEEP=8\n")
+        self.assertNotIn("luxos-care protect apply", self.calls())
+        ls.apply_care({"protect": True, "verify": False})
+        with open(self.root + ls.CARE_CONF) as f:
+            self.assertEqual(f.read(), "# LuxOS Care\nMODE=classic\nSNAPSHOTS=no\nSNAPSHOT_KEEP=8\n"
+                                       "PROTECT=yes\nVERIFY=no\n")
+        self.assertIn("luxos-care protect apply", self.calls())      # hned, bez restartu
+        self.assertEqual(ls.State().care()["protect"], True)
         ls.apply_kernel(ls.State().boot(), ["mitigations=auto"], ["splash"])
         with open(self.root + "/boot/loader/entries/luxos.conf") as f:
             self.assertIn("options root=UUID=abc rw quiet mitigations=auto\n", f.read())

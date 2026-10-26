@@ -1,7 +1,8 @@
 # LuxOS Care: sluzby zapnout hned pri instalaci (i v chrootu instalatoru); v live ISO
 # je nespusti ConditionPathExists=!/run/archiso.
 # shellcheck disable=SC2086  # seznam jednotek se zamerne rozdeli na slova
-_units="luxos-care-update.timer luxos-care-check.timer luxos-care-boot.service luxos-care-after-rollback.service"
+# luxos-protect.service bez PROTECT=yes v care.conf nic nedela (starsi instalace si ochranu zapnou samy)
+_units="luxos-care-update.timer luxos-care-check.timer luxos-care-boot.service luxos-care-after-rollback.service luxos-protect.service"
 
 # Bezici system (ne chroot instalatoru, kde /run patri live ISO)
 _running() {
@@ -51,5 +52,9 @@ post_remove() {
 
 pre_remove() {
     systemctl disable --now luxos-care-update.timer luxos-care-check.timer >/dev/null 2>&1 || true
-    systemctl disable luxos-care-boot.service >/dev/null 2>&1 || true
+    systemctl disable luxos-care-boot.service luxos-protect.service >/dev/null 2>&1 || true
+    # Bez luxos-care uz by /usr nikdo neodemknul: zapisovatelny hned (vazane pripojeni zmizi pri startu)
+    if _running && findmnt -n -o OPTIONS /usr 2>/dev/null | grep -q '^ro'; then
+        mount -o remount,bind,rw /usr >/dev/null 2>&1 || true
+    fi
 }

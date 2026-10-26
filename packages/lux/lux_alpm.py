@@ -27,6 +27,7 @@ Navratove kody: 0 ok, 1 chyba, 2 spatne pouziti, 3 pyalpm/konfigurace nelze pouz
 Strojovy vystup (--machine) popisuje /usr/share/doc/lux/lux.md (radky "@@...").
 """
 import argparse
+import contextlib
 import glob
 import os
 import re
@@ -55,6 +56,29 @@ try:
     import lux_config
 except ImportError:
     lux_config = None
+
+
+@contextlib.contextmanager
+def system_writable(flags=None):
+    """Ochrana systemu LuxOS (luxos-care, luxos_protect): /usr je jen pro cteni a zapisovatelny jen po
+    dobu transakce. Odemkne se uz pred commitem (libalpm s CheckSpace kontroluje pripojeni jen pro cteni
+    drive nez hooky); zamkne se hned po nem. Bez luxos-care nebo bez aktivni ochrany nic nedela."""
+    protect = None
+    if not (flags or {}).get("downloadonly"):
+        if "/usr/lib/luxos/python" not in sys.path:
+            sys.path.append("/usr/lib/luxos/python")
+        try:
+            import luxos_protect as protect
+        except Exception:  # noqa: BLE001 - bez LuxOS Care (napr. jine distribuce, testy)
+            protect = None
+    with contextlib.ExitStack() as stack:
+        if protect is not None:
+            try:
+                stack.enter_context(protect.writable())
+            except Exception as e:  # noqa: BLE001 - nic se jeste nezmenilo
+                raise LuxError("protected", _("Protected system files could not be opened for the update."),
+                               [str(e)]) from e
+        yield
 
 
 def engine_path(path):
@@ -1255,7 +1279,8 @@ class Lux:
                           list(getattr(self.h, "cachedirs", None) or []))
             start = time.time()
             try:
-                t.commit()
+                with system_writable(flags):
+                    t.commit()
             except api.error as e:
                 msg, _n, det = alpm_error_parts(e)
                 ui.phase_done(False)

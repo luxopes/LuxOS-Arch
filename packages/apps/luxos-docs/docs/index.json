@@ -271,6 +271,33 @@
           ]
         },
         {
+          "path": "luxos/system-protection.md",
+          "title": "System protection",
+          "summary": "Read-only /usr (only lux, Software Update, Store and lux system apply change it), weekly integrity check of system files against the package database with repair from signed repositories, settings, opt-in for older installations, design and plans for dm-verity/composefs.",
+          "keywords": [
+            "system protection",
+            "read-only",
+            "/usr",
+            "immutable",
+            "Signed System Volume",
+            "SIP",
+            "integrity",
+            "verify",
+            "luxos-care verify",
+            "luxos-care protect",
+            "repair",
+            "reinstall",
+            "mtree",
+            "PROTECT",
+            "VERIFY",
+            "care.conf",
+            "Read-only file system",
+            "dm-verity",
+            "composefs",
+            "tamper"
+          ]
+        },
+        {
           "path": "luxos/drivers.md",
           "title": "Drivers and hardware detection",
           "summary": "luxos-hwdetect (GPU incl. NVIDIA generations, Wi-Fi, audio, cameras, VMs, fingerprint, sensors), the Drivers app, login notification, lux drivers and NVIDIA power management.",
@@ -545,7 +572,7 @@
         {
           "path": "luxos/maps.md",
           "title": "Maps",
-          "summary": "Maps app (luxos-maps): OpenStreetMap map (drag, zoom, keys), place search (Nominatim, on Enter), routes by car/bike/walk with turn list (FOSSGIS OSRM), favorites, my location only after consent (GeoClue or IP), geo: links, dark map, tile cache and offline use, OSM usage policy, luxos-maps --json interface for LuxAI and scripts.",
+          "summary": "Maps app (luxos-maps): OpenStreetMap map, place search (Nominatim), routes by car/bike/walk with turn list (OSRM), favorites, location only after consent, geo: links, dark map, tile cache and offline use, luxos-maps --json for LuxAI and scripts.",
           "keywords": [
             "maps",
             "map",

@@ -277,7 +277,7 @@ apply_system() {  # jazyk, klavesnice, casove pasmo, nazev pocitace (opakovateln
     # Jazyky LuxOS pripravil instalator (locale-gen); jiny jazyk vygenerovat ted
     if ! locale -a 2>/dev/null | grep -qix "${l%%.*}\.utf-\?8"; then
         sed -i -E "s/^#\s*(${l//./\\.}\s)/\1/" "$R/etc/locale.gen" 2>/dev/null || true
-        locale-gen >/dev/null 2>&1 || true
+        usr_writable locale-gen >/dev/null 2>&1 || true
     fi
     localectl set-locale "LANG=$l" >/dev/null 2>&1 || printf 'LANG=%s\n' "$l" >"$R/etc/locale.conf"
     # set-x11-keymap prevede rozlozeni i pro konzoli (vconsole.conf) a zapise 00-keyboard.conf
@@ -289,7 +289,20 @@ apply_system() {  # jazyk, klavesnice, casove pasmo, nazev pocitace (opakovateln
         sed -i -E "s/^127\.0\.1\.1[[:space:]].*/127.0.1.1   $h.localdomain $h/" "$R/etc/hosts"
         grep -q '^127\.0\.1\.1' "$R/etc/hosts" || printf '127.0.1.1   %s.localdomain %s\n' "$h" "$h" >>"$R/etc/hosts"
     fi
-    printf 'MODE=%s\nKERNEL=linux-luxos\n' "${V[CARE_MODE]}" | install -Dm644 /dev/stdin "$R/etc/luxos/care.conf"
+    # Ochranu systemu (PROTECT) nastavil instalator - zachovat
+    local protect
+    protect=$(sed -n 's/^PROTECT=//p' "$R/etc/luxos/care.conf" 2>/dev/null | tail -n1) || protect=""
+    printf 'MODE=%s\nKERNEL=linux-luxos\nPROTECT=%s\n' "${V[CARE_MODE]}" "${protect:-yes}" |
+        install -Dm644 /dev/stdin "$R/etc/luxos/care.conf"
+}
+
+# Ochrana systemu: /usr je jen pro cteni a locale-gen zapisuje do /usr/lib/locale
+usr_writable() {
+    if [[ -z $R ]] && command -v luxos-care >/dev/null 2>&1; then
+        luxos-care protect exec -- "$@"
+    else
+        "$@"
+    fi
 }
 
 apply_user() {

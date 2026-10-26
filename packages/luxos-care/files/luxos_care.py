@@ -14,6 +14,7 @@ Stav pro aplikaci a relaci (vse citelne pro uzivatele, nic tajneho):
 
 LUXOS_CARE_ROOT predradi vsem cestam jiny koren (testy).
 """
+import contextlib
 import fcntl
 import json
 import os
@@ -283,6 +284,19 @@ def run(cmd, timeout=600, input=None, env=None):
 
 def have(cmd):
     return shutil.which(cmd) is not None
+
+
+@contextlib.contextmanager
+def system_writable():
+    """Ochrana systemu (luxos_protect): /usr zapisovatelny jen po dobu bloku. Chyba ochrany operaci
+    nezastavi tady - transakci pripadne zastavi hook 00-0-luxos-protect (AbortOnFail)."""
+    with contextlib.ExitStack() as stack:
+        try:
+            import luxos_protect
+            stack.enter_context(luxos_protect.writable())
+        except Exception as e:  # noqa: BLE001
+            log(f"protected system files stay read-only: {e}")
+        yield
 
 
 # ---- podminky pro automatickou aktualizaci -----------------------------------------------
@@ -594,6 +608,12 @@ class Updater:
     def transact(self, args, phase, total=0, sizes=None, base=0.0, span=1.0, timeout=7200):
         """Spusti transakci (lux, jinak lux-engine) a z vystupu pocita prubeh. Vraci (rc, vystup)."""
         cmd = pm(args)
+        if phase != "download":
+            with system_writable():
+                return self._transact(cmd, args, phase, total, sizes, base, span, timeout)
+        return self._transact(cmd, args, phase, total, sizes, base, span, timeout)
+
+    def _transact(self, cmd, args, phase, total, sizes, base, span, timeout):
         if have("systemd-inhibit") and os.path.exists("/run/systemd/system") and phase == "install":
             cmd = ["systemd-inhibit", "--what=shutdown:sleep:handle-lid-switch", "--who=LuxOS",
                    "--why=Installing updates", "--mode=block"] + cmd
@@ -1022,7 +1042,8 @@ def release_kept_conflicts(output):
         if m.group(1) in kept and m.group(1) != running_kernel():
             hit.add(m.group(1))
     for v in sorted(hit):
-        shutil.rmtree(P(f"{MODULES}/{v}"), ignore_errors=True)
+        with system_writable():
+            shutil.rmtree(P(f"{MODULES}/{v}"), ignore_errors=True)
         try:
             os.unlink(P(f"{KSTATE}/initramfs-{v}.img"))
         except OSError:
@@ -1800,7 +1821,8 @@ def execute_action(action, target=None):
     if action == "dkms_autoinstall":
         if not os.path.isdir(P(f"{MODULES}/{target}/build")):
             return False, "no headers for kernel"
-        rc, out = run(["dkms", "autoinstall", "-k", target], timeout=3600)
+        with system_writable():
+            rc, out = run(["dkms", "autoinstall", "-k", target], timeout=3600)
         return rc == 0, out[-3000:]
     if action == "reinstall_package":
         rc, _o = run([ENGINE, "-Q", target], timeout=30)
