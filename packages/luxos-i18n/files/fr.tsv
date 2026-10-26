@@ -2702,3 +2702,9 @@ More details: run the command again with --verbose	Plus de détails : relancez l
 The list of apps is out of date. Install the updates first, then try again.	La liste des applications est obsolète. Installez d'abord les mises à jour, puis réessayez.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	La date et l'heure de l'ordinateur sont incorrectes, une connexion sécurisée est donc impossible. Vérifiez les réglages de l'heure.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Autonomie prolongée : processeur plus lent sans turbo, luminosité légèrement réduite, pas d'agrandissement du Dock, les appareils inactifs se mettent en veille et les tâches de fond sont suspendues.
+No graphical session of this user is running.	Aucune session graphique de cet utilisateur n’est en cours.
+Collecting information about the frozen desktop…	Collecte d’informations sur le bureau figé…
+Report saved:	Rapport enregistré :
+The window manager and the panel were restarted. Open apps keep running.	Le gestionnaire de fenêtres et la barre ont été redémarrés. Les apps ouvertes continuent de fonctionner.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Le serveur graphique ne répond pas. Enregistrez votre travail dans d’autres sessions et redémarrez l’ordinateur : sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Retour au bureau : Ctrl+Alt+F1 (ou F7).

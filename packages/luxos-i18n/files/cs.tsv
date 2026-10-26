@@ -2701,3 +2701,9 @@ More details: run the command again with --verbose	Další podrobnosti: spusťte
 The list of apps is out of date. Install the updates first, then try again.	Seznam aplikací je zastaralý. Nejdřív nainstalujte aktualizace a pak to zkuste znovu.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datum a čas počítače nejsou správně, proto není možné zabezpečené připojení. Zkontrolujte nastavení času.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Delší výdrž baterie: pomalejší procesor bez turba, o něco nižší jas, bez zvětšování v Docku, nepoužívaná zařízení se uspí a úlohy na pozadí se pozastaví.
+No graphical session of this user is running.	Na tomto účtu neběží žádná grafická relace.
+Collecting information about the frozen desktop…	Sbírám informace o zamrzlé ploše…
+Report saved:	Hlášení uloženo:
+The window manager and the panel were restarted. Open apps keep running.	Správce oken a lišta byly restartovány. Otevřené aplikace běží dál.
+The display server is not responding. Save your work in other sessions and restart the computer: sudo reboot	Grafický server neodpovídá. Uložte práci v jiných relacích a restartujte počítač: sudo reboot
+Back to the desktop: Ctrl+Alt+F1 (or F7).	Zpět na plochu: Ctrl+Alt+F1 (nebo F7).
