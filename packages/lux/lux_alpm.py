@@ -161,6 +161,9 @@ def visible_len(s):
 
 
 # ---- chyby srozumitelne ----------------------------------------------------------------------
+DETAIL_LINES = 6   # radky detailu chyby vypsane i bez --verbose
+
+
 class LuxError(Exception):
     def __init__(self, kind, message, details=None, rc=1):
         super().__init__(message)
@@ -256,6 +259,11 @@ def classify(text):
     return "unknown"
 
 
+def stale_download(text):
+    """Server odpovedel 404 u souboru baliku (ne databaze): mistni seznam baliku je zastaraly."""
+    return any(("404" in line) and ".pkg.tar" in line for line in (text or "").splitlines())
+
+
 def plain_message(kind, detail=""):
     m = {
         "locked": _("Another update is still running (%s). Try again when it finishes.") % detail if detail else
@@ -272,6 +280,8 @@ def plain_message(kind, detail=""):
         "corrupt": _("A downloaded package is damaged. Try again; if it repeats, run: lux clean"),
         "keyring": _("A package signature could not be verified. Repair the signing keys with: lux fix"),
         "network": _("Some packages could not be downloaded. Check your internet connection and try again."),
+        "outdated": _("The package lists are out of date: the server no longer has this version. "
+                      "Update the system first (lux update), then try again."),
         "notfound": _("Package '%s' not found. Try: lux search %s") % (detail, detail) if detail else
         _("Package not found."),
         "config": _("The package manager configuration has an error. Check it with: lux config check"),
@@ -1256,6 +1266,10 @@ class Lux:
                 kind = classify(text)
                 if self.interrupted:
                     raise LuxError("interrupted", _("Cancelled"), [msg] + det, rc=130)
+                # 404: zrcadlo uz tuto verzi nema (seznam baliku je starsi nez server) - opakovani
+                # nepomuze a "zkontrolujte internet" by bylo zavadejici
+                if kind == "network" and stale_download(text):
+                    kind = "outdated"
                 err = LuxError(kind, plain_message(kind), [msg] + det + self.cb.log_errors)
                 # sit: nic se jeste neinstalovalo (stahuje se pred instalaci) -> zopakovat
                 if kind == "network" and self.cb.current is None:
@@ -2194,7 +2208,12 @@ def main(argv=None, api=None, conf=None, out=None, inp=None):
                 for d in e.details:
                     ui.write(("  " if not ui.machine else "") + str(d), err=True)
             elif e.details and e.kind not in ("cancelled", "notfound", "confirm"):
-                ui.note("  " + _("Details: run the command again with --verbose"))
+                # Prvni radky skutecne chyby rovnou (bez nich se neda nic dohledat), zbytek s --verbose
+                shown = list(dict.fromkeys(str(d).strip() for d in e.details if str(d).strip()))
+                for d in shown[:DETAIL_LINES]:
+                    ui.write(ui.dim("  " + d), err=True)
+                if len(shown) > DETAIL_LINES:
+                    ui.note("  " + _("More details: run the command again with --verbose"))
     except KeyboardInterrupt:
         if ui.ph:
             ui.phase_done(False)

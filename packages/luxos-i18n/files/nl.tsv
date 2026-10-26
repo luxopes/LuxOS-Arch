@@ -2692,3 +2692,13 @@ Install it now?	Nu installeren?
 Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Code-editors, Git en GitHub, compilers en debuggers, Python, Node.js, Go en Rust, containers, SSH en dagelijkse opdrachtregelhulpmiddelen.
 Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Kantoorpakket, e-mail, een mediaspeler met alle gangbare codecs, een wachtwoordbeheerder, PDF- en schijfhulpmiddelen en meer lettertypen voor documenten.
 Desktop wallpaper and clock	Bureaubladachtergrond en klok
+The installation medium is missing packages: %s. Download the current LuxOS ISO.	Op het installatiemedium ontbreken pakketten: %s. Download de huidige LuxOS-ISO.
+Closing the window now would interrupt the installation and leave the disk unusable. Please wait until the installation finishes.	Als u het venster nu sluit, wordt de installatie onderbroken en blijft de schijf onbruikbaar. Wacht tot de installatie klaar is.
+Quit the installation?	Installatie afsluiten?
+Closing the window interrupts the installation. LuxOS will not be installed and your choices will be lost.	Het venster sluiten onderbreekt de installatie. LuxOS wordt niet geïnstalleerd en je keuzes gaan verloren.
+Continue Installing	Doorgaan met installeren
+The package lists are out of date: the server no longer has this version. Update the system first (lux update), then try again.	De pakketlijsten zijn verouderd: de server heeft deze versie niet meer. Werk eerst het systeem bij (lux update) en probeer het opnieuw.
+More details: run the command again with --verbose	Meer details: voer de opdracht opnieuw uit met --verbose
+The list of apps is out of date. Install the updates first, then try again.	De lijst met apps is verouderd. Installeer eerst de updates en probeer het opnieuw.
+The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	De datum en tijd van de computer kloppen niet, dus een beveiligde verbinding is niet mogelijk. Controleer de tijdinstellingen.
+Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Langere batterijduur: tragere processor zonder turbo, iets lagere helderheid, geen vergroting in het Dock, ongebruikte apparaten slapen en achtergrondtaken pauzeren.

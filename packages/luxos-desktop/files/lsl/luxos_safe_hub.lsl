@@ -9,7 +9,7 @@ load luxos_gio, gio as gio
 load luxos_i18n as i18n
 load luxos_text as text
 
-state = {"system": 0, "fd": -1, "locking": False}
+state = {"system": 0, "fd": -1, "locking": False, "release_after": False}
 
 function config_path():
     base = env.get("XDG_CONFIG_HOME", "")
@@ -106,6 +106,12 @@ end
 
 function lock(then_release):
     if state["locking"]:
+        # Zamykani uz bezi (zamceni obrazovky tesne pred uspanim): inhibitor uvolnit az po nem,
+        # jinak by ho nikdo neuvolnil a uspani by cekalo na limit logind (xfce4-power-manager
+        # mezitim uspani pozadal znovu -> chyba "Action suspend already in progress")
+        if then_release:
+            state["release_after"] = True
+        end
         return 0
     end
     state["locking"] = True
@@ -121,7 +127,8 @@ end
 
 function on_locked(then_release, pid, status_code):
     state["locking"] = False
-    if then_release:
+    if then_release or state["release_after"]:
+        state["release_after"] = False
         call release()                # uspani pokracuje
     end
     return 0

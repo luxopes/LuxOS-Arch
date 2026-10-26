@@ -250,7 +250,8 @@ class PowersaverScript(unittest.TestCase):
         self.assertEqual(self.ps("status").strip(), "on")
         self.assertEqual(read(f"{self.state}/profile"), "power-saver")
         self.assertEqual(read(f"{self.state}/gs-zoom-enabled"), "false")
-        self.assertEqual(read(f"{self.state}/xf-xsettings_Gtk_EnableAnimations"), "false")
+        # animace GTK zustavaji (jinak stoji i kolecka prubehu v aplikacich)
+        self.assertFalse(os.path.exists(f"{self.state}/xf-xsettings_Gtk_EnableAnimations"))
         self.assertEqual(self.rate(), ["2560x1600", "165.00"])   # 60 Hz jen na prani (displej zcerna)
         self.assertEqual(read(f"{self.bl}/bl/brightness"), "720")         # 90 % -> 72 %
         self.assertIn("systemctl --no-ask-password --no-block start luxos-powersaver.service", self.log())
@@ -266,6 +267,15 @@ class PowersaverScript(unittest.TestCase):
         self.assertEqual(read(f"{self.bl}/bl/brightness"), "900")
         self.assertIn("stop luxos-powersaver.service", self.log())
         self.assertFalse(os.path.exists(f"{self.cfg}/luxos/powersaver.saved"))
+
+    def test_animations_from_old_version_restored(self):
+        """Sporic z 0.9.11 vypnul animace GTK: pri dalsim zapnuti (reapply) se vrati puvodni hodnota."""
+        write(f"{self.cfg}/luxos/powersaver", "")
+        write(f"{self.cfg}/luxos/powersaver.saved", "profile=balanced\nanimations=unset\n")
+        write(f"{self.state}/xf-xsettings_Gtk_EnableAnimations", "false")
+        self.ps("reapply")
+        self.assertFalse(os.path.exists(f"{self.state}/xf-xsettings_Gtk_EnableAnimations"))
+        self.assertNotIn("animations=", read(f"{self.cfg}/luxos/powersaver.saved"))
 
     def test_60hz_opt_in(self):
         write(f"{self.cfg}/luxos/powersaver-60hz", "")

@@ -491,6 +491,19 @@ class Transactions(unittest.TestCase):
         self.assertIn("@@ERROR network Some packages could not be downloaded.", out)
         self.assertIn("error: failed to commit transaction (failed to retrieve some files)", out)
 
+    def test_stale_package_list_404(self):
+        """404 u baliku: zastaraly seznam baliku, bez zbytecneho opakovani a bez rady o internetu."""
+        def prep(h):
+            h.commit_log = ("failed retrieving file 'sshfs-3.7.5-1-x86_64.pkg.tar.zst' from mirror.example : "
+                            "The requested URL returned error: 404")
+            h.commit_errors.append(fake.error("failed to retrieve some files", 54, None))
+        rc, out, h = run(["-y", "install", "htop"], prepare=prep)
+        self.assertEqual(rc, 1, out)
+        self.assertIn("The package lists are out of date", out)
+        self.assertIn("lux update", out)
+        self.assertIn("returned error: 404", out)
+        self.assertNotIn("trying again", out)
+
     def test_corrupted_cache_file_deleted_and_downloaded_again(self):
         """Poskozeny balik v mezipameti: smaze se bez otazky, stahne znovu a instalace dobehne."""
         import tempfile
@@ -527,8 +540,8 @@ class Transactions(unittest.TestCase):
         rc, out, h = run(["-y", "install", "htop"], prepare=prep)
         self.assertEqual(rc, 1)
         self.assertIn("already exist on the system (file conflict)", out)
-        self.assertNotIn("exists in filesystem", out)               # syrove detaily jen s --verbose
-        self.assertIn("--verbose", out)
+        # prvni radky skutecne chyby i bez --verbose (bez nich se chyba neda dohledat)
+        self.assertIn("htop: /usr/bin/htop exists in filesystem (owned by other)", out)
         rc, out, h = run(["-y", "--verbose", "install", "htop"], prepare=prep)
         self.assertIn("htop: /usr/bin/htop exists in filesystem (owned by other)", out)
         rc, out, h = run(["--machine", "-y", "install", "htop"], prepare=prep)

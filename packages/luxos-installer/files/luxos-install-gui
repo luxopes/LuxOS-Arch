@@ -824,15 +824,28 @@ class Installer(Gtk.Window):
             self.render()
 
     def on_delete(self, *_a):
-        if not self.installing:
-            Gtk.main_quit()
-            return False
-        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.INFO,
-                                buttons=Gtk.ButtonsType.OK, text=_("LuxOS is being installed"))
-        dlg.format_secondary_text(_("Please wait until the installation finishes."))
-        dlg.run()
-        dlg.destroy()
-        return True
+        if self.installing:
+            # Zavreni by instalaci prerusilo uprostred zapisu na disk (nespustitelny system)
+            dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
+                                    buttons=Gtk.ButtonsType.OK, text=_("LuxOS is being installed"))
+            dlg.format_secondary_text(_("Closing the window now would interrupt the installation and leave "
+                                        "the disk unusable. Please wait until the installation finishes."))
+            dlg.run()
+            dlg.destroy()
+            return True
+        if self.current() not in ("welcome", "done"):
+            dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
+                                    buttons=Gtk.ButtonsType.NONE, text=_("Quit the installation?"))
+            dlg.format_secondary_text(_("Closing the window interrupts the installation. LuxOS will not be "
+                                        "installed and your choices will be lost."))
+            dlg.add_buttons(_("Continue Installing"), Gtk.ResponseType.CANCEL, _("Quit"), Gtk.ResponseType.OK)
+            dlg.set_default_response(Gtk.ResponseType.CANCEL)
+            r = dlg.run()
+            dlg.destroy()
+            if r != Gtk.ResponseType.OK:
+                return True
+        Gtk.main_quit()
+        return False
 
     # ---- stavebni prvky ----
     def heading(self, page, title, subtitle=None):
@@ -981,11 +994,12 @@ class Installer(Gtk.Window):
 
     @staticmethod
     def default_xkb(locale):
-        """Rozlozeni podle zeme jazyka a US navic (psani hesel a kodu), prvni = vychozi."""
+        """US jako vychozi (prvni) a rozlozeni podle zeme jazyka navic k prepnuti. US i u jinych
+        jazyku: live system pouzivaji i lide z jinych zemi a hesla/kody se pisi stejne vsude."""
         country = locale[3:5].lower()
         for _n, layout, variant in KEYMAPS:
             if layout == country and layout != "us":
-                return [(layout, variant), ("us", "")]
+                return [("us", ""), (layout, variant)]
         return [("us", "")]
 
     # ---- 2. sit ----
@@ -1196,12 +1210,14 @@ class Installer(Gtk.Window):
             changed()
 
         def choose(key):
-            # Klik do seznamu meni vychozi rozlozeni (prvni), ostatni zustanou
+            # Klik do seznamu meni vychozi rozlozeni (prvni): nahradi dosavadni ne-US rozlozeni,
+            # US (hesla, kody) a ostatni zustanou
             lays = self.s["xkb"]
             if key in lays:
                 make_default(key)
             else:
-                self.s["xkb"] = [key] + lays[1:]
+                old = next((l for l in lays if l != ("us", "")), None)
+                self.s["xkb"] = ([key] + [l for l in lays if l != old])[:MAX_XKB]
                 changed()
 
         def add(key):

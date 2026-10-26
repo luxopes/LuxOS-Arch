@@ -2693,3 +2693,13 @@ Install it now?	Zainstalować teraz?
 Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Edytory kodu, Git i GitHub, kompilatory i debugery, Python, Node.js, Go i Rust, kontenery, SSH i codzienne narzędzia wiersza poleceń.
 Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Pakiet biurowy, poczta, odtwarzacz multimediów ze wszystkimi popularnymi kodekami, menedżer haseł, narzędzia do PDF i dysków oraz więcej czcionek do dokumentów.
 Desktop wallpaper and clock	Tapeta biurka i zegar
+The installation medium is missing packages: %s. Download the current LuxOS ISO.	Na nośniku instalacyjnym brakuje pakietów: %s. Pobierz aktualny obraz ISO LuxOS.
+Closing the window now would interrupt the installation and leave the disk unusable. Please wait until the installation finishes.	Zamknięcie okna teraz przerwie instalację i dysk będzie bezużyteczny. Poczekaj, aż instalacja się zakończy.
+Quit the installation?	Zakończyć instalację?
+Closing the window interrupts the installation. LuxOS will not be installed and your choices will be lost.	Zamknięcie okna przerywa instalację. LuxOS nie zostanie zainstalowany, a Twoje wybory zostaną utracone.
+Continue Installing	Kontynuuj instalację
+The package lists are out of date: the server no longer has this version. Update the system first (lux update), then try again.	Listy pakietów są nieaktualne: serwer nie ma już tej wersji. Najpierw zaktualizuj system (lux update), a potem spróbuj ponownie.
+More details: run the command again with --verbose	Więcej szczegółów: uruchom polecenie ponownie z --verbose
+The list of apps is out of date. Install the updates first, then try again.	Lista aplikacji jest nieaktualna. Najpierw zainstaluj aktualizacje, a potem spróbuj ponownie.
+The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Data i godzina komputera są nieprawidłowe, więc bezpieczne połączenie nie jest możliwe. Sprawdź ustawienia czasu.
+Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Dłuższa praca na baterii: wolniejszy procesor bez turbo, nieco niższa jasność, bez powiększania w Docku, nieużywane urządzenia usypiają, a zadania w tle są wstrzymywane.

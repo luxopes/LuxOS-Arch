@@ -2566,7 +2566,7 @@ In the evening before the clocks change and in the morning after.	Kvällen före
 Brightness	Ljusstyrka
 Lower the screen to 60 Hz	Sänk skärmen till 60 Hz
 A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off.	Lite längre batteritid på skärmar med 90–165 Hz. Skärmen blir svart ett ögonblick när Batterisparläge slås på eller av.
-Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Längre batteritid: långsammare processor utan turbo, något lägre ljusstyrka, inga animationer, oanvända enheter viloläge och bakgrundsuppgifter pausas.
+Longer battery life: slower processor without turbo, slightly lower brightness, no animations, idle devices sleep and background tasks pause.	Längre batteritid: långsammare processor utan turbo, något lägre ljusstyrka, inga animationer, oanvända enheter går i viloläge och bakgrundsuppgifter pausas.
 Could not put LuxOS first in the UEFI boot order; choose it in the boot menu (F12).	LuxOS kunde inte placeras först i UEFI-startordningen; välj det i startmenyn (F12).
 # Start systemu (initramfs, luxos-boot)
 Wrong password, try again.	Fel lösenord, försök igen.
@@ -2692,3 +2692,13 @@ Install it now?	Installera nu?
 Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Kodredigerare, Git och GitHub, kompilatorer och felsökare, Python, Node.js, Go och Rust, containrar, SSH och vardagliga kommandoradsverktyg.
 Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Kontorspaket, e-post, en mediaspelare med alla vanliga kodekar, en lösenordshanterare, PDF- och diskverktyg och fler typsnitt för dokument.
 Desktop wallpaper and clock	Skrivbordsbild och klocka
+The installation medium is missing packages: %s. Download the current LuxOS ISO.	Installationsmediet saknar paket: %s. Ladda ner den aktuella LuxOS-ISO-filen.
+Closing the window now would interrupt the installation and leave the disk unusable. Please wait until the installation finishes.	Om du stänger fönstret nu avbryts installationen och disken blir oanvändbar. Vänta tills installationen är klar.
+Quit the installation?	Avsluta installationen?
+Closing the window interrupts the installation. LuxOS will not be installed and your choices will be lost.	Om du stänger fönstret avbryts installationen. LuxOS installeras inte och dina val går förlorade.
+Continue Installing	Fortsätt installera
+The package lists are out of date: the server no longer has this version. Update the system first (lux update), then try again.	Paketlistorna är inaktuella: servern har inte längre den här versionen. Uppdatera systemet först (lux update) och försök sedan igen.
+More details: run the command again with --verbose	Mer information: kör kommandot igen med --verbose
+The list of apps is out of date. Install the updates first, then try again.	Applistan är inaktuell. Installera uppdateringarna först och försök sedan igen.
+The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datorns datum och tid är fel, så en säker anslutning är inte möjlig. Kontrollera tidsinställningarna.
+Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Längre batteritid: långsammare processor utan turbo, något lägre ljusstyrka, ingen förstoring i Dock, oanvända enheter går i viloläge och bakgrundsuppgifter pausas.

@@ -4,6 +4,20 @@ Verze: `X.Y.Z` – `Y` roste s každým novým ISO, `Z` s opravami chyb. Každá
 Číslo verze je v `packages/luxos-branding/files/version` (os-release, O tomto počítači, fastfetch, název ISO).
 LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z jakého stavu systém vychází.
 
+## 0.9.12 „Polaris“ – 2026-10-26 (beta)
+
+Nové ISO: ISO 0.9.7–0.9.11 končilo na počítačích s ovladači DKMS (NVIDIA, Broadcom) chybou „target not found: linux-luxos-headers“ – hlavičky jádra jsou zpět v ISO.
+
+### Opraveno
+- **Terminál nezamrzne** – výzva (starship) má časový limit a nouzovou výzvu; ssh/sshfs pozná mrtvé spojení do ~45 s (`/etc/ssh/ssh_config.d/50-luxos-keepalive.conf`). Dřív odpojená složka sshfs v domovské složce zasekla každý nový terminál (bez výzvy, bez Ctrl+C).
+- **Víceřádkový příkaz** vložený do terminálu se spustí Enterem (neuzavřený blok jako `if` bez `fi` dál přidá řádek).
+- **Ostré ikony v Alt+Tab** – GTK3 posílá ikonu okna u ikon jen ve SVG v 48 px; LuxOS oknu doplní ikonu 128/192 px z tématu (Soubory, Ovladače, Průvodce, Baterie…).
+- **Jas kolečkem** ukazuje jeden ukazatel, ne nový pod každým krokem.
+- **Spořič baterie nevypíná animace GTK** – zastavovala se tím kolečka průběhu (Obchod při kontrole aktualizací vypadal jako zaseknutý).
+- **Oznámení**: bez hlášení o každém připojení/odpojení sítě; „Bez internetu“ až po 60 s a jen jako přechodné; chyba Power Manageru „Action suspend already in progress“ po zavření víka (Trezor neuvolnil zdržení uspání).
+- **lux**: chyba instalace vypíše i první řádky skutečné příčiny; 404 ze zrcadla se ohlásí jako zastaralý seznam balíčků („nejdřív lux update“) místo rady zkontrolovat internet. Interaktivní `lux`: dlouhé popisy se už neposouvají do strany, náhled bez technických polí.
+- **Instalátor**: zavření okna se nejdřív zeptá (během instalace nejde); 5 pokusů o stažení; chybějící balíček na médiu hlásí přímo místo „zkontrolujte internet“; výchozí klávesnice je US (místní rozložení se přidá jako druhé); přihlášení k LuxAI hned po připojení k Wi‑Fi se zopakuje, když spojení ještě nevzniklo, a špatné hodiny mají vlastní hlášku.
+
 ## 0.9.11 „Polaris“ – 2026-10-24 (beta)
 
 ### Nové

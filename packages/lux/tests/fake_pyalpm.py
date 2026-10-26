@@ -285,7 +285,8 @@ class Transaction:
             if h.dlcb:
                 h.dlcb(self.to_add[0].filename if self.to_add else "x", 0, (False,))
             if h.logcb:
-                h.logcb(1, "failed retrieving file 'x.pkg.tar.zst' from mirror.example : Connection timed out")
+                h.logcb(1, getattr(h, "commit_log", None) or
+                        "failed retrieving file 'x.pkg.tar.zst' from mirror.example : Connection timed out")
             raise err
         if h.dlcb:
             for p in self.to_add:

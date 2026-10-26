@@ -1539,7 +1539,9 @@ install_packages() {
     engine_conf=$("$LUX_CONFIG_TOOL" ensure --quiet) || fail "$(T "The package manager configuration of the live system is broken.")"
     local -a conf=(-C "$engine_conf")
     engine_shim
-    for attempt in 1 2 3; do
+    local log_from missing
+    for attempt in 1 2 3 4 5; do
+        log_from=$(($(wc -l <"$LOG" 2>/dev/null || echo 0) + 1))
         # anglicky vystup jadra kvuli rozpoznani prubehu a chyb; -M: seznam zrcadel kopiruje configure_system
         if LC_ALL=C.UTF-8 PATH="$ENGINE_SHIM:$PATH" \
                 pacstrap "${conf[@]}" -K -M "$TARGET" --needed "${pkgs[@]}" 2>&1 | PAC_CACHE="$TARGET/var/cache/pacman/pkg" pac_filter; then
@@ -1547,7 +1549,13 @@ install_packages() {
             install_online_drivers
             return 0
         fi
-        ((attempt < 3)) || break
+        # Chybejici balik v repozitari neni vypadek site: opakovani nepomuze a hlaska o internetu by lhala
+        missing=$(tail -n +"$log_from" "$LOG" 2>/dev/null | sed -n 's/^error: target not found: //p' | sort -u | paste -sd ' ')
+        if [[ -n $missing ]]; then
+            fail "$(T "The installation medium is missing packages: %s. Download the current LuxOS ISO." "$missing")"
+            return 1
+        fi
+        ((attempt < 5)) || break
         progress "STATUS $(T "Download failed (attempt %s), retrying…" "$attempt")"
         info "$(T "Download failed (attempt %s), retrying…" "$attempt")"
         pac_cleanup
@@ -1575,14 +1583,14 @@ install_online_drivers() {
     # Repozitare LuxOS ze serveru (configure_system pak lux.conf zapise znovu, stejny obsah)
     install_engine_config
     local attempt
-    for attempt in 1 2 3; do
+    for attempt in 1 2 3 4 5; do
         # -Syy: vzdy znovu stahnout online databaze [luxos] (pacstrap pouzil mistni z ISO; ta muze byt
         # novejsi nez server a If-Modified-Since by nechal starou databazi s novym podpisem)
         if chroot_engine -Syy --needed --noconfirm "${HW_ONLINE[@]}" 2>&1 | pac_filter; then
             progress "STATUS "
             return 0
         fi
-        ((attempt < 3)) || break
+        ((attempt < 5)) || break
         pac_cleanup
         sleep $((attempt * 5))
         wait_internet
@@ -1805,7 +1813,7 @@ install_templates() {
         fi
     done
 
-    for attempt in 1 2 3; do
+    for attempt in 1 2 3 4 5; do
         if chroot_engine -Syy --noconfirm >>"$LOG" 2>&1; then ok=1; break; fi
         pac_cleanup
         sleep $((attempt * 5))
@@ -1830,10 +1838,10 @@ install_templates() {
 
     if ((${#pkgs[@]})); then
         ok=0
-        for attempt in 1 2 3; do
+        for attempt in 1 2 3 4 5; do
             # -Su: databaze jsou cerstve (-Sy), bez castecne aktualizace
             if chroot_engine -Su --needed --noconfirm "${pkgs[@]}" 2>&1 | pac_filter; then ok=1; break; fi
-            ((attempt < 3)) || break
+            ((attempt < 5)) || break
             progress "STATUS $(T "Download failed (attempt %s), retrying…" "$attempt")"
             info "$(T "Download failed (attempt %s), retrying…" "$attempt")"
             pac_cleanup

@@ -12,12 +12,14 @@ docs/luxai-account.md. Prihlaseni: heslo, e-mailovy kod, nebo pres web (PKCE na
 verify_code() ucet zalozi a vrati session (stejne jako prihlaseni kodem).
 """
 import base64
+import errno
 import hashlib
 import html.parser
 import json
 import re
 import os
 import secrets
+import socket
 import ssl
 import tempfile
 import threading
@@ -58,6 +60,7 @@ ERROR_TEXTS = {
     "rate": "Too many attempts. Try again later.",
     "slow_down": "Please wait a minute before requesting another code.",
     "network": "LuxAI is not reachable. Check the internet connection.",
+    "clock": "The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.",
     "timeout": "The browser sign-in timed out.",
     "cancelled": "The sign-in was cancelled.",
     "invalid_email": "Enter a valid e-mail address.",
@@ -132,6 +135,36 @@ def request(method, path, body=None, token=None, origin=ORIGIN, timeout=20):
         req.add_header("Content-Type", "application/json")
     if token:
         req.add_header("Cookie", f"{COOKIE}={token}")
+    for attempt in range(NET_RETRIES):
+        try:
+            return _send(req, timeout)
+        except _NotSent:
+            # spojeni vubec nevzniklo (DNS jeste nebezi po pripojeni k Wi-Fi, sit nahodi az za chvili):
+            # pozadavek server nedostal, opakovani je bezpecne i u POST (zadny dvojity e-mail s kodem)
+            if attempt + 1 == NET_RETRIES:
+                raise AccountError("network") from None
+            time.sleep(1.5 * (attempt + 1))
+
+
+# Opakovani pozadavku, ktery se na server vubec nedostal (prvni prihlaseni hned po pripojeni k siti
+# obcas skoncilo "LuxAI neni dostupne", i kdyz internet byl v poradku)
+NET_RETRIES = 4
+
+
+class _NotSent(Exception):
+    pass
+
+
+def _not_sent(err):
+    """Chyba, pri ktere pozadavek prokazatelne neodesel (preklad jmena, odmitnute/nedostupne spojeni)."""
+    reason = getattr(err, "reason", err)
+    if isinstance(reason, (socket.gaierror, ConnectionRefusedError)):
+        return True
+    return isinstance(reason, OSError) and reason.errno in (errno.ENETUNREACH, errno.EHOSTUNREACH,
+                                                            errno.ENETDOWN, errno.EADDRNOTAVAIL)
+
+
+def _send(req, timeout):
     try:
         with urllib.request.urlopen(req, timeout=timeout, context=ssl.create_default_context()) as r:
             raw = r.read()
@@ -148,7 +181,13 @@ def request(method, path, body=None, token=None, origin=ORIGIN, timeout=20):
         except ValueError:
             retry = 0
         raise AccountError(body.get("error") or "http", e.code, retry, body) from None
-    except (urllib.error.URLError, TimeoutError, OSError):
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        reason = getattr(e, "reason", e)
+        if isinstance(reason, ssl.SSLCertVerificationError) and "not yet valid" in str(reason).lower() + \
+                getattr(reason, "verify_message", "").lower():
+            raise AccountError("clock") from None   # spatne hodiny (live system pred synchronizaci casu)
+        if _not_sent(e):
+            raise _NotSent() from None
         raise AccountError("network") from None
 
 

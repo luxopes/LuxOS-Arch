@@ -126,6 +126,32 @@ class Register(Base):
             acc.ORIGIN = old
         self.assertIn("internet", acc.error_text(e))
 
+    def test_not_sent_request_is_retried(self):
+        """Spojeni nevzniklo (DNS hned po pripojeni k Wi-Fi): pozadavek se zopakuje, uzivatel chybu nevidi."""
+        calls = []
+        real_send, real_sleep = acc._send, acc.time.sleep
+
+        def flaky(req, timeout):
+            calls.append(req.full_url)
+            if len(calls) < 3:
+                raise acc._NotSent()
+            return {"ok": True}
+        acc._send, acc.time.sleep = flaky, lambda _s: None
+        try:
+            self.assertEqual(acc.request("GET", "/x"), {"ok": True})
+            self.assertEqual(len(calls), 3)
+        finally:
+            acc._send, acc.time.sleep = real_send, real_sleep
+
+    def test_not_sent_classification(self):
+        import errno
+        import socket
+        import urllib.error
+        self.assertTrue(acc._not_sent(urllib.error.URLError(socket.gaierror(-3, "Temporary failure"))))
+        self.assertTrue(acc._not_sent(urllib.error.URLError(ConnectionRefusedError())))
+        self.assertTrue(acc._not_sent(urllib.error.URLError(OSError(errno.ENETUNREACH, "unreachable"))))
+        self.assertFalse(acc._not_sent(TimeoutError()))   # mohl dojit - neopakovat (dvojity e-mail s kodem)
+
     def test_unknown_and_server_error_texts(self):
         self.assertEqual(acc.error_text(acc.AccountError("weird", 400)), "Sign-in failed (weird).")
         self.assertIn("problems", acc.error_text(acc.AccountError("http", 502)))

@@ -110,10 +110,21 @@ check "kepler: NVIDIA_EARLY=0" test "$NVIDIA_EARLY" = 0
 machine "0000:01:00.0 030000 10de 1c03"
 CHROOT_RC=1 install_packages >/dev/null 2>&1; rc=$?
 check "580 offline: install continues" test "$rc" = 0
-check "580 offline: three attempts" test "$(grep -cx -- -Syy "$OUT/chroot")" = 3
+check "580 offline: five attempts" test "$(grep -cx -- -Syy "$OUT/chroot")" = 5
 check "580 offline: NVIDIA_EARLY reset" test "$NVIDIA_EARLY" = 0
 check "580 offline: user is told" grep -q "Drivers" "$OUT/log"
 check "580 offline: fail not called" bash -c "! grep -q FAIL-CALLED '$OUT/log'"
+
+# --- Balik chybi v repozitari ISO: hned srozumitelna chyba, ne 5 pokusu a "zkontrolujte internet" ---
+machine "0000:00:02.0 030000 8086 9a49"
+LOG=$OUT/install.log; : >"$LOG"
+pac_filter() { cat >>"$LOG"; }
+pacstrap() { echo "attempt" >>"$OUT/attempts"; echo "error: target not found: linux-luxos-headers"; return 1; }
+rm -f "$OUT/attempts"
+install_packages >/dev/null 2>&1
+check "missing package: one attempt only" test "$(wc -l <"$OUT/attempts")" = 1
+check "missing package: names the package" grep -q "FAIL-CALLED .*missing packages: linux-luxos-headers" "$OUT/log"
+check "missing package: no internet advice" bash -c "! grep -q 'Check the internet' '$OUT/log'"
 
 # --- setup-chroot: early KMS pozna i legacy DKMS ---
 pat=$(grep -o "grep -xE '[^']*'" "$FILES/setup-chroot.sh" | head -1 | sed "s/grep -xE //; s/'//g")

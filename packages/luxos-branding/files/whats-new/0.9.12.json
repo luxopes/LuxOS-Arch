@@ -1,0 +1,18 @@
+{
+  "version": "0.9.12",
+  "codename": "Polaris",
+  "items": [
+    {"icon": "utilities-terminal-symbolic",
+     "title": {"en": "Terminal that never freezes", "cs": "Terminál, který nezamrzne"},
+     "text": {"en": "A disconnected network folder (sshfs) no longer freezes the terminal. Pasted multi-line commands run with Enter.",
+              "cs": "Odpojená síťová složka (sshfs) už terminál nezasekne. Vložené víceřádkové příkazy se spustí Enterem."}},
+    {"icon": "view-app-grid-symbolic",
+     "title": {"en": "Sharp icons in Alt+Tab", "cs": "Ostré ikony v Alt+Tab"},
+     "text": {"en": "Files, Drivers, the Tour and other apps have sharp icons when switching windows. Brightness shows one indicator while scrolling, and the Store spinner turns again with Battery Saver on.",
+              "cs": "Soubory, Ovladače, Průvodce a další aplikace mají při přepínání oken ostré ikony. Jas při posouvání ukazuje jeden ukazatel a kolečko v Obchodě se točí i se Spořičem baterie."}},
+    {"icon": "preferences-system-notifications-symbolic",
+     "title": {"en": "Fewer, more useful notifications", "cs": "Méně, ale užitečných oznámení"},
+     "text": {"en": "No more notifications for every network connection, and no error after closing the lid. lux shows the real cause when an installation fails.",
+              "cs": "Žádná oznámení o každém připojení k síti a žádná chyba po zavření víka. lux při nezdaru instalace ukáže skutečnou příčinu."}}
+  ]
+}

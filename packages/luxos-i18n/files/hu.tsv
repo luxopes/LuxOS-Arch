@@ -2692,3 +2692,13 @@ Install it now?	Telepíti most?
 Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Kódszerkesztők, Git és GitHub, fordítók és hibakeresők, Python, Node.js, Go és Rust, konténerek, SSH és mindennapi parancssori eszközök.
 Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Irodai csomag, e-mail, médialejátszó minden gyakori kodekkel, jelszókezelő, PDF- és lemezeszközök, valamint további betűtípusok dokumentumokhoz.
 Desktop wallpaper and clock	Íróasztal-háttérkép és óra
+The installation medium is missing packages: %s. Download the current LuxOS ISO.	A telepítőmédiumról csomagok hiányoznak: %s. Töltse le az aktuális LuxOS ISO-t.
+Closing the window now would interrupt the installation and leave the disk unusable. Please wait until the installation finishes.	Ha most bezárja az ablakot, a telepítés megszakad, és a lemez használhatatlan marad. Várja meg, amíg a telepítés befejeződik.
+Quit the installation?	Kilép a telepítésből?
+Closing the window interrupts the installation. LuxOS will not be installed and your choices will be lost.	Az ablak bezárása megszakítja a telepítést. A LuxOS nem települ, és a beállításai elvesznek.
+Continue Installing	Telepítés folytatása
+The package lists are out of date: the server no longer has this version. Update the system first (lux update), then try again.	A csomaglisták elavultak: a kiszolgálón már nincs meg ez a verzió. Előbb frissítse a rendszert (lux update), majd próbálja újra.
+More details: run the command again with --verbose	További részletek: futtassa újra a parancsot a --verbose kapcsolóval
+The list of apps is out of date. Install the updates first, then try again.	Az alkalmazáslista elavult. Előbb telepítse a frissítéseket, majd próbálja újra.
+The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	A számítógép dátuma és ideje hibás, ezért nem lehetséges biztonságos kapcsolat. Ellenőrizze az időbeállításokat.
+Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Hosszabb akkumulátor-üzemidő: lassabb processzor turbó nélkül, kissé kisebb fényerő, nincs nagyítás a Dockban, a nem használt eszközök alvó állapotba kerülnek, a háttérfeladatok szünetelnek.

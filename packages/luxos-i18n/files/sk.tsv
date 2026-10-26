@@ -2692,3 +2692,13 @@ Install it now?	Nainštalovať teraz?
 Code editors, Git and GitHub, compilers and debuggers, Python, Node.js, Go and Rust, containers, SSH and everyday command-line tools.	Editory kódu, Git a GitHub, prekladače a ladiace nástroje, Python, Node.js, Go a Rust, kontajnery, SSH a každodenné nástroje príkazového riadka.
 Office suite, e-mail, a media player with all common codecs, a password manager, PDF tools, disk tools and more fonts for documents.	Kancelársky balík, e-mail, prehrávač médií so všetkými bežnými kodekmi, správca hesiel, nástroje na PDF a disky a ďalšie písma pre dokumenty.
 Desktop wallpaper and clock	Tapeta plochy a hodiny
+The installation medium is missing packages: %s. Download the current LuxOS ISO.	Inštalačnému médiu chýbajú balíky: %s. Stiahnite aktuálne ISO LuxOS.
+Closing the window now would interrupt the installation and leave the disk unusable. Please wait until the installation finishes.	Zatvorením okna teraz by ste inštaláciu prerušili a disk by zostal nepoužiteľný. Počkajte, prosím, kým sa inštalácia skončí.
+Quit the installation?	Ukončiť inštaláciu?
+Closing the window interrupts the installation. LuxOS will not be installed and your choices will be lost.	Zatvorením okna sa inštalácia preruší. LuxOS sa nenainštaluje a vaše voľby sa stratia.
+Continue Installing	Pokračovať v inštalácii
+The package lists are out of date: the server no longer has this version. Update the system first (lux update), then try again.	Zoznamy balíkov sú zastarané: server už túto verziu nemá. Najprv aktualizujte systém (lux update) a potom to skúste znova.
+More details: run the command again with --verbose	Ďalšie podrobnosti: spustite príkaz znova s --verbose
+The list of apps is out of date. Install the updates first, then try again.	Zoznam aplikácií je zastaraný. Najprv nainštalujte aktualizácie a potom to skúste znova.
+The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Dátum a čas počítača nie sú správne, preto nie je možné zabezpečené pripojenie. Skontrolujte nastavenie času.
+Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Dlhšia výdrž batérie: pomalší procesor bez turba, o niečo nižší jas, bez zväčšovania v Docku, nepoužívané zariadenia sa uspia a úlohy na pozadí sa pozastavia.
