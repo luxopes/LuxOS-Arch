@@ -15,7 +15,8 @@ Sporic baterie: vestaveny displej s vic nez 60 Hz prepne na 60 Hz (vypise
 "VYSTUP REZIM PUVODNI_FREKVENCE" pro navrat) a pri vypnuti frekvenci vrati.
 
 Nastaveni je v ~/.config/luxos/displays.json (LUXOS_DISPLAYS_CONF ho prepise,
-pouziva se pro zkusebni pouziti pred potvrzenim). Klic zaznamu je nazev vystupu
+pouziva se pro zkusebni pouziti pred potvrzenim). Klic "layouts" = rozlozeni monitoru
+(luxos_arrange, "layout-args"). Klic zaznamu je nazev vystupu
 a otisk EDID, takze jiny monitor na stejnem konektoru dostane svuj doporuceny rezim.
 LUXOS_XRANDR prepise prikaz xrandr (testy).
 """
@@ -267,12 +268,28 @@ def load(path=None):
         return {}
 
 
-def save(entries, path=None):
+def load_layouts(path=None):
+    """Ulozena rozlozeni monitoru {klic sady: rozlozeni} (viz luxos_arrange)."""
+    try:
+        with open(path or conf_path(), encoding="utf-8") as f:
+            lays = json.load(f).get("layouts", {})
+        return {k: v for k, v in lays.items() if isinstance(v, dict)}
+    except (OSError, ValueError, AttributeError):
+        return {}
+
+
+def save(entries, path=None, layouts=None):
+    """Ulozit zaznamy monitoru; layouts=None ponecha rozlozeni ulozena v souboru."""
     path = path or conf_path()
+    if layouts is None:
+        layouts = load_layouts(path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".tmp"
+    data = {"version": 1, "outputs": entries}
+    if layouts:
+        data["layouts"] = layouts
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump({"version": 1, "outputs": entries}, f, indent=1, sort_keys=True)
+        json.dump(data, f, indent=1, sort_keys=True)
         f.write("\n")
     os.replace(tmp, path)
 
@@ -400,6 +417,27 @@ def main(argv):
         for name, args in all_output_args(query(), entries):
             print(name, *args)
         return 0
+    if argv[1:2] == ["layout-args"]:
+        # Cely prikaz xrandr podle ulozeneho rozlozeni pro pripojenou sadu monitoru (nic = neni).
+        # "layout-args extend": Super+P Rozsirit - zrcadleni v rozlozeni vypnout a ulozit
+        # python3 -I nepridava adresar skriptu do sys.path
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import luxos_arrange as la
+        layouts = load_layouts()
+        if not layouts:
+            return 0
+        outputs = query()
+        force = argv[2:3] == ["extend"]
+        p = la.plan(outputs, load(), layouts, force_extend=force)
+        if p is None:
+            return 0
+        if force:
+            lay, _names = la.find_layout(layouts, outputs)
+            if lay.get("mirror"):
+                lay["mirror"] = False
+                save(load(), layouts=layouts)
+        print(" ".join(p["args"]))
+        return 0
     if argv[1:2] == ["rate-cap"]:
         for name, mode, rate in rate_cap(query()):
             print(name, mode, rate)
@@ -407,7 +445,7 @@ def main(argv):
     if argv[1:2] == ["rate-restore"] and len(argv) == 5:
         rate_restore(query(), *argv[2:5])
         return 0
-    print("usage: luxos_displays.py output-args | rate-cap | rate-restore OUTPUT MODE RATE", file=sys.stderr)
+    print("usage: luxos_displays.py output-args | layout-args [extend] | rate-cap | rate-restore OUTPUT MODE RATE", file=sys.stderr)
     return 2
 
 

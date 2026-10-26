@@ -1,0 +1,643 @@
+#!/usr/bin/env python3
+"""LuxOS - Sprava site (Router): udaje o siti, webova sprava routeru primo v aplikaci,
+zarizeni v domaci siti a rychle nastroje (ping, DNS, verejna adresa, rychlost).
+
+Webova sprava bezi ve WebKitGTK (webkit2gtk-4.1 je v LuxOS uz kvuli yad, nic se
+nestahuje navic). WebKit se nacte az pri prvnim otevreni karty Router - samotny
+prehled ho nepotrebuje. Pravidla (luxos_netadmin.lan_policy):
+
+- otevrou se jen adresy v domaci siti (privatni IP, vychozi brana, jmena prekladana jen
+  na privatni adresy); odkaz jinam otevre bezny prohlizec, presmerovani jinam se jen ohlasi,
+- vlastni (nedoveryhodny) certifikat HTTPS lze po vyslovnem potvrzeni povolit jen pro
+  adresu vychozi brany a jen do zavreni aplikace,
+- docasna relace (WebContext.new_ephemeral): zadne cookies, mezipamet ani hesla na disku,
+  prihlaseni HTTP Basic resi vlastni dialog bez ukladani.
+
+LUXOS_ROUTER_PAGE=router|devices otevre rovnou danou kartu (testy).
+"""
+import os
+import subprocess
+import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
+sys.path.insert(0, os.environ.get("LUXOS_PYDIR") or "/usr/lib/luxos/python")
+import luxos_netadmin as na  # noqa: E402
+from luxos_i18n import _  # noqa: E402
+
+import gi  # noqa: E402
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
+
+CSS = b"""
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }
+.row { padding: 9px 14px; }
+.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
+.hint { font-size: 11px; opacity: 0.6; }
+.value { opacity: 0.8; }
+.ok { color: #1f9d55; }
+.bad { color: #d64545; }
+.hero-title { font-size: 20px; font-weight: 700; }
+.toolbar-box { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.1); }
+"""
+
+
+def app_name():
+    """Nazev aplikace (cesky "Sprava site"); "Router" je zaroven nazev karty a zarizeni."""
+    name = _("Router (app name)")
+    return "Router" if name == "Router (app name)" else name
+
+
+def bg(work, done):
+    """work() ve vlakne, done(vysledek) v hlavnim vlakne GTK."""
+    def runner():
+        try:
+            res = work()
+        except Exception:  # noqa: BLE001 - chyba nastroje nesmi shodit aplikaci
+            res = None
+        GLib.idle_add(lambda: done(res) and False)
+    threading.Thread(target=runner, daemon=True).start()
+
+
+def open_in_browser(uri):
+    try:
+        Gio.AppInfo.launch_default_for_uri(uri, None)
+    except GLib.Error:
+        subprocess.Popen(["xdg-open", uri], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+class Group(Gtk.Box):
+    """Skupina radku ve stylu Nastaveni macOS."""
+
+    def __init__(self, parent, title):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        label = Gtk.Label(label=title, xalign=0)
+        label.get_style_context().add_class("group-title")
+        parent.pack_start(label, False, False, 0)
+        self.get_style_context().add_class("group")
+        parent.pack_start(self, False, False, 0)
+        self.rows = 0
+
+    def row(self, title, widget=None, hint=None):
+        box = Gtk.Box(spacing=12)
+        box.get_style_context().add_class("row")
+        if self.rows:
+            box.get_style_context().add_class("row-sep")
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        text.pack_start(Gtk.Label(label=title, xalign=0), False, False, 0)
+        if hint:
+            h = Gtk.Label(label=hint, xalign=0, wrap=True, max_width_chars=50)
+            h.get_style_context().add_class("hint")
+            text.pack_start(h, False, False, 0)
+        box.pack_start(text, True, True, 0)
+        if widget is not None:
+            widget.set_valign(Gtk.Align.CENTER)
+            box.pack_end(widget, False, False, 0)
+        self.pack_start(box, False, False, 0)
+        self.rows += 1
+        return box
+
+    def value_row(self, title, value):
+        lab = Gtk.Label(label=value or "—", xalign=1, selectable=True, wrap=True, max_width_chars=40)
+        lab.get_style_context().add_class("value")
+        self.row(title, lab)
+        return lab
+
+
+class Tool(Gtk.Box):
+    """Tlacitko nastroje s vysledkem vedle (vysledek se pocita ve vlakne)."""
+
+    def __init__(self, label, work, show):
+        super().__init__(spacing=10)
+        self.work, self.show = work, show
+        self.result = Gtk.Label(xalign=1, wrap=True, max_width_chars=34)
+        self.spinner = Gtk.Spinner()
+        self.button = Gtk.Button(label=label)
+        self.button.connect("clicked", self.on_click)
+        self.pack_start(self.result, False, False, 0)
+        self.pack_start(self.spinner, False, False, 0)
+        self.pack_start(self.button, False, False, 0)
+
+    def on_click(self, _b):
+        self.button.set_sensitive(False)
+        self.spinner.start()
+        self.result.set_text("")
+        bg(self.work, self.finished)
+
+    def finished(self, res):
+        self.spinner.stop()
+        self.button.set_sensitive(True)
+        text, good = self.show(res)
+        ctx = self.result.get_style_context()
+        ctx.remove_class("ok")
+        ctx.remove_class("bad")
+        ctx.add_class("ok" if good else "bad")
+        self.result.set_text(text)
+
+
+def ping_text(res):
+    if not res or not res["sent"]:
+        return _("Could not run ping"), False
+    if not res["received"]:
+        return _("No reply"), False
+    loss = 100 - round(100 * res["received"] / res["sent"])
+    text = _("%s ms") % ("%.1f" % res["avg"]) if res["avg"] is not None else _("Replies")
+    if loss:
+        text += " · " + _("%d %% lost") % loss
+    return text, loss < 50
+
+
+class RouterPage(Gtk.Box):
+    """Webova sprava routeru (WebKitGTK), vytvari se az pri prvnim zobrazeni."""
+
+    def __init__(self, win):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        self.win = win
+        self.view = None
+        self.ctx = None
+        self.allowed_hosts = {}         # jmeno -> preklada se jen do domaci site (True/False)
+        self.https = False
+        self.tls_allowed = set()
+
+    @property
+    def gateway(self):
+        return self.win.info.get("gateway", "")
+
+    def ensure(self):
+        if self.view is not None or self.get_children():
+            return
+        try:
+            gi.require_version("WebKit2", "4.1")
+            from gi.repository import WebKit2
+        except (ValueError, ImportError):
+            self.no_webkit()
+            return
+        self.WebKit2 = WebKit2
+        bar = Gtk.Box(spacing=6)
+        bar.get_style_context().add_class("toolbar-box")
+        self.back = Gtk.Button.new_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON)
+        self.back.set_tooltip_text(_("Back"))
+        self.back.connect("clicked", lambda _b: self.view.go_back())
+        reload_ = Gtk.Button.new_from_icon_name("view-refresh-symbolic", Gtk.IconSize.BUTTON)
+        reload_.set_tooltip_text(_("Reload"))
+        reload_.connect("clicked", lambda _b: self.view.reload())
+        self.proto = Gtk.ComboBoxText()
+        self.proto.append("http", "HTTP")
+        self.proto.append("https", "HTTPS")
+        self.proto.set_active_id("http")
+        self.proto.set_tooltip_text(_("Connect to the router with HTTP or HTTPS"))
+        self.proto.connect("changed", self.on_proto)
+        self.lock = Gtk.Image()
+        self.address = Gtk.Label(xalign=0, ellipsize=3, selectable=True)
+        browser = Gtk.Button(label=_("Open in Browser"))
+        browser.connect("clicked", lambda _b: open_in_browser(self.view.get_uri() or na.router_url(self.gateway)))
+        for w in (self.back, reload_, self.proto):
+            bar.pack_start(w, False, False, 0)
+        bar.pack_start(self.lock, False, False, 4)
+        bar.pack_start(self.address, True, True, 0)
+        bar.pack_end(browser, False, False, 0)
+        self.pack_start(bar, False, False, 0)
+
+        self.infobar = Gtk.InfoBar(show_close_button=True, revealed=False)
+        self.infobar.connect("response", self.on_info_response)
+        self.info_label = Gtk.Label(xalign=0, wrap=True)
+        self.infobar.get_content_area().add(self.info_label)
+        self.info_uri = None
+        self.info_button = self.infobar.add_button(_("Open in Browser"), 1)
+        self.pack_start(self.infobar, False, False, 0)
+
+        ctx = WebKit2.WebContext.new_ephemeral()
+        ctx.set_cache_model(WebKit2.CacheModel.DOCUMENT_VIEWER)
+        # Neduveryhodny certifikat = chyba (vychozi), vyjimku povoluje jen on_tls pro branu
+        ctx.get_website_data_manager().set_tls_errors_policy(WebKit2.TLSErrorsPolicy.FAIL)
+        ctx.connect("download-started", self.on_download)
+        self.ctx = ctx
+        view = WebKit2.WebView.new_with_context(ctx)
+        s = view.get_settings()
+        s.set_enable_developer_extras(False)
+        s.set_enable_page_cache(False)
+        s.set_javascript_can_open_windows_automatically(False)
+        s.set_hardware_acceleration_policy(WebKit2.HardwareAccelerationPolicy.NEVER)
+        s.set_enable_webgl(False)
+        s.set_enable_media(False)
+        view.connect("decide-policy", self.on_policy)
+        view.connect("load-failed-with-tls-errors", self.on_tls)
+        view.connect("load-failed", self.on_failed)
+        view.connect("authenticate", self.on_auth)
+        view.connect("load-changed", self.on_load_changed)
+        self.view = view
+        self.pack_start(view, True, True, 0)
+        self.show_all()
+        self.load_router()
+
+    def no_webkit(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, valign=Gtk.Align.CENTER, margin=30)
+        lab = Gtk.Label(label=_("The built-in web view (WebKitGTK) is not available. "
+                                "The router settings will open in your web browser."), wrap=True)
+        btn = Gtk.Button(label=_("Open in Browser"), halign=Gtk.Align.CENTER)
+        btn.connect("clicked", lambda _b: open_in_browser(na.router_url(self.gateway)))
+        box.pack_start(lab, False, False, 0)
+        box.pack_start(btn, False, False, 0)
+        self.pack_start(box, True, True, 0)
+        self.show_all()
+
+    def load_router(self, https=None):
+        if self.view is None:
+            return
+        if https is not None:
+            self.https = https
+            self.proto.set_active_id("https" if https else "http")
+        url = na.router_url(self.gateway, self.https)
+        if not url:
+            self.view.load_html("<html><body style='font-family:sans-serif;padding:40px'>%s</body></html>" %
+                                GLib.markup_escape_text(_("Not connected to a network.")), None)
+            return
+        self.view.load_uri(url)
+
+    def on_proto(self, combo):
+        https = combo.get_active_id() == "https"
+        if https != self.https:
+            self.https = https
+            self.load_router()
+
+    # ---- informacni lista --------------------------------------------------------
+    def notify(self, text, uri=None, kind=Gtk.MessageType.INFO):
+        self.info_label.set_text(text)
+        self.info_uri = uri
+        self.info_button.set_visible(bool(uri))
+        self.infobar.set_message_type(kind)
+        self.infobar.set_revealed(True)
+
+    def on_info_response(self, bar, resp):
+        if resp == 1 and self.info_uri:
+            open_in_browser(self.info_uri)
+        bar.set_revealed(False)
+
+    # ---- pravidla navigace -----------------------------------------------------------
+    def leave(self, uri, user):
+        if user:
+            open_in_browser(uri)
+            self.notify(_("The link leads outside your home network, so it was opened in your web browser."))
+        else:
+            self.notify(_("The page wanted to open an address outside your home network: %s") % na.url_host(uri), uri,
+                        Gtk.MessageType.WARNING)
+
+    def resolve(self, uri, user):
+        host = na.url_host(uri)
+        gw = self.gateway
+
+        def done(ok):
+            self.allowed_hosts[host] = bool(ok)
+            if ok:
+                self.view.load_uri(uri)
+            else:
+                self.leave(uri, user)
+        bg(lambda: na.resolves_to_lan(host, gw), done)
+
+    def on_policy(self, view, decision, dtype):
+        W = self.WebKit2
+        if dtype == W.PolicyDecisionType.RESPONSE:
+            if not decision.is_mime_type_supported() and decision.is_main_frame_main_resource():
+                decision.download()
+                return True
+            return False
+        action = decision.get_navigation_action()
+        uri = action.get_request().get_uri()
+        user = action.is_user_gesture() or dtype == W.PolicyDecisionType.NEW_WINDOW_ACTION
+        policy = na.lan_policy(uri, self.gateway)
+        host = na.url_host(uri)
+        if policy == "resolve" and host in self.allowed_hosts:
+            policy = "allow" if self.allowed_hosts[host] else "external"
+        if policy == "allow":
+            if dtype == W.PolicyDecisionType.NEW_WINDOW_ACTION:
+                decision.ignore()
+                view.load_uri(uri)
+            else:
+                decision.use()
+            return True
+        decision.ignore()
+        if policy == "external":
+            self.leave(uri, user)
+        elif policy == "resolve":
+            self.resolve(uri, user)
+        return True
+
+    # ---- certifikaty a prihlaseni --------------------------------------------------------
+    def on_tls(self, view, uri, cert, errors):
+        host = na.url_host(uri)
+        if not na.tls_exception_allowed(uri, self.gateway):
+            self.notify(_("The connection to %s is not secure (untrusted certificate). Only your router's own "
+                          "address can be allowed.") % host, None, Gtk.MessageType.ERROR)
+            return True
+        dlg = Gtk.MessageDialog(transient_for=self.win, modal=True, message_type=Gtk.MessageType.WARNING,
+                                buttons=Gtk.ButtonsType.NONE,
+                                text=_("The router uses its own security certificate"))
+        dlg.format_secondary_text(
+            _("Routers usually have a self-signed certificate that cannot be verified. Continue only if %s is "
+              "your router. The exception applies to this address only, until you close the app.") % host)
+        dlg.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        go = dlg.add_button(_("Continue"), Gtk.ResponseType.OK)
+        go.get_style_context().add_class("destructive-action")
+        dlg.set_default_response(Gtk.ResponseType.CANCEL)
+        self.win.tls_dialog = dlg
+        resp = dlg.run()
+        dlg.destroy()
+        self.win.tls_dialog = None
+        if resp == Gtk.ResponseType.OK:
+            self.ctx.allow_tls_certificate_for_host(cert, host)
+            self.tls_allowed.add(host)
+            view.load_uri(uri)
+        else:
+            self.load_router(https=False)
+        return True
+
+    def on_failed(self, view, event, uri, error):
+        if error.matches(self.WebKit2.PolicyError.quark(), self.WebKit2.PolicyError.FRAME_LOAD_INTERRUPTED_BY_POLICY_CHANGE):
+            return True
+        if error.matches(self.WebKit2.NetworkError.quark(), self.WebKit2.NetworkError.CANCELLED):
+            return True
+        if na.url_host(uri) == self.gateway.lower() and not self.https:
+            self.notify(_("The router does not answer over HTTP. Try HTTPS."), None, Gtk.MessageType.WARNING)
+        else:
+            self.notify(_("The page could not be loaded: %s") % error.message, None, Gtk.MessageType.WARNING)
+        return False
+
+    def on_auth(self, view, request):
+        if request.is_for_proxy():
+            return False
+        dlg = Gtk.Dialog(title=_("Sign In"), transient_for=self.win, modal=True)
+        dlg.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        ok = dlg.add_button(_("Sign In"), Gtk.ResponseType.OK)
+        ok.get_style_context().add_class("suggested-action")
+        dlg.set_default_response(Gtk.ResponseType.OK)
+        box = dlg.get_content_area()
+        box.set_border_width(16)
+        box.set_spacing(8)
+        msg = Gtk.Label(label=_("%s asks for a user name and password. They are not saved.") % request.get_host(),
+                        wrap=True, xalign=0, max_width_chars=44)
+        box.pack_start(msg, False, False, 0)
+        user = Gtk.Entry(placeholder_text=_("User name"), activates_default=True)
+        pw = Gtk.Entry(placeholder_text=_("Password"), visibility=False, activates_default=True,
+                       input_purpose=Gtk.InputPurpose.PASSWORD)
+        box.pack_start(user, False, False, 0)
+        box.pack_start(pw, False, False, 0)
+        box.show_all()
+        resp = dlg.run()
+        u, p = user.get_text(), pw.get_text()
+        dlg.destroy()
+        if resp == Gtk.ResponseType.OK:
+            request.authenticate(self.WebKit2.Credential.new(u, p, self.WebKit2.CredentialPersistence.NONE))
+        else:
+            request.cancel()
+        return True
+
+    def on_load_changed(self, view, event):
+        uri = view.get_uri() or ""
+        self.address.set_text(uri)
+        self.back.set_sensitive(view.can_go_back())
+        secure = uri.startswith("https://")
+        if secure and na.url_host(uri) in self.tls_allowed:
+            icon, tip = "dialog-warning-symbolic", _("Encrypted connection, certificate allowed by you")
+        elif secure:
+            icon, tip = "channel-secure-symbolic", _("Encrypted connection (HTTPS)")
+        else:
+            icon, tip = "channel-insecure-symbolic", _("Unencrypted connection (HTTP) inside your home network")
+        self.lock.set_from_icon_name(icon, Gtk.IconSize.BUTTON)
+        self.lock.set_tooltip_text(tip)
+        if uri.startswith(("http://", "https://")) and na.url_host(uri) == self.gateway.lower():
+            self.https = secure
+            self.proto.set_active_id("https" if secure else "http")
+        if event == self.WebKit2.LoadEvent.COMMITTED:
+            self.infobar.set_revealed(False)
+
+    # ---- stahovani (zaloha nastaveni routeru) --------------------------------------------
+    def on_download(self, ctx, download):
+        download.connect("decide-destination", self.on_destination)
+        download.connect("finished", lambda d: self.notify(_("Saved to Downloads: %s") %
+                                                           os.path.basename(GLib.filename_from_uri(d.get_destination())[0])))
+
+    def on_destination(self, download, suggested):
+        folder = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) or os.path.expanduser("~/Downloads")
+        os.makedirs(folder, exist_ok=True)
+        name = os.path.basename(suggested or "download").lstrip(".") or "download"
+        base, ext = os.path.splitext(name)
+        path, n = os.path.join(folder, name), 1
+        while os.path.exists(path):
+            path = os.path.join(folder, f"{base} ({n}){ext}")
+            n += 1
+        download.set_destination(GLib.filename_to_uri(path, None))
+        return True
+
+
+class Router(Gtk.Window):
+    def __init__(self):
+        super().__init__(title=app_name())
+        self.set_default_size(980, 720)
+        self.set_icon_name("luxos-router")
+        self.info = {}
+        self.tls_dialog = None
+        header = Gtk.HeaderBar(show_close_button=True)
+        self.set_titlebar(header)
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE)
+        switcher = Gtk.StackSwitcher(stack=self.stack)
+        header.set_custom_title(switcher)
+        self.overview_scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.stack.add_titled(self.overview_scroll, "overview", _("Overview"))
+        self.router = RouterPage(self)
+        self.stack.add_titled(self.router, "router", _("Router"))
+        self.devices = self.build_devices()
+        self.stack.add_titled(self.devices, "devices", _("Devices"))
+        self.stack.connect("notify::visible-child-name", self.on_page)
+        self.add(self.stack)
+        self.load_info()
+
+    # ---- prehled ----------------------------------------------------------------------
+    def load_info(self):
+        self.info = na.network_info()
+        self.build_overview()
+
+    def build_overview(self):
+        child = self.overview_scroll.get_child()
+        if child:
+            child.destroy()
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=22, margin_top=10)
+        self.overview_scroll.add(page)
+        info = self.info
+        gw = info.get("gateway")
+        head = Gtk.Box(spacing=14)
+        icon = Gtk.Image.new_from_icon_name("luxos-router", Gtk.IconSize.DIALOG)
+        icon.set_pixel_size(56)
+        head.pack_start(icon, False, False, 0)
+        titles = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        t = Gtk.Label(label=info.get("ssid") or info.get("connection") or _("Not connected"), xalign=0)
+        t.get_style_context().add_class("hero-title")
+        titles.pack_start(t, False, False, 0)
+        sub = Gtk.Label(label=(_("Router: %s") % gw) if gw else _("No router (default gateway) found."), xalign=0)
+        sub.get_style_context().add_class("hint")
+        titles.pack_start(sub, False, False, 0)
+        head.pack_start(titles, True, True, 0)
+        refresh = Gtk.Button.new_from_icon_name("view-refresh-symbolic", Gtk.IconSize.BUTTON)
+        refresh.set_tooltip_text(_("Refresh"))
+        refresh.set_valign(Gtk.Align.CENTER)
+        refresh.connect("clicked", lambda _b: self.load_info())
+        head.pack_end(refresh, False, False, 0)
+        if gw:
+            open_btn = Gtk.Button(label=_("Open Router Settings"), valign=Gtk.Align.CENTER)
+            open_btn.get_style_context().add_class("suggested-action")
+            open_btn.connect("clicked", lambda _b: self.stack.set_visible_child_name("router"))
+            head.pack_end(open_btn, False, False, 0)
+        page.pack_start(head, False, False, 6)
+
+        g = Group(page, _("Network"))
+        kind = {"wifi": _("Wi-Fi"), "ethernet": _("Ethernet (cable)")}.get(info.get("type"), info.get("type"))
+        g.value_row(_("Connection"), " · ".join(x for x in (info.get("connection"), kind) if x))
+        if info.get("ssid"):
+            g.value_row(_("Wi-Fi network"), info["ssid"])
+        g.value_row(_("Interface"), info.get("dev"))
+        g.value_row(_("IP address"), ", ".join(info.get("ip4") or []))
+        g.value_row(_("Router (gateway)"), gw)
+        if info.get("gateway6"):
+            g.value_row(_("IPv6 gateway"), info["gateway6"])
+        g.value_row(_("DNS servers"), ", ".join(info.get("dns") or []))
+        g.value_row(_("MAC address"), info.get("hwaddr"))
+        g.row(_("Public IP address"), Tool(_("Show"), na.public_ip,
+                                           lambda ip: (ip, True) if ip else (_("Not available"), False)),
+              _("Asks an internet service (ipify.org) for the address your network is seen from."))
+
+        g = Group(page, _("Quick Tests"))
+        if gw:
+            g.row(_("Ping router"), Tool(_("Test"), lambda: na.ping(gw), ping_text))
+        g.row(_("Ping internet"), Tool(_("Test"), lambda: na.ping(na.INTERNET_HOST), ping_text),
+              _("Sends 4 packets to %s.") % na.INTERNET_HOST)
+
+        def dns_show(res):
+            if not res or not res[0]:
+                return _("Name lookup failed"), False
+            return _("Works (%s ms)") % ("%d" % res[1]), True
+        g.row(_("Name lookup (DNS)"), Tool(_("Test"), na.dns_test, dns_show),
+              _("Looks up %s using your DNS servers.") % na.DNS_TEST_NAME)
+
+        def speed_show(mbit):
+            if mbit is None:
+                return _("Measurement failed"), False
+            return _("%s Mbit/s") % ("%.1f" % mbit), True
+        g.row(_("Download speed"), Tool(_("Measure"), na.speed_test, speed_show),
+              _("Estimate: downloads 10 MB from speed.cloudflare.com."))
+        page.show_all()
+
+    # ---- zarizeni ------------------------------------------------------------------------
+    def build_devices(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        bar = Gtk.Box(spacing=8)
+        bar.get_style_context().add_class("toolbar-box")
+        self.dev_status = Gtk.Label(xalign=0)
+        self.dev_status.get_style_context().add_class("hint")
+        self.dev_spinner = Gtk.Spinner()
+        refresh = Gtk.Button(label=_("Refresh"))
+        refresh.connect("clicked", lambda _b: self.refresh_devices())
+        self.scan_btn = Gtk.Button(label=_("Search Network"))
+        self.scan_btn.set_tooltip_text(_("Briefly contacts every address in your home network so that devices "
+                                         "which were quiet also appear."))
+        self.scan_btn.connect("clicked", self.on_scan)
+        bar.pack_start(self.dev_status, True, True, 4)
+        bar.pack_end(self.scan_btn, False, False, 0)
+        bar.pack_end(refresh, False, False, 0)
+        bar.pack_end(self.dev_spinner, False, False, 0)
+        box.pack_start(bar, False, False, 0)
+        # IP, nazev/vyrobce, MAC, stav, razeni podle IP
+        self.dev_store = Gtk.ListStore(str, str, str, str, int)
+        tree = Gtk.TreeView(model=self.dev_store)
+        for i, title in enumerate((_("Address"), _("Device"), _("MAC address"), _("State"))):
+            col = Gtk.TreeViewColumn(title, Gtk.CellRendererText(), text=i)
+            col.set_resizable(True)
+            col.set_sort_column_id(4 if i == 0 else i)
+            if i == 1:
+                col.set_expand(True)
+            tree.append_column(col)
+        self.dev_tree = tree
+        sc = Gtk.ScrolledWindow()
+        sc.add(tree)
+        box.pack_start(sc, True, True, 0)
+        return box
+
+    def refresh_devices(self):
+        dev = self.info.get("dev") or None
+        info = dict(self.info)
+
+        def work():
+            neigh = na.neighbours(dev)
+            vendors = na.oui_lookup([n["mac"] for n in neigh] + ([info["hwaddr"].lower()] if info.get("hwaddr") else []))
+            return neigh, vendors
+        self.dev_spinner.start()
+        bg(work, lambda res: self.show_devices(res, info))
+
+    def show_devices(self, res, info):
+        self.dev_spinner.stop()
+        neigh, vendors = res or ([], {})
+        self.dev_store.clear()
+        states = {"REACHABLE": _("Active"), "STALE": _("Seen recently"), "DELAY": _("Active"),
+                  "PROBE": _("Checking"), "PERMANENT": _("Fixed")}
+        own = [a.split("/")[0] for a in info.get("ip4") or []]
+        rows = list(neigh)
+        if own:
+            rows.append({"ip": own[0], "mac": (info.get("hwaddr") or "").lower(), "state": "SELF"})
+        for i, n in enumerate(rows):
+            name = vendors.get(n["mac"]) or (_("Private address (random MAC)") if na.is_random_mac(n["mac"]) else "")
+            if n["ip"] == info.get("gateway"):
+                name = _("Router") + (f" – {name}" if name else "")
+            if n["state"] == "SELF":
+                name = _("This computer") + (f" – {name}" if name else "")
+            state = _("This computer") if n["state"] == "SELF" else states.get(n["state"], n["state"].capitalize())
+            self.dev_store.append([n["ip"], name, n["mac"], state, i])
+        self.dev_status.set_text(_("%d devices") % len(rows))
+        return False
+
+    def on_scan(self, _b):
+        addrs = self.info.get("ip4") or []
+        targets = na.scan_targets(addrs[0]) if addrs else []
+        if not targets:
+            return
+        self.scan_btn.set_sensitive(False)
+        self.dev_spinner.start()
+        self.dev_status.set_text(_("Searching %d addresses…") % len(targets))
+
+        def work():
+            with ThreadPoolExecutor(max_workers=48) as ex:
+                list(ex.map(lambda ip: na.ping(ip, count=1, timeout=1), targets))
+            return True
+
+        def done(_res):
+            self.scan_btn.set_sensitive(True)
+            self.refresh_devices()
+        bg(work, done)
+
+    def on_page(self, stack, _param):
+        name = stack.get_visible_child_name()
+        if name == "router":
+            self.router.ensure()
+        elif name == "devices":
+            self.refresh_devices()
+
+
+def main():
+    GLib.set_prgname("luxos-router")
+    GLib.set_application_name(app_name())
+    provider = Gtk.CssProvider()
+    provider.load_from_data(CSS)
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    win = Router()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    page = os.environ.get("LUXOS_ROUTER_PAGE")
+    if page in ("router", "devices"):
+        win.stack.set_visible_child_name(page)
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

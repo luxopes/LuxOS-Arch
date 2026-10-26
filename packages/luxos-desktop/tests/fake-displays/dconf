@@ -1,0 +1,7 @@
+#!/bin/sh
+# Falesny dconf pro testy: "read" vypise FAKE_DCONF_VALUE, "write" se zapise do FAKE_DCONF_LOG
+case $1 in
+    read) [ -n "$FAKE_DCONF_VALUE" ] && echo "$FAKE_DCONF_VALUE" ;;
+    write) [ -n "$FAKE_DCONF_LOG" ] && echo "$*" >>"$FAKE_DCONF_LOG" ;;
+esac
+exit 0

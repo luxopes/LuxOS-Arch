@@ -3072,3 +3072,75 @@ saved Wi-Fi networks and their passwords are removed	les réseaux Wi‑Fi enregi
 the owner creates it at the first start (OEM)	le propriétaire le crée au premier démarrage (OEM)
 the owner creates it at the first start (OEM); until sealing: temporary account %s	le propriétaire le crée au premier démarrage (OEM) ; jusqu'au scellement : compte temporaire %s
 the temporary account %s is deleted at the next start	le compte temporaire %s est supprimé au prochain démarrage
+Router (app name)	Gestion du réseau
+Router	Routeur
+Overview	Aperçu
+Devices	Appareils
+Replies	Répond
+Could not run ping	Impossible de lancer ping
+No reply	Pas de réponse
+%s ms	%s ms
+%d %% lost	%d %% perdus
+Reload	Recharger
+Connect to the router with HTTP or HTTPS	Se connecter au routeur en HTTP ou HTTPS
+Open in Browser	Ouvrir dans le navigateur
+Connection	Connexion
+Interface	Interface
+IP address	Adresse IP
+Router (gateway)	Routeur (passerelle)
+IPv6 gateway	Passerelle IPv6
+DNS servers	Serveurs DNS
+MAC address	Adresse MAC
+Wi-Fi network	Réseau Wi‑Fi
+Ethernet (cable)	Ethernet (câble)
+Public IP address	Adresse IP publique
+Asks an internet service (ipify.org) for the address your network is seen from.	Demande à un service Internet (ipify.org) l’adresse sous laquelle votre réseau est visible.
+Quick Tests	Tests rapides
+Ping router	Ping du routeur
+Ping internet	Ping d’Internet
+Sends 4 packets to %s.	Envoie 4 paquets à %s.
+Name lookup (DNS)	Résolution de noms (DNS)
+Looks up %s using your DNS servers.	Résout %s avec vos serveurs DNS.
+Download speed	Vitesse de téléchargement
+Estimate: downloads 10 MB from speed.cloudflare.com.	Estimation : télécharge 10 Mo depuis speed.cloudflare.com.
+Test	Tester
+Measure	Mesurer
+Name lookup failed	Échec de la résolution du nom
+Works (%s ms)	Fonctionne (%s ms)
+Measurement failed	Échec de la mesure
+%s Mbit/s	%s Mbit/s
+Search Network	Rechercher sur le réseau
+Briefly contacts every address in your home network so that devices which were quiet also appear.	Contacte brièvement chaque adresse du réseau domestique pour faire apparaître aussi les appareils silencieux.
+Address	Adresse
+State	État
+Seen recently	Vu récemment
+Checking	Vérification
+Fixed	Fixe
+%d devices	%d appareils
+Searching %d addresses…	Recherche sur %d adresses…
+Private address (random MAC)	Adresse privée (MAC aléatoire)
+The built-in web view (WebKitGTK) is not available. The router settings will open in your web browser.	L’affichage web intégré (WebKitGTK) n’est pas disponible. Les réglages du routeur s’ouvriront dans le navigateur.
+Not connected to a network.	Non connecté à un réseau.
+The link leads outside your home network, so it was opened in your web browser.	Le lien mène hors de votre réseau domestique ; il a donc été ouvert dans le navigateur.
+The page wanted to open an address outside your home network: %s	La page voulait ouvrir une adresse hors de votre réseau domestique : %s
+The connection to %s is not secure (untrusted certificate). Only your router's own address can be allowed.	La connexion à %s n’est pas sécurisée (certificat non fiable). Seule l’adresse du routeur peut être autorisée.
+The router uses its own security certificate	Le routeur utilise son propre certificat de sécurité
+Routers usually have a self-signed certificate that cannot be verified. Continue only if %s is your router. The exception applies to this address only, until you close the app.	Les routeurs ont souvent un certificat auto-signé impossible à vérifier. Continuez seulement si %s est votre routeur. L’exception ne s’applique qu’à cette adresse, jusqu’à la fermeture de l’application.
+The router does not answer over HTTP. Try HTTPS.	Le routeur ne répond pas en HTTP. Essayez HTTPS.
+The page could not be loaded: %s	Impossible de charger la page : %s
+%s asks for a user name and password. They are not saved.	%s demande un nom d’utilisateur et un mot de passe. Ils ne sont pas enregistrés.
+Encrypted connection (HTTPS)	Connexion chiffrée (HTTPS)
+Encrypted connection, certificate allowed by you	Connexion chiffrée, certificat autorisé par vous
+Unencrypted connection (HTTP) inside your home network	Connexion non chiffrée (HTTP) dans votre réseau domestique
+No router (default gateway) found.	Aucun routeur (passerelle par défaut) trouvé.
+Router: %s	Routeur : %s
+Open Router Settings	Ouvrir les réglages du routeur
+Saved to Downloads: %s	Enregistré dans Téléchargements : %s
+Arrangement	Disposition
+Drag the displays to arrange them. Drag the white bar to another display to move the menu bar and Dock there.	Faites glisser les écrans pour les disposer. Faites glisser la barre blanche sur un autre écran pour y déplacer la barre des menus et le Dock.
+Main display	Écran principal
+The menu bar and Dock appear on the main display.	La barre des menus et le Dock s’affichent sur l’écran principal.
+Mirror displays	Recopier les écrans
+Show the same picture on all displays.	Afficher la même image sur tous les écrans.
+The displays show the same picture. Turn off mirroring to arrange them.	Les écrans affichent la même image. Désactivez la recopie pour les disposer.
+Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Un seul écran est utilisé. Choisissez Étendre dans Plusieurs écrans pour les disposer.

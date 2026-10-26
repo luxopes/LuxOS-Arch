@@ -3072,3 +3072,75 @@ saved Wi-Fi networks and their passwords are removed	se eliminan las redes Wi‑
 the owner creates it at the first start (OEM)	lo crea el propietario en el primer inicio (OEM)
 the owner creates it at the first start (OEM); until sealing: temporary account %s	lo crea el propietario en el primer inicio (OEM); hasta el sellado: cuenta temporal %s
 the temporary account %s is deleted at the next start	la cuenta temporal %s se elimina en el próximo inicio
+Router (app name)	Gestión de red
+Router	Router
+Overview	Resumen
+Devices	Dispositivos
+Replies	Responde
+Could not run ping	No se pudo ejecutar ping
+No reply	Sin respuesta
+%s ms	%s ms
+%d %% lost	%d %% perdidos
+Reload	Recargar
+Connect to the router with HTTP or HTTPS	Conectar al router por HTTP o HTTPS
+Open in Browser	Abrir en el navegador
+Connection	Conexión
+Interface	Interfaz
+IP address	Dirección IP
+Router (gateway)	Router (puerta de enlace)
+IPv6 gateway	Puerta de enlace IPv6
+DNS servers	Servidores DNS
+MAC address	Dirección MAC
+Wi-Fi network	Red Wi‑Fi
+Ethernet (cable)	Ethernet (cable)
+Public IP address	Dirección IP pública
+Asks an internet service (ipify.org) for the address your network is seen from.	Pregunta a un servicio de internet (ipify.org) desde qué dirección se ve tu red.
+Quick Tests	Pruebas rápidas
+Ping router	Ping al router
+Ping internet	Ping a internet
+Sends 4 packets to %s.	Envía 4 paquetes a %s.
+Name lookup (DNS)	Resolución de nombres (DNS)
+Looks up %s using your DNS servers.	Resuelve %s con tus servidores DNS.
+Download speed	Velocidad de descarga
+Estimate: downloads 10 MB from speed.cloudflare.com.	Estimación: descarga 10 MB de speed.cloudflare.com.
+Test	Probar
+Measure	Medir
+Name lookup failed	Error al resolver el nombre
+Works (%s ms)	Funciona (%s ms)
+Measurement failed	La medición falló
+%s Mbit/s	%s Mbit/s
+Search Network	Buscar en la red
+Briefly contacts every address in your home network so that devices which were quiet also appear.	Contacta brevemente cada dirección de la red doméstica para que aparezcan también los dispositivos inactivos.
+Address	Dirección
+State	Estado
+Seen recently	Visto recientemente
+Checking	Comprobando
+Fixed	Fijo
+%d devices	%d dispositivos
+Searching %d addresses…	Buscando en %d direcciones…
+Private address (random MAC)	Dirección privada (MAC aleatoria)
+The built-in web view (WebKitGTK) is not available. The router settings will open in your web browser.	La vista web integrada (WebKitGTK) no está disponible. Los ajustes del router se abrirán en el navegador.
+Not connected to a network.	No hay conexión a una red.
+The link leads outside your home network, so it was opened in your web browser.	El enlace lleva fuera de tu red doméstica, por eso se abrió en el navegador.
+The page wanted to open an address outside your home network: %s	La página quería abrir una dirección fuera de tu red doméstica: %s
+The connection to %s is not secure (untrusted certificate). Only your router's own address can be allowed.	La conexión con %s no es segura (certificado no fiable). Solo se puede permitir la dirección del router.
+The router uses its own security certificate	El router usa su propio certificado de seguridad
+Routers usually have a self-signed certificate that cannot be verified. Continue only if %s is your router. The exception applies to this address only, until you close the app.	Los routers suelen tener un certificado autofirmado que no se puede verificar. Continúa solo si %s es tu router. La excepción se aplica solo a esta dirección y hasta cerrar la aplicación.
+The router does not answer over HTTP. Try HTTPS.	El router no responde por HTTP. Prueba HTTPS.
+The page could not be loaded: %s	No se pudo cargar la página: %s
+%s asks for a user name and password. They are not saved.	%s pide un nombre de usuario y una contraseña. No se guardan.
+Encrypted connection (HTTPS)	Conexión cifrada (HTTPS)
+Encrypted connection, certificate allowed by you	Conexión cifrada, certificado permitido por ti
+Unencrypted connection (HTTP) inside your home network	Conexión sin cifrar (HTTP) dentro de tu red doméstica
+No router (default gateway) found.	No se encontró ningún router (puerta de enlace predeterminada).
+Router: %s	Router: %s
+Open Router Settings	Abrir ajustes del router
+Saved to Downloads: %s	Guardado en Descargas: %s
+Arrangement	Disposición
+Drag the displays to arrange them. Drag the white bar to another display to move the menu bar and Dock there.	Arrastra las pantallas para colocarlas. Arrastra la barra blanca a otra pantalla para mover allí la barra de menús y el Dock.
+Main display	Pantalla principal
+The menu bar and Dock appear on the main display.	La barra de menús y el Dock aparecen en la pantalla principal.
+Mirror displays	Duplicar pantallas
+Show the same picture on all displays.	Mostrar la misma imagen en todas las pantallas.
+The displays show the same picture. Turn off mirroring to arrange them.	Las pantallas muestran la misma imagen. Desactiva la duplicación para colocarlas.
+Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Solo se usa una pantalla. Elige Extender en Varias pantallas para colocarlas.

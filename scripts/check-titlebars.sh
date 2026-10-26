@@ -19,7 +19,7 @@ export LUXOS_WEATHER_API=http://127.0.0.1:9/v1/forecast LUXOS_WEATHER_GEO=http:/
     LUXOS_WEATHER_IP=http://127.0.0.1:9/ip LUXOS_WEATHER_ICONS=$PWD/packages/luxos-weather/files/icons LUXOS_NMCLI=false
 apps=(
     packages/luxos-account/files/luxos-account
-    packages/luxos-desktop/files/bin/luxos-{bluetooth,calculator,camera,display-settings,feedback,fingerprint,keyboard,lock-settings,monitor,power,profile-picture,settings,shortcuts,tour,whats-new,wifi-qr}
+    packages/luxos-desktop/files/bin/luxos-{bluetooth,calculator,camera,display-settings,feedback,fingerprint,keyboard,lock-settings,monitor,power,profile-picture,router,settings,shortcuts,tour,whats-new,wifi-qr}
     packages/luxos-weather/files/luxos-weather
     packages/luxos-drivers/luxos-drivers
     packages/luxos-printing/files/luxos-{printers,scan}
