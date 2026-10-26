@@ -572,7 +572,7 @@
         {
           "path": "luxos/maps.md",
           "title": "Maps",
-          "summary": "Maps app (luxos-maps): OpenStreetMap map, place search (Nominatim), routes by car/bike/walk with turn list (OSRM), favorites, location only after consent, geo: links, dark map, tile cache and offline use, luxos-maps --json for LuxAI and scripts.",
+          "summary": "Maps (luxos-maps): OpenStreetMap map, place search, routes by car/bike/walk (OSRM) and public transport (Transitous) with live departures board, nearby places (Overpass), favorites, my location after consent, geo: links, cache and fair use, luxos-maps --json and --render-preview for LuxAI.",
           "keywords": [
             "maps",
             "map",
@@ -603,7 +603,20 @@
             "tile cache",
             "maps.json",
             "luxos-maps --json",
-            "where-am-i"
+            "where-am-i",
+            "public transport",
+            "MHD",
+            "transit",
+            "Transitous",
+            "departures",
+            "timetable",
+            "delay",
+            "platform",
+            "nearby",
+            "Overpass",
+            "pharmacy",
+            "transit-route",
+            "render-preview"
           ]
         },
         {

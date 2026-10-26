@@ -1,0 +1,25 @@
+{
+ "elements": [
+  {
+   "type": "node",
+   "id": 2,
+   "lat": 50.09,
+   "lon": 14.43,
+   "tags": {
+    "name": "Far Café",
+    "amenity": "cafe"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1,
+   "lat": 50.0876,
+   "lon": 14.4214,
+   "tags": {
+    "name": "Near Café",
+    "amenity": "cafe",
+    "opening_hours": "Mo-Fr 08:00-18:00"
+   }
+  }
+ ]
+}

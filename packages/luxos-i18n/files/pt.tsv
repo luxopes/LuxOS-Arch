@@ -3576,3 +3576,73 @@ Repair reinstalls: %s	O reparo reinstala: %s
 System files were changed	Arquivos do sistema foram alterados
 %d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.	Arquivos do sistema alterados ou ausentes: %d. O LuxOS pode repará-los reinstalando os pacotes afetados.
 Invalid PROTECT (use 0 or 1)	PROTECT inválido (use 0 ou 1)
+# Mapy: MHD (Transitous), odjezdy, mista v okoli
+Transit	Transportes
+Public transport	Transportes públicos
+Leave Now	Partir agora
+Depart At	Partida às
+Arrive By	Chegada até
+HH:MM	HH:MM
+Time today, e.g. 17:30 (press Enter)	Hora de hoje, p. ex. 17:30 (prima Enter)
+Enter the time as HH:MM.	Introduza a hora no formato HH:MM.
+Connection details	Detalhes da ligação
+Data sources	Fontes de dados
+Public transport: Transitous (MOTIS) with open timetable data, map data © OpenStreetMap contributors.	Transportes públicos: Transitous (MOTIS) com dados abertos de horários, dados do mapa © contribuidores do OpenStreetMap.
+No public transport connection found for this time.	Não foi encontrada nenhuma ligação de transportes públicos para esta hora.
+The public transport service is busy. Try again in a moment.	O serviço de transportes públicos está sobrecarregado. Tente novamente daqui a pouco.
+The connections could not be loaded. Check your internet connection.	Não foi possível carregar as ligações. Verifique a ligação à Internet.
+Direct	Direto
+1 transfer	1 transbordo
+%d transfers	%d transbordos
+from %s at %s	de %s às %s
+Platform %s	Plataforma %s
+(changed from %s)	(alterado, era %s)
+1 stop	1 paragem
+%d stops	%d paragens
+Show departures from %s	Mostrar partidas de %s
+to %s	até %s
+Departures	Partidas
+Arrivals	Chegadas
+Departures from this stop	Partidas desta paragem
+Departures Nearby	Partidas nas proximidades
+Stops near this point	Paragens perto deste ponto
+Departures could not be loaded. Check your internet connection.	Não foi possível carregar as partidas. Verifique a ligação à Internet.
+No departures found.	Nenhuma partida encontrada.
+No arrivals found.	Nenhuma chegada encontrada.
+Updated %s	Atualizado às %s
+Timetable data: Transitous and open-data providers	Dados de horários: Transitous e fornecedores de dados abertos
+On time	A horas
+from %s	de %s
+Nearby	Nas proximidades
+Find places near this place	Encontrar locais próximos
+Nothing found nearby.	Nada encontrado nas proximidades.
+The map data service (Overpass) is busy. Try again in a moment.	O serviço de dados do mapa (Overpass) está sobrecarregado. Tente novamente daqui a pouco.
+Platforms: %s	Plataformas: %s
+Opening hours: %s	Horário: %s
+Phone: %s	Telefone: %s
+Website: %s	Site: %s
+Restaurants	Restaurantes
+Cafés	Cafés
+Groceries	Mercearias
+Fuel	Postos de combustível
+Charging Stations	Postos de carregamento
+Parking	Estacionamentos
+Pharmacies	Farmácias
+Hospitals and Doctors	Hospitais e médicos
+Hotels	Hotéis
+Attractions	Atrações
+Public Transport Stops	Paragens de transportes
+Toilets	Casas de banho
+Playgrounds	Parques infantis
+Bus	Autocarro
+Tram	Elétrico
+Metro	Metro
+Train	Comboio
+Coach	Autocarro expresso
+Trolleybus	Troleicarro
+Ferry	Ferry
+Plane	Avião
+Funicular	Funicular
+Cable car	Teleférico
+On-demand	A pedido
+Shared bike	Bicicleta partilhada

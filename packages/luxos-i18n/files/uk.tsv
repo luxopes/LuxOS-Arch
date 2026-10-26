@@ -3577,3 +3577,73 @@ Repair reinstalls: %s	Виправлення перевстановить: %s
 System files were changed	Системні файли змінено
 %d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.	Змінені або відсутні системні файли: %d. LuxOS може виправити їх, перевстановивши відповідні пакети.
 Invalid PROTECT (use 0 or 1)	Неправильне PROTECT (використайте 0 або 1)
+# Mapy: MHD (Transitous), odjezdy, mista v okoli
+Transit	Транспорт
+Public transport	Громадський транспорт
+Leave Now	Вирушити зараз
+Depart At	Відправлення о
+Arrive By	Прибуття до
+HH:MM	ГГ:ХХ
+Time today, e.g. 17:30 (press Enter)	Час сьогодні, напр. 17:30 (натисніть Enter)
+Enter the time as HH:MM.	Введіть час у форматі ГГ:ХХ.
+Connection details	Деталі маршруту
+Data sources	Джерела даних
+Public transport: Transitous (MOTIS) with open timetable data, map data © OpenStreetMap contributors.	Громадський транспорт: Transitous (MOTIS) з відкритими даними розкладів, картографічні дані © учасники OpenStreetMap.
+No public transport connection found for this time.	На цей час не знайдено маршруту громадським транспортом.
+The public transport service is busy. Try again in a moment.	Сервіс громадського транспорту перевантажений. Спробуйте трохи пізніше.
+The connections could not be loaded. Check your internet connection.	Не вдалося завантажити маршрути. Перевірте підключення до інтернету.
+Direct	Без пересадок
+1 transfer	1 пересадка
+%d transfers	Пересадок: %d
+from %s at %s	з %s о %s
+Platform %s	Платформа %s
+(changed from %s)	(змінено з %s)
+1 stop	1 зупинка
+%d stops	Зупинок: %d
+Show departures from %s	Показати відправлення із зупинки %s
+to %s	до %s
+Departures	Відправлення
+Arrivals	Прибуття
+Departures from this stop	Відправлення з цієї зупинки
+Departures Nearby	Відправлення поблизу
+Stops near this point	Зупинки біля цієї точки
+Departures could not be loaded. Check your internet connection.	Не вдалося завантажити відправлення. Перевірте підключення до інтернету.
+No departures found.	Відправлень не знайдено.
+No arrivals found.	Прибуттів не знайдено.
+Updated %s	Оновлено о %s
+Timetable data: Transitous and open-data providers	Дані розкладів: Transitous і постачальники відкритих даних
+On time	Вчасно
+from %s	з %s
+Nearby	Поблизу
+Find places near this place	Знайти місця поблизу
+Nothing found nearby.	Поблизу нічого не знайдено.
+The map data service (Overpass) is busy. Try again in a moment.	Сервіс картографічних даних (Overpass) перевантажений. Спробуйте трохи пізніше.
+Platforms: %s	Платформи: %s
+Opening hours: %s	Години роботи: %s
+Phone: %s	Телефон: %s
+Website: %s	Сайт: %s
+Restaurants	Ресторани
+Cafés	Кав’ярні
+Groceries	Продукти
+Fuel	АЗС
+Charging Stations	Зарядні станції
+Parking	Парковки
+Pharmacies	Аптеки
+Hospitals and Doctors	Лікарні та лікарі
+Hotels	Готелі
+Attractions	Пам’ятки
+Public Transport Stops	Зупинки транспорту
+Toilets	Туалети
+Playgrounds	Дитячі майданчики
+Bus	Автобус
+Tram	Трамвай
+Metro	Метро
+Train	Поїзд
+Coach	Міжміський автобус
+Trolleybus	Тролейбус
+Ferry	Пором
+Plane	Літак
+Funicular	Фунікулер
+Cable car	Канатна дорога
+On-demand	За викликом
+Shared bike	Прокатний велосипед

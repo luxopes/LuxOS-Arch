@@ -3576,3 +3576,73 @@ Repair reinstalls: %s	Reparation installerar om: %s
 System files were changed	Systemfiler har ändrats
 %d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.	Ändrade eller saknade systemfiler: %d. LuxOS kan reparera dem genom att installera om de berörda paketen.
 Invalid PROTECT (use 0 or 1)	Ogiltigt PROTECT (använd 0 eller 1)
+# Mapy: MHD (Transitous), odjezdy, mista v okoli
+Transit	Kollektivt
+Public transport	Kollektivtrafik
+Leave Now	Åk nu
+Depart At	Avgång kl.
+Arrive By	Framme senast
+HH:MM	TT:MM
+Time today, e.g. 17:30 (press Enter)	Tid i dag, t.ex. 17:30 (tryck på Retur)
+Enter the time as HH:MM.	Ange tiden som TT:MM.
+Connection details	Resans detaljer
+Data sources	Datakällor
+Public transport: Transitous (MOTIS) with open timetable data, map data © OpenStreetMap contributors.	Kollektivtrafik: Transitous (MOTIS) med öppna tidtabellsdata, kartdata © OpenStreetMap-bidragsgivare.
+No public transport connection found for this time.	Ingen kollektivtrafikresa hittades för den här tiden.
+The public transport service is busy. Try again in a moment.	Kollektivtrafiktjänsten är överbelastad. Försök igen om en stund.
+The connections could not be loaded. Check your internet connection.	Resorna kunde inte läsas in. Kontrollera internetanslutningen.
+Direct	Utan byte
+1 transfer	1 byte
+%d transfers	%d byten
+from %s at %s	från %s kl. %s
+Platform %s	Läge %s
+(changed from %s)	(ändrat, var %s)
+1 stop	1 hållplats
+%d stops	%d hållplatser
+Show departures from %s	Visa avgångar från %s
+to %s	till %s
+Departures	Avgångar
+Arrivals	Ankomster
+Departures from this stop	Avgångar från den här hållplatsen
+Departures Nearby	Avgångar i närheten
+Stops near this point	Hållplatser nära den här punkten
+Departures could not be loaded. Check your internet connection.	Avgångarna kunde inte läsas in. Kontrollera internetanslutningen.
+No departures found.	Inga avgångar hittades.
+No arrivals found.	Inga ankomster hittades.
+Updated %s	Uppdaterad %s
+Timetable data: Transitous and open-data providers	Tidtabellsdata: Transitous och leverantörer av öppna data
+On time	I tid
+from %s	från %s
+Nearby	I närheten
+Find places near this place	Hitta platser i närheten
+Nothing found nearby.	Inget hittades i närheten.
+The map data service (Overpass) is busy. Try again in a moment.	Kartdatatjänsten (Overpass) är överbelastad. Försök igen om en stund.
+Platforms: %s	Lägen: %s
+Opening hours: %s	Öppettider: %s
+Phone: %s	Telefon: %s
+Website: %s	Webbplats: %s
+Restaurants	Restauranger
+Cafés	Kaféer
+Groceries	Livsmedel
+Fuel	Bensinstationer
+Charging Stations	Laddstationer
+Parking	Parkering
+Pharmacies	Apotek
+Hospitals and Doctors	Sjukhus och läkare
+Hotels	Hotell
+Attractions	Sevärdheter
+Public Transport Stops	Hållplatser
+Toilets	Toaletter
+Playgrounds	Lekplatser
+Bus	Buss
+Tram	Spårvagn
+Metro	Tunnelbana
+Train	Tåg
+Coach	Långfärdsbuss
+Trolleybus	Trådbuss
+Ferry	Färja
+Plane	Flyg
+Funicular	Bergbana
+Cable car	Linbana
+On-demand	Anropsstyrd
+Shared bike	Hyrcykel

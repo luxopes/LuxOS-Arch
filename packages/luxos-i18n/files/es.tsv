@@ -3576,3 +3576,73 @@ Repair reinstalls: %s	La reparación reinstala: %s
 System files were changed	Se modificaron archivos del sistema
 %d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.	Archivos del sistema modificados o ausentes: %d. LuxOS puede repararlos reinstalando los paquetes afectados.
 Invalid PROTECT (use 0 or 1)	PROTECT no válido (use 0 o 1)
+# Mapy: MHD (Transitous), odjezdy, mista v okoli
+Transit	Transporte
+Public transport	Transporte público
+Leave Now	Salir ahora
+Depart At	Salida a las
+Arrive By	Llegada antes de
+HH:MM	HH:MM
+Time today, e.g. 17:30 (press Enter)	Hora de hoy, p. ej. 17:30 (pulse Intro)
+Enter the time as HH:MM.	Escriba la hora como HH:MM.
+Connection details	Detalles del trayecto
+Data sources	Fuentes de datos
+Public transport: Transitous (MOTIS) with open timetable data, map data © OpenStreetMap contributors.	Transporte público: Transitous (MOTIS) con datos abiertos de horarios, datos del mapa © colaboradores de OpenStreetMap.
+No public transport connection found for this time.	No se encontró ningún trayecto en transporte público para esta hora.
+The public transport service is busy. Try again in a moment.	El servicio de transporte público está saturado. Inténtelo de nuevo en un momento.
+The connections could not be loaded. Check your internet connection.	No se pudieron cargar los trayectos. Compruebe la conexión a Internet.
+Direct	Directo
+1 transfer	1 transbordo
+%d transfers	%d transbordos
+from %s at %s	desde %s a las %s
+Platform %s	Andén %s
+(changed from %s)	(cambiado, antes %s)
+1 stop	1 parada
+%d stops	%d paradas
+Show departures from %s	Mostrar salidas desde %s
+to %s	hasta %s
+Departures	Salidas
+Arrivals	Llegadas
+Departures from this stop	Salidas desde esta parada
+Departures Nearby	Salidas cercanas
+Stops near this point	Paradas cerca de este punto
+Departures could not be loaded. Check your internet connection.	No se pudieron cargar las salidas. Compruebe la conexión a Internet.
+No departures found.	No se encontraron salidas.
+No arrivals found.	No se encontraron llegadas.
+Updated %s	Actualizado a las %s
+Timetable data: Transitous and open-data providers	Datos de horarios: Transitous y proveedores de datos abiertos
+On time	A tiempo
+from %s	desde %s
+Nearby	Cerca
+Find places near this place	Buscar lugares cercanos
+Nothing found nearby.	No se encontró nada cerca.
+The map data service (Overpass) is busy. Try again in a moment.	El servicio de datos del mapa (Overpass) está saturado. Inténtelo de nuevo en un momento.
+Platforms: %s	Andenes: %s
+Opening hours: %s	Horario: %s
+Phone: %s	Teléfono: %s
+Website: %s	Sitio web: %s
+Restaurants	Restaurantes
+Cafés	Cafeterías
+Groceries	Supermercados
+Fuel	Gasolineras
+Charging Stations	Estaciones de carga
+Parking	Aparcamientos
+Pharmacies	Farmacias
+Hospitals and Doctors	Hospitales y médicos
+Hotels	Hoteles
+Attractions	Lugares de interés
+Public Transport Stops	Paradas de transporte
+Toilets	Aseos
+Playgrounds	Parques infantiles
+Bus	Autobús
+Tram	Tranvía
+Metro	Metro
+Train	Tren
+Coach	Autocar
+Trolleybus	Trolebús
+Ferry	Ferri
+Plane	Avión
+Funicular	Funicular
+Cable car	Teleférico
+On-demand	A demanda
+Shared bike	Bicicleta compartida

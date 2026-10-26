@@ -1,0 +1,175 @@
+{
+ "version": 0.6,
+ "generator": "Overpass API (synthetic test fixture)",
+ "osm3s": {
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+ },
+ "elements": [
+  {
+   "type": "node",
+   "id": 900000001,
+   "lat": 50.07545,
+   "lon": 14.41865,
+   "tags": {
+    "name": "Karlovo náměstí",
+    "public_transport": "station",
+    "railway": "station",
+    "station": "subway",
+    "subway": "yes",
+    "network": "PID",
+    "operator": "Dopravní podnik hl. m. Prahy",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900000100,
+   "lat": 50.075005000000004,
+   "lon": 14.418819999999998,
+   "tags": {
+    "name": "Karlovo náměstí",
+    "public_transport": "platform",
+    "local_ref": "G",
+    "network": "PID",
+    "highway": "bus_stop",
+    "bus": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900000200,
+   "lat": 50.075035,
+   "lon": 14.418819999999998,
+   "tags": {
+    "name": "Karlovo náměstí",
+    "public_transport": "stop_position",
+    "bus": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900000101,
+   "lat": 50.07752,
+   "lon": 14.419602000000001,
+   "tags": {
+    "name": "Novoměstská radnice",
+    "public_transport": "platform",
+    "local_ref": "D",
+    "network": "PID",
+    "railway": "tram_stop",
+    "tram": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900000201,
+   "lat": 50.07755,
+   "lon": 14.419602000000001,
+   "tags": {
+    "name": "Novoměstská radnice",
+    "public_transport": "stop_position",
+    "tram": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900000102,
+   "lat": 50.07530200000001,
+   "lon": 14.419109,
+   "tags": {
+    "name": "Karlovo náměstí",
+    "public_transport": "platform",
+    "local_ref": "A",
+    "network": "PID",
+    "railway": "tram_stop",
+    "tram": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900000202,
+   "lat": 50.075332,
+   "lon": 14.419109,
+   "tags": {
+    "name": "Karlovo náměstí",
+    "public_transport": "stop_position",
+    "tram": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900000103,
+   "lat": 50.076477,
+   "lon": 14.419256,
+   "tags": {
+    "name": "Karlovo náměstí",
+    "public_transport": "platform",
+    "local_ref": "B",
+    "network": "PID",
+    "railway": "tram_stop",
+    "tram": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900000203,
+   "lat": 50.076507,
+   "lon": 14.419256,
+   "tags": {
+    "name": "Karlovo náměstí",
+    "public_transport": "stop_position",
+    "tram": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900000104,
+   "lat": 50.075900000000004,
+   "lon": 14.419612,
+   "tags": {
+    "name": "Karlovo náměstí",
+    "public_transport": "platform",
+    "local_ref": "C",
+    "network": "PID",
+    "railway": "tram_stop",
+    "tram": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900000204,
+   "lat": 50.07593,
+   "lon": 14.419612,
+   "tags": {
+    "name": "Karlovo náměstí",
+    "public_transport": "stop_position",
+    "tram": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900000300,
+   "lat": 50.0757,
+   "lon": 14.4212,
+   "tags": {
+    "public_transport": "stop_position",
+    "bus": "yes"
+   }
+  },
+  {
+   "type": "way",
+   "id": 900000400,
+   "center": {
+    "lat": 50.07601,
+    "lon": 14.41935
+   },
+   "tags": {
+    "name": "Karlovo náměstí",
+    "public_transport": "platform",
+    "railway": "platform",
+    "tram": "yes",
+    "local_ref": "B"
+   }
+  }
+ ]
+}

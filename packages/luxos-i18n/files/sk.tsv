@@ -3576,3 +3576,73 @@ Repair reinstalls: %s	Oprava preinštaluje: %s
 System files were changed	Systémové súbory boli zmenené
 %d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.	Zmenené alebo chýbajúce systémové súbory: %d. LuxOS ich môže opraviť preinštalovaním dotknutých balíkov.
 Invalid PROTECT (use 0 or 1)	Neplatné PROTECT (použite 0 alebo 1)
+# Mapy: MHD (Transitous), odjezdy, mista v okoli
+Transit	MHD
+Public transport	Verejná doprava
+Leave Now	Odchod teraz
+Depart At	Odchod o
+Arrive By	Príchod do
+HH:MM	HH:MM
+Time today, e.g. 17:30 (press Enter)	Čas dnes, napr. 17:30 (potvrďte Enterom)
+Enter the time as HH:MM.	Zadajte čas v tvare HH:MM.
+Connection details	Podrobnosti spojenia
+Data sources	Zdroje údajov
+Public transport: Transitous (MOTIS) with open timetable data, map data © OpenStreetMap contributors.	Verejná doprava: Transitous (MOTIS) s otvorenými údajmi cestovných poriadkov, mapové údaje © prispievatelia OpenStreetMap.
+No public transport connection found for this time.	Pre tento čas sa nenašlo žiadne spojenie verejnou dopravou.
+The public transport service is busy. Try again in a moment.	Služba verejnej dopravy je preťažená. Skúste to o chvíľu znova.
+The connections could not be loaded. Check your internet connection.	Spojenia sa nepodarilo načítať. Skontrolujte pripojenie na internet.
+Direct	Bez prestupu
+1 transfer	1 prestup
+%d transfers	Prestupy: %d
+from %s at %s	z %s o %s
+Platform %s	Nástupište %s
+(changed from %s)	(zmena z %s)
+1 stop	1 zastávka
+%d stops	Zastávky: %d
+Show departures from %s	Zobraziť odchody zo zastávky %s
+to %s	do %s
+Departures	Odchody
+Arrivals	Príchody
+Departures from this stop	Odchody z tejto zastávky
+Departures Nearby	Odchody v okolí
+Stops near this point	Zastávky pri tomto mieste
+Departures could not be loaded. Check your internet connection.	Odchody sa nepodarilo načítať. Skontrolujte pripojenie na internet.
+No departures found.	Žiadne odchody.
+No arrivals found.	Žiadne príchody.
+Updated %s	Aktualizované %s
+Timetable data: Transitous and open-data providers	Údaje cestovných poriadkov: Transitous a poskytovatelia otvorených údajov
+On time	Načas
+from %s	z %s
+Nearby	V okolí
+Find places near this place	Nájsť miesta v okolí
+Nothing found nearby.	V okolí sa nič nenašlo.
+The map data service (Overpass) is busy. Try again in a moment.	Služba mapových údajov (Overpass) je preťažená. Skúste to o chvíľu znova.
+Platforms: %s	Nástupištia: %s
+Opening hours: %s	Otváracie hodiny: %s
+Phone: %s	Telefón: %s
+Website: %s	Web: %s
+Restaurants	Reštaurácie
+Cafés	Kaviarne
+Groceries	Potraviny
+Fuel	Čerpacie stanice
+Charging Stations	Nabíjacie stanice
+Parking	Parkoviská
+Pharmacies	Lekárne
+Hospitals and Doctors	Nemocnice a lekári
+Hotels	Hotely
+Attractions	Zaujímavosti
+Public Transport Stops	Zastávky MHD
+Toilets	Toalety
+Playgrounds	Detské ihriská
+Bus	Autobus
+Tram	Električka
+Metro	Metro
+Train	Vlak
+Coach	Diaľkový autobus
+Trolleybus	Trolejbus
+Ferry	Prievoz
+Plane	Lietadlo
+Funicular	Pozemná lanovka
+Cable car	Kabínková lanovka
+On-demand	Na zavolanie
+Shared bike	Zdieľaný bicykel

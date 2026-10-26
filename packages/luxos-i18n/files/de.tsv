@@ -3576,3 +3576,73 @@ Repair reinstalls: %s	Reparieren installiert neu: %s
 System files were changed	Systemdateien wurden geändert
 %d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.	Geänderte oder fehlende Systemdateien: %d. LuxOS kann sie durch Neuinstallation der betroffenen Pakete reparieren.
 Invalid PROTECT (use 0 or 1)	Ungültiges PROTECT (0 oder 1 verwenden)
+# Mapy: MHD (Transitous), odjezdy, mista v okoli
+Transit	ÖPNV
+Public transport	Öffentlicher Verkehr
+Leave Now	Jetzt losfahren
+Depart At	Abfahrt um
+Arrive By	Ankunft bis
+HH:MM	HH:MM
+Time today, e.g. 17:30 (press Enter)	Uhrzeit heute, z. B. 17:30 (Eingabetaste drücken)
+Enter the time as HH:MM.	Geben Sie die Uhrzeit als HH:MM ein.
+Connection details	Verbindungsdetails
+Data sources	Datenquellen
+Public transport: Transitous (MOTIS) with open timetable data, map data © OpenStreetMap contributors.	Öffentlicher Verkehr: Transitous (MOTIS) mit offenen Fahrplandaten, Kartendaten © OpenStreetMap-Mitwirkende.
+No public transport connection found for this time.	Für diese Zeit wurde keine ÖPNV-Verbindung gefunden.
+The public transport service is busy. Try again in a moment.	Der ÖPNV-Dienst ist ausgelastet. Versuchen Sie es gleich noch einmal.
+The connections could not be loaded. Check your internet connection.	Die Verbindungen konnten nicht geladen werden. Prüfen Sie die Internetverbindung.
+Direct	Ohne Umstieg
+1 transfer	1 Umstieg
+%d transfers	%d Umstiege
+from %s at %s	ab %s um %s
+Platform %s	Steig %s
+(changed from %s)	(geändert, statt %s)
+1 stop	1 Halt
+%d stops	%d Halte
+Show departures from %s	Abfahrten ab %s anzeigen
+to %s	nach %s
+Departures	Abfahrten
+Arrivals	Ankünfte
+Departures from this stop	Abfahrten an dieser Haltestelle
+Departures Nearby	Abfahrten in der Nähe
+Stops near this point	Haltestellen bei diesem Punkt
+Departures could not be loaded. Check your internet connection.	Die Abfahrten konnten nicht geladen werden. Prüfen Sie die Internetverbindung.
+No departures found.	Keine Abfahrten gefunden.
+No arrivals found.	Keine Ankünfte gefunden.
+Updated %s	Aktualisiert um %s
+Timetable data: Transitous and open-data providers	Fahrplandaten: Transitous und Open-Data-Anbieter
+On time	Pünktlich
+from %s	von %s
+Nearby	In der Nähe
+Find places near this place	Orte in der Nähe finden
+Nothing found nearby.	In der Nähe nichts gefunden.
+The map data service (Overpass) is busy. Try again in a moment.	Der Kartendatendienst (Overpass) ist ausgelastet. Versuchen Sie es gleich noch einmal.
+Platforms: %s	Steige: %s
+Opening hours: %s	Öffnungszeiten: %s
+Phone: %s	Telefon: %s
+Website: %s	Website: %s
+Restaurants	Restaurants
+Cafés	Cafés
+Groceries	Lebensmittel
+Fuel	Tankstellen
+Charging Stations	Ladestationen
+Parking	Parkplätze
+Pharmacies	Apotheken
+Hospitals and Doctors	Krankenhäuser und Ärzte
+Hotels	Hotels
+Attractions	Sehenswürdigkeiten
+Public Transport Stops	Haltestellen
+Toilets	Toiletten
+Playgrounds	Spielplätze
+Bus	Bus
+Tram	Straßenbahn
+Metro	U-Bahn
+Train	Zug
+Coach	Fernbus
+Trolleybus	Oberleitungsbus
+Ferry	Fähre
+Plane	Flugzeug
+Funicular	Standseilbahn
+Cable car	Seilbahn
+On-demand	Rufbus
+Shared bike	Leihrad
