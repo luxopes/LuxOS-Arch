@@ -14,13 +14,17 @@ depends=(bash python pyalpm pacman curl jq sudo reflector fzf tar zstd gnupg lux
 optdepends=('luxos-sandbox: build and install community (AUR) packages isolated (default)'
             'base-devel: build community (AUR) packages into the system (--system)'
             'git: download community (AUR) build scripts'
-            'flatpak: Flathub applications')
+            'flatpak: Flathub applications'
+            'lsl: whole-system configuration in /etc/luxos/system.lsl (lux system)')
 
 package() {
     install -Dm755 "$startdir/lux" "$pkgdir/usr/bin/lux"
     install -Dm644 "$startdir/luxpkg.sh" "$pkgdir/usr/lib/lux/luxpkg.sh"
     install -Dm755 "$startdir/lux_alpm.py" "$pkgdir/usr/lib/lux/lux_alpm.py"
     install -Dm755 "$startdir/lux_community.py" "$pkgdir/usr/lib/lux/lux_community.py"
+    # lux system: cely system v jednom souboru LSL (/etc/luxos/system.lsl), vyhodnocuje "lsl config"
+    install -Dm755 "$startdir/lux_system.py" "$pkgdir/usr/lib/lux/lux_system.py"
+    install -Dm644 "$startdir/system.lsl.example" "$pkgdir/usr/share/doc/lux/system.lsl.example"
     install -Dm755 "$startdir/pacman-hint" "$pkgdir/usr/lib/lux/pacman-hint"
     install -Dm644 "$startdir/lux.md" "$pkgdir/usr/share/doc/lux/lux.md"
     install -Dm644 "$startdir/lux.1" "$pkgdir/usr/share/man/man1/lux.1"   # makepkg ji zabali do lux.1.gz

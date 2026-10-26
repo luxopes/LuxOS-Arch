@@ -25,7 +25,7 @@ MACROS = {"TH", "SH", "SS", "PP", "TP", "IP", "RS", "RE", "EX", "EE", "br", "sp"
 
 EXPECTED = {
     "man1/lsl.1", "man1/lslc.1", "man1/luxdrop.1", "man1/luxos-backup.1", "man1/luxos-guard.1", "man1/luxos-safe.1",
-    "man1/luxos-sandbox.1", "man5/lux.conf.5", "man7/lsl.7", "man7/luxos.7", "man8/luxos-care.8",
+    "man1/luxos-sandbox.1", "man5/lux.conf.5", "man5/luxos-system.5", "man7/lsl.7", "man7/luxos.7", "man8/luxos-care.8",
     "man8/luxos-update.8",
 }
 
@@ -306,7 +306,7 @@ class PagesTest(unittest.TestCase):
 
     @unittest.skipUnless(GROFF, "groff not installed")
     def test_readable_at_80_columns(self):
-        for rel in ("man7/luxos.7", "man5/lux.conf.5", "man1/luxos-sandbox.1", "man7/lsl.7"):
+        for rel in ("man7/luxos.7", "man5/lux.conf.5", "man5/luxos-system.5", "man1/luxos-sandbox.1", "man7/lsl.7"):
             with self.subTest(page=rel):
                 text = groff_text(os.path.join(self.tmp, rel), width=78)
                 self.assertNotIn("\\f", text)            # zadne nevykreslene escape sekvence

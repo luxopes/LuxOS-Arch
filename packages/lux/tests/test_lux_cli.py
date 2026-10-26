@@ -81,7 +81,7 @@ class CLI(unittest.TestCase):
         with open(os.path.join(self.db, "gnupg", "pubring.gpg"), "w") as f:
             f.write("x")
         for name in ("lux_alpm.py", "sudo", "pkexec", "lux-engine", "lux-engine-conf", "lux-engine-key", "lux-config",
-                     "timedatectl", "curl", "jq", "flatpak", "reflector"):
+                     "timedatectl", "curl", "jq", "flatpak", "reflector", "lux_system.py"):
             p = os.path.join(self.bin, name)
             with open(p, "w") as f:
                 f.write(STUB)
@@ -98,6 +98,7 @@ class CLI(unittest.TestCase):
             "XDG_CACHE_HOME": os.path.join(self.tmp, "cache"),
             "LUX_ALPM": os.path.join(self.bin, "lux_alpm.py"),
             "LUX_CONFIG": os.path.join(self.bin, "lux-config"),
+            "LUX_SYSTEM": os.path.join(self.bin, "lux_system.py"),
             # nastroje jadra (v LuxOS /usr/lib/lux/alpm/bin): zastupne skripty, i v PATH pro roota
             "LUX_ENGINE_BIN": self.bin,
             "LOG": self.log,
@@ -134,6 +135,28 @@ class CLI(unittest.TestCase):
                     words.pop(0)
             out.append(" ".join(words))
         return out
+
+    def test_system(self):
+        """lux system: show/check bez roota, diff/apply/init pres sudo, -y se preda dal."""
+        rc, out = self.lux("system", "show")
+        self.assertEqual(rc, 0, out)
+        rc, out = self.lux("-y", "system", "apply", "--no-snapshot", "/tmp/x.lsl")
+        self.assertEqual(rc, 0, out)
+        rc, out = self.lux("sys", "diff", "--json")
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(self.calls("lux_system.py"), ["show", "apply -y --no-snapshot /tmp/x.lsl", "diff --json"])
+        sudo = self.calls("sudo")
+        self.assertEqual(len(sudo), 2)                   # apply a diff, show ne
+        self.assertTrue(all("lux_system.py" in c for c in sudo), sudo)
+        rc, out = self.lux("system")
+        self.assertEqual(rc, 0)
+        self.assertIn("lux system <", out)
+        self.assertIn("man luxos-system", out)
+        rc, out = self.lux("system", "nonsense")
+        self.assertEqual(rc, 1)
+        rc, out = self.lux("system", "edit", env={"LUX_SYSTEM_FILE": os.path.join(self.tmp, "missing.lsl")})
+        self.assertEqual(rc, 1)
+        self.assertIn("lux system init", out)
 
     def test_help(self):
         rc, out = self.lux("--help")

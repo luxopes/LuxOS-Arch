@@ -3144,3 +3144,153 @@ Mirror displays	Spegla skärmar
 Show the same picture on all displays.	Visa samma bild på alla skärmar.
 The displays show the same picture. Turn off mirroring to arrange them.	Skärmarna visar samma bild. Stäng av speglingen för att placera dem.
 Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Endast en skärm används. Välj Utöka under Flera skärmar för att placera dem.
+# lux system - cely system v jednom souboru LSL (/etc/luxos/system.lsl)
+Reading the configuration took too long (endless loop?).	Det tog för lång tid att läsa konfigurationen (oändlig loop?).
+Edit it (sudo lux system edit), then: lux system diff and sudo lux system apply	Redigera den (sudo lux system edit), sedan: lux system diff och sudo lux system apply
+LSL is needed to read the configuration (lux install lsl).	LSL behövs för att läsa konfigurationen (lux install lsl).
+The configuration must set config = { ... } (a dictionary).	Konfigurationen måste sätta config = { ... } (en ordlista).
+Hint: items of a list [ ] are separated by commas, without a comma after the last one.	Tips: objekt i en lista [ ] skiljs åt med kommatecken, inget kommatecken efter det sista.
+No user would be an administrator (group wheel). Add "wheel" to the groups of one user.	Ingen användare skulle vara administratör (gruppen wheel). Lägg till ”wheel” i en användares grupper.
+Kernel parameters can be read only with administrator rights (lux system diff asks for them).	Kärnparametrar kan bara läsas med administratörsrättigheter (lux system diff ber om dem).
+LuxOS Care is not installed (lux install luxos-care).	LuxOS Care är inte installerat (lux install luxos-care).
+The system already matches the configuration. Nothing to do.	Systemet matchar redan konfigurationen. Inget att göra.
+LuxOS - configuration of the whole system in one file (LSL)	LuxOS – konfiguration av hela systemet i en fil (LSL)
+Check: lux system check   ·   What would change: lux system diff	Kontrollera: lux system check   ·   Vad som skulle ändras: lux system diff
+Apply: sudo lux system apply (a snapshot is taken first, undo with: lux rollback)	Verkställ: sudo lux system apply (först tas en ögonblicksbild, ångra: lux rollback)
+A setting you delete is no longer managed (it stays as it is). Help: man luxos-system	En borttagen inställning hanteras inte längre (den blir kvar som den är). Hjälp: man luxos-system
+Computer name in the network	Datorns namn i nätverket
+Packages from the LuxOS and Arch Linux repositories (lux search NAME)	Paket från LuxOS- och Arch Linux-förråden (lux search NAMN)
+Deleting a line removes the package at the next apply.	En borttagen rad tar bort paketet vid nästa apply.
+True = also remove packages and apps that are not listed here (careful)	True = ta också bort paket och appar som inte står här (försiktigt)
+Services started at boot (a removed line turns the service off at the next apply)	Tjänster som startas vid uppstart (en borttagen rad stänger av tjänsten vid nästa apply)
+Extra groups	Extra grupper
+Users (passwords never go here; "wheel" = administrator).	Användare (lösenord hör aldrig hemma här; ”wheel” = administratör).
+Optional "password_hash": output of 'openssl passwd -6'. Users are never deleted.	Valfritt ”password_hash”: utdata från 'openssl passwd -6'. Användare tas aldrig bort.
+LuxOS Care: "carefree" = automatic updates, "classic" = only notify	LuxOS Care: ”carefree” = automatiska uppdateringar, ”classic” = bara meddela
+Firewall (ufw): allowed incoming ports, e.g. ["22/tcp"]	Brandvägg (ufw): tillåtna inkommande portar, t.ex. ["22/tcp"]
+This needs administrator rights (run it through lux system ...).	Detta kräver administratörsrättigheter (kör via lux system ...).
+Written %s from this computer.	%s skriven från den här datorn.
+The configuration %s is valid.	Konfigurationen %s är giltig.
+Done: %d changes.	Klart: %d ändringar.
+Restart the computer to use the new kernel parameters.	Starta om datorn för att använda de nya kärnparametrarna.
+The configuration file %s does not exist. Create it from this computer with: sudo lux system init	Konfigurationsfilen %s finns inte. Skapa den från den här datorn: sudo lux system init
+Hint: the configuration may only use 'load config'; it cannot run programs or read files.	Tips: konfigurationen får bara använda 'load config'; den kan inte köra program eller läsa filer.
+computer name: %s → %s	datornamn: %s → %s
+time zone: %s → %s	tidszon: %s → %s
+language (locale): %s → %s	språk (locale): %s → %s
+Group %s does not exist yet; it is created if no package creates it.	Gruppen %s finns inte än; den skapas om inget paket skapar den.
+The firewall (ufw) is not installed; add "ufw" to packages.	Brandväggen (ufw) är inte installerad; lägg till ”ufw” i packages.
+turn on the firewall	slå på brandväggen
+turn off the firewall	stäng av brandväggen
+Kernel parameters: no LuxOS boot entry found (systemd-boot or GRUB).	Kärnparametrar: ingen LuxOS-startpost hittades (systemd-boot eller GRUB).
+(after a restart)	(efter en omstart)
+Generated by 'lux system show' on %s from this computer.	Skapad av 'lux system show' den %s från den här datorn.
+Time zone (list: timedatectl list-timezones)	Tidszon (lista: timedatectl list-timezones)
+Language and formats (e.g. "cs_CZ.UTF-8", "en_US.UTF-8")	Språk och format (t.ex. "sv_SE.UTF-8", "en_US.UTF-8")
+Keyboard layouts (the first is the default, at most 4) and how to switch them	Tangentbordslayouter (den första är standard, högst 4) och hur man växlar
+Apps from Flathub (app ID, e.g. "org.mozilla.firefox")	Appar från Flathub (app-ID, t.ex. "org.mozilla.firefox")
+Lux Guard: protection against harmful downloads, hourly snapshots of /home	Lux Guard: skydd mot skadliga nedladdningar, ögonblicksbilder av /home varje timme
+Kernel parameters: run 'sudo lux system show' to include them	Kärnparametrar: kör 'sudo lux system show' för att ta med dem
+%s already exists. Show the differences with: lux system diff (or init --force to overwrite it).	%s finns redan. Skillnaderna visas med: lux system diff (eller init --force för att skriva över den).
+The previous file was kept as %s	Den tidigare filen sparades som %s
+Taking a system snapshot first	Först tas en ögonblicksbild av systemet
+%s failed (exit code %d)	%s misslyckades (slutkod %d)
+Hint: the configuration cannot run programs, read files or use the network.	Tips: konfigurationen kan inte köra program, läsa filer eller använda nätverket.
+(did you mean "%s"?)	(menade du "%s"?)
+unknown setting "%s"	okänd inställning "%s"
+must be %s	måste vara %s
+"%s" is not a valid %s	"%s" är inte ett giltigt värde: %s
+unknown time zone "%s" (e.g. "Europe/Prague")	okänd tidszon "%s" (t.ex. "Europe/Stockholm")
+unknown language setting "%s" (e.g. "cs_CZ.UTF-8")	okänd språkinställning "%s" (t.ex. "sv_SE.UTF-8")
+at least one layout is needed (e.g. ["us", "cz"])	minst en layout behövs (t.ex. ["us", "se"])
+Cannot read the installed packages: %s	Kan inte läsa de installerade paketen: %s
+The package lists could not be checked; run lux update if installing fails.	Paketlistorna kunde inte kontrolleras; kör lux update om installationen misslyckas.
+install: %s	installera: %s
+keep as wanted (now only a dependency): %s	behåll som önskade (nu bara beroende): %s
+remove: %s	ta bort: %s
+keyboard layouts: %s → %s	tangentbordslayouter: %s → %s
+create group %s	skapa gruppen %s
+turn on %s	slå på %s
+turn off %s	stäng av %s
+create user %s	skapa användaren %s
+Another lux system apply is running.	En annan lux system apply körs redan.
+Kernel parameters (disk and encryption parameters are not managed here)	Kärnparametrar (parametrar för disk och kryptering hanteras inte här)
+Managed: %s	Hanteras: %s
+Nothing was changed. Confirm with -y when running without a terminal.	Inget ändrades. Bekräfta med -y när det körs utan terminal.
+Apply these changes?	Verkställ dessa ändringar?
+Cancelled. Nothing was changed.	Avbrutet. Inget ändrades.
+Cannot read the configuration: %s	Kan inte läsa konfigurationen: %s
+Error in the configuration %s:	Fel i konfigurationen %s:
+computer name	datornamn
+at most 4 layouts	högst 4 layouter
+%s is both in enable and disable	%s finns både i enable och i disable
+%s is set in "guard"; remove it from services	%s är inställd i ”guard”; ta bort den från services
+%s is set in "firewall"; remove it from services	%s är inställd i ”firewall”; ta bort den från services
+Cannot read the services: %s	Kan inte läsa tjänsterna: %s
+Kept, LuxOS needs them: %s	Behålls, LuxOS behöver dem: %s
+%d installed packages are not in the file; they stay ("remove_unlisted": True would remove them).	%d installerade paket finns inte i filen; de blir kvar (”remove_unlisted”: True skulle ta bort dem).
+%d installed Flathub apps are not in the file; they stay.	%d installerade Flathub-appar finns inte i filen; de blir kvar.
+Unknown service %s (no such unit on this computer).	Okänd tjänst %s (ingen sådan enhet på den här datorn).
+Lux Guard is not installed (lux install luxos-guard).	Lux Guard är inte installerat (lux install luxos-guard).
+User %s has no password yet; set it with: sudo passwd %s	Användaren %s har inget lösenord än; ställ in det med: sudo passwd %s
+users.%s: this is a system account, it cannot be managed here.	users.%s: detta är ett systemkonto, det kan inte hanteras här.
+%s: set password (from password_hash)	%s: ställ in lösenord (från password_hash)
+allow incoming %s	tillåt inkommande %s
+stop allowing incoming %s	sluta tillåta inkommande %s
+The snapshot could not be taken: %s	Ögonblicksbilden kunde inte tas: %s
+Nothing was changed. To apply without a snapshot use --no-snapshot.	Inget ändrades. Använd --no-snapshot för att verkställa utan ögonblicksbild.
+Continue without a snapshot (no way back with lux rollback)?	Fortsätta utan ögonblicksbild (ingen väg tillbaka med lux rollback)?
+%d of %d changes were made.	%d av %d ändringar gjordes.
+Snapshot before the change: %s (undo: lux rollback %s)	Ögonblicksbild före ändringen: %s (ångra: lux rollback %s)
+%s is needed by LuxOS and cannot be turned off here	%s behövs av LuxOS och kan inte stängas av här
+must not contain ':' or control characters	får inte innehålla ':' eller styrtecken
+must be between 1000 and 59999	måste vara mellan 1000 och 59999
+this is not a password hash (it must start with $y$, $6$ ...; create it with: openssl passwd -6)	detta är ingen lösenordshash (den måste börja med $y$, $6$ ...; skapa den med: openssl passwd -6)
+must be "carefree" or "classic"	måste vara "carefree" eller "classic"
+%s is set by the installer (disk, encryption) and cannot be changed here	%s ställs in av installationsprogrammet (disk, kryptering) och kan inte ändras här
+Check the names with: lux search NAME	Kontrollera namnen med: lux search NAMN
+%s: full name → %s	%s: fullständigt namn → %s
+%s: shell %s → %s	%s: skal %s → %s
+users.%s.uid: the user already exists with UID %d; changing it is not supported.	users.%s.uid: användaren finns redan med UID %d; att ändra det stöds inte.
+service name	tjänstnamn
+user name	användarnamn
+never write passwords into the file; use password_hash (from: openssl passwd -6) or set the password with: sudo passwd %s	skriv aldrig lösenord i filen; använd password_hash (från: openssl passwd -6) eller ställ in lösenordet med: sudo passwd %s
+"%s" is not in /etc/shells	"%s" finns inte i /etc/shells
+%s: add to groups %s	%s: lägg till i grupperna %s
+%s: remove from groups %s	%s: ta bort från grupperna %s
+Back to the state before: lux rollback %s	Tillbaka till tillståndet innan: lux rollback %s
+must be between 2 and 50	måste vara mellan 2 och 50
+These packages are not in the repositories: %s	Dessa paket finns inte i förråden: %s
+Unknown option %s	Okänt alternativ %s
+port (e.g. "22/tcp")	port (t.ex. "22/tcp")
+Too many arguments	För många argument
+Packages	Paket
+Flathub apps	Flathub-appar
+Users and groups	Användare och grupper
+Services	Tjänster
+LuxOS Care	LuxOS Care
+Lux Guard	Lux Guard
+Firewall	Brandvägg
+Kernel parameters	Kärnparametrar
+a text	en text
+a list of texts	en lista med texter
+a dictionary { }	en ordlista { }
+True or False	True eller False
+a number	ett tal
+package name	paketnamn
+Flathub app ID	Flathub-app-ID
+group name	gruppnamn
+keyboard layout	tangentbordslayout
+keyboard option	tangentbordsalternativ
+kernel parameter	kärnparameter
+%s does not exist yet. Create it from this computer with: lux system init	%s finns inte än. Skapa den från den här datorn: lux system init
+Show the changes with: lux system diff	Ändringarna visas med: lux system diff
+print a configuration file made from this computer	skriv ut en konfigurationsfil från den här datorn
+write /etc/luxos/system.lsl from this computer	skriv /etc/luxos/system.lsl från den här datorn
+edit /etc/luxos/system.lsl and check it	redigera /etc/luxos/system.lsl och kontrollera den
+check the configuration without changing anything	kontrollera konfigurationen utan att ändra något
+show what apply would change	visa vad apply skulle ändra
+take a snapshot, show the changes, confirm and apply	ta en ögonblicksbild, visa ändringarna, bekräfta och verkställ
+Undo the last apply: lux rollback · Help: man luxos-system	Ångra senaste apply: lux rollback · Hjälp: man luxos-system
+whole system in one file /etc/luxos/system.lsl (lux system help)	hela systemet i en fil /etc/luxos/system.lsl (lux system help)
+LuxOS is running from a snapshot, changes would be lost after a restart. To keep this version, run: lux rollback	LuxOS körs från en ögonblicksbild, ändringar skulle gå förlorade vid omstart. Kör detta för att behålla versionen: lux rollback

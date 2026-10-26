@@ -1,0 +1,81 @@
+# LuxOS - the whole system in one file: /etc/luxos/system.lsl
+#
+#   lux system check          is the file correct? (changes nothing)
+#   lux system diff           what would change
+#   sudo lux system apply     snapshot first, show the changes, ask, apply
+#   lux rollback              back to the snapshot taken before an apply
+#
+# Your own file from this computer: sudo lux system init (or lux system show).
+# Only what is written here is managed - delete a setting and it stays as it is.
+# Rules of the language (LSL): texts in "quotes", True/False, lists [ "a", "b" ] with commas
+# between items (none after the last one), dictionaries { "key": value } one item per line.
+# Help: man luxos-system
+load config
+
+# Your own helper values and lists (plain LSL)
+office = ["libreoffice-fresh", "hunspell-en_us"]
+laptop = True
+
+config = {
+    "hostname": "lux-laptop"
+    "timezone": "Europe/Prague"
+    "locale": "cs_CZ.UTF-8"
+    "keyboard": {
+        "layouts": ["us", "cz(qwerty)"]
+        "options": ["grp:shifts_toggle"]
+    }
+
+    # Packages from the LuxOS and Arch Linux repositories (lux search NAME).
+    # A package deleted from this list is removed at the next apply.
+    "packages": [
+        "firefox",
+        "htop",
+        config.mkIf(laptop, "tlp")
+    ] + office
+    # Apps from Flathub (app ID)
+    "flatpaks": ["org.signal.Signal"]
+    # True = also remove everything that is not listed above (careful)
+    "remove_unlisted": False
+
+    "services": {
+        "enable": ["sshd", "cups.socket", config.mkIf(laptop, "tlp")]
+        "disable": ["bluetooth"]
+    }
+
+    # Users: never a password here. "wheel" = administrator.
+    # Optional "password_hash": the output of: openssl passwd -6
+    "groups": ["family"]
+    "users": {
+        "anna": {
+            "description": "Anna Nováková"
+            "groups": ["wheel", "family"]
+            "shell": "/bin/bash"
+        }
+        "petr": {
+            "description": "Petr Novák"
+            "groups": ["family"]
+        }
+    }
+
+    "care": {
+        "mode": "carefree"
+        "snapshots": True
+        "keep_snapshots": 5
+    }
+    "guard": {
+        "enable": True
+        "home_snapshots": True
+    }
+    "firewall": {
+        "enable": True
+        "allow": ["22/tcp"]
+    }
+    "kernel": {
+        "params": ["quiet", "splash"]
+    }
+}
+
+# Checks of your own (the apply stops with the message when the condition is False)
+assertions = [
+    [len(config["users"]) > 0, "at least one user is needed"]
+]
