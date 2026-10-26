@@ -2702,3 +2702,75 @@ More details: run the command again with --verbose	Meer details: voer de opdrach
 The list of apps is out of date. Install the updates first, then try again.	De lijst met apps is verouderd. Installeer eerst de updates en probeer het opnieuw.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	De datum en tijd van de computer kloppen niet, dus een beveiligde verbinding is niet mogelijk. Controleer de tijdinstellingen.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Langere batterijduur: tragere processor zonder turbo, iets lagere helderheid, geen vergroting in het Dock, ongebruikte apparaten slapen en achtergrondtaken pauzeren.
+Router (app name)	Netwerkbeheer
+Router	Router
+Overview	Overzicht
+Devices	Apparaten
+Replies	Antwoordt
+Could not run ping	Ping kan niet worden uitgevoerd
+No reply	Geen antwoord
+%s ms	%s ms
+%d %% lost	%d %% verloren
+Reload	Opnieuw laden
+Connect to the router with HTTP or HTTPS	Met de router verbinden via HTTP of HTTPS
+Open in Browser	Openen in browser
+Connection	Verbinding
+Interface	Interface
+IP address	IP-adres
+Router (gateway)	Router (gateway)
+IPv6 gateway	IPv6-gateway
+DNS servers	DNS-servers
+MAC address	MAC-adres
+Wi-Fi network	Wifi-netwerk
+Ethernet (cable)	Ethernet (kabel)
+Public IP address	Openbaar IP-adres
+Asks an internet service (ipify.org) for the address your network is seen from.	Vraagt een internetdienst (ipify.org) onder welk adres je netwerk zichtbaar is.
+Quick Tests	Snelle tests
+Ping router	Router pingen
+Ping internet	Internet pingen
+Sends 4 packets to %s.	Stuurt 4 pakketten naar %s.
+Name lookup (DNS)	Naamomzetting (DNS)
+Looks up %s using your DNS servers.	Zoekt %s op via je DNS-servers.
+Download speed	Downloadsnelheid
+Estimate: downloads 10 MB from speed.cloudflare.com.	Schatting: downloadt 10 MB van speed.cloudflare.com.
+Test	Testen
+Measure	Meten
+Name lookup failed	Naamomzetting mislukt
+Works (%s ms)	Werkt (%s ms)
+Measurement failed	Meting mislukt
+%s Mbit/s	%s Mbit/s
+Search Network	Netwerk doorzoeken
+Briefly contacts every address in your home network so that devices which were quiet also appear.	Benadert kort elk adres in je thuisnetwerk zodat ook stille apparaten verschijnen.
+Address	Adres
+State	Status
+Seen recently	Onlangs gezien
+Checking	Controleren
+Fixed	Vast
+%d devices	%d apparaten
+Searching %d addresses…	%d adressen doorzoeken…
+Private address (random MAC)	Privéadres (willekeurig MAC)
+The built-in web view (WebKitGTK) is not available. The router settings will open in your web browser.	De ingebouwde webweergave (WebKitGTK) is niet beschikbaar. De routerinstellingen worden in je browser geopend.
+Not connected to a network.	Niet verbonden met een netwerk.
+The link leads outside your home network, so it was opened in your web browser.	De link leidt buiten je thuisnetwerk en is daarom in je browser geopend.
+The page wanted to open an address outside your home network: %s	De pagina wilde een adres buiten je thuisnetwerk openen: %s
+The connection to %s is not secure (untrusted certificate). Only your router's own address can be allowed.	De verbinding met %s is niet veilig (niet-vertrouwd certificaat). Alleen het adres van je router kan worden toegestaan.
+The router uses its own security certificate	De router gebruikt een eigen beveiligingscertificaat
+Routers usually have a self-signed certificate that cannot be verified. Continue only if %s is your router. The exception applies to this address only, until you close the app.	Routers hebben meestal een zelfondertekend certificaat dat niet te controleren is. Ga alleen door als %s je router is. De uitzondering geldt alleen voor dit adres, tot je de app sluit.
+The router does not answer over HTTP. Try HTTPS.	De router reageert niet via HTTP. Probeer HTTPS.
+The page could not be loaded: %s	De pagina kan niet worden geladen: %s
+%s asks for a user name and password. They are not saved.	%s vraagt om een gebruikersnaam en wachtwoord. Deze worden niet opgeslagen.
+Encrypted connection (HTTPS)	Versleutelde verbinding (HTTPS)
+Encrypted connection, certificate allowed by you	Versleutelde verbinding, certificaat door jou toegestaan
+Unencrypted connection (HTTP) inside your home network	Onversleutelde verbinding (HTTP) binnen je thuisnetwerk
+No router (default gateway) found.	Geen router (standaardgateway) gevonden.
+Router: %s	Router: %s
+Open Router Settings	Routerinstellingen openen
+Saved to Downloads: %s	Opgeslagen in Downloads: %s
+Arrangement	Rangschikking
+Drag the displays to arrange them. Drag the white bar to another display to move the menu bar and Dock there.	Sleep de beeldschermen om ze te rangschikken. Sleep de witte balk naar een ander scherm om de menubalk en het Dock daarheen te verplaatsen.
+Main display	Hoofdscherm
+The menu bar and Dock appear on the main display.	De menubalk en het Dock staan op het hoofdscherm.
+Mirror displays	Schermen spiegelen
+Show the same picture on all displays.	Hetzelfde beeld op alle schermen tonen.
+The displays show the same picture. Turn off mirroring to arrange them.	De schermen tonen hetzelfde beeld. Zet spiegelen uit om ze te rangschikken.
+Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Er wordt maar één scherm gebruikt. Kies Uitbreiden onder Meerdere beeldschermen om ze te rangschikken.

@@ -2702,3 +2702,75 @@ More details: run the command again with --verbose	Mer information: kör kommand
 The list of apps is out of date. Install the updates first, then try again.	Applistan är inaktuell. Installera uppdateringarna först och försök sedan igen.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datorns datum och tid är fel, så en säker anslutning är inte möjlig. Kontrollera tidsinställningarna.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Längre batteritid: långsammare processor utan turbo, något lägre ljusstyrka, ingen förstoring i Dock, oanvända enheter går i viloläge och bakgrundsuppgifter pausas.
+Router (app name)	Nätverkshantering
+Router	Router
+Overview	Översikt
+Devices	Enheter
+Replies	Svarar
+Could not run ping	Det gick inte att köra ping
+No reply	Inget svar
+%s ms	%s ms
+%d %% lost	%d %% förlorade
+Reload	Läs in igen
+Connect to the router with HTTP or HTTPS	Anslut till routern med HTTP eller HTTPS
+Open in Browser	Öppna i webbläsaren
+Connection	Anslutning
+Interface	Gränssnitt
+IP address	IP-adress
+Router (gateway)	Router (gateway)
+IPv6 gateway	IPv6-gateway
+DNS servers	DNS-servrar
+MAC address	MAC-adress
+Wi-Fi network	Wi‑Fi-nätverk
+Ethernet (cable)	Ethernet (kabel)
+Public IP address	Offentlig IP-adress
+Asks an internet service (ipify.org) for the address your network is seen from.	Frågar en internettjänst (ipify.org) vilken adress ditt nätverk syns från.
+Quick Tests	Snabbtester
+Ping router	Pinga routern
+Ping internet	Pinga internet
+Sends 4 packets to %s.	Skickar 4 paket till %s.
+Name lookup (DNS)	Namnuppslagning (DNS)
+Looks up %s using your DNS servers.	Slår upp %s via dina DNS-servrar.
+Download speed	Nedladdningshastighet
+Estimate: downloads 10 MB from speed.cloudflare.com.	Uppskattning: laddar ned 10 MB från speed.cloudflare.com.
+Test	Testa
+Measure	Mät
+Name lookup failed	Namnuppslagningen misslyckades
+Works (%s ms)	Fungerar (%s ms)
+Measurement failed	Mätningen misslyckades
+%s Mbit/s	%s Mbit/s
+Search Network	Sök i nätverket
+Briefly contacts every address in your home network so that devices which were quiet also appear.	Kontaktar kort varje adress i hemnätverket så att även tysta enheter visas.
+Address	Adress
+State	Status
+Seen recently	Sedd nyligen
+Checking	Kontrolleras
+Fixed	Fast
+%d devices	%d enheter
+Searching %d addresses…	Söker igenom %d adresser…
+Private address (random MAC)	Privat adress (slumpad MAC)
+The built-in web view (WebKitGTK) is not available. The router settings will open in your web browser.	Den inbyggda webbvyn (WebKitGTK) är inte tillgänglig. Routerinställningarna öppnas i webbläsaren.
+Not connected to a network.	Inte ansluten till något nätverk.
+The link leads outside your home network, so it was opened in your web browser.	Länken leder utanför hemnätverket och öppnades därför i webbläsaren.
+The page wanted to open an address outside your home network: %s	Sidan ville öppna en adress utanför hemnätverket: %s
+The connection to %s is not secure (untrusted certificate). Only your router's own address can be allowed.	Anslutningen till %s är inte säker (ej betrott certifikat). Endast routerns egen adress kan tillåtas.
+The router uses its own security certificate	Routern använder ett eget säkerhetscertifikat
+Routers usually have a self-signed certificate that cannot be verified. Continue only if %s is your router. The exception applies to this address only, until you close the app.	Routrar har oftast ett självsignerat certifikat som inte kan verifieras. Fortsätt bara om %s är din router. Undantaget gäller endast den här adressen tills du stänger appen.
+The router does not answer over HTTP. Try HTTPS.	Routern svarar inte via HTTP. Prova HTTPS.
+The page could not be loaded: %s	Sidan kunde inte läsas in: %s
+%s asks for a user name and password. They are not saved.	%s frågar efter användarnamn och lösenord. De sparas inte.
+Encrypted connection (HTTPS)	Krypterad anslutning (HTTPS)
+Encrypted connection, certificate allowed by you	Krypterad anslutning, certifikatet tillåtet av dig
+Unencrypted connection (HTTP) inside your home network	Okrypterad anslutning (HTTP) inom hemnätverket
+No router (default gateway) found.	Ingen router (standardgateway) hittades.
+Router: %s	Router: %s
+Open Router Settings	Öppna routerinställningar
+Saved to Downloads: %s	Sparad i Hämtade filer: %s
+Arrangement	Placering
+Drag the displays to arrange them. Drag the white bar to another display to move the menu bar and Dock there.	Dra skärmarna för att placera dem. Dra den vita listen till en annan skärm för att flytta menyraden och Dock dit.
+Main display	Huvudskärm
+The menu bar and Dock appear on the main display.	Menyraden och Dock visas på huvudskärmen.
+Mirror displays	Spegla skärmar
+Show the same picture on all displays.	Visa samma bild på alla skärmar.
+The displays show the same picture. Turn off mirroring to arrange them.	Skärmarna visar samma bild. Stäng av speglingen för att placera dem.
+Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Endast en skärm används. Välj Utöka under Flera skärmar för att placera dem.

@@ -16,7 +16,7 @@ export LUXOS_WHATS_NEW_DIR=$PWD/packages/luxos-branding/files/whats-new LUXOS_VE
 export LUXOS_I18N_DIR=$PWD/packages/luxos-i18n/files
 apps=(
     packages/luxos-account/files/luxos-account
-    packages/luxos-desktop/files/bin/luxos-{bluetooth,calculator,camera,display-settings,feedback,fingerprint,keyboard,lock-settings,monitor,power,settings,shortcuts,tour,whats-new}
+    packages/luxos-desktop/files/bin/luxos-{bluetooth,calculator,camera,display-settings,feedback,fingerprint,keyboard,lock-settings,monitor,power,router,settings,shortcuts,tour,whats-new}
     packages/luxos-drivers/luxos-drivers
     packages/luxos-printing/files/luxos-{printers,scan}
     packages/luxos-safe/files/luxos-safe

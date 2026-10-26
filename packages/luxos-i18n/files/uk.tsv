@@ -2703,3 +2703,75 @@ More details: run the command again with --verbose	Докладніше: зап�
 The list of apps is out of date. Install the updates first, then try again.	Список застосунків застарів. Спочатку встановіть оновлення, а потім спробуйте знову.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Дата й час комп'ютера неправильні, тому безпечне з'єднання неможливе. Перевірте налаштування часу.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Довша робота від батареї: повільніший процесор без турбо, трохи нижча яскравість, без збільшення в Dock, невикористовувані пристрої засинають, фонові завдання призупиняються.
+Router (app name)	Керування мережею
+Router	Роутер
+Overview	Огляд
+Devices	Пристрої
+Replies	Відповідає
+Could not run ping	Не вдалося запустити ping
+No reply	Немає відповіді
+%s ms	%s мс
+%d %% lost	втрачено %d %%
+Reload	Перезавантажити
+Connect to the router with HTTP or HTTPS	Підключитися до роутера через HTTP або HTTPS
+Open in Browser	Відкрити в браузері
+Connection	Підключення
+Interface	Інтерфейс
+IP address	IP-адреса
+Router (gateway)	Роутер (шлюз)
+IPv6 gateway	Шлюз IPv6
+DNS servers	DNS-сервери
+MAC address	MAC-адреса
+Wi-Fi network	Мережа Wi‑Fi
+Ethernet (cable)	Ethernet (кабель)
+Public IP address	Публічна IP-адреса
+Asks an internet service (ipify.org) for the address your network is seen from.	Запитує інтернет-сервіс (ipify.org), під якою адресою видно вашу мережу.
+Quick Tests	Швидкі перевірки
+Ping router	Ping роутера
+Ping internet	Ping інтернету
+Sends 4 packets to %s.	Надсилає 4 пакети на %s.
+Name lookup (DNS)	Розпізнавання імен (DNS)
+Looks up %s using your DNS servers.	Шукає %s через ваші DNS-сервери.
+Download speed	Швидкість завантаження
+Estimate: downloads 10 MB from speed.cloudflare.com.	Оцінка: завантажує 10 МБ із speed.cloudflare.com.
+Test	Перевірити
+Measure	Виміряти
+Name lookup failed	Не вдалося розпізнати ім’я
+Works (%s ms)	Працює (%s мс)
+Measurement failed	Вимірювання не вдалося
+%s Mbit/s	%s Мбіт/с
+Search Network	Пошук у мережі
+Briefly contacts every address in your home network so that devices which were quiet also appear.	Коротко звертається до кожної адреси в домашній мережі, щоб з’явилися й пристрої, які мовчали.
+Address	Адреса
+State	Стан
+Seen recently	Нещодавно в мережі
+Checking	Перевірка
+Fixed	Постійний запис
+%d devices	Пристроїв: %d
+Searching %d addresses…	Пошук за %d адресами…
+Private address (random MAC)	Приватна адреса (випадкова MAC)
+The built-in web view (WebKitGTK) is not available. The router settings will open in your web browser.	Вбудований веб-перегляд (WebKitGTK) недоступний. Налаштування роутера відкриються в браузері.
+Not connected to a network.	Немає підключення до мережі.
+The link leads outside your home network, so it was opened in your web browser.	Посилання веде за межі домашньої мережі, тому його відкрито в браузері.
+The page wanted to open an address outside your home network: %s	Сторінка намагалася відкрити адресу поза домашньою мережею: %s
+The connection to %s is not secure (untrusted certificate). Only your router's own address can be allowed.	З’єднання з %s незахищене (ненадійний сертифікат). Дозволити можна лише адресу роутера.
+The router uses its own security certificate	Роутер використовує власний сертифікат безпеки
+Routers usually have a self-signed certificate that cannot be verified. Continue only if %s is your router. The exception applies to this address only, until you close the app.	Роутери зазвичай мають самопідписаний сертифікат, який неможливо перевірити. Продовжуйте, лише якщо %s — ваш роутер. Виняток діє лише для цієї адреси й до закриття застосунку.
+The router does not answer over HTTP. Try HTTPS.	Роутер не відповідає через HTTP. Спробуйте HTTPS.
+The page could not be loaded: %s	Не вдалося завантажити сторінку: %s
+%s asks for a user name and password. They are not saved.	%s запитує ім’я користувача й пароль. Вони не зберігаються.
+Encrypted connection (HTTPS)	Зашифроване з’єднання (HTTPS)
+Encrypted connection, certificate allowed by you	Зашифроване з’єднання, сертифікат дозволено вами
+Unencrypted connection (HTTP) inside your home network	Незашифроване з’єднання (HTTP) у домашній мережі
+No router (default gateway) found.	Роутер (типовий шлюз) не знайдено.
+Router: %s	Роутер: %s
+Open Router Settings	Відкрити налаштування роутера
+Saved to Downloads: %s	Збережено в Завантаження: %s
+Arrangement	Розташування
+Drag the displays to arrange them. Drag the white bar to another display to move the menu bar and Dock there.	Перетягніть дисплеї, щоб розташувати їх. Перетягніть білу смугу на інший дисплей, щоб перенести туди рядок меню й Dock.
+Main display	Основний дисплей
+The menu bar and Dock appear on the main display.	Рядок меню й Dock розташовані на основному дисплеї.
+Mirror displays	Дзеркалити дисплеї
+Show the same picture on all displays.	Однакове зображення на всіх дисплеях.
+The displays show the same picture. Turn off mirroring to arrange them.	Дисплеї показують однакове зображення. Вимкніть дзеркалення, щоб розташувати їх.
+Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Використовується лише один дисплей. Щоб розташувати дисплеї, виберіть «Розширити» в розділі «Кілька дисплеїв».

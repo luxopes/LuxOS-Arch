@@ -2702,3 +2702,75 @@ More details: run the command again with --verbose	További részletek: futtassa
 The list of apps is out of date. Install the updates first, then try again.	Az alkalmazáslista elavult. Előbb telepítse a frissítéseket, majd próbálja újra.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	A számítógép dátuma és ideje hibás, ezért nem lehetséges biztonságos kapcsolat. Ellenőrizze az időbeállításokat.
 Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Hosszabb akkumulátor-üzemidő: lassabb processzor turbó nélkül, kissé kisebb fényerő, nincs nagyítás a Dockban, a nem használt eszközök alvó állapotba kerülnek, a háttérfeladatok szünetelnek.
+Router (app name)	Hálózatkezelés
+Router	Router
+Overview	Áttekintés
+Devices	Eszközök
+Replies	Válaszol
+Could not run ping	A ping nem indítható
+No reply	Nincs válasz
+%s ms	%s ms
+%d %% lost	%d %% elveszett
+Reload	Újratöltés
+Connect to the router with HTTP or HTTPS	Csatlakozás a routerhez HTTP-n vagy HTTPS-en
+Open in Browser	Megnyitás böngészőben
+Connection	Kapcsolat
+Interface	Interfész
+IP address	IP-cím
+Router (gateway)	Router (átjáró)
+IPv6 gateway	IPv6-átjáró
+DNS servers	DNS-kiszolgálók
+MAC address	MAC-cím
+Wi-Fi network	Wi‑Fi-hálózat
+Ethernet (cable)	Ethernet (kábel)
+Public IP address	Nyilvános IP-cím
+Asks an internet service (ipify.org) for the address your network is seen from.	Megkérdezi egy internetes szolgáltatástól (ipify.org), milyen címről látszik a hálózata.
+Quick Tests	Gyors tesztek
+Ping router	Router pingelése
+Ping internet	Internet pingelése
+Sends 4 packets to %s.	4 csomagot küld ide: %s.
+Name lookup (DNS)	Névfeloldás (DNS)
+Looks up %s using your DNS servers.	Feloldja a(z) %s nevet az Ön DNS-kiszolgálóival.
+Download speed	Letöltési sebesség
+Estimate: downloads 10 MB from speed.cloudflare.com.	Becslés: 10 MB-ot tölt le a speed.cloudflare.com oldalról.
+Test	Teszt
+Measure	Mérés
+Name lookup failed	A névfeloldás sikertelen
+Works (%s ms)	Működik (%s ms)
+Measurement failed	A mérés sikertelen
+%s Mbit/s	%s Mbit/s
+Search Network	Hálózat keresése
+Briefly contacts every address in your home network so that devices which were quiet also appear.	Röviden megszólít minden címet az otthoni hálózatban, hogy a csendes eszközök is megjelenjenek.
+Address	Cím
+State	Állapot
+Seen recently	Nemrég látva
+Checking	Ellenőrzés
+Fixed	Rögzített
+%d devices	%d eszköz
+Searching %d addresses…	%d cím keresése…
+Private address (random MAC)	Privát cím (véletlen MAC)
+The built-in web view (WebKitGTK) is not available. The router settings will open in your web browser.	A beépített webnézet (WebKitGTK) nem érhető el. A router beállításai a böngészőben nyílnak meg.
+Not connected to a network.	Nincs hálózati kapcsolat.
+The link leads outside your home network, so it was opened in your web browser.	A hivatkozás az otthoni hálózaton kívülre mutat, ezért a böngészőben nyílt meg.
+The page wanted to open an address outside your home network: %s	Az oldal az otthoni hálózaton kívüli címet akart megnyitni: %s
+The connection to %s is not secure (untrusted certificate). Only your router's own address can be allowed.	A(z) %s kapcsolat nem biztonságos (nem megbízható tanúsítvány). Csak a router saját címe engedélyezhető.
+The router uses its own security certificate	A router saját biztonsági tanúsítványt használ
+Routers usually have a self-signed certificate that cannot be verified. Continue only if %s is your router. The exception applies to this address only, until you close the app.	A routereknek általában saját aláírású tanúsítványuk van, amely nem ellenőrizhető. Csak akkor folytassa, ha a(z) %s az Ön routere. A kivétel csak erre a címre és az alkalmazás bezárásáig érvényes.
+The router does not answer over HTTP. Try HTTPS.	A router nem válaszol HTTP-n. Próbálja HTTPS-sel.
+The page could not be loaded: %s	Az oldal nem tölthető be: %s
+%s asks for a user name and password. They are not saved.	A(z) %s felhasználónevet és jelszót kér. Ezeket nem mentjük.
+Encrypted connection (HTTPS)	Titkosított kapcsolat (HTTPS)
+Encrypted connection, certificate allowed by you	Titkosított kapcsolat, a tanúsítványt Ön engedélyezte
+Unencrypted connection (HTTP) inside your home network	Titkosítatlan kapcsolat (HTTP) az otthoni hálózaton belül
+No router (default gateway) found.	Nem található router (alapértelmezett átjáró).
+Router: %s	Router: %s
+Open Router Settings	Router-beállítások megnyitása
+Saved to Downloads: %s	Mentve a Letöltések mappába: %s
+Arrangement	Elrendezés
+Drag the displays to arrange them. Drag the white bar to another display to move the menu bar and Dock there.	Húzza a kijelzőket az elrendezéshez. A fehér sávot másik kijelzőre húzva oda kerül a menüsor és a Dock.
+Main display	Fő kijelző
+The menu bar and Dock appear on the main display.	A menüsor és a Dock a fő kijelzőn jelenik meg.
+Mirror displays	Kijelzők tükrözése
+Show the same picture on all displays.	Ugyanaz a kép minden kijelzőn.
+The displays show the same picture. Turn off mirroring to arrange them.	A kijelzők ugyanazt a képet mutatják. Az elrendezéshez kapcsolja ki a tükrözést.
+Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Csak egy kijelző van használatban. Az elrendezéshez válassza a Kiterjesztés lehetőséget a Több kijelző részben.

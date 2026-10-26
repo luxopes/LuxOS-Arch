@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+"""Falesny ping: FAKE_NET {"ping": {"adresa": prumer_ms}} (chybejici adresa = bez odpovedi), loguje cile."""
+import json
+import os
+import sys
+
+with open(os.environ["FAKE_NET"]) as f:
+    net = json.load(f)
+a = sys.argv[1:]
+host = a[-1]
+count = int(a[a.index("-c") + 1])
+log = os.environ.get("FAKE_PING_LOG")
+if log:
+    with open(log, "a") as f:
+        f.write(host + "\n")
+ms = net.get("ping", {}).get(host)
+print(f"PING {host} ({host}) 56(84) bytes of data.")
+print()
+print(f"--- {host} ping statistics ---")
+if ms is None:
+    print(f"{count} packets transmitted, 0 received, 100% packet loss, time 3000ms")
+    sys.exit(1)
+print(f"{count} packets transmitted, {count} received, 0% packet loss, time 3004ms")
+print(f"rtt min/avg/max/mdev = {ms - 0.5:.3f}/{ms:.3f}/{ms + 0.5:.3f}/0.200 ms")
