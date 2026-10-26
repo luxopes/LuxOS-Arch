@@ -31,7 +31,6 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 
 ### Opraveno
 - **Zamrzlá plocha** (myš se hýbe, ale klikání a psaní nefunguje): z konzole (Ctrl+Alt+F3) příkaz `luxos-unfreeze` uloží hlášení o stavu grafického serveru, správce oken, paměti a procesů a restartuje správce oken a lištu, otevřené aplikace běží dál. Když grafický server nebo správce oken 30 s neodpovídá, LuxOS hlášení uloží sám (`~/.local/share/luxos/freeze-reports`).
-- **Snímek obrazovky**: při otevřené liště jde zase zavřít klávesou Esc a vyfotit Enterem; ostatní klávesy jdou dál do aplikací (lišta nezabírá klávesnici a obrazovka se nezmrazí, takže jde dál otevírat a klikat).
 - **Lux Guard a Python venv**: prázdný stažený soubor (např. nepovedené stažení skriptu) se už neoznačí a prázdné `__init__.py` ve venv se nepovažují za jeho „kopie“ (stejný otisk mají všechny prázdné soubory) – `python -m venv` a pip v něm fungují bez dotazů a bez Sandboxu.
 - Instalátor: sada **Programování** obsahuje i `vim` (vedle `neovim`).
 - **Přihlášení do sítě s portálem i s Tailscale/VPN DNS** (např. školní SSPS-GUEST): když systémové DNS za portálem nefunguje, NetworkManager hlásil jen „omezené připojení“ a přihlašovací okno se neotevřelo. Nový `luxos-portal-check` se zeptá přímo DNS serveru sítě (z DHCP) a pozná přesměrování na portál; okno přihlášení dostane adresu i IP portálu.
