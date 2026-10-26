@@ -157,8 +157,22 @@ lists the changes and
 .B apply
 takes a snapshot, shows the changes, asks and applies them (undo with
 .BR "lux rollback" ).
+Policies of an organization in
+.I /etc/luxos/system.d
+are merged with the file;
+.B show \-\-origin
+shows where each value comes from and
+.B locks
+the settings the organization has locked.
 See
 .BR luxos\-system (5).
+.TP
+.BR domain " " discover | join | leave | status | admins | login | set
+Organization network: join a Microsoft Active Directory or Samba AD domain, sign in with domain
+accounts (also offline), administrators from domain groups. Needs the package
+.BR luxos\-domain .
+See
+.BR luxos\-domain (8).
 .SH OPTIONS
 .TP
 .BR \-y ", " \-\-yes

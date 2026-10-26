@@ -28,6 +28,8 @@ TMP = tempfile.mkdtemp(prefix="luxos-gui-oem-")
 os.environ.update({"LUXOS_INSTALL_FAKE": "1", "LANG": "en_US.UTF-8", "LUXOS_SETUP_STATE": os.path.join(TMP, "progress.json"),
                    "LUXOS_INSTALL_GUI": os.path.join(FILES, "luxos-install-gui"), "LUXOS_INSTALL_FAKE_DELAY": "0"})
 os.environ.setdefault("LUXOS_I18N_DIR", I18N)
+# krok Firemni sit jen s luxos-domain: tady bez nej (pevne poradi kroku), viz gui-domain.py
+os.environ["LUXOS_DOMAIN_CLI"] = os.path.join(TMP, "no-lux-domain")
 os.environ["HOME"] = TMP
 sys.path.insert(0, I18N)
 sys.path.insert(0, FILES)

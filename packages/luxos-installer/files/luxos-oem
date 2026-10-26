@@ -11,6 +11,10 @@
 #                                   jen tudy); prubeh "@@STEP text", chyba "@@ERROR text", konec "@@DONE"
 #   luxos-oem firstboot             sluzba luxos-oem-firstboot.service (pred prihlasovaci obrazovkou)
 #
+# Firemni sit (nepovinne): DOMAIN, DOMAIN_USER, DOMAIN_PASSWORD, DOMAIN_OU ve vstupu finish -> po zalozeni
+# uctu "lux-domain join ... --password-stdin" (heslo jen na stdin, nikam se neuklada). Chyba pripojeni
+# dokonceni nezastavi: radek "@@WARN text" (pripojit jde pozdeji v Nastaveni > Firemni sit).
+#
 # Stav:   /etc/luxos/oem.conf               zapise instalator (OEM=1, OEM_USER, LUKS_NAME)
 #         /var/lib/luxos/oem/armed          zapeceteno: LightDM spousti Pruvodce nastavenim
 #         /var/lib/luxos/oem/cleanup        prvni start po zapeceteni (ucet oem ke smazani, klice SSH)
@@ -33,6 +37,7 @@ KEYDIR=$R/etc/cryptsetup-keys.d
 SETUP_HOME=$R/var/lib/lightdm      # domov uzivatele lightdm (rozpracovany Pruvodce)
 UNIT=luxos-oem-firstboot.service
 SELF=/usr/bin/luxos-oem
+DOMAIN_CLI=${LUXOS_DOMAIN_CLI:-/usr/bin/lux-domain}
 
 if [[ -r $R/usr/lib/luxos/i18n.sh ]]; then . "$R/usr/lib/luxos/i18n.sh"
 elif ! declare -F T >/dev/null; then T() { local f=$1; shift; printf -- "$f" "$@"; }; fi
@@ -226,7 +231,7 @@ cmd_status() {
 }
 
 # --- dokonceni Pruvodce ----------------------------------------------------------------------------
-FIN_KEYS=" LOCALE XKB_LAYOUT XKB_VARIANT XKB_OPTIONS TIMEZONE FULLNAME USERNAME PASSWORD HOSTNAME AUTOLOGIN CARE_MODE LUXAI_ACCOUNT PHOTO DISK_PASS "
+FIN_KEYS=" LOCALE XKB_LAYOUT XKB_VARIANT XKB_OPTIONS TIMEZONE FULLNAME USERNAME PASSWORD HOSTNAME AUTOLOGIN CARE_MODE LUXAI_ACCOUNT PHOTO DISK_PASS DOMAIN DOMAIN_USER DOMAIN_PASSWORD DOMAIN_OU "
 declare -gA V=()
 
 read_input() {  # stdin: radky KLIC=hodnota (bez eval; nezname klice = chyba)
@@ -241,6 +246,7 @@ read_input() {  # stdin: radky KLIC=hodnota (bez eval; nezname klice = chyba)
 }
 
 valid_user() { [[ $1 =~ ^[a-z_][a-z0-9_-]{0,31}$ && $1 != root ]]; }
+valid_domain() { [[ ${#1} -le 253 && $1 =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]]; }
 valid_host() { [[ $1 =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]]; }
 # Jmena systemovych uctu (shodne s RESERVED_USERS v luxos-install-gui)
 RESERVED=" root bin daemon mail ftp http nobody dbus uuidd polkitd avahi lightdm git rtkit colord alpm tss usbmux geoclue lux sddm gdm "
@@ -264,6 +270,12 @@ validate() {
     [[ ${V[CARE_MODE]:=carefree} == @(carefree|classic) ]] || die "$(T "Invalid CARE_MODE (use carefree or classic)")"
     [[ ${V[AUTOLOGIN]:=0} == @(0|1) ]] || die "$(T "Invalid setup data.")"
     if [[ $(luks_state) == pending && -z ${V[DISK_PASS]-} ]]; then die "$(T "Choose a password for the disk.")"; fi
+    if [[ -n ${V[DOMAIN]-} ]]; then
+        V[DOMAIN]=${V[DOMAIN],,}
+        valid_domain "${V[DOMAIN]}" || die "$(T "Invalid domain name: %s" "${V[DOMAIN]}")"
+        [[ -n ${V[DOMAIN_USER]-} && -n ${V[DOMAIN_PASSWORD]-} ]] ||
+            die "$(T "Joining a domain needs the administrator name and password.")"
+    fi
     if [[ -n ${V[PHOTO]-} ]]; then
         # obrazek pripravi Pruvodce (PNG, zmenseny); zadne odkazy ani obri soubory
         [[ -f ${V[PHOTO]} && ! -L ${V[PHOTO]} ]] && (($(stat -c %s "${V[PHOTO]}") <= 5 * 1024 * 1024)) &&
@@ -419,6 +431,35 @@ luks_finalize() {  # initramfs bez docasneho klice, pak klic z LUKS pryc (bod be
     jset LUKS_DONE 1
 }
 
+# --- firemni sit (domena Active Directory, luxos-domain) ----------------------------------------
+join_domain() {  # nepovinne; chyba nezastavi dokonceni (@@WARN), opakovany beh po vypadku nic nezdvoji
+    local d=${V[DOMAIN]-} line err="" ok=0
+    [[ -n $d ]] || return 0
+    [[ $(jget DOMAIN) == "$d" ]] && return 0
+    if [[ ! -x $DOMAIN_CLI ]]; then
+        printf '@@WARN %s\n' "$(T "The computer could not join the domain %s: %s. Join it later in Settings > Organization Network." "$d" "$(T "luxos-domain is not installed")")"
+        return 0
+    fi
+    local -a args=(join "$d" -U "${V[DOMAIN_USER]}")
+    [[ -n ${V[DOMAIN_OU]-} ]] && args+=(--ou "${V[DOMAIN_OU]}")
+    args+=(--password-stdin --yes --progress)
+    # heslo jen na stdin (printf je vestaveny prikaz - neni v argumentech zadneho procesu)
+    while IFS= read -r line; do
+        case $line in
+            "@@ERROR "*) err=${line#@@ERROR }; [[ $err == *" "* ]] && err=${err#* }; err=${err%.} ;;
+            "@@DONE") ok=1 ;;
+            "@@"*) ;;                  # kroky lux-domain: Pruvodce ukazuje vlastni krok
+            *) printf '%s\n' "$line" >&2 ;;
+        esac
+    done < <(printf '%s\n' "${V[DOMAIN_PASSWORD]}" | "$DOMAIN_CLI" "${args[@]}" 2>&1 || true)
+    V[DOMAIN_PASSWORD]=""
+    if ((ok)); then
+        jset DOMAIN "$d"
+    else
+        printf '@@WARN %s\n' "$(T "The computer could not join the domain %s: %s. Join it later in Settings > Organization Network." "$d" "${err:-$(T "unknown error")}")"
+    fi
+}
+
 disarm() {
     rm -f "$GREETER_CONF" "$POLKIT_RULE"
     systemctl disable "$UNIT" >/dev/null 2>&1 || true
@@ -436,19 +477,25 @@ cmd_finish() {
     armed || die "$(T "The setup assistant is not active on this computer.")"
     read_input
     validate
-    local total=3 dev="" lstate
+    local total=3 dev="" lstate n=3
     lstate=$(luks_state)
     [[ $lstate == pending ]] && total=5
     [[ $lstate == finalize ]] && total=4
+    [[ -n ${V[DOMAIN]-} ]] && total=$((total + 1))
     step "1 $total $(T "Applying language and region")"
     apply_system
     step "2 $total $(T "Creating your account")"
     apply_user
+    if [[ -n ${V[DOMAIN]-} ]]; then
+        step "$n $total $(T "Joining the organization network")"
+        join_domain
+        n=$((n + 1))
+    fi
     if [[ $lstate == @(pending|finalize) ]]; then
         dev=$(luks_dev)
         [[ -n $dev ]] || die "$(T "The encrypted disk was not found.")"
         if [[ $lstate == pending ]]; then
-            step "3 $total $(T "Setting the disk password")"
+            step "$n $total $(T "Setting the disk password")"
             luks_customer_key "$dev"
         fi
         step "$((total - 1)) $total $(T "Preparing the encrypted disk")"

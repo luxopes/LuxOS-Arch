@@ -1,0 +1,10 @@
+# LuxOS - klient sdilenych slozek a tiskaren organizace (luxos-domain). Soubory (gvfs) a
+# tisk pouziji Kerberos ticket z prihlaseni - firemni slozky se otevrou bez dalsiho hesla.
+[global]
+   workgroup = {short}
+   realm = {realm}
+   security = ads
+   kerberos method = secrets and keytab
+   client use kerberos = desired
+   client signing = desired
+   client min protocol = SMB2

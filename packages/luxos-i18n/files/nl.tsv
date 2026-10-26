@@ -3646,3 +3646,232 @@ Funicular	Kabelspoorweg
 Cable car	Kabelbaan
 On-demand	Op afroep
 Shared bike	Deelfiets
+"%s" is not a printer address (smb://server/printer).	"%s" is geen printeradres (smb://server/printer).
+"%s" is not a shared folder address (smb://server/folder).	"%s" is geen adres van een gedeelde map (smb://server/folder).
+"%s" is not a valid domain name (e.g. firma.local).	"%s" is geen geldige domeinnaam (bijv. firma.local).
+"%s" is not a valid group name.	"%s" is geen geldige groepsnaam.
+"%s" is not a valid user name.	"%s" is geen geldige gebruikersnaam.
+"policy" belongs only to organization policies in %s	"policy" hoort alleen bij organisatiebeleid in %s
+%d controllers	%d controllers
+%s could not be restored; check it.	%s kon niet worden hersteld; controleer het.
+%s more days (of %d)	nog %s dagen (van %d)
+%s: set by the organization %s, it cannot be changed here	%s: ingesteld door de organisatie %s, kan hier niet worden gewijzigd
+%s: the policies %s and %s set different values	%s: het beleid %s en %s stellen verschillende waarden in
+(%d more days)	(nog %d dagen)
+(at most %d days offline)	(maximaal %d dagen offline)
+1 controller	1 controller
+A computer of a company or school can join its Windows domain (Active Directory): people then sign in with their work account.	Een computer van een bedrijf of school kan lid worden van zijn Windows-domein (Active Directory): mensen loggen dan in met hun werkaccount.
+A computer with this name already exists in the domain.	Er bestaat al een computer met deze naam in het domein.
+A personal computer with local accounts.	Een persoonlijke computer met lokale accounts.
+Add a group	Voeg een groep toe
+Administrator	Beheerder
+Administrator rights	Beheerdersrechten
+Administrator rights cannot last longer offline than the sign-in.	Beheerdersrechten kunnen offline niet langer duren dan het inloggen.
+Administrators	Beheerders
+Administrators from the domain: %s	Beheerders uit het domein: %s
+Administrators of this computer	Beheerders van deze computer
+Advanced	Geavanceerd
+Also remove the computer account from the domain (needs a domain administrator)	Verwijder ook het computeraccount uit het domein (vereist een domeinbeheerder)
+An account that may add computers to the domain.	Een account dat computers aan het domein mag toevoegen.
+An organization (Active Directory domain)	Een organisatie (Active Directory-domein)
+An organization (Windows domain)	Een organisatie (Windows-domein)
+Apply	Pas toe
+Authorization was cancelled. Nothing was changed.	Autorisatie geannuleerd. Er is niets gewijzigd.
+Computer name in the domain	Computernaam in het domein
+Connect this computer to the Windows domain (Active Directory) of your company or school. Then people sign in with their organization account, get shared folders and printers without another password, and IT can manage the computer.	Verbind deze computer met het Windows-domein (Active Directory) van je bedrijf of school. Mensen loggen dan in met hun organisatieaccount, krijgen gedeelde mappen en printers zonder extra wachtwoord, en de IT-afdeling kan de computer beheren.
+Controllers	Controllers
+Creating the computer account in the domain…	Computeraccount wordt aangemaakt in het domein…
+Current Password	Huidig wachtwoord
+DOMAIN needs DOMAIN_PASSWORD	DOMAIN vereist DOMAIN_PASSWORD
+DOMAIN needs DOMAIN_USER (a domain administrator)	DOMAIN vereist DOMAIN_USER (een domeinbeheerder)
+Domain	Domein
+Domain (e.g. firma.local)	Domein (bijv. firma.local)
+Domain accounts will no longer sign in here. Their home folders and personal files stay.	Domeinaccounts kunnen hier niet meer inloggen. Hun persoonlijke mappen en bestanden blijven bewaard.
+Domain administrator	Domeinbeheerder
+Domain administrator (allowed to add computers)	Domeinbeheerder (mag computers toevoegen)
+Domain group	Domeingroep
+Domain name	Domeinnaam
+Done. Log out and sign in with your organization account.	Klaar. Log uit en log in met je organisatieaccount.
+Enter a number of days.	Voer een aantal dagen in.
+Enter the address of the shared folder (smb://server/folder).	Voer het adres van de gedeelde map in (smb://server/folder).
+Enter the administrator password.	Voer het beheerderswachtwoord in.
+Enter the domain administrator.	Voer de domeinbeheerder in.
+Enter the domain name (e.g. firma.local).	Voer de domeinnaam in (bijv. firma.local).
+Enter the name of the domain group.	Voer de naam van de domeingroep in.
+Enter the password of the domain administrator.	Voer het wachtwoord van de domeinbeheerder in.
+Enter the printer name.	Voer de printernaam in.
+Error: %s	Fout: %s
+Fix it with: sudo lux domain sync-time	Los het op met: sudo lux domain sync-time
+For example firma.local or ad.school.cz	Bijvoorbeeld firma.local of ad.school.cz
+Found: Active Directory %s (domain controllers: %s)	Gevonden: Active Directory %s (domeincontrollers: %s)
+Full names	Volledige namen
+Home folders of domain users stay: %s	Persoonlijke mappen van domeingebruikers blijven bewaard: %s
+Ignored policy file %s (not a regular file)	Beleidsbestand %s genegeerd (geen gewoon bestand)
+Ignored policy file %s (the name must be NN-name.lsl)	Beleidsbestand %s genegeerd (de naam moet NN-name.lsl zijn)
+Incorrect password, or this account has not signed in on this computer yet (the first sign-in needs a connection to the organization network).	Onjuist wachtwoord, of dit account heeft nog niet ingelogd op deze computer (de eerste keer inloggen vereist een verbinding met het organisatienetwerk).
+Invalid DOMAIN (e.g. firma.local)	Ongeldig DOMAIN (bijv. firma.local)
+Invalid DOMAIN_USER, DOMAIN_PASSWORD, OU or DOMAIN_ADMINS	Ongeldige DOMAIN_USER, DOMAIN_PASSWORD, OU of DOMAIN_ADMINS
+Invalid domain name: %s	Ongeldige domeinnaam: %s
+Join an Organization Network	Word lid van een Organisatienetwerk
+Join the domain %s?	Lid worden van het domein %s?
+Join: sudo lux domain join DOMAIN -U ADMINISTRATOR	Join: sudo lux domain join DOMAIN -U ADMINISTRATOR
+Joined	Verbonden
+Joining a domain needs the administrator name and password.	Om lid te worden van een domein zijn de naam en het wachtwoord van de beheerder nodig.
+Joining failed.	Lid worden mislukt.
+Joining failed: %s	Lid worden mislukt: %s
+Joining the organization network	Verbinden met het organisatienetwerk
+Joining the organization network %s…	Verbinden met het organisatienetwerk %s…
+Last contact	Laatste contact
+Last contact with the domain: %s	Laatste contact met het domein: %s
+Leave	Verlaat
+Leave the Organization Network	Verlaat het Organisatienetwerk
+Leave the Organization Network…	Verlaat het Organisatienetwerk…
+Leave the domain %s?	Het domein %s verlaten?
+Leaving the organization network…	Organisatienetwerk wordt verlaten…
+Looking for the domain controllers…	Domeincontrollers worden gezocht…
+Looking for the domain…	Domein wordt gezocht…
+Me	Ik
+Me (personal computer)	Ik (persoonlijke computer)
+Members of this domain group may install software and change settings.	Leden van deze domeingroep mogen software installeren en instellingen wijzigen.
+Microsoft Active Directory	Microsoft Active Directory
+Microsoft Active Directory or Samba. You need a domain administrator to join.	Microsoft Active Directory of Samba. Om lid te worden heb je een domeinbeheerder nodig.
+Microsoft Active Directory – %s – %d controllers	Microsoft Active Directory – %s – %d controllers
+Name (%s or %s)	Naam (%s of %s)
+New Password	Nieuw wachtwoord
+No domain controller answered for this domain. Check the name and the network.	Geen enkele domeincontroller antwoordde voor dit domein. Controleer de naam en het netwerk.
+No domain group – only local administrators.	Geen domeingroep – alleen lokale beheerders.
+No organization network with this name was found.	Er is geen organisatienetwerk met deze naam gevonden.
+No settings are locked by the organization.	Er zijn geen instellingen vergrendeld door de organisatie.
+Nothing was changed. Confirm with --yes when running without a terminal.	Er is niets gewijzigd. Bevestig met --yes als je zonder terminal uitvoert.
+Offline sign-in	Offline inloggen
+Offline – you will sign in with your saved password	Offline – je logt in met je bewaarde wachtwoord
+Organization	Organisatie
+Organization Network	Organisatienetwerk
+Organization accounts will no longer be able to sign in on this computer and the settings of the organization stop applying. Personal files in home folders stay on this computer and are not deleted. Local accounts keep working.	Organisatieaccounts kunnen niet meer inloggen op deze computer en de instellingen van de organisatie worden niet meer toegepast. Persoonlijke bestanden in de persoonlijke mappen blijven op deze computer en worden niet verwijderd. Lokale accounts blijven werken.
+Organization network	Organisatienetwerk
+Organization network: Windows domain (Active Directory)	Organisatienetwerk: Windows-domein (Active Directory)
+Organization networks need the package luxos-domain (lux install luxos-domain).	Organisatienetwerken vereisen het pakket luxos-domain (lux install luxos-domain).
+Organization policies: %s	Organisatiebeleid: %s
+Organizational unit (OU)	Organisatie-eenheid (OU)
+Organizational unit for the computer (optional)	Organisatie-eenheid voor de computer (optioneel)
+Organizational unit for the computer (optional, Enter = default)	Organisatie-eenheid voor de computer (optioneel, Enter = standaard)
+Password of %s (used once, never saved)	Wachtwoord van %s (eenmalig gebruikt, nooit bewaard)
+Password of %s in %s: 	Wachtwoord van %s in %s: 
+People who signed in here before can sign in with their saved password this many days without a connection to the domain. 0 = always needs the connection.	Wie hier eerder heeft ingelogd, kan zoveel dagen met het bewaarde wachtwoord inloggen zonder verbinding met het domein. 0 = altijd verbinding nodig.
+Printers updated.	Printers bijgewerkt.
+Removing the computer account from the domain…	Computeraccount wordt uit het domein verwijderd…
+Removing the domain sign-in data…	Inloggegevens van het domein worden verwijderd…
+Repeat New Password	Herhaal nieuw wachtwoord
+Restoring the original settings…	Oorspronkelijke instellingen worden hersteld…
+SSSD could not be started: %s	SSSD kon niet worden gestart: %s
+Saved passwords work for %d more days.	Bewaarde wachtwoorden werken nog %d dagen.
+Saving the current settings…	Huidige instellingen worden bewaard…
+Set the Clock from the Domain	Zet de klok gelijk met het domein
+Setting the clock from the domain…	Klok wordt gelijkgezet met het domein…
+Setting up administrators…	Beheerders worden ingesteld…
+Setting up sign-in with domain accounts…	Inloggen met domeinaccounts wordt ingesteld…
+Shared folders and printers	Gedeelde mappen en printers
+Shared folders updated; they appear in Files after the next sign-in.	Gedeelde mappen bijgewerkt; ze verschijnen in Bestanden na de volgende keer inloggen.
+Short name	Korte naam
+Sign in to domain %s	Log in bij domein %s
+Sign out and sign in with a domain account (name or name@%s).	Log uit en log in met een domeinaccount (naam of naam@%s).
+Sign-in without connection	Inloggen zonder verbinding
+Signed in offline with your saved password.	Offline ingelogd met je bewaarde wachtwoord.
+Some of the entered values are not valid.	Sommige ingevoerde waarden zijn ongeldig.
+Starting the services…	Services worden gestart…
+Stopping the services…	Services worden gestopt…
+Suspended	Opgeschort
+Taking a system snapshot…	Momentopname van het systeem wordt gemaakt…
+The account is disabled or expired in the domain. Contact your IT department.	Het account is uitgeschakeld of verlopen in het domein. Neem contact op met je IT-afdeling.
+The account is locked by the domain administrator. Contact your IT department.	Het account is vergrendeld door de domeinbeheerder. Neem contact op met je IT-afdeling.
+The administrator name or password is not correct.	De naam of het wachtwoord van de beheerder is onjuist.
+The administrators group could not be set: %s	De beheerdersgroep kon niet worden ingesteld: %s
+The clock could not be set: %s	De klok kon niet worden ingesteld: %s
+The clock now matches the domain.	De klok komt nu overeen met het domein.
+The clock of this computer differs from the domain by more than 5 minutes.	De klok van deze computer wijkt meer dan 5 minuten af van het domein.
+The clock was set from the domain: %s	De klok is gelijkgezet met het domein: %s
+The computer account stays in the domain (%s); your IT administrator can remove it.	Het computeraccount blijft in het domein (%s); je IT-beheerder kan het verwijderen.
+The computer could not join the domain %s: %s. Join it later in Settings > Organization Network.	De computer kon geen lid worden van het domein %s: %s. Word later lid via Instellingen > Organisatienetwerk.
+The computer has not reached the domain for more than %d days. Administrator rights of domain groups return with the next connection.	De computer heeft het domein al meer dan %d dagen niet bereikt. Beheerdersrechten van domeingroepen keren terug bij de volgende verbinding.
+The computer joined the domain %s.	De computer is lid geworden van het domein %s.
+The domain cannot be checked here; the computer joins it at the end of the installation.	Het domein kan hier niet worden gecontroleerd; de computer wordt aan het einde van de installatie lid.
+The domain controller cannot be reached. Check the network connection.	De domeincontroller is niet bereikbaar. Controleer de netwerkverbinding.
+The domain controller could not be found. Check the domain name and that this computer uses the DNS server of the organization.	De domeincontroller is niet gevonden. Controleer de domeinnaam en of deze computer de DNS-server van de organisatie gebruikt.
+The domain has not been reached yet.	Het domein is nog niet bereikt.
+The domain tools are missing (lux install luxos-domain).	De domeinhulpmiddelen ontbreken (lux install luxos-domain).
+The domain was not found.	Het domein is niet gevonden.
+The name or password of the domain administrator is not correct.	De naam of het wachtwoord van de domeinbeheerder is onjuist.
+The network is not available. Connect to the network of the organization and try again.	Het netwerk is niet beschikbaar. Maak verbinding met het netwerk van de organisatie en probeer het opnieuw.
+The number of days must be between 0 and 180.	Het aantal dagen moet tussen 0 en 180 liggen.
+The operation failed.	De bewerking is mislukt.
+The password is used only once to join the domain and is never saved. Your own account stays an administrator of this computer.	Het wachtwoord wordt slechts één keer gebruikt om lid te worden van het domein en wordt nooit bewaard. Je eigen account blijft beheerder van deze computer.
+The printer could not be added: %s	De printer kon niet worden toegevoegd: %s
+The printer name may contain only letters, digits, - and _.	De printernaam mag alleen letters, cijfers, - en _ bevatten.
+The sudo rule for the administrator groups is not valid: %s	De sudo-regel voor de beheerdersgroepen is ongeldig: %s
+The system snapshot could not be taken: %s	De momentopname van het systeem kon niet worden gemaakt: %s
+This account is not allowed to add computers to the domain.	Dit account mag geen computers aan het domein toevoegen.
+This account may not add computers to the domain. Ask your IT administrator.	Dit account mag geen computers aan het domein toevoegen. Vraag het je IT-beheerder.
+This computer has no organization policies (%s is empty).	Deze computer heeft geen organisatiebeleid (%s is leeg).
+This computer is already in a domain.	Deze computer zit al in een domein.
+This computer is already in an organization network. Leave it first.	Deze computer zit al in een organisatienetwerk. Verlaat dat eerst.
+This computer is in the organization network	Deze computer zit in het organisatienetwerk
+This computer is not in a domain.	Deze computer zit niet in een domein.
+This computer is not in an organization network.	Deze computer zit niet in een organisatienetwerk.
+This computer is now in the domain %s.	Deze computer zit nu in het domein %s.
+This computer left the domain %s.	Deze computer heeft het domein %s verlaten.
+This is not a valid domain name (e.g. firma.local).	Dit is geen geldige domeinnaam (bijv. firma.local).
+This is not an Active Directory domain (Microsoft or Samba).	Dit is geen Active Directory-domein (Microsoft of Samba).
+This needs administrator rights (run it with sudo).	Hiervoor zijn beheerdersrechten nodig (voer het uit met sudo).
+Unknown setting %s	Onbekende instelling %s
+Use this domain anyway? (it is joined at the end of the installation)	Dit domein toch gebruiken? (lid worden gebeurt aan het einde van de installatie)
+Used only to join; it is not saved.	Alleen gebruikt om lid te worden; wordt niet bewaard.
+Where the computer account is created. Empty = default.	Waar het computeraccount wordt aangemaakt. Leeg = standaard.
+Who does this computer belong to?	Van wie is deze computer?
+Who may sign in	Wie mag inloggen
+Who may sign in: %s	Wie mag inloggen: %s
+Without a connection to the domain, administrator rights end after %d days.	Zonder verbinding met het domein vervallen beheerdersrechten na %d dagen.
+Your password has expired. Choose a new one.	Je wachtwoord is verlopen. Kies een nieuw wachtwoord.
+active	actief
+administrator rights offline: %s → %s days	beheerdersrechten offline: %s → %s dagen
+administrators: add domain group %s	beheerders: domeingroep %s toevoegen
+administrators: remove domain group %s	beheerders: domeingroep %s verwijderen
+days	dagen
+domain %s (administrator %s)	domein %s (beheerder %s)
+domain groups that administer this computer	domeingroepen die deze computer beheren
+domain, online or offline, offline sign-in, administrators	domein, online of offline, offline inloggen, beheerders
+domain: the organization network tools are not installed (lux install luxos-domain).	domain: de hulpmiddelen voor het organisatienetwerk zijn niet geïnstalleerd (lux install luxos-domain).
+everybody in the domain	iedereen in het domein
+find the domain controllers and check the clock	zoek de domeincontrollers en controleer de klok
+how many days administrator rights last offline	hoeveel dagen beheerdersrechten offline gelden
+how many days domain accounts may sign in offline	hoeveel dagen domeinaccounts offline mogen inloggen
+join this computer (asks for the domain administrator password)	maak deze computer lid (vraagt om het wachtwoord van de domeinbeheerder)
+leave the domain; home folders and personal files stay	verlaat het domein; persoonlijke mappen en bestanden blijven bewaard
+local file %s	lokaal bestand %s
+locked	vergrendeld
+luxos-domain is not installed	luxos-domain is niet geïnstalleerd
+merged configuration with organization policies and the origin of each value	samengevoegde configuratie met organisatiebeleid en de herkomst van elke waarde
+must be between 0 and 180	moet tussen 0 en 180 liggen
+must not be longer than domain.offline_days	mag niet langer zijn dan domain.offline_days
+no (personal computer)	nee (persoonlijke computer)
+offline	offline
+offline sign-in: %s → %s days	offline inloggen: %s → %s dagen
+online	online
+organization	organisatie
+organization network: Windows domain, Active Directory (lux domain help)	organisatienetwerk: Windows-domein, Active Directory (lux domain help)
+printers of a Windows print server (Kerberos)	printers van een Windows-printserver (Kerberos)
+set the clock from the domain	zet de klok gelijk met het domein
+settings locked by an organization (/etc/luxos/system.d)	instellingen vergrendeld door een organisatie (/etc/luxos/system.d)
+shared folders of the organization in Files	gedeelde mappen van de organisatie in Bestanden
+sign-in allowed for domain group %s	inloggen toegestaan voor domeingroep %s
+sign-in no longer limited to domain group %s	inloggen niet langer beperkt tot domeingroep %s
+suspended until the next connection	opgeschort tot de volgende verbinding
+unknown	onbekend
+who may sign in (empty = everybody in the domain)	wie mag inloggen (leeg = iedereen in het domein)
+The policy file %s may be changed by other users than root; fix it with: sudo chown root:root %s && sudo chmod 644 %s	Het beleidsbestand %s kan door andere gebruikers dan root worden gewijzigd; los dit op met: sudo chown root:root %s && sudo chmod 644 %s
+domain: this computer is not in an organization network; join it first with: sudo lux domain join DOMAIN	domain: deze computer zit niet in een organisatienetwerk; voeg hem eerst toe met: sudo lux domain join DOMAIN
+The computer joins the domain %s: domain accounts can sign in, the administrators of the domain become administrators of this computer.	De computer wordt lid van het domein %s: domeinaccounts kunnen inloggen en de beheerders van het domein worden beheerders van deze computer.
+"%s" is not a valid organizational unit (e.g. OU=Computers,DC=firma,DC=local).	"%s" is geen geldige organisatie-eenheid (bijv. OU=Computers,DC=firma,DC=local).
+A computer with this name is already in the domain. Choose another name or ask your IT administrator to remove the old account.	Er staat al een computer met deze naam in het domein. Kies een andere naam of vraag je IT-beheerder het oude account te verwijderen.
+The clock of this computer differs from the domain by more than 5 minutes. Set the clock from the domain and try again.	De klok van deze computer wijkt meer dan 5 minuten af van het domein. Stel de klok in vanaf het domein en probeer het opnieuw.
+The computer name for the domain may have at most 15 letters, digits and hyphens.	De computernaam voor het domein mag maximaal 15 letters, cijfers en koppeltekens hebben.
+The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Het domein is niet gevonden in DNS. Controleer of de computer de DNS-server van de organisatie gebruikt (meestal via DHCP) of voer het adres van een domeincontroller in.

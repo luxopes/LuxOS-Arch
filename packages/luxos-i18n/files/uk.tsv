@@ -3647,3 +3647,232 @@ Funicular	Фунікулер
 Cable car	Канатна дорога
 On-demand	За викликом
 Shared bike	Прокатний велосипед
+"%s" is not a printer address (smb://server/printer).	«%s» не є адресою принтера (smb://server/printer).
+"%s" is not a shared folder address (smb://server/folder).	«%s» не є адресою спільної папки (smb://server/folder).
+"%s" is not a valid domain name (e.g. firma.local).	«%s» не є коректною назвою домену (наприклад, firma.local).
+"%s" is not a valid group name.	«%s» не є коректною назвою групи.
+"%s" is not a valid user name.	«%s» не є коректним ім’ям користувача.
+"policy" belongs only to organization policies in %s	«policy» належить лише до політик організації в %s
+%d controllers	Контролери: %d
+%s could not be restored; check it.	Не вдалося відновити %s; перевірте це.
+%s more days (of %d)	ще %s дн. (з %d)
+%s: set by the organization %s, it cannot be changed here	%s: встановлено організацією %s, тут це змінити не можна
+%s: the policies %s and %s set different values	%s: політики %s і %s задають різні значення
+(%d more days)	(ще %d дн.)
+(at most %d days offline)	(не більше %d дн. без мережі)
+1 controller	1 контролер
+A computer of a company or school can join its Windows domain (Active Directory): people then sign in with their work account.	Комп’ютер компанії чи школи може приєднатися до її домену Windows (Active Directory): тоді люди входять зі своїм робочим обліковим записом.
+A computer with this name already exists in the domain.	Комп’ютер із такою назвою вже існує в домені.
+A personal computer with local accounts.	Особистий комп’ютер із локальними обліковими записами.
+Add a group	Додати групу
+Administrator	Адміністратор
+Administrator rights	Права адміністратора
+Administrator rights cannot last longer offline than the sign-in.	Права адміністратора без мережі не можуть діяти довше, ніж вхід.
+Administrators	Адміністратори
+Administrators from the domain: %s	Адміністратори з домену: %s
+Administrators of this computer	Адміністратори цього комп’ютера
+Advanced	Додатково
+Also remove the computer account from the domain (needs a domain administrator)	Також вилучити обліковий запис комп’ютера з домену (потрібен адміністратор домену)
+An account that may add computers to the domain.	Обліковий запис, якому дозволено додавати комп’ютери до домену.
+An organization (Active Directory domain)	Організації (домен Active Directory)
+An organization (Windows domain)	Організації (домен Windows)
+Apply	Застосувати
+Authorization was cancelled. Nothing was changed.	Авторизацію скасовано. Нічого не змінено.
+Computer name in the domain	Назва комп’ютера в домені
+Connect this computer to the Windows domain (Active Directory) of your company or school. Then people sign in with their organization account, get shared folders and printers without another password, and IT can manage the computer.	Приєднайте цей комп’ютер до домену Windows (Active Directory) вашої компанії чи школи. Тоді люди входять з обліковим записом організації, отримують спільні папки й принтери без додаткового пароля, а ІТ-відділ може керувати комп’ютером.
+Controllers	Контролери
+Creating the computer account in the domain…	Створення облікового запису комп’ютера в домені…
+Current Password	Поточний пароль
+DOMAIN needs DOMAIN_PASSWORD	DOMAIN потребує DOMAIN_PASSWORD
+DOMAIN needs DOMAIN_USER (a domain administrator)	DOMAIN потребує DOMAIN_USER (адміністратора домену)
+Domain	Домен
+Domain (e.g. firma.local)	Домен (наприклад, firma.local)
+Domain accounts will no longer sign in here. Their home folders and personal files stay.	Облікові записи домену більше не входитимуть тут. Їхні домашні папки й особисті файли залишаться.
+Domain administrator	Адміністратор домену
+Domain administrator (allowed to add computers)	Адміністратор домену (з правом додавати комп’ютери)
+Domain group	Група домену
+Domain name	Назва домену
+Done. Log out and sign in with your organization account.	Готово. Вийдіть і увійдіть з обліковим записом організації.
+Enter a number of days.	Введіть кількість днів.
+Enter the address of the shared folder (smb://server/folder).	Введіть адресу спільної папки (smb://server/folder).
+Enter the administrator password.	Введіть пароль адміністратора.
+Enter the domain administrator.	Введіть адміністратора домену.
+Enter the domain name (e.g. firma.local).	Введіть назву домену (наприклад, firma.local).
+Enter the name of the domain group.	Введіть назву групи домену.
+Enter the password of the domain administrator.	Введіть пароль адміністратора домену.
+Enter the printer name.	Введіть назву принтера.
+Error: %s	Помилка: %s
+Fix it with: sudo lux domain sync-time	Виправте це командою: sudo lux domain sync-time
+For example firma.local or ad.school.cz	Наприклад, firma.local або ad.school.cz
+Found: Active Directory %s (domain controllers: %s)	Знайдено: Active Directory %s (контролери домену: %s)
+Full names	Повні імена
+Home folders of domain users stay: %s	Домашні папки користувачів домену залишаються: %s
+Ignored policy file %s (not a regular file)	Пропущено файл політик %s (це не звичайний файл)
+Ignored policy file %s (the name must be NN-name.lsl)	Пропущено файл політик %s (назва має бути NN-name.lsl)
+Incorrect password, or this account has not signed in on this computer yet (the first sign-in needs a connection to the organization network).	Неправильний пароль, або цей обліковий запис ще не входив на цьому комп’ютері (для першого входу потрібне з’єднання з мережею організації).
+Invalid DOMAIN (e.g. firma.local)	Неприпустиме значення DOMAIN (наприклад, firma.local)
+Invalid DOMAIN_USER, DOMAIN_PASSWORD, OU or DOMAIN_ADMINS	Неприпустиме значення DOMAIN_USER, DOMAIN_PASSWORD, OU або DOMAIN_ADMINS
+Invalid domain name: %s	Неприпустима назва домену: %s
+Join an Organization Network	Приєднатися до мережі організації
+Join the domain %s?	Приєднатися до домену %s?
+Join: sudo lux domain join DOMAIN -U ADMINISTRATOR	Приєднання: sudo lux domain join DOMAIN -U ADMINISTRATOR
+Joined	Приєднано
+Joining a domain needs the administrator name and password.	Для приєднання до домену потрібні ім’я та пароль адміністратора.
+Joining failed.	Не вдалося приєднатися.
+Joining failed: %s	Не вдалося приєднатися: %s
+Joining the organization network	Приєднання до мережі організації
+Joining the organization network %s…	Приєднання до мережі організації %s…
+Last contact	Останній зв’язок
+Last contact with the domain: %s	Останній зв’язок із доменом: %s
+Leave	Вийти
+Leave the Organization Network	Вийти з мережі організації
+Leave the Organization Network…	Вийти з мережі організації…
+Leave the domain %s?	Вийти з домену %s?
+Leaving the organization network…	Вихід із мережі організації…
+Looking for the domain controllers…	Пошук контролерів домену…
+Looking for the domain…	Пошук домену…
+Me	Мені
+Me (personal computer)	Мені (особистий комп’ютер)
+Members of this domain group may install software and change settings.	Учасники цієї групи домену можуть встановлювати програми й змінювати параметри.
+Microsoft Active Directory	Microsoft Active Directory
+Microsoft Active Directory or Samba. You need a domain administrator to join.	Microsoft Active Directory або Samba. Для приєднання потрібен адміністратор домену.
+Microsoft Active Directory – %s – %d controllers	Microsoft Active Directory – %s – контролери: %d
+Name (%s or %s)	Ім’я (%s або %s)
+New Password	Новий пароль
+No domain controller answered for this domain. Check the name and the network.	Жоден контролер домену не відповів для цього домену. Перевірте назву й мережу.
+No domain group – only local administrators.	Немає групи домену – лише локальні адміністратори.
+No organization network with this name was found.	Мережу організації з такою назвою не знайдено.
+No settings are locked by the organization.	Організація не заблокувала жодних параметрів.
+Nothing was changed. Confirm with --yes when running without a terminal.	Нічого не змінено. Без термінала підтвердьте за допомогою --yes.
+Offline sign-in	Вхід без мережі
+Offline – you will sign in with your saved password	Не в мережі – ви ввійдете зі збереженим паролем
+Organization	Організація
+Organization Network	Мережа організації
+Organization accounts will no longer be able to sign in on this computer and the settings of the organization stop applying. Personal files in home folders stay on this computer and are not deleted. Local accounts keep working.	Облікові записи організації більше не зможуть входити на цьому комп’ютері, а параметри організації перестануть діяти. Особисті файли в домашніх папках залишаться на цьому комп’ютері й не будуть видалені. Локальні облікові записи працюватимуть далі.
+Organization network	Мережа організації
+Organization network: Windows domain (Active Directory)	Мережа організації: домен Windows (Active Directory)
+Organization networks need the package luxos-domain (lux install luxos-domain).	Для мереж організації потрібен пакет luxos-domain (lux install luxos-domain).
+Organization policies: %s	Політики організації: %s
+Organizational unit (OU)	Організаційна одиниця (OU)
+Organizational unit for the computer (optional)	Організаційна одиниця для комп’ютера (необов’язково)
+Organizational unit for the computer (optional, Enter = default)	Організаційна одиниця для комп’ютера (необов’язково, Enter = типова)
+Password of %s (used once, never saved)	Пароль %s (використовується один раз, ніколи не зберігається)
+Password of %s in %s: 	Пароль %s у %s: 
+People who signed in here before can sign in with their saved password this many days without a connection to the domain. 0 = always needs the connection.	Люди, які вже входили тут, можуть стільки днів входити зі збереженим паролем без з’єднання з доменом. 0 = з’єднання потрібне завжди.
+Printers updated.	Принтери оновлено.
+Removing the computer account from the domain…	Вилучення облікового запису комп’ютера з домену…
+Removing the domain sign-in data…	Вилучення даних входу домену…
+Repeat New Password	Повторіть новий пароль
+Restoring the original settings…	Відновлення початкових параметрів…
+SSSD could not be started: %s	Не вдалося запустити SSSD: %s
+Saved passwords work for %d more days.	Збережені паролі працюватимуть ще %d дн.
+Saving the current settings…	Збереження поточних параметрів…
+Set the Clock from the Domain	Налаштувати годинник за доменом
+Setting the clock from the domain…	Налаштування годинника за доменом…
+Setting up administrators…	Налаштування адміністраторів…
+Setting up sign-in with domain accounts…	Налаштування входу з обліковими записами домену…
+Shared folders and printers	Спільні папки й принтери
+Shared folders updated; they appear in Files after the next sign-in.	Спільні папки оновлено; вони з’являться у Файлах після наступного входу.
+Short name	Коротка назва
+Sign in to domain %s	Вхід у домен %s
+Sign out and sign in with a domain account (name or name@%s).	Вийдіть і увійдіть з обліковим записом домену (ім’я або ім’я@%s).
+Sign-in without connection	Вхід без з’єднання
+Signed in offline with your saved password.	Вхід виконано без мережі зі збереженим паролем.
+Some of the entered values are not valid.	Деякі введені значення некоректні.
+Starting the services…	Запуск служб…
+Stopping the services…	Зупинка служб…
+Suspended	Призупинено
+Taking a system snapshot…	Створення знімка системи…
+The account is disabled or expired in the domain. Contact your IT department.	Обліковий запис у домені вимкнено або строк його дії минув. Зверніться до ІТ-відділу.
+The account is locked by the domain administrator. Contact your IT department.	Обліковий запис заблоковано адміністратором домену. Зверніться до ІТ-відділу.
+The administrator name or password is not correct.	Ім’я або пароль адміністратора неправильні.
+The administrators group could not be set: %s	Не вдалося налаштувати групу адміністраторів: %s
+The clock could not be set: %s	Не вдалося налаштувати годинник: %s
+The clock now matches the domain.	Тепер годинник збігається з доменом.
+The clock of this computer differs from the domain by more than 5 minutes.	Годинник цього комп’ютера відрізняється від домену більш ніж на 5 хвилин.
+The clock was set from the domain: %s	Годинник налаштовано за доменом: %s
+The computer account stays in the domain (%s); your IT administrator can remove it.	Обліковий запис комп’ютера залишається в домені (%s); ваш ІТ-адміністратор може його вилучити.
+The computer could not join the domain %s: %s. Join it later in Settings > Organization Network.	Комп’ютер не зміг приєднатися до домену %s: %s. Приєднайте його пізніше в Параметри > Мережа організації.
+The computer has not reached the domain for more than %d days. Administrator rights of domain groups return with the next connection.	Комп’ютер не з’єднувався з доменом понад %d дн. Права адміністратора з груп домену повернуться під час наступного з’єднання.
+The computer joined the domain %s.	Комп’ютер приєднався до домену %s.
+The domain cannot be checked here; the computer joins it at the end of the installation.	Тут неможливо перевірити домен; комп’ютер приєднається до нього наприкінці встановлення.
+The domain controller cannot be reached. Check the network connection.	Контролер домену недоступний. Перевірте мережеве з’єднання.
+The domain controller could not be found. Check the domain name and that this computer uses the DNS server of the organization.	Не вдалося знайти контролер домену. Перевірте назву домену і те, що цей комп’ютер використовує DNS-сервер організації.
+The domain has not been reached yet.	З доменом ще не було з’єднання.
+The domain tools are missing (lux install luxos-domain).	Бракує інструментів домену (lux install luxos-domain).
+The domain was not found.	Домен не знайдено.
+The name or password of the domain administrator is not correct.	Ім’я або пароль адміністратора домену неправильні.
+The network is not available. Connect to the network of the organization and try again.	Мережа недоступна. Під’єднайтеся до мережі організації та спробуйте ще раз.
+The number of days must be between 0 and 180.	Кількість днів має бути від 0 до 180.
+The operation failed.	Операція не вдалася.
+The password is used only once to join the domain and is never saved. Your own account stays an administrator of this computer.	Пароль використовується лише один раз для приєднання до домену й ніколи не зберігається. Ваш власний обліковий запис залишиться адміністратором цього комп’ютера.
+The printer could not be added: %s	Не вдалося додати принтер: %s
+The printer name may contain only letters, digits, - and _.	Назва принтера може містити лише літери, цифри, - і _.
+The sudo rule for the administrator groups is not valid: %s	Правило sudo для груп адміністраторів некоректне: %s
+The system snapshot could not be taken: %s	Не вдалося створити знімок системи: %s
+This account is not allowed to add computers to the domain.	Цьому обліковому запису не дозволено додавати комп’ютери до домену.
+This account may not add computers to the domain. Ask your IT administrator.	Цьому обліковому запису не дозволено додавати комп’ютери до домену. Зверніться до свого ІТ-адміністратора.
+This computer has no organization policies (%s is empty).	Цей комп’ютер не має політик організації (%s порожній).
+This computer is already in a domain.	Цей комп’ютер уже в домені.
+This computer is already in an organization network. Leave it first.	Цей комп’ютер уже в мережі організації. Спочатку вийдіть із неї.
+This computer is in the organization network	Цей комп’ютер у мережі організації
+This computer is not in a domain.	Цей комп’ютер не в домені.
+This computer is not in an organization network.	Цей комп’ютер не в мережі організації.
+This computer is now in the domain %s.	Тепер цей комп’ютер у домені %s.
+This computer left the domain %s.	Цей комп’ютер вийшов із домену %s.
+This is not a valid domain name (e.g. firma.local).	Це некоректна назва домену (наприклад, firma.local).
+This is not an Active Directory domain (Microsoft or Samba).	Це не домен Active Directory (ні Microsoft, ні Samba).
+This needs administrator rights (run it with sudo).	Для цього потрібні права адміністратора (запустіть із sudo).
+Unknown setting %s	Невідомий параметр %s
+Use this domain anyway? (it is joined at the end of the installation)	Усе одно використати цей домен? (приєднання відбудеться наприкінці встановлення)
+Used only to join; it is not saved.	Використовується лише для приєднання; не зберігається.
+Where the computer account is created. Empty = default.	Де створюється обліковий запис комп’ютера. Порожньо = типово.
+Who does this computer belong to?	Кому належить цей комп’ютер?
+Who may sign in	Хто може входити
+Who may sign in: %s	Хто може входити: %s
+Without a connection to the domain, administrator rights end after %d days.	Без з’єднання з доменом права адміністратора закінчуються через %d дн.
+Your password has expired. Choose a new one.	Строк дії вашого пароля минув. Виберіть новий.
+active	активно
+administrator rights offline: %s → %s days	права адміністратора без мережі: %s → %s дн.
+administrators: add domain group %s	адміністратори: додати групу домену %s
+administrators: remove domain group %s	адміністратори: вилучити групу домену %s
+days	днів
+domain %s (administrator %s)	домен %s (адміністратор %s)
+domain groups that administer this computer	групи домену, які адмініструють цей комп’ютер
+domain, online or offline, offline sign-in, administrators	домен, у мережі чи без неї, вхід без мережі, адміністратори
+domain: the organization network tools are not installed (lux install luxos-domain).	domain: інструменти мережі організації не встановлено (lux install luxos-domain).
+everybody in the domain	усі в домені
+find the domain controllers and check the clock	знайти контролери домену й перевірити годинник
+how many days administrator rights last offline	скільки днів права адміністратора діють без мережі
+how many days domain accounts may sign in offline	скільки днів облікові записи домену можуть входити без мережі
+join this computer (asks for the domain administrator password)	приєднати цей комп’ютер (запитує пароль адміністратора домену)
+leave the domain; home folders and personal files stay	вийти з домену; домашні папки й особисті файли залишаться
+local file %s	локальний файл %s
+locked	заблоковано
+luxos-domain is not installed	luxos-domain не встановлено
+merged configuration with organization policies and the origin of each value	об’єднана конфігурація з політиками організації та походженням кожного значення
+must be between 0 and 180	має бути від 0 до 180
+must not be longer than domain.offline_days	не може перевищувати domain.offline_days
+no (personal computer)	ні (особистий комп’ютер)
+offline	не в мережі
+offline sign-in: %s → %s days	вхід без мережі: %s → %s дн.
+online	у мережі
+organization	організація
+organization network: Windows domain, Active Directory (lux domain help)	мережа організації: домен Windows, Active Directory (lux domain help)
+printers of a Windows print server (Kerberos)	принтери сервера друку Windows (Kerberos)
+set the clock from the domain	налаштувати годинник за доменом
+settings locked by an organization (/etc/luxos/system.d)	параметри, заблоковані організацією (/etc/luxos/system.d)
+shared folders of the organization in Files	спільні папки організації у Файлах
+sign-in allowed for domain group %s	вхід дозволено для групи домену %s
+sign-in no longer limited to domain group %s	вхід більше не обмежено групою домену %s
+suspended until the next connection	призупинено до наступного з’єднання
+unknown	невідомо
+who may sign in (empty = everybody in the domain)	хто може входити (порожньо = усі в домені)
+The policy file %s may be changed by other users than root; fix it with: sudo chown root:root %s && sudo chmod 644 %s	Файл політик %s можуть змінювати й інші користувачі, крім root; виправте командою: sudo chown root:root %s && sudo chmod 644 %s
+domain: this computer is not in an organization network; join it first with: sudo lux domain join DOMAIN	domain: цей комп’ютер не в мережі організації; спочатку приєднайте його: sudo lux domain join DOMAIN
+The computer joins the domain %s: domain accounts can sign in, the administrators of the domain become administrators of this computer.	Комп’ютер приєднається до домену %s: доменні облікові записи зможуть входити, а адміністратори домену стануть адміністраторами цього комп’ютера.
+"%s" is not a valid organizational unit (e.g. OU=Computers,DC=firma,DC=local).	«%s» не є дійсним організаційним підрозділом (напр. OU=Computers,DC=firma,DC=local).
+A computer with this name is already in the domain. Choose another name or ask your IT administrator to remove the old account.	Комп’ютер із такою назвою вже є в домені. Виберіть іншу назву або попросіть ІТ-адміністратора видалити старий обліковий запис.
+The clock of this computer differs from the domain by more than 5 minutes. Set the clock from the domain and try again.	Годинник цього комп’ютера відрізняється від домену більш ніж на 5 хвилин. Налаштуйте годинник за доменом і спробуйте ще раз.
+The computer name for the domain may have at most 15 letters, digits and hyphens.	Назва комп’ютера для домену може мати щонайбільше 15 літер, цифр і дефісів.
+The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Домен не знайдено в DNS. Перевірте, що комп’ютер використовує DNS-сервер організації (зазвичай із DHCP), або введіть адресу контролера домену.

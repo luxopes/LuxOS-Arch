@@ -26,7 +26,7 @@ MACROS = {"TH", "SH", "SS", "PP", "TP", "IP", "RS", "RE", "EX", "EE", "br", "sp"
 EXPECTED = {
     "man1/lsl.1", "man1/lslc.1", "man1/luxdrop.1", "man1/luxos-backup.1", "man1/luxos-guard.1", "man1/luxos-safe.1",
     "man1/luxos-sandbox.1", "man5/lux.conf.5", "man5/luxos-system.5", "man7/lsl.7", "man7/luxos.7", "man8/luxos-care.8",
-    "man8/luxos-update.8",
+    "man8/luxos-update.8", "man8/luxos-domain.8", "man8/lux-domain.8",
 }
 
 
@@ -197,8 +197,9 @@ class PagesTest(unittest.TestCase):
         for rel in self.files():
             text = self.read(rel)   # encoding ascii: UnicodeDecodeError = chyba
             with self.subTest(page=rel):
-                if rel == "man8/luxos-update.8":
-                    self.assertEqual(text, ".so man8/luxos-care.8\n")
+                if rel in ("man8/luxos-update.8", "man8/lux-domain.8"):
+                    self.assertEqual(text, {"man8/luxos-update.8": ".so man8/luxos-care.8\n",
+                                            "man8/lux-domain.8": ".so man8/luxos-domain.8\n"}[rel])
                     continue
                 lines = text.splitlines()
                 name, sec = os.path.basename(rel).rsplit(".", 1)
@@ -224,7 +225,9 @@ class PagesTest(unittest.TestCase):
                         self.fail("unconverted link: " + line)
 
     def test_see_also_targets_exist(self):
-        known = {os.path.basename(f) for f in self.files()} | {"lux.1", "bwrap.1", "gocryptfs.1"}
+        # stranky jinych baliku (sssd, krb5, adcli, realmd)
+        known = {os.path.basename(f) for f in self.files()} | {"lux.1", "bwrap.1", "gocryptfs.1", "sssd.conf.5",
+                                                                "sssd-ad.5", "krb5.conf.5", "adcli.8", "realm.8"}
         for rel in self.files():
             text = self.read(rel)
             for name, sec in re.findall(r"\\fB([\w.\\-]+)\\fR\((\d)\)", text):
@@ -234,7 +237,7 @@ class PagesTest(unittest.TestCase):
     def test_luxos7_points_everywhere(self):
         text = self.read("man7/luxos.7")
         see = text.split(".SH SEE ALSO", 1)[1]
-        for rel in EXPECTED - {"man7/luxos.7", "man8/luxos-update.8"}:
+        for rel in EXPECTED - {"man7/luxos.7", "man8/luxos-update.8", "man8/lux-domain.8"}:
             name, sec = os.path.basename(rel).rsplit(".", 1)
             self.assertIn("\\fB%s\\fR(%s)" % (md2man.escape(name), sec), see)
         self.assertIn("/usr/share/luxos/docs", see)

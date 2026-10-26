@@ -1,0 +1,58 @@
+# Maintainer: LuxOS Team
+# realmd z AUR, overeny pro [luxos] (politika AUR 0.9.10: ovladace a systemove nastroje z AUR jen
+# overene, s pevnym zdrojem a kontrolnim souctem). Puvodni AUR PKGBUILD je v PKGBUILD.aur, jeho
+# pomocnik realmd-arch-helper.sh.aur a realmd.install.aur (udrzovatel storbake, Felix Golatofski,
+# Mantas Mikulenas). PRI KAZDE AKTUALIZACI ZNOVU ZKONTROLOVAT ROZDIL proti AUR i zdrojum.
+#
+# Rozdily proti AUR (overeno 2026-10-26, zdroj sha256 souhlasi s AUR):
+# - bez realmd-arch-helper.sh a .install: helper pri instalaci prepisoval sedem soubor v /usr
+#   (u LuxOS jen pro cteni), volal pacman a "sed s/sss//g" v nsswitch.conf; PAM a NSS nastavuje
+#   luxos-domain (lux domain join), realmd jen zjistuje domenu (realm discover, realm list)
+# - vlastni konfigurace distribuce realmd-luxos.conf (--with-distro=luxos): bez automaticke
+#   instalace baliku, cesty Archu (/usr/bin), vychozi shell lsh
+# - bez zavislosti packagekit (realmd ho nepotrebuje k sestaveni ani k behu bez automatic-install)
+# Pri nove verzi v AUR zvysit pkgver (a sha256sums), pkgrel nechat X.1.
+
+pkgname=realmd
+pkgver=0.17.1
+pkgrel=2.1
+pkgdesc="DBus service for joining hosts to Active Directory and FreeIPA realms (LuxOS: discovery for luxos-domain)"
+arch=(x86_64)
+url="https://freedesktop.org/software/realmd/"
+license=(GPL3)
+depends=(adcli dbus krb5 openldap polkit glib2 systemd-libs)
+optdepends=('sssd: Active Directory, FreeIPA, LDAP client'
+            'luxos-domain: join and leave domains (lux domain)')
+makedepends=(docbook-xsl glib2-devel intltool python xmlto)
+source=("https://gitlab.freedesktop.org/realmd/realmd/-/archive/${pkgver}/realmd-${pkgver}.tar.gz"
+        "realmd-luxos.conf")
+sha256sums=('e8b51d5918418e9dc55006f0371831ab841f00a065baf2d001b6b5245f24a532'
+            '9ae5e4912b63efa2df5dc87744462ba2f708a574b2c79b010afd8e5c586c19b8')
+
+prepare() {
+  cd "$pkgname-$pkgver"
+  cp "$srcdir/realmd-luxos.conf" service/realmd-luxos.conf
+}
+
+build() {
+  cd "$pkgname-$pkgver"
+  AUTOMAKE=automake ACLOCAL=aclocal ./autogen.sh \
+    --prefix=/usr           \
+    --sbindir=/usr/bin      \
+    --sysconfdir=/etc       \
+    --localstatedir=/var    \
+    --with-distro=luxos     ;
+  make
+}
+
+check() {
+  cd "$pkgname-$pkgver"
+  make check
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  make DESTDIR="$pkgdir" DBUS_POLICY_DIR="/usr/share/dbus-1/system.d" install
+}
+
+# vim: ts=2:sw=2:et

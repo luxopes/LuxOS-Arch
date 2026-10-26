@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""Zastupny luxos-domain-helper pro GUI testy: zapise argumenty a stdin do $FAKE_DOMAIN_DIR/calls.log,
+vypisuje protokol @@STEP/@@ERROR/@@DONE a meni $FAKE_DOMAIN_DIR/status.json."""
+import json
+import os
+import sys
+import time
+
+d = os.environ["FAKE_DOMAIN_DIR"]
+stdin = sys.stdin.read()
+with open(os.path.join(d, "calls.log"), "a", encoding="utf-8") as f:
+    f.write("helper " + json.dumps(sys.argv[1:]) + " env-has-secret=" +
+            str(any("secret" in v for v in os.environ.values())) + " stdin=" + json.dumps(stdin) + "\n")
+status_path = os.path.join(d, "status.json")
+
+
+def status():
+    try:
+        with open(status_path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {"joined": False}
+
+
+def save(st):
+    with open(status_path, "w", encoding="utf-8") as f:
+        json.dump(st, f)
+
+
+def step(n, total, text):
+    print(f"@@STEP {n} {total} {text}", flush=True)
+    time.sleep(0.05)
+
+
+action, args = sys.argv[1], sys.argv[2:]
+pw = stdin.split("\n", 1)[0]
+if action == "join":
+    step(1, 4, "Finding the domain controllers")
+    if pw == "badpw":
+        print("@@ERROR password The name or password is wrong (from helper).", flush=True)
+        sys.exit(1)
+    if pw == "clock":
+        print("@@ERROR clock", flush=True)
+        sys.exit(1)
+    step(2, 4, "Creating the computer account")
+    step(3, 4, "Setting up sign-in")
+    step(4, 4, "Finishing")
+    save({"joined": True, "domain": args[0], "realm": args[0].upper(), "short": args[0].split(".")[0].upper(),
+          "computer": "LUXPC", "joined_at": "2026-10-26T10:00:00+01:00", "online": True,
+          "last_online": "2026-10-26T10:00:00+01:00", "offline_days": 30, "offline_left_days": None,
+          "admin_groups": ["Domain Admins"], "admins_active": True, "admin_offline_days": 7,
+          "allow_groups": [], "clashes": [], "shares": [], "printers": []})
+    print("@@DONE", flush=True)
+elif action == "leave":
+    step(1, 2, "Turning off domain sign-in")
+    step(2, 2, "Done")
+    try:
+        os.unlink(status_path)
+    except OSError:
+        pass
+    print("@@DONE", flush=True)
+elif action in ("admins-add", "admins-remove"):
+    st = status()
+    g = st.get("admin_groups", [])
+    if action == "admins-add" and args[0] not in g:
+        g.append(args[0])
+    if action == "admins-remove" and args[0] in g:
+        g.remove(args[0])
+    st["admin_groups"] = g
+    save(st)
+    print("@@DONE", flush=True)
+elif action == "set-offline-days":
+    st = status()
+    st["offline_days"] = int(args[0])
+    save(st)
+    print("@@DONE", flush=True)
+elif action == "sync-time":
+    print("@@DONE", flush=True)
+else:
+    print("@@ERROR invalid unknown action", flush=True)
+    sys.exit(2)

@@ -24,6 +24,7 @@ redirected to the LuxOS apps through wrappers in `/usr/lib/luxos/override-bin`:
 | Printers & Scanners | `luxos-printers` | [printing-scanning.md](printing-scanning.md) |
 | LuxAI Account | `luxos-account` | [luxai-account.md](luxai-account.md) |
 | Drivers | `luxos-drivers` | [drivers.md](drivers.md) |
+| Organization Network | `luxos-domain-settings` | join a Windows domain (Active Directory), offline sign-in, domain administrators ([domain.md](domain.md)) |
 
 ## Desktop & Dock
 
