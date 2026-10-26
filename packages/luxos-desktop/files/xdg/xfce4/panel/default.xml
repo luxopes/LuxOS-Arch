@@ -39,11 +39,20 @@
       <property name="button-icon" type="string" value="luxos-logo-symbolic"/>
       <property name="show-button-title" type="bool" value="false"/>
       <property name="show-button-icon" type="bool" value="true"/>
-      <property name="menu-width" type="int" value="440"/>
-      <property name="menu-height" type="int" value="520"/>
+      <!-- Vzhled LuxOS (upraveny xfce4-whiskermenu-plugin): nahore fotka a hledani, dole lista
+           Zamknout obrazovku / Restartovat / Uspat / Vypnout s popisky (commands-alternate=false),
+           Odhlasit v zahlavi. menu-opacity < 100 = pruhledne zaoblene rohy (styl v luxos.css). -->
+      <property name="menu-width" type="int" value="480"/>
+      <property name="menu-height" type="int" value="640"/>
       <property name="menu-opacity" type="int" value="96"/>
-      <property name="position-search-alternate" type="bool" value="true"/>
-      <property name="position-commands-alternate" type="bool" value="true"/>
+      <property name="position-search-alternate" type="bool" value="false"/>
+      <property name="position-commands-alternate" type="bool" value="false"/>
+      <property name="position-profile-alternate" type="bool" value="false"/>
+      <property name="profile-shape" type="int" value="0"/>
+      <property name="launcher-icon-size" type="int" value="2"/>
+      <property name="category-icon-size" type="int" value="1"/>
+      <!-- Kategorie "Chromium Apps" (aplikace z Chromia) slouci do Internetu -->
+      <property name="custom-menu-file" type="string" value="/etc/xdg/luxos/menus/luxos-applications.menu"/>
       <property name="launcher-show-description" type="bool" value="false"/>
       <property name="show-command-menueditor" type="bool" value="false"/>
       <property name="show-command-lockscreen" type="bool" value="true"/>
@@ -51,6 +60,7 @@
       <property name="show-command-restart" type="bool" value="true"/>
       <property name="show-command-suspend" type="bool" value="true"/>
       <property name="show-command-logout" type="bool" value="true"/>
+      <property name="show-command-switchuser" type="bool" value="false"/>
       <property name="command-lockscreen" type="string" value="xflock4"/>
       <property name="command-settings" type="string" value="xfce4-settings-manager"/>
       <property name="favorites" type="array">

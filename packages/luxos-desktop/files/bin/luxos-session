@@ -51,6 +51,25 @@ luxos-appearance panel-css 2>/dev/null
 [[ $(xfconf-query -c xfce4-panel -p /plugins/plugin-1/command-profile 2>/dev/null) == luxos-account ]] ||
     xfconf-query -c xfce4-panel -p /plugins/plugin-1/command-profile -n -t string -s luxos-account 2>/dev/null
 
+# Nabidka LuxOS v novem vzhledu i u profilu z drivejsich verzi (jednou): hledani nahore, dole lista
+# Zamknout obrazovku / Restartovat / Uspat / Vypnout, Odhlasit v zahlavi, bez kategorie Chromium Apps.
+# Oblibene a dalsi nastaveni zustavaji; zmeny rozvrzeni v Nastaveni nabidky se pak uz neprepisuji.
+if [[ ! -e $cfg/menu-layout-2 ]]; then
+    for p in $(xfconf-query -c xfce4-panel -l 2>/dev/null | grep -E '^/plugins/plugin-[0-9]+$'); do
+        [[ $(xfconf-query -c xfce4-panel -p "$p" 2>/dev/null) == whiskermenu ]] || continue
+        for b in position-search-alternate position-commands-alternate position-profile-alternate show-command-switchuser; do
+            xfconf-query -c xfce4-panel -p "$p/$b" -n -t bool -s false 2>/dev/null
+        done
+        xfconf-query -c xfce4-panel -p "$p/show-command-logout" -n -t bool -s true 2>/dev/null
+        xfconf-query -c xfce4-panel -p "$p/menu-width" -n -t int -s 480 2>/dev/null
+        xfconf-query -c xfce4-panel -p "$p/menu-height" -n -t int -s 640 2>/dev/null
+        [[ -r /etc/xdg/luxos/menus/luxos-applications.menu ]] &&
+            xfconf-query -c xfce4-panel -p "$p/custom-menu-file" -n -t string -s /etc/xdg/luxos/menus/luxos-applications.menu 2>/dev/null
+    done
+    : >"$cfg/menu-layout-2"
+    unset p b
+fi
+
 # Svetly/tmavy rezim: automaticky podle vychodu a zapadu slunce (je-li zapnuto)
 if [[ $(luxos-appearance mode) == auto ]]; then
     m=$(python3 -I /usr/lib/luxos/python/luxos_sun.py mode 2>/dev/null)

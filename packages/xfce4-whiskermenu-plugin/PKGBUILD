@@ -1,0 +1,43 @@
+# Maintainer: LuxOS Team
+# xfce4-whiskermenu-plugin z Archu + nabidka LuxOS ve stylu macOS (luxos-menu-layout.patch):
+# s position-commands-alternate=false jsou prikazy v liste pod aplikacemi s popisky (vlevo
+# Zamknout obrazovku, vpravo Restartovat, Uspat, Vypnout; jednobarevne ikony, jmena #command-*
+# pro CSS), Odhlasit v zahlavi vedle fotky, bez fotky kolecko s pocatecnim pismenem (jako
+# prihlaseni a zamek), napoveda "Search applications..." v poli hledani i se zamerenim.
+# Popisky prekladaji soubory luxos-i18n (/usr/share/luxos/i18n). Vzhled je v luxos.css
+# (luxos-themes), nastaveni v kanalu xfce4-panel (luxos-desktop).
+# Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
+# verzi v Archu zvysit pkgver (a sha256sums), pkgrel nechat X.1.
+# Puvodni PKGBUILD Archu (udrzovatel Robin Candau) je v PKGBUILD.arch.
+
+pkgname=xfce4-whiskermenu-plugin
+pkgver=2.10.1
+pkgrel=2.1
+pkgdesc='Menu for Xfce4 (LuxOS: labeled power buttons, search on top)'
+arch=('x86_64')
+url='https://docs.xfce.org/panel-plugins/xfce4-whiskermenu-plugin/start'
+license=('GPL-2.0-or-later')
+groups=('xfce4-goodies')
+depends=('accountsservice' 'garcon' 'gtk3' 'gtk-layer-shell' 'xfce4-panel')
+makedepends=('git' 'meson' 'ninja')
+optdepends=('mugshot: Update user details'
+            'luxos-i18n: translations of the LuxOS menu labels')
+source=("git+https://gitlab.xfce.org/panel-plugins/xfce4-whiskermenu-plugin.git#tag=v${pkgver}"
+        'luxos-menu-layout.patch')
+sha256sums=('9eafb5f1caa550abe0190cae3861fa3ceca6380e10527ccae8b730e889515c13'
+            '12445a21ed76caa40fa8e3f79dc6b7e548be61cdc9fb4040eab848da21ac0252')
+
+prepare() {
+  cd "${pkgname}"
+  # LuxOS: lista prikazu s popisky, Odhlasit v zahlavi, inicialy, napoveda hledani
+  patch -Np1 -i "${srcdir}/luxos-menu-layout.patch"
+}
+
+build() {
+  arch-meson "${pkgname}" build
+  meson compile -C build
+}
+
+package() {
+  meson install -C build --destdir "${pkgdir}"
+}

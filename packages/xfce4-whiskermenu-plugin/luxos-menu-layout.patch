@@ -1,0 +1,311 @@
+diff --git a/panel-plugin/command.cpp b/panel-plugin/command.cpp
+index 1ffdc6e..ff907e7 100644
+--- a/panel-plugin/command.cpp
++++ b/panel-plugin/command.cpp
+@@ -107,7 +107,9 @@ GtkWidget* Command::get_button()
+ 		Connect::After);
+ 
+ 	GtkWidget* image = gtk_image_new_from_icon_name(m_icon, GTK_ICON_SIZE_LARGE_TOOLBAR);
+-	gtk_container_add(GTK_CONTAINER(m_button), GTK_WIDGET(image));
++	// LuxOS: obrazek pres gtk_button_set_image, aby sel pridat popisek (window.cpp)
++	gtk_button_set_image(GTK_BUTTON(m_button), image);
++	gtk_button_set_always_show_image(GTK_BUTTON(m_button), true);
+ 
+ 	gtk_style_context_add_class(gtk_widget_get_style_context(m_button), "command-button");
+ 
+diff --git a/panel-plugin/profile.cpp b/panel-plugin/profile.cpp
+index 388efbe..66718c0 100644
+--- a/panel-plugin/profile.cpp
++++ b/panel-plugin/profile.cpp
+@@ -124,13 +124,50 @@ void Profile::reset_tooltip()
+ void Profile::update_picture()
+ {
+ 	const gint scale = gtk_widget_get_scale_factor(m_image);
+-	const gint size = 32;
++	const gint size = 36; // LuxOS: vetsi fotka v zahlavi
+ 	const gint half_size = size / 2;
+ 
+ 	GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file_at_size(m_file_path, size * scale, size * scale, nullptr);
+ 	if (!pixbuf)
+ 	{
+-		gtk_image_set_from_icon_name(GTK_IMAGE(m_image), "avatar-default", GTK_ICON_SIZE_DND);
++		// LuxOS: bez fotky kolecko s pocatecnim pismenem jmena (jako prihlaseni a zamek)
++		cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size * scale, size * scale);
++		cairo_surface_set_device_scale(surface, scale, scale);
++		cairo_t* cr = cairo_create(surface);
++		cairo_pattern_t* gradient = cairo_pattern_create_linear(0, 0, size, size);
++		cairo_pattern_add_color_stop_rgb(gradient, 0, 0.30, 0.52, 1.0);
++		cairo_pattern_add_color_stop_rgb(gradient, 1, 0.66, 0.42, 0.98);
++		cairo_arc(cr, half_size, half_size, half_size, 0, 2 * G_PI);
++		cairo_set_source(cr, gradient);
++		cairo_fill(cr);
++		cairo_pattern_destroy(gradient);
++
++		const gchar* name = gtk_label_get_text(GTK_LABEL(m_username));
++		while (*name && g_unichar_isspace(g_utf8_get_char(name)))
++		{
++			name = g_utf8_next_char(name);
++		}
++		gchar initial[8] = "?";
++		if (*name)
++		{
++			initial[g_unichar_to_utf8(g_unichar_toupper(g_utf8_get_char(name)), initial)] = '\0';
++		}
++		PangoLayout* layout = gtk_widget_create_pango_layout(m_image, initial);
++		PangoFontDescription* font = pango_font_description_new();
++		pango_font_description_set_absolute_size(font, size * 0.44 * PANGO_SCALE);
++		pango_font_description_set_weight(font, PANGO_WEIGHT_MEDIUM);
++		pango_layout_set_font_description(layout, font);
++		pango_font_description_free(font);
++		PangoRectangle ink;
++		pango_layout_get_pixel_extents(layout, &ink, nullptr);
++		cairo_move_to(cr, half_size - ink.x - ink.width / 2.0, half_size - ink.y - ink.height / 2.0);
++		cairo_set_source_rgba(cr, 1, 1, 1, 0.97);
++		pango_cairo_show_layout(cr, layout);
++		g_object_unref(layout);
++
++		gtk_image_set_from_surface(GTK_IMAGE(m_image), surface);
++		cairo_surface_destroy(surface);
++		cairo_destroy(cr);
+ 		return;
+ 	}
+ 
+diff --git a/panel-plugin/window.cpp b/panel-plugin/window.cpp
+index 9447f56..849ac8a 100644
+--- a/panel-plugin/window.cpp
++++ b/panel-plugin/window.cpp
+@@ -37,12 +37,52 @@
+ #include <gtk-layer-shell.h>
+ #endif
+ 
++#include <cstring>
+ #include <ctime>
+ 
+ using namespace WhiskerMenu;
+ 
+ //-----------------------------------------------------------------------------
+ 
++// LuxOS: preklad z luxos-i18n (/usr/share/luxos/i18n/<jazyk>.tsv: anglicky<TAB>prelozeny;
++// LUXOS_I18N_DIR pro testy)
++static const gchar* luxos_tr(const gchar* text)
++{
++	static GHashTable* table = nullptr;
++	if (!table)
++	{
++		table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
++		const gchar* dir = g_getenv("LUXOS_I18N_DIR");
++		for (const gchar* const* lang = g_get_language_names(); *lang; ++lang)
++		{
++			gchar* path = g_strdup_printf("%s/%s.tsv", (dir && *dir) ? dir : "/usr/share/luxos/i18n", *lang);
++			gchar* data = nullptr;
++			const bool found = !strchr(*lang, '.') && g_file_get_contents(path, &data, nullptr, nullptr);
++			g_free(path);
++			if (!found)
++			{
++				continue;
++			}
++			gchar** lines = g_strsplit(data, "\n", -1);
++			for (gchar** line = lines; *line; ++line)
++			{
++				gchar* tab = strchr(*line, '\t');
++				if (**line != '#' && tab && tab[1])
++				{
++					g_hash_table_replace(table, g_strndup(*line, tab - *line), g_strdup(tab + 1));
++				}
++			}
++			g_strfreev(lines);
++			g_free(data);
++			break;
++		}
++	}
++	const gchar* translated = static_cast<const gchar*>(g_hash_table_lookup(table, text));
++	return translated ? translated : text;
++}
++
++//-----------------------------------------------------------------------------
++
+ WhiskerMenu::Window::Window(Plugin* plugin) :
+ 	m_plugin(plugin),
+ 	m_window(nullptr),
+@@ -55,7 +95,7 @@ WhiskerMenu::Window::Window(Plugin* plugin) :
+ 	m_layout_search_alternate(false),
+ 	m_layout_commands_alternate(false),
+ 	m_layout_profile_alternate(false),
+-	m_profile_shape(0),
++	m_profile_shape(-1), // LuxOS: rozvrzeni LuxOS hned pri prvnim zobrazeni
+ 	m_supports_alpha(false),
+ 	m_child_has_focus(false),
+ 	m_resizing(false)
+@@ -192,6 +232,22 @@ WhiskerMenu::Window::Window(Plugin* plugin) :
+ 	for (int i = 0; i < 9; ++i)
+ 	{
+ 		m_commands_button[i] = wm_settings->command[i]->get_button();
++		// LuxOS: jmena pro CSS (#command-lockscreen, #command-shutdown...)
++		static const gchar* const names[] = { "command-settings", "command-lockscreen", "command-switchuser",
++			"command-logoutuser", "command-restart", "command-shutdown", "command-suspend",
++			"command-hibernate", "command-logout" };
++		gtk_widget_set_name(m_commands_button[i], names[i]);
++		// LuxOS: jednobarevne ikony (obarvi CSS, Vypnout cervene)
++		static const gchar* const icons[] = { nullptr, "system-lock-screen-symbolic", nullptr, nullptr,
++			"system-reboot-symbolic", "system-shutdown-symbolic", "weather-clear-night-symbolic",
++			nullptr, "system-log-out-symbolic" };
++		if (icons[i] && gtk_icon_theme_has_icon(gtk_icon_theme_get_default(), icons[i]))
++		{
++			GtkWidget* image = gtk_image_new_from_icon_name(icons[i], GTK_ICON_SIZE_LARGE_TOOLBAR);
++			gtk_image_set_pixel_size(GTK_IMAGE(image), 18);
++			gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
++			gtk_button_set_image(GTK_BUTTON(m_commands_button[i]), image);
++		}
+ 		m_command_slots[i] = connect(m_commands_button[i], "clicked",
+ 			[this](GtkButton*)
+ 			{
+@@ -201,6 +257,30 @@ WhiskerMenu::Window::Window(Plugin* plugin) :
+ 
+ 	// Create search entry
+ 	m_search_entry = GTK_ENTRY(gtk_search_entry_new());
++	// LuxOS: napoveda v prazdnem poli i se zamerenim (GTK 3 ji jinak ukaze jen bez zamereni)
++	gtk_entry_set_placeholder_text(m_search_entry, luxos_tr("Search applications…"));
++	connect(m_search_entry, "draw",
++		[this](GtkWidget* widget, cairo_t* cr) -> gboolean
++		{
++			if (!gtk_widget_has_focus(widget) || (gtk_entry_get_text_length(m_search_entry) > 0))
++			{
++				return GDK_EVENT_PROPAGATE;
++			}
++			GdkRectangle area;
++			gtk_entry_get_text_area(m_search_entry, &area);
++			PangoLayout* layout = gtk_widget_create_pango_layout(widget, gtk_entry_get_placeholder_text(m_search_entry));
++			int height;
++			pango_layout_get_pixel_size(layout, nullptr, &height);
++			GdkRGBA color;
++			GtkStyleContext* context = gtk_widget_get_style_context(widget);
++			gtk_style_context_get_color(context, gtk_style_context_get_state(context), &color);
++			cairo_set_source_rgba(cr, color.red, color.green, color.blue, color.alpha * 0.45);
++			cairo_move_to(cr, area.x + 2, area.y + (area.height - height) / 2);
++			pango_cairo_show_layout(cr, layout);
++			g_object_unref(layout);
++			return GDK_EVENT_PROPAGATE;
++		},
++		Connect::After);
+ 	gtk_window_set_focus(m_window, GTK_WIDGET(m_search_entry));
+ 
+ 	connect(m_search_entry, "changed",
+@@ -376,7 +456,8 @@ WhiskerMenu::Window::~Window()
+ 	for (int i = 0; i < 9; ++i)
+ 	{
+ 		g_signal_handler_disconnect(m_commands_button[i], m_command_slots[i]);
+-		gtk_container_remove(GTK_CONTAINER(m_commands_box), m_commands_button[i]);
++		// LuxOS: Odhlasit muze byt v zahlavi
++		gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(m_commands_button[i])), m_commands_button[i]);
+ 	}
+ 
+ 	delete m_applications;
+@@ -1172,10 +1253,45 @@ void WhiskerMenu::Window::update_layout()
+ 	}
+ 	else
+ 	{
+-		gtk_box_pack_start(m_title_box, GTK_WIDGET(m_commands_box), false, false, 0);
++		// LuxOS: prikazy v liste pod aplikacemi (s popisky), Odhlasit vpravo v zahlavi
++		gtk_box_pack_end(m_vbox, GTK_WIDGET(m_commands_box), false, false, 0);
+ 	}
+ 	g_object_unref(m_commands_box);
+ 
++	GtkWidget* logout = m_commands_button[Settings::CommandLogOut];
++	g_object_ref(logout);
++	gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(logout)), logout);
++	gtk_box_pack_start(m_layout_commands_alternate ? m_commands_box : m_title_box, logout, false, false, 0);
++	g_object_unref(logout);
++
++	GtkStyleContext* commands_context = gtk_widget_get_style_context(GTK_WIDGET(m_commands_box));
++	if (m_layout_commands_alternate)
++	{
++		gtk_style_context_remove_class(commands_context, "luxos-bar");
++	}
++	else
++	{
++		gtk_style_context_add_class(commands_context, "luxos-bar");
++	}
++	for (int i = 0; i < 9; ++i)
++	{
++		const gchar* label = nullptr;
++		if (!m_layout_commands_alternate && (i != Settings::CommandLogOut))
++		{
++			switch (i)
++			{
++			case Settings::CommandLockScreen: label = luxos_tr("Lock Screen"); break;
++			case Settings::CommandRestart: label = luxos_tr("Restart"); break;
++			case Settings::CommandSuspend: label = luxos_tr("Sleep"); break;
++			case Settings::CommandShutDown: label = luxos_tr("Power Off"); break;
++			default: label = wm_settings->command[i]->get_text(); break;
++			}
++		}
++		gtk_button_set_label(GTK_BUTTON(m_commands_button[i]), label);
++		gtk_button_set_image_position(GTK_BUTTON(m_commands_button[i]),
++				(i == Settings::CommandLockScreen) ? GTK_POS_LEFT : GTK_POS_TOP);
++	}
++
+ 	// Set horizontal position of categories
+ 	g_object_ref(m_category_buttons);
+ 	if (m_layout_categories_horizontal)
+@@ -1241,30 +1357,21 @@ void WhiskerMenu::Window::update_layout()
+ 			gtk_box_reorder_child(m_commands_box, m_commands_button[i], 8 - i);
+ 		}
+ 	}
+-	else if (m_layout_ltr)
++	else
+ 	{
++		// LuxOS: vlevo Zamknout obrazovku, vpravo Restartovat, Uspat a Vypnout (zrcadli GTK)
+ 		gtk_widget_set_halign(m_profile->get_username(), GTK_ALIGN_START);
+ 
+ 		gtk_box_reorder_child(m_title_box, m_profile->get_picture(), 0);
+ 		gtk_box_reorder_child(m_title_box, m_profile->get_username(), 1);
+-		gtk_box_reorder_child(m_title_box, GTK_WIDGET(m_commands_box), 2);
+ 
+-		for (int i = 0; i < 9; ++i)
++		static const int order[] = { Settings::CommandLockScreen, -1, Settings::CommandSettings,
++			Settings::CommandSwitchUser, Settings::CommandLogOutUser, Settings::CommandHibernate,
++			Settings::CommandRestart, Settings::CommandSuspend, Settings::CommandShutDown };
++		int pos = 0;
++		for (int i : order)
+ 		{
+-			gtk_box_reorder_child(m_commands_box, m_commands_button[i], i);
+-		}
+-	}
+-	else
+-	{
+-		gtk_widget_set_halign(m_profile->get_username(), GTK_ALIGN_END);
+-
+-		gtk_box_reorder_child(m_title_box, m_profile->get_picture(), 2);
+-		gtk_box_reorder_child(m_title_box, m_profile->get_username(), 1);
+-		gtk_box_reorder_child(m_title_box, GTK_WIDGET(m_commands_box), 0);
+-
+-		for (int i = 0; i < 9; ++i)
+-		{
+-			gtk_box_reorder_child(m_commands_box, m_commands_button[i], 8 - i);
++			gtk_box_reorder_child(m_commands_box, (i < 0) ? m_commands_spacer : m_commands_button[i], pos++);
+ 		}
+ 	}
+ 
+@@ -1313,14 +1420,20 @@ void WhiskerMenu::Window::update_layout()
+ 		gtk_grid_attach(m_contents_box, GTK_WIDGET(m_panels_stack), 0, 0, 1, 1);
+ 		gtk_grid_attach(m_contents_box, GTK_WIDGET(m_sidebar), 1, 0, 1, 1);
+ 
+-		gtk_box_reorder_child(m_commands_box, m_commands_spacer, 0);
++		if (m_layout_commands_alternate)
++		{
++			gtk_box_reorder_child(m_commands_box, m_commands_spacer, 0);
++		}
+ 	}
+ 	else
+ 	{
+ 		gtk_grid_attach(m_contents_box, GTK_WIDGET(m_sidebar), 0, 0, 1, 1);
+ 		gtk_grid_attach(m_contents_box, GTK_WIDGET(m_panels_stack), 1, 0, 1, 1);
+ 
+-		gtk_box_reorder_child(m_commands_box, m_commands_spacer, 9);
++		if (m_layout_commands_alternate)
++		{
++			gtk_box_reorder_child(m_commands_box, m_commands_spacer, 9);
++		}
+ 	}
+ 
+ 	if (!m_layout_categories_alternate)
