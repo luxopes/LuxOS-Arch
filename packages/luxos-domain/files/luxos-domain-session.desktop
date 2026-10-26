@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Organization network
+Name[cs]=Firemní síť
+Comment=Shared folders of the organization in Files
+Comment[cs]=Sdílené složky organizace v Souborech
+Exec=/usr/bin/lux-domain session
+NoDisplay=true
+X-XFCE-Autostart-Override=true

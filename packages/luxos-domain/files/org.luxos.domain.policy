@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>LuxOS</vendor>
+  <action id="org.luxos.domain.manage">
+    <description>Manage the organization network</description>
+    <description xml:lang="cs">Správa firemní sítě</description>
+    <message>Authentication is required to join or leave an organization network</message>
+    <message xml:lang="cs">K připojení nebo odpojení od firemní sítě je potřeba ověření</message>
+    <icon_name>network-workgroup</icon_name>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/luxos/domain/luxos-domain-helper</annotate>
+  </action>
+</policyconfig>

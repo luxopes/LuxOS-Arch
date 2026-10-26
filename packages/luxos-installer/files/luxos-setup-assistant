@@ -7,7 +7,8 @@
                                         okno "Zapecetit pro zakaznika" v docasnem uctu oem
 
 Stranky jako v macOS: jazyk, klavesnice, Wi-Fi, casove pasmo, ucet (jmeno, heslo s okem, fotka),
-LuxAI, heslo disku (jen sifrovany disk), udrzba. Stranky jazyka, klavesnice, Wi-Fi, casu, uctu,
+firemni sit (jen s nainstalovanym luxos-domain: domena Active Directory), LuxAI, heslo disku (jen
+sifrovany disk), udrzba. Stranky jazyka, klavesnice, Wi-Fi, casu, uctu,
 LuxAI a udrzby jsou z instalatoru (luxos-install-gui, trida Installer), zadna kopie.
 Konec: "sudo luxos-oem finish" (data na stdin) a prihlaseni do noveho uctu pres LightDM; prvni
 prihlaseni spusti Prohlidku LuxOS (luxos-session). Rozpracovane volby (bez hesel) se ukladaji,
@@ -16,6 +17,7 @@ po vypadku proudu nebo padu se Pruvodce spusti znovu (luxos-setup-greeter) a pok
 Testy:  LUXOS_SETUP_HELPER="prikaz"   misto "sudo -n /usr/bin/luxos-oem"
         LUXOS_SETUP_STATE=soubor      ulozeny prubeh (vychozi ~/.local/state/luxos-setup/progress.json)
         LUXOS_INSTALL_GUI=cesta       instalator, ze ktereho se berou stranky
+        LUXOS_DOMAIN_CLI=cesta        lux-domain (krok Firemni sit jen kdyz existuje; vychozi /usr/bin/lux-domain)
 """
 import argparse
 import os
@@ -167,13 +169,14 @@ class SetupAssistant(gui.Installer):
             "hostname": "", "host_edited": False, "autologin": False, "luxai": None, "luxai_email": "",
             "care": "carefree", "templates": [], "disk_same": True, "disk1": "", "disk2": "",
             "encrypt": False, "mode": None, "oem": False,
+            "org": False, "domain": "", "domain_user": "", "domain_pw": "", "domain_ou": "",
         }
         saved = oem.load_progress()
         self.s["xkb"] = self.default_xkb(saved.get("locale", locale))
         self.s.update(saved)
         gui.set_ui_lang(self.s["locale"])
         self.luks_pending = status.get("LUKS") == "pending"
-        self.steps = oem.steps(self.luks_pending)
+        self.steps = oem.steps(self.luks_pending, oem.domain_available())
         self.idx = 0
         if saved.get("step") in self.steps:
             # preruseno pri dokoncovani: posledni stranka pred dokoncenim (Dokoncit nastaveni znovu)
@@ -188,6 +191,7 @@ class SetupAssistant(gui.Installer):
         self.finishing = False
         self.finish_error = ""
         self.finish_text = ""
+        self.finish_warn = ""      # nezavazne (pocitac se nepripojil k domene) - ukaze se pred prihlasenim
         self.tz_asked = False
         self.templates = []
         self.valid = lambda: True
@@ -509,6 +513,20 @@ class SetupAssistant(gui.Installer):
             t = Gtk.Label(label=_("Welcome, %s!") % (self.s["fullname"].strip() or self.s["username"]))
             t.get_style_context().add_class("big-title")
             page.pack_start(t, False, False, 0)
+            if self.finish_warn:
+                # firemni sit se nepovedla: ucet je hotovy, prihlaseni az po precteni
+                warn = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, margin_top=6)
+                warn.get_style_context().add_class("warn")
+                lab = Gtk.Label(label=self.finish_warn, xalign=0, wrap=True, max_width_chars=70)
+                lab.get_style_context().add_class("warn-text")
+                warn.pack_start(lab, False, False, 0)
+                page.pack_start(warn, False, False, 0)
+                b = Gtk.Button(label=_("Sign In"), halign=Gtk.Align.CENTER)
+                b.get_style_context().add_class("primary")
+                b.connect("clicked", lambda _b: self.sign_in())
+                self.signin_btn = b
+                page.pack_start(b, False, False, 8)
+                return
             self.finish_label = Gtk.Label(label=self.finish_text or _("Signing in…"), wrap=True)
             self.finish_label.get_style_context().add_class("subtitle")
             page.pack_start(self.finish_label, False, False, 0)
@@ -556,6 +574,7 @@ class SetupAssistant(gui.Installer):
             except OSError:
                 pass
             err = ""
+            warn = []
             done = False
             for line in p.stdout:
                 kind = oem.parse_line(line.rstrip("\n"))
@@ -563,9 +582,12 @@ class SetupAssistant(gui.Installer):
                     GLib.idle_add(self.finish_step, kind[1])
                 elif kind[0] == "error":
                     err = err or kind[1]
+                elif kind[0] == "warn":
+                    warn.append(kind[1])
                 elif kind[0] == "done":
                     done = True
             rc = p.wait()
+            self.finish_warn = "\n".join(warn)
             GLib.idle_add(self.finished, 0 if rc == 0 and done else (rc or 1), err)
         threading.Thread(target=work, daemon=True).start()
 
@@ -582,11 +604,19 @@ class SetupAssistant(gui.Installer):
             self.render()
             return False
         self.result, self.finish_text = "ok", ""
+        # heslo spravce domeny uz neni potreba (luxos-oem ho jen predal lux-domain)
+        self.s["domain_pw"] = ""
         if self.photo_dir:
             shutil.rmtree(self.photo_dir, ignore_errors=True)
         self.render()
-        self.login_backend.login(self.s["username"], self.s["pw1"], self.logged_in)
+        if not self.finish_warn:
+            self.sign_in()
         return False
+
+    def sign_in(self):
+        self.finish_warn = ""
+        self.render()
+        self.login_backend.login(self.s["username"], self.s["pw1"], self.logged_in)
 
     def logged_in(self, ok):
         if ok:

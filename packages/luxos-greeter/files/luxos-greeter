@@ -7,7 +7,7 @@ Vse se kresli v jednom okne pres celou obrazovku (bez vyskakovacich oken), matne
 ("frosted") panely si kreslime sami z rozmazane kopie tapety - funguje i bez kompozitoru.
 
   luxos-greeter                    beh pod LightDM
-  luxos-greeter --demo [--users N] [--sessions N] [--lock]
+  luxos-greeter --demo [--users N] [--sessions N] [--lock] [--domain online|offline]
                                    ukazka bez LightDM (spravne heslo: luxos), pro testy a snimky
 """
 import argparse
@@ -112,13 +112,78 @@ def load_config():
 
 # ---- LightDM a demo backend --------------------------------------------------------------
 class User:
-    def __init__(self, name, real_name, image=None, background=None, session=None, logged_in=False):
+    def __init__(self, name, real_name, image=None, background=None, session=None, logged_in=False, uid=0):
         self.name = name                # None = rucne zadane jmeno, "*guest" = host
         self.real_name = real_name or name or ""
         self.image = image
         self.background = background
         self.session = session
         self.logged_in = logged_in
+        self.uid = uid or 0
+        # domenovy ucet (SSSD id mapping: UID nad rozsahem mistnich uctu z login.defs)
+        self.domain = self.uid >= DOMAIN_UID_MIN
+
+
+# ---- domena (luxos-domain): stav pro prihlasovaci obrazovku --------------------------------
+DOMAIN_UID_MIN = 100000
+
+
+def domain_info(demo=None):
+    """Pocitac v domene -> {"domain", "short", "online", "offline_left_days", "example"}, jinak None.
+    Cte jen soubory (luxos_domain.greeter_info), nic nespousti. LUXOS_GREETER_DOMAIN_INFO = cesta
+    k JSON (testy, demo); demo = "online" | "offline" bez souboru."""
+    import json
+    path = os.environ.get("LUXOS_GREETER_DOMAIN_INFO")
+    info = None
+    if path:
+        try:
+            with open(path, encoding="utf-8") as f:
+                info = json.load(f)
+        except (OSError, ValueError) as e:
+            log("domain info:", e)
+    elif demo:
+        info = {"domain": "firma.local", "short": "FIRMA", "online": demo != "offline",
+                "offline_left_days": 12 if demo == "offline" else 30, "example": "jan@firma.local"}
+    else:
+        try:
+            import luxos_domain
+            info = luxos_domain.greeter_info()
+        except Exception as e:  # noqa: BLE001 - balik luxos-domain neni nainstalovany / poskozeny stav
+            if not isinstance(e, ImportError):
+                log("domain info:", e)
+            info = None
+    if not isinstance(info, dict) or not info.get("domain"):
+        return None
+    info.setdefault("short", str(info["domain"]).split(".")[0].upper())
+    info.setdefault("example", "jan@" + str(info["domain"]).lower())
+    info.setdefault("online", None)
+    info.setdefault("offline_left_days", None)
+    return info
+
+
+def domain_message(text):
+    """Zprava PAM/SSSD -> "offline" (prihlaseni z ulozeneho hesla), "expired" (heslo vyprselo),
+    "domain-locked" (ucet zamkla domena), "disabled" (ucet vypnuty/vyprsely v domene) nebo None."""
+    t = (text or "").lower()
+    if "cached credentials" in t or "offline" in t and "password" in t and "change" not in t:
+        return "offline"
+    if ("password expired" in t or "password has expired" in t or "required to change your password" in t
+            or "change your password now" in t):
+        return "expired"
+    if "lock" in t and "domain" in t:
+        return "domain-locked"
+    if ("account expired" in t or "account has expired" in t or "account is disabled" in t
+            or "account disabled" in t):
+        return "disabled"
+    return None
+
+
+# Vyzvy PAM pri zmene hesla (pam_sss, pam_unix) -> zastupny text pole
+CHAUTHTOK_PROMPTS = (
+    (("current password", "(current)", "old password", "current kerberos password"), "Current Password"),
+    (("retype", "reenter", "re-enter", "repeat", "confirm"), "Repeat New Password"),
+    (("new password",), "New Password"),
+)
 
 
 class LightDMBackend:
@@ -150,9 +215,14 @@ class LightDMBackend:
         out = []
         if not self.g.get_hide_users_hint():
             for u in self.userlist.get_users():
+                try:
+                    uid = u.get_uid()
+                except AttributeError:
+                    uid = 0
                 out.append(User(u.get_name(), u.get_display_name(), u.get_image(), u.get_background(),
-                                u.get_session(), u.get_logged_in()))
-        if not out or self.g.get_show_manual_login_hint():
+                                u.get_session(), u.get_logged_in(), uid))
+        # v domene vzdy "Jiny uzivatel" (domenovy ucet, ktery se tu jeste neprihlasil)
+        if not out or self.g.get_show_manual_login_hint() or self.ui.domain:
             out.append(User(None, _("Other…")))
         if self.g.get_has_guest_account_hint():
             out.append(User("*guest", _("Guest")))
@@ -228,7 +298,10 @@ class DemoBackend:
         # tapety uzivatelu (AccountsService BackgroundFile), oddelene ":" v poradi uzivatelu
         for u, bg in zip(demo, os.environ.get("LUXOS_GREETER_DEMO_BACKGROUND", "").split(":")):
             u.background = bg or None
-        return demo[:max(1, self.n_users)]
+        demo = demo[:max(1, self.n_users)]
+        if self.ui.domain:
+            demo.append(User(None, _("Other…")))
+        return demo
 
     def select_hint(self):
         return "anna" if self.lock else None
@@ -250,11 +323,17 @@ class DemoBackend:
 
     def authenticate(self, user):
         self.user, self.ok, self.state = user, False, "prompt"
+        self.entered = None
 
         def prompt():
             if self.state == "prompt":
                 self.ui.on_prompt("Password: ", True)
             return False
+        if user.name is None:
+            # rucne zadane jmeno: PAM se nejdriv zepta na jmeno (jako pam_unix "login:")
+            self.state = "name"
+            GLib.timeout_add(30, lambda: (self.state == "name" and self.ui.on_prompt("login: ", False)) and False)
+            return
         if DEMO_FPRINT and user.name and not self.ui.password_only:
             self.fingerprint()
             return
@@ -287,6 +366,11 @@ class DemoBackend:
             GLib.timeout_add(1500, step, "timeout")
 
     def respond(self, text):
+        if self.state == "name":
+            self.entered = text
+            self.state = "prompt"
+            GLib.timeout_add(30, lambda: (self.state == "prompt" and self.ui.on_prompt("Password: ", True)) and False)
+            return
         if self.state != "prompt":
             return
         self.state = "wait"
@@ -294,6 +378,9 @@ class DemoBackend:
         def done():
             if self.state == "wait":
                 self.ok = text == "luxos"
+                # domena offline: SSSD hlasi prihlaseni z ulozeneho hesla (jen info)
+                if self.ok and self.ui.domain and self.ui.domain.get("online") is False and self.user.name is None:
+                    self.ui.on_message("Authenticated with cached credentials.", False)
                 self.state = "done"
                 self.ui.on_complete()
             return False
@@ -306,6 +393,8 @@ class DemoBackend:
         return self.ok
 
     def auth_user(self):
+        if self.user and self.user.name is None:
+            return getattr(self, "entered", None)
         return self.user.name if self.user else None
 
     def start_session(self, key):
@@ -683,6 +772,8 @@ class Greeter(Gtk.Window):
         super().__init__(type=Gtk.WindowType.TOPLEVEL)
         self.cfg = load_config()
         self.demo = args.demo
+        # pocitac v domene: Jiny uzivatel s domenovym jmenem, stav spojeni s domenou
+        self.domain = domain_info(getattr(args, "domain", None) if args.demo else None)
         self.backend = (DemoBackend(self, args.users, args.sessions, args.lock) if args.demo
                         else LightDMBackend(self))
         self.kbd = Keyboard()
@@ -707,13 +798,16 @@ class Greeter(Gtk.Window):
         self._battery = self._network = None
         self._caps_hint = False
         self.leaving = False        # overeno: posledni snimek jen tapeta (prechod na plochu)
+        self.domain_note = None     # domena: hlaska misto stavu (napr. prihlaseno ulozenym heslem)
 
         self.users = self.backend.users()
         self.sessions = self.backend.sessions()
         state = self._load_state()
         hint = self.backend.select_hint()
         names = [u.name for u in self.users]
-        sel = hint if hint in names else state.get("last-user") if state.get("last-user") in names else names[0]
+        # None je jmeno dlazdice Jiny uzivatel - chybejici napoveda ji nesmi vybrat
+        last = state.get("last-user") or None
+        sel = hint if hint and hint in names else last if last and last in names else names[0]
         self.user = self.users[names.index(sel)]
         self.session = self._session_for(self.user, state.get("last-session"))
         # tapeta se urci jednou podle uzivatele vybraneho pri startu (zamceny / posledni prihlaseny)
@@ -859,6 +953,14 @@ class Greeter(Gtk.Window):
         self.hint.set_justify(Gtk.Justification.CENTER)
         self.hint.set_max_width_chars(60)
         self.login.pack_start(self.hint, False, False, 0)
+        # domena: "Prihlaseni do domeny FIRMA" / offline stav (oddelene od chybovych hlasek)
+        self.domain_label = Gtk.Label()
+        self.domain_label.get_style_context().add_class("domain")
+        self.domain_label.set_line_wrap(True)
+        self.domain_label.set_justify(Gtk.Justification.CENTER)
+        self.domain_label.set_max_width_chars(60)
+        self.domain_label.set_no_show_all(True)
+        self.login.pack_start(self.domain_label, False, False, 0)
         ov.add_overlay(self.login)
 
         # uplne dole: relace, uspat, restartovat, vypnout
@@ -963,6 +1065,8 @@ class Greeter(Gtk.Window):
         label.status {{ font-size: {px(14, 11)}px; font-weight: 600; }}
         label.hint {{ font-size: {px(14, 11)}px; font-weight: 500; color: rgba(255,255,255,0.88); }}
         label.hint.error {{ color: #ff8f86; font-weight: 600; }}
+        label.domain {{ font-size: {px(13, 10)}px; font-weight: 500; color: rgba(255,255,255,0.78); }}
+        label.domain.offline {{ color: #ffd479; font-weight: 600; }}
         button.lux {{ background: none; border: none; box-shadow: none; outline: none; padding: 0; margin: 0;
                       min-height: 0; min-width: 0; -gtk-icon-shadow: none; text-shadow: none; }}
         button.lux:hover, button.lux:active, button.lux:checked {{ background: none; box-shadow: none; }}
@@ -1553,9 +1657,11 @@ class Greeter(Gtk.Window):
             self.fprint_skip(None)
         self.entry.set_editable(True)
         self.entry.set_sensitive(True)
+        self.domain_note = None
         if self.user.name is None:
             self.entry.set_visibility(True)
-            self.set_placeholder(_("Username"))
+            self.set_placeholder(self.name_placeholder())
+        self.update_domain_label()
         try:
             self.backend.authenticate(self.user)
         except GLib.Error as e:
@@ -1569,10 +1675,16 @@ class Greeter(Gtk.Window):
         self.entry.set_editable(True)
         self.entry.set_visibility(not secret)
         t = (text or "").strip().rstrip(":").strip()
-        if secret and (not t or t.lower() == "password"):
+        low = t.lower()
+        change = next((label for keys, label in CHAUTHTOK_PROMPTS if any(k in low for k in keys)), None) \
+            if secret else None
+        if secret and (not t or low == "password"):
             ph = _("Enter Password")
-        elif not secret and t.lower() in ("login", "username", "user name"):
-            ph = _("Username")
+        elif change:
+            # zmena vyprseleho hesla primo na prihlasovaci obrazovce (pam_sss / pam_unix chauthtok)
+            ph = _(change)
+        elif not secret and low in ("login", "username", "user name"):
+            ph = self.name_placeholder()
         else:
             ph = t
         self.set_placeholder(ph)
@@ -1590,6 +1702,22 @@ class Greeter(Gtk.Window):
 
     def on_message(self, text, is_error):
         debug("message", repr(text), "error" if is_error else "info")
+        # SSSD (domena; pred pam_faillock, protoze zamek domeny take obsahuje "is locked"): ulozene heslo offline, vyprsele heslo, ucet zamceny nebo vypnuty domenou
+        kind = domain_message(text) if self.domain else None
+        if kind == "offline":
+            self.domain_note = _("Signed in offline with your saved password.")
+            self.update_domain_label()
+            return
+        if kind == "expired":
+            self.show_hint(_("Your password has expired. Choose a new one."), False)
+            return
+        if kind in ("domain-locked", "disabled"):
+            self.locked_hint = (_("The account is locked by the domain administrator. Contact your IT department.")
+                                if kind == "domain-locked" else
+                                _("The account is disabled or expired in the domain. Contact your IT department."))
+            self.show_hint(self.locked_hint, True)
+            self.error_shown = True
+            return
         # pam_faillock: ucet docasne zamceny po mnoha chybach - behem zamku neprojde ani spravne
         # heslo, proto to rict jasne (ne "nespravne heslo" ani "otisk nebyl rozpoznan")
         mins = account_locked(text)
@@ -1646,6 +1774,10 @@ class Greeter(Gtk.Window):
         if getattr(self, "locked_hint", None):
             self.show_hint(self.locked_hint, True)
             self.locked_hint = None
+        elif not self.error_shown and self.domain_user() and self.domain.get("online") is False:
+            # bez spojeni s domenou: ulozene heslo nesouhlasi, nebo se ucet na tomto PC jeste neprihlasil
+            self.show_hint(_("Incorrect password, or this account has not signed in on this computer yet "
+                             "(the first sign-in needs a connection to the organization network)."), True)
         elif not self.error_shown:
             self.show_hint(_("Incorrect password. Try again."), True)
         self.error_shown = True
@@ -1653,6 +1785,38 @@ class Greeter(Gtk.Window):
         self.entry.set_text("")
         # novy pokus pro stejneho uzivatele
         self.start_auth_keep_hint()
+
+    # -- domena --
+    def domain_user(self):
+        """Vybrany uzivatel se prihlasuje do domeny (Jiny uzivatel nebo domenovy ucet z cache)."""
+        return bool(self.domain) and (self.user.name is None or self.user.domain)
+
+    def name_placeholder(self):
+        if self.domain:
+            ex = self.domain.get("example") or "jan@" + self.domain["domain"]
+            return _("Name (%s or %s)") % (ex.split("@")[0], ex)
+        return _("Username")
+
+    def update_domain_label(self):
+        """Radek pod formularem: do ktere domeny se prihlasuje a zda je domena dostupna."""
+        lbl = self.domain_label
+        ctx = lbl.get_style_context()
+        if not self.domain_user():
+            lbl.hide()
+            return
+        offline = self.domain.get("online") is False
+        if self.domain_note:
+            text = self.domain_note
+        elif offline:
+            left = self.domain.get("offline_left_days")
+            text = _("Offline – you will sign in with your saved password")
+            if isinstance(left, int) and not isinstance(left, bool) and left >= 0:
+                text += " " + _("(%d more days)") % left
+        else:
+            text = _("Sign in to domain %s") % (self.domain.get("short") or self.domain["domain"])
+        lbl.set_text(text)
+        (ctx.add_class if offline else ctx.remove_class)("offline")
+        lbl.show()
 
     def start_auth_keep_hint(self):
         hint, err = self.hint.get_text(), self.error_shown
@@ -1774,6 +1938,8 @@ def main():
     ap.add_argument("--users", type=int, default=1, help="demo: number of users")
     ap.add_argument("--sessions", type=int, default=1, help="demo: number of sessions")
     ap.add_argument("--lock", action="store_true", help="demo: behave like a lock screen")
+    ap.add_argument("--domain", choices=("online", "offline"),
+                    help="demo: computer in a domain (Other… with a domain name; offline = saved passwords)")
     args = ap.parse_args()
     try:
         locale.setlocale(locale.LC_ALL, "")

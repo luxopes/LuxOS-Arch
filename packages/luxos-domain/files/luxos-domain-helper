@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+"""LuxOS - pomocnik Nastaveni > Firemni sit (root pres pkexec, akce org.luxos.domain.manage).
+
+Pevne akce, zadny shell; vse ostatni kontroluje lux-domain. Heslo spravce domeny je prvni radek
+stdin a jde rovnou do lux-domain (--password-stdin), nikdy do argumentu ani prostredi.
+
+  luxos-domain-helper join DOMENA SPRAVCE [OU]
+  luxos-domain-helper leave [SPRAVCE]              se SPRAVCEM i smazani uctu pocitace (heslo na stdin)
+  luxos-domain-helper admins-add SKUPINA | admins-remove SKUPINA
+  luxos-domain-helper sync-time
+  luxos-domain-helper set-offline-days N | set-admin-offline-days N
+
+Vystup: radky @@STEP / @@ERROR / @@DONE (lux-domain --progress).
+"""
+import os
+import sys
+
+CLI = os.environ.get("LUXOS_DOMAIN_CLI_ROOT", "/usr/bin/lux-domain")
+
+
+def fail(msg):
+    print(f"@@ERROR invalid {msg}", flush=True)
+    sys.exit(2)
+
+
+def main(argv):
+    if not argv:
+        fail("missing action")
+    action, rest = argv[0], argv[1:]
+    if os.geteuid() != 0 and not os.environ.get("LUXOS_DOMAIN_ROOT"):
+        fail("must run as root (pkexec)")
+    who = os.environ.get("PKEXEC_UID", "")
+    # root (pkexec): ciste prostredi; bez rootu jen testy (LUXOS_DOMAIN_ROOT) - prostredi testu
+    env = {"PATH": "/usr/bin", "LANG": os.environ.get("LANG", "C.UTF-8"), "LUXOS_DOMAIN_BY_UID": who} \
+        if os.geteuid() == 0 else dict(os.environ)
+    if action == "join" and len(rest) in (2, 3):
+        args = ["join", rest[0], "-U", rest[1]] + (["--ou", rest[2]] if len(rest) == 3 and rest[2] else []) \
+            + ["--password-stdin", "--yes", "--progress"]
+    elif action == "leave" and len(rest) <= 1:
+        args = ["leave", "--yes", "--progress"] + (["-U", rest[0], "--password-stdin"] if rest and rest[0] else [])
+    elif action in ("admins-add", "admins-remove") and len(rest) == 1:
+        args = ["admins", action.split("-")[1], rest[0], "--progress"]
+    elif action == "sync-time" and not rest:
+        args = ["sync-time", "--progress"]
+    elif action in ("set-offline-days", "set-admin-offline-days") and len(rest) == 1 and rest[0].isdigit():
+        args = ["set", action[4:], rest[0], "--progress"]
+    else:
+        fail("unknown action or arguments")
+    if any("\n" in a or "\0" in a for a in args):
+        fail("invalid argument")
+    os.execve(CLI, [CLI] + args, env)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
