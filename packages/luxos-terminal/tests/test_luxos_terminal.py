@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """LuxOS Terminal - testy programu luxos-terminal.
 
-    LUXOS_TERMINAL_BIN=cesta/k/luxos-terminal \\
-    env -u DISPLAY xvfb-run -a -s "-screen 0 1280x900x24" python3 -m unittest packages/luxos-terminal/tests/test_luxos_terminal.py -v
+    LUXOS_TERMINAL_BIN=cesta/k/luxos-terminal XDG_RUNTIME_DIR=$(mktemp -d) \\
+    env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS xvfb-run -a -s "-screen 0 1280x900x24" dbus-run-session -- python3 -m unittest packages/luxos-terminal/tests/test_luxos_terminal.py -v
 
 Okna se testuji jen pod xvfb-run (nikdy na skutecne obrazovce), kazdy test ve vlastnim procesu
 terminalu (LUXOS_TERMINAL_NEW_PROCESS=1) a s docasnym HOME. Kontroluje se snimek obrazovky:
@@ -291,6 +291,8 @@ class GuiTest(unittest.TestCase):
             time.sleep(1)
             for keys in ("ctrl+shift+t", "ctrl+Page_Up", "ctrl+shift+f", "Escape", "ctrl+plus", "ctrl+0",
                          "ctrl+shift+n"):
+                # bez spravce oken jde klavesnice do okna pod mysi (okno se zoomem zmensuje)
+                subprocess.run(["xdotool", "mousemove", "--window", self.windows()[0], "40", "70"], env=self.env)
                 subprocess.run(["xdotool", "key", keys], env=self.env)
                 time.sleep(0.4)
             time.sleep(1)

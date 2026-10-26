@@ -481,7 +481,8 @@ static void act_new_window(GtkWidget *mi, Tab *t)
 {
     Spawn s = {0};
     s.cwd = cwd_of(t);
-    new_window(&s);
+    Win *nw = new_window(&s);
+    gtk_window_present(nw->win);   /* new_window okno jen vytvori (prikazova radka ho ukaze sama) */
     spawn_free(&s);
 }
 static void act_open_link(GtkWidget *mi, Tab *t)
@@ -924,6 +925,11 @@ static void search_entry_mapped(GtkWidget *entry, gpointer d)
     gtk_editable_select_region(GTK_EDITABLE(entry), 0, -1);
 }
 
+static void hide_search(Win *w)
+{
+    gtk_search_bar_set_search_mode(GTK_SEARCH_BAR(w->search_bar), FALSE);
+}
+
 static void show_search(Win *w)
 {
     gtk_search_bar_set_search_mode(GTK_SEARCH_BAR(w->search_bar), TRUE);
@@ -1056,7 +1062,9 @@ static Win *new_window(Spawn *s)
     gtk_box_pack_start(GTK_BOX(sbox), up, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(sbox), down, FALSE, FALSE, 0);
     gtk_container_add(GTK_CONTAINER(w->search_bar), sbox);
-    gtk_search_bar_connect_entry(GTK_SEARCH_BAR(w->search_bar), GTK_ENTRY(w->search_entry));
+    /* bez gtk_search_bar_connect_entry: lista by dala fokus poli jeste pred jeho realizaci (uvolneni
+     * klaves zkratky -> Gtk-CRITICAL); fokus dava show_search, Esc zavira pres stop-search */
+    g_signal_connect_swapped(w->search_entry, "stop-search", G_CALLBACK(hide_search), w);
     gtk_search_bar_set_show_close_button(GTK_SEARCH_BAR(w->search_bar), TRUE);
     g_signal_connect(w->search_entry, "search-changed", G_CALLBACK(on_search_changed), w);
     g_signal_connect(w->search_entry, "activate", G_CALLBACK(on_search_activate), w);
