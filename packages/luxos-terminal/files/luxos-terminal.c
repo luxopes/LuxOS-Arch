@@ -679,12 +679,17 @@ static char **child_env(char **base, VteTerminal *t)
     else
         env = g_environ_unsetenv(env, "LUXOS_TERMINAL_LOGO");
     g_free(logo);
+    /* TERM volajiciho (napr. tmux, linux pri spusteni z konzole) by prepsal hodnotu VTE */
+    env = g_environ_setenv(env, "TERM", "xterm-256color", TRUE);
     env = g_environ_setenv(env, "TERM_PROGRAM", "LuxOS-Terminal", TRUE);
     env = g_environ_setenv(env, "TERM_PROGRAM_VERSION", LUXOS_TERMINAL_VERSION, TRUE);
     env = g_environ_unsetenv(env, "COLUMNS");
     env = g_environ_unsetenv(env, "LINES");
     env = g_environ_unsetenv(env, "DESKTOP_STARTUP_ID");
     env = g_environ_unsetenv(env, "XDG_ACTIVATION_TOKEN");
+    env = g_environ_unsetenv(env, "TMUX");     /* spusteno z tmux/screen: novy terminal uz v nem neni */
+    env = g_environ_unsetenv(env, "TMUX_PANE");
+    env = g_environ_unsetenv(env, "STY");
     if (sixel_available && cfg.sixel) env = g_environ_setenv(env, "LUXOS_TERMINAL_SIXEL", "1", TRUE);
     else env = g_environ_unsetenv(env, "LUXOS_TERMINAL_SIXEL");
     return env;

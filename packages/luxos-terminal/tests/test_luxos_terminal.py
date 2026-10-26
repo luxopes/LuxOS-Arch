@@ -287,7 +287,8 @@ class GuiTest(unittest.TestCase):
         out = os.path.join(self.home, "out")
         wd = os.path.join(self.home, "složka s mezerou")
         os.mkdir(wd)
-        self.start("-w", wd, "-x", "sh", "-c", f'pwd > "{out}"; echo "$TERM_PROGRAM $TERM" >> "{out}"')
+        env = dict(self.env, TERM="tmux-256color")   # TERM volajiciho se neprenasi
+        self.start("-w", wd, "-x", "sh", "-c", f'pwd > "{out}"; echo "$TERM_PROGRAM $TERM" >> "{out}"', env=env)
         for _ in range(100):
             if os.path.exists(out) and read(out).count("\n") >= 2:
                 break
