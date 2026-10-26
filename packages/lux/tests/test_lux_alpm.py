@@ -743,6 +743,67 @@ def engine_api():
     return api
 
 
+class SystemProtection(unittest.TestCase):
+    """Ochrana systemu LuxOS (luxos_protect z luxos-care): /usr zapisovatelny jen po dobu commitu."""
+
+    def setUp(self):
+        import contextlib
+        self.events = []
+        self.fail_unlock = False
+        mod = types.ModuleType("luxos_protect")
+        test = self
+
+        @contextlib.contextmanager
+        def writable():
+            if test.fail_unlock:
+                raise RuntimeError("unlock_failed")
+            test.events.append("unlock")
+            try:
+                yield True
+            finally:
+                test.events.append("lock")
+        mod.writable = writable
+        self._old = sys.modules.get("luxos_protect")
+        sys.modules["luxos_protect"] = mod
+
+    def tearDown(self):
+        if self._old is None:
+            sys.modules.pop("luxos_protect", None)
+        else:
+            sys.modules["luxos_protect"] = self._old
+
+    def test_commit_inside_writable(self):
+        def prepare(h):
+            orig = h.init_transaction
+
+            def init(**flags):
+                t = orig(**flags)
+                commit = t.commit
+
+                def wrapped():
+                    self.events.append("commit")
+                    return commit()
+                t.commit = wrapped
+                return t
+            h.init_transaction = init
+        rc, out, h = run(["-y", "install", "htop"], prepare=prepare)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(self.events, ["unlock", "commit", "lock"])
+
+    def test_download_only_stays_locked(self):
+        rc, out, _h = run(["-y", "upgrade", "--download-only"])
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(self.events, [])
+
+    def test_unlock_failure_is_clear_error(self):
+        self.fail_unlock = True
+        rc, out, h = run(["--machine", "-y", "install", "firefox"])
+        self.assertEqual(rc, 1)
+        self.assertIn("@@ERROR protected", out)
+        self.assertIsNone(h.local.get_pkg("firefox"))
+        self.assertTrue(h.transactions[-1].released)
+
+
 class EngineReplacement(unittest.TestCase):
     """Upgrade LuxOS 0.9: sysupgrade nahradi luxos-pacman balikem lux-engine (replaces). Overuje
     obsluhu otazky na nahrazeni v lux; samotne nahrazeni tu simuluje fake_pyalpm podle libalpm."""

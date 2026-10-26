@@ -260,7 +260,7 @@ na stdout řádky `@@…` a navíc anglické řádky ve tvaru výstupu libalpm, 
 | `@@PROGRESS <fáze> <procenta> [detail]` | průběh fáze (nejvýš 2× za sekundu + konec fáze) |
 | `@@RETRY <pokus>` | stahování selhalo, další pokus (2, 3) |
 | `@@SUMMARY <akce> <počet> <stahování> <změna> <sekundy>` | hotovo |
-| `@@ERROR <druh> <věta>` | `locked`, `network`, `keyring`, `disk`, `conflict`, `pkgconflict`, `deps`, `corrupt`, `notfound`, `notinstalled`, `permission`, `confirm`, `cancelled`, `config` (chyba v `lux.conf`), `unknown` |
+| `@@ERROR <druh> <věta>` | `locked`, `network`, `keyring`, `disk`, `conflict`, `pkgconflict`, `deps`, `corrupt`, `notfound`, `notinstalled`, `permission`, `confirm`, `cancelled`, `config` (chyba v `lux.conf`), `protected` (chráněné systémové soubory se nepodařilo otevřít pro zápis, viz `system-protection.md`), `unknown` |
 | `@@UNAVAILABLE <důvod>` | pyalpm nelze použít (návratový kód 3) – volající použije `lux-engine` |
 | `@@DONE <kód>` | poslední řádek |
 

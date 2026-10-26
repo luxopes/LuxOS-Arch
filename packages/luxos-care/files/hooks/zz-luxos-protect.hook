@@ -1,0 +1,14 @@
+# LuxOS - ochrana systemu: po transakci (po vsech ostatnich hookach, vcetne 95-luxos-care-kernel-post)
+# zase /usr jen pro cteni. Kdyz transakce selze a hook se nespusti, zamkne /usr lux sam, jinak
+# pravidelna kontrola LuxOS Care (luxos-care check) nebo nejpozdeji dalsi start.
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Target = *
+
+[Action]
+Description = Protecting system files again...
+When = PostTransaction
+Exec = /usr/bin/luxos-care protect lock

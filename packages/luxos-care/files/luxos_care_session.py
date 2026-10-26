@@ -106,10 +106,14 @@ def notification_for(ev):
         return _("LuxOS fixed a problem"), body, [("open", _("Details"))]
     if k == "problem":
         return _("LuxOS found a problem"), problem_text(ev), [("open", _("Details"))]
+    if k == "integrity":
+        return (_("System files were changed"),
+                _("%d system files were changed or are missing. LuxOS can repair them by reinstalling "
+                  "the affected packages.") % int(ev.get("count", 0)), [("open", _("Details"))])
     return None
 
 
-def notify(title, body, actions=()):
+def notify(title, body, actions=(), critical=False):
     bus = _state["bus"]
     if bus is None:
         return
@@ -121,11 +125,15 @@ def notify(title, body, actions=()):
             _state["actions"][b.call_finish(res).unpack()[0]] = True
         except GLib.Error as e:
             log(f"notify: {e.message}")
+    hints = {"desktop-entry": GLib.Variant("s", APP)}
+    if critical:
+        # zmenene systemove soubory: kriticke a zustane v historii upozorneni
+        hints.update({"urgency": GLib.Variant("y", 2), "x-luxos-keep": GLib.Variant("b", True)})
     # Asynchronne: zaseknuty server upozorneni nesmi blokovat luxos-hub
     bus.call("org.freedesktop.Notifications", "/org/freedesktop/Notifications",
              "org.freedesktop.Notifications", "Notify",
              GLib.Variant("(susssasa{sv}i)", ("LuxOS", 0, "system-software-update", title, body, acts,
-                                              {"desktop-entry": GLib.Variant("s", APP)}, -1)),
+                                              hints, -1)),
              GLib.VariantType("(u)"), 0, 5000, None, done)
 
 
@@ -175,7 +183,7 @@ def process_events():
     for ev in new_events(data.get("events", []), seen, first):
         n = notification_for(ev)
         if n:
-            notify(*n)
+            notify(*n, critical=ev.get("kind") == "integrity")
     _write(SEEN, str(int(data.get("seq", 0))) + "\n")
 
 

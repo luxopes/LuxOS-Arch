@@ -4,10 +4,10 @@
 <policyconfig>
   <vendor>LuxOS</vendor>
   <action id="org.luxos.care.mode">
-    <description>Change how LuxOS updates and repairs itself</description>
-    <description xml:lang="cs">Změna způsobu, jak se LuxOS aktualizuje a opravuje</description>
-    <message>Authentication is required to change the update mode</message>
-    <message xml:lang="cs">Změna režimu aktualizací vyžaduje ověření</message>
+    <description>Change how LuxOS updates, repairs and protects itself</description>
+    <description xml:lang="cs">Změna způsobu, jak se LuxOS aktualizuje, opravuje a chrání</description>
+    <message>Authentication is required to change LuxOS Care settings</message>
+    <message xml:lang="cs">Změna nastavení LuxOS Care vyžaduje ověření</message>
     <icon_name>system-software-update</icon_name>
     <defaults>
       <allow_any>auth_admin</allow_any>

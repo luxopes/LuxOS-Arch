@@ -92,7 +92,7 @@ Useful one-liners: `systemctl start luxos-care-update-now.service` (needs wheel)
 
 | Path | Content |
 |---|---|
-| `/etc/luxos/care.conf` | `MODE=` |
+| `/etc/luxos/care.conf` | `MODE=`, `PROTECT=`, `VERIFY=` (see `system-protection.md`) |
 | `/var/lib/luxos-care/state.json` | last update/check, pending updates, problems, kept kernel |
 | `/var/lib/luxos-care/events.json` | recent events for notifications |
 | `/var/lib/luxos-care/history.jsonl` | audit log of updates, repairs and AI decisions |
@@ -240,7 +240,14 @@ notification "Sign in to LuxAI to let LuxOS fix unknown problems."
 
 Shown by `luxos-hub` in the user session: "LuxOS was updated", "Restart to finish the kernel
 update" (Restart / Details), "Updates are available" (Classic), "Updates could not be installed",
-"Update postponed", "LuxOS fixed a problem", "LuxOS found a problem". Details opens Software Update.
+"Update postponed", "LuxOS fixed a problem", "LuxOS found a problem", "System files were changed"
+(critical, stays in the history; see `system-protection.md`). Details opens Software Update.
+
+## System protection
+
+`/usr` is read-only except during package changes, and a weekly check compares system files with
+the package database (`luxos-care protect`, `luxos-care verify`, `PROTECT=` and `VERIFY=` in
+`care.conf`). Everything about it is in `system-protection.md`.
 
 ## Disabling
 

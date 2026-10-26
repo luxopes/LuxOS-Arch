@@ -3532,3 +3532,48 @@ Your location could not be found.	Не вдалося визначити ваш�
 Zoom In	Збільшити
 Zoom Out	Зменшити
 © OpenStreetMap contributors	© учасники OpenStreetMap
+System protection	Захист системи
+System protection: On	Захист системи: увімкнено
+System protection: On (system files are open for an update)	Захист системи: увімкнено (системні файли відкриті для оновлення)
+System protection: On after the next restart	Захист системи: увімкнеться після наступного перезапуску
+System protection: Off	Захист системи: вимкнено
+System files verified on %s	Системні файли перевірено %s
+%d system files were changed or are missing	Змінені або відсутні системні файли: %d
+System files were not verified yet.	Системні файли ще не перевірялися.
+Protected system files could not be opened for the update.	Не вдалося відкрити захищені системні файли для оновлення.
+System files become read-only after the current update or the next restart.	Системні файли стануть лише для читання після поточного оновлення або наступного перезапуску.
+System files could not be protected: %s	Не вдалося захистити системні файли: %s
+System files could not be made read-only (a program is writing to /usr?).	Не вдалося зробити системні файли лише для читання (якась програма записує в /usr?).
+changed	змінено
+missing	відсутній
+replaced	замінено
+link changed	змінено посилання
+permissions changed	змінено права
+No modified system files - nothing to repair.	Немає змінених системних файлів – нічого виправляти.
+Reinstalling %s	Перевстановлення %s
+Repaired: %s	Виправлено: %s
+Could not be repaired: %s	Не вдалося виправити: %s
+Not from the repositories (cannot be reinstalled): %s	Не з репозиторіїв (неможливо перевстановити): %s
+Not due yet.	Ще не час.
+Weekly verification is turned off (VERIFY=no).	Щотижневу перевірку вимкнено (VERIFY=no).
+Postponed: waiting for the charger.	Відкладено: очікування зарядного пристрою.
+Stopped: running on battery.	Зупинено: живлення від батареї.
+Another verification is running.	Вже виконується інша перевірка.
+Checked %d files of %d packages.	Перевірено %d файлів з %d пакетів.
+Repair: luxos-care verify --repair (reinstalls %s)	Виправлення: luxos-care verify --repair (перевстановить %s)
+No modified system files.	Змінених системних файлів немає.
+Repaired system files	Системні файли виправлено
+System files could not be repaired	Не вдалося виправити системні файли
+Verify Now	Перевірити зараз
+System files are open for an update right now.	Системні файли зараз відкриті для оновлення.
+System files (/usr) are read-only. Only updates and app installations can change them.	Системні файли (/usr) лише для читання. Змінювати їх можуть тільки оновлення та встановлення програм.
+Turn On	Увімкнути
+When it is on, programs cannot change system files outside of updates.	Коли його увімкнено, програми не можуть змінювати системні файли поза оновленнями.
+Verifying system files… %d %%	Перевірка системних файлів… %d %%
+LuxOS checks them once a week while the computer is charging.	LuxOS перевіряє їх раз на тиждень, коли комп'ютер заряджається.
+Repair	Виправити
+Verified %s	Перевірено %s
+Repair reinstalls: %s	Виправлення перевстановить: %s
+System files were changed	Системні файли змінено
+%d system files were changed or are missing. LuxOS can repair them by reinstalling the affected packages.	Змінені або відсутні системні файли: %d. LuxOS може виправити їх, перевстановивши відповідні пакети.
+Invalid PROTECT (use 0 or 1)	Неправильне PROTECT (використайте 0 або 1)

@@ -331,6 +331,7 @@ check "/etc/hosts" grep -q "127.0.1.1   jana-luxos.localdomain jana-luxos" "$R/e
 check "ucet se skupinou wheel" grep -q "useradd -m -G wheel,video,audio -s /usr/bin/lsh -c Jana Nováková jana" "$TMP/cmds"
 check "heslo uctu" grep -qx "jana:ucet heslo" "$TMP/passwords"
 check "udrzba classic" grep -qx "MODE=classic" "$R/etc/luxos/care.conf"
+check "ochrana systemu zustava zapnuta" grep -qx "PROTECT=yes" "$R/etc/luxos/care.conf"
 check "ucet LuxAI" grep -q sessionToken "$R/home/jana/.config/luxai/account.json"
 eq "ucet LuxAI 0600" 600 "$(stat -c %a "$R/home/jana/.config/luxai/account.json")"
 check "OEM vypnuto: greeter" test ! -e "$R/etc/lightdm/lightdm.conf.d/90-luxos-oem.conf"
