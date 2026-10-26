@@ -1,0 +1,30 @@
+--- a/src/vte.cc	2026-10-26 15:46:45.306317232 +0100
++++ b/src/vte.cc	2026-10-26 15:46:33.463962566 +0100
+@@ -10212,6 +10212,27 @@
+                   m_cell_width,
+                   m_cell_height);
+ 
++#if WITH_SIXEL && VTE_GTK == 3
++        /* LuxOS: draw SIXEL images over the text rows (upstream left this as a FIXME
++         * since the drawing rework; GTK 3 only, with the cairo drawing context). */
++        if (m_images_enabled) {
++                auto const last_row = last_displayed_row();
++                auto cr = m_draw.cairo();
++                auto const& image_map = m_screen->row_data->image_map();
++                for (auto const& item : image_map) {
++                        auto const& image = item.second;
++                        if (image->get_bottom() < first_row ||
++                            image->get_top() > last_row)
++                                continue;
++                        image->paint(cr,
++                                     image->get_left() * m_cell_width,
++                                     row_to_pixel(image->get_top()),
++                                     m_cell_width,
++                                     m_cell_height);
++                }
++        }
++#endif /* WITH_SIXEL && VTE_GTK == 3 */
++
+ 	paint_im_preedit_string();
+ 
+         m_draw.unclip_border();
