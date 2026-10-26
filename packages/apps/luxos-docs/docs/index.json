@@ -400,7 +400,7 @@
         {
           "path": "luxos/settings-apps.md",
           "title": "LuxOS Settings Apps",
-          "summary": "Desktop & Dock, Displays (Super+P, 15 s confirm), Battery & Power, Bluetooth, Fingerprint (PAM), Profile Picture, Screen Saver & Lock, automatic audio output switching and Reset App Settings.",
+          "summary": "Desktop & Dock, Displays (monitor arrangement per set of monitors, main display, mirroring, Super+P, 15 s confirm), Battery & Power, Bluetooth, Fingerprint (PAM), Profile Picture, Screen Saver & Lock, automatic audio output switching and Reset App Settings.",
           "keywords": [
             "settings",
             "luxos-settings",
@@ -410,6 +410,11 @@
             "luxos-displays",
             "resolution",
             "multiple monitors",
+            "arrangement",
+            "main display",
+            "primary monitor",
+            "mirror",
+            "layouts",
             "super+p",
             "text size",
             "battery",
@@ -436,6 +441,35 @@
             "luxos-profile-picture",
             "accountsservice",
             ".face"
+          ]
+        },
+        {
+          "path": "luxos/network-admin.md",
+          "title": "Router app (network administration)",
+          "summary": "Router app (luxos-router): network details, default gateway, router web admin inside the app limited to the home network, self-signed certificates, devices on the LAN with vendor lookup, ping/DNS/speed tests.",
+          "keywords": [
+            "router",
+            "luxos-router",
+            "network administration",
+            "Správa sítě",
+            "gateway",
+            "default gateway",
+            "modem",
+            "web admin",
+            "192.168.1.1",
+            "self-signed certificate",
+            "https",
+            "LAN",
+            "devices",
+            "ip neigh",
+            "arp",
+            "MAC vendor",
+            "oui",
+            "ping",
+            "dns test",
+            "public ip",
+            "speed test",
+            "webkit"
           ]
         },
         {

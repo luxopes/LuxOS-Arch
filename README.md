@@ -52,7 +52,10 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
   baterie, grafy úrovně a spotřeby za 24 hodin, výkonový režim, automatický Spořič baterie při 20 %.
 - **Bluetooth** – zapnutí, moje zařízení a připojení nového jedním klikem (spárování, důvěra, připojení).
 - **Monitory** – po připojení se obrazovka sama rozšíří, okna z odpojeného monitoru se přesunou zpět,
-  `Super+P` přepíná Rozšířit / Zrcadlit / Jen externí / Jen vestavěná (`luxos-displays`).
+  `Super+P` přepíná Rozšířit / Zrcadlit / Jen externí / Jen vestavěná (`luxos-displays`); uspořádání
+  přetažením jako v macOS (hlavní monitor s lištou a Dockem, zrcadlení) se pamatuje pro každou sadu monitorů.
+- **Správa sítě** (`luxos-router`) – údaje o síti, webová správa routeru přímo v aplikaci (jen domácí síť),
+  zařízení v síti s výrobcem podle MAC, ping, DNS a odhad rychlosti.
 - **Plocha a Dock** (`luxos-settings`) – tapety, vzhled, automatické skrývání a průhlednost Docku,
   průhlednost horní lišty (nahrazuje nastavení plochy Xfce).
 - **Přihlášení jako v macOS** (`luxos-greeter`) – obrazovka s hodinami, po kliknutí avatar a heslo;

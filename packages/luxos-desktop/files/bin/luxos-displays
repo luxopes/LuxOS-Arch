@@ -2,7 +2,9 @@
 # LuxOS - monitory: automaticke zapojeni, rezimy jako Win+P a zachrana oken
 #
 #   luxos-displays auto            po pripojeni/odpojeni monitoru (luxos-menubar) a po prihlaseni
-#                                  (luxos-session); rozliseni/otoceni z ~/.config/luxos/displays.json
+#                                  (luxos-session); rozliseni/otoceni z ~/.config/luxos/displays.json,
+#                                  v rezimu extend i ulozene rozlozeni pro tuto sadu monitoru (polohy,
+#                                  hlavni monitor s listou a Dockem, zrcadleni)
 #   luxos-displays extend|mirror|external|internal   rezim (uklada se pro dalsi pripojeni)
 #   luxos-displays menu            rychla volba rezimu (Super+P)
 #   luxos-displays rescue          okna mimo viditelne obrazovky presune na hlavni monitor
@@ -60,8 +62,44 @@ on() {
     args+=("$@")
 }
 
-apply_mode() {  # apply_mode extend|mirror|external|internal
-    local mode=$1 primary name st _a _p args=() prev
+# Horni lista a Dock na hlavnim monitoru (xfce4-panel "Primary", Plank prazdny "monitor")
+follow_primary() {
+    local v
+    v=$(xfconf-query -c xfce4-panel -p /panels/panel-1/output-name 2>/dev/null)
+    [[ -n $v && $v != Primary ]] && xfconf-query -c xfce4-panel -p /panels/panel-1/output-name -s Primary
+    if command -v dconf >/dev/null; then
+        v=$(dconf read /net/launchpad/plank/docks/dock1/monitor 2>/dev/null)
+        [[ -n $v && $v != "''" ]] && dconf write /net/launchpad/plank/docks/dock1/monitor "''"
+    fi
+    return 0
+}
+
+# Ulozene rozlozeni (Monitory > Usporadani) pro prave pripojenou sadu monitoru:
+# cely prikaz xrandr (polohy, hlavni monitor, zrcadleni), nebo nic
+layout_args() {
+    python3 -I "${LUXOS_PYDIR:-/usr/lib/luxos/python}/luxos_displays.py" layout-args "$@" 2>/dev/null
+}
+
+after_apply() {
+    # Softwarovy jas plati i pro nove pripojene monitory
+    [[ -f $cfg/brightness ]] && "$0" brightness "$(cat "$cfg/brightness")"
+    sleep 1
+    rescue
+    luxos-appearance reapply >/dev/null 2>&1 &
+}
+
+apply_mode() {  # apply_mode extend|mirror|external|internal [explicit]
+    local mode=$1 primary name st _a _p args=() prev line
+    if [[ $mode == extend ]]; then
+        line=$(layout_args ${2:+extend})
+        if [[ -n $line ]]; then
+            read -r -a args <<<"$line"
+            xrandr "${args[@]}"
+            follow_primary
+            after_apply
+            return
+        fi
+    fi
     primary=$(pick_primary)
     [[ -n $primary ]] || return 1
     load_saved
@@ -102,11 +140,7 @@ apply_mode() {  # apply_mode extend|mirror|external|internal
             for name in "${external[@]}"; do args+=(--output "$name" --off); done ;;
     esac
     xrandr "${args[@]}"
-    # Softwarovy jas plati i pro nove pripojene monitory
-    [[ -f $cfg/brightness ]] && "$0" brightness "$(cat "$cfg/brightness")"
-    sleep 1
-    rescue
-    luxos-appearance reapply >/dev/null 2>&1 &
+    after_apply
 }
 
 # Okna, jejichz stred nelezi na zadnem aktivnim monitoru, presunout na hlavni monitor
@@ -138,14 +172,15 @@ rescue() {
 
 case ${1:-auto} in
     auto)
-        apply_mode "$(cat "$mode_file" 2>/dev/null || echo extend)"
+        # LUXOS_DISPLAYS_MODE: zkusebni pouziti rozlozeni z aplikace Monitory (rezim jeste neulozen)
+        apply_mode "${LUXOS_DISPLAYS_MODE:-$(cat "$mode_file" 2>/dev/null || echo extend)}"
         # Sporic baterie: vestaveny displej po zmene zapojeni opet nejvys 60 Hz
         [[ -e $cfg/powersaver ]] && python3 -I /usr/lib/luxos/python/luxos_displays.py rate-cap >/dev/null 2>&1
         true ;;
     extend|mirror|external|internal)
         mkdir -p "$cfg"
         echo "$1" >"$mode_file"
-        apply_mode "$1" ;;
+        apply_mode "$1" explicit ;;
     rescue) rescue ;;
     brightness)
         # Softwarovy jas (monitory bez podsviceni): 10-100 %

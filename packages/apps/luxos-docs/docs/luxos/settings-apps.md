@@ -52,6 +52,26 @@ There are two tools:
   Control Center.
 - **Quick menu**: `Super+P` or the Display key (`luxos-displays menu`).
 
+**Arrangement** (with two or more monitors connected, like in macOS):
+
+- The monitors are drawn as scaled rectangles with their names (EDID model, "Built-in Display").
+  Drag one to place it next to another. On release it snaps to the nearest edge: no overlaps, no gaps,
+  at least 32 px of shared edge, and top/bottom/centre edges align when they are close.
+  Dragging away a monitor that connected two others re-attaches the rest.
+- The **white bar** marks the main display. Drag it onto another monitor, or pick one under
+  **Main display**, to move the menu bar (xfce4-panel `output-name` = `Primary`) and the Dock
+  (Plank `monitor` = empty) there.
+- **Mirror displays** shows the same picture on all monitors. Turning it off restores the saved positions.
+- Every change uses the same 15-second "Keep these display settings?" confirmation (see below).
+  Arranging switches the multi-monitor mode to extend.
+
+Layouts are saved per **set of monitors** in `~/.config/luxos/displays.json` (key `layouts`). The key
+is the sorted list of `CONNECTOR|EDID-hash` of all connected monitors. When the same monitors are
+connected again (`luxos-displays auto` after hotplug or at login), the layout is restored. If the
+connectors differ but the monitors (EDIDs) are the same, the layout still applies. When a monitor's
+resolution or rotation changes, positions are re-snapped so no gap or overlap appears. Super+P
+**Extend** uses the layout without mirroring; the other Super+P modes ignore it.
+
 In the app, for each monitor:
 
 - **Resolution**: "(Recommended)" marks the sharpest one. A lower one makes everything larger.
@@ -81,7 +101,7 @@ login (`luxos-session`) and whenever a monitor is connected (`luxos-menubar` run
 Other `luxos-displays` commands:
 
 ```
-luxos-displays auto           # apply saved mode/resolution (after hotplug, at login)
+luxos-displays auto           # apply saved mode/resolution/layout (after hotplug, at login)
 luxos-displays rescue         # move windows that are off-screen to the main monitor
 luxos-displays brightness N   # software brightness 10-100 % (monitors without backlight)
 ```

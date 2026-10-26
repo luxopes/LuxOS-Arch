@@ -3165,3 +3165,75 @@ saved Wi-Fi networks and their passwords are removed	smažou se uložené sítě
 the owner creates it at the first start (OEM)	založí si ho majitel při prvním startu (OEM)
 the owner creates it at the first start (OEM); until sealing: temporary account %s	založí si ho majitel při prvním startu (OEM); do zapečetění dočasný účet %s
 the temporary account %s is deleted at the next start	dočasný účet %s se při dalším startu smaže
+Router (app name)	Správa sítě
+Router	Router
+Overview	Přehled
+Devices	Zařízení
+Replies	Odpovídá
+Could not run ping	Ping nejde spustit
+No reply	Bez odpovědi
+%s ms	%s ms
+%d %% lost	ztraceno %d %%
+Reload	Načíst znovu
+Connect to the router with HTTP or HTTPS	Připojit se k routeru přes HTTP, nebo HTTPS
+Open in Browser	Otevřít v prohlížeči
+Connection	Připojení
+Interface	Rozhraní
+IP address	Adresa IP
+Router (gateway)	Router (brána)
+IPv6 gateway	Brána IPv6
+DNS servers	Servery DNS
+MAC address	Adresa MAC
+Wi-Fi network	Síť Wi‑Fi
+Ethernet (cable)	Ethernet (kabel)
+Public IP address	Veřejná adresa IP
+Asks an internet service (ipify.org) for the address your network is seen from.	Zeptá se internetové služby (ipify.org), pod jakou adresou je vaše síť vidět.
+Quick Tests	Rychlé testy
+Ping router	Ping na router
+Ping internet	Ping do internetu
+Sends 4 packets to %s.	Pošle 4 pakety na %s.
+Name lookup (DNS)	Překlad jmen (DNS)
+Looks up %s using your DNS servers.	Přeloží %s přes vaše servery DNS.
+Download speed	Rychlost stahování
+Estimate: downloads 10 MB from speed.cloudflare.com.	Odhad: stáhne 10 MB ze speed.cloudflare.com.
+Test	Vyzkoušet
+Measure	Změřit
+Name lookup failed	Překlad jména selhal
+Works (%s ms)	Funguje (%s ms)
+Measurement failed	Měření se nepovedlo
+%s Mbit/s	%s Mbit/s
+Search Network	Prohledat síť
+Briefly contacts every address in your home network so that devices which were quiet also appear.	Krátce osloví každou adresu v domácí síti, aby se ukázala i zařízení, která zrovna nekomunikovala.
+Address	Adresa
+State	Stav
+Seen recently	Nedávno viděno
+Checking	Ověřuje se
+Fixed	Pevný záznam
+%d devices	Zařízení: %d
+Searching %d addresses…	Prohledává se %d adres…
+Private address (random MAC)	Soukromá adresa (náhodná MAC)
+The built-in web view (WebKitGTK) is not available. The router settings will open in your web browser.	Vestavěné zobrazení webu (WebKitGTK) není k dispozici. Nastavení routeru se otevře ve webovém prohlížeči.
+Not connected to a network.	Nejste připojeni k síti.
+The link leads outside your home network, so it was opened in your web browser.	Odkaz vede mimo domácí síť, proto se otevřel ve webovém prohlížeči.
+The page wanted to open an address outside your home network: %s	Stránka chtěla otevřít adresu mimo domácí síť: %s
+The connection to %s is not secure (untrusted certificate). Only your router's own address can be allowed.	Připojení k %s není zabezpečené (nedůvěryhodný certifikát). Povolit lze jen vlastní adresu routeru.
+The router uses its own security certificate	Router používá vlastní bezpečnostní certifikát
+Routers usually have a self-signed certificate that cannot be verified. Continue only if %s is your router. The exception applies to this address only, until you close the app.	Routery mívají certifikát podepsaný samy sebou, který nejde ověřit. Pokračujte, jen pokud je %s váš router. Výjimka platí jen pro tuto adresu a do zavření aplikace.
+The router does not answer over HTTP. Try HTTPS.	Router přes HTTP neodpovídá. Zkuste HTTPS.
+The page could not be loaded: %s	Stránku nejde načíst: %s
+%s asks for a user name and password. They are not saved.	%s žádá uživatelské jméno a heslo. Neukládají se.
+Encrypted connection (HTTPS)	Šifrované připojení (HTTPS)
+Encrypted connection, certificate allowed by you	Šifrované připojení, certifikát jste povolili vy
+Unencrypted connection (HTTP) inside your home network	Nešifrované připojení (HTTP) v domácí síti
+No router (default gateway) found.	Router (výchozí brána) nebyl nalezen.
+Router: %s	Router: %s
+Open Router Settings	Otevřít nastavení routeru
+Saved to Downloads: %s	Uloženo do Stažených souborů: %s
+Arrangement	Uspořádání
+Drag the displays to arrange them. Drag the white bar to another display to move the menu bar and Dock there.	Monitory uspořádáte přetažením. Přetažením bílého pruhu na jiný monitor tam přesunete horní lištu a Dock.
+Main display	Hlavní monitor
+The menu bar and Dock appear on the main display.	Horní lišta a Dock jsou na hlavním monitoru.
+Mirror displays	Zrcadlit monitory
+Show the same picture on all displays.	Na všech monitorech stejný obraz.
+The displays show the same picture. Turn off mirroring to arrange them.	Monitory ukazují stejný obraz. Chcete-li je uspořádat, vypněte zrcadlení.
+Only one display is in use. Choose Extend under Multiple Displays to arrange them.	Používá se jen jeden monitor. Chcete-li monitory uspořádat, zvolte Rozšířit v části Více monitorů.
