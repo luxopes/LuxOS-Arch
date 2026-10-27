@@ -85,6 +85,7 @@ echo "## Instalator: OEM=1 v konfiguraci"
     oem_prepare_target
     check "seal bez sifrovani: bez uctu a svazku" grep -qx "OEM_USER=" "$TARGET/etc/luxos/oem.conf"
     check "seal bez sifrovani: bez klice" test ! -e "$TARGET/etc/cryptsetup-keys.d/cryptroot.key"
+    check "spoustec Instalovat LuxOS skryty (prednost /usr/local)" grep -qx "Hidden=true" "$TARGET/usr/local/share/applications/luxos-install.desktop"
 
     # zapecetit hned: luxos-oem seal v chrootu; priprava: spoustec Zapecetit pro ucet oem
     arch-chroot() { printf '%s\n' "$*" >>"$TMP/chroot.log"; }
