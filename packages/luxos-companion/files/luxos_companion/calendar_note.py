@@ -68,7 +68,12 @@ def ics_module():
 
 
 def calendar_dir():
-    return os.environ.get("LUXOS_CALENDAR_DIR") or ics_module().default_dir()
+    # stejna cesta jako luxos_calendar_ics.default_dir(); bez importu, aby sluzba nespadla, kdyz
+    # luxos-desktop chybi (zapis poznamky pak skonci chybou storage_failed, ne cela sluzba)
+    if os.environ.get("LUXOS_CALENDAR_DIR"):
+        return os.environ["LUXOS_CALENDAR_DIR"]
+    base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    return os.path.join(base, "luxos", "calendar")
 
 
 def _clean(text, keep_newlines):
