@@ -63,7 +63,7 @@ class MigrateBase(unittest.TestCase):
         return subprocess.run([sys.executable, SCRIPT] + list(args) + ["--root", self.root],
                               capture_output=True, text=True, env=env)
 
-    def old_layout(self, lux_conf=LEGACY_LUX_CONF, pacman_conf=OLD_PACMAN_CONF, pacsave=False):
+    def old_layout(self, lux_conf=LEGACY_LUX_CONF, pacman_conf=OLD_PACMAN_CONF, pacsave=False, saved=".pacsave"):
         """Instalace LuxOS 0.9.5 ve chvili hooku: stary lux-engine uz odebral sve soubory."""
         os.makedirs(self.p("var/lib/pacman/local/glibc-2.42-1"))
         self.write("var/lib/pacman/local/ALPM_DB_VERSION", "9\n")
@@ -79,7 +79,7 @@ class MigrateBase(unittest.TestCase):
                    "Server = https://second.example/$repo/os/$arch\n")
         self.write("var/log/pacman.log", "[2026-10-01T10:00:00+0200] [ALPM] installed glibc (2.42-1)\n")
         if pacman_conf is not None:
-            self.write("etc/pacman.conf.pacsave" if pacsave else "etc/pacman.conf", pacman_conf)
+            self.write("etc/pacman.conf" + saved if pacsave else "etc/pacman.conf", pacman_conf)
         if lux_conf is not None:
             self.write("etc/lux/lux.conf", lux_conf)
             # novy lux-engine vlastni lux.conf: na disku zustal stary soubor, novy je .pacnew
@@ -320,6 +320,93 @@ class Finish(MigrateBase):
         os.unlink(self.p("var/lib/pacman/db.lck"))
         self.assertEqual(self.run_m("finish", "--now").returncode, 0)
         self.assertTrue(os.path.isdir(self.p("var/lib/pacman/local")))
+
+
+class Suffixes(MigrateBase):
+    """LuxOS 1.0: zalohy konfigurace *.luxnew/*.luxsave/*.luxorig misto *.pacnew/*.pacsave/*.pacorig."""
+
+    def migrated_system(self):
+        shutil.copy(os.path.join(PKG, "lux.conf"), self.p("etc/lux/lux.conf"))
+        self.write("var/lib/lux/migrated-from-pacman/done", "x\n")
+        self.write("var/lib/lux/migrated-from-pacman/config-done", "")
+        self.write("var/lib/lux/migrated-from-pacman/mirrorlist-done", "")
+
+    def test_renamed_once_without_overwrite(self):
+        self.migrated_system()
+        self.write("etc/a.conf.pacnew", "new a\n")
+        self.write("etc/ssh/sshd_config.pacsave", "saved\n")
+        self.write("etc/ssh/sshd_config.pacsave.1", "saved 1\n")
+        self.write("etc/c.conf.pacorig", "orig\n")
+        self.write("etc/d.conf.pacnew", "old engine\n")
+        self.write("etc/d.conf.luxnew", "new engine\n")       # cil existuje - neprepsat
+        self.write("etc/e.conf.pacnew.bak", "x")               # jina koncovka - nechat
+        os.symlink("a.conf.pacnew", self.p("etc/link.pacnew"))  # odkaz se prejmenuje, necte se
+        r = self.run_m("hook")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.read("etc/a.conf.luxnew"), "new a\n")
+        self.assertEqual(self.read("etc/ssh/sshd_config.luxsave"), "saved\n")
+        self.assertEqual(self.read("etc/ssh/sshd_config.luxsave.1"), "saved 1\n")
+        self.assertEqual(self.read("etc/c.conf.luxorig"), "orig\n")
+        self.assertTrue(os.path.islink(self.p("etc/link.luxnew")))
+        for rel in ("etc/a.conf.pacnew", "etc/ssh/sshd_config.pacsave", "etc/ssh/sshd_config.pacsave.1",
+                    "etc/c.conf.pacorig", "etc/link.pacnew"):
+            self.assertFalse(os.path.lexists(self.p(rel)), rel)
+        self.assertEqual(self.read("etc/d.conf.pacnew"), "old engine\n")
+        self.assertEqual(self.read("etc/d.conf.luxnew"), "new engine\n")
+        self.assertTrue(os.path.isfile(self.p("etc/e.conf.pacnew.bak")))
+        self.assertIn("renamed /etc/a.conf.pacnew -> a.conf.luxnew", r.stderr)
+        self.assertIn("renamed /etc/ssh/sshd_config.pacsave.1 -> sshd_config.luxsave.1", r.stderr)
+        self.assertIn("/etc/d.conf.pacnew not renamed: d.conf.luxnew already exists", r.stderr)
+        self.assertTrue(os.path.exists(self.p("var/lib/lux/migrated-from-pacman/suffixes-done")))
+        # jen jednou: dalsi aktualizace lux-engine uz nic neprejmenovava
+        self.write("etc/f.conf.pacnew", "f\n")
+        r = self.run_m("hook")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stderr, "")
+        self.assertTrue(os.path.isfile(self.p("etc/f.conf.pacnew")))
+        self.assertEqual(self.run_m("status").returncode, 0)
+
+    def test_outside_etc_untouched(self):
+        self.migrated_system()
+        self.write("usr/share/doc/x.pacnew", "x")
+        self.write("var/lib/lux/y.pacsave", "y")
+        self.assertEqual(self.run_m("hook").returncode, 0)
+        self.assertTrue(os.path.isfile(self.p("usr/share/doc/x.pacnew")))
+        self.assertTrue(os.path.isfile(self.p("var/lib/lux/y.pacsave")))
+
+    def test_upgrade_from_095_renames_after_migration(self):
+        """Stare jadro v transakci vytvori *.pacnew; migrace je precte, prejmenuje az potom."""
+        self.old_layout(lux_conf=LEGACY_LUX_CONF.replace("AUR=1", "AUR=0"))
+        self.write("etc/lux/lux.conf.pacnew", open(os.path.join(PKG, "lux.conf")).read() + "# zmena\n")
+        self.write("etc/locale.gen.pacnew", "cs_CZ.UTF-8 UTF-8\n")
+        r = self.run_m("hook")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assert_migrated()
+        self.assertRegex(self.read("etc/lux/lux.conf"), r"\naur +off")
+        self.assertTrue(os.path.isfile(self.p("etc/lux/lux.conf.luxnew")))
+        self.assertTrue(os.path.isfile(self.p("etc/locale.gen.luxnew")))
+        self.assertFalse(os.path.lexists(self.p("etc/locale.gen.pacnew")))
+
+    def test_luxnew_of_lux_conf_dropped(self):
+        """Novy lux-engine: lux.conf.luxnew shodna s vychozi konfiguraci se odstrani (jako .pacnew)."""
+        self.write("etc/lux/lux.conf", "repo luxos\n    server file:///opt/luxos-repo/$repo/$arch\n"
+                   "    signatures optional\n")
+        shutil.copy(os.path.join(PKG, "lux.conf"), self.p("etc/lux/lux.conf.luxnew"))
+        r = self.run_m("hook")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse(os.path.exists(self.p("etc/lux/lux.conf.luxnew")))
+
+    def test_pacman_conf_luxsave_converted_and_cleaned(self):
+        """/etc/pacman.conf.luxsave (pacman odebran novym jadrem) se prevede stejne jako .pacsave."""
+        self.old_layout(pacman_conf=OLD_PACMAN_CONF + "\n[options]\nIgnorePkg = linux\n", pacsave=True,
+                        saved=".luxsave")
+        r = self.run_m("hook")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("hold  linux\n", self.read("etc/lux/lux.conf"))
+        os.unlink(self.p("var/lib/pacman/db.lck"))
+        self.assertEqual(self.run_m("finish", "--now").returncode, 0)
+        self.assertFalse(os.path.lexists(self.p("etc/pacman.conf.luxsave")))
+        self.assertTrue(os.path.isfile(self.p("var/lib/lux/migrated-from-pacman/etc/pacman.conf.luxsave")))
 
 
 if __name__ == "__main__":

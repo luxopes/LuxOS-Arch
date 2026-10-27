@@ -77,7 +77,8 @@ DOWNLOAD_EXCLUDES = ["/Downloads/", "/Stažené/"]
 VM_EXCLUDES = ["/VirtualBox VMs/", "/.local/share/gnome-boxes/images/", "/.local/share/libvirt/images/",
                "/vmware/", "*.qcow2", "*.vdi", "*.vmdk", "*.vhd", "*.vhdx"]
 SYSTEM_EXCLUDES = ["/shadow*", "/gshadow*", "/sudoers.d/", "/ssh/ssh_host_*_key", "/cryptsetup-keys.d/",
-                   "/NetworkManager/system-connections/", "/luxos-backup-secret*", "*.pacnew"]
+                   "/NetworkManager/system-connections/", "/luxos-backup-secret*", "*.luxnew",
+                   "*.pacnew"]
 
 DEFAULTS = {"auto": True, "system": False, "downloads": True, "vms": False,
             "excludes": [], "disks": [], "declined": []}

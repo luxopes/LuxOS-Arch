@@ -137,7 +137,7 @@ Mirror list updated	Lista serwerów lustrzanych uaktualniona
 LuxOS system check	Sprawdzanie systemu LuxOS
 %s failed service(s):	Usługi z błędem: %s
 Services running	Usługi działają
-%s .pacnew config file(s) to merge (pacdiff)	Pliki konfiguracyjne .pacnew do scalenia (pacdiff): %s
+%s .luxnew config file(s) to merge (pacdiff)	Pliki konfiguracyjne .luxnew do scalenia (pacdiff): %s
 No pending config files	Brak oczekujących plików konfiguracyjnych
 Root filesystem is %s%% full	System plików root jest zapełniony w %s %%
 Disk usage %s%%	Użycie dysku %s %%
@@ -2134,9 +2134,9 @@ Stop Recording	Zatrzymaj nagrywanie
 Screen recording is not available: ffmpeg was not found.	Nagrywanie ekranu jest niedostępne: nie znaleziono ffmpeg.
 The screen recording failed.	Nagrywanie ekranu nie powiodło się.
 The screenshot could not be saved.	Nie udało się zapisać zrzutu ekranu.
-%s .pacnew config file(s) to merge - run: lux configs	Pliki konfiguracyjne .pacnew do scalenia: %s - uruchom: lux configs
+%s .luxnew config file(s) to merge - run: lux configs	Pliki konfiguracyjne .luxnew do scalenia: %s - uruchom: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Twoje ustawienia zostały zachowane. Scal pliki, kiedy będzie Ci wygodnie: lux configs
-review and merge new config files (.pacnew)	przegląda i scala nowe pliki konfiguracyjne (.pacnew)
+review and merge new config files (.luxnew)	przegląda i scala nowe pliki konfiguracyjne (.luxnew)
 Keyboard Layouts	Układy klawiatury
 Layouts	Układy
 Add Layout	Dodaj układ

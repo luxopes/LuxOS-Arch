@@ -280,10 +280,12 @@ class CLI(unittest.TestCase):
     @unittest.skipUnless(shutil.which("unshare") and subprocess.run(["unshare", "-r", "true"]).returncode == 0,
                          "unshare -r neni k dispozici")
     def test_configs_own_implementation(self):
-        """lux configs: vlastni porovnani .pacnew/.pacsave (bez pacdiff); s -y se nic nemeni."""
+        """lux configs: vlastni porovnani .luxnew/.luxsave i starsich .pacnew/.pacsave (bez pacdiff);
+        s -y se nic nemeni."""
         etc = os.path.join(self.tmp, "etc")
         os.makedirs(etc)
-        for name, text in (("a.conf", "old\n"), ("a.conf.pacnew", "new\n"), ("b.conf.pacsave", "saved\n")):
+        for name, text in (("a.conf", "old\n"), ("a.conf.pacnew", "new\n"), ("b.conf.pacsave", "saved\n"),
+                           ("c.conf", "old c\n"), ("c.conf.luxnew", "new c\n"), ("d.conf.luxsave", "saved d\n")):
             with open(os.path.join(etc, name), "w") as f:
                 f.write(text)
         env = {"LUX_CONFIGS_ROOT": etc}
@@ -293,7 +295,11 @@ class CLI(unittest.TestCase):
         self.assertIn("-old", out)                   # rozdil
         self.assertIn("+new", out)
         self.assertIn("b.conf.pacsave", out)
-        self.assertEqual(sorted(os.listdir(etc)), ["a.conf", "a.conf.pacnew", "b.conf.pacsave"])
+        self.assertIn("+new c", out)
+        self.assertIn("d.conf.luxsave", out)
+        self.assertNotIn("d.conf.luxsave.luxsave", out)
+        self.assertEqual(sorted(os.listdir(etc)), ["a.conf", "a.conf.pacnew", "b.conf.pacsave",
+                                                   "c.conf", "c.conf.luxnew", "d.conf.luxsave"])
         for name in os.listdir(etc):
             os.unlink(os.path.join(etc, name))
         rc, out = self.lux("configs", env=env, prefix=("unshare", "-r"))

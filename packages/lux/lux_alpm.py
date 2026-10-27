@@ -761,7 +761,7 @@ def _isatty(f):
 # ---- callbacky libalpm --------------------------------------------------------------------------
 # alpm_event_type_t (alpm.h, pacman 6/7) - jen udalosti, ktere lux ukazuje
 EV_SCRIPTLET_INFO = 17
-EV_PACNEW_CREATED = 32
+EV_PACNEW_CREATED = 32      # soubor *.luxnew (lux-engine; jmeno udalosti z API libalpm)
 EV_HOOK_START = 34
 EV_HOOK_RUN_START = 36
 # alpm_question_type_t
@@ -924,7 +924,7 @@ class Callbacks:
         elif level == 2:
             self.log_warnings.append(msg)
             self.ui.compat(f"warning: {msg}")
-            if ".pacnew" in msg:
+            if ".luxnew" in msg or ".pacnew" in msg:     # .pacnew: jadro pred LuxOS 1.0
                 self.pacnew += 1
             if self.ui.verbose and not self.ui.machine:
                 self.ui.write(self.ui.yellow("! ") + msg, err=True)
@@ -2073,7 +2073,8 @@ def migration_pending(root="/"):
     """Zbytky rozlozeni pacmanu (LuxOS do 0.9.5) - rychla kontrola bez spusteni skriptu."""
     p = lambda rel: os.path.join(root, rel)  # noqa: E731
     return any((os.path.lexists(p("var/lib/pacman")), os.path.lexists(p("etc/pacman.conf")),
-                os.path.lexists(p("etc/pacman.conf.pacsave")), os.path.islink(p("usr/lib/lux/alpm/bin/pacman")),
+                os.path.lexists(p("etc/pacman.conf.pacsave")), os.path.lexists(p("etc/pacman.conf.luxsave")),
+                os.path.islink(p("usr/lib/lux/alpm/bin/pacman")),
                 os.path.lexists(p("var/log/pacman.log")), os.path.islink(p("var/cache/pacman/pkg"))))
 
 

@@ -1059,6 +1059,13 @@ class CallbackShapes(unittest.TestCase):
         self.assertEqual(self.cb.question(lux_alpm.Q_CONFLICT_PKG), 0)
         self.assertEqual(self.cb.question(lux_alpm.Q_REMOVE_PKGS), 0)
 
+    def test_new_config_files_counted(self):
+        """Varovani libalpm o nove verzi konfigurace: *.luxnew (lux-engine) i *.pacnew (starsi jadro)."""
+        self.cb.log(2, "/etc/a.conf installed as /etc/a.conf.luxnew\n")
+        self.cb.log(2, "/etc/b.conf installed as /etc/b.conf.pacnew\n")
+        self.cb.log(2, "something else\n")
+        self.assertEqual(self.cb.pacnew, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

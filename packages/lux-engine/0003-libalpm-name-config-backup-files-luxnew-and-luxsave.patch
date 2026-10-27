@@ -1,0 +1,366 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Antonin Tomecek <antonin@jupiter.localdomain>
+Date: Tue, 27 Oct 2026 12:00:00 +0100
+Subject: [PATCH] libalpm: name config backup files .luxnew and .luxsave
+
+LuxOS: the package manager is lux, so files kept by libalpm next to
+changed configuration files are named after it instead of pacman:
+.pacnew -> .luxnew (new version of a file the user changed) and
+.pacsave -> .luxsave (changed file of a removed package), including
+numbered .luxsave.N files, messages, log lines, manual pages and the
+test suite. Event names of the libalpm API (ALPM_EVENT_PACNEW_CREATED,
+ALPM_EVENT_PACSAVE_CREATED) stay, so pyalpm and other users of the
+library are not affected. Translations are adjusted in prepare().
+---
+ doc/alpm-hooks.5.asciidoc       |  2 +-
+ doc/pacman.8.asciidoc           |  8 ++++----
+ doc/pacman.conf.5.asciidoc      |  2 +-
+ lib/libalpm/add.c               | 12 ++++++------
+ lib/libalpm/alpm.h              | 10 +++++-----
+ lib/libalpm/remove.c            | 14 +++++++-------
+ src/pacman/callback.c           |  8 ++++----
+ test/pacman/README              |  2 +-
+ test/pacman/pmrule.py           |  4 ++--
+ test/pacman/tests/backup001.py  |  2 +-
+ test/pacman/tests/mode003.py    |  2 +-
+ test/pacman/tests/remove012.py  | 12 ++++++------
+ test/pacman/tests/upgrade045.py |  2 +-
+ 13 files changed, 40 insertions(+), 40 deletions(-)
+
+diff --git a/doc/alpm-hooks.5.asciidoc b/doc/alpm-hooks.5.asciidoc
+index b25d7c03..84eeedab 100644
+--- a/doc/alpm-hooks.5.asciidoc
++++ b/doc/alpm-hooks.5.asciidoc
+@@ -123,7 +123,7 @@ CAVEATS
+ 
+ There are situations when path triggers may act in unexpected ways.  Hooks are
+ triggered using the file list of the installed, upgraded, or removed package.
+-When installing or upgrading a file that is extracted with a '.pacnew'
++When installing or upgrading a file that is extracted with a '.luxnew'
+ extension, the original file name is used in triggering the hook.  When
+ removing a package, all files owned by that package can trigger a hook whether
+ or not they were actually present on the file system before package removal.
+diff --git a/doc/pacman.8.asciidoc b/doc/pacman.8.asciidoc
+index 9aa7f60c..2ab22409 100644
+--- a/doc/pacman.8.asciidoc
++++ b/doc/pacman.8.asciidoc
+@@ -52,7 +52,7 @@ Operations
+ 	removed, in which case every package in that group will be removed.
+ 	Files belonging to the specified package will be deleted, and the
+ 	database will be updated. Most configuration files will be saved
+-	with a '.pacsave' extension unless the '\--nosave' option is used.
++	with a '.luxsave' extension unless the '\--nosave' option is used.
+ 	See <<RO,Remove Options>> below.
+ 
+ *-S, \--sync*::
+@@ -398,7 +398,7 @@ Remove Options (apply to '-R')[[RO]]
+ *-n, \--nosave*::
+ 	Instructs pacman to ignore file backup designations. Normally, when a
+ 	file is removed from the system, the database is checked to see if the
+-	file should be renamed with a '.pacsave' extension.
++	file should be renamed with a '.luxsave' extension.
+ 
+ *-s, \--recursive*::
+ 	Remove each target specified including all of their dependencies, provided
+@@ -550,13 +550,13 @@ original=X, current=Y, new=Y::
+ 	The new file is identical to the current file. Install the new file.
+ 
+ original=X, current=Y, new=Z::
+-	All three files are different, so install the new file with a '.pacnew'
++	All three files are different, so install the new file with a '.luxnew'
+ 	extension and warn the user. The user must then manually merge any
+ 	necessary changes into the original file.
+ 
+ original=NULL, current=Y, new=Z::
+ 	The package was not previously installed, and the file already exists on the
+-	file system. Install the new file with a '.pacnew' extension and warn the
++	file system. Install the new file with a '.luxnew' extension and warn the
+ 	user. The user must then manually merge any necessary changes into the
+ 	original file.
+ 
+diff --git a/doc/pacman.conf.5.asciidoc b/doc/pacman.conf.5.asciidoc
+index e5f59703..c3bebd4b 100644
+--- a/doc/pacman.conf.5.asciidoc
++++ b/doc/pacman.conf.5.asciidoc
+@@ -135,7 +135,7 @@ Options
+ *NoUpgrade =* file ...::
+ 	All files listed with a `NoUpgrade` directive will never be touched during
+ 	a package install/upgrade, and the new files will be installed with a
+-	'.pacnew' extension.
++	'.luxnew' extension.
+ 	These files refer to files in the package archive, so do not include the
+ 	leading slash (the RootDir) when specifying them. Shell-style glob patterns
+ 	are allowed. It is possible to invert matches by prepending a file with
+diff --git a/lib/libalpm/add.c b/lib/libalpm/add.c
+index 7037dec8..f66e04c6 100644
+--- a/lib/libalpm/add.c
++++ b/lib/libalpm/add.c
+@@ -315,12 +315,12 @@ static int extract_single_file(alpm_handle_t *handle, struct archive *archive,
+ 	}
+ 
+ 	if(notouch || needbackup) {
+-		if(filename_len + strlen(".pacnew") >= PATH_MAX) {
++		if(filename_len + strlen(".luxnew") >= PATH_MAX) {
+ 			_alpm_log(handle, ALPM_LOG_ERROR,
+-					_("unable to extract %s.pacnew: path too long"), filename);
++					_("unable to extract %s.luxnew: path too long"), filename);
+ 			return 1;
+ 		}
+-		strcpy(filename + filename_len, ".pacnew");
++		strcpy(filename + filename_len, ".luxnew");
+ 		isnewfile = (llstat(filename, &lsbuf) != 0 && errno == ENOENT);
+ 	}
+ 
+@@ -343,11 +343,11 @@ static int extract_single_file(alpm_handle_t *handle, struct archive *archive,
+ 			.newpkg = newpkg,
+ 			.file = filename
+ 		};
+-		/* "remove" the .pacnew suffix */
++		/* "remove" the .luxnew suffix */
+ 		filename[filename_len] = '\0';
+ 		EVENT(handle, &event);
+ 		alpm_logaction(handle, ALPM_CALLER_PREFIX,
+-				"warning: %s installed as %s.pacnew\n", filename, filename);
++				"warning: %s installed as %s.luxnew\n", filename, filename);
+ 	} else if(needbackup) {
+ 		char *hash_local = NULL, *hash_pkg = NULL;
+ 		char origfile[PATH_MAX] = "";
+@@ -398,7 +398,7 @@ static int extract_single_file(alpm_handle_t *handle, struct archive *archive,
+ 			};
+ 			_alpm_log(handle, ALPM_LOG_DEBUG,
+ 					"action: keeping current file and installing"
+-					" new one with .pacnew ending\n");
++					" new one with .luxnew ending\n");
+ 			EVENT(handle, &event);
+ 			alpm_logaction(handle, ALPM_CALLER_PREFIX,
+ 					"warning: %s installed as %s\n", origfile, filename);
+diff --git a/lib/libalpm/alpm.h b/lib/libalpm/alpm.h
+index 5cd620ef..91172ae5 100644
+--- a/lib/libalpm/alpm.h
++++ b/lib/libalpm/alpm.h
+@@ -151,7 +151,7 @@ typedef struct _alpm_filelist_t {
+ 
+ /** Local package or package file backup entry */
+ typedef struct _alpm_backup_t {
+-       /** Name of the file (without .pacsave extension) */
++       /** Name of the file (without .luxsave extension) */
+        char *name;
+        /** Hash of the filename (used internally) */
+        char *hash;
+@@ -778,9 +778,9 @@ typedef enum _alpm_event_type_t {
+ 	ALPM_EVENT_KEY_DOWNLOAD_START,
+ 	/** Key downloading is finished. */
+ 	ALPM_EVENT_KEY_DOWNLOAD_DONE,
+-	/** A .pacnew file was created; See alpm_event_pacnew_created_t for arguments. */
++	/** A .luxnew file was created; See alpm_event_pacnew_created_t for arguments. */
+ 	ALPM_EVENT_PACNEW_CREATED,
+-	/** A .pacsave file was created; See alpm_event_pacsave_created_t for
++	/** A .luxsave file was created; See alpm_event_pacsave_created_t for
+ 	 * arguments. */
+ 	ALPM_EVENT_PACSAVE_CREATED,
+ 	/** Processing hooks will be started. */
+@@ -873,7 +873,7 @@ typedef struct _alpm_event_pacnew_created_t {
+ 	alpm_pkg_t *oldpkg;
+ 	/** New Package */
+ 	alpm_pkg_t *newpkg;
+-	/** Filename of the file without the .pacnew suffix */
++	/** Filename of the file without the .luxnew suffix */
+ 	const char *file;
+ } alpm_event_pacnew_created_t;
+ 
+@@ -883,7 +883,7 @@ typedef struct _alpm_event_pacsave_created_t {
+ 	alpm_event_type_t type;
+ 	/** Old package */
+ 	alpm_pkg_t *oldpkg;
+-	/** Filename of the file without the .pacsave suffix */
++	/** Filename of the file without the .luxsave suffix */
+ 	const char *file;
+ } alpm_event_pacsave_created_t;
+ 
+diff --git a/lib/libalpm/remove.c b/lib/libalpm/remove.c
+index 1ae7ab1d..0e0703db 100644
+--- a/lib/libalpm/remove.c
++++ b/lib/libalpm/remove.c
+@@ -368,7 +368,7 @@ static void shift_pacsave(alpm_handle_t *handle, const char *file)
+ 	basename = mbasename(file);
+ 	basename_len = strlen(basename);
+ 
+-	snprintf(regstr, PATH_MAX, "^%s\\.pacsave\\.([[:digit:]]+)$", basename);
++	snprintf(regstr, PATH_MAX, "^%s\\.luxsave\\.([[:digit:]]+)$", basename);
+ 	if(regcomp(&reg, regstr, REG_EXTENDED | REG_NEWLINE) != 0) {
+ 		goto cleanup;
+ 	}
+@@ -387,7 +387,7 @@ static void shift_pacsave(alpm_handle_t *handle, const char *file)
+ 
+ 		if(regexec(&reg, ent->d_name, 0, 0, 0) == 0) {
+ 			unsigned long cur_log;
+-			cur_log = strtoul(ent->d_name + basename_len + strlen(".pacsave."), NULL, 10);
++			cur_log = strtoul(ent->d_name + basename_len + strlen(".luxsave."), NULL, 10);
+ 			if(cur_log > log_max) {
+ 				log_max = cur_log;
+ 			}
+@@ -397,8 +397,8 @@ static void shift_pacsave(alpm_handle_t *handle, const char *file)
+ 	/* Shift pacsaves */
+ 	unsigned long i;
+ 	for(i = log_max + 1; i > 1; i--) {
+-		if(snprintf(oldfile, PATH_MAX, "%s.pacsave.%lu", file, i-1) >= PATH_MAX
+-				|| snprintf(newfile, PATH_MAX, "%s.pacsave.%lu", file, i) >= PATH_MAX) {
++		if(snprintf(oldfile, PATH_MAX, "%s.luxsave.%lu", file, i-1) >= PATH_MAX
++				|| snprintf(newfile, PATH_MAX, "%s.luxsave.%lu", file, i) >= PATH_MAX) {
+ 			_alpm_log(handle, ALPM_LOG_ERROR,
+ 					_("could not backup %s due to PATH_MAX overflow\n"), file);
+ 			goto cleanup;
+@@ -406,7 +406,7 @@ static void shift_pacsave(alpm_handle_t *handle, const char *file)
+ 		rename(oldfile, newfile);
+ 	}
+ 
+-	if(snprintf(oldfile, PATH_MAX, "%s.pacsave", file) >= PATH_MAX
++	if(snprintf(oldfile, PATH_MAX, "%s.luxsave", file) >= PATH_MAX
+ 			|| snprintf(newfile, PATH_MAX, "%s.1", oldfile) >= PATH_MAX) {
+ 		_alpm_log(handle, ALPM_LOG_ERROR,
+ 				_("could not backup %s due to PATH_MAX overflow\n"), file);
+@@ -526,7 +526,7 @@ static int unlink_file(alpm_handle_t *handle, alpm_pkg_t *oldpkg,
+ 			}
+ 		}
+ 	} else {
+-		/* if the file needs backup and has been modified, back it up to .pacsave */
++		/* if the file needs backup and has been modified, back it up to .luxsave */
+ 		alpm_backup_t *backup = _alpm_needbackup(fileobj->name, oldpkg);
+ 		if(backup) {
+ 			if(nosave) {
+@@ -545,7 +545,7 @@ static int unlink_file(alpm_handle_t *handle, alpm_pkg_t *oldpkg,
+ 					size_t len = strlen(file) + 8 + 1;
+ 					MALLOC(newpath, len, RET_ERR(handle, ALPM_ERR_MEMORY, -1));
+ 					shift_pacsave(handle, file);
+-					snprintf(newpath, len, "%s.pacsave", file);
++					snprintf(newpath, len, "%s.luxsave", file);
+ 					if(rename(file, newpath)) {
+ 						_alpm_log(handle, ALPM_LOG_ERROR, _("could not rename %s to %s (%s)\n"),
+ 								file, newpath, strerror(errno));
+diff --git a/src/pacman/callback.c b/src/pacman/callback.c
+index 77874760..fd80b8b0 100644
+--- a/src/pacman/callback.c
++++ b/src/pacman/callback.c
+@@ -358,13 +358,13 @@ void cb_event(void *ctx, alpm_event_t *event)
+ 				alpm_event_pacnew_created_t *e = &event->pacnew_created;
+ 				if(on_progress) {
+ 					char *string = NULL;
+-					pm_sprintf(&string, ALPM_LOG_WARNING, _("%s installed as %s.pacnew\n"),
++					pm_sprintf(&string, ALPM_LOG_WARNING, _("%s installed as %s.luxnew\n"),
+ 							e->file, e->file);
+ 					if(string != NULL) {
+ 						output = alpm_list_add(output, string);
+ 					}
+ 				} else {
+-					pm_printf(ALPM_LOG_WARNING, _("%s installed as %s.pacnew\n"),
++					pm_printf(ALPM_LOG_WARNING, _("%s installed as %s.luxnew\n"),
+ 							e->file, e->file);
+ 				}
+ 			}
+@@ -374,13 +374,13 @@ void cb_event(void *ctx, alpm_event_t *event)
+ 				alpm_event_pacsave_created_t *e = &event->pacsave_created;
+ 				if(on_progress) {
+ 					char *string = NULL;
+-					pm_sprintf(&string, ALPM_LOG_WARNING, _("%s saved as %s.pacsave\n"),
++					pm_sprintf(&string, ALPM_LOG_WARNING, _("%s saved as %s.luxsave\n"),
+ 							e->file, e->file);
+ 					if(string != NULL) {
+ 						output = alpm_list_add(output, string);
+ 					}
+ 				} else {
+-					pm_printf(ALPM_LOG_WARNING, _("%s saved as %s.pacsave\n"),
++					pm_printf(ALPM_LOG_WARNING, _("%s saved as %s.luxsave\n"),
+ 							e->file, e->file);
+ 				}
+ 			}
+diff --git a/test/pacman/README b/test/pacman/README
+index 4b2e61af..0dae0b52 100644
+--- a/test/pacman/README
++++ b/test/pacman/README
+@@ -126,7 +126,7 @@ filesystem with this list of files.
+ 
+ Example:
+ 	self.filesystem = ["bin/dummy",
+-	                   "etc/X11/xorg.conf.pacsave"]
++	                   "etc/X11/xorg.conf.luxsave"]
+ 
+ Note that all paths are relative ones, and thus file names should not start
+ with a "/".
+diff --git a/test/pacman/pmrule.py b/test/pacman/pmrule.py
+index 0cfd05ff..0f8c6f5f 100644
+--- a/test/pacman/pmrule.py
++++ b/test/pacman/pmrule.py
+@@ -153,10 +153,10 @@ def check(self, test):
+                     if not os.path.islink(filename):
+                         success = 0
+             elif case == "PACNEW":
+-                if not os.path.isfile("%s.pacnew" % filename):
++                if not os.path.isfile("%s.luxnew" % filename):
+                     success = 0
+             elif case == "PACSAVE":
+-                if not os.path.isfile("%s.pacsave" % filename):
++                if not os.path.isfile("%s.luxsave" % filename):
+                     success = 0
+             else:
+                 tap.diag("FILE rule '%s' not found" % case)
+diff --git a/test/pacman/tests/backup001.py b/test/pacman/tests/backup001.py
+index e87b5f55..3e320ae0 100644
+--- a/test/pacman/tests/backup001.py
++++ b/test/pacman/tests/backup001.py
+@@ -1,6 +1,6 @@
+ self.description = "Upgrade a package, with a file in 'backup' (local modified, new unchanged)"
+ 
+-self.filesystem = ["etc/dummy.conf.pacnew"]
++self.filesystem = ["etc/dummy.conf.luxnew"]
+ 
+ lp = pmpkg("dummy")
+ lp.files = ["etc/dummy.conf*"]
+diff --git a/test/pacman/tests/mode003.py b/test/pacman/tests/mode003.py
+index 1193a5cf..6dd28b7d 100644
+--- a/test/pacman/tests/mode003.py
++++ b/test/pacman/tests/mode003.py
+@@ -17,4 +17,4 @@
+ self.addrule("FILE_PACNEW=etc/profile")
+ self.addrule("FILE_EXIST=etc/profile")
+ self.addrule("FILE_MODE=etc/profile|666")
+-self.addrule("FILE_MODE=etc/profile.pacnew|666")
++self.addrule("FILE_MODE=etc/profile.luxnew|666")
+diff --git a/test/pacman/tests/remove012.py b/test/pacman/tests/remove012.py
+index 4274487d..95f64eb3 100644
+--- a/test/pacman/tests/remove012.py
++++ b/test/pacman/tests/remove012.py
+@@ -1,8 +1,8 @@
+ self.description = "Remove a package with a modified file marked for backup and has existing pacsaves"
+ 
+-self.filesystem = ["etc/dummy.conf.pacsave",
+-                   "etc/dummy.conf.pacsave.1",
+-                   "etc/dummy.conf.pacsave.2"]
++self.filesystem = ["etc/dummy.conf.luxsave",
++                   "etc/dummy.conf.luxsave.1",
++                   "etc/dummy.conf.luxsave.2"]
+ 
+ p1 = pmpkg("dummy")
+ p1.files = ["etc/dummy.conf*"]
+@@ -15,6 +15,6 @@
+ self.addrule("!PKG_EXIST=dummy")
+ self.addrule("!FILE_EXIST=etc/dummy.conf")
+ self.addrule("FILE_PACSAVE=etc/dummy.conf")
+-self.addrule("FILE_EXIST=etc/dummy.conf.pacsave.1")
+-self.addrule("FILE_EXIST=etc/dummy.conf.pacsave.2")
+-self.addrule("FILE_EXIST=etc/dummy.conf.pacsave.3")
++self.addrule("FILE_EXIST=etc/dummy.conf.luxsave.1")
++self.addrule("FILE_EXIST=etc/dummy.conf.luxsave.2")
++self.addrule("FILE_EXIST=etc/dummy.conf.luxsave.3")
+diff --git a/test/pacman/tests/upgrade045.py b/test/pacman/tests/upgrade045.py
+index c909aa08..2eaea2a9 100644
+--- a/test/pacman/tests/upgrade045.py
++++ b/test/pacman/tests/upgrade045.py
+@@ -15,4 +15,4 @@
+ self.addrule("PACMAN_RETCODE=0")
+ self.addrule("PKG_VERSION=foo|1.0-2")
+ self.addrule("LINK_EXIST=etc/foo.cfg")
+-self.addrule("FILE_EXIST=etc/foo.cfg.pacnew")
++self.addrule("FILE_EXIST=etc/foo.cfg.luxnew")
+-- 
+2.56.0
+

@@ -62,7 +62,7 @@ include  /etc/lux/conf.d/*.conf
 | `hold` | názvy balíků (opakovatelný) | podržené balíky – `lux update` je neaktualizuje |
 | `ignore-group` | názvy skupin (opakovatelný) | totéž pro celé skupiny balíků |
 | `protect` | názvy balíků (`lux-engine glibc`) | balíky, u kterých se `lux remove` zeptá, i s `-y` je neodebere |
-| `no-upgrade` | cesty bez `/` na začátku (opakovatelný) | soubory, které aktualizace nepřepíše (nová verze jako `.pacnew`) |
+| `no-upgrade` | cesty bez `/` na začátku (opakovatelný) | soubory, které aktualizace nepřepíše (nová verze jako `.luxnew`) |
 | `no-extract` | vzory cest (opakovatelný) | soubory, které se z balíků vůbec nerozbalí (např. `usr/share/doc/*`) |
 | `color`, `candy`, `verbose-lists`, `check-space` | `on` \| `off` (`on`) | barvy, pruh ve stylu Pac-Mana, podrobné seznamy, kontrola místa na disku |
 | `syslog` | `on` \| `off` (`off`) | záznam i do systémového deníku |
@@ -200,7 +200,7 @@ jméno balíku (`@@ERROR corrupt`).
 | `lux owns <soubor>` (`owner`) | kterému balíku soubor patří (i příkaz z `PATH`) | `-Qo` |
 | `lux clean` | vyčistí cache (ponechá `clean-keep` verzí, odinstalované balíky smaže) a nabídne `autoremove` | `paccache -rk2`, `-ruk0` |
 | `lux fix` | opraví zamčenou databázi (jen když žádný správce balíků neběží), smaže nedokončená stahování, obnoví podpisové klíče (`lux-engine-key --init/--populate`, `archlinux-keyring`, `luxos-keyring`) | |
-| `lux configs` | projde nové konfigurační soubory z aktualizací (`.pacnew`, `.pacsave`): rozdíl, použít novou verzi, ponechat svou, upravit | `pacdiff` |
+| `lux configs` | projde nové konfigurační soubory z aktualizací (`.luxnew`, `.luxsave`; i starší `.pacnew`, `.pacsave`): rozdíl, použít novou verzi, ponechat svou, upravit | `pacdiff` |
 | `lux config [check\|show\|edit\|engine]` | kontrola, výpis, úprava `/etc/lux/lux.conf`; `engine` = vygenerovaná konfigurace jádra | |
 | `lux history [počet] [balík]` | poslední změny balíků z `/var/log/lux.log` | |
 | `lux mirrors` | nejrychlejší zrcadla (`reflector`) do `/etc/lux/mirrorlist` | |

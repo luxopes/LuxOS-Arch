@@ -1,6 +1,7 @@
 # remove from airootfs!
 # LuxOS: jen pri sestaveni ISO. /etc/lux/lux.conf z airootfs (live system) existovala pred instalaci
-# lux-engine, jeho vychozi verze je proto lux.conf.pacnew - v live systemu ji nikdo nepotrebuje.
+# lux-engine, jeho vychozi verze je proto lux.conf.luxnew (hostitel se starsim jadrem: .pacnew) - v live
+# systemu ji nikdo nepotrebuje.
 # Databaze repozitaru z doby sestaveni (mkarchiso maze /var/lib/pacman/sync, to je po migraci
 # odkaz na /var/lib/lux) taky pryc - live system si je stahne sam.
 
@@ -15,4 +16,4 @@ Description = Removing build leftovers of the package manager configuration...
 When = PostTransaction
 Depends = sh
 Depends = coreutils
-Exec = /bin/sh -c "rm -f /etc/lux/lux.conf.pacnew /etc/lux/mirrorlist.pacnew /var/lib/lux/sync/*"
+Exec = /bin/sh -c "rm -f /etc/lux/lux.conf.luxnew /etc/lux/mirrorlist.luxnew /etc/lux/lux.conf.pacnew /etc/lux/mirrorlist.pacnew /var/lib/lux/sync/*"

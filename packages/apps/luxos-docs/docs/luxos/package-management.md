@@ -49,7 +49,7 @@ behind lux is the `lux-engine` package (libalpm and tools taken from Arch Linux 
 | `lux files <pkg>` / `lux owns <file>` | files of a package / which package owns a file |
 | `lux clean` | clean the cache (keeps `clean-keep` versions, removes uninstalled packages), offers `autoremove` |
 | `lux fix` | repair a locked database, unfinished downloads and the signing keys |
-| `lux configs` | review new config files from updates (`.pacnew`, `.pacsave`): diff, use new, keep yours, edit |
+| `lux configs` | review new config files from updates (`.luxnew`, `.luxsave`; older `.pacnew`, `.pacsave` too): diff, use new, keep yours, edit |
 | `lux config [check\|show\|edit\|engine]` | check, show or edit `/etc/lux/lux.conf`; `engine` prints the generated engine config |
 | `lux history [n] [pkg]` | recent package changes from `/var/log/lux.log` |
 | `lux mirrors` | fastest mirrors (`reflector`) written to `/etc/lux/mirrorlist` |
@@ -107,7 +107,7 @@ include  /etc/lux/conf.d/*.conf
 | `hold` | package names, repeatable | held packages: `lux update` skips them (pacman's `IgnorePkg`) |
 | `ignore-group` | group names, repeatable | the same for package groups |
 | `protect` | package names (`lux-engine glibc`) | `lux remove` warns and never removes them with `-y` |
-| `no-upgrade` | paths without leading `/`, repeatable | files updates never overwrite (new version saved as `.pacnew`) |
+| `no-upgrade` | paths without leading `/`, repeatable | files updates never overwrite (new version saved as `.luxnew`) |
 | `no-extract` | path patterns, repeatable | files never extracted (e.g. `usr/share/doc/*`) |
 | `color`, `candy`, `verbose-lists`, `check-space` | `on` \| `off` (`on`) | colors, Pac-Man progress bar, detailed lists, free space check |
 | `syslog` | `on` \| `off` (`off`) | also log to the system journal |
@@ -189,6 +189,12 @@ LuxOS 0.9.5 or older moves `/var/lib/pacman` → `/var/lib/lux`, `/var/cache/pac
 `/etc/lux/mirrorlist`. Leftover links are cleaned after the next restart; copies stay in
 `/var/lib/lux/migrated-from-pacman/`.
 
+Config files kept by updates are named after lux: `*.luxnew` (new version of a file you changed)
+and `*.luxsave` (your changed file of a removed package). LuxOS 1.0 renames older `*.pacnew`,
+`*.pacsave` and `*.pacorig` files in `/etc` once when `lux-engine` is updated (an existing
+`.luxnew`/`.luxsave` is never overwritten; renamed files are listed in `/var/log/lux.log`).
+`lux configs`, `lux doctor` and LuxOS Care still recognise the old names.
+
 ## Administrator rights
 
 Run lux as a normal user; it asks for root itself (`sudo` in a terminal, `pkexec` in a graphical
@@ -237,7 +243,7 @@ Order of sources for `lux install <name>`: LuxOS and Arch Linux repositories →
    running is removed (`Removed a stale database lock left by an interrupted update.`).
 2. Refreshes databases, updates `archlinux-keyring` / `luxos-keyring` first, then the full system.
 3. Community (AUR) packages in the system, `.lux` apps, Flatpak apps (then unused Flatpak runtimes are
-   removed); lists new `*.pacnew` files and warns when a restart is needed.
+   removed); lists new `*.luxnew` files and warns when a restart is needed.
 
 Automatic background updates are done by LuxOS Care — see [care-updates.md](care-updates.md).
 
@@ -248,7 +254,7 @@ Automatic background updates are done by LuxOS Care — see [care-updates.md](ca
   remove the stale lock; deletes unfinished downloads; initializes/populates the keyring
   (`lux-engine-key --init/--populate`); warns about an unsynchronized clock; reinstalls the keyrings.
   Never delete `db.lck` by hand while an update runs.
-- `lux doctor`: failed services, `.pacnew` files, disk usage, orphans, available updates (checked
+- `lux doctor`: failed services, `.luxnew` files, disk usage, orphans, available updates (checked
   into a temporary database copy), configuration errors, old package manager files waiting for
   cleanup, engine version vs. Arch, replaced kernel, journal errors.
 - `lux clean`: own cache cleaner (no pacman-contrib): keeps `clean-keep` newest versions of

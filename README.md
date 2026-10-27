@@ -201,7 +201,7 @@ příkazem `lux` (`pacman -Syu` → `lux update`). `lux-engine` nahrazuje `pacma
 | `lux files <balík>` · `lux owns <soubor>` | soubory balíku / komu patří soubor |
 | `lux clean` | vyčistí cache balíků (+ nabídne `autoremove`) |
 | `lux fix` | opraví zamčenou databázi a podpisové klíče |
-| `lux configs` | porovná a sloučí nové konfigurační soubory (`.pacnew`) |
+| `lux configs` | porovná a sloučí nové konfigurační soubory (`.luxnew`, `.luxsave`) |
 | `lux history [počet] [balík]` | poslední změny balíků |
 | `lux drivers` · `lux doctor` · `lux mirrors` · `lux pack` | ovladače, kontrola systému, zrcadla, sestavení `.lux` |
 

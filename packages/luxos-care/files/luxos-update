@@ -391,7 +391,8 @@ class App:
         else:
             self.row(self.updates_group, _("No updates are waiting."),
                      _("LuxOS checks for updates automatically."))
-        for f in st.get("pacnew", [])[:10]:
+        # *.luxnew/*.luxsave (klic "pacnew" zapisoval LuxOS Care do LuxOS 1.0)
+        for f in st.get("new_configs", st.get("pacnew", []))[:10]:
             self.row(self.updates_group, _("New configuration file to review: %s") % f,
                      _("Your settings were kept. Merge the files when convenient: lux configs"), status="warn")
 

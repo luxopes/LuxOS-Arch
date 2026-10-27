@@ -137,7 +137,7 @@ Mirror list updated	Список дзеркал оновлено
 LuxOS system check	Перевірка системи LuxOS
 %s failed service(s):	Збійні служби: %s
 Services running	Служби працюють
-%s .pacnew config file(s) to merge (pacdiff)	Файли конфігурації .pacnew для об’єднання (pacdiff): %s
+%s .luxnew config file(s) to merge (pacdiff)	Файли конфігурації .luxnew для об’єднання (pacdiff): %s
 No pending config files	Немає файлів конфігурації в черзі
 Root filesystem is %s%% full	Коренева файлова система заповнена на %s%%
 Disk usage %s%%	Використання диска: %s%%
@@ -2134,9 +2134,9 @@ Stop Recording	Зупинити запис
 Screen recording is not available: ffmpeg was not found.	Запис екрана недоступний: ffmpeg не знайдено.
 The screen recording failed.	Не вдалося записати екран.
 The screenshot could not be saved.	Не вдалося зберегти знімок екрана.
-%s .pacnew config file(s) to merge - run: lux configs	Файли конфігурації .pacnew для об’єднання: %s – запустіть: lux configs
+%s .luxnew config file(s) to merge - run: lux configs	Файли конфігурації .luxnew для об’єднання: %s – запустіть: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Ваші налаштування збережено. Коли буде зручно, об’єднайте файли: lux configs
-review and merge new config files (.pacnew)	переглянути й об’єднати нові файли конфігурації (.pacnew)
+review and merge new config files (.luxnew)	переглянути й об’єднати нові файли конфігурації (.luxnew)
 Keyboard Layouts	Розкладки клавіатури
 Layouts	Розкладки
 Add Layout	Додати розкладку

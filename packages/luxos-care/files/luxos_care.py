@@ -769,12 +769,21 @@ def clean_cache(keep=2):
             timeout=300)
 
 
-def find_pacnew():
+# Nove konfiguracni soubory z aktualizaci (libalpm v lux-engine; .pacnew/.pacsave do LuxOS 1.0)
+NEW_CONFIG_SUFFIXES = (".luxnew", ".luxsave", ".pacnew", ".pacsave")
+
+
+def find_new_configs():
     res = []
     for root, dirs, files in os.walk(P("/etc")):
         dirs[:] = [d for d in dirs if d not in ("ssl", "ca-certificates")]
-        res += [os.path.join(root, f)[len(ROOT):] for f in files if f.endswith((".pacnew", ".pacsave"))]
+        res += [os.path.join(root, f)[len(ROOT):] for f in files if f.endswith(NEW_CONFIG_SUFFIXES)]
     return sorted(res)
+
+
+def new_configs(st):
+    """Seznam ze stavu (klic "pacnew" zapisovaly verze do LuxOS 1.0)."""
+    return st.get("new_configs", st.get("pacnew", []))
 
 
 def running_kernel():
@@ -828,7 +837,8 @@ def do_update(manual=False):
     st = load_state()
     st["updating"] = False
     st["last_attempt"] = now()
-    st["pacnew"] = find_pacnew()
+    st["new_configs"] = find_new_configs()
+    st.pop("pacnew", None)
     r = res.get("result")
     if r in ("ok", "nothing"):
         st.update(last_success=now(), failures=0, next_attempt=0, pending=[], last_error="")
@@ -882,7 +892,8 @@ def do_check_updates(st=None, force=False):
     old = {p[0] for p in st.get("pending", [])}
     st["pending"] = [list(p) for p in pending]
     st["last_check_updates"] = now()
-    st["pacnew"] = find_pacnew()
+    st["new_configs"] = find_new_configs()
+    st.pop("pacnew", None)
     save_state(st)
     if pending and ({p[0] for p in pending} - old) and mode() == "classic":
         add_event("updates_available", count=len(pending))
@@ -2180,7 +2191,8 @@ def do_check(after_update=False, boot=False):
     st["attempts"] = attempts
     st["rules_done_once"] = done_once
     st["last_check"] = now()
-    st["pacnew"] = find_pacnew()
+    st["new_configs"] = find_new_configs()
+    st.pop("pacnew", None)
     st["needs_reboot"] = needs_reboot()
     st["mode"] = m
     save_state(st)

@@ -137,7 +137,7 @@ Mirror list updated	Zoznam zrkadiel aktualizovaný
 LuxOS system check	Kontrola systému LuxOS
 %s failed service(s):	Zlyhané služby: %s
 Services running	Služby bežia
-%s .pacnew config file(s) to merge (pacdiff)	Konfiguračné súbory .pacnew na zlúčenie (pacdiff): %s
+%s .luxnew config file(s) to merge (pacdiff)	Konfiguračné súbory .luxnew na zlúčenie (pacdiff): %s
 No pending config files	Žiadne čakajúce konfiguračné súbory
 Root filesystem is %s%% full	Koreňový súborový systém je zaplnený na %s %%
 Disk usage %s%%	Využitie disku %s %%
@@ -2134,9 +2134,9 @@ Stop Recording	Zastaviť nahrávanie
 Screen recording is not available: ffmpeg was not found.	Nahrávanie obrazovky nie je k dispozícii: chýba ffmpeg.
 The screen recording failed.	Nahrávanie obrazovky zlyhalo.
 The screenshot could not be saved.	Snímku obrazovky sa nepodarilo uložiť.
-%s .pacnew config file(s) to merge - run: lux configs	Konfiguračné súbory .pacnew na zlúčenie: %s - spustite: lux configs
+%s .luxnew config file(s) to merge - run: lux configs	Konfiguračné súbory .luxnew na zlúčenie: %s - spustite: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Vaše nastavenia zostali zachované. Súbory môžete zlúčiť, keď sa vám to bude hodiť: lux configs
-review and merge new config files (.pacnew)	porovná a zlúči nové konfiguračné súbory (.pacnew)
+review and merge new config files (.luxnew)	porovná a zlúči nové konfiguračné súbory (.luxnew)
 Keyboard Layouts	Rozloženia klávesnice
 Layouts	Rozloženia
 Add Layout	Pridať rozloženie
