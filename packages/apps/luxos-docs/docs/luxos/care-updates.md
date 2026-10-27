@@ -49,7 +49,7 @@ The app switches mode through `pkexec /usr/lib/luxos/care/luxos-care-helper set-
 5. Installation from the cache (`-Su`) under `systemd-inhibit` (blocks shutdown, sleep and lid
    switch, "Installing updates"); on shutdown the installation is allowed to finish (up to 30 min).
 6. If a file conflict involves the kept previous kernel, it is released and the install retried.
-7. Old cache cleaned, `.pacnew` files recorded, reboot flagged if the kernel changed, then a
+7. Old cache cleaned, `.luxnew` files recorded, reboot flagged if the kernel changed, then a
    problem check runs.
 
 Updates go through `lux` (libalpm) when available, otherwise the internal tool `lux-engine`.

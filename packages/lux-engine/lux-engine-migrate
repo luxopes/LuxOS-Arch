@@ -17,10 +17,14 @@ Kroky (kazdy samostatne idempotentni - po vypadku proudu se jen zopakuje):
      na starem miste zustane relativni odkaz: stary proces jadra (ten, ktery prave instaluje novy
      lux-engine a drzi zamek /var/lib/pacman/db.lck) tak zamek odstrani a zapise log.
   2. seznam zrcadel /etc/pacman.d/mirrorlist (serazeny instalatorem / lux mirrors) -> /etc/lux/mirrorlist
-  3. /etc/pacman.conf (.pacsave) a lux.conf ve starem formatu (AUR=1 ...) -> /etc/lux/lux.conf
+  3. /etc/pacman.conf (.luxsave/.pacsave) a lux.conf ve starem formatu (AUR=1 ...) -> /etc/lux/lux.conf
   4. docasne odkazy pacman, pacman-conf, pacman-key v /usr/lib/lux/alpm/bin na nove nastroje (bezici
      stary lux, LuxOS Care a Obchod je volaji jeste po aktualizaci)
   5. znacka /var/lib/lux/migrated-from-pacman/done
+  6. (jen hook, jednou - znacka suffixes-done; LuxOS 1.0) zalohy konfigurace v /etc pojmenovane
+     po pacmanu -> jmena lux: *.pacnew -> *.luxnew, *.pacsave[.N] -> *.luxsave[.N],
+     *.pacorig -> *.luxorig. Existujici cil se neprepise (stary soubor zustane), kazde
+     prejmenovani se vypise (vystup hooku jde do /var/log/lux.log).
 Uklid (finish) az po restartu (zadny stary proces uz nebezi) a bez zamku: odstrani odkazy z kroku 1
 a 4 a stare konfiguracni soubory (kopie zustane v /var/lib/lux/migrated-from-pacman/ - zachovat
 do dalsiho vydani LuxOS, pak lze adresar smazat).
@@ -45,9 +49,14 @@ MOVES = [  # (stare, nove, druh)
 BACKUP = "var/lib/lux/migrated-from-pacman"
 COMPAT = [("usr/lib/lux/alpm/bin/pacman", "lux-engine"), ("usr/lib/lux/alpm/bin/pacman-conf", "lux-engine-conf"),
           ("usr/lib/lux/alpm/bin/pacman-key", "lux-engine-key"), ("usr/lib/lux/alpm/pacman", "bin/lux-engine")]
-OLD_CONFIGS = ["etc/pacman.conf", "etc/pacman.conf.pacsave", "etc/pacman.conf.pacnew",
-               "etc/pacman.d/mirrorlist", "etc/pacman.d/mirrorlist.pacsave", "etc/pacman.d/mirrorlist.pacnew",
+# zalohy libalpm: *.luxsave/*.luxnew (lux-engine od LuxOS 1.0), *.pacsave/*.pacnew (starsi)
+SAVED = (".luxsave", ".pacsave")
+OLD_CONFIGS = ["etc/pacman.conf", "etc/pacman.conf.luxsave", "etc/pacman.conf.luxnew",
+               "etc/pacman.conf.pacsave", "etc/pacman.conf.pacnew",
+               "etc/pacman.d/mirrorlist", "etc/pacman.d/mirrorlist.luxsave", "etc/pacman.d/mirrorlist.luxnew",
+               "etc/pacman.d/mirrorlist.pacsave", "etc/pacman.d/mirrorlist.pacnew",
                "etc/pacman.d/mirrorlist.luxos-orig"]
+SUFFIX_RE = re.compile(r"^(.+)(" + "|".join(re.escape(k) for k in lux_config.OLD_SUFFIXES) + r")(\.[0-9]+)?$")
 BUILD_ONLY = "LuxOS ISO build only"     # /etc/pacman.conf jen pro mkarchiso (archiso/airootfs)
 PKG_MANAGERS = {"pacman", "lux-engine", "lux_alpm.py", "makepkg", "pacstrap", "pacman-key", "lux-engine-key",
                 "yay", "paru", "pamac", "pamac-daemon", "packagekitd"}
@@ -91,7 +100,7 @@ class Migration:
         return out
 
     def old_pacman_conf(self):
-        for rel in ("etc/pacman.conf.pacsave", "etc/pacman.conf"):
+        for rel in [f"etc/pacman.conf{s}" for s in SAVED] + ["etc/pacman.conf"]:
             path = self.p(rel)
             if os.path.isfile(path):
                 try:
@@ -222,7 +231,7 @@ class Migration:
         new_rel = "etc/lux/mirrorlist"
         cur = self.read(new_rel)
         default = self.read("usr/share/lux/mirrorlist.default")
-        for rel in ("etc/pacman.d/mirrorlist.pacsave", "etc/pacman.d/mirrorlist"):
+        for rel in [f"etc/pacman.d/mirrorlist{s}" for s in SAVED] + ["etc/pacman.d/mirrorlist"]:
             text = self.read(rel)
             if text is None:
                 continue
@@ -236,7 +245,7 @@ class Migration:
                 continue
             if cur is None or cur == default:
                 lux_config.atomic_write(self.p(new_rel), lux_config.mirrorlist_text(
-                    urls, "converted from /" + rel.replace(".pacsave", "")))
+                    urls, "converted from /etc/pacman.d/mirrorlist"))
             break
         touch(done)
 
@@ -248,15 +257,17 @@ class Migration:
         conf_rel = "etc/lux/lux.conf"
         text = self.read(conf_rel)
         template = self.read("usr/share/lux/lux.conf.default")
-        pacnew = self.read(conf_rel + ".pacnew")
+        pacnew = next((t for t in map(self.read, lux_config.new_versions(conf_rel)) if t is not None), None)
         old_rel = self.old_pacman_conf()
         if old_rel:
             self.backup(old_rel)
-        legacy_texts = [t for t in (text, self.read(conf_rel + ".pacsave")) if t is not None and is_legacy(t)]
+        saved = [conf_rel + s for s in SAVED]
+        legacy_texts = [t for t in [text] + [self.read(x) for x in saved] if t is not None and is_legacy(t)]
         if text is not None and is_legacy(text):
             self.backup(conf_rel)
-        if self.read(conf_rel + ".pacsave") is not None:
-            self.backup(conf_rel + ".pacsave")
+        for x in saved:
+            if self.read(x) is not None:
+                self.backup(x)
         base = template
         if pacnew is not None and not is_legacy(pacnew):
             base = base or pacnew
@@ -297,15 +308,41 @@ class Migration:
             new = apply_cli(base, legacy_texts[0]) if legacy_texts else base
         lux_config.atomic_write(self.p(conf_rel), new)
         self.drop_pacnew(conf_rel, template)
-        for t in (conf_rel + ".pacsave",):
+        for t in saved:
             if self.read(t) is not None and is_legacy(self.read(t)):
                 os.unlink(self.p(t))
         touch(done)
 
     def drop_pacnew(self, conf_rel, template):
-        pn = self.read(conf_rel + ".pacnew")
-        if pn is not None and template is not None and pn == template:
-            os.unlink(self.p(conf_rel + ".pacnew"))
+        for rel in lux_config.new_versions(conf_rel):
+            pn = self.read(rel)
+            if pn is not None and template is not None and pn == template:
+                os.unlink(self.p(rel))
+
+    # ---- 6. jmena zaloh konfigurace -----------------------------------------------------------------
+    def rename_suffixes(self):
+        """*.pacnew/*.pacsave[.N]/*.pacorig v /etc -> *.luxnew/*.luxsave[.N]/*.luxorig (jednou).
+        Vraci seznam prejmenovanych (relativni cesty)."""
+        done = self.p(BACKUP + "/suffixes-done")
+        if os.path.exists(done):
+            return []
+        renamed = []
+        for dirpath, _dirs, files in os.walk(self.p("etc")):
+            for name in sorted(files):
+                m = SUFFIX_RE.match(name)
+                if not m:
+                    continue
+                src = os.path.join(dirpath, name)
+                dst = os.path.join(dirpath, m.group(1) + lux_config.OLD_SUFFIXES[m.group(2)] + (m.group(3) or ""))
+                show = "/" + os.path.relpath(src, self.root)
+                if os.path.lexists(dst):
+                    log(f"{show} not renamed: {os.path.basename(dst)} already exists")
+                    continue
+                os.rename(src, dst)
+                renamed.append(os.path.relpath(dst, self.root))
+                log(f"renamed {show} -> {os.path.basename(dst)}")
+        touch(done)
+        return renamed
 
     def parse_text(self, text):
         return lux_config.parse("/etc/lux/lux.conf", root=self.root if self.root != "/" else "", text=text)
@@ -483,6 +520,12 @@ def main(argv):
             m.migrate("hook")
         except Exception as e:  # noqa: BLE001
             log(f"migration failed: {e}")
+        try:
+            # LuxOS 1.0: zalohy konfigurace *.luxnew/*.luxsave (po migrate: ta cte i stara jmena;
+            # transakci s novym lux-engine jeste provadi stare jadro, ktere tvori *.pacnew)
+            m.rename_suffixes()
+        except Exception as e:  # noqa: BLE001
+            log(f"renaming .pacnew/.pacsave files failed: {e}")
         try:
             # LuxOS 0.9.7: repozitare na luxos.lux-ai.cz/repo (stara adresa dal funguje)
             if lux_config.update_moved_servers(m.p("etc/lux/lux.conf")):

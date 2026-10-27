@@ -601,6 +601,23 @@ class Reboot(Root):
                 self.assertFalse(care.needs_reboot())                        # nove selhalo: restart nepomuze
 
 
+class NewConfigs(Root):
+    """Nove konfiguracni soubory z aktualizaci: *.luxnew/*.luxsave i starsi *.pacnew/*.pacsave."""
+
+    def test_both_suffixes_found(self):
+        for path in ("/etc/a.conf.luxnew", "/etc/x/b.conf.luxsave", "/etc/c.conf.pacnew", "/etc/d.conf.pacsave",
+                     "/etc/e.conf", "/etc/ssl/f.pem.luxnew", "/usr/g.conf.luxnew"):
+            self.w(path)
+        self.assertEqual(care.find_new_configs(), ["/etc/a.conf.luxnew", "/etc/c.conf.pacnew",
+                                                   "/etc/d.conf.pacsave", "/etc/x/b.conf.luxsave"])
+
+    def test_old_state_key_read(self):
+        self.assertEqual(care.new_configs({"pacnew": ["/etc/a.conf.pacnew"]}), ["/etc/a.conf.pacnew"])
+        self.assertEqual(care.new_configs({"new_configs": ["/etc/a.conf.luxnew"], "pacnew": ["x"]}),
+                         ["/etc/a.conf.luxnew"])
+        self.assertEqual(care.new_configs({}), [])
+
+
 # ---- katalog a AI -----------------------------------------------------------------------
 class Catalog(Root):
     def test_valid_action(self):
@@ -673,7 +690,7 @@ class Catalog(Root):
                                  args=["cups.service"])
         with mock.patch.object(care, "detect_problems", return_value=[dict(prob)]), \
                 mock.patch.object(care, "diagnosis", return_value="diag"), \
-                mock.patch.object(care, "find_pacnew", return_value=[]), \
+                mock.patch.object(care, "find_new_configs", return_value=[]), \
                 mock.patch.object(care, "needs_reboot", return_value=False), \
                 mock.patch.object(care, "execute_action", return_value=(False, "failed")) as ex:
             care.do_check()
@@ -695,7 +712,7 @@ class Catalog(Root):
         prob = care.make_problem("stale_lock", "The package manager was left locked", rules=["remove_db_lock"],
                                  options=[("remove_db_lock", None)])
         with mock.patch.object(care, "detect_problems", return_value=[prob]), \
-                mock.patch.object(care, "find_pacnew", return_value=[]), \
+                mock.patch.object(care, "find_new_configs", return_value=[]), \
                 mock.patch.object(care, "needs_reboot", return_value=False), \
                 mock.patch.object(care, "execute_action") as ex:
             care.do_check()
@@ -707,7 +724,7 @@ class Catalog(Root):
         prob = care.make_problem("stale_lock", "The package manager was left locked", rules=["remove_db_lock"],
                                  options=[("remove_db_lock", None)])
         with mock.patch.object(care, "detect_problems", side_effect=[[prob], []]), \
-                mock.patch.object(care, "find_pacnew", return_value=[]), \
+                mock.patch.object(care, "find_new_configs", return_value=[]), \
                 mock.patch.object(care, "needs_reboot", return_value=False), \
                 mock.patch.object(care, "execute_action", return_value=(True, "")):
             care.do_check()
@@ -721,7 +738,7 @@ class Catalog(Root):
                                  options=[("retry_new_kernel", None)], once_per="6.10.2")
         with mock.patch.object(care, "detect_problems", return_value=[dict(prob)]), \
                 mock.patch.object(care, "diagnosis", return_value="d"), \
-                mock.patch.object(care, "find_pacnew", return_value=[]), \
+                mock.patch.object(care, "find_new_configs", return_value=[]), \
                 mock.patch.object(care, "needs_reboot", return_value=False), \
                 mock.patch.object(care, "execute_action", return_value=(True, "")) as ex:
             care.do_check()

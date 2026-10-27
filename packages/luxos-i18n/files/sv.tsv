@@ -137,7 +137,7 @@ Mirror list updated	Spegellistan har uppdaterats
 LuxOS system check	LuxOS-systemkontroll
 %s failed service(s):	%s tjänst(er) som misslyckats:
 Services running	Tjänsterna körs
-%s .pacnew config file(s) to merge (pacdiff)	%s .pacnew-konfigurationsfil(er) att sammanfoga (pacdiff)
+%s .luxnew config file(s) to merge (pacdiff)	%s .luxnew-konfigurationsfil(er) att sammanfoga (pacdiff)
 No pending config files	Inga väntande konfigurationsfiler
 Root filesystem is %s%% full	Rotfilsystemet är %s%% fullt
 Disk usage %s%%	Diskanvändning %s%%
@@ -2133,9 +2133,9 @@ Stop Recording	Stoppa inspelningen
 Screen recording is not available: ffmpeg was not found.	Skärminspelning är inte tillgänglig: ffmpeg hittades inte.
 The screen recording failed.	Skärminspelningen misslyckades.
 The screenshot could not be saved.	Skärmbilden kunde inte sparas.
-%s .pacnew config file(s) to merge - run: lux configs	%s .pacnew-konfigurationsfil(er) att sammanfoga – kör: lux configs
+%s .luxnew config file(s) to merge - run: lux configs	%s .luxnew-konfigurationsfil(er) att sammanfoga – kör: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Dina inställningar har behållits. Sammanfoga filerna när det passar: lux configs
-review and merge new config files (.pacnew)	granska och sammanfoga nya konfigurationsfiler (.pacnew)
+review and merge new config files (.luxnew)	granska och sammanfoga nya konfigurationsfiler (.luxnew)
 Keyboard Layouts	Tangentbordslayouter
 Layouts	Layouter
 Add Layout	Lägg till layout

@@ -84,7 +84,7 @@ def status(as_json):
         print("! " + _(p["title"]).replace("%s", " ".join(p.get("args", []))))
     if st.get("needs_reboot"):
         print(_("Restart to finish the update"))
-    for f in st.get("pacnew", []):
+    for f in care.new_configs(st):
         print(_("New configuration file to review: %s") % f)
     return 0
 

@@ -26,6 +26,9 @@
 #    od lux), sluzby (drop-iny v /usr/lib/systemd/system/*.d/lux-engine.conf) a nastroje LuxOS.
 #  - /etc/lux/lux.conf, /etc/lux/mirrorlist (vlastni seznam zrcadel, bez pacman-mirrorlist)
 #    a lux-config (/usr/lib/lux/lux_config.py) jsou soucasti jadra
+#  - zaloha konfigurace: libalpm uklada novou verzi zmeneneho souboru jako *.luxnew a zmeneny soubor
+#    odebraneho baliku jako *.luxsave (misto *.pacnew/*.pacsave; zaplata 0003, preklady sed v prepare(),
+#    udalosti API ALPM_EVENT_PACNEW_CREATED/PACSAVE_CREATED se nemeni - pyalpm beze zmeny)
 #  - prechod starsich instalaci: hook 00-lux-engine-migrate (lux-engine-migrate, viz jeho hlavicka)
 #  - bez manualovych stranek pacman* a doplnovani prikazu pacman*; doplnovani makepkg zustava
 #  - klice z klicenek (archlinux-keyring, luxos-keyring) nacita hook lux-engine-keyrings: jejich
@@ -44,7 +47,7 @@
 pkgname=lux-engine
 _srcname=pacman
 pkgver=7.1.0.r9.g54d9411
-pkgrel=3.4
+pkgrel=3.5
 # use annotated tag and patch level commit from release branch (can be empty for no patches)
 _git_tag=7.1.0
 _git_patch_level_commit=54d94116164b0b2202c6061c4a59c6f3e70820d8
@@ -99,6 +102,7 @@ source=("git+https://gitlab.archlinux.org/pacman/pacman.git?signed#tag=v${_git_t
         "patch-reproducible-builds.patch::https://gitlab.archlinux.org/pacman/pacman/-/commit/f4bdb77470528019aaba4d8b8f947e918c6db17d.patch"
         '0001-libalpm-invalidate-curl-data-in-child.patch'
         '0002-libalpm-use-curl-s-effective-url-without-authenticat.patch'
+        '0003-libalpm-name-config-backup-files-luxnew-and-luxsave.patch'
         makepkg.conf
         alpm.sysusers
         fortran.conf
@@ -108,6 +112,7 @@ sha256sums=('74cfd4b6d2b10c742f5a4a7cdaeffb01405ab897b11b80681a9063245113a308'
             'de428b496a825772ef49ec5555a386a4b23ffa10b9dfd9907f0671d5c1dc2178'
             '9a734e5d75be603d58aa92e8d29a15466b3ac2af6b7d6f6728dd5c3e5ed8758d'
             '021893dd44ec23251cfc0f2b81c12d832927ea60095d4d2956d9760e8bbfaa58'
+            'f58ed7e280045728d0d25340ad595d4c02534f8805df648f3e60d14a757e5e2f'
             '20497c90cbb678a9ca1a71eca66cf2a1d0c991c3e695f7b7d10fb68fc0ac4f12'
             '9c14afbc7dabee5a563202c833a043bd3b80c4522f8943c33d550641d7d1bbf1'
             '933b0b878fa611bf24b92f655040a3bcb4a1b67841d929013802abbb09b2ccf4'
@@ -158,6 +163,14 @@ prepare() {
      ! grep -q "'CONFFILE', '/run/lux/engine.conf'" meson.build ||
      grep -n '@sysconfdir@/pacman' scripts/pacman-key.sh.in scripts/pacman-db-upgrade.sh.in; then
     error "LuxOS paths not applied (upstream changed?)"; return 1
+  fi
+
+  # LuxOS: zalohy konfigurace *.luxnew/*.luxsave (zaplata 0003) - preklady hlasek musi mit stejne msgid
+  sed -i -e 's/\.pacnew/.luxnew/g' -e 's/\.pacsave/.luxsave/g' lib/libalpm/po/*.po lib/libalpm/po/*.pot \
+      src/pacman/po/*.po src/pacman/po/*.pot || return 1
+  # grep: 1 = nic nenalezeno; 0 = zbyla stara jmena, 2 = chybi soubor
+  if grep -rnE '\.pac(new|save|orig)' lib/libalpm src/pacman doc/alpm-hooks.5.asciidoc test/pacman/pmrule.py; (($? != 1)); then
+    error ".pacnew/.pacsave left (upstream changed?)"; return 1
   fi
 }
 
@@ -229,7 +242,9 @@ package() {
      ! grep -qa '/run/lux/engine.conf' "$engine/libexec/lux-engine" ||
      ! grep -qa '/var/lib/lux/' "$engine/libexec/lux-engine" ||
      grep -qa '/etc/pacman.conf\|/var/lib/pacman' "$engine/libexec/lux-engine" "$engine/libexec/lux-engine-conf" \
-         "$engine/libexec/lux-engine-key"; then
+         "$engine/libexec/lux-engine-key" ||
+     ! grep -qa '%s\.luxsave' "$pkgdir"/usr/lib/libalpm.so.[0-9]* ||
+     grep -qa '\.pacnew\|\.pacsave' "$pkgdir"/usr/lib/libalpm.so.[0-9]*; then
     error "pacman name or path left in the engine tools"; return 1
   fi
   install -m644 "$startdir/makepkg-lux-engine.conf" "$pkgdir/etc/makepkg.conf.d/lux-engine.conf"

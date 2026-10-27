@@ -654,9 +654,9 @@ cmd_update() {
         done
     fi
 
-    local pacnew
-    pacnew=$(find /etc -name '*.pacnew' 2>/dev/null)
-    [[ -n $pacnew ]] && warn "$(T "New config files to review:")"$'\n'"$pacnew"
+    local luxnew
+    luxnew=$(find /etc \( -name '*.luxnew' -o -name '*.pacnew' \) 2>/dev/null)
+    [[ -n $luxnew ]] && warn "$(T "New config files to review:")"$'\n'"$luxnew"
     [[ ! -d /usr/lib/modules/$(uname -r) ]] && warn "$(T "Kernel was updated - restart to use it.")"
     ok "$(T "System is up to date")"
 }
@@ -839,9 +839,13 @@ cmd_fix() {
     as_root "$LUX_SELF" "${f[@]}" __fix
 }
 
-# Nove konfiguracni soubory z aktualizaci (.pacnew/.pacsave - jmena dava libalpm): porovnat a sloucit
+# Nove konfiguracni soubory z aktualizaci (.luxnew/.luxsave - jmena dava libalpm v lux-engine;
+# do LuxOS 1.0 .pacnew/.pacsave, prejmenuje je lux-engine-migrate - stara jmena se dal rozpoznavaji)
 LUX_CONFIGS_ROOT=${LUX_CONFIGS_ROOT:-/etc}
-pending_configs() { find "$LUX_CONFIGS_ROOT" \( -name '*.pacnew' -o -name '*.pacsave' \) -type f 2>/dev/null | sort; }
+pending_configs() {
+    find "$LUX_CONFIGS_ROOT" \( -name '*.luxnew' -o -name '*.luxsave' -o -name '*.pacnew' -o -name '*.pacsave' \) \
+        -type f 2>/dev/null | sort
+}
 cmd_configs() {
     if [[ -z $(pending_configs) ]]; then
         ok "$(T "No pending config files")"; return 0
@@ -855,8 +859,8 @@ lux_configs() {  # jako root: kazdy soubor zvlast - rozdil, nahradit, ponechat, 
     [[ $LUX_COLOR == always ]] && diffcmd=(diff -u --color=always)
     while IFS= read -r new; do
         [[ -f $new ]] || continue
-        if [[ $new == *.pacnew ]]; then
-            cur=${new%.pacnew}
+        if [[ $new == *.luxnew || $new == *.pacnew ]]; then
+            cur=${new%.*}
             say "$(T "New version of %s from an update" "${B}$cur${R}")"
             [[ -f $cur ]] && "${diffcmd[@]}" -- "$cur" "$new"
             while :; do
@@ -872,7 +876,7 @@ lux_configs() {  # jako root: kazdy soubor zvlast - rozdil, nahradit, ponechat, 
                 esac
             done
         else
-            cur=${new%.pacsave}
+            cur=${new%.*}
             say "$(T "Saved configuration of a removed package: %s" "${B}$new${R}")"
             while :; do
                 if ((YES)); then a=s; else
@@ -974,8 +978,8 @@ cmd_doctor() {
     say "$(T "LuxOS system check")"
     n=$(systemctl --failed --no-legend 2>/dev/null | wc -l)
     if ((n)); then warn "$(T "%s failed service(s):" "$n")"; systemctl --failed --no-legend; ((issues++)); else ok "$(T "Services running")"; fi
-    n=$(find /etc -name '*.pacnew' 2>/dev/null | wc -l)
-    ((n)) && { warn "$(T "%s .pacnew config file(s) to merge - run: lux configs" "$n")"; ((issues++)); } || ok "$(T "No pending config files")"
+    n=$(find /etc \( -name '*.luxnew' -o -name '*.pacnew' \) 2>/dev/null | wc -l)
+    ((n)) && { warn "$(T "%s .luxnew config file(s) to merge - run: lux configs" "$n")"; ((issues++)); } || ok "$(T "No pending config files")"
     local use; use=$(df --output=pcent / | tail -1 | tr -dc 0-9)
     ((use > 90)) && { warn "$(T "Root filesystem is %s%% full" "${use}")"; ((issues++)); } || ok "$(T "Disk usage %s%%" "${use}")"
     n=$("$LUX_ENGINE" -Qdtq 2>/dev/null | wc -l)
@@ -1104,7 +1108,7 @@ files <pkg>|files installed by a package
 owns <file>|which package owns a file
 clean|clean cache and remove unneeded packages
 fix|repair a locked database and the signing keys
-configs|review and merge new config files (.pacnew)
+configs|review and merge new config files (.luxnew)
 config check, edit|check or edit /etc/lux/lux.conf
 history [n] [pkg]|recent package changes
 pack <dir> [out]|build a .lux package from a directory with lux.json

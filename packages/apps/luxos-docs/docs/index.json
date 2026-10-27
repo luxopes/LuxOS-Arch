@@ -163,6 +163,7 @@
             "multilib",
             "migration",
             "check-updates",
+            "luxnew",
             "pacnew"
           ]
         },

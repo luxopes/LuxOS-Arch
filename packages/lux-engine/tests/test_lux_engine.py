@@ -116,7 +116,7 @@ class Pkgbuild(unittest.TestCase):
             with open(os.path.join(PKG, src), "rb") as f:
                 self.assertEqual(hashlib.sha256(f.read()).hexdigest(), s, src)
             n += 1
-        self.assertEqual(n, 6)
+        self.assertEqual(n, 7)      # + vlastni zaplata 0003 (*.luxnew/*.luxsave)
 
     def test_pgp_keys_match_validpgpkeys(self):
         fprs = pkgbuild('printf "%s\\n" "${validpgpkeys[@]}"').split()
@@ -142,6 +142,19 @@ class Pkgbuild(unittest.TestCase):
                 f.write("CONFIG=${CONFIG:-@sysconfdir@/pacman.conf}\nprintf x '@sysconfdir@/pacman.d/gnupg'\n")
             with open(os.path.join(tmp, "pacman", "scripts", "pacman-db-upgrade.sh.in"), "w") as f:
                 f.write("conffile=${conffile:-@sysconfdir@/pacman.conf}\n")
+            # preklady hlasek se zaplatou 0003 (*.luxnew/*.luxsave)
+            for d in ("lib/libalpm", "src/pacman"):
+                os.makedirs(os.path.join(tmp, "pacman", d, "po"))
+                for name in ("cs.po", "x.pot"):
+                    with open(os.path.join(tmp, "pacman", d, "po", name), "w") as f:
+                        f.write('msgid "%s installed as %s.pacnew\\n"\nmsgstr "%s jako %s.pacnew\\n"\n'
+                                'msgid "%s saved as %s.pacsave\\n"\n')
+            with open(os.path.join(tmp, "pacman", "lib", "libalpm", "add.c"), "w") as f:
+                f.write('strcpy(filename + filename_len, ".luxnew");\n')
+            for rel in ("doc/alpm-hooks.5.asciidoc", "test/pacman/pmrule.py"):
+                os.makedirs(os.path.dirname(os.path.join(tmp, "pacman", rel)), exist_ok=True)
+                with open(os.path.join(tmp, "pacman", rel), "w") as f:
+                    f.write("'.luxnew'\n")
             script = (f'source "{PKG}/PKGBUILD"; error() {{ echo "ERROR: $*" >&2; }}; msg2() {{ :; }}; '
                       f'git() {{ :; }}; _git_patch_level_commit=; source=(); srcdir="{tmp}"; cd "{tmp}"; prepare')
             r = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
@@ -151,6 +164,9 @@ class Pkgbuild(unittest.TestCase):
             for want in ("'CONFFILE', '/run/lux/engine.conf'", "'lib/lux/'", "'lux/keyring/'", "'log/lux.log'",
                          "'cache/lux/pkg/'", "'lux/hooks/'"):
                 self.assertIn(want, m)
+            with open(os.path.join(tmp, "pacman", "src", "pacman", "po", "cs.po")) as f:
+                self.assertEqual(f.read(), 'msgid "%s installed as %s.luxnew\\n"\nmsgstr "%s jako %s.luxnew\\n"\n'
+                                           'msgid "%s saved as %s.luxsave\\n"\n')
             self.assertNotIn("lib/pacman", m)
             self.assertNotIn("pacman.d", m)
             with open(os.path.join(tmp, "pacman", "scripts", "pacman-key.sh.in")) as f:
@@ -161,6 +177,14 @@ class Pkgbuild(unittest.TestCase):
                                               "'CONFFILE', join_paths(SYSCONFDIR, 'pacman2.conf')"))
             r = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
             self.assertNotEqual(r.returncode, 0)
+            # zaplata 0003 neuplna (upstream pridal dalsi .pacnew) = chyba
+            with open(os.path.join(tmp, "pacman", "meson.build"), "w") as f:
+                f.write(MESON_SNIPPET)
+            with open(os.path.join(tmp, "pacman", "lib", "libalpm", "add.c"), "a") as f:
+                f.write('snprintf(p, n, "%s.pacnew", file);\n')
+            r = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn(".pacnew/.pacsave left", r.stderr)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
@@ -200,7 +224,7 @@ meson() {{
     ln -s pacman "$d/usr/share/bash-completion/completions/makepkg"
     ln -s pacman "$d/usr/share/bash-completion/completions/pacman-key"
     cp "{fx}/zsh" "$d/usr/share/zsh/site-functions/_pacman"
-    : >"$d/usr/lib/libalpm.so.16"
+    printf 'ELF %%s.luxnew %%s.luxsave\n' >"$d/usr/lib/libalpm.so.16"
 }}
 error() {{ echo "ERROR: $*" >&2; }}
 """

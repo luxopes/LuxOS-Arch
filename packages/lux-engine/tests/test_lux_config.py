@@ -461,6 +461,18 @@ class MovedServers(Base):
         self.assertFalse(os.path.exists(conf + ".pacnew"))
         self.assertFalse(lc.update_moved_servers(conf))
 
+    def test_identical_luxnew_dropped(self):
+        """lux-engine od LuxOS 1.0 nechava lux.conf.luxnew (driv .pacnew)."""
+        pkg = open(os.path.join(PKG, "lux.conf")).read()
+        conf = os.path.join(self.root, "etc/lux/lux.conf")
+        os.makedirs(os.path.dirname(conf), exist_ok=True)
+        with open(conf, "w") as f:
+            f.write(pkg.replace("https://luxos.lux-ai.cz/repo/", "https://lsl.lux-ai.cz/luxos/"))
+        with open(conf + ".luxnew", "w") as f:
+            f.write(pkg)
+        self.assertTrue(lc.update_moved_servers(conf))
+        self.assertFalse(os.path.exists(conf + ".luxnew"))
+
     def test_custom_config_keeps_everything_else(self):
         conf = os.path.join(self.root, "etc/lux/lux.conf")
         os.makedirs(os.path.dirname(conf), exist_ok=True)

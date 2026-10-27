@@ -578,6 +578,16 @@ def map_path(p):
     return p
 
 
+# Zalohy konfigurace, ktere nechava libalpm (lux-engine, zaplata 0003; do LuxOS 1.0 jmena pacmanu)
+NEW_SUFFIX, SAVE_SUFFIX, ORIG_SUFFIX = ".luxnew", ".luxsave", ".luxorig"
+OLD_SUFFIXES = {".pacnew": NEW_SUFFIX, ".pacsave": SAVE_SUFFIX, ".pacorig": ORIG_SUFFIX}
+
+
+def new_versions(conf):
+    """Cesty k nove verzi konfigurace z aktualizace (conf.luxnew, starsi conf.pacnew)."""
+    return [conf + NEW_SUFFIX, conf + ".pacnew"]
+
+
 # Repozitare LuxOS se presunuly (LuxOS 0.9.7); stara adresa dal funguje, prevod pouzije novou
 MOVED_SERVERS = {"https://lsl.lux-ai.cz/luxos/": "https://luxos.lux-ai.cz/repo/"}
 
@@ -591,8 +601,8 @@ def moved_server(url):
 
 def update_moved_servers(conf=LUX_CONF):
     """Stara adresa repozitaru LuxOS v /etc/lux/lux.conf -> nova (jen radky server, zbytek beze zmeny).
-    Kdyz se lux.conf lisila od baliku jen adresou, aktualizace nechala lux.conf.pacnew se stejnym
-    obsahem - ten se po uprave smaze. Vraci True, kdyz se neco zmenilo."""
+    Kdyz se lux.conf lisila od baliku jen adresou, aktualizace nechala lux.conf.luxnew (starsi jadro
+    lux.conf.pacnew) se stejnym obsahem - ten se po uprave smaze. Vraci True, kdyz se neco zmenilo."""
     try:
         with open(conf, encoding="utf-8") as f:
             text = f.read()
@@ -608,13 +618,14 @@ def update_moved_servers(conf=LUX_CONF):
     changed = new != text
     if changed:
         atomic_write(conf, new, os.stat(conf).st_mode & 0o7777)
-    try:
-        with open(conf + ".pacnew", encoding="utf-8") as f:
-            if f.read() == new:
-                os.unlink(conf + ".pacnew")
-                changed = True
-    except OSError:
-        pass
+    for pn in new_versions(conf):
+        try:
+            with open(pn, encoding="utf-8") as f:
+                if f.read() == new:
+                    os.unlink(pn)
+                    changed = True
+        except OSError:
+            pass
     return changed
 
 

@@ -137,7 +137,7 @@ Mirror list updated	A tükörszerverek listája frissítve
 LuxOS system check	LuxOS rendszerellenőrzés
 %s failed service(s):	Hibás szolgáltatások: %s
 Services running	A szolgáltatások futnak
-%s .pacnew config file(s) to merge (pacdiff)	Összefésülendő .pacnew konfigurációs fájlok (pacdiff): %s
+%s .luxnew config file(s) to merge (pacdiff)	Összefésülendő .luxnew konfigurációs fájlok (pacdiff): %s
 No pending config files	Nincsenek függőben lévő konfigurációs fájlok
 Root filesystem is %s%% full	A gyökér fájlrendszer telítettsége: %s%%
 Disk usage %s%%	Lemezhasználat: %s%%
@@ -2133,9 +2133,9 @@ Stop Recording	Felvétel leállítása
 Screen recording is not available: ffmpeg was not found.	A képernyőfelvétel nem érhető el: az ffmpeg nem található.
 The screen recording failed.	A képernyőfelvétel sikertelen.
 The screenshot could not be saved.	A képernyőkép nem menthető.
-%s .pacnew config file(s) to merge - run: lux configs	Összefésülendő .pacnew konfigurációs fájlok: %s - futtasd: lux configs
+%s .luxnew config file(s) to merge - run: lux configs	Összefésülendő .luxnew konfigurációs fájlok: %s - futtasd: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	A beállításaid megmaradtak. Ha alkalmas, fésüld össze a fájlokat: lux configs
-review and merge new config files (.pacnew)	új konfigurációs fájlok (.pacnew) áttekintése és összefésülése
+review and merge new config files (.luxnew)	új konfigurációs fájlok (.luxnew) áttekintése és összefésülése
 Keyboard Layouts	Billentyűzetkiosztások
 Layouts	Kiosztások
 Add Layout	Kiosztás hozzáadása

@@ -137,7 +137,7 @@ Mirror list updated	Mirrorlijst bijgewerkt
 LuxOS system check	LuxOS-systeemcontrole
 %s failed service(s):	%s mislukte dienst(en):
 Services running	Diensten actief
-%s .pacnew config file(s) to merge (pacdiff)	%s .pacnew-configuratiebestand(en) om samen te voegen (pacdiff)
+%s .luxnew config file(s) to merge (pacdiff)	%s .luxnew-configuratiebestand(en) om samen te voegen (pacdiff)
 No pending config files	Geen openstaande configuratiebestanden
 Root filesystem is %s%% full	Rootbestandssysteem is %s%% vol
 Disk usage %s%%	Schijfgebruik %s%%
@@ -2133,9 +2133,9 @@ Stop Recording	Opname stoppen
 Screen recording is not available: ffmpeg was not found.	Schermopname is niet beschikbaar: ffmpeg niet gevonden.
 The screen recording failed.	De schermopname is mislukt.
 The screenshot could not be saved.	De schermafbeelding kon niet worden opgeslagen.
-%s .pacnew config file(s) to merge - run: lux configs	%s .pacnew-configuratiebestand(en) om samen te voegen - voer uit: lux configs
+%s .luxnew config file(s) to merge - run: lux configs	%s .luxnew-configuratiebestand(en) om samen te voegen - voer uit: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Je instellingen zijn bewaard. Voeg de bestanden samen wanneer het je uitkomt: lux configs
-review and merge new config files (.pacnew)	nieuwe configuratiebestanden (.pacnew) bekijken en samenvoegen
+review and merge new config files (.luxnew)	nieuwe configuratiebestanden (.luxnew) bekijken en samenvoegen
 Keyboard Layouts	Toetsenbordindelingen
 Layouts	Indelingen
 Add Layout	Indeling toevoegen

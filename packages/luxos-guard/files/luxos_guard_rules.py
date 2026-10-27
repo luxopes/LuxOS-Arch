@@ -545,7 +545,7 @@ _SAMPLE_NAMES = ("Documents", "Desktop", ".config", ".local", "usr", "etc", "hom
 
 def _glob_hits(p, ctx, homes=True):
     """Maska v ceste muze zasahnout chranenou slozku (/*, /e*, ~/.*, /usr/l*, /var/lib/pacman/*);
-    uzka maska (/etc/*.pacnew, ~/build/*) ne."""
+    uzka maska (/etc/*.luxnew, ~/build/*) ne."""
     pre = _glob_prefix(p)
     if pre is None or pre in _GLOB_OK:
         return False

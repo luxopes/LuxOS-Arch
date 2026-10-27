@@ -1828,7 +1828,7 @@ install_packages() {
 
 # Legacy ovladace NVIDIA z online [luxos] (v ISO nejsou). Chyba instalaci nezastavi:
 # zustane ovladac nouveau z jadra a po prvnim prihlaseni se ovladac nabidne v aplikaci Ovladace.
-# /etc/lux/lux.conf (shodna s lux-engine, tedy bez .pacnew) a serazena zrcadla live systemu
+# /etc/lux/lux.conf (shodna s lux-engine, tedy bez .luxnew) a serazena zrcadla live systemu
 install_engine_config() {
     install -Dm644 "$SHARE/lux.conf" "$TARGET/etc/lux/lux.conf"
     install -Dm644 "$MIRRORLIST" "$TARGET/etc/lux/mirrorlist"

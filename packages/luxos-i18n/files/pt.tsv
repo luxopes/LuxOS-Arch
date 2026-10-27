@@ -137,7 +137,7 @@ Mirror list updated	Lista de espelhos atualizada
 LuxOS system check	Verificação do sistema LuxOS
 %s failed service(s):	%s serviço(s) com falha:
 Services running	Serviços em execução
-%s .pacnew config file(s) to merge (pacdiff)	%s arquivo(s) de configuração .pacnew para mesclar (pacdiff)
+%s .luxnew config file(s) to merge (pacdiff)	%s arquivo(s) de configuração .luxnew para mesclar (pacdiff)
 No pending config files	Nenhum arquivo de configuração pendente
 Root filesystem is %s%% full	O sistema de arquivos raiz está %s%% cheio
 Disk usage %s%%	Uso do disco %s%%
@@ -2133,9 +2133,9 @@ Stop Recording	Parar a gravação
 Screen recording is not available: ffmpeg was not found.	A gravação de ecrã não está disponível: o ffmpeg não foi encontrado.
 The screen recording failed.	A gravação de ecrã falhou.
 The screenshot could not be saved.	Não foi possível guardar a captura de ecrã.
-%s .pacnew config file(s) to merge - run: lux configs	%s arquivo(s) de configuração .pacnew para mesclar – execute: lux configs
+%s .luxnew config file(s) to merge - run: lux configs	%s arquivo(s) de configuração .luxnew para mesclar – execute: lux configs
 Your settings were kept. Merge the files when convenient: lux configs	Seus ajustes foram mantidos. Mescle os arquivos quando for conveniente: lux configs
-review and merge new config files (.pacnew)	revisa e mescla novos arquivos de configuração (.pacnew)
+review and merge new config files (.luxnew)	revisa e mescla novos arquivos de configuração (.luxnew)
 Keyboard Layouts	Layouts de teclado
 Layouts	Layouts
 Add Layout	Adicionar layout
