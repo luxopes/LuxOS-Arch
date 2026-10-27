@@ -1,0 +1,27 @@
+# LuxOS: .install nesmi mazat v /usr/lib32 (mimo adresare ovladacu). Odkazy libcnnet.so a
+# libcnbpcnclapicom.so (SONAME knihoven, vytvari je ldconfig) jsou misto toho primo v balicku -
+# pacman je pri odinstalaci smaze sam, smycka rm v post_remove neni potreba
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -55,6 +55,9 @@
+   install -d ${pkgdir}/usr/lib32/bjlib
+   install -m 644 com/ini/cnnet.ini "${pkgdir}"/usr/lib32/bjlib
+   install -s -m 755 com/libs_bin32/lib*.so.* "${pkgdir}"/usr/lib32
++  # LuxOS: odkazy podle SONAME primo v balicku (driv je uklizel .install)
++  ln -s libcnnet.so.1.2.3 "${pkgdir}"/usr/lib32/libcnnet.so
++  ln -s libcnbpcnclapicom.so.4.1.0 "${pkgdir}"/usr/lib32/libcnbpcnclapicom.so
+   install -D "LICENSE-cnijfilter-${pkgver}EN.txt" -t "${pkgdir}/usr/share/licenses/${pkgname}/"
+ 
+   if [ "${CARCH}" = 'x86_64' ]; then
+--- a/cnijfilter-common.install
++++ b/cnijfilter-common.install
+@@ -12,9 +12,4 @@
+ 	if [ -x /sbin/ldconfig ]; then
+ 	  /sbin/ldconfig /usr/lib32
+ 	fi
+-	for LIBS in "libcnbpcnclapicom" "libcnnet"; do
+-	  if [ -h /usr/lib32/${LIBS}.so ]; then
+-	    rm -f /usr/lib32/${LIBS}.so
+-	  fi
+-	done
+ }
