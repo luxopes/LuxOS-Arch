@@ -255,7 +255,7 @@ build_drivers() {
     # PKGBUILD s vlastnim CC (gcc -m32) dostane aspon CFLAGS.
     cat >/home/builder/.makepkg.conf <<'EOF'
 CFLAGS+=" -std=gnu17 -Wno-error=implicit-function-declaration -Wno-error=implicit-int -Wno-error=incompatible-pointer-types -Wno-error=int-conversion"
-export CC="gcc -fpermissive"
+export CC="gcc -std=gnu17 -fpermissive"
 EOF
     local base commit dir n=0 failed=() rest progress f line
     rm -f "$BUILD"/drvmiss-*
@@ -282,6 +282,18 @@ EOF
                 if ($2 == n) found = 1 } END { exit !found }' && { echo "$f"; return; }
         done
         return 0
+    }
+    drv_install() {  # drv_install NAZEV - sestaveny ovladac/knihovnu i s jejimi zavislostmi z [luxos-drivers]
+        local f d
+        f=$(drv_provider "$1")
+        [[ -n $f ]] || return 1
+        while read -r d; do
+            [[ -n $d ]] || continue
+            pacman -T "$d" &>/dev/null && continue
+            pacman -S --needed --noconfirm "$d" &>/dev/null && continue
+            drv_install "$d" || return 1
+        done < <(tar --zstd -xOf "$f" .PKGINFO | awk -F' = ' '$1 == "depend" { sub(/[<>=].*/, "", $2); print $2 }')
+        pacman -U --needed --noconfirm --ask 4 "$f" &>/dev/null
     }
     # ovladace, ktere uz nejsou overene (odebrane z manifestu), z repozitare pryc
     for f in "$DREPO"/built/*; do
@@ -344,7 +356,7 @@ EOF
                 pacman -T "$nm" &>/dev/null && continue
                 pacman -S --needed --noconfirm "$nm" &>/dev/null && continue
                 f=$(drv_provider "$nm")
-                if [[ -n $f ]]; then pacman -U --needed --noconfirm --ask 4 "$f" &>/dev/null || { missing=1; why+=" $nm(install)"; }
+                if [[ -n $f ]]; then drv_install "$nm" || { missing=1; why+=" $nm(install)"; }
                 else missing=1; why+=" $nm"; fi
             done <"$dir/.deps"
             if ((missing)); then next+=("$line"); echo "$why" >"$BUILD/drvmiss-$base"; continue; fi
