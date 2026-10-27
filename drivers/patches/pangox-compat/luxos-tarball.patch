@@ -1,5 +1,6 @@
 # LuxOS: zdroj z gitu -> vydany archiv 0.0.2 z download.gnome.org (sha256 overen proti
-# pangox-compat-0.0.2.sha256sum od GNOME); pkgver() z gitu pryc, autogen.sh -> autoreconf
+# pangox-compat-0.0.2.sha256sum od GNOME); pkgver() z gitu pryc, autogen.sh -> autoreconf,
+# zaplata 0001 uz je ve vydanem archivu (patch -N by skoncil chybou)
 --- a/PKGBUILD
 +++ b/PKGBUILD
 @@ -2,7 +2,7 @@
@@ -39,8 +40,9 @@
 -
  prepare() {
 -  cd ${pkgname}
+-  patch -Nup1 -i '../0001-Re-add-pango_x_get_shaper_map-it-is-still-used-in-th.patch'
 +  cd ${pkgname}-${pkgver}
-   patch -Nup1 -i '../0001-Re-add-pango_x_get_shaper_map-it-is-still-used-in-th.patch'
++  # (0001 je ve vydanem archivu 0.0.2 uz obsazena)
    # diff -pNau5 pangox-compat/pangox.c{.orig,} > '0002-disable-shaper.patch'
    patch -Nup1 -i '../0002-disable-shaper.patch'
  }

@@ -9608,6 +9608,9 @@
    "make",
    "gcc"
   ],
+  "patches": {
+   "luxos-no-sysctl.patch": "b6e3948c1e2a367ee7cdf16e86ca2d04330ea5f8b4f068cbbd056afaa4806c20"
+  },
   "pkgnames": [
    "cnijfilter-ip7200"
   ],
@@ -9617,7 +9620,7 @@
    "cnijfilter-source-3.80-1.tar.gz": "8b6d408f18191f19465ee8fc31aa08455e8bec186fdd3f02ee822f53a9b086a9"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.80-2"
  },
  "cnijfilter-mg2100": {
@@ -9987,8 +9990,12 @@
    "cups",
    "ghostscript",
    "lib32-libcups",
-   "lib32-popt"
+   "lib32-popt",
+   "gcc-multilib"
   ],
+  "patches": {
+   "luxos-permissive.patch": "d824a6e3536779a2588d261c3ab27ef5be0e1fd9f405a161e42faedb13a6c52b"
+  },
   "pkgnames": [
    "cnijfilter-mp630"
   ],
@@ -10001,7 +10008,7 @@
    "missing-include.patch": "a4ed852bad975451d528f5d38ce551ec53ff121926ee493dc6ec0d869f67636a"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.00-2"
  },
  "cnijfilter-mx340": {
@@ -14004,7 +14011,7 @@
    "libx11"
   ],
   "patches": {
-   "luxos-tarball.patch": "68cf28e9b172218d9d92b2d3a29a4ac230036e27c6a63cfec7b66138ca55ae25"
+   "luxos-tarball.patch": "c766b68f1fd6e2705e5273aa5c177c7f824b67b2012e5d44ec203d478abcdd55"
   },
   "pkgnames": [
    "pangox-compat"
