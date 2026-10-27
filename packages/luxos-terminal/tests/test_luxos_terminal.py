@@ -396,9 +396,9 @@ class GuiTest(unittest.TestCase):
         self.start("-x", "sh", "-c", "printf 'https://luxos.example/docs?x=1, more\\n'; sleep 30", env=env)
         wid = self.wait_window()[0]
         time.sleep(1.5)
-        # prvni radek textu: pod horni listou (~47 px) + okraj 4 px, znak ~10 px
+        # prvni radek textu: lista je od spravce oken (pod xvfb zadna), okraj 4 px, radek ~20 px
         geo = subprocess.run(["xdotool", "getwindowgeometry", wid], capture_output=True, text=True).stdout
-        subprocess.run(["xdotool", "mousemove", "--window", wid, "60", "60"], env=self.env)
+        subprocess.run(["xdotool", "mousemove", "--window", wid, "60", "12"], env=self.env)
         time.sleep(0.3)
         subprocess.run(["xdotool", "keydown", "ctrl", "click", "1", "keyup", "ctrl"], env=self.env)
         for _ in range(50):
