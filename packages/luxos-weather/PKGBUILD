@@ -17,7 +17,9 @@ checkdepends=(python)
 
 check() {
     # data, mezipamet, jednotky a preklady (falesny server HTTP, bez skutecnych pozadavku; okno jen pod xvfb-run)
-    env -u DISPLAY python3 -m unittest "$startdir/tests/test_luxos_weather.py"
+    # unittest bere cestu k souboru jen relativne k aktualnimu adresari (ne z $srcdir)
+    cd "$startdir"
+    env -u DISPLAY python3 -m unittest tests/test_luxos_weather.py
 }
 
 package() {
