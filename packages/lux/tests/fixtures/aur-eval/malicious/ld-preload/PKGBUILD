@@ -1,0 +1,13 @@
+# Maintainer: Real Looking Person <person@example.com>
+pkgname=speedup-bin
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A useful tool"
+arch=('x86_64')
+url="https://example.com"
+license=('MIT')
+depends=('glibc')
+install=speedup-bin.install
+source=('s.tar.gz')
+sha256sums=('SKIP')
+package() { install -Dm755 libhook.so "$pkgdir/usr/lib/libhook.so"; }

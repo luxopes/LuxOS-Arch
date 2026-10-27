@@ -1,0 +1,12 @@
+# Maintainer: Real Looking Person <person@example.com>
+pkgname=tool-bin
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A useful tool"
+arch=('x86_64')
+url="https://example.com"
+license=('MIT')
+depends=('glibc')
+source=("tool::https://198.51.100.7/downloads/tool-linux-x64")
+sha256sums=('SKIP')
+package() { install -Dm755 tool "$pkgdir/usr/bin/tool"; }

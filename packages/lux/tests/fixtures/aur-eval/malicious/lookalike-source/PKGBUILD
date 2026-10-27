@@ -1,0 +1,13 @@
+# Maintainer: Real Looking Person <person@example.com>
+pkgname=vlc-bin
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A useful tool"
+arch=('x86_64')
+url="https://videolan.org"
+license=('MIT')
+depends=('glibc')
+# vypada jako oficialni, ale domena je podvrzena
+source=("https://download.videolan-example.net/vlc/vlc-$pkgver.tar.xz")
+sha256sums=('SKIP')
+package() { cp -r opt usr "$pkgdir"; }

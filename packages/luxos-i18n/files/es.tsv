@@ -4343,3 +4343,23 @@ Use at least 12 characters.	Usa al menos 12 caracteres.
 Weak	Débil
 Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Escribe esta clave de recuperación en papel y guárdala en un lugar seguro, lejos del ordenador. Si olvidas la contraseña de la Caja fuerte, es la única forma de abrirla.
 check the protection of the Safe (key derivation, mount options, memory, swap)	comprobar la protección de la Caja fuerte (derivación de clave, opciones de montaje, memoria, swap)
+sets a global library preload (LD_PRELOAD)	establece una precarga global de biblioteca (LD_PRELOAD)
+changes the hosts file or DNS configuration	cambia el archivo hosts o la configuración de DNS
+uploads data to a remote server	sube datos a un servidor remoto
+reads private keys, browser profiles or wallet data	lee claves privadas, perfiles del navegador o la cartera
+downloads a file straight into the package	descarga un archivo directamente en el paquete
+looks like a cryptocurrency miner	parece un minero de criptomonedas
+disables the firewall	desactiva el cortafuegos
+disables a security or network service	desactiva un servicio de seguridad o de red
+installs a per-user autostart or service	instala un autoarranque o servicio por usuario
+replaces a system binary	reemplaza un binario del sistema
+reverses text, often to hide a command	invierte texto, a menudo para ocultar un comando
+downloads a file into /tmp	descarga un archivo en /tmp
+makes a downloaded file in /tmp executable	hace ejecutable un archivo descargado en /tmp
+symbolic link pointing outside the package: %s	enlace simbólico que apunta fuera del paquete: %s
+contains an internal symbolic link: %s	contiene un enlace simbólico interno: %s
+downloads from a bare IP address: %s	descarga desde una dirección IP desnuda: %s
+LuxAI (%s) did not answer (%s)	LuxAI (%s) no respondió (%s)
+LuxAI (%s) gave no clear answer	LuxAI (%s) no dio una respuesta clara
+one model did not answer, cannot confirm safe	un modelo no respondió, no se puede confirmar como seguro
+no specific concern found in the build script	no se encontró ningún problema concreto en el script de compilación

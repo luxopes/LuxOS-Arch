@@ -4343,3 +4343,23 @@ Use at least 12 characters.	Använd minst 12 tecken.
 Weak	Svagt
 Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Skriv ner återställningsnyckeln på papper och förvara den på ett säkert ställe, borta från datorn. Om du glömmer Valvets lösenord är den enda sättet att öppna Valvet.
 check the protection of the Safe (key derivation, mount options, memory, swap)	kontrollera Valvets skydd (nyckelhärledning, monteringsalternativ, minne, swap)
+sets a global library preload (LD_PRELOAD)	anger en global biblioteksförladdning (LD_PRELOAD)
+changes the hosts file or DNS configuration	ändrar hosts-filen eller DNS-konfigurationen
+uploads data to a remote server	laddar upp data till en fjärrserver
+reads private keys, browser profiles or wallet data	läser privata nycklar, webbläsarprofiler eller plånbok
+downloads a file straight into the package	laddar ner en fil direkt in i paketet
+looks like a cryptocurrency miner	ser ut som en kryptovalutagrävare
+disables the firewall	inaktiverar brandväggen
+disables a security or network service	inaktiverar en säkerhets- eller nätverkstjänst
+installs a per-user autostart or service	installerar en autostart eller tjänst per användare
+replaces a system binary	ersätter en systembinär
+reverses text, often to hide a command	vänder text, ofta för att dölja ett kommando
+downloads a file into /tmp	laddar ner en fil till /tmp
+makes a downloaded file in /tmp executable	gör en nedladdad fil i /tmp körbar
+symbolic link pointing outside the package: %s	symbolisk länk som pekar utanför paketet: %s
+contains an internal symbolic link: %s	innehåller en intern symbolisk länk: %s
+downloads from a bare IP address: %s	laddar ner från en naken IP-adress: %s
+LuxAI (%s) did not answer (%s)	LuxAI (%s) svarade inte (%s)
+LuxAI (%s) gave no clear answer	LuxAI (%s) gav inget tydligt svar
+one model did not answer, cannot confirm safe	en modell svarade inte, kan inte bekräfta som säker
+no specific concern found in the build script	inget konkret problem hittades i byggskriptet

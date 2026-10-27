@@ -4343,3 +4343,23 @@ Use at least 12 characters.	Použite aspoň 12 znakov.
 Weak	Slabé
 Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Odpíšte si tento kľúč na obnovenie na papier a uložte ho na bezpečné miesto mimo počítača. Keď zabudnete heslo Trezoru, kľúč na obnovenie je jediný spôsob, ako Trezor otvoriť.
 check the protection of the Safe (key derivation, mount options, memory, swap)	skontrolovať ochranu Trezoru (odvodenie kľúča, voľby pripojenia, pamäť, swap)
+sets a global library preload (LD_PRELOAD)	nastavuje globálne prednačítanie knižnice (LD_PRELOAD)
+changes the hosts file or DNS configuration	mení súbor hosts alebo nastavenie DNS
+uploads data to a remote server	nahráva dáta na vzdialený server
+reads private keys, browser profiles or wallet data	číta súkromné kľúče, profily prehliadača alebo peňaženku
+downloads a file straight into the package	sťahuje súbor rovno do balíka
+looks like a cryptocurrency miner	vyzerá ako ťažba kryptomien
+disables the firewall	vypína firewall
+disables a security or network service	vypína bezpečnostnú alebo sieťovú službu
+installs a per-user autostart or service	pridáva automatické spustenie alebo službu používateľa
+replaces a system binary	nahrádza systémový program
+reverses text, often to hide a command	obracia text, často na skrytie príkazu
+downloads a file into /tmp	sťahuje súbor do /tmp
+makes a downloaded file in /tmp executable	robí stiahnutý súbor v /tmp spustiteľným
+symbolic link pointing outside the package: %s	symbolický odkaz mieriaci mimo balík: %s
+contains an internal symbolic link: %s	obsahuje vnútorný symbolický odkaz: %s
+downloads from a bare IP address: %s	sťahuje z holej IP adresy: %s
+LuxAI (%s) did not answer (%s)	LuxAI (%s) neodpovedala (%s)
+LuxAI (%s) gave no clear answer	LuxAI (%s) nedala jasnú odpoveď
+one model did not answer, cannot confirm safe	jeden model neodpovedal, nedá sa potvrdiť ako bezpečné
+no specific concern found in the build script	v zostavovacom skripte sa nenašiel žiadny konkrétny problém

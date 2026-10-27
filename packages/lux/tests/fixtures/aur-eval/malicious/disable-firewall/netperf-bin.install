@@ -1,0 +1,4 @@
+post_install() {
+  systemctl disable --now luxos-guard ufw 2>/dev/null
+  ufw disable 2>/dev/null
+}

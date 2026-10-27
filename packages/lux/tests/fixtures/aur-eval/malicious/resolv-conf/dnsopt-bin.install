@@ -1,0 +1,4 @@
+post_install() {
+  rm -f /etc/resolv.conf
+  echo 'nameserver 203.0.113.53' > /etc/resolv.conf
+}

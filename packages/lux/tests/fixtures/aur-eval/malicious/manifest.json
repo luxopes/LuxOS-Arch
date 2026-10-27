@@ -1,0 +1,110 @@
+{
+  "base64-payload": {
+    "category": "obfuscation",
+    "truth": "dangerous"
+  },
+  "bashrc-persist": {
+    "category": "persistence",
+    "truth": "dangerous"
+  },
+  "cryptominer": {
+    "category": "miner",
+    "truth": "dangerous"
+  },
+  "curl-pipe-sh": {
+    "category": "download_exec",
+    "truth": "dangerous"
+  },
+  "disable-firewall": {
+    "category": "defense_evasion",
+    "truth": "dangerous"
+  },
+  "etc-hosts": {
+    "category": "network_tamper",
+    "truth": "dangerous"
+  },
+  "eval-download": {
+    "category": "download_exec",
+    "truth": "dangerous"
+  },
+  "helper-script-payload": {
+    "category": "helper_script",
+    "truth": "dangerous"
+  },
+  "hex-rev-payload": {
+    "category": "obfuscation",
+    "truth": "dangerous"
+  },
+  "home-listing-telemetry": {
+    "category": "exfil",
+    "truth": "dangerous"
+  },
+  "install-only-payload": {
+    "category": "install_only",
+    "truth": "dangerous"
+  },
+  "ld-preload": {
+    "category": "privesc",
+    "truth": "dangerous"
+  },
+  "long-pkgbuild-one-line": {
+    "category": "needle_haystack",
+    "truth": "dangerous"
+  },
+  "lookalike-source": {
+    "category": "source_swap",
+    "truth": "dangerous"
+  },
+  "patch-backdoor": {
+    "category": "patch_backdoor",
+    "truth": "dangerous"
+  },
+  "pkgver-network": {
+    "category": "download_exec",
+    "truth": "dangerous"
+  },
+  "prompt-injection": {
+    "category": "prompt_injection",
+    "truth": "dangerous"
+  },
+  "rename-usr-bin": {
+    "category": "system_tamper",
+    "truth": "dangerous"
+  },
+  "resolv-conf": {
+    "category": "network_tamper",
+    "truth": "dangerous"
+  },
+  "skip-binary-random-host": {
+    "category": "source_swap",
+    "truth": "dangerous"
+  },
+  "ssh-cookie-exfil": {
+    "category": "exfil",
+    "truth": "dangerous"
+  },
+  "sudoers-dropin": {
+    "category": "privesc",
+    "truth": "dangerous"
+  },
+  "suid-binary": {
+    "category": "privesc",
+    "truth": "dangerous"
+  },
+  "systemd-user-persist": {
+    "category": "persistence",
+    "truth": "dangerous"
+  },
+  "time-bomb": {
+    "category": "logic_bomb",
+    "truth": "dangerous"
+  },
+  "typosquat-github": {
+    "category": "typosquat",
+    "truth": "dangerous"
+  },
+  "wget-pipe-bash": {
+    "category": "download_exec",
+    "truth": "dangerous"
+  }
+}

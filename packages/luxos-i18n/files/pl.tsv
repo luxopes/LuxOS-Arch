@@ -4344,3 +4344,23 @@ Use at least 12 characters.	Użyj co najmniej 12 znaków.
 Weak	Słabe
 Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Zapisz ten klucz odzyskiwania na papierze i przechowuj go w bezpiecznym miejscu z dala od komputera. Jeśli zapomnisz hasła Sejfu, klucz odzyskiwania jest jedynym sposobem, by go otworzyć.
 check the protection of the Safe (key derivation, mount options, memory, swap)	sprawdź ochronę Sejfu (wyprowadzanie klucza, opcje montowania, pamięć, swap)
+sets a global library preload (LD_PRELOAD)	ustawia globalne wstępne ładowanie biblioteki (LD_PRELOAD)
+changes the hosts file or DNS configuration	zmienia plik hosts lub konfigurację DNS
+uploads data to a remote server	wysyła dane na zdalny serwer
+reads private keys, browser profiles or wallet data	czyta klucze prywatne, profile przeglądarki lub portfel
+downloads a file straight into the package	pobiera plik prosto do pakietu
+looks like a cryptocurrency miner	wygląda jak koparka kryptowalut
+disables the firewall	wyłącza zaporę sieciową
+disables a security or network service	wyłącza usługę bezpieczeństwa lub sieciową
+installs a per-user autostart or service	instaluje autostart lub usługę użytkownika
+replaces a system binary	zastępuje program systemowy
+reverses text, often to hide a command	odwraca tekst, często by ukryć polecenie
+downloads a file into /tmp	pobiera plik do /tmp
+makes a downloaded file in /tmp executable	nadaje pobranemu plikowi w /tmp prawo wykonywania
+symbolic link pointing outside the package: %s	dowiązanie symboliczne wskazujące poza pakiet: %s
+contains an internal symbolic link: %s	zawiera wewnętrzne dowiązanie symboliczne: %s
+downloads from a bare IP address: %s	pobiera z gołego adresu IP: %s
+LuxAI (%s) did not answer (%s)	LuxAI (%s) nie odpowiedziała (%s)
+LuxAI (%s) gave no clear answer	LuxAI (%s) nie dała jasnej odpowiedzi
+one model did not answer, cannot confirm safe	jeden model nie odpowiedział, nie można potwierdzić bezpieczeństwa
+no specific concern found in the build script	nie znaleziono konkretnego problemu w skrypcie budowania

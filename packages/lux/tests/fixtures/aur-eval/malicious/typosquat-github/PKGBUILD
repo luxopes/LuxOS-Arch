@@ -1,0 +1,13 @@
+# Maintainer: Real Looking Person <person@example.com>
+pkgname=bitwarden-bin
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A useful tool"
+arch=('x86_64')
+url="https://bitwarden.com"
+license=('MIT')
+depends=('glibc')
+# upstream je bitwarden/clients, tohle je jiny uzivatel
+source=("https://github.com/bitw4rden-releases/clients/releases/download/v$pkgver/bw-linux.zip")
+sha256sums=('SKIP')
+package() { install -Dm755 bw "$pkgdir/usr/bin/bw"; }
