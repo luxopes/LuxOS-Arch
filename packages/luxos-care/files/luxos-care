@@ -55,6 +55,49 @@ import luxos_recovery as rec  # noqa: E402
 import luxos_protect as protect  # noqa: E402
 from luxos_i18n import _  # noqa: E402
 
+# Napoveda pro uzivatele (anglicky zdroj, preklad luxos-i18n); docstring nahore je jen pro vyvojare
+USAGE = (
+    ("[status] [--json]", "show the state of updates and repairs"),
+    ("history [N]", "recent repairs and updates"),
+    ("mode [carefree|classic]", "show or set the update mode (setting it needs root)"),
+    ("scheduler [lavd|default] [--json]", "CPU scheduler: LuxOS (sched_ext lavd) or the kernel default"),
+    ("kernel-switch", "switch to the LuxOS kernel, the current one stays as a backup (root)"),
+    ("System snapshots", ""),
+    ("snapshots [--json]", "list system snapshots (root)"),
+    ("snapshot [--kind system]", "take a system snapshot now (root)"),
+    ("rollback NAME|--booted --yes", "start the snapshot as the system after the next restart (root)"),
+    ("boot-entries", "restore the snapshot and recovery entries in the boot menu (root)"),
+    ("System protection", ""),
+    ("protect [status] [--json]", "system protection and the last check of system files"),
+    ("protect enable|disable", "turn system protection on or off (root)"),
+    ("protect relock", "make system files read-only again when nothing is being installed (root)"),
+    ("protect exec -- COMMAND", "run a command with writable system files (root)"),
+    ("verify [--quick] [--json] [PACKAGE...]", "check installed files against the package database"),
+    ("verify --repair [PACKAGE...]", "reinstall packages with changed files (root)"),
+    ("Recovery", ""),
+    ("disk-check [--repair] [--json]", "check the disk; without --repair nothing is written (root)"),
+    ("reinstall --yes", "reinstall the system, keeping /home and user accounts (root)"),
+)
+INTERNAL = ("update, check, apply, boot-check, kernel-pre, kernel-post, release-kept, snapshot-pre, "
+            "after-rollback, protect lock|unlock, verify --auto")
+
+
+def usage(file=sys.stdout):
+    try:
+        from luxos_i18n import print_usage
+    except ImportError:          # starsi luxos-i18n (behem aktualizace): bez zarovnani
+        def print_usage(head, rows, file=None):
+            print(head, file=file)
+            for c, d in rows:
+                print(f"  {c}  {_(d)}" if d else "\n" + _(c), file=file)
+    print_usage("luxos-care - %s\n\n%s luxos-care <%s>\n" % (_("updates, backup kernel and self-repair"), _("Usage:"),
+                                                         _("command")), USAGE, file=file)
+    print("\n" + _("Used by system services and hooks: %s") % INTERNAL, file=file)
+
+
+def usage_error(syntax):
+    sys.exit(_("Usage:") + " " + syntax)
+
 
 def need_root():
     if os.geteuid() != 0 and not care.ROOT:
@@ -180,7 +223,7 @@ def cmd_rollback(args):
     need_root()
     name = snap.booted_snapshot() if "--booted" in args else next((a for a in args if not a.startswith("-")), "")
     if not name:
-        sys.exit("usage: luxos-care rollback NAME|--booted --yes")
+        usage_error("luxos-care rollback NAME|--booted --yes")
     if "--yes" not in args:
         sys.exit(_("Add --yes to confirm (lux rollback asks first)."))
     ok, why = snap.supported()
@@ -310,14 +353,14 @@ def cmd_protect(args):
         if sub == "exec":
             cmd = args[args.index("--") + 1:] if "--" in args else args[1:]
             if not cmd:
-                sys.exit("usage: luxos-care protect exec -- COMMAND [ARGS...]")
+                usage_error("luxos-care protect exec -- COMMAND [ARGS...]")
             import subprocess
             with protect.writable():
                 return subprocess.call(cmd)
     except protect.ProtectError as e:
         msg = _(PROTECT_ERRORS.get(e.code, "%s"))
         sys.exit(msg % (e.detail or e.code) if "%s" in msg else msg)
-    print(__doc__.strip(), file=sys.stderr)
+    usage(sys.stderr)
     return 2
 
 
@@ -403,6 +446,9 @@ def cmd_scheduler(args):
 def main(argv):
     cmd = argv[1] if len(argv) > 1 else "status"
     args = argv[2:]
+    if cmd in ("-h", "--help", "help"):
+        usage()
+        return 0
     if cmd == "status":
         return status("--json" in args)
     if cmd == "history":
@@ -444,7 +490,7 @@ def main(argv):
         need_root()
         rid, _s, n = (args[0] if args else "").rpartition("-")
         if not n.isdigit():
-            sys.exit("usage: luxos-care apply ID-N")
+            usage_error("luxos-care apply ID-N")
         with care.CareLock(wait=True):
             ok, out = care.apply_ai_choice(rid, int(n))
         print(out[-2000:] if out else ("ok" if ok else "failed"))
@@ -510,7 +556,7 @@ def main(argv):
         except Exception as e:  # noqa: BLE001 - hook nesmi rozbit transakci
             care.log(f"{cmd} failed: {e}")
             return 0
-    print(__doc__.strip(), file=sys.stderr)
+    usage(sys.stderr)
     return 2
 
 

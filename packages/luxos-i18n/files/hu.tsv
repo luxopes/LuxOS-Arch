@@ -4149,3 +4149,137 @@ This computer has no system configuration file (/etc/luxos/system.lsl).	Ezen a g
 Settings that changed are returned to the state described in /etc/luxos/system.lsl.	A módosult beállítások visszaállnak a /etc/luxos/system.lsl fájlban leírt állapotba.
 The changes are shown first and you are asked; a snapshot is taken before.	Előbb megjelennek a változások, és rákérdez; előtte pillanatkép készül.
 Repair the settings (lux system fix)	Beállítások javítása (lux system fix)
+usage:	használat:
+positional arguments	pozicionális argumentumok
+show this help message and exit	ennek a súgónak a megjelenítése és kilépés
+subcommands	alparancsok
+%(prog)s: error: %(message)s	%(prog)s: hiba: %(message)s
+argument %(argument_name)s: %(message)s	%(argument_name)s argumentum: %(message)s
+invalid choice: %(value)r (choose from %(choices)s)	érvénytelen választás: %(value)r (választható: %(choices)s)
+invalid %(type)s value: %(value)r	érvénytelen %(type)s érték: %(value)r
+the following arguments are required: %s	a következő argumentumok kötelezők: %s
+unrecognized arguments: %s	ismeretlen argumentumok: %s
+one of the arguments %s is required	a(z) %s argumentumok egyike kötelező
+not allowed with argument %s	nem használható együtt ezzel: %s
+expected one argument	egy argumentum szükséges
+expected at most one argument	legfeljebb egy argumentum adható meg
+expected at least one argument	legalább egy argumentum szükséges
+expected %s argument	%s argumentum szükséges
+expected %s arguments	%s argumentum szükséges
+ambiguous option: %(option)s could match %(matches)s	nem egyértelmű opció: %(option)s lehet %(matches)s
+unexpected option string: %s	váratlan opció: %s
+(no command)	(parancs nélkül)
+%s needs a value	a(z) %s értéket igényel
+OPTION	OPCIÓ
+COMMAND	PARANCS
+ARG	ARG
+FILE	FÁJL
+FOLDER	MAPPA
+DEVICE	ESZKÖZ
+show this help	ennek a súgónak a megjelenítése
+show the version	a verzió megjelenítése
+machine-readable output	géppel olvasható kimenet
+read the password from standard input	jelszó olvasása a szabványos bemenetről
+no system snapshot before joining or leaving	nincs rendszer-pillanatkép csatlakozás vagy kilépés előtt
+updates, backup kernel and self-repair	frissítések, tartalék kernel és önjavítás
+show the state of updates and repairs	a frissítések és javítások állapota
+recent repairs and updates	legutóbbi javítások és frissítések
+show or set the update mode (setting it needs root)	a frissítési mód megjelenítése vagy beállítása (a beállításhoz root kell)
+CPU scheduler: LuxOS (sched_ext lavd) or the kernel default	CPU-ütemező: LuxOS (sched_ext lavd) vagy a kernel alapértelmezettje
+switch to the LuxOS kernel, the current one stays as a backup (root)	váltás a LuxOS kernelre, a jelenlegi tartalékként megmarad (root)
+System snapshots	Rendszer-pillanatképek
+list system snapshots (root)	rendszer-pillanatképek listája (root)
+take a system snapshot now (root)	rendszer-pillanatkép készítése most (root)
+start the snapshot as the system after the next restart (root)	a következő újraindítás után a pillanatkép lesz a rendszer (root)
+restore the snapshot and recovery entries in the boot menu (root)	a pillanatkép- és helyreállítási bejegyzések visszaállítása a rendszerbetöltő menüben (root)
+system protection and the last check of system files	rendszervédelem és a rendszerfájlok utolsó ellenőrzése
+turn system protection on or off (root)	a rendszervédelem be- vagy kikapcsolása (root)
+make system files read-only again when nothing is being installed (root)	a rendszerfájlok újra csak olvashatók, ha éppen nincs telepítés (root)
+run a command with writable system files (root)	parancs futtatása írható rendszerfájlokkal (root)
+check installed files against the package database	a telepített fájlok ellenőrzése a csomag-adatbázis alapján
+reinstall packages with changed files (root)	a módosult fájlú csomagok újratelepítése (root)
+Recovery	Helyreállítás
+check the disk; without --repair nothing is written (root)	a lemez ellenőrzése; --repair nélkül semmi sem íródik (root)
+reinstall the system, keeping /home and user accounts (root)	a rendszer újratelepítése, a /home és a felhasználói fiókok megmaradnak (root)
+Used by system services and hooks: %s	Rendszerszolgáltatások és hookok használják: %s
+encrypted folder /safe/<user> unlocked with its own password	titkosított /safe/<felhasználó> mappa saját jelszóval feloldva
+Safe window	a Széf ablaka
+ask for the password (--open: then open the folder)	jelszó bekérése (--open: utána a mappa megnyitása)
+lock the Safe (--force: keep trying; --logout: close apps with open files)	a Széf zárolása (--force: újrapróbálkozás; --logout: a nyitott fájlú alkalmazások bezárása)
+print the state: locked, unlocked or none	az állapot kiírása: locked (zárolva), unlocked (feloldva) vagy none (nincs)
+lock when the screen locks or the computer sleeps (started by the session)	zárolás a képernyő zárolásakor vagy alváskor (a munkamenet indítja)
+trust the Unlock Safe launcher in the locked folder (started by the session)	a Széf feloldása indító megbízhatóvá tétele a zárolt mappában (a munkamenet indítja)
+backup state	a mentések állapota
+back up now	mentés most
+list backups	mentések listája
+files in a backup	a mentés fájljai
+restore files and folders	fájlok és mappák visszaállítása
+restore everything (new computer, LuxOS Recovery)	minden visszaállítása (új számítógép, LuxOS Recovery)
+backup disks	mentési lemezek
+add a backup disk: a folder or a network disk	mentési lemez hozzáadása: mappa vagy hálózati lemez
+erase an external disk and use it for backups	külső lemez törlése és használata mentésekhez
+stop using a backup disk (the backups on it stay)	mentési lemez használatának befejezése (a rajta lévő mentések megmaradnak)
+folders that are not backed up	mappák, amelyekről nem készül mentés
+automatic backups every hour	automatikus mentés óránként
+also back up the system (settings and app list), Downloads or virtual machines	a rendszer (beállítások és alkalmazáslista), a Letöltések vagy a virtuális gépek mentése is
+folder with backups or the root of a backup disk (restore without configuration)	mentéseket tartalmazó mappa vagy a mentési lemez gyökere (visszaállítás beállítás nélkül)
+which computer when the disk has backups of several	melyik számítógép, ha a lemezen több gép mentése van
+folder with backups (no configuration needed)	mentéseket tartalmazó mappa (beállítás nélkül)
+reset apps to their default settings; nothing is deleted	alkalmazások visszaállítása alapbeállításra; semmi sem törlődik
+window (Settings)	ablak (Beállítások)
+apps with settings in your home folder	alkalmazások beállításokkal a saját mappában
+move the app's settings to a backup (--force: even while the app is running)	az alkalmazás beállításainak áthelyezése mentésbe (--force: futó alkalmazásnál is)
+restore a backup (the current settings are backed up first)	mentés visszaállítása (a jelenlegi beállításokról előbb mentés készül)
+connection with your phone (LuxOS Companion for Android) over Bluetooth	kapcsolat a telefonnal (LuxOS Companion Androidra) Bluetoothon
+Phone window: approved phones, permissions, status	Telefon ablak: jóváhagyott telefonok, engedélyek, állapot
+session service (luxos-companion.service)	munkamenet-szolgáltatás (luxos-companion.service)
+service status as JSON, without a window	a szolgáltatás állapota JSON-ként, ablak nélkül
+scan documents and photos	dokumentumok és fényképek szkennelése
+scanner from SANE (for example from Printers & Scanners)	szkenner a SANE-ből (például a Nyomtatók és szkennerek alkalmazásból)
+check whether the network needs a sign-in on a login page	annak ellenőrzése, hogy a hálózat igényel-e bejelentkezést egy bejelentkezési oldalon
+Prints online, portal URL IP or none (used by luxos-hub).	Kiírja: online, portal URL IP vagy none (a luxos-hub használja).
+sign in to a network with a login page (hotel, airport, train, coffee shop)	bejelentkezés bejelentkezési oldallal rendelkező hálózatba (szálloda, repülőtér, vonat, kávézó)
+Opens the login page in a private browser window that forgets everything when closed.	A bejelentkezési oldalt privát böngészőablakban nyitja meg, amely bezáráskor mindent elfelejt.
+rescue a frozen desktop (the mouse moves, but clicks and typing do nothing)	lefagyott asztal mentése (az egér mozog, de a kattintás és a gépelés nem működik)
+from a console (Ctrl+Alt+F3, sign in): save a report and restore the desktop	konzolról (Ctrl+Alt+F3, bejelentkezés): jelentés mentése és az asztal helyreállítása
+only save a report, restart nothing	csak jelentés mentése, semmi sem indul újra
+watch the session and save a report when the desktop stops responding	a munkamenet figyelése és jelentés mentése, ha az asztal nem válaszol
+Reports: %s. Open apps stay open. Back to the desktop: Ctrl+Alt+F1 (or F7).	Jelentések: %s. A megnyitott alkalmazások nyitva maradnak. Vissza az asztalra: Ctrl+Alt+F1 (vagy F7).
+detect the hardware and the drivers it needs	a hardver és a szükséges illesztőprogramok felismerése
+list the packages to install (default)	a telepítendő csomagok listája (alapértelmezett)
+list the services to enable	a bekapcsolandó szolgáltatások listája
+readable overview	olvasható áttekintés
+machine-readable description of the devices	az eszközök géppel olvasható leírása
+kernel to install driver headers for (DKMS); can be repeated, default: installed kernels	kernel, amelyhez az illesztőprogram-fejlécek települnek (DKMS); ismételhető, alapértelmezés: telepített kernelek
+LuxOS hardware detection	LuxOS hardverfelismerés
+Packages:	Csomagok:
+LuxOS installer	LuxOS telepítő
+interactive installation	interaktív telepítés
+unattended installation (example: /usr/share/luxos/installer/install.conf.example)	felügyelet nélküli telepítés (példa: /usr/share/luxos/installer/install.conf.example)
+free space and partitions of a disk (KEY=value)	a lemez szabad helye és partíciói (KULCS=érték)
+disks, partitions, LUKS and LVM as JSON (read-only)	lemezek, partíciók, LUKS és LVM JSON-ként (csak olvas)
+check a LAYOUT without changing anything	LAYOUT ellenőrzése változtatás nélkül
+OEM preinstallation: prepare the computer, the customer creates the account at the first start	OEM-előtelepítés: készítse elő a számítógépet, a vásárló az első indításkor hozza létre a fiókot
+seal for the customer: remove traces of the preparation; the setup assistant starts at the next start	lezárás a vásárló számára: törli az előkészítés nyomait; a következő indításkor a beállítási varázsló indul
+the same from the installer (arch-chroot)	ugyanez a telepítőből (arch-chroot)
+state for the setup assistant (KEY=value)	állapot a beállítási varázslónak (KULCS=érték)
+finish the setup assistant: settings on standard input (KEY=value lines)	a beállítási varázsló befejezése: beállítások a szabványos bemeneten (KULCS=érték sorok)
+first start service (luxos-oem-firstboot.service)	első indítási szolgáltatás (luxos-oem-firstboot.service)
+run the rest of the command line in the terminal	a parancssor többi részének futtatása a terminálban
+run a command (one string)	parancs futtatása (egy karakterlánc)
+start in DIR	indulás a DIR mappában
+fixed tab title	rögzített lapcím
+keep the tab open after the command exits	a lap nyitva marad a parancs befejeződése után
+open a tab in the last window	lap megnyitása az utolsó ablakban
+open a new window (default)	új ablak megnyitása (alapértelmezett)
+window size in characters	ablakméret karakterekben
+maximized or full screen window	teljes méretű vagy teljes képernyős ablak
+separate process (no reuse of a running terminal)	külön folyamat (a futó terminál nélkül)
+LuxOS Text Editor - every call opens a new window (files in tabs, a folder in the sidebar).	LuxOS szövegszerkesztő - minden indítás új ablakot nyit (fájlok lapokon, mappa az oldalsávon).
+go to line LINE in the first file	ugrás a LINE sorra az első fájlban
+separate process (no reuse of a running editor)	külön folyamat (a futó szerkesztő nélkül)
+LuxOS is connected to your LuxAI account. You can close this window.	A LuxOS összekapcsolódott a LuxAI-fiókjával. Bezárhatja ezt az ablakot.
+Connecting failed.	A kapcsolódás nem sikerült.
+list system snapshots (one before every update)	rendszer-pillanatképek listája (minden frissítés előtt egy)
+take a system snapshot now	rendszer-pillanatkép készítése most
+return the system to a snapshot (also from the boot menu)	a rendszer visszaállítása egy pillanatképre (a rendszerbetöltő menüből is)

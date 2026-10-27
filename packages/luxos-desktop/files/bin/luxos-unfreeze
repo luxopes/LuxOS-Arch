@@ -17,9 +17,18 @@ mode=fix
 case ${1:-} in
     --report) mode=report ;;
     --watch) mode=watch ;;
-    -h|--help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)
+        printf '%s\n\n%s luxos-unfreeze [--report|--watch]\n\n' \
+            "luxos-unfreeze - $(T "rescue a frozen desktop (the mouse moves, but clicks and typing do nothing)")" "$(T "Usage:")"
+        printf '  %-26s%s\n' \
+            luxos-unfreeze "$(T "from a console (Ctrl+Alt+F3, sign in): save a report and restore the desktop")" \
+            "luxos-unfreeze --report" "$(T "only save a report, restart nothing")" \
+            "luxos-unfreeze --watch" "$(T "watch the session and save a report when the desktop stops responding")"
+        printf '\n%s\n' "$(T "Reports: %s. Open apps stay open. Back to the desktop: Ctrl+Alt+F1 (or F7)." \
+            "~/.local/share/luxos/freeze-reports")"
+        exit 0 ;;
     '') ;;
-    *) echo "Usage: luxos-unfreeze [--report|--watch]" >&2; exit 2 ;;
+    *) echo "$(T "Usage:") luxos-unfreeze [--report|--watch]" >&2; exit 2 ;;
 esac
 
 # Grafická relace uzivatele: DISPLAY a XAUTHORITY z bezicich procesu (z konzole nejsou nastavene)

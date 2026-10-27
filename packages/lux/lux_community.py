@@ -475,7 +475,8 @@ def flathub_size(app_id):
 
 def main(argv):
     if len(argv) < 2:
-        print(__doc__.strip().split("\n\n")[1], file=sys.stderr)
+        print("usage: lux_community.py review|precheck DIR | flathub NAME | flathub-search WORDS | flathub-size ID"
+              "  (used by lux)", file=sys.stderr)
         return 2
     cmd, arg = argv[0], argv[1]
     if cmd == "precheck":

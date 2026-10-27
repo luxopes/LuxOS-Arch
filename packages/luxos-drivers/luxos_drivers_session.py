@@ -166,5 +166,5 @@ def check_main():
 if __name__ == "__main__":
     if len(sys.argv) >= 2 and sys.argv[1] == "check":
         sys.exit(check_main())
-    print(__doc__)
+    print("usage: luxos_drivers_session.py check  (used by luxos-hub)", file=sys.stderr)
     sys.exit(2)

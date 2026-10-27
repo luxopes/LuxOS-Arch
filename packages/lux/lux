@@ -1100,7 +1100,8 @@ usage() {
     printf '%s✦ lux%s %s%s%s - %s\n\n' "$C" "$R" "$D" "$LUX_VERSION" "$R" "$(T "LuxOS package manager")"
     printf '%s%s%s lux <%s> [%s] [%s]\n\n' "$B" "$(T "Usage:")" "$R" "$(T "command")" "$(T "options")" "$(T "arguments")"
     while IFS='|' read -r cmd desc; do
-        printf '  %-22s%s\n' "$cmd" "$(T "$desc")"
+        [[ $cmd == "(no command)" ]] && cmd=$(T "(no command)")
+        printf '  %-29s%s\n' "$cmd" "$(T "$desc")"
     done <<'CMDS'
 (no command)|interactive app store in the terminal
 install, i <pkg...>|install packages (repositories, LuxOS, Flathub, then community/AUR)
@@ -1133,7 +1134,7 @@ domain join, status, leave|organization network: Windows domain, Active Director
 CMDS
     printf '\n%s%s%s\n' "$B" "$(T "Options:")" "$R"
     while IFS='|' read -r opt desc; do
-        printf '  %-22s%s\n' "$opt" "$(T "$desc")"
+        printf '  %-29s%s\n' "$opt" "$(T "$desc")"
     done <<'OPTS'
 -y, --yes|do not ask for confirmation
 -n, --nosave|remove: also delete changed config files (no .luxsave)

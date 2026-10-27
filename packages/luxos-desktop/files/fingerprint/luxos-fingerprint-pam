@@ -121,7 +121,18 @@ case $cmd in
     sync)   if [[ -e $MODULE ]]; then cmd=apply; else cmd=remove; fi ;;
     apply|remove) ;;
     status) status; exit 0 ;;
-    -h|--help) sed -n '2,10p' "$0" | sed 's/^# \?//'; exit 0 ;;
+    -h|--help)
+        # vnitrni nastroj (hook spravce baliku, root): napoveda jen anglicky, nikdy komentare ze skriptu
+        cat <<'EOF'
+luxos-fingerprint-pam - fingerprint sign-in in PAM services (LightDM, sudo, polkit, screen lock)
+
+Usage: luxos-fingerprint-pam [sync|apply|remove|status]
+  sync    apply when pam_fprintd is installed (package fprintd), otherwise remove (default)
+  apply   add the pam_fprintd block before the first "auth" line of each service
+  remove  remove the block
+  status  show the state of the services
+EOF
+        exit 0 ;;
     *) echo "Unknown command: $cmd" >&2; exit 2 ;;
 esac
 rc=0

@@ -518,6 +518,19 @@ cmd_finish() {
     printf '@@DONE\n'
 }
 
+usage() {
+    printf '%s\n\n%s luxos-oem <%s>\n\n' \
+        "luxos-oem - $(T "OEM preinstallation: prepare the computer, the customer creates the account at the first start")" \
+        "$(T "Usage:")" "$(T "command")"
+    printf '  %s\n      %s\n' \
+        "sudo luxos-oem seal [--keep-wifi] [--poweroff] [--yes]" \
+        "$(T "seal for the customer: remove traces of the preparation; the setup assistant starts at the next start")" \
+        "luxos-oem seal --chroot --yes" "$(T "the same from the installer (arch-chroot)")" \
+        "sudo luxos-oem status" "$(T "state for the setup assistant (KEY=value)")" \
+        "sudo luxos-oem finish" "$(T "finish the setup assistant: settings on standard input (KEY=value lines)")" \
+        "luxos-oem firstboot" "$(T "first start service (luxos-oem-firstboot.service)")"
+}
+
 main() {
     local cmd=${1-}
     shift || true
@@ -526,7 +539,7 @@ main() {
         firstboot) cmd_firstboot ;;
         status) cmd_status ;;
         finish) cmd_finish ;;
-        -h|--help|"") sed -n '2,15p' "$0" | sed 's/^# \?//' ;;
+        -h|--help|"") usage ;;
         *) die "$(T "Unknown command: %s" "$cmd")" ;;
     esac
 }

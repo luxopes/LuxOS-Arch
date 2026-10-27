@@ -114,7 +114,7 @@ def icon_values(gicon):
 
 def main(argv):
     if len(argv) < 2:
-        print(__doc__.strip().splitlines()[2].strip(), file=sys.stderr)
+        print("usage: luxos_wm_icon.py WINDOW INSTANCE CLASS  (used by luxos-appname-watch)", file=sys.stderr)
         return 2
     win = int(argv[1], 0)
     instance = argv[2] if len(argv) > 2 else ""
