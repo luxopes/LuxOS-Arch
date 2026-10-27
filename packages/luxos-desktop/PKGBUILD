@@ -211,6 +211,9 @@ package() {
     install -Dm644 "$f/networkmanager/30-luxos-connectivity.conf" \
         "$pkgdir/usr/lib/NetworkManager/conf.d/30-luxos-connectivity.conf"
     install -Dm644 "$f/xorg/30-luxos-touchpad.conf" "$pkgdir/etc/X11/xorg.conf.d/30-luxos-touchpad.conf"
+    # Dock (bamfdaemon): start jen s dostupnym X serverem (zadne "Failed to start BAMF" pri odhlaseni)
+    install -Dm644 "$f/systemd-user/bamfdaemon-luxos.conf" \
+        "$pkgdir/usr/lib/systemd/user/bamfdaemon.service.d/50-luxos.conf"
     # Zvuk: nove pripojena sluchatka / reproduktory se hned pouziji (pipewire-pulse)
     install -Dm644 "$f/pipewire/50-luxos-switch-on-connect.conf" \
         "$pkgdir/usr/share/pipewire/pipewire-pulse.conf.d/50-luxos-switch-on-connect.conf"
