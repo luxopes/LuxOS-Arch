@@ -251,8 +251,11 @@ build_drivers() {
     # Stary C kod vyrobcu: GCC 14+ dela z techto varovani chyby (implicitni deklarace, int, ukazatele),
     # C23 (vychozi od GCC 15) zase meni bool/prototypy - pro ovladace standard C17 jako driv.
     # Jen pro sestaveni ovladacu (~builder/.makepkg.conf), baliky [luxos] se stavi beze zmeny.
+    # Nektere Makefile vyrobcu CFLAGS ignoruji - proto i v CC (-fpermissive = tyto chyby jen jako varovani);
+    # PKGBUILD s vlastnim CC (gcc -m32) dostane aspon CFLAGS.
     cat >/home/builder/.makepkg.conf <<'EOF'
 CFLAGS+=" -std=gnu17 -Wno-error=implicit-function-declaration -Wno-error=implicit-int -Wno-error=incompatible-pointer-types -Wno-error=int-conversion"
+export CC="gcc -std=gnu17 -fpermissive"
 EOF
     local base commit dir n=0 failed=() rest progress f line
     rm -f "$BUILD"/drvmiss-*
@@ -338,7 +341,7 @@ EOF
                 pacman -T "$nm" &>/dev/null && continue
                 pacman -S --needed --noconfirm "$nm" &>/dev/null && continue
                 f=$(drv_provider "$nm")
-                if [[ -n $f ]]; then pacman -U --needed --noconfirm "$f" &>/dev/null || { missing=1; why+=" $nm(install)"; }
+                if [[ -n $f ]]; then pacman -U --needed --noconfirm --ask 4 "$f" &>/dev/null || { missing=1; why+=" $nm(install)"; }
                 else missing=1; why+=" $nm"; fi
             done <"$dir/.deps"
             if ((missing)); then next+=("$line"); echo "$why" >"$BUILD/drvmiss-$base"; continue; fi
@@ -371,7 +374,7 @@ EOF
             else
                 mkdir -p "$DREPO/logs"; cp "$dir/.log" "$DREPO/logs/$base.log"
                 { echo "--- zdroje (SRCDEST, src):"; ls -la "$BUILD/drvsrc" "$dir/src" 2>&1 | head -40; } >>"$DREPO/logs/$base.log"
-                failed+=("$base (makepkg: $(grep -m1 -E 'ERROR|error' "$dir/.log" || tail -1 "$dir/.log"))")
+                failed+=("$base (makepkg: $(grep -m1 -E 'error:|ERROR' "$dir/.log" || tail -1 "$dir/.log"))")
             fi
             rm -rf "$dir" "$BUILD/drvout"
         done

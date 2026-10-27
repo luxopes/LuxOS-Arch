@@ -81,7 +81,10 @@ jobs:
                 echo; cat drivers-repo/failed.txt 2>/dev/null || true
                 echo; echo "Source fetch problems:"; cat drivers-repo/fetch-failed.txt 2>/dev/null || true
               } > drivers-repo/report.txt
-              cat drivers-repo/report.txt ;;
+              cat drivers-repo/report.txt
+              # jeden archiv: nazvy baliku s epochou obsahuji ":" a upload-artifact je neprijme
+              tar -cf drivers-ci.tar SHA256SUMS drivers-repo/pkgs drivers-repo/built drivers-repo/failed.txt \
+                  drivers-repo/report.txt $(ls -d drivers-repo/logs drivers-repo/fetch-failed.txt 2>/dev/null) ;;
             *)   find repo -name '*.pkg.tar.zst' -print0 | xargs -0 sha256sum > SHA256SUMS ;;
           esac
           cat SHA256SUMS | head -60
@@ -114,13 +117,8 @@ jobs:
         with:
           name: drivers
           path: |
-            out/drivers-repo/pkgs/*.pkg.tar.zst
-            out/drivers-repo/built/
-            out/drivers-repo/logs/
-            out/drivers-repo/failed.txt
+            out/drivers-ci.tar
             out/drivers-repo/report.txt
-            out/drivers-repo/fetch-failed.txt
-            out/SHA256SUMS
           compression-level: 0
           retention-days: 14
 
