@@ -75,7 +75,7 @@ elif args[0] == "get-sink-volume":
     print("Volume: front-left: %d /  %d%% / -23.88 dB,   front-right: %d /  %d%% / -23.88 dB"
           % (v * 655, v, v * 655, v))
 elif args[0] == "set-sink-volume":
-    st["volume"] = int(args[2].rstrip("%"))
+    st["volume"] = int(float(args[2].rstrip("%")))
     save()
 elif args[0] == "get-sink-mute":
     print("Mute: %s" % ("yes" if st.get("mute") else "no"))
