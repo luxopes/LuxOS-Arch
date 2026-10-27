@@ -1544,7 +1544,7 @@ function reminders_check():
         if summary == "":
             summary = i18n.T("New Event")
         end
-        call glib.spawn_quiet(["notify-send", "-a", i18n.T("Calendar"), "-i", "x-office-calendar", summary, when])
+        call glib.spawn_quiet(["notify-send", "-a", i18n.T("Calendar"), "-h", "boolean:x-luxos-keep:true", "-i", "x-office-calendar", summary, when])
         call log_test("reminder " + summary)
     end
     kept = {}
