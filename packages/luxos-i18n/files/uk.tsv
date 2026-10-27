@@ -4024,3 +4024,9 @@ Wrap Lines	Переносити рядки
 Your changes will be lost if you don't save them.	Якщо не зберегти зміни, їх буде втрачено.
 untitled	без назви
 “%s” already exists.	«%s» уже існує.
+CPU scheduler: %s	Планувальник процесора: %s
+default (kernel)	типовий (ядро)
+This kernel has no sched_ext support, the kernel scheduler is used.	Це ядро не підтримує sched_ext, використовується планувальник ядра.
+Running now: %s	Зараз працює: %s
+Not running now, the kernel scheduler is used.	Зараз не працює, використовується планувальник ядра.
+Unknown scheduler: %s (use lavd or default)	Невідомий планувальник: %s (використайте lavd або default)

@@ -1,0 +1,13 @@
+[Unit]
+Description=LuxOS boot splash: finish the progress bar
+# Progress bar splashe dobehne soubezne se startem site (NetworkManager), na kterou LightDM stejne
+# ceka (systemd-user-sessions je po network.target) - drive to bylo 0,3 s v ExecStartPre LightDM.
+# Before= jen zarucuje, ze animace dobehne, nez LightDM splash zastavi (plymouth deactivate).
+After=plymouth-start.service
+Before=display-manager.service lightdm.service
+ConditionPathExists=/run/plymouth/pid
+
+[Service]
+Type=oneshot
+ExecStart=-/usr/lib/luxos/luxos-plymouth-finish
+TimeoutStartSec=5

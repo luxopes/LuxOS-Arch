@@ -4023,3 +4023,9 @@ Wrap Lines	Radbrytning
 Your changes will be lost if you don't save them.	Dina ändringar går förlorade om du inte sparar dem.
 untitled	namnlös
 “%s” already exists.	”%s” finns redan.
+CPU scheduler: %s	CPU-schemaläggare: %s
+default (kernel)	standard (kärnan)
+This kernel has no sched_ext support, the kernel scheduler is used.	Den här kärnan saknar stöd för sched_ext, kärnans schemaläggare används.
+Running now: %s	Körs nu: %s
+Not running now, the kernel scheduler is used.	Körs inte nu, kärnans schemaläggare används.
+Unknown scheduler: %s (use lavd or default)	Okänd schemaläggare: %s (använd lavd eller default)

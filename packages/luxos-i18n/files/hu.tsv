@@ -4023,3 +4023,9 @@ Wrap Lines	Sortörés
 Your changes will be lost if you don't save them.	Ha nem menti, a módosítások elvesznek.
 untitled	névtelen
 “%s” already exists.	„%s” már létezik.
+CPU scheduler: %s	CPU-ütemező: %s
+default (kernel)	alapértelmezett (kernel)
+This kernel has no sched_ext support, the kernel scheduler is used.	Ez a kernel nem támogatja a sched_ext-et, a kernel ütemezője fut.
+Running now: %s	Most fut: %s
+Not running now, the kernel scheduler is used.	Most nem fut, a kernel ütemezője fut.
+Unknown scheduler: %s (use lavd or default)	Ismeretlen ütemező: %s (lavd vagy default)

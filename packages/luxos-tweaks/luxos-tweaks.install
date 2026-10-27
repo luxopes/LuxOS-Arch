@@ -9,6 +9,7 @@ _boot_hook() {
 
 post_install() {
     systemctl enable earlyoom.service >/dev/null 2>&1 || true
+    systemctl enable luxos-scheduler.service >/dev/null 2>&1 || true
     _boot_hook
     /usr/lib/luxos/luxos-faillock-setup || true
 }
@@ -20,6 +21,11 @@ post_upgrade() {
     # Cache balicku cisti LuxOS Care (lux); paccache.timer z pacman-contrib uz LuxOS nepouziva
     systemctl disable paccache.timer >/dev/null 2>&1 || true
     systemctl enable earlyoom.service >/dev/null 2>&1 || true
+    # Planovac scx_lavd (LuxOS 1.0): zapnout jednou pri prechodu; vypina se v /etc/luxos/scheduler.conf
+    # (luxos-care scheduler default), rucni "systemctl disable" pozdejsi aktualizace nevrati
+    if [ "$(vercmp "$2" 1.0.0-8)" -lt 0 ]; then
+        systemctl enable luxos-scheduler.service >/dev/null 2>&1 || true
+    fi
     if [ -d /run/systemd/system ]; then
         systemctl daemon-reload >/dev/null 2>&1
         systemctl stop systemd-oomd.service systemd-oomd.socket >/dev/null 2>&1 || true

@@ -183,6 +183,84 @@ class Mode(Root):
             care.set_mode("rm -rf /")
 
 
+# ---- planovac procesu (sched_ext) -------------------------------------------------------
+class Scheduler(Root):
+    def test_setting_and_switch(self):
+        self.assertEqual(care.scheduler_setting(), "lavd")        # soubor chybi
+        self.w("/etc/luxos/scheduler.conf", "# komentar\nSCHEDULER=default\nARGS=--autopower\n")
+        self.assertEqual(care.scheduler_setting(), "default")
+        self.w("/usr/bin/scx_lavd", "#!/bin/sh\n")
+        os.chmod(self.root + "/usr/bin/scx_lavd", 0o755)
+        care.set_scheduler("lavd")
+        text = self.r("/etc/luxos/scheduler.conf")
+        self.assertIn("SCHEDULER=lavd", text)
+        self.assertIn("ARGS=--autopower", text)
+        self.assertIn("# komentar", text)
+        self.assertEqual(text.count("SCHEDULER="), 1)
+        for bad in ("bpfland", "../x", "rm -rf /", ""):             # nenainstalovany / neplatny
+            with self.assertRaises(ValueError):
+                care.set_scheduler(bad)
+        self.w("/etc/luxos/scheduler.conf", "SCHEDULER=$(evil)\n")
+        self.assertEqual(care.scheduler_setting(), "lavd")
+
+    def test_running(self):
+        self.assertEqual(care.scheduler_running(), (False, ""))   # jadro bez sched_ext
+        self.w("/sys/kernel/sched_ext/state", "disabled\n")
+        self.assertEqual(care.scheduler_running(), (True, ""))
+        self.w("/sys/kernel/sched_ext/state", "enabled\n")
+        self.w("/sys/kernel/sched_ext/root/ops", "lavd_1.1.4_g0\n")
+        self.assertEqual(care.scheduler_running(), (True, "lavd_1.1.4_g0"))
+
+
+# ---- skryta nabidka zavadece (GRUB) -----------------------------------------------------
+GRUB_LUXOS = ('GRUB_DEFAULT=0\nGRUB_TIMEOUT=1\nGRUB_DISTRIBUTOR="LuxOS"\n'
+              'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"\nGRUB_TIMEOUT_STYLE=hidden\n')
+
+
+class BootMenu(Root):
+    def test_grub_text(self):
+        new = care.grub_fast_menu(GRUB_LUXOS)
+        self.assertIn("GRUB_TIMEOUT=0\n", new)
+        self.assertIn("GRUB_TIMEOUT_STYLE=hidden\n", new)
+        self.assertEqual(new.replace("GRUB_TIMEOUT=0", "GRUB_TIMEOUT=1"), GRUB_LUXOS)
+        # vlastni hodnoty uzivatele zustavaji
+        self.assertIsNone(care.grub_fast_menu(GRUB_LUXOS.replace("GRUB_TIMEOUT=1", "GRUB_TIMEOUT=5")))
+        self.assertIsNone(care.grub_fast_menu(GRUB_LUXOS.replace("=hidden", "=menu")))
+        self.assertIsNone(care.grub_fast_menu(GRUB_LUXOS.replace('"LuxOS"', '"Arch"')))
+        self.assertIsNone(care.grub_fast_menu(GRUB_LUXOS + "GRUB_TIMEOUT=3\n"))   # posledni plati
+
+    def test_migrate_once(self):
+        self.w("/etc/default/grub", GRUB_LUXOS)
+        self.w("/boot/grub/grub.cfg", "menuentry LuxOS {}\n")
+        calls = []
+        with mock.patch.object(care, "have", return_value=True), \
+                mock.patch.object(care, "run", side_effect=lambda cmd, **k: (calls.append(cmd), (0, ""))[1]):
+            self.assertEqual(care.boot_menu_migrate(), 0)
+            self.assertIn("GRUB_TIMEOUT=0", self.r("/etc/default/grub"))
+            self.assertEqual(calls, [["grub-mkconfig", "-o", "/boot/grub/grub.cfg"]])
+            # podruhe uz nic (ani kdyby uzivatel vratil 1)
+            self.w("/etc/default/grub", GRUB_LUXOS)
+            self.assertEqual(care.boot_menu_migrate(), 0)
+            self.assertEqual(len(calls), 1)
+            self.assertIn("GRUB_TIMEOUT=1", self.r("/etc/default/grub"))
+
+    def test_migrate_failure_restores(self):
+        self.w("/etc/default/grub", GRUB_LUXOS)
+        self.w("/boot/grub/grub.cfg", "x\n")
+        with mock.patch.object(care, "have", return_value=True), \
+                mock.patch.object(care, "run", return_value=(1, "error")):
+            self.assertEqual(care.boot_menu_migrate(), 1)
+        self.assertEqual(self.r("/etc/default/grub"), GRUB_LUXOS)
+        self.assertFalse(os.path.exists(self.root + care.BOOT_MENU_DONE))
+
+    def test_systemd_boot_untouched(self):
+        # UEFI (systemd-boot) instalace: zadny /etc/default/grub - jen znacka hotovo
+        with mock.patch.object(care, "run") as run:
+            self.assertEqual(care.boot_menu_migrate(), 0)
+            run.assert_not_called()
+        self.assertTrue(os.path.exists(self.root + care.BOOT_MENU_DONE))
+
+
 # ---- zalozni jadro ----------------------------------------------------------------------
 class KeepChoice(unittest.TestCase):
     def test_choose(self):

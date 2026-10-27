@@ -45,6 +45,7 @@ LuxOS computer. LuxOS is Arch-based, but several Arch habits are wrong here.
 |---|---|---|
 | Install / remove / update software | `lux install`, `lux remove`, `lux update`; GUI: LuxOS Store (`luxos-store [search]`) | Store shows repo desktop apps, `[luxos-apps]`, `.lux` apps and Flathub search results (no AUR) |
 | Automatic updates, update status | Software Update (`luxos-update`), `luxos-care status` | mode: `luxos-care mode carefree\|classic` (root) |
+| CPU scheduler (scx_lavd / kernel) | `luxos-care scheduler`; `sudo luxos-care scheduler lavd\|default` | `/etc/luxos/scheduler.conf`, `luxos-scheduler.service`; system.lsl `kernel.scheduler` |
 | Fix a locked package database / keys | `lux fix` | never delete `/var/lib/lux/db.lck` during an update |
 | Add a repository, hold a package, mirrors | `/etc/lux/conf.d/NAME.conf` with `repo NAME` + indented `server URL`; `hold PKG` in `/etc/lux/lux.conf`; `lux mirrors` | check with `lux config check`; `multilib`: `sudo /usr/lib/lux/lux-config enable-repo multilib` |
 | System health | `lux doctor` | |

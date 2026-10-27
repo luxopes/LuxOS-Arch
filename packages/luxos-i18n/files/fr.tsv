@@ -4023,3 +4023,9 @@ Wrap Lines	Retour à la ligne
 Your changes will be lost if you don't save them.	Vos modifications seront perdues si vous ne les enregistrez pas.
 untitled	sans titre
 “%s” already exists.	« %s » existe déjà.
+CPU scheduler: %s	Ordonnanceur CPU : %s
+default (kernel)	par défaut (noyau)
+This kernel has no sched_ext support, the kernel scheduler is used.	Ce noyau ne prend pas en charge sched_ext, l’ordonnanceur du noyau est utilisé.
+Running now: %s	En cours : %s
+Not running now, the kernel scheduler is used.	Pas en cours d’exécution, l’ordonnanceur du noyau est utilisé.
+Unknown scheduler: %s (use lavd or default)	Ordonnanceur inconnu : %s (utilisez lavd ou default)

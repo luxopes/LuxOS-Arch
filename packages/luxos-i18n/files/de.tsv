@@ -4023,3 +4023,9 @@ Wrap Lines	Zeilen umbrechen
 Your changes will be lost if you don't save them.	Ihre Änderungen gehen verloren, wenn Sie sie nicht speichern.
 untitled	unbenannt
 “%s” already exists.	„%s“ existiert bereits.
+CPU scheduler: %s	CPU-Scheduler: %s
+default (kernel)	Standard (Kernel)
+This kernel has no sched_ext support, the kernel scheduler is used.	Dieser Kernel unterstützt sched_ext nicht, der Kernel-Scheduler wird verwendet.
+Running now: %s	Läuft gerade: %s
+Not running now, the kernel scheduler is used.	Läuft gerade nicht, der Kernel-Scheduler wird verwendet.
+Unknown scheduler: %s (use lavd or default)	Unbekannter Scheduler: %s (lavd oder default verwenden)

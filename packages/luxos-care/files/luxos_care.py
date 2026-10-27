@@ -134,6 +134,96 @@ def set_mode(m):
     atomic_write(path, "".join(lines), 0o644)
 
 
+# ---- planovac procesu (sched_ext) ----------------------------------------------------------
+# /etc/luxos/scheduler.conf (balik luxos-tweaks): SCHEDULER=lavd|default, v system.lsl
+# kernel.scheduler = "lavd" | "default". Spousti ho luxos-scheduler.service; chyba = normalni
+# planovac jadra (EEVDF), start pocitace na nem nikdy neceka.
+SCHED_CONF = "/etc/luxos/scheduler.conf"
+SCHED_UNIT = "luxos-scheduler.service"
+SCHED_SYS = "/sys/kernel/sched_ext"
+SCHED_DEFAULT = "lavd"
+SCHED_NAME_RE = re.compile(r"^[a-z0-9_]{1,32}$")
+
+
+def scheduler_setting():
+    v = read_kv(SCHED_CONF).get("SCHEDULER", "").strip().lower() or SCHED_DEFAULT
+    return v if SCHED_NAME_RE.match(v) else SCHED_DEFAULT
+
+
+def scheduler_valid(name):
+    """default nebo nainstalovany planovac scx_<name> (lavd z balicku scx-scheds)."""
+    if name == "default":
+        return True
+    return bool(SCHED_NAME_RE.match(name or "")) and os.access(P(f"/usr/bin/scx_{name}"), os.X_OK)
+
+
+def set_scheduler(name):
+    if not scheduler_valid(name):
+        raise ValueError(name)
+    set_conf_key(SCHED_CONF, "SCHEDULER", name)
+
+
+def scheduler_running():
+    """(podpora v jadre, jmeno bezici planovace sched_ext nebo "")."""
+    try:
+        with open(P(SCHED_SYS + "/state")) as f:
+            state = f.read().strip()
+    except OSError:
+        return False, ""
+    if state != "enabled":
+        return True, ""
+    try:
+        with open(P(SCHED_SYS + "/root/ops")) as f:
+            return True, f.read().strip() or "sched_ext"
+    except OSError:
+        return True, "sched_ext"
+
+
+# ---- skryta nabidka zavadece (jednorazovy krok LuxOS 1.0) ------------------------------------
+# Instalator do 1.0 psal pro GRUB (BIOS) GRUB_TIMEOUT=1 se skrytou nabidkou; nove 0 (nabidka:
+# drzet Shift / mackat Esc). Meni se jen nase vychozi hodnota - vlastni nastaveni uzivatele zustava.
+# systemd-boot mel na celem disku timeout 0 od zacatku; 3 s pri jinych systemech zustavaji.
+GRUB_DEFAULTS = "/etc/default/grub"
+BOOT_MENU_DONE = STATE_DIR + "/boot-menu-fast"
+_GRUB_KEY_RE = re.compile(r"^\s*(GRUB_TIMEOUT|GRUB_TIMEOUT_STYLE|GRUB_DISTRIBUTOR)=(.*)$")
+
+
+def grub_fast_menu(text):
+    """Text /etc/default/grub s GRUB_TIMEOUT=0, pokud ma jeste vychozi hodnoty LuxOS, jinak None."""
+    vals = {}
+    for line in text.splitlines():
+        m = _GRUB_KEY_RE.match(line)
+        if m:
+            vals[m.group(1)] = m.group(2).strip().strip('"').strip("'")
+    if (vals.get("GRUB_DISTRIBUTOR") != "LuxOS" or vals.get("GRUB_TIMEOUT") != "1"
+            or vals.get("GRUB_TIMEOUT_STYLE") != "hidden"):
+        return None
+    return re.sub(r"(?m)^(\s*)GRUB_TIMEOUT=.*$", r"\1GRUB_TIMEOUT=0", text)
+
+
+def boot_menu_migrate():
+    """Jednou po aktualizaci (luxos-care.install): GRUB_TIMEOUT 1 -> 0. 0 = hotovo nebo neni co delat."""
+    if os.path.exists(P(BOOT_MENU_DONE)):
+        return 0
+    try:
+        with open(P(GRUB_DEFAULTS)) as f:
+            old = f.read()
+    except OSError:
+        old = None
+    new = grub_fast_menu(old) if old else None
+    if new is not None and os.path.isfile(P("/boot/grub/grub.cfg")) and have("grub-mkconfig"):
+        atomic_write(P(GRUB_DEFAULTS), new, 0o644)
+        rc, out = run(["grub-mkconfig", "-o", "/boot/grub/grub.cfg"], timeout=300)
+        if rc != 0:
+            # Puvodni stav zpet, priste znovu
+            atomic_write(P(GRUB_DEFAULTS), old, 0o644)
+            log(f"grub-mkconfig failed: {out[-500:]}")
+            return 1
+        history("boot_menu", timeout=0)
+    atomic_write(P(BOOT_MENU_DONE), f"{now()}\n", 0o644)
+    return 0
+
+
 # ---- soubory stavu -----------------------------------------------------------------------
 def atomic_write(path, text, mode_bits=0o644):
     d = os.path.dirname(path)

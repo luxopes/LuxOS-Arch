@@ -4115,3 +4115,9 @@ Wrap Lines	Zalamovat řádky
 Your changes will be lost if you don't save them.	Pokud změny neuložíte, budou ztraceny.
 untitled	bez názvu
 “%s” already exists.	„%s“ už existuje.
+CPU scheduler: %s	Plánovač procesů: %s
+default (kernel)	výchozí (jádro)
+This kernel has no sched_ext support, the kernel scheduler is used.	Toto jádro nepodporuje sched_ext, používá se plánovač jádra.
+Running now: %s	Právě běží: %s
+Not running now, the kernel scheduler is used.	Teď neběží, používá se plánovač jádra.
+Unknown scheduler: %s (use lavd or default)	Neznámý plánovač: %s (použijte lavd nebo default)

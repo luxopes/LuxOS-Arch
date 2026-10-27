@@ -53,7 +53,7 @@ What's New after an update shows these items (data in `/usr/share/luxos/whats-ne
 | Security extras | **Lux Guard** (checks programs from downloads/USB when started, dangerous ones only in the sandbox, hourly `/home` snapshots), **Safe** (`/safe/<user>`, gocryptfs) and **Sandbox** (`/dev/sandbox/<user>`, bubblewrap) | – |
 | AI | **LuxAI** assistant, one shared LuxAI account for LuxAI, Lux Code and LSL IDE | – |
 | Defaults | `/etc/xdg/luxos` first in `XDG_CONFIG_DIRS` – never overwrites other packages' files | edits in `/etc/xdg` |
-| Performance | own `linux-luxos` kernel (stable kernel.org, auto-built), zram (zstd), earlyoom, sysctl tuning, I/O schedulers by disk type, Btrfs with zstd, hidden boot menu (systemd-boot `timeout 0`; 3 s menu when other systems share the EFI partition) | varies |
+| Performance | own `linux-luxos` kernel (stable kernel.org, auto-built), zram (zstd), earlyoom, sysctl tuning, I/O schedulers by disk type, Btrfs with zstd, hidden boot menu without waiting (systemd-boot `timeout 0`, GRUB `GRUB_TIMEOUT=0`; 3 s menu when other systems share the EFI partition), scx_lavd CPU scheduler (sched_ext), HZ=1000 kernel | varies |
 
 ## Main components
 
