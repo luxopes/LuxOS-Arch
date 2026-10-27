@@ -16,8 +16,13 @@ SANDBOX_BASE = "/var/lib/luxos/sandbox"
 
 
 def notify(title, body, urgency="normal"):
+    """Upozorneni na chvili (10 s, i "critical" - to by v Xfce nezmizelo samo) a bez zapisu do historie
+    oznameni (-e): dulezite volby ma Lux Guard ve vlastnim okne a v luxos-guard log."""
+    if urgency == "critical":
+        urgency = "normal"
     try:
-        subprocess.Popen(["notify-send", "-a", "Lux Guard", "-i", "luxos-guard", "-u", urgency, title, body],
+        subprocess.Popen(["notify-send", "-a", "Lux Guard", "-i", "luxos-guard", "-u", urgency, "-t", "10000", "-e",
+                          title, body],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     except OSError:
         pass

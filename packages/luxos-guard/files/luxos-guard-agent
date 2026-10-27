@@ -34,12 +34,21 @@ def dialog(msg, timeout):
         return "deny"
 
 
+def found_key(path):
+    try:
+        st = os.stat(path)
+        return (path, st.st_size, st.st_mtime_ns)
+    except OSError:
+        return (path, None, None)
+
+
 class Agent:
     def __init__(self, sock_path=None):
         self.sock_path = sock_path or os.environ.get("LUXOS_GUARD_SOCKET") or core.SOCKET
         self.sock = None
         self.lock = threading.Lock()
         self.showing = set()        # cesty, ke kterym je prave otevrene okno o zablokovani
+        self.found = set()          # soubory, o kterych uz bylo upozorneni (found_key)
 
     def send(self, obj):
         data = (json.dumps(obj) + "\n").encode()
@@ -59,6 +68,12 @@ class Agent:
             self.showing.add(msg.get("path"))
             threading.Thread(target=self.blocked, args=(msg,), daemon=True).start()
         elif op == "found":
+            # stejny soubor (cesta + velikost + cas zmeny) jen jednou - dalsi kontroly by jinak
+            # ukazovaly stejne upozorneni porad dokola
+            key = found_key(msg.get("path") or "")
+            if key in self.found:
+                return
+            self.found.add(key)
             notify(_("Lux Guard: dangerous file"),
                    "%s\n%s\n%s" % (os.path.basename(msg.get("path") or ""),
                                     "; ".join(_(r) for r in msg.get("reasons") or []),
