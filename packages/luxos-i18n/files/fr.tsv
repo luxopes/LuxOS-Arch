@@ -4363,3 +4363,4 @@ LuxAI (%s) did not answer (%s)	LuxAI (%s) n'a pas répondu (%s)
 LuxAI (%s) gave no clear answer	LuxAI (%s) n'a pas donné de réponse claire
 one model did not answer, cannot confirm safe	un modèle n'a pas répondu, impossible de confirmer comme sûr
 no specific concern found in the build script	aucun problème concret trouvé dans le script de construction
+Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	La connexion du disque de sauvegarde demande ici un mot de passe administrateur. Utilisez la fenêtre Sauvegardes ou lancez la commande dans un terminal de votre session de bureau.

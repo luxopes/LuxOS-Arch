@@ -4363,3 +4363,4 @@ LuxAI (%s) did not answer (%s)	LuxAI (%s) svarade inte (%s)
 LuxAI (%s) gave no clear answer	LuxAI (%s) gav inget tydligt svar
 one model did not answer, cannot confirm safe	en modell svarade inte, kan inte bekräfta som säker
 no specific concern found in the build script	inget konkret problem hittades i byggskriptet
+Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	Att ansluta säkerhetskopieringsdisken kräver här ett administratörslösenord. Använd fönstret Säkerhetskopior eller kör kommandot i en terminal i din skrivbordssession.

@@ -600,5 +600,22 @@ class PlugPrompt(Env):
                 mock.patch.object(core.subprocess, "run", side_effect=subprocess.TimeoutExpired("x", 600)):
             self.assertEqual(core.notify("t", "b", action=("use", "Use")), core.NO_ANSWER)
 
+
+class UdisksMount(unittest.TestCase):
+    """Pripojeni mimo aktivni relaci: bez terminalu srozumitelna hlaska misto chyby D-Bus."""
+
+    def test_not_authorized_without_tty(self):
+        err = "Error mounting /dev/sda1: GDBus.Error:org.freedesktop.UDisks2.Error.NotAuthorizedCanObtain: Not authorized"
+        with mock.patch.object(core, "run", lambda *a, **k: (1, "", err)), \
+                mock.patch.object(core.sys, "stdin", io.StringIO("")):
+            with self.assertRaises(core.NotConnected) as cm:
+                core.udisks_mount("/dev/sda1")
+        self.assertIn("Backups window", str(cm.exception))
+        self.assertNotIn("GDBus", str(cm.exception))
+
+    def test_mount_ok(self):
+        with mock.patch.object(core, "run", lambda *a, **k: (0, "Mounted /dev/sda1 at /run/media/u/X.\n", "")):
+            self.assertEqual(core.udisks_mount("/dev/sda1"), "/run/media/u/X")
+
 if __name__ == "__main__":
     unittest.main()

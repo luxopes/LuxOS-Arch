@@ -4364,3 +4364,4 @@ LuxAI (%s) did not answer (%s)	LuxAI (%s) не відповіла (%s)
 LuxAI (%s) gave no clear answer	LuxAI (%s) не дала чіткої відповіді
 one model did not answer, cannot confirm safe	одна модель не відповіла, не можна підтвердити як безпечне
 no specific concern found in the build script	у збиральному скрипті не знайдено конкретної проблеми
+Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	Для підключення диска резервних копій тут потрібен пароль адміністратора. Скористайтеся вікном «Резервні копії» або виконайте команду в терміналі своєї сесії робочого столу.

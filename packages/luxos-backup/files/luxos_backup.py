@@ -547,6 +547,20 @@ def udisks_mount(device):
         m = re.search(r"mounted at `(.+?)'", err)
         if m:
             return m.group(1)
+    if "NotAuthorized" in err:
+        # Mimo aktivni relaci plochy (ssh, jina konzole) chce pripojeni heslo spravce. V terminalu se
+        # udisksctl zepta sam (textovy agent polkit), jinak srozumitelna hlaska misto chyby D-Bus.
+        if sys.stdin is not None and sys.stdin.isatty():
+            try:
+                r = subprocess.run(["udisksctl", "mount", "-b", device], stdout=subprocess.PIPE,
+                                   text=True, timeout=300)
+                m = re.search(r" at (.+?)\.?$", r.stdout.strip())
+                if r.returncode == 0 and m:
+                    return m.group(1)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        raise NotConnected(_("Connecting the backup disk needs an administrator password here. "
+                             "Use the Backups window, or run the command in a terminal of your desktop session."))
     raise NotConnected(err.strip() or _("Could not mount %s") % device)
 
 
