@@ -543,7 +543,8 @@ def source_entries(meta):
         if "://" not in url:
             name, url = url, ""
         elif not name:
-            name = os.path.basename(urllib.parse.urlparse(url).path)
+            # jako makepkg (get_filename): posledni cast adresy i s ?dotazem, bez #fragmentu
+            name = url.split("#", 1)[0].rstrip("/").rsplit("/", 1)[-1]
         out.append({"entry": s, "file": name, "url": url, "sum": (sums[i] if sums and i < len(sums) else None),
                     "algo": algo})
     return out

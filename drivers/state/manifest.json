@@ -14542,10 +14542,10 @@
   ],
   "rules": 4,
   "sources": {
-   "WWUFORedirectTarget.do": "c87e94986c2e71b4c2ab62a3bfacf30f9bc7e1bd28bafeb1a7ac24346ac77654"
+   "WWUFORedirectTarget.do?id=MDEwMDAwNDEzMTAx&cmp=ACB&lang=EN": "c87e94986c2e71b4c2ab62a3bfacf30f9bc7e1bd28bafeb1a7ac24346ac77654"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "1.90-1"
  },
  "scangearmp-mx520series-x86_64": {

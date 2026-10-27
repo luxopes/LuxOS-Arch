@@ -255,7 +255,7 @@ build_drivers() {
     # PKGBUILD s vlastnim CC (gcc -m32) dostane aspon CFLAGS.
     cat >/home/builder/.makepkg.conf <<'EOF'
 CFLAGS+=" -std=gnu17 -Wno-error=implicit-function-declaration -Wno-error=implicit-int -Wno-error=incompatible-pointer-types -Wno-error=int-conversion"
-export CC="gcc -std=gnu17 -fpermissive"
+export CC="gcc -fpermissive"
 EOF
     local base commit dir n=0 failed=() rest progress f line
     rm -f "$BUILD"/drvmiss-*
@@ -336,6 +336,9 @@ EOF
                 source ./PKGBUILD >/dev/null 2>&1
                 for d in "${depends[@]}" "${makedepends[@]}" "${depends_x86_64[@]}" "${makedepends_x86_64[@]}"; do
                     echo "${d%%[<>=]*}"; done') >"$dir/.deps"
+            # ovladace vedle sebe casto nejdou (stejne soubory bez conflicts=) - drive nainstalovane
+            # ovladace (cizi baliky, ne z Archu) pryc, kazdy balik dostane jen sve zavislosti
+            pacman -Qqm | xargs -r pacman -Rdd --noconfirm &>/dev/null || true
             while read -r nm; do
                 [[ -n $nm ]] || continue
                 pacman -T "$nm" &>/dev/null && continue
