@@ -1,37 +1,68 @@
 # Maintainer: LuxOS Team
-# LuxAI - AI asistent pro LuxOS (chat a agent, ktery umi pracovat s pocitacem; Python + GTK 3)
-# Zdrojovy archiv vytvori make-source.sh z pracovni kopie ~/LuxAI (aplikace nema verejny repozitar).
+# LuxAI - AI asistent pro LuxOS (chat a agent, ktery umi pracovat s pocitacem), nativni program v LSL + GTK 3.
+# Od 2.0.0 nahrazuje Python verzi (1.0.0): stejne nazvy, cesty pomocniku spravce, polkit politika,
+# nastaveni, ucet a historie (~/.config/luxai, ~/.local/share/luxai) beze zmeny.
+# Zdrojovy archiv vytvori make-source.sh z pracovni kopie ~/Projects/LuxAI-lsl-finish (aplikace nema
+# verejny repozitar); preklada se tady prekladacem LSL jako programy v luxos-desktop.
 
 pkgname=luxai
-pkgver=1.0.0
-pkgrel=14
+pkgver=2.0.0
+pkgrel=1
 pkgdesc="LuxAI - AI assistant that can work with your computer (chat and agent mode)"
-arch=(any)
+arch=(x86_64)
 url="https://lux-ai.cz"
 license=(custom)
-depends=(python python-gobject gtk3 xdotool wmctrl polkit luxos-account luxos-i18n luxos-docs)
+# knihovny podle readelf -d (gtk3 -> gdk-pixbuf2, glib2; curl), programy volane za behu:
+# bash (prikazy agenta), setsid z util-linux (spousteni aplikaci), mv z coreutils, pkexec z polkitu
+depends=(gtk3 glib2 gdk-pixbuf2 curl bash coreutils util-linux ca-certificates
+         xdotool wmctrl polkit luxos-account luxos-i18n luxos-docs)
+# lsl >= 0.10.6: prekladac (balik z [luxos-apps], packages/apps/lsl), jako u luxos-desktop
+makedepends=('lsl>=0.10.6')
 optdepends=('libnotify: desktop notifications from the agent'
             'xdg-utils: open links and files'
             'xclip: copied text stays in the clipboard after LuxAI closes; clipboard fallback'
-            'grim: screenshots on Wayland')
+            'grim: screenshots on Wayland'
+            'luxos-maps: maps, routes and public transport timetables (map tools)')
+# !strip: programy v LSL po strip nejdou spustit (viz luxos-desktop)
+options=(!strip !debug)
 install=luxai.install
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('0c41655e4dabf5f6664f05fe42a2399369cf0220486cce9b7dbf607e0532bd20')
+sha256sums=('80afd6d5cb4f9ad7cf6ab098185d3e247973cd6ec5a4690b79ee4d224ffe3ec4')
+
+build() {
+    cd "$pkgname-$pkgver"
+    tools/build-lsl.sh app
+    tools/build-lsl.sh helpers
+}
+
+check() {
+    cd "$pkgname-$pkgver"
+    # kratka kontrola bez displeje a bez uctu: protokol vzdalene relace (LuxOS Companion)
+    local home
+    home=$(mktemp -d)
+    local first
+    first=$(printf '' | env -i PATH=/usr/bin:/bin HOME="$home" XDG_CONFIG_HOME="$home/c" \
+        XDG_DATA_HOME="$home/d" XDG_CACHE_HOME="$home/k" LANG=C.UTF-8 \
+        build/luxai --remote-session 2>/dev/null | head -n1)
+    rm -rf -- "$home"
+    [[ $first == '{"type":"ready","protocol":1}' ]]
+}
 
 package() {
     cd "$pkgname-$pkgver"
-    local lib="$pkgdir/usr/lib/luxai"
-    # Aplikace hleda i18n/ a data/ relativne k balicku luxai/, proto vse vedle sebe v /usr/lib/luxai
-    install -dm755 "$lib"
-    cp -r --no-preserve=ownership luxai i18n data "$lib/"
-    chmod -R u=rwX,go=rX "$lib"
-    install -dm755 "$pkgdir/usr/bin"
-    cat >"$pkgdir/usr/bin/luxai" <<'SH'
-#!/bin/sh
-# Spoustec LuxAI (balicek luxai)
-exec python3 /usr/lib/luxai/luxai/__main__.py "$@"
-SH
-    chmod 755 "$pkgdir/usr/bin/luxai"
+    install -Dm755 build/luxai "$pkgdir/usr/bin/luxai"
+    # Rezim spravce: pomocnik spousteny pres pkexec (luxai-root vzdy heslo, luxai-root-auto bez hesla jen
+    # s pravidlem 49-luxai-root-<uzivatel>.rules, ktere zapina/vypina luxai-root-setup). Kopie, ne odkaz:
+    # polkit rozlisuje akce podle cesty programu. Cesty jsou stejne jako v Python verzi.
+    install -Dm755 build/luxai-root "$pkgdir/usr/lib/luxai/luxai-root"
+    install -Dm755 build/luxai-root-auto "$pkgdir/usr/lib/luxai/luxai-root-auto"
+    install -Dm755 build/luxai-root-setup "$pkgdir/usr/lib/luxai/luxai-root-setup"
+    install -Dm644 data/root/org.luxai.root.policy "$pkgdir/usr/share/polkit-1/actions/org.luxai.root.policy"
+    # data aplikace (i18n/, data/) hleda program v ../share/luxai vedle /usr/bin
+    install -dm755 "$pkgdir/usr/share/luxai"
+    cp -r --no-preserve=ownership data i18n "$pkgdir/usr/share/luxai/"
+    rm -rf "$pkgdir/usr/share/luxai/data/root"
+    chmod -R u=rwX,go=rX "$pkgdir/usr/share/luxai"
     install -Dm644 data/luxai.desktop "$pkgdir/usr/share/applications/luxai.desktop"
     install -Dm644 data/luxai.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/luxai.png"
     local s
@@ -39,12 +70,7 @@ SH
         install -Dm644 "data/icons/luxai-$s.png" "$pkgdir/usr/share/icons/hicolor/${s}x$s/apps/luxai.png"
     done
     install -Dm644 README.md "$pkgdir/usr/share/doc/luxai/README.md"
-    # Rezim spravce: pomocnik spousteny pres pkexec (luxai-root vzdy heslo, luxai-root-auto bez hesla jen
-    # s pravidlem 49-luxai-root-<uzivatel>.rules, ktere zapina/vypina luxai-root-setup). Kopie, ne odkaz:
-    # polkit rozlisuje akce podle cesty programu.
-    install -Dm755 data/root/luxai-root "$lib/luxai-root"
-    install -Dm755 data/root/luxai-root "$lib/luxai-root-auto"
-    install -Dm755 data/root/luxai-root-setup "$lib/luxai-root-setup"
-    install -Dm644 data/root/org.luxai.root.policy "$pkgdir/usr/share/polkit-1/actions/org.luxai.root.policy"
-    rm -rf "$lib/data/root"
+    install -Dm644 -t "$pkgdir/usr/share/doc/luxai" docs/LSL-MIGRATION.md docs/LSL-ISSUES.md \
+        docs/REMOTE-SESSION.md docs/lsl-verification.json
+    install -Dm644 lsl/LSL-LICENSE.txt "$pkgdir/usr/share/licenses/luxai/LSL-LICENSE.txt"
 }
