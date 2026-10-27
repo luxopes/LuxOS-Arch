@@ -3930,3 +3930,4 @@ Maps uses the GPS of your phone when it is connected with LuxOS Companion and sh
 The package lists are damaged or do not match their signatures. Refresh them first (lux update), then try again.	Les listes de paquets sont endommagées ou ne correspondent pas à leurs signatures. Actualisez-les d'abord (lux update), puis réessayez.
 Updates, LuxAI and the correct time use the internet.	Les mises à jour, LuxAI et l'heure exacte utilisent Internet.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Les mises à jour, LuxAI et l'heure exacte utilisent Internet. Choisissez un réseau Wi-Fi ou branchez un câble réseau.
+remove: also delete changed config files (no .luxsave)	remove : supprimer aussi les fichiers de configuration modifiés (pas de .luxsave)

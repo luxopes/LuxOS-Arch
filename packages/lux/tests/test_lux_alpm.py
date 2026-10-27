@@ -684,8 +684,12 @@ class Transactions(unittest.TestCase):
         rc, out, h = run(["-y", "remove", "htop"])
         self.assertEqual(rc, 0, out)
         self.assertIsNone(h.local.get_pkg("htop"))
-        self.assertEqual(h.transactions[-1].flags, {"recurse": True, "nosave": True})
+        # zmenene konfiguracni soubory zustanou jako *.luxsave (bez nosave, jako pacman -Rs)
+        self.assertEqual(h.transactions[-1].flags, {"recurse": True})
         self.assertIn("Removed htop 3.3.0-1 in", out)
+        rc, out, h = run(["-y", "remove", "--nosave", "--", "htop"])
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(h.transactions[-1].flags, {"recurse": True, "nosave": True})
         # HoldPkg: s -y se jako u pacmanu --noconfirm neodebere
         rc, out, h = run(["-y", "remove", "glibc"])
         self.assertEqual(rc, 1)

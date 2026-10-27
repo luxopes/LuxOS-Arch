@@ -1629,7 +1629,10 @@ def cmd_remove(lux, args):
     if missing:
         lux.ui.compat("error: target not found: " + " ".join(missing))
         raise LuxError("notinstalled", _("Package '%s' is not installed") % missing[0])
-    flags = {"recurse": True, "nosave": True}
+    # Bez --nosave zustanou zmenene konfiguracni soubory jako *.luxsave (jako pacman -Rs)
+    flags = {"recurse": True}
+    if args.nosave:
+        flags["nosave"] = True
     if args.cascade:
         flags["cascade"] = True
     lux.transaction("remove", remove=pkgs, flags=flags, explicit=names)
@@ -2164,6 +2167,7 @@ def build_parser():
     s.set_defaults(fn=cmd_reinstall)
     s = sub.add_parser("remove")
     s.add_argument("--cascade", action="store_true")
+    s.add_argument("--nosave", action="store_true")
     s.add_argument("targets", nargs="+")
     s.set_defaults(fn=cmd_remove)
     s = sub.add_parser("autoremove")
