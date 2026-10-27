@@ -625,6 +625,17 @@ OEM=1
 OEM_USER=$user
 LUKS_NAME=$luks
 C
+    # Balik instalatoru je v OEM jen kvuli Pruvodci nastavenim (luxos-oem): spoustec "Instalovat LuxOS"
+    # na nainstalovanem systemu skryt. /usr/local ma v XDG_DATA_DIRS prednost pred /usr/share; soubor
+    # nepatri zadnemu baliku, aktualizace instalatoru ho neprepise.
+    install -Dm644 /dev/stdin "$TARGET/usr/local/share/applications/luxos-install.desktop" <<C
+[Desktop Entry]
+Type=Application
+Name=Install LuxOS
+Exec=luxos-install-gui
+NoDisplay=true
+Hidden=true
+C
     if ((ENCRYPT)); then
         install -d -m700 "$TARGET/etc/cryptsetup-keys.d"
         (umask 077; printf '%s' "$LUKS_PASS" >"$TARGET/etc/cryptsetup-keys.d/$OEM_LUKS_NAME.key")
