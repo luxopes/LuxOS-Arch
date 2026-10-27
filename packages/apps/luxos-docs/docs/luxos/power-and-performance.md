@@ -152,6 +152,49 @@ Compressed swap in RAM, half of RAM up to 8 GiB.
 
 udev rule `60-luxos-ioschedulers.rules`: NVMe → `none`, SSD/eMMC → `mq-deadline`, rotating disks → `bfq`.
 
+## CPU scheduler (sched_ext, scx_lavd)
+
+Since LuxOS 1.0 the CPU scheduler on desktops is **scx_lavd** (package `scx-scheds`), a
+latency-aware [sched_ext](https://github.com/sched-ext/scx) BPF scheduler: windows, input, audio and
+games get the CPU first when the machine is busy. Its default *autopilot* mode picks powersave,
+balanced or performance by load.
+
+- `/etc/luxos/scheduler.conf` (package `luxos-tweaks`): `SCHEDULER=lavd` (default) or
+  `SCHEDULER=default` (the kernel's own EEVDF scheduler); `ARGS=` adds options for scx_lavd, e.g.
+  `ARGS=--autopower` to follow the power profile (Battery Saver → powersave) instead of the load.
+- Switch: `luxos-care scheduler` shows the setting and what runs now; `sudo luxos-care scheduler
+  default` or `sudo luxos-care scheduler lavd` writes the file and switches immediately.
+- In [system.lsl](system-config.md) the same setting is the key
+  `kernel.scheduler = "lavd" | "default"` (written to `SCHEDULER=` in `/etc/luxos/scheduler.conf`).
+- `luxos-scheduler.service` (`/usr/lib/luxos/luxos-scheduler`) starts it **after** the login screen
+  (`After=graphical.target`), so loading the BPF program never delays booting and nothing waits for it.
+- Safe fallback: without sched_ext in the kernel the unit is skipped; if scx_lavd is missing or the
+  setting is `default` it exits quietly. If the scheduler crashes or the kernel ejects it (watchdog),
+  the kernel switches back to EEVDF by itself; systemd retries 3× within 10 minutes and then leaves the
+  kernel scheduler running. An enabled `scx_loader.service` (package `scx-tools`) takes precedence.
+- Overhead: one mostly idle process (≈ 10 MB binary, typically 10–20 MB RSS) and BPF maps of a few MB;
+  the scheduling decisions run in the kernel. Disk: `scx-scheds` installs all upstream schedulers
+  (≈ 160 MB, 18 MB download).
+- Check: `systemctl status luxos-scheduler`, `cat /sys/kernel/sched_ext/state` (`enabled`),
+  `cat /sys/kernel/sched_ext/root/ops` (`lavd_…`).
+
+## Boot speed
+
+- Boot menu hidden without waiting: systemd-boot `timeout 0`, GRUB (BIOS) `GRUB_TIMEOUT=0` with
+  `GRUB_TIMEOUT_STYLE=hidden`. To reach the menu (previous kernel, snapshots, LuxOS Recovery) hold
+  **Space** (systemd-boot) or hold **Shift** / press **Esc** repeatedly (GRUB) while the computer
+  starts. With other systems on the EFI partition the menu stays visible for 3 s. Installs from before
+  1.0 with GRUB are switched from 1 s to 0 s once by LuxOS Care, only if they still have the LuxOS
+  default (a changed `GRUB_TIMEOUT` or a visible menu is kept).
+- A timeout set in the firmware variable (`bootctl set-timeout`, or `+`/`-` pressed in the
+  systemd-boot menu) overrides `loader.conf`; `bootctl status` shows it, `sudo bootctl set-timeout ""`
+  removes it.
+- Boot splash: the progress bar finishes in `luxos-plymouth-finish.service` right after
+  `basic.target`, in parallel with the network start that LightDM waits for anyway; LightDM then takes
+  the splash picture over without a black gap (`plymouth quit --retain-splash`, `X -background none`).
+- Kernel: `HZ=1000` and full preemption (`PREEMPT_DYNAMIC`, default `full`; `preempt=voluntary` on the
+  kernel command line switches a server to throughput).
+
 ## journald and shutdown
 
 - Journal limited to `SystemMaxUse=200M`, `RuntimeMaxUse=64M`.
@@ -163,7 +206,8 @@ udev rule `60-luxos-ioschedulers.rules`: NVMe → `none`, SSD/eMMC → `mq-deadl
 - The kernel is **linux-luxos** (since LuxOS 0.9.7): vanilla stable Linux from kernel.org (signature
   checked), Arch Linux's configuration as the base (every driver as a module – any hardware works
   out of the box) plus LuxOS settings (`recipe/config-luxos`: BBR TCP congestion control, `NR_CPUS=512`
-  instead of 8192, transparent huge pages only on request). No out-of-tree patches.
+  instead of 8192, transparent huge pages only on request, pinned `HZ=1000`, full preemption and
+  sched_ext). No out-of-tree patches.
 - Built and released automatically by GitHub Actions (<https://github.com/luxopes/luxos-kernel>): every
   6 hours it checks kernel.org, builds the chosen version, boots it in QEMU and loads ~50 typical
   drivers (storage, USB, graphics, Wi-Fi, Bluetooth, sound) before publishing. Version policy: newest

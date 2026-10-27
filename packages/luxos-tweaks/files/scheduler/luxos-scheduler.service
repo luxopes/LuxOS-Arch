@@ -1,0 +1,27 @@
+[Unit]
+Description=LuxOS CPU scheduler (sched_ext scx_lavd)
+Documentation=https://github.com/sched-ext/scx
+# Az po startu prihlasovaci obrazovky: nacteni programu BPF nebere procesor startu a na planovac
+# nic neceka. Bez sched_ext v jadre se jednotka preskoci; zapnuty scx_loader (scx-tools) ma prednost.
+After=graphical.target
+ConditionPathExists=/sys/kernel/sched_ext
+ConditionPathExists=!/etc/systemd/system/multi-user.target.wants/scx_loader.service
+Conflicts=scx_loader.service
+# Opakovany pad (napr. jadro planovac vyradi) = po 3 pokusech za 10 min zustava planovac jadra
+StartLimitIntervalSec=10min
+StartLimitBurst=3
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/luxos/luxos-scheduler
+Restart=on-failure
+RestartSec=5
+# scx_* se pri SIGINT ukonci cisty (jadro prejde zpet na EEVDF)
+KillSignal=SIGINT
+TimeoutStopSec=10
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=graphical.target

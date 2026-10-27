@@ -3931,3 +3931,9 @@ The package lists are damaged or do not match their signatures. Refresh them fir
 Updates, LuxAI and the correct time use the internet.	Aktualizácie, LuxAI a presný čas potrebujú internet.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Aktualizácie, LuxAI a presný čas potrebujú internet. Vyberte sieť Wi-Fi alebo pripojte sieťový kábel.
 remove: also delete changed config files (no .luxsave)	remove: zmazať aj zmenené konfiguračné súbory (bez .luxsave)
+CPU scheduler: %s	Plánovač procesov: %s
+default (kernel)	predvolený (jadro)
+This kernel has no sched_ext support, the kernel scheduler is used.	Toto jadro nepodporuje sched_ext, používa sa plánovač jadra.
+Running now: %s	Práve beží: %s
+Not running now, the kernel scheduler is used.	Teraz nebeží, používa sa plánovač jadra.
+Unknown scheduler: %s (use lavd or default)	Neznámy plánovač: %s (použite lavd alebo default)

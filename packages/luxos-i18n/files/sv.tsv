@@ -3931,3 +3931,9 @@ The package lists are damaged or do not match their signatures. Refresh them fir
 Updates, LuxAI and the correct time use the internet.	Uppdateringar, LuxAI och rätt tid använder internet.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Uppdateringar, LuxAI och rätt tid använder internet. Välj ett wifi-nätverk eller anslut en nätverkskabel.
 remove: also delete changed config files (no .luxsave)	remove: ta även bort ändrade konfigurationsfiler (ingen .luxsave)
+CPU scheduler: %s	CPU-schemaläggare: %s
+default (kernel)	standard (kärnan)
+This kernel has no sched_ext support, the kernel scheduler is used.	Den här kärnan saknar stöd för sched_ext, kärnans schemaläggare används.
+Running now: %s	Körs nu: %s
+Not running now, the kernel scheduler is used.	Körs inte nu, kärnans schemaläggare används.
+Unknown scheduler: %s (use lavd or default)	Okänd schemaläggare: %s (använd lavd eller default)

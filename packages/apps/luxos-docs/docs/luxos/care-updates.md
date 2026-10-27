@@ -81,6 +81,8 @@ group `wheel` start exactly these units (and `luxos-care-apply@<id>-<n>.service`
 luxos-care [status] [--json]   status (anyone)
 luxos-care history [N]         audit log (JSON lines, default 30)
 luxos-care mode [carefree|classic]
+luxos-care scheduler [lavd|default] [--json]
+                               CPU scheduler: show (anyone) or switch (root), see power-and-performance.md
 luxos-care update [--manual]   (root) what the update service runs
 luxos-care check [--updates]   (root) problem check (+ update check)
 ```
@@ -93,6 +95,8 @@ Useful one-liners: `systemctl start luxos-care-update-now.service` (needs wheel)
 | Path | Content |
 |---|---|
 | `/etc/luxos/care.conf` | `MODE=`, `PROTECT=`, `VERIFY=` (see `system-protection.md`) |
+| `/etc/luxos/scheduler.conf` | `SCHEDULER=lavd\|default`, `ARGS=` (CPU scheduler, package luxos-tweaks; system.lsl `kernel.scheduler`) |
+| `/var/lib/luxos-care/boot-menu-fast` | one-time switch of GRUB `GRUB_TIMEOUT` 1 → 0 done (LuxOS 1.0) |
 | `/var/lib/luxos-care/state.json` | last update/check, pending updates, problems, kept kernel |
 | `/var/lib/luxos-care/events.json` | recent events for notifications |
 | `/var/lib/luxos-care/history.jsonl` | audit log of updates, repairs and AI decisions |
@@ -143,8 +147,9 @@ sets are removed. Without space for the kernel the snapshot is kept but has no b
 **Boot menu.** Every snapshot with a kernel set gets an entry **"LuxOS (before update of
 YYYY-MM-DD HH:MM)"** (a snapshot taken by `lux system apply` is "before system change of …",
 see [system-config.md](system-config.md); systemd-boot `loader/entries/snapshot-<entry>-<name>.conf`, GRUB
-`/boot/grub/luxos-snapshots.cfg` loaded by `/etc/grub.d/12_luxos_snapshots`). The menu is hidden:
-hold **Space** (systemd-boot) or press **Esc** (GRUB) while the computer starts. Such an entry starts
+`/boot/grub/luxos-snapshots.cfg` loaded by `/etc/grub.d/12_luxos_snapshots`). The menu is hidden
+(no waiting): hold **Space** (systemd-boot) or hold **Shift** / press **Esc** repeatedly (GRUB) while
+the computer starts. Such an entry starts
 the snapshot read-only with a temporary writable layer in memory (`systemd.volatile=overlay`,
 initramfs hook `luxos-snapshot` added by `/etc/mkinitcpio.conf.d/zz-luxos-snapshot.conf`) – changes
 disappear after a restart, `/home` is the normal one. In this mode package changes are refused
@@ -266,3 +271,16 @@ entries (systemd-boot `options` lines of `luxos*.conf`, or `GRUB_CMDLINE_LINUX_D
 `grub-mkconfig`). It applies from the next boot; the change is logged in the Care history
 (`tsc_fix`). Nothing changes if the parameter `tsc=` is already set or the alarm did not happen.
 To undo it, remove `tsc=nowatchdog` from the entry and add `tsc=unstable` there instead (Care then leaves it alone).
+
+## Hidden boot menu without waiting (LuxOS 1.0)
+
+New installs boot without a menu delay (systemd-boot `timeout 0`, GRUB `GRUB_TIMEOUT=0` +
+`GRUB_TIMEOUT_STYLE=hidden`). Older BIOS (GRUB) installs had a hidden 1 s timeout: after the first
+successful boot with LuxOS 1.0, `luxos-care boot-check` sets `GRUB_TIMEOUT=0` and runs
+`grub-mkconfig` once – only if `/etc/default/grub` still has the LuxOS defaults
+(`GRUB_DISTRIBUTOR="LuxOS"`, `GRUB_TIMEOUT=1`, `GRUB_TIMEOUT_STYLE=hidden`); a value you changed is
+kept. If `grub-mkconfig` fails the old file is put back and it is tried again at the next boot. Done is
+recorded in `/var/lib/luxos-care/boot-menu-fast` (history: `boot_menu`). systemd-boot installs need no
+change; the 3 s menu with other systems on the EFI partition stays. The previous kernel, snapshots and
+LuxOS Recovery stay in the menu: hold **Space** (systemd-boot) or hold **Shift** / press **Esc**
+(GRUB) while the computer starts.

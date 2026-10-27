@@ -3932,3 +3932,9 @@ The package lists are damaged or do not match their signatures. Refresh them fir
 Updates, LuxAI and the correct time use the internet.	Оновлення, LuxAI і точний час використовують інтернет.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Оновлення, LuxAI і точний час використовують інтернет. Виберіть мережу Wi-Fi або під'єднайте мережевий кабель.
 remove: also delete changed config files (no .luxsave)	remove: також видалити змінені файли налаштувань (без .luxsave)
+CPU scheduler: %s	Планувальник процесора: %s
+default (kernel)	типовий (ядро)
+This kernel has no sched_ext support, the kernel scheduler is used.	Це ядро не підтримує sched_ext, використовується планувальник ядра.
+Running now: %s	Зараз працює: %s
+Not running now, the kernel scheduler is used.	Зараз не працює, використовується планувальник ядра.
+Unknown scheduler: %s (use lavd or default)	Невідомий планувальник: %s (використайте lavd або default)

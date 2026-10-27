@@ -3931,3 +3931,9 @@ The package lists are damaged or do not match their signatures. Refresh them fir
 Updates, LuxAI and the correct time use the internet.	A frissítések, a LuxAI és a pontos idő internetet használ.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	A frissítések, a LuxAI és a pontos idő internetet használ. Válasszon Wi-Fi-hálózatot, vagy csatlakoztasson hálózati kábelt.
 remove: also delete changed config files (no .luxsave)	remove: a módosított konfigurációs fájlokat is törli (nincs .luxsave)
+CPU scheduler: %s	CPU-ütemező: %s
+default (kernel)	alapértelmezett (kernel)
+This kernel has no sched_ext support, the kernel scheduler is used.	Ez a kernel nem támogatja a sched_ext-et, a kernel ütemezője fut.
+Running now: %s	Most fut: %s
+Not running now, the kernel scheduler is used.	Most nem fut, a kernel ütemezője fut.
+Unknown scheduler: %s (use lavd or default)	Ismeretlen ütemező: %s (lavd vagy default)
