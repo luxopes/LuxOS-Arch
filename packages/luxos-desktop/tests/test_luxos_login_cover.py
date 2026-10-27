@@ -4,6 +4,8 @@ Spusteni: env -u DISPLAY xvfb-run -a python3 -m unittest packages/luxos-desktop/
 
 Pod Xvfb: "posledni snimek prihlaseni" = bile korenove okno, plocha = cerne; plochu a listu napodobi dve okna typu
 DESKTOP a DOCK v _NET_CLIENT_LIST (bez spravce oken a kompozitoru). Nikdy ne na skutecne obrazovce.
+Server bez "-background none" (QEMU bochs + llvmpipe) = cerne korenove okno uz pri startu: pak snimek ze
+souboru greeteru (login-frame.raw), jinak rozmazana tapeta (login-frame-small.raw).
 """
 import ctypes
 import ctypes.util
@@ -81,6 +83,8 @@ class LoginCover(unittest.TestCase):
 
     def setUp(self):
         self.home = tempfile.mkdtemp(dir=self.tmp)
+        self.frames = os.path.join(self.home, "lightdm-data")
+        os.makedirs(self.frames)
         self.windows = []
         subprocess.run(["xprop", "-root", "-remove", "_NET_CLIENT_LIST"], check=False, stderr=subprocess.DEVNULL)
         self.X = X11()
@@ -91,8 +95,25 @@ class LoginCover(unittest.TestCase):
             w.destroy()
         pump(0.05)
 
-    def start(self):
-        env = dict(os.environ, HOME=self.home, XDG_CONFIG_HOME=os.path.join(self.home, ".config"))
+    def frame(self, name, w, h, bgrx, age=0):
+        """Soubor snimku greeteru: hlavicka + w*h pixelu BGRx."""
+        path = os.path.join(self.frames, name)
+        with open(path, "wb") as f:
+            f.write(b"LUXFRAME1 %d %d\n" % (w, h) + bytes(bgrx) * (w * h))
+        if age:
+            t = time.time() - age
+            os.utime(path, (t, t))
+        return path
+
+    def screen_size(self):
+        return Gdk.Screen.get_default().get_width(), Gdk.Screen.get_default().get_height()
+
+    def start(self, lost=False):
+        """lost=True: server snimek neudrzel (korenove okno uz je cerne)."""
+        if lost:
+            self.X.set_root(self.X.black)
+        env = dict(os.environ, HOME=self.home, XDG_CONFIG_HOME=os.path.join(self.home, ".config"),
+                   LUXOS_LOGIN_FRAME_DIR=self.frames)
         p = subprocess.Popen([self.bin, "--login"], env=env)
         t0 = time.monotonic()
         # okno se zobrazi - pak se "plocha" pod nim prekresli na modro
@@ -152,6 +173,51 @@ class LoginCover(unittest.TestCase):
         self.assertLess(time.monotonic() - t0, 6.0)
         pump(0.1)
         self.assertEqual(self.X.pixel(), self.X.black)
+
+    def finish(self, p):
+        self.desktop_ready()
+        p.wait(5)
+        pump(0.1)
+        self.assertEqual(self.X.pixel(), self.X.black)
+
+    def test_lost_frame_restored_from_greeter_file(self):
+        w, h = self.screen_size()
+        path = self.frame("login-frame.raw", w, h, (0x30, 0x20, 0x10, 0xff))     # B G R x
+        p, _t0 = self.start(lost=True)
+        self.assertEqual(self.X.pixel(), 0x102030)            # snimek greeteru, ne cerna
+        self.assertEqual(self.X.pixel(w - 3, h - 3), 0x102030)
+        self.assertFalse(os.path.exists(path))                # jednorazovy soubor smazan
+        self.finish(p)
+
+    def test_lost_frame_falls_back_to_blurred_wallpaper(self):
+        self.frame("login-frame-small.raw", 4, 3, (0x00, 0x80, 0x00, 0xff))
+        p, _t0 = self.start(lost=True)
+        self.assertEqual(self.X.pixel(), 0x008000)            # zvetsena mala tapeta
+        self.assertTrue(os.path.exists(os.path.join(self.frames, "login-frame-small.raw")))
+        self.finish(p)
+
+    def test_stale_or_wrong_frame_not_used(self):
+        w, h = self.screen_size()
+        stale = self.frame("login-frame.raw", w, h, (0xff, 0, 0, 0xff), age=600)   # z drivejsiho prihlaseni
+        self.frame("login-frame-small.raw", 2, 2, (0, 0, 0xff, 0xff))
+        p, _t0 = self.start(lost=True)
+        self.assertEqual(self.X.pixel(), 0xff0000)            # mala tapeta (cervena), ne stary snimek
+        self.assertFalse(os.path.exists(stale))
+        self.finish(p)
+        # poskozeny soubor: zadna nahrada, zustane puvodni chovani
+        with open(os.path.join(self.frames, "login-frame-small.raw"), "wb") as f:
+            f.write(b"LUXFRAME1 100 100\n" + b"\0" * 10)
+        p, _t0 = self.start(lost=True)
+        self.assertEqual(self.X.pixel(), self.X.black)
+        self.finish(p)
+
+    def test_kept_server_frame_wins_and_file_removed(self):
+        w, h = self.screen_size()
+        path = self.frame("login-frame.raw", w, h, (0x30, 0x20, 0x10, 0xff))
+        p, _t0 = self.start()
+        self.assertEqual(self.X.pixel(), self.X.white)        # server snimek udrzel - presny obraz
+        self.assertFalse(os.path.exists(path))
+        self.finish(p)
 
     def test_desktop_already_running(self):
         self.desktop_ready()

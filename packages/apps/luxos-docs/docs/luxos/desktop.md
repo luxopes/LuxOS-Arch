@@ -226,7 +226,10 @@ a blue-violet circle. Change it in **Profile Picture** (see [settings-apps.md](s
 
 **After login** the greeter hides the clock and the form and leaves only the (slightly dimmed)
 wallpaper as the last frame; the session starts at most one frame later. The X server keeps that
-frame (`X -background none`), and `luxos-session-cover --login` (started by
+frame (`X -background none`); drivers that cannot (QEMU with bochs + llvmpipe, no glamor) paint it
+black, so the greeter also saves the frame to the LightDM data folder of the user
+(`/var/lib/lightdm-data/<user>/login-frame.raw`, removed after use, plus a small blurred wallpaper
+as the last resort). `luxos-session-cover --login` (started by
 `/etc/X11/xinit/xinitrc.d/60-luxos-login-cover.sh` before the session) covers the desktop while it is
 being put together. As soon as the desktop (xfdesktop) and the top bar or Dock are mapped, it waits
 200 ms for them to draw and then dissolves in about 0.3 s through the xfwm4 compositor, so the

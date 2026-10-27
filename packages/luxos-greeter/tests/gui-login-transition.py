@@ -5,7 +5,8 @@
 
 Overuje: po spravnem hesle zmizi formular, hodiny i stavova lista a posledni snimek je jen tapeta
 (ten pak drzi luxos-session-cover --login, dokud se neposklada plocha); relace se spusti nejvys
-o jeden snimek pozdeji (< 150 ms). Spatne heslo nic neskryje.
+o jeden snimek pozdeji (< 150 ms). Spatne heslo nic neskryje. Snimek se ulozi i do souboru
+(login-frame.raw + mala rozmazana login-frame-small.raw) pro server, ktery ho po skonceni greeteru neudrzi.
 """
 import argparse
 import os
@@ -23,8 +24,10 @@ SHOTS = sys.argv[sys.argv.index("--shots") + 1] if "--shots" in sys.argv else ""
 WALL = os.path.normpath(os.path.join(HERE, "..", "..", "luxos-branding", "files", "wallpapers", "luxos-flow-light.jpg"))
 with open(CONF, "w") as f:
     f.write("[greeter]\n")
+FRAMES = os.path.join(TMP, "lightdm-data")
+os.makedirs(FRAMES)
 os.environ.update({"LANG": "en_US.UTF-8", "LUXOS_GREETER_CONF": CONF, "XDG_CACHE_HOME": TMP,
-                   "LUXOS_GREETER_DEMO_BACKGROUND": WALL})
+                   "LUXOS_GREETER_DEMO_BACKGROUND": WALL, "LUXOS_GREETER_DEMO_FRAME_DIR": FRAMES})
 sys.dont_write_bytecode = True
 g = SourceFileLoader("luxos_greeter", os.path.join(HERE, "..", "files", "luxos-greeter")).load_module()
 from gi.repository import Gdk, Gtk  # noqa: E402
@@ -80,6 +83,7 @@ win.entry.set_text("wrong")
 win.submit()
 check("wrong password: form stays", wait(lambda: win.error_shown, 4) and win.login.get_visible() and not win.leaving)
 check("prompt again", wait(lambda: win.awaiting, 4))
+check("wrong password wrote no frame", os.listdir(FRAMES) == [])
 pump(0.5)
 shot(win, "greeter-login")
 win.entry.set_text("luxos")
@@ -94,6 +98,28 @@ check("leaving: wallpaper only", win.leaving and not win.login.get_visible() and
 pump(0.1)
 shot(win, "greeter-leaving")
 
+
+def read_frame(name):
+    with open(os.path.join(FRAMES, name), "rb") as f:
+        head = f.readline().split()
+        return int(head[1]), int(head[2]), f.read(), head[0]
+
+
+w, h, data, magic = read_frame("login-frame.raw")
+check("frame file: whole screen", (magic, w, h, len(data)) == (b"LUXFRAME1", win.W, win.H, win.W * win.H * 4),
+      (magic, w, h, len(data)))
+check("frame file readable by the session user", os.stat(os.path.join(FRAMES, "login-frame.raw")).st_mode & 0o044 == 0o044)
+gw = win.get_window()
+pb = Gdk.pixbuf_get_from_window(gw, win.W // 2, win.H // 2, 1, 1)
+px = pb.get_pixels()
+o = (win.H // 2 * win.W + win.W // 2) * 4
+check("frame file = last frame on screen", all(abs(px[c] - data[o + 2 - c]) <= 2 for c in range(3)),
+      (list(px[:3]), list(data[o:o + 3])))
+sw, sh, sdata, _m = read_frame("login-frame-small.raw")
+check("small blurred wallpaper", sh == 64 and len(sdata) == sw * sh * 4 and any(sdata), (sw, sh))
+check("no temp files left", sorted(os.listdir(FRAMES)) == ["login-frame-small.raw", "login-frame.raw"],
+      os.listdir(FRAMES))
+
 # relace nejde spustit: formular je zpet s hlaskou
 win2 = g.Greeter(argparse.Namespace(demo=True, users=1, sessions=1, lock=False))
 
@@ -103,6 +129,7 @@ def fail_start(key):
 
 
 win2.backend.start_session = fail_start
+os.environ["LUXOS_GREETER_DEMO_FRAME_DIR"] = os.path.join(TMP, "missing")   # bez slozky: prihlaseni jde dal
 pump(0.3)
 win2.set_active(True)
 wait(lambda: win2.awaiting)
