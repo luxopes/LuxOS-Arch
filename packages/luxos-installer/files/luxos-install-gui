@@ -3330,6 +3330,9 @@ class Installer(Gtk.Window):
         elif line == "@@DONE":
             self.done_flag = True
         else:
+            line = display_line(line)
+            if line is None:
+                return
             self.lines.append(line)
             if len(self.lines) > 20000:
                 del self.lines[:5000]
@@ -3490,6 +3493,38 @@ def open_url(url):
                          start_new_session=True)
     except OSError:
         pass
+
+
+# Podrobnosti instalace: vystup nastroju prevzatych z Archu (pacstrap, gpg klicenky) mluvi o pacmanu
+# a Archu. V okne LuxOS nazvy LuxOS; surovy zaznam (Ulozit zaznam, /var/log/luxos-install.log) zustava
+# beze zmen pro hledani chyb. Nazvy baliku (archlinux-keyring, xarchiver...) se nemeni.
+_DISPLAY_SKIP = (
+    re.compile(r"^gpg: "),                               # zakladani klicenky (generovani klicu, trustdb)
+    re.compile(r"^==> (Appending|Locally signing|Importing|Disabling|Updating trust)"),
+    re.compile(r"^\s+-> "),                              # podrobnosti pacman-key
+    re.compile(r"^Optional dependencies for "),          # seznamy volitelnych zavislosti
+    re.compile(r"^ {4,}\S.*: "),                        # volitelna zavislost: popis
+    re.compile(r"^ {4,}\S+ \[(installed|pending)\]$"),
+)
+_DISPLAY_SUB = (
+    (re.compile(r"/etc/pacman\.d\b"), "/etc/lux"),
+    (re.compile(r"/var/(cache|lib)/pacman\b"), r"/var/\1/lux"),
+    (re.compile(r"\barch-chroot\b"), "chroot"),
+    (re.compile(r"\bpacstrap\b"), "lux"),
+    (re.compile(r"\bpacman-key\b"), "lux-key"),
+    (re.compile(r"\bpacman\b", re.I), "lux"),
+    (re.compile(r"\bArch Linux\b"), "LuxOS"),
+)
+
+
+def display_line(line):
+    """Radek pro okno Podrobnosti: None = nezobrazovat."""
+    for rx in _DISPLAY_SKIP:
+        if rx.search(line):
+            return None
+    for rx, rep in _DISPLAY_SUB:
+        line = rx.sub(rep, line)
+    return line
 
 
 def logo_image(size):
