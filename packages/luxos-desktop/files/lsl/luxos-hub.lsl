@@ -11,6 +11,8 @@
 #   Internet          "!" v liste a upozorneni, kdyz je sit bez internetu (luxos-netcheck); sit
 #                     s portalem (hotel, letiste): okno pro prihlaseni (luxos-network-login)
 #   Bluetooth         agent pro parovani z telefonu a sluchatek (misto blueman-applet)
+#   Zvuk              nove pripojeny monitor (HDMI/DisplayPort), USB a Bluetooth -> vychozi vystup,
+#                     po odpojeni zpet (luxos_audio_hub + luxos_audio_switch.py)
 #   Svetly/tmavy      automaticky rezim podle vychodu a zapadu slunce
 #   Prehravani        pri hrajici hudbe/videu neuspava (ani zavreny vik), viz luxos_awake
 #   Ovladace          jednou za start upozorneni na chybejici ovladace (luxos-drivers)
@@ -40,6 +42,7 @@ load luxos_drivers_hub as drivers
 load luxos_safe_hub as safe
 load luxos_timechange as timechange
 load luxos_shot as shot
+load luxos_audio_hub as audio
 
 SIGINT = 2
 SIGUSR1 = 10
@@ -715,6 +718,15 @@ function main_hub():
             call drivers.subscribe(hub["session"])
         else:
             call log("drivers: " + String(last_error()))
+        end
+    end
+
+    # Zvuk: nove pripojeny monitor (HDMI/DisplayPort), USB a Bluetooth se stane vystupem, po odpojeni zpet
+    if glib.find_program_in_path("pactl") != "" and exists(audio.helper_path()):
+        try:
+            call audio.subscribe()
+        else:
+            call log("audio: " + String(last_error()))
         end
     end
 

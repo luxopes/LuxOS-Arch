@@ -1,0 +1,99 @@
+diff --git a/panel-plugin/scalemenuitem.h b/panel-plugin/scalemenuitem.h
+--- a/panel-plugin/scalemenuitem.h
++++ b/panel-plugin/scalemenuitem.h
+@@ -54,6 +54,9 @@
+ void         xfpa_scale_menu_item_set_base_icon_name    (XfpaScaleMenuItem *item,
+                                                          const gchar       *base_icon_name);
+ 
++void         xfpa_scale_menu_item_set_caption           (XfpaScaleMenuItem *item,
++                                                         const gchar       *caption);
++
+ G_END_DECLS
+ 
+ #endif /* _XFPA_SCALE_MENU_ITEM_H_ */
+diff --git a/panel-plugin/scalemenuitem.c b/panel-plugin/scalemenuitem.c
+--- a/panel-plugin/scalemenuitem.c
++++ b/panel-plugin/scalemenuitem.c
+@@ -199,6 +199,37 @@
+ 
+ 
+ 
++/* LuxOS: popisek nad posuvnikem (co ovlada: vystup / vstup a jaky zvukovy pristroj) */
++void
++xfpa_scale_menu_item_set_caption (XfpaScaleMenuItem *item,
++                                  const gchar       *caption)
++{
++  GtkWidget *column, *label;
++
++  g_return_if_fail (XFPA_IS_SCALE_MENU_ITEM (item));
++
++  if (caption == NULL || *caption == '\0')
++    return;
++
++  label = gtk_label_new (caption);
++  gtk_label_set_xalign (GTK_LABEL (label), 0.0);
++  gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
++  gtk_label_set_max_width_chars (GTK_LABEL (label), 32);
++  gtk_style_context_add_class (gtk_widget_get_style_context (label), "dim-label");
++  gtk_widget_set_name (label, "xfpa-caption");
++
++  /* posuvnik prestehovat do sloupce pod popisek (reference drzi polozka) */
++  column = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
++  gtk_container_remove (GTK_CONTAINER (item->hbox), item->scale);
++  gtk_box_pack_start (GTK_BOX (column), label, FALSE, FALSE, 0);
++  gtk_box_pack_start (GTK_BOX (column), item->scale, FALSE, FALSE, 0);
++  gtk_box_pack_start (GTK_BOX (item->hbox), column, TRUE, TRUE, 0);
++  gtk_box_reorder_child (GTK_BOX (item->hbox), column, 0);
++  gtk_widget_show_all (column);
++}
++
++
++
+ void
+ xfpa_scale_menu_item_set_base_icon_name (XfpaScaleMenuItem *item,
+                                          const gchar       *base_icon_name)
+diff --git a/panel-plugin/pulseaudio-menu.c b/panel-plugin/pulseaudio-menu.c
+--- a/panel-plugin/pulseaudio-menu.c
++++ b/panel-plugin/pulseaudio-menu.c
+@@ -568,6 +568,13 @@
+       /* output volume slider */
+       menu->output_scale = xfpa_scale_menu_item_new_with_range (0.0, volume_max, 1.0, -1.0);
+       xfpa_scale_menu_item_set_base_icon_name (XFPA_SCALE_MENU_ITEM (menu->output_scale), "audio-volume");
++      /* LuxOS: popisek "Vystup: <zarizeni>" - je jasne, ktery posuvnik je hlasitost a kam zvuk jde */
++      {
++        const gchar *desc = pulseaudio_volume_get_output_by_name (menu->volume, default_name, NULL);
++        gchar *caption = desc != NULL ? g_strdup_printf ("%s: %s", _("Output"), desc) : g_strdup (_("Output"));
++        xfpa_scale_menu_item_set_caption (XFPA_SCALE_MENU_ITEM (menu->output_scale), caption);
++        g_free (caption);
++      }
+ 
+       g_signal_connect_swapped (menu->output_scale, "value-changed", G_CALLBACK (pulseaudio_menu_output_range_value_changed), menu);
+       g_signal_connect_swapped (menu->output_scale, "toggled", G_CALLBACK (pulseaudio_menu_mute_output_item_toggled), menu);
+@@ -605,12 +612,27 @@
+ 
+   /* Input Devices */
+   devices = pulseaudio_volume_get_input_list (menu->volume);
++  /* LuxOS: bez mikrofonu je vychozim vstupem jen "Monitor" vystupu - jeho posuvnik nic slysitelne
++     nemeni (vypadal jako nefunkcni druhy posuvnik hlasitosti), proto se vstup vubec neukaze */
++  if (g_list_length (devices) == 1
++      && g_str_has_suffix (pulseaudio_volume_get_default_input (menu->volume) ?: "", ".monitor"))
++    {
++      g_list_free (devices);
++      devices = NULL;
++    }
+   if (g_list_length (devices) > 0)
+     {
+       const gchar *default_name = pulseaudio_volume_get_default_input (menu->volume);
+ 
+       /* input volume slider */
+       menu->input_scale = xfpa_scale_menu_item_new_with_range (0.0, volume_max, 1.0, pulseaudio_volume_get_base_volume_mic (menu->volume) * 100.0);
++      /* LuxOS: popisek "Vstup: <mikrofon>" (citlivost mikrofonu, ne hlasitost) */
++      {
++        const gchar *desc = pulseaudio_volume_get_input_by_name (menu->volume, default_name, NULL);
++        gchar *caption = desc != NULL ? g_strdup_printf ("%s: %s", _("Input"), desc) : g_strdup (_("Input"));
++        xfpa_scale_menu_item_set_caption (XFPA_SCALE_MENU_ITEM (menu->input_scale), caption);
++        g_free (caption);
++      }
+       xfpa_scale_menu_item_set_base_icon_name (XFPA_SCALE_MENU_ITEM (menu->input_scale), "microphone-sensitivity");
+ 
+       g_signal_connect_swapped (menu->input_scale, "value-changed", G_CALLBACK (pulseaudio_menu_input_range_value_changed), menu);
