@@ -9,7 +9,7 @@
  * -H/--hold, --tab, --window, --maximize, --fullscreen, --geometry=SLOUPCExRADKY, --disable-server.
  *
  * Nastaveni: ~/.config/luxos/terminal.conf ([terminal] font, theme=dark|light|auto (vychozi dark jako
- * drive xfce4-terminal LuxOS, cerne pozadi; auto = podle vzhledu systemu), opacity (vychozi 0.95 -
+ * drive xfce4-terminal LuxOS, pozadi #1c1c22; auto = podle vzhledu systemu), opacity (vychozi 0.94 -
  * jen lehce pruhledne, 1 = nepruhledne), scrollback, sixel (obrazky), logo (logo fastfetch jako obrazek);
  * [state] columns, rows - posledni velikost okna).
  * Preklady: /usr/share/luxos/i18n/<jazyk>.tsv (LUXOS_I18N_DIR pro testy).
@@ -24,6 +24,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+/* Tmave pozadi jako drive xfce4-terminal v LuxOS (#1c1c22, pruhlednost 0.94) */
+#define DARK_BG "#1c1c22"
 
 #ifndef LUXOS_TERMINAL_VERSION
 #define LUXOS_TERMINAL_VERSION "1.0.0"
@@ -118,7 +121,7 @@ static void load_config(void)
     GError *e = NULL;
     double o = g_key_file_get_double(kf, "terminal", "opacity", &e);
     /* jen lehce pruhledne (vic by bylo spatne citelne - prosvital by text okna pod terminalem) */
-    if (e) { g_clear_error(&e); cfg.opacity = 0.95; }
+    if (e) { g_clear_error(&e); cfg.opacity = 0.94; }
     else cfg.opacity = CLAMP(o, 0.3, 1.0);
     cfg.scrollback = g_key_file_get_integer(kf, "terminal", "scrollback", &e);
     if (e) { g_clear_error(&e); cfg.scrollback = 10000; }
@@ -182,7 +185,7 @@ static void apply_colors(VteTerminal *t)
     GdkRGBA pal[16], fg, bg, cur, sel;
     for (int i = 0; i < 16; i++) gdk_rgba_parse(&pal[i], (dark ? dark_palette : light_palette)[i]);
     gdk_rgba_parse(&fg, dark ? "#e6e6f0" : "#1d1d1f");
-    gdk_rgba_parse(&bg, dark ? "#000000" : "#ffffff");
+    gdk_rgba_parse(&bg, dark ? DARK_BG : "#ffffff");
     gdk_rgba_parse(&cur, dark ? "#a77bff" : "#7a4dff");
     gdk_rgba_parse(&sel, dark ? "#3a3a55" : "#c9d8ff");
     GdkScreen *scr = gtk_widget_get_screen(GTK_WIDGET(t));
@@ -706,7 +709,8 @@ static char *logo_render(long cw, long ch, gboolean dark)
 
     /* barevne logo (stejne jako ikona a znakove logo fastfetche): vektor v presne velikosti
      * (zavadec SVG luxos-pixbuf-svg), jinak PNG 256 px z luxos-branding */
-    const char *srcs[] = {g_getenv("LUXOS_TERMINAL_LOGO_SOURCE"), "/usr/share/luxos/logo/luxos-logo.svg",
+    const char *srcs[] = {g_getenv("LUXOS_TERMINAL_LOGO_SOURCE"), "/usr/share/luxos/terminal/logo.png",
+                          "/usr/share/luxos/logo/luxos-logo.svg",
                           "/usr/share/pixmaps/luxos-logo.png"};
     /* logo (ctverec) na vysku pole loga, posledni radek volny pro kurzor po obrazku */
     int size = (int)MIN(LOGO_COLS * cw, (LOGO_ROWS - 1) * ch);
@@ -715,7 +719,7 @@ static char *logo_render(long cw, long ch, gboolean dark)
         if (srcs[i] && *srcs[i]) pb = gdk_pixbuf_new_from_file_at_size(srcs[i], size, size, NULL);
     if (!pb) { g_free(path); return NULL; }
     GdkRGBA bg;
-    gdk_rgba_parse(&bg, dark ? "#000000" : "#ffffff");
+    gdk_rgba_parse(&bg, dark ? DARK_BG : "#ffffff");
     GString *six = sixel_encode(pb, &bg);
     g_object_unref(pb);
     char *dir = g_path_get_dirname(path);

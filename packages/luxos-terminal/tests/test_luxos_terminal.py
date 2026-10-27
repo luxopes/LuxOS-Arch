@@ -116,7 +116,7 @@ class CliTest(unittest.TestCase):
         from sixel_decode import decode
         with tempfile.TemporaryDirectory() as tmp:
             env = dict(os.environ, XDG_CACHE_HOME=tmp, LUXOS_TERMINAL_LOGO_SOURCE=logo_source())
-            for cell, mode, bg in (("9x20", "dark", (0, 0, 0)), ("12x26", "light", (255, 255, 255))):
+            for cell, mode, bg in (("9x20", "dark", (28, 28, 34)), ("12x26", "light", (255, 255, 255))):
                 r = subprocess.run([BIN, "--logo-sixel", cell, mode], capture_output=True, env=env, timeout=30)
                 self.assertEqual(r.returncode, 0, r.stderr)
                 data, path = r.stdout.decode("latin-1").rsplit("\n", 2)[:2]
@@ -253,7 +253,7 @@ class GuiTest(unittest.TestCase):
         # cervene pozadi (paleta 1 = #ff6b81) pres 10 znaku
         self.start("-H", "-x", "sh", "-c", r"printf '\033[41m%s\033[0m\n' '          '; sleep 30")
         self.wait_window()
-        self.assertGreater(self.wait_pixels((0, 0, 0), 100000, "dark"), 100000, "dark background")
+        self.assertGreater(self.wait_pixels((28, 28, 34), 100000, "dark"), 100000, "dark background")
         self.assertGreater(self.count(self.screenshot(), (0xff, 0x6b, 0x81)), 500, "red cells (palette)")
 
     def test_default_dark_opaque(self):
@@ -266,7 +266,7 @@ class GuiTest(unittest.TestCase):
         env.pop("GTK_THEME")
         self.start("-x", "sh", "-c", "sleep 30", env=env)
         self.wait_window()
-        self.assertGreater(self.wait_pixels((0, 0, 0), 100000, "default-dark"), 100000)
+        self.assertGreater(self.wait_pixels((28, 28, 34), 100000, "default-dark"), 100000)
 
     def test_auto_follows_light_system(self):
         self.config("[terminal]\ntheme=auto\n")
@@ -322,7 +322,7 @@ class GuiTest(unittest.TestCase):
         env.pop("GTK_THEME")
         self.start("-x", "sh", "-c", "sleep 30", env=env)
         self.wait_window()
-        self.assertGreater(self.wait_pixels((0, 0, 0), 100000, "auto-dark"), 100000)
+        self.assertGreater(self.wait_pixels((28, 28, 34), 100000, "auto-dark"), 100000)
 
     def test_title_and_hold(self):
         self.start("-T", "Hello LuxOS", "-H", "-x", "true")

@@ -44,6 +44,8 @@ check() {
 package() {
     local f="$startdir/files"
     install -Dm755 luxos-terminal "$pkgdir/usr/bin/luxos-terminal"
+    # logo pro fastfetch (obrazek SIXEL), pruhledne pozadi
+    install -Dm644 "$f/luxos-terminal-logo.png" "$pkgdir/usr/share/luxos/terminal/logo.png"
     install -Dm644 "$f/luxos-terminal.desktop" "$pkgdir/usr/share/applications/luxos-terminal.desktop"
     # Pomocna aplikace Xfce (exo-open --launch TerminalEmulator: "Otevrit terminal zde" v Souborech)
     install -Dm644 "$f/luxos-terminal-helper.desktop" "$pkgdir/usr/share/xfce4/helpers/luxos-terminal.desktop"
