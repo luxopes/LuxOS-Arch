@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""Falesny pactl pro testy luxos_audio_switch.py a Ovladaciho centra: stav v JSON ($FAKE_PA), prikazy
+se zapisuji do $FAKE_PA.log. Nikdy nesaha na skutecny zvuk.
+
+Stav: {"cards": [karta jako `pactl -f json list cards`], "profile_sinks": {karta: {profil: [sinky]}},
+       "default": jmeno, "inputs": [id], "volume": 40, "mute": false}
+Sinky aktivniho profilu kazde karty tvori `list sinks` (s device.id = object.id karty)."""
+import json
+import os
+import sys
+
+path = os.environ["FAKE_PA"]
+with open(path) as f:
+    st = json.load(f)
+args = sys.argv[1:]
+with open(path + ".log", "a") as f:
+    f.write(" ".join(args) + "\n")
+
+
+def sinks():
+    out = []
+    for c in st["cards"]:
+        for s in st.get("profile_sinks", {}).get(c["name"], {}).get(c.get("active_profile") or "", []):
+            s = dict(s)
+            s.setdefault("properties", {})["device.id"] = c["properties"]["object.id"]
+            out.append(s)
+    return out
+
+
+def save():
+    with open(path, "w") as f:
+        json.dump(st, f)
+
+
+fmt_json = args[:2] == ["-f", "json"]
+if fmt_json:
+    args = args[2:]
+cmd = args[:2]
+if cmd == ["list", "cards"]:
+    print(json.dumps(st["cards"]))
+elif cmd == ["list", "sinks"]:
+    print(json.dumps(sinks()))
+elif args == ["info"]:
+    if fmt_json:
+        print(json.dumps({"default_sink_name": st.get("default", "")}))
+    else:
+        print("Default Sink: %s" % st.get("default", ""))
+elif args[:3] == ["list", "short", "sink-inputs"]:
+    for i in st.get("inputs", []):
+        print("%d\t%s\tprotocol-native.c\tfloat32le 2ch 48000Hz" % (i, st.get("input_sink", {}).get(str(i), "0")))
+elif args[0] == "set-card-profile":
+    for c in st["cards"]:
+        if c["name"] == args[1]:
+            if args[2] not in c["profiles"]:
+                sys.exit(1)
+            c["active_profile"] = args[2]
+    names = [s["name"] for s in sinks()]
+    if st.get("default") not in names and names:
+        st["default"] = names[0]
+    save()
+elif args[0] == "set-default-sink":
+    st["default"] = args[1]
+    save()
+elif args[0] == "move-sink-input":
+    st.setdefault("input_sink", {})[args[1]] = args[2]
+    save()
+elif args[0] == "set-sink-port":
+    for c in st["cards"]:
+        for s in st.get("profile_sinks", {}).get(c["name"], {}).get(c.get("active_profile") or "", []):
+            if s["name"] == args[1]:
+                s["active_port"] = args[2]
+    save()
+elif args[0] == "get-sink-volume":
+    v = st.get("volume", 40)
+    print("Volume: front-left: %d /  %d%% / -23.88 dB,   front-right: %d /  %d%% / -23.88 dB"
+          % (v * 655, v, v * 655, v))
+elif args[0] == "set-sink-volume":
+    st["volume"] = int(float(args[2].rstrip("%")))
+    save()
+elif args[0] == "get-sink-mute":
+    print("Mute: %s" % ("yes" if st.get("mute") else "no"))
+elif args[0] == "set-sink-mute":
+    st["mute"] = (not st.get("mute")) if args[2] == "toggle" else args[2] in ("1", "yes", "true")
+    save()
+elif args[0] == "subscribe":
+    sys.exit(0)
+else:
+    sys.exit(1)

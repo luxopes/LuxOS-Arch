@@ -24,8 +24,47 @@ window {
 }
 
 mainbox {
-    children: [ inputbar, listview ];
+    children: [ inputbar, listview, sortbar ];
     spacing:  18px;
+}
+
+/* Razeni dlazdic (luxos-launchpad: popisky, zvyrazneni zvoleneho; klik = kb-custom-N, rofi -custom-exit) */
+sortbar {
+    orientation: horizontal;
+    expand:      false;
+    spacing:     4px;
+    children:    [ sort-left, button-sort-alpha, button-sort-recent, button-sort-most, button-sort-category, sort-right ];
+}
+
+sort-left, sort-right {
+    expand: true;
+}
+
+button-sort-alpha, button-sort-recent, button-sort-most, button-sort-category {
+    expand:           false;
+    padding:          4px 12px;
+    border-radius:    10px;
+    font:             "Inter 9.5";
+    text-color:       @lux-muted;
+    cursor:           pointer;
+}
+
+/* kazda vlastnost s retezcem na vlastnim radku (rofi jinak cte zbytek radku jako jeden retezec) */
+button-sort-alpha {
+    action:  "kb-custom-1";
+    content: "Alphabetical";
+}
+button-sort-recent {
+    action:  "kb-custom-2";
+    content: "Recently used";
+}
+button-sort-most {
+    action:  "kb-custom-3";
+    content: "Most used";
+}
+button-sort-category {
+    action:  "kb-custom-4";
+    content: "Category";
 }
 
 inputbar {

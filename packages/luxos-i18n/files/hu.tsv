@@ -4029,3 +4029,7 @@ This kernel has no sched_ext support, the kernel scheduler is used.	Ez a kernel 
 Running now: %s	Most fut: %s
 Not running now, the kernel scheduler is used.	Most nem fut, a kernel ütemezője fut.
 Unknown scheduler: %s (use lavd or default)	Ismeretlen ütemező: %s (lavd vagy default)
+Alphabetical	Betűrendben
+Recently used	Legutóbb használt
+Most used	Leggyakoribb
+Category	Kategória szerint

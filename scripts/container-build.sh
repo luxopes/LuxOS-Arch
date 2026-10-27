@@ -17,7 +17,7 @@ target=${1:-all}
 #  gdk-pixbuf2 = nahrada baliku z Archu bez glycinu, obrazky se dekoduji v procesu, luxos-pixbuf-svg = zavadec SVG,
 #  vte3 = VTE z Archu s obrazky SIXEL pro luxos-terminal,
 #  adcli + realmd = overene kopie z AUR pro luxos-domain - pripojeni k domene Active Directory)
-PACKAGES=(lux-engine gdk-pixbuf2 luxos-pixbuf-svg libfprint xfce4-genmon-plugin rofi vte3 xfce4-notifyd xfce4-screensaver xfce4-whiskermenu-plugin luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-terminal luxos-text luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-guard luxos-backup luxos-printing adcli realmd luxos-domain luxos-weather luxos-maps luxos-companion luxos-desktop luxos-installer
+PACKAGES=(lux-engine gdk-pixbuf2 luxos-pixbuf-svg libfprint xfce4-genmon-plugin rofi vte3 xfce4-notifyd xfce4-screensaver xfce4-whiskermenu-plugin xfce4-pulseaudio-plugin luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-terminal luxos-text luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-guard luxos-backup luxos-printing adcli realmd luxos-domain luxos-weather luxos-maps luxos-companion luxos-desktop luxos-installer
           # Legacy ovladace NVIDIA z AUR (Maxwell/Pascal/Volta 580xx, Kepler 470xx) - jen online, ne v ISO
           nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-470xx-utils lib32-nvidia-470xx-utils)
 # Baliky, ktere se nekopiruji do mistniho repozitare v ISO (velke, potrebuje je jen malo pocitacu;

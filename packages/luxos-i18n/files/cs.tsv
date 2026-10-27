@@ -4121,3 +4121,7 @@ This kernel has no sched_ext support, the kernel scheduler is used.	Toto jádro 
 Running now: %s	Právě běží: %s
 Not running now, the kernel scheduler is used.	Teď neběží, používá se plánovač jádra.
 Unknown scheduler: %s (use lavd or default)	Neznámý plánovač: %s (použijte lavd nebo default)
+Alphabetical	Abecedně
+Recently used	Naposledy použité
+Most used	Nejpoužívanější
+Category	Podle kategorie

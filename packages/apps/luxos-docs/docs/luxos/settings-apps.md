@@ -157,11 +157,29 @@ no adapter, it says "No Bluetooth adapter was found on this computer."
 
 ## Sound output switching
 
-`/usr/share/pipewire/pipewire-pulse.conf.d/50-luxos-switch-on-connect.conf` loads
-`module-switch-on-connect`. Newly connected Bluetooth headphones, USB or HDMI audio become the
-output (and input) right away. When they are disconnected, sound returns to the previous device.
-Volume is in Control Center and the top bar. For a detailed mixer, use `pavucontrol` (the "mixer"
-of the sound icon).
+Newly connected sound devices become the output right away and playing sound moves to them; after
+unplugging, sound returns to the previous device:
+
+- **Monitor or TV (HDMI/DisplayPort)**: a monitor only changes the availability of the HDMI port of
+  the sound card, and the card usually stays on its analog profile (higher priority), so no new
+  output appears. `luxos-hub` follows `pactl subscribe` and on card changes runs
+  `/usr/lib/luxos/python/luxos_audio_switch.py check`: when an HDMI/DisplayPort port becomes
+  available it switches the card to the best available profile with that port, keeping the
+  microphone if possible (e.g. `output:hdmi-stereo+input:analog-stereo`), makes that output the
+  default and moves playing streams. On cards where HDMI is always a separate output (SOF/UCM,
+  profile `HiFi`) only the default output changes. After unplugging, the previous profile and
+  output come back.
+- **USB and Bluetooth** headsets, speakers and headphones: the new device becomes the default
+  output; `/usr/share/pipewire/pipewire-pulse.conf.d/50-luxos-switch-on-connect.conf` also loads
+  `module-switch-on-connect` (output and input).
+- Your choice wins: if you pick another output (or card profile) after an automatic switch, nothing
+  is switched back when the device is unplugged, and the next automatic switch happens only on the
+  next connection. Devices already connected at login are not switched to. The state of the last
+  check is in `$XDG_RUNTIME_DIR/luxos-audio-switch.json`.
+
+Volume is in Control Center and the top bar (the sound menu shows "Output: <device>" over the volume
+slider and "Input: <microphone>" over the microphone slider). For a detailed mixer, use
+`pavucontrol` (the "mixer" of the sound icon).
 
 ## Fingerprint
 

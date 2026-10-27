@@ -4029,3 +4029,7 @@ This kernel has no sched_ext support, the kernel scheduler is used.	Este kernel 
 Running now: %s	Em execução: %s
 Not running now, the kernel scheduler is used.	Não está em execução, é usado o escalonador do kernel.
 Unknown scheduler: %s (use lavd or default)	Escalonador desconhecido: %s (use lavd ou default)
+Alphabetical	Alfabética
+Recently used	Usadas recentemente
+Most used	Mais usadas
+Category	Por categoria
