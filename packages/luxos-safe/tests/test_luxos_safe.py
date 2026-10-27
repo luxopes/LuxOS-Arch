@@ -158,6 +158,17 @@ class Unlock(Base):
             self.assertEqual(safe.create("password1"), "Could not create the Safe folder.")
         self.assertEqual(calls, ["create"])
 
+    def test_create_cancelled_authorization(self):
+        # pkexec 126 = dialog hesla zavren: rict, ze bylo zruseno, ne "nepodarilo se vytvorit"
+        with mock.patch.object(safe, "run_helper", lambda c: safe.CANCELLED), \
+                mock.patch.object(safe.os.path, "isdir", lambda p: False):
+            self.assertEqual(safe.create("password1"), "Authorization was cancelled. Nothing was changed.")
+
+    def test_run_helper_maps_pkexec_126(self):
+        r = mock.Mock(returncode=126, stderr="")
+        with mock.patch.object(safe.subprocess, "run", lambda *a, **k: r):
+            self.assertEqual(safe.run_helper("create"), safe.CANCELLED)
+
 
 class Holders(Base):
     def test_fuser_parsing_excludes_self_and_gocryptfs(self):

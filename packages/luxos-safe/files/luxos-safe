@@ -164,12 +164,17 @@ def notify(title, body, urgency="normal"):
         pass
 
 
+CANCELLED = "cancelled"
+
+
 def run_helper(cmd):
     """pkexec luxos-safe-helper create|protect; vraci None nebo chybu."""
     try:
         r = subprocess.run(["pkexec", HELPER, cmd], capture_output=True, text=True, timeout=300)
     except (OSError, subprocess.TimeoutExpired) as e:
         return str(e)
+    if r.returncode == 126:     # pkexec: dialog hesla zavren / zrusen
+        return CANCELLED
     return None if r.returncode == 0 else (r.stderr.strip()[-300:] or f"exit {r.returncode}")
 
 
@@ -188,7 +193,10 @@ def trust_launcher():
 
 def create(password):
     if not os.path.isdir(VAULT) or not protected():
-        if run_helper("create") or not protected():
+        err = run_helper("create")
+        if err == CANCELLED:
+            return _("Authorization was cancelled. Nothing was changed.")
+        if err or not protected():
             return _("Could not create the Safe folder.")
     if os.listdir(VAULT):
         return _("The Safe already exists.")
@@ -223,6 +231,8 @@ def unlock(password):
         # Starsi instalace: zapisovatelna slozka na disku -> nejdriv ochrana (a presun
         # nesifrovanych souboru). Bez ochrany neodemykat: po zamceni by se dalo zase psat na disk.
         err = run_helper("protect")
+        if err == CANCELLED:
+            return _("Authorization was cancelled. Nothing was changed.")
         if err or not protected():
             return _("Could not protect the locked Safe folder (%s).") % (err or "placeholder")
     trust_launcher()
