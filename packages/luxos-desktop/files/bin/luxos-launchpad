@@ -2,16 +2,65 @@
 # LuxOS - Launchpad (Super+A): mrizka aplikaci v panelu uprostred obrazovky
 if pkill -x rofi; then exit 0; fi
 . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
-extra=(-theme-str "entry { placeholder: \"$(T "Search apps or ask LuxAI")\"; }")
-[[ $(luxos-appearance status) == light ]] && extra+=(-theme-str '@import "luxos-light-colors"')
+# Razeni dlazdic: tlacitka dole v Launchpadu (nebo Alt+1..4), pamatuje se pro uzivatele.
+# Poradi pripravuje luxos_launchpad.py jako "historii" rofi (rofi3.druncache v -cache-dir);
+# spusteni aplikaci se pocita jen mistne v ~/.local/share/luxos/launchpad-usage.json.
+PY=${LUXOS_LAUNCHPAD_PY:-/usr/lib/luxos/python/luxos_launchpad.py}
+conf=${XDG_CONFIG_HOME:-$HOME/.config}/luxos/launchpad-sort
+cache=${XDG_CACHE_HOME:-$HOME/.cache}/luxos
+run=${XDG_RUNTIME_DIR:-/tmp}/luxos-launchpad-$UID
+modes=(alpha recent most category)
+sort=most
+[[ -r $conf ]] && read -r sort <"$conf"
+[[ " ${modes[*]} " == *" $sort "* ]] || sort=most
+mkdir -p -m 700 "$run" || exit 1
+
+base=(-theme-str "entry { placeholder: \"$(T "Search apps or ask LuxAI")\"; }")
+[[ $(luxos-appearance status) == light ]] && base+=(-theme-str '@import "luxos-light-colors"')
+labels=("$(T "Alphabetical")" "$(T "Recently used")" "$(T "Most used")" "$(T "Category")")
+for i in 0 1 2 3; do
+    base+=(-theme-str "button-sort-${modes[i]} { content: \"${labels[i]//\"/\\\"}\"; }")
+done
 # Aplikace + LuxAI: text bez shody s aplikaci (nebo Ctrl+Enter) je dotaz pro LuxAI (luxos-luxai-rofi)
 # X-LuxOS-Launchpad: vybrane panely Nastaveni (Tiskarny a skenery, Ovladace) maji kopii s OnlyShowIn jen pro Launchpad
 export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-XFCE}:X-LuxOS-Launchpad"
-# -scroll-method 1: kolecko/touchpad posouva mrizku plynule po radcich (ne skok o celou stranu)
-# -hover-select -hover-no-scroll (rofi z [luxos]): zvyraznena je dlazdice pod mysi jako v macOS,
-# ale pohled se najetim nehne (puvodni rofi vyber vycentroval a mrizka sama ujizdela); kolecko
-# posune pohled o radek i se zvyraznenim. Sipky zvyrazneni posouvaji dal, Enter spusti zvyraznenou
-# aplikaci, po psani nejlepsi shodu. Mys mimo mrizku zvyrazneni nemeni.
-exec rofi -show combi -modi combi -combi-modi "luxai:luxos-luxai-rofi,drun" -combi-hide-mode-prefix -theme luxos-launchpad -drun-exclude-categories 'X-XFCE-SettingsDialog,X-Xfce-Toplevel' "${extra[@]}" \
-    -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf -scroll-method 1 \
-    -hover-select -hover-no-scroll -me-select-entry '' -me-accept-entry MousePrimary
+
+while :; do
+    # poradi: alpha = jen zarazka, ostatni pripravene po poslednim spusteni (jinak ted)
+    if [[ $sort == alpha ]]; then
+        echo "0 luxos-launchpad-sentinel" >"$run/rofi3.druncache"
+    elif [[ -s $cache/launchpad-order-$sort ]]; then
+        cp "$cache/launchpad-order-$sort" "$run/rofi3.druncache"
+    else
+        python3 "$PY" order "$sort" "$cache/launchpad-order-$sort" 2>/dev/null &&
+            cp "$cache/launchpad-order-$sort" "$run/rofi3.druncache"
+    fi
+    cp "$run/rofi3.druncache" "$run/before"
+    # -scroll-method 1: kolecko/touchpad posouva mrizku plynule po radcich (ne skok o celou stranu)
+    # -hover-select -hover-no-scroll (rofi z [luxos]): zvyraznena je dlazdice pod mysi jako v macOS,
+    # ale pohled se najetim nehne (puvodni rofi vyber vycentroval a mrizka sama ujizdela); kolecko
+    # posune pohled o radek i se zvyraznenim. Sipky zvyrazneni posouvaji dal, Enter spusti zvyraznenou
+    # aplikaci, po psani nejlepsi shodu. Mys mimo mrizku zvyrazneni nemeni.
+    # -custom-exit (rofi z [luxos]): tlacitko razeni / Alt+1..4 ukonci rofi s kodem 10..13
+    rofi -show combi -modi combi -combi-modi "luxai:luxos-luxai-rofi,drun" -combi-hide-mode-prefix -theme luxos-launchpad -drun-exclude-categories 'X-XFCE-SettingsDialog,X-Xfce-Toplevel' "${base[@]}" \
+        -theme-str "button-sort-$sort { background-color: @lux-accent; text-color: @lux-sel-fg; }" \
+        -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf -scroll-method 1 \
+        -hover-select -hover-no-scroll -me-select-entry '' -me-accept-entry MousePrimary \
+        -cache-dir "$run" -max-history-size 100000 -custom-exit
+    rc=$?
+    if (( rc >= 10 && rc <= 13 )); then
+        sort=${modes[rc - 10]}
+        mkdir -p "${conf%/*}" && echo "$sort" >"$conf"
+        continue
+    fi
+    break
+done
+# spustena aplikace -> pocty a pripravene poradi (az po zavreni okna, nic nezdrzi)
+if (( rc == 0 )); then
+    (
+        python3 "$PY" record "$run/before" "$run/rofi3.druncache"
+        [[ $sort == category ]] && python3 "$PY" order category "$cache/launchpad-order-category"
+    ) >/dev/null 2>&1 &
+    disown
+fi
+exit 0

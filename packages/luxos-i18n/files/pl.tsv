@@ -4030,3 +4030,7 @@ This kernel has no sched_ext support, the kernel scheduler is used.	To jądro ni
 Running now: %s	Teraz działa: %s
 Not running now, the kernel scheduler is used.	Teraz nie działa, używany jest planista jądra.
 Unknown scheduler: %s (use lavd or default)	Nieznany planista: %s (użyj lavd lub default)
+Alphabetical	Alfabetycznie
+Recently used	Ostatnio używane
+Most used	Najczęściej używane
+Category	Według kategorii

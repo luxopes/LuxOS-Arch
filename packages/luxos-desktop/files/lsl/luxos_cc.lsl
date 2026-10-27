@@ -417,6 +417,7 @@ function create():
     cc["placed"] = [0, 0]
     cc["pending"] = {}
     cc["mpris"] = False
+    cc["muted"] = False
     cc["test_log"] = env.get("LUXOS_CC_TEST_LOG", "")
     if cc["test_log"] == None:
         cc["test_log"] = ""
@@ -951,6 +952,7 @@ end
 
 function on_mute(level, output, status):
     muted = status == 0 and output.strip().endswith("yes")
+    cc["muted"] = muted
     call slider_set_value(cc["s_vol"], level)
     icon = "audio-volume-high-symbolic"
     if muted:
@@ -1115,6 +1117,12 @@ end
 
 function set_volume(value):
     call glib.spawn_quiet(["pactl", "set-sink-volume", "@DEFAULT_SINK@", String(value) + "%"])
+    # posunuti ztlumeneho zvuku ho zapne (jako v macOS) - jinak by posuvnik "nefungoval"
+    if cc["muted"]:
+        cc["muted"] = False
+        call glib.spawn_quiet(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "0"])
+        call gtk.image_set_from_icon_name(cc["s_vol"]["icon"], "audio-volume-high-symbolic", gtk.ICON_MENU)
+    end
     return 0
 end
 

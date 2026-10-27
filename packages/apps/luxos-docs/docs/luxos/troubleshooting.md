@@ -141,8 +141,11 @@ See [settings-apps.md](settings-apps.md#displays).
 
 ## Sound
 
-- New Bluetooth/USB/HDMI headphones or speakers become the output automatically (PipeWire rule
-  `50-luxos-switch-on-connect.conf`); after disconnecting, sound returns to the previous device.
+- New Bluetooth/USB/HDMI/DisplayPort headphones, speakers or monitors become the output
+  automatically (`luxos-hub` with `luxos_audio_switch.py`, PipeWire rule
+  `50-luxos-switch-on-connect.conf`); after disconnecting, sound returns to the previous device. A
+  manual choice made afterwards is kept. Check by hand: `python3 /usr/lib/luxos/python/luxos_audio_switch.py check`
+  (messages on stderr).
 - Choose devices and per-app volume in the mixer: click the sound icon in the top bar or run
   `pavucontrol`.
 - From a terminal: `pactl set-sink-volume @DEFAULT_SINK@ 50%`, `pactl set-sink-mute @DEFAULT_SINK@ toggle`,

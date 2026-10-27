@@ -4029,3 +4029,7 @@ This kernel has no sched_ext support, the kernel scheduler is used.	Toto jadro n
 Running now: %s	Práve beží: %s
 Not running now, the kernel scheduler is used.	Teraz nebeží, používa sa plánovač jadra.
 Unknown scheduler: %s (use lavd or default)	Neznámy plánovač: %s (použite lavd alebo default)
+Alphabetical	Abecedne
+Recently used	Naposledy použité
+Most used	Najpoužívanejšie
+Category	Podľa kategórie

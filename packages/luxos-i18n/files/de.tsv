@@ -4029,3 +4029,7 @@ This kernel has no sched_ext support, the kernel scheduler is used.	Dieser Kerne
 Running now: %s	Läuft gerade: %s
 Not running now, the kernel scheduler is used.	Läuft gerade nicht, der Kernel-Scheduler wird verwendet.
 Unknown scheduler: %s (use lavd or default)	Unbekannter Scheduler: %s (lavd oder default verwenden)
+Alphabetical	Alphabetisch
+Recently used	Zuletzt verwendet
+Most used	Meistverwendet
+Category	Nach Kategorie

@@ -4029,3 +4029,7 @@ This kernel has no sched_ext support, the kernel scheduler is used.	Den här kä
 Running now: %s	Körs nu: %s
 Not running now, the kernel scheduler is used.	Körs inte nu, kärnans schemaläggare används.
 Unknown scheduler: %s (use lavd or default)	Okänd schemaläggare: %s (använd lavd eller default)
+Alphabetical	Alfabetiskt
+Recently used	Senast använda
+Most used	Mest använda
+Category	Efter kategori

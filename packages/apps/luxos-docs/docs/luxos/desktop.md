@@ -27,7 +27,7 @@ Its items, from left to right:
 | Keyboard flag | xkb plugin: the flag of the current keyboard layout, Caps Lock indicator | switches layout; "Keyboard settings" opens Keyboard Layouts (`luxos-keyboard`) |
 | Tray | status icons (systray, symbolic) | - |
 | "!" network warning | shown only when you are connected but there is no internet (`luxos-netcheck`) | opens the captive-portal sign-in page (`http://ping.archlinux.org/`) or Control Center |
-| Sound | PulseAudio plugin (volume, media keys) | mixer: `pavucontrol` |
+| Sound | PulseAudio plugin (volume, media keys); the menu labels its sliders "Output: <device>" (volume) and "Input: <microphone>" (microphone sensitivity), without a microphone only the output slider is shown | mixer: `pavucontrol` |
 | Battery | icon and percentage (`luxos-battery`); hidden on computers without a battery | opens Control Center; the scroll wheel changes screen brightness (`luxos-brightness up/down`, 5 % steps, not below 10 %) |
 | Search (magnifier) | `luxos-search --panel` (genmon) | opens or closes Search, same as `Super+Space` |
 | Control Center | `luxos-control-center --panel` | opens or closes Control Center |
@@ -104,7 +104,8 @@ Contents:
 - **Display** slider: brightness. With a backlight it uses `brightnessctl`. Without one (desktop
   monitor, VM) it uses software brightness of all outputs (`luxos-displays brightness N`, saved in
   `~/.config/luxos/brightness`). The minimum is 10 %. Clicking the brightness icon opens Displays.
-- **Sound** slider: `pactl set-sink-volume @DEFAULT_SINK@`. Clicking the icon mutes.
+- **Sound** slider: `pactl set-sink-volume @DEFAULT_SINK@`. Clicking the icon mutes; moving the
+  slider while muted turns the sound back on.
 - **Now playing**: appears only when an MPRIS player (Firefox, Spotify, VLC, mpv…) runs, with
   Previous / Play-Pause / Next.
 - **Battery**: percentage, charging state and time left or time until full. Opens Battery & Power.
@@ -132,6 +133,15 @@ running.
   (rofi theme `luxos-launchpad`). Settings panels of Xfce are hidden there. A few LuxOS settings
   apps get Launchpad-only copies: Displays, Keyboard Layouts, Fingerprint, Printers & Scanners
   (`X-LuxOS-Launchpad`).
+- **Sorting** (buttons under the Launchpad grid, or `Alt+1`..`Alt+4`): **Alphabetical**, **Recently
+  used**, **Most used** (default) and **Category** (Internet, Office, Graphics, Multimedia,
+  Development, Education, Games, Science, Accessories, Settings, System, then alphabetically). The
+  choice is remembered in `~/.config/luxos/launchpad-sort`. Launches from Launchpad are counted only
+  locally in `~/.local/share/luxos/launchpad-usage.json` (app IDs, counts and last-use times; nothing
+  is sent anywhere). The order is prepared after each launch (`~/.cache/luxos/launchpad-order-*`) and
+  handed to rofi as its history, so opening Launchpad stays as fast as before.
+- Without a compositor (compositing off, a VM without 3D acceleration) the rounded Launchpad and
+  Search panels take a snapshot of the screen as background, so their corners are not black.
 - **Search** (`Super+Space`, `luxos-search`): rofi with modes Apps, Windows, Files and Run. Fuzzy
   matching.
 - In both, text that matches no app (or any text with **Ctrl+Enter**) is sent to LuxAI as a
@@ -147,6 +157,17 @@ bell in the top bar shows the history: every notification of every app is kept (
 missed during Do Not Disturb. Short on-screen indicators sent with the `transient` hint (volume) are
 not kept. `luxos-hub` also sends notifications about low memory (earlyoom), missing drivers, no
 internet and the daylight saving time change; the Calendar reminds of events.
+
+- **Click** a notification to see all of it (the whole title and text, the body is cut to 3 lines
+  otherwise); clicking it again runs its default action (for example opens the message) and closes it.
+  A notification with nothing more to show runs the default action on the first click. Right or
+  middle click closes it as before.
+- **Close**: point at a notification and a small **×** appears in its top-left corner. Pointing at a
+  notification also stops its timer.
+- Notifications stay on top of windows, but never cover an open top-bar popup: while Control Center,
+  the Calendar, the LuxOS menu, a panel menu, Launchpad or Search is open, notifications that would
+  overlap it wait hidden (their timer stops) and appear when it closes. xfce4-notifyd from
+  `[luxos]` watches windows mapped on the X root window, so it also works for rofi and panel menus.
 
 ## Light, dark and auto appearance
 
@@ -262,6 +283,8 @@ wallpaper as the desktop with a large clock; the password dialog uses it too.
 - notifies when earlyoom ended a program because memory ran low;
 - shows the "!" network warning;
 - runs the Bluetooth pairing agent (instead of blueman-applet, which is disabled);
+- switches the sound output to a newly connected monitor (HDMI/DisplayPort), USB or Bluetooth
+  device and back after unplugging (see [settings-apps.md](settings-apps.md#sound-output-switching));
 - runs the auto light/dark check;
 - once per boot, notifies about missing drivers.
 
