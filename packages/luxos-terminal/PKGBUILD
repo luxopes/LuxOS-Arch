@@ -7,7 +7,7 @@
 # (RSS 54,8 vs 50,4 MB - navic jen sdilene pismo Inter pro horni listu a panely).
 
 pkgname=luxos-terminal
-pkgver=1.0.0
+pkgver=1.3.0
 pkgrel=1
 pkgdesc="LuxOS Terminal - light GTK3/VTE terminal with tabs, light/dark profiles and SIXEL images"
 arch=(x86_64)

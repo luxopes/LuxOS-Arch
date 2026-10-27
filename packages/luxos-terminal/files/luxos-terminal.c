@@ -700,7 +700,7 @@ static GString *sixel_encode(GdkPixbuf *pb, const GdkRGBA *bg)
 static char *logo_render(long cw, long ch, gboolean dark)
 {
     if (cw < 2 || ch < 4 || cw > 200 || ch > 400) return NULL;
-    char *name = g_strdup_printf("logo-%ldx%ld-%s.six", cw, ch, dark ? "dark" : "light");
+    char *name = g_strdup_printf("logo2-%ldx%ld-%s.six", cw, ch, dark ? "dark" : "light");
     char *path = g_build_filename(g_get_user_cache_dir(), "luxos", "terminal", name, NULL);
     g_free(name);
     if (g_file_test(path, G_FILE_TEST_EXISTS)) return path;
@@ -710,11 +710,12 @@ static char *logo_render(long cw, long ch, gboolean dark)
     const char *srcs[] = {g_getenv("LUXOS_TERMINAL_LOGO_SOURCE"), "/usr/share/luxos/terminal/logo.png",
                           "/usr/share/luxos/logo/luxos-logo.svg",
                           "/usr/share/pixmaps/luxos-logo.png"};
-    /* logo (ctverec) na vysku pole loga, posledni radek volny pro kurzor po obrazku */
-    int size = (int)MIN(LOGO_COLS * cw, (LOGO_ROWS - 1) * ch);
+    /* logo do pole loga (sirka LOGO_COLS, vyska bez posledniho radku pro kurzor), pomer stran zachovan -
+     * siroke logo tak vyplni celou vysku jako drivejsi ctvercove */
     GdkPixbuf *pb = NULL;
     for (guint i = 0; i < G_N_ELEMENTS(srcs) && !pb; i++)
-        if (srcs[i] && *srcs[i]) pb = gdk_pixbuf_new_from_file_at_size(srcs[i], size, size, NULL);
+        if (srcs[i] && *srcs[i])
+            pb = gdk_pixbuf_new_from_file_at_size(srcs[i], (int)(LOGO_COLS * cw), (int)((LOGO_ROWS - 1) * ch), NULL);
     if (!pb) { g_free(path); return NULL; }
     GdkRGBA bg;
     gdk_rgba_parse(&bg, dark ? DARK_BG : "#ffffff");

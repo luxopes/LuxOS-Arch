@@ -120,7 +120,7 @@ class CliTest(unittest.TestCase):
                 r = subprocess.run([BIN, "--logo-sixel", cell, mode], capture_output=True, env=env, timeout=30)
                 self.assertEqual(r.returncode, 0, r.stderr)
                 data, path = r.stdout.decode("latin-1").rsplit("\n", 2)[:2]
-                self.assertEqual(path, os.path.join(tmp, "luxos", "terminal", f"logo-{cell}-{mode}.six"))
+                self.assertEqual(path, os.path.join(tmp, "luxos", "terminal", f"logo2-{cell}-{mode}.six"))
                 self.assertTrue(data.startswith("\x1bP0;1;0q"), "P2=1 (transparent background)")
                 cw, ch = map(int, cell.split("x"))
                 w, h, px = decode(data)
@@ -133,7 +133,7 @@ class CliTest(unittest.TestCase):
                 self.assertNotIn(other, set(px.values()))
             # podruhe z mezipameti (stejny soubor)
             r = subprocess.run([BIN, "--logo-sixel", "9x20", "dark"], capture_output=True, env=env, timeout=30)
-            self.assertTrue(r.stdout.decode("latin-1").endswith("logo-9x20-dark.six\n"))
+            self.assertTrue(r.stdout.decode("latin-1").endswith("logo2-9x20-dark.six\n"))
 
 
 @unittest.skipUnless(UNDER_XVFB, "GUI only under xvfb-run (never on a real display)")
