@@ -1,0 +1,5 @@
+# LuxOS - sdilena slozka LightDM (/var/lib/lightdm-data/<uzivatel>, 0770 uzivatel:lightdm): greeter do ni
+# ulozi posledni snimek prihlasovaci obrazovky a relace uzivatele ho cte (luxos-session-cover --login).
+# lightdm.conf ji zaklada 1770 lightdm:lightdm - uzivatel mimo skupinu lightdm do ni nevejde a prechod
+# po prihlaseni byl cerny. Pruchod (x) pro ostatni: obsah se vypsat neda, slozky uzivatelu zustavaji 0770.
+z /var/lib/lightdm-data 1771 lightdm lightdm -
