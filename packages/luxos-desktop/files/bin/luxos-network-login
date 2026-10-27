@@ -17,6 +17,11 @@ uri=$(gdbus call --system -d org.freedesktop.NetworkManager -o /org/freedesktop/
       sed -n "s/^(<'\(http:\/\/[^' ]*\)'>,)\$/\1/p")
 [[ -n $uri ]] || uri=http://ping.archlinux.org/nm-check.txt
 force_ip=""
+# Spusteno rucne (Ovladaci centrum, Hledani): adresu portalu zjistit stejne jako luxos-hub
+if [[ -z ${1-} ]] && command -v luxos-portal-check >/dev/null; then
+    read -r kind purl pip < <(luxos-portal-check 2>/dev/null)
+    [[ $kind == portal && -n $purl ]] && set -- "$purl" "${pip-}"
+fi
 if [[ ${1-} == http://* || ${1-} == https://* ]]; then
     uri=$1
     host=${uri#*://}; host=${host%%[/:?#]*}
