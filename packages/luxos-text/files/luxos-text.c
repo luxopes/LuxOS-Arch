@@ -2448,9 +2448,11 @@ static void on_destroy(GtkWidget *wdg, Win *w)
     GList *docs = all_docs(w);
     for (GList *l = docs; l; l = l->next) {
         Doc *d = l->data;
+        /* nejdriv odpojit od stranky, pak uvolnit (d->page po free_doc je pouziti uvolnene pameti -
+         * kazde zavreni okna skoncilo SIGSEGV) */
+        g_object_set_data(G_OBJECT(d->page), "doc", NULL);
         g_signal_handlers_disconnect_by_data(d->buf, d);
         free_doc(d);
-        g_object_set_data(G_OBJECT(d->page), "doc", NULL);
     }
     g_list_free(docs);
     drop_dir_monitors(w);
