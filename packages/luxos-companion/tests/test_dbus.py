@@ -330,7 +330,15 @@ class TestServiceProcess(unittest.TestCase):
         def status():
             r = subprocess.run([sys.executable, exe, "--status"], env=env, capture_output=True, text=True)
             return json.loads(r.stdout)
-        self.assertTrue(pump(lambda: status().get("bluetooth", {}).get("registered"), 10))
+
+        def status_safe():
+            r = subprocess.run([sys.executable, exe, "--status"], env=env, capture_output=True, text=True)
+            return (r.returncode, r.stdout[-500:], r.stderr[-1500:])
+        ok = pump(lambda: status().get("bluetooth", {}).get("registered"), 10)
+        if not ok:
+            svc.kill()
+            err = svc.communicate(timeout=5)[1]
+            self.fail("service did not register the profile; status=%r stderr=%s" % (status_safe(), err[-3000:]))
         st = status()
         self.assertEqual((st["running"], st["connections"], st["phone_location"]), (True, [], {"valid": False}))
         # druha instance skonci a profil prvni nechá byt
