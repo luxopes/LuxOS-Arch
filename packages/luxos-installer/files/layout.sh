@@ -938,7 +938,7 @@ ly_ensure() {  # ly_ensure ID: zalozi objekt (a vse pod nim), nastavi L[id.dev]
                     LY_OPENED+=("luks ${L[$id.name]}")
                 fi
             else
-                [[ -e /dev/mapper/${L[$id.name]} ]] && fail "$(ly_error_text "name_in_use|${L[$id.name]}")"
+                [[ -e ${LY_MAPPER_DIR:-/dev/mapper}/${L[$id.name]} ]] && fail "$(ly_error_text "name_in_use|${L[$id.name]}")"
                 ly_release "$base"
                 run wipefs -af "$base"
                 info "$(T "Encrypting %s" "$base")"

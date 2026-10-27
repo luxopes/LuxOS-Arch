@@ -230,6 +230,7 @@ run_case() {  # run_case JMENO PRIPRAVA(bash)
             printf 'UUID=live-swap\tnone\tswap\tdefaults\t0 0\n'
         }
         luxos-hwdetect() { :; }
+        domain_join() { :; }   # pripojeni k domene testuje test-domain.sh
         x11_to_console() { echo cz; }
         install() {
             local dst=${!#}
