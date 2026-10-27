@@ -52,7 +52,7 @@ NM_PATH = "/org/freedesktop/NetworkManager"
 PORTAL_PROBE_DELAYS = [3, 6, 10, 15, 25, 40, 60, 90, 120]
 PORTAL_PROBES = 10
 
-hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0, "portal_found": False, "portal_url": "", "portal_probes": 0, "cover_pid": 0, "start": 0, "noinet_timer": False}
+hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0, "portal_found": False, "portal_url": "", "portal_probes": 0, "cover_pid": 0, "start": 0, "noinet_timer": False, "exit": 0, "update_seen": 0}
 
 function runtime_dir():
     value = env.get("XDG_RUNTIME_DIR", "")
@@ -752,13 +752,37 @@ function main_hub():
         end
     end
     call glib.timeout_add_seconds(300, appearance_check)
+    # Po aktualizaci baliku (lux update) se novy luxos-hub spusti sam: luxos-session ho restartuje
+    call glib.timeout_add_seconds(text.to_int(env.get("LUXOS_HUB_UPDATE_CHECK", ""), 60), update_check)
 
     call gtk.main()
     if hub["awake"]:
         call awake.shutdown()
     end
     call remove_pidfiles()
-    return 0
+    return hub["exit"]
+end
+
+# Aktualizace nahradila /usr/bin/luxos-hub (/proc/self/exe ukazuje "(deleted)"): skoncit s kodem 75,
+# smycka v luxos-session spusti novou verzi (opravy plati hned, bez odhlaseni). Az pri druhe kontrole
+# po sobe, at se nekonci uprostred instalace baliku.
+function update_check():
+    link = ""
+    safe:
+        link = glib.readlink("/proc/self/exe")
+    end
+    if link.endswith(" (deleted)"):
+        hub["update_seen"] = hub["update_seen"] + 1
+        if hub["update_seen"] >= 2:
+            call log("new version installed, restarting")
+            hub["exit"] = 75
+            call gtk.main_quit()
+            return False
+        end
+    else:
+        hub["update_seen"] = 0
+    end
+    return True
 end
 
 # luxos-control-center [--panel|--background]: klik v liste (bez --background) bezici okno jen prepne
