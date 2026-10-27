@@ -29,8 +29,8 @@ source=("git+https://gitlab.xfce.org/apps/xfce4-notifyd.git#tag=$pkgname-$pkgver
 sha256sums=('76dec9b137b06860402badfb820bccf6d2c7e6b00925e2cbb4d06c2674811d8f'
             'af4724bb96fbd7724c3e1bc160947c13e8f04e8cfd9a9e7546ab1a59a8851af1'
             'bbd01053c8b819f1f9ba99cd7f5ad0228133de51f8408fb5ccd006669cd0f133'
-            'e0d45e8cf0437c0041fa9f13201f21b5f643efd4824f8e134ebf4f4492e7c5f9'
-            '68d4bd0ca47b86080d53b16fe1a7e4d5780c1e7d42fe94326b7e613df2dba5af')
+            '1e70ce15ad810b2e112b350fdd9b21c81cac8f596f29da2b901276773ee9c469'
+            '1bd968c0fa50827377f33cd17176ec5c38ee1473fd240d5167bde69921bdf6de')
 
 prepare() {
   cd $pkgname

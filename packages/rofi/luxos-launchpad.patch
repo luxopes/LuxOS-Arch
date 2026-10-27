@@ -1,0 +1,89 @@
+diff --git a/include/settings.h b/include/settings.h
+--- a/include/settings.h
++++ b/include/settings.h
+@@ -150,6 +150,8 @@
+   gboolean hover_select;
+   /** LuxOS: hover-select jen zvyrazni, plynule posouvani nehybe pohledem (Launchpad) */
+   gboolean hover_no_scroll;
++  /** LuxOS: kb-custom-N ukonci rofi s navratovym kodem 9+N v kazdem rezimu (Launchpad) */
++  gboolean custom_exit;
+   /** Lazy filter limit. */
+   unsigned int lazy_filter_limit;
+   /** Auto select. */
+diff --git a/source/xrmoptions.c b/source/xrmoptions.c
+--- a/source/xrmoptions.c
++++ b/source/xrmoptions.c
+@@ -323,6 +323,13 @@
+      "Continuous scrolling keeps the view while the selection is visible "
+      "(hover only highlights, the wheel scrolls the view)",
+      CONFIG_DEFAULT},
++    {xrm_Boolean,
++     "custom-exit",
++     {.snum = &config.custom_exit},
++     NULL,
++     "Custom keybindings (and buttons with a kb-custom action) exit with "
++     "code 9+N in every mode",
++     CONFIG_DEFAULT},
+     {xrm_SNumber,
+      "eh",
+      {.snum = &config.element_height},
+diff --git a/source/view.c b/source/view.c
+--- a/source/view.c
++++ b/source/view.c
+@@ -1139,6 +1139,14 @@
+     if (selected < state->filtered_lines) {
+       (state->selected_line) = state->line_map[selected];
+     }
++    // LuxOS (-custom-exit): tlacitka razeni v Launchpadu (drun/combi jinak
++    // vlastni klavesy jen prepinaji rezim) - konec s kodem 10..28
++    if (config.custom_exit) {
++      rofi_set_return_code(10 + (int)(action - CUSTOM_1));
++      state->retv = MENU_CANCEL;
++      state->quit = TRUE;
++      break;
++    }
+     state->retv = MENU_CUSTOM_COMMAND | ((action - CUSTOM_1) & MENU_LOWER_MASK);
+     state->quit = TRUE;
+     break;
+diff --git a/source/xcb/view.c b/source/xcb/view.c
+--- a/source/xcb/view.c
++++ b/source/xcb/view.c
+@@ -476,6 +476,26 @@
+   }
+ }
+ 
++/* LuxOS: bezi compositing manager (vlastnik vyberu _NET_WM_CM_S<obrazovka>)? */
++static gboolean luxos_compositor_running(void) {
++  char name[32];
++  int screen = xcb->screen_nbr < 0 ? 0 : xcb->screen_nbr;
++  snprintf(name, sizeof(name), "_NET_WM_CM_S%d", screen);
++  xcb_intern_atom_reply_t *atom = xcb_intern_atom_reply(
++      xcb->connection,
++      xcb_intern_atom(xcb->connection, 0, strlen(name), name), NULL);
++  if (atom == NULL) {
++    return TRUE;
++  }
++  xcb_get_selection_owner_reply_t *owner = xcb_get_selection_owner_reply(
++      xcb->connection, xcb_get_selection_owner(xcb->connection, atom->atom),
++      NULL);
++  gboolean running = owner == NULL || owner->owner != XCB_WINDOW_NONE;
++  free(owner);
++  free(atom);
++  return running;
++}
++
+ static void
+ xcb_rofi_view_setup_fake_transparency(widget *win,
+                                       const char *const fake_background) {
+@@ -763,6 +783,11 @@
+       rofi_theme_get_string(WIDGET(win), "transparency", NULL);
+   if (transparency) {
+     xcb_rofi_view_setup_fake_transparency(WIDGET(win), transparency);
++  } else if (!luxos_compositor_running()) {
++    // LuxOS: bez compositoru (vypnuty, VM bez akcelerace) se pruhlednost
++    // okna nezobrazi a rohy zaobleneho panelu by byly cerne - pozadim je
++    // snimek obrazovky pod oknem (jako transparency: "screenshot")
++    xcb_rofi_view_setup_fake_transparency(WIDGET(win), "screenshot");
+   }
+   if (xcb->sncontext != NULL) {
+     sn_launchee_context_setup_window(xcb->sncontext, CacheState.main_window);

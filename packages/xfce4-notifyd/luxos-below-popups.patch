@@ -326,7 +326,7 @@ diff --git a/xfce4-notifyd/xfce-notify-window.c b/xfce4-notifyd/xfce-notify-wind
      GTK_WIDGET_CLASS(xfce_notify_window_parent_class)->show(widget);
  
      if (window->monitor != NULL) {
-@@ -2000,6 +2283,17 @@
+@@ -2011,6 +2294,17 @@
      window->geometry = *rectangle;
      DBG("Translated position: (%d,%d)", pos_x, pos_y);
      xfce_notify_window_move(window, pos_x, pos_y);

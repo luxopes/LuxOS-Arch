@@ -162,7 +162,7 @@ diff --git a/xfce4-notifyd/xfce-notify-window.c b/xfce4-notifyd/xfce-notify-wind
  }
  
  static gboolean
-@@ -1647,18 +1733,37 @@
+@@ -1647,18 +1733,48 @@
  static void
  xfce_notify_window_ensure_widgets(XfceNotifyWindow *window) {
      if (window->icon == NULL) {
@@ -199,10 +199,21 @@ diff --git a/xfce4-notifyd/xfce-notify-window.c b/xfce4-notifyd/xfce-notify-wind
 +        g_signal_connect(window->luxos_close, "clicked",
 +                         G_CALLBACK(xfce_notify_window_luxos_close_clicked), window);
 +        gtk_overlay_add_overlay(GTK_OVERLAY(overlay), window->luxos_close);
++        {
++            /* maly kulaty krizek i s cizim tematem oznameni (tema LuxOS ho dobarvi) */
++            GtkCssProvider *close_css = gtk_css_provider_new();
++            gtk_css_provider_load_from_data(close_css,
++                                            "#luxos-close { min-width: 18px; min-height: 18px; padding: 0;"
++                                            " border-radius: 9px; }", -1, NULL);
++            gtk_style_context_add_provider(gtk_widget_get_style_context(window->luxos_close),
++                                           GTK_STYLE_PROVIDER(close_css),
++                                           GTK_STYLE_PROVIDER_PRIORITY_SETTINGS);
++            g_object_unref(close_css);
++        }
          tophbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
          gtk_box_set_homogeneous (GTK_BOX (tophbox), FALSE);
          gtk_widget_show (tophbox);
-@@ -1696,7 +1801,8 @@
+@@ -1696,7 +1812,8 @@
          gtk_label_set_ellipsize (GTK_LABEL (window->body), PANGO_ELLIPSIZE_END);
          gtk_label_set_line_wrap (GTK_LABEL(window->body), TRUE);
          gtk_label_set_line_wrap_mode (GTK_LABEL (window->body), PANGO_WRAP_WORD_CHAR);
