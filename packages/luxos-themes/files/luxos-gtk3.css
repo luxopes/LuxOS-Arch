@@ -373,3 +373,8 @@ window#whiskermenu-window .title-area > button.command-button {
 window#whiskermenu-window .title-area > button.command-button:hover {
     background-color: alpha(@theme_fg_color, 0.10);
 }
+
+/* Napoveda v prazdnych polich (placeholder) sede jako v macOS: WhiteSur ji ma oranzovou (#E9873A),
+   takze vypadala jako vyplnena hodnota nebo chyba ("Heslo", "administrator", "Hledat...").
+   Nepruhledna smes barev: GTK 3 kresli napovedu bez pruhlednosti (alpha() by byla cerna). */
+@define-color placeholder_text_color mix(@theme_fg_color, @theme_base_color, 0.5);
