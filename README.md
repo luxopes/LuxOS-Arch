@@ -280,3 +280,16 @@ ovladače NVIDIA, jádro Linux, LSL…) mají vlastní licence uvedené v jejich
   (nepodepsané), `iso` sestaví ISO ze zveřejněných podepsaných repozitářů. Soukromý podpisový klíč
   LuxOS na GitHubu není: balíčky a ISO podepisuje správce lokálně.
 
+- TEST ISO bez zveřejnění: `gh workflow run build.yml --ref VĚTEV -f target=iso-test` (lokálně
+  `./build.sh iso-test`) sestaví všechny balíčky z větve a z nich ISO
+  `luxos-VERZE-TEST-COMMIT-x86_64.iso` (artefakt `iso-test`, 7 dní, se `SHA256SUMS` a veřejným
+  testovacím klíčem `luxos-test-key.asc`). Balíčky a databáze podepíše jednorázový klíč vytvořený
+  v běhu („LuxOS TEST key – not for production“, platí 30 dní; soukromá část zaniká s kontejnerem,
+  klíč LuxOS se do kontejneru vůbec nepřipojí). Jen v tomto sestavení vznikne upravený
+  `luxos-keyring` (klíč LuxOS + testovací klíč) a `luxos-branding` (`VARIANT="TEST build"`
+  v `/etc/os-release`); `packages/` ani produkční balíčky se nemění.
+  Nainstalovaný testovací systém věří oběma klíčům a aktualizuje se z produkčního `[luxos]`
+  (podepsaného klíčem LuxOS) normálně. Testovací klíč z klíčenky nezmizí ani po aktualizaci
+  `luxos-keyring` ze serveru (populate klíče jen přidává); `VARIANT` zmizí s první aktualizací
+  `luxos-branding` ze serveru. Po vypršení testovacího klíče už nejdou instalovat balíčky z ISO
+  (místní repozitář živého systému) – stáhni nový TEST build.
