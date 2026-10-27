@@ -23,6 +23,21 @@ NOTIFY = "org.freedesktop.Notifications"
 NOTIFY_PATH = "/org/freedesktop/Notifications"
 
 
+def show_in_folder(path):
+    """Otevre slozku se souborem a soubor v ni oznaci (FileManager1.ShowItems), jinak jen slozku."""
+    try:
+        uri = Gio.File.new_for_path(path).get_uri()
+        Gio.bus_get_sync(Gio.BusType.SESSION).call_sync(
+            "org.freedesktop.FileManager1", "/org/freedesktop/FileManager1", "org.freedesktop.FileManager1",
+            "ShowItems", GLib.Variant("(ass)", ([uri], "")), None, 0, 5000, None)
+        return
+    except GLib.Error:
+        pass
+    folder = path if os.path.isdir(path) else os.path.dirname(path)
+    if folder:
+        subprocess.Popen(["xdg-open", folder], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 class Notifier:
     def __init__(self):
         self.bus = Gio.bus_get_sync(Gio.BusType.SESSION)
@@ -53,8 +68,7 @@ class Notifier:
         if nid in self.waiting:
             self.waiting.pop(nid)(key)
         elif nid in self.open_dirs and key == "open":
-            subprocess.Popen(["xdg-open", self.open_dirs.pop(nid)], stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL)
+            show_in_folder(self.open_dirs.pop(nid))
 
     def _on_closed(self, _c, _s, _p, _i, _sig, params):
         nid, _reason = params.unpack()
@@ -165,7 +179,8 @@ class ServiceHandler(transfer.Handler):
                     nid = self.n.notify(_("LuxDrop: received from %s") % t.peer_name,
                                         GLib.markup_escape_text(", ".join(os.path.basename(p) for p in t.saved[:5])),
                                         ["open", _("Show in folder")])
-                    self.n.open_dirs[nid] = self.settings.download_dir
+                    # prijaty soubor (ne download_dir z nastaveni: prazdny = vychozi slozka)
+                    self.n.open_dirs[nid] = t.saved[0]
                 elif t.state == "failed" and t.items:
                     self.n.notify(_("LuxDrop: transfer from %s failed") % t.peer_name,
                                   GLib.markup_escape_text(t.error))
