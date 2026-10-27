@@ -92,8 +92,12 @@ time (a second one gets "busy"). **Stop** on the phone cancels the running reque
 that already happened are not undone).
 
 - The phone's text is passed to LuxAI only as data on standard input – it is never run as a command.
-- LuxAI's own permission rules apply. Confirmations of tools and actions are shown **on the computer**,
-  never on the phone (protocol v1 has no mobile confirmations).
+- LuxAI's own permission rules apply. Actions that LuxAI would confirm in a card on the computer
+  (commands, file changes, calendar changes, …) are **refused** from the phone – protocol v1 has no
+  mobile confirmations – and the answer says that the action needs confirmation on the computer.
+  Administrator commands and desktop control (mouse, keyboard, screenshots) are never run remotely.
+  Read-only tools work: files, documentation, web search, maps and the LuxOS Calendar
+  (`calendar_list_events`). To add an event from the phone, use the calendar note (below).
 - If the installed LuxAI does not have `--remote-session` yet, the phone gets the error
   `luxai_unavailable` ("Update LuxAI").
 
