@@ -1,0 +1,214 @@
+diff --git a/xfce4-notifyd/xfce-notify-daemon.c b/xfce4-notifyd/xfce-notify-daemon.c
+--- a/xfce4-notifyd/xfce-notify-daemon.c
++++ b/xfce4-notifyd/xfce-notify-daemon.c
+@@ -894,7 +894,7 @@
+ 
+     for (GList *l = xfce_notification_get_windows(notification); l != NULL; l = l->next) {
+         XfceNotifyWindow *window = XFCE_NOTIFY_WINDOW(l->data);
+-        if (gtk_widget_get_realized(GTK_WIDGET(window)))
++        if (gtk_widget_get_realized(GTK_WIDGET(window)) && xfce_notify_window_get_monitor(window) != NULL)
+             xfce_notify_daemon_place_notification_window(xndaemon, window, xfce_notify_window_get_monitor(window));
+     }
+     return FALSE;
+@@ -918,12 +918,25 @@
+     return G_SOURCE_REMOVE;
+ }
+ 
++/* LuxOS: zmena velikosti (rozbaleni kliknutim) - vsechna oznameni znovu rozmistit v poradi,
++   jinak by se zvetsene prekryvalo se sousednim nebo preskocilo jinam */
++static guint luxos_reflow_id = 0;
++
++static gboolean
++xfce_notify_daemon_luxos_reflow(gpointer data)
++{
++    luxos_reflow_id = 0;
++    return xfce_notify_daemon_reflow_idle(data);
++}
++
+ static void
+ xfce_notify_daemon_window_need_position(XfceNotifyWindow *window, XfceNotifyDaemon *xndaemon) {
+     DBG("need-position for %d", xfce_notify_window_get_id(window));
+ 
+     GdkMonitor *monitor = xfce_notify_window_get_monitor(window);
+     xfce_notify_daemon_place_notification_window(xndaemon, window, monitor);
++    if (luxos_reflow_id == 0)
++        luxos_reflow_id = g_idle_add(xfce_notify_daemon_luxos_reflow, xndaemon);
+ }
+ 
+ static gboolean
+diff --git a/xfce4-notifyd/xfce-notify-window.c b/xfce4-notifyd/xfce-notify-window.c
+--- a/xfce4-notifyd/xfce-notify-window.c
++++ b/xfce4-notifyd/xfce-notify-window.c
+@@ -93,6 +93,9 @@
+     GtkWidget *summary;
+     GtkWidget *body;
+     GtkWidget *button_box;
++    /* LuxOS: krizek pro zavreni (jen pri najeti mysi) a rozbalene oznameni po kliknuti */
++    GtkWidget *luxos_close;
++    gboolean luxos_expanded;
+ 
+     guint64 expire_start_timestamp;
+     guint expire_id;
+@@ -949,6 +952,8 @@
+             xfce_notify_window_start_expiration(window);
+         }
+         window->mouse_hover = FALSE;
++        if (window->luxos_close != NULL)
++            gtk_widget_hide(window->luxos_close);
+         gtk_widget_queue_draw(widget);
+     }
+ 
+@@ -973,20 +978,101 @@
+     if (!window->mouse_hover) {
+         gtk_widget_set_opacity(GTK_WIDGET(widget), 1.0);
+         window->mouse_hover = TRUE;
++        if (window->luxos_close != NULL)
++            gtk_widget_show(window->luxos_close);
+         gtk_widget_queue_draw(widget);
+     }
+ 
+     return FALSE;
+ }
+ 
++/* LuxOS: vychozi akce oznameni - id "default", jinak akce bez popisku */
++static const gchar *
++xfce_notify_window_luxos_default_action(XfceNotifyWindow *window)
++{
++    if (window->actions == NULL)
++        return NULL;
++    for (gsize i = 0; i < window->actions->n_actions; ++i) {
++        if (g_strcmp0(window->actions->actions[i].id, "default") == 0)
++            return window->actions->actions[i].id;
++    }
++    for (gsize i = 0; i < window->actions->n_actions; ++i) {
++        const gchar *id = window->actions->actions[i].id;
++        const gchar *label = window->actions->actions[i].label;
++        if (id != NULL && *id != '\0' && (label == NULL || *label == '\0'))
++            return id;
++    }
++    return NULL;
++}
++
++static gboolean
++xfce_notify_window_luxos_label_cut(GtkWidget *label)
++{
++    return gtk_widget_get_visible(label)
++        && gtk_widget_get_realized(label)
++        && pango_layout_is_ellipsized(gtk_label_get_layout(GTK_LABEL(label)));
++}
++
++/* LuxOS: rozbalene = cely nadpis i text (vic radku, bez "...") */
++static void
++xfce_notify_window_luxos_set_expanded(XfceNotifyWindow *window, gboolean expanded)
++{
++    window->luxos_expanded = expanded;
++    /* rozumna mez jen pro extremne dlouhy text, aby okno nepreteklo obrazovku */
++    gtk_label_set_lines(GTK_LABEL(window->summary), expanded ? 6 : 1);
++    gtk_label_set_lines(GTK_LABEL(window->body), expanded ? 40 : 3);
++    gtk_widget_queue_resize(GTK_WIDGET(window));
++}
++
+ static gboolean
+ xfce_notify_window_button_release(GtkWidget *widget,
+                                   GdkEventButton *evt)
+ {
+-    g_signal_emit(G_OBJECT(widget), signals[SIG_CLOSED], 0,
++    XfceNotifyWindow *window = XFCE_NOTIFY_WINDOW(widget);
++    const gchar *action;
++
++    /* LuxOS: klik na tlacitko (akce, krizek) vyridi tlacitko samo */
++    for (GtkWidget *w = gtk_get_event_widget((GdkEvent *)evt); w != NULL && w != widget; w = gtk_widget_get_parent(w)) {
++        if (GTK_IS_BUTTON(w))
++            return FALSE;
++    }
++
++    /* LuxOS: jiny nez levy klik oznameni zavre jako drive */
++    if (evt->button != GDK_BUTTON_PRIMARY) {
++        g_signal_emit(G_OBJECT(widget), signals[SIG_CLOSED], 0,
++                      XFCE_NOTIFY_CLOSE_REASON_DISMISSED);
++        return FALSE;
++    }
++
++    /* LuxOS: prvni klik ukaze cele oznameni (zkraceny nadpis/text) misto zavreni */
++    if (!window->luxos_expanded
++        && (xfce_notify_window_luxos_label_cut(window->summary)
++            || xfce_notify_window_luxos_label_cut(window->body)))
++    {
++        xfce_notify_window_luxos_set_expanded(window, TRUE);
++        return TRUE;
++    }
++
++    /* dalsi klik (nebo prvni, kdyz neni co rozbalit) spusti vychozi akci a zavre */
++    action = xfce_notify_window_luxos_default_action(window);
++    g_object_ref(window);
++    if (action != NULL) {
++        gchar *id = g_strdup(action);
++        g_signal_emit(G_OBJECT(window), signals[SIG_ACTION_INVOKED], 0, id);
++        g_free(id);
++    }
++    g_signal_emit(G_OBJECT(window), signals[SIG_CLOSED], 0,
+                   XFCE_NOTIFY_CLOSE_REASON_DISMISSED);
++    g_object_unref(window);
+ 
+-    return FALSE;
++    return TRUE;
++}
++
++static void
++xfce_notify_window_luxos_close_clicked(GtkWidget *button, gpointer user_data)
++{
++    g_signal_emit(G_OBJECT(user_data), signals[SIG_CLOSED], 0,
++                  XFCE_NOTIFY_CLOSE_REASON_DISMISSED);
+ }
+ 
+ static gboolean
+@@ -1647,18 +1733,37 @@
+ static void
+ xfce_notify_window_ensure_widgets(XfceNotifyWindow *window) {
+     if (window->icon == NULL) {
+-        GtkWidget *topvbox, *tophbox, *vbox;
++        GtkWidget *topvbox, *tophbox, *vbox, *overlay;
+         gdouble padding = DEFAULT_PADDING;
+ 
+         gtk_widget_style_get(GTK_WIDGET(window),
+                              "padding", &padding,
+                              NULL);
+ 
++        /* LuxOS: krizek v rohu (macOS) lezi nad obsahem, velikost oznameni nemeni */
++        overlay = gtk_overlay_new();
++        gtk_widget_show(overlay);
++        gtk_container_add(GTK_CONTAINER(window), overlay);
++
+         topvbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+         gtk_box_set_homogeneous (GTK_BOX (topvbox), FALSE);
+         gtk_container_set_border_width (GTK_CONTAINER(topvbox), padding);
+         gtk_widget_show (topvbox);
+-        gtk_container_add (GTK_CONTAINER(window), topvbox);
++        gtk_container_add (GTK_CONTAINER(overlay), topvbox);
++
++        window->luxos_close = gtk_button_new_with_label("\xc3\x97");
++        gtk_widget_set_name(window->luxos_close, "luxos-close");
++        gtk_button_set_relief(GTK_BUTTON(window->luxos_close), GTK_RELIEF_NONE);
++        gtk_widget_set_can_focus(window->luxos_close, FALSE);
++        gtk_widget_set_halign(window->luxos_close, GTK_ALIGN_START);
++        gtk_widget_set_valign(window->luxos_close, GTK_ALIGN_START);
++        gtk_widget_set_margin_start(window->luxos_close, 4);
++        gtk_widget_set_margin_top(window->luxos_close, 4);
++        gtk_widget_set_no_show_all(window->luxos_close, TRUE);
++        atk_object_set_name(gtk_widget_get_accessible(window->luxos_close), _("Close"));
++        g_signal_connect(window->luxos_close, "clicked",
++                         G_CALLBACK(xfce_notify_window_luxos_close_clicked), window);
++        gtk_overlay_add_overlay(GTK_OVERLAY(overlay), window->luxos_close);
+         tophbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+         gtk_box_set_homogeneous (GTK_BOX (tophbox), FALSE);
+         gtk_widget_show (tophbox);
+@@ -1696,7 +1801,8 @@
+         gtk_label_set_ellipsize (GTK_LABEL (window->body), PANGO_ELLIPSIZE_END);
+         gtk_label_set_line_wrap (GTK_LABEL(window->body), TRUE);
+         gtk_label_set_line_wrap_mode (GTK_LABEL (window->body), PANGO_WRAP_WORD_CHAR);
+-        gtk_label_set_lines (GTK_LABEL (window->body), 6);
++        /* LuxOS: zkracene 3 radky, cely text po kliknuti */
++        gtk_label_set_lines (GTK_LABEL (window->body), 3);
+         gtk_widget_set_halign (window->body, GTK_ALIGN_FILL);
+         gtk_label_set_xalign (GTK_LABEL(window->body), 0);
+         gtk_widget_set_valign (window->body, GTK_ALIGN_BASELINE);
