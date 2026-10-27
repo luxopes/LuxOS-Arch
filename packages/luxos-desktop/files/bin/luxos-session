@@ -79,6 +79,18 @@ if [[ ! -e $cfg/text-editor-migrated ]] && command -v luxos-text >/dev/null; the
     unset launchers dock items fav fav_args f mime
 fi
 
+# Tapety "vlny" (luxos-waves-dark/light) v LuxOS 1.0 nejsou: kdo je mel nastavene, dostane Flow ve stejnem
+# rezimu (jednou; jinou tapetu nemeni)
+if [[ ! -e $cfg/waves-migrated ]]; then
+    while read -r p; do
+        v=$(xfconf-query -c xfce4-desktop -p "$p" 2>/dev/null)
+        [[ $v == */luxos-waves-dark.jpg ]] && xfconf-query -c xfce4-desktop -p "$p" -s /usr/share/backgrounds/luxos/luxos-flow-dark.jpg
+        [[ $v == */luxos-waves-light.jpg ]] && xfconf-query -c xfce4-desktop -p "$p" -s /usr/share/backgrounds/luxos/luxos-flow-light.jpg
+    done < <(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep '/last-image$')
+    : >"$cfg/waves-migrated"
+    unset p v
+fi
+
 # Kompozitor xfwm4 (stiny, pruhlednost): zapnout i po pokusu s picom, ktery ho vypinal
 pgrep -u "$USER" -x picom >/dev/null || xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s true 2>/dev/null
 

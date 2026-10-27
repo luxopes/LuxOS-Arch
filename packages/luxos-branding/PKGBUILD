@@ -3,7 +3,7 @@
 
 pkgname=luxos-branding
 pkgver=1.1.0
-pkgrel=24
+pkgrel=25
 pkgdesc="LuxOS branding: logo, wallpapers, Plymouth boot splash and os-release"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -18,10 +18,6 @@ build() {
         rsvg-convert -w $s -h $s "$f/logo/luxos-logo.svg" -o render/logo-$s.png
     done
     rsvg-convert -w 256 -h 256 "$f/logo/luxos-logo-white.svg" -o render/logo-white.png
-    for v in dark light; do
-        rsvg-convert -w 3840 -h 2160 "$f/wallpapers/luxos-$v.svg" -o render/luxos-$v.png
-        magick render/luxos-$v.png -quality 94 render/luxos-waves-$v.jpg
-    done
     # Boot splash: kazda barevna varianta jako samostatny motiv Plymouth + nahledy pro Nastaveni
     python3 "$f/plymouth/make-variants.py" "$f/logo/luxos-logo.png" "$f/plymouth/luxos.script" render/plymouth
     rsvg-convert "$f/syslinux/splash.svg" -o render/splash.png
@@ -55,8 +51,7 @@ package() {
     install -Dm644 render/splash.png "$pkgdir/usr/share/luxos/syslinux/splash.png"
 
     # Tapety; luxos-dark/light jsou vychozi pro tmavy a svetly rezim (luxos-appearance)
-    install -Dm644 -t "$pkgdir/usr/share/backgrounds/luxos" "$f"/wallpapers/*.jpg \
-        render/luxos-waves-dark.jpg render/luxos-waves-light.jpg
+    install -Dm644 -t "$pkgdir/usr/share/backgrounds/luxos" "$f"/wallpapers/*.jpg
     ln -s luxos-flow-dark.jpg "$pkgdir/usr/share/backgrounds/luxos/luxos-dark.jpg"
     ln -s luxos-flow-light.jpg "$pkgdir/usr/share/backgrounds/luxos/luxos-light.jpg"
 

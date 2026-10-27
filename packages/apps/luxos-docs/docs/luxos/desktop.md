@@ -197,7 +197,7 @@ luxos-appearance greeter-sync            # same wallpaper on the login screen (d
 ## Wallpapers
 
 LuxOS wallpapers are in `/usr/share/backgrounds/luxos`: aurora-blue, aurora-orange, aurora-purple,
-citrus, flow-dark, flow-light, lagoon, sunrise, twilight, waves-dark and waves-light.
+citrus, flow-dark, flow-light, lagoon, sunrise and twilight.
 `luxos-dark.jpg` and `luxos-light.jpg` are the defaults for each mode (links to flow-dark and
 flow-light). When you switch the mode, the default wallpaper changes with it, but a wallpaper you
 picked yourself stays.
