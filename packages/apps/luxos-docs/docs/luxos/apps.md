@@ -17,6 +17,7 @@ translations) and the light/dark mode.
 | Camera | `luxos-camera` | photos and videos from the webcam; `--scan-wifi` joins a Wi-Fi from a QR code |
 | Weather | `luxos-weather` | current weather, 24-hour and 7-day forecast ([weather.md](weather.md)) |
 | Maps | `luxos-maps` | OpenStreetMap map, place search, routes, favorites, `geo:` links ([maps.md](maps.md)) |
+| Text Editor | `luxos-text` | text and code editor: folder sidebar, syntax, outline, encodings, find and replace ([text-editor.md](text-editor.md)) |
 | Wi-Fi QR Code | `luxos-wifi-qr` | share the Wi-Fi as a QR code, join one by scanning ([wifi-qr.md](wifi-qr.md)) |
 | System Monitor | `luxos-monitor` | performance charts, quit frozen apps |
 | Screenshot | `luxos-screenshot` | screenshots and screen recording |
@@ -34,7 +35,7 @@ translations) and the light/dark mode.
 | Settings apps | `luxos-settings`, `luxos-display-settings`, … | [settings-apps.md](settings-apps.md) |
 
 Standard apps that are installed by default: Firefox, Files (Thunar), Terminal (`luxos-terminal`
-with the `lsh` shell, [terminal.md](terminal.md)), Mousepad (text editor), Ristretto (images), Evince (documents), Xarchiver,
+with the `lsh` shell, [terminal.md](terminal.md)), Text Editor (`luxos-text`, [text-editor.md](text-editor.md)), Ristretto (images), Evince (documents), Xarchiver,
 Celluloid (video). In the top bar, some of them get short names such as "Files", "Terminal", "Text
 Editor", "Image Viewer" and "Document Viewer".
 

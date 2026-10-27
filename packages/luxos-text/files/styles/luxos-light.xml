@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS - svetle barvy Textoveho editoru (vlastni paleta) -->
+<style-scheme id="luxos-light" name="LuxOS Light" version="1.0">
+  <author>LuxOS Team</author>
+  <description>Light colors of the LuxOS Text Editor</description>
+
+  <color name="text" value="#1d1d1f"/>
+  <color name="bg" value="#ffffff"/>
+  <color name="gray" value="#8a8a93"/>
+  <color name="light-gray" value="#c4c4cc"/>
+  <color name="line" value="#f4f6fb"/>
+  <color name="selection" value="#b9d3ff"/>
+  <color name="selection-dim" value="#dcdce2"/>
+  <color name="accent" value="#3d7bff"/>
+  <color name="keyword" value="#b0287e"/>
+  <color name="type" value="#1f6f8b"/>
+  <color name="string" value="#c4392d"/>
+  <color name="number" value="#2b38c4"/>
+  <color name="func" value="#2e7d5b"/>
+  <color name="pre" value="#8a5a1b"/>
+  <color name="const" value="#6e3fb5"/>
+
+  <style name="text" foreground="text" background="bg"/>
+  <style name="selection" background="selection"/>
+  <style name="selection-unfocused" background="selection-dim"/>
+  <style name="cursor" foreground="accent"/>
+  <style name="current-line" background="line"/>
+  <style name="line-numbers" foreground="light-gray" background="bg"/>
+  <style name="current-line-number" foreground="text" background="line"/>
+  <style name="bracket-match" background="#ffe98a" bold="true"/>
+  <style name="bracket-mismatch" foreground="#ffffff" background="#e5484d"/>
+  <style name="search-match" background="#ffd94a"/>
+  <style name="draw-spaces" foreground="light-gray"/>
+  <style name="right-margin" foreground="#e2e2e8" background="#fafafc"/>
+
+  <style name="def:comment" foreground="gray" italic="true"/>
+  <style name="def:shebang" foreground="gray" bold="true"/>
+  <style name="def:doc-comment-element" foreground="gray" bold="true"/>
+  <style name="def:note" foreground="#9a6a00" background="#fff4c2" bold="true"/>
+  <style name="def:keyword" foreground="keyword" bold="true"/>
+  <style name="def:statement" foreground="keyword" bold="true"/>
+  <style name="def:type" foreground="type"/>
+  <style name="def:builtin" foreground="type"/>
+  <style name="def:string" foreground="string"/>
+  <style name="def:character" foreground="string"/>
+  <style name="def:special-char" foreground="#a35200"/>
+  <style name="def:number" foreground="number"/>
+  <style name="def:floating-point" foreground="number"/>
+  <style name="def:decimal" foreground="number"/>
+  <style name="def:base-n-integer" foreground="number"/>
+  <style name="def:boolean" foreground="const" bold="true"/>
+  <style name="def:constant" foreground="const"/>
+  <style name="def:special-constant" foreground="const" bold="true"/>
+  <style name="def:function" foreground="func"/>
+  <style name="def:identifier" foreground="type"/>
+  <style name="def:preprocessor" foreground="pre"/>
+  <style name="def:error" foreground="#ffffff" background="#e5484d"/>
+  <style name="def:warning" background="#fff1c2"/>
+  <style name="def:net-address" foreground="accent" underline="single"/>
+  <style name="def:link-destination" foreground="accent" underline="single"/>
+  <style name="def:link-text" foreground="accent"/>
+  <style name="def:underlined" underline="single"/>
+  <style name="def:emphasis" italic="true"/>
+  <style name="def:strong-emphasis" bold="true"/>
+  <style name="def:heading" foreground="#0b3d91" bold="true"/>
+  <style name="def:inline-code" foreground="#a33b1f" background="#f5f5f7"/>
+  <style name="def:insertion" foreground="#1a7f37"/>
+  <style name="def:deletion" foreground="#cf222e"/>
+
+  <style name="markdown:header" foreground="#0b3d91" bold="true"/>
+  <style name="markdown:code" foreground="#a33b1f"/>
+  <style name="markdown:code-span" foreground="#a33b1f"/>
+  <style name="markdown:list-marker" foreground="keyword" bold="true"/>
+  <style name="markdown:blockquote-marker" foreground="gray" bold="true"/>
+  <style name="diff:added-line" foreground="#1a7f37" background="#e8f8ec"/>
+  <style name="diff:removed-line" foreground="#cf222e" background="#fdecee"/>
+  <style name="diff:location" foreground="accent" bold="true"/>
+  <style name="xml:element-name" foreground="type" bold="true"/>
+  <style name="xml:attribute-name" foreground="func"/>
+  <style name="xml:attribute-value" foreground="string"/>
+  <style name="css:property-name" foreground="type"/>
+</style-scheme>

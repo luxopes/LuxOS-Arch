@@ -1,0 +1,55 @@
+# Maintainer: LuxOS Team
+# Textovy editor LuxOS (luxos-text): vlastni lehky editor v C (GTK3 + GtkSourceView 4) misto Mousepadu,
+# ve stylu macOS - postranni panel se stromem slozky, vyber jazyka, osnova (nadpisy, funkce), stavovy radek
+# s pocty, kodovanim a konci radku, hledani a nahrazovani, panely, jeden proces pro vsechna okna.
+# C misto Pythonu (PyGObject): stejny minimalni prototyp (okno s GtkSourceView a souborem) mel v Pythonu prvni
+# vykresleni za 270 ms a PSS 52 MB, v C 160 ms a 34 MB.
+# Mereni proti Mousepadu 0.7 (xvfb, cas do prvniho vykresleni okna, median 9 behu, stejne GtkSourceView 4):
+#   maly soubor (3 kB):  164 ms vs 214 ms, PSS 19,2 vs 26,7 MB (RSS 56,1 vs 58,3 MB)
+#   1 MB soubor Pythonu: 203 ms vs 240 ms, PSS 34,6 vs 42,6 MB (RSS 71,5 vs 74,3 MB)
+#   dalsi okno v bezicim editoru: 40 ms (Mousepad otevira jen panel v existujicim okne)
+
+pkgname=luxos-text
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS Text Editor - fast GTK3/GtkSourceView text and code editor with folder sidebar, outline and encodings"
+arch=(x86_64)
+url="https://github.com/luxopes/LuxOS-Arch"
+license=(GPL-3.0-or-later)
+# luxos-i18n: preklady (/usr/share/luxos/i18n); ttf-jetbrains-mono-nerd: pismo Monospace (fontconfig LuxOS)
+depends=(gtk3 gtksourceview4 glib2 pango cairo gdk-pixbuf2 libx11 luxos-i18n hicolor-icon-theme ttf-jetbrains-mono-nerd)
+makedepends=(gcc pkgconf gtk3 gtksourceview4 libx11)
+checkdepends=(python python-gobject xorg-server-xvfb xorg-xauth xorg-xprop xdotool dbus)
+
+build() {
+    local cf
+    cf=$(pkg-config --cflags --libs gtksourceview-4 x11)
+    gcc $CPPFLAGS $CFLAGS $LDFLAGS -DLUXOS_TEXT_VERSION="\"$pkgver\"" -o luxos-text \
+        "$startdir/files/luxos-text.c" "$startdir/files/text-core.c" $cf
+    # testy logiky bez okna (kodovani, konce radku, pocty, jazyk, osnova, nedavne soubory)
+    gcc $CPPFLAGS $CFLAGS $LDFLAGS -o test-core "$startdir/tests/test-core.c" "$startdir/files/text-core.c" $cf
+}
+
+check() {
+    LUXOS_TEXT_LANG_DIR="$startdir/files/language-specs" ./test-core
+    # okna jen ve virtualni obrazovce (xvfb-run), nikdy na skutecne; vlastni XDG_RUNTIME_DIR, aby sluzby
+    # testovaci relace D-Bus (portaly, gvfs, keyring) nesahaly do /run/user/UID skutecne relace
+    local bin="$PWD/luxos-text" rt
+    rt=$(mktemp -d)
+    chmod 700 "$rt"
+    cd "$startdir/tests"
+    XDG_RUNTIME_DIR="$rt" GTK_USE_PORTAL=0 GIO_USE_VFS=local NO_AT_BRIDGE=1 \
+    LUXOS_TEXT_BIN="$bin" env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS xvfb-run -a -s "-screen 0 1280x800x24" \
+        dbus-run-session -- python3 -m unittest -v test_luxos_text
+    rm -rf "$rt"
+}
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 luxos-text "$pkgdir/usr/bin/luxos-text"
+    install -Dm644 "$f/luxos-text.desktop" "$pkgdir/usr/share/applications/luxos-text.desktop"
+    install -Dm644 "$f/luxos-text.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-text.svg"
+    # Barvy (svetle/tmave) a zvyrazneni LSL - ve spolecnych adresarich GtkSourceView (i pro jine editory)
+    install -Dm644 -t "$pkgdir/usr/share/gtksourceview-4/styles" "$f"/styles/luxos-{light,dark}.xml
+    install -Dm644 "$f/language-specs/lsl.lang" "$pkgdir/usr/share/gtksourceview-4/language-specs/lsl.lang"
+}

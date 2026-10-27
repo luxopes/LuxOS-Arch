@@ -21,7 +21,7 @@ Its items, from left to right:
 
 | Item | What it is | Click |
 |---|---|---|
-| LuxOS logo | Whisker Menu with the LuxOS logo (see [The LuxOS menu](#the-luxos-menu)). Favourites: About This Computer, Firefox, Files, Terminal, Mousepad, Welcome, Settings. | opens the system menu; clicking the user name or photo opens LuxAI Account (`luxos-account`) |
+| LuxOS logo | Whisker Menu with the LuxOS logo (see [The LuxOS menu](#the-luxos-menu)). Favourites: About This Computer, Firefox, Files, Terminal, Text Editor, Welcome, Settings. | opens the system menu; clicking the user name or photo opens LuxAI Account (`luxos-account`) |
 | App name | name of the active application in bold (`luxos-appname`, genmon) | - |
 | Open windows | icons of open windows (tasklist, grouped) | switch to that window |
 | Keyboard flag | xkb plugin: the flag of the current keyboard layout, Caps Lock indicator | switches layout; "Keyboard settings" opens Keyboard Layouts (`luxos-keyboard`) |
@@ -118,7 +118,7 @@ More detail on Data Saver and Battery Saver: [power-and-performance.md](power-an
 The Dock is Plank, started by `luxos-dock`, which restarts Plank after a crash. It sits at the
 bottom with 48 px icons and 150 % magnification, and it hides itself when a window covers it
 ("window-dodge"). The default items are Launchpad, LuxAI, LuxOS Store, Files, Firefox, Terminal,
-Mousepad, Settings and Trash. Settings are in dconf (`net.launchpad.plank.dock.settings`,
+Text Editor, Settings and Trash. Settings are in dconf (`net.launchpad.plank.dock.settings`,
 `/net/launchpad/plank/docks/dock1/`), and the launchers are in `~/.config/plank/dock1/launchers`.
 
 Change the size, magnification, position (Bottom, Left, Right), auto-hide and opacity in

@@ -1,0 +1,42 @@
+# LuxOS - vychozi aplikace pro typy souboru (/etc/xdg/luxos je v XDG_CONFIG_DIRS pred /etc/xdg).
+# Plati pro nove i stavajici uzivatele, dokud si v ~/.config/mimeapps.list nezvoli jinou aplikaci.
+# Textovy editor LuxOS (luxos-text) misto Mousepadu; HTML a SVG nechava prohlizeci.
+[Default Applications]
+text/plain=luxos-text.desktop;
+application/x-zerosize=luxos-text.desktop;
+text/markdown=luxos-text.desktop;
+text/x-markdown=luxos-text.desktop;
+text/x-python=luxos-text.desktop;
+text/x-python3=luxos-text.desktop;
+text/x-csrc=luxos-text.desktop;
+text/x-chdr=luxos-text.desktop;
+text/x-c++src=luxos-text.desktop;
+text/x-c++hdr=luxos-text.desktop;
+text/x-java=luxos-text.desktop;
+text/x-go=luxos-text.desktop;
+text/x-rust=luxos-text.desktop;
+text/x-log=luxos-text.desktop;
+text/x-makefile=luxos-text.desktop;
+text/x-cmake=luxos-text.desktop;
+text/css=luxos-text.desktop;
+text/x-tex=luxos-text.desktop;
+text/x-patch=luxos-text.desktop;
+text/x-diff=luxos-text.desktop;
+text/x-readme=luxos-text.desktop;
+text/x-changelog=luxos-text.desktop;
+text/x-ini-file=luxos-text.desktop;
+text/x-systemd-unit=luxos-text.desktop;
+application/x-shellscript=luxos-text.desktop;
+text/x-shellscript=luxos-text.desktop;
+application/json=luxos-text.desktop;
+application/xml=luxos-text.desktop;
+text/xml=luxos-text.desktop;
+application/x-yaml=luxos-text.desktop;
+application/toml=luxos-text.desktop;
+application/javascript=luxos-text.desktop;
+text/javascript=luxos-text.desktop;
+application/x-perl=luxos-text.desktop;
+application/x-ruby=luxos-text.desktop;
+application/x-php=luxos-text.desktop;
+text/x-lua=luxos-text.desktop;
+text/x-lsl=luxos-text.desktop;

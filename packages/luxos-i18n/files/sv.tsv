@@ -3876,3 +3876,95 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Datornamnet för domänen får ha högst 15 bokstäver, siffror och bindestreck.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Domänen hittades inte i DNS. Kontrollera att datorn använder organisationens DNS-server (oftast via DHCP) eller ange adressen till en domänkontrollant.
 Sign In to Network…	Logga in på nätverket…
+%d found	%d hittade
+%d of %d	%d av %d
+%d replaced	%d ersatta
+Default Text Size	Standardtextstorlek
+Bigger Text	Större text
+Smaller Text	Mindre text
+Baltic	Baltisk
+Central European	Centraleuropeisk
+Change the encoding to %s?	Ändra kodningen till %s?
+Characters: %s	Tecken: %s
+Chinese Simplified	Förenklad kinesiska
+Clear Menu	Rensa menyn
+Convert	Konvertera
+Could not create “%s”.	Det gick inte att skapa ”%s”.
+Could not open “%s”.	Det gick inte att öppna ”%s”.
+Could not save “%s”.	Det gick inte att spara ”%s”.
+Created:	Skapad:
+Cyrillic	Kyrillisk
+Do you want to save the changes to “%s”?	Vill du spara ändringarna i ”%s”?
+Document Info	Dokumentinformation
+Don't Save	Spara inte
+Edited	Ändrad
+Encoding	Kodning
+Encoding:	Kodning:
+Find and Replace…	Sök och ersätt…
+Go to Line (Ctrl+L)	Gå till rad (Ctrl+L)
+Go to Line:	Gå till rad:
+Go to Line…	Gå till rad…
+Greek	Grekisk
+Ignore	Ignorera
+Invalid pattern	Ogiltigt mönster
+Invisible Characters	Osynliga tecken
+Japanese	Japansk
+Korean	Koreansk
+Line Endings	Radslut
+Line Endings:	Radslut:
+Line Numbers	Radnummer
+Lines: %s	Rader: %s
+Match Case	Matcha skiftläge
+Modified:	Ändrad:
+Name:	Namn:
+New File	Ny fil
+New File or Folder	Ny fil eller mapp
+New File…	Ny fil…
+New Folder	Ny mapp
+New Folder…	Ny mapp…
+Next	Nästa
+Next Symbol	Nästa element
+No Outline	Ingen disposition
+No Symbols	Inga element
+No results	Inga träffar
+Not saved	Inte sparad
+Open Folder	Öppna mapp
+Open Folder…	Öppna mapp…
+Open Recent	Öppna senaste
+Open…	Öppna…
+Outline	Disposition
+Path:	Sökväg:
+Plain Text	Oformaterad text
+Previous	Föregående
+Previous Symbol	Föregående element
+Redo	Gör om
+Regular Expression	Reguljärt uttryck
+Reinterpret	Tolka om
+Reinterpret reads the file again in the new encoding (when it was opened in a wrong one). Convert keeps the text and saves it in the new encoding.	”Tolka om” läser filen igen i den nya kodningen (om den öppnades i fel kodning). ”Konvertera” behåller texten och sparar den i den nya kodningen.
+Reloading discards your unsaved changes.	Om du läser in igen förloras osparade ändringar.
+Replace All	Ersätt alla
+Save As	Spara som
+Save as UTF-8	Spara som UTF-8
+Save the document in Unicode (UTF-8) instead?	Spara dokumentet i Unicode (UTF-8) i stället?
+Show Sidebar (F9)	Sidofält (F9)
+Sidebar	Sidofält
+Size:	Storlek:
+Some characters cannot be saved in %s.	Vissa tecken kan inte sparas i %s.
+Syntax	Syntax
+Syntax:	Syntax:
+The file appears to be a binary file.	Filen verkar vara en binärfil.
+The file cannot be read as %s.	Filen kan inte läsas som %s.
+The file was changed by another program.	Filen har ändrats av ett annat program.
+The file was deleted or moved by another program. Save it to keep it.	Filen har tagits bort eller flyttats av ett annat program. Spara den för att behålla den.
+Top of Document	Dokumentets början
+Turkish	Turkisk
+UTF-8 with BOM	UTF-8 med BOM
+Undo	Ångra
+Untitled	Namnlös
+Western	Västeuropeisk
+Whole Words	Hela ord
+Words: %s	Ord: %s
+Wrap Lines	Radbrytning
+Your changes will be lost if you don't save them.	Dina ändringar går förlorade om du inte sparar dem.
+untitled	namnlös
+“%s” already exists.	”%s” finns redan.

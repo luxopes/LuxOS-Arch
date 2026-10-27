@@ -3876,3 +3876,95 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Názov počítača pre doménu môže mať najviac 15 písmen, číslic a pomlčiek.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Doména sa v DNS nenašla. Skontrolujte, či počítač používa DNS server organizácie (zvyčajne z DHCP), alebo zadajte adresu radiča domény.
 Sign In to Network…	Prihlásiť sa do siete…
+%d found	Nájdené: %d
+%d of %d	%d z %d
+%d replaced	Nahradené: %d
+Default Text Size	Predvolená veľkosť textu
+Bigger Text	Väčší text
+Smaller Text	Menší text
+Baltic	Baltské
+Central European	Stredoeurópske
+Change the encoding to %s?	Zmeniť kódovanie na %s?
+Characters: %s	Znaky: %s
+Chinese Simplified	Čínske zjednodušené
+Clear Menu	Vymazať ponuku
+Convert	Previesť
+Could not create “%s”.	„%s“ sa nepodarilo vytvoriť.
+Could not open “%s”.	„%s“ sa nepodarilo otvoriť.
+Could not save “%s”.	„%s“ sa nepodarilo uložiť.
+Created:	Vytvorené:
+Cyrillic	Cyrilika
+Do you want to save the changes to “%s”?	Chcete uložiť zmeny v dokumente „%s“?
+Document Info	Informácie o dokumente
+Don't Save	Neukladať
+Edited	Upravené
+Encoding	Kódovanie
+Encoding:	Kódovanie:
+Find and Replace…	Nájsť a nahradiť…
+Go to Line (Ctrl+L)	Prejsť na riadok (Ctrl+L)
+Go to Line:	Prejsť na riadok:
+Go to Line…	Prejsť na riadok…
+Greek	Grécke
+Ignore	Ignorovať
+Invalid pattern	Neplatný výraz
+Invisible Characters	Neviditeľné znaky
+Japanese	Japonské
+Korean	Kórejské
+Line Endings	Konce riadkov
+Line Endings:	Konce riadkov:
+Line Numbers	Čísla riadkov
+Lines: %s	Riadky: %s
+Match Case	Rozlišovať veľkosť písmen
+Modified:	Zmenené:
+Name:	Názov:
+New File	Nový súbor
+New File or Folder	Nový súbor alebo priečinok
+New File…	Nový súbor…
+New Folder	Nový priečinok
+New Folder…	Nový priečinok…
+Next	Ďalší
+Next Symbol	Ďalšia položka
+No Outline	Bez osnovy
+No Symbols	Žiadne položky
+No results	Nič sa nenašlo
+Not saved	Neuložené
+Open Folder	Otvoriť priečinok
+Open Folder…	Otvoriť priečinok…
+Open Recent	Otvoriť nedávne
+Open…	Otvoriť…
+Outline	Osnova
+Path:	Cesta:
+Plain Text	Obyčajný text
+Previous	Predchádzajúci
+Previous Symbol	Predchádzajúca položka
+Redo	Znova
+Regular Expression	Regulárny výraz
+Reinterpret	Prečítať znova
+Reinterpret reads the file again in the new encoding (when it was opened in a wrong one). Convert keeps the text and saves it in the new encoding.	Prečítať znova načíta súbor znova v novom kódovaní (keď bol otvorený v nesprávnom). Previesť ponechá text a uloží ho v novom kódovaní.
+Reloading discards your unsaved changes.	Opätovné načítanie zahodí neuložené zmeny.
+Replace All	Nahradiť všetko
+Save As	Uložiť ako
+Save as UTF-8	Uložiť v UTF-8
+Save the document in Unicode (UTF-8) instead?	Uložiť dokument radšej v Unicode (UTF-8)?
+Show Sidebar (F9)	Bočný panel (F9)
+Sidebar	Bočný panel
+Size:	Veľkosť:
+Some characters cannot be saved in %s.	Niektoré znaky nemožno uložiť v kódovaní %s.
+Syntax	Syntax
+Syntax:	Syntax:
+The file appears to be a binary file.	Súbor je zrejme binárny.
+The file cannot be read as %s.	Súbor nemožno prečítať ako %s.
+The file was changed by another program.	Súbor zmenil iný program.
+The file was deleted or moved by another program. Save it to keep it.	Súbor vymazal alebo presunul iný program. Ak ho chcete zachovať, uložte ho.
+Top of Document	Začiatok dokumentu
+Turkish	Turecké
+UTF-8 with BOM	UTF-8 s BOM
+Undo	Späť
+Untitled	Bez názvu
+Western	Západoeurópske
+Whole Words	Celé slová
+Words: %s	Slová: %s
+Wrap Lines	Zalamovať riadky
+Your changes will be lost if you don't save them.	Ak zmeny neuložíte, stratia sa.
+untitled	bez názvu
+“%s” already exists.	„%s“ už existuje.

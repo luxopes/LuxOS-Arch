@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- LuxOS Textovy editor: vlastni ikona (zaobleny ctverec, list s cisly radku, barevnymi radky kodu a kurzorem) -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#5f8bff"/>
+      <stop offset="1" stop-color="#6a3df0"/>
+    </linearGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef0f7"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="10" width="112" height="112" rx="26" fill="#000" opacity="0.18"/>
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#tile)"/>
+  <path d="M8 34 A26 26 0 0 1 34 8 H94 A26 26 0 0 1 120 34 V52 C90 44 40 44 8 58 Z" fill="url(#gloss)"/>
+  <rect x="8.5" y="8.5" width="111" height="111" rx="25.5" fill="none" stroke="#000" stroke-opacity="0.12"/>
+  <!-- list -->
+  <rect x="27" y="25" width="76" height="86" rx="9" fill="#1b1060" opacity="0.28"/>
+  <rect x="25" y="22" width="76" height="86" rx="9" fill="url(#page)"/>
+  <rect x="25" y="22" width="18" height="86" rx="9" fill="#e3e6f2"/>
+  <rect x="34" y="22" width="9" height="86" fill="#e3e6f2"/>
+  <!-- cisla radku -->
+  <g fill="#a9aec4">
+    <rect x="30" y="34" width="8" height="4" rx="2"/>
+    <rect x="30" y="46" width="8" height="4" rx="2"/>
+    <rect x="30" y="58" width="8" height="4" rx="2"/>
+    <rect x="30" y="70" width="8" height="4" rx="2"/>
+    <rect x="30" y="82" width="8" height="4" rx="2"/>
+    <rect x="30" y="94" width="8" height="4" rx="2"/>
+  </g>
+  <!-- radky kodu -->
+  <rect x="49" y="33" width="16" height="6" rx="3" fill="#d2398f"/>
+  <rect x="68" y="33" width="24" height="6" rx="3" fill="#2f6fe4"/>
+  <rect x="55" y="45" width="22" height="6" rx="3" fill="#2e9b6a"/>
+  <rect x="80" y="45" width="12" height="6" rx="3" fill="#c4c8d8"/>
+  <rect x="55" y="57" width="12" height="6" rx="3" fill="#d2398f"/>
+  <rect x="70" y="57" width="18" height="6" rx="3" fill="#e5822e"/>
+  <rect x="49" y="69" width="30" height="6" rx="3" fill="#c4c8d8"/>
+  <rect x="55" y="81" width="14" height="6" rx="3" fill="#2f6fe4"/>
+  <rect x="72" y="81" width="14" height="6" rx="3" fill="#e5822e"/>
+  <rect x="49" y="93" width="10" height="6" rx="3" fill="#d2398f"/>
+  <!-- kurzor -->
+  <rect x="61" y="90" width="3" height="12" rx="1.5" fill="#3d7bff"/>
+</svg>
