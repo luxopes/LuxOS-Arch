@@ -996,7 +996,7 @@ function store_new(directory):
     if dir == "" or dir == None:
         dir = default_dir()
     end
-    return {"dir": dir, "own_path": dir + "/" + OWN, "own": calendar_new(), "foreign": {}, "stamp": None,
+    return {"dir": dir, "own_path": dir + "/" + OWN, "own": calendar_new(), "foreign": {}, "stamp": None, "known": {},
             "version": 0, "tzname": date.local_tz_name(), "cache": {}}
 end
 
@@ -1043,12 +1043,59 @@ function reload_if_changed(store):
             store["foreign"][name] = cal
         end
     end
+    call remember_known(store)
     store["version"] += 1
     store["cache"] = {}
     return True
 end
 
+# UID udalosti vlastniho kalendare podle posledniho nacteni ze souboru
+function remember_known(store):
+    known = {}
+    for ev in store["own"]["events"]:
+        known[ev["uid"]] = True
+    end
+    store["known"] = known
+    return 0
+end
+
+# Pred zapisem: zmenil-li soubor nekdo jiny (LuxOS Companion z telefonu, import) a Kalendar to jeste
+# nenacetl, prevzit jeho nove udalosti - jinak by je zapis z pameti smazal. Udalosti smazane zde
+# (byly pri poslednim nacteni) se nevraceji.
+function merge_external(store):
+    st = glib.stat(store["own_path"])
+    if len(st) != 2:
+        return 0
+    end
+    disk = String(st[1]) + ":" + String(st[0])
+    if store["stamp"] != None and store["stamp"].get(OWN) == disk:
+        return 0
+    end
+    cal = None
+    ok = True
+    try:
+        cal = read_file(store["own_path"])
+    else:
+        ok = False
+    end
+    if not ok:
+        return 0
+    end
+    present = {}
+    for ev in store["own"]["events"]:
+        present[ev["uid"]] = True
+    end
+    for ev in cal["events"]:
+        if store["known"].get(ev["uid"]) == None and present.get(ev["uid"]) == None:
+            store["own"]["events"].append(ev)
+            present[ev["uid"]] = True
+        end
+    end
+    return 0
+end
+
 function save(store):
+    call merge_external(store)
     call write_file(store["own_path"], store["own"], store["tzname"])
     store["stamp"] = None
     call reload_if_changed(store)
@@ -1089,10 +1136,16 @@ end
 
 function update(store, ev):
     found = False
-    for e in store["own"]["events"]:
+    events = store["own"]["events"]
+    index = 0
+    while index < len(events):
+        e = events[index]
         if e["uid"] == ev["uid"] and e["recurrence_id"] == ev["recurrence_id"]:
             found = True
+            # po nacteni zmen ze souboru (inotify) je v pameti nova kopie udalosti - ulozit upravenou
+            events[index] = ev
         end
+        index += 1
     end
     if not found:
         Error(KeyError: event_not_in_own_calendar)

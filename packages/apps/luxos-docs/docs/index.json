@@ -621,6 +621,37 @@
           ]
         },
         {
+          "path": "luxos/companion.md",
+          "title": "Phone (LuxOS Companion)",
+          "summary": "LuxOS Companion Android app over Bluetooth (luxos-companion, Settings › Phone): pairing, approving phones, live phone GPS in Maps (with Maps consent), LuxAI requests from the phone, calendar notes, protocol v1, D-Bus cz.luxos.Companion1.",
+          "keywords": [
+            "phone",
+            "telefon",
+            "android",
+            "LuxOS Companion",
+            "luxos-companion",
+            "companion",
+            "bluetooth",
+            "RFCOMM",
+            "pairing",
+            "approve phone",
+            "phone location",
+            "GPS",
+            "live location",
+            "follow",
+            "Maps",
+            "LuxAI from phone",
+            "luxai --remote-session",
+            "calendar note",
+            "events.ics",
+            "companion.json",
+            "cz.luxos.Companion1",
+            "GetLocation",
+            "LocationChanged",
+            "GeoClue NMEA"
+          ]
+        },
+        {
           "path": "luxos/wifi-qr.md",
           "title": "Wi-Fi QR codes",
           "summary": "Share the current Wi-Fi as a QR code (luxos-wifi-qr, Control Center) and join a network by scanning a Wi-Fi QR code with the camera (luxos-camera --scan-wifi); WIFI: format, password from NetworkManager, zxing-cpp.",

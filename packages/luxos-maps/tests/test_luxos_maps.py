@@ -266,6 +266,7 @@ os.environ.update({
     "LUXOS_MAPS_STOPTIMES": SERVER.base + "/transitous/stoptimes",
     "LUXOS_MAPS_OVERPASS": SERVER.base + "/overpass",
     "LUXOS_MAPS_GEOCLUE": "0",
+    "LUXOS_MAPS_PHONE": "0",          # poloha z telefonu jen v TestPhoneLocation (soukroma sbernice)
     "LUXOS_MAPS_RATE": "0.05",
     "LUXOS_I18N_DIR": os.path.join(ROOT, "luxos-i18n", "files"),
     "XDG_CACHE_HOME": os.path.join(TMP, "cache"),
@@ -1012,6 +1013,153 @@ class TestCli(unittest.TestCase):
         self.assertNotIn("Gtk", out.stderr)
 
 
+class FakeCompanion:
+    """cz.luxos.Companion1 (GetLocation, signal LocationChanged) na soukrome sbernici D-Bus
+    (vlastni dbus-daemon, nikdy sbernice skutecne relace); obsluha ve vlastnim vlakne."""
+    XML = """<node><interface name="cz.luxos.Companion1">
+      <method name="GetLocation"><arg type="a{sv}" direction="out"/></method>
+      <signal name="LocationChanged"><arg type="a{sv}"/></signal></interface></node>"""
+
+    def __init__(self):
+        import subprocess
+        from gi.repository import Gio, GLib
+        self.Gio, self.GLib = Gio, GLib
+        # vlastni konfigurace bez aktivace sluzeb (zadne sluzby skutecne relace)
+        conf = os.path.join(TMP, "companion-bus.conf")
+        with open(conf, "w") as f:
+            f.write("<busconfig><type>session</type><listen>unix:path=%s</listen><auth>EXTERNAL</auth>"
+                    "<policy context='default'><allow send_destination='*' eavesdrop='true'/>"
+                    "<allow eavesdrop='true'/><allow own='*'/></policy></busconfig>"
+                    % os.path.join(TMP, "companion-bus-%d" % time.monotonic_ns()))
+        self.daemon = subprocess.Popen(["dbus-daemon", "--config-file=" + conf, "--nofork", "--nopidfile",
+                                        "--print-address=1"], stdout=subprocess.PIPE, text=True)
+        self.address = self.daemon.stdout.readline().strip()
+        self.loc = {"valid": False}
+        self.calls = 0
+        ready = threading.Event()
+        self.thread = threading.Thread(target=self._run, args=(ready,))
+        self.thread.start()
+        ready.wait(5)
+
+    def variant(self, loc):
+        types = {"valid": "b", "latitude": "d", "longitude": "d", "accuracy": "d", "timestamp_ms": "x",
+                 "age_ms": "x", "mock": "b", "device": "s", "speed": "d", "bearing": "d", "altitude": "d"}
+        return {k: self.GLib.Variant(types[k], v) for k, v in loc.items()}
+
+    def _run(self, ready):
+        Gio, GLib = self.Gio, self.GLib
+        self.ctx = GLib.MainContext.new()
+        self.ctx.push_thread_default()
+        self.loop = GLib.MainLoop.new(self.ctx, False)
+        self.bus = Gio.DBusConnection.new_for_address_sync(
+            self.address, Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT
+            | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION, None, None)
+        info = Gio.DBusNodeInfo.new_for_xml(self.XML)
+
+        def call(_b, _s, _p, _i, method, _params, inv):
+            self.calls += 1
+            inv.return_value(GLib.Variant("(a{sv})", (self.variant(self.loc),)))
+        self.bus.register_object("/cz/luxos/Companion1", info.interfaces[0], call, None, None)
+        self.bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName",
+                           GLib.Variant("(su)", ("cz.luxos.Companion1", 4)), None, 0, 2000, None)
+        ready.set()
+        self.loop.run()
+
+    def emit(self, loc):
+        self.loc = loc
+
+        def do():
+            self.bus.emit_signal(None, "/cz/luxos/Companion1", "cz.luxos.Companion1", "LocationChanged",
+                                 self.GLib.Variant("(a{sv})", (self.variant(loc),)))
+            return False
+        self.ctx.invoke_full(self.GLib.PRIORITY_DEFAULT, do)
+
+    def close(self):
+        self.ctx.invoke_full(self.GLib.PRIORITY_DEFAULT, lambda: self.loop.quit() or False)
+        self.thread.join(5)
+        self.daemon.terminate()
+        self.daemon.wait(5)
+
+
+PHONE_FIX = {"valid": True, "latitude": 50.0755, "longitude": 14.4378, "accuracy": 6.5,
+             "timestamp_ms": 1793098800000, "age_ms": 1200, "mock": False, "device": "Pixel", "speed": 1.3}
+
+
+class TestPhoneLocation(unittest.TestCase):
+    """my_location() bere cerstvou polohu telefonu (LuxOS Companion) jen se souhlasem v Mapach a se
+    zapnutym sdilenim v nastaveni Telefon; jinak GeoClue/IP jako dosud."""
+
+    @classmethod
+    def setUpClass(cls):
+        if not shutil.which("dbus-daemon"):
+            raise unittest.SkipTest("dbus-daemon missing")
+        cls.fake = FakeCompanion()
+        os.environ["LUXOS_MAPS_COMPANION_BUS"] = cls.fake.address
+
+    @classmethod
+    def tearDownClass(cls):
+        os.environ.pop("LUXOS_MAPS_COMPANION_BUS", None)
+        cls.fake.close()
+
+    def setUp(self):
+        clean_state()
+        os.environ["LUXOS_MAPS_PHONE"] = "1"
+        self.addCleanup(os.environ.__setitem__, "LUXOS_MAPS_PHONE", "0")
+        self.fake.loc = dict(PHONE_FIX)
+
+    def consent(self, value=True):
+        cfg = lm.load_config()
+        cfg["location_consent"] = value
+        lm.save_config(cfg)
+        return lm.load_config()
+
+    def companion_cfg(self, share):
+        path = os.path.join(TMP, "config", "luxos", "companion.json")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump({"share_location": share}, f)
+
+    def test_phone_fix_validation(self):
+        self.assertEqual(lm.phone_fix(PHONE_FIX)["source"], "phone")
+        self.assertEqual(lm.phone_fix(PHONE_FIX)["speed"], 1.3)
+        for bad in ({"valid": False}, dict(PHONE_FIX, latitude=91.0), dict(PHONE_FIX, age_ms=15001),
+                    dict(PHONE_FIX, accuracy=float("nan")), dict(PHONE_FIX, valid=1), None, []):
+            self.assertIsNone(lm.phone_fix(bad), bad)
+
+    def test_prefers_fresh_phone_fix_with_consent(self):
+        loc = lm.my_location(self.consent(True))
+        self.assertEqual((loc["source"], loc["lat"], loc["lon"], loc["accuracy"]), ("phone", 50.0755, 14.4378, 6.5))
+        self.assertEqual(SERVER.count("/ip"), 0)
+        code, out = lm.cli(["where-am-i"])
+        self.assertEqual((code, out["source"]), (0, "phone"))
+
+    def test_no_consent_no_phone(self):
+        calls = self.fake.calls
+        loc = lm.my_location(self.consent(False))
+        self.assertEqual(loc["source"], "ip")
+        self.assertEqual(self.fake.calls, calls)           # telefon se ani nedotazuje
+
+    def test_sharing_turned_off_in_phone_settings(self):
+        self.companion_cfg(False)
+        self.addCleanup(os.remove, os.path.join(TMP, "config", "luxos", "companion.json"))
+        self.assertEqual(lm.my_location(self.consent(True))["source"], "ip")
+        self.companion_cfg(True)
+        self.assertEqual(lm.my_location(self.consent(True))["source"], "phone")
+
+    def test_stale_or_invalid_fix_falls_back(self):
+        for loc in ({"valid": False}, dict(PHONE_FIX, age_ms=16000)):
+            self.fake.loc = loc
+            self.assertEqual(lm.my_location(self.consent(True))["source"], "ip", loc)
+
+    def test_service_not_running(self):
+        os.environ["LUXOS_MAPS_COMPANION_BUS"] = "unix:path=" + os.path.join(TMP, "no-such-bus")
+        lm._companion_bus.clear()
+        try:
+            self.assertEqual(lm.my_location(self.consent(True))["source"], "ip")
+        finally:
+            os.environ["LUXOS_MAPS_COMPANION_BUS"] = self.fake.address
+
+
 class TestPackaging(unittest.TestCase):
     def strings(self):
         with open(os.path.join(FILES, "luxos-maps"), encoding="utf-8") as f:
@@ -1424,6 +1572,53 @@ class TestWindow(unittest.TestCase):
         win.consent_item.set_active(False)
         self.assertFalse(lm.load_config()["location_consent"])
         self.assertIsNone(win.map.me)
+
+    def test_live_phone_tracking(self):
+        if not shutil.which("dbus-daemon"):
+            self.skipTest("dbus-daemon missing")
+        fake = FakeCompanion()
+        self.addCleanup(fake.close)
+        os.environ["LUXOS_MAPS_COMPANION_BUS"] = fake.address
+        os.environ["LUXOS_MAPS_PHONE"] = "1"
+        self.addCleanup(os.environ.pop, "LUXOS_MAPS_COMPANION_BUS", None)
+        self.addCleanup(os.environ.__setitem__, "LUXOS_MAPS_PHONE", "0")
+        fake.loc = dict(PHONE_FIX)
+        win = self.window(view=(50.0, 14.0, 12), location_consent=True)
+        win.on_locate()
+        self.assertTrue(self.pump(lambda: win.map.me is not None))
+        self.assertEqual(win.map.me["source"], "phone")
+        self.assertTrue(win.tracking and win.follow)
+        self.assertTrue(self.pump(lambda: win.map.anim is None))
+        # telefon se pohne: modry bod jde za nim, mapa ho sleduje
+        fake.emit(dict(PHONE_FIX, latitude=50.0800, longitude=14.4400, accuracy=4.0))
+        self.assertTrue(self.pump(lambda: abs(win.map.me["lat"] - 50.08) < 1e-9))
+        self.assertTrue(self.pump(lambda: win.map.anim is None))
+        lat, lon = self.app.lm.from_world(win.map.mx, win.map.my)
+        self.assertAlmostEqual(lat, 50.08, places=4)
+        self.assertAlmostEqual(lon, 14.44, places=4)
+        self.shot(win, "maps-phone-tracking.png")
+        # uzivatel mapu posune: dalsi polohy jen posouvaji bod
+        win.stop_follow()
+        fake.emit(dict(PHONE_FIX, latitude=50.0900, longitude=14.4500))
+        self.assertTrue(self.pump(lambda: abs(win.map.me["lat"] - 50.09) < 1e-9))
+        lat2, _lon2 = self.app.lm.from_world(win.map.mx, win.map.my)
+        self.assertAlmostEqual(lat2, lat, places=6)
+        # odpojeni / zastarani: sedy bod
+        fake.emit({"valid": False})
+        self.assertTrue(self.pump(lambda: win.map.me.get("stale")))
+        # sdileni vypnute v nastaveni Telefon: polohy se ignoruji
+        path = os.path.join(TMP, "config", "luxos", "companion.json")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump({"share_location": False}, f)
+        self.addCleanup(os.remove, path)
+        fake.emit(dict(PHONE_FIX, latitude=10.0))
+        self.settle(0.3)
+        self.assertTrue(win.map.me.get("stale"))
+        # odvolani souhlasu: konec sledovani
+        win.consent_item.set_active(False)
+        self.assertFalse(win.tracking)
+        self.assertIsNone(win.phone_sub)
 
 
 if __name__ == "__main__":

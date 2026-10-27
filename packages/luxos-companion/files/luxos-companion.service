@@ -1,0 +1,18 @@
+# LuxOS Companion - spojeni s telefonem (Android aplikace LuxOS Companion) pres Bluetooth RFCOMM.
+# Spousti ji luxos-session po prihlaseni (jen kdyz ma pocitac Bluetooth) a okno Telefon (Spustit).
+# Registruje profil v BlueZ (sparovane a schvalene telefony), na sbernici relace cz.luxos.Companion1.
+# Prava jako uzivatel: luxai --remote-session bezi pod touto sluzbou (sit, ucet a pravidla LuxAI).
+[Unit]
+Description=LuxOS Companion phone connection
+After=dbus.socket
+
+[Service]
+Type=dbus
+BusName=cz.luxos.Companion1
+ExecStart=/usr/bin/luxos-companion --service
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+LockPersonality=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native

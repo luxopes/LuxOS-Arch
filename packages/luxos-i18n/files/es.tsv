@@ -3876,3 +3876,54 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	El nombre del ordenador para el dominio puede tener como máximo 15 letras, cifras y guiones.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	No se encontró el dominio en DNS. Comprueba que el ordenador usa el servidor DNS de la organización (normalmente por DHCP) o escribe la dirección de un controlador de dominio.
 Sign In to Network…	Iniciar sesión en la red…
+Allow LuxAI requests from the phone	Permitir solicitudes a LuxAI desde el teléfono
+Allow saving notes to Calendar	Permitir guardar notas en Calendario
+Allow “%s” to connect to LuxOS?	¿Permitir que «%s» se conecte a LuxOS?
+Allowed Phones	Teléfonos permitidos
+Bluetooth Settings…	Ajustes de Bluetooth…
+Bluetooth is off or not available.	El Bluetooth está desactivado o no está disponible.
+Connect again from the phone.	Vuelve a conectarte desde el teléfono.
+Connected over Bluetooth	Conectado por Bluetooth
+Connected: %s	Conectado: %s
+First pair the phone with this computer in Bluetooth settings, then open LuxOS Companion on the phone and connect. This computer does not become visible to other devices by itself.	Primero vincula el teléfono con este ordenador en los ajustes de Bluetooth y después abre LuxOS Companion en el teléfono y conéctate. Este ordenador no se vuelve visible para otros dispositivos por sí solo.
+Invalid date (expected YYYY-MM-DD).	Fecha no válida (se espera AAAA-MM-DD).
+Invalid location status.	Estado de ubicación no válido.
+Invalid location: %s	Ubicación no válida: %s
+Invalid time (expected HH:mm).	Hora no válida (se espera HH:mm).
+LuxAI answers with the permissions of this computer; actions are confirmed here.	LuxAI responde con los permisos de este ordenador; las acciones se confirman aquí.
+LuxAI could not finish the request.	LuxAI no pudo completar la solicitud.
+LuxAI is still working on the previous request.	LuxAI todavía está trabajando en la solicitud anterior.
+LuxAI on this computer cannot answer requests from the phone yet. Update LuxAI (luxai --remote-session) and try again.	LuxAI en este ordenador aún no puede responder a solicitudes del teléfono. Actualiza LuxAI (luxai --remote-session) y vuelve a intentarlo.
+LuxAI requests from the phone are turned off on this computer (Phone settings).	Las solicitudes a LuxAI desde el teléfono están desactivadas en este ordenador (ajustes de Teléfono).
+LuxAI stopped unexpectedly. Try again.	LuxAI se detuvo de forma inesperada. Vuelve a intentarlo.
+Maps uses it only after you allow My Location in Maps.	Mapas solo la usa si permites Mi ubicación en Mapas.
+No phone is allowed yet. The first connection from a paired phone asks for permission.	Todavía no hay ningún teléfono permitido. La primera conexión de un teléfono vinculado pide permiso.
+Note from %s saved to Calendar	Nota de %s guardada en Calendario
+Notes from the phone are added to your calendar on this computer.	Las notas del teléfono se añaden a tu calendario en este ordenador.
+Open LuxOS Companion on the phone and connect to this computer.	Abre LuxOS Companion en el teléfono y conéctate a este ordenador.
+Permissions	Permisos
+Phones cannot connect until it is started.	Los teléfonos no pueden conectarse hasta que se inicie.
+Ready for the phone	Listo para el teléfono
+Saving notes from the phone to the calendar is turned off on this computer (Phone settings).	Guardar notas del teléfono en el calendario está desactivado en este ordenador (ajustes de Teléfono).
+Share phone location with Maps	Compartir la ubicación del teléfono con Mapas
+Sharing location	Compartiendo ubicación
+Start	Iniciar
+The note could not be saved: %s	No se pudo guardar la nota: %s
+The note is too long (at most 8000 characters).	La nota es demasiado larga (máximo 8000 caracteres).
+The note needs a title.	La nota necesita un título.
+The note text is not valid.	El texto de la nota no es válido.
+The phone %s (%s) wants to connect with the LuxOS Companion app. It will be able to share its location with Maps, save notes to Calendar and send requests to LuxAI. You can change this later in Settings › Phone.	El teléfono %s (%s) quiere conectarse con la aplicación LuxOS Companion. Podrá compartir su ubicación con Mapas, guardar notas en Calendario y enviar solicitudes a LuxAI. Puedes cambiarlo más tarde en Ajustes › Teléfono.
+The phone service is not running.	El servicio del teléfono no se está ejecutando.
+The request has no text.	La solicitud no tiene texto.
+The request is too long (at most 8000 characters).	La solicitud es demasiado larga (máximo 8000 caracteres).
+The title is too long (at most 200 characters).	El título es demasiado largo (máximo 200 caracteres).
+This LuxOS supports only protocol version 1.	Este LuxOS solo admite la versión 1 del protocolo.
+This phone is not allowed to connect. Allow it on the computer and connect again.	Este teléfono no tiene permiso para conectarse. Permítelo en el ordenador y vuelve a conectarte.
+This time does not exist in the selected time zone (the clocks change). Choose another time.	Esta hora no existe en la zona horaria elegida (cambio de hora). Elige otra hora.
+Turn on Bluetooth to connect a phone.	Activa el Bluetooth para conectar un teléfono.
+Unknown LuxAI mode.	Modo de LuxAI desconocido.
+Unknown time zone.	Zona horaria desconocida.
+the calendar file is damaged (no END:VCALENDAR)	el archivo del calendario está dañado (falta END:VCALENDAR)
+the calendar file keeps changing, try again	el archivo del calendario cambia constantemente, vuelve a intentarlo
+“%s” is allowed	«%s» está permitido
+Maps uses the GPS of your phone when it is connected with LuxOS Companion and shares its location, otherwise the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	Mapas usa el GPS de tu teléfono cuando está conectado con LuxOS Companion y comparte su ubicación; si no, el servicio de ubicación del sistema (GeoClue) si está disponible y, en último caso, calcula tu ubicación aproximada a partir de tu dirección de Internet con el servicio ipinfo.io (tu dirección se envía a ese servicio). Mapas solo pregunta una vez; puedes desactivarlo en el menú.

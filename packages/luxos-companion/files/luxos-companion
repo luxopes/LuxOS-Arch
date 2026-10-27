@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""LuxOS Companion - spojeni s telefonem (aplikace LuxOS Companion pro Android) pres Bluetooth.
+
+  luxos-companion              okno Telefon (schvalene telefony, opravneni, stav)
+  luxos-companion --service    sluzba relace (luxos-companion.service, systemd --user)
+  luxos-companion --status     stav sluzby jako JSON (bez okna)
+"""
+import os
+import sys
+
+HERE = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, "/usr/lib/luxos/python")
+if os.path.isdir(os.path.join(HERE, "luxos_companion")):
+    sys.path.insert(0, HERE)          # spusteni ze zdroju
+
+
+def status():
+    import json
+    from gi.repository import Gio, GLib
+    from luxos_companion import BUS_NAME, INTERFACE, OBJECT_PATH
+    try:
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        out = bus.call_sync(BUS_NAME, OBJECT_PATH, INTERFACE, "GetStatus", None, None,
+                            Gio.DBusCallFlags.NO_AUTO_START, 3000, None).unpack()[0]
+        loc = bus.call_sync(BUS_NAME, OBJECT_PATH, INTERFACE, "GetLocation", None, None,
+                            Gio.DBusCallFlags.NO_AUTO_START, 3000, None).unpack()[0]
+    except GLib.Error as e:
+        print(json.dumps({"running": False, "error": e.message}))
+        return 1
+    data = json.loads(out)
+    data["running"] = True
+    data["phone_location"] = loc
+    print(json.dumps(data, ensure_ascii=False, indent=1))
+    return 0
+
+
+def main(argv):
+    if argv[:1] == ["--service"]:
+        from luxos_companion import service
+        return service.run()
+    if argv[:1] == ["--status"]:
+        return status()
+    if argv[:1] in (["-h"], ["--help"]):
+        print(__doc__.strip())
+        return 0
+    from luxos_companion import ui
+    return ui.main()
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

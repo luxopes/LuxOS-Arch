@@ -3876,3 +3876,54 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	A számítógép tartományi neve legfeljebb 15 betűből, számjegyből és kötőjelből állhat.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	A tartomány nem található a DNS-ben. Ellenőrizd, hogy a gép a szervezet DNS-kiszolgálóját használja-e (általában DHCP-ből), vagy add meg egy tartományvezérlő címét.
 Sign In to Network…	Bejelentkezés a hálózatba…
+Allow LuxAI requests from the phone	LuxAI-kérések engedélyezése a telefonról
+Allow saving notes to Calendar	Jegyzetek mentésének engedélyezése a Naptárba
+Allow “%s” to connect to LuxOS?	Engedélyezi, hogy a(z) „%s” csatlakozzon a LuxOS-hez?
+Allowed Phones	Engedélyezett telefonok
+Bluetooth Settings…	Bluetooth-beállítások…
+Bluetooth is off or not available.	A Bluetooth ki van kapcsolva, vagy nem érhető el.
+Connect again from the phone.	Csatlakozzon újra a telefonról.
+Connected over Bluetooth	Bluetooth-on keresztül csatlakozva
+Connected: %s	Csatlakozva: %s
+First pair the phone with this computer in Bluetooth settings, then open LuxOS Companion on the phone and connect. This computer does not become visible to other devices by itself.	Először párosítsa a telefont ezzel a számítógéppel a Bluetooth-beállításokban, majd nyissa meg a LuxOS Companiont a telefonon, és csatlakozzon. A számítógép magától nem válik láthatóvá más eszközök számára.
+Invalid date (expected YYYY-MM-DD).	Érvénytelen dátum (várt formátum: ÉÉÉÉ-HH-NN).
+Invalid location status.	Érvénytelen helyállapot.
+Invalid location: %s	Érvénytelen hely: %s
+Invalid time (expected HH:mm).	Érvénytelen időpont (várt formátum: ÓÓ:pp).
+LuxAI answers with the permissions of this computer; actions are confirmed here.	A LuxAI ennek a számítógépnek a jogosultságaival válaszol; a műveleteket itt kell jóváhagyni.
+LuxAI could not finish the request.	A LuxAI nem tudta befejezni a kérést.
+LuxAI is still working on the previous request.	A LuxAI még az előző kérésen dolgozik.
+LuxAI on this computer cannot answer requests from the phone yet. Update LuxAI (luxai --remote-session) and try again.	A számítógépen lévő LuxAI még nem tud válaszolni a telefonról érkező kérésekre. Frissítse a LuxAI-t (luxai --remote-session), és próbálja újra.
+LuxAI requests from the phone are turned off on this computer (Phone settings).	A telefonról érkező LuxAI-kérések ki vannak kapcsolva ezen a számítógépen (Telefon beállítások).
+LuxAI stopped unexpectedly. Try again.	A LuxAI váratlanul leállt. Próbálja újra.
+Maps uses it only after you allow My Location in Maps.	A Térkép csak akkor használja, ha a Térképben engedélyezi a Saját helyet.
+No phone is allowed yet. The first connection from a paired phone asks for permission.	Még nincs engedélyezett telefon. Egy párosított telefon első csatlakozásakor a LuxOS engedélyt kér.
+Note from %s saved to Calendar	Jegyzet a(z) %s eszközről mentve a Naptárba
+Notes from the phone are added to your calendar on this computer.	A telefonról érkező jegyzetek bekerülnek a számítógép naptárába.
+Open LuxOS Companion on the phone and connect to this computer.	Nyissa meg a LuxOS Companiont a telefonon, és csatlakozzon ehhez a számítógéphez.
+Permissions	Engedélyek
+Phones cannot connect until it is started.	Amíg el nem indul, a telefonok nem tudnak csatlakozni.
+Ready for the phone	Készen áll a telefon fogadására
+Saving notes from the phone to the calendar is turned off on this computer (Phone settings).	A telefonról érkező jegyzetek naptárba mentése ki van kapcsolva ezen a számítógépen (Telefon beállítások).
+Share phone location with Maps	Telefon helyének megosztása a Térképpel
+Sharing location	Helyet oszt meg
+Start	Indítás
+The note could not be saved: %s	A jegyzetet nem sikerült menteni: %s
+The note is too long (at most 8000 characters).	A jegyzet túl hosszú (legfeljebb 8000 karakter).
+The note needs a title.	A jegyzetnek címre van szüksége.
+The note text is not valid.	A jegyzet szövege érvénytelen.
+The phone %s (%s) wants to connect with the LuxOS Companion app. It will be able to share its location with Maps, save notes to Calendar and send requests to LuxAI. You can change this later in Settings › Phone.	A(z) %s (%s) telefon csatlakozni szeretne a LuxOS Companion alkalmazással. Megoszthatja a helyét a Térképpel, jegyzeteket menthet a Naptárba, és kéréseket küldhet a LuxAI-nak. Ezt később a Beállítások › Telefon részben módosíthatja.
+The phone service is not running.	A telefonszolgáltatás nem fut.
+The request has no text.	A kérés nem tartalmaz szöveget.
+The request is too long (at most 8000 characters).	A kérés túl hosszú (legfeljebb 8000 karakter).
+The title is too long (at most 200 characters).	A cím túl hosszú (legfeljebb 200 karakter).
+This LuxOS supports only protocol version 1.	Ez a LuxOS csak az 1-es protokollverziót támogatja.
+This phone is not allowed to connect. Allow it on the computer and connect again.	Ez a telefon nem csatlakozhat. Engedélyezze a számítógépen, és csatlakozzon újra.
+This time does not exist in the selected time zone (the clocks change). Choose another time.	Ez az időpont nem létezik a kiválasztott időzónában (óraátállítás). Válasszon másik időpontot.
+Turn on Bluetooth to connect a phone.	Telefon csatlakoztatásához kapcsolja be a Bluetooth-t.
+Unknown LuxAI mode.	Ismeretlen LuxAI-mód.
+Unknown time zone.	Ismeretlen időzóna.
+the calendar file is damaged (no END:VCALENDAR)	a naptárfájl sérült (hiányzik az END:VCALENDAR)
+the calendar file keeps changing, try again	a naptárfájl folyamatosan változik, próbálja újra
+“%s” is allowed	A(z) „%s” engedélyezve
+Maps uses the GPS of your phone when it is connected with LuxOS Companion and shares its location, otherwise the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	A Térkép a telefon GPS-ét használja, ha a telefon a LuxOS Companionnal csatlakozik és megosztja a helyét, egyébként a rendszer helymeghatározó szolgáltatását (GeoClue), ha elérhető, különben az internetcíme alapján az ipinfo.io szolgáltatással határozza meg a hozzávetőleges helyét (a címét elküldi a szolgáltatásnak). A Térkép csak egyszer kérdez; a menüben kikapcsolhatja.

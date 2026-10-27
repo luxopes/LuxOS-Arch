@@ -29,6 +29,7 @@ apps=(
     packages/luxos-desktop/files/bin/luxos-{bluetooth,calculator,camera,display-settings,feedback,fingerprint,keyboard,lock-settings,monitor,power,profile-picture,router,settings,shortcuts,tour,whats-new,wifi-qr}
     packages/luxos-weather/files/luxos-weather
     packages/luxos-maps/files/luxos-maps
+    packages/luxos-companion/files/luxos-companion
     packages/luxos-drivers/luxos-drivers
     packages/luxos-printing/files/luxos-{printers,scan}
     packages/luxos-safe/files/luxos-safe

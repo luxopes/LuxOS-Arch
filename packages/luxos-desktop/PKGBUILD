@@ -69,6 +69,8 @@ depends=(
     luxos-weather
     # Mapy (packages/luxos-maps)
     luxos-maps
+    # Telefon s aplikaci LuxOS Companion (packages/luxos-companion): poloha pro Mapy, LuxAI, poznamky
+    luxos-companion
     # Nastroje
     lshw pciutils usbutils
 )

@@ -1,0 +1,177 @@
+"""Profil RFCOMM LuxOS Companion v BlueZ (org.bluez.ProfileManager1.RegisterProfile).
+
+Role server, RequireAuthentication + RequireAuthorization, AutoConnect false: BlueZ vlozi zaznam SDP
+s UUID sluzby, prijme sifrovane spojeni od sparovaneho telefonu a preda socket pres NewConnection.
+Viditelnost adapteru (discoverable) se nemeni - telefon se paruje v nastaveni Bluetooth.
+Po restartu bluetoothd (zmizi a znovu se objevi org.bluez) se profil zaregistruje znovu.
+LUXOS_COMPANION_BLUEZ_BUS: adresa jine sbernice nez systemove (testy s falesnym BlueZ).
+"""
+import os
+import re
+
+import gi
+
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio, GLib  # noqa: E402
+
+from . import SERVICE_UUID  # noqa: E402
+
+BLUEZ = "org.bluez"
+PROFILE_PATH = "/cz/luxos/companion/profile"
+PROFILE_XML = """
+<node>
+  <interface name="org.bluez.Profile1">
+    <method name="Release"/>
+    <method name="NewConnection">
+      <arg name="device" type="o" direction="in"/>
+      <arg name="fd" type="h" direction="in"/>
+      <arg name="fd_properties" type="a{sv}" direction="in"/>
+    </method>
+    <method name="RequestDisconnection">
+      <arg name="device" type="o" direction="in"/>
+    </method>
+  </interface>
+</node>
+"""
+DEV_RE = re.compile(r"/dev_([0-9A-Fa-f]{2}(?:_[0-9A-Fa-f]{2}){5})$")
+
+
+def bluez_bus():
+    addr = os.environ.get("LUXOS_COMPANION_BLUEZ_BUS")
+    if addr:
+        return Gio.DBusConnection.new_for_address_sync(
+            addr, Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,
+            None, None)
+    return Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+
+
+def address_from_path(path):
+    m = DEV_RE.search(path or "")
+    return m.group(1).replace("_", ":").upper() if m else ""
+
+
+class BluezProfile:
+    """on_connection(fd, peer) dostane vlastni fd socketu; on_disconnect(address) pri RequestDisconnection.
+    on_state(registered: bool, error: str|None) pri zmene registrace."""
+
+    def __init__(self, bus, on_connection, on_disconnect=None, on_state=None):
+        self.bus = bus
+        self.on_connection = on_connection
+        self.on_disconnect = on_disconnect
+        self.on_state = on_state
+        self.reg_id = None
+        self.watch_id = None
+        self.registered = False
+        self.error = None
+        self.available = False
+        self.owner = None            # unikatni jmeno bluetoothd - jen ten smi volat Profile1
+
+    def start(self):
+        info = Gio.DBusNodeInfo.new_for_xml(PROFILE_XML)
+        self.reg_id = self.bus.register_object(PROFILE_PATH, info.interfaces[0], self._on_call, None, None)
+        self.watch_id = Gio.bus_watch_name_on_connection(self.bus, BLUEZ, Gio.BusNameWatcherFlags.NONE,
+                                                         self._appeared, self._vanished)
+
+    def stop(self):
+        if self.watch_id is not None:
+            Gio.bus_unwatch_name(self.watch_id)
+            self.watch_id = None
+        if self.registered:
+            try:
+                self.bus.call_sync(BLUEZ, "/org/bluez", "org.bluez.ProfileManager1", "UnregisterProfile",
+                                   GLib.Variant("(o)", (PROFILE_PATH,)), None, Gio.DBusCallFlags.NONE, 2000, None)
+            except GLib.Error:
+                pass
+            self.registered = False
+        if self.reg_id is not None:
+            self.bus.unregister_object(self.reg_id)
+            self.reg_id = None
+
+    def _set_state(self, registered, error=None):
+        self.registered = registered
+        self.error = error
+        if self.on_state:
+            self.on_state(registered, error)
+
+    def _appeared(self, _bus, _name, owner):
+        self.available = True
+        self.owner = owner
+        opts = {
+            "Name": GLib.Variant("s", "LuxOS Companion"),
+            "Role": GLib.Variant("s", "server"),
+            "RequireAuthentication": GLib.Variant("b", True),
+            "RequireAuthorization": GLib.Variant("b", True),
+            "AutoConnect": GLib.Variant("b", False),
+        }
+
+        def done(bus, res, _data):
+            try:
+                bus.call_finish(res)
+            except GLib.Error as e:
+                if "AlreadyExists" in (e.message or ""):
+                    self._set_state(True)
+                else:
+                    self._set_state(False, e.message)
+                return
+            self._set_state(True)
+        self.bus.call(BLUEZ, "/org/bluez", "org.bluez.ProfileManager1", "RegisterProfile",
+                      GLib.Variant("(osa{sv})", (PROFILE_PATH, SERVICE_UUID, opts)), None,
+                      Gio.DBusCallFlags.NONE, 10000, None, done, None)
+
+    def _vanished(self, _bus, _name):
+        self.available = False
+        self.owner = None
+        self._set_state(False, None)
+
+    def _on_call(self, _bus, sender, _path, _iface, method, params, invocation):
+        if not self.owner or sender != self.owner:
+            # socket smi predat jen BlueZ (jinak by kdokoli na sbernici mohl podvrhnout "telefon")
+            invocation.return_dbus_error("org.freedesktop.DBus.Error.AccessDenied", "only BlueZ may call this")
+            return
+        if method == "Release":
+            self._set_state(False, None)
+            invocation.return_value(None)
+        elif method == "NewConnection":
+            device, idx, _props = params.unpack()
+            fds = invocation.get_message().get_unix_fd_list()
+            fd = -1
+            try:
+                if fds is not None:
+                    fd = fds.get(idx)           # vlastni kopie (dup)
+            except GLib.Error:
+                fd = -1
+            if fd < 0:
+                invocation.return_dbus_error("org.bluez.Error.Rejected", "no socket")
+                return
+            invocation.return_value(None)
+            self._device_info(device, fd)
+        elif method == "RequestDisconnection":
+            device = params.unpack()[0]
+            invocation.return_value(None)
+            if self.on_disconnect:
+                self.on_disconnect(address_from_path(device))
+        else:
+            invocation.return_dbus_error("org.freedesktop.DBus.Error.UnknownMethod", method)
+
+    def _device_info(self, device, fd):
+        """Adresa a jmeno telefonu z org.bluez.Device1; nesparovane zarizeni se odmitne."""
+        def done(bus, res, _data):
+            peer = {"address": address_from_path(device), "name": "", "path": device}
+            paired = None
+            try:
+                props = bus.call_finish(res).unpack()[0]
+                peer["address"] = str(props.get("Address") or peer["address"]).upper()
+                peer["name"] = str(props.get("Alias") or props.get("Name") or "")
+                paired = props.get("Paired")
+            except GLib.Error:
+                pass
+            if paired is False or not peer["address"]:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+                return
+            self.on_connection(fd, peer)
+        self.bus.call(BLUEZ, device, "org.freedesktop.DBus.Properties", "GetAll",
+                      GLib.Variant("(s)", ("org.bluez.Device1",)), None, Gio.DBusCallFlags.NONE, 3000, None,
+                      done, None)

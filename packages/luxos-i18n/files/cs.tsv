@@ -3968,3 +3968,54 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Název počítače pro doménu může mít nejvýš 15 písmen, číslic a pomlček.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Doména nebyla v DNS nalezena. Zkontrolujte, že počítač používá DNS server organizace (obvykle z DHCP), nebo zadejte adresu řadiče domény.
 Sign In to Network…	Přihlásit se do sítě…
+Allow LuxAI requests from the phone	Povolit požadavky LuxAI z telefonu
+Allow saving notes to Calendar	Povolit ukládání poznámek do Kalendáře
+Allow “%s” to connect to LuxOS?	Povolit telefonu „%s“ připojení k LuxOS?
+Allowed Phones	Povolené telefony
+Bluetooth Settings…	Nastavení Bluetooth…
+Bluetooth is off or not available.	Bluetooth je vypnutý nebo není k dispozici.
+Connect again from the phone.	Připojte se znovu z telefonu.
+Connected over Bluetooth	Připojeno přes Bluetooth
+Connected: %s	Připojeno: %s
+First pair the phone with this computer in Bluetooth settings, then open LuxOS Companion on the phone and connect. This computer does not become visible to other devices by itself.	Nejdřív telefon spárujte s tímto počítačem v nastavení Bluetooth, pak v telefonu otevřete LuxOS Companion a připojte se. Počítač se sám od sebe pro ostatní zařízení viditelným nestane.
+Invalid date (expected YYYY-MM-DD).	Neplatné datum (očekává se RRRR-MM-DD).
+Invalid location status.	Neplatný stav polohy.
+Invalid location: %s	Neplatná poloha: %s
+Invalid time (expected HH:mm).	Neplatný čas (očekává se HH:mm).
+LuxAI answers with the permissions of this computer; actions are confirmed here.	LuxAI odpovídá s oprávněními tohoto počítače; akce se potvrzují zde.
+LuxAI could not finish the request.	LuxAI nemohla požadavek dokončit.
+LuxAI is still working on the previous request.	LuxAI ještě pracuje na předchozím požadavku.
+LuxAI on this computer cannot answer requests from the phone yet. Update LuxAI (luxai --remote-session) and try again.	LuxAI v tomto počítači zatím neumí odpovídat na požadavky z telefonu. Aktualizujte LuxAI (luxai --remote-session) a zkuste to znovu.
+LuxAI requests from the phone are turned off on this computer (Phone settings).	Požadavky LuxAI z telefonu jsou v tomto počítači vypnuté (nastavení Telefon).
+LuxAI stopped unexpectedly. Try again.	LuxAI se nečekaně ukončila. Zkuste to znovu.
+Maps uses it only after you allow My Location in Maps.	Mapy ji použijí, jen když v Mapách povolíte Moji polohu.
+No phone is allowed yet. The first connection from a paired phone asks for permission.	Zatím není povolený žádný telefon. Při prvním připojení spárovaného telefonu se LuxOS zeptá.
+Note from %s saved to Calendar	Poznámka z telefonu %s uložena do Kalendáře
+Notes from the phone are added to your calendar on this computer.	Poznámky z telefonu se přidají do kalendáře v tomto počítači.
+Open LuxOS Companion on the phone and connect to this computer.	V telefonu otevřete LuxOS Companion a připojte se k tomuto počítači.
+Permissions	Oprávnění
+Phones cannot connect until it is started.	Dokud se nespustí, telefony se nemohou připojit.
+Ready for the phone	Připraveno pro telefon
+Saving notes from the phone to the calendar is turned off on this computer (Phone settings).	Ukládání poznámek z telefonu do kalendáře je v tomto počítači vypnuté (nastavení Telefon).
+Share phone location with Maps	Sdílet polohu telefonu s Mapami
+Sharing location	Sdílí polohu
+Start	Spustit
+The note could not be saved: %s	Poznámku se nepodařilo uložit: %s
+The note is too long (at most 8000 characters).	Poznámka je příliš dlouhá (nejvýš 8000 znaků).
+The note needs a title.	Poznámka musí mít název.
+The note text is not valid.	Text poznámky není platný.
+The phone %s (%s) wants to connect with the LuxOS Companion app. It will be able to share its location with Maps, save notes to Calendar and send requests to LuxAI. You can change this later in Settings › Phone.	Telefon %s (%s) se chce připojit aplikací LuxOS Companion. Bude moct sdílet polohu s Mapami, ukládat poznámky do Kalendáře a posílat požadavky LuxAI. Později to můžete změnit v Nastavení › Telefon.
+The phone service is not running.	Služba pro telefon neběží.
+The request has no text.	Požadavek nemá žádný text.
+The request is too long (at most 8000 characters).	Požadavek je příliš dlouhý (nejvýš 8000 znaků).
+The title is too long (at most 200 characters).	Název je příliš dlouhý (nejvýš 200 znaků).
+This LuxOS supports only protocol version 1.	Tento LuxOS podporuje jen protokol verze 1.
+This phone is not allowed to connect. Allow it on the computer and connect again.	Tento telefon se nesmí připojit. Povolte ho v počítači a připojte se znovu.
+This time does not exist in the selected time zone (the clocks change). Choose another time.	Tento čas ve zvoleném časovém pásmu neexistuje (mění se čas). Zvolte jiný čas.
+Turn on Bluetooth to connect a phone.	Pro připojení telefonu zapněte Bluetooth.
+Unknown LuxAI mode.	Neznámý režim LuxAI.
+Unknown time zone.	Neznámé časové pásmo.
+the calendar file is damaged (no END:VCALENDAR)	soubor kalendáře je poškozený (chybí END:VCALENDAR)
+the calendar file keeps changing, try again	soubor kalendáře se stále mění, zkuste to znovu
+“%s” is allowed	Telefon „%s“ je povolený
+Maps uses the GPS of your phone when it is connected with LuxOS Companion and shares its location, otherwise the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	Mapy použijí GPS vašeho telefonu, když je připojený přes LuxOS Companion a sdílí polohu, jinak systémovou službu polohy (GeoClue), je-li k dispozici, jinak zjistí přibližnou polohu podle vaší internetové adresy službou ipinfo.io (vaše adresa se této službě odešle). Mapy se zeptají jen jednou; vypnout to můžete v nabídce.

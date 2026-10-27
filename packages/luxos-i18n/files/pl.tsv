@@ -3877,3 +3877,54 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Nazwa komputera dla domeny może mieć najwyżej 15 liter, cyfr i łączników.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Nie znaleziono domeny w DNS. Sprawdź, czy komputer używa serwera DNS organizacji (zwykle z DHCP), lub podaj adres kontrolera domeny.
 Sign In to Network…	Zaloguj się do sieci…
+Allow LuxAI requests from the phone	Zezwalaj na zapytania LuxAI z telefonu
+Allow saving notes to Calendar	Zezwalaj na zapisywanie notatek w Kalendarzu
+Allow “%s” to connect to LuxOS?	Zezwolić urządzeniu „%s” na połączenie z LuxOS?
+Allowed Phones	Dozwolone telefony
+Bluetooth Settings…	Ustawienia Bluetooth…
+Bluetooth is off or not available.	Bluetooth jest wyłączony lub niedostępny.
+Connect again from the phone.	Połącz się ponownie z telefonu.
+Connected over Bluetooth	Połączono przez Bluetooth
+Connected: %s	Połączono: %s
+First pair the phone with this computer in Bluetooth settings, then open LuxOS Companion on the phone and connect. This computer does not become visible to other devices by itself.	Najpierw sparuj telefon z tym komputerem w ustawieniach Bluetooth, a potem otwórz LuxOS Companion w telefonie i połącz się. Komputer sam z siebie nie staje się widoczny dla innych urządzeń.
+Invalid date (expected YYYY-MM-DD).	Nieprawidłowa data (oczekiwano RRRR-MM-DD).
+Invalid location status.	Nieprawidłowy stan lokalizacji.
+Invalid location: %s	Nieprawidłowa lokalizacja: %s
+Invalid time (expected HH:mm).	Nieprawidłowa godzina (oczekiwano GG:mm).
+LuxAI answers with the permissions of this computer; actions are confirmed here.	LuxAI odpowiada z uprawnieniami tego komputera; działania zatwierdza się tutaj.
+LuxAI could not finish the request.	LuxAI nie mogła dokończyć zapytania.
+LuxAI is still working on the previous request.	LuxAI wciąż pracuje nad poprzednim zapytaniem.
+LuxAI on this computer cannot answer requests from the phone yet. Update LuxAI (luxai --remote-session) and try again.	LuxAI na tym komputerze nie obsługuje jeszcze zapytań z telefonu. Zaktualizuj LuxAI (luxai --remote-session) i spróbuj ponownie.
+LuxAI requests from the phone are turned off on this computer (Phone settings).	Zapytania LuxAI z telefonu są na tym komputerze wyłączone (ustawienia Telefon).
+LuxAI stopped unexpectedly. Try again.	LuxAI nieoczekiwanie się zatrzymała. Spróbuj ponownie.
+Maps uses it only after you allow My Location in Maps.	Mapy użyją jej tylko po zezwoleniu na Moją lokalizację w Mapach.
+No phone is allowed yet. The first connection from a paired phone asks for permission.	Nie ma jeszcze dozwolonych telefonów. Przy pierwszym połączeniu sparowanego telefonu LuxOS zapyta o zgodę.
+Note from %s saved to Calendar	Notatka z %s zapisana w Kalendarzu
+Notes from the phone are added to your calendar on this computer.	Notatki z telefonu są dodawane do kalendarza na tym komputerze.
+Open LuxOS Companion on the phone and connect to this computer.	Otwórz LuxOS Companion w telefonie i połącz się z tym komputerem.
+Permissions	Uprawnienia
+Phones cannot connect until it is started.	Dopóki nie zostanie uruchomiona, telefony nie mogą się połączyć.
+Ready for the phone	Gotowe na telefon
+Saving notes from the phone to the calendar is turned off on this computer (Phone settings).	Zapisywanie notatek z telefonu w kalendarzu jest na tym komputerze wyłączone (ustawienia Telefon).
+Share phone location with Maps	Udostępniaj lokalizację telefonu Mapom
+Sharing location	Udostępnia lokalizację
+Start	Uruchom
+The note could not be saved: %s	Nie udało się zapisać notatki: %s
+The note is too long (at most 8000 characters).	Notatka jest za długa (maksymalnie 8000 znaków).
+The note needs a title.	Notatka musi mieć tytuł.
+The note text is not valid.	Tekst notatki jest nieprawidłowy.
+The phone %s (%s) wants to connect with the LuxOS Companion app. It will be able to share its location with Maps, save notes to Calendar and send requests to LuxAI. You can change this later in Settings › Phone.	Telefon %s (%s) chce połączyć się przez aplikację LuxOS Companion. Będzie mógł udostępniać lokalizację Mapom, zapisywać notatki w Kalendarzu i wysyłać zapytania do LuxAI. Możesz to później zmienić w Ustawieniach › Telefon.
+The phone service is not running.	Usługa telefonu nie działa.
+The request has no text.	Zapytanie nie zawiera tekstu.
+The request is too long (at most 8000 characters).	Zapytanie jest za długie (maksymalnie 8000 znaków).
+The title is too long (at most 200 characters).	Tytuł jest za długi (maksymalnie 200 znaków).
+This LuxOS supports only protocol version 1.	Ten LuxOS obsługuje tylko protokół w wersji 1.
+This phone is not allowed to connect. Allow it on the computer and connect again.	Ten telefon nie ma zezwolenia na połączenie. Zezwól na to na komputerze i połącz się ponownie.
+This time does not exist in the selected time zone (the clocks change). Choose another time.	Ta godzina nie istnieje w wybranej strefie czasowej (zmiana czasu). Wybierz inną godzinę.
+Turn on Bluetooth to connect a phone.	Włącz Bluetooth, aby połączyć telefon.
+Unknown LuxAI mode.	Nieznany tryb LuxAI.
+Unknown time zone.	Nieznana strefa czasowa.
+the calendar file is damaged (no END:VCALENDAR)	plik kalendarza jest uszkodzony (brak END:VCALENDAR)
+the calendar file keeps changing, try again	plik kalendarza ciągle się zmienia, spróbuj ponownie
+“%s” is allowed	Urządzenie „%s” ma zezwolenie
+Maps uses the GPS of your phone when it is connected with LuxOS Companion and shares its location, otherwise the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	Mapy używają GPS telefonu, gdy jest połączony przez LuxOS Companion i udostępnia lokalizację, w przeciwnym razie systemowej usługi lokalizacji (GeoClue), jeśli jest dostępna, a w ostateczności ustalają przybliżoną lokalizację na podstawie adresu internetowego za pomocą usługi ipinfo.io (Twój adres zostanie do niej wysłany). Mapy pytają tylko raz; możesz to wyłączyć w menu.
