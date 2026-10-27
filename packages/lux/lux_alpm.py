@@ -309,6 +309,8 @@ def plain_message(kind, detail=""):
         "notfound": _("Package '%s' not found. Try: lux search %s") % (detail, detail) if detail else
         _("Package not found."),
         "config": _("The package manager configuration has an error. Check it with: lux config check"),
+        "dbinvalid": _("The package lists are damaged or do not match their signatures. "
+                       "Refresh them first (lux update), then try again."),
     }
     return m.get(kind, _("The package operation failed."))
 
@@ -1024,6 +1026,7 @@ class Lux:
         self.need_root()
         self.wait_for_lock()
         dbs = self.syncdbs("Sync")
+        refetch = set()
         for attempt in range(1, attempts + 1):
             self.cb.reset("refresh")
             self.ui.phase("refresh", ", ".join(d.name for d in dbs))
@@ -1031,7 +1034,7 @@ class Lux:
             for i, db in enumerate(dbs):
                 self.ui.progress(i / max(1, len(dbs)), db.name)
                 try:
-                    db.update(force)
+                    db.update(force or db.name in refetch)
                 except self.api.error as e:
                     msg, _n, det = alpm_error_parts(e)
                     failed.append((db.name, msg, det))
@@ -1050,7 +1053,11 @@ class Lux:
             for n, m, _d in failed:
                 self.ui.compat(f"error: failed to update {n} ({m})")
             self.ui.compat("error: failed to synchronize all databases")
-            if kind not in ("network", "refresh") or attempt == attempts:
+            # Podpis nesedi k databazi (napr. databaze z ISO novejsi nez na serveru: server vrati
+            # "nezmeneno" pro databazi, ale podpis se stahne novy): jednou stahnout nacisto
+            if kind == "keyring" and not refetch and attempt < attempts:
+                refetch = {n for n, _m, _d in failed}
+            elif kind not in ("network", "refresh") or attempt == attempts:
                 detail = (self.cb.log_errors or [failed[0][1]])[0] if kind == "refresh" else ""
                 raise LuxError(kind, plain_message(kind, detail),
                                [f"{n}: {m}" for n, m, _d in failed] + self.cb.log_errors)
@@ -1258,6 +1265,10 @@ class Lux:
                 kind = classify(msg + "\n" + "\n".join(det))
                 if kind == "unknown" and "target" in msg:
                     kind = "notfound"
+                # ALPM_ERR_DB_INVALID / DB_INVALID_SIG: seznam baliku nesedi k podpisu (pyalpm hlasi
+                # jen "transaction preparation failed")
+                if kind == "unknown" and _n in (16, 17):
+                    kind = "dbinvalid"
                 detail = ", ".join(det[:5]) if kind == "deps" else ""
                 raise LuxError(kind, plain_message(kind, detail), [msg] + det + self.cb.log_errors)
             to_add = list(t.to_add)

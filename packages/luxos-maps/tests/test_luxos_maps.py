@@ -637,6 +637,19 @@ class TestTransit(unittest.TestCase):
         self.assertEqual(lm.text_color("#7A0603"), "#FFFFFF")
 
 
+class TestSearchViewbox(unittest.TestCase):
+    def setUp(self):
+        clean_state()
+
+    def test_zoomed_in_viewbox_has_area(self):
+        # QA: velke priblizeni (Karlstejn, ~1 km) - zaokrouhleny viewbox mel nulovou plochu
+        # (jih == sever, zapad == vychod) a Nominatim vratil HTTP 400
+        lm.search("Beroun", "cs", near=(49.925, 49.94, 14.17, 14.20))
+        self.assertEqual(SERVER.requests[-1][1]["viewbox"], "14.1,50.0,14.2,49.9")
+        lm.search("Beroun", "cs", near=(49.96, 49.97, 14.10, 14.10))
+        self.assertEqual(SERVER.requests[-1][1]["viewbox"], "14.1,50.0,14.2,49.9")
+
+
 class TestNearby(unittest.TestCase):
     def setUp(self):
         clean_state()
@@ -644,8 +657,9 @@ class TestNearby(unittest.TestCase):
     def test_public_transport_merged(self):
         res = lm.nearby(50.0757, 14.4199, "public_transport", radius=300, limit=20)
         q = SERVER.requests[-1][1]["data"]
-        self.assertEqual(q, '[out:json][timeout:20];nwr(around:300,50.075700,14.419900)["public_transport"];'
-                            'out center 60;')
+        self.assertEqual(q, '[out:json][timeout:20];'
+                            'nwr(around:250,50.075700,14.419900)["public_transport"];out center 60;'
+                            'nwr(around:300,50.075700,14.419900)["public_transport"];out center 60;')
         names = [p["name"] for p in res]
         self.assertEqual(names, ["Karlovo náměstí", "Novoměstská radnice"])     # nastupiste sloucena
         self.assertTrue(all(p["transit"] for p in res))
@@ -666,6 +680,18 @@ class TestNearby(unittest.TestCase):
         self.assertEqual(res[0]["opening_hours"], "Mo-Fr 08:00-18:00")
         self.assertEqual(res[0]["osm_url"], "https://www.openstreetmap.org/node/1")
         self.assertEqual(res[0]["kind"], "amenity=cafe")
+
+    def test_nearest_rings_and_duplicates(self):
+        # Overpass vraci prvni N prvku podle id, ne podle vzdalenosti: dotaz s okruhy 250 m, 750 m
+        # a celym polomerem, prvek z vic okruhu jen jednou
+        res = lm.nearby(50.0875, 14.4213, name="Cafe", radius=1500)
+        q = SERVER.requests[-1][1]["data"]
+        self.assertEqual([q.count(f"around:{r},") for r in (250, 750, 1500)], [1, 1, 1])
+        self.assertEqual(q.count("out center 20;"), 3)
+        self.assertEqual(len({p["osm"] for p in res}), len(res))
+        q2 = (lm.nearby(50.0875, 14.4213, name="Cafe", radius=100), SERVER.requests[-1][1]["data"])[1]
+        self.assertEqual(q2.count("around:"), 1)
+        self.assertIn("around:100,", q2)
 
     def test_validation_and_busy(self):
         for kw in ({"category": "spaceports"}, {}, {"name": "x" * 81}):

@@ -12,7 +12,7 @@
 
 pkgname=xfce4-whiskermenu-plugin
 pkgver=2.10.1
-pkgrel=2.1
+pkgrel=2.2
 pkgdesc='Menu for Xfce4 (LuxOS: labeled power buttons, search on top)'
 arch=('x86_64')
 url='https://docs.xfce.org/panel-plugins/xfce4-whiskermenu-plugin/start'
@@ -23,14 +23,19 @@ makedepends=('git' 'meson' 'ninja')
 optdepends=('mugshot: Update user details'
             'luxos-i18n: translations of the LuxOS menu labels')
 source=("git+https://gitlab.xfce.org/panel-plugins/xfce4-whiskermenu-plugin.git#tag=v${pkgver}"
-        'luxos-menu-layout.patch')
+        'luxos-menu-layout.patch'
+        'luxos-load-thread-race.patch')
 sha256sums=('9eafb5f1caa550abe0190cae3861fa3ceca6380e10527ccae8b730e889515c13'
-            '12445a21ed76caa40fa8e3f79dc6b7e548be61cdc9fb4040eab848da21ac0252')
+            '12445a21ed76caa40fa8e3f79dc6b7e548be61cdc9fb4040eab848da21ac0252'
+            'e545cace840d50fffa60c1db59d881a2c5730041187f12c414061d095de90a77')
 
 prepare() {
   cd "${pkgname}"
   # LuxOS: lista prikazu s popisky, Odhlasit v zahlavi, inicialy, napoveda hledani
   patch -Np1 -i "${srcdir}/luxos-menu-layout.patch"
+  # Restart listy behem nacitani aplikaci (vlakno) shodil plugin (SIGABRT, basic_string z NULL):
+  # stranka aplikaci pocka na vlakno, jeho dokonceni uz ji nepouzije
+  patch -Np1 -i "${srcdir}/luxos-load-thread-race.patch"
 }
 
 build() {

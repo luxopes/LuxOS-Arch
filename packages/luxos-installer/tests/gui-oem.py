@@ -262,7 +262,9 @@ def assistant():
           str(data))
     check("finish: fotka predana", data["PHOTO"].endswith("photo.png"))
     check("finish: klavesnice", data["XKB_LAYOUT"] == "us,cz")
-    check("po dokonceni prihlaseni noveho uctu", login.calls == [("login", "jana")] and got == [True], str(login.calls))
+    # i se zvolenym jazykem: LightDM jinak spusti relaci v jazyce, ve kterem sam startoval (en_US)
+    check("po dokonceni prihlaseni noveho uctu ve zvolenem jazyce",
+          login.calls == [("login", "jana", "cs_CZ.UTF-8")] and got == [True], str(login.calls))
     check("po dokonceni bez Zpet", not win.btn_back.get_visible())
     win.destroy()
 

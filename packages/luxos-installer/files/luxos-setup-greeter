@@ -1,6 +1,12 @@
 #!/bin/sh
 # LuxOS - Pruvodce nastavenim jako "greeter" LightDM (zapne luxos-oem seal).
 # Pad nebo chyba: Pruvodce znovu (rozpracovane volby si pamatuje); po dokonceni se uz nespousti.
+# Po dokonceni (armed smazano) LightDM az do restartu porad zna greeter-session=luxos-setup (konfiguraci
+# cte jen pri startu): po odhlaseni nebo zamceni majitele by se znovu ukazal Pruvodce - misto nej
+# bezna prihlasovaci obrazovka
+if [ ! -e /var/lib/luxos/oem/armed ] && [ -x /usr/bin/luxos-greeter ]; then
+    exec /usr/bin/luxos-greeter
+fi
 n=0
 while :; do
     /usr/bin/luxos-setup-assistant && exit 0

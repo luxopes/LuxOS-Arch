@@ -530,5 +530,48 @@ class Cli(Env):
         self.assertTrue(os.path.isdir(self.root))     # zalohy na disku zustanou
 
 
+
+class PlugPrompt(Env):
+    """Novy USB disk: nabidka "Pouzit tento disk pro zalohy?" (QA: vyprsela nabidka = trvale odmitnuti)."""
+
+    def plug(self, answer):
+        dev = {"path": "/dev/sdz1", "name": "sdz1", "uuid": "AAAA-1111", "fstype": "vfat", "label": "USB"}
+        with mock.patch.object(core, "lsblk", return_value=[dev]), \
+                mock.patch.object(core, "external_disks", return_value=[{"path": "/dev/sdz1", "drive": "/dev/sdz"}]), \
+                mock.patch.object(core, "notify", return_value=answer) as n, \
+                mock.patch.object(core.subprocess, "Popen") as popen:
+            r = core.plugged(core.load_config(), "/dev/sdz1")
+        return r, n, popen
+
+    def test_no_answer_is_not_a_decline(self):
+        r, n, _p = self.plug(core.NO_ANSWER)
+        self.assertEqual(r, "offered")
+        self.assertNotIn("AAAA-1111", core.load_config().get("declined", []))
+        self.assertEqual(self.plug(core.NO_ANSWER)[0], "offered")     # nabidne se znovu
+
+    def test_closed_is_declined_and_use_opens_window(self):
+        with mock.patch.dict(os.environ, {"INVOCATION_ID": "x"}), \
+                mock.patch.object(core.shutil, "which", return_value="/usr/bin/systemd-run"):
+            r, _n, popen = self.plug("use")
+        self.assertEqual(r, "offered")
+        cmd = popen.call_args[0][0]
+        # okno ve vlastni jednotce, ne v jednorazove sluzbe (systemd by ho hned ukoncil)
+        self.assertEqual(cmd[:2], ["systemd-run", "--user"])
+        self.assertEqual(cmd[-3:], ["luxos-backup-gui", "--add", "/dev/sdz1"])
+        self.plug(None)                                               # zavrel bez volby
+        self.assertIn("AAAA-1111", core.load_config().get("declined", []))
+        self.assertEqual(self.plug("use")[0], "declined")
+
+    def test_prompt_stays_until_answered(self):
+        with mock.patch.dict(os.environ, {"LUXOS_BACKUP_NO_NOTIFY": "0"}), \
+                mock.patch.object(core.subprocess, "run",
+                                  return_value=subprocess.CompletedProcess([], 0, "", "")) as run:
+            self.assertIsNone(core.notify("t", "b", action=("use", "Use")))
+        cmd = run.call_args[0][0]
+        self.assertEqual(cmd[cmd.index("-t") + 1], "0")
+        with mock.patch.dict(os.environ, {"LUXOS_BACKUP_NO_NOTIFY": "0"}), \
+                mock.patch.object(core.subprocess, "run", side_effect=subprocess.TimeoutExpired("x", 600)):
+            self.assertEqual(core.notify("t", "b", action=("use", "Use")), core.NO_ANSWER)
+
 if __name__ == "__main__":
     unittest.main()
