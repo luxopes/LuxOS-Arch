@@ -4283,3 +4283,19 @@ Connecting failed.	Verbinden is mislukt.
 list system snapshots (one before every update)	systeemmomentopnamen weergeven (één voor elke update)
 take a system snapshot now	nu een systeemmomentopname maken
 return the system to a snapshot (also from the boot menu)	het systeem terugzetten naar een momentopname (ook via het opstartmenu)
+The receiver declined.	De ontvanger heeft geweigerd.
+The receiver did not answer in time.	De ontvanger heeft niet op tijd geantwoord.
+No answer in time.	Geen antwoord op tijd.
+The receiver is busy. Try again later.	De ontvanger is bezet. Probeer het later opnieuw.
+The receiver accepts files only from trusted devices.	De ontvanger accepteert alleen bestanden van vertrouwde apparaten.
+Receiving is turned off on the receiver.	Ontvangen staat uit bij de ontvanger.
+Too many files or too much data for the receiver.	Te veel bestanden of te veel gegevens voor de ontvanger.
+Not enough disk space.	Onvoldoende schijfruimte.
+The items were refused as invalid (for example folders or unsafe names).	De items zijn als ongeldig geweigerd (bijvoorbeeld mappen of onveilige namen).
+The device could not be verified.	Het apparaat kon niet worden geverifieerd.
+Incompatible LuxDrop version.	Incompatibele LuxDrop-versie.
+Connection error.	Verbindingsfout.
+The data was damaged on the way. Nothing was saved – try again.	De gegevens zijn onderweg beschadigd. Er is niets opgeslagen – probeer het opnieuw.
+Internal error.	Interne fout.
+The device presented a different key than expected.	Het apparaat toonde een andere sleutel dan verwacht.
+Details: %s	Details: %s

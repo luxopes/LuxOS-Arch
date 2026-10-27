@@ -4283,3 +4283,19 @@ Connecting failed.	Pripojenie sa nepodarilo.
 list system snapshots (one before every update)	zoznam snímok systému (snímka pred každou aktualizáciou)
 take a system snapshot now	vytvoriť snímku systému hneď
 return the system to a snapshot (also from the boot menu)	vrátiť systém k snímke (aj zo zavádzacej ponuky)
+The receiver declined.	Príjemca odmietol.
+The receiver did not answer in time.	Príjemca neodpovedal včas.
+No answer in time.	Bez odpovede včas.
+The receiver is busy. Try again later.	Príjemca je zaneprázdnený. Skúste to neskôr.
+The receiver accepts files only from trusted devices.	Príjemca prijíma súbory len z dôveryhodných zariadení.
+Receiving is turned off on the receiver.	Príjem je u príjemcu vypnutý.
+Too many files or too much data for the receiver.	Príliš veľa súborov alebo dát pre príjemcu.
+Not enough disk space.	Nedostatok miesta na disku.
+The items were refused as invalid (for example folders or unsafe names).	Položky boli odmietnuté ako neplatné (napríklad priečinky alebo nebezpečné názvy).
+The device could not be verified.	Zariadenie sa nepodarilo overiť.
+Incompatible LuxDrop version.	Nekompatibilná verzia LuxDropu.
+Connection error.	Chyba spojenia.
+The data was damaged on the way. Nothing was saved – try again.	Dáta sa cestou poškodili. Nič sa neuložilo – skúste to znova.
+Internal error.	Vnútorná chyba.
+The device presented a different key than expected.	Zariadenie predložilo iný kľúč, než sa očakávalo.
+Details: %s	Podrobnosti: %s

@@ -59,9 +59,11 @@ def parse_addr(text, default_port=proto.DEFAULT_PORT):
 
 
 # TLS 1.3 sady (PROTOCOL.md 4.1): AES-256-GCM ma vzdy prednost. Aplikace LuxOS Companion pro
-# Android prijme jen TLS_AES_256_GCM_SHA384 a Android (BoringSSL) nabizi jako klient AES-128
-# nebo ChaCha20 na prvnim miste - rozhoduje proto poradi serveru.
+# Android (od 0.3.1) prijme TLS_AES_256_GCM_SHA384 a TLS_CHACHA20_POLY1305_SHA256, AES-128 odmitne.
+# Android (BoringSSL) nabizi jako klient AES-128 nebo ChaCha20 na prvnim miste - rozhoduje proto
+# poradi serveru.
 TLS13_AES256 = "TLS_AES_256_GCM_SHA384"
+TLS13_CLIENT_ORDER = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
 TLS13_SERVER_ORDER = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256"
 
 
@@ -86,11 +88,11 @@ def client_context():
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     ctx.set_alpn_protocols([proto.ALPN])
-    # Vychozi nabidka OpenSSL uz zacina AES-256-GCM. Android bez AES v hardwaru ale jako server
-    # vybere ChaCha20 pred AES - od Pythonu 3.15 proto nabizime jen AES-256-GCM (umi ho kazda
-    # implementace LuxDrop v1, viz PROTOCOL.md 4.1).
+    # Vychozi nabidka OpenSSL uz zacina AES-256-GCM. Od Pythonu 3.15 nabizime vyslovne AES-256-GCM
+    # a ChaCha20-Poly1305 (bez AES-128): Android bez AES v hardwaru si jako server vybere ChaCha20,
+    # ktery je tam rychlejsi a aplikace LuxOS Companion ho od 0.3.1 prijme (PROTOCOL.md 4.1).
     if hasattr(ctx, "set_ciphersuites"):
-        ctx.set_ciphersuites(TLS13_AES256)
+        ctx.set_ciphersuites(TLS13_CLIENT_ORDER)
     return ctx
 
 

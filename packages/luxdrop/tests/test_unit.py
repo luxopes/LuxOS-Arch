@@ -201,7 +201,7 @@ class TestIdentity(unittest.TestCase):
 
 
 class TestTlsSuites(unittest.TestCase):
-    """Android aplikace (LuxOS Companion) prijme jen TLS_AES_256_GCM_SHA384 (PROTOCOL.md 4.1)."""
+    """Android aplikace LuxOS Companion prijme TLS_AES_256_GCM_SHA384 a od 0.3.1 i ChaCha20 (PROTOCOL.md 4.1)."""
 
     def setUp(self):
         self.dir = tempfile.mkdtemp()
@@ -240,6 +240,13 @@ class TestTlsSuites(unittest.TestCase):
         self.assertTrue(ctx.options & ssl.OP_CIPHER_SERVER_PREFERENCE)
         tls13 = [c["name"] for c in ctx.get_ciphers() if c["protocol"] == "TLSv1.3"]
         self.assertEqual(tls13[0], "TLS_AES_256_GCM_SHA384")
+
+    def test_client_offers_aes256_then_chacha(self):
+        ctx = transfer.client_context()
+        if not hasattr(ctx, "set_ciphersuites"):
+            self.skipTest("Python < 3.15: OpenSSL default TLS 1.3 order (AES-256-GCM first)")
+        tls13 = [c["name"] for c in ctx.get_ciphers() if c["protocol"] == "TLSv1.3"]
+        self.assertEqual(tls13, ["TLS_AES_256_GCM_SHA384", "TLS_CHACHA20_POLY1305_SHA256"])
 
     def test_luxos_to_luxos(self):
         client, server = self.handshake(transfer.client_context())
@@ -295,6 +302,44 @@ class TestTlsSuites(unittest.TestCase):
             cctx.set_ciphersuites(order)
             client, _server = self.handshake(cctx)
             self.assertEqual(client[1], "TLS_AES_256_GCM_SHA384", order)
+
+
+class TestFailureText(unittest.TestCase):
+    """Chyby podle kodu (PROTOCOL.md 9) prelozene; zprava protistrany jen jako kratky detail."""
+
+    def t(self, code, error, direction="out"):
+        t = transfer.Transfer(direction)
+        t.state, t.code, t.error = "failed", code, error
+        return t
+
+    def test_codes_have_own_text(self):
+        from luxdrop import cli
+        for code in sorted(proto.ERROR_CODES - {proto.E_SHARING_OFF}):
+            self.assertTrue(cli.error_text(self.t(code, "x")), code)
+
+    def test_peer_message_is_only_detail(self):
+        from luxdrop import cli
+        main, detail = cli.failure_text(self.t(proto.E_TOO_LARGE, "Nejvýše 16 souborů v přenosu"))
+        self.assertEqual(main, "Too many files or too much data for the receiver.")
+        self.assertEqual(detail, "Nejvýše 16 souborů v přenosu")
+        # ridici a bidi znaky pryc, zkraceno na jeden radek
+        main, detail = cli.failure_text(self.t(proto.E_NO_SPACE, "a\n\u202eb" + "x" * 300))
+        self.assertNotIn("\n", detail)
+        self.assertNotIn("\u202e", detail)
+        self.assertLessEqual(len(detail), 80)
+        self.assertTrue(detail.endswith("…"))
+        # zbytecny detail (jen kod) se neukazuje
+        self.assertEqual(cli.failure_text(self.t(proto.E_TIMEOUT, "no answer"))[1], "")
+
+    def test_unknown_code_falls_back_to_message(self):
+        from luxdrop import cli
+        self.assertEqual(cli.failure_text(self.t(None, "connection failed: refused")),
+                         ("connection failed: refused", ""))
+
+    def test_direction(self):
+        from luxdrop import cli
+        self.assertEqual(cli.error_text(self.t(proto.E_TIMEOUT, "", "out")), "The receiver did not answer in time.")
+        self.assertEqual(cli.error_text(self.t(proto.E_TIMEOUT, "", "in")), "No answer in time.")
 
 
 BAD_PATHS = [

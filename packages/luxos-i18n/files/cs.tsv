@@ -4372,3 +4372,19 @@ go to line LINE in the first file	přejít na řádek LINE v prvním souboru
 separate process (no reuse of a running editor)	samostatný proces (bez použití běžícího editoru)
 LuxOS is connected to your LuxAI account. You can close this window.	LuxOS je propojený s účtem LuxAI. Okno můžete zavřít.
 Connecting failed.	Připojení se nezdařilo.
+The receiver declined.	Příjemce odmítl.
+The receiver did not answer in time.	Příjemce neodpověděl včas.
+No answer in time.	Bez odpovědi včas.
+The receiver is busy. Try again later.	Příjemce je zaneprázdněný. Zkuste to později.
+The receiver accepts files only from trusted devices.	Příjemce přijímá soubory jen od důvěryhodných zařízení.
+Receiving is turned off on the receiver.	Příjem je u příjemce vypnutý.
+Too many files or too much data for the receiver.	Příliš mnoho souborů nebo dat pro příjemce.
+Not enough disk space.	Nedostatek místa na disku.
+The items were refused as invalid (for example folders or unsafe names).	Položky byly odmítnuty jako neplatné (například složky nebo nebezpečné názvy).
+The device could not be verified.	Zařízení se nepodařilo ověřit.
+Incompatible LuxDrop version.	Nekompatibilní verze LuxDropu.
+Connection error.	Chyba spojení.
+The data was damaged on the way. Nothing was saved – try again.	Data se cestou poškodila. Nic se neuložilo – zkuste to znovu.
+Internal error.	Vnitřní chyba.
+The device presented a different key than expected.	Zařízení předložilo jiný klíč, než se čekalo.
+Details: %s	Podrobnosti: %s
