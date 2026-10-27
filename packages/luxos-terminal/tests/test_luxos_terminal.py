@@ -346,6 +346,17 @@ class GuiTest(unittest.TestCase):
         p.wait(10)
         self.assertEqual(p.returncode, 0)
 
+    def test_close_without_question_when_only_a_shell_runs(self):
+        """Shell v popredi (i vnoreny pres spousteci skript) neni bezici program: okno se zavre hned."""
+        p = self.start("-x", "bash", "--norc", "-c", "bash --norc -i; true")   # vnoreny shell v popredi
+        wid = self.wait_window()[0]
+        time.sleep(1.0)
+        # bez spravce oken jde klavesnice do okna pod mysi
+        subprocess.run(["xdotool", "mousemove", "--window", wid, "40", "70"], env=self.env)
+        subprocess.run(["xdotool", "key", "ctrl+shift+w"], env=self.env)
+        p.wait(10)
+        self.assertEqual(p.returncode, 0)
+
     def test_working_directory_and_env(self):
         out = os.path.join(self.home, "out")
         wd = os.path.join(self.home, "složka s mezerou")

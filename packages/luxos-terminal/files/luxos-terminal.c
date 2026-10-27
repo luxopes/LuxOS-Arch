@@ -285,6 +285,11 @@ static char *running_process(Tab *t)
     char path[64], *comm = NULL;
     g_snprintf(path, sizeof path, "/proc/%d/comm", (int)fg);
     if (g_file_get_contents(path, &comm, NULL, NULL)) g_strstrip(comm);
+    /* shell v popredi (vnoreny shell, spousteci skript se shellem) nic nedela - neptat se */
+    static const char *shells[] = {"bash", "lsh", "zsh", "fish", "sh", "dash", "ksh", "mksh", "tcsh", "csh",
+                                   "nu", "xonsh", "elvish", "ion", "tmux: client"};
+    for (guint i = 0; comm && i < G_N_ELEMENTS(shells); i++)
+        if (g_strcmp0(comm, shells[i]) == 0) { g_free(comm); return NULL; }
     return comm ? comm : g_strdup("?");
 }
 
