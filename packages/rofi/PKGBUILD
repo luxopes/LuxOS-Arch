@@ -3,13 +3,16 @@
 # mysi jen zvyrazni dlazdici a pohled se nehne (puvodni rofi vyber vycentruje, pod mysi je pak
 # jina dlazdice a mrizka "ujizdi"), kolecko posune pohled o radek i se zvyraznenim, po zmene
 # hledaneho textu je vybrana nejlepsi shoda a pri otevreni se nevybira dlazdice pod stojici mysi.
+# Volba -custom-exit: vlastni klavesy / tlacitka razeni Launchpadu ukonci rofi s kodem 10+ i v
+# rezimu drun/combi. Bez compositoru je pozadim okna snimek obrazovky (rohy zaobleneho panelu
+# jinak cerne).
 # Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
 # verzi v Archu zvysit pkgver (a sha256sums), pkgrel nechat X.1.
 # Puvodni PKGBUILD Archu (udrzovatele Morten Linderud, Robin Candau) je v PKGBUILD.arch.
 
 pkgname=rofi
 pkgver=2.0.0
-pkgrel=1.1
+pkgrel=1.2
 pkgdesc="A window switcher, application launcher and dmenu replacement (LuxOS: hover without scrolling)"
 url="https://davatorium.github.io/rofi"
 arch=('x86_64')
@@ -23,12 +26,14 @@ source=("git+https://github.com/davatorium/rofi.git#tag=${pkgver}"
         'git+https://github.com/sardemff7/libgwater.git'
         'git+https://github.com/sardemff7/libnkutils.git'
         'fix_xfce4-terminal_binary_name.patch'
-        'hover-no-scroll.patch')
+        'hover-no-scroll.patch'
+        'luxos-launchpad.patch')
 sha256sums=('3ad746f25b373bfa2e49db20c5009ffd4d959dd113e47281e98e7132f7314ac8'
             'SKIP'
             'SKIP'
             '0cd6f1360580f49647ceb7d169ab015f4998e778fd750ce3ad2e861f333824e3'
-            '0745f3af7de9178a277a0af83f98a795abba5b4f1062befea0e368fae66dde91')
+            '0745f3af7de9178a277a0af83f98a795abba5b4f1062befea0e368fae66dde91'
+            'dd23157c86bbcf7af85b993db391127aecad8c3b5afac547c08a2c250f6ea58b')
 
 prepare() {
 	cd "${pkgname}"
@@ -42,6 +47,8 @@ prepare() {
 	patch -Np1 -i "${srcdir}/fix_xfce4-terminal_binary_name.patch"
 	# LuxOS: -hover-no-scroll
 	patch -Np1 -i "${srcdir}/hover-no-scroll.patch"
+	# LuxOS: -custom-exit (razeni Launchpadu), bez compositoru snimek jako pozadi
+	patch -Np1 -i "${srcdir}/luxos-launchpad.patch"
 }
 
 build() {

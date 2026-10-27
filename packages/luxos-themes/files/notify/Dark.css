@@ -21,3 +21,15 @@
 #XfceNotifyWindow button:hover { background: rgba(255, 255, 255, 0.16); }
 #XfceNotifyWindow progressbar trough { background: rgba(255, 255, 255, 0.14); border: none; border-radius: 4px; min-height: 6px; }
 #XfceNotifyWindow progressbar progress { border-radius: 4px; min-height: 6px; }
+/* Krizek pro zavreni: jen pri najeti mysi, v rohu jako v macOS */
+#XfceNotifyWindow button#luxos-close {
+    min-width: 18px;
+    min-height: 18px;
+    padding: 0;
+    border-radius: 9px;
+    background: rgba(78, 80, 102, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+#XfceNotifyWindow button#luxos-close:hover { background: rgba(104, 106, 130, 1); }
+#XfceNotifyWindow button#luxos-close label { color: #f4f4fa; font-size: 12px; font-weight: bold; }
