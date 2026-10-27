@@ -47,6 +47,10 @@ SIGUSR2 = 12
 SIGTERM = 15
 NM = "org.freedesktop.NetworkManager"
 NM_PATH = "/org/freedesktop/NetworkManager"
+# Kontrola portalu (luxos-portal-check) hned a po techto sekundach, dokud je pripojeni omezene;
+# konci prvnim nalezenym portalem nebo internetem
+PORTAL_PROBE_DELAYS = [3, 6, 10, 15, 25, 40, 60, 90, 120]
+PORTAL_PROBES = 10
 
 hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0, "portal_found": False, "portal_url": "", "portal_probes": 0, "cover_pid": 0, "start": 0, "noinet_timer": False}
 
@@ -224,11 +228,12 @@ function connectivity_update():
     elif c == 3 and not (last == 2 or last == 3):
         call noinet_schedule()
         # Portal, ktery NetworkManager neprozna (systemove DNS pres VPN/Tailscale za portalem nefunguje):
-        # vlastni kontrola pres DNS site hned, po 6 a po 15 s (prihlasovaci brana nekdy nabiha pomalu)
+        # vlastni kontrola pres DNS a branu site hned a pak opakovane 2 minuty (prihlasovaci brana
+        # nekdy nabiha pomalu, napr. Wi-Fi ve vlaku)
         start_probe = True
     end
     if c != 3 and c != 2 and last == 3:
-        hub["portal_probes"] = 3
+        hub["portal_probes"] = PORTAL_PROBES
     end
     if c == 4 and (last == 2 or hub["portal_found"]):
         # prihlaseno: okno portalu uz neni potreba
@@ -246,8 +251,9 @@ function connectivity_update():
     if start_probe:
         hub["portal_probes"] = 0
         call portal_probe()
-        call glib.timeout_add_seconds(6, portal_probe)
-        call glib.timeout_add_seconds(15, portal_probe)
+        for d in PORTAL_PROBE_DELAYS:
+            call glib.timeout_add_seconds(d, portal_probe)
+        end
     end
     return False
 end
@@ -264,7 +270,7 @@ end
 
 # luxos-portal-check: "portal URL IP" / "online" / "none"; jen dokud je pripojeni porad omezene
 function portal_probe():
-    if hub["portal_probes"] >= 3 or hub["portal_found"] or hub["connectivity"] != 3:
+    if hub["portal_probes"] >= PORTAL_PROBES or hub["portal_found"] or hub["connectivity"] != 3:
         return False
     end
     hub["portal_probes"] = hub["portal_probes"] + 1
