@@ -9,11 +9,18 @@
   diff [SOUBOR]        co by se zmenilo (--json strojove)                                   (root)
   apply [SOUBOR]       snimek systemu (LuxOS Care), rozdil, potvrzeni a provedeni           (root)
   plan [SOUBOR]        vyhodnocena konfigurace jako JSON (ladeni)
+  fix [SOUBOR]         oprava: vrati system do stavu podle souboru (= diff + apply se snimkem) (root)
   show --origin        sloucena konfigurace (soubor + zasady organizace) s puvodem kazde polozky
   locks [--json]       polozky zamcene organizaci (config.mkForce v /etc/luxos/system.d)
 
-Volby: -y/--yes (bez potvrzeni), --json, --no-snapshot (apply bez snimku), --force (init),
+Volby: -y/--yes (bez potvrzeni), --json, --no-snapshot (apply bez snimku), --force (init prepise
+       soubor; apply/fix smi odebrat nebo zmenit prave pouzivane sitove pripojeni),
        --no-policies (jen dany soubor, bez /etc/luxos/system.d)
+       init --auto: jednorazove vytvoreni, jen kdyz soubor chybi (instalator, aktualizace lux);
+       init --refresh: OEM po Pruvodci nastavenim - prepise jen dosud needitovany vygenerovany soubor
+
+Hesla nikdy nejdou do vygenerovaneho souboru (ani otisky hesel uzivatelu, ani hesla Wi-Fi/VPN:
+ta zustavaji v NetworkManageru).
 
 Zasady organizace: /etc/luxos/system.d/NN-jmeno.lsl (root, needitovat; zapisuje LuxOS Directory nebo
 GPO domeny). Slucuji se v poradi jmen (vyssi cislo prepise nizsi), lokalni soubor ma prednost pred
@@ -33,14 +40,18 @@ posledniho apply, se odebere (stav v /var/lib/lux/system/applied.json). Uzivatel
 Testy: LUX_SYSTEM_ROOT = jiny koren pro soubory, LUX_SYSTEM_BIN = adresar se vsemi nastroji
 (zastupne skripty), LUX_SYSTEM_LSL = prikaz lsl.
 """
+import configparser
 import contextlib
 import datetime
 import difflib
 import fcntl
+import glob
 import hashlib
+import ipaddress
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -64,6 +75,8 @@ HISTORY_DIR = STATE_DIR + "/history"
 HISTORY_KEEP = 20
 LOCK = "/run/lux/system.lock"
 CARE_CONF = "/etc/luxos/care.conf"
+SCHED_CONF = "/etc/luxos/scheduler.conf"            # planovac procesu (luxos-tweaks, luxos-care scheduler)
+SCHEDULERS = ("lavd", "default")
 KEYBOARD_CONF = "/etc/X11/xorg.conf.d/00-keyboard.conf"
 GUARD_UNITS = {"enable": "luxos-guard.service", "home_snapshots": "luxos-guard-snapshot.timer"}
 FIREWALL_UNIT = "ufw.service"
@@ -77,8 +90,24 @@ TOOLS = {
     "useradd": "/usr/bin/useradd", "usermod": "/usr/bin/usermod", "groupadd": "/usr/bin/groupadd",
     "gpasswd": "/usr/bin/gpasswd", "chpasswd": "/usr/bin/chpasswd", "ufw": "/usr/bin/ufw",
     "luxos-care": "/usr/bin/luxos-care", "grub-mkconfig": "/usr/bin/grub-mkconfig",
-    "lux-domain": "/usr/bin/lux-domain",
+    "lux-domain": "/usr/bin/lux-domain", "nmcli": "/usr/bin/nmcli", "lpstat": "/usr/bin/lpstat",
+    "lpoptions": "/usr/bin/lpoptions", "lpadmin": "/usr/bin/lpadmin", "lpinfo": "/usr/bin/lpinfo",
+    "bootctl": "/usr/bin/bootctl", "powerprofilesctl": "/usr/bin/powerprofilesctl",
 }
+# Dalsi oblasti celeho systemu (sit, tiskarny, napajeni, zavadec, vychozi nastaveni novych uzivatelu ...)
+NM_DIR = "/etc/NetworkManager/system-connections"
+LOGIND_DROPIN = "/etc/systemd/logind.conf.d/zz-luxos-system.conf"
+PPD_STATE = "/var/lib/power-profiles-daemon/state.ini"
+POWERSAVER_MARK = "/run/luxos/powersaver"           # Sporic baterie zapnuty (profil meni sam)
+NEW_USERS_CONF = "/etc/luxos/new-users.conf"         # cte luxos-session pri prvnim prihlaseni noveho uzivatele
+FAILLOCK_CONF = "/etc/security/faillock.conf"
+VCONSOLE_CONF = "/etc/vconsole.conf"
+LUX_CONF = "/etc/lux/lux.conf"
+EFIVARS = "/sys/firmware/efi/efivars"
+EFI_LOADER_GUID = "4a67b082-0a4c-41cf-b6c7-440b29bb8c4f"
+AUTO_STAMP = STATE_DIR + "/auto-init"                # init --auto uz probehl (smazany soubor se nevytvori znovu)
+OEM_CONF = "/etc/luxos/oem.conf"
+OEM_DONE = "/var/lib/luxos/oem/done"
 
 # Balicky, bez kterych LuxOS nebo tento nastroj nefunguje - nikdy se neodeberou
 PROTECTED_PACKAGES = {
@@ -363,7 +392,7 @@ def evaluate(path, fragment=False):
 FRAGMENT_RE = re.compile(r"^\d{2}-[A-Za-z0-9][A-Za-z0-9_.-]*\.lsl$")
 LV_DEFAULT, LV_ORG, LV_LOCAL, LV_FORCE = 0, 1, 2, 3
 # Seznamy, ktere se mezi vrstvami spojuji (ostatni seznamy se nahrazuji celou hodnotou)
-UNION_PATHS = {("packages",), ("flatpaks",), ("groups",), ("services", "enable"), ("services", "disable"),
+UNION_PATHS = {("packages",), ("drivers",), ("flatpaks",), ("groups",), ("services", "enable"), ("services", "disable"),
                ("firewall", "allow"), ("kernel", "params"), ("domain", "admins"), ("domain", "allow_groups")}
 POLICY_META_KEYS = ("organization", "name")
 MISSING = object()
@@ -667,8 +696,9 @@ def merge(path, policies=True):
 
 
 # ---- kontrola a normalizace -------------------------------------------------------------------
-TOP_KEYS = ("hostname", "timezone", "locale", "keyboard", "packages", "flatpaks", "remove_unlisted", "services",
-            "groups", "users", "care", "guard", "firewall", "kernel", "domain")
+TOP_KEYS = ("hostname", "timezone", "locale", "formats", "keyboard", "console", "packages", "drivers", "flatpaks",
+            "remove_unlisted", "services", "groups", "users", "network", "printers", "power", "boot", "care", "guard",
+            "firewall", "security", "kernel", "new_users", "repos", "domain")
 DOMAIN_KEYS = ("admins", "allow_groups", "offline_days", "admin_offline_days")
 # Jmeno skupiny v domene (AD): i mezery a diakritika ("Domain Admins", "Účtárna"), bez ridicich znaku
 DOMAIN_GROUP_RE = re.compile(r"^(?! )[^\x00-\x1f\x7f\"\\:,/=+<>#;]{1,64}(?<! )$")
@@ -886,13 +916,21 @@ def normalize(raw):
         kn = raw["kernel"]
         if ck.typed("kernel", kn, (dict,), "a dictionary { }"):
             for k in kn:
-                if k != "params":
-                    ck.unknown("kernel", k, ("params",))
-            params = ck.str_list("kernel.params", kn.get("params", []), PARAM_RE, "kernel parameter")
-            for p in params:
-                if BOOT_PARAM_RE.match(p):
-                    ck.err("kernel.params", _("%s is set by the installer (disk, encryption) and cannot be changed here") % p)
-            cfg["kernel"] = {"params": params}
+                if k not in ("params", "scheduler"):
+                    ck.unknown("kernel", k, ("params", "scheduler"))
+            nk = {}
+            if "params" in kn:
+                params = ck.str_list("kernel.params", kn.get("params", []), PARAM_RE, "kernel parameter")
+                for p in params:
+                    if BOOT_PARAM_RE.match(p):
+                        ck.err("kernel.params", _("%s is set by the installer (disk, encryption) and cannot be changed here") % p)
+                nk["params"] = params
+            if "scheduler" in kn:
+                if kn["scheduler"] in SCHEDULERS:
+                    nk["scheduler"] = kn["scheduler"]
+                else:
+                    ck.err("kernel.scheduler", _("must be one of: %s") % ", ".join(SCHEDULERS))
+            cfg["kernel"] = nk
     if "domain" in raw:
         dm = raw["domain"]
         if ck.typed("domain", dm, (dict,), "a dictionary { }"):
@@ -911,6 +949,7 @@ def normalize(raw):
             if nd.get("admin_offline_days", 0) > nd.get("offline_days", 180):
                 ck.err("domain.admin_offline_days", _("must not be longer than domain.offline_days"))
             cfg["domain"] = nd
+    normalize_more(raw, ck, cfg)
     if "services" in cfg:
         managed = {u: k for k, u in GUARD_UNITS.items()} if "guard" in cfg else {}
         for u in cfg["services"]["enable"] + cfg["services"]["disable"]:
@@ -919,6 +958,331 @@ def normalize(raw):
             if u == FIREWALL_UNIT and "enable" in cfg.get("firewall", {}):
                 ck.err("services", _("%s is set in \"firewall\"; remove it from services") % u)
     return cfg, ck.errors
+
+
+# ---- kontrola dalsich oblasti (sit, tiskarny, napajeni, zavadec, ...) -------------------------------
+LC_KEYS = ("LC_CTYPE", "LC_NUMERIC", "LC_TIME", "LC_COLLATE", "LC_MONETARY", "LC_MESSAGES", "LC_PAPER", "LC_NAME",
+           "LC_ADDRESS", "LC_TELEPHONE", "LC_MEASUREMENT", "LC_IDENTIFICATION")
+CONSOLE_RE = re.compile(r"^[A-Za-z0-9_.+-]{1,64}$")
+CON_NAME_RE = re.compile(r"^(?! )[^\x00-\x1f\x7f]{1,64}(?<! )$")
+IFACE_RE = re.compile(r"^[A-Za-z0-9_.:@-]{1,15}$")
+NET_TYPES = ("wifi", "ethernet")
+WIFI_SECURITY = ("none", "wep", "wpa-psk", "sae", "owe", "wpa-eap", "wpa-eap-suite-b-192")
+IP_METHODS = {"ipv4": ("auto", "manual", "disabled", "link-local", "shared"),
+              "ipv6": ("auto", "dhcp", "manual", "disabled", "ignore", "link-local", "shared")}
+CON_KEYS = ("type", "autoconnect", "interface", "ssid", "security", "ipv4", "ipv6", "proxy")
+IP_KEYS = ("method", "addresses", "gateway", "dns")
+# Tajemstvi nikdy do souboru: hesla Wi-Fi/VPN a klice 802.1x zustavaji v NetworkManageru
+SECRET_WORDS = ("password", "psk", "secret", "passphrase", "wep-key", "private-key", "pin", "key")
+PRINTER_RE = re.compile(r"^[A-Za-z0-9_.-]{1,127}$")
+URI_RE = re.compile(r"^[a-z][a-z0-9+.-]*:\S+$")
+LID_ACTIONS = ("suspend", "hibernate", "suspend-then-hibernate", "lock", "poweroff", "ignore")
+PROFILES = ("power-saver", "balanced", "performance")
+ENTRY_RE = re.compile(r"^[A-Za-z0-9_.@+-]{1,128}$")
+DESKTOP_ID_RE = re.compile(r"^[A-Za-z0-9_.+-]{1,128}$")
+THEMES = ("light", "dark", "auto")
+NEW_USER_KEYS = ("theme", "wallpaper", "dock", "browser", "text_editor", "mail", "lock_after_minutes",
+                 "screen_off_minutes")
+FAILLOCK_KEYS = {"deny": (1, 1000), "fail_interval": (1, 86400), "unlock_time": (1, 86400)}
+REPO_KEYS = ("list", "community", "review_build_scripts", "flatpak_updates")
+REPO_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+
+
+def _ip_ok(text, prefix=False):
+    try:
+        if prefix:
+            ipaddress.ip_interface(text)
+            return "/" in text
+        ipaddress.ip_address(text)
+        return True
+    except ValueError:
+        return False
+
+
+def desktop_id(name):
+    return name if name.endswith(".desktop") or name == "trash" else name + ".desktop"
+
+
+def _secret_key(k):
+    k = str(k).lower()
+    return any(w in k for w in SECRET_WORDS)
+
+
+def normalize_network(net, ck):
+    out = {}
+    if not ck.typed("network", net, (dict,), "a dictionary { }"):
+        return out
+    for k in net:
+        if k != "connections":
+            ck.unknown("network", k, ("connections",))
+    cons = net.get("connections", {})
+    if not ck.typed("network.connections", cons, (dict,), "a dictionary { }"):
+        return out
+    out["connections"] = {}
+    for name, c in cons.items():
+        where = f"network.connections.{name}"
+        if not CON_NAME_RE.match(name):
+            ck.err(where, _("\"%s\" is not a valid %s") % (name, _("connection name")))
+            continue
+        if c is None:
+            c = {}
+        if not ck.typed(where, c, (dict,), "a dictionary { }"):
+            continue
+        nc = {}
+        for k, v in c.items():
+            w = f"{where}.{k}"
+            if _secret_key(k):
+                ck.err(where, _("never write Wi-Fi or VPN passwords into the file; they are kept by the system "
+                                "(NetworkManager asks for them when connecting)"))
+            elif k == "type":
+                if ck.typed(w, v, (str,), "a text"):
+                    if re.match(r"^[a-z0-9-]{1,32}$", v):
+                        nc["type"] = v
+                    else:
+                        ck.err(w, _("\"%s\" is not a valid %s") % (v, _("connection type")))
+            elif k == "autoconnect":
+                if ck.typed(w, v, (bool,), "True or False"):
+                    nc[k] = v
+            elif k == "interface":
+                if ck.typed(w, v, (str,), "a text"):
+                    if IFACE_RE.match(v):
+                        nc[k] = v
+                    else:
+                        ck.err(w, _("\"%s\" is not a valid %s") % (v, _("network interface")))
+            elif k == "ssid":
+                if ck.typed(w, v, (str,), "a text"):
+                    if 1 <= len(v.encode()) <= 32 and not re.search(r"[\x00-\x1f]", v):
+                        nc[k] = v
+                    else:
+                        ck.err(w, _("a Wi-Fi network name has 1 to 32 characters"))
+            elif k == "security":
+                if v in WIFI_SECURITY:
+                    nc[k] = v
+                else:
+                    ck.err(w, _("must be one of: %s") % ", ".join(WIFI_SECURITY))
+            elif k in ("ipv4", "ipv6"):
+                if isinstance(v, str):
+                    v = {"method": v}
+                if not ck.typed(w, v, (dict,), "a dictionary { }"):
+                    continue
+                ip = {}
+                for ik, iv in v.items():
+                    iw = f"{w}.{ik}"
+                    if ik == "method":
+                        if iv in IP_METHODS[k]:
+                            ip[ik] = iv
+                        else:
+                            ck.err(iw, _("must be one of: %s") % ", ".join(IP_METHODS[k]))
+                    elif ik in ("addresses", "dns"):
+                        vals = ck.str_list(iw, iv, re.compile(r"^[0-9A-Fa-f.:/]+$"), "IP address")
+                        for a in vals:
+                            if not _ip_ok(a, prefix=(ik == "addresses")):
+                                what = _("IP address") if ik == "dns" else _("address with prefix (e.g. \"192.168.1.10/24\")")
+                                ck.err(iw, _("\"%s\" is not a valid %s") % (a, what))
+                        ip[ik] = vals
+                    elif ik == "gateway":
+                        if ck.typed(iw, iv, (str,), "a text"):
+                            if iv == "" or _ip_ok(iv):
+                                ip[ik] = iv
+                            else:
+                                ck.err(iw, _("\"%s\" is not a valid %s") % (iv, _("IP address")))
+                    else:
+                        ck.unknown(w, ik, IP_KEYS)
+                if ip.get("method") == "manual" and not ip.get("addresses"):
+                    ck.err(w, _("\"manual\" needs \"addresses\" (e.g. [\"192.168.1.10/24\"])"))
+                nc[k] = ip
+            elif k == "proxy":
+                if ck.typed(w, v, (str,), "a text"):
+                    if v == "" or re.match(r"^https?://\S+$", v):
+                        nc[k] = v
+                    else:
+                        ck.err(w, _("must be the address of a proxy configuration (PAC) file, e.g. "
+                                    "\"http://proxy.example.com/proxy.pac\", or \"\" for none"))
+            else:
+                ck.unknown(where, k, CON_KEYS)
+        if ("ssid" in nc or "security" in nc) and nc.get("type", "wifi") != "wifi":
+            ck.err(where, _("\"ssid\" and \"security\" belong only to Wi-Fi connections"))
+        out["connections"][name] = nc
+    return out
+
+
+def normalize_more(raw, ck, cfg):
+    """Dalsi oblasti: jazykove formaty, konzole, ovladace, sit, tiskarny, napajeni, zavadec, zabezpeceni,
+    vychozi nastaveni novych uzivatelu, repozitare (jen ke kontrole)."""
+    if "formats" in raw and ck.typed("formats", raw["formats"], (dict,), "a dictionary { }"):
+        supported = read("/usr/share/i18n/SUPPORTED")
+        nf = {}
+        for k, v in raw["formats"].items():
+            if k not in LC_KEYS:
+                ck.unknown("formats", k, LC_KEYS)
+            elif v is None or v == "":
+                nf[k] = None          # stejne jako jazyk (radek LC_* se odebere)
+            elif not isinstance(v, str) or not LOCALE_RE.match(v) or (
+                    supported and not re.search(r"^" + re.escape(v) + r" ", supported, re.M)):
+                ck.err("formats." + k, _("unknown language setting \"%s\" (e.g. \"cs_CZ.UTF-8\")") % v)
+            else:
+                nf[k] = v
+        cfg["formats"] = nf
+    if "console" in raw and ck.typed("console", raw["console"], (dict,), "a dictionary { }"):
+        nc = {}
+        for k, v in raw["console"].items():
+            if k not in ("keymap", "font"):
+                ck.unknown("console", k, ("keymap", "font"))
+            elif ck.typed("console." + k, v, (str,), "a text"):
+                if CONSOLE_RE.match(v):
+                    nc[k] = v
+                else:
+                    ck.err("console." + k, _("\"%s\" is not a valid %s") % (v, _("console setting")))
+        cfg["console"] = nc
+    if "drivers" in raw:
+        cfg["drivers"] = ck.str_list("drivers", raw["drivers"], PKG_RE, "package name")
+        for p in sorted(set(cfg["drivers"]) & set(cfg.get("packages", []))):
+            ck.err("drivers", _("%s is both in packages and drivers") % p)
+    if "network" in raw:
+        cfg["network"] = normalize_network(raw["network"], ck)
+    if "printers" in raw and ck.typed("printers", raw["printers"], (dict,), "a dictionary { }"):
+        pr = raw["printers"]
+        npr = {}
+        for k in pr:
+            if k not in ("default", "queues"):
+                ck.unknown("printers", k, ("default", "queues"))
+        if "default" in pr:
+            d = pr["default"]
+            if d is None or (isinstance(d, str) and PRINTER_RE.match(d)):
+                npr["default"] = d
+            else:
+                ck.err("printers.default", _("\"%s\" is not a valid %s") % (d, _("printer name")))
+        if "queues" in pr and ck.typed("printers.queues", pr["queues"], (dict,), "a dictionary { }"):
+            npr["queues"] = {}
+            for name, q in pr["queues"].items():
+                where = f"printers.queues.{name}"
+                if not PRINTER_RE.match(name):
+                    ck.err(where, _("\"%s\" is not a valid %s") % (name, _("printer name")))
+                    continue
+                if q is None:
+                    q = {}
+                if not ck.typed(where, q, (dict,), "a dictionary { }"):
+                    continue
+                nq = {}
+                for k, v in q.items():
+                    if k == "uri":
+                        if isinstance(v, str) and URI_RE.match(v):
+                            nq[k] = v
+                        else:
+                            ck.err(where + ".uri", _("\"%s\" is not a valid %s") % (v, _("printer address (URI)")))
+                    elif k == "model":
+                        if ck.typed(where + ".model", v, (str,), "a text"):
+                            if v.strip() and not re.search(r"[\x00-\x1f]", v):
+                                nq[k] = v
+                            else:
+                                ck.err(where + ".model", _("\"%s\" is not a valid %s") % (v, _("printer driver")))
+                    elif k == "shared":
+                        if ck.typed(where + ".shared", v, (bool,), "True or False"):
+                            nq[k] = v
+                    else:
+                        ck.unknown(where, k, ("uri", "model", "shared"))
+                npr["queues"][name] = nq
+        cfg["printers"] = npr
+    if "power" in raw and ck.typed("power", raw["power"], (dict,), "a dictionary { }"):
+        np_ = {}
+        for k, v in raw["power"].items():
+            if k in ("lid", "lid_on_power"):
+                if v in LID_ACTIONS:
+                    np_[k] = v
+                else:
+                    ck.err("power." + k, _("must be one of: %s") % ", ".join(LID_ACTIONS))
+            elif k == "suspend_after_minutes":
+                if ck.typed("power." + k, v, (int,), "a number"):
+                    if 0 <= v <= 1440:
+                        np_[k] = v
+                    else:
+                        ck.err("power." + k, _("must be between %d and %d") % (0, 1440))
+            elif k == "profile":
+                if v in PROFILES:
+                    np_[k] = v
+                else:
+                    ck.err("power.profile", _("must be one of: %s") % ", ".join(PROFILES))
+            else:
+                ck.unknown("power", k, ("lid", "lid_on_power", "suspend_after_minutes", "profile"))
+        cfg["power"] = np_
+    if "boot" in raw and ck.typed("boot", raw["boot"], (dict,), "a dictionary { }"):
+        nb = {}
+        for k, v in raw["boot"].items():
+            if k == "timeout":
+                if ck.typed("boot.timeout", v, (int,), "a number"):
+                    if 0 <= v <= 300:
+                        nb[k] = v
+                    else:
+                        ck.err("boot.timeout", _("must be between %d and %d") % (0, 300))
+            elif k == "default":
+                if isinstance(v, str) and ENTRY_RE.match(v) and not re.search(r"snapshot|recovery", v):
+                    nb[k] = v
+                else:
+                    ck.err("boot.default", _("must be \"luxos\" or the name of a boot menu entry (not a snapshot)"))
+            else:
+                ck.unknown("boot", k, ("timeout", "default"))
+        cfg["boot"] = nb
+    if "security" in raw and ck.typed("security", raw["security"], (dict,), "a dictionary { }"):
+        ns = {}
+        for k, v in raw["security"].items():
+            if k != "faillock":
+                ck.unknown("security", k, ("faillock",))
+            elif ck.typed("security.faillock", v, (dict,), "a dictionary { }"):
+                nf = {}
+                for fk, fv in v.items():
+                    if fk not in FAILLOCK_KEYS:
+                        ck.unknown("security.faillock", fk, tuple(FAILLOCK_KEYS))
+                    elif ck.typed("security.faillock." + fk, fv, (int,), "a number"):
+                        lo, hi = FAILLOCK_KEYS[fk]
+                        if lo <= fv <= hi:
+                            nf[fk] = fv
+                        else:
+                            ck.err("security.faillock." + fk, _("must be between %d and %d") % (lo, hi))
+                ns["faillock"] = nf
+        cfg["security"] = ns
+    if "new_users" in raw and ck.typed("new_users", raw["new_users"], (dict,), "a dictionary { }"):
+        nn = {}
+        for k, v in raw["new_users"].items():
+            w = "new_users." + k
+            if k not in NEW_USER_KEYS:
+                ck.unknown("new_users", k, NEW_USER_KEYS)
+            elif v is None:
+                nn[k] = None          # zpet na vychozi hodnotu LuxOS
+            elif k == "theme":
+                if v in THEMES:
+                    nn[k] = v
+                else:
+                    ck.err(w, _("must be one of: %s") % ", ".join(THEMES))
+            elif k == "wallpaper":
+                if isinstance(v, str) and v.startswith("/") and ".." not in v and not re.search(r"[\x00-\x1f\"\\$`]", v):
+                    nn[k] = v
+                else:
+                    ck.err(w, _("must be the full path of a picture readable by everybody, e.g. "
+                                "\"/usr/share/backgrounds/luxos/luxos-dark.jpg\""))
+            elif k == "dock":
+                nn[k] = [desktop_id(x) for x in ck.str_list(w, v, DESKTOP_ID_RE, "app ID")]
+            elif k in ("browser", "text_editor", "mail"):
+                if isinstance(v, str) and DESKTOP_ID_RE.match(v):
+                    nn[k] = desktop_id(v)
+                else:
+                    ck.err(w, _("\"%s\" is not a valid %s") % (v, _("app ID")))
+            elif ck.typed(w, v, (int,), "a number"):
+                if 0 <= v <= 1440:
+                    nn[k] = v
+                else:
+                    ck.err(w, _("must be between %d and %d") % (0, 1440))
+        cfg["new_users"] = nn
+    if "repos" in raw and ck.typed("repos", raw["repos"], (dict,), "a dictionary { }"):
+        nr = {}
+        for k, v in raw["repos"].items():
+            if k == "list":
+                nr[k] = ck.str_list("repos.list", v, REPO_RE, "repository name")
+            elif k in REPO_KEYS:
+                if ck.typed("repos." + k, v, (bool,), "True or False"):
+                    nr[k] = v
+            else:
+                ck.unknown("repos", k, REPO_KEYS)
+        cfg["repos"] = nr
 
 
 LAYERS = None   # Layers posledniho load() - puvod hodnot pro diff, show --origin a record
@@ -945,7 +1309,7 @@ def org_labels(path, item=MISSING):
 
 def change_origin(c):
     """Zasady organizace, ze kterych zmena vychazi (pro diff)."""
-    if c.section in ("packages", "flatpaks"):
+    if c.section in ("packages", "flatpaks", "drivers"):
         out = []
         for it in (c.data or []) if isinstance(c.data, list) else []:
             out += [x for x in org_labels((c.section,), it) if x not in out]
@@ -956,8 +1320,12 @@ def change_origin(c):
         return org_labels(("users", c.target)) if c.target else org_labels(("groups",))
     if c.section == "services":
         return org_labels(("services", "enable"), c.target) + org_labels(("services", "disable"), c.target)
-    if c.section in ("guard", "firewall", "care", "kernel", "domain"):
+    if c.section in ("guard", "firewall", "care", "kernel", "domain", "power", "boot", "security", "new_users"):
         return org_labels((c.section,))
+    if c.section == "network":
+        return org_labels(("network", "connections", c.target))
+    if c.section == "printers":
+        return org_labels(("printers",))
     return []
 
 
@@ -1116,12 +1484,85 @@ class State:
                         allow.append(spec)
         return {"installed": installed, "enable": enabled, "allow": allow}
 
+    def scheduler(self):
+        """Planovac procesu z /etc/luxos/scheduler.conf ("lavd" | "default"); None = bez planovace LuxOS."""
+        if read(SCHED_CONF, None) is None:
+            return None
+        v = read_kv(SCHED_CONF).get("SCHEDULER", "lavd")
+        return v if v in SCHEDULERS else "default"
+
     def boot(self):
         return self._get("boot", boot_layout)
 
     def booted_snapshot(self):
         m = re.search(r"(?:^|\s)luxos\.snapshot=(\S+)", read("/proc/cmdline"))
         return m.group(1) if m else ""
+
+    # -- dalsi oblasti --
+    def formats(self):
+        return {k: v for k, v in read_kv("/etc/locale.conf").items() if k in LC_KEYS}
+
+    def console(self):
+        c = read_kv(VCONSOLE_CONF)
+        return {k: c[K] for k, K in (("keymap", "KEYMAP"), ("font", "FONT")) if c.get(K)}
+
+    def drivers(self):
+        """Nainstalovane ovladace: baliky z [luxos-drivers] a ovladace grafiky/Wi-Fi (nvidia, broadcom-wl)."""
+        def f():
+            rc, out, _e = capture([tool("lux-engine"), "-Slq", "luxos-drivers"])
+            repo = set(out.split()) if rc == 0 else set()
+            return {p for p in self.explicit() if p in repo or DRIVER_RE.match(p)}
+        return self._get("drivers", f)
+
+    def connections(self):
+        """Ulozena pripojeni NetworkManageru {jmeno: {...}} (bez tajemstvi); None = nelze cist (bez roota)."""
+        return self._get("connections", nm_connections)
+
+    def active_connections(self):
+        """UUID prave pouzivanych pripojeni (nmcli); prazdne = NetworkManager nebezi."""
+        def f():
+            if not have("nmcli"):
+                return set()
+            rc, out, _e = capture([tool("nmcli"), "-t", "-f", "UUID", "connection", "show", "--active"], timeout=20)
+            return set(out.split()) if rc == 0 else set()
+        return self._get("active", f)
+
+    def printers(self):
+        return self._get("printers", cups_state)
+
+    def power(self):
+        lg = logind_settings()
+        lid = lg.get("HandleLidSwitch", "suspend")
+        out = {"lid": lid, "lid_on_power": lg.get("HandleLidSwitchExternalPower", lid)}
+        idle = lg.get("IdleAction", "ignore")
+        if idle == "ignore":
+            out["suspend_after_minutes"] = 0
+        elif idle == "suspend":
+            out["suspend_after_minutes"] = max(1, round(time_span(lg.get("IdleActionSec", "30min")) / 60))
+        prof = read_kv_section(PPD_STATE, "State").get("Profile", "")
+        if prof in PROFILES:
+            out["profile"] = prof
+        return out
+
+    def powersaver_on(self):
+        return os.path.exists(P(POWERSAVER_MARK))
+
+    def boot_settings(self):
+        return self._get("bootcfg", lambda: boot_settings(self.boot()))
+
+    def faillock(self):
+        vals = {"deny": 3, "fail_interval": 900, "unlock_time": 600}   # vychozi pam_faillock
+        for line in read(FAILLOCK_CONF).splitlines():
+            m = re.match(r"^\s*(deny|fail_interval|unlock_time)\s*=\s*(\d+)\s*$", line)
+            if m:
+                vals[m.group(1)] = int(m.group(2))
+        return vals
+
+    def new_users(self):
+        return new_users_state()
+
+    def repos(self):
+        return self._get("repos", lux_conf_settings)
 
 
 def boot_layout():
@@ -1165,20 +1606,648 @@ def set_params_text(text, kind, add, remove):
                   lambda m: m.group(1) + " ".join(fix(m.group(2).split())) + '"', text, flags=re.M)
 
 
+# ---- soucasny stav dalsich oblasti (jen cteni) ---------------------------------------------------
+# Ovladace grafiky a Wi-Fi, ktere vybira aplikace Ovladace (luxos-hwdetect); dalsi ovladace jsou z [luxos-drivers]
+DRIVER_RE = re.compile(r"^(nvidia(-open)?(-lts)?(-dkms)?|nvidia-\d+xx-(dkms|utils)|nvidia-utils"
+                       r"|lib32-nvidia(-\d+xx)?-utils|broadcom-wl(-dkms)?)$")
+NM_TYPE_NAMES = {"802-11-wireless": "wifi", "802-3-ethernet": "ethernet"}
+NEW_USERS_MAP = (("theme", "THEME"), ("wallpaper", "WALLPAPER"), ("dock", "DOCK"), ("browser", "BROWSER"),
+                 ("text_editor", "TEXT_EDITOR"), ("mail", "MAIL"), ("lock_after_minutes", "LOCK_AFTER"),
+                 ("screen_off_minutes", "SCREEN_OFF"))
+
+
+def read_kv_section(path, section):
+    """KLIC=hodnota z jedne sekce [section] souboru INI."""
+    out, cur = {}, None
+    for line in read(path).splitlines():
+        s = line.strip()
+        if s.startswith("[") and s.endswith("]"):
+            cur = s[1:-1].strip()
+        elif cur == section and s and not s.startswith(("#", ";")) and "=" in s:
+            k, v = s.split("=", 1)
+            out[k.strip()] = v.strip()
+    return out
+
+
+def nm_ssid(v):
+    """SSID z keyfile: text, nebo bajty "77;105;102;105;" (nazvy, ktere nejsou UTF-8)."""
+    if re.match(r"^(\d{1,3};)+\d{0,3}$", v):
+        try:
+            return bytes(int(x) for x in v.split(";") if x).decode("utf-8", "replace")
+        except ValueError:
+            return v
+    return v
+
+
+def nm_ip(sec):
+    d = {"method": sec.get("method", "auto")}
+    addrs, gw = [], sec.get("gateway", "")
+    keys = sorted((k for k in sec if re.match(r"^address(es)?\d*$", k)),
+                  key=lambda k: int(re.sub(r"\D", "", k) or 0))
+    for k in keys:
+        for part in sec[k].split(";"):
+            a, _s, g = part.partition(",")
+            if a.strip():
+                addrs.append(a.strip())
+                gw = gw or g.strip()
+    dns = [x for x in re.split(r"[;,\s]+", sec.get("dns", "")) if x]
+    if addrs:
+        d["addresses"] = addrs
+    if gw:
+        d["gateway"] = gw
+    if dns:
+        d["dns"] = dns
+    return d
+
+
+def nm_connections():
+    """Keyfile NetworkManageru v /etc (jen nastaveni, nikdy hesla) -> {jmeno: {...}}; None = bez prav."""
+    d = P(NM_DIR)
+    try:
+        names = sorted(os.listdir(d))
+    except PermissionError:
+        return None
+    except OSError:
+        return {}
+    out = {}
+    for n in names:
+        if not n.endswith(".nmconnection"):
+            continue
+        try:
+            with open(os.path.join(d, n), encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        except PermissionError:
+            return None
+        except OSError:
+            continue
+        cp = configparser.RawConfigParser(strict=False, interpolation=None, delimiters=("=",),
+                                          comment_prefixes=("#",), inline_comment_prefixes=None)
+        cp.optionxform = str
+        try:
+            cp.read_string(text)
+        except configparser.Error:
+            continue
+
+        def sec(*names_):
+            for s in names_:
+                if cp.has_section(s):
+                    return dict(cp.items(s))
+            return {}
+        con = sec("connection")
+        name = con.get("id") or n[:-len(".nmconnection")]
+        typ = NM_TYPE_NAMES.get(con.get("type", ""), con.get("type", ""))
+        c = {"uuid": con.get("uuid", ""), "file": f"{NM_DIR}/{n}", "type": typ,
+             "autoconnect": con.get("autoconnect", "true").lower() not in ("false", "0", "no")}
+        if con.get("interface-name"):
+            c["interface"] = con["interface-name"]
+        if typ == "wifi":
+            c["ssid"] = nm_ssid(sec("wifi", "802-11-wireless").get("ssid", ""))
+            ws = sec("wifi-security", "802-11-wireless-security")
+            km = ws.get("key-mgmt", "")
+            c["security"] = "none" if not km else ("wep" if km in ("none", "ieee8021x") else km)
+        for fam in ("ipv4", "ipv6"):
+            if cp.has_section(fam) or typ in NET_TYPES:
+                c[fam] = nm_ip(sec(fam))
+        pr = sec("proxy")
+        c["proxy"] = pr.get("pac-url", "") if pr.get("method") == "auto" else ""
+        out[name] = c
+    return out
+
+
+def cups_state():
+    """Tiskove fronty CUPS {"default": jmeno|None, "queues": {jmeno: {uri, model, shared}}}; None = CUPS nebezi."""
+    if not have("lpstat"):
+        return None
+    rc, out, _e = capture([tool("lpstat"), "-r"], timeout=20)
+    if rc != 0 or "not running" in out:
+        return None
+    rc, out, _e = capture([tool("lpstat"), "-v"], timeout=30)
+    queues = {}
+    for line in out.splitlines():
+        m = re.match(r"^device for ([^:\s]+): (\S+)", line)
+        if m:
+            queues[m.group(1)] = {"uri": m.group(2)}
+    rc, out, _e = capture([tool("lpstat"), "-d"], timeout=20)
+    m = re.search(r"system default destination: (\S+)", out)
+    default = m.group(1) if m else None
+    for name, q in queues.items():
+        rc, out, _e = capture([tool("lpoptions"), "-p", name], timeout=20)
+        try:
+            opts = dict(x.split("=", 1) for x in shlex.split(out) if "=" in x)
+        except ValueError:
+            opts = {}
+        mm = opts.get("printer-make-and-model", "")
+        q["model"] = "everywhere" if re.search(r"IPP Everywhere|driverless", mm, re.I) else mm
+        q["shared"] = opts.get("printer-is-shared", "false").lower() == "true"
+    return {"default": default, "queues": queues}
+
+
+def logind_settings():
+    """Ucinne nastaveni systemd-logind: hlavni soubor a doplnky *.conf.d v poradi jmen (/etc ma prednost)."""
+    vals = {}
+    for path in ("/usr/lib/systemd/logind.conf", "/etc/systemd/logind.conf"):
+        vals.update(read_kv_section(path, "Login"))
+    drop = {}
+    for d in ("/usr/lib/systemd/logind.conf.d", "/usr/local/lib/systemd/logind.conf.d", "/run/systemd/logind.conf.d",
+              "/etc/systemd/logind.conf.d"):
+        try:
+            for n in os.listdir(P(d)):
+                if n.endswith(".conf"):
+                    drop[n] = d + "/" + n
+        except OSError:
+            pass
+    for n in sorted(drop):
+        vals.update(read_kv_section(drop[n], "Login"))
+    return vals
+
+
+def time_span(text):
+    """Casovy udaj systemd ("30min", "1h 30min", "900") -> sekundy."""
+    units = {"": 1, "s": 1, "sec": 1, "second": 1, "seconds": 1, "m": 60, "min": 60, "minute": 60, "minutes": 60,
+             "h": 3600, "hr": 3600, "hour": 3600, "hours": 3600, "d": 86400, "day": 86400, "days": 86400,
+             "ms": 0.001, "us": 0.000001}
+    total = 0.0
+    for num, unit in re.findall(r"(\d+(?:\.\d+)?)\s*([a-z]*)", text.lower()):
+        total += float(num) * units.get(unit, 1)
+    return total
+
+
+def efivar(name):
+    """Promenna systemd-boot v EFI (UTF-16, prvni 4 bajty jsou atributy); None = neni nastavena."""
+    try:
+        with open(P(f"{EFIVARS}/{name}-{EFI_LOADER_GUID}"), "rb") as f:
+            data = f.read()
+    except OSError:
+        return None
+    return data[4:].decode("utf-16-le", "replace").split("\x00")[0]
+
+
+LUXOS_DEFAULT_RE = re.compile(r"^luxos(\.conf|\*)?$")
+
+
+def boot_settings(lay):
+    """Cas nabidky a vychozi polozka zavadece -> {kind, timeout, default, entries, ...}; None = nelze zjistit."""
+    if lay is None or lay["kind"] == "unreadable":
+        return None
+    if lay["kind"] == "sdboot":
+        esp = lay["files"][0].split("/loader/entries/")[0]
+        conf = {}
+        for line in read(esp + "/loader/loader.conf").splitlines():
+            parts = line.split(None, 1)
+            if len(parts) == 2 and not parts[0].startswith("#"):
+                conf[parts[0]] = parts[1].strip()
+        t = efivar("LoaderConfigTimeout")
+        t = conf.get("timeout", "0") if t is None else t
+        timeout = int(t) if t.isdigit() else (0 if t in ("", "menu-hidden") else None)
+        loader_default = conf.get("default", "")
+        d = efivar("LoaderEntryDefault") or loader_default
+        try:
+            entries = sorted(n for n in os.listdir(P(esp + "/loader/entries")) if n.endswith(".conf"))
+        except OSError:
+            entries = []
+        main = next((os.path.basename(f) for f in lay["files"]
+                     if not re.search(r"-(prev|fallback)(\+[\d-]+)?\.conf$", f)), "luxos.conf")
+        return {"kind": "sdboot", "timeout": timeout, "entries": entries, "main": main,
+                "loader_luxos": not loader_default or bool(LUXOS_DEFAULT_RE.match(loader_default)),
+                "default": "luxos" if (not d or LUXOS_DEFAULT_RE.match(d) or d == main) else d}
+    g = read_kv("/etc/default/grub")
+    t = g.get("GRUB_TIMEOUT", "5")
+    d = g.get("GRUB_DEFAULT", "0")
+    return {"kind": "grub", "timeout": int(t) if t.isdigit() else None, "entries": [],
+            "default": "luxos" if d in ("", "0") else d}
+
+
+def new_users_state():
+    kv = read_kv(NEW_USERS_CONF)
+    out = {}
+    for k, K in NEW_USERS_MAP:
+        v = kv.get(K, "")
+        if not v:
+            continue
+        if k == "dock":
+            out[k] = [desktop_id(x) for x in v.split()]
+        elif k in ("browser", "text_editor", "mail"):
+            out[k] = desktop_id(v)
+        elif k.endswith("_minutes"):
+            if v.isdigit():
+                out[k] = int(v)
+        else:
+            out[k] = v
+    return out
+
+
+def lux_conf_settings():
+    """JEDINE misto, kde lux system cte /etc/lux/lux.conf (repozitare, komunita/AUR, Flatpak) - jen cteni,
+    lux.conf se odtud nikdy nezapisuje. Umi puvodni format ("klic hodnota", "repo JMENO" s odsazenym
+    blokem) i tabulky ([repo.JMENO], "klic = hodnota"); vlozene soubory (include) se ctou take.
+    -> {"list": [...], "community": bool, "review_build_scripts": bool, "flatpak_updates": bool} | None"""
+    if read(LUX_CONF, None) is None:
+        return None
+    files, seen, repos, vals = [LUX_CONF], set(), [], {}
+    while files and len(seen) < 50:
+        f = files.pop(0)
+        if f in seen:
+            continue
+        seen.add(f)
+        for line in read(f).splitlines():
+            s = re.sub(r"\s+#.*$|^#.*$", "", line).strip()
+            if not s:
+                continue
+            m = re.match(r'^\[\s*repo\.\"?([^\]\"]+)\"?\s*\]$', s) or re.match(r"^repo\s+(\S+)$", s)
+            if m and not line[:1].isspace():
+                if m.group(1) not in repos:
+                    repos.append(m.group(1))
+                continue
+            m = re.match(r'^include\s*=?\s*\[?\s*\"?([^\"\]]+)\"?\s*\]?$', s)
+            if m:
+                pat = m.group(1).strip()
+                for p in sorted(glob.glob(P(pat))):
+                    files.append(p[len(ROOT):] if ROOT and p.startswith(ROOT) else p)
+                continue
+            m = re.match(r'^(aur|review-pkgbuild|review_pkgbuild|flatpak)\s*(?:=\s*)?\"?([A-Za-z0-9]+)\"?$', s)
+            if m:
+                vals[m.group(1).replace("_", "-")] = m.group(2).lower()
+
+    def flag(key):
+        return vals.get(key, "on") not in ("off", "no", "false", "0")
+    return {"list": repos, "community": flag("aur"), "review_build_scripts": flag("review-pkgbuild"),
+            "flatpak_updates": flag("flatpak")}
+
+
+# ---- plan zmen dalsich oblasti ---------------------------------------------------------------------
+NMCLI_IP = {"method": "method", "addresses": "addresses", "gateway": "gateway", "dns": "dns"}
+
+
+def nm_props(want, have=None):
+    """Pozadovane hodnoty pripojeni -> [(vlastnost nmcli, hodnota)] jen toho, co se lisi."""
+    have = have or {}
+    props = []
+
+    def differ(k):
+        return k in want and want[k] != have.get(k)
+    if differ("autoconnect"):
+        props.append(("connection.autoconnect", "yes" if want["autoconnect"] else "no"))
+    if differ("interface"):
+        props.append(("connection.interface-name", want["interface"]))
+    if differ("ssid"):
+        props.append(("802-11-wireless.ssid", want["ssid"]))
+    if differ("security"):
+        if want["security"] == "none":
+            props.append(("remove", "802-11-wireless-security"))
+        else:
+            km = "none" if want["security"] == "wep" else want["security"]
+            props.append(("802-11-wireless-security.key-mgmt", km))
+    for fam in ("ipv4", "ipv6"):
+        w, h = want.get(fam) or {}, have.get(fam) or {}
+        for k in IP_KEYS:
+            if k not in w:
+                continue
+            hv = h.get(k, [] if k in ("addresses", "dns") else ("auto" if k == "method" else ""))
+            if w[k] != hv:
+                v = ",".join(w[k]) if isinstance(w[k], list) else w[k]
+                props.append((f"{fam}.{NMCLI_IP[k]}", v))
+    if differ("proxy") and not (want["proxy"] == "" and not have.get("proxy")):
+        if want["proxy"]:
+            props += [("proxy.method", "auto"), ("proxy.pac-url", want["proxy"])]
+        else:
+            props += [("proxy.method", "none"), ("proxy.pac-url", "")]
+    return props
+
+
+def nm_argv(props):
+    out = []
+    for k, v in props:
+        out += ["remove", v] if k == "remove" else [k, v]
+    return out
+
+
+def describe_props(props):
+    return ", ".join(f"{k} {v}" if k != "remove" else f"-{v}" for k, v in props)
+
+
+def compute_network(net, st, plan, applied, force):
+    want = net.get("connections")
+    if want is None:
+        return
+    cur = st.connections()
+    if cur is None:
+        plan.warnings.append(_("Network connections can be read only with administrator rights "
+                               "(lux system diff asks for them)."))
+        return
+    active = st.active_connections()
+    nm = tool("nmcli")
+    for name, c in want.items():
+        have_c = cur.get(name)
+        if have_c is None:
+            typ = c.get("type", "wifi" if "ssid" in c else "")
+            if typ not in NET_TYPES:
+                raise UserError(_("network.connections.%s: only Wi-Fi and Ethernet connections can be created here; "
+                                  "create other kinds in Settings > Network") % name)
+            if typ == "wifi" and not c.get("ssid"):
+                raise UserError(_("network.connections.%s: a new Wi-Fi connection needs \"ssid\"") % name)
+            if c.get("security", "").startswith("wpa-eap"):
+                raise UserError(_("network.connections.%s: enterprise Wi-Fi (802.1x) needs certificates and an account; "
+                                  "connect it once in Settings > Network, then the file manages it") % name)
+            argv = [nm, "connection", "add", "type", typ, "con-name", name]
+            if c.get("interface"):
+                argv += ["ifname", c["interface"]]
+            argv += nm_argv([p for p in nm_props(c, {"ipv4": {}, "ipv6": {}}) if p[0] != "remove"])
+            text = _("add connection %s") % name + (f" (Wi-Fi {c['ssid']})" if typ == "wifi" else "")
+            plan.add("network", "+", text, 55, lambda a=argv: run(a), target=name)
+            if typ == "wifi" and c.get("security", "none") != "none":
+                plan.notes.append(_("Connection %s: the Wi-Fi password is not in the file; it is asked for when "
+                                    "connecting for the first time (it stays in the system).") % name)
+            continue
+        if "type" in c and c["type"] != have_c["type"]:
+            raise UserError(_("network.connections.%s: the type cannot be changed (%s → %s); delete the connection "
+                              "and create a new one") % (name, have_c["type"], c["type"]))
+        props = nm_props(c, have_c)
+        if props:
+            in_use = have_c["uuid"] in active
+            text = _("change connection %s: %s") % (name, describe_props(props))
+            if in_use:
+                text += "  " + _("(in use; applies at the next connection)")
+            plan.add("network", "~", text, 55, lambda u=have_c["uuid"], p=props: run([nm, "connection", "modify", u]
+                                                                                    + nm_argv(p)),
+                     target=name, risky=in_use)
+    for name in applied.get("connections", []):
+        if name in want or name not in cur:
+            continue
+        in_use = cur[name]["uuid"] in active
+        if in_use and not force:
+            plan.notes.append(_("Connection %s is in use and was kept; delete it with --force (the computer "
+                                "may lose the network).") % name)
+            plan.kept_connections.append(name)
+            continue
+        plan.add("network", "-", _("delete connection %s") % name, 56,
+                 lambda u=cur[name]["uuid"]: run([nm, "connection", "delete", u]), target=name, risky=in_use)
+
+
+def lpinfo_model(model):
+    """Nazev ovladace pro lpadmin -m: "everywhere", nazev z lpinfo -m nebo jeho popis (make-and-model)."""
+    if model == "everywhere":
+        return model
+    rc, out, _e = capture([tool("lpinfo"), "-m"], timeout=120)
+    for line in out.splitlines():
+        name, _s, mm = line.partition(" ")
+        if model in (name, mm.strip()):
+            return name
+    return None
+
+
+def compute_printers(pr, st, plan, applied):
+    cur = st.printers()
+    if cur is None:
+        if pr.get("queues") or pr.get("default"):
+            plan.warnings.append(_("Printing (CUPS) is not running; printers were not checked."))
+        return
+    lpadmin = tool("lpadmin")
+    queues = pr.get("queues", {})
+    models = {}
+
+    def model_name(name, m):
+        if m not in models:
+            models[m] = lpinfo_model(m)
+        if not models[m]:
+            raise UserError(_("printers.queues.%s: the driver \"%s\" is not installed (list: lpinfo -m; "
+                              "\"everywhere\" = driverless printing)") % (name, m))
+        return models[m]
+    for name, q in queues.items():
+        have_q = cur["queues"].get(name)
+        if have_q is None:
+            if not q.get("uri"):
+                raise UserError(_("printers.queues.%s: a new printer needs \"uri\" (its address)") % name)
+            argv = [lpadmin, "-p", name, "-E", "-v", q["uri"], "-m", model_name(name, q.get("model", "everywhere")),
+                    "-o", "printer-is-shared=" + ("true" if q.get("shared") else "false")]
+            plan.add("printers", "+", _("add printer %s (%s)") % (name, q["uri"]), 56, lambda a=argv: run(a), target=name)
+            continue
+        argv, parts = [], []
+        if "uri" in q and q["uri"] != have_q["uri"]:
+            argv += ["-v", q["uri"]]
+            parts.append(f"{have_q['uri']} → {q['uri']}")
+        if "model" in q and q["model"] != have_q["model"]:
+            argv += ["-m", model_name(name, q["model"])]
+            parts.append(_("driver %s") % q["model"])
+        if "shared" in q and q["shared"] != have_q["shared"]:
+            argv += ["-o", "printer-is-shared=" + ("true" if q["shared"] else "false")]
+            parts.append(_("shared: %s") % fmt(q["shared"]))
+        if argv:
+            plan.add("printers", "~", _("printer %s: %s") % (name, ", ".join(parts)), 56,
+                     lambda a=[lpadmin, "-p", name] + argv: run(a), target=name)
+    if pr.get("default") and pr["default"] != cur["default"]:
+        if pr["default"] not in cur["queues"] and pr["default"] not in queues:
+            raise UserError(_("printers.default: there is no printer %s") % pr["default"])
+        plan.add("printers", "~", _("default printer: %s → %s") % (cur["default"] or "-", pr["default"]), 57,
+                 lambda d=pr["default"]: run([lpadmin, "-d", d]), target="default")
+    if "queues" in pr:
+        for name in applied.get("printers", []):
+            if name not in queues and name in cur["queues"]:
+                plan.add("printers", "-", _("remove printer %s") % name, 57,
+                         lambda n=name: run([lpadmin, "-x", n]), target=name)
+
+
+def compute_power(pw, st, plan):
+    cur = st.power()
+    want = {k: v for k, v in pw.items() if k != "profile" and cur.get(k) != v}
+    if want:
+        text = ", ".join(f"{k}: {fmt(cur.get(k, '-'))} → {fmt(v)}" for k, v in want.items())
+        plan.add("power", "~", text, 57, lambda w=want: apply_logind(w), target="logind")
+    if "profile" in pw and pw["profile"] != cur.get("profile"):
+        if st.powersaver_on():
+            plan.notes.append(_("Battery Saver is on; the power profile is set when it turns off."))
+        elif not have("powerprofilesctl"):
+            raise UserError(_("power.profile: power profiles are not installed (lux install power-profiles-daemon)."))
+        else:
+            plan.add("power", "~", _("power profile: %s → %s") % (cur.get("profile", "-"), pw["profile"]), 57,
+                     lambda p=pw["profile"]: run([tool("powerprofilesctl"), "set", p]), target="profile")
+
+
+def compute_boot(bt, st, plan):
+    cur = st.boot_settings()
+    if cur is None:
+        if st.boot() is not None and st.boot()["kind"] == "unreadable":
+            plan.warnings.append(_("Boot settings can be read only with administrator rights (lux system diff asks for them)."))
+        elif bt:
+            raise UserError(_("Boot settings: no LuxOS boot entry found (systemd-boot or GRUB)."))
+        return
+    if "timeout" in bt and bt["timeout"] != cur["timeout"]:
+        plan.add("boot", "~", _("boot menu shown for: %s → %s s") % (fmt(cur["timeout"]) if cur["timeout"] is not None
+                                                                     else "-", bt["timeout"]), 81,
+                 lambda t=bt["timeout"], c=cur: apply_boot(c, timeout=t), target="timeout")
+    if "default" in bt and bt["default"] != cur["default"]:
+        d = bt["default"]
+        if cur["kind"] == "sdboot" and d != "luxos" and d not in cur["entries"] and not d.startswith("auto-"):
+            raise UserError(_("boot.default: there is no boot menu entry %s (entries: %s)")
+                            % (d, ", ".join(e for e in cur["entries"] if "snapshot" not in e) or "-"))
+        plan.add("boot", "~", _("default boot entry: %s → %s") % (cur["default"], d), 81,
+                 lambda d=d, c=cur: apply_boot(c, default=d), target="default")
+
+
+def compute_more(cfg, st, plan, applied, force):
+    """Jazykove formaty, konzole, sit, tiskarny, napajeni, zavadec, zabezpeceni, novi uzivatele, repozitare."""
+    if cfg.get("formats"):
+        cur = st.formats()
+        want = {k: v for k, v in cfg["formats"].items() if cur.get(k) != v}
+        if want:
+            text = ", ".join(f"{k}: {cur.get(k) or '-'} → {v or _('as the language')}" for k, v in want.items())
+            plan.add("system", "~", _("formats: %s") % text, 30, lambda w=want: apply_formats(w), target="formats")
+    if cfg.get("console"):
+        cur = st.console()
+        want = {k: v for k, v in cfg["console"].items() if cur.get(k) != v}
+        if want:
+            text = ", ".join(f"{k}: {cur.get(k) or '-'} → {v}" for k, v in want.items())
+            plan.add("system", "~", _("console: %s") % text + "  " + _("(after a restart)"), 32,
+                     lambda w=want: set_kv(VCONSOLE_CONF, {k.upper(): v for k, v in w.items()}), target="console")
+    if cfg.get("network"):
+        compute_network(cfg["network"], st, plan, applied, force)
+    if cfg.get("printers"):
+        compute_printers(cfg["printers"], st, plan, applied)
+    if cfg.get("power"):
+        compute_power(cfg["power"], st, plan)
+    if cfg.get("boot"):
+        compute_boot(cfg["boot"], st, plan)
+    fl = cfg.get("security", {}).get("faillock")
+    if fl:
+        cur = st.faillock()
+        want = {k: v for k, v in fl.items() if cur.get(k) != v}
+        if want:
+            text = ", ".join(f"{k}: {cur.get(k)} → {v}" for k, v in want.items())
+            plan.add("security", "~", _("sign-in lockout: %s") % text, 62, lambda w=want: apply_faillock(w),
+                     target="faillock")
+    if cfg.get("new_users"):
+        cur = st.new_users()
+        want = {k: v for k, v in cfg["new_users"].items() if cur.get(k) != v}
+        if want:
+            text = ", ".join(f"{k}: {fmt_value(cur.get(k))} → {fmt_value(v)}" for k, v in want.items())
+            plan.add("new_users", "~", text, 63, lambda w=want: apply_new_users(w), target="new_users")
+    if cfg.get("repos"):
+        cur = st.repos()
+        if cur is None:
+            plan.warnings.append(_("%s is missing; the package manager settings were not checked.") % LUX_CONF)
+        else:
+            for k, v in cfg["repos"].items():
+                if cur.get(k) != v:
+                    plan.warnings.append(_("repos.%s differs from %s (%s); lux system does not change the package "
+                                           "manager settings - edit %s and check it with: lux config check")
+                                         % (k, LUX_CONF, fmt_value(cur.get(k)), LUX_CONF))
+
+
+def fmt_value(v):
+    if v is None:
+        return "-"
+    if isinstance(v, list):
+        return " ".join(v) or "[]"
+    return fmt(v)
+
+
+# ---- provedeni dalsich oblasti -------------------------------------------------------------------------
+def ensure_locale(loc):
+    """Jazyk v /etc/locale.gen a vygenerovany (locale-gen zapisuje do /usr - pri ochrane pres luxos-care)."""
+    path = "/etc/locale.gen"
+    text = read(path, None)
+    if text is None or re.search(r"^" + re.escape(loc) + r"\s", text, re.M):
+        return
+    charset = "UTF-8" if loc.endswith(".UTF-8") else "ISO-8859-1"
+    pat = re.compile(r"^#\s*(" + re.escape(loc) + r"\s.*)$", re.M)
+    new = pat.sub(r"\1", text, count=1) if pat.search(text) else text.rstrip("\n") + f"\n{loc} {charset}\n"
+    atomic_write(path, new)
+    if have("luxos-care"):
+        run([tool("luxos-care"), "protect", "exec", "--", tool("locale-gen")])
+    else:
+        run([tool("locale-gen")])
+
+
+def apply_formats(want):
+    for v in want.values():
+        if v:
+            ensure_locale(v)
+    set_kv("/etc/locale.conf", want)
+
+
+def apply_logind(want):
+    vals = read_kv_section(LOGIND_DROPIN, "Login")
+    if "lid" in want:
+        vals["HandleLidSwitch"] = want["lid"]
+    if "lid_on_power" in want:
+        vals["HandleLidSwitchExternalPower"] = want["lid_on_power"]
+    if "suspend_after_minutes" in want:
+        m = want["suspend_after_minutes"]
+        vals["IdleAction"] = "suspend" if m else "ignore"
+        if m:
+            vals["IdleActionSec"] = f"{m}min"
+        else:
+            vals.pop("IdleActionSec", None)
+    text = ("# LuxOS - power settings of the whole system (login screen, nobody signed in).\n"
+            "# Written by lux system from /etc/luxos/system.lsl (section \"power\"); change them there.\n"
+            "[Login]\n" + "".join(f"{k}={v}\n" for k, v in vals.items()))
+    atomic_write(LOGIND_DROPIN, text)
+    # logind nacte nastaveni znovu bez restartu (SIGHUP); prihlasene relace nic nepoznaji
+    run([tool("systemctl"), "kill", "--signal=SIGHUP", "systemd-logind.service"])
+
+
+def apply_boot(cur, timeout=None, default=None):
+    if cur["kind"] == "sdboot":
+        # promenne EFI maji prednost pred loader.conf, ktery spravuje LuxOS Care (polozky, zalozni jadro)
+        if timeout is not None:
+            run([tool("bootctl"), "set-timeout", str(timeout)])
+        if default is not None:
+            if default == "luxos":
+                run([tool("bootctl"), "set-default", "" if cur.get("loader_luxos") else cur.get("main", "luxos.conf")])
+            else:
+                run([tool("bootctl"), "set-default", default])
+        return
+    values = {}
+    if timeout is not None:
+        values["GRUB_TIMEOUT"] = str(timeout)
+    if default is not None:
+        values["GRUB_DEFAULT"] = "0" if default == "luxos" else f'"{default}"'
+    set_kv("/etc/default/grub", values)
+    run([tool("grub-mkconfig"), "-o", "/boot/grub/grub.cfg"])
+
+
+def apply_faillock(want):
+    text = read(FAILLOCK_CONF, "")
+    for k, v in want.items():
+        line = f"{k} = {v}"
+        if re.search(rf"^\s*{k}\s*=.*$", text, re.M):
+            text = re.sub(rf"^\s*{k}\s*=.*$", line, text, count=1, flags=re.M)
+        elif re.search(rf"^#\s*{k}\s*=.*$", text, re.M):
+            text = re.sub(rf"^#\s*{k}\s*=.*$", line, text, count=1, flags=re.M)
+        else:
+            text = text.rstrip("\n") + ("\n" if text.strip() else "") + line + "\n"
+    atomic_write(FAILLOCK_CONF, text)
+
+
+def apply_new_users(want):
+    values = {}
+    for k, K in NEW_USERS_MAP:
+        if k in want:
+            v = want[k]
+            values[K] = None if v is None else (" ".join(v) if isinstance(v, list) else str(v))
+    set_kv(NEW_USERS_CONF, values, header="# LuxOS - defaults for NEW users (applied at their first sign-in; existing "
+                                          "users keep their settings).\n# Written by lux system from "
+                                          "/etc/luxos/system.lsl (section \"new_users\").")
+
+
 # ---- plan zmen ---------------------------------------------------------------------------------
-SECTIONS = [("packages", "Packages"), ("flatpaks", "Flathub apps"), ("system", "System"), ("users", "Users and groups"),
-            ("services", "Services"), ("care", "LuxOS Care"), ("guard", "Lux Guard"), ("firewall", "Firewall"),
-            ("kernel", "Kernel parameters"), ("domain", "Organization network")]
+SECTIONS = [("packages", "Packages"), ("drivers", "Drivers"), ("flatpaks", "Flathub apps"), ("system", "System"),
+            ("users", "Users and groups"), ("services", "Services"), ("network", "Network connections"),
+            ("printers", "Printers"), ("power", "Power"), ("care", "LuxOS Care"), ("guard", "Lux Guard"),
+            ("firewall", "Firewall"), ("security", "Security"), ("new_users", "Defaults for new users"),
+            ("boot", "Boot menu"), ("kernel", "Kernel parameters"), ("domain", "Organization network")]
 
 
 class Change:
-    def __init__(self, section, op, text, phase, action, target="", data=None):
+    def __init__(self, section, op, text, phase, action, target="", data=None, risky=False):
         self.section, self.op, self.text, self.phase, self.action = section, op, text, phase, action
         self.target, self.data = target, data
+        self.risky = risky      # meni prave pouzivane sitove pripojeni (vzdaleny pristup muze spadnout)
 
     def json(self):
         d = {"section": self.section, "op": {"+": "add", "-": "remove", "~": "change"}[self.op], "target": self.target,
              "text": self.text}
+        if self.risky:
+            d["network_in_use"] = True
         if self.data is not None:
             d["items"] = self.data
         return d
@@ -1188,6 +2257,7 @@ class Plan:
     def __init__(self):
         self.changes, self.notes, self.warnings = [], [], []
         self.restart = False
+        self.kept_connections = []   # pouzivana pripojeni, ktera se bez --force neodebrala
 
     def add(self, *a, **kw):
         self.changes.append(Change(*a, **kw))
@@ -1210,18 +2280,20 @@ def env_lux():
     return {"LUXOS_SNAPSHOT_TAKEN": "1", "LUX_COLOR": "always" if COLOR else "never"}
 
 
-def compute(cfg, st, applied=None):
+def compute(cfg, st, applied=None, force=False):
     applied = read_applied() if applied is None else applied
     plan = Plan()
 
-    # --- balicky ---
-    wanted = list(cfg.get("packages", []))
+    # --- balicky a ovladace (ovladace = vlastni seznam "drivers", instaluji se stejne) ---
+    pkgs = list(cfg.get("packages", []))
+    drivers = [p for p in cfg.get("drivers", []) if p not in pkgs]
+    wanted = pkgs + drivers
     extra = []
     if cfg.get("firewall", {}).get("enable") and "ufw" not in wanted:
         extra.append("ufw")
     if cfg.get("flatpaks") and not have("flatpak") and "flatpak" not in wanted:
         extra.append("flatpak")
-    if "packages" in cfg or extra:
+    if "packages" in cfg or "drivers" in cfg or extra:
         installed, explicit = st.installed(), st.explicit()
         want_all = wanted + [p for p in extra if p not in installed]
         missing = [p for p in want_all if p not in installed]
@@ -1234,28 +2306,43 @@ def compute(cfg, st, applied=None):
                 if bad:
                     raise UserError(_("These packages are not in the repositories: %s") % ", ".join(bad) + "\n"
                                     + _("Check the names with: lux search NAME"))
-            plan.add("packages", "+", _("install: %s") % " ".join(missing), 20,
-                     lambda m=missing: run([tool("lux"), "-y", "--repo", "install"] + m, stream=True, env=env_lux()),
-                     data=missing)
+            for sec, items in (("packages", [p for p in missing if p not in drivers]),
+                               ("drivers", [p for p in missing if p in drivers])):
+                if items:
+                    plan.add(sec, "+", _("install: %s") % " ".join(items), 20,
+                             lambda m=items: run([tool("lux"), "-y", "--repo", "install"] + m, stream=True,
+                                                 env=env_lux()), data=items)
         mark = [p for p in wanted if p in installed and p not in explicit]
         if mark:
             plan.add("packages", "~", _("keep as wanted (now only a dependency): %s") % " ".join(mark), 21,
                      lambda m=mark: run([tool("lux-engine"), "-D", "--asexplicit"] + m), data=mark)
+        dropped = []
         if "packages" in cfg:
-            dropped = [p for p in applied.get("packages", []) if p not in wanted and p in explicit]
-            unlisted = sorted(p for p in explicit if p not in wanted and p not in extra and p not in dropped)
-            remove = list(dropped) + (unlisted if cfg.get("remove_unlisted") else [])
-            kernels = {p for p in explicit if KERNEL_RE.match(p)}
-            keep = [p for p in remove if p in PROTECTED_PACKAGES or p in kernels]
-            remove = [p for p in remove if p not in keep]
-            if keep:
-                plan.notes.append(_("Kept, LuxOS needs them: %s") % " ".join(keep))
-            if remove:
-                plan.add("packages", "-", _("remove: %s") % " ".join(remove), 90,
-                         lambda m=remove: run([tool("lux"), "-y", "remove"] + m, stream=True, env=env_lux()), data=remove)
-            if unlisted and not cfg.get("remove_unlisted"):
-                plan.notes.append(_("%d installed packages are not in the file; they stay (\"remove_unlisted\": True "
-                                    "would remove them).") % len(unlisted))
+            dropped += [p for p in applied.get("packages", []) if p not in wanted and p in explicit]
+        if "drivers" in cfg:
+            dropped += [p for p in applied.get("drivers", []) if p not in wanted and p in explicit and p not in dropped]
+        unlisted = []
+        if "packages" in cfg:
+            # bez seznamu "drivers" v souboru zustavaji nainstalovane ovladace, jak jsou
+            skip = set() if "drivers" in cfg else st.drivers()
+            unlisted = sorted(p for p in explicit if p not in wanted and p not in extra and p not in dropped
+                              and p not in skip)
+        remove = list(dropped) + (unlisted if cfg.get("remove_unlisted") else [])
+        kernels = {p for p in explicit if KERNEL_RE.match(p)}
+        keep = [p for p in remove if p in PROTECTED_PACKAGES or p in kernels]
+        remove = [p for p in remove if p not in keep]
+        if keep:
+            plan.notes.append(_("Kept, LuxOS needs them: %s") % " ".join(keep))
+        drv_old = set(applied.get("drivers", []))
+        for sec, items in (("packages", [p for p in remove if p not in drv_old]),
+                           ("drivers", [p for p in remove if p in drv_old])):
+            if items:
+                plan.add(sec, "-", _("remove: %s") % " ".join(items), 90,
+                         lambda m=items: run([tool("lux"), "-y", "remove"] + m, stream=True, env=env_lux()),
+                         data=items)
+        if unlisted and not cfg.get("remove_unlisted"):
+            plan.notes.append(_("%d installed packages are not in the file; they stay (\"remove_unlisted\": True "
+                                "would remove them).") % len(unlisted))
 
     # --- Flathub ---
     if "flatpaks" in cfg:
@@ -1347,12 +2434,20 @@ def compute(cfg, st, applied=None):
         compute_firewall(cfg["firewall"], st, plan)
 
     # --- parametry jadra ---
-    if "kernel" in cfg:
+    if "params" in cfg.get("kernel", {}):
         compute_kernel(cfg["kernel"]["params"], applied.get("kernel_params", []), st, plan)
+    if "scheduler" in cfg.get("kernel", {}):
+        cur = st.scheduler()
+        if cur is None:
+            raise UserError(_("kernel.scheduler: the process scheduler setting is missing (lux install luxos-tweaks)."))
+        if cur != cfg["kernel"]["scheduler"]:
+            plan.add("kernel", "~", _("process scheduler: %s → %s") % (cur, cfg["kernel"]["scheduler"]), 80,
+                     lambda v=cfg["kernel"]["scheduler"]: run([tool("luxos-care"), "scheduler", v]), target="scheduler")
 
     # --- firemni sit (domena, luxos-domain) ---
     if cfg.get("domain"):
         compute_domain(cfg["domain"], plan)
+    compute_more(cfg, st, plan, applied, force)
     plan.changes.sort(key=lambda c: c.phase)
     return plan
 
@@ -1525,19 +2620,7 @@ def compute_kernel(params, previous, st, plan):
 
 # ---- provedeni ----------------------------------------------------------------------------------
 def apply_locale(loc):
-    path = "/etc/locale.gen"
-    text = read(path, None)
-    charset = "UTF-8" if loc.endswith(".UTF-8") else "ISO-8859-1"
-    if text is not None:
-        pat = re.compile(r"^#\s*(" + re.escape(loc) + r"\s.*)$", re.M)
-        if not re.search(r"^" + re.escape(loc) + r"\s", text, re.M):
-            new = pat.sub(r"\1", text, count=1) if pat.search(text) else text.rstrip("\n") + f"\n{loc} {charset}\n"
-            atomic_write(path, new)
-            # locale-gen zapisuje do /usr/lib/locale - pri ochrane systemu jen pres luxos-care
-            if have("luxos-care"):
-                run([tool("luxos-care"), "protect", "exec", "--", tool("locale-gen")])
-            else:
-                run([tool("locale-gen")])
+    ensure_locale(loc)
     set_kv("/etc/locale.conf", {"LANG": loc})
 
 
@@ -1602,7 +2685,7 @@ def take_snapshot():
     return (m.group(0) if m else "?"), ""
 
 
-def record(cfg, path):
+def record(cfg, path, kept_connections=()):
     """Stav po uspesnem apply (co soubor spravoval) + kopie souboru a zasad organizace v historii.
     Do seznamu, podle kterych se odebira (balicky, sluzby, parametry), jdou jen polozky lokalniho
     souboru: co zmizi ze zasady organizace (odchod z organizace), zustane nainstalovane."""
@@ -1617,8 +2700,23 @@ def record(cfg, path):
         data["flatpaks"] = local(("flatpaks",), cfg["flatpaks"])
     if "services" in cfg:
         data["services_enable"] = local(("services", "enable"), cfg["services"]["enable"])
-    if "kernel" in cfg:
+    if "params" in cfg.get("kernel", {}):
         data["kernel_params"] = local(("kernel", "params"), cfg["kernel"]["params"])
+    if "drivers" in cfg:
+        data["drivers"] = local(("drivers",), cfg["drivers"])
+
+    def local_keys(path_, names):
+        if lay is None or not lay.fragments:
+            return list(names)
+        return [n for n in names if any(o.kind == "local" for o in lay.origins(path_ + (n,)))
+                or not lay.origins(path_ + (n,))]
+    cons = cfg.get("network", {}).get("connections")
+    if cons is not None:
+        data["connections"] = local_keys(("network", "connections"), cons) + [
+            n for n in kept_connections if n not in cons]
+    queues = cfg.get("printers", {}).get("queues")
+    if queues is not None:
+        data["printers"] = local_keys(("printers", "queues"), queues)
     try:
         with open(path, "rb") as f:
             src = f.read()
@@ -1706,65 +2804,156 @@ def lsl_bool(v):
     return "True" if v else "False"
 
 
+_SYS_TR = {}
+
+
+def _c(text):
+    """Komentar vygenerovaneho souboru v jazyce SYSTEMU (LANG v /etc/locale.conf), ne volajiciho:
+    soubor cte kdokoli, kdo pocitac spravuje."""
+    lang = (read_kv("/etc/locale.conf").get("LANG") or "en").split("_")[0].split(".")[0].split("@")[0] or "en"
+    d = os.environ.get("LUXOS_I18N_DIR") or "/usr/share/luxos/i18n"
+    key = (d, lang)
+    if key not in _SYS_TR:
+        tr = {}
+        try:
+            with open(os.path.join(d, f"{lang}.tsv"), encoding="utf-8") as f:
+                for line in f:
+                    if "\t" in line and not line.startswith("#"):
+                        k, v = line.rstrip("\n").split("\t", 1)
+                        if v:
+                            tr[k] = v
+        except OSError:
+            pass
+        _SYS_TR[key] = tr
+    return _SYS_TR[key].get(text, text)
+
+
+def N_(text):
+    """Znacka textu k prekladu (preklada se az pri pouziti, napr. v note())."""
+    return text
+
+
+def lsl_value(v, indent):
+    if isinstance(v, bool):
+        return lsl_bool(v)
+    if v is None:
+        return "None"
+    if isinstance(v, int):
+        return str(v)
+    if isinstance(v, list):
+        return lsl_list(v, indent)
+    if isinstance(v, dict):
+        return "{" + ", ".join(f"{lsl_str(k)}: {lsl_value(x, indent)}" for k, x in v.items()) + "}"
+    return lsl_str(str(v))
+
+
 def generate(st):
-    """Text /etc/luxos/system.lsl podle soucasneho systemu (bez hesel)."""
+    """Text /etc/luxos/system.lsl podle soucasneho systemu: skupiny s vysvetlenim v jazyce systemu.
+    Nikdy hesla: ani otisky hesel uzivatelu, ani hesla Wi-Fi/VPN (ta zustavaji v NetworkManageru)."""
     today = datetime.date.today().isoformat()
     L = []
     w = L.append
-    w("# " + _("LuxOS - configuration of the whole system in one file (LSL)"))
-    w("# " + _("Generated by 'lux system show' on %s from this computer.") % today)
-    w("# " + _("Check: lux system check   ·   What would change: lux system diff"))
-    w("# " + _("Apply: sudo lux system apply (a snapshot is taken first, undo with: lux rollback)"))
-    w("# " + _("A setting you delete is no longer managed (it stays as it is). Help: man luxos-system"))
+
+    def head(title, *lines):
+        w("")
+        w("    # ── " + _c(title) + " " + "─" * max(4, 70 - len(_c(title))))
+        for ln in lines:
+            w("    # " + _c(ln))
+
+    def note(text, indent=4):
+        w(" " * indent + "# " + _c(text))
+
+    w("# " + _c("LuxOS - configuration of the whole system in one file (LSL)"))
+    w("# " + _c("Generated by 'lux system show' on %s from this computer.") % today)
+    w("#")
+    w("# " + _c("Each section below describes one part of the system."))
+    w("# " + _c("A missing setting or a deleted section means \"leave it as it is\": only what is written here is managed."))
+    w("# " + _c("Passwords are never stored here (users, Wi-Fi, VPN): they stay in the system."))
+    w("#")
+    w("# " + _c("Check: lux system check   ·   What would change: lux system diff"))
+    w("# " + _c("Apply: sudo lux system apply (a snapshot is taken first, undo with: lux rollback)"))
+    w("# " + _c("Something broke? sudo lux system fix returns the system to the state described here."))
+    w("# " + _c("Help: man luxos-system or ask LuxAI"))
     w("load config")
     w("")
     w("config = {")
-    w("    # " + _("Computer name in the network"))
+
+    # --- pocitac a jazyk ---
+    head("Computer and language")
+    note("Computer name in the network")
     w(f"    \"hostname\": {lsl_str(st.hostname() or 'luxos')}")
     tz = st.timezone()
     if tz:
-        w("    # " + _("Time zone (list: timedatectl list-timezones)"))
+        note("Time zone (list: timedatectl list-timezones)")
         w(f"    \"timezone\": {lsl_str(tz)}")
     loc = st.locale()
     if loc:
-        w("    # " + _("Language and formats (e.g. \"cs_CZ.UTF-8\", \"en_US.UTF-8\")"))
+        note("Language and formats (e.g. \"cs_CZ.UTF-8\", \"en_US.UTF-8\")")
         w(f"    \"locale\": {lsl_str(loc)}")
+    fm = st.formats()
+    note("Other formats than the language, e.g. \"LC_TIME\": \"cs_CZ.UTF-8\" (date and time), \"LC_PAPER\"")
+    w("    \"formats\": {" + ("" if fm else "}"))
+    if fm:
+        for k in sorted(fm):
+            w(f"        {lsl_str(k)}: {lsl_str(fm[k])}")
+        w("    }")
     kb = st.keyboard()
     if kb["layouts"]:
-        w("    # " + _("Keyboard layouts (the first is the default, at most 4) and how to switch them"))
+        note("Keyboard layouts (the first is the default, at most 4) and how to switch them")
         w("    \"keyboard\": {")
         w(f"        \"layouts\": {lsl_list(kb['layouts'], 8)}")
         w(f"        \"options\": {lsl_list(kb['options'], 8)}")
         w("    }")
-    w("")
-    w("    # " + _("Packages from the LuxOS and Arch Linux repositories (lux search NAME)"))
-    w("    # " + _("Deleting a line removes the package at the next apply."))
-    w(f"    \"packages\": {lsl_list(sorted(st.explicit()), 4)}")
+    con = st.console()
+    if con:
+        note("Text console (without the desktop): keyboard and font")
+        w("    \"console\": {" + ", ".join(f"{lsl_str(k)}: {lsl_str(v)}" for k, v in con.items()) + "}")
+
+    # --- software ---
+    head("Software", "Deleting a line removes the package at the next apply.")
+    drivers = st.drivers()
+    note("Packages from the LuxOS and Arch Linux repositories (lux search NAME)")
+    w(f"    \"packages\": {lsl_list(sorted(st.explicit() - drivers), 4)}")
+    note("Drivers (graphics, Wi-Fi, printers from [luxos-drivers]); the Drivers app suggests them")
+    w(f"    \"drivers\": {lsl_list(sorted(drivers), 4)}")
     fps = st.flatpaks()
     if fps is not None:
-        w("    # " + _("Apps from Flathub (app ID, e.g. \"org.mozilla.firefox\")"))
+        note("Apps from Flathub (app ID, e.g. \"org.mozilla.firefox\")")
         w(f"    \"flatpaks\": {lsl_list(sorted(fps), 4)}")
-    w("    # " + _("True = also remove packages and apps that are not listed here (careful)"))
+    note("True = also remove packages and apps that are not listed here (careful)")
     w("    \"remove_unlisted\": False")
-    w("")
+    repos = st.repos()
+    if repos is not None:
+        note("Package sources - only checked, lux system does not change them (edit /etc/lux/lux.conf)")
+        w("    \"repos\": {")
+        w(f"        \"list\": {lsl_list(repos['list'], 8)}")
+        note("community = packages from the community (AUR, built in the sandbox)", 8)
+        w(f"        \"community\": {lsl_bool(repos['community'])}")
+        w(f"        \"review_build_scripts\": {lsl_bool(repos['review_build_scripts'])}")
+        w(f"        \"flatpak_updates\": {lsl_bool(repos['flatpak_updates'])}")
+        w("    }")
+
+    # --- sluzby ---
     units = st.units()
     skip = set(GUARD_UNITS.values()) | {FIREWALL_UNIT}
     on = sorted(u for u, (state, preset) in units.items()
                 if state == "enabled" and preset != "enabled" and "@." not in u and u not in skip
                 and u.rsplit(".", 1)[-1] in ("service", "socket", "timer", "path"))
-    w("    # " + _("Services started at boot (a removed line turns the service off at the next apply)"))
+    head("Services", "Started at boot. A removed line turns the service off at the next apply.",
+         "Remote access: \"sshd\" (SSH server). Bluetooth: \"bluetooth\".")
     w("    \"services\": {")
     w(f"        \"enable\": {lsl_list(on, 8)}")
-    w(f"        \"disable\": []")
+    w("        \"disable\": []")
     w("    }")
-    w("")
+
+    # --- uzivatele ---
     normal = st.normal_users()
     gmin, gmax = st.login_defs()[2:]
     own = sorted(g for g, v in st.group().items() if gmin <= v["gid"] < gmax and g not in normal)
-    w("    # " + _("Extra groups"))
+    head("Users", "Users (passwords never go here; \"wheel\" = administrator).",
+         "Optional \"password_hash\": output of 'openssl passwd -6'. Users are never deleted.")
+    note("Extra groups")
     w(f"    \"groups\": {lsl_list(own, 4)}")
-    w("    # " + _("Users (passwords never go here; \"wheel\" = administrator)."))
-    w("    # " + _("Optional \"password_hash\": output of 'openssl passwd -6'. Users are never deleted."))
     w("    \"users\": {")
     for name in sorted(normal):
         u = normal[name]
@@ -1774,35 +2963,158 @@ def generate(st):
         w(f"            \"shell\": {lsl_str(u['shell'])}")
         w("        }")
     w("    }")
-    w("")
+
+    # --- sit ---
+    cons = st.connections()
+    head("Network", "Saved connections (NetworkManager). Wi-Fi and VPN passwords are not here: they are kept by the system.",
+         "security: \"none\" = open, \"wpa-psk\" = WPA2 password, \"sae\" = WPA3; ipv4 \"auto\" = automatic (DHCP).",
+         "A connection in use is never deleted without --force (remote access could be cut off).")
+    if cons is None:
+        note("Network connections: run 'sudo lux system show' to include them")
+    else:
+        w("    \"network\": {")
+        w("        \"connections\": {" + ("" if cons else "}"))
+        for name in sorted(cons):
+            c = cons[name]
+            w(f"            {lsl_str(name)}: {{")
+            w(f"                \"type\": {lsl_str(c['type'])}")
+            if c["type"] == "wifi":
+                w(f"                \"ssid\": {lsl_str(c['ssid'])}")
+                sec = f"                \"security\": {lsl_str(c['security'])}"
+                if c["security"] != "none":
+                    sec += "   # " + _c("password: kept by the system")
+                w(sec)
+            if c.get("interface"):
+                w(f"                \"interface\": {lsl_str(c['interface'])}")
+            w(f"                \"autoconnect\": {lsl_bool(c['autoconnect'])}")
+            if c["type"] in NET_TYPES:
+                for fam in ("ipv4", "ipv6"):
+                    if fam in c:
+                        w(f"                \"{fam}\": {lsl_value(c[fam], 16)}")
+                if c.get("proxy"):
+                    w(f"                \"proxy\": {lsl_str(c['proxy'])}")
+            w("            }")
+        if cons:
+            w("        }")
+        w("    }")
+
+    # --- tiskarny ---
+    pr = st.printers()
+    head("Printers", "\"model\": \"everywhere\" = driverless printing, otherwise the driver from 'lpinfo -m'.")
+    if pr is None:
+        note("Printing (CUPS) is not running - printers are not included")
+    else:
+        w("    \"printers\": {")
+        w(f"        \"default\": {lsl_str(pr['default']) if pr['default'] else 'None'}")
+        w("        \"queues\": {" + ("" if pr["queues"] else "}"))
+        for name in sorted(pr["queues"]):
+            q = pr["queues"][name]
+            w(f"            {lsl_str(name)}: {{")
+            w(f"                \"uri\": {lsl_str(q['uri'])}")
+            if q["model"]:
+                w(f"                \"model\": {lsl_str(q['model'])}")
+            w(f"                \"shared\": {lsl_bool(q['shared'])}")
+            w("            }")
+        if pr["queues"]:
+            w("        }")
+        w("    }")
+
+    # --- napajeni ---
+    pw = st.power()
+    head("Power", "For the whole computer (login screen, nobody signed in); in the desktop each user's own setting applies.",
+         "lid: \"suspend\", \"hibernate\", \"lock\", \"poweroff\" or \"ignore\".")
+    w("    \"power\": {")
+    w(f"        \"lid\": {lsl_str(pw['lid'])}")
+    note("lid closed while the power adapter is connected", 8)
+    w(f"        \"lid_on_power\": {lsl_str(pw['lid_on_power'])}")
+    if "suspend_after_minutes" in pw:
+        note("sleep after so many minutes without use (0 = never)", 8)
+        w(f"        \"suspend_after_minutes\": {pw['suspend_after_minutes']}")
+    if "profile" in pw and not st.powersaver_on():
+        note("\"power-saver\", \"balanced\" or \"performance\"", 8)
+        w(f"        \"profile\": {lsl_str(pw['profile'])}")
+    w("    }")
+
+    # --- start pocitace ---
+    head("Boot", "Boot menu: how many seconds it is shown (0 = hidden, hold Space to see it).",
+         "default: \"luxos\" = the newest working LuxOS, or another entry. Snapshots are not listed here.")
+    bt = st.boot_settings()
+    lay = st.boot()
+    if bt is not None:
+        w("    \"boot\": {")
+        if bt["timeout"] is not None:
+            w(f"        \"timeout\": {bt['timeout']}")
+        w(f"        \"default\": {lsl_str(bt['default'])}")
+        w("    }")
+    if lay is not None and lay["kind"] == "unreadable":
+        note("Kernel parameters: run 'sudo lux system show' to include them")
+        if st.scheduler() is not None:
+            w("    \"kernel\": {\"scheduler\": " + lsl_str(st.scheduler()) + "}")
+    elif lay is not None:
+        params = [p for p in lay["params"] if not BOOT_PARAM_RE.match(p)]
+        note("Kernel parameters (disk and encryption parameters are not managed here)")
+        w("    \"kernel\": {")
+        w(f"        \"params\": {lsl_list(params, 8)}")
+        if st.scheduler() is not None:
+            note("process scheduler: \"lavd\" = smooth desktop and games (default), \"default\" = the kernel's own", 8)
+            w(f"        \"scheduler\": {lsl_str(st.scheduler())}")
+        w("    }")
+
+    # --- aktualizace a zabezpeceni ---
+    head("Updates and security")
     care = st.care()
-    w("    # " + _("LuxOS Care: \"carefree\" = automatic updates, \"classic\" = only notify"))
+    note("LuxOS Care: \"carefree\" = automatic updates, \"classic\" = only notify")
     w("    \"care\": {")
     w(f"        \"mode\": {lsl_str(care['mode'])}")
     w(f"        \"snapshots\": {lsl_bool(care['snapshots'])}")
     w(f"        \"keep_snapshots\": {care['keep_snapshots']}")
+    note("protect = /usr read-only except during updates; verify = weekly check of system files", 8)
+    w(f"        \"protect\": {lsl_bool(care['protect'])}")
+    w(f"        \"verify\": {lsl_bool(care['verify'])}")
     w("    }")
     if any(u in units for u in GUARD_UNITS.values()):
-        w("    # " + _("Lux Guard: protection against harmful downloads, hourly snapshots of /home"))
+        note("Lux Guard: protection against harmful downloads, hourly snapshots of /home")
         w("    \"guard\": {")
         w(f"        \"enable\": {lsl_bool(st.enabled(GUARD_UNITS['enable']))}")
         w(f"        \"home_snapshots\": {lsl_bool(st.enabled(GUARD_UNITS['home_snapshots']))}")
         w("    }")
     fw = st.firewall()
-    w("    # " + _("Firewall (ufw): allowed incoming ports, e.g. [\"22/tcp\"]"))
+    note("Firewall (ufw): allowed incoming ports, e.g. [\"22/tcp\"]")
     w("    \"firewall\": {")
     w(f"        \"enable\": {lsl_bool(fw['enable'] and fw['installed'])}")
     w(f"        \"allow\": {lsl_list(fw['allow'], 8)}")
     w("    }")
-    lay = st.boot()
-    if lay is not None and lay["kind"] == "unreadable":
-        w("    # " + _("Kernel parameters: run 'sudo lux system show' to include them"))
-    elif lay is not None:
-        params = [p for p in lay["params"] if not BOOT_PARAM_RE.match(p)]
-        w("    # " + _("Kernel parameters (disk and encryption parameters are not managed here)"))
-        w("    \"kernel\": {")
-        w(f"        \"params\": {lsl_list(params, 8)}")
-        w("    }")
+    fl = st.faillock()
+    note("Wrong passwords: after \"deny\" failures within \"fail_interval\" seconds the account waits \"unlock_time\" seconds.")
+    note("LuxOS: 20 / 30 / 60 - only a brute-force attack is stopped, you are never locked out for long.")
+    w("    \"security\": {")
+    w("        \"faillock\": {" + ", ".join(f"\"{k}\": {fl[k]}" for k in ("deny", "fail_interval", "unlock_time")) + "}")
+    w("    }")
+
+    # --- novi uzivatele ---
+    nu = st.new_users()
+    head("Defaults for new users", "Used when a NEW user signs in for the first time; existing users keep their settings.",
+         "Delete the # at the start of a line to use it.")
+    w("    \"new_users\": {")
+    examples = (("theme", "\"dark\"", N_("\"light\", \"dark\" or \"auto\" (by sunrise and sunset)")),
+                ("wallpaper", "\"/usr/share/backgrounds/luxos/luxos-dark.jpg\"", None),
+                ("dock", "[\"luxos-launchpad\", \"firefox\", \"thunar\", \"luxos-terminal\", \"trash\"]",
+                 N_("apps in the Dock (names of .desktop files)")),
+                ("browser", "\"firefox\"", N_("default apps")),
+                ("text_editor", "\"luxos-text\"", None), ("mail", "\"thunderbird\"", None),
+                ("lock_after_minutes", "10", N_("lock the screen after so many minutes without use")),
+                ("screen_off_minutes", "20", N_("turn the screen off after so many minutes")))
+    for k, example, comment in examples:
+        if comment:
+            note(comment, 8)
+        if k in nu:
+            v = [x[:-8] if x.endswith(".desktop") else x for x in nu[k]] if k == "dock" else nu[k]
+            if isinstance(v, str) and k in ("browser", "text_editor", "mail") and v.endswith(".desktop"):
+                v = v[:-8]
+            w(f"        \"{k}\": {lsl_value(v, 8)}")
+        else:
+            w(f"        # \"{k}\": {example}")
+    w("    }")
     w("}")
     return "\n".join(L) + "\n"
 
@@ -1873,23 +3185,56 @@ def cmd_locks(args):
     return 0
 
 
+def oem_pending():
+    """OEM predinstalace pred dokoncenim Pruvodce nastavenim: soubor vznikne az s uctem majitele."""
+    return read_kv(OEM_CONF).get("OEM") == "1" and not os.path.exists(P(OEM_DONE))
+
+
+def generated_untouched(path):
+    """Soubor od posledniho init/apply nikdo neupravil (stejny otisk jako v applied.json)."""
+    return bool(read_applied().get("sha256")) and file_sha(path) == read_applied().get("sha256")
+
+
 def cmd_init(args):
+    """init: zapsat soubor ze soucasneho systemu.
+    --auto (instalator, aktualizace lux): jednou, jen kdyz soubor chybi a nebezi OEM priprava; nikdy neselze.
+    --refresh (OEM po Pruvodci): prepsat jen soubor, ktery od vygenerovani nikdo neupravil."""
     need_root()
     path = P(CONFIG)
-    if os.path.exists(path) and not args.force:
+    soft = args.auto or args.refresh
+    if args.auto and (os.path.exists(path) or os.path.exists(P(AUTO_STAMP)) or oem_pending()):
+        return 0
+    if args.refresh and os.path.exists(path) and not generated_untouched(path):
+        say(_("%s was edited, it stays as it is.") % CONFIG)
+        return 0
+    if os.path.exists(path) and not (args.force or args.refresh):
         raise UserError(_("%s already exists. Show the differences with: lux system diff (or init --force "
                           "to overwrite it).") % CONFIG)
-    st = State()
-    text = generate(st)
+    try:
+        st = State()
+        text = generate(st)
+    except UserError as e:
+        if soft:
+            warn(str(e))
+            return 0
+        raise
     if os.path.exists(path):
         shutil.copy2(path, path + ".bak")
         say(_("The previous file was kept as %s") % (CONFIG + ".bak"))
     atomic_write(CONFIG, text, 0o644)
+    atomic_write(AUTO_STAMP, datetime.date.today().isoformat() + "\n", 0o644)
     # bez zasad organizace: soubor popisuje tento pocitac, zamky se overi az pri diff/apply
-    cfg = load(path, policies=False)
+    try:
+        cfg = load(path, policies=False)
+    except UserError as e:
+        if not soft:
+            raise
+        warn(str(e))
+        return 0
     record(cfg, path)
     ok(_("Written %s from this computer.") % CONFIG)
-    print(_("Edit it (sudo lux system edit), then: lux system diff and sudo lux system apply"))
+    if not soft:
+        print(_("Edit it (sudo lux system edit), then: lux system diff and sudo lux system apply"))
     return 0
 
 
@@ -1910,7 +3255,7 @@ def cmd_plan(args):
 
 def cmd_diff(args):
     cfg = load(args.file, policies=not args.no_policies)
-    plan = compute(cfg, State())
+    plan = compute(cfg, State(), force=args.force)
     if args.json:
         changes = []
         for c in plan.changes:
@@ -1927,7 +3272,7 @@ def cmd_diff(args):
     return 0
 
 
-def cmd_apply(args):
+def cmd_apply(args, fixing=False):
     need_root()
     st = State()
     if st.booted_snapshot():
@@ -1935,16 +3280,34 @@ def cmd_apply(args):
                           "To keep this version, run: lux rollback"))
     cfg = load(args.file)   # zasady organizace plati vzdy (--no-policies jen pro check/diff)
     with apply_lock():
-        plan = compute(cfg, st)
+        if fixing:
+            say(_("Repair: the system returns to the state described in %s") % args.file)
+        plan = compute(cfg, st, force=args.force)
         print_plan(plan)
         if not plan.changes:
-            record(cfg, args.file)
+            record(cfg, args.file, plan.kept_connections)
             return 0
         if not args.yes:
             if not sys.stdin.isatty():
                 raise UserError(_("Nothing was changed. Confirm with -y when running without a terminal."))
             if not ask(_("Apply these changes?"), default_yes=not plan.removals()):
                 raise UserError(_("Cancelled. Nothing was changed."))
+        # Pouzivane sitove pripojeni (treba SSH na vzdalenem pocitaci): zvlastni potvrzeni, s -y jen s --force
+        risky = [c for c in plan.changes if c.risky]
+        if risky:
+            warn(_("These changes affect the network connection in use; a remote (SSH) connection to this "
+                   "computer can be cut off:"))
+            for c in risky:
+                print(f"  {Y}!{R} {c.text}", file=sys.stderr)
+            go = args.force or (not args.yes and sys.stdin.isatty()
+                                and ask(_("Change the network connection in use too?"), default_yes=False))
+            if not go:
+                plan.changes = [c for c in plan.changes if not c.risky]
+                plan.kept_connections += [c.target for c in risky if c.op == "-"]
+                warn(_("The network connection in use was left as it is (apply it with --force)."))
+                if not plan.changes:
+                    record(cfg, args.file, plan.kept_connections)
+                    return 0
         snap = ""
         if not args.no_snapshot:
             say(_("Taking a system snapshot first"))
@@ -1968,7 +3331,7 @@ def cmd_apply(args):
                     msg += " " + _("Back to the state before: lux rollback %s") % snap
                 raise UserError(msg) from e
             done += 1
-        record(cfg, args.file)
+        record(cfg, args.file, plan.kept_connections)
     ok(_("Done: %d changes.") % done)
     if snap:
         print(D + _("Snapshot before the change: %s (undo: lux rollback %s)") % (snap, snap) + R)
@@ -1977,9 +3340,15 @@ def cmd_apply(args):
     return 0
 
 
+def cmd_fix(args):
+    """Oprava: vrati system do stavu podle souboru (rozdil, potvrzeni, snimek, provedeni) - jako apply."""
+    return cmd_apply(args, fixing=True)
+
+
 class Args:
     def __init__(self, argv):
         self.yes = self.json = self.no_snapshot = self.force = self.origin = self.no_policies = False
+        self.auto = self.refresh = False
         self.cmd, self.file = None, None
         for a in argv:
             if a in ("-y", "--yes"):
@@ -1994,6 +3363,10 @@ class Args:
                 self.no_policies = True
             elif a == "--force":
                 self.force = True
+            elif a == "--auto":
+                self.auto = True
+            elif a == "--refresh":
+                self.refresh = True
             elif a.startswith("-") and a != "-":
                 raise UserError(_("Unknown option %s") % a)
             elif self.cmd is None:
@@ -2005,14 +3378,14 @@ class Args:
         self.file = self.file or P(CONFIG)
 
 
-USAGE = """lux system show [--origin] | init [--force] | check [FILE] | diff [FILE] [--json] | apply [FILE] [-y] [--no-snapshot] | locks [--json]"""
+USAGE = """lux system show [--origin] | init [--force] | check [FILE] | diff [FILE] [--json] | apply [FILE] [-y] [--no-snapshot] [--force] | fix [FILE] [-y] | locks [--json]"""
 
 
 def main(argv):
     try:
         args = Args(argv[1:])
         handlers = {"show": cmd_show, "init": cmd_init, "check": cmd_check, "diff": cmd_diff, "apply": cmd_apply,
-                    "plan": cmd_plan, "locks": cmd_locks}
+                    "fix": cmd_fix, "plan": cmd_plan, "locks": cmd_locks}
         if args.cmd not in handlers:
             print(_("Usage:") + " " + USAGE, file=sys.stderr)
             return 2

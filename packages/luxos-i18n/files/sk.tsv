@@ -4033,3 +4033,119 @@ Alphabetical	Abecedne
 Recently used	Naposledy použité
 Most used	Najpoužívanejšie
 Category	Podľa kategórie
+# lux system: cely system v jednom souboru (sit, tiskarny, napajeni, zavadec, novi uzivatele, fix)
+Computer and language	Počítač a jazyk
+Other formats than the language, e.g. "LC_TIME": "cs_CZ.UTF-8" (date and time), "LC_PAPER"	Iné formáty ako jazyk, napr. "LC_TIME": "cs_CZ.UTF-8" (dátum a čas), "LC_PAPER"
+Drivers (graphics, Wi-Fi, printers from [luxos-drivers]); the Drivers app suggests them	Ovládače (grafika, Wi-Fi, tlačiarne z [luxos-drivers]); navrhuje ich aplikácia Ovládače
+Started at boot. A removed line turns the service off at the next apply.	Spúšťajú sa pri štarte. Zmazaný riadok službu pri ďalšom apply vypne.
+Remote access: "sshd" (SSH server). Bluetooth: "bluetooth".	Vzdialený prístup: "sshd" (server SSH). Bluetooth: "bluetooth".
+Users	Používatelia
+Saved connections (NetworkManager). Wi-Fi and VPN passwords are not here: they are kept by the system.	Uložené pripojenia (NetworkManager). Heslá Wi-Fi a VPN tu nie sú: uchováva ich systém.
+security: "none" = open, "wpa-psk" = WPA2 password, "sae" = WPA3; ipv4 "auto" = automatic (DHCP).	security: "none" = otvorená, "wpa-psk" = heslo WPA2, "sae" = WPA3; ipv4 "auto" = automaticky (DHCP).
+A connection in use is never deleted without --force (remote access could be cut off).	Používané pripojenie sa bez --force nikdy nezmaže (vzdialený prístup by sa mohol prerušiť).
+"model": "everywhere" = driverless printing, otherwise the driver from 'lpinfo -m'.	"model": "everywhere" = tlač bez ovládača, inak ovládač z 'lpinfo -m'.
+Power	Napájanie
+For the whole computer (login screen, nobody signed in); in the desktop each user's own setting applies.	Pre celý počítač (prihlasovacia obrazovka, nikto prihlásený); na ploche platí vlastné nastavenie každého používateľa.
+lid: "suspend", "hibernate", "lock", "poweroff" or "ignore".	lid (veko): "suspend", "hibernate", "lock", "poweroff" alebo "ignore".
+lid closed while the power adapter is connected	veko zatvorené pri pripojenej nabíjačke
+Boot	Štart počítača
+Boot menu: how many seconds it is shown (0 = hidden, hold Space to see it).	Ponuka zavádzača: koľko sekúnd sa zobrazuje (0 = skrytá, zobrazíte ju podržaním medzerníka).
+default: "luxos" = the newest working LuxOS, or another entry. Snapshots are not listed here.	default: "luxos" = najnovší fungujúci LuxOS, alebo iná položka. Snímky tu nie sú.
+Updates and security	Aktualizácie a zabezpečenie
+protect = /usr read-only except during updates; verify = weekly check of system files	protect = /usr len na čítanie okrem aktualizácií; verify = týždenná kontrola systémových súborov
+Wrong passwords: after "deny" failures within "fail_interval" seconds the account waits "unlock_time" seconds.	Chybné heslá: po "deny" chybách počas "fail_interval" sekúnd účet počká "unlock_time" sekúnd.
+LuxOS: 20 / 30 / 60 - only a brute-force attack is stopped, you are never locked out for long.	LuxOS: 20 / 30 / 60 – zastaví sa len útok hrubou silou, nikdy sa nezamknete na dlho.
+Defaults for new users	Predvolené nastavenia nových používateľov
+Used when a NEW user signs in for the first time; existing users keep their settings.	Použije sa, keď sa NOVÝ používateľ prvýkrát prihlási; existujúci používatelia si nastavenia ponechajú.
+Delete the # at the start of a line to use it.	Riadok použijete zmazaním # na jeho začiatku.
+Text console (without the desktop): keyboard and font	Textová konzola (bez plochy): klávesnica a písmo
+Package sources - only checked, lux system does not change them (edit /etc/lux/lux.conf)	Zdroje balíkov – len sa kontrolujú, lux system ich nemení (upravte /etc/lux/lux.conf)
+community = packages from the community (AUR, built in the sandbox)	community = balíky komunity (AUR, zostavené v sandboxe)
+Network connections: run 'sudo lux system show' to include them	Sieťové pripojenia: zahrniete ich príkazom 'sudo lux system show'
+Printing (CUPS) is not running - printers are not included	Tlač (CUPS) nebeží – tlačiarne nie sú zahrnuté
+sleep after so many minutes without use (0 = never)	uspať po toľkých minútach nečinnosti (0 = nikdy)
+"power-saver", "balanced" or "performance"	"power-saver", "balanced" alebo "performance"
+Each section below describes one part of the system.	Každá sekcia nižšie opisuje jednu časť systému.
+A missing setting or a deleted section means "leave it as it is": only what is written here is managed.	Chýbajúce nastavenie alebo zmazaná sekcia znamená „ponechaj, ako je“: spravuje sa len to, čo je tu napísané.
+Passwords are never stored here (users, Wi-Fi, VPN): they stay in the system.	Heslá sa sem nikdy neukladajú (používatelia, Wi-Fi, VPN): zostávajú v systéme.
+Something broke? sudo lux system fix returns the system to the state described here.	Niečo sa pokazilo? sudo lux system fix vráti systém do stavu opísaného tu.
+Help: man luxos-system or ask LuxAI	Pomocník: man luxos-system alebo sa opýtajte LuxAI
+"light", "dark" or "auto" (by sunrise and sunset)	"light", "dark" alebo "auto" (podľa východu a západu slnka)
+apps in the Dock (names of .desktop files)	aplikácie v Docku (názvy súborov .desktop)
+default apps	predvolené aplikácie
+lock the screen after so many minutes without use	zamknúť obrazovku po toľkých minútach nečinnosti
+turn the screen off after so many minutes	vypnúť obrazovku po toľkých minútach
+process scheduler: "lavd" = smooth desktop and games (default), "default" = the kernel's own	plánovač procesov: "lavd" = plynulá plocha a hry (predvolené), "default" = vlastný plánovač jadra
+password: kept by the system	heslo: uchováva systém
+Network connections can be read only with administrator rights (lux system diff asks for them).	Sieťové pripojenia možno čítať len s právami správcu (lux system diff si o ne požiada).
+"ssid" and "security" belong only to Wi-Fi connections	"ssid" a "security" patria len k pripojeniam Wi-Fi
+change connection %s: %s	zmeniť pripojenie %s: %s
+delete connection %s	zmazať pripojenie %s
+Printing (CUPS) is not running; printers were not checked.	Tlač (CUPS) nebeží; tlačiarne sa neskontrolovali.
+default printer: %s → %s	predvolená tlačiareň: %s → %s
+Battery Saver is on; the power profile is set when it turns off.	Šetrič batérie je zapnutý; profil napájania sa nastaví, keď sa vypne.
+Boot settings can be read only with administrator rights (lux system diff asks for them).	Nastavenia zavádzača možno čítať len s právami správcu (lux system diff si o ne požiada).
+boot menu shown for: %s → %s s	ponuka zavádzača sa zobrazuje: %s → %s s
+default boot entry: %s → %s	predvolená položka zavádzača: %s → %s
+kernel.scheduler: the process scheduler setting is missing (lux install luxos-tweaks).	kernel.scheduler: chýba nastavenie plánovača procesov (lux install luxos-tweaks).
+%s was edited, it stays as it is.	%s bol upravený, zostáva, ako je.
+These changes affect the network connection in use; a remote (SSH) connection to this computer can be cut off:	Tieto zmeny sa týkajú používaného sieťového pripojenia; vzdialené pripojenie (SSH) k tomuto počítaču sa môže prerušiť:
+never write Wi-Fi or VPN passwords into the file; they are kept by the system (NetworkManager asks for them when connecting)	heslá Wi-Fi ani VPN nikdy nepíšte do súboru; uchováva ich systém (NetworkManager sa na ne opýta pri pripojení)
+%s is both in packages and drivers	%s je v packages aj v drivers
+add connection %s	pridať pripojenie %s
+network.connections.%s: the type cannot be changed (%s → %s); delete the connection and create a new one	network.connections.%s: typ nemožno zmeniť (%s → %s); pripojenie zmažte a vytvorte nové
+(in use; applies at the next connection)	(používa sa; platí pri ďalšom pripojení)
+Connection %s is in use and was kept; delete it with --force (the computer may lose the network).	Pripojenie %s sa používa, a preto zostalo; zmažete ho s --force (počítač môže prísť o sieť).
+printers.queues.%s: the driver "%s" is not installed (list: lpinfo -m; "everywhere" = driverless printing)	printers.queues.%s: ovládač "%s" nie je nainštalovaný (zoznam: lpinfo -m; "everywhere" = tlač bez ovládača)
+add printer %s (%s)	pridať tlačiareň %s (%s)
+driver %s	ovládač %s
+shared: %s	zdieľaná: %s
+printer %s: %s	tlačiareň %s: %s
+printers.default: there is no printer %s	printers.default: tlačiareň %s neexistuje
+power.profile: power profiles are not installed (lux install power-profiles-daemon).	power.profile: profily napájania nie sú nainštalované (lux install power-profiles-daemon).
+Boot settings: no LuxOS boot entry found (systemd-boot or GRUB).	Nastavenia zavádzača: nenašla sa položka LuxOS (systemd-boot ani GRUB).
+boot.default: there is no boot menu entry %s (entries: %s)	boot.default: položka zavádzača %s neexistuje (položky: %s)
+formats: %s	formáty: %s
+sign-in lockout: %s	zamknutie po chybných heslách: %s
+%s is missing; the package manager settings were not checked.	%s chýba; nastavenia správcu balíkov sa neskontrolovali.
+process scheduler: %s → %s	plánovač procesov: %s → %s
+Repair: the system returns to the state described in %s	Oprava: systém sa vráti do stavu opísaného v %s
+The network connection in use was left as it is (apply it with --force).	Používané sieťové pripojenie zostalo, ako je (použijete ho s --force).
+connection name	názov pripojenia
+network.connections.%s: only Wi-Fi and Ethernet connections can be created here; create other kinds in Settings > Network	network.connections.%s: tu možno vytvoriť len pripojenia Wi-Fi a Ethernet; iné druhy vytvorte v Nastavenia > Sieť
+network.connections.%s: a new Wi-Fi connection needs "ssid"	network.connections.%s: nové pripojenie Wi-Fi potrebuje "ssid"
+network.connections.%s: enterprise Wi-Fi (802.1x) needs certificates and an account; connect it once in Settings > Network, then the file manages it	network.connections.%s: firemná Wi-Fi (802.1x) potrebuje certifikáty a účet; pripojte sa raz v Nastavenia > Sieť, potom ju spravuje súbor
+Connection %s: the Wi-Fi password is not in the file; it is asked for when connecting for the first time (it stays in the system).	Pripojenie %s: heslo Wi-Fi v súbore nie je; opýta sa naň prvé pripojenie (zostane v systéme).
+printers.queues.%s: a new printer needs "uri" (its address)	printers.queues.%s: nová tlačiareň potrebuje "uri" (svoju adresu)
+remove printer %s	odobrať tlačiareň %s
+power profile: %s → %s	profil napájania: %s → %s
+Change the network connection in use too?	Zmeniť aj používané sieťové pripojenie?
+must be one of: %s	musí byť jedno z: %s
+printer name	názov tlačiarne
+must be "luxos" or the name of a boot menu entry (not a snapshot)	musí byť "luxos" alebo názov položky zavádzača (nie snímky)
+console: %s	konzola: %s
+repos.%s differs from %s (%s); lux system does not change the package manager settings - edit %s and check it with: lux config check	repos.%s sa líši od %s (%s); lux system nastavenia správcu balíkov nemení – upravte %s a skontrolujte: lux config check
+must be between %d and %d	musí byť medzi %d a %d
+as the language	podľa jazyka
+console setting	nastavenie konzoly
+must be the full path of a picture readable by everybody, e.g. "/usr/share/backgrounds/luxos/luxos-dark.jpg"	musí byť celá cesta k obrázku čitateľnému pre všetkých, napr. "/usr/share/backgrounds/luxos/luxos-dark.jpg"
+connection type	typ pripojenia
+printer address (URI)	adresa tlačiarne (URI)
+a Wi-Fi network name has 1 to 32 characters	názov siete Wi-Fi má 1 až 32 znakov
+network interface	sieťové rozhranie
+"manual" needs "addresses" (e.g. ["192.168.1.10/24"])	"manual" potrebuje "addresses" (napr. ["192.168.1.10/24"])
+printer driver	ovládač tlačiarne
+app ID	ID aplikácie
+must be the address of a proxy configuration (PAC) file, e.g. "http://proxy.example.com/proxy.pac", or "" for none	musí byť adresa súboru s nastavením proxy (PAC), napr. "http://proxy.example.com/proxy.pac", alebo "" pre žiadnu
+address with prefix (e.g. "192.168.1.10/24")	adresa s prefixom (napr. "192.168.1.10/24")
+Network connections	Sieťové pripojenia
+Boot menu	Ponuka zavádzača
+repository name	názov repozitára
+repair: return the system to the state described in the file	oprava: vráti systém do stavu podľa súboru
+Writing the system configuration (/etc/luxos/system.lsl)…	Zapisujem konfiguráciu systému (/etc/luxos/system.lsl)…
+The system configuration file was not written; create it later with: sudo lux system init	Súbor s konfiguráciou systému sa nezapísal; vytvorte ho neskôr príkazom: sudo lux system init
+Repair the settings from /etc/luxos/system.lsl	Opraviť nastavenia podľa /etc/luxos/system.lsl
+This computer has no system configuration file (/etc/luxos/system.lsl).	Tento počítač nemá súbor s konfiguráciou systému (/etc/luxos/system.lsl).
+Settings that changed are returned to the state described in /etc/luxos/system.lsl.	Zmenené nastavenia sa vrátia do stavu opísaného v /etc/luxos/system.lsl.
+The changes are shown first and you are asked; a snapshot is taken before.	Najprv sa ukážu zmeny a opýtame sa vás; predtým sa urobí snímka.
+Repair the settings (lux system fix)	Opraviť nastavenia (lux system fix)

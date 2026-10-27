@@ -73,6 +73,37 @@ config = {
     }
     "kernel": {
         "params": ["quiet", "splash"]
+        "scheduler": "lavd"
+    }
+
+    # Network connections: never a Wi-Fi password here (it is kept by the system).
+    # The connection in use is changed only after a separate question, deleted only with --force.
+    "network": {
+        "connections": {
+            "Home": {"type": "wifi", "ssid": "Novakovi", "security": "wpa-psk"}
+            "Office": {
+                "type": "ethernet"
+                "ipv4": {"method": "manual", "addresses": ["192.168.10.5/24"], "gateway": "192.168.10.1",
+                         "dns": ["192.168.10.1"]}
+            }
+        }
+    }
+    "printers": {
+        "default": "HP_LaserJet"
+        "queues": {
+            "HP_LaserJet": {"uri": "ipp://hp-laserjet.local/ipp/print", "model": "everywhere", "shared": False}
+        }
+    }
+    "power": {"lid": "suspend", "lid_on_power": config.mkIf(laptop, "lock"), "suspend_after_minutes": 30}
+    "boot": {"timeout": 3, "default": "luxos"}
+    "security": {"faillock": {"deny": 20, "fail_interval": 30, "unlock_time": 60}}
+
+    # Defaults for NEW users (their first sign-in); existing users keep their settings
+    "new_users": {
+        "theme": "auto"
+        "dock": ["luxos-launchpad", "firefox", "thunar", "luxos-text", "luxos-terminal", "trash"]
+        "browser": "firefox"
+        "text_editor": "luxos-text"
     }
 }
 

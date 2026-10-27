@@ -98,6 +98,20 @@ class Tui(unittest.TestCase):
         self.assertIn("Přeinstalovat LuxOS", out)
         self.assertEqual(self.calls(), ["reinstall --yes"])
 
+    def test_system_fix(self):
+        """Oprava nastaveni podle /etc/luxos/system.lsl: lux system fix (ten sam ukaze rozdil a zepta se)."""
+        fake = os.path.join(self.tmp, "lux_system.py")
+        with open(fake, "w") as f:
+            f.write('#!/bin/bash\necho "lux_system $*" >>"$LOG"\n')
+        os.chmod(fake, 0o755)
+        out = self.run_tui("4\n\n", LUXOS_LUX_SYSTEM=fake)
+        self.assertIn("no system configuration file", out)
+        self.assertEqual(self.calls(), [])
+        os.makedirs(os.path.join(self.tmp, "etc", "luxos"))
+        open(os.path.join(self.tmp, "etc", "luxos", "system.lsl"), "w").close()
+        self.run_tui("4\n\n", LUXOS_LUX_SYSTEM=fake)
+        self.assertEqual(self.calls(), ["lux_system fix"])
+
     def test_reinstall_offline_cancelled(self):
         self.run_tui("3\nREINSTALL\nn\n\n", LUXOS_RECOVERY_NET="1")
         self.assertEqual(self.calls(), [])

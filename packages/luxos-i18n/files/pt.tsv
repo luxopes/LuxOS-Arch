@@ -4033,3 +4033,119 @@ Alphabetical	Alfabética
 Recently used	Usadas recentemente
 Most used	Mais usadas
 Category	Por categoria
+# lux system: cely system v jednom souboru (sit, tiskarny, napajeni, zavadec, novi uzivatele, fix)
+Computer and language	Computador e idioma
+Other formats than the language, e.g. "LC_TIME": "cs_CZ.UTF-8" (date and time), "LC_PAPER"	Formatos diferentes do idioma, p. ex. "LC_TIME": "cs_CZ.UTF-8" (data e hora), "LC_PAPER"
+Drivers (graphics, Wi-Fi, printers from [luxos-drivers]); the Drivers app suggests them	Controladores (gráficos, Wi-Fi, impressoras de [luxos-drivers]); a app Controladores sugere-os
+Started at boot. A removed line turns the service off at the next apply.	Iniciados no arranque. Uma linha apagada desliga o serviço no próximo apply.
+Remote access: "sshd" (SSH server). Bluetooth: "bluetooth".	Acesso remoto: "sshd" (servidor SSH). Bluetooth: "bluetooth".
+Users	Utilizadores
+Saved connections (NetworkManager). Wi-Fi and VPN passwords are not here: they are kept by the system.	Ligações guardadas (NetworkManager). As palavras-passe Wi-Fi e VPN não estão aqui: o sistema guarda-as.
+security: "none" = open, "wpa-psk" = WPA2 password, "sae" = WPA3; ipv4 "auto" = automatic (DHCP).	security: "none" = aberta, "wpa-psk" = palavra-passe WPA2, "sae" = WPA3; ipv4 "auto" = automático (DHCP).
+A connection in use is never deleted without --force (remote access could be cut off).	Uma ligação em uso nunca é apagada sem --force (o acesso remoto poderia ser cortado).
+"model": "everywhere" = driverless printing, otherwise the driver from 'lpinfo -m'.	"model": "everywhere" = impressão sem controlador, caso contrário o controlador de 'lpinfo -m'.
+Power	Energia
+For the whole computer (login screen, nobody signed in); in the desktop each user's own setting applies.	Para todo o computador (ecrã de início de sessão, ninguém com sessão); no ambiente de trabalho vale a definição de cada utilizador.
+lid: "suspend", "hibernate", "lock", "poweroff" or "ignore".	lid (tampa): "suspend", "hibernate", "lock", "poweroff" ou "ignore".
+lid closed while the power adapter is connected	tampa fechada com o carregador ligado
+Boot	Arranque
+Boot menu: how many seconds it is shown (0 = hidden, hold Space to see it).	Menu de arranque: quantos segundos é mostrado (0 = oculto, mantenha Espaço premido para o ver).
+default: "luxos" = the newest working LuxOS, or another entry. Snapshots are not listed here.	default: "luxos" = o LuxOS funcional mais recente, ou outra entrada. Os instantâneos não aparecem aqui.
+Updates and security	Atualizações e segurança
+protect = /usr read-only except during updates; verify = weekly check of system files	protect = /usr só de leitura exceto durante atualizações; verify = verificação semanal dos ficheiros do sistema
+Wrong passwords: after "deny" failures within "fail_interval" seconds the account waits "unlock_time" seconds.	Palavras-passe erradas: após "deny" falhas em "fail_interval" segundos a conta espera "unlock_time" segundos.
+LuxOS: 20 / 30 / 60 - only a brute-force attack is stopped, you are never locked out for long.	LuxOS: 20 / 30 / 60 – só um ataque de força bruta é travado, nunca fica bloqueado por muito tempo.
+Defaults for new users	Predefinições de novos utilizadores
+Used when a NEW user signs in for the first time; existing users keep their settings.	Usado quando um NOVO utilizador inicia sessão pela primeira vez; os utilizadores existentes mantêm as definições.
+Delete the # at the start of a line to use it.	Apague o # no início de uma linha para a usar.
+Text console (without the desktop): keyboard and font	Consola de texto (sem ambiente de trabalho): teclado e tipo de letra
+Package sources - only checked, lux system does not change them (edit /etc/lux/lux.conf)	Origens de pacotes – apenas verificadas, o lux system não as altera (edite /etc/lux/lux.conf)
+community = packages from the community (AUR, built in the sandbox)	community = pacotes da comunidade (AUR, compilados na sandbox)
+Network connections: run 'sudo lux system show' to include them	Ligações de rede: execute 'sudo lux system show' para as incluir
+Printing (CUPS) is not running - printers are not included	A impressão (CUPS) não está ativa – as impressoras não estão incluídas
+sleep after so many minutes without use (0 = never)	suspender após tantos minutos sem uso (0 = nunca)
+"power-saver", "balanced" or "performance"	"power-saver", "balanced" ou "performance"
+Each section below describes one part of the system.	Cada secção abaixo descreve uma parte do sistema.
+A missing setting or a deleted section means "leave it as it is": only what is written here is managed.	Uma definição em falta ou uma secção apagada significa «deixar como está»: só é gerido o que está escrito aqui.
+Passwords are never stored here (users, Wi-Fi, VPN): they stay in the system.	As palavras-passe nunca são guardadas aqui (utilizadores, Wi-Fi, VPN): ficam no sistema.
+Something broke? sudo lux system fix returns the system to the state described here.	Algo avariou? sudo lux system fix devolve o sistema ao estado descrito aqui.
+Help: man luxos-system or ask LuxAI	Ajuda: man luxos-system ou pergunte ao LuxAI
+"light", "dark" or "auto" (by sunrise and sunset)	"light", "dark" ou "auto" (pelo nascer e pôr do sol)
+apps in the Dock (names of .desktop files)	apps na Dock (nomes dos ficheiros .desktop)
+default apps	apps predefinidas
+lock the screen after so many minutes without use	bloquear o ecrã após tantos minutos sem uso
+turn the screen off after so many minutes	desligar o ecrã após tantos minutos
+process scheduler: "lavd" = smooth desktop and games (default), "default" = the kernel's own	escalonador de processos: "lavd" = ambiente de trabalho e jogos fluidos (predefinido), "default" = o do kernel
+password: kept by the system	palavra-passe: guardada pelo sistema
+Network connections can be read only with administrator rights (lux system diff asks for them).	As ligações de rede só podem ser lidas com direitos de administrador (o lux system diff pede-os).
+"ssid" and "security" belong only to Wi-Fi connections	"ssid" e "security" só se aplicam a ligações Wi-Fi
+change connection %s: %s	alterar ligação %s: %s
+delete connection %s	apagar ligação %s
+Printing (CUPS) is not running; printers were not checked.	A impressão (CUPS) não está ativa; as impressoras não foram verificadas.
+default printer: %s → %s	impressora predefinida: %s → %s
+Battery Saver is on; the power profile is set when it turns off.	A poupança de bateria está ligada; o perfil de energia é aplicado quando se desligar.
+Boot settings can be read only with administrator rights (lux system diff asks for them).	As definições de arranque só podem ser lidas com direitos de administrador (o lux system diff pede-os).
+boot menu shown for: %s → %s s	menu de arranque mostrado durante: %s → %s s
+default boot entry: %s → %s	entrada de arranque predefinida: %s → %s
+kernel.scheduler: the process scheduler setting is missing (lux install luxos-tweaks).	kernel.scheduler: falta a definição do escalonador de processos (lux install luxos-tweaks).
+%s was edited, it stays as it is.	%s foi editado; fica como está.
+These changes affect the network connection in use; a remote (SSH) connection to this computer can be cut off:	Estas alterações afetam a ligação de rede em uso; uma ligação remota (SSH) a este computador pode ser cortada:
+never write Wi-Fi or VPN passwords into the file; they are kept by the system (NetworkManager asks for them when connecting)	nunca escreva palavras-passe Wi-Fi ou VPN no ficheiro; o sistema guarda-as (o NetworkManager pede-as ao ligar)
+%s is both in packages and drivers	%s está em packages e em drivers
+add connection %s	adicionar ligação %s
+network.connections.%s: the type cannot be changed (%s → %s); delete the connection and create a new one	network.connections.%s: o tipo não pode ser alterado (%s → %s); apague a ligação e crie uma nova
+(in use; applies at the next connection)	(em uso; aplica-se na próxima ligação)
+Connection %s is in use and was kept; delete it with --force (the computer may lose the network).	A ligação %s está em uso e foi mantida; apague-a com --force (o computador pode perder a rede).
+printers.queues.%s: the driver "%s" is not installed (list: lpinfo -m; "everywhere" = driverless printing)	printers.queues.%s: o controlador "%s" não está instalado (lista: lpinfo -m; "everywhere" = impressão sem controlador)
+add printer %s (%s)	adicionar impressora %s (%s)
+driver %s	controlador %s
+shared: %s	partilhada: %s
+printer %s: %s	impressora %s: %s
+printers.default: there is no printer %s	printers.default: não existe a impressora %s
+power.profile: power profiles are not installed (lux install power-profiles-daemon).	power.profile: os perfis de energia não estão instalados (lux install power-profiles-daemon).
+Boot settings: no LuxOS boot entry found (systemd-boot or GRUB).	Definições de arranque: nenhuma entrada LuxOS encontrada (systemd-boot ou GRUB).
+boot.default: there is no boot menu entry %s (entries: %s)	boot.default: não existe a entrada de menu %s (entradas: %s)
+formats: %s	formatos: %s
+sign-in lockout: %s	bloqueio após palavras-passe erradas: %s
+%s is missing; the package manager settings were not checked.	%s está em falta; as definições do gestor de pacotes não foram verificadas.
+process scheduler: %s → %s	escalonador de processos: %s → %s
+Repair: the system returns to the state described in %s	Reparação: o sistema volta ao estado descrito em %s
+The network connection in use was left as it is (apply it with --force).	A ligação de rede em uso ficou como está (aplique com --force).
+connection name	nome da ligação
+network.connections.%s: only Wi-Fi and Ethernet connections can be created here; create other kinds in Settings > Network	network.connections.%s: aqui só se podem criar ligações Wi-Fi e Ethernet; crie outros tipos em Definições > Rede
+network.connections.%s: a new Wi-Fi connection needs "ssid"	network.connections.%s: uma nova ligação Wi-Fi precisa de "ssid"
+network.connections.%s: enterprise Wi-Fi (802.1x) needs certificates and an account; connect it once in Settings > Network, then the file manages it	network.connections.%s: o Wi-Fi empresarial (802.1x) precisa de certificados e de uma conta; ligue-o uma vez em Definições > Rede e depois o ficheiro gere-o
+Connection %s: the Wi-Fi password is not in the file; it is asked for when connecting for the first time (it stays in the system).	Ligação %s: a palavra-passe Wi-Fi não está no ficheiro; é pedida na primeira ligação (fica no sistema).
+printers.queues.%s: a new printer needs "uri" (its address)	printers.queues.%s: uma nova impressora precisa de "uri" (o seu endereço)
+remove printer %s	remover impressora %s
+power profile: %s → %s	perfil de energia: %s → %s
+Change the network connection in use too?	Alterar também a ligação de rede em uso?
+must be one of: %s	tem de ser um de: %s
+printer name	nome da impressora
+must be "luxos" or the name of a boot menu entry (not a snapshot)	tem de ser "luxos" ou o nome de uma entrada do menu de arranque (não um instantâneo)
+console: %s	consola: %s
+repos.%s differs from %s (%s); lux system does not change the package manager settings - edit %s and check it with: lux config check	repos.%s difere de %s (%s); o lux system não altera as definições do gestor de pacotes – edite %s e verifique: lux config check
+must be between %d and %d	tem de estar entre %d e %d
+as the language	como o idioma
+console setting	definição da consola
+must be the full path of a picture readable by everybody, e.g. "/usr/share/backgrounds/luxos/luxos-dark.jpg"	tem de ser o caminho completo de uma imagem legível por todos, p. ex. "/usr/share/backgrounds/luxos/luxos-dark.jpg"
+connection type	tipo de ligação
+printer address (URI)	endereço da impressora (URI)
+a Wi-Fi network name has 1 to 32 characters	o nome de uma rede Wi-Fi tem de 1 a 32 caracteres
+network interface	interface de rede
+"manual" needs "addresses" (e.g. ["192.168.1.10/24"])	"manual" precisa de "addresses" (p. ex. ["192.168.1.10/24"])
+printer driver	controlador da impressora
+app ID	ID da app
+must be the address of a proxy configuration (PAC) file, e.g. "http://proxy.example.com/proxy.pac", or "" for none	tem de ser o endereço de um ficheiro de configuração de proxy (PAC), p. ex. "http://proxy.example.com/proxy.pac", ou "" para nenhum
+address with prefix (e.g. "192.168.1.10/24")	endereço com prefixo (p. ex. "192.168.1.10/24")
+Network connections	Ligações de rede
+Boot menu	Menu de arranque
+repository name	nome do repositório
+repair: return the system to the state described in the file	reparar: devolve o sistema ao estado descrito no ficheiro
+Writing the system configuration (/etc/luxos/system.lsl)…	A escrever a configuração do sistema (/etc/luxos/system.lsl)…
+The system configuration file was not written; create it later with: sudo lux system init	O ficheiro de configuração do sistema não foi escrito; crie-o mais tarde com: sudo lux system init
+Repair the settings from /etc/luxos/system.lsl	Reparar as definições segundo /etc/luxos/system.lsl
+This computer has no system configuration file (/etc/luxos/system.lsl).	Este computador não tem ficheiro de configuração do sistema (/etc/luxos/system.lsl).
+Settings that changed are returned to the state described in /etc/luxos/system.lsl.	As definições alteradas voltam ao estado descrito em /etc/luxos/system.lsl.
+The changes are shown first and you are asked; a snapshot is taken before.	Primeiro são mostradas as alterações e é feita uma pergunta; antes é tirado um instantâneo.
+Repair the settings (lux system fix)	Reparar as definições (lux system fix)

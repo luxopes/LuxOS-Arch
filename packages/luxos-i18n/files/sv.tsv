@@ -4033,3 +4033,119 @@ Alphabetical	Alfabetiskt
 Recently used	Senast använda
 Most used	Mest använda
 Category	Efter kategori
+# lux system: cely system v jednom souboru (sit, tiskarny, napajeni, zavadec, novi uzivatele, fix)
+Computer and language	Dator och språk
+Other formats than the language, e.g. "LC_TIME": "cs_CZ.UTF-8" (date and time), "LC_PAPER"	Andra format än språket, t.ex. "LC_TIME": "cs_CZ.UTF-8" (datum och tid), "LC_PAPER"
+Drivers (graphics, Wi-Fi, printers from [luxos-drivers]); the Drivers app suggests them	Drivrutiner (grafik, Wi-Fi, skrivare från [luxos-drivers]); appen Drivrutiner föreslår dem
+Started at boot. A removed line turns the service off at the next apply.	Startas vid uppstart. En borttagen rad stänger av tjänsten vid nästa apply.
+Remote access: "sshd" (SSH server). Bluetooth: "bluetooth".	Fjärråtkomst: "sshd" (SSH-server). Bluetooth: "bluetooth".
+Users	Användare
+Saved connections (NetworkManager). Wi-Fi and VPN passwords are not here: they are kept by the system.	Sparade anslutningar (NetworkManager). Lösenord för Wi-Fi och VPN finns inte här: systemet sparar dem.
+security: "none" = open, "wpa-psk" = WPA2 password, "sae" = WPA3; ipv4 "auto" = automatic (DHCP).	security: "none" = öppet, "wpa-psk" = WPA2-lösenord, "sae" = WPA3; ipv4 "auto" = automatiskt (DHCP).
+A connection in use is never deleted without --force (remote access could be cut off).	En anslutning som används tas aldrig bort utan --force (fjärråtkomsten kan brytas).
+"model": "everywhere" = driverless printing, otherwise the driver from 'lpinfo -m'.	"model": "everywhere" = utskrift utan drivrutin, annars drivrutinen från 'lpinfo -m'.
+Power	Ström
+For the whole computer (login screen, nobody signed in); in the desktop each user's own setting applies.	För hela datorn (inloggningsskärmen, ingen inloggad); på skrivbordet gäller varje användares egen inställning.
+lid: "suspend", "hibernate", "lock", "poweroff" or "ignore".	lid (locket): "suspend", "hibernate", "lock", "poweroff" eller "ignore".
+lid closed while the power adapter is connected	locket stängt med nätadaptern ansluten
+Boot	Uppstart
+Boot menu: how many seconds it is shown (0 = hidden, hold Space to see it).	Startmeny: hur många sekunder den visas (0 = dold, håll ned blanksteg för att se den).
+default: "luxos" = the newest working LuxOS, or another entry. Snapshots are not listed here.	default: "luxos" = det senaste fungerande LuxOS, eller en annan post. Ögonblicksbilder listas inte här.
+Updates and security	Uppdateringar och säkerhet
+protect = /usr read-only except during updates; verify = weekly check of system files	protect = /usr skrivskyddat utom vid uppdateringar; verify = veckovis kontroll av systemfiler
+Wrong passwords: after "deny" failures within "fail_interval" seconds the account waits "unlock_time" seconds.	Fel lösenord: efter "deny" misslyckanden inom "fail_interval" sekunder väntar kontot "unlock_time" sekunder.
+LuxOS: 20 / 30 / 60 - only a brute-force attack is stopped, you are never locked out for long.	LuxOS: 20 / 30 / 60 – bara en brute force-attack stoppas, du blir aldrig utelåst länge.
+Defaults for new users	Standardinställningar för nya användare
+Used when a NEW user signs in for the first time; existing users keep their settings.	Används när en NY användare loggar in första gången; befintliga användare behåller sina inställningar.
+Delete the # at the start of a line to use it.	Ta bort # i början av en rad för att använda den.
+Text console (without the desktop): keyboard and font	Textkonsol (utan skrivbord): tangentbord och typsnitt
+Package sources - only checked, lux system does not change them (edit /etc/lux/lux.conf)	Paketkällor – kontrolleras bara, lux system ändrar dem inte (redigera /etc/lux/lux.conf)
+community = packages from the community (AUR, built in the sandbox)	community = paket från gemenskapen (AUR, byggda i sandlådan)
+Network connections: run 'sudo lux system show' to include them	Nätverksanslutningar: kör 'sudo lux system show' för att ta med dem
+Printing (CUPS) is not running - printers are not included	Utskrift (CUPS) körs inte – skrivare tas inte med
+sleep after so many minutes without use (0 = never)	viloläge efter så många minuter utan användning (0 = aldrig)
+"power-saver", "balanced" or "performance"	"power-saver", "balanced" eller "performance"
+Each section below describes one part of the system.	Varje avsnitt nedan beskriver en del av systemet.
+A missing setting or a deleted section means "leave it as it is": only what is written here is managed.	En saknad inställning eller ett borttaget avsnitt betyder ”lämna som det är”: bara det som står här hanteras.
+Passwords are never stored here (users, Wi-Fi, VPN): they stay in the system.	Lösenord sparas aldrig här (användare, Wi-Fi, VPN): de stannar i systemet.
+Something broke? sudo lux system fix returns the system to the state described here.	Gick något sönder? sudo lux system fix återställer systemet till tillståndet som beskrivs här.
+Help: man luxos-system or ask LuxAI	Hjälp: man luxos-system eller fråga LuxAI
+"light", "dark" or "auto" (by sunrise and sunset)	"light", "dark" eller "auto" (efter soluppgång och solnedgång)
+apps in the Dock (names of .desktop files)	appar i Docken (namn på .desktop-filer)
+default apps	standardappar
+lock the screen after so many minutes without use	lås skärmen efter så många minuter utan användning
+turn the screen off after so many minutes	stäng av skärmen efter så många minuter
+process scheduler: "lavd" = smooth desktop and games (default), "default" = the kernel's own	processchemaläggare: "lavd" = smidigt skrivbord och spel (standard), "default" = kärnans egen
+password: kept by the system	lösenord: sparas av systemet
+Network connections can be read only with administrator rights (lux system diff asks for them).	Nätverksanslutningar kan bara läsas med administratörsrättigheter (lux system diff ber om dem).
+"ssid" and "security" belong only to Wi-Fi connections	"ssid" och "security" hör bara till Wi-Fi-anslutningar
+change connection %s: %s	ändra anslutning %s: %s
+delete connection %s	ta bort anslutning %s
+Printing (CUPS) is not running; printers were not checked.	Utskrift (CUPS) körs inte; skrivarna kontrollerades inte.
+default printer: %s → %s	standardskrivare: %s → %s
+Battery Saver is on; the power profile is set when it turns off.	Batterisparläget är på; energiprofilen ställs in när det stängs av.
+Boot settings can be read only with administrator rights (lux system diff asks for them).	Startinställningar kan bara läsas med administratörsrättigheter (lux system diff ber om dem).
+boot menu shown for: %s → %s s	startmenyn visas: %s → %s s
+default boot entry: %s → %s	standardpost vid start: %s → %s
+kernel.scheduler: the process scheduler setting is missing (lux install luxos-tweaks).	kernel.scheduler: inställningen för processchemaläggaren saknas (lux install luxos-tweaks).
+%s was edited, it stays as it is.	%s har redigerats och lämnas som den är.
+These changes affect the network connection in use; a remote (SSH) connection to this computer can be cut off:	Ändringarna påverkar nätverksanslutningen som används; en fjärranslutning (SSH) till datorn kan brytas:
+never write Wi-Fi or VPN passwords into the file; they are kept by the system (NetworkManager asks for them when connecting)	skriv aldrig Wi-Fi- eller VPN-lösenord i filen; systemet sparar dem (NetworkManager frågar efter dem vid anslutning)
+%s is both in packages and drivers	%s finns både i packages och drivers
+add connection %s	lägg till anslutning %s
+network.connections.%s: the type cannot be changed (%s → %s); delete the connection and create a new one	network.connections.%s: typen kan inte ändras (%s → %s); ta bort anslutningen och skapa en ny
+(in use; applies at the next connection)	(används; gäller vid nästa anslutning)
+Connection %s is in use and was kept; delete it with --force (the computer may lose the network).	Anslutningen %s används och behölls; ta bort den med --force (datorn kan tappa nätverket).
+printers.queues.%s: the driver "%s" is not installed (list: lpinfo -m; "everywhere" = driverless printing)	printers.queues.%s: drivrutinen "%s" är inte installerad (lista: lpinfo -m; "everywhere" = utskrift utan drivrutin)
+add printer %s (%s)	lägg till skrivare %s (%s)
+driver %s	drivrutin %s
+shared: %s	delad: %s
+printer %s: %s	skrivare %s: %s
+printers.default: there is no printer %s	printers.default: det finns ingen skrivare %s
+power.profile: power profiles are not installed (lux install power-profiles-daemon).	power.profile: energiprofiler är inte installerade (lux install power-profiles-daemon).
+Boot settings: no LuxOS boot entry found (systemd-boot or GRUB).	Startinställningar: ingen LuxOS-post hittades (systemd-boot eller GRUB).
+boot.default: there is no boot menu entry %s (entries: %s)	boot.default: det finns ingen startpost %s (poster: %s)
+formats: %s	format: %s
+sign-in lockout: %s	spärr efter fel lösenord: %s
+%s is missing; the package manager settings were not checked.	%s saknas; pakethanterarens inställningar kontrollerades inte.
+process scheduler: %s → %s	processchemaläggare: %s → %s
+Repair: the system returns to the state described in %s	Reparation: systemet återgår till tillståndet som beskrivs i %s
+The network connection in use was left as it is (apply it with --force).	Nätverksanslutningen som används lämnades som den är (tillämpa med --force).
+connection name	anslutningsnamn
+network.connections.%s: only Wi-Fi and Ethernet connections can be created here; create other kinds in Settings > Network	network.connections.%s: här kan bara Wi-Fi- och Ethernet-anslutningar skapas; skapa andra i Inställningar > Nätverk
+network.connections.%s: a new Wi-Fi connection needs "ssid"	network.connections.%s: en ny Wi-Fi-anslutning behöver "ssid"
+network.connections.%s: enterprise Wi-Fi (802.1x) needs certificates and an account; connect it once in Settings > Network, then the file manages it	network.connections.%s: företags-Wi-Fi (802.1x) behöver certifikat och ett konto; anslut en gång i Inställningar > Nätverk, sedan hanterar filen den
+Connection %s: the Wi-Fi password is not in the file; it is asked for when connecting for the first time (it stays in the system).	Anslutning %s: Wi-Fi-lösenordet finns inte i filen; det efterfrågas vid första anslutningen (det stannar i systemet).
+printers.queues.%s: a new printer needs "uri" (its address)	printers.queues.%s: en ny skrivare behöver "uri" (dess adress)
+remove printer %s	ta bort skrivare %s
+power profile: %s → %s	energiprofil: %s → %s
+Change the network connection in use too?	Ändra även nätverksanslutningen som används?
+must be one of: %s	måste vara något av: %s
+printer name	skrivarnamn
+must be "luxos" or the name of a boot menu entry (not a snapshot)	måste vara "luxos" eller namnet på en startpost (inte en ögonblicksbild)
+console: %s	konsol: %s
+repos.%s differs from %s (%s); lux system does not change the package manager settings - edit %s and check it with: lux config check	repos.%s skiljer sig från %s (%s); lux system ändrar inte pakethanterarens inställningar – redigera %s och kontrollera: lux config check
+must be between %d and %d	måste vara mellan %d och %d
+as the language	som språket
+console setting	konsolinställning
+must be the full path of a picture readable by everybody, e.g. "/usr/share/backgrounds/luxos/luxos-dark.jpg"	måste vara hela sökvägen till en bild som alla kan läsa, t.ex. "/usr/share/backgrounds/luxos/luxos-dark.jpg"
+connection type	anslutningstyp
+printer address (URI)	skrivaradress (URI)
+a Wi-Fi network name has 1 to 32 characters	ett Wi-Fi-nätverksnamn har 1 till 32 tecken
+network interface	nätverksgränssnitt
+"manual" needs "addresses" (e.g. ["192.168.1.10/24"])	"manual" behöver "addresses" (t.ex. ["192.168.1.10/24"])
+printer driver	skrivardrivrutin
+app ID	app-ID
+must be the address of a proxy configuration (PAC) file, e.g. "http://proxy.example.com/proxy.pac", or "" for none	måste vara adressen till en proxykonfigurationsfil (PAC), t.ex. "http://proxy.example.com/proxy.pac", eller "" för ingen
+address with prefix (e.g. "192.168.1.10/24")	adress med prefix (t.ex. "192.168.1.10/24")
+Network connections	Nätverksanslutningar
+Boot menu	Startmeny
+repository name	förrådsnamn
+repair: return the system to the state described in the file	reparera: återställ systemet till tillståndet i filen
+Writing the system configuration (/etc/luxos/system.lsl)…	Skriver systemkonfigurationen (/etc/luxos/system.lsl)…
+The system configuration file was not written; create it later with: sudo lux system init	Systemkonfigurationsfilen skrevs inte; skapa den senare med: sudo lux system init
+Repair the settings from /etc/luxos/system.lsl	Reparera inställningarna enligt /etc/luxos/system.lsl
+This computer has no system configuration file (/etc/luxos/system.lsl).	Den här datorn har ingen systemkonfigurationsfil (/etc/luxos/system.lsl).
+Settings that changed are returned to the state described in /etc/luxos/system.lsl.	Ändrade inställningar återställs till tillståndet i /etc/luxos/system.lsl.
+The changes are shown first and you are asked; a snapshot is taken before.	Ändringarna visas först och du tillfrågas; en ögonblicksbild tas innan.
+Repair the settings (lux system fix)	Reparera inställningarna (lux system fix)

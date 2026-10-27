@@ -2194,6 +2194,20 @@ shared_esp_entry() {
     fi
 }
 
+# Cely system v jednom souboru (/etc/luxos/system.lsl) ze hotove instalace: s tim se snadno opravuje
+# (lux system diff / fix). Bez hesel (ani Wi-Fi). OEM: az po Pruvodci nastavenim (ucet majitele, jazyk),
+# vytvori ho luxos-oem finish. Chyba instalaci nezastavi.
+write_system_config() {
+    ((${OEM:-0})) && return 0
+    [[ -x $TARGET/usr/lib/lux/lux_system.py ]] || return 0
+    progress "STATUS $(T "Writing the system configuration (/etc/luxos/system.lsl)…")"
+    if ! arch-chroot "$TARGET" /usr/lib/lux/lux_system.py init --auto >>"$LOG" 2>&1 ||
+            [[ ! -e $TARGET/etc/luxos/system.lsl ]]; then
+        info "$(T "The system configuration file was not written; create it later with: sudo lux system init")"
+    fi
+    progress "STATUS "
+}
+
 finish() {
     step "$(T "Finishing")"
     # Pozustatky z pacstrapu (databaze v /var/lib/pacman ap.) presunul hook lux-engine-migrate; odkazy
@@ -2396,6 +2410,7 @@ main() {
     install_packages
     configure_system
     install_templates
+    write_system_config
     finish
 }
 
