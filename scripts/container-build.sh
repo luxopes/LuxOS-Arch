@@ -1,6 +1,6 @@
 #!/bin/bash
 # LuxOS - sestaveni baliku a ISO (bezi uvnitr Arch kontejneru, viz build.sh)
-# Pouziti: container-build.sh [all|packages|apps|drivers|iso|one BALIK]
+# Pouziti: container-build.sh [all|packages|apps|drivers|iso|iso-test|one BALIK]
 set -euo pipefail
 
 ROOT=/luxos
@@ -43,6 +43,44 @@ setup_signing() {
     GPGKEY=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/{print $10; exit}')
     [[ -n $GPGKEY ]] || { echo "No secret key in /signing" >&2; exit 1; }
     msg "Signing with key $GPGKEY"
+}
+
+# TEST sestaveni (./build.sh iso-test, GitHub Actions target iso-test): baliky a ISO podepsane
+# jednorazovym klicem vytvorenym v tomto behu (soukromy klic po skonceni kontejneru zanika).
+# Upravene kopie luxos-keyring (klic LuxOS + testovaci klic) a luxos-branding (VARIANT="TEST build")
+# vznikaji jen v /tmp - packages/ ani produkcni baliky se nemeni.
+TEST_SRC=/tmp/luxos-test-src
+setup_test_signing() {
+    export GNUPGHOME=/tmp/luxos-gnupg
+    rm -rf "$GNUPGHOME"
+    mkdir -m700 "$GNUPGHOME"
+    gpg --batch --quiet --passphrase '' --quick-gen-key \
+        "LuxOS TEST key - not for production (${LUXOS_TEST_SHA:-local}) <test@luxos.invalid>" ed25519 sign 30d
+    GPGKEY=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/{print $10; exit}')
+    [[ -n $GPGKEY ]] || { echo "Test key generation failed" >&2; exit 1; }
+    msg "TEST build: signing with throwaway key $GPGKEY (expires in 30 days)"
+    gpg --batch --armor --export "$GPGKEY" >"$OUT/luxos-test-key.asc"
+
+    rm -rf "$TEST_SRC"
+    mkdir -p "$TEST_SRC"
+    # luxos-keyring: jeden blok ASCII armor s obema klici (lux pack overuje "gpg --dearmor" = jen prvni blok)
+    local k=$TEST_SRC/luxos-keyring tmpg
+    cp -r "$ROOT/packages/luxos-keyring" "$k"
+    tmpg=$(mktemp -d)
+    gpg --homedir "$tmpg" --batch --quiet --import "$ROOT/packages/luxos-keyring/files/luxos.gpg" "$OUT/luxos-test-key.asc"
+    gpg --homedir "$tmpg" --batch --armor --export >"$k/files/luxos.gpg"
+    rm -rf "$tmpg"
+    echo "$GPGKEY:4:" >>"$k/files/luxos-trusted"
+    sed -i 's/^pkgdesc=.*/pkgdesc="LuxOS package signing keys (TEST build: also trusts the throwaway TEST key)"/' "$k/PKGBUILD"
+    # luxos-branding: os-release s VARIANT (zive i nainstalovane systemy z tohoto ISO)
+    local b=$TEST_SRC/luxos-branding
+    cp -r "$ROOT/packages/luxos-branding" "$b"
+    sed -i "/^BUILD_ID=@BUILD@\$/a VARIANT=\"TEST build\"\nVARIANT_ID=test" "$b/files/apply-branding"
+    grep -q '^VARIANT="TEST build"$' "$b/files/apply-branding" || { echo "os-release VARIANT not added" >&2; exit 1; }
+}
+
+pkg_src() {  # pkg_src NAZEV -> adresar baliku (v TEST sestaveni pripadne upravena kopie)
+    if [[ -n ${LUXOS_TEST:-} && -d $TEST_SRC/$1 ]]; then echo "$TEST_SRC/$1"; else echo "$ROOT/packages/$1"; fi
 }
 
 build_one() {  # build_one ADRESAR_BALIKU CIL_PKGDEST
@@ -178,7 +216,7 @@ build_packages() {
     pacman -Syu --noconfirm --needed >/dev/null
     check_pacman_version
 
-    setup_signing
+    if [[ -n ${LUXOS_TEST:-} ]]; then setup_test_signing; else setup_signing; fi
     rm -rf "$BUILD"
     mkdir -p "$SOURCES" "$BUILD/pkgs/luxos" "$BUILD/pkgs/luxos-apps"
     chown -R builder: "$SOURCES" "$BUILD"
@@ -190,7 +228,7 @@ build_packages() {
         build_one "$ROOT/packages/apps/$p" "$BUILD/pkgs/luxos-apps"
     done
     for p in "${PACKAGES[@]}"; do
-        build_one "$ROOT/packages/$p" "$BUILD/pkgs/luxos"
+        build_one "$(pkg_src "$p")" "$BUILD/pkgs/luxos"
     done
     chown -R root: "$SOURCES"
     # Jadro LuxOS se stavi na GitHub Actions (luxopes/luxos-kernel); build.sh ho stahne a overi
@@ -383,6 +421,8 @@ build_iso() {
     # ISO pojmenovane podle verze LuxOS (packages/luxos-branding/files/version): luxos-0.9.0-x86_64.iso
     local VERSION
     VERSION=$(. "$ROOT/packages/luxos-branding/files/version" && echo "$VERSION")
+    # TEST sestaveni: luxos-0.9.0-TEST-abc1234-x86_64.iso
+    [[ -n ${LUXOS_TEST:-} ]] && VERSION+="-TEST-${LUXOS_TEST_SHA:-local}"
     sed -i "s|^iso_version=.*|iso_version=\"$VERSION\"|" "$PROFILE/profiledef.sh"
     # Starsi sestaveni vlastnich baliku (stejna verze, jiny obsah) z cache pacmanu pryc
     local f
@@ -475,7 +515,11 @@ case $target in
     apps)     build_apps ;;
     iso)      build_iso ;;
     all)      build_packages; build_iso ;;
+    # TEST ISO z baliku teto vetve, podepsane jednorazovym klicem (nic se nezverejnuje)
+    iso-test) [[ ${LUXOS_TEST_SHA:-} =~ ^[0-9a-f]{4,40}$ ]] || LUXOS_TEST_SHA=local
+              export LUXOS_TEST=1 LUXOS_TEST_SHA
+              build_packages; build_iso ;;
     drivers)  shift; build_drivers "$@" ;;
     one)      build_single "${2:-}" ;;
-    *) echo "Usage: $0 [all|packages|apps|drivers [PKGBASE...]|iso|one PACKAGE]" >&2; exit 2 ;;
+    *) echo "Usage: $0 [all|packages|apps|drivers [PKGBASE...]|iso|iso-test|one PACKAGE]" >&2; exit 2 ;;
 esac
