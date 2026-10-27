@@ -209,7 +209,7 @@ def main(argv):
     if len(argv) == 4 and argv[1] == "record":
         record(argv[2], argv[3])
         return 0
-    sys.stderr.write(__doc__)
+    sys.stderr.write("usage: luxos_launchpad.py order MODE OUT | record BEFORE AFTER  (used by luxos-launchpad)\n")
     return 2
 
 

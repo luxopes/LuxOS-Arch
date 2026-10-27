@@ -96,7 +96,7 @@ def main():
         t = sun_times(dt.date.today(), lat, lon)
         print("-" if t is None else f"{t[0]:%H:%M} {t[1]:%H:%M}")
     else:
-        print(__doc__)
+        print("usage: luxos_sun.py mode|times", file=sys.stderr)
         return 2
     return 0
 

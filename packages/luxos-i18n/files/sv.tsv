@@ -4149,3 +4149,137 @@ This computer has no system configuration file (/etc/luxos/system.lsl).	Den här
 Settings that changed are returned to the state described in /etc/luxos/system.lsl.	Ändrade inställningar återställs till tillståndet i /etc/luxos/system.lsl.
 The changes are shown first and you are asked; a snapshot is taken before.	Ändringarna visas först och du tillfrågas; en ögonblicksbild tas innan.
 Repair the settings (lux system fix)	Reparera inställningarna (lux system fix)
+usage:	användning:
+positional arguments	positionsargument
+show this help message and exit	visa den här hjälpen och avsluta
+subcommands	underkommandon
+%(prog)s: error: %(message)s	%(prog)s: fel: %(message)s
+argument %(argument_name)s: %(message)s	argument %(argument_name)s: %(message)s
+invalid choice: %(value)r (choose from %(choices)s)	ogiltigt val: %(value)r (välj bland %(choices)s)
+invalid %(type)s value: %(value)r	ogiltigt %(type)s-värde: %(value)r
+the following arguments are required: %s	följande argument krävs: %s
+unrecognized arguments: %s	okända argument: %s
+one of the arguments %s is required	ett av argumenten %s krävs
+not allowed with argument %s	inte tillåtet med argumentet %s
+expected one argument	ett argument förväntades
+expected at most one argument	högst ett argument förväntades
+expected at least one argument	minst ett argument förväntades
+expected %s argument	%s argument förväntades
+expected %s arguments	%s argument förväntades
+ambiguous option: %(option)s could match %(matches)s	tvetydigt alternativ: %(option)s kan betyda %(matches)s
+unexpected option string: %s	oväntat alternativ: %s
+(no command)	(utan kommando)
+%s needs a value	%s behöver ett värde
+OPTION	ALTERNATIV
+COMMAND	KOMMANDO
+ARG	ARG
+FILE	FIL
+FOLDER	MAPP
+DEVICE	ENHET
+show this help	visa den här hjälpen
+show the version	visa versionen
+machine-readable output	maskinläsbar utdata
+read the password from standard input	läs lösenordet från standard in
+no system snapshot before joining or leaving	ingen ögonblicksbild av systemet före anslutning eller utträde
+updates, backup kernel and self-repair	uppdateringar, reservkärna och självreparation
+show the state of updates and repairs	visa status för uppdateringar och reparationer
+recent repairs and updates	senaste reparationer och uppdateringar
+show or set the update mode (setting it needs root)	visa eller ställ in uppdateringsläget (ändring kräver root)
+CPU scheduler: LuxOS (sched_ext lavd) or the kernel default	CPU-schemaläggare: LuxOS (sched_ext lavd) eller kärnans standard
+switch to the LuxOS kernel, the current one stays as a backup (root)	byt till LuxOS-kärnan, den nuvarande blir kvar som reserv (root)
+System snapshots	Ögonblicksbilder av systemet
+list system snapshots (root)	lista ögonblicksbilder av systemet (root)
+take a system snapshot now (root)	ta en ögonblicksbild av systemet nu (root)
+start the snapshot as the system after the next restart (root)	starta ögonblicksbilden som system efter nästa omstart (root)
+restore the snapshot and recovery entries in the boot menu (root)	återställ posterna för ögonblicksbilder och återställning i startmenyn (root)
+system protection and the last check of system files	systemskydd och senaste kontrollen av systemfiler
+turn system protection on or off (root)	slå på eller av systemskyddet (root)
+make system files read-only again when nothing is being installed (root)	gör systemfilerna skrivskyddade igen när inget installeras (root)
+run a command with writable system files (root)	kör ett kommando med skrivbara systemfiler (root)
+check installed files against the package database	kontrollera installerade filer mot paketdatabasen
+reinstall packages with changed files (root)	installera om paket med ändrade filer (root)
+Recovery	Återställning
+check the disk; without --repair nothing is written (root)	kontrollera disken; utan --repair skrivs inget (root)
+reinstall the system, keeping /home and user accounts (root)	installera om systemet och behåll /home och användarkonton (root)
+Used by system services and hooks: %s	Används av systemtjänster och hookar: %s
+encrypted folder /safe/<user> unlocked with its own password	krypterad mapp /safe/<användare> som låses upp med ett eget lösenord
+Safe window	Valv-fönstret
+ask for the password (--open: then open the folder)	fråga efter lösenordet (--open: öppna sedan mappen)
+lock the Safe (--force: keep trying; --logout: close apps with open files)	lås Valvet (--force: fortsätt försöka; --logout: stäng appar med öppna filer)
+print the state: locked, unlocked or none	skriv ut läget: locked (låst), unlocked (upplåst) eller none (inget)
+lock when the screen locks or the computer sleeps (started by the session)	lås när skärmen låses eller datorn försätts i vila (startas av sessionen)
+trust the Unlock Safe launcher in the locked folder (started by the session)	lita på startaren Lås upp Valvet i den låsta mappen (startas av sessionen)
+backup state	säkerhetskopiornas status
+back up now	säkerhetskopiera nu
+list backups	lista säkerhetskopior
+files in a backup	filer i en säkerhetskopia
+restore files and folders	återställ filer och mappar
+restore everything (new computer, LuxOS Recovery)	återställ allt (ny dator, LuxOS Recovery)
+backup disks	säkerhetskopieringsdiskar
+add a backup disk: a folder or a network disk	lägg till en säkerhetskopieringsdisk: en mapp eller en nätverksdisk
+erase an external disk and use it for backups	radera en extern disk och använd den för säkerhetskopior
+stop using a backup disk (the backups on it stay)	sluta använda en säkerhetskopieringsdisk (säkerhetskopiorna finns kvar)
+folders that are not backed up	mappar som inte säkerhetskopieras
+automatic backups every hour	automatisk säkerhetskopiering varje timme
+also back up the system (settings and app list), Downloads or virtual machines	säkerhetskopiera även systemet (inställningar och applista), Hämtade filer eller virtuella maskiner
+folder with backups or the root of a backup disk (restore without configuration)	mapp med säkerhetskopior eller roten på en säkerhetskopieringsdisk (återställning utan inställningar)
+which computer when the disk has backups of several	vilken dator när disken har säkerhetskopior från flera
+folder with backups (no configuration needed)	mapp med säkerhetskopior (inga inställningar behövs)
+reset apps to their default settings; nothing is deleted	återställ appar till standardinställningar; inget raderas
+window (Settings)	fönster (Inställningar)
+apps with settings in your home folder	appar med inställningar i din hemmapp
+move the app's settings to a backup (--force: even while the app is running)	flytta appens inställningar till en säkerhetskopia (--force: även när appen körs)
+restore a backup (the current settings are backed up first)	återställ en säkerhetskopia (de nuvarande inställningarna sparas först)
+connection with your phone (LuxOS Companion for Android) over Bluetooth	anslutning till din telefon (LuxOS Companion för Android) via Bluetooth
+Phone window: approved phones, permissions, status	fönstret Telefon: godkända telefoner, behörigheter, status
+session service (luxos-companion.service)	sessionstjänst (luxos-companion.service)
+service status as JSON, without a window	tjänstens status som JSON, utan fönster
+scan documents and photos	skanna dokument och foton
+scanner from SANE (for example from Printers & Scanners)	skanner från SANE (till exempel från Skrivare och skannrar)
+check whether the network needs a sign-in on a login page	kontrollera om nätverket kräver inloggning på en inloggningssida
+Prints online, portal URL IP or none (used by luxos-hub).	Skriver ut online, portal URL IP eller none (används av luxos-hub).
+sign in to a network with a login page (hotel, airport, train, coffee shop)	logga in på ett nätverk med inloggningssida (hotell, flygplats, tåg, kafé)
+Opens the login page in a private browser window that forgets everything when closed.	Öppnar inloggningssidan i ett privat webbläsarfönster som glömmer allt när det stängs.
+rescue a frozen desktop (the mouse moves, but clicks and typing do nothing)	rädda ett fryst skrivbord (musen rör sig, men klick och skrivande gör ingenting)
+from a console (Ctrl+Alt+F3, sign in): save a report and restore the desktop	från en konsol (Ctrl+Alt+F3, logga in): spara en rapport och återställ skrivbordet
+only save a report, restart nothing	spara bara en rapport, starta inte om något
+watch the session and save a report when the desktop stops responding	övervaka sessionen och spara en rapport när skrivbordet slutar svara
+Reports: %s. Open apps stay open. Back to the desktop: Ctrl+Alt+F1 (or F7).	Rapporter: %s. Öppna appar förblir öppna. Tillbaka till skrivbordet: Ctrl+Alt+F1 (eller F7).
+detect the hardware and the drivers it needs	identifiera maskinvaran och de drivrutiner den behöver
+list the packages to install (default)	lista paket att installera (standard)
+list the services to enable	lista tjänster att aktivera
+readable overview	läsbar översikt
+machine-readable description of the devices	maskinläsbar beskrivning av enheterna
+kernel to install driver headers for (DKMS); can be repeated, default: installed kernels	kärna att installera drivrutinshuvuden för (DKMS); kan upprepas, standard: installerade kärnor
+LuxOS hardware detection	LuxOS maskinvaruidentifiering
+Packages:	Paket:
+LuxOS installer	LuxOS-installationsprogram
+interactive installation	interaktiv installation
+unattended installation (example: /usr/share/luxos/installer/install.conf.example)	obevakad installation (exempel: /usr/share/luxos/installer/install.conf.example)
+free space and partitions of a disk (KEY=value)	ledigt utrymme och partitioner på en disk (NYCKEL=värde)
+disks, partitions, LUKS and LVM as JSON (read-only)	diskar, partitioner, LUKS och LVM som JSON (endast läsning)
+check a LAYOUT without changing anything	kontrollera en LAYOUT utan att ändra något
+OEM preinstallation: prepare the computer, the customer creates the account at the first start	OEM-förinstallation: förbered datorn, kunden skapar kontot vid första starten
+seal for the customer: remove traces of the preparation; the setup assistant starts at the next start	försegla för kunden: tar bort spår av förberedelsen; inställningsassistenten startar vid nästa start
+the same from the installer (arch-chroot)	samma sak från installationsprogrammet (arch-chroot)
+state for the setup assistant (KEY=value)	status för inställningsassistenten (NYCKEL=värde)
+finish the setup assistant: settings on standard input (KEY=value lines)	slutför inställningsassistenten: inställningar på standard in (rader NYCKEL=värde)
+first start service (luxos-oem-firstboot.service)	tjänst för första starten (luxos-oem-firstboot.service)
+run the rest of the command line in the terminal	kör resten av kommandoraden i terminalen
+run a command (one string)	kör ett kommando (en sträng)
+start in DIR	starta i DIR
+fixed tab title	fast flikrubrik
+keep the tab open after the command exits	håll fliken öppen när kommandot avslutas
+open a tab in the last window	öppna en flik i det senaste fönstret
+open a new window (default)	öppna ett nytt fönster (standard)
+window size in characters	fönsterstorlek i tecken
+maximized or full screen window	maximerat fönster eller helskärm
+separate process (no reuse of a running terminal)	separat process (återanvänd inte en körande terminal)
+LuxOS Text Editor - every call opens a new window (files in tabs, a folder in the sidebar).	LuxOS textredigerare - varje anrop öppnar ett nytt fönster (filer i flikar, en mapp i sidofältet).
+go to line LINE in the first file	gå till rad LINE i den första filen
+separate process (no reuse of a running editor)	separat process (återanvänd inte en körande redigerare)
+LuxOS is connected to your LuxAI account. You can close this window.	LuxOS är anslutet till ditt LuxAI-konto. Du kan stänga det här fönstret.
+Connecting failed.	Anslutningen misslyckades.
+list system snapshots (one before every update)	lista ögonblicksbilder av systemet (en före varje uppdatering)
+take a system snapshot now	ta en ögonblicksbild av systemet nu
+return the system to a snapshot (also from the boot menu)	återställ systemet till en ögonblicksbild (även från startmenyn)

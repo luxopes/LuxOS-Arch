@@ -210,6 +210,12 @@ apply() {
     fi
 }
 
+usage() {  # usage [SYNTAXE] - napoveda/chyba pouziti; preklady az tady (bezne volani zustava rychle)
+    . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+    if [[ -n ${1-} ]]; then echo "$(T "Usage:") luxos-appearance $1" >&2; exit 2; fi
+    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE|greeter-sync|bar-opacity N|dock-opacity N]"
+}
+
 case ${1:-status} in
     # Po aktualizaci LuxOS (luxos-session pri prihlaseni): obnovit spravovany blok, panel jen pri zmene
     panel-css)  if panel_css "$(current)" && pgrep -u "$USER" -x xfce4-panel >/dev/null; then
@@ -233,7 +239,7 @@ case ${1:-status} in
     greeter-sync) greeter_sync ;;
     status)     current ;;
     wallpaper)
-        [[ -r ${2-} ]] || { echo "Usage: luxos-appearance wallpaper FILE" >&2; exit 2; }
+        [[ -r ${2-} ]] || usage "wallpaper FILE"
         for mon in $(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1 {print $NF}'); do
             for ws in 0 1 2 3; do
                 xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor$mon/workspace$ws/last-image" -n -t string -s "$2"
@@ -244,9 +250,10 @@ case ${1:-status} in
     bar-opacity|dock-opacity)
         v=${2-}
         [[ $1 == dock-opacity && $v == default ]] && v=
-        [[ -z $v || $v =~ ^[0-9]+$ && $v -le 100 ]] || { echo "Usage: luxos-appearance $1 0-100" >&2; exit 2; }
+        [[ -z $v || $v =~ ^[0-9]+$ && $v -le 100 ]] || usage "$1 0-100"
         if [[ $1 == bar-opacity ]]; then BAR_OPACITY=$v; set_pref BAR_OPACITY "$v"
         else DOCK_OPACITY=$v; set_pref DOCK_OPACITY "$v"; fi
         apply "$(current)" ;;
-    *) echo "Usage: luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE|greeter-sync|bar-opacity N|dock-opacity N]" >&2; exit 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) usage >&2; exit 2 ;;
 esac

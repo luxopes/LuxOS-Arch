@@ -137,7 +137,7 @@ mkinitcpio -P
 echo "--> Boot loader ($BOOTMODE, ${BOOTLOADER:-auto})"
 kernel=linux-luxos
 if [[ ${BOOTLOADER:-auto} == none ]]; then
-    echo "   (skip - jadro zustava v /boot)"
+    echo "   (skipped - the kernel stays in /boot)"
 elif [[ $BOOTMODE == uefi && $ESP_MOUNT == /efi ]]; then
     # ESP sdileny s jinymi systemy (/efi): cizi soubory, polozky ani loader.conf se neprepisuji.
     # Jadro a initramfs se kopiruji do vlastniho adresare EFI/LuxOS/<id> (zadna kolize nazvu).

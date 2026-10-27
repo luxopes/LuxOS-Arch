@@ -12,6 +12,14 @@
 # a po zavreni se smaze cele (i se stazenymi soubory). Okno zavre luxos-hub, jakmile je internet.
 set -u
 
+if [[ ${1-} == -h || ${1-} == --help ]]; then
+    . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+    printf '%s\n\n%s luxos-network-login [URL [IP]]\n%s\n' \
+        "luxos-network-login - $(T "sign in to a network with a login page (hotel, airport, train, coffee shop)")" \
+        "$(T "Usage:")" "$(T "Opens the login page in a private browser window that forgets everything when closed.")"
+    exit 0
+fi
+
 uri=$(gdbus call --system -d org.freedesktop.NetworkManager -o /org/freedesktop/NetworkManager \
         -m org.freedesktop.DBus.Properties.Get org.freedesktop.NetworkManager ConnectivityCheckUri 2>/dev/null |
       sed -n "s/^(<'\(http:\/\/[^' ]*\)'>,)\$/\1/p")

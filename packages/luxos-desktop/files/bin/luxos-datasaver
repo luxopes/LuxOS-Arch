@@ -23,5 +23,6 @@ case ${1:-status} in
     toggle) if [[ -e $state ]]; then "$0" off; else "$0" on; fi ;;
     status) if [[ -e $state ]]; then echo on; else echo off; fi ;;
     reapply) [[ -e $state ]] && apply yes ;;   # po prihlaseni / zmene site
-    *) echo "usage: luxos-datasaver [on|off|toggle|status]" >&2; exit 2 ;;
+    -h|--help) echo "$(T "Usage:") luxos-datasaver [on|off|toggle|status]"; exit 0 ;;
+    *) echo "$(T "Usage:") luxos-datasaver [on|off|toggle|status]" >&2; exit 2 ;;
 esac

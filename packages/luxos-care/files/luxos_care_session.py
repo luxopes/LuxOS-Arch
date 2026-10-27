@@ -371,5 +371,5 @@ def ask_main(request_id):
 if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "ask":
         sys.exit(ask_main(sys.argv[2]))
-    print(__doc__)
+    print("usage: luxos_care_session.py ask ID  (used by luxos-hub)", file=sys.stderr)
     sys.exit(2)

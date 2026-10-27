@@ -4241,3 +4241,134 @@ This computer has no system configuration file (/etc/luxos/system.lsl).	Tento po
 Settings that changed are returned to the state described in /etc/luxos/system.lsl.	Změněná nastavení se vrátí do stavu popsaného v /etc/luxos/system.lsl.
 The changes are shown first and you are asked; a snapshot is taken before.	Nejdřív se ukážou změny a zeptáme se vás; předtím se udělá snímek.
 Repair the settings (lux system fix)	Opravit nastavení (lux system fix)
+usage:	použití:
+positional arguments	poziční argumenty
+show this help message and exit	zobrazit tuto nápovědu a skončit
+subcommands	podpříkazy
+%(prog)s: error: %(message)s	%(prog)s: chyba: %(message)s
+argument %(argument_name)s: %(message)s	argument %(argument_name)s: %(message)s
+invalid choice: %(value)r (choose from %(choices)s)	neplatná volba: %(value)r (vyberte z %(choices)s)
+invalid %(type)s value: %(value)r	neplatná hodnota %(type)s: %(value)r
+the following arguments are required: %s	chybí povinné argumenty: %s
+unrecognized arguments: %s	neznámé argumenty: %s
+one of the arguments %s is required	je potřeba jeden z argumentů %s
+not allowed with argument %s	nelze spolu s argumentem %s
+expected one argument	očekáván jeden argument
+expected at most one argument	očekáván nejvýš jeden argument
+expected at least one argument	očekáván aspoň jeden argument
+expected %s argument	očekáván %s argument
+expected %s arguments	očekávány argumenty: %s
+ambiguous option: %(option)s could match %(matches)s	nejednoznačná volba: %(option)s může znamenat %(matches)s
+unexpected option string: %s	neočekávaná volba: %s
+(no command)	(bez příkazu)
+%s needs a value	%s potřebuje hodnotu
+OPTION	VOLBA
+COMMAND	PŘÍKAZ
+ARG	ARG
+FILE	SOUBOR
+FOLDER	SLOŽKA
+DEVICE	ZAŘÍZENÍ
+show this help	zobrazit tuto nápovědu
+show the version	zobrazit verzi
+machine-readable output	výstup pro programy
+read the password from standard input	heslo číst ze standardního vstupu
+no system snapshot before joining or leaving	bez snímku systému před připojením nebo odpojením
+updates, backup kernel and self-repair	aktualizace, záložní jádro a samooprava
+show the state of updates and repairs	zobrazit stav aktualizací a oprav
+recent repairs and updates	nedávné opravy a aktualizace
+show or set the update mode (setting it needs root)	zobrazit nebo nastavit režim aktualizací (nastavení vyžaduje root)
+CPU scheduler: LuxOS (sched_ext lavd) or the kernel default	plánovač procesoru: LuxOS (sched_ext lavd) nebo výchozí plánovač jádra
+switch to the LuxOS kernel, the current one stays as a backup (root)	přejít na jádro LuxOS, současné zůstane jako záložní (root)
+System snapshots	Snímky systému
+list system snapshots (root)	seznam snímků systému (root)
+take a system snapshot now (root)	pořídit snímek systému hned (root)
+start the snapshot as the system after the next restart (root)	po příštím restartu spustit snímek jako systém (root)
+restore the snapshot and recovery entries in the boot menu (root)	obnovit položky snímků a obnovy v zaváděcí nabídce (root)
+system protection and the last check of system files	ochrana systému a poslední kontrola systémových souborů
+turn system protection on or off (root)	zapnout nebo vypnout ochranu systému (root)
+make system files read-only again when nothing is being installed (root)	znovu nastavit systémové soubory jen pro čtení, když se nic neinstaluje (root)
+run a command with writable system files (root)	spustit příkaz se zapisovatelnými systémovými soubory (root)
+check installed files against the package database	zkontrolovat nainstalované soubory podle databáze balíků
+reinstall packages with changed files (root)	přeinstalovat balíky se změněnými soubory (root)
+Recovery	Obnova
+check the disk; without --repair nothing is written (root)	zkontrolovat disk; bez --repair se nic nezapisuje (root)
+reinstall the system, keeping /home and user accounts (root)	přeinstalovat systém, /home a uživatelské účty zůstanou (root)
+Used by system services and hooks: %s	Používají systémové služby a háky: %s
+encrypted folder /safe/<user> unlocked with its own password	šifrovaná složka /safe/<uživatel> odemykaná vlastním heslem
+Safe window	okno Trezoru
+ask for the password (--open: then open the folder)	zeptat se na heslo (--open: pak otevřít složku)
+lock the Safe (--force: keep trying; --logout: close apps with open files)	zamknout Trezor (--force: zkoušet znovu; --logout: ukončit aplikace s otevřenými soubory)
+print the state: locked, unlocked or none	vypsat stav: locked (zamčeno), unlocked (odemčeno) nebo none (není)
+lock when the screen locks or the computer sleeps (started by the session)	zamknout při zamčení obrazovky nebo uspání počítače (spouští relace)
+trust the Unlock Safe launcher in the locked folder (started by the session)	označit spouštěč Odemknout Trezor v zamčené složce za důvěryhodný (spouští relace)
+backup state	stav záloh
+back up now	zálohovat hned
+list backups	seznam záloh
+files in a backup	soubory v záloze
+restore files and folders	obnovit soubory a složky
+restore everything (new computer, LuxOS Recovery)	obnovit vše (nový počítač, LuxOS Recovery)
+backup disks	disky pro zálohy
+add a backup disk: a folder or a network disk	přidat disk pro zálohy: složku nebo síťový disk
+erase an external disk and use it for backups	smazat externí disk a používat ho pro zálohy
+stop using a backup disk (the backups on it stay)	přestat používat disk pro zálohy (zálohy na něm zůstanou)
+folders that are not backed up	složky, které se nezálohují
+automatic backups every hour	automatické zálohy každou hodinu
+also back up the system (settings and app list), Downloads or virtual machines	zálohovat i systém (nastavení a seznam aplikací), Stažené nebo virtuální počítače
+folder with backups or the root of a backup disk (restore without configuration)	složka se zálohami nebo kořen disku záloh (obnova bez nastavení)
+which computer when the disk has backups of several	který počítač, když jsou na disku zálohy více počítačů
+folder with backups (no configuration needed)	složka se zálohami (bez nastavení)
+reset apps to their default settings; nothing is deleted	vrátit aplikace na výchozí nastavení; nic se nemaže
+window (Settings)	okno (Nastavení)
+apps with settings in your home folder	aplikace s nastavením ve vaší domovské složce
+move the app's settings to a backup (--force: even while the app is running)	přesunout nastavení aplikace do zálohy (--force: i když aplikace běží)
+restore a backup (the current settings are backed up first)	vrátit zálohu (současné nastavení se nejdřív zazálohuje)
+connection with your phone (LuxOS Companion for Android) over Bluetooth	spojení s telefonem (LuxOS Companion pro Android) přes Bluetooth
+Phone window: approved phones, permissions, status	okno Telefon: schválené telefony, oprávnění, stav
+session service (luxos-companion.service)	služba relace (luxos-companion.service)
+service status as JSON, without a window	stav služby jako JSON, bez okna
+scan documents and photos	skenování dokumentů a fotek
+scanner from SANE (for example from Printers & Scanners)	skener ze SANE (například z aplikace Tiskárny a skenery)
+check whether the network needs a sign-in on a login page	zjistit, jestli síť vyžaduje přihlášení na přihlašovací stránce
+Prints online, portal URL IP or none (used by luxos-hub).	Vypíše online, portal URL IP nebo none (používá luxos-hub).
+sign in to a network with a login page (hotel, airport, train, coffee shop)	přihlášení do sítě s přihlašovací stránkou (hotel, letiště, vlak, kavárna)
+Opens the login page in a private browser window that forgets everything when closed.	Otevře přihlašovací stránku v soukromém okně prohlížeče, které po zavření vše zapomene.
+rescue a frozen desktop (the mouse moves, but clicks and typing do nothing)	záchrana zamrzlé plochy (myš se hýbe, ale klikání a psaní nic nedělá)
+from a console (Ctrl+Alt+F3, sign in): save a report and restore the desktop	z konzole (Ctrl+Alt+F3, přihlásit se): uložit hlášení a obnovit plochu
+only save a report, restart nothing	jen uložit hlášení, nic nerestartovat
+watch the session and save a report when the desktop stops responding	hlídat relaci a uložit hlášení, když plocha přestane reagovat
+Reports: %s. Open apps stay open. Back to the desktop: Ctrl+Alt+F1 (or F7).	Hlášení: %s. Otevřené aplikace zůstanou otevřené. Zpět na plochu: Ctrl+Alt+F1 (nebo F7).
+detect the hardware and the drivers it needs	zjistit hardware a ovladače, které potřebuje
+list the packages to install (default)	vypsat balíky k instalaci (výchozí)
+list the services to enable	vypsat služby k zapnutí
+readable overview	čitelný přehled
+machine-readable description of the devices	popis zařízení pro programy
+kernel to install driver headers for (DKMS); can be repeated, default: installed kernels	jádro, pro které se instalují hlavičky ovladačů (DKMS); lze opakovat, výchozí: nainstalovaná jádra
+LuxOS hardware detection	Rozpoznání hardwaru LuxOS
+Packages:	Balíky:
+LuxOS installer	instalátor LuxOS
+interactive installation	interaktivní instalace
+unattended installation (example: /usr/share/luxos/installer/install.conf.example)	instalace bez obsluhy (příklad: /usr/share/luxos/installer/install.conf.example)
+free space and partitions of a disk (KEY=value)	volné místo a oddíly disku (KLÍČ=hodnota)
+disks, partitions, LUKS and LVM as JSON (read-only)	disky, oddíly, LUKS a LVM jako JSON (jen čte)
+check a LAYOUT without changing anything	zkontrolovat LAYOUT bez jakékoli změny
+OEM preinstallation: prepare the computer, the customer creates the account at the first start	OEM předinstalace: připravte počítač, zákazník si při prvním startu založí účet
+seal for the customer: remove traces of the preparation; the setup assistant starts at the next start	zapečetit pro zákazníka: smaže stopy přípravy; při dalším startu se spustí průvodce nastavením
+the same from the installer (arch-chroot)	totéž z instalátoru (arch-chroot)
+state for the setup assistant (KEY=value)	stav pro průvodce nastavením (KLÍČ=hodnota)
+finish the setup assistant: settings on standard input (KEY=value lines)	dokončit průvodce nastavením: nastavení na standardním vstupu (řádky KLÍČ=hodnota)
+first start service (luxos-oem-firstboot.service)	služba prvního startu (luxos-oem-firstboot.service)
+run the rest of the command line in the terminal	spustit zbytek příkazové řádky v terminálu
+run a command (one string)	spustit příkaz (jeden řetězec)
+start in DIR	začít ve složce DIR
+fixed tab title	pevný název karty
+keep the tab open after the command exits	nechat kartu otevřenou po skončení příkazu
+open a tab in the last window	otevřít kartu v posledním okně
+open a new window (default)	otevřít nové okno (výchozí)
+window size in characters	velikost okna ve znacích
+maximized or full screen window	maximalizované okno nebo celá obrazovka
+separate process (no reuse of a running terminal)	samostatný proces (bez použití běžícího terminálu)
+LuxOS Text Editor - every call opens a new window (files in tabs, a folder in the sidebar).	Textový editor LuxOS - každé spuštění otevře nové okno (soubory v kartách, složka v postranním panelu).
+go to line LINE in the first file	přejít na řádek LINE v prvním souboru
+separate process (no reuse of a running editor)	samostatný proces (bez použití běžícího editoru)
+LuxOS is connected to your LuxAI account. You can close this window.	LuxOS je propojený s účtem LuxAI. Okno můžete zavřít.
+Connecting failed.	Připojení se nezdařilo.

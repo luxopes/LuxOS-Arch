@@ -1165,23 +1165,33 @@ static void parse_args(char **argv, Opts *o)
         else if (!strcmp(a, "--disable-server") || !strcmp(a, "--new-process") || !strcmp(a, "--drop-down") ||
                  !strncmp(a, "--display", 9) || !strncmp(a, "--role", 6) || !strncmp(a, "--startup-id", 12)) ;
         else if (a[0] != '-' && !o->s.cwd && g_file_test(a, G_FILE_TEST_IS_DIR)) o->s.cwd = g_strdup(a);
-        else { g_printerr("luxos-terminal: unknown option %s\n", a); o->bad = TRUE; }
+        else { g_printerr("luxos-terminal: "); g_printerr(T("Unknown option: %s"), a); g_printerr("\n"); o->bad = TRUE; }
     }
 }
 
-static const char usage[] =
-    "Usage: luxos-terminal [OPTION...] [-x COMMAND [ARG...]]\n"
-    "  -x, --execute CMD ARG...      run the rest of the command line in the terminal\n"
-    "  -e, --command \"CMD\"           run a command (one string)\n"
-    "  -w, --working-directory DIR   start in DIR\n"
-    "  -T, --title TITLE             fixed tab title\n"
-    "  -H, --hold                    keep the tab open after the command exits\n"
-    "      --tab                     open a tab in the last window\n"
-    "      --window                  open a new window (default)\n"
-    "      --geometry COLSxROWS      window size in characters\n"
-    "      --maximize, --fullscreen\n"
-    "      --disable-server          separate process (no reuse of a running terminal)\n"
-    "  -V, --version\n";
+/* napoveda: syntaxe zustava, popisy se prekladaji (luxos-i18n) */
+static char *usage_text(void)
+{
+    static const char *rows[][2] = {
+        {"-x, --execute CMD ARG...", "run the rest of the command line in the terminal"},
+        {"-e, --command \"CMD\"", "run a command (one string)"},
+        {"-w, --working-directory DIR", "start in DIR"},
+        {"-T, --title TITLE", "fixed tab title"},
+        {"-H, --hold", "keep the tab open after the command exits"},
+        {"    --tab", "open a tab in the last window"},
+        {"    --window", "open a new window (default)"},
+        {"    --geometry COLSxROWS", "window size in characters"},
+        {"    --maximize, --fullscreen", "maximized or full screen window"},
+        {"    --disable-server", "separate process (no reuse of a running terminal)"},
+        {"-V, --version", "show the version"},
+    };
+    GString *g = g_string_new(NULL);
+    g_string_append_printf(g, "%s luxos-terminal [%s...] [-x %s [%s...]]\n", T("Usage:"), T("OPTION"), T("COMMAND"),
+                           T("ARG"));
+    for (size_t i = 0; i < G_N_ELEMENTS(rows); i++)
+        g_string_append_printf(g, "  %-30s%s\n", rows[i][0], T(rows[i][1]));
+    return g_string_free(g, FALSE);
+}
 
 static int on_command_line(GApplication *ga, GApplicationCommandLine *cl, gpointer d)
 {
@@ -1191,7 +1201,9 @@ static int on_command_line(GApplication *ga, GApplicationCommandLine *cl, gpoint
     parse_args(argv, &o);
     g_strfreev(argv);
     if (o.bad) {
-        g_application_command_line_printerr(cl, "%s", usage);
+        char *u = usage_text();
+        g_application_command_line_printerr(cl, "%s", u);
+        g_free(u);
         spawn_free(&o.s);
         return 1;
     }
@@ -1263,7 +1275,7 @@ int main(int argc, char **argv)
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-x") || !strcmp(argv[i], "--execute") || !strcmp(argv[i], "--")) break;
         if (!strcmp(argv[i], "--disable-server") || !strcmp(argv[i], "--new-process")) unique = FALSE;
-        if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) { fputs(usage, stdout); return 0; }
+        if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) { char *u = usage_text(); fputs(u, stdout); g_free(u); return 0; }
         /* --logo-sixel SIRKAxVYSKA [dark|light]: logo pro danou velikost znaku (testy, ladeni) */
         if (!strcmp(argv[i], "--logo-sixel") && argv[i + 1]) {
             long cw = 0, ch = 0;

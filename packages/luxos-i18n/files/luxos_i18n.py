@@ -24,3 +24,35 @@ except OSError:
 
 def _(text):
     return _TR.get(text, text)
+
+
+def _keep_space(text):
+    """Preklad textu s mezerami/novym radkem na krajich (argparse: "usage: ", "...%(message)s\\n")."""
+    core = text.strip()
+    if not core:
+        return text
+    i = text.index(core)
+    return text[:i] + _(core) + text[i + len(core):]
+
+
+def argparse_i18n():
+    """Texty argparse (usage:, options, chyby) v jazyce uzivatele - volat pred vytvorenim parseru."""
+    import argparse
+    argparse._ = _keep_space
+    argparse.ngettext = lambda one, many, n: _keep_space(one if n == 1 else many)
+
+
+def print_usage(head, rows, file=None, width=0):
+    """Napoveda prikazu: hlavicka + radky (syntaxe, anglicky popis). Popisy se prekladaji,
+    syntaxe zustava. Radek bez popisu ("", nadpis) = nadpis sekce (prelozi se)."""
+    import sys
+    out = file or sys.stdout
+    width = width or min(34, max(len(c) for c, d in rows if d) + 2)
+    print(head, file=out)
+    for cmd, desc in rows:
+        if not desc:
+            print("\n" + _(cmd) if cmd else "", file=out)
+        elif len(cmd) + 2 > width:
+            print(f"  {cmd}\n  {'':{width}}{_(desc)}", file=out)
+        else:
+            print(f"  {cmd:{width}}{_(desc)}", file=out)

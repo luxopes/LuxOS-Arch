@@ -256,6 +256,28 @@ def gui():
     return 0
 
 
+USAGE = (
+    ("luxos-app-reset", "window (Settings)"),
+    ("luxos-app-reset list [--json]", "apps with settings in your home folder"),
+    ("luxos-app-reset reset APP [--yes] [--force]",
+     "move the app's settings to a backup (--force: even while the app is running)"),
+    ("luxos-app-reset backups", "list backups"),
+    ("luxos-app-reset restore FOLDER", "restore a backup (the current settings are backed up first)"),
+)
+
+
+def usage(file=None):
+    try:
+        from luxos_i18n import print_usage
+    except ImportError:          # starsi luxos-i18n (behem aktualizace): bez zarovnani
+        def print_usage(head, rows, file=None):
+            print(head, file=file)
+            for c, d in rows:
+                print(f"  {c}  {_(d)}" if d else "\n" + _(c), file=file)
+    print_usage("luxos-app-reset - " + _("reset apps to their default settings; nothing is deleted") + "\n",
+                USAGE, file=file)
+
+
 def main(argv):
     cmd = argv[1] if len(argv) > 1 else ""
     args = argv[2:]
@@ -263,10 +285,10 @@ def main(argv):
     if cmd in handlers:
         return handlers[cmd](args)
     if cmd in ("-h", "--help", "help"):
-        print(__doc__.strip())
+        usage()
         return 0
     if cmd:
-        print(__doc__.strip(), file=sys.stderr)
+        usage(sys.stderr)
         return 2
     return gui()
 

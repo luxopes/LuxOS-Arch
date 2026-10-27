@@ -1765,10 +1765,17 @@ def _opt(args, name, default=None):
     return default
 
 
+CLI_USAGE = """usage: lux-config COMMAND [--config FILE]  (used by lux; settings: lux config)
+  ensure [-q] [--output F] | check [FILE...] | migrate [FILE...] [--dry-run] | env | get KEY | json | dump
+  mirrors-import [FILE|-] [--output F] | convert-pacman FILE | update-servers
+  enable-repo NAME [--mirrors F|--server URL] | has-repo NAME"""
+
+
 def main(argv):
     args = list(argv)
     if not args or args[0] in ("-h", "--help"):
-        print(__doc__)
+        # vnitrni nastroj (lux, lux-engine): kratka anglicka napoveda, docstring je jen pro vyvojare
+        print(CLI_USAGE, file=sys.stdout if args else sys.stderr)
         return 0 if args else 2
     cmd = args.pop(0)
     conf = _opt(args, "--config", LUX_CONF)

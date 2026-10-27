@@ -3,7 +3,7 @@
 
 pkgname=luxos-safe
 pkgver=1.0.0
-pkgrel=6
+pkgrel=7
 pkgdesc="LuxOS Safe - encrypted /safe/<user> folder unlocked with its own password"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"

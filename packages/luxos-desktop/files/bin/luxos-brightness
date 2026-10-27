@@ -15,7 +15,8 @@ backlight=${LUXOS_BACKLIGHT:-/sys/class/backlight}     # testy: falesne podsvice
 case ${1-} in
     up) sign=1 ;;
     down) sign=-1 ;;
-    *) echo "usage: luxos-brightness up|down" >&2; exit 2 ;;
+    -h|--help) echo "$(T "Usage:") luxos-brightness up|down"; exit 0 ;;
+    *) echo "$(T "Usage:") luxos-brightness up|down" >&2; exit 2 ;;
 esac
 
 # Rychle tocenim koleckem bezi vic kroku najednou: po jednom (jinak se predbihaji v cteni jasu
