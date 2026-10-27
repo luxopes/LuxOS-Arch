@@ -5,7 +5,8 @@
 # hledaneho textu je vybrana nejlepsi shoda a pri otevreni se nevybira dlazdice pod stojici mysi.
 # Volba -custom-exit: vlastni klavesy / tlacitka razeni Launchpadu ukonci rofi s kodem 10+ i v
 # rezimu drun/combi. Bez compositoru je pozadim okna snimek obrazovky (rohy zaobleneho panelu
-# jinak cerne).
+# jinak cerne). S compositorem vizual s alfou podle XRender (ve VM s llvmpipe byl vybrany vizual
+# hloubky 32 bez alfy a rohy byly cerne i se zapnutym compositorem).
 # Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
 # verzi v Archu zvysit pkgver (a sha256sums), pkgrel nechat X.1.
 # Puvodni PKGBUILD Archu (udrzovatele Morten Linderud, Robin Candau) je v PKGBUILD.arch.
@@ -27,13 +28,15 @@ source=("git+https://github.com/davatorium/rofi.git#tag=${pkgver}"
         'git+https://github.com/sardemff7/libnkutils.git'
         'fix_xfce4-terminal_binary_name.patch'
         'hover-no-scroll.patch'
-        'luxos-launchpad.patch')
+        'luxos-launchpad.patch'
+        'argb-visual.patch')
 sha256sums=('3ad746f25b373bfa2e49db20c5009ffd4d959dd113e47281e98e7132f7314ac8'
             'SKIP'
             'SKIP'
             '0cd6f1360580f49647ceb7d169ab015f4998e778fd750ce3ad2e861f333824e3'
             '0745f3af7de9178a277a0af83f98a795abba5b4f1062befea0e368fae66dde91'
-            'dd23157c86bbcf7af85b993db391127aecad8c3b5afac547c08a2c250f6ea58b')
+            'dd23157c86bbcf7af85b993db391127aecad8c3b5afac547c08a2c250f6ea58b'
+            'f2493d689150893db1fd3ca1f72b0fb00f2ed5b3529c485729430f349ec8d54e')
 
 prepare() {
 	cd "${pkgname}"
@@ -49,6 +52,9 @@ prepare() {
 	patch -Np1 -i "${srcdir}/hover-no-scroll.patch"
 	# LuxOS: -custom-exit (razeni Launchpadu), bez compositoru snimek jako pozadi
 	patch -Np1 -i "${srcdir}/luxos-launchpad.patch"
+	# LuxOS: 32bitovy vizual s alfou podle XRender (Xorg s GLX nabizi i vizualy hloubky 32 bez alfy;
+	# compositor pak okno kreslil nepruhledne a rohy Launchpadu byly cerne)
+	patch -Np1 -i "${srcdir}/argb-visual.patch"
 }
 
 build() {
