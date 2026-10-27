@@ -3931,3 +3931,95 @@ The package lists are damaged or do not match their signatures. Refresh them fir
 Updates, LuxAI and the correct time use the internet.	Gli aggiornamenti, LuxAI e l'ora esatta usano internet.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Gli aggiornamenti, LuxAI e l'ora esatta usano internet. Scegli una rete Wi-Fi o collega un cavo di rete.
 remove: also delete changed config files (no .luxsave)	remove: elimina anche i file di configurazione modificati (nessun .luxsave)
+%d found	%d trovati
+%d of %d	%d di %d
+%d replaced	%d sostituiti
+Default Text Size	Dimensione testo predefinita
+Bigger Text	Testo più grande
+Smaller Text	Testo più piccolo
+Baltic	Baltico
+Central European	Europa centrale
+Change the encoding to %s?	Cambiare la codifica in %s?
+Characters: %s	Caratteri: %s
+Chinese Simplified	Cinese semplificato
+Clear Menu	Svuota menu
+Convert	Converti
+Could not create “%s”.	Impossibile creare «%s».
+Could not open “%s”.	Impossibile aprire «%s».
+Could not save “%s”.	Impossibile salvare «%s».
+Created:	Creato:
+Cyrillic	Cirillico
+Do you want to save the changes to “%s”?	Salvare le modifiche a «%s»?
+Document Info	Informazioni sul documento
+Don't Save	Non salvare
+Edited	Modificato
+Encoding	Codifica
+Encoding:	Codifica:
+Find and Replace…	Trova e sostituisci…
+Go to Line (Ctrl+L)	Vai alla riga (Ctrl+L)
+Go to Line:	Vai alla riga:
+Go to Line…	Vai alla riga…
+Greek	Greco
+Ignore	Ignora
+Invalid pattern	Modello non valido
+Invisible Characters	Caratteri invisibili
+Japanese	Giapponese
+Korean	Coreano
+Line Endings	Fine riga
+Line Endings:	Fine riga:
+Line Numbers	Numeri di riga
+Lines: %s	Righe: %s
+Match Case	Maiuscole/minuscole
+Modified:	Modificato:
+Name:	Nome:
+New File	Nuovo file
+New File or Folder	Nuovo file o cartella
+New File…	Nuovo file…
+New Folder	Nuova cartella
+New Folder…	Nuova cartella…
+Next	Successivo
+Next Symbol	Elemento successivo
+No Outline	Nessuno schema
+No Symbols	Nessun elemento
+No results	Nessun risultato
+Not saved	Non salvato
+Open Folder	Apri cartella
+Open Folder…	Apri cartella…
+Open Recent	Apri recenti
+Open…	Apri…
+Outline	Schema
+Path:	Percorso:
+Plain Text	Testo semplice
+Previous	Precedente
+Previous Symbol	Elemento precedente
+Redo	Ripeti
+Regular Expression	Espressione regolare
+Reinterpret	Reinterpreta
+Reinterpret reads the file again in the new encoding (when it was opened in a wrong one). Convert keeps the text and saves it in the new encoding.	«Reinterpreta» rilegge il file con la nuova codifica (se è stato aperto con quella sbagliata). «Converti» mantiene il testo e lo salva con la nuova codifica.
+Reloading discards your unsaved changes.	Ricaricando si perdono le modifiche non salvate.
+Replace All	Sostituisci tutto
+Save As	Salva come
+Save as UTF-8	Salva in UTF-8
+Save the document in Unicode (UTF-8) instead?	Salvare invece il documento in Unicode (UTF-8)?
+Show Sidebar (F9)	Barra laterale (F9)
+Sidebar	Barra laterale
+Size:	Dimensione:
+Some characters cannot be saved in %s.	Alcuni caratteri non possono essere salvati in %s.
+Syntax	Sintassi
+Syntax:	Sintassi:
+The file appears to be a binary file.	Il file sembra essere un file binario.
+The file cannot be read as %s.	Il file non può essere letto come %s.
+The file was changed by another program.	Il file è stato modificato da un altro programma.
+The file was deleted or moved by another program. Save it to keep it.	Il file è stato eliminato o spostato da un altro programma. Salvalo per conservarlo.
+Top of Document	Inizio del documento
+Turkish	Turco
+UTF-8 with BOM	UTF-8 con BOM
+Undo	Annulla
+Untitled	Senza titolo
+Western	Europa occidentale
+Whole Words	Parole intere
+Words: %s	Parole: %s
+Wrap Lines	A capo automatico
+Your changes will be lost if you don't save them.	Le modifiche andranno perse se non le salvi.
+untitled	senza titolo
+“%s” already exists.	«%s» esiste già.

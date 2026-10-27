@@ -1,3 +1,3 @@
 # Live ISO: instalator jako prvni ikona v Docku
 [net/launchpad/plank/docks/dock1]
-dock-items=['luxos-install.dockitem', 'luxos-launchpad.dockitem', 'luxai.dockitem', 'luxos-store.dockitem', 'thunar.dockitem', 'firefox.dockitem', 'luxos-terminal.dockitem', 'org.xfce.mousepad.dockitem', 'xfce-settings-manager.dockitem', 'trash.dockitem']
+dock-items=['luxos-install.dockitem', 'luxos-launchpad.dockitem', 'luxai.dockitem', 'luxos-store.dockitem', 'thunar.dockitem', 'firefox.dockitem', 'luxos-terminal.dockitem', 'luxos-text.dockitem', 'xfce-settings-manager.dockitem', 'trash.dockitem']

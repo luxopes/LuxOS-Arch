@@ -26,6 +26,7 @@ ENV = dict(os.environ, DISPLAY=":0", XAUTHORITY=f"{pw.pw_dir}/.Xauthority", HOME
 APPS = [
     (["luxos-terminal"], "luxos-terminal"),
     (["thunar"], "thunar"),
+    (["luxos-text"], "luxos-text"),
     (["mousepad"], "mousepad"),
     (["luxos-control-center"], "luxos-control-center"),
     (["luxos-launchpad"], "rofi"),          # Launchpad = rofi (drun s ikonami)

@@ -3932,3 +3932,95 @@ The package lists are damaged or do not match their signatures. Refresh them fir
 Updates, LuxAI and the correct time use the internet.	Оновлення, LuxAI і точний час використовують інтернет.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Оновлення, LuxAI і точний час використовують інтернет. Виберіть мережу Wi-Fi або під'єднайте мережевий кабель.
 remove: also delete changed config files (no .luxsave)	remove: також видалити змінені файли налаштувань (без .luxsave)
+%d found	Знайдено: %d
+%d of %d	%d з %d
+%d replaced	Замінено: %d
+Default Text Size	Типовий розмір тексту
+Bigger Text	Більший текст
+Smaller Text	Менший текст
+Baltic	Балтійське
+Central European	Центральноєвропейське
+Change the encoding to %s?	Змінити кодування на %s?
+Characters: %s	Символи: %s
+Chinese Simplified	Китайське спрощене
+Clear Menu	Очистити меню
+Convert	Перетворити
+Could not create “%s”.	Не вдалося створити «%s».
+Could not open “%s”.	Не вдалося відкрити «%s».
+Could not save “%s”.	Не вдалося зберегти «%s».
+Created:	Створено:
+Cyrillic	Кирилиця
+Do you want to save the changes to “%s”?	Зберегти зміни в «%s»?
+Document Info	Відомості про документ
+Don't Save	Не зберігати
+Edited	Змінено
+Encoding	Кодування
+Encoding:	Кодування:
+Find and Replace…	Знайти й замінити…
+Go to Line (Ctrl+L)	Перейти до рядка (Ctrl+L)
+Go to Line:	Перейти до рядка:
+Go to Line…	Перейти до рядка…
+Greek	Грецьке
+Ignore	Ігнорувати
+Invalid pattern	Неправильний шаблон
+Invisible Characters	Невидимі символи
+Japanese	Японське
+Korean	Корейське
+Line Endings	Кінці рядків
+Line Endings:	Кінці рядків:
+Line Numbers	Номери рядків
+Lines: %s	Рядки: %s
+Match Case	Враховувати регістр
+Modified:	Змінено:
+Name:	Назва:
+New File	Новий файл
+New File or Folder	Новий файл або тека
+New File…	Новий файл…
+New Folder	Нова тека
+New Folder…	Нова тека…
+Next	Наступний
+Next Symbol	Наступний елемент
+No Outline	Без структури
+No Symbols	Немає елементів
+No results	Нічого не знайдено
+Not saved	Не збережено
+Open Folder	Відкрити теку
+Open Folder…	Відкрити теку…
+Open Recent	Відкрити нещодавні
+Open…	Відкрити…
+Outline	Структура
+Path:	Шлях:
+Plain Text	Звичайний текст
+Previous	Попередній
+Previous Symbol	Попередній елемент
+Redo	Повторити
+Regular Expression	Регулярний вираз
+Reinterpret	Перечитати
+Reinterpret reads the file again in the new encoding (when it was opened in a wrong one). Convert keeps the text and saves it in the new encoding.	«Перечитати» знову відкриває файл у новому кодуванні (якщо його відкрито в неправильному). «Перетворити» зберігає текст і записує його в новому кодуванні.
+Reloading discards your unsaved changes.	Перезавантаження скасує незбережені зміни.
+Replace All	Замінити все
+Save As	Зберегти як
+Save as UTF-8	Зберегти в UTF-8
+Save the document in Unicode (UTF-8) instead?	Зберегти документ у Unicode (UTF-8)?
+Show Sidebar (F9)	Бічна панель (F9)
+Sidebar	Бічна панель
+Size:	Розмір:
+Some characters cannot be saved in %s.	Деякі символи неможливо зберегти в кодуванні %s.
+Syntax	Синтаксис
+Syntax:	Синтаксис:
+The file appears to be a binary file.	Схоже, це двійковий файл.
+The file cannot be read as %s.	Файл неможливо прочитати як %s.
+The file was changed by another program.	Файл змінено іншою програмою.
+The file was deleted or moved by another program. Save it to keep it.	Файл видалено або переміщено іншою програмою. Збережіть його, щоб не втратити.
+Top of Document	Початок документа
+Turkish	Турецьке
+UTF-8 with BOM	UTF-8 з BOM
+Undo	Скасувати
+Untitled	Без назви
+Western	Західноєвропейське
+Whole Words	Цілі слова
+Words: %s	Слова: %s
+Wrap Lines	Переносити рядки
+Your changes will be lost if you don't save them.	Якщо не зберегти зміни, їх буде втрачено.
+untitled	без назви
+“%s” already exists.	«%s» уже існує.
