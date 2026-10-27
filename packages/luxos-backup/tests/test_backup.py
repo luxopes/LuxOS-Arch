@@ -153,6 +153,8 @@ class LinkDestMixin:
         os.makedirs(part)
         os.link(os.path.join(self.root, first, "home", "Documents", "report.txt"), os.path.join(part, "report.txt"))
         write(os.path.join(self.home, "Documents", "report.txt"), "v3")
+        # stejna velikost jako "v1" a zapis ve stejne sekunde: rsync (velikost + cas) by zmenu nevidel
+        os.utime(os.path.join(self.home, "Documents", "report.txt"), (now + 10, now + 10))
         self.backup(now - 3600)
         self.assertEqual(read(os.path.join(self.root, first, "home", "Documents", "report.txt")), "v1")
         snaps = sorted(n for n in os.listdir(self.root) if core.SNAP_RE.match(n))
