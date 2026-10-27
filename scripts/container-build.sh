@@ -32,11 +32,13 @@ ARCH=x86_64
 
 msg() { printf '\n\e[1;38;2;167;123;255m==> %s\e[0m\n' "$*"; }
 
-# Podpisovy klic (build.sh pripoji ~/.local/share/luxos/signing do /signing)
+# Podpisovy klic (build.sh pripoji /safe/$USER/luxos-signing nebo ~/.local/share/luxos/signing do /signing).
+# Pracovni kopie GnuPG v tmpfs (build.sh: --tmpfs /run/luxos-gnupg), jinak v /tmp kontejneru.
 GPGKEY=
+GNUPG_TMP=${LUXOS_GNUPG_TMP:-/tmp/luxos-gnupg}
 setup_signing() {
     [[ -d /signing ]] || { msg "No signing key - packages will be unsigned"; return; }
-    export GNUPGHOME=/tmp/luxos-gnupg
+    export GNUPGHOME=$GNUPG_TMP
     rm -rf "$GNUPGHOME"
     cp -a /signing "$GNUPGHOME"
     chmod 700 "$GNUPGHOME"
@@ -51,7 +53,7 @@ setup_signing() {
 # vznikaji jen v /tmp - packages/ ani produkcni baliky se nemeni.
 TEST_SRC=/tmp/luxos-test-src
 setup_test_signing() {
-    export GNUPGHOME=/tmp/luxos-gnupg
+    export GNUPGHOME=$GNUPG_TMP
     rm -rf "$GNUPGHOME"
     mkdir -m700 "$GNUPGHOME"
     gpg --batch --quiet --passphrase '' --quick-gen-key \

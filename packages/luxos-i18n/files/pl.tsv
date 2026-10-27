@@ -4300,3 +4300,47 @@ The data was damaged on the way. Nothing was saved – try again.	Dane uległy u
 Internal error.	Błąd wewnętrzny.
 The device presented a different key than expected.	Urządzenie przedstawiło inny klucz niż oczekiwany.
 Details: %s	Szczegóły: %s
+Anyone with this key can open the Safe without the password. Do not save it on this computer, in e-mail or in the cloud, and do not take a photo of it.	Każdy, kto ma ten klucz, otworzy Sejf bez hasła. Nie zapisuj go na tym komputerze, w e-mailu ani w chmurze i nie rób mu zdjęć.
+Core dumps of the Safe process are allowed: lock the Safe and unlock it again.	Proces Sejfu może zapisać zrzut pamięci (core dump): zablokuj Sejf i odblokuj go ponownie.
+Core dumps of the Safe process are disabled.	Zrzuty pamięci (core dump) procesu Sejfu są wyłączone.
+Could not read the key protection settings (%s).	Nie można odczytać ustawień ochrony klucza (%s).
+Could not read the recovery key (%s).	Nie można odczytać klucza odzyskiwania (%s).
+Enter the recovery key you wrote down when you created the Safe and choose a new password. Without the recovery key the Safe cannot be opened.	Wpisz klucz odzyskiwania zapisany przy tworzeniu Sejfu i wybierz nowe hasło. Bez klucza odzyskiwania Sejfu nie da się otworzyć.
+Enter the Safe password. The password stays the same, only the protection of the key gets stronger.	Wpisz hasło Sejfu. Hasło pozostanie takie samo, wzmocniona zostanie tylko ochrona klucza.
+Enter the Safe password to show its recovery key.	Wpisz hasło Sejfu, aby wyświetlić jego klucz odzyskiwania.
+Fair	Średnie
+Forgot Password	Zapomniane hasło
+Forgot Password…	Zapomniane hasło…
+Good	Dobre
+If you forget this password, only the recovery key shown after creating the Safe can open it.	Jeśli zapomnisz hasła, Sejf otworzy tylko klucz odzyskiwania pokazany po utworzeniu.
+I have written down the recovery key	Zapisałem klucz odzyskiwania
+Lock the Safe first.	Najpierw zablokuj Sejf.
+Mounted with nosuid, nodev and noexec.	Zamontowano z opcjami nosuid, nodev i noexec.
+Mounted without %s: lock the Safe and unlock it again.	Zamontowano bez %s: zablokuj Sejf i odblokuj go ponownie.
+No Safe has been created yet.	Sejf nie został jeszcze utworzony.
+Other programs cannot read the memory of the Safe process (ptrace_scope %s).	Inne programy nie mogą odczytać pamięci procesu Sejfu (ptrace_scope %s).
+Password protection: scrypt 2^%d.	Ochrona hasła: scrypt 2^%d.
+Password protection: scrypt 2^%d, weaker than the recommended 2^%d. Use Upgrade Protection in the Safe window.	Ochrona hasła: scrypt 2^%d, słabsza niż zalecane 2^%d. W oknie Sejfu użyj Wzmocnij ochronę.
+Programs of your account can read the memory of the Safe process (ptrace_scope %s).	Programy Twojego konta mogą odczytać pamięć procesu Sejfu (ptrace_scope %s).
+Recovery Key	Klucz odzyskiwania
+Recovery Key…	Klucz odzyskiwania…
+Set New Password	Ustaw nowe hasło
+Strong	Silne
+Stronger password protection is available for this Safe. It makes guessing the password from a stolen disk much slower; unlocking takes about a second.	Dla tego Sejfu dostępna jest silniejsza ochrona hasła. Znacznie spowalnia zgadywanie hasła ze skradzionego dysku; odblokowanie trwa około sekundy.
+Swap %s is encrypted or in memory only.	Przestrzeń wymiany %s jest szyfrowana lub tylko w pamięci.
+Swap %s is not encrypted: memory with keys could be written to the disk.	Przestrzeń wymiany %s nie jest szyfrowana: pamięć z kluczami może trafić na dysk.
+The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)	Kopia zawiera Twój zaszyfrowany Sejf: %s (przywracanie opisuje dokumentacja Sejfu)
+The Safe is locked: its contents are stored only encrypted.	Sejf jest zablokowany: jego zawartość jest przechowywana tylko w postaci zaszyfrowanej.
+The Safe now uses stronger password protection.	Sejf używa teraz silniejszej ochrony hasła.
+The Safe password was changed. Unlock the Safe with the new password.	Hasło Sejfu zostało zmienione. Odblokuj Sejf nowym hasłem.
+This is not a valid recovery key. It has 64 characters 0-9 and a-f.	To nie jest prawidłowy klucz odzyskiwania. Ma 64 znaki 0–9 i a–f.
+This password is too common. Choose something less predictable, for example a few unrelated words.	To hasło jest zbyt popularne. Wybierz coś mniej przewidywalnego, na przykład kilka niepowiązanych słów.
+This password is too predictable. Avoid repeated characters and sequences like 1234 or abcd.	To hasło jest zbyt przewidywalne. Unikaj powtarzających się znaków i ciągów takich jak 1234 lub abcd.
+This recovery key does not open this Safe.	Ten klucz odzyskiwania nie otwiera tego Sejfu.
+Upgrade	Wzmocnij
+Upgrade Protection	Wzmocnij ochronę
+Upgrade Protection…	Wzmocnij ochronę…
+Use at least 12 characters.	Użyj co najmniej 12 znaków.
+Weak	Słabe
+Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Zapisz ten klucz odzyskiwania na papierze i przechowuj go w bezpiecznym miejscu z dala od komputera. Jeśli zapomnisz hasła Sejfu, klucz odzyskiwania jest jedynym sposobem, by go otworzyć.
+check the protection of the Safe (key derivation, mount options, memory, swap)	sprawdź ochronę Sejfu (wyprowadzanie klucza, opcje montowania, pamięć, swap)

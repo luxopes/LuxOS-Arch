@@ -89,6 +89,25 @@ def home():
     return os.environ.get("LUXOS_BACKUP_HOME") or os.path.expanduser("~")
 
 
+def safe_vault():
+    """Sifrovany Trezor uzivatele (/safe/.vaults/<user>, gocryptfs) nebo None.
+
+    Zalohuji se jen tato sifrovana data (zaloha je bez hesla Trezoru k nicemu), nikdy odemceny
+    obsah /safe/<user>: ten lezi mimo domovskou slozku a rsync/py_copy neprechazeji pripojeni.
+    LUXOS_BACKUP_SAFE: jina slozka (testy); s LUXOS_BACKUP_HOME bez ni zadny Trezor."""
+    path = os.environ.get("LUXOS_BACKUP_SAFE")
+    if path is None:
+        if os.environ.get("LUXOS_BACKUP_HOME"):
+            return None
+        try:
+            path = f"/safe/.vaults/{getpass.getuser()}"
+        except (KeyError, OSError):
+            return None
+    if not path or not os.path.isfile(os.path.join(path, "gocryptfs.conf")) or os.path.islink(path):
+        return None
+    return path
+
+
 def sysroot(path):
     return os.environ.get("LUXOS_SYSROOT", "") + path
 
@@ -1046,7 +1065,8 @@ def backup(disk, cfg, log=print, on_progress=None):
         if cfg.get("system"):
             system_snapshot(meta)
         info = {"created": name, "machine": disk.get("machine") or machine_name(), "home": src,
-                "engine": eng, "system": bool(cfg.get("system")), "version": luxos_version()}
+                "engine": eng, "system": bool(cfg.get("system")), "safe": bool(safe_vault()),
+                "version": luxos_version()}
         warnings = 0
         for attempt in range(RETRY_FULL + 1):
             try:
@@ -1085,12 +1105,16 @@ def _copy(sess, eng, src, name, prev, pats, meta, info, cfg, on_progress, log):
     """Prenese domov (+ system) do nove zalohy. Vrati pocet varovani (necitelne soubory)."""
     warnings = 0
     sys_pats = SYSTEM_EXCLUDES
+    vault = safe_vault()
     if eng == "python":
         part = os.path.join(sess.root, name + ".partial")
         _reuse_partial(sess, part)
         try:
             warnings += py_copy(src, os.path.join(part, "home"), pats,
                                 os.path.join(sess.root, prev, "home") if prev else None)
+            if vault:
+                warnings += py_copy(vault, os.path.join(part, "safe", "vault"), (),
+                                    os.path.join(sess.root, prev, "safe", "vault") if prev else None)
             if cfg.get("system"):
                 warnings += py_copy(sysroot("/etc"), os.path.join(part, "system", "etc"), sys_pats,
                                     os.path.join(sess.root, prev, "system", "etc") if prev else None)
@@ -1128,6 +1152,10 @@ def _copy(sess, eng, src, name, prev, pats, meta, info, cfg, on_progress, log):
         remote = sess.remote[0]
         warnings += go(src, posix_join(part, "home"), pfile, f"../../{prev}/home" if prev else None,
                        remote=remote)
+        if vault:
+            ssh_run(sess, "mkdir -p -- " + shlex.quote(posix_join(part, "safe")))
+            warnings += go(vault, posix_join(part, "safe", "vault"), None,
+                           f"../../../{prev}/safe/vault" if prev else None, remote=remote, progress=False)
         if cfg.get("system"):
             warnings += go(sysroot("/etc"), posix_join(part, "system", "etc"), sfile,
                            f"../../../{prev}/system/etc" if prev else None, remote=remote, progress=False)
@@ -1152,6 +1180,11 @@ def _copy(sess, eng, src, name, prev, pats, meta, info, cfg, on_progress, log):
                            progress=False)
         else:
             rmtree(os.path.join(cur, "system"))
+        if vault:
+            os.makedirs(os.path.join(cur, "safe"), exist_ok=True)
+            warnings += go(vault, os.path.join(cur, "safe", "vault"), None, None, inplace=True, progress=False)
+        else:
+            rmtree(os.path.join(cur, "safe"))
         if os.path.isdir(os.path.join(meta, "system")):
             shutil.copy2(os.path.join(meta, "system", "packages.txt"), os.path.join(cur, "system")) \
                 if os.path.exists(os.path.join(meta, "system", "packages.txt")) else None
@@ -1177,6 +1210,10 @@ def _copy(sess, eng, src, name, prev, pats, meta, info, cfg, on_progress, log):
                        os.path.join(sess.root, prev, "system", "etc") if prev else None, progress=False)
         if os.path.exists(os.path.join(meta, "system", "packages.txt")):
             shutil.copy2(os.path.join(meta, "system", "packages.txt"), os.path.join(part, "system"))
+    if vault:
+        os.makedirs(os.path.join(part, "safe", "vault"), exist_ok=True)
+        warnings += go(vault, os.path.join(part, "safe", "vault"), None,
+                       os.path.join(sess.root, prev, "safe", "vault") if prev else None, progress=False)
     _finish_local(part, os.path.join(sess.root, name), info, warnings)
     return warnings
 
@@ -1490,6 +1527,9 @@ def restore_all(sess, name, target=None, replace=False, log=print):
         os.path.join(sess.root, name, "system", "packages.txt")
     if not sess.remote and os.path.exists(pk):
         log(_("Apps installed on the old system: %s (install them with: lux install $(cat FILE))") % pk)
+    vault = os.path.join(sess.root, name, "safe", "vault")
+    if not sess.remote and os.path.isfile(os.path.join(vault, "gocryptfs.conf")):
+        log(_("The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)") % vault)
     return skipped
 
 

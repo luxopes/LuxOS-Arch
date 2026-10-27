@@ -4299,3 +4299,47 @@ The data was damaged on the way. Nothing was saved – try again.	I dati si sono
 Internal error.	Errore interno.
 The device presented a different key than expected.	Il dispositivo ha presentato una chiave diversa da quella prevista.
 Details: %s	Dettagli: %s
+Anyone with this key can open the Safe without the password. Do not save it on this computer, in e-mail or in the cloud, and do not take a photo of it.	Chiunque abbia questa chiave può aprire la Cassaforte senza password. Non salvarla su questo computer, nelle e-mail o nel cloud e non fotografarla.
+Core dumps of the Safe process are allowed: lock the Safe and unlock it again.	Il processo della Cassaforte può scrivere dump della memoria (core dump): blocca la Cassaforte e sbloccala di nuovo.
+Core dumps of the Safe process are disabled.	I dump della memoria (core dump) del processo della Cassaforte sono disattivati.
+Could not read the key protection settings (%s).	Impossibile leggere le impostazioni di protezione della chiave (%s).
+Could not read the recovery key (%s).	Impossibile leggere la chiave di ripristino (%s).
+Enter the recovery key you wrote down when you created the Safe and choose a new password. Without the recovery key the Safe cannot be opened.	Inserisci la chiave di ripristino annotata alla creazione della Cassaforte e scegli una nuova password. Senza la chiave di ripristino la Cassaforte non può essere aperta.
+Enter the Safe password. The password stays the same, only the protection of the key gets stronger.	Inserisci la password della Cassaforte. La password resta la stessa, viene rafforzata solo la protezione della chiave.
+Enter the Safe password to show its recovery key.	Inserisci la password della Cassaforte per mostrare la sua chiave di ripristino.
+Fair	Discreta
+Forgot Password	Password dimenticata
+Forgot Password…	Password dimenticata…
+Good	Buona
+If you forget this password, only the recovery key shown after creating the Safe can open it.	Se dimentichi questa password, solo la chiave di ripristino mostrata dopo la creazione potrà aprire la Cassaforte.
+I have written down the recovery key	Ho annotato la chiave di ripristino
+Lock the Safe first.	Blocca prima la Cassaforte.
+Mounted with nosuid, nodev and noexec.	Montato con nosuid, nodev e noexec.
+Mounted without %s: lock the Safe and unlock it again.	Montato senza %s: blocca la Cassaforte e sbloccala di nuovo.
+No Safe has been created yet.	Non è ancora stata creata una Cassaforte.
+Other programs cannot read the memory of the Safe process (ptrace_scope %s).	Gli altri programmi non possono leggere la memoria del processo della Cassaforte (ptrace_scope %s).
+Password protection: scrypt 2^%d.	Protezione della password: scrypt 2^%d.
+Password protection: scrypt 2^%d, weaker than the recommended 2^%d. Use Upgrade Protection in the Safe window.	Protezione della password: scrypt 2^%d, più debole del valore consigliato 2^%d. Usa Rafforza protezione nella finestra della Cassaforte.
+Programs of your account can read the memory of the Safe process (ptrace_scope %s).	I programmi del tuo account possono leggere la memoria del processo della Cassaforte (ptrace_scope %s).
+Recovery Key	Chiave di ripristino
+Recovery Key…	Chiave di ripristino…
+Set New Password	Imposta nuova password
+Strong	Forte
+Stronger password protection is available for this Safe. It makes guessing the password from a stolen disk much slower; unlocking takes about a second.	Per questa Cassaforte è disponibile una protezione della password più forte. Rende molto più lento indovinare la password da un disco rubato; lo sblocco richiede circa un secondo.
+Swap %s is encrypted or in memory only.	Lo swap %s è cifrato o solo in memoria.
+Swap %s is not encrypted: memory with keys could be written to the disk.	Lo swap %s non è cifrato: la memoria con le chiavi potrebbe essere scritta sul disco.
+The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)	Il backup contiene la tua Cassaforte cifrata: %s (vedi la documentazione della Cassaforte per ripristinarla)
+The Safe is locked: its contents are stored only encrypted.	La Cassaforte è bloccata: il suo contenuto è salvato solo in forma cifrata.
+The Safe now uses stronger password protection.	La Cassaforte ora usa una protezione della password più forte.
+The Safe password was changed. Unlock the Safe with the new password.	La password della Cassaforte è stata modificata. Sblocca la Cassaforte con la nuova password.
+This is not a valid recovery key. It has 64 characters 0-9 and a-f.	Non è una chiave di ripristino valida. Ha 64 caratteri 0-9 e a-f.
+This password is too common. Choose something less predictable, for example a few unrelated words.	Questa password è troppo comune. Scegli qualcosa di meno prevedibile, ad esempio alcune parole senza relazione.
+This password is too predictable. Avoid repeated characters and sequences like 1234 or abcd.	Questa password è troppo prevedibile. Evita caratteri ripetuti e sequenze come 1234 o abcd.
+This recovery key does not open this Safe.	Questa chiave di ripristino non apre questa Cassaforte.
+Upgrade	Rafforza
+Upgrade Protection	Rafforza protezione
+Upgrade Protection…	Rafforza protezione…
+Use at least 12 characters.	Usa almeno 12 caratteri.
+Weak	Debole
+Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Scrivi questa chiave di ripristino su carta e conservala in un luogo sicuro, lontano dal computer. Se dimentichi la password della Cassaforte, è l'unico modo per aprirla.
+check the protection of the Safe (key derivation, mount options, memory, swap)	controlla la protezione della Cassaforte (derivazione della chiave, opzioni di montaggio, memoria, swap)

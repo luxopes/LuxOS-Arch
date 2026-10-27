@@ -172,6 +172,7 @@ PAGES = [
             "**luxos-safe unlock** [**--open**]",
             "**luxos-safe lock** [**--force** | **--logout**]",
             "**luxos-safe status**",
+            "**luxos-safe check**",
             "**luxos-safe --watch**",
         ],
         "sources": [("luxos/safe.md", "body", {})],
