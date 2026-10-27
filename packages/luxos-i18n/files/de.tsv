@@ -4299,3 +4299,47 @@ The data was damaged on the way. Nothing was saved – try again.	Die Daten wurd
 Internal error.	Interner Fehler.
 The device presented a different key than expected.	Das Gerät hat einen anderen Schlüssel als erwartet vorgelegt.
 Details: %s	Details: %s
+Anyone with this key can open the Safe without the password. Do not save it on this computer, in e-mail or in the cloud, and do not take a photo of it.	Wer diesen Schlüssel hat, kann den Tresor ohne Passwort öffnen. Speichern Sie ihn nicht auf diesem Computer, in E-Mails oder in der Cloud und fotografieren Sie ihn nicht.
+Core dumps of the Safe process are allowed: lock the Safe and unlock it again.	Der Tresor-Prozess darf Speicherabbilder (Core-Dumps) schreiben: Sperren Sie den Tresor und entsperren Sie ihn erneut.
+Core dumps of the Safe process are disabled.	Speicherabbilder (Core-Dumps) des Tresor-Prozesses sind deaktiviert.
+Could not read the key protection settings (%s).	Die Einstellungen zum Schlüsselschutz konnten nicht gelesen werden (%s).
+Could not read the recovery key (%s).	Der Wiederherstellungsschlüssel konnte nicht gelesen werden (%s).
+Enter the recovery key you wrote down when you created the Safe and choose a new password. Without the recovery key the Safe cannot be opened.	Geben Sie den Wiederherstellungsschlüssel ein, den Sie beim Erstellen des Tresors notiert haben, und wählen Sie ein neues Passwort. Ohne Wiederherstellungsschlüssel lässt sich der Tresor nicht öffnen.
+Enter the Safe password. The password stays the same, only the protection of the key gets stronger.	Geben Sie das Tresor-Passwort ein. Das Passwort bleibt gleich, nur der Schutz des Schlüssels wird stärker.
+Enter the Safe password to show its recovery key.	Geben Sie das Tresor-Passwort ein, um seinen Wiederherstellungsschlüssel anzuzeigen.
+Fair	Mittel
+Forgot Password	Passwort vergessen
+Forgot Password…	Passwort vergessen …
+Good	Gut
+If you forget this password, only the recovery key shown after creating the Safe can open it.	Wenn Sie das Passwort vergessen, öffnet nur der nach dem Erstellen angezeigte Wiederherstellungsschlüssel den Tresor.
+I have written down the recovery key	Ich habe den Wiederherstellungsschlüssel notiert
+Lock the Safe first.	Sperren Sie zuerst den Tresor.
+Mounted with nosuid, nodev and noexec.	Eingehängt mit nosuid, nodev und noexec.
+Mounted without %s: lock the Safe and unlock it again.	Eingehängt ohne %s: Sperren Sie den Tresor und entsperren Sie ihn erneut.
+No Safe has been created yet.	Es wurde noch kein Tresor erstellt.
+Other programs cannot read the memory of the Safe process (ptrace_scope %s).	Andere Programme können den Speicher des Tresor-Prozesses nicht lesen (ptrace_scope %s).
+Password protection: scrypt 2^%d.	Passwortschutz: scrypt 2^%d.
+Password protection: scrypt 2^%d, weaker than the recommended 2^%d. Use Upgrade Protection in the Safe window.	Passwortschutz: scrypt 2^%d, schwächer als die empfohlenen 2^%d. Verwenden Sie im Tresor-Fenster „Schutz verstärken“.
+Programs of your account can read the memory of the Safe process (ptrace_scope %s).	Programme Ihres Kontos können den Speicher des Tresor-Prozesses lesen (ptrace_scope %s).
+Recovery Key	Wiederherstellungsschlüssel
+Recovery Key…	Wiederherstellungsschlüssel …
+Set New Password	Neues Passwort festlegen
+Strong	Stark
+Stronger password protection is available for this Safe. It makes guessing the password from a stolen disk much slower; unlocking takes about a second.	Für diesen Tresor ist ein stärkerer Passwortschutz verfügbar. Er verlangsamt das Erraten des Passworts von einer gestohlenen Festplatte erheblich; das Entsperren dauert etwa eine Sekunde.
+Swap %s is encrypted or in memory only.	Auslagerungsbereich %s ist verschlüsselt oder nur im Arbeitsspeicher.
+Swap %s is not encrypted: memory with keys could be written to the disk.	Auslagerungsbereich %s ist nicht verschlüsselt: Speicher mit Schlüsseln kann auf die Festplatte geschrieben werden.
+The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)	Die Sicherung enthält Ihren verschlüsselten Tresor: %s (Wiederherstellung siehe Tresor-Dokumentation)
+The Safe is locked: its contents are stored only encrypted.	Der Tresor ist gesperrt: Sein Inhalt ist nur verschlüsselt gespeichert.
+The Safe now uses stronger password protection.	Der Tresor verwendet jetzt einen stärkeren Passwortschutz.
+The Safe password was changed. Unlock the Safe with the new password.	Das Tresor-Passwort wurde geändert. Entsperren Sie den Tresor mit dem neuen Passwort.
+This is not a valid recovery key. It has 64 characters 0-9 and a-f.	Das ist kein gültiger Wiederherstellungsschlüssel. Er hat 64 Zeichen 0–9 und a–f.
+This password is too common. Choose something less predictable, for example a few unrelated words.	Dieses Passwort ist zu verbreitet. Wählen Sie etwas weniger Vorhersehbares, zum Beispiel einige zusammenhanglose Wörter.
+This password is too predictable. Avoid repeated characters and sequences like 1234 or abcd.	Dieses Passwort ist zu vorhersehbar. Vermeiden Sie wiederholte Zeichen und Folgen wie 1234 oder abcd.
+This recovery key does not open this Safe.	Dieser Wiederherstellungsschlüssel öffnet diesen Tresor nicht.
+Upgrade	Verstärken
+Upgrade Protection	Schutz verstärken
+Upgrade Protection…	Schutz verstärken …
+Use at least 12 characters.	Verwenden Sie mindestens 12 Zeichen.
+Weak	Schwach
+Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Schreiben Sie diesen Wiederherstellungsschlüssel auf Papier und bewahren Sie ihn sicher und getrennt vom Computer auf. Wenn Sie das Tresor-Passwort vergessen, ist er die einzige Möglichkeit, den Tresor zu öffnen.
+check the protection of the Safe (key derivation, mount options, memory, swap)	Schutz des Tresors prüfen (Schlüsselableitung, Einhängeoptionen, Speicher, Swap)

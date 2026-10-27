@@ -4299,3 +4299,47 @@ The data was damaged on the way. Nothing was saved – try again.	Les données o
 Internal error.	Erreur interne.
 The device presented a different key than expected.	L’appareil a présenté une clé différente de celle attendue.
 Details: %s	Détails : %s
+Anyone with this key can open the Safe without the password. Do not save it on this computer, in e-mail or in the cloud, and do not take a photo of it.	Toute personne ayant cette clé peut ouvrir le Coffre-fort sans le mot de passe. Ne l'enregistrez pas sur cet ordinateur, dans un e-mail ou dans le cloud, et ne la prenez pas en photo.
+Core dumps of the Safe process are allowed: lock the Safe and unlock it again.	Le processus du Coffre-fort peut écrire des vidages mémoire (core dumps) : verrouillez le Coffre-fort puis déverrouillez-le.
+Core dumps of the Safe process are disabled.	Les vidages mémoire (core dumps) du processus du Coffre-fort sont désactivés.
+Could not read the key protection settings (%s).	Impossible de lire les paramètres de protection de la clé (%s).
+Could not read the recovery key (%s).	Impossible de lire la clé de récupération (%s).
+Enter the recovery key you wrote down when you created the Safe and choose a new password. Without the recovery key the Safe cannot be opened.	Saisissez la clé de récupération notée lors de la création du Coffre-fort et choisissez un nouveau mot de passe. Sans la clé de récupération, le Coffre-fort ne peut pas être ouvert.
+Enter the Safe password. The password stays the same, only the protection of the key gets stronger.	Saisissez le mot de passe du Coffre-fort. Le mot de passe reste le même, seule la protection de la clé est renforcée.
+Enter the Safe password to show its recovery key.	Saisissez le mot de passe du Coffre-fort pour afficher sa clé de récupération.
+Fair	Moyen
+Forgot Password	Mot de passe oublié
+Forgot Password…	Mot de passe oublié…
+Good	Bon
+If you forget this password, only the recovery key shown after creating the Safe can open it.	Si vous oubliez ce mot de passe, seule la clé de récupération affichée après la création pourra ouvrir le Coffre-fort.
+I have written down the recovery key	J'ai noté la clé de récupération
+Lock the Safe first.	Verrouillez d'abord le Coffre-fort.
+Mounted with nosuid, nodev and noexec.	Monté avec nosuid, nodev et noexec.
+Mounted without %s: lock the Safe and unlock it again.	Monté sans %s : verrouillez le Coffre-fort puis déverrouillez-le.
+No Safe has been created yet.	Aucun Coffre-fort n'a encore été créé.
+Other programs cannot read the memory of the Safe process (ptrace_scope %s).	Les autres programmes ne peuvent pas lire la mémoire du processus du Coffre-fort (ptrace_scope %s).
+Password protection: scrypt 2^%d.	Protection du mot de passe : scrypt 2^%d.
+Password protection: scrypt 2^%d, weaker than the recommended 2^%d. Use Upgrade Protection in the Safe window.	Protection du mot de passe : scrypt 2^%d, plus faible que les 2^%d recommandés. Utilisez Renforcer la protection dans la fenêtre du Coffre-fort.
+Programs of your account can read the memory of the Safe process (ptrace_scope %s).	Les programmes de votre compte peuvent lire la mémoire du processus du Coffre-fort (ptrace_scope %s).
+Recovery Key	Clé de récupération
+Recovery Key…	Clé de récupération…
+Set New Password	Définir un nouveau mot de passe
+Strong	Fort
+Stronger password protection is available for this Safe. It makes guessing the password from a stolen disk much slower; unlocking takes about a second.	Une protection du mot de passe plus forte est disponible pour ce Coffre-fort. Elle ralentit fortement la recherche du mot de passe à partir d'un disque volé ; le déverrouillage prend environ une seconde.
+Swap %s is encrypted or in memory only.	L'espace d'échange %s est chiffré ou uniquement en mémoire.
+Swap %s is not encrypted: memory with keys could be written to the disk.	L'espace d'échange %s n'est pas chiffré : de la mémoire contenant des clés peut être écrite sur le disque.
+The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)	La sauvegarde contient votre Coffre-fort chiffré : %s (voir la documentation du Coffre-fort pour le restaurer)
+The Safe is locked: its contents are stored only encrypted.	Le Coffre-fort est verrouillé : son contenu n'est stocké que chiffré.
+The Safe now uses stronger password protection.	Le Coffre-fort utilise maintenant une protection du mot de passe plus forte.
+The Safe password was changed. Unlock the Safe with the new password.	Le mot de passe du Coffre-fort a été modifié. Déverrouillez le Coffre-fort avec le nouveau mot de passe.
+This is not a valid recovery key. It has 64 characters 0-9 and a-f.	Ce n'est pas une clé de récupération valide. Elle compte 64 caractères 0-9 et a-f.
+This password is too common. Choose something less predictable, for example a few unrelated words.	Ce mot de passe est trop courant. Choisissez quelque chose de moins prévisible, par exemple quelques mots sans rapport.
+This password is too predictable. Avoid repeated characters and sequences like 1234 or abcd.	Ce mot de passe est trop prévisible. Évitez les caractères répétés et les suites comme 1234 ou abcd.
+This recovery key does not open this Safe.	Cette clé de récupération n'ouvre pas ce Coffre-fort.
+Upgrade	Renforcer
+Upgrade Protection	Renforcer la protection
+Upgrade Protection…	Renforcer la protection…
+Use at least 12 characters.	Utilisez au moins 12 caractères.
+Weak	Faible
+Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Écrivez cette clé de récupération sur papier et conservez-la en lieu sûr, loin de l'ordinateur. Si vous oubliez le mot de passe du Coffre-fort, c'est le seul moyen de l'ouvrir.
+check the protection of the Safe (key derivation, mount options, memory, swap)	vérifier la protection du Coffre-fort (dérivation de clé, options de montage, mémoire, swap)

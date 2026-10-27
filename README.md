@@ -146,8 +146,10 @@ mkdir packages/apps/lux-code            # PKGBUILD jako u packages/apps/lsl
 scripts/publish-repo.sh                 # nahraje na server a přepne vydání (ponechá 3 předchozí)
 ```
 
-Podpisový klíč je mimo projekt v `~/.local/share/luxos/signing` (bez něj vzniknou nepodepsané balíky
-a `publish-repo.sh` odmítne nahrávat). Na serveru: `/srv/luxos-repo/{releases,current}`, Caddy blok
+Podpisový klíč je mimo projekt – doporučeně v Trezoru `/safe/$USER/luxos-signing` (adresář GnuPG; při
+zamčeném Trezoru `build.sh` skončí hláškou „Unlock the Safe first“, postup v dokumentaci Trezoru `safe.md`),
+jinak v `~/.local/share/luxos/signing`, případně `LUXOS_SIGNING_DIR` (`none` = nepodepisovat). Bez klíče vzniknou
+nepodepsané balíky a `publish-repo.sh` odmítne nahrávat. Na serveru: `/srv/luxos-repo/{releases,current}`, Caddy blok
 `handle_path /luxos/*` v `lsl.lux-ai.cz`.
 
 ## Balíčky LuxOS (.lux)

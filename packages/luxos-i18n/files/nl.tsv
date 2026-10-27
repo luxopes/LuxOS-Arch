@@ -4299,3 +4299,47 @@ The data was damaged on the way. Nothing was saved – try again.	De gegevens zi
 Internal error.	Interne fout.
 The device presented a different key than expected.	Het apparaat toonde een andere sleutel dan verwacht.
 Details: %s	Details: %s
+Anyone with this key can open the Safe without the password. Do not save it on this computer, in e-mail or in the cloud, and do not take a photo of it.	Iedereen met deze sleutel kan de Kluis zonder wachtwoord openen. Bewaar hem niet op deze computer, in e-mail of in de cloud en maak er geen foto van.
+Core dumps of the Safe process are allowed: lock the Safe and unlock it again.	Het Kluis-proces mag geheugendumps (core dumps) schrijven: vergrendel de Kluis en ontgrendel hem opnieuw.
+Core dumps of the Safe process are disabled.	Geheugendumps (core dumps) van het Kluis-proces zijn uitgeschakeld.
+Could not read the key protection settings (%s).	Kan de instellingen voor sleutelbescherming niet lezen (%s).
+Could not read the recovery key (%s).	Kan de herstelsleutel niet lezen (%s).
+Enter the recovery key you wrote down when you created the Safe and choose a new password. Without the recovery key the Safe cannot be opened.	Voer de herstelsleutel in die u bij het aanmaken van de Kluis hebt opgeschreven en kies een nieuw wachtwoord. Zonder herstelsleutel kan de Kluis niet worden geopend.
+Enter the Safe password. The password stays the same, only the protection of the key gets stronger.	Voer het Kluis-wachtwoord in. Het wachtwoord blijft hetzelfde, alleen de bescherming van de sleutel wordt sterker.
+Enter the Safe password to show its recovery key.	Voer het Kluis-wachtwoord in om de herstelsleutel te tonen.
+Fair	Redelijk
+Forgot Password	Wachtwoord vergeten
+Forgot Password…	Wachtwoord vergeten…
+Good	Goed
+If you forget this password, only the recovery key shown after creating the Safe can open it.	Als u dit wachtwoord vergeet, kan alleen de herstelsleutel die na het aanmaken wordt getoond de Kluis openen.
+I have written down the recovery key	Ik heb de herstelsleutel opgeschreven
+Lock the Safe first.	Vergrendel eerst de Kluis.
+Mounted with nosuid, nodev and noexec.	Gekoppeld met nosuid, nodev en noexec.
+Mounted without %s: lock the Safe and unlock it again.	Gekoppeld zonder %s: vergrendel de Kluis en ontgrendel hem opnieuw.
+No Safe has been created yet.	Er is nog geen Kluis aangemaakt.
+Other programs cannot read the memory of the Safe process (ptrace_scope %s).	Andere programma's kunnen het geheugen van het Kluis-proces niet lezen (ptrace_scope %s).
+Password protection: scrypt 2^%d.	Wachtwoordbescherming: scrypt 2^%d.
+Password protection: scrypt 2^%d, weaker than the recommended 2^%d. Use Upgrade Protection in the Safe window.	Wachtwoordbescherming: scrypt 2^%d, zwakker dan de aanbevolen 2^%d. Gebruik Bescherming versterken in het Kluis-venster.
+Programs of your account can read the memory of the Safe process (ptrace_scope %s).	Programma's van uw account kunnen het geheugen van het Kluis-proces lezen (ptrace_scope %s).
+Recovery Key	Herstelsleutel
+Recovery Key…	Herstelsleutel…
+Set New Password	Nieuw wachtwoord instellen
+Strong	Sterk
+Stronger password protection is available for this Safe. It makes guessing the password from a stolen disk much slower; unlocking takes about a second.	Voor deze Kluis is sterkere wachtwoordbescherming beschikbaar. Die maakt het raden van het wachtwoord vanaf een gestolen schijf veel trager; ontgrendelen duurt ongeveer een seconde.
+Swap %s is encrypted or in memory only.	Wisselgeheugen %s is versleuteld of alleen in het geheugen.
+Swap %s is not encrypted: memory with keys could be written to the disk.	Wisselgeheugen %s is niet versleuteld: geheugen met sleutels kan naar de schijf worden geschreven.
+The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)	De back-up bevat uw versleutelde Kluis: %s (zie de Kluis-documentatie om hem terug te zetten)
+The Safe is locked: its contents are stored only encrypted.	De Kluis is vergrendeld: de inhoud is alleen versleuteld opgeslagen.
+The Safe now uses stronger password protection.	De Kluis gebruikt nu sterkere wachtwoordbescherming.
+The Safe password was changed. Unlock the Safe with the new password.	Het Kluis-wachtwoord is gewijzigd. Ontgrendel de Kluis met het nieuwe wachtwoord.
+This is not a valid recovery key. It has 64 characters 0-9 and a-f.	Dit is geen geldige herstelsleutel. Die heeft 64 tekens 0-9 en a-f.
+This password is too common. Choose something less predictable, for example a few unrelated words.	Dit wachtwoord is te gangbaar. Kies iets minder voorspelbaars, bijvoorbeeld een paar losse woorden.
+This password is too predictable. Avoid repeated characters and sequences like 1234 or abcd.	Dit wachtwoord is te voorspelbaar. Vermijd herhaalde tekens en reeksen zoals 1234 of abcd.
+This recovery key does not open this Safe.	Deze herstelsleutel opent deze Kluis niet.
+Upgrade	Versterken
+Upgrade Protection	Bescherming versterken
+Upgrade Protection…	Bescherming versterken…
+Use at least 12 characters.	Gebruik minstens 12 tekens.
+Weak	Zwak
+Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Schrijf deze herstelsleutel op papier en bewaar hem op een veilige plek, uit de buurt van de computer. Als u het Kluis-wachtwoord vergeet, is dit de enige manier om de Kluis te openen.
+check the protection of the Safe (key derivation, mount options, memory, swap)	bescherming van de Kluis controleren (sleutelafleiding, koppelopties, geheugen, swap)

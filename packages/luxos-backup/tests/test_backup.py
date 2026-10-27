@@ -121,6 +121,33 @@ class LinkDestMixin:
         self.assertEqual(st["state"], "idle")
         self.assertEqual(st["last_name"], snaps[1])
 
+    def test_safe_vault_encrypted_only(self):
+        """Trezor: zalohuje se jen sifrovany /safe/.vaults/<user> (pevne odkazy), nikdy odemceny obsah."""
+        vault = os.path.join(self.tmp, "vaults", "tester")
+        write(os.path.join(vault, "gocryptfs.conf"), '{"ScryptObject": {"N": 262144}}')
+        write(os.path.join(vault, "Vu7ZdZ0iuK2aWFpf__yl2A"), "ciphertext")
+        write(os.path.join(self.tmp, "safe-mount", "secret.txt"), "plaintext")
+        now = time.time()
+        with mock.patch.dict(os.environ, {"LUXOS_BACKUP_SAFE": vault}):
+            self.assertEqual(core.safe_vault(), vault)
+            self.assertEqual(self.backup(now - 7200), 0)
+            self.assertEqual(self.backup(now - 3600), 0)
+        snaps = sorted(n for n in os.listdir(self.root) if core.SNAP_RE.match(n))
+        a, b = (os.path.join(self.root, s, "safe", "vault") for s in snaps)
+        self.assertEqual(read(f"{b}/Vu7ZdZ0iuK2aWFpf__yl2A"), "ciphertext")
+        self.assertEqual(os.stat(f"{a}/gocryptfs.conf").st_ino, os.stat(f"{b}/gocryptfs.conf").st_ino)
+        for cur, _d, files in os.walk(self.root):
+            self.assertNotIn("secret.txt", files)
+        with open(os.path.join(self.root, snaps[1], "info.json")) as f:
+            self.assertTrue(json.load(f)["safe"])
+
+    def test_no_safe_vault_in_tests_by_default(self):
+        """S LUXOS_BACKUP_HOME (jiny domov) se skutecny /safe nikdy nepouzije."""
+        os.environ.pop("LUXOS_BACKUP_SAFE", None)
+        self.assertIsNone(core.safe_vault())
+        with mock.patch.dict(os.environ, {"LUXOS_BACKUP_SAFE": os.path.join(self.tmp, "none")}):
+            self.assertIsNone(core.safe_vault())
+
     def test_default_excludes(self):
         self.backup()
         snap = os.path.join(self.root, sorted(os.listdir(self.root))[0], "home")

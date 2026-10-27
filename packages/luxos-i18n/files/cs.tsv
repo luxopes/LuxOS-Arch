@@ -4388,3 +4388,47 @@ The data was damaged on the way. Nothing was saved – try again.	Data se cestou
 Internal error.	Vnitřní chyba.
 The device presented a different key than expected.	Zařízení předložilo jiný klíč, než se čekalo.
 Details: %s	Podrobnosti: %s
+Anyone with this key can open the Safe without the password. Do not save it on this computer, in e-mail or in the cloud, and do not take a photo of it.	Kdokoli s tímto klíčem otevře Trezor i bez hesla. Neukládejte ho do počítače, do e-mailu ani do cloudu a nefoťte ho.
+Core dumps of the Safe process are allowed: lock the Safe and unlock it again.	Proces Trezoru smí vytvořit výpis paměti (core dump): zamkněte Trezor a znovu ho odemkněte.
+Core dumps of the Safe process are disabled.	Výpisy paměti (core dump) procesu Trezoru jsou vypnuté.
+Could not read the key protection settings (%s).	Nastavení ochrany klíče nelze přečíst (%s).
+Could not read the recovery key (%s).	Klíč pro obnovu nelze přečíst (%s).
+Enter the recovery key you wrote down when you created the Safe and choose a new password. Without the recovery key the Safe cannot be opened.	Zadejte klíč pro obnovu, který jste si opsali při vytvoření Trezoru, a zvolte nové heslo. Bez klíče pro obnovu Trezor otevřít nejde.
+Enter the Safe password. The password stays the same, only the protection of the key gets stronger.	Zadejte heslo Trezoru. Heslo zůstane stejné, jen se zesílí ochrana klíče.
+Enter the Safe password to show its recovery key.	Zadejte heslo Trezoru, zobrazí se jeho klíč pro obnovu.
+Fair	Ucházející
+Forgot Password	Zapomenuté heslo
+Forgot Password…	Zapomenuté heslo…
+Good	Dobré
+If you forget this password, only the recovery key shown after creating the Safe can open it.	Když heslo zapomenete, Trezor otevře jen klíč pro obnovu, který se zobrazí po vytvoření.
+I have written down the recovery key	Klíč pro obnovu mám opsaný
+Lock the Safe first.	Nejdřív Trezor zamkněte.
+Mounted with nosuid, nodev and noexec.	Připojeno s volbami nosuid, nodev a noexec.
+Mounted without %s: lock the Safe and unlock it again.	Připojeno bez %s: zamkněte Trezor a znovu ho odemkněte.
+No Safe has been created yet.	Trezor zatím není vytvořený.
+Other programs cannot read the memory of the Safe process (ptrace_scope %s).	Jiné programy nemohou číst paměť procesu Trezoru (ptrace_scope %s).
+Password protection: scrypt 2^%d.	Ochrana hesla: scrypt 2^%d.
+Password protection: scrypt 2^%d, weaker than the recommended 2^%d. Use Upgrade Protection in the Safe window.	Ochrana hesla: scrypt 2^%d, slabší než doporučené 2^%d. V okně Trezoru použijte Zesílit ochranu.
+Programs of your account can read the memory of the Safe process (ptrace_scope %s).	Programy vašeho účtu mohou číst paměť procesu Trezoru (ptrace_scope %s).
+Recovery Key	Klíč pro obnovu
+Recovery Key…	Klíč pro obnovu…
+Set New Password	Nastavit nové heslo
+Strong	Silné
+Stronger password protection is available for this Safe. It makes guessing the password from a stolen disk much slower; unlocking takes about a second.	Pro tento Trezor je k dispozici silnější ochrana hesla. Hádání hesla z ukradeného disku výrazně zpomalí; odemčení trvá asi sekundu.
+Swap %s is encrypted or in memory only.	Odkládací prostor %s je šifrovaný nebo jen v paměti.
+Swap %s is not encrypted: memory with keys could be written to the disk.	Odkládací prostor %s není šifrovaný: paměť s klíči se může zapsat na disk.
+The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)	Záloha obsahuje váš šifrovaný Trezor: %s (obnovení popisuje dokumentace Trezoru)
+The Safe is locked: its contents are stored only encrypted.	Trezor je zamčený: jeho obsah je uložený jen šifrovaně.
+The Safe now uses stronger password protection.	Trezor teď používá silnější ochranu hesla.
+The Safe password was changed. Unlock the Safe with the new password.	Heslo Trezoru bylo změněno. Odemkněte Trezor novým heslem.
+This is not a valid recovery key. It has 64 characters 0-9 and a-f.	Toto není platný klíč pro obnovu. Má 64 znaků 0–9 a a–f.
+This password is too common. Choose something less predictable, for example a few unrelated words.	Toto heslo je příliš běžné. Zvolte něco méně předvídatelného, třeba několik nesouvisejících slov.
+This password is too predictable. Avoid repeated characters and sequences like 1234 or abcd.	Toto heslo je příliš předvídatelné. Vyhněte se opakovaným znakům a řadám jako 1234 nebo abcd.
+This recovery key does not open this Safe.	Tento klíč pro obnovu tento Trezor neotevře.
+Upgrade	Zesílit
+Upgrade Protection	Zesílit ochranu
+Upgrade Protection…	Zesílit ochranu…
+Use at least 12 characters.	Použijte alespoň 12 znaků.
+Weak	Slabé
+Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Opište si tento klíč pro obnovu na papír a uložte ho na bezpečné místo mimo počítač. Když zapomenete heslo Trezoru, je klíč pro obnovu jediný způsob, jak Trezor otevřít.
+check the protection of the Safe (key derivation, mount options, memory, swap)	zkontrolovat ochranu Trezoru (odvození klíče, volby připojení, paměť, swap)
