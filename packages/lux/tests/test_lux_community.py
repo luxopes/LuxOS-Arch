@@ -127,12 +127,25 @@ class Precheck(unittest.TestCase):
         self.assertIn(("medium", "file too large to check: big.txt"), f)
 
     def test_symlinks_are_dangerous(self):
+        # odkaz na absolutni cestu nebo mimo repozitar = high
         os.symlink("/etc/passwd", os.path.join(self.d, "data"))
         os.makedirs(os.path.join(self.d, "sub"))
         os.symlink("/", os.path.join(self.d, "sub", "root"))
+        os.symlink("../../secret", os.path.join(self.d, "sub", "escape"))
         f = self.sev(GOOD)
-        self.assertIn(("high", "contains a symbolic link: data"), f)
-        self.assertIn(("high", "contains a symbolic link: sub/root"), f)
+        self.assertIn(("high", "symbolic link pointing outside the package: data"), f)
+        self.assertIn(("high", "symbolic link pointing outside the package: sub/root"), f)
+        self.assertIn(("high", "symbolic link pointing outside the package: sub/escape"), f)
+
+    def test_internal_symlink_is_benign(self):
+        # odkaz dovnitr repozitare (napr. licence REUSE: LICENSES/0BSD.txt -> ../LICENSE) neni vazny
+        with open(os.path.join(self.d, "LICENSE"), "w") as fh:
+            fh.write("MIT")
+        os.makedirs(os.path.join(self.d, "LICENSES"))
+        os.symlink("../LICENSE", os.path.join(self.d, "LICENSES", "0BSD.txt"))
+        f = self.sev(GOOD)
+        self.assertNotIn("high", [s for s, _t in f])
+        self.assertIn(("low", "contains an internal symbolic link: LICENSES/0BSD.txt"), f)
 
     def test_read_does_not_follow_symlinks(self):
         target = os.path.join(self.d, "real")
@@ -143,6 +156,32 @@ class Precheck(unittest.TestCase):
         self.assertEqual(lc.precheck(self.d), [("high", "no PKGBUILD found")])
         os.mkfifo(os.path.join(self.d, "fifo"))
         self.assertEqual(lc.read(os.path.join(self.d, "fifo")), "")      # necte (a neceka)
+
+
+class Fixtures(unittest.TestCase):
+    """Precheck na celem korpusu (packages/lux/tests/fixtures/aur-eval) - bez site.
+    Skodlive vzorky musi dat aspon medium, neskodne nikdy high."""
+    FIX = os.path.join(HERE, "fixtures", "aur-eval")
+
+    def _dirs(self, kind):
+        base = os.path.join(self.FIX, kind)
+        return [(n, os.path.join(base, n)) for n in sorted(os.listdir(base))
+                if os.path.isdir(os.path.join(base, n))]
+
+    def test_malicious_fixtures_are_flagged(self):
+        dirs = self._dirs("malicious")
+        self.assertGreaterEqual(len(dirs), 20)
+        for name, d in dirs:
+            sev = {s for s, _t in lc.precheck(d)}
+            self.assertTrue("high" in sev or "medium" in sev,
+                            f"{name}: precheck ji neoznacil (nalezy: {lc.precheck(d)})")
+
+    def test_benign_fixtures_have_no_high(self):
+        dirs = self._dirs("benign")
+        self.assertGreaterEqual(len(dirs), 10)
+        for name, d in dirs:
+            highs = [t for s, t in lc.precheck(d) if s == "high"]
+            self.assertEqual(highs, [], f"{name}: falesny high nalez: {highs}")
 
 
 class Verdict(unittest.TestCase):
@@ -213,13 +252,22 @@ class Verdict(unittest.TestCase):
         self.assertIn("signed in", note)
         os.environ["FAKE_ACC"] = '{"sessionToken": "tok"}'
         os.environ["FAKE_ANSWER"] = '{"verdict": "suspicious", "reasons": ["odd host"]}'
+        sent_all = sys.modules["luxai_account"].SENT
+        del sent_all[:]
         v, reasons, _n = lc.luxai_review("hello-tool", d)
         self.assertEqual((v, reasons), ("suspicious", ["odd host"]))
-        sent = sys.modules["luxai_account"].SENT[-1]
+        # dva nezavisle modely: nejdriv Lite, pak Flash (Lite nerekl "dangerous")
+        self.assertEqual([s[2]["model"] for s in sent_all], list(lc.LUXAI_MODELS))
+        sent = sent_all[-1]
         self.assertEqual(sent[1], lc.CHAT_PATH)
-        self.assertEqual(sent[2]["model"], "lite")
         self.assertNotIn("tools", sent[2])
         self.assertIn("pkgname=hello-tool", sent[2]["messages"][1]["content"])
+        # "dangerous" od Lite uz dalsi model nevola (nejvyssi zavaznost)
+        del sent_all[:]
+        os.environ["FAKE_ANSWER"] = '{"verdict": "dangerous", "reasons": ["bad"]}'
+        v, _r, _n = lc.luxai_review("hello-tool", d)
+        self.assertEqual(v, "dangerous")
+        self.assertEqual([s[2]["model"] for s in sent_all], ["lite"])
         # LuxAI vidi vsechny soubory (i install= s libovolnym jmenem); co nevidi, nesmi byt "safe"
         with open(os.path.join(d, "hooks.sh"), "w") as f:
             f.write("post_install() { echo hi; }\n")

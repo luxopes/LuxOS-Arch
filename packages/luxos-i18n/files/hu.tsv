@@ -4343,3 +4343,23 @@ Use at least 12 characters.	Használjon legalább 12 karaktert.
 Weak	Gyenge
 Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Írja fel ezt a helyreállítási kulcsot papírra, és tartsa biztonságos helyen, a számítógéptől távol. Ha elfelejti a Széf jelszavát, csak a helyreállítási kulccsal nyithatja meg.
 check the protection of the Safe (key derivation, mount options, memory, swap)	a Széf védelmének ellenőrzése (kulcsszármaztatás, csatolási kapcsolók, memória, swap)
+sets a global library preload (LD_PRELOAD)	globális programkönyvtár-előtöltést állít be (LD_PRELOAD)
+changes the hosts file or DNS configuration	módosítja a hosts fájlt vagy a DNS-beállítást
+uploads data to a remote server	adatokat tölt fel egy távoli kiszolgálóra
+reads private keys, browser profiles or wallet data	privát kulcsokat, böngészőprofilokat vagy tárcát olvas
+downloads a file straight into the package	fájlt tölt le közvetlenül a csomagba
+looks like a cryptocurrency miner	kriptovaluta-bányásznak tűnik
+disables the firewall	kikapcsolja a tűzfalat
+disables a security or network service	kikapcsol egy biztonsági vagy hálózati szolgáltatást
+installs a per-user autostart or service	felhasználónkénti automatikus indítást vagy szolgáltatást telepít
+replaces a system binary	lecserél egy rendszerprogramot
+reverses text, often to hide a command	megfordítja a szöveget, gyakran parancs elrejtésére
+downloads a file into /tmp	fájlt tölt le a /tmp könyvtárba
+makes a downloaded file in /tmp executable	futtathatóvá tesz egy letöltött fájlt a /tmp könyvtárban
+symbolic link pointing outside the package: %s	a csomagon kívülre mutató szimbolikus hivatkozás: %s
+contains an internal symbolic link: %s	belső szimbolikus hivatkozást tartalmaz: %s
+downloads from a bare IP address: %s	csupasz IP-címről tölt le: %s
+LuxAI (%s) did not answer (%s)	a LuxAI (%s) nem válaszolt (%s)
+LuxAI (%s) gave no clear answer	a LuxAI (%s) nem adott egyértelmű választ
+one model did not answer, cannot confirm safe	az egyik modell nem válaszolt, a biztonság nem erősíthető meg
+no specific concern found in the build script	nem található konkrét probléma a fordítási szkriptben

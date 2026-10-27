@@ -4343,3 +4343,23 @@ Use at least 12 characters.	Gebruik minstens 12 tekens.
 Weak	Zwak
 Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Schrijf deze herstelsleutel op papier en bewaar hem op een veilige plek, uit de buurt van de computer. Als u het Kluis-wachtwoord vergeet, is dit de enige manier om de Kluis te openen.
 check the protection of the Safe (key derivation, mount options, memory, swap)	bescherming van de Kluis controleren (sleutelafleiding, koppelopties, geheugen, swap)
+sets a global library preload (LD_PRELOAD)	stelt een globale bibliotheek-preload in (LD_PRELOAD)
+changes the hosts file or DNS configuration	wijzigt het hosts-bestand of de DNS-configuratie
+uploads data to a remote server	uploadt gegevens naar een externe server
+reads private keys, browser profiles or wallet data	leest privésleutels, browserprofielen of de wallet
+downloads a file straight into the package	downloadt een bestand rechtstreeks in het pakket
+looks like a cryptocurrency miner	lijkt op een cryptominer
+disables the firewall	schakelt de firewall uit
+disables a security or network service	schakelt een beveiligings- of netwerkdienst uit
+installs a per-user autostart or service	installeert een autostart of dienst per gebruiker
+replaces a system binary	vervangt een systeembinary
+reverses text, often to hide a command	keert tekst om, vaak om een commando te verbergen
+downloads a file into /tmp	downloadt een bestand naar /tmp
+makes a downloaded file in /tmp executable	maakt een gedownload bestand in /tmp uitvoerbaar
+symbolic link pointing outside the package: %s	symbolische koppeling die buiten het pakket wijst: %s
+contains an internal symbolic link: %s	bevat een interne symbolische koppeling: %s
+downloads from a bare IP address: %s	downloadt van een kaal IP-adres: %s
+LuxAI (%s) did not answer (%s)	LuxAI (%s) heeft niet geantwoord (%s)
+LuxAI (%s) gave no clear answer	LuxAI (%s) gaf geen duidelijk antwoord
+one model did not answer, cannot confirm safe	één model antwoordde niet, veilig kan niet worden bevestigd
+no specific concern found in the build script	geen concreet probleem gevonden in het build-script

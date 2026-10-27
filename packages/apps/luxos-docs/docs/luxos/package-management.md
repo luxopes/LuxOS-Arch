@@ -260,10 +260,29 @@ Order of sources for `lux install <name>`: LuxOS and Arch Linux repositories →
   no app needs); `lux update` does the same after `flatpak update`. App data in `~/.var/app` stays.
 
 **Community (AUR)** — build scripts written by other users, not checked by LuxOS:
-- Before building, the PKGBUILD (and `.install` files) is checked: fixed rules (curl | sh, hidden
-  base64, writes outside `$pkgdir`, sudo/SSH/accounts, network in `.install`, plain-HTTP sources…)
-  and **LuxAI Lite** when you are signed in to LuxAI (verdict safe / suspicious / dangerous with
-  reasons; only the script text is sent). Without LuxAI the verdict is "not checked".
+- Before building, the PKGBUILD, `.install` files and **every other file in the repository** are
+  checked in two layers:
+  1. **Fixed rules (offline, deterministic):** downloading and running code (`curl | sh`, download
+     straight into `$pkgdir`, download to `/tmp` + `chmod +x`), hidden payloads (base64/hex, text
+     reversed with `rev`, `eval` of fetched text), writes outside `$pkgdir`, touching
+     accounts/sudo/SSH, persistence (`.bashrc`, per-user autostart/systemd unit), `/etc/hosts`,
+     `resolv.conf`, `ld.so.preload`, sudoers/SUID, disabling the firewall or a security service,
+     replacing a system binary, data upload / credential, cookie or SSH-key theft, cryptominer
+     names, sources from a bare IP or look-alike host, missing checksums (`SKIP`) on a remote
+     download, symbolic links pointing outside the package, plain-HTTP sources. A `high` finding is
+     by itself a **dangerous** verdict, even if the AI disagrees (this also blocks prompt-injection
+     in the files).
+  2. **Two independent AI models** when you are signed in to LuxAI: **Lite** and **Flash** (strong
+     on security). The stricter answer wins and a verdict is "safe" **only if both models agree**;
+     the files are sent as untrusted data and instructions hidden inside them are ignored. Only the
+     repository text is sent, never your files.
+- Verdict is safe / suspicious / dangerous, always **with reasons** (including why something looks
+  safe). Without LuxAI the verdict is "not checked" (`unreviewed`) — never silently "safe".
+- **Measured detection** (49-sample evaluation: 22 real AUR packages + 27 synthetic malicious
+  variants, built-in corpus in `lux/tests/fixtures/aur-eval`): the full review flagged **27/27
+  malicious as dangerous (0 rated safe)**; of the 22 real packages 18 were safe and 4 were
+  "suspicious" (needing confirmation), **0 benign rated dangerous**. The offline fixed rules alone
+  flagged all 27 malicious at `medium` or higher with **no** `high` finding on a benign package.
 - **Default target: your sandbox** ([sandbox.md](sandbox.md)). lux copies the checked directory into
   the sandbox (`luxos-sandbox build-install`), installs `base-devel`/dependencies there, runs
   `makepkg` inside as the sandbox user and installs the result with the sandbox's own `pacman`. The

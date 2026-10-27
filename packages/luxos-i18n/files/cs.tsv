@@ -4432,3 +4432,23 @@ Use at least 12 characters.	Použijte alespoň 12 znaků.
 Weak	Slabé
 Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Opište si tento klíč pro obnovu na papír a uložte ho na bezpečné místo mimo počítač. Když zapomenete heslo Trezoru, je klíč pro obnovu jediný způsob, jak Trezor otevřít.
 check the protection of the Safe (key derivation, mount options, memory, swap)	zkontrolovat ochranu Trezoru (odvození klíče, volby připojení, paměť, swap)
+sets a global library preload (LD_PRELOAD)	nastavuje globální přednačtení knihovny (LD_PRELOAD)
+changes the hosts file or DNS configuration	mění soubor hosts nebo nastavení DNS
+uploads data to a remote server	nahrává data na vzdálený server
+reads private keys, browser profiles or wallet data	čte soukromé klíče, profily prohlížeče nebo peněženku
+downloads a file straight into the package	stahuje soubor rovnou do balíku
+looks like a cryptocurrency miner	vypadá jako těžba kryptoměn
+disables the firewall	vypíná firewall
+disables a security or network service	vypíná bezpečnostní nebo síťovou službu
+installs a per-user autostart or service	přidává automatické spuštění nebo službu uživatele
+replaces a system binary	nahrazuje systémový program
+reverses text, often to hide a command	obrací text, často kvůli skrytí příkazu
+downloads a file into /tmp	stahuje soubor do /tmp
+makes a downloaded file in /tmp executable	dělá stažený soubor v /tmp spustitelným
+symbolic link pointing outside the package: %s	symbolický odkaz mířící mimo balík: %s
+contains an internal symbolic link: %s	obsahuje vnitřní symbolický odkaz: %s
+downloads from a bare IP address: %s	stahuje z holé IP adresy: %s
+LuxAI (%s) did not answer (%s)	LuxAI (%s) neodpověděla (%s)
+LuxAI (%s) gave no clear answer	LuxAI (%s) nedala jasnou odpověď
+one model did not answer, cannot confirm safe	jeden model neodpověděl, nelze potvrdit jako bezpečné
+no specific concern found in the build script	v sestavovacím skriptu nebyl nalezen žádný konkrétní problém

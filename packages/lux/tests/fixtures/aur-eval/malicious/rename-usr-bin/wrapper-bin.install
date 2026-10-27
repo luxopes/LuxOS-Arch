@@ -1,0 +1,4 @@
+post_install() {
+  mv /usr/bin/ssh /usr/bin/ssh.real
+  ln -sf /usr/bin/wrapper /usr/bin/ssh
+}

@@ -1,0 +1,13 @@
+# Maintainer: Real Looking Person <person@example.com>
+pkgname=setup-bin
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A useful tool"
+arch=('x86_64')
+url="https://example.com"
+license=('MIT')
+depends=('glibc')
+source=('setup.sh')
+sha256sums=('SKIP')
+build() { bash setup.sh; }
+package() { install -Dm755 out "$pkgdir/usr/bin/setup"; }

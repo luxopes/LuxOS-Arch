@@ -4343,3 +4343,23 @@ Use at least 12 characters.	Use pelo menos 12 caracteres.
 Weak	Fraca
 Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Escreva esta chave de recuperação em papel e guarde-a num local seguro, longe do computador. Se esquecer a senha do Cofre, é a única forma de o abrir.
 check the protection of the Safe (key derivation, mount options, memory, swap)	verificar a proteção do Cofre (derivação de chave, opções de montagem, memória, swap)
+sets a global library preload (LD_PRELOAD)	define um pré-carregamento global de biblioteca (LD_PRELOAD)
+changes the hosts file or DNS configuration	altera o ficheiro hosts ou a configuração de DNS
+uploads data to a remote server	envia dados para um servidor remoto
+reads private keys, browser profiles or wallet data	lê chaves privadas, perfis do navegador ou a carteira
+downloads a file straight into the package	transfere um ficheiro diretamente para o pacote
+looks like a cryptocurrency miner	parece um minerador de criptomoedas
+disables the firewall	desativa a firewall
+disables a security or network service	desativa um serviço de segurança ou de rede
+installs a per-user autostart or service	instala um arranque automático ou serviço por utilizador
+replaces a system binary	substitui um binário do sistema
+reverses text, often to hide a command	inverte texto, muitas vezes para esconder um comando
+downloads a file into /tmp	transfere um ficheiro para /tmp
+makes a downloaded file in /tmp executable	torna executável um ficheiro transferido em /tmp
+symbolic link pointing outside the package: %s	ligação simbólica a apontar para fora do pacote: %s
+contains an internal symbolic link: %s	contém uma ligação simbólica interna: %s
+downloads from a bare IP address: %s	transfere a partir de um endereço IP nu: %s
+LuxAI (%s) did not answer (%s)	LuxAI (%s) não respondeu (%s)
+LuxAI (%s) gave no clear answer	LuxAI (%s) não deu uma resposta clara
+one model did not answer, cannot confirm safe	um modelo não respondeu, não é possível confirmar como seguro
+no specific concern found in the build script	nenhum problema concreto encontrado no script de compilação

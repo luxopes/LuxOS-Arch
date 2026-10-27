@@ -4343,3 +4343,23 @@ Use at least 12 characters.	Usa almeno 12 caratteri.
 Weak	Debole
 Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Scrivi questa chiave di ripristino su carta e conservala in un luogo sicuro, lontano dal computer. Se dimentichi la password della Cassaforte, è l'unico modo per aprirla.
 check the protection of the Safe (key derivation, mount options, memory, swap)	controlla la protezione della Cassaforte (derivazione della chiave, opzioni di montaggio, memoria, swap)
+sets a global library preload (LD_PRELOAD)	imposta un precaricamento globale di libreria (LD_PRELOAD)
+changes the hosts file or DNS configuration	modifica il file hosts o la configurazione DNS
+uploads data to a remote server	carica dati su un server remoto
+reads private keys, browser profiles or wallet data	legge chiavi private, profili del browser o il wallet
+downloads a file straight into the package	scarica un file direttamente nel pacchetto
+looks like a cryptocurrency miner	sembra un miner di criptovalute
+disables the firewall	disattiva il firewall
+disables a security or network service	disattiva un servizio di sicurezza o di rete
+installs a per-user autostart or service	installa un avvio automatico o servizio per utente
+replaces a system binary	sostituisce un binario di sistema
+reverses text, often to hide a command	inverte il testo, spesso per nascondere un comando
+downloads a file into /tmp	scarica un file in /tmp
+makes a downloaded file in /tmp executable	rende eseguibile un file scaricato in /tmp
+symbolic link pointing outside the package: %s	collegamento simbolico che punta fuori dal pacchetto: %s
+contains an internal symbolic link: %s	contiene un collegamento simbolico interno: %s
+downloads from a bare IP address: %s	scarica da un indirizzo IP nudo: %s
+LuxAI (%s) did not answer (%s)	LuxAI (%s) non ha risposto (%s)
+LuxAI (%s) gave no clear answer	LuxAI (%s) non ha dato una risposta chiara
+one model did not answer, cannot confirm safe	un modello non ha risposto, impossibile confermare come sicuro
+no specific concern found in the build script	nessun problema concreto trovato nello script di compilazione

@@ -4343,3 +4343,23 @@ Use at least 12 characters.	Utilisez au moins 12 caractères.
 Weak	Faible
 Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Écrivez cette clé de récupération sur papier et conservez-la en lieu sûr, loin de l'ordinateur. Si vous oubliez le mot de passe du Coffre-fort, c'est le seul moyen de l'ouvrir.
 check the protection of the Safe (key derivation, mount options, memory, swap)	vérifier la protection du Coffre-fort (dérivation de clé, options de montage, mémoire, swap)
+sets a global library preload (LD_PRELOAD)	définit un préchargement global de bibliothèque (LD_PRELOAD)
+changes the hosts file or DNS configuration	modifie le fichier hosts ou la configuration DNS
+uploads data to a remote server	envoie des données vers un serveur distant
+reads private keys, browser profiles or wallet data	lit des clés privées, des profils de navigateur ou un portefeuille
+downloads a file straight into the package	télécharge un fichier directement dans le paquet
+looks like a cryptocurrency miner	ressemble à un mineur de cryptomonnaie
+disables the firewall	désactive le pare-feu
+disables a security or network service	désactive un service de sécurité ou réseau
+installs a per-user autostart or service	installe un démarrage automatique ou un service par utilisateur
+replaces a system binary	remplace un binaire système
+reverses text, often to hide a command	inverse du texte, souvent pour cacher une commande
+downloads a file into /tmp	télécharge un fichier dans /tmp
+makes a downloaded file in /tmp executable	rend exécutable un fichier téléchargé dans /tmp
+symbolic link pointing outside the package: %s	lien symbolique pointant hors du paquet : %s
+contains an internal symbolic link: %s	contient un lien symbolique interne : %s
+downloads from a bare IP address: %s	télécharge depuis une adresse IP brute : %s
+LuxAI (%s) did not answer (%s)	LuxAI (%s) n'a pas répondu (%s)
+LuxAI (%s) gave no clear answer	LuxAI (%s) n'a pas donné de réponse claire
+one model did not answer, cannot confirm safe	un modèle n'a pas répondu, impossible de confirmer comme sûr
+no specific concern found in the build script	aucun problème concret trouvé dans le script de construction

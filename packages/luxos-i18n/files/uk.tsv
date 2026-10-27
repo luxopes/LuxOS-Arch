@@ -4344,3 +4344,23 @@ Use at least 12 characters.	Використайте щонайменше 12 с�
 Weak	Слабкий
 Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Запишіть цей ключ відновлення на папері й зберігайте в надійному місці подалі від комп'ютера. Якщо ви забудете пароль Сейфа, ключ відновлення — єдиний спосіб його відкрити.
 check the protection of the Safe (key derivation, mount options, memory, swap)	перевірити захист Сейфа (виведення ключа, параметри монтування, пам'ять, swap)
+sets a global library preload (LD_PRELOAD)	встановлює глобальне попереднє завантаження бібліотеки (LD_PRELOAD)
+changes the hosts file or DNS configuration	змінює файл hosts або налаштування DNS
+uploads data to a remote server	вивантажує дані на віддалений сервер
+reads private keys, browser profiles or wallet data	читає приватні ключі, профілі браузера або гаманець
+downloads a file straight into the package	завантажує файл прямо в пакунок
+looks like a cryptocurrency miner	схоже на майнер криптовалюти
+disables the firewall	вимикає брандмауер
+disables a security or network service	вимикає службу безпеки або мережі
+installs a per-user autostart or service	встановлює автозапуск або службу користувача
+replaces a system binary	замінює системну програму
+reverses text, often to hide a command	обертає текст, часто щоб приховати команду
+downloads a file into /tmp	завантажує файл у /tmp
+makes a downloaded file in /tmp executable	робить завантажений файл у /tmp виконуваним
+symbolic link pointing outside the package: %s	символічне посилання, що вказує поза пакунок: %s
+contains an internal symbolic link: %s	містить внутрішнє символічне посилання: %s
+downloads from a bare IP address: %s	завантажує з голої IP-адреси: %s
+LuxAI (%s) did not answer (%s)	LuxAI (%s) не відповіла (%s)
+LuxAI (%s) gave no clear answer	LuxAI (%s) не дала чіткої відповіді
+one model did not answer, cannot confirm safe	одна модель не відповіла, не можна підтвердити як безпечне
+no specific concern found in the build script	у збиральному скрипті не знайдено конкретної проблеми
