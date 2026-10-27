@@ -611,6 +611,10 @@ class Hub(unittest.TestCase):
         # duveryhodne zarizeni: AuthorizeService bez dialogu, Release bez odpovedi s hodnotou
         r = call_agent("AuthorizeService", GLib.Variant("(os)", ("/org/bluez/hci0/dev_AA", "0000110b-0000-1000-8000-00805f9b34fb")))
         self.assertEqual(r.unpack(), ())
+        # sluzba LuxOS Companion: bez dialogu i u neduveryhodneho zarizeni (schvaluje ji aplikace sama)
+        bluez.properties["Trusted"] = GLib.Variant("b", False)
+        r = call_agent("AuthorizeService", GLib.Variant("(os)", ("/org/bluez/hci0/dev_AA", "AD9B7C10-6CE5-4F35-9952-728F760FCB70")))
+        self.assertEqual(r.unpack(), ())
         r = call_agent("Release", None)
         self.assertEqual(r.unpack(), ())
 

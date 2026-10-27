@@ -4,6 +4,8 @@ Role server, RequireAuthentication + RequireAuthorization, AutoConnect false: Bl
 s UUID sluzby, prijme sifrovane spojeni od sparovaneho telefonu a preda socket pres NewConnection.
 Viditelnost adapteru (discoverable) se nemeni - telefon se paruje v nastaveni Bluetooth.
 Po restartu bluetoothd (zmizi a znovu se objevi org.bluez) se profil zaregistruje znovu.
+Schvaleny telefon dostane v BlueZ Device1.Trusted=true (dalsi spojeni uz nevyvola dotaz agenta
+Bluetooth LuxOS), po odebrani Trusted=false.
 LUXOS_COMPANION_BLUEZ_BUS: adresa jine sbernice nez systemove (testy s falesnym BlueZ).
 """
 import os
@@ -152,6 +154,42 @@ class BluezProfile:
                 self.on_disconnect(address_from_path(device))
         else:
             invocation.return_dbus_error("org.freedesktop.DBus.Error.UnknownMethod", method)
+
+    def set_trusted(self, address, trusted, done=None):
+        """org.bluez.Device1.Trusted vsech zarizeni s adresou (kazdy adapter ma vlastni objekt).
+        Meni se jen rozdilna hodnota; bez BlueZ nic. done(pocet zmenenych) po dokonceni."""
+        address = (address or "").upper()
+        if not self.available or not address:
+            if done:
+                done(0)
+            return
+
+        def got(bus, res, _data):
+            try:
+                objects = bus.call_finish(res).unpack()[0]
+            except GLib.Error:
+                objects = {}
+            paths = [path for path, ifaces in objects.items()
+                     if str(ifaces.get("org.bluez.Device1", {}).get("Address", "")).upper() == address
+                     and bool(ifaces["org.bluez.Device1"].get("Trusted")) != trusted]
+            left = [len(paths)]
+            if not paths and done:
+                done(0)
+
+            def set_done(bus, res, _data):
+                try:
+                    bus.call_finish(res)
+                except GLib.Error:
+                    pass
+                left[0] -= 1
+                if left[0] == 0 and done:
+                    done(len(paths))
+            for path in paths:
+                bus.call(BLUEZ, path, "org.freedesktop.DBus.Properties", "Set",
+                         GLib.Variant("(ssv)", ("org.bluez.Device1", "Trusted", GLib.Variant("b", trusted))),
+                         None, Gio.DBusCallFlags.NONE, 3000, None, set_done, None)
+        self.bus.call(BLUEZ, "/", "org.freedesktop.DBus.ObjectManager", "GetManagedObjects", None,
+                      GLib.VariantType.new("(a{oa{sa{sv}}})"), Gio.DBusCallFlags.NONE, 3000, None, got, None)
 
     def _device_info(self, device, fd):
         """Adresa a jmeno telefonu z org.bluez.Device1; nesparovane zarizeni se odmitne."""

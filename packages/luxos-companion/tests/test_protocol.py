@@ -10,7 +10,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import helpers  # noqa: E402
-from helpers import Clock, connect, make_service, pump  # noqa: E402
+from helpers import PHONE, Clock, connect, make_service, pump  # noqa: E402
 
 from luxos_companion import session, wire  # noqa: E402
 
@@ -245,6 +245,17 @@ class TestSession(unittest.TestCase):
         self.assertEqual(s2.state, "open")
 
 
+class FakeProfile:
+    """Misto bluez.BluezProfile: zaznam zmen Device1.Trusted."""
+    available = True
+
+    def __init__(self):
+        self.trusted = []
+
+    def set_trusted(self, address, trusted, done=None):
+        self.trusted.append((address, trusted))
+
+
 class TestApproval(unittest.TestCase):
     STRANGER = {"address": "aa:bb:cc:dd:ee:99", "name": "Cizí\x07 telefon"}
 
@@ -252,6 +263,7 @@ class TestApproval(unittest.TestCase):
         self.clock = Clock()
         self.svc = make_service(self.clock)
         self.n = self.svc.notifier
+        self.svc.profile = self.profile = FakeProfile()
 
     def ask(self):
         s, phone = connect(self.svc, self.STRANGER)
@@ -273,6 +285,8 @@ class TestApproval(unittest.TestCase):
         self.assertEqual(msgs[0]["type"], "hello.ok")
         self.assertTrue(self.svc.settings.is_approved("AA:BB:CC:DD:EE:99"))
         self.assertEqual(self.svc.status()["pending"], [])
+        # BlueZ: telefon duveryhodny, agent Bluetooth LuxOS se pri dalsim spojeni nezepta
+        self.assertEqual(self.profile.trusted, [("AA:BB:CC:DD:EE:99", True)])
         # dalsi spojeni uz se nepta
         s2, p2 = connect(self.svc, self.STRANGER)
         p2.send_raw(frame(hello("h2")))
@@ -286,6 +300,7 @@ class TestApproval(unittest.TestCase):
         self.assertEqual((msgs[0]["type"], msgs[0]["code"], msgs[0]["reply_to"]), ("error", "not_approved", "h1"))
         self.assertTrue(phone.wait_closed())
         self.assertFalse(self.svc.settings.is_approved("AA:BB:CC:DD:EE:99"))
+        self.assertEqual(self.profile.trusted, [])
 
     def test_dismissed_notification_denies(self):
         s, phone, note = self.ask()
@@ -319,6 +334,22 @@ class TestApproval(unittest.TestCase):
         self.svc.reload_settings()
         self.assertTrue(phone.wait_closed())
         self.assertEqual(s.close_reason, "revoked")
+        self.assertEqual(self.profile.trusted, [("AA:BB:CC:DD:EE:99", True), ("AA:BB:CC:DD:EE:99", False)])
+        self.svc.reload_settings()                                   # jen jednou
+        self.assertEqual(len(self.profile.trusted), 2)
+
+    def test_removed_without_connection_untrusted(self):
+        """Odebrani v okne Telefon (jiny proces) bez otevreneho spojeni: zmena se pozna z companion.json."""
+        from luxos_companion import store
+        store.Settings(self.svc.settings.path).remove(PHONE["address"])
+        self.svc.check_settings()
+        self.assertEqual(self.profile.trusted, [(PHONE["address"], False)])
+
+    def test_bluez_registered_trusts_approved_phones(self):
+        self.svc.bluetooth_state(True, None)
+        self.assertEqual(self.profile.trusted, [(PHONE["address"], True)])
+        self.svc.bluetooth_state(False, None)
+        self.assertEqual(len(self.profile.trusted), 1)
 
 
 class TestOutput(unittest.TestCase):

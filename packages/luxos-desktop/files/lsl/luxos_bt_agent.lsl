@@ -21,6 +21,9 @@ AGENT_XML = ("<node><interface name=\"org.bluez.Agent1\">"
     + "<method name=\"Cancel\"/>"
     + "</interface></node>")
 REJECTED = "org.bluez.Error.Rejected"
+# Sluzba LuxOS Companion: spojeni schvaluje sama aplikace (okno a oznameni „Povolit telefonu …“),
+# dotaz agenta by byl druhy dotaz na totez. BlueZ ji prijme jen od sparovaneho zarizeni.
+COMPANION_UUID = "ad9b7c10-6ce5-4f35-9952-728f760fcb70"
 
 state = {"bus": 0, "registered": False}
 
@@ -127,6 +130,10 @@ function dialog(primary, secondary, with_entry, with_buttons, ok_label):
 end
 
 function on_method(sender, path, interface, method, values, invocation):
+    if method == "AuthorizeService" and String(values[1]).lower() == COMPANION_UUID:
+        call gio.return_value(invocation, [], "")
+        return 0
+    end
     if method == "RequestAuthorization" or method == "AuthorizeService":
         info = device(values[0])
         if method == "AuthorizeService" and info[1]:

@@ -31,6 +31,11 @@ FAKE_XML = """<node>
   </interface>
   <interface name="org.freedesktop.DBus.Properties">
     <method name="GetAll"><arg type="s" direction="in"/><arg type="a{sv}" direction="out"/></method>
+    <method name="Set"><arg type="s" direction="in"/><arg type="s" direction="in"/>
+      <arg type="v" direction="in"/></method>
+  </interface>
+  <interface name="org.freedesktop.DBus.ObjectManager">
+    <method name="GetManagedObjects"><arg type="a{oa{sa{sv}}}" direction="out"/></method>
   </interface>
 </node>"""
 
@@ -49,10 +54,11 @@ class FakeBluez:
         self.calls = []
         self.devices = {
             DEV: {"Address": GLib.Variant("s", "AA:BB:CC:DD:EE:01"), "Alias": GLib.Variant("s", "Pixel 8 Antonín"),
-                  "Paired": GLib.Variant("b", True)},
+                  "Paired": GLib.Variant("b", True), "Trusted": GLib.Variant("b", False)},
             DEV_UNPAIRED: {"Address": GLib.Variant("s", "AA:BB:CC:DD:EE:02"), "Alias": GLib.Variant("s", "Cizí"),
-                           "Paired": GLib.Variant("b", False)},
+                           "Paired": GLib.Variant("b", False), "Trusted": GLib.Variant("b", False)},
         }
+        self.sets = []
         ready = threading.Event()
         self.thread = threading.Thread(target=self._run, args=(ready,))
         self.thread.start()
@@ -69,9 +75,20 @@ class FakeBluez:
             self.calls.append((method, params.unpack()))
             inv.return_value(None)
 
-        def props(_b, _s, path, _i, _m, params, inv):
+        def props(_b, _s, path, _i, method, params, inv):
+            if method == "Set":
+                iface, name, value = params.unpack()
+                self.sets.append((path, iface, name, value))
+                self.devices[path][name] = GLib.Variant("b", value)
+                inv.return_value(None)
+                return
             inv.return_value(GLib.Variant("(a{sv})", (self.devices.get(path, {}),)))
-        self.ids = [self.bus.register_object("/org/bluez", info.interfaces[0], manager, None, None)]
+
+        def objects(_b, _s, _p, _i, _m, _params, inv):
+            inv.return_value(GLib.Variant("(a{oa{sa{sv}}})", (
+                {path: {"org.bluez.Device1": dict(props)} for path, props in self.devices.items()},)))
+        self.ids = [self.bus.register_object("/org/bluez", info.interfaces[0], manager, None, None),
+                    self.bus.register_object("/", info.interfaces[2], objects, None, None)]
         for path in self.devices:
             self.ids.append(self.bus.register_object(path, info.interfaces[1], props, None, None))
         self.bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName",
@@ -176,6 +193,22 @@ class TestBluezProfile(unittest.TestCase):
         self.assertEqual(self.disc, ["AA:BB:CC:DD:EE:01"])
         call("Release", None, None)
         self.assertFalse(self.profile.registered)
+
+    def set_trusted(self, address, trusted):
+        out = []
+        self.profile.set_trusted(address, trusted, out.append)
+        self.assertTrue(pump(lambda: out, 5))
+        return out[0]
+
+    def test_set_trusted(self):
+        self.assertEqual(self.set_trusted("aa:bb:cc:dd:ee:01", True), 1)
+        self.assertEqual(self.fake.sets, [(DEV, "org.bluez.Device1", "Trusted", True)])
+        self.assertEqual(self.fake.devices[DEV_UNPAIRED]["Trusted"].unpack(), False)
+        self.assertEqual(self.set_trusted("AA:BB:CC:DD:EE:01", True), 0)     # uz duveryhodny: nic
+        self.assertEqual(self.set_trusted("AA:BB:CC:DD:EE:01", False), 1)
+        self.assertEqual(self.fake.devices[DEV]["Trusted"].unpack(), False)
+        self.assertEqual(self.set_trusted("AA:BB:CC:DD:EE:99", True), 0)     # nezname zarizeni
+        self.assertEqual(len(self.fake.sets), 2)
 
     def test_reregister_after_bluez_restart(self):
         n = len([c for c in self.fake.calls if c[0] == "RegisterProfile"])

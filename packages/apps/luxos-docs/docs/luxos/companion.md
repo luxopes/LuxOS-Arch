@@ -25,8 +25,10 @@ only to the computer over an encrypted Bluetooth link.
 4. The phone has about 20 seconds to finish connecting. If you answer later, LuxOS remembers the answer
    – just press Connect on the phone again.
 
-Phones that are paired but not allowed get an error and are disconnected. BlueZ may additionally ask to
-authorize the service if the phone is not marked as trusted in the Bluetooth settings.
+Phones that are paired but not allowed get an error and are disconnected. This is the only question:
+LuxOS's Bluetooth agent lets the Companion service through without its own "Allow … to connect?"
+dialog, and an allowed phone is marked as trusted in BlueZ (Remove in the Phone window takes the trust
+away again).
 
 ## The Phone window
 
