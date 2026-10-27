@@ -53,6 +53,7 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 - **Bez tapet „vlny“** (`luxos-waves-dark`, `luxos-waves-light`): v LuxOS 1.0 zůstávají jen nové tapety. Kdo měl vlny nastavené, dostane po přihlášení Flow ve stejném režimu (tmavém nebo světlém).
 
 ### Opraveno
+- **Launchpad a Hledání bez černých rohů i se zapnutým compositorem** (`rofi` z `[luxos]`): rofi bralo poslední 32bitový vizuál obrazovky, který na X serveru s GLX (např. VM s llvmpipe) nemusí mít kanál alfa – compositor pak okno kreslil neprůhledně a zaoblené rohy byly černé. Teď vybere vizuál s alfou podle XRender.
 - **OEM: první přihlášení po Průvodci nastavením je opravdu v jazyce, který majitel zvolil** (`luxos-oem`): jazyk účtu se zapíše do AccountsService už při zakládání účtu. LightDM vytvoří proces relace už při ověření hesla a jazyk nastavený Průvodcem až po něm použil teprve při dalším přihlášení – první relace byla anglicky.
 - **Balíky komunity (AUR) s podepsanými zdroji se v sandboxu sestaví** (`luxos-sandbox`): klíče autorů z `validpgpkeys` (např. `neofetch`) se před sestavením stáhnou do klíčenky uživatele sandboxu (hostitel se nemění, jako yay/paru); dřív sestavení skončilo „unknown public key … One or more PGP signatures could not be verified“.
 - **LuxDrop: „Zobrazit ve složce“ v oznámení o přijatém souboru nic nedělalo**, když byla složka pro příjem výchozí (prázdné nastavení). Teď otevře Soubory a přijatý soubor v nich označí.
