@@ -680,7 +680,14 @@ def cmd_build_install(args):
     if launch(base_spec(["/bin/sh", "-c", unpack], tty=False), stdin=sys.stdin.buffer) != 0:
         die(_("Copying the build files into the sandbox failed."))
     print(_("Building %s in the sandbox...") % name, file=sys.stderr)
-    build = f'cd "{d}" && makepkg -f --noconfirm --noprogressbar'
+    # Podepsane zdroje (validpgpkeys, napr. neofetch): klice autoru do klicenky uzivatele SANDBOXU
+    # (jako yay/paru, hostitel se nemeni), jinak makepkg skonci "unknown public key". Jen otisky
+    # hex; keys.openpgp.org casto nema ID uzivatele, proto i keyserver.ubuntu.com.
+    build = (f'cd "{d}" && for k in $(makepkg --printsrcinfo 2>/dev/null | sed -n "s/^[[:space:]]*validpgpkeys = //p" '
+             '| grep -E "^[0-9A-Fa-f]{8,40}$" | sort -u); do gpg --list-keys "$k" >/dev/null 2>&1 && continue; '
+             'echo "PGP: $k" >&2; gpg --batch --recv-keys "$k" >/dev/null 2>&1 || '
+             'gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$k" >/dev/null 2>&1 || '
+             'echo "PGP key $k could not be downloaded" >&2; done; makepkg -f --noconfirm --noprogressbar')
     if launch(base_spec(["/bin/sh", "-c", build], net=True, tty=False), stdin=subprocess.DEVNULL) != 0:
         die(_("Building %s in the sandbox failed.") % name)
     # 3) instalace vysledku (bez ladicich -debug balicku)
