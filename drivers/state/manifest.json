@@ -7430,6 +7430,29 @@
   "verified": "2026-10-24",
   "version": "2.0.2-5"
  },
+ "brother-mfc7320-lpr": {
+  "commit": "196248ac6802f8f14fe95e578b9626f612b47624",
+  "depends": [
+   "ghostscript",
+   "psutils",
+   "lib32-glibc",
+   "rpmextract"
+  ],
+  "patches": {
+   "luxos-lib32-link.patch": "c6710c137f0409f2d9df1423d646eecedf3f10a18b29a4c701b3b9f1e7bed9e7"
+  },
+  "pkgnames": [
+   "brother-mfc7320-lpr"
+  ],
+  "rules": 4,
+  "sources": {
+   "brmfc7320lpr-2.0.2-1.i386.rpm": "7da0a74f9f44ed823cf2e4b03b2984a4988d0ff223eb49e4fa57439723bf8be0",
+   "brother-mfc7320-lpr.patch": "1907096d9db23100dc49ae3b9aa2cbddb1bb41e3247402adbb8a7315c0b0301e"
+  },
+  "vendor": "brother",
+  "verified": "2026-10-27",
+  "version": "2.0.2-4"
+ },
  "brother-mfc7340": {
   "commit": "51344d895ab8a7510febc5e6b5219e63ea3b4f67",
   "depends": [
@@ -9372,6 +9395,9 @@
    "gtk2",
    "cups"
   ],
+  "patches": {
+   "luxos-autoheader.patch": "f25c4b05ffc140801b3fe7c55064b7a0951d027b749ba03d35fce2045169eaf3"
+  },
   "pkgnames": [
    "cnijfilter-mg5200"
   ],
@@ -9385,8 +9411,35 @@
    "fix_ppd_mg5200.patch": "7ed169dc922038b832c52e73bc74fe2fde1da9654adb099197d2f678b8827f48"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.40-12"
+ },
+ "cnijfilter-common": {
+  "commit": "3f8ebdae3ae887e30a6e8857533f0e999ebdd8da",
+  "depends": [
+   "lib32-libcups",
+   "lib32-popt",
+   "lib32-libusb",
+   "lib32-libxml2",
+   "lib32-glibc"
+  ],
+  "patches": {
+   "luxos-soname-links.patch": "4579aeed5aa0290729aa63867a9b61f0e85499ddcbd879084c24b9f6557dd51a"
+  },
+  "pkgnames": [
+   "cnijfilter-common"
+  ],
+  "rules": 4,
+  "sources": {
+   "buildfiles.patch": "5aae6326e9fdede064c9579ddfe2d49a37e4a0c2cc8881cde7a0c9178bba80a9",
+   "cnijfilter-source-4.10-1.tar.gz": "0cff37fe6684dcfeb12a7350fb94cb5dda055b18c9987bbd32259320d46fc598",
+   "cups.patch": "ecd1dbb4ae7e0d014d990e4ea32211ec033df75bdb395586f3fe36f85ccfb808",
+   "keytext.patch": "3d3b4a5fb3b9e87366e408ad63a98b6867653e2f5dc8fb8be6df827faf4f8f95",
+   "mychanges.patch": "7aa9bfa33b26cdc396be2fbf1bdbd5cd1a1be8f732d8c45affe577c2905639ea"
+  },
+  "vendor": "canon",
+  "verified": "2026-10-27",
+  "version": "4.10-6"
  },
  "cnijfilter-common-mg2400": {
   "commit": "58ffe0ea3e25925a87d768bdeb1170e3eec4c649",
@@ -9635,6 +9688,9 @@
    "make",
    "gcc"
   ],
+  "patches": {
+   "luxos-cups2.patch": "4db686a0f86070d4d3276e2c31b0f5fb6298583ed0f6aad0d1355753195d5cd7"
+  },
   "pkgnames": [
    "cnijfilter-mg2100"
   ],
@@ -9643,10 +9699,11 @@
    "cnijfilter-source-3.60-1.tar.gz": "7e4f91a0aebfa32d75da046a20bab992bd6032bb2069cf0091e77d8119a489de",
    "cups.patch": "831b5ca39cb6b93e87dc64df675d3f27e3cc1e7674d510ea97bd05cc5fc33280",
    "id.po.patch": "55358226ca1580ae9116f1ddc29d89d5df5b3f7642409896c27a94b80a53aeb2",
+   "luxos-cups2.patch": "fd453384fde33e6c76f201ed33b5dc1a68a2b4f915f7726e665bc5c4279cb3b3",
    "png.patch": "b8c866a0def7bbbebedfc57998cec9827a55e195b910b5f335cd70ca2ed19f9d"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.60-1"
  },
  "cnijfilter-mg2400series": {
@@ -9716,6 +9773,9 @@
    "make",
    "gcc"
   ],
+  "patches": {
+   "luxos-autoheader.patch": "64d3542e99496e364bbb7253977b0280a42f8da5ed6d2f6a43ee18625376791d"
+  },
   "pkgnames": [
    "cnijfilter-mg3100"
   ],
@@ -9728,7 +9788,7 @@
    "libpng15.patch": "5a4c74135b5094a3af20f74c7d1ffdeae1436247230b7a83f8c1d3a3c6d04993"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.60-5"
  },
  "cnijfilter-mg3200": {
@@ -9739,6 +9799,9 @@
    "cups",
    "ghostscript"
   ],
+  "patches": {
+   "luxos-autoheader.patch": "46b1f8b84b1743f12bc189f4a5922364325ef547d8e18a94cf85770efc354dc5"
+  },
   "pkgnames": [
    "cnijfilter-mg3200"
   ],
@@ -9750,7 +9813,7 @@
    "fix_png.patch": "ad54cb2886ac47773943b22bee55cf708d123c1d8e971b5323f4707fdcbdffb1"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.80-4"
  },
  "cnijfilter-mg3500series": {
@@ -9779,6 +9842,9 @@
    "findutils",
    "gawk"
   ],
+  "patches": {
+   "luxos-autoheader.patch": "b41d06beee224ce95a3b4f9da6cd1640f9645587401186a27b5e87fdc43a03ef"
+  },
   "pkgnames": [
    "cnijfilter-mg4100"
   ],
@@ -9790,7 +9856,7 @@
    "libpng15.patch": "f1ba52d4003427ac02249fb91cef492e23f37d1cd912bf433f7841f71baf0f27"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.60-5"
  },
  "cnijfilter-mg4200": {
@@ -9801,6 +9867,9 @@
    "cups",
    "ghostscript"
   ],
+  "patches": {
+   "luxos-autoheader.patch": "3ca5183946bd2b201515c20c0d24401cc0267213b4f53d7edb2cb6d21aeb839f"
+  },
   "pkgnames": [
    "cnijfilter-mg4200"
   ],
@@ -9812,7 +9881,7 @@
    "fix_png.patch": "ad54cb2886ac47773943b22bee55cf708d123c1d8e971b5323f4707fdcbdffb1"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.80-6"
  },
  "cnijfilter-mg5300": {
@@ -9825,6 +9894,9 @@
    "findutils",
    "gawk"
   ],
+  "patches": {
+   "luxos-autoheader.patch": "40e14ba1517ed8712d7883d2f4da765e1c87e3434b41fcfa7bdbfd565f9077a2"
+  },
   "pkgnames": [
    "cnijfilter-mg5300"
   ],
@@ -9837,7 +9909,7 @@
    "libpng.patch": "f1723e8e6a84942bd9fcfefef3efb20a40384ffb449101eccecf02aac929399c"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.60-8"
  },
  "cnijfilter-mg6100": {
@@ -9847,6 +9919,9 @@
    "gtk2",
    "cups"
   ],
+  "patches": {
+   "luxos-autoheader.patch": "9abc8dfb7f856e35cc487fc66c2bca4027a78151fb3f2079be5787f68f457bf2"
+  },
   "pkgnames": [
    "cnijfilter-mg6100"
   ],
@@ -9859,7 +9934,7 @@
    "fix_ppd_mg6100.patch": "e228f902a24994a23ff14bbe1eefe414541d37c38bcdf11a17210eb1743d308d"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.40-12"
  },
  "cnijfilter-mg6200": {
@@ -9872,6 +9947,9 @@
    "findutils",
    "gawk"
   ],
+  "patches": {
+   "luxos-autoheader.patch": "ffc7721f3f5f6dbfd42b4a82426d08100032b1a0fc6644ad99a93be0a50b7195"
+  },
   "pkgnames": [
    "cnijfilter-mg6200"
   ],
@@ -9885,7 +9963,7 @@
    "sysctl.patch": "b4f62db05abe567cfc66c7a2ab2cdab351b496c3afc035a2c7f957407f8c90d7"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.60-5"
  },
  "cnijfilter-mg6300": {
@@ -9898,6 +9976,9 @@
    "findutils",
    "gawk"
   ],
+  "patches": {
+   "luxos-autoheader.patch": "af07bc6d9c9466d63339e37915fa00a61cf4b2cc9aa33de881f2af2943a6e96e"
+  },
   "pkgnames": [
    "cnijfilter-mg6300"
   ],
@@ -9909,7 +9990,7 @@
    "libpng15.patch": "8dba6695b3ea3b01a3687e00e3749819bf20316c79bf1ee4c033baff5166c4c6"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.80-9"
  },
  "cnijfilter-mg6400series": {
@@ -9968,6 +10049,9 @@
    "autoconf>=2.59",
    "automake>=1.9.5"
   ],
+  "patches": {
+   "luxos-autoheader.patch": "99ba0518a746f19a7005f8dbf16eb70c6b675011d3c1231ae94dd037e807b5e0"
+  },
   "pkgnames": [
    "cnijfilter-mp280"
   ],
@@ -9981,7 +10065,7 @@
    "glibc-deprecated-fix.patch": "19a630212f5fbf9b206451fecc79753dd238fc25cf33223b29cc1368bca7e915"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.40.1-5"
  },
  "cnijfilter-mp630": {
@@ -14384,9 +14468,11 @@
   "depends": [
    "gtk2",
    "libusb-compat",
-   "gimp",
    "sane"
   ],
+  "patches": {
+   "luxos-no-gimp2.patch": "0849781635dd8d08e8152ef6db9611278ae064805c7eefa0f651030483e36309"
+  },
   "pkgnames": [
    "scangearmp-mg3200"
   ],
@@ -14398,7 +14484,7 @@
    "scangearmp-source-2.00-1.tar.gz": "8ab1b3a357064715e97f58d95a10a350135272b1df37cf0428dc535eeb9779dc"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "2.00-4"
  },
  "scangearmp-mg3500": {
@@ -14468,9 +14554,11 @@
    "grep",
    "gawk",
    "libusb-compat",
-   "gimp",
    "sane"
   ],
+  "patches": {
+   "luxos-no-gimp2.patch": "d7d1323a6bece14fe5bb34f430ab6f278e8e2aae86b4cea5d5d9477e58a698c9"
+  },
   "pkgnames": [
    "scangearmp-mg6200"
   ],
@@ -14482,14 +14570,13 @@
    "scangearmp-source-1.80-1.tar.gz": "fdb124ece506b73157914e5efecbd9da8542d5a0a77af83505c9a48a9952717b"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "1.80-4"
  },
  "scangearmp-mp280": {
   "commit": "ac8267f4aa482802d6e1f22eeef4b9afc824eda9",
   "depends": [
    "sane",
-   "gimp",
    "gtk2",
    "libpng>=1.5",
    "libusb-compat",
@@ -14497,6 +14584,9 @@
    "autoconf>=2.13",
    "automake>=1.6"
   ],
+  "patches": {
+   "luxos-no-gimp2.patch": "7d54ba66723d95014b5b608e78da490fdf8c26085bbc72831d013b9e776c36bd"
+  },
   "pkgnames": [
    "scangearmp-mp280"
   ],
@@ -14508,7 +14598,7 @@
    "scangearmp-source-1.60-1.tar.gz": "fab6b764409f17a674ba31e45a515353cdf027562b2daee96c316bb86d6d6340"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "1.60-5"
  },
  "scangearmp-mx340": {

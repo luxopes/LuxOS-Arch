@@ -1,0 +1,32 @@
+# LuxOS: Arch ma jen GIMP 3 (gimp-2.0.pc chybi) -> bez GIMP 2 pluginu; samostatna aplikace scangearmp
+# a SANE backend canon_mfp zustavaji (kod pluginu je cely v #ifdef __GIMP_PLUGIN_ENABLE__)
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -10,7 +10,7 @@
+ arch=('i686' 'x86_64')
+ license=('custom')
+ depends=('gtk2' 'libpng>=1.2.8')
+-makedepends=('findutils' 'grep' 'gawk' 'libusb-compat' 'gimp' 'sane')
++makedepends=('findutils' 'grep' 'gawk' 'libusb-compat' 'sane')
+ source=("http://gdlp01.c-wss.com/gds/1/0100003931/01/scangearmp-source-${_pkgver}.tar.gz"
+ 	'fix_scanfile.patch'
+ 	'configures.patch'
+@@ -35,6 +35,8 @@
+ 	patch -p1 -i ${srcdir}/gimp.patch
+ 
+ 	cd ${srcdir}/scangearmp-source-${_pkgver}/scangearmp
++	# LuxOS: bez GIMP 2 pluginu (Arch ma jen GIMP 3) - samostatna aplikace a SANE backend zustavaji
++	sed -i -e '/^gimp_modules=/d' -e '/^PKG_CHECK_MODULES(GIMP,/d' -e 's/ -D__GIMP_PLUGIN_ENABLE__//' configure.in
+ 	./autogen.sh --prefix=/usr LDFLAGS="-L`pwd`/../com/libs_bin64" LIBS=-lm
+ 	# Force the use of system's libtool
+ 	rm libtool
+@@ -72,9 +74,6 @@
+ 	ln -s libcncpmslld${_modelid}c.so.*.*.* libcncpmslld${_modelid}c.so
+ 	ln -s libcncpmslld${_modelid}.so.*.*.* libcncpmslld${_modelid}.so
+ 
+-	# Make scangearmp usable from gimp
+-	install -d -m 0755 ${pkgdir}/usr/lib/gimp/2.0/plug-ins/
+-	ln -s /usr/bin/scangearmp ${pkgdir}/usr/lib/gimp/2.0/plug-ins/
+ 
+ 	# Install .tbl and .dat files for ${_model} series
+ 	install -d -m 0755 ${pkgdir}/usr/lib/bjlib
