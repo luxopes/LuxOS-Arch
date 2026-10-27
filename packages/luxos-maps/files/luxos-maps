@@ -178,6 +178,29 @@ def draw_star(cr, x, y, r):
     cr.close_path()
 
 
+
+def set_window_icons(win):
+    """Ikona okna 16-256 px (Alt+Tab ukazuje ~100 px; set_icon_name posle jen male velikosti a
+    xfwm4 je zvetsi rozmazane). Bez ikony v tematu SVG vedle programu."""
+    theme = Gtk.IconTheme.get_default()
+    svg = os.path.join(os.path.dirname(os.path.realpath(__file__)), APP + ".svg")
+    pixbufs = []
+    for size in (16, 24, 32, 48, 64, 128, 256):
+        pb = None
+        try:
+            if theme.has_icon(APP):
+                pb = theme.load_icon(APP, size, Gtk.IconLookupFlags.FORCE_SIZE)
+            elif os.path.exists(svg):
+                pb = GdkPixbuf.Pixbuf.new_from_file_at_size(svg, size, size)
+        except GLib.Error:
+            pb = None
+        if pb:
+            pixbufs.append(pb)
+    if pixbufs:
+        win.set_icon_list(pixbufs)
+    else:
+        win.set_icon_name(APP)
+
 class TurnIcon(Gtk.DrawingArea):
     """Sipka manevru (vlastni kresba, bez ikon tretich stran)."""
     ANGLES = {"straight": 0, "slight right": 45, "right": 90, "sharp right": 135, "uturn": 180,
@@ -880,7 +903,7 @@ class MapsWindow(Gtk.Window):
             self.set_application(application)
         self.set_default_size(1120, 740)
         self.set_size_request(560, 420)
-        self.set_icon_name(APP)
+        set_window_icons(self)
         self.cfg = lm.load_config()
         view = self.cfg["view"] or dict(zip(("lat", "lon", "zoom"), HOME_VIEW.get(LANG, (48.0, 12.0, 4))))
         self.place = None
