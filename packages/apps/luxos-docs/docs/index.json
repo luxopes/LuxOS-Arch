@@ -105,7 +105,7 @@
         {
           "path": "luxos/package-management.md",
           "title": "Package management with lux",
-          "summary": "All lux commands and the full /etc/lux/lux.conf reference (TOML: [repo.NAME], server, mirrors, hold, signatures, [include], old format and lux config migrate), mirror list, Flathub, community (AUR) packages in the sandbox with LuxAI Lite review, TUI, errors and migration from pacman.conf.",
+          "summary": "All lux commands and the full /etc/lux/lux.conf reference (TOML: [repo.NAME], server, mirrors, hold, signatures, [include], old format and lux config migrate), mirror list, Flathub, community (AUR) overview (details in community-aur.md), TUI, errors and migration from pacman.conf.",
           "keywords": [
             "lux",
             "install",
@@ -169,6 +169,22 @@
             "check-updates",
             "luxnew",
             "pacnew"
+          ]
+        },
+        {
+          "path": "luxos/community-aur.md",
+          "title": "Community packages (AUR): checking and sandbox",
+          "summary": "How lux checks AUR build scripts (fixed rules + LuxAI Lite and Flash consensus, prompt-injection resistant), the measured detection rate, sandbox as default target, system installs only with explicit permission.",
+          "keywords": [
+            "AUR",
+            "community",
+            "PKGBUILD",
+            "review",
+            "malware",
+            "sandbox",
+            "makepkg",
+            "LuxAI",
+            "security"
           ]
         },
         {
