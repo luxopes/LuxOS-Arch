@@ -90,6 +90,12 @@ build_one() {  # build_one ADRESAR_BALIKU CIL_PKGDEST
     msg "Building package $p"
     rm -rf "${BUILD:?}/$p"
     cp -r "$src" "$BUILD/$p"
+    # testy v check() nekterych baliku ctou zdroje sousednich baliku (../luxos-i18n/files,
+    # ../luxos-desktop/files/python): odkaz jen pro cteni, do balicku se nedostane
+    local sib
+    for sib in luxos-i18n luxos-desktop; do
+        [[ $sib != "$p" && ! -e $BUILD/$sib && -d $ROOT/packages/$sib ]] && ln -s "$ROOT/packages/$sib" "$BUILD/$sib"
+    done
     # mezipameti Pythonu z testu (py_compile, import skriptu) do balicku nepatri - a "install -t dir/*" na nich selze
     find "$BUILD/$p" -name __pycache__ -type d -prune -exec rm -rf {} +
     chown -R builder: "$BUILD/$p"
