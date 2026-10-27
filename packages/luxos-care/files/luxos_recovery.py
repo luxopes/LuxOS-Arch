@@ -11,6 +11,7 @@
 """
 import json
 import os
+import re
 import shutil
 import stat
 
@@ -52,15 +53,50 @@ def fsck_cmd(fstype, dev, repair):
     return ["e2fsck", "-p" if repair else "-n", "-f", dev]
 
 
+# Bajt stavu svazku FAT (FAT32 0x41 = 65, FAT12/16 0x25 = 37): jadro v nem drzi priznak "dirty",
+# dokud je oddil pripojeny pro zapis, a zapisuje ho jen do hlavniho boot sektoru, ne do zalohy
+_FAT_STATE_OFFSETS = {"37", "65"}
+_FAT_HARMLESS = (
+    re.compile(r"^fsck\.fat \d"),
+    re.compile(r"^There are differences between boot sector and its backup\.$"),
+    re.compile(r"^This is mostly harmless\. Differences: \(offset:original/backup\)$"),
+    re.compile(r"^Not automatically fixing this\.$"),
+    re.compile(r"^Dirty bit is set\. Fs was not properly unmounted and some data may be corrupt\.$"),
+    re.compile(r"^Automatically removing dirty bit\.$"),
+    re.compile(r"^Leaving filesystem unchanged\.$"),
+    re.compile(r"^\S+: \d+ files, \d+/\d+ clusters$"),
+)
+
+
+def fat_only_dirty(output):
+    """True, kdyz fsck.fat -n nasel jen priznak "dirty" (pripojeny oddil nebo tvrde vypnuti -
+    pri startu ho tise smaze systemd-fsck, fstab pass 2) a zadnou skutecnou chybu."""
+    dirty = False
+    for ln in output.splitlines():
+        ln = ln.strip()
+        if not ln:
+            continue
+        if ln.startswith("Dirty bit is set"):
+            dirty = True
+        m = re.fullmatch(r"(\d+):[0-9a-fA-F]{2}/[0-9a-fA-F]{2}", ln)
+        if m:
+            if m.group(1) not in _FAT_STATE_OFFSETS:
+                return False
+            continue
+        if not any(r.match(ln) for r in _FAT_HARMLESS):
+            return False
+    return dirty
+
+
 def disk_check(top, repair=False, out=print):
     """Kontrola (repair=False: nic se nezapisuje). -> [(krok, ok, vystup)]."""
     results = []
     dev = snap.root_device()
 
-    def step(title, cmd, ok_codes=(0,), timeout=4 * 3600):
+    def step(title, cmd, ok_codes=(0,), timeout=4 * 3600, ok_output=None):
         out(title)
         rc, o = snap.sh(cmd, timeout=timeout)
-        ok = rc in ok_codes
+        ok = rc in ok_codes or (ok_output is not None and ok_output(rc, o))
         results.append((title, ok, o.strip()[-4000:]))
         return ok
 
@@ -71,7 +107,9 @@ def disk_check(top, repair=False, out=print):
         step("btrfs check --readonly", ["btrfs", "check", "--readonly", "--force", dev])
     for mp, fstype, bdev in boot_mounts():
         if not repair:
-            step(f"fsck {mp}", fsck_cmd(fstype, bdev, False), ok_codes=(0,))
+            # Pripojeny FAT ma vzdy priznak "dirty" (jadro) - samotny neni chyba
+            step(f"fsck {mp}", fsck_cmd(fstype, bdev, False), ok_codes=(0,),
+                 ok_output=(lambda rc, o: rc == 1 and fat_only_dirty(o)) if fstype == "vfat" else None)
             continue
         rc, o = snap.sh(["umount", mp], timeout=120)
         if rc != 0:

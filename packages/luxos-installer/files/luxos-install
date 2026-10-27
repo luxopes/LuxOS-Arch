@@ -1862,7 +1862,10 @@ configure_system() {
     step "$(T "Configuring the system")"
     # zram swap live systemu nepatri do fstab (instalovany system ma vlastni zram-generator)
     swapoff /dev/zram* 2>/dev/null || true
-    genfstab -U "$TARGET" | sed 's/,subvolid=[0-9]*//' | grep -v zram >"$TARGET/root/fstab.new"
+    # EFI oddil (vfat) vzdy s kontrolou pri startu (pass 2): po tvrdem vypnuti zustane priznak
+    # "dirty" a systemd-fsck ho tise opravi (fsck.fat -a); genfstab da 0, kdyz live nema fsck.vfat
+    genfstab -U "$TARGET" | sed 's/,subvolid=[0-9]*//' | grep -v zram |
+        awk '$1 !~ /^#/ && $3 == "vfat" && $NF == "0" { sub(/0[[:space:]]*$/, "2") } { print }' >"$TARGET/root/fstab.new"
     # Vedle jinych systemu: aktivni swap patri jim (LuxOS ma zram)
     [[ $DISK_MODE == @(freespace|layout|partition) ]] && sed -i '/[[:space:]]swap[[:space:]]/d' "$TARGET/root/fstab.new"
     # Rucni rozdeleni: swap z LAYOUT (pri instalaci se nezapina, genfstab ho nevidi)

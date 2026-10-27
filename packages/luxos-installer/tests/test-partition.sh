@@ -222,10 +222,11 @@ run_case() {  # run_case JMENO PRIPRAVA(bash)
         cat "$TARGET/etc/crypttab.initramfs" >"$dir/crypttab.initramfs" 2>/dev/null || : >"$dir/crypttab.initramfs"
         # configure_system s nahradami chroot/genfstab: luxos-setup.env, fstab a polozka UEFI
         genfstab() {   # fstab podle pripojeni v $MOCK/cmds + aktivni swap live systemu (musi zmizet)
-            local opts dev mp
+            local opts dev mp t
             while read -r _ _ opts dev mp; do
                 [[ $mp == "$TARGET"* ]] || continue
-                printf 'UUID=%s\t%s\tauto\t%s\t0 0\n' "$(blkid -s UUID -o value "$dev")" "$(m=${mp#"$TARGET"}; echo "${m:-/}")" "$opts"
+                t=auto; [[ $mp == */efi || $mp == */boot ]] && t=vfat   # genfstab bez fsck.vfat: pass 0
+                printf 'UUID=%s\t%s\t%s\t%s\t0 0\n' "$(blkid -s UUID -o value "$dev")" "$(m=${mp#"$TARGET"}; echo "${m:-/}")" "$t" "$opts"
             done < <(grep '^mount -o ' "$MOCK/cmds")
             printf 'UUID=live-swap\tnone\tswap\tdefaults\t0 0\n'
         }
@@ -297,6 +298,8 @@ expect "D: ESP_MOUNT=/efi ESP_KEEP=1, DISK podle oddilu" has "$OUT/D/vars" "ESP_
 expect "D: crypttab prazdny" test ! -s "$OUT/D/crypttab" -a ! -s "$OUT/D/crypttab.initramfs"
 expect "D: fstab: / a /efi" grep -qP '^UUID=fs-uuid-vda4\t/\t' "$OUT/D/fstab"
 expect "D: fstab: /efi" grep -qP '^UUID=fs-uuid-vda1\t/efi\t' "$OUT/D/fstab"
+expect "D: fstab: /efi s kontrolou pri startu (pass 2)" grep -qP '^UUID=fs-uuid-vda1\t/efi\tvfat\t.*\t0 2$' "$OUT/D/fstab"
+expect "D: fstab: / bez zmeny passu" grep -qP '^UUID=fs-uuid-vda4\t/\tauto\t.*\t0 0$' "$OUT/D/fstab"
 expect "D: fstab: bez swapu (zram)" hasnot "$OUT/D/fstab" "swap"
 e=$OUT/D/setup.env
 expect "D: env: DISK_MODE=partition" grep -qx 'DISK_MODE=partition' "$e"

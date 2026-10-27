@@ -192,6 +192,34 @@ class Recovery(Env):
         self.assertEqual(self.cmds[i + 2], ["mount", "/boot"])
         self.assertFalse(any("--repair" in c for c in self.cmds))
 
+    DIRTY = ("fsck.fat 4.2 (2021-01-31)\n"
+             "There are differences between boot sector and its backup.\n"
+             "This is mostly harmless. Differences: (offset:original/backup)\n"
+             "  65:01/00\n"
+             "  Not automatically fixing this.\n"
+             "Dirty bit is set. Fs was not properly unmounted and some data may be corrupt.\n"
+             " Automatically removing dirty bit.\n"
+             "\n"
+             "Leaving filesystem unchanged.\n"
+             "/dev/nvme0n1p1: 12 files, 3000/129022 clusters\n")
+
+    def test_fat_only_dirty(self):
+        self.assertTrue(rec.fat_only_dirty(self.DIRTY))
+        self.assertTrue(rec.fat_only_dirty(self.DIRTY.replace("  65:01/00", "  37:01/00")))
+        self.assertFalse(rec.fat_only_dirty(self.DIRTY.replace("  65:01/00", "  3:4d/53")))
+        self.assertFalse(rec.fat_only_dirty(self.DIRTY.replace(
+            "Leaving", "/EFI/BOOT/BOOTX64.EFI\n  File size is 0 bytes, cluster chain length is > 0.\nLeaving")))
+        self.assertFalse(rec.fat_only_dirty("fsck.fat 4.2 (2021-01-31)\n/dev/x: 1 files, 1/2 clusters\n"))
+
+    def test_disk_check_mounted_fat_dirty_is_ok(self):
+        """Pripojeny ESP ma od jadra vzdy priznak dirty - kontrola ho nehlasi jako chybu."""
+        def sh(cmd, timeout=600):
+            self.cmds.append(cmd)
+            return (1, self.DIRTY) if cmd[0] == "fsck.fat" else (0, "")
+        with mock.patch.object(snap, "sh", sh):
+            res = rec.disk_check(self.top, out=lambda *a: None)
+        self.assertTrue(all(ok for _t, ok, _o in res), res)
+
     def test_disk_check_reports_errors(self):
         def sh(cmd, timeout=600):
             self.cmds.append(cmd)
