@@ -3875,3 +3875,4 @@ A computer with this name is already in the domain. Choose another name or ask y
 The clock of this computer differs from the domain by more than 5 minutes. Set the clock from the domain and try again.	A gép órája több mint 5 perccel eltér a tartományétól. Állítsd be az órát a tartomány szerint, és próbáld újra.
 The computer name for the domain may have at most 15 letters, digits and hyphens.	A számítógép tartományi neve legfeljebb 15 betűből, számjegyből és kötőjelből állhat.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	A tartomány nem található a DNS-ben. Ellenőrizd, hogy a gép a szervezet DNS-kiszolgálóját használja-e (általában DHCP-ből), vagy add meg egy tartományvezérlő címét.
+Sign In to Network…	Bejelentkezés a hálózatba…

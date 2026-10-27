@@ -3875,3 +3875,4 @@ A computer with this name is already in the domain. Choose another name or ask y
 The clock of this computer differs from the domain by more than 5 minutes. Set the clock from the domain and try again.	L’orologio di questo computer differisce dal dominio di oltre 5 minuti. Imposta l’orologio dal dominio e riprova.
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Il nome del computer per il dominio può avere al massimo 15 lettere, cifre e trattini.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Il dominio non è stato trovato nel DNS. Verifica che il computer usi il server DNS dell’organizzazione (di solito da DHCP) o inserisci l’indirizzo di un controller di dominio.
+Sign In to Network…	Accedi alla rete…

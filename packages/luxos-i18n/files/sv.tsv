@@ -3875,3 +3875,4 @@ A computer with this name is already in the domain. Choose another name or ask y
 The clock of this computer differs from the domain by more than 5 minutes. Set the clock from the domain and try again.	Datorns klocka skiljer sig mer än 5 minuter från domänen. Ställ klockan efter domänen och försök igen.
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Datornamnet för domänen får ha högst 15 bokstäver, siffror och bindestreck.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Domänen hittades inte i DNS. Kontrollera att datorn använder organisationens DNS-server (oftast via DHCP) eller ange adressen till en domänkontrollant.
+Sign In to Network…	Logga in på nätverket…

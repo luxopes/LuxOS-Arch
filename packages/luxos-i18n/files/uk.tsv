@@ -3876,3 +3876,4 @@ A computer with this name is already in the domain. Choose another name or ask y
 The clock of this computer differs from the domain by more than 5 minutes. Set the clock from the domain and try again.	Годинник цього комп’ютера відрізняється від домену більш ніж на 5 хвилин. Налаштуйте годинник за доменом і спробуйте ще раз.
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Назва комп’ютера для домену може мати щонайбільше 15 літер, цифр і дефісів.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Домен не знайдено в DNS. Перевірте, що комп’ютер використовує DNS-сервер організації (зазвичай із DHCP), або введіть адресу контролера домену.
+Sign In to Network…	Увійти в мережу…

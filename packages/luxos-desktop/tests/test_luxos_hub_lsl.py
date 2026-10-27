@@ -293,7 +293,8 @@ class Hub(unittest.TestCase):
         self.assertEqual(out.stdout, "<icon>luxos-control-center-symbolic</icon><iconclick>luxos-cc-toggle</iconclick><tool>"
                          + translation("Control Center") + "</tool>\n")
         hub.send_signal(signal.SIGTERM)
-        self.assertEqual(hub.wait(5), 0)
+        # 143: luxos-session ho po kill spusti znovu (kod 0 by smycku ukoncil); po odhlaseni konci X
+        self.assertEqual(hub.wait(5), 143)
         self.assertEqual(sorted(os.listdir(self.runtime)), [])
         err = self.hub_err()
         self.assertNotIn("CRITICAL", err, err)
@@ -321,7 +322,7 @@ class Hub(unittest.TestCase):
         self.assertEqual(self.run_prog("luxos-screenshot", "--close", **nothing).returncode, 0)
         self.assertEqual(tb.wait(5), 0)
         hub.send_signal(signal.SIGTERM)
-        self.assertEqual(hub.wait(5), 0)
+        self.assertEqual(hub.wait(5), 143)     # po SIGTERM: luxos-session ho spusti znovu
         err = self.hub_err()
         self.assertNotIn("LSL callback error", err, err)
 
@@ -337,7 +338,7 @@ class Hub(unittest.TestCase):
         self.assertTrue(self.wait_for(lambda: "shown" in self.ui_log("cc.log")), self.hub_err())
         self.assertIn("photo", self.ui_log("cc.log"))
         hub.send_signal(signal.SIGTERM)
-        self.assertEqual(hub.wait(5), 0)
+        self.assertEqual(hub.wait(5), 143)
         err = self.hub_err()
         self.assertNotIn("CRITICAL", err, err)
         self.assertNotIn("Theme parsing error", err, err)

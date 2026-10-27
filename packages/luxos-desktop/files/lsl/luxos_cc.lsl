@@ -492,6 +492,7 @@ function create():
     call gtk.widget_set_no_show_all(wifi_qr, True)
     cc["wifi_qr"] = wifi_qr
     cc["wifi_qr_scan"] = False
+    cc["wifi_signin"] = False
     cc["wifi_qr_mode"] = ""
     call gtk.box_pack_start(outer, wifi_qr, False, False, 0)
 
@@ -825,7 +826,8 @@ function on_wifi_radio(unused, output, status):
     return 0
 end
 
-# Odkaz na QR kod Wi-Fi pod dlazdicemi: mode "share", "scan" nebo "" (skryty)
+# Odkaz pod dlazdicemi: "share"/"scan" (QR kod Wi-Fi), "signin" (sit bez internetu - prihlaseni
+# do site s portalem rucne, kdyz se okno neotevrelo samo) nebo "" (skryty)
 function set_wifi_qr(mode):
     button = cc["wifi_qr"]
     if mode != cc["wifi_qr_mode"]:
@@ -837,7 +839,10 @@ function set_wifi_qr(mode):
         return 0
     end
     cc["wifi_qr_scan"] = mode == "scan"
-    if mode == "scan":
+    cc["wifi_signin"] = mode == "signin"
+    if mode == "signin":
+        call gtk.button_set_label(button, i18n.T("Sign In to Network…"))
+    elif mode == "scan":
         call gtk.button_set_label(button, i18n.T("Join Wi-Fi with QR Code…"))
     else:
         call gtk.button_set_label(button, i18n.T("Share Wi-Fi with QR Code…"))
@@ -847,7 +852,10 @@ function set_wifi_qr(mode):
 end
 
 function on_wifi_qr_clicked(button):
-    if cc["wifi_qr_scan"]:
+    if cc["wifi_signin"]:
+        call log_test("network sign-in")
+        call glib.spawn_quiet(["luxos-network-login"])
+    elif cc["wifi_qr_scan"]:
         call log_test("wifi-qr scan")
         call glib.spawn_quiet(["luxos-wifi-qr", "--scan"])
     else:
@@ -876,9 +884,19 @@ function on_wifi_list(on, output, status):
     if ssid != "":
         call tile_set_state(cc["t_wifi"], True, ssid)
         call set_wifi_qr("share")
+        call glib.spawn_capture(["nmcli", "-t", "-f", "CONNECTIVITY", "general"], on_connectivity, 0)
         return 0
     end
     call glib.spawn_capture(["nmcli", "-t", "-f", "TYPE,STATE", "device"], on_wifi_devices, 0)
+    return 0
+end
+
+# Pripojeno, ale bez internetu (omezene / portal): misto sdileni nabidnout prihlaseni do site
+function on_connectivity(unused, output, status):
+    state = output.strip()
+    if status == 0 and (state == "portal" or state == "limited"):
+        call set_wifi_qr("signin")
+    end
     return 0
 end
 

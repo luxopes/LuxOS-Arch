@@ -3875,3 +3875,4 @@ A computer with this name is already in the domain. Choose another name or ask y
 The clock of this computer differs from the domain by more than 5 minutes. Set the clock from the domain and try again.	De klok van deze computer wijkt meer dan 5 minuten af van het domein. Stel de klok in vanaf het domein en probeer het opnieuw.
 The computer name for the domain may have at most 15 letters, digits and hyphens.	De computernaam voor het domein mag maximaal 15 letters, cijfers en koppeltekens hebben.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Het domein is niet gevonden in DNS. Controleer of de computer de DNS-server van de organisatie gebruikt (meestal via DHCP) of voer het adres van een domeincontroller in.
+Sign In to Network…	Aanmelden bij netwerk…
