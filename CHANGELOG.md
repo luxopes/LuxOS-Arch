@@ -53,6 +53,7 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 - **Bez tapet „vlny“** (`luxos-waves-dark`, `luxos-waves-light`): v LuxOS 1.0 zůstávají jen nové tapety. Kdo měl vlny nastavené, dostane po přihlášení Flow ve stejném režimu (tmavém nebo světlém).
 
 ### Opraveno
+- **Bez chyb „Failed to start BAMF“ v záznamu systému při odhlášení a novém přihlášení**: služba Docku `bamfdaemon` se spustí jen s dostupným X serverem (jinak se start tiše přeskočí).
 - **Po instalaci OEM už v Launchpadu není „Nainstalovat LuxOS“**: balík instalátoru zůstává kvůli Průvodci nastavením, jeho spouštěč na nainstalovaném systému skryje `/usr/local/share/applications/luxos-install.desktop`.
 - **`luxos-backup restore`/`list` mimo relaci plochy** (ssh, jiná konzole): když připojení zálohovacího disku chce heslo správce, v terminálu se na něj zeptá, jinak srozumitelně poradí okno Zálohy nebo terminál relace plochy (dřív chyba D-Bus „NotAuthorizedCanObtain“).
 - **Trezor: zavřený dialog hesla správce** při vytváření Trezoru ukáže „Ověření bylo zrušeno. Nic se nezměnilo.“ místo „Složku Trezor se nepodařilo vytvořit.“
