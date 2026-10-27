@@ -49,7 +49,7 @@ fi
 
 # Textovy editor LuxOS misto Mousepadu i u profilu z drivejsich verzi (jednou): ikona v Docku, oblibene
 # v nabidce a vychozi aplikace pro text v ~/.config/mimeapps.list (jen polozky s Mousepadem, jine
-# vlastni volby zustavaji). Mousepad zustava nainstalovany pod svym jmenem.
+# vlastni volby zustavaji). Mousepad aktualizace odebere (replaces v luxos-text).
 if [[ ! -e $cfg/text-editor-migrated ]] && command -v luxos-text >/dev/null; then
     launchers="${XDG_CONFIG_HOME:-$HOME/.config}/plank/dock1/launchers"
     if [[ -f $launchers/org.xfce.mousepad.dockitem ]]; then

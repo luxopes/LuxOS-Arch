@@ -59,7 +59,7 @@ depends=(
     # Aplikace
     # Sprava site (luxos-router): webova sprava routeru ve WebKitGTK (uz kvuli yad), ping, vyrobci podle MAC (oui.txt)
     webkit2gtk-4.1 iputils hwdata
-    # Textovy editor LuxOS misto Mousepadu (packages/luxos-text); starsi instalace Mousepad ponechaji
+    # Textovy editor LuxOS misto Mousepadu (packages/luxos-text); Mousepad nahradi (replaces v luxos-text)
     luxos-text
     firefox ristretto evince xarchiver 7zip unzip zip celluloid python-gobject python-cairo libwnck3 upower libnotify wmctrl
     # Kamera (luxos-camera): v4l2src, jpegdec, videoflip, vp8enc/webmmux, pulsesrc (good); opusenc (base)
@@ -77,10 +77,7 @@ depends=(
     lshw pciutils usbutils
 )
 # fprintd instaluje luxos-drivers jen pri nalezene ctecce (luxos-hwdetect)
-# mousepad: drivejsi textovy editor - u starsich instalaci zustane (volitelna zavislost = neni "nepotrebny"
-# pro lux autoremove)
-optdepends=('fprintd: log in with a fingerprint (Fingerprint settings)'
-            'mousepad: the previous text editor (kept on older installations)')
+optdepends=('fprintd: log in with a fingerprint (Fingerprint settings)')
 
 build() {
     # Prepinani nabidek horni listy jednim klikem
