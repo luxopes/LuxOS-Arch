@@ -146,6 +146,7 @@ class Service:
         self.timer = None
         self.reg_id = None
         self.settings_stamp = None
+        self.approved = {a for a, _n in self.settings.phones()}
 
     # ---- D-Bus ----
     def export(self):
@@ -217,6 +218,10 @@ class Service:
     def bluetooth_state(self, registered, error):
         self.bt.update(registered=registered, error=error,
                        available=bool(self.profile and self.profile.available))
+        if registered:
+            # i telefony schvalene drive (pred touto verzi nebo bez BlueZ) - BlueZ je pak nepta znovu
+            for address, _name in self.settings.phones():
+                self.set_trusted(address, True)
         if error:
             log("BlueZ profile registration failed:", error)
         self.status_changed()
@@ -239,6 +244,12 @@ class Service:
         self.status_changed()
         log("connection from", peer["address"])
         return s
+
+    def set_trusted(self, address, trusted):
+        """Duvera v BlueZ podle schvaleni v aplikaci: schvaleny telefon uz agent Bluetooth LuxOS
+        pri dalsim spojeni nepta (druhy dotaz vedle nasho), odebrany zase ano."""
+        if self.profile is not None and hasattr(self.profile, "set_trusted"):
+            self.profile.set_trusted(address, trusted)
 
     def disconnect(self, address):
         a = store.normalize_address(address)
@@ -313,9 +324,12 @@ class Service:
         if allow:
             try:
                 self.settings.approve(a, p["name"])
+                self.approved = {x for x, _n in self.settings.phones()}
             except (OSError, ValueError) as e:
                 log("cannot save approval:", e)
                 allow = False
+            if allow:
+                self.set_trusted(a, True)
         waiting = p["callbacks"]
         for _s, cb in waiting:
             cb(allow)
@@ -338,6 +352,10 @@ class Service:
 
     def reload_settings(self):
         self.settings.reload()
+        approved = {a for a, _n in self.settings.phones()}
+        for a in sorted(self.approved - approved):     # odebrany v okne Telefon nebo rucne
+            self.set_trusted(a, False)
+        self.approved = approved
         if self.location.enabled != self.settings.get("share_location"):
             self.location.set_enabled(self.settings.get("share_location"))
         for s in list(self.sessions.values()):
