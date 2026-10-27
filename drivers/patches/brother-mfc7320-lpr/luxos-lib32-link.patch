@@ -1,0 +1,37 @@
+# LuxOS: .install nesmi zapisovat do /usr/lib32 (mimo adresare ovladacu) - odkaz
+# /usr/lib32/libbrcomplpr2.so -> /usr/lib/libbrcomplpr2.so je misto toho primo v balicku (package())
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -45,5 +45,10 @@
+ 	cp -R "$srcdir/usr/local/Brother/inf" "$pkgdir/usr/share/brother"
+   cp -R "$srcdir/usr/local/Brother/lpd" "$pkgdir/usr/share/brother"
+ 	cp -R "$srcdir/var" "$pkgdir"
++  # LuxOS: odkaz pro 32bitovy filtr jako soucast balicku (driv ho delal .install)
++  if [ "$CARCH" = x86_64 ]; then
++    install -d "$pkgdir/usr/lib32"
++    ln -s /usr/lib/libbrcomplpr2.so "$pkgdir/usr/lib32/libbrcomplpr2.so"
++  fi
+ }
+ 
+--- a/brother-mfc7320-lpr.install
++++ b/brother-mfc7320-lpr.install
+@@ -3,9 +3,6 @@
+ post_install() {
+   /usr/share/brother/inf/setupPrintcap $MODEL -i USB
+   /usr/share/brother/inf/braddprinter -i $MODEL
+-  if [ -d /usr/lib32 ];then
+-    ln -s /usr/lib/libbrcomplpr2.so /usr/lib32/libbrcomplpr2.so
+-  fi
+ }
+ 
+ post_upgrade() {
+@@ -16,9 +13,6 @@
+   /usr/share/brother/inf/setupPrintcap $MODEL -e USB
+   /usr/share/brother/inf/braddprinter -e $MODEL
+   rm -fR /var/spool/lpd/$MODEL/*
+-  if [ -d /usr/lib32 ];then
+-    rm -f /usr/lib32/libbrcomplpr2.so
+-  fi
+ }
+ 
+ 
