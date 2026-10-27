@@ -387,13 +387,13 @@ end
 
 function realpath(path):
     unsafe:
-        out = __lsl_qbe_call2(__lsl_symbol("realpath"), cstr(path), 0)
+        # vlastni buffer (PATH_MAX): starsi verze symbolu realpath v glibc s NULL nepracuje
+        buffer = __lsl_byte_zeros(4096)
+        out = __lsl_qbe_call2(__lsl_symbol("realpath"), cstr(path), data(buffer))
         if out == 0:
             return ""
         end
-        text = glib.from_c(out)
-        call __lsl_qbe_call1(__lsl_symbol("free"), out)
-        return text
+        return glib.from_c(out)
     end
 end
 
@@ -435,5 +435,98 @@ function close_fd(handle):
             call __lsl_qbe_call1(__lsl_symbol("close"), ptr(handle))
         end
         return 0
+    end
+end
+
+# ---- Snimek obrazovky ------------------------------------------------------------------------------------------
+
+# Sledovani popisovace v hlavni smycce: f(data, fd, podminka) dokud vraci True; [id zdroje, id zaznamu]
+# (podminka G_IO_IN 1 | G_IO_ERR 8 | G_IO_HUP 16)
+function fd_add_data(handle, condition, handler, bound):
+    state = [handler, bound, 0]
+    tracked = track(fd_trampoline, 2, state)
+    state[2] = tracked[1]
+    unsafe:
+        source = __lsl_qbe_call4(__lsl_symbol("g_unix_fd_add"), ptr(handle), ptr(condition), __lsl_symbol("lsl_arch_callback_u3"), ptr(tracked[0]))
+        return [source, tracked[1]]
+    end
+end
+
+function fd_trampoline(state, handle, condition):
+    handler = state[0]
+    result = handler(state[1], handle, condition)
+    if result == True or (result != False and result != None and result != 0):
+        return True
+    end
+    call release(state[2])
+    return False
+end
+
+# Synchronni spusteni bez vystupu (xclip: hlavni proces skonci hned, kopie ve schrance zustane v nove relaci);
+# vraci kod ukonceni nebo -1, kdyz program neni
+function spawn_sync_quiet(argv):
+    unsafe:
+        array = glib.cstr_array(argv)
+        cells = __lsl_byte_zeros(16)
+        # G_SPAWN_SEARCH_PATH 4 | STDOUT_TO_DEV_NULL 8 | STDERR_TO_DEV_NULL 16; child_setup = setsid
+        ok = __lsl_qbe_call10(__lsl_symbol("g_spawn_sync"), 0, glib.array_data(array), 0, 28, __lsl_symbol("setsid"), 0, 0, 0, data(cells), data(cells) + 8)
+        if ok == 0:
+            error = __lsl_qbe_load64(data(cells) + 8)
+            if error != 0:
+                call __lsl_qbe_call1(__lsl_symbol("g_error_free"), error)
+            end
+            return -1
+        end
+        status = __lsl_qbe_s32(__lsl_qbe_load32(data(cells)))
+        if status & 127 != 0:
+            return 128 + (status & 127)
+        end
+        return (status >> 8) & 255
+    end
+end
+
+# Slozka uzivatele podle xdg-user-dirs (G_USER_DIRECTORY_DESKTOP 0, PICTURES 4, VIDEOS 7); "" kdyz neni
+function user_special_dir(kind):
+    unsafe:
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("g_get_user_special_dir"), ptr(kind)))
+    end
+end
+
+# Do Kose (g_file_trash): "trash", "unsupported" (slozka Kos nepodporuje), jinak text chyby
+function trash_file(path):
+    unsafe:
+        file = __lsl_qbe_call1(__lsl_symbol("g_file_new_for_path"), cstr(path))
+        cell = __lsl_byte_zeros(8)
+        ok = __lsl_qbe_call3(__lsl_symbol("g_file_trash"), file, 0, data(cell))
+        call __lsl_qbe_call1(__lsl_symbol("g_object_unref"), file)
+        if ok != 0:
+            return "trash"
+        end
+        error = __lsl_qbe_load64(data(cell))
+        if error == 0:
+            return "error"
+        end
+        # GError {domain, code, message}; G_IO_ERROR_NOT_SUPPORTED = 15
+        domain = __lsl_qbe_load32(error)
+        code = __lsl_qbe_s32(__lsl_qbe_load32(error + 4))
+        message = glib.from_c(__lsl_qbe_load64(error + 8))
+        call __lsl_qbe_call1(__lsl_symbol("g_error_free"), error)
+        if domain == __lsl_qbe_call0(__lsl_symbol("g_io_error_quark")) and code == 15:
+            return "unsupported"
+        end
+        return message
+    end
+end
+
+# Otevre adresu ve vychozi aplikaci; False pri chybe
+function launch_uri(uri):
+    unsafe:
+        cell = __lsl_byte_zeros(8)
+        ok = __lsl_qbe_call3(__lsl_symbol("g_app_info_launch_default_for_uri"), cstr(uri), 0, data(cell))
+        error = __lsl_qbe_load64(data(cell))
+        if error != 0:
+            call __lsl_qbe_call1(__lsl_symbol("g_error_free"), error)
+        end
+        return ok != 0
     end
 end
