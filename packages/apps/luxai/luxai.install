@@ -1,4 +1,13 @@
-# LuxAI - po odinstalovani smazat pravidla rezimu spravce (bez pomocnika by byla k nicemu)
+# LuxAI
+post_upgrade() {
+    # 1.x (Python) -> 2.x (nativni LSL): nastaveni, ucet a historie zustavaji, jen informace
+    if [ "$(vercmp "$2" 2.0.0)" -lt 0 ]; then
+        echo ">> LuxAI 2.0 is a native program (rewritten in LSL): faster start, less memory."
+        echo "   Settings, sign-in and conversation history are kept. Restart LuxAI if it is running."
+    fi
+}
+
+# po odinstalovani smazat pravidla rezimu spravce (bez pomocnika by byla k nicemu)
 post_remove() {
     rm -f /etc/polkit-1/rules.d/49-luxai-root-*.rules
 }
