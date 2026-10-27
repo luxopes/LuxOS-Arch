@@ -12,7 +12,9 @@
 set -u
 . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
 
-REPORTS=${XDG_DATA_HOME:-$HOME/.local/share}/luxos/freeze-reports
+# Bez HOME (napr. z konzole pres su/runuser bez -l): domovska slozka z passwd
+: "${HOME:=$(getent passwd "$(id -u)" | cut -d: -f6)}"
+REPORTS=${XDG_DATA_HOME:-${HOME:-/tmp}/.local/share}/luxos/freeze-reports
 mode=fix
 case ${1:-} in
     --report) mode=report ;;
