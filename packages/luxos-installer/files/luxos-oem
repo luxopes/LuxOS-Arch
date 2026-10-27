@@ -342,12 +342,24 @@ apply_user() {
     home=$(getent passwd "$u" | cut -d: -f6)
     [[ -n $home ]] || home=/home/$u
     home=$R$home
+    # Jazyk uctu pro LightDM jeste pred prihlasenim: relace (proces LightDM) vznika uz pri overeni
+    # hesla a dostane LANG podle jazyka uctu z AccountsService - bez nej by zdedila jazyk, ve kterem
+    # LightDM startoval (tovarni en_US), a prvni prihlaseni po Pruvodci by bylo anglicky.
+    # set_language() Pruvodce prichazi az po overeni, tedy pozde.
+    if [[ -z $R && -n ${V[LOCALE]-} ]]; then
+        local acc
+        acc=$(busctl --timeout=10 call org.freedesktop.Accounts /org/freedesktop/Accounts \
+              org.freedesktop.Accounts FindUserByName s "$u" 2>/dev/null | sed -n 's/^o "\(.*\)"$/\1/p')
+        [[ -n $acc ]] && busctl --timeout=10 call org.freedesktop.Accounts "$acc" \
+            org.freedesktop.Accounts.User SetLanguage s "${V[LOCALE]}" >/dev/null 2>&1 || true
+    fi
     # Fotka: AccountsService (prihlasovaci obrazovka) a ~/.face
     if [[ -n ${V[PHOTO]-} ]]; then
         install -Dm644 "${V[PHOTO]}" "$R/var/lib/AccountsService/icons/$u"
         install -Dm644 /dev/stdin "$R/var/lib/AccountsService/users/$u" <<A
 [User]
 Icon=/var/lib/AccountsService/icons/$u
+${V[LOCALE]:+Languages=${V[LOCALE]};}
 A
         install -m644 "${V[PHOTO]}" "$home/.face" && chown "$u:" "$home/.face" 2>/dev/null || true
     fi
