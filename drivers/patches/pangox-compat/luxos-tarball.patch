@@ -1,0 +1,66 @@
+# LuxOS: zdroj z gitu -> vydany archiv 0.0.2 z download.gnome.org (sha256 overen proti
+# pangox-compat-0.0.2.sha256sum od GNOME); pkgver() z gitu pryc, autogen.sh -> autoreconf
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -2,7 +2,7 @@
+ # Contributor: Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
+ 
+ pkgname='pangox-compat'
+-pkgver='0.0.2+2+gedb9e09'
++pkgver='0.0.2'
+ pkgrel='3'
+ pkgdesc='X Window System font support for Pango'
+ arch=('x86_64')
+@@ -10,38 +10,31 @@
+ url='https://gitlab.gnome.org/Archive/pangox-compat'
+ license=('LGPL-2.0-only')
+ depends=('glibc' 'glib2' 'pango' 'libx11')
+-makedepends=('git')
+ source=(
+-  "git+https://gitlab.gnome.org/Archive/pangox-compat.git"
++  "https://download.gnome.org/sources/pangox-compat/0.0/pangox-compat-${pkgver}.tar.xz"
+   '0001-Re-add-pango_x_get_shaper_map-it-is-still-used-in-th.patch'
+   '0002-disable-shaper.patch'
+ )
+-source[0]+='#commit=edb9e0904d04d1da02bba7b78601a2aba05aaa47'  # master
+-md5sums=('SKIP'
++md5sums=('7bcbd0187f03e1e27af9a81e07249c33'
+          'e4ab908c4501116d492c7cc0b70ab305'
+          '8d78182e9747b425b223fa8a2b82d210')
+-sha256sums=('SKIP'
++sha256sums=('552092b3b6c23f47f4beee05495d0f9a153781f62a1c4b7ec53857a37dfce046'
+             'd5aad903439ede05b866c9a2962f293bec4897f07d5a7b07ebc5aa99eeb27e48'
+             '0a33987e97807211bc74a851348bcee4a0a6147d2d7f1e23c9c7912505ba27db')
+ 
+-pkgver() {
+-  cd ${pkgname}
+-  git describe --tags | sed 's/-/+/g'
+-}
+-
+ prepare() {
+-  cd ${pkgname}
++  cd ${pkgname}-${pkgver}
+   patch -Nup1 -i '../0001-Re-add-pango_x_get_shaper_map-it-is-still-used-in-th.patch'
+   # diff -pNau5 pangox-compat/pangox.c{.orig,} > '0002-disable-shaper.patch'
+   patch -Nup1 -i '../0002-disable-shaper.patch'
+ }
+ 
+ build() {
+-  cd ${pkgname}
++  cd ${pkgname}-${pkgver}
+ 
+   if [ ! -s 'Makefile' ]; then
+     export CFLAGS="${CFLAGS} -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-function-declaration"
+-    NOCONFIGURE=1 ./autogen.sh
++    autoreconf -fi
+     ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var \
+       --disable-static
+     sed -i -e 's/ -shared / -Wl,-O1,--as-needed\0/g' libtool
+@@ -50,6 +43,6 @@
+ }
+ 
+ package() {
+-  cd ${pkgname}
++  cd ${pkgname}-${pkgver}
+   make -j1 DESTDIR="${pkgdir}" install
+ }

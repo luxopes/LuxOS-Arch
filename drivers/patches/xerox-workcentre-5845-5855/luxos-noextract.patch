@@ -1,0 +1,11 @@
+# LuxOS: .exe je samorozbalovaci RAR (solid) - bsdtar ho neumi, rozbaluje ho az prepare() pres unrar
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -9,6 +9,7 @@
+ license=('custom')
+ sha512sums=('b965a5131f6e655e9c2229071c73b575e58ae9b3f2e2284511f6b5cea8c492c754366c007d69ae34ba87d405bedb3e54847619a877901262da57b177cdb37d2d')
+ makedepends=('unrar')
++noextract=("WC58XX_${pkgver}_PPD_English.exe")
+ depends=('libcups')
+ 
+ prepare() {

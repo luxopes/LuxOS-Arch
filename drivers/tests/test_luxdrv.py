@@ -299,5 +299,82 @@ class Index(unittest.TestCase):
         self.assertEqual(luxdrv.ppd_ids(ppd), [("Brother", "Brother MFC-L2710DW")])
 
 
+class Patches(Base):
+    """Zaplaty LuxOS (drivers/patches/BALIK/*.patch): aplikuji se pred kontrolou, zapisou se do manifestu."""
+
+    def setUp(self):
+        super().setUp()
+        self.pdir = tempfile.TemporaryDirectory()
+        self.old = luxdrv.PATCHES
+        luxdrv.PATCHES = self.pdir.name
+        os.makedirs(os.path.join(self.pdir.name, "brother-test"))
+
+    def tearDown(self):
+        luxdrv.PATCHES = self.old
+        self.pdir.cleanup()
+        super().tearDown()
+
+    def patch(self, old, new, name="luxos.patch"):
+        import difflib
+        text = GOOD % self.sum
+        diff = difflib.unified_diff(text.splitlines(True), text.replace(old, new).splitlines(True),
+                                    "a/PKGBUILD", "b/PKGBUILD")
+        path = os.path.join(self.pdir.name, "brother-test", name)
+        with open(path, "w") as f:
+            f.write("# LuxOS: test\n" + "".join(diff))
+        return luxdrv.file_hash(path, "sha256")
+
+    def test_patch_applied_and_recorded(self):
+        h = self.patch("pkgdesc='Test driver'", "pkgdesc='Patched driver'")
+        r = self.verify()
+        self.assertEqual(r["problems"], [])
+        self.assertEqual(r["patches"], {"luxos.patch": h})
+        self.assertIn("Patched driver", luxdrv.readtext(os.path.join(self.repo, "PKGBUILD")))
+
+    def test_patched_pkgbuild_is_checked_too(self):
+        self.patch('  ln -s /usr/share/brother "$pkgdir/opt/brother"\n',
+                   '  ln -s /usr/share/brother "$pkgdir/opt/brother"\n  curl https://example.invalid/x\n')
+        r = self.verify()
+        self.assertFalse(r["ok"])
+        self.assertTrue(any("network tool" in p for p in r["problems"]))
+
+    def test_patch_that_does_not_apply_rejected(self):
+        self.patch("pkgdesc='Test driver'", "pkgdesc='Patched driver'")
+        self.write((GOOD % self.sum).replace("pkgdesc='Test driver'", "pkgdesc='Changed in AUR'"))
+        r = self.verify()
+        self.assertFalse(r["ok"])
+        self.assertTrue(r["problems"][0].startswith("LuxOS patch luxos.patch does not apply"))
+
+    def test_build_refuses_unverified_patch(self):
+        self.patch("pkgdesc='Test driver'", "pkgdesc='Patched driver'")
+        _p, prob = luxdrv.apply_patches(self.repo, "brother-test", expect={"luxos.patch": "0" * 64})
+        self.assertTrue(prob and "differ from the verified" in prob[0])
+
+
+class Dependencies(unittest.TestCase):
+    """Knihovny z AUR (vendors.json "dependencies"): vlastni domeny, i s cestou."""
+    CONF = {"vendors": {"brother": {"prefixes": ["brother-"], "domains": ["download.brother.com"]}},
+            "dependencies": {"libfoo": {"domains": ["github.com/foo/"], "redirects": ["cdn.example.org"]}}}
+
+    def test_vendor_of_dependency(self):
+        self.assertEqual(luxdrv.vendor_of("libfoo", self.CONF), "dep:libfoo")
+        self.assertEqual(luxdrv.vendor_of("brother-x", self.CONF), "brother")
+
+    def test_path_scoped_domain(self):
+        ok = luxdrv.host_allowed
+        self.assertTrue(ok("github.com", "dep:libfoo", self.CONF, path="/foo/foo/releases/x.tar.gz"))
+        self.assertFalse(ok("github.com", "dep:libfoo", self.CONF, path="/evil/foo/x.tar.gz"))
+        self.assertFalse(ok("download.brother.com", "dep:libfoo", self.CONF, path="/foo/x"))
+
+    def test_redirect_hosts_only_for_redirects(self):
+        ok = luxdrv.host_allowed
+        self.assertFalse(ok("cdn.example.org", "dep:libfoo", self.CONF, path="/x"))
+        self.assertTrue(ok("cdn.example.org", "dep:libfoo", self.CONF, path="/x", redirect=True))
+
+    def test_vendor_domains_unchanged(self):
+        self.assertTrue(luxdrv.host_allowed("download.brother.com", "brother", self.CONF, path="/any"))
+        self.assertFalse(luxdrv.host_allowed("github.com", "brother", self.CONF, path="/foo/"))
+
+
 if __name__ == "__main__":
     unittest.main()
