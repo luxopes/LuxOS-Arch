@@ -1418,8 +1418,10 @@ def geoclue_location(timeout=8.0):
         name = "org.freedesktop.GeoClue2"
         if name not in names and name not in owned:
             return None
+        # GetClient ceka, dokud se neprihlasi agent GeoClue v sezeni (na LuxOS geoclue-demo-agent z autostartu);
+        # bez nej by cekal donekonecna - kratky limit, pak poloha podle IP
         client = bus.call_sync(name, "/org/freedesktop/GeoClue2/Manager", "org.freedesktop.GeoClue2.Manager",
-                               "GetClient", None, None, Gio.DBusCallFlags.NONE, 5000, None).unpack()[0]
+                               "GetClient", None, None, Gio.DBusCallFlags.NONE, 2500, None).unpack()[0]
         iface = "org.freedesktop.GeoClue2.Client"
 
         def set_prop(prop, value):
