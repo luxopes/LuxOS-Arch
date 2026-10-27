@@ -3931,3 +3931,95 @@ The package lists are damaged or do not match their signatures. Refresh them fir
 Updates, LuxAI and the correct time use the internet.	Updates, LuxAI en de juiste tijd gebruiken internet.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Updates, LuxAI en de juiste tijd gebruiken internet. Kies een wifi-netwerk of sluit een netwerkkabel aan.
 remove: also delete changed config files (no .luxsave)	remove: ook gewijzigde configuratiebestanden verwijderen (geen .luxsave)
+%d found	%d gevonden
+%d of %d	%d van %d
+%d replaced	%d vervangen
+Default Text Size	Standaard tekstgrootte
+Bigger Text	Grotere tekst
+Smaller Text	Kleinere tekst
+Baltic	Baltisch
+Central European	Centraal-Europees
+Change the encoding to %s?	Codering wijzigen in %s?
+Characters: %s	Tekens: %s
+Chinese Simplified	Vereenvoudigd Chinees
+Clear Menu	Menu wissen
+Convert	Converteren
+Could not create “%s”.	Kan ‘%s’ niet aanmaken.
+Could not open “%s”.	Kan ‘%s’ niet openen.
+Could not save “%s”.	Kan ‘%s’ niet opslaan.
+Created:	Aangemaakt:
+Cyrillic	Cyrillisch
+Do you want to save the changes to “%s”?	Wilt u de wijzigingen in ‘%s’ opslaan?
+Document Info	Documentinformatie
+Don't Save	Niet opslaan
+Edited	Bewerkt
+Encoding	Codering
+Encoding:	Codering:
+Find and Replace…	Zoeken en vervangen…
+Go to Line (Ctrl+L)	Ga naar regel (Ctrl+L)
+Go to Line:	Ga naar regel:
+Go to Line…	Ga naar regel…
+Greek	Grieks
+Ignore	Negeren
+Invalid pattern	Ongeldig patroon
+Invisible Characters	Onzichtbare tekens
+Japanese	Japans
+Korean	Koreaans
+Line Endings	Regeleinden
+Line Endings:	Regeleinden:
+Line Numbers	Regelnummers
+Lines: %s	Regels: %s
+Match Case	Hoofdlettergevoelig
+Modified:	Gewijzigd:
+Name:	Naam:
+New File	Nieuw bestand
+New File or Folder	Nieuw bestand of nieuwe map
+New File…	Nieuw bestand…
+New Folder	Nieuwe map
+New Folder…	Nieuwe map…
+Next	Volgende
+Next Symbol	Volgend element
+No Outline	Geen overzicht
+No Symbols	Geen elementen
+No results	Geen resultaten
+Not saved	Niet opgeslagen
+Open Folder	Map openen
+Open Folder…	Map openen…
+Open Recent	Recent geopend
+Open…	Openen…
+Outline	Overzicht
+Path:	Pad:
+Plain Text	Platte tekst
+Previous	Vorige
+Previous Symbol	Vorig element
+Redo	Opnieuw
+Regular Expression	Reguliere expressie
+Reinterpret	Herinterpreteren
+Reinterpret reads the file again in the new encoding (when it was opened in a wrong one). Convert keeps the text and saves it in the new encoding.	‘Herinterpreteren’ leest het bestand opnieuw in de nieuwe codering (als het in een verkeerde werd geopend). ‘Converteren’ behoudt de tekst en slaat hem op in de nieuwe codering.
+Reloading discards your unsaved changes.	Opnieuw laden verwijdert niet-opgeslagen wijzigingen.
+Replace All	Alles vervangen
+Save As	Opslaan als
+Save as UTF-8	Opslaan als UTF-8
+Save the document in Unicode (UTF-8) instead?	Het document in plaats daarvan in Unicode (UTF-8) opslaan?
+Show Sidebar (F9)	Zijbalk (F9)
+Sidebar	Zijbalk
+Size:	Grootte:
+Some characters cannot be saved in %s.	Sommige tekens kunnen niet in %s worden opgeslagen.
+Syntax	Syntaxis
+Syntax:	Syntaxis:
+The file appears to be a binary file.	Het bestand lijkt een binair bestand te zijn.
+The file cannot be read as %s.	Het bestand kan niet als %s worden gelezen.
+The file was changed by another program.	Het bestand is door een ander programma gewijzigd.
+The file was deleted or moved by another program. Save it to keep it.	Het bestand is door een ander programma verwijderd of verplaatst. Sla het op om het te bewaren.
+Top of Document	Begin van document
+Turkish	Turks
+UTF-8 with BOM	UTF-8 met BOM
+Undo	Ongedaan maken
+Untitled	Naamloos
+Western	West-Europees
+Whole Words	Hele woorden
+Words: %s	Woorden: %s
+Wrap Lines	Regels afbreken
+Your changes will be lost if you don't save them.	Uw wijzigingen gaan verloren als u ze niet opslaat.
+untitled	naamloos
+“%s” already exists.	‘%s’ bestaat al.

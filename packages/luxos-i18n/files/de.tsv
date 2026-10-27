@@ -3931,3 +3931,95 @@ The package lists are damaged or do not match their signatures. Refresh them fir
 Updates, LuxAI and the correct time use the internet.	Updates, LuxAI und die genaue Uhrzeit nutzen das Internet.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Updates, LuxAI und die genaue Uhrzeit nutzen das Internet. Wählen Sie ein WLAN oder schließen Sie ein Netzwerkkabel an.
 remove: also delete changed config files (no .luxsave)	remove: auch geänderte Konfigurationsdateien löschen (kein .luxsave)
+%d found	%d gefunden
+%d of %d	%d von %d
+%d replaced	%d ersetzt
+Default Text Size	Standard-Textgröße
+Bigger Text	Größerer Text
+Smaller Text	Kleinerer Text
+Baltic	Baltisch
+Central European	Mitteleuropäisch
+Change the encoding to %s?	Kodierung zu %s ändern?
+Characters: %s	Zeichen: %s
+Chinese Simplified	Vereinfachtes Chinesisch
+Clear Menu	Menü leeren
+Convert	Umwandeln
+Could not create “%s”.	„%s“ konnte nicht erstellt werden.
+Could not open “%s”.	„%s“ konnte nicht geöffnet werden.
+Could not save “%s”.	„%s“ konnte nicht gespeichert werden.
+Created:	Erstellt:
+Cyrillic	Kyrillisch
+Do you want to save the changes to “%s”?	Möchten Sie die Änderungen an „%s“ speichern?
+Document Info	Dokumentinformationen
+Don't Save	Nicht speichern
+Edited	Bearbeitet
+Encoding	Kodierung
+Encoding:	Kodierung:
+Find and Replace…	Suchen und ersetzen…
+Go to Line (Ctrl+L)	Gehe zu Zeile (Strg+L)
+Go to Line:	Gehe zu Zeile:
+Go to Line…	Gehe zu Zeile…
+Greek	Griechisch
+Ignore	Ignorieren
+Invalid pattern	Ungültiges Muster
+Invisible Characters	Unsichtbare Zeichen
+Japanese	Japanisch
+Korean	Koreanisch
+Line Endings	Zeilenenden
+Line Endings:	Zeilenenden:
+Line Numbers	Zeilennummern
+Lines: %s	Zeilen: %s
+Match Case	Groß-/Kleinschreibung beachten
+Modified:	Geändert:
+Name:	Name:
+New File	Neue Datei
+New File or Folder	Neue Datei oder neuer Ordner
+New File…	Neue Datei…
+New Folder	Neuer Ordner
+New Folder…	Neuer Ordner…
+Next	Nächster
+Next Symbol	Nächstes Element
+No Outline	Keine Gliederung
+No Symbols	Keine Elemente
+No results	Keine Treffer
+Not saved	Nicht gespeichert
+Open Folder	Ordner öffnen
+Open Folder…	Ordner öffnen…
+Open Recent	Zuletzt geöffnet
+Open…	Öffnen…
+Outline	Gliederung
+Path:	Pfad:
+Plain Text	Reiner Text
+Previous	Vorheriger
+Previous Symbol	Vorheriges Element
+Redo	Wiederholen
+Regular Expression	Regulärer Ausdruck
+Reinterpret	Neu interpretieren
+Reinterpret reads the file again in the new encoding (when it was opened in a wrong one). Convert keeps the text and saves it in the new encoding.	„Neu interpretieren“ liest die Datei in der neuen Kodierung erneut ein (wenn sie falsch geöffnet wurde). „Umwandeln“ behält den Text und speichert ihn in der neuen Kodierung.
+Reloading discards your unsaved changes.	Beim Neuladen gehen ungespeicherte Änderungen verloren.
+Replace All	Alle ersetzen
+Save As	Speichern unter
+Save as UTF-8	Als UTF-8 speichern
+Save the document in Unicode (UTF-8) instead?	Das Dokument stattdessen in Unicode (UTF-8) speichern?
+Show Sidebar (F9)	Seitenleiste (F9)
+Sidebar	Seitenleiste
+Size:	Größe:
+Some characters cannot be saved in %s.	Einige Zeichen können nicht in %s gespeichert werden.
+Syntax	Syntax
+Syntax:	Syntax:
+The file appears to be a binary file.	Die Datei scheint eine Binärdatei zu sein.
+The file cannot be read as %s.	Die Datei kann nicht als %s gelesen werden.
+The file was changed by another program.	Die Datei wurde von einem anderen Programm geändert.
+The file was deleted or moved by another program. Save it to keep it.	Die Datei wurde von einem anderen Programm gelöscht oder verschoben. Speichern Sie sie, um sie zu behalten.
+Top of Document	Dokumentanfang
+Turkish	Türkisch
+UTF-8 with BOM	UTF-8 mit BOM
+Undo	Rückgängig
+Untitled	Unbenannt
+Western	Westeuropäisch
+Whole Words	Ganze Wörter
+Words: %s	Wörter: %s
+Wrap Lines	Zeilen umbrechen
+Your changes will be lost if you don't save them.	Ihre Änderungen gehen verloren, wenn Sie sie nicht speichern.
+untitled	unbenannt
+“%s” already exists.	„%s“ existiert bereits.

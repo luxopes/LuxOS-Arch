@@ -3931,3 +3931,95 @@ The package lists are damaged or do not match their signatures. Refresh them fir
 Updates, LuxAI and the correct time use the internet.	A frissítések, a LuxAI és a pontos idő internetet használ.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	A frissítések, a LuxAI és a pontos idő internetet használ. Válasszon Wi-Fi-hálózatot, vagy csatlakoztasson hálózati kábelt.
 remove: also delete changed config files (no .luxsave)	remove: a módosított konfigurációs fájlokat is törli (nincs .luxsave)
+%d found	%d találat
+%d of %d	%d / %d
+%d replaced	%d csere
+Default Text Size	Alapértelmezett szövegméret
+Bigger Text	Nagyobb szöveg
+Smaller Text	Kisebb szöveg
+Baltic	Balti
+Central European	Közép-európai
+Change the encoding to %s?	Módosítja a kódolást erre: %s?
+Characters: %s	Karakterek: %s
+Chinese Simplified	Egyszerűsített kínai
+Clear Menu	Menü törlése
+Convert	Átalakítás
+Could not create “%s”.	„%s” nem hozható létre.
+Could not open “%s”.	„%s” nem nyitható meg.
+Could not save “%s”.	„%s” nem menthető.
+Created:	Létrehozva:
+Cyrillic	Cirill
+Do you want to save the changes to “%s”?	Menti a(z) „%s” módosításait?
+Document Info	Dokumentum adatai
+Don't Save	Nem menti
+Edited	Módosítva
+Encoding	Kódolás
+Encoding:	Kódolás:
+Find and Replace…	Keresés és csere…
+Go to Line (Ctrl+L)	Ugrás sorra (Ctrl+L)
+Go to Line:	Ugrás sorra:
+Go to Line…	Ugrás sorra…
+Greek	Görög
+Ignore	Mellőzés
+Invalid pattern	Érvénytelen minta
+Invisible Characters	Láthatatlan karakterek
+Japanese	Japán
+Korean	Koreai
+Line Endings	Sorvégek
+Line Endings:	Sorvégek:
+Line Numbers	Sorszámok
+Lines: %s	Sorok: %s
+Match Case	Kis- és nagybetűk megkülönböztetése
+Modified:	Módosítva:
+Name:	Név:
+New File	Új fájl
+New File or Folder	Új fájl vagy mappa
+New File…	Új fájl…
+New Folder	Új mappa
+New Folder…	Új mappa…
+Next	Következő
+Next Symbol	Következő elem
+No Outline	Nincs vázlat
+No Symbols	Nincsenek elemek
+No results	Nincs találat
+Not saved	Nincs mentve
+Open Folder	Mappa megnyitása
+Open Folder…	Mappa megnyitása…
+Open Recent	Legutóbbiak megnyitása
+Open…	Megnyitás…
+Outline	Vázlat
+Path:	Útvonal:
+Plain Text	Egyszerű szöveg
+Previous	Előző
+Previous Symbol	Előző elem
+Redo	Mégis
+Regular Expression	Reguláris kifejezés
+Reinterpret	Újraértelmezés
+Reinterpret reads the file again in the new encoding (when it was opened in a wrong one). Convert keeps the text and saves it in the new encoding.	Az Újraértelmezés az új kódolással olvassa be újra a fájlt (ha rossz kódolással nyílt meg). Az Átalakítás megtartja a szöveget, és az új kódolással menti.
+Reloading discards your unsaved changes.	Az újratöltés elveti a nem mentett módosításokat.
+Replace All	Összes cseréje
+Save As	Mentés másként
+Save as UTF-8	Mentés UTF-8-ként
+Save the document in Unicode (UTF-8) instead?	Inkább Unicode (UTF-8) kódolással menti a dokumentumot?
+Show Sidebar (F9)	Oldalsáv (F9)
+Sidebar	Oldalsáv
+Size:	Méret:
+Some characters cannot be saved in %s.	Néhány karakter nem menthető ebben a kódolásban: %s.
+Syntax	Szintaxis
+Syntax:	Szintaxis:
+The file appears to be a binary file.	A fájl binárisnak tűnik.
+The file cannot be read as %s.	A fájl nem olvasható így: %s.
+The file was changed by another program.	A fájlt egy másik program módosította.
+The file was deleted or moved by another program. Save it to keep it.	A fájlt egy másik program törölte vagy áthelyezte. Mentse, ha meg szeretné tartani.
+Top of Document	Dokumentum eleje
+Turkish	Török
+UTF-8 with BOM	UTF-8 BOM-mal
+Undo	Visszavonás
+Untitled	Névtelen
+Western	Nyugat-európai
+Whole Words	Teljes szavak
+Words: %s	Szavak: %s
+Wrap Lines	Sortörés
+Your changes will be lost if you don't save them.	Ha nem menti, a módosítások elvesznek.
+untitled	névtelen
+“%s” already exists.	„%s” már létezik.

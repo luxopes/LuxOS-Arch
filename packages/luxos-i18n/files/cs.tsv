@@ -4023,3 +4023,95 @@ The package lists are damaged or do not match their signatures. Refresh them fir
 Updates, LuxAI and the correct time use the internet.	Aktualizace, LuxAI a přesný čas potřebují internet.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Aktualizace, LuxAI a přesný čas potřebují internet. Vyberte síť Wi-Fi nebo připojte síťový kabel.
 remove: also delete changed config files (no .luxsave)	remove: smazat i změněné konfigurační soubory (bez .luxsave)
+%d found	Nalezeno: %d
+%d of %d	%d z %d
+%d replaced	Nahrazeno: %d
+Default Text Size	Výchozí velikost textu
+Bigger Text	Větší text
+Smaller Text	Menší text
+Baltic	Baltské
+Central European	Středoevropské
+Change the encoding to %s?	Změnit kódování na %s?
+Characters: %s	Znaky: %s
+Chinese Simplified	Čínské zjednodušené
+Clear Menu	Vymazat nabídku
+Convert	Převést
+Could not create “%s”.	„%s“ nelze vytvořit.
+Could not open “%s”.	„%s“ nelze otevřít.
+Could not save “%s”.	„%s“ nelze uložit.
+Created:	Vytvořeno:
+Cyrillic	Cyrilice
+Do you want to save the changes to “%s”?	Chcete uložit změny v dokumentu „%s“?
+Document Info	Informace o dokumentu
+Don't Save	Neukládat
+Edited	Upraveno
+Encoding	Kódování
+Encoding:	Kódování:
+Find and Replace…	Najít a nahradit…
+Go to Line (Ctrl+L)	Přejít na řádek (Ctrl+L)
+Go to Line:	Přejít na řádek:
+Go to Line…	Přejít na řádek…
+Greek	Řecké
+Ignore	Ignorovat
+Invalid pattern	Neplatný výraz
+Invisible Characters	Neviditelné znaky
+Japanese	Japonské
+Korean	Korejské
+Line Endings	Konce řádků
+Line Endings:	Konce řádků:
+Line Numbers	Čísla řádků
+Lines: %s	Řádky: %s
+Match Case	Rozlišovat velikost písmen
+Modified:	Změněno:
+Name:	Název:
+New File	Nový soubor
+New File or Folder	Nový soubor nebo složka
+New File…	Nový soubor…
+New Folder	Nová složka
+New Folder…	Nová složka…
+Next	Další
+Next Symbol	Další položka
+No Outline	Bez osnovy
+No Symbols	Žádné položky
+No results	Nic nenalezeno
+Not saved	Neuloženo
+Open Folder	Otevřít složku
+Open Folder…	Otevřít složku…
+Open Recent	Otevřít nedávné
+Open…	Otevřít…
+Outline	Osnova
+Path:	Cesta:
+Plain Text	Prostý text
+Previous	Předchozí
+Previous Symbol	Předchozí položka
+Redo	Znovu
+Regular Expression	Regulární výraz
+Reinterpret	Přečíst znovu
+Reinterpret reads the file again in the new encoding (when it was opened in a wrong one). Convert keeps the text and saves it in the new encoding.	Přečíst znovu načte soubor znovu v novém kódování (když byl otevřen ve špatném). Převést ponechá text a uloží ho v novém kódování.
+Reloading discards your unsaved changes.	Opětovné načtení zahodí neuložené změny.
+Replace All	Nahradit vše
+Save As	Uložit jako
+Save as UTF-8	Uložit v UTF-8
+Save the document in Unicode (UTF-8) instead?	Uložit dokument raději v Unicode (UTF-8)?
+Show Sidebar (F9)	Postranní panel (F9)
+Sidebar	Postranní panel
+Size:	Velikost:
+Some characters cannot be saved in %s.	Některé znaky nelze uložit v kódování %s.
+Syntax	Syntaxe
+Syntax:	Syntaxe:
+The file appears to be a binary file.	Soubor je zřejmě binární.
+The file cannot be read as %s.	Soubor nelze přečíst jako %s.
+The file was changed by another program.	Soubor změnil jiný program.
+The file was deleted or moved by another program. Save it to keep it.	Soubor smazal nebo přesunul jiný program. Pokud ho chcete zachovat, uložte ho.
+Top of Document	Začátek dokumentu
+Turkish	Turecké
+UTF-8 with BOM	UTF-8 s BOM
+Undo	Zpět
+Untitled	Bez názvu
+Western	Západoevropské
+Whole Words	Celá slova
+Words: %s	Slova: %s
+Wrap Lines	Zalamovat řádky
+Your changes will be lost if you don't save them.	Pokud změny neuložíte, budou ztraceny.
+untitled	bez názvu
+“%s” already exists.	„%s“ už existuje.
