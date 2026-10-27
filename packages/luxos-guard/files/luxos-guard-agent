@@ -5,6 +5,7 @@ Maly proces bez GTK (par MB pameti): drzi spojeni se sluzbou luxos-guard a teprv
 spusti okno luxos-guard-gui (dotaz u rizikoveho programu, zprava o zablokovani) nebo upozorneni.
 Volby uzivatele "Spustit v sandboxu" a "Presunout do kose" provadi sam (jako uzivatel).
 """
+import hashlib
 import json
 import os
 import socket
@@ -35,11 +36,14 @@ def dialog(msg, timeout):
 
 
 def found_key(path):
+    """Stejny obsah = stejne upozorneni, i kdyz je soubor na vic mistech (kopie, pracovni slozky gitu)."""
     try:
-        st = os.stat(path)
-        return (path, st.st_size, st.st_mtime_ns)
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            h.update(f.read(4 << 20))
+        return ("sha256", h.hexdigest())
     except OSError:
-        return (path, None, None)
+        return (path, None)
 
 
 class Agent:
@@ -155,12 +159,39 @@ def watch_session():
             os._exit(0)
 
 
+UPDATE_FILES = [os.path.realpath(__file__)] + [
+    os.path.join(os.path.dirname(m.__file__), os.path.basename(m.__file__)) for m in (core,)]
+
+
+def file_stamps():
+    stamps = []
+    for f in UPDATE_FILES + [os.path.join(os.path.dirname(UPDATE_FILES[1]), "luxos_guard_session.py")]:
+        try:
+            st = os.stat(f)
+            stamps.append((f, st.st_mtime_ns, st.st_ino))
+        except OSError:
+            stamps.append((f, None, None))
+    return stamps
+
+
+def watch_update(interval=60):
+    """Aktualizace baliku (lux update) nahradila pomocnika: spustit novou verzi (autostart by ho
+    znovu nespustil az do dalsiho prihlaseni)."""
+    start = file_stamps()
+    while True:
+        time.sleep(interval)
+        if file_stamps() != start:
+            time.sleep(5)           # instalace baliku muze jeste bezet
+            os.execv(sys.executable, [sys.executable, os.path.realpath(__file__)] + sys.argv[1:])
+
+
 def main():
     if os.getuid() == 0:
         return 0
     if os.path.exists("/run/archiso"):
         return 0                # live system z USB: sluzba nebezi (instalace)
     threading.Thread(target=watch_session, daemon=True).start()
+    threading.Thread(target=watch_update, daemon=True).start()
     try:
         Agent().run()
     except KeyboardInterrupt:
