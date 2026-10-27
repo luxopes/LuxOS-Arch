@@ -16,6 +16,8 @@ optdepends=('luxos-sandbox: build and install community (AUR) packages isolated 
             'git: download community (AUR) build scripts'
             'flatpak: Flathub applications'
             'lsl: whole-system configuration in /etc/luxos/system.lsl (lux system)')
+# post_upgrade: /etc/luxos/system.lsl jednou ze soucasneho systemu, kdyz chybi (lux system init --auto)
+install=lux.install
 
 package() {
     install -Dm755 "$startdir/lux" "$pkgdir/usr/bin/lux"

@@ -1,0 +1,108 @@
+#!/bin/bash
+# LuxOS - vychozi nastaveni NOVEHO uzivatele od spravce: /etc/luxos/new-users.conf (zapisuje ho
+# lux system ze sekce "new_users" v /etc/luxos/system.lsl). Spousti ho luxos-session jednou, pri prvnim
+# prihlaseni uzivatele - stavajici uzivatele se nikdy nemeni.
+#
+#   luxos-new-user-defaults [SOUBOR]
+#
+# KLIC=hodnota (bez eval): THEME light|dark|auto, WALLPAPER cesta k obrazku, DOCK aplikace v Docku
+# (nazvy .desktop oddelene mezerou, "trash" = Kos), BROWSER / TEXT_EDITOR / MAIL vychozi aplikace
+# (.desktop), LOCK_AFTER minuty do zamceni obrazovky (0 = nezamykat), SCREEN_OFF minuty do vypnuti
+# obrazovky (0 = nikdy).
+set -u
+conf=${1:-${LUXOS_NEW_USERS_CONF:-/etc/luxos/new-users.conf}}
+[[ -r $conf ]] || exit 0
+
+THEME="" WALLPAPER="" DOCK="" BROWSER="" TEXT_EDITOR="" MAIL="" LOCK_AFTER="" SCREEN_OFF=""
+while IFS='=' read -r k v; do
+    case $k in
+        THEME|WALLPAPER|DOCK|BROWSER|TEXT_EDITOR|MAIL|LOCK_AFTER|SCREEN_OFF) printf -v "$k" '%s' "$v" ;;
+    esac
+done <"$conf"
+
+cfg=${XDG_CONFIG_HOME:-$HOME/.config}
+valid_id() { [[ $1 =~ ^[A-Za-z0-9_.+-]+\.desktop$ ]]; }
+
+desktop_path() {  # desktop_path ID -> cesta k .desktop (systemove aplikace, Flathub, vlastni)
+    local d
+    local IFS=:
+    for d in ${XDG_DATA_HOME:-$HOME/.local/share} ${XDG_DATA_DIRS:-/usr/local/share:/usr/share} \
+             /var/lib/flatpak/exports/share; do
+        [[ -n $d && -f $d/applications/$1 ]] && { printf '%s\n' "$d/applications/$1"; return 0; }
+    done
+    return 1
+}
+
+# Vzhled: rezim (auto = podle slunce), pak tapeta (prepise vychozi tapetu LuxOS)
+if [[ $THEME == @(light|dark|auto) ]] && command -v luxos-appearance >/dev/null; then
+    luxos-appearance "$THEME" >/dev/null 2>&1
+fi
+if [[ -n $WALLPAPER && -r $WALLPAPER ]] && command -v luxos-appearance >/dev/null; then
+    luxos-appearance wallpaper "$WALLPAPER" >/dev/null 2>&1
+fi
+
+# Dock (Plank): polozky z /etc/skel nahradit seznamem spravce, poradi v dock-items
+if [[ -n $DOCK ]]; then
+    launchers=$cfg/plank/dock1/launchers
+    mkdir -p "$launchers"
+    items=()
+    for id in $DOCK; do
+        if [[ $id == trash ]]; then
+            item=trash.dockitem
+            printf '[PlankDockItemPreferences]\nLauncher=docklet://trash\n' >"$launchers/.$item.new"
+        else
+            valid_id "$id" || continue
+            path=$(desktop_path "$id") || continue
+            item=${id%.desktop}.dockitem
+            printf '[PlankDockItemPreferences]\nLauncher=file://%s\n' "$path" >"$launchers/.$item.new"
+        fi
+        items+=("$item")
+    done
+    if ((${#items[@]})); then
+        rm -f "$launchers"/*.dockitem
+        for item in "${items[@]}"; do mv -f "$launchers/.$item.new" "$launchers/$item"; done
+        list=$(printf "'%s', " "${items[@]}")
+        gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ dock-items \
+            "[${list%, }]" 2>/dev/null
+    fi
+    rm -f "$launchers"/.*.dockitem.new
+fi
+
+# Vychozi aplikace: typy souboru a odkazu (xdg-mime) a pomocne aplikace Xfce (exo-open)
+helper() {  # helper KLIC ID - helpers.rc jen pro aplikaci, kterou exo zna
+    local name=${2%.desktop} f=$cfg/xfce4/helpers.rc
+    name=${name##*.}
+    name=${name,,}
+    [[ -f /usr/share/xfce4/helpers/$name.desktop ]] || return 0
+    mkdir -p "${f%/*}"
+    touch "$f"
+    sed -i "/^$1=/d" "$f"
+    printf '%s=%s\n' "$1" "$name" >>"$f"
+}
+if valid_id "$BROWSER" && command -v xdg-mime >/dev/null; then
+    xdg-mime default "$BROWSER" x-scheme-handler/http x-scheme-handler/https text/html 2>/dev/null
+    helper WebBrowser "$BROWSER"
+fi
+if valid_id "$TEXT_EDITOR" && command -v xdg-mime >/dev/null; then
+    xdg-mime default "$TEXT_EDITOR" text/plain 2>/dev/null
+fi
+if valid_id "$MAIL" && command -v xdg-mime >/dev/null; then
+    xdg-mime default "$MAIL" x-scheme-handler/mailto 2>/dev/null
+    helper MailReader "$MAIL"
+fi
+
+# Zamceni a vypnuti obrazovky (xfce4-screensaver, xfce4-power-manager)
+if [[ $LOCK_AFTER =~ ^[0-9]+$ ]] && command -v xfconf-query >/dev/null; then
+    if ((LOCK_AFTER == 0)); then
+        xfconf-query -c xfce4-screensaver -p /saver/idle-activation/enabled -n -t bool -s false
+    else
+        xfconf-query -c xfce4-screensaver -p /saver/idle-activation/enabled -n -t bool -s true
+        xfconf-query -c xfce4-screensaver -p /saver/idle-activation/delay -n -t int -s "$LOCK_AFTER"
+    fi
+fi
+if [[ $SCREEN_OFF =~ ^[0-9]+$ ]] && command -v xfconf-query >/dev/null; then
+    for p in dpms-on-ac-sleep dpms-on-ac-off dpms-on-battery-sleep dpms-on-battery-off; do
+        xfconf-query -c xfce4-power-manager -p "/xfce4-power-manager/$p" -n -t uint -s "$SCREEN_OFF"
+    done
+fi
+exit 0

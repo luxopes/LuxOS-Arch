@@ -144,11 +144,13 @@ running from, otherwise a list to choose from. The current system is kept as a s
 .BR luxos\-care (8)
 and "LuxOS Recovery" in the boot menu.
 .TP
-.BR system " " show | init | edit | check | diff | apply " [" \fIfile\fR ]
+.BR system " " show | init | edit | check | diff | apply | fix " [" \fIfile\fR ]
 The whole system in one LSL file,
-.IR /etc/luxos/system.lsl :
-packages, Flathub apps, services, users and groups, computer name, language, time zone, keyboard,
-LuxOS Care, Lux Guard, firewall and kernel parameters.
+.I /etc/luxos/system.lsl
+(written by the installer, on older systems by the first update of lux):
+packages, drivers, Flathub apps, services, users and groups, computer name, language and formats,
+time zone, keyboard and console, network connections (never their passwords), printers, power,
+boot menu, LuxOS Care, Lux Guard, firewall, sign-in lockout, kernel parameters and defaults for new users.
 .B show
 prints a file made from this computer,
 .B init
@@ -158,6 +160,11 @@ lists the changes and
 .B apply
 takes a snapshot, shows the changes, asks and applies them (undo with
 .BR "lux rollback" ).
+.B fix
+repairs drift: it returns the system to the state described in the file (the same as
+.BR apply ).
+A network connection in use is changed only after a separate question and deleted only with
+.BR \-\-force .
 Policies of an organization in
 .I /etc/luxos/system.d
 are merged with the file;

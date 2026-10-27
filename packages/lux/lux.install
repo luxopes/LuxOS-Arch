@@ -1,0 +1,12 @@
+# lux - po aktualizaci na stavajicim systemu jednou vytvori /etc/luxos/system.lsl (cely system v jednom
+# souboru), kdyz jeste neexistuje. Nikdy ho neprepise; smazany soubor se znovu nevytvori (znacka
+# /var/lib/lux/system/auto-init). Nove instalace ho dostanou od instalatoru (OEM az po Pruvodci
+# nastavenim), proto post_install nic nedela (pacstrap by ho zapsal bez uzivatele).
+# Soubor nepatri baliku (zadne .luxnew), chyba aktualizaci nezastavi.
+
+post_upgrade() {
+    [ -x /usr/lib/lux/lux_system.py ] || return 0
+    [ -e /etc/luxos/system.lsl ] && return 0
+    timeout 300 /usr/lib/lux/lux_system.py init --auto 2>&1 | sed 's/^/  /' || true
+    return 0
+}

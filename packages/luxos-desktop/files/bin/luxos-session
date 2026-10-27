@@ -8,6 +8,9 @@ mkdir -p "$cfg"
 if [[ ! -e $cfg/initialized ]]; then
     xdg-user-dirs-update 2>/dev/null
     luxos-appearance "$(luxos-appearance status)"
+    # Vychozi nastaveni novych uzivatelu od spravce (lux system, sekce new_users): vzhled, Dock,
+    # vychozi aplikace, zamceni obrazovky - jen tady, stavajici uzivatele se nemeni
+    [[ -r /etc/luxos/new-users.conf ]] && /usr/lib/luxos/luxos-new-user-defaults
     : > "$cfg/initialized"
 fi
 
