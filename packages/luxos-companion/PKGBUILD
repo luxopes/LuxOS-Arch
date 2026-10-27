@@ -1,0 +1,38 @@
+# Maintainer: LuxOS Team
+# LuxOS Companion: pocitacova strana Android aplikace LuxOS Companion 0.2 (protokol v1 pres Bluetooth
+# RFCOMM, UUID ad9b7c10-6ce5-4f35-9952-728f760fcb70). Sluzba relace (systemd --user) registruje profil
+# v BlueZ, schvaluje telefony, zverejnuje polohu telefonu Mapam (D-Bus cz.luxos.Companion1), uklada
+# poznamky do Kalendare (events.ics) a predava pozadavky LuxAI (luxai --remote-session).
+# Okno Telefon: schvalene telefony, opravneni, stav. Python 3 + GLib/Gio, bez dalsich knihoven.
+# luxos_calendar_ics (zapis poznamek) je z luxos-desktop, ktery tento balik vyzaduje - zavislost
+# opacnym smerem neni uvedena, aby nevznikl kruh (bez luxos-desktop poznamka vrati chybu storage_failed).
+
+pkgname=luxos-companion
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS Companion - connect the Android app over Bluetooth: phone location for Maps, LuxAI requests and calendar notes"
+arch=(any)
+url="https://github.com/luxopes/LuxOS-Arch"
+license=(GPL-3.0-or-later)
+depends=(python python-gobject gtk3 bluez luxos-i18n hicolor-icon-theme)
+optdepends=('luxai: answer LuxAI requests from the phone (luxai --remote-session)'
+            'xfce4-notifyd: approve new phones from a notification')
+makedepends=(python)
+checkdepends=(python dbus)
+
+check() {
+    # ramce, handshake, casovace, schvaleni, poloha, kalendar, LuxAI (zastupny luxai) a profil BlueZ proti
+    # falesnemu BlueZ na soukrome sbernici (vlastni dbus-daemon); okno jen pod xvfb-run (test_gui.py)
+    cd "$startdir"
+    env -u DISPLAY python3 -m unittest tests/test_protocol.py tests/test_features.py tests/test_dbus.py
+}
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 "$f/luxos-companion" "$pkgdir/usr/bin/luxos-companion"
+    install -Dm644 -t "$pkgdir/usr/lib/luxos/python/luxos_companion" "$f"/luxos_companion/*.py
+    python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
+    install -Dm644 "$f/luxos-companion.service" "$pkgdir/usr/lib/systemd/user/luxos-companion.service"
+    install -Dm644 "$f/luxos-companion.desktop" "$pkgdir/usr/share/applications/luxos-companion.desktop"
+    install -Dm644 "$f/luxos-companion.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-companion.svg"
+}

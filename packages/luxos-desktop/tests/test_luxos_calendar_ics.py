@@ -349,6 +349,21 @@ class TestStore(unittest.TestCase):
             self.assertEqual(f.read(), GOOGLE.encode())  # importovany kalendar zustava netknuty
         self.assertFalse([n for n in os.listdir(self.dir) if ".tmp-" in n])
 
+    def test_store_keeps_external_additions(self):
+        """Jiny proces (LuxOS Companion) prida udalost; Kalendar ji pri dalsim vlastnim zapisu neztrati."""
+        st = ics.Store(self.dir)
+        st.reload_if_changed()
+        a = ics.Event("A", T(2026, 10, 20, 8), T(2026, 10, 20, 9))
+        st.add(a)
+        st2 = ics.Store(self.dir)
+        st2.reload_if_changed()
+        st2.add(ics.Event("Z telefonu", T(2026, 10, 20, 10), T(2026, 10, 20, 11)))
+        st.add(ics.Event("C", T(2026, 10, 20, 12), T(2026, 10, 20, 13)))
+        st.delete(st.find(a.uid))
+        st3 = ics.Store(self.dir)
+        st3.reload_if_changed()
+        self.assertEqual([i[0].summary for i in st3.day_instances(D(2026, 10, 20))], ["Z telefonu", "C"])
+
     def test_recurrence_id_override(self):
         text = ("BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:s\nDTSTART:20261019T090000\nDTEND:20261019T100000\n"
                 "RRULE:FREQ=DAILY;COUNT=3\nSUMMARY:Serie\nEND:VEVENT\n"

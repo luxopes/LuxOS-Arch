@@ -99,6 +99,12 @@ Wi-Fi or when GeoClue gives no answer, it falls back to your internet address vi
 Your position is a blue dot with a circle showing its accuracy. Maps never looks for your location
 by itself; **⋯ › Allow My Location** turns the permission off again.
 
+**Phone GPS**: when an Android phone with **LuxOS Companion** is connected and shares its location
+(and **Share phone location with Maps** is on in Settings › Phone), Maps prefers its fresh GPS fix
+(at most 15 s old) and follows it live – the dot moves with the phone and the map stays centred until
+you drag it; a stale phone location turns the dot grey. Without your consent in Maps the phone
+location is never used. See [Phone (LuxOS Companion)](companion.md).
+
 ## geo: links
 
 Maps is the handler for `geo:` links (`x-scheme-handler/geo`), for example

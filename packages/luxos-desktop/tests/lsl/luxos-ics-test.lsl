@@ -151,6 +151,27 @@ elif command == "color":
         ev["source"] = arg(3)
     end
     print ics.event_color(ev)
+elif command == "merge":
+    # Kalendar (st) ma soubor nacteny; jiny proces (LuxOS Companion = st2) prida udalost; Kalendar pak
+    # sam pridava a maze - udalost z telefonu se neztrati, smazana se nevrati
+    dir = arg(2)
+    d = date.ordinal(2026, 10, 20)
+    st = ics.store_new(dir)
+    call ics.reload_if_changed(st)
+    a = ics.event_new("A", False, date.make(d, 8, 0, 0), date.make(d, 9, 0, 0), None)
+    call ics.add(st, a)
+    st2 = ics.store_new(dir)
+    call ics.reload_if_changed(st2)
+    call ics.add(st2, ics.event_new("Z telefonu", False, date.make(d, 10, 0, 0), date.make(d, 11, 0, 0), None))
+    call ics.add(st, ics.event_new("C", False, date.make(d, 12, 0, 0), date.make(d, 13, 0, 0), None))
+    call ics.delete(st, ics.find(st, a["uid"], None))
+    st3 = ics.store_new(dir)
+    call ics.reload_if_changed(st3)
+    names = []
+    for item in ics.day_instances(st3, d):
+        names.append(item[0]["summary"])
+    end
+    print text.join(names, ";")
 elif command == "store":
     dir = arg(2)
     st = ics.store_new(dir)

@@ -7,6 +7,7 @@ okoli (Overpass), nahled trasy (PNG), nastaveni.
   route(a, b, mode)    trasa autem/na kole/pesky (routing.openstreetmap.de, FOSSGIS, nejvys 1 pozadavek/s)
   parse_geo_uri(uri)   geo:50.08,14.42?z=15 / geo:0,0?q=Praha
   ip_location()        priblizna poloha podle IP (ipinfo.io) - jen po souhlasu uzivatele
+  phone_location()     GPS z telefonu (LuxOS Companion, cz.luxos.Companion1) - jen po souhlasu, cerstva <= 15 s
   transit_plan(a, b)   spojeni MHD (Transitous/MOTIS, mezipamet 3 min, nejvys 1 pozadavek/s)
   timetable(lat, lon)  odjezdy/prijezdy ze zastavky v realnem case (Transitous, mezipamet 45 s)
   nearby(lat, lon, c)  mista v okoli podle kategorie (Overpass, mezipamet 10 min, max. 50 vysledku)
@@ -1454,8 +1455,79 @@ def geoclue_location(timeout=8.0):
     return None
 
 
-def my_location():
-    """GeoClue, kdyz je k dispozici, jinak priblizne podle IP. Jen po souhlasu uzivatele."""
+# Telefon s aplikaci LuxOS Companion (sluzba luxos-companion, D-Bus relace cz.luxos.Companion1):
+# cerstvy GPS fix (nejvys 15 s) jen se souhlasem s polohou v Mapach a se zapnutym sdilenim polohy
+# v nastaveni Telefon. Mapy sluzbu nespousti (NO_AUTO_START), bez ni hned pokracuji GeoClue/IP.
+COMPANION_NAME = "cz.luxos.Companion1"
+COMPANION_PATH = "/cz/luxos/Companion1"
+PHONE_FRESH_MS = 15000
+
+
+def companion_sharing_enabled():
+    """Prepinac "Sdilet polohu telefonu s Mapami" (~/.config/luxos/companion.json, vychozi zapnuto)."""
+    base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    data = _read_json(os.path.join(base, "luxos", "companion.json"))
+    return not (isinstance(data, dict) and data.get("share_location") is False)
+
+
+def phone_fix(d):
+    """Slovnik z cz.luxos.Companion1 (GetLocation / LocationChanged) -> poloha pro Mapy, nebo None."""
+    if not isinstance(d, dict) or d.get("valid") is not True:
+        return None
+    lat, lon, acc, age = d.get("latitude"), d.get("longitude"), d.get("accuracy"), d.get("age_ms", 0)
+    nums = (lat, lon, acc, age)
+    if not all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in nums):
+        return None
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180 and acc >= 0 and 0 <= age <= PHONE_FRESH_MS):
+        return None
+    out = {"lat": float(lat), "lon": float(lon), "accuracy": max(1.0, float(acc)), "source": "phone",
+           "name": "", "age_ms": int(age)}
+    for k in ("speed", "bearing", "altitude"):
+        v = d.get(k)
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v):
+            out[k] = float(v)
+    return out
+
+
+_companion_bus = {}
+
+
+def companion_bus():
+    """Sbernice relace (LUXOS_MAPS_COMPANION_BUS: adresa jine sbernice - testy)."""
+    from gi.repository import Gio
+    addr = os.environ.get("LUXOS_MAPS_COMPANION_BUS")
+    if not addr:
+        return Gio.bus_get_sync(Gio.BusType.SESSION, None)
+    if addr not in _companion_bus:
+        _companion_bus[addr] = Gio.DBusConnection.new_for_address_sync(
+            addr, Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,
+            None, None)
+    return _companion_bus[addr]
+
+
+def phone_location(timeout_ms=800):
+    """Cerstva poloha z telefonu (LuxOS Companion) nebo None. Souhlas Map kontroluje my_location()."""
+    if os.environ.get("LUXOS_MAPS_PHONE", "1") == "0" or not companion_sharing_enabled():
+        return None
+    try:
+        from gi.repository import Gio, GLib
+        bus = companion_bus()
+        r = bus.call_sync(COMPANION_NAME, COMPANION_PATH, COMPANION_NAME, "GetLocation", None,
+                          GLib.VariantType("(a{sv})"), Gio.DBusCallFlags.NO_AUTO_START, timeout_ms, None)
+        return phone_fix(r.unpack()[0])
+    except Exception:  # noqa: BLE001 - sluzba nebezi, neni sbernice relace
+        return None
+
+
+def my_location(cfg=None):
+    """Telefon (LuxOS Companion, jen se souhlasem v Mapach), GeoClue, kdyz je k dispozici, jinak priblizne
+    podle IP. Volajici kontroluje souhlas uzivatele (location_consent) i pro GeoClue a IP."""
+    if cfg is None:
+        cfg = load_config()
+    if cfg.get("location_consent") is True:
+        phone = phone_location()
+        if phone:
+            return phone
     return geoclue_location() or ip_location()
 
 
@@ -1779,7 +1851,7 @@ def resolve_point(text, cfg, lang):
     if text.lower() in HERE_WORDS:
         if not cfg.get("location_consent"):
             raise MapsError("consent: the user has not allowed Maps to use the location (Maps › My Location)")
-        loc = my_location()
+        loc = my_location(cfg)
         return {"name": "My Location", "lat": loc["lat"], "lon": loc["lon"], "accuracy": loc["accuracy"]}
     c = parse_coords(text)
     if c:
@@ -1931,7 +2003,7 @@ def cli(argv, spawn=None):
         if cmd == "where-am-i":
             if not cfg.get("location_consent"):
                 raise MapsError("consent: the user has not allowed Maps to use the location (Maps › My Location)")
-            loc = my_location()
+            loc = my_location(cfg)
             return 0, {"ok": True, "lat": round(loc["lat"], 6), "lon": round(loc["lon"], 6),
                        "accuracy_m": round(loc["accuracy"]), "source": loc["source"],
                        "geo_uri": geo_uri(loc["lat"], loc["lon"])}

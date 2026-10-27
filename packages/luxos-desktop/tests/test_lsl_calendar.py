@@ -287,6 +287,9 @@ class LslCalendar(unittest.TestCase):
         with open(os.path.join(self.dir, "google.ics"), encoding="utf-8", newline="") as f:
             self.assertEqual(f.read(), GOOGLE)        # importovany kalendar zustava netknuty
 
+    def test_store_keeps_external_additions(self):
+        self.assertEqual(self.lines("merge", self.dir), ["Z telefonu;C"])
+
     def test_recurrence_id_override(self):
         self.write("events.ics", "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:s\nDTSTART:20261019T090000\nDTEND:20261019T100000\n"
                    "RRULE:FREQ=DAILY;COUNT=3\nSUMMARY:Serie\nEND:VEVENT\n"

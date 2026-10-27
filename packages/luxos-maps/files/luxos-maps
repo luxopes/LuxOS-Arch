@@ -9,7 +9,8 @@
 
 GTK3 + cairo: dlazdice kresli DrawingArea (rychlejsi start a mene pameti nez GTK4/libshumate).
 Data: luxos_maps (mezipamet dlazdic podle hlavicek OSM, max. 2 stahovani, hledani a trasy max. 1/s).
-Poloha jen po souhlasu (GeoClue, jinak priblizne podle IP adresy). Tmava mapa = prevracene dlazdice.
+Poloha jen po souhlasu (telefon s LuxOS Companion - zive sledovani, GeoClue, jinak priblizne podle IP
+adresy). Tmava mapa = prevracene dlazdice.
 """
 import io
 import math
@@ -354,6 +355,7 @@ class MapView(Gtk.DrawingArea):
         self.drag = None
         self.samples = []
         self.on_view_changed = None
+        self.on_user_move = None           # tazeni mapy uzivatelem (konec sledovani polohy)
         self.on_context = None
         self.on_marker_click = None
         self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK
@@ -529,6 +531,8 @@ class MapView(Gtk.DrawingArea):
             win = self.get_window()
             if win:
                 win.set_cursor(Gdk.Cursor.new_from_name(self.get_display(), "grabbing"))
+            if self.on_user_move:
+                self.on_user_move()
         self.drag = (x0, y0, mx0, my0, True)
         self.set_view(mx0 - (ev.x - x0) / self.scale, my0 - (ev.y - y0) / self.scale, self.zoom, notify=False)
         self.samples.append((ev.time, ev.x, ev.y))
@@ -801,14 +805,19 @@ class MapView(Gtk.DrawingArea):
             x, y = self.latlon_to_screen(self.me["lat"], self.me["lon"])
             mpp = lm.meters_per_pixel(self.me["lat"], self.zoom)
             r = self.me.get("accuracy", 0) / mpp
-            if r > 12:
+            if self.me.get("stale"):
+                # poloha z telefonu zastarala (odpojeni, vypnute GPS, 15 s bez fixu): sedy bod bez kruhu
+                draw_dot(cr, x, y, (0.55, 0.57, 0.62), 7)
+                r = 0
+            elif r > 12:
                 cr.arc(x, y, min(r, 4 * max(w, h)), 0, 2 * math.pi)
                 cr.set_source_rgba(*ACCENT, 0.13)
                 cr.fill_preserve()
                 cr.set_line_width(1)
                 cr.set_source_rgba(*ACCENT, 0.45)
                 cr.stroke()
-            draw_dot(cr, x, y, ACCENT, 7)
+            if not self.me.get("stale"):
+                draw_dot(cr, x, y, ACCENT, 7)
         if self.marker:
             draw_pin(cr, *self.latlon_to_screen(self.marker["lat"], self.marker["lon"]))
 
@@ -914,6 +923,10 @@ class MapsWindow(Gtk.Window):
         self.route_gen = 0
         self.search_gen = 0
         self.locating = False
+        self.tracking = False              # "Moje poloha" zapnuta: zive polohy z telefonu (LuxOS Companion)
+        self.follow = False                # mapa jde za polohou, dokud ji uzivatel neposune
+        self.phone_sub = None
+        self.phone_bus = None
         self.save_id = None
         self.pending_after_location = None
         self._setting_entry = False
@@ -969,6 +982,7 @@ class MapsWindow(Gtk.Window):
                            view["lat"], view["lon"], view["zoom"])
         self.map.favorites = self.cfg["favorites"]
         self.map.on_view_changed = self.schedule_save
+        self.map.on_user_move = self.stop_follow
         self.map.on_context = self.on_context
         self.map.on_marker_click = self.on_marker_click
         overlay.add(self.map)
@@ -1984,7 +1998,7 @@ class MapsWindow(Gtk.Window):
 
         def work():
             try:
-                loc, err = lm.my_location(), None
+                loc, err = lm.my_location(self.cfg), None
             except lm.MapsError as e:
                 loc, err = None, str(e)
             GLib.idle_add(self.located, loc, err)
@@ -1997,9 +2011,10 @@ class MapsWindow(Gtk.Window):
         dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
                                 buttons=Gtk.ButtonsType.NONE, text=_("Allow Maps to use your location?"))
         dlg.format_secondary_text(_(
-            "Maps uses the system location service (GeoClue) when it is available, otherwise it finds your "
-            "approximate location from your internet address with the ipinfo.io service (your address is "
-            "sent to that service). Maps asks only once; you can turn it off in the menu."))
+            "Maps uses the GPS of your phone when it is connected with LuxOS Companion and shares its "
+            "location, otherwise the system location service (GeoClue) when it is available, otherwise it "
+            "finds your approximate location from your internet address with the ipinfo.io service (your "
+            "address is sent to that service). Maps asks only once; you can turn it off in the menu."))
         dlg.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
         dlg.add_button(_("Allow"), Gtk.ResponseType.OK)
         dlg.set_default_response(Gtk.ResponseType.OK)
@@ -2020,6 +2035,9 @@ class MapsWindow(Gtk.Window):
             dlg.show()
             return False
         self.map.me = loc
+        self.tracking = True
+        self.follow = True
+        self.watch_phone()
         acc = loc.get("accuracy", 5000)
         zoom = 16 if acc < 200 else 14 if acc < 1500 else 11
         cb, self.pending_after_location = self.pending_after_location, None
@@ -2027,6 +2045,51 @@ class MapsWindow(Gtk.Window):
         if cb:
             cb()
         return False
+
+    # ---- zive sledovani polohy z telefonu (LuxOS Companion) ----
+    def watch_phone(self):
+        """Po zapnuti Moje poloha: odebirat LocationChanged sluzby luxos-companion (bez jejiho spousteni)."""
+        if self.phone_sub is not None or os.environ.get("LUXOS_MAPS_PHONE", "1") == "0":
+            return
+        try:
+            self.phone_bus = lm.companion_bus()
+        except GLib.Error:
+            return
+        self.phone_sub = self.phone_bus.signal_subscribe(
+            lm.COMPANION_NAME, lm.COMPANION_NAME, "LocationChanged", lm.COMPANION_PATH, None,
+            Gio.DBusSignalFlags.NONE, self.on_phone_signal)
+
+    def unwatch_phone(self):
+        self.tracking = False
+        self.follow = False
+        if self.phone_sub is not None and self.phone_bus is not None:
+            self.phone_bus.signal_unsubscribe(self.phone_sub)
+        self.phone_sub = None
+
+    def stop_follow(self):
+        self.follow = False
+
+    def on_phone_signal(self, _c, _sender, _path, _iface, _sig, params):
+        try:
+            data = params.unpack()[0]
+        except (TypeError, IndexError):
+            return
+        self.on_phone_location(data)
+
+    def on_phone_location(self, data):
+        """Novy fix nebo zastarani polohy telefonu (jen se souhlasem a zapnutym sdilenim)."""
+        if not self.tracking or not self.cfg["location_consent"]:
+            return
+        fix = lm.phone_fix(data) if lm.companion_sharing_enabled() else None
+        if fix:
+            self.map.me = fix
+            if self.follow and not self.map.drag:
+                self.map.fly_to(fix["lat"], fix["lon"], None, 0.3)
+            else:
+                self.map.queue_draw()
+        elif self.map.me and self.map.me.get("source") == "phone" and not self.map.me.get("stale"):
+            self.map.me = dict(self.map.me, stale=True)
+            self.map.queue_draw()
 
     # ---- kontextova nabidka mapy ----
     def on_context(self, lat, lon, event):
@@ -2153,6 +2216,7 @@ class MapsWindow(Gtk.Window):
         if b.get_active() != self.cfg["location_consent"]:
             self.cfg["location_consent"] = b.get_active()
             if not b.get_active():
+                self.unwatch_phone()
                 self.map.me = None
                 self.map.queue_draw()
             lm.save_config(self.cfg)
@@ -2227,6 +2291,7 @@ class MapsWindow(Gtk.Window):
         return False
 
     def on_destroy(self, _w):
+        self.unwatch_phone()
         if self.dep_timer:
             GLib.source_remove(self.dep_timer)
             self.dep_timer = None

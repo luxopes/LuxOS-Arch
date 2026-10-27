@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""Zastupny `luxai --remote-session` pro testy mostu (kontrakt JSON radku, viz luxai_bridge.py).
+
+FAKE_LUXAI_MODE: ok (vychozi) | old (nezna --remote-session: hlaska na stderr a kod 2) | exit3 (skonci
+hned s kodem 3). Text pozadavku ridi chovani: "slow" ceka na cancel (pak done), "fail" vrati error,
+"crash" skonci uprostred pozadavku, "big" posle jednu velkou deltu, jinak "Echo #N: text" ve dvou
+deltach (N = poradi v konverzaci - overeni, ze konverzace trva po dobu procesu).
+FAKE_LUXAI_LOG: soubor, kam se zapisuji prijate radky a argumenty.
+"""
+import json
+import os
+import sys
+
+mode = os.environ.get("FAKE_LUXAI_MODE", "ok")
+log = os.environ.get("FAKE_LUXAI_LOG")
+
+
+def record(obj):
+    if log:
+        with open(log, "a", encoding="utf-8") as f:
+            f.write(json.dumps(obj, ensure_ascii=False) + "\n")
+
+
+def out(obj):
+    sys.stdout.write(json.dumps(obj, ensure_ascii=False) + "\n")
+    sys.stdout.flush()
+
+
+record({"argv": sys.argv[1:], "pid": os.getpid()})
+if sys.argv[1:] != ["--remote-session"] or mode == "old":
+    sys.stderr.write("luxai: unknown option '--remote-session'\n")
+    sys.exit(2)
+if mode == "exit3":
+    sys.exit(3)
+
+out({"type": "ready", "protocol": 1})
+count = 0
+running = None
+for line in sys.stdin:
+    try:
+        msg = json.loads(line)
+    except ValueError:
+        out({"type": "error", "reply_to": None, "code": "bad_input", "message": "invalid JSON"})
+        continue
+    record(msg)
+    if msg.get("type") == "cancel":
+        if running and msg.get("request_id") == running:
+            out({"type": "done", "reply_to": running})
+            running = None
+        continue
+    if msg.get("type") != "request":
+        continue
+    rid = msg["id"]
+    if running:
+        out({"type": "error", "reply_to": rid, "code": "busy", "message": "busy"})
+        continue
+    count += 1
+    text = msg.get("text", "")
+    if text == "slow":
+        running = rid
+        out({"type": "delta", "reply_to": rid, "text": "Working"})
+    elif text == "fail":
+        out({"type": "error", "reply_to": rid, "code": "provider_error", "message": "Model is not reachable."})
+    elif text == "crash":
+        out({"type": "delta", "reply_to": rid, "text": "partial"})
+        sys.exit(1)
+    elif text == "big":
+        out({"type": "delta", "reply_to": rid, "text": "ž" * 30000})
+        out({"type": "done", "reply_to": rid})
+    else:
+        reply = f"Echo #{count} ({msg.get('mode')}): {text}"
+        half = len(reply) // 2
+        out({"type": "delta", "reply_to": rid, "text": reply[:half]})
+        out({"type": "delta", "reply_to": rid, "text": reply[half:]})
+        out({"type": "done", "reply_to": rid})

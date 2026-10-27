@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- LuxOS Companion: vlastni ikona (zaobleny ctverec, telefon spojeny vlnami s pocitacem) -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5b8cff"/>
+      <stop offset="1" stop-color="#3a4fd6"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eaf1ff"/>
+      <stop offset="1" stop-color="#c9d9ff"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="10" width="112" height="112" rx="26" fill="#000" opacity="0.18"/>
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#bg)"/>
+  <rect x="8.5" y="8.5" width="111" height="111" rx="25.5" fill="none" stroke="#000" stroke-opacity="0.12"/>
+  <!-- pocitac -->
+  <rect x="58" y="70" width="46" height="30" rx="4" fill="#ffffff" opacity="0.95"/>
+  <rect x="62" y="74" width="38" height="22" rx="2" fill="#2c3aa8"/>
+  <rect x="52" y="100" width="58" height="5" rx="2.5" fill="#ffffff" opacity="0.95"/>
+  <!-- telefon -->
+  <rect x="24" y="26" width="34" height="60" rx="7" fill="#ffffff"/>
+  <rect x="28" y="33" width="26" height="44" rx="3" fill="url(#screen)"/>
+  <circle cx="41" cy="81" r="2" fill="#9aa6c8"/>
+  <circle cx="41" cy="52" r="5" fill="#3d7bff"/>
+  <circle cx="41" cy="52" r="9" fill="#3d7bff" opacity="0.25"/>
+  <!-- spojeni -->
+  <path d="M68 40 A16 16 0 0 1 84 56" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+  <path d="M68 26 A30 30 0 0 1 98 56" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round"
+        opacity="0.7"/>
+</svg>

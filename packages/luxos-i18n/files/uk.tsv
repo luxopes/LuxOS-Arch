@@ -3877,3 +3877,54 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Назва комп’ютера для домену може мати щонайбільше 15 літер, цифр і дефісів.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Домен не знайдено в DNS. Перевірте, що комп’ютер використовує DNS-сервер організації (зазвичай із DHCP), або введіть адресу контролера домену.
 Sign In to Network…	Увійти в мережу…
+Allow LuxAI requests from the phone	Дозволити запити LuxAI з телефона
+Allow saving notes to Calendar	Дозволити збереження нотаток у Календар
+Allow “%s” to connect to LuxOS?	Дозволити «%s» підключатися до LuxOS?
+Allowed Phones	Дозволені телефони
+Bluetooth Settings…	Налаштування Bluetooth…
+Bluetooth is off or not available.	Bluetooth вимкнено або він недоступний.
+Connect again from the phone.	Підключіться ще раз із телефона.
+Connected over Bluetooth	Підключено через Bluetooth
+Connected: %s	Підключено: %s
+First pair the phone with this computer in Bluetooth settings, then open LuxOS Companion on the phone and connect. This computer does not become visible to other devices by itself.	Спершу створіть пару телефона з цим комп’ютером у налаштуваннях Bluetooth, потім відкрийте LuxOS Companion на телефоні й підключіться. Сам собою комп’ютер не стає видимим для інших пристроїв.
+Invalid date (expected YYYY-MM-DD).	Неправильна дата (очікується РРРР-ММ-ДД).
+Invalid location status.	Неправильний стан місцезнаходження.
+Invalid location: %s	Неправильне місцезнаходження: %s
+Invalid time (expected HH:mm).	Неправильний час (очікується ГГ:хх).
+LuxAI answers with the permissions of this computer; actions are confirmed here.	LuxAI відповідає з дозволами цього комп’ютера; дії підтверджуються тут.
+LuxAI could not finish the request.	LuxAI не вдалося виконати запит.
+LuxAI is still working on the previous request.	LuxAI ще працює над попереднім запитом.
+LuxAI on this computer cannot answer requests from the phone yet. Update LuxAI (luxai --remote-session) and try again.	LuxAI на цьому комп’ютері ще не вміє відповідати на запити з телефона. Оновіть LuxAI (luxai --remote-session) і спробуйте ще раз.
+LuxAI requests from the phone are turned off on this computer (Phone settings).	Запити LuxAI з телефона на цьому комп’ютері вимкнено (налаштування «Телефон»).
+LuxAI stopped unexpectedly. Try again.	LuxAI несподівано завершила роботу. Спробуйте ще раз.
+Maps uses it only after you allow My Location in Maps.	Карти використовують його лише після дозволу «Моє місцезнаходження» в Картах.
+No phone is allowed yet. The first connection from a paired phone asks for permission.	Ще немає дозволених телефонів. Під час першого підключення телефона з парою LuxOS запитає дозвіл.
+Note from %s saved to Calendar	Нотатку з %s збережено в Календар
+Notes from the phone are added to your calendar on this computer.	Нотатки з телефона додаються до календаря на цьому комп’ютері.
+Open LuxOS Companion on the phone and connect to this computer.	Відкрийте LuxOS Companion на телефоні й підключіться до цього комп’ютера.
+Permissions	Дозволи
+Phones cannot connect until it is started.	Доки її не запущено, телефони не можуть підключитися.
+Ready for the phone	Готово до підключення телефона
+Saving notes from the phone to the calendar is turned off on this computer (Phone settings).	Збереження нотаток із телефона в календар на цьому комп’ютері вимкнено (налаштування «Телефон»).
+Share phone location with Maps	Надавати Картам місцезнаходження телефона
+Sharing location	Надає місцезнаходження
+Start	Запустити
+The note could not be saved: %s	Не вдалося зберегти нотатку: %s
+The note is too long (at most 8000 characters).	Нотатка задовга (щонайбільше 8000 символів).
+The note needs a title.	Нотатка повинна мати назву.
+The note text is not valid.	Текст нотатки неправильний.
+The phone %s (%s) wants to connect with the LuxOS Companion app. It will be able to share its location with Maps, save notes to Calendar and send requests to LuxAI. You can change this later in Settings › Phone.	Телефон %s (%s) хоче підключитися через застосунок LuxOS Companion. Він зможе надавати місцезнаходження Картам, зберігати нотатки в Календар і надсилати запити LuxAI. Пізніше це можна змінити в Налаштуваннях › Телефон.
+The phone service is not running.	Служба телефона не працює.
+The request has no text.	Запит не містить тексту.
+The request is too long (at most 8000 characters).	Запит задовгий (щонайбільше 8000 символів).
+The title is too long (at most 200 characters).	Назва задовга (щонайбільше 200 символів).
+This LuxOS supports only protocol version 1.	Цей LuxOS підтримує лише протокол версії 1.
+This phone is not allowed to connect. Allow it on the computer and connect again.	Цьому телефону не дозволено підключатися. Дозвольте його на комп’ютері й підключіться ще раз.
+This time does not exist in the selected time zone (the clocks change). Choose another time.	Цього часу немає у вибраному часовому поясі (переведення годинника). Виберіть інший час.
+Turn on Bluetooth to connect a phone.	Увімкніть Bluetooth, щоб підключити телефон.
+Unknown LuxAI mode.	Невідомий режим LuxAI.
+Unknown time zone.	Невідомий часовий пояс.
+the calendar file is damaged (no END:VCALENDAR)	файл календаря пошкоджено (немає END:VCALENDAR)
+the calendar file keeps changing, try again	файл календаря постійно змінюється, спробуйте ще раз
+“%s” is allowed	«%s» дозволено
+Maps uses the GPS of your phone when it is connected with LuxOS Companion and shares its location, otherwise the system location service (GeoClue) when it is available, otherwise it finds your approximate location from your internet address with the ipinfo.io service (your address is sent to that service). Maps asks only once; you can turn it off in the menu.	Карти використовують GPS вашого телефона, коли він підключений через LuxOS Companion і надає місцезнаходження, інакше — системну службу місцезнаходження (GeoClue), якщо вона доступна, а інакше визначають приблизне місцезнаходження за вашою інтернет-адресою через сервіс ipinfo.io (вашу адресу буде надіслано цьому сервісу). Карти запитують лише раз; вимкнути це можна в меню.

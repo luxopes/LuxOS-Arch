@@ -144,6 +144,12 @@ if command -v luxos-safe >/dev/null; then
     fi
 fi
 
+# LuxOS Companion (telefon pres Bluetooth): sluzba jen na pocitaci s Bluetooth adapterem
+if [[ -f /usr/lib/systemd/user/luxos-companion.service ]] && compgen -G '/sys/class/bluetooth/hci*' >/dev/null; then
+    # DISPLAY pro luxai --remote-session (potvrzovani akci LuxAI na pocitaci)
+    { systemctl --user import-environment DISPLAY XAUTHORITY; systemctl --user start luxos-companion.service; } 2>/dev/null &
+fi
+
 # Jeden proces pro Ovladaci centrum, Kalendar (predem nactene, klik v liste je ukaze okamzite),
 # Trezor, Sporic dat a automaticky vzhled. Pri padu se znovu spusti (dokud bezi X).
 (

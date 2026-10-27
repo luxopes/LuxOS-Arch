@@ -669,6 +669,7 @@ class Store:
         self.version = 0        # zvysi se pri kazde zmene (invalidace cache v UI)
         self.tzname = local_tz_name()
         self._cache = {}
+        self._known = set()     # UID vlastnich udalosti pri poslednim nacteni ze souboru
 
     def _scan(self):
         out = {}
@@ -706,11 +707,32 @@ class Store:
                     ev.source = name
                     ev.readonly = True
                 self.foreign[name] = cal
+        self._known = {e.uid for e in self.own.events}
         self.version += 1
         self._cache = {}
         return True
 
+    def _merge_external(self):
+        """Zmenil-li events.ics nekdo jiny (LuxOS Companion, import) od posledniho nacteni, prevzit jeho
+        nove udalosti - zapis z pameti by je jinak smazal. Smazane zde (znamy UID) se nevraceji."""
+        try:
+            st = os.stat(self.own_path)
+        except OSError:
+            return
+        if self._stamp is not None and self._stamp.get(self.OWN) == (st.st_mtime_ns, st.st_size):
+            return
+        try:
+            cal = read_file(self.own_path)
+        except OSError:
+            return
+        present = {e.uid for e in self.own.events}
+        for ev in cal.events:
+            if ev.uid not in self._known and ev.uid not in present:
+                self.own.events.append(ev)
+                present.add(ev.uid)
+
     def save(self):
+        self._merge_external()
         write_file(self.own_path, self.own, self.tzname)
         self._stamp = None
         self.reload_if_changed()
@@ -734,7 +756,12 @@ class Store:
         self.save()
 
     def update(self, ev):
-        if ev not in self.own.events:
+        found = False
+        for i, e in enumerate(self.own.events):
+            if e.uid == ev.uid and e.recurrence_id == ev.recurrence_id:
+                self.own.events[i] = ev     # po nacteni zmen ze souboru je v pameti nova kopie
+                found = True
+        if not found:
             raise KeyError(ev.uid)
         self.save()
 
