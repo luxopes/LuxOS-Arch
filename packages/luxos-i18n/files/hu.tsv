@@ -4029,3 +4029,119 @@ This kernel has no sched_ext support, the kernel scheduler is used.	Ez a kernel 
 Running now: %s	Most fut: %s
 Not running now, the kernel scheduler is used.	Most nem fut, a kernel ütemezője fut.
 Unknown scheduler: %s (use lavd or default)	Ismeretlen ütemező: %s (lavd vagy default)
+# lux system: cely system v jednom souboru (sit, tiskarny, napajeni, zavadec, novi uzivatele, fix)
+Computer and language	Számítógép és nyelv
+Other formats than the language, e.g. "LC_TIME": "cs_CZ.UTF-8" (date and time), "LC_PAPER"	A nyelvtől eltérő formátumok, pl. "LC_TIME": "cs_CZ.UTF-8" (dátum és idő), "LC_PAPER"
+Drivers (graphics, Wi-Fi, printers from [luxos-drivers]); the Drivers app suggests them	Illesztőprogramok (grafika, Wi-Fi, nyomtatók a [luxos-drivers]-ből); az Illesztőprogramok alkalmazás javasolja őket
+Started at boot. A removed line turns the service off at the next apply.	Indításkor indulnak. A törölt sor a következő apply-nál kikapcsolja a szolgáltatást.
+Remote access: "sshd" (SSH server). Bluetooth: "bluetooth".	Távoli hozzáférés: "sshd" (SSH-kiszolgáló). Bluetooth: "bluetooth".
+Users	Felhasználók
+Saved connections (NetworkManager). Wi-Fi and VPN passwords are not here: they are kept by the system.	Mentett kapcsolatok (NetworkManager). A Wi-Fi- és VPN-jelszavak nincsenek itt: a rendszer őrzi őket.
+security: "none" = open, "wpa-psk" = WPA2 password, "sae" = WPA3; ipv4 "auto" = automatic (DHCP).	security: "none" = nyílt, "wpa-psk" = WPA2-jelszó, "sae" = WPA3; ipv4 "auto" = automatikus (DHCP).
+A connection in use is never deleted without --force (remote access could be cut off).	A használatban lévő kapcsolat --force nélkül sosem törlődik (a távoli hozzáférés megszakadhatna).
+"model": "everywhere" = driverless printing, otherwise the driver from 'lpinfo -m'.	"model": "everywhere" = nyomtatás illesztőprogram nélkül, egyébként a 'lpinfo -m' illesztőprogramja.
+Power	Energiagazdálkodás
+For the whole computer (login screen, nobody signed in); in the desktop each user's own setting applies.	Az egész számítógépre (bejelentkező képernyő, senki sincs bejelentkezve); az asztalon minden felhasználó saját beállítása érvényes.
+lid: "suspend", "hibernate", "lock", "poweroff" or "ignore".	lid (fedél): "suspend", "hibernate", "lock", "poweroff" vagy "ignore".
+lid closed while the power adapter is connected	lecsukott fedél csatlakoztatott töltővel
+Boot	Rendszerindítás
+Boot menu: how many seconds it is shown (0 = hidden, hold Space to see it).	Rendszerbetöltő menü: hány másodpercig látható (0 = rejtett, a szóköz nyomva tartásával jelenik meg).
+default: "luxos" = the newest working LuxOS, or another entry. Snapshots are not listed here.	default: "luxos" = a legújabb működő LuxOS, vagy más bejegyzés. A pillanatképek nincsenek itt.
+Updates and security	Frissítések és biztonság
+protect = /usr read-only except during updates; verify = weekly check of system files	protect = /usr csak olvasható, kivéve frissítéskor; verify = a rendszerfájlok heti ellenőrzése
+Wrong passwords: after "deny" failures within "fail_interval" seconds the account waits "unlock_time" seconds.	Hibás jelszavak: "deny" hiba után "fail_interval" másodpercen belül a fiók "unlock_time" másodpercet vár.
+LuxOS: 20 / 30 / 60 - only a brute-force attack is stopped, you are never locked out for long.	LuxOS: 20 / 30 / 60 – csak a nyers erős támadás áll meg, sosem zárja ki hosszú időre.
+Defaults for new users	Új felhasználók alapbeállításai
+Used when a NEW user signs in for the first time; existing users keep their settings.	Akkor érvényes, amikor egy ÚJ felhasználó először jelentkezik be; a meglévő felhasználók megtartják beállításaikat.
+Delete the # at the start of a line to use it.	Egy sor használatához törölje az elején lévő #-et.
+Text console (without the desktop): keyboard and font	Szöveges konzol (asztal nélkül): billentyűzet és betűtípus
+Package sources - only checked, lux system does not change them (edit /etc/lux/lux.conf)	Csomagforrások – csak ellenőrzés, a lux system nem módosítja őket (szerkessze: /etc/lux/lux.conf)
+community = packages from the community (AUR, built in the sandbox)	community = közösségi csomagok (AUR, homokozóban fordítva)
+Network connections: run 'sudo lux system show' to include them	Hálózati kapcsolatok: a 'sudo lux system show' futtatásával kerülnek bele
+Printing (CUPS) is not running - printers are not included	A nyomtatás (CUPS) nem fut – a nyomtatók nincsenek benne
+sleep after so many minutes without use (0 = never)	alvó állapot ennyi perc használaton kívül után (0 = soha)
+"power-saver", "balanced" or "performance"	"power-saver", "balanced" vagy "performance"
+Each section below describes one part of the system.	Az alábbi szakaszok mindegyike a rendszer egy részét írja le.
+A missing setting or a deleted section means "leave it as it is": only what is written here is managed.	A hiányzó beállítás vagy törölt szakasz jelentése „hagyd, ahogy van”: csak az itt leírtakat kezeli.
+Passwords are never stored here (users, Wi-Fi, VPN): they stay in the system.	Jelszavak sosem kerülnek ide (felhasználók, Wi-Fi, VPN): a rendszerben maradnak.
+Something broke? sudo lux system fix returns the system to the state described here.	Valami elromlott? A sudo lux system fix visszaállítja a rendszert az itt leírt állapotba.
+Help: man luxos-system or ask LuxAI	Súgó: man luxos-system, vagy kérdezze a LuxAI-t
+"light", "dark" or "auto" (by sunrise and sunset)	"light", "dark" vagy "auto" (napkelte és napnyugta szerint)
+apps in the Dock (names of .desktop files)	alkalmazások a Dockban (.desktop fájlok nevei)
+default apps	alapértelmezett alkalmazások
+lock the screen after so many minutes without use	képernyő zárolása ennyi perc használaton kívül után
+turn the screen off after so many minutes	képernyő kikapcsolása ennyi perc után
+process scheduler: "lavd" = smooth desktop and games (default), "default" = the kernel's own	folyamatütemező: "lavd" = gördülékeny asztal és játékok (alapértelmezett), "default" = a kernel saját ütemezője
+password: kept by the system	jelszó: a rendszer őrzi
+Network connections can be read only with administrator rights (lux system diff asks for them).	A hálózati kapcsolatok csak rendszergazdai jogokkal olvashatók (a lux system diff kéri őket).
+"ssid" and "security" belong only to Wi-Fi connections	Az "ssid" és a "security" csak Wi-Fi-kapcsolatokhoz tartozik
+change connection %s: %s	%s kapcsolat módosítása: %s
+delete connection %s	%s kapcsolat törlése
+Printing (CUPS) is not running; printers were not checked.	A nyomtatás (CUPS) nem fut; a nyomtatók nem lettek ellenőrizve.
+default printer: %s → %s	alapértelmezett nyomtató: %s → %s
+Battery Saver is on; the power profile is set when it turns off.	Az akkumulátorkímélő be van kapcsolva; az energiaprofil a kikapcsolása után áll be.
+Boot settings can be read only with administrator rights (lux system diff asks for them).	A rendszerbetöltő beállításai csak rendszergazdai jogokkal olvashatók (a lux system diff kéri őket).
+boot menu shown for: %s → %s s	rendszerbetöltő menü látható: %s → %s mp
+default boot entry: %s → %s	alapértelmezett rendszerindítási bejegyzés: %s → %s
+kernel.scheduler: the process scheduler setting is missing (lux install luxos-tweaks).	kernel.scheduler: hiányzik a folyamatütemező beállítása (lux install luxos-tweaks).
+%s was edited, it stays as it is.	%s módosítva lett, marad, ahogy van.
+These changes affect the network connection in use; a remote (SSH) connection to this computer can be cut off:	Ezek a módosítások a használt hálózati kapcsolatot érintik; a gép távoli (SSH) kapcsolata megszakadhat:
+never write Wi-Fi or VPN passwords into the file; they are kept by the system (NetworkManager asks for them when connecting)	Wi-Fi- és VPN-jelszavakat soha ne írjon a fájlba; a rendszer őrzi őket (a NetworkManager csatlakozáskor kéri)
+%s is both in packages and drivers	%s a packages és a drivers listában is szerepel
+add connection %s	%s kapcsolat hozzáadása
+network.connections.%s: the type cannot be changed (%s → %s); delete the connection and create a new one	network.connections.%s: a típus nem módosítható (%s → %s); törölje a kapcsolatot, és hozzon létre újat
+(in use; applies at the next connection)	(használatban; a következő csatlakozáskor érvényes)
+Connection %s is in use and was kept; delete it with --force (the computer may lose the network).	A(z) %s kapcsolat használatban van, ezért megmaradt; --force kapcsolóval törölhető (a gép elveszítheti a hálózatot).
+printers.queues.%s: the driver "%s" is not installed (list: lpinfo -m; "everywhere" = driverless printing)	printers.queues.%s: a(z) "%s" illesztőprogram nincs telepítve (lista: lpinfo -m; "everywhere" = nyomtatás illesztőprogram nélkül)
+add printer %s (%s)	%s nyomtató hozzáadása (%s)
+driver %s	illesztőprogram: %s
+shared: %s	megosztott: %s
+printer %s: %s	%s nyomtató: %s
+printers.default: there is no printer %s	printers.default: nincs %s nevű nyomtató
+power.profile: power profiles are not installed (lux install power-profiles-daemon).	power.profile: az energiaprofilok nincsenek telepítve (lux install power-profiles-daemon).
+Boot settings: no LuxOS boot entry found (systemd-boot or GRUB).	Rendszerbetöltő beállításai: nem található LuxOS-bejegyzés (systemd-boot vagy GRUB).
+boot.default: there is no boot menu entry %s (entries: %s)	boot.default: nincs %s nevű menübejegyzés (bejegyzések: %s)
+formats: %s	formátumok: %s
+sign-in lockout: %s	zárolás hibás jelszavak után: %s
+%s is missing; the package manager settings were not checked.	%s hiányzik; a csomagkezelő beállításai nem lettek ellenőrizve.
+process scheduler: %s → %s	folyamatütemező: %s → %s
+Repair: the system returns to the state described in %s	Javítás: a rendszer visszaáll a(z) %s fájlban leírt állapotba
+The network connection in use was left as it is (apply it with --force).	A használt hálózati kapcsolat változatlan maradt (--force kapcsolóval alkalmazható).
+connection name	kapcsolatnév
+network.connections.%s: only Wi-Fi and Ethernet connections can be created here; create other kinds in Settings > Network	network.connections.%s: itt csak Wi-Fi- és Ethernet-kapcsolat hozható létre; más fajtákat a Beállítások > Hálózat részben
+network.connections.%s: a new Wi-Fi connection needs "ssid"	network.connections.%s: az új Wi-Fi-kapcsolathoz "ssid" kell
+network.connections.%s: enterprise Wi-Fi (802.1x) needs certificates and an account; connect it once in Settings > Network, then the file manages it	network.connections.%s: a vállalati Wi-Fi (802.1x) tanúsítványokat és fiókot igényel; csatlakozzon egyszer a Beállítások > Hálózat részben, utána a fájl kezeli
+Connection %s: the Wi-Fi password is not in the file; it is asked for when connecting for the first time (it stays in the system).	%s kapcsolat: a Wi-Fi-jelszó nincs a fájlban; az első csatlakozáskor kéri (a rendszerben marad).
+printers.queues.%s: a new printer needs "uri" (its address)	printers.queues.%s: az új nyomtatóhoz "uri" (a címe) kell
+remove printer %s	%s nyomtató eltávolítása
+power profile: %s → %s	energiaprofil: %s → %s
+Change the network connection in use too?	A használt hálózati kapcsolatot is módosítja?
+must be one of: %s	a következők egyike kell legyen: %s
+printer name	nyomtatónév
+must be "luxos" or the name of a boot menu entry (not a snapshot)	"luxos" vagy egy menübejegyzés neve kell legyen (nem pillanatképé)
+console: %s	konzol: %s
+repos.%s differs from %s (%s); lux system does not change the package manager settings - edit %s and check it with: lux config check	repos.%s eltér ettől: %s (%s); a lux system nem módosítja a csomagkezelő beállításait – szerkessze: %s, ellenőrzés: lux config check
+must be between %d and %d	%d és %d között kell lennie
+as the language	a nyelv szerint
+console setting	konzolbeállítás
+must be the full path of a picture readable by everybody, e.g. "/usr/share/backgrounds/luxos/luxos-dark.jpg"	mindenki által olvasható kép teljes útvonala kell legyen, pl. "/usr/share/backgrounds/luxos/luxos-dark.jpg"
+connection type	kapcsolattípus
+printer address (URI)	nyomtatócím (URI)
+a Wi-Fi network name has 1 to 32 characters	a Wi-Fi-hálózat neve 1–32 karakter
+network interface	hálózati csatoló
+"manual" needs "addresses" (e.g. ["192.168.1.10/24"])	a "manual" módhoz "addresses" kell (pl. ["192.168.1.10/24"])
+printer driver	nyomtató-illesztőprogram
+app ID	alkalmazásazonosító
+must be the address of a proxy configuration (PAC) file, e.g. "http://proxy.example.com/proxy.pac", or "" for none	proxybeállító (PAC) fájl címe kell legyen, pl. "http://proxy.example.com/proxy.pac", vagy "", ha nincs
+address with prefix (e.g. "192.168.1.10/24")	cím előtaggal (pl. "192.168.1.10/24")
+Network connections	Hálózati kapcsolatok
+Boot menu	Rendszerbetöltő menü
+repository name	tárolónév
+repair: return the system to the state described in the file	javítás: visszaállítja a rendszert a fájlban leírt állapotba
+Writing the system configuration (/etc/luxos/system.lsl)…	A rendszerkonfiguráció írása (/etc/luxos/system.lsl)…
+The system configuration file was not written; create it later with: sudo lux system init	A rendszerkonfigurációs fájl nem lett megírva; később létrehozható: sudo lux system init
+Repair the settings from /etc/luxos/system.lsl	Beállítások javítása a /etc/luxos/system.lsl alapján
+This computer has no system configuration file (/etc/luxos/system.lsl).	Ezen a gépen nincs rendszerkonfigurációs fájl (/etc/luxos/system.lsl).
+Settings that changed are returned to the state described in /etc/luxos/system.lsl.	A módosult beállítások visszaállnak a /etc/luxos/system.lsl fájlban leírt állapotba.
+The changes are shown first and you are asked; a snapshot is taken before.	Előbb megjelennek a változások, és rákérdez; előtte pillanatkép készül.
+Repair the settings (lux system fix)	Beállítások javítása (lux system fix)

@@ -31,7 +31,16 @@ n=$(basename "$0")
 printf '%s %s\n' "$n" "$*" >>"$STUB_LOG"
 if [[ -f $FAKE/fail ]] && grep -qx "$n" "$FAKE/fail"; then echo "$n: failed on purpose" >&2; exit 1; fi
 case $n in
-  lux-engine) case $1 in -Qeq) cat "$FAKE/explicit" ;; -Qq) cat "$FAKE/explicit" "$FAKE/deps" ;; esac ;;
+  lux-engine) case $1 in -Qeq) cat "$FAKE/explicit" ;; -Qq) cat "$FAKE/explicit" "$FAKE/deps" ;;
+              -Slq) cat "$FAKE/drivers_repo" 2>/dev/null ;; esac ;;
+  nmcli) [[ $* == "-t -f UUID connection show --active" ]] && cat "$FAKE/active" 2>/dev/null ;;
+  lpstat)
+    [[ -f $FAKE/cups ]] || { echo "lpstat: Scheduler is not running." >&2; exit 1; }
+    case $1 in -r) echo "scheduler is running" ;; -v) cat "$FAKE/cups" ;;
+                -d) if [[ -f $FAKE/cups_default ]]; then echo "system default destination: $(cat "$FAKE/cups_default")"
+                    else echo "no system default destination"; fi ;; esac ;;
+  lpoptions) cat "$FAKE/lpoptions_$2" 2>/dev/null ;;
+  lpinfo) cat "$FAKE/lpinfo" 2>/dev/null ;;
   lux_alpm.py)
     if [[ $1 == resolve ]]; then
       shift 2
@@ -143,7 +152,8 @@ class Base(unittest.TestCase):
                 lines = f.read().splitlines()
         except OSError:
             return []
-        reads = ("lux-engine -Q", "systemctl list-unit-files", "flatpak list", "lux_alpm.py resolve")
+        reads = ("lux-engine -Q", "lux-engine -Sl", "systemctl list-unit-files", "flatpak list", "lux_alpm.py resolve",
+                 "nmcli -t -f UUID", "lpstat ", "lpoptions ", "lpinfo ")
         return [x for x in lines if not x.startswith(reads)]
 
     def plan(self, cfg, applied=None):
@@ -525,20 +535,25 @@ class EvaluateTest(Base):
 
 class TranslationTest(unittest.TestCase):
     def test_all_strings_translated(self):
-        """Kazdy text _("...") z lux_system.py je ve vsech 12 prekladech."""
+        """Kazdy text _("...") a _c("...") z lux_system.py je ve vsech 12 prekladech."""
         import ast
         with open(os.path.join(HERE, "..", "lux_system.py"), encoding="utf-8") as f:
             tree = ast.parse(f.read())
         texts = set()
         for node in ast.walk(tree):
-            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_"
+            # _c = komentare vygenerovaneho souboru (v jazyce systemu)
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in ("_", "_c", "N_")
                     and node.args and isinstance(node.args[0], ast.Constant)):
                 texts.add(node.args[0].value)
+            # head("Nadpis", "radek", ...) a note("text") ve generate() prekladaji pres _c
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in ("head", "note")):
+                texts |= {a.value for a in node.args if isinstance(a, ast.Constant) and isinstance(a.value, str)}
         # nazvy sekci a typy v Checker.typed se prekladaji pres promennou
         texts |= {t for _k, t in ls.SECTIONS}
         texts |= {"a text", "a list of texts", "a dictionary { }", "True or False", "a number", "package name",
                   "Flathub app ID", "service name", "group name", "user name", "computer name", "keyboard layout",
-                  "keyboard option", "kernel parameter", "port (e.g. \"22/tcp\")"}
+                  "keyboard option", "kernel parameter", "port (e.g. \"22/tcp\")", "IP address", "app ID",
+                  "repository name"}
         i18n = os.path.join(HERE, "..", "..", "luxos-i18n", "files")
         for lang in ("cs", "sk", "pl", "uk", "hu", "de", "fr", "es", "it", "pt", "nl", "sv"):
             with open(os.path.join(i18n, lang + ".tsv"), encoding="utf-8") as f:

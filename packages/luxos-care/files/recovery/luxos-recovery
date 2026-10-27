@@ -7,11 +7,15 @@
 # Kroky, ktere neco meni, chteji vyslovne potvrzeni (u preinstalace napsat slovo).
 # gum (je-li nainstalovany) jen pro hezci nabidky; bez nej obycejne cislovane nabidky.
 #
-# Testy: LUXOS_RECOVERY_PLAIN=1 (bez gum), LUXOS_CARE (cesta k luxos-care), LUXOS_RECOVERY_ONCE=1
-# (po jedne akci konec misto opakovani nabidky).
+# Oprava nastaveni: "lux system fix" vrati system do stavu podle /etc/luxos/system.lsl (ukaze rozdil,
+# zepta se, predtim snimek).
+#
+# Testy: LUXOS_RECOVERY_PLAIN=1 (bez gum), LUXOS_CARE (cesta k luxos-care), LUXOS_LUX_SYSTEM (cesta
+# k lux_system.py), LUXOS_RECOVERY_ONCE=1 (po jedne akci konec misto opakovani nabidky).
 set -u
 
 CARE=${LUXOS_CARE:-/usr/bin/luxos-care}
+LUX_SYSTEM=${LUXOS_LUX_SYSTEM:-/usr/lib/lux/lux_system.py}
 ROOT=${LUXOS_RECOVERY_ROOT-}
 
 # Jazyk systemu; konzole bez pisma s diakritikou (eurlatgr) by ukazala otazniky
@@ -154,6 +158,18 @@ network() {
     if command -v nmtui >/dev/null; then nmtui connect; else nmcli device wifi list; pause; fi
 }
 
+system_fix() {
+    title "$(T "Repair the settings from /etc/luxos/system.lsl")"
+    if [[ ! -x $LUX_SYSTEM || ! -e $ROOT/etc/luxos/system.lsl ]]; then
+        echo "$(T "This computer has no system configuration file (/etc/luxos/system.lsl).")"
+        pause; return
+    fi
+    echo "$(T "Settings that changed are returned to the state described in /etc/luxos/system.lsl.")"
+    echo "$(T "The changes are shown first and you are asked; a snapshot is taken before.")"
+    "$LUX_SYSTEM" fix
+    pause
+}
+
 main_menu() {
     while true; do
         ((GUM)) && clear
@@ -163,6 +179,7 @@ main_menu() {
             "$(T "Check the disk")" \
             "$(T "Restore a snapshot (state before an update)")" \
             "$(T "Reinstall LuxOS (keeps your files and accounts)")" \
+            "$(T "Repair the settings (lux system fix)")" \
             "$(T "Connect to the internet")" \
             "$(T "Restart")" \
             "$(T "Shut down")")
@@ -170,9 +187,10 @@ main_menu() {
             1) disk_check ;;
             2) rollback ;;
             3) reinstall ;;
-            4) network ;;
-            5) systemctl reboot; exit 0 ;;
-            6) systemctl poweroff; exit 0 ;;
+            4) system_fix ;;
+            5) network ;;
+            6) systemctl reboot; exit 0 ;;
+            7) systemctl poweroff; exit 0 ;;
         esac
         [[ -n ${LUXOS_RECOVERY_ONCE-} ]] && exit 0
     done

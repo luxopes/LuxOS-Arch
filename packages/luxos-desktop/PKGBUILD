@@ -130,6 +130,8 @@ package() {
     ln -s luxos-hub "$pkgdir/usr/bin/luxos-control-center"
     ln -s luxos-hub "$pkgdir/usr/bin/luxos-calendar"
     ln -s luxos-search "$pkgdir/usr/bin/luxos-spotlight"   # starsi zkratky v xfconf
+    # Vychozi nastaveni NOVYCH uzivatelu od spravce (/etc/luxos/new-users.conf z lux system), pri prvnim prihlaseni
+    install -Dm755 "$f/session/luxos-new-user-defaults" "$pkgdir/usr/lib/luxos/luxos-new-user-defaults"
     # Sledovani aktivniho okna (bash, xprop -spy) pro "luxos-appname watch"
     install -Dm755 "$f/luxos-appname-watch" "$pkgdir/usr/lib/luxos/luxos-appname-watch"
     install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f"/python/*.py
