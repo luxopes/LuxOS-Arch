@@ -3101,13 +3101,16 @@ static void on_shutdown(GApplication *ga, gpointer d)
     }
 }
 
-static const char *usage =
-    "Usage: luxos-text [OPTION…] [FILE…|FOLDER]\n"
-    "LuxOS Text Editor - every call opens a new window (files in tabs, a folder in the sidebar).\n\n"
-    "  +LINE              go to line LINE in the first file\n"
-    "  --new-process      separate process (no reuse of a running editor)\n"
-    "  -h, --help\n"
-    "  -V, --version\n";
+/* napoveda: syntaxe zustava, popisy se prekladaji (luxos-i18n) */
+static void print_usage(void)
+{
+    printf("%s luxos-text [%s…] [%s…|%s]\n%s\n\n", T("Usage:"), T("OPTION"), T("FILE"), T("FOLDER"),
+           T("LuxOS Text Editor - every call opens a new window (files in tabs, a folder in the sidebar)."));
+    printf("  %-18s %s\n", "+LINE", T("go to line LINE in the first file"));
+    printf("  %-18s %s\n", "--new-process", T("separate process (no reuse of a running editor)"));
+    printf("  %-18s %s\n", "-h, --help", T("show this help"));
+    printf("  %-18s %s\n", "-V, --version", T("show the version"));
+}
 
 static int on_command_line(GApplication *ga, GApplicationCommandLine *cl, gpointer p)
 {
@@ -3150,7 +3153,7 @@ int main(int argc, char **argv)
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--")) break;
         if (!strcmp(argv[i], "--new-process")) unique = FALSE;
-        if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) { fputs(usage, stdout); return 0; }
+        if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) { print_usage(); return 0; }
         if (!strcmp(argv[i], "-V") || !strcmp(argv[i], "--version")) {
             printf("luxos-text %s (GtkSourceView %d.%d.%d)\n", LUXOS_TEXT_VERSION, GTK_SOURCE_MAJOR_VERSION,
                    GTK_SOURCE_MINOR_VERSION, GTK_SOURCE_MICRO_VERSION);

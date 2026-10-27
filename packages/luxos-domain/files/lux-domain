@@ -252,6 +252,11 @@ def cmd_session(args):
 
 
 def parser():
+    try:
+        from luxos_i18n import argparse_i18n     # usage:, options, chyby argparse v jazyce uzivatele
+        argparse_i18n()
+    except ImportError:
+        pass
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("-y", "--yes", action="store_true")
     common.add_argument("--json", action="store_true")
@@ -308,6 +313,10 @@ HELP = (("discover DOMAIN", "find the domain controllers and check the clock"),
         ("share add|remove|list URL [NAME]", "shared folders of the organization in Files"),
         ("printer add|remove|list NAME URI", "printers of a Windows print server (Kerberos)"),
         ("sync-time", "set the clock from the domain"))
+OPTIONS = (("-y, --yes", "do not ask for confirmation"),
+           ("--json", "machine-readable output"),
+           ("--password-stdin", "read the password from standard input"),
+           ("--no-snapshot", "no system snapshot before joining or leaving"))
 
 HANDLERS = {"discover": cmd_discover, "join": cmd_join, "leave": cmd_leave, "status": cmd_status,
             "admins": cmd_admins, "login": cmd_login, "set": cmd_set, "share": cmd_share,
@@ -315,13 +324,23 @@ HANDLERS = {"discover": cmd_discover, "join": cmd_join, "leave": cmd_leave, "sta
             "session": cmd_session}
 
 
+def usage(file=None):
+    print(f"{B}{_('Usage:')}{R} lux domain <{_('command')}> [{_('options')}]\n", file=file)
+    for c, d in HELP:
+        print(f"  {c:<34}{_(d)}", file=file)
+    print(f"\n{B}{_('Options:')}{R}", file=file)
+    for c, d in OPTIONS:
+        print(f"  {c:<34}{_(d)}", file=file)
+
+
 def main(argv):
+    if argv[:1] in (["-h"], ["--help"]):
+        usage()
+        return 0
     p = parser()
     args = p.parse_args(argv)
     if args.cmd in (None, "help"):
-        print(f"{B}{_('Usage:')}{R} lux domain <{_('command')}>\n")
-        for c, d in HELP:
-            print(f"  {c:<34}{_(d)}")
+        usage(None if args.cmd == "help" else sys.stderr)
         return 0 if args.cmd == "help" else 2
     try:
         if args.cmd in ROOT_CMDS or getattr(args, "action", None) in ROOT_SUB.get(args.cmd, ()):

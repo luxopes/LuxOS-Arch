@@ -18,12 +18,27 @@ R=${LUXOS_HW_ROOT:-}
 DATA=${LUXOS_HW_DATA:-/usr/share/luxos/hwdetect}
 mode=packages
 declare -a kernels=()
+# Preklady (luxos-i18n) jen pro texty pro lidi (napoveda, chyby, --report): bezne volani zustava rychle
+i18n() { . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }; }
+usage() {   # jednim zapisem (| grep -q nesmi skript ukoncit uprostred - SIGPIPE)
+    local u
+    i18n
+    u=$(printf '%s\n\n%s luxos-hwdetect [--kernel NAME]... [--packages|--services|--report|--json]\n' \
+            "luxos-hwdetect - $(T "detect the hardware and the drivers it needs")" "$(T "Usage:")"
+        printf '  %-12s%s\n' \
+            --packages "$(T "list the packages to install (default)")" \
+            --services "$(T "list the services to enable")" \
+            --report "$(T "readable overview")" \
+            --json "$(T "machine-readable description of the devices")" \
+            --kernel "$(T "kernel to install driver headers for (DKMS); can be repeated, default: installed kernels")")
+    printf '%s\n' "$u"
+}
 while (($#)); do
     case $1 in
-        --kernel) [[ $# -ge 2 ]] || { echo "--kernel needs a value" >&2; exit 2; }; kernels+=("$2"); shift ;;
+        --kernel) [[ $# -ge 2 ]] || { i18n; echo "$(T "%s needs a value" --kernel)" >&2; exit 2; }; kernels+=("$2"); shift ;;
         --packages|--services|--report|--json) mode=${1#--} ;;
-        -h|--help) sed -n '2,10p' "$0" | sed 's/^# \?//'; exit 0 ;;
-        *) echo "Neznamy parametr: $1" >&2; exit 2 ;;
+        -h|--help) usage; exit 0 ;;
+        *) i18n; echo "$(T "Unknown option: %s" "$1")" >&2; usage >&2; exit 2 ;;
     esac
     shift
 done
@@ -409,8 +424,11 @@ case $mode in
     packages) dedup "${pkgs[@]}" ;;
     services) dedup "${svcs[@]}" ;;
     report)
-        printf '%sLuxOS hardware detection%s\n' "$B" "$N"
-        if ((${#notes[@]})); then printf '  • %s\n' "${notes[@]}"; else echo "  • No special drivers needed"; fi
+        i18n
+        printf '%s%s%s\n' "$B" "$(T "LuxOS hardware detection")" "$N"
+        if ((${#notes[@]})); then
+            for x in "${notes[@]}"; do printf '  • %s\n' "$(T "$x")"; done
+        else printf '  • %s\n' "$(T "No special drivers needed")"; fi
         for ((n = 0; n < ${#D_ID[@]}; n++)); do
             [[ -n ${D_ALT[n]} ]] || continue
             while IFS=$'\x1f' read -r -d $'\x1e' a_id a_title a_note a_pkgs _rest; do
@@ -418,7 +436,7 @@ case $mode in
             done <<<"${D_ALT[n]}"
         done
         if ((${#pkgs[@]})); then
-            printf '\n%sPackages:%s %s\n' "$B" "$N" "$(dedup "${pkgs[@]}" | tr '\n' ' ')"
+            printf '\n%s%s%s %s\n' "$B" "$(T "Packages:")" "$N" "$(dedup "${pkgs[@]}" | tr '\n' ' ')"
         fi ;;
     json)
         j_live="" j_ml="" j_k="" j_id="" j_kind="" j_title="" j_note="" j_p="" j_s="" j_m="" j_r=""

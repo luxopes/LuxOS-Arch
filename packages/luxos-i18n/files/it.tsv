@@ -4149,3 +4149,137 @@ This computer has no system configuration file (/etc/luxos/system.lsl).	Questo c
 Settings that changed are returned to the state described in /etc/luxos/system.lsl.	Le impostazioni modificate tornano allo stato descritto in /etc/luxos/system.lsl.
 The changes are shown first and you are asked; a snapshot is taken before.	Prima vengono mostrate le modifiche e ti viene chiesto; prima si crea un'istantanea.
 Repair the settings (lux system fix)	Ripara le impostazioni (lux system fix)
+usage:	uso:
+positional arguments	argomenti posizionali
+show this help message and exit	mostra questo aiuto ed esci
+subcommands	sottocomandi
+%(prog)s: error: %(message)s	%(prog)s: errore: %(message)s
+argument %(argument_name)s: %(message)s	argomento %(argument_name)s: %(message)s
+invalid choice: %(value)r (choose from %(choices)s)	scelta non valida: %(value)r (scegli tra %(choices)s)
+invalid %(type)s value: %(value)r	valore %(type)s non valido: %(value)r
+the following arguments are required: %s	sono richiesti i seguenti argomenti: %s
+unrecognized arguments: %s	argomenti non riconosciuti: %s
+one of the arguments %s is required	è richiesto uno degli argomenti %s
+not allowed with argument %s	non consentito con l’argomento %s
+expected one argument	atteso un argomento
+expected at most one argument	atteso al massimo un argomento
+expected at least one argument	atteso almeno un argomento
+expected %s argument	atteso %s argomento
+expected %s arguments	attesi %s argomenti
+ambiguous option: %(option)s could match %(matches)s	opzione ambigua: %(option)s può corrispondere a %(matches)s
+unexpected option string: %s	opzione inattesa: %s
+(no command)	(senza comando)
+%s needs a value	%s richiede un valore
+OPTION	OPZIONE
+COMMAND	COMANDO
+ARG	ARG
+FILE	FILE
+FOLDER	CARTELLA
+DEVICE	DISPOSITIVO
+show this help	mostra questo aiuto
+show the version	mostra la versione
+machine-readable output	output leggibile da programmi
+read the password from standard input	leggi la password dallo standard input
+no system snapshot before joining or leaving	nessuno snapshot del sistema prima di unirsi o uscire
+updates, backup kernel and self-repair	aggiornamenti, kernel di riserva e autoriparazione
+show the state of updates and repairs	mostra lo stato di aggiornamenti e riparazioni
+recent repairs and updates	riparazioni e aggiornamenti recenti
+show or set the update mode (setting it needs root)	mostra o imposta la modalità di aggiornamento (impostarla richiede root)
+CPU scheduler: LuxOS (sched_ext lavd) or the kernel default	scheduler della CPU: LuxOS (sched_ext lavd) o quello predefinito del kernel
+switch to the LuxOS kernel, the current one stays as a backup (root)	passa al kernel LuxOS, quello attuale resta di riserva (root)
+System snapshots	Snapshot del sistema
+list system snapshots (root)	elenca gli snapshot del sistema (root)
+take a system snapshot now (root)	crea ora uno snapshot del sistema (root)
+start the snapshot as the system after the next restart (root)	avvia lo snapshot come sistema dopo il prossimo riavvio (root)
+restore the snapshot and recovery entries in the boot menu (root)	ripristina le voci di snapshot e ripristino nel menu di avvio (root)
+system protection and the last check of system files	protezione del sistema e ultimo controllo dei file di sistema
+turn system protection on or off (root)	attiva o disattiva la protezione del sistema (root)
+make system files read-only again when nothing is being installed (root)	rendi di nuovo i file di sistema di sola lettura quando non si installa nulla (root)
+run a command with writable system files (root)	esegui un comando con i file di sistema scrivibili (root)
+check installed files against the package database	controlla i file installati con il database dei pacchetti
+reinstall packages with changed files (root)	reinstalla i pacchetti con file modificati (root)
+Recovery	Ripristino
+check the disk; without --repair nothing is written (root)	controlla il disco; senza --repair non viene scritto nulla (root)
+reinstall the system, keeping /home and user accounts (root)	reinstalla il sistema mantenendo /home e gli account utente (root)
+Used by system services and hooks: %s	Usati dai servizi di sistema e dagli hook: %s
+encrypted folder /safe/<user> unlocked with its own password	cartella cifrata /safe/<utente> sbloccata con una propria password
+Safe window	finestra della Cassaforte
+ask for the password (--open: then open the folder)	chiedi la password (--open: poi apri la cartella)
+lock the Safe (--force: keep trying; --logout: close apps with open files)	blocca la Cassaforte (--force: continua a provare; --logout: chiudi le app con file aperti)
+print the state: locked, unlocked or none	stampa lo stato: locked (bloccata), unlocked (sbloccata) o none (nessuna)
+lock when the screen locks or the computer sleeps (started by the session)	blocca quando lo schermo si blocca o il computer va in sospensione (avviato dalla sessione)
+trust the Unlock Safe launcher in the locked folder (started by the session)	rendi attendibile l’avviatore Sblocca Cassaforte nella cartella bloccata (avviato dalla sessione)
+backup state	stato dei backup
+back up now	esegui il backup ora
+list backups	elenca i backup
+files in a backup	file in un backup
+restore files and folders	ripristina file e cartelle
+restore everything (new computer, LuxOS Recovery)	ripristina tutto (nuovo computer, LuxOS Recovery)
+backup disks	dischi di backup
+add a backup disk: a folder or a network disk	aggiungi un disco di backup: una cartella o un disco di rete
+erase an external disk and use it for backups	cancella un disco esterno e usalo per i backup
+stop using a backup disk (the backups on it stay)	smetti di usare un disco di backup (i backup restano sul disco)
+folders that are not backed up	cartelle escluse dal backup
+automatic backups every hour	backup automatici ogni ora
+also back up the system (settings and app list), Downloads or virtual machines	esegui il backup anche del sistema (impostazioni ed elenco app), di Download o delle macchine virtuali
+folder with backups or the root of a backup disk (restore without configuration)	cartella con i backup o radice di un disco di backup (ripristino senza configurazione)
+which computer when the disk has backups of several	quale computer se il disco contiene backup di più computer
+folder with backups (no configuration needed)	cartella con i backup (senza configurazione)
+reset apps to their default settings; nothing is deleted	ripristina le app alle impostazioni predefinite; non viene eliminato nulla
+window (Settings)	finestra (Impostazioni)
+apps with settings in your home folder	app con impostazioni nella cartella home
+move the app's settings to a backup (--force: even while the app is running)	sposta le impostazioni dell’app in un backup (--force: anche se l’app è in esecuzione)
+restore a backup (the current settings are backed up first)	ripristina un backup (prima viene salvato quello attuale)
+connection with your phone (LuxOS Companion for Android) over Bluetooth	connessione con il telefono (LuxOS Companion per Android) via Bluetooth
+Phone window: approved phones, permissions, status	finestra Telefono: telefoni approvati, permessi, stato
+session service (luxos-companion.service)	servizio di sessione (luxos-companion.service)
+service status as JSON, without a window	stato del servizio come JSON, senza finestra
+scan documents and photos	scansiona documenti e foto
+scanner from SANE (for example from Printers & Scanners)	scanner da SANE (ad esempio da Stampanti e scanner)
+check whether the network needs a sign-in on a login page	verifica se la rete richiede l’accesso da una pagina di login
+Prints online, portal URL IP or none (used by luxos-hub).	Stampa online, portal URL IP o none (usato da luxos-hub).
+sign in to a network with a login page (hotel, airport, train, coffee shop)	accesso a una rete con pagina di login (hotel, aeroporto, treno, bar)
+Opens the login page in a private browser window that forgets everything when closed.	Apre la pagina di login in una finestra privata del browser che dimentica tutto alla chiusura.
+rescue a frozen desktop (the mouse moves, but clicks and typing do nothing)	salva un desktop bloccato (il mouse si muove, ma clic e digitazione non fanno nulla)
+from a console (Ctrl+Alt+F3, sign in): save a report and restore the desktop	da una console (Ctrl+Alt+F3, accedi): salva un rapporto e ripristina il desktop
+only save a report, restart nothing	salva solo un rapporto, non riavviare nulla
+watch the session and save a report when the desktop stops responding	sorveglia la sessione e salva un rapporto quando il desktop non risponde
+Reports: %s. Open apps stay open. Back to the desktop: Ctrl+Alt+F1 (or F7).	Rapporti: %s. Le app aperte restano aperte. Torna al desktop: Ctrl+Alt+F1 (o F7).
+detect the hardware and the drivers it needs	rileva l’hardware e i driver necessari
+list the packages to install (default)	elenca i pacchetti da installare (predefinito)
+list the services to enable	elenca i servizi da attivare
+readable overview	riepilogo leggibile
+machine-readable description of the devices	descrizione dei dispositivi leggibile da programmi
+kernel to install driver headers for (DKMS); can be repeated, default: installed kernels	kernel per cui installare gli header dei driver (DKMS); ripetibile, predefinito: kernel installati
+LuxOS hardware detection	Rilevamento hardware di LuxOS
+Packages:	Pacchetti:
+LuxOS installer	programma di installazione di LuxOS
+interactive installation	installazione interattiva
+unattended installation (example: /usr/share/luxos/installer/install.conf.example)	installazione non presidiata (esempio: /usr/share/luxos/installer/install.conf.example)
+free space and partitions of a disk (KEY=value)	spazio libero e partizioni di un disco (CHIAVE=valore)
+disks, partitions, LUKS and LVM as JSON (read-only)	dischi, partizioni, LUKS e LVM come JSON (sola lettura)
+check a LAYOUT without changing anything	controlla un LAYOUT senza modificare nulla
+OEM preinstallation: prepare the computer, the customer creates the account at the first start	preinstallazione OEM: prepara il computer, il cliente crea l’account al primo avvio
+seal for the customer: remove traces of the preparation; the setup assistant starts at the next start	sigilla per il cliente: rimuove le tracce della preparazione; al prossimo avvio parte l’assistente di configurazione
+the same from the installer (arch-chroot)	lo stesso dal programma di installazione (arch-chroot)
+state for the setup assistant (KEY=value)	stato per l’assistente di configurazione (CHIAVE=valore)
+finish the setup assistant: settings on standard input (KEY=value lines)	completa l’assistente di configurazione: impostazioni dallo standard input (righe CHIAVE=valore)
+first start service (luxos-oem-firstboot.service)	servizio del primo avvio (luxos-oem-firstboot.service)
+run the rest of the command line in the terminal	esegui il resto della riga di comando nel terminale
+run a command (one string)	esegui un comando (una stringa)
+start in DIR	inizia in DIR
+fixed tab title	titolo della scheda fisso
+keep the tab open after the command exits	mantieni aperta la scheda al termine del comando
+open a tab in the last window	apri una scheda nell’ultima finestra
+open a new window (default)	apri una nuova finestra (predefinito)
+window size in characters	dimensione della finestra in caratteri
+maximized or full screen window	finestra massimizzata o a schermo intero
+separate process (no reuse of a running terminal)	processo separato (senza riutilizzare un terminale aperto)
+LuxOS Text Editor - every call opens a new window (files in tabs, a folder in the sidebar).	Editor di testo LuxOS - ogni avvio apre una nuova finestra (file in schede, una cartella nella barra laterale).
+go to line LINE in the first file	vai alla riga LINE del primo file
+separate process (no reuse of a running editor)	processo separato (senza riutilizzare un editor aperto)
+LuxOS is connected to your LuxAI account. You can close this window.	LuxOS è collegato al tuo account LuxAI. Puoi chiudere questa finestra.
+Connecting failed.	Connessione non riuscita.
+list system snapshots (one before every update)	elenca gli snapshot del sistema (uno prima di ogni aggiornamento)
+take a system snapshot now	crea ora uno snapshot del sistema
+return the system to a snapshot (also from the boot menu)	riporta il sistema a uno snapshot (anche dal menu di avvio)

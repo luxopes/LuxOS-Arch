@@ -706,8 +706,27 @@ def gui(mode):
     return 0 if (mode not in ("unlock", "open") or result["ok"]) else 1
 
 
+USAGE = (
+    ("luxos-safe", "Safe window"),
+    ("luxos-safe unlock [--open]", "ask for the password (--open: then open the folder)"),
+    ("luxos-safe lock [--force] [--logout]", "lock the Safe (--force: keep trying; --logout: close apps with open files)"),
+    ("luxos-safe status", "print the state: locked, unlocked or none"),
+    ("luxos-safe --watch", "lock when the screen locks or the computer sleeps (started by the session)"),
+    ("luxos-safe --trust-launcher", "trust the Unlock Safe launcher in the locked folder (started by the session)"),
+)
+
+
+def usage(file=None):
+    print("luxos-safe - " + _("encrypted folder /safe/<user> unlocked with its own password") + "\n", file=file)
+    for cmd, desc in USAGE:
+        print(f"  {cmd:38}{_(desc)}", file=file)
+
+
 def main():
     args = sys.argv[1:]
+    if args[:1] in (["-h"], ["--help"], ["help"]):
+        usage()
+        return 0
     if not args:
         return gui("main")
     cmd = args[0]
@@ -734,7 +753,7 @@ def main():
     if cmd == "--trust-launcher":
         trust_launcher()          # luxos-hub (LSL) po prihlaseni se zamcenym Trezorem
         return 0
-    print(__doc__)
+    usage(sys.stderr)
     return 2
 
 

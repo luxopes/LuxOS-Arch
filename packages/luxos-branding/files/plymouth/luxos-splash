@@ -94,5 +94,6 @@ case ${1-} in
     list) printf '%s\n' "${VARIANTS[@]}" ;;
     get)  variant_of "$(current_theme)" ;;
     set)  cmd_set "${2-}"; exit $? ;;
-    *)    echo "usage: luxos-splash list | get | set $(IFS='|'; echo "${VARIANTS[*]}")" >&2; exit 2 ;;
+    -h|--help) echo "$(T "Usage:") luxos-splash list | get | set $(IFS='|'; echo "${VARIANTS[*]}")"; exit 0 ;;
+    *)    echo "$(T "Usage:") luxos-splash list | get | set $(IFS='|'; echo "${VARIANTS[*]}")" >&2; exit 2 ;;
 esac

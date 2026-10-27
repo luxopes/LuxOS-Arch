@@ -597,7 +597,8 @@ def main(argv):
         for x in left:
             print("leftover: " + x)
         return 1 if need or left else 0
-    print(__doc__, file=sys.stderr)
+    print("usage: lux-engine-migrate hook|auto|migrate|finish [--now]|status [--root DIR]  (used by lux)",
+          file=sys.stderr)
     return 2
 
 

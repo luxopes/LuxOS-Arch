@@ -1118,4 +1118,4 @@ if __name__ == "__main__":
         json.dump(scan_system(), sys.stdout)
         print()
     else:
-        print(__doc__)
+        print("usage: luxos_layout.py --scan  (used by the installer)", file=sys.stderr)

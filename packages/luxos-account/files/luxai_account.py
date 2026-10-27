@@ -614,7 +614,13 @@ class WebLogin:
                     login.code = q["code"][0]
                 else:
                     login.error = q.get("error", ["invalid_callback"])[0]
-                text = "LuxOS je propojený s účtem LuxAI. Okno můžete zavřít." if ok else "Připojení se nezdařilo."
+                try:            # stranka v prohlizeci v jazyce systemu (luxos-i18n)
+                    from luxos_i18n import _ as tr
+                except ImportError:
+                    def tr(text):
+                        return text
+                text = tr("LuxOS is connected to your LuxAI account. You can close this window.") if ok \
+                    else tr("Connecting failed.")
                 body = ("<!doctype html><meta charset='utf-8'><title>LuxOS</title><body style='font:16px system-ui;"
                         "background:#12131f;color:#f1f3ff;display:grid;place-items:center;height:100vh;margin:0'>"
                         f"<h2>{text}</h2>").encode()
