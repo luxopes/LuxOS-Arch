@@ -1,4 +1,20 @@
 {
+ "bbe": {
+  "commit": "b0f10ff5becf33a6e1506cdccb3467b6ee96e571",
+  "depends": [
+   "glibc"
+  ],
+  "pkgnames": [
+   "bbe"
+  ],
+  "rules": 4,
+  "sources": {
+   "bbe-0.2.2.tar.gz": "baaeaf5775a6d9bceb594ea100c8f45a677a0a7d07529fa573ba0842226edddb"
+  },
+  "vendor": "dep:bbe",
+  "verified": "2026-10-27",
+  "version": "0.2.2-3"
+ },
  "brother-9320cw-cups-bin": {
   "commit": "20e7b0e7dab42501838cf47e4e1f26b6222d988c",
   "depends": [],
@@ -14002,6 +14018,32 @@
   "vendor": "dep:pangox-compat",
   "verified": "2026-10-27",
   "version": "0.0.2-3"
+ },
+ "qt5-singleapplication": {
+  "commit": "3fb958feca5004745ffc14a8ddfeee6a45795c89",
+  "depends": [
+   "qt5-base"
+  ],
+  "patches": {
+   "luxos-checksum.patch": "285d5f39529b632ed3c6d717f7a61a0a71577d2c339e1ed24af18407d26a2f2c"
+  },
+  "pkgnames": [
+   "qt5-singleapplication",
+   "qt5-singlecoreapplication",
+   "qt5-singleapplication-doc",
+   "qt5-singlecoreapplication-doc"
+  ],
+  "rules": 4,
+  "sources": {
+   "a8dda66d7738cde9042b87db27993f710ae3eeeb.tar.gz": "a7099dffae7f89e1bb54f394160c632460f660171302ecf277e4ac1c4d6143c8",
+   "qtsingleapplication-build-qtsinglecoreapplication.patch": "ab5e14111ac1d8d5e036caa1ca82e80d4e0c75b4477908d1c36f08f1b3b47b90",
+   "qtsingleapplication-qupzilla.patch": "42b43a27273219dd37ddabeac58dbd0d7f430fc3df7306e9eab00bcd82c40781",
+   "qtsingleapplication.prf": "1e3adc908ff23320a90d2ef939c897136e8b8cb4c2b6083152824912b0a50dc9",
+   "qtsinglecoreapplication.prf": "aaf3bf65594d6971ec5a144950eb1fb0d180313f0a83ae2c13d2ce1e17526044"
+  },
+  "vendor": "dep:qt5-singleapplication",
+  "verified": "2026-10-27",
+  "version": "2.6_20170914-1"
  },
  "ricoh-mp2014-gdi": {
   "commit": "85b99da48b9d232bad1ac060265846bb09ba4d5a",

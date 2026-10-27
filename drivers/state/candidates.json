@@ -1,4 +1,13 @@
 {
+ "bbe": {
+  "maintainer": null,
+  "names": [
+   "bbe"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:bbe",
+  "votes": 0
+ },
  "brother-9320cw-cups-bin": {
   "maintainer": "meckhert",
   "names": [
@@ -7991,6 +8000,15 @@
   ],
   "out_of_date": false,
   "vendor": "dep:pangox-compat",
+  "votes": 0
+ },
+ "qt5-singleapplication": {
+  "maintainer": null,
+  "names": [
+   "qt5-singleapplication"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:qt5-singleapplication",
   "votes": 0
  },
  "ricoh-mp2014-gdi": {
