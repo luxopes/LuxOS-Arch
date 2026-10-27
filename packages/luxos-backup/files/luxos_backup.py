@@ -1666,6 +1666,18 @@ def remove_disk(cfg, ident):
     return disk
 
 
+def launch_gui(*args):
+    """Okno Zaloh z jednorazove sluzby (luxos-backup-plug@): proces spusteny primo by systemd ukoncil
+    spolu se sluzbou (KillMode=control-group) a bezel by s Nice=19 - vlastni prechodna jednotka."""
+    cmd = ["luxos-backup-gui", *args]
+    if os.environ.get("INVOCATION_ID") and shutil.which("systemd-run"):
+        cmd = ["systemd-run", "--user", "--collect", "--quiet", "--", *cmd]
+    try:
+        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        pass
+
+
 def plugged(cfg, device):
     """Pripojeny disk (udev -> luxos-backup-plug@.service): znamy = zaloha, novy = nabidka."""
     devs = list(flatten(lsblk()))
@@ -1689,7 +1701,7 @@ def plugged(cfg, device):
                     _("%s can keep automatic backups of your files.") % label,
                     action=("use", _("Use for Backups")))
     if answer == "use":
-        subprocess.Popen(["luxos-backup-gui", "--add", dev["path"]], start_new_session=True)
+        launch_gui("--add", dev["path"])
         return "offered"
     if answer == NO_ANSWER:
         return "offered"            # nevidel/nestihl - nabidnout znovu pri dalsim pripojeni

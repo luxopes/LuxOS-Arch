@@ -550,9 +550,14 @@ class PlugPrompt(Env):
         self.assertEqual(self.plug(core.NO_ANSWER)[0], "offered")     # nabidne se znovu
 
     def test_closed_is_declined_and_use_opens_window(self):
-        r, _n, popen = self.plug("use")
+        with mock.patch.dict(os.environ, {"INVOCATION_ID": "x"}), \
+                mock.patch.object(core.shutil, "which", return_value="/usr/bin/systemd-run"):
+            r, _n, popen = self.plug("use")
         self.assertEqual(r, "offered")
-        self.assertIn("--add", popen.call_args[0][0])
+        cmd = popen.call_args[0][0]
+        # okno ve vlastni jednotce, ne v jednorazove sluzbe (systemd by ho hned ukoncil)
+        self.assertEqual(cmd[:2], ["systemd-run", "--user"])
+        self.assertEqual(cmd[-3:], ["luxos-backup-gui", "--add", "/dev/sdz1"])
         self.plug(None)                                               # zavrel bez volby
         self.assertIn("AAAA-1111", core.load_config().get("declined", []))
         self.assertEqual(self.plug("use")[0], "declined")
