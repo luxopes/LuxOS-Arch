@@ -278,6 +278,10 @@ class LightDMBackend:
     def start_session(self, key):
         self.g.start_session_sync(key)
 
+    def frame_dir(self, user):
+        """Sdilena slozka LightDM uzivatele (/var/lib/lightdm-data/<jmeno>): pise greeter, cte relace."""
+        return self.g.ensure_shared_data_dir_sync(user) if user else None
+
 
 class DemoBackend:
     """Napodobeni LightDM pro testy (heslo "luxos"); nic nespousti ani nevypina."""
@@ -396,6 +400,9 @@ class DemoBackend:
         if self.user and self.user.name is None:
             return getattr(self, "entered", None)
         return self.user.name if self.user else None
+
+    def frame_dir(self, user):
+        return os.environ.get("LUXOS_GREETER_DEMO_FRAME_DIR") or None
 
     def start_session(self, key):
         log("demo: start session", key, "for", self.auth_user())
@@ -554,6 +561,38 @@ def rounded(cr, x, y, w, h, r):
 
 def ease(t):
     return 4 * t * t * t if t < 0.5 else 1 - (-2 * t + 2) ** 3 / 2
+
+
+FRAME_NAME = "login-frame.raw"              # posledni snimek cele obrazovky (luxos-session-cover --login)
+FRAME_SMALL_NAME = "login-frame-small.raw"  # mala rozmazana tapeta: nahrada, kdyz snimek chybi
+
+
+def write_frame(path, surf):
+    """ImageSurface RGB24 do souboru pro luxos-session-cover: "LUXFRAME1 <w> <h>\\n" + w*h*4 bajtu BGRx
+    (pamet cairo na little-endian). Docasny soubor + prejmenovani: prechod nikdy nenacte pulku snimku.
+    Cist ho musi uzivatel relace (slozka LightDM je jeho, soubor patri greeteru) - proto 0644."""
+    surf.flush()
+    w, h, stride = surf.get_width(), surf.get_height(), surf.get_stride()
+    data = surf.get_data()
+    tmp = path + ".tmp"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(b"LUXFRAME1 %d %d\n" % (w, h))
+            if stride == w * 4:
+                f.write(data)
+            else:
+                mv = memoryview(data)
+                for y in range(h):
+                    f.write(mv[y * stride:y * stride + w * 4])
+        os.chmod(tmp, 0o644)        # umask greeteru
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def box_blur(surf, radius=2, passes=3, saturate=1.25):
@@ -794,7 +833,7 @@ class Greeter(Gtk.Window):
         self.error_shown = False
         self.shake_id = 0
         self.last_minute = None
-        self.bg_surf = self.blur_surf = None
+        self.bg_surf = self.blur_surf = self.blur_small = None
         self._battery = self._network = None
         self._caps_hint = False
         self.leaving = False        # overeno: posledni snimek jen tapeta (prechod na plochu)
@@ -1138,6 +1177,7 @@ class Greeter(Gtk.Window):
         c2.get_source().set_filter(cairo.FILTER_GOOD)
         c2.paint()
         box_blur(small, radius=2, passes=3)
+        self.blur_small = small
         blur = win.create_similar_surface(cairo.CONTENT_COLOR, self.W, self.H)
         c3 = cairo.Context(blur)
         c3.scale(self.W / sw, self.H / sh)
@@ -1833,6 +1873,7 @@ class Greeter(Gtk.Window):
         debug("start session", self.session, "user", self.user.name)
         self._save_state()
         self.leaving = True
+        self.save_frame()
         for w in (self.login, self.power, self.status):
             w.hide()
         self.bg.queue_draw()
@@ -1851,6 +1892,40 @@ class Greeter(Gtk.Window):
         if clock is not None:
             state["ids"].append(clock.connect("after-paint", go))
         GLib.timeout_add(100, go)
+
+    def save_frame(self):
+        """Posledni snimek (ztmavena tapeta jako v draw_bg pri odchodu) do souboru pro luxos-session-cover:
+        X server ho bez glamor (QEMU, nektere ovladace) po skonceni greeteru neudrzi a prechod by byl
+        cerny. Chyba nikdy nebrani prihlaseni."""
+        if not self.bg_surf or getattr(self.user, "logged_in", False):
+            return                  # prepnuti do bezici relace: zadny prechod se nespousti
+        t0 = time.monotonic()
+        try:
+            d = self.backend.frame_dir(self.backend.auth_user())
+            if not d or not os.path.isdir(d):
+                return
+            dark = 0.10 + 0.14 * ease(self.t)
+            surf = cairo.ImageSurface(cairo.FORMAT_RGB24, self.W, self.H)
+            cr = cairo.Context(surf)
+            cr.set_source_surface(self.bg_surf, 0, 0)
+            cr.paint()
+            cr.set_source_rgba(0, 0, 0, dark)
+            cr.paint()
+            del cr
+            write_frame(os.path.join(d, FRAME_NAME), surf)
+            if self.blur_small:
+                small = cairo.ImageSurface(cairo.FORMAT_RGB24, self.blur_small.get_width(), self.blur_small.get_height())
+                cr = cairo.Context(small)
+                cr.set_source_surface(self.blur_small, 0, 0)
+                cr.paint()
+                cr.set_source_rgba(0, 0, 0, dark)
+                cr.paint()
+                del cr
+                write_frame(os.path.join(d, FRAME_SMALL_NAME), small)
+        except (GLib.Error, OSError, cairo.Error) as e:
+            log("save login frame:", getattr(e, "message", None) or e)
+            return
+        debug(f"login frame saved in {time.monotonic() - t0:.3f}s")
 
     def start_session(self):
         try:

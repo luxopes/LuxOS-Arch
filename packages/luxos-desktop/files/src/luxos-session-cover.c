@@ -18,17 +18,28 @@
  * se behem ~0,28 s rozplyne (pruhlednost pres kompozitor xfwm4) a skonci. Na nic neceka: vstup (mys,
  * klavesnice) jde skrz (prazdny vstupni tvar), nejdele po LOGIN_MAX_MS konci vzdy. Bez animace (jen
  * odkryti) pri zapnutem Sporici baterie (~/.config/luxos/powersaver) nebo vypnutych animacich (xsettings).
+ *
+ * Snimek ze serveru nemusi prezit: bez glamor (napr. QEMU bochs + llvmpipe) ovladac modesetting
+ * "-background none" neumi, korenove okno se po skonceni greeteru vybarvi cerne. Proto greeter pred
+ * spustenim relace ulozi stejny snimek do sdilene slozky LightDM (/var/lib/lightdm-data/<uzivatel>,
+ * LUXOS_LOGIN_FRAME_DIR pro testy): login-frame.raw (cela obrazovka, nejvys 2 min stary, po nacteni se
+ * smaze) a login-frame-small.raw (mala rozmazana tapeta, zustava). Je-li zachyceny snimek cerny, pouzije
+ * se login-frame.raw, jinak zvetsena rozmazana tapeta; cerna jen kdyz neni nic.
+ * Format: "LUXFRAME1 <sirka> <vyska>\n" + sirka*vyska*4 bajtu BGRx (cairo RGB24 na little-endian).
  */
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/shape.h>
+#include <X11/Xutil.h>
 #include <errno.h>
 #include <poll.h>
+#include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -227,6 +238,143 @@ static int desktop_ready(void)
     return desk && dock;
 }
 
+#define FRAME_MAX_AGE_S 120      /* starsi login-frame.raw je z jineho prihlaseni */
+#define FRAME_MAX_SIDE 16384
+
+/* Vzorek tri radku snimku: vsechno cerne = server snimek neudrzel */
+static int frame_is_black(Drawable d, unsigned w, unsigned h)
+{
+    for (unsigned k = 1; k <= 3; k++) {
+        XImage *im = XGetImage(dpy, d, 0, (int)(h * k / 4), w, 1, AllPlanes, ZPixmap);
+        if (!im)
+            continue;
+        for (unsigned x = 0; x < w; x += 5) {
+            if (XGetPixel(im, (int)x, 0) & 0xffffffUL) {
+                XDestroyImage(im);
+                return 0;
+            }
+        }
+        XDestroyImage(im);
+    }
+    return 1;
+}
+
+/* Nacte snimek greeteru -> pixely BGRx (malloc), rozmery v *fw, *fh; NULL pri chybe */
+static unsigned char *read_frame(const char *path, unsigned *fw, unsigned *fh)
+{
+    FILE *f = fopen(path, "rb");
+    if (!f)
+        return NULL;
+    unsigned w = 0, h = 0;
+    unsigned char *px = NULL;
+    if (fscanf(f, "LUXFRAME1 %u %u", &w, &h) == 2 && fgetc(f) == '\n' && w && h
+        && w <= FRAME_MAX_SIDE && h <= FRAME_MAX_SIDE) {
+        size_t n = (size_t)w * h * 4;
+        px = malloc(n);
+        if (px && fread(px, 1, n, f) != n) {
+            free(px);
+            px = NULL;
+        }
+    }
+    fclose(f);
+    *fw = w;
+    *fh = h;
+    return px;
+}
+
+/* Bilinearni zvetseni/zmenseni BGRx na w x h (mala rozmazana tapeta, jine rozliseni) */
+static unsigned char *scale_frame(const unsigned char *src, unsigned sw, unsigned sh, unsigned w, unsigned h)
+{
+    unsigned char *dst = malloc((size_t)w * h * 4);
+    if (!dst)
+        return NULL;
+    for (unsigned y = 0; y < h; y++) {
+        double fy = ((double)y + 0.5) * sh / h - 0.5;
+        if (fy < 0)
+            fy = 0;
+        unsigned y0 = (unsigned)fy, y1 = y0 + 1 < sh ? y0 + 1 : y0;
+        double ty = fy - y0;
+        unsigned char *out = dst + (size_t)y * w * 4;
+        for (unsigned x = 0; x < w; x++) {
+            double fx = ((double)x + 0.5) * sw / w - 0.5;
+            if (fx < 0)
+                fx = 0;
+            unsigned x0 = (unsigned)fx, x1 = x0 + 1 < sw ? x0 + 1 : x0;
+            double tx = fx - x0;
+            const unsigned char *a = src + ((size_t)y0 * sw + x0) * 4, *b = src + ((size_t)y0 * sw + x1) * 4;
+            const unsigned char *c = src + ((size_t)y1 * sw + x0) * 4, *e = src + ((size_t)y1 * sw + x1) * 4;
+            for (int ch = 0; ch < 3; ch++) {
+                double top = a[ch] + (b[ch] - a[ch]) * tx, bottom = c[ch] + (e[ch] - c[ch]) * tx;
+                out[x * 4 + ch] = (unsigned char)(top + (bottom - top) * ty + 0.5);
+            }
+            out[x * 4 + 3] = 0xff;
+        }
+    }
+    return dst;
+}
+
+/* Pixely BGRx do pixmapy (jen TrueColor 24/32 bitu s beznymi maskami) */
+static int put_frame(Pixmap p, Visual *vis, int depth, unsigned char *px, unsigned w, unsigned h)
+{
+    if ((depth != 24 && depth != 32) || vis->red_mask != 0xff0000UL || vis->green_mask != 0xff00UL
+        || vis->blue_mask != 0xffUL)
+        return 0;
+    XImage *im = XCreateImage(dpy, vis, (unsigned)depth, ZPixmap, 0, (char *)px, w, h, 32, (int)(w * 4));
+    if (!im)
+        return 0;
+    im->byte_order = LSBFirst;      /* soubor je vzdy little-endian BGRx */
+    GC gc = XCreateGC(dpy, p, 0, NULL);
+    XPutImage(dpy, p, gc, im, 0, 0, 0, 0, w, h);
+    XFreeGC(dpy, gc);
+    im->data = NULL;                /* pixely uvolni volajici */
+    XDestroyImage(im);
+    return 1;
+}
+
+static void frame_path(char *out, size_t size, const char *name)
+{
+    const char *dir = getenv("LUXOS_LOGIN_FRAME_DIR");
+    if (dir && *dir) {
+        snprintf(out, size, "%s/%s", dir, name);
+        return;
+    }
+    struct passwd *pw = getpwuid(getuid());
+    snprintf(out, size, "/var/lib/lightdm-data/%s/%s", pw ? pw->pw_name : "-", name);
+}
+
+/* Snimek ze serveru je cerny: snimek greeteru, jinak rozmazana tapeta. 1 = pixmapa nahrazena */
+static int restore_frame(Pixmap snap, Visual *vis, int depth, unsigned w, unsigned h, int black)
+{
+    char path[4300];
+    unsigned fw, fh;
+    unsigned char *px = NULL;
+    struct stat st;
+    frame_path(path, sizeof path, "login-frame.raw");
+    if (stat(path, &st) == 0) {
+        if (black && time(NULL) - st.st_mtime <= FRAME_MAX_AGE_S && time(NULL) - st.st_mtime >= -5)
+            px = read_frame(path, &fw, &fh);
+        unlink(path);               /* jednorazovy (~8 MB): pristi prihlaseni ulozi novy */
+    }
+    if (!black)
+        return 0;
+    if (!px) {
+        frame_path(path, sizeof path, "login-frame-small.raw");
+        px = read_frame(path, &fw, &fh);
+    }
+    if (!px)
+        return 0;
+    if (fw != w || fh != h) {
+        unsigned char *scaled = scale_frame(px, fw, fh, w, h);
+        free(px);
+        px = scaled;
+        if (!px)
+            return 0;
+    }
+    int ok = put_frame(snap, vis, depth, px, w, h);
+    free(px);
+    return ok;
+}
+
 static int ignore_errors(Display *d, XErrorEvent *e)
 {
     (void)d;
@@ -263,6 +411,7 @@ static int login_main(void)
     GC gc = XCreateGC(dpy, root, GCSubwindowMode, &gv);
     XCopyArea(dpy, root, snap, gc, 0, 0, w, h, 0, 0);
     XFreeGC(dpy, gc);
+    restore_frame(snap, ra.visual, ra.depth, w, h, frame_is_black(snap, w, h));
 
     XSetWindowAttributes a;
     a.override_redirect = True;
