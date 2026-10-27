@@ -2,7 +2,7 @@
 
 pkgname=luxos-shell
 pkgver=1.1.0
-pkgrel=14
+pkgrel=14.1
 pkgdesc="LuxOS shell experience: lsh (Lux shell) with ble.sh, zsh, starship prompt, fastfetch"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
