@@ -44,8 +44,12 @@ SIGUSR2 = 12
 SIGTERM = 15
 NM = "org.freedesktop.NetworkManager"
 NM_PATH = "/org/freedesktop/NetworkManager"
+# Kontrola portalu (luxos-portal-check) hned a po techto sekundach, dokud je pripojeni omezene;
+# konci prvnim nalezenym portalem nebo internetem
+PORTAL_PROBE_DELAYS = [3, 6, 10, 15, 25, 40, 60, 90, 120]
+PORTAL_PROBES = 10
 
-hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0, "cover_pid": 0, "start": 0, "noinet_timer": False}
+hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0, "portal_found": False, "portal_url": "", "portal_probes": 0, "cover_pid": 0, "start": 0, "noinet_timer": False}
 
 function runtime_dir():
     value = env.get("XDG_RUNTIME_DIR", "")
@@ -213,17 +217,22 @@ function connectivity_update():
         end
     end
     c = connectivity()
+    start_probe = False
     # 2 = prihlaseni do site (portal), 3 = bez internetu, 4 = internet; jedno upozorneni na kazdou zmenu
     last = hub["connectivity"]
-    if c == 2 and last != 2:
-        # Sit s portalem: prihlasovaci stranka se otevre sama, jednou za kazde prihlaseni do site
-        # (znovu jen tlacitkem v upozorneni) - cizi sit tak nemuze otevirat okna porad dokola.
-        call portal_open()
-        call glib.spawn_capture(["notify-send", "-a", "LuxOS", "-i", "luxos-network-no-internet-symbolic", "-w", "-A", "login=" + i18n.T("Sign In"), i18n.T("Sign in to the network"), i18n.T("This network requires you to sign in before you can use the internet.")], on_portal_notification, 0)
+    if c == 2 and last != 2 and not hub["portal_found"]:
+        call portal_detected("")
     elif c == 3 and not (last == 2 or last == 3):
         call noinet_schedule()
+        # Portal, ktery NetworkManager neprozna (systemove DNS pres VPN/Tailscale za portalem nefunguje):
+        # vlastni kontrola pres DNS a branu site hned a pak opakovane 2 minuty (prihlasovaci brana
+        # nekdy nabiha pomalu, napr. Wi-Fi ve vlaku)
+        start_probe = True
     end
-    if c == 4 and last == 2:
+    if c != 3 and c != 2 and last == 3:
+        hub["portal_probes"] = PORTAL_PROBES
+    end
+    if c == 4 and (last == 2 or hub["portal_found"]):
         # prihlaseno: okno portalu uz neni potreba
         if hub["portal_pid"] != 0:
             call glib.kill(hub["portal_pid"], SIGTERM)
@@ -231,8 +240,51 @@ function connectivity_update():
         end
         call glib.spawn(["notify-send", "-a", "LuxOS", "-e", "-i", "network-wireless-symbolic", i18n.T("Connected to the internet"), i18n.T("You are signed in to the network.")])
     end
+    if c != 2 and c != 3:
+        hub["portal_found"] = False
+        hub["portal_url"] = ""
+    end
     hub["connectivity"] = c
+    if start_probe:
+        hub["portal_probes"] = 0
+        call portal_probe()
+        for d in PORTAL_PROBE_DELAYS:
+            call glib.timeout_add_seconds(d, portal_probe)
+        end
+    end
     return False
+end
+
+# Sit s portalem: prihlasovaci stranka se otevre sama, jednou za kazde prihlaseni do site
+# (znovu jen tlacitkem v upozorneni) - cizi sit tak nemuze otevirat okna porad dokola.
+function portal_detected(url):
+    hub["portal_found"] = True
+    hub["portal_url"] = url
+    call portal_open()
+    call glib.spawn_capture(["notify-send", "-a", "LuxOS", "-i", "luxos-network-no-internet-symbolic", "-w", "-A", "login=" + i18n.T("Sign In"), i18n.T("Sign in to the network"), i18n.T("This network requires you to sign in before you can use the internet.")], on_portal_notification, 0)
+    return 0
+end
+
+# luxos-portal-check: "portal URL IP" / "online" / "none"; jen dokud je pripojeni porad omezene
+function portal_probe():
+    if hub["portal_probes"] >= PORTAL_PROBES or hub["portal_found"] or hub["connectivity"] != 3:
+        return False
+    end
+    hub["portal_probes"] = hub["portal_probes"] + 1
+    call glib.spawn_capture(["luxos-portal-check"], on_portal_probe, 0)
+    return False
+end
+
+function on_portal_probe(bound, output, status):
+    words = output.strip().split(" ")
+    if len(words) >= 2 and words[0] == "portal" and hub["connectivity"] == 3 and not hub["portal_found"]:
+        url = words[1]
+        if len(words) >= 3:
+            url = url + " " + words[2]
+        end
+        call portal_detected(url)
+    end
+    return 0
 end
 
 # "Bez internetu" az kdyz stav trva: po prihlaseni NetworkManager chvili hlasi omezene pripojeni,
@@ -254,7 +306,7 @@ end
 
 function noinet_check():
     hub["noinet_timer"] = False
-    if hub["connectivity"] == 3 and connectivity() == 3:
+    if hub["connectivity"] == 3 and connectivity() == 3 and not hub["portal_found"]:
         # -e: prechodne (stav je videt na ikone site), do historie oznameni nepatri
         call glib.spawn(["notify-send", "-a", "LuxOS", "-e", "-i", "luxos-network-no-internet-symbolic", i18n.T("No internet connection"), i18n.T("You are connected to the network, but the internet is not available.")])
     end
@@ -304,7 +356,11 @@ function portal_open():
     if hub["portal_pid"] != 0 or env.get("LUXOS_HUB_NO_PORTAL", "") == "1":
         return 0
     end
-    hub["portal_pid"] = glib.spawn_watched_data(["luxos-network-login"], on_portal_closed, 0)
+    argv = ["luxos-network-login"]
+    if hub["portal_url"] != "":
+        argv = argv + hub["portal_url"].split(" ")      # adresa a IP portalu z luxos-portal-check
+    end
+    hub["portal_pid"] = glib.spawn_watched_data(argv, on_portal_closed, 0)
     return 0
 end
 
@@ -316,7 +372,7 @@ function on_portal_closed(bound, pid, status):
 end
 
 function on_portal_notification(bound, output, status):
-    if output.strip() == "login" and hub["connectivity"] == 2:
+    if output.strip() == "login" and (hub["connectivity"] == 2 or hub["portal_found"]):
         call portal_open()
     end
     return 0
