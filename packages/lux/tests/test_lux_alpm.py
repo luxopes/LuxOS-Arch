@@ -587,6 +587,37 @@ class Transactions(unittest.TestCase):
         self.assertEqual(rc, 0, out)
         self.assertIn("@@RETRY 2", out)
 
+    def test_refresh_signature_mismatch_refetches(self):
+        # QA 1.0: databaze z ISO novejsi nez na serveru -> server ji neposle znovu, ale podpis ano;
+        # podpis pak nesedi. Jednou se ta databaze stahne nacisto (force), ostatni ne.
+        api = make_api()
+        orig = api.Handle.register_syncdb
+        forces = []
+
+        def reg(self, name, sig):
+            db = orig(self, name, sig)
+            if name == "core":
+                db.update_errors.append(fake.error("invalid or corrupted database (PGP signature)", 17, None))
+                real = db.update
+
+                def update(force, real=real):
+                    forces.append(force)
+                    return real(force)
+                db.update = update
+            return db
+        api.Handle.register_syncdb = reg
+        rc, out, h = run(["--machine", "sync"], api=api)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(forces, [False, True])
+
+    def test_invalid_syncdb_on_prepare_is_explained(self):
+        def prep(h):
+            h.prepare_errors.append(fake.error("transaction preparation failed", 16, []))
+        rc, out, h = run(["-y", "install", "htop"], prepare=prep)
+        self.assertEqual(rc, 1)
+        self.assertIn("do not match their signatures", out)
+        self.assertIn("lux update", out)
+
     # ---- zamcena databaze: cekani na jinou aktualizaci, opusteny zamek, presne hlasky ----
     def _locked(self, procs, argv=("--machine", "sync")):
         import tempfile

@@ -3877,3 +3877,4 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Nazwa komputera dla domeny może mieć najwyżej 15 liter, cyfr i łączników.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Nie znaleziono domeny w DNS. Sprawdź, czy komputer używa serwera DNS organizacji (zwykle z DHCP), lub podaj adres kontrolera domeny.
 Sign In to Network…	Zaloguj się do sieci…
+The package lists are damaged or do not match their signatures. Refresh them first (lux update), then try again.	Listy pakietów są uszkodzone lub nie pasują do podpisów. Najpierw je odśwież (lux update), a potem spróbuj ponownie.
