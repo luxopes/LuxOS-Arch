@@ -18,7 +18,8 @@ depends=(python python-gobject gtk3 bluez luxos-i18n hicolor-icon-theme)
 optdepends=('luxai: answer LuxAI requests from the phone (luxai --remote-session)'
             'xfce4-notifyd: approve new phones from a notification')
 makedepends=(python)
-checkdepends=(python dbus)
+# luxos-i18n: sluzba v testu (TestServiceProcess) importuje luxos_i18n z /usr/lib/luxos/python
+checkdepends=(python dbus luxos-i18n)
 
 check() {
     # ramce, handshake, casovace, schvaleni, poloha, kalendar, LuxAI (zastupny luxai) a profil BlueZ proti
