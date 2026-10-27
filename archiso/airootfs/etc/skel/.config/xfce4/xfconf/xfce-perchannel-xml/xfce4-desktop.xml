@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS live: na plose jen vymenitelne disky (USB), ne oddily vnitrniho disku - jinak se po
+     instalaci objevi ikony vsech oddilu ciloveho disku. Ostatni nastaveni plochy jsou z
+     /etc/xdg (luxos-desktop), xfconf je slouci. Instalovany system tento soubor nema. -->
+<channel name="xfce4-desktop" version="1.0">
+  <property name="desktop-icons" type="empty">
+    <property name="file-icons" type="empty">
+      <property name="show-device-fixed" type="bool" value="false"/>
+    </property>
+  </property>
+</channel>
