@@ -1,0 +1,13 @@
+# LuxOS: Makefile ignoruje CFLAGS a PKGBUILD prepisuje CC -> GCC 14+ chyby (implicitni deklarace tolower)
+# jen jako varovani (-fpermissive), jako se starsim GCC
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -38,7 +38,7 @@
+ 
+ build() {
+ 	if [ "${CARCH}" = 'x86_64' ]; then
+-		export CC="gcc -m32"
++		export CC="gcc -m32 -fpermissive"
+ 		export CXX="g++ -m32"
+ 		export PKG_CONFIG_PATH="/usr/lib32/pkgconfig"
+ 		LIBDIR="--libdir=/usr/lib32"

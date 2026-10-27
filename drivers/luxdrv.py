@@ -4,6 +4,9 @@
   drivers/luxdrv.py discover              kandidati z AUR podle vyrobcu (drivers/vendors.json)
   drivers/luxdrv.py verify [BALIK...]     overit (aktualni commit v AUR; zmena = nove overeni + diff)
   drivers/luxdrv.py build-list            co sestavit (overene a jeste nesestavene) -> out/drivers/build-list.tsv
+  drivers/luxdrv.py fetch [BALIK...]      pro sestaveni (napr. GitHub Actions): zapichnute commity z AUR + zdroje,
+                                          kazdy zdroj musi mit sha256 z manifestu (nic se znovu neoveruje)
+  drivers/luxdrv.py closure BALIK...      baliky + overene baliky, na kterych zavisi (poradi pro sestaveni)
   drivers/luxdrv.py index DIR [OUT]       mapa zarizeni -> balik z hotovych baliku (PPD 1284, udev USB ID)
                                           -> OUT/drivers-index.json a OUT/drivers-usb.tsv (vychozi state/)
   drivers/luxdrv.py report                souhrn (overeno / odmitnuto a proc)
@@ -17,6 +20,10 @@ Zasady (pri KAZDE zmene v AUR se overuje znovu cely PKGBUILD i rozdil proti posl
     sudo, setuid/setgid, zapis mimo $pkgdir/$srcdir
   - .install jen povolene prikazy (restart CUPS, ldconfig, udev, cache ikon ...), bez site
   - novy commiter v AUR = rucni kontrola (nesestavi se)
+  - knihovny z AUR, ktere ovladace potrebuji (vendors.json "dependencies"), prochazi stejnymi pravidly;
+    povolene domeny zdroju ma kazda zvlast (domena[/cesta])
+  - zaplaty LuxOS (drivers/patches/BALIK/*.patch, patch -p1) se aplikuji PRED kontrolou - overuje se
+    vysledny PKGBUILD; sha256 zaplat je v manifestu a sestaveni pouzije jen presne tyto zaplaty
   - volitelne LUXOS_DRIVERS_REVIEW=prikaz: dostane JSON (PKGBUILD, .install, diff) na stdin, nenulovy
     navratovy kod = odmitnuto (napr. kontrola LuxAI)
 Co neprojde, se NESESTAVI - duvody jsou v state/rejected.json.
@@ -36,6 +43,7 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 STATE = os.environ.get("LUXDRV_STATE", os.path.join(HERE, "state"))
+PATCHES = os.environ.get("LUXDRV_PATCHES", os.path.join(HERE, "patches"))
 WORK = os.environ.get("LUXDRV_WORK", os.path.join(ROOT, "out", "drivers"))
 AUR = os.environ.get("LUXDRV_AUR", "https://aur.archlinux.org")
 MAX_SOURCE = 700 * 1024 * 1024
@@ -119,17 +127,29 @@ def vendors():
 
 def vendor_of(name, conf=None):
     conf = conf or vendors()
+    if name in conf.get("dependencies", {}):
+        return "dep:" + name                # knihovna z AUR, kterou potrebuji overene ovladace
     for v, d in conf.get("vendors", {}).items():
         if any(name.startswith(p) for p in d["prefixes"]):
             return v
     return None
 
 
-def host_allowed(host, vendor, conf=None):
+def host_allowed(host, vendor, conf=None, path=None, redirect=False):
+    """Domena (a u knihoven i cesta: "github.com/libusb/") patri vyrobci / projektu knihovny.
+    redirect=True: u knihoven navic "redirects" (CDN, kam presmeruje povolena adresa - obsah hlida soucet)."""
     conf = conf or vendors()
     host = (host or "").lower().rstrip(".")
-    doms = conf["vendors"].get(vendor, {}).get("domains", [])
-    return any(host == d or host.endswith("." + d) for d in doms)
+    if vendor and vendor.startswith("dep:"):
+        d = conf.get("dependencies", {}).get(vendor[4:], {})
+        doms = d.get("domains", []) + (d.get("redirects", []) if redirect else [])
+    else:
+        doms = conf["vendors"].get(vendor, {}).get("domains", [])
+    for d in doms:
+        dh, _, dp = d.partition("/")
+        if (host == dh or host.endswith("." + dh)) and (not dp or (path or "").startswith("/" + dp)):
+            return True
+    return False
 
 
 # ---- staticka kontrola PKGBUILD ------------------------------------------------------------------
@@ -478,12 +498,12 @@ def check_install_script(text):
 
 # ---- nacteni promennych PKGBUILD (bez site, bez prostredi) --------------------------------------
 READ_VARS = ["pkgbase", "pkgname", "pkgver", "pkgrel", "epoch", "arch", "install", "depends", "makedepends",
-             "validpgpkeys"]
+             "validpgpkeys", "provides"]
 
 
 def read_pkgbuild(repo):
     arrays = ["source", f"source_{CARCH}"] + [f"{a}sums" for a in CHECKSUM_ALGOS] + \
-             [f"{a}sums_{CARCH}" for a in CHECKSUM_ALGOS] + READ_VARS + [f"depends_{CARCH}"]
+             [f"{a}sums_{CARCH}" for a in CHECKSUM_ALGOS] + READ_VARS + [f"depends_{CARCH}", f"makedepends_{CARCH}"]
     script = "set -u; CARCH=%s; source ./PKGBUILD >/dev/null 2>&1 || exit 7; set +u\n" % CARCH
     for v in arrays:
         script += ('if declare -p %s >/dev/null 2>&1; then printf "%%s\\0" "@%s"; '
@@ -523,7 +543,8 @@ def source_entries(meta):
         if "://" not in url:
             name, url = url, ""
         elif not name:
-            name = os.path.basename(urllib.parse.urlparse(url).path)
+            # jako makepkg (get_filename): posledni cast adresy i s ?dotazem, bez #fragmentu
+            name = url.split("#", 1)[0].rstrip("/").rsplit("/", 1)[-1]
         out.append({"entry": s, "file": name, "url": url, "sum": (sums[i] if sums and i < len(sums) else None),
                     "algo": algo})
     return out
@@ -549,8 +570,9 @@ class Redirect(urllib.request.HTTPRedirectHandler):
         self.vendor = vendor
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        host = urllib.parse.urlparse(newurl).hostname
-        if not host_allowed(host, self.vendor):
+        u = urllib.parse.urlparse(newurl)
+        host = u.hostname
+        if not host_allowed(host, self.vendor, path=u.path, redirect=True):
             raise urllib.error.HTTPError(newurl, code, f"redirect to a foreign domain {host}", headers, fp)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
@@ -660,14 +682,44 @@ def authors(gitargs, rev_range):
     return set(x.strip().lower() for x in out.splitlines() if x.strip()) if rc == 0 else set()
 
 
+# ---- zaplaty LuxOS --------------------------------------------------------------------------------
+def luxos_patches(base):
+    """{nazev: sha256} zaplat drivers/patches/BASE/*.patch (aplikuji se v abecednim poradi)."""
+    d = os.path.join(PATCHES, base)
+    try:
+        names = sorted(f for f in os.listdir(d) if f.endswith(".patch"))
+    except OSError:
+        return {}
+    return {f: file_hash(os.path.join(d, f), "sha256") for f in names}
+
+
+def apply_patches(repo, base, expect=None):
+    """Zaplaty LuxOS na soubory z AUR -> (zaplaty {nazev: sha256}, [problemy]).
+    expect = zaplaty z manifestu: jine/chybejici = chyba (sestavuje se jen overeny stav)."""
+    pats = luxos_patches(base)
+    if expect is not None and pats != expect:
+        return pats, ["LuxOS patches differ from the verified ones - run drivers/luxdrv.py verify " + base]
+    for f in pats:
+        rc, out, err = run(["patch", "-p1", "-N", "-s", "--no-backup-if-mismatch", "-r", "-", "-d", repo,
+                            "-i", os.path.join(PATCHES, base, f)])
+        if rc:
+            return pats, [f"LuxOS patch {f} does not apply: {(out + err).strip()[:150]}"]
+    return pats, []
+
+
 # ---- overeni jednoho balicku ----------------------------------------------------------------------
 def verify_repo(repo, base, vendor, previous=None, download_sources=True, review=True, gitdir=None, head="HEAD"):
     """-> dict(ok, problems, sources{file: sha256}, pkgnames, version, diff)
     repo = soubory overovane verze; historie v gitdir (vychozi repo/.git), overovany commit head."""
     gitargs = ["--git-dir", gitdir] if gitdir else ["-C", repo]
     res = {"base": base, "vendor": vendor, "problems": [], "sources": {}, "pkgnames": [], "version": "",
-           "depends": [], "diff": ""}
+           "depends": [], "provides": [], "diff": "", "patches": {}}
     P = res["problems"]
+    # zaplaty LuxOS pred kontrolou: overuje se to, co se opravdu sestavi
+    res["patches"], p = apply_patches(repo, base)
+    P += p
+    if P:
+        return finish(res)
     pkgbuild_path = os.path.join(repo, "PKGBUILD")
     try:
         text = readtext(pkgbuild_path)
@@ -690,7 +742,9 @@ def verify_repo(repo, base, vendor, previous=None, download_sources=True, review
     rel = (meta.get("pkgrel") or [""])[0]
     ep = (meta.get("epoch") or [""])[0]
     res["version"] = (f"{ep}:" if ep else "") + f"{ver}-{rel}"
-    res["depends"] = meta.get("depends", []) + meta.get(f"depends_{CARCH}", []) + meta.get("makedepends", [])
+    res["depends"] = meta.get("depends", []) + meta.get(f"depends_{CARCH}", []) + meta.get("makedepends", []) + \
+        meta.get(f"makedepends_{CARCH}", [])
+    res["provides"] = [re.split(r"[<>=]", x)[0] for x in meta.get("provides", [])]
     arch = meta.get("arch", [])
     if arch and "any" not in arch and CARCH not in arch:
         P.append(f"no {CARCH} build (arch={' '.join(arch)})")
@@ -715,8 +769,8 @@ def verify_repo(repo, base, vendor, previous=None, download_sources=True, review
             if u.scheme not in ("https", "http", "ftp"):
                 P.append(f"source not allowed ({u.scheme}): {s['url'][:100]}")
                 continue
-            if not host_allowed(u.hostname, vendor):
-                P.append(f"source from a domain that is not the vendor's: {u.hostname}")
+            if not host_allowed(u.hostname, vendor, path=u.path):
+                P.append(f"source from a domain that is not the vendor's: {u.hostname}{u.path[:40]}")
                 continue
         else:
             if not os.path.isfile(os.path.join(repo, s["file"])):
@@ -810,6 +864,8 @@ def cmd_discover():
         c = cands.setdefault(base, {"vendor": v, "names": [], "maintainer": pkg.get("Maintainer"),
                                     "out_of_date": bool(pkg.get("OutOfDate")), "votes": pkg.get("NumVotes", 0)})
         c["names"].append(n)
+    for dep in conf.get("dependencies", {}):
+        cands[dep] = {"vendor": "dep:" + dep, "names": [dep], "maintainer": None, "out_of_date": False, "votes": 0}
     for extra in conf.get("include_extra", []):
         if extra not in cands:
             v = vendor_of(extra, conf)
@@ -836,10 +892,12 @@ def cmd_verify(bases, limit=None, keep_sources=False):
             if prev:
                 rejected[base]["kept_verified"] = prev["commit"]
             continue
-        if prev and prev.get("commit") == head and prev.get("rules") == RULES and all(
+        pats = luxos_patches(base)
+        if prev and prev.get("commit") == head and prev.get("rules") == RULES and \
+                prev.get("patches", {}) == pats and all(
                 os.path.isfile(os.path.join(WORK, "src", h, f)) for f, h in prev.get("sources", {}).items()):
             continue
-        if not prev and rej.get("commit") == head and rej.get("rules") == RULES:
+        if not prev and rej.get("commit") == head and rej.get("rules") == RULES and rej.get("patches", {}) == pats:
             continue
         need.append(base)
     if limit:
@@ -866,6 +924,10 @@ def cmd_verify(bases, limit=None, keep_sources=False):
             manifest[base] = {"commit": head, "vendor": vendor, "version": res["version"], "pkgnames": res["pkgnames"],
                               "sources": res["sources"], "verified": time.strftime("%Y-%m-%d"),
                               "depends": res["depends"], "rules": RULES}
+            if res["patches"]:
+                manifest[base]["patches"] = res["patches"]
+            if res["provides"]:
+                manifest[base]["provides"] = res["provides"]
             rejected.pop(base, None)
             if res["diff"]:
                 os.makedirs(os.path.join(WORK, "diffs"), exist_ok=True)
@@ -875,6 +937,8 @@ def cmd_verify(bases, limit=None, keep_sources=False):
         else:
             rejected[base] = {"commit": head, "problems": res["problems"][:12], "checked": time.strftime("%Y-%m-%d"),
                               "rules": RULES}
+            if res.get("patches"):
+                rejected[base]["patches"] = res["patches"]
             if prev and prev.get("commit") == head:
                 # stejny commit neprosel prisnejsimi pravidly -> uz neni overeny, nestavi se
                 manifest.pop(base)
@@ -912,6 +976,89 @@ def cmd_build_list():
     with open(os.path.join(WORK, "build-list.tsv"), "w") as f:
         f.write("".join(x + "\n" for x in lines))
     print(f"{len(lines)} packages to build")
+    return 0
+
+
+def cmd_fetch(bases):
+    """Pro sestaveni jinde (GitHub Actions): zapichnute commity z AUR a zdroje overenych baliku.
+    Nic se neoveruje znovu - kazdy stazeny soubor musi mit presne sha256 z manifestu, jinak se zahodi."""
+    manifest = load(os.path.join(STATE, "manifest.json"), {})
+    todo = [b for b in (bases or sorted(manifest)) if b in manifest]
+    for b in sorted(set(bases) - set(todo)):
+        print(f"{b}: not verified - skipped")
+
+    def have(commit):
+        return os.path.isdir(BARE) and git("cat-file", "-e", commit + "^{commit}")[0] == 0
+    missing = [b for b in todo if not have(manifest[b]["commit"])]
+    if missing:
+        print(f"fetching {len(missing)} AUR branches")
+        fetch_branches(missing)
+    bad = []
+    for base in todo:
+        m = manifest[base]
+        need = {f: h for f, h in m.get("sources", {}).items() if not os.path.isfile(os.path.join(WORK, "src", h, f))}
+        if not need:
+            continue
+        repo = export_tree(base, m["commit"])
+        if not repo:
+            bad.append(f"{base}: commit {m['commit']} not in the AUR mirror")
+            continue
+        _p, prob = apply_patches(repo, base, expect=m.get("patches", {}))
+        meta, err = (None, prob[0]) if prob else read_pkgbuild(repo)
+        if err:
+            bad.append(f"{base}: {err}")
+            continue
+        for s in source_entries(meta):
+            f = s["file"]
+            if f not in need or not s["url"]:
+                continue
+            tmp = os.path.join(WORK, "src", ".download", f)
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            err = download(s["url"].split("#", 1)[0], tmp, m["vendor"])
+            if err:
+                bad.append(f"{base}: {err}")
+                continue
+            got = file_hash(tmp, "sha256")
+            if got != need[f]:
+                os.unlink(tmp)
+                bad.append(f"{base}: {f}: sha256 {got} differs from the verified {need[f]}")
+                continue
+            store_source(tmp, f)
+            print(f"{base}: {f} OK")
+        time.sleep(0.3)                         # servery vyrobcu setrne
+    os.makedirs(WORK, exist_ok=True)
+    with open(os.path.join(WORK, "fetch-failed.txt"), "w") as f:
+        f.write("".join(x + "\n" for x in bad))
+    print(f"fetch: {len(todo)} packages, {len(bad)} problems")
+    for x in bad:
+        print("  " + x)
+    return 0
+
+
+def cmd_closure(bases):
+    """BALIKY + overene baliky, na kterych zavisi (i pres provides), zavislosti prvni."""
+    manifest = load(os.path.join(STATE, "manifest.json"), {})
+    prov = {}
+    for b, m in sorted(manifest.items()):
+        for n in m.get("pkgnames", []) + m.get("provides", []):
+            prov.setdefault(n, b)
+    out, seen = [], set()
+
+    def add(b):
+        if b in seen or b not in manifest:
+            return
+        seen.add(b)
+        for d in manifest[b].get("depends", []):
+            n = re.split(r"[<>=]", d)[0]
+            if prov.get(n, b) != b:
+                add(prov[n])
+        out.append(b)
+    for b in bases:
+        add(b)
+    print("\n".join(out))
     return 0
 
 
@@ -1017,6 +1164,10 @@ def main(argv):
         return cmd_verify(args, limit)
     if cmd == "build-list":
         return cmd_build_list()
+    if cmd == "fetch":
+        return cmd_fetch(args)
+    if cmd == "closure":
+        return cmd_closure(args)
     if cmd == "index":
         return cmd_index(args[0], args[1] if len(args) > 1 else None)
     if cmd == "report":

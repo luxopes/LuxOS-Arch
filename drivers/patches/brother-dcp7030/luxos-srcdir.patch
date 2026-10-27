@@ -1,0 +1,12 @@
+# LuxOS: balicky .deb hledal v $startdir (funguje jen kdyz se stahuji vedle PKGBUILD); makepkg je dava do $srcdir
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -25,7 +25,7 @@
+             '11bfa0871ec5fda4e49e8d768840ca0de8a5aa6e8aec740b0a42ef8bc9e53c8a')
+ 
+ build() {
+-  for i in $startdir/*.deb; do
++  for i in "$srcdir"/*.deb; do
+     ar -x $i
+     bsdtar xf data.tar.gz
+   done

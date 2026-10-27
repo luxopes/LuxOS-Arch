@@ -1,0 +1,12 @@
+# LuxOS: zdroj pouziva bool bez <stdbool.h> (funguje jen s C23) - sestaveni ovladacu ma jinak
+# CC="gcc -std=gnu17 -fpermissive" (scripts/container-build.sh), tady vychozi standard GCC
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -30,6 +30,7 @@
+ 
+ build() {
+ 	cd "$pkgname-source-$pkgver-$pkgrel"
++	export CC="gcc -fpermissive"
+ 	echo $_arch
+ 	pushd "scangearmp2"
+ 	./autogen.sh --prefix=/usr \

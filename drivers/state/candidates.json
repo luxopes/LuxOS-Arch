@@ -1,4 +1,13 @@
 {
+ "bbe": {
+  "maintainer": null,
+  "names": [
+   "bbe"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:bbe",
+  "votes": 0
+ },
  "brother-9320cw-cups-bin": {
   "maintainer": "meckhert",
   "names": [
@@ -5822,6 +5831,15 @@
   "vendor": "canon",
   "votes": 2
  },
+ "deb2targz": {
+  "maintainer": null,
+  "names": [
+   "deb2targz"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:deb2targz",
+  "votes": 0
+ },
  "epson-alc1100-filter": {
   "maintainer": "Vain",
   "names": [
@@ -7570,6 +7588,15 @@
   "vendor": "epson",
   "votes": 2
  },
+ "gtk2": {
+  "maintainer": null,
+  "names": [
+   "gtk2"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:gtk2",
+  "votes": 0
+ },
  "hplip-plugin": {
   "maintainer": "ZhangHua",
   "names": [
@@ -7875,6 +7902,114 @@
   "out_of_date": false,
   "vendor": "kyocera",
   "votes": 9
+ },
+ "lib32-gtk2": {
+  "maintainer": null,
+  "names": [
+   "lib32-gtk2"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:lib32-gtk2",
+  "votes": 0
+ },
+ "lib32-libpng12": {
+  "maintainer": null,
+  "names": [
+   "lib32-libpng12"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:lib32-libpng12",
+  "votes": 0
+ },
+ "lib32-libstdc++5": {
+  "maintainer": null,
+  "names": [
+   "lib32-libstdc++5"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:lib32-libstdc++5",
+  "votes": 0
+ },
+ "lib32-libtiff4": {
+  "maintainer": null,
+  "names": [
+   "lib32-libtiff4"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:lib32-libtiff4",
+  "votes": 0
+ },
+ "lib32-libusb-compat": {
+  "maintainer": null,
+  "names": [
+   "lib32-libusb-compat"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:lib32-libusb-compat",
+  "votes": 0
+ },
+ "lib32-popt": {
+  "maintainer": null,
+  "names": [
+   "lib32-popt"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:lib32-popt",
+  "votes": 0
+ },
+ "libglade": {
+  "maintainer": null,
+  "names": [
+   "libglade"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:libglade",
+  "votes": 0
+ },
+ "libjpeg6-turbo": {
+  "maintainer": null,
+  "names": [
+   "libjpeg6-turbo"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:libjpeg6-turbo",
+  "votes": 0
+ },
+ "libpng12": {
+  "maintainer": null,
+  "names": [
+   "libpng12"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:libpng12",
+  "votes": 0
+ },
+ "libtiff4": {
+  "maintainer": null,
+  "names": [
+   "libtiff4"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:libtiff4",
+  "votes": 0
+ },
+ "pangox-compat": {
+  "maintainer": null,
+  "names": [
+   "pangox-compat"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:pangox-compat",
+  "votes": 0
+ },
+ "qt5-singleapplication": {
+  "maintainer": null,
+  "names": [
+   "qt5-singleapplication"
+  ],
+  "out_of_date": false,
+  "vendor": "dep:qt5-singleapplication",
+  "votes": 0
  },
  "ricoh-mp2014-gdi": {
   "maintainer": "NeroBlackstone",

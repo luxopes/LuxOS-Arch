@@ -1,4 +1,20 @@
 {
+ "bbe": {
+  "commit": "b0f10ff5becf33a6e1506cdccb3467b6ee96e571",
+  "depends": [
+   "glibc"
+  ],
+  "pkgnames": [
+   "bbe"
+  ],
+  "rules": 4,
+  "sources": {
+   "bbe-0.2.2.tar.gz": "baaeaf5775a6d9bceb594ea100c8f45a677a0a7d07529fa573ba0842226edddb"
+  },
+  "vendor": "dep:bbe",
+  "verified": "2026-10-27",
+  "version": "0.2.2-3"
+ },
  "brother-9320cw-cups-bin": {
   "commit": "20e7b0e7dab42501838cf47e4e1f26b6222d988c",
   "depends": [],
@@ -973,6 +989,9 @@
    "psutils",
    "cups"
   ],
+  "patches": {
+   "luxos-srcdir.patch": "bfca2a5071466d9c4f874fd673935b6b85bee23f1405edc16ed125907581ae1f"
+  },
   "pkgnames": [
    "brother-dcp7030"
   ],
@@ -985,7 +1004,7 @@
    "cupswrapperDCP7030-2.0.2-1.i386.deb": "a9a4e0ec5f941cf17fcc7156febf8aff21673bc78a6313176527a0423847627d"
   },
   "vendor": "brother",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "2.0.2-4"
  },
  "brother-dcp7045n": {
@@ -6587,7 +6606,12 @@
    "cups",
    "lib32-glibc"
   ],
-  "pkgnames": [],
+  "patches": {
+   "luxos-pkgname.patch": "c242979cd4d0332a9c7b0ab254894632db7bf1ebee0c9a4b4fc415e735b71198"
+  },
+  "pkgnames": [
+   "brother-mfc-l2680w"
+  ],
   "rules": 4,
   "sources": {
    "cupswrapper-license.txt": "2c6aa6a641332e5c87e971ac2a8beae13b059747bdba331bbd515914770d72d9",
@@ -6596,7 +6620,7 @@
    "mfcl2680wlpr-3.2.0-1.i386.rpm": "d3a8cd90d58670334266e46658c21934c606ead8876135b952cc9bddd50f976a"
   },
   "vendor": "brother",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.2.0-1"
  },
  "brother-mfc-l2700dw": {
@@ -7725,6 +7749,9 @@
  "brother-mfcj430w-lpr-bin": {
   "commit": "207f110872a696ac1e38da64867a969cd43f4038",
   "depends": [],
+  "patches": {
+   "luxos-no-host-exec.patch": "1c792104167f99599eb5c1ad8d96342e3460be8a2737a769856dc8ad920e5107"
+  },
   "pkgnames": [
    "brother-mfcj430w-lpr-bin"
   ],
@@ -7733,7 +7760,7 @@
    "mfcj430wlpr-3.0.1-1.i386.deb": "7b2dfc47aeffc1cf18608742dac4d978612b1181ebadfa195805e3788962d5e9"
   },
   "vendor": "brother",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.0.1-2"
  },
  "brother-mfcj4310dw-cups-bin": {
@@ -9581,6 +9608,9 @@
    "make",
    "gcc"
   ],
+  "patches": {
+   "luxos-no-sysctl.patch": "b6e3948c1e2a367ee7cdf16e86ca2d04330ea5f8b4f068cbbd056afaa4806c20"
+  },
   "pkgnames": [
    "cnijfilter-ip7200"
   ],
@@ -9590,7 +9620,7 @@
    "cnijfilter-source-3.80-1.tar.gz": "8b6d408f18191f19465ee8fc31aa08455e8bec186fdd3f02ee822f53a9b086a9"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.80-2"
  },
  "cnijfilter-mg2100": {
@@ -9960,8 +9990,12 @@
    "cups",
    "ghostscript",
    "lib32-libcups",
-   "lib32-popt"
+   "lib32-popt",
+   "gcc-multilib"
   ],
+  "patches": {
+   "luxos-permissive.patch": "d824a6e3536779a2588d261c3ab27ef5be0e1fd9f405a161e42faedb13a6c52b"
+  },
   "pkgnames": [
    "cnijfilter-mp630"
   ],
@@ -9974,7 +10008,7 @@
    "missing-include.patch": "a4ed852bad975451d528f5d38ce551ec53ff121926ee493dc6ec0d869f67636a"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "3.00-2"
  },
  "cnijfilter-mx340": {
@@ -10291,6 +10325,23 @@
   "vendor": "canon",
   "verified": "2026-10-24",
   "version": "5.00-3"
+ },
+ "deb2targz": {
+  "commit": "7fbf414e4950a4785c72e6743eb4e4e46b146633",
+  "depends": [
+   "perl"
+  ],
+  "pkgnames": [
+   "deb2targz"
+  ],
+  "rules": 4,
+  "sources": {
+   "deb2targz": "f597319db098a9d6b5199e39b8a9ced0973d9ee84927286de4d5816d8e76a44b",
+   "deb2targz-any-data.patch": "f4a5404ee9f98bba948e83201832332494997b7e0b804c6f7572aa6f5c31a358"
+  },
+  "vendor": "dep:deb2targz",
+  "verified": "2026-10-27",
+  "version": "0.1-7"
  },
  "epson-alc1100-filter": {
   "commit": "db99aece5ab93e5c57fc79c005bc1948d4cbebdd",
@@ -13598,6 +13649,52 @@
   "verified": "2026-10-24",
   "version": "6.7.80.0-1"
  },
+ "gtk2": {
+  "commit": "19829b43450b1a7e838896f9b2dd391a227eabd1",
+  "depends": [
+   "atk",
+   "cairo",
+   "desktop-file-utils",
+   "fontconfig",
+   "gdk-pixbuf2",
+   "glib2",
+   "glibc",
+   "gtk-update-icon-cache",
+   "libcups",
+   "librsvg",
+   "libx11",
+   "libxcomposite",
+   "libxcursor",
+   "libxdamage",
+   "libxext",
+   "libxfixes",
+   "libxi",
+   "libxinerama",
+   "libxrandr",
+   "libxrender",
+   "pango",
+   "shared-mime-info",
+   "glib2-devel",
+   "gobject-introspection",
+   "gtk-doc"
+  ],
+  "patches": {
+   "luxos-tarball.patch": "60245cfd7dec65d6ba3d1beebe1bba88ce129d1f6becadbe014d084ac3647d62"
+  },
+  "pkgnames": [
+   "gtk2"
+  ],
+  "rules": 4,
+  "sources": {
+   "0001-Lower-severity-of-XID-collision-warnings.patch": "cbb55e57f06a1439f115d6c6dc4730f70011cc3926deb0ad1b32f2576ee99a0d",
+   "0002-Stop-looking-for-modules-in-cwd.patch": "2001b5e8a0ca35b9c2d30660fd55fef9978a986869b9cd7da6393c276bd2c3c2",
+   "gtk+-2.24.33.tar.xz": "ac2ac757f5942d318a311a54b0c80b5ef295f299c2a73c632f6bfb1ff49cc6da",
+   "gtk-query-immodules-2.0.hook": "427e7ed2626465ea7a8986189b6c8340a0520b9f7b8e2a56cd1169d375da7425"
+  },
+  "vendor": "dep:gtk2",
+  "verified": "2026-10-27",
+  "version": "2.24.33-5"
+ },
  "kyocera-ecosys-m2035dn": {
   "commit": "056fd13b1176b57716b1c57532acff4b1299140e",
   "depends": [
@@ -13668,6 +13765,292 @@
   "vendor": "kyocera",
   "verified": "2026-10-24",
   "version": "1.0-1"
+ },
+ "lib32-gtk2": {
+  "commit": "d0e024d82bf50e24a3070e93b840d3f566995fb3",
+  "depends": [
+   "gtk2",
+   "lib32-atk",
+   "lib32-cairo",
+   "lib32-gdk-pixbuf2",
+   "lib32-glib2",
+   "lib32-glibc",
+   "lib32-libcups",
+   "lib32-librsvg",
+   "lib32-libx11",
+   "lib32-libxcomposite",
+   "lib32-libxcursor",
+   "lib32-libxdamage",
+   "lib32-libxext",
+   "lib32-libxfixes",
+   "lib32-libxi",
+   "lib32-libxinerama",
+   "lib32-libxrandr",
+   "lib32-libxrender",
+   "lib32-pango",
+   "glib2-devel",
+   "gobject-introspection",
+   "gtk-doc"
+  ],
+  "patches": {
+   "luxos-tarball.patch": "efe1d7c744816b0dc714801e55daab2c2ba7516c2b8372c2845ccd96c61af09f"
+  },
+  "pkgnames": [
+   "lib32-gtk2"
+  ],
+  "rules": 4,
+  "sources": {
+   "0001-Lower-severity-of-XID-collision-warnings.patch": "cbb55e57f06a1439f115d6c6dc4730f70011cc3926deb0ad1b32f2576ee99a0d",
+   "0002-Stop-looking-for-modules-in-cwd.patch": "2001b5e8a0ca35b9c2d30660fd55fef9978a986869b9cd7da6393c276bd2c3c2",
+   "gtk+-2.24.33.tar.xz": "ac2ac757f5942d318a311a54b0c80b5ef295f299c2a73c632f6bfb1ff49cc6da",
+   "gtk-query-immodules-2.0-32.hook": "ca1151c76749ea5b0b884ef8132626a4fff8d42311693a15d421699d43762576"
+  },
+  "vendor": "dep:lib32-gtk2",
+  "verified": "2026-10-27",
+  "version": "2.24.33-5"
+ },
+ "lib32-libpng12": {
+  "commit": "e47f1c902ad23495eed3ed6d951e0c154402d83d",
+  "depends": [
+   "lib32-glibc",
+   "lib32-zlib",
+   "lib32-gcc-libs",
+   "gcc-multilib"
+  ],
+  "patches": {
+   "luxos-no-sig.patch": "c08ab6716a76c82ef12e20641346808258be9fef13ee8e1a5753fe8d61b16b7a"
+  },
+  "pkgnames": [
+   "lib32-libpng12"
+  ],
+  "rules": 4,
+  "sources": {
+   "libpng-1.2.59-apng.patch.gz": "281fd5f0165762967a18302dca217de3212be4a3437f95805be44f1ac9db1a5d",
+   "libpng-1.2.59.tar.xz": "b4635f15b8adccc8ad0934eea485ef59cc4cae24d0f0300a9a941e51974ffcc7"
+  },
+  "vendor": "dep:lib32-libpng12",
+  "verified": "2026-10-27",
+  "version": "1.2.59-4"
+ },
+ "lib32-libstdc++5": {
+  "commit": "f8f5d678c6937564f0ca205b737d2944c20a7290",
+  "depends": [
+   "lib32-gcc-libs",
+   "lib32-glibc",
+   "gcc-multilib",
+   "binutils",
+   "bash"
+  ],
+  "pkgnames": [
+   "lib32-libstdc++5"
+  ],
+  "rules": 4,
+  "sources": {
+   "gcc-3.4.3-no_multilib_amd64.patch": "dc2dc473071887ff6129c121950052398ed7c6fa1075ed839376030772068857",
+   "gcc-core-3.3.6.tar.bz2": "4f9bee8ac57711508d6b8031d5ecfefc16fcf37ec81568b3f8344ef5f4cdfeb6",
+   "gcc-g++-3.3.6.tar.bz2": "7ee9fdf2771084c4933bb0a31d2fd9bfe8df746f9f47d76562b7a9e302a29d92"
+  },
+  "vendor": "dep:lib32-libstdc++5",
+  "verified": "2026-10-27",
+  "version": "3.3.6-9"
+ },
+ "lib32-libtiff4": {
+  "commit": "a45616ccc126bfbb3e6821e54e603642b896c3c9",
+  "depends": [
+   "lib32-gcc-libs",
+   "lib32-glibc",
+   "lib32-libjpeg-turbo",
+   "lib32-zlib"
+  ],
+  "patches": {
+   "luxos-tarball.patch": "77b5420621d885e73fc17eba8237c54ad6a7b994f46908838ae131630768c07d"
+  },
+  "pkgnames": [
+   "lib32-libtiff4"
+  ],
+  "rules": 4,
+  "sources": {
+   "libtiff4-soname.patch": "e6246631f6d943715b612b4ddd2279c946ff90c9e8d755fa639e8051a6eb3488",
+   "tiff-3.9.7.tar.gz": "f5d64dd4ce61c55f5e9f6dc3920fbe5a41e02c2e607da7117a35eb5c320cef6a"
+  },
+  "vendor": "dep:lib32-libtiff4",
+  "verified": "2026-10-27",
+  "version": "3.9.7-6"
+ },
+ "lib32-libusb-compat": {
+  "commit": "df7feaf08314df3b0e634bde97da8c8ede9c029f",
+  "depends": [
+   "libusb-compat",
+   "lib32-glibc",
+   "lib32-libusb"
+  ],
+  "pkgnames": [
+   "lib32-libusb-compat"
+  ],
+  "rules": 4,
+  "sources": {
+   "lib32-libusb-compat-0.1.9.tar.gz": "b09aa33e943080352041ea3d5ac01fd90ea96e9337212865de0dda776886dbb9"
+  },
+  "vendor": "dep:lib32-libusb-compat",
+  "verified": "2026-10-27",
+  "version": "0.1.9-1"
+ },
+ "lib32-popt": {
+  "commit": "d5a035346bb1c0917703b49d517a858b3bf42a59",
+  "depends": [
+   "lib32-glibc",
+   "popt"
+  ],
+  "pkgnames": [
+   "lib32-popt"
+  ],
+  "rules": 4,
+  "sources": {
+   "popt-1.19.tar.gz": "c25a4838fc8e4c1c8aacb8bd620edb3084a3d63bf8987fdad3ca2758c63240f9"
+  },
+  "vendor": "dep:lib32-popt",
+  "verified": "2026-10-27",
+  "version": "1.19-2"
+ },
+ "libglade": {
+  "commit": "73cb7157619f2423883489afcccaa227db42d944",
+  "depends": [
+   "gtk2>=2.16.0",
+   "libxml2>=2.7.3",
+   "pkgconfig"
+  ],
+  "patches": {
+   "luxos-no-install.patch": "d5382e56e5af9a10173fde2dc66ccbe21e2d55b432448a4730c6a5405b273510"
+  },
+  "pkgnames": [
+   "libglade"
+  ],
+  "rules": 4,
+  "sources": {
+   "libglade-2.0.1-nowarning.patch": "423c12af1c73442caa851a0b8db33b00fa4b778b1b422a4e8ac33d121d043008",
+   "libglade-2.6.4.tar.bz2": "64361e7647839d36ed8336d992fd210d3e8139882269bed47dc4674980165dec"
+  },
+  "vendor": "dep:libglade",
+  "verified": "2026-10-27",
+  "version": "2.6.4-9"
+ },
+ "libjpeg6-turbo": {
+  "commit": "bc378248b1321a015802c05e2742a244aa495d49",
+  "depends": [
+   "glibc",
+   "nasm"
+  ],
+  "patches": {
+   "luxos-no-sig.patch": "74aeb783499c7e88389448544ae9d032ceb4f5699a7f8d30a53b6375b96ebd29"
+  },
+  "pkgnames": [
+   "libjpeg6-turbo"
+  ],
+  "provides": [
+   "libjpeg6"
+  ],
+  "rules": 4,
+  "sources": {
+   "libjpeg-turbo-1.5.3.tar.gz": "b24890e2bb46e12e72a79f7e965f409f4e16466d00e1dd15d93d73ee6b592523"
+  },
+  "vendor": "dep:libjpeg6-turbo",
+  "verified": "2026-10-27",
+  "version": "1.5.3-3"
+ },
+ "libpng12": {
+  "commit": "9b7de2ce084eee7a2a191441562f332a4c3b4a56",
+  "depends": [
+   "glibc",
+   "zlib",
+   "gcc-libs"
+  ],
+  "patches": {
+   "luxos-no-sig.patch": "a5534c39f58feff141191f09460e2bc1c0d0883c1babd96feca965488a91c5ea"
+  },
+  "pkgnames": [
+   "libpng12"
+  ],
+  "rules": 4,
+  "sources": {
+   "libpng-1.2.59-apng.patch.gz": "281fd5f0165762967a18302dca217de3212be4a3437f95805be44f1ac9db1a5d",
+   "libpng-1.2.59.tar.xz": "b4635f15b8adccc8ad0934eea485ef59cc4cae24d0f0300a9a941e51974ffcc7"
+  },
+  "vendor": "dep:libpng12",
+  "verified": "2026-10-27",
+  "version": "1.2.59-3"
+ },
+ "libtiff4": {
+  "commit": "bdbeba39ecff82833808702898effc3e674bdd16",
+  "depends": [
+   "gcc-libs",
+   "jbigkit",
+   "libjpeg-turbo",
+   "zlib"
+  ],
+  "patches": {
+   "luxos-tarball.patch": "e0818041475f4d7ece2ecb1c0773e4dbaac52f2fea23aca65633a597a34b3ac0"
+  },
+  "pkgnames": [
+   "libtiff4"
+  ],
+  "rules": 4,
+  "sources": {
+   "libtiff4-soname.patch": "4704379227c530cd76f007fe67638f2d998a074a0af6ca50f063ef720f95b9ba",
+   "tiff-3.9.7.tar.gz": "f5d64dd4ce61c55f5e9f6dc3920fbe5a41e02c2e607da7117a35eb5c320cef6a"
+  },
+  "vendor": "dep:libtiff4",
+  "verified": "2026-10-27",
+  "version": "3.9.7-8"
+ },
+ "pangox-compat": {
+  "commit": "f65b833c1fb9cc9de9be5b49a8e940504ce14cdc",
+  "depends": [
+   "glibc",
+   "glib2",
+   "pango",
+   "libx11"
+  ],
+  "patches": {
+   "luxos-tarball.patch": "c766b68f1fd6e2705e5273aa5c177c7f824b67b2012e5d44ec203d478abcdd55"
+  },
+  "pkgnames": [
+   "pangox-compat"
+  ],
+  "rules": 4,
+  "sources": {
+   "0001-Re-add-pango_x_get_shaper_map-it-is-still-used-in-th.patch": "d5aad903439ede05b866c9a2962f293bec4897f07d5a7b07ebc5aa99eeb27e48",
+   "0002-disable-shaper.patch": "0a33987e97807211bc74a851348bcee4a0a6147d2d7f1e23c9c7912505ba27db",
+   "pangox-compat-0.0.2.tar.xz": "552092b3b6c23f47f4beee05495d0f9a153781f62a1c4b7ec53857a37dfce046"
+  },
+  "vendor": "dep:pangox-compat",
+  "verified": "2026-10-27",
+  "version": "0.0.2-3"
+ },
+ "qt5-singleapplication": {
+  "commit": "3fb958feca5004745ffc14a8ddfeee6a45795c89",
+  "depends": [
+   "qt5-base"
+  ],
+  "patches": {
+   "luxos-checksum.patch": "285d5f39529b632ed3c6d717f7a61a0a71577d2c339e1ed24af18407d26a2f2c"
+  },
+  "pkgnames": [
+   "qt5-singleapplication",
+   "qt5-singlecoreapplication",
+   "qt5-singleapplication-doc",
+   "qt5-singlecoreapplication-doc"
+  ],
+  "rules": 4,
+  "sources": {
+   "a8dda66d7738cde9042b87db27993f710ae3eeeb.tar.gz": "a7099dffae7f89e1bb54f394160c632460f660171302ecf277e4ac1c4d6143c8",
+   "qtsingleapplication-build-qtsinglecoreapplication.patch": "ab5e14111ac1d8d5e036caa1ca82e80d4e0c75b4477908d1c36f08f1b3b47b90",
+   "qtsingleapplication-qupzilla.patch": "42b43a27273219dd37ddabeac58dbd0d7f430fc3df7306e9eab00bcd82c40781",
+   "qtsingleapplication.prf": "1e3adc908ff23320a90d2ef939c897136e8b8cb4c2b6083152824912b0a50dc9",
+   "qtsinglecoreapplication.prf": "aaf3bf65594d6971ec5a144950eb1fb0d180313f0a83ae2c13d2ce1e17526044"
+  },
+  "vendor": "dep:qt5-singleapplication",
+  "verified": "2026-10-27",
+  "version": "2.6_20170914-1"
  },
  "ricoh-mp2014-gdi": {
   "commit": "85b99da48b9d232bad1ac060265846bb09ba4d5a",
@@ -14159,10 +14542,10 @@
   ],
   "rules": 4,
   "sources": {
-   "WWUFORedirectTarget.do": "c87e94986c2e71b4c2ab62a3bfacf30f9bc7e1bd28bafeb1a7ac24346ac77654"
+   "WWUFORedirectTarget.do?id=MDEwMDAwNDEzMTAx&cmp=ACB&lang=EN": "c87e94986c2e71b4c2ab62a3bfacf30f9bc7e1bd28bafeb1a7ac24346ac77654"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "1.90-1"
  },
  "scangearmp-mx520series-x86_64": {
@@ -14189,7 +14572,13 @@
    "gtk2",
    "libusb"
   ],
+  "patches": {
+   "luxos-c23.patch": "7997b06b5899013766a3ea0203faf4d2f40b5f26bcf56f7e79f5b7bfe76d5bbb"
+  },
   "pkgnames": [
+   "scangearmp2"
+  ],
+  "provides": [
    "scangearmp2"
   ],
   "rules": 4,
@@ -14200,7 +14589,7 @@
    "scangearmp2.desktop": "68f2113ba18aae5f41a4f6febf5574fef7e88921d6768d1763db6f84f3fecc29"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "4.80-1"
  },
  "scangearmp2-mg7700": {
@@ -14261,6 +14650,9 @@
    "libcups",
    "unrar"
   ],
+  "patches": {
+   "luxos-noextract.patch": "90cbe944e0997b87a7e300abd9ec61ca2249fb451f66c49cb25079d6fc819a61"
+  },
   "pkgnames": [
    "xerox-workcentre-5845-5855"
   ],
@@ -14269,7 +14661,7 @@
    "WC58XX_5.482.0.0_PPD_English.exe": "73f66187bbc74cf5c4d781f8fdcf13750b7b95e0154595de4eefac593e4cf9d5"
   },
   "vendor": "xerox",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "5.482.0.0-1"
  },
  "xerox-workcentre-6515": {
@@ -14313,6 +14705,9 @@
   "depends": [
    "unrar"
   ],
+  "patches": {
+   "luxos-noextract.patch": "4425c4fc4a17e8ae1f9ef44cbd785d6293137a2666784330080ac3a10e976bd4"
+  },
   "pkgnames": [
    "xerox-workcentre-72xx"
   ],
@@ -14324,7 +14719,7 @@
    "xerox-workcentre-72xx.exe": "0b8d1421212ce62669f3da449c049b11878da227e84ebb809dcf3dc32e5157ee"
   },
   "vendor": "xerox",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "5.482.0.0-2"
  },
  "xerox-workcentre-78xx": {
@@ -14332,6 +14727,9 @@
   "depends": [
    "unrar"
   ],
+  "patches": {
+   "luxos-noextract.patch": "dacf25f69509522cc7cf9daacb175ba01dc49855631ab23f46a9d23dd8dc2878"
+  },
   "pkgnames": [
    "xerox-workcentre-78xx"
   ],
@@ -14343,7 +14741,7 @@
    "xerox-workcentre-78xx.exe": "75ab5388dfe513732bd05cbaeb47196345ae26886d59c7d96b92749b6de08f9a"
   },
   "vendor": "xerox",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "5.482.0.0-2"
  }
 }

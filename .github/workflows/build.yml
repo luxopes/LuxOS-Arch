@@ -5,6 +5,10 @@
 #   iso:      ISO z uz zverejnenych PODEPSANYCH repozitaru (scripts/fetch-published-repo.sh
 #             overi podpisy klicem LuxOS) -> artefakt "iso"; kontrolni soucet a podpis ISO
 #             vytvori spravce lokalne pred zverejnenim
+#   drivers:  overene ovladace [luxos-drivers] (drivers/state/manifest.json; package = seznam pkgbase
+#             oddeleny mezerami, prazdne = vsechny; overene zavislosti se pridaji samy). Zdroje se stahuji
+#             podle zapichnutych sha256 z manifestu, makepkg bezi bez site. NEPODEPSANE -> artefakt
+#             "drivers" (baliky + failed.txt + report.txt + logy); podepisuje a zverejnuje spravce
 name: Build
 
 on:
@@ -13,10 +17,10 @@ on:
       target:
         description: What to build
         type: choice
-        options: [iso, packages, one]
+        options: [iso, packages, one, drivers]
         default: iso
       package:
-        description: "Package for target 'one' (directory in packages/ or packages/apps/)"
+        description: "Package for target 'one' (directory in packages/ or packages/apps/); for 'drivers' space-separated pkgbases (empty = all verified)"
         type: string
         default: ""
 
@@ -54,16 +58,33 @@ jobs:
           if [ "${{ inputs.target }}" = one ]; then
             case "$PKG" in ''|*[!A-Za-z0-9._+-]*) echo "Bad package name: '$PKG'" >&2; exit 1 ;; esac
             ./build.sh one "$PKG"
+          elif [ "${{ inputs.target }}" = drivers ]; then
+            case "$PKG" in *[!A-Za-z0-9._+\ -]*) echo "Bad package list: '$PKG'" >&2; exit 1 ;; esac
+            # shellcheck disable=SC2086  # seznam baliku oddeleny mezerami
+            ./build.sh drivers $PKG
           else
             ./build.sh "${{ inputs.target }}"
           fi
 
       - name: Checksums
+        if: always()
         run: |
           cd out
           case "${{ inputs.target }}" in
             iso) sha256sum luxos-*.iso > SHA256SUMS ;;
             one) find single -name '*.pkg.tar.zst' -print0 | xargs -0 sha256sum > SHA256SUMS ;;
+            drivers)
+              find drivers-repo/pkgs -name '*.pkg.tar.zst' -print0 | xargs -0 -r sha256sum > SHA256SUMS
+              cp drivers/fetch-failed.txt drivers-repo/ 2>/dev/null || true
+              { echo "Built packages: $(grep -c . SHA256SUMS || true)"
+                echo "Failed pkgbases: $(grep -c . drivers-repo/failed.txt || true)"
+                echo; cat drivers-repo/failed.txt 2>/dev/null || true
+                echo; echo "Source fetch problems:"; cat drivers-repo/fetch-failed.txt 2>/dev/null || true
+              } > drivers-repo/report.txt
+              cat drivers-repo/report.txt
+              # jeden archiv: nazvy baliku s epochou obsahuji ":" a upload-artifact je neprijme
+              tar -cf drivers-ci.tar SHA256SUMS drivers-repo/pkgs drivers-repo/built drivers-repo/failed.txt \
+                  drivers-repo/report.txt $(ls -d drivers-repo/logs drivers-repo/fetch-failed.txt 2>/dev/null) ;;
             *)   find repo -name '*.pkg.tar.zst' -print0 | xargs -0 sha256sum > SHA256SUMS ;;
           esac
           cat SHA256SUMS | head -60
@@ -87,6 +108,17 @@ jobs:
           path: |
             out/repo/*/x86_64/*.pkg.tar.zst
             out/SHA256SUMS
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload drivers
+        if: always() && inputs.target == 'drivers'
+        uses: actions/upload-artifact@v4
+        with:
+          name: drivers
+          path: |
+            out/drivers-ci.tar
+            out/drivers-repo/report.txt
           compression-level: 0
           retention-days: 14
 

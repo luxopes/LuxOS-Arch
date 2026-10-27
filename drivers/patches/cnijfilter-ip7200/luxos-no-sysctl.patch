@@ -1,0 +1,11 @@
+# LuxOS: glibc uz nema <sys/sysctl.h> (cnijnpr.c ho jen vklada) -> radek pryc
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -26,6 +26,7 @@
+ 	dirs="libs cngpij cngpijmnt cngpijmon ppd pstocanonij backend backendnet cnijfilter lgmon cngpijmon/cnijnpr maintenance"
+ 	
+ 	patch -Np0 -i $srcdir/all.patch || return 1
++	sed -i '/#include <sys\/sysctl.h>/d' "$srcdir/cnijfilter-source-${pkgver}-${_pkgrelsources}/cngpijmon/cnijnpr/cnijnpr/cnijnpr.c"
+ 	
+ 	for dir in $dirs; do
+ 		cd "${srcdir}/cnijfilter-source-${pkgver}-${_pkgrelsources}/$dir"
