@@ -4283,3 +4283,47 @@ Connecting failed.	No se pudo conectar.
 list system snapshots (one before every update)	listar las instantáneas del sistema (una antes de cada actualización)
 take a system snapshot now	crear una instantánea del sistema ahora
 return the system to a snapshot (also from the boot menu)	devolver el sistema a una instantánea (también desde el menú de arranque)
+Anyone with this key can open the Safe without the password. Do not save it on this computer, in e-mail or in the cloud, and do not take a photo of it.	Cualquiera con esta clave puede abrir la Caja fuerte sin la contraseña. No la guardes en este ordenador, en el correo ni en la nube, y no le hagas fotos.
+Core dumps of the Safe process are allowed: lock the Safe and unlock it again.	El proceso de la Caja fuerte puede escribir volcados de memoria (core dumps): bloquea la Caja fuerte y desbloquéala de nuevo.
+Core dumps of the Safe process are disabled.	Los volcados de memoria (core dumps) del proceso de la Caja fuerte están desactivados.
+Could not read the key protection settings (%s).	No se pudo leer la configuración de protección de la clave (%s).
+Could not read the recovery key (%s).	No se pudo leer la clave de recuperación (%s).
+Enter the recovery key you wrote down when you created the Safe and choose a new password. Without the recovery key the Safe cannot be opened.	Introduce la clave de recuperación que anotaste al crear la Caja fuerte y elige una contraseña nueva. Sin la clave de recuperación la Caja fuerte no se puede abrir.
+Enter the Safe password. The password stays the same, only the protection of the key gets stronger.	Introduce la contraseña de la Caja fuerte. La contraseña no cambia, solo se refuerza la protección de la clave.
+Enter the Safe password to show its recovery key.	Introduce la contraseña de la Caja fuerte para ver su clave de recuperación.
+Fair	Aceptable
+Forgot Password	Contraseña olvidada
+Forgot Password…	Contraseña olvidada…
+Good	Bueno
+If you forget this password, only the recovery key shown after creating the Safe can open it.	Si olvidas esta contraseña, solo la clave de recuperación que se muestra tras crearla podrá abrir la Caja fuerte.
+I have written down the recovery key	He anotado la clave de recuperación
+Lock the Safe first.	Bloquea primero la Caja fuerte.
+Mounted with nosuid, nodev and noexec.	Montado con nosuid, nodev y noexec.
+Mounted without %s: lock the Safe and unlock it again.	Montado sin %s: bloquea la Caja fuerte y desbloquéala de nuevo.
+No Safe has been created yet.	Todavía no se ha creado ninguna Caja fuerte.
+Other programs cannot read the memory of the Safe process (ptrace_scope %s).	Otros programas no pueden leer la memoria del proceso de la Caja fuerte (ptrace_scope %s).
+Password protection: scrypt 2^%d.	Protección de la contraseña: scrypt 2^%d.
+Password protection: scrypt 2^%d, weaker than the recommended 2^%d. Use Upgrade Protection in the Safe window.	Protección de la contraseña: scrypt 2^%d, más débil que el 2^%d recomendado. Usa Reforzar protección en la ventana de la Caja fuerte.
+Programs of your account can read the memory of the Safe process (ptrace_scope %s).	Los programas de tu cuenta pueden leer la memoria del proceso de la Caja fuerte (ptrace_scope %s).
+Recovery Key	Clave de recuperación
+Recovery Key…	Clave de recuperación…
+Set New Password	Establecer contraseña nueva
+Strong	Fuerte
+Stronger password protection is available for this Safe. It makes guessing the password from a stolen disk much slower; unlocking takes about a second.	Hay una protección de contraseña más fuerte disponible para esta Caja fuerte. Hace mucho más lento adivinar la contraseña desde un disco robado; desbloquear tarda alrededor de un segundo.
+Swap %s is encrypted or in memory only.	El espacio de intercambio %s está cifrado o solo en memoria.
+Swap %s is not encrypted: memory with keys could be written to the disk.	El espacio de intercambio %s no está cifrado: la memoria con claves podría escribirse en el disco.
+The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)	La copia contiene tu Caja fuerte cifrada: %s (consulta la documentación de la Caja fuerte para restaurarla)
+The Safe is locked: its contents are stored only encrypted.	La Caja fuerte está bloqueada: su contenido solo se guarda cifrado.
+The Safe now uses stronger password protection.	La Caja fuerte usa ahora una protección de contraseña más fuerte.
+The Safe password was changed. Unlock the Safe with the new password.	Se ha cambiado la contraseña de la Caja fuerte. Desbloquéala con la contraseña nueva.
+This is not a valid recovery key. It has 64 characters 0-9 and a-f.	No es una clave de recuperación válida. Tiene 64 caracteres 0-9 y a-f.
+This password is too common. Choose something less predictable, for example a few unrelated words.	Esta contraseña es demasiado común. Elige algo menos predecible, por ejemplo unas cuantas palabras sin relación.
+This password is too predictable. Avoid repeated characters and sequences like 1234 or abcd.	Esta contraseña es demasiado predecible. Evita caracteres repetidos y secuencias como 1234 o abcd.
+This recovery key does not open this Safe.	Esta clave de recuperación no abre esta Caja fuerte.
+Upgrade	Reforzar
+Upgrade Protection	Reforzar protección
+Upgrade Protection…	Reforzar protección…
+Use at least 12 characters.	Usa al menos 12 caracteres.
+Weak	Débil
+Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Escribe esta clave de recuperación en papel y guárdala en un lugar seguro, lejos del ordenador. Si olvidas la contraseña de la Caja fuerte, es la única forma de abrirla.
+check the protection of the Safe (key derivation, mount options, memory, swap)	comprobar la protección de la Caja fuerte (derivación de clave, opciones de montaje, memoria, swap)

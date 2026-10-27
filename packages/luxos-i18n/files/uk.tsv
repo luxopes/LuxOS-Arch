@@ -4284,3 +4284,47 @@ Connecting failed.	Не вдалося під’єднатися.
 list system snapshots (one before every update)	список знімків системи (знімок перед кожним оновленням)
 take a system snapshot now	створити знімок системи зараз
 return the system to a snapshot (also from the boot menu)	повернути систему до знімка (також з меню завантаження)
+Anyone with this key can open the Safe without the password. Do not save it on this computer, in e-mail or in the cloud, and do not take a photo of it.	Будь-хто з цим ключем відкриє Сейф без пароля. Не зберігайте його на цьому комп'ютері, в e-mail чи в хмарі й не фотографуйте його.
+Core dumps of the Safe process are allowed: lock the Safe and unlock it again.	Процес Сейфа може створити дамп пам'яті (core dump): заблокуйте Сейф і розблокуйте його знову.
+Core dumps of the Safe process are disabled.	Дампи пам'яті (core dump) процесу Сейфа вимкнено.
+Could not read the key protection settings (%s).	Не вдалося прочитати налаштування захисту ключа (%s).
+Could not read the recovery key (%s).	Не вдалося прочитати ключ відновлення (%s).
+Enter the recovery key you wrote down when you created the Safe and choose a new password. Without the recovery key the Safe cannot be opened.	Введіть ключ відновлення, який ви записали під час створення Сейфа, і виберіть новий пароль. Без ключа відновлення Сейф відкрити неможливо.
+Enter the Safe password. The password stays the same, only the protection of the key gets stronger.	Введіть пароль Сейфа. Пароль залишиться тим самим, посилиться лише захист ключа.
+Enter the Safe password to show its recovery key.	Введіть пароль Сейфа, щоб показати його ключ відновлення.
+Fair	Середній
+Forgot Password	Забутий пароль
+Forgot Password…	Забули пароль…
+Good	Добрий
+If you forget this password, only the recovery key shown after creating the Safe can open it.	Якщо ви забудете пароль, Сейф відкриє лише ключ відновлення, показаний після створення.
+I have written down the recovery key	Я записав ключ відновлення
+Lock the Safe first.	Спочатку заблокуйте Сейф.
+Mounted with nosuid, nodev and noexec.	Змонтовано з параметрами nosuid, nodev і noexec.
+Mounted without %s: lock the Safe and unlock it again.	Змонтовано без %s: заблокуйте Сейф і розблокуйте його знову.
+No Safe has been created yet.	Сейф ще не створено.
+Other programs cannot read the memory of the Safe process (ptrace_scope %s).	Інші програми не можуть читати пам'ять процесу Сейфа (ptrace_scope %s).
+Password protection: scrypt 2^%d.	Захист пароля: scrypt 2^%d.
+Password protection: scrypt 2^%d, weaker than the recommended 2^%d. Use Upgrade Protection in the Safe window.	Захист пароля: scrypt 2^%d, слабший за рекомендований 2^%d. У вікні Сейфа скористайтеся «Посилити захист».
+Programs of your account can read the memory of the Safe process (ptrace_scope %s).	Програми вашого облікового запису можуть читати пам'ять процесу Сейфа (ptrace_scope %s).
+Recovery Key	Ключ відновлення
+Recovery Key…	Ключ відновлення…
+Set New Password	Встановити новий пароль
+Strong	Надійний
+Stronger password protection is available for this Safe. It makes guessing the password from a stolen disk much slower; unlocking takes about a second.	Для цього Сейфа доступний сильніший захист пароля. Він значно сповільнює підбір пароля з викраденого диска; розблокування триває близько секунди.
+Swap %s is encrypted or in memory only.	Підкачка %s зашифрована або лише в пам'яті.
+Swap %s is not encrypted: memory with keys could be written to the disk.	Підкачка %s не зашифрована: пам'ять із ключами може потрапити на диск.
+The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)	Резервна копія містить ваш зашифрований Сейф: %s (відновлення описано в документації Сейфа)
+The Safe is locked: its contents are stored only encrypted.	Сейф заблоковано: його вміст зберігається лише зашифрованим.
+The Safe now uses stronger password protection.	Сейф тепер використовує сильніший захист пароля.
+The Safe password was changed. Unlock the Safe with the new password.	Пароль Сейфа змінено. Розблокуйте Сейф новим паролем.
+This is not a valid recovery key. It has 64 characters 0-9 and a-f.	Це недійсний ключ відновлення. Він має 64 символи 0–9 і a–f.
+This password is too common. Choose something less predictable, for example a few unrelated words.	Цей пароль надто поширений. Виберіть щось менш передбачуване, наприклад кілька не пов'язаних слів.
+This password is too predictable. Avoid repeated characters and sequences like 1234 or abcd.	Цей пароль надто передбачуваний. Уникайте повторюваних символів і послідовностей на кшталт 1234 чи abcd.
+This recovery key does not open this Safe.	Цей ключ відновлення не відкриває цей Сейф.
+Upgrade	Посилити
+Upgrade Protection	Посилити захист
+Upgrade Protection…	Посилити захист…
+Use at least 12 characters.	Використайте щонайменше 12 символів.
+Weak	Слабкий
+Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Запишіть цей ключ відновлення на папері й зберігайте в надійному місці подалі від комп'ютера. Якщо ви забудете пароль Сейфа, ключ відновлення — єдиний спосіб його відкрити.
+check the protection of the Safe (key derivation, mount options, memory, swap)	перевірити захист Сейфа (виведення ключа, параметри монтування, пам'ять, swap)

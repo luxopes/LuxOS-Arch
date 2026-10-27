@@ -4283,3 +4283,47 @@ Connecting failed.	A kapcsolódás nem sikerült.
 list system snapshots (one before every update)	rendszer-pillanatképek listája (minden frissítés előtt egy)
 take a system snapshot now	rendszer-pillanatkép készítése most
 return the system to a snapshot (also from the boot menu)	a rendszer visszaállítása egy pillanatképre (a rendszerbetöltő menüből is)
+Anyone with this key can open the Safe without the password. Do not save it on this computer, in e-mail or in the cloud, and do not take a photo of it.	Ezzel a kulccsal bárki jelszó nélkül megnyithatja a Széfet. Ne mentse erre a számítógépre, e-mailbe vagy felhőbe, és ne fényképezze le.
+Core dumps of the Safe process are allowed: lock the Safe and unlock it again.	A Széf folyamata memóriaképet (core dump) írhat: zárolja a Széfet, majd oldja fel újra.
+Core dumps of the Safe process are disabled.	A Széf folyamatának memóriaképei (core dump) le vannak tiltva.
+Could not read the key protection settings (%s).	A kulcsvédelem beállításai nem olvashatók (%s).
+Could not read the recovery key (%s).	A helyreállítási kulcs nem olvasható (%s).
+Enter the recovery key you wrote down when you created the Safe and choose a new password. Without the recovery key the Safe cannot be opened.	Írja be a Széf létrehozásakor felírt helyreállítási kulcsot, és válasszon új jelszót. Helyreállítási kulcs nélkül a Széf nem nyitható meg.
+Enter the Safe password. The password stays the same, only the protection of the key gets stronger.	Írja be a Széf jelszavát. A jelszó nem változik, csak a kulcs védelme lesz erősebb.
+Enter the Safe password to show its recovery key.	Írja be a Széf jelszavát a helyreállítási kulcs megjelenítéséhez.
+Fair	Közepes
+Forgot Password	Elfelejtett jelszó
+Forgot Password…	Elfelejtett jelszó…
+Good	Jó
+If you forget this password, only the recovery key shown after creating the Safe can open it.	Ha elfelejti a jelszót, a Széfet csak a létrehozás után megjelenő helyreállítási kulcs nyitja meg.
+I have written down the recovery key	Felírtam a helyreállítási kulcsot
+Lock the Safe first.	Előbb zárolja a Széfet.
+Mounted with nosuid, nodev and noexec.	Csatolva nosuid, nodev és noexec kapcsolókkal.
+Mounted without %s: lock the Safe and unlock it again.	Csatolva %s nélkül: zárolja a Széfet, majd oldja fel újra.
+No Safe has been created yet.	Még nincs létrehozva Széf.
+Other programs cannot read the memory of the Safe process (ptrace_scope %s).	Más programok nem olvashatják a Széf folyamatának memóriáját (ptrace_scope %s).
+Password protection: scrypt 2^%d.	Jelszóvédelem: scrypt 2^%d.
+Password protection: scrypt 2^%d, weaker than the recommended 2^%d. Use Upgrade Protection in the Safe window.	Jelszóvédelem: scrypt 2^%d, gyengébb az ajánlott 2^%d értéknél. A Széf ablakában használja a Védelem erősítése gombot.
+Programs of your account can read the memory of the Safe process (ptrace_scope %s).	A fiókja programjai olvashatják a Széf folyamatának memóriáját (ptrace_scope %s).
+Recovery Key	Helyreállítási kulcs
+Recovery Key…	Helyreállítási kulcs…
+Set New Password	Új jelszó beállítása
+Strong	Erős
+Stronger password protection is available for this Safe. It makes guessing the password from a stolen disk much slower; unlocking takes about a second.	Ehhez a Széfhez erősebb jelszóvédelem érhető el. Jelentősen lelassítja a jelszó kitalálását egy ellopott lemezről; a feloldás kb. egy másodperc.
+Swap %s is encrypted or in memory only.	A(z) %s lapozóterület titkosított vagy csak a memóriában van.
+Swap %s is not encrypted: memory with keys could be written to the disk.	A(z) %s lapozóterület nem titkosított: a kulcsokat tartalmazó memória a lemezre kerülhet.
+The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)	A biztonsági mentés tartalmazza a titkosított Széfet: %s (a visszaállítást a Széf dokumentációja írja le)
+The Safe is locked: its contents are stored only encrypted.	A Széf zárolva van: a tartalma csak titkosítva van tárolva.
+The Safe now uses stronger password protection.	A Széf mostantól erősebb jelszóvédelmet használ.
+The Safe password was changed. Unlock the Safe with the new password.	A Széf jelszava megváltozott. Oldja fel a Széfet az új jelszóval.
+This is not a valid recovery key. It has 64 characters 0-9 and a-f.	Ez nem érvényes helyreállítási kulcs. 64 karakterből áll (0–9 és a–f).
+This password is too common. Choose something less predictable, for example a few unrelated words.	Ez a jelszó túl gyakori. Válasszon kevésbé kitalálhatót, például néhány egymáshoz nem kapcsolódó szót.
+This password is too predictable. Avoid repeated characters and sequences like 1234 or abcd.	Ez a jelszó túl kiszámítható. Kerülje az ismétlődő karaktereket és az olyan sorozatokat, mint az 1234 vagy az abcd.
+This recovery key does not open this Safe.	Ez a helyreállítási kulcs nem nyitja meg ezt a Széfet.
+Upgrade	Erősítés
+Upgrade Protection	Védelem erősítése
+Upgrade Protection…	Védelem erősítése…
+Use at least 12 characters.	Használjon legalább 12 karaktert.
+Weak	Gyenge
+Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Írja fel ezt a helyreállítási kulcsot papírra, és tartsa biztonságos helyen, a számítógéptől távol. Ha elfelejti a Széf jelszavát, csak a helyreállítási kulccsal nyithatja meg.
+check the protection of the Safe (key derivation, mount options, memory, swap)	a Széf védelmének ellenőrzése (kulcsszármaztatás, csatolási kapcsolók, memória, swap)

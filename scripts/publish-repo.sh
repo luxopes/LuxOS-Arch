@@ -25,7 +25,8 @@ for r in "${repos[@]}"; do
     [[ -f $REPO/$r/x86_64/$r.db.tar.gz ]] || { echo "Missing $REPO/$r - run ./build.sh packages first" >&2; exit 1; }
 done
 compgen -G "$REPO/${repos[0]}/x86_64/*.pkg.tar.zst.sig" >/dev/null \
-    || { echo "Packages are not signed (no key in ~/.local/share/luxos/signing)" >&2; exit 1; }
+    || { echo "Packages are not signed: unlock the Safe (luxos-safe unlock) with the key in" \
+              "/safe/$USER/luxos-signing (or ~/.local/share/luxos/signing) and run ./build.sh packages again" >&2; exit 1; }
 
 release=$(date -u +%Y%m%d-%H%M%S)
 stage=$(mktemp -d)

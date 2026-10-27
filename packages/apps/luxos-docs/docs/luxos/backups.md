@@ -57,6 +57,7 @@ luxos-backup disk remove ID               # backups already on the disk are kept
         home/                 the home folder
         system/etc/           optional: readable files from /etc
         system/packages.txt   optional: explicitly installed packages
+        safe/vault/           the encrypted Safe (/safe/.vaults/<user>), when it exists
         info.json
 ```
 
@@ -77,8 +78,10 @@ Without a backup for 7 days a notification reminds you to connect the disk.
 ## What is backed up
 
 The whole home folder except caches: `~/.cache`, the trash, thumbnails, Flatpak caches, container
-storage (`~/.local/share/containers/storage`), build caches and `lost+found`. Options in the window
-(or `luxos-backup option NAME on|off`):
+storage (`~/.local/share/containers/storage`), build caches and `lost+found`. If you have a
+[Safe](safe.md), its **encrypted** vault `/safe/.vaults/<user>` (with `gocryptfs.conf`) is always
+included as `safe/vault` – never the unlocked folder `/safe/<user>`; restoring it is described in the
+Safe documentation. Options in the window (or `luxos-backup option NAME on|off`):
 
 | Option | Default | Meaning |
 |---|---|---|

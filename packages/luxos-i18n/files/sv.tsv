@@ -4283,3 +4283,47 @@ Connecting failed.	Anslutningen misslyckades.
 list system snapshots (one before every update)	lista ögonblicksbilder av systemet (en före varje uppdatering)
 take a system snapshot now	ta en ögonblicksbild av systemet nu
 return the system to a snapshot (also from the boot menu)	återställ systemet till en ögonblicksbild (även från startmenyn)
+Anyone with this key can open the Safe without the password. Do not save it on this computer, in e-mail or in the cloud, and do not take a photo of it.	Alla som har den här nyckeln kan öppna Valvet utan lösenord. Spara den inte på den här datorn, i e-post eller i molnet och fotografera den inte.
+Core dumps of the Safe process are allowed: lock the Safe and unlock it again.	Valvets process får skriva minnesdumpar (core dumps): lås Valvet och lås upp det igen.
+Core dumps of the Safe process are disabled.	Minnesdumpar (core dumps) för Valvets process är avstängda.
+Could not read the key protection settings (%s).	Det gick inte att läsa inställningarna för nyckelskyddet (%s).
+Could not read the recovery key (%s).	Det gick inte att läsa återställningsnyckeln (%s).
+Enter the recovery key you wrote down when you created the Safe and choose a new password. Without the recovery key the Safe cannot be opened.	Ange återställningsnyckeln som du skrev ner när du skapade Valvet och välj ett nytt lösenord. Utan återställningsnyckeln går Valvet inte att öppna.
+Enter the Safe password. The password stays the same, only the protection of the key gets stronger.	Ange Valvets lösenord. Lösenordet förblir detsamma, bara skyddet av nyckeln blir starkare.
+Enter the Safe password to show its recovery key.	Ange Valvets lösenord för att visa dess återställningsnyckel.
+Fair	Godtagbart
+Forgot Password	Glömt lösenord
+Forgot Password…	Glömt lösenordet…
+Good	Bra
+If you forget this password, only the recovery key shown after creating the Safe can open it.	Om du glömmer lösenordet kan bara återställningsnyckeln som visas när Valvet skapas öppna det.
+I have written down the recovery key	Jag har skrivit ner återställningsnyckeln
+Lock the Safe first.	Lås Valvet först.
+Mounted with nosuid, nodev and noexec.	Monterat med nosuid, nodev och noexec.
+Mounted without %s: lock the Safe and unlock it again.	Monterat utan %s: lås Valvet och lås upp det igen.
+No Safe has been created yet.	Inget Valv har skapats än.
+Other programs cannot read the memory of the Safe process (ptrace_scope %s).	Andra program kan inte läsa minnet i Valvets process (ptrace_scope %s).
+Password protection: scrypt 2^%d.	Lösenordsskydd: scrypt 2^%d.
+Password protection: scrypt 2^%d, weaker than the recommended 2^%d. Use Upgrade Protection in the Safe window.	Lösenordsskydd: scrypt 2^%d, svagare än rekommenderade 2^%d. Använd Förstärk skyddet i Valvets fönster.
+Programs of your account can read the memory of the Safe process (ptrace_scope %s).	Program i ditt konto kan läsa minnet i Valvets process (ptrace_scope %s).
+Recovery Key	Återställningsnyckel
+Recovery Key…	Återställningsnyckel…
+Set New Password	Ange nytt lösenord
+Strong	Starkt
+Stronger password protection is available for this Safe. It makes guessing the password from a stolen disk much slower; unlocking takes about a second.	Starkare lösenordsskydd finns för det här Valvet. Det gör det mycket långsammare att gissa lösenordet från en stulen disk; upplåsning tar ungefär en sekund.
+Swap %s is encrypted or in memory only.	Växlingsutrymmet %s är krypterat eller bara i minnet.
+Swap %s is not encrypted: memory with keys could be written to the disk.	Växlingsutrymmet %s är inte krypterat: minne med nycklar kan skrivas till disken.
+The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)	Säkerhetskopian innehåller ditt krypterade Valv: %s (se Valvets dokumentation för återställning)
+The Safe is locked: its contents are stored only encrypted.	Valvet är låst: innehållet lagras bara krypterat.
+The Safe now uses stronger password protection.	Valvet använder nu starkare lösenordsskydd.
+The Safe password was changed. Unlock the Safe with the new password.	Valvets lösenord har ändrats. Lås upp Valvet med det nya lösenordet.
+This is not a valid recovery key. It has 64 characters 0-9 and a-f.	Det här är ingen giltig återställningsnyckel. Den har 64 tecken 0–9 och a–f.
+This password is too common. Choose something less predictable, for example a few unrelated words.	Lösenordet är för vanligt. Välj något mindre förutsägbart, till exempel några orelaterade ord.
+This password is too predictable. Avoid repeated characters and sequences like 1234 or abcd.	Lösenordet är för förutsägbart. Undvik upprepade tecken och sekvenser som 1234 eller abcd.
+This recovery key does not open this Safe.	Den här återställningsnyckeln öppnar inte det här Valvet.
+Upgrade	Förstärk
+Upgrade Protection	Förstärk skyddet
+Upgrade Protection…	Förstärk skyddet…
+Use at least 12 characters.	Använd minst 12 tecken.
+Weak	Svagt
+Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Skriv ner återställningsnyckeln på papper och förvara den på ett säkert ställe, borta från datorn. Om du glömmer Valvets lösenord är den enda sättet att öppna Valvet.
+check the protection of the Safe (key derivation, mount options, memory, swap)	kontrollera Valvets skydd (nyckelhärledning, monteringsalternativ, minne, swap)
