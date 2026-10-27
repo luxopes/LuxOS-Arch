@@ -1,0 +1,10 @@
+# LuxOS: prazdne pkgname v AUR (makepkg: "pkgname is not allowed to be empty") -> nazev balicku
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -1,5 +1,5 @@
+ # Maintainer: X-san <deastman94@gmail.com>
+-pkgname=""
++pkgname="brother-mfc-l2680w"
+ pkgver="3.2.0"
+ pkgrel=1
+ pkgdesc="LPR and CUPS driver for the Brother MFC-L2680W"

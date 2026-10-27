@@ -1,0 +1,11 @@
+# LuxOS: .exe je samorozbalovaci RAR (solid) - bsdtar ho neumi, rozbaluje ho az prepare() pres unrar
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -8,6 +8,7 @@
+ url="http://www.support.xerox.com/support/workcentre-7220-7225/file-download/enus.html?operatingSystem=winxp&fileLanguage=en&contentId=133852&from=downloads&viewArchived=false"
+ license=('custom')
+ makedepends=('unrar')
++noextract=("$pkgname.exe")
+ source=("$pkgname.exe::http://download.support.xerox.com/pub/drivers/WC7220_WC7225/drivers/win10/en_GB/WC72XX_${pkgver}_PPD_en-US.exe"
+         "LICENSE.txt"
+ 	"0001-color-option.patch"
