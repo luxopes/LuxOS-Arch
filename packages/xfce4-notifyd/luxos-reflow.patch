@@ -1,0 +1,64 @@
+diff --git a/xfce4-notifyd/xfce-notify-daemon.c b/xfce4-notifyd/xfce-notify-daemon.c
+index 51864b4..6abe1af 100644
+--- a/xfce4-notifyd/xfce-notify-daemon.c
++++ b/xfce4-notifyd/xfce-notify-daemon.c
+@@ -726,6 +726,8 @@ xfce_notify_daemon_action_invoked(XfceNotification *notification,
+                                              action);
+ }
+ 
++static gboolean xfce_notify_daemon_reflow_idle(gpointer data);
++
+ static void
+ xfce_notify_daemon_closed(XfceNotification *notification,
+                           XfceNotifyCloseReason reason,
+@@ -759,6 +761,9 @@ xfce_notify_daemon_closed(XfceNotification *notification,
+     xfce_notify_fdo_gbus_emit_notification_closed(XFCE_NOTIFY_FDO_GBUS(xndaemon),
+                                                   id,
+                                                   (guint)reason);
++
++    /* LuxOS: zbyla oznameni se po zavreni posunou (bez mezery po zavrenem) */
++    g_idle_add(xfce_notify_daemon_reflow_idle, xndaemon);
+ }
+ 
+ static inline gboolean
+@@ -879,6 +884,40 @@ xfce_notify_daemon_place_notification_window(XfceNotifyDaemon *xndaemon,
+                                                                xfce_notify_window_get_geometry(XFCE_NOTIFY_WINDOW(widget)));
+ }
+ 
++static gboolean
++xfce_notify_daemon_reflow_one(gpointer key,
++                              gpointer value,
++                              gpointer data)
++{
++    XfceNotifyDaemon *xndaemon = XFCE_NOTIFY_DAEMON(data);
++    XfceNotification *notification = XFCE_NOTIFICATION(value);
++
++    for (GList *l = xfce_notification_get_windows(notification); l != NULL; l = l->next) {
++        XfceNotifyWindow *window = XFCE_NOTIFY_WINDOW(l->data);
++        if (gtk_widget_get_realized(GTK_WIDGET(window)))
++            xfce_notify_daemon_place_notification_window(xndaemon, window, xfce_notify_window_get_monitor(window));
++    }
++    return FALSE;
++}
++
++/* LuxOS: po zavreni oznameni rozmistit zbyla znovu od kraje, v poradi vzniku (id) */
++static gboolean
++xfce_notify_daemon_reflow_idle(gpointer data)
++{
++    XfceNotifyDaemon *xndaemon = XFCE_NOTIFY_DAEMON(data);
++    GdkScreen *screen = gdk_screen_get_default();
++    gint nmonitor = GPOINTER_TO_INT(g_object_get_qdata(G_OBJECT(screen), XND_N_MONITORS));
++
++    if (xndaemon->reserved_rectangles == NULL || xndaemon->monitors_workarea == NULL)
++        return G_SOURCE_REMOVE;
++    for (gint i = 0; i < nmonitor; i++) {
++        g_list_free(xndaemon->reserved_rectangles[i]);
++        xndaemon->reserved_rectangles[i] = NULL;
++    }
++    g_tree_foreach(xndaemon->active_notifications, xfce_notify_daemon_reflow_one, xndaemon);
++    return G_SOURCE_REMOVE;
++}
++
+ static void
+ xfce_notify_daemon_window_need_position(XfceNotifyWindow *window, XfceNotifyDaemon *xndaemon) {
+     DBG("need-position for %d", xfce_notify_window_get_id(window));

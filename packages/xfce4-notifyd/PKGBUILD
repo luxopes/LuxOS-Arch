@@ -1,14 +1,15 @@
 # Maintainer: LuxOS Team
 # xfce4-notifyd z Archu + historie oznameni jen pro dulezita oznameni: do logu (zvonek v horni
 # liste) se ulozi jen oznameni s hintem x-luxos-keep (zmena casu, pripominky Kalendare). Ostatni
-# (sit, internet, hlasitost, aplikace) se jen ukazou a nezustanou v historii.
+# (sit, internet, hlasitost, aplikace) se jen ukazou a nezustanou v historii. Po zavreni oznameni
+# se zbyla posunou k okraji (puvodne zustala mezera).
 # Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
 # verzi v Archu zvysit pkgver (a sha256sums), pkgrel nechat X.1.
 # Puvodni PKGBUILD Archu (udrzovatele Evangelos Foutras, Robin Candau) je v PKGBUILD.arch.
 
 pkgname=xfce4-notifyd
 pkgver=0.9.7
-pkgrel=3.1
+pkgrel=3.2
 pkgdesc="Notification daemon for the Xfce desktop (LuxOS: history keeps only important notices)"
 arch=('x86_64')
 url="https://docs.xfce.org/apps/notifyd/start"
@@ -18,14 +19,18 @@ depends=('libxfce4ui' 'libxfce4util' 'libnotify' 'xfconf' 'sqlite' 'libcanberra'
          'gtk-layer-shell' 'hicolor-icon-theme')
 makedepends=('git' 'glib2-devel' 'xfce4-panel' 'xfce4-dev-tools')
 source=("git+https://gitlab.xfce.org/apps/xfce4-notifyd.git#tag=$pkgname-$pkgver"
-        'luxos-log-kept-only.patch')
+        'luxos-log-kept-only.patch'
+        'luxos-reflow.patch')
 sha256sums=('76dec9b137b06860402badfb820bccf6d2c7e6b00925e2cbb4d06c2674811d8f'
-            'af4724bb96fbd7724c3e1bc160947c13e8f04e8cfd9a9e7546ab1a59a8851af1')
+            'af4724bb96fbd7724c3e1bc160947c13e8f04e8cfd9a9e7546ab1a59a8851af1'
+            'bbd01053c8b819f1f9ba99cd7f5ad0228133de51f8408fb5ccd006669cd0f133')
 
 prepare() {
   cd $pkgname
   # LuxOS: do historie jen oznameni s hintem x-luxos-keep
   patch -Np1 -i "$srcdir/luxos-log-kept-only.patch"
+  # LuxOS: po zavreni oznameni se zbyla posunou (bez mezery)
+  patch -Np1 -i "$srcdir/luxos-reflow.patch"
   NOCONFIGURE=1 ./autogen.sh
 }
 
