@@ -587,6 +587,9 @@ class GuiTest(unittest.TestCase):
             self.assertIn(f"Icon ({size} x {size})", out)
         self.assertIn('"luxos-text"', out)
 
+    @unittest.skipUnless(IN_REPO or "Lines: %s\t" in open(os.path.join(I18N_DIR, "cs.tsv"), errors="replace").read()
+                         if os.path.exists(os.path.join(I18N_DIR, "cs.tsv")) else False,
+                         "Czech translations of luxos-text not available (older luxos-i18n in the build root)")
     def test_czech_ui(self):
         p = self.write("x.txt", "slovo\n")
         ed = self.start(p, env={"LANG": "cs_CZ.UTF-8"})
