@@ -1,6 +1,6 @@
 #!/bin/bash
 # LuxOS - spusteni ISO nebo nainstalovaneho systemu v QEMU/KVM
-#   (LUXOS_VM_DIR, LUXOS_VM_MEM, LUXOS_VM_ISO, LUXOS_VM_NAME, LUXOS_VM_OUTPUTS, LUXOS_VM_VGA)
+#   (LUXOS_VM_DIR, LUXOS_VM_MEM, LUXOS_VM_MEMFILE, LUXOS_VM_ISO, LUXOS_VM_NAME, LUXOS_VM_OUTPUTS, LUXOS_VM_VGA)
 #   LUXOS_VM_VGA=VGA: standardni graficka karta (virtio-vga se po uspani S3 zasekne)
 #
 #   scripts/test-vm.sh live      [--headless] [--bios]   boot z ISO (+ prazdny disk 40G)
@@ -35,9 +35,19 @@ args=(
     -device virtio-serial -device virtserialport,chardev=qga0,name=org.qemu.guest_agent.0
     -qmp unix:"$T/qmp.sock",server=on,wait=off
 )
+# LUXOS_VM_MEMFILE=cesta: pamet VM v souboru na disku (MAP_SHARED) - host s malo RAM ji muze
+# odkladat do souboru misto swapu, earlyoom pak QEMU nezabije
+if [[ -n ${LUXOS_VM_MEMFILE-} ]]; then
+    args+=(-object "memory-backend-file,id=mem0,size=${LUXOS_VM_MEM:-4096}M,mem-path=$LUXOS_VM_MEMFILE,share=on"
+           -machine memory-backend=mem0)
+fi
 if ((!bios)); then
-    code=/usr/share/OVMF/OVMF_CODE_4M.fd
-    [[ -f $T/OVMF_VARS.fd ]] || cp /usr/share/OVMF/OVMF_VARS_4M.fd "$T/OVMF_VARS.fd"
+    # Debian/Ubuntu: /usr/share/OVMF/*_4M.fd, Arch (edk2-ovmf): /usr/share/edk2/x64/*.4m.fd
+    code=/usr/share/OVMF/OVMF_CODE_4M.fd vars=/usr/share/OVMF/OVMF_VARS_4M.fd
+    if [[ ! -f $code ]]; then
+        code=/usr/share/edk2/x64/OVMF_CODE.4m.fd vars=/usr/share/edk2/x64/OVMF_VARS.4m.fd
+    fi
+    [[ -f $T/OVMF_VARS.fd ]] || cp "$vars" "$T/OVMF_VARS.fd"
     args+=(-drive if=pflash,format=raw,readonly=on,file="$code" -drive if=pflash,format=raw,file="$T/OVMF_VARS.fd")
 fi
 if [[ $mode == live ]]; then
