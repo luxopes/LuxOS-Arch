@@ -4284,3 +4284,19 @@ Connecting failed.	Не вдалося під’єднатися.
 list system snapshots (one before every update)	список знімків системи (знімок перед кожним оновленням)
 take a system snapshot now	створити знімок системи зараз
 return the system to a snapshot (also from the boot menu)	повернути систему до знімка (також з меню завантаження)
+The receiver declined.	Отримувач відхилив.
+The receiver did not answer in time.	Отримувач не відповів вчасно.
+No answer in time.	Немає відповіді вчасно.
+The receiver is busy. Try again later.	Отримувач зайнятий. Спробуйте пізніше.
+The receiver accepts files only from trusted devices.	Отримувач приймає файли лише з довірених пристроїв.
+Receiving is turned off on the receiver.	Приймання вимкнено в отримувача.
+Too many files or too much data for the receiver.	Забагато файлів або даних для отримувача.
+Not enough disk space.	Недостатньо місця на диску.
+The items were refused as invalid (for example folders or unsafe names).	Елементи відхилено як недійсні (наприклад, теки або небезпечні назви).
+The device could not be verified.	Не вдалося перевірити пристрій.
+Incompatible LuxDrop version.	Несумісна версія LuxDrop.
+Connection error.	Помилка з’єднання.
+The data was damaged on the way. Nothing was saved – try again.	Дані пошкодилися дорогою. Нічого не збережено – спробуйте ще раз.
+Internal error.	Внутрішня помилка.
+The device presented a different key than expected.	Пристрій надав інший ключ, ніж очікувалося.
+Details: %s	Подробиці: %s

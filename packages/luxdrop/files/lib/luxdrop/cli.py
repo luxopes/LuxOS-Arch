@@ -4,6 +4,7 @@ import os
 import sys
 import threading
 import time
+import unicodedata
 
 from . import proto, store, transfer
 from .identity import Identity
@@ -24,6 +25,49 @@ def human(n):
             return ("%d %s" % (n, unit)) if unit == "B" else ("%.1f %s" % (n, unit))
         n /= 1000.0
     return str(n)
+
+
+def short_detail(text, limit=80):
+    """Text od protistrany (nedůvěryhodný, v cizím jazyce) jen jako krátký jednořádkový detail."""
+    text = "".join(" " if (unicodedata.category(c) in ("Cc", "Cf", "Zl", "Zp")) else c
+                   for c in str(text or ""))
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[:limit - 1].rstrip() + "…"
+
+
+def error_text(t):
+    """Přeložený popis chyby přenosu podle kódu (PROTOCOL.md 9); None = kód bez vlastního textu."""
+    out = getattr(t, "direction", "out") == "out"
+    texts = {
+        proto.E_DECLINED: _("The receiver declined.") if out else _("Declined"),
+        proto.E_TIMEOUT: _("The receiver did not answer in time.") if out else _("No answer in time."),
+        proto.E_BUSY: _("The receiver is busy. Try again later."),
+        proto.E_NOT_TRUSTED: _("The receiver accepts files only from trusted devices."),
+        proto.E_RECEIVING_OFF: _("Receiving is turned off on the receiver."),
+        proto.E_TOO_LARGE: _("Too many files or too much data for the receiver."),
+        proto.E_NO_SPACE: _("Not enough disk space."),
+        proto.E_INVALID_OFFER: _("The items were refused as invalid (for example folders or unsafe names)."),
+        proto.E_AUTH_FAILED: _("The device could not be verified."),
+        proto.E_PROTO_VERSION: _("Incompatible LuxDrop version."),
+        proto.E_PROTOCOL: _("Connection error."),
+        proto.E_HASH_MISMATCH: _("The data was damaged on the way. Nothing was saved – try again."),
+        proto.E_CANCELLED: _("Cancelled"),
+        proto.E_INTERNAL: _("Internal error."),
+        proto.E_KEY_MISMATCH: _("The device presented a different key than expected."),
+        proto.E_SAS_REJECTED: _("Cancelled: the codes were not confirmed."),
+    }
+    return texts.get(getattr(t, "code", None))
+
+
+def failure_text(t):
+    """(hlavní text, detail): přeložený text podle kódu, zpráva protistrany / spojení jen jako detail."""
+    main = error_text(t)
+    detail = short_detail(getattr(t, "error", ""))
+    if main is None:
+        return detail or _("Connection error."), ""
+    if detail.lower() in ("", str(t.code).lower(), "cancelled", "declined", "no answer"):
+        detail = ""
+    return main, detail
 
 
 class Ctx:
@@ -230,7 +274,10 @@ def cmd_send(args):
         print(_("Sent %d item(s), %s to %s") % (len(t.items), human(t.total), t.peer_name)
               + ((" " + _("(resumed, %s were already there)") % human(t.resumed)) if t.resumed else ""))
         return EXIT_OK
-    print(_("Transfer failed: %s (%s)") % (t.error, t.code), file=sys.stderr)
+    main, detail = failure_text(t)
+    print(_("Transfer failed: %s (%s)") % (main, t.code), file=sys.stderr)
+    if detail:
+        print(_("Details: %s") % detail, file=sys.stderr)
     if t.code == proto.E_KEY_MISMATCH:
         print(_("WARNING: someone may be impersonating this device. Nothing was sent. If the device was "
                 "reinstalled, remove it with 'luxdrop trust remove ID' and pair again."), file=sys.stderr)
@@ -274,7 +321,10 @@ class CliReceive(transfer.Handler):
         elif t.state == "declined":
             print(_("Declined transfer from %s") % t.peer_name, flush=True)
         else:
-            print(_("Transfer from %s failed: %s (%s)") % (t.peer_name, t.error, t.code), flush=True)
+            main, detail = failure_text(t)
+            print(_("Transfer from %s failed: %s (%s)") % (t.peer_name, main, t.code), flush=True)
+            if detail:
+                print(_("Details: %s") % detail, flush=True)
 
 
 def cmd_receive(args):

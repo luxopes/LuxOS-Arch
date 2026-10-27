@@ -113,13 +113,16 @@ not the LocalSend mode. It needs only the same Wi-Fi or hotspot, not Bluetooth.
 - **Computer → phone**: in the app, turn on receiving (for 10 minutes). The phone then appears in
   LuxDrop under Nearby devices (or use Connect by address with the phone's IP). Compare the code on
   both screens; the phone always asks before it accepts. The phone takes at most **16 files and
-  1 GiB** per transfer and **no folders** – a bigger offer ends with "connection lost". Received
-  files stay encrypted in the app until you export them.
-- The app finds the computer only by address (it does not browse mDNS); the computer finds the
+  1 GiB** per transfer and **no folders**. From app 0.3.1 LuxDrop then says why ("Too many files
+  or too much data for the receiver", "Not enough disk space", folders refused as invalid); with
+  0.3.0 a bigger offer ends with "connection lost". Received files stay encrypted in the app until
+  you export them.
+- From app 0.3.1 the phone can search the network for computers to fill in the address and port
+  (you still enter the whole key fingerprint – mDNS data is not trusted). The computer finds the
   phone over mDNS only while the phone is receiving.
-- The app accepts only the TLS suite AES-256-GCM. LuxOS prefers it as a receiver. As a sender,
-  LuxOS offers it first, which phones with AES hardware (almost all) accept; a phone without AES
-  hardware may pick another suite and the app then stops the transfer.
+- From app 0.3.1 the app accepts the TLS suites AES-256-GCM and ChaCha20-Poly1305 (0.3.0 accepted
+  only AES-256-GCM). LuxOS prefers AES-256-GCM as a receiver; as a sender it offers AES-256-GCM
+  first, and a phone without AES hardware may pick ChaCha20, which is faster there.
 
 ## Background receiving
 

@@ -4284,3 +4284,19 @@ Connecting failed.	Nie udało się połączyć.
 list system snapshots (one before every update)	lista migawek systemu (migawka przed każdą aktualizacją)
 take a system snapshot now	utwórz migawkę systemu teraz
 return the system to a snapshot (also from the boot menu)	przywróć system do migawki (także z menu startowego)
+The receiver declined.	Odbiorca odmówił.
+The receiver did not answer in time.	Odbiorca nie odpowiedział na czas.
+No answer in time.	Brak odpowiedzi na czas.
+The receiver is busy. Try again later.	Odbiorca jest zajęty. Spróbuj ponownie później.
+The receiver accepts files only from trusted devices.	Odbiorca przyjmuje pliki tylko z zaufanych urządzeń.
+Receiving is turned off on the receiver.	Odbieranie jest wyłączone u odbiorcy.
+Too many files or too much data for the receiver.	Za dużo plików lub danych dla odbiorcy.
+Not enough disk space.	Za mało miejsca na dysku.
+The items were refused as invalid (for example folders or unsafe names).	Elementy zostały odrzucone jako nieprawidłowe (na przykład foldery lub niebezpieczne nazwy).
+The device could not be verified.	Nie udało się zweryfikować urządzenia.
+Incompatible LuxDrop version.	Niezgodna wersja LuxDrop.
+Connection error.	Błąd połączenia.
+The data was damaged on the way. Nothing was saved – try again.	Dane uległy uszkodzeniu po drodze. Nic nie zostało zapisane – spróbuj ponownie.
+Internal error.	Błąd wewnętrzny.
+The device presented a different key than expected.	Urządzenie przedstawiło inny klucz niż oczekiwany.
+Details: %s	Szczegóły: %s

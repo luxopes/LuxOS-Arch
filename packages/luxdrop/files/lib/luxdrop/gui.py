@@ -11,7 +11,7 @@ gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import dialogs, lsdiscovery, proto, remote, store, transfer  # noqa: E402
-from .cli import _, human  # noqa: E402
+from .cli import _, failure_text, human  # noqa: E402
 from .dialogs import device_icon, kind_label, open_path  # noqa: E402
 from .engine import Engine  # noqa: E402
 from .identity import Identity  # noqa: E402
@@ -783,10 +783,11 @@ class Window(Gtk.ApplicationWindow):
             "done": _("Done"),
             "declined": _("Declined"),
             "cancelled": _("Cancelled"),
-            "failed": _("Failed: %s") % t.error,
+            "failed": _("Failed: %s") % failure_text(t)[0],
         }.get(t.state, t.state)
         w["status"].set_text(st)
-        w["status"].set_tooltip_text(st)
+        detail = failure_text(t)[1] if t.state == "failed" else ""
+        w["status"].set_tooltip_text(st + ("\n" + _("Details: %s") % detail if detail else ""))
         self._update_files(w, t)
         return False
 

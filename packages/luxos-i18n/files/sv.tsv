@@ -4283,3 +4283,19 @@ Connecting failed.	Anslutningen misslyckades.
 list system snapshots (one before every update)	lista ögonblicksbilder av systemet (en före varje uppdatering)
 take a system snapshot now	ta en ögonblicksbild av systemet nu
 return the system to a snapshot (also from the boot menu)	återställ systemet till en ögonblicksbild (även från startmenyn)
+The receiver declined.	Mottagaren tackade nej.
+The receiver did not answer in time.	Mottagaren svarade inte i tid.
+No answer in time.	Inget svar i tid.
+The receiver is busy. Try again later.	Mottagaren är upptagen. Försök igen senare.
+The receiver accepts files only from trusted devices.	Mottagaren tar bara emot filer från betrodda enheter.
+Receiving is turned off on the receiver.	Mottagning är avstängd hos mottagaren.
+Too many files or too much data for the receiver.	För många filer eller för mycket data för mottagaren.
+Not enough disk space.	Inte tillräckligt med diskutrymme.
+The items were refused as invalid (for example folders or unsafe names).	Objekten avvisades som ogiltiga (till exempel mappar eller osäkra namn).
+The device could not be verified.	Enheten kunde inte verifieras.
+Incompatible LuxDrop version.	Inkompatibel LuxDrop-version.
+Connection error.	Anslutningsfel.
+The data was damaged on the way. Nothing was saved – try again.	Data skadades på vägen. Inget sparades – försök igen.
+Internal error.	Internt fel.
+The device presented a different key than expected.	Enheten visade en annan nyckel än väntat.
+Details: %s	Detaljer: %s

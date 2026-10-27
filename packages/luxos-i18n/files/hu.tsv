@@ -4283,3 +4283,19 @@ Connecting failed.	A kapcsolódás nem sikerült.
 list system snapshots (one before every update)	rendszer-pillanatképek listája (minden frissítés előtt egy)
 take a system snapshot now	rendszer-pillanatkép készítése most
 return the system to a snapshot (also from the boot menu)	a rendszer visszaállítása egy pillanatképre (a rendszerbetöltő menüből is)
+The receiver declined.	A címzett elutasította.
+The receiver did not answer in time.	A címzett nem válaszolt időben.
+No answer in time.	Nem érkezett válasz időben.
+The receiver is busy. Try again later.	A címzett foglalt. Próbálja újra később.
+The receiver accepts files only from trusted devices.	A címzett csak megbízható eszközökről fogad fájlokat.
+Receiving is turned off on the receiver.	A címzettnél ki van kapcsolva a fogadás.
+Too many files or too much data for the receiver.	Túl sok fájl vagy túl sok adat a címzett számára.
+Not enough disk space.	Nincs elég hely a lemezen.
+The items were refused as invalid (for example folders or unsafe names).	Az elemeket érvénytelenként elutasították (például mappák vagy nem biztonságos nevek).
+The device could not be verified.	Az eszközt nem sikerült ellenőrizni.
+Incompatible LuxDrop version.	Nem kompatibilis LuxDrop-verzió.
+Connection error.	Kapcsolódási hiba.
+The data was damaged on the way. Nothing was saved – try again.	Az adatok útközben megsérültek. Semmi sem lett mentve – próbálja újra.
+Internal error.	Belső hiba.
+The device presented a different key than expected.	Az eszköz a vártnál eltérő kulcsot mutatott be.
+Details: %s	Részletek: %s

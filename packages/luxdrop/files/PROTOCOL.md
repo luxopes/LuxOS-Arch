@@ -111,11 +111,14 @@ Byte strings are written in hex. `||` means concatenation.
   whatever the client's order. LuxOS uses the order AES-256-GCM, ChaCha20-Poly1305,
   AES-128-GCM.
 * **Client (sender):** offers `TLS_AES_256_GCM_SHA384` first. LuxOS on Python 3.15 and newer
-  offers only this suite, because a receiver on Android without AES hardware (BoringSSL)
-  prefers ChaCha20 as a server.
+  offers `TLS_AES_256_GCM_SHA384` and `TLS_CHACHA20_POLY1305_SHA256`, in this order, and not
+  AES-128. A receiver on Android without AES hardware (BoringSSL) prefers ChaCha20 as a server,
+  which is faster there; with AES hardware it follows the client's order and picks AES-256-GCM.
 * A peer MAY refuse to continue after the handshake if a different suite was negotiated. The
-  LuxOS Companion app for Android does this: it accepts only `TLS_AES_256_GCM_SHA384`.
-  Android cannot disable single TLS 1.3 suites, so the app checks the result instead.
+  LuxOS Companion app for Android does this: from version 0.3.1 it accepts
+  `TLS_AES_256_GCM_SHA384` and `TLS_CHACHA20_POLY1305_SHA256` and refuses AES-128 (0.3.0
+  accepted only AES-256-GCM). Android cannot disable single TLS 1.3 suites, so the app checks
+  the result instead.
 
 ## 5. Framing
 
@@ -330,7 +333,7 @@ Other rules:
 | `busy` | too many pending requests |
 | `not_trusted` | mode "Trusted devices only" and the sender is not pinned |
 | `receiving_off` | the receiver is off |
-| `too_large` | the offer is over the receiver's limit (reserved) |
+| `too_large` | the offer is over the receiver's limit (the LuxOS Companion app: more than 16 files or over 1 GiB) |
 | `no_space` | not enough disk space |
 | `invalid_offer` | unsafe path, duplicate, wrong size or hash format, or too many files |
 | `auth_failed` | bad certificate, commitment or signature |
@@ -404,7 +407,13 @@ isolation), use "Scan the local network" or "Connect by address".
 * The LuxOS Companion app (from version 0.3.0) implements this part: it sends one file to a
   computer whose full key fingerprint the user enters, and it receives up to 16 files
   (no folders, at most 1 GiB) while its 10-minute receive mode is on. It announces itself
-  over mDNS only while receiving.
+  over mDNS only while receiving, as `<device name> (<6 characters of id>)`.
+* From version 0.3.1 (current 0.3.2) the app refuses an offer with `reject` and a code
+  (`invalid_offer` for folders, `too_large` for more than 16 files or over 1 GiB, `no_space`),
+  answers a failed hash with `result {ok:false, code:"hash_mismatch", failed:[…]}`, closes its
+  dialog when the sender cancels or disconnects, and answers `timeout` after 120 s. It can
+  search for computers over mDNS to fill in the address and port; the full key fingerprint
+  must still be entered, because mDNS data is not trusted (section 3).
 
 ## 14. Part B – LocalSend protocol v2
 

@@ -4283,3 +4283,19 @@ Connecting failed.	No se pudo conectar.
 list system snapshots (one before every update)	listar las instantáneas del sistema (una antes de cada actualización)
 take a system snapshot now	crear una instantánea del sistema ahora
 return the system to a snapshot (also from the boot menu)	devolver el sistema a una instantánea (también desde el menú de arranque)
+The receiver declined.	El receptor lo rechazó.
+The receiver did not answer in time.	El receptor no respondió a tiempo.
+No answer in time.	Sin respuesta a tiempo.
+The receiver is busy. Try again later.	El receptor está ocupado. Inténtelo más tarde.
+The receiver accepts files only from trusted devices.	El receptor solo acepta archivos de dispositivos de confianza.
+Receiving is turned off on the receiver.	La recepción está desactivada en el receptor.
+Too many files or too much data for the receiver.	Demasiados archivos o demasiados datos para el receptor.
+Not enough disk space.	No hay suficiente espacio en disco.
+The items were refused as invalid (for example folders or unsafe names).	Los elementos se rechazaron por no ser válidos (por ejemplo, carpetas o nombres inseguros).
+The device could not be verified.	No se pudo verificar el dispositivo.
+Incompatible LuxDrop version.	Versión de LuxDrop incompatible.
+Connection error.	Error de conexión.
+The data was damaged on the way. Nothing was saved – try again.	Los datos se dañaron por el camino. No se guardó nada; inténtelo de nuevo.
+Internal error.	Error interno.
+The device presented a different key than expected.	El dispositivo presentó una clave distinta de la esperada.
+Details: %s	Detalles: %s
