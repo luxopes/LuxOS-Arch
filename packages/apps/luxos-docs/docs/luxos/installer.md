@@ -39,7 +39,8 @@ Minimum disk size is 20 GB.
 ### Default layout (erase)
 
 - UEFI: ESP 1 GiB FAT32 mounted at `/boot` + the rest as Btrfs (`LuxOS`), boot loader **systemd-boot**.
-- BIOS: 1 MiB `bios_grub` + 1 GiB ext4 `/boot` + Btrfs, boot loader **GRUB**.
+- BIOS: 1 MiB `bios_grub` + 1 GiB ext4 `/boot` + Btrfs, boot loader **GRUB** (hidden menu,
+  `GRUB_TIMEOUT=0`: hold Shift or press Esc while starting).
 - Btrfs subvolumes `@` (/), `@home`, `@log` (/var/log), `@cache` (/var/cache), mount options
   `noatime,compress=zstd:1`.
 - Encryption: LUKS2 on the Btrfs partition (`cryptroot`); the password is asked at every start.

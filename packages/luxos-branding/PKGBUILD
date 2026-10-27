@@ -3,7 +3,7 @@
 
 pkgname=luxos-branding
 pkgver=1.1.0
-pkgrel=23
+pkgrel=24
 pkgdesc="LuxOS branding: logo, wallpapers, Plymouth boot splash and os-release"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -71,6 +71,7 @@ package() {
     install -Dm644 "$f/plymouth/org.luxos.splash.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.splash.policy"
     install -Dm755 "$f/plymouth/luxos-plymouth-finish" "$pkgdir/usr/lib/luxos/luxos-plymouth-finish"
     install -Dm644 "$f/plymouth/lightdm-plymouth.conf" "$pkgdir/usr/lib/systemd/system/lightdm.service.d/luxos-plymouth.conf"
+    install -Dm644 "$f/plymouth/luxos-plymouth-finish.service" "$pkgdir/usr/lib/systemd/system/luxos-plymouth-finish.service"
 
     # verze LuxOS do os-release (files/version); BUILD_ID = den sestaveni
     local VERSION CODENAME

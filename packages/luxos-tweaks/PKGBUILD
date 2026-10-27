@@ -2,14 +2,14 @@
 
 pkgname=luxos-tweaks
 pkgver=1.0.0
-pkgrel=7
-pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, low-memory safeguard (earlyoom), Battery/Data Saver system parts, boot failure reporting"
+pkgrel=8
+pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, CPU scheduler (sched_ext scx_lavd), low-memory safeguard (earlyoom), Battery/Data Saver system parts, boot failure reporting"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
-depends=(systemd zram-generator reflector earlyoom dbus)
+depends=(systemd zram-generator reflector earlyoom dbus scx-scheds)
 install=luxos-tweaks.install
-backup=(etc/systemd/zram-generator.conf)
+backup=(etc/systemd/zram-generator.conf etc/luxos/scheduler.conf)
 
 package() {
     local f="$startdir/files"
@@ -27,6 +27,11 @@ package() {
     install -Dm644 "$f/memory-display.conf"  "$pkgdir/usr/lib/systemd/system/lightdm.service.d/10-luxos-memory.conf"
     install -Dm644 "$f/makepkg.conf"         "$pkgdir/etc/makepkg.conf.d/luxos.conf"
     install -Dm644 "$f/services"             "$pkgdir/usr/lib/luxos/services"
+    # Planovac procesu sched_ext (scx_lavd z scx-scheds): /etc/luxos/scheduler.conf, spousti ho
+    # luxos-scheduler.service az po prihlasovaci obrazovce; bez podpory v jadre planovac jadra
+    install -Dm644 "$f/scheduler/scheduler.conf" "$pkgdir/etc/luxos/scheduler.conf"
+    install -Dm755 "$f/scheduler/luxos-scheduler" "$pkgdir/usr/lib/luxos/luxos-scheduler"
+    install -Dm644 "$f/scheduler/luxos-scheduler.service" "$pkgdir/usr/lib/systemd/system/luxos-scheduler.service"
     # Sporic baterie - systemova cast (luxos-powersaver zapina jednotku bez hesla pres polkit)
     install -Dm755 "$f/power/luxos-powersaver-helper" "$pkgdir/usr/lib/luxos/luxos-powersaver-helper"
     install -Dm644 "$f/power/luxos-powersaver.service" "$pkgdir/usr/lib/systemd/system/luxos-powersaver.service"

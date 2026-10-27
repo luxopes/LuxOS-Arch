@@ -3931,3 +3931,9 @@ The package lists are damaged or do not match their signatures. Refresh them fir
 Updates, LuxAI and the correct time use the internet.	Gli aggiornamenti, LuxAI e l'ora esatta usano internet.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Gli aggiornamenti, LuxAI e l'ora esatta usano internet. Scegli una rete Wi-Fi o collega un cavo di rete.
 remove: also delete changed config files (no .luxsave)	remove: elimina anche i file di configurazione modificati (nessun .luxsave)
+CPU scheduler: %s	Scheduler CPU: %s
+default (kernel)	predefinito (kernel)
+This kernel has no sched_ext support, the kernel scheduler is used.	Questo kernel non supporta sched_ext, viene usato lo scheduler del kernel.
+Running now: %s	In esecuzione: %s
+Not running now, the kernel scheduler is used.	Non in esecuzione, viene usato lo scheduler del kernel.
+Unknown scheduler: %s (use lavd or default)	Scheduler sconosciuto: %s (usa lavd o default)

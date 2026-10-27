@@ -846,7 +846,7 @@
         {
           "path": "luxos/power-and-performance.md",
           "title": "Power, performance and memory",
-          "summary": "Data Saver, Battery Saver (auto at 20 %), earlyoom, zram, sysctl, I/O schedulers, journald and other performance defaults",
+          "summary": "Data Saver, Battery Saver (auto at 20 %), earlyoom, zram, sysctl, I/O schedulers, CPU scheduler scx_lavd (sched_ext), boot speed (hidden boot menu, splash), journald and other performance defaults",
           "keywords": [
             "data saver",
             "luxos-datasaver",
@@ -862,7 +862,15 @@
             "power profile",
             "metered",
             "reflector.timer",
-            "mirrorlist"
+            "mirrorlist",
+            "sched_ext",
+            "scx_lavd",
+            "CPU scheduler",
+            "kernel.scheduler",
+            "boot speed",
+            "boot menu timeout",
+            "plymouth",
+            "HZ=1000"
           ]
         },
         {

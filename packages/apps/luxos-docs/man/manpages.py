@@ -69,6 +69,7 @@ PAGES = [
             "**luxos-care** [**status**] [**--json**]",
             "**luxos-care history** [*N*]",
             "**luxos-care mode** [**carefree** | **classic**]",
+            "**luxos-care scheduler** [**lavd** | **default**] [**--json**]",
             "**luxos-care update** [**--manual**]",
             "**luxos-care check** [**--updates**]",
             "**luxos-care apply** *ID*-*N*",

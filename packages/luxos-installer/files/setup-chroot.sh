@@ -251,9 +251,10 @@ E
     fi
     systemctl enable systemd-boot-update.service
 else
+    # Skryta nabidka bez cekani (jako systemd-boot timeout 0): drzet Shift nebo mackat Esc pri startu
     sed -i \
         -e 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR="LuxOS"/' \
-        -e 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=1/' \
+        -e 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' \
         -e 's/^GRUB_TIMEOUT_STYLE=.*/GRUB_TIMEOUT_STYLE=hidden/' \
         -e "s|^GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT=\"${CMDLINE//|/\\|}\"|" \
         /etc/default/grub
