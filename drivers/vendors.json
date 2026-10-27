@@ -124,7 +124,11 @@
     "lib32-libtiff4": {"domains": ["download.osgeo.org/libtiff/"]},
     "lib32-libusb-compat": {"domains": ["github.com/libusb/"],
                             "redirects": ["release-assets.githubusercontent.com", "objects.githubusercontent.com"]},
-    "lib32-libstdc++5": {"domains": ["gcc.gnu.org/pub/gcc/"]}
+    "lib32-libstdc++5": {"domains": ["gcc.gnu.org/pub/gcc/"]},
+    "qt5-singleapplication": {"domains": ["github.com/qtproject/qt-solutions/"],
+                              "redirects": ["codeload.github.com/qtproject/qt-solutions/"]},
+    "bbe": {"domains": ["downloads.sourceforge.net/bbe-/"],
+            "redirects": ["downloads.sourceforge.net/project/bbe-/", "dl.sourceforge.net"]}
   },
   "include_extra": [
     "samsung-unified-driver",
