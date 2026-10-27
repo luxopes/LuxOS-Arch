@@ -201,7 +201,6 @@ static void apply_colors(VteTerminal *t)
 /* ---------- okna a panely ---------- */
 typedef struct {
     GtkWindow *win;
-    GtkHeaderBar *header;
     GtkNotebook *nb;
     GtkWidget *search_bar, *search_entry;
     double scale;
@@ -245,7 +244,6 @@ static void update_title(Win *w)
 {
     Tab *t = current_tab(w);
     const char *title = t ? tab_title(t) : T("Terminal");
-    gtk_header_bar_set_title(w->header, title);
     gtk_window_set_title(w->win, title);
 }
 
@@ -1010,18 +1008,27 @@ static void on_switch_page(GtkNotebook *nb, GtkWidget *page, guint n, Win *w)
     Tab *t = tab_of(page);
     if (!t) return;
     const char *title = tab_title(t);
-    gtk_header_bar_set_title(w->header, title);
     gtk_window_set_title(w->win, title);
     gtk_widget_grab_focus(GTK_WIDGET(t->term));
 }
 
 static void on_page_removed(GtkNotebook *nb, GtkWidget *page, guint n, Win *w) { update_tabs_visible(w); }
 
-static void on_new_tab_button(GtkWidget *b, Win *w)
+/* Ikona okna i ve velkych velikostech (Alt+Tab ukazuje 96-128 px): gtk_window_set_icon_name
+ * posle spravci oken jen male velikosti a xfwm4 je zvetsi - rozmazane. */
+static void set_window_icons(GtkWindow *win)
 {
-    Tab *t = current_tab(w);
-    if (t) act_new_tab(NULL, t);
-    else { Spawn s = {0}; new_tab(w, &s); }
+    static const int sizes[] = {16, 24, 32, 48, 64, 128, 256};
+    GtkIconTheme *theme = gtk_icon_theme_get_default();
+    GList *list = NULL;
+    for (guint i = 0; i < G_N_ELEMENTS(sizes); i++) {
+        GdkPixbuf *pb = gtk_icon_theme_load_icon(theme, "utilities-terminal", sizes[i],
+                                                 GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
+        if (pb) list = g_list_append(list, pb);
+    }
+    if (list) gtk_window_set_icon_list(win, list);
+    else gtk_window_set_icon_name(win, "utilities-terminal");
+    g_list_free_full(list, g_object_unref);
 }
 
 static Win *new_window(Spawn *s)
@@ -1030,25 +1037,13 @@ static Win *new_window(Spawn *s)
     w->scale = 1.0;
     w->win = GTK_WINDOW(gtk_application_window_new(app));
     gtk_style_context_add_class(gtk_widget_get_style_context(GTK_WIDGET(w->win)), "luxos-terminal");
-    gtk_window_set_icon_name(w->win, "utilities-terminal");
+    set_window_icons(w->win);
     GdkScreen *scr = gtk_widget_get_screen(GTK_WIDGET(w->win));
     GdkVisual *v = gdk_screen_get_rgba_visual(scr);
     if (v && gdk_screen_is_composited(scr) && cfg.opacity < 1.0) gtk_widget_set_visual(GTK_WIDGET(w->win), v);
 
-    w->header = GTK_HEADER_BAR(gtk_header_bar_new());
-    gtk_header_bar_set_show_close_button(w->header, TRUE);
-    gtk_header_bar_set_title(w->header, T("Terminal"));
-    GtkWidget *plus = gtk_button_new_from_icon_name("tab-new-symbolic", GTK_ICON_SIZE_BUTTON);
-    gtk_widget_set_tooltip_text(plus, T("New Tab"));
-    gtk_widget_set_focus_on_click(plus, FALSE);
-    g_signal_connect(plus, "clicked", G_CALLBACK(on_new_tab_button), w);
-    gtk_header_bar_pack_end(w->header, plus);
-    GtkWidget *find = gtk_button_new_from_icon_name("edit-find-symbolic", GTK_ICON_SIZE_BUTTON);
-    gtk_widget_set_tooltip_text(find, T("Find…"));
-    gtk_widget_set_focus_on_click(find, FALSE);
-    g_signal_connect_swapped(find, "clicked", G_CALLBACK(show_search), w);
-    gtk_header_bar_pack_end(w->header, find);
-    gtk_window_set_titlebar(w->win, GTK_WIDGET(w->header));
+    /* Obycejna lista spravce oken jako drive xfce4-terminal: jednoducha aplikace bez tlacitek navic
+     * (novy panel Ctrl+Shift+T, hledani Ctrl+Shift+F, oboje i v nabidce pravym tlacitkem) */
 
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     /* hledani */
@@ -1096,7 +1091,6 @@ static Win *new_window(Spawn *s)
 
     new_tab(w, s);
     gtk_widget_show_all(vbox);
-    gtk_widget_show_all(GTK_WIDGET(w->header));
     update_title(w);
     return w;
 }
