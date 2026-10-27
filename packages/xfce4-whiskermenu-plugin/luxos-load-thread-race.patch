@@ -1,0 +1,105 @@
+diff --git a/panel-plugin/applications-page.cpp b/panel-plugin/applications-page.cpp
+index d3110d5..ee48df1 100644
+--- a/panel-plugin/applications-page.cpp
++++ b/panel-plugin/applications-page.cpp
+@@ -35,8 +35,12 @@ ApplicationsPage::ApplicationsPage(Window* window) :
+ 	Page(window, "applications-other", _("All Applications")),
+ 	m_garcon_menu(nullptr),
+ 	m_garcon_settings_menu(nullptr),
++	m_load_cancellable(nullptr),
++	m_load_running(false),
+ 	m_status(LoadStatus::Invalid)
+ {
++	g_mutex_init(&m_load_mutex);
++	g_cond_init(&m_load_cond);
+ 	garcon_set_environment_xdg(GARCON_ENVIRONMENT_XFCE);
+ 
+ 	const decltype(m_categories.size()) index = 0;
+@@ -51,7 +55,28 @@ ApplicationsPage::ApplicationsPage(Window* window) :
+ 
+ ApplicationsPage::~ApplicationsPage()
+ {
++	// Wait for a running load thread: it uses the menu that clear() frees, and its
++	// completion callback must not touch this page any more
++	if (m_load_cancellable)
++	{
++		g_cancellable_cancel(m_load_cancellable);
++	}
++	g_mutex_lock(&m_load_mutex);
++	while (m_load_running)
++	{
++		g_cond_wait(&m_load_cond, &m_load_mutex);
++	}
++	g_mutex_unlock(&m_load_mutex);
++	if (m_load_cancellable)
++	{
++		g_object_unref(m_load_cancellable);
++		m_load_cancellable = nullptr;
++	}
++
+ 	clear();
++
++	g_cond_clear(&m_load_cond);
++	g_mutex_clear(&m_load_mutex);
+ }
+ 
+ //-----------------------------------------------------------------------------
+@@ -169,9 +194,23 @@ bool ApplicationsPage::load()
+ 	clear();
+ 
+ 	// Load contents in thread if possible
+-	GTask* task = g_task_new(nullptr, nullptr,
+-		+[](GObject*, GAsyncResult*, gpointer user_data)
++	if (m_load_cancellable)
++	{
++		g_object_unref(m_load_cancellable);
++	}
++	m_load_cancellable = g_cancellable_new();
++	g_mutex_lock(&m_load_mutex);
++	m_load_running = true;
++	g_mutex_unlock(&m_load_mutex);
++
++	GTask* task = g_task_new(nullptr, m_load_cancellable,
++		+[](GObject*, GAsyncResult* result, gpointer user_data)
+ 		{
++			// Page already destroyed (cancelled in the destructor)
++			if (g_cancellable_is_cancelled(g_task_get_cancellable(G_TASK(result))))
++			{
++				return;
++			}
+ 			static_cast<ApplicationsPage*>(user_data)->load_contents();
+ 		},
+ 		this);
+@@ -179,7 +218,13 @@ bool ApplicationsPage::load()
+ 	g_task_run_in_thread(task,
+ 		+[](GTask* thread_task, gpointer, gpointer task_data, GCancellable*)
+ 		{
+-			static_cast<ApplicationsPage*>(task_data)->load_garcon_menu();
++			ApplicationsPage* page = static_cast<ApplicationsPage*>(task_data);
++			page->load_garcon_menu();
++			// After this the destructor may free the page
++			g_mutex_lock(&page->m_load_mutex);
++			page->m_load_running = false;
++			g_cond_broadcast(&page->m_load_cond);
++			g_mutex_unlock(&page->m_load_mutex);
+ 			g_task_return_boolean(thread_task, true);
+ 		});
+ 	g_object_unref(task);
+diff --git a/panel-plugin/applications-page.h b/panel-plugin/applications-page.h
+index 716a84f..3e2ff3b 100644
+--- a/panel-plugin/applications-page.h
++++ b/panel-plugin/applications-page.h
+@@ -60,6 +60,13 @@ private:
+ 	std::vector<Category*> m_categories;
+ 	std::unordered_map<std::string, Launcher*> m_items;
+ 
++	// LuxOS: the menu is loaded in a worker thread; the page must not be freed while it runs
++	// (panel restart during loading crashed in garcon_menu_item_get_desktop_id)
++	GCancellable* m_load_cancellable;
++	GMutex m_load_mutex;
++	GCond m_load_cond;
++	bool m_load_running;
++
+ 	enum class LoadStatus
+ 	{
+ 		Invalid,
