@@ -106,7 +106,8 @@ earlyoom -m 4,2 -s 8,4 -r 0 -n --avoid "<protected>" --prefer "<preferred>"
   it gets `SIGKILL`.
 - Protected (`--avoid`): Xorg/Xwayland, lightdm, systemd*, xfce4-session, xfwm4, xfce4-panel,
   xfdesktop, xfsettingsd, plank, luxos-hub, luxos-menubar, luxos-greeter, PipeWire, WirePlumber,
-  NetworkManager, wpa_supplicant, D-Bus, polkitd, udisksd, sshd, earlyoom.
+  NetworkManager, wpa_supplicant, D-Bus, the accessibility bus (at-spi: when it is killed and later
+  restarts, every running GTK app and the top bar crash), polkitd, udisksd, sshd, earlyoom.
 - Preferred victims (`--prefer`): browser tabs/content processes, chromium/chrome, electron, code,
   node, java, qemu-system-x86.
 - `luxos-hub` shows a critical notification **"Memory is running low – “<app>” used too much memory
