@@ -53,6 +53,7 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 - **Bez tapet „vlny“** (`luxos-waves-dark`, `luxos-waves-light`): v LuxOS 1.0 zůstávají jen nové tapety. Kdo měl vlny nastavené, dostane po přihlášení Flow ve stejném režimu (tmavém nebo světlém).
 
 ### Opraveno
+- **`luxos-backup restore`/`list` mimo relaci plochy** (ssh, jiná konzole): když připojení zálohovacího disku chce heslo správce, v terminálu se na něj zeptá, jinak srozumitelně poradí okno Zálohy nebo terminál relace plochy (dřív chyba D-Bus „NotAuthorizedCanObtain“).
 - **Trezor: zavřený dialog hesla správce** při vytváření Trezoru ukáže „Ověření bylo zrušeno. Nic se nezměnilo.“ místo „Složku Trezor se nepodařilo vytvořit.“
 - **Launchpad a Hledání bez černých rohů i se zapnutým compositorem** (`rofi` z `[luxos]`): rofi bralo poslední 32bitový vizuál obrazovky, který na X serveru s GLX (např. VM s llvmpipe) nemusí mít kanál alfa – compositor pak okno kreslil neprůhledně a zaoblené rohy byly černé. Teď vybere vizuál s alfou podle XRender.
 - **OEM: první přihlášení po Průvodci nastavením je opravdu v jazyce, který majitel zvolil** (`luxos-oem`): jazyk účtu se zapíše do AccountsService už při zakládání účtu. LightDM vytvoří proces relace už při ověření hesla a jazyk nastavený Průvodcem až po něm použil teprve při dalším přihlášení – první relace byla anglicky.

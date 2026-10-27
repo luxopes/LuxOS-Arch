@@ -4363,3 +4363,4 @@ LuxAI (%s) did not answer (%s)	a LuxAI (%s) nem válaszolt (%s)
 LuxAI (%s) gave no clear answer	a LuxAI (%s) nem adott egyértelmű választ
 one model did not answer, cannot confirm safe	az egyik modell nem válaszolt, a biztonság nem erősíthető meg
 no specific concern found in the build script	nem található konkrét probléma a fordítási szkriptben
+Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	A biztonsági mentés lemezének csatlakoztatásához itt rendszergazdai jelszó kell. Használja a Biztonsági mentések ablakot, vagy futtassa a parancsot az asztali munkamenet egyik termináljában.

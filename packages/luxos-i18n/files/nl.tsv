@@ -4363,3 +4363,4 @@ LuxAI (%s) did not answer (%s)	LuxAI (%s) heeft niet geantwoord (%s)
 LuxAI (%s) gave no clear answer	LuxAI (%s) gaf geen duidelijk antwoord
 one model did not answer, cannot confirm safe	één model antwoordde niet, veilig kan niet worden bevestigd
 no specific concern found in the build script	geen concreet probleem gevonden in het build-script
+Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	Voor het koppelen van de back-upschijf is hier een beheerderswachtwoord nodig. Gebruik het venster Back-ups of voer de opdracht uit in een terminal van je bureaubladsessie.
