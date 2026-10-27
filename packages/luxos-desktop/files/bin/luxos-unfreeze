@@ -100,7 +100,9 @@ write_report() {  # write_report DUVOD -> cesta k hlaseni
 restore_desktop() {
     # Uvolnit pripadne zabrani mysi/klavesnice: spravce oken a lista se restartuji, aplikace bezi dal
     pkill -u "$(id -u)" -x rofi 2>/dev/null
-    pkill -u "$(id -u)" -f '/usr/bin/luxos-screenshot' 2>/dev/null
+    # Snimek obrazovky bezi v luxos-hub (zavrit listu/vyber) nebo jako samostatny proces luxos-screenshot-ui
+    timeout 3 luxos-screenshot --close >/dev/null 2>&1
+    pkill -u "$(id -u)" -f '/usr/lib/luxos/luxos-screenshot-ui' 2>/dev/null
     pkill -u "$(id -u)" -x xfce4-popup-whiskermenu 2>/dev/null
     setsid -f xfwm4 --replace >/dev/null 2>&1 </dev/null
     sleep 1

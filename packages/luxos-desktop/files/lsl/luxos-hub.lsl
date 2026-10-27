@@ -16,6 +16,8 @@
 #   Ovladace          jednou za start upozorneni na chybejici ovladace (luxos-drivers)
 #   Zmena casu        vecer pred prechodem na letni/zimni cas a rano po nem (luxos_timechange)
 #   Tapeta            tapeta plochy i na prihlasovaci obrazovce (luxos-appearance greeter-sync)
+#   Snimek obrazovky  lista a okna luxos-screenshot (luxos_shot) pripravena predem; klient luxos-screenshot
+#                     preda prepinace pres abstraktni socket UNIX, lista je videt hned po zkratce
 #
 # Stejny program bezi i jako `luxos-control-center [--panel|--background]` a `luxos-calendar [--background]`
 # (podle nazvu, pod kterym byl spusten): bezici instance (hub nebo samostatna) jen dostane signal.
@@ -37,6 +39,7 @@ load luxos_care_hub as care
 load luxos_drivers_hub as drivers
 load luxos_safe_hub as safe
 load luxos_timechange as timechange
+load luxos_shot as shot
 
 SIGINT = 2
 SIGUSR1 = 10
@@ -534,7 +537,18 @@ end
 function prebuild():
     call window_cc()
     call window_cal()
+    call window_shot()
     return False
+end
+
+# Okna Snimku obrazovky (lista, prekryv, nahled) skryta predem: zkratka je ukaze hned
+function window_shot():
+    try:
+        call shot.prebuild()
+    else:
+        call log("screenshot: " + String(last_error()))
+    end
+    return 0
 end
 
 function window_cc():
@@ -649,6 +663,12 @@ function main_hub():
     call glib.set_prgname("luxos-hub")
     call glib.set_application_name("LuxOS")
     call gtk.init()
+    # Snimek obrazovky: pozadavky klienta luxos-screenshot (okna se postavi s ostatnimi, nebo pri prvnim pozadavku)
+    try:
+        call shot.start_server(False)
+    else:
+        call log("screenshot: " + String(last_error()))
+    end
     safe:
         hub["session"] = gio.session_bus()
     end

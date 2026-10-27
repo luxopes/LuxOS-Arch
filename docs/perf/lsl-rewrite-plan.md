@@ -30,7 +30,8 @@ nezkreslila `ru_maxrss` potomka; medián wall času, průměr CPU, medián maxrs
 | `luxos-menubar` | C | stále (PSS 0,4 MB) | 0,2 probuzení/s | žádný (už C) |
 | LuxOS Care, část relace (`luxos_care_session.py`) | Python, uvnitř hubu | stále (file monitor + D-Bus) | součást hubu | součást přepisu hubu |
 | `luxos-datasaver`, `luxos-powersaver` | bash + nmcli/gdbus | po přihlášení, při změně sítě, ručně | 20–100 ms, jednorázově | malý |
-| `luxos-settings`, `luxos-screenshot`, `luxos-tour`, … | Python + GTK | na vyžádání | start 0,4 s warm (settings 3,1 s cold) | mimo rozsah: GTK API LSL zatím nestačí |
+| `luxos-settings`, `luxos-tour`, … | Python + GTK | na vyžádání | start 0,4 s warm (settings 3,1 s cold) | mimo rozsah: GTK API LSL zatím nestačí |
+| `luxos-screenshot` | LSL (okna v `luxos-hub`, klient jen s libc) | na vyžádání | lišta za ~5 ms (dřív Python 0,39 s), bez hubu 0,22 s | hotovo |
 
 Klidová zátěž celé relace lux ve VM (60 s): CPU 110 ms, 16,9 probuzení/s, forky 25/min (z toho 20/min
 jsou hodiny, dalších ~3/min baterie na notebooku). Python `import gi, Gtk` stojí 81 ms, samotný start
