@@ -248,14 +248,38 @@ build_drivers() {
     mkdir -p "$DREPO/pkgs" "$DREPO/built" "$OUT/drivers/src" "$BUILD"
     # zdroje jen ke cteni (makepkg je nestahuje - bez site); vlastnika v out/ nemenit
     chown -R builder: "$BUILD"
+    # Stary C kod vyrobcu: GCC 14+ dela z techto varovani chyby (implicitni deklarace, int, ukazatele),
+    # C23 (vychozi od GCC 15) zase meni bool/prototypy - pro ovladace standard C17 jako driv.
+    # Jen pro sestaveni ovladacu (~builder/.makepkg.conf), baliky [luxos] se stavi beze zmeny.
+    cat >/home/builder/.makepkg.conf <<'EOF'
+CFLAGS+=" -std=gnu17 -Wno-error=implicit-function-declaration -Wno-error=implicit-int -Wno-error=incompatible-pointer-types -Wno-error=int-conversion"
+EOF
     local base commit dir n=0 failed=() rest progress f line
+    rm -f "$BUILD"/drvmiss-*
     mapfile -t rest < <(jq -r 'to_entries[] | "\(.key) \(.value.commit)"' "$manifest" | sort)
-    # jen vybrane (./build.sh drivers BALIK...), jinak vsechny overene
+    # jen vybrane (./build.sh drivers BALIK...) i s overenymi baliky, na kterych zavisi; jinak vsechny overene
     if (($#)); then
-        local want=" $* " sel=()
+        local want sel=()
+        want=" $(python3 "$ROOT/drivers/luxdrv.py" closure "$@" | tr '\n' ' ') "
         for line in "${rest[@]}"; do [[ $want == *" ${line%% *} "* ]] && sel+=("$line"); done
         rest=("${sel[@]}")
     fi
+    # zapichnute commity z AUR a zdroje, ktere tu jeste nejsou (napr. GitHub Actions); kazdy zdroj
+    # musi mit sha256 z manifestu - co nesedi, se zahodi a balik pak skonci s "verified source missing"
+    msg "Fetching verified AUR commits and sources"
+    python3 "$ROOT/drivers/luxdrv.py" fetch "${rest[@]%% *}" || msg "Fetch failed - building what is here"
+    # zavislosti: kdo co poskytuje mezi uz sestavenymi ovladaci (nazev i provides)
+    drv_provider() {  # drv_provider NAZEV -> soubor baliku
+        local f
+        f=$(drv_pkgfiles "$DREPO/pkgs" "$1" | head -1)
+        [[ -n $f ]] && { echo "$f"; return; }
+        for f in "$DREPO"/pkgs/*.pkg.tar.zst; do
+            [[ -e $f ]] || continue
+            tar --zstd -xOf "$f" .PKGINFO | awk -F' = ' -v n="$1" '$1 == "provides" { sub(/[<>=].*/, "", $2)
+                if ($2 == n) found = 1 } END { exit !found }' && { echo "$f"; return; }
+        done
+        return 0
+    }
     # ovladace, ktere uz nejsou overene (odebrane z manifestu), z repozitare pryc
     for f in "$DREPO"/built/*; do
         base=${f##*/}
@@ -289,36 +313,49 @@ build_drivers() {
             mkdir -p "$dir"
             git -c safe.directory='*' --git-dir="$OUT/drivers/aur.git" archive "$commit" | tar -x -C "$dir" ||
                 { failed+=("$base (commit $commit not in out/drivers/aur.git)"); continue; }
+            # zaplaty LuxOS (drivers/patches/BALIK) - presne ty, ktere prosly overenim (sha256 v manifestu)
+            local pf ph patchok=1
+            while IFS=$'\t' read -r pf ph; do
+                [[ -n $pf ]] || continue
+                if [[ $(sha256sum <"$ROOT/drivers/patches/$base/$pf" 2>/dev/null | cut -d' ' -f1) != "$ph" ]] ||
+                        ! patch -p1 -N -s --no-backup-if-mismatch -r - -d "$dir" -i "$ROOT/drivers/patches/$base/$pf" >/dev/null; then
+                    patchok=0; break
+                fi
+            done < <(jq -r --arg b "$base" '.[$b].patches // {} | to_entries[] | "\(.key)\t\(.value)"' "$manifest")
+            ((patchok)) || { failed+=("$base (LuxOS patch $pf differs from the verified one or does not apply)"); continue; }
             chown -R builder: "$dir"
-            # zavislosti: z Archu, nebo jiny overeny ovladac (musi byt sestaveny driv)
-            local missing=0 nm
+            # zavislosti: z Archu (i virtualni - provides), nebo jiny overeny ovladac (musi byt sestaveny driv)
+            local missing=0 nm why=
             # (PKGBUILD cte uzivatel builder bez site, ne root)
             # shellcheck disable=SC2016  # promenne rozvine az bash uzivatele builder
             (cd "$dir" && unshare -n sudo -u builder bash -c 'set +u; depends=(); makedepends=(); CARCH=x86_64
+                depends_x86_64=(); makedepends_x86_64=()
                 source ./PKGBUILD >/dev/null 2>&1
-                for d in "${depends[@]}" "${makedepends[@]}"; do echo "${d%%[<>=]*}"; done') >"$dir/.deps"
+                for d in "${depends[@]}" "${makedepends[@]}" "${depends_x86_64[@]}" "${makedepends_x86_64[@]}"; do
+                    echo "${d%%[<>=]*}"; done') >"$dir/.deps"
             while read -r nm; do
                 [[ -n $nm ]] || continue
-                pacman -Si "$nm" &>/dev/null && { pacman -S --needed --noconfirm "$nm" &>/dev/null || true; continue; }
-                pacman -Qq "$nm" &>/dev/null && continue
-                f=$(drv_pkgfiles "$DREPO/pkgs" "$nm" | head -1)
-                if [[ -n $f ]]; then pacman -U --needed --noconfirm "$f" &>/dev/null || missing=1
-                else missing=1; fi
+                pacman -T "$nm" &>/dev/null && continue
+                pacman -S --needed --noconfirm "$nm" &>/dev/null && continue
+                f=$(drv_provider "$nm")
+                if [[ -n $f ]]; then pacman -U --needed --noconfirm "$f" &>/dev/null || { missing=1; why+=" $nm(install)"; }
+                else missing=1; why+=" $nm"; fi
             done <"$dir/.deps"
-            if ((missing)); then next+=("$line"); continue; fi
+            if ((missing)); then next+=("$line"); echo "$why" >"$BUILD/drvmiss-$base"; continue; fi
 
             msg "Building driver $base ($commit)"
             # SRCDEST (makepkg ho chce zapisovatelny): odkazy na overene zdroje out/drivers/src/SHA256/NAZEV
             rm -rf "$BUILD/drvsrc"; mkdir -p "$BUILD/drvsrc" "$BUILD/drvout"
             local srcok=1 sf sh
-            while read -r sf sh; do
+            # (tabulator: nazvy zdroju muzou obsahovat mezery, napr. "Kyocera ECOSYS P5021cdw.PPD")
+            while IFS=$'\t' read -r sf sh; do
                 [[ -f $dir/$sf ]] && continue      # soubor primo v AUR (zaplata) - je v overenem commitu
                 [[ -f $OUT/drivers/src/$sh/$sf ]] || { srcok=0; break; }
                 cp "$OUT/drivers/src/$sh/$sf" "$BUILD/drvsrc/$sf"   # kopie: prepare() smi menit prava zdroju
-            done < <(jq -r --arg b "$base" '.[$b].sources | to_entries[] | "\(.key) \(.value)"' "$manifest")
+            done < <(jq -r --arg b "$base" '.[$b].sources | to_entries[] | "\(.key)\t\(.value)"' "$manifest")
             ((srcok)) || { failed+=("$base (verified source $sf missing - run drivers/luxdrv.py verify)"); continue; }
             chown -R builder: "$BUILD/drvsrc" "$BUILD/drvout"
-            if (cd "$dir" && unshare -n sudo -u builder env -u GNUPGHOME SRCDEST="$BUILD/drvsrc" \
+            if (cd "$dir" && unshare -n sudo -u builder env -u GNUPGHOME HOME=/home/builder SRCDEST="$BUILD/drvsrc" \
                     PKGDEST="$BUILD/drvout" makepkg --force --nodeps --noconfirm --cleanbuild >"$dir/.log" 2>&1); then
                 # stare verze baliku z tohoto pkgbase pryc, nove dovnitr (znacka: commit + nazvy baliku)
                 echo "$commit" >"$DREPO/built/$base.new"
@@ -333,12 +370,14 @@ build_drivers() {
                 n=$((n + 1)); progress=1
             else
                 mkdir -p "$DREPO/logs"; cp "$dir/.log" "$DREPO/logs/$base.log"
+                { echo "--- zdroje (SRCDEST, src):"; ls -la "$BUILD/drvsrc" "$dir/src" 2>&1 | head -40; } >>"$DREPO/logs/$base.log"
                 failed+=("$base (makepkg: $(grep -m1 -E 'ERROR|error' "$dir/.log" || tail -1 "$dir/.log"))")
             fi
             rm -rf "$dir" "$BUILD/drvout"
         done
         rest=("${next[@]}")
-        ((progress)) || { for line in "${rest[@]}"; do failed+=("${line%% *} (missing dependency)"); done; break; }
+        ((progress)) || { for line in "${rest[@]}"; do
+            failed+=("${line%% *} (missing dependency:$(cat "$BUILD/drvmiss-${line%% *}" 2>/dev/null))"); done; break; }
     done
     # luxos-drivers-index: ktere zarizeni potrebuje ktery balik (luxos-printing, luxos-hwdetect)
     local idx=$BUILD/luxos-drivers-index sum
@@ -368,6 +407,7 @@ EOF
     fi
     rm -f "$DREPO"/pkgs/*.sig
     REPO=$DREPO make_repo luxos-drivers "$DREPO/pkgs"
+    rm -f /home/builder/.makepkg.conf
     printf '%s\n' "${failed[@]}" >"$DREPO/failed.txt"
     msg "Drivers: $n built, ${#failed[@]} failed (out/drivers-repo/failed.txt)"
 }

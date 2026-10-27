@@ -1,0 +1,16 @@
+# LuxOS: bez podpisu .sig (kontrolni soucet SKIP; stavi se bez site a bez klicu) - archiv je zapichnuty sha256
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -13,10 +13,8 @@
+ makedepends=('nasm')
+ provides=('libjpeg6')
+ conflicts=('libjpeg6')
+-source=("https://downloads.sourceforge.net/project/libjpeg-turbo/${pkgver}/libjpeg-turbo-${pkgver}.tar.gz"{,.sig})
+-validpgpkeys=('7D6293CC6378786E1B5C496885C7044E033FDE16') # libjpeg-turbo
+-sha256sums=('b24890e2bb46e12e72a79f7e965f409f4e16466d00e1dd15d93d73ee6b592523'
+-            'SKIP')
++source=("https://downloads.sourceforge.net/project/libjpeg-turbo/${pkgver}/libjpeg-turbo-${pkgver}.tar.gz")
++sha256sums=('b24890e2bb46e12e72a79f7e965f409f4e16466d00e1dd15d93d73ee6b592523')
+ 
+ build() {
+   cd libjpeg-turbo-${pkgver}

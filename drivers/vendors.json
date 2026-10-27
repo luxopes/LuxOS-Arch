@@ -106,6 +106,26 @@
       ]
     }
   },
+  "_dependencies": "Knihovny z AUR, ktere potrebuji overene ovladace (v Archu uz nejsou). Stejna pravidla jako ovladace; domains = projekt knihovny (domena[/zacatek cesty]), redirects = kam smi povolena adresa presmerovat (obsah hlida zapichnuty soucet).",
+  "dependencies": {
+    "gtk2": {"domains": ["download.gnome.org"]},
+    "lib32-gtk2": {"domains": ["download.gnome.org"]},
+    "libglade": {"domains": ["download.gnome.org"]},
+    "pangox-compat": {"domains": ["download.gnome.org"]},
+    "deb2targz": {"domains": ["www.miketaylor.org.uk/tech/deb/"]},
+    "libpng12": {"domains": ["sourceforge.net/projects/libpng"],
+                 "redirects": ["downloads.sourceforge.net", "dl.sourceforge.net", "sourceforge.net/projects/libpng"]},
+    "lib32-libpng12": {"domains": ["sourceforge.net/projects/libpng"],
+                       "redirects": ["downloads.sourceforge.net", "dl.sourceforge.net", "sourceforge.net/projects/libpng"]},
+    "libjpeg6-turbo": {"domains": ["downloads.sourceforge.net/project/libjpeg-turbo/"],
+                       "redirects": ["dl.sourceforge.net", "sourceforge.net/projects/libjpeg-turbo/"]},
+    "lib32-popt": {"domains": ["ftp.osuosl.org/pub/rpm/popt/"]},
+    "libtiff4": {"domains": ["download.osgeo.org/libtiff/"]},
+    "lib32-libtiff4": {"domains": ["download.osgeo.org/libtiff/"]},
+    "lib32-libusb-compat": {"domains": ["github.com/libusb/"],
+                            "redirects": ["release-assets.githubusercontent.com", "objects.githubusercontent.com"]},
+    "lib32-libstdc++5": {"domains": ["gcc.gnu.org/pub/gcc/"]}
+  },
   "include_extra": [
     "samsung-unified-driver",
     "cnrdrvcups-lb",

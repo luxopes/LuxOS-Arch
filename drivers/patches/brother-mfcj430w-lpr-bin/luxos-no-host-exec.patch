@@ -1,0 +1,11 @@
+# LuxOS: package() spoustel /opt/brother/.../setupPrintcapij z POCITACE, na kterem se stavi (ne z balicku);
+# /etc/printcap spravuje CUPS - radek pryc
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -13,6 +13,5 @@
+ 
+ package() {
+ 	tar -xf data.tar.gz -C "${pkgdir}"
+-	/opt/brother/Printers/mfcj430w/inf/setupPrintcapij
+ }
+ 
