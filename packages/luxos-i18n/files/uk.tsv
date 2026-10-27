@@ -4034,3 +4034,119 @@ Alphabetical	За абеткою
 Recently used	Нещодавно використані
 Most used	Найчастіше використовувані
 Category	За категорією
+# lux system: cely system v jednom souboru (sit, tiskarny, napajeni, zavadec, novi uzivatele, fix)
+Computer and language	Комп'ютер і мова
+Other formats than the language, e.g. "LC_TIME": "cs_CZ.UTF-8" (date and time), "LC_PAPER"	Інші формати, ніж мова, напр. "LC_TIME": "cs_CZ.UTF-8" (дата й час), "LC_PAPER"
+Drivers (graphics, Wi-Fi, printers from [luxos-drivers]); the Drivers app suggests them	Драйвери (графіка, Wi-Fi, принтери з [luxos-drivers]); їх пропонує застосунок Драйвери
+Started at boot. A removed line turns the service off at the next apply.	Запускаються під час старту. Видалений рядок вимкне службу під час наступного apply.
+Remote access: "sshd" (SSH server). Bluetooth: "bluetooth".	Віддалений доступ: "sshd" (сервер SSH). Bluetooth: "bluetooth".
+Users	Користувачі
+Saved connections (NetworkManager). Wi-Fi and VPN passwords are not here: they are kept by the system.	Збережені з'єднання (NetworkManager). Паролів Wi-Fi і VPN тут немає: їх зберігає система.
+security: "none" = open, "wpa-psk" = WPA2 password, "sae" = WPA3; ipv4 "auto" = automatic (DHCP).	security: "none" = відкрита, "wpa-psk" = пароль WPA2, "sae" = WPA3; ipv4 "auto" = автоматично (DHCP).
+A connection in use is never deleted without --force (remote access could be cut off).	З'єднання, що використовується, ніколи не видаляється без --force (віддалений доступ міг би перерватися).
+"model": "everywhere" = driverless printing, otherwise the driver from 'lpinfo -m'.	"model": "everywhere" = друк без драйвера, інакше драйвер з 'lpinfo -m'.
+Power	Живлення
+For the whole computer (login screen, nobody signed in); in the desktop each user's own setting applies.	Для всього комп'ютера (екран входу, ніхто не ввійшов); на стільниці діє власне налаштування кожного користувача.
+lid: "suspend", "hibernate", "lock", "poweroff" or "ignore".	lid (кришка): "suspend", "hibernate", "lock", "poweroff" або "ignore".
+lid closed while the power adapter is connected	кришку закрито при підключеному зарядному
+Boot	Запуск
+Boot menu: how many seconds it is shown (0 = hidden, hold Space to see it).	Меню завантажувача: скільки секунд воно показується (0 = приховане, утримуйте пробіл, щоб його побачити).
+default: "luxos" = the newest working LuxOS, or another entry. Snapshots are not listed here.	default: "luxos" = найновіша робоча LuxOS або інший пункт. Знімків тут немає.
+Updates and security	Оновлення та безпека
+protect = /usr read-only except during updates; verify = weekly check of system files	protect = /usr лише для читання, крім оновлень; verify = щотижнева перевірка системних файлів
+Wrong passwords: after "deny" failures within "fail_interval" seconds the account waits "unlock_time" seconds.	Неправильні паролі: після "deny" помилок протягом "fail_interval" секунд обліковий запис чекає "unlock_time" секунд.
+LuxOS: 20 / 30 / 60 - only a brute-force attack is stopped, you are never locked out for long.	LuxOS: 20 / 30 / 60 – зупиняється лише атака перебором, вас ніколи не заблокує надовго.
+Defaults for new users	Типові налаштування нових користувачів
+Used when a NEW user signs in for the first time; existing users keep their settings.	Застосовується, коли НОВИЙ користувач входить уперше; наявні користувачі зберігають свої налаштування.
+Delete the # at the start of a line to use it.	Щоб використати рядок, видаліть # на його початку.
+Text console (without the desktop): keyboard and font	Текстова консоль (без стільниці): клавіатура і шрифт
+Package sources - only checked, lux system does not change them (edit /etc/lux/lux.conf)	Джерела пакунків – лише перевіряються, lux system їх не змінює (редагуйте /etc/lux/lux.conf)
+community = packages from the community (AUR, built in the sandbox)	community = пакунки спільноти (AUR, збираються в пісочниці)
+Network connections: run 'sudo lux system show' to include them	Мережеві з'єднання: виконайте 'sudo lux system show', щоб їх включити
+Printing (CUPS) is not running - printers are not included	Друк (CUPS) не працює – принтери не включено
+sleep after so many minutes without use (0 = never)	присипляти після стількох хвилин бездіяльності (0 = ніколи)
+"power-saver", "balanced" or "performance"	"power-saver", "balanced" або "performance"
+Each section below describes one part of the system.	Кожен розділ нижче описує одну частину системи.
+A missing setting or a deleted section means "leave it as it is": only what is written here is managed.	Відсутнє налаштування або видалений розділ означає «залиш як є»: керується лише те, що тут написано.
+Passwords are never stored here (users, Wi-Fi, VPN): they stay in the system.	Паролі тут ніколи не зберігаються (користувачі, Wi-Fi, VPN): вони залишаються в системі.
+Something broke? sudo lux system fix returns the system to the state described here.	Щось зламалося? sudo lux system fix поверне систему до стану, описаного тут.
+Help: man luxos-system or ask LuxAI	Довідка: man luxos-system або запитайте LuxAI
+"light", "dark" or "auto" (by sunrise and sunset)	"light", "dark" або "auto" (за сходом і заходом сонця)
+apps in the Dock (names of .desktop files)	застосунки в Доку (назви файлів .desktop)
+default apps	типові застосунки
+lock the screen after so many minutes without use	блокувати екран після стількох хвилин бездіяльності
+turn the screen off after so many minutes	вимикати екран після стількох хвилин
+process scheduler: "lavd" = smooth desktop and games (default), "default" = the kernel's own	планувальник процесів: "lavd" = плавна стільниця та ігри (типово), "default" = власний планувальник ядра
+password: kept by the system	пароль: зберігає система
+Network connections can be read only with administrator rights (lux system diff asks for them).	Мережеві з'єднання можна прочитати лише з правами адміністратора (lux system diff їх запитає).
+"ssid" and "security" belong only to Wi-Fi connections	"ssid" і "security" стосуються лише з'єднань Wi-Fi
+change connection %s: %s	змінити з'єднання %s: %s
+delete connection %s	видалити з'єднання %s
+Printing (CUPS) is not running; printers were not checked.	Друк (CUPS) не працює; принтери не перевірено.
+default printer: %s → %s	типовий принтер: %s → %s
+Battery Saver is on; the power profile is set when it turns off.	Економія батареї увімкнена; профіль живлення буде встановлено після її вимкнення.
+Boot settings can be read only with administrator rights (lux system diff asks for them).	Налаштування завантажувача можна прочитати лише з правами адміністратора (lux system diff їх запитає).
+boot menu shown for: %s → %s s	меню завантажувача показується: %s → %s с
+default boot entry: %s → %s	типовий пункт завантаження: %s → %s
+kernel.scheduler: the process scheduler setting is missing (lux install luxos-tweaks).	kernel.scheduler: бракує налаштування планувальника процесів (lux install luxos-tweaks).
+%s was edited, it stays as it is.	%s було змінено, він залишається як є.
+These changes affect the network connection in use; a remote (SSH) connection to this computer can be cut off:	Ці зміни стосуються мережевого з'єднання, що використовується; віддалене з'єднання (SSH) з цим комп'ютером може перерватися:
+never write Wi-Fi or VPN passwords into the file; they are kept by the system (NetworkManager asks for them when connecting)	ніколи не пишіть паролі Wi-Fi чи VPN у файл; їх зберігає система (NetworkManager запитає їх під час з'єднання)
+%s is both in packages and drivers	%s є і в packages, і в drivers
+add connection %s	додати з'єднання %s
+network.connections.%s: the type cannot be changed (%s → %s); delete the connection and create a new one	network.connections.%s: тип не можна змінити (%s → %s); видаліть з'єднання й створіть нове
+(in use; applies at the next connection)	(використовується; діє з наступного з'єднання)
+Connection %s is in use and was kept; delete it with --force (the computer may lose the network).	З'єднання %s використовується, тому його залишено; видаліть його з --force (комп'ютер може втратити мережу).
+printers.queues.%s: the driver "%s" is not installed (list: lpinfo -m; "everywhere" = driverless printing)	printers.queues.%s: драйвер "%s" не встановлено (список: lpinfo -m; "everywhere" = друк без драйвера)
+add printer %s (%s)	додати принтер %s (%s)
+driver %s	драйвер %s
+shared: %s	спільний: %s
+printer %s: %s	принтер %s: %s
+printers.default: there is no printer %s	printers.default: принтера %s немає
+power.profile: power profiles are not installed (lux install power-profiles-daemon).	power.profile: профілі живлення не встановлено (lux install power-profiles-daemon).
+Boot settings: no LuxOS boot entry found (systemd-boot or GRUB).	Налаштування завантажувача: пункт LuxOS не знайдено (systemd-boot чи GRUB).
+boot.default: there is no boot menu entry %s (entries: %s)	boot.default: пункту меню завантаження %s немає (пункти: %s)
+formats: %s	формати: %s
+sign-in lockout: %s	блокування після хибних паролів: %s
+%s is missing; the package manager settings were not checked.	%s бракує; налаштування менеджера пакунків не перевірено.
+process scheduler: %s → %s	планувальник процесів: %s → %s
+Repair: the system returns to the state described in %s	Відновлення: система повертається до стану, описаного в %s
+The network connection in use was left as it is (apply it with --force).	З'єднання, що використовується, залишено як є (застосуйте з --force).
+connection name	назва з'єднання
+network.connections.%s: only Wi-Fi and Ethernet connections can be created here; create other kinds in Settings > Network	network.connections.%s: тут можна створювати лише з'єднання Wi-Fi та Ethernet; інші види створюйте в Налаштування > Мережа
+network.connections.%s: a new Wi-Fi connection needs "ssid"	network.connections.%s: нове з'єднання Wi-Fi потребує "ssid"
+network.connections.%s: enterprise Wi-Fi (802.1x) needs certificates and an account; connect it once in Settings > Network, then the file manages it	network.connections.%s: корпоративний Wi-Fi (802.1x) потребує сертифікатів і облікового запису; під'єднайтеся раз у Налаштування > Мережа, далі ним керує файл
+Connection %s: the Wi-Fi password is not in the file; it is asked for when connecting for the first time (it stays in the system).	З'єднання %s: пароля Wi-Fi у файлі немає; його запитають під час першого з'єднання (він залишиться в системі).
+printers.queues.%s: a new printer needs "uri" (its address)	printers.queues.%s: новий принтер потребує "uri" (своєї адреси)
+remove printer %s	видалити принтер %s
+power profile: %s → %s	профіль живлення: %s → %s
+Change the network connection in use too?	Змінити також мережеве з'єднання, що використовується?
+must be one of: %s	має бути одним із: %s
+printer name	назва принтера
+must be "luxos" or the name of a boot menu entry (not a snapshot)	має бути "luxos" або назвою пункту меню завантаження (не знімка)
+console: %s	консоль: %s
+repos.%s differs from %s (%s); lux system does not change the package manager settings - edit %s and check it with: lux config check	repos.%s відрізняється від %s (%s); lux system не змінює налаштувань менеджера пакунків – відредагуйте %s і перевірте: lux config check
+must be between %d and %d	має бути між %d і %d
+as the language	як мова
+console setting	налаштування консолі
+must be the full path of a picture readable by everybody, e.g. "/usr/share/backgrounds/luxos/luxos-dark.jpg"	має бути повним шляхом до зображення, доступного всім для читання, напр. "/usr/share/backgrounds/luxos/luxos-dark.jpg"
+connection type	тип з'єднання
+printer address (URI)	адреса принтера (URI)
+a Wi-Fi network name has 1 to 32 characters	назва мережі Wi-Fi має від 1 до 32 символів
+network interface	мережевий інтерфейс
+"manual" needs "addresses" (e.g. ["192.168.1.10/24"])	"manual" потребує "addresses" (напр. ["192.168.1.10/24"])
+printer driver	драйвер принтера
+app ID	ID застосунку
+must be the address of a proxy configuration (PAC) file, e.g. "http://proxy.example.com/proxy.pac", or "" for none	має бути адресою файлу налаштування проксі (PAC), напр. "http://proxy.example.com/proxy.pac", або "" без проксі
+address with prefix (e.g. "192.168.1.10/24")	адреса з префіксом (напр. "192.168.1.10/24")
+Network connections	Мережеві з'єднання
+Boot menu	Меню завантаження
+repository name	назва репозиторію
+repair: return the system to the state described in the file	відновлення: повертає систему до стану з файлу
+Writing the system configuration (/etc/luxos/system.lsl)…	Записування конфігурації системи (/etc/luxos/system.lsl)…
+The system configuration file was not written; create it later with: sudo lux system init	Файл конфігурації системи не записано; створіть його пізніше командою: sudo lux system init
+Repair the settings from /etc/luxos/system.lsl	Відновити налаштування за /etc/luxos/system.lsl
+This computer has no system configuration file (/etc/luxos/system.lsl).	Цей комп'ютер не має файлу конфігурації системи (/etc/luxos/system.lsl).
+Settings that changed are returned to the state described in /etc/luxos/system.lsl.	Змінені налаштування повернуться до стану, описаного в /etc/luxos/system.lsl.
+The changes are shown first and you are asked; a snapshot is taken before.	Спершу буде показано зміни й поставлено запитання; перед цим робиться знімок.
+Repair the settings (lux system fix)	Відновити налаштування (lux system fix)

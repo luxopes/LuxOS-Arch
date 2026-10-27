@@ -97,6 +97,17 @@ echo "## Instalator: OEM=1 v konfiguraci"
     check "prepare: spoustec na plose oem" test -e "$TARGET/home/oem/Desktop/luxos-oem-seal.desktop"
     check "prepare: pripominka po prihlaseni" grep -q -- "--seal-dialog --reminder" "$TARGET/home/oem/.config/autostart/luxos-oem-seal.desktop"
     check "prepare: nic se nezapecetilo" bash -c "! grep -q seal '$TMP/chroot.log'"
+
+    # /etc/luxos/system.lsl: instalator ho zapise na konci (lux system init --auto), OEM az Pruvodce
+    eval "$(sed -n '/^write_system_config() {/,/^}/p' "$FILES/luxos-install")"
+    progress() { :; }
+    mkdir -p "$TARGET/usr/lib/lux"; : >"$TARGET/usr/lib/lux/lux_system.py"; chmod +x "$TARGET/usr/lib/lux/lux_system.py"
+    arch-chroot() { printf '%s\n' "$*" >>"$TMP/chroot.log"; mkdir -p "$TARGET/etc/luxos"; : >"$TARGET/etc/luxos/system.lsl"; }
+    : >"$TMP/chroot.log"
+    OEM=1; write_system_config
+    check "OEM: system.lsl az po Pruvodci" test ! -s "$TMP/chroot.log"
+    OEM=0; write_system_config
+    check "instalace: lux system init --auto v cili" grep -qx "$TARGET /usr/lib/lux/lux_system.py init --auto" "$TMP/chroot.log"
     echo "SUB_FAILS=$FAILS"
 ) | tee "$TMP/part1"
 FAILS=$((FAILS + $(sed -n 's/^SUB_FAILS=//p' "$TMP/part1" | tail -1)))
@@ -319,6 +330,10 @@ setup_root 0 ""
 check "status bez sifrovani: LUKS=none" grep -qx "LUKS=none" <<<"$(load_oem; main status)"
 
 echo "## luxos-oem finish (bez sifrovani)"
+# lux system (cely system v jednom souboru): zastupny skript jen zapise argumenty
+printf '#!/bin/bash\necho "lux_system $*" >>"%s"\n' "$TMP/luxsys.log" >"$TMP/fake-lux-system"
+chmod +x "$TMP/fake-lux-system"
+export LUXOS_LUX_SYSTEM=$TMP/fake-lux-system
 setup_root 0 ""
 (load_oem; main seal --chroot --yes) >/dev/null 2>&1
 (load_oem; main finish <<<"$INPUT") >"$TMP/out" 2>&1
@@ -339,6 +354,7 @@ check "OEM vypnuto: sudoers" test ! -e "$R/etc/sudoers.d/90-luxos-oem"
 check "OEM vypnuto: polkit" test ! -e "$R/etc/polkit-1/rules.d/49-luxos-oem.rules"
 check "OEM vypnuto: done" test -e "$R/var/lib/luxos/oem/done"
 check "sluzba prvniho startu vypnuta" grep -q "systemctl disable luxos-oem-firstboot.service" "$TMP/cmds"
+check "system.lsl s uctem majitele (init --refresh)" grep -qx "lux_system init --refresh" "$TMP/luxsys.log"
 (load_oem; main finish <<<"$INPUT") >"$TMP/out" 2>&1
 check "druhy finish: odmitnut (uz neni aktivni)" grep -q "not active" "$TMP/out"
 

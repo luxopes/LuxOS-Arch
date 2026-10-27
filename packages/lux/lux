@@ -1052,7 +1052,7 @@ cmd_system() {
     ((YES)) && fl+=(-y)
     case $sub in
         show|check|plan|locks) "$LUX_SYSTEM" "$sub" "${fl[@]}" "$@" ;;
-        diff|apply|init) as_root "$LUX_SYSTEM" "$sub" "${fl[@]}" "$@" ;;
+        diff|apply|init|fix) as_root "$LUX_SYSTEM" "$sub" "${fl[@]}" "$@" ;;
         edit)
             [[ -e $LUX_SYSTEM_FILE ]] || die "$(T "%s does not exist yet. Create it from this computer with: lux system init" "$LUX_SYSTEM_FILE")"
             if ((EUID == 0)); then "${EDITOR:-nano}" "$LUX_SYSTEM_FILE"
@@ -1069,6 +1069,7 @@ edit|edit /etc/luxos/system.lsl and check it
 check [file]|check the configuration without changing anything
 diff [file] [--json]|show what apply would change
 apply [file] [-y]|take a snapshot, show the changes, confirm and apply
+fix [file] [-y]|repair: return the system to the state described in the file
 locks|settings locked by an organization (/etc/luxos/system.d)
 SYS
             printf '\n%s\n' "$(T "Undo the last apply: lux rollback · Help: man luxos-system")" ;;

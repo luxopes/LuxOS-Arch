@@ -1017,7 +1017,7 @@
         {
           "path": "luxos/system-config.md",
           "title": "Whole-system configuration in one file (lux system)",
-          "summary": "/etc/luxos/system.lsl in LSL like configuration.nix: packages, apps, services, users, locale, Care, Guard, firewall, kernel, domain; organization policies in /etc/luxos/system.d with locks (mkForce); lux system show/diff/apply/locks, snapshot and lux rollback.",
+          "summary": "/etc/luxos/system.lsl (LSL, like configuration.nix), written by the installer: packages, services, users, locale, Care, Guard, firewall, kernel, domain; policies in /etc/luxos/system.d (mkForce locks); lux system show/diff/apply/fix/locks, snapshot, lux rollback.",
           "keywords": [
             "lux system",
             "system.lsl",
@@ -1056,7 +1056,51 @@
             "locks",
             "origin",
             "show --origin",
-            "domain"
+            "domain",
+            "lux system fix",
+            "repair settings"
+          ]
+        },
+        {
+          "path": "luxos/system-config-areas.md",
+          "title": "Whole-system configuration: network, printers, power, boot and new users",
+          "summary": "Generated system.lsl (comments in the system language, no passwords) and sections network (NetworkManager, connection in use protected), printers (CUPS), power, boot menu, drivers, formats, console, faillock, new_users defaults, repos.",
+          "keywords": [
+            "network",
+            "NetworkManager",
+            "nmcli",
+            "wifi",
+            "Wi-Fi",
+            "ssid",
+            "static ip",
+            "dns",
+            "proxy",
+            "printers",
+            "cups",
+            "lpadmin",
+            "default printer",
+            "power",
+            "lid",
+            "suspend",
+            "power profile",
+            "boot menu",
+            "timeout",
+            "default entry",
+            "bootctl",
+            "drivers",
+            "LC_TIME",
+            "formats",
+            "vconsole",
+            "console keymap",
+            "faillock",
+            "lockout",
+            "new users",
+            "dock",
+            "wallpaper",
+            "default browser",
+            "theme",
+            "repos",
+            "new-users.conf"
           ]
         },
         {

@@ -8,7 +8,8 @@
 #   luxos-oem seal --chroot --yes   totez z instalatoru (arch-chroot, bez behu systemd)
 #   sudo luxos-oem status           stav pro Pruvodce nastavenim (KLIC=hodnota)
 #   sudo luxos-oem finish           dokonceni Pruvodce: nastaveni na stdin (radky KLIC=hodnota, hesla
-#                                   jen tudy); prubeh "@@STEP text", chyba "@@ERROR text", konec "@@DONE"
+#                                   jen tudy); prubeh "@@STEP text", chyba "@@ERROR text", konec "@@DONE";
+#                                   nakonec /etc/luxos/system.lsl s uctem majitele (lux system init --refresh)
 #   luxos-oem firstboot             sluzba luxos-oem-firstboot.service (pred prihlasovaci obrazovkou)
 #
 # Firemni sit (nepovinne): DOMAIN, DOMAIN_USER, DOMAIN_PASSWORD, DOMAIN_OU ve vstupu finish -> po zalozeni
@@ -38,6 +39,8 @@ SETUP_HOME=$R/var/lib/lightdm      # domov uzivatele lightdm (rozpracovany Pruvo
 UNIT=luxos-oem-firstboot.service
 SELF=/usr/bin/luxos-oem
 DOMAIN_CLI=${LUXOS_DOMAIN_CLI:-/usr/bin/lux-domain}
+# Cely system v jednom souboru (/etc/luxos/system.lsl) - az s uctem a jazykem majitele (lux system)
+LUX_SYSTEM_CLI=${LUXOS_LUX_SYSTEM:-/usr/lib/lux/lux_system.py}
 
 if [[ -r $R/usr/lib/luxos/i18n.sh ]]; then . "$R/usr/lib/luxos/i18n.sh"
 elif ! declare -F T >/dev/null; then T() { local f=$1; shift; printf -- "$f" "$@"; }; fi
@@ -460,6 +463,14 @@ join_domain() {  # nepovinne; chyba nezastavi dokonceni (@@WARN), opakovany beh 
     fi
 }
 
+# /etc/luxos/system.lsl s uctem majitele: chybi nebo je to needitovany soubor z pripravy -> znovu ze
+# systemu (init --refresh); upraveny soubor prodejce zustava. Chyba dokonceni nezastavi.
+write_system_config() {
+    [[ -x $LUX_SYSTEM_CLI ]] || return 0
+    "$LUX_SYSTEM_CLI" init --refresh >/dev/null 2>&1 || true
+    return 0
+}
+
 disarm() {
     rm -f "$GREETER_CONF" "$POLKIT_RULE"
     systemctl disable "$UNIT" >/dev/null 2>&1 || true
@@ -502,6 +513,7 @@ cmd_finish() {
         luks_finalize "$dev"
     fi
     step "$total $total $(T "Finishing")"
+    write_system_config
     disarm
     printf '@@DONE\n'
 }

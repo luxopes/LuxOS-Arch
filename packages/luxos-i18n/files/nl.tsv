@@ -4033,3 +4033,119 @@ Alphabetical	Alfabetisch
 Recently used	Recent gebruikt
 Most used	Meest gebruikt
 Category	Per categorie
+# lux system: cely system v jednom souboru (sit, tiskarny, napajeni, zavadec, novi uzivatele, fix)
+Computer and language	Computer en taal
+Other formats than the language, e.g. "LC_TIME": "cs_CZ.UTF-8" (date and time), "LC_PAPER"	Andere notaties dan de taal, bijv. "LC_TIME": "cs_CZ.UTF-8" (datum en tijd), "LC_PAPER"
+Drivers (graphics, Wi-Fi, printers from [luxos-drivers]); the Drivers app suggests them	Stuurprogramma's (grafisch, wifi, printers uit [luxos-drivers]); de app Stuurprogramma's stelt ze voor
+Started at boot. A removed line turns the service off at the next apply.	Gestart bij het opstarten. Een verwijderde regel schakelt de dienst uit bij de volgende apply.
+Remote access: "sshd" (SSH server). Bluetooth: "bluetooth".	Toegang op afstand: "sshd" (SSH-server). Bluetooth: "bluetooth".
+Users	Gebruikers
+Saved connections (NetworkManager). Wi-Fi and VPN passwords are not here: they are kept by the system.	Opgeslagen verbindingen (NetworkManager). Wifi- en VPN-wachtwoorden staan hier niet: het systeem bewaart ze.
+security: "none" = open, "wpa-psk" = WPA2 password, "sae" = WPA3; ipv4 "auto" = automatic (DHCP).	security: "none" = open, "wpa-psk" = WPA2-wachtwoord, "sae" = WPA3; ipv4 "auto" = automatisch (DHCP).
+A connection in use is never deleted without --force (remote access could be cut off).	Een gebruikte verbinding wordt nooit verwijderd zonder --force (toegang op afstand kan wegvallen).
+"model": "everywhere" = driverless printing, otherwise the driver from 'lpinfo -m'.	"model": "everywhere" = afdrukken zonder stuurprogramma, anders het stuurprogramma uit 'lpinfo -m'.
+Power	Energie
+For the whole computer (login screen, nobody signed in); in the desktop each user's own setting applies.	Voor de hele computer (aanmeldscherm, niemand aangemeld); op het bureaublad geldt de eigen instelling van elke gebruiker.
+lid: "suspend", "hibernate", "lock", "poweroff" or "ignore".	lid (klep): "suspend", "hibernate", "lock", "poweroff" of "ignore".
+lid closed while the power adapter is connected	klep dicht met aangesloten adapter
+Boot	Opstarten
+Boot menu: how many seconds it is shown (0 = hidden, hold Space to see it).	Opstartmenu: hoeveel seconden het getoond wordt (0 = verborgen, houd de spatiebalk ingedrukt om het te zien).
+default: "luxos" = the newest working LuxOS, or another entry. Snapshots are not listed here.	default: "luxos" = de nieuwste werkende LuxOS, of een andere optie. Momentopnamen staan hier niet.
+Updates and security	Updates en beveiliging
+protect = /usr read-only except during updates; verify = weekly check of system files	protect = /usr alleen-lezen behalve tijdens updates; verify = wekelijkse controle van systeembestanden
+Wrong passwords: after "deny" failures within "fail_interval" seconds the account waits "unlock_time" seconds.	Verkeerde wachtwoorden: na "deny" fouten binnen "fail_interval" seconden wacht het account "unlock_time" seconden.
+LuxOS: 20 / 30 / 60 - only a brute-force attack is stopped, you are never locked out for long.	LuxOS: 20 / 30 / 60 – alleen een brute-force-aanval wordt gestopt, u wordt nooit lang buitengesloten.
+Defaults for new users	Standaardinstellingen voor nieuwe gebruikers
+Used when a NEW user signs in for the first time; existing users keep their settings.	Gebruikt wanneer een NIEUWE gebruiker zich voor het eerst aanmeldt; bestaande gebruikers houden hun instellingen.
+Delete the # at the start of a line to use it.	Verwijder het # aan het begin van een regel om die te gebruiken.
+Text console (without the desktop): keyboard and font	Tekstconsole (zonder bureaublad): toetsenbord en lettertype
+Package sources - only checked, lux system does not change them (edit /etc/lux/lux.conf)	Pakketbronnen – alleen gecontroleerd, lux system wijzigt ze niet (bewerk /etc/lux/lux.conf)
+community = packages from the community (AUR, built in the sandbox)	community = pakketten van de community (AUR, gebouwd in de sandbox)
+Network connections: run 'sudo lux system show' to include them	Netwerkverbindingen: voer 'sudo lux system show' uit om ze op te nemen
+Printing (CUPS) is not running - printers are not included	Afdrukken (CUPS) draait niet – printers zijn niet opgenomen
+sleep after so many minutes without use (0 = never)	slaapstand na zoveel minuten zonder gebruik (0 = nooit)
+"power-saver", "balanced" or "performance"	"power-saver", "balanced" of "performance"
+Each section below describes one part of the system.	Elk onderdeel hieronder beschrijft een deel van het systeem.
+A missing setting or a deleted section means "leave it as it is": only what is written here is managed.	Een ontbrekende instelling of verwijderd onderdeel betekent „laten zoals het is”: alleen wat hier staat wordt beheerd.
+Passwords are never stored here (users, Wi-Fi, VPN): they stay in the system.	Wachtwoorden worden hier nooit opgeslagen (gebruikers, wifi, VPN): ze blijven in het systeem.
+Something broke? sudo lux system fix returns the system to the state described here.	Iets kapot? sudo lux system fix zet het systeem terug in de hier beschreven toestand.
+Help: man luxos-system or ask LuxAI	Hulp: man luxos-system of vraag het LuxAI
+"light", "dark" or "auto" (by sunrise and sunset)	"light", "dark" of "auto" (volgens zonsopgang en zonsondergang)
+apps in the Dock (names of .desktop files)	apps in het Dock (namen van .desktop-bestanden)
+default apps	standaardapps
+lock the screen after so many minutes without use	scherm vergrendelen na zoveel minuten zonder gebruik
+turn the screen off after so many minutes	scherm uitschakelen na zoveel minuten
+process scheduler: "lavd" = smooth desktop and games (default), "default" = the kernel's own	procesplanner: "lavd" = vloeiend bureaublad en games (standaard), "default" = die van de kernel
+password: kept by the system	wachtwoord: bewaard door het systeem
+Network connections can be read only with administrator rights (lux system diff asks for them).	Netwerkverbindingen zijn alleen leesbaar met beheerdersrechten (lux system diff vraagt erom).
+"ssid" and "security" belong only to Wi-Fi connections	"ssid" en "security" horen alleen bij wifi-verbindingen
+change connection %s: %s	verbinding %s wijzigen: %s
+delete connection %s	verbinding %s verwijderen
+Printing (CUPS) is not running; printers were not checked.	Afdrukken (CUPS) draait niet; printers zijn niet gecontroleerd.
+default printer: %s → %s	standaardprinter: %s → %s
+Battery Saver is on; the power profile is set when it turns off.	Batterijbesparing staat aan; het energieprofiel wordt ingesteld als die uitgaat.
+Boot settings can be read only with administrator rights (lux system diff asks for them).	Opstartinstellingen zijn alleen leesbaar met beheerdersrechten (lux system diff vraagt erom).
+boot menu shown for: %s → %s s	opstartmenu getoond: %s → %s s
+default boot entry: %s → %s	standaard opstartoptie: %s → %s
+kernel.scheduler: the process scheduler setting is missing (lux install luxos-tweaks).	kernel.scheduler: de instelling van de procesplanner ontbreekt (lux install luxos-tweaks).
+%s was edited, it stays as it is.	%s is bewerkt en blijft zoals het is.
+These changes affect the network connection in use; a remote (SSH) connection to this computer can be cut off:	Deze wijzigingen raken de gebruikte netwerkverbinding; een verbinding op afstand (SSH) met deze computer kan wegvallen:
+never write Wi-Fi or VPN passwords into the file; they are kept by the system (NetworkManager asks for them when connecting)	schrijf nooit wifi- of VPN-wachtwoorden in het bestand; het systeem bewaart ze (NetworkManager vraagt erom bij verbinden)
+%s is both in packages and drivers	%s staat zowel in packages als in drivers
+add connection %s	verbinding %s toevoegen
+network.connections.%s: the type cannot be changed (%s → %s); delete the connection and create a new one	network.connections.%s: het type kan niet worden gewijzigd (%s → %s); verwijder de verbinding en maak een nieuwe
+(in use; applies at the next connection)	(in gebruik; geldt bij de volgende verbinding)
+Connection %s is in use and was kept; delete it with --force (the computer may lose the network).	Verbinding %s is in gebruik en is behouden; verwijder haar met --force (de computer kan het netwerk verliezen).
+printers.queues.%s: the driver "%s" is not installed (list: lpinfo -m; "everywhere" = driverless printing)	printers.queues.%s: het stuurprogramma "%s" is niet geïnstalleerd (lijst: lpinfo -m; "everywhere" = afdrukken zonder stuurprogramma)
+add printer %s (%s)	printer %s toevoegen (%s)
+driver %s	stuurprogramma %s
+shared: %s	gedeeld: %s
+printer %s: %s	printer %s: %s
+printers.default: there is no printer %s	printers.default: er is geen printer %s
+power.profile: power profiles are not installed (lux install power-profiles-daemon).	power.profile: energieprofielen zijn niet geïnstalleerd (lux install power-profiles-daemon).
+Boot settings: no LuxOS boot entry found (systemd-boot or GRUB).	Opstartinstellingen: geen LuxOS-opstartoptie gevonden (systemd-boot of GRUB).
+boot.default: there is no boot menu entry %s (entries: %s)	boot.default: er is geen opstartoptie %s (opties: %s)
+formats: %s	notaties: %s
+sign-in lockout: %s	vergrendeling na verkeerde wachtwoorden: %s
+%s is missing; the package manager settings were not checked.	%s ontbreekt; de instellingen van pakketbeheer zijn niet gecontroleerd.
+process scheduler: %s → %s	procesplanner: %s → %s
+Repair: the system returns to the state described in %s	Herstel: het systeem keert terug naar de toestand in %s
+The network connection in use was left as it is (apply it with --force).	De gebruikte netwerkverbinding is ongewijzigd gebleven (toepassen met --force).
+connection name	verbindingsnaam
+network.connections.%s: only Wi-Fi and Ethernet connections can be created here; create other kinds in Settings > Network	network.connections.%s: hier kunnen alleen wifi- en ethernetverbindingen worden gemaakt; maak andere in Instellingen > Netwerk
+network.connections.%s: a new Wi-Fi connection needs "ssid"	network.connections.%s: een nieuwe wifi-verbinding heeft "ssid" nodig
+network.connections.%s: enterprise Wi-Fi (802.1x) needs certificates and an account; connect it once in Settings > Network, then the file manages it	network.connections.%s: zakelijke wifi (802.1x) heeft certificaten en een account nodig; verbind één keer via Instellingen > Netwerk, daarna beheert het bestand haar
+Connection %s: the Wi-Fi password is not in the file; it is asked for when connecting for the first time (it stays in the system).	Verbinding %s: het wifi-wachtwoord staat niet in het bestand; het wordt gevraagd bij de eerste verbinding (het blijft in het systeem).
+printers.queues.%s: a new printer needs "uri" (its address)	printers.queues.%s: een nieuwe printer heeft "uri" nodig (zijn adres)
+remove printer %s	printer %s verwijderen
+power profile: %s → %s	energieprofiel: %s → %s
+Change the network connection in use too?	Ook de gebruikte netwerkverbinding wijzigen?
+must be one of: %s	moet een van deze zijn: %s
+printer name	printernaam
+must be "luxos" or the name of a boot menu entry (not a snapshot)	moet "luxos" zijn of de naam van een opstartoptie (geen momentopname)
+console: %s	console: %s
+repos.%s differs from %s (%s); lux system does not change the package manager settings - edit %s and check it with: lux config check	repos.%s wijkt af van %s (%s); lux system wijzigt de instellingen van pakketbeheer niet – bewerk %s en controleer: lux config check
+must be between %d and %d	moet tussen %d en %d liggen
+as the language	zoals de taal
+console setting	console-instelling
+must be the full path of a picture readable by everybody, e.g. "/usr/share/backgrounds/luxos/luxos-dark.jpg"	moet het volledige pad zijn van een afbeelding die iedereen kan lezen, bijv. "/usr/share/backgrounds/luxos/luxos-dark.jpg"
+connection type	verbindingstype
+printer address (URI)	printeradres (URI)
+a Wi-Fi network name has 1 to 32 characters	een wifi-netwerknaam heeft 1 tot 32 tekens
+network interface	netwerkinterface
+"manual" needs "addresses" (e.g. ["192.168.1.10/24"])	"manual" heeft "addresses" nodig (bijv. ["192.168.1.10/24"])
+printer driver	printerstuurprogramma
+app ID	app-ID
+must be the address of a proxy configuration (PAC) file, e.g. "http://proxy.example.com/proxy.pac", or "" for none	moet het adres zijn van een proxyconfiguratiebestand (PAC), bijv. "http://proxy.example.com/proxy.pac", of "" voor geen
+address with prefix (e.g. "192.168.1.10/24")	adres met prefix (bijv. "192.168.1.10/24")
+Network connections	Netwerkverbindingen
+Boot menu	Opstartmenu
+repository name	repositorynaam
+repair: return the system to the state described in the file	herstel: zet het systeem terug in de toestand uit het bestand
+Writing the system configuration (/etc/luxos/system.lsl)…	Systeemconfiguratie wordt geschreven (/etc/luxos/system.lsl)…
+The system configuration file was not written; create it later with: sudo lux system init	Het systeemconfiguratiebestand is niet geschreven; maak het later met: sudo lux system init
+Repair the settings from /etc/luxos/system.lsl	Instellingen herstellen volgens /etc/luxos/system.lsl
+This computer has no system configuration file (/etc/luxos/system.lsl).	Deze computer heeft geen systeemconfiguratiebestand (/etc/luxos/system.lsl).
+Settings that changed are returned to the state described in /etc/luxos/system.lsl.	Gewijzigde instellingen keren terug naar de toestand in /etc/luxos/system.lsl.
+The changes are shown first and you are asked; a snapshot is taken before.	Eerst worden de wijzigingen getoond en wordt het u gevraagd; vooraf wordt een momentopname gemaakt.
+Repair the settings (lux system fix)	Instellingen herstellen (lux system fix)

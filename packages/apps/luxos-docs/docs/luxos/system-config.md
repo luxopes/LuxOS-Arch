@@ -1,20 +1,32 @@
 # Whole-system configuration in one file (lux system)
 
-The whole LuxOS system can be described in **one file written in LSL**, `/etc/luxos/system.lsl`,
-similar to `configuration.nix` in NixOS: the wanted packages, Flathub apps, services, users and
-groups, computer name, language, time zone, keyboard layouts, LuxOS Care, Lux Guard, the firewall
-and kernel parameters. `lux system` compares the file with the running system, shows the
-differences and applies them only after confirmation. A system snapshot is taken first, so
-`lux rollback` returns everything to the state before.
+The whole LuxOS system is described in **one file written in LSL**, `/etc/luxos/system.lsl`,
+similar to `configuration.nix` in NixOS: the wanted packages and drivers, Flathub apps, services,
+users and groups, computer name, language and formats, time zone, keyboard and console, network
+connections, printers, power, the boot menu, LuxOS Care, Lux Guard, the firewall, the sign-in
+lockout, kernel parameters and the defaults for new users. `lux system` compares the file with the
+running system, shows the differences and applies them only after confirmation. A system snapshot
+is taken first, so `lux rollback` returns everything to the state before.
+
+**The file is there from the start.** The installer writes it at the end of the installation (for a
+computer prepared for another person – OEM – after the setup assistant, so it contains the owner's
+account and language). Older installations get it once with an update of `lux` when it does not
+exist yet. It is never overwritten and a deleted file is not created again (the mark
+`/var/lib/lux/system/auto-init`); it is not a file of a package, so updates never create
+`system.lsl.luxnew`. Right after it is written, `lux system diff` says the system matches.
+
+When something stops working because a setting changed, **`sudo lux system fix`** returns the
+system to the state described in the file (it shows the changes, asks and takes a snapshot first).
 
 ## Quick start
 
 ```bash
-sudo lux system init     # write /etc/luxos/system.lsl from this computer
+sudo lux system init     # write /etc/luxos/system.lsl from this computer (only if the installer did not)
 lux system edit          # edit it (sudoedit), then it is checked
 lux system diff          # what would change
 sudo lux system apply    # snapshot, show the changes, ask, apply
 lux rollback             # back to the snapshot taken before the apply
+sudo lux system fix      # something changed by itself? back to the state in the file
 ```
 
 `lux system show` prints the same file as `init` without writing anything (as a normal user the
@@ -31,7 +43,10 @@ generated file describes the computer exactly, so `lux system diff` right after 
 | `lux system edit` | edit the file with `sudoedit` (`$EDITOR`, default nano) and check it |
 | `lux system check [FILE]` | evaluate and validate the file, nothing is changed |
 | `lux system diff [FILE] [--json]` | list the changes `apply` would make (needs administrator rights to read password hashes, firewall rules and boot entries) |
-| `lux system apply [FILE] [-y] [--no-snapshot]` | snapshot, changes, confirmation, apply |
+| `lux system apply [FILE] [-y] [--no-snapshot] [--force]` | snapshot, changes, confirmation, apply; `--force` may also delete or change the network connection in use |
+| `lux system fix [FILE] [-y] [--force]` | repair: return the system to the state described in the file (the same steps as `apply`) |
+| `lux system init --auto` | (installer, update of lux) write the file once, only when it is missing |
+| `lux system init --refresh` | (OEM setup assistant) write it again only when nobody edited the generated file |
 | `lux system show --origin [--json]` | the merged configuration (organization policies + your file) with the origin of every value and 🔒 for locked values |
 | `lux system locks [--json]` | the settings an organization has locked (`config.mkForce` in `/etc/luxos/system.d`) |
 
@@ -42,6 +57,9 @@ Without `FILE` the commands use `/etc/luxos/system.lsl`. `lux system` alone prin
 Nothing is ever applied without showing the changes and a confirmation, unless `-y` is given.
 Without a terminal and without `-y`, `apply` changes nothing. When the changes remove packages
 or apps, the default answer is "no".
+
+The generated file (groups with explanations in the language of the system) is described in
+[system-config-areas.md](system-config-areas.md#the-generated-file).
 
 ## Example file
 
@@ -120,6 +138,8 @@ can be as short as `config = {"packages": ["htop"]}`.
 | `firewall.enable` | firewall on/off (ufw; added to the packages automatically when on) | `ufw enable`, `ufw.service` |
 | `firewall.allow` | incoming ports allowed from anywhere: `"22/tcp"`, `"8000:8010/udp"`, `"53"` | `ufw allow`, `ufw delete allow` |
 | `kernel.params` | extra kernel parameters | `options` of the LuxOS systemd-boot entries or `GRUB_CMDLINE_LINUX_DEFAULT` + `grub-mkconfig` |
+| `kernel.scheduler` | process scheduler: `"lavd"` (scx_lavd, smooth desktop and games, default) or `"default"` (the kernel's own) | `luxos-care scheduler` (`/etc/luxos/scheduler.conf`, switches at once) |
+| `formats`, `console`, `drivers`, `network`, `printers`, `power`, `boot`, `security`, `new_users`, `repos` | network connections, printers, power, boot menu, drivers, formats, console, sign-in lockout, defaults for new users, repositories – see [system-config-areas.md](system-config-areas.md) | |
 | `domain.admins` | domain groups that administer this computer (only in a domain, see `domain.md`) | `lux domain admins add/remove` (sudo + polkit) |
 | `domain.allow_groups` | domain groups allowed to sign in; `[]` = everybody in the domain | `lux domain login allow/deny` |
 | `domain.offline_days` | days a domain account may sign in without the domain controller (0-180, default 30) | `lux domain set offline-days` |
@@ -229,15 +249,23 @@ Merge rules:
    menu as "LuxOS (before system change of ...)"). If the snapshot fails (e.g. the system is not on
    Btrfs), you are asked whether to continue; with `-y` the apply stops unless `--no-snapshot` is
    given. The package transaction inside the apply does not take a second snapshot.
-5. Changes in this order: groups, packages, Flathub apps, computer name, time zone, language,
-   keyboard, users, services, Lux Guard, LuxOS Care, firewall, kernel parameters, and finally the
-   removals.
+5. Changes in this order: groups, packages and drivers, Flathub apps, computer name, time zone,
+   language and formats, keyboard, console, users, services, Lux Guard, network connections,
+   printers, power, LuxOS Care, sign-in lockout, defaults for new users, firewall, kernel
+   parameters, scheduler and boot menu, and finally the removals. Changes of the network
+   connection in use are asked about separately (see [Network](system-config-areas.md#network)).
 6. On the first error the apply stops, says how many changes were made and prints
    `lux rollback SNAPSHOT` to return to the state before. The remembered state is updated only
    after a successful apply; a copy of each applied file is kept in `/var/lib/lux/system/history/`
    (last 20).
 
-Apply is idempotent: running it again with the same file finds nothing to do. It is refused
+Apply is idempotent: running it again with the same file finds nothing to do.
+
+`lux system fix` is the same as `apply` with a short "Repair" heading: use it when a setting
+changed by itself or by mistake (a printer disappeared, the lid suspends no more, a service was
+turned off). It is also in **LuxOS Recovery** (boot menu › LuxOS Recovery › Repair the settings).
+Note: the boot menu settings live in EFI variables of the computer and a snapshot does not contain
+them, so `lux rollback` does not return them (run `fix` with the old file instead). It is refused
 while LuxOS runs from a snapshot (keep that version with `lux rollback` first) and when another
 `lux system apply` is running.
 
@@ -287,6 +315,9 @@ while LuxOS runs from a snapshot (keep that version with `lux rollback` first) a
 |---|---|
 | `/etc/luxos/system.lsl` | the configuration (root-owned) |
 | `/etc/luxos/system.d/NN-name.lsl` | organization policies (root-owned, merged before your file) |
+| `/etc/luxos/new-users.conf` | defaults for new users (section `new_users`, read by `luxos-session`) |
+| `/etc/systemd/logind.conf.d/zz-luxos-system.conf` | power settings of the whole system (section `power`) |
+| `/var/lib/lux/system/auto-init` | the file was created automatically once (installer / update) |
 | `/var/lib/lux/system/applied.json` | what the file managed at the last apply (for removals) |
 | `/var/lib/lux/system/policy.json` | policies and locked settings of the last apply (readable by all) |
 | `/var/lib/lux/system/history/` | copies of the last 20 applied files (and policies in `DATE.d/`) |
