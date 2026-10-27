@@ -246,9 +246,8 @@ starting at [LSL overview](../lsl/overview.md).
 ## Things that are different from Arch Linux
 
 - No `pacman`, no `yay`/`paru` needed – `lux` covers repositories, Flathub, community/AUR (sandbox) and `.lux`.
-- No `/etc/pacman.conf`: configuration is `/etc/lux/lux.conf` (TOML: `[general]`, `[downloads]`,
-  `[security]`, `[packages]`, `[repo.NAME]` tables, `hold = [...]` instead of `IgnorePkg`; the old
-  LuxOS 0.9 `key value` format is still read, `lux config migrate` converts it), database `/var/lib/lux`, cache `/var/cache/lux/pkg`, log
+- No `/etc/pacman.conf`: configuration is `/etc/lux/lux.conf` (TOML tables, `hold = [...]` instead of
+  `IgnorePkg`; the old 0.9 format is still read, see `lux.md`), database `/var/lib/lux`, cache `/var/cache/lux/pkg`, log
   `/var/log/lux.log`, keyring `/etc/lux/keyring`. The engine is based on Arch's libalpm (pacman code).
 - Default shell is `lsh` (bash-compatible). `~/.lshrc` instead of `~/.bashrc`.
 - Kernel is `linux-luxos` (own LuxOS kernel; older installs switch from `linux-zen` automatically); initramfs built with `mkinitcpio`; Btrfs subvolumes `@`, `@home`, `@log`,
