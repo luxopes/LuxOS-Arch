@@ -55,6 +55,8 @@ _META = struct.Struct("=IBBHQii")
 _RESP = struct.Struct("=iI")
 O_LARGEFILE = 0o100000
 
+MIN_COPY_SIZE = 16   # bajtu; mensi soubory (prazdne, jen shebang) se jako kopie oznaceneho souboru neposuzuji
+
 PERM_EXEC = FAN_OPEN_EXEC_PERM
 PERM_OPEN = FAN_OPEN_PERM
 
@@ -653,7 +655,9 @@ class Guard:
             pass
         origin = origin or job.get("loc") or core.writer_origin(job.get("info"), self.state, self.users, path)
         sha = None
-        if origin is None and st.st_size in self.state.sizes():
+        # Kopie oznaceneho souboru podle otisku: jen u souboru s obsahem - stejny otisk maji vsechny
+        # prazdne/miniaturni soubory (prazdne __init__.py ve venv byly "kopie" prazdneho stazeneho skriptu)
+        if origin is None and st.st_size >= MIN_COPY_SIZE and st.st_size in self.state.sizes():
             sha = core.sha256_fd(fd)
             e = self.state.by_hash(sha)
             if e and e.get("status") != core.ALLOWED:
