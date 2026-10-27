@@ -4023,3 +4023,9 @@ Wrap Lines	Quebrar linhas
 Your changes will be lost if you don't save them.	As alterações serão perdidas se você não salvá-las.
 untitled	sem título
 “%s” already exists.	“%s” já existe.
+CPU scheduler: %s	Escalonador de CPU: %s
+default (kernel)	padrão (kernel)
+This kernel has no sched_ext support, the kernel scheduler is used.	Este kernel não suporta sched_ext, é usado o escalonador do kernel.
+Running now: %s	Em execução: %s
+Not running now, the kernel scheduler is used.	Não está em execução, é usado o escalonador do kernel.
+Unknown scheduler: %s (use lavd or default)	Escalonador desconhecido: %s (use lavd ou default)

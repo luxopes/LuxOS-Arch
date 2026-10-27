@@ -4024,3 +4024,9 @@ Wrap Lines	Zawijaj wiersze
 Your changes will be lost if you don't save them.	Jeśli nie zapiszesz zmian, zostaną utracone.
 untitled	bez tytułu
 “%s” already exists.	„%s” już istnieje.
+CPU scheduler: %s	Planista procesora: %s
+default (kernel)	domyślny (jądro)
+This kernel has no sched_ext support, the kernel scheduler is used.	To jądro nie obsługuje sched_ext, używany jest planista jądra.
+Running now: %s	Teraz działa: %s
+Not running now, the kernel scheduler is used.	Teraz nie działa, używany jest planista jądra.
+Unknown scheduler: %s (use lavd or default)	Nieznany planista: %s (użyj lavd lub default)

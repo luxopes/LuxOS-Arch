@@ -4,6 +4,9 @@
   luxos-care [status] [--json]      stav (kdokoli)
   luxos-care history [N]            auditni zaznam oprav a aktualizaci
   luxos-care mode [carefree|classic]
+  luxos-care scheduler [lavd|default] [--json]
+                                    planovac procesu (sched_ext scx_lavd nebo planovac jadra);
+                                    zmena (root) zapise /etc/luxos/scheduler.conf a hned prepne
   luxos-care update [--manual]      (root, luxos-care-update.service)
   luxos-care check [--updates]      (root, luxos-care-check.service)
   luxos-care apply ID-N             (root, luxos-care-apply@ID-N.service: volba LuxAI)
@@ -364,6 +367,39 @@ def cmd_verify(args):
     return 0
 
 
+def cmd_scheduler(args):
+    """Planovac procesu: lavd (sched_ext scx_lavd, vychozi) nebo default (planovac jadra)."""
+    if not args or args[0] == "--json":
+        want = care.scheduler_setting()
+        supported, running = care.scheduler_running()
+        if "--json" in args:
+            print(json.dumps({"setting": want, "kernel_support": supported, "running": running}))
+            return 0
+        print(_("CPU scheduler: %s") % (_("default (kernel)") if want == "default" else "scx_" + want))
+        if not supported:
+            print(_("This kernel has no sched_ext support, the kernel scheduler is used."))
+        elif running:
+            print(_("Running now: %s") % running)
+        elif want != "default":
+            print(_("Not running now, the kernel scheduler is used."))
+        return 0
+    need_root()
+    name = args[0].strip().lower()
+    try:
+        care.set_scheduler(name)
+    except ValueError:
+        sys.exit(_("Unknown scheduler: %s (use lavd or default)") % name)
+    care.history("scheduler", scheduler=name)
+    unit = care.SCHED_UNIT
+    care.run(["systemctl", "reset-failed", unit], timeout=30)
+    if name == "default":
+        care.run(["systemctl", "stop", unit], timeout=60)
+    else:
+        care.run(["systemctl", "enable", unit], timeout=60)
+        care.run(["systemctl", "restart", unit], timeout=60)
+    return 0
+
+
 def main(argv):
     cmd = argv[1] if len(argv) > 1 else "status"
     args = argv[2:]
@@ -382,6 +418,8 @@ def main(argv):
         care.set_mode(args[0])
         care.history("mode", mode=args[0])
         return 0
+    if cmd == "scheduler":
+        return cmd_scheduler(args)
     if cmd == "update":
         need_root()
         return care.do_update(manual="--manual" in args)
@@ -426,6 +464,12 @@ def main(argv):
                 snap.ensure_entries()
             except Exception as e:  # noqa: BLE001
                 care.log(f"snapshot boot entries: {e}")
+            try:
+                # Jednorazove: GRUB_TIMEOUT 1 -> 0 (jen vychozi hodnota LuxOS), ne soubezne s aktualizaci
+                with care.CareLock(wait=True):
+                    care.boot_menu_migrate()
+            except Exception as e:  # noqa: BLE001
+                care.log(f"boot menu timeout: {e}")
         return rc
     if cmd == "kernel-switch":
         need_root()

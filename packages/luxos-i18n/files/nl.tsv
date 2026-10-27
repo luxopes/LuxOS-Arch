@@ -4023,3 +4023,9 @@ Wrap Lines	Regels afbreken
 Your changes will be lost if you don't save them.	Uw wijzigingen gaan verloren als u ze niet opslaat.
 untitled	naamloos
 “%s” already exists.	‘%s’ bestaat al.
+CPU scheduler: %s	CPU-planner: %s
+default (kernel)	standaard (kernel)
+This kernel has no sched_ext support, the kernel scheduler is used.	Deze kernel ondersteunt sched_ext niet, de planner van de kernel wordt gebruikt.
+Running now: %s	Draait nu: %s
+Not running now, the kernel scheduler is used.	Draait nu niet, de planner van de kernel wordt gebruikt.
+Unknown scheduler: %s (use lavd or default)	Onbekende planner: %s (gebruik lavd of default)

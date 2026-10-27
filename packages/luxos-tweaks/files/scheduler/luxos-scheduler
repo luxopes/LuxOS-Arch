@@ -1,0 +1,60 @@
+#!/bin/bash
+# LuxOS - spusti planovac procesu sched_ext podle /etc/luxos/scheduler.conf (luxos-scheduler.service)
+# Nikdy nevadi startu: bez podpory v jadre, bez programu, s SCHEDULER=default nebo kdyz uz bezi
+# jiny planovac sched_ext skonci s 0 a zustava planovac jadra. Opakovany pad hlida systemd
+# (Restart + StartLimit v jednotce); pri padu planovace jadro samo prejde zpet na EEVDF.
+# LUXOS_SCHEDULER_CONF, LUXOS_SYSROOT a LUXOS_SCX_BIN = jine cesty pro testy.
+set -u
+conf=${LUXOS_SCHEDULER_CONF:-/etc/luxos/scheduler.conf}
+sys=${LUXOS_SYSROOT:-}/sys/kernel/sched_ext
+bindir=${LUXOS_SCX_BIN:-/usr/bin}
+sched=lavd
+args=""
+
+if [[ -r $conf ]]; then
+    while IFS= read -r line; do
+        [[ $line =~ ^[[:space:]]*(SCHEDULER|ARGS)[[:space:]]*=(.*)$ ]] || continue
+        key=${BASH_REMATCH[1]}
+        v=${BASH_REMATCH[2]}
+        v=${v#"${v%%[![:space:]]*}"}
+        v=${v%"${v##*[![:space:]]}"}
+        v=${v#[\"\']}
+        v=${v%[\"\']}
+        if [[ $key == SCHEDULER ]]; then sched=${v,,}; else args=$v; fi
+    done <"$conf"
+fi
+
+case $sched in
+    default | none | off | "")
+        echo "luxos-scheduler: kernel scheduler (SCHEDULER=${sched:-empty})"
+        exit 0
+        ;;
+esac
+if [[ ! $sched =~ ^[a-z0-9_]{1,32}$ ]]; then
+    echo "luxos-scheduler: invalid SCHEDULER=$sched, keeping the kernel scheduler" >&2
+    exit 0
+fi
+if [[ ! -r $sys/state ]]; then
+    echo "luxos-scheduler: kernel without sched_ext, keeping the kernel scheduler"
+    exit 0
+fi
+if [[ $(<"$sys/state") != disabled ]]; then
+    echo "luxos-scheduler: another sched_ext scheduler is active ($(cat "$sys/root/ops" 2>/dev/null)), nothing to do"
+    exit 0
+fi
+bin=$bindir/scx_$sched
+if [[ ! -x $bin ]]; then
+    echo "luxos-scheduler: $bin is not installed, keeping the kernel scheduler"
+    exit 0
+fi
+# Volby jen jako slova bez znaku shellu (konfigurace je jen pro roota, presto zadne prekvapeni)
+extra=()
+read -ra extra <<<"$args"
+for a in "${extra[@]}"; do
+    if [[ ! $a =~ ^[A-Za-z0-9_.,:=/+-]+$ ]]; then
+        echo "luxos-scheduler: ignoring ARGS (unexpected \"$a\")" >&2
+        extra=()
+        break
+    fi
+done
+exec "$bin" "${extra[@]}"
