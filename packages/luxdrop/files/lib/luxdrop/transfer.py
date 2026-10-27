@@ -58,12 +58,23 @@ def parse_addr(text, default_port=proto.DEFAULT_PORT):
     return text, default_port
 
 
+# TLS 1.3 sady (PROTOCOL.md 4.1): AES-256-GCM ma vzdy prednost. Aplikace LuxOS Companion pro
+# Android prijme jen TLS_AES_256_GCM_SHA384 a Android (BoringSSL) nabizi jako klient AES-128
+# nebo ChaCha20 na prvnim miste - rozhoduje proto poradi serveru.
+TLS13_AES256 = "TLS_AES_256_GCM_SHA384"
+TLS13_SERVER_ORDER = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256"
+
+
 def server_context(identity):
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.minimum_version = ssl.TLSVersion.TLSv1_3
     ctx.load_cert_chain(identity.cert_path, identity.key_path)
     ctx.set_alpn_protocols([proto.ALPN])
     ctx.verify_mode = ssl.CERT_NONE  # klient se prokazuje podpisem ve zprave auth
+    # Vybira server podle sveho poradi (Python to nastavuje i sam, tady vyslovne)
+    ctx.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
+    if hasattr(ctx, "set_ciphersuites"):  # Python 3.15+; jinak vychozi poradi OpenSSL (AES-256 prvni)
+        ctx.set_ciphersuites(TLS13_SERVER_ORDER)
     return ctx
 
 
@@ -75,6 +86,11 @@ def client_context():
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     ctx.set_alpn_protocols([proto.ALPN])
+    # Vychozi nabidka OpenSSL uz zacina AES-256-GCM. Android bez AES v hardwaru ale jako server
+    # vybere ChaCha20 pred AES - od Pythonu 3.15 proto nabizime jen AES-256-GCM (umi ho kazda
+    # implementace LuxDrop v1, viz PROTOCOL.md 4.1).
+    if hasattr(ctx, "set_ciphersuites"):
+        ctx.set_ciphersuites(TLS13_AES256)
     return ctx
 
 
@@ -273,10 +289,15 @@ class Receiver:
                 ch.error(proto.E_INTERNAL, "internal error")
         finally:
             self.active.discard(t)
-            try:
-                conn.close()
-            except OSError:
-                pass
+            # wrap_socket() prevzal deskriptor - zavrit se musi TLS soket. Jinak by zustal otevreny,
+            # dokud UI drzi Transfer (t.sock), a odesilatel (napr. Android) by cekal na konec spojeni.
+            for s in (t.sock, conn):
+                try:
+                    if s is not None:
+                        s.close()
+                except OSError:
+                    pass
+            t.sock = None
             if t.state in ("failed", "cancelled"):
                 log("incoming from %s (%s): %s: %s" % (fmt_addr(addr[0], addr[1]), t.peer_id or "?", t.code, t.error))
             if t.items and t.state != "done" and t.state != "declined":

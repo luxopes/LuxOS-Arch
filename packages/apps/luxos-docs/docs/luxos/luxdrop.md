@@ -4,7 +4,8 @@ LuxDrop (`luxdrop`, package `luxdrop`) sends files, folders and text securely to
 same local network. It speaks two protocols:
 
 - **LuxDrop protocol** (LuxOS ↔ LuxOS): TLS 1.3, pinned keys and a 6-digit verification code. This
-  is the default whenever both sides run LuxOS.
+  is the default whenever both sides run LuxOS. The Android app **LuxOS Companion** (0.3 and newer)
+  speaks it too – see [Android phone](#android-phone-luxos-companion).
 - **LocalSend protocol v2** (v2.2, compatible with 2.0/2.1): for the LocalSend app on Android,
   phones and tablets, Windows and other Linux systems. It uses HTTPS with mutual TLS.
 
@@ -96,6 +97,29 @@ luxdrop connections
 luxdrop share [status | on | off | add FOLDER [--yes] | remove FOLDER]
 luxdrop share forget|allow-write|read-only ID
 ```
+
+## Android phone (LuxOS Companion)
+
+The LuxDrop tab of the Android app **LuxOS Companion** (0.3 or newer, Android 10+) uses the LuxDrop
+protocol – the same encryption, pinned keys and verification code as between two LuxOS computers,
+not the LocalSend mode. It needs only the same Wi-Fi or hotspot, not Bluetooth.
+
+- **Phone → computer**: turn receiving on in LuxDrop on the computer. Run `luxdrop id` (or open
+  Settings › Security) and type or paste the whole **key fingerprint** into the app, together with
+  the computer's IP address and port 47923. The app checks the key before it sends anything; a
+  wrong or changed key stops the transfer. On the first transfer the computer shows the
+  verification code – compare it with the phone and Accept. The app sends one file at a time;
+  an interrupted transfer continues where it stopped.
+- **Computer → phone**: in the app, turn on receiving (for 10 minutes). The phone then appears in
+  LuxDrop under Nearby devices (or use Connect by address with the phone's IP). Compare the code on
+  both screens; the phone always asks before it accepts. The phone takes at most **16 files and
+  1 GiB** per transfer and **no folders** – a bigger offer ends with "connection lost". Received
+  files stay encrypted in the app until you export them.
+- The app finds the computer only by address (it does not browse mDNS); the computer finds the
+  phone over mDNS only while the phone is receiving.
+- The app accepts only the TLS suite AES-256-GCM. LuxOS prefers it as a receiver. As a sender,
+  LuxOS offers it first, which phones with AES hardware (almost all) accept; a phone without AES
+  hardware may pick another suite and the app then stops the transfer.
 
 ## Background receiving
 
