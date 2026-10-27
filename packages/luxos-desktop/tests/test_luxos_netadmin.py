@@ -241,6 +241,24 @@ class Tools(unittest.TestCase):
                 os.environ.clear()
                 os.environ.update(old)
 
+    def test_ping_localized_system(self):
+        # cesky system: ping by psal "1 paketu odeslano, 1 prijato" - spousti se s LC_ALL=C
+        with tempfile.TemporaryDirectory() as d:
+            fake = os.path.join(d, "ping")
+            with open(fake, "w") as f:
+                f.write('#!/bin/sh\nif [ "$LC_ALL" = C ]; then\n'
+                        'echo "1 packets transmitted, 1 received, 0% packet loss, time 0ms"\n'
+                        'echo "rtt min/avg/max/mdev = 0.2/0.25/0.3/0.0 ms"\nelse\n'
+                        'echo "1 paketu odeslano, 1 prijato, 0% packet loss, time 0ms"\nfi\n')
+            os.chmod(fake, 0o755)
+            old = os.environ.copy()
+            os.environ.update({"LUXOS_PING": fake, "LANG": "cs_CZ.UTF-8", "LC_ALL": "cs_CZ.UTF-8"})
+            try:
+                self.assertEqual(na.ping("10.0.2.2", count=1), {"sent": 1, "received": 1, "avg": 0.25})
+            finally:
+                os.environ.clear()
+                os.environ.update(old)
+
     def test_dns(self):
         ok, ms, addrs = na.dns_test("x", resolver=lambda h, p: [(2, 1, 6, "", ("1.2.3.4", p))])
         self.assertTrue(ok)
