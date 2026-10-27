@@ -404,8 +404,11 @@ class BackupWindow(Gtk.Window):
             was = getattr(self, "_running", False)
             self.refresh_status()
             self._running = not self.now_btn.get_sensitive() and bool(self.cfg["disks"])
-            if was and not self._running:
+            # "Posledni zaloha" u disku: i po kratke zaloze, ktera skoncila mezi dvema kontrolami
+            last = core.load_status().get("last_by_disk")
+            if (was and not self._running) or last != getattr(self, "_last_by_disk", last):
                 self.fill_disks()
+            self._last_by_disk = last
         return True
 
     def on_now(self, _b):
