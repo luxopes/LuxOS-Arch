@@ -9774,7 +9774,8 @@
    "gcc"
   ],
   "patches": {
-   "luxos-autoheader.patch": "64d3542e99496e364bbb7253977b0280a42f8da5ed6d2f6a43ee18625376791d"
+   "luxos-autoheader.patch": "64d3542e99496e364bbb7253977b0280a42f8da5ed6d2f6a43ee18625376791d",
+   "luxos-cups2.patch": "8603a99842de6b99834b05a2cc80682af09c1f7e6c078e9f3813b01851345d16"
   },
   "pkgnames": [
    "cnijfilter-mg3100"
@@ -9785,7 +9786,8 @@
    "cnijfilter-source-3.60-1.tar.gz": "7e4f91a0aebfa32d75da046a20bab992bd6032bb2069cf0091e77d8119a489de",
    "cups.patch": "ceb3701533b8533c07435b711e1873f402bcf254fcad5b891bb16d0fe3ff3ad1",
    "id.po.patch": "b535f0cf501ec4023a3166f85d230d9c0da24e3cdaa5ba3ba435669cb14cbd4c",
-   "libpng15.patch": "5a4c74135b5094a3af20f74c7d1ffdeae1436247230b7a83f8c1d3a3c6d04993"
+   "libpng15.patch": "5a4c74135b5094a3af20f74c7d1ffdeae1436247230b7a83f8c1d3a3c6d04993",
+   "luxos-cups2.patch": "b30e166d083179af5aee5faa41c67ba4ea37d1cbf9d5cbdd49ed59528bc49b9f"
   },
   "vendor": "canon",
   "verified": "2026-10-27",
@@ -9843,7 +9845,8 @@
    "gawk"
   ],
   "patches": {
-   "luxos-autoheader.patch": "b41d06beee224ce95a3b4f9da6cd1640f9645587401186a27b5e87fdc43a03ef"
+   "luxos-autoheader.patch": "b41d06beee224ce95a3b4f9da6cd1640f9645587401186a27b5e87fdc43a03ef",
+   "luxos-cups2.patch": "87f5a07821e96ffbd21f70cd9fc88507839f92e9c894fbbf65ba8766125128f8"
   },
   "pkgnames": [
    "cnijfilter-mg4100"
@@ -9853,7 +9856,8 @@
    "cnijfilter-source-3.60-1.tar.gz": "7e4f91a0aebfa32d75da046a20bab992bd6032bb2069cf0091e77d8119a489de",
    "configures.patch": "89c48f640d804cab0c4a321a56a4e7bdaf393760096f38a36f32f80e21f8af63",
    "cups.patch": "877eacb9a5bc427ec756f4efa7b0c95f8cda9a2e18cda054d8754502e9a25141",
-   "libpng15.patch": "f1ba52d4003427ac02249fb91cef492e23f37d1cd912bf433f7841f71baf0f27"
+   "libpng15.patch": "f1ba52d4003427ac02249fb91cef492e23f37d1cd912bf433f7841f71baf0f27",
+   "luxos-cups2.patch": "b30e166d083179af5aee5faa41c67ba4ea37d1cbf9d5cbdd49ed59528bc49b9f"
   },
   "vendor": "canon",
   "verified": "2026-10-27",
@@ -9895,7 +9899,8 @@
    "gawk"
   ],
   "patches": {
-   "luxos-autoheader.patch": "40e14ba1517ed8712d7883d2f4da765e1c87e3434b41fcfa7bdbfd565f9077a2"
+   "luxos-autoheader.patch": "40e14ba1517ed8712d7883d2f4da765e1c87e3434b41fcfa7bdbfd565f9077a2",
+   "luxos-cups2.patch": "0c944ee9ac176a5dc53563bfa0969bd7d692ea413ecff98b8c1c251219f921cf"
   },
   "pkgnames": [
    "cnijfilter-mg5300"
@@ -9906,7 +9911,8 @@
    "cnijfilter-source-3.60-1.tar.gz": "7e4f91a0aebfa32d75da046a20bab992bd6032bb2069cf0091e77d8119a489de",
    "cups.patch": "0b0cad3fad763a35d06550eda1c9de9b7592d4b29b2acb4a927efcad77fbb76c",
    "id.po.patch": "b535f0cf501ec4023a3166f85d230d9c0da24e3cdaa5ba3ba435669cb14cbd4c",
-   "libpng.patch": "f1723e8e6a84942bd9fcfefef3efb20a40384ffb449101eccecf02aac929399c"
+   "libpng.patch": "f1723e8e6a84942bd9fcfefef3efb20a40384ffb449101eccecf02aac929399c",
+   "luxos-cups2.patch": "b30e166d083179af5aee5faa41c67ba4ea37d1cbf9d5cbdd49ed59528bc49b9f"
   },
   "vendor": "canon",
   "verified": "2026-10-27",
@@ -9920,7 +9926,8 @@
    "cups"
   ],
   "patches": {
-   "luxos-autoheader.patch": "9abc8dfb7f856e35cc487fc66c2bca4027a78151fb3f2079be5787f68f457bf2"
+   "luxos-autoheader.patch": "9abc8dfb7f856e35cc487fc66c2bca4027a78151fb3f2079be5787f68f457bf2",
+   "luxos-cups2.patch": "d41cca316204651da7bf81694ccf255aec93dc8cf835b049f9dd2479e847154f"
   },
   "pkgnames": [
    "cnijfilter-mg6100"
@@ -9931,7 +9938,8 @@
    "fix_configures.patch": "cf952d5f1e9bfe10a1eee79cad3d769fd74bd8a786729bc03de1b17ef12f5024",
    "fix_cups.patch": "22573a2e1bab43a6885102da778208616479c535ba93234b0deddcf1eb690502",
    "fix_png.patch": "ad54cb2886ac47773943b22bee55cf708d123c1d8e971b5323f4707fdcbdffb1",
-   "fix_ppd_mg6100.patch": "e228f902a24994a23ff14bbe1eefe414541d37c38bcdf11a17210eb1743d308d"
+   "fix_ppd_mg6100.patch": "e228f902a24994a23ff14bbe1eefe414541d37c38bcdf11a17210eb1743d308d",
+   "luxos-cups2.patch": "b30e166d083179af5aee5faa41c67ba4ea37d1cbf9d5cbdd49ed59528bc49b9f"
   },
   "vendor": "canon",
   "verified": "2026-10-27",
@@ -9977,7 +9985,8 @@
    "gawk"
   ],
   "patches": {
-   "luxos-autoheader.patch": "af07bc6d9c9466d63339e37915fa00a61cf4b2cc9aa33de881f2af2943a6e96e"
+   "luxos-autoheader.patch": "af07bc6d9c9466d63339e37915fa00a61cf4b2cc9aa33de881f2af2943a6e96e",
+   "luxos-cups2.patch": "f45dadd2ec0a7337eac9195a9cbd0a6cf4c596936e3671614a3548501a457567"
   },
   "pkgnames": [
    "cnijfilter-mg6300"
@@ -9987,7 +9996,8 @@
    "cnijfilter-source-3.80-1.tar.gz": "8b6d408f18191f19465ee8fc31aa08455e8bec186fdd3f02ee822f53a9b086a9",
    "configures.patch": "d89861dc21ded396b5ebb2c3c18032d93568fd6074a4d0e14459f41a78dfc3b3",
    "cups.patch": "67fd118125b6039d290865c7e7272d4cef74e1f1cbdf573ac184db933582884f",
-   "libpng15.patch": "8dba6695b3ea3b01a3687e00e3749819bf20316c79bf1ee4c033baff5166c4c6"
+   "libpng15.patch": "8dba6695b3ea3b01a3687e00e3749819bf20316c79bf1ee4c033baff5166c4c6",
+   "luxos-cups2.patch": "b30e166d083179af5aee5faa41c67ba4ea37d1cbf9d5cbdd49ed59528bc49b9f"
   },
   "vendor": "canon",
   "verified": "2026-10-27",
