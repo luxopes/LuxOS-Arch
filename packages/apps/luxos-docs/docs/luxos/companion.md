@@ -5,7 +5,8 @@ Bluetooth. With it the phone can:
 
 - share its **live GPS location** with **Maps** (the blue dot follows you),
 - send text requests to **LuxAI** (Chat or Agent) and show the streamed answer,
-- save **notes to the Calendar** of the computer.
+- save **notes to the Calendar** of the computer,
+- send and receive **files with LuxDrop** over Wi-Fi (app 0.3 and newer, Android 10+).
 
 The computer side is the package `luxos-companion` (installed by default): a small service in your
 session (`luxos-companion.service`, systemd user unit) and the settings window **Phone**
@@ -120,9 +121,18 @@ bar shows it right away):
 - Writing is coordinated with the Calendar: a lock, re-reading the file right before writing, an atomic
   replace, and the Calendar takes over events added by other programs before it saves its own changes.
 
+## Files (LuxDrop)
+
+The LuxDrop tab of the app (0.3 and newer) does not use Bluetooth: it sends files over the local
+Wi-Fi or hotspot with the LuxDrop protocol (TLS 1.3, pinned keys, verification code), the same as
+between two LuxOS computers. To send to the computer, enter its IP address and the key fingerprint
+from `luxdrop id`; to receive, turn on receiving in the app for 10 minutes and pick the phone in
+LuxDrop. Limits on the phone: one file per send, at most 16 files and 1 GiB per received transfer,
+no folders. Details in [LuxDrop](luxdrop.md#android-phone-luxos-companion).
+
 ## Protocol and troubleshooting
 
-Bluetooth Classic RFCOMM, service UUID `ad9b7c10-6ce5-4f35-9952-728f760fcb70`, registered in BlueZ
+The Bluetooth protocol (v1) is the same for app versions 0.2 and 0.3. Bluetooth Classic RFCOMM, service UUID `ad9b7c10-6ce5-4f35-9952-728f760fcb70`, registered in BlueZ
 with `ProfileManager1.RegisterProfile` (role server, authentication and authorization required, no
 auto-connect). Frames are one JSON object per line (UTF-8, at most 65 536 bytes including the newline);
 invalid UTF-8, oversized or unfinished frames and unsupported versions close the connection. The phone

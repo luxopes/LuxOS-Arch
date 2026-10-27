@@ -102,6 +102,21 @@ Byte strings are written in hex. `||` means concatenation.
     key of the certificate. Every TLS stack checks it, whatever trust manager you use.
 * The application uses no session resumption or 0-RTT.
 
+### 4.1 Cipher suites
+
+* Every implementation MUST support `TLS_AES_256_GCM_SHA384`. The other TLS 1.3 suites
+  (`TLS_CHACHA20_POLY1305_SHA256`, `TLS_AES_128_GCM_SHA256`) MAY be enabled.
+* **Server (receiver):** chooses by its own order (OpenSSL `SSL_OP_CIPHER_SERVER_PREFERENCE`)
+  with `TLS_AES_256_GCM_SHA384` first, so it picks AES-256-GCM whenever the client offers it,
+  whatever the client's order. LuxOS uses the order AES-256-GCM, ChaCha20-Poly1305,
+  AES-128-GCM.
+* **Client (sender):** offers `TLS_AES_256_GCM_SHA384` first. LuxOS on Python 3.15 and newer
+  offers only this suite, because a receiver on Android without AES hardware (BoringSSL)
+  prefers ChaCha20 as a server.
+* A peer MAY refuse to continue after the handshake if a different suite was negotiated. The
+  LuxOS Companion app for Android does this: it accepts only `TLS_AES_256_GCM_SHA384`.
+  Android cannot disable single TLS 1.3 suites, so the app checks the result instead.
+
 ## 5. Framing
 
 All application data inside TLS is a sequence of frames:
@@ -384,6 +399,12 @@ isolation), use "Scan the local network" or "Connect by address".
 * Write received data to app storage and verify it before moving it to the Downloads
   collection (`MediaStore`). Apply the same path rules as in section 8.1.
 * Reuse the vectors from section 6.4 as unit tests.
+* As a server, Android (BoringSSL) cannot be told which TLS 1.3 suite to prefer. With AES
+  hardware it follows the client's order; without it, it prefers ChaCha20 (section 4.1).
+* The LuxOS Companion app (from version 0.3.0) implements this part: it sends one file to a
+  computer whose full key fingerprint the user enters, and it receives up to 16 files
+  (no folders, at most 1 GiB) while its 10-minute receive mode is on. It announces itself
+  over mDNS only while receiving.
 
 ## 14. Part B – LocalSend protocol v2
 
