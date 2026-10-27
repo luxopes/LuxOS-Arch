@@ -53,6 +53,7 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 - **Bez tapet „vlny“** (`luxos-waves-dark`, `luxos-waves-light`): v LuxOS 1.0 zůstávají jen nové tapety. Kdo měl vlny nastavené, dostane po přihlášení Flow ve stejném režimu (tmavém nebo světlém).
 
 ### Opraveno
+- **Balíky komunity (AUR) s podepsanými zdroji se v sandboxu sestaví** (`luxos-sandbox`): klíče autorů z `validpgpkeys` (např. `neofetch`) se před sestavením stáhnou do klíčenky uživatele sandboxu (hostitel se nemění, jako yay/paru); dřív sestavení skončilo „unknown public key … One or more PGP signatures could not be verified“.
 - **LuxDrop: „Zobrazit ve složce“ v oznámení o přijatém souboru nic nedělalo**, když byla složka pro příjem výchozí (prázdné nastavení). Teď otevře Soubory a přijatý soubor v nich označí.
 - **Všechny aplikace a horní lišta najednou spadly** po nedostatku paměti: earlyoom ukončil sběrnici přístupnosti (at-spi) a když se později znovu spustila, všechny běžící aplikace GTK se ukončily. earlyoom ji teď nechává být (`luxos-tweaks`).
 - **LuxDrop po odmítnutí nebo dokončení příjmu hned zavře spojení**: přijímač zavíral jen původní soket, ne šifrované spojení, a to zůstalo otevřené, dokud okno drželo záznam o přenosu. Odesílatel, který na konec spojení čeká (aplikace pro Android), po „Odmítnout“ visel až do vypršení času.
