@@ -74,5 +74,30 @@ class FoundNotice(unittest.TestCase):
         self.assertEqual(len(self.calls()), 2)
 
 
+    def test_same_content_in_two_places_once(self):
+        """Kopie stejneho souboru (pracovni slozky gitu, zalohy) jen jedno upozorneni."""
+        mod = load_agent()
+        agent = mod.Agent(sock_path="/nonexistent")
+        copy = os.path.join(self.tmp, "copy", "helper.sh")
+        os.makedirs(os.path.dirname(copy))
+        with open(self.file) as src, open(copy, "w") as dst:
+            dst.write(src.read())
+        for path in (self.file, copy):
+            agent.handle({"op": "found", "path": path, "reasons": ["changes sudo, polkit or login (PAM) security"]})
+        self.assertEqual(len(self.calls()), 1)
+
+    def test_restarts_after_update(self):
+        """Nahrazeny soubor pomocnika (aktualizace) = zmena razitek -> spusteni nove verze."""
+        mod = load_agent()
+        a = mod.file_stamps()
+        fake = os.path.join(self.tmp, "agent-copy")
+        with open(fake, "w") as f:
+            f.write("x")
+        mod.UPDATE_FILES[0] = fake
+        b = mod.file_stamps()
+        os.replace(self.file, fake)          # novy inode jako pri instalaci baliku
+        self.assertNotEqual(b, mod.file_stamps())
+        self.assertNotEqual(a, b)
+
 if __name__ == "__main__":
     unittest.main()
