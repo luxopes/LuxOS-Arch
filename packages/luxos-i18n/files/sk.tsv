@@ -3875,3 +3875,4 @@ A computer with this name is already in the domain. Choose another name or ask y
 The clock of this computer differs from the domain by more than 5 minutes. Set the clock from the domain and try again.	Hodiny tohto počítača sa od domény líšia o viac ako 5 minút. Nastavte hodiny podľa domény a skúste to znova.
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Názov počítača pre doménu môže mať najviac 15 písmen, číslic a pomlčiek.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Doména sa v DNS nenašla. Skontrolujte, či počítač používa DNS server organizácie (zvyčajne z DHCP), alebo zadajte adresu radiča domény.
+Sign In to Network…	Prihlásiť sa do siete…

@@ -599,7 +599,12 @@ function on_sigusr2():
     return True
 end
 
+# SIGTERM/SIGINT (kill, konec relace): nenulovy kod - smycka v luxos-session hub spusti znovu, dokud
+# bezi X (po odhlaseni uz ne); kod 0 by smycku ukoncil a sit, portal ani lista by se nehlidaly
 function on_quit():
+    if hub["exit"] == 0:
+        hub["exit"] = 143
+    end
     call gtk.main_quit()
     return False
 end
