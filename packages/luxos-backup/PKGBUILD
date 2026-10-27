@@ -7,7 +7,7 @@
 
 pkgname=luxos-backup
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxOS Backups - automatic incremental backups to an external or network disk and restoring files"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"

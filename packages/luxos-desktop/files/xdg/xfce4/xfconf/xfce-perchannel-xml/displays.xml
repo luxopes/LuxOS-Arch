@@ -2,5 +2,5 @@
 <!-- LuxOS: pripojeni monitoru resi luxos-displays (luxos-session), ne dialog Xfce -->
 <channel name="displays" version="1.0">
   <property name="Notify" type="int" value="0"/>
-  <property name="AutoEnableProfiles" type="bool" value="false"/>
+  <property name="AutoEnableProfiles" type="int" value="0"/>
 </channel>

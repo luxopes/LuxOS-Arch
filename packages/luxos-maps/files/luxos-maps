@@ -905,12 +905,26 @@ def system_dark():
     return "dark" in (s.props.gtk_theme_name or "").lower() or bool(s.props.gtk_application_prefer_dark_theme)
 
 
+def default_window_size(width=1120, height=740):
+    """Vychozi velikost okna, aby se i s hlavickou (~45 px) vesla do pracovni plochy monitoru
+    (1280x800 i 1366x768: jinak okno presahovalo dolni okraj a atribuce OSM nebyla videt)."""
+    try:
+        display = Gdk.Display.get_default()
+        mon = display.get_primary_monitor() or display.get_monitor(0)
+        wa = mon.get_workarea()
+        width = max(560, min(width, wa.width - 40))
+        height = max(420, min(height, wa.height - 45 - 24))
+    except (AttributeError, TypeError):
+        pass
+    return width, height
+
+
 class MapsWindow(Gtk.Window):
     def __init__(self, application=None):
         super().__init__(title=_("Maps"))
         if application:
             self.set_application(application)
-        self.set_default_size(1120, 740)
+        self.set_default_size(*default_window_size())
         self.set_size_request(560, 420)
         set_window_icons(self)
         self.cfg = lm.load_config()

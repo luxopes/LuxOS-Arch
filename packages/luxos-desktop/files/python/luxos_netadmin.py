@@ -367,7 +367,9 @@ def parse_ping(text):
 def ping(host, count=4, timeout=2):
     argv = [_cmd("LUXOS_PING", "ping"), "-n", "-c", str(count), "-W", str(timeout), host]
     try:
-        r = subprocess.run(argv, capture_output=True, text=True, timeout=count * (timeout + 1) + 5)
+        # vystup se cte regularnimi vyrazy - anglicky (cesky ping pise "1 paketu odeslano, 1 prijato")
+        r = subprocess.run(argv, capture_output=True, text=True, timeout=count * (timeout + 1) + 5,
+                           env={**os.environ, "LC_ALL": "C"})
         return parse_ping(r.stdout)
     except (OSError, subprocess.TimeoutExpired):
         return parse_ping("")
