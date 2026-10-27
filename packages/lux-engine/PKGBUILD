@@ -9,8 +9,9 @@
 #
 # Rozdily oproti Archu (zamerne co nejmensi):
 #  - prepare(): vychozi cesty jadra jsou cesty LuxOS (sed v meson.build a skriptech, kontrola grepem):
-#      konfigurace jadra  /run/lux/engine.conf  (generuje ji lux-config z /etc/lux/lux.conf - vlastni
-#                                               format LuxOS, nikdo ji nepise rucne; misto /etc/pacman.conf)
+#      konfigurace jadra  /run/lux/engine.conf  (generuje ji lux-config z /etc/lux/lux.conf - TOML,
+#                                               nikdo ji nepise rucne; misto /etc/pacman.conf; jen pro
+#                                               nastroje v C - lux sam cte lux.conf primo)
 #      databaze           /var/lib/lux/         (misto /var/lib/pacman/)
 #      cache              /var/cache/lux/pkg/   (misto /var/cache/pacman/pkg/)
 #      log                /var/log/lux.log      (misto /var/log/pacman.log)
@@ -24,8 +25,9 @@
 #    makepkg -> pacman-conf a PACMAN=pacman, pacman-db-upgrade -> pacman-conf) jsou prejmenovana.
 #    Pouzivaji je lux, makepkg (/etc/makepkg.conf.d/lux-engine.conf), hooky a skriptlety (dedi PATH
 #    od lux), sluzby (drop-iny v /usr/lib/systemd/system/*.d/lux-engine.conf) a nastroje LuxOS.
-#  - /etc/lux/lux.conf, /etc/lux/mirrorlist (vlastni seznam zrcadel, bez pacman-mirrorlist)
-#    a lux-config (/usr/lib/lux/lux_config.py) jsou soucasti jadra
+#  - /etc/lux/lux.conf (TOML od LuxOS 1.0, starsi format "klic hodnota" se cte dal a hook ho jednou
+#    prevede), /etc/lux/mirrorlist (vlastni seznam zrcadel, bez pacman-mirrorlist) a lux-config
+#    (/usr/lib/lux/lux_config.py, parser TOML = tomllib z Pythonu) jsou soucasti jadra
 #  - zaloha konfigurace: libalpm uklada novou verzi zmeneneho souboru jako *.luxnew a zmeneny soubor
 #    odebraneho baliku jako *.luxsave (misto *.pacnew/*.pacsave; zaplata 0003, preklady sed v prepare(),
 #    udalosti API ALPM_EVENT_PACNEW_CREATED/PACSAVE_CREATED se nemeni - pyalpm beze zmeny)

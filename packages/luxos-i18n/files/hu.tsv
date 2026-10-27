@@ -2389,8 +2389,8 @@ Save Recording	Felvétel mentése
 The screenshot could not be copied to the clipboard.	A képernyőkép nem másolható a vágólapra.
 The file could not be moved to the Trash.	A fájl nem helyezhető a Kukába.
 lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check	A lux addig nem működik, amíg a beállítás nincs javítva (/etc/lux/lux.conf). Ellenőrzés: lux config check
-Usage: lux config [check|show|edit|engine]	Használat: lux config [check|show|edit|engine]
-check or edit /etc/lux/lux.conf	az /etc/lux/lux.conf ellenőrzése vagy szerkesztése
+Usage: lux config [check|show|edit|engine|migrate]	Használat: lux config [check|show|edit|engine|migrate]
+check, edit or convert /etc/lux/lux.conf to the new format	az /etc/lux/lux.conf ellenőrzése, szerkesztése vagy átalakítása az új formátumra
 reflector is not installed (lux install reflector)	A reflector nincs telepítve (lux install reflector)
 New version of %s from an update	%s új változata egy frissítésből
 [u] use the new version  [k] keep yours  [e] edit yours  [s] skip: 	[u] új változat használata  [k] saját megtartása  [e] saját szerkesztése  [s] kihagyás: 

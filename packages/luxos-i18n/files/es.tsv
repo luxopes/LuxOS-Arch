@@ -2389,8 +2389,8 @@ Save Recording	Guardar grabación
 The screenshot could not be copied to the clipboard.	No se pudo copiar la captura de pantalla al portapapeles.
 The file could not be moved to the Trash.	No se pudo mover el archivo a la papelera.
 lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check	lux no funcionará hasta que se corrija la configuración (/etc/lux/lux.conf). Compruébela con: lux config check
-Usage: lux config [check|show|edit|engine]	Uso: lux config [check|show|edit|engine]
-check or edit /etc/lux/lux.conf	comprobar o editar /etc/lux/lux.conf
+Usage: lux config [check|show|edit|engine|migrate]	Uso: lux config [check|show|edit|engine|migrate]
+check, edit or convert /etc/lux/lux.conf to the new format	comprobar, editar o convertir /etc/lux/lux.conf al nuevo formato
 reflector is not installed (lux install reflector)	reflector no está instalado (lux install reflector)
 New version of %s from an update	Nueva versión de %s de una actualización
 [u] use the new version  [k] keep yours  [e] edit yours  [s] skip: 	[u] usar la nueva versión  [k] conservar la suya  [e] editar la suya  [s] omitir: 

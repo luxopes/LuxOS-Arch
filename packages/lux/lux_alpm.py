@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 """lux_alpm - transakce a dotazy balicku pro lux pres libalpm (pyalpm).
 
-Pouziva databazi (/var/lib/lux), konfiguraci (/etc/lux/lux.conf -> /run/lux/engine.conf z lux-config,
-nactenou pres lux-engine-conf z jadra lux-engine - presne jako ji cte jadro), overovani podpisu, cache
-a hooky jadra. Spousti ho /usr/bin/lux; Obchod LuxOS a LuxOS Care s --machine.
+Pouziva databazi (/var/lib/lux), konfiguraci (/etc/lux/lux.conf - TOML, cte ji primo lux_config z jadra
+lux-engine, bez mezisouboru; s LUX_ENGINE_CONF=soubor syntaxe pacman.conf pres lux-engine-conf),
+overovani podpisu, cache a hooky jadra. Spousti ho /usr/bin/lux; Obchod LuxOS a LuxOS Care s --machine.
 
   lux_alpm.py [volby] PRIKAZ [argumenty]
 
@@ -393,8 +393,13 @@ def parse_siglevel(tokens, base=None, api=None):
     return level
 
 
+# Vychozi hodnoty jadra lux-engine (zkompilovane v libalpm/pacman-conf, viz PKGBUILD lux-engine)
+ENGINE_DEFAULTS = (("RootDir", "/"), ("DBPath", DEFAULT_DBPATH), ("CacheDir", DEFAULT_CACHEDIR),
+                   ("HookDir", "/etc/lux/hooks/"), ("GPGDir", "/etc/lux/keyring/"), ("LogFile", "/var/log/lux.log"))
+
+
 class EngineConf:
-    """Vystup `lux-engine-conf` (plne vyhodnocena konfigurace jadra z /run/lux/engine.conf)."""
+    """Konfigurace jadra: z lux.conf primo (from_lux) nebo vystup `lux-engine-conf` (syntaxe pacman.conf)."""
 
     def __init__(self, text):
         self.options = {}
@@ -417,6 +422,21 @@ class EngineConf:
             cur.setdefault(key, [])
             if sep:
                 cur[key].append(val)
+
+    @classmethod
+    def from_lux(cls, cfg):
+        """Z rozparsovane /etc/lux/lux.conf (lux_config.parse) - stejne hodnoty jako lux-engine-conf
+        nad vygenerovanou /run/lux/engine.conf, vcetne vychozich cest jadra."""
+        opts, repos = lux_config.engine_options(cfg)
+        c = cls("")
+        for directive, value in opts:
+            c.options.setdefault(directive, [])
+            if value is not None:
+                c.options[directive].append(value)
+        for directive, value in ENGINE_DEFAULTS:
+            c.options.setdefault(directive, [value])
+        c.repos = [{k: (list(v) if isinstance(v, list) else v) for k, v in r.items()} for r in repos]
+        return c
 
     def get(self, key, default=None):
         v = self.options.get(key)
@@ -456,6 +476,16 @@ def engine_conf_path():
 
 
 def load_engine_conf():
+    if hasattr(lux_config, "engine_options") and not os.environ.get("LUX_ENGINE_CONF"):
+        # LuxOS 1.0: /etc/lux/lux.conf primo (TOML i starsi format), bez /run/lux/engine.conf
+        # (lux-engine pred LuxOS 1.0 engine_options nema - pak jako drive pres lux-engine-conf)
+        try:
+            return EngineConf.from_lux(lux_config.parse(lux_config.LUX_CONF))
+        except lux_config.ConfigError as e:
+            raise LuxError("config", _("The package manager configuration has an error: %s") % e
+                           + "\n" + _("Fix it and check it with: lux config check"))
+        except OSError as e:
+            raise LuxError("config", f"{lux_config.LUX_CONF}: {e}", rc=EXIT_UNAVAILABLE)
     if lux_config is None and not os.environ.get("LUX_ENGINE_CONF"):
         # jadro z LuxOS 0.9.0 (luxos-pacman, /etc/pacman.conf) do vymeny za lux-engine
         cmd = ["lux-engine-conf" if shutil.which("lux-engine-conf") else "pacman-conf"]

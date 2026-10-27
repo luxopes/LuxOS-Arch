@@ -4,6 +4,7 @@
 # odkazy, dokud ho po restartu neuklidi lux (lux-engine-migrate finish). Na nove instalaci jen presune
 # databazi, kterou pacstrap/mkarchiso vytvori v /var/lib/pacman. LuxOS 1.0: jednou prejmenuje zalohy
 # konfigurace v /etc *.pacnew/*.pacsave/*.pacorig na *.luxnew/*.luxsave/*.luxorig.
+# Jednou prevede /etc/lux/lux.conf a conf.d/*.conf ze starsiho formatu (klic hodnota) na TOML.
 [Trigger]
 Operation = Install
 Operation = Upgrade

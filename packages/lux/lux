@@ -932,18 +932,22 @@ lux_mirrors() {  # jako root: reflector -> /etc/lux/mirrorlist (format lux: jedn
     return "$rc"
 }
 
-# lux config [check|show|edit|engine]: /etc/lux/lux.conf
+# lux config [check|show|edit|engine|migrate]: /etc/lux/lux.conf (TOML; starsi format LuxOS 0.9
+# se cte dal, migrate ho prevede - puvodni soubor zustane jako *.old-format)
 cmd_config() {
     case ${1:-check} in
         check)  "$LUX_CONFIG" check && "$LUX_CONFIG" ensure --quiet >/dev/null ;;
         show)   cat /etc/lux/lux.conf ;;
         engine) "$LUX_CONFIG" dump ;;
+        migrate)
+            if [[ ${2-} == --dry-run ]]; then "$LUX_CONFIG" migrate --dry-run; return; fi
+            as_root "$LUX_CONFIG" migrate && "$LUX_CONFIG" check ;;
         edit)
             if ((EUID == 0)); then "${EDITOR:-nano}" /etc/lux/lux.conf
             elif command -v sudoedit &>/dev/null; then SUDO_EDITOR=${EDITOR:-nano} sudoedit /etc/lux/lux.conf
             else as_root "${EDITOR:-nano}" /etc/lux/lux.conf; fi
             "$LUX_CONFIG" check ;;
-        *) die "$(T "Usage: lux config [check|show|edit|engine]")" ;;
+        *) die "$(T "Usage: lux config [check|show|edit|engine|migrate]")" ;;
     esac
 }
 
@@ -1115,7 +1119,7 @@ owns <file>|which package owns a file
 clean|clean cache and remove unneeded packages
 fix|repair a locked database and the signing keys
 configs|review and merge new config files (.luxnew)
-config check, edit|check or edit /etc/lux/lux.conf
+config check, edit, migrate|check, edit or convert /etc/lux/lux.conf to the new format
 history [n] [pkg]|recent package changes
 pack <dir> [out]|build a .lux package from a directory with lux.json
 drivers|detect and install missing drivers

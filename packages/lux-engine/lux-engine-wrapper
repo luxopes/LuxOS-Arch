@@ -1,7 +1,8 @@
 #!/bin/bash
 # LuxOS (lux-engine): spousteci skript nastroju jadra (/usr/lib/lux/alpm/bin/lux-engine, lux-engine-key,
 # lux-engine-conf, lux-engine-db-upgrade -> skutecne programy v /usr/lib/lux/alpm/libexec).
-# Jadro cte konfiguraci /run/lux/engine.conf, kterou z /etc/lux/lux.conf generuje lux-config.
+# Nastroje jadra v C ctou jen syntaxi pacman.conf: /run/lux/engine.conf, kterou z /etc/lux/lux.conf
+# (TOML) generuje lux-config. lux sam (lux_alpm.py) cte lux.conf primo.
 # Pred spustenim se overi, ze odpovida aktualnim zdrojum (hlavicka #@source: cas zmeny a velikost);
 # jinak ji lux-config vygeneruje znovu (root), resp. vytvori kopii pro uzivatele (--config).
 # Vlastni --config (instalator, testy) ma prednost a nic se negeneruje.

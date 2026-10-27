@@ -17,77 +17,118 @@ totéž `lux -Syu`.
 
 | Cesta | Co to je |
 |---|---|
-| `/etc/lux/lux.conf` | konfigurace (formát níže) – repozitáře, podpisy, podržené balíky, nastavení `lux` |
+| `/etc/lux/lux.conf` | konfigurace (TOML, popis níže) – repozitáře, podpisy, podržené balíky, nastavení `lux` |
 | `/etc/lux/conf.d/*.conf` | další soubory ve stejném formátu (repozitáře přidané balíky nebo správcem) |
+| `/etc/lux/lux.conf.old-format` | původní soubor ve formátu LuxOS 0.9 po převodu (`lux config migrate`) |
 | `/etc/lux/mirrorlist` | zrcadla repozitářů Arch Linuxu, jedna adresa na řádek (`lux mirrors`) |
-| `~/.config/lux/lux.conf` | vlastní nastavení `lux` pro uživatele (jen `aur`, `review-pkgbuild`, `flatpak`, `clean-keep`) |
+| `~/.config/lux/lux.conf` | vlastní nastavení `lux` pro uživatele (jen `[packages]` `aur`, `review_pkgbuild`, `flatpak`, `cache_keep`) |
 | `/var/lib/lux/` | databáze balíků (`local/`, `sync/`), `installed/` = balíky `.lux` |
-| `/var/cache/lux/pkg/` | stažené balíky (`lux clean` nechá `clean-keep` verzí) |
+| `/var/cache/lux/pkg/` | stažené balíky (`lux clean` nechá `cache_keep` verzí) |
 | `/var/log/lux.log` | záznam transakcí (`lux history`) |
 | `/etc/lux/keyring/` | klíčenka GnuPG pro podpisy balíků (`lux fix` ji opraví) |
 | `/etc/lux/hooks/` | vlastní hooky správce (`*.hook`, formát alpm-hooks) |
-| `/run/lux/engine.conf` | **vygenerovaná** konfigurace jádra – neupravovat, vzniká z `lux.conf` |
+| `/run/lux/engine.conf` | **vygenerovaná** konfigurace nástrojů jádra v C – neupravovat, vzniká z `lux.conf` |
 
 ## Konfigurace `/etc/lux/lux.conf`
 
-Vlastní formát LuxOS: na každém řádku `klíč  hodnota` (oddělené mezerami), `#` začíná komentář do
-konce řádku. Řádky odsazené mezerou nebo tabulátorem patří k řádku `repo NÁZEV` nad nimi. Po úpravě:
-`lux config check` (nebo `lux config edit`, které soubor otevře a hned zkontroluje).
+Od LuxOS 1.0 je `lux.conf` soubor **TOML**: tabulky `[general]`, `[downloads]`, `[security]`,
+`[packages]`, `[paths]`, jedna tabulka `[repo.NÁZEV]` na repozitář a `[include]`; v nich řádky
+`klíč = hodnota`. Text je v uvozovkách (`"auto"`), přepínače `true`/`false`, čísla bez uvozovek,
+seznamy `["a", "b"]` (smějí být na více řádcích, i s komentáři). `#` začíná komentář do konce řádku.
+Soubor čte přímo `lux` (modul `lux_config` z `lux-engine`, parser TOML ze standardní knihovny
+Pythonu). Po úpravě: `lux config check` (nebo `lux config edit`, které soubor otevře a hned
+zkontroluje).
 
+```toml
+# LuxOS Package Manager
+# Configuration: /etc/lux/lux.conf
+
+[general]
+architecture = "auto"
+color = true
+candy = true
+verbose = true
+
+[downloads]
+parallel = 10
+check_space = true
+user = "alpm"
+
+[security]
+signatures = "required"
+local_signatures = "optional"
+protect = ["lux-engine", "glibc"]
+
+[packages]
+aur = true
+review_pkgbuild = true
+flatpak = true
+cache_keep = 2
+hold = ["linux-firmware"]        # podržet balík (lux update ho přeskočí)
+
+# ── LuxOS repositories ────────────────────────
+
+[repo.luxos]
+server = "https://luxos.lux-ai.cz/repo/$repo/$arch"
+
+# ── Arch Linux repositories ───────────────────
+
+[repo.core]
+mirrors = "/etc/lux/mirrorlist"
+
+# ── Additional configuration ──────────────────
+
+[include]
+files = ["/etc/lux/conf.d/*.conf"]
 ```
-# LuxOS - konfigurace lux
-architecture        auto
-parallel-downloads  10
-signatures          required          # required | optional | never
-hold                linux-firmware    # podržet balík (lux update ho přeskočí)
-aur                 on
 
-repo luxos
-    server  https://luxos.lux-ai.cz/repo/$repo/$arch
+Proč `[include]` a ne samotné `include = …` na konci: v TOML patří každý řádek `klíč = hodnota`
+do tabulky nad ním, takže `include` pod `[repo.extra]` by byl klíč repozitáře `extra`. Samotné
+`include = …` je možné jen na začátku souboru (před první tabulkou). `lux` ho najde i pod
+repozitářem (a použije), ale `lux config check` napíše varování.
 
-repo core
-    mirrors  /etc/lux/mirrorlist
+### Klíče
 
-include  /etc/lux/conf.d/*.conf
-```
+| Tabulka | Klíč | Hodnota (výchozí) | Význam |
+|---|---|---|---|
+| `[general]` | `architecture` | text nebo seznam (`"auto"`) | architektura balíků (`auto` = podle systému) |
+| | `color`, `candy`, `verbose` | `true` \| `false` (`true`) | barvy, pruh ve stylu Pac-Mana, podrobné seznamy |
+| | `syslog` | `true` \| `false` (`false`) | záznam i do systémového deníku |
+| `[downloads]` | `parallel` | číslo ≥ 1 (`10`) | kolik souborů se stahuje najednou |
+| | `check_space` | `true` \| `false` (`true`) | kontrola místa na disku |
+| | `user` | uživatel \| `"none"` (`"alpm"`) | pod kým se stahuje (bez práv roota) |
+| | `timeout` | `true` \| `false` (`true`) | `false` = čekat na pomalá zrcadla bez časového limitu |
+| | `sandbox` | `true` \| `false` (`true`) | omezení procesu, který stahuje |
+| `[security]` | `signatures` | `"required"` \| `"optional"` (`"required"`) | kontrola podpisů balíků a databází; `"never"` jen u místního repozitáře (`file://`) |
+| | `local_signatures` | `"required"` \| `"optional"` \| `"never"` (`"optional"`) | podpisy balíků instalovaných ze souboru (sestavení z AUR) |
+| | `protect` | seznam balíků (`["lux-engine", "glibc"]`) | balíky, u kterých se `lux remove` zeptá, i s `-y` je neodebere |
+| `[packages]` | `aur` | `true` \| `false` (`true`) | balíky z AUR (sestavují se na tomto počítači) |
+| | `review_pkgbuild` | `true` \| `false` (`true`) | před sestavením z AUR nabídnout kontrolu skriptu |
+| | `flatpak` | `true` \| `false` (`true`) | `lux update` aktualizuje i aplikace Flatpak |
+| | `cache_keep` | číslo (`2`) | kolik verzí balíku nechá `lux clean` v cache |
+| | `hold` | seznam balíků | podržené balíky – `lux update` je neaktualizuje |
+| | `ignore_group` | seznam skupin | totéž pro celé skupiny balíků |
+| | `no_upgrade` | seznam cest bez `/` na začátku | soubory, které aktualizace nepřepíše (nová verze jako `.luxnew`) |
+| | `no_extract` | seznam vzorů cest | soubory, které se z balíků vůbec nerozbalí (např. `usr/share/doc/*`) |
+| `[paths]` | `cache`, `hooks` | absolutní cesta nebo seznam | jiný adresář cache / hooků (výchozí `/var/cache/lux/pkg`, `/etc/lux/hooks`) |
+| | `database`, `log`, `keyring` | absolutní cesta | jiná databáze, log, klíčenka (výchozí viz *Soubory*) |
+| `[include]` | `files` | seznam cest nebo vzorů (`["/etc/lux/conf.d/*.conf"]`) | další soubory (relativní cesta = vůči souboru); čtou se po celém souboru |
 
-### Globální klíče
-
-| Klíč | Hodnota (výchozí) | Význam |
-|---|---|---|
-| `architecture` | `auto` | architektura balíků (`auto` = podle systému) |
-| `parallel-downloads` | číslo ≥ 1 (`10`) | kolik souborů se stahuje najednou |
-| `signatures` | `required` \| `optional` (`required`) | kontrola podpisů balíků a databází; `never` je povolené jen u místního repozitáře (`file://`) |
-| `local-signatures` | `required` \| `optional` \| `never` (`optional`) | podpisy balíků instalovaných ze souboru (sestavení z AUR) |
-| `hold` | názvy balíků (opakovatelný) | podržené balíky – `lux update` je neaktualizuje |
-| `ignore-group` | názvy skupin (opakovatelný) | totéž pro celé skupiny balíků |
-| `protect` | názvy balíků (`lux-engine glibc`) | balíky, u kterých se `lux remove` zeptá, i s `-y` je neodebere |
-| `no-upgrade` | cesty bez `/` na začátku (opakovatelný) | soubory, které aktualizace nepřepíše (nová verze jako `.luxnew`) |
-| `no-extract` | vzory cest (opakovatelný) | soubory, které se z balíků vůbec nerozbalí (např. `usr/share/doc/*`) |
-| `color`, `candy`, `verbose-lists`, `check-space` | `on` \| `off` (`on`) | barvy, pruh ve stylu Pac-Mana, podrobné seznamy, kontrola místa na disku |
-| `syslog` | `on` \| `off` (`off`) | záznam i do systémového deníku |
-| `download-timeout` | `on` \| `off` (`on`) | `off` = čekat na pomalá zrcadla bez časového limitu |
-| `download-user` | uživatel \| `none` (`alpm`) | pod kým se stahuje (bez práv roota) |
-| `download-sandbox` | `on` \| `off` (`on`) | omezení procesu, který stahuje |
-| `cache`, `hooks` | absolutní cesta (opakovatelný) | jiný adresář cache / hooků (výchozí `/var/cache/lux/pkg`, `/etc/lux/hooks`) |
-| `database`, `log`, `keyring` | absolutní cesta | jiná databáze, log, klíčenka (výchozí viz *Soubory*) |
-| `include` | cesta nebo vzor (`/etc/lux/conf.d/*.conf`) | načte další soubory ve stejném formátu |
-| `aur` | `on` \| `off` (`on`) | balíky z AUR (sestavují se na tomto počítači) |
-| `review-pkgbuild` | `on` \| `off` (`on`) | před sestavením z AUR nabídnout kontrolu skriptu |
-| `flatpak` | `on` \| `off` (`on`) | `lux update` aktualizuje i aplikace Flatpak |
-| `clean-keep` | číslo (`2`) | kolik verzí balíku nechá `lux clean` v cache |
+Seznamy ze všech souborů se sčítají (`hold` v `conf.d` přidá další balíky), ostatní hodnoty
+z později čteného souboru přepíší dřívější.
 
 ### Repozitáře
 
-`repo NÁZEV` začíná blok, odsazené řádky pod ním patří k repozitáři. Pořadí bloků je pořadí
-hledání balíků (první repozitář, který balík má, vyhrává).
+Tabulka `[repo.NÁZEV]`; pořadí tabulek je pořadí hledání balíků (první repozitář, který balík má,
+vyhrává; repozitáře z `[include]` jsou za repozitáři souboru). Název s tečkou nebo `+` patří do
+uvozovek: `[repo."muj.repo"]`; pomlčky a podtržítka ne (`[repo.luxos-apps]`).
 
-| Klíč v bloku | Hodnota | Význam |
+| Klíč | Hodnota | Význam |
 |---|---|---|
-| `server` | `https://…`, `http://…`, `ftp://…`, `file://…` (opakovatelný) | adresa repozitáře; `$repo` a `$arch` se doplní |
-| `mirrors` | cesta k seznamu zrcadel (opakovatelný) | adresy ze souboru (např. `/etc/lux/mirrorlist`) |
-| `signatures` | `required` \| `optional` \| `never` | jiná kontrola podpisů než globální (`never` jen pro `file://`) |
-| `usage` | `sync search install upgrade all` | k čemu se repozitář používá (výchozí `all`) |
+| `server` | `"https://…"`, `"http://…"`, `"ftp://…"`, `"file://…"` nebo seznam | adresa repozitáře; `$repo` a `$arch` se doplní |
+| `mirrors` | cesta k seznamu zrcadel nebo seznam | adresy ze souboru (např. `"/etc/lux/mirrorlist"`) |
+| `signatures` | `"required"` \| `"optional"` \| `"never"` | jiná kontrola podpisů než globální (`"never"` jen pro `file://`) |
+| `usage` | `["sync", "search", "install", "upgrade"]` nebo `"all"` | k čemu se repozitář používá (výchozí `all`) |
 
 ### Seznam zrcadel `/etc/lux/mirrorlist`
 
@@ -104,44 +145,90 @@ https://mirror.rackspace.com/archlinux/$repo/os/$arch
 ### Příklady
 
 - **Přidat repozitář** – nový soubor `/etc/lux/conf.d/muj.conf`:
-  ```
-  repo muj
-      server  https://example.org/$repo/$arch
+  ```toml
+  [repo.muj]
+  server = "https://example.org/$repo/$arch"
   ```
   Klíč repozitáře naimportuje `lux-engine-key` (`sudo /usr/lib/lux/alpm/bin/lux-engine-key --recv-keys ID`
   a `--lsign-key ID`), pak `lux update`. Repozitář `multilib` (Steam) zapne
   `sudo /usr/lib/lux/lux-config enable-repo multilib`.
-- **Podržet balík** na současné verzi: `hold  linux-firmware` (víc balíků na řádek nebo víc řádků).
+- **Podržet balík** na současné verzi: v `[packages]` `hold = ["linux-firmware"]` (víc balíků do seznamu).
 - **Jiná zrcadla**: `lux mirrors`, nebo upravit `/etc/lux/mirrorlist` (jedna adresa na řádek).
-- **Bez AUR**: `aur  off`; pro jednoho uživatele `~/.config/lux/lux.conf` s řádkem `aur off`.
+- **Bez AUR**: v `[packages]` `aur = false`; pro jednoho uživatele `~/.config/lux/lux.conf`:
+  ```toml
+  [packages]
+  aur = false
+  ```
 
-### Chyby
+### Chyby a varování
 
-Neznámý klíč, chybná hodnota nebo syntaxe pacman.conf (`[options]`, `Klíč = hodnota`) je chyba
-s názvem souboru a číslem řádku, např.:
+Chybná syntaxe nebo hodnota je chyba s názvem souboru a číslem řádku, např.:
 
 ```
-lux: error in the configuration: /etc/lux/lux.conf:12: unknown key 'paralel-downloads' (did you mean 'parallel-downloads'?)
+lux: error in the configuration: /etc/lux/lux.conf:11: 'parallel' in [downloads] must be a whole number of at least 1 (without quotes), not "10"
 lux: the package manager keeps using the last working configuration until this is fixed
 ```
 
 S chybou `lux` (i Obchod a LuxOS Care) nic neinstaluje ani neaktualizuje, dokud se soubor neopraví.
-Jádro (hooky, `makepkg`) zatím používá poslední funkční vygenerovanou konfiguraci
-(`/var/lib/lux/engine.conf.last-good`). Další hlášení: `repository 'x' has no 'server' or 'mirrors'
-line`, `mirror list … does not exist`, `mirror list … has no mirrors`, `'signatures never' is only
-allowed for a local repository (file://)`, `repository 'x' is already defined at soubor:řádek`,
-`indented line '…' does not belong to any 'repo' block`, `'server' belongs to a repository: indent it
-under a 'repo NAME' line`.
+Nástroje jádra (hooky, `makepkg`) zatím používají poslední funkční vygenerovanou konfiguraci
+(`/var/lib/lux/engine.conf.last-good`). Další hlášení: `'color' in [general] must be true or false,
+not "on"`, `Invalid value - text values need quotes`, `'hold  linux' is the old 'key value' format`,
+`repository 'x' has no 'server' or 'mirrors' line`, `mirror list … does not exist`,
+`'signatures never' is only allowed for a local repository (file://)`,
+`repository 'x' is already defined at soubor:řádek`, `this looks like pacman.conf`.
+
+**Neznámý klíč nebo tabulka** není chyba, jen varování v `lux config check` (s návrhem), klíč se
+nepoužije:
+
+```
+lux: warning: /etc/lux/lux.conf:12: unknown key 'paralel' in [downloads] (did you mean 'parallel'?) - ignored
+lux: warning: /etc/lux/lux.conf:7: unknown key 'parallel' in [general] (it belongs to [downloads]) - ignored
+```
+
+### Starší formát (LuxOS 0.9) a převod
+
+Formát LuxOS 0.9 (`klíč  hodnota` na řádku, odsazené řádky pod `repo NÁZEV`, `include …`) `lux`
+pořád čte – každý soubor (i v `conf.d`) se rozpozná sám; `lux config check` u něj napíše
+`uses the old LuxOS 0.9 format`. Klíče se převádějí 1:1:
+
+| LuxOS 0.9 | TOML | LuxOS 0.9 | TOML |
+|---|---|---|---|
+| `architecture` | `[general] architecture` | `aur` | `[packages] aur` |
+| `color`, `candy` | `[general] color`, `candy` | `review-pkgbuild` | `[packages] review_pkgbuild` |
+| `verbose-lists` | `[general] verbose` | `flatpak` | `[packages] flatpak` |
+| `syslog` | `[general] syslog` | `clean-keep` | `[packages] cache_keep` |
+| `parallel-downloads` | `[downloads] parallel` | `hold` | `[packages] hold` |
+| `check-space` | `[downloads] check_space` | `ignore-group` | `[packages] ignore_group` |
+| `download-user` | `[downloads] user` | `no-upgrade` | `[packages] no_upgrade` |
+| `download-timeout` | `[downloads] timeout` | `no-extract` | `[packages] no_extract` |
+| `download-sandbox` | `[downloads] sandbox` | `cache`, `hooks` | `[paths] cache`, `hooks` |
+| `signatures` | `[security] signatures` | `database`, `log`, `keyring` | `[paths] database`, `log`, `keyring` |
+| `local-signatures` | `[security] local_signatures` | `repo X` + `server`/`mirrors`/`signatures`/`usage` | `[repo.X]` se stejnými klíči |
+| `protect` | `[security] protect` | `include X` | `[include] files = ["X"]` |
+
+`on`/`off` → `true`/`false`, opakované řádky (`hold`, `server` …) → jeden seznam.
+**Převod:** `sudo lux config migrate` převede `/etc/lux/lux.conf` i soubory z `conf.d`
+(`lux config migrate --dry-run` jen ukáže výsledek). Hodnoty zůstanou stejné (převod se ověří, jinak
+se soubor nezmění), komentáře zůstanou u klíče nebo repozitáře, pod kterým byly, původní soubor
+zůstane jako `lux.conf.old-format`. Nezměněná výchozí konfigurace se nahradí přesně výchozím souborem
+balíku. Při aktualizaci na `lux-engine` z LuxOS 1.0 to hook `00-lux-engine-migrate` udělá jednou sám
+(značka `/var/lib/lux/config-format-toml`); `lux.conf.luxnew` s novou výchozí konfigurací, kterou
+po úpravě souboru nechal balík, pak smaže – soubor se jen převedl, není co slučovat. Soubor, který
+převést nejde (např. chybí seznam zrcadel), zůstane ve starém formátu a další aktualizace to zkusí
+znovu. Vlastní `~/.config/lux/lux.conf` převede `lux-config migrate ~/.config/lux/lux.conf`.
 
 ### Jak to funguje
 
-Jádro (libalpm a jeho nástroje) čte syntaxi INI, kterou nikdo nepíše ručně: `lux-config`
-(`/usr/lib/lux/lux-config`, balík `lux-engine`) z `lux.conf`, vložených souborů a seznamů zrcadel
-vygeneruje `/run/lux/engine.conf`. V hlavičce si pamatuje čas změny a velikost každého zdroje;
-`lux`, `lux_alpm.py`, LuxOS Care, Obchod i nástroje v `/usr/lib/lux/alpm/bin` (spouštěcí skripty
-před skutečnými programy v `/usr/lib/lux/alpm/libexec`) ji před spuštěním jádra ověří a při změně
-vygenerují znovu. Uživatel bez práv k `/run/lux` dostane vlastní kopii v `$XDG_RUNTIME_DIR/lux/`.
-Vygenerovanou konfiguraci ukáže `lux config engine`.
+`lux` (`lux_alpm.py`) čte `lux.conf`, vložené soubory a seznamy zrcadel přímo a z výsledku nastaví
+libalpm – bez mezisouboru. Stabilní rozhraní pro další nástroje LuxOS je `lux_config.load()`
+(slovník se všemi hodnotami včetně výchozích, repozitáři a varováními; v shellu
+`/usr/lib/lux/lux-config json`). Nástroje jádra převzaté z Archu (`lux-engine`, `lux-engine-key`,
+`makepkg` přes `lux-engine-conf`) jsou nezměněné programy v C, které umí jen syntaxi `pacman.conf`;
+pro ně `lux-config` (`/usr/lib/lux/lux-config`, balík `lux-engine`) vygeneruje `/run/lux/engine.conf`.
+V hlavičce si pamatuje čas změny a velikost každého zdroje; spouštěcí skripty v
+`/usr/lib/lux/alpm/bin` (před skutečnými programy v `/usr/lib/lux/alpm/libexec`) ji před spuštěním
+ověří a při změně vygenerují znovu. Uživatel bez práv k `/run/lux` dostane vlastní kopii
+v `$XDG_RUNTIME_DIR/lux/`. Vygenerovanou konfiguraci ukáže `lux config engine`.
 
 ### Přechod z LuxOS 0.9.5 a starších (pacman)
 
@@ -198,10 +285,10 @@ jméno balíku (`@@ERROR corrupt`).
 | `lux autoremove` | odebere závislosti, které už nic nepotřebuje | `-Rns $(-Qdtq)` |
 | `lux files <balík>` | soubory balíku | `-Ql` |
 | `lux owns <soubor>` (`owner`) | kterému balíku soubor patří (i příkaz z `PATH`) | `-Qo` |
-| `lux clean` | vyčistí cache (ponechá `clean-keep` verzí, odinstalované balíky smaže) a nabídne `autoremove` | `paccache -rk2`, `-ruk0` |
+| `lux clean` | vyčistí cache (ponechá `cache_keep` verzí, odinstalované balíky smaže) a nabídne `autoremove` | `paccache -rk2`, `-ruk0` |
 | `lux fix` | opraví zamčenou databázi (jen když žádný správce balíků neběží), smaže nedokončená stahování, obnoví podpisové klíče (`lux-engine-key --init/--populate`, `archlinux-keyring`, `luxos-keyring`) | |
 | `lux configs` | projde nové konfigurační soubory z aktualizací (`.luxnew`, `.luxsave`; i starší `.pacnew`, `.pacsave`): rozdíl, použít novou verzi, ponechat svou, upravit | `pacdiff` |
-| `lux config [check\|show\|edit\|engine]` | kontrola, výpis, úprava `/etc/lux/lux.conf`; `engine` = vygenerovaná konfigurace jádra | |
+| `lux config [check\|show\|edit\|engine\|migrate]` | kontrola (chyby i varování), výpis, úprava `/etc/lux/lux.conf`; `engine` = vygenerovaná konfigurace nástrojů jádra; `migrate` = převod ze starého formátu | |
 | `lux history [počet] [balík]` | poslední změny balíků z `/var/log/lux.log` | |
 | `lux mirrors` | nejrychlejší zrcadla (`reflector`) do `/etc/lux/mirrorlist` | |
 | `lux drivers`, `lux doctor`, `lux pack` | ovladače, kontrola systému (i konfigurace), sestavení `.lux` | |

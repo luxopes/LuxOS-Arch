@@ -120,9 +120,9 @@ applied with `lux system apply` - see [system-config.md](system-config.md).
 
 | Path | Owner | Purpose |
 |---|---|---|
-| `/etc/lux/lux.conf` | lux-engine | package manager configuration in LuxOS format (`key value`, `repo NAME` blocks): repositories, signatures, `hold`, `aur`, `flatpak`, `clean-keep` – see [package-management.md](package-management.md#configuration-etcluxluxconf) |
+| `/etc/lux/lux.conf` | lux-engine | package manager configuration (TOML: `[general]`, `[downloads]`, `[security]`, `[packages]`, `[repo.NAME]`, `[include]`): repositories, signatures, `hold`, `aur`, `flatpak`, `cache_keep` – see [package-management.md](package-management.md#configuration-etcluxluxconf) |
 | `/etc/lux/conf.d/*.conf`, `/etc/lux/mirrorlist` | admin / lux-engine | extra repositories; Arch mirrors (one address per line, `lux mirrors`) |
-| `/run/lux/engine.conf` | lux-config | generated engine config – never edit (there is no `/etc/pacman.conf`) |
+| `/run/lux/engine.conf` | lux-config | generated config for the C engine tools – never edit (there is no `/etc/pacman.conf`) |
 | `/etc/luxos/care.conf` | LuxOS Care | `MODE=carefree` (default if missing) or `classic` |
 | `/etc/luxos/esp.conf` | installer / LuxOS Care | EFI system partition directory and kernel (`ESP_DIR`, `KERNEL`) |
 | `/etc/luxos/templates.conf` | installer | app sets chosen at installation (`TEMPLATES=…`) |
