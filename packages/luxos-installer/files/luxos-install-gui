@@ -1035,14 +1035,18 @@ class Installer(Gtk.Window):
         return [("us", "")]
 
     # ---- 2. sit ----
+    def network_reason(self, online):
+        """Proc je potreba internet (Pruvodce nastavenim po instalaci ma vlastni text)."""
+        if online:
+            return _("LuxOS downloads the newest packages during installation.")
+        return _("LuxOS downloads the newest packages during installation. "
+                 "Choose a Wi-Fi network or plug in a network cable.")
+
     def page_network(self, page):
         if self.online:
-            self.heading(page, _("You are connected to the internet"),
-                         _("LuxOS downloads the newest packages during installation."))
+            self.heading(page, _("You are connected to the internet"), self.network_reason(True))
             return
-        self.heading(page, _("Connect to the internet"),
-                     _("LuxOS downloads the newest packages during installation. "
-                       "Choose a Wi-Fi network or plug in a network cable."))
+        self.heading(page, _("Connect to the internet"), self.network_reason(False))
         self.valid = lambda: bool(self.online)
         self.why = lambda: _("Connect to the internet to continue.")
         status = self.hint("")

@@ -3877,3 +3877,5 @@ The computer name for the domain may have at most 15 letters, digits and hyphens
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Het domein is niet gevonden in DNS. Controleer of de computer de DNS-server van de organisatie gebruikt (meestal via DHCP) of voer het adres van een domeincontroller in.
 Sign In to Network…	Aanmelden bij netwerk…
 The package lists are damaged or do not match their signatures. Refresh them first (lux update), then try again.	De pakketlijsten zijn beschadigd of komen niet overeen met hun handtekeningen. Vernieuw ze eerst (lux update) en probeer het daarna opnieuw.
+Updates, LuxAI and the correct time use the internet.	Updates, LuxAI en de juiste tijd gebruiken internet.
+Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Updates, LuxAI en de juiste tijd gebruiken internet. Kies een wifi-netwerk of sluit een netwerkkabel aan.

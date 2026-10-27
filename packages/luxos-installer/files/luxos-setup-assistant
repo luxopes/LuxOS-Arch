@@ -392,6 +392,13 @@ class SetupAssistant(gui.Installer):
         items = [(loc, label, label + " " + loc) for label, loc in gui.LANGS]
         self.search_list(page, items, self.s["locale"], self.choose_lang, height=250)
 
+    def network_reason(self, online):
+        # Pruvodce bezi az po instalaci - text instalatoru ("behem instalace stahuje balicky") nesedi
+        if online:
+            return _("Updates, LuxAI and the correct time use the internet.")
+        return _("Updates, LuxAI and the correct time use the internet. "
+                 "Choose a Wi-Fi network or plug in a network cable.")
+
     def page_network(self, page):
         gui.Installer.page_network(self, page)
         # Bez internetu jde pokracovat (Wi-Fi i LuxAI se daji nastavit pozdeji)
