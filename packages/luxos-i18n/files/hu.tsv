@@ -3877,3 +3877,5 @@ The computer name for the domain may have at most 15 letters, digits and hyphens
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	A tartomány nem található a DNS-ben. Ellenőrizd, hogy a gép a szervezet DNS-kiszolgálóját használja-e (általában DHCP-ből), vagy add meg egy tartományvezérlő címét.
 Sign In to Network…	Bejelentkezés a hálózatba…
 The package lists are damaged or do not match their signatures. Refresh them first (lux update), then try again.	A csomaglisták sérültek, vagy nem egyeznek az aláírásukkal. Először frissítse őket (lux update), majd próbálja újra.
+Updates, LuxAI and the correct time use the internet.	A frissítések, a LuxAI és a pontos idő internetet használ.
+Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	A frissítések, a LuxAI és a pontos idő internetet használ. Válasszon Wi-Fi-hálózatot, vagy csatlakoztasson hálózati kábelt.

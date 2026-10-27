@@ -3877,3 +3877,5 @@ The computer name for the domain may have at most 15 letters, digits and hyphens
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Domänen hittades inte i DNS. Kontrollera att datorn använder organisationens DNS-server (oftast via DHCP) eller ange adressen till en domänkontrollant.
 Sign In to Network…	Logga in på nätverket…
 The package lists are damaged or do not match their signatures. Refresh them first (lux update), then try again.	Paketlistorna är skadade eller stämmer inte med sina signaturer. Uppdatera dem först (lux update) och försök sedan igen.
+Updates, LuxAI and the correct time use the internet.	Uppdateringar, LuxAI och rätt tid använder internet.
+Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Uppdateringar, LuxAI och rätt tid använder internet. Välj ett wifi-nätverk eller anslut en nätverkskabel.

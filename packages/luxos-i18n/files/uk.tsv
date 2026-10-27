@@ -3878,3 +3878,5 @@ The computer name for the domain may have at most 15 letters, digits and hyphens
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Домен не знайдено в DNS. Перевірте, що комп’ютер використовує DNS-сервер організації (зазвичай із DHCP), або введіть адресу контролера домену.
 Sign In to Network…	Увійти в мережу…
 The package lists are damaged or do not match their signatures. Refresh them first (lux update), then try again.	Списки пакунків пошкоджені або не відповідають підписам. Спочатку оновіть їх (lux update), а потім спробуйте ще раз.
+Updates, LuxAI and the correct time use the internet.	Оновлення, LuxAI і точний час використовують інтернет.
+Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Оновлення, LuxAI і точний час використовують інтернет. Виберіть мережу Wi-Fi або під'єднайте мережевий кабель.
