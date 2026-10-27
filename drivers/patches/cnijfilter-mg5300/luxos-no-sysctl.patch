@@ -1,0 +1,12 @@
+# LuxOS: glibc uz nema <sys/sysctl.h> (cnijnpr.c ho jen vklada, nic z nej nepouziva) -> radek pryc
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -46,6 +46,8 @@
+ 	find . -name config.h.in -exec sed -i '1s/ Generated automatically from / Generated from /' {} +
+ 	# LuxOS: CUPS 2.x API (ipp_t uz neni verejna struktura)
+ 	patch -Np1 -d "cnijfilter-source-${_pkgver}" -i "${srcdir}/luxos-cups2.patch"
++	# LuxOS: glibc uz nema <sys/sysctl.h> (jen vlozeny, nepouzity)
++	sed -i '/#include <sys\/sysctl.h>/d' "cnijfilter-source-${_pkgver}/cngpijmon/cnijnpr/cnijnpr/cnijnpr.c"
+ }
+ 
+ build() {
