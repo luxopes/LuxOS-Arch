@@ -1132,16 +1132,26 @@ def nearby(lat, lon, category=None, name=None, radius=1500, limit=20, cfg=None):
         selector += f'["name"~"{overpass_regex(name)}",i]'
     # vic prvku nez limit: zastavky maji nastupiste i stop_position se stejnym nazvem (slucuji se)
     fetch_n = min(100, limit * 3) if category == "public_transport" else limit
-    query = (f"[out:json][timeout:20];nwr(around:{radius},{lat:.6f},{lon:.6f}){selector};"
-             f"out center {fetch_n};")
+    # Overpass vraci prvnich N prvku v poradi podle id, ne podle vzdalenosti - v hustem miste (centrum
+    # mesta) by "nejblizsi" byly nahodne z celeho okruhu. Jeden dotaz s nekolika okruhy (250 m, 750 m,
+    # cely): nejblizsi mista jsou vzdy ve vysledku, pak se seradi a oriznou na limit.
+    radii = [r for r in (250, 750) if r < radius] + [radius]
+    query = "[out:json][timeout:20];" + "".join(
+        f"nwr(around:{r},{lat:.6f},{lon:.6f}){selector};out center {fetch_n};" for r in radii)
     data = api_get("overpass", service_url(cfg, "overpass_url", "LUXOS_MAPS_OVERPASS", OVERPASS_URL),
                    {"data": query}, NEARBY_TTL, timeout=40)
     if not isinstance(data, dict) or not isinstance(data.get("elements"), list):
         raise MapsError("invalid response")
     out = []
+    seen = set()
     for el in data["elements"]:
         if not isinstance(el, dict):
             continue
+        key = (el.get("type"), el.get("id"))
+        if key[1] is not None:
+            if key in seen:
+                continue                   # stejny prvek z vic okruhu
+            seen.add(key)
         c = el.get("center") if isinstance(el.get("center"), dict) else el
         try:
             plat, plon = float(c["lat"]), float(c["lon"])
