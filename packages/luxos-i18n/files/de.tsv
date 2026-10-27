@@ -3876,3 +3876,4 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Der Computername für die Domäne darf höchstens 15 Buchstaben, Ziffern und Bindestriche haben.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Die Domäne wurde im DNS nicht gefunden. Prüfen Sie, ob der Computer den DNS-Server der Organisation verwendet (meist per DHCP), oder geben Sie die Adresse eines Domänencontrollers ein.
 Sign In to Network…	Im Netzwerk anmelden…
+The package lists are damaged or do not match their signatures. Refresh them first (lux update), then try again.	Die Paketlisten sind beschädigt oder passen nicht zu ihren Signaturen. Aktualisieren Sie sie zuerst (lux update) und versuchen Sie es dann erneut.
