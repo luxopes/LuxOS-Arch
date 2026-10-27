@@ -26,6 +26,9 @@ HISTCONTROL=ignoreboth:erasedups
 HISTTIMEFORMAT='%F %T  '
 HISTIGNORE='ls:ll:la:cd:pwd:exit:clear'
 shopt -s histappend cmdhist checkwinsize autocd cdspell dirspell globstar extglob
+# Kazdy prikaz hned do historie (~/.lsh_history): pri mnoha terminalech, padu nebo zavreni okna se
+# jinak ulozi jen ty, ktere skonci normalne, a navic se navzajem prepisuji
+[[ ${PROMPT_COMMAND-} == *"history -a"* ]] || PROMPT_COMMAND="history -a${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 
 # Doplnovani (bez ble.sh pres readline)
 if [[ -z ${BLE_VERSION-} ]]; then

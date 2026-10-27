@@ -38,3 +38,5 @@ function ble/widget/luxos/accept-or-newline {
 }
 ble-bind -m emacs -f 'C-m' luxos/accept-or-newline
 ble-bind -m emacs -f 'RET' luxos/accept-or-newline
+# historie sdilena mezi terminaly: kazdy prikaz se hned zapise a ostatni terminaly ho uvidi
+bleopt history_share=1

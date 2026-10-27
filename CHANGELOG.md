@@ -35,6 +35,7 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 - **Zálohy konfigurace se jmenují po lux** (`lux-engine`): nová verze upraveného konfiguračního souboru z aktualizace je teď `*.luxnew` a uložený upravený soubor odebraného balíku `*.luxsave` (místo `*.pacnew`/`*.pacsave` z pacmanu). Při aktualizaci `lux-engine` se existující `*.pacnew`, `*.pacsave` (i číslované) a `*.pacorig` v `/etc` jednou přejmenují (existující soubor se nikdy nepřepíše, přejmenované soubory jsou v `/var/log/lux.log`). `lux configs`, `lux doctor`, `lux update`, LuxOS Care a Aktualizace softwaru poznají nová i stará jména.
 
 ### Opraveno
+- **Historie příkazů v terminálu se neztrácí** – každý příkaz se do `~/.lsh_history` zapíše hned, ne až při zavření terminálu (při mnoha oknech, pádu nebo odhlášení se většina příkazů ztrácela); s ble.sh je historie sdílená mezi terminály.
 - **Oznámení se po zavření posunou** – zavřené oznámení už nenechá mezeru, zbylá se přesunou ke kraji obrazovky.
 - **Lux Guard upozorní na stejný soubor jen jednou, i když je ve více kopiích** (podle obsahu, ne cesty) a po aktualizaci se sám spustí v nové verzi (dřív běžel starý až do odhlášení).
 - **Upozornění Lux Guardu zmizí samo** (po 10 s místo kritického, které zůstávalo, dokud se nezavřelo) a nejdou do historie oznámení; o stejném souboru upozorní jen jednou (znovu až po jeho změně). Podrobnosti dál ukazuje `luxos-guard log`.
