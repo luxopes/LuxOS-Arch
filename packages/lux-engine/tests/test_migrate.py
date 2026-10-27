@@ -14,7 +14,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PKG = os.path.normpath(os.path.join(HERE, ".."))
 SCRIPT = os.path.join(PKG, "lux-engine-migrate")
 sys.path.insert(0, HERE)
-from test_lux_config import OLD_PACMAN_CONF  # noqa: E402
+from test_lux_config import OLD_DEFAULT, OLD_PACMAN_CONF  # noqa: E402
 
 LEGACY_LUX_CONF = """# lux - konfigurace spravce baliku LuxOS
 # Uzivatelske prepsani: ~/.config/lux/lux.conf
@@ -181,9 +181,10 @@ class OldLayout(MigrateBase):
         r = self.run_m("hook")
         self.assertEqual(r.returncode, 0, r.stderr)
         conf = self.read("etc/lux/lux.conf")
-        for line in ("hold  linux", "repo multilib\n    mirrors  /etc/lux/mirrorlist", "aur  off", "clean-keep  4"):
+        for line in ('hold = ["linux"]', '[repo.multilib]\nmirrors = "/etc/lux/mirrorlist"', "aur = false",
+                     "cache_keep = 4"):
             self.assertIn(line + "\n", conf)
-        self.assertNotRegex(conf, r"\naur +on")
+        self.assertNotIn("aur = true", conf)
         self.assertFalse(os.path.exists(self.p("etc/lux/lux.conf.pacnew")))
         self.assertTrue(os.path.isfile(self.p("var/lib/lux/migrated-from-pacman/etc/pacman.conf.pacsave")))
 
@@ -256,7 +257,7 @@ class Interrupted(MigrateBase):
         self.write("etc/lux/lux.conf", LEGACY_LUX_CONF.replace("FLATPAK=1", "FLATPAK=0"))
         self.assertIn("needed: config", self.run_m("status").stdout)
         self.assertEqual(self.run_m("auto").returncode, 0)
-        self.assertRegex(self.read("etc/lux/lux.conf"), r"\nflatpak +off ")
+        self.assertIn("\nflatpak = false\n", self.read("etc/lux/lux.conf"))
 
     def test_conflicting_entry_kept_aside(self):
         self.old_layout()
@@ -382,7 +383,7 @@ class Suffixes(MigrateBase):
         r = self.run_m("hook")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assert_migrated()
-        self.assertRegex(self.read("etc/lux/lux.conf"), r"\naur +off")
+        self.assertIn("\naur = false\n", self.read("etc/lux/lux.conf"))
         self.assertTrue(os.path.isfile(self.p("etc/lux/lux.conf.luxnew")))
         self.assertTrue(os.path.isfile(self.p("etc/locale.gen.luxnew")))
         self.assertFalse(os.path.lexists(self.p("etc/locale.gen.pacnew")))
@@ -402,11 +403,86 @@ class Suffixes(MigrateBase):
                         saved=".luxsave")
         r = self.run_m("hook")
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("hold  linux\n", self.read("etc/lux/lux.conf"))
+        self.assertIn('hold = ["linux"]\n', self.read("etc/lux/lux.conf"))
         os.unlink(self.p("var/lib/pacman/db.lck"))
         self.assertEqual(self.run_m("finish", "--now").returncode, 0)
         self.assertFalse(os.path.lexists(self.p("etc/pacman.conf.luxsave")))
         self.assertTrue(os.path.isfile(self.p("var/lib/lux/migrated-from-pacman/etc/pacman.conf.luxsave")))
+
+
+class FormatToml(MigrateBase):
+    """LuxOS 1.0: lux.conf a conf.d/*.conf ve formatu LuxOS 0.9 -> TOML jednou pri aktualizaci lux-engine."""
+
+    def migrated_system(self, lux_conf):
+        self.write("etc/lux/lux.conf", lux_conf)
+        self.write("var/lib/lux/migrated-from-pacman/done", "x\n")
+        self.write("var/lib/lux/migrated-from-pacman/config-done", "")
+        self.write("var/lib/lux/migrated-from-pacman/mirrorlist-done", "")
+        self.write("var/lib/lux/migrated-from-pacman/suffixes-done", "")
+        self.write("var/lib/lux/luxos-drivers-repo", "present\n")
+
+    def test_changed_old_config_migrated_luxnew_dropped(self):
+        """Upraveny stary soubor: balik nechal lux.conf.luxnew (= nova vychozi) - po prevodu se smaze."""
+        old = read(OLD_DEFAULT).replace("protect             lux-engine glibc\n",
+                                        "protect             lux-engine glibc\nhold  linux   # LTS\n")
+        self.migrated_system(old)
+        shutil.copy(os.path.join(PKG, "lux.conf"), self.p("etc/lux/lux.conf.luxnew"))
+        self.write("etc/lux/conf.d/my.conf", "repo my\n    server https://my.example/$repo/$arch\n")
+        r = self.run_m("hook")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        conf = self.read("etc/lux/lux.conf")
+        self.assertIn('hold = ["linux"]  # LTS\n', conf)
+        self.assertEqual(self.read("etc/lux/lux.conf.old-format"), old)
+        self.assertEqual(self.read("etc/lux/conf.d/my.conf"), '[repo.my]\nserver = "https://my.example/$repo/$arch"\n')
+        self.assertFalse(os.path.exists(self.p("etc/lux/lux.conf.luxnew")))
+        self.assertTrue(os.path.exists(self.p("var/lib/lux/config-format-toml")))
+        self.assertIn("/etc/lux/lux.conf converted to the new format (the original is /etc/lux/lux.conf.old-format)",
+                      r.stderr)
+        import lux_config
+        cfg = lux_config.parse("/etc/lux/lux.conf", root=self.root)
+        self.assertEqual([r.name for r in cfg.repos][-1], "my")
+        self.assertEqual(lux_config.to_dict(cfg)["packages"]["hold"], ["linux"])
+        # jednou: vraceny stary format uz hook neprevadi (lux ho cte dal)
+        shutil.copy(self.p("etc/lux/lux.conf.old-format"), self.p("etc/lux/lux.conf"))
+        r = self.run_m("hook")
+        self.assertEqual((r.returncode, r.stderr), (0, ""))
+        self.assertEqual(self.read("etc/lux/lux.conf"), old)
+
+    def test_old_default_with_drivers_at_end_becomes_package_default(self):
+        """Instalace z 0.9.x: [luxos-drivers] pridany na konec + stara adresa = presne vychozi soubor."""
+        import lux_config
+        old = lux_config.without_drivers_repo(read(OLD_DEFAULT)).replace(
+            "https://luxos.lux-ai.cz/repo/", "https://lsl.lux-ai.cz/luxos/")
+        self.migrated_system(old)
+        os.unlink(self.p("var/lib/lux/luxos-drivers-repo"))
+        shutil.copy(os.path.join(PKG, "lux.conf"), self.p("etc/lux/lux.conf.luxnew"))
+        r = self.run_m("hook")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.read("etc/lux/lux.conf"), read(os.path.join(PKG, "lux.conf")))
+        self.assertFalse(os.path.exists(self.p("etc/lux/lux.conf.luxnew")))
+        self.assertNotIn("order changed", r.stderr)
+
+    def test_unconvertible_stays_and_retries(self):
+        self.migrated_system("repo core\n    mirrors /etc/lux/missing-mirrorlist\n")
+        shutil.copy(os.path.join(PKG, "lux.conf"), self.p("etc/lux/lux.conf.luxnew"))
+        r = self.run_m("hook")
+        self.assertEqual(r.returncode, 0)
+        self.assertIn("/etc/lux/lux.conf stays in the old format", r.stderr)
+        self.assertEqual(self.read("etc/lux/lux.conf"), "repo core\n    mirrors /etc/lux/missing-mirrorlist\n")
+        self.assertTrue(os.path.exists(self.p("etc/lux/lux.conf.luxnew")))      # spravce ji muze pouzit
+        self.assertFalse(os.path.exists(self.p("var/lib/lux/config-format-toml")))
+
+    def test_new_install_nothing_to_do(self):
+        self.migrated_system(read(os.path.join(PKG, "lux.conf")))
+        r = self.run_m("hook")
+        self.assertEqual((r.returncode, r.stderr), (0, ""))
+        self.assertFalse(os.path.exists(self.p("etc/lux/lux.conf.old-format")))
+        self.assertTrue(os.path.exists(self.p("var/lib/lux/config-format-toml")))
+
+
+def read(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
 
 
 if __name__ == "__main__":

@@ -109,9 +109,12 @@ Repair a locked package database and the signing keys.
 .B configs
 Review and merge new configuration files (.luxnew, .luxsave; older .pacnew, .pacsave) left by updates.
 .TP
-.BR "config check" ", " "config edit"
+.BR "config check" ", " "config edit" ", " "config migrate"
 Check or edit /etc/lux/lux.conf
-.RB ( "config show" " prints the effective settings).
+.RB ( "config show" " prints the file;"
+.B config migrate
+converts a file in the old LuxOS 0.9 format to the new one and keeps the original as
+.IR lux.conf.old\-format ).
 .TP
 .BR history " [" \fIn\fR "] [" \fIpkg\fR ]
 Recent package changes (from /var/log/lux.log).
@@ -206,11 +209,31 @@ Show the version.
 .B /etc/lux/lux.conf
 holds the repositories, signature checking, held packages and the settings of
 .BR lux .
-Each line is
-.RI \(dq key " " value \(dq;
-lines indented under
-.RI \(dq "repo NAME" \(dq
-belong to that repository.
+It is a TOML file: tables
+.BR [general] ,
+.BR [downloads] ,
+.BR [security] ,
+.BR [packages] ,
+.B [paths]
+with
+.RI \(dq key " = " value \(dq
+lines, one
+.RI [repo. NAME ]
+table per repository and
+.B [include]
+.RB ( "files = [\(dq/etc/lux/conf.d/*.conf\(dq]" ).
+Text values are in quotes, switches are
+.B true
+or
+.BR false ,
+lists are
+.RB [ \(dqa\(dq ", " \(dqb\(dq ].
+Unknown keys are reported as warnings.
+The old LuxOS 0.9 format
+.RI ( key " " value
+lines) is still read;
+.B lux config migrate
+converts it.
 After editing run
 .BR "lux config check" ,
 or use

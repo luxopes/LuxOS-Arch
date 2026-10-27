@@ -42,7 +42,7 @@ What's New after an update shows these items (data in `/usr/share/luxos/whats-ne
 |---|---|---|
 | Package manager | **`lux`** (libalpm via pyalpm, plus AUR, Flatpak and `.lux` apps); **there is no `pacman` command** – typing it shows the matching `lux` command | `pacman`, `apt`, ... |
 | Package engine | `lux-engine`: libalpm and tools from Arch's pacman, internal tools `lux-engine`, `lux-engine-key` in `/usr/lib/lux/alpm/bin` | `pacman` package |
-| Package configuration | `/etc/lux/lux.conf` in an own format (`repo NAME` blocks, `hold`), mirrors `/etc/lux/mirrorlist`, data in `/var/lib/lux` – no `/etc/pacman.conf` | `/etc/pacman.conf` |
+| Package configuration | `/etc/lux/lux.conf` in TOML (`[repo.NAME]` tables, `hold`), mirrors `/etc/lux/mirrorlist`, data in `/var/lib/lux` – no `/etc/pacman.conf` | `/etc/pacman.conf` |
 | Own repositories | signed `[luxos]` (system) and `[luxos-apps]` (apps such as `lsl`, `lsl-ide`, `lux-code`, `luxai`) at `https://luxos.lux-ai.cz/repo/` | – |
 | App format | own `.lux` packages installed to `/opt/lux/<name>` | – |
 | Desktop | Xfce parts (xfwm4 compositor, panel, xfdesktop, xfconf) styled like macOS: top bar, Plank Dock, Launchpad, Search, Control Center | GNOME/KDE/Xfce stock |

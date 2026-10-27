@@ -18,7 +18,7 @@ machine() {  # novy prazdny koren
     rm -rf "$ROOT"
     mkdir -p "$ROOT/sys/bus/pci/devices" "$ROOT/sys/bus/usb/devices" "$ROOT/proc" "$ROOT/etc"
     mkdir -p "$ROOT/etc/lux/conf.d"
-    printf 'repo core\n    mirrors  /etc/lux/mirrorlist\n' >"$ROOT/etc/lux/lux.conf"
+    printf '[repo.core]\nmirrors = "/etc/lux/mirrorlist"\n' >"$ROOT/etc/lux/lux.conf"
     : >"$ROOT/proc/cpuinfo"
     unset LUXOS_HW_VIRT
 }
@@ -38,7 +38,8 @@ kernel() {  # kernel PKGBASE VERZE
     mkdir -p "$ROOT/usr/lib/modules/$2"
     echo "$1" >"$ROOT/usr/lib/modules/$2/pkgbase"
 }
-multilib() { printf '\nrepo multilib\n    mirrors  /etc/lux/mirrorlist\n' >>"$ROOT/etc/lux/lux.conf"; }
+multilib() { printf '\n[repo.multilib]\nmirrors = "/etc/lux/mirrorlist"\n' >>"$ROOT/etc/lux/lux.conf"; }
+# conf.d ve starem formatu LuxOS 0.9 (cte se dal)
 multilib_confd() { printf 'repo multilib   # Steam\n    mirrors  /etc/lux/mirrorlist\n' >"$ROOT/etc/lux/conf.d/multilib.conf"; }
 pciids() {
     mkdir -p "$ROOT/usr/share/hwdata"
@@ -173,7 +174,7 @@ run_case "AMD with multilib in conf.d"
 has lib32-vulkan-radeon
 json_py 'd["multilib"] is True'
 machine amd-multilib-off; cpu AuthenticAMD; pci 0000:03:00.0 030000 1002 73bf
-printf '#repo multilib\n#    mirrors  /etc/lux/mirrorlist\n' >>"$ROOT/etc/lux/lux.conf"
+printf '#[repo.multilib]\n#mirrors = "/etc/lux/mirrorlist"\n#repo multilib\n' >>"$ROOT/etc/lux/lux.conf"
 run_case "AMD with multilib commented out"
 lacks lib32-vulkan-radeon
 json_py 'd["multilib"] is False'

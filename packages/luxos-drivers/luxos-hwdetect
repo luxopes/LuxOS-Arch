@@ -84,7 +84,9 @@ done
 
 multilib=0
 # repozitar multilib (Steam) zapnuty v /etc/lux/lux.conf nebo /etc/lux/conf.d
-grep -Eqs '^repo[[:space:]]+multilib([[:space:]]|#|$)' "$R/etc/lux/lux.conf" "$R"/etc/lux/conf.d/*.conf && multilib=1
+# ([repo.multilib] v TOML od LuxOS 1.0, "repo multilib" ve starsim formatu)
+grep -Eqs '^([[:space:]]*\[[[:space:]]*repo[[:space:]]*\.[[:space:]]*"?multilib"?[[:space:]]*\]|repo[[:space:]]+multilib)([[:space:]]|#|$)' \
+    "$R/etc/lux/lux.conf" "$R"/etc/lux/conf.d/*.conf && multilib=1
 live=0
 [[ -d $R/run/archiso ]] && live=1
 laptop=0

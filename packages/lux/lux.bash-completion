@@ -11,7 +11,7 @@ _lux() {
         owns|owner) COMPREPLY=($(compgen -f -- "$cur")) ;;
         list) COMPREPLY=($(compgen -W "--installed --upgradable --explicit --aur --lux --orphans" -- "$cur")) ;;
         pack) COMPREPLY=($(compgen -d -- "$cur")) ;;
-        config) COMPREPLY=($(compgen -W "check show edit engine" -- "$cur")) ;;
+        config) COMPREPLY=($(compgen -W "check show edit engine migrate" -- "$cur")) ;;
         system)
             if ((COMP_CWORD == 2)); then COMPREPLY=($(compgen -W "show init edit check diff apply locks help" -- "$cur"))
             else COMPREPLY=($(compgen -W "--json --no-snapshot --force --yes --origin --no-policies" -- "$cur") $(compgen -f -X '!*.lsl' -- "$cur")); fi ;;

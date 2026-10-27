@@ -25,6 +25,12 @@ Kroky (kazdy samostatne idempotentni - po vypadku proudu se jen zopakuje):
      po pacmanu -> jmena lux: *.pacnew -> *.luxnew, *.pacsave[.N] -> *.luxsave[.N],
      *.pacorig -> *.luxorig. Existujici cil se neprepise (stary soubor zustane), kazde
      prejmenovani se vypise (vystup hooku jde do /var/log/lux.log).
+  7. (jen hook, jednou - znacka /var/lib/lux/config-format-toml; LuxOS 1.0) /etc/lux/lux.conf
+     a /etc/lux/conf.d/*.conf ve formatu LuxOS 0.9 ("klic hodnota") -> TOML (lux_config.migrate_all:
+     stejne hodnoty, komentare zustanou, puvodni soubor jako *.old-format). Nezmenena konfigurace =
+     presne vychozi soubor baliku. lux.conf.luxnew shodna s vychozi konfiguraci se smaze (soubor
+     se jen prevedl, spravce nema co slucovat). Soubor, ktery prevest nejde, zustane ve starem
+     formatu (lux ho cte dal, "lux config check" to ohlasi) a pristi aktualizace to zkusi znovu.
 Uklid (finish) az po restartu (zadny stary proces uz nebezi) a bez zamku: odstrani odkazy z kroku 1
 a 4 a stare konfiguracni soubory (kopie zustane v /var/lib/lux/migrated-from-pacman/ - zachovat
 do dalsiho vydani LuxOS, pak lze adresar smazat).
@@ -313,6 +319,33 @@ class Migration:
                 os.unlink(self.p(t))
         touch(done)
 
+    # ---- 7. format TOML (LuxOS 1.0) ---------------------------------------------------------------
+    def migrate_format(self):
+        """lux.conf a conf.d/*.conf ve formatu LuxOS 0.9 -> TOML (jednou). Vraci [(soubor, stav)]."""
+        stamp = self.p(lux_config.FORMAT_STAMP.lstrip("/"))
+        if os.path.exists(stamp) or self.read("etc/lux/lux.conf") is None:
+            return []
+        root = "" if self.root == "/" else self.root
+        ok = True
+        out = []
+        for f, state, info in lux_config.migrate_all("/etc/lux/lux.conf", root=root,
+                                                     template="/usr/share/lux/lux.conf.default"):
+            out.append((f, state))
+            if state == "error":
+                ok = False
+                log(f"{f} stays in the old format (lux still reads it): {info}")
+                continue
+            for w in info:
+                log(f"{f}: {w}")
+            if state == "migrated":
+                log(f"{f} converted to the new format (the original is {f}{lux_config.OLD_FORMAT_SUFFIX})")
+        if dict(out).get("/etc/lux/lux.conf") in ("migrated", "already"):
+            # nova vychozi lux.conf z balicku (.luxnew) - soubor spravce se jen prevedl, neni co slucovat
+            self.drop_pacnew("etc/lux/lux.conf", self.read("usr/share/lux/lux.conf.default"))
+        if ok:
+            touch(stamp)
+        return out
+
     def drop_pacnew(self, conf_rel, template):
         for rel in lux_config.new_versions(conf_rel):
             pn = self.read(rel)
@@ -470,7 +503,7 @@ def is_legacy(text):
 
 
 def apply_cli(text, legacy_text):
-    """Nastaveni lux ze stareho lux.conf (AUR=0 ...) do noveho textu."""
+    """Nastaveni lux ze stareho lux.conf (AUR=0 ...) do noveho textu (TOML nebo format LuxOS 0.9)."""
     vals = {}
     for line in legacy_text.splitlines():
         m = re.match(r"^\s*(AUR|REVIEW_PKGBUILD|FLATPAK|CLEAN_KEEP)=[\"']?([^\"'\s#]*)", line)
@@ -482,6 +515,11 @@ def apply_cli(text, legacy_text):
             elif not v.isdigit():
                 continue
             vals[key] = v
+    if lux_config.detect_format(text) == "toml":
+        for key, v in vals.items():
+            table, tkey = lux_config.TOML_PLACE[key]
+            text = lux_config.toml_set(text, table, tkey, lux_config.typed_value(key, v))
+        return text
     for key, v in vals.items():
         pat = re.compile(rf"^({re.escape(key)}\s+)(\S+)", re.M)
         if pat.search(text):
@@ -538,6 +576,11 @@ def main(argv):
                 log("repository [luxos-drivers] added to /etc/lux/lux.conf")
         except Exception as e:  # noqa: BLE001
             log(f"adding [luxos-drivers] failed: {e}")
+        try:
+            # LuxOS 1.0: lux.conf ve formatu TOML (po vsech upravach stareho formatu vyse)
+            m.migrate_format()
+        except Exception as e:  # noqa: BLE001
+            log(f"converting /etc/lux/lux.conf to the new format failed: {e}")
         return 0
     if cmd == "auto":
         rc = m.migrate("auto") if m.needs() else 0

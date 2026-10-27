@@ -17,6 +17,8 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import fake_pyalpm as fake  # noqa: E402
+# lux_config z repozitare (ne /usr/lib/lux nainstalovaneho systemu)
+sys.path.insert(0, os.path.normpath(os.path.join(HERE, "..", "..", "lux-engine")))
 
 spec = importlib.util.spec_from_file_location("lux_alpm", os.path.join(HERE, "..", "lux_alpm.py"))
 lux_alpm = importlib.util.module_from_spec(spec)
@@ -207,6 +209,96 @@ class Format(unittest.TestCase):
 
 
 # ---- konfigurace -----------------------------------------------------------------------------
+class NativeConfig(unittest.TestCase):
+    """LuxOS 1.0: lux nastavi libalpm primo z /etc/lux/lux.conf (EngineConf.from_lux) - stejne jako
+    lux-engine-conf (parser jadra v C) nad vygenerovanou /run/lux/engine.conf."""
+    TOOL = "/usr/lib/lux/alpm/libexec/lux-engine-conf"
+
+    def setUp(self):
+        self.lc = lux_alpm.lux_config
+        self.assertIsNotNone(self.lc)
+        self.dir = tempfile.mkdtemp(prefix="lux-native-")
+        pkg = os.path.join(HERE, "..", "..", "lux-engine")
+        shutil.copy(os.path.join(pkg, "mirrorlist"), os.path.join(self.dir, "mirrorlist"))
+        with open(os.path.join(pkg, "lux.conf")) as f:
+            self.default = f.read().replace("/etc/lux/mirrorlist", os.path.join(self.dir, "mirrorlist"))
+
+    def tearDown(self):
+        shutil.rmtree(self.dir, ignore_errors=True)
+
+    @staticmethod
+    def snapshot(conf):
+        api = make_api()
+        h, extra = lux_alpm.build_handle(api, conf)
+        state = {k: v for k, v in vars(h).items() if k not in ("local", "sync", "transactions") and not k.endswith("cb")}
+        state["dbs"] = [(d.name, d.servers, d.siglevel) for d in h.get_syncdbs()]
+        state["usage"] = [(r["name"], sorted(r["_usage"])) for r in conf.repos]
+        state["held"] = sorted(conf.list("HoldPkg"))
+        return state, extra
+
+    def configs(self):
+        custom = self.lc.toml_set(self.default, "packages", "hold", ["linux", "linux-headers"])
+        custom = self.lc.toml_set(custom, "downloads", "parallel", 3)
+        custom = self.lc.toml_set(custom, "security", "local_signatures", "required")
+        custom = self.lc.toml_set(custom, "paths", "cache", ["/srv/pkg", "/var/cache/lux/pkg/"])
+        custom = self.lc.toml_set(custom, "general", "architecture", ["x86_64", "x86_64_v3"])
+        custom = self.lc.toml_insert_repo(custom, "mine", [("server", "file:///srv/mine/$arch"),
+                                                           ("signatures", "never"), ("usage", ["sync", "search"])])
+        custom = self.lc.toml_insert_repo(custom, "opt", [("server", "https://o.example/$repo"),
+                                                          ("signatures", "optional")])
+        return [self.default, custom]
+
+    def test_from_lux_defaults(self):
+        path = os.path.join(self.dir, "lux.conf")
+        with open(path, "w") as f:
+            f.write(self.default)
+        c = lux_alpm.EngineConf.from_lux(self.lc.parse(path))
+        for k, v in (("RootDir", "/"), ("DBPath", "/var/lib/lux/"), ("CacheDir", "/var/cache/lux/pkg/"),
+                     ("GPGDir", "/etc/lux/keyring/"), ("LogFile", "/var/log/lux.log"), ("ParallelDownloads", "10")):
+            self.assertEqual(c.get(k), v)
+        self.assertEqual(c.list("HoldPkg"), ["lux-engine", "glibc"])
+        self.assertTrue(c.has("Color") and c.has("CheckSpace"))
+        self.assertEqual([r["name"] for r in c.repos], ["luxos", "luxos-apps", "luxos-drivers", "core", "extra"])
+
+    def test_same_handle_as_engine_conf_tool(self):
+        if not os.access(self.TOOL, os.X_OK):
+            self.skipTest("lux-engine-conf of lux-engine is not installed")
+        import subprocess
+        for i, text in enumerate(self.configs()):
+            with self.subTest(config=i):
+                path = os.path.join(self.dir, f"lux{i}.conf")
+                with open(path, "w") as f:
+                    f.write(text)
+                cfg = self.lc.parse(path)
+                eng = os.path.join(self.dir, f"engine{i}.conf")
+                with open(eng, "w") as f:
+                    f.write(self.lc.render_engine(cfg, path))
+                r = subprocess.run([self.TOOL, "--config", eng], capture_output=True, text=True)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                native, via_tool = self.snapshot(lux_alpm.EngineConf.from_lux(cfg)), \
+                    self.snapshot(lux_alpm.EngineConf(r.stdout))
+                self.assertEqual(native, via_tool)
+
+    def test_broken_config_is_an_error(self):
+        path = os.path.join(self.dir, "lux.conf")
+        with open(path, "w") as f:
+            f.write(self.default.replace("parallel = 10", "parallel = 0"))
+        saved = self.lc.LUX_CONF
+        env = os.environ.pop("LUX_ENGINE_CONF", None)
+        self.lc.LUX_CONF = path
+        try:
+            with self.assertRaises(lux_alpm.LuxError) as cm:
+                lux_alpm.load_engine_conf()
+            self.assertIn("lux.conf:11: 'parallel' in [downloads] must be a whole number", cm.exception.message)
+            with open(path, "w") as f:
+                f.write(self.default)
+            self.assertEqual(lux_alpm.load_engine_conf().get("ParallelDownloads"), "10")
+        finally:
+            self.lc.LUX_CONF = saved
+            if env is not None:
+                os.environ["LUX_ENGINE_CONF"] = env
+
+
 class Config(unittest.TestCase):
     def test_parse(self):
         c = lux_alpm.EngineConf(CONF)
