@@ -35,6 +35,14 @@ NC = bytes(range(64, 96))
 NS = bytes(range(96, 128))
 
 
+class FreePort:
+    @staticmethod
+    def get():
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            return s.getsockname()[1]
+
+
 class FakeSock:
     def __init__(self, data=b""):
         self.buf = io.BytesIO(data)
@@ -190,6 +198,103 @@ class TestIdentity(unittest.TestCase):
     def test_invalid_cert(self):
         with self.assertRaises(proto.ProtocolError):
             identity.cert_fingerprint(b"not a certificate")
+
+
+class TestTlsSuites(unittest.TestCase):
+    """Android aplikace (LuxOS Companion) prijme jen TLS_AES_256_GCM_SHA384 (PROTOCOL.md 4.1)."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.ident = identity.Identity.load_or_create(os.path.join(self.dir, "id"))
+
+    def tearDown(self):
+        shutil.rmtree(self.dir)
+
+    def handshake(self, cctx):
+        import ssl
+        import threading
+        sctx = transfer.server_context(self.ident)
+        srv = socket.create_server(("127.0.0.1", 0))
+        got = {}
+
+        def serve():
+            conn, _a = srv.accept()
+            try:
+                with sctx.wrap_socket(conn, server_side=True) as tls:
+                    got["server"] = (tls.version(), tls.cipher()[0])
+                    tls.recv(1)
+            except (OSError, ssl.SSLError) as e:
+                got["error"] = e
+        th = threading.Thread(target=serve)
+        th.start()
+        with socket.create_connection(srv.getsockname(), timeout=10) as raw:
+            with cctx.wrap_socket(raw, server_hostname=None) as tls:
+                client = (tls.version(), tls.cipher()[0], tls.selected_alpn_protocol())
+        th.join(10)
+        srv.close()
+        return client, got.get("server")
+
+    def test_server_prefers_aes256(self):
+        import ssl
+        ctx = transfer.server_context(self.ident)
+        self.assertTrue(ctx.options & ssl.OP_CIPHER_SERVER_PREFERENCE)
+        tls13 = [c["name"] for c in ctx.get_ciphers() if c["protocol"] == "TLSv1.3"]
+        self.assertEqual(tls13[0], "TLS_AES_256_GCM_SHA384")
+
+    def test_luxos_to_luxos(self):
+        client, server = self.handshake(transfer.client_context())
+        self.assertEqual(client, ("TLSv1.3", "TLS_AES_256_GCM_SHA384", proto.ALPN))
+        self.assertEqual(server, ("TLSv1.3", "TLS_AES_256_GCM_SHA384"))
+
+    def test_receiver_closes_after_reject(self):
+        # Prijimac po odmitnuti zavre TLS spojeni, i kdyz UI drzi Transfer (Java/Android klient
+        # pri close() ceka na konec spojeni od protistrany).
+        import base64
+        kept = []
+
+        class H(transfer.Handler):
+            def ask(self, req):
+                return False, False
+
+            def finished(self, t):
+                kept.append(t)
+        s = store.Settings(os.path.join(self.dir, "cfg"))
+        s.set("download_dir", os.path.join(self.dir, "dl"))
+        rx = transfer.Receiver(self.ident, s, store.TrustStore(os.path.join(self.dir, "tr")),
+                               store.History(os.path.join(self.dir, "h")), H(), bind="127.0.0.1",
+                               port=FreePort.get())
+        rx.start()
+        me = identity.Identity.load_or_create(os.path.join(self.dir, "client"))
+        try:
+            with socket.create_connection(("127.0.0.1", rx.port), timeout=10) as raw:
+                with transfer.client_context().wrap_socket(raw, server_hostname=None) as tls:
+                    ch = proto.Channel(tls)
+                    nc = os.urandom(32)
+                    ch.send({"type": "hello", "proto": 1, "name": "T", "id": me.id,
+                             "cert": base64.b64encode(me.cert_der).decode(), "commit": proto.commit(nc).hex()})
+                    ns = bytes.fromhex(ch.recv_msg("hello")["nonce"])
+                    sig = me.sign(proto.auth_message(self.ident.fp, me.fp, ns, nc))
+                    ch.send({"type": "auth", "nonce": nc.hex(), "sig": base64.b64encode(sig).decode()})
+                    ch.recv_msg("auth_ok")
+                    ch.send({"type": "offer", "transfer_id": "ab" * 16, "dirs": [], "total": 1,
+                             "files": [{"path": "a.txt", "size": 1, "sha256": "00" * 32, "exec": False}]})
+                    self.assertEqual(ch.recv_msg("reject", "accept")["type"], "reject")
+                    tls.settimeout(5)
+                    self.assertEqual(tls.recv(1), b"")  # EOF, ne vyprseni casu
+            self.assertTrue(kept)
+        finally:
+            rx.stop()
+
+    def test_android_like_client_order(self):
+        # Klient jako BoringSSL (AES-128 nebo ChaCha20 prvni) -> server presto vybere AES-256
+        cctx = transfer.client_context()
+        if not hasattr(cctx, "set_ciphersuites"):
+            self.skipTest("Python < 3.15 cannot order TLS 1.3 client suites (checked by the Java interop test)")
+        for order in ("TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256",
+                      "TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384"):
+            cctx.set_ciphersuites(order)
+            client, _server = self.handshake(cctx)
+            self.assertEqual(client[1], "TLS_AES_256_GCM_SHA384", order)
 
 
 BAD_PATHS = [
