@@ -27,14 +27,18 @@ the internal engine (`/usr/lib/lux/alpm/bin/lux-engine`) automatically. There is
 ## "error in the configuration" (lux.conf)
 
 ```
-lux: error in the configuration: /etc/lux/lux.conf:12: unknown key 'paralel-downloads' (did you mean 'parallel-downloads'?)
+lux: error in the configuration: /etc/lux/lux.conf:11: 'parallel' in [downloads] must be a whole number of at least 1 (without quotes), not "10"
 ✗ lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check
 ```
 
 Open the file (`lux config edit`), fix the reported line and run `lux config check`. Typical
-causes: pacman syntax (`[options]`, `Key = value`) – lux.conf uses `key value` and `repo NAME`
-blocks; a repository key (`server`, `mirrors`) that is not indented under `repo NAME`; an empty or
-missing mirror list. Until fixed, lux, the Store and LuxOS Care do not install anything; the engine
+causes: text without quotes (`user = alpm` instead of `user = "alpm"`), `on`/`off` instead of
+`true`/`false`, numbers in quotes, a line in the old `key value` format inside the TOML file,
+pacman syntax (`[options]`, `Color`), the same table twice (`[packages]` written two times – add the
+key to the existing table), an empty or missing mirror list. Unknown or misplaced keys are only
+warnings (`lux config check` names the right table); the key is ignored. A file in the old LuxOS 0.9
+format still works – `sudo lux config migrate` converts it (the original stays as
+`lux.conf.old-format`). Until fixed, lux, the Store and LuxOS Care do not install anything; the engine
 keeps the last working configuration. Format: [package-management.md](package-management.md#configuration-etcluxluxconf).
 
 ## Old pacman files after updating from LuxOS 0.9.5
