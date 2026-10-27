@@ -1836,6 +1836,18 @@ def new_users_state():
     return out
 
 
+def _lux_config():
+    """Modul lux_config z lux-engine (/usr/lib/lux, pri spusteni z repozitare ../lux-engine), jinak None."""
+    for d in ("/usr/lib/lux", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lux-engine")):
+        if os.path.isfile(os.path.join(d, "lux_config.py")) and d not in sys.path:
+            sys.path.append(d)
+    try:
+        import lux_config
+        return lux_config
+    except ImportError:
+        return None
+
+
 def lux_conf_settings():
     """JEDINE misto, kde lux system cte /etc/lux/lux.conf (repozitare, komunita/AUR, Flatpak) - jen cteni,
     lux.conf se odtud nikdy nezapisuje. Umi puvodni format ("klic hodnota", "repo JMENO" s odsazenym
@@ -1843,6 +1855,21 @@ def lux_conf_settings():
     -> {"list": [...], "community": bool, "review_build_scripts": bool, "flatpak_updates": bool} | None"""
     if read(LUX_CONF, None) is None:
         return None
+    lc = _lux_config()
+    if lc is not None:
+        # parser lux.conf z lux-engine (TOML i puvodni format, include, conf.d)
+        try:
+            d = lc.load(path=LUX_CONF, root=ROOT or "")
+            pk = d.get("packages", {})
+            names = []
+            for r in d.get("repos", []):
+                if r.get("name") and r["name"] not in names:
+                    names.append(r["name"])
+            return {"list": names, "community": bool(pk.get("aur", True)),
+                    "review_build_scripts": bool(pk.get("review_pkgbuild", True)),
+                    "flatpak_updates": bool(pk.get("flatpak", True))}
+        except Exception:
+            pass
     files, seen, repos, vals = [LUX_CONF], set(), [], {}
     while files and len(seen) < 50:
         f = files.pop(0)
