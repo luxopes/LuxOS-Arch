@@ -186,7 +186,7 @@ jméno balíku (`@@ERROR corrupt`).
 |---|---|---|
 | `lux` | interaktivní obchod v terminálu (Enter instalovat, Ctrl-R odebrat, Ctrl-U aktualizovat) | |
 | `lux install <balík…>` | instalace z repozitářů → LuxOS (`.lux`) → Flathub → komunita (AUR, do sandboxu; do systému jen s `--system`); i soubor `.lux` nebo `.pkg.tar.zst`; už nainstalované přeskočí | `-S --needed`, `-U` |
-| `lux remove <balík…>` | odebrání i s nepotřebnými závislostmi a zálohami konfigurace | `-Rns` |
+| `lux remove <balík…>` | odebrání i s nepotřebnými závislostmi; změněné konfigurační soubory zůstanou jako `*.luxsave` (s `-n`/`--nosave` se smažou i ty) | `-Rs` (`-Rns`) |
 | `lux update` (`upgrade`, `up`) | obnoví databáze, nejdřív podpisové klíče, pak celý systém; dál balíky komunity (AUR) v systému, `.lux` a Flatpak (+ úklid nepoužívaných prostředí) | `-Sy` + `-Su` |
 | `lux check` (`check-updates`) | dostupné aktualizace z čerstvých seznamů (dočasná kopie, bez roota, systém beze změny) | `checkupdates` |
 | `lux search <výraz>` | hledání v repozitářích, LuxOS, na Flathubu a v komunitě (AUR) | `-Ss` |
@@ -209,7 +209,7 @@ jméno balíku (`@@ERROR corrupt`).
 | `lux rollback [snímek]` | návrat systému ke snímku od příštího startu (současný systém zůstane jako snímek, `/home` se nemění) | |
 | `lux system show\|init\|edit\|check\|diff\|apply` | celý systém v jednom souboru LSL `/etc/luxos/system.lsl` (balíky, služby, uživatelé, jazyk, klávesnice, Care, Guard, firewall, parametry jádra); `apply` udělá snímek, ukáže rozdíl a zeptá se (`man luxos-system`) | |
 
-Volby: `-y` (bez otázek – jinak se `lux` vždy zeptá), `-v`/`--verbose` (seznam balíků, výstup skriptů
+Volby: `-y` (bez otázek – jinak se `lux` vždy zeptá), `-n`/`--nosave` (`lux remove` smaže i změněné konfigurační soubory, žádný `*.luxsave`), `-v`/`--verbose` (seznam balíků, výstup skriptů
 a surové chyby libalpm), `--repo`, `--aur`/`--community`, `--system` (balík komunity do systému místo sandboxu). Práva správce si `lux` vyžádá sám: v terminálu `sudo`,
 v grafické relaci bez terminálu `pkexec`.
 

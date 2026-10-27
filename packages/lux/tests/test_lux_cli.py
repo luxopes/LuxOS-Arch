@@ -323,6 +323,8 @@ class CLI(unittest.TestCase):
 
     def test_commands_map_to_backend(self):
         for args, want in ((("remove", "htop"), "remove -- htop"),
+                           (("remove", "-n", "htop"), "remove --nosave -- htop"),
+                           (("--nosave", "remove", "htop"), "remove --nosave -- htop"),
                            (("reinstall", "htop"), "reinstall -- htop"),
                            (("autoremove",), "autoremove"),
                            (("list", "--upgradable"), "list --upgradable"),
@@ -358,6 +360,8 @@ class CLI(unittest.TestCase):
             self.assertIn("-S --needed --noconfirm htop", self.calls("lux-engine"))
             self.assertEqual(self.backend(), [])
             rc, out = self.lux("-y", "remove", "htop", env=env)
+            self.assertIn("-Rs --noconfirm htop", self.calls("lux-engine"))
+            rc, out = self.lux("-y", "remove", "-n", "htop", env=env)
             self.assertIn("-Rns --noconfirm htop", self.calls("lux-engine"))
             rc, out = self.lux("-y", "autoremove", env=env)
             self.assertIn("-Rns --noconfirm orphan-lib", self.calls("lux-engine"))
@@ -380,7 +384,7 @@ class CLI(unittest.TestCase):
                      ("owns", "/usr/bin/htop"), ("info", "htop"), ("search", "htop"), ("doctor",)):
             self.lux(*args, env=env)
         real_calls = self.calls("alpm-lux-engine")
-        for want in ("-S --needed --noconfirm htop", "-Rns --noconfirm htop", "-Rns --noconfirm orphan-lib",
+        for want in ("-S --needed --noconfirm htop", "-Rs --noconfirm htop", "-Rns --noconfirm orphan-lib",
                      "-S --noconfirm htop", "-Qu", "-Q", "-Qlq -- htop", "-Qo -- /usr/bin/htop"):
             self.assertIn(want, real_calls)
         self.assertTrue(any(x.startswith("-Ss") for x in real_calls), real_calls)

@@ -41,6 +41,7 @@ LUXPKG=${LUXPKG:-/usr/lib/lux/luxpkg.sh}
 
 YES=0
 VERBOSE=0
+NOSAVE=0
 ONLY=""   # repo | aur
 LUX_SELF=$(readlink -f "$0")
 # Backend libalpm (vedle skriptu pri spusteni z repozitare)
@@ -560,8 +561,12 @@ cmd_remove() {
         ok "$(T "Removed: %s" "${flat[*]}")"
     fi
     ((${#pac[@]})) || return 0
-    if alpm_ok; then alpm_root remove -- "${pac[@]}"
-    else as_root "$LUX_ENGINE" -Rns $(pac_yes) "${pac[@]}"; fi
+    # Zmenene konfiguracni soubory zustanou jako *.luxsave (jako pacman -Rs), -n/--nosave je smaze
+    if alpm_ok; then
+        if ((NOSAVE)); then alpm_root remove --nosave -- "${pac[@]}"
+        else alpm_root remove -- "${pac[@]}"; fi
+    elif ((NOSAVE)); then as_root "$LUX_ENGINE" -Rns $(pac_yes) "${pac[@]}"
+    else as_root "$LUX_ENGINE" -Rs $(pac_yes) "${pac[@]}"; fi
 }
 
 cmd_reinstall() {
@@ -1126,6 +1131,7 @@ CMDS
         printf '  %-22s%s\n' "$opt" "$(T "$desc")"
     done <<'OPTS'
 -y, --yes|do not ask for confirmation
+-n, --nosave|remove: also delete changed config files (no .luxsave)
 -v, --verbose|show all details (and raw errors)
     --repo|only official repositories
     --aur, --community|only the community source (AUR)
@@ -1212,6 +1218,7 @@ args=()
 while (($#)); do
     case $1 in
         -y|--yes) YES=1 ;;
+        -n|--nosave) NOSAVE=1 ;;
         -v|--verbose) VERBOSE=1 ;;
         --repo) ONLY=repo ;;
         --aur|--community) ONLY=aur ;;

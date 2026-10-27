@@ -4022,3 +4022,4 @@ Maps uses the GPS of your phone when it is connected with LuxOS Companion and sh
 The package lists are damaged or do not match their signatures. Refresh them first (lux update), then try again.	Seznamy balíků jsou poškozené nebo nesedí k podpisu. Nejdřív je obnovte (lux update) a pak to zkuste znovu.
 Updates, LuxAI and the correct time use the internet.	Aktualizace, LuxAI a přesný čas potřebují internet.
 Updates, LuxAI and the correct time use the internet. Choose a Wi-Fi network or plug in a network cable.	Aktualizace, LuxAI a přesný čas potřebují internet. Vyberte síť Wi-Fi nebo připojte síťový kabel.
+remove: also delete changed config files (no .luxsave)	remove: smazat i změněné konfigurační soubory (bez .luxsave)

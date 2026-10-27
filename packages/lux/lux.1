@@ -57,7 +57,8 @@ a dangerous script is never installed into the system and an unchecked one never
 confirmation. LuxAI never installs community packages.
 .TP
 .BR remove ", " rm " " \fIpkg\fR...
-Remove packages and the dependencies nothing else needs. Flatpak apps (by ID or name) are
+Remove packages and the dependencies nothing else needs. Configuration files you changed stay
+as \fIfile\fR.luxsave (with \-n they are deleted too). Flatpak apps (by ID or name) are
 removed as well, together with runtimes no app needs any more; their data in ~/.var/app stays.
 .TP
 .BR update ", " upgrade ", " up
@@ -177,6 +178,12 @@ See
 .TP
 .BR \-y ", " \-\-yes
 Do not ask for confirmation.
+.TP
+.BR \-n ", " \-\-nosave
+With
+.BR remove :
+also delete configuration files you changed. Without it they are kept as
+.IR file .luxsave .
 .TP
 .BR \-v ", " \-\-verbose
 Show all details (and raw errors).
