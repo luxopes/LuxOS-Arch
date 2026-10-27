@@ -14572,7 +14572,13 @@
    "gtk2",
    "libusb"
   ],
+  "patches": {
+   "luxos-c23.patch": "7997b06b5899013766a3ea0203faf4d2f40b5f26bcf56f7e79f5b7bfe76d5bbb"
+  },
   "pkgnames": [
+   "scangearmp2"
+  ],
+  "provides": [
    "scangearmp2"
   ],
   "rules": 4,
@@ -14583,7 +14589,7 @@
    "scangearmp2.desktop": "68f2113ba18aae5f41a4f6febf5574fef7e88921d6768d1763db6f84f3fecc29"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
+  "verified": "2026-10-27",
   "version": "4.80-1"
  },
  "scangearmp2-mg7700": {
