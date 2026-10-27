@@ -754,7 +754,7 @@
         {
           "path": "luxos/safe.md",
           "title": "Safe – encrypted folder (/safe/<user>)",
-          "summary": "luxos-safe: gocryptfs-encrypted /safe/<user> with its own password, auto-lock rules, CLI, boot protection and limits",
+          "summary": "luxos-safe: gocryptfs-encrypted /safe/<user> with its own password, threat model, recovery key, scrypt upgrade, signing keys (GnuPG, Android keystore) in the Safe, auto-lock, CLI and limits",
           "keywords": [
             "safe",
             "trezor",
@@ -766,7 +766,12 @@
             "password",
             "lock",
             "unlock",
-            "privacy"
+            "privacy",
+            "recovery key",
+            "signing key",
+            "gnupg",
+            "keystore",
+            "threat model"
           ]
         },
         {

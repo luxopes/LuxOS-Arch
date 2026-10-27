@@ -15,6 +15,7 @@ zamceni brani (zadne line odpojeni); okno i upozorneni rekne, ktere aplikace je 
   luxos-safe lock          zamknout (--force: chvili zkouset znovu, pri neuspechu upozorneni;
                            --logout: pri odhlaseni ukoncit aplikace s otevrenymi soubory)
   luxos-safe status        locked | unlocked | none
+  luxos-safe check         kontrola ochrany (scrypt, volby pripojeni, ptrace, core dumpy, swap)
   luxos-safe --watch       hlidac (spousti relace): zamkne pri zamceni obrazovky a uspani
   luxos-safe --trust-launcher  oznaci spoustec "Odemknout Trezor" v zamcene slozce za duveryhodny (luxos-hub)
 """
@@ -22,7 +23,9 @@ import datetime
 import getpass
 import hashlib
 import json
+import math
 import os
+import resource
 import shutil
 import signal
 import subprocess
@@ -47,7 +50,16 @@ HOME = os.path.expanduser("~")
 CONF = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/safe.json")
 LAUNCHER = "Unlock Safe.desktop"
 PLACEHOLDER = "luxos-safe-locked"           # zdroj zastupneho tmpfs (luxos-safe-helper)
+CONF_FILE = os.path.join(VAULT, "gocryptfs.conf")
 WRONG_PASSWORD = 12      # navratovy kod gocryptfs pro spatne heslo
+XRAY_WRONG_PASSWORD = 8  # gocryptfs-xray -dumpmasterkey: spatne heslo
+# scrypt logN pro nove Trezory, zmenu hesla a "Zesilit ochranu": 2^18 = 256 MiB pameti a ~0,7 s
+# na odemceni (Ryzen 5 5500U; vychozi gocryptfs 16 = 0,18 s). Utocnik s ukradenym diskem plati
+# za kazdy pokus stejne - 4x drazsi nez vychozi.
+SCRYPT_LOGN = 18
+MIN_PASSWORD = 12        # nova hesla (stara hesla dal odemykaji)
+# Volby pripojeni: zadne setuid, zarizeni ani spustitelne soubory v Trezoru
+MOUNT_OPTS = ["-nosuid", "-nodev", "-noexec"]
 MOUNTINFO = "/proc/self/mountinfo"
 LOCK_RETRY = 4           # pokusy o zamceni (po 0,5 s) pri automatickem zamykani
 recovered_now = []       # slozky v domovske slozce presunute pri poslednim odemceni
@@ -116,18 +128,31 @@ def save_settings(data):
         json.dump(data, f, indent=1)
 
 
+def no_core_dumps():
+    """Pred spustenim gocryptfs: zadne core dumpy (pamet s klicem by skoncila na disku).
+    Limit se dedi i na proces na pozadi; systemd-coredump nulovy limit respektuje."""
+    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+
+
 def run_pw(args, password_lines):
     """gocryptfs s heslem na stdin (nikdy v argumentech ani prostredi)."""
+    rc, err, _out = run_pw_out(args, password_lines, capture=False)
+    return rc, err
+
+
+def run_pw_out(args, password_lines, capture=True):
+    """Jako run_pw, navic vraci standardni vystup (gocryptfs-xray -dumpmasterkey)."""
     # Chyby do docasneho souboru, ne do roury: proces gocryptfs by ji drzel otevrenou
     # a subprocess by cekal az do timeoutu
     with tempfile.TemporaryFile("w+") as err:
         try:
             r = subprocess.run(args, input="".join(p + "\n" for p in password_lines), text=True,
-                               stdout=subprocess.DEVNULL, stderr=err, timeout=120)
+                               stdout=subprocess.PIPE if capture else subprocess.DEVNULL, stderr=err,
+                               timeout=120, preexec_fn=no_core_dumps)
         except (OSError, subprocess.TimeoutExpired) as e:
-            return -1, str(e)
+            return -1, str(e), ""
         err.seek(0)
-        return r.returncode, err.read().strip()[-300:]
+        return r.returncode, err.read().strip()[-300:], (r.stdout or "") if capture else ""
 
 
 # ---- operace ------------------------------------------------------------------------
@@ -167,7 +192,8 @@ def create(password):
             return _("Could not create the Safe folder.")
     if os.listdir(VAULT):
         return _("The Safe already exists.")
-    rc, err = run_pw(["gocryptfs", "-init", "-q", "-passfile", "/dev/stdin", VAULT], [password])
+    rc, err = run_pw(["gocryptfs", "-init", "-q", "-scryptn", str(SCRYPT_LOGN), "-passfile", "/dev/stdin", VAULT],
+                     [password])
     if rc != 0:
         return _("Could not create the Safe (%s).") % err
     add_bookmark()
@@ -201,7 +227,7 @@ def unlock(password):
             return _("Could not protect the locked Safe folder (%s).") % (err or "placeholder")
     trust_launcher()
     idle = int(settings().get("idle_minutes") or 0)
-    args = ["gocryptfs", "-q", "-passfile", "/dev/stdin", "-nosyslog"]
+    args = ["gocryptfs", "-q", "-passfile", "/dev/stdin", "-nosyslog"] + MOUNT_OPTS
     if idle:
         args += ["-i", f"{idle}m"]       # automaticke zamceni po necinnosti (jen bez otevrenych souboru)
     # -nonempty: zastupna slozka obsahuje spoustec "Odemknout Trezor" (po odemceni skryty)
@@ -340,6 +366,34 @@ def holders():
     return res
 
 
+def gnupg_homes(root=None, depth=2):
+    """Slozky GnuPG v Trezoru (napr. /safe/<user>/gnupg, /safe/<user>/luxos-signing)."""
+    root = root or MOUNT
+    res = []
+    try:
+        entries = sorted(os.scandir(root), key=lambda e: e.name)
+    except OSError:
+        return res
+    names = {e.name for e in entries}
+    if "private-keys-v1.d" in names or "pubring.kbx" in names or "secring.gpg" in names:
+        res.append(root)
+    if depth > 0:
+        for e in entries:
+            if e.is_dir(follow_symlinks=False) and not e.name.startswith(".") and e.name != "private-keys-v1.d":
+                res += gnupg_homes(e.path, depth - 1)
+    return res
+
+
+def stop_gpg_agents():
+    """Pred zamcenim ukoncit gpg-agent slozek GnuPG v Trezoru: v pameti drzi odemcene soukrome
+    klice (cache hesla) i po zamceni. Agent bez spusteni nic nedela."""
+    for home in gnupg_homes():
+        try:
+            subprocess.run(["gpgconf", "--homedir", home, "--kill", "gpg-agent"], capture_output=True, timeout=10)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+
+
 def busy_message(procs):
     names = sorted({n for _p, n in procs})
     if not names:
@@ -354,6 +408,7 @@ def lock(mode="manual"):
     Line odpojeni (umount -l) se zivym gocryptfs nikdy: otevrene soubory by dal sly cist a zapisovat."""
     if not is_unlocked():
         return None
+    stop_gpg_agents()
     if _unmount():
         trust_launcher()
         return None
@@ -389,11 +444,331 @@ def lock(mode="manual"):
     return msg
 
 
+def vault_logn(conf=None):
+    """scrypt logN Trezoru z gocryptfs.conf (None = neznamy, napr. FIDO2)."""
+    try:
+        with open(conf or CONF_FILE) as f:
+            n = int(json.load(f)["ScryptObject"]["N"])
+        return n.bit_length() - 1 if n > 0 else None
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def target_logn():
+    """Nikdy nesnizovat: rucne silnejsi Trezor zustane silnejsi."""
+    return max(vault_logn() or 0, SCRYPT_LOGN)
+
+
+def can_upgrade():
+    n = vault_logn()
+    return n is not None and n < SCRYPT_LOGN
+
+
 def change_password(old, new):
-    rc, err = run_pw(["gocryptfs", "-passwd", "-q", VAULT], [old, new])
+    # Pri zmene hesla zaroven silnejsi scrypt (transparentni, stare heslo prestane platit)
+    rc, err = run_pw(["gocryptfs", "-passwd", "-q", "-scryptn", str(target_logn()), VAULT], [old, new])
     if rc == WRONG_PASSWORD:
         return _("Wrong password.")
     return None if rc == 0 else _("Could not change the password (%s).") % err
+
+
+def upgrade_protection(password):
+    """Stejne heslo, novy obal klice se silnejsim scrypt (gocryptfs -passwd -scryptn)."""
+    return change_password(password, password)
+
+
+# ---- heslo: pravidla a sila -----------------------------------------------------------
+# Mala vestavena ukazka nejcastejsich hesel a slov, ze kterych se hesla skladaji (ne slovnik):
+# heslo, ktere je po odebrani cislic a znaku jen takove slovo (i opakovane), se odmita.
+COMMON_WORDS = frozenset("""
+password passwort passwd pass heslo haslo jelszo parola contrasena contrasenya motdepasse wachtwoord
+losenord senha salasana parool geslo lozinka parolja qwerty qwertz azerty asdf asdfgh asdfghjkl zxcvbn
+qwertyuiop letmein welcome admin administrator root login user guest test default changeme secret
+tajne tajny iloveyou loveyou love monkey dragon master sunshine princess football baseball soccer
+superman batman starwars pokemon shadow michael jordan hello freedom whatever trustno trustnoone
+trezor safe vault luxos linux ubuntu windows apple google facebook abc abcd abcdef abcdefgh
+miluji milujute laska kocka pejsek ahoj nazdar heslicko praha brno sparta slavia
+""".split())
+SEQUENCES = ("abcdefghijklmnopqrstuvwxyz", "qwertyuiopasdfghjklzxcvbnm", "qwertzuiopasdfghjklyxcvbnm",
+             "azertyuiopqsdfghjklmwxcvbn", "1234567890", "0987654321", "zyxwvutsrqponmlkjihgfedcba",
+             "mnbvcxzlkjhgfdsapoiuytrewq")
+LEET = str.maketrans("@4310$5!7|", "aaeiosssil")
+
+
+def _core_words(pw):
+    """Pismena hesla bez cislic a znaku, mala: bez prevodu a s prevedenym "leet" uvnitr slova
+    (p@ssw0rd2024! -> password; cislice a znaky na okrajich se jen odriznou)."""
+    low = pw.lower()
+    start, end = 0, len(low)
+    while start < end and not low[start].isalpha():
+        start += 1
+    while end > start and not low[end - 1].isalpha():
+        end -= 1
+    plain = "".join(c for c in low if c.isalpha())
+    leet = "".join(c for c in low[start:end].translate(LEET) if c.isalpha())
+    return {plain, leet}
+
+
+def _is_repeat_of_common(word):
+    if not word:
+        return False
+    if word in COMMON_WORDS:
+        return True
+    for n in range(2, len(word) // 2 + 1):
+        if len(word) % n == 0 and word[:n] * (len(word) // n) == word and word[:n] in COMMON_WORDS:
+            return True
+    return False
+
+
+def _is_predictable(pw):
+    low = pw.lower()
+    if len(set(low)) < 5:
+        return True
+    # Vetsina sousednich znaku jde po sobe (1234..., abcd..., aaaa...)
+    steps = sum(1 for a, b in zip(low, low[1:]) if abs(ord(a) - ord(b)) <= 1)
+    if steps >= 0.75 * (len(low) - 1):
+        return True
+    # Rada klavesnice nebo abecedy (i dokola)
+    return any(low in seq * 3 for seq in SEQUENCES)
+
+
+def password_problem(pw, user=None):
+    """Proc nove heslo nestaci (text pro uzivatele), nebo None. Zadne blokovani pokusu:
+    hrubou silu brzdi scrypt (kazdy pokus ~0,7 s a 256 MiB) a delka hesla."""
+    if len(pw) < MIN_PASSWORD:
+        return _("Use at least 12 characters.")
+    if _is_predictable(pw):
+        return _("This password is too predictable. Avoid repeated characters and sequences like 1234 or abcd.")
+    user = (USER if user is None else user).lower()
+    if any(_is_repeat_of_common(w) or (len(user) >= 3 and w in (user, user * 2)) for w in _core_words(pw)):
+        return _("This password is too common. Choose something less predictable, for example a few unrelated words.")
+    return None
+
+
+def password_strength(pw, user=None):
+    """0 = nelze pouzit, 1 slabe, 2 prijatelne, 3 dobre, 4 silne (odhad entropie)."""
+    if not pw or password_problem(pw, user):
+        return 0
+    pool = 0
+    if any(c.islower() for c in pw):
+        pool += 26
+    if any(c.isupper() for c in pw):
+        pool += 26
+    if any(c.isdigit() for c in pw):
+        pool += 10
+    if any(not c.isalnum() and c.isascii() for c in pw):
+        pool += 33
+    if any(not c.isascii() for c in pw):
+        pool += 100
+    # Opakovane znaky nepridavaji tolik jako nove
+    bits = math.log2(max(pool, 2)) * min(len(pw), 2 * len(set(pw)))
+    return 1 if bits < 50 else 2 if bits < 70 else 3 if bits < 90 else 4
+
+
+def strength_label(level):
+    return ("", _("Weak"), _("Fair"), _("Good"), _("Strong"))[level]
+
+
+# ---- klic pro obnovu ----------------------------------------------------------------------
+def format_master_key(hexkey):
+    """64 hex znaku -> 8 skupin po 8 oddelenych pomlckou (format gocryptfs -masterkey)."""
+    return "-".join(hexkey[i:i + 8] for i in range(0, 64, 8))
+
+
+def normalize_recovery_key(text):
+    """Klic opsany z papiru: mezery, pomlcky, velka pismena nevadi. None = neplatny."""
+    k = "".join(c for c in text.lower() if c not in " -\t\r\n")
+    if len(k) != 64 or any(c not in "0123456789abcdef" for c in k):
+        return None
+    return k
+
+
+def master_key(password):
+    """(klic, chyba) - hlavni klic Trezoru odemceny heslem (gocryptfs-xray -dumpmasterkey).
+    Klic se nikam neuklada, jen se zobrazi."""
+    rc, err, out = run_pw_out(["gocryptfs-xray", "-dumpmasterkey", CONF_FILE], [password])
+    if rc in (XRAY_WRONG_PASSWORD, WRONG_PASSWORD):
+        return None, _("Wrong password.")
+    k = normalize_recovery_key(out.strip())
+    if rc != 0 or not k:
+        return None, _("Could not read the recovery key (%s).") % (err or rc)
+    return format_master_key(k), None
+
+
+def verify_master_key(key):
+    """Spravny klic? Pripojit sifrovana data jen pro cteni do soukrome docasne slozky a zkusit
+    rozsifrovat nazvy a obsah. Spatny klic nazvy nerozsifruje (vypis je prazdny) a cteni souboru
+    selze (AES-GCM overuje kazdy blok). Prazdny Trezor overit nejde - neni co ztratit."""
+    try:
+        # Bez konfigurace a diriv; dlouhe nazvy (gocryptfs.longname.*) jsou sifrovana data
+        cipher = [n for n in os.listdir(VAULT) if n != "gocryptfs.diriv" and not n.startswith("gocryptfs.conf")]
+    except OSError:
+        return False
+    if not cipher:
+        return True
+    mnt = tempfile.mkdtemp(prefix="luxos-safe-verify-", dir=os.environ.get("XDG_RUNTIME_DIR") or None)
+    try:
+        rc, _err = run_pw(["gocryptfs", "-q", "-ro", "-nosyslog", "-masterkey=stdin"] + MOUNT_OPTS + [VAULT, mnt],
+                          [format_master_key(key)])
+        if rc != 0:
+            return False
+        try:
+            names = os.listdir(mnt)
+            for n in names:
+                p = os.path.join(mnt, n)
+                if os.path.isfile(p) and not os.path.islink(p) and os.path.getsize(p) > 0:
+                    with open(p, "rb") as f:
+                        f.read(1)
+                    break
+            return bool(names)
+        except OSError:
+            return False
+        finally:
+            subprocess.run(["fusermount3", "-u", mnt], capture_output=True)
+    finally:
+        try:
+            os.rmdir(mnt)
+        except OSError:
+            pass
+
+
+def reset_password(recovery_key, new):
+    """Zapomenute heslo: novy obal klice z klice pro obnovu (gocryptfs -passwd -masterkey=stdin)."""
+    if is_unlocked():
+        return _("Lock the Safe first.")
+    key = normalize_recovery_key(recovery_key)
+    if not key:
+        return _("This is not a valid recovery key. It has 64 characters 0-9 and a-f.")
+    if not verify_master_key(key):
+        return _("This recovery key does not open this Safe.")
+    bak = CONF_FILE + ".bak"
+    # gocryptfs pri -masterkey uklada stary gocryptfs.conf jako .bak a existujici .bak neprepise
+    stale = None
+    if os.path.lexists(bak):
+        stale = bak + ".old"
+        os.replace(bak, stale)
+    rc, err = run_pw(["gocryptfs", "-passwd", "-q", "-scryptn", str(target_logn()), "-masterkey=stdin", VAULT],
+                     [format_master_key(key), new])
+    if rc != 0:
+        if stale:
+            os.replace(stale, bak)
+        return _("Could not change the password (%s).") % err
+    # Stary obal klice (zapomenute nebo prozrazene heslo) nenechavat
+    for p in (bak, stale):
+        if p:
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
+    return None
+
+
+# ---- kontrola ochrany -------------------------------------------------------------------
+def _read(path, default=""):
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except OSError:
+        return default
+
+
+def _block_encrypted(name, sysfs="/sys", depth=0):
+    """Blokove zarizeni (dm-0, nvme0n1p3 ...) je sifrovane (dm-crypt) nebo jen v RAM (zram)?"""
+    if name.startswith("zram"):
+        return True
+    if depth > 8:
+        return False
+    if _read(f"{sysfs}/class/block/{name}/dm/uuid").startswith("CRYPT-"):
+        return True
+    try:
+        slaves = os.listdir(f"{sysfs}/class/block/{name}/slaves")
+    except OSError:
+        slaves = []
+    return bool(slaves) and all(_block_encrypted(s, sysfs, depth + 1) for s in slaves)
+
+
+def swap_report(swaps="/proc/swaps", sysfs="/sys"):
+    """[(zarizeni, sifrovane)] - nesifrovany swap muze na disk ulozit i pamet s klicem Trezoru."""
+    res = []
+    for line in _read(swaps).splitlines()[1:]:
+        parts = line.split()
+        if not parts:
+            continue
+        dev = _unescape(parts[0])
+        try:
+            if len(parts) > 1 and parts[1] == "file":
+                st = os.stat(dev)
+                name = os.path.basename(os.path.realpath(
+                    f"{sysfs}/dev/block/{os.major(st.st_dev)}:{os.minor(st.st_dev)}"))
+            else:
+                name = os.path.basename(os.path.realpath(dev))
+        except OSError:
+            res.append((dev, False))
+            continue
+        res.append((dev, _block_encrypted(name, sysfs)))
+    return res
+
+
+def mount_options():
+    """Volby pripojeni odemceneho Trezoru (set) nebo None."""
+    last = None
+    try:
+        with open(MOUNTINFO) as f:
+            for line in f:
+                left, _sep, right = line.partition(" - ")
+                fields = left.split()
+                if len(fields) >= 6 and _unescape(fields[4]) == MOUNT and right.startswith("fuse.gocryptfs "):
+                    last = set(fields[5].split(","))
+    except OSError:
+        pass
+    return last
+
+
+def core_limit(pid):
+    for line in _read(f"/proc/{pid}/limits").splitlines():
+        if line.startswith("Max core file size"):
+            return line.split()[4]
+    return None
+
+
+def check():
+    """[(ok, text)] - stav ochrany Trezoru pro "luxos-safe check"."""
+    st = state()
+    if st == "none":
+        return [(True, _("No Safe has been created yet."))]
+    res = []
+    n = vault_logn()
+    if n is None:
+        res.append((False, _("Could not read the key protection settings (%s).") % CONF_FILE))
+    elif n < SCRYPT_LOGN:
+        res.append((False, _("Password protection: scrypt 2^%d, weaker than the recommended 2^%d. Use Upgrade Protection in the Safe window.") % (n, SCRYPT_LOGN)))
+    else:
+        res.append((True, _("Password protection: scrypt 2^%d.") % n))
+    if st == "unlocked":
+        opts = mount_options() or set()
+        missing = [o for o in ("nosuid", "nodev", "noexec") if o not in opts]
+        if missing:
+            res.append((False, _("Mounted without %s: lock the Safe and unlock it again.") % ", ".join(missing)))
+        else:
+            res.append((True, _("Mounted with nosuid, nodev and noexec.")))
+        limits = {core_limit(p) for p in _gocryptfs_pids()}
+        if limits and limits <= {"0"}:
+            res.append((True, _("Core dumps of the Safe process are disabled.")))
+        else:
+            res.append((False, _("Core dumps of the Safe process are allowed: lock the Safe and unlock it again.")))
+    else:
+        res.append((True, _("The Safe is locked: its contents are stored only encrypted.")))
+    scope = _read("/proc/sys/kernel/yama/ptrace_scope")
+    if scope.isdigit() and int(scope) >= 2:
+        res.append((True, _("Other programs cannot read the memory of the Safe process (ptrace_scope %s).") % scope))
+    else:
+        res.append((False, _("Programs of your account can read the memory of the Safe process (ptrace_scope %s).") % (scope or "?")))
+    for dev, enc in swap_report():
+        if enc:
+            res.append((True, _("Swap %s is encrypted or in memory only.") % dev))
+        else:
+            res.append((False, _("Swap %s is not encrypted: memory with keys could be written to the disk.") % dev))
+    return res
 
 
 def open_folder():
@@ -554,13 +929,15 @@ def gui(mode):
                _("Files in the Safe are encrypted and open only with its own password - "
                  "not even an administrator can read them while the Safe is locked."))
         p1 = entry(_("New Safe password"))
+        box.pack_start(strength_meter(p1), False, False, 0)
         p2 = entry(_("Password again"))
         err = error_label()
 
         def go():
             a, b = p1.get_text(), p2.get_text()
-            if len(a) < 8:
-                err.set_text(_("Use at least 8 characters."))
+            problem = password_problem(a)
+            if problem:
+                err.set_text(problem)
             elif a != b:
                 err.set_text(_("Passwords do not match."))
             else:
@@ -568,12 +945,17 @@ def gui(mode):
                 if msg:
                     err.set_text(msg)
                 else:
+                    p1.set_text("")
+                    p2.set_text("")
+                    key, _e = master_key(a)
+                    if key:
+                        recovery_key_dialog(key)
                     offer_import()
                     open_folder()
                     show()
         p2.connect("activate", lambda _e: go())
         button(_("Create Safe"), go)
-        warn = Gtk.Label(label=_("If you forget this password, the files cannot be recovered."),
+        warn = Gtk.Label(label=_("If you forget this password, only the recovery key shown after creating the Safe can open it."),
                          wrap=True, max_width_chars=44)
         warn.get_style_context().add_class("dim")
         box.pack_start(warn, False, False, 0)
@@ -600,6 +982,10 @@ def gui(mode):
                 show()
         pw.connect("activate", lambda _e: go())
         button(_("Unlock"), go)
+        forgot = Gtk.Button(label=_("Forgot Password…"))
+        forgot.get_style_context().add_class("flat")
+        forgot.connect("clicked", lambda _b: reset_dialog())
+        box.pack_start(forgot, False, False, 0)
         GLib.idle_add(pw.grab_focus)
 
     def page_unlocked():
@@ -639,10 +1025,161 @@ def gui(mode):
         hint.get_style_context().add_class("dim")
         box.pack_start(hint, False, False, 0)
 
+        if can_upgrade():
+            up = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+            up.get_style_context().add_class("group")
+            lab = Gtk.Label(label=_("Stronger password protection is available for this Safe. It makes guessing the password from a stolen disk much slower; unlocking takes about a second."),
+                            wrap=True, max_width_chars=44, xalign=0)
+            up.pack_start(lab, False, False, 6)
+            b = Gtk.Button(label=_("Upgrade Protection…"))
+            b.connect("clicked", lambda _b: upgrade_dialog())
+            up.pack_start(b, False, False, 6)
+            box.pack_start(up, False, False, 6)
+
+        row = Gtk.Box(spacing=6, homogeneous=True)
         chg = Gtk.Button(label=_("Change Password…"))
         chg.get_style_context().add_class("flat")
         chg.connect("clicked", lambda _b: change_dialog())
-        box.pack_start(chg, False, False, 0)
+        row.pack_start(chg, True, True, 0)
+        rk = Gtk.Button(label=_("Recovery Key…"))
+        rk.get_style_context().add_class("flat")
+        rk.connect("clicked", lambda _b: show_key_dialog())
+        row.pack_start(rk, True, True, 0)
+        box.pack_start(row, False, False, 0)
+
+    def strength_meter(pw_entry):
+        """Ukazatel sily noveho hesla pod polem pro heslo."""
+        mbox = Gtk.Box(spacing=8)
+        bar = Gtk.LevelBar(min_value=0, max_value=4, mode=Gtk.LevelBarMode.DISCRETE)
+        bar.set_size_request(120, -1)
+        lab = Gtk.Label(xalign=0)
+        lab.get_style_context().add_class("dim")
+        mbox.pack_start(bar, False, False, 0)
+        mbox.pack_start(lab, True, True, 0)
+
+        def update(_e=None):
+            text = pw_entry.get_text()
+            level = password_strength(text)
+            bar.set_value(level)
+            lab.set_text("" if not text else (strength_label(level) if level else password_problem(text) or ""))
+            lab.set_line_wrap(True)
+            lab.set_max_width_chars(36)
+        pw_entry.connect("changed", update)
+        update()
+        return mbox
+
+    def dialog(title, ok_label):
+        dlg = Gtk.Dialog(title=title, transient_for=win, modal=True)
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, ok_label, Gtk.ResponseType.OK)
+        dlg.set_default_response(Gtk.ResponseType.OK)
+        area = dlg.get_content_area()
+        area.set_spacing(8)
+        area.set_border_width(14)
+        return dlg, area
+
+    def text_label(text, dim=False):
+        lab = Gtk.Label(label=text, wrap=True, max_width_chars=48, xalign=0)
+        if dim:
+            lab.get_style_context().add_class("dim")
+        return lab
+
+    def recovery_key_dialog(key):
+        """Klic pro obnovu jednou ukazat k opsani na papir. Nejde oznacit ani kopirovat (schranka
+        a historie schranky by ho uchovaly) a netiskne se (tiskova fronta se uklada na disk)."""
+        dlg = Gtk.Dialog(title=_("Recovery Key"), transient_for=win, modal=True)
+        area = dlg.get_content_area()
+        area.set_spacing(10)
+        area.set_border_width(16)
+        area.pack_start(text_label(_("Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.")), False, False, 0)
+        groups = key.split("-")
+        k = Gtk.Label(selectable=False, justify=Gtk.Justification.CENTER)
+        k.set_markup("<span font_family='monospace' size='large' weight='bold'>%s\n%s</span>"
+                     % (" ".join(groups[:4]), " ".join(groups[4:])))
+        area.pack_start(k, False, False, 8)
+        warn = text_label(_("Anyone with this key can open the Safe without the password. Do not save it on this computer, in e-mail or in the cloud, and do not take a photo of it."))
+        warn.get_style_context().add_class("error")
+        area.pack_start(warn, False, False, 0)
+        done = Gtk.CheckButton(label=_("I have written down the recovery key"))
+        area.pack_start(done, False, False, 0)
+        dlg.add_button(_("Later"), Gtk.ResponseType.CANCEL)
+        ok = dlg.add_button(_("Done"), Gtk.ResponseType.OK)
+        ok.set_sensitive(False)
+        done.connect("toggled", lambda c: ok.set_sensitive(c.get_active()))
+        dlg.show_all()
+        dlg.run()
+        dlg.destroy()
+
+    def ask_password(title, text, ok_label):
+        """Dialog s polem pro aktualni heslo Trezoru: (dialog, pole, chybovy popisek)."""
+        dlg, area = dialog(title, ok_label)
+        area.pack_start(text_label(text), False, False, 0)
+        pw = Gtk.Entry(visibility=False, placeholder_text=_("Current password"), activates_default=True)
+        err = Gtk.Label(wrap=True, max_width_chars=48)
+        err.get_style_context().add_class("error")
+        area.pack_start(pw, False, False, 0)
+        area.pack_start(err, False, False, 0)
+        dlg.show_all()
+        return dlg, pw, err
+
+    def show_key_dialog():
+        dlg, pw, err = ask_password(_("Recovery Key"), _("Enter the Safe password to show its recovery key."), _("Show"))
+        key = None
+        while dlg.run() == Gtk.ResponseType.OK:
+            key, msg = master_key(pw.get_text())
+            if key:
+                break
+            err.set_text(msg)
+        pw.set_text("")
+        dlg.destroy()
+        if key:
+            recovery_key_dialog(key)
+
+    def upgrade_dialog():
+        dlg, pw, err = ask_password(_("Upgrade Protection"),
+                                    _("Enter the Safe password. The password stays the same, only the protection of the key gets stronger."),
+                                    _("Upgrade"))
+        while dlg.run() == Gtk.ResponseType.OK:
+            msg = upgrade_protection(pw.get_text())
+            if not msg:
+                notify(_("Safe"), _("The Safe now uses stronger password protection."))
+                break
+            err.set_text(msg)
+        pw.set_text("")
+        dlg.destroy()
+        show()
+
+    def reset_dialog():
+        """Zapomenute heslo: klic pro obnovu + nove heslo."""
+        dlg, area = dialog(_("Forgot Password"), _("Set New Password"))
+        area.pack_start(text_label(_("Enter the recovery key you wrote down when you created the Safe and choose a new password. Without the recovery key the Safe cannot be opened.")), False, False, 0)
+        key = Gtk.Entry(placeholder_text=_("Recovery Key"), width_chars=40)
+        new = Gtk.Entry(visibility=False, placeholder_text=_("New Safe password"))
+        new2 = Gtk.Entry(visibility=False, placeholder_text=_("Password again"), activates_default=True)
+        err = Gtk.Label(wrap=True, max_width_chars=48)
+        err.get_style_context().add_class("error")
+        area.pack_start(key, False, False, 0)
+        area.pack_start(new, False, False, 0)
+        area.pack_start(strength_meter(new), False, False, 0)
+        area.pack_start(new2, False, False, 0)
+        area.pack_start(err, False, False, 0)
+        dlg.show_all()
+        while dlg.run() == Gtk.ResponseType.OK:
+            problem = password_problem(new.get_text())
+            if not normalize_recovery_key(key.get_text()):
+                err.set_text(_("This is not a valid recovery key. It has 64 characters 0-9 and a-f."))
+            elif problem:
+                err.set_text(problem)
+            elif new.get_text() != new2.get_text():
+                err.set_text(_("Passwords do not match."))
+            else:
+                msg = reset_password(key.get_text(), new.get_text())
+                if not msg:
+                    notify(_("Safe"), _("The Safe password was changed. Unlock the Safe with the new password."))
+                    break
+                err.set_text(msg)
+        for e in (key, new, new2):
+            e.set_text("")
+        dlg.destroy()
 
     def offer_import():
         """Po odemceni: nesifrovane soubory ze stare zamcene slozky nabidnout k presunu do Trezoru."""
@@ -672,14 +1209,15 @@ def gui(mode):
         old = Gtk.Entry(visibility=False, placeholder_text=_("Current password"))
         new = Gtk.Entry(visibility=False, placeholder_text=_("New Safe password"))
         new2 = Gtk.Entry(visibility=False, placeholder_text=_("Password again"))
-        err = Gtk.Label()
+        err = Gtk.Label(wrap=True, max_width_chars=48)
         err.get_style_context().add_class("error")
-        for w in (old, new, new2, err):
+        for w in (old, new, strength_meter(new), new2, err):
             area.pack_start(w, False, False, 0)
         dlg.show_all()
         while dlg.run() == Gtk.ResponseType.OK:
-            if len(new.get_text()) < 8:
-                err.set_text(_("Use at least 8 characters."))
+            problem = password_problem(new.get_text())
+            if problem:
+                err.set_text(problem)
             elif new.get_text() != new2.get_text():
                 err.set_text(_("Passwords do not match."))
             else:
@@ -711,6 +1249,7 @@ USAGE = (
     ("luxos-safe unlock [--open]", "ask for the password (--open: then open the folder)"),
     ("luxos-safe lock [--force] [--logout]", "lock the Safe (--force: keep trying; --logout: close apps with open files)"),
     ("luxos-safe status", "print the state: locked, unlocked or none"),
+    ("luxos-safe check", "check the protection of the Safe (key derivation, mount options, memory, swap)"),
     ("luxos-safe --watch", "lock when the screen locks or the computer sleeps (started by the session)"),
     ("luxos-safe --trust-launcher", "trust the Unlock Safe launcher in the locked folder (started by the session)"),
 )
@@ -733,6 +1272,11 @@ def main():
     if cmd == "status":
         print(state())
         return 0
+    if cmd == "check":
+        res = check()
+        for ok, text in res:
+            print(("  ok    " if ok else "  !     ") + text)
+        return 0 if all(ok for ok, _t in res) else 1
     if cmd == "lock":
         msg = lock("logout" if "--logout" in args else "auto" if "--force" in args else "manual")
         if msg:

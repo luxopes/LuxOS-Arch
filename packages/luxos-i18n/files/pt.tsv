@@ -4283,3 +4283,47 @@ Connecting failed.	Falha ao conectar.
 list system snapshots (one before every update)	listar os instantâneos do sistema (um antes de cada atualização)
 take a system snapshot now	criar um instantâneo do sistema agora
 return the system to a snapshot (also from the boot menu)	voltar o sistema a um instantâneo (também pelo menu de inicialização)
+Anyone with this key can open the Safe without the password. Do not save it on this computer, in e-mail or in the cloud, and do not take a photo of it.	Qualquer pessoa com esta chave pode abrir o Cofre sem a senha. Não a guarde neste computador, em e-mail ou na nuvem e não a fotografe.
+Core dumps of the Safe process are allowed: lock the Safe and unlock it again.	O processo do Cofre pode gravar despejos de memória (core dumps): bloqueie o Cofre e desbloqueie-o novamente.
+Core dumps of the Safe process are disabled.	Os despejos de memória (core dumps) do processo do Cofre estão desativados.
+Could not read the key protection settings (%s).	Não foi possível ler as configurações de proteção da chave (%s).
+Could not read the recovery key (%s).	Não foi possível ler a chave de recuperação (%s).
+Enter the recovery key you wrote down when you created the Safe and choose a new password. Without the recovery key the Safe cannot be opened.	Introduza a chave de recuperação que anotou ao criar o Cofre e escolha uma nova senha. Sem a chave de recuperação o Cofre não pode ser aberto.
+Enter the Safe password. The password stays the same, only the protection of the key gets stronger.	Introduza a senha do Cofre. A senha continua a mesma, apenas a proteção da chave fica mais forte.
+Enter the Safe password to show its recovery key.	Introduza a senha do Cofre para mostrar a sua chave de recuperação.
+Fair	Razoável
+Forgot Password	Senha esquecida
+Forgot Password…	Esqueceu a senha…
+Good	Bom
+If you forget this password, only the recovery key shown after creating the Safe can open it.	Se esquecer esta senha, só a chave de recuperação mostrada após a criação poderá abrir o Cofre.
+I have written down the recovery key	Anotei a chave de recuperação
+Lock the Safe first.	Bloqueie primeiro o Cofre.
+Mounted with nosuid, nodev and noexec.	Montado com nosuid, nodev e noexec.
+Mounted without %s: lock the Safe and unlock it again.	Montado sem %s: bloqueie o Cofre e desbloqueie-o novamente.
+No Safe has been created yet.	Ainda não foi criado nenhum Cofre.
+Other programs cannot read the memory of the Safe process (ptrace_scope %s).	Outros programas não podem ler a memória do processo do Cofre (ptrace_scope %s).
+Password protection: scrypt 2^%d.	Proteção da senha: scrypt 2^%d.
+Password protection: scrypt 2^%d, weaker than the recommended 2^%d. Use Upgrade Protection in the Safe window.	Proteção da senha: scrypt 2^%d, mais fraca que o recomendado 2^%d. Use Reforçar Proteção na janela do Cofre.
+Programs of your account can read the memory of the Safe process (ptrace_scope %s).	Os programas da sua conta podem ler a memória do processo do Cofre (ptrace_scope %s).
+Recovery Key	Chave de recuperação
+Recovery Key…	Chave de recuperação…
+Set New Password	Definir Nova Senha
+Strong	Forte
+Stronger password protection is available for this Safe. It makes guessing the password from a stolen disk much slower; unlocking takes about a second.	Está disponível uma proteção de senha mais forte para este Cofre. Torna muito mais lento adivinhar a senha a partir de um disco roubado; o desbloqueio demora cerca de um segundo.
+Swap %s is encrypted or in memory only.	A área de troca %s está cifrada ou apenas na memória.
+Swap %s is not encrypted: memory with keys could be written to the disk.	A área de troca %s não está cifrada: memória com chaves pode ser gravada no disco.
+The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)	A cópia contém o seu Cofre cifrado: %s (veja a documentação do Cofre para o restaurar)
+The Safe is locked: its contents are stored only encrypted.	O Cofre está bloqueado: o seu conteúdo é guardado apenas cifrado.
+The Safe now uses stronger password protection.	O Cofre usa agora uma proteção de senha mais forte.
+The Safe password was changed. Unlock the Safe with the new password.	A senha do Cofre foi alterada. Desbloqueie o Cofre com a nova senha.
+This is not a valid recovery key. It has 64 characters 0-9 and a-f.	Não é uma chave de recuperação válida. Tem 64 caracteres 0-9 e a-f.
+This password is too common. Choose something less predictable, for example a few unrelated words.	Esta senha é demasiado comum. Escolha algo menos previsível, por exemplo algumas palavras sem relação.
+This password is too predictable. Avoid repeated characters and sequences like 1234 or abcd.	Esta senha é demasiado previsível. Evite caracteres repetidos e sequências como 1234 ou abcd.
+This recovery key does not open this Safe.	Esta chave de recuperação não abre este Cofre.
+Upgrade	Reforçar
+Upgrade Protection	Reforçar Proteção
+Upgrade Protection…	Reforçar Proteção…
+Use at least 12 characters.	Use pelo menos 12 caracteres.
+Weak	Fraca
+Write this recovery key on paper and keep it somewhere safe, away from the computer. If you forget the Safe password, the recovery key is the only way to open the Safe.	Escreva esta chave de recuperação em papel e guarde-a num local seguro, longe do computador. Se esquecer a senha do Cofre, é a única forma de o abrir.
+check the protection of the Safe (key derivation, mount options, memory, swap)	verificar a proteção do Cofre (derivação de chave, opções de montagem, memória, swap)
