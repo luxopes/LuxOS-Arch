@@ -79,7 +79,8 @@ def main(argv):
     elif argv[1:2] == ["install-alt"] and len(argv) == 4 and all(ID_RE.match(a) for a in argv[2:]):
         alternative = (argv[2], argv[3])
     else:
-        print(__doc__.strip(), file=sys.stderr)
+        print("usage: luxos-drivers-helper install | install-alt DEVICE CHOICE  (used by the Drivers app)",
+              file=sys.stderr)
         return 2
     if os.path.isdir("/run/archiso"):
         say("@@ERROR live Drivers are installed by the installer on the live system")

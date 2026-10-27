@@ -27,6 +27,17 @@ LUX_CONFIG_TOOL=/usr/lib/lux/lux-config
 LUX_MIGRATE=/usr/share/libalpm/scripts/lux-engine-migrate
 . /usr/lib/luxos/i18n.sh
 ui_lang() { export LANG=$1; . /usr/lib/luxos/i18n.sh; }   # jazyk pruvodce podle volby
+usage() {
+    printf '%s\n\n%s\n' "luxos-install - $(T "LuxOS installer")" "$(T "Usage:")"
+    printf '  %s\n      %s\n' \
+        "sudo luxos-install" "$(T "interactive installation")" \
+        "sudo luxos-install --config FILE|- [--yes] [--progress]" \
+        "$(T "unattended installation (example: /usr/share/luxos/installer/install.conf.example)")" \
+        "sudo luxos-install --probe /dev/DISK" "$(T "free space and partitions of a disk (KEY=value)")" \
+        "sudo luxos-install --scan" "$(T "disks, partitions, LUKS and LVM as JSON (read-only)")" \
+        "luxos-install --check-layout FILE|-" "$(T "check a LAYOUT without changing anything")"
+}
+for a in "$@"; do [[ $a == -h || $a == --help ]] && { usage; exit 0; }; done     # napoveda bez sudo
 # Rucni rozdeleni disku (DISK_MODE=layout): parser, kontrola a provedeni LAYOUT
 . "$SHARE/layout.sh"
 # Bezpecne smazani mista pro LuxOS pred formatovanim (WIPE=zero|overwrite)
@@ -38,7 +49,9 @@ PROGRESS=0
 PROBE=""
 SCAN=0
 CHECK_LAYOUT=""
-for a in "$@"; do [[ $a == --check-layout ]] && CHECK_LAYOUT=1; done
+for a in "$@"; do
+    [[ $a == --check-layout ]] && CHECK_LAYOUT=1
+done
 ((EUID == 0 || CHECK_LAYOUT == 1)) || exec sudo "$0" "$@"
 while (($#)); do
     case $1 in
@@ -48,8 +61,8 @@ while (($#)); do
         --probe)    PROBE=$2; shift ;;
         --scan)     SCAN=1 ;;
         --check-layout) CHECK_LAYOUT=$2; shift ;;
-        -h|--help) sed -n '2,13p' "$0" | sed 's/^# \?//'; exit 0 ;;
-        *) echo "Unknown option: $1" >&2; exit 2 ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "$(T "Unknown option: %s" "$1")" >&2; exit 2 ;;
     esac
     shift
 done

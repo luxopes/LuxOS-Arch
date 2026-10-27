@@ -4149,3 +4149,137 @@ This computer has no system configuration file (/etc/luxos/system.lsl).	Cet ordi
 Settings that changed are returned to the state described in /etc/luxos/system.lsl.	Les réglages modifiés reviennent à l'état décrit dans /etc/luxos/system.lsl.
 The changes are shown first and you are asked; a snapshot is taken before.	Les modifications sont d'abord affichées et une question est posée ; un instantané est pris avant.
 Repair the settings (lux system fix)	Réparer les réglages (lux system fix)
+usage:	utilisation :
+positional arguments	arguments positionnels
+show this help message and exit	afficher cette aide et quitter
+subcommands	sous-commandes
+%(prog)s: error: %(message)s	%(prog)s : erreur : %(message)s
+argument %(argument_name)s: %(message)s	argument %(argument_name)s : %(message)s
+invalid choice: %(value)r (choose from %(choices)s)	choix non valide : %(value)r (choisissez parmi %(choices)s)
+invalid %(type)s value: %(value)r	valeur %(type)s non valide : %(value)r
+the following arguments are required: %s	les arguments suivants sont obligatoires : %s
+unrecognized arguments: %s	arguments non reconnus : %s
+one of the arguments %s is required	l’un des arguments %s est obligatoire
+not allowed with argument %s	non autorisé avec l’argument %s
+expected one argument	un argument attendu
+expected at most one argument	au plus un argument attendu
+expected at least one argument	au moins un argument attendu
+expected %s argument	%s argument attendu
+expected %s arguments	%s arguments attendus
+ambiguous option: %(option)s could match %(matches)s	option ambiguë : %(option)s peut correspondre à %(matches)s
+unexpected option string: %s	option inattendue : %s
+(no command)	(sans commande)
+%s needs a value	%s nécessite une valeur
+OPTION	OPTION
+COMMAND	COMMANDE
+ARG	ARG
+FILE	FICHIER
+FOLDER	DOSSIER
+DEVICE	PÉRIPHÉRIQUE
+show this help	afficher cette aide
+show the version	afficher la version
+machine-readable output	sortie lisible par une machine
+read the password from standard input	lire le mot de passe sur l’entrée standard
+no system snapshot before joining or leaving	pas d’instantané du système avant de rejoindre ou de quitter
+updates, backup kernel and self-repair	mises à jour, noyau de secours et autoréparation
+show the state of updates and repairs	afficher l’état des mises à jour et des réparations
+recent repairs and updates	réparations et mises à jour récentes
+show or set the update mode (setting it needs root)	afficher ou définir le mode de mise à jour (la modification nécessite root)
+CPU scheduler: LuxOS (sched_ext lavd) or the kernel default	ordonnanceur du processeur : LuxOS (sched_ext lavd) ou celui du noyau par défaut
+switch to the LuxOS kernel, the current one stays as a backup (root)	passer au noyau LuxOS, l’actuel reste en secours (root)
+System snapshots	Instantanés du système
+list system snapshots (root)	lister les instantanés du système (root)
+take a system snapshot now (root)	créer un instantané du système maintenant (root)
+start the snapshot as the system after the next restart (root)	démarrer l’instantané comme système après le prochain redémarrage (root)
+restore the snapshot and recovery entries in the boot menu (root)	rétablir les entrées des instantanés et de récupération dans le menu de démarrage (root)
+system protection and the last check of system files	protection du système et dernière vérification des fichiers système
+turn system protection on or off (root)	activer ou désactiver la protection du système (root)
+make system files read-only again when nothing is being installed (root)	remettre les fichiers système en lecture seule quand rien n’est en cours d’installation (root)
+run a command with writable system files (root)	exécuter une commande avec des fichiers système modifiables (root)
+check installed files against the package database	vérifier les fichiers installés d’après la base de paquets
+reinstall packages with changed files (root)	réinstaller les paquets dont des fichiers ont changé (root)
+Recovery	Récupération
+check the disk; without --repair nothing is written (root)	vérifier le disque ; sans --repair, rien n’est écrit (root)
+reinstall the system, keeping /home and user accounts (root)	réinstaller le système en conservant /home et les comptes utilisateur (root)
+Used by system services and hooks: %s	Utilisé par les services système et les hooks : %s
+encrypted folder /safe/<user> unlocked with its own password	dossier chiffré /safe/<utilisateur> déverrouillé par son propre mot de passe
+Safe window	fenêtre du Coffre-fort
+ask for the password (--open: then open the folder)	demander le mot de passe (--open : puis ouvrir le dossier)
+lock the Safe (--force: keep trying; --logout: close apps with open files)	verrouiller le Coffre-fort (--force : réessayer ; --logout : fermer les applications ayant des fichiers ouverts)
+print the state: locked, unlocked or none	afficher l’état : locked (verrouillé), unlocked (déverrouillé) ou none (aucun)
+lock when the screen locks or the computer sleeps (started by the session)	verrouiller quand l’écran se verrouille ou que l’ordinateur se met en veille (lancé par la session)
+trust the Unlock Safe launcher in the locked folder (started by the session)	approuver le lanceur Déverrouiller le Coffre-fort dans le dossier verrouillé (lancé par la session)
+backup state	état des sauvegardes
+back up now	sauvegarder maintenant
+list backups	lister les sauvegardes
+files in a backup	fichiers d’une sauvegarde
+restore files and folders	restaurer des fichiers et des dossiers
+restore everything (new computer, LuxOS Recovery)	tout restaurer (nouvel ordinateur, LuxOS Recovery)
+backup disks	disques de sauvegarde
+add a backup disk: a folder or a network disk	ajouter un disque de sauvegarde : un dossier ou un disque réseau
+erase an external disk and use it for backups	effacer un disque externe et l’utiliser pour les sauvegardes
+stop using a backup disk (the backups on it stay)	ne plus utiliser un disque de sauvegarde (les sauvegardes restent dessus)
+folders that are not backed up	dossiers non sauvegardés
+automatic backups every hour	sauvegardes automatiques toutes les heures
+also back up the system (settings and app list), Downloads or virtual machines	sauvegarder aussi le système (réglages et liste des applications), Téléchargements ou machines virtuelles
+folder with backups or the root of a backup disk (restore without configuration)	dossier de sauvegardes ou racine d’un disque de sauvegarde (restauration sans configuration)
+which computer when the disk has backups of several	quel ordinateur quand le disque contient les sauvegardes de plusieurs
+folder with backups (no configuration needed)	dossier de sauvegardes (sans configuration)
+reset apps to their default settings; nothing is deleted	réinitialiser les applications à leurs réglages par défaut ; rien n’est supprimé
+window (Settings)	fenêtre (Réglages)
+apps with settings in your home folder	applications ayant des réglages dans votre dossier personnel
+move the app's settings to a backup (--force: even while the app is running)	déplacer les réglages de l’application dans une sauvegarde (--force : même si l’application est ouverte)
+restore a backup (the current settings are backed up first)	restaurer une sauvegarde (les réglages actuels sont d’abord sauvegardés)
+connection with your phone (LuxOS Companion for Android) over Bluetooth	connexion avec votre téléphone (LuxOS Companion pour Android) par Bluetooth
+Phone window: approved phones, permissions, status	fenêtre Téléphone : téléphones approuvés, autorisations, état
+session service (luxos-companion.service)	service de session (luxos-companion.service)
+service status as JSON, without a window	état du service en JSON, sans fenêtre
+scan documents and photos	numériser des documents et des photos
+scanner from SANE (for example from Printers & Scanners)	scanner SANE (par exemple depuis Imprimantes et scanners)
+check whether the network needs a sign-in on a login page	vérifier si le réseau exige une connexion sur une page de connexion
+Prints online, portal URL IP or none (used by luxos-hub).	Affiche online, portal URL IP ou none (utilisé par luxos-hub).
+sign in to a network with a login page (hotel, airport, train, coffee shop)	connexion à un réseau avec page de connexion (hôtel, aéroport, train, café)
+Opens the login page in a private browser window that forgets everything when closed.	Ouvre la page de connexion dans une fenêtre de navigation privée qui oublie tout à la fermeture.
+rescue a frozen desktop (the mouse moves, but clicks and typing do nothing)	secourir un bureau figé (la souris bouge, mais les clics et la saisie ne font rien)
+from a console (Ctrl+Alt+F3, sign in): save a report and restore the desktop	depuis une console (Ctrl+Alt+F3, se connecter) : enregistrer un rapport et rétablir le bureau
+only save a report, restart nothing	enregistrer seulement un rapport, ne rien redémarrer
+watch the session and save a report when the desktop stops responding	surveiller la session et enregistrer un rapport quand le bureau ne répond plus
+Reports: %s. Open apps stay open. Back to the desktop: Ctrl+Alt+F1 (or F7).	Rapports : %s. Les applications ouvertes restent ouvertes. Retour au bureau : Ctrl+Alt+F1 (ou F7).
+detect the hardware and the drivers it needs	détecter le matériel et les pilotes nécessaires
+list the packages to install (default)	lister les paquets à installer (par défaut)
+list the services to enable	lister les services à activer
+readable overview	aperçu lisible
+machine-readable description of the devices	description des périphériques lisible par une machine
+kernel to install driver headers for (DKMS); can be repeated, default: installed kernels	noyau pour lequel installer les en-têtes des pilotes (DKMS) ; répétable, par défaut : noyaux installés
+LuxOS hardware detection	Détection du matériel LuxOS
+Packages:	Paquets :
+LuxOS installer	programme d’installation de LuxOS
+interactive installation	installation interactive
+unattended installation (example: /usr/share/luxos/installer/install.conf.example)	installation automatique (exemple : /usr/share/luxos/installer/install.conf.example)
+free space and partitions of a disk (KEY=value)	espace libre et partitions d’un disque (CLÉ=valeur)
+disks, partitions, LUKS and LVM as JSON (read-only)	disques, partitions, LUKS et LVM en JSON (lecture seule)
+check a LAYOUT without changing anything	vérifier un LAYOUT sans rien modifier
+OEM preinstallation: prepare the computer, the customer creates the account at the first start	préinstallation OEM : préparez l’ordinateur, le client crée le compte au premier démarrage
+seal for the customer: remove traces of the preparation; the setup assistant starts at the next start	sceller pour le client : efface les traces de la préparation ; l’assistant de configuration démarre au prochain démarrage
+the same from the installer (arch-chroot)	la même chose depuis le programme d’installation (arch-chroot)
+state for the setup assistant (KEY=value)	état pour l’assistant de configuration (CLÉ=valeur)
+finish the setup assistant: settings on standard input (KEY=value lines)	terminer l’assistant de configuration : réglages sur l’entrée standard (lignes CLÉ=valeur)
+first start service (luxos-oem-firstboot.service)	service du premier démarrage (luxos-oem-firstboot.service)
+run the rest of the command line in the terminal	exécuter le reste de la ligne de commande dans le terminal
+run a command (one string)	exécuter une commande (une seule chaîne)
+start in DIR	démarrer dans DIR
+fixed tab title	titre d’onglet fixe
+keep the tab open after the command exits	garder l’onglet ouvert après la fin de la commande
+open a tab in the last window	ouvrir un onglet dans la dernière fenêtre
+open a new window (default)	ouvrir une nouvelle fenêtre (par défaut)
+window size in characters	taille de la fenêtre en caractères
+maximized or full screen window	fenêtre agrandie ou plein écran
+separate process (no reuse of a running terminal)	processus séparé (sans réutiliser un terminal ouvert)
+LuxOS Text Editor - every call opens a new window (files in tabs, a folder in the sidebar).	Éditeur de texte LuxOS - chaque appel ouvre une nouvelle fenêtre (fichiers en onglets, dossier dans le panneau latéral).
+go to line LINE in the first file	aller à la ligne LINE du premier fichier
+separate process (no reuse of a running editor)	processus séparé (sans réutiliser un éditeur ouvert)
+LuxOS is connected to your LuxAI account. You can close this window.	LuxOS est connecté à votre compte LuxAI. Vous pouvez fermer cette fenêtre.
+Connecting failed.	La connexion a échoué.
+list system snapshots (one before every update)	lister les instantanés du système (un avant chaque mise à jour)
+take a system snapshot now	créer un instantané du système maintenant
+return the system to a snapshot (also from the boot menu)	revenir à un instantané du système (aussi depuis le menu de démarrage)

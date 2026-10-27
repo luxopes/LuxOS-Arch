@@ -156,7 +156,7 @@ def cmd_disk(a):
         return 0
     if action == "add":
         if not a.target:
-            sys.stderr.write("usage: luxos-backup disk add FOLDER|sftp://...|smb://...\n")
+            sys.stderr.write(_("Usage:") + " luxos-backup disk add FOLDER|sftp://...|smb://...\n")
             return 2
         t = a.target
         if t.startswith(("sftp://", "ssh://")):
@@ -171,7 +171,7 @@ def cmd_disk(a):
         return 0
     if action == "prepare":
         if not a.target:
-            sys.stderr.write("usage: luxos-backup disk prepare DEVICE [--encrypt]\n")
+            sys.stderr.write(_("Usage:") + " luxos-backup disk prepare DEVICE [--encrypt]\n")
             return 2
         if not a.yes:
             if not sys.stdin.isatty():
@@ -242,13 +242,54 @@ def cmd_plugged(a):
     return 0
 
 
+USAGE = (
+    ("[status] [--json]", "backup state"),
+    ("now [--disk ID]", "back up now"),
+    ("list [--disk ID | --source DIR] [--json]", "list backups"),
+    ("files [--from TIME] [--disk ID | --source DIR] [PATH]", "files in a backup"),
+    ("restore [--from TIME] [--to DIR] PATH...", "restore files and folders"),
+    ("restore --all [--from TIME] [--target DIR] [--replace]", "restore everything (new computer, LuxOS Recovery)"),
+    ("disk [list]", "backup disks"),
+    ("disk add FOLDER | sftp://USER@SERVER/FOLDER | smb://USER@SERVER/SHARE [--name NAME] [--password-stdin]",
+     "add a backup disk: a folder or a network disk"),
+    ("disk prepare DEVICE [--encrypt] [--name NAME] [--yes]", "erase an external disk and use it for backups"),
+    ("disk remove ID", "stop using a backup disk (the backups on it stay)"),
+    ("exclude [list | add PATH | remove PATH]", "folders that are not backed up"),
+    ("auto [on | off]", "automatic backups every hour"),
+    ("option system|downloads|vms on|off", "also back up the system (settings and app list), Downloads or virtual machines"),
+    ("--source DIR", "folder with backups or the root of a backup disk (restore without configuration)"),
+    ("--machine COMPUTER-USER", "which computer when the disk has backups of several"),
+)
+
+
+def usage(file=None):
+    try:
+        from luxos_i18n import print_usage
+    except ImportError:          # starsi luxos-i18n (behem aktualizace): bez zarovnani
+        def print_usage(head, rows, file=None):
+            print(head, file=file)
+            for c, d in rows:
+                print(f"  {c}  {_(d)}" if d else "\n" + _(c), file=file)
+    print_usage("luxos-backup - %s\n\n%s luxos-backup <%s>\n" % (_("LuxOS Backups"), _("Usage:"), _("command")),
+                USAGE, file=file)
+
+
 def main(argv=None):
+    args = sys.argv[1:] if argv is None else argv
+    if args[:1] in (["-h"], ["--help"], ["help"]):
+        usage()
+        return 0
+    try:
+        from luxos_i18n import argparse_i18n
+        argparse_i18n()
+    except ImportError:          # pragma: no cover
+        pass
     p = argparse.ArgumentParser(prog="luxos-backup", description=_("LuxOS Backups"))
     sub = p.add_subparsers(dest="cmd")
 
     def src(sp):
         sp.add_argument("--disk")
-        sp.add_argument("--source", help="folder with backups (no configuration needed)")
+        sp.add_argument("--source", help=_("folder with backups (no configuration needed)"))
         sp.add_argument("--machine")
 
     s = sub.add_parser("status")

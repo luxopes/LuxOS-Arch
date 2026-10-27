@@ -34,6 +34,25 @@ def status():
     return 0
 
 
+def usage():
+    try:
+        from luxos_i18n import _
+    except ImportError:
+        def _(text):
+            return text
+    try:
+        from luxos_i18n import print_usage
+    except ImportError:          # starsi luxos-i18n (behem aktualizace): bez zarovnani
+        def print_usage(head, rows, file=None):
+            print(head, file=file)
+            for c, d in rows:
+                print(f"  {c}  {_(d)}" if d else "\n" + _(c), file=file)
+    print_usage("luxos-companion - " + _("connection with your phone (LuxOS Companion for Android) over Bluetooth")
+                + "\n", (("luxos-companion", "Phone window: approved phones, permissions, status"),
+                         ("luxos-companion --service", "session service (luxos-companion.service)"),
+                         ("luxos-companion --status", "service status as JSON, without a window")))
+
+
 def main(argv):
     if argv[:1] == ["--service"]:
         from luxos_companion import service
@@ -41,7 +60,7 @@ def main(argv):
     if argv[:1] == ["--status"]:
         return status()
     if argv[:1] in (["-h"], ["--help"]):
-        print(__doc__.strip())
+        usage()
         return 0
     from luxos_companion import ui
     return ui.main()

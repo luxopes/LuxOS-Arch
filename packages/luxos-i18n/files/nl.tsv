@@ -4149,3 +4149,137 @@ This computer has no system configuration file (/etc/luxos/system.lsl).	Deze com
 Settings that changed are returned to the state described in /etc/luxos/system.lsl.	Gewijzigde instellingen keren terug naar de toestand in /etc/luxos/system.lsl.
 The changes are shown first and you are asked; a snapshot is taken before.	Eerst worden de wijzigingen getoond en wordt het u gevraagd; vooraf wordt een momentopname gemaakt.
 Repair the settings (lux system fix)	Instellingen herstellen (lux system fix)
+usage:	gebruik:
+positional arguments	positionele argumenten
+show this help message and exit	deze hulp tonen en afsluiten
+subcommands	subopdrachten
+%(prog)s: error: %(message)s	%(prog)s: fout: %(message)s
+argument %(argument_name)s: %(message)s	argument %(argument_name)s: %(message)s
+invalid choice: %(value)r (choose from %(choices)s)	ongeldige keuze: %(value)r (kies uit %(choices)s)
+invalid %(type)s value: %(value)r	ongeldige %(type)s-waarde: %(value)r
+the following arguments are required: %s	de volgende argumenten zijn verplicht: %s
+unrecognized arguments: %s	onbekende argumenten: %s
+one of the arguments %s is required	een van de argumenten %s is verplicht
+not allowed with argument %s	niet toegestaan met argument %s
+expected one argument	één argument verwacht
+expected at most one argument	hoogstens één argument verwacht
+expected at least one argument	minstens één argument verwacht
+expected %s argument	%s argument verwacht
+expected %s arguments	%s argumenten verwacht
+ambiguous option: %(option)s could match %(matches)s	dubbelzinnige optie: %(option)s kan %(matches)s zijn
+unexpected option string: %s	onverwachte optie: %s
+(no command)	(zonder opdracht)
+%s needs a value	%s heeft een waarde nodig
+OPTION	OPTIE
+COMMAND	OPDRACHT
+ARG	ARG
+FILE	BESTAND
+FOLDER	MAP
+DEVICE	APPARAAT
+show this help	deze hulp tonen
+show the version	versie tonen
+machine-readable output	machineleesbare uitvoer
+read the password from standard input	wachtwoord van standaardinvoer lezen
+no system snapshot before joining or leaving	geen systeemmomentopname voor toetreden of verlaten
+updates, backup kernel and self-repair	updates, reservekernel en zelfherstel
+show the state of updates and repairs	status van updates en reparaties tonen
+recent repairs and updates	recente reparaties en updates
+show or set the update mode (setting it needs root)	updatemodus tonen of instellen (instellen vereist root)
+CPU scheduler: LuxOS (sched_ext lavd) or the kernel default	CPU-planner: LuxOS (sched_ext lavd) of de standaard van de kernel
+switch to the LuxOS kernel, the current one stays as a backup (root)	overschakelen naar de LuxOS-kernel, de huidige blijft als reserve (root)
+System snapshots	Systeemmomentopnamen
+list system snapshots (root)	systeemmomentopnamen weergeven (root)
+take a system snapshot now (root)	nu een systeemmomentopname maken (root)
+start the snapshot as the system after the next restart (root)	de momentopname na de volgende herstart als systeem starten (root)
+restore the snapshot and recovery entries in the boot menu (root)	items voor momentopnamen en herstel in het opstartmenu herstellen (root)
+system protection and the last check of system files	systeembeveiliging en de laatste controle van systeembestanden
+turn system protection on or off (root)	systeembeveiliging in- of uitschakelen (root)
+make system files read-only again when nothing is being installed (root)	systeembestanden weer alleen-lezen maken als er niets wordt geïnstalleerd (root)
+run a command with writable system files (root)	een opdracht uitvoeren met beschrijfbare systeembestanden (root)
+check installed files against the package database	geïnstalleerde bestanden controleren met de pakketdatabase
+reinstall packages with changed files (root)	pakketten met gewijzigde bestanden opnieuw installeren (root)
+Recovery	Herstel
+check the disk; without --repair nothing is written (root)	de schijf controleren; zonder --repair wordt niets geschreven (root)
+reinstall the system, keeping /home and user accounts (root)	het systeem opnieuw installeren met behoud van /home en gebruikersaccounts (root)
+Used by system services and hooks: %s	Gebruikt door systeemdiensten en hooks: %s
+encrypted folder /safe/<user> unlocked with its own password	versleutelde map /safe/<gebruiker>, ontgrendeld met een eigen wachtwoord
+Safe window	Kluis-venster
+ask for the password (--open: then open the folder)	om het wachtwoord vragen (--open: daarna de map openen)
+lock the Safe (--force: keep trying; --logout: close apps with open files)	de Kluis vergrendelen (--force: blijven proberen; --logout: apps met open bestanden sluiten)
+print the state: locked, unlocked or none	de status tonen: locked (vergrendeld), unlocked (ontgrendeld) of none (geen)
+lock when the screen locks or the computer sleeps (started by the session)	vergrendelen als het scherm vergrendelt of de computer slaapt (gestart door de sessie)
+trust the Unlock Safe launcher in the locked folder (started by the session)	het startpictogram Kluis ontgrendelen in de vergrendelde map vertrouwen (gestart door de sessie)
+backup state	status van de back-ups
+back up now	nu een back-up maken
+list backups	back-ups weergeven
+files in a backup	bestanden in een back-up
+restore files and folders	bestanden en mappen terugzetten
+restore everything (new computer, LuxOS Recovery)	alles terugzetten (nieuwe computer, LuxOS Recovery)
+backup disks	back-upschijven
+add a backup disk: a folder or a network disk	een back-upschijf toevoegen: een map of netwerkschijf
+erase an external disk and use it for backups	een externe schijf wissen en gebruiken voor back-ups
+stop using a backup disk (the backups on it stay)	een back-upschijf niet meer gebruiken (de back-ups blijven erop staan)
+folders that are not backed up	mappen die niet worden geback-upt
+automatic backups every hour	automatische back-ups elk uur
+also back up the system (settings and app list), Downloads or virtual machines	ook het systeem (instellingen en app-lijst), Downloads of virtuele machines back-uppen
+folder with backups or the root of a backup disk (restore without configuration)	map met back-ups of de hoofdmap van een back-upschijf (terugzetten zonder configuratie)
+which computer when the disk has backups of several	welke computer als de schijf back-ups van meerdere bevat
+folder with backups (no configuration needed)	map met back-ups (geen configuratie nodig)
+reset apps to their default settings; nothing is deleted	apps terugzetten naar standaardinstellingen; er wordt niets verwijderd
+window (Settings)	venster (Instellingen)
+apps with settings in your home folder	apps met instellingen in je persoonlijke map
+move the app's settings to a backup (--force: even while the app is running)	de instellingen van de app naar een back-up verplaatsen (--force: ook als de app draait)
+restore a backup (the current settings are backed up first)	een back-up terugzetten (de huidige instellingen worden eerst bewaard)
+connection with your phone (LuxOS Companion for Android) over Bluetooth	verbinding met je telefoon (LuxOS Companion voor Android) via Bluetooth
+Phone window: approved phones, permissions, status	venster Telefoon: goedgekeurde telefoons, rechten, status
+session service (luxos-companion.service)	sessiedienst (luxos-companion.service)
+service status as JSON, without a window	dienststatus als JSON, zonder venster
+scan documents and photos	documenten en foto’s scannen
+scanner from SANE (for example from Printers & Scanners)	scanner uit SANE (bijvoorbeeld uit Printers en scanners)
+check whether the network needs a sign-in on a login page	controleren of het netwerk aanmelden op een inlogpagina vereist
+Prints online, portal URL IP or none (used by luxos-hub).	Toont online, portal URL IP of none (gebruikt door luxos-hub).
+sign in to a network with a login page (hotel, airport, train, coffee shop)	aanmelden bij een netwerk met inlogpagina (hotel, vliegveld, trein, café)
+Opens the login page in a private browser window that forgets everything when closed.	Opent de inlogpagina in een privévenster van de browser dat bij sluiten alles vergeet.
+rescue a frozen desktop (the mouse moves, but clicks and typing do nothing)	een vastgelopen bureaublad redden (de muis beweegt, maar klikken en typen doen niets)
+from a console (Ctrl+Alt+F3, sign in): save a report and restore the desktop	vanaf een console (Ctrl+Alt+F3, aanmelden): een rapport opslaan en het bureaublad herstellen
+only save a report, restart nothing	alleen een rapport opslaan, niets herstarten
+watch the session and save a report when the desktop stops responding	de sessie bewaken en een rapport opslaan als het bureaublad niet meer reageert
+Reports: %s. Open apps stay open. Back to the desktop: Ctrl+Alt+F1 (or F7).	Rapporten: %s. Open apps blijven open. Terug naar het bureaublad: Ctrl+Alt+F1 (of F7).
+detect the hardware and the drivers it needs	hardware en de benodigde stuurprogramma’s detecteren
+list the packages to install (default)	te installeren pakketten weergeven (standaard)
+list the services to enable	in te schakelen diensten weergeven
+readable overview	leesbaar overzicht
+machine-readable description of the devices	machineleesbare beschrijving van de apparaten
+kernel to install driver headers for (DKMS); can be repeated, default: installed kernels	kernel waarvoor stuurprogramma-headers worden geïnstalleerd (DKMS); herhaalbaar, standaard: geïnstalleerde kernels
+LuxOS hardware detection	LuxOS-hardwaredetectie
+Packages:	Pakketten:
+LuxOS installer	LuxOS-installatieprogramma
+interactive installation	interactieve installatie
+unattended installation (example: /usr/share/luxos/installer/install.conf.example)	onbeheerde installatie (voorbeeld: /usr/share/luxos/installer/install.conf.example)
+free space and partitions of a disk (KEY=value)	vrije ruimte en partities van een schijf (SLEUTEL=waarde)
+disks, partitions, LUKS and LVM as JSON (read-only)	schijven, partities, LUKS en LVM als JSON (alleen lezen)
+check a LAYOUT without changing anything	een LAYOUT controleren zonder iets te wijzigen
+OEM preinstallation: prepare the computer, the customer creates the account at the first start	OEM-voorinstallatie: bereid de computer voor, de klant maakt bij de eerste start het account aan
+seal for the customer: remove traces of the preparation; the setup assistant starts at the next start	verzegelen voor de klant: wist sporen van de voorbereiding; bij de volgende start opent de configuratie-assistent
+the same from the installer (arch-chroot)	hetzelfde vanuit het installatieprogramma (arch-chroot)
+state for the setup assistant (KEY=value)	status voor de configuratie-assistent (SLEUTEL=waarde)
+finish the setup assistant: settings on standard input (KEY=value lines)	de configuratie-assistent afronden: instellingen via standaardinvoer (regels SLEUTEL=waarde)
+first start service (luxos-oem-firstboot.service)	dienst voor de eerste start (luxos-oem-firstboot.service)
+run the rest of the command line in the terminal	de rest van de opdrachtregel in de terminal uitvoeren
+run a command (one string)	een opdracht uitvoeren (één tekenreeks)
+start in DIR	starten in DIR
+fixed tab title	vaste tabbladtitel
+keep the tab open after the command exits	tabblad openhouden nadat de opdracht is beëindigd
+open a tab in the last window	een tabblad openen in het laatste venster
+open a new window (default)	een nieuw venster openen (standaard)
+window size in characters	venstergrootte in tekens
+maximized or full screen window	gemaximaliseerd venster of volledig scherm
+separate process (no reuse of a running terminal)	apart proces (geen hergebruik van een draaiende terminal)
+LuxOS Text Editor - every call opens a new window (files in tabs, a folder in the sidebar).	LuxOS-teksteditor - elke aanroep opent een nieuw venster (bestanden in tabbladen, een map in de zijbalk).
+go to line LINE in the first file	naar regel LINE gaan in het eerste bestand
+separate process (no reuse of a running editor)	apart proces (geen hergebruik van een draaiende editor)
+LuxOS is connected to your LuxAI account. You can close this window.	LuxOS is gekoppeld aan je LuxAI-account. Je kunt dit venster sluiten.
+Connecting failed.	Verbinden is mislukt.
+list system snapshots (one before every update)	systeemmomentopnamen weergeven (één voor elke update)
+take a system snapshot now	nu een systeemmomentopname maken
+return the system to a snapshot (also from the boot menu)	het systeem terugzetten naar een momentopname (ook via het opstartmenu)

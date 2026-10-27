@@ -4150,3 +4150,137 @@ This computer has no system configuration file (/etc/luxos/system.lsl).	Ten komp
 Settings that changed are returned to the state described in /etc/luxos/system.lsl.	Zmienione ustawienia wrócą do stanu opisanego w /etc/luxos/system.lsl.
 The changes are shown first and you are asked; a snapshot is taken before.	Najpierw zostaną pokazane zmiany i pojawi się pytanie; wcześniej powstanie migawka.
 Repair the settings (lux system fix)	Napraw ustawienia (lux system fix)
+usage:	użycie:
+positional arguments	argumenty pozycyjne
+show this help message and exit	pokaż tę pomoc i zakończ
+subcommands	podpolecenia
+%(prog)s: error: %(message)s	%(prog)s: błąd: %(message)s
+argument %(argument_name)s: %(message)s	argument %(argument_name)s: %(message)s
+invalid choice: %(value)r (choose from %(choices)s)	nieprawidłowy wybór: %(value)r (wybierz z %(choices)s)
+invalid %(type)s value: %(value)r	nieprawidłowa wartość %(type)s: %(value)r
+the following arguments are required: %s	wymagane są następujące argumenty: %s
+unrecognized arguments: %s	nierozpoznane argumenty: %s
+one of the arguments %s is required	wymagany jest jeden z argumentów %s
+not allowed with argument %s	niedozwolone z argumentem %s
+expected one argument	oczekiwano jednego argumentu
+expected at most one argument	oczekiwano najwyżej jednego argumentu
+expected at least one argument	oczekiwano co najmniej jednego argumentu
+expected %s argument	oczekiwano %s argumentu
+expected %s arguments	oczekiwano argumentów: %s
+ambiguous option: %(option)s could match %(matches)s	niejednoznaczna opcja: %(option)s pasuje do %(matches)s
+unexpected option string: %s	nieoczekiwana opcja: %s
+(no command)	(bez polecenia)
+%s needs a value	%s wymaga wartości
+OPTION	OPCJA
+COMMAND	POLECENIE
+ARG	ARG
+FILE	PLIK
+FOLDER	FOLDER
+DEVICE	URZĄDZENIE
+show this help	pokaż tę pomoc
+show the version	pokaż wersję
+machine-readable output	wynik dla programów
+read the password from standard input	odczytaj hasło ze standardowego wejścia
+no system snapshot before joining or leaving	bez migawki systemu przed dołączeniem lub opuszczeniem
+updates, backup kernel and self-repair	aktualizacje, zapasowe jądro i samonaprawa
+show the state of updates and repairs	pokaż stan aktualizacji i napraw
+recent repairs and updates	ostatnie naprawy i aktualizacje
+show or set the update mode (setting it needs root)	pokaż lub ustaw tryb aktualizacji (ustawienie wymaga roota)
+CPU scheduler: LuxOS (sched_ext lavd) or the kernel default	planista procesora: LuxOS (sched_ext lavd) lub domyślny planista jądra
+switch to the LuxOS kernel, the current one stays as a backup (root)	przejdź na jądro LuxOS, obecne zostanie jako zapasowe (root)
+System snapshots	Migawki systemu
+list system snapshots (root)	lista migawek systemu (root)
+take a system snapshot now (root)	utwórz migawkę systemu teraz (root)
+start the snapshot as the system after the next restart (root)	po następnym ponownym uruchomieniu uruchom migawkę jako system (root)
+restore the snapshot and recovery entries in the boot menu (root)	przywróć pozycje migawek i odzyskiwania w menu startowym (root)
+system protection and the last check of system files	ochrona systemu i ostatnie sprawdzenie plików systemowych
+turn system protection on or off (root)	włącz lub wyłącz ochronę systemu (root)
+make system files read-only again when nothing is being installed (root)	ponownie ustaw pliki systemowe tylko do odczytu, gdy nic się nie instaluje (root)
+run a command with writable system files (root)	uruchom polecenie z zapisywalnymi plikami systemowymi (root)
+check installed files against the package database	sprawdź zainstalowane pliki według bazy pakietów
+reinstall packages with changed files (root)	zainstaluj ponownie pakiety ze zmienionymi plikami (root)
+Recovery	Odzyskiwanie
+check the disk; without --repair nothing is written (root)	sprawdź dysk; bez --repair nic nie jest zapisywane (root)
+reinstall the system, keeping /home and user accounts (root)	zainstaluj system ponownie, zachowując /home i konta użytkowników (root)
+Used by system services and hooks: %s	Używane przez usługi systemowe i haki: %s
+encrypted folder /safe/<user> unlocked with its own password	zaszyfrowany folder /safe/<użytkownik> odblokowywany własnym hasłem
+Safe window	okno Sejfu
+ask for the password (--open: then open the folder)	zapytaj o hasło (--open: potem otwórz folder)
+lock the Safe (--force: keep trying; --logout: close apps with open files)	zablokuj Sejf (--force: próbuj dalej; --logout: zamknij aplikacje z otwartymi plikami)
+print the state: locked, unlocked or none	wypisz stan: locked (zablokowany), unlocked (odblokowany) lub none (brak)
+lock when the screen locks or the computer sleeps (started by the session)	zablokuj przy blokadzie ekranu lub uśpieniu komputera (uruchamia sesja)
+trust the Unlock Safe launcher in the locked folder (started by the session)	oznacz program uruchamiający Odblokuj Sejf w zablokowanym folderze jako zaufany (uruchamia sesja)
+backup state	stan kopii zapasowych
+back up now	utwórz kopię teraz
+list backups	lista kopii zapasowych
+files in a backup	pliki w kopii zapasowej
+restore files and folders	przywróć pliki i foldery
+restore everything (new computer, LuxOS Recovery)	przywróć wszystko (nowy komputer, LuxOS Recovery)
+backup disks	dyski kopii zapasowych
+add a backup disk: a folder or a network disk	dodaj dysk kopii zapasowych: folder lub dysk sieciowy
+erase an external disk and use it for backups	wymaż dysk zewnętrzny i używaj go do kopii zapasowych
+stop using a backup disk (the backups on it stay)	przestań używać dysku kopii zapasowych (kopie na nim zostaną)
+folders that are not backed up	foldery, które nie są kopiowane
+automatic backups every hour	automatyczne kopie zapasowe co godzinę
+also back up the system (settings and app list), Downloads or virtual machines	kopiuj też system (ustawienia i listę aplikacji), Pobrane lub maszyny wirtualne
+folder with backups or the root of a backup disk (restore without configuration)	folder z kopiami lub katalog główny dysku kopii (przywracanie bez konfiguracji)
+which computer when the disk has backups of several	który komputer, gdy dysk zawiera kopie kilku komputerów
+folder with backups (no configuration needed)	folder z kopiami zapasowymi (bez konfiguracji)
+reset apps to their default settings; nothing is deleted	przywróć aplikacjom ustawienia domyślne; nic nie jest usuwane
+window (Settings)	okno (Ustawienia)
+apps with settings in your home folder	aplikacje z ustawieniami w folderze domowym
+move the app's settings to a backup (--force: even while the app is running)	przenieś ustawienia aplikacji do kopii (--force: nawet gdy aplikacja działa)
+restore a backup (the current settings are backed up first)	przywróć kopię (obecne ustawienia zostaną najpierw zapisane)
+connection with your phone (LuxOS Companion for Android) over Bluetooth	połączenie z telefonem (LuxOS Companion dla Androida) przez Bluetooth
+Phone window: approved phones, permissions, status	okno Telefon: zatwierdzone telefony, uprawnienia, stan
+session service (luxos-companion.service)	usługa sesji (luxos-companion.service)
+service status as JSON, without a window	stan usługi jako JSON, bez okna
+scan documents and photos	skanowanie dokumentów i zdjęć
+scanner from SANE (for example from Printers & Scanners)	skaner z SANE (na przykład z aplikacji Drukarki i skanery)
+check whether the network needs a sign-in on a login page	sprawdź, czy sieć wymaga logowania na stronie logowania
+Prints online, portal URL IP or none (used by luxos-hub).	Wypisuje online, portal URL IP lub none (używa luxos-hub).
+sign in to a network with a login page (hotel, airport, train, coffee shop)	logowanie do sieci ze stroną logowania (hotel, lotnisko, pociąg, kawiarnia)
+Opens the login page in a private browser window that forgets everything when closed.	Otwiera stronę logowania w prywatnym oknie przeglądarki, które po zamknięciu wszystko zapomina.
+rescue a frozen desktop (the mouse moves, but clicks and typing do nothing)	ratowanie zawieszonego pulpitu (mysz się porusza, ale kliknięcia i pisanie nic nie robią)
+from a console (Ctrl+Alt+F3, sign in): save a report and restore the desktop	z konsoli (Ctrl+Alt+F3, zaloguj się): zapisz raport i przywróć pulpit
+only save a report, restart nothing	tylko zapisz raport, niczego nie uruchamiaj ponownie
+watch the session and save a report when the desktop stops responding	obserwuj sesję i zapisz raport, gdy pulpit przestanie odpowiadać
+Reports: %s. Open apps stay open. Back to the desktop: Ctrl+Alt+F1 (or F7).	Raporty: %s. Otwarte aplikacje pozostają otwarte. Powrót do pulpitu: Ctrl+Alt+F1 (lub F7).
+detect the hardware and the drivers it needs	wykryj sprzęt i potrzebne mu sterowniki
+list the packages to install (default)	wypisz pakiety do instalacji (domyślnie)
+list the services to enable	wypisz usługi do włączenia
+readable overview	czytelne podsumowanie
+machine-readable description of the devices	opis urządzeń dla programów
+kernel to install driver headers for (DKMS); can be repeated, default: installed kernels	jądro, dla którego instalowane są nagłówki sterowników (DKMS); można powtarzać, domyślnie: zainstalowane jądra
+LuxOS hardware detection	Wykrywanie sprzętu LuxOS
+Packages:	Pakiety:
+LuxOS installer	instalator LuxOS
+interactive installation	instalacja interaktywna
+unattended installation (example: /usr/share/luxos/installer/install.conf.example)	instalacja nienadzorowana (przykład: /usr/share/luxos/installer/install.conf.example)
+free space and partitions of a disk (KEY=value)	wolne miejsce i partycje dysku (KLUCZ=wartość)
+disks, partitions, LUKS and LVM as JSON (read-only)	dyski, partycje, LUKS i LVM jako JSON (tylko odczyt)
+check a LAYOUT without changing anything	sprawdź LAYOUT bez wprowadzania zmian
+OEM preinstallation: prepare the computer, the customer creates the account at the first start	preinstalacja OEM: przygotuj komputer, klient założy konto przy pierwszym uruchomieniu
+seal for the customer: remove traces of the preparation; the setup assistant starts at the next start	zapieczętuj dla klienta: usuwa ślady przygotowania; przy następnym uruchomieniu startuje asystent konfiguracji
+the same from the installer (arch-chroot)	to samo z instalatora (arch-chroot)
+state for the setup assistant (KEY=value)	stan dla asystenta konfiguracji (KLUCZ=wartość)
+finish the setup assistant: settings on standard input (KEY=value lines)	zakończ asystenta konfiguracji: ustawienia na standardowym wejściu (wiersze KLUCZ=wartość)
+first start service (luxos-oem-firstboot.service)	usługa pierwszego uruchomienia (luxos-oem-firstboot.service)
+run the rest of the command line in the terminal	uruchom resztę wiersza poleceń w terminalu
+run a command (one string)	uruchom polecenie (jeden ciąg)
+start in DIR	zacznij w katalogu DIR
+fixed tab title	stały tytuł karty
+keep the tab open after the command exits	pozostaw kartę otwartą po zakończeniu polecenia
+open a tab in the last window	otwórz kartę w ostatnim oknie
+open a new window (default)	otwórz nowe okno (domyślnie)
+window size in characters	rozmiar okna w znakach
+maximized or full screen window	okno zmaksymalizowane lub pełnoekranowe
+separate process (no reuse of a running terminal)	osobny proces (bez użycia działającego terminala)
+LuxOS Text Editor - every call opens a new window (files in tabs, a folder in the sidebar).	Edytor tekstu LuxOS - każde wywołanie otwiera nowe okno (pliki w kartach, folder w panelu bocznym).
+go to line LINE in the first file	przejdź do wiersza LINE w pierwszym pliku
+separate process (no reuse of a running editor)	osobny proces (bez użycia działającego edytora)
+LuxOS is connected to your LuxAI account. You can close this window.	LuxOS jest połączony z kontem LuxAI. Możesz zamknąć to okno.
+Connecting failed.	Nie udało się połączyć.
+list system snapshots (one before every update)	lista migawek systemu (migawka przed każdą aktualizacją)
+take a system snapshot now	utwórz migawkę systemu teraz
+return the system to a snapshot (also from the boot menu)	przywróć system do migawki (także z menu startowego)

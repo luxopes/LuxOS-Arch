@@ -4150,3 +4150,137 @@ This computer has no system configuration file (/etc/luxos/system.lsl).	Цей �
 Settings that changed are returned to the state described in /etc/luxos/system.lsl.	Змінені налаштування повернуться до стану, описаного в /etc/luxos/system.lsl.
 The changes are shown first and you are asked; a snapshot is taken before.	Спершу буде показано зміни й поставлено запитання; перед цим робиться знімок.
 Repair the settings (lux system fix)	Відновити налаштування (lux system fix)
+usage:	використання:
+positional arguments	позиційні аргументи
+show this help message and exit	показати цю довідку й вийти
+subcommands	підкоманди
+%(prog)s: error: %(message)s	%(prog)s: помилка: %(message)s
+argument %(argument_name)s: %(message)s	аргумент %(argument_name)s: %(message)s
+invalid choice: %(value)r (choose from %(choices)s)	неприпустимий вибір: %(value)r (виберіть з %(choices)s)
+invalid %(type)s value: %(value)r	неприпустиме значення %(type)s: %(value)r
+the following arguments are required: %s	потрібні такі аргументи: %s
+unrecognized arguments: %s	нерозпізнані аргументи: %s
+one of the arguments %s is required	потрібен один з аргументів %s
+not allowed with argument %s	не можна разом з аргументом %s
+expected one argument	очікується один аргумент
+expected at most one argument	очікується щонайбільше один аргумент
+expected at least one argument	очікується щонайменше один аргумент
+expected %s argument	очікується аргументів: %s
+expected %s arguments	очікується аргументів: %s
+ambiguous option: %(option)s could match %(matches)s	неоднозначний параметр: %(option)s може означати %(matches)s
+unexpected option string: %s	неочікуваний параметр: %s
+(no command)	(без команди)
+%s needs a value	%s потребує значення
+OPTION	ПАРАМЕТР
+COMMAND	КОМАНДА
+ARG	АРГ
+FILE	ФАЙЛ
+FOLDER	ТЕКА
+DEVICE	ПРИСТРІЙ
+show this help	показати цю довідку
+show the version	показати версію
+machine-readable output	вивід для програм
+read the password from standard input	читати пароль зі стандартного вводу
+no system snapshot before joining or leaving	без знімка системи перед приєднанням або виходом
+updates, backup kernel and self-repair	оновлення, резервне ядро та самовідновлення
+show the state of updates and repairs	показати стан оновлень і виправлень
+recent repairs and updates	останні виправлення та оновлення
+show or set the update mode (setting it needs root)	показати або встановити режим оновлень (встановлення потребує root)
+CPU scheduler: LuxOS (sched_ext lavd) or the kernel default	планувальник процесора: LuxOS (sched_ext lavd) або стандартний планувальник ядра
+switch to the LuxOS kernel, the current one stays as a backup (root)	перейти на ядро LuxOS, поточне залишиться резервним (root)
+System snapshots	Знімки системи
+list system snapshots (root)	список знімків системи (root)
+take a system snapshot now (root)	створити знімок системи зараз (root)
+start the snapshot as the system after the next restart (root)	після наступного перезапуску запустити знімок як систему (root)
+restore the snapshot and recovery entries in the boot menu (root)	відновити пункти знімків і відновлення в меню завантаження (root)
+system protection and the last check of system files	захист системи та остання перевірка системних файлів
+turn system protection on or off (root)	увімкнути або вимкнути захист системи (root)
+make system files read-only again when nothing is being installed (root)	знову зробити системні файли лише для читання, коли нічого не встановлюється (root)
+run a command with writable system files (root)	виконати команду із доступними для запису системними файлами (root)
+check installed files against the package database	перевірити встановлені файли за базою пакунків
+reinstall packages with changed files (root)	перевстановити пакунки зі зміненими файлами (root)
+Recovery	Відновлення
+check the disk; without --repair nothing is written (root)	перевірити диск; без --repair нічого не записується (root)
+reinstall the system, keeping /home and user accounts (root)	перевстановити систему, зберігши /home та облікові записи (root)
+Used by system services and hooks: %s	Використовують системні служби та хуки: %s
+encrypted folder /safe/<user> unlocked with its own password	зашифрована тека /safe/<користувач>, що розблоковується власним паролем
+Safe window	вікно Сейфа
+ask for the password (--open: then open the folder)	запитати пароль (--open: потім відкрити теку)
+lock the Safe (--force: keep trying; --logout: close apps with open files)	заблокувати Сейф (--force: пробувати далі; --logout: закрити програми з відкритими файлами)
+print the state: locked, unlocked or none	вивести стан: locked (заблоковано), unlocked (розблоковано) або none (немає)
+lock when the screen locks or the computer sleeps (started by the session)	блокувати під час блокування екрана або сну комп’ютера (запускає сеанс)
+trust the Unlock Safe launcher in the locked folder (started by the session)	позначити запускач «Розблокувати Сейф» у заблокованій теці як довірений (запускає сеанс)
+backup state	стан резервних копій
+back up now	створити резервну копію зараз
+list backups	список резервних копій
+files in a backup	файли в резервній копії
+restore files and folders	відновити файли й теки
+restore everything (new computer, LuxOS Recovery)	відновити все (новий комп’ютер, LuxOS Recovery)
+backup disks	диски для резервних копій
+add a backup disk: a folder or a network disk	додати диск для резервних копій: теку або мережевий диск
+erase an external disk and use it for backups	стерти зовнішній диск і використовувати його для резервних копій
+stop using a backup disk (the backups on it stay)	припинити використання диска для резервних копій (копії на ньому залишаться)
+folders that are not backed up	теки, які не копіюються
+automatic backups every hour	автоматичні резервні копії щогодини
+also back up the system (settings and app list), Downloads or virtual machines	також копіювати систему (налаштування та список програм), Завантаження або віртуальні машини
+folder with backups or the root of a backup disk (restore without configuration)	тека з резервними копіями або корінь диска копій (відновлення без налаштувань)
+which computer when the disk has backups of several	який комп’ютер, якщо на диску копії кількох комп’ютерів
+folder with backups (no configuration needed)	тека з резервними копіями (без налаштувань)
+reset apps to their default settings; nothing is deleted	скинути програми до стандартних налаштувань; нічого не видаляється
+window (Settings)	вікно (Налаштування)
+apps with settings in your home folder	програми з налаштуваннями у вашій домашній теці
+move the app's settings to a backup (--force: even while the app is running)	перемістити налаштування програми в резервну копію (--force: навіть якщо програма працює)
+restore a backup (the current settings are backed up first)	відновити резервну копію (поточні налаштування спершу зберігаються)
+connection with your phone (LuxOS Companion for Android) over Bluetooth	з’єднання з телефоном (LuxOS Companion для Android) через Bluetooth
+Phone window: approved phones, permissions, status	вікно Телефон: схвалені телефони, дозволи, стан
+session service (luxos-companion.service)	служба сеансу (luxos-companion.service)
+service status as JSON, without a window	стан служби як JSON, без вікна
+scan documents and photos	сканування документів і фото
+scanner from SANE (for example from Printers & Scanners)	сканер із SANE (наприклад, із програми Принтери та сканери)
+check whether the network needs a sign-in on a login page	перевірити, чи мережа потребує входу на сторінці входу
+Prints online, portal URL IP or none (used by luxos-hub).	Виводить online, portal URL IP або none (використовує luxos-hub).
+sign in to a network with a login page (hotel, airport, train, coffee shop)	вхід у мережу зі сторінкою входу (готель, аеропорт, потяг, кав’ярня)
+Opens the login page in a private browser window that forgets everything when closed.	Відкриває сторінку входу в приватному вікні браузера, яке після закриття все забуває.
+rescue a frozen desktop (the mouse moves, but clicks and typing do nothing)	порятунок завислого робочого столу (миша рухається, але клацання й введення нічого не роблять)
+from a console (Ctrl+Alt+F3, sign in): save a report and restore the desktop	з консолі (Ctrl+Alt+F3, увійти): зберегти звіт і відновити робочий стіл
+only save a report, restart nothing	лише зберегти звіт, нічого не перезапускати
+watch the session and save a report when the desktop stops responding	стежити за сеансом і зберегти звіт, коли робочий стіл перестане відповідати
+Reports: %s. Open apps stay open. Back to the desktop: Ctrl+Alt+F1 (or F7).	Звіти: %s. Відкриті програми залишаться відкритими. Назад до робочого столу: Ctrl+Alt+F1 (або F7).
+detect the hardware and the drivers it needs	визначити обладнання та потрібні йому драйвери
+list the packages to install (default)	вивести пакунки для встановлення (типово)
+list the services to enable	вивести служби для ввімкнення
+readable overview	зрозумілий огляд
+machine-readable description of the devices	опис пристроїв для програм
+kernel to install driver headers for (DKMS); can be repeated, default: installed kernels	ядро, для якого встановлюються заголовки драйверів (DKMS); можна повторювати, типово: встановлені ядра
+LuxOS hardware detection	Визначення обладнання LuxOS
+Packages:	Пакунки:
+LuxOS installer	інсталятор LuxOS
+interactive installation	інтерактивне встановлення
+unattended installation (example: /usr/share/luxos/installer/install.conf.example)	автоматичне встановлення (приклад: /usr/share/luxos/installer/install.conf.example)
+free space and partitions of a disk (KEY=value)	вільне місце та розділи диска (КЛЮЧ=значення)
+disks, partitions, LUKS and LVM as JSON (read-only)	диски, розділи, LUKS і LVM як JSON (лише читання)
+check a LAYOUT without changing anything	перевірити LAYOUT без жодних змін
+OEM preinstallation: prepare the computer, the customer creates the account at the first start	OEM-передвстановлення: підготуйте комп’ютер, клієнт створить обліковий запис під час першого запуску
+seal for the customer: remove traces of the preparation; the setup assistant starts at the next start	запечатати для клієнта: видаляє сліди підготовки; під час наступного запуску відкриється помічник налаштування
+the same from the installer (arch-chroot)	те саме з інсталятора (arch-chroot)
+state for the setup assistant (KEY=value)	стан для помічника налаштування (КЛЮЧ=значення)
+finish the setup assistant: settings on standard input (KEY=value lines)	завершити помічника налаштування: налаштування на стандартному вводі (рядки КЛЮЧ=значення)
+first start service (luxos-oem-firstboot.service)	служба першого запуску (luxos-oem-firstboot.service)
+run the rest of the command line in the terminal	виконати решту командного рядка в терміналі
+run a command (one string)	виконати команду (один рядок)
+start in DIR	почати в теці DIR
+fixed tab title	незмінна назва вкладки
+keep the tab open after the command exits	залишити вкладку відкритою після завершення команди
+open a tab in the last window	відкрити вкладку в останньому вікні
+open a new window (default)	відкрити нове вікно (типово)
+window size in characters	розмір вікна в символах
+maximized or full screen window	розгорнуте або повноекранне вікно
+separate process (no reuse of a running terminal)	окремий процес (без повторного використання запущеного термінала)
+LuxOS Text Editor - every call opens a new window (files in tabs, a folder in the sidebar).	Текстовий редактор LuxOS - кожен запуск відкриває нове вікно (файли у вкладках, тека на бічній панелі).
+go to line LINE in the first file	перейти до рядка LINE у першому файлі
+separate process (no reuse of a running editor)	окремий процес (без повторного використання запущеного редактора)
+LuxOS is connected to your LuxAI account. You can close this window.	LuxOS під’єднано до вашого облікового запису LuxAI. Можете закрити це вікно.
+Connecting failed.	Не вдалося під’єднатися.
+list system snapshots (one before every update)	список знімків системи (знімок перед кожним оновленням)
+take a system snapshot now	створити знімок системи зараз
+return the system to a snapshot (also from the boot menu)	повернути систему до знімка (також з меню завантаження)

@@ -133,5 +133,6 @@ case ${1:-status} in
         elif [[ -e ${LUXOS_SYSROOT:-}/run/luxos/powersaver ]]; then
             system_part stop        # zbylo po jinem uzivateli / padu relace
         fi ;;
-    *) echo "usage: luxos-powersaver [on|off|toggle|status|reapply]" >&2; exit 2 ;;
+    -h|--help) echo "$(T "Usage:") luxos-powersaver [on|off|toggle|status|reapply]"; exit 0 ;;
+    *) echo "$(T "Usage:") luxos-powersaver [on|off|toggle|status|reapply]" >&2; exit 2 ;;
 esac

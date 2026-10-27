@@ -278,7 +278,7 @@ def save(state):
 def main(argv):
     if len(argv) == 2 and argv[1] == "check":
         return check()
-    sys.stderr.write(__doc__)
+    sys.stderr.write("usage: luxos_audio_switch.py check  (used by luxos-hub)\n")
     return 2
 
 

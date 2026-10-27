@@ -401,6 +401,11 @@ def main(argv=None):
     if argv[0] == "gui":
         from .gui import main as gui_main
         return gui_main(argv[1:])
+    try:
+        from luxos_i18n import argparse_i18n      # usage:, options, chyby argparse v jazyce uzivatele
+        argparse_i18n()
+    except ImportError:  # mimo LuxOS (testy)
+        pass
     ap = argparse.ArgumentParser(prog="luxdrop", description=_("Send files securely to nearby LuxOS computers "
                                                                 "and devices with LocalSend."))
     sub = ap.add_subparsers(dest="cmd", required=True)
