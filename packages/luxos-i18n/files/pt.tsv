@@ -3876,3 +3876,95 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	O nome do computador para o domínio pode ter no máximo 15 letras, dígitos e hífens.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	O domínio não foi encontrado no DNS. Verifique se o computador usa o servidor DNS da organização (geralmente via DHCP) ou digite o endereço de um controlador de domínio.
 Sign In to Network…	Entrar na rede…
+%d found	%d encontrados
+%d of %d	%d de %d
+%d replaced	%d substituídos
+Default Text Size	Tamanho de texto padrão
+Bigger Text	Texto maior
+Smaller Text	Texto menor
+Baltic	Báltico
+Central European	Europa Central
+Change the encoding to %s?	Alterar a codificação para %s?
+Characters: %s	Caracteres: %s
+Chinese Simplified	Chinês simplificado
+Clear Menu	Limpar menu
+Convert	Converter
+Could not create “%s”.	Não foi possível criar “%s”.
+Could not open “%s”.	Não foi possível abrir “%s”.
+Could not save “%s”.	Não foi possível salvar “%s”.
+Created:	Criado:
+Cyrillic	Cirílico
+Do you want to save the changes to “%s”?	Deseja salvar as alterações em “%s”?
+Document Info	Informações do documento
+Don't Save	Não salvar
+Edited	Editado
+Encoding	Codificação
+Encoding:	Codificação:
+Find and Replace…	Localizar e substituir…
+Go to Line (Ctrl+L)	Ir para a linha (Ctrl+L)
+Go to Line:	Ir para a linha:
+Go to Line…	Ir para a linha…
+Greek	Grego
+Ignore	Ignorar
+Invalid pattern	Padrão inválido
+Invisible Characters	Caracteres invisíveis
+Japanese	Japonês
+Korean	Coreano
+Line Endings	Fins de linha
+Line Endings:	Fins de linha:
+Line Numbers	Números de linha
+Lines: %s	Linhas: %s
+Match Case	Coincidir maiúsculas e minúsculas
+Modified:	Modificado:
+Name:	Nome:
+New File	Novo arquivo
+New File or Folder	Novo arquivo ou pasta
+New File…	Novo arquivo…
+New Folder	Nova pasta
+New Folder…	Nova pasta…
+Next	Seguinte
+Next Symbol	Elemento seguinte
+No Outline	Sem estrutura
+No Symbols	Sem elementos
+No results	Sem resultados
+Not saved	Não salvo
+Open Folder	Abrir pasta
+Open Folder…	Abrir pasta…
+Open Recent	Abrir recentes
+Open…	Abrir…
+Outline	Estrutura
+Path:	Caminho:
+Plain Text	Texto simples
+Previous	Anterior
+Previous Symbol	Elemento anterior
+Redo	Refazer
+Regular Expression	Expressão regular
+Reinterpret	Reinterpretar
+Reinterpret reads the file again in the new encoding (when it was opened in a wrong one). Convert keeps the text and saves it in the new encoding.	«Reinterpretar» lê o arquivo novamente na nova codificação (se ele foi aberto na errada). «Converter» mantém o texto e salva-o na nova codificação.
+Reloading discards your unsaved changes.	Recarregar descarta as alterações não salvas.
+Replace All	Substituir tudo
+Save As	Salvar como
+Save as UTF-8	Salvar em UTF-8
+Save the document in Unicode (UTF-8) instead?	Salvar o documento em Unicode (UTF-8)?
+Show Sidebar (F9)	Barra lateral (F9)
+Sidebar	Barra lateral
+Size:	Tamanho:
+Some characters cannot be saved in %s.	Alguns caracteres não podem ser salvos em %s.
+Syntax	Sintaxe
+Syntax:	Sintaxe:
+The file appears to be a binary file.	O arquivo parece ser binário.
+The file cannot be read as %s.	O arquivo não pode ser lido como %s.
+The file was changed by another program.	O arquivo foi alterado por outro programa.
+The file was deleted or moved by another program. Save it to keep it.	O arquivo foi excluído ou movido por outro programa. Salve-o para mantê-lo.
+Top of Document	Início do documento
+Turkish	Turco
+UTF-8 with BOM	UTF-8 com BOM
+Undo	Desfazer
+Untitled	Sem título
+Western	Europa Ocidental
+Whole Words	Palavras inteiras
+Words: %s	Palavras: %s
+Wrap Lines	Quebrar linhas
+Your changes will be lost if you don't save them.	As alterações serão perdidas se você não salvá-las.
+untitled	sem título
+“%s” already exists.	“%s” já existe.

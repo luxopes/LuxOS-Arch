@@ -3877,3 +3877,95 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Nazwa komputera dla domeny może mieć najwyżej 15 liter, cyfr i łączników.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Nie znaleziono domeny w DNS. Sprawdź, czy komputer używa serwera DNS organizacji (zwykle z DHCP), lub podaj adres kontrolera domeny.
 Sign In to Network…	Zaloguj się do sieci…
+%d found	Znaleziono: %d
+%d of %d	%d z %d
+%d replaced	Zastąpiono: %d
+Default Text Size	Domyślny rozmiar tekstu
+Bigger Text	Większy tekst
+Smaller Text	Mniejszy tekst
+Baltic	Bałtyckie
+Central European	Środkowoeuropejskie
+Change the encoding to %s?	Zmienić kodowanie na %s?
+Characters: %s	Znaki: %s
+Chinese Simplified	Chińskie uproszczone
+Clear Menu	Wyczyść menu
+Convert	Konwertuj
+Could not create “%s”.	Nie można utworzyć „%s”.
+Could not open “%s”.	Nie można otworzyć „%s”.
+Could not save “%s”.	Nie można zapisać „%s”.
+Created:	Utworzono:
+Cyrillic	Cyrylica
+Do you want to save the changes to “%s”?	Czy zapisać zmiany w „%s”?
+Document Info	Informacje o dokumencie
+Don't Save	Nie zapisuj
+Edited	Zmieniono
+Encoding	Kodowanie
+Encoding:	Kodowanie:
+Find and Replace…	Znajdź i zamień…
+Go to Line (Ctrl+L)	Przejdź do wiersza (Ctrl+L)
+Go to Line:	Przejdź do wiersza:
+Go to Line…	Przejdź do wiersza…
+Greek	Greckie
+Ignore	Ignoruj
+Invalid pattern	Nieprawidłowy wzorzec
+Invisible Characters	Niewidoczne znaki
+Japanese	Japońskie
+Korean	Koreańskie
+Line Endings	Końce wierszy
+Line Endings:	Końce wierszy:
+Line Numbers	Numery wierszy
+Lines: %s	Wiersze: %s
+Match Case	Uwzględniaj wielkość liter
+Modified:	Zmodyfikowano:
+Name:	Nazwa:
+New File	Nowy plik
+New File or Folder	Nowy plik lub folder
+New File…	Nowy plik…
+New Folder	Nowy folder
+New Folder…	Nowy folder…
+Next	Następny
+Next Symbol	Następny element
+No Outline	Brak konspektu
+No Symbols	Brak elementów
+No results	Brak wyników
+Not saved	Nie zapisano
+Open Folder	Otwórz folder
+Open Folder…	Otwórz folder…
+Open Recent	Otwórz ostatnie
+Open…	Otwórz…
+Outline	Konspekt
+Path:	Ścieżka:
+Plain Text	Zwykły tekst
+Previous	Poprzedni
+Previous Symbol	Poprzedni element
+Redo	Ponów
+Regular Expression	Wyrażenie regularne
+Reinterpret	Odczytaj ponownie
+Reinterpret reads the file again in the new encoding (when it was opened in a wrong one). Convert keeps the text and saves it in the new encoding.	Odczytaj ponownie wczytuje plik jeszcze raz w nowym kodowaniu (gdy został otwarty w złym). Konwertuj zachowuje tekst i zapisuje go w nowym kodowaniu.
+Reloading discards your unsaved changes.	Ponowne wczytanie odrzuci niezapisane zmiany.
+Replace All	Zamień wszystko
+Save As	Zapisz jako
+Save as UTF-8	Zapisz jako UTF-8
+Save the document in Unicode (UTF-8) instead?	Zapisać dokument w Unicode (UTF-8)?
+Show Sidebar (F9)	Panel boczny (F9)
+Sidebar	Panel boczny
+Size:	Rozmiar:
+Some characters cannot be saved in %s.	Niektórych znaków nie można zapisać w kodowaniu %s.
+Syntax	Składnia
+Syntax:	Składnia:
+The file appears to be a binary file.	Plik wygląda na plik binarny.
+The file cannot be read as %s.	Nie można odczytać pliku jako %s.
+The file was changed by another program.	Plik został zmieniony przez inny program.
+The file was deleted or moved by another program. Save it to keep it.	Plik został usunięty lub przeniesiony przez inny program. Zapisz go, aby go zachować.
+Top of Document	Początek dokumentu
+Turkish	Tureckie
+UTF-8 with BOM	UTF-8 z BOM
+Undo	Cofnij
+Untitled	Bez tytułu
+Western	Zachodnioeuropejskie
+Whole Words	Całe słowa
+Words: %s	Słowa: %s
+Wrap Lines	Zawijaj wiersze
+Your changes will be lost if you don't save them.	Jeśli nie zapiszesz zmian, zostaną utracone.
+untitled	bez tytułu
+“%s” already exists.	„%s” już istnieje.

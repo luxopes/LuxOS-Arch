@@ -20,7 +20,7 @@ current-workspace-only=false
 pinned-only=false
 tooltips-enabled=true
 offset=0
-dock-items=['luxos-launchpad.dockitem', 'luxai.dockitem', 'luxos-store.dockitem', 'thunar.dockitem', 'firefox.dockitem', 'luxos-terminal.dockitem', 'org.xfce.mousepad.dockitem', 'xfce-settings-manager.dockitem', 'trash.dockitem']
+dock-items=['luxos-launchpad.dockitem', 'luxai.dockitem', 'luxos-store.dockitem', 'thunar.dockitem', 'firefox.dockitem', 'luxos-terminal.dockitem', 'luxos-text.dockitem', 'xfce-settings-manager.dockitem', 'trash.dockitem']
 
 [org/gnome/desktop/interface]
 color-scheme='prefer-light'

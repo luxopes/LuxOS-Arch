@@ -85,7 +85,7 @@ this documentation: start with `man luxos`, then e.g. `man lux.conf`, `man luxos
 ## Default software
 
 Firefox (hardware video decoding via VA-API), Files (Thunar), Terminal (`luxos-terminal` with
-`lsh`, see [terminal.md](terminal.md)), Mousepad, Ristretto, Evince, Xarchiver, Celluloid, plus the LuxOS apps. PipeWire audio,
+`lsh`, see [terminal.md](terminal.md)), Text Editor (`luxos-text`, see [text-editor.md](text-editor.md)), Ristretto, Evince, Xarchiver, Celluloid, plus the LuxOS apps. PipeWire audio,
 Bluetooth, NetworkManager, driverless printing (IPP Everywhere) and scanners work out of the box.
 More apps: LuxOS Store or `lux install NAME`. The installer can add app sets (Everyday,
 Programming, Video & Photo, Gaming, Security & Networking).

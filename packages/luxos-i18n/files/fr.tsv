@@ -3876,3 +3876,95 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Le nom de l’ordinateur pour le domaine peut comporter au plus 15 lettres, chiffres et traits d’union.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Le domaine est introuvable dans le DNS. Vérifiez que l’ordinateur utilise le serveur DNS de l’organisation (généralement via DHCP) ou saisissez l’adresse d’un contrôleur de domaine.
 Sign In to Network…	Se connecter au réseau…
+%d found	%d résultats
+%d of %d	%d sur %d
+%d replaced	%d remplacé(s)
+Default Text Size	Taille de texte par défaut
+Bigger Text	Texte plus grand
+Smaller Text	Texte plus petit
+Baltic	Balte
+Central European	Europe centrale
+Change the encoding to %s?	Changer l’encodage en %s ?
+Characters: %s	Caractères : %s
+Chinese Simplified	Chinois simplifié
+Clear Menu	Effacer le menu
+Convert	Convertir
+Could not create “%s”.	Impossible de créer « %s ».
+Could not open “%s”.	Impossible d’ouvrir « %s ».
+Could not save “%s”.	Impossible d’enregistrer « %s ».
+Created:	Créé :
+Cyrillic	Cyrillique
+Do you want to save the changes to “%s”?	Voulez-vous enregistrer les modifications de « %s » ?
+Document Info	Informations sur le document
+Don't Save	Ne pas enregistrer
+Edited	Modifié
+Encoding	Encodage
+Encoding:	Encodage :
+Find and Replace…	Rechercher et remplacer…
+Go to Line (Ctrl+L)	Aller à la ligne (Ctrl+L)
+Go to Line:	Aller à la ligne :
+Go to Line…	Aller à la ligne…
+Greek	Grec
+Ignore	Ignorer
+Invalid pattern	Motif non valide
+Invisible Characters	Caractères invisibles
+Japanese	Japonais
+Korean	Coréen
+Line Endings	Fins de ligne
+Line Endings:	Fins de ligne :
+Line Numbers	Numéros de ligne
+Lines: %s	Lignes : %s
+Match Case	Respecter la casse
+Modified:	Modifié :
+Name:	Nom :
+New File	Nouveau fichier
+New File or Folder	Nouveau fichier ou dossier
+New File…	Nouveau fichier…
+New Folder	Nouveau dossier
+New Folder…	Nouveau dossier…
+Next	Suivant
+Next Symbol	Élément suivant
+No Outline	Pas de plan
+No Symbols	Aucun élément
+No results	Aucun résultat
+Not saved	Non enregistré
+Open Folder	Ouvrir un dossier
+Open Folder…	Ouvrir un dossier…
+Open Recent	Ouvrir un fichier récent
+Open…	Ouvrir…
+Outline	Plan
+Path:	Chemin :
+Plain Text	Texte brut
+Previous	Précédent
+Previous Symbol	Élément précédent
+Redo	Rétablir
+Regular Expression	Expression régulière
+Reinterpret	Réinterpréter
+Reinterpret reads the file again in the new encoding (when it was opened in a wrong one). Convert keeps the text and saves it in the new encoding.	« Réinterpréter » relit le fichier dans le nouvel encodage (s’il a été ouvert avec un mauvais). « Convertir » garde le texte et l’enregistre dans le nouvel encodage.
+Reloading discards your unsaved changes.	Le rechargement annule vos modifications non enregistrées.
+Replace All	Tout remplacer
+Save As	Enregistrer sous
+Save as UTF-8	Enregistrer en UTF-8
+Save the document in Unicode (UTF-8) instead?	Enregistrer plutôt le document en Unicode (UTF-8) ?
+Show Sidebar (F9)	Barre latérale (F9)
+Sidebar	Barre latérale
+Size:	Taille :
+Some characters cannot be saved in %s.	Certains caractères ne peuvent pas être enregistrés en %s.
+Syntax	Syntaxe
+Syntax:	Syntaxe :
+The file appears to be a binary file.	Le fichier semble être un fichier binaire.
+The file cannot be read as %s.	Le fichier ne peut pas être lu en %s.
+The file was changed by another program.	Le fichier a été modifié par un autre programme.
+The file was deleted or moved by another program. Save it to keep it.	Le fichier a été supprimé ou déplacé par un autre programme. Enregistrez-le pour le conserver.
+Top of Document	Début du document
+Turkish	Turc
+UTF-8 with BOM	UTF-8 avec BOM
+Undo	Annuler
+Untitled	Sans titre
+Western	Europe occidentale
+Whole Words	Mots entiers
+Words: %s	Mots : %s
+Wrap Lines	Retour à la ligne
+Your changes will be lost if you don't save them.	Vos modifications seront perdues si vous ne les enregistrez pas.
+untitled	sans titre
+“%s” already exists.	« %s » existe déjà.
