@@ -25,8 +25,8 @@ It is **not** a VM and not a chroot you enter as root: programs are started insi
 (polkit action `org.luxos.sandbox.create`, `auth_admin_keep` – asks for the administrator password).
 The helper:
 
-1. runs `pacstrap -c -K` with the configuration `/usr/share/luxos/sandbox/lux.conf` (LuxOS lux.conf
-   format, converted by `lux-config`; mirrors from `/etc/lux/mirrorlist`) – **only official Arch
+1. runs `pacstrap -c -K` with the configuration `/usr/share/luxos/sandbox/lux.conf` (lux.conf
+   format, TOML, converted by `lux-config` into the sandbox's own `/etc/pacman.conf`; mirrors from `/etc/lux/mirrorlist`) – **only official Arch
    Linux repositories** `[core]` and `[extra]`, no LuxOS repos, no AUR; man pages/docs/most locales are
    not extracted,
 2. installs a small base: `filesystem bash coreutils pacman archlinux-keyring ca-certificates sed grep

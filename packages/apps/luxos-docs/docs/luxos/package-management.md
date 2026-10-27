@@ -19,16 +19,17 @@ behind lux is the `lux-engine` package (libalpm and tools taken from Arch Linux 
 
 | Path | What it is |
 |---|---|
-| `/etc/lux/lux.conf` | configuration: repositories, signatures, held packages, lux settings |
+| `/etc/lux/lux.conf` | configuration (TOML): repositories, signatures, held packages, lux settings |
 | `/etc/lux/conf.d/*.conf` | more files in the same format (repositories added by packages or the admin) |
+| `/etc/lux/lux.conf.old-format` | the original LuxOS 0.9 file after conversion (`lux config migrate`) |
 | `/etc/lux/mirrorlist` | Arch Linux download mirrors, one address per line (`lux mirrors`) |
-| `~/.config/lux/lux.conf` | per-user lux settings (only `aur`, `review-pkgbuild`, `flatpak`, `clean-keep`) |
+| `~/.config/lux/lux.conf` | per-user lux settings (only `[packages]` `aur`, `review_pkgbuild`, `flatpak`, `cache_keep`) |
 | `/var/lib/lux/` | package database (`local/`, `sync/`, lock `db.lck`); `installed/` = `.lux` apps |
 | `/var/cache/lux/pkg/` | downloaded packages |
 | `/var/log/lux.log` | transaction log (`lux history`) |
 | `/etc/lux/keyring/` | GnuPG keyring for package signatures (`lux fix` repairs it) |
 | `/etc/lux/hooks/` | admin hooks (`*.hook`, alpm-hooks format) |
-| `/run/lux/engine.conf` | **generated** engine configuration — never edit, it is rebuilt from lux.conf |
+| `/run/lux/engine.conf` | **generated** configuration of the C engine tools — never edit, it is rebuilt from lux.conf |
 
 ## Commands
 
@@ -47,10 +48,10 @@ behind lux is the `lux-engine` package (libalpm and tools taken from Arch Linux 
 | `lux reinstall <pkg...>` | same version again (repository, else cache) |
 | `lux autoremove` | remove orphaned dependencies |
 | `lux files <pkg>` / `lux owns <file>` | files of a package / which package owns a file |
-| `lux clean` | clean the cache (keeps `clean-keep` versions, removes uninstalled packages), offers `autoremove` |
+| `lux clean` | clean the cache (keeps `cache_keep` versions, removes uninstalled packages), offers `autoremove` |
 | `lux fix` | repair a locked database, unfinished downloads and the signing keys |
 | `lux configs` | review new config files from updates (`.luxnew`, `.luxsave`; older `.pacnew`, `.pacsave` too): diff, use new, keep yours, edit |
-| `lux config [check\|show\|edit\|engine]` | check, show or edit `/etc/lux/lux.conf`; `engine` prints the generated engine config |
+| `lux config [check\|show\|edit\|engine\|migrate]` | check (errors and warnings), show or edit `/etc/lux/lux.conf`; `engine` prints the generated config of the engine tools; `migrate` converts the old format |
 | `lux history [n] [pkg]` | recent package changes from `/var/log/lux.log` |
 | `lux mirrors` | fastest mirrors (`reflector`) written to `/etc/lux/mirrorlist` |
 | `lux drivers` / `lux doctor` / `lux pack <dir>` | drivers ([drivers.md](drivers.md)), health check, build a `.lux` |
@@ -77,63 +78,100 @@ Arch habits are translated: typing `pacman -Syu` (or `lux -Syu`) prints the matc
 
 ## Configuration: /etc/lux/lux.conf
 
-LuxOS format: one `key  value` per line (separated by spaces), `#` starts a comment to the end of
-the line. Lines indented with spaces or a tab belong to the `repo NAME` line above them. Edit as
-root (`lux config edit` opens it and checks it afterwards), then run `lux config check`.
+Since LuxOS 1.0 lux.conf is a **TOML** file: the tables `[general]`, `[downloads]`, `[security]`,
+`[packages]`, `[paths]`, one `[repo.NAME]` table per repository and `[include]`, each with
+`key = value` lines. Text goes in quotes (`"auto"`), switches are `true`/`false`, numbers have no
+quotes, lists are `["a", "b"]` (also over several lines, with comments). `#` starts a comment to
+the end of the line. lux reads the file itself (Python's TOML parser). Edit as root (`lux config edit` opens it and checks it afterwards), then run
+`lux config check`.
 
+```toml
+# LuxOS Package Manager
+# Configuration: /etc/lux/lux.conf
+
+[general]
+architecture = "auto"
+color = true
+candy = true
+verbose = true
+
+[downloads]
+parallel = 10
+check_space = true
+user = "alpm"
+
+[security]
+signatures = "required"
+local_signatures = "optional"
+protect = ["lux-engine", "glibc"]
+
+[packages]
+aur = true
+review_pkgbuild = true
+flatpak = true
+cache_keep = 2
+hold = ["linux-firmware"]        # keep at the current version
+
+# ── LuxOS repositories ────────────────────────
+
+[repo.luxos]
+server = "https://luxos.lux-ai.cz/repo/$repo/$arch"
+
+# ── Arch Linux repositories ───────────────────
+
+[repo.core]
+mirrors = "/etc/lux/mirrorlist"
+
+# ── Additional configuration ──────────────────
+
+[include]
+files = ["/etc/lux/conf.d/*.conf"]
 ```
-architecture        auto
-parallel-downloads  10
-signatures          required          # required | optional | never
-hold                linux-firmware    # keep at the current version
-aur                 on
 
-repo luxos
-    server  https://luxos.lux-ai.cz/repo/$repo/$arch
+`[include]` is a table because in TOML a `key = value` line belongs to the table above it (an
+`include = …` under `[repo.extra]` would be a key of that repository; lux still uses it, with a
+warning). A bare `include = …` works only at the top of the file.
 
-repo core
-    mirrors  /etc/lux/mirrorlist
+### Keys
 
-include  /etc/lux/conf.d/*.conf
-```
+| Table | Key | Value (default) | Meaning |
+|---|---|---|---|
+| `[general]` | `architecture` | text or list (`"auto"`) | package architecture |
+| | `color`, `candy`, `verbose` | `true` \| `false` (`true`) | colors, Pac-Man progress bar, detailed lists |
+| | `syslog` | `true` \| `false` (`false`) | also log to the system journal |
+| `[downloads]` | `parallel` | number ≥ 1 (`10`) | files downloaded at once |
+| | `check_space` | `true` \| `false` (`true`) | free space check |
+| | `user` | user \| `"none"` (`"alpm"`) | unprivileged user that downloads |
+| | `timeout` | `true` \| `false` (`true`) | `false` = no timeout for slow mirrors |
+| | `sandbox` | `true` \| `false` (`true`) | restrict the download process |
+| `[security]` | `signatures` | `"required"` \| `"optional"` (`"required"`) | package/database signature checks; `"never"` only for a local `file://` repo |
+| | `local_signatures` | `"required"` \| `"optional"` \| `"never"` (`"optional"`) | packages installed from a file (AUR builds) |
+| | `protect` | list of packages (`["lux-engine", "glibc"]`) | `lux remove` warns and never removes them with `-y` |
+| `[packages]` | `aur` | `true` \| `false` (`true`) | AUR packages (built on this computer) |
+| | `review_pkgbuild` | `true` \| `false` (`true`) | offer to read the build script before an AUR build |
+| | `flatpak` | `true` \| `false` (`true`) | `lux update` also updates Flatpak apps |
+| | `cache_keep` | number (`2`) | versions per package `lux clean` keeps |
+| | `hold` | list of packages | held packages: `lux update` skips them (pacman's `IgnorePkg`) |
+| | `ignore_group` | list of groups | the same for package groups |
+| | `no_upgrade` | list of paths without leading `/` | files updates never overwrite (new version saved as `.luxnew`) |
+| | `no_extract` | list of path patterns | files never extracted (e.g. `usr/share/doc/*`) |
+| `[paths]` | `cache`, `hooks` | absolute path or list | other cache / hook directories |
+| | `database`, `log`, `keyring` | absolute path | other database, log, keyring |
+| `[include]` | `files` | list of paths or patterns (`["/etc/lux/conf.d/*.conf"]`) | more files (relative = to this file), read after the whole file |
 
-### Global keys
-
-| Key | Value (default) | Meaning |
-|---|---|---|
-| `architecture` | `auto` | package architecture |
-| `parallel-downloads` | number ≥ 1 (`10`) | files downloaded at once |
-| `signatures` | `required` \| `optional` (`required`) | package/database signature checks; `never` only for a local `file://` repo |
-| `local-signatures` | `required` \| `optional` \| `never` (`optional`) | packages installed from a file (AUR builds) |
-| `hold` | package names, repeatable | held packages: `lux update` skips them (pacman's `IgnorePkg`) |
-| `ignore-group` | group names, repeatable | the same for package groups |
-| `protect` | package names (`lux-engine glibc`) | `lux remove` warns and never removes them with `-y` |
-| `no-upgrade` | paths without leading `/`, repeatable | files updates never overwrite (new version saved as `.luxnew`) |
-| `no-extract` | path patterns, repeatable | files never extracted (e.g. `usr/share/doc/*`) |
-| `color`, `candy`, `verbose-lists`, `check-space` | `on` \| `off` (`on`) | colors, Pac-Man progress bar, detailed lists, free space check |
-| `syslog` | `on` \| `off` (`off`) | also log to the system journal |
-| `download-timeout` | `on` \| `off` (`on`) | `off` = no timeout for slow mirrors |
-| `download-user` | user \| `none` (`alpm`) | unprivileged user that downloads |
-| `download-sandbox` | `on` \| `off` (`on`) | restrict the download process |
-| `cache`, `hooks` | absolute path, repeatable | other cache / hook directories |
-| `database`, `log`, `keyring` | absolute path | other database, log, keyring |
-| `include` | path or pattern | load more files in the same format |
-| `aur` | `on` \| `off` (`on`) | AUR packages (built on this computer) |
-| `review-pkgbuild` | `on` \| `off` (`on`) | offer to read the build script before an AUR build |
-| `flatpak` | `on` \| `off` (`on`) | `lux update` also updates Flatpak apps |
-| `clean-keep` | number (`2`) | versions per package `lux clean` keeps |
+Lists from all files add up (`hold` in `conf.d` adds packages); other values read later win.
 
 ### Repositories
 
-`repo NAME` starts a block; indented keys belong to it. Block order is search order (the first
-repository that has a package wins).
+One `[repo.NAME]` table per repository; table order is search order (first match wins; repositories
+from `[include]` come after those of the file). Names with a dot or `+` need quotes: `[repo."my.repo"]`.
 
-| Key in block | Value | Meaning |
+| Key | Value | Meaning |
 |---|---|---|
-| `server` | `https://`, `http://`, `ftp://` or `file://` address, repeatable | `$repo` and `$arch` are filled in |
-| `mirrors` | path to a mirror list, repeatable | addresses from the file (e.g. `/etc/lux/mirrorlist`) |
-| `signatures` | `required` \| `optional` \| `never` | overrides the global setting (`never` only for `file://`) |
-| `usage` | `sync search install upgrade all` | what the repository is used for (default `all`) |
+| `server` | `"https://…"`, `"http://…"`, `"ftp://…"`, `"file://…"` or a list | `$repo` and `$arch` are filled in |
+| `mirrors` | path to a mirror list, or a list | addresses from the file (e.g. `"/etc/lux/mirrorlist"`) |
+| `signatures` | `"required"` \| `"optional"` \| `"never"` | overrides the global setting (`"never"` only for `file://`) |
+| `usage` | `["sync", "search", "install", "upgrade"]` or `"all"` | what the repository is used for (default `all`) |
 
 ### Mirror list: /etc/lux/mirrorlist
 
@@ -142,53 +180,56 @@ One address per line, best first, `#` comments. The default is the worldwide mir
 replaces it with the fastest mirrors; `reflector.timer` refreshes it weekly. `Server = …` lines from
 other tools are accepted when reading, but lux writes plain addresses.
 
-```
-https://geo.mirror.pkgbuild.com/$repo/os/$arch
-https://mirror.rackspace.com/archlinux/$repo/os/$arch
-```
-
 ### Examples
 
 - **Add a repository** — create `/etc/lux/conf.d/myrepo.conf`, then `lux update`:
-  ```
-  repo myrepo
-      server  https://example.org/$repo/$arch
+  ```toml
+  [repo.myrepo]
+  server = "https://example.org/$repo/$arch"
   ```
   Import its signing key with `sudo /usr/lib/lux/alpm/bin/lux-engine-key --recv-keys ID` and
   `--lsign-key ID`. `multilib` (Steam): `sudo /usr/lib/lux/lux-config enable-repo multilib`.
-- **Hold a package**: add `hold  linux-firmware` (several names per line or several lines).
+- **Hold a package**: `hold = ["linux-firmware"]` in `[packages]` (more names in the list).
 - **Change mirrors**: `lux mirrors`, or edit `/etc/lux/mirrorlist` (one address per line).
-- **Disable AUR**: `aur  off` in lux.conf; for one user `aur off` in `~/.config/lux/lux.conf`.
+- **Disable AUR**: `aur = false` in `[packages]` (for one user in `~/.config/lux/lux.conf`).
 
-### Errors
+### Errors and warnings
 
-Unknown keys, wrong values and pacman.conf syntax (`[options]`, `Key = value`) are errors with the
-file and line number:
+Wrong syntax and values are errors with the file and line:
 
 ```
-lux: error in the configuration: /etc/lux/lux.conf:12: unknown key 'paralel-downloads' (did you mean 'parallel-downloads'?)
+lux: error in the configuration: /etc/lux/lux.conf:11: 'parallel' in [downloads] must be a whole number of at least 1 (without quotes), not "10"
 lux: the package manager keeps using the last working configuration until this is fixed
 ✗ lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check
 ```
 
 With a broken config lux, LuxOS Store and LuxOS Care install and update nothing until it is fixed;
-hooks and `makepkg` keep the last working generated config. Other messages: `repository 'x' has no
-'server' or 'mirrors' line`, `mirror list … does not exist`, `mirror list … has no mirrors`,
-`'signatures never' is only allowed for a local repository (file://)`, `repository 'x' is already
-defined at FILE:LINE`, `indented line '…' does not belong to any 'repo' block`, `'server' belongs to
-a repository: indent it under a 'repo NAME' line`, `'parallel-downloads' must be a whole number of
-at least 1`, `'color' must be on or off`.
+hooks and `makepkg` keep the last working generated config. Other messages: `must be true or
+false, not "on"`, `text values need quotes`, `the old 'key value' format`, `has no 'server' or
+'mirrors' line`, `mirror list … does not exist`, `is already defined at FILE:LINE`.
+
+**Unknown keys and tables** are not errors: `lux config check` prints a warning with a suggestion and
+the key is ignored:
+
+```
+lux: warning: /etc/lux/lux.conf:7: unknown key 'parallel' in [general] (it belongs to [downloads]) - ignored
+```
+
+### Old format (LuxOS 0.9)
+
+The LuxOS 0.9 format (`key  value` lines, `repo NAME` blocks) is still read; `lux config check`
+reports it and `sudo lux config migrate` converts it (same values, comments kept, original kept as
+`lux.conf.old-format`; the `lux-engine` update does it once automatically). Key mapping and details:
+[lux-engine-and-repos.md](lux-engine-and-repos.md#luxconf-format-of-luxos-09).
 
 ### How it works and migration from pacman
 
-`lux-config` (`/usr/lib/lux/lux-config`) turns lux.conf, included files and mirror lists into
-`/run/lux/engine.conf` for the engine and regenerates it whenever a source changes. Updating
-LuxOS 0.9.5 or older moves `/var/lib/pacman` → `/var/lib/lux`, `/var/cache/pacman/pkg` →
-`/var/cache/lux/pkg`, `/etc/pacman.d/gnupg` → `/etc/lux/keyring`, `/var/log/pacman.log` →
-`/var/log/lux.log`, converts custom repositories and options from `/etc/pacman.conf`
-(`[multilib]`, `IgnorePkg` → `hold`, …) into lux.conf and the ranked mirror list into
-`/etc/lux/mirrorlist`. Leftover links are cleaned after the next restart; copies stay in
-`/var/lib/lux/migrated-from-pacman/`.
+lux reads lux.conf, included files and mirror lists directly and sets up libalpm from the result
+(other tools: `lux_config.load()`, in a shell `/usr/lib/lux/lux-config json`). Only the unmodified C
+tools from Arch (`lux-engine`, `lux-engine-key`, `makepkg`) get a generated `/run/lux/engine.conf`
+(see [lux-engine-and-repos.md](lux-engine-and-repos.md)). Updating LuxOS 0.9.5 or older moves the
+pacman data and converts `/etc/pacman.conf` (`[multilib]`, `IgnorePkg` → `hold`, …) into lux.conf
+([details](lux-engine-and-repos.md#migration-from-luxos-09)).
 
 Config files kept by updates are named after lux: `*.luxnew` (new version of a file you changed)
 and `*.luxsave` (your changed file of a removed package). LuxOS 1.0 renames older `*.pacnew`,
@@ -258,7 +299,7 @@ Automatic background updates are done by LuxOS Care — see [care-updates.md](ca
 - `lux doctor`: failed services, `.luxnew` files, disk usage, orphans, available updates (checked
   into a temporary database copy), configuration errors, old package manager files waiting for
   cleanup, engine version vs. Arch, replaced kernel, journal errors.
-- `lux clean`: own cache cleaner (no pacman-contrib): keeps `clean-keep` newest versions of
+- `lux clean`: own cache cleaner (no pacman-contrib): keeps `cache_keep` newest versions of
   installed packages, removes cached uninstalled packages, then offers `autoremove`.
 
 ## Interactive terminal store (TUI)

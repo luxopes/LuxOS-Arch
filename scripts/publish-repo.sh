@@ -93,14 +93,14 @@ manufacturer, no network access while building, every update re-checked).</p>
 <p>LuxOS has both repositories set up already in <code>/etc/lux/lux.conf</code>. To add them again
 (for example after editing the file), put this into <code>/etc/lux/conf.d/luxos.conf</code> and run
 <code>lux config check</code>:</p>
-<pre>repo luxos
-    server  $URL/\$repo/\$arch
+<pre>[repo.luxos]
+server = "$URL/\$repo/\$arch"
 
-repo luxos-apps
-    server  $URL/\$repo/\$arch
+[repo.luxos-apps]
+server = "$URL/\$repo/\$arch"
 
-repo luxos-drivers
-    server  $URL/\$repo/\$arch</pre>
+[repo.luxos-drivers]
+server = "$URL/\$repo/\$arch"</pre>
 <p>Signing key: <a href="luxos.gpg">luxos.gpg</a> (package <code>luxos-keyring</code>).</p>
 </body></html>
 EOF

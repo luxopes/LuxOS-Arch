@@ -47,7 +47,7 @@ LuxOS computer. LuxOS is Arch-based, but several Arch habits are wrong here.
 | Automatic updates, update status | Software Update (`luxos-update`), `luxos-care status` | mode: `luxos-care mode carefree\|classic` (root) |
 | CPU scheduler (scx_lavd / kernel) | `luxos-care scheduler`; `sudo luxos-care scheduler lavd\|default` | `/etc/luxos/scheduler.conf`, `luxos-scheduler.service`; system.lsl `kernel.scheduler` |
 | Fix a locked package database / keys | `lux fix` | never delete `/var/lib/lux/db.lck` during an update |
-| Add a repository, hold a package, mirrors | `/etc/lux/conf.d/NAME.conf` with `repo NAME` + indented `server URL`; `hold PKG` in `/etc/lux/lux.conf`; `lux mirrors` | check with `lux config check`; `multilib`: `sudo /usr/lib/lux/lux-config enable-repo multilib` |
+| Add a repository, hold a package, mirrors | `/etc/lux/conf.d/NAME.conf` with `[repo.NAME]` + `server = "URL"`; `hold = ["PKG"]` in `[packages]` of `/etc/lux/lux.conf` (TOML); `lux mirrors` | check with `lux config check`; `multilib`: `sudo /usr/lib/lux/lux-config enable-repo multilib` |
 | System health | `lux doctor` | |
 | Drivers | Drivers (`luxos-drivers`), `lux drivers`, `luxos-hwdetect --report` | restart after installing |
 | Wallpaper, light/dark/auto, Dock, top bar, boot splash | Desktop & Dock (`luxos-settings`); `luxos-appearance light\|dark\|auto\|toggle\|wallpaper FILE\|bar-opacity N\|dock-opacity N` | |
@@ -246,8 +246,9 @@ starting at [LSL overview](../lsl/overview.md).
 ## Things that are different from Arch Linux
 
 - No `pacman`, no `yay`/`paru` needed – `lux` covers repositories, Flathub, community/AUR (sandbox) and `.lux`.
-- No `/etc/pacman.conf`: configuration is `/etc/lux/lux.conf` (`key value` lines, `repo NAME` blocks,
-  `hold` instead of `IgnorePkg`), database `/var/lib/lux`, cache `/var/cache/lux/pkg`, log
+- No `/etc/pacman.conf`: configuration is `/etc/lux/lux.conf` (TOML: `[general]`, `[downloads]`,
+  `[security]`, `[packages]`, `[repo.NAME]` tables, `hold = [...]` instead of `IgnorePkg`; the old
+  LuxOS 0.9 `key value` format is still read, `lux config migrate` converts it), database `/var/lib/lux`, cache `/var/cache/lux/pkg`, log
   `/var/log/lux.log`, keyring `/etc/lux/keyring`. The engine is based on Arch's libalpm (pacman code).
 - Default shell is `lsh` (bash-compatible). `~/.lshrc` instead of `~/.bashrc`.
 - Kernel is `linux-luxos` (own LuxOS kernel; older installs switch from `linux-zen` automatically); initramfs built with `mkinitcpio`; Btrfs subvolumes `@`, `@home`, `@log`,

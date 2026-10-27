@@ -38,7 +38,7 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
   varianty modrá/fialová/oranžová/zelená/bílá v Nastavení › Plocha a Dock nebo `luxos-splash set <varianta>`), skrytý zavaděč
   (systemd-boot `timeout 0`), přihlašovací obrazovka uprostřed (lightdm-gtk-greeter), ISO boot menu v barvách LuxOS.
 - **`lux`** – správce balíků LuxOS místo pacmanu: repozitáře přes libalpm (`pyalpm`), vlastní konfigurace
-  `/etc/lux/lux.conf` (formát LuxOS, žádný `/etc/pacman.conf`), AUR, Flatpak a balíky `.lux`; krátký barevný výstup, příkazy jako u apt; `lux` bez parametrů otevře interaktivní
+  `/etc/lux/lux.conf` (TOML, žádný `/etc/pacman.conf`), AUR, Flatpak a balíky `.lux`; krátký barevný výstup, příkazy jako u apt; `lux` bez parametrů otevře interaktivní
   obchod v terminálu (TUI) s balíky z repozitářů LuxOS i Arch Linuxu. Příkaz `pacman` v LuxOS není (jádro `lux-engine`,
   viz níže); kdo ho napíše, uvidí odpovídající příkaz `lux`.
 - **Obchod LuxOS** – grafický obchod s aplikacemi z repozitářů LuxOS a Arch Linuxu (metadata AppStream),
@@ -167,9 +167,11 @@ lux install hello-lux                      # z repozitáře LuxOS
 
 Výchozí správce balíků. Transakce dělá přes libalpm (`pyalpm`, `/usr/lib/lux/lux_alpm.py`): databáze
 `/var/lib/lux`, cache `/var/cache/lux/pkg`, log `/var/log/lux.log`, klíčenka `/etc/lux/keyring`, konfigurace
-`/etc/lux/lux.conf` ve vlastním formátu (`klíč hodnota`, bloky `repo NÁZEV`, `hold`, `include /etc/lux/conf.d/*.conf`)
-a zrcadla `/etc/lux/mirrorlist` (jedna adresa na řádek). Konfiguraci jádra `/run/lux/engine.conf` z ní generuje
-`lux-config` (nikdo ji neupravuje); chyba v `lux.conf` = hlášení se souborem a řádkem, `lux config check`.
+`/etc/lux/lux.conf` v TOML (`[general]`, `[downloads]`, `[security]`, `[packages]` s `hold = [...]`, `[repo.NÁZEV]`,
+`[include] files = ["/etc/lux/conf.d/*.conf"]`; starší formát `klíč hodnota` se čte dál, `lux config migrate` ho převede)
+a zrcadla `/etc/lux/mirrorlist` (jedna adresa na řádek). `lux` čte `lux.conf` přímo (`lux_config.load()`); jen pro
+nástroje jádra v C z ní `lux-config` generuje `/run/lux/engine.conf` (nikdo ji neupravuje); chyba v `lux.conf` =
+hlášení se souborem a řádkem, neznámý klíč = varování, `lux config check`.
 Bez `pyalpm` (nebo `LUX_BACKEND=engine`) volá nástroj jádra `/usr/lib/lux/alpm/bin/lux-engine`. Obchod LuxOS
 a LuxOS Care volají `lux_alpm.py --machine` (řádky `@@…`). Podrobně: [packages/lux/lux.md](packages/lux/lux.md).
 

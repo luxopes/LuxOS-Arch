@@ -105,7 +105,7 @@
         {
           "path": "luxos/package-management.md",
           "title": "Package management with lux",
-          "summary": "All lux commands and the full /etc/lux/lux.conf reference (repo, server, mirrors, hold, signatures, include), mirror list, Flathub, community (AUR) packages in the sandbox with LuxAI Lite review, TUI, errors and migration from pacman.conf.",
+          "summary": "All lux commands and the full /etc/lux/lux.conf reference (TOML: [repo.NAME], server, mirrors, hold, signatures, [include], old format and lux config migrate), mirror list, Flathub, community (AUR) packages in the sandbox with LuxAI Lite review, TUI, errors and migration from pacman.conf.",
           "keywords": [
             "lux",
             "install",
@@ -158,6 +158,10 @@
             "/var/lib/lux",
             "lux.log",
             "clean-keep",
+            "cache_keep",
+            "TOML",
+            "lux config migrate",
+            "lux.conf.old-format",
             "aur off",
             "disable AUR",
             "multilib",
