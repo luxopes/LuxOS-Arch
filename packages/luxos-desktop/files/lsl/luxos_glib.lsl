@@ -9,6 +9,7 @@
 #       f(data) se opakuje, dokud vraci True; zaznam obsluhy se po skonceni uvolni
 #   spawn_watched_data(argv, f, data)           po skonceni f(data, pid, status)
 #   spawn_capture(argv, f, data)                po skonceni f(data, stdout_text, status); stderr zahozen
+#   spawn_stream(argv, f, data)                 f(data, kus_vystupu) prubezne, po konci f(data, "")
 #   release(id)                                 uvolni zaznam obsluhy (po zniceni widgetu)
 #   spawn(argv), spawn_quiet(argv)              jako glib.spawn/spawn_quiet, ale v nove relaci (setsid, jako
 #                                               subprocess.Popen(start_new_session=True))
@@ -226,6 +227,72 @@ end
 function capture_finish(state):
     handler = state[0]
     call handler(state[1], state[3], state[5])
+    return 0
+end
+
+# Dlouho bezici proces s prubeznym ctenim vystupu (pactl subscribe): f(data, kus_textu) pri kazdem
+# precteni, po konci procesu jednou f(data, ""); stderr zahozen; vraci pid nebo 0
+# state = [handler, data, fd, running, id_read, id_child]
+function spawn_stream(argv, handler, bound):
+    unsafe:
+        array = glib.cstr_array(argv)
+        cells = __lsl_byte_zeros(24)
+        base = data(cells)
+        ok = __lsl_qbe_call11(__lsl_symbol("g_spawn_async_with_pipes"), 0, glib.array_data(array), 0, 4 + 2 + 16, 0, 0, base, 0, base + 8, 0, base + 16)
+        if ok == 0:
+            error = __lsl_qbe_load64(base + 16)
+            if error != 0:
+                call __lsl_qbe_call1(__lsl_symbol("g_error_free"), error)
+            end
+            return 0
+        end
+        pid = __lsl_qbe_s32(__lsl_qbe_load32(base))
+        out = __lsl_qbe_s32(__lsl_qbe_load32(base + 8))
+        state = [handler, bound, out, True, 0, 0]
+        read_rec = track(stream_read, 2, state)
+        child_rec = track(stream_exit, 2, state)
+        state[4] = read_rec[1]
+        state[5] = child_rec[1]
+        call __lsl_qbe_call4(__lsl_symbol("g_unix_fd_add"), out, 25, __lsl_symbol("lsl_arch_callback_u3"), ptr(read_rec[0]))
+        call __lsl_qbe_call5(__lsl_symbol("g_child_watch_add_full"), 0, pid, __lsl_symbol("lsl_arch_callback_u3"), ptr(child_rec[0]), 0)
+        return pid
+    end
+end
+
+function stream_read(state, handle, condition):
+    unsafe:
+        buffer = __lsl_byte_zeros(4096)
+        n = __lsl_qbe_call3(__lsl_symbol("read"), ptr(handle), data(buffer), 4096)
+        if n > 0:
+            handler = state[0]
+            call handler(state[1], __lsl_text_from_bytes(buffer, 0, n))
+            return True
+        end
+        call __lsl_qbe_call1(__lsl_symbol("close"), ptr(handle))
+    end
+    state[2] = -1
+    call release(state[4])
+    if not state[3]:
+        call stream_finish(state)
+    end
+    return False
+end
+
+function stream_exit(state, pid, status):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("g_spawn_close_pid"), ptr(pid))
+    end
+    state[3] = False
+    call release(state[5])
+    if state[2] == -1:
+        call stream_finish(state)
+    end
+    return False
+end
+
+function stream_finish(state):
+    handler = state[0]
+    call handler(state[1], "")
     return 0
 end
 

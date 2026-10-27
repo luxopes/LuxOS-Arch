@@ -1,0 +1,41 @@
+# Maintainer: LuxOS Team
+# xfce4-pulseaudio-plugin z Archu + srozumitelna nabidka reproduktoru v horni liste
+# (luxos-captions.patch): nad posuvniky je popisek "Vystup: <zarizeni>" a "Vstup: <mikrofon>",
+# takze je jasne, ktery posuvnik je hlasitost a ktery citlivost mikrofonu. Bez mikrofonu
+# (vychozim vstupem je jen "Monitor" vystupu) se posuvnik vstupu neukaze - nic slysitelne nemenil
+# a vypadal jako nefunkcni druhy posuvnik hlasitosti.
+# Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
+# verzi v Archu zvysit pkgver (a sha256sums), pkgrel nechat X.1.
+# Puvodni PKGBUILD Archu (udrzovatele Evangelos Foutras, Robin Candau) je v PKGBUILD.arch.
+
+pkgname=xfce4-pulseaudio-plugin
+pkgver=0.5.1
+pkgrel=1.1
+pkgdesc="Pulseaudio plugin for the Xfce4 panel (LuxOS: labeled output and input sliders)"
+arch=('x86_64')
+url="https://docs.xfce.org/panel-plugins/xfce4-pulseaudio-plugin/start"
+license=('GPL-2.0-or-later')
+groups=('xfce4-goodies')
+depends=('xfce4-panel' 'libpulse' 'libkeybinder3' 'libnotify' 'libcanberra')
+makedepends=('git' 'meson' 'xfce4-dev-tools')
+optdepends=('pavucontrol: default pulseaudio mixer')
+source=("git+https://gitlab.xfce.org/panel-plugins/xfce4-pulseaudio-plugin.git#tag=$pkgname-$pkgver"
+        'luxos-captions.patch')
+sha256sums=('d230d2107d64e78ca9deb536768e7264c16b4dfb7af2cc816f6f848ae3bdc7a7'
+            '7d3a2aa78d1ee187c13339475a4ba5837aa55c09d568e67d60011ba50674a446')
+
+prepare() {
+  cd $pkgname
+  # LuxOS: popisky posuvniku, bez posuvniku pro "Monitor" (zadny mikrofon)
+  patch -Np1 -i "$srcdir/luxos-captions.patch"
+}
+
+build() {
+  arch-meson $pkgname build \
+    --localstatedir=/var
+  meson compile -C build
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+}

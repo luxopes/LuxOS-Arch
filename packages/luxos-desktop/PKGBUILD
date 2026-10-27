@@ -23,11 +23,11 @@ depends=(
     # Graficky server a vstup
     xorg-server xorg-xrandr xorg-xinput xorg-xset xf86-input-libinput mesa
     # Xfce (jen potrebne casti)
-    xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf 'xfce4-notifyd>=0.9.7-3.2'
+    xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf 'xfce4-notifyd>=0.9.7-3.3'
     xfce4-power-manager 'xfce4-screensaver>=4.20.2-1.1' ffmpeg xfce4-taskmanager
     # Terminal LuxOS misto xfce4-terminal (packages/luxos-terminal, VTE s obrazky SIXEL)
     luxos-terminal
-    'xfce4-whiskermenu-plugin>=2.10.1-2.1' xfce4-genmon-plugin xfce4-pulseaudio-plugin xfce4-xkb-plugin
+    'xfce4-whiskermenu-plugin>=2.10.1-2.1' xfce4-genmon-plugin 'xfce4-pulseaudio-plugin>=0.5.1-1.1' xfce4-xkb-plugin
     xfce4-cpugraph-plugin  # graf vytizeni CPU (jde pridat do listy, ve vychozi liste neni)
     xorg-setxkbmap xorg-xprop libxi libxtst libxrandr
     brightnessctl luxos-i18n luxos-store luxos-account
@@ -44,8 +44,8 @@ depends=(
     xclip libxfixes
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
     # Dock, Hledani, prihlaseni
-    # rofi z [luxos]: Launchpad potrebuje -hover-no-scroll (packages/rofi)
-    plank 'rofi>=2.0.0-1.1' lightdm lightdm-gtk-greeter dconf yad
+    # rofi z [luxos]: Launchpad potrebuje -hover-no-scroll a -custom-exit (packages/rofi)
+    plank 'rofi>=2.0.0-1.2' lightdm lightdm-gtk-greeter dconf yad
     # Zvuk, sit, bluetooth, tisk
     pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber pavucontrol
     networkmanager network-manager-applet nm-connection-editor

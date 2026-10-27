@@ -192,8 +192,8 @@ diff --git a/xfce4-notifyd/xfce-notify-window.c b/xfce4-notifyd/xfce-notify-wind
 +        gtk_widget_set_can_focus(window->luxos_close, FALSE);
 +        gtk_widget_set_halign(window->luxos_close, GTK_ALIGN_START);
 +        gtk_widget_set_valign(window->luxos_close, GTK_ALIGN_START);
-+        gtk_widget_set_margin_start(window->luxos_close, 4);
-+        gtk_widget_set_margin_top(window->luxos_close, 4);
++        gtk_widget_set_margin_start(window->luxos_close, 1);
++        gtk_widget_set_margin_top(window->luxos_close, 1);
 +        gtk_widget_set_no_show_all(window->luxos_close, TRUE);
 +        atk_object_set_name(gtk_widget_get_accessible(window->luxos_close), _("Close"));
 +        g_signal_connect(window->luxos_close, "clicked",

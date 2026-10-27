@@ -9,6 +9,7 @@ vidi, co by Enter nebo klik spustil. pkill, luxos-appearance a luxos-luxai-rofi 
 (skript nesmi zavrit rofi uzivatele). Rofi bez -hover-no-scroll (Arch, ne [luxos]) se preskoci;
 jinou binarku lze zadat v LUXOS_ROFI (napr. sestaveni packages/rofi). Jen pod xvfb-run.
 """
+import json
 import os
 import shutil
 import subprocess
@@ -19,6 +20,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.join(HERE, "..", "files")
 LAUNCHPAD = os.path.join(FILES, "bin", "luxos-launchpad")
+PY = os.path.join(FILES, "python", "luxos_launchpad.py")
 DESKTOP = os.path.join(FILES, "applications", "luxos-launchpad.desktop")
 ROFI = os.environ.get("LUXOS_ROFI") or shutil.which("rofi")
 COLS, ROWS, APPS = 7, 4, 60
@@ -34,7 +36,8 @@ def rofi_has_hover_no_scroll():
                            env=dict(os.environ, HOME=tempfile.gettempdir()))
     except (OSError, subprocess.TimeoutExpired):
         return False
-    return "hover-no-scroll" in r.stdout
+    # -custom-exit (tlacitka razeni) je ve stejnem baliku rofi z [luxos] (packages/rofi)
+    return "hover-no-scroll" in r.stdout and "custom-exit" in r.stdout
 
 
 def xdo(*args):
@@ -54,7 +57,7 @@ class TestDesktopEntry(unittest.TestCase):
 
 @unittest.skipUnless(UNDER_XVFB, "GUI only under xvfb-run (never on a real display)")
 @unittest.skipUnless(shutil.which("xdotool"), "needs xdotool")
-@unittest.skipUnless(rofi_has_hover_no_scroll(), "needs rofi with -hover-no-scroll (packages/rofi, LUXOS_ROFI)")
+@unittest.skipUnless(rofi_has_hover_no_scroll(), "needs rofi with -hover-no-scroll -custom-exit (packages/rofi, LUXOS_ROFI)")
 class TestLaunchpadMouse(unittest.TestCase):
     def setUp(self):
         self.t = tempfile.mkdtemp(prefix="luxos-launchpad-test-")
@@ -90,7 +93,9 @@ class TestLaunchpadMouse(unittest.TestCase):
         self.env = dict(os.environ, HOME=home, XDG_DATA_HOME=os.path.join(home, ".local", "share"),
                         XDG_DATA_DIRS=os.path.join(self.t, "sys"), XDG_CONFIG_HOME=os.path.join(home, ".config"),
                         XDG_CACHE_HOME=os.path.join(self.t, "cache"), XDG_CURRENT_DESKTOP="XFCE",
-                        PATH=fake + ":" + os.environ.get("PATH", "/usr/bin"))
+                        PATH=fake + ":" + os.environ.get("PATH", "/usr/bin"),
+                        XDG_RUNTIME_DIR=os.path.join(self.t, "run"), LUXOS_LAUNCHPAD_PY=PY)
+        os.makedirs(self.env["XDG_RUNTIME_DIR"], mode=0o700)
         self.env.pop("LC_ALL", None)
         self.proc = None
 
@@ -112,8 +117,11 @@ class TestLaunchpadMouse(unittest.TestCase):
         g = dict(ln.split("=", 1) for ln in out.split() if "=" in ln)
         x, y, w, h = (int(g[k]) for k in ("X", "Y", "WIDTH", "HEIGHT"))
         time.sleep(0.4)
-        # mrizka podle luxos-launchpad.rasi: okraj 22/26 px, vyhledavani ~42 px + mezera 18 px
-        self.grid = (x + 26, y + 22 + 42 + 18, w - 52, h - 22 - 42 - 18 - 18)
+        # mrizka podle luxos-launchpad.rasi: okraj 22/26 px, vyhledavani ~42 px + mezera 18 px,
+        # dole mezera 18 px + radek razeni ~24 px
+        self.grid = (x + 26, y + 22 + 42 + 18, w - 52, h - 22 - 42 - 18 - 18 - 24 - 18)
+        self.sortbar_y = y + h - 18 - 12
+        self.win = (x, y, w, h)
         self.search = (x + w // 2, y + 40)
 
     def cell(self, row, col):
@@ -237,12 +245,158 @@ class TestLaunchpadMouse(unittest.TestCase):
         self.key("BackSpace")
         self.assertEqual(self.enter(), ["App00"])
 
+    def wait_rofi_restart(self, old):
+        """Po kliknuti na razeni rofi skonci a Launchpad ho hned otevre znovu (jine okno)."""
+        for _ in range(60):
+            ids = xdo("search", "--class", "rofi").split()
+            if ids and ids != old:
+                break
+            time.sleep(0.1)
+        time.sleep(0.5)
+
+    def test_sort_keys_switch_and_remember(self):
+        """Alt+2 (= tlacitko Naposledy pouzite) prepne razeni, rofi se znovu otevre a volba se pamatuje."""
+        conf = os.path.join(self.env["XDG_CONFIG_HOME"], "luxos", "launchpad-sort")
+        self.open()
+        old = xdo("search", "--class", "rofi").split()
+        xdo("key", "alt+2")
+        self.wait_rofi_restart(old)
+        with open(conf) as f:
+            self.assertEqual(f.read().strip(), "recent")
+        self.assertIsNone(self.proc.poll())     # Launchpad zustal otevreny
+        self.hover(0, 0)
+        self.assertEqual(self.enter(), ["App00"])
+
+    def test_usage_recorded_and_recent_first(self):
+        """Spustena aplikace se zapise do launchpad-usage.json a v Naposledy pouzite je prvni."""
+        os.makedirs(os.path.join(self.env["XDG_CONFIG_HOME"], "luxos"))
+        with open(os.path.join(self.env["XDG_CONFIG_HOME"], "luxos", "launchpad-sort"), "w") as f:
+            f.write("recent\n")
+        self.open()
+        self.hover(2, 2)
+        self.assertEqual(self.enter(), ["App16"])
+        usage = os.path.join(self.env["XDG_DATA_HOME"], "luxos", "launchpad-usage.json")
+        for _ in range(50):
+            if os.path.exists(usage):
+                break
+            time.sleep(0.1)
+        with open(usage) as f:
+            data = json.load(f)
+        self.assertEqual(list(data["apps"]), ["app16.desktop"])
+        self.assertEqual(data["apps"]["app16.desktop"]["count"], 1)
+        time.sleep(0.5)
+        os.unlink(self.launched)
+        self.open()
+        self.assertEqual(self.enter(), ["App16"])
+
     def test_launchpad_not_in_grid(self):
         """Launchpad se v mrizce nenajde (ani hledanim), v mrizce je jen 60 aplikaci."""
         self.open()
         xdo("type", "Launchpad")
         time.sleep(0.4)
         self.assertNotIn("Launchpad", self.enter())
+
+
+class TestSortOrder(unittest.TestCase):
+    """luxos_launchpad.py: poradi pro rofi a pocitani spusteni (bez GUI)."""
+
+    def setUp(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("luxos_launchpad", PY)
+        self.lp = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.lp)
+        self.t = tempfile.mkdtemp(prefix="luxos-launchpad-order-")
+        self.addCleanup(shutil.rmtree, self.t, True)
+        self.old_env = dict(os.environ)
+        self.addCleanup(lambda: (os.environ.clear(), os.environ.update(self.old_env)))
+        os.environ.update(XDG_DATA_HOME=os.path.join(self.t, "data"), XDG_CACHE_HOME=os.path.join(self.t, "cache"),
+                          XDG_DATA_DIRS=os.path.join(self.t, "sys"), LANG="cs_CZ.UTF-8")
+
+    def app(self, did, name, cats, root="sys", extra=""):
+        d = os.path.join(self.t, root, "applications")
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, did), "w") as f:
+            f.write("[Desktop Entry]\nType=Application\nName=%s\nCategories=%s\nExec=true\n%s"
+                    "[Desktop Action new]\nName=Zzz\n" % (name, cats, extra))
+
+    def hist(self, path):
+        with open(path) as f:
+            return [ln.split(" ", 1)[1].strip() for ln in f]
+
+    def test_modes(self):
+        usage = {"a.desktop": {"count": 1, "last": 300}, "b.desktop": {"count": 5, "last": 100},
+                 "c.desktop": {"count": 5, "last": 200}, "d.desktop": {"count": 0, "last": 0}}
+        self.assertEqual(self.lp.order_ids("recent", usage), ["a.desktop", "c.desktop", "b.desktop"])
+        self.assertEqual(self.lp.order_ids("most", usage), ["c.desktop", "b.desktop", "a.desktop"])
+        self.assertEqual(self.lp.order_ids("alpha", usage), [])
+
+    def test_history_text_descending_with_sentinel(self):
+        text = self.lp.history_text(["x.desktop", "y.desktop"])
+        self.assertEqual(text, "2 x.desktop\n1 y.desktop\n0 luxos-launchpad-sentinel\n")
+
+    def test_category_order_localized(self):
+        self.app("gimp.desktop", "GIMP", "Graphics;2DGraphics;")
+        self.app("firefox.desktop", "Firefox", "Network;WebBrowser;")
+        self.app("calc.desktop", "Calculator", "Utility;", extra="Name[cs]=Kalkulacka\n")
+        self.app("zed.desktop", "Zed", "")
+        self.app("abiword.desktop", "AbiWord", "Office;")
+        self.app("evolution.desktop", "Evolution", "Office;Network;")
+        os.makedirs(os.path.join(self.t, "sys", "applications", "kde"))
+        with open(os.path.join(self.t, "sys", "applications", "kde", "kate.desktop"), "w") as f:
+            f.write("[Desktop Entry]\nName=Kate\nCategories=Utility;TextEditor;\n")
+        ids = self.lp.order_ids("category", {})
+        self.assertEqual(ids, ["evolution.desktop", "firefox.desktop", "abiword.desktop", "gimp.desktop",
+                               "calc.desktop", "kde-kate.desktop", "zed.desktop"])
+
+    def test_record_counts_launched_app(self):
+        before = os.path.join(self.t, "before")
+        after = os.path.join(self.t, "after")
+        with open(before, "w") as f:
+            f.write("2 b.desktop\n1 a.desktop\n0 luxos-launchpad-sentinel\n")
+        # rofi zapsal +1 u a.desktop a seradil podle poctu
+        with open(after, "w") as f:
+            f.write("2 a.desktop\n2 b.desktop\n0 luxos-launchpad-sentinel\n")
+        self.assertEqual(self.lp.record(before, after, now=1000), "a.desktop")
+        with open(after, "w") as f:
+            f.write("2 b.desktop\n1 a.desktop\n1 new.desktop\n0 luxos-launchpad-sentinel\n")
+        self.assertEqual(self.lp.record(before, after, now=2000), "new.desktop")
+        with open(self.lp.usage_path()) as f:
+            data = json.load(f)
+        self.assertEqual(data["apps"], {"a.desktop": {"count": 1, "last": 1000},
+                                        "new.desktop": {"count": 1, "last": 2000}})
+        self.assertEqual(self.hist(self.lp.order_path("recent")),
+                         ["new.desktop", "a.desktop", "luxos-launchpad-sentinel"])
+        # nic nespusteno (Esc, dotaz LuxAI): beze zmeny
+        self.assertIsNone(self.lp.record(before, before))
+
+    def test_usage_file_has_only_ids_counts_times(self):
+        before = os.path.join(self.t, "before")
+        with open(before, "w") as f:
+            f.write("0 luxos-launchpad-sentinel\n")
+        after = os.path.join(self.t, "after")
+        with open(after, "w") as f:
+            f.write("1 org.gnome.Calculator.desktop\n0 luxos-launchpad-sentinel\n")
+        self.lp.record(before, after, now=5)
+        with open(self.lp.usage_path()) as f:
+            data = json.load(f)
+        self.assertEqual(set(data), {"version", "apps"})
+        self.assertEqual(set(data["apps"]["org.gnome.Calculator.desktop"]), {"count", "last"})
+
+    def test_first_run_imports_rofi_history(self):
+        os.makedirs(os.path.join(self.t, "cache"))
+        with open(os.path.join(self.t, "cache", "rofi3.druncache"), "w") as f:
+            f.write("7 firefox.desktop\n2 gimp.desktop\n")
+        self.assertEqual(self.lp.order_ids("most", self.lp.load_usage()), ["firefox.desktop", "gimp.desktop"])
+
+    def test_cli_order_alpha_and_bad_mode(self):
+        out = os.path.join(self.t, "o", "h")
+        self.assertEqual(self.lp.main(["x", "order", "alpha", out]), 0)
+        self.assertEqual(self.hist(out), ["luxos-launchpad-sentinel"])
+        self.assertEqual(self.lp.main(["x", "order", "bogus", out]), 0)     # neznamy -> vychozi
+        import contextlib
+        import io
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(self.lp.main(["x"]), 2)
 
 
 if __name__ == "__main__":

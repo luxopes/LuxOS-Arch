@@ -229,7 +229,8 @@ class Hub(unittest.TestCase):
                "LUXOS_DRIVERS_HELPER": self.drivers_helper, "LUXOS_CARE_ROOT": os.path.join(self.home, "root"),
                "LUXOS_CARE_DELAY": "1", "LUXOS_DRIVERS_DELAY": "1", "LUXOS_DRM_DIR": os.path.join(self.home, "drm"),
                "LUXOS_MOUNTINFO": os.path.join(self.home, "mountinfo"), "GTK_THEME": "Adwaita:dark",
-               "LUXOS_HUB_NO_AUTOHIDE": "1"}      # pod Xvfb bez spravce oken by se okno hned zavrelo ztratou fokusu
+               "LUXOS_HUB_NO_AUTOHIDE": "1",
+               "LUXOS_AUDIO_HELPER": os.path.join(self.home, "no-audio-helper")}   # zvuk jen v test_audio_*      # pod Xvfb bez spravce oken by se okno hned zavrelo ztratou fokusu
         if "XAUTHORITY" in os.environ:
             env["XAUTHORITY"] = os.environ["XAUTHORITY"]
         env.update(extra)
@@ -712,6 +713,31 @@ class Hub(unittest.TestCase):
         self.assertTrue(self.wait_for(lambda: len(notes.calls) > before, 8))
         self.assertEqual(notes.calls[-1][1][3], translation("Updates are available"))
 
+
+    # ---- zvuk: automaticke prepnuti vystupu ------------------------------------------------------------
+    def test_audio_switch_runs_helper_on_card_events(self):
+        """pactl subscribe: zmena karty (HDMI monitoru) spusti pomocny program, zmena hlasitosti ne."""
+        fake = os.path.join(self.home, "audio-bin")
+        os.makedirs(fake)
+        with open(os.path.join(fake, "pactl"), "w") as f:
+            f.write('#!/bin/sh\n[ "$1" = subscribe ] || exit 0\n'
+                    'echo "subscribe $LC_ALL" >>"$FAKE_LOG"\n'
+                    'sleep 1\necho "Event \'change\' on sink #5"\nsleep 1.5\n'
+                    'echo "Event \'change\' on card #47"\necho "Event \'change\' on card #47"\n'
+                    'echo "Event \'new\' on sink #80"\nexec sleep 30\n')
+        os.chmod(os.path.join(fake, "pactl"), 0o755)
+        helper = os.path.join(self.home, "audio_helper.py")
+        with open(helper, "w") as f:
+            f.write('import os, sys\nopen(os.environ["FAKE_LOG"], "a").write("audio-" + sys.argv[1] + "\\n")\n')
+        self.start_hub(PATH=fake + ":" + self.fake + ":/usr/bin:/bin", LUXOS_AUDIO_HELPER=helper)
+        checks = lambda: [c for c in self.calls() if c == "audio-check"]
+        self.assertTrue(self.wait_for(lambda: "subscribe C" in self.calls(), 5), self.calls())
+        self.assertTrue(self.wait_for(lambda: len(checks()) >= 1, 5), self.calls())   # stav po prihlaseni
+        time.sleep(1.2)                                  # zmena hlasitosti (sink #5) nic nespusti
+        self.assertEqual(len(checks()), 1, self.calls())
+        self.assertTrue(self.wait_for(lambda: len(checks()) == 2, 5), self.calls())   # davka udalosti -> jedna kontrola
+        time.sleep(1.0)
+        self.assertEqual(len(checks()), 2, self.calls())
 
     # ---- zmena casu (letni/zimni) ----------------------------------------------------------------------
     def time_change_hub(self, tz, local, **extra):
