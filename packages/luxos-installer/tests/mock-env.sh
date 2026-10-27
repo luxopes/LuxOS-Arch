@@ -8,6 +8,8 @@
 mock_init() {  # mock_init "vda:64G" "sda:500G" ...
     MOCK=$(mktemp -d "${TMPDIR:-/tmp}/luxos-mock.XXXXXX")
     mkdir -p "$MOCK"/{disks,fs,luks,open,lv,vg,keys}
+    # Kontrola "jmeno uz pouziva otevreny svazek" bez /dev/mapper skutecneho pocitace (sifrovany cryptroot vyvojare)
+    export LY_MAPPER_DIR=$MOCK/open
     : >"$MOCK/cmds"
     local d name size
     for d in "$@"; do
