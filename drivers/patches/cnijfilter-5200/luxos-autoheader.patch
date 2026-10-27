@@ -1,0 +1,13 @@
+# LuxOS: config.h.in z AUR zaplat ma starou hlavicku -> autoheader ho nepregeneruje (chybi PACKAGE/PROG_PATH)
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -55,6 +55,9 @@
+ 	patch -p1 -i ${srcdir}/fix_png.patch || return 1
+ 	patch -p1 -i ${srcdir}/fix_ppd_mg5200.patch || return 1
+ 	patch -p1 -i ${srcdir}/fix_configures.patch || return 1
++	# LuxOS: autoheader (autoconf 2.72+) neprepise config.h.in, jehoz 1. radek nevypada jako od nej
++	# ("Generated automatically from") -> v config.h chybi PACKAGE, PROG_PATH ...; oprava jen hlavicky
++	find . -name config.h.in -exec sed -i '1s/ Generated automatically from / Generated from /' {} +
+ 
+ 	## Compile model specific stuff
+ 	# ppd file

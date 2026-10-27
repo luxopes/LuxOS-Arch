@@ -653,15 +653,6 @@
   ],
   "rules": 4
  },
- "brother-mfc7320-lpr": {
-  "checked": "2026-10-24",
-  "commit": "196248ac6802f8f14fe95e578b9626f612b47624",
-  "problems": [
-   ".install line 7: writes outside driver directories: /usr/lib32/libbrcomplpr2.so",
-   ".install line 20: writes outside driver directories: /usr/lib32/libbrcomplpr2.so"
-  ],
-  "rules": 4
- },
  "brother-mfc8950dw": {
   "checked": "2026-10-24",
   "commit": "7d6d3967a715620e5455ffb7f33a77296b9c82f6",
@@ -826,14 +817,6 @@
    "line 139: command outside functions: case \"${_opt_use_other}\" in",
    "line 170: command substitution outside functions (runs when the PKGBUILD is read)",
    "line 190: command outside functions: if [ \"${_inst_lb}\" -ne 0 ] && [ \"${_opt_debug_cnpkmoduleufr2}\" -ne 0 ]; then"
-  ],
-  "rules": 4
- },
- "cnijfilter-common": {
-  "checked": "2026-10-24",
-  "commit": "3f8ebdae3ae887e30a6e8857533f0e999ebdd8da",
-  "problems": [
-   ".install line 17: writes to a path that cannot be checked: /usr/lib32/${LIBS}.so"
   ],
   "rules": 4
  },
