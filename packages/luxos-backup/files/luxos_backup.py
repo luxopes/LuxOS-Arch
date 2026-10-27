@@ -400,24 +400,30 @@ PAUSE_TEXT = {
 
 
 # ---- upozorneni ------------------------------------------------------------------
+NO_ANSWER = "no-answer"
+
+
 def notify(title, body, critical=False, action=None):
     """notify-send; chyby jsou trvale (critical) a zustanou v historii oznameni.
-    action=(id, text): ceka na kliknuti a vrati id (jinak None)."""
+    action=(id, text): oznameni zustane, dokud ho uzivatel nezavre (-t 0), a vrati id tlacitka,
+    None = zavrel ho bez volby, NO_ANSWER = bez odpovedi (10 min, notify-send chybi) - to neni odmitnuti."""
     if os.environ.get("LUXOS_BACKUP_NO_NOTIFY") == "1":
         return None
     cmd = ["notify-send", "-a", _("Backups"), "-i", NOTIFY_ICON]
     if critical:
         cmd += ["-u", "critical", "-h", "boolean:x-luxos-keep:true"]
     if action:
-        cmd += ["-A", f"{action[0]}={action[1]}", "-w"]
+        cmd += ["-t", "0", "-A", f"{action[0]}={action[1]}", "-w"]
     cmd += [title, body]
     try:
         if action:
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            if r.returncode != 0:
+                return NO_ANSWER
             return r.stdout.strip() or None
         subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     except (OSError, subprocess.TimeoutExpired):
-        pass
+        return NO_ANSWER if action else None
     return None
 
 
@@ -1685,6 +1691,8 @@ def plugged(cfg, device):
     if answer == "use":
         subprocess.Popen(["luxos-backup-gui", "--add", dev["path"]], start_new_session=True)
         return "offered"
+    if answer == NO_ANSWER:
+        return "offered"            # nevidel/nestihl - nabidnout znovu pri dalsim pripojeni
     cfg = load_config()
     cfg.setdefault("declined", []).append(key)
     save_config(cfg)
