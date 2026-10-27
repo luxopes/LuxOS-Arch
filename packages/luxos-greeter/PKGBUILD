@@ -20,4 +20,6 @@ package() {
     install -Dm644 "$f/luxos-greeter.conf" "$pkgdir/etc/lightdm/luxos-greeter.conf"
     # Vybira greeter (prepisuje greeter-session z 50-luxos.conf balicku luxos-desktop)
     install -Dm644 "$f/60-luxos-greeter.conf" "$pkgdir/etc/lightdm/lightdm.conf.d/60-luxos-greeter.conf"
+    # Relace uzivatele musi projit /var/lib/lightdm-data ke snimku z greeteru (prechod bez cerne)
+    install -Dm644 "$f/luxos-greeter.tmpfiles" "$pkgdir/usr/lib/tmpfiles.d/luxos-greeter.conf"
 }
