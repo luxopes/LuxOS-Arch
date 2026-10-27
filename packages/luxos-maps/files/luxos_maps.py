@@ -469,8 +469,13 @@ def search(query, lang="en", near=None, cfg=None, limit=8, now=None):
     now = time.time() if now is None else now
     params = {"q": query, "format": "jsonv2", "limit": limit, "addressdetails": 1, "accept-language": lang}
     if near:
-        s, n, w, e = (round(v, 1) for v in near)
-        params["viewbox"] = f"{w},{n},{e},{s}"
+        # Na 0,1 stupne (mezipamet pro stejne okoli), ale ven: zaokrouhleni na nejblizsi hodnotu
+        # dalo pri velkem priblizeni nulovou plochu (jih == sever) a Nominatim vratil HTTP 400
+        s, n, w, e = near
+        s, w = (math.floor(v * 10 + 1e-9) / 10 for v in (s, w))
+        n, e = (math.ceil(v * 10 - 1e-9) / 10 for v in (n, e))
+        n, e = max(n, s + 0.1), max(e, w + 0.1)
+        params["viewbox"] = f"{w:.1f},{n:.1f},{e:.1f},{s:.1f}"
     key = "s|" + urllib.parse.urlencode(sorted(params.items()))
     hit = _cached(key, now)
     if hit is not None:

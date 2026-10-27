@@ -636,6 +636,19 @@ class TestTransit(unittest.TestCase):
         self.assertEqual(lm.text_color("#7A0603"), "#FFFFFF")
 
 
+class TestSearchViewbox(unittest.TestCase):
+    def setUp(self):
+        clean_state()
+
+    def test_zoomed_in_viewbox_has_area(self):
+        # QA: velke priblizeni (Karlstejn, ~1 km) - zaokrouhleny viewbox mel nulovou plochu
+        # (jih == sever, zapad == vychod) a Nominatim vratil HTTP 400
+        lm.search("Beroun", "cs", near=(49.925, 49.94, 14.17, 14.20))
+        self.assertEqual(SERVER.requests[-1][1]["viewbox"], "14.1,50.0,14.2,49.9")
+        lm.search("Beroun", "cs", near=(49.96, 49.97, 14.10, 14.10))
+        self.assertEqual(SERVER.requests[-1][1]["viewbox"], "14.1,50.0,14.2,49.9")
+
+
 class TestNearby(unittest.TestCase):
     def setUp(self):
         clean_state()
