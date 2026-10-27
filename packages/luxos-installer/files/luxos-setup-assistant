@@ -102,7 +102,7 @@ class GreeterLogin:
         from gi.repository import LightDM
         self.L = LightDM
         self.g = LightDM.Greeter()
-        self.password, self.done = "", None
+        self.password, self.done, self.language = "", None, None
         self.g.connect("show-prompt", self._prompt)
         self.g.connect("authentication-complete", self._complete)
         try:
@@ -119,6 +119,13 @@ class GreeterLogin:
         if not self.g.get_is_authenticated():
             cb and cb(False)
             return
+        # Jazyk zvoleny v Pruvodci: LightDM bezi od startu s puvodnim jazykem (en_US) a relaci
+        # by ho predal - prvni prihlaseni by bylo anglicky, i kdyz system uz je cesky
+        if self.language:
+            try:
+                self.g.set_language(self.language)
+            except Exception:  # noqa: BLE001 - starsi LightDM: relace jen v puvodnim jazyce
+                pass
         for key in (SESSION, None):
             try:
                 self.g.start_session_sync(key)
@@ -128,8 +135,8 @@ class GreeterLogin:
                 continue
         cb and cb(False)
 
-    def login(self, user, password, done):
-        self.password, self.done = password, done
+    def login(self, user, password, done, language=None):
+        self.password, self.done, self.language = password, done, language
         if self.g.get_in_authentication():
             self.g.cancel_authentication()
         self.g.authenticate(user)
@@ -144,8 +151,8 @@ class DemoLogin:
     def __init__(self):
         self.calls = []
 
-    def login(self, user, _password, done):
-        self.calls.append(("login", user))
+    def login(self, user, _password, done, language=None):
+        self.calls.append(("login", user, language))
         print(f"DEMO: login {user}", flush=True)
         GLib.idle_add(lambda: done(os.environ.get("LUXOS_SETUP_DEMO_LOGIN_FAIL") != "1") and False)
 
@@ -623,7 +630,7 @@ class SetupAssistant(gui.Installer):
     def sign_in(self):
         self.finish_warn = ""
         self.render()
-        self.login_backend.login(self.s["username"], self.s["pw1"], self.logged_in)
+        self.login_backend.login(self.s["username"], self.s["pw1"], self.logged_in, self.s.get("locale"))
 
     def logged_in(self, ok):
         if ok:
