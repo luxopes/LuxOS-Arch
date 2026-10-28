@@ -15,7 +15,9 @@ vzorky z testu mobilni LuxAI (OpenStreetMapClientTest; plan doplneny o spojeni s
 spojem). overpass-public-transport.json je umely (Overpass byl pri tvorbe fixtures pretizeny, 502):
 schema odpovedi Overpass, nazvy, souradnice a nastupiste zastavek ze skutecne odpovedi Transitous.
 photon-*.json jsou odpovedi Photonu (photon.komoot.io, 2026-10-28, © OpenStreetMap contributors, ODbL)
-na "karlovo nam", "vodickova 30" a "mustek" u Prahy.
+na "karlovo nam", "vodickova 30" a "mustek" u Prahy. transitous-plan-long.json je umele dlouhe spojeni
+(Ex1 (IC 547) > M1 (Os 3751) > tramvaj 5, schema MOTIS) pro rozlozeni panelu, nav-tracks.json umele stopy
+telefonu (fix po 1-5 s, presnost 5-50 m, korelovana chyba GPS) podel route-foot/route-car s odbockami.
 Ostatni dlazdice kresli server sam (svetla mrizka s cislem dlazdice). Snimky okna do LUXOS_TEST_SHOTS.
 """
 import http.server
@@ -203,6 +205,8 @@ class FakeServer:
                         body = {"itineraries": [], "direct": []}
                     elif frm.startswith("50.087500"):
                         body = fixture("transitous-plan-sample.json")
+                    elif frm.startswith("50.083500"):
+                        body = fixture("transitous-plan-long.json")
                     else:
                         body = fixture("transitous-plan.json")
                     body["itineraries"] = body["itineraries"][:int(q.get("numItineraries", 5))]
@@ -1329,16 +1333,16 @@ class TestNavigation(unittest.TestCase):
         for i, a in enumerate((900, 911, 922)):
             st = nav.update(offset_fix(r, a, 0), i)
         self.assertFalse(st["off_route"])
-        # 150 m od trasy: 1. a 2. poloha jeste ne, 3. po sobe = mimo trasu a prepocet
-        res = [nav.update(offset_fix(r, 930 + i, -150), 3 + i) for i in range(3)]
+        # 150 m od trasy: 1. a 2. poloha jeste ne, 3. po sobe (a aspon 4 s) = mimo trasu a prepocet
+        res = [nav.update(offset_fix(r, 930 + i, -150), 3 + 2 * i) for i in range(3)]
         self.assertEqual([s["off_route"] for s in res], [False, False, True])
         self.assertEqual([s["reroute"] for s in res], [False, False, True])
         self.assertAlmostEqual(res[-1]["offset"], 150, delta=3)
         # dalsi polohy mimo trasu: novy prepocet az za NAV_REROUTE_GAP s
-        more = [nav.update(offset_fix(r, 935, -160), 6 + i) for i in range(10)]
+        more = [nav.update(offset_fix(r, 935, -160), 8 + i) for i in range(10)]
         self.assertTrue(all(s["off_route"] for s in more))
         self.assertFalse(any(s["reroute"] for s in more))
-        self.assertTrue(nav.update(offset_fix(r, 935, -160), 5 + lm.NAV_REROUTE_GAP)["reroute"])
+        self.assertTrue(nav.update(offset_fix(r, 935, -160), 7 + lm.NAV_REROUTE_GAP)["reroute"])
         # neuspesny prepocet: pauza NAV_REROUTE_BACKOFF s
         nav.reroute_failed(100)
         self.assertFalse(nav.update(offset_fix(r, 935, -160), 100 + lm.NAV_REROUTE_GAP)["reroute"])
@@ -1367,7 +1371,7 @@ class TestNavigation(unittest.TestCase):
         nav = lm.Navigator(r, reroute=False)
         nav.update(offset_fix(r, 500, 0), 0)
         for i in range(4):
-            st = nav.update(offset_fix(r, 505, 150), 1 + i)
+            st = nav.update(offset_fix(r, 505, 150), 1 + 2 * i)
         self.assertTrue(st["off_route"])
         self.assertFalse(st["reroute"])
 
@@ -1375,7 +1379,7 @@ class TestNavigation(unittest.TestCase):
         r = car_route()
         nav = lm.Navigator(r)
         for i in range(3):
-            st = nav.update(offset_fix(r, 1500, 200), i)
+            st = nav.update(offset_fix(r, 1500, 200), 2 * i)
         self.assertTrue(st["reroute"])
         new = lm.NavRoute.from_osrm(lm.parse_route(fixture("route-foot.json"), "walk"))
         nav.set_route(new)
@@ -1445,6 +1449,179 @@ class TestNavigation(unittest.TestCase):
         self.assertEqual(len(fixes), math.ceil(r.length / 100) + 1)
         self.assertEqual(fixes[0]["source"], "simulated")
         self.assertLess(lm.distance_m(fixes[-1]["lat"], fixes[-1]["lon"], *r.points[-1]), 0.5)
+
+    # ---- prepocet podle realisticke stopy telefonu (fixture nav-tracks.json) ----
+    def replay(self, name):
+        """Prehraje stopu z fixture; vraci (stopa, casy prepoctu, stav v case prvniho prepoctu)."""
+        tr = fixture("nav-tracks.json")[name]
+        r = lm.NavRoute.from_osrm(lm.parse_route(fixture("route-foot.json" if tr["mode"] == "walk"
+                                                         else "route-car.json"), tr["mode"]))
+        nav = lm.Navigator(r)
+        times, first = [], None
+        for t, lat, lon, acc, sp, b in tr["fixes"]:
+            fix = {"lat": lat, "lon": lon, "accuracy": acc, "speed": sp}
+            if b is not None:
+                fix["bearing"] = b
+            st = nav.update(fix, 1000.0 + t)
+            if st["reroute"]:
+                times.append(t)
+                first = first or dict(st, fix=fix)
+        return tr, times, first
+
+    def test_replay_reroute_when_leaving_route(self):
+        # fixy po 1-5 s, presnost 5-50 m: soubezna ulice 80 m, vedlejsi ulice, otoceni zpet po trase
+        limits = {"walk_parallel": 40, "walk_side_street": 60, "walk_opposite": 90,
+                  "car_parallel": 30, "car_side_street": 25, "car_opposite": 40}
+        for name, limit in limits.items():
+            tr, times, st = self.replay(name)
+            dev = tr["deviation_s"]
+            self.assertTrue(times, name)
+            self.assertGreater(times[0], dev, name)                       # ne pred odbockou
+            self.assertLess(times[0] - dev, limit, (name, times[0] - dev))
+            self.assertEqual(st["reason"], "wrong_way" if name.endswith("opposite") else "off_route", name)
+            # nejvys 1 prepocet za NAV_REROUTE_GAP s (prepocet se tu nepouzije, takze se opakuje)
+            self.assertTrue(all(b - a >= lm.NAV_REROUTE_GAP for a, b in zip(times, times[1:])), name)
+
+    def test_replay_gps_jitter_never_reroutes(self):
+        for name in ("walk_jitter", "walk_standing", "car_jitter", "car_standing"):
+            tr, times, _st = self.replay(name)
+            self.assertGreater(len(tr["fixes"]), 50)
+            self.assertEqual(times, [], name)
+
+    def test_reroute_from_current_position_then_on_route(self):
+        """Po prepoctu nova trasa zacina v miste posledni polohy: dalsi polohy jsou na ni, zadny dalsi prepocet."""
+        _tr, _times, st = self.replay("walk_side_street")
+        foot = lm.NavRoute.from_osrm(lm.parse_route(fixture("route-foot.json"), "walk"))
+        i = foot.steps[3]["along"]
+        new = lm.NavRoute([(st["fix"]["lat"], st["fix"]["lon"])] + [foot.point_at(i + k * 20)[:2] for k in range(30)],
+                          [], "walk")
+        nav = lm.Navigator(foot)
+        nav.set_route(new)
+        for k, along in enumerate(range(0, 400, 7)):
+            res = nav.update(offset_fix(new, along, 6 * math.sin(k)), 5000 + k * 5)
+            self.assertFalse(res["reroute"])
+            self.assertTrue(res["located"])
+        self.assertAlmostEqual(nav.along, 399, delta=8)
+
+    def test_wrong_way_on_route(self):
+        r = car_route()
+        nav = lm.Navigator(r)
+        t = 0
+        for a in range(600, 900, 10):                  # jede po trase
+            st = nav.update(dict(offset_fix(r, a, 0), speed=10.0, bearing=r.point_at(a)[2]), t)
+            t += 1
+        self.assertFalse(st["off_route"])
+        for a in range(890, 600, -10):                 # otoci se: na trase, ale proti smeru
+            st = nav.update(dict(offset_fix(r, a, 0), speed=10.0, bearing=(r.point_at(a)[2] + 180) % 360), t)
+            t += 1
+            if st["reroute"]:
+                break
+        self.assertTrue(st["reroute"])
+        self.assertEqual(st["reason"], "wrong_way")
+        self.assertGreater(a, 780)                     # do 110 m (11 s)
+        # stani na miste se sumem zpet po trase: ne
+        nav = lm.Navigator(r)
+        for k in range(200):
+            st = nav.update(dict(offset_fix(r, 1000 - 30 * (k % 2), 0, accuracy=20), speed=0.0), k)
+            self.assertFalse(st["reroute"])
+
+    def test_transit_missed_connection_and_vehicle_threshold(self):
+        it = lm.parse_itinerary(fixture("transitous-plan.json")["itineraries"][0])
+        tr = lm.transit_nav_route(it)
+        self.assertEqual(len(tr.legs), 3)
+        self.assertEqual((tr.legs[0]["start"], tr.legs[-1]["end"]), (0.0, tr.length))
+        dep = tr.legs[1]["departure"]
+        self.assertEqual(dep, lm.parse_iso(it["legs"][1]["departure"]).timestamp())
+        nav = lm.Navigator(tr)
+        start = {"lat": tr.points[0][0], "lon": tr.points[0][1], "accuracy": 5}
+        self.assertFalse(nav.update(start, dep - 60)["missed"])
+        self.assertFalse(nav.update(start, dep + lm.NAV_MISSED_S - 1)["missed"])
+        st = nav.update(start, dep + lm.NAV_MISSED_S + 1)
+        self.assertEqual((st["missed"], st["reroute"], st["reason"]), (True, True, "missed"))
+        self.assertFalse(nav.update(start, dep + lm.NAV_MISSED_S + 20)["reroute"])          # 1 plan / 60 s
+        self.assertTrue(nav.update(start, dep + lm.NAV_MISSED_S + 1 + lm.NAV_TRANSIT_REROUTE_GAP)["reroute"])
+        # ve vozidle: 100 m od linky (tvar linky je priblizny) neni mimo trasu, 200 m ano
+        nav = lm.Navigator(tr)
+        mid = (tr.legs[1]["start"] + tr.legs[1]["end"]) / 2
+        for k in range(5):
+            st = nav.update(offset_fix(tr, mid - 100 + k * 20, 0), dep + 60 + k)
+        self.assertFalse(st["missed"])                                  # nastoupil
+        for k in range(6):
+            st = nav.update(offset_fix(tr, mid + k * 10, 100), dep + 70 + 2 * k)
+        self.assertFalse(st["off_route"])
+        for k in range(6):
+            st = nav.update(offset_fix(tr, mid + k * 10, 200), dep + 90 + 2 * k)
+        self.assertTrue(st["off_route"])
+        # pesky usek: 50 m od trasy uz je mimo (prah chuze 35 m)
+        nav = lm.Navigator(tr)
+        w = tr.legs[2]["start"] + 100
+        nav.update(offset_fix(tr, w, 0), dep + 900)
+        for k in range(4):
+            st = nav.update(offset_fix(tr, w + k, 50), dep + 902 + 2 * k)
+        self.assertTrue(st["off_route"])
+
+    def test_nav_motion_smooth_between_fixes(self):
+        r = car_route()
+        mo = lm.NavMotion()
+        self.assertFalse(mo.active(0))
+        lat, lon, h = r.point_at(500)
+        mo.on_fix(10.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 10.0}, h, r, 500)
+        self.assertTrue(mo.active(10.0))
+        # dopocet po trase rychlosti 10 m/s, nejvys NAV_EXTRAPOLATE_S s, pak stoji (a animace konci)
+        p = mo.frame(10.5)
+        _s, along, off = r.project(p[0], p[1])
+        self.assertAlmostEqual(along, 505, delta=0.5)
+        self.assertLess(off, 0.1)
+        p = mo.frame(13.0)
+        self.assertAlmostEqual(r.project(p[0], p[1])[1], 500 + 10 * lm.NAV_EXTRAPOLATE_S, delta=0.5)
+        self.assertFalse(mo.active(13.0))
+        # dalsi poloha 3 m za dopoctenym mistem: zadny skok, rozdil dobehne plynule
+        lat2, lon2, h2 = r.point_at(518)
+        before = mo.frame(14.0)
+        mo.on_fix(14.0, {"lat": lat2, "lon": lon2, "accuracy": 5, "speed": 10.0}, h2, r, 518)
+        after = mo.frame(14.0)
+        self.assertLess(lm.distance_m(before[0], before[1], after[0], after[1]), 0.01)
+        steps = []
+        prev = after
+        for k in range(1, 46):                         # 1,5 s po 1/30 s
+            cur = mo.frame(14.0 + k / 30.0)
+            steps.append(lm.distance_m(prev[0], prev[1], cur[0], cur[1]))
+            prev = cur
+        self.assertLess(max(steps), 10.0 / 30 + 0.5)   # zadny snimek neposkoci o vic nez ~rychlost/30 + dorovnani
+        self.assertAlmostEqual(r.project(prev[0], prev[1])[1], 518 + 15, delta=1.0)
+        # stoji (rychlost 0): bez dopoctu, po dorovnani neaktivni
+        mo2 = lm.NavMotion()
+        mo2.on_fix(0.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 0.0}, 90.0)
+        self.assertFalse(mo2.active(0.01))
+        # otaceni nejkratsi cestou (350 -> 10 pres sever) a postupne
+        mo3 = lm.NavMotion()
+        mo3.on_fix(0.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 0.0}, 350.0)
+        mo3.on_fix(1.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 0.0}, 10.0)
+        hs = [mo3.heading(1.0 + k / 30.0) for k in range(60)]
+        self.assertTrue(all(lm.angle_diff(350.0, x) >= -0.01 and lm.angle_diff(x, 10.0) >= -0.01 for x in hs), hs)
+        self.assertAlmostEqual(lm.angle_diff(hs[-1], 10.0), 0.0, delta=0.5)
+        # skok (prvni poloha po prepoctu daleko): bez animace
+        far = r.point_at(2000)
+        mo.on_fix(20.0, {"lat": far[0], "lon": far[1], "accuracy": 5, "speed": 0.0}, far[2])
+        p = mo.frame(20.0)
+        self.assertLess(lm.distance_m(p[0], p[1], far[0], far[1]), 0.01)
+        # rychlost bez udaje telefonu: z poslednich poloh (a sum v ramci presnosti neni pohyb)
+        mo4 = lm.NavMotion()
+        mo4.on_fix(0.0, offset_fix(r, 100, 0, accuracy=5), None)
+        mo4.on_fix(1.0, offset_fix(r, 112, 0, accuracy=5), None)
+        self.assertAlmostEqual(mo4.speed, 12.0, delta=0.5)
+        mo4.on_fix(2.0, offset_fix(r, 113, 0, accuracy=30), None)
+        self.assertEqual(mo4.speed, 0.0)
+
+    def test_route_bearing_param(self):
+        clean_state()
+        a, b = {"lat": 50.0875, "lon": 14.4208}, {"lat": 50.0895, "lon": 14.3995}
+        lm.route(a, b, "car", bearing=271.6)
+        self.assertEqual(SERVER.last_q("/routed-car/")["bearings"], "272,60;")
+        n = SERVER.count("/routed-car/")
+        lm.route(a, b, "car")                                       # bez smeru: jiny dotaz
+        self.assertEqual(SERVER.count("/routed-car/"), n + 1)
+        self.assertNotIn("bearings", SERVER.last_q("/routed-car/"))
 
     def test_config_sidebar_and_nav_prefs(self):
         clean_state()
@@ -2219,6 +2396,89 @@ class TestWindow(unittest.TestCase):
         self.assertFalse(win.tracking)
         self.assertIsNone(win.phone_sub)
 
+    def overflow(self, page):
+        """Viditelne widgety stranky panelu, ktere presahuji jeji sirku (vodorovne preteceni)."""
+        width = page.get_allocated_width()
+        bad = []
+
+        def walk(w):
+            if not w.get_visible() or not w.get_mapped():
+                return
+            pos = w.translate_coordinates(page, 0, 0)
+            if pos and (pos[0] < -1 or pos[0] + w.get_allocated_width() > width + 1):
+                bad.append((type(w).__name__, pos[0], w.get_allocated_width(),
+                            w.get_text() if isinstance(w, self.Gtk.Label) else ""))
+            if isinstance(w, self.Gtk.Container):
+                for c in w.get_children():
+                    walk(c)
+        walk(page)
+        return bad
+
+    def test_long_connection_fits_sidebar(self):
+        """Dlouhe spojeni (Ex1 (IC 547) > M1 (Os 3751) > tramvaj, 7 useku): odznaky se zalamuji, nic nepretece
+        panel 280-560 px; stejne odjezdy a vysledky hledani."""
+        win = self.window((50.1, 15.1, 9), mode="transit")
+        win.directions_to({"name": "Fakultní nemocnice Hradec Králové", "lat": 50.1985, "lon": 15.802})
+        win.set_endpoint("from", {"name": "Praha hlavní nádraží", "lat": 50.0835, "lon": 14.434})
+        self.assertTrue(self.pump(lambda: len(win.itin_list.get_children()) == 2))
+        self.assertTrue(self.pump(lambda: len(win.legs_list.get_children()) == 7))
+        row0 = win.itin_list.get_row_at_index(0)
+        strip = [w for w in self.descendants(row0) if isinstance(w, self.app.BadgeStrip)]
+        self.assertEqual(len(strip), 1)
+        strip = strip[0]
+        self.assertEqual([c.text for c in strip.chips if not c.walk], ["Ex1 (IC 547)", "M1 (Os 3751)", "5"])
+        self.assertTrue(all(c.width <= self.app.BADGE_MAX for c in strip.chips))
+        badges = [w for w in self.descendants(win.legs_list) if isinstance(w, self.app.LineBadge)]
+        self.assertEqual(len(badges), 7)
+        self.assertTrue(all(b.get_size_request()[0] <= self.app.LEG_BADGE_MAX for b in badges))
+        self.assertEqual(badges[1].get_tooltip_text(), "Ex1 (IC 547)")         # zkraceny, cely v tipu
+        page = win.stack.get_child_by_name("directions")
+        lines = []
+        for width in (lm.SIDEBAR_MIN, 360, lm.SIDEBAR_MAX):
+            win.paned.set_position(width)
+            self.settle(0.4)
+            self.assertEqual(win.stack.get_allocated_width(), width)
+            # nejmensi sirka obsahu panelu (vsechny stranky Gtk.Stack) se vejde do nejuzsiho panelu
+            self.assertLessEqual(win.stack.get_preferred_width()[0], lm.SIDEBAR_MIN)
+            self.assertEqual(self.overflow(page), [], width)
+            # 7 odznaku: na 280 px na vic radku, v sirsim panelu na mene radku
+            rows = {y for _x, y, _c in strip.place(strip.get_allocated_width())}
+            lines.append(len(rows))
+            self.assertEqual(strip.get_allocated_height(), max(rows) + self.app.BadgeChip.H)
+            self.assertTrue(self.pump(lambda: win.map.anim is None))
+            self.shot(win, "maps-long-connection-%d.png" % width)
+            if width == lm.SIDEBAR_MIN:              # podrobnosti spojeni (posunuto dolu)
+                adj = page.get_vadjustment()
+                adj.set_value(adj.get_upper())
+                self.shot(win, "maps-long-connection-%d-legs.png" % width)
+                adj.set_value(0)
+        self.assertGreater(lines[0], 2)
+        self.assertEqual(lines, sorted(lines, reverse=True))
+        self.assertLess(lines[-1], lines[0])
+        # odjezdy a vysledky hledani v nejuzsim panelu
+        win.paned.set_position(lm.SIDEBAR_MIN)
+        win.show_departures({"name": "Karlovo náměstí", "lat": 50.0759, "lon": 14.419612})
+        self.assertTrue(self.pump(lambda: len(win.dep_list.get_children()) == 20))
+        self.settle(0.4)
+        self.assertLessEqual(win.stack.get_preferred_width()[0], lm.SIDEBAR_MIN)
+        self.assertEqual(self.overflow(win.stack.get_child_by_name("departures")), [])
+        self.shot(win, "maps-departures-280.png")
+        win.departures_back()
+        win.search_entry.set_text("náměstí Praha")
+        win.search_entry.emit("activate")
+        self.assertTrue(self.pump(lambda: len(win.res_list.get_children()) == 3))
+        self.settle(0.4)
+        self.assertLessEqual(win.stack.get_preferred_width()[0], lm.SIDEBAR_MIN)
+        self.assertEqual(self.overflow(win.stack.get_child_by_name("results")), [])
+        self.shot(win, "maps-results-280.png")
+
+    def descendants(self, w):
+        out = [w]
+        if isinstance(w, self.Gtk.Container):
+            for c in w.get_children():
+                out += self.descendants(c)
+        return out
+
     def test_sidebar_resize_persisted(self):
         win = self.window((50.0875, 14.4208, 14))
         self.assertTrue(self.pump(lambda: win.paned.get_position() == self.app.SIDEBAR_DEFAULT))
@@ -2331,18 +2591,36 @@ class TestWindow(unittest.TestCase):
         self.assertIs(win.steps_list.get_selected_row(), win.steps_list.get_row_at_index(2))
         self.assertIn(self.app._("Arrival %s") % time.strftime("%H:%M", time.localtime(st["eta"])),
                       win.nav_more.get_text())
-        # mapa po smeru jizdy, poloha ve spodni casti, sipka misto bodu
-        self.assertAlmostEqual(win.map.rotation, -math.radians(st["heading"]), places=6)
+        # mapa po smeru jizdy, poloha ve spodni casti, sipka misto bodu; po animaci (dopocet nejvys 1,5 s)
+        # sipka stoji na trase kousek pred posledni polohou, otoceni dobehlo ke smeru trasy
+        self.assertTrue(self.pump(lambda: win.nav_anim_id is None, 4))
         self.assertIsNotNone(win.map.nav_heading)
-        x, y = win.map.latlon_to_screen(win.nav_fix["lat"], win.nav_fix["lon"])
+        self.assertAlmostEqual(win.map.rotation, -math.radians(win.map.nav_heading), places=6)
+        self.assertLess(abs(lm.angle_diff(win.map.nav_heading, st["heading"])), 30)
+        me = win.map.me
+        self.assertLess(lm.distance_m(me["lat"], me["lon"], win.nav_fix["lat"], win.nav_fix["lon"]),
+                        11.0 * lm.NAV_EXTRAPOLATE_S + 1)
+        self.assertLess(route.project(me["lat"], me["lon"])[2], 1.0)            # prichycena k trase
+        x, y = win.map.latlon_to_screen(me["lat"], me["lon"])
         self.assertAlmostEqual(x, win.map.get_allocated_width() / 2, delta=1)
         self.assertGreater(y, win.map.get_allocated_height() * 0.6)
         lat, lon = win.map.screen_to_latlon(x, y)                   # prevody s otocenim jsou inverzni
-        self.assertAlmostEqual(lat, win.nav_fix["lat"], places=7)
-        self.assertAlmostEqual(lon, win.nav_fix["lon"], places=7)
+        self.assertAlmostEqual(lat, me["lat"], places=7)
+        self.assertAlmostEqual(lon, me["lon"], places=7)
         self.assertEqual(win.map.zoom, self.app.NAV_ZOOM["car"])
         self.assertTrue(self.pump(self.tiles_loaded(win)))
         self.shot(win, "maps-nav-heading-up.png")
+        # mezi polohami se sipka i mapa posouvaji plynule (snimky), po dopoctu animace stoji (zadna prace)
+        seen = set()
+        fake.emit(self.phone(track[11]))
+        end = time.time() + 0.8
+        while time.time() < end:
+            while self.Gtk.events_pending():
+                self.Gtk.main_iteration_do(False)
+            seen.add((round(win.map.me["lat"], 7), round(win.map.me["lon"], 7), round(win.map.mx, 9)))
+            time.sleep(0.005)
+        self.assertGreater(len(seen), 6)
+        self.assertTrue(self.pump(lambda: win.nav_anim_id is None, 4))
         # nejvys 5 zpracovani za sekundu, i kdyz telefon posle polohy rychleji
         n0 = len(calls)
         for fix in track[11:21]:
@@ -2359,7 +2637,7 @@ class TestWindow(unittest.TestCase):
         self.assertTrue(self.pump(self.tiles_loaded(win)))
         self.shot(win, "maps-nav-north-up.png")
         win.nav_compass.clicked()
-        # mimo trasu: 3 polohy > 50 m -> prepocet trasy z aktualni polohy (jeden pozadavek)
+        # mimo trasu: 3 polohy > 50 m (aspon 4 s) -> prepocet trasy z aktualni polohy (jeden pozadavek)
         routed = SERVER.count("/routed-car/")
         off = []
         for i in range(5):
@@ -2367,15 +2645,16 @@ class TestWindow(unittest.TestCase):
             a = math.radians(head - 90)
             off.append({"lat": lat + 160 * math.cos(a) / 111195.0,
                         "lon": lon + 160 * math.sin(a) / (111195.0 * math.cos(math.radians(lat))), "accuracy": 6.0})
-        for fix in off:
+        for fix in off:                      # po 1 s (mimo trasu az po 3 polohach a aspon 4 s)
             fake.emit(self.phone(fix))
-            self.settle(0.25)
+            self.settle(1.0)
         self.assertTrue(self.pump(lambda: SERVER.count("/routed-car/") == routed + 1))
         self.assertTrue(self.pump(lambda: not win.nav_status.get_visible()))   # nova trasa prisla
         self.settle(0.5)
         self.assertEqual(SERVER.count("/routed-car/"), routed + 1)              # omezeno: 1 prepocet / 15 s
         last = [p for p, _q in SERVER.requests if p.startswith("/routed-car/")][-1]
-        self.assertTrue(last.endswith("%.6f,%.6f;14.399500,50.089500" % (off[2]["lon"], off[2]["lat"])), last)
+        self.assertTrue(any(last.endswith("%.6f,%.6f;14.399500,50.089500" % (f["lon"], f["lat"])) for f in off[3:]),
+                        last)
         # zpet na trasu a do cile
         for fix in track[90::12] + [track[-1]]:
             fake.emit(self.phone(fix))
@@ -2432,8 +2711,14 @@ class TestWindow(unittest.TestCase):
         self.assertTrue(self.pump(lambda: win.transit_res and win.nav_btn.get_visible()))
         win.nav_btn.clicked()
         self.assertIsNotNone(win.nav)
-        self.assertFalse(win.nav.reroute_enabled)
+        self.assertTrue(win.nav.reroute_enabled)                     # MHD se taky prepocita
         route = win.nav.route
+        self.assertEqual([lg["transit"] for lg in route.legs], [False, True, False])
+        dep = route.legs[1]["departure"]
+        # hodiny navigace podle jizdniho radu fixture (5 min pred odjezdem tramvaje)
+        clock = [dep - 300]
+        update = win.nav.update
+        win.nav.update = lambda fix, now=None: update(fix, clock[0])
         fake.emit(self.phone({"lat": route.points[0][0], "lon": route.points[0][1], "accuracy": 5.0}))
         self.assertTrue(self.pump(lambda: win.nav_fix is not None))
         # na ceste k zastavce: dalsi pokyn je nastup (vzdalenost k zastavce), potom vystup
@@ -2443,24 +2728,58 @@ class TestWindow(unittest.TestCase):
         board = route.steps[1]
         fake.emit(self.phone({"lat": board["lat"], "lon": board["lon"], "accuracy": 5.0}))
         self.settle(0.3)
+        clock[0] = dep + 60
         along = route.steps[1]["along"] + 40
         lat, lon, _h = route.point_at(along)
         fake.emit(self.phone({"lat": lat, "lon": lon, "accuracy": 5.0}))
         self.assertTrue(self.pump(lambda: win.nav_state["next"] == 2))
+        self.assertFalse(win.nav_state["missed"])                    # nastoupil: spoj nezmeskal
         self.assertTrue(win.nav_instr.get_text().startswith(self.app._("Get off at %s").split("%s")[0]))
         self.assertIs(win.legs_list.get_selected_row(), win.legs_list.get_row_at_index(1))
         self.assertTrue(self.pump(self.tiles_loaded(win)))
         self.shot(win, "maps-nav-transit.png")
-        # mimo trasu: bez prepoctu (MHD), jen upozorneni
+        # mimo trasu (jina tramvaj, 330 m od linky): nove spojeni z aktualni polohy, odjezd ted
         plans = SERVER.count("/transitous/plan")
+        off = {"lat": lat + 0.003, "lon": lon + 0.003, "accuracy": 5.0, "speed": 8.0}
         for i in range(4):
-            fake.emit(self.phone({"lat": lat + 0.003, "lon": lon + 0.003, "accuracy": 5.0}))
+            clock[0] += 2
+            fake.emit(self.phone(off))
             self.settle(0.25)
-        self.assertTrue(self.pump(lambda: win.nav_status.get_text() == self.app._("You are off the route.")))
-        self.assertEqual(SERVER.count("/transitous/plan"), plans)
+        self.assertTrue(self.pump(lambda: SERVER.count("/transitous/plan") == plans + 1))
+        q = SERVER.last_q("/transitous/plan")
+        self.assertEqual(q["fromPlace"], "%.6f,%.6f" % (off["lat"], off["lon"]))
+        self.assertEqual(q["toPlace"], "50.090500,14.400500")
+        self.assertEqual(q["arriveBy"], "false")
+        self.assertNotIn("time", q)
+        self.assertTrue(self.pump(lambda: win.nav.route is not route))  # nove spojeni nahradilo stare
+        self.assertTrue(self.pump(lambda: not win.nav_status.get_visible()
+                                  or win.nav_status.get_text() == self.app._("Finding a new connection…")))
+        self.assertEqual(win.itin_idx, 0)
+        self.assertEqual(len(win.legs_list.get_children()), 3)
+        self.assertEqual(win.map.route["mode"], "transit")
+        # dalsi polohy mimo trasu: nejvys 1 plan za NAV_TRANSIT_REROUTE_GAP s
+        for i in range(4):
+            clock[0] += 2
+            fake.emit(self.phone(off))
+            self.settle(0.25)
+        self.assertEqual(SERVER.count("/transitous/plan"), plans + 1)
+        # zmeskany spoj: uzivatel stoji na zacatku, tramvaj odjela pred 2 min -> nove spojeni, "prijezd do"
+        # zustava (puvodni hledani "Arrive By 19:45")
+        win.transit_query = (lm.parse_user_time("19:45"), True)
+        route = win.nav.route
+        clock[0] = route.legs[1]["departure"] + lm.NAV_MISSED_S + 60
+        start = {"lat": route.points[0][0], "lon": route.points[0][1], "accuracy": 5.0}
+        for i in range(2):
+            clock[0] += 2
+            fake.emit(self.phone(start))
+            self.settle(0.25)
+        self.assertTrue(self.pump(lambda: SERVER.count("/transitous/plan") == plans + 2))
+        q = SERVER.last_q("/transitous/plan")
+        self.assertEqual(q["arriveBy"], "true")
+        self.assertIn("time", q)
+        self.assertEqual(q["fromPlace"], "%.6f,%.6f" % (start["lat"], start["lon"]))
         win.end_navigation()
         self.assertTrue(self.pump(lambda: not fake.inhibits))
-
 
 if __name__ == "__main__":
     unittest.main()
