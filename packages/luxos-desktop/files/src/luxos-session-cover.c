@@ -183,7 +183,7 @@ static int logout_main(void)
 
 #define LOGIN_FADE_MS 280
 #define LOGIN_FADE_STEPS 14
-#define LOGIN_FRAME_MS 33        /* kolecko ~30 snimku/s, jen male misto na obrazovce */
+#define LOGIN_FRAME_MS 16        /* kolecko ~60 snimku/s, jen male misto na obrazovce */
 #define LOGIN_SCAN_MS 90         /* jak casto kontrolovat, zda je plocha vykreslena */
 #define LOGIN_NOCM_SETTLE_MS 400 /* bez kompozitoru okna nejdou precist: plocha a lista namapovane + chvile */
 #define LOGIN_WAIT_CM_MS 1500    /* bez kompozitoru jeste chvili pockat, zda nezacne (rozplynuti) */
@@ -588,15 +588,14 @@ static void spinner_draw(Spinner *s, Window target, Pixmap bg, double t, double 
     if (alpha > 0) {
         cairo_t *cr = cairo_create(s->cs);
         double c = s->size / 2.0, r = 14 * s->u, lw = 3 * s->u;
-        double a0 = t * 2 * M_PI / 0.9;
-        double len = M_PI * (0.45 + 0.35 * (0.5 + 0.5 * sin(t * 2 * M_PI / 1.8)));
+        /* rovnomerne otaceni (1 otacka za 1,2 s) se stalou delkou oblouku: pri vytizenem procesoru po
+         * prihlaseni (vynechane snimky) promenna delka oblouku a rychla otacka vypadaly jako trhani */
+        double a0 = t * 2 * M_PI / 1.2;
+        double len = M_PI * 0.6;
         cairo_set_line_width(cr, lw);
         cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
         cairo_arc(cr, c, c, r, 0, 2 * M_PI);
         cairo_set_source_rgba(cr, 1, 1, 1, 0.22 * alpha);
-        cairo_stroke(cr);
-        cairo_arc(cr, c, c + 0.8 * s->u, r, a0, a0 + len);            /* jemny stin */
-        cairo_set_source_rgba(cr, 0, 0, 0, 0.16 * alpha);
         cairo_stroke(cr);
         cairo_arc(cr, c, c, r, a0, a0 + len);
         cairo_set_source_rgba(cr, 1, 1, 1, 0.95 * alpha);
@@ -662,9 +661,10 @@ static int login_main(void)
     if (!dpy)
         return 1;
     login_debug = getenv("LUXOS_COVER_DEBUG") != NULL;
-    /* Prechod nikdy nesmi brat procesor startujici relaci */
+    /* Mirne nizsi priorita: relace ma prednost, kolecko (male misto, 60 snimku/s) ale nesmi vynechavat
+     * snimky tolik, aby se trhalo */
     errno = 0;
-    if (nice(5) == -1 && errno != 0)
+    if (nice(2) == -1 && errno != 0)
         dbg(0, "nice failed");
     XSetErrorHandler(ignore_errors);
     int scr = DefaultScreen(dpy);
