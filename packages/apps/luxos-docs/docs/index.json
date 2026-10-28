@@ -427,6 +427,21 @@
           ]
         },
         {
+          "path": "luxos/login-lock.md",
+          "title": "Login, lock screen and screen saver",
+          "summary": "LuxOS login screen (greeter), login transition with spinner, lock screen and unlock dialog, screen savers including LuxOS wallpapers with a clock.",
+          "keywords": [
+            "login",
+            "greeter",
+            "lock",
+            "unlock",
+            "screensaver",
+            "screen saver",
+            "clock",
+            "lightdm"
+          ]
+        },
+        {
           "path": "luxos/keyboard.md",
           "title": "Keyboard Layouts and Keyboard Shortcuts",
           "summary": "Keyboard Layouts app (system-wide layouts, switching keys, localectl) and Keyboard Shortcuts app with the full list of default LuxOS shortcuts.",
