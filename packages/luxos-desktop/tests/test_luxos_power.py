@@ -693,3 +693,28 @@ class KeepAwakeTest(Bus):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def load_power():
+    os.environ.setdefault("NO_AT_BRIDGE", "1")
+    return load_program("luxos_power_test", os.path.join(BIN, "luxos-power"))
+
+
+class CleanHistory(unittest.TestCase):
+    """Graf baterie: zaznam "unknown" (0 % pri startu) neni vybiti, mezi zaznamy plati posledni hodnota."""
+
+    def test_unknown_and_steps(self):
+        m = load_power()
+        raw = [(1000, 98.0, 1), (1100, 100.0, 4), (5000, 0.0, 0), (5000, 100.0, 4)]
+        pts = m.clean_history(raw, "charge", {"Percentage": 100.0, "State": 4}, now=9000)
+        vals = [p[1] for p in pts if p]
+        self.assertNotIn(0.0, vals)                          # zadny skok na 0 %
+        self.assertIn(None, pts)                             # start pocitace prerusi caru
+        self.assertEqual(pts[-1], (9000, 100.0, 4))          # dotazeno do ted
+        self.assertTrue(all(p is None or p[1] >= 98.0 for p in pts))
+
+    def test_discharge_gap_breaks_line(self):
+        m = load_power()
+        raw = [(0, 80.0, 2), (600, 79.0, 2), (20000, 60.0, 2)]
+        pts = m.clean_history(raw, "charge", {"Percentage": 60.0, "State": 2}, now=20100)
+        self.assertIn(None, pts)                             # uspani/vypnuti: zadna sikma cara
