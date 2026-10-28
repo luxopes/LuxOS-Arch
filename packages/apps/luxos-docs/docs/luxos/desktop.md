@@ -136,7 +136,10 @@ running.
 - **Sorting** (buttons under the Launchpad grid, or `Alt+1`..`Alt+4`): **Alphabetical**, **Recently
   used**, **Most used** (default) and **Category** (Internet, Office, Graphics, Multimedia,
   Development, Education, Games, Science, Accessories, Settings, System, then alphabetically). The
-  choice is remembered in `~/.config/luxos/launchpad-sort`. Launches from Launchpad are counted only
+  choice is remembered in `~/.config/luxos/launchpad-sort`. Switching the sort re-arranges the tiles
+  in the open window: Launchpad does not close or flicker, the search text stays and the first tile
+  is selected (rofi from `[luxos]` runs `luxos-launchpad --sort N` via `-custom-resort` and re-sorts
+  its app list in place; an older rofi falls back to reopening). Launches from Launchpad are counted only
   locally in `~/.local/share/luxos/launchpad-usage.json` (app IDs, counts and last-use times; nothing
   is sent anywhere). The order is prepared after each launch (`~/.cache/luxos/launchpad-order-*`) and
   handed to rofi as its history, so opening Launchpad stays as fast as before.
