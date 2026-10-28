@@ -39,6 +39,15 @@ for i in $(seq "$RUNS"); do
             fail=1
         fi
     done
+    # prechod nesmi zdrzet start relace: skutecny xfce4-session, cas do spravce oken s prechodem a bez nej
+    base=$("$HERE/session-start.sh" "$BIN/luxos-session-cover" nocover 2>/dev/null | sed -n 's/.*wm_ms=\([0-9]*\).*/\1/p')
+    with=$("$HERE/session-start.sh" "$BIN/luxos-session-cover" held 2>/dev/null | sed -n 's/.*wm_ms=\([0-9]*\).*/\1/p')
+    if [[ -n $base && -n $with ]] && (( with <= base + 300 )); then
+        echo "ok    session start #$i: window manager after ${with} ms with the cover, ${base} ms without"
+    else
+        echo "FAIL  session start #$i: window manager after ${with:-never} ms with the cover, ${base:-never} ms without"
+        fail=1
+    fi
     if [[ -n ${LOCK_SAVER:-} ]]; then
         d=$OUT/lock-$i
         nice -n 10 "$HERE/lock-sim.sh" "$d" "$LOCK_SAVER" >/dev/null 2>&1

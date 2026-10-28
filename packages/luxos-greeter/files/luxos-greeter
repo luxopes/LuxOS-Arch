@@ -2057,8 +2057,11 @@ class Greeter(Gtk.Window):
             return
         t0 = time.monotonic()
         try:
+            # vzdy do logu greeteru (/var/log/lightdm): luxos-session-cover pak hlasi, zda snimek nasel
             if self.frame_hold.hold(self.W, self.H):
-                debug(f"login frame held in {time.monotonic() - t0:.3f}s")
+                log(f"login frame held in window 0x{self.frame_hold.win:x} ({time.monotonic() - t0:.3f}s)")
+            else:
+                log("login frame not held (no X connection)")
         except (OSError, AttributeError, ctypes.ArgumentError) as e:
             log("frame hold:", e)
 
