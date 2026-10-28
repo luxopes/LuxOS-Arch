@@ -574,6 +574,13 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(s["path"], c)
 
     def test_window_icons(self):
+        # ikona je SVG: bez zavadece SVG pro gdk-pixbuf (luxos-pixbuf-svg) v sestavovacim prostredi ji
+        # okno nema z ceho vykreslit (samostatne sestaveni baliku v CI)
+        import gi
+        gi.require_version("GdkPixbuf", "2.0")
+        from gi.repository import GdkPixbuf
+        if not any("svg" in f.get_name() for f in GdkPixbuf.Pixbuf.get_formats()):
+            self.skipTest("no SVG loader for gdk-pixbuf in this build root")
         ed = self.start()
         s = ed.wait(lambda s: s.get("xid"))
         out = ""
