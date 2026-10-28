@@ -3,6 +3,9 @@
 #
 #   packages/luxos-desktop/tests/login-transition/run.sh [OPAKOVANI] [VARIANTY...]
 #   LOCK_SAVER=/cesta/xfce4-screensaver ... run.sh      i setric -> dialog s heslem (jinak preskoceno)
+#     a setric -> dialog -> Esc -> setric (styly analog a desktop): do 120 ms po skonceni dialogu musi byt
+#     cela obrazovka setric, zadne zbytky dialogu; setric z repozitare (files/screensaver) se pro to
+#     pripoji v soukromem jmennem prostoru misto nainstalovaneho (unshare, bez roota)
 #
 # Kazde opakovani: skutecny luxos-greeter (demo) se prihlasi a skonci, pak luxos-session-cover --login
 # (sestaveny z files/src) a xfwm4 s kompozitorem, xfdesktop, xfce4-panel a plank - vse na soukromem Xvfb,
@@ -25,6 +28,10 @@ mkdir -p "$BIN"
 gcc -O2 -Wall -Werror -o "$BIN/luxos-session-cover" "$HERE/../../files/src/luxos-session-cover.c" \
     -lX11 -lXfixes -lXcomposite -lXrandr -lcairo -lm || exit 1
 gcc -O2 -Wall -o "$BIN/capture" "$HERE/capture.c" -lX11 -lXext || exit 1
+gcc -O2 -Wall -o "$BIN/diffcap" "$HERE/diffcap.c" -lX11 -lXext || exit 1
+printf '#!/bin/sh\nexec /usr/bin/python3 %s "$@"\n' "$(cd "$HERE/../../files/screensaver" && pwd)/luxos-screensaver" \
+    >"$BIN/luxos-saver"
+chmod +x "$BIN/luxos-saver"
 export CAPTURE=$BIN/capture
 fail=0
 for i in $(seq "$RUNS"); do
@@ -58,6 +65,20 @@ for i in $(seq "$RUNS"); do
             echo "FAIL  lock #$i: $res  ($d)"
             fail=1
         fi
+        # 1280x800: ctverec s hodinami stylu analog (AnalogClock.box) se nesrovnava
+        for style in analog wallpaper; do
+            d=$OUT/lock-esc-$style-$i
+            ESC=1 CAPSECS=7 DIFFCAP=$BIN/diffcap DIFFBOX="429 141 852 564" SAVER_ENGINE=$BIN/luxos-saver \
+                nice -n 10 "$HERE/lock-sim.sh" "$d" "$LOCK_SAVER" "screensavers-luxos-$style" >/dev/null 2>&1
+            same=""
+            [[ $style == wallpaper ]] && same=--same-look
+            if res=$(python3 "$HERE/back-to-saver.py" "$d" $same 2>&1); then
+                echo "ok    lock Esc ($style) #$i: $res"
+            else
+                echo "FAIL  lock Esc ($style) #$i: $res  ($d)"
+                fail=1
+            fi
+        done
     fi
 done
 echo "results: $OUT"
