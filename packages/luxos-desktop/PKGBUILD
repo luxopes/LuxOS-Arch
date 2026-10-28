@@ -13,7 +13,7 @@ url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
 # lsl >= 0.10.6: prekladac lslc s moduly glib/gio/gtk/cairo/pango (cil linux-x86_64-gnu) pro programy v files/lsl;
 # balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni
-makedepends=(python xfce4-settings xfce4-session libxi libxtst libxrandr libxfixes libxcomposite gtk3 cairo pango pkgconf 'lsl>=0.10.6')
+makedepends=(python xfce4-settings xfce4-session libxi xorgproto libxtst libxrandr libxfixes libxcomposite gtk3 cairo pango pkgconf 'lsl>=0.10.6')
 install=luxos-desktop.install
 depends=(
     # LuxOS
