@@ -11,7 +11,7 @@
 
 pkgname=luxos-text
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxOS Text Editor - fast GTK3/GtkSourceView text and code editor with folder sidebar, outline and encodings"
 arch=(x86_64)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -19,11 +19,11 @@ license=(GPL-3.0-or-later)
 # luxos-i18n: preklady (/usr/share/luxos/i18n); ttf-jetbrains-mono-nerd: pismo Monospace (fontconfig LuxOS)
 depends=(gtk3 gtksourceview4 glib2 pango cairo gdk-pixbuf2 libx11 luxos-i18n hicolor-icon-theme ttf-jetbrains-mono-nerd)
 makedepends=(gcc pkgconf gtk3 gtksourceview4 libx11)
-# Mousepad v LuxOS 1.0 uz neni: aktualizace ho nahradi timto editorem (replaces), prikaz "mousepad"
-# (vlastni klavesove zkratky, skripty) dal otevre Textovy editor
-provides=(mousepad)
-conflicts=(mousepad)
-replaces=(mousepad)
+# Mousepad v LuxOS 1.0 uz neni. Zamerne bez conflicts/replaces: pyalpm v lux 0.9.12 pri konfliktu
+# v aktualizaci spadne (segfault v alpm_dep_compute_string). Mousepad odebere krok po aktualizaci
+# (/usr/lib/lux/after-update.d/60-luxos-text) a prikaz "mousepad" (vlastni zkratky, skripty) dal
+# otevre Textovy editor pres /usr/local/bin/mousepad (luxos-text.install)
+install=luxos-text.install
 checkdepends=(python python-gobject xorg-server-xvfb xorg-xauth xorg-xprop xdotool dbus)
 
 build() {
@@ -52,7 +52,7 @@ check() {
 package() {
     local f="$startdir/files"
     install -Dm755 luxos-text "$pkgdir/usr/bin/luxos-text"
-    ln -s luxos-text "$pkgdir/usr/bin/mousepad"
+    install -Dm755 "$f/60-luxos-text" "$pkgdir/usr/lib/lux/after-update.d/60-luxos-text"
     install -Dm644 "$f/luxos-text.desktop" "$pkgdir/usr/share/applications/luxos-text.desktop"
     install -Dm644 "$f/luxos-text.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-text.svg"
     # Barvy (svetle/tmave) a zvyrazneni LSL - ve spolecnych adresarich GtkSourceView (i pro jine editory)

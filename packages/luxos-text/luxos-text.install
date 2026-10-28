@@ -1,0 +1,16 @@
+# prikaz "mousepad" -> Textovy editor, kdyz Mousepad neni nainstalovany (odkaz mimo balik)
+post_install() {
+    if [ ! -e /usr/bin/mousepad ] && [ ! -e /usr/local/bin/mousepad ]; then
+        mkdir -p /usr/local/bin && ln -s /usr/bin/luxos-text /usr/local/bin/mousepad 2>/dev/null
+    fi
+    return 0
+}
+
+post_upgrade() {
+    post_install
+}
+
+post_remove() {
+    [ "$(readlink /usr/local/bin/mousepad 2>/dev/null)" = /usr/bin/luxos-text ] && rm -f /usr/local/bin/mousepad
+    return 0
+}

@@ -1,0 +1,12 @@
+#!/bin/sh
+# lux update -> Mousepad v LuxOS 1.0 nahrazuje Textovy editor (luxos-text): starsi instalace ho odeberou
+# zde, mimo transakci (conflicts/replaces v aktualizaci shodi pyalpm v lux 0.9.12)
+[ -x /usr/bin/luxos-text ] || exit 0
+if [ -e /var/lib/lux/local ] && ls -d /var/lib/lux/local/mousepad-[0-9]* >/dev/null 2>&1; then
+    /usr/bin/lux remove -y mousepad >/dev/null 2>&1 || exit 0
+fi
+# prikaz "mousepad" otevre Textovy editor (jen kdyz zadny mousepad neni)
+if [ ! -e /usr/bin/mousepad ] && [ ! -e /usr/local/bin/mousepad ]; then
+    mkdir -p /usr/local/bin && ln -s /usr/bin/luxos-text /usr/local/bin/mousepad 2>/dev/null
+fi
+exit 0
