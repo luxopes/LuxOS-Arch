@@ -15,6 +15,7 @@ adresy). Tmava mapa = prevracene dlazdice.
 import io
 import math
 import os
+import shutil
 import sys
 import threading
 import time
@@ -60,6 +61,13 @@ NEARBY_LABELS = (("restaurants", "Restaurants"), ("cafes", "Cafés"), ("grocerie
 # Druhy dopravy (lm.TRANSIT_MODES) k prekladu
 TRANSIT_MODE_NAMES = ("Walk", "Bike", "Shared bike", "Car", "Tram", "Metro", "Bus", "Coach", "Trolleybus",
                       "Train", "Ferry", "Plane", "Funicular", "Cable car", "On-demand", "Public transport")
+SIDEBAR_DEFAULT = 320       # px, sirka postranniho panelu (tazenim lm.SIDEBAR_MIN..lm.SIDEBAR_MAX)
+MAP_MIN_WIDTH = 480         # px, mapa vedle sirokeho panelu (1280x800: panel nejvys 560, mapa >= 680)
+NAV_ZOOM = {"car": 17.0, "bike": 17.5, "walk": 18.0, lm.TRANSIT: 17.0}
+# hlasove pokyny jen s nainstalovanym programem (speech-dispatcher nebo espeak-ng); vychozi vypnute
+TTS = shutil.which("spd-say") or shutil.which("espeak-ng")
+NAV_VOICE_M = {"car": (400, 60), "bike": (150, 25), "walk": (60, 12), lm.TRANSIT: (150, 30)}  # (daleko, blizko)
+NAV_WAIT_S = 12             # s bez polohy po startu navigace -> srozumitelna zprava
 DEPARTURES_SHOWN = 20        # odjezdu na tabuli
 DEPARTURES_REFRESH = 60      # s, obnoveni tabule, dokud je videt (mezipamet odjezdu 45 s)
 LATE = (0.85, 0.19, 0.15)
@@ -87,6 +95,18 @@ CSS = b"""
 .ontime { color: #1e8e3e; font-weight: 700; }
 .cancelled { color: #d93025; font-weight: 700; }
 .dimmed { opacity: 0.55; }
+.nav-banner { background-color: alpha(#161a22, 0.95); color: white; border-radius: 14px; }
+.nav-banner button { color: white; background: transparent; border: none; box-shadow: none; }
+.nav-dist { font-size: 28px; font-weight: 800; }
+.nav-instr { font-size: 18px; font-weight: 700; }
+.nav-street { font-size: 15px; opacity: 0.85; }
+.nav-then { font-size: 13px; opacity: 0.8; }
+.nav-status { font-size: 13px; font-weight: 700; color: #ffcf5c; }
+.nav-bottom { background-color: alpha(@theme_bg_color, 0.96); border-radius: 14px;
+              border: 1px solid alpha(black, 0.12); }
+.nav-big { font-size: 20px; font-weight: 800; }
+.nav-end { border-radius: 999px; padding: 5px 16px; font-weight: 700; background-image: none;
+           background-color: #e5483d; color: white; border: none; box-shadow: none; }
 """
 
 
@@ -170,6 +190,25 @@ def draw_dot(cr, x, y, color, r=7):
     cr.fill()
 
 
+def draw_arrow(cr, x, y, angle, r=13):
+    """Sipka polohy v navigaci (spicka ve smeru angle, 0 = nahoru)."""
+    cr.save()
+    cr.translate(x, y)
+    cr.rotate(angle)
+    cr.move_to(0, -r)
+    cr.line_to(r * 0.78, r * 0.85)
+    cr.line_to(0, r * 0.42)
+    cr.line_to(-r * 0.78, r * 0.85)
+    cr.close_path()
+    cr.set_line_join(cairo.LINE_JOIN_ROUND)
+    cr.set_source_rgb(1, 1, 1)
+    cr.set_line_width(5)
+    cr.stroke_preserve()
+    cr.set_source_rgb(*ACCENT)
+    cr.fill()
+    cr.restore()
+
+
 def draw_star(cr, x, y, r):
     cr.new_path()
     for i in range(10):
@@ -207,17 +246,25 @@ class TurnIcon(Gtk.DrawingArea):
     ANGLES = {"straight": 0, "slight right": 45, "right": 90, "sharp right": 135, "uturn": 180,
               "slight left": -45, "left": -90, "sharp left": -135}
 
-    def __init__(self, typ, modifier):
+    def __init__(self, typ, modifier, size=28):
         super().__init__()
         self.typ, self.mod = typ, modifier
-        self.set_size_request(28, 28)
+        self.set_size_request(size, size)
         self.set_valign(Gtk.Align.CENTER)
         self.connect("draw", self.draw)
+
+    def set_maneuver(self, typ, modifier):
+        if (typ, modifier) != (self.typ, self.mod):
+            self.typ, self.mod = typ, modifier
+            self.queue_draw()
 
     def draw(self, widget, cr):
         c = widget.get_style_context().get_color(widget.get_state_flags())
         w, h = widget.get_allocated_width(), widget.get_allocated_height()
-        cx, cy = w / 2, h / 2
+        k = min(w, h) / 28.0            # kresba v mrizce 28x28, vetsi ikona (navigace) se jen zvetsi
+        cr.translate((w - 28 * k) / 2, (h - 28 * k) / 2)
+        cr.scale(k, k)
+        cx, cy = 14, 14
         cr.set_line_width(2.4)
         cr.set_line_cap(cairo.LINE_CAP_ROUND)
         cr.set_line_join(cairo.LINE_JOIN_ROUND)
@@ -228,6 +275,40 @@ class TurnIcon(Gtk.DrawingArea):
             draw_pin(cr, cx, cy + 10)
             return
         cr.set_source_rgba(c.red, c.green, c.blue, c.alpha)
+        if self.typ in ("board", "alight"):
+            # vuz MHD (nastup), u vystupu se sipkou ven
+            x0 = cx - 8 if self.typ == "board" else cx - 11
+            cr.new_sub_path()
+            cr.arc(x0 + 3, cy - 7, 3, math.pi, 1.5 * math.pi)
+            cr.arc(x0 + 13, cy - 7, 3, 1.5 * math.pi, 0)
+            cr.arc(x0 + 13, cy + 5, 3, 0, 0.5 * math.pi)
+            cr.arc(x0 + 3, cy + 5, 3, 0.5 * math.pi, math.pi)
+            cr.close_path()
+            cr.stroke()
+            cr.move_to(x0, cy - 1)
+            cr.line_to(x0 + 16, cy - 1)
+            cr.stroke()
+            for dx in (4, 12):
+                cr.arc(x0 + dx, cy + 10, 1.6, 0, 2 * math.pi)
+                cr.fill()
+            if self.typ == "alight":
+                cr.move_to(cx + 7, cy + 2)
+                cr.line_to(cx + 12, cy + 2)
+                cr.move_to(cx + 9.5, cy - 0.5)
+                cr.line_to(cx + 12, cy + 2)
+                cr.line_to(cx + 9.5, cy + 4.5)
+                cr.stroke()
+            return
+        if self.typ == "walk":
+            cr.arc(cx + 1, cy - 9, 2.4, 0, 2 * math.pi)
+            cr.fill()
+            for a, b in (((cx, cy - 5), (cx - 1, cy + 3)), ((cx - 1, cy + 3), (cx - 5, cy + 11)),
+                         ((cx - 1, cy + 3), (cx + 4, cy + 11)), ((cx, cy - 4), (cx - 5, cy)),
+                         ((cx, cy - 4), (cx + 5, cy - 1))):
+                cr.move_to(*a)
+                cr.line_to(*b)
+            cr.stroke()
+            return
         if self.typ in ("roundabout", "rotary"):
             cr.arc(cx, cy + 2, 6, 0, 2 * math.pi)
             cr.stroke()
@@ -350,6 +431,8 @@ class MapView(Gtk.DrawingArea):
         self.route_ends = None
         self.stops = []                    # zastavky vybraneho spojeni MHD (klik = odjezdy)
         self.step_mark = None
+        self.rotation = 0.0                # rad, otoceni mapy (navigace po smeru jizdy); 0 = sever nahore
+        self.nav_heading = None            # navigace: kurz sipky polohy ve stupnich (misto bodu)
         self.anim = None
         self.kinetic = None
         self.drag = None
@@ -377,9 +460,24 @@ class MapView(Gtk.DrawingArea):
     def center(self):
         return lm.from_world(self.mx, self.my)
 
+    def rot(self, dx, dy):
+        """Posun ve svete (px od stredu, sever nahore) -> posun na obrazovce (otocena mapa)."""
+        if not self.rotation:
+            return dx, dy
+        c, s = math.cos(self.rotation), math.sin(self.rotation)
+        return dx * c - dy * s, dx * s + dy * c
+
+    def unrot(self, dx, dy):
+        """Posun na obrazovce -> posun ve svete (opak rot)."""
+        if not self.rotation:
+            return dx, dy
+        c, s = math.cos(self.rotation), math.sin(self.rotation)
+        return dx * c + dy * s, -dx * s + dy * c
+
     def screen_to_world(self, sx, sy):
         w, h = self.get_allocated_width(), self.get_allocated_height()
-        return self.mx + (sx - w / 2) / self.scale, self.my + (sy - h / 2) / self.scale
+        dx, dy = self.unrot(sx - w / 2, sy - h / 2)
+        return self.mx + dx / self.scale, self.my + dy / self.scale
 
     def screen_to_latlon(self, sx, sy):
         return lm.from_world(*self.screen_to_world(sx, sy))
@@ -389,7 +487,8 @@ class MapView(Gtk.DrawingArea):
         # nejblizsi kopie sveta (mapa se opakuje do stran)
         dx = wx - self.mx
         dx -= round(dx)
-        return w / 2 + dx * self.scale, h / 2 + (wy - self.my) * self.scale
+        x, y = self.rot(dx * self.scale, (wy - self.my) * self.scale)
+        return w / 2 + x, h / 2 + y
 
     def latlon_to_screen(self, lat, lon):
         return self.world_to_screen(*lm.to_world(lat, lon))
@@ -441,8 +540,8 @@ class MapView(Gtk.DrawingArea):
             dt = max(0.001, now - last) if last else 1 / 60
             decay = math.exp(-dt * 4.5)
             vx, vy = vx * decay, vy * decay
-            self.set_view(self.mx - vx * dt / self.scale, self.my - vy * dt / self.scale, self.zoom,
-                          notify=False)
+            dx, dy = self.unrot(vx * dt, vy * dt)
+            self.set_view(self.mx - dx / self.scale, self.my - dy / self.scale, self.zoom, notify=False)
             if math.hypot(vx, vy) < 20:
                 self.kinetic = None
                 if self.on_view_changed:
@@ -458,7 +557,7 @@ class MapView(Gtk.DrawingArea):
     def zoom_at(self, sx, sy, target, duration=0.22):
         target = lm.clamp(target, 1, lm.MAX_ZOOM)
         w, h = self.get_allocated_width(), self.get_allocated_height()
-        ax, ay = sx - w / 2, sy - h / 2
+        ax, ay = self.unrot(sx - w / 2, sy - h / 2)
         wx, wy = self.screen_to_world(sx, sy)
         if duration <= 0:
             s = lm.TILE * (2 ** target)
@@ -498,6 +597,7 @@ class MapView(Gtk.DrawingArea):
 
     def pan_by(self, dx, dy):
         self.kinetic = None
+        dx, dy = self.unrot(dx, dy)
         lat, lon = lm.from_world(self.mx + dx / self.scale, self.my + dy / self.scale)
         self.fly_to(lat, lon, duration=0.18)
 
@@ -534,7 +634,8 @@ class MapView(Gtk.DrawingArea):
             if self.on_user_move:
                 self.on_user_move()
         self.drag = (x0, y0, mx0, my0, True)
-        self.set_view(mx0 - (ev.x - x0) / self.scale, my0 - (ev.y - y0) / self.scale, self.zoom, notify=False)
+        dx, dy = self.unrot(ev.x - x0, ev.y - y0)
+        self.set_view(mx0 - dx / self.scale, my0 - dy / self.scale, self.zoom, notify=False)
         self.samples.append((ev.time, ev.x, ev.y))
         self.samples = self.samples[-6:]
         return True
@@ -661,8 +762,17 @@ class MapView(Gtk.DrawingArea):
         ts = lm.TILE * (2 ** (self.zoom - tz))
         left = self.mx * self.scale - w / 2
         top = self.my * self.scale - h / 2
-        ix0, ix1 = math.floor(left / ts), math.floor((left + w) / ts)
-        iy0, iy1 = max(0, math.floor(top / ts)), min(n - 1, math.floor((top + h) / ts))
+        # otocena mapa (navigace): dlazdice pod otocenim kolem stredu, potreba ctverec s uhloprickou okna
+        ew, eh = (math.hypot(w, h),) * 2 if self.rotation else (w, h)
+        el, et = self.mx * self.scale - ew / 2, self.my * self.scale - eh / 2
+        ix0, ix1 = math.floor(el / ts), math.floor((el + ew) / ts)
+        iy0, iy1 = max(0, math.floor(et / ts)), min(n - 1, math.floor((et + eh) / ts))
+        if self.rotation:
+            cr.save()
+            cr.translate(w / 2, h / 2)
+            cr.rotate(self.rotation)
+            cr.translate(-w / 2, -h / 2)
+            cr.set_antialias(cairo.ANTIALIAS_NONE)       # bez svetlych spar mezi otocenymi dlazdicemi
         missing = []
         now = time.time()
         for iy in range(iy0, iy1 + 1):
@@ -679,6 +789,8 @@ class MapView(Gtk.DrawingArea):
                 if now - self.failed.get(key, 0) > RETRY_FAILED:
                     cx, cy = (ix + 0.5) * ts - left - w / 2, (iy + 0.5) * ts - top - h / 2
                     missing.append((cx * cx + cy * cy, key))
+        if self.rotation:
+            cr.restore()
         keys = tuple(k for _d, k in sorted(missing))
         if keys != self.missing_sent:
             self.missing_sent = keys
@@ -817,7 +929,10 @@ class MapView(Gtk.DrawingArea):
                 cr.set_source_rgba(*ACCENT, 0.45)
                 cr.stroke()
             if not self.me.get("stale"):
-                draw_dot(cr, x, y, ACCENT, 7)
+                if self.nav_heading is not None:
+                    draw_arrow(cr, x, y, math.radians(self.nav_heading) + self.rotation)
+                else:
+                    draw_dot(cr, x, y, ACCENT, 7)
         if self.marker:
             draw_pin(cr, *self.latlon_to_screen(self.marker["lat"], self.marker["lon"]))
 
@@ -882,6 +997,77 @@ class MapView(Gtk.DrawingArea):
         self.route = {"mode": lm.TRANSIT, "legs": legs}
         self.stops = stops
         self.queue_draw()
+
+
+class GeoClueWatch:
+    """Zive polohy ze systemove sluzby GeoClue (signal LocationUpdated) pro navigaci bez telefonu.
+    Pripojeni ve vlakne (GetClient ceka na agenta GeoClue), signaly a cteni polohy asynchronne."""
+    NAME = "org.freedesktop.GeoClue2"
+    CLIENT = "org.freedesktop.GeoClue2.Client"
+
+    def __init__(self, callback):
+        self.callback = callback
+        self.bus = self.client = self.sub = None
+        self.stopped = False
+        threading.Thread(target=self._setup, daemon=True).start()
+
+    def _setup(self):
+        try:
+            bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+            client = bus.call_sync(self.NAME, "/org/freedesktop/GeoClue2/Manager", "org.freedesktop.GeoClue2.Manager",
+                                   "GetClient", None, None, Gio.DBusCallFlags.NONE, 2500, None).unpack()[0]
+            for prop, val in (("DesktopId", GLib.Variant("s", APP)), ("RequestedAccuracyLevel", GLib.Variant("u", 8)),
+                              ("DistanceThreshold", GLib.Variant("u", 0)), ("TimeThreshold", GLib.Variant("u", 0))):
+                bus.call_sync(self.NAME, client, "org.freedesktop.DBus.Properties", "Set",
+                              GLib.Variant("(ssv)", (self.CLIENT, prop, val)), None, Gio.DBusCallFlags.NONE, 2000, None)
+        except GLib.Error:
+            return                       # GeoClue chybi nebo aplikaci odmitl
+        GLib.idle_add(self._start, bus, client)
+
+    def _start(self, bus, client):
+        self.bus, self.client = bus, client
+        if self.stopped:
+            self._stop_client()
+            return False
+        self.sub = bus.signal_subscribe(self.NAME, self.CLIENT, "LocationUpdated", client, None,
+                                        Gio.DBusSignalFlags.NONE, self._on_updated)
+        bus.call(self.NAME, client, self.CLIENT, "Start", None, None, Gio.DBusCallFlags.NONE, 5000, None, None)
+        return False
+
+    def _on_updated(self, bus, _sender, _path, _iface, _sig, params):
+        new = params.unpack()[1]
+        if self.stopped or not new or new == "/":
+            return
+
+        def got(b, res):
+            try:
+                p = b.call_finish(res).unpack()[0]
+            except GLib.Error:
+                return
+            if self.stopped or not all(k in p for k in ("Latitude", "Longitude")):
+                return
+            fix = {"lat": p["Latitude"], "lon": p["Longitude"], "accuracy": max(1.0, p.get("Accuracy", 50.0)),
+                   "source": "geoclue", "name": ""}
+            if p.get("Speed", -1) >= 0:
+                fix["speed"] = p["Speed"]
+            if p.get("Heading", -1) >= 0:
+                fix["bearing"] = p["Heading"]
+            self.callback(fix)
+        bus.call(self.NAME, new, "org.freedesktop.DBus.Properties", "GetAll",
+                 GLib.Variant("(s)", ("org.freedesktop.GeoClue2.Location",)), GLib.VariantType("(a{sv})"),
+                 Gio.DBusCallFlags.NONE, 2000, None, got)
+
+    def _stop_client(self):
+        if self.bus and self.client:
+            self.bus.call(self.NAME, self.client, self.CLIENT, "Stop", None, None, Gio.DBusCallFlags.NONE, 2000,
+                          None, None)
+
+    def stop(self):
+        self.stopped = True
+        if self.bus and self.sub is not None:
+            self.bus.signal_unsubscribe(self.sub)
+            self.sub = None
+        self._stop_client()
 
 
 # ---- okno -----------------------------------------------------------------------------
@@ -953,13 +1139,29 @@ class MapsWindow(Gtk.Window):
         self.dep_timer = None
         self.dep_rows = []
         self.results_kind = "search"
+        self.nav = None                    # lm.Navigator behem navigace
+        self.nav_gen = 0
+        self.nav_state = None
+        self.nav_fix = None                # posledni poloha zpracovana navigaci
+        self.nav_pending = None
+        self.nav_timer = None
+        self.nav_last = 0.0
+        self.nav_wait_id = None
+        self.nav_sim_id = None
+        self.nav_spoken = set()
+        self.nav_prev_tracking = False
+        self.phone_last = 0.0              # monotonic cas posledni platne polohy z telefonu
+        self.geoclue = None
+        self.inhibit_cookies = {}
+        self.tts_proc = None
+        self._side_clamping = False
 
         header = Gtk.HeaderBar(show_close_button=True)
         self.set_titlebar(header)
         self.side_btn = Gtk.ToggleButton(tooltip_text=_("Show Sidebar"), active=True)
         self.side_btn.add(Gtk.Image(icon_name="view-dual-symbolic" if Gtk.IconTheme.get_default().has_icon(
             "view-dual-symbolic") else "sidebar-show-symbolic"))
-        self.side_btn.connect("toggled", lambda b: self.revealer.set_reveal_child(b.get_active()))
+        self.side_btn.connect("toggled", lambda b: self.side.set_visible(b.get_active()))
         header.pack_start(self.side_btn)
         self.loc_btn = icon_button("find-location-symbolic", _("Show My Location"), self.on_locate)
         header.pack_start(self.loc_btn)
@@ -977,21 +1179,22 @@ class MapsWindow(Gtk.Window):
         self.fav_btn = icon_button("starred-symbolic", _("Favorites"), lambda: self.show_page("home"))
         header.pack_end(self.fav_btn)
 
-        root = Gtk.Box()
-        self.add(root)
-        self.revealer = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_RIGHT,
-                                     transition_duration=160, reveal_child=True, hexpand=False)
-        side = Gtk.Box()
-        side.get_style_context().add_class("maps-sidebar")
+        # postranni panel a mapa v Gtk.Paned: sirka panelu tazenim (280-560 px), pamatuje se v maps.json
+        self.paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        self.add(self.paned)
+        self.side = Gtk.Box()
+        self.side.get_style_context().add_class("maps-sidebar")
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, transition_duration=120)
-        self.stack.set_size_request(320, -1)
-        side.pack_start(self.stack, True, True, 0)
-        side.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 0)
-        self.revealer.add(side)
-        root.pack_start(self.revealer, False, False, 0)
+        self.stack.set_size_request(lm.SIDEBAR_MIN, -1)
+        self.side.pack_start(self.stack, True, True, 0)
+        self.paned.pack1(self.side, False, False)
+        self.side_width = self.cfg.get("sidebar_width") or SIDEBAR_DEFAULT
+        self.paned.set_position(self.side_width)
+        self.paned.connect("notify::position", self.on_side_moved)
+        self.paned.connect("size-allocate", lambda *_a: self.fit_sidebar())
 
         overlay = Gtk.Overlay()
-        root.pack_start(overlay, True, True, 0)
+        self.paned.pack2(overlay, True, False)
         self.map = MapView(lm.service_url(self.cfg, "tile_url", "LUXOS_MAPS_TILES", lm.TILE_URL),
                            view["lat"], view["lon"], view["zoom"])
         self.map.favorites = self.cfg["favorites"]
@@ -1002,6 +1205,9 @@ class MapsWindow(Gtk.Window):
         overlay.add(self.map)
         overlay.add_overlay(self.build_osd())
         overlay.add_overlay(self.build_attribution())
+        self.nav_banner, self.nav_bottom = self.build_nav()
+        overlay.add_overlay(self.nav_banner)
+        overlay.add_overlay(self.nav_bottom)
         self.offline_rev = Gtk.Revealer(halign=Gtk.Align.CENTER, valign=Gtk.Align.START, margin_top=10,
                                         transition_type=Gtk.RevealerTransitionType.CROSSFADE)
         pill = Gtk.EventBox()
@@ -1359,6 +1565,12 @@ class MapsWindow(Gtk.Window):
         box.pack_start(sumrow, False, False, 0)
         self.rt_status = label("", "dim", wrap=True)
         box.pack_start(self.rt_status, False, False, 0)
+        self.nav_btn = Gtk.Button(label=_("Start Navigation"), halign=Gtk.Align.START,
+                                  tooltip_text=_("Follow the route with your live location"))
+        self.nav_btn.get_style_context().add_class("primary")
+        self.nav_btn.connect("clicked", lambda _b: self.start_navigation())
+        self.nav_btn.set_no_show_all(True)
+        box.pack_start(self.nav_btn, False, False, 0)
         self.steps_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE, activate_on_single_click=True)
         self.steps_list.connect("row-activated", self.on_step)
         box.pack_start(self.steps_list, False, False, 0)
@@ -1512,6 +1724,7 @@ class MapsWindow(Gtk.Window):
             self.from_entry.grab_focus()
 
     def close_directions(self):
+        self.end_navigation()
         self.route_gen += 1
         self.route_res = None
         self.map.set_route(None)
@@ -1525,6 +1738,7 @@ class MapsWindow(Gtk.Window):
     def clear_steps(self):
         for row in self.steps_list.get_children():
             row.destroy()
+        self.nav_btn.hide()
 
     def clear_transit(self):
         self.transit_res = None
@@ -1601,6 +1815,7 @@ class MapsWindow(Gtk.Window):
         self.rt_dist.set_text("%s – %s" % (it["departure_time"], it["arrival_time"]))
         self.map.set_transit(it)
         self.map.route_ends = (self.route_from, self.route_to)
+        self.nav_btn.show()
         for row in self.legs_list.get_children():
             row.destroy()
         for lg in it["legs"]:
@@ -1666,6 +1881,7 @@ class MapsWindow(Gtk.Window):
         a, b = self.route_from, self.route_to
         if not (a and b):
             return
+        self.end_navigation()          # jina trasa nebo zpusob dopravy: navigace po stare trase konci
         self.route_gen += 1
         gen = self.route_gen
         mode = self.cfg["mode"]
@@ -1719,6 +1935,16 @@ class MapsWindow(Gtk.Window):
         self.rt_dist.set_text(lm.format_distance(res["distance"], IMPERIAL))
         self.map.set_route(res)
         self.map.route_ends = (self.route_from, self.route_to)
+        self.fill_steps(res)
+        self.nav_btn.show()
+        lats = [p[0] for p in res["points"]]
+        lons = [p[1] for p in res["points"]]
+        self.map.fit_bbox(min(lats), max(lats), min(lons), max(lons), max_zoom=17)
+        return False
+
+    def fill_steps(self, res):
+        for row in self.steps_list.get_children():
+            row.destroy()
         for s in res["steps"]:
             row = Gtk.ListBoxRow()
             row.step = s
@@ -1734,13 +1960,11 @@ class MapsWindow(Gtk.Window):
             row.add(hb)
             row.show_all()
             self.steps_list.add(row)
-        lats = [p[0] for p in res["points"]]
-        lons = [p[1] for p in res["points"]]
-        self.map.fit_bbox(min(lats), max(lats), min(lons), max(lons), max_zoom=17)
-        return False
 
     def on_step(self, _l, row):
         s = row.step
+        if self.nav:
+            self.stop_follow()         # prohlizeni kroku behem navigace; Vycentrovat vrati sledovani
         self.map.step_mark = {"lat": s["lat"], "lon": s["lon"]}
         self.map.fly_to(s["lat"], s["lon"], max(self.map.zoom, 17))
 
@@ -2082,6 +2306,8 @@ class MapsWindow(Gtk.Window):
 
     def stop_follow(self):
         self.follow = False
+        if self.nav:
+            self.nav_recenter.show()
 
     def on_phone_signal(self, _c, _sender, _path, _iface, _sig, params):
         try:
@@ -2096,7 +2322,11 @@ class MapsWindow(Gtk.Window):
             return
         fix = lm.phone_fix(data) if lm.companion_sharing_enabled() else None
         if fix:
+            self.phone_last = time.monotonic()
             self.map.me = fix
+            if self.nav:
+                self.nav_on_fix(fix)
+                return
             if self.follow and not self.map.drag:
                 self.map.fly_to(fix["lat"], fix["lon"], None, 0.3)
             else:
@@ -2104,6 +2334,543 @@ class MapsWindow(Gtk.Window):
         elif self.map.me and self.map.me.get("source") == "phone" and not self.map.me.get("stale"):
             self.map.me = dict(self.map.me, stale=True)
             self.map.queue_draw()
+            if self.nav and not self.nav_sim_id:
+                self.nav_set_status(_("Location signal lost. Waiting for your location…"))
+
+    # ---- sirka postranniho panelu (Gtk.Paned) ----
+    def side_max(self):
+        w = self.paned.get_allocated_width()
+        return int(lm.clamp(w - MAP_MIN_WIDTH, lm.SIDEBAR_MIN, lm.SIDEBAR_MAX)) if w > 1 else lm.SIDEBAR_MAX
+
+    def _set_side(self, pos):
+        self._side_clamping = True
+        self.paned.set_position(pos)
+        self._side_clamping = False
+
+    def on_side_moved(self, paned, _p):
+        pos = paned.get_position()
+        if self._side_clamping or not self.side.get_visible():
+            return
+        top = self.side_max()
+        if pos > top:
+            self._set_side(top)
+            pos = top
+        pos = int(lm.clamp(pos, lm.SIDEBAR_MIN, lm.SIDEBAR_MAX))
+        if pos != self.side_width:
+            # uzivatel panel roztahl/zuzil: pamatovat (ulozi se se zobrazenim mapy)
+            self.side_width = pos
+            self.cfg["sidebar_width"] = pos
+            self.schedule_save()
+
+    def fit_sidebar(self):
+        """Uzke okno: panel uzsi, aby mapa mela aspon MAP_MIN_WIDTH; po roztazeni okna zpet na ulozenou sirku."""
+        want = min(self.side_width, self.side_max())
+        if self.paned.get_position() != want:
+            GLib.idle_add(lambda: (self._set_side(min(self.side_width, self.side_max())), False)[1])
+
+    # ---- navigace ----
+    def build_nav(self):
+        banner = Gtk.EventBox(halign=Gtk.Align.FILL, valign=Gtk.Align.START, margin=12)
+        banner.get_style_context().add_class("nav-banner")
+        vb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, margin=12, margin_start=14, margin_end=8)
+        hb = Gtk.Box(spacing=14)
+        self.nav_icon = TurnIcon("depart", "", 56)
+        hb.pack_start(self.nav_icon, False, False, 0)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        self.nav_dist = label("", "nav-dist")
+        self.nav_instr = label("", "nav-instr", wrap=True)
+        self.nav_street = label("", "nav-street", wrap=True)
+        for w in (self.nav_dist, self.nav_instr, self.nav_street):
+            texts.pack_start(w, False, False, 0)
+        hb.pack_start(texts, True, True, 0)
+        self.nav_voice = Gtk.ToggleButton(valign=Gtk.Align.START, tooltip_text=_("Voice Guidance"),
+                                          active=bool(TTS and self.cfg["nav_voice"]))
+        self.nav_voice_img = Gtk.Image()
+        self.nav_voice.add(self.nav_voice_img)
+        self.nav_voice.connect("toggled", self.on_nav_voice)
+        self.nav_voice.set_no_show_all(True)
+        self.nav_voice_img.show()
+        self.nav_voice.set_visible(bool(TTS))
+        self.update_voice_icon()
+        hb.pack_end(self.nav_voice, False, False, 0)
+        vb.pack_start(hb, False, False, 0)
+        self.nav_then = Gtk.Box(spacing=8, margin_start=4)
+        self.nav_then_icon = TurnIcon("depart", "", 22)
+        self.nav_then_lbl = label("", "nav-then", wrap=True)
+        self.nav_then.pack_start(self.nav_then_icon, False, False, 0)
+        self.nav_then.pack_start(self.nav_then_lbl, True, True, 0)
+        self.nav_then.set_no_show_all(True)
+        self.nav_then_icon.show()
+        self.nav_then_lbl.show()
+        vb.pack_start(self.nav_then, False, False, 0)
+        status = Gtk.Box(spacing=8)
+        self.nav_status = label("", "nav-status", wrap=True)
+        self.nav_status.set_no_show_all(True)
+        status.pack_start(self.nav_status, True, True, 0)
+        self.nav_sim_btn = Gtk.Button(label=_("Simulate"), tooltip_text=_("Drive the route with a simulated "
+                                                                          "location (testing only)"))
+        self.nav_sim_btn.connect("clicked", lambda _b: self.nav_simulate())
+        self.nav_sim_btn.set_no_show_all(True)
+        status.pack_end(self.nav_sim_btn, False, False, 0)
+        vb.pack_start(status, False, False, 0)
+        banner.add(vb)
+        banner.set_no_show_all(True)
+        vb.show_all()
+
+        bottom = Gtk.EventBox(halign=Gtk.Align.CENTER, valign=Gtk.Align.END, margin_bottom=30)
+        bottom.get_style_context().add_class("nav-bottom")
+        bb = Gtk.Box(spacing=16, margin=8, margin_start=16, margin_end=8)
+        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.nav_left = label("", "nav-big")
+        self.nav_more = label("", "dim")
+        info.pack_start(self.nav_left, False, False, 0)
+        info.pack_start(self.nav_more, False, False, 0)
+        bb.pack_start(info, False, False, 0)
+        self.nav_compass = Gtk.Button(tooltip_text="", valign=Gtk.Align.CENTER)
+        self.nav_compass.get_style_context().add_class("flat")
+        needle = Gtk.DrawingArea()
+        needle.set_size_request(22, 22)
+        needle.connect("draw", self.draw_compass)
+        self.nav_compass.add(needle)
+        self.nav_compass.connect("clicked", lambda _b: self.toggle_heading_up())
+        bb.pack_start(self.nav_compass, False, False, 0)
+        self.nav_recenter = Gtk.Button(label=_("Re-center"), valign=Gtk.Align.CENTER)
+        self.nav_recenter.connect("clicked", lambda _b: self.nav_follow_again())
+        self.nav_recenter.set_no_show_all(True)
+        bb.pack_start(self.nav_recenter, False, False, 0)
+        end = Gtk.Button(label=_("End"), valign=Gtk.Align.CENTER, tooltip_text=_("End Navigation"))
+        end.get_style_context().add_class("nav-end")
+        end.connect("clicked", lambda _b: self.end_navigation())
+        bb.pack_start(end, False, False, 0)
+        bottom.add(bb)
+        bottom.set_no_show_all(True)
+        bb.show_all()
+        self.update_compass_tip()
+        return banner, bottom
+
+    def draw_compass(self, widget, cr):
+        """Strelka severu podle otoceni mapy (klik: po smeru jizdy / sever nahore)."""
+        w, h = widget.get_allocated_width(), widget.get_allocated_height()
+        cr.translate(w / 2, h / 2)
+        cr.rotate(self.map.rotation)
+        c = widget.get_style_context().get_color(widget.get_state_flags())
+        for sign, rgb in ((-1, (0.9, 0.23, 0.2)), (1, (c.red, c.green, c.blue))):
+            cr.move_to(0, sign * 10)
+            cr.line_to(4, 0)
+            cr.line_to(-4, 0)
+            cr.close_path()
+            cr.set_source_rgb(*rgb)
+            cr.fill()
+        return False
+
+    def update_compass_tip(self):
+        self.nav_compass.set_tooltip_text(_("Heading Up – click for North Up") if self.cfg["nav_heading_up"]
+                                          else _("North Up – click for Heading Up"))
+
+    def update_voice_icon(self):
+        on = self.nav_voice.get_active()
+        self.nav_voice_img.set_from_icon_name("audio-volume-high-symbolic" if on else "audio-volume-muted-symbolic",
+                                              Gtk.IconSize.LARGE_TOOLBAR)
+
+    def on_nav_voice(self, b):
+        self.cfg["nav_voice"] = b.get_active()
+        lm.save_config(self.cfg)
+        self.update_voice_icon()
+        if not b.get_active() and self.tts_proc:
+            self.tts_proc.force_exit()
+            self.tts_proc = None
+
+    def toggle_heading_up(self):
+        self.cfg["nav_heading_up"] = not self.cfg["nav_heading_up"]
+        lm.save_config(self.cfg)
+        self.update_compass_tip()
+        self.nav_show_position()
+
+    def nav_route(self):
+        """Trasa pro navigaci z vypocitane trasy (auto/kolo/pesky) nebo vybraneho spojeni MHD."""
+        if self.cfg["mode"] == lm.TRANSIT:
+            if not (self.transit_res and self.transit_res.get("itineraries")):
+                return None
+            it = self.transit_res["itineraries"][self.itin_idx]
+            return lm.transit_nav_route(it, dest=self.route_to)
+        if not self.route_res:
+            return None
+        return lm.NavRoute.from_osrm(self.route_res)
+
+    def start_navigation(self):
+        if self.nav:
+            return
+        try:
+            route = self.nav_route()
+        except lm.MapsError:
+            route = None
+        if route is None:
+            return
+        if not self.cfg["location_consent"]:
+            if not self.ask_consent():
+                return
+            self.cfg["location_consent"] = True
+            lm.save_config(self.cfg)
+            self.consent_item.set_active(True)
+        self.nav_gen += 1
+        self.nav = lm.Navigator(route, reroute=route.mode != lm.TRANSIT)
+        self.nav_mode = route.mode
+        self.nav_state = self.nav_fix = self.nav_pending = None
+        self.nav_spoken = set()
+        self.nav_first = True
+        self.nav_base_status = ""
+        self.nav_prev_tracking = self.tracking
+        self.tracking = True
+        self.follow = True
+        self.watch_phone()
+        if os.environ.get("LUXOS_MAPS_GEOCLUE", "1") != "0":
+            self.geoclue = GeoClueWatch(self.on_geoclue_fix)
+        self.inhibit()
+        self.nav_btn.hide()
+        self.nav_recenter.hide()
+        if route.mode == lm.TRANSIT:
+            self.legs_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        self.nav_banner.show()
+        self.nav_bottom.show()
+        self.nav_update_ui({"next": self.nav.next, "step": route.steps[self.nav.next],
+                            "following": None, "to_next": route.steps[self.nav.next]["along"],
+                            "remaining_m": route.length, "remaining_s": route.remaining_s(0, 0),
+                            "eta": time.time() + route.remaining_s(0, 0), "arrived": False, "off_route": False,
+                            "located": False})
+        self.nav_set_status(_("Waiting for your location…"))
+        me = self.map.me
+        if me and me.get("source") == "phone" and not me.get("stale") \
+                and time.monotonic() - self.phone_last < lm.PHONE_FRESH_MS / 1000:
+            self.nav_on_fix(me)
+        gen = self.nav_gen
+
+        def work():
+            fix = lm.phone_location()
+            if fix:
+                GLib.idle_add(self.nav_initial_fix, gen, fix)
+        if os.environ.get("LUXOS_MAPS_PHONE", "1") != "0":
+            threading.Thread(target=work, daemon=True).start()
+        self.nav_wait_id = GLib.timeout_add_seconds(NAV_WAIT_S, self.nav_no_location)
+
+    def nav_initial_fix(self, gen, fix):
+        if self.nav and gen == self.nav_gen and self.nav_fix is None:
+            self.phone_last = time.monotonic()
+            self.map.me = fix
+            self.nav_on_fix(fix)
+        return False
+
+    def nav_no_location(self):
+        self.nav_wait_id = None
+        if self.nav and self.nav_fix is None:
+            self.nav_set_status(_("No live location. Connect your phone with LuxOS Companion and share its "
+                                  "location, or turn on the location service."))
+            self.nav_sim_btn.set_visible(bool(os.environ.get("LUXOS_MAPS_SIMULATE")))
+        return False
+
+    def nav_set_status(self, text):
+        """Radek stavu v pruhu (bez textu: trvaly stav, napr. simulace)."""
+        text = text or self.nav_base_status
+        self.nav_status.set_text(text)
+        self.nav_status.set_visible(bool(text))
+
+    def end_navigation(self):
+        if not self.nav:
+            return
+        self.nav = None
+        self.nav_gen += 1
+        for attr in ("nav_timer", "nav_wait_id", "nav_sim_id"):
+            sid = getattr(self, attr)
+            if sid:
+                GLib.source_remove(sid)
+                setattr(self, attr, None)
+        self.uninhibit()
+        if self.geoclue:
+            self.geoclue.stop()
+            self.geoclue = None
+        if self.tts_proc:
+            self.tts_proc.force_exit()
+            self.tts_proc = None
+        self.map.rotation = 0.0
+        self.map.nav_heading = None
+        if self.map.me and self.map.me.get("source") == "simulated":
+            self.map.me = None
+        self.map.queue_draw()
+        self.nav_banner.hide()
+        self.nav_bottom.hide()
+        self.nav_base_status = ""
+        self.nav_set_status("")
+        self.nav_sim_btn.hide()
+        self.legs_list.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.steps_list.unselect_all()
+        if not self.nav_prev_tracking:
+            self.unwatch_phone()
+        if self.route_res or self.transit_res:
+            self.nav_btn.show()
+
+    def on_geoclue_fix(self, fix):
+        """Poloha ze sluzby GeoClue: jen kdyz telefon 15 s nic neposlal (telefon ma prednost)."""
+        if not self.nav or time.monotonic() - self.phone_last < lm.PHONE_FRESH_MS / 1000:
+            return
+        self.map.me = fix
+        self.nav_on_fix(fix)
+
+    def nav_on_fix(self, fix):
+        """Nova poloha behem navigace: zpracovat nejvys NAV_MAX_HZ krat za sekundu (posledni vyhrava)."""
+        if not self.nav:
+            return
+        self.nav_pending = fix
+        if self.nav_timer:
+            return
+        wait = self.nav_last + 1.0 / lm.NAV_MAX_HZ - time.monotonic()
+        if wait > 0:
+            self.nav_timer = GLib.timeout_add(int(wait * 1000) + 1, self.nav_flush)
+        else:
+            self.nav_flush()
+
+    def nav_flush(self):
+        self.nav_timer = None
+        fix, self.nav_pending = self.nav_pending, None
+        if not (fix and self.nav):
+            return False
+        self.nav_last = time.monotonic()
+        first = self.nav_fix is None
+        self.nav_fix = fix
+        st = self.nav.update(fix)
+        self.nav_state = st
+        if first:
+            self.nav_sim_btn.hide()
+            self.nav_set_status("")
+        self.nav_update_ui(st)
+        self.nav_show_position()
+        if st["reroute"]:
+            self.nav_reroute(fix)
+        elif st["off_route"] and not self.nav.reroute_enabled:
+            self.nav_set_status(_("You are off the route."))
+        elif not st["off_route"]:
+            self.nav_set_status("")
+        self.nav_speak(st)
+        return False
+
+    def nav_show_position(self):
+        """Mapa za polohou: sipka ve smeru jizdy, mapa po smeru jizdy (nebo sever nahore), poloha ve spodni
+        tretine. Jen pri nove poloze (zadna animace mezi polohami = malo prekresleni)."""
+        fix, st = self.nav_fix, self.nav_state
+        if not (self.nav and fix and st):
+            return
+        m = self.map
+        m.me = fix
+        m.nav_heading = st["heading"]
+        m.rotation = -math.radians(st["heading"]) if self.cfg["nav_heading_up"] else 0.0
+        self.nav_compass.queue_draw()
+        if not self.follow or m.drag:
+            m.queue_draw()
+            return
+        zoom = NAV_ZOOM.get(self.nav_mode, 17.0) if self.nav_first else m.zoom
+        self.nav_first = False
+        m.anim = m.kinetic = None
+        px, py = lm.to_world(fix["lat"], fix["lon"])
+        ahead = m.get_allocated_height() * 0.22 if self.cfg["nav_heading_up"] else 0.0
+        dx, dy = m.unrot(0.0, ahead)
+        s = lm.TILE * (2 ** zoom)
+        m.set_view(px - dx / s, py - dy / s, zoom, notify=False)
+
+    def nav_follow_again(self):
+        self.follow = True
+        self.nav_recenter.hide()
+        self.nav_show_position()
+
+    def step_text(self, step):
+        """Pokyn kroku (OSRM i MHD) a druhy radek (ulice, nastupiste, cas)."""
+        typ = step.get("type")
+        if typ in ("board", "alight", "walk") and self.transit_res:
+            lg = self.transit_res["itineraries"][self.itin_idx]["legs"][step["leg"]]
+            if typ == "board":
+                what = " ".join(x for x in (_(lg["mode_name"]), lg["line"]) if x)
+                if lg["headsign"]:
+                    what += " → " + lg["headsign"]
+                sub = [_("Departs %s") % lg["departure_time"]]
+                if lg["from"].get("name"):
+                    sub.insert(0, lg["from"]["name"])
+                if lg["from"].get("platform"):
+                    sub.append(_("Platform %s") % lg["from"]["platform"])
+                return _("Take %s") % what, " · ".join(sub)
+            if typ == "alight":
+                return _("Get off at %s") % (lg["to"].get("name") or "?"), _("Arrives %s") % lg["arrival_time"]
+            return lm.step_instruction(step, _), lm.format_duration(lg["duration_s"], _)
+        if typ == "arrive":
+            return lm.step_instruction(step, _), self.endpoint_text(self.route_to) if self.route_to else ""
+        return lm.step_instruction(step, _), step.get("name") or ""
+
+    def nav_update_ui(self, st):
+        step = st["step"]
+        if st["arrived"]:
+            self.nav_icon.set_maneuver("arrive", "")
+            self.nav_dist.set_text(_("You have arrived"))
+            self.nav_instr.set_text(self.endpoint_text(self.route_to) if self.route_to else "")
+            self.nav_street.set_text("")
+            self.nav_then.hide()
+            self.nav_left.set_text(_("Arrived"))
+            self.nav_more.set_text(time.strftime("%H:%M"))
+        else:
+            instr, sub = self.step_text(step)
+            self.nav_icon.set_maneuver(step["type"], step.get("modifier", ""))
+            self.nav_dist.set_text(lm.format_distance(st["to_next"], IMPERIAL))
+            self.nav_instr.set_text(instr)
+            self.nav_street.set_text(sub)
+            self.nav_street.set_visible(bool(sub))
+            nxt = st.get("following")
+            if nxt:
+                self.nav_then_icon.set_maneuver(nxt["type"], nxt.get("modifier", ""))
+                self.nav_then_lbl.set_text(_("Then: %s") % self.step_text(nxt)[0])
+            self.nav_then.set_visible(bool(nxt))
+            self.nav_left.set_text(lm.format_duration(st["remaining_s"], _))
+            self.nav_more.set_text("%s · %s" % (lm.format_distance(st["remaining_m"], IMPERIAL),
+                                                _("Arrival %s") % time.strftime("%H:%M", time.localtime(st["eta"]))))
+        # aktualni krok v seznamu (MHD: usek spojeni), posunuty do viditelne casti panelu
+        lst = self.legs_list if self.nav_mode == lm.TRANSIT else self.steps_list
+        row = lst.get_row_at_index(step.get("leg", 0) if self.nav_mode == lm.TRANSIT else st["next"])
+        if row and lst.get_selected_row() is not row:
+            lst.select_row(row)
+            GLib.idle_add(self.scroll_to_row, row)
+
+    def scroll_to_row(self, row):
+        sw = row.get_ancestor(Gtk.ScrolledWindow)
+        content = sw.get_child().get_child() if sw and isinstance(sw.get_child(), Gtk.Viewport) else None
+        pos = row.translate_coordinates(content, 0, 0) if content and row.get_mapped() else None
+        if pos:
+            adj, h = sw.get_vadjustment(), row.get_allocated_height()
+            if pos[1] < adj.get_value() or pos[1] + h > adj.get_value() + adj.get_page_size():
+                adj.set_value(max(0, pos[1] - adj.get_page_size() / 3))
+        return False
+
+    def nav_reroute(self, fix):
+        """Mimo trasu: nova trasa z aktualni polohy (Navigator hlida nejvys 1 prepocet za 15 s)."""
+        self.nav_set_status(_("Rerouting…"))
+        gen, mode, b = self.nav_gen, self.nav_mode, self.route_to
+        a = {"lat": fix["lat"], "lon": fix["lon"]}
+
+        def work():
+            try:
+                res = lm.route(a, b, mode, cfg=self.cfg)
+            except lm.MapsError:
+                res = None
+            GLib.idle_add(self.nav_rerouted, gen, res)
+        threading.Thread(target=work, daemon=True).start()
+
+    def nav_rerouted(self, gen, res):
+        if not self.nav or gen != self.nav_gen:
+            return False
+        if not res:
+            self.nav.reroute_failed(time.time())
+            self.nav_set_status(_("The route could not be recalculated. Check your internet connection."))
+            return False
+        self.route_res = res
+        self.map.set_route(res)
+        self.map.route_ends = (self.route_from, self.route_to)
+        self.fill_steps(res)
+        self.rt_time.set_text(lm.format_duration(res["duration"], _))
+        self.rt_dist.set_text(lm.format_distance(res["distance"], IMPERIAL))
+        self.nav.set_route(lm.NavRoute.from_osrm(res))
+        self.nav_spoken = set()
+        self.nav_set_status("")
+        if self.nav_fix:
+            self.nav_on_fix(self.nav_fix)
+        return False
+
+    # hlasove pokyny (jen s TTS a zapnutym prepinacem): daleko a tesne pred manevrem, prijezd
+    def nav_speak(self, st):
+        if not (TTS and self.cfg["nav_voice"] and st.get("located")):
+            return
+        key = (id(self.nav.route), st["next"])
+        if st["arrived"]:
+            if ("arrived",) not in self.nav_spoken:
+                self.nav_spoken.add(("arrived",))
+                self.speak(_("You have arrived"))
+            return
+        far, near = NAV_VOICE_M.get(self.nav_mode, (300, 40))
+        instr = self.step_text(st["step"])[0]
+        d = st["to_next"]
+        if d <= near and key + ("near",) not in self.nav_spoken:
+            self.nav_spoken |= {key + ("near",), key + ("far",)}
+            self.speak(instr)
+        elif near * 2 < d <= far and key + ("far",) not in self.nav_spoken:
+            self.nav_spoken.add(key + ("far",))
+            self.speak(_("In %s, %s") % (lm.format_distance(round(d / 50.0) * 50 if d >= 100 else d, IMPERIAL),
+                                         instr))
+
+    def speak(self, text):
+        if self.tts_proc:
+            self.tts_proc.force_exit()
+        argv = [TTS, "-l", LANG, text] if TTS.endswith("spd-say") else [TTS, "-v", LANG, text]
+        try:
+            self.tts_proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_SILENCE
+                                               | Gio.SubprocessFlags.STDERR_SILENCE)
+        except GLib.Error:
+            self.tts_proc = None
+
+    # zhasinani obrazovky behem navigace: xfce4-screensaver (org.freedesktop.ScreenSaver)
+    # a xfce4-power-manager (org.freedesktop.PowerManagement.Inhibit); po konci se vzdy uvolni
+    INHIBITORS = (("org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver"),
+                  ("org.freedesktop.PowerManagement", "/org/freedesktop/PowerManagement/Inhibit",
+                   "org.freedesktop.PowerManagement.Inhibit"))
+
+    def inhibit(self):
+        try:
+            bus = lm.session_bus("LUXOS_MAPS_INHIBIT_BUS")
+        except GLib.Error:
+            return
+        gen = self.nav_gen
+        for name, path, iface in self.INHIBITORS:
+            def done(b, res, target=(name, path, iface)):
+                try:
+                    cookie = b.call_finish(res).unpack()[0]
+                except GLib.Error:
+                    return
+                if self.nav and gen == self.nav_gen:
+                    self.inhibit_cookies[target] = (b, cookie)
+                else:          # navigace mezitim skoncila
+                    self._uninhibit_one(b, target, cookie)
+            bus.call(name, path, iface, "Inhibit", GLib.Variant("(ss)", (_("Maps"), _("Navigation in progress"))),
+                     GLib.VariantType("(u)"), Gio.DBusCallFlags.NO_AUTO_START, 3000, None, done)
+
+    def _uninhibit_one(self, bus, target, cookie):
+        name, path, iface = target
+        bus.call(name, path, iface, "UnInhibit", GLib.Variant("(u)", (cookie,)), None,
+                 Gio.DBusCallFlags.NO_AUTO_START, 3000, None, None)
+
+    def uninhibit(self):
+        cookies, self.inhibit_cookies = self.inhibit_cookies, {}
+        for target, (bus, cookie) in cookies.items():
+            self._uninhibit_one(bus, target, cookie)
+        for bus in {id(b): b for b, _c in cookies.values()}.values():
+            try:
+                bus.flush_sync(None)       # odeslat hned (i pri zavirani okna)
+            except GLib.Error:
+                pass
+
+    # simulace jen pro testovani (LUXOS_MAPS_SIMULATE=1, cislo > 1 = zrychleni)
+    def nav_simulate(self):
+        if not (self.nav and os.environ.get("LUXOS_MAPS_SIMULATE")) or self.nav_sim_id:
+            return
+        try:
+            factor = max(1.0, float(os.environ["LUXOS_MAPS_SIMULATE"]))
+        except ValueError:
+            factor = 1.0
+        track = lm.simulate_track(self.nav.route, lm.NAV_SPEEDS.get(self.nav_mode, 10.0) * factor)
+        self.nav_base_status = _("Simulated location (testing)")
+        self.nav_sim_btn.hide()
+        self.nav_set_status("")
+
+        def tick():
+            fix = next(track, None)
+            if fix is None or not self.nav:
+                self.nav_sim_id = None
+                return False
+            self.map.me = fix
+            self.nav_on_fix(fix)
+            return True
+        self.nav_sim_id = GLib.timeout_add(1000, tick)
+        tick()
 
     # ---- kontextova nabidka mapy ----
     def on_context(self, lat, lon, event):
@@ -2230,6 +2997,7 @@ class MapsWindow(Gtk.Window):
         if b.get_active() != self.cfg["location_consent"]:
             self.cfg["location_consent"] = b.get_active()
             if not b.get_active():
+                self.end_navigation()
                 self.unwatch_phone()
                 self.map.me = None
                 self.map.queue_draw()
@@ -2267,6 +3035,8 @@ class MapsWindow(Gtk.Window):
             self.close()
             return True
         if key == Gdk.KEY_Escape and not isinstance(self.get_focus(), Gtk.Entry):
+            if self.nav:
+                return True            # navigaci konci jen tlacitko Ukoncit (ne nahodny Esc)
             if self.stack.get_visible_child_name() == "departures":
                 self.departures_back()
             elif self.stack.get_visible_child_name() == "directions":
@@ -2305,6 +3075,7 @@ class MapsWindow(Gtk.Window):
         return False
 
     def on_destroy(self, _w):
+        self.end_navigation()
         self.unwatch_phone()
         if self.dep_timer:
             GLib.source_remove(self.dep_timer)

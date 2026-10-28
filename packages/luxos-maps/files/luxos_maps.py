@@ -64,6 +64,7 @@ STOPTIMES_TTL = 45            # s, odjezdy v realnem case
 NEARBY_TTL = 600              # s, mista v okoli (Overpass)
 API_CACHE_FILES = 96          # odpovedi Transitous/Overpass na disku
 API_CACHE_BYTES = 32 * 1024 * 1024
+SIDEBAR_MIN, SIDEBAR_MAX = 280, 560   # px (logicke), sirka postranniho panelu
 BACKOFF = 30                  # s, pauza po "pretizeno" (429/502/503/504) od Overpass/Transitous
 
 
@@ -121,6 +122,12 @@ def load_config():
     if cfg.get("mode") not in MODES and cfg.get("mode") != TRANSIT:
         cfg["mode"] = "car"
     cfg["location_consent"] = cfg.get("location_consent") is True
+    # sirka postranniho panelu (tazenim), navigace: mapa po smeru jizdy, hlasove pokyny (vychozi vypnute)
+    sw = cfg.get("sidebar_width")
+    if not (isinstance(sw, int) and not isinstance(sw, bool) and SIDEBAR_MIN <= sw <= SIDEBAR_MAX):
+        cfg.pop("sidebar_width", None)
+    cfg["nav_heading_up"] = cfg.get("nav_heading_up") is not False
+    cfg["nav_voice"] = cfg.get("nav_voice") is True
     for key in ("tile_url", "search_url", "reverse_url", "route_url", "transit_plan_url", "stoptimes_url",
                 "overpass_url"):
         if not isinstance(cfg.get(key), str) or not cfg[key].startswith(("https://", "http://")):
@@ -1409,6 +1416,279 @@ def render_preview(preview, width=480, height=270, out_path=None, cfg=None, tile
             "width": width, "height": height}
 
 
+# ---- navigace (bez GTK: postup po krocich, mimo trasu, prepocet, prijezd, cas prijezdu) ----------------
+NAV_OFF_ROUTE_M = 50          # m od trasy = mimo trasu ...
+NAV_OFF_ROUTE_FIXES = 3       # ... pro 3 polohy po sobe
+NAV_OFF_ROUTE_S = 10          # ... nebo dele nez 10 s
+NAV_REROUTE_GAP = 15          # s, nejmene mezi dvema prepocty trasy (OSRM: ohleduplne)
+NAV_REROUTE_BACKOFF = 30      # s, po neuspesnem prepoctu
+NAV_PASS_M = 5                # m za bodem manevru = manevr projety, dalsi krok
+NAV_ARRIVE_M = 25             # m od cile = prijezd
+NAV_MAX_ACCURACY = 100        # m, horsi poloha nerozhoduje o kroku ani o mimo trasu
+NAV_WINDOW_M = 2500           # m dopredu, kde se hleda poloha na trase (rychle a bez skoku na smycku)
+NAV_SPEEDS = {"car": 13.9, "bike": 5.0, "walk": 1.4, TRANSIT: 8.0}   # m/s, jen simulace
+NAV_MAX_HZ = 5                # nejvys 5 zpracovani polohy (a prekresleni) za sekundu
+EARTH_R = 6371008.8
+
+
+def bearing(a_lat, a_lon, b_lat, b_lon):
+    """Kurz z a do b ve stupnich (0 = sever, 90 = vychod)."""
+    p1, p2 = math.radians(a_lat), math.radians(b_lat)
+    dl = math.radians(b_lon - a_lon)
+    y = math.sin(dl) * math.cos(p2)
+    x = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dl)
+    return math.degrees(math.atan2(y, x)) % 360.0
+
+
+def angle_diff(a, b):
+    """Nejmensi rozdil dvou kurzu (-180..180)."""
+    return (b - a + 180.0) % 360.0 - 180.0
+
+
+class NavRoute:
+    """Trasa pro navigaci: body, kroky s polohou podel trasy (m), delka, doba; vypocty v mistnich metrech."""
+
+    def __init__(self, points, steps, mode, duration=0.0, arrival=None, dest=None):
+        if len(points) < 2:
+            raise MapsError("invalid route")
+        self.points = [(float(a), float(b)) for a, b in points]
+        self.mode = mode
+        self.arrival = arrival            # MHD: cas prijezdu podle jizdniho radu (epocha), jinak None
+        self.dest = dest or {"lat": self.points[-1][0], "lon": self.points[-1][1]}
+        lat0 = sum(p[0] for p in self.points) / len(self.points)
+        self.ky = EARTH_R * math.pi / 180.0
+        self.kx = self.ky * math.cos(math.radians(lat0))
+        self.xy = [(lon * self.kx, lat * self.ky) for lat, lon in self.points]
+        self.cum = [0.0]
+        for (a1, o1), (a2, o2) in zip(self.points, self.points[1:]):
+            self.cum.append(self.cum[-1] + distance_m(a1, o1, a2, o2))
+        self.length = self.cum[-1]
+        self.steps = [dict(s) for s in steps] or [
+            {"type": "depart", "modifier": "", "text": "Depart", "arg": None, "name": "", "distance": self.length,
+             "duration": duration, "lat": self.points[0][0], "lon": self.points[0][1]},
+            {"type": "arrive", "modifier": "", "text": "Arrive at your destination", "arg": None, "name": "",
+             "distance": 0.0, "duration": 0.0, "lat": self.points[-1][0], "lon": self.points[-1][1]}]
+        seg = 0
+        for i, s in enumerate(self.steps):
+            if i == 0:
+                s["along"], s["seg"] = 0.0, 0
+                continue
+            if i == len(self.steps) - 1 and s.get("type") == "arrive":
+                s["along"], s["seg"] = self.length, len(self.points) - 2
+                continue
+            seg, along, _off = self._snap_step(s["lat"], s["lon"], seg)
+            s["along"], s["seg"] = max(along, self.steps[i - 1]["along"]), seg
+        self.duration = float(duration) or sum(float(s.get("duration") or 0) for s in self.steps)
+
+    @classmethod
+    def from_osrm(cls, res):
+        """Vysledek route() (auto/kolo/pesky)."""
+        return cls(res["points"], res["steps"], res["mode"], res.get("duration") or 0.0)
+
+    def _seg_dist(self, i, x, y):
+        (x1, y1), (x2, y2) = self.xy[i], self.xy[i + 1]
+        dx, dy = x2 - x1, y2 - y1
+        ll = dx * dx + dy * dy
+        t = 0.0 if ll <= 0 else clamp(((x - x1) * dx + (y - y1) * dy) / ll, 0.0, 1.0)
+        return math.hypot(x - x1 - t * dx, y - y1 - t * dy), t
+
+    def _snap_step(self, lat, lon, start):
+        """Bod manevru na trase od useku start dal (prvni usek blize nez 1 m, jinak nejblizsi)."""
+        x, y = lon * self.kx, lat * self.ky
+        best = (float("inf"), start, 0.0)
+        for i in range(start, len(self.xy) - 1):
+            d, t = self._seg_dist(i, x, y)
+            if d < best[0]:
+                best = (d, i, t)
+            if d < 1.0:
+                break
+        d, i, t = best
+        return i, self.cum[i] + t * (self.cum[i + 1] - self.cum[i]), d
+
+    def project(self, lat, lon, lo=0, max_along=None):
+        """(usek, vzdalenost podel trasy v m, vzdalenost od trasy v m) nejblizsiho mista trasy;
+        hleda se od useku lo do max_along metru podel trasy."""
+        x, y = lon * self.kx, lat * self.ky
+        best = (float("inf"), lo, 0.0)
+        for i in range(max(0, lo), len(self.xy) - 1):
+            if max_along is not None and self.cum[i] > max_along:
+                break
+            d, t = self._seg_dist(i, x, y)
+            if d < best[0]:
+                best = (d, i, t)
+        d, i, t = best
+        return i, self.cum[i] + t * (self.cum[i + 1] - self.cum[i]), d
+
+    def point_at(self, along):
+        """(lat, lon, kurz) v miste along metru od startu."""
+        along = clamp(along, 0.0, self.length)
+        lo, hi = 0, len(self.cum) - 2
+        while lo < hi:                       # posledni usek s cum[i] <= along
+            mid = (lo + hi + 1) // 2
+            if self.cum[mid] <= along:
+                lo = mid
+            else:
+                hi = mid - 1
+        i = lo
+        seg = self.cum[i + 1] - self.cum[i]
+        t = 0.0 if seg <= 0 else (along - self.cum[i]) / seg
+        (a1, o1), (a2, o2) = self.points[i], self.points[i + 1]
+        return a1 + (a2 - a1) * t, o1 + (o2 - o1) * t, bearing(a1, o1, a2, o2)
+
+    def remaining_s(self, along, step_idx, now=None):
+        """Zbyvajici cas: zbytek aktualniho kroku podle podilu vzdalenosti + doby dalsich kroku.
+        MHD: do prijezdu podle jizdniho radu."""
+        if self.arrival is not None:
+            left = self.arrival - (time.time() if now is None else now)
+            if left > 0:
+                return left
+            # spoj ujel nebo jizdni rad nesedi: odhad podle dob useku jako u auta
+        steps = self.steps
+        k = int(clamp(step_idx, 0, len(steps) - 1))
+        end = steps[k + 1]["along"] if k + 1 < len(steps) else self.length
+        span = end - steps[k]["along"]
+        frac = 1.0 if span <= 0 else clamp((end - along) / span, 0.0, 1.0)
+        return frac * float(steps[k].get("duration") or 0) + sum(float(s.get("duration") or 0)
+                                                                 for s in steps[k + 1:])
+
+
+def transit_nav_route(it, dest=None):
+    """Vybrane spojeni MHD -> NavRoute s kroky Jdete pesky / Nastupte / Vystupte (bez prepoctu trasy)."""
+    pts, steps = [], []
+    legs = it.get("legs") or []
+    for li, lg in enumerate(legs):
+        lp = leg_points(lg) or [(lg["from"]["lat"], lg["from"]["lon"]), (lg["to"]["lat"], lg["to"]["lon"])]
+        if pts and distance_m(pts[-1][0], pts[-1][1], lp[0][0], lp[0][1]) < 0.5:
+            lp = lp[1:]
+        pts.extend(lp)
+        base = {"modifier": "", "arg": None, "leg": li, "lat": lg["from"]["lat"], "lon": lg["from"]["lon"],
+                "duration": float(lg.get("duration_s") or 0), "distance": float(lg.get("distance_m") or 0)}
+        if lg["transit"]:
+            steps.append(dict(base, type="board", text="Take %s", name=lg["from"].get("name") or ""))
+            steps.append(dict(base, type="alight", text="Get off at %s", arg=lg["to"].get("name") or "",
+                              name="", lat=lg["to"]["lat"], lon=lg["to"]["lon"], duration=0.0, distance=0.0))
+        elif not (li and legs[li - 1]["transit"]):      # chuze po vystupu patri ke kroku Vystupte
+            to = lg["to"].get("name") or ""
+            steps.append(dict(base, type="walk", text="Walk to %s" if to else "Walk to your destination",
+                              arg=to or None, name=""))
+    if len(pts) < 2:
+        raise MapsError("invalid route")
+    if steps:
+        steps[0] = dict(steps[0], lat=pts[0][0], lon=pts[0][1])
+    steps.append({"type": "arrive", "modifier": "", "text": "Arrive at your destination", "arg": None, "name": "",
+                  "distance": 0.0, "duration": 0.0, "lat": pts[-1][0], "lon": pts[-1][1], "leg": len(legs) - 1})
+    arr = parse_iso(it.get("arrival"))
+    return NavRoute(pts, steps, TRANSIT, float(it.get("duration_s") or 0),
+                    arrival=arr.timestamp() if arr else None, dest=dest)
+
+
+class Navigator:
+    """Navigace po trase podle zivych poloh: aktualni krok, vzdalenost k dalsimu manevru, zbyvajici
+    vzdalenost/cas a cas prijezdu, mimo trasu -> prepocet (nejvys 1x za NAV_REROUTE_GAP s), prijezd.
+
+    update(fix, now) vraci stav (dict); "reroute": True = volajici ma spocitat novou trasu z polohy fixu
+    a predat ji set_route() (pri chybe reroute_failed())."""
+
+    def __init__(self, route, reroute=True):
+        self.reroute_enabled = reroute
+        self.last_reroute = -1e18
+        self.heading = None
+        self._head_pos = None
+        self.set_route(route)
+
+    def set_route(self, route):
+        self.route = route
+        self.next = 1 if len(route.steps) > 1 else 0    # index dalsiho manevru
+        self.seg = 0
+        self.along = 0.0
+        self.offset = 0.0
+        self.off_count = 0
+        self.off_since = None
+        self.off_route = False
+        self.arrived = False
+        self.located = False
+
+    def reroute_failed(self, now):
+        self.last_reroute = now + NAV_REROUTE_BACKOFF - NAV_REROUTE_GAP
+
+    def _heading(self, fix):
+        b, sp = fix.get("bearing"), fix.get("speed")
+        if isinstance(b, (int, float)) and isinstance(sp, (int, float)) and sp >= 1.0 and math.isfinite(b):
+            self.heading = float(b) % 360.0
+            self._head_pos = (fix["lat"], fix["lon"])
+            return
+        if self._head_pos is None:
+            self._head_pos = (fix["lat"], fix["lon"])
+        elif distance_m(self._head_pos[0], self._head_pos[1], fix["lat"], fix["lon"]) >= 8.0:
+            self.heading = bearing(self._head_pos[0], self._head_pos[1], fix["lat"], fix["lon"])
+            self._head_pos = (fix["lat"], fix["lon"])
+
+    def update(self, fix, now=None):
+        now = time.time() if now is None else now
+        r = self.route
+        acc = float(fix.get("accuracy") or 0)
+        lat, lon = fix["lat"], fix["lon"]
+        self._heading(fix)
+        advanced = reroute = False
+        if acc <= NAV_MAX_ACCURACY and not self.arrived:
+            lo = max(0, self.seg - 2) if self.located else 0
+            seg, along, off = r.project(lat, lon, lo, (self.along + NAV_WINDOW_M) if self.located else None)
+            thr = max(NAV_OFF_ROUTE_M, acc)
+            if off > thr and self.located:
+                g = r.project(lat, lon)              # zkratka nebo navrat na trasu jinde
+                if g[2] <= thr:
+                    seg, along, off = g
+            self.offset = off
+            if off > thr:
+                self.off_count += 1
+                if self.off_since is None:
+                    self.off_since = now
+                if self.off_count >= NAV_OFF_ROUTE_FIXES or now - self.off_since >= NAV_OFF_ROUTE_S:
+                    self.off_route = True
+            else:
+                self.off_count, self.off_since, self.off_route = 0, None, False
+                self.seg, self.along, self.located = seg, along, True
+            if self.off_route and self.reroute_enabled and now - self.last_reroute >= NAV_REROUTE_GAP:
+                self.last_reroute = now
+                reroute = True
+            if not self.off_route and self.located:
+                last = len(r.steps) - 1
+                while self.next < last and self.along >= r.steps[self.next]["along"] + NAV_PASS_M:
+                    self.next += 1
+                    advanced = True
+                to_dest = distance_m(lat, lon, r.dest["lat"], r.dest["lon"])
+                if r.length - self.along <= NAV_ARRIVE_M or to_dest <= NAV_ARRIVE_M + min(acc, 25):
+                    self.arrived = True
+                    advanced = advanced or self.next != last
+                    self.next = last
+        if self.heading is None:
+            self.heading = r.point_at(self.along)[2]
+        nxt = r.steps[self.next]
+        rem_s = 0.0 if self.arrived else r.remaining_s(self.along, self.next - 1, now)
+        return {"next": self.next, "step": nxt,
+                "following": r.steps[self.next + 1] if self.next + 1 < len(r.steps) else None,
+                "to_next": 0.0 if self.arrived else max(0.0, nxt["along"] - self.along),
+                "remaining_m": 0.0 if self.arrived else max(0.0, r.length - self.along),
+                "remaining_s": rem_s, "eta": now + rem_s, "offset": self.offset,
+                "off_route": self.off_route, "reroute": reroute, "arrived": self.arrived,
+                "advanced": advanced, "heading": self.heading, "located": self.located}
+
+
+def simulate_track(route, speed=None, interval=1.0, start=0.0, accuracy=5.0):
+    """Simulovane polohy podel trasy (jen testy a LUXOS_MAPS_SIMULATE): generator fixu po interval s."""
+    if not isinstance(route, NavRoute):
+        route = NavRoute.from_osrm(route)
+    speed = speed or NAV_SPEEDS.get(route.mode, 10.0)
+    along = start
+    while True:
+        lat, lon, head = route.point_at(along)
+        yield {"lat": lat, "lon": lon, "accuracy": accuracy, "speed": speed, "bearing": head,
+               "source": "simulated", "name": ""}
+        if along >= route.length:
+            return
+        along = min(route.length, along + speed * interval)
+
+
 # ---- poloha -----------------------------------------------------------------------
 def ip_location():
     """Priblizna poloha podle IP (ipinfo.io). Volat jen po souhlasu uzivatele."""
@@ -1507,10 +1787,10 @@ def phone_fix(d):
 _companion_bus = {}
 
 
-def companion_bus():
-    """Sbernice relace (LUXOS_MAPS_COMPANION_BUS: adresa jine sbernice - testy)."""
+def session_bus(env):
+    """Sbernice relace, nebo adresa v promenne env (testy: soukroma sbernice, nikdy skutecna relace)."""
     from gi.repository import Gio
-    addr = os.environ.get("LUXOS_MAPS_COMPANION_BUS")
+    addr = os.environ.get(env)
     if not addr:
         return Gio.bus_get_sync(Gio.BusType.SESSION, None)
     if addr not in _companion_bus:
@@ -1518,6 +1798,11 @@ def companion_bus():
             addr, Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,
             None, None)
     return _companion_bus[addr]
+
+
+def companion_bus():
+    """Sbernice relace (LUXOS_MAPS_COMPANION_BUS: adresa jine sbernice - testy)."""
+    return session_bus("LUXOS_MAPS_COMPANION_BUS")
 
 
 def phone_location(timeout_ms=800):

@@ -4364,3 +4364,30 @@ LuxAI (%s) gave no clear answer	LuxAI (%s) gaf geen duidelijk antwoord
 one model did not answer, cannot confirm safe	één model antwoordde niet, veilig kan niet worden bevestigd
 no specific concern found in the build script	geen concreet probleem gevonden in het build-script
 Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	Voor het koppelen van de back-upschijf is hier een beheerderswachtwoord nodig. Gebruik het venster Back-ups of voer de opdracht uit in een terminal van je bureaubladsessie.
+Start Navigation	Navigatie starten
+Follow the route with your live location	Route volgen met je live locatie
+Arrival %s	Aankomst %s
+Arrived	Aangekomen
+Arrives %s	Aankomst %s
+Departs %s	Vertrek %s
+Drive the route with a simulated location (testing only)	Route afleggen met een gesimuleerde locatie (alleen om te testen)
+End	Stoppen
+End Navigation	Navigatie stoppen
+Get off at %s	Uitstappen bij %s
+Heading Up – click for North Up	Rijrichting boven – klik voor noorden boven
+North Up – click for Heading Up	Noorden boven – klik voor rijrichting boven
+In %s, %s	Over %s: %s
+Location signal lost. Waiting for your location…	Locatiesignaal kwijt. Wachten op je locatie…
+Navigation in progress	Navigatie bezig
+No live location. Connect your phone with LuxOS Companion and share its location, or turn on the location service.	Geen live locatie. Verbind je telefoon met LuxOS Companion en deel de locatie, of zet de locatievoorziening aan.
+Re-center	Centreren
+Rerouting…	Route herberekenen…
+Simulate	Simuleren
+Simulated location (testing)	Gesimuleerde locatie (test)
+Take %s	Neem %s
+The route could not be recalculated. Check your internet connection.	De route kon niet opnieuw worden berekend. Controleer je internetverbinding.
+Then: %s	Daarna: %s
+Voice Guidance	Gesproken aanwijzingen
+Waiting for your location…	Wachten op je locatie…
+You are off the route.	Je bent van de route af.
+You have arrived	Je bent aangekomen

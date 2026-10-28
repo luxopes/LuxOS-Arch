@@ -4364,3 +4364,30 @@ LuxAI (%s) gave no clear answer	LuxAI (%s) gab keine klare Antwort
 one model did not answer, cannot confirm safe	ein Modell hat nicht geantwortet, sicher kann nicht bestätigt werden
 no specific concern found in the build script	kein konkretes Problem im Build-Skript gefunden
 Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	Zum Verbinden des Sicherungsdatenträgers ist hier ein Administratorpasswort nötig. Verwenden Sie das Fenster „Datensicherung“ oder führen Sie den Befehl in einem Terminal Ihrer Desktopsitzung aus.
+Start Navigation	Navigation starten
+Follow the route with your live location	Route mit dem aktuellen Standort folgen
+Arrival %s	Ankunft %s
+Arrived	Angekommen
+Arrives %s	Ankunft %s
+Departs %s	Abfahrt %s
+Drive the route with a simulated location (testing only)	Route mit simuliertem Standort abfahren (nur zum Testen)
+End	Beenden
+End Navigation	Navigation beenden
+Get off at %s	Aussteigen: %s
+Heading Up – click for North Up	Fahrtrichtung oben – klicken für Norden oben
+North Up – click for Heading Up	Norden oben – klicken für Fahrtrichtung oben
+In %s, %s	In %s %s
+Location signal lost. Waiting for your location…	Standortsignal verloren. Warten auf Standort…
+Navigation in progress	Navigation läuft
+No live location. Connect your phone with LuxOS Companion and share its location, or turn on the location service.	Kein aktueller Standort. Verbinden Sie Ihr Telefon mit LuxOS Companion und teilen Sie seinen Standort, oder schalten Sie den Ortungsdienst ein.
+Re-center	Zentrieren
+Rerouting…	Route wird neu berechnet…
+Simulate	Simulieren
+Simulated location (testing)	Simulierter Standort (Test)
+Take %s	Einsteigen: %s
+The route could not be recalculated. Check your internet connection.	Die Route konnte nicht neu berechnet werden. Prüfen Sie Ihre Internetverbindung.
+Then: %s	Dann: %s
+Voice Guidance	Sprachansagen
+Waiting for your location…	Warten auf Ihren Standort…
+You are off the route.	Sie sind von der Route abgekommen.
+You have arrived	Sie haben Ihr Ziel erreicht

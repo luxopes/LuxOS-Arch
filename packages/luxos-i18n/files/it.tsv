@@ -4364,3 +4364,30 @@ LuxAI (%s) gave no clear answer	LuxAI (%s) non ha dato una risposta chiara
 one model did not answer, cannot confirm safe	un modello non ha risposto, impossibile confermare come sicuro
 no specific concern found in the build script	nessun problema concreto trovato nello script di compilazione
 Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	Per collegare il disco di backup qui serve una password di amministratore. Usa la finestra Backup oppure esegui il comando in un terminale della tua sessione desktop.
+Start Navigation	Avvia navigazione
+Follow the route with your live location	Segui il percorso con la posizione in tempo reale
+Arrival %s	Arrivo %s
+Arrived	Arrivato
+Arrives %s	Arriva alle %s
+Departs %s	Parte alle %s
+Drive the route with a simulated location (testing only)	Percorri il percorso con una posizione simulata (solo per test)
+End	Termina
+End Navigation	Termina navigazione
+Get off at %s	Scendi a %s
+Heading Up – click for North Up	Direzione in alto – fai clic per nord in alto
+North Up – click for Heading Up	Nord in alto – fai clic per direzione in alto
+In %s, %s	Tra %s, %s
+Location signal lost. Waiting for your location…	Segnale di posizione perso. In attesa della posizione…
+Navigation in progress	Navigazione in corso
+No live location. Connect your phone with LuxOS Companion and share its location, or turn on the location service.	Nessuna posizione in tempo reale. Collega il telefono con LuxOS Companion e condividi la sua posizione, oppure attiva il servizio di localizzazione.
+Re-center	Ricentra
+Rerouting…	Ricalcolo del percorso…
+Simulate	Simula
+Simulated location (testing)	Posizione simulata (test)
+Take %s	Prendi %s
+The route could not be recalculated. Check your internet connection.	Impossibile ricalcolare il percorso. Controlla la connessione a Internet.
+Then: %s	Poi: %s
+Voice Guidance	Indicazioni vocali
+Waiting for your location…	In attesa della tua posizione…
+You are off the route.	Sei fuori percorso.
+You have arrived	Sei arrivato
