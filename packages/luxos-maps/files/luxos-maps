@@ -225,17 +225,26 @@ def set_window_icons(win):
     """Ikona okna 16-256 px (Alt+Tab ukazuje ~100 px; set_icon_name posle jen male velikosti a
     xfwm4 je zvetsi rozmazane). Bez ikony v tematu SVG vedle programu."""
     theme = Gtk.IconTheme.get_default()
-    svg = os.path.join(os.path.dirname(os.path.realpath(__file__)), APP + ".svg")
+    # zalozni soubory: vedle programu (spusteni ze zdroju) a nainstalovana ikona - tema muze odkazovat
+    # na neexistujici soubor (zastarala icon-theme.cache v ~/.local/share/icons), pak by okno ikonu nemelo
+    svgs = [os.path.join(os.path.dirname(os.path.realpath(__file__)), APP + ".svg"),
+            "/usr/share/icons/hicolor/scalable/apps/%s.svg" % APP]
     pixbufs = []
     for size in (16, 24, 32, 48, 64, 128, 256):
         pb = None
         try:
             if theme.has_icon(APP):
                 pb = theme.load_icon(APP, size, Gtk.IconLookupFlags.FORCE_SIZE)
-            elif os.path.exists(svg):
-                pb = GdkPixbuf.Pixbuf.new_from_file_at_size(svg, size, size)
         except GLib.Error:
             pb = None
+        for svg in svgs:
+            if pb:
+                break
+            try:
+                if os.path.exists(svg):
+                    pb = GdkPixbuf.Pixbuf.new_from_file_at_size(svg, size, size)
+            except GLib.Error:
+                pb = None
         if pb:
             pixbufs.append(pb)
     if pixbufs:
