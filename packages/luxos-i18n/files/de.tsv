@@ -2672,7 +2672,7 @@ opens a remote shell	öffnet eine Remote-Shell
 remove packages (also Flatpak apps) and unneeded dependencies	Pakete entfernen (auch Flatpak-Apps) und nicht mehr benötigte Abhängigkeiten
 runs generated code with eval	führt erzeugten Code mit eval aus
 runs inline code of another language	führt eingebetteten Code einer anderen Sprache aus
-search repositories, Flathub and community (AUR)	Repositorien, Flathub und Community (AUR) durchsuchen
+search repositories, Flathub and AUR; patterns ^vim, *qt* (lux search -h)	in Paketquellen, auf Flathub und im AUR suchen; Muster ^vim, *qt* (lux search -h)
 sets world-writable or setuid permissions	setzt für alle beschreibbare oder setuid-Rechte
 the build script is unusually long	das Build-Skript ist ungewöhnlich lang
 touches accounts, sudo or SSH keys	greift auf Konten, sudo oder SSH-Schlüssel zu
@@ -4409,3 +4409,15 @@ On the phone: Bluetooth settings → pair with “%s”, confirm the same code o
 This computer is no longer visible. Press Pair a Phone… to try again.	Dieser Computer ist nicht mehr sichtbar. Klicken Sie erneut auf Telefon koppeln…, um es noch einmal zu versuchen.
 Visible to phones for %d:%02d	Für Telefone sichtbar noch %d:%02d
 Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	Gekoppelt mit „%s“. Öffnen Sie jetzt LuxOS Companion auf dem Telefon → Computer wählen; bei der ersten Verbindung werden Sie hier um Erlaubnis gefragt.
+term or pattern	Begriff oder Muster
+A plain word searches package names and descriptions. A pattern searches names only (case does not matter):	Ein einfaches Wort sucht in Paketnamen und Beschreibungen. Ein Muster sucht nur in Namen (Groß-/Kleinschreibung egal):
+name starts with text	Name beginnt mit Text
+name ends with text	Name endet mit Text
+exactly this name	genau dieser Name
+name contains text	Name enthält Text
+* any characters, ? one character (the whole name must match)	* beliebige Zeichen, ? ein Zeichen (der ganze Name muss passen)
+same as *, but the shell does not expand it	wie *, wird aber von der Shell nicht erweitert
+More words or patterns: all must match. Put patterns in quotes: lux search '*qt*'	Mehrere Wörter oder Muster: alle müssen passen. Muster in Anführungszeichen setzen: lux search '*qt*'
+search only installed packages and apps	nur in installierten Paketen und Apps suchen
+Usage: lux search [--installed] <term or pattern>	Verwendung: lux search [--installed] <Begriff oder Muster>
+skipped: a pattern needs at least 2 letters in a row for the AUR	übersprungen: ein Muster braucht für das AUR mindestens 2 Zeichen am Stück
