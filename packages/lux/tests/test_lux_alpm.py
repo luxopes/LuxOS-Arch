@@ -1246,3 +1246,332 @@ class GpuProviders(unittest.TestCase):
     def test_kepler_keeps_legacy(self):
         got = self.install(["lib32-nvidia-470xx-utils", "nvidia-470xx-dkms"])
         self.assertIn("lib32-nvidia-470xx-utils", got)
+
+
+# ---- hooky: prubeh faze Dokoncuji / Pripravuji ---------------------------------------------------
+HOOKS = {
+    "05-snapshot": """# snimek pred transakci
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Target = *
+
+[Action]
+Description = Saving a snapshot of the system...
+When = PreTransaction
+Exec = /usr/bin/luxos-care snapshot-pre
+NeedsTargets
+AbortOnFail
+""",
+    "20-desktop": """[Trigger]
+Type = Path
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Target = usr/share/applications/*.desktop
+
+[Action]
+Description = Updating the desktop file MIME type cache...
+When = PostTransaction
+Exec = /usr/bin/update-desktop-database --quiet
+""",
+    "30-icons": """[Trigger]
+Type = Path
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Target = usr/share/icons/*/
+Target = !usr/share/icons/*/?*
+
+[Action]
+Description = Updating icon theme caches...
+When = PostTransaction
+Exec = /usr/share/libalpm/scripts/gtk-update-icon-cache
+NeedsTargets
+""",
+    "40-initcpio": """[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Target = linux
+Target = mkinitcpio
+
+[Action]
+Description = Updating linux initcpios...
+When = PostTransaction
+Exec = /usr/share/libalpm/scripts/mkinitcpio install
+""",
+    "50-htop": """[Trigger]
+Type = Package
+Operation = Upgrade
+Target = htop
+
+[Action]
+When = PostTransaction
+Exec = /bin/true
+""",
+    "60-kernel": """[Trigger]
+Type = File
+Operation = Install
+Target = usr/lib/modules/*/vmlinuz
+
+[Action]
+Description = Kernel...
+When = PostTransaction
+Exec = /usr/bin/kernel-hook
+""",
+    "70-broken": """[Trigger]
+Type = Package
+Target = *
+
+[Action]
+When = PostTransaction
+""",
+}
+
+FILES = {
+    ("firefox", "131.0-1"): ["usr/", "usr/share/", "usr/share/applications/",
+                             "usr/share/applications/firefox.desktop", "usr/share/icons/",
+                             "usr/share/icons/hicolor/", "usr/share/icons/hicolor/48x48/apps/firefox.png"],
+    ("nss", "3.104-1"): ["usr/lib/libnss3.so"],
+    ("libvpx", "1.14-1"): ["usr/lib/libvpx.so"],
+    ("htop", "3.3.0-1"): ["usr/bin/htop"],
+    ("htop", "3.3.0-2"): ["usr/bin/htop", "usr/share/applications/htop.desktop"],
+}
+
+
+class HookWorld:
+    """Docasny adresar s hooky (system + HookDir) a mistni databazi se seznamy souboru."""
+
+    def __init__(self):
+        self.tmp = tempfile.mkdtemp(prefix="lux-hooks-")
+        self.sysdir = os.path.join(self.tmp, "usr/share/libalpm/hooks") + "/"
+        self.userdir = os.path.join(self.tmp, "etc/lux/hooks") + "/"
+        self.dbpath = os.path.join(self.tmp, "var/lib/lux") + "/"
+        os.makedirs(self.sysdir)
+        os.makedirs(self.userdir)
+        for name, text in HOOKS.items():
+            with open(os.path.join(self.sysdir, name + ".hook"), "w") as f:
+                f.write(text)
+        for (name, ver), files in FILES.items():
+            d = os.path.join(self.dbpath, "local", f"{name}-{ver}")
+            os.makedirs(d)
+            with open(os.path.join(d, "files"), "w") as f:
+                f.write("%FILES%\n" + "\n".join(files) + "\n\n%BACKUP%\netc/x.conf\tabc\n")
+
+    def cleanup(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+
+class StubUI:
+    """Zaznamenava fazi a prubeh (bez vykreslovani)."""
+
+    def __init__(self):
+        self.ph = None
+        self.machine = self.verbose = False
+        self.phases, self.steps, self.compats = [], [], []
+
+    def phase(self, name):
+        self.ph = {"name": name, "frac": 0.0, "detail": ""}
+        self.phases.append(name)
+
+    def progress(self, frac, detail=None):
+        self.ph["frac"] = max(self.ph["frac"], frac)
+        if detail is not None:
+            self.ph["detail"] = detail
+        self.steps.append((round(self.ph["frac"], 3), self.ph["detail"]))
+
+    def compat(self, text):
+        self.compats.append(text)
+
+    def write(self, *a, **k):
+        pass
+
+
+class HookPlanTest(unittest.TestCase):
+    def setUp(self):
+        self.w = HookWorld()
+        self.addCleanup(self.w.cleanup)
+
+    def plan(self, installs=None, upgrades=None, removes=None):
+        return lux_alpm.HookPlan.load([self.w.sysdir, self.w.userdir], self.w.dbpath, installs or {},
+                                      upgrades or {}, removes or {})
+
+    def names(self, hooks):
+        return [h["name"] for h in hooks]
+
+    def test_post_hooks_from_packages_and_paths(self):
+        p = self.plan({"firefox": "131.0-1", "nss": "3.104-1"}, {"htop": ("3.3.0-1", "3.3.0-2")})
+        self.assertEqual(self.names(p.run("pre")), ["05-snapshot"])
+        # 30-icons: adresar usr/share/icons/hicolor/ (ne soubory pod nim); 40/60 nic nespousti;
+        # 70-broken nema Exec -> libalpm ho nenacte
+        self.assertEqual(self.names(p.run("post")), ["20-desktop", "30-icons", "50-htop"])
+        self.assertEqual(lux_alpm.hook_label(p.run("post")[0]), "Updating the desktop file MIME type cache")
+        self.assertEqual(lux_alpm.hook_label(p.run("post")[2]), "50-htop")       # bez Description
+
+    def test_negated_target(self):
+        self.assertEqual(lux_alpm.alpm_fnmatch_patterns(["usr/share/icons/*/", "!usr/share/icons/*/?*"],
+                                                        "usr/share/icons/hicolor/"), 0)
+        self.assertEqual(lux_alpm.alpm_fnmatch_patterns(["usr/share/icons/*/", "!usr/share/icons/*/?*"],
+                                                        "usr/share/icons/hicolor/48x48/"), 1)
+        self.assertEqual(lux_alpm.alpm_fnmatch_patterns(["usr/bin/*"], "etc/x"), -1)
+        p = self.plan({"nss": "3.104-1"})
+        self.assertNotIn("30-icons", self.names(p.run("post")))
+
+    def test_upgrade_paths_use_new_files_after_and_old_before(self):
+        p = self.plan(upgrades={"htop": ("3.3.0-1", "3.3.0-2")})
+        self.assertIn("20-desktop", self.names(p.run("post")))      # novy htop.desktop
+        self.assertEqual(self.names(p.run("pre")), ["05-snapshot"])
+
+    def test_remove_reads_files_before_transaction(self):
+        p = self.plan(removes={"firefox": "131.0-1"})
+        shutil.rmtree(os.path.join(self.w.dbpath, "local", "firefox-131.0-1"))   # transakce ho odebrala
+        self.assertEqual(self.names(p.run("post")), ["20-desktop", "30-icons"])
+
+    def test_hookdir_overrides_and_masks(self):
+        with open(os.path.join(self.w.userdir, "50-htop.hook"), "w") as f:
+            f.write("")                                              # prazdny = maskovany hook
+        with open(os.path.join(self.w.userdir, "20-desktop.hook"), "w") as f:
+            f.write(HOOKS["20-desktop"].replace("Updating the desktop", "Custom desktop"))
+        p = self.plan(upgrades={"htop": ("3.3.0-1", "3.3.0-2")})
+        post = p.run("post")
+        self.assertEqual(self.names(post), ["20-desktop"])
+        self.assertTrue(post[0]["desc"].startswith("Custom desktop"))
+
+
+class HookProgress(unittest.TestCase):
+    """pyalpm 0.12 posila u hooku jen typ udalosti - prubeh se pocita z odhadu a logu 'executing'."""
+
+    def setUp(self):
+        self.w = HookWorld()
+        self.addCleanup(self.w.cleanup)
+        self.ui = StubUI()
+        self.cb = lux_alpm.Callbacks(self.ui)
+        plan = lux_alpm.HookPlan.load([self.w.sysdir], self.w.dbpath, {"firefox": "131.0-1"},
+                                      {"htop": ("3.3.0-1", "3.3.0-2")}, {})
+        self.cb.reset("commit", 0, {"firefox": "installing", "htop": "upgrading"}, hooks=plan)
+
+    def hook(self, cmd):
+        self.cb.event(36, "unknown event")
+        self.cb.log(4, f'executing "{cmd}" under chroot "/"\n')
+        self.cb.event(37, "unknown event")
+
+    def install(self):
+        self.cb.progress("firefox", 100, 2, 1)
+        self.cb.progress("htop", 100, 2, 2)
+
+    def test_pre_hooks_are_preparing(self):
+        self.cb.event(34, "unknown event")
+        self.assertEqual(self.ui.phases, ["prepare"])
+        self.hook("/usr/bin/luxos-care")
+        self.assertEqual(self.ui.steps[0], (0.0, "1/1 · Saving a snapshot of the system"))
+        self.assertEqual(self.ui.steps[-1][0], 1.0)
+        self.cb.event(35, "unknown event")
+        self.install()
+        self.assertEqual(self.ui.phases, ["prepare", "install"])
+        self.assertIn(":: Running pre-transaction hooks...", self.ui.compats)
+
+    def test_post_hooks_count_and_names(self):
+        self.install()
+        self.cb.event(34, "unknown event")
+        self.assertEqual(self.ui.phases[-1], "hooks")
+        for cmd in ("/usr/bin/update-desktop-database", "/usr/share/libalpm/scripts/gtk-update-icon-cache",
+                    "/bin/true"):
+            self.hook(cmd)
+        self.cb.event(35, "unknown event")
+        hooks = [s for s in self.ui.steps if "/" in s[1] and "·" in s[1]]
+        self.assertEqual(hooks, [
+            (0.0, "1/3 · Updating the desktop file MIME type cache"),
+            (0.333, "1/3 · Updating the desktop file MIME type cache"),
+            (0.333, "2/3 · Updating icon theme caches"),
+            (0.667, "2/3 · Updating icon theme caches"),
+            (0.667, "3/3 · 50-htop"),
+            (1.0, "3/3 · 50-htop")])
+        self.assertEqual(self.ui.steps[-1], (1.0, "3/3"))
+        self.assertEqual(self.ui.compats.count(":: Running post-transaction hooks..."), 1)
+
+    def test_unpredicted_and_skipped_hooks_resync(self):
+        """Odhad [desktop, icons, htop]; skutecne bezi desktop, mkinitcpio (mimo odhad), htop."""
+        self.install()
+        self.cb.event(34, "unknown event")
+        self.hook("/usr/bin/update-desktop-database")
+        self.cb.event(36, "unknown event")
+        self.cb.log(4, 'executing "/usr/share/libalpm/scripts/mkinitcpio" under chroot "/"\n')
+        self.assertEqual(self.ui.ph["detail"], "2/4 · Updating linux initcpios")
+        self.cb.event(37, "unknown event")
+        self.cb.event(36, "unknown event")
+        self.assertEqual(self.ui.ph["detail"], "3/4 · Updating icon theme caches")
+        self.cb.log(4, 'executing "/bin/true" under chroot "/"\n')    # icons se nespustily
+        self.assertEqual(self.ui.ph["detail"], "3/3 · 50-htop")
+        self.cb.event(37, "unknown event")
+        self.assertEqual(self.ui.ph["frac"], 1.0)
+
+    def test_without_plan_counts_hooks(self):
+        self.cb.reset("commit", 0, {"x": "installing"})
+        self.cb.progress("x", 100, 1, 1)
+        self.cb.event(34, "unknown event")
+        self.cb.event(36, "unknown event")
+        self.assertEqual(self.ui.ph["detail"], "1/1")
+        self.cb.event(37, "unknown event")
+        self.cb.event(36, "Updating icon theme caches...")       # pyalpm s popisem hooku
+        self.assertEqual(self.ui.ph["detail"], "2/2 · Updating icon theme caches")
+
+    def test_other_debug_logs_ignored(self):
+        self.install()
+        self.cb.event(34, "unknown event")
+        self.cb.log(4, 'executing "/bin/sh" under chroot "/"\n')     # mimo bezici hook
+        self.cb.log(4, "some debug message\n")
+        self.assertEqual(self.cb.log_errors, [])
+        self.assertEqual(self.cb.log_warnings, [])
+
+
+class HookOutput(unittest.TestCase):
+    """Cela aktualizace nad napodobeninou pyalpm: jedna radka Dokoncuji s poctem hooku, nic navic."""
+
+    def setUp(self):
+        self.w = HookWorld()
+        self.addCleanup(self.w.cleanup)
+        old = lux_alpm.HOOK_SYSDIR
+        lux_alpm.HOOK_SYSDIR = self.w.sysdir
+        self.addCleanup(setattr, lux_alpm, "HOOK_SYSDIR", old)
+
+    def prepare(self, h):
+        h.dbpath = self.w.dbpath
+        h.hookdirs = [self.w.sysdir]
+        h.pre_hooks = ["/usr/bin/luxos-care"]
+        h.post_hooks = ["/usr/bin/update-desktop-database", "/usr/share/libalpm/scripts/gtk-update-icon-cache"]
+
+    def test_plain_output(self):
+        rc, out, _h = run(["-y", "install", "firefox"], prepare=self.prepare)
+        self.assertEqual(rc, 0, out)
+        lines = [x for x in strip(out).splitlines() if x.strip()]
+        fin = [x for x in lines if "Finishing" in x]
+        self.assertEqual(len(fin), 1, lines)
+        self.assertIn("100%", fin[0])
+        self.assertIn("2/2", fin[0])
+        prep = [x for x in lines if "Preparing" in x]
+        self.assertEqual(len(prep), 1, lines)
+        self.assertFalse(any("executing" in x for x in lines), lines)
+
+    def test_tty_shows_hook_names(self):
+        orig = lux_alpm.UI.draw
+        lux_alpm.UI.draw = lambda self, force=False: orig(self, True)     # bez omezeni na 12,5 snimku/s
+        self.addCleanup(setattr, lux_alpm.UI, "draw", orig)
+        rc, out, _h = run(["install", "firefox"], tty=True, answer="y\n", prepare=self.prepare)
+        self.assertEqual(rc, 0, out)
+        plain = strip(out)
+        self.assertIn("1/2 · Updating the desktop file", plain)
+        self.assertIn("2/2 · Updating icon theme caches", plain)
+        self.assertIn("Saving a snapshot of the system", plain)
+
+    def test_machine_phases(self):
+        rc, out, _h = run(["--machine", "-y", "install", "firefox"], prepare=self.prepare)
+        self.assertEqual(rc, 0, out)
+        lines = out.splitlines()
+        order = [x for x in lines if x.startswith("@@PHASE")]
+        self.assertEqual(order, ["@@PHASE download", "@@PHASE verify", "@@PHASE prepare", "@@PHASE install",
+                                 "@@PHASE hooks"])
+        self.assertIn("@@PROGRESS hooks 100 2/2", lines)
+        self.assertIn(":: Running pre-transaction hooks...", lines)

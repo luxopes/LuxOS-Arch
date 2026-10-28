@@ -2,7 +2,7 @@
   "version": "0.9.8",
   "codename": "Polaris",
   "items": [
-    {"icon": "system-software-update-symbolic",
+    {"icon": "software-update-available-symbolic",
      "title": {"en": "Clearer updates in Lux Store", "cs": "Přehlednější aktualizace v Lux Store"},
      "text": {"en": "Updates now show the current step, a progress bar and every package with its old and new version. The technical output is hidden under Details.",
               "cs": "Aktualizace teď ukazují, co se právě děje, ukazatel průběhu a každý balíček se starou a novou verzí. Technický výpis je schovaný pod Podrobnostmi."}},
