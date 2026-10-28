@@ -67,5 +67,8 @@ The screen locks with `xflock4` (`Super+L`, `Ctrl+Super+Q`). The lock settings a
 Lock. The default screen saver of the locked screen, "Desktop wallpaper and clock", shows the same
 wallpaper as the desktop with a large clock; the password dialog uses it too. When a key or the mouse
 wakes the locked screen, xfce4-screensaver (`[luxos]` build) keeps the last frame of the screen saver
-as the background of its window until the password dialog has drawn, and the last frame of the dialog
-when it goes back to the screen saver — no black frame in between.
+as the background of its window until the password dialog has drawn — no black frame in between. When
+the dialog closes without unlocking (Esc, timeout), the screen saver's own last frame stays underneath
+and its whole window is exposed, so the screen saver draws the full screen again at once; the screen
+savers themselves (`luxos-screensaver`) redraw the whole screen after every expose, after a pause and
+at least every 5 s, even the ones that otherwise redraw only the clock.
