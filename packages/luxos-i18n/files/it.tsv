@@ -2672,7 +2672,7 @@ opens a remote shell	apre una shell remota
 remove packages (also Flatpak apps) and unneeded dependencies	rimuovere pacchetti (anche app Flatpak) e dipendenze non necessarie
 runs generated code with eval	esegue codice generato con eval
 runs inline code of another language	esegue codice incorporato di un altro linguaggio
-search repositories, Flathub and community (AUR)	cercare in repository, Flathub e community (AUR)
+search repositories, Flathub and AUR; patterns ^vim, *qt* (lux search -h)	cerca nei repository, su Flathub e nell'AUR; modelli ^vim, *qt* (lux search -h)
 sets world-writable or setuid permissions	imposta permessi scrivibili da tutti o setuid
 the build script is unusually long	lo script di compilazione è insolitamente lungo
 touches accounts, sudo or SSH keys	tocca account, sudo o chiavi SSH
@@ -4416,3 +4416,15 @@ Clear Recent Places	Cancella luoghi recenti
 Current location	Posizione attuale
 Offline – showing saved places only	Offline – solo luoghi salvati
 Suggestions by Photon · © OpenStreetMap contributors	Suggerimenti: Photon · © collaboratori di OpenStreetMap
+term or pattern	termine o modello
+A plain word searches package names and descriptions. A pattern searches names only (case does not matter):	Una parola semplice cerca nei nomi e nelle descrizioni dei pacchetti. Un modello cerca solo nei nomi (maiuscole e minuscole indifferenti):
+name starts with text	il nome inizia con testo
+name ends with text	il nome finisce con testo
+exactly this name	esattamente questo nome
+name contains text	il nome contiene testo
+* any characters, ? one character (the whole name must match)	* qualsiasi carattere, ? un carattere (deve corrispondere l'intero nome)
+same as *, but the shell does not expand it	come *, ma la shell non lo espande
+More words or patterns: all must match. Put patterns in quotes: lux search '*qt*'	Più parole o modelli: devono corrispondere tutti. Metti i modelli tra virgolette: lux search '*qt*'
+search only installed packages and apps	cerca solo nei pacchetti e nelle app installati
+Usage: lux search [--installed] <term or pattern>	Uso: lux search [--installed] <termine o modello>
+skipped: a pattern needs at least 2 letters in a row for the AUR	saltato: per l'AUR un modello richiede almeno 2 caratteri consecutivi

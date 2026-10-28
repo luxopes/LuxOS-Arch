@@ -2673,7 +2673,7 @@ opens a remote shell	відкриває віддалену оболонку
 remove packages (also Flatpak apps) and unneeded dependencies	видалення пакетів (і застосунків Flatpak) та непотрібних залежностей
 runs generated code with eval	запускає згенерований код через eval
 runs inline code of another language	запускає вбудований код іншої мови
-search repositories, Flathub and community (AUR)	пошук у репозиторіях, Flathub і спільноті (AUR)
+search repositories, Flathub and AUR; patterns ^vim, *qt* (lux search -h)	шукати в репозиторіях, на Flathub і в AUR; шаблони ^vim, *qt* (lux search -h)
 sets world-writable or setuid permissions	встановлює права запису для всіх або setuid
 the build script is unusually long	скрипт збирання незвично довгий
 touches accounts, sudo or SSH keys	торкається облікових записів, sudo або ключів SSH
@@ -4417,3 +4417,15 @@ Clear Recent Places	Очистити нещодавні місця
 Current location	Поточне розташування
 Offline – showing saved places only	Офлайн – лише збережені місця
 Suggestions by Photon · © OpenStreetMap contributors	Підказки: Photon · © учасники OpenStreetMap
+term or pattern	запит або шаблон
+A plain word searches package names and descriptions. A pattern searches names only (case does not matter):	Звичайне слово шукає в назвах і описах пакунків. Шаблон шукає лише в назвах (регістр не має значення):
+name starts with text	назва починається з text
+name ends with text	назва закінчується на text
+exactly this name	саме ця назва
+name contains text	назва містить text
+* any characters, ? one character (the whole name must match)	* будь-які символи, ? один символ (має збігатися вся назва)
+same as *, but the shell does not expand it	те саме, що *, але оболонка його не розгортає
+More words or patterns: all must match. Put patterns in quotes: lux search '*qt*'	Кілька слів або шаблонів: мають збігатися всі. Беріть шаблони в лапки: lux search '*qt*'
+search only installed packages and apps	шукати лише серед установлених пакунків і застосунків
+Usage: lux search [--installed] <term or pattern>	Використання: lux search [--installed] <запит або шаблон>
+skipped: a pattern needs at least 2 letters in a row for the AUR	пропущено: для AUR шаблон має містити щонайменше 2 символи поспіль

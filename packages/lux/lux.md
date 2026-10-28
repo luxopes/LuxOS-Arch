@@ -280,7 +280,7 @@ jméno balíku (`@@ERROR corrupt`).
 | `lux remove <balík…>` | odebrání i s nepotřebnými závislostmi; změněné konfigurační soubory zůstanou jako `*.luxsave` (s `-n`/`--nosave` se smažou i ty) | `-Rs` (`-Rns`) |
 | `lux update` (`upgrade`, `up`) | obnoví databáze, nejdřív podpisové klíče, pak celý systém; dál balíky komunity (AUR) v systému, `.lux` a Flatpak (+ úklid nepoužívaných prostředí) | `-Sy` + `-Su` |
 | `lux check` (`check-updates`) | dostupné aktualizace z čerstvých seznamů (dočasná kopie, bez roota, systém beze změny) | `checkupdates` |
-| `lux search <výraz>` | hledání v repozitářích, LuxOS, na Flathubu a v komunitě (AUR) | `-Ss` |
+| `lux search [--installed] <výraz>` | hledání v repozitářích, LuxOS, na Flathubu a v komunitě (AUR); vzory názvu `^vim`, `vim$`, `^vim$`, `*qt*`, `lib*-git`, `%qt%` (`%` = `*`) | `-Ss` |
 | `lux info <balík>` | podrobnosti (nainstalovaný, jinak z repozitáře; LuxOS, AUR) | `-Qi` / `-Si` |
 | `lux list [--installed]` | nainstalované balíky (i `.lux`) | `-Q` |
 | `lux list --upgradable` | dostupné aktualizace podle posledního obnovení databází | `-Qu` |

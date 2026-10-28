@@ -670,38 +670,109 @@ cmd_update() {
     ok "$(T "System is up to date")"
 }
 
+# lux search: obycejne slovo hleda v nazvu i popisu; vzory jako v aptitude jen v nazvu (bez ohledu na
+# velikost pismen): ^text zacatek, text$ konec, ^text$ presne, * libovolne znaky, ? jeden znak, % = *
+# (shell % neexpanduje). Logiku vzoru ma lux_community.py (search-filter, aur-search, flathub-search).
+search_is_pattern() { local t; for t; do [[ $t == ^* || $t == *\$ || $t == *[*?%]* ]] && return 0; done; return 1; }
+search_filter() { "$LUX_COMMUNITY" search-filter "$@"; }
+
+search_usage() {
+    local p desc
+    printf '%s%s%s lux search [--installed] [--repo|--aur] <%s>...\n\n' "$B" "$(T "Usage:")" "$R" "$(T "term or pattern")"
+    printf '%s\n\n' "$(T "A plain word searches package names and descriptions. A pattern searches names only (case does not matter):")"
+    while IFS='|' read -r p desc; do
+        printf '  %-18s%s\n' "$p" "$(T "$desc")"
+    done <<'PATS'
+^text|name starts with text
+text$|name ends with text
+^text$|exactly this name
+*text*|name contains text
+lib*-git|* any characters, ? one character (the whole name must match)
+%qt%|same as *, but the shell does not expand it
+PATS
+    printf '\n%s\n' "$(T "More words or patterns: all must match. Put patterns in quotes: lux search '*qt*'")"
+    printf '\n%s%s%s\n' "$B" "$(T "Options:")" "$R"
+    printf '  %-18s%s\n' "--installed" "$(T "search only installed packages and apps")" \
+        "--repo" "$(T "only official repositories")" "--aur" "$(T "only the community source (AUR)")"
+}
+
 cmd_search() {
-    (($#)) || die "$(T "Usage: lux search <term>")"
+    local installed=0 pat=0 a terms=()
+    for a; do
+        case $a in
+            --installed|--local) installed=1 ;;
+            --) ;;
+            *) terms+=("$a") ;;
+        esac
+    done
+    ((${#terms[@]})) || die "$(T "Usage: lux search [--installed] <term or pattern>")"
+    search_is_pattern "${terms[@]}" && pat=1
     if [[ $ONLY != aur ]]; then
-        printf '%sRepositories%s\n' "$B" "$R"
+        if ((installed)); then printf '%s%s%s\n' "$B" "$(T "Installed")" "$R"; else printf '%sRepositories%s\n' "$B" "$R"; fi
         if alpm_ok; then
-            alpm search -- "$@" || echo "  (nothing)"
+            if ((installed)); then
+                alpm search --installed -- "${terms[@]}" || echo "  (nothing)"
+            else
+                alpm search -- "${terms[@]}" || echo "  (nothing)"
+            fi
         else
-            "$LUX_ENGINE" -Ss --color "$([[ $LUX_COLOR == always ]] && echo always || echo never)" -- "$@" || echo "  (nothing)"
+            local color
+            color=$([[ $LUX_COLOR == always ]] && echo always || echo never)
+            if ((pat)); then
+                # lux-engine -Ss bere regularni vyrazy nad nazvem i popisem: vzor jen nad nazvy (bez popisu)
+                if ((installed)); then
+                    "$LUX_ENGINE" -Q 2>/dev/null | awk '{printf "%s\tlocal\t%s\n", $1, $2}'
+                else
+                    "$LUX_ENGINE" -Sl 2>/dev/null | awk '{printf "%s\t%s\t%s\t%s\n", $2, $1, $3, $4}'
+                fi | search_filter -- "${terms[@]}" |
+                    awk -F'\t' '{printf "%s/%s %s%s\n", $2, $1, $3, ($4 == "" ? "" : " " $4)} END {if (!NR) print "  (nothing)"}'
+            elif ((installed)); then
+                "$LUX_ENGINE" -Qs --color "$color" -- "${terms[@]}" || echo "  (nothing)"
+            else
+                "$LUX_ENGINE" -Ss --color "$color" -- "${terms[@]}" || echo "  (nothing)"
+            fi
         fi
     fi
     if [[ $ONLY != aur ]]; then
-        lp_index | jq -r --arg q "${1,,}" '.packages[] | select((.name | ascii_downcase | contains($q)) or ((.summary // "") | ascii_downcase | contains($q))) | "\(.name)\t\(.version)-\(.release // 1)\t\(.summary // "")"' |
+        if ((installed)); then
+            local f
+            for f in "$LUX_DB"/*.json; do
+                [[ -e $f ]] && jq -r '"\(.name)\t\(.version)-\(.release // 1)\t\(.summary // "")"' "$f"
+            done
+        else
+            lp_index | jq -r '.packages[] | "\(.name)\t\(.version)-\(.release // 1)\t\(.summary // "")"'
+        fi | search_filter -- "${terms[@]}" |
             while IFS=$'\t' read -r n v d; do
                 printf '%slux/%s%s %s%s%s %s(LuxOS)%s\n    %s\n' "$C" "$n" "$R" "$G" "$v" "$R" "$D" "$R" "$d"
             done
     fi
     if [[ -z $ONLY ]] && ((FLATPAK)); then
-        local fl
-        if fl=$("$LUX_COMMUNITY" flathub-search "$@" 2>/dev/null) && [[ -n $fl ]]; then
+        local fl=""
+        if ((installed)); then
+            command -v flatpak &>/dev/null &&
+                fl=$(flatpak list --app --columns=application,name,description 2>/dev/null | search_filter --app-id -- "${terms[@]}")
+        else
+            fl=$("$LUX_COMMUNITY" flathub-search -- "${terms[@]}" 2>/dev/null)
+        fi
+        if [[ -n $fl ]]; then
             printf '\n%sFlathub%s\n' "$B" "$R"
             head -n 10 <<<"$fl" | while IFS=$'\t' read -r n t d _icon; do
                 printf '%sflathub/%s%s %s%s%s\n    %s\n' "$C" "$n" "$R" "$B" "$t" "$R" "$d"
             done
         fi
     fi
-    if [[ $ONLY != repo ]] && ((AUR)) && command -v jq &>/dev/null; then
+    # AUR: nainstalovane balicky z AUR uz ukazal vypis libalpm ("local")
+    if [[ $ONLY != repo ]] && ((AUR)) && ((!installed)); then
+        local au rc=0
+        au=$(LUX_AUR_RPC=$LUX_AUR_RPC "$LUX_COMMUNITY" aur-search -- "${terms[@]}" 2>/dev/null) || rc=$?
         printf '\n%sAUR%s %s(%s)%s\n' "$B" "$R" "$D" "$(T "community - installed into the sandbox")" "$R"
-        curl -fsSL --max-time 20 "$LUX_AUR_RPC/search/$(jq -rn --arg v "$1" '$v|@uri')?by=name-desc" |
-            jq -r '.results | sort_by(-.Popularity) | .[:20][] | "\(.Name)\t\(.Version)\t\(.Description // "")"' |
+        if ((rc == 3)); then
+            printf '  %s%s%s\n' "$D" "$(T "skipped: a pattern needs at least 2 letters in a row for the AUR")" "$R"
+        elif [[ -n $au ]]; then
             while IFS=$'\t' read -r n v d; do
                 printf '%saur/%s%s %s%s%s\n    %s\n' "$C" "$n" "$R" "$G" "$v" "$R" "$d"
-            done
+            done <<<"$au"
+        fi
     fi
 }
 
@@ -1116,7 +1187,7 @@ install, i <pkg...>|install packages (repositories, LuxOS, Flathub, then communi
 remove, rm <pkg...>|remove packages (also Flatpak apps) and unneeded dependencies
 update, upgrade, up|update everything (system, AUR, Flatpak)
 check, check-updates|show available updates without installing them
-search, s <term>|search repositories, Flathub and community (AUR)
+search, s <term>|search repositories, Flathub and AUR; patterns ^vim, *qt* (lux search -h)
 info <pkg>|show package details
 list [--installed]|list installed packages
 list --upgradable|list available updates
@@ -1228,7 +1299,7 @@ cmd_preview() {  # nahled pro TUI (bez ladicich hlasek jadra)
     fi
 }
 
-args=()
+args=() HELP=0
 while (($#)); do
     case $1 in
         -y|--yes) YES=1 ;;
@@ -1238,7 +1309,7 @@ while (($#)); do
         --aur|--community) ONLY=aur ;;
         --system) SYSTEM_OK=1 ;;
         --sandbox) COMMUNITY_TARGET=sandbox ;;
-        -h|--help) usage; exit 0 ;;
+        -h|--help) HELP=1 ;;
         -V|--version) echo "lux $LUX_VERSION"; exit 0 ;;
         *) args+=("$1") ;;
     esac
@@ -1246,6 +1317,10 @@ while (($#)); do
 done
 set -- "${args[@]}"
 cmd=${1-}; shift 2>/dev/null
+if ((HELP)); then
+    if [[ $cmd == @(search|s|find) ]]; then search_usage; else usage; fi
+    exit 0
+fi
 
 # Konfigurace (krome napovedy, kontroly konfigurace a vnitrnich prikazu - ty spousti lux, ktery uz
 # konfiguraci overil)
