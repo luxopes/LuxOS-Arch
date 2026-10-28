@@ -4,6 +4,7 @@
 # GTK3 misto GTK4/libshumate: prvni snimek okna 0,38 s / PSS 38 MB proti 0,44 s / 98 MB (GTK4 s cairo)
 # a 2 s / 207 MB (GTK4 s GL) - mereno pod xvfb jeste bez knihovny map; cele okno Map 0,45 s / 44 MB.
 # MHD a odjezdy v realnem case (Transitous/MOTIS), mista v okoli (Overpass), obrazek trasy pro LuxAI.
+# Navigace po trase (ziva poloha z telefonu/GeoClue, prepocet mimo trasu, obrazovka nezhasne), panel tazenim.
 # Rozhrani pro LuxAI a skripty: luxos-maps --json search|reverse|route|transit-route|timetable|nearby|
 # where-am-i|open a luxos-maps --render-preview.
 
@@ -16,6 +17,8 @@ url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
 # GeoClue: poloha z Wi-Fi siti v okoli (BeaconDB) - presnost desitky metru misto mesta podle IP
 depends=(python python-gobject python-cairo gtk3 luxos-i18n hicolor-icon-theme geoclue)
+# hlasove pokyny navigace (volitelne, vychozi vypnute)
+optdepends=('speech-dispatcher: voice guidance in navigation' 'espeak-ng: voice guidance in navigation')
 makedepends=(python)
 checkdepends=(python)
 

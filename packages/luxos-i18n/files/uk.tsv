@@ -4365,3 +4365,30 @@ LuxAI (%s) gave no clear answer	LuxAI (%s) не дала чіткої відпо
 one model did not answer, cannot confirm safe	одна модель не відповіла, не можна підтвердити як безпечне
 no specific concern found in the build script	у збиральному скрипті не знайдено конкретної проблеми
 Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	Для підключення диска резервних копій тут потрібен пароль адміністратора. Скористайтеся вікном «Резервні копії» або виконайте команду в терміналі своєї сесії робочого столу.
+Start Navigation	Почати навігацію
+Follow the route with your live location	Вести маршрутом за поточним розташуванням
+Arrival %s	Прибуття %s
+Arrived	Ви на місці
+Arrives %s	Прибуває %s
+Departs %s	Відправлення %s
+Drive the route with a simulated location (testing only)	Пройти маршрут із симульованим розташуванням (лише для тестування)
+End	Завершити
+End Navigation	Завершити навігацію
+Get off at %s	Вийдіть: %s
+Heading Up – click for North Up	За напрямком руху – натисніть, щоб північ була вгорі
+North Up – click for Heading Up	Північ угорі – натисніть для напрямку руху
+In %s, %s	Через %s %s
+Location signal lost. Waiting for your location…	Сигнал розташування втрачено. Очікування розташування…
+Navigation in progress	Триває навігація
+No live location. Connect your phone with LuxOS Companion and share its location, or turn on the location service.	Немає поточного розташування. Під’єднайте телефон із LuxOS Companion і поширте його розташування або увімкніть службу визначення розташування.
+Re-center	Центрувати
+Rerouting…	Перебудова маршруту…
+Simulate	Симулювати
+Simulated location (testing)	Симульоване розташування (тестування)
+Take %s	Сядьте: %s
+The route could not be recalculated. Check your internet connection.	Не вдалося перебудувати маршрут. Перевірте підключення до інтернету.
+Then: %s	Потім: %s
+Voice Guidance	Голосові підказки
+Waiting for your location…	Очікування вашого розташування…
+You are off the route.	Ви зійшли з маршруту.
+You have arrived	Ви прибули
