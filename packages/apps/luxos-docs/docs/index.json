@@ -674,6 +674,36 @@
           ]
         },
         {
+          "path": "luxos/maps-search.md",
+          "title": "Maps search and suggestions",
+          "summary": "Maps (luxos-maps) search and suggestions while typing in search and route Start/Destination: Photon (photon.komoot.io), favorites, recent places, stops, My Location first; keys, icons, 250 ms debounce, privacy, turning it off, suggest_url in maps.json.",
+          "keywords": [
+            "search",
+            "hledat",
+            "suggestions",
+            "naseptavac",
+            "našeptávač",
+            "autocomplete",
+            "typeahead",
+            "Photon",
+            "photon.komoot.io",
+            "komoot",
+            "Nominatim",
+            "recent places",
+            "nedávná místa",
+            "Clear Recent Places",
+            "Suggestions While Typing",
+            "suggest_online",
+            "suggest_url",
+            "My Location",
+            "maps",
+            "luxos-maps",
+            "privacy",
+            "address",
+            "stop"
+          ]
+        },
+        {
           "path": "luxos/companion.md",
           "title": "Phone (LuxOS Companion)",
           "summary": "LuxOS Companion Android app over Bluetooth (luxos-companion, Settings › Phone): pairing, approving phones, live phone GPS in Maps (with Maps consent), LuxAI requests from the phone, calendar notes, protocol v1, D-Bus cz.luxos.Companion1.",

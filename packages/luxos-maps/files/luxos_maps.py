@@ -11,15 +11,18 @@ okoli (Overpass), nahled trasy (PNG), nastaveni.
   transit_plan(a, b)   spojeni MHD (Transitous/MOTIS, mezipamet 3 min, nejvys 1 pozadavek/s)
   timetable(lat, lon)  odjezdy/prijezdy ze zastavky v realnem case (Transitous, mezipamet 45 s)
   nearby(lat, lon, c)  mista v okoli podle kategorie (Overpass, mezipamet 10 min, max. 50 vysledku)
+  Suggester            naseptavani pri psani (Photon, odklad 250 ms, jen posledni dotaz) + suggest_local()
   render_preview(p)    maly obrazek trasy PNG z dlazdic v mezipameti (jen dlazdice toho obrazku)
 
 Pravidla OSM (operations.osmfoundation.org/policies): vlastni User-Agent, mezipamet podle hlavicek
 (Cache-Control/Expires/ETag, podmineny pozadavek po vyprseni, bez hlavicek 7 dni), zadne
-prednacitani oblasti ani stahovani pro offline; hledani jen po Enter (zadne naseptavani).
-Adresy jdou prepsat v nastaveni (tile_url, search_url, reverse_url, route_url) i bez aktualizace.
+prednacitani oblasti ani stahovani pro offline; hledani v Nominatim jen po Enter. Naseptavani pri psani
+jde na Photon (photon.komoot.io, pro naseptavani postaveny; Suggester, vypnutelne "suggest_online": false).
+Adresy jdou prepsat v nastaveni (tile_url, search_url, reverse_url, route_url, suggest_url) i bez aktualizace.
 Mezipamet: $XDG_CACHE_HOME/luxos/maps, nastaveni: $XDG_CONFIG_HOME/luxos/maps.json.
 Testy: LUXOS_MAPS_TILES, LUXOS_MAPS_SEARCH, LUXOS_MAPS_REVERSE, LUXOS_MAPS_ROUTE, LUXOS_MAPS_IP,
-LUXOS_MAPS_TRANSIT_PLAN, LUXOS_MAPS_STOPTIMES, LUXOS_MAPS_OVERPASS, LUXOS_MAPS_RATE (interval limitu v s).
+LUXOS_MAPS_TRANSIT_PLAN, LUXOS_MAPS_STOPTIMES, LUXOS_MAPS_OVERPASS, LUXOS_MAPS_SUGGEST,
+LUXOS_MAPS_RATE (interval limitu v s).
 """
 import collections
 import datetime
@@ -31,8 +34,10 @@ import json
 import math
 import os
 import re
+import socket
 import threading
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -42,6 +47,7 @@ USER_AGENT = f"LuxOS-Maps/{VERSION} (+https://github.com/luxopes/LuxOS-Arch)"
 TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
 SEARCH_URL = "https://nominatim.openstreetmap.org/search"
 REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
+PHOTON_URL = "https://photon.komoot.io/api/"   # naseptavani pri psani (Nominatim ho nedovoluje)
 ROUTE_URL = "https://routing.openstreetmap.de/routed-{profile}/route/v1/driving/{coords}"
 IP_URL = "https://ipinfo.io/json"
 TRANSIT_PLAN_URL = "https://api.transitous.org/api/v6/plan"
@@ -128,8 +134,12 @@ def load_config():
         cfg.pop("sidebar_width", None)
     cfg["nav_heading_up"] = cfg.get("nav_heading_up") is not False
     cfg["nav_voice"] = cfg.get("nav_voice") is True
+    # naseptavani pri psani: Photon lze vypnout (pak jen oblibena, nedavna mista a zastavky)
+    cfg["suggest_online"] = cfg.get("suggest_online") is not False
+    rec = cfg.get("recent")
+    cfg["recent"] = [p for p in rec if valid_place(p)][:RECENT_MAX] if isinstance(rec, list) else []
     for key in ("tile_url", "search_url", "reverse_url", "route_url", "transit_plan_url", "stoptimes_url",
-                "overpass_url"):
+                "overpass_url", "suggest_url"):
         if not isinstance(cfg.get(key), str) or not cfg[key].startswith(("https://", "http://")):
             cfg.pop(key, None)
     return cfg
@@ -1211,6 +1221,362 @@ def nearby(lat, lon, category=None, name=None, radius=1500, limit=20, cfg=None):
         if p.get("platforms"):
             p["platforms"].sort(key=lambda v: (len(v), v))
     return merged[:limit]
+
+
+# ---- naseptavani pri psani (Photon + mistni zdroje) -----------------------------------
+# Nominatim naseptavani na verejnem serveru zakazuje; Photon (komoot, data OSM, bez klice) je pro nej
+# postaveny. Ohleduplne: az po 250 ms bez psani, nejvys 7 vysledku, vzdy jen posledni dotaz (starsi se
+# zrusi i rozbehnuty), kratka mezipamet v pameti a po chybe 30 s pauza (jen mistni zdroje).
+SUGGEST_DELAY = 0.25          # s bez psani, nez se posle dotaz
+SUGGEST_MIN_LOCAL = 2         # znaku pro oblibena/nedavna/zastavky
+SUGGEST_MIN_ONLINE = 3        # znaku pro Photon
+SUGGEST_LIMIT = 7             # vysledku z Photonu (fair use)
+SUGGEST_SHOWN = 8             # radku v nabidce
+SUGGEST_TIMEOUT = 6
+SUGGEST_TTL = 600             # s, mezipamet odpovedi Photonu v pameti
+SUGGEST_BACKOFF = 30          # s bez dotazu po chybe site / pretizeni
+RECENT_MAX = 12
+PHOTON_LANGS = {"en", "de", "fr"}      # ostatni jazyky: "default" = mistni nazvy (Praha, Wien...)
+STOP_TAGS = TRANSIT_TAGS | {("railway", "stop"), ("railway", "platform"), ("highway", "platform"),
+                            ("public_transport", "platform"), ("public_transport", "stop_position"),
+                            ("public_transport", "station")}
+CITY_TYPES = {"city", "district", "locality", "county", "state", "country"}
+POI_KEYS = {"amenity", "shop", "tourism", "leisure", "historic", "office", "craft", "healthcare", "sport",
+            "man_made", "natural", "aeroway", "club", "emergency"}
+SOURCE_RANK = {"me": 0, "favorite": 1, "recent": 2, "stop": 3, "result": 4}
+
+
+def fold(text):
+    """Mala pismena bez diakritiky, znak za znak (stejna delka - pro zvyrazneni shody)."""
+    out = []
+    for ch in str(text or ""):
+        low = ch.lower()
+        base = "".join(c for c in unicodedata.normalize("NFKD", low) if not unicodedata.combining(c))
+        out.append(base if len(base) == 1 else (low if len(low) == 1 else ch))
+    return "".join(out)
+
+
+def _tokens(text):
+    return [t for t in re.split(r"[\s,;/]+", fold(text)) if t]
+
+
+def match_spans(text, query):
+    """Useky (od, do) v text, ktere odpovidaji slovum dotazu (zacatek slova, bez diakritiky)."""
+    f = fold(text)
+    spans = []
+    for tok in sorted(set(_tokens(query)), key=len, reverse=True):
+        for m in re.finditer(r"(?<!\w)" + re.escape(tok), f):
+            a, b = m.start(), m.end()
+            if not any(a < y and b > x for x, y in spans):
+                spans.append((a, b))
+                break
+    return sorted(spans)
+
+
+def match_score(place, query):
+    """0 = nazev zacina dotazem, 1 = vsechna slova jsou zacatky slov nazvu, 2 = i v adrese, None = neshoda."""
+    toks = _tokens(query)
+    if not toks:
+        return None
+    name = fold(place.get("name"))
+    words = re.split(r"[^\w]+", name)
+    text_words = words + re.split(r"[^\w]+", fold(place.get("address")))
+    if not all(any(w.startswith(t) for w in text_words) for t in toks):
+        return None
+    if name.startswith(" ".join(toks)):
+        return 0
+    return 1 if all(any(w.startswith(t) for w in words) for t in toks) else 2
+
+
+def place_kind(place):
+    """Druh mista pro ikonu naseptavace: stop, address, street, city, poi."""
+    if place.get("kind") in ("stop", "address", "street", "city", "poi"):
+        return place["kind"]
+    cat, typ = place.get("category") or "", place.get("type") or ""
+    if is_transit_place(place) or (cat, typ) in STOP_TAGS:
+        return "stop"
+    if cat == "highway" or typ in ("square", "pedestrian", "street"):
+        return "street"
+    if cat in ("place", "boundary") and typ not in ("house", "square"):
+        return "city"
+    if cat in ("building", "place") or typ == "house":
+        return "address"
+    return "poi" if cat else "address"
+
+
+def parse_photon_feature(f):
+    try:
+        lon, lat = (float(v) for v in f["geometry"]["coordinates"][:2])
+        p = f.get("properties") or {}
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return None
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180) or not isinstance(p, dict):
+        return None
+    s = {k: str(p.get(k) or "") for k in ("name", "street", "housenumber", "district", "city", "county",
+                                          "state", "country", "osm_key", "osm_value", "type")}
+    street_no = " ".join(v for v in (s["street"], s["housenumber"]) if v)
+    if s["type"] == "house" and not s["name"]:
+        kind = "address"
+        name = street_no
+    else:
+        name = s["name"] or street_no
+        if (s["osm_key"], s["osm_value"]) in STOP_TAGS or s["osm_key"] == "public_transport":
+            kind = "stop"
+        elif s["osm_key"] == "highway" or s["type"] == "street" or s["osm_value"] == "square":
+            kind = "street"
+        elif s["type"] in CITY_TYPES or s["osm_key"] in ("place", "boundary"):
+            kind = "city"
+        elif s["osm_key"] in POI_KEYS:
+            kind = "poi"
+        else:
+            kind = "address" if s["housenumber"] else "poi"
+    if not name:
+        return None
+    town = s["city"] or s["district"] or s["county"]
+    if kind == "city":
+        parts = [s["county"], s["state"], s["country"]]
+    elif kind in ("street", "address"):
+        parts = [s["district"] if s["district"] != town else "", town, s["country"]]
+    else:
+        parts = [street_no, town, s["country"]]
+    out = []
+    for v in parts:
+        if v and v != name and v not in out:
+            out.append(v)
+    place = {"name": name, "lat": lat, "lon": lon, "address": ", ".join(out), "kind": kind,
+             "category": s["osm_key"], "type": s["osm_value"]}
+    ext = p.get("extent")
+    try:
+        if isinstance(ext, list) and len(ext) == 4:
+            w, n, e, so = (float(v) for v in ext)          # Photon: [zapad, sever, vychod, jih]
+            place["bbox"] = [min(so, n), max(so, n), min(w, e), max(w, e)]
+    except (TypeError, ValueError):
+        pass
+    if p.get("osm_type") and p.get("osm_id"):
+        place["osm"] = "%s/%s" % ({"N": "node", "W": "way", "R": "relation"}.get(p["osm_type"], p["osm_type"]),
+                                  p["osm_id"])
+    return place
+
+
+def _dup(a, b):
+    """Stejne misto: stejny nazev a bud tytez souradnice, nebo stejny druh do 300 m (useky ulice, nastupiste).
+    Ruzna mista v jednom dome (kavarna, restaurace, adresa) zustanou."""
+    return fold(a["name"]) == fold(b["name"]) and (
+        same_place(a, b) or (place_kind(a) == place_kind(b)
+                             and distance_m(a["lat"], a["lon"], b["lat"], b["lon"]) < 300))
+
+
+def parse_photon(data, limit=SUGGEST_LIMIT):
+    """Odpoved Photonu (GeoJSON) -> mista jako u hledani + "kind"; stejne misto (useky ulice, nastupiste)
+    jen jednou."""
+    if not isinstance(data, dict) or not isinstance(data.get("features"), list):
+        raise MapsError("invalid response")
+    out = []
+    for f in data["features"]:
+        p = parse_photon_feature(f) if isinstance(f, dict) else None
+        if p and not any(_dup(p, q) for q in out):
+            out.append(p)
+    return out[:limit]
+
+
+def photon_params(query, lang="en", center=None, limit=SUGGEST_LIMIT):
+    params = {"q": " ".join((query or "").split()), "limit": int(limit),
+              "lang": lang if lang in PHOTON_LANGS else "default"}
+    if center:
+        # na 2 desetinna mista (~1 km): stejny dotaz ze stejneho okoli jde z mezipameti
+        params["lat"], params["lon"] = f"{center[0]:.2f}", f"{center[1]:.2f}"
+    return params
+
+
+def suggest_local(query, items, center=None, limit=4):
+    """Oblibena, nedavna mista a nactene zastavky podle dotazu (bez diakritiky, zacatky slov).
+    items: mista s "source" (favorite/recent/stop/result). Poradi: zdroj, kvalita shody, vzdalenost."""
+    if len(" ".join((query or "").split())) < SUGGEST_MIN_LOCAL:
+        return []
+    scored = []
+    for i, p in enumerate(items):
+        if not valid_place(p) or p.get("me"):
+            continue
+        q = match_score(p, query)
+        if q is None:
+            continue
+        d = distance_m(center[0], center[1], p["lat"], p["lon"]) if center else 0
+        scored.append(((SOURCE_RANK.get(p.get("source"), 5), q, d, i), p))
+    out = []
+    for _k, p in sorted(scored, key=lambda kp: kp[0]):
+        if not any(_dup(p, q) for q in out):
+            out.append(p)
+    return out[:limit]
+
+
+def merge_suggestions(query, local, remote, center=None, me=None, limit=SUGGEST_SHOWN):
+    """Nabidka: Moje poloha (pole trasy), mistni zdroje, pak Photon bez duplicit; s "distance" od center.
+    Photon uz radi podle okoli; mista, jejichz nazev odpovida dotazu, jdou pred mista se shodou jen v adrese."""
+    out = [dict(me, source="me")] if me else []
+    ranked = sorted(enumerate(remote), key=lambda ip: (3 if match_score(ip[1], query) is None
+                                                       else match_score(ip[1], query) // 2, ip[0]))
+    for p in list(local) + [dict(r, source="online") for _i, r in ranked]:
+        if len(out) >= limit:
+            break
+        if any(not q.get("me") and _dup(p, q) for q in out):
+            continue
+        p = dict(p)
+        if center:
+            p["distance"] = distance_m(center[0], center[1], p["lat"], p["lon"])
+        out.append(p)
+    return out
+
+
+def add_recent(cfg, place):
+    """Vybrane misto na zacatek nedavnych (jen v maps.json na tomto pocitaci)."""
+    if not valid_place(place) or place.get("me"):
+        return
+    item = {k: place[k] for k in ("name", "lat", "lon", "address", "kind", "category", "type") if place.get(k)}
+    rec = [r for r in cfg.get("recent") or []
+           if not (same_place(r, item) and fold(r["name"]) == fold(item["name"]))]
+    cfg["recent"] = [item] + rec[:RECENT_MAX - 1]
+
+
+class Suggester:
+    """Dotazy na Photon pri psani: vlastni vlakno, odklad SUGGEST_DELAY, vzdy jen posledni dotaz.
+
+    request(query, center) - novy text (starsi dotaz se zahodi, rozbehnuty pozadavek se prerusi)
+    cancel()               - nic neposilat, vysledek rozbehnuteho dotazu zahodit
+    callback(gen, query, places, error) se vola z vlakna (okno si ho preda pres GLib.idle_add);
+    gen = cislo dotazu, okno zahodi vysledek, ktery uz neodpovida textu v poli."""
+
+    def __init__(self, callback, cfg=None, lang="en", delay=SUGGEST_DELAY):
+        self.callback = callback
+        self.cfg = cfg
+        self.lang = lang
+        self.delay = delay
+        self.cond = threading.Condition()
+        self.gen = 0
+        self.pending = None               # (gen, query, center, cas)
+        self.conn = None
+        self.conn_gen = 0
+        self.stopped = False
+        self.thread = None
+        self.cache = collections.OrderedDict()
+        self.backoff_until = 0.0
+        self.sent = 0                     # pocet skutecne odeslanych pozadavku (testy)
+
+    def url(self):
+        return service_url(self.cfg, "suggest_url", "LUXOS_MAPS_SUGGEST", PHOTON_URL)
+
+    def request(self, query, center=None):
+        with self.cond:
+            self.gen += 1
+            self.pending = (self.gen, query, center, time.monotonic())
+            self._abort()
+            if not self.thread:
+                self.thread = threading.Thread(target=self._run, daemon=True, name="maps-suggest")
+                self.thread.start()
+            self.cond.notify_all()
+            return self.gen
+
+    def cancel(self):
+        with self.cond:
+            self.gen += 1
+            self.pending = None
+            self._abort()
+            self.cond.notify_all()
+
+    def stop(self):
+        with self.cond:
+            self.stopped = True
+        self.cancel()
+
+    def _abort(self):
+        """Prerusi rozbehnuty pozadavek starsiho dotazu (vola se se zamkem)."""
+        conn = self.conn
+        if conn is not None and self.conn_gen != self.gen and conn.sock is not None:
+            try:
+                conn.sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+
+    def _run(self):
+        while True:
+            with self.cond:
+                while not self.stopped:
+                    if self.pending:
+                        wait = self.pending[3] + self.delay - time.monotonic()
+                        if wait <= 0:
+                            break
+                        self.cond.wait(wait)
+                    else:
+                        self.cond.wait()
+                if self.stopped:
+                    return
+                gen, query, center, _t = self.pending
+                self.pending = None
+            try:
+                res, err = self.fetch(query, center, gen), None
+            except MapsError as e:
+                res, err = [], str(e) or "error"
+            with self.cond:
+                current = gen == self.gen
+            if current and res is not None:
+                self.callback(gen, query, res, err)
+
+    def fetch(self, query, center=None, gen=None):
+        """Mista z Photonu (nebo z mezipameti); None = dotaz mezitim zrusen."""
+        params = photon_params(query, self.lang, center)
+        url = self.url()
+        key = url + "?" + urllib.parse.urlencode(sorted(params.items()))
+        now = time.monotonic()
+        hit = self.cache.get(key)
+        if hit and now - hit[0] < SUGGEST_TTL:
+            self.cache.move_to_end(key)
+            return hit[1]
+        if now < self.backoff_until:
+            raise MapsError("offline")
+        parts = urllib.parse.urlsplit(url)
+        cls = http.client.HTTPSConnection if parts.scheme == "https" else http.client.HTTPConnection
+        conn = cls(parts.netloc, timeout=SUGGEST_TIMEOUT)
+        path = (parts.path or "/") + "?" + (parts.query + "&" if parts.query else "") + \
+            urllib.parse.urlencode(params)
+        with self.cond:
+            if gen is not None and gen != self.gen:
+                return None
+            self.conn, self.conn_gen = conn, gen
+            self.sent += 1
+        try:
+            conn.connect()
+            with self.cond:
+                if gen is not None and gen != self.gen:
+                    return None
+            conn.request("GET", path, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
+            r = conn.getresponse()
+            body = r.read(2 * 1024 * 1024)
+            status = r.status
+        except (OSError, http.client.HTTPException, ValueError) as e:
+            with self.cond:
+                cancelled = gen is not None and gen != self.gen
+            if cancelled:
+                return None
+            self.backoff_until = time.monotonic() + SUGGEST_BACKOFF
+            raise MapsError(str(e) or "network error") from e
+        finally:
+            with self.cond:
+                self.conn = None
+            conn.close()
+        if gen is not None and gen != self.gen:
+            return None
+        if status in (429, 502, 503, 504):
+            self.backoff_until = time.monotonic() + SUGGEST_BACKOFF
+            raise BusyError(f"HTTP {status}: service busy, try again later")
+        if status != 200:
+            raise MapsError(f"HTTP {status}")
+        try:
+            res = parse_photon(json.loads(body.decode("utf-8")))
+        except ValueError as e:
+            raise MapsError("invalid response") from e
+        self.cache[key] = (now, res)
+        while len(self.cache) > 64:
+            self.cache.popitem(last=False)
+        return res
 
 
 # ---- nahled trasy (pro karticku v LuxAI) --------------------------------------------------------
