@@ -190,7 +190,8 @@ static int logout_main(void)
 #define LOGIN_PAINT_MAX_MS 4000  /* plocha namapovana, ale "nevykreslena" (napr. cerna barva pozadi) */
 #define LOGIN_SOLID_MS 1200      /* jednobarevna plocha (barva misto tapety) stabilni tak dlouho = hotovo */
 #define LOGIN_DOCK_MAX_MS 1500   /* skryty Dock (automaticke skryvani) nemusi nic vykreslit */
-#define LOGIN_MAX_MS 15000       /* vzdy skoncit (relace bez listy, jine prostredi) */
+#define LOGIN_NO_WM_MS 3000      /* bez spravce oken (_NET_SUPPORTING_WM_CHECK) tak dlouho: relace se nespousti */
+#define LOGIN_MAX_MS 10000       /* vzdy skoncit (relace bez listy, jine prostredi) */
 
 static long now_ms(void)
 {
@@ -571,7 +572,12 @@ static void spinner_init(Spinner *s, Visual *vis, int depth, int sw, int sh)
     s->x = mx + mw / 2 - s->size / 2;
     s->y = my + mh - (int)(204 * s->u + 0.5) - s->size / 2;
     s->back = XCreatePixmap(dpy, root, (unsigned)s->size, (unsigned)s->size, (unsigned)depth);
-    s->gc = XCreateGC(dpy, s->back, 0, NULL);
+    /* Bez GraphicsExpose/NoExpose: jinak kazde XCopyArea poslalo udalost, poll se hned probudil a kolecko
+     * se kreslilo bez prestavky - X server na 100 % a relace (xfce4-session) startovala o vterinu az 15 s
+     * pozdeji */
+    XGCValues gv;
+    gv.graphics_exposures = False;
+    s->gc = XCreateGC(dpy, s->back, GCGraphicsExposures, &gv);
     s->cs = cairo_xlib_surface_create(dpy, s->back, vis, s->size, s->size);
 }
 
@@ -656,6 +662,10 @@ static int login_main(void)
     if (!dpy)
         return 1;
     login_debug = getenv("LUXOS_COVER_DEBUG") != NULL;
+    /* Prechod nikdy nesmi brat procesor startujici relaci */
+    errno = 0;
+    if (nice(5) == -1 && errno != 0)
+        dbg(0, "nice failed");
     XSetErrorHandler(ignore_errors);
     int scr = DefaultScreen(dpy);
     root = RootWindow(dpy, scr);
@@ -671,6 +681,20 @@ static int login_main(void)
     a_dock = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
     a_hold = XInternAtom(dpy, "_LUXOS_LOGIN_HOLD", False);
     Window held = held_window();
+    if (login_debug) {
+        Atom type;
+        int fmt;
+        unsigned long n = 0, rest;
+        unsigned char *data = NULL;
+        unsigned long v = 0;
+        if (XGetWindowProperty(dpy, root, a_hold, 0, 1, False, AnyPropertyType, &type, &fmt, &n, &rest, &data) == Success
+            && data) {
+            if (n == 1 && fmt == 32)
+                v = *(unsigned long *)data;
+            XFree(data);
+        }
+        dbg(0, "greeter frame property=%lx (n=%lu) usable=%lx", v, n, held);
+    }
     Scan sc;
     scan(&sc, 0);
     if (sc.desk && sc.dock) {
@@ -687,7 +711,9 @@ static int login_main(void)
     GC gc = XCreateGC(dpy, root, GCSubwindowMode, &gv);
     XCopyArea(dpy, root, snap, gc, 0, 0, w, h, 0, 0);
     XFreeGC(dpy, gc);
-    restore_frame(snap, ra.visual, ra.depth, w, h, frame_is_black(snap, w, h));
+    int black = frame_is_black(snap, w, h);
+    int restored = restore_frame(snap, ra.visual, ra.depth, w, h, black);
+    dbg(0, "screen black=%d restored-from-file=%d", black, restored);
 
     /* Okno uvnitr prekryti kompozitoru (Composite overlay window): je nad vsemi okny i nad tim, co kresli
      * kompozitor (xfwm4 kresli do sveho okna v prekryti, my jsme nad nim), a kompozitor ho nesklada - start
@@ -718,7 +744,9 @@ static int login_main(void)
     Spinner sp;
     spinner_init(&sp, ra.visual, ra.depth, (int)w, (int)h);
     int motion = motion_allowed();
-    long start = now_ms(), listed_at = 0, ready_at = 0, last_scan = 0, image_at = 0, solid_at = 0;
+    long start = now_ms(), listed_at = 0, ready_at = 0, last_scan = 0, image_at = 0, solid_at = 0, drawn_at = -1000;
+    Atom a_wm = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
+    int wm_seen = 0;
     unsigned long last_sum = 0;
     int check = 1;
     dbg(0, "start held=%lx motion=%d", held, motion);
@@ -734,6 +762,8 @@ static int login_main(void)
                 raise = 1;
             else if (ev.type == ConfigureNotify && ev.xconfigure.window != win)
                 raise = 1;
+            else if (ev.type == PropertyNotify && ev.xproperty.atom == a_wm)
+                wm_seen = 1;
         }
         if (raise) {
             XRaiseWindow(dpy, win);
@@ -743,6 +773,19 @@ static int login_main(void)
         if (t - start >= LOGIN_MAX_MS) {
             dbg(t - start, "timeout");
             break;
+        }
+        if (!wm_seen && !listed_at && t - start >= LOGIN_NO_WM_MS) {
+            unsigned char *d = NULL;
+            Atom type;
+            int fmt;
+            unsigned long n = 0, rest;
+            if (XGetWindowProperty(dpy, root, a_wm, 0, 1, False, AnyPropertyType, &type, &fmt, &n, &rest, &d) == Success && d)
+                XFree(d);
+            wm_seen = n > 0;
+            if (!wm_seen) {
+                dbg(t - start, "no window manager - giving up");
+                break;
+            }
         }
         if (!ready_at && (check || t - last_scan >= LOGIN_SCAN_MS)) {
             int have_cm = XGetSelectionOwner(dpy, a_cm) != None;
@@ -783,10 +826,15 @@ static int login_main(void)
         }
         if (ready_at)
             break;
-        double since = (double)(t - start);
-        spinner_draw(&sp, win, snap, since / 1000.0, since >= 250 ? 1.0 : since / 250.0);
-        XFlush(dpy);
-        if (poll(&pfd, 1, LOGIN_FRAME_MS) < 0 && errno != EINTR)
+        /* kolecko nejvys LOGIN_FRAME_MS za snimek, at se smycka probudi cimkoli */
+        if (t - drawn_at >= LOGIN_FRAME_MS) {
+            double since = (double)(t - start);
+            spinner_draw(&sp, win, snap, since / 1000.0, since >= 250 ? 1.0 : since / 250.0);
+            XFlush(dpy);
+            drawn_at = t;
+        }
+        long wait = LOGIN_FRAME_MS - (now_ms() - drawn_at);
+        if (poll(&pfd, 1, (int)(wait < 1 ? 1 : wait)) < 0 && errno != EINTR)
             return 0;
         if (pfd.revents & (POLLHUP | POLLERR))
             return 0;

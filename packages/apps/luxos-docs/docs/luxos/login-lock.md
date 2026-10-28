@@ -32,7 +32,9 @@ a blue-violet circle. Change it in **Profile Picture** (see [settings-apps.md](s
 wallpaper as the last frame; the session starts at most one frame later. Right before that it puts the
 frame into a window on its own X connection in `RetainPermanent` mode, so the X server keeps it on the
 screen after the greeter exits, on every driver (the root window is `X -background none`, which
-drivers without glamor, e.g. QEMU with bochs + llvmpipe, cannot keep). The window is named in the
+drivers without glamor, e.g. QEMU with bochs + llvmpipe, cannot keep). LightDM starts X with
+`-noreset`: without it the server resets when the greeter was its last client and the frame is gone.
+The window is named in the
 root property `_LUXOS_LOGIN_HOLD`. The greeter also saves the frame to the LightDM data folder of the
 user (`/var/lib/lightdm-data/<user>/login-frame.raw`, removed after use, plus a small blurred
 wallpaper as the last resort).
@@ -51,7 +53,11 @@ loader where the password field was, until the desktop is really ready:
 
 It never delays anything: input goes through it; without a compositor it waits 0.4 s after the desktop
 and the top bar are mapped (and up to 1.5 s more for a compositor); a solid-colour desktop counts as
-ready after 1.2 s, a desktop that never draws after 4 s; it always ends within 15 s. With Battery
+ready after 1.2 s, a desktop that never draws after 4 s; without a window manager
+(`_NET_SUPPORTING_WM_CHECK`) after 3 s it gives up, and it always ends within 10 s. It is purely
+passive: it runs with `nice 5` and the spinner costs about 1 % of a core; the X server stays idle (a
+version that let every spinner frame generate a NoExpose event redrew it in a tight loop, kept the X
+server at 100 % and delayed the start of xfce4-session by up to 15 s). With Battery
 Saver on, or with GTK animations turned off (xsettings `EnableAnimations`), it just disappears without
 the fade. Other sessions only free the greeter's frame (`luxos-session-cover --release`); `luxos-session`
 does the same as a safety net. The frame-capture test `packages/luxos-desktop/tests/login-transition/run.sh`

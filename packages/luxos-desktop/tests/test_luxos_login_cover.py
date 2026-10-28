@@ -169,13 +169,38 @@ class LoginCover(unittest.TestCase):
         pump(0.1)
         self.assertEqual(self.X.pixel(), self.X.black)
 
-    def test_always_ends(self):
-        # relace bez listy: po LOGIN_MAX_MS (15 s) konec
+    def test_gives_up_without_window_manager(self):
+        # relace se nespustila (zadny spravce oken): po ~3 s konec, ne az po LOGIN_MAX_MS
         p, t0 = self.start()
-        p.wait(18)
-        self.assertLess(time.monotonic() - t0, 16.5)
+        p.wait(8)
+        self.assertLess(time.monotonic() - t0, 4.0)
         pump(0.1)
         self.assertEqual(self.X.pixel(), self.X.black)
+
+    def test_always_ends(self):
+        # spravce oken bezi, ale plocha a lista nikdy: po LOGIN_MAX_MS (10 s) konec
+        subprocess.run(["xprop", "-root", "-f", "_NET_SUPPORTING_WM_CHECK", "32x", "-set",
+                        "_NET_SUPPORTING_WM_CHECK", str(self.X.root)], check=True)
+        try:
+            p, t0 = self.start()
+            p.wait(13)
+            self.assertGreater(time.monotonic() - t0, 8.0)
+            self.assertLess(time.monotonic() - t0, 11.5)
+        finally:
+            subprocess.run(["xprop", "-root", "-remove", "_NET_SUPPORTING_WM_CHECK"], check=False)
+        pump(0.1)
+        self.assertEqual(self.X.pixel(), self.X.black)
+
+    def test_passive_while_waiting(self):
+        # kolecko nesmi zatezovat X server ani procesor (drive NoExpose po kazdem XCopyArea = smycka bez
+        # prestavky: X server 100 %, xfce4-session startoval az po skonceni zakryti)
+        p, _t0 = self.start()
+        time.sleep(1.0)
+        with open(f"/proc/{p.pid}/stat") as f:
+            ticks = sum(int(v) for v in f.read().rsplit(")", 1)[1].split()[11:13])
+        hz = os.sysconf("SC_CLK_TCK")
+        self.assertLess(ticks / hz, 0.15, ticks)          # ~1,3 s behu: nejvys par procent jadra
+        self.finish(p)
 
     def finish(self, p):
         self.desktop_ready()
