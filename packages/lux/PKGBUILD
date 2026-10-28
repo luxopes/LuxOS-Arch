@@ -2,7 +2,7 @@
 
 pkgname=lux
 pkgver=0.3.0
-pkgrel=17
+pkgrel=18
 pkgdesc="LuxOS package manager (libalpm via pyalpm, Flathub, community/AUR in the sandbox and .lux apps)"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"

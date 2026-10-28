@@ -105,7 +105,7 @@ The test ISO has `"staging"` in the live and the installed system. Show the chan
 "updates": {"channel": "stable"}
 ```
 
-`sudo lux system apply` (or as root `/usr/lib/lux/lux-config set-channel stable`). The next
+`sudo lux system apply` (or `lux config channel stable`). The next
 `lux update` (or Software Update) uses the new channel; LuxOS repositories are read from
 `https://luxos.lux-ai.cz/staging/` instead of `…/repo/`, Arch repositories never change. Going
 from staging back to stable never downgrades packages: newer test versions stay until the
