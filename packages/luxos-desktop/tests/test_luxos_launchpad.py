@@ -40,6 +40,20 @@ def rofi_has_hover_no_scroll():
     return "hover-no-scroll" in r.stdout and "custom-exit" in r.stdout
 
 
+def rofi_has_custom_resort():
+    if not ROFI:
+        return False
+    try:
+        r = subprocess.run([ROFI, "-help"], capture_output=True, text=True, timeout=10,
+                           env=dict(os.environ, HOME=tempfile.gettempdir()))
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return "custom-resort" in r.stdout
+
+
+RESORT = rofi_has_custom_resort()
+
+
 def xdo(*args):
     return subprocess.run(["xdotool", *map(str, args)], capture_output=True, text=True, timeout=10).stdout
 
@@ -246,7 +260,8 @@ class TestLaunchpadMouse(unittest.TestCase):
         self.assertEqual(self.enter(), ["App00"])
 
     def wait_rofi_restart(self, old):
-        """Po kliknuti na razeni rofi skonci a Launchpad ho hned otevre znovu (jine okno)."""
+        """Starsi rofi bez -custom-resort: po kliknuti na razeni rofi skonci a Launchpad ho hned
+        otevre znovu (jine okno)."""
         for _ in range(60):
             ids = xdo("search", "--class", "rofi").split()
             if ids and ids != old:
@@ -254,18 +269,75 @@ class TestLaunchpadMouse(unittest.TestCase):
             time.sleep(0.1)
         time.sleep(0.5)
 
+    def write_usage(self, apps):
+        """Pocty spusteni (Nejpouzivanejsi = poradi seznamu) a pripravene poradi jako po spusteni."""
+        now = int(time.time())
+        usage = {a: {"count": 100 - i, "last": now - i} for i, a in enumerate(apps)}
+        os.makedirs(os.path.join(self.env["XDG_DATA_HOME"], "luxos"), exist_ok=True)
+        with open(os.path.join(self.env["XDG_DATA_HOME"], "luxos", "launchpad-usage.json"), "w") as f:
+            json.dump({"version": 1, "apps": usage}, f)
+        for mode in ("recent", "most"):
+            subprocess.run(["python3", PY, "order", mode,
+                            os.path.join(self.env["XDG_CACHE_HOME"], "luxos", "launchpad-order-" + mode)],
+                           env=self.env, check=True)
+
     def test_sort_keys_switch_and_remember(self):
-        """Alt+2 (= tlacitko Naposledy pouzite) prepne razeni, rofi se znovu otevre a volba se pamatuje."""
+        """Alt+2 (= tlacitko Naposledy pouzite) prepne razeni, volba se pamatuje; s -custom-resort
+        zustane stejne okno (zadne bliknuti)."""
         conf = os.path.join(self.env["XDG_CONFIG_HOME"], "luxos", "launchpad-sort")
         self.open()
         old = xdo("search", "--class", "rofi").split()
         xdo("key", "alt+2")
-        self.wait_rofi_restart(old)
+        if RESORT:
+            time.sleep(0.5)
+            self.assertEqual(xdo("search", "--class", "rofi").split(), old)
+        else:
+            self.wait_rofi_restart(old)
         with open(conf) as f:
             self.assertEqual(f.read().strip(), "recent")
         self.assertIsNone(self.proc.poll())     # Launchpad zustal otevreny
         self.hover(0, 0)
         self.assertEqual(self.enter(), ["App00"])
+
+    @unittest.skipUnless(RESORT, "needs rofi with -custom-resort (packages/rofi)")
+    def test_resort_in_place(self):
+        """Razeni se zmeni na miste: stejne okno, nove poradi, vybrana prvni dlazdice, hledany
+        text zustane, spusteni se zapocita do zvoleneho razeni."""
+        self.write_usage(["app42.desktop", "app07.desktop"])
+        os.makedirs(os.path.join(self.env["XDG_CONFIG_HOME"], "luxos"))
+        conf = os.path.join(self.env["XDG_CONFIG_HOME"], "luxos", "launchpad-sort")
+        with open(conf, "w") as f:
+            f.write("alpha\n")
+        self.open()
+        old = xdo("search", "--class", "rofi").split()
+        self.key("Right", "Right")              # vyber mimo prvni dlazdici
+        xdo("key", "alt+3")                     # Nejpouzivanejsi
+        time.sleep(0.5)
+        self.assertEqual(xdo("search", "--class", "rofi").split(), old)
+        with open(conf) as f:
+            self.assertEqual(f.read().strip(), "most")
+        self.assertEqual(self.enter(), ["App42"])
+        usage = os.path.join(self.env["XDG_DATA_HOME"], "luxos", "launchpad-usage.json")
+        for _ in range(50):
+            with open(usage) as f:
+                if json.load(f)["apps"]["app42.desktop"]["count"] == 101:
+                    break
+            time.sleep(0.1)
+        with open(usage) as f:
+            self.assertEqual(json.load(f)["apps"]["app42.desktop"]["count"], 101)
+
+    @unittest.skipUnless(RESORT, "needs rofi with -custom-resort (packages/rofi)")
+    def test_resort_keeps_filter(self):
+        """Hledany text zustane i po zmene razeni (Nejpouzivanejsi -> Abecedne)."""
+        self.write_usage(["app07.desktop", "app42.desktop"])
+        self.open()
+        old = xdo("search", "--class", "rofi").split()
+        xdo("type", "App4")
+        time.sleep(0.4)
+        xdo("key", "alt+1")
+        time.sleep(0.5)
+        self.assertEqual(xdo("search", "--class", "rofi").split(), old)
+        self.assertTrue(self.enter()[0].startswith("App4"))
 
     def test_usage_recorded_and_recent_first(self):
         """Spustena aplikace se zapise do launchpad-usage.json a v Naposledy pouzite je prvni."""
