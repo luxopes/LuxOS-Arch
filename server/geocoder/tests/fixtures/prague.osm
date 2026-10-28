@@ -9,59 +9,63 @@
  <node id="6" lat="49.94" lon="14.71" version="1"/>
  <node id="7" lat="50.18" lon="14.71" version="1"/>
  <node id="8" lat="50.18" lon="14.22" version="1"/>
- <node id="9" lat="49.94" lon="14.22" version="1"/>
- <node id="10" lat="49.94" lon="14.71" version="1"/>
- <node id="11" lat="50.18" lon="14.71" version="1"/>
- <node id="12" lat="50.18" lon="14.22" version="1"/>
- <node id="13" lat="49.1" lon="16.48" version="1"/>
- <node id="14" lat="49.1" lon="16.73" version="1"/>
- <node id="15" lat="49.3" lon="16.73" version="1"/>
- <node id="16" lat="49.3" lon="16.48" version="1"/>
+ <node id="9" lat="50.065" lon="14.4" version="1"/>
+ <node id="10" lat="50.065" lon="14.43" version="1"/>
+ <node id="11" lat="50.095" lon="14.43" version="1"/>
+ <node id="12" lat="50.095" lon="14.4" version="1"/>
+ <node id="13" lat="50.065" lon="14.43" version="1"/>
+ <node id="14" lat="50.065" lon="14.46" version="1"/>
+ <node id="15" lat="50.095" lon="14.46" version="1"/>
+ <node id="16" lat="50.095" lon="14.43" version="1"/>
  <node id="17" lat="49.1" lon="16.48" version="1"/>
  <node id="18" lat="49.1" lon="16.73" version="1"/>
  <node id="19" lat="49.3" lon="16.73" version="1"/>
  <node id="20" lat="49.3" lon="16.48" version="1"/>
- <node id="21" lat="50.07" lon="14.43" version="1"/>
- <node id="22" lat="50.07" lon="14.455" version="1"/>
- <node id="23" lat="50.085" lon="14.455" version="1"/>
- <node id="24" lat="50.085" lon="14.43" version="1"/>
- <node id="25" lat="50.07" lon="14.41" version="1"/>
- <node id="26" lat="50.07" lon="14.43" version="1"/>
- <node id="27" lat="50.09" lon="14.43" version="1"/>
- <node id="28" lat="50.09" lon="14.41" version="1"/>
- <node id="29" lat="50.0875" lon="14.4213" version="1"><tag k="place" v="city"/><tag k="name" v="Praha"/><tag k="name:en" v="Prague"/><tag k="name:de" v="Prag"/><tag k="population" v="1357326"/><tag k="capital" v="yes"/></node>
- <node id="30" lat="49.1951" lon="16.6068" version="1"><tag k="place" v="city"/><tag k="name" v="Brno"/><tag k="population" v="382405"/></node>
- <node id="31" lat="50.0753" lon="14.4447" version="1"><tag k="place" v="quarter"/><tag k="name" v="Vinohrady"/></node>
- <node id="32" lat="48.2083" lon="16.3725" version="1"><tag k="place" v="city"/><tag k="name" v="Wien"/><tag k="population" v="1900000"/></node>
- <node id="33" lat="50.0805" lon="14.4245" version="1"/>
- <node id="34" lat="50.079" lon="14.4215" version="1"/>
- <node id="35" lat="50.079" lon="14.4215" version="1"/>
- <node id="36" lat="50.0775" lon="14.4195" version="1"/>
- <node id="37" lat="50.0757" lon="14.4365" version="1"/>
- <node id="38" lat="50.0752" lon="14.4395" version="1"/>
- <node id="39" lat="50.076" lon="14.4398" version="1"/>
- <node id="40" lat="50.0757" lon="14.4365" version="1"/>
- <node id="41" lat="50.0748" lon="14.44" version="1"/>
- <node id="42" lat="50.073" lon="14.447" version="1"/>
- <node id="43" lat="50.076" lon="14.413" version="1"/>
- <node id="44" lat="50.083" lon="14.412" version="1"/>
- <node id="45" lat="49.1925" lon="16.61" version="1"/>
- <node id="46" lat="49.194" lon="16.611" version="1"/>
- <node id="47" lat="49.17" lon="16.56" version="1"/>
- <node id="48" lat="49.172" lon="16.561" version="1"/>
- <node id="49" lat="50.0797" lon="14.4228" version="1"><tag k="addr:street" v="Vodičkova"/><tag k="addr:housenumber" v="681/30"/><tag k="addr:conscriptionnumber" v="681"/><tag k="addr:streetnumber" v="30"/><tag k="addr:city" v="Praha"/><tag k="addr:postcode" v="11000"/></node>
- <node id="50" lat="50.0795" lon="14.4225" version="1"><tag k="addr:street" v="Vodičkova"/><tag k="addr:housenumber" v="699/28"/><tag k="addr:city" v="Praha"/><tag k="addr:postcode" v="11000"/></node>
- <node id="51" lat="50.0783" lon="14.4204" version="1"><tag k="addr:street" v="Vodičkova"/><tag k="addr:housenumber" v="3/3"/><tag k="addr:city" v="Praha"/><tag k="addr:postcode" v="11000"/></node>
- <node id="52" lat="50.0758" lon="14.4385" version="1"><tag k="addr:street" v="náměstí Míru"/><tag k="addr:housenumber" v="820/9"/><tag k="addr:city" v="Praha"/><tag k="addr:postcode" v="12000"/></node>
- <node id="53" lat="49.193" lon="16.6105" version="1"><tag k="addr:street" v="Masarykova"/><tag k="addr:housenumber" v="12"/><tag k="addr:city" v="Brno"/></node>
- <node id="54" lat="50.0752" lon="14.4378" version="1"><tag k="railway" v="station"/><tag k="station" v="subway"/><tag k="name" v="Náměstí Míru"/><tag k="public_transport" v="station"/><tag k="subway" v="yes"/></node>
- <node id="55" lat="50.0756" lon="14.4365" version="1"><tag k="public_transport" v="platform"/><tag k="railway" v="tram_stop"/><tag k="name" v="Náměstí Míru"/><tag k="tram" v="yes"/></node>
- <node id="56" lat="50.0759" lon="14.4368" version="1"><tag k="public_transport" v="platform"/><tag k="railway" v="tram_stop"/><tag k="name" v="Náměstí Míru"/><tag k="tram" v="yes"/></node>
- <node id="57" lat="50.0761" lon="14.4381" version="1"><tag k="public_transport" v="platform"/><tag k="highway" v="bus_stop"/><tag k="name" v="Náměstí Míru"/><tag k="bus" v="yes"/></node>
- <node id="58" lat="50.0801" lon="14.4234" version="1"><tag k="public_transport" v="platform"/><tag k="railway" v="tram_stop"/><tag k="name" v="Vodičkova"/><tag k="tram" v="yes"/></node>
- <node id="59" lat="50.0799" lon="14.4229" version="1"><tag k="amenity" v="cafe"/><tag k="name" v="Kavárna Míru"/><tag k="addr:street" v="Vodičkova"/><tag k="addr:housenumber" v="681/30"/><tag k="addr:city" v="Praha"/></node>
- <node id="60" lat="50.0794" lon="14.431" version="1"><tag k="tourism" v="museum"/><tag k="name" v="Národní muzeum"/><tag k="wikidata" v="Q188112"/><tag k="name:en" v="National Museum"/></node>
- <node id="61" lat="50.078" lon="14.43" version="1"><tag k="amenity" v="bench"/><tag k="name" v="Lavička"/></node>
+ <node id="21" lat="49.1" lon="16.48" version="1"/>
+ <node id="22" lat="49.1" lon="16.73" version="1"/>
+ <node id="23" lat="49.3" lon="16.73" version="1"/>
+ <node id="24" lat="49.3" lon="16.48" version="1"/>
+ <node id="25" lat="50.07" lon="14.43" version="1"/>
+ <node id="26" lat="50.07" lon="14.455" version="1"/>
+ <node id="27" lat="50.085" lon="14.455" version="1"/>
+ <node id="28" lat="50.085" lon="14.43" version="1"/>
+ <node id="29" lat="50.07" lon="14.41" version="1"/>
+ <node id="30" lat="50.07" lon="14.43" version="1"/>
+ <node id="31" lat="50.09" lon="14.43" version="1"/>
+ <node id="32" lat="50.09" lon="14.41" version="1"/>
+ <node id="33" lat="50.0875" lon="14.4213" version="1"><tag k="place" v="city"/><tag k="name" v="Praha"/><tag k="name:en" v="Prague"/><tag k="name:de" v="Prag"/><tag k="population" v="1357326"/><tag k="capital" v="yes"/></node>
+ <node id="34" lat="49.1951" lon="16.6068" version="1"><tag k="place" v="city"/><tag k="name" v="Brno"/><tag k="population" v="382405"/></node>
+ <node id="35" lat="50.0753" lon="14.4447" version="1"><tag k="place" v="quarter"/><tag k="name" v="Vinohrady"/></node>
+ <node id="36" lat="48.2083" lon="16.3725" version="1"><tag k="place" v="city"/><tag k="name" v="Wien"/><tag k="population" v="1900000"/></node>
+ <node id="37" lat="50.0805" lon="14.4245" version="1"/>
+ <node id="38" lat="50.079" lon="14.4215" version="1"/>
+ <node id="39" lat="50.079" lon="14.4215" version="1"/>
+ <node id="40" lat="50.0775" lon="14.4195" version="1"/>
+ <node id="41" lat="50.0757" lon="14.4365" version="1"/>
+ <node id="42" lat="50.0752" lon="14.4395" version="1"/>
+ <node id="43" lat="50.076" lon="14.4398" version="1"/>
+ <node id="44" lat="50.0757" lon="14.4365" version="1"/>
+ <node id="45" lat="50.0748" lon="14.44" version="1"/>
+ <node id="46" lat="50.073" lon="14.447" version="1"/>
+ <node id="47" lat="50.076" lon="14.413" version="1"/>
+ <node id="48" lat="50.083" lon="14.412" version="1"/>
+ <node id="49" lat="49.1925" lon="16.61" version="1"/>
+ <node id="50" lat="49.194" lon="16.611" version="1"/>
+ <node id="51" lat="49.17" lon="16.56" version="1"/>
+ <node id="52" lat="49.172" lon="16.561" version="1"/>
+ <node id="53" lat="50.0797" lon="14.4228" version="1"><tag k="addr:street" v="Vodičkova"/><tag k="addr:housenumber" v="681/30"/><tag k="addr:conscriptionnumber" v="681"/><tag k="addr:streetnumber" v="30"/><tag k="addr:city" v="Praha"/><tag k="addr:postcode" v="11000"/></node>
+ <node id="54" lat="50.0795" lon="14.4225" version="1"><tag k="addr:street" v="Vodičkova"/><tag k="addr:housenumber" v="699/28"/><tag k="addr:city" v="Praha"/><tag k="addr:postcode" v="11000"/></node>
+ <node id="55" lat="50.0783" lon="14.4204" version="1"><tag k="addr:street" v="Vodičkova"/><tag k="addr:housenumber" v="3/3"/><tag k="addr:city" v="Praha"/><tag k="addr:postcode" v="11000"/></node>
+ <node id="56" lat="50.0758" lon="14.4385" version="1"><tag k="addr:street" v="náměstí Míru"/><tag k="addr:housenumber" v="820/9"/><tag k="addr:city" v="Praha"/><tag k="addr:postcode" v="12000"/></node>
+ <node id="57" lat="49.193" lon="16.6105" version="1"><tag k="addr:street" v="Masarykova"/><tag k="addr:housenumber" v="12"/><tag k="addr:city" v="Brno"/></node>
+ <node id="58" lat="50.0752" lon="14.4378" version="1"><tag k="railway" v="station"/><tag k="station" v="subway"/><tag k="name" v="Náměstí Míru"/><tag k="public_transport" v="station"/><tag k="subway" v="yes"/></node>
+ <node id="59" lat="50.0756" lon="14.4365" version="1"><tag k="public_transport" v="platform"/><tag k="railway" v="tram_stop"/><tag k="name" v="Náměstí Míru"/><tag k="tram" v="yes"/></node>
+ <node id="60" lat="50.0759" lon="14.4368" version="1"><tag k="public_transport" v="platform"/><tag k="railway" v="tram_stop"/><tag k="name" v="Náměstí Míru"/><tag k="tram" v="yes"/></node>
+ <node id="61" lat="50.0761" lon="14.4381" version="1"><tag k="public_transport" v="platform"/><tag k="highway" v="bus_stop"/><tag k="name" v="Náměstí Míru"/><tag k="bus" v="yes"/></node>
+ <node id="62" lat="50.0801" lon="14.4234" version="1"><tag k="public_transport" v="platform"/><tag k="railway" v="tram_stop"/><tag k="name" v="Vodičkova"/><tag k="tram" v="yes"/></node>
+ <node id="63" lat="50.0799" lon="14.4229" version="1"><tag k="amenity" v="cafe"/><tag k="name" v="Kavárna Míru"/><tag k="addr:street" v="Vodičkova"/><tag k="addr:housenumber" v="681/30"/><tag k="addr:city" v="Praha"/></node>
+ <node id="64" lat="50.0794" lon="14.431" version="1"><tag k="tourism" v="museum"/><tag k="name" v="Národní muzeum"/><tag k="wikidata" v="Q188112"/><tag k="name:en" v="National Museum"/></node>
+ <node id="65" lat="50.078" lon="14.43" version="1"><tag k="amenity" v="bench"/><tag k="name" v="Lavička"/></node>
  <way id="1" version="1"><nd ref="1"/><nd ref="2"/><nd ref="3"/></way>
  <way id="2" version="1"><nd ref="3"/><nd ref="4"/><nd ref="1"/></way>
  <way id="3" version="1"><nd ref="5"/><nd ref="6"/><nd ref="7"/></way>
@@ -76,18 +80,21 @@
  <way id="12" version="1"><nd ref="23"/><nd ref="24"/><nd ref="21"/></way>
  <way id="13" version="1"><nd ref="25"/><nd ref="26"/><nd ref="27"/></way>
  <way id="14" version="1"><nd ref="27"/><nd ref="28"/><nd ref="25"/></way>
- <way id="15" version="1"><nd ref="33"/><nd ref="34"/><tag k="highway" v="secondary"/><tag k="name" v="Vodičkova"/></way>
- <way id="16" version="1"><nd ref="35"/><nd ref="36"/><tag k="highway" v="tertiary"/><tag k="name" v="Vodičkova"/></way>
- <way id="17" version="1"><nd ref="37"/><nd ref="38"/><nd ref="39"/><nd ref="40"/><tag k="highway" v="pedestrian"/><tag k="area" v="yes"/><tag k="name" v="náměstí Míru"/></way>
- <way id="18" version="1"><nd ref="41"/><nd ref="42"/><tag k="highway" v="residential"/><tag k="name" v="Korunní"/></way>
- <way id="19" version="1"><nd ref="43"/><nd ref="44"/><tag k="highway" v="primary"/><tag k="name" v="Masarykovo nábřeží"/></way>
- <way id="20" version="1"><nd ref="45"/><nd ref="46"/><tag k="highway" v="residential"/><tag k="name" v="Masarykova"/></way>
- <way id="21" version="1"><nd ref="47"/><nd ref="48"/><tag k="highway" v="residential"/><tag k="name" v="Náměstí Míru"/></way>
+ <way id="15" version="1"><nd ref="29"/><nd ref="30"/><nd ref="31"/></way>
+ <way id="16" version="1"><nd ref="31"/><nd ref="32"/><nd ref="29"/></way>
+ <way id="17" version="1"><nd ref="37"/><nd ref="38"/><tag k="highway" v="secondary"/><tag k="name" v="Vodičkova"/></way>
+ <way id="18" version="1"><nd ref="39"/><nd ref="40"/><tag k="highway" v="tertiary"/><tag k="name" v="Vodičkova"/></way>
+ <way id="19" version="1"><nd ref="41"/><nd ref="42"/><nd ref="43"/><nd ref="44"/><tag k="highway" v="pedestrian"/><tag k="area" v="yes"/><tag k="name" v="náměstí Míru"/></way>
+ <way id="20" version="1"><nd ref="45"/><nd ref="46"/><tag k="highway" v="residential"/><tag k="name" v="Korunní"/></way>
+ <way id="21" version="1"><nd ref="47"/><nd ref="48"/><tag k="highway" v="primary"/><tag k="name" v="Masarykovo nábřeží"/></way>
+ <way id="22" version="1"><nd ref="49"/><nd ref="50"/><tag k="highway" v="residential"/><tag k="name" v="Masarykova"/></way>
+ <way id="23" version="1"><nd ref="51"/><nd ref="52"/><tag k="highway" v="residential"/><tag k="name" v="Náměstí Míru"/></way>
  <relation id="1" version="1"><member type="way" ref="1" role="outer"/><member type="way" ref="2" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="2"/><tag k="name" v="Česko"/><tag k="ISO3166-1" v="CZ"/><tag k="name:en" v="Czechia"/></relation>
- <relation id="2" version="1"><member type="way" ref="3" role="outer"/><member type="way" ref="4" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="6"/><tag k="name" v="Hlavní město Praha"/></relation>
- <relation id="3" version="1"><member type="way" ref="5" role="outer"/><member type="way" ref="6" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="8"/><tag k="name" v="Praha"/></relation>
- <relation id="4" version="1"><member type="way" ref="7" role="outer"/><member type="way" ref="8" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="6"/><tag k="name" v="Jihomoravský kraj"/></relation>
- <relation id="5" version="1"><member type="way" ref="9" role="outer"/><member type="way" ref="10" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="8"/><tag k="name" v="Brno"/></relation>
- <relation id="6" version="1"><member type="way" ref="11" role="outer"/><member type="way" ref="12" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="10"/><tag k="name" v="Vinohrady"/></relation>
- <relation id="7" version="1"><member type="way" ref="13" role="outer"/><member type="way" ref="14" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="10"/><tag k="name" v="Nové Město"/></relation>
+ <relation id="2" version="1"><member type="way" ref="3" role="outer"/><member type="way" ref="4" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="4"/><tag k="name" v="Praha"/><tag k="ISO3166-2" v="CZ-10"/></relation>
+ <relation id="3" version="1"><member type="way" ref="5" role="outer"/><member type="way" ref="6" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="9"/><tag k="name" v="Praha 1"/></relation>
+ <relation id="4" version="1"><member type="way" ref="7" role="outer"/><member type="way" ref="8" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="9"/><tag k="name" v="Praha 2"/></relation>
+ <relation id="5" version="1"><member type="way" ref="9" role="outer"/><member type="way" ref="10" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="4"/><tag k="name" v="Jihomoravský kraj"/></relation>
+ <relation id="6" version="1"><member type="way" ref="11" role="outer"/><member type="way" ref="12" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="8"/><tag k="name" v="Brno"/></relation>
+ <relation id="7" version="1"><member type="way" ref="13" role="outer"/><member type="way" ref="14" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="10"/><tag k="name" v="Vinohrady"/></relation>
+ <relation id="8" version="1"><member type="way" ref="15" role="outer"/><member type="way" ref="16" role="outer"/><tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="10"/><tag k="name" v="Nové Město"/></relation>
 </osm>

@@ -31,7 +31,7 @@ One SQLite file (`geocoder.sqlite`, schema 1), read-only on the server (`immutab
   (`name:cs/sk/en/de/...` as JSON), folded name variants (alt_name, short_name, official_name …),
   street, house number, postcode, town, district, region, country, lat/lon (1e-6 deg integers),
   OSM id, OSM key/value, importance. **Row id = importance rank** (1 = most important).
-- `fts` – contentless FTS5 (`detail=none`, `unicode61 remove_diacritics 2`, `prefix='2 3 4'`) over
+- `fts` – contentless FTS5 (`detail=none`, `unicode61 remove_diacritics 2`, `prefix='2 3 4 6 8'`) over
   names + context (town, district, street, house number) + a grid-cell token (`zq<row>x<col>`,
   ~22 × 22 km).
 - `str`, `tag`, `meta` – interned strings, OSM tags, build info (`built`, `data`, `features`).
@@ -47,8 +47,10 @@ the same name in one municipality within 700 m merged into one). Municipality, d
 ### Query
 
 1. Words of the query are folded (no accents, lower case); words of ≥ 2 characters go to FTS as
-   prefix terms (`"vodickova"* AND "30"*`); 1-character words are filtered afterwards in Python
-   (no 1-char prefix index – it would be large and slow).
+   prefix terms, cut to the longest indexed prefix length (`"vodickov"* AND "30"*`). A prefix
+   without its own index makes FTS5 merge the whole doclist first (`"praha"*` = every address in
+   Prague, ~40 ms); with the prefix index it reads only the first rows (~0.5 ms). Full words and
+   1-character words are checked afterwards in Python.
 2. `MATCH … LIMIT 150` returns the 150 **most important** matches (rowid order) without sorting all
    matches; with a position a second query adds `AND (9 cells around the position)`.
 3. The ≤ 300 candidates are scored: whole name starts with the query (+3, exact +0.5), all words
@@ -57,10 +59,20 @@ the same name in one municipality within 700 m merged into one). Municipality, d
 4. Each query has a 0.4 s SQLite budget (progress handler); expensive queries return no results
    instead of blocking a worker.
 
+## Measured (2026-10-28, Geofabrik data of 2026-10-27, build PC; the server has slower CPUs)
+
+- CZ + SK: 5 209 187 features (4.68 M addresses, 334 k places, 124 k streets, 49 k stops, 26 k
+  towns/districts), database **451 MB**; build ~15 min.
+- `bench.py`, 200 typical typeahead queries with a position: **p50 12 ms, p95 18 ms**, max 25 ms
+  (warm page cache); over HTTP through the service, 2 clients with keep-alive: p50 15 ms, p95 21 ms.
+- Service RSS 41–56 MB (`--mmap-mb 512`: ~130 MB with the same latency, so mmap stays off).
+
 ## Build
 
 Build host only (never the server): Python ≥ 3.9 with FTS5, `pip install osmium` (pyosmium 4),
-~1.5 GB RAM, ~6 GB temporary disk (node location index + staging DB, in `--work`).
+~1 GB RAM plus the memory-mapped node location index (peak RSS ~2.4 GB, mostly file-backed and
+reclaimable), ~6 GB temporary disk (node location index + staging DB, in `--work`); CZ+SK takes
+~15 min on one core.
 
 ```bash
 python3 -m venv ~/geocoder-venv && ~/geocoder-venv/bin/pip install osmium
