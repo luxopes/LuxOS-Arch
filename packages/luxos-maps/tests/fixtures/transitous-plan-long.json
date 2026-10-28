@@ -1,0 +1,594 @@
+{
+ "itineraries": [
+  {
+   "duration": 7440,
+   "startTime": "2026-10-26T06:02:00Z",
+   "endTime": "2026-10-26T08:06:00Z",
+   "transfers": 2,
+   "legs": [
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "START",
+      "lat": 50.0835,
+      "lon": 14.434,
+      "tz": "Europe/Prague",
+      "vertexType": "NORMAL",
+      "departure": "2026-10-26T06:02:00Z",
+      "scheduledDeparture": "2026-10-26T06:02:00Z"
+     },
+     "to": {
+      "name": "Praha hlavní nádraží",
+      "lat": 50.0831,
+      "lon": 14.4353,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-hln",
+      "arrival": "2026-10-26T06:03:00Z",
+      "scheduledArrival": "2026-10-26T06:03:00Z"
+     },
+     "duration": 60,
+     "startTime": "2026-10-26T06:02:00Z",
+     "endTime": "2026-10-26T06:03:00Z",
+     "scheduledStartTime": "2026-10-26T06:02:00Z",
+     "scheduledEndTime": "2026-10-26T06:03:00Z",
+     "realTime": false,
+     "distance": 70
+    },
+    {
+     "mode": "LONG_DISTANCE",
+     "from": {
+      "name": "Praha hlavní nádraží",
+      "lat": 50.0831,
+      "lon": 14.4353,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-hln",
+      "departure": "2026-10-26T06:07:00Z",
+      "scheduledDeparture": "2026-10-26T06:03:00Z",
+      "track": "5",
+      "scheduledTrack": "3"
+     },
+     "to": {
+      "name": "Pardubice hlavní nádraží",
+      "lat": 50.0322,
+      "lon": 15.7569,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-pce",
+      "arrival": "2026-10-26T07:06:00Z",
+      "scheduledArrival": "2026-10-26T07:02:00Z"
+     },
+     "duration": 3540,
+     "startTime": "2026-10-26T06:07:00Z",
+     "endTime": "2026-10-26T07:06:00Z",
+     "scheduledStartTime": "2026-10-26T06:03:00Z",
+     "scheduledEndTime": "2026-10-26T07:02:00Z",
+     "realTime": true,
+     "headsign": "Ostrava hlavní nádraží přes Pardubice a Českou Třebovou",
+     "routeColor": "2563eb",
+     "routeTextColor": "ffffff",
+     "agencyName": "České dráhy, a.s. (dálková doprava)",
+     "displayName": "Ex1 (IC 547)",
+     "routeShortName": "Ex1 (IC 547)",
+     "routeLongName": "",
+     "cancelled": false,
+     "intermediateStops": [
+      {
+       "name": "Zastávka 0"
+      },
+      {
+       "name": "Zastávka 1"
+      },
+      {
+       "name": "Zastávka 2"
+      }
+     ]
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Pardubice hlavní nádraží",
+      "lat": 50.0322,
+      "lon": 15.7569,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-pce",
+      "departure": "2026-10-26T07:06:00Z",
+      "scheduledDeparture": "2026-10-26T07:06:00Z"
+     },
+     "to": {
+      "name": "Pardubice hlavní nádraží (nástupiště 4)",
+      "lat": 50.0325,
+      "lon": 15.7573,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-pce2",
+      "arrival": "2026-10-26T07:09:00Z",
+      "scheduledArrival": "2026-10-26T07:09:00Z"
+     },
+     "duration": 180,
+     "startTime": "2026-10-26T07:06:00Z",
+     "endTime": "2026-10-26T07:09:00Z",
+     "scheduledStartTime": "2026-10-26T07:06:00Z",
+     "scheduledEndTime": "2026-10-26T07:09:00Z",
+     "realTime": false,
+     "distance": 180
+    },
+    {
+     "mode": "REGIONAL_RAIL",
+     "from": {
+      "name": "Pardubice hlavní nádraží (nástupiště 4)",
+      "lat": 50.0325,
+      "lon": 15.7573,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-pce2",
+      "departure": "2026-10-26T07:12:00Z",
+      "scheduledDeparture": "2026-10-26T07:12:00Z",
+      "track": "4",
+      "scheduledTrack": "4"
+     },
+     "to": {
+      "name": "Hradec Králové hlavní nádraží",
+      "lat": 50.2133,
+      "lon": 15.8169,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-hk",
+      "arrival": "2026-10-26T07:40:00Z",
+      "scheduledArrival": "2026-10-26T07:40:00Z"
+     },
+     "duration": 1680,
+     "startTime": "2026-10-26T07:12:00Z",
+     "endTime": "2026-10-26T07:40:00Z",
+     "scheduledStartTime": "2026-10-26T07:12:00Z",
+     "scheduledEndTime": "2026-10-26T07:40:00Z",
+     "realTime": true,
+     "headsign": "Hradec Králové hlavní nádraží",
+     "routeColor": "0e7490",
+     "routeTextColor": "ffffff",
+     "agencyName": "České dráhy, a.s.",
+     "displayName": "M1 (Os 3751)",
+     "routeShortName": "M1 (Os 3751)",
+     "routeLongName": "",
+     "cancelled": false,
+     "intermediateStops": [
+      {
+       "name": "Zastávka 0"
+      },
+      {
+       "name": "Zastávka 1"
+      },
+      {
+       "name": "Zastávka 2"
+      },
+      {
+       "name": "Zastávka 3"
+      },
+      {
+       "name": "Zastávka 4"
+      },
+      {
+       "name": "Zastávka 5"
+      },
+      {
+       "name": "Zastávka 6"
+      },
+      {
+       "name": "Zastávka 7"
+      }
+     ]
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Hradec Králové hlavní nádraží",
+      "lat": 50.2133,
+      "lon": 15.8169,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-hk",
+      "departure": "2026-10-26T07:40:00Z",
+      "scheduledDeparture": "2026-10-26T07:40:00Z"
+     },
+     "to": {
+      "name": "Hradec Králové, Hlavní nádraží",
+      "lat": 50.2128,
+      "lon": 15.816,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-hkt",
+      "arrival": "2026-10-26T07:48:00Z",
+      "scheduledArrival": "2026-10-26T07:48:00Z"
+     },
+     "duration": 480,
+     "startTime": "2026-10-26T07:40:00Z",
+     "endTime": "2026-10-26T07:48:00Z",
+     "scheduledStartTime": "2026-10-26T07:40:00Z",
+     "scheduledEndTime": "2026-10-26T07:48:00Z",
+     "realTime": false,
+     "distance": 420
+    },
+    {
+     "mode": "TRAM",
+     "from": {
+      "name": "Hradec Králové, Hlavní nádraží",
+      "lat": 50.2128,
+      "lon": 15.816,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-hkt",
+      "departure": "2026-10-26T07:50:00Z",
+      "scheduledDeparture": "2026-10-26T07:50:00Z"
+     },
+     "to": {
+      "name": "Hradec Králové, Fakultní nemocnice",
+      "lat": 50.2015,
+      "lon": 15.807,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-fn",
+      "arrival": "2026-10-26T08:00:00Z",
+      "scheduledArrival": "2026-10-26T08:00:00Z"
+     },
+     "duration": 600,
+     "startTime": "2026-10-26T07:50:00Z",
+     "endTime": "2026-10-26T08:00:00Z",
+     "scheduledStartTime": "2026-10-26T07:50:00Z",
+     "scheduledEndTime": "2026-10-26T08:00:00Z",
+     "realTime": true,
+     "headsign": "Fakultní nemocnice – Nový Hradec Králové",
+     "routeColor": "dc2626",
+     "routeTextColor": "ffffff",
+     "agencyName": "Dopravní podnik města Hradce Králové",
+     "displayName": "5",
+     "routeShortName": "5",
+     "routeLongName": "",
+     "cancelled": false,
+     "intermediateStops": [
+      {
+       "name": "Zastávka 0"
+      },
+      {
+       "name": "Zastávka 1"
+      },
+      {
+       "name": "Zastávka 2"
+      },
+      {
+       "name": "Zastávka 3"
+      },
+      {
+       "name": "Zastávka 4"
+      }
+     ]
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Hradec Králové, Fakultní nemocnice",
+      "lat": 50.2015,
+      "lon": 15.807,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-fn",
+      "departure": "2026-10-26T08:00:00Z",
+      "scheduledDeparture": "2026-10-26T08:00:00Z"
+     },
+     "to": {
+      "name": "END",
+      "lat": 50.1985,
+      "lon": 15.802,
+      "tz": "Europe/Prague",
+      "vertexType": "NORMAL",
+      "arrival": "2026-10-26T08:06:00Z",
+      "scheduledArrival": "2026-10-26T08:06:00Z"
+     },
+     "duration": 360,
+     "startTime": "2026-10-26T08:00:00Z",
+     "endTime": "2026-10-26T08:06:00Z",
+     "scheduledStartTime": "2026-10-26T08:00:00Z",
+     "scheduledEndTime": "2026-10-26T08:06:00Z",
+     "realTime": false,
+     "distance": 380
+    }
+   ]
+  },
+  {
+   "duration": 7440,
+   "startTime": "2026-10-26T06:32:00Z",
+   "endTime": "2026-10-26T08:36:00Z",
+   "transfers": 2,
+   "legs": [
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "START",
+      "lat": 50.0835,
+      "lon": 14.434,
+      "tz": "Europe/Prague",
+      "vertexType": "NORMAL",
+      "departure": "2026-10-26T06:02:00Z",
+      "scheduledDeparture": "2026-10-26T06:02:00Z"
+     },
+     "to": {
+      "name": "Praha hlavní nádraží",
+      "lat": 50.0831,
+      "lon": 14.4353,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-hln",
+      "arrival": "2026-10-26T06:03:00Z",
+      "scheduledArrival": "2026-10-26T06:03:00Z"
+     },
+     "duration": 60,
+     "startTime": "2026-10-26T06:02:00Z",
+     "endTime": "2026-10-26T06:03:00Z",
+     "scheduledStartTime": "2026-10-26T06:02:00Z",
+     "scheduledEndTime": "2026-10-26T06:03:00Z",
+     "realTime": false,
+     "distance": 70
+    },
+    {
+     "mode": "LONG_DISTANCE",
+     "from": {
+      "name": "Praha hlavní nádraží",
+      "lat": 50.0831,
+      "lon": 14.4353,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-hln",
+      "departure": "2026-10-26T06:07:00Z",
+      "scheduledDeparture": "2026-10-26T06:03:00Z",
+      "track": "5",
+      "scheduledTrack": "3"
+     },
+     "to": {
+      "name": "Pardubice hlavní nádraží",
+      "lat": 50.0322,
+      "lon": 15.7569,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-pce",
+      "arrival": "2026-10-26T07:06:00Z",
+      "scheduledArrival": "2026-10-26T07:02:00Z"
+     },
+     "duration": 3540,
+     "startTime": "2026-10-26T06:07:00Z",
+     "endTime": "2026-10-26T07:06:00Z",
+     "scheduledStartTime": "2026-10-26T06:03:00Z",
+     "scheduledEndTime": "2026-10-26T07:02:00Z",
+     "realTime": true,
+     "headsign": "Ostrava hlavní nádraží přes Pardubice a Českou Třebovou",
+     "routeColor": "2563eb",
+     "routeTextColor": "ffffff",
+     "agencyName": "České dráhy, a.s. (dálková doprava)",
+     "displayName": "Ex1 (IC 547)",
+     "routeShortName": "Ex1 (IC 547)",
+     "routeLongName": "",
+     "cancelled": false,
+     "intermediateStops": [
+      {
+       "name": "Zastávka 0"
+      },
+      {
+       "name": "Zastávka 1"
+      },
+      {
+       "name": "Zastávka 2"
+      }
+     ]
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Pardubice hlavní nádraží",
+      "lat": 50.0322,
+      "lon": 15.7569,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-pce",
+      "departure": "2026-10-26T07:06:00Z",
+      "scheduledDeparture": "2026-10-26T07:06:00Z"
+     },
+     "to": {
+      "name": "Pardubice hlavní nádraží (nástupiště 4)",
+      "lat": 50.0325,
+      "lon": 15.7573,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-pce2",
+      "arrival": "2026-10-26T07:09:00Z",
+      "scheduledArrival": "2026-10-26T07:09:00Z"
+     },
+     "duration": 180,
+     "startTime": "2026-10-26T07:06:00Z",
+     "endTime": "2026-10-26T07:09:00Z",
+     "scheduledStartTime": "2026-10-26T07:06:00Z",
+     "scheduledEndTime": "2026-10-26T07:09:00Z",
+     "realTime": false,
+     "distance": 180
+    },
+    {
+     "mode": "REGIONAL_RAIL",
+     "from": {
+      "name": "Pardubice hlavní nádraží (nástupiště 4)",
+      "lat": 50.0325,
+      "lon": 15.7573,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-pce2",
+      "departure": "2026-10-26T07:12:00Z",
+      "scheduledDeparture": "2026-10-26T07:12:00Z",
+      "track": "4",
+      "scheduledTrack": "4"
+     },
+     "to": {
+      "name": "Hradec Králové hlavní nádraží",
+      "lat": 50.2133,
+      "lon": 15.8169,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-hk",
+      "arrival": "2026-10-26T07:40:00Z",
+      "scheduledArrival": "2026-10-26T07:40:00Z"
+     },
+     "duration": 1680,
+     "startTime": "2026-10-26T07:12:00Z",
+     "endTime": "2026-10-26T07:40:00Z",
+     "scheduledStartTime": "2026-10-26T07:12:00Z",
+     "scheduledEndTime": "2026-10-26T07:40:00Z",
+     "realTime": true,
+     "headsign": "Hradec Králové hlavní nádraží",
+     "routeColor": "0e7490",
+     "routeTextColor": "ffffff",
+     "agencyName": "České dráhy, a.s.",
+     "displayName": "M1 (Os 3751)",
+     "routeShortName": "M1 (Os 3751)",
+     "routeLongName": "",
+     "cancelled": false,
+     "intermediateStops": [
+      {
+       "name": "Zastávka 0"
+      },
+      {
+       "name": "Zastávka 1"
+      },
+      {
+       "name": "Zastávka 2"
+      },
+      {
+       "name": "Zastávka 3"
+      },
+      {
+       "name": "Zastávka 4"
+      },
+      {
+       "name": "Zastávka 5"
+      },
+      {
+       "name": "Zastávka 6"
+      },
+      {
+       "name": "Zastávka 7"
+      }
+     ]
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Hradec Králové hlavní nádraží",
+      "lat": 50.2133,
+      "lon": 15.8169,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-hk",
+      "departure": "2026-10-26T07:40:00Z",
+      "scheduledDeparture": "2026-10-26T07:40:00Z"
+     },
+     "to": {
+      "name": "Hradec Králové, Hlavní nádraží",
+      "lat": 50.2128,
+      "lon": 15.816,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-hkt",
+      "arrival": "2026-10-26T07:48:00Z",
+      "scheduledArrival": "2026-10-26T07:48:00Z"
+     },
+     "duration": 480,
+     "startTime": "2026-10-26T07:40:00Z",
+     "endTime": "2026-10-26T07:48:00Z",
+     "scheduledStartTime": "2026-10-26T07:40:00Z",
+     "scheduledEndTime": "2026-10-26T07:48:00Z",
+     "realTime": false,
+     "distance": 420
+    },
+    {
+     "mode": "TRAM",
+     "from": {
+      "name": "Hradec Králové, Hlavní nádraží",
+      "lat": 50.2128,
+      "lon": 15.816,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-hkt",
+      "departure": "2026-10-26T07:50:00Z",
+      "scheduledDeparture": "2026-10-26T07:50:00Z"
+     },
+     "to": {
+      "name": "Hradec Králové, Fakultní nemocnice",
+      "lat": 50.2015,
+      "lon": 15.807,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-fn",
+      "arrival": "2026-10-26T08:00:00Z",
+      "scheduledArrival": "2026-10-26T08:00:00Z"
+     },
+     "duration": 600,
+     "startTime": "2026-10-26T07:50:00Z",
+     "endTime": "2026-10-26T08:00:00Z",
+     "scheduledStartTime": "2026-10-26T07:50:00Z",
+     "scheduledEndTime": "2026-10-26T08:00:00Z",
+     "realTime": true,
+     "headsign": "Fakultní nemocnice – Nový Hradec Králové",
+     "routeColor": "dc2626",
+     "routeTextColor": "ffffff",
+     "agencyName": "Dopravní podnik města Hradce Králové",
+     "displayName": "5",
+     "routeShortName": "5",
+     "routeLongName": "",
+     "cancelled": false,
+     "intermediateStops": [
+      {
+       "name": "Zastávka 0"
+      },
+      {
+       "name": "Zastávka 1"
+      },
+      {
+       "name": "Zastávka 2"
+      },
+      {
+       "name": "Zastávka 3"
+      },
+      {
+       "name": "Zastávka 4"
+      }
+     ]
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Hradec Králové, Fakultní nemocnice",
+      "lat": 50.2015,
+      "lon": 15.807,
+      "tz": "Europe/Prague",
+      "vertexType": "TRANSIT",
+      "stopId": "cz-fn",
+      "departure": "2026-10-26T08:00:00Z",
+      "scheduledDeparture": "2026-10-26T08:00:00Z"
+     },
+     "to": {
+      "name": "END",
+      "lat": 50.1985,
+      "lon": 15.802,
+      "tz": "Europe/Prague",
+      "vertexType": "NORMAL",
+      "arrival": "2026-10-26T08:06:00Z",
+      "scheduledArrival": "2026-10-26T08:06:00Z"
+     },
+     "duration": 360,
+     "startTime": "2026-10-26T08:00:00Z",
+     "endTime": "2026-10-26T08:06:00Z",
+     "scheduledStartTime": "2026-10-26T08:00:00Z",
+     "scheduledEndTime": "2026-10-26T08:06:00Z",
+     "realTime": false,
+     "distance": 380
+    }
+   ]
+  }
+ ]
+}

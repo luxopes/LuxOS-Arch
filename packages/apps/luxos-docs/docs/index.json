@@ -661,7 +661,7 @@
         {
           "path": "luxos/maps-navigation.md",
           "title": "Maps navigation",
-          "summary": "Turn-by-turn navigation in Maps (luxos-maps): Start Navigation, instruction banner, heading up/north up, live phone GPS (LuxOS Companion) or GeoClue, off-route detection and rerouting, arrival, ETA, transit steps, screen kept on, optional voice (spd-say/espeak-ng), LUXOS_MAPS_SIMULATE.",
+          "summary": "Turn-by-turn navigation in Maps (luxos-maps): banner, heading up, phone GPS or GeoClue, smooth arrow, rerouting when off route or going the wrong way (also public transport, missed connection), arrival, ETA, screen kept on, voice (spd-say/espeak-ng), LUXOS_MAPS_SIMULATE.",
           "keywords": [
             "navigation",
             "navigovat",
