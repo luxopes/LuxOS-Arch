@@ -2672,7 +2672,7 @@ opens a remote shell	öppnar ett fjärrskal
 remove packages (also Flatpak apps) and unneeded dependencies	ta bort paket (även Flatpak-appar) och onödiga beroenden
 runs generated code with eval	kör genererad kod med eval
 runs inline code of another language	kör inbäddad kod i ett annat språk
-search repositories, Flathub and community (AUR)	sök i förråd, Flathub och community (AUR)
+search repositories, Flathub and AUR; patterns ^vim, *qt* (lux search -h)	sök i förråd, på Flathub och i AUR; mönster ^vim, *qt* (lux search -h)
 sets world-writable or setuid permissions	sätter rättigheter som alla kan skriva eller setuid
 the build script is unusually long	byggskriptet är ovanligt långt
 touches accounts, sudo or SSH keys	rör konton, sudo eller SSH-nycklar
@@ -4416,3 +4416,15 @@ Clear Recent Places	Rensa senaste platser
 Current location	Nuvarande plats
 Offline – showing saved places only	Offline – endast sparade platser
 Suggestions by Photon · © OpenStreetMap contributors	Förslag: Photon · © OpenStreetMap-bidragsgivare
+term or pattern	sökord eller mönster
+A plain word searches package names and descriptions. A pattern searches names only (case does not matter):	Ett vanligt ord söker i paketnamn och beskrivningar. Ett mönster söker bara i namn (skiftläge spelar ingen roll):
+name starts with text	namnet börjar med text
+name ends with text	namnet slutar med text
+exactly this name	exakt detta namn
+name contains text	namnet innehåller text
+* any characters, ? one character (the whole name must match)	* valfria tecken, ? ett tecken (hela namnet måste matcha)
+same as *, but the shell does not expand it	samma som *, men skalet expanderar det inte
+More words or patterns: all must match. Put patterns in quotes: lux search '*qt*'	Flera ord eller mönster: alla måste matcha. Sätt mönster inom citattecken: lux search '*qt*'
+search only installed packages and apps	sök bara i installerade paket och appar
+Usage: lux search [--installed] <term or pattern>	Användning: lux search [--installed] <sökord eller mönster>
+skipped: a pattern needs at least 2 letters in a row for the AUR	hoppades över: för AUR behöver ett mönster minst 2 tecken i följd

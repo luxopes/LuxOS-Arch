@@ -14,7 +14,7 @@ overovani podpisu, cache a hooky jadra. Spousti ho /usr/bin/lux; Obchod LuxOS a 
   remove BALIK...                 odebere i nepotrebne zavislosti a zalohy konfigurace (= lux-engine -Rns)
   autoremove                      odebere nepotrebne zavislosti (= lux-engine -Rns $(lux-engine -Qdtq))
   upgrade [--refresh] [--download-only] [--keyring-first]   (update = vse z toho)
-  search VYRAZ... | info BALIK | list [--installed|--upgradable|--explicit|--foreign|--orphans] [VZOR]
+  search [--installed] VYRAZ... (vzory ^ $ * ? %, viz lux_community.py) | info BALIK | list [--installed|--upgradable|--explicit|--foreign|--orphans] [VZOR]
   list --sync                     vsechny balicky repozitaru: repo<TAB>nazev<TAB>verze<TAB>velikost<TAB>popis
   files BALIK | owns CESTA... | resolve CIL...
   check-updates [--db ADRESAR]    dostupne aktualizace bez zasahu do databaze systemu (obnova do
@@ -2032,26 +2032,49 @@ def repo_badge(ui, repo):
     return ui.dim(repo)
 
 
+def _search_tools():
+    """Vzory vyhledavani (^ $ * ? %) z lux_community.py vedle tohoto souboru (spolecne s Flathubem a AUR)."""
+    d = os.path.dirname(os.path.abspath(__file__))
+    if d not in sys.path:
+        sys.path.append(d)
+    import lux_community  # noqa: PLC0415
+    return lux_community
+
+
 def cmd_search(lux, args):
+    """Obycejna slova: hledani libalpm v nazvu i popisu (jako drive). Vzory (^vim, vim$, *qt*, lib*-git,
+    %qt%): jen v nazvu, bez ohledu na velikost pismen. Vic vyrazu = musi platit vsechny."""
     ui = lux.ui
     local = lux.localdb
+    lc = _search_tools()
+    plain = [t for t in args.terms if not lc.is_pattern(t)]
+    rxs = [lc.search_pattern(t) for t in args.terms if lc.is_pattern(t)]
+    syncdbs = lux.syncdbs("Search")
     seen, rows = set(), []
-    for db in lux.syncdbs("Search"):
-        try:
-            res = db.search(*args.terms)
-        except lux.api.error:
-            res = []
+    for db in ([local] if args.installed else syncdbs):
+        if plain:
+            try:
+                res = db.search(*plain)
+            except lux.api.error:
+                res = []
+        else:
+            res = list(db.pkgcache)
         for p in res:
-            if (db.name, p.name) in seen:
+            if (db.name, p.name) in seen or not all(r.search(p.name) for r in rxs):
                 continue
             seen.add((db.name, p.name))
             rows.append((db.name, p))
-    q = " ".join(args.terms).lower()
+    q = (" ".join(plain) if plain else lc.search_literal(args.terms)).lower()
     rows.sort(key=lambda r: (r[1].name.lower() != q, not r[1].name.lower().startswith(q)))
     if not rows:
         return 1
     for repo, p in rows:
-        inst = local.get_pkg(p.name)
+        if args.installed:
+            # nainstalovany balicek: repozitar, ze ktereho je (jinak "local" - AUR, soubor)
+            repo = next((d.name for d in syncdbs if d.get_pkg(p.name) is not None), "local")
+            inst = p
+        else:
+            inst = local.get_pkg(p.name)
         mark = ""
         if inst is not None:
             mark = " " + (ui.green("● " + _("installed")) if inst.version == p.version else
@@ -2503,6 +2526,7 @@ def build_parser():
         s.add_argument("--keyring-first", action="store_true", default=name == "update")
         s.set_defaults(fn=cmd_upgrade)
     s = sub.add_parser("search")
+    s.add_argument("--installed", action="store_true")
     s.add_argument("terms", nargs="+")
     s.set_defaults(fn=cmd_search)
     s = sub.add_parser("info")

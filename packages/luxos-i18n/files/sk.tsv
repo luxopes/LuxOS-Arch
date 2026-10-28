@@ -2634,7 +2634,7 @@ community - installed into the sandbox	komunita – inštaluje sa do sandboxu
 Community packages are updated only when you run it yourself: lux update	Balíky komunity sa aktualizujú, len keď to spustíte sami: lux update
 Community packages were not updated	Balíky komunity neboli aktualizované
 install packages (repositories, LuxOS, Flathub, then community/AUR)	nainštalovať balíky (repozitáre, LuxOS, Flathub, potom komunita/AUR)
-search repositories, Flathub and community (AUR)	hľadať v repozitároch, na Flathube a v komunite (AUR)
+search repositories, Flathub and AUR; patterns ^vim, *qt* (lux search -h)	hľadať v repozitároch, na Flathube a v AUR; vzory ^vim, *qt* (lux search -h)
 only the community source (AUR)	len zdroj komunity (AUR)
 community package into the system instead of the sandbox	balík komunity do systému namiesto do sandboxu
 remove packages (also Flatpak apps) and unneeded dependencies	odstrániť balíky (aj aplikácie Flatpak) a nepotrebné závislosti
@@ -4416,3 +4416,15 @@ Clear Recent Places	Vymazať nedávne miesta
 Current location	Aktuálna poloha
 Offline – showing saved places only	Offline – iba uložené miesta
 Suggestions by Photon · © OpenStreetMap contributors	Návrhy: Photon · © prispievatelia OpenStreetMap
+term or pattern	výraz alebo vzor
+A plain word searches package names and descriptions. A pattern searches names only (case does not matter):	Obyčajné slovo hľadá v názvoch a popisoch balíkov. Vzor hľadá len v názvoch (na veľkosti písmen nezáleží):
+name starts with text	názov začína na text
+name ends with text	názov končí na text
+exactly this name	presne tento názov
+name contains text	názov obsahuje text
+* any characters, ? one character (the whole name must match)	* ľubovoľné znaky, ? jeden znak (musí zodpovedať celý názov)
+same as *, but the shell does not expand it	to isté ako *, ale shell ho nerozbalí
+More words or patterns: all must match. Put patterns in quotes: lux search '*qt*'	Viac slov alebo vzorov: musia platiť všetky. Vzory dajte do úvodzoviek: lux search '*qt*'
+search only installed packages and apps	hľadať len v nainštalovaných balíkoch a aplikáciách
+Usage: lux search [--installed] <term or pattern>	Použitie: lux search [--installed] <výraz alebo vzor>
+skipped: a pattern needs at least 2 letters in a row for the AUR	preskočené: vzor pre AUR potrebuje aspoň 2 znaky za sebou

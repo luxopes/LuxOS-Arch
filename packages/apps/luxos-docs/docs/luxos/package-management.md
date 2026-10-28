@@ -39,7 +39,7 @@ behind lux is the `lux-engine` package (libalpm and tools taken from Arch Linux 
 | `lux install <pkg...>` (`i`, `add`) | install from repositories → LuxOS `.lux` → Flathub → community (AUR, into the sandbox); also a local `.lux` or `.pkg.tar.*` file; installed packages are skipped |
 | `lux remove <pkg...>` (`rm`) | remove with no longer needed dependencies; config files you changed stay as `*.luxsave` (`-n`/`--nosave` deletes them too) |
 | `lux update` (`upgrade`, `up`) | refresh databases, signing keys first, then the whole system; then community (AUR) packages in the system, `.lux` apps, Flatpak (+ unused runtimes removed) |
-| `lux search <term>` (`s`) | search repositories, the LuxOS `.lux` repo, Flathub and the community source (AUR) |
+| `lux search <term>` (`s`) | search repositories, the LuxOS `.lux` repo, Flathub and AUR (`--installed`: only installed); a word also matches descriptions, a pattern only names (any case): `^vim` starts, `vim$` ends, `^vim$` exact, `*qt*` contains, `lib*-git` (`*` any, `?` one char, whole name), `%` = `*`; quote patterns: `lux search '*qt*'` |
 | `lux info <pkg>` (`show`) | details (installed, else repository, `.lux`, AUR) |
 | `lux list [--installed]` (`ls`) | installed packages (including `.lux`); `lux list <pattern>` filters |
 | `lux check` (`check-updates`) | available updates from freshly downloaded lists (temporary copy, no root, nothing changes) |

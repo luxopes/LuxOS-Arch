@@ -7,6 +7,12 @@
     lux_community.py flathub NAZEV       ID aplikace na Flathubu pro bezny nazev (zoom -> us.zoom.Zoom)
     lux_community.py flathub-search SLOVA   vysledky Flathubu (ID<TAB>nazev<TAB>shrnuti<TAB>URL ikony)
     lux_community.py flathub-size ID     velikost aplikace a chybejiciho prostredi (JSON)
+    lux_community.py aur-search VYRAZY   vysledky AUR (nazev<TAB>verze<TAB>popis), kod 3 = vzor bez 2 pismen
+    lux_community.py search-filter [--app-id] VYRAZY   radky TAB ze stdin, ktere odpovidaji (nazev = 1. pole)
+
+Vyrazy hledani (lux search) jako v aptitude: ^text zacatek nazvu, text$ konec, ^text$ presny nazev,
+* libovolne znaky, ? jeden znak, % = * (shell ho neexpanduje). Vzor hleda jen v nazvu, obycejne slovo
+v nazvu i popisu (beze zmeny).
 
 Vystup "review" (radky TAB): VERDICT <safe|suspicious|dangerous|unreviewed>, REASON <text>,
 FINDING <zavaznost> <text>, NOTE <proc nebyla kontrola LuxAI>. Neuspech LuxAI nikdy neznamena
@@ -451,6 +457,120 @@ def print_review(r):
         print("NOTE\t" + clean(r["note"]))
 
 
+# ---- vzory vyhledavani (lux search) -----------------------------------------------------------
+def is_pattern(term):
+    """Vyraz s operatorem vzoru (^ na zacatku, $ na konci, *, ?, %) - hleda se jen v nazvu."""
+    return bool(term) and (term[0] == "^" or term[-1] == "$" or any(c in term for c in "*?%"))
+
+
+def search_pattern(term):
+    """Vzor nazvu -> zkompilovany regex (bez ohledu na velikost pismen), None = obycejne slovo.
+    S * nebo ? musi vzor odpovidat celemu nazvu (lib*-git, *qt*); ^ a $ jsou pak navic.
+    Bez nich: ^text = zacina, text$ = konci, ^text$ = presne."""
+    if not is_pattern(term):
+        return None
+    t = term.replace("%", "*")
+    start = t.startswith("^")
+    if start:
+        t = t[1:]
+    end = t.endswith("$")
+    if end:
+        t = t[:-1]
+    if "*" in t or "?" in t:
+        rx = "".join(".*" if c == "*" else "." if c == "?" else re.escape(c) for c in t)
+        return re.compile(r"\A" + rx + r"\Z", re.I | re.S)
+    return re.compile((r"\A" if start else "") + re.escape(t) + (r"\Z" if end else ""), re.I)
+
+
+def pattern_literal(term):
+    """Nejdelsi souvisly text vzoru bez operatoru (dotaz na AUR/Flathub, vysledky se pak filtruji)."""
+    t = term.replace("%", "*")
+    t = t[1:] if t.startswith("^") else t
+    t = t[:-1] if t.endswith("$") else t
+    return max(re.split(r"[*?]", t), key=len)
+
+
+def search_literal(terms):
+    """Nejdelsi text ze vzoru mezi vyrazy ("" = zadny vzor)."""
+    return max((pattern_literal(t) for t in terms if is_pattern(t)), key=len, default="")
+
+
+def search_match(terms, names, text=""):
+    """Odpovida vsem vyrazum? names = nazev (nebo vic nazvu: ID aplikace, jeji nazev...), text = popis.
+    Vzor se hleda jen v nazvech, obycejne slovo v nazvech i popisu."""
+    if isinstance(names, str):
+        names = [names]
+    hay = " ".join(list(names) + [text or ""]).lower()
+    for t in terms:
+        rx = search_pattern(t)
+        if rx is None:
+            if t.lower() not in hay:
+                return False
+        elif not any(rx.search(n or "") for n in names):
+            return False
+    return True
+
+
+def app_names(app_id, title=""):
+    """Nazvy aplikace Flathubu pro vzor: cele ID, posledni cast ID (org.vim.Vim -> Vim) a nazev."""
+    return [app_id, app_id.rsplit(".", 1)[-1], title or ""]
+
+
+def search_filter(terms, lines, app_id=False):
+    """Radky TAB (nazev v 1. poli; s app_id ID<TAB>nazev aplikace<TAB>...), ktere odpovidaji vyrazum."""
+    for line in lines:
+        f = line.rstrip("\n").split("\t")
+        if not f[0]:
+            continue
+        names = app_names(f[0], f[1] if len(f) > 1 else "") if app_id else [f[0]]
+        if search_match(terms, names, " ".join(f[1:])):
+            yield line.rstrip("\n")
+
+
+# ---- AUR (vyhledavani) ----------------------------------------------------------------------------
+AUR_RPC = os.environ.get("LUX_AUR_RPC", "https://aur.archlinux.org/rpc/v5")
+AUR_SHORT = "short"
+
+
+def aur_get(path, params=None, timeout=20):
+    """JSON z AUR RPC. None = nedostupne."""
+    import urllib.parse  # noqa: PLC0415
+    import urllib.request  # noqa: PLC0415
+    url = AUR_RPC + path + ("?" + urllib.parse.urlencode(params) if params else "")
+    req = urllib.request.Request(url, headers={"User-Agent": "lux (LuxOS)", "Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read() or b"null")
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def aur_search(terms, fetch=None, limit=20):
+    """[(nazev, verze, popis)] podle oblibenosti; None = nedostupne, AUR_SHORT = vzor bez 2 pismen.
+    Obycejne slovo: jako drive (by=name-desc, prvni slovo). Vzor: AUR umi jen podretezec nazvu
+    (by=name), proto dotaz na nejdelsi text vzoru a presna shoda (^, $, *, ?) az tady."""
+    import urllib.parse  # noqa: PLC0415
+    fetch = fetch or aur_get
+    terms = [t for t in terms if t]
+    if not terms:
+        return []
+    if any(is_pattern(t) for t in terms):
+        lit = search_literal(terms)
+        if len(lit) < 2:
+            return AUR_SHORT
+        d = fetch("/search/" + urllib.parse.quote(lit, safe=""), {"by": "name"})
+    else:
+        d = fetch("/search/" + urllib.parse.quote(terms[0], safe=""), {"by": "name-desc"})
+    if not isinstance(d, dict):
+        return None
+    res = [r for r in d.get("results") or [] if isinstance(r, dict) and r.get("Name")]
+    if any(is_pattern(t) for t in terms):
+        res = [r for r in res if search_match(terms, str(r["Name"]), str(r.get("Description") or ""))]
+    res.sort(key=lambda r: -float(r.get("Popularity") or 0))
+    return [(clean(r["Name"]), clean(r.get("Version") or ""), clean(r.get("Description") or ""))
+            for r in res[:limit]]
+
+
 # ---- Flathub --------------------------------------------------------------------------------------
 APP_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+){2,}$")
 FLATHUB_API = os.environ.get("LUX_FLATHUB_API", "https://flathub.org/api/v2")
@@ -488,6 +608,20 @@ def flathub_search(term, limit=20):
                     icon if re.match(r"^https://dl\.flathub\.org/[\w./-]+\.png$", icon) else ""))
     return out[:limit]
 
+
+def flathub_search_terms(terms, limit=20, search=None):
+    """Vyhledani na Flathubu pro lux search: obycejna slova beze zmeny, se vzorem dotaz na nejdelsi
+    text vzoru a filtr podle ID nebo nazvu aplikace (vzor bez 2 pismen = nic)."""
+    search = search or flathub_search
+    if not any(is_pattern(t) for t in terms):
+        return search(" ".join(terms), limit)
+    lit = search_literal(terms)
+    if len(lit) < 2:
+        return []
+    rows = search(lit, 250)
+    if rows is None:
+        return None
+    return [r for r in rows if search_match(terms, app_names(r[0], r[1]), r[2])][:limit]
 
 
 def flathub_candidates(name, rows):
@@ -553,6 +687,12 @@ def flathub_size(app_id):
 
 
 def main(argv):
+    if argv[:1] == ["search-filter"]:
+        app_id = "--app-id" in argv[1:2]
+        terms = [t for t in argv[1 + app_id:] if t != "--"]
+        for line in search_filter(terms, sys.stdin, app_id):
+            print(line)
+        return 0
     if len(argv) < 2:
         print("usage: lux_community.py review|precheck DIR | flathub NAME | flathub-search WORDS | flathub-size ID"
               "  (used by lux)", file=sys.stderr)
@@ -570,7 +710,16 @@ def main(argv):
         print(state + ("\t" + "\t".join(ids) if ids else ""))
         return 0 if state in ("ok", "ambiguous") else 1
     if cmd == "flathub-search":
-        rows = flathub_search(" ".join(argv[1:]))
+        rows = flathub_search_terms([t for t in argv[1:] if t != "--"])
+        if rows is None:
+            return 1
+        for r in rows:
+            print("\t".join(x.replace("\t", " ") for x in r))
+        return 0
+    if cmd == "aur-search":
+        rows = aur_search([t for t in argv[1:] if t != "--"])
+        if rows == AUR_SHORT:
+            return 3
         if rows is None:
             return 1
         for r in rows:

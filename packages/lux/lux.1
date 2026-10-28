@@ -70,8 +70,30 @@ Configuration steps of other packages run afterwards (/usr/lib/lux/after-update.
 Show available updates without installing them. The package lists are refreshed into a
 temporary copy, so this needs no administrator rights and changes nothing on the system.
 .TP
-.BR search ", " s " " \fIterm\fR
-Search the repositories, LuxOS apps, Flathub and the community source (AUR).
+.BR search ", " s " [" \-\-installed "] " \fIterm\fR...
+Search the repositories, LuxOS apps, Flathub and the community source (AUR); with
+.B \-\-installed
+only installed packages and apps. A plain word searches names and descriptions. A pattern
+searches package names only, case does not matter:
+.B ^text
+starts with,
+.B text$
+ends with,
+.B ^text$
+exact name,
+.B *text*
+contains;
+.B *
+is any characters and
+.B ?
+one character (the whole name must match, e.g.
+.BR lib*\-git ),
+.B %
+is the same as
+.B *
+(the shell does not expand it). More words or patterns must all match. Quote patterns
+(\fBlux search '*qt*'\fR): zsh and other shells expand * and ? themselves. For the AUR a pattern needs
+at least 2 letters in a row; ^ and $ are checked after a name search there.
 .TP
 .BI info " pkg"
 Show package details.
@@ -292,6 +314,12 @@ Install two applications.
 .TP
 .B lux search \-\-aur spotify
 Search only the community source (AUR).
+.TP
+.B lux search '^python\-*qt*'
+Packages whose name starts with python\- and contains qt.
+.TP
+.B lux search %qt% \-\-installed
+Installed packages with qt in the name (% needs no quotes).
 .TP
 .B lux install zoom
 Install Zoom from Flathub.
