@@ -2,7 +2,7 @@
   "version": "0.9.4",
   "codename": "Polaris",
   "items": [
-    {"icon": "speedometer-symbolic",
+    {"icon": "power-profile-performance-symbolic",
      "title": {"en": "Faster everywhere", "cs": "Rychlejší všude"},
      "text": {"en": "Icons and pictures load directly in the app instead of a separate process for each image. Login, Launchpad and Control Center open noticeably faster.",
               "cs": "Ikony a obrázky se načítají přímo v aplikaci, ne v samostatném procesu pro každý obrázek. Přihlášení, Launchpad i Ovládací centrum jsou znatelně rychlejší."}},

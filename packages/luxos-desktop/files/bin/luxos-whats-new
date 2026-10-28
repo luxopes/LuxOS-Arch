@@ -118,6 +118,45 @@ def tr(value, langs):
     return ""
 
 
+def symbolic_file_ok(path):
+    """Je soubor opravdu jednobarevna (symbolicka) ikona?
+
+    WhiteSur ma pod nazvem *-symbolic.svg v apps/scalable odkazy na barevne ikony aplikaci
+    (mark-location-symbolic -> preferences-system-search.svg). GTK je jako symbolicke prebarvi
+    jednou barvou a z barevne ikony zbude plny ctverec - takovou ikonu nepouzijeme."""
+    if not path:
+        return False
+    real = os.path.realpath(path)
+    base = os.path.basename(real)
+    if base.endswith((".symbolic.png", "-symbolic.svg", "-symbolic-rtl.svg")):
+        return True
+    if not base.endswith(".svg"):
+        return False
+    try:
+        with open(real, encoding="utf-8", errors="replace") as f:
+            svg = f.read(200000)
+    except OSError:
+        return False
+    return "Gradient" not in svg and "<image" not in svg
+
+
+def item_icon(Gtk, theme, name, size=24):
+    """Gtk.Image pro ikonu polozky: z aktualniho motivu, kdyz je opravdu symbolicka,
+    jinak stejny nazev z Adwaity (zavislost gtk3), jinak hvezdicka."""
+    name = name or "starred-symbolic"
+    info = theme.lookup_icon(name, size, 0)
+    if info and symbolic_file_ok(info.get_filename()):
+        return Gtk.Image.new_from_icon_name(name, Gtk.IconSize.LARGE_TOOLBAR)
+    from gi.repository import Gio
+    adw = Gtk.IconTheme.new()
+    adw.set_custom_theme("Adwaita")
+    info = adw.lookup_icon(name, size, 0)
+    if info and symbolic_file_ok(info.get_filename()):
+        return Gtk.Image.new_from_gicon(Gio.FileIcon.new(Gio.File.new_for_path(info.get_filename())),
+                                        Gtk.IconSize.LARGE_TOOLBAR)
+    return Gtk.Image.new_from_icon_name("starred-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
+
+
 def show(versions, notes):
     import gi
     gi.require_version("Gtk", "3.0")
@@ -130,6 +169,7 @@ def show(versions, notes):
     Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
                                              Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
     langs = lang_codes()
+    theme = Gtk.IconTheme.get_default()
     newest = notes[versions[0]]
 
     win = Gtk.Window(title=_("What's New"))
@@ -161,7 +201,7 @@ def show(versions, notes):
             rows.pack_start(head, False, False, 0)
         for item in notes[v].get("items", []):
             row = Gtk.Box(spacing=14)
-            icon = Gtk.Image.new_from_icon_name(item.get("icon") or "starred-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
+            icon = item_icon(Gtk, theme, item.get("icon"))
             icon.set_pixel_size(24)
             icon.get_style_context().add_class("wn-icon")
             icon.set_valign(Gtk.Align.START)

@@ -14,7 +14,7 @@
      "title": {"en": "The LuxOS kernel", "cs": "Jádro LuxOS"},
      "text": {"en": "LuxOS now has its own kernel: the newest stable Linux, built and tested automatically. Your computer switches to it after the update; the previous kernel stays as a fallback.",
               "cs": "LuxOS má vlastní jádro: nejnovější stabilní Linux, sestavený a otestovaný automaticky. Počítač na něj po aktualizaci přejde sám, předchozí jádro zůstane jako záloha."}},
-    {"icon": "preferences-desktop-symbolic",
+    {"icon": "emblem-system-symbolic",
      "title": {"en": "Lighter Control Center and Calendar", "cs": "Lehčí Ovládací centrum a Kalendář"},
      "text": {"en": "Control Center, Calendar and the background service are now one native program written in LSL – it uses about 23 MB less memory and starts seven times faster.",
               "cs": "Ovládací centrum, Kalendář a služba na pozadí jsou nově jeden program v LSL – zabere asi o 23 MB méně paměti a spouští se sedmkrát rychleji."}}
