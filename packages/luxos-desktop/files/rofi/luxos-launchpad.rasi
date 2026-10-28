@@ -28,7 +28,7 @@ mainbox {
     spacing:  18px;
 }
 
-/* Razeni dlazdic (luxos-launchpad: popisky, zvyrazneni zvoleneho; klik = kb-custom-N, rofi -custom-exit) */
+/* Razeni dlazdic (luxos-launchpad: popisky, zvyrazneni zvoleneho; klik = kb-custom-N, rofi -custom-resort) */
 sortbar {
     orientation: horizontal;
     expand:      false;
@@ -47,6 +47,17 @@ button-sort-alpha, button-sort-recent, button-sort-most, button-sort-category {
     font:             "Inter 9.5";
     text-color:       @lux-muted;
     cursor:           pointer;
+}
+
+/* zvolene razeni: pri otevreni theme-str z luxos-launchpad, po zmene v okne (rofi -custom-resort)
+   stav "selected" u zvoleneho a "alternate" u ostatnich tlacitek */
+button-sort-alpha selected, button-sort-recent selected, button-sort-most selected, button-sort-category selected {
+    background-color: @lux-accent;
+    text-color:       @lux-sel-fg;
+}
+button-sort-alpha alternate, button-sort-recent alternate, button-sort-most alternate, button-sort-category alternate {
+    background-color: transparent;
+    text-color:       @lux-muted;
 }
 
 /* kazda vlastnost s retezcem na vlastnim radku (rofi jinak cte zbytek radku jako jeden retezec) */
