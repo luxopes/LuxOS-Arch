@@ -4,6 +4,10 @@ cfg="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
 . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
 mkdir -p "$cfg"
 
+# Pojistka: snimek prihlasovaci obrazovky, ktery server drzi po skonceni greeteru, prevezme hned po startu
+# relace luxos-session-cover --login; kdyby se to nepovedlo, nesmi zustat pres plochu
+luxos-session-cover --release 2>/dev/null &
+
 # Prvni prihlaseni: standardni adresare a vychozi vzhled
 if [[ ! -e $cfg/initialized ]]; then
     xdg-user-dirs-update 2>/dev/null

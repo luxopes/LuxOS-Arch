@@ -12,12 +12,14 @@ import ctypes.util
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "..", "files", "src", "luxos-session-cover.c")
+GREETER = os.path.join(HERE, "..", "..", "luxos-greeter", "files", "luxos-greeter")
 XVFB = "xvfb-run" in os.environ.get("XAUTHORITY", "") or os.environ.get("LUXOS_TEST_X") == "1"
 
 if XVFB:
@@ -79,7 +81,8 @@ class LoginCover(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="luxos-login-cover-")
         cls.bin = os.path.join(cls.tmp, "luxos-session-cover")
-        subprocess.run(["gcc", "-O2", "-Wall", "-Werror", "-o", cls.bin, SRC, "-lX11", "-lXfixes"], check=True)
+        subprocess.run(["gcc", "-O2", "-Wall", "-Werror", "-o", cls.bin, SRC, "-lX11", "-lXfixes", "-lXcomposite",
+                        "-lXrandr", "-lcairo", "-lm"], check=True)
 
     def setUp(self):
         self.home = tempfile.mkdtemp(dir=self.tmp)
@@ -147,10 +150,10 @@ class LoginCover(unittest.TestCase):
         self.assertEqual(self.X.pixel(), self.X.white)
         self.desktop_ready()
         t_ready = time.monotonic()
-        # bez kompozitoru: chvili ceka (na rozplynuti), pak odkryje - nejvys 200 + 1200 ms
+        # bez kompozitoru: chvili ceka (na rozplynuti), pak odkryje - nejvys 400 + 1500 ms
         p.wait(5)
         took = time.monotonic() - t_ready
-        self.assertLess(took, 1.8, took)
+        self.assertLess(took, 2.4, took)
         pump(0.1)
         self.assertEqual(self.X.pixel(), self.X.black)
 
@@ -162,15 +165,15 @@ class LoginCover(unittest.TestCase):
         self.desktop_ready()
         t_ready = time.monotonic()
         p.wait(5)
-        self.assertLess(time.monotonic() - t_ready, 0.6)
+        self.assertLess(time.monotonic() - t_ready, 0.8)
         pump(0.1)
         self.assertEqual(self.X.pixel(), self.X.black)
 
     def test_always_ends(self):
-        # relace bez listy: po LOGIN_MAX_MS konec
+        # relace bez listy: po LOGIN_MAX_MS (15 s) konec
         p, t0 = self.start()
-        p.wait(8)
-        self.assertLess(time.monotonic() - t0, 6.0)
+        p.wait(18)
+        self.assertLess(time.monotonic() - t0, 16.5)
         pump(0.1)
         self.assertEqual(self.X.pixel(), self.X.black)
 
@@ -218,6 +221,38 @@ class LoginCover(unittest.TestCase):
         self.assertEqual(self.X.pixel(), self.X.white)        # server snimek udrzel - presny obraz
         self.assertFalse(os.path.exists(path))
         self.finish(p)
+
+    def hold(self):
+        """Greeter nechá snímek na obrazovce i po svém skončení (FrameHold, RetainPermanent)."""
+        w, h = self.screen_size()
+        code = ("import sys\nfrom importlib.machinery import SourceFileLoader\n"
+                "g = SourceFileLoader('luxos_greeter', sys.argv[1]).load_module()\n"
+                "sys.exit(0 if g.FrameHold().hold(int(sys.argv[2]), int(sys.argv[3])) else 1)\n")
+        subprocess.run([sys.executable, "-c", code, GREETER, str(w), str(h)], check=True)
+        self.X.set_root(self.X.black)          # server bez "-background none": koren po greeteru cerny
+
+    def held_prop(self):
+        return subprocess.run(["xprop", "-root", "_LUXOS_LOGIN_HOLD"], capture_output=True, text=True).stdout
+
+    def test_greeter_held_frame_bridges_to_cover(self):
+        self.hold()
+        self.assertIn("window id", self.held_prop())
+        self.assertEqual(self.X.pixel(), self.X.white)        # snímek greeteru přežil jeho konec
+        env = dict(os.environ, HOME=self.home, XDG_CONFIG_HOME=os.path.join(self.home, ".config"),
+                   LUXOS_LOGIN_FRAME_DIR=self.frames)
+        p = subprocess.Popen([self.bin, "--login"], env=env)
+        pump(0.4)
+        self.assertNotIn("window id", self.held_prop())       # převzato a uvolněno
+        self.assertEqual(self.X.pixel(), self.X.white)        # zakrytí ukazuje stejný snímek, ne černou
+        self.finish(p)
+
+    def test_release_for_other_sessions(self):
+        self.hold()
+        self.assertEqual(self.X.pixel(), self.X.white)
+        self.assertEqual(subprocess.run([self.bin, "--release"], timeout=5).returncode, 0)
+        pump(0.1)
+        self.assertNotIn("window id", self.held_prop())
+        self.assertEqual(self.X.pixel(), self.X.black)
 
     def test_desktop_already_running(self):
         self.desktop_ready()

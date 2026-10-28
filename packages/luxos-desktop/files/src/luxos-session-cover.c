@@ -12,30 +12,48 @@
  * Cerne okno bez spravce oken se drzi navrchu, dokud neskonci X server.
  *
  * luxos-session-cover --login - prechod po prihlaseni (spousti /etc/X11/xinit/xinitrc.d/60-luxos-login-cover.sh
- * pred startem relace): okno pres celou obrazovku s poslednim snimkem prihlasovaci obrazovky (greeter pred
- * spustenim relace ukaze jen tapetu, X server snimek po skonceni greeteru drzi - "X -background none")
- * zakryje skladani plochy. Jakmile je plocha (okno typu DESKTOP) i lista (DOCK) a probehne kresleni, okno
- * se behem ~0,28 s rozplyne (pruhlednost pres kompozitor xfwm4) a skonci. Na nic neceka: vstup (mys,
- * klavesnice) jde skrz (prazdny vstupni tvar), nejdele po LOGIN_MAX_MS konci vzdy. Bez animace (jen
- * odkryti) pri zapnutem Sporici baterie (~/.config/luxos/powersaver) nebo vypnutych animacich (xsettings).
+ * pred startem relace): posledni snimek prihlasovaci obrazovky (jen ztmavena tapeta) s malym tocicim se
+ * koleckem na miste pole pro heslo zakryje skladani plochy. Jakmile je plocha (okno typu DESKTOP) opravdu
+ * vykreslena (obsah jejiho presmerovaneho okna uz je obraz a nemeni se) a lista/Dock (DOCK) taky, okno se
+ * behem ~0,28 s rozplyne do hotove plochy (pruhlednost pres kompozitor xfwm4) a skonci. Na nic neceka:
+ * vstup (mys, klavesnice) jde skrz (prazdny vstupni tvar), nejdele po LOGIN_MAX_MS konci vzdy. Bez animace
+ * (jen odkryti) pri zapnutem Sporici baterie (~/.config/luxos/powersaver) nebo vypnutych animacich (xsettings).
+ *
+ * Proc ne cerna (hlaseni ze skutecneho hardwaru, overeno v Xvfb + xfwm4 se snimanim obrazovky):
+ *  - okno zakryti je v prekryti kompozitoru (Composite overlay window), ne na korenovem okne: xfwm4 okno pres
+ *    celou obrazovku, ktere existovalo uz pred startem kompozitoru, casto vubec nevykreslil (jeho poradi
+ *    oken se rozeslo se serverem, nepruhledne okno presmerovani zrusil a prekryti nechal nad nim) - pak
+ *    byla videt cerna (koren bez tapety) a nevykreslena plocha nad zakrytim. V prekryti jsme nad vsim, co
+ *    kompozitor kresli, a jeho start ani poradi oken nic nezmeni. Rozplynuti dela bezne pruhledne okno,
+ *    ktere kompozitor sklada az nad hotovou plochu.
+ *  - drive konec uz ~0,2 s po namapovani plochy a listy: xfdesktop tapetu nacita na pozadi, takze se
+ *    odkryla cerna plocha. Ted se ceka na obraz plochy (s kompozitorem jde obsah okna precist i pod nami).
+ *  - greeter tesne pred spustenim relace nechava snimek na obrazovce v okne, ktere server drzi i po jeho
+ *    skonceni (FrameHold v luxos-greeter, _LUXOS_LOGIN_HOLD) - zadna mezera mezi koncem greeteru a startem
+ *    zakryti. Prevezme ho --login (XKillClient), jine relace a pojistka v luxos-session ho uvolni (--release).
  *
  * Snimek ze serveru nemusi prezit: bez glamor (napr. QEMU bochs + llvmpipe) ovladac modesetting
- * "-background none" neumi, korenove okno se po skonceni greeteru vybarvi cerne. Proto greeter pred
- * spustenim relace ulozi stejny snimek do sdilene slozky LightDM (/var/lib/lightdm-data/<uzivatel>,
- * LUXOS_LOGIN_FRAME_DIR pro testy): login-frame.raw (cela obrazovka, nejvys 2 min stary, po nacteni se
- * smaze) a login-frame-small.raw (mala rozmazana tapeta, zustava). Je-li zachyceny snimek cerny, pouzije
- * se login-frame.raw, jinak zvetsena rozmazana tapeta; cerna jen kdyz neni nic.
+ * "-background none" neumi. Proto greeter pred spustenim relace ulozi stejny snimek do sdilene slozky
+ * LightDM (/var/lib/lightdm-data/<uzivatel>, LUXOS_LOGIN_FRAME_DIR pro testy): login-frame.raw (cela
+ * obrazovka, nejvys 2 min stary, po nacteni se smaze) a login-frame-small.raw (mala rozmazana tapeta,
+ * zustava). Je-li zachyceny snimek cerny, pouzije se login-frame.raw, jinak zvetsena rozmazana tapeta.
  * Format: "LUXFRAME1 <sirka> <vyska>\n" + sirka*vyska*4 bajtu BGRx (cairo RGB24 na little-endian).
  */
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
+#include <X11/extensions/Xcomposite.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/shape.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/Xrandr.h>
+#include <cairo/cairo-xlib.h>
+#include <cairo/cairo.h>
 #include <errno.h>
+#include <math.h>
 #include <poll.h>
 #include <pwd.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -163,11 +181,16 @@ static int logout_main(void)
 
 /* ---- prechod po prihlaseni --------------------------------------------------------------------- */
 
-#define LOGIN_SETTLE_MS 200      /* plocha a lista jsou namapovane: chvile na prvni vykresleni */
 #define LOGIN_FADE_MS 280
 #define LOGIN_FADE_STEPS 14
-#define LOGIN_WAIT_CM_MS 1200    /* po pripraveni plochy jeste chvili pockat na kompozitor (rozplynuti) */
-#define LOGIN_MAX_MS 5000        /* vzdy skoncit (relace bez listy, jine prostredi) */
+#define LOGIN_FRAME_MS 33        /* kolecko ~30 snimku/s, jen male misto na obrazovce */
+#define LOGIN_SCAN_MS 90         /* jak casto kontrolovat, zda je plocha vykreslena */
+#define LOGIN_NOCM_SETTLE_MS 400 /* bez kompozitoru okna nejdou precist: plocha a lista namapovane + chvile */
+#define LOGIN_WAIT_CM_MS 1500    /* bez kompozitoru jeste chvili pockat, zda nezacne (rozplynuti) */
+#define LOGIN_PAINT_MAX_MS 4000  /* plocha namapovana, ale "nevykreslena" (napr. cerna barva pozadi) */
+#define LOGIN_SOLID_MS 1200      /* jednobarevna plocha (barva misto tapety) stabilni tak dlouho = hotovo */
+#define LOGIN_DOCK_MAX_MS 1500   /* skryty Dock (automaticke skryvani) nemusi nic vykreslit */
+#define LOGIN_MAX_MS 15000       /* vzdy skoncit (relace bez listy, jine prostredi) */
 
 static long now_ms(void)
 {
@@ -207,36 +230,6 @@ static int motion_allowed(void)
     return !file_contains(path, "name=\"EnableAnimations\" type=\"bool\" value=\"false\"");
 }
 
-static Atom a_clients, a_type, a_desktop, a_dock;
-
-/* Plocha (DESKTOP) a lista nebo dock (DOCK) uz jsou mezi okny spravce oken */
-static int desktop_ready(void)
-{
-    Atom type;
-    int fmt, desk = 0, dock = 0;
-    unsigned long n = 0, rest;
-    unsigned char *data = NULL;
-    if (XGetWindowProperty(dpy, root, a_clients, 0, 4096, False, AnyPropertyType, &type, &fmt, &n, &rest, &data) != Success
-        || !data)
-        return 0;
-    Window *w = (Window *)data;
-    for (unsigned long i = 0; i < n && !(desk && dock); i++) {
-        unsigned char *t = NULL;
-        unsigned long tn = 0;
-        if (XGetWindowProperty(dpy, w[i], a_type, 0, 8, False, XA_ATOM, &type, &fmt, &tn, &rest, &t) == Success && t) {
-            Atom *at = (Atom *)t;
-            for (unsigned long j = 0; j < tn; j++) {
-                if (at[j] == a_desktop)
-                    desk = 1;
-                else if (at[j] == a_dock)
-                    dock = 1;
-            }
-            XFree(t);
-        }
-    }
-    XFree(data);
-    return desk && dock;
-}
 
 #define FRAME_MAX_AGE_S 120      /* starsi login-frame.raw je z jineho prihlaseni */
 #define FRAME_MAX_SIDE 16384
@@ -382,13 +375,267 @@ static int ignore_errors(Display *d, XErrorEvent *e)
     return 0;                   /* okno ze seznamu mezitim zaniklo */
 }
 
-static int login_main(void)
+/* ---- posledni snimek greeteru drzeny serverem ---------------------------------------------------- */
+
+/* Greeter tesne pred spustenim relace prekryje obrazovku oknem se svym poslednim snimkem a na svem
+ * druhem spojeni zapne XSetCloseDownMode(RetainPermanent): okno tak prezije konec greeteru (i na
+ * serveru bez "-background none") a zmizi, az ho prevezme nase okno (XKillClient). Okno je v
+ * _LUXOS_LOGIN_HOLD na korenovem okne; bere se jen okno override-redirect s nazvem luxos-login-hold. */
+static Atom a_hold;
+
+static Window held_window(void)
+{
+    Atom type;
+    int fmt;
+    unsigned long n = 0, rest;
+    unsigned char *data = NULL;
+    Window w = None;
+    if (XGetWindowProperty(dpy, root, a_hold, 0, 1, False, XA_WINDOW, &type, &fmt, &n, &rest, &data) == Success && data) {
+        if (type == XA_WINDOW && fmt == 32 && n == 1)
+            w = (Window) * (unsigned long *)data;
+        XFree(data);
+    }
+    if (w == None)
+        return None;
+    XWindowAttributes wa;
+    char *name = NULL;
+    int ok = XGetWindowAttributes(dpy, w, &wa) && wa.override_redirect && XFetchName(dpy, w, &name) && name
+             && strcmp(name, "luxos-login-hold") == 0;
+    if (name)
+        XFree(name);
+    return ok ? w : None;
+}
+
+static void release_held(Window w)
+{
+    if (w != None)
+        XKillClient(dpy, w);        /* zrusi vsechny zdroje drzene po skoncenem greeteru */
+    XDeleteProperty(dpy, root, a_hold);
+    XSync(dpy, False);
+}
+
+/* --release: relace jina nez LuxOS/Xfce (60-luxos-login-cover.sh) - jen uvolnit snimek greeteru */
+static int release_main(void)
 {
     dpy = XOpenDisplay(NULL);
     if (!dpy)
         return 1;
     XSetErrorHandler(ignore_errors);
-    int scr = DefaultScreen(dpy), xf_event, xf_error;
+    root = DefaultRootWindow(dpy);
+    a_hold = XInternAtom(dpy, "_LUXOS_LOGIN_HOLD", False);
+    release_held(held_window());
+    XCloseDisplay(dpy);
+    return 0;
+}
+
+/* ---- plocha pripravena? ------------------------------------------------------------------------- */
+
+static Atom a_clients, a_type, a_desktop, a_dock;
+
+typedef struct {
+    int desk, dock;              /* pocet oken plochy (DESKTOP) a list (DOCK) mezi okny spravce oken */
+    int desk_image, desk_filled; /* kolik oken plochy ma obraz (ruzne pixely) / aspon neco nenuloveho */
+    int dock_painted;
+    unsigned long desk_sum;      /* kontrolni soucet obsahu plochy (stabilni = dokresleno) */
+} Scan;
+
+/* Obsah okna (s kompozitorem je presmerovane, XGetImage cte jeho vlastni pixmapu i pod nasim oknem):
+ * podil nenulovych pixelu v peti radcich (nevykreslene okno ma pixmapu vyplnenou nulami), soucet a
+ * zda jsou vsechny stejne (jednobarevne). -1 = okno neni zobrazene. */
+static double window_painted(Window w, unsigned long *sum, int *uniform)
+{
+    XWindowAttributes wa;
+    if (!XGetWindowAttributes(dpy, w, &wa) || wa.map_state != IsViewable || wa.width < 1 || wa.height < 1)
+        return -1;
+    long nz = 0, tot = 0;
+    unsigned long h = 1469598103UL, first = 0;
+    int uni = 1;
+    for (int k = 1; k <= 5; k++) {
+        XImage *im = XGetImage(dpy, w, 0, wa.height * k / 6, (unsigned)wa.width, 1, AllPlanes, ZPixmap);
+        if (!im)
+            continue;
+        for (int x = 0; x < wa.width; x += 3) {
+            unsigned long p = XGetPixel(im, x, 0);
+            if (!tot)
+                first = p;
+            else if (p != first)
+                uni = 0;
+            tot++;
+            nz += p != 0;
+            h = (h ^ p) * 1099511628211UL;
+        }
+        XDestroyImage(im);
+    }
+    if (sum)
+        *sum = h;
+    if (uniform)
+        *uniform = uni;
+    return tot ? (double)nz / (double)tot : -1;
+}
+
+/* Okna plochy a list; s pixels=1 i jejich obsah (jen s kompozitorem - jinak by se cetlo nase okno) */
+static void scan(Scan *s, int pixels)
+{
+    memset(s, 0, sizeof *s);
+    Atom type;
+    int fmt;
+    unsigned long n = 0, rest;
+    unsigned char *data = NULL;
+    if (XGetWindowProperty(dpy, root, a_clients, 0, 4096, False, AnyPropertyType, &type, &fmt, &n, &rest, &data) != Success
+        || !data)
+        return;
+    Window *w = (Window *)data;
+    for (unsigned long i = 0; i < n; i++) {
+        unsigned char *t = NULL;
+        unsigned long tn = 0;
+        int desk = 0, dock = 0;
+        if (XGetWindowProperty(dpy, w[i], a_type, 0, 8, False, XA_ATOM, &type, &fmt, &tn, &rest, &t) == Success && t) {
+            Atom *at = (Atom *)t;
+            for (unsigned long j = 0; j < tn; j++) {
+                desk |= at[j] == a_desktop;
+                dock |= at[j] == a_dock;
+            }
+            XFree(t);
+        }
+        if (!desk && !dock)
+            continue;
+        s->desk += desk;
+        s->dock += dock;
+        if (!pixels)
+            continue;
+        unsigned long sum = 0;
+        int uni = 1;
+        double p = window_painted(w[i], &sum, &uni);
+        if (desk) {
+            s->desk_sum = s->desk_sum * 31 + sum;
+            s->desk_filled += p >= 0.5;
+            s->desk_image += p >= 0.5 && !uni;
+        } else {
+            s->dock_painted += p > 0;
+        }
+    }
+    XFree(data);
+}
+
+/* ---- kolecko (nacitani) ------------------------------------------------------------------------- */
+
+typedef struct {
+    int x, y, size;
+    double u;
+    Pixmap back;                /* pozadi z obrazku + kolecko, pak jednim kopirovanim do okna */
+    GC gc;
+    cairo_surface_t *cs;
+} Spinner;
+
+/* Misto pole pro heslo (pod avatarem) na hlavnim monitoru - stejne rozmery jako luxos-greeter */
+static void spinner_init(Spinner *s, Visual *vis, int depth, int sw, int sh)
+{
+    int mx = 0, my = 0, mw = sw, mh = sh, ev, er, n = 0;
+    if (XRRQueryExtension(dpy, &ev, &er)) {
+        XRRMonitorInfo *m = XRRGetMonitors(dpy, root, True, &n);
+        if (m && n > 0) {
+            int k = 0;
+            for (int i = 0; i < n; i++)
+                if (m[i].primary)
+                    k = i;
+            mx = m[k].x, my = m[k].y, mw = m[k].width, mh = m[k].height;
+        }
+        if (m)
+            XRRFreeMonitors(m);
+    }
+    double u = mh / 1080.0;
+    s->u = u < 0.55 ? 0.55 : u;
+    s->size = (int)(48 * s->u + 0.5);
+    s->x = mx + mw / 2 - s->size / 2;
+    s->y = my + mh - (int)(204 * s->u + 0.5) - s->size / 2;
+    s->back = XCreatePixmap(dpy, root, (unsigned)s->size, (unsigned)s->size, (unsigned)depth);
+    s->gc = XCreateGC(dpy, s->back, 0, NULL);
+    s->cs = cairo_xlib_surface_create(dpy, s->back, vis, s->size, s->size);
+}
+
+/* Tenky svetly kruh a po nem obihajici jasny oblouk (otacka ~0,9 s, delka oblouku se jemne meni) */
+static void spinner_draw(Spinner *s, Window target, Pixmap bg, double t, double alpha)
+{
+    XCopyArea(dpy, bg, s->back, s->gc, s->x, s->y, (unsigned)s->size, (unsigned)s->size, 0, 0);
+    if (alpha > 0) {
+        cairo_t *cr = cairo_create(s->cs);
+        double c = s->size / 2.0, r = 14 * s->u, lw = 3 * s->u;
+        double a0 = t * 2 * M_PI / 0.9;
+        double len = M_PI * (0.45 + 0.35 * (0.5 + 0.5 * sin(t * 2 * M_PI / 1.8)));
+        cairo_set_line_width(cr, lw);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_arc(cr, c, c, r, 0, 2 * M_PI);
+        cairo_set_source_rgba(cr, 1, 1, 1, 0.22 * alpha);
+        cairo_stroke(cr);
+        cairo_arc(cr, c, c + 0.8 * s->u, r, a0, a0 + len);            /* jemny stin */
+        cairo_set_source_rgba(cr, 0, 0, 0, 0.16 * alpha);
+        cairo_stroke(cr);
+        cairo_arc(cr, c, c, r, a0, a0 + len);
+        cairo_set_source_rgba(cr, 1, 1, 1, 0.95 * alpha);
+        cairo_stroke(cr);
+        cairo_destroy(cr);
+        cairo_surface_flush(s->cs);
+    }
+    XCopyArea(dpy, s->back, target, s->gc, 0, 0, (unsigned)s->size, (unsigned)s->size, s->x, s->y);
+}
+
+static void spinner_free(Spinner *s)
+{
+    cairo_surface_destroy(s->cs);
+    XFreeGC(dpy, s->gc);
+    XFreePixmap(dpy, s->back);
+}
+
+static int login_debug;
+
+static void dbg(long t, const char *fmt, ...)
+{
+    if (!login_debug)
+        return;
+    va_list ap;
+    va_start(ap, fmt);
+    fprintf(stderr, "%6ld ", t);
+    vfprintf(stderr, fmt, ap);
+    fputc('\n', stderr);
+    va_end(ap);
+}
+
+/* Prazdny vstupni tvar: mys a klavesnice jdou skrz */
+static void no_input(Window w)
+{
+    int xf_event, xf_error;
+    if (XFixesQueryExtension(dpy, &xf_event, &xf_error)) {
+        XserverRegion empty = XFixesCreateRegion(dpy, NULL, 0);
+        XFixesSetWindowShapeRegion(dpy, w, ShapeInput, 0, 0, empty);
+        XFixesDestroyRegion(dpy, empty);
+    }
+}
+
+/* Okno s obrazkem pres celou obrazovku, mys a klavesnice jdou skrz (prechod nikdy neblokuje praci) */
+static Window cover_window(Window parent, Pixmap bg, Visual *vis, int depth, unsigned w, unsigned h, int translucent)
+{
+    XSetWindowAttributes a;
+    a.override_redirect = True;
+    a.background_pixmap = bg;
+    Window cw = XCreateWindow(dpy, parent, 0, 0, w, h, 0, depth, InputOutput, vis, CWOverrideRedirect | CWBackPixmap, &a);
+    XStoreName(dpy, cw, "luxos-login-cover");
+    no_input(cw);
+    if (translucent) {
+        /* nepatrne mene nez nepruhledne: kompozitor ho skladat musi (rozplynuti), obraz je stejny */
+        unsigned long v = 0xfffffffeUL;
+        XChangeProperty(dpy, cw, a_opacity, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)&v, 1);
+    }
+    return cw;
+}
+
+static int login_main(void)
+{
+    dpy = XOpenDisplay(NULL);
+    if (!dpy)
+        return 1;
+    login_debug = getenv("LUXOS_COVER_DEBUG") != NULL;
+    XSetErrorHandler(ignore_errors);
+    int scr = DefaultScreen(dpy);
     root = RootWindow(dpy, scr);
     XWindowAttributes ra;
     XGetWindowAttributes(dpy, root, &ra);
@@ -400,10 +647,17 @@ static int login_main(void)
     a_type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
     a_desktop = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
     a_dock = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
-    if (desktop_ready())
+    a_hold = XInternAtom(dpy, "_LUXOS_LOGIN_HOLD", False);
+    Window held = held_window();
+    Scan sc;
+    scan(&sc, 0);
+    if (sc.desk && sc.dock) {
+        release_held(held);
         return 0;               /* plocha uz bezi (napr. druhe spusteni) */
+    }
 
-    /* Posledni snimek obrazovky (konec prihlaseni) jako pozadi okna: kopie na serveru, bez prenosu obrazu */
+    /* Posledni snimek obrazovky (konec prihlaseni, pripadne okno drzene po greeteru) jako pozadi okna:
+     * kopie na serveru, bez prenosu obrazu */
     unsigned w = (unsigned)ra.width, h = (unsigned)ra.height;
     Pixmap snap = XCreatePixmap(dpy, root, w, h, (unsigned)ra.depth);
     XGCValues gv;
@@ -413,64 +667,146 @@ static int login_main(void)
     XFreeGC(dpy, gc);
     restore_frame(snap, ra.visual, ra.depth, w, h, frame_is_black(snap, w, h));
 
-    XSetWindowAttributes a;
-    a.override_redirect = True;
-    a.background_pixmap = snap;
-    win = XCreateWindow(dpy, root, 0, 0, w, h, 0, ra.depth, InputOutput, ra.visual,
-                        CWOverrideRedirect | CWBackPixmap, &a);
-    XStoreName(dpy, win, "luxos-login-cover");
-    /* Mys a klavesnice jdou skrz: prechod nikdy neblokuje praci */
-    if (XFixesQueryExtension(dpy, &xf_event, &xf_error)) {
-        XserverRegion empty = XFixesCreateRegion(dpy, NULL, 0);
-        XFixesSetWindowShapeRegion(dpy, win, ShapeInput, 0, 0, empty);
-        XFixesDestroyRegion(dpy, empty);
+    /* Okno uvnitr prekryti kompozitoru (Composite overlay window): je nad vsemi okny i nad tim, co kresli
+     * kompozitor (xfwm4 kresli do sveho okna v prekryti, my jsme nad nim), a kompozitor ho nesklada - start
+     * kompozitoru, jeho poradi oken ani nevykreslene okno plochy nic nezmeni. Okno pres celou obrazovku
+     * primo na korenovem okne xfwm4 pri startu kompozitoru casto nevykreslil (cerna obrazovka: pruhledne
+     * okno vynechal, nepruhledne presmerovani zrusil, ale prekryti nechal nad nim). Bez Composite jako
+     * drive okno na korenovem okne. */
+    int c_ev, c_err;
+    Window cow = None;
+    if (XCompositeQueryExtension(dpy, &c_ev, &c_err)) {
+        cow = XCompositeGetOverlayWindow(dpy, root);
+        no_input(cow);          /* prekryti bez kompozitoru by jinak bralo mys */
     }
-    /* Nepatrne mene nez nepruhledne: kompozitor (xfwm4 unredirect_overlays) jinak okno pres celou
-     * obrazovku muze vynechat (bez rozplynuti); obraz je stejny */
-    set_opacity(0xfffffffeUL);
+    Window parent = cow != None ? cow : root;
+    win = cover_window(parent, snap, ra.visual, ra.depth, w, h, 0);
+    if (cow == None)
+        set_opacity(0xfffffffeUL);
     XMapRaised(dpy, win);
-    XSelectInput(dpy, root, PropertyChangeMask);
-    XFlush(dpy);
-
-    int motion = motion_allowed(), check = 1;
-    long start = now_ms(), ready_at = 0;
+    XSync(dpy, False);
+    /* Nase okno uz je na obrazovce (pozadi kresli server hned pri namapovani) - snimek greeteru uvolnit */
+    if (held != None)
+        release_held(held);
+    /* Kompozitor si v prekryti mapuje sve okno, bez Composite se lista, Dock a plocha mapuji nad nas:
+     * hned zpet navrch (ne az pri dalsim kole smycky) */
+    XSelectInput(dpy, root, PropertyChangeMask | (cow == None ? SubstructureNotifyMask : 0));
+    if (cow != None)
+        XSelectInput(dpy, cow, SubstructureNotifyMask);
+    Spinner sp;
+    spinner_init(&sp, ra.visual, ra.depth, (int)w, (int)h);
+    int motion = motion_allowed();
+    long start = now_ms(), listed_at = 0, ready_at = 0, last_scan = 0, image_at = 0, solid_at = 0;
+    unsigned long last_sum = 0;
+    int check = 1;
+    dbg(0, "start held=%lx motion=%d", held, motion);
     struct pollfd pfd = {ConnectionNumber(dpy), POLLIN, 0};
     for (;;) {
+        int raise = 0;
         while (XPending(dpy)) {
             XEvent ev;
             XNextEvent(dpy, &ev);
             if (ev.type == PropertyNotify && ev.xproperty.atom == a_clients)
                 check = 1;
+            else if (ev.type == MapNotify && ev.xmap.window != win)
+                raise = 1;
+            else if (ev.type == ConfigureNotify && ev.xconfigure.window != win)
+                raise = 1;
+        }
+        if (raise) {
+            XRaiseWindow(dpy, win);
+            XFlush(dpy);
         }
         long t = now_ms();
-        if (check && !ready_at && desktop_ready())
-            ready_at = t;
-        check = 0;
-        if (t - start >= LOGIN_MAX_MS)
+        if (t - start >= LOGIN_MAX_MS) {
+            dbg(t - start, "timeout");
             break;
-        if (ready_at && t - ready_at >= LOGIN_SETTLE_MS
-            && (!motion || XGetSelectionOwner(dpy, a_cm) != None || t - ready_at >= LOGIN_SETTLE_MS + LOGIN_WAIT_CM_MS))
+        }
+        if (!ready_at && (check || t - last_scan >= LOGIN_SCAN_MS)) {
+            int have_cm = XGetSelectionOwner(dpy, a_cm) != None;
+            scan(&sc, have_cm);
+            last_scan = t;
+            check = 0;
+            if (sc.desk && sc.dock && !listed_at)
+                listed_at = t;
+            if (listed_at && have_cm) {
+                /* plocha s obrazem, ktery se uz nemeni (dokreslena tapeta), a vykreslena lista */
+                int stable = sc.desk_sum == last_sum;
+                if (sc.desk_image == sc.desk && stable && !image_at)
+                    image_at = t;
+                if (sc.desk_filled == sc.desk && stable) {
+                    if (!solid_at)
+                        solid_at = t;
+                } else {
+                    solid_at = 0;
+                }
+                if (!stable)
+                    image_at = 0;
+                int desk_ok = image_at || (solid_at && t - solid_at >= LOGIN_SOLID_MS)
+                              || t - listed_at >= LOGIN_PAINT_MAX_MS;
+                int dock_ok = sc.dock_painted == sc.dock || (sc.dock_painted && t - listed_at >= LOGIN_DOCK_MAX_MS)
+                              || t - listed_at >= LOGIN_PAINT_MAX_MS;
+                dbg(t - start, "cm desk=%d image=%d filled=%d stable=%d dock=%d/%d", sc.desk, sc.desk_image,
+                    sc.desk_filled, stable, sc.dock_painted, sc.dock);
+                if (desk_ok && dock_ok)
+                    ready_at = t;
+            } else if (listed_at && t - listed_at >= LOGIN_NOCM_SETTLE_MS
+                       && (!motion || t - listed_at >= LOGIN_NOCM_SETTLE_MS + LOGIN_WAIT_CM_MS)) {
+                dbg(t - start, "ready without compositor");
+                ready_at = t;
+            }
+            last_sum = sc.desk_sum;
+            if (ready_at)
+                dbg(t - start, "ready");
+        }
+        if (ready_at)
             break;
-        XRaiseWindow(dpy, win);     /* lista a plocha se mapuji nad nas - drzet navrchu */
+        double since = (double)(t - start);
+        spinner_draw(&sp, win, snap, since / 1000.0, since >= 250 ? 1.0 : since / 250.0);
         XFlush(dpy);
-        if (poll(&pfd, 1, 40) < 0 && errno != EINTR)
+        if (poll(&pfd, 1, LOGIN_FRAME_MS) < 0 && errno != EINTR)
             return 0;
         if (pfd.revents & (POLLHUP | POLLERR))
             return 0;
     }
 
     if (motion && XGetSelectionOwner(dpy, a_cm) != None) {
+        /* Rozplynuti: pod nasim oknem se namapuje bezne (pruhledne) okno se stejnym obrazem, ktere kompozitor
+         * sklada nad hotovou plochu; az ho ma vykreslene (par snimku), okno v prekryti zmizi a rozplyne
+         * se to pruhledne */
+        long f0 = now_ms();
+        if (cow != None) {
+            Window fader = cover_window(root, snap, ra.visual, ra.depth, w, h, 1);
+            XMapRaised(dpy, fader);
+            XSync(dpy, False);
+            for (int i = 0; i < 4; i++) {
+                double tt = (double)(now_ms() - start) / 1000.0;
+                spinner_draw(&sp, fader, snap, tt, 1.0);
+                spinner_draw(&sp, win, snap, tt, 1.0);
+                XSync(dpy, False);
+                sleep_ms(LOGIN_FRAME_MS);
+            }
+            XDestroyWindow(dpy, win);
+            XCompositeReleaseOverlayWindow(dpy, root);
+            cow = None;
+            win = fader;
+        }
         for (int i = LOGIN_FADE_STEPS - 1; i > 0; i--) {
             double p = (double)i / LOGIN_FADE_STEPS;
             set_opacity((unsigned long)(0xffffffffUL * (p * p)));   /* rychle odkryti, jemny konec */
             XRaiseWindow(dpy, win);
+            spinner_draw(&sp, win, snap, (double)(now_ms() - start) / 1000.0, 1.0);
             XFlush(dpy);
             sleep_ms(LOGIN_FADE_MS / LOGIN_FADE_STEPS);
             if (XGetSelectionOwner(dpy, a_cm) == None)
                 break;
         }
+        dbg(now_ms() - start, "faded in %ld ms", now_ms() - f0);
     }
+    spinner_free(&sp);
     XDestroyWindow(dpy, win);
+    if (cow != None)
+        XCompositeReleaseOverlayWindow(dpy, root);
     XFreePixmap(dpy, snap);
     XCloseDisplay(dpy);
     return 0;
@@ -480,5 +816,7 @@ int main(int argc, char **argv)
 {
     if (argc > 1 && strcmp(argv[1], "--login") == 0)
         return login_main();
+    if (argc > 1 && strcmp(argv[1], "--release") == 0)
+        return release_main();
     return logout_main();
 }
