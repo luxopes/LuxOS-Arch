@@ -9,15 +9,16 @@
 #   luxos-lock-ui.c/.h                 vzhled (kresleni podle luxos-greeter, preklady luxos-i18n)
 #   xfce4-screensaver-dialog.ui/.css   nahrazuji puvodni rozvrzeni a styl dialogu
 #   luxos-lock-dialog.patch            napojeni na gs-lock-plug.c a xfce4-screensaver-dialog.c,
-#                                      gs-window.c: setric zustane videt, dokud dialog nema okno
-#                                      (driv cerna obrazovka pri kazdem probuzeni zamku)
+#                                      gs-window.c: setric zustane videt, dokud dialog nema okno, a
+#                                      posledni snimek (setric / dialog) je pozadim okna pri prepnuti
+#                                      setric <-> dialog (driv cerna obrazovka pri kazdem probuzeni zamku)
 # Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
 # verzi v Archu zvysit pkgver (a sha256sums), pkgrel nechat X.1.
 # Puvodni PKGBUILD Archu (udrzovatele Christian Hesse, Robin Candau) je v PKGBUILD.arch.
 
 pkgname=xfce4-screensaver
 pkgver=4.20.2
-pkgrel=1.1
+pkgrel=1.2
 pkgdesc='Xfce Screensaver (LuxOS: lock screen in the style of the LuxOS login screen)'
 arch=('x86_64')
 url='https://docs.xfce.org/apps/screensaver/start'
@@ -36,7 +37,7 @@ source=("git+https://gitlab.xfce.org/apps/xfce4-screensaver.git#tag=$pkgname-$pk
         'xfce4-screensaver-dialog.ui'
         'xfce4-screensaver-dialog.css')
 sha256sums=('bc84a11d51fbc4222ca43831671de2935e759229d21ee7136443e7250c78498f'
-            '302bf40a2ce63374ed2da2f44b5fe405bf9d87c86980c176b919da3cfa2db4cd'
+            'b78a4e7235584a7a4c54fdcd65d3972b9f3169e2043997500f94b57d85a3161e'
             '812263d47cc4918b31e043c45e3f11f901ddf676f04027fd3dcac8337e4f3bf7'
             '21bd4eb6eda38bb6b08a10ccadbdbcc7c7a60fb29b70f0f7dd8851e943d4d3ff'
             'ab3fc7734f8191eed891665e5f2fe199aa72bf2a1454d2ea5b3ce3026bcaec07'
