@@ -13,7 +13,7 @@ url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
 # lsl >= 0.10.6: prekladac lslc s moduly glib/gio/gtk/cairo/pango (cil linux-x86_64-gnu) pro programy v files/lsl;
 # balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni
-makedepends=(python xfce4-settings xfce4-session libxi libxtst libxrandr libxfixes gtk3 cairo pango pkgconf 'lsl>=0.10.6')
+makedepends=(python xfce4-settings xfce4-session libxi libxtst libxrandr libxfixes libxcomposite gtk3 cairo pango pkgconf 'lsl>=0.10.6')
 install=luxos-desktop.install
 depends=(
     # LuxOS
@@ -88,7 +88,8 @@ build() {
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-lock-fix.so "$startdir/files/src/luxos-lock-fix.c" \
         $(pkg-config --cflags --libs gtk+-3.0)
     # Cerne zakryti obrazovky pri odhlaseni a vypnuti (spousti luxos-hub), s --login prechod po prihlaseni
-    gcc $CFLAGS $LDFLAGS -o luxos-session-cover "$startdir/files/src/luxos-session-cover.c" -lX11 -lXfixes
+    gcc $CFLAGS $LDFLAGS -o luxos-session-cover "$startdir/files/src/luxos-session-cover.c" \
+        -lX11 -lXfixes -lXcomposite -lXrandr -lcairo -lm
     # Kontextove nabidky horni listy bez sedeho nazvu pluginu
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-panel-menus.so "$startdir/files/src/luxos-panel-menus.c" \
         $(pkg-config --cflags --libs gtk+-3.0)
