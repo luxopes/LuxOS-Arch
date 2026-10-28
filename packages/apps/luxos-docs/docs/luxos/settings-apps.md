@@ -247,7 +247,13 @@ Run `luxos-lock-settings`. It writes the xfconf channel `xfce4-screensaver`.
 
 - **Start after inactivity of**: Never, 1, 2, 5, 10 (default), 15 or 30 minutes, or 1 hour.
 - **Screen saver**:
-  - LuxOS - wallpapers and clock (default);
+  - Desktop wallpaper and clock (default);
+  - LuxOS - wallpapers and clock;
+  - LuxOS wallpapers with a clock (`analog`): the LuxOS wallpapers fade into each other every 30 s
+    behind a large classic clock with hour, minute and a smoothly moving second hand, and the date
+    under it; light or dark clock face according to the LuxOS appearance. Outside the fades only the
+    clock is redrawn (20 frames/s), nothing is drawn while the monitor is off (DPMS) — about 5 % of one
+    CPU core at 1920×1080 (measured under Xvfb), every monitor draws its own;
   - Clock (large clock on black, moves slowly, gentle on OLED);
   - Aurora;
   - Photos (slideshow from `~/Pictures`, LuxOS wallpapers if there are none);
@@ -255,7 +261,7 @@ Run `luxos-lock-settings`. It writes the xfconf channel `xfce4-screensaver`.
   - Black screen.
 
   The Preview button shows the chosen one. The program is `/usr/lib/xfce4-screensaver/luxos --style
-  wallpapers|clock|aurora|photos|logo`.
+  desktop|wallpapers|analog|clock|aurora|photos|logo`.
 - **Require password after the screen saver starts**: Immediately, After 1 minute (default), After
   5 minutes, After 15 minutes, Never.
 - **Lock when the computer goes to sleep** (`/lock/sleep-activation`).

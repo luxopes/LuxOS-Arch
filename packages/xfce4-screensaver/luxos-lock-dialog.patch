@@ -1,6 +1,6 @@
 diff -ruN a/src/gs-lock-plug.c b/src/gs-lock-plug.c
---- a/src/gs-lock-plug.c	2026-10-26 15:12:41.835088206 +0100
-+++ b/src/gs-lock-plug.c	2026-10-26 15:12:41.838377588 +0100
+--- a/src/gs-lock-plug.c	2026-10-28 12:35:53.792115670 +0100
++++ b/src/gs-lock-plug.c	2026-10-28 12:35:53.793540370 +0100
 @@ -54,6 +54,7 @@
  #include "gs-debug.h"
  #include "gs-lock-plug.h"
@@ -980,8 +980,8 @@ diff -ruN a/src/gs-lock-plug.c b/src/gs-lock-plug.c
          g_source_remove (plug->priv->grab_focus_timeout_id);
      }
 diff -ruN a/src/gs-lock-plug.h b/src/gs-lock-plug.h
---- a/src/gs-lock-plug.h	2026-10-26 15:12:41.835266304 +0100
-+++ b/src/gs-lock-plug.h	2026-10-26 15:12:41.838523419 +0100
+--- a/src/gs-lock-plug.h	2026-10-28 12:35:53.794981482 +0100
++++ b/src/gs-lock-plug.h	2026-10-28 12:35:53.796160930 +0100
 @@ -89,6 +89,16 @@
  void
  gs_lock_plug_show_message (GSLockPlug *plug,
@@ -1000,13 +1000,150 @@ diff -ruN a/src/gs-lock-plug.h b/src/gs-lock-plug.h
  G_END_DECLS
  
 diff -ruN a/src/gs-window.c b/src/gs-window.c
---- a/src/gs-window.c	2026-10-26 15:12:41.835367995 +0100
-+++ b/src/gs-window.c	2026-10-26 15:12:41.838765494 +0100
-@@ -895,6 +895,11 @@
+--- a/src/gs-window.c	2026-10-28 12:35:53.797340279 +0100
++++ b/src/gs-window.c	2026-10-28 12:35:53.798505981 +0100
+@@ -28,6 +28,7 @@
+ 
+ #ifdef ENABLE_X11
+ #include <X11/extensions/shape.h>
++#include <cairo-xlib.h>
+ #include <gdk/gdkx.h>
+ #include <gtk/gtkx.h>
+ #endif
+@@ -114,6 +115,10 @@
+     GTimer *timer;
+ 
+     int shape_event_base;
++
++    /* LuxOS: posledni snimek okna pri prepnuti setric <-> dialog (misto cerne) */
++    cairo_surface_t *luxos_frame;
++    unsigned long luxos_frame_pixmap;
+ };
+ 
+ enum {
+@@ -228,6 +233,88 @@
+ }
+ #endif
+ 
++/* LuxOS: snimek celeho okna i s podokny (setric, dialog) na serveru jako pozadi okna. Kdyz se pri
++   prepnuti setric -> dialog s heslem (a zpet) podokno skryje, server odkryte misto hned vyplni timto
++   obrazem a GTK ho kresli misto cerne (gs_window_real_draw, on_drawing_area_draw), dokud nove
++   podokno neni vykreslene - zadny cerny snimek mezi setricem a odemykanim. */
++static void
++luxos_frame_drop (GSWindow *window) {
++#ifdef ENABLE_X11
++    GdkWindow *gw;
++
++    if (window->priv->luxos_frame == NULL)
++        return;
++    cairo_surface_destroy (window->priv->luxos_frame);
++    window->priv->luxos_frame = NULL;
++    gw = gtk_widget_get_realized (GTK_WIDGET (window)) ? gtk_widget_get_window (GTK_WIDGET (window)) : NULL;
++    if (gw != NULL && GDK_IS_X11_WINDOW (gw)) {
++        gdk_x11_display_error_trap_push (gdk_window_get_display (gw));
++        XSetWindowBackgroundPixmap (GDK_WINDOW_XDISPLAY (gw), GDK_WINDOW_XID (gw), None);
++        XFreePixmap (GDK_WINDOW_XDISPLAY (gw), window->priv->luxos_frame_pixmap);
++        gdk_x11_display_error_trap_pop_ignored (gdk_window_get_display (gw));
++    }
++    window->priv->luxos_frame_pixmap = 0;
++#endif
++}
++
++static void
++luxos_frame_freeze (GSWindow *window) {
++#ifdef ENABLE_X11
++    GdkWindow *gw;
++    Display *xd;
++    Window xw;
++    XWindowAttributes wa;
++    XGCValues gv;
++    GC gc;
++    Pixmap pm;
++    int scale, w, h;
++
++    if (!GDK_IS_X11_DISPLAY (gdk_display_get_default ()) || !gtk_widget_get_realized (GTK_WIDGET (window)))
++        return;
++    gw = gtk_widget_get_window (GTK_WIDGET (window));
++    xd = GDK_WINDOW_XDISPLAY (gw);
++    xw = GDK_WINDOW_XID (gw);
++    scale = gdk_window_get_scale_factor (gw);
++    w = gdk_window_get_width (gw) * scale;
++    h = gdk_window_get_height (gw) * scale;
++    gdk_x11_display_error_trap_push (gdk_window_get_display (gw));
++    if (w < 1 || h < 1 || !XGetWindowAttributes (xd, xw, &wa)) {
++        gdk_x11_display_error_trap_pop_ignored (gdk_window_get_display (gw));
++        return;
++    }
++    pm = XCreatePixmap (xd, xw, (unsigned) w, (unsigned) h, (unsigned) wa.depth);
++    gv.subwindow_mode = IncludeInferiors;      /* i obsah podoken (setric, dialog) */
++    gc = XCreateGC (xd, pm, GCSubwindowMode, &gv);
++    XCopyArea (xd, xw, pm, gc, 0, 0, (unsigned) w, (unsigned) h, 0, 0);
++    XFreeGC (xd, gc);
++    gdk_x11_display_error_trap_pop_ignored (gdk_window_get_display (gw));
++
++    luxos_frame_drop (window);
++    gdk_x11_display_error_trap_push (gdk_window_get_display (gw));
++    XSetWindowBackgroundPixmap (xd, xw, pm);
++    gdk_x11_display_error_trap_pop_ignored (gdk_window_get_display (gw));
++    window->priv->luxos_frame = cairo_xlib_surface_create (xd, pm, wa.visual, w, h);
++    cairo_surface_set_device_scale (window->priv->luxos_frame, scale, scale);
++    window->priv->luxos_frame_pixmap = pm;
++    gs_debug ("LuxOS: froze the last frame (%dx%d)", w, h);
++#endif
++}
++
++/* Snimek misto cerne; FALSE = snimek neni */
++static gboolean
++luxos_frame_paint (GSWindow *window, GtkWidget *widget, cairo_t *cr) {
++    int x = 0, y = 0;
++
++    if (window->priv->luxos_frame == NULL)
++        return FALSE;
++    if (widget != GTK_WIDGET (window))
++        gtk_widget_translate_coordinates (widget, GTK_WIDGET (window), 0, 0, &x, &y);
++    cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
++    cairo_set_source_surface (cr, window->priv->luxos_frame, -x, -y);
++    cairo_paint (cr);
++    return TRUE;
++}
++
+ void
+ gs_window_clear (GSWindow *window) {
+ #ifdef ENABLE_X11
+@@ -371,6 +458,8 @@
+ gs_window_real_unrealize (GtkWidget *widget) {
+     GdkMonitor *monitor = GS_WINDOW (widget)->priv->monitor;
+ 
++    luxos_frame_drop (GS_WINDOW (widget));
++
+     if (monitor != NULL)
+         g_signal_handlers_disconnect_by_func (monitor, monitor_geometry_notify, widget);
+ 
+@@ -590,6 +679,8 @@
+ static gboolean
+ gs_window_real_draw (GtkWidget *widget,
+                      cairo_t *cr) {
++    if (luxos_frame_paint (GS_WINDOW (widget), widget, cr))
++        return FALSE;
+     cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
+     cairo_set_source_rgb (cr, 0, 0, 0);
+     cairo_paint (cr);
+@@ -733,6 +824,7 @@
+ #endif
+ 
+     remove_watchdog_timer (window);
++    luxos_frame_drop (window);
+ 
+     if (GTK_WIDGET_CLASS (gs_window_parent_class)->hide) {
+         GTK_WIDGET_CLASS (gs_window_parent_class)->hide (widget);
+@@ -895,6 +987,14 @@
  
  static void
  lock_plug_added (GSWindow *window) {
-+    /* LuxOS: setric zustava videt, dokud dialog nema okno - pak se jen prepne (bez cerne) */
++    /* LuxOS: setric zustava videt, dokud dialog nema okno - pak se jen prepne (bez cerne): posledni
++       snimek setrice (z gs_window_request_unlock) zustane pod dialogem, dokud se dialog nevykresli */
++    if (window->priv->luxos_frame == NULL)
++        luxos_frame_freeze (window);
 +    if (window->priv->overlay != NULL) {
 +        gtk_widget_show (window->priv->overlay);
 +    }
@@ -1014,7 +1151,7 @@ diff -ruN a/src/gs-window.c b/src/gs-window.c
      gtk_widget_show (window->priv->lock_socket);
  }
  
-@@ -1215,7 +1220,10 @@
+@@ -1215,7 +1315,10 @@
      gtk_widget_show (window->priv->lock_box);
  
      window->priv->overlay = gtk_overlay_new ();
@@ -1026,7 +1163,16 @@ diff -ruN a/src/gs-window.c b/src/gs-window.c
      gtk_box_pack_start (GTK_BOX (window->priv->vbox), window->priv->overlay, TRUE, TRUE, 0);
      gtk_overlay_add_overlay (GTK_OVERLAY (window->priv->overlay), window->priv->lock_box);
  
-@@ -1487,9 +1495,15 @@
+@@ -1280,6 +1383,8 @@
+ 
+ static void
+ popdown_dialog (GSWindow *window) {
++    /* LuxOS: zpet k setrici bez cerne - posledni snimek dialogu, dokud setric znovu nekresli */
++    luxos_frame_freeze (window);
+     gs_window_dialog_finish (window);
+ 
+     gtk_widget_show (window->priv->drawing_area);
+@@ -1487,9 +1592,15 @@
          command = g_string_append (command, " --verbose");
      }
  
@@ -1045,9 +1191,41 @@ diff -ruN a/src/gs-window.c b/src/gs-window.c
      set_invisible_cursor (gtk_widget_get_window (GTK_WIDGET (window)), FALSE);
  
  #ifdef ENABLE_WAYLAND
+@@ -1543,6 +1654,10 @@
+         return;
+     }
+ 
++    /* LuxOS: posledni snimek setrice hned (setric se pozastavi a okno se pri pridani dialogu
++       prekresluje - drive cerna obrazovka na ~0,3 s, nez se dialog ukazal) */
++    if (window->priv->popup_dialog_idle_id == 0 && !window->priv->dialog_up)
++        luxos_frame_freeze (window);
+     if (window->priv->popup_dialog_idle_id == 0) {
+         add_popup_dialog_idle (window);
+     }
+@@ -2001,7 +2116,10 @@
+ 
+ static gboolean
+ on_drawing_area_draw (GtkWidget *widget,
+-                      cairo_t *cr) {
++                      cairo_t *cr,
++                      GSWindow *window) {
++    if (luxos_frame_paint (window, widget, cr))
++        return FALSE;
+     cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
+     cairo_set_source_rgb (cr, 0, 0, 0);
+     cairo_paint (cr);
+@@ -2057,7 +2175,7 @@
+     g_signal_connect (window->priv->drawing_area,
+                       "draw",
+                       G_CALLBACK (on_drawing_area_draw),
+-                      NULL);
++                      window);
+     g_signal_connect (window->priv->drawing_area,
+                       "plug-removed",
+                       G_CALLBACK (gtk_true),
 diff -ruN a/src/meson.build b/src/meson.build
---- a/src/meson.build	2026-10-26 15:12:41.835522557 +0100
-+++ b/src/meson.build	2026-10-26 15:12:41.838977956 +0100
+--- a/src/meson.build	2026-10-28 12:35:53.799562421 +0100
++++ b/src/meson.build	2026-10-28 12:35:53.800549135 +0100
 @@ -145,6 +145,8 @@
    'gs-debug.h',
    'gs-lock-plug.c',
@@ -1058,8 +1236,8 @@ diff -ruN a/src/meson.build b/src/meson.build
    'gs-prefs.h',
    'setuid.c',
 diff -ruN a/src/xfce4-screensaver-dialog.c b/src/xfce4-screensaver-dialog.c
---- a/src/xfce4-screensaver-dialog.c	2026-10-26 15:12:41.835310236 +0100
-+++ b/src/xfce4-screensaver-dialog.c	2026-10-26 15:12:41.838672045 +0100
+--- a/src/xfce4-screensaver-dialog.c	2026-10-28 12:35:53.801521298 +0100
++++ b/src/xfce4-screensaver-dialog.c	2026-10-28 12:35:53.802624407 +0100
 @@ -225,10 +225,10 @@
              }
              break;

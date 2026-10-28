@@ -21,6 +21,7 @@ SAVER = "/usr/lib/xfce4-screensaver/luxos"
 # id tematu xfce4-screensaver (screensavers-<soubor .desktop>) -> styl luxos-screensaver
 THEMES = [("screensavers-luxos-wallpaper", "desktop", "Desktop wallpaper and clock"),
           ("screensavers-luxos", "wallpapers", "LuxOS - wallpapers and clock"),
+          ("screensavers-luxos-analog", "analog", "LuxOS wallpapers with a clock"),
           ("screensavers-luxos-clock", "clock", "Clock"),
           ("screensavers-luxos-aurora", "aurora", "Aurora"),
           ("screensavers-luxos-photos", "photos", "Photos"),

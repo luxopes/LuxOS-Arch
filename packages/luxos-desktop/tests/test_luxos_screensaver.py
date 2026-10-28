@@ -95,6 +95,79 @@ class DesktopWallpaper(unittest.TestCase):
         self.assertEqual(ss.Saver("nonsense").style, "desktop")
 
 
+class Analog(unittest.TestCase):
+    """Styl "analog": tapety LuxOS s prolinanim a rucickove hodiny; mimo prolinani jen ctverec s hodinami."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="luxos-saver-analog-")
+        self.saved = os.environ.get("XDG_CONFIG_HOME")
+        os.environ["XDG_CONFIG_HOME"] = self.tmp
+        walls = sorted(os.path.join(WALLS, f) for f in os.listdir(WALLS) if f.endswith(".jpg"))[:3]
+        self.saver = ss.Saver("analog")
+        self.saver.analog.slides = walls
+        self.saver.analog.offset = 0
+
+    def tearDown(self):
+        if self.saved is None:
+            os.environ.pop("XDG_CONFIG_HOME", None)
+        else:
+            os.environ["XDG_CONFIG_HOME"] = self.saved
+
+    def frame(self, w=320, h=200, clip=None):
+        surf = cairo.ImageSurface(cairo.FORMAT_RGB24, w, h)
+        cr = cairo.Context(surf)
+        if clip:
+            cr.rectangle(*clip)
+            cr.clip()
+        self.saver.draw(cr, w, h)
+        surf.flush()
+        return bytes(surf.get_data())
+
+    def test_wallpapers_without_duplicate_symlinks(self):
+        self.assertTrue(all(not os.path.islink(w) for w in ss.WALLS))
+        self.assertEqual(len(ss.WALLS), len({os.path.realpath(w) for w in ss.WALLS}))
+        self.assertIn("analog", ss.STYLES)
+        self.assertEqual(ss.fps(self.saver), ss.ANALOG_FPS)
+        self.assertLessEqual(ss.ANALOG_FPS, 30)
+
+    def test_only_clock_redrawn_between_fades(self):
+        clock = self.saver.analog
+        self.assertIsNone(self.saver.dirty(320, 200))          # prvni snimek cely
+        self.frame()
+        box = self.saver.dirty(320, 200)
+        self.assertIsNotNone(box)
+        x, y, bw, bh = box
+        cx, cy, r = clock.geometry(320, 200)
+        self.assertTrue(x <= cx - r and y <= cy - r and x + bw >= cx + r and y + bh >= cy + r, box)
+        self.assertLess(bw * bh, 320 * 200 / 2)
+        # prolinani: cela obrazovka
+        self.saver.start -= ss.ANALOG_SLIDE - ss.ANALOG_FADE / 2
+        self.assertIsNone(self.saver.dirty(320, 200))
+
+    def test_hands_move_and_light_dark(self):
+        clock = self.saver.analog
+
+        def hands(dark, now):
+            clock.dark = dark
+            surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, 200, 200)
+            clock.draw_hands(cairo.Context(surf), 200, 200, now)
+            surf.flush()
+            return bytes(surf.get_data())
+        t = 1_800_000_000.0
+        self.assertNotEqual(hands(False, t), hands(False, t + 1.0))      # vterinova rucicka
+        self.assertNotEqual(hands(False, t), hands(False, t + 0.25))     # plynule, ne skokem po vterinach
+        self.assertNotEqual(hands(False, t), hands(True, t))             # svetle / tmave rucicky
+        clock.dark = True
+        dark_face = clock.colors()["face"]
+        clock.dark = False
+        self.assertNotEqual(dark_face, clock.colors()["face"])
+
+    def test_draw_full_screen_image(self):
+        a = self.frame()
+        mean = sum(a[i + 1] for i in range(0, len(a), 4 * 11)) / (len(a) / (4 * 11))
+        self.assertGreater(mean, 20)            # tapeta, ne cerna
+
+
 class Defaults(unittest.TestCase):
     def test_default_theme_is_desktop_wallpaper(self):
         tree = ET.parse(os.path.join(FILES, "xdg", "xfce4", "xfconf", "xfce-perchannel-xml", "xfce4-screensaver.xml"))

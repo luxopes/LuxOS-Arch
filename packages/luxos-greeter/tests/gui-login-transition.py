@@ -6,7 +6,8 @@
 Overuje: po spravnem hesle zmizi formular, hodiny i stavova lista a posledni snimek je jen tapeta
 (ten pak drzi luxos-session-cover --login, dokud se neposklada plocha); relace se spusti nejvys
 o jeden snimek pozdeji (< 150 ms). Spatne heslo nic neskryje. Snimek se ulozi i do souboru
-(login-frame.raw + mala rozmazana login-frame-small.raw) pro server, ktery ho po skonceni greeteru neudrzi.
+(login-frame.raw + mala rozmazana login-frame-small.raw) pro server, ktery ho po skonceni greeteru neudrzi,
+a zustane na obrazovce v okne drzenem serverem (FrameHold, _LUXOS_LOGIN_HOLD); kdyz se relace nespusti, zmizi.
 """
 import argparse
 import os
@@ -124,8 +125,20 @@ check("no temp files left", sorted(os.listdir(FRAMES)) == ["login-frame-small.ra
 win2 = g.Greeter(argparse.Namespace(demo=True, users=1, sessions=1, lock=False))
 
 
+def held():
+    import subprocess
+    return "window id" in subprocess.run(["xprop", "-root", "_LUXOS_LOGIN_HOLD"], capture_output=True, text=True).stdout
+
+
+HELD = []
+
+
 def fail_start(key):
+    HELD.append(held())     # snimek drzeny serverem uz je na obrazovce, kdyz se relace spousti
     raise g.GLib.Error("no session")
+
+
+os.environ["LUXOS_GREETER_DEMO_HOLD"] = "1"
 
 
 win2.backend.start_session = fail_start
@@ -138,5 +151,7 @@ win2.submit()
 check("failed start: form back", wait(lambda: not win2.leaving and win2.login.get_visible()
                                              and win2.hint.get_text() == "Could not start the session.", 4),
       (win2.leaving, win2.login.get_visible(), win2.error_shown, win2.hint.get_text()))
+check("frame held over the end of the greeter", HELD == [True], HELD)
+check("failed start: held frame released", not held())
 print("FAIL: %d" % len(FAILS) if FAILS else "all ok")
 sys.exit(1 if FAILS else 0)

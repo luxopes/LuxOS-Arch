@@ -5,6 +5,8 @@
               jako klidovy stav luxos-greeter a zamykaciho dialogu xfce4-screensaver LuxOS
               (luxos-lock-ui.c), takze prechod setric -> dialog s heslem je plynuly
   wallpapers  tapety LuxOS s pomalym prolinanim a velke hodiny
+  analog      tapety LuxOS s prolinanim a velke rucickove hodiny s datem (svetle/tmave podle vzhledu);
+              mimo prolinani se prekresluji jen hodiny (plynula vterinova rucicka, 20 snimku/s)
   clock       velke hodiny na cernem pozadi, pomalu se posouvaji (setri OLED)
   aurora      plynule se prelevajici barevne svetlo
   photos      prezentace fotek z ~/Pictures (bez fotek tapety LuxOS)
@@ -21,6 +23,7 @@ import os
 import random
 import subprocess
 import sys
+import threading
 import time
 
 import cairo
@@ -41,7 +44,10 @@ FADE = 3.0        # delka prolinani
 FPS = 15
 
 
-STYLES = ("desktop", "wallpapers", "clock", "aurora", "photos", "logo", "blank")
+STYLES = ("desktop", "wallpapers", "analog", "clock", "aurora", "photos", "logo", "blank")
+ANALOG_FPS = 20       # vterinova rucicka plynule; prekresluje se jen ctverec s hodinami
+ANALOG_SLIDE = 30.0   # rucickove hodiny: sekund na tapetu
+ANALOG_FADE = 2.5
 PHOTO_EXT = (".jpg", ".jpeg", ".png", ".webp")
 LOGO = "/usr/share/icons/hicolor/scalable/apps/luxos-logo.svg"
 GREETER_CONF = os.environ.get("LUXOS_GREETER_CONF", "/etc/lightdm/luxos-greeter.conf")
@@ -144,7 +150,9 @@ class Saver:
         self.logo = None
         self.phase = random.random() * 100
         self.frame = None           # desktop: tapeta s ztmavenim (kresli se jen jednou)
-        self.formats = greeter_formats() if self.style == "desktop" else None
+        self.formats = greeter_formats() if self.style in ("desktop", "analog") else None
+        if self.style == "analog":
+            self.analog = AnalogClock(self.slides, self.formats)
 
     def pixbuf(self, path, w, h):
         key = (path, w, h)
@@ -159,8 +167,17 @@ class Saver:
                 self.images[key] = None
         return self.images[key]
 
+    def dirty(self, w, h):
+        """Obdelnik (x, y, sirka, vyska), ktery se zmenil od posledniho snimku; None = cela obrazovka."""
+        if self.style == "analog":
+            return self.analog.dirty(w, h, time.monotonic() - self.start)
+        return None
+
     def draw(self, cr, w, h):
         t = time.monotonic() - self.start
+        if self.style == "analog":
+            self.analog.draw(cr, w, h, t)
+            return
         if self.style in ("clock", "blank"):
             cr.set_source_rgb(0, 0, 0)
         else:
@@ -310,8 +327,279 @@ class Saver:
         cr.show_text(day)
 
 
+_DPMS = {"at": -10.0, "on": True}
+
+
+def screen_on():
+    """Monitor neni vypnuty (DPMS); dotaz nejvys jednou za 2 s, bez DPMS vzdy zapnuty."""
+    now = time.monotonic()
+    if now - _DPMS["at"] < 2.0:
+        return _DPMS["on"]
+    _DPMS["at"] = now
+    try:
+        if "ext" not in _DPMS:
+            import ctypes
+            x = ctypes.CDLL("libX11.so.6")
+            ext = ctypes.CDLL("libXext.so.6")
+            x.XOpenDisplay.restype = ctypes.c_void_p
+            x.XOpenDisplay.argtypes = [ctypes.c_char_p]
+            ext.DPMSQueryExtension.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
+            ext.DPMSCapable.argtypes = [ctypes.c_void_p]
+            ext.DPMSInfo.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ushort), ctypes.POINTER(ctypes.c_ubyte)]
+            dpy = x.XOpenDisplay(None)
+            a, b = ctypes.c_int(), ctypes.c_int()
+            ok = bool(dpy) and ext.DPMSQueryExtension(dpy, ctypes.byref(a), ctypes.byref(b)) and ext.DPMSCapable(dpy)
+            _DPMS.update(ctypes=ctypes, ext=ext, dpy=dpy, capable=ok)
+        ct, ext, dpy = _DPMS["ctypes"], _DPMS["ext"], _DPMS["dpy"]
+        if not _DPMS["capable"]:
+            _DPMS["on"] = True
+        else:
+            level, state = ct.c_ushort(0), ct.c_ubyte(0)
+            ext.DPMSInfo(dpy, ct.byref(level), ct.byref(state))
+            _DPMS["on"] = not state.value or level.value == 0      # DPMSModeOn
+    except (OSError, AttributeError):
+        _DPMS["on"] = True
+    return _DPMS["on"]
+
+
+def appearance_dark():
+    cfg = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
+    try:
+        with open(os.path.join(cfg, "luxos", "appearance"), encoding="utf-8") as f:
+            return f.read().strip() == "dark"
+    except OSError:
+        return False
+
+
+class AnalogClock:
+    """Tapety LuxOS s prolinanim a velke klasicke rucickove hodiny s datem.
+
+    Tapety jsou predpocitane obrazky velikosti obrazovky (dalsi se pripravi ve vlakne, aby se
+    vterinova rucicka nezastavila); mimo prolinani se prekresluje jen ctverec s hodinami.
+    Ciselnik (stin, kotouc, rysky, cislice) je predkresleny; svetly nebo tmavy podle vzhledu LuxOS."""
+
+    def __init__(self, slides, formats):
+        self.slides = list(slides) or [None]
+        self.offset = random.randrange(len(self.slides))
+        self.formats = formats
+        self.walls = {}             # (index, w, h) -> ImageSurface
+        self.loading = set()
+        self.lock = threading.Lock()
+        self.face = None            # ((dark, w, h), surface, x, y)
+        self.dark = appearance_dark()
+        self.dark_at = time.monotonic()
+        self.full = True            # pristi snimek cely (prvni, zmena vzhledu)
+        self.drawn = None           # (tapeta, prolinani, den, tmavy) posledniho snimku
+
+    # -- rozmery --
+    def geometry(self, w, h):
+        r = min(h * 0.235, w * 0.36)
+        return w / 2.0, h * 0.44, r
+
+    def box(self, w, h):
+        cx, cy, r = self.geometry(w, h)
+        m = r * 1.12                # i se stinem
+        x, y = max(0, int(cx - m)), max(0, int(cy - m))
+        return (x, y, min(w - x, int(2 * m) + 2), min(h - y, int(2 * m) + 2))
+
+    def slide(self, t):
+        n = len(self.slides)
+        k = int(t // ANALOG_SLIDE)
+        phase = t - k * ANALOG_SLIDE
+        fade = max(0.0, (phase - (ANALOG_SLIDE - ANALOG_FADE)) / ANALOG_FADE) if n > 1 else 0.0
+        return (k + self.offset) % n, fade
+
+    def dirty(self, w, h, t):
+        idx, fade = self.slide(t)
+        if time.monotonic() - self.dark_at > 60:
+            self.dark_at = time.monotonic()
+            dark = appearance_dark()
+            if dark != self.dark:
+                self.dark, self.full = dark, True
+        state = (idx, fade > 0, time.localtime().tm_yday, self.dark)
+        with self.lock:
+            have = (idx, w, h) in self.walls
+        if self.full or fade > 0 or state != self.drawn or not have:
+            return None
+        return self.box(w, h)
+
+    # -- tapety --
+    def render_wall(self, idx, w, h):
+        surf = cairo.ImageSurface(cairo.FORMAT_RGB24, max(1, w), max(1, h))
+        cr = cairo.Context(surf)
+        cr.set_source_rgb(0.05, 0.05, 0.09)
+        cr.paint()
+        path = self.slides[idx]
+        try:
+            src = GdkPixbuf.Pixbuf.new_from_file(path) if path else None
+        except GLib.Error:
+            src = None
+        if src is not None:
+            sc = max(w / src.get_width(), h / src.get_height())
+            tw, th = max(1, round(src.get_width() * sc)), max(1, round(src.get_height() * sc))
+            Gdk.cairo_set_source_pixbuf(cr, src.scale_simple(tw, th, GdkPixbuf.InterpType.BILINEAR),
+                                        (w - tw) / 2, (h - th) / 2)
+            cr.paint()
+        cr.set_source_rgba(0, 0, 0, 0.16)       # citelnost hodin a data
+        cr.paint()
+        surf.flush()
+        return surf
+
+    def wall(self, idx, w, h, wait):
+        key = (idx, w, h)
+        with self.lock:
+            if key in self.walls:
+                return self.walls[key]
+            if not wait:
+                if key not in self.loading:
+                    self.loading.add(key)
+                    threading.Thread(target=self._load, args=key, daemon=True).start()
+                return None
+        surf = self.render_wall(idx, w, h)
+        with self.lock:
+            self.walls[key] = surf
+        return surf
+
+    def _load(self, idx, w, h):
+        surf = self.render_wall(idx, w, h)
+        with self.lock:
+            self.walls[(idx, w, h)] = surf
+            self.loading.discard((idx, w, h))
+
+    def keep(self, keys):
+        with self.lock:
+            self.walls = {k: v for k, v in self.walls.items() if k in keys}
+
+    # -- ciselnik a rucicky --
+    def colors(self):
+        if self.dark:
+            return {"face": (0.10, 0.10, 0.13, 0.62), "rim": (1, 1, 1, 0.16), "ink": (0.96, 0.96, 0.98),
+                    "minor": (1, 1, 1, 0.38), "shadow": 0.45}
+        return {"face": (1, 1, 1, 0.80), "rim": (1, 1, 1, 0.9), "ink": (0.11, 0.11, 0.13),
+                "minor": (0.11, 0.11, 0.13, 0.42), "shadow": 0.30}
+
+    def face_surface(self, w, h):
+        key = (self.dark, w, h)
+        if self.face and self.face[0] == key:
+            return self.face[1:]
+        bx, by, bw, bh = self.box(w, h)
+        cx, cy, r = self.geometry(w, h)
+        c = self.colors()
+        surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, max(1, bw), max(1, bh))
+        cr = cairo.Context(surf)
+        cr.translate(cx - bx, cy - by)
+        for i in range(10, 0, -1):              # mekky stin pod kotoucem
+            cr.arc(0, r * 0.025, r * (1.0 + i * 0.009), 0, 2 * math.pi)
+            cr.set_source_rgba(0, 0, 0, c["shadow"] * 0.035)
+            cr.fill()
+        cr.arc(0, 0, r, 0, 2 * math.pi)
+        cr.set_source_rgba(*c["face"])
+        cr.fill_preserve()
+        cr.set_line_width(max(1.0, r * 0.012))
+        cr.set_source_rgba(*c["rim"])
+        cr.stroke()
+        cr.set_line_cap(cairo.LINE_CAP_ROUND)
+        for i in range(60):
+            a = i * math.pi / 30
+            hour = i % 5 == 0
+            r0 = r * (0.83 if hour else 0.89)
+            cr.move_to(math.sin(a) * r0, -math.cos(a) * r0)
+            cr.line_to(math.sin(a) * r * 0.93, -math.cos(a) * r * 0.93)
+            cr.set_line_width(r * (0.022 if hour else 0.008))
+            if hour:
+                cr.set_source_rgb(*c["ink"])
+            else:
+                cr.set_source_rgba(*c["minor"])
+            cr.stroke()
+        font = self.formats[0] if self.formats else "Inter"
+        for n in range(1, 13):
+            a = n * math.pi / 6
+            lay = text_layout(cr, str(n), r * 0.13, Pango.Weight.LIGHT, font)
+            ink, _l = lay.get_pixel_extents()
+            x, y = math.sin(a) * r * 0.70, -math.cos(a) * r * 0.70
+            cr.move_to(x - ink.x - ink.width / 2, y - ink.y - ink.height / 2)
+            cr.set_source_rgb(*c["ink"])
+            PangoCairo.show_layout(cr, lay)
+        surf.flush()
+        self.face = (key, surf, bx, by)
+        return surf, bx, by
+
+    @staticmethod
+    def hand(cr, angle, length, tail, width, rgb, shadow):
+        cr.save()
+        cr.rotate(angle)
+        cr.set_line_cap(cairo.LINE_CAP_ROUND)
+        cr.set_line_width(width)
+        cr.move_to(width * 0.15, tail + width * 0.35)      # stin vpravo dole
+        cr.line_to(width * 0.15, -length + width * 0.35)
+        cr.set_source_rgba(0, 0, 0, shadow)
+        cr.stroke()
+        cr.move_to(0, tail)
+        cr.line_to(0, -length)
+        cr.set_source_rgb(*rgb)
+        cr.stroke()
+        cr.restore()
+
+    def draw_hands(self, cr, w, h, now=None):
+        cx, cy, r = self.geometry(w, h)
+        c = self.colors()
+        now = time.time() if now is None else now
+        lt = time.localtime(now)
+        sec = lt.tm_sec + (now % 1.0)
+        mins = lt.tm_min + sec / 60.0
+        hrs = (lt.tm_hour % 12) + mins / 60.0
+        accent = (1.0, 0.42, 0.21)
+        cr.save()
+        cr.translate(cx, cy)
+        self.hand(cr, hrs * math.pi / 6, r * 0.50, r * 0.08, r * 0.055, c["ink"], 0.18)
+        self.hand(cr, mins * math.pi / 30, r * 0.76, r * 0.10, r * 0.038, c["ink"], 0.18)
+        self.hand(cr, sec * math.pi / 30, r * 0.86, r * 0.20, r * 0.012, accent, 0.15)
+        cr.arc(0, 0, r * 0.035, 0, 2 * math.pi)
+        cr.set_source_rgb(*accent)
+        cr.fill()
+        cr.arc(0, 0, r * 0.012, 0, 2 * math.pi)
+        cr.set_source_rgb(*c["ink"])
+        cr.fill()
+        cr.restore()
+
+    def draw_date(self, cr, w, h):
+        cx, cy, r = self.geometry(w, h)
+        font, fmt = (self.formats[0], self.formats[2]) if self.formats else ("Inter", "%A, %B %-d")
+        try:
+            date = time.strftime(fmt, time.localtime())
+        except ValueError:
+            date = time.strftime("%x")
+        u = max(0.55, h / 1080.0)
+        lay = text_layout(cr, date, 30 * u, Pango.Weight.SEMIBOLD, font)
+        _ink, logi = lay.get_pixel_extents()
+        shadow_text(cr, lay, cx - logi.width / 2, cy + r * 1.16, 0.95, 2.5 * u)
+
+    def draw(self, cr, w, h, t):
+        idx, fade = self.slide(t)
+        n = len(self.slides)
+        nxt_idx = (idx + 1) % n
+        cur = self.wall(idx, w, h, wait=True)
+        # dalsi tapetu pripravit vcas na pozadi (nacteni velke tapety trva i stovky ms)
+        nxt = self.wall(nxt_idx, w, h, wait=False) if n > 1 else None
+        self.keep({(idx, w, h), (nxt_idx, w, h)})
+        cr.set_source_surface(cur, 0, 0)
+        cr.paint()
+        if fade > 0 and nxt is not None:
+            cr.set_source_surface(nxt, 0, 0)
+            cr.paint_with_alpha(fade * fade * (3 - 2 * fade))
+        face, bx, by = self.face_surface(w, h)
+        cr.set_source_surface(face, bx, by)
+        cr.paint()
+        self.draw_hands(cr, w, h)
+        self.draw_date(cr, w, h)
+        self.full = False
+        self.drawn = (idx, fade > 0, time.localtime().tm_yday, self.dark)
+
+
 def fps(saver):
     # stojici tapeta s hodinami staci jednou za sekundu (setri procesor)
+    if saver.style == "analog":
+        return ANALOG_FPS
     return 1 if saver.style == "desktop" else FPS
 
 
@@ -327,8 +615,15 @@ def run_foreign(xid, style):
     saver = Saver(style, mon.get_model() if mon else None)
 
     def tick():
+        if not screen_on():
+            return True             # monitor vypnuty (DPMS): nekreslit
         w, h = win.get_width(), win.get_height()
         region = win.get_visible_region()
+        box = saver.dirty(w, h)
+        if box is not None:
+            region.intersect(cairo.Region(cairo.RectangleInt(*box)))
+        if region.is_empty():
+            return True
         ctx = win.begin_draw_frame(region)
         saver.draw(ctx.get_cairo_context(), w, h)
         win.end_draw_frame(ctx)
