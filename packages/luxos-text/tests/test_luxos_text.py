@@ -27,6 +27,9 @@ ROOT = os.path.abspath(os.path.join(PKG, "..", ".."))
 IN_REPO = os.path.isdir(os.path.join(ROOT, "packages", "luxos-i18n", "files"))
 I18N_DIR = os.path.join(ROOT, "packages/luxos-i18n/files") if IN_REPO else "/usr/share/luxos/i18n"
 BIN = os.environ.get("LUXOS_TEXT_BIN") or shutil.which("luxos-text") or ""
+APP_ICON = (os.path.join(ROOT, "packages/luxos-branding/files/icons/luxos-notes.png")
+            if os.path.exists(os.path.join(ROOT, "packages/luxos-branding/files/icons/luxos-notes.png"))
+            else "/usr/share/icons/hicolor/512x512/apps/luxos-notes.png")
 UNDER_XVFB = bool(os.environ.get("DISPLAY")) and "xvfb-run" in os.environ.get("XAUTHORITY", "")
 APP_ID = "cz.luxos.TextEditor"
 LANGS = ("cs", "sk", "pl", "uk", "hu", "de", "fr", "es", "it", "pt", "nl", "sv")
@@ -89,7 +92,7 @@ class SourceTest(unittest.TestCase):
         self.assertIn("Name=Text Editor\n", d)
         self.assertIn("Name[cs]=Textový editor\n", d)
         self.assertIn("Exec=luxos-text %U\n", d)
-        self.assertIn("Icon=luxos-text\n", d)
+        self.assertIn("Icon=luxos-notes\n", d)
         self.assertIn("StartupWMClass=luxos-text\n", d)
         mime = re.search(r"^MimeType=(.*)$", d, re.M).group(1).split(";")
         for m in ("text/plain", "text/markdown", "text/x-python", "application/x-shellscript", "application/json"):
@@ -97,9 +100,9 @@ class SourceTest(unittest.TestCase):
         self.assertNotIn("text/html", mime)    # HTML otevira prohlizec
 
     def test_icon(self):
-        import xml.etree.ElementTree as ET
-        root = ET.parse(os.path.join(FILES, "luxos-text.svg")).getroot()
-        self.assertEqual(root.get("viewBox"), "0 0 128 128")
+        # vlastni ikona LuxOS luxos-notes (luxos-branding), drive u Mousepadu
+        with open(os.path.join(FILES, "luxos-text.c"), encoding="utf-8") as f:
+            self.assertIn('#define APP_ICON "luxos-notes"', f.read())
 
     def test_styles_and_language(self):
         import xml.etree.ElementTree as ET
@@ -235,7 +238,7 @@ class Editor:
                  XDG_DATA_HOME=os.path.join(home, ".local/share"), XDG_CACHE_HOME=os.path.join(home, ".cache"),
                  XDG_STATE_HOME=os.path.join(home, ".local/state"), LUXOS_TEXT_TEST="1",
                  LUXOS_TEXT_DATA_DIR=FILES, LUXOS_I18N_DIR=I18N_DIR, LANG="en_US.UTF-8", LC_ALL="",
-                 LUXOS_TEXT_ICON=os.path.join(FILES, "luxos-text.svg"), GTK_THEME="WhiteSur-Light")
+                 LUXOS_TEXT_ICON=APP_ICON, GTK_THEME="WhiteSur-Light")
         e.pop("LANGUAGE", None)
         e.update(env or {})
         self.env = e
@@ -574,13 +577,9 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(s["path"], c)
 
     def test_window_icons(self):
-        # ikona je SVG: bez zavadece SVG pro gdk-pixbuf (luxos-pixbuf-svg) v sestavovacim prostredi ji
-        # okno nema z ceho vykreslit (samostatne sestaveni baliku v CI)
-        import gi
-        gi.require_version("GdkPixbuf", "2.0")
-        from gi.repository import GdkPixbuf
-        if not any("svg" in f.get_name() for f in GdkPixbuf.Pixbuf.get_formats()):
-            self.skipTest("no SVG loader for gdk-pixbuf in this build root")
+        # ikona luxos-notes je PNG 512 px (luxos-branding): ze zdroju v repozitari, jinak nainstalovana
+        if not os.path.exists(APP_ICON):
+            self.skipTest("luxos-notes icon (luxos-branding) not available")
         ed = self.start()
         s = ed.wait(lambda s: s.get("xid"))
         out = ""

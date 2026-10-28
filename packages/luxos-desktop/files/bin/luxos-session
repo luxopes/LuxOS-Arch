@@ -79,6 +79,43 @@ if [[ ! -e $cfg/text-editor-migrated ]] && command -v luxos-text >/dev/null; the
     unset launchers dock items fav fav_args f mime
 fi
 
+# Textovy editor v Docku i u profilu z drivejsich verzi (jednou - kdo ho pak z Docku odebere, uz se nevrati):
+# za Terminal (jinak pred Nastaveni/Kos/konec), jen kdyz tam jeste neni
+if [[ ! -e $cfg/text-editor-dock ]] && command -v luxos-text >/dev/null; then
+    dock=net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/
+    items=$(gsettings get "$dock" dock-items 2>/dev/null)
+    if [[ $items == \[*\] && $items != *"'luxos-text.dockitem'"* ]]; then
+        launchers="${XDG_CONFIG_HOME:-$HOME/.config}/plank/dock1/launchers"
+        mkdir -p "$launchers"
+        [[ -f $launchers/luxos-text.dockitem ]] ||
+            printf '[PlankDockItemPreferences]\nLauncher=file:///usr/share/applications/luxos-text.desktop\n' \
+                >"$launchers/luxos-text.dockitem"
+        new=
+        for anchor in luxos-terminal.dockitem xfce4-terminal.dockitem; do
+            if [[ $items == *"'$anchor'"* ]]; then
+                new=${items/\'$anchor\'/\'$anchor\', \'luxos-text.dockitem\'}
+                break
+            fi
+        done
+        if [[ -z $new ]]; then
+            for anchor in xfce-settings-manager.dockitem trash.dockitem; do
+                if [[ $items == *"'$anchor'"* ]]; then
+                    new=${items/\'$anchor\'/\'luxos-text.dockitem\', \'$anchor\'}
+                    break
+                fi
+            done
+        fi
+        if [[ -z $new ]]; then
+            if [[ $items == "[]" ]]; then new="['luxos-text.dockitem']"
+            else new="${items%]}, 'luxos-text.dockitem']"; fi
+        fi
+        gsettings set "$dock" dock-items "$new" 2>/dev/null
+    fi
+    # bez gsettings (schema Plank chybi) se nic nezmeni a zkusi se to pri dalsim prihlaseni
+    [[ $items == \[*\] || $items == "@as []" ]] && : >"$cfg/text-editor-dock"
+    unset dock items launchers new anchor
+fi
+
 # Tapety "vlny" (luxos-waves-dark/light) v LuxOS 1.0 nejsou: kdo je mel nastavene, dostane Flow ve stejnem
 # rezimu (jednou; jinou tapetu nemeni)
 if [[ ! -e $cfg/waves-migrated ]]; then

@@ -173,7 +173,11 @@ def show(versions, notes):
     newest = notes[versions[0]]
 
     win = Gtk.Window(title=_("What's New"))
-    win.set_icon_name("luxos-app")
+    try:
+        from luxos_wm_icon import set_window_icons
+        set_window_icons(win, "luxos-app")   # ostra ikona 16-256 px v Docku a Alt+Tab
+    except ImportError:
+        win.set_icon_name("luxos-app")
     win.set_position(Gtk.WindowPosition.CENTER)
     win.set_default_size(580, 720)
     header = Gtk.HeaderBar(show_close_button=True)
