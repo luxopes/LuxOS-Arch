@@ -616,6 +616,34 @@ class Hub(unittest.TestCase):
         bluez.properties["Trusted"] = GLib.Variant("b", False)
         r = call_agent("AuthorizeService", GLib.Variant("(os)", ("/org/bluez/hci0/dev_AA", "AD9B7C10-6CE5-4F35-9952-728F760FCB70")))
         self.assertEqual(r.unpack(), ())
+        # telefon zacal parovat sam (pocitac viditelny): dialog s kodem, Enter = Sparovat
+        if shutil.which("xdotool"):
+            import threading
+            xenv = {"DISPLAY": DISPLAY, **({"XAUTHORITY": os.environ["XAUTHORITY"]} if "XAUTHORITY" in os.environ else {})}
+            for answer, expect in (("Return", "ok"), ("Escape", "Rejected")):
+                out = {}
+
+                def run():
+                    try:
+                        out["r"] = call_agent("RequestConfirmation", GLib.Variant("(ou)", ("/org/bluez/hci0/dev_AA", 42))).unpack()
+                    except GLib.Error as e:
+                        out["e"] = e.message
+                t = threading.Thread(target=run)
+                t.start()
+
+                def dialog():
+                    r = subprocess.run(["xdotool", "search", "--onlyvisible", "--pid", str(self.hub.pid)],
+                                       capture_output=True, text=True, env=xenv)
+                    ids = r.stdout.split()
+                    return ids[-1] if ids else None
+                self.assertTrue(self.wait_for(dialog, 8), "dialog parovani se neukazal")
+                subprocess.run(["xdotool", "windowfocus", "--sync", dialog()], env=xenv, capture_output=True)
+                subprocess.run(["xdotool", "key", answer], env=xenv, capture_output=True)
+                t.join(8)
+                if expect == "ok":
+                    self.assertEqual(out, {"r": ()})
+                else:
+                    self.assertIn(expect, out.get("e", ""))
         r = call_agent("Release", None)
         self.assertEqual(r.unpack(), ())
 

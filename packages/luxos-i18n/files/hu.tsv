@@ -4399,3 +4399,13 @@ Update channel: "stable" = releases, "staging" = test builds before a release (f
 must be "stable" or "staging"	"stable" vagy "staging" lehet
 update channel: %s	frissítési csatorna: %s
 Could not set the update channel %s in the installed system.	A(z) %s frissítési csatornát nem sikerült beállítani a telepített rendszerben.
+Visible as “%s” while this window is open.	Látható „%s” néven, amíg ez az ablak nyitva van.
+Not visible to other devices.	Más eszközök számára nem látható.
+First pair the phone with this computer: press Pair a Phone… and pair in the phone's Bluetooth settings. Then open LuxOS Companion on the phone and connect.	Először párosítsa a telefont ezzel a számítógéppel: nyomja meg a Telefon párosítása… gombot, és párosítson a telefon Bluetooth-beállításaiban. Ezután nyissa meg a LuxOS Companiont a telefonon, és csatlakozzon.
+Pair a Phone…	Telefon párosítása…
+Pairing cancelled. This computer is no longer visible.	Párosítás megszakítva. Ez a számítógép már nem látható.
+Could not make this computer visible: %s	Nem sikerült láthatóvá tenni ezt a számítógépet: %s
+On the phone: Bluetooth settings → pair with “%s”, confirm the same code on both devices, then open LuxOS Companion → Choose computer.	A telefonon: Bluetooth-beállítások → párosítás ezzel: „%s”, erősítse meg ugyanazt a kódot mindkét eszközön, majd nyissa meg a LuxOS Companiont → Számítógép kiválasztása.
+This computer is no longer visible. Press Pair a Phone… to try again.	Ez a számítógép már nem látható. Új próbálkozáshoz nyomja meg a Telefon párosítása… gombot.
+Visible to phones for %d:%02d	Telefonok számára még %d:%02d ideig látható
+Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	Párosítva ezzel: „%s”. Most nyissa meg a LuxOS Companiont a telefonon → Számítógép kiválasztása; az első kapcsolódáskor itt kér engedélyt.

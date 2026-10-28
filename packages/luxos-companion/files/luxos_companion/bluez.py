@@ -2,7 +2,8 @@
 
 Role server, RequireAuthentication + RequireAuthorization, AutoConnect false: BlueZ vlozi zaznam SDP
 s UUID sluzby, prijme sifrovane spojeni od sparovaneho telefonu a preda socket pres NewConnection.
-Viditelnost adapteru (discoverable) se nemeni - telefon se paruje v nastaveni Bluetooth.
+Sluzba viditelnost adapteru (discoverable) nemeni. Zapina ji jen tlacitko "Sparovat telefon…" v okne
+Telefon (PairingVisibility: 3 minuty) a otevrene okno nastaveni Bluetooth.
 Po restartu bluetoothd (zmizi a znovu se objevi org.bluez) se profil zaregistruje znovu.
 Schvaleny telefon dostane v BlueZ Device1.Trusted=true (dalsi spojeni uz nevyvola dotaz agenta
 Bluetooth LuxOS), po odebrani Trusted=false.
@@ -233,3 +234,121 @@ class BluezProfile:
         self.bus.call(BLUEZ, device, "org.freedesktop.DBus.Properties", "GetAll",
                       GLib.Variant("(s)", ("org.bluez.Device1",)), None, Gio.DBusCallFlags.NONE, 3000, None,
                       done, None)
+
+
+PAIR_TIMEOUT = 180      # s, jak dlouho je pocitac po "Sparovat telefon…" viditelny
+
+
+class PairingVisibility:
+    """Tlacitko "Sparovat telefon…": pocitac je PAIR_TIMEOUT s viditelny pro telefony.
+
+    Nejdriv DiscoverableTimeout=180, pak Discoverable=true - BlueZ viditelnost vypne sam, i kdyz okno
+    spadne. stop() ji vypne jen tehdy, kdyz ji zapnulo toto tlacitko, a vrati puvodni DiscoverableTimeout.
+    on_paired(path, name) pri prvnim novem sparovanem zarizeni (Device1.Paired -> true) na adapteru.
+    Samotne sparovani telefon neopravnuje: pri prvnim spojeni se dal pta sluzba (schvaleni telefonu).
+    """
+
+    def __init__(self, bus, on_paired=None):
+        self.bus = bus
+        self.on_paired = on_paired
+        self.adapter = None
+        self.alias = ""
+        self.active = False
+        self.ours = False
+        self.saved_timeout = None
+        self.sub = None
+
+    def _set(self, name, value, done=None):
+        def finish(bus, res, _data):
+            err = None
+            try:
+                bus.call_finish(res)
+            except GLib.Error as e:
+                err = e.message
+            if done:
+                done(err)
+        self.bus.call(BLUEZ, self.adapter, "org.freedesktop.DBus.Properties", "Set",
+                      GLib.Variant("(ssv)", ("org.bluez.Adapter1", name, value)), None, Gio.DBusCallFlags.NONE,
+                      5000, None, finish, None)
+
+    def find_adapter(self):
+        """(cesta, vlastnosti) prvniho adapteru BlueZ, nebo (None, None)."""
+        try:
+            objects = self.bus.call_sync(BLUEZ, "/", "org.freedesktop.DBus.ObjectManager", "GetManagedObjects", None,
+                                         GLib.VariantType.new("(a{oa{sa{sv}}})"), Gio.DBusCallFlags.NONE, 3000,
+                                         None).unpack()[0]
+        except GLib.Error:
+            return None, None
+        for path in sorted(objects):
+            if "org.bluez.Adapter1" in objects[path]:
+                return path, objects[path]["org.bluez.Adapter1"]
+        return None, None
+
+    def start(self, done):
+        """done(chyba) - None (viditelny), "no_adapter", "off" nebo text chyby BlueZ."""
+        path, props = self.find_adapter()
+        if not path:
+            done("no_adapter")
+            return
+        if not props.get("Powered"):
+            done("off")
+            return
+        self.adapter = path
+        self.alias = str(props.get("Alias") or props.get("Name") or "")
+        self.ours = self.ours or not props.get("Discoverable")
+        if self.saved_timeout is None:
+            self.saved_timeout = props.get("DiscoverableTimeout")
+        if self.sub is None:
+            self.sub = self.bus.signal_subscribe(BLUEZ, "org.freedesktop.DBus.Properties", "PropertiesChanged", None,
+                                                 "org.bluez.Device1", Gio.DBusSignalFlags.NONE, self._changed)
+        self.active = True
+
+        def visible(err):
+            if err:
+                self.stop()
+            done(err)
+
+        def timeout_set(_err):
+            if self.active:
+                self._set("Discoverable", GLib.Variant("b", True), visible)
+        self._set("DiscoverableTimeout", GLib.Variant("u", PAIR_TIMEOUT), timeout_set)
+
+    def stop(self):
+        """Konec viditelnosti (zruseni, vyprseni, sparovano, zavreni okna). Synchronne - okno muze koncit."""
+        if self.sub is not None:
+            self.bus.signal_unsubscribe(self.sub)
+            self.sub = None
+        if not self.active:
+            return
+        self.active = False
+        sets = []
+        if self.ours:
+            sets.append(("Discoverable", GLib.Variant("b", False)))
+            self.ours = False
+        if self.saved_timeout is not None and self.saved_timeout != PAIR_TIMEOUT:
+            sets.append(("DiscoverableTimeout", GLib.Variant("u", self.saved_timeout)))
+        self.saved_timeout = None
+        for name, value in sets:
+            try:
+                self.bus.call_sync(BLUEZ, self.adapter, "org.freedesktop.DBus.Properties", "Set",
+                                   GLib.Variant("(ssv)", ("org.bluez.Adapter1", name, value)), None,
+                                   Gio.DBusCallFlags.NONE, 2000, None)
+            except GLib.Error:
+                pass
+
+    def _changed(self, _bus, _sender, path, _iface, _signal, params):
+        _dev_iface, changed, _invalid = params.unpack()
+        if not self.active or not changed.get("Paired") or not path.startswith((self.adapter or "-") + "/"):
+            return
+
+        def got(bus, res, _data):
+            name = ""
+            try:
+                props = bus.call_finish(res).unpack()[0]
+                name = str(props.get("Alias") or props.get("Name") or "")
+            except GLib.Error:
+                pass
+            if self.on_paired:
+                self.on_paired(path, name or address_from_path(path))
+        self.bus.call(BLUEZ, path, "org.freedesktop.DBus.Properties", "GetAll", GLib.Variant("(s)", ("org.bluez.Device1",)),
+                      None, Gio.DBusCallFlags.NONE, 3000, None, got, None)

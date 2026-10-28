@@ -170,6 +170,8 @@ See [settings-apps.md](settings-apps.md#displays).
 ## Bluetooth
 
 - Use **Bluetooth** (`luxos-bluetooth`): turn on, then **Connect** pairs, trusts and connects.
+- A phone does not find the computer: the computer is visible only while the Bluetooth window is
+  open (or for 3 minutes after Settings › Phone › **Pair a Phone…**).
 - "No Bluetooth adapter was found" – no adapter or it is blocked; check `rfkill list` and
   `systemctl status bluetooth`.
 - Pairing started from the phone/headphones is answered by the agent inside `luxos-hub`

@@ -21,6 +21,7 @@ from gi.repository import Gio, GLib  # noqa: E402
 
 from luxos_companion import SERVICE_UUID, bluez, service  # noqa: E402
 
+ADAPTER = "/org/bluez/hci0"
 DEV = "/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01"
 DEV_UNPAIRED = "/org/bluez/hci0/dev_AA_BB_CC_DD_EE_02"
 FAKE_XML = """<node>
@@ -47,7 +48,7 @@ def connect_bus(address):
 
 
 class FakeBluez:
-    """org.bluez s ProfileManager1 a Device1 (GetAll) ve vlastnim vlakne a kontextu."""
+    """org.bluez s ProfileManager1, Adapter1 a Device1 (GetAll/Set) ve vlastnim vlakne a kontextu."""
 
     def __init__(self, address):
         self.address = address
@@ -58,6 +59,8 @@ class FakeBluez:
             DEV_UNPAIRED: {"Address": GLib.Variant("s", "AA:BB:CC:DD:EE:02"), "Alias": GLib.Variant("s", "Cizí"),
                            "Paired": GLib.Variant("b", False), "Trusted": GLib.Variant("b", False)},
         }
+        self.adapter = {"Alias": GLib.Variant("s", "jupiter"), "Powered": GLib.Variant("b", True),
+                        "Discoverable": GLib.Variant("b", False), "DiscoverableTimeout": GLib.Variant("u", 0)}
         self.sets = []
         ready = threading.Event()
         self.thread = threading.Thread(target=self._run, args=(ready,))
@@ -79,23 +82,35 @@ class FakeBluez:
             if method == "Set":
                 iface, name, value = params.unpack()
                 self.sets.append((path, iface, name, value))
-                self.devices[path][name] = GLib.Variant("b", value)
+                store = self.adapter if path == ADAPTER else self.devices[path]
+                store[name] = GLib.Variant(store[name].get_type_string(), value)
                 inv.return_value(None)
                 return
-            inv.return_value(GLib.Variant("(a{sv})", (self.devices.get(path, {}),)))
+            inv.return_value(GLib.Variant("(a{sv})", (self.adapter if path == ADAPTER else self.devices.get(path, {}),)))
 
         def objects(_b, _s, _p, _i, _m, _params, inv):
-            inv.return_value(GLib.Variant("(a{oa{sa{sv}}})", (
-                {path: {"org.bluez.Device1": dict(props)} for path, props in self.devices.items()},)))
+            objs = {path: {"org.bluez.Device1": dict(props)} for path, props in self.devices.items()}
+            objs[ADAPTER] = {"org.bluez.Adapter1": dict(self.adapter)}
+            inv.return_value(GLib.Variant("(a{oa{sa{sv}}})", (objs,)))
         self.ids = [self.bus.register_object("/org/bluez", info.interfaces[0], manager, None, None),
                     self.bus.register_object("/", info.interfaces[2], objects, None, None)]
-        for path in self.devices:
+        for path in list(self.devices) + [ADAPTER]:
             self.ids.append(self.bus.register_object(path, info.interfaces[1], props, None, None))
         self.bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName",
                            GLib.Variant("(su)", ("org.bluez", 4)), None, 0, 2000, None)
         ready.set()
         self.loop.run()
         self.bus.close_sync(None)        # jako konec bluetoothd: jmeno org.bluez zmizi
+
+    def pair(self, path):
+        """Telefon se sparoval: Paired=true a signal PropertiesChanged jako BlueZ."""
+        def run():
+            self.devices[path]["Paired"] = GLib.Variant("b", True)
+            self.bus.emit_signal(None, path, "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                                 GLib.Variant("(sa{sv}as)", ("org.bluez.Device1", {"Paired": GLib.Variant("b", True)},
+                                                             [])))
+            return False
+        self.ctx.invoke_full(GLib.PRIORITY_DEFAULT, run)
 
     def quit(self):
         if not self.thread.is_alive():
@@ -230,6 +245,61 @@ class TestBluezProfile(unittest.TestCase):
         self.assertTrue(pump(lambda: self.profile.registered, 5))
         self.assertEqual(len([c for c in self.fake.calls if c[0] == "RegisterProfile"]), 1)
         self.assertGreaterEqual(n, 1)
+
+
+@unittest.skipUnless(shutil.which("dbus-daemon"), "dbus-daemon missing")
+class TestPairingVisibility(unittest.TestCase):
+    """Tlacitko "Sparovat telefon…": 3 minuty viditelny, konec po sparovani nebo zruseni."""
+
+    def setUp(self):
+        self.proc, self.address = private_bus()
+        self.addCleanup(self.proc.wait, 5)
+        self.addCleanup(self.proc.terminate)
+        self.fake = FakeBluez(self.address)
+        self.addCleanup(self.fake.quit)
+        self.paired = []
+        self.vis = bluez.PairingVisibility(connect_bus(self.address), lambda p, n: self.paired.append((p, n)))
+        self.addCleanup(self.vis.stop)
+
+    def start(self):
+        out = []
+        self.vis.start(out.append)
+        self.assertTrue(pump(lambda: out, 5))
+        return out[0]
+
+    def adapter_sets(self):
+        return [(name, value) for path, _i, name, value in self.fake.sets if path == ADAPTER]
+
+    def test_visible_for_three_minutes_until_paired(self):
+        self.assertIsNone(self.start())
+        self.assertEqual(self.vis.alias, "jupiter")
+        # nejdriv casovac 180 s (BlueZ viditelnost vypne sam, i kdyz okno spadne), pak viditelnost
+        self.assertEqual(self.adapter_sets(), [("DiscoverableTimeout", 180), ("Discoverable", True)])
+        self.assertEqual(bluez.PAIR_TIMEOUT, 180)
+        self.fake.pair(DEV_UNPAIRED)
+        self.assertTrue(pump(lambda: self.paired, 5))
+        self.assertEqual(self.paired, [(DEV_UNPAIRED, "Cizí")])
+        # okno pak zavola stop(): viditelnost vypnuta, puvodni casovac zpet; Trusted se nemeni
+        self.vis.stop()
+        self.assertEqual(self.adapter_sets()[2:], [("Discoverable", False), ("DiscoverableTimeout", 0)])
+        self.assertFalse(self.fake.adapter["Discoverable"].unpack())
+        self.assertFalse(self.fake.devices[DEV_UNPAIRED]["Trusted"].unpack())
+        self.vis.stop()
+        self.assertEqual(len(self.adapter_sets()), 4)
+
+    def test_already_visible_stays_visible(self):
+        self.fake.adapter["Discoverable"] = GLib.Variant("b", True)
+        self.fake.adapter["DiscoverableTimeout"] = GLib.Variant("u", 180)
+        self.assertIsNone(self.start())
+        self.vis.stop()
+        self.assertEqual(self.adapter_sets(), [("DiscoverableTimeout", 180), ("Discoverable", True)])
+        self.assertTrue(self.fake.adapter["Discoverable"].unpack())
+
+    def test_bluetooth_off(self):
+        self.fake.adapter["Powered"] = GLib.Variant("b", False)
+        self.assertEqual(self.start(), "off")
+        self.assertEqual(self.adapter_sets(), [])
+        self.assertFalse(self.vis.active)
 
 
 @unittest.skipUnless(shutil.which("dbus-daemon"), "dbus-daemon missing")

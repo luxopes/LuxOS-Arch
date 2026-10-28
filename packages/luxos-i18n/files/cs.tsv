@@ -4488,3 +4488,13 @@ Update channel: "stable" = releases, "staging" = test builds before a release (f
 must be "stable" or "staging"	musí být "stable" nebo "staging"
 update channel: %s	kanál aktualizací: %s
 Could not set the update channel %s in the installed system.	Kanál aktualizací %s se v nainstalovaném systému nepodařilo nastavit.
+Visible as “%s” while this window is open.	Viditelný jako „%s“, dokud je toto okno otevřené.
+Not visible to other devices.	Není viditelný pro ostatní zařízení.
+First pair the phone with this computer: press Pair a Phone… and pair in the phone's Bluetooth settings. Then open LuxOS Companion on the phone and connect.	Nejdřív telefon spárujte s tímto počítačem: stiskněte Spárovat telefon… a spárujte v nastavení Bluetooth v telefonu. Pak v telefonu otevřete LuxOS Companion a připojte se.
+Pair a Phone…	Spárovat telefon…
+Pairing cancelled. This computer is no longer visible.	Párování zrušeno. Počítač už není viditelný.
+Could not make this computer visible: %s	Počítač se nepodařilo zviditelnit: %s
+On the phone: Bluetooth settings → pair with “%s”, confirm the same code on both devices, then open LuxOS Companion → Choose computer.	V telefonu: nastavení Bluetooth → spárovat s „%s“, na obou zařízeních potvrďte stejný kód, pak otevřete LuxOS Companion → Vybrat počítač.
+This computer is no longer visible. Press Pair a Phone… to try again.	Počítač už není viditelný. Pro nový pokus stiskněte Spárovat telefon….
+Visible to phones for %d:%02d	Viditelný pro telefony ještě %d:%02d
+Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	Spárováno s „%s“. Teď v telefonu otevřete LuxOS Companion → Vybrat počítač; při prvním připojení se zde zobrazí dotaz na povolení.

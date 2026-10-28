@@ -34,8 +34,12 @@ from gi.repository import Gio, GLib
 LOG = os.environ["FAKE_BLUEZ_LOG"]
 A = "/org/bluez/hci0"
 props = {"Address": "00:11:22:33:44:55", "Name": "luxos-pc", "Alias": "luxos-pc",
-         "Powered": True, "Discoverable": False, "Discovering": False}
-SIG = {"Address": "s", "Name": "s", "Alias": "s", "Powered": "b", "Discoverable": "b", "Discovering": "b"}
+         "Powered": True, "Discoverable": False, "DiscoverableTimeout": 0, "Discovering": False}
+SIG = {"Address": "s", "Name": "s", "Alias": "s", "Powered": "b", "Discoverable": "b", "DiscoverableTimeout": "u",
+       "Discovering": "b"}
+DEV = A + "/dev_AA_BB_CC_DD_EE_01"
+dev_props = {"Address": GLib.Variant("s", "AA:BB:CC:DD:EE:01"), "Alias": GLib.Variant("s", "Pixel Test"),
+             "Adapter": GLib.Variant("o", A), "Paired": GLib.Variant("b", False), "Trusted": GLib.Variant("b", False)}
 XML = """<node>
 <interface name="org.freedesktop.DBus.ObjectManager">
  <method name="GetManagedObjects"><arg type="a{oa{sa{sv}}}" direction="out"/></method>
@@ -65,7 +69,8 @@ def log(entry):
 def call(conn, sender, path, iface, method, params, inv):
     args = params.unpack()
     if method == "GetManagedObjects":
-        inv.return_value(GLib.Variant("(a{oa{sa{sv}}})", ({A: {"org.bluez.Adapter1": variants()}},)))
+        inv.return_value(GLib.Variant("(a{oa{sa{sv}}})", ({A: {"org.bluez.Adapter1": variants()},
+                                                            DEV: {"org.bluez.Device1": dev_props}},)))
     elif method == "GetAll":
         inv.return_value(GLib.Variant("(a{sv})", (variants(),)))
     elif method == "Get":
@@ -73,7 +78,7 @@ def call(conn, sender, path, iface, method, params, inv):
     elif method == "Set":
         iface_, name, value = args
         log({"set": name, "value": value})
-        if name not in ("Alias", "Powered", "Discoverable") or path != A:
+        if name not in ("Alias", "Powered", "Discoverable", "DiscoverableTimeout") or path != A:
             inv.return_dbus_error("org.bluez.Error.InvalidArguments", "Invalid arguments")
             return
         if name == "Alias" and os.path.exists(LOG + ".deny"):
@@ -299,6 +304,137 @@ class Window(BusFixture):
             os.unlink(self.log + ".deny")
         self.assertFalse(shown[0][2])
         self.assertEqual(win.name_label.get_text(), "luxos-pc")
+
+
+    # ---- viditelnost pri otevrenem okne ----
+    def bluez_set(self, name, value):
+        """Zmena vlastnosti adapteru "zvenku" (bluetoothctl, vyprseni casovace)."""
+        bt.BUS().call_sync("org.bluez", "/org/bluez/hci0", "org.freedesktop.DBus.Properties", "Set",
+                           GLib.Variant("(ssv)", ("org.bluez.Adapter1", name, value)), None, 0, 3000, None)
+
+    def adapter(self):
+        bz = bt.Bluez(lambda: None)
+        return bz.adapter()[1]
+
+    def sets(self, name=None):
+        return [(c["set"], c["value"]) for c in self.calls() if "set" in c and (name is None or c["set"] == name)]
+
+    def test_visible_while_open(self):
+        win = self.make()
+        self.assertTrue(self.wait(lambda: self.adapter().get("Discoverable")))
+        # nejdriv casovac 180 s (pad okna), pak viditelnost
+        self.assertEqual(self.sets()[:2], [("DiscoverableTimeout", 180), ("Discoverable", True)])
+        self.assertTrue(self.wait(lambda: win.hint.get_text() == "Visible as “luxos-pc” while this window is open."))
+        self.assertIn("visible now", win.name_sub.get_text())
+        # casovac vyprsel / vypnuto zvenku -> pri otevrenem okne znovu viditelny
+        open(self.log, "w").close()
+        self.bluez_set("Discoverable", GLib.Variant("b", False))
+        self.assertTrue(self.wait(lambda: ("Discoverable", True) in self.sets()))
+        self.assertTrue(self.wait(lambda: self.adapter().get("Discoverable")))
+        # obnova casovace (BlueZ znovu spusti odpocet)
+        open(self.log, "w").close()
+        self.assertTrue(win.renew_visible())
+        self.assertTrue(self.wait(lambda: self.sets() == [("DiscoverableTimeout", 180)]))
+        # zavreni: viditelnost vypnuta, puvodni casovac (0) zpet
+        open(self.log, "w").close()
+        win.destroy()
+        self.assertEqual(self.sets(), [("Discoverable", False), ("DiscoverableTimeout", 0)])
+        a = self.adapter()
+        self.assertFalse(a.get("Discoverable"))
+        self.assertEqual(a.get("DiscoverableTimeout"), 0)
+        self.wait(lambda: False, 0.4)
+        self.assertEqual(self.sets(), [("Discoverable", False), ("DiscoverableTimeout", 0)])
+
+    def test_already_visible_is_left_alone(self):
+        self.bluez_set("Discoverable", GLib.Variant("b", True))
+        self.addCleanup(self.bluez_set, "Discoverable", GLib.Variant("b", False))
+        open(self.log, "w").close()
+        win = self.make()
+        self.wait(lambda: False, 0.3)
+        self.assertEqual(win.hint.get_text(), "Visible to nearby devices as “luxos-pc”.")
+        self.assertEqual(self.sets("Discoverable"), [])
+        win.renew_visible()
+        win.destroy()
+        self.wait(lambda: False, 0.3)
+        self.assertEqual(self.sets(), [])                    # nezaplo ji okno -> nevypina ji
+        self.assertTrue(self.adapter().get("Discoverable"))
+
+    def test_power_off_hides(self):
+        win = self.make()
+        self.assertTrue(self.wait(lambda: self.adapter().get("Discoverable")))
+        open(self.log, "w").close()
+        win.power.set_active(False)
+        self.assertTrue(self.wait(lambda: ("Powered", False) in self.sets()))
+        self.assertEqual(self.sets()[:2], [("Discoverable", False), ("Powered", False)])
+        self.assertTrue(self.wait(lambda: win.hint.get_text().startswith("Turn on Bluetooth")))
+        self.assertFalse(self.adapter().get("Discoverable"))
+        open(self.log, "w").close()
+        win.power.set_active(True)
+        self.assertTrue(self.wait(lambda: self.adapter().get("Discoverable"), 5))
+        self.assertIn(("Discoverable", True), self.sets())
+        win.destroy()
+        self.assertFalse(self.adapter().get("Discoverable"))
+
+    def test_hint_not_visible(self):
+        win = self.make()
+        win.visible_failed = True                            # BlueZ viditelnost odmitl
+        self.bluez_set("Discoverable", GLib.Variant("b", False))
+        self.assertTrue(self.wait(lambda: win.hint.get_text() == "Not visible to other devices."))
+
+    # ---- agent: parovani, ktere zacal telefon ----
+    def agent_call(self, win, method, args, sig):
+        out = {}
+        client = bt.BUS()
+
+        def done(conn, res):
+            try:
+                out["r"] = conn.call_finish(res).unpack()
+            except GLib.Error as e:
+                out["e"] = e.message
+        client.call(win.bz.bus.get_unique_name(), bt.AGENT_PATH, "org.bluez.Agent1", method,
+                    GLib.Variant(sig, args) if sig else None, None, 0, 5000, None, done)
+        self.assertTrue(self.wait(lambda: out))
+        return out
+
+    def test_agent_phone_pairing(self):
+        win = self.make()
+        Gtk = self.Gtk
+        shown = []
+        answer = [Gtk.ResponseType.OK]
+        orig = Gtk.Dialog.run
+
+        def run(dlg):
+            area = dlg.get_message_area()
+            shown.append([w.get_text() for w in area.get_children() if isinstance(w, Gtk.Label)])
+            return answer[0]
+        Gtk.Dialog.run = run
+        try:
+            # ciselne porovnani (telefon i pocitac ukazuji kod)
+            out = self.agent_call(win, "RequestConfirmation", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01", 42), "(ou)")
+            self.assertEqual(out, {"r": ()})
+            self.assertEqual(shown[-1][0], "Pair this device?")
+            self.assertIn("000042", shown[-1][1])
+            answer[0] = Gtk.ResponseType.CANCEL
+            out = self.agent_call(win, "RequestConfirmation", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01", 7), "(ou)")
+            self.assertIn("Rejected", out["e"])
+            # kod na pocitaci, telefon ho zada
+            out = self.agent_call(win, "DisplayPasskey", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01", 123456, 0), "(ouq)")
+            self.assertEqual(out, {"r": ()})
+            self.assertIn("123456", shown[-1][1])
+            # parovani bez kodu: dotaz se jmenem zarizeni, odmitnuti
+            out = self.agent_call(win, "RequestAuthorization", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01",), "(o)")
+            self.assertIn("Rejected", out["e"])
+            self.assertEqual(shown[-1][0], "Allow “Pixel Test” to pair with this computer?")
+            answer[0] = Gtk.ResponseType.OK
+            out = self.agent_call(win, "RequestAuthorization", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01",), "(o)")
+            self.assertEqual(out, {"r": ()})
+            # sluzba LuxOS Companion bez dotazu (schvaluje ji aplikace)
+            n = len(shown)
+            out = self.agent_call(win, "AuthorizeService", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01",
+                                                            "AD9B7C10-6CE5-4F35-9952-728F760FCB70"), "(os)")
+            self.assertEqual((out, len(shown)), ({"r": ()}, n))
+        finally:
+            Gtk.Dialog.run = orig
 
 
 if __name__ == "__main__":

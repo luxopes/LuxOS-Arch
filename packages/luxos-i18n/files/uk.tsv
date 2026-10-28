@@ -4400,3 +4400,13 @@ Update channel: "stable" = releases, "staging" = test builds before a release (f
 must be "stable" or "staging"	має бути "stable" або "staging"
 update channel: %s	канал оновлень: %s
 Could not set the update channel %s in the installed system.	Не вдалося встановити канал оновлень %s у встановленій системі.
+Visible as “%s” while this window is open.	Видимий як «%s», поки це вікно відкрите.
+Not visible to other devices.	Невидимий для інших пристроїв.
+First pair the phone with this computer: press Pair a Phone… and pair in the phone's Bluetooth settings. Then open LuxOS Companion on the phone and connect.	Спершу з’єднайте телефон із цим комп’ютером: натисніть З’єднати телефон… і виконайте з’єднання в налаштуваннях Bluetooth телефона. Потім відкрийте LuxOS Companion на телефоні й під’єднайтеся.
+Pair a Phone…	З’єднати телефон…
+Pairing cancelled. This computer is no longer visible.	З’єднання скасовано. Комп’ютер більше не видимий.
+Could not make this computer visible: %s	Не вдалося зробити цей комп’ютер видимим: %s
+On the phone: Bluetooth settings → pair with “%s”, confirm the same code on both devices, then open LuxOS Companion → Choose computer.	На телефоні: налаштування Bluetooth → з’єднати з «%s», підтвердьте однаковий код на обох пристроях, потім відкрийте LuxOS Companion → Вибрати комп’ютер.
+This computer is no longer visible. Press Pair a Phone… to try again.	Комп’ютер більше не видимий. Натисніть З’єднати телефон…, щоб спробувати ще раз.
+Visible to phones for %d:%02d	Видимий для телефонів ще %d:%02d
+Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	З’єднано з «%s». Тепер відкрийте LuxOS Companion на телефоні → Вибрати комп’ютер; під час першого під’єднання тут з’явиться запит на дозвіл.
