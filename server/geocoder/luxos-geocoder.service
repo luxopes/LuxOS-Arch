@@ -1,0 +1,62 @@
+[Unit]
+Description=LuxOS geocoder (typeahead place search for LuxOS Maps)
+Documentation=https://github.com/luxopes/LuxOS-Arch/tree/main/server/geocoder
+After=network.target
+
+[Service]
+Type=simple
+# databaze: /var/lib/luxos-geocoder/current -> releases/<datum> (deploy.sh meni symlink atomicky,
+# sluzba si novy soubor otevre sama do 30 s, bez restartu)
+ExecStart=/usr/bin/python3 -I -B /opt/luxos-geocoder/luxos_geocoder.py \
+    --db /var/lib/luxos-geocoder/current/geocoder.sqlite --bind 127.0.0.1 --port 8765 --workers 2
+Restart=on-failure
+RestartSec=2s
+Nice=5
+# bez access logu: sluzba sama nic o dotazech nepise; stdout/stderr jen start a chyby bez textu dotazu
+SyslogIdentifier=luxos-geocoder
+
+# --- izolace ---
+DynamicUser=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/var/lib/luxos-geocoder /opt/luxos-geocoder
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateUsers=yes
+ProtectHostname=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectProc=invisible
+ProcSubset=pid
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+UMask=0077
+
+# --- zdroje (server ma 1,9 GB RAM a dalsi sluzby) ---
+# RSS ~30-40 MB (2 spojeni SQLite po 8 MB mezipameti); stranky databaze drzi jadro v page cache,
+# kterou pri nedostatku pameti uvolni (pocita se do MemoryHigh/Max, ale nevede k OOM)
+MemoryHigh=150M
+MemoryMax=200M
+MemorySwapMax=0
+CPUQuota=100%
+TasksMax=16
+LimitNOFILE=1024
+
+[Install]
+WantedBy=multi-user.target

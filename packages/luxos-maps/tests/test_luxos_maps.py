@@ -84,15 +84,19 @@ def synthetic_tile(z, x, y):
 
 class FakeServer:
     """Falesne dlazdice (/tiles), Nominatim (/search, /reverse), OSRM (/routed-*), ipinfo (/ip),
-    Transitous (/transitous/plan, /transitous/stoptimes) a Overpass (/overpass)."""
+    Transitous (/transitous/plan, /transitous/stoptimes), Overpass (/overpass), Photon (/photon/api/)
+    a geocoder LuxOS (/geocode/api; geocode = "ok", "slow", "fail", "empty", "one")."""
 
     def __init__(self):
         self.requests = []
         self.raw = []
         self.headers = []
+        self.ports = []                   # klientsky port kazdeho pozadavku (trvala spojeni)
         self.busy = False
         self.fail = False
         self.delay = 0.0
+        self.geocode = "ok"
+        self.drop_idle = False            # po odpovedi zavrit spojeni bez ohlaseni (stare keep-alive)
         self.active = 0
         self.max_active = 0
         self.lock = threading.Lock()
@@ -122,6 +126,7 @@ class FakeServer:
                     server.requests.append((url.path, q))
                     server.raw.append(url.query)
                     server.headers.append(dict(self.headers))
+                    server.ports.append(self.client_address[1])
                     server.active += 1
                     server.max_active = max(server.max_active, server.active)
                 try:
@@ -167,6 +172,23 @@ class FakeServer:
                                              address=dict(base["address"], square=name),
                                              boundingbox=None, osm_id=hash(name) % 100000))
                     self.send(200, json.dumps(body).encode())
+                    return
+                if url.path == "/geocode/api":
+                    mode = server.geocode
+                    if mode == "slow":
+                        time.sleep(2.0)
+                    if mode == "fail":
+                        self.send(503, b"{}")
+                        return
+                    text = lm.fold(q.get("q", ""))
+                    name = next((f for k, f in (("karl", "photon-karlovo.json"), ("vodi", "photon-vodickova-30.json"),
+                                                ("must", "photon-mustek.json")) if k in text), None)
+                    body = fixture(name) if name and mode != "empty" else {"type": "FeatureCollection",
+                                                                            "features": []}
+                    body["features"] = body["features"][:1 if mode == "one" else int(q.get("limit", 10))]
+                    self.send(200, json.dumps(body).encode())
+                    if server.drop_idle:
+                        self.close_connection = True
                     return
                 if url.path == "/photon/api/":
                     text = lm.fold(q.get("q", ""))
@@ -262,7 +284,10 @@ class FakeServer:
             self.requests.clear()
             self.raw.clear()
             self.headers.clear()
+            self.ports.clear()
             self.max_active = 0
+        self.geocode = "ok"
+        self.drop_idle = False
         self.fail = False
         self.busy = False
         self.delay = 0.0
@@ -1644,6 +1669,140 @@ class TestSuggest(unittest.TestCase):
         self.assertEqual(self.calls[1][3], "offline")
         self.assertEqual(sg.sent, 1)
 
+    def providers_env(self, *urls):
+        old = os.environ.get("LUXOS_MAPS_SUGGEST_PROVIDERS")
+        os.environ["LUXOS_MAPS_SUGGEST_PROVIDERS"] = " ".join(urls)
+
+        def restore():
+            if old is None:
+                os.environ.pop("LUXOS_MAPS_SUGGEST_PROVIDERS", None)
+            else:
+                os.environ["LUXOS_MAPS_SUGGEST_PROVIDERS"] = old
+        self.addCleanup(restore)
+
+    def two_providers(self):
+        self.providers_env(SERVER.base + "/geocode/api", SERVER.base + "/photon/api/")
+
+    def test_providers_config(self):
+        old = os.environ.pop("LUXOS_MAPS_SUGGEST")
+        self.addCleanup(os.environ.__setitem__, "LUXOS_MAPS_SUGGEST", old)
+        self.assertEqual(lm.Suggester(self.cb).providers(), [lm.GEOCODER_URL, lm.PHOTON_URL])
+        self.assertEqual(lm.Suggester(self.cb, {"suggest_url": "https://p.example/api"}).providers(),
+                         ["https://p.example/api"])                    # vlastni Photon: jen on
+        cfg = lm.load_config()
+        lm.save_config(dict(cfg, suggest_providers=["https://a.example/geocode/api", "file:///x", 3,
+                                                    "https://b.example/api"]))
+        cfg = lm.load_config()
+        self.assertEqual(cfg["suggest_providers"], ["https://a.example/geocode/api", "https://b.example/api"])
+        self.assertEqual(lm.Suggester(self.cb, cfg).providers(), cfg["suggest_providers"])
+        lm.save_config(dict(cfg, suggest_providers="https://x.example/api"))
+        self.assertNotIn("suggest_providers", lm.load_config())
+        self.assertTrue(lm.is_luxos_geocoder(lm.GEOCODER_URL))
+        self.assertFalse(lm.is_luxos_geocoder(lm.PHOTON_URL))
+        self.assertTrue(lm.in_coverage((50.08, 14.42)) and lm.in_coverage((48.15, 17.11)))     # Praha, Bratislava
+        self.assertFalse(lm.in_coverage((52.52, 13.40)) or lm.in_coverage((48.21, 16.37)))   # Berlin, Viden
+        self.assertEqual(lm.SUGGEST_DELAY, 0.15)
+
+    def test_primary_geocoder(self):
+        self.two_providers()
+        sg = self.suggester(delay=0.01, lang="cs")
+        sg.request("karlovo", (50.08, 14.42))
+        self.assertTrue(self.got.wait(5))
+        time.sleep(0.3)
+        self.assertEqual(len(self.calls), 1)
+        _gen, _q, res, err = self.calls[0]
+        self.assertIsNone(err)
+        self.assertEqual(res[0]["name"], "Karlovo náměstí")
+        self.assertEqual({p["provider"] for p in res}, {"luxos"})
+        self.assertEqual((SERVER.count("/geocode/api"), SERVER.count("/photon")), (1, 0))
+        q = SERVER.last_q("/geocode/api")
+        self.assertEqual((q["q"], q["lang"], q["lat"], q["lon"], q["limit"]), ("karlovo", "cs", "50.08", "14.42", "7"))
+
+    def test_fallback_when_primary_slow(self):
+        self.two_providers()
+        SERVER.geocode = "slow"
+        sg = self.suggester(delay=0.01)
+        t0 = time.monotonic()
+        sg.request("karlovo", (50.08, 14.42))
+        self.assertTrue(self.got.wait(5))
+        self.assertLess(time.monotonic() - t0, 1.9)                # 1,2 s na geocoder, pak hned Photon
+        res = self.calls[0][2]
+        self.assertEqual((res[0]["name"], res[0]["provider"]), ("Karlovo náměstí", "photon"))
+        self.assertEqual(SERVER.last_q("/photon")["lang"], "default")
+        self.assertGreater(sg.backoff[SERVER.base + "/geocode/api"], time.monotonic() + 20)
+        # dalsi dotaz behem pauzy: rovnou Photon
+        self.got.clear()
+        sg.request("mustek", (50.08, 14.42))
+        self.assertTrue(self.got.wait(5))
+        self.assertEqual(SERVER.count("/geocode/api"), 1)
+        self.assertEqual(SERVER.count("/photon"), 2)
+        deadline = time.time() + 5            # pomaly geocoder dobehne (dalsi testy pocitaji soubezne pozadavky)
+        while SERVER.active and time.time() < deadline:
+            time.sleep(0.05)
+
+    def test_fallback_when_primary_fails_or_empty(self):
+        self.two_providers()
+        for mode in ("fail", "empty"):
+            SERVER.reset()
+            SERVER.geocode = mode
+            self.calls.clear()
+            self.got.clear()
+            sg = self.suggester(delay=0.01)
+            sg.request("karlovo", (50.08, 14.42))
+            self.assertTrue(self.got.wait(5))
+            time.sleep(0.2)
+            self.assertEqual(len(self.calls), 1, mode)
+            _gen, _q, res, err = self.calls[0]
+            self.assertIsNone(err, mode)
+            self.assertEqual((res[0]["name"], res[0]["provider"]), ("Karlovo náměstí", "photon"), mode)
+            self.assertEqual((SERVER.count("/geocode/api"), SERVER.count("/photon")), (1, 1), mode)
+
+    def test_few_results_merged_with_photon(self):
+        self.two_providers()
+        SERVER.geocode = "one"
+        sg = self.suggester(delay=0.01)
+        sg.request("karlovo", (50.08, 14.42))
+        deadline = time.time() + 5
+        while len(self.calls) < 2 and time.time() < deadline:
+            time.sleep(0.02)
+        self.assertEqual(len(self.calls), 2)                   # nejdriv rychly vysledek, pak doplneny
+        first, second = self.calls[0][2], self.calls[1][2]
+        self.assertEqual(self.calls[0][0], self.calls[1][0])
+        self.assertEqual([(p["name"], p["provider"]) for p in first], [("Karlovo náměstí", "luxos")])
+        self.assertEqual(second[0], first[0])                  # co uz je videt, zustane nahore
+        self.assertEqual([p["name"] for p in second[1:]], ["SÚZ ČVUT - Výdejna Karlovo nám.", "Karlovo nám."])
+        self.assertEqual({p["provider"] for p in second[1:]}, {"photon"})
+
+    def test_outside_coverage_photon_only(self):
+        self.two_providers()
+        sg = self.suggester(delay=0.01)
+        sg.request("karlovo", (48.21, 16.37))                  # Viden
+        self.assertTrue(self.got.wait(5))
+        self.assertEqual((SERVER.count("/geocode/api"), SERVER.count("/photon")), (0, 1))
+        self.assertEqual(self.calls[0][2][0]["provider"], "photon")
+
+    def test_keepalive_and_stale_connection(self):
+        self.providers_env(SERVER.base + "/geocode/api")
+        sg = self.suggester(delay=0.01)
+        for i, text in enumerate(("karlovo", "mustek", "vodickova")):
+            self.got.clear()
+            sg.request(text, (50.08, 14.42))
+            self.assertTrue(self.got.wait(5))
+            self.assertIsNone(self.calls[-1][3])
+        self.assertEqual(len(set(SERVER.ports)), 1)          # tri dotazy jednim spojenim (bez noveho TLS)
+        self.assertEqual(sg.sent, 3)
+        SERVER.drop_idle = True                               # server zavre necinne spojeni
+        for text in ("karlovo nam", "mustek x"):
+            self.got.clear()
+            sg.request(text, (50.08, 14.42))
+            self.assertTrue(self.got.wait(5))
+            self.assertIsNone(self.calls[-1][3], text)        # nove spojeni bez chyby a bez pauzy
+        self.assertEqual(sg.backoff, {})
+        self.assertEqual(sg.sent, 5)
+        self.assertEqual(len(set(SERVER.ports)), 2)          # stare spojeni jeste jednou, pak nove
+        sg.stop()
+        self.assertEqual(sg.conns, {})
+
     def test_busy_backoff(self):
         SERVER.fail = True                        # 503
         sg = self.suggester(delay=0.01)
@@ -1860,7 +2019,7 @@ class TestWindow(unittest.TestCase):
         return win.emit("key-press-event", ev)
 
     def type_text(self, entry, text):
-        for i in range(1, len(text) + 1):          # rychle psani: pod 250 ms mezi znaky
+        for i in range(1, len(text) + 1):          # rychle psani: pod 150 ms mezi znaky
             entry.set_text(text[:i])
             entry.set_position(-1)
             self.settle(0.03)
@@ -1876,7 +2035,7 @@ class TestWindow(unittest.TestCase):
         self.assertEqual(sb.list.get_row_at_index(0).place["name"], "Karlín")
         self.assertTrue(self.pump(lambda: sb.remote))
         self.settle(0.4)
-        self.assertEqual(SERVER.count("/photon"), 1)                    # jen posledni text po 250 ms
+        self.assertEqual(SERVER.count("/photon"), 1)                    # jen posledni text po 150 ms
         self.assertEqual(SERVER.last_q("/photon")["q"], "karl")
         self.assertEqual(SERVER.last_q("/photon")["lat"], "50.08")
         names = [r.place["name"] for r in sb.list.get_children()]

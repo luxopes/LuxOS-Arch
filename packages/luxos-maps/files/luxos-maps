@@ -1330,7 +1330,10 @@ class SuggestBox:
         if self.offline:
             self.footer.set_text(_("Offline – showing saved places only"))
         else:
-            self.footer.set_text(_("Suggestions by Photon · © OpenStreetMap contributors") if self.remote else "")
+            luxos = all(p.get("provider") == "luxos" for p in self.remote)   # zdroj: geocoder LuxOS / Photon
+            self.footer.set_text("" if not self.remote else
+                                 _("Suggestions by LuxOS · © OpenStreetMap contributors") if luxos else
+                                 _("Suggestions by Photon · © OpenStreetMap contributors"))
         self.footer.set_visible(bool(self.footer.get_text()))
         if self.items and self.entry.is_focus():
             self.list.set_size_request(max(380, self.entry.get_allocated_width()), -1)
