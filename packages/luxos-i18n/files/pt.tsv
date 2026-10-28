@@ -4391,3 +4391,10 @@ Voice Guidance	Orientação por voz
 Waiting for your location…	A aguardar a sua localização…
 You are off the route.	Saiu do percurso.
 You have arrived	Chegou ao destino
+%s is missing; the update channel was not checked.	%s não existe; o canal de atualizações não foi verificado.
+Changing the update channel needs a newer lux-engine (lux update).	Mudar o canal de atualizações requer um lux-engine mais recente (lux update).
+Update channel	Canal de atualizações
+Update channel: "stable" = releases, "staging" = test builds before a release (for testers)	Canal de atualizações: "stable" = versões publicadas, "staging" = versões de teste antes do lançamento (para testadores)
+must be "stable" or "staging"	deve ser "stable" ou "staging"
+update channel: %s	canal de atualizações: %s
+Could not set the update channel %s in the installed system.	Não foi possível definir o canal de atualizações %s no sistema instalado.

@@ -24,6 +24,7 @@ SHARE=/usr/share/luxos/installer
 # jen on, z docasneho adresare (engine_shim).
 export PATH="/usr/lib/lux/alpm/bin:${PATH:-/usr/local/sbin:/usr/local/bin:/usr/bin}"
 LUX_CONFIG_TOOL=/usr/lib/lux/lux-config
+LIVE_LUX_CONF=/etc/lux/lux.conf     # konfigurace lux live systemu (kanal aktualizaci testovaciho ISO)
 LUX_MIGRATE=/usr/share/libalpm/scripts/lux-engine-migrate
 . /usr/lib/luxos/i18n.sh
 ui_lang() { export LANG=$1; . /usr/lib/luxos/i18n.sh; }   # jazyk pruvodce podle volby
@@ -1853,9 +1854,17 @@ install_packages() {
 # Legacy ovladace NVIDIA z online [luxos] (v ISO nejsou). Chyba instalaci nezastavi:
 # zustane ovladac nouveau z jadra a po prvnim prihlaseni se ovladac nabidne v aplikaci Ovladace.
 # /etc/lux/lux.conf (shodna s lux-engine, tedy bez .luxnew) a serazena zrcadla live systemu
+# Testovaci ISO (kanal staging, LUXOS_CHANNEL=staging pri sestaveni) -> i nainstalovany system bere
+# aktualizace ze staging; jinak vychozi stable z baliku.
 install_engine_config() {
     install -Dm644 "$SHARE/lux.conf" "$TARGET/etc/lux/lux.conf"
     install -Dm644 "$MIRRORLIST" "$TARGET/etc/lux/mirrorlist"
+    local channel
+    channel=$("$LUX_CONFIG_TOOL" get general.channel --config "$LIVE_LUX_CONF" 2>/dev/null) || channel=stable
+    if [[ $channel == staging ]]; then
+        "$LUX_CONFIG_TOOL" set-channel staging --root "$TARGET" >>"$LOG" 2>&1 \
+            || info "$(T "Could not set the update channel %s in the installed system." staging)"
+    fi
 }
 
 install_online_drivers() {

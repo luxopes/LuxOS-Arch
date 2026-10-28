@@ -8,6 +8,9 @@
 #   ./build.sh one BALIK  jeden balik do out/single (na zkousku, repozitar beze zmeny)
 #   ./build.sh iso-test   baliky + TEST ISO podepsane jednorazovym klicem (nikdy klicem LuxOS):
 #                         out/luxos-VERZE-TEST-COMMIT-x86_64.iso, verejny testovaci klic out/luxos-test-key.asc
+#   LUXOS_CHANNEL=staging ./build.sh iso   ISO s kanalem aktualizaci staging (live i nainstalovany system,
+#                         /etc/lux/lux.conf channel = "staging"); baliky predem: scripts/fetch-published-repo.sh
+#                         https://luxos.lux-ai.cz/staging
 #
 # Potrebuje podman (doporuceno) nebo docker; vse ostatni bezi v Arch kontejneru.
 set -euo pipefail
@@ -63,4 +66,5 @@ mkdir -p out/pkgcache
     -v "$PWD:/luxos:z" \
     -v "$PWD/out/pkgcache:/var/cache/pacman/pkg:z" \
     "${signing[@]}" \
+    ${LUXOS_CHANNEL:+-e "LUXOS_CHANNEL=$LUXOS_CHANNEL"} \
     luxos-builder /luxos/scripts/container-build.sh "${@:-all}"

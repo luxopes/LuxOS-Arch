@@ -4392,3 +4392,10 @@ Voice Guidance	Голосові підказки
 Waiting for your location…	Очікування вашого розташування…
 You are off the route.	Ви зійшли з маршруту.
 You have arrived	Ви прибули
+%s is missing; the update channel was not checked.	%s відсутній; канал оновлень не перевірено.
+Changing the update channel needs a newer lux-engine (lux update).	Для зміни каналу оновлень потрібен новіший lux-engine (lux update).
+Update channel	Канал оновлень
+Update channel: "stable" = releases, "staging" = test builds before a release (for testers)	Канал оновлень: "stable" = випуски, "staging" = тестові збірки перед випуском (для тестувальників)
+must be "stable" or "staging"	має бути "stable" або "staging"
+update channel: %s	канал оновлень: %s
+Could not set the update channel %s in the installed system.	Не вдалося встановити канал оновлень %s у встановленій системі.

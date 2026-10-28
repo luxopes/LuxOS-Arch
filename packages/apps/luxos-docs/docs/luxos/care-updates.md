@@ -90,6 +90,27 @@ luxos-care check [--updates]   (root) problem check (+ update check)
 Useful one-liners: `systemctl start luxos-care-update-now.service` (needs wheel),
 `luxos-care status`, `journalctl -u luxos-care-update.service`.
 
+## Update channel: stable or staging
+
+Updates come from one of two channels, set by `channel` in `[general]` of `/etc/lux/lux.conf`:
+
+- `"stable"` (default) - released versions, for everyone.
+- `"staging"` - test builds before a release (for example LuxOS 1.0.0 before 1.0.1 goes to
+  everyone). Only for testers: fixes arrive here first and may still break things.
+
+The test ISO has `"staging"` in the live and the installed system. Show the channel with
+`lux config check`. Switch it in `/etc/luxos/system.lsl` and apply:
+
+```
+"updates": {"channel": "stable"}
+```
+
+`sudo lux system apply` (or as root `/usr/lib/lux/lux-config set-channel stable`). The next
+`lux update` (or Software Update) uses the new channel; LuxOS repositories are read from
+`https://luxos.lux-ai.cz/staging/` instead of `…/repo/`, Arch repositories never change. Going
+from staging back to stable never downgrades packages: newer test versions stay until the
+release catches up.
+
 ## Files
 
 | Path | Content |

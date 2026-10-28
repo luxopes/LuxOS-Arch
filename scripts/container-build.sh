@@ -490,6 +490,7 @@ build_iso() {
     # TEST sestaveni: luxos-0.9.0-TEST-abc1234-x86_64.iso
     [[ -n ${LUXOS_TEST:-} ]] && VERSION+="-TEST-${LUXOS_TEST_SHA:-local}"
     sed -i "s|^iso_version=.*|iso_version=\"$VERSION\"|" "$PROFILE/profiledef.sh"
+    iso_channel "$PROFILE/airootfs/etc/lux/lux.conf"
     # Starsi sestaveni vlastnich baliku (stejna verze, jiny obsah) z cache pacmanu pryc
     local f
     for f in "$REPO"/*/"$ARCH"/*.pkg.tar.zst; do
@@ -505,6 +506,21 @@ build_iso() {
     mkarchiso -v -w "$WORK" -o "$OUT" "$PROFILE"
     cleanup_work
     ls -lh "$OUT"/*.iso
+}
+
+# Kanal aktualizaci live systemu (LUXOS_CHANNEL=stable|staging, vychozi stable = soubor z repozitare).
+# Testovaci ISO ze staging (GitHub Actions: channel staging): live system ma channel = "staging" a
+# instalator ho podle toho zapise i do nainstalovaneho systemu (luxos-install install_engine_config).
+iso_channel() {  # iso_channel LUX.CONF_LIVE_SYSTEMU
+    local channel=${LUXOS_CHANNEL:-stable}
+    case $channel in
+        stable) return 0 ;;
+        staging) ;;
+        *) echo "LUXOS_CHANNEL must be stable or staging, not '$channel'" >&2; exit 2 ;;
+    esac
+    sed -i 's/^channel = "stable"$/channel = "staging"/' "$1"
+    grep -qx 'channel = "staging"' "$1" || { echo "Could not set channel staging in $1" >&2; exit 1; }
+    msg "ISO: update channel staging (live and installed system)"
 }
 
 # Z kopie repozitaru [luxos] v ISO odebere baliky jen pro online instalaci (ISO_ONLINE_ONLY).

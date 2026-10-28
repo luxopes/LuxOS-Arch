@@ -4391,3 +4391,10 @@ Voice Guidance	Röstvägledning
 Waiting for your location…	Väntar på din plats…
 You are off the route.	Du har lämnat rutten.
 You have arrived	Du är framme
+%s is missing; the update channel was not checked.	%s saknas; uppdateringskanalen kontrollerades inte.
+Changing the update channel needs a newer lux-engine (lux update).	Att byta uppdateringskanal kräver en nyare lux-engine (lux update).
+Update channel	Uppdateringskanal
+Update channel: "stable" = releases, "staging" = test builds before a release (for testers)	Uppdateringskanal: "stable" = utgåvor, "staging" = testversioner före en utgåva (för testare)
+must be "stable" or "staging"	måste vara "stable" eller "staging"
+update channel: %s	uppdateringskanal: %s
+Could not set the update channel %s in the installed system.	Uppdateringskanalen %s kunde inte ställas in i det installerade systemet.

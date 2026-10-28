@@ -698,7 +698,8 @@ def merge(path, policies=True):
 # ---- kontrola a normalizace -------------------------------------------------------------------
 TOP_KEYS = ("hostname", "timezone", "locale", "formats", "keyboard", "console", "packages", "drivers", "flatpaks",
             "remove_unlisted", "services", "groups", "users", "network", "printers", "power", "boot", "care", "guard",
-            "firewall", "security", "kernel", "new_users", "repos", "domain")
+            "firewall", "security", "kernel", "new_users", "repos", "domain", "updates")
+CHANNELS = ("stable", "staging")
 DOMAIN_KEYS = ("admins", "allow_groups", "offline_days", "admin_offline_days")
 # Jmeno skupiny v domene (AD): i mezery a diakritika ("Domain Admins", "Účtárna"), bez ridicich znaku
 DOMAIN_GROUP_RE = re.compile(r"^(?! )[^\x00-\x1f\x7f\"\\:,/=+<>#;]{1,64}(?<! )$")
@@ -884,6 +885,19 @@ def normalize(raw):
                 else:
                     ck.unknown("care", k, ("mode", "snapshots", "keep_snapshots", "protect", "verify"))
             cfg["care"] = nc
+    if "updates" in raw:
+        up = raw["updates"]
+        if ck.typed("updates", up, (dict,), "a dictionary { }"):
+            nu = {}
+            for k, v in up.items():
+                if k == "channel":
+                    if v in CHANNELS:
+                        nu["channel"] = v
+                    else:
+                        ck.err("updates.channel", _("must be \"stable\" or \"staging\""))
+                else:
+                    ck.unknown("updates", k, ("channel",))
+            cfg["updates"] = nu
     if "guard" in raw:
         gu = raw["guard"]
         if ck.typed("guard", gu, (dict,), "a dictionary { }"):
@@ -1320,7 +1334,8 @@ def change_origin(c):
         return org_labels(("users", c.target)) if c.target else org_labels(("groups",))
     if c.section == "services":
         return org_labels(("services", "enable"), c.target) + org_labels(("services", "disable"), c.target)
-    if c.section in ("guard", "firewall", "care", "kernel", "domain", "power", "boot", "security", "new_users"):
+    if c.section in ("guard", "firewall", "care", "kernel", "domain", "power", "boot", "security", "new_users",
+                     "updates"):
         return org_labels((c.section,))
     if c.section == "network":
         return org_labels(("network", "connections", c.target))
@@ -1837,8 +1852,9 @@ def new_users_state():
 
 
 def _lux_config():
-    """Modul lux_config z lux-engine (/usr/lib/lux, pri spusteni z repozitare ../lux-engine), jinak None."""
-    for d in ("/usr/lib/lux", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lux-engine")):
+    """Modul lux_config z lux-engine (/usr/lib/lux, pri spusteni z repozitare ../lux-engine), jinak None.
+    Z repozitare ma prednost kopie z repozitare (ne starsi nainstalovana)."""
+    for d in (os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lux-engine"), "/usr/lib/lux"):
         if os.path.isfile(os.path.join(d, "lux_config.py")) and d not in sys.path:
             sys.path.append(d)
     try:
@@ -1849,10 +1865,11 @@ def _lux_config():
 
 
 def lux_conf_settings():
-    """JEDINE misto, kde lux system cte /etc/lux/lux.conf (repozitare, komunita/AUR, Flatpak) - jen cteni,
-    lux.conf se odtud nikdy nezapisuje. Umi puvodni format ("klic hodnota", "repo JMENO" s odsazenym
+    """JEDINE misto, kde lux system cte /etc/lux/lux.conf (repozitare, komunita/AUR, Flatpak, kanal) - jen cteni,
+    lux.conf se odtud nezapisuje (jen kanal aktualizaci: apply_channel pres lux-config). Umi puvodni format ("klic hodnota", "repo JMENO" s odsazenym
     blokem) i tabulky ([repo.JMENO], "klic = hodnota"); vlozene soubory (include) se ctou take.
-    -> {"list": [...], "community": bool, "review_build_scripts": bool, "flatpak_updates": bool} | None"""
+    -> {"list": [...], "community": bool, "review_build_scripts": bool, "flatpak_updates": bool,
+        "channel": "stable"|"staging"} | None"""
     if read(LUX_CONF, None) is None:
         return None
     lc = _lux_config()
@@ -1867,7 +1884,8 @@ def lux_conf_settings():
                     names.append(r["name"])
             return {"list": names, "community": bool(pk.get("aur", True)),
                     "review_build_scripts": bool(pk.get("review_pkgbuild", True)),
-                    "flatpak_updates": bool(pk.get("flatpak", True))}
+                    "flatpak_updates": bool(pk.get("flatpak", True)),
+                    "channel": d.get("general", {}).get("channel") or "stable"}
         except Exception:
             pass
     files, seen, repos, vals = [LUX_CONF], set(), [], {}
@@ -1891,14 +1909,15 @@ def lux_conf_settings():
                 for p in sorted(glob.glob(P(pat))):
                     files.append(p[len(ROOT):] if ROOT and p.startswith(ROOT) else p)
                 continue
-            m = re.match(r'^(aur|review-pkgbuild|review_pkgbuild|flatpak)\s*(?:=\s*)?\"?([A-Za-z0-9]+)\"?$', s)
+            m = re.match(r'^(aur|review-pkgbuild|review_pkgbuild|flatpak|channel)\s*(?:=\s*)?\"?([A-Za-z0-9]+)\"?$', s)
             if m:
                 vals[m.group(1).replace("_", "-")] = m.group(2).lower()
 
     def flag(key):
         return vals.get(key, "on") not in ("off", "no", "false", "0")
     return {"list": repos, "community": flag("aur"), "review_build_scripts": flag("review-pkgbuild"),
-            "flatpak_updates": flag("flatpak")}
+            "flatpak_updates": flag("flatpak"),
+            "channel": vals.get("channel") if vals.get("channel") in CHANNELS else "stable"}
 
 
 # ---- plan zmen dalsich oblasti ---------------------------------------------------------------------
@@ -2147,6 +2166,14 @@ def compute_more(cfg, st, plan, applied, force):
         if want:
             text = ", ".join(f"{k}: {fmt_value(cur.get(k))} → {fmt_value(v)}" for k, v in want.items())
             plan.add("new_users", "~", text, 63, lambda w=want: apply_new_users(w), target="new_users")
+    ch = cfg.get("updates", {}).get("channel")
+    if ch:
+        cur = st.repos()
+        if cur is None:
+            plan.warnings.append(_("%s is missing; the update channel was not checked.") % LUX_CONF)
+        elif cur.get("channel") != ch:
+            plan.add("updates", "~", _("update channel: %s") % f"{cur.get('channel')} → {ch}", 5,
+                     lambda c=ch: apply_channel(c), target="channel")
     if cfg.get("repos"):
         cur = st.repos()
         if cur is None:
@@ -2261,7 +2288,8 @@ SECTIONS = [("packages", "Packages"), ("drivers", "Drivers"), ("flatpaks", "Flat
             ("users", "Users and groups"), ("services", "Services"), ("network", "Network connections"),
             ("printers", "Printers"), ("power", "Power"), ("care", "LuxOS Care"), ("guard", "Lux Guard"),
             ("firewall", "Firewall"), ("security", "Security"), ("new_users", "Defaults for new users"),
-            ("boot", "Boot menu"), ("kernel", "Kernel parameters"), ("domain", "Organization network")]
+            ("boot", "Boot menu"), ("kernel", "Kernel parameters"), ("domain", "Organization network"),
+            ("updates", "Update channel")]
 
 
 class Change:
@@ -2677,6 +2705,18 @@ def apply_care(want):
     # Ochrana systemu hned (bez restartu): /usr jen pro cteni, resp. zase zapisovatelny
     if "protect" in want and have("luxos-care"):
         run([tool("luxos-care"), "protect", "apply"])
+
+
+def apply_channel(channel):
+    """[general] channel v /etc/lux/lux.conf (jediny zapis lux.conf z lux system; zapis i kontrolu dela
+    lux-config z lux-engine, konfigurace jadra se obnovi pri dalsim spusteni lux)."""
+    lc = _lux_config()
+    if lc is None or not hasattr(lc, "set_channel"):
+        raise UserError(_("Changing the update channel needs a newer lux-engine (lux update)."))
+    try:
+        lc.set_channel(channel, LUX_CONF, root=ROOT or "")
+    except lc.ConfigError as e:
+        raise UserError(str(e)) from e
 
 
 def apply_kernel(lay, add, remove):
@@ -3099,6 +3139,10 @@ def generate(st):
     w(f"        \"protect\": {lsl_bool(care['protect'])}")
     w(f"        \"verify\": {lsl_bool(care['verify'])}")
     w("    }")
+    repos_now = st.repos()
+    if repos_now is not None:
+        note("Update channel: \"stable\" = releases, \"staging\" = test builds before a release (for testers)")
+        w(f"    \"updates\": {{\"channel\": {lsl_str(repos_now.get('channel', 'stable'))}}}")
     if any(u in units for u in GUARD_UNITS.values()):
         note("Lux Guard: protection against harmful downloads, hourly snapshots of /home")
         w("    \"guard\": {")

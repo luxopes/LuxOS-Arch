@@ -4391,3 +4391,10 @@ Voice Guidance	Hlasové pokyny
 Waiting for your location…	Čaká sa na vašu polohu…
 You are off the route.	Ste mimo trasy.
 You have arrived	Ste v cieli
+%s is missing; the update channel was not checked.	%s chýba; kanál aktualizácií nebol skontrolovaný.
+Changing the update channel needs a newer lux-engine (lux update).	Zmena kanála aktualizácií potrebuje novší lux-engine (lux update).
+Update channel	Kanál aktualizácií
+Update channel: "stable" = releases, "staging" = test builds before a release (for testers)	Kanál aktualizácií: "stable" = vydané verzie, "staging" = testovacie zostavenia pred vydaním (pre testerov)
+must be "stable" or "staging"	musí byť "stable" alebo "staging"
+update channel: %s	kanál aktualizácií: %s
+Could not set the update channel %s in the installed system.	Kanál aktualizácií %s sa v nainštalovanom systéme nepodarilo nastaviť.

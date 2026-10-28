@@ -94,6 +94,8 @@ architecture = "auto"
 color = true
 candy = true
 verbose = true
+# updates: "stable" (releases) | "staging" (test builds before a release - for testers)
+channel = "stable"
 
 [downloads]
 parallel = 10
@@ -133,6 +135,10 @@ files = ["/etc/lux/conf.d/*.conf"]
 warning). A bare `include = …` works only at the top of the file.
 
 ### Keys
+
+`channel` in `[general]` is the update channel: `"stable"` (default, released versions) or
+`"staging"` (test builds before a release, for testers). See
+[care-updates.md](care-updates.md#update-channel-stable-or-staging).
 
 | Table | Key | Value (default) | Meaning |
 |---|---|---|---|

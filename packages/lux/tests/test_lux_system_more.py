@@ -160,7 +160,7 @@ class StateMoreTest(More):
         self.assertEqual(st.formats(), {"LC_TIME": "cs_CZ.UTF-8"})
         self.assertEqual(st.drivers(), {"nvidia-open-dkms", "samsung-unified-driver"})
         self.assertEqual(st.repos(), {"list": ["luxos", "core", "extra"], "community": True,
-                                      "review_build_scripts": True, "flatpak_updates": False})
+                                      "review_build_scripts": True, "flatpak_updates": False, "channel": "stable"})
         self.assertEqual(st.new_users(), {})
 
     def test_cups_not_running(self):
@@ -181,7 +181,7 @@ class StateMoreTest(More):
         write(self.root + ls.LUX_CONF, "[packages]\naur = false\nreview-pkgbuild = true\n\n[repo.luxos]\n"
                                        "server = \"https://example.org\"\n\n[repo.core]\nmirrors = \"x\"\n")
         self.assertEqual(ls.lux_conf_settings(), {"list": ["luxos", "core"], "community": False,
-                                                  "review_build_scripts": True, "flatpak_updates": True})
+                                                  "review_build_scripts": True, "flatpak_updates": True, "channel": "stable"})
 
 
 class NormalizeMoreTest(More):
@@ -405,6 +405,24 @@ class PlanMoreTest(More):
         cfg, _e = ls.normalize({"kernel": {"scheduler": "lavd"}})
         with self.assertRaises(ls.UserError):
             ls.compute(cfg, ls.State(), {})
+
+    def test_update_channel(self):
+        """updates.channel: jediny klic, ktery lux system v /etc/lux/lux.conf meni (pres lux-config)."""
+        write(self.root + "/etc/lux/mirrorlist", "https://mirror.example/$repo/os/$arch\n")
+        plan = self.plan({"updates": {"channel": "stable"}})
+        self.assertEqual(self.texts(plan), [])
+        plan = self.plan({"updates": {"channel": "staging"}})
+        self.assertEqual(self.texts(plan), ["updates ~ update channel: stable → staging"])
+        plan.changes[0].action()
+        with open(self.root + ls.LUX_CONF, encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn("channel staging\n", text)            # stary format zustal starym formatem
+        self.assertIn("aur                 on            # komunita\n", text)
+        self.assertEqual(ls.State().repos()["channel"], "staging")
+        self.assertEqual(self.texts(self.plan({"updates": {"channel": "staging"}})), [])
+        _c, errors = ls.normalize({"updates": {"channel": "beta", "chanel": "x"}})
+        self.assertIn("updates.channel: must be \"stable\" or \"staging\"", "\n".join(errors))
+        self.assertTrue(any("unknown setting \"chanel\"" in e for e in errors))
 
     def test_repos_are_only_checked(self):
         plan = self.plan({"repos": {"list": ["luxos", "core", "extra"], "community": False, "flatpak_updates": False}})

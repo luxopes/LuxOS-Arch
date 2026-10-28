@@ -4,16 +4,25 @@
 #   scripts/publish-repo.sh            nahraje out/repo a prepne aktualni vydani
 #   scripts/publish-repo.sh --apps-only nahraje jen [luxos-apps] z out/repo; [luxos] prevezme
 #                                      z aktualniho vydani na serveru (po ./build.sh apps)
+#   LUXOS_REPO_CHANNEL=staging scripts/publish-repo.sh [--apps-only]
+#                                      totez do testovaciho kanalu: prepne odkaz staging misto current
+#                                      (systemy s [general] channel = "staging" v /etc/lux/lux.conf);
+#                                      do current ho pozdeji prevede scripts/promote-staging.sh
 #
 # Na serveru: /srv/luxos-repo/releases/<cas>/{luxos,luxos-apps}/x86_64, odkaz current
-# ukazuje na posledni vydani (Caddy: https://luxos.lux-ai.cz/repo/). Prepnuti je
-# atomicke a ponechavaji se 3 posledni vydani pro pripadny navrat.
+# ukazuje na posledni vydani (Caddy: https://luxos.lux-ai.cz/repo/), odkaz staging na posledni
+# testovaci vydani (https://luxos.lux-ai.cz/staging/). Prepnuti je atomicke; ponechavaji se
+# 3 posledni vydani a vzdy obe vydani, na ktera ukazuji current a staging.
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")/.."
 
 HOST=${LUXOS_REPO_HOST:-root@185.183.156.25}
 BASE=${LUXOS_REPO_DIR:-/srv/luxos-repo}
-URL=${LUXOS_REPO_URL:-https://luxos.lux-ai.cz/repo}
+case ${LUXOS_REPO_CHANNEL:-current} in
+    current|stable) LINK=current; URL=${LUXOS_REPO_URL:-https://luxos.lux-ai.cz/repo} ;;
+    staging)        LINK=staging; URL=${LUXOS_REPO_URL:-https://luxos.lux-ai.cz/staging} ;;
+    *) echo "LUXOS_REPO_CHANNEL must be current or staging, not '$LUXOS_REPO_CHANNEL'" >&2; exit 2 ;;
+esac
 REPO=out/repo
 KEEP=3
 apps_only=0
@@ -31,11 +40,16 @@ compgen -G "$REPO/${repos[0]}/x86_64/*.pkg.tar.zst.sig" >/dev/null \
 release=$(date -u +%Y%m%d-%H%M%S)
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
+# Zdroj nezmenenych casti (--apps-only, [luxos-drivers]): vydani stejneho kanalu, jinak current
+# (prvni zverejneni do staging vychazi z current)
+FROM=current
+[[ $LINK == staging ]] && ssh "$HOST" "test -d '$BASE/staging/'" && FROM=staging
+echo "==> Channel $LINK ($URL), unchanged parts from $FROM"
 if ((apps_only)); then
-    # [luxos] beze zmeny z aktualniho vydani na serveru, [luxos-apps] z out/repo
-    ssh "$HOST" "test -d '$BASE/current/luxos'" || { echo "No current [luxos] on $HOST" >&2; exit 1; }
-    rsync -a "$HOST:$BASE/current/luxos/" "$stage/luxos/"
-    ssh "$HOST" "test -d '$BASE/current/lux'" && rsync -a "$HOST:$BASE/current/lux/" "$stage/lux/"
+    # [luxos] beze zmeny z vydani na serveru, [luxos-apps] z out/repo
+    ssh "$HOST" "test -d '$BASE/$FROM/luxos'" || { echo "No $FROM [luxos] on $HOST" >&2; exit 1; }
+    rsync -a "$HOST:$BASE/$FROM/luxos/" "$stage/luxos/"
+    if ssh "$HOST" "test -d '$BASE/$FROM/lux'"; then rsync -a "$HOST:$BASE/$FROM/lux/" "$stage/lux/"; fi
     cp -a "$REPO/luxos-apps" "$stage/"
 else
     cp -a "$REPO"/. "$stage/"
@@ -44,8 +58,8 @@ fi
 if [[ -f out/drivers-repo/luxos-drivers/x86_64/luxos-drivers.db.tar.gz ]]; then
     rm -rf "$stage/luxos-drivers"
     cp -a out/drivers-repo/luxos-drivers "$stage/"
-elif ssh "$HOST" "test -d '$BASE/current/luxos-drivers'"; then
-    rsync -a "$HOST:$BASE/current/luxos-drivers/" "$stage/luxos-drivers/"
+elif ssh "$HOST" "test -d '$BASE/$FROM/luxos-drivers'"; then
+    rsync -a "$HOST:$BASE/$FROM/luxos-drivers/" "$stage/luxos-drivers/"
 fi
 
 # Prehledova stranka repozitare (seznam aplikaci a nastaveni pacmanu)
@@ -77,7 +91,7 @@ pre{padding:12px 14px;overflow-x:auto}code{padding:1px 5px}table{border-collapse
 td{padding:6px 10px;border-bottom:1px solid #dde0ee;vertical-align:top}td:first-child{font-weight:600;white-space:nowrap}
 @media (prefers-color-scheme:dark){body{background:#12131f;color:#e8e9f3}code,pre{background:#24263a}td{border-color:#2c2f45}}
 </style></head><body>
-<h1>&#10022; LuxOS packages</h1>
+<h1>&#10022; LuxOS packages$([[ $LINK == staging ]] && echo ' <small>(staging - test builds before a release)</small>')</h1>
 <p>Signed package repositories for LuxOS. Install apps with <code>lux install NAME</code>.
 Last update: $(date -u '+%Y-%m-%d %H:%M UTC').</p>
 <h2>Apps <small>[luxos-apps]</small></h2>
@@ -111,14 +125,19 @@ chmod -R u=rwX,go=rX "$stage"
 echo "==> Uploading release $release to $HOST:$BASE"
 ssh "$HOST" "mkdir -p '$BASE/releases' && chmod 755 '$BASE' '$BASE/releases'"
 link=()
-ssh "$HOST" "test -d '$BASE/current'" && link=(--link-dest="$BASE/current/")
+ssh "$HOST" "test -d '$BASE/$FROM'" && link=(--link-dest="$BASE/$FROM/")
 rsync -a --delete "${link[@]}" "$stage/" "$HOST:$BASE/releases/$release/"
 
-echo "==> Switching current -> $release"
+echo "==> Switching $LINK -> $release"
 ssh "$HOST" "set -e
     cd '$BASE'
-    ln -sfn 'releases/$release' current.new && mv -T current.new current
-    ls -1d releases/* | sort | head -n -$KEEP | xargs -r rm -rf"
+    ln -sfn 'releases/$release' '$LINK.new' && mv -T '$LINK.new' '$LINK'
+    # stara vydani pryc: krome $KEEP nejnovejsich a tech, na ktera ukazuji current a staging
+    keep=\$(for l in current staging; do [ -L \"\$l\" ] && readlink \"\$l\"; done; true)
+    ls -1d releases/* | sort | head -n -$KEEP | while read -r r; do
+        case \" \$(echo \$keep) \" in *\" \$r \"*) continue ;; esac
+        rm -rf \"\$r\"
+    done"
 
 for r in luxos luxos-apps luxos-drivers; do
     code=$(curl -s -o /dev/null -w '%{http_code}' "$URL/$r/x86_64/$r.db")

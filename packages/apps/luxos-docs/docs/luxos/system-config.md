@@ -132,6 +132,7 @@ can be as short as `config = {"packages": ["htop"]}`.
 | `care.snapshots` | `True`/`False`: snapshot before every update | `SNAPSHOTS` in `care.conf` |
 | `care.keep_snapshots` | how many snapshots to keep (2-50, default 5) | `SNAPSHOT_KEEP` in `care.conf` |
 | `care.protect` | `True`/`False`: system protection, `/usr` read-only except during package changes (see `system-protection.md`); applied at once | `PROTECT` in `care.conf`, `luxos-care protect apply` |
+| `updates.channel` | `"stable"` (releases) or `"staging"` (test builds before a release, for testers); the only lux.conf key lux system changes, see [care-updates.md](care-updates.md) | `channel` in `[general]` of `/etc/lux/lux.conf` |
 | `care.verify` | `True`/`False`: weekly verification of system files (default `True`) | `VERIFY` in `care.conf` |
 | `guard.enable` | Lux Guard on/off | `luxos-guard.service` |
 | `guard.home_snapshots` | hourly snapshots of `/home` | `luxos-guard-snapshot.timer` |

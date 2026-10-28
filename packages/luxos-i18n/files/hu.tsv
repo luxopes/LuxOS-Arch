@@ -4391,3 +4391,10 @@ Voice Guidance	Hangos útmutatás
 Waiting for your location…	Várakozás a helyzetére…
 You are off the route.	Letért az útvonalról.
 You have arrived	Megérkezett
+%s is missing; the update channel was not checked.	%s hiányzik; a frissítési csatorna nem lett ellenőrizve.
+Changing the update channel needs a newer lux-engine (lux update).	A frissítési csatorna módosításához újabb lux-engine kell (lux update).
+Update channel	Frissítési csatorna
+Update channel: "stable" = releases, "staging" = test builds before a release (for testers)	Frissítési csatorna: "stable" = kiadások, "staging" = tesztváltozatok a kiadás előtt (tesztelőknek)
+must be "stable" or "staging"	"stable" vagy "staging" lehet
+update channel: %s	frissítési csatorna: %s
+Could not set the update channel %s in the installed system.	A(z) %s frissítési csatornát nem sikerült beállítani a telepített rendszerben.

@@ -63,6 +63,8 @@ config = {
         "keep_snapshots": 5
         "protect": True
     }
+    # "stable" = released updates, "staging" = test builds before a release (for testers)
+    "updates": {"channel": "stable"}
     "guard": {
         "enable": True
         "home_snapshots": True

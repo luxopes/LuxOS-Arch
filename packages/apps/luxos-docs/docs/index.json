@@ -8,7 +8,7 @@
         {
           "path": "luxos/overview.md",
           "title": "LuxOS overview",
-          "summary": "What LuxOS is, version 0.9.2 \"Polaris\" and codenames, release history, what differs from other distributions and where each component is documented.",
+          "summary": "What LuxOS is, version 1.0.0 \"Sirius\" and codenames, release history, what differs from other distributions and where each component is documented.",
           "keywords": [
             "LuxOS",
             "overview",
@@ -16,6 +16,7 @@
             "os-release",
             "codename",
             "Polaris",
+            "Sirius",
             "release",
             "changelog",
             "Arch Linux",
@@ -265,6 +266,8 @@
           "keywords": [
             "LuxOS Care",
             "luxos-care",
+            "update channel",
+            "staging",
             "Software Update",
             "luxos-update",
             "automatic updates",

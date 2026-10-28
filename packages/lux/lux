@@ -120,6 +120,10 @@ lux_load_config() {
             LUX_ENGINE_CONF=*)
                 # uzivatel bez prav k /run/lux: vlastni kopie (nastroje jadra ji dostanou pres --config)
                 [[ ${line#*=} != /run/lux/engine.conf ]] && export LUX_ENGINE_CONF_FILE=${line#*=} ;;
+            LUX_CHANNEL=staging)
+                # kanal aktualizaci staging: i balicky .lux z testovaciho kanalu serveru LuxOS
+                [[ $LUX_INDEX_URL == https://luxos.lux-ai.cz/repo/* ]] &&
+                    LUX_INDEX_URL=https://luxos.lux-ai.cz/staging/${LUX_INDEX_URL#https://luxos.lux-ai.cz/repo/} ;;
         esac
     done <<<"$env"
 }
