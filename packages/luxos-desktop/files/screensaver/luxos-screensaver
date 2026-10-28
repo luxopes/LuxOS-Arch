@@ -48,6 +48,8 @@ STYLES = ("desktop", "wallpapers", "analog", "clock", "aurora", "photos", "logo"
 ANALOG_FPS = 20       # vterinova rucicka plynule; prekresluje se jen ctverec s hodinami
 ANALOG_SLIDE = 30.0   # rucickove hodiny: sekund na tapetu
 ANALOG_FADE = 2.5
+FULL_EVERY = 5.0      # cela obrazovka nejpozdeji po tolika sekundach (i kdyz se meni jen hodiny)
+FULL_BURST = 0.5      # po odkryti / mezere: tak dlouho kazdy snimek cely (i kdyz okno prekresli jiny)
 PHOTO_EXT = (".jpg", ".jpeg", ".png", ".webp")
 LOGO = "/usr/share/icons/hicolor/scalable/apps/luxos-logo.svg"
 GREETER_CONF = os.environ.get("LUXOS_GREETER_CONF", "/etc/lightdm/luxos-greeter.conf")
@@ -167,13 +169,25 @@ class Saver:
                 self.images[key] = None
         return self.images[key]
 
+    def invalidate(self, burst=FULL_BURST):
+        """Obsah okna nelze brat za platny (odkryti, navrat od dialogu s heslem, mezera v kresleni):
+        nekolik pristich snimku cele obrazovky."""
+        self.full_until = max(getattr(self, "full_until", 0.0), time.monotonic() + burst)
+
     def dirty(self, w, h):
         """Obdelnik (x, y, sirka, vyska), ktery se zmenil od posledniho snimku; None = cela obrazovka."""
+        now = time.monotonic()
+        if now < getattr(self, "full_until", 0.0):
+            return None
+        if now - getattr(self, "full_at", -FULL_EVERY) >= FULL_EVERY:
+            return None             # pojistka: obcas cela obrazovka, nikdy jen stary obsah okna
         if self.style == "analog":
             return self.analog.dirty(w, h, time.monotonic() - self.start)
         return None
 
-    def draw(self, cr, w, h):
+    def draw(self, cr, w, h, full=True):
+        if full:
+            self.full_at = time.monotonic()
         t = time.monotonic() - self.start
         if self.style == "analog":
             self.analog.draw(cr, w, h, t)
@@ -613,10 +627,21 @@ def run_foreign(xid, style):
         sys.exit(1)
     mon = display.get_monitor_at_window(win)
     saver = Saver(style, mon.get_model() if mon else None)
+    interval = 1.0 / fps(saver)
+    last = {"tick": time.monotonic(), "viewable": True}
 
     def tick():
-        if not screen_on():
-            return True             # monitor vypnuty (DPMS): nekreslit
+        now = time.monotonic()
+        # mezera (xfce4-screensaver nas pri dialogu s heslem pozastavi) = obsah okna neplati
+        if now - last["tick"] > 3 * interval + 0.2:
+            saver.invalidate()
+        last["tick"] = now
+        viewable = win.is_viewable()
+        if viewable and not last["viewable"]:
+            saver.invalidate()
+        last["viewable"] = viewable
+        if not viewable or not screen_on():
+            return True             # skryte okno / monitor vypnuty (DPMS): nekreslit
         w, h = win.get_width(), win.get_height()
         region = win.get_visible_region()
         box = saver.dirty(w, h)
@@ -625,10 +650,20 @@ def run_foreign(xid, style):
         if region.is_empty():
             return True
         ctx = win.begin_draw_frame(region)
-        saver.draw(ctx.get_cairo_context(), w, h)
+        saver.draw(ctx.get_cairo_context(), w, h, full=box is None)
         win.end_draw_frame(ctx)
         return True
 
+    def on_event(ev, *_a):
+        # odkryti, namapovani, zmena velikosti nebo viditelnosti naseho okna: hned cela obrazovka
+        if ev.get_window() == win and ev.type in (Gdk.EventType.EXPOSE, Gdk.EventType.MAP, Gdk.EventType.CONFIGURE,
+                                                  Gdk.EventType.VISIBILITY_NOTIFY):
+            saver.invalidate()
+            GLib.idle_add(lambda: tick() and False)
+
+    win.set_events(win.get_events() | Gdk.EventMask.EXPOSURE_MASK | Gdk.EventMask.STRUCTURE_MASK
+                   | Gdk.EventMask.VISIBILITY_NOTIFY_MASK)
+    Gdk.event_handler_set(on_event)
     GLib.timeout_add(int(1000 / fps(saver)), tick)
     tick()
     Gtk.main()
