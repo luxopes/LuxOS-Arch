@@ -6,6 +6,9 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 
 ## Připravuje se
 
+### Opraveno
+- **LuxAI už nespadne po kliknutí na starou konverzaci** (`luxai` 2.0.0-2): klik na konverzaci v postranním panelu aplikaci občas shodil (SIGSEGV, týkalo se i Python verze). Otevření konverzace znovu sestavilo seznam konverzací ještě uvnitř signálu výběru řádku, takže GTK pak pracovalo s už zrušeným řádkem. Konverzace se teď otevře až po dokončení kliknutí; ověřeno automatickým testem se skutečnými kliky myši na oddělené obrazovce (Xvfb), který dřív spadl hned na druhém kliknutí.
+
 ## 1.0.0 „Sirius“ – 2026-10-28 (testovací vydání)
 
 Testovací vydání pro instalaci na skutečný hardware: ISO i aktualizace jsou z neveřejného kanálu **staging**,
