@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=47
+pkgrel=48
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -24,7 +24,7 @@ depends=(
     xorg-server xorg-xrandr xorg-xinput xorg-xset xf86-input-libinput mesa
     # Xfce (jen potrebne casti)
     xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf 'xfce4-notifyd>=0.9.7-3.3'
-    xfce4-power-manager 'xfce4-screensaver>=4.20.2-1.2' ffmpeg xfce4-taskmanager
+    xfce4-power-manager 'xfce4-screensaver>=4.20.2-1.3' ffmpeg xfce4-taskmanager
     # Terminal LuxOS misto xfce4-terminal (packages/luxos-terminal, VTE s obrazky SIXEL)
     luxos-terminal
     'xfce4-whiskermenu-plugin>=2.10.1-2.1' xfce4-genmon-plugin 'xfce4-pulseaudio-plugin>=0.5.1-1.1' xfce4-xkb-plugin
