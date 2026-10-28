@@ -60,6 +60,7 @@ uživatelé 0.9.12 dostanou 1.0 až po vydání 1.0.1.
 - **Bez tapet „vlny“** (`luxos-waves-dark`, `luxos-waves-light`): v LuxOS 1.0 zůstávají jen nové tapety. Kdo měl vlny nastavené, dostane po přihlášení Flow ve stejném režimu (tmavém nebo světlém).
 
 ### Opraveno
+- **LuxOS Companion: telefon se nepřipojil** („read failed, socket might closed“): zápis služby Bluetooth (SDP) neměl kanál RFCOMM, takže ho Android nenašel. Služba teď má pevný kanál 22 a vlastní záznam SDP; ověřeno se skutečným telefonem.
 - **Bez chyb „Failed to start BAMF“ v záznamu systému při odhlášení a novém přihlášení**: služba Docku `bamfdaemon` se spustí jen s dostupným X serverem (jinak se start tiše přeskočí).
 - **Po instalaci OEM už v Launchpadu není „Nainstalovat LuxOS“**: balík instalátoru zůstává kvůli Průvodci nastavením, jeho spouštěč na nainstalovaném systému skryje `/usr/local/share/applications/luxos-install.desktop`.
 - **`luxos-backup restore`/`list` mimo relaci plochy** (ssh, jiná konzole): když připojení zálohovacího disku chce heslo správce, v terminálu se na něj zeptá, jinak srozumitelně poradí okno Zálohy nebo terminál relace plochy (dřív chyba D-Bus „NotAuthorizedCanObtain“).

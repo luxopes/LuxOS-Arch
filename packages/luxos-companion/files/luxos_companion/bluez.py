@@ -20,6 +20,24 @@ from . import SERVICE_UUID  # noqa: E402
 
 BLUEZ = "org.bluez"
 PROFILE_PATH = "/cz/luxos/companion/profile"
+# Pevny kanal RFCOMM a vlastni zaznam SDP: bez nich BlueZ pro vlastni UUID zverejni zaznam, ve kterem
+# Android nenajde kanal (bt_btif_sock_rfcomm: "SDP service discovery ... FAILURE, scn: 0") a telefon
+# se nepripoji ("read failed, socket might closed or timeout")
+RFCOMM_CHANNEL = 22
+
+
+def sdp_record(uuid=SERVICE_UUID, channel=RFCOMM_CHANNEL, name="LuxOS Companion"):
+    """Zaznam SDP jako u SPP: trida sluzby = UUID, L2CAP + RFCOMM kanal, verejna skupina prochazeni."""
+    return f"""<?xml version="1.0" encoding="UTF-8" ?>
+<record>
+  <attribute id="0x0001"><sequence><uuid value="{uuid}" /></sequence></attribute>
+  <attribute id="0x0004"><sequence>
+    <sequence><uuid value="0x0100" /></sequence>
+    <sequence><uuid value="0x0003" /><uint8 value="0x{channel:02x}" /></sequence>
+  </sequence></attribute>
+  <attribute id="0x0005"><sequence><uuid value="0x1002" /></sequence></attribute>
+  <attribute id="0x0100"><text value="{name}" /></attribute>
+</record>"""
 PROFILE_XML = """
 <node>
   <interface name="org.bluez.Profile1">
@@ -104,6 +122,8 @@ class BluezProfile:
             "RequireAuthentication": GLib.Variant("b", True),
             "RequireAuthorization": GLib.Variant("b", True),
             "AutoConnect": GLib.Variant("b", False),
+            "Channel": GLib.Variant("q", RFCOMM_CHANNEL),
+            "ServiceRecord": GLib.Variant("s", sdp_record()),
         }
 
         def done(bus, res, _data):

@@ -142,8 +142,18 @@ class TestBluezProfile(unittest.TestCase):
     def test_register_profile_options(self):
         method, (path, uuid, opts) = self.fake.calls[0]
         self.assertEqual((method, path, uuid), ("RegisterProfile", bluez.PROFILE_PATH, SERVICE_UUID))
+        record = opts.pop("ServiceRecord")
         self.assertEqual(opts, {"Name": "LuxOS Companion", "Role": "server", "RequireAuthentication": True,
-                                "RequireAuthorization": True, "AutoConnect": False})
+                                "RequireAuthorization": True, "AutoConnect": False,
+                                "Channel": bluez.RFCOMM_CHANNEL})
+        # zaznam SDP: trida sluzby = UUID aplikace, RFCOMM s kanalem (jinak ho Android nenajde)
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(record)
+        attrs = {a.get("id"): a for a in root.findall("attribute")}
+        self.assertEqual(attrs["0x0001"].find("sequence/uuid").get("value"), SERVICE_UUID)
+        rf = attrs["0x0004"].findall("sequence/sequence")[1]
+        self.assertEqual(rf.find("uuid").get("value"), "0x0003")
+        self.assertEqual(int(rf.find("uint8").get("value"), 16), bluez.RFCOMM_CHANNEL)
         self.assertNotIn("Discoverable", json.dumps(opts))
 
     def test_new_connection_passes_socket_and_peer(self):

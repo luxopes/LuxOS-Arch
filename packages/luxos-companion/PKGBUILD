@@ -9,7 +9,7 @@
 
 pkgname=luxos-companion
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxOS Companion - connect the Android app over Bluetooth: phone location for Maps, LuxAI requests and calendar notes"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
