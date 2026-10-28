@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=LuxOS wallpapers with a clock
+Name[cs]=Tapety LuxOS s ručičkovými hodinami
+Comment=LuxOS wallpapers fading into each other with a large analog clock and the date
+Comment[cs]=Prolínající se tapety LuxOS s velkými ručičkovými hodinami a datem
+Exec=/usr/lib/xfce4-screensaver/luxos --style analog
+TryExec=/usr/lib/xfce4-screensaver/luxos
+StartupNotify=false
+Terminal=false
+Categories=Screensaver;
+OnlyShowIn=XFCE;
+Hidden=true

@@ -368,10 +368,13 @@ static int restore_frame(Pixmap snap, Visual *vis, int depth, unsigned w, unsign
     return ok;
 }
 
+static int x_errors;
+
 static int ignore_errors(Display *d, XErrorEvent *e)
 {
     (void)d;
     (void)e;
+    x_errors++;
     return 0;                   /* okno ze seznamu mezitim zaniklo */
 }
 
@@ -447,6 +450,25 @@ static double window_painted(Window w, unsigned long *sum, int *uniform)
     XWindowAttributes wa;
     if (!XGetWindowAttributes(dpy, w, &wa) || wa.map_state != IsViewable || wa.width < 1 || wa.height < 1)
         return -1;
+    /* Jen presmerovane okno ma vlastni obsah (jinak by se cetlo, co je na obrazovce - nase okno).
+     * Presmerovane je okno nejvyssi urovne (ramecek spravce oken), XCompositeNameWindowPixmap jinde
+     * skonci chybou BadMatch */
+    Window top = w, parent = w, r, *kids = NULL;
+    unsigned nk;
+    for (int depth = 0; depth < 16 && parent != root; depth++) {
+        top = parent;
+        if (!XQueryTree(dpy, top, &r, &parent, &kids, &nk))
+            return -1;
+        if (kids)
+            XFree(kids);
+    }
+    XSync(dpy, False);
+    int errs = x_errors;
+    Pixmap own = XCompositeNameWindowPixmap(dpy, top);
+    XSync(dpy, False);
+    if (x_errors != errs)
+        return -1;
+    XFreePixmap(dpy, own);
     long nz = 0, tot = 0;
     unsigned long h = 1469598103UL, first = 0;
     int uni = 1;
