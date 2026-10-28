@@ -110,3 +110,37 @@ def encode(msg, limit=MAX_FRAME):
 
 def is_finite_number(v):
     return type(v) in (int, float) and math.isfinite(v)
+
+
+def encoded_size(obj):
+    """Bajty JSON hodnoty tak, jak ji zakoduje encode() (bez LF)."""
+    return len(json.dumps(obj, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8"))
+
+
+def fit_items(msg, key, items, limit=MAX_FRAME):
+    """Do zpravy msg (uz s v/id) da pod klic key co nejvic polozek (v poradi) tak, aby se ramec vesel
+    do limitu. Vraci True, kdyz se nektere polozky nevesly."""
+    msg[key] = []
+    budget = limit - 1 - encoded_size(msg)       # LF
+    out, used = [], 0
+    for item in items:
+        size = encoded_size(item) + (1 if out else 0)
+        if used + size > budget:
+            msg[key] = out
+            return True
+        out.append(item)
+        used += size
+    msg[key] = out
+    return False
+
+
+def clean_text(text, limit, keep_newlines=True):
+    """Text od LuxAI/kalendare pro telefon: bez ridicich znaku (krome LF/TAB), nejvys limit znaku."""
+    if not isinstance(text, str):
+        return ""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = "".join(ch for ch in text if (ch == "\n" and keep_newlines) or ch == "\t" or
+                   not (ord(ch) < 32 or 0x7f <= ord(ch) < 0xa0 or ch in "  "))
+    if not keep_newlines:
+        text = text.replace("\t", " ")
+    return text[:limit]
