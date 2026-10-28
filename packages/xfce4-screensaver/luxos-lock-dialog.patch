@@ -1,6 +1,6 @@
 diff -ruN a/src/gs-lock-plug.c b/src/gs-lock-plug.c
---- a/src/gs-lock-plug.c	2026-10-28 12:35:53.792115670 +0100
-+++ b/src/gs-lock-plug.c	2026-10-28 12:35:53.793540370 +0100
+--- a/src/gs-lock-plug.c	2026-10-28 19:27:34.266279875 +0100
++++ b/src/gs-lock-plug.c	2026-10-28 19:27:34.268336160 +0100
 @@ -54,6 +54,7 @@
  #include "gs-debug.h"
  #include "gs-lock-plug.h"
@@ -980,8 +980,8 @@ diff -ruN a/src/gs-lock-plug.c b/src/gs-lock-plug.c
          g_source_remove (plug->priv->grab_focus_timeout_id);
      }
 diff -ruN a/src/gs-lock-plug.h b/src/gs-lock-plug.h
---- a/src/gs-lock-plug.h	2026-10-28 12:35:53.794981482 +0100
-+++ b/src/gs-lock-plug.h	2026-10-28 12:35:53.796160930 +0100
+--- a/src/gs-lock-plug.h	2026-10-28 19:27:34.270187999 +0100
++++ b/src/gs-lock-plug.h	2026-10-28 19:27:34.272092541 +0100
 @@ -89,6 +89,16 @@
  void
  gs_lock_plug_show_message (GSLockPlug *plug,
@@ -1000,8 +1000,8 @@ diff -ruN a/src/gs-lock-plug.h b/src/gs-lock-plug.h
  G_END_DECLS
  
 diff -ruN a/src/gs-window.c b/src/gs-window.c
---- a/src/gs-window.c	2026-10-28 12:35:53.797340279 +0100
-+++ b/src/gs-window.c	2026-10-28 12:35:53.798505981 +0100
+--- a/src/gs-window.c	2026-10-28 19:27:34.273472849 +0100
++++ b/src/gs-window.c	2026-10-28 19:27:34.276451650 +0100
 @@ -28,6 +28,7 @@
  
  #ifdef ENABLE_X11
@@ -1163,16 +1163,46 @@ diff -ruN a/src/gs-window.c b/src/gs-window.c
      gtk_box_pack_start (GTK_BOX (window->priv->vbox), window->priv->overlay, TRUE, TRUE, 0);
      gtk_overlay_add_overlay (GTK_OVERLAY (window->priv->overlay), window->priv->lock_box);
  
-@@ -1280,6 +1383,8 @@
+@@ -1280,6 +1383,12 @@
  
  static void
  popdown_dialog (GSWindow *window) {
-+    /* LuxOS: zpet k setrici bez cerne - posledni snimek dialogu, dokud setric znovu nekresli */
-+    luxos_frame_freeze (window);
++    /* LuxOS: zpet k setrici bez cerne. Pod setricem zustava jeho vlastni posledni snimek (z
++       gs_window_request_unlock), ne snimek dialogu: setric, ktery prekresluje jen cast okna (rucickove
++       hodiny), by jinak kolem sebe nechal zbytky dialogu. Po namapovani setrice se cele jeho okno
++       odkryje (Expose), aby se znovu vykreslil cely. */
++    if (window->priv->luxos_frame == NULL)
++        luxos_frame_freeze (window);
      gs_window_dialog_finish (window);
  
      gtk_widget_show (window->priv->drawing_area);
-@@ -1487,9 +1592,15 @@
+@@ -1293,6 +1402,25 @@
+ #endif
+ 
+     gs_window_clear (window);
++#ifdef ENABLE_X11
++    /* LuxOS: cele okno setrice (i podokna) odkryt - setric dostane Expose a vykresli celou obrazovku */
++    if (GDK_IS_X11_DISPLAY (gdk_display_get_default ()) && gtk_widget_get_realized (window->priv->drawing_area)) {
++        GdkWindow *dw = gtk_widget_get_window (window->priv->drawing_area);
++        Display *xd = GDK_WINDOW_XDISPLAY (dw);
++        Window xw = GDK_WINDOW_XID (dw), r, p, *kids = NULL;
++        unsigned int n = 0;
++
++        gdk_x11_display_error_trap_push (gdk_window_get_display (dw));
++        XClearArea (xd, xw, 0, 0, 0, 0, True);
++        if (XQueryTree (xd, xw, &r, &p, &kids, &n)) {
++            for (unsigned int i = 0; i < n; i++)
++                XClearArea (xd, kids[i], 0, 0, 0, 0, True);
++            if (kids)
++                XFree (kids);
++        }
++        gdk_x11_display_error_trap_pop_ignored (gdk_window_get_display (dw));
++    }
++#endif
+     set_invisible_cursor (gtk_widget_get_window (GTK_WIDGET (window)), TRUE);
+ 
+     window_set_dialog_up (window, FALSE);
+@@ -1487,9 +1615,15 @@
          command = g_string_append (command, " --verbose");
      }
  
@@ -1191,7 +1221,7 @@ diff -ruN a/src/gs-window.c b/src/gs-window.c
      set_invisible_cursor (gtk_widget_get_window (GTK_WIDGET (window)), FALSE);
  
  #ifdef ENABLE_WAYLAND
-@@ -1543,6 +1654,10 @@
+@@ -1543,6 +1677,10 @@
          return;
      }
  
@@ -1202,7 +1232,7 @@ diff -ruN a/src/gs-window.c b/src/gs-window.c
      if (window->priv->popup_dialog_idle_id == 0) {
          add_popup_dialog_idle (window);
      }
-@@ -2001,7 +2116,10 @@
+@@ -2001,7 +2139,10 @@
  
  static gboolean
  on_drawing_area_draw (GtkWidget *widget,
@@ -1214,7 +1244,7 @@ diff -ruN a/src/gs-window.c b/src/gs-window.c
      cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
      cairo_set_source_rgb (cr, 0, 0, 0);
      cairo_paint (cr);
-@@ -2057,7 +2175,7 @@
+@@ -2057,7 +2198,7 @@
      g_signal_connect (window->priv->drawing_area,
                        "draw",
                        G_CALLBACK (on_drawing_area_draw),
@@ -1224,8 +1254,8 @@ diff -ruN a/src/gs-window.c b/src/gs-window.c
                        "plug-removed",
                        G_CALLBACK (gtk_true),
 diff -ruN a/src/meson.build b/src/meson.build
---- a/src/meson.build	2026-10-28 12:35:53.799562421 +0100
-+++ b/src/meson.build	2026-10-28 12:35:53.800549135 +0100
+--- a/src/meson.build	2026-10-28 19:27:34.278705004 +0100
++++ b/src/meson.build	2026-10-28 19:27:34.280832065 +0100
 @@ -145,6 +145,8 @@
    'gs-debug.h',
    'gs-lock-plug.c',
@@ -1236,8 +1266,8 @@ diff -ruN a/src/meson.build b/src/meson.build
    'gs-prefs.h',
    'setuid.c',
 diff -ruN a/src/xfce4-screensaver-dialog.c b/src/xfce4-screensaver-dialog.c
---- a/src/xfce4-screensaver-dialog.c	2026-10-28 12:35:53.801521298 +0100
-+++ b/src/xfce4-screensaver-dialog.c	2026-10-28 12:35:53.802624407 +0100
+--- a/src/xfce4-screensaver-dialog.c	2026-10-28 19:27:34.283082248 +0100
++++ b/src/xfce4-screensaver-dialog.c	2026-10-28 19:27:34.285259761 +0100
 @@ -225,10 +225,10 @@
              }
              break;

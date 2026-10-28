@@ -642,19 +642,22 @@ def parse_route(data, mode):
 _route_cache = collections.OrderedDict()
 
 
-def route(a, b, mode="car", cfg=None):
-    """Trasa z a do b ({"lat","lon"}); mode car|bike|walk. Vysledek se pamatuje (stejny dotaz znovu ne)."""
+def route(a, b, mode="car", cfg=None, bearing=None):
+    """Trasa z a do b ({"lat","lon"}); mode car|bike|walk. Vysledek se pamatuje (stejny dotaz znovu ne).
+    bearing = smer jizdy ve stupnich (prepocet v navigaci): trasa zacina ve smeru jizdy (+-60 st.)."""
     if mode not in MODES:
         raise MapsError("unknown mode")
     coords = f"{a['lon']:.6f},{a['lat']:.6f};{b['lon']:.6f},{b['lat']:.6f}"
-    key = (mode, coords)
+    params = {"overview": "full", "steps": "true", "geometries": "polyline", "alternatives": "false"}
+    if isinstance(bearing, (int, float)) and math.isfinite(bearing):
+        params["bearings"] = f"{int(round(bearing)) % 360},60;"
+    key = (mode, coords, params.get("bearings"))
     if key in _route_cache:
         _route_cache.move_to_end(key)
         return _route_cache[key]
     url = service_url(cfg, "route_url", "LUXOS_MAPS_ROUTE", ROUTE_URL)
     url = url.replace("{profile}", MODES[mode]).replace("{coords}", coords)
-    data = http_json(url, {"overview": "full", "steps": "true", "geometries": "polyline", "alternatives": "false"},
-                     rate="routing")
+    data = http_json(url, params, rate="routing")
     res = parse_route(data, mode)
     _route_cache[key] = res
     while len(_route_cache) > 20:
@@ -1897,17 +1900,33 @@ def render_preview(preview, width=480, height=270, out_path=None, cfg=None, tile
 
 
 # ---- navigace (bez GTK: postup po krocich, mimo trasu, prepocet, prijezd, cas prijezdu) ----------------
-NAV_OFF_ROUTE_M = 50          # m od trasy = mimo trasu ...
+NAV_OFF_ROUTE_M = 50          # m od trasy = mimo trasu (auto; aspon presnost polohy) ...
+NAV_OFF_ROUTE_MODE = {"car": 50, "bike": 40, "walk": 35, TRANSIT: 35}   # ... pesky uzsi (vedlejsi ulice)
 NAV_OFF_ROUTE_FIXES = 3       # ... pro 3 polohy po sobe
 NAV_OFF_ROUTE_S = 10          # ... nebo dele nez 10 s
+NAV_OFF_ROUTE_MIN_S = 4       # ... a aspon 4 s (kratky vypadek GPS po 1 s neni odbocka)
+NAV_BACK_ON = 0.75            # zpet na trasu az pod 0,75 prahu (sum kolem prahu nenuluje pocitadlo)
+NAV_OFF_VEHICLE_M = 150       # MHD ve vozidle: tvar linky je jen priblizny
+NAV_WRONG_WAY_M = 40          # m zpet proti smeru trasy (a aspon presnost polohy) = opacny smer
+NAV_WRONG_WAY_WINDOW = 120    # s, odkud se pocita nejvzdalenejsi misto na trase
+NAV_BOARDED_M = 40            # MHD: o tolik za nastupni zastavkou = nastoupil
+NAV_MISSED_S = 90             # MHD: s po odjezdu spoje bez nastupu = zmeskany spoj
 NAV_REROUTE_GAP = 15          # s, nejmene mezi dvema prepocty trasy (OSRM: ohleduplne)
+NAV_TRANSIT_REROUTE_GAP = 60  # s, MHD: nejvys jeden novy plan Transitous za minutu
 NAV_REROUTE_BACKOFF = 30      # s, po neuspesnem prepoctu
 NAV_PASS_M = 5                # m za bodem manevru = manevr projety, dalsi krok
 NAV_ARRIVE_M = 25             # m od cile = prijezd
 NAV_MAX_ACCURACY = 100        # m, horsi poloha nerozhoduje o kroku ani o mimo trasu
 NAV_WINDOW_M = 2500           # m dopredu, kde se hleda poloha na trase (rychle a bez skoku na smycku)
 NAV_SPEEDS = {"car": 13.9, "bike": 5.0, "walk": 1.4, TRANSIT: 8.0}   # m/s, jen simulace
-NAV_MAX_HZ = 5                # nejvys 5 zpracovani polohy (a prekresleni) za sekundu
+NAV_MAX_HZ = 5                # nejvys 5 zpracovani polohy za sekundu
+NAV_FPS = 30                  # plynuly pohyb sipky mezi polohami: nejvys 30 snimku/s, jen kdyz se hybe
+NAV_MIN_FPS = 10              # ... pomaly pohyb (chuze) staci 10 snimku/s (asi 1 px na snimek)
+NAV_EXTRAPOLATE_S = 1.5       # s po posledni poloze se sipka posouva podle rychlosti a smeru, pak stoji
+NAV_EASE_S = 0.35             # s, casova konstanta dorovnani sipky na novou polohu (misto skoku)
+NAV_TURN_EASE_S = 0.35        # s, otaceni sipky a mapy (nejkratsi cestou)
+NAV_JUMP_M = 300              # m, vetsi skok (nova trasa, prvni poloha) se neanimuje
+NAV_SNAP_M = 30               # m, na trase: sipka na care trasy, je-li poloha bliz (a v ramci presnosti)
 EARTH_R = 6371008.8
 
 
@@ -1934,6 +1953,7 @@ class NavRoute:
         self.points = [(float(a), float(b)) for a, b in points]
         self.mode = mode
         self.arrival = arrival            # MHD: cas prijezdu podle jizdniho radu (epocha), jinak None
+        self.legs = []                    # MHD: [{"start","end" (m podel trasy), "transit", "departure"}]
         self.dest = dest or {"lat": self.points[-1][0], "lon": self.points[-1][1]}
         lat0 = sum(p[0] for p in self.points) / len(self.points)
         self.ky = EARTH_R * math.pi / 180.0
@@ -2034,12 +2054,13 @@ class NavRoute:
 
 def transit_nav_route(it, dest=None):
     """Vybrane spojeni MHD -> NavRoute s kroky Jdete pesky / Nastupte / Vystupte (bez prepoctu trasy)."""
-    pts, steps = [], []
+    pts, steps, starts = [], [], []
     legs = it.get("legs") or []
     for li, lg in enumerate(legs):
         lp = leg_points(lg) or [(lg["from"]["lat"], lg["from"]["lon"]), (lg["to"]["lat"], lg["to"]["lon"])]
         if pts and distance_m(pts[-1][0], pts[-1][1], lp[0][0], lp[0][1]) < 0.5:
             lp = lp[1:]
+        starts.append(max(0, len(pts) - 1))
         pts.extend(lp)
         base = {"modifier": "", "arg": None, "leg": li, "lat": lg["from"]["lat"], "lon": lg["from"]["lon"],
                 "duration": float(lg.get("duration_s") or 0), "distance": float(lg.get("distance_m") or 0)}
@@ -2058,16 +2079,29 @@ def transit_nav_route(it, dest=None):
     steps.append({"type": "arrive", "modifier": "", "text": "Arrive at your destination", "arg": None, "name": "",
                   "distance": 0.0, "duration": 0.0, "lat": pts[-1][0], "lon": pts[-1][1], "leg": len(legs) - 1})
     arr = parse_iso(it.get("arrival"))
-    return NavRoute(pts, steps, TRANSIT, float(it.get("duration_s") or 0),
-                    arrival=arr.timestamp() if arr else None, dest=dest)
+    route = NavRoute(pts, steps, TRANSIT, float(it.get("duration_s") or 0),
+                     arrival=arr.timestamp() if arr else None, dest=dest)
+    # useky podel trasy (m): ve vozidle jiny prah mimo trasu, odjezd spoje pro zmeskany spoj
+    for li, lg in enumerate(legs):
+        dep = parse_iso(lg.get("departure"))
+        end = route.cum[starts[li + 1]] if li + 1 < len(legs) else route.length
+        route.legs.append({"start": route.cum[starts[li]], "end": end, "transit": bool(lg["transit"]),
+                           "departure": dep.timestamp() if dep else None})
+    return route
 
 
 class Navigator:
     """Navigace po trase podle zivych poloh: aktualni krok, vzdalenost k dalsimu manevru, zbyvajici
-    vzdalenost/cas a cas prijezdu, mimo trasu -> prepocet (nejvys 1x za NAV_REROUTE_GAP s), prijezd.
+    vzdalenost/cas a cas prijezdu, prijezd. Prepocet trasy (nejvys 1x za NAV_REROUTE_GAP s, MHD
+    NAV_TRANSIT_REROUTE_GAP s), kdyz uzivatel:
+      - je mimo trasu (vic nez prah a presnost polohy) 3 polohy po sobe (aspon 4 s) nebo 10 s; poloha
+        v pasmu 0,75-1 prahu pocitadlo nenuluje (sum GPS u soubezne ulice), pod 0,75 prahu = zpet na trase;
+        stojici telefon (rychlost < 0,3 m/s) jen pri vic nez 2x prahu,
+      - jde po trase opacnym smerem (o NAV_WRONG_WAY_M a presnost polohy zpet, smer pohybu proti trase),
+      - MHD: zmeskal spoj (NAV_MISSED_S po odjezdu jeste nenastoupil).
 
-    update(fix, now) vraci stav (dict); "reroute": True = volajici ma spocitat novou trasu z polohy fixu
-    a predat ji set_route() (pri chybe reroute_failed())."""
+    update(fix, now) vraci stav (dict); "reroute": True = volajici ma spocitat novou trasu (spojeni) z polohy
+    fixu a predat ji set_route() (pri chybe reroute_failed()); "reason" = off_route | wrong_way | missed."""
 
     def __init__(self, route, reroute=True):
         self.reroute_enabled = reroute
@@ -2085,11 +2119,32 @@ class Navigator:
         self.off_count = 0
         self.off_since = None
         self.off_route = False
+        self.reason = None
+        self.missed = False
         self.arrived = False
         self.located = False
+        self._recent = collections.deque(maxlen=3)      # posledni polohy na trase (m podel trasy)
+        self._meds = collections.deque()                # (cas, median poslednich 3) za NAV_WRONG_WAY_WINDOW s
+
+    def gap(self):
+        return NAV_TRANSIT_REROUTE_GAP if self.route.mode == TRANSIT else NAV_REROUTE_GAP
 
     def reroute_failed(self, now):
-        self.last_reroute = now + NAV_REROUTE_BACKOFF - NAV_REROUTE_GAP
+        self.last_reroute = now + max(NAV_REROUTE_BACKOFF, self.gap()) - self.gap()
+
+    def leg(self):
+        """MHD: usek spojeni, na kterem uzivatel prave je (None u auta/kola/chuze)."""
+        for lg in self.route.legs:
+            if self.along < lg["end"]:
+                return lg
+        return self.route.legs[-1] if self.route.legs else None
+
+    def _threshold(self, acc):
+        base = NAV_OFF_ROUTE_MODE.get(self.route.mode, NAV_OFF_ROUTE_M)
+        lg = self.leg() if self.located else None
+        if lg and lg["transit"] and self.along >= lg["start"] + NAV_BOARDED_M:
+            base = NAV_OFF_VEHICLE_M
+        return max(base, acc)
 
     def _heading(self, fix):
         b, sp = fix.get("bearing"), fix.get("speed")
@@ -2103,6 +2158,39 @@ class Navigator:
             self.heading = bearing(self._head_pos[0], self._head_pos[1], fix["lat"], fix["lon"])
             self._head_pos = (fix["lat"], fix["lon"])
 
+    def _wrong_way(self, fix, along, acc, now):
+        """Na trase, ale zpet proti jejimu smeru: median poslednich 3 poloh o vic nez NAV_WRONG_WAY_M
+        za nejvzdalenejsim mistem poslednich NAV_WRONG_WAY_WINDOW s a smer pohybu proti trase. Se smerem
+        z telefonu staci couvnout o presnost polohy, bez nej (GeoClue) 2,5x presnost a odvozeny smer."""
+        self._recent.append(along)
+        med = sorted(self._recent)[len(self._recent) // 2]
+        self._meds.append((now, med))
+        while self._meds and self._meds[0][0] < now - NAV_WRONG_WAY_WINDOW:
+            self._meds.popleft()
+        if len(self._recent) < 3:
+            return False
+        peak = max(m for _t, m in self._meds)
+        sp, b = fix.get("speed"), fix.get("bearing")
+        if isinstance(sp, (int, float)) and sp < 0.3:
+            return False                                 # stoji: jen sum polohy
+        route_dir = self.route.point_at(along)[2]
+        if isinstance(sp, (int, float)) and sp >= 1.0 and isinstance(b, (int, float)) and math.isfinite(b):
+            # smer z telefonu (GNSS) je spolehlivy: staci couvnout o presnost
+            return abs(angle_diff(b, route_dir)) > 120 and peak - med > max(NAV_WRONG_WAY_M, acc)
+        if self.heading is not None and abs(angle_diff(self.heading, route_dir)) < 100:
+            return False
+        return peak - med > max(NAV_WRONG_WAY_M, 2.5 * acc)
+
+    def _missed(self, now):
+        """MHD: spoj, na ktery se ceka (dalsi usek vozidlem), odjel pred NAV_MISSED_S s a uzivatel nenastoupil."""
+        if not (self.route.legs and self.located):
+            return False
+        for lg in self.route.legs:
+            if lg["transit"] and lg["end"] > self.along:
+                return bool(lg["departure"] and self.along < lg["start"] + NAV_BOARDED_M
+                            and now > lg["departure"] + NAV_MISSED_S)
+        return False
+
     def update(self, fix, now=None):
         now = time.time() if now is None else now
         r = self.route
@@ -2113,22 +2201,36 @@ class Navigator:
         if acc <= NAV_MAX_ACCURACY and not self.arrived:
             lo = max(0, self.seg - 2) if self.located else 0
             seg, along, off = r.project(lat, lon, lo, (self.along + NAV_WINDOW_M) if self.located else None)
-            thr = max(NAV_OFF_ROUTE_M, acc)
+            thr = self._threshold(acc)
             if off > thr and self.located:
-                g = r.project(lat, lon)              # zkratka nebo navrat na trasu jinde
+                g = r.project(lat, lon)              # zkratka nebo navrat na trasu jinde (i za sebou)
                 if g[2] <= thr:
                     seg, along, off = g
             self.offset = off
-            if off > thr:
+            far = off > thr
+            back = not far and self.located and self._wrong_way(fix, along, acc, now)
+            if not far:
+                self.seg, self.along, self.located = seg, along, True
+            sp = fix.get("speed")
+            # telefon stoji (rychlost z GNSS): skoky polohy nejsou odbocka, mimo trasu jen kdyz je daleko
+            still = isinstance(sp, (int, float)) and sp < 0.3 and off <= 2 * thr
+            if (far and not still) or back:
                 self.off_count += 1
                 if self.off_since is None:
                     self.off_since = now
-                if self.off_count >= NAV_OFF_ROUTE_FIXES or now - self.off_since >= NAV_OFF_ROUTE_S:
+                span = now - self.off_since
+                if (self.off_count >= NAV_OFF_ROUTE_FIXES and span >= NAV_OFF_ROUTE_MIN_S) or \
+                        (self.off_count >= 2 and span >= NAV_OFF_ROUTE_S):
+                    if not self.off_route:
+                        self.reason = "off_route" if far else "wrong_way"
                     self.off_route = True
-            else:
-                self.off_count, self.off_since, self.off_route = 0, None, False
-                self.seg, self.along, self.located = seg, along, True
-            if self.off_route and self.reroute_enabled and now - self.last_reroute >= NAV_REROUTE_GAP:
+            elif not far and off <= thr * NAV_BACK_ON:
+                self.off_count, self.off_since, self.off_route, self.reason = 0, None, False, None
+            # 0,75-1 prahu: pocitadlo ani stav se nemeni (sum GPS kolem prahu)
+            self.missed = not self.off_route and self._missed(now)
+            if self.missed:
+                self.reason = "missed"
+            if (self.off_route or self.missed) and self.reroute_enabled and now - self.last_reroute >= self.gap():
                 self.last_reroute = now
                 reroute = True
             if not self.off_route and self.located:
@@ -2143,6 +2245,10 @@ class Navigator:
                     self.next = last
         if self.heading is None:
             self.heading = r.point_at(self.along)[2]
+        # prichyceni k trase (map matching) pro sipku: jen na trase a v ramci presnosti polohy
+        snap = None
+        if self.located and not self.off_route and self.offset <= min(NAV_SNAP_M, max(acc, 10.0)):
+            snap = r.point_at(self.along)
         nxt = r.steps[self.next]
         rem_s = 0.0 if self.arrived else r.remaining_s(self.along, self.next - 1, now)
         return {"next": self.next, "step": nxt,
@@ -2150,8 +2256,122 @@ class Navigator:
                 "to_next": 0.0 if self.arrived else max(0.0, nxt["along"] - self.along),
                 "remaining_m": 0.0 if self.arrived else max(0.0, r.length - self.along),
                 "remaining_s": rem_s, "eta": now + rem_s, "offset": self.offset,
-                "off_route": self.off_route, "reroute": reroute, "arrived": self.arrived,
-                "advanced": advanced, "heading": self.heading, "located": self.located}
+                "off_route": self.off_route, "reroute": reroute, "reason": self.reason, "missed": self.missed,
+                "arrived": self.arrived, "advanced": advanced, "heading": self.heading, "located": self.located,
+                "along": self.along, "snap": snap}
+
+
+class NavMotion:
+    """Plynuly pohyb sipky polohy mezi polohami (bez GTK, hodiny zvenku):
+    - na trase se sipka posouva po care trasy (prichyceni), jinak primo podle smeru,
+    - po posledni poloze jeste NAV_EXTRAPOLATE_S s dopocet podle rychlosti (z telefonu nebo z poslednich poloh),
+    - nova poloha neskoci: rozdil proti zobrazenemu mistu dobehne s casovou konstantou NAV_EASE_S,
+    - otaceni (kurz sipky i mapy po smeru jizdy) nejkratsi cestou s NAV_TURN_EASE_S.
+    active(t) = jeste je co animovat (jinak zadne snimky = zadna prace procesoru)."""
+
+    def __init__(self):
+        self.t0 = None
+        self.lat0 = self.lon0 = 0.0
+        self.speed = 0.0
+        self.course = 0.0              # smer pohybu pro dopocet mimo trasu
+        self.route = None              # dopocet po trase (NavRoute) od along0
+        self.along0 = 0.0
+        self.err = (0.0, 0.0)          # m (vychod, sever): zobrazene minus nove misto v case t0
+        self.head = None               # zobrazeny kurz
+        self.target_head = 0.0
+        self.t_head = None
+        self.prev = None               # (t, lat, lon) predchozi polohy pro odhad rychlosti
+
+    def _predict(self, t):
+        d = self.speed * clamp(t - self.t0, 0.0, NAV_EXTRAPOLATE_S)
+        if self.route is not None:
+            return self.route.point_at(self.along0 + d)
+        if d <= 0:
+            return self.lat0, self.lon0, self.course
+        a = math.radians(self.course)
+        return (self.lat0 + d * math.cos(a) / 111195.0,
+                self.lon0 + d * math.sin(a) / (111195.0 * math.cos(math.radians(self.lat0))), self.course)
+
+    def position(self, t):
+        """(lat, lon) zobrazene sipky v case t."""
+        lat, lon, _h = self._predict(t)
+        k = math.exp(-max(0.0, t - self.t0) / NAV_EASE_S)
+        ex, ny = self.err[0] * k, self.err[1] * k
+        return lat + ny / 111195.0, lon + ex / (111195.0 * math.cos(math.radians(lat)))
+
+    def on_fix(self, t, fix, heading, route=None, along=None):
+        """Nova poloha v case t (monotonni s). heading = kurz z Navigatoru; route+along = poloha prichycena
+        k trase (stav "snap"), jinak se sipka pohybuje volne."""
+        lat, lon = fix["lat"], fix["lon"]
+        sp = fix.get("speed")
+        if isinstance(sp, (int, float)) and math.isfinite(sp) and sp >= 0:
+            speed = float(sp)
+        elif self.prev and 0.2 <= t - self.prev[0] <= 8.0:
+            dist = distance_m(self.prev[1], self.prev[2], lat, lon)
+            # posun v ramci sumu polohy neni pohyb
+            speed = dist / (t - self.prev[0]) if dist >= max(2.0, 0.3 * float(fix.get("accuracy") or 0)) else 0.0
+        else:
+            speed = 0.0
+        self.prev = (t, lat, lon)
+        cur = self.position(t) if self.t0 is not None else None
+        self.speed = min(speed, 70.0) if speed >= 0.5 else 0.0
+        self.course = heading % 360.0 if heading is not None else self.course
+        self.route = None
+        if route is not None and along is not None:
+            lat, lon, rhead = route.point_at(along)
+            # po trase jen ve smeru trasy; jinak (otoceni) primo
+            if heading is None or abs(angle_diff(heading, rhead)) < 60:
+                self.route, self.along0 = route, along
+        self.t0, self.lat0, self.lon0 = t, lat, lon
+        self.err = (0.0, 0.0)
+        if cur is not None:
+            ex = (cur[1] - lon) * 111195.0 * math.cos(math.radians(lat))
+            ny = (cur[0] - lat) * 111195.0
+            if math.hypot(ex, ny) < NAV_JUMP_M:
+                self.err = (ex, ny)
+        target = self._predict(t)[2] if self.route is not None else self.course
+        self.target_head = target
+        if self.head is None or cur is None:
+            self.head, self.t_head = target, t
+
+    def heading(self, t):
+        """Zobrazeny kurz v case t (stav: otaceni dobiha k cili nejkratsi cestou)."""
+        if self.route is not None:
+            self.target_head = self._predict(t)[2]
+        if self.head is None:
+            self.head = self.target_head
+        dt = max(0.0, t - (self.t_head if self.t_head is not None else t))
+        self.t_head = t
+        d = angle_diff(self.head, self.target_head)
+        self.head = (self.head + d * (1.0 - math.exp(-dt / NAV_TURN_EASE_S))) % 360.0
+        return self.head
+
+    def frame(self, t):
+        """(lat, lon, kurz) pro snimek v case t."""
+        lat, lon = self.position(t)
+        return lat, lon, self.heading(t)
+
+    def fps(self, t, m_per_px):
+        """Kolik snimku za sekundu je potreba: dorovnani skoku a otaceni NAV_FPS, jinak podle rychlosti
+        v pixelech (asi 1 px na snimek, aspon NAV_MIN_FPS) - pomaly pohyb nestoji zbytecne prekreslovani."""
+        k = math.exp(-max(0.0, t - self.t0) / NAV_EASE_S) if self.t0 is not None else 0.0
+        tgt = self._predict(t)[2] if self.route is not None and self.t0 is not None else self.target_head
+        if math.hypot(*self.err) * k > 2 * m_per_px or \
+                (self.head is not None and abs(angle_diff(self.head, tgt)) > 1.0):
+            return NAV_FPS
+        moving = self.speed if self.t0 is not None and t - self.t0 < NAV_EXTRAPOLATE_S else 0.0
+        return clamp(moving / max(m_per_px, 1e-6), NAV_MIN_FPS, NAV_FPS)
+
+    def active(self, t):
+        if self.t0 is None:
+            return False
+        if self.speed > 0 and t - self.t0 < NAV_EXTRAPOLATE_S:
+            return True
+        k = math.exp(-max(0.0, t - self.t0) / NAV_EASE_S)
+        if math.hypot(*self.err) * k > 0.05:
+            return True
+        tgt = self._predict(t)[2] if self.route is not None else self.target_head
+        return self.head is not None and abs(angle_diff(self.head, tgt)) > 0.2
 
 
 def simulate_track(route, speed=None, interval=1.0, start=0.0, accuracy=5.0):
