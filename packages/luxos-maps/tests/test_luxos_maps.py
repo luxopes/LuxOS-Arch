@@ -14,6 +14,8 @@ spojeni MHD Karlovo namesti -> Prazsky hrad (transitous-plan.json) a odjezdy z K
 vzorky z testu mobilni LuxAI (OpenStreetMapClientTest; plan doplneny o spojeni s prestupem a zrusenym
 spojem). overpass-public-transport.json je umely (Overpass byl pri tvorbe fixtures pretizeny, 502):
 schema odpovedi Overpass, nazvy, souradnice a nastupiste zastavek ze skutecne odpovedi Transitous.
+photon-*.json jsou odpovedi Photonu (photon.komoot.io, 2026-10-28, © OpenStreetMap contributors, ODbL)
+na "karlovo nam", "vodickova 30" a "mustek" u Prahy.
 Ostatni dlazdice kresli server sam (svetla mrizka s cislem dlazdice). Snimky okna do LUXOS_TEST_SHOTS.
 """
 import http.server
@@ -166,6 +168,14 @@ class FakeServer:
                                              boundingbox=None, osm_id=hash(name) % 100000))
                     self.send(200, json.dumps(body).encode())
                     return
+                if url.path == "/photon/api/":
+                    text = lm.fold(q.get("q", ""))
+                    name = next((f for k, f in (("karl", "photon-karlovo.json"), ("vodi", "photon-vodickova-30.json"),
+                                                ("must", "photon-mustek.json")) if k in text), None)
+                    body = fixture(name) if name else {"type": "FeatureCollection", "features": []}
+                    body["features"] = body["features"][:int(q.get("limit", 10))]
+                    self.send(200, json.dumps(body).encode())
+                    return
                 if url.path == "/reverse":
                     item = dict(fixture("search-karlovo.json")[0])
                     item.update(lat=q.get("lat"), lon=q.get("lon"))
@@ -223,6 +233,13 @@ class FakeServer:
 
         self.httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.httpd.daemon_threads = True
+        httpd = self.httpd
+
+        def handle_error(request, client_address):
+            # naseptavac zavre spojeni zruseneho dotazu: to neni chyba testu
+            if not isinstance(sys.exc_info()[1], (BrokenPipeError, ConnectionResetError)):
+                http.server.ThreadingHTTPServer.handle_error(httpd, request, client_address)
+        self.httpd.handle_error = handle_error
         self.base = f"http://127.0.0.1:{self.httpd.server_address[1]}"
         threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
 
@@ -266,6 +283,7 @@ os.environ.update({
     "LUXOS_MAPS_TRANSIT_PLAN": SERVER.base + "/transitous/plan",
     "LUXOS_MAPS_STOPTIMES": SERVER.base + "/transitous/stoptimes",
     "LUXOS_MAPS_OVERPASS": SERVER.base + "/overpass",
+    "LUXOS_MAPS_SUGGEST": SERVER.base + "/photon/api/",
     "LUXOS_MAPS_GEOCLUE": "0",
     "LUXOS_MAPS_PHONE": "0",          # poloha z telefonu jen v TestPhoneLocation (soukroma sbernice)
     "LUXOS_MAPS_RATE": "0.05",
@@ -1441,6 +1459,200 @@ class TestNavigation(unittest.TestCase):
         self.assertEqual((cfg["sidebar_width"], cfg["nav_heading_up"], cfg["nav_voice"]), (420, False, True))
 
 
+class TestSuggest(unittest.TestCase):
+    """Naseptavani pri psani: Photon (falesny server), mistni zdroje, odklad, ruseni, razeni."""
+
+    def setUp(self):
+        clean_state()
+        self.calls = []
+        self.got = threading.Event()
+
+    def cb(self, gen, query, res, err):
+        self.calls.append((gen, query, res, err))
+        self.got.set()
+
+    def suggester(self, delay=0.15, cfg=None, lang="cs"):
+        sg = lm.Suggester(self.cb, cfg, lang, delay=delay)
+        self.addCleanup(sg.stop)
+        return sg
+
+    def test_fold_and_spans(self):
+        self.assertEqual(lm.fold("Můstek, Žluťoučký KŮŇ"), "mustek, zlutoucky kun")
+        self.assertEqual(len(lm.fold("Straße Łódź")), len("Straße Łódź"))
+        self.assertEqual(lm.match_spans("Karlovo náměstí", "karlovo nam"), [(0, 7), (8, 11)])
+        self.assertEqual(lm.match_spans("Václavské náměstí", "NAMESTI"), [(10, 17)])
+        self.assertEqual(lm.match_spans("Karlovo náměstí", "ovo"), [])        # jen zacatky slov
+        self.assertEqual(lm.match_score({"name": "Karlovo náměstí"}, "karlovo nam"), 0)
+        self.assertEqual(lm.match_score({"name": "Karlovo náměstí"}, "namesti karl"), 1)
+        self.assertEqual(lm.match_score({"name": "Apetit", "address": "Vodičkova 30, Praha"}, "vodickova 30"), 2)
+        self.assertIsNone(lm.match_score({"name": "Apetit", "address": "Praha"}, "vodickova"))
+
+    def test_parse_photon(self):
+        res = lm.parse_photon(fixture("photon-karlovo.json"))
+        # 7 prvku: namesti jako plocha + 3 useky ulice stejneho jmena -> jedno; Trebic dvakrat -> jednou
+        self.assertEqual([(p["name"], p["kind"]) for p in res],
+                         [("Karlovo náměstí", "street"), ("SÚZ ČVUT - Výdejna Karlovo nám.", "poi"),
+                          ("Karlovo nám.", "street")])
+        sq = res[0]
+        self.assertAlmostEqual(sq["lat"], 50.0757441)
+        self.assertAlmostEqual(sq["lon"], 14.4199101)
+        self.assertEqual(sq["address"], "obvod Praha 2, Praha, Česko")
+        self.assertEqual(sq["osm"], "relation/2052491")
+        s, n, w, e = sq["bbox"]
+        self.assertTrue(s < n and w < e)
+        self.assertEqual(res[1]["address"], "Resslova, Praha, Česko")
+        house = lm.parse_photon(fixture("photon-vodickova-30.json"))
+        self.assertEqual(house[2]["name"], "Vodičkova 2141/30")
+        self.assertEqual(house[2]["kind"], "address")
+        self.assertEqual(house[0]["address"], "Vodičkova 30, Praha, Česko")
+        stops = lm.parse_photon(fixture("photon-mustek.json"))
+        self.assertEqual([(p["name"], p["kind"]) for p in stops], [("Můstek", "stop"), ("Můstek", "poi")])
+        self.assertTrue(lm.is_transit_place(stops[0]))                      # misto nabidne Odjezdy
+        self.assertEqual(lm.parse_photon({"features": [{"geometry": {"coordinates": ["x"]}}, {}, 3]}), [])
+        with self.assertRaises(lm.MapsError):
+            lm.parse_photon([])
+
+    def test_params(self):
+        self.assertEqual(lm.photon_params("  karlovo   nam ", "cs", (50.08123, 14.4199)),
+                         {"q": "karlovo nam", "limit": 7, "lang": "default", "lat": "50.08", "lon": "14.42"})
+        self.assertEqual(lm.photon_params("x", "de")["lang"], "de")
+        self.assertNotIn("lat", lm.photon_params("x", "en"))
+
+    def test_local_ranking(self):
+        items = [
+            {"name": "Náměstí Míru", "lat": 50.0755, "lon": 14.4378, "source": "stop"},
+            {"name": "Karlovo náměstí", "lat": 50.0757, "lon": 14.4199, "source": "recent"},
+            {"name": "Domov", "address": "Náměstí Republiky 1, Praha", "lat": 50.088, "lon": 14.428,
+             "source": "favorite"},
+            {"name": "Staroměstské náměstí", "lat": 50.0875, "lon": 14.4208, "source": "recent"},
+            {"name": "Karlovo náměstí", "lat": 50.0757, "lon": 14.4199, "source": "stop"},   # stejne misto
+            {"name": "broken", "lat": "x", "lon": 1},
+        ]
+        center = (50.0757, 14.4199)
+        res = lm.suggest_local("namesti", items, center)
+        self.assertEqual([p["name"] for p in res][:2], ["Domov", "Karlovo náměstí"])   # oblibene, nedavne
+        self.assertEqual([p["name"] for p in res],
+                         ["Domov", "Karlovo náměstí", "Staroměstské náměstí", "Náměstí Míru"])
+        self.assertEqual([p["name"] for p in lm.suggest_local("nam mir", items, center)], ["Náměstí Míru"])
+        self.assertEqual(lm.suggest_local("n", items, center), [])                  # min. 2 znaky
+        self.assertEqual(lm.suggest_local("esti", items, center), [])               # jen zacatky slov
+        self.assertEqual(len(lm.suggest_local("namesti", items, center, limit=2)), 2)
+
+    def test_merge(self):
+        remote = lm.parse_photon(fixture("photon-vodickova-30.json"))
+        local = [{"name": "Apetit", "lat": 50.0807439, "lon": 14.4247841, "source": "favorite"}]
+        me = {"name": "My Location", "lat": 50.08, "lon": 14.42, "me": True}
+        res = lm.merge_suggestions("vodickova 30", local, remote, (50.0757, 14.4199), me=me)
+        self.assertEqual([p["name"] for p in res], ["My Location", "Apetit", "Vodičkova 2141/30", "Saint Tropez"])
+        self.assertEqual(res[0]["source"], "me")
+        self.assertEqual(res[1]["source"], "favorite")
+        self.assertEqual(res[2]["source"], "online")
+        self.assertTrue(500 < res[2]["distance"] < 700)
+        self.assertEqual(len(lm.merge_suggestions("x", local * 3, remote * 5)), 3)        # bez duplicit
+        self.assertEqual(len(lm.merge_suggestions("x", local, remote, limit=2)), 2)
+
+    def test_recent_and_config(self):
+        cfg = lm.load_config()
+        self.assertTrue(cfg["suggest_online"])
+        self.assertEqual(cfg["recent"], [])
+        for i in range(lm.RECENT_MAX + 3):
+            lm.add_recent(cfg, {"name": f"P{i}", "lat": 50 + i / 100, "lon": 14.0, "source": "online", "distance": 3})
+        lm.add_recent(cfg, {"name": "p5", "lat": 50.05, "lon": 14.0})             # stejne misto nahoru
+        lm.add_recent(cfg, {"name": "My Location", "lat": 1, "lon": 1, "me": True})
+        self.assertEqual(len(cfg["recent"]), lm.RECENT_MAX)
+        self.assertEqual(cfg["recent"][0], {"name": "p5", "lat": 50.05, "lon": 14.0})
+        self.assertEqual(sum(1 for r in cfg["recent"] if lm.fold(r["name"]) == "p5"), 1)
+        self.assertNotIn("distance", cfg["recent"][1])
+        cfg["suggest_online"] = False
+        cfg["suggest_url"] = "https://photon.example/api"
+        cfg["recent"].append({"name": "bad"})
+        lm.save_config(cfg)
+        cfg = lm.load_config()
+        self.assertFalse(cfg["suggest_online"])
+        self.assertEqual(cfg["suggest_url"], "https://photon.example/api")
+        self.assertEqual(len(cfg["recent"]), lm.RECENT_MAX)
+        lm.save_config(dict(cfg, suggest_url="file:///etc/passwd", suggest_online="no"))
+        cfg = lm.load_config()
+        self.assertNotIn("suggest_url", cfg)
+        self.assertTrue(cfg["suggest_online"])
+
+    def test_debounce_only_last_query(self):
+        sg = self.suggester(delay=0.2)
+        for text in ("ka", "kar", "karl", "karlo", "karlovo"):
+            sg.request(text, (50.08, 14.42))
+            time.sleep(0.03)
+        self.assertTrue(self.got.wait(5))
+        time.sleep(0.4)
+        self.assertEqual(SERVER.count("/photon"), 1)
+        self.assertEqual(len(self.calls), 1)
+        gen, query, res, err = self.calls[0]
+        self.assertEqual((gen, query, err), (sg.gen, "karlovo", None))
+        self.assertEqual(res[0]["name"], "Karlovo náměstí")
+        q = SERVER.last_q("/photon")
+        self.assertEqual((q["q"], q["limit"], q["lang"], q["lat"], q["lon"]),
+                         ("karlovo", "7", "default", "50.08", "14.42"))
+        self.assertTrue(SERVER.headers[-1]["User-Agent"].startswith("LuxOS-Maps/1.0"))
+        # stejny dotaz ze stejneho okoli: z mezipameti, bez dalsiho pozadavku
+        self.got.clear()
+        sg.request("karlovo", (50.081, 14.421))
+        self.assertTrue(self.got.wait(5))
+        self.assertEqual(SERVER.count("/photon"), 1)
+
+    def test_cancel_before_send(self):
+        sg = self.suggester(delay=0.2)
+        sg.request("karlovo")
+        time.sleep(0.05)
+        sg.cancel()
+        time.sleep(0.5)
+        self.assertEqual(SERVER.count("/photon"), 0)
+        self.assertEqual(self.calls, [])
+
+    def test_cancel_running_request(self):
+        SERVER.delay = 1.0
+        sg = self.suggester(delay=0.05)
+        sg.request("karlovo")
+        deadline = time.time() + 5
+        while SERVER.count("/photon") < 1 and time.time() < deadline:
+            time.sleep(0.01)
+        t0 = time.monotonic()
+        sg.request("mustek")                     # novy text: rozbehnuty pozadavek se prerusi
+        self.assertTrue(self.got.wait(5))
+        self.assertLess(time.monotonic() - t0, 1.9)  # neceka na dokonceni stareho dotazu (1 s) + novy (1 s)
+        time.sleep(1.2)
+        self.assertEqual([c[1] for c in self.calls], ["mustek"])         # stary vysledek se nikdy neohlasi
+        self.assertEqual(self.calls[0][2][0]["kind"], "stop")
+        self.assertEqual(SERVER.count("/photon"), 2)
+
+    def test_offline_then_backoff(self):
+        import socket
+        s = socket.socket()
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+        s.close()                                # nikdo neposloucha
+        old = os.environ["LUXOS_MAPS_SUGGEST"]
+        os.environ["LUXOS_MAPS_SUGGEST"] = f"http://127.0.0.1:{port}/api/"
+        self.addCleanup(os.environ.__setitem__, "LUXOS_MAPS_SUGGEST", old)
+        sg = self.suggester(delay=0.01)
+        sg.request("karlovo")
+        self.assertTrue(self.got.wait(5))
+        self.assertEqual(self.calls[0][2], [])
+        self.assertTrue(self.calls[0][3])
+        self.assertEqual(sg.sent, 1)
+        self.got.clear()
+        sg.request("mustek")                     # 30 s pauza: bez dalsiho pokusu, hned "offline"
+        self.assertTrue(self.got.wait(5))
+        self.assertEqual(self.calls[1][3], "offline")
+        self.assertEqual(sg.sent, 1)
+
+    def test_busy_backoff(self):
+        SERVER.fail = True                        # 503
+        sg = self.suggester(delay=0.01)
+        sg.request("karlovo")
+        self.assertTrue(self.got.wait(5))
+        self.assertIn("503", self.calls[0][3])
+        self.assertGreater(sg.backoff_until, time.monotonic() + 20)
+
+
 class TestPackaging(unittest.TestCase):
     def strings(self):
         with open(os.path.join(FILES, "luxos-maps"), encoding="utf-8") as f:
@@ -1637,6 +1849,112 @@ class TestWindow(unittest.TestCase):
         self.assertEqual(lm.load_config()["mode"], "walk")
         win.close_directions()
         self.assertIsNone(win.map.route)
+
+    def key(self, win, keyval):
+        """Stisk klavesy pres okno (jako skutecna klavesnice: okno -> pole s fokusem)."""
+        ev = self.Gdk.Event.new(self.Gdk.EventType.KEY_PRESS)
+        ev.keyval = keyval
+        ev.state = 0
+        ev.window = win.get_window()
+        ev.set_device(self.Gdk.Display.get_default().get_default_seat().get_keyboard())
+        return win.emit("key-press-event", ev)
+
+    def type_text(self, entry, text):
+        for i in range(1, len(text) + 1):          # rychle psani: pod 250 ms mezi znaky
+            entry.set_text(text[:i])
+            entry.set_position(-1)
+            self.settle(0.03)
+
+    def test_suggestions_search_and_route(self):
+        fav = {"name": "Karlín", "lat": 50.0925, "lon": 14.4517, "address": "Praha 8"}
+        win = self.window((50.08, 14.42, 15), favorites=[fav], location_consent=True)
+        Gdk = self.Gdk
+        sb = win.suggest["search"]
+        win.search_entry.grab_focus()
+        self.type_text(win.search_entry, "karl")
+        self.assertTrue(sb.visible())                                   # oblibene hned, bez site
+        self.assertEqual(sb.list.get_row_at_index(0).place["name"], "Karlín")
+        self.assertTrue(self.pump(lambda: sb.remote))
+        self.settle(0.4)
+        self.assertEqual(SERVER.count("/photon"), 1)                    # jen posledni text po 250 ms
+        self.assertEqual(SERVER.last_q("/photon")["q"], "karl")
+        self.assertEqual(SERVER.last_q("/photon")["lat"], "50.08")
+        names = [r.place["name"] for r in sb.list.get_children()]
+        self.assertEqual(names, ["Karlín", "Karlovo náměstí", "SÚZ ČVUT - Výdejna Karlovo nám.", "Karlovo nám."])
+        row1 = self.find_texts(sb.list.get_row_at_index(1))
+        self.assertIn("obvod Praha 2, Praha, Česko", row1)
+        self.assertTrue(any(t.endswith(" m") for t in row1))           # vzdalenost od stredu mapy
+        self.assertIn("Photon", sb.footer.get_text())
+        self.assertTrue(self.pump(self.tiles_loaded(win)))
+        self.shot(win, "maps-suggest-search.png")
+        # sipky + Enter: vybere Karlovo namesti bez dalsiho hledani v Nominatim
+        self.assertTrue(self.key(win, Gdk.KEY_Down))
+        self.assertTrue(self.key(win, Gdk.KEY_Down))
+        self.assertEqual(sb.list.get_selected_row().get_index(), 1)
+        self.assertTrue(self.key(win, Gdk.KEY_Up))
+        self.assertTrue(self.key(win, Gdk.KEY_Down))
+        self.assertTrue(self.key(win, Gdk.KEY_Return))
+        self.assertFalse(sb.visible())
+        self.assertEqual(win.stack.get_visible_child_name(), "place")
+        self.assertEqual(win.pl_name.get_text(), "Karlovo náměstí")
+        self.assertEqual(win.search_entry.get_text(), "Karlovo náměstí")
+        self.settle(0.4)
+        self.assertFalse(sb.visible())                                  # vyber nabidku znovu neotevre
+        self.assertEqual(SERVER.count("/search"), 0)
+        self.assertEqual(SERVER.count("/photon"), 1)
+        self.assertEqual(lm.load_config()["recent"][0]["name"], "Karlovo náměstí")
+        # trasa: Moje poloha prvni, pak zastavka z Photonu; vyber prepocita trasu
+        win.directions_to(win.place)
+        fb = win.suggest["from"]
+        win.from_entry.grab_focus()
+        self.type_text(win.from_entry, "mustek")
+        self.assertTrue(self.pump(lambda: fb.visible() and fb.remote))
+        rows = fb.list.get_children()
+        self.assertTrue(rows[0].place.get("me"))
+        self.assertEqual(self.find_texts(rows[0])[0], self.app._("My Location"))
+        self.assertEqual([(r.place["name"], self.app.suggestion_kind(r.place)) for r in rows[1:]],
+                         [("Můstek", "stop"), ("Můstek", "poi")])
+        self.key(win, Gdk.KEY_Down)
+        self.key(win, Gdk.KEY_Down)
+        self.shot(win, "maps-suggest-route.png")
+        self.assertTrue(self.key(win, Gdk.KEY_Return))
+        self.assertFalse(fb.visible())
+        self.assertEqual(win.from_entry.get_text(), "Můstek")
+        self.assertTrue(lm.is_transit_place(win.route_from))
+        self.assertTrue(self.pump(lambda: win.map.route is not None and len(win.steps_list.get_children()) > 3))
+        self.assertEqual(SERVER.count("/routed-car/"), 1)
+        self.assertTrue(any(p.startswith("/routed-car/route/v1/driving/14.423345,50.083413;")
+                            for p, _q in SERVER.requests))                  # souradnice primo z Photonu
+        self.assertTrue(self.pump(lambda: win.map.anim is None))
+        self.assertTrue(self.pump(self.tiles_loaded(win)))
+        self.shot(win, "maps-suggest-route-done.png")
+        # Esc zavre nabidku, text zustane; klik mysi na radek (nedavne misto je mezi navrhy)
+        tb = win.suggest["to"]
+        win.to_entry.grab_focus()
+        self.type_text(win.to_entry, "karlov")
+        self.assertTrue(self.pump(lambda: tb.visible() and tb.remote))
+        self.assertEqual(tb.list.get_row_at_index(1).place["source"], "recent")
+        self.assertTrue(self.key(win, Gdk.KEY_Escape))
+        self.assertFalse(tb.visible())
+        self.assertEqual(win.to_entry.get_text(), "karlov")
+        self.type_text(win.to_entry, "karlovo")
+        self.assertTrue(self.pump(lambda: tb.visible()))
+        tb.list.emit("row-activated", tb.list.get_row_at_index(1))
+        self.assertFalse(tb.visible())
+        self.assertEqual(win.to_entry.get_text(), "Karlovo náměstí")
+        self.assertEqual(win.route_to["name"], "Karlovo náměstí")
+        self.assertTrue(self.pump(lambda: win.map.route is not None))      # stejna trasa: z pameti
+        # bez naseptavani online: jen mistni zdroje, zadny pozadavek na Photon
+        win.suggest_item.set_active(False)
+        self.assertFalse(lm.load_config()["suggest_online"])
+        n = SERVER.count("/photon")
+        win.search_entry.grab_focus()
+        win.search_entry.set_text("")
+        self.type_text(win.search_entry, "karl")
+        self.settle(0.5)
+        self.assertEqual(SERVER.count("/photon"), n)
+        self.assertEqual([r.place["name"] for r in sb.list.get_children()], ["Karlín", "Karlovo náměstí"])
+        self.assertFalse(sb.footer.get_visible())
 
     def test_geo_uri_dark_offline(self):
         win = self.window((20, 0, 1.6))
