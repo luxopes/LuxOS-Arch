@@ -13,7 +13,7 @@
 
 pkgname=luxos-maps
 pkgver=1.0.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxOS Maps - OpenStreetMap maps, place search, routes, public transport with live departures, nearby places, favorites and geo: links"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
