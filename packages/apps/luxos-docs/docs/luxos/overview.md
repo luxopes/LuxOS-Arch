@@ -8,9 +8,9 @@ started from.
 
 ## Version and codenames
 
-- Current version: **0.9.11 "Polaris"** (beta, 2026-10-24). The exact installed version is always in `/usr/lib/os-release`.
+- Current version: **1.0.0 "Sirius"** (test release from the staging channel, 2026-10-28; before it 0.9.x "Polaris"). The exact installed version is always in `/usr/lib/os-release`.
 - Single source of the version: `/usr/lib/os-release` (written by `luxos-branding`):
-  `ID=luxos`, `ID_LIKE=arch`, `VERSION_ID=0.9.11`, `PRETTY_NAME="LuxOS … Polaris"`, `BUILD_ID` =
+  `ID=luxos`, `ID_LIKE=arch`, `VERSION_ID=1.0.0`, `PRETTY_NAME="LuxOS … Sirius"`, `BUILD_ID` =
   build day. `/etc/os-release` links to it. The same version appears in About This Computer,
   fastfetch and the ISO name.
 - Numbering `X.Y.Z`: `Y` grows with every new ISO, `Z` with bug-fix releases. Every major version

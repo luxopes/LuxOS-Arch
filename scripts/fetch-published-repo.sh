@@ -2,6 +2,7 @@
 # LuxOS - stazeni zverejnenych (podepsanych) repozitaru [luxos] a [luxos-apps] do out/repo
 #
 #   scripts/fetch-published-repo.sh [URL]     vychozi https://luxos.lux-ai.cz/repo
+#                                             (testovaci kanal: https://luxos.lux-ai.cz/staging)
 #
 # Pro sestaveni ISO na GitHub Actions: baliky se podepisuji jen na pocitaci spravce (soukromy klic
 # LuxOS nikdy neni na GitHubu), workflow z nich pak postavi ISO (./build.sh iso). Seznam souboru

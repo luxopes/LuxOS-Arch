@@ -33,8 +33,24 @@ ENGINE_BIN = "/usr/lib/lux/alpm/bin"
 ENGINE = ENGINE_BIN + "/lux-engine"
 LUX_ALPM = "/usr/lib/lux/lux_alpm.py"
 ENGINE_ENV = dict(os.environ, PATH=ENGINE_BIN + ":" + os.environ.get("PATH", "/usr/local/sbin:/usr/local/bin:/usr/bin"))
-LUX_INDEX_URL = os.environ.get("LUX_INDEX_URL", "https://luxos.lux-ai.cz/repo/lux")
-APPS_ICON_URL = "https://luxos.lux-ai.cz/repo/luxos-apps/x86_64/icons"
+
+
+def channel_urls(*urls):
+    """Adresy na serveru LuxOS v kanalu aktualizaci z /etc/lux/lux.conf ([general] channel = "staging" ->
+    https://luxos.lux-ai.cz/staging/...); bez lux-config nebo s chybou v konfiguraci beze zmeny."""
+    try:
+        if "/usr/lib/lux" not in sys.path:
+            sys.path.append("/usr/lib/lux")
+        import lux_config
+        ch = lux_config.parse(lux_config.LUX_CONF).get("channel")
+        return [lux_config.channel_url(u, ch) for u in urls]
+    except Exception:
+        return list(urls)
+
+
+_INDEX_URL, APPS_ICON_URL = channel_urls("https://luxos.lux-ai.cz/repo/lux",
+                                         "https://luxos.lux-ai.cz/repo/luxos-apps/x86_64/icons")
+LUX_INDEX_URL = os.environ.get("LUX_INDEX_URL") or _INDEX_URL
 ICON_CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "luxos-store/icons")
 ICON_SIZE = 56
 # Flathub: vyhledani a velikosti pres lux (API Flathubu, funguje i bez nainstalovaneho flatpaku)

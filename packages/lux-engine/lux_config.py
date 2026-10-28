@@ -43,6 +43,7 @@ funkcni engine.conf zustava (lux sam odmitne pokracovat).
   lux-config update-servers [--config F]             stara adresa repozitaru LuxOS -> nova (po aktualizaci)
   lux-config enable-repo NAZEV [--mirrors F|--server URL] [--config F]   prida repozitar
   lux-config has-repo NAZEV [--config F]             0 = repozitar je nastaven
+  lux-config set-channel stable|staging [--config F] [--root DIR]   kanal aktualizaci ([general] channel)
 """
 import difflib
 import glob
@@ -103,6 +104,8 @@ GLOBAL_KEYS = {
     "review-pkgbuild": ("bool", None, False),
     "flatpak": ("bool", None, False),
     "clean-keep": ("int0", None, False),
+    # kanal aktualizaci LuxOS: stable (vydani) | staging (testovaci sestaveni pred vydanim)
+    "channel": ("channel", None, False),
 }
 REPO_KEYS = {
     "server": ("url", True),
@@ -115,10 +118,16 @@ DEFAULTS = {
     "architecture": "auto", "parallel-downloads": "10", "signatures": "required", "local-signatures": "optional",
     "color": "on", "candy": "on", "check-space": "on", "verbose-lists": "on", "syslog": "off",
     "download-timeout": "on", "download-sandbox": "on", "download-user": "alpm", "protect": "lux-engine glibc",
-    "aur": "on", "review-pkgbuild": "on", "flatpak": "on", "clean-keep": "2",
+    "aur": "on", "review-pkgbuild": "on", "flatpak": "on", "clean-keep": "2", "channel": "stable",
 }
 CLI_SHELL = {"aur": "AUR", "review-pkgbuild": "REVIEW_PKGBUILD", "flatpak": "FLATPAK", "clean-keep": "CLEAN_KEEP"}
 LEGACY_SHELL = {v: k for k, v in CLI_SHELL.items()}   # lux.conf do LuxOS 0.9.5 (AUR=1 ...)
+
+# Kanaly aktualizaci: repozitare LuxOS (adresa zacina LUXOS_REPO_PREFIX) se ve "staging" ctou z testovaciho
+# kanalu (na serveru odkaz staging misto current). Repozitare Arch Linuxu a vlastni repozitare beze zmeny.
+LUXOS_REPO_PREFIX = "https://luxos.lux-ai.cz/repo/"
+CHANNEL_PREFIX = {"stable": LUXOS_REPO_PREFIX, "staging": "https://luxos.lux-ai.cz/staging/"}
+CHANNELS = tuple(CHANNEL_PREFIX)
 
 
 class ConfigError(Exception):
@@ -201,6 +210,10 @@ def _check_value(kind, key, val, file, ln):
         if bad:
             raise ConfigError(f"unknown usage '{bad[0]}' (use: sync search install upgrade all)", file, ln)
         return " ".join(w.lower() for w in words)
+    if kind == "channel":
+        if val.lower() not in CHANNELS:
+            raise ConfigError(f"{q} must be stable or staging, not '{val}'", file, ln)
+        return val.lower()
     if kind in ("word", "path", "url"):
         if len(words) != 1:
             raise ConfigError(f"{q} takes one value, got {len(words)}", file, ln)
@@ -252,7 +265,7 @@ def read_mirrorlist_text(text, file="mirrorlist"):
 # kazdy klic stareho formatu ma presne jedno misto v TOML.
 TOML_TABLES = {
     "general": {"architecture": "architecture", "color": "color", "candy": "candy",
-                "verbose": "verbose-lists", "syslog": "syslog"},
+                "verbose": "verbose-lists", "syslog": "syslog", "channel": "channel"},
     "downloads": {"parallel": "parallel-downloads", "check_space": "check-space", "user": "download-user",
                   "timeout": "download-timeout", "sandbox": "download-sandbox"},
     "security": {"signatures": "signatures", "local_signatures": "local-signatures", "protect": "protect"},
@@ -582,7 +595,7 @@ def typed_value(ik, val):
 
 TOML_HEADER = ["# LuxOS Package Manager", "# Configuration: /etc/lux/lux.conf"]
 # klice, ktere vychozi lux.conf vypisuje vzdy (ostatni jen kdyz jsou nastavene)
-TEMPLATE_KEYS = {"general": ("architecture", "color", "candy", "verbose"),
+TEMPLATE_KEYS = {"general": ("architecture", "color", "candy", "verbose", "channel"),
                  "downloads": ("parallel", "check_space", "user"),
                  "security": ("signatures", "local_signatures", "protect"),
                  "packages": ("aur", "review_pkgbuild", "flatpak", "cache_keep")}
@@ -709,7 +722,24 @@ def parse(path=LUX_CONF, root="", cfg=None, depth=0, file_label=None, text=None)
         _parse_old(text, path, label, root, cfg, depth)
     if depth == 0:
         validate(cfg)
+        apply_channel(cfg)
     return cfg
+
+
+def channel_url(url, channel):
+    """Adresa repozitare LuxOS v danem kanalu (https://luxos.lux-ai.cz/repo/... -> .../staging/...).
+    Jine adresy (Arch Linux, vlastni repozitare, zrcadla) beze zmeny."""
+    if channel in CHANNEL_PREFIX and url.startswith(LUXOS_REPO_PREFIX):
+        return CHANNEL_PREFIX[channel] + url[len(LUXOS_REPO_PREFIX):]
+    return url
+
+
+def apply_channel(cfg):
+    """[general] channel: adresy repozitaru LuxOS pro vsechny, kdo konfiguraci ctou (lux pres libalpm,
+    /run/lux/engine.conf pro lux-engine a makepkg, lux-config json, lux system, LuxOS Care, Obchod)."""
+    ch = cfg.get("channel")
+    for r in cfg.repos:
+        r.servers = [(channel_url(u, ch), o) for u, o in r.servers]
 
 
 def _include(pat, path, root, cfg, depth, label, ln):
@@ -1754,6 +1784,40 @@ def enable_repo(name, conf=LUX_CONF, mirrors=None, server=None):
     return True
 
 
+def set_channel_text(text, channel):
+    """Text lux.conf s [general] channel = KANAL (oba formaty; ostatni radky beze zmeny)."""
+    if detect_format(text) == "toml":
+        return toml_set(text, "general", "channel", channel)
+    pat = re.compile(r"^channel[ \t]+\S+([ \t]*#.*)?$", re.M)
+    if pat.search(text):
+        return pat.sub(lambda m: f"channel {channel}" + (m.group(1) or ""), text)
+    lines = text.split("\n")
+    # pred prvni blok "repo"/"include" (globalni klice jsou nahore)
+    pos = next((i for i, ln in enumerate(lines) if re.match(r"^(repo|include)\s", ln)), len(lines))
+    while pos > 0 and lines[pos - 1].lstrip().startswith("#"):
+        pos -= 1
+    lines.insert(pos, f"channel {channel}")
+    return "\n".join(lines)
+
+
+def set_channel(channel, conf=LUX_CONF, root=""):
+    """Prepne kanal aktualizaci v lux.conf (lux system, lux-config set-channel). Vraci True pri zmene.
+    Kanal z conf.d ma prednost - pak se zmena hlavniho souboru neprojevi (ConfigError)."""
+    if channel not in CHANNELS:
+        raise ConfigError(f"unknown update channel '{channel}' (use: {' or '.join(CHANNELS)})")
+    real = _prefixed(root, conf)
+    with open(real, encoding="utf-8") as f:
+        text = f.read()
+    new = set_channel_text(text, channel)
+    cfg = parse(conf, root, text=new)       # kontrola pred zapisem
+    if cfg.get("channel") != channel:
+        raise ConfigError("the update channel is set in an included file (conf.d); change it there", conf)
+    if new == text:
+        return False
+    atomic_write(real, new, os.stat(real).st_mode & 0o7777)
+    return True
+
+
 def _opt(args, name, default=None):
     if name in args:
         i = args.index(name)
@@ -1768,7 +1832,7 @@ def _opt(args, name, default=None):
 CLI_USAGE = """usage: lux-config COMMAND [--config FILE]  (used by lux; settings: lux config)
   ensure [-q] [--output F] | check [FILE...] | migrate [FILE...] [--dry-run] | env | get KEY | json | dump
   mirrors-import [FILE|-] [--output F] | convert-pacman FILE | update-servers
-  enable-repo NAME [--mirrors F|--server URL] | has-repo NAME"""
+  enable-repo NAME [--mirrors F|--server URL] | has-repo NAME | set-channel stable|staging [--root DIR]"""
 
 
 def main(argv):
@@ -1805,6 +1869,9 @@ def main(argv):
                           "lux config migrate", file=sys.stderr)
                 print(f"{f}: OK" + (f" ({len(cfg.warnings)} warning{'s' if len(cfg.warnings) != 1 else ''})"
                                     if cfg.warnings else ""))
+                ch = cfg.get("channel")
+                print(f"update channel: {ch}" + (" (test builds before a release - for testers)"
+                                                 if ch == "staging" else ""))
             return rc
         if cmd == "migrate":
             dry = "--dry-run" in args
@@ -1843,6 +1910,7 @@ def main(argv):
                 v = vals[k]
                 print(f"{var}={'1' if v == 'on' else '0' if v == 'off' else v}")
             print(f"LUX_ENGINE_CONF={path}")
+            print(f"LUX_CHANNEL={_cfg.get('channel')}")
             return 0
         if cmd == "get":
             vals, cfg = cli_settings(conf)
@@ -1882,6 +1950,13 @@ def main(argv):
                 sys.stdout.write(data)
             else:
                 atomic_write(out, data)
+            return 0
+        if cmd == "set-channel":
+            root = _opt(args, "--root", "")         # instalator: lux.conf ciloveho systemu
+            if not args:
+                raise IndexError("set-channel needs stable or staging")
+            if set_channel(args[0], conf, root=root):
+                print(f"lux-config: update channel {args[0]} set in {_prefixed(root, conf)}")
             return 0
         if cmd == "update-servers":
             if update_moved_servers(conf):

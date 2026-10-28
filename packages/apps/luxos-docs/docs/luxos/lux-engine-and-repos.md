@@ -127,6 +127,8 @@ architecture = "auto"
 color = true
 candy = true
 verbose = true
+# updates: "stable" (releases) | "staging" (test builds before a release - for testers)
+channel = "stable"
 
 [downloads]
 parallel = 10
@@ -182,6 +184,14 @@ manually `sudo /usr/lib/lux/lux-config enable-repo multilib`. Own repositories g
 `/etc/lux/conf.d/NAME.conf` (`[repo.NAME]` + `server = "…"`).
 `[luxos]`/`[luxos-apps]` are listed before Arch's repos, so LuxOS versions win on name clashes.
 An overview page of the repos is at `https://luxos.lux-ai.cz/repo/`.
+
+With `channel = "staging"` in `[general]` every server starting with `https://luxos.lux-ai.cz/repo/`
+(`[luxos]`, `[luxos-apps]`, `[luxos-drivers]`, the `.lux` repo, Store icons) is read from
+`https://luxos.lux-ai.cz/staging/` instead - the test channel before a release. The file keeps the
+`/repo/` addresses; lux, `/run/lux/engine.conf` (lux-engine, makepkg), `lux-config json`, LuxOS Care
+and the Store all apply the channel. Arch and own repositories are never changed. On the server
+`staging` is a second link next to `current` (`scripts/publish-repo.sh` with
+`LUXOS_REPO_CHANNEL=staging`, `scripts/promote-staging.sh` makes it the release).
 
 The live ISO installs LuxOS packages from a local copy at `/opt/luxos-repo` (`file://` servers);
 the installed system uses the online servers above.

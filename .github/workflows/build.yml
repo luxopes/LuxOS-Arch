@@ -14,6 +14,10 @@
 #             production", plati 30 dni, soukromy klic zanika s kontejnerem); luxos-keyring v ISO
 #             veri klici LuxOS i testovacimu, os-release ma VARIANT="TEST build".
 #             -> artefakt "iso-test" (luxos-VERZE-TEST-COMMIT-x86_64.iso, SHA256SUMS, verejny testovaci klic), 7 dni
+#   channel:  kanal aktualizaci ISO (iso, iso-test). stable = repozitare https://luxos.lux-ai.cz/repo (vydani),
+#             staging = neverejny testovaci kanal https://luxos.lux-ai.cz/staging: target iso stahne baliky
+#             odtud a live i nainstalovany system ma v /etc/lux/lux.conf channel = "staging"
+#             (LUXOS_CHANNEL=staging). Nazev ISO je stejny (luxos-VERZE-x86_64.iso, bez TEST).
 name: Build
 
 on:
@@ -28,12 +32,17 @@ on:
         description: "Package for target 'one' (directory in packages/ or packages/apps/); for 'drivers' space-separated pkgbases (empty = all verified)"
         type: string
         default: ""
+      channel:
+        description: "Update channel of the ISO (iso, iso-test): stable = published releases, staging = test builds before a release"
+        type: choice
+        options: [stable, staging]
+        default: stable
 
 permissions:
   contents: read
 
 concurrency:
-  group: build-${{ inputs.target }}
+  group: build-${{ inputs.target }}-${{ inputs.channel }}
   cancel-in-progress: false
 
 jobs:
@@ -59,13 +68,20 @@ jobs:
 
       - name: Signed packages from luxos.lux-ai.cz
         if: inputs.target == 'iso'
-        run: scripts/fetch-published-repo.sh
+        run: |
+          if [ "${{ inputs.channel }}" = staging ]; then
+            scripts/fetch-published-repo.sh https://luxos.lux-ai.cz/staging
+          else
+            scripts/fetch-published-repo.sh
+          fi
 
       - name: Build
         env:
           # ./build.sh packages stahuje jadro z luxopes/luxos-kernel (gh + overeni attestace)
           GH_TOKEN: ${{ github.token }}
           PKG: ${{ inputs.package }}
+          # kanal aktualizaci live a nainstalovaneho systemu (jen ISO; build.sh ho preda do kontejneru)
+          LUXOS_CHANNEL: ${{ (inputs.target == 'iso' || inputs.target == 'iso-test') && inputs.channel || '' }}
         run: |
           if [ "${{ inputs.target }}" = one ]; then
             case "$PKG" in ''|*[!A-Za-z0-9._+-]*) echo "Bad package name: '$PKG'" >&2; exit 1 ;; esac

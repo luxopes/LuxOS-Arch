@@ -254,7 +254,7 @@ class Ensure(Base):
             f.write(text.replace("parallel = 10", "parallel = 0"))
         path, state, err = self.ensure()
         self.assertEqual((path, state), (self.out, "stale"))
-        self.assertIn("lux.conf:11: 'parallel' in [downloads] must be a whole number of at least 1", err)
+        self.assertIn("lux.conf:13: 'parallel' in [downloads] must be a whole number of at least 1", err)
         self.assertIn("last working configuration", err)
         with open(self.out) as f:
             self.assertEqual(f.read(), good)
@@ -359,7 +359,7 @@ class Wrapper(Base):
                    LUX_CONFIG_TOOL=self.tool, WRAP_LOG=self.log)
         r = subprocess.run([os.path.join(self.bin, "lux-engine"), "-Q"], capture_output=True, text=True, env=env)
         self.assertEqual(r.returncode, 1)
-        self.assertIn("lux.conf:49: Expected '=' after a key", r.stderr)
+        self.assertIn("lux.conf:51: Expected '=' after a key", r.stderr)
 
 
 class Convert(Base):
@@ -560,7 +560,7 @@ class Toml(Base):
     def test_default_config_values(self):
         d = lc.load("/etc/lux/lux.conf", root=self.root)
         self.assertEqual(d["general"], {"architecture": "auto", "color": True, "candy": True, "verbose": True,
-                                        "syslog": False})
+                                        "syslog": False, "channel": "stable"})
         self.assertEqual(d["downloads"], {"parallel": 10, "check_space": True, "user": "alpm", "timeout": True,
                                           "sandbox": True})
         self.assertEqual(d["security"], {"signatures": "required", "local_signatures": "optional",
@@ -761,7 +761,7 @@ class Toml(Base):
         r = subprocess.run([sys.executable, os.path.join(PKG, "lux_config.py"), "check", conf],
                            capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("lux.conf:25: unknown key 'keep' in [packages]", r.stderr)
+        self.assertIn("lux.conf:27: unknown key 'keep' in [packages]", r.stderr)
         self.assertIn("lux.conf: OK (1 warning)", r.stdout)
         with open(conf, "w") as f:
             f.write(read(OLD_DEFAULT).replace("/etc/lux/", self.path("etc/lux/")))
@@ -774,6 +774,127 @@ class Toml(Base):
             r = subprocess.run([sys.executable, os.path.join(PKG, "lux_config.py"), "get", key, "--config", conf],
                                capture_output=True, text=True, env=dict(os.environ, XDG_CONFIG_HOME=self.path("none")))
             self.assertEqual(r.stdout.strip(), want, key)
+
+
+class Channel(Base):
+    """[general] channel: stable (vydani) | staging (testovaci kanal) - adresy repozitaru LuxOS pro vsechny."""
+    STAGING = "https://luxos.lux-ai.cz/staging/$repo/$arch"
+    STABLE = "https://luxos.lux-ai.cz/repo/$repo/$arch"
+
+    def staging_text(self):
+        return read(os.path.join(PKG, "lux.conf")).replace('channel = "stable"', 'channel = "staging"')
+
+    def test_default_is_stable(self):
+        cfg = self.parse()
+        self.assertEqual(cfg.get("channel"), "stable")
+        for name in ("luxos", "luxos-apps", "luxos-drivers"):
+            self.assertEqual([u for u, _o in cfg.repo(name).servers], [self.STABLE])
+        # bez klice (lux.conf LuxOS 0.9.x) taky stable
+        cfg = self.parse(read(os.path.join(PKG, "lux.conf")).replace('channel = "stable"\n', ""))
+        self.assertEqual(cfg.get("channel"), "stable")
+        self.assertEqual(lc.to_dict(cfg)["general"]["channel"], "stable")
+
+    def test_staging_rewrites_only_luxos_repos(self):
+        text = self.staging_text() + '\n[repo.mine]\nserver = "https://example.org/$repo/$arch"\n'
+        cfg = self.parse(text)
+        self.assertEqual(cfg.get("channel"), "staging")
+        d = lc.to_dict(cfg)
+        self.assertEqual(d["general"]["channel"], "staging")
+        repos = {r["name"]: r for r in d["repos"]}
+        for name in ("luxos", "luxos-apps", "luxos-drivers"):
+            self.assertEqual(repos[name]["servers"], [self.STAGING])
+            self.assertEqual(repos[name]["server"], [self.STAGING])
+        self.assertEqual(repos["mine"]["servers"], ["https://example.org/$repo/$arch"])
+        self.assertTrue(all("luxos.lux-ai.cz" not in u for u in repos["core"]["servers"]))
+        # lux (libalpm primo) pouziva engine_options
+        _opts, erepos = lc.engine_options(cfg)
+        self.assertEqual({r["name"]: r["Server"] for r in erepos}["luxos"], [self.STAGING])
+
+    def test_staging_from_conf_d_applies_to_main_file_repos(self):
+        self.write("etc/lux/conf.d/zz-test.conf", '[general]\nchannel = "staging"\n')
+        cfg = self.parse()
+        self.assertEqual([u for u, _o in cfg.repo("luxos").servers], [self.STAGING])
+
+    def test_old_format_and_bad_value(self):
+        text = read(OLD_DEFAULT)
+        cfg = self.parse("channel staging\n" + text)
+        self.assertEqual([u for u, _o in cfg.repo("luxos").servers], [self.STAGING])
+        self.assertIn("'channel' in [general] must be stable or staging, not 'beta'",
+                      self.error(self.staging_text().replace('channel = "staging"', 'channel = "beta"')))
+        self.assertIn("'channel' must be stable or staging", self.error("channel beta\n" + text))
+
+    def test_channel_url(self):
+        self.assertEqual(lc.channel_url("https://luxos.lux-ai.cz/repo/lux", "staging"),
+                         "https://luxos.lux-ai.cz/staging/lux")
+        self.assertEqual(lc.channel_url("https://luxos.lux-ai.cz/repo/lux", "stable"),
+                         "https://luxos.lux-ai.cz/repo/lux")
+        self.assertEqual(lc.channel_url("https://mirror.example/repo/x", "staging"), "https://mirror.example/repo/x")
+
+    def test_engine_conf_generation(self):
+        conf = self.path("etc/lux/lux.conf")
+        with open(conf, "w") as f:
+            f.write(self.staging_text().replace("/etc/lux/", self.path("etc/lux/")))
+        out = self.path("run/lux/engine.conf")
+        path, state = lc.ensure(conf, out, err=None)
+        self.assertEqual((path, state), (out, "ok"))
+        text = read(out)
+        self.assertEqual(text.count(f"Server = {self.STAGING}\n"), 3)
+        self.assertNotIn("luxos.lux-ai.cz/repo/", text)
+        # zpet na stable (lux-config set-channel) -> nova konfigurace jadra
+        r = subprocess.run([sys.executable, os.path.join(PKG, "lux_config.py"), "set-channel", "stable",
+                            "--config", conf], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('channel = "stable"', read(conf))
+        self.assertFalse(lc.is_fresh(out))
+        lc.ensure(conf, out, err=None)
+        self.assertEqual(read(out).count(f"Server = {self.STABLE}\n"), 3)
+
+    def test_set_channel_keeps_file(self):
+        conf = self.path("etc/lux/lux.conf")
+        before = read(conf)
+        self.assertTrue(lc.set_channel("staging", "/etc/lux/lux.conf", root=self.root))
+        after = read(conf)
+        self.assertEqual(after, before.replace('channel = "stable"', 'channel = "staging"'))
+        self.assertFalse(lc.set_channel("staging", "/etc/lux/lux.conf", root=self.root))
+        # bez klice: doplni se do [general]
+        self.write("etc/lux/lux.conf", before.replace('channel = "stable"\n', ""))
+        lc.set_channel("staging", "/etc/lux/lux.conf", root=self.root)
+        self.assertEqual(self.parse().get("channel"), "staging")
+        self.assertIn('verbose = true\nchannel = "staging"\n', read(conf))
+        # stary format
+        self.write("etc/lux/lux.conf", read(OLD_DEFAULT))
+        lc.set_channel("staging", "/etc/lux/lux.conf", root=self.root)
+        self.assertEqual(self.parse().get("channel"), "staging")
+        self.assertEqual(lc.detect_format(read(conf)), "old")
+        lc.set_channel("stable", "/etc/lux/lux.conf", root=self.root)
+        self.assertEqual(read(conf).count("channel"), 1)
+        with self.assertRaises(lc.ConfigError):
+            lc.set_channel("beta", "/etc/lux/lux.conf", root=self.root)
+        # kanal v conf.d ma prednost: zmena hlavniho souboru by nic nezmenila -> chyba, nic se nezapise
+        self.write("etc/lux/conf.d/zz.conf", '[general]\nchannel = "staging"\n')
+        text = read(conf)
+        with self.assertRaises(lc.ConfigError):
+            lc.set_channel("stable", "/etc/lux/lux.conf", root=self.root)
+        self.assertEqual(read(conf), text)
+
+    def test_cli_check_and_env_show_channel(self):
+        conf = self.path("etc/lux/lux.conf")
+        with open(conf, "w") as f:
+            f.write(self.staging_text().replace("/etc/lux/", self.path("etc/lux/")))
+        r = subprocess.run([sys.executable, os.path.join(PKG, "lux_config.py"), "check", conf],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("update channel: staging", r.stdout)
+        env = dict(os.environ, XDG_CONFIG_HOME=self.path("none"), XDG_RUNTIME_DIR=self.path("run"))
+        os.makedirs(self.path("run"), exist_ok=True)
+        r = subprocess.run([sys.executable, os.path.join(PKG, "lux_config.py"), "get", "general.channel",
+                            "--config", conf], capture_output=True, text=True, env=env)
+        self.assertEqual(r.stdout.strip(), "staging")
+        r = subprocess.run([sys.executable, os.path.join(PKG, "lux_config.py"), "json", "--config", conf],
+                           capture_output=True, text=True, env=env)
+        d = json.loads(r.stdout)
+        self.assertEqual(d["general"]["channel"], "staging")
+        self.assertEqual([r["servers"] for r in d["repos"] if r["name"] == "luxos"], [[self.STAGING]])
 
 
 class Writers(Base):

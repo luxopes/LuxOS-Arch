@@ -48,6 +48,8 @@ architecture = "auto"
 color = true
 candy = true
 verbose = true
+# updates: "stable" (releases) | "staging" (test builds before a release - for testers)
+channel = "stable"
 
 [downloads]
 parallel = 10
@@ -94,6 +96,7 @@ repozitářem (a použije), ale `lux config check` napíše varování.
 | `[general]` | `architecture` | text nebo seznam (`"auto"`) | architektura balíků (`auto` = podle systému) |
 | | `color`, `candy`, `verbose` | `true` \| `false` (`true`) | barvy, pruh ve stylu Pac-Mana, podrobné seznamy |
 | | `syslog` | `true` \| `false` (`false`) | záznam i do systémového deníku |
+| | `channel` | `"stable"` \| `"staging"` (`"stable"`) | kanál aktualizací: ve `"staging"` (testovací sestavení před vydáním, pro testery) se adresy začínající `https://luxos.lux-ai.cz/repo/` čtou z `https://luxos.lux-ai.cz/staging/` (repozitáře LuxOS, balíky `.lux`, ikony Obchodu); soubor se nemění, Arch a vlastní repozitáře beze změny. Přepnutí: `updates.channel` v `system.lsl` + `sudo lux system apply`, nebo `lux-config set-channel`; `lux config check` ho ukáže |
 | `[downloads]` | `parallel` | číslo ≥ 1 (`10`) | kolik souborů se stahuje najednou |
 | | `check_space` | `true` \| `false` (`true`) | kontrola místa na disku |
 | | `user` | uživatel \| `"none"` (`"alpm"`) | pod kým se stahuje (bez práv roota) |
@@ -197,6 +200,7 @@ pořád čte – každý soubor (i v `conf.d`) se rozpozná sám; `lux config ch
 | `color`, `candy` | `[general] color`, `candy` | `review-pkgbuild` | `[packages] review_pkgbuild` |
 | `verbose-lists` | `[general] verbose` | `flatpak` | `[packages] flatpak` |
 | `syslog` | `[general] syslog` | `clean-keep` | `[packages] cache_keep` |
+| `channel` | `[general] channel` | | |
 | `parallel-downloads` | `[downloads] parallel` | `hold` | `[packages] hold` |
 | `check-space` | `[downloads] check_space` | `ignore-group` | `[packages] ignore_group` |
 | `download-user` | `[downloads] user` | `no-upgrade` | `[packages] no_upgrade` |

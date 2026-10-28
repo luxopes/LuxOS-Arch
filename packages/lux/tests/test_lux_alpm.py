@@ -289,7 +289,7 @@ class NativeConfig(unittest.TestCase):
         try:
             with self.assertRaises(lux_alpm.LuxError) as cm:
                 lux_alpm.load_engine_conf()
-            self.assertIn("lux.conf:11: 'parallel' in [downloads] must be a whole number", cm.exception.message)
+            self.assertIn("lux.conf:13: 'parallel' in [downloads] must be a whole number", cm.exception.message)
             with open(path, "w") as f:
                 f.write(self.default)
             self.assertEqual(lux_alpm.load_engine_conf().get("ParallelDownloads"), "10")

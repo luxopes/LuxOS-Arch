@@ -4391,3 +4391,10 @@ Voice Guidance	Gesproken aanwijzingen
 Waiting for your location…	Wachten op je locatie…
 You are off the route.	Je bent van de route af.
 You have arrived	Je bent aangekomen
+%s is missing; the update channel was not checked.	%s ontbreekt; het updatekanaal is niet gecontroleerd.
+Changing the update channel needs a newer lux-engine (lux update).	Het updatekanaal wijzigen vereist een nieuwere lux-engine (lux update).
+Update channel	Updatekanaal
+Update channel: "stable" = releases, "staging" = test builds before a release (for testers)	Updatekanaal: "stable" = uitgaven, "staging" = testversies vóór een uitgave (voor testers)
+must be "stable" or "staging"	moet "stable" of "staging" zijn
+update channel: %s	updatekanaal: %s
+Could not set the update channel %s in the installed system.	Het updatekanaal %s kon niet worden ingesteld in het geïnstalleerde systeem.
