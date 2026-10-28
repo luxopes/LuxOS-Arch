@@ -1,19 +1,51 @@
 diff --git a/include/settings.h b/include/settings.h
 --- a/include/settings.h
 +++ b/include/settings.h
-@@ -150,6 +150,8 @@
+@@ -150,6 +150,11 @@
    gboolean hover_select;
    /** LuxOS: hover-select jen zvyrazni, plynule posouvani nehybe pohledem (Launchpad) */
    gboolean hover_no_scroll;
 +  /** LuxOS: kb-custom-N ukonci rofi s navratovym kodem 9+N v kazdem rezimu (Launchpad) */
 +  gboolean custom_exit;
++  /** LuxOS: kb-custom-N spusti prikaz "CMD N" a drun se preradi podle nove
++   * historie bez zavreni okna (razeni Launchpadu) */
++  char *custom_resort;
    /** Lazy filter limit. */
    unsigned int lazy_filter_limit;
    /** Auto select. */
+diff --git a/include/view-internal.h b/include/view-internal.h
+--- a/include/view-internal.h
++++ b/include/view-internal.h
+@@ -114,6 +114,8 @@
+   unsigned int num_modes;
+   /** Array of #textbox that act as buttons for switching modes */
+   textbox **modes;
++  /** LuxOS: tlacitka (button-*) pro zvyrazneni zvoleneho razeni */
++  GList *luxos_buttons;
+ 
+   /** Total rows. */
+   textbox *tb_total_rows;
+diff --git a/include/modes/drun.h b/include/modes/drun.h
+--- a/include/modes/drun.h
++++ b/include/modes/drun.h
+@@ -38,6 +38,13 @@
+ #ifdef ENABLE_DRUN
+ /** #Mode object representing the desktop menu run dialog. */
+ extern Mode drun_mode;
++/**
++ * LuxOS: drun znovu nacte historii (rofi3.druncache) a preradi polozky na
++ * miste (razeni Launchpadu bez zavreni okna).
++ *
++ * @returns TRUE kdyz je drun nacteny a polozky byly prerazeny.
++ */
++gboolean drun_mode_luxos_resort(void);
+ #endif // ENABLE_DRUN
+ /**@}*/
+ #endif // ROFI_MODE_DRUN_H
 diff --git a/source/xrmoptions.c b/source/xrmoptions.c
 --- a/source/xrmoptions.c
 +++ b/source/xrmoptions.c
-@@ -323,6 +323,13 @@
+@@ -323,6 +323,20 @@
       "Continuous scrolling keeps the view while the selection is visible "
       "(hover only highlights, the wheel scrolls the view)",
       CONFIG_DEFAULT},
@@ -24,18 +56,169 @@ diff --git a/source/xrmoptions.c b/source/xrmoptions.c
 +     "Custom keybindings (and buttons with a kb-custom action) exit with "
 +     "code 9+N in every mode",
 +     CONFIG_DEFAULT},
++    {xrm_String,
++     "custom-resort",
++     {.str = &config.custom_resort},
++     NULL,
++     "Custom keybindings run '<command> N'; on success drun re-reads its "
++     "history and re-sorts in place (window stays open)",
++     CONFIG_DEFAULT},
      {xrm_SNumber,
       "eh",
       {.snum = &config.element_height},
+diff --git a/source/modes/drun.c b/source/modes/drun.c
+--- a/source/modes/drun.c
++++ b/source/modes/drun.c
+@@ -1319,6 +1319,26 @@
+   }
+ }
+ 
++/** LuxOS: nacteny drun pro drun_mode_luxos_resort() */
++static DRunModePrivateData *luxos_drun_pd = NULL;
++
++gboolean drun_mode_luxos_resort(void) {
++  DRunModePrivateData *pd = luxos_drun_pd;
++  if (pd == NULL || pd->entry_list == NULL) {
++    return FALSE;
++  }
++  // Vse mimo historii (zaporny index = abecedne), pak index podle nove
++  // historie a stejne razeni jako pri nacteni
++  for (size_t i = 0; i < pd->cmd_list_length; i++) {
++    pd->entry_list[i].sort_index = -1;
++  }
++  get_apps_history(pd);
++  g_qsort_with_data(pd->entry_list, pd->cmd_list_length, sizeof(DRunModeEntry),
++                    drun_int_sort_list, NULL);
++  TICK_N("LuxOS resort done");
++  return TRUE;
++}
++
+ static int drun_mode_init(Mode *sw) {
+   if (mode_get_private_data(sw) != NULL) {
+     return TRUE;
+@@ -1327,6 +1347,7 @@
+   pd->disabled_entries =
+       g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+   mode_set_private_data(sw, (void *)pd);
++  luxos_drun_pd = pd;
+   // current desktop
+   const char *current_desktop = g_getenv("XDG_CURRENT_DESKTOP");
+   pd->current_desktop_list =
+@@ -1478,6 +1499,9 @@
+ static void drun_mode_destroy(Mode *sw) {
+   DRunModePrivateData *rmpd = (DRunModePrivateData *)mode_get_private_data(sw);
+   if (rmpd != NULL) {
++    if (luxos_drun_pd == rmpd) {
++      luxos_drun_pd = NULL;
++    }
+     for (size_t i = 0; i < rmpd->cmd_list_length; i++) {
+       drun_entry_clear(&(rmpd->entry_list[i]));
+     }
 diff --git a/source/view.c b/source/view.c
 --- a/source/view.c
 +++ b/source/view.c
-@@ -1139,6 +1139,14 @@
+@@ -53,6 +53,9 @@
+ #include "view-internal.h"
+ #include "view.h"
+ 
++#include "modes/drun.h"
++#include <sys/wait.h>
++
+ #include "theme.h"
+ 
+ #ifdef ENABLE_XCB
+@@ -365,6 +368,7 @@
+   // When state is free'ed we should no longer need these.
+   g_free(state->modes);
+   state->num_modes = 0;
++  g_list_free(state->luxos_buttons);
+   g_free(state);
+ }
+ 
+@@ -984,6 +988,71 @@
+ }
+ #endif
+ 
++/**
++ * LuxOS (-custom-resort): kb-custom-N (tlacitko razeni / Alt+N v Launchpadu)
++ * spusti "CMD N" (pripravi novou historii drun a ulozi volbu), drun se podle
++ * ni preradi, seznam se znovu vyfiltruje s puvodnim textem a vybrana je
++ * prvni polozka. Okno se nezavira (zadne bliknuti).
++ *
++ * @returns FALSE pri chybe (volajici pak pouzije -custom-exit)
++ */
++static gboolean luxos_resort(RofiViewState *state, unsigned int index) {
++#ifdef ENABLE_DRUN
++  gint argc = 0;
++  gchar **argv = NULL;
++  GError *error = NULL;
++  if (!g_shell_parse_argv(config.custom_resort, &argc, &argv, &error)) {
++    g_warning("custom-resort: %s", error->message);
++    g_error_free(error);
++    return FALSE;
++  }
++  gchar **args = g_new0(gchar *, argc + 2);
++  for (gint i = 0; i < argc; i++) {
++    args[i] = argv[i];
++  }
++  args[argc] = g_strdup_printf("%u", index + 1);
++  gint status = 0;
++  gboolean ok = g_spawn_sync(NULL, args, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
++                             NULL, NULL, &status, &error);
++  g_free(args[argc]);
++  g_free(args);
++  g_strfreev(argv);
++  if (!ok) {
++    g_warning("custom-resort: %s", error->message);
++    g_error_free(error);
++    return FALSE;
++  }
++  if (!WIFEXITED(status) || WEXITSTATUS(status) != 0 ||
++      !drun_mode_luxos_resort()) {
++    return FALSE;
++  }
++  // Zvyrazneni zvoleneho tlacitka: stav "selected", ostatni "alternate"
++  // (button-sort-X selected / alternate v motivu)
++  gchar *want = g_strdup_printf("kb-custom-%u", index + 1);
++  for (GList *iter = state->luxos_buttons; iter != NULL; iter = iter->next) {
++    textbox *t = (textbox *)iter->data;
++    const char *a = rofi_theme_get_string(WIDGET(t), "action", NULL);
++    if (a != NULL && g_str_has_prefix(a, "kb-custom-")) {
++      textbox_font(t, g_strcmp0(a, want) == 0 ? HIGHLIGHT : ALT);
++    }
++  }
++  g_free(want);
++  // Stejny hledany text, nove poradi, vybrana prvni polozka
++  state->selected_line = UINT32_MAX;
++  state->refilter = TRUE;
++  rofi_view_refilter_force(state);
++  if (state->list_view) {
++    listview_set_selected(state->list_view, 0);
++  }
++  rofi_view_queue_redraw();
++  return TRUE;
++#else
++  (void)state;
++  (void)index;
++  return FALSE;
++#endif
++}
++
+ static void rofi_view_trigger_global_action(KeyBindingAction action) {
+   RofiViewState *state = rofi_view_get_active();
+   switch (action) {
+@@ -1139,6 +1208,20 @@
      if (selected < state->filtered_lines) {
        (state->selected_line) = state->line_map[selected];
      }
++    // LuxOS (-custom-resort): preradit na miste, okno zustane otevrene
++    if (config.custom_resort != NULL &&
++        luxos_resort(state, (unsigned int)(action - CUSTOM_1))) {
++      break;
++    }
 +    // LuxOS (-custom-exit): tlacitka razeni v Launchpadu (drun/combi jinak
 +    // vlastni klavesy jen prepinaji rezim) - konec s kodem 10..28
++    // (i jako zaloha, kdyz prerazeni na miste selze)
 +    if (config.custom_exit) {
 +      rofi_set_return_code(10 + (int)(action - CUSTOM_1));
 +      state->retv = MENU_CANCEL;
@@ -45,6 +228,14 @@ diff --git a/source/view.c b/source/view.c
      state->retv = MENU_CUSTOM_COMMAND | ((action - CUSTOM_1) & MENU_LOWER_MASK);
      state->quit = TRUE;
      break;
+@@ -1762,6 +1845,7 @@
+     box_add((box *)parent_widget, WIDGET(t), TRUE);
+     widget_set_trigger_action_handler(WIDGET(t), textbox_button_trigger_action,
+                                       state);
++    state->luxos_buttons = g_list_append(state->luxos_buttons, t);
+   } else if (g_ascii_strncasecmp(name, "icon", 4) == 0) {
+     icon *t = icon_create(parent_widget, name);
+     /* small hack to make it clickable */
 diff --git a/source/xcb/view.c b/source/xcb/view.c
 --- a/source/xcb/view.c
 +++ b/source/xcb/view.c
