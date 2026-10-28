@@ -26,6 +26,7 @@ from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
 UP = "org.freedesktop.UPower"
 DEMO = os.environ.get("LUXOS_POWER_DEMO") == "1"
+STATE_UNKNOWN = 0
 STATE_CHARGING, STATE_DISCHARGING, STATE_EMPTY, STATE_FULL, STATE_PENDING_CHARGE = 1, 2, 3, 4, 5
 PM = "xfce4-power-manager"
 SAVER_STATE = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver")
@@ -169,8 +170,9 @@ class Battery:
             return demo_info()
         return self.props(self.path) if self.path else None
 
-    def history(self, kind, span=86400, points=240):
-        """[(cas_s, hodnota, stav)] od nejstarsiho; kind = charge | rate."""
+    def history(self, kind, span=86400, points=0):
+        """[(cas_s, hodnota, stav)] od nejstarsiho; kind = charge | rate. points=0: surove zaznamy
+        (prevzorkovani upower prumeruje pres mezery a vyrabi sikme cary)."""
         if DEMO:
             return demo_history(kind)
         if not self.path:
@@ -179,9 +181,41 @@ class Battery:
             r = self.bus.call_sync(UP, self.path, UP + ".Device", "GetHistory",
                                    GLib.Variant("(suu)", (kind, span, points)), GLib.VariantType("(a(udu))"),
                                    0, 3000, None)
-            return sorted(r.unpack()[0])
+            return clean_history(r.unpack()[0], kind, self.info() or {})
         except GLib.Error:
             return []
+
+
+def clean_history(raw, kind, info, now=None, gap=2 * 3600):
+    """Zaznamy upower -> body grafu. upower pri kazdem startu zapise 0 se stavem "unknown" (neni to
+    vybiti) a zapisuje jen zmeny: hodnota plati az do dalsiho zaznamu (schody), posledni do ted.
+    None = preruseni cary (vypnuty pocitac: zaznam "unknown" nebo mezera bez zmeny u vybijeni)."""
+    now = time.time() if now is None else now
+    out, last = [], None
+    for t, v, st in sorted(raw):
+        if st == STATE_UNKNOWN:
+            if out and out[-1] is not None:
+                out.append(None)
+            last = None
+            continue
+        if last is not None:
+            lt, lv, lst = last
+            # vybijeni se meni porad - dlouha mezera bez zaznamu = pocitac byl vypnuty nebo uspany
+            if lst == STATE_DISCHARGING and t - lt > gap:
+                out.append(None)
+            else:
+                out.append((t, lv, lst))
+        out.append((t, v, st))
+        last = (t, v, st)
+    if last is not None:
+        cur = info.get("Percentage") if kind == "charge" else info.get("EnergyRate")
+        state = info.get("State", last[2])
+        out.append((now, last[1], last[2]))
+        if cur is not None and state != STATE_UNKNOWN:
+            out.append((now, float(cur), state))
+    while out and out[-1] is None:
+        out.pop()
+    return out
 
 
 def demo_info():
@@ -227,7 +261,7 @@ class HistoryChart(Gtk.DrawingArea):
         cw, ch = w - left - 6, h - bottom - top
         cr.select_font_face("Inter", 0, 0)
         cr.set_font_size(10)
-        maximum = 100.0 if self.kind == "charge" else max([v for _t, v, _s in self.points] + [5.0]) * 1.15
+        maximum = 100.0 if self.kind == "charge" else max([p[1] for p in self.points if p] + [5.0]) * 1.15
         # mrizka a popisky osy Y
         for i in range(5):
             y = top + ch * i / 4
@@ -250,7 +284,7 @@ class HistoryChart(Gtk.DrawingArea):
             ext = cr.text_extents(text)
             cr.move_to(min(max(x - ext.x_advance / 2, left), left + cw - ext.x_advance), h - 4)
             cr.show_text(text)
-        if len(self.points) < 2:
+        if len([p for p in self.points if p]) < 2:
             cr.set_source_rgba(*fg_color(widget, 0.5))
             cr.set_font_size(12)
             msg = _("No history yet")
@@ -262,21 +296,37 @@ class HistoryChart(Gtk.DrawingArea):
         def xy(t, v):
             return left + cw * (t - start) / 86400, top + ch * (1 - min(v / maximum, 1))
 
-        pts = [(xy(t, v), s) for t, v, s in self.points if t >= start]
-        if len(pts) < 2:
+        # useky bez preruseni (None = vypnuty pocitac); bod pred zacatkem okna se orizne na start
+        segs, cur = [], []
+        for p in self.points:
+            if p is None:
+                if cur:
+                    segs.append(cur)
+                cur = []
+                continue
+            t, v, s = p
+            cur.append((xy(max(t, start), v), s))
+        if cur:
+            segs.append(cur)
+        segs = [sg for sg in segs if sg and sg[-1][0][0] >= left]
+        if not segs:
             return
         base = COLORS["cpu"] if self.kind == "rate" else COLORS["battery"]
         # vypln pod krivkou
-        cr.move_to(pts[0][0][0], top + ch)
-        for (px, py), _s in pts:
-            cr.line_to(px, py)
-        cr.line_to(pts[-1][0][0], top + ch)
-        cr.close_path()
+        for sg in segs:
+            cr.move_to(sg[0][0][0], top + ch)
+            for (px, py), _s in sg:
+                cr.line_to(px, py)
+            cr.line_to(sg[-1][0][0], top + ch)
+            cr.close_path()
         cr.set_source_rgba(*rgb(base, 0.18))
         cr.fill()
+        pts = [q for sg in segs for q in sg + [None]][:-1]
         # useky nabijeni (jen graf urovne)
         if self.kind == "charge":
             for i in range(1, len(pts)):
+                if pts[i] is None or pts[i - 1] is None:
+                    continue
                 if pts[i][1] == STATE_CHARGING:
                     (x0, _y0), (x1, _y1) = pts[i - 1][0], pts[i][0]
                     cr.rectangle(x0, top, x1 - x0, ch)
@@ -285,6 +335,8 @@ class HistoryChart(Gtk.DrawingArea):
         cr.set_line_width(2.2)
         cr.set_line_join(1)
         for i in range(1, len(pts)):
+            if pts[i] is None or pts[i - 1] is None:
+                continue
             (x0, y0), (x1, y1) = pts[i - 1][0], pts[i][0]
             color = base
             if self.kind == "charge" and pts[i][1] != STATE_CHARGING:
