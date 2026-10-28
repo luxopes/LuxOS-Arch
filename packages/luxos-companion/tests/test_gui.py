@@ -138,6 +138,62 @@ class TestWindow(unittest.TestCase):
         self.assertNotIn("Pixel Test", self.texts(win.phones))
         s2.close("test")
 
+    def test_pair_a_phone_button(self):
+        """Sparovat telefon…: 3 minuty viditelny (falesny BlueZ na soukrome sbernici), odpocet, konec."""
+        import shutil
+        if not shutil.which("dbus-daemon"):
+            self.skipTest("dbus-daemon missing")
+        from test_dbus import ADAPTER, DEV_UNPAIRED, FakeBluez
+        proc, address = helpers.private_bus()
+        self.addCleanup(proc.wait, 5)
+        self.addCleanup(proc.terminate)
+        fake = FakeBluez(address)
+        self.addCleanup(fake.quit)
+        os.environ["LUXOS_COMPANION_BLUEZ_BUS"] = address
+        self.addCleanup(os.environ.pop, "LUXOS_COMPANION_BLUEZ_BUS", None)
+        win = self.window()
+        clock = helpers.Clock()
+        win.clock = clock
+        discoverable = lambda: fake.adapter["Discoverable"].unpack()  # noqa: E731
+        self.assertEqual(win.pair_btn.get_label(), "Pair a Phone…")
+        self.assertFalse(win.pair_info.get_visible())
+        win.pair_btn.clicked()
+        self.assertTrue(pump(discoverable, 5))
+        self.assertEqual([(n, v) for p, _i, n, v in fake.sets if p == ADAPTER],
+                         [("DiscoverableTimeout", 180), ("Discoverable", True)])
+        self.assertTrue(pump(lambda: win.pair_info.get_visible(), 5))
+        self.assertIn("pair with “jupiter”", win.pair_info.get_text())
+        self.assertEqual(win.pair_status.get_text(), "Visible to phones for 3:00")
+        self.assertEqual(win.pair_btn.get_label(), "Cancel")
+        clock.advance(61)
+        win.pair_tick()
+        self.assertEqual(win.pair_status.get_text(), "Visible to phones for 1:59")
+        self.shot(win, "companion-pairing.png")
+        # telefon se sparoval -> konec viditelnosti, navod na dalsi krok; telefon jeste neni schvaleny
+        fake.pair(DEV_UNPAIRED)
+        self.assertTrue(pump(lambda: not discoverable(), 5))
+        self.assertTrue(pump(lambda: win.pair_info.get_text().startswith("Paired with “Cizí”"), 5))
+        self.assertEqual(win.pair_btn.get_label(), "Pair a Phone…")
+        self.assertFalse(self.store.Settings().is_approved("AA:BB:CC:DD:EE:02"))
+        # zruseni
+        win.pair_btn.clicked()
+        self.assertTrue(pump(discoverable, 5))
+        win.pair_btn.clicked()
+        self.assertFalse(discoverable())
+        self.assertEqual(win.pair_status.get_text(), "Pairing cancelled. This computer is no longer visible.")
+        # vyprseni 3 minut
+        win.pair_btn.clicked()
+        self.assertTrue(pump(lambda: win.pair_btn.get_label() == "Cancel", 5))
+        clock.advance(180)
+        win.pair_tick()
+        self.assertFalse(discoverable())
+        self.assertIn("no longer visible", win.pair_status.get_text())
+        # Bluetooth vypnuty
+        fake.adapter["Powered"] = helpers.GLib.Variant("b", False)
+        win.pair_btn.clicked()
+        self.assertTrue(pump(lambda: win.pair_status.get_text() == "Turn on Bluetooth to connect a phone.", 5))
+        self.assertFalse(discoverable())
+
     def walk(self, widget):
         out = [widget]
         if isinstance(widget, self.Gtk.Container):

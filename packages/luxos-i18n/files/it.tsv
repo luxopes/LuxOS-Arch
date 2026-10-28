@@ -4399,3 +4399,13 @@ Update channel: "stable" = releases, "staging" = test builds before a release (f
 must be "stable" or "staging"	deve essere "stable" o "staging"
 update channel: %s	canale degli aggiornamenti: %s
 Could not set the update channel %s in the installed system.	Impossibile impostare il canale degli aggiornamenti %s nel sistema installato.
+Visible as “%s” while this window is open.	Visibile come «%s» finché questa finestra è aperta.
+Not visible to other devices.	Non visibile agli altri dispositivi.
+First pair the phone with this computer: press Pair a Phone… and pair in the phone's Bluetooth settings. Then open LuxOS Companion on the phone and connect.	Prima associa il telefono a questo computer: premi Associa un telefono… e associalo nelle impostazioni Bluetooth del telefono. Poi apri LuxOS Companion sul telefono e connettiti.
+Pair a Phone…	Associa un telefono…
+Pairing cancelled. This computer is no longer visible.	Associazione annullata. Questo computer non è più visibile.
+Could not make this computer visible: %s	Impossibile rendere visibile questo computer: %s
+On the phone: Bluetooth settings → pair with “%s”, confirm the same code on both devices, then open LuxOS Companion → Choose computer.	Sul telefono: impostazioni Bluetooth → associa con «%s», conferma lo stesso codice su entrambi i dispositivi, poi apri LuxOS Companion → Scegli computer.
+This computer is no longer visible. Press Pair a Phone… to try again.	Questo computer non è più visibile. Premi Associa un telefono… per riprovare.
+Visible to phones for %d:%02d	Visibile ai telefoni ancora per %d:%02d
+Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	Associato con «%s». Ora apri LuxOS Companion sul telefono → Scegli computer; alla prima connessione verrà chiesto il permesso qui.

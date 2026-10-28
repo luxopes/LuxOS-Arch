@@ -142,15 +142,25 @@ battery." Demo data: `LUXOS_POWER_DEMO=1 luxos-power`. See also
 Run `luxos-bluetooth`, or use the Bluetooth tile in Control Center. The app talks directly to
 BlueZ over D-Bus.
 
-- A switch turns Bluetooth on or off. The window shows "Visible as “name”".
+- A switch turns Bluetooth on or off.
+- **While the window is open and Bluetooth is on, the computer is visible** to other devices (like
+  macOS): "Visible as “name” while this window is open". Closing the window (or turning Bluetooth
+  off) makes it invisible again – but only if the window turned visibility on; if something else made
+  it visible (e.g. `bluetoothctl discoverable on`), it is left alone. Visibility is set with a
+  3-minute timeout that the open window keeps renewing, so a crashed window cannot leave the computer
+  visible. Otherwise the hint says "Not visible to other devices".
+- **Pairing from a phone**: with the window open, pick the computer's name in the phone's Bluetooth
+  settings. LuxOS shows *Pair this device?* with a 6-digit code – press **Pair** if the phone shows
+  the same code. A device that pairs without a code asks *Allow “name” to pair with this computer?*.
+  For the LuxOS Companion app, Settings › Phone › **Pair a Phone…** does the same for 3 minutes.
 - **My devices**: paired devices, each with Connected/Not connected and battery level, and
   Connect/Disconnect and Forget this device.
 - **Nearby devices**: while the window is open the app searches ("Searching… Put the device into
   pairing mode."). **Connect** pairs, trusts and connects in one step.
 - If the device asks for a code, a dialog appears: confirm the code, type the code shown, or enter
   the PIN ("Usually 0000 or 1234").
-- Pairing started from a phone or headphones is handled by the agent in `luxos-hub`
-  (blueman-applet is disabled).
+- Pairing started from a phone or headphones is handled by the agent in `luxos-hub` when the window
+  is closed (blueman-applet is disabled); both ask the same questions.
 
 If connecting fails, the app says "Make sure the device is on, close by and in pairing mode." With
 no adapter, it says "No Bluetooth adapter was found on this computer."

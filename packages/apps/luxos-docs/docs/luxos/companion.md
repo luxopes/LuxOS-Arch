@@ -15,11 +15,16 @@ only to the computer over an encrypted Bluetooth link.
 
 ## First connection
 
-1. **Pair the phone in Bluetooth settings first** (Settings › Bluetooth or the Bluetooth icon in the
-   top bar). LuxOS never makes the computer visible ("discoverable") by itself – turn visibility on in
-   the Bluetooth settings only while pairing.
-2. Open LuxOS Companion on the phone, pick the computer from the paired devices and press
-   **Connect**.
+1. **Pair the phone with the computer first.** In Settings › **Phone** press **Pair a Phone…**: the
+   computer becomes visible to phones for 3 minutes (a countdown shows how long) and the window shows
+   its Bluetooth name. On the phone open the Bluetooth settings, pair with that name and confirm that
+   **the same code** is shown on the phone and on the computer (the computer asks *Pair this device?*).
+   Visibility ends as soon as the phone is paired, when you press **Cancel**, after the 3 minutes or
+   when the window is closed. The open Bluetooth settings window (Settings › Bluetooth) also keeps the
+   computer visible while it is open – that works too. Otherwise the computer is never visible to
+   other devices.
+2. Open LuxOS Companion on the phone, **Choose computer**, pick the computer from the paired devices
+   and press **Connect**.
 3. On the first connection LuxOS asks: **Allow “Phone name” to connect to LuxOS?** with **Allow** /
    **Deny** (a notification; the same question is in the Phone window). Pairing alone is not
    permission: every phone has to be allowed once.
@@ -43,7 +48,8 @@ Settings › **Phone** (`luxos-companion`) shows:
   - **Share phone location with Maps** – when off, location updates from the phone are dropped.
   - **Allow LuxAI requests from the phone**.
   - **Allow saving notes to Calendar**.
-- **Bluetooth Settings…** for pairing.
+- **Pair a Phone…** – makes the computer visible for 3 minutes with the pairing steps and a countdown
+  (the button turns into **Cancel**), and **Bluetooth Settings…**.
 
 Settings are stored in `~/.config/luxos/companion.json` (mode 0600):
 
@@ -146,7 +152,9 @@ Session bus API (`cz.luxos.Companion1` at `/cz/luxos/Companion1`): `GetLocation(
 `mock`, `device`, optional `altitude`, `speed`, `bearing`), the signal `LocationChanged`, `GetStatus()`
 (JSON), `StatusChanged`, `AnswerApproval(address, allow)`, `Disconnect(address)`, `ReloadSettings()`.
 
-- **The phone does not see the computer**: pair it in Bluetooth settings first; check that the Phone
+- **The phone does not find the computer when pairing**: press **Pair a Phone…** (or keep Settings ›
+  Bluetooth open) – the computer is visible only then; Bluetooth must be on.
+- **The phone does not see the computer in the app**: pair it first; check that the Phone
   window shows *Ready for the phone* (otherwise **Start**, or `systemctl --user status
   luxos-companion`).
 - **"Počítač nepotvrdil protokol v1"** (the computer did not confirm protocol v1) on the phone: the

@@ -4399,3 +4399,13 @@ Update channel: "stable" = releases, "staging" = test builds before a release (f
 must be "stable" or "staging"	måste vara "stable" eller "staging"
 update channel: %s	uppdateringskanal: %s
 Could not set the update channel %s in the installed system.	Uppdateringskanalen %s kunde inte ställas in i det installerade systemet.
+Visible as “%s” while this window is open.	Synlig som ”%s” medan det här fönstret är öppet.
+Not visible to other devices.	Inte synlig för andra enheter.
+First pair the phone with this computer: press Pair a Phone… and pair in the phone's Bluetooth settings. Then open LuxOS Companion on the phone and connect.	Parkoppla först telefonen med den här datorn: tryck på Parkoppla en telefon… och parkoppla i telefonens Bluetooth-inställningar. Öppna sedan LuxOS Companion på telefonen och anslut.
+Pair a Phone…	Parkoppla en telefon…
+Pairing cancelled. This computer is no longer visible.	Parkopplingen avbröts. Datorn är inte längre synlig.
+Could not make this computer visible: %s	Det gick inte att göra datorn synlig: %s
+On the phone: Bluetooth settings → pair with “%s”, confirm the same code on both devices, then open LuxOS Companion → Choose computer.	På telefonen: Bluetooth-inställningar → parkoppla med ”%s”, bekräfta samma kod på båda enheterna och öppna sedan LuxOS Companion → Välj dator.
+This computer is no longer visible. Press Pair a Phone… to try again.	Datorn är inte längre synlig. Tryck på Parkoppla en telefon… för att försöka igen.
+Visible to phones for %d:%02d	Synlig för telefoner i %d:%02d till
+Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	Parkopplad med ”%s”. Öppna nu LuxOS Companion på telefonen → Välj dator; vid första anslutningen frågas om tillåtelse här.

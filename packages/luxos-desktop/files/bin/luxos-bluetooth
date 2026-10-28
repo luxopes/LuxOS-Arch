@@ -4,6 +4,9 @@
 Pracuje primo s BlueZ pres D-Bus. Pri otevrenem okne hleda zarizeni v okoli;
 "Pripojit" u noveho zarizeni ho sparuje, nastavi jako duveryhodne a pripoji.
 Pokud zarizeni chce potvrdit kod, zobrazi se dialog (vlastni agent BlueZ).
+Pri otevrenem okne a zapnutem Bluetooth je pocitac viditelny pro ostatni zarizeni (jako macOS/GNOME),
+telefon ho tak najde a muze se s nim sparovat sam. Viditelnost zapina jen toto okno a po zavreni ji
+vypne (jen kdyz ji zaplo ono); DiscoverableTimeout 180 s - kdyz okno spadne, BlueZ ji vypne sam.
 Jmeno pocitace viditelne pro ostatni zarizeni = vlastnost Alias adapteru (org.bluez.Adapter1);
 prazdny Alias vrati vychozi jmeno systemu (pretty hostname). Zapis povoluje politika D-Bus BlueZ
 (send_destination org.bluez pro vsechny), polkit neni potreba.
@@ -48,6 +51,9 @@ CSS = b"""
 .empty { opacity: 0.6; padding: 18px; }
 """
 
+VISIBLE_TIMEOUT = 180   # s, BlueZ viditelnost vypne sam (pad okna); otevrene okno ji obnovuje
+VISIBLE_REFRESH = 60    # s, jak casto okno obnovi DiscoverableTimeout (BlueZ znovu spusti odpocet)
+COMPANION_UUID = "ad9b7c10-6ce5-4f35-9952-728f760fcb70"   # sluzbu LuxOS Companion schvaluje aplikace sama
 ALIAS_MAX = 248   # nejdelsi jmeno zarizeni v Bluetooth (HCI local name, bajty UTF-8)
 
 
@@ -86,12 +92,17 @@ class Bluez:
         self.bus = BUS()
         self.on_change = on_change
         self.objects = {}
-        for sig in ("InterfacesAdded", "InterfacesRemoved"):
-            self.bus.signal_subscribe(BLUEZ, "org.freedesktop.DBus.ObjectManager", sig, None, None, 0,
-                                      lambda *_a: self.reload())
-        self.bus.signal_subscribe(BLUEZ, "org.freedesktop.DBus.Properties", "PropertiesChanged", None, None, 0,
-                                  lambda *_a: self.reload())
+        self.subs = [self.bus.signal_subscribe(BLUEZ, "org.freedesktop.DBus.ObjectManager", sig, None, None, 0,
+                                               lambda *_a: self.reload())
+                     for sig in ("InterfacesAdded", "InterfacesRemoved")]
+        self.subs.append(self.bus.signal_subscribe(BLUEZ, "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                                                   None, None, 0, lambda *_a: self.reload()))
         self.reload()
+
+    def close(self):
+        for sub in self.subs:
+            self.bus.signal_unsubscribe(sub)
+        self.subs = []
 
     def reload(self):
         try:
@@ -201,8 +212,28 @@ class Agent:
                 inv.return_value(GLib.Variant("(u)", (int(v),)))
             else:
                 inv.return_dbus_error(*reject)
-        else:  # RequestAuthorization, AuthorizeService, Release, Cancel
+        elif method in ("RequestAuthorization", "AuthorizeService"):
+            # Parovani bez kodu (telefon zacal sam, pocitac je viditelny) a sluzby neduveryhodnych
+            # zarizeni: zeptat se, stejne jako agent v luxos-hub
+            dev = self.device(args[0])
+            if method == "AuthorizeService" and (str(args[1]).lower() == COMPANION_UUID or dev.get("Trusted")):
+                inv.return_value(None)
+                return
+            name = dev.get("Alias") or dev.get("Name") or args[0].rsplit("/", 1)[-1]
+            question = (_("Allow “%s” to pair with this computer?") if method == "RequestAuthorization"
+                        else _("Allow “%s” to connect?")) % name
+            ok, _v = self.dialog(question, GLib.markup_escape_text(_("Only allow devices you know.")),
+                                 ok_label=_("Allow"))
+            if ok:
+                inv.return_value(None)
+            else:
+                inv.return_dbus_error(*reject)
+        else:  # Release, Cancel
             inv.return_value(None)
+
+    def device(self, path):
+        bz = getattr(self.window, "bz", None)
+        return (bz.objects.get(path, {}).get("org.bluez.Device1", {}) if bz else {}) or {}
 
 
 class DeviceRow(Gtk.ListBoxRow):
@@ -328,12 +359,27 @@ class BluetoothWindow(Gtk.Window):
 
         self.busy = {}
         self.apath = None
+        self.closing = False
+        self.visible_ours = False     # viditelnost zaplo toto okno (jen tu po zavreni vypne)
+        self.visible_busy = False     # pozadavek na BlueZ prave bezi
+        self.visible_failed = False   # BlueZ odmitl - nezkouset porad dokola
+        self.saved_timeout = None     # puvodni DiscoverableTimeout adapteru (vrati se pri zavreni)
         self.pending = True          # prvni vykresleni probehne nize
         self.bz = Bluez(self.schedule_refresh)
         self.agent = Agent(self.bz.bus, self)
-        self.connect("destroy", lambda *_a: self.stop_scan())
+        self.connect("destroy", self.on_destroy)
         self.refresh()
         self.start_scan()
+        self.visible_timer = GLib.timeout_add_seconds(VISIBLE_REFRESH, self.renew_visible)
+
+    def on_destroy(self, *_a):
+        self.closing = True
+        if self.visible_timer:
+            GLib.source_remove(self.visible_timer)
+            self.visible_timer = 0
+        self.stop_scan()
+        self.hide_visible(restore=True)
+        self.bz.close()
 
     def battery_of(self, path):
         b = self.bz.objects.get(path, {}).get("org.bluez.Battery1")
@@ -347,6 +393,8 @@ class BluetoothWindow(Gtk.Window):
 
     def refresh(self):
         self.pending = False
+        if self.closing:
+            return False
         apath, adapter = self.bz.adapter()
         self.apath = apath
         if not apath:
@@ -363,12 +411,15 @@ class BluetoothWindow(Gtk.Window):
         self.power.set_active(on)
         self.power.handler_unblock(self.power_handler)
         alias = adapter.get("Alias") or adapter.get("Name") or ""
+        self.keep_visible(on, adapter)
         if not on:
             self.hint.set_text(_("Turn on Bluetooth to connect headphones, a mouse, a keyboard or a phone."))
+        elif adapter.get("Discoverable") and self.visible_ours:
+            self.hint.set_text(_("Visible as “%s” while this window is open.") % alias)
         elif adapter.get("Discoverable"):
             self.hint.set_text(_("Visible to nearby devices as “%s”.") % alias)
         else:
-            self.hint.set_text(_("Other devices see this computer as “%s”.") % alias)
+            self.hint.set_text(_("Not visible to other devices."))
         self.name_label.set_text(alias)
         self.name_sub.set_text(_("This computer's name, shown to other Bluetooth devices")
                                + (" · " + _("visible now") if on and adapter.get("Discoverable") else ""))
@@ -391,10 +442,65 @@ class BluetoothWindow(Gtk.Window):
         self.show_all()
         return False
 
+    # ---- viditelnost pocitace (Discoverable adapteru) ----
+    def keep_visible(self, on, adapter):
+        """Okno otevrene a Bluetooth zapnute -> pocitac viditelny. Uz viditelny (bluetoothctl, jina
+        aplikace) se nemeni; kdyz viditelnost od okna vyprsi nebo ji nekdo vypne, zapne se znovu."""
+        if self.closing or not on or not self.apath or self.visible_busy or self.visible_failed:
+            return
+        if adapter.get("Discoverable"):
+            return
+        self.visible_busy = True
+        self.visible_ours = True
+        if self.saved_timeout is None:
+            self.saved_timeout = adapter.get("DiscoverableTimeout")
+
+        def visible(err):
+            self.visible_busy = False
+            if err:
+                self.visible_failed = True
+                print("luxos-bluetooth: discoverable: " + err.message, file=sys.stderr)
+            self.schedule_refresh()
+
+        def timeout_set(_err):
+            # nejdriv casovac, pak viditelnost: i kdyz okno hned spadne, BlueZ ji za 3 minuty vypne
+            self.bz.set_prop(self.apath, "org.bluez.Adapter1", "Discoverable", GLib.Variant("b", True), done=visible)
+        self.bz.set_prop(self.apath, "org.bluez.Adapter1", "DiscoverableTimeout", GLib.Variant("u", VISIBLE_TIMEOUT),
+                         done=timeout_set)
+
+    def renew_visible(self):
+        """Novy DiscoverableTimeout znovu spusti odpocet BlueZ - pri otevrenem okne viditelnost nevyprsi."""
+        if self.closing:
+            return False
+        if self.visible_ours and self.apath and self.adapter_props().get("Discoverable"):
+            self.bz.set_prop(self.apath, "org.bluez.Adapter1", "DiscoverableTimeout", GLib.Variant("u", VISIBLE_TIMEOUT))
+        return True
+
+    def hide_visible(self, restore=False):
+        """Vypne viditelnost, jen kdyz ji zaplo toto okno; restore vrati puvodni DiscoverableTimeout.
+        Synchronne - po zavreni okna proces hned konci."""
+        if not self.apath:
+            return
+        sets = []
+        if self.visible_ours:
+            sets.append(("Discoverable", GLib.Variant("b", False)))
+            self.visible_ours = False
+        if restore and self.saved_timeout is not None and self.saved_timeout != VISIBLE_TIMEOUT:
+            sets.append(("DiscoverableTimeout", GLib.Variant("u", self.saved_timeout)))
+        for name, value in sets:
+            try:
+                self.bz.bus.call_sync(BLUEZ, self.apath, "org.freedesktop.DBus.Properties", "Set",
+                                      GLib.Variant("(ssv)", ("org.bluez.Adapter1", name, value)), None, 0, 2000, None)
+            except GLib.Error:
+                pass
+
     # ---- akce ----
     def on_power(self, switch, _p):
         if not self.apath:
             return
+        if not switch.get_active():
+            self.hide_visible()           # po zapnuti ji refresh zapne znovu
+            self.visible_failed = False
         if switch.get_active():
             subprocess.run(["rfkill", "unblock", "bluetooth"], capture_output=True)
         self.bz.set_prop(self.apath, "org.bluez.Adapter1", "Powered", GLib.Variant("b", switch.get_active()))

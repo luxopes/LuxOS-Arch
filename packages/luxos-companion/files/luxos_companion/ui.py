@@ -3,11 +3,13 @@
 Nastaveni zapisuje primo do companion.json (store.Settings, se zamkem); bezici sluzbe da vedet
 pres D-Bus (ReloadSettings), sluzba soubor navic hlida sama. Stav (Bluetooth, pripojeny telefon,
 cekajici dotazy na schvaleni) cte z cz.luxos.Companion1 a signalu StatusChanged.
+"Sparovat telefon…" udela pocitac na 3 minuty viditelnym (bluez.PairingVisibility) s navodem a odpoctem.
 """
 import json
 import os
 import subprocess
 import sys
+import time
 
 import gi
 
@@ -15,7 +17,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk  # noqa: E402
 
-from . import BUS_NAME, INTERFACE, OBJECT_PATH, store  # noqa: E402
+from . import BUS_NAME, INTERFACE, OBJECT_PATH, bluez, store  # noqa: E402
 
 try:
     sys.path.insert(1, "/usr/lib/luxos/python")
@@ -108,6 +110,28 @@ class CompanionWindow(Gtk.Window):
         self.pending_card.set_no_show_all(True)
         box.pack_start(self.pending_card, False, False, 0)
 
+        # parovani telefonu (navod, Sparovat telefon…, odpocet) hned pod stavem
+        help_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=10)
+        help_box.pack_start(label(_(
+            "First pair the phone with this computer: press Pair a Phone… and pair in the phone's Bluetooth "
+            "settings. Then open LuxOS Companion on the phone and connect."),
+            "dim small", wrap=True), False, False, 0)
+        buttons = Gtk.Box(spacing=8)
+        self.pair_btn = Gtk.Button(label=_("Pair a Phone…"))
+        self.pair_btn.get_style_context().add_class("suggested-action")
+        self.pair_btn.connect("clicked", self.on_pair)
+        buttons.pack_start(self.pair_btn, False, False, 0)
+        bt = Gtk.Button(label=_("Bluetooth Settings…"))
+        bt.connect("clicked", self.on_bluetooth)
+        buttons.pack_start(bt, False, False, 0)
+        help_box.pack_start(buttons, False, False, 0)
+        # navod a odpocet behem parovani
+        self.pair_info = label("", wrap=True, no_show_all=True)
+        self.pair_status = label("", "dim small", wrap=True, no_show_all=True)
+        help_box.pack_start(self.pair_info, False, False, 0)
+        help_box.pack_start(self.pair_status, False, False, 0)
+        box.pack_start(help_box, False, False, 0)
+
         # schvalene telefony
         box.pack_start(label(_("Allowed Phones"), "companion-section", margin_top=10, margin_start=4),
                        False, False, 0)
@@ -138,16 +162,10 @@ class CompanionWindow(Gtk.Window):
             perms.add(row)
         box.pack_start(self.card(perms), False, False, 0)
 
-        # napoveda k parovani
-        help_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=10)
-        help_box.pack_start(label(_(
-            "First pair the phone with this computer in Bluetooth settings, then open LuxOS Companion on the "
-            "phone and connect. This computer does not become visible to other devices by itself."),
-            "dim small", wrap=True), False, False, 0)
-        bt = Gtk.Button(label=_("Bluetooth Settings…"), halign=Gtk.Align.START)
-        bt.connect("clicked", self.on_bluetooth)
-        help_box.pack_start(bt, False, False, 0)
-        box.pack_start(help_box, False, False, 0)
+        self.pairing = None           # bluez.PairingVisibility, vytvori se az pri prvnim kliknuti
+        self.pair_deadline = 0.0
+        self.pair_timer = 0
+        self.clock = time.monotonic
 
         self.rebuild_phones()
         self.connect_bus()
@@ -176,6 +194,7 @@ class CompanionWindow(Gtk.Window):
                                                       lambda *_a: self.refresh(), lambda *_a: self.set_status(None))
 
     def on_destroy(self, _w):
+        self.pair_stop()
         if self.bus:
             for s in self.subs:
                 self.bus.signal_unsubscribe(s)
@@ -312,6 +331,74 @@ class CompanionWindow(Gtk.Window):
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except OSError as e:
             self.error(str(e))
+
+    # ---- parovani telefonu: pocitac 3 minuty viditelny ----
+    def on_pair(self, _b):
+        if self.pairing and self.pairing.active:
+            self.pair_stop()
+            self.pair_show(None, _("Pairing cancelled. This computer is no longer visible."))
+            return
+        if self.pairing is None:
+            try:
+                self.pairing = bluez.PairingVisibility(bluez.bluez_bus(), self.on_paired)
+            except GLib.Error as e:
+                self.pair_show(None, _("Could not make this computer visible: %s") % e.message)
+                return
+        self.pair_btn.set_sensitive(False)
+        self.pairing.start(self.on_pair_started)
+
+    def on_pair_started(self, err):
+        self.pair_btn.set_sensitive(True)
+        if err == "no_adapter":
+            self.pair_show(None, _("No Bluetooth adapter was found on this computer."))
+        elif err == "off":
+            self.pair_show(None, _("Turn on Bluetooth to connect a phone."))
+        elif err:
+            self.pair_show(None, _("Could not make this computer visible: %s") % err.split(":")[-1].strip())
+        else:
+            self.pair_deadline = self.clock() + bluez.PAIR_TIMEOUT
+            self.pair_btn.set_label(_("Cancel"))
+            self.pair_btn.get_style_context().remove_class("suggested-action")
+            self.pair_show(_("On the phone: Bluetooth settings → pair with “%s”, confirm the same code on both "
+                             "devices, then open LuxOS Companion → Choose computer.") % self.pairing.alias, "")
+            if not self.pair_timer:
+                self.pair_timer = GLib.timeout_add_seconds(1, self.pair_tick)
+            self.pair_tick()
+
+    def pair_tick(self):
+        if not (self.pairing and self.pairing.active):
+            self.pair_timer = 0
+            return False
+        left = int(round(self.pair_deadline - self.clock()))
+        if left <= 0:
+            self.pair_stop()
+            self.pair_show(None, _("This computer is no longer visible. Press Pair a Phone… to try again."))
+            return False
+        self.pair_status.set_text(_("Visible to phones for %d:%02d") % (left // 60, left % 60))
+        self.pair_status.set_visible(True)
+        return True
+
+    def on_paired(self, _path, name):
+        self.pair_stop()
+        self.pair_show(_("Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; "
+                         "the first connection asks for permission here.") % name, "")
+
+    def pair_stop(self):
+        if self.pair_timer:
+            GLib.source_remove(self.pair_timer)
+            self.pair_timer = 0
+        if self.pairing:
+            self.pairing.stop()
+        self.pair_btn.set_label(_("Pair a Phone…"))
+        self.pair_btn.get_style_context().add_class("suggested-action")
+
+    def pair_show(self, info, status):
+        """info None = navod skryt; status "" = radek stavu skryt."""
+        if info is not None:
+            self.pair_info.set_text(info)
+        self.pair_info.set_visible(bool(info))
+        self.pair_status.set_text(status or "")
+        self.pair_status.set_visible(bool(status))
 
     def on_bluetooth(self, _b):
         for cmd in (["luxos-bluetooth"], ["blueman-manager"]):
