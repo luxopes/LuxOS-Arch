@@ -25,20 +25,25 @@ stops, hotels…), keeps your favorite places and opens `geo:` links. Open it fr
 
 ## Search
 
-Type a place, address or coordinates (`50.0875, 14.4208`) into the search field in the title bar and
-press **Enter** (Ctrl+F or Ctrl+L focus the field). Places near the visible part of the map come
-first. Maps searches only when you press Enter – OpenStreetMap's search service (Nominatim) does not
-allow searching while typing. Click a result to show it: name, address, coordinates and the buttons
-**Directions**, **Save** (star), **Copy Coordinates**, **Copy Location Link** (a `geo:` link for
-other apps and phones) and **Open in OpenStreetMap** (in the web browser).
+Type a place, address or coordinates (`50.0875, 14.4208`) into the search field in the title bar
+(Ctrl+F or Ctrl+L focus it). **Suggestions** appear while you type – favorites, recent places and
+stops first, then places from **Photon** (`photon.komoot.io`) near the map centre; ↓/↑ and Enter or a
+click pick one, Esc closes the list. **Enter** without a selected suggestion searches with
+**Nominatim** and lists results near the visible map first. Click a result to show it: name, address,
+coordinates and the buttons **Directions**, **Save** (star), **Copy Coordinates**, **Copy Location
+Link** (a `geo:` link) and **Open in OpenStreetMap**. Details, keyboard, recent places, privacy (typed
+text goes to photon.komoot.io; **⋯ › Suggestions While Typing** turns that off): see
+[Maps search and suggestions](maps-search.md).
 
 ## Directions
 
 **Directions** (on a place, in the title bar or the right-click menu) opens the route panel
 (Directions › Car/Bike/Walk; public transport is described below):
 
-- Start and destination: type a place and press Enter, use the location button in the field for
-  **My Location**, or pick points on the map with the right-click menu. The arrows button swaps them.
+- Start and destination: type a place and pick a suggestion (the route is computed right away;
+  **My Location** is the first suggestion when location is allowed) or press Enter, use the location
+  button in the field for **My Location**, or pick points on the map with the right-click menu. The
+  arrows button swaps them.
 - **Car / Bike / Walk** – the last choice is remembered.
 - The panel shows travel time and distance and a list of turns (Turn left, Enter the roundabout and
   take exit 2…) with the street and the distance; clicking a turn shows it on the map.
@@ -146,7 +151,8 @@ When Maps is already open, the link opens in the same window.
 - Settings, favorites and the last map view: `~/.config/luxos/maps.json`. Other servers can be set
   there without an update: `"tile_url": "https://…/{z}/{x}/{y}.png"`, `"search_url"`,
   `"reverse_url"`, `"route_url"` (with `{profile}` = `car`/`bike`/`foot` and `{coords}`),
-  `"transit_plan_url"`, `"stoptimes_url"` (a MOTIS v6 server) and `"overpass_url"`.
+  `"transit_plan_url"`, `"stoptimes_url"` (a MOTIS v6 server), `"overpass_url"` and `"suggest_url"`
+  (a Photon server for suggestions while typing).
 - **Report a Map Issue** in the menu opens openstreetmap.org/fixthemap – the map is made by volunteers
   and anyone can fix it.
 

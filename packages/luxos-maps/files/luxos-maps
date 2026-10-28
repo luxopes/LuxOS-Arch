@@ -105,6 +105,8 @@ CSS = b"""
 .nav-bottom { background-color: alpha(@theme_bg_color, 0.96); border-radius: 14px;
               border: 1px solid alpha(black, 0.12); }
 .nav-big { font-size: 20px; font-weight: 800; }
+.suggest list { background: transparent; }
+.suggest row { padding: 4px 8px; border-radius: 8px; }
 .nav-end { border-radius: 999px; padding: 5px 16px; font-weight: 700; background-image: none;
            background-color: #e5483d; color: white; border: none; box-shadow: none; }
 """
@@ -1105,6 +1107,308 @@ def default_window_size(width=1120, height=740):
     return width, height
 
 
+# ---- naseptavac pod polem hledani a poli trasy ----------------------------------------
+KIND_COLORS = {"me": ACCENT, "favorite": (0.96, 0.66, 0.0), "recent": (0.52, 0.55, 0.61),
+               "stop": (0.13, 0.47, 0.86), "address": (0.45, 0.50, 0.58), "street": (0.36, 0.42, 0.52),
+               "city": (0.52, 0.36, 0.84), "poi": (0.90, 0.30, 0.25)}
+POI_COLORS = (({"restaurant", "cafe", "fast_food", "bar", "pub", "food_court", "ice_cream", "bakery"},
+               (0.95, 0.50, 0.10)),
+              ({"supermarket", "convenience", "mall", "department_store", "clothes", "greengrocer"},
+               (0.83, 0.58, 0.0)),
+              ({"museum", "attraction", "gallery", "viewpoint", "hotel", "hostel", "guest_house", "castle",
+                "monument", "memorial", "theatre", "cinema"}, (0.86, 0.30, 0.58)),
+              ({"pharmacy", "hospital", "clinic", "doctors", "dentist"}, (0.85, 0.20, 0.25)),
+              ({"park", "playground", "garden", "sports_centre", "pitch", "peak", "wood"}, (0.20, 0.62, 0.32)))
+
+
+def suggestion_kind(place):
+    """Druh ikony radku: zdroj (moje poloha, oblibene, nedavne) ma prednost pred druhem mista."""
+    src = place.get("source")
+    if place.get("me"):
+        return "me"
+    if src in ("favorite", "recent"):
+        return src
+    return lm.place_kind(place)
+
+
+class KindIcon(Gtk.DrawingArea):
+    """Barevny kruh s bilou znackou druhu mista (vlastni kresba, ostra v kazde velikosti)."""
+
+    def __init__(self, kind, place=None, size=28):
+        super().__init__()
+        self.kind = kind
+        self.color = KIND_COLORS.get(kind, KIND_COLORS["poi"])
+        if kind == "poi" and place:
+            for values, color in POI_COLORS:
+                if place.get("type") in values:
+                    self.color = color
+                    break
+        self.set_size_request(size, size)
+        self.set_valign(Gtk.Align.CENTER)
+        self.connect("draw", self.draw)
+
+    def draw(self, widget, cr):
+        w, h = widget.get_allocated_width(), widget.get_allocated_height()
+        r = min(w, h) / 2
+        cx, cy = w / 2, h / 2
+        cr.arc(cx, cy, r, 0, 2 * math.pi)
+        cr.set_source_rgb(*self.color)
+        cr.fill()
+        u = r
+        cr.set_source_rgb(1, 1, 1)
+        cr.set_line_width(max(1.5, u * 0.14))
+        cr.set_line_cap(cairo.LINE_CAP_ROUND)
+        cr.set_line_join(cairo.LINE_JOIN_ROUND)
+        k = self.kind
+        if k == "me":
+            cr.arc(cx, cy, u * 0.42, 0, 2 * math.pi)
+            cr.fill()
+            cr.arc(cx, cy, u * 0.26, 0, 2 * math.pi)
+            cr.set_source_rgb(*self.color)
+            cr.fill()
+        elif k == "favorite":
+            draw_star(cr, cx, cy + u * 0.04, u * 0.62)
+            cr.fill()
+        elif k == "recent":
+            cr.arc(cx, cy, u * 0.55, 0, 2 * math.pi)
+            cr.stroke()
+            cr.move_to(cx, cy - u * 0.34)
+            cr.line_to(cx, cy)
+            cr.line_to(cx + u * 0.26, cy + u * 0.12)
+            cr.stroke()
+        elif k == "stop":
+            # predek autobusu/tramvaje: skrin, okno, svetla
+            x0, x1, y0, y1 = cx - u * 0.42, cx + u * 0.42, cy - u * 0.55, cy + u * 0.38
+            rr = u * 0.14
+            cr.new_sub_path()
+            cr.arc(x1 - rr, y0 + rr, rr, -math.pi / 2, 0)
+            cr.arc(x1 - rr, y1 - rr, rr, 0, math.pi / 2)
+            cr.arc(x0 + rr, y1 - rr, rr, math.pi / 2, math.pi)
+            cr.arc(x0 + rr, y0 + rr, rr, math.pi, 1.5 * math.pi)
+            cr.close_path()
+            cr.fill()
+            cr.rectangle(cx - u * 0.30, cy - u * 0.40, u * 0.60, u * 0.36)
+            cr.rectangle(cx - u * 0.30, cy + u * 0.10, u * 0.14, u * 0.12)
+            cr.rectangle(cx + u * 0.16, cy + u * 0.10, u * 0.14, u * 0.12)
+            cr.set_source_rgb(*self.color)
+            cr.fill()
+            cr.set_source_rgb(1, 1, 1)
+            cr.rectangle(cx - u * 0.36, cy + u * 0.38, u * 0.16, u * 0.17)
+            cr.rectangle(cx + u * 0.20, cy + u * 0.38, u * 0.16, u * 0.17)
+            cr.fill()
+        elif k == "address":
+            cr.move_to(cx, cy - u * 0.55)
+            cr.line_to(cx + u * 0.55, cy - u * 0.05)
+            cr.line_to(cx + u * 0.38, cy - u * 0.05)
+            cr.line_to(cx + u * 0.38, cy + u * 0.48)
+            cr.line_to(cx - u * 0.38, cy + u * 0.48)
+            cr.line_to(cx - u * 0.38, cy - u * 0.05)
+            cr.line_to(cx - u * 0.55, cy - u * 0.05)
+            cr.close_path()
+            cr.fill()
+            cr.rectangle(cx - u * 0.11, cy + u * 0.12, u * 0.22, u * 0.36)
+            cr.set_source_rgb(*self.color)
+            cr.fill()
+        elif k == "street":
+            cr.move_to(cx - u * 0.18, cy - u * 0.55)
+            cr.line_to(cx - u * 0.45, cy + u * 0.55)
+            cr.move_to(cx + u * 0.18, cy - u * 0.55)
+            cr.line_to(cx + u * 0.45, cy + u * 0.55)
+            cr.stroke()
+            for a, b in ((-0.5, -0.25), (-0.05, 0.2), (0.38, 0.55)):
+                cr.move_to(cx, cy + u * a)
+                cr.line_to(cx, cy + u * b)
+            cr.stroke()
+        elif k == "city":
+            for x, top, wd in ((-0.52, -0.05, 0.30), (-0.18, -0.55, 0.36), (0.22, -0.28, 0.30)):
+                cr.rectangle(cx + u * x, cy + u * top, u * wd, u * (0.5 - top))
+            cr.fill()
+        else:
+            hole = pin_path(cr, cx, cy + u * 0.58, r=u * 0.36)
+            cr.fill()
+            cr.arc(cx, hole, u * 0.14, 0, 2 * math.pi)
+            cr.set_source_rgb(*self.color)
+            cr.fill()
+        return False
+
+
+def highlight_markup(text, query):
+    """Nazev s tucne zvyraznenou shodou s dotazem (bez ohledu na diakritiku)."""
+    out, pos = [], 0
+    for a, b in lm.match_spans(text, query):
+        out.append(GLib.markup_escape_text(text[pos:a]))
+        out.append("<b>%s</b>" % GLib.markup_escape_text(text[a:b]))
+        pos = b
+    out.append(GLib.markup_escape_text(text[pos:]))
+    return "".join(out)
+
+
+class SuggestBox:
+    """Naseptavac pod polem (hledani, Start, Cil): oblibena, nedavna mista a zastavky hned, Photon po 250 ms
+    bez psani (jen posledni dotaz). Sipky nahoru/dolu, Enter vybere, Esc zavre, klik mysi; Enter bez
+    vybraneho radku hleda jako dosud (Nominatim). Pole trasy: Moje poloha vzdy prvni (se souhlasem)."""
+
+    def __init__(self, win, entry, which):
+        self.win, self.entry, self.which = win, entry, which
+        self.query = ""
+        self.local = []
+        self.remote = []
+        self.items = []
+        self.offline = False
+        self.active = False
+        self.suggester = lm.Suggester(self._from_thread, win.cfg, LANG)
+        self.pop = Gtk.Popover(relative_to=entry, modal=False, position=Gtk.PositionType.BOTTOM)
+        self.pop.get_style_context().add_class("suggest")
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=4)
+        self.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE, activate_on_single_click=True,
+                                can_focus=False)
+        self.list.set_size_request(380, -1)
+        self.list.connect("row-activated", lambda _l, row: self.pick(row.place))
+        box.pack_start(self.list, False, False, 0)
+        self.footer = label("", "dim small", margin_start=8, margin_top=4, margin_bottom=2)
+        box.pack_start(self.footer, False, False, 0)
+        box.show_all()
+        self.pop.add(box)
+        entry.connect("changed", self.on_changed)
+        entry.connect("key-press-event", self.on_key)
+        entry.connect("focus-out-event", self.on_focus_out)
+        entry.connect("destroy", lambda _e: self.suggester.stop())
+
+    def visible(self):
+        return self.pop.get_visible()
+
+    def on_changed(self, _e):
+        if self.win._setting_entry:
+            return
+        self.update(self.entry.get_text())
+
+    def update(self, text):
+        q = " ".join((text or "").split())
+        self.query = q
+        self.remote = []
+        self.offline = False
+        if len(q) < lm.SUGGEST_MIN_LOCAL or (self.which != "search" and q == _("My Location")):
+            self.suggester.cancel()
+            self.active = False
+            self.hide()
+            return
+        self.active = True
+        self.local = self.win.local_suggestions(q)
+        if self.win.cfg["suggest_online"] and len(q) >= lm.SUGGEST_MIN_ONLINE and not lm.parse_coords(q):
+            self.suggester.request(q, self.win.map.center())
+        else:
+            self.suggester.cancel()
+        self.show_items()
+
+    def _from_thread(self, gen, query, res, err):
+        GLib.idle_add(self.remote_done, gen, query, res, err)
+
+    def remote_done(self, gen, query, res, err):
+        if gen != self.suggester.gen or not self.active or query != self.query:
+            return False                   # zastaraly vysledek (text se mezitim zmenil)
+        self.remote = res
+        self.offline = bool(err)
+        self.show_items()
+        return False
+
+    def show_items(self):
+        me = self.win.me_suggestion() if self.which != "search" else None
+        self.items = lm.merge_suggestions(self.query, self.local, self.remote, self.win.map.center(), me=me)
+        for row in self.list.get_children():
+            row.destroy()
+        for p in self.items:
+            self.list.add(self.make_row(p))
+        if self.offline:
+            self.footer.set_text(_("Offline – showing saved places only"))
+        else:
+            self.footer.set_text(_("Suggestions by Photon · © OpenStreetMap contributors") if self.remote else "")
+        self.footer.set_visible(bool(self.footer.get_text()))
+        if self.items and self.entry.is_focus():
+            self.list.set_size_request(max(380, self.entry.get_allocated_width()), -1)
+            self.pop.show()
+        else:
+            self.hide()
+
+    def make_row(self, p):
+        row = Gtk.ListBoxRow(can_focus=False)
+        row.place = p
+        hb = Gtk.Box(spacing=10)
+        hb.pack_start(KindIcon(suggestion_kind(p), p), False, False, 0)
+        vb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        name = label("", ellipsize=3)
+        name.set_markup(GLib.markup_escape_text(p["name"]) if p.get("me")
+                        else highlight_markup(p["name"], self.query))
+        vb.pack_start(name, False, False, 0)
+        sub = p.get("address") or ""
+        if p.get("me"):
+            sub = _("Current location")
+        if sub:
+            vb.pack_start(label(sub, "dim small", ellipsize=3), False, False, 0)
+        hb.pack_start(vb, True, True, 0)
+        if p.get("distance") is not None and not p.get("me"):
+            hb.pack_end(label(lm.format_distance(p["distance"], IMPERIAL, LANG), "dim small"), False, False, 0)
+        row.add(hb)
+        row.show_all()
+        return row
+
+    def hide(self):
+        if self.pop.get_visible():
+            self.pop.hide()
+        self.list.unselect_all()
+
+    def select(self, idx):
+        row = self.list.get_row_at_index(idx)
+        if row:
+            self.list.select_row(row)
+
+    def on_key(self, _e, ev):
+        k = ev.keyval
+        if not self.visible():
+            if k in (Gdk.KEY_Down, Gdk.KEY_KP_Down) and self.active and self.items:
+                self.show_items()
+                self.select(0)
+                return True
+            return False
+        sel = self.list.get_selected_row()
+        i = sel.get_index() if sel else -1
+        n = len(self.list.get_children())
+        if k in (Gdk.KEY_Down, Gdk.KEY_KP_Down):
+            self.select(min(i + 1, n - 1))
+            return True
+        if k in (Gdk.KEY_Up, Gdk.KEY_KP_Up):
+            if i <= 0:
+                self.list.unselect_all()
+            else:
+                self.select(i - 1)
+            return True
+        if k in (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_ISO_Enter):
+            if sel:
+                self.pick(sel.place)
+                return True
+            self.close()
+            return False                    # Enter bez vyberu: hledani jako dosud
+        if k == Gdk.KEY_Escape:
+            self.close()
+            return True
+        if k in (Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab):
+            self.close()
+        return False
+
+    def on_focus_out(self, *_a):
+        self.hide()
+        return False
+
+    def close(self):
+        """Konec naseptavani do dalsi zmeny textu (pozdni odpoved Photonu uz nabidku neotevre)."""
+        self.active = False
+        self.suggester.cancel()
+        self.hide()
+
+    def pick(self, place):
+        self.close()
+        self.win.suggestion_picked(self.which, place)
+
+
 class MapsWindow(Gtk.Window):
     def __init__(self, application=None):
         super().__init__(title=_("Maps"))
@@ -1155,6 +1459,7 @@ class MapsWindow(Gtk.Window):
         self.inhibit_cookies = {}
         self.tts_proc = None
         self._side_clamping = False
+        self.closed = False
 
         header = Gtk.HeaderBar(show_close_button=True)
         self.set_titlebar(header)
@@ -1225,6 +1530,9 @@ class MapsWindow(Gtk.Window):
         self.stack.add_named(self.build_departures(), "departures")
         self.rebuild_favorites()
         self.update_mode_ui()
+        # naseptavani pri psani (Photon + oblibena, nedavna mista a zastavky)
+        self.suggest = {which: SuggestBox(self, entry, which) for which, entry in (
+            ("search", self.search_entry), ("from", self.from_entry), ("to", self.to_entry))}
 
         self.connect("key-press-event", self.on_key)
         self.connect("destroy", self.on_destroy)
@@ -1301,7 +1609,60 @@ class MapsWindow(Gtk.Window):
             self.rebuild_favorites()
             self.update_place_buttons()
 
-    # ---- hledani (jen po Enter - Nominatim nedovoluje naseptavani) ----
+    # ---- naseptavani: mistni zdroje a vyber ----
+    def local_suggestions(self, query):
+        items = [dict(f, source="favorite") for f in self.cfg["favorites"]]
+        items += [dict(r, source="recent") for r in self.cfg["recent"]]
+        stops = list(self.map.stops) + [p for p in self.map.results if lm.is_transit_place(p)]
+        if self.dep_stop:
+            stops.append(self.dep_stop)
+        items += [dict(s, source="stop", kind="stop") for s in stops]
+        items += [dict(p, source="result") for p in self.results]
+        return lm.suggest_local(query, items, self.map.center())
+
+    def me_suggestion(self):
+        """Moje poloha jako prvni navrh v polich trasy (jen se souhlasem s polohou)."""
+        if not self.cfg["location_consent"]:
+            return None
+        lat, lon = (self.map.me["lat"], self.map.me["lon"]) if self.map.me else self.map.center()
+        return {"name": _("My Location"), "lat": lat, "lon": lon, "me": True}
+
+    def remember(self, place):
+        lm.add_recent(self.cfg, place)
+        lm.save_config(self.cfg)
+
+    def suggestion_picked(self, which, place):
+        place = {k: v for k, v in place.items() if k not in ("source", "distance", "color")}
+        if place.get("me"):
+            if which != "search":
+                self.set_endpoint_me(which)
+            return
+        self.remember(place)
+        if which == "search":
+            self._setting_entry = True
+            self.search_entry.set_text(place["name"])
+            self.search_entry.set_position(-1)
+            self._setting_entry = False
+            self.results = [place]
+            self.map.results = [place]
+            self.select_place(place, fit=True)
+        else:
+            self.rt_status.set_text("")
+            self.set_endpoint(which, place)
+
+    def clear_recent(self):
+        self.cfg["recent"] = []
+        lm.save_config(self.cfg)
+
+    def on_suggest_toggle(self, b):
+        if b.get_active() != self.cfg["suggest_online"]:
+            self.cfg["suggest_online"] = b.get_active()
+            lm.save_config(self.cfg)
+            if not b.get_active():
+                for sb in self.suggest.values():
+                    sb.suggester.cancel()
+
+    # ---- hledani v Nominatim po Enter (naseptavani pri psani jde na Photon, viz SuggestBox) ----
     def build_results(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin=12)
         top = Gtk.Box(spacing=6)
@@ -1317,7 +1678,8 @@ class MapsWindow(Gtk.Window):
         self.res_status.set_no_show_all(True)
         box.pack_start(self.res_status, False, False, 0)
         self.res_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE, activate_on_single_click=True)
-        self.res_list.connect("row-activated", lambda _l, row: self.select_place(row.place, fit=True))
+        self.res_list.connect("row-activated", lambda _l, row: (self.remember(row.place),
+                                                                 self.select_place(row.place, fit=True)))
         box.pack_start(self.res_list, False, False, 0)
         scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
         scroll.add(box)
@@ -1332,6 +1694,8 @@ class MapsWindow(Gtk.Window):
 
     def on_search(self, _e=None, text=None):
         text = (text if text is not None else self.search_entry.get_text()).strip()
+        if hasattr(self, "suggest"):
+            self.suggest["search"].close()
         if len(text) < 2:
             return
         c = lm.parse_coords(text)
@@ -1380,6 +1744,7 @@ class MapsWindow(Gtk.Window):
             row.show_all()
             self.res_list.add(row)
         if len(res) == 1:
+            self.remember(res[0])
             self.select_place(res[0], fit=True)
         elif res:
             s = min(p["lat"] for p in res)
@@ -1618,6 +1983,7 @@ class MapsWindow(Gtk.Window):
     def on_endpoint_entry(self, which):
         entry = self.from_entry if which == "from" else self.to_entry
         text = entry.get_text().strip()
+        self.suggest[which].close()
         if not text:
             return
         if text == _("My Location"):
@@ -1647,6 +2013,8 @@ class MapsWindow(Gtk.Window):
                                     else _("No places found."))
             return False
         self.rt_status.set_text("")
+        if not lm.parse_coords(self.from_entry.get_text() if which == "from" else self.to_entry.get_text()):
+            self.remember(res[0])
         self.set_endpoint(which, res[0])
         return False
 
@@ -2984,6 +3352,14 @@ class MapsWindow(Gtk.Window):
         self.consent_item = Gtk.CheckButton(label=_("Allow My Location"), active=self.cfg["location_consent"])
         self.consent_item.connect("toggled", self.on_consent_toggle)
         box.pack_start(self.consent_item, False, False, 0)
+        self.suggest_item = Gtk.CheckButton(label=_("Suggestions While Typing"), active=self.cfg["suggest_online"],
+                                            tooltip_text=_("Sends what you type to photon.komoot.io. When off, "
+                                                           "only favorites, recent places and stops are suggested."))
+        self.suggest_item.connect("toggled", self.on_suggest_toggle)
+        box.pack_start(self.suggest_item, False, False, 0)
+        recent = Gtk.ModelButton(text=_("Clear Recent Places"))
+        recent.connect("clicked", lambda _b: self.clear_recent())
+        box.pack_start(recent, False, False, 0)
         box.pack_start(Gtk.Separator(margin_top=6, margin_bottom=6), False, False, 0)
         for text, uri in ((_("Report a Map Issue"), lm.FIXTHEMAP_URL), (_("About Map Data"), lm.COPYRIGHT_URL)):
             b = Gtk.ModelButton(text=text)
@@ -3063,25 +3439,37 @@ class MapsWindow(Gtk.Window):
         return False
 
     def schedule_save(self):
+        if self.closed:
+            return                         # zavrene okno: panel se pri ruseni zmensi, nastaveni uz neukladat
         if self.save_id:
             GLib.source_remove(self.save_id)
-        self.save_id = GLib.timeout_add_seconds(3, self.save_view)
+        self.save_id = GLib.timeout_add_seconds(3, self._save_timer)
+
+    def _save_timer(self):
+        self.save_id = None
+        self.save_view()
+        return False
 
     def save_view(self):
-        self.save_id = None
+        # primo zavolane ulozeni zrusi cekajici casovac (jinak by pozdeji zapsal starsi nastaveni,
+        # i po zavreni okna pres nastaveni jineho okna)
+        if self.save_id:
+            GLib.source_remove(self.save_id)
+            self.save_id = None
         lat, lon = self.map.center()
         self.cfg["view"] = {"lat": round(lat, 6), "lon": round(lon, 6), "zoom": round(self.map.zoom, 2)}
         lm.save_config(self.cfg)
         return False
 
     def on_destroy(self, _w):
+        self.closed = True
+        for sb in getattr(self, "suggest", {}).values():
+            sb.suggester.stop()
         self.end_navigation()
         self.unwatch_phone()
         if self.dep_timer:
             GLib.source_remove(self.dep_timer)
             self.dep_timer = None
-        if self.save_id:
-            GLib.source_remove(self.save_id)
         self.save_view()
         self.map.store.stop()
 

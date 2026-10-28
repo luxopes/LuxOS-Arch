@@ -4498,3 +4498,10 @@ On the phone: Bluetooth settings → pair with “%s”, confirm the same code o
 This computer is no longer visible. Press Pair a Phone… to try again.	Počítač už není viditelný. Pro nový pokus stiskněte Spárovat telefon….
 Visible to phones for %d:%02d	Viditelný pro telefony ještě %d:%02d
 Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	Spárováno s „%s“. Teď v telefonu otevřete LuxOS Companion → Vybrat počítač; při prvním připojení se zde zobrazí dotaz na povolení.
+# Mapy: naseptavani pri psani (Photon)
+Suggestions While Typing	Návrhy při psaní
+Sends what you type to photon.komoot.io. When off, only favorites, recent places and stops are suggested.	Odesílá psaný text na photon.komoot.io. Když je vypnuto, navrhují se jen oblíbená a nedávná místa a zastávky.
+Clear Recent Places	Vymazat nedávná místa
+Current location	Aktuální poloha
+Offline – showing saved places only	Offline – jen uložená místa
+Suggestions by Photon · © OpenStreetMap contributors	Návrhy: Photon · © přispěvatelé OpenStreetMap
