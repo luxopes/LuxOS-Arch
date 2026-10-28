@@ -7,7 +7,7 @@
 
 pkgname=luxai
 pkgver=2.0.0
-pkgrel=2
+pkgrel=3
 pkgdesc="LuxAI - AI assistant that can work with your computer (chat and agent mode)"
 arch=(x86_64)
 url="https://lux-ai.cz"
@@ -27,7 +27,7 @@ optdepends=('libnotify: desktop notifications from the agent'
 options=(!strip !debug)
 install=luxai.install
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('9cc6de871c4325c847ffcbb57aea5c087d5d830638ee4294aaffa0eb23cef146')
+sha256sums=('c887b44a7eff171f6f937652b641645a15be6d255ed2c61853322e6adc7ca3aa')
 
 build() {
     cd "$pkgname-$pkgver"
@@ -45,7 +45,7 @@ check() {
         XDG_DATA_HOME="$home/d" XDG_CACHE_HOME="$home/k" LANG=C.UTF-8 \
         build/luxai --remote-session 2>/dev/null | head -n1)
     rm -rf -- "$home"
-    [[ $first == '{"type":"ready","protocol":1}' ]]
+    [[ $first == '{"type":"ready","protocol":1,"capabilities":["models","tools","approvals"]}' ]]
 }
 
 package() {
