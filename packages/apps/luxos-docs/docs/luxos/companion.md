@@ -41,13 +41,15 @@ away again).
 Settings › **Phone** (`luxos-companion`) shows:
 
 - **Status**: service not running (button **Start**), Bluetooth off, *Ready for the phone*, or
-  *Connected: Pixel 8 – Sharing location*.
+  *Connected: Pixel 8 – Sharing location* (or *LuxAI is waiting for your approval on the phone*).
 - Pending questions from new phones (**Allow** / **Deny**).
 - **Allowed Phones** with **Remove** – removing a phone revokes it immediately and disconnects it.
 - **Permissions** (for all allowed phones, all on by default):
   - **Share phone location with Maps** – when off, location updates from the phone are dropped.
   - **Allow LuxAI requests from the phone**.
   - **Allow saving notes to Calendar**.
+  - **Allow reading the calendar** – the phone can list your calendar entries for a chosen day
+    (separate from saving notes).
 - **Pair a Phone…** – makes the computer visible for 3 minutes with the pairing steps and a countdown
   (the button turns into **Cancel**), and **Bluetooth Settings…**.
 
@@ -55,7 +57,7 @@ Settings are stored in `~/.config/luxos/companion.json` (mode 0600):
 
 ```json
 {"version": 1, "phones": {"AA:BB:CC:DD:EE:FF": {"name": "Pixel 8", "approved": "2026-10-27T12:00:00+00:00"}},
- "share_location": true, "allow_luxai": true, "allow_calendar": true}
+ "share_location": true, "allow_luxai": true, "allow_calendar": true, "allow_calendar_read": true}
 ```
 
 `luxos-companion --status` prints the state of the service as JSON (connections, pending approvals,
@@ -99,14 +101,26 @@ time (a second one gets "busy"). **Stop** on the phone cancels the running reque
 that already happened are not undone).
 
 - The phone's text is passed to LuxAI only as data on standard input – it is never run as a command.
-- LuxAI's own permission rules apply. Actions that LuxAI would confirm in a card on the computer
-  (commands, file changes, calendar changes, …) are **refused** from the phone – protocol v1 has no
-  mobile confirmations – and the answer says that the action needs confirmation on the computer.
-  Administrator commands and desktop control (mouse, keyboard, screenshots) are never run remotely.
-  Read-only tools work: files, documentation, web search, maps and the LuxOS Calendar
-  (`calendar_list_events`). To add an event from the phone, use the calendar note (below).
+- **Model** (app 0.4): the phone can pick one of the models LuxAI offers on this computer (at most
+  100, no keys are sent). The chosen model is really used; if it is not available the request fails
+  with `model_unavailable` – LuxAI never silently uses another one. *Model set on the PC* sends no model.
+- **Tools** (app 0.4): the phone shows which tools LuxAI runs (name, state running / completed /
+  failed / waiting and a short detail – at most 100 calls per answer, 4000 characters each).
+- LuxAI's own permission rules apply. Administrator (root) commands and desktop control (mouse,
+  keyboard, screenshots) are **never** run from the phone. Read-only tools work as before.
+- **Approvals on the phone** (app 0.4 with a LuxAI that supports them): an action that LuxAI would
+  confirm in a card on the computer (ask/confirm level – a command, a file change, a calendar change…)
+  waits for a decision on the phone, which shows the full description with **Allow once** / **Deny**.
+  The approval is **one-time**, bound to that exact action and its arguments, to the connected phone and
+  the running request, and expires after **60 s** (at most 120 s); it is accepted once – a repeated,
+  late, unknown or foreign approval is refused with `approval_invalid`, and it ends when the request is
+  stopped or finished or the phone disconnects. A phone approval never raises permissions: actions that
+  are denied or need an administrator stay refused. With an older LuxAI the phone gets no approvals and
+  such actions are refused as before (the answer says they need confirmation on the computer).
 - If the installed LuxAI does not have `--remote-session` yet, the phone gets the error
   `luxai_unavailable` ("Update LuxAI").
+- **New chat** in the app reconnects: the old LuxAI process (and its conversation) ends immediately and
+  the new connection starts a fresh one.
 
 ## Calendar notes
 
@@ -127,6 +141,16 @@ bar shows it right away):
 - Writing is coordinated with the Calendar: a lock, re-reading the file right before writing, an atomic
   replace, and the Calendar takes over events added by other programs before it saves its own changes.
 
+## Calendar on the phone
+
+With **Allow reading the calendar** on, the Calendar tab of the app (0.4) lists the entries for a
+chosen day in the phone's time zone: all calendars in `~/.local/share/luxos/calendar/` (your own and
+subscribed `.ics` files), occurrences of repeating events (with exceptions), events over midnight
+(time 00:00 on the next day, the real range in the text) and multi-day and all-day events (without
+time). At most 100 entries; titles up to 300 and texts up to 8000 characters – when something has to
+be shortened to fit, the phone says so. Repeating events follow the computer's own time zone, the same
+as the Calendar. Nothing is written; reading errors are reported, never shown as an empty day.
+
 ## Files (LuxDrop)
 
 The LuxDrop tab of the app (0.3 and newer) does not use Bluetooth: it sends files over the local
@@ -138,14 +162,18 @@ no folders. Details in [LuxDrop](luxdrop.md#android-phone-luxos-companion).
 
 ## Protocol and troubleshooting
 
-The Bluetooth protocol (v1) is the same for app versions 0.2 and 0.3. Bluetooth Classic RFCOMM, service UUID `ad9b7c10-6ce5-4f35-9952-728f760fcb70`, registered in BlueZ
+The Bluetooth protocol (v1) is the same for app versions 0.2–0.4; 0.4 adds optional features that
+the computer announces in `hello.ok` `capabilities` only when the whole chain supports them:
+`calendar.read` (when reading is allowed) and `luxai.models`, `luxai.tools`, `luxai.approvals` only
+when LuxAI is allowed and the installed `luxai --remote-session` lists them (checked once after the
+service starts and again after LuxAI is updated). Bluetooth Classic RFCOMM, service UUID `ad9b7c10-6ce5-4f35-9952-728f760fcb70`, registered in BlueZ
 with `ProfileManager1.RegisterProfile` (role server, authentication and authorization required, no
 auto-connect). Frames are one JSON object per line (UTF-8, at most 65 536 bytes including the newline);
 invalid UTF-8, oversized or unfinished frames and unsupported versions close the connection. The phone
 must send `hello` within 20 s; it pings every 15 s and the connection closes after 45 s without any
 message. Error replies carry a `code` such as `not_approved`, `permission_denied`, `invalid_title`,
 `invalid_date`, `invalid_time`, `nonexistent_time`, `invalid_timezone`, `storage_failed`, `busy`,
-`luxai_unavailable`.
+`luxai_unavailable`, `model_unavailable`, `approval_invalid`, `unsupported`.
 
 Session bus API (`cz.luxos.Companion1` at `/cz/luxos/Companion1`): `GetLocation()` and the property
 `CurrentLocation` (`a{sv}`: `valid`, `latitude`, `longitude`, `accuracy`, `timestamp_ms`, `age_ms`,

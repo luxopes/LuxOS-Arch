@@ -1,5 +1,5 @@
 # Maintainer: LuxOS Team
-# LuxOS Companion: pocitacova strana Android aplikace LuxOS Companion 0.2 (protokol v1 pres Bluetooth
+# LuxOS Companion: pocitacova strana Android aplikace LuxOS Companion 0.2-0.4 (protokol v1 pres Bluetooth
 # RFCOMM, UUID ad9b7c10-6ce5-4f35-9952-728f760fcb70). Sluzba relace (systemd --user) registruje profil
 # v BlueZ, schvaluje telefony, zverejnuje polohu telefonu Mapam (D-Bus cz.luxos.Companion1), uklada
 # poznamky do Kalendare (events.ics) a predava pozadavky LuxAI (luxai --remote-session).
@@ -9,7 +9,7 @@
 
 pkgname=luxos-companion
 pkgver=1.0.0
-pkgrel=2
+pkgrel=3
 pkgdesc="LuxOS Companion - connect the Android app over Bluetooth: phone location for Maps, LuxAI requests and calendar notes"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -25,7 +25,8 @@ check() {
     # ramce, handshake, casovace, schvaleni, poloha, kalendar, LuxAI (zastupny luxai) a profil BlueZ proti
     # falesnemu BlueZ na soukrome sbernici (vlastni dbus-daemon); okno jen pod xvfb-run (test_gui.py)
     cd "$startdir"
-    env -u DISPLAY python3 -m unittest tests/test_protocol.py tests/test_features.py tests/test_dbus.py
+    env -u DISPLAY python3 -m unittest tests/test_protocol.py tests/test_features.py tests/test_dbus.py \
+        tests/test_extensions.py
 }
 
 package() {

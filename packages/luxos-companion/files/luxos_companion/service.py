@@ -9,7 +9,8 @@ cz.luxos.Companion1 na /cz/luxos/Companion1:
                                    podle hodin PC), mock, device; volitelne altitude, speed, bearing
   property CurrentLocation a{sv}   totez (PropertiesChanged pri zmene)
   signal LocationChanged(a{sv})    novy fix, zastarani (15 s), enabled:false, odpojeni
-  GetStatus() -> s                 JSON: bluetooth, spojeni, cekajici schvaleni
+  GetStatus() -> s                 JSON: bluetooth, spojeni, cekajici schvaleni, phone_approvals (pocet
+                                   akci LuxAI cekajicich na souhlas v telefonu)
   signal StatusChanged(s)
   AnswerApproval(s address, b allow)   odpoved na dotaz (okno Telefon)
   Disconnect(s address)            odpojit telefon
@@ -129,16 +130,18 @@ class Notifier:
 
 class Service:
     def __init__(self, session_bus, settings=None, calendar=None, clock=time.monotonic, notifier=None,
-                 luxai_factory=None):
+                 luxai_factory=None, probe=None, calendar_reader=None):
         self.bus = session_bus
         self.clock = clock
         self.settings = settings or store.Settings()
         self.calendar = calendar or calendar_note.CalendarWriter(
             done_path=os.path.join(store.state_dir(), "calendar-requests.json"))
+        self.calendar_reader = calendar_reader or calendar_note.CalendarReader(self.calendar.dir)
         self.location = LocationState(clock=clock, on_change=self._location_changed)
         self.location.enabled = self.settings.get("share_location")
         self.notifier = notifier if notifier is not None else (Notifier(session_bus) if session_bus else None)
-        self.luxai_factory = luxai_factory or (lambda send: luxai_bridge.LuxAIBridge(send))
+        self.luxai_factory = luxai_factory or (lambda send: luxai_bridge.LuxAIBridge(send, clock=clock))
+        self.probe = probe or luxai_bridge.CapabilityProbe(clock=clock)
         self.sessions = {}           # klic -> Session
         self.pending = {}            # adresa -> {"name", "callbacks": [(session, cb)], "nid"}
         self.bt = {"available": False, "registered": False, "error": None}
@@ -208,8 +211,9 @@ class Service:
                   "state": s.state, "since": round(now - s.started), "location": s.location_enabled}
                  for s in self.sessions.values()]
         pending = [{"address": a, "name": p["name"]} for a, p in self.pending.items()]
+        approvals = sum(s.pending_approvals() for s in self.sessions.values())
         return {"bluetooth": dict(self.bt), "connections": conns, "pending": pending,
-                "location": self.location.snapshot()["valid"]}
+                "location": self.location.snapshot()["valid"], "phone_approvals": approvals}
 
     def status_changed(self):
         self._emit("StatusChanged", GLib.Variant("(s)", (json.dumps(self.status(), ensure_ascii=False),)))
@@ -260,6 +264,20 @@ class Service:
     # ---- hub pro Session ----
     def make_luxai(self, send):
         return self.luxai_factory(send)
+
+    def capabilities(self, callback):
+        """Schopnosti pro hello.ok: jen to, co umi most i nainstalovane LuxAI a co je povolene."""
+        def done(luxai_caps):
+            caps = []
+            if self.settings.get("allow_luxai"):
+                caps += [cap for key, cap in luxai_bridge.CAPABILITIES.items() if key in luxai_caps]
+            if self.settings.get("allow_calendar_read"):
+                caps.append("calendar.read")
+            callback(caps)
+        if self.settings.get("allow_luxai"):
+            self.probe.get(done)
+        else:
+            done(set())
 
     def session_opened(self, s):
         log("phone connected:", s.peer["address"])
@@ -390,6 +408,8 @@ def run():
         return 1
     svc = Service(sbus)
     svc.export()
+    # schopnosti LuxAI hned po startu (hello.ok pak nemusi cekat)
+    svc.probe.get(lambda caps: log("LuxAI remote-session capabilities:", ", ".join(sorted(caps)) or "none"))
     state = {"owned": None, "profile": None}
 
     def acquired(_c, _n):
@@ -415,6 +435,7 @@ def run():
     loop.run()
     for s in list(svc.sessions.values()):
         s.close("shutdown")
+    svc.probe.close()
     if state["profile"] is not None:
         state["profile"].stop()
     Gio.bus_unown_name(own_id)

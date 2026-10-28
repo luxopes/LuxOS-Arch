@@ -147,9 +147,12 @@ class CompanionWindow(Gtk.Window):
                 ("share_location", _("Share phone location with Maps"),
                  _("Maps uses it only after you allow My Location in Maps.")),
                 ("allow_luxai", _("Allow LuxAI requests from the phone"),
-                 _("LuxAI answers with the permissions of this computer; actions are confirmed here.")),
+                 _("LuxAI answers with the permissions of this computer. Actions that need confirmation can be "
+                   "allowed once on the phone.")),
                 ("allow_calendar", _("Allow saving notes to Calendar"),
-                 _("Notes from the phone are added to your calendar on this computer."))):
+                 _("Notes from the phone are added to your calendar on this computer.")),
+                ("allow_calendar_read", _("Allow reading the calendar"),
+                 _("The phone can show your calendar entries for a chosen day."))):
             row = Gtk.Box(spacing=12)
             t = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
             t.pack_start(label(title), False, False, 0)
@@ -241,6 +244,8 @@ class CompanionWindow(Gtk.Window):
                 icon = "phone-symbolic"
                 title = _("Connected: %s") % ", ".join(c["name"] for c in open_conns)
                 detail = _("Sharing location") if st.get("location") else _("Connected over Bluetooth")
+                if st.get("phone_approvals"):
+                    detail = _("LuxAI is waiting for your approval on the phone")
             elif not bt.get("registered"):
                 icon = "bluetooth-disabled-symbolic"
                 title = _("Bluetooth is off or not available.")

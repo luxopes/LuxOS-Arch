@@ -2,17 +2,26 @@
 """Zastupny `luxai --remote-session` pro testy mostu (kontrakt JSON radku, viz luxai_bridge.py).
 
 FAKE_LUXAI_MODE: ok (vychozi) | old (nezna --remote-session: hlaska na stderr a kod 2) | exit3 (skonci
-hned s kodem 3). Text pozadavku ridi chovani: "slow" ceka na cancel (pak done), "fail" vrati error,
-"crash" skonci uprostred pozadavku, "big" posle jednu velkou deltu, jinak "Echo #N: text" ve dvou
-deltach (N = poradi v konverzaci - overeni, ze konverzace trva po dobu procesu).
-FAKE_LUXAI_LOG: soubor, kam se zapisuji prijate radky a argumenty.
+hned s kodem 3) | noready (ready neposle, jen ceka). FAKE_LUXAI_CAPS: schopnosti v ready oddelene carkou
+(vychozi "models,tools,approvals"; "none" = ready bez capabilities jako starsi LuxAI).
+FAKE_LUXAI_MODELS: pocet modelu v seznamu (vychozi 2: local/llama a cloud/fast).
+Text pozadavku ridi chovani: "slow" ceka na cancel (pak done), "fail" vrati error, "crash" skonci
+uprostred pozadavku, "big" posle jednu velkou deltu, "tools" udalosti nastroju, "manytools" 105 nastroju
+s dlouhym detailem, "approve" pozada o souhlas (approval_id ap-1, ceka na odpoved, pak tool completed /
+failed a done), "approve-twice" dva souhlasy; jinak "Echo #N: text" ve dvou deltach (N = poradi
+v konverzaci - overeni, ze konverzace trva po dobu procesu).
+FAKE_LUXAI_LOG: soubor, kam se zapisuji prijate radky a argumenty. Spusteni pro zjisteni schopnosti
+(LUXOS_COMPANION_PROBE=1) se zapisuje jen do FAKE_LUXAI_PROBE_LOG.
 """
 import json
 import os
 import sys
 
 mode = os.environ.get("FAKE_LUXAI_MODE", "ok")
-log = os.environ.get("FAKE_LUXAI_LOG")
+probe = os.environ.get("LUXOS_COMPANION_PROBE") == "1"
+log = os.environ.get("FAKE_LUXAI_PROBE_LOG" if probe else "FAKE_LUXAI_LOG")
+caps = os.environ.get("FAKE_LUXAI_CAPS", "models,tools,approvals")
+nmodels = int(os.environ.get("FAKE_LUXAI_MODELS", "2"))
 
 
 def record(obj):
@@ -26,6 +35,13 @@ def out(obj):
     sys.stdout.flush()
 
 
+def model_list():
+    if nmodels == 2:
+        return [{"id": "local/llama", "name": "Llama (local)"}, {"id": "cloud/fast", "name": ""},
+                {"id": "", "name": "bad"}, {"id": "local/llama", "name": "duplicate"}, "garbage"]
+    return [{"id": f"m/{i:04d}-" + "x" * 190, "name": "Model " + "ž" * 190} for i in range(nmodels)]
+
+
 record({"argv": sys.argv[1:], "pid": os.getpid()})
 if sys.argv[1:] != ["--remote-session"] or mode == "old":
     sys.stderr.write("luxai: unknown option '--remote-session'\n")
@@ -33,9 +49,14 @@ if sys.argv[1:] != ["--remote-session"] or mode == "old":
 if mode == "exit3":
     sys.exit(3)
 
-out({"type": "ready", "protocol": 1})
+if mode != "noready":
+    ready = {"type": "ready", "protocol": 1}
+    if caps != "none":
+        ready["capabilities"] = [c for c in caps.split(",") if c]
+    out(ready)
 count = 0
 running = None
+waiting = {}                 # approval_id -> (request id, tool_id)
 for line in sys.stdin:
     try:
         msg = json.loads(line)
@@ -43,16 +64,38 @@ for line in sys.stdin:
         out({"type": "error", "reply_to": None, "code": "bad_input", "message": "invalid JSON"})
         continue
     record(msg)
-    if msg.get("type") == "cancel":
+    t = msg.get("type")
+    if t == "cancel":
         if running and msg.get("request_id") == running:
             out({"type": "done", "reply_to": running})
             running = None
+            waiting.clear()
         continue
-    if msg.get("type") != "request":
+    if t == "models":
+        out({"type": "models", "reply_to": msg["id"], "models": model_list()})
+        continue
+    if t == "approval":
+        w = waiting.pop(msg.get("approval_id"), None)
+        if not w or w[0] != msg.get("request_id"):
+            continue
+        rid, tool_id = w
+        ok = msg.get("approved") is True
+        out({"type": "tool", "reply_to": rid, "tool_id": tool_id, "name": "calendar.create_event",
+             "state": "completed" if ok else "failed", "detail": "Created" if ok else "Denied on the phone"})
+        if not waiting:
+            out({"type": "delta", "reply_to": rid, "text": "approved" if ok else "denied"})
+            out({"type": "done", "reply_to": rid})
+            running = None
+        continue
+    if t != "request":
         continue
     rid = msg["id"]
     if running:
         out({"type": "error", "reply_to": rid, "code": "busy", "message": "busy"})
+        continue
+    model = msg.get("model")
+    if model is not None and model not in [m["id"] for m in model_list() if isinstance(m, dict)]:
+        out({"type": "error", "reply_to": rid, "code": "model_unavailable", "message": ""})
         continue
     count += 1
     text = msg.get("text", "")
@@ -67,8 +110,37 @@ for line in sys.stdin:
     elif text == "big":
         out({"type": "delta", "reply_to": rid, "text": "ž" * 30000})
         out({"type": "done", "reply_to": rid})
+    elif text == "tools":
+        out({"type": "tool", "reply_to": rid, "tool_id": "call-1", "name": "shell", "state": "running",
+             "detail": "ls -la /tmp\x07"})
+        out({"type": "tool", "reply_to": "someone-else", "tool_id": "call-9", "name": "shell", "state": "running",
+             "detail": "x"})
+        out({"type": "tool", "reply_to": rid, "tool_id": "call-1", "name": "shell", "state": "bogus", "detail": ""})
+        out({"type": "tool", "reply_to": rid, "tool_id": "call-1", "name": "shell", "state": "completed",
+             "detail": "Exit 0"})
+        out({"type": "delta", "reply_to": rid, "text": "done with tools"})
+        out({"type": "done", "reply_to": rid})
+    elif text == "manytools":
+        for i in range(105):
+            out({"type": "tool", "reply_to": rid, "tool_id": f"call-{i}", "name": "read", "state": "running",
+                 "detail": "\"ž\\" * 2000})
+        out({"type": "done", "reply_to": rid})
+    elif text in ("approve", "approve-twice", "approve-empty"):
+        running = rid
+        n = 2 if text == "approve-twice" else 1
+        for i in range(1, n + 1):
+            tool_id, aid = f"call-{i}", f"ap-{i}"
+            waiting[aid] = (rid, tool_id)
+            out({"type": "tool", "reply_to": rid, "tool_id": tool_id, "name": "calendar.create_event",
+                 "state": "waiting", "detail": "Create: Meeting"})
+            out({"type": "approval", "reply_to": rid, "tool_id": tool_id, "approval_id": aid,
+                 "name": "calendar.create_event",
+                 "detail": "" if text == "approve-empty" else "Create: Meeting, 2026-10-29 16:00 Europe/Prague",
+                 "timeout_ms": 999999 if i == 2 else 60000})
     else:
         reply = f"Echo #{count} ({msg.get('mode')}): {text}"
+        if model:
+            reply = f"Echo #{count} ({msg.get('mode')}, {model}): {text}"
         half = len(reply) // 2
         out({"type": "delta", "reply_to": rid, "text": reply[:half]})
         out({"type": "delta", "reply_to": rid, "text": reply[half:]})

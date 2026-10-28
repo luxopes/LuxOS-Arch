@@ -4429,3 +4429,17 @@ More words or patterns: all must match. Put patterns in quotes: lux search '*qt*
 search only installed packages and apps	шукати лише серед установлених пакунків і застосунків
 Usage: lux search [--installed] <term or pattern>	Використання: lux search [--installed] <запит або шаблон>
 skipped: a pattern needs at least 2 letters in a row for the AUR	пропущено: для AUR шаблон має містити щонайменше 2 символи поспіль
+(No title)	(Без назви)
+Choosing a model is not supported on this computer.	Цей комп’ютер не підтримує вибір моделі.
+Invalid approval.	Недійсне підтвердження.
+Invalid model.	Недійсна модель.
+Invalid number of calendar entries (1-100).	Недійсна кількість записів календаря (1–100).
+Reading the calendar from the phone is turned off on this computer (Phone settings).	Читання календаря з телефона на цьому комп’ютері вимкнено (налаштування Телефон).
+The calendar cannot be read on this computer.	Не вдається прочитати календар на цьому комп’ютері.
+The list of models could not be loaded.	Не вдалося завантажити список моделей.
+The selected model is not available on this computer.	Вибрана модель недоступна на цьому комп’ютері.
+This approval is no longer valid (already answered, expired or the request has ended).	Це підтвердження вже недійсне (на нього вже відповіли, строк минув або запит завершено).
+LuxAI answers with the permissions of this computer. Actions that need confirmation can be allowed once on the phone.	LuxAI відповідає з дозволами цього комп’ютера. Дії, що потребують підтвердження, можна одноразово дозволити на телефоні.
+Allow reading the calendar	Дозволити читання календаря
+The phone can show your calendar entries for a chosen day.	Телефон може показувати записи календаря за вибраний день.
+LuxAI is waiting for your approval on the phone	LuxAI чекає на ваше підтвердження на телефоні

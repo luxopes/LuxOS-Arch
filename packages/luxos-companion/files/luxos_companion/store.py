@@ -2,7 +2,7 @@
 
 {"version": 1,
  "phones": {"AA:BB:CC:DD:EE:FF": {"name": "Pixel 8", "approved": "2026-10-27T12:00:00+00:00"}},
- "share_location": true, "allow_luxai": true, "allow_calendar": true}
+ "share_location": true, "allow_luxai": true, "allow_calendar": true, "allow_calendar_read": true}
 
 Samotne sparovani v Bluetooth neni opravneni: telefon musi byt schvaleny zde (dotaz pri prvnim
 pripojeni, odebrani v okne Telefon). Zapis: zamek (flock) + docasny soubor + prejmenovani, takze
@@ -14,8 +14,8 @@ import json
 import os
 import re
 
-TOGGLES = ("share_location", "allow_luxai", "allow_calendar")
-DEFAULTS = {"share_location": True, "allow_luxai": True, "allow_calendar": True}
+TOGGLES = ("share_location", "allow_luxai", "allow_calendar", "allow_calendar_read")
+DEFAULTS = {"share_location": True, "allow_luxai": True, "allow_calendar": True, "allow_calendar_read": True}
 ADDRESS_RE = re.compile(r"^[0-9A-F]{2}(:[0-9A-F]{2}){5}$")
 MAX_NAME = 248               # Bluetooth jmeno zarizeni (bajty v BlueZ), tady znaky
 
