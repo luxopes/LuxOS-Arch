@@ -2672,7 +2672,7 @@ opens a remote shell	távoli shellt nyit
 remove packages (also Flatpak apps) and unneeded dependencies	csomagok eltávolítása (Flatpak-alkalmazások is) és a felesleges függőségek
 runs generated code with eval	generált kódot futtat eval-lal
 runs inline code of another language	más nyelvű beágyazott kódot futtat
-search repositories, Flathub and community (AUR)	keresés a tárolókban, a Flathubon és a közösségi forrásban (AUR)
+search repositories, Flathub and AUR; patterns ^vim, *qt* (lux search -h)	keresés a tárolókban, a Flathubon és az AUR-ban; minták ^vim, *qt* (lux search -h)
 sets world-writable or setuid permissions	mindenki által írható vagy setuid jogosultságot állít be
 the build script is unusually long	a build-szkript szokatlanul hosszú
 touches accounts, sudo or SSH keys	fiókokhoz, sudóhoz vagy SSH-kulcsokhoz nyúl
@@ -4409,3 +4409,15 @@ On the phone: Bluetooth settings → pair with “%s”, confirm the same code o
 This computer is no longer visible. Press Pair a Phone… to try again.	Ez a számítógép már nem látható. Új próbálkozáshoz nyomja meg a Telefon párosítása… gombot.
 Visible to phones for %d:%02d	Telefonok számára még %d:%02d ideig látható
 Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	Párosítva ezzel: „%s”. Most nyissa meg a LuxOS Companiont a telefonon → Számítógép kiválasztása; az első kapcsolódáskor itt kér engedélyt.
+term or pattern	kifejezés vagy minta
+A plain word searches package names and descriptions. A pattern searches names only (case does not matter):	Egy egyszerű szó a csomagok nevében és leírásában keres. Egy minta csak a nevekben keres (a kis- és nagybetű mindegy):
+name starts with text	a név ezzel kezdődik: text
+name ends with text	a név erre végződik: text
+exactly this name	pontosan ez a név
+name contains text	a név tartalmazza: text
+* any characters, ? one character (the whole name must match)	* bármilyen karakterek, ? egy karakter (a teljes névnek egyeznie kell)
+same as *, but the shell does not expand it	ugyanaz, mint a *, de a shell nem bontja ki
+More words or patterns: all must match. Put patterns in quotes: lux search '*qt*'	Több szó vagy minta: mindnek egyeznie kell. A mintákat tegye idézőjelbe: lux search '*qt*'
+search only installed packages and apps	keresés csak a telepített csomagokban és alkalmazásokban
+Usage: lux search [--installed] <term or pattern>	Használat: lux search [--installed] <kifejezés vagy minta>
+skipped: a pattern needs at least 2 letters in a row for the AUR	kihagyva: az AUR-hoz a mintának legalább 2 egymást követő karakter kell

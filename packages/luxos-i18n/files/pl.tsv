@@ -2673,7 +2673,7 @@ opens a remote shell	otwiera zdalną powłokę
 remove packages (also Flatpak apps) and unneeded dependencies	usuwanie pakietów (także aplikacji Flatpak) i zbędnych zależności
 runs generated code with eval	uruchamia wygenerowany kod przez eval
 runs inline code of another language	uruchamia osadzony kod innego języka
-search repositories, Flathub and community (AUR)	szukanie w repozytoriach, Flathub i społeczności (AUR)
+search repositories, Flathub and AUR; patterns ^vim, *qt* (lux search -h)	szukaj w repozytoriach, na Flathubie i w AUR; wzorce ^vim, *qt* (lux search -h)
 sets world-writable or setuid permissions	ustawia uprawnienia zapisu dla wszystkich lub setuid
 the build script is unusually long	skrypt budowania jest nietypowo długi
 touches accounts, sudo or SSH keys	dotyka kont, sudo lub kluczy SSH
@@ -4410,3 +4410,15 @@ On the phone: Bluetooth settings → pair with “%s”, confirm the same code o
 This computer is no longer visible. Press Pair a Phone… to try again.	Ten komputer nie jest już widoczny. Kliknij Sparuj telefon…, aby spróbować ponownie.
 Visible to phones for %d:%02d	Widoczny dla telefonów jeszcze %d:%02d
 Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	Sparowano z „%s”. Teraz otwórz LuxOS Companion w telefonie → Wybierz komputer; przy pierwszym połączeniu zostaniesz tu zapytany o zgodę.
+term or pattern	fraza lub wzorzec
+A plain word searches package names and descriptions. A pattern searches names only (case does not matter):	Zwykłe słowo szuka w nazwach i opisach pakietów. Wzorzec szuka tylko w nazwach (wielkość liter nie ma znaczenia):
+name starts with text	nazwa zaczyna się od text
+name ends with text	nazwa kończy się na text
+exactly this name	dokładnie ta nazwa
+name contains text	nazwa zawiera text
+* any characters, ? one character (the whole name must match)	* dowolne znaki, ? jeden znak (musi pasować cała nazwa)
+same as *, but the shell does not expand it	to samo co *, ale powłoka go nie rozwija
+More words or patterns: all must match. Put patterns in quotes: lux search '*qt*'	Kilka słów lub wzorców: wszystkie muszą pasować. Wzorce umieść w cudzysłowie: lux search '*qt*'
+search only installed packages and apps	szukaj tylko w zainstalowanych pakietach i aplikacjach
+Usage: lux search [--installed] <term or pattern>	Użycie: lux search [--installed] <fraza lub wzorzec>
+skipped: a pattern needs at least 2 letters in a row for the AUR	pominięto: dla AUR wzorzec wymaga co najmniej 2 znaków z rzędu

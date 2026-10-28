@@ -2672,7 +2672,7 @@ opens a remote shell	abre um shell remoto
 remove packages (also Flatpak apps) and unneeded dependencies	remover pacotes (também aplicações Flatpak) e dependências desnecessárias
 runs generated code with eval	executa código gerado com eval
 runs inline code of another language	executa código incorporado de outra linguagem
-search repositories, Flathub and community (AUR)	pesquisar repositórios, Flathub e comunidade (AUR)
+search repositories, Flathub and AUR; patterns ^vim, *qt* (lux search -h)	pesquisar nos repositórios, no Flathub e no AUR; padrões ^vim, *qt* (lux search -h)
 sets world-writable or setuid permissions	define permissões graváveis por todos ou setuid
 the build script is unusually long	o script de compilação é invulgarmente longo
 touches accounts, sudo or SSH keys	mexe em contas, sudo ou chaves SSH
@@ -4409,3 +4409,15 @@ On the phone: Bluetooth settings → pair with “%s”, confirm the same code o
 This computer is no longer visible. Press Pair a Phone… to try again.	Este computador já não está visível. Prima Emparelhar um telefone… para tentar de novo.
 Visible to phones for %d:%02d	Visível para telefones durante %d:%02d
 Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	Emparelhado com “%s”. Agora abra o LuxOS Companion no telefone → Escolher computador; a primeira ligação pede autorização aqui.
+term or pattern	termo ou padrão
+A plain word searches package names and descriptions. A pattern searches names only (case does not matter):	Uma palavra simples pesquisa nos nomes e descrições dos pacotes. Um padrão pesquisa apenas nos nomes (maiúsculas e minúsculas tanto faz):
+name starts with text	o nome começa por texto
+name ends with text	o nome termina em texto
+exactly this name	exatamente este nome
+name contains text	o nome contém texto
+* any characters, ? one character (the whole name must match)	* quaisquer caracteres, ? um carácter (o nome inteiro tem de corresponder)
+same as *, but the shell does not expand it	o mesmo que *, mas a shell não o expande
+More words or patterns: all must match. Put patterns in quotes: lux search '*qt*'	Várias palavras ou padrões: todos têm de corresponder. Coloque os padrões entre aspas: lux search '*qt*'
+search only installed packages and apps	pesquisar apenas nos pacotes e aplicações instalados
+Usage: lux search [--installed] <term or pattern>	Utilização: lux search [--installed] <termo ou padrão>
+skipped: a pattern needs at least 2 letters in a row for the AUR	ignorado: para o AUR um padrão precisa de pelo menos 2 caracteres seguidos

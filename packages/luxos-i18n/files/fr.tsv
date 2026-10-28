@@ -2672,7 +2672,7 @@ opens a remote shell	ouvre un shell distant
 remove packages (also Flatpak apps) and unneeded dependencies	supprimer des paquets (aussi des applications Flatpak) et les dépendances inutiles
 runs generated code with eval	exécute du code généré avec eval
 runs inline code of another language	exécute du code intégré d’un autre langage
-search repositories, Flathub and community (AUR)	rechercher dans les dépôts, Flathub et la communauté (AUR)
+search repositories, Flathub and AUR; patterns ^vim, *qt* (lux search -h)	rechercher dans les dépôts, sur Flathub et dans l'AUR ; motifs ^vim, *qt* (lux search -h)
 sets world-writable or setuid permissions	définit des droits en écriture pour tous ou setuid
 the build script is unusually long	le script de compilation est anormalement long
 touches accounts, sudo or SSH keys	touche aux comptes, à sudo ou aux clés SSH
@@ -4409,3 +4409,15 @@ On the phone: Bluetooth settings → pair with “%s”, confirm the same code o
 This computer is no longer visible. Press Pair a Phone… to try again.	Cet ordinateur n’est plus visible. Cliquez sur Associer un téléphone… pour réessayer.
 Visible to phones for %d:%02d	Visible pour les téléphones encore %d:%02d
 Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	Associé à « %s ». Ouvrez maintenant LuxOS Companion sur le téléphone → Choisir l’ordinateur ; la première connexion demandera l’autorisation ici.
+term or pattern	terme ou motif
+A plain word searches package names and descriptions. A pattern searches names only (case does not matter):	Un mot simple cherche dans les noms et descriptions des paquets. Un motif cherche uniquement dans les noms (sans tenir compte de la casse) :
+name starts with text	le nom commence par texte
+name ends with text	le nom se termine par texte
+exactly this name	exactement ce nom
+name contains text	le nom contient texte
+* any characters, ? one character (the whole name must match)	* n'importe quels caractères, ? un caractère (le nom entier doit correspondre)
+same as *, but the shell does not expand it	comme *, mais le shell ne le développe pas
+More words or patterns: all must match. Put patterns in quotes: lux search '*qt*'	Plusieurs mots ou motifs : tous doivent correspondre. Mettez les motifs entre guillemets : lux search '*qt*'
+search only installed packages and apps	rechercher uniquement dans les paquets et applications installés
+Usage: lux search [--installed] <term or pattern>	Utilisation : lux search [--installed] <terme ou motif>
+skipped: a pattern needs at least 2 letters in a row for the AUR	ignoré : pour l'AUR, un motif doit contenir au moins 2 caractères consécutifs
