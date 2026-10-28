@@ -33,8 +33,8 @@ country, and the distance from the centre of the map:
 
 Order: your own places first – favorites, then recent places, then stops already loaded in Maps
 (stops of the shown connection, a departures board or a nearby search) – at most four, then
-suggestions from **Photon** (online, see below), with places whose name matches the typed words
-before places that only match in the address. The same place is listed once (a square drawn as an
+online suggestions (from the **LuxOS geocoder** in Czechia and Slovakia, otherwise **Photon**, see
+below), with places whose name matches the typed words before places that only match in the address. The same place is listed once (a square drawn as an
 area and its street segments, several platforms of one stop).
 
 Matching of your own places ignores accents and case and looks at the beginning of words:
@@ -45,8 +45,8 @@ nothing. Online suggestions start after three letters.
 the list (the text stays), **Tab** moves on. **Enter** with no row selected searches as before (search
 field) or takes the first search result (Start/Destination). A click on a row picks it.
 
-Picking a suggestion goes straight to its coordinates – Photon already sent them, so no further
-request to Nominatim is made:
+Picking a suggestion goes straight to its coordinates – the suggestion already has them, so no
+further request to Nominatim is made:
 
 - **Search field**: the place opens in the sidebar and the map moves there (to the whole area for a
   town or square).
@@ -55,10 +55,23 @@ request to Nominatim is made:
   (**⋯ › Allow My Location**) **My Location** is always the first suggestion in these fields; picking
   it uses your current position (and asks for a fix if Maps does not have one yet).
 
-The list only queries the server after you stop typing for **250 ms**; each new letter cancels the
+The list only queries the server after you stop typing for **150 ms**; each new letter cancels the
 previous query (also one already sent), so a fast typist sends one request, not one per letter.
-Answers are remembered for 10 minutes while Maps runs. Nothing blocks the window: queries run in the
+Answers are remembered for 10 minutes while Maps runs, and the HTTPS connection stays open between
+queries (no new TLS handshake for every letter). Nothing blocks the window: queries run in the
 background and a late answer for text you already changed is thrown away.
+
+### Where online suggestions come from
+
+1. **LuxOS geocoder** (`https://luxos.lux-ai.cz/geocode/api`, run by the LuxOS project) when the map
+   centre is in **Czechia or Slovakia**. It answers in tens of milliseconds and knows towns and
+   districts, streets, addresses (house numbers), places (shops, restaurants, sights…) and public
+   transport stops (platforms of one stop are merged into one row), built weekly from
+   OpenStreetMap data. The footer then says "Suggestions by LuxOS · © OpenStreetMap contributors".
+2. **Photon** (`photon.komoot.io`) when the map centre is elsewhere, when the LuxOS geocoder does not
+   answer within 1.2 s (then it is skipped for 30 s), or when it finds fewer than two places whose
+   name matches – the LuxOS rows stay on top and Photon's are added below them as they arrive
+   (for example a city abroad while the map shows Prague). Photon takes 2–4 s.
 
 ## Recent places
 
@@ -70,12 +83,18 @@ on this computer in `~/.config/luxos/maps.json` (`"recent"`) and are never sent 
 ## Privacy: what is sent where
 
 - **Suggestions** (online): the typed text, the map centre rounded to about 1 km and the language go
-  to **photon.komoot.io** (Photon by komoot, built on OpenStreetMap data, no account or key), with the
-  `LuxOS-Maps/1.0` user agent – the same way pressing Enter sends the text to Nominatim. Photon is
-  used because Nominatim's usage policy forbids searching while typing on its public server.
-  Maps keeps to Photon's fair use: 250 ms pause, at most 7 results, the last text only, no repeated
-  queries for the same text and area; after a network error or a "busy" answer (HTTP 429/5xx) it
-  sends nothing for 30 seconds.
+  with the `LuxOS-Maps/1.0` user agent – the same way pressing Enter sends the text to Nominatim:
+  - to **luxos.lux-ai.cz** (the LuxOS geocoder) when the map shows Czechia or Slovakia. The server
+    **does not store or log the typed text**: the service writes no access log, error messages never
+    contain the query, and the web server's access log is turned off for `/geocode/`. To limit
+    abuse it keeps only a request counter per IP address in memory (a few seconds, never written);
+  - to **photon.komoot.io** (Photon by komoot, built on OpenStreetMap data, no account or key)
+    outside that area or as a fallback (see above). Photon is used because Nominatim's usage policy
+    forbids searching while typing on its public server.
+
+  Maps keeps to fair use: 150 ms pause, at most 7 results, the last text only, no repeated queries
+  for the same text and area; after a network error or a "busy" answer (HTTP 429/5xx) it sends
+  nothing to that server for 30 seconds.
 - **⋯ › Suggestions While Typing** turns online suggestions off (`"suggest_online": false` in
   `maps.json`). The list then shows only favorites, recent places and loaded stops – nothing is sent
   while typing; Enter still searches with Nominatim.
@@ -85,27 +104,35 @@ on this computer in `~/.config/luxos/maps.json` (`"recent"`) and are never sent 
 
 ## Without internet
 
-When Photon cannot be reached the list keeps working with your own places and shows
-"Offline – showing saved places only"; Maps then waits 30 seconds before trying Photon again.
+When neither the LuxOS geocoder nor Photon can be reached the list keeps working with your own places
+and shows "Offline – showing saved places only"; Maps then waits 30 seconds before trying again.
 
 ## Settings in `maps.json`
 
 `~/.config/luxos/maps.json` (written by Maps; edit while Maps is closed):
 
 - `"suggest_online": true` – online suggestions (default on).
-- `"suggest_url": "https://photon.komoot.io/api/"` – another Photon server, for example your own or
-  a company one (any server with the Photon `/api` interface: `q`, `lat`, `lon`, `limit`, `lang`).
-  Only `http://` and `https://` addresses are accepted.
+- `"suggest_url": "https://photon.example.org/api/"` – use only this server for suggestions, for
+  example your own or a company Photon (any server with the Photon `/api` interface: `q`, `lat`,
+  `lon`, `limit`, `lang`). Neither the LuxOS geocoder nor photon.komoot.io is then asked.
+- `"suggest_providers": ["https://luxos.lux-ai.cz/geocode/api", "https://photon.komoot.io/api/"]` –
+  several servers in order (at most 4); this list is the default. The first gets 1.2 s, the others
+  are the fallback. A server whose path ends in `/geocode/api` is treated as a LuxOS geocoder (asked
+  only for Czechia and Slovakia, with the system language). Only `http://` and `https://` addresses
+  are accepted.
 - `"recent": […]` – recent places (name, coordinates, address, kind).
 
-Photon understands the languages English, German and French; for other languages Maps asks for
-local names ("Praha", "Wien"), which is what people in the area use.
+The LuxOS geocoder returns names in the system language when OpenStreetMap has them (`name:cs`,
+`name:sk`, `name:en`, `name:de` …; "Prag" in German) and the country name in that language. Photon
+understands English, German and French; for other languages Maps asks Photon for local names
+("Praha", "Wien"), which is what people in the area use.
 
 ## Troubleshooting
 
-- **No online suggestions**: check **⋯ › Suggestions While Typing**; HTTPS to `photon.komoot.io` must
-  be allowed. After a network error suggestions pause for 30 seconds.
+- **No online suggestions**: check **⋯ › Suggestions While Typing**; HTTPS to `luxos.lux-ai.cz` and
+  `photon.komoot.io` must be allowed. After a network error that server pauses for 30 seconds.
 - **A place is missing in suggestions**: press Enter to search with Nominatim, which finds more
-  (for example house names and areas Photon does not index).
+  (for example house names and areas the suggestion servers do not index). Data of the LuxOS
+  geocoder is rebuilt weekly, so a place added to OpenStreetMap today appears within about a week.
 - **Suggestions open in the wrong country**: move the map to the area first – suggestions near the
   map centre come first.

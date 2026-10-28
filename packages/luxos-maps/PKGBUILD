@@ -7,8 +7,9 @@
 # Navigace po trase (ziva poloha z telefonu/GeoClue, prepocet mimo trasu, obrazovka nezhasne), panel tazenim.
 # Rozhrani pro LuxAI a skripty: luxos-maps --json search|reverse|route|transit-route|timetable|nearby|
 # where-am-i|open a luxos-maps --render-preview.
-# Naseptavani pri psani (hledani, Start/Cil): Photon (photon.komoot.io; Nominatim naseptavani zakazuje),
-# oblibena a nedavna mista a zastavky, odklad 250 ms, jen posledni dotaz, vypnutelne v nabidce.
+# Naseptavani pri psani (hledani, Start/Cil): vlastni geocoder LuxOS (luxos.lux-ai.cz/geocode, CZ+SK,
+# server/geocoder), zaloha Photon (photon.komoot.io; Nominatim naseptavani zakazuje), oblibena a nedavna
+# mista a zastavky, odklad 150 ms, trvale spojeni HTTPS, jen posledni dotaz, vypnutelne v nabidce.
 
 pkgname=luxos-maps
 pkgver=1.0.0
@@ -25,7 +26,7 @@ makedepends=(python)
 checkdepends=(python)
 
 check() {
-    # dlazdice, mezipamet, hledani, naseptavani (falesny Photon), trasy, MHD, okoli, nahled trasy, geo: a --json proti falesnemu serveru HTTP
+    # dlazdice, mezipamet, hledani, naseptavani (falesny geocoder LuxOS a Photon), trasy, MHD, okoli, nahled trasy, geo: a --json proti falesnemu serveru HTTP
     # (bez skutecnych pozadavku);
     # okno jen pod xvfb-run
     # unittest bere cestu k souboru jen relativne k aktualnimu adresari (ne z $srcdir)

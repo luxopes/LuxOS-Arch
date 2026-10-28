@@ -1,0 +1,70 @@
+# Databaze geocoderu LuxOS (naseptavani v Mapach) - kazdy tyden z cerstvych dat OSM (Geofabrik)
+#
+#   -> artefakt "geocoder" (geocoder-<datum>.sqlite.zst + SHA256SUMS + build.log), 14 dni
+#   Nasazuje spravce: gh run download <id> -n geocoder && server/geocoder/deploy.sh geocoder-*.sqlite.zst
+#   (na server se z GitHubu nic samo neposila - klice serveru na GitHubu nejsou)
+name: Geocoder data
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"          # pondeli 03:17 UTC (Geofabrik ma data z nedele)
+  workflow_dispatch:
+    inputs:
+      regions:
+        description: "Geofabrik extracts (space separated, path under download.geofabrik.de)"
+        type: string
+        default: "europe/czech-republic europe/slovakia"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: geocoder
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Dependencies
+        run: |
+          pip install "osmium>=4,<5"
+          python -c "import sqlite3; c = sqlite3.connect(':memory:'); c.execute('create virtual table t using fts5(a)')"
+          sudo apt-get install -y zstd
+      - name: Download OSM extracts
+        run: |
+          mkdir -p work
+          for r in ${{ inputs.regions || 'europe/czech-republic europe/slovakia' }}; do
+            f=work/$(basename "$r")-latest.osm.pbf
+            curl -fsSL --retry 3 -o "$f" "https://download.geofabrik.de/$r-latest.osm.pbf"
+            curl -fsSL --retry 3 "https://download.geofabrik.de/$r-latest.osm.pbf.md5" | \
+              awk -v f="$f" '{print $1 "  " f}' | md5sum -c -
+          done
+          ls -la work
+      - name: Unit tests
+        run: python -m unittest server/geocoder/tests/test_geocoder.py
+      - name: Build database
+        run: |
+          python scripts/geocoder/build.py -o work/geocoder.sqlite --work work work/*.osm.pbf 2>&1 | tee work/build.log
+          rm -f work/*.osm.pbf
+      - name: Check and benchmark
+        run: python scripts/geocoder/bench.py work/geocoder.sqlite | tee -a work/build.log
+      - name: Pack
+        run: |
+          d=$(date -u +%Y%m%d)
+          mkdir -p out
+          zstd -q -19 -T0 work/geocoder.sqlite -o "out/geocoder-$d.sqlite.zst"
+          cp work/build.log out/
+          (cd out && sha256sum geocoder-*.sqlite.zst > SHA256SUMS)
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: geocoder
+          path: out/
+          retention-days: 14
+          compression-level: 0

@@ -1,0 +1,30 @@
+# LuxOS geocoder - vlozit do existujiciho bloku luxos.lux-ai.cz { ... } v /etc/caddy/Caddyfile
+# PRED ostatni handle/handle_path (napr. /repo, /staging), pak: caddy validate && systemctl reload caddy
+#
+#   https://luxos.lux-ai.cz/geocode/api?q=...   ->  http://127.0.0.1:8765/api?q=...
+#
+# Soukromi: dotazy (text psany v Mapach) se nezapisuji - access log pro tuto cestu je vypnuty
+# (log_skip; Caddy < 2.8: skip_log) a sluzba sama nic neloguje.
+
+	handle_path /geocode/* {
+		log_skip
+		encode zstd gzip
+		header {
+			-Server
+			Referrer-Policy no-referrer
+			X-Content-Type-Options nosniff
+		}
+		request_body {
+			max_size 1KB
+		}
+		reverse_proxy 127.0.0.1:8765 {
+			# X-Forwarded-For nastavi Caddy sam (nedoverujici klientovi); sluzba z nej bere jen IP
+			# pro omezeni rychlosti v pameti
+			transport http {
+				dial_timeout 2s
+				response_header_timeout 3s
+				keepalive 60s
+				keepalive_idle_conns 8
+			}
+		}
+	}

@@ -11,18 +11,21 @@ okoli (Overpass), nahled trasy (PNG), nastaveni.
   transit_plan(a, b)   spojeni MHD (Transitous/MOTIS, mezipamet 3 min, nejvys 1 pozadavek/s)
   timetable(lat, lon)  odjezdy/prijezdy ze zastavky v realnem case (Transitous, mezipamet 45 s)
   nearby(lat, lon, c)  mista v okoli podle kategorie (Overpass, mezipamet 10 min, max. 50 vysledku)
-  Suggester            naseptavani pri psani (Photon, odklad 250 ms, jen posledni dotaz) + suggest_local()
+  Suggester            naseptavani pri psani (geocoder LuxOS, zaloha Photon; odklad 150 ms, jen posledni
+                       dotaz, trvale spojeni HTTPS) + suggest_local()
   render_preview(p)    maly obrazek trasy PNG z dlazdic v mezipameti (jen dlazdice toho obrazku)
 
 Pravidla OSM (operations.osmfoundation.org/policies): vlastni User-Agent, mezipamet podle hlavicek
 (Cache-Control/Expires/ETag, podmineny pozadavek po vyprseni, bez hlavicek 7 dni), zadne
 prednacitani oblasti ani stahovani pro offline; hledani v Nominatim jen po Enter. Naseptavani pri psani
-jde na Photon (photon.komoot.io, pro naseptavani postaveny; Suggester, vypnutelne "suggest_online": false).
-Adresy jdou prepsat v nastaveni (tile_url, search_url, reverse_url, route_url, suggest_url) i bez aktualizace.
+jde na geocoder LuxOS (luxos.lux-ai.cz/geocode, Cesko + Slovensko, dotazy se neukladaji) a mimo jeho
+pokryti, pri chybe nebo bez vysledku na Photon (photon.komoot.io); Suggester, vypnutelne "suggest_online".
+Adresy jdou prepsat v nastaveni (tile_url, search_url, reverse_url, route_url, suggest_url = jediny
+poskytovatel naseptavani, suggest_providers = seznam v poradi) i bez aktualizace.
 Mezipamet: $XDG_CACHE_HOME/luxos/maps, nastaveni: $XDG_CONFIG_HOME/luxos/maps.json.
 Testy: LUXOS_MAPS_TILES, LUXOS_MAPS_SEARCH, LUXOS_MAPS_REVERSE, LUXOS_MAPS_ROUTE, LUXOS_MAPS_IP,
 LUXOS_MAPS_TRANSIT_PLAN, LUXOS_MAPS_STOPTIMES, LUXOS_MAPS_OVERPASS, LUXOS_MAPS_SUGGEST,
-LUXOS_MAPS_RATE (interval limitu v s).
+LUXOS_MAPS_SUGGEST_PROVIDERS (adresy oddelene mezerou), LUXOS_MAPS_RATE (interval limitu v s).
 """
 import collections
 import datetime
@@ -48,6 +51,10 @@ TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
 SEARCH_URL = "https://nominatim.openstreetmap.org/search"
 REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
 PHOTON_URL = "https://photon.komoot.io/api/"   # naseptavani pri psani (Nominatim ho nedovoluje)
+# vlastni naseptavac LuxOS (server/geocoder v repozitari): Cesko + Slovensko, odpovedi jako Photon, < 50 ms
+GEOCODER_URL = "https://luxos.lux-ai.cz/geocode/api"
+GEOCODER_COVERAGE = ((48.55, 12.09, 51.06, 18.86),     # (jih, zapad, sever, vychod) Cesko
+                     (47.73, 16.83, 49.61, 22.57))      # Slovensko (Viden, Linec, Krakov uz ne)
 ROUTE_URL = "https://routing.openstreetmap.de/routed-{profile}/route/v1/driving/{coords}"
 IP_URL = "https://ipinfo.io/json"
 TRANSIT_PLAN_URL = "https://api.transitous.org/api/v6/plan"
@@ -142,6 +149,13 @@ def load_config():
                 "overpass_url", "suggest_url"):
         if not isinstance(cfg.get(key), str) or not cfg[key].startswith(("https://", "http://")):
             cfg.pop(key, None)
+    sp = cfg.get("suggest_providers")
+    sp = [u for u in sp if isinstance(u, str) and u.startswith(("https://", "http://"))][:4] \
+        if isinstance(sp, list) else []
+    if sp:
+        cfg["suggest_providers"] = sp
+    else:
+        cfg.pop("suggest_providers", None)
     return cfg
 
 
@@ -1223,16 +1237,21 @@ def nearby(lat, lon, category=None, name=None, radius=1500, limit=20, cfg=None):
     return merged[:limit]
 
 
-# ---- naseptavani pri psani (Photon + mistni zdroje) -----------------------------------
-# Nominatim naseptavani na verejnem serveru zakazuje; Photon (komoot, data OSM, bez klice) je pro nej
-# postaveny. Ohleduplne: az po 250 ms bez psani, nejvys 7 vysledku, vzdy jen posledni dotaz (starsi se
-# zrusi i rozbehnuty), kratka mezipamet v pameti a po chybe 30 s pauza (jen mistni zdroje).
-SUGGEST_DELAY = 0.25          # s bez psani, nez se posle dotaz
+# ---- naseptavani pri psani (geocoder LuxOS / Photon + mistni zdroje) -------------------
+# Nominatim naseptavani na verejnem serveru zakazuje. Prvni je vlastni geocoder LuxOS (Cesko + Slovensko,
+# odpoved v desitkach ms); mimo jeho pokryti, kdyz neodpovi do 1,2 s nebo najde mene nez 2 mista se shodou
+# v nazvu, se pta Photon (komoot, data OSM, bez klice; odpovida za 2-4 s). Ohleduplne: az po 150 ms bez
+# psani, nejvys 7 vysledku, vzdy jen posledni dotaz (starsi se zrusi i rozbehnuty), kratka mezipamet
+# v pameti, trvale spojeni (keep-alive, bez noveho TLS na kazdy dotaz) a po chybe 30 s pauza pro
+# daneho poskytovatele.
+SUGGEST_DELAY = 0.15          # s bez psani, nez se posle dotaz
 SUGGEST_MIN_LOCAL = 2         # znaku pro oblibena/nedavna/zastavky
 SUGGEST_MIN_ONLINE = 3        # znaku pro Photon
 SUGGEST_LIMIT = 7             # vysledku z Photonu (fair use)
 SUGGEST_SHOWN = 8             # radku v nabidce
 SUGGEST_TIMEOUT = 6
+SUGGEST_PRIMARY_TIMEOUT = 1.2  # s na prvniho poskytovatele, kdyz je za nim zaloha
+SUGGEST_ENOUGH = 2            # mist se shodou v nazvu, aby se uz neptal zalozni poskytovatel
 SUGGEST_TTL = 600             # s, mezipamet odpovedi Photonu v pameti
 SUGGEST_BACKOFF = 30          # s bez dotazu po chybe site / pretizeni
 RECENT_MAX = 12
@@ -1437,13 +1456,24 @@ def add_recent(cfg, place):
     cfg["recent"] = [item] + rec[:RECENT_MAX - 1]
 
 
+def in_coverage(center, boxes=GEOCODER_COVERAGE):
+    return any(s <= center[0] <= n and w <= center[1] <= e for s, w, n, e in boxes)
+
+
+def is_luxos_geocoder(url):
+    """Geocoder LuxOS (nebo jeho kopie): cesta .../geocode/api - jen pro nej plati pokryti a jazyk."""
+    return urllib.parse.urlsplit(url).path.rstrip("/").endswith("/geocode/api")
+
+
 class Suggester:
-    """Dotazy na Photon pri psani: vlastni vlakno, odklad SUGGEST_DELAY, vzdy jen posledni dotaz.
+    """Naseptavani pri psani: vlastni vlakno, odklad SUGGEST_DELAY, vzdy jen posledni dotaz.
 
     request(query, center) - novy text (starsi dotaz se zahodi, rozbehnuty pozadavek se prerusi)
     cancel()               - nic neposilat, vysledek rozbehnuteho dotazu zahodit
     callback(gen, query, places, error) se vola z vlakna (okno si ho preda pres GLib.idle_add);
-    gen = cislo dotazu, okno zahodi vysledek, ktery uz neodpovida textu v poli."""
+    gen = cislo dotazu, okno zahodi vysledek, ktery uz neodpovida textu v poli. Pro jeden dotaz muze
+    prijit dvakrat: nejdriv rychle vysledky geocoderu LuxOS, pak doplnene o Photon (kdyz jich bylo malo).
+    Kazde misto ma "provider" (luxos = geocoder LuxOS, jinak photon) kvuli uvedeni zdroje."""
 
     def __init__(self, callback, cfg=None, lang="en", delay=SUGGEST_DELAY):
         self.callback = callback
@@ -1455,14 +1485,34 @@ class Suggester:
         self.pending = None               # (gen, query, center, cas)
         self.conn = None
         self.conn_gen = 0
+        self.conns = {}                   # (schema, host) -> volne trvale spojeni (keep-alive)
         self.stopped = False
         self.thread = None
         self.cache = collections.OrderedDict()
-        self.backoff_until = 0.0
+        self.backoff = {}                 # adresa poskytovatele -> do kdy se na nej neptat
         self.sent = 0                     # pocet skutecne odeslanych pozadavku (testy)
 
+    @property
+    def backoff_until(self):
+        return max(self.backoff.values(), default=0.0)
+
+    def providers(self):
+        """Adresy poskytovatelu v poradi: promenne prostredi (testy) > suggest_providers > suggest_url >
+        geocoder LuxOS a Photon."""
+        env = os.environ.get("LUXOS_MAPS_SUGGEST_PROVIDERS")
+        if env:
+            return env.split()
+        if os.environ.get("LUXOS_MAPS_SUGGEST"):
+            return [os.environ["LUXOS_MAPS_SUGGEST"]]
+        cfg = self.cfg or {}
+        if cfg.get("suggest_providers"):
+            return list(cfg["suggest_providers"])
+        if cfg.get("suggest_url"):
+            return [cfg["suggest_url"]]
+        return [GEOCODER_URL, PHOTON_URL]
+
     def url(self):
-        return service_url(self.cfg, "suggest_url", "LUXOS_MAPS_SUGGEST", PHOTON_URL)
+        return self.providers()[0]
 
     def request(self, query, center=None):
         with self.cond:
@@ -1486,6 +1536,10 @@ class Suggester:
         with self.cond:
             self.stopped = True
         self.cancel()
+        with self.cond:
+            conns, self.conns = list(self.conns.values()), {}
+        for c in conns:
+            c.close()
 
     def _abort(self):
         """Prerusi rozbehnuty pozadavek starsiho dotazu (vola se se zamkem)."""
@@ -1520,63 +1574,123 @@ class Suggester:
             if current and res is not None:
                 self.callback(gen, query, res, err)
 
+    def _cancelled(self, gen):
+        with self.cond:
+            return gen is not None and gen != self.gen
+
     def fetch(self, query, center=None, gen=None):
-        """Mista z Photonu (nebo z mezipameti); None = dotaz mezitim zrusen."""
+        """Mista od poskytovatelu (nebo z mezipameti); None = dotaz mezitim zrusen."""
+        provs = self.providers()
+        if len(provs) > 1 and center and not in_coverage(center):
+            provs = [u for u in provs if not is_luxos_geocoder(u)] or provs
         params = photon_params(query, self.lang, center)
-        url = self.url()
-        key = url + "?" + urllib.parse.urlencode(sorted(params.items()))
+        key = " ".join(provs) + "?" + urllib.parse.urlencode(sorted(params.items()))
         now = time.monotonic()
         hit = self.cache.get(key)
         if hit and now - hit[0] < SUGGEST_TTL:
             self.cache.move_to_end(key)
             return hit[1]
-        if now < self.backoff_until:
+        live = [u for u in provs if now >= self.backoff.get(u, 0)]
+        if not live:
             raise MapsError("offline")
-        parts = urllib.parse.urlsplit(url)
-        cls = http.client.HTTPSConnection if parts.scheme == "https" else http.client.HTTPConnection
-        conn = cls(parts.netloc, timeout=SUGGEST_TIMEOUT)
-        path = (parts.path or "/") + "?" + (parts.query + "&" if parts.query else "") + \
-            urllib.parse.urlencode(params)
-        with self.cond:
-            if gen is not None and gen != self.gen:
-                return None
-            self.conn, self.conn_gen = conn, gen
-            self.sent += 1
-        try:
-            conn.connect()
-            with self.cond:
-                if gen is not None and gen != self.gen:
+        res, error = None, None
+        for i, url in enumerate(live):
+            last = i == len(live) - 1
+            p = dict(params)
+            if is_luxos_geocoder(url):
+                lang = (self.lang or "")[:2].lower()
+                p["lang"] = lang if re.fullmatch(r"[a-z]{2}", lang) else "default"
+            try:
+                got = self._fetch_one(url, p, gen, SUGGEST_TIMEOUT if last else SUGGEST_PRIMARY_TIMEOUT)
+            except MapsError as e:
+                if self._cancelled(gen):
                     return None
-            conn.request("GET", path, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
-            r = conn.getresponse()
-            body = r.read(2 * 1024 * 1024)
-            status = r.status
-        except (OSError, http.client.HTTPException, ValueError) as e:
-            with self.cond:
-                cancelled = gen is not None and gen != self.gen
-            if cancelled:
+                error = error or e
+                continue
+            if got is None:
                 return None
-            self.backoff_until = time.monotonic() + SUGGEST_BACKOFF
-            raise MapsError(str(e) or "network error") from e
-        finally:
-            with self.cond:
-                self.conn = None
-            conn.close()
-        if gen is not None and gen != self.gen:
-            return None
-        if status in (429, 502, 503, 504):
-            self.backoff_until = time.monotonic() + SUGGEST_BACKOFF
-            raise BusyError(f"HTTP {status}: service busy, try again later")
-        if status != 200:
-            raise MapsError(f"HTTP {status}")
-        try:
-            res = parse_photon(json.loads(body.decode("utf-8")))
-        except ValueError as e:
-            raise MapsError("invalid response") from e
+            got = [dict(pl, provider="luxos" if is_luxos_geocoder(url) else "photon") for pl in got]
+            if res is None:
+                res = got
+            else:
+                res = (res + [pl for pl in got if not any(_dup(pl, q) for q in res)])[:SUGGEST_LIMIT]
+            if last or sum(1 for pl in res if match_score(pl, query) in (0, 1)) >= SUGGEST_ENOUGH:
+                break
+            # malo vysledku: ukazat hned, co uz je, a doplnit od dalsiho poskytovatele
+            if res and not self._cancelled(gen):
+                self.callback(gen, query, list(res), None)
+        if res is None:
+            raise error or MapsError("error")
         self.cache[key] = (now, res)
         while len(self.cache) > 64:
             self.cache.popitem(last=False)
         return res
+
+    def _fetch_one(self, url, params, gen, timeout, retry=True):
+        """Jeden pozadavek; spojeni se po uplne odpovedi vrati do self.conns (keep-alive)."""
+        parts = urllib.parse.urlsplit(url)
+        path = (parts.path or "/") + "?" + (parts.query + "&" if parts.query else "") + \
+            urllib.parse.urlencode(params)
+        ckey = (parts.scheme, parts.netloc)
+        with self.cond:
+            conn = self.conns.pop(ckey, None)
+        reused = conn is not None
+        if conn is None:
+            cls = http.client.HTTPSConnection if parts.scheme == "https" else http.client.HTTPConnection
+            conn = cls(parts.netloc, timeout=timeout)
+        conn.timeout = timeout
+        with self.cond:
+            if gen is not None and gen != self.gen:
+                self.conns.setdefault(ckey, conn) if reused else conn.close()
+                return None
+            self.conn, self.conn_gen = conn, gen
+            self.sent += 1
+        keep = False
+        try:
+            if conn.sock is None:
+                conn.connect()
+            else:
+                conn.sock.settimeout(timeout)
+            if self._cancelled(gen):
+                return None
+            conn.request("GET", path, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
+            r = conn.getresponse()
+            body = r.read(2 * 1024 * 1024)
+            status = r.status
+            keep = r.isclosed() and not r.will_close
+        except (OSError, http.client.HTTPException, ValueError) as e:
+            if self._cancelled(gen):
+                return None
+            if reused and retry and isinstance(e, (http.client.RemoteDisconnected, ConnectionResetError,
+                                                   BrokenPipeError, http.client.CannotSendRequest)):
+                # server mezitim zavrel necinne spojeni: jednou znovu s novym
+                with self.cond:
+                    self.conn = None
+                    self.sent -= 1
+                conn.close()
+                return self._fetch_one(url, params, gen, timeout, retry=False)
+            self.backoff[url] = time.monotonic() + SUGGEST_BACKOFF
+            raise MapsError(str(e) or "network error") from e
+        finally:
+            with self.cond:
+                self.conn = None
+                old = conn
+                if keep and not self.stopped and conn.sock is not None:
+                    old = self.conns.pop(ckey, None)
+                    self.conns[ckey] = conn
+            if old is not None:
+                old.close()
+        if self._cancelled(gen):
+            return None
+        if status in (429, 502, 503, 504):
+            self.backoff[url] = time.monotonic() + SUGGEST_BACKOFF
+            raise BusyError(f"HTTP {status}: service busy, try again later")
+        if status != 200:
+            raise MapsError(f"HTTP {status}")
+        try:
+            return parse_photon(json.loads(body.decode("utf-8")))
+        except ValueError as e:
+            raise MapsError("invalid response") from e
 
 
 # ---- nahled trasy (pro karticku v LuxAI) --------------------------------------------------------
