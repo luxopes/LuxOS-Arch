@@ -4,7 +4,7 @@
 
 pkgname=luxos-themes
 pkgver=2025.12.27
-pkgrel=9
+pkgrel=10
 pkgdesc="LuxOS macOS-like themes (WhiteSur GTK, xfwm4, Plank, icons and cursors)"
 arch=(any)
 url="https://github.com/vinceliuice"
