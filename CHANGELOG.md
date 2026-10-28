@@ -6,6 +6,10 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 
 ## Připravuje se
 
+### Opravy
+- **Průběh posledního kroku `sudo lux update`** (`lux`): řádek „Dokončuji“ (hooky libalpm po instalaci – mkinitcpio, DKMS, mezipaměti ikon, systemd…) dlouho stál na 0 % a pak skočil na 100 %, protože pyalpm u hooků posílá jen typ události bez názvu a pořadí. `lux` teď sám spočítá, které hooky transakce spustí (spouštěče Package/Path nad balíky a jejich soubory, pořadí podle názvu, `/etc/lux/hooks` přepisuje systémové), a ukazuje „Dokončuji ███░░ 25 %  3/12 · Updating linux initcpios“; odhad opravuje podle ladicího logu libalpm `executing "…"` před každým hookem. Hooky před transakcí (ochrana systému, snímek) mají vlastní řádek „Příprava“ místo „Dokončuji“ před instalací. Žádné řádky navíc, ve strojovém režimu nová fáze `@@PHASE prepare` a detail `3/12 · <popis>`.
+- **Ikona „Mapy s navigací a Počasí“ v okně Co je nového** (`luxos-desktop`, `luxos-branding`): místo ikony byl jen modrý čtverec – motiv ikon WhiteSur má pod jménem `mark-location-symbolic` v `apps/scalable` odkaz na barevnou ikonu aplikace a GTK ji jako symbolickou přebarví celou. Okno teď barevnou ikonu pod symbolickým jménem nepoužije a vezme stejnou ikonu z Adwaity (jinak hvězdičku); novinky 1.0 mají ikonu `find-location-symbolic` a novinky starších verzí ikony, které existují i v Adwaitě. Nový test hlídá, že každá ikona ze `whats-new/*.json` je opravdu symbolická.
+
 ## 1.0.0 „Sirius“ – 2026-10-28 (testovací vydání)
 
 Testovací vydání pro instalaci na skutečný hardware: ISO i aktualizace jsou z neveřejného kanálu **staging**,

@@ -27,7 +27,9 @@ Navratove kody: 0 ok, 1 chyba, 2 spatne pouziti, 3 pyalpm/konfigurace nelze pouz
 Strojovy vystup (--machine) popisuje /usr/share/doc/lux/lux.md (radky "@@...").
 """
 import argparse
+import bisect
 import contextlib
+import fnmatch
 import glob
 import os
 import re
@@ -701,7 +703,7 @@ class UI:
 
     # prubeh: jedna radka na fazi
     LABELS = {"refresh": "Refreshing", "download": "Downloading", "verify": "Verifying",
-              "install": "Installing", "remove": "Removing", "hooks": "Finishing"}
+              "install": "Installing", "remove": "Removing", "hooks": "Finishing", "prepare": "Preparing"}
 
     def phase(self, name, detail=""):
         if self.ph and self.ph["name"] == name:
@@ -795,7 +797,11 @@ def _isatty(f):
 EV_SCRIPTLET_INFO = 17
 EV_PACNEW_CREATED = 32      # soubor *.luxnew (lux-engine; jmeno udalosti z API libalpm)
 EV_HOOK_START = 34
+EV_HOOK_DONE = 35
 EV_HOOK_RUN_START = 36
+EV_HOOK_RUN_DONE = 37
+# alpm_loglevel_t
+LOG_ERROR, LOG_WARNING, LOG_DEBUG = 1, 2, 4
 # alpm_question_type_t
 Q_INSTALL_IGNOREPKG, Q_REPLACE_PKG, Q_CONFLICT_PKG, Q_CORRUPTED_PKG = 1, 2, 4, 8
 Q_REMOVE_PKGS, Q_SELECT_PROVIDER, Q_IMPORT_KEY = 16, 32, 64
@@ -805,6 +811,183 @@ DL_INIT, DL_PROGRESS, DL_RETRY, DL_COMPLETED = 0, 1, 2, 3
 PYALPM_PLACEHOLDERS = ("unknown event", "event not implemented")
 
 
+# ---- hooky libalpm: ktere se spusti a v jakem poradi --------------------------------------------
+# pyalpm u udalosti hooku posila jen typ (text je "unknown event"), ne nazev, poradi ani pocet -
+# faze "Dokoncuji" proto dlouho stala na 0 %. Ktere hooky se spusti, spocita lux stejne jako libalpm
+# (spoustece Package/Path nad cili transakce, razeni podle nazvu, pozdejsi HookDir prekryva drivejsi).
+# Seznamy souboru novych baliku jsou az po instalaci, proto je to odhad; libalpm pred spustenim
+# hooku zaloguje 'executing "<Exec>"' a podle toho se poradi i celkovy pocet opravi.
+HOOK_SYSDIR = "/usr/share/libalpm/hooks/"
+EXECUTING_RE = re.compile(r'^executing "([^"]+)"')
+
+
+def alpm_fnmatch_patterns(patterns, text):
+    """_alpm_fnmatch_patterns: rozhoduje posledni odpovidajici vzor; 0 = shoda, 1 = vylouceno (!),
+    -1 = zadny vzor neodpovida. '*' v libalpm (fnmatch bez FNM_PATHNAME) odpovida i '/'."""
+    for pat in reversed(patterns):
+        inverted = pat.startswith("!")
+        if inverted or pat.startswith("\\"):
+            pat = pat[1:]
+        if fnmatch.fnmatchcase(text, pat):
+            return 1 if inverted else 0
+    return -1
+
+
+def parse_hook(path):
+    """Soubor *.hook (alpm-hooks(5)) -> {name, desc, when, exec, triggers}; None = neplatny/maskovany."""
+    name = os.path.basename(path)[:-5]
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return None
+    hook = {"name": name, "desc": "", "when": "", "exec": "", "triggers": []}
+    section = None
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            section = line[1:-1]
+            if section == "Trigger":
+                hook["triggers"].append({"type": "", "ops": set(), "targets": []})
+            continue
+        key, _sep, val = line.partition("=")
+        key, val = key.strip(), val.strip()
+        if section == "Trigger" and hook["triggers"]:
+            trig = hook["triggers"][-1]
+            if key == "Type":
+                trig["type"] = "Path" if val == "File" else val
+            elif key == "Operation":
+                trig["ops"].add(val)
+            elif key == "Target":
+                trig["targets"].append(val)
+        elif section == "Action":
+            if key == "Description":
+                hook["desc"] = val
+            elif key == "When":
+                hook["when"] = {"PreTransaction": "pre", "PostTransaction": "post"}.get(val, "")
+            elif key == "Exec":
+                hook["exec"] = val.split()[0] if val.split() else ""
+    if not hook["when"] or not hook["exec"] or not hook["triggers"]:
+        return None
+    return hook
+
+
+def read_pkg_files(dbpath, name, version):
+    """Seznam souboru baliku z mistni databaze (<dbpath>/local/<nazev>-<verze>/files)."""
+    out = []
+    try:
+        with open(os.path.join(dbpath, "local", f"{name}-{version}", "files"), encoding="utf-8",
+                  errors="replace") as f:
+            infiles = False
+            for line in f:
+                line = line.rstrip("\n")
+                if line.startswith("%"):
+                    if infiles:
+                        break
+                    infiles = line == "%FILES%"
+                elif infiles and line:
+                    out.append(line)
+    except OSError:
+        pass
+    return out
+
+
+def any_path_match(files, targets):
+    """Odpovida nektery soubor (serazeny seznam) cilum Path spoustece? Bez prochazeni vsech souboru:
+    jen rozsah se stejnou doslovnou predponou jako kazdy kladny vzor."""
+    if not files:
+        return False
+    for pat in targets:
+        if pat.startswith("!"):
+            continue
+        pat = pat[1:] if pat.startswith("\\") else pat
+        prefix = re.split(r"[*?\[\\]", pat, maxsplit=1)[0]
+        i = bisect.bisect_left(files, prefix)
+        while i < len(files) and files[i].startswith(prefix):
+            if alpm_fnmatch_patterns(targets, files[i]) == 0:
+                return True
+            i += 1
+    return False
+
+
+class HookPlan:
+    """Hooky libalpm, ktere transakce spusti (odhad pro prubeh fazi Pripravuji a Dokoncuji)."""
+
+    def __init__(self, hooks, dbpath, installs, upgrades, removes):
+        self.hooks = sorted(hooks, key=lambda h: h["name"])
+        self.dbpath = dbpath
+        self.installs = installs        # nazev -> nova verze
+        self.upgrades = upgrades        # nazev -> (stara verze, nova verze)
+        self.removes = removes          # nazev -> verze
+        # soubory odebiranych baliku po transakci uz v databazi nejsou - nacist hned
+        self._files = {"remove": self._merge(read_pkg_files(dbpath, n, v) for n, v in removes.items())}
+
+    @classmethod
+    def load(cls, hookdirs, dbpath, installs, upgrades, removes, root="/"):
+        found = {}
+        for d in hookdirs:                      # pozdejsi adresar prekryva drivejsi (jako libalpm)
+            if root not in ("", "/"):
+                d = os.path.join(root, d.lstrip("/"))
+            for path in glob.glob(os.path.join(d, "*.hook")):
+                found[os.path.basename(path)[:-5]] = path
+        hooks = [h for h in (parse_hook(p) for p in found.values()) if h]
+        return cls(hooks, dbpath, installs, upgrades, removes)
+
+    @staticmethod
+    def _merge(lists):
+        out = []
+        for lst in lists:
+            out.extend(lst)
+        out.sort()
+        return out
+
+    def files(self, op, when):
+        key = (op, when)
+        if key not in self._files:
+            if op == "Remove":
+                self._files[key] = self._files["remove"]
+            elif op == "Install":
+                # pred transakci soubory novych baliku nezname
+                self._files[key] = [] if when == "pre" else self._merge(
+                    read_pkg_files(self.dbpath, n, v) for n, v in self.installs.items())
+            else:
+                idx = 0 if when == "pre" else 1
+                self._files[key] = self._merge(
+                    read_pkg_files(self.dbpath, n, vv[idx]) for n, vv in self.upgrades.items())
+        return self._files[key]
+
+    def triggered(self, hook, when):
+        for trig in hook["triggers"]:
+            for op in trig["ops"]:
+                if trig["type"] == "Package":
+                    names = {"Install": self.installs, "Upgrade": self.upgrades, "Remove": self.removes}.get(op, {})
+                    if any(alpm_fnmatch_patterns(trig["targets"], n) == 0 for n in names):
+                        return True
+                elif trig["type"] == "Path" and op in ("Install", "Upgrade", "Remove"):
+                    if any_path_match(self.files(op, when), trig["targets"]):
+                        return True
+        return False
+
+    def all(self, when):
+        return [h for h in self.hooks if h["when"] == when]
+
+    def run(self, when):
+        """Hooky dane faze (pre/post), ktere se pravdepodobne spusti, v poradi libalpm."""
+        return [h for h in self.all(when) if self.triggered(h, when)]
+
+
+def hook_label(hook):
+    """Popis hooku pro radku prubehu (Description bez koncovych tecek, jinak nazev souboru)."""
+    if not hook:
+        return ""
+    if isinstance(hook, str):
+        return hook.strip().rstrip(".…").strip()
+    desc = (hook.get("desc") or "").strip().rstrip(".…").strip()
+    return desc or hook.get("name", "")
+
+
 class Callbacks:
     """Prevadi callbacky libalpm na jeden radek prubehu na fazi (a strojove radky)."""
 
@@ -812,8 +995,16 @@ class Callbacks:
         self.ui = ui
         self.reset()
 
-    def reset(self, mode="", dl_total=0, ops=None, sizes=None, cachedirs=None):
+    def reset(self, mode="", dl_total=0, ops=None, sizes=None, cachedirs=None, hooks=None):
         self.mode = mode            # refresh | commit
+        self.hooks = hooks          # HookPlan nebo None
+        self.hook_when = None       # pre | post behem behu hooku
+        self.hook_list = []         # odhad hooku, ktere se spusti
+        self.hook_pos = 0           # poradi bezuciho hooku (z udalosti libalpm, presne)
+        self.hook_next = 0          # index dalsiho jeste nespusteneho hooku v hook_list
+        self.hook_cur = None        # bezici hook (dict z HookPlan nebo text od pyalpm)
+        self.hook_last = ""         # nazev predchoziho hooku (libalpm je spousti serazene podle nazvu)
+        self.hook_running = False
         self.dl_total = dl_total
         self.sizes = sizes or {}    # soubor balicku -> velikost ke stazeni
         self.cachedirs = cachedirs or []
@@ -926,11 +1117,17 @@ class Callbacks:
         ev = next((a for a in args if isinstance(a, int)), None)
         text = next((a for a in args if isinstance(a, str)), "")
         if ev == EV_HOOK_START:
-            if self.ui.ph is None or self.ui.ph["name"] != "hooks":
-                self.ui.phase("hooks")
-                self.ui.compat(":: Running post-transaction hooks...")
-        elif ev == EV_HOOK_RUN_START and text and text not in PYALPM_PLACEHOLDERS:
-            self.ui.progress(0.5, text)
+            # hooky pred transakci (ochrana systemu, snimek...) bezi pred prvni operaci s balikem
+            self.hook_start("pre" if self.mode == "commit" and self.current is None else "post")
+        elif ev == EV_HOOK_RUN_START:
+            self.hook_run_start(text if text and text not in PYALPM_PLACEHOLDERS else "")
+        elif ev == EV_HOOK_RUN_DONE:
+            self.hook_run_done()
+        elif ev == EV_HOOK_DONE:
+            if self.hook_when and self.hook_pos and self.ui.ph and self.ui.ph["name"] in ("hooks", "prepare"):
+                self.ui.progress(1.0, f"{self.hook_pos}/{self.hook_pos}")
+            self.hook_when = None
+            self.hook_running = False
         elif ev == EV_SCRIPTLET_INFO and text.strip() and text not in PYALPM_PLACEHOLDERS:
             self.scriptlet.append(text.rstrip())
             if self.ui.verbose and not self.ui.machine:
@@ -939,13 +1136,87 @@ class Callbacks:
         elif ev == EV_PACNEW_CREATED:
             self.pacnew += 1
 
+    # hooky: jedna radka "Dokoncuji 3/12 · Updating linux initcpios" (pred transakci "Pripravuji")
+    def hook_start(self, when):
+        phase = "prepare" if when == "pre" else "hooks"
+        if self.ui.ph is None or self.ui.ph["name"] != phase:
+            self.ui.phase(phase)
+            self.ui.compat(":: Running pre-transaction hooks..." if when == "pre"
+                           else ":: Running post-transaction hooks...")
+        self.hook_when = when
+        self.hook_pos = self.hook_next = 0
+        self.hook_cur = None
+        self.hook_last = ""
+        self.hook_running = False
+        try:
+            self.hook_list = self.hooks.run(when) if self.hooks else []
+        except Exception:  # noqa: BLE001 - odhad nesmi zastavit transakci
+            self.hook_list = []
+
+    def hook_total(self):
+        return max(self.hook_pos, self.hook_pos + len(self.hook_list) - self.hook_next, 1)
+
+    def hook_draw(self, frac):
+        label = hook_label(self.hook_cur)
+        self.ui.progress(frac, f"{self.hook_pos}/{self.hook_total()}" + (f" · {label}" if label else ""))
+
+    def hook_run_start(self, text=""):
+        if not self.hook_when:
+            self.hook_start("pre" if self.mode == "commit" and self.current is None else "post")
+        self.hook_pos += 1
+        self.hook_running = True
+        if isinstance(self.hook_cur, dict):
+            self.hook_last = self.hook_cur["name"]
+        self.hook_cur = None
+        if self.hook_next < len(self.hook_list):
+            self.hook_cur = self.hook_list[self.hook_next]
+            self.hook_next += 1
+        if text:                        # pyalpm, ktery posila popis hooku
+            self.hook_cur = text
+        self.hook_draw((self.hook_pos - 1) / self.hook_total())
+
+    def hook_run_done(self):
+        if not self.hook_when:
+            return
+        self.hook_running = False
+        self.hook_draw(self.hook_pos / self.hook_total())
+
+    def hook_executing(self, cmd):
+        """libalpm loguje 'executing "<Exec>"' tesne pred spustenim hooku - oprava odhadu."""
+        if not self.hook_running or not self.hook_when or isinstance(self.hook_cur, str):
+            return
+        cur = self.hook_cur
+        if cur is not None and cur["exec"] == cmd:
+            return
+        start = self.hook_next - 1 if cur is not None else self.hook_next
+        for j in range(max(start, 0), len(self.hook_list)):
+            if self.hook_list[j]["exec"] == cmd:
+                # odhadnute hooky pred nim se nespusti
+                self.hook_cur = self.hook_list[j]
+                self.hook_next = j + 1
+                self.hook_draw((self.hook_pos - 1) / self.hook_total())
+                return
+        # hook mimo odhad: odhadnuty hook teprve pobezi, nazev podle vsech hooku teto faze
+        if cur is not None:
+            self.hook_next -= 1
+        after = self.hook_last
+        cands = [h for h in (self.hooks.all(self.hook_when) if self.hooks else []) if h["exec"] == cmd]
+        self.hook_cur = next((h for h in cands if h["name"] > after), cands[0] if cands else None)
+        self.hook_draw((self.hook_pos - 1) / self.hook_total())
+
     def log(self, *args):
         if len(args) < 2:
             return
         level, msg = args[0], str(args[1]).rstrip()
         if not msg:
             return
-        if level == 1:
+        if level == LOG_DEBUG:
+            if self.hook_running and msg.startswith("executing"):
+                m = EXECUTING_RE.match(msg)
+                if m:
+                    self.hook_executing(m.group(1))
+            return
+        if level == LOG_ERROR:
             self.log_errors.append(msg)
             self.ui.compat(f"error: {msg}")
             m = re.search(r"failed retrieving file '[^']*' from (\S+?)\s*:", msg)
@@ -953,7 +1224,7 @@ class Callbacks:
                 self.hosts.add(m.group(1))
                 self.ui.write(self.ui.dim("  ↻ " + _("Server %s is not responding, trying another one…") % m.group(1)),
                               err=True)
-        elif level == 2:
+        elif level == LOG_WARNING:
             self.log_warnings.append(msg)
             self.ui.compat(f"warning: {msg}")
             if ".luxnew" in msg or ".pacnew" in msg:     # .pacnew: jadro pred LuxOS 1.0
@@ -1317,7 +1588,7 @@ class Lux:
                 if not ui.ask(plan_question(action, plan["count"], plan["download"], plan["delta"])):
                     raise LuxError("cancelled", _("Cancelled"))
             self.cb.reset("commit", plan["download"], plan["ops"], plan.get("sizes"),
-                          list(getattr(self.h, "cachedirs", None) or []))
+                          list(getattr(self.h, "cachedirs", None) or []), self.hook_plan(to_add, to_remove))
             start = time.time()
             try:
                 with system_writable(flags):
@@ -1358,6 +1629,29 @@ class Lux:
                 t.release()
             except Exception:  # noqa: BLE001 - uvolneni nesmi prekryt puvodni chybu
                 pass
+
+    def hook_plan(self, to_add, to_remove):
+        """Odhad hooku transakce (HookPlan); None, kdyz ho nejde sestavit."""
+        try:
+            h = self.h
+            local = self.localdb
+            dirs = [d for d in (getattr(h, "hookdirs", None) or []) if d]
+            if not any(os.path.normpath(d) == os.path.normpath(HOOK_SYSDIR) for d in dirs):
+                dirs.insert(0, HOOK_SYSDIR)
+            installs, upgrades, removes = {}, {}, {}
+            for p in to_add:
+                old = local.get_pkg(p.name)
+                if old is None:
+                    installs[p.name] = p.version
+                else:
+                    upgrades[p.name] = (old.version, p.version)
+            for p in to_remove:
+                if p.name not in installs and p.name not in upgrades:
+                    removes[p.name] = p.version
+            dbpath = getattr(h, "dbpath", None) or DEFAULT_DBPATH
+            return HookPlan.load(dirs, dbpath, installs, upgrades, removes, getattr(h, "root", "/") or "/")
+        except Exception:  # noqa: BLE001 - jen prubeh, transakce pokracuje i bez odhadu
+            return None
 
     def plan(self, to_add, to_remove):
         local = self.localdb

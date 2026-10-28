@@ -3,7 +3,7 @@
 
 pkgname=luxos-branding
 pkgver=1.1.0
-pkgrel=25
+pkgrel=26
 pkgdesc="LuxOS branding: logo, wallpapers, Plymouth boot splash and os-release"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"

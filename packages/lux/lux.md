@@ -347,8 +347,8 @@ na stdout řádky `@@…` a navíc anglické řádky ve tvaru výstupu libalpm, 
 | Řádek | Význam |
 |---|---|
 | `@@PLAN <akce> <počet> <stahování B> <změna na disku B>` | plán transakce (`install`, `upgrade`, `reinstall`, `remove`, `download`) |
-| `@@PHASE <fáze>` | `refresh`, `download`, `verify`, `install`, `remove`, `hooks` |
-| `@@PROGRESS <fáze> <procenta> [detail]` | průběh fáze (nejvýš 2× za sekundu + konec fáze) |
+| `@@PHASE <fáze>` | `refresh`, `download`, `verify`, `prepare` (hooky před transakcí, např. snímek systému), `install`, `remove`, `hooks` (hooky po transakci) |
+| `@@PROGRESS <fáze> <procenta> [detail]` | průběh fáze (nejvýš 2× za sekundu + konec fáze); u `prepare`/`hooks` je detail `3/12 · <popis hooku>` |
 | `@@RETRY <pokus>` | stahování selhalo, další pokus (2, 3) |
 | `@@SUMMARY <akce> <počet> <stahování> <změna> <sekundy>` | hotovo |
 | `@@ERROR <druh> <věta>` | `locked`, `network`, `keyring`, `disk`, `conflict`, `pkgconflict`, `deps`, `corrupt`, `notfound`, `notinstalled`, `permission`, `confirm`, `cancelled`, `config` (chyba v `lux.conf`), `protected` (chráněné systémové soubory se nepodařilo otevřít pro zápis, viz `system-protection.md`), `unknown` |
@@ -357,7 +357,7 @@ na stdout řádky `@@…` a navíc anglické řádky ve tvaru výstupu libalpm, 
 
 Řádky ve stylu libalpm: `Packages (N) …`, `<soubor> downloading...`,
 `installing|upgrading|reinstalling|downgrading|removing <balík>...`,
-`:: Running post-transaction hooks...`, `error: failed to … transaction (<chyba libalpm>)`,
+`:: Running pre-transaction hooks...`, `:: Running post-transaction hooks...`, `error: failed to … transaction (<chyba libalpm>)`,
 `<balík>: <soubor> exists in filesystem` (konflikty – podle nich LuxOS Care uvolní záložní jádro).
 
 Návratové kódy: 0 ok, 1 chyba, 2 špatné použití, 3 pyalpm nepoužitelné, 130 přerušeno.

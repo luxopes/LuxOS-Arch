@@ -137,7 +137,7 @@
               "pt": "O LuxOS Companion para Android liga-se por Bluetooth. O LuxDrop envia ficheiros cifrados para telemóveis e computadores e mostra os ficheiros de outro computador ao lado dos seus.",
               "nl": "LuxOS Companion voor Android verbindt via Bluetooth. LuxDrop stuurt bestanden versleuteld naar telefoons en computers en toont de bestanden van een andere computer naast de jouwe.",
               "sv": "LuxOS Companion för Android ansluter via Bluetooth. LuxDrop skickar filer krypterat till telefoner och datorer och visar en annan dators filer bredvid dina."}},
-    {"icon": "mark-location-symbolic",
+    {"icon": "find-location-symbolic",
      "title": {"en": "Maps with navigation and Weather",
                "cs": "Mapy s navigací a Počasí",
                "sk": "Mapy s navigáciou a Počasie",

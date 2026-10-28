@@ -22,7 +22,7 @@
      "title": {"en": "lux is the only package manager", "cs": "lux je jediný správce balíčků"},
      "text": {"en": "The pacman command is gone - use lux, or the LuxOS Store, which can now check for updates on demand.",
               "cs": "Příkaz pacman zmizel – používejte lux nebo Obchod LuxOS, který teď umí na požádání zkontrolovat aktualizace."}},
-    {"icon": "preferences-desktop-notification-symbolic",
+    {"icon": "preferences-system-notifications-symbolic",
      "title": {"en": "Polish", "cs": "Vylepšení"},
      "text": {"en": "Translucent notifications, battery time in Control Center, LuxOS Desktop and LuxOS Terminal in fastfetch, and this What's New window after every update.",
               "cs": "Průhledné notifikace, zbývající čas baterie v Ovládacím centru, LuxOS Desktop a LuxOS Terminal ve fastfetch a toto okno s novinkami po každé aktualizaci."}}
