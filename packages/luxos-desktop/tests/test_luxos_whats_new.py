@@ -136,5 +136,42 @@ class WhatsNewIconsTest(unittest.TestCase):
         self.assertEqual(bad, [])
 
 
+
+class DockTest(unittest.TestCase):
+    """Dock (Plank) pozna okno podle StartupWMClass: bez souboru .desktop ukazoval nazev programu
+    "luxos-whats-new" a rozmazanou ikonu."""
+
+    def test_desktop_file(self):
+        path = os.path.join(ROOT, "luxos-desktop", "files", "applications", "luxos-whats-new.desktop")
+        with open(path, encoding="utf-8") as f:
+            d = f.read()
+        self.assertIn("StartupWMClass=luxos-whats-new\n", d)
+        self.assertIn("NoDisplay=true\n", d)
+        self.assertIn("Icon=luxos-app\n", d)
+        self.assertIn("Name[cs]=Co je nového\n", d)
+        for lang in ("cs", "sk", "pl", "uk", "hu", "de", "fr", "es", "it", "pt", "nl", "sv"):
+            self.assertIn(f"Name[{lang}]=", d)
+        with open(BIN, encoding="utf-8") as f:
+            src = f.read()
+        self.assertIn('GLib.set_prgname("luxos-whats-new")', src)
+        self.assertIn('set_window_icons(win, "luxos-app")', src)
+
+    def test_window_icon_sizes(self):
+        sys.path.insert(0, os.path.join(ROOT, "luxos-desktop", "files", "python"))
+        import luxos_wm_icon
+        sizes = (16, 24, 32, 48, 64, 128, 256)
+        self.assertEqual(luxos_wm_icon.WINDOW_SIZES, sizes)
+        try:
+            pbs = luxos_wm_icon.window_pixbufs("luxos-app")
+        except Exception as e:  # bez Gtk/obrazovky v sestavovacim prostredi
+            self.skipTest(str(e))
+        if not pbs:
+            self.skipTest("luxos-app icon not installed")
+        self.assertEqual([p.get_width() for p in pbs], list(sizes))
+        argb = luxos_wm_icon._argb(pbs[0])
+        self.assertEqual(argb[:2], [16, 16])
+        self.assertEqual(len(argb), 2 + 16 * 16)
+
+
 if __name__ == "__main__":
     unittest.main()

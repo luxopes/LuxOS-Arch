@@ -475,7 +475,7 @@ DOCK_ITEMS = [
     (["luxos-files", "org.xfce.thunar", "system-file-manager"], (0.25, 0.6, 1.0), "▤"),
     (["firefox", "luxos-web-browser", "web-browser"], (1.0, 0.5, 0.2), "◉"),
     (["utilities-terminal", "org.xfce.terminal"], (0.2, 0.22, 0.26), ">_"),
-    (["luxos-text", "accessories-text-editor", "org.xfce.mousepad"], (0.4, 0.4, 0.95), "✎"),
+    (["luxos-notes", "accessories-text-editor", "org.xfce.mousepad"], (0.4, 0.4, 0.95), "✎"),
     (["luxos-settings", "preferences-system", "org.xfce.settings.manager"], (0.45, 0.5, 0.6), "⚙"),
     (["user-trash"], (0.7, 0.72, 0.76), "◌"),
 ]

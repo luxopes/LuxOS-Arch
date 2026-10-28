@@ -32,7 +32,7 @@
 #define LUXOS_TEXT_VERSION "1.0.0"
 #endif
 #define APP_ID "cz.luxos.TextEditor"
-#define APP_ICON "luxos-text"
+#define APP_ICON "luxos-notes"   /* vlastni ikona LuxOS (luxos-branding), drive u Mousepadu */
 #define MAX_RECENT 15
 #define URI_INFO 4242
 
@@ -352,15 +352,20 @@ static GList *window_icons(void)
     if (tried) return icon_list;
     tried = TRUE;
     static const int sizes[] = {16, 24, 32, 48, 64, 128, 256};
+    /* Ikona je PNG 512 px (hicolor 48-512): vsechny velikosti se zmensi z nejvetsi s kvalitnim filtrem
+     * (GDK_INTERP_HYPER), aby male (16-32 px) nebyly rozmazane ani zubate. */
     GtkIconTheme *theme = gtk_icon_theme_get_default();
     const char *file = g_getenv("LUXOS_TEXT_ICON");
-    gboolean themed = !(file && *file) && gtk_icon_theme_has_icon(theme, APP_ICON);
+    GdkPixbuf *src = NULL;
+    if (file && *file) src = gdk_pixbuf_new_from_file_at_size(file, 512, 512, NULL);
+    else if (gtk_icon_theme_has_icon(theme, APP_ICON)) src = gtk_icon_theme_load_icon(theme, APP_ICON, 512, 0, NULL);
+    if (!src) return NULL;
     for (guint i = 0; i < G_N_ELEMENTS(sizes); i++) {
-        GdkPixbuf *pb = NULL;
-        if (themed) pb = gtk_icon_theme_load_icon(theme, APP_ICON, sizes[i], GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
-        else if (file && *file) pb = gdk_pixbuf_new_from_file_at_size(file, sizes[i], sizes[i], NULL);
+        GdkPixbuf *pb = gdk_pixbuf_get_width(src) == sizes[i] ? g_object_ref(src)
+                      : gdk_pixbuf_scale_simple(src, sizes[i], sizes[i], GDK_INTERP_HYPER);
         if (pb) icon_list = g_list_append(icon_list, pb);
     }
+    g_object_unref(src);
     if (icon_list) gtk_window_set_default_icon_list(icon_list);
     return icon_list;
 }

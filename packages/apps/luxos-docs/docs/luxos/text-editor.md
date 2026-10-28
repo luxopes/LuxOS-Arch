@@ -109,7 +109,10 @@ one, *Replace All* reports how many were replaced; Ctrl+Z undoes it in one step.
 - New users get Text Editor in the Dock and in the LuxOS menu favourites. On the first login after the
   update, older profiles are switched once (`luxos-session`, marker `~/.config/luxos/text-editor-migrated`):
   the Mousepad Dock icon and menu favourite become Text Editor, and Mousepad entries in
-  `~/.config/mimeapps.list` become `luxos-text.desktop`.
+  `~/.config/mimeapps.list` become `luxos-text.desktop`. Profiles whose Dock has no Text Editor get it
+  added once after Terminal (marker `~/.config/luxos/text-editor-dock`); if you remove it from the Dock,
+  it stays removed.
+- The icon is the LuxOS notes icon `luxos-notes` (package `luxos-branding`).
 - Mousepad is not part of LuxOS 1.0. After the update to 1.0, a step of `lux update`
   (`/usr/lib/lux/after-update.d/60-luxos-text`) removes it. The command `mousepad` still works and
   opens Text Editor (`/usr/local/bin/mousepad`), so custom keyboard shortcuts and scripts keep working.
