@@ -15,14 +15,22 @@ Zapis spolecny s Kalendarem (luxos-hub, luxos_ics.lsl) a luxos_calendar_ics.py:
   - docasny soubor + fsync + kontrola, ze se soubor mezitim nezmenil (jinak znovu), prejmenovani,
     fsync slozky. Kalendar zmenu pozna pres inotify a pred vlastnim zapisem si ji prevezme.
 calendar.saved se posila az po fsync (trvaly zapis). Vyrizena UUID se pamatuji (deduplikace).
+
+calendar.events.list (CalendarReader, jen cteni): vyskyty udalosti vsech kalendaru ve slozce (events.ics
+i odebirane *.ics) pro den v pasmu telefonu - opakovani (RRULE/EXDATE/RECURRENCE-ID z luxos_calendar_ics),
+udalosti pres pulnoc a vicedenni (skutecny rozsah v textu), cely den time:null. Nejvys 100 zaznamu,
+nazev do 300, text do 8000 znaku; co se nevejde do ramce 64 KiB, se zkrati (truncated:true).
 """
 import datetime as dt
 import fcntl
+import hashlib
 import json
 import os
 import re
 import time
 import uuid
+
+from . import wire
 
 try:
     from zoneinfo import ZoneInfo, available_timezones
@@ -32,6 +40,9 @@ except ImportError:  # pragma: no cover
 
 MAX_TITLE = 200
 MAX_TEXT = 8000
+MAX_LIST = 100               # calendar.events: zaznamu
+MAX_LIST_TITLE = 300
+MAX_EVENT_ID = 200
 DEFAULT_MINUTES = 30
 UID_NAMESPACE = uuid.UUID("5f0d5d53-4a35-4d1c-9a43-1d6b0b8a7c21")
 UID_SUFFIX = "@luxos-companion"
@@ -134,15 +145,7 @@ def validate(msg):
     if len(text) > MAX_TEXT:
         raise NoteError("invalid_text", _("The note is too long (at most 8000 characters)."))
     text = _clean(text, True).strip()
-    raw_date = msg.get("date")
-    try:
-        if not isinstance(raw_date, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_date):
-            raise ValueError
-        day = dt.date.fromisoformat(raw_date)
-        if not 1900 <= day.year <= 2200:
-            raise ValueError
-    except ValueError:
-        raise NoteError("invalid_date", _("Invalid date (expected YYYY-MM-DD).")) from None
+    day = parse_date(msg.get("date"))
     raw_time = msg.get("time")
     clock = None
     if raw_time is not None:
@@ -154,6 +157,18 @@ def validate(msg):
     if clock is not None:
         local_moment(day, clock[0], clock[1], zone)
     return {"title": title, "text": text, "date": day, "time": clock, "timezone": msg["timezone"]}
+
+
+def parse_date(raw_date):
+    try:
+        if not isinstance(raw_date, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_date):
+            raise ValueError
+        day = dt.date.fromisoformat(raw_date)
+        if not 1900 <= day.year <= 2200:
+            raise ValueError
+    except ValueError:
+        raise NoteError("invalid_date", _("Invalid date (expected YYYY-MM-DD).")) from None
+    return day
 
 
 def event_uid(request_id):
@@ -326,3 +341,121 @@ class CalendarWriter:
                 _fsync_dir(self.dir)
                 return
             raise OSError(0, _("the calendar file keeps changing, try again"))
+
+
+# ---- cteni: calendar.events.list ----
+def _occurrence_id(ev, start, used):
+    """Jedinecne ID vyskytu (UID, u opakovani UID/zacatek), nejvys 200 znaku."""
+    base = wire.clean_text(ev.uid or "", 1000, False)
+    if ev.rrule or ev.recurrence_id is not None:
+        base += "/" + (start.strftime("%Y%m%dT%H%M%S") if isinstance(start, dt.datetime) else start.strftime("%Y%m%d"))
+    if ev.source:
+        base = ev.source + ":" + base
+    if not base or len(base) > MAX_EVENT_ID:
+        base = "event-" + hashlib.sha256(base.encode("utf-8")).hexdigest()
+    out, n = base, 1
+    while out in used:
+        n += 1
+        out = f"{base[:MAX_EVENT_ID - 8]}#{n}"
+    used.add(out)
+    return out
+
+
+class CalendarReader:
+    """Vyskyty udalosti pro jeden den v pasmu telefonu (luxos_calendar_ics.Store, jen cteni)."""
+
+    def __init__(self, directory=None):
+        self.dir = directory or calendar_dir()
+        self.store = None
+
+    def _store(self):
+        try:
+            ics = ics_module()
+        except ImportError as e:
+            raise NoteError("storage_failed", _("The calendar cannot be read on this computer.")) from e
+        if self.store is None:
+            self.store = ics.Store(self.dir)
+        self.store.reload_if_changed()
+        return self.store
+
+    def list_events(self, msg):
+        """-> (udalosti [{"id","title","text","date","time","timezone"}], truncated). Chyby: NoteError."""
+        day = parse_date(msg.get("date"))
+        zone = _zone(msg.get("timezone"))
+        tzname = msg["timezone"]
+        limit = msg.get("limit", MAX_LIST)
+        if type(limit) is not int or not 1 <= limit <= MAX_LIST:
+            raise NoteError("invalid_request", _("Invalid number of calendar entries (1-100)."))
+        try:
+            store = self._store()
+            utc = dt.timezone.utc
+            start = dt.datetime.combine(day, dt.time()).replace(tzinfo=zone).astimezone(utc)
+            end = dt.datetime.combine(day + dt.timedelta(days=1), dt.time()).replace(tzinfo=zone).astimezone(utc)
+            # udalosti v pameti jsou v mistnim case pocitace (naivni datetime) nebo cele dny (date)
+            q0 = min(day, start.astimezone().date())
+            q1 = max(day, end.astimezone().date()) + dt.timedelta(days=1)
+            instances = store.instances(q0, q1)
+        except OSError as e:
+            raise NoteError("storage_failed", _("The calendar cannot be read on this computer.")) from e
+        rows = []
+        for ev, s, e in instances:
+            span = ""
+            if isinstance(s, dt.datetime):
+                sa = s.astimezone(utc)
+                ea = e.astimezone(utc) if isinstance(e, dt.datetime) else sa
+                if not (sa < end and (ea > start or (ea == sa and sa >= start))):
+                    continue
+                sz, ez = sa.astimezone(zone), ea.astimezone(zone)
+                if sa >= start:
+                    clock = sz.strftime("%H:%M")
+                elif ea >= end:
+                    clock = None             # zacala drive a trva cely den
+                else:
+                    clock = "00:00"          # pokracuje z predchoziho dne
+                last = (ez - dt.timedelta(microseconds=1)) if ez > sz else ez
+                if sz.date() != last.date():
+                    span = f"{sz:%Y-%m-%d %H:%M} – {ez:%Y-%m-%d %H:%M}"
+                key = (1, sa)
+            else:
+                e_ = e if isinstance(e, dt.date) and e > s else s + dt.timedelta(days=1)
+                if not s <= day < e_:
+                    continue
+                clock = None
+                if (e_ - s).days > 1:
+                    span = f"{s.isoformat()} – {(e_ - dt.timedelta(days=1)).isoformat()}"
+                key = (0, start)
+            rows.append((key, ev, s, clock, span))
+        rows.sort(key=lambda r: (r[0][0], r[0][1], (r[1].summary or "").lower()))
+        truncated = len(rows) > limit
+        out, used = [], set()
+        for _key, ev, s, clock, span in rows[:limit]:
+            title = wire.clean_text(ev.summary, MAX_LIST_TITLE, False).strip() or _("(No title)")
+            parts = [p for p in (span, wire.clean_text(ev.location, MAX_TEXT, False).strip(),
+                                 wire.clean_text(ev.description, MAX_TEXT).strip()) if p]
+            text = "\n\n".join(parts)
+            if len(text) > MAX_TEXT:
+                text, truncated = text[:MAX_TEXT], True
+            out.append({"id": _occurrence_id(ev, s, used), "title": title, "text": text,
+                        "date": day.isoformat(), "time": clock, "timezone": tzname})
+        return out, truncated
+
+
+def fit_events(msg, events):
+    """Udalosti do ramce (64 KiB): nejdriv rovnomerne zkratit texty, az pak ubrat zaznamy.
+    Vraci True, kdyz se neco zkratilo nebo vynechalo."""
+    if not wire.fit_items(msg, "events", events):
+        return False
+
+    def capped(cap):
+        return [dict(e, text=e["text"][:cap]) for e in events]
+    lo, hi = 0, MAX_TEXT
+    if wire.fit_items(msg, "events", capped(0)):
+        return True                  # ani bez textu se vse nevejde - zustanou prvni zaznamy
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if wire.fit_items(msg, "events", capped(mid)):
+            hi = mid - 1
+        else:
+            lo = mid
+    wire.fit_items(msg, "events", capped(lo))
+    return True
