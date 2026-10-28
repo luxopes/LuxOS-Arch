@@ -55,6 +55,10 @@ if [[ $mode == live ]]; then
     # bootindex: UEFI jinak upredni nainstalovany system podle ulozenych NVRAM polozek
     args+=(-drive file="$iso",if=none,id=cd0,media=cdrom,readonly=on -device ide-cd,drive=cd0,bootindex=0)
 fi
+if ((!headless)) && ! qemu-system-x86_64 -display help 2>/dev/null | grep -qx gtk; then
+    echo "QEMU has no window backend: install it with 'sudo lux install qemu-ui-gtk', or use --headless (VNC 127.0.0.1:5907)" >&2
+    exit 1
+fi
 if ((headless)); then args+=(-display none -vnc 127.0.0.1:7); else args+=(-display gtk,zoom-to-fit=on); fi
 
 rm -f "$T/qga.sock" "$T/qmp.sock"
