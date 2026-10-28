@@ -4365,3 +4365,30 @@ LuxAI (%s) gave no clear answer	LuxAI (%s) nie dała jasnej odpowiedzi
 one model did not answer, cannot confirm safe	jeden model nie odpowiedział, nie można potwierdzić bezpieczeństwa
 no specific concern found in the build script	nie znaleziono konkretnego problemu w skrypcie budowania
 Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	Podłączenie dysku kopii zapasowych wymaga tutaj hasła administratora. Użyj okna Kopie zapasowe lub uruchom polecenie w terminalu swojej sesji pulpitu.
+Start Navigation	Nawiguj
+Follow the route with your live location	Prowadź po trasie według bieżącej lokalizacji
+Arrival %s	Przyjazd %s
+Arrived	Na miejscu
+Arrives %s	Przyjazd %s
+Departs %s	Odjazd %s
+Drive the route with a simulated location (testing only)	Przejedź trasę z symulowaną lokalizacją (tylko do testów)
+End	Zakończ
+End Navigation	Zakończ nawigację
+Get off at %s	Wysiądź: %s
+Heading Up – click for North Up	Kierunek jazdy u góry – kliknij, aby północ była u góry
+North Up – click for Heading Up	Północ u góry – kliknij, aby kierunek jazdy był u góry
+In %s, %s	Za %s %s
+Location signal lost. Waiting for your location…	Utracono sygnał lokalizacji. Oczekiwanie na lokalizację…
+Navigation in progress	Trwa nawigacja
+No live location. Connect your phone with LuxOS Companion and share its location, or turn on the location service.	Brak bieżącej lokalizacji. Połącz telefon z LuxOS Companion i udostępnij jego lokalizację albo włącz usługę lokalizacji.
+Re-center	Wyśrodkuj
+Rerouting…	Wyznaczanie nowej trasy…
+Simulate	Symuluj
+Simulated location (testing)	Symulowana lokalizacja (testy)
+Take %s	Wsiądź: %s
+The route could not be recalculated. Check your internet connection.	Nie udało się wyznaczyć nowej trasy. Sprawdź połączenie z internetem.
+Then: %s	Następnie: %s
+Voice Guidance	Wskazówki głosowe
+Waiting for your location…	Oczekiwanie na lokalizację…
+You are off the route.	Jesteś poza trasą.
+You have arrived	Jesteś na miejscu

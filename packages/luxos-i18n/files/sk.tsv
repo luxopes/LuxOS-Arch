@@ -4364,3 +4364,30 @@ LuxAI (%s) gave no clear answer	LuxAI (%s) nedala jasnú odpoveď
 one model did not answer, cannot confirm safe	jeden model neodpovedal, nedá sa potvrdiť ako bezpečné
 no specific concern found in the build script	v zostavovacom skripte sa nenašiel žiadny konkrétny problém
 Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	Pripojenie zálohovacieho disku tu vyžaduje heslo správcu. Použite okno Zálohy alebo spustite príkaz v termináli svojej relácie plochy.
+Start Navigation	Navigovať
+Follow the route with your live location	Viesť po trase podľa aktuálnej polohy
+Arrival %s	Príchod %s
+Arrived	Na mieste
+Arrives %s	Príchod %s
+Departs %s	Odchod %s
+Drive the route with a simulated location (testing only)	Prejsť trasu so simulovanou polohou (len na testovanie)
+End	Ukončiť
+End Navigation	Ukončiť navigáciu
+Get off at %s	Vystúpte: %s
+Heading Up – click for North Up	Po smere jazdy – kliknutím sever hore
+North Up – click for Heading Up	Sever hore – kliknutím po smere jazdy
+In %s, %s	O %s %s
+Location signal lost. Waiting for your location…	Signál polohy sa stratil. Čaká sa na polohu…
+Navigation in progress	Prebieha navigácia
+No live location. Connect your phone with LuxOS Companion and share its location, or turn on the location service.	Aktuálna poloha nie je dostupná. Pripojte telefón s LuxOS Companion a zdieľajte jeho polohu, alebo zapnite službu určovania polohy.
+Re-center	Vycentrovať
+Rerouting…	Prepočítava sa trasa…
+Simulate	Simulovať
+Simulated location (testing)	Simulovaná poloha (testovanie)
+Take %s	Nastúpte: %s
+The route could not be recalculated. Check your internet connection.	Trasu sa nepodarilo prepočítať. Skontrolujte pripojenie na internet.
+Then: %s	Potom: %s
+Voice Guidance	Hlasové pokyny
+Waiting for your location…	Čaká sa na vašu polohu…
+You are off the route.	Ste mimo trasy.
+You have arrived	Ste v cieli

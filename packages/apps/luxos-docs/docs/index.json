@@ -641,6 +641,36 @@
           ]
         },
         {
+          "path": "luxos/maps-navigation.md",
+          "title": "Maps navigation",
+          "summary": "Turn-by-turn navigation in Maps (luxos-maps): Start Navigation, instruction banner, heading up/north up, live phone GPS (LuxOS Companion) or GeoClue, off-route detection and rerouting, arrival, ETA, transit steps, screen kept on, optional voice (spd-say/espeak-ng), LUXOS_MAPS_SIMULATE.",
+          "keywords": [
+            "navigation",
+            "navigovat",
+            "turn-by-turn",
+            "Start Navigation",
+            "maps",
+            "luxos-maps",
+            "GPS",
+            "phone location",
+            "LuxOS Companion",
+            "GeoClue",
+            "reroute",
+            "rerouting",
+            "off route",
+            "ETA",
+            "arrival",
+            "heading up",
+            "north up",
+            "voice guidance",
+            "espeak-ng",
+            "speech-dispatcher",
+            "screen saver inhibit",
+            "LUXOS_MAPS_SIMULATE",
+            "sidebar width"
+          ]
+        },
+        {
           "path": "luxos/companion.md",
           "title": "Phone (LuxOS Companion)",
           "summary": "LuxOS Companion Android app over Bluetooth (luxos-companion, Settings › Phone): pairing, approving phones, live phone GPS in Maps (with Maps consent), LuxAI requests from the phone, calendar notes, protocol v1, D-Bus cz.luxos.Companion1.",

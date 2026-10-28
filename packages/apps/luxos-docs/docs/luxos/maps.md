@@ -11,6 +11,9 @@ stops, hotels…), keeps your favorite places and opens `geo:` links. Open it fr
 - **Move**: drag with the mouse (the map glides on after a quick drag) or use the arrow keys.
 - **Zoom**: mouse wheel or touchpad (towards the pointer), double-click, `+`/`-` keys or the
   **+ / −** buttons in the bottom right corner.
+- **Sidebar**: drag the line between the sidebar and the map to make it wider or narrower
+  (280–560 px, the map keeps at least 480 px); the width is remembered. The sidebar button in the
+  title bar hides and shows it.
 - The scale bar is in the bottom left (metres/kilometres; feet/miles with a US locale).
 - **"© OpenStreetMap contributors"** in the bottom right is always visible (the OpenStreetMap
   licence requires it); clicking it opens the copyright page.
@@ -42,6 +45,9 @@ other apps and phones) and **Open in OpenStreetMap** (in the web browser).
 - Routes come from the FOSSGIS routing server (`routing.openstreetmap.de`, OSRM) – the same one
   openstreetmap.org uses. It is free for reasonable personal use (at most one request per second);
   the start and destination are sent to that server. Esc or the back arrow closes the route.
+- **Start Navigation** under the travel time guides you turn by turn with your live location (phone
+  GPS or GeoClue), reroutes when you leave the route and keeps the screen on – see
+  [Maps navigation](maps-navigation.md).
 
 ## Public transport
 
