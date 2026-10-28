@@ -114,7 +114,15 @@ build_one() {  # build_one ADRESAR_BALIKU CIL_PKGDEST
          f=("$BUILD"/pkgs/*/"$n"-[0-9]*.pkg.tar.zst)
          if [[ -e ${f[0]} ]]; then local_pkgs+=("${f[0]}"); else echo "WARNING: build dependency $d of $p not found" >&2; fi
      done
-     ((${#sync[@]})) && { pacman -S --needed --noconfirm "${sync[@]}" >/dev/null || true; }
+     # Jedna nedostupna verze (napr. novejsi balik LuxOS jeste ve staging) nesmi shodit instalaci
+     # ostatnich zavislosti: pri chybe po jedne, verzi pripadne bez omezeni verze
+     if ((${#sync[@]})) && ! pacman -S --needed --noconfirm "${sync[@]}" >/dev/null 2>&1; then
+         for d in "${sync[@]}"; do
+             pacman -S --needed --noconfirm "$d" >/dev/null 2>&1 \
+                 || pacman -S --needed --noconfirm "${d%%[<>=]*}" >/dev/null 2>&1 \
+                 || echo "WARNING: could not install build dependency $d of $p" >&2
+         done
+     fi
      ((${#local_pkgs[@]})) && { pacman -U --needed --noconfirm "${local_pkgs[@]}" >/dev/null || true; }
      true)   # bez zavislosti by posledni (( )) vratilo 1 a set -e ukoncil sestaveni
     # Podepsane zdroje (source=...?signed, validpgpkeys): verejne klice z keys/pgp jako v Arch devtools
