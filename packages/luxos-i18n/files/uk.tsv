@@ -4410,3 +4410,10 @@ On the phone: Bluetooth settings → pair with “%s”, confirm the same code o
 This computer is no longer visible. Press Pair a Phone… to try again.	Комп’ютер більше не видимий. Натисніть З’єднати телефон…, щоб спробувати ще раз.
 Visible to phones for %d:%02d	Видимий для телефонів ще %d:%02d
 Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	З’єднано з «%s». Тепер відкрийте LuxOS Companion на телефоні → Вибрати комп’ютер; під час першого під’єднання тут з’явиться запит на дозвіл.
+# Mapy: naseptavani pri psani (Photon)
+Suggestions While Typing	Підказки під час введення
+Sends what you type to photon.komoot.io. When off, only favorites, recent places and stops are suggested.	Надсилає введений текст на photon.komoot.io. Якщо вимкнено, пропонуються лише улюблені й нещодавні місця та зупинки.
+Clear Recent Places	Очистити нещодавні місця
+Current location	Поточне розташування
+Offline – showing saved places only	Офлайн – лише збережені місця
+Suggestions by Photon · © OpenStreetMap contributors	Підказки: Photon · © учасники OpenStreetMap

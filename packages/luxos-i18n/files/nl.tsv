@@ -4409,3 +4409,10 @@ On the phone: Bluetooth settings → pair with “%s”, confirm the same code o
 This computer is no longer visible. Press Pair a Phone… to try again.	Deze computer is niet meer zichtbaar. Klik op Telefoon koppelen… om het opnieuw te proberen.
 Visible to phones for %d:%02d	Zichtbaar voor telefoons nog %d:%02d
 Paired with “%s”. Now open LuxOS Companion on the phone → Choose computer; the first connection asks for permission here.	Gekoppeld met ‘%s’. Open nu LuxOS Companion op de telefoon → Computer kiezen; bij de eerste verbinding wordt hier om toestemming gevraagd.
+# Mapy: naseptavani pri psani (Photon)
+Suggestions While Typing	Suggesties tijdens het typen
+Sends what you type to photon.komoot.io. When off, only favorites, recent places and stops are suggested.	Stuurt wat je typt naar photon.komoot.io. Uitgeschakeld worden alleen favorieten, recente plaatsen en haltes voorgesteld.
+Clear Recent Places	Recente plaatsen wissen
+Current location	Huidige locatie
+Offline – showing saved places only	Offline – alleen bewaarde plaatsen
+Suggestions by Photon · © OpenStreetMap contributors	Suggesties: Photon · © OpenStreetMap-bijdragers
