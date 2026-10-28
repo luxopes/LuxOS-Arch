@@ -4364,3 +4364,30 @@ LuxAI (%s) gave no clear answer	LuxAI (%s) não deu uma resposta clara
 one model did not answer, cannot confirm safe	um modelo não respondeu, não é possível confirmar como seguro
 no specific concern found in the build script	nenhum problema concreto encontrado no script de compilação
 Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	Conectar o disco de backup aqui exige uma senha de administrador. Use a janela Cópias de segurança ou execute o comando em um terminal da sua sessão da área de trabalho.
+Start Navigation	Iniciar navegação
+Follow the route with your live location	Seguir o percurso com a sua localização em tempo real
+Arrival %s	Chegada %s
+Arrived	Chegou
+Arrives %s	Chega às %s
+Departs %s	Parte às %s
+Drive the route with a simulated location (testing only)	Percorrer o percurso com uma localização simulada (apenas para testes)
+End	Terminar
+End Navigation	Terminar navegação
+Get off at %s	Saia em %s
+Heading Up – click for North Up	Direção para cima – clique para norte para cima
+North Up – click for Heading Up	Norte para cima – clique para direção para cima
+In %s, %s	Dentro de %s, %s
+Location signal lost. Waiting for your location…	Sinal de localização perdido. A aguardar a localização…
+Navigation in progress	Navegação em curso
+No live location. Connect your phone with LuxOS Companion and share its location, or turn on the location service.	Sem localização em tempo real. Ligue o telemóvel com o LuxOS Companion e partilhe a localização, ou ative o serviço de localização.
+Re-center	Centrar
+Rerouting…	A recalcular o percurso…
+Simulate	Simular
+Simulated location (testing)	Localização simulada (testes)
+Take %s	Apanhe %s
+The route could not be recalculated. Check your internet connection.	Não foi possível recalcular o percurso. Verifique a ligação à internet.
+Then: %s	Depois: %s
+Voice Guidance	Orientação por voz
+Waiting for your location…	A aguardar a sua localização…
+You are off the route.	Saiu do percurso.
+You have arrived	Chegou ao destino

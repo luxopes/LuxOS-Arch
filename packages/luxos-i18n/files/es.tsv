@@ -4364,3 +4364,30 @@ LuxAI (%s) gave no clear answer	LuxAI (%s) no dio una respuesta clara
 one model did not answer, cannot confirm safe	un modelo no respondió, no se puede confirmar como seguro
 no specific concern found in the build script	no se encontró ningún problema concreto en el script de compilación
 Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	Conectar el disco de copias de seguridad requiere aquí una contraseña de administrador. Use la ventana Copias de seguridad o ejecute el comando en un terminal de su sesión de escritorio.
+Start Navigation	Iniciar navegación
+Follow the route with your live location	Seguir la ruta con tu ubicación en directo
+Arrival %s	Llegada %s
+Arrived	Has llegado
+Arrives %s	Llega %s
+Departs %s	Sale %s
+Drive the route with a simulated location (testing only)	Recorrer la ruta con una ubicación simulada (solo para pruebas)
+End	Finalizar
+End Navigation	Finalizar navegación
+Get off at %s	Bájate en %s
+Heading Up – click for North Up	Dirección arriba – haz clic para norte arriba
+North Up – click for Heading Up	Norte arriba – haz clic para dirección arriba
+In %s, %s	En %s, %s
+Location signal lost. Waiting for your location…	Se perdió la señal de ubicación. Esperando tu ubicación…
+Navigation in progress	Navegación en curso
+No live location. Connect your phone with LuxOS Companion and share its location, or turn on the location service.	No hay ubicación en directo. Conecta tu teléfono con LuxOS Companion y comparte su ubicación, o activa el servicio de ubicación.
+Re-center	Centrar
+Rerouting…	Recalculando la ruta…
+Simulate	Simular
+Simulated location (testing)	Ubicación simulada (pruebas)
+Take %s	Toma %s
+The route could not be recalculated. Check your internet connection.	No se pudo recalcular la ruta. Comprueba tu conexión a internet.
+Then: %s	Después: %s
+Voice Guidance	Indicaciones por voz
+Waiting for your location…	Esperando tu ubicación…
+You are off the route.	Te has salido de la ruta.
+You have arrived	Has llegado

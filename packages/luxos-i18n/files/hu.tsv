@@ -4364,3 +4364,30 @@ LuxAI (%s) gave no clear answer	a LuxAI (%s) nem adott egyértelmű választ
 one model did not answer, cannot confirm safe	az egyik modell nem válaszolt, a biztonság nem erősíthető meg
 no specific concern found in the build script	nem található konkrét probléma a fordítási szkriptben
 Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	A biztonsági mentés lemezének csatlakoztatásához itt rendszergazdai jelszó kell. Használja a Biztonsági mentések ablakot, vagy futtassa a parancsot az asztali munkamenet egyik termináljában.
+Start Navigation	Navigáció indítása
+Follow the route with your live location	Útvonalkövetés az aktuális helyzet alapján
+Arrival %s	Érkezés %s
+Arrived	Megérkezett
+Arrives %s	Érkezik %s
+Departs %s	Indul %s
+Drive the route with a simulated location (testing only)	Útvonal bejárása szimulált helyzettel (csak teszteléshez)
+End	Befejezés
+End Navigation	Navigáció befejezése
+Get off at %s	Szálljon le: %s
+Heading Up – click for North Up	Haladási irány felfelé – kattintson az északi tájoláshoz
+North Up – click for Heading Up	Észak felfelé – kattintson a haladási irányhoz
+In %s, %s	%s múlva: %s
+Location signal lost. Waiting for your location…	Elveszett a helymeghatározás jele. Várakozás a helyzetre…
+Navigation in progress	Navigáció folyamatban
+No live location. Connect your phone with LuxOS Companion and share its location, or turn on the location service.	Nincs élő helyzet. Csatlakoztassa a telefonját a LuxOS Companionnal és ossza meg a helyzetét, vagy kapcsolja be a helymeghatározást.
+Re-center	Középre
+Rerouting…	Útvonal újratervezése…
+Simulate	Szimuláció
+Simulated location (testing)	Szimulált helyzet (tesztelés)
+Take %s	Szálljon fel: %s
+The route could not be recalculated. Check your internet connection.	Az útvonalat nem sikerült újratervezni. Ellenőrizze az internetkapcsolatot.
+Then: %s	Utána: %s
+Voice Guidance	Hangos útmutatás
+Waiting for your location…	Várakozás a helyzetére…
+You are off the route.	Letért az útvonalról.
+You have arrived	Megérkezett

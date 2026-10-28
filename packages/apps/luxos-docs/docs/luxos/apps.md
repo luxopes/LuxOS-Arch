@@ -16,7 +16,7 @@ translations) and the light/dark mode.
 | Calendar | `luxos-calendar` | calendar under the clock, events with reminders (.ics) |
 | Camera | `luxos-camera` | photos and videos from the webcam; `--scan-wifi` joins a Wi-Fi from a QR code |
 | Weather | `luxos-weather` | current weather, 24-hour and 7-day forecast ([weather.md](weather.md)) |
-| Maps | `luxos-maps` | OpenStreetMap map, place search, routes, favorites, `geo:` links ([maps.md](maps.md)) |
+| Maps | `luxos-maps` | OpenStreetMap map, place search, routes, navigation, favorites, `geo:` links ([maps.md](maps.md), [maps-navigation.md](maps-navigation.md)) |
 | Text Editor | `luxos-text` | text and code editor: folder sidebar, syntax, outline, encodings, find and replace ([text-editor.md](text-editor.md)) |
 | Wi-Fi QR Code | `luxos-wifi-qr` | share the Wi-Fi as a QR code, join one by scanning ([wifi-qr.md](wifi-qr.md)) |
 | System Monitor | `luxos-monitor` | performance charts, quit frozen apps |

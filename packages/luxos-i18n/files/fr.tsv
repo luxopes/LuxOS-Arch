@@ -4364,3 +4364,30 @@ LuxAI (%s) gave no clear answer	LuxAI (%s) n'a pas donné de réponse claire
 one model did not answer, cannot confirm safe	un modèle n'a pas répondu, impossible de confirmer comme sûr
 no specific concern found in the build script	aucun problème concret trouvé dans le script de construction
 Connecting the backup disk needs an administrator password here. Use the Backups window, or run the command in a terminal of your desktop session.	La connexion du disque de sauvegarde demande ici un mot de passe administrateur. Utilisez la fenêtre Sauvegardes ou lancez la commande dans un terminal de votre session de bureau.
+Start Navigation	Démarrer la navigation
+Follow the route with your live location	Suivre l’itinéraire avec votre position en direct
+Arrival %s	Arrivée %s
+Arrived	Arrivé
+Arrives %s	Arrivée %s
+Departs %s	Départ %s
+Drive the route with a simulated location (testing only)	Parcourir l’itinéraire avec une position simulée (tests uniquement)
+End	Terminer
+End Navigation	Terminer la navigation
+Get off at %s	Descendez à %s
+Heading Up – click for North Up	Direction en haut – cliquer pour le nord en haut
+North Up – click for Heading Up	Nord en haut – cliquer pour la direction en haut
+In %s, %s	Dans %s, %s
+Location signal lost. Waiting for your location…	Signal de position perdu. En attente de la position…
+Navigation in progress	Navigation en cours
+No live location. Connect your phone with LuxOS Companion and share its location, or turn on the location service.	Aucune position en direct. Connectez votre téléphone avec LuxOS Companion et partagez sa position, ou activez le service de localisation.
+Re-center	Recentrer
+Rerouting…	Recalcul de l’itinéraire…
+Simulate	Simuler
+Simulated location (testing)	Position simulée (test)
+Take %s	Prenez %s
+The route could not be recalculated. Check your internet connection.	Impossible de recalculer l’itinéraire. Vérifiez votre connexion Internet.
+Then: %s	Puis : %s
+Voice Guidance	Guidage vocal
+Waiting for your location…	En attente de votre position…
+You are off the route.	Vous avez quitté l’itinéraire.
+You have arrived	Vous êtes arrivé
