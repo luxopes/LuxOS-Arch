@@ -1,7 +1,8 @@
 """Jedno spojeni s telefonem: handshake, schvaleni telefonu, ping/pong, necinnost a rozdeleni zprav.
 
 Stavy: "handshake" (ceka na hello, nejvys 20 s od pripojeni) -> "approving" (neznamy telefon, ceka na
-odpoved uzivatele, stale v limitu 20 s) -> "open" (po hello.ok) -> "closed". Do hello.ok server
+odpoved uzivatele, stale v limitu 20 s) -> "probing" (zjisteni schopnosti LuxAI, kdyz nejsou v mezipameti;
+stale v limitu 20 s) -> "open" (po hello.ok se schopnostmi) -> "closed". Do hello.ok server
 neposila nic jineho; jina zprava nez hello pred handshake spojeni ukonci. Bez prijate zpravy 45 s
 se spojeni zavre. Nezname typy zprav se po handshake ignoruji (dopredna kompatibilita).
 
@@ -12,12 +13,13 @@ import os
 import time
 
 from . import wire
-from .calendar_note import NoteError
+from .calendar_note import NoteError, fit_events
 from .location import InvalidLocation
 
 HANDSHAKE_S = 20.0
 IDLE_S = 45.0
 MAX_OUTPUT = 1024 * 1024     # neodeslana data; telefon necte -> zavrit
+MAX_EARLY = 32               # zprav pred hello.ok behem zjistovani schopnosti
 
 
 def _(s):
@@ -47,6 +49,8 @@ class Session:
         self.close_reason = None
         self.luxai = None
         self.location_enabled = None
+        self.caps = []               # schopnosti ohlasene v hello.ok
+        self.early = []              # zpravy prijate behem "probing"
 
     # ---- vstup z transportu ----
     def data_received(self, data):
@@ -76,7 +80,7 @@ class Session:
         if self.state == "closed":
             return
         now = self.clock()
-        if self.state in ("handshake", "approving"):
+        if self.state in ("handshake", "approving", "probing"):
             if now - self.started >= HANDSHAKE_S:
                 self.close("handshake_timeout")
         elif now - self.last_rx >= IDLE_S:
@@ -121,6 +125,12 @@ class Session:
                 raise wire.ProtocolError("handshake_expected", "expected hello")
             self._hello(msg)
             return
+        if self.state == "probing":
+            # telefon uz handshake ma za sebou (schvaleny) - zpravy pockaji na hello.ok
+            if len(self.early) >= MAX_EARLY:
+                raise wire.ProtocolError("handshake_expected", "too many messages before hello.ok")
+            self.early.append(msg)
+            return
         if self.state == "approving":
             # telefon ma do hello.ok mlcet
             raise wire.ProtocolError("handshake_expected", "message before hello.ok")
@@ -151,10 +161,39 @@ class Session:
             self.close("not_approved")
 
     def _open(self):
+        # schopnosti cele cesty (most + nainstalovane LuxAI); bez mezipameti chvili trva -> "probing"
+        self.state = "probing"
+        self.hub.capabilities(self._capabilities_ready)
+
+    def _capabilities_ready(self, caps):
+        if self.state != "probing":
+            return
+        self.caps = list(caps)
         self.state = "open"
         self.last_rx = self.clock()
-        self.send({"type": "hello.ok", "reply_to": self.hello_id, "protocol": 1, "server": "LuxOS"})
+        self.send({"type": "hello.ok", "reply_to": self.hello_id, "protocol": 1, "server": "LuxOS",
+                   "capabilities": list(self.caps)})
         self.hub.session_opened(self)
+        early, self.early = self.early, []
+        try:
+            for msg in early:
+                self._dispatch(msg)
+                if self.state == "closed":
+                    return
+        except wire.ProtocolError as e:
+            self.close(e.code)
+
+    def _bridge(self):
+        if self.luxai is None:
+            self.luxai = self.hub.make_luxai(self.send)
+            if hasattr(self.luxai, "features"):
+                self.luxai.features = set(self.caps)
+                self.luxai.on_change = self.hub.status_changed
+        return self.luxai
+
+    def pending_approvals(self):
+        fn = getattr(self.luxai, "pending_approvals", None)
+        return fn() if fn else 0
 
     def _on_ping(self, msg):
         self.send({"type": "pong", "reply_to": msg["id"]})
@@ -181,13 +220,39 @@ class Session:
             self.error(msg["id"], "permission_denied",
                        _("LuxAI requests from the phone are turned off on this computer (Phone settings)."))
             return
-        if self.luxai is None:
-            self.luxai = self.hub.make_luxai(self.send)
-        self.luxai.request(msg)
+        self._bridge().request(msg)
 
     def _on_luxai_cancel(self, msg):
         if self.luxai is not None:
             self.luxai.cancel(msg)
+
+    def _on_luxai_models_list(self, msg):
+        if not self.hub.settings.get("allow_luxai"):
+            self.error(msg["id"], "permission_denied",
+                       _("LuxAI requests from the phone are turned off on this computer (Phone settings)."))
+            return
+        self._bridge().models(msg)
+
+    def _on_luxai_approval_respond(self, msg):
+        if self.luxai is None or not hasattr(self.luxai, "approve"):
+            self.error(msg["id"], "approval_invalid",
+                       _("This approval is no longer valid (already answered, expired or the request has ended)."))
+            return
+        self.luxai.approve(msg)
+
+    def _on_calendar_events_list(self, msg):
+        if not self.hub.settings.get("allow_calendar_read"):
+            self.error(msg["id"], "permission_denied",
+                       _("Reading the calendar from the phone is turned off on this computer (Phone settings)."))
+            return
+        try:
+            events, truncated = self.hub.calendar_reader.list_events(msg)
+        except NoteError as e:
+            self.error(msg["id"], e.code, e.message)
+            return
+        out = wire.message("calendar.events", reply_to=msg["id"], truncated=truncated)
+        out["truncated"] = fit_events(out, events) or truncated
+        self.send(out)
 
     def _on_calendar_note_create(self, msg):
         if not self.hub.settings.get("allow_calendar"):
@@ -204,7 +269,8 @@ class Session:
         self.hub.calendar_saved(self, str(msg.get("title") or "")[:200])
 
 
-HANDLED = {"ping", "location.status", "location.update", "luxai.request", "luxai.cancel", "calendar.note.create"}
+HANDLED = {"ping", "location.status", "location.update", "luxai.request", "luxai.cancel", "calendar.note.create",
+           "luxai.models.list", "luxai.approval.respond", "calendar.events.list"}
 
 
 def fd_add(fd, cond, cb):

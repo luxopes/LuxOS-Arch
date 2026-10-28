@@ -128,6 +128,12 @@ class TestWindow(unittest.TestCase):
         win.switches["allow_luxai"].set_active(False)
         self.assertFalse(self.store.Settings().get("allow_luxai"))
         self.assertTrue(pump(lambda: not svc.settings.get("allow_luxai"), 5))
+        # cteni kalendare: samostatny prepinac, vychozi zapnuty
+        self.assertTrue(win.switches["allow_calendar_read"].get_active())
+        self.assertIn("Allow reading the calendar", self.texts(win))
+        win.switches["allow_calendar_read"].set_active(False)
+        self.assertTrue(pump(lambda: not svc.settings.get("allow_calendar_read"), 5))
+        self.assertTrue(svc.settings.get("allow_calendar"))
         # odebrani telefonu ukonci jeho spojeni
         remove = [w for w in self.walk(win.phones) if isinstance(w, self.Gtk.Button)]
         names = [r for r in self.texts(win.phones) if r in ("Nový telefon", "Pixel Test", "Tablet")]

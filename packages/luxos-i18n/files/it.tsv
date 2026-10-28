@@ -4428,3 +4428,17 @@ More words or patterns: all must match. Put patterns in quotes: lux search '*qt*
 search only installed packages and apps	cerca solo nei pacchetti e nelle app installati
 Usage: lux search [--installed] <term or pattern>	Uso: lux search [--installed] <termine o modello>
 skipped: a pattern needs at least 2 letters in a row for the AUR	saltato: per l'AUR un modello richiede almeno 2 caratteri consecutivi
+(No title)	(Senza titolo)
+Choosing a model is not supported on this computer.	La scelta del modello non è supportata su questo computer.
+Invalid approval.	Approvazione non valida.
+Invalid model.	Modello non valido.
+Invalid number of calendar entries (1-100).	Numero di voci del calendario non valido (1–100).
+Reading the calendar from the phone is turned off on this computer (Phone settings).	La lettura del calendario dal telefono è disattivata su questo computer (impostazioni Telefono).
+The calendar cannot be read on this computer.	Impossibile leggere il calendario su questo computer.
+The list of models could not be loaded.	Impossibile caricare l’elenco dei modelli.
+The selected model is not available on this computer.	Il modello scelto non è disponibile su questo computer.
+This approval is no longer valid (already answered, expired or the request has ended).	Questa approvazione non è più valida (già risposta, scaduta o la richiesta è terminata).
+LuxAI answers with the permissions of this computer. Actions that need confirmation can be allowed once on the phone.	LuxAI risponde con i permessi di questo computer. Le azioni che richiedono conferma possono essere consentite una volta sul telefono.
+Allow reading the calendar	Consenti la lettura del calendario
+The phone can show your calendar entries for a chosen day.	Il telefono può mostrare le voci del calendario di un giorno scelto.
+LuxAI is waiting for your approval on the phone	LuxAI attende la tua approvazione sul telefono

@@ -4428,3 +4428,17 @@ More words or patterns: all must match. Put patterns in quotes: lux search '*qt*
 search only installed packages and apps	alleen in geïnstalleerde pakketten en apps zoeken
 Usage: lux search [--installed] <term or pattern>	Gebruik: lux search [--installed] <term of patroon>
 skipped: a pattern needs at least 2 letters in a row for the AUR	overgeslagen: voor de AUR heeft een patroon minstens 2 tekens achter elkaar nodig
+(No title)	(Geen titel)
+Choosing a model is not supported on this computer.	Een model kiezen wordt op deze computer niet ondersteund.
+Invalid approval.	Ongeldige goedkeuring.
+Invalid model.	Ongeldig model.
+Invalid number of calendar entries (1-100).	Ongeldig aantal agenda-items (1–100).
+Reading the calendar from the phone is turned off on this computer (Phone settings).	Agenda lezen vanaf de telefoon is op deze computer uitgeschakeld (instellingen Telefoon).
+The calendar cannot be read on this computer.	De agenda kan op deze computer niet worden gelezen.
+The list of models could not be loaded.	De lijst met modellen kon niet worden geladen.
+The selected model is not available on this computer.	Het gekozen model is niet beschikbaar op deze computer.
+This approval is no longer valid (already answered, expired or the request has ended).	Deze goedkeuring is niet meer geldig (al beantwoord, verlopen of het verzoek is beëindigd).
+LuxAI answers with the permissions of this computer. Actions that need confirmation can be allowed once on the phone.	LuxAI antwoordt met de rechten van deze computer. Acties die bevestiging nodig hebben, kunnen eenmalig op de telefoon worden toegestaan.
+Allow reading the calendar	Agenda lezen toestaan
+The phone can show your calendar entries for a chosen day.	De telefoon kan je agenda-items voor een gekozen dag tonen.
+LuxAI is waiting for your approval on the phone	LuxAI wacht op je goedkeuring op de telefoon
