@@ -162,6 +162,10 @@ class Handle:
         self.commit_errors = []
         self.commit_questions = []    # otazky libalpm pred chybou commitu (napr. poskozeny balik)       # vyjimky, ktere vyhodi dalsi commit (testy chyb a opakovani)
         self.prepare_errors = []
+        # hooky libalpm jako je posila pyalpm 0.12: jen typ udalosti ("unknown event") a pred
+        # spustenim ladici log 'executing "<Exec>"'; None = puvodni zjednodusene udalosti
+        self.pre_hooks = []
+        self.post_hooks = None
         self.transactions = []
         self.locked = False
 
@@ -303,6 +307,7 @@ class Transaction:
         if h.progresscb:
             for i in range(1, len(self.to_add) + 1):
                 h.progresscb("", 100, len(self.to_add), i)
+        self.run_hooks(h, h.pre_hooks)
         ops = self.to_remove + self.to_add
         n = len(ops)
         for i, p in enumerate(ops, 1):
@@ -316,11 +321,25 @@ class Transaction:
                 reason = old.reason if old else (PKG_REASON_DEPEND if p in self.deps or self.flags.get("alldeps")
                                                  else PKG_REASON_EXPLICIT)
                 h.local.add(p.copy_for_local(h.local, reason))
-        if h.eventcb:
+        if h.post_hooks is not None:
+            self.run_hooks(h, h.post_hooks)
+        elif h.eventcb:
             h.eventcb(34, "")
             h.eventcb(36, "Updating icon theme caches...")
             h.eventcb(17, "==> A reboot is recommended")
         self.committed = True
+
+    @staticmethod
+    def run_hooks(h, cmds):
+        if not cmds or not h.eventcb:
+            return
+        h.eventcb(34, "unknown event")
+        for cmd in cmds:
+            h.eventcb(36, "unknown event")
+            if h.logcb:
+                h.logcb(4, f'executing "{cmd}" under chroot "/"\n')
+            h.eventcb(37, "unknown event")
+        h.eventcb(35, "unknown event")
 
     def interrupt(self):
         pass
