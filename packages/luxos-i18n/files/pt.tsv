@@ -2390,6 +2390,7 @@ The screenshot could not be copied to the clipboard.	Não foi possível copiar a
 The file could not be moved to the Trash.	Não foi possível mover o ficheiro para o lixo.
 lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check	O lux não funcionará até a configuração ser corrigida (/etc/lux/lux.conf). Verifique com: lux config check
 Usage: lux config [check|show|edit|engine|migrate]	Uso: lux config [check|show|edit|engine|migrate]
+Usage: lux config [check|show|edit|engine|migrate|channel]	Uso: lux config [check|show|edit|engine|migrate|channel]
 check, edit or convert /etc/lux/lux.conf to the new format	verificar, editar ou converter /etc/lux/lux.conf para o novo formato
 reflector is not installed (lux install reflector)	O reflector não está instalado (lux install reflector)
 New version of %s from an update	Nova versão de %s de uma atualização

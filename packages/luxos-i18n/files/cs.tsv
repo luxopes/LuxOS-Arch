@@ -2390,6 +2390,7 @@ The screenshot could not be copied to the clipboard.	Snímek obrazovky se nepoda
 The file could not be moved to the Trash.	Soubor se nepodařilo přesunout do koše.
 lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check	lux nic neprovede, dokud nebude konfigurace opravena (/etc/lux/lux.conf). Zkontrolujte ji: lux config check
 Usage: lux config [check|show|edit|engine|migrate]	Použití: lux config [check|show|edit|engine|migrate]
+Usage: lux config [check|show|edit|engine|migrate|channel]	Použití: lux config [check|show|edit|engine|migrate|channel]
 check, edit or convert /etc/lux/lux.conf to the new format	kontrola, úprava nebo převod /etc/lux/lux.conf do nového formátu
 reflector is not installed (lux install reflector)	reflector není nainstalovaný (lux install reflector)
 New version of %s from an update	Nová verze %s z aktualizace

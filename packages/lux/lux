@@ -951,7 +951,11 @@ cmd_config() {
             elif command -v sudoedit &>/dev/null; then SUDO_EDITOR=${EDITOR:-nano} sudoedit /etc/lux/lux.conf
             else as_root "${EDITOR:-nano}" /etc/lux/lux.conf; fi
             "$LUX_CONFIG" check ;;
-        *) die "$(T "Usage: lux config [check|show|edit|engine|migrate]")" ;;
+        channel)
+            # kanal aktualizaci: stable (vydani) nebo staging (testovaci sestaveni)
+            if [[ -z ${2-} ]]; then "$LUX_CONFIG" get general.channel; return; fi
+            as_root "$LUX_CONFIG" set-channel "$2" && "$LUX_CONFIG" check ;;
+        *) die "$(T "Usage: lux config [check|show|edit|engine|migrate|channel]")" ;;
     esac
 }
 

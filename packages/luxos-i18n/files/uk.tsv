@@ -2391,6 +2391,7 @@ The screenshot could not be copied to the clipboard.	Не вдалося ско�
 The file could not be moved to the Trash.	Не вдалося перемістити файл у кошик.
 lux will not run until the configuration is fixed (/etc/lux/lux.conf). Check it with: lux config check	lux не працюватиме, доки конфігурацію не виправлено (/etc/lux/lux.conf). Перевірте: lux config check
 Usage: lux config [check|show|edit|engine|migrate]	Використання: lux config [check|show|edit|engine|migrate]
+Usage: lux config [check|show|edit|engine|migrate|channel]	Використання: lux config [check|show|edit|engine|migrate|channel]
 check, edit or convert /etc/lux/lux.conf to the new format	перевірити, змінити або перетворити /etc/lux/lux.conf у новий формат
 reflector is not installed (lux install reflector)	reflector не встановлено (lux install reflector)
 New version of %s from an update	Нова версія %s з оновлення
