@@ -88,6 +88,20 @@ class TestBuild(GeocoderTestCase):
         self.assertEqual(G.tokens("Vodičkova 681/30"), ["vodickova", "681", "30"])
         self.assertEqual(G.fold("Łódź Straße"), "lodz strasse")
 
+    def test_prague_levels(self):
+        """Praha je v OSM jen kraj (admin_level 4) - obec se vezme z nej, cast z mestskych casti (9/10)."""
+        p = self.search("korunni")[0]["properties"]
+        self.assertEqual((p["city"], p["district"], p["state"]), ("Praha", "Vinohrady", "Praha"))
+        p = self.search("vodickova 28")[0]["properties"]
+        self.assertEqual((p["city"], p["district"]), ("Praha", "Nové Město"))
+
+    def test_chain_segments(self):
+        seg = lambda a, b: ((a, b), (a + 0.002, b + 0.002))                          # noqa: E731
+        segs = [seg(50.0, 14.0), seg(50.002, 14.002), seg(50.004, 14.004),       # navazuji
+                seg(50.2, 14.3)]                                                  # stejne jmeno jinde
+        groups = build.chain_segments(segs, lambda s: s)
+        self.assertEqual([len(g) for g in groups], [3, 1])
+
     def test_rings_and_raster(self):
         sq = [(0, 0), (0, 1), (1, 1)]
         rings = build._join_rings([sq, [(1, 1), (1, 0), (0, 0)]])
@@ -116,6 +130,8 @@ class TestRanking(GeocoderTestCase):
     def test_distance_bias(self):
         self.assertEqual(names(self.search("masarykov", PRAHA))[0], "Masarykovo nábřeží")
         self.assertEqual(names(self.search("masarykov", BRNO))[0], "Masarykova")
+        # dlouhe slovo: FTS hleda indexovanou predponu "masaryko", cele slovo overi Python
+        self.assertEqual(names(self.search("masarykovo", BRNO)), ["Masarykovo nábřeží"])
         brno = self.search("namesti miru", BRNO)
         self.assertEqual(brno[0]["properties"]["city"], "Brno")
         self.assertEqual(names(self.search("namesti miru"))[0], "Náměstí Míru")   # bez polohy: dulezitost
@@ -164,7 +180,7 @@ class TestRanking(GeocoderTestCase):
         self.assertTrue(lm.is_transit_place(res[0]))
         self.assertEqual(res[0]["osm"].split("/")[0], "node")
         city = lm.parse_photon({"features": self.search("praha")})[0]
-        self.assertEqual((city["name"], city["kind"], city["address"]), ("Praha", "city", "Hlavní město Praha, Česko"))
+        self.assertEqual((city["name"], city["kind"], city["address"]), ("Praha", "city", "Česko"))
         poi = lm.parse_photon({"features": self.search("kavarna")})[0]
         self.assertEqual((poi["kind"], poi["address"]), ("poi", "Vodičkova 681/30, Praha, Česko"))
         addr = lm.parse_photon({"features": self.search("vodickova 30")})[0]

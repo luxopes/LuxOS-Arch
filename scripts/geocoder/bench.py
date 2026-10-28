@@ -17,6 +17,7 @@ import luxos_geocoder as G  # noqa: E402
 CENTERS = {"praha": (50.08, 14.42), "brno": (49.19, 16.61), "ostrava": (49.83, 18.28),
            "bratislava": (48.15, 17.11), "kosice": (48.72, 21.26), "plzen": (49.74, 13.38)}
 # co lide pisou do naseptavace: obce, ulice, adresy, zastavky, mista; kazde ve 3-4 delkach predpony
+# (poradi zamichane podle delky, aby prvnich --count dotazu pokrylo vsechny texty)
 TEXTS = [
     ("praha", "praha"), ("brno", "brno"), ("bratislava", "bratislava"), ("kosice", "košice"),
     ("praha", "náměstí míru"), ("praha", "václavské náměstí"), ("praha", "vodičkova 30"),
@@ -39,10 +40,10 @@ CHECKS = [("praha", None, "Praha"), ("brno", None, "Brno"), ("bratislava", None,
 
 def queries():
     out = []
-    for city, text in TEXTS:
-        lens = sorted({3, 5, 8, len(text)} & set(range(3, len(text) + 1)))
-        for n in lens:
-            out.append((text[:n], CENTERS[city]))
+    for n in (3, 4, 6, 9, None):
+        for city, text in TEXTS:
+            if n is None or n < len(text):
+                out.append((text[:n] if n else text, CENTERS[city]))
     return out
 
 
@@ -51,6 +52,7 @@ def main():
     ap.add_argument("db")
     ap.add_argument("--mmap-mb", type=int, default=0)
     ap.add_argument("--runs", type=int, default=1, help="repeat (warm cache)")
+    ap.add_argument("--count", type=int, default=200, help="queries per run")
     a = ap.parse_args()
     s = G.Searcher(a.db, a.mmap_mb)
     bad = 0
@@ -59,7 +61,7 @@ def main():
         got = res[0]["properties"].get("name") if res else None
         print(f"check {q!r}: {got!r}" + ("" if got == want else f"  EXPECTED {want!r}"))
         bad += got != want
-    qs = queries()
+    qs = queries()[:a.count]
     times = []
     for _ in range(a.runs):
         for q, c in qs:

@@ -6,8 +6,9 @@
 
 Vstup: vytahy Geofabrik (.osm.pbf, cte pyosmium) nebo maly soubor .osm (XML, jen standardni knihovna).
 Zavislosti jen na pocitaci, kde se stavi (ne na serveru): python3 >= 3.9 se sqlite3 s FTS5 a pro .pbf
-balicek "osmium" (pyosmium >= 4, `pip install osmium`). Pamet ~1-1,5 GB pro CZ+SK; velke docasne
-soubory (index poloh uzlu, mezivysledky) jdou do --work (vychozi vedle vystupu).
+balicek "osmium" (pyosmium >= 4, `pip install osmium`). Pamet ~1 GB + mapovany index poloh uzlu
+(spicka RSS ~2,4 GB, vetsinou stranky souboru); docasne soubory (index poloh uzlu, mezivysledky, ~6 GB)
+jdou do --work (vychozi vedle vystupu). CZ+SK trva ~15 min na jednom jadru.
 
 Co databaze obsahuje (vse s nazvy a variantami name, name:cs/sk/en/de, alt_name, short_name...):
   mista (obce, mestske casti, osady), ulice (useky se stejnym jmenem v obci slouceny), adresy
@@ -19,7 +20,7 @@ Rychlost hledani: radky jsou ocislovane podle dulezitosti (nejdulezitejsi = nejm
 FTS5 "MATCH ... LIMIT n" vraci nejdulezitejsi shody bez razeni vsech shod. Mista v okoli najde druhy
 dotaz s tokeny bunek mrizky (viz luxos_geocoder.cell_token).
 
-Dalsi staty: pridat vytah na prikazovy radek a jejich admin_level do COUNTRY_LEVELS.
+Dalsi staty: pridat vytah na prikazovy radek a jejich admin_level do COUNTRY_LEVELS (a do ADMIN_LEVELS).
 """
 
 import argparse
@@ -38,9 +39,12 @@ import xml.etree.ElementTree as ET
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "server", "geocoder"))
 import luxos_geocoder as G  # noqa: E402
 
-# role hranic podle statu: (kraj, obec, cast obce)
-COUNTRY_LEVELS = {"CZ": (6, 8, 10), "SK": (4, 9, 10)}
-ADMIN_LEVELS = (2, 4, 6, 7, 8, 9, 10)
+# role hranic podle statu: (kraj, obec, cast obce), kazda jako levely v poradi zalohy (overeno na datech
+# Geofabrik 2026-10): CZ 4 = kraj (Praha je jen kraj "Praha"), 8 = obec, 9 = mestske casti Prahy
+# (Praha 1, Praha-Libus), 10 = cast obce; SK 4 = kraj, 5 = mesto Bratislava/Kosice (jejich casti jsou
+# obce 9: Bratislava-Petrzalka), 8 = obec, 9/10 = casti
+COUNTRY_LEVELS = {"CZ": ((4,), (8, 4), (10, 9)), "SK": ((4,), (8, 5), (9, 10))}
+ADMIN_LEVELS = (2, 4, 5, 8, 9, 10)
 NAME_LANGS = ("cs", "sk", "en", "de", "pl", "hu", "uk")
 FILTER_KEYS = ("name", "addr:housenumber", "addr:conscriptionnumber", "addr:streetnumber")
 
@@ -53,7 +57,7 @@ STREET_MINOR = {"track", "footway", "path", "cycleway", "steps", "service"}
 STOP_RANK = {("railway", "station"): 0.62, ("railway", "halt"): 0.52, ("public_transport", "station"): 0.58,
              ("amenity", "bus_station"): 0.52, ("railway", "tram_stop"): 0.46, ("highway", "bus_stop"): 0.42,
              ("amenity", "ferry_terminal"): 0.46, ("aerialway", "station"): 0.46,
-             ("railway", "subway_entrance"): 0.30, ("public_transport", "platform"): 0.40,
+             ("public_transport", "platform"): 0.40,
              ("railway", "platform"): 0.40, ("highway", "platform"): 0.40,
              ("public_transport", "stop_position"): 0.38, ("railway", "stop"): 0.38}
 POI_KEYS = ("amenity", "tourism", "shop", "leisure", "historic", "healthcare", "office", "craft", "aeroway",
@@ -77,7 +81,9 @@ POI_ONLY = {"natural": {"peak", "cave_entrance", "spring", "saddle", "volcano", 
 POI_BONUS = {("tourism", "attraction"): 0.08, ("tourism", "museum"): 0.08, ("tourism", "zoo"): 0.1,
              ("historic", "castle"): 0.1, ("amenity", "university"): 0.06, ("amenity", "hospital"): 0.06,
              ("aeroway", "aerodrome"): 0.12, ("tourism", "theme_park"): 0.08, ("leisure", "stadium"): 0.06,
-             ("amenity", "theatre"): 0.05, ("shop", "mall"): 0.06, ("natural", "peak"): 0.04}
+             ("amenity", "theatre"): 0.05, ("shop", "mall"): 0.06, ("natural", "peak"): 0.04,
+             ("tourism", "artwork"): -0.10, ("historic", "wayside_cross"): -0.08,
+             ("historic", "wayside_shrine"): -0.08, ("historic", "memorial"): -0.05}
 IMP_STREET, IMP_ADDRESS, IMP_POI = 0.40, 0.20, 0.28
 
 
@@ -470,7 +476,14 @@ def geo_lookup(raster, names_by_id):
         if not cc:
             return None
         reg, muni, part = COUNTRY_LEVELS[cc]
-        return (c, raster.get(reg, lat, lon), raster.get(muni, lat, lon), raster.get(part, lat, lon, near=False))
+        return (c, first(reg, lat, lon, True), first(muni, lat, lon, True), first(part, lat, lon, False))
+
+    def first(levels, lat, lon, near):
+        for lv in levels:
+            v = raster.get(lv, lat, lon, near)
+            if v:
+                return v
+        return 0
     return look
 
 
@@ -486,6 +499,39 @@ def unpack(v):
 
 
 # ---- slouceni ------------------------------------------------------------------------------------
+def chain_segments(segs, pts, cell=(0.004, 0.006)):
+    """Useky ulice, ktere na sebe navazuji (konce/stredy v sousednich bunkach ~450 m) -> skupiny
+    (union-find; i dlouha silnice z mnoha useku je jedna, dve stejnojmenne ulice v obci zvlast)."""
+    parent = list(range(len(segs)))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def union(a, b):
+        a, b = find(a), find(b)
+        if a != b:
+            parent[max(a, b)] = min(a, b)
+    cells = collections.defaultdict(list)
+    for i, sg in enumerate(segs):
+        for lat, lon in pts(sg):
+            cells[(int(math.floor(lat / cell[0])), int(math.floor(lon / cell[1])))].append(i)
+    for (r, c), idx in cells.items():
+        for j in idx[1:]:
+            union(idx[0], j)
+        for dr, dc in ((0, 1), (1, -1), (1, 0), (1, 1)):
+            other = cells.get((r + dr, c + dc))
+            if other:
+                union(idx[0], other[0])
+    groups = collections.defaultdict(list)
+    for i, sg in enumerate(segs):
+        groups[find(i)].append(sg)
+    return [groups[k] for k in sorted(groups)]
+
+
+
 def cluster(items, dist_km, key=lambda it: (it[0], it[1])):
     """Hladove shlukovani bodu (seznam se zachovanym poradim); polozka se prida k prvnimu shluku,
     jehoz nektery bod je bliz nez dist_km."""
@@ -582,6 +628,8 @@ class Writer:
         muni_name = nb.get(muni, "")
         city = city or (muni_name if kind != G.K_CITY else "")
         district = district if kind != G.K_CITY else ""
+        if city and district.startswith(city + "-"):
+            district = district[len(city) + 1:]              # Praha-Libus -> Libus, Bratislava-Petrzalka
         if district == city or (kind == G.K_CITY and district == name):
             district = ""
         alt_f = None
@@ -620,14 +668,14 @@ class Writer:
                              lat, lon, osm, tag, imp FROM tmp ORDER BY imp DESC, kind, rowid""")
         log("full-text index")
         db.execute("CREATE VIRTUAL TABLE fts USING fts5(t, content='', detail=none, columnsize=0, "
-                   "tokenize='unicode61 remove_diacritics 2', prefix='2 3 4')")
+                   "tokenize='unicode61 remove_diacritics 2', prefix='%s')" % " ".join(map(str, G.PREFIXES)))
         # feat.id = 1..n ve stejnem poradi (prazdna tabulka), takze rowid fts = id feat
         db.execute("INSERT INTO fts(rowid, t) SELECT row_number() OVER (ORDER BY imp DESC, kind, rowid), text "
                    "FROM tmp")
         db.execute("DROP TABLE tmp")
         db.execute("INSERT INTO fts(fts) VALUES('optimize')")
         n = db.execute("SELECT count(*) FROM feat").fetchone()[0]
-        meta = dict(meta, features=str(n), schema="1")
+        meta = dict(meta, features=str(n), schema="1", prefix=" ".join(map(str, G.PREFIXES)))
         db.executemany("INSERT INTO meta VALUES (?, ?)", sorted(meta.items()))
         db.commit()
         log("vacuum")
@@ -668,7 +716,7 @@ def finish(stage, output, names_by_id, street_pts, stamps):
             w.add(G.K_STOP, osm, name, names, alt, okey, oval, lat, lon, imp, g, district=names_by_id.get(prt, ""))
             counts["stop"] += 1
     log("stops:", counts["stop"])
-    # 3) ulice: useky se stejnym jmenem v obci, ktere na sebe navazuji (do 1,5 km) -> jedna ulice
+    # 3) ulice: useky se stejnym jmenem v obci, ktere na sebe navazuji -> jedna ulice
     groups = collections.defaultdict(list)
     for sp in street_pts:
         if sp[10] > 0:
@@ -676,7 +724,7 @@ def finish(stage, output, names_by_id, street_pts, stamps):
     street_pts.clear()
     for (name, _muni), segs in groups.items():
         segs.sort(key=lambda s: (s[9], s[1]))              # hlavni silnice pred cestami a chodniky
-        for grp in cluster(segs, 1.5, key=lambda s: s[8]):
+        for grp in chain_segments(segs, lambda s: (s[6], s[7], s[8])):
             lat = sum(s[8][0] for s in grp) / len(grp)
             lon = sum(s[8][1] for s in grp) / len(grp)
             rep = min(grp, key=lambda s: G.distance_km(lat, lon, *s[8]))
@@ -693,7 +741,9 @@ def finish(stage, output, names_by_id, street_pts, stamps):
             "attribution": "© OpenStreetMap contributors, ODbL"}
     n = w.finish(meta)
     os.replace(tmp, output)
-    log(f"done: {n} features, {os.path.getsize(output) / 1e6:.0f} MB -> {output}")
+    import resource
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+    log(f"done: {n} features, {os.path.getsize(output) / 1e6:.0f} MB -> {output} (peak RSS {peak:.0f} MB)")
 
 
 def main(argv=None):

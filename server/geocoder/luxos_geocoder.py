@@ -44,6 +44,11 @@ RATE_MAX_IPS = 50000
 KEEPALIVE_S = 30
 HEADER_LIMIT = 8192
 
+# delky predpon s vlastnim indexem FTS5. Dotaz "praha"* bez indexu predpony musi FTS5 nejdriv slozit cely
+# doclist (vsechny adresy v Praze, ~40 ms), s indexem cte jen prvnich LIMIT radku (~0,5 ms). Delsi slovo
+# se proto hleda jako nejdelsi indexovana predpona a cele se overi v Pythonu (Feature.score).
+PREFIXES = (2, 3, 4, 6, 8)
+
 # bunky mrizky pro prednost mist v okoli: token "zq<radek>x<sloupec>" v textu FTS (bunka ~22 x 22 km)
 CELL_LAT = 0.2
 CELL_LON = 0.3
@@ -152,6 +157,7 @@ class Searcher:
         self.meta = dict(db.execute("SELECT k, v FROM meta"))
         if self.meta.get("schema") != "1":
             raise RuntimeError("unsupported database schema")
+        self.prefixes = tuple(sorted(int(p) for p in (self.meta.get("prefix") or "2 3 4").split()))
         loc.db, loc.gen = db, self.generation
         loc.strings = {}
         loc.tags = dict((i, (k, v)) for i, k, v in db.execute("SELECT id, k, v FROM tag"))
@@ -182,8 +188,14 @@ class Searcher:
             db.set_progress_handler(None, 0)
 
     def _search(self, db, query):
-        long_toks = [t for t in query.toks if len(t) >= 2]
-        match = " AND ".join(f'"{t}"*' for t in long_toks)
+        prefixes = self.prefixes
+        terms = []
+        for t in query.toks:
+            if len(t) >= prefixes[0]:
+                t = t[:max(p for p in prefixes if p <= len(t))]
+                if t not in terms:
+                    terms.append(t)
+        match = " AND ".join(f'"{t}"*' for t in terms)
         ids = [r[0] for r in db.execute("SELECT rowid FROM fts WHERE fts MATCH ? LIMIT ?", (match, CANDIDATES))]
         if query.center:
             r0, c0 = cell_of(*query.center)
@@ -238,7 +250,7 @@ class Feature:
         return self.names.get(lang) or self.name or ""
 
     def score(self, toks, qtext, center):
-        """Vyssi = lepsi. None = neodpovida (jednopismenne slovo dotazu, ktere FTS nefiltrovalo)."""
+        """Vyssi = lepsi. None = neodpovida (FTS hledalo jen zkracenou predponu nebo jednopismenne slovo)."""
         name = fold(self.display_name())
         variants = [name] + ([v for v in self.alt.split("|") if v] if self.alt else [])
         name_words = set()
@@ -250,8 +262,8 @@ class Feature:
         for t in toks:
             if any(w.startswith(t) for w in name_words):
                 in_name += 1
-            elif not any(w.startswith(t) for w in ctx_words) and len(t) < 2:
-                return None
+            elif not any(w.startswith(t) for w in ctx_words):
+                return None              # FTS hledalo jen predponu slova (nebo jednopismenne slovo vubec)
         s = 0.0
         if any(v.startswith(qtext) for v in variants):
             s += 3.0
