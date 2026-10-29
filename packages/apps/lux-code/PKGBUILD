@@ -6,8 +6,8 @@
 
 pkgname=lux-code
 pkgver=0.1.2
-pkgrel=5
-_lslver=0.10.2
+pkgrel=6
+_lslver=0.10.8
 pkgdesc="Lux Code - LuxAI terminal coding agent written in LSL (uses the LuxOS LuxAI account)"
 arch=(x86_64)
 url="https://lsl.lux-ai.cz"
@@ -25,18 +25,9 @@ optdepends=('luxos-account: shared LuxAI account login (luxos-account login)'
             'npm: JavaScript project tooling')
 options=(!strip !debug)
 source=("$pkgname-$pkgver.tar.gz"
-        "https://lsl.lux-ai.cz/downloads/lsl-$_lslver-linux-x86_64.tar.gz"
-        one-file-system.patch)
-sha256sums=('61a6456d441e3d3ff74e1c6c197c0670819a59e25698fbb35d095cb57f673ca4'
-            '387993aae033ace1d77b035e3682e7ba0c12d11a1a8c8be4a9d8737843eaa1fb'
-            'c6cf28667814709468b66c2b9a350efc21d03621b4bbce0ca9050dcebfc3f39e')
-
-prepare() {
-    cd "$pkgname-$pkgver"
-    # Prohledavani pracovni slozky nepresahuje do jinych pripojeni (sshfs v ~/disk zablokovalo TUI);
-    # do ~/Lux-Code prevzit pri dalsim make-source.sh
-    patch -p1 <"$srcdir/one-file-system.patch"
-}
+        "https://lsl.lux-ai.cz/downloads/lsl-$_lslver-linux-x86_64.tar.gz")
+sha256sums=('8cf895fe732922fd148adf52478f965ebc9d9365436663e9b1de4eada6b7bd96'
+            '6ed531e2fabb2128361cac9d9050389ac580c1c2b477e24315bb1784336c06bb')
 
 build() {
     cd "$pkgname-$pkgver"
