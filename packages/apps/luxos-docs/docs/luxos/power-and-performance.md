@@ -68,6 +68,8 @@ luxos-powersaver on|off|toggle|status
   (`powersave` can disable L1 substates and use more power, `powersupersave` is unstable on some
   hardware), SATA link power (already the kernel default on laptops), NMI watchdog (already off),
   NVIDIA dGPU (runtime PM from `luxos-drivers` already powers it off when idle), freezing apps.
+- Battery Saver sets the Power Saver profile, so games are back on the integrated GPU (see Performance
+  mode below).
 
 ### Automatic Battery Saver at 20 %
 
@@ -92,6 +94,64 @@ is active.
 Battery & Power also offers the power mode (Power Saver / Balanced / Performance, when
 power-profiles-daemon supports them), screen-off and sleep timeouts, lid action and *Advanced Power
 Settings…* (xfce4-power-manager). See [Settings apps](settings-apps.md).
+
+## Performance mode: maximum performance including the GPU (luxos-gpu)
+
+Choosing **Performance** (Battery & Power, or any tool that sets the power-profiles-daemon profile)
+switches everything to maximum performance; **Balanced** and **Power Saver** switch it back. The only
+source of truth is power-profiles-daemon's `ActiveProfile`: `luxos-hub` listens for its
+`PropertiesChanged` signal (no polling) and runs `luxos-gpu apply` on every change and 2 s after login.
+`apply` is idempotent – it compares the wanted state with what is there, so leftovers after a crash,
+logout or a changed profile are fixed at the next login.
+
+- **CPU**: power-profiles-daemon itself (amd-pstate-epp / intel_pstate: EPP `performance`; on
+  amd-pstate-epp also the `performance` governor; platform profile where the firmware has one).
+  Selecting Performance in Battery & Power while **Battery Saver** is on turns Battery Saver off first
+  (it disables CPU turbo).
+- **Graphics** (laptops with hybrid graphics – a discrete NVIDIA or AMD GPU next to the GPU that drives the
+  screen, detected from sysfs `boot_vga`/`uevent` without waking the dGPU): games and demanding apps run on
+  the discrete GPU, the desktop (xfwm4 compositor, panel, Dock) stays on the integrated GPU.
+  - Environment for offload: NVIDIA (proprietary driver) `__NV_PRIME_RENDER_OFFLOAD=1
+    __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only` (the same as `prime-run`);
+    AMD/Intel/nouveau dGPU `DRI_PRIME=1`. Variables you set yourself are kept.
+  - **Native apps**: `luxos-apps-sync` (package hook) writes a copy of every `.desktop` file with
+    `Categories=…Game…` or `PrefersNonDefaultGPU=true` (not `DBusActivatable`) to
+    `/var/lib/luxos/apps/applications` with `Exec=luxos-gpu run …` and `X-LuxOS-GPU=true`. Launchpad,
+    the menu, Dock, Search and Files use these. `luxos-gpu run` asks power-profiles-daemon at every launch
+    (a few ms) – in Performance mode it sets the variables, otherwise it just starts the program.
+  - **Flatpak apps** (Flathub): the Flatpak sandbox does not see the launcher's choice reliably, so
+    `apply` adds the variables to your user overrides
+    `~/.local/share/flatpak/overrides/<app-id>`, group `[Environment]` (same file as
+    `flatpak override --user`) for game launchers (Steam, Heroic, Lutris, Bottles, Prism Launcher,
+    ATLauncher, itch, RetroArch, RetroDECK, Sober, PCSX2, RPCS3, Cemu, Dolphin, Blender) and every
+    installed Flatpak whose exported `.desktop` is a game or prefers the discrete GPU. Only missing keys are
+    added; your own keys and values are never changed. What LuxOS added is listed in
+    `~/.local/state/luxos/gpu-flatpak` and removed when leaving Performance mode (unless you changed the
+    value meanwhile); files LuxOS created are deleted. Steam's own GPU choice ("AMD Radeon Graphics
+    (RADV …)") does not matter then – Vulkan only shows the NVIDIA GPU to games.
+  - **NVIDIA PowerMizer** "Prefer Maximum Performance" (`nvidia-settings -a
+    [gpu:0]/GpuPowerMizerMode=1` in the running X session; the previous value is in
+    `$XDG_RUNTIME_DIR/luxos/gpu-powermizer` and restored when leaving). Best effort: on PRIME render
+    offload the GPU sleeps (runtime D3) when no app uses it and the driver may return to adaptive
+    clocks after waking up; under game load adaptive mode already runs at full clocks.
+  - **Discrete AMD GPU**: `power_dpm_force_performance_level` `high` (back to the previous value, usually
+    `auto`) through `luxos-gpu-performance.service` (root, started without a password by polkit rule
+    `50-luxos-gpu.rules`; `luxos-gpu system on|off`, originals in `/run/luxos/gpu-performance.saved`).
+- Battery & Power shows a line under the power modes, e.g. *Graphics: NVIDIA GeForce GTX 1650 Mobile /
+  Max-Q for games and demanding apps* (Performance) or *Graphics: integrated (Performance mode uses …
+  for games)*.
+
+Limits: a program reads its environment only when it starts – apps and games that are already running
+keep their GPU until restarted. If a Flatpak launcher (Steam) is running when the mode changes, a
+notification says "Restart Steam to run its games on …" (or that it will use the integrated graphics
+again). Flatpak apps on NVIDIA need the matching `org.freedesktop.Platform.GL.nvidia-<version>` extension
+(Flatpak installs it with updates). Dock items pinned from `/usr/share/applications` directly, programs
+started from a terminal and D-Bus-activated apps are not wrapped – use `prime-run <app>` (NVIDIA) or
+`luxos-gpu run <app>` there. switcheroo-control is deliberately not used: it would put
+`PrefersNonDefaultGPU` apps on the dGPU in every mode (battery), and only GLib launchers honour it.
+
+Commands: `luxos-gpu status` (detected GPU, profile, `offload=yes|no`), `luxos-gpu env` (variables now),
+`luxos-gpu run <program>`, `luxos-gpu apply`.
 
 ## Low-memory protection (earlyoom)
 

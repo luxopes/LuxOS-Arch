@@ -18,6 +18,7 @@
 #   Ovladace          jednou za start upozorneni na chybejici ovladace (luxos-drivers)
 #   Zmena casu        vecer pred prechodem na letni/zimni cas a rano po nem (luxos_timechange)
 #   Tapeta            tapeta plochy i na prihlasovaci obrazovce (luxos-appearance greeter-sync)
+#   Grafika           rezim Vykon: hry a narocne aplikace na samostatne grafice (luxos_gpu_hub + luxos-gpu)
 #   Snimek obrazovky  lista a okna luxos-screenshot (luxos_shot) pripravena predem; klient luxos-screenshot
 #                     preda prepinace pres abstraktni socket UNIX, lista je videt hned po zkratce
 #
@@ -43,6 +44,7 @@ load luxos_safe_hub as safe
 load luxos_timechange as timechange
 load luxos_shot as shot
 load luxos_audio_hub as audio
+load luxos_gpu_hub as gpu
 
 SIGINT = 2
 SIGUSR1 = 10
@@ -767,6 +769,12 @@ function main_hub():
         else:
             call log("system bus: " + String(last_error()))
         end
+    end
+    # Grafika podle rezimu napajeni (power-profiles-daemon): po prihlaseni a pri kazde zmene profilu
+    try:
+        call gpu.subscribe(hub["system"])
+    else:
+        call log("gpu: " + String(last_error()))
     end
     call glib.timeout_add_seconds(300, appearance_check)
     # Po aktualizaci baliku (lux update) se novy luxos-hub spusti sam: luxos-session ho restartuje

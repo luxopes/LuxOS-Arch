@@ -38,7 +38,8 @@ class AppsSyncTest(unittest.TestCase):
         with open(self.conf, "w") as f:
             f.write("# test\nthunar|Files|Soubory|luxos-files\nmissing-app|X|X|\n")
         self.env = dict(os.environ, LUXOS_APPS_RENAME_CONF=self.conf, LUXOS_APPS_SOURCE=self.apps,
-                        LUXOS_APPS_DIR=self.base, LUXOS_APPS_FLATPAK_EXPORTS=self.exports)
+                        LUXOS_APPS_DIR=self.base, LUXOS_APPS_FLATPAK_EXPORTS=self.exports,
+                        LUXOS_APPS_GPU="/nonexistent")   # grafika her: test_luxos_gpu.py
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)

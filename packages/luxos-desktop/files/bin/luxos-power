@@ -90,6 +90,14 @@ def ppd_set(bus, profile):
     return False
 
 
+def gpu_info():
+    """{"kind": "nvidia"|"dri", "name": ...} samostatne grafiky z `luxos-gpu status`, None kdyz neni."""
+    vals = dict(line.partition("=")[::2] for line in run("luxos-gpu", "status").splitlines())
+    if vals.get("gpu", "none") in ("", "none") or not vals.get("name"):
+        return None
+    return {"kind": vals["gpu"], "name": vals["name"]}
+
+
 def read_override():
     vals = {}
     try:
@@ -489,14 +497,22 @@ class PowerWindow(Gtk.Window):
             inner.pack_start(h, False, False, 0)
             b.add(inner)
             b.set_active(key == current)
-            b.connect("toggled", lambda btn, k=key: btn.get_active() and ppd_set(self.bat.bus, k))
+            b.connect("toggled", lambda btn, k=key: btn.get_active() and self.set_mode(k))
             modes.pack_start(b, True, True, 0)
         page.pack_start(modes, False, False, 0)
+        # Grafika v rezimu Vykon (luxos-gpu): radek jen u pocitace se samostatnou grafikou
+        self.gpu = gpu_info()
+        self.gpu_label = Gtk.Label(xalign=0, wrap=True)
+        self.gpu_label.get_style_context().add_class("card-sub")
+        self.gpu_label.set_no_show_all(not self.gpu)
+        page.pack_start(self.gpu_label, False, False, 0)
+        self.update_gpu(current)
 
         group = self.group(page, _("Battery Saver"))
         saver = Gtk.Switch(active=os.path.exists(SAVER_STATE))
+        self.saver = saver
         # Na pozadi: prepnuti monitoru na 60 Hz apod. nesmi zdrzet okno
-        saver.connect("notify::active", lambda s, _p: subprocess.Popen(
+        self.saver_handler = saver.connect("notify::active", lambda s, _p: subprocess.Popen(
             ["luxos-powersaver", "on" if s.get_active() else "off"], stdout=subprocess.DEVNULL,
             start_new_session=True))
         self.row(group, _("Battery Saver"), saver,
@@ -534,6 +550,26 @@ class PowerWindow(Gtk.Window):
         more = Gtk.Button(label=_("Advanced Power Settings…"), halign=Gtk.Align.START, margin_top=8)
         more.connect("clicked", lambda _b: subprocess.Popen(["xfce4-power-manager-settings"], start_new_session=True))
         page.pack_start(more, False, False, 0)
+
+    def set_mode(self, key):
+        # Vykon se Sporicem baterie nejde dohromady (procesor bez turba): Sporic nejdriv vypnout - vrati
+        # puvodni profil, ktery se hned prepise na Vykon
+        if key == "performance" and os.path.exists(SAVER_STATE):
+            run("luxos-powersaver", "off")
+            self.saver.handler_block(self.saver_handler)
+            self.saver.set_active(False)
+            self.saver.handler_unblock(self.saver_handler)
+        ppd_set(self.bat.bus, key)
+        self.update_gpu(key)
+
+    def update_gpu(self, profile):
+        if not self.gpu:
+            return
+        name = self.gpu["name"]
+        if profile == "performance":
+            self.gpu_label.set_text(_("Graphics: %s for games and demanding apps") % name)
+        else:
+            self.gpu_label.set_text(_("Graphics: integrated (Performance mode uses %s for games)") % name)
 
     def group(self, page, title):
         lab = Gtk.Label(label=title, xalign=0)
@@ -617,6 +653,9 @@ class PowerWindow(Gtk.Window):
 
     # ---- obnova ----
     def refresh(self):
+        if self.gpu:
+            # profil mohl zmenit Sporic baterie nebo jina aplikace
+            self.update_gpu(ppd_state(self.bat.bus)[0])
         info = self.bat.info()
         has = bool(info) and info.get("IsPresent", True)
         self.battery_box.set_visible(has)

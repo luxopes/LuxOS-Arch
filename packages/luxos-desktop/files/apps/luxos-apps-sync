@@ -60,6 +60,14 @@ if [[ ! -L $link || $(readlink -- "$link") != "$flatpak/icons/hicolor" ]]; then
         mv -fT -- "$base/icons/.hicolor.tmp" "$link"; }
 fi
 
+# Hry a aplikace s PrefersNonDefaultGPU=true z $apps: Exec pres "luxos-gpu run" (v rezimu Vykon na samostatne
+# grafice); odkazy na Flathub nemeni (ty resi prepisy Flatpaku). Vypsana desktop-id uklid necha.
+if [[ -x ${LUXOS_APPS_GPU:-/usr/bin/luxos-gpu} ]]; then
+    while read -r id; do
+        [[ -n $id ]] && keep[$id]=1
+    done < <("${LUXOS_APPS_GPU:-/usr/bin/luxos-gpu}" desktop-sync "$out" "$apps")
+fi
+
 # Prepisy odinstalovanych aplikaci a odkazy na odebrane aplikace Flathubu smazat
 for f in "$out"/*.desktop; do
     [[ -e $f || -L $f ]] || continue

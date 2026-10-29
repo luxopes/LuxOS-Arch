@@ -4448,3 +4448,10 @@ LuxAI is waiting for your approval on the phone	LuxAI чекає на ваше �
 Connection missed. Finding another one…	Ви пропустили рейс. Пошук іншого…
 Finding a new connection…	Пошук нового сполучення…
 No other connection found.	Іншого сполучення не знайдено.
+Graphics: %s for games and demanding apps	Графіка: %s для ігор і вимогливих програм
+Graphics: integrated (Performance mode uses %s for games)	Графіка: вбудована (режим «Продуктивність» використовує для ігор %s)
+Graphics for games	Графіка для ігор
+Restart %s to run its games on %s.	Перезапустіть %s, щоб ігри працювали на %s.
+Restart %s so its games use the integrated graphics again and save battery.	Перезапустіть %s, щоб ігри знову використовували вбудовану графіку й заощаджували батарею.
+discrete graphics	дискретна графіка
+cannot be started	не вдається запустити

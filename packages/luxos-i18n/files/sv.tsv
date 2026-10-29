@@ -4447,3 +4447,10 @@ LuxAI is waiting for your approval on the phone	LuxAI väntar på ditt godkänna
 Connection missed. Finding another one…	Missad förbindelse. Söker en annan…
 Finding a new connection…	Söker en ny förbindelse…
 No other connection found.	Ingen annan förbindelse hittades.
+Graphics: %s for games and demanding apps	Grafik: %s för spel och krävande appar
+Graphics: integrated (Performance mode uses %s for games)	Grafik: integrerad (läget Prestanda använder %s för spel)
+Graphics for games	Grafik för spel
+Restart %s to run its games on %s.	Starta om %s för att köra spelen på %s.
+Restart %s so its games use the integrated graphics again and save battery.	Starta om %s så att spelen använder den integrerade grafiken igen och sparar batteri.
+discrete graphics	separat grafikkort
+cannot be started	kan inte startas

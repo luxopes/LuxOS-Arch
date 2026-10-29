@@ -4447,3 +4447,10 @@ LuxAI is waiting for your approval on the phone	A LuxAI a jóváhagyásodra vár
 Connection missed. Finding another one…	Lekéste a járatot. Másik keresése…
 Finding a new connection…	Új kapcsolat keresése…
 No other connection found.	Nem található másik kapcsolat.
+Graphics: %s for games and demanding apps	Grafika: %s a játékokhoz és az igényes alkalmazásokhoz
+Graphics: integrated (Performance mode uses %s for games)	Grafika: integrált (Teljesítmény módban a játékokhoz: %s)
+Graphics for games	Grafika a játékokhoz
+Restart %s to run its games on %s.	Indítsa újra a(z) %s alkalmazást, hogy a játékok a(z) %s grafikán fussanak.
+Restart %s so its games use the integrated graphics again and save battery.	Indítsa újra a(z) %s alkalmazást, hogy a játékok ismét az integrált grafikát használják, és kíméljék az akkumulátort.
+discrete graphics	különálló grafika
+cannot be started	nem indítható
