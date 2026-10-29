@@ -7,6 +7,10 @@
 # sixel-draw-gtk3.patch ho doplnuje pro GTK3 (cairo, Image::paint z image.cc): kresli jen obrazky v
 # prekreslovane oblasti, z kopie na X serveru vytvorene jednou (jinak by kazde prekresleni - kurzor,
 # vystup vedle obrazku, posun - posilalo vsechny body obrazku znovu), obrazky max. 16 MiB na terminal.
+# Obrazek patri bunkam pod nim jako v xterm (1.2): bunky pod obrazkem dostanou interni priznak
+# VTE_ATTR_IMAGE a obrazek se kresli jen v bunkach, ktere ho jeste maji - text pres obrazek (top hned po
+# uvitani s logem prekresluje obrazovku bez alternativni obrazovky), EL/ED/ECH ho skryji; alternativni
+# obrazovka ma vlastni ring bez obrazku normalni obrazovky.
 # SIXEL je ve VTE vychozi
 # vypnuty (VTE_SIXEL_ENABLED_DEFAULT false): zapina ho jen aplikace pres vte_terminal_set_enable_sixel()
 # (luxos-terminal), ostatni aplikace s VTE (i vte4) se nemeni.
@@ -24,7 +28,7 @@ pkgname=(
   vte-docs
 )
 pkgver=0.84.1
-pkgrel=1.1
+pkgrel=1.2
 pkgdesc="Virtual Terminal Emulator widget (LuxOS: SIXEL images)"
 url="https://gitlab.gnome.org/GNOME/vte"
 arch=(x86_64)
@@ -72,7 +76,7 @@ source=("git+https://gitlab.gnome.org/GNOME/vte.git#tag=$pkgver"
         sixel-draw-gtk3.patch)
 b2sums=('f8f03ea82a08697d28a8e7a76729c39cb2088335380eb21b0af54f04519fb293f257a334c8b41948707b50cebbb8bb9c792a2c745b38f3834c9351ae730610ce'
         '4610e8517829d3885c35f4b78709745a635c48d27ce51ae46a3b2cd11df1549cc2140ce7339dd1152ce3d5c8da5a1a1a0fac85a399d279452d38f0c6563871d1'
-        '268825c37c548bff6ba76012a980f622253cb001a8c06881b26746f6edb868048b47632d0b780dd01c397b9282248bf52b9c2ffb64e96608bf6fdcfd91e4222e')
+        '40cd7a29691359347ba2e58c0d16da023c4ff6c1f145252d2c8c066524fb9361a488ba2d50b23f1bddae8d521b9698eb863be1177ce19390d4772ed5b3310b6c')
 
 prepare() {
   cd vte

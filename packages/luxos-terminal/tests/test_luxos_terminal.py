@@ -454,6 +454,42 @@ class GuiTest(unittest.TestCase):
         hits = self.wait_pixels((0, 255, 0), 96 * 60 * 0.9, "sixel")
         self.assertGreaterEqual(hits, 96 * 60 * 0.9, "green SIXEL square not drawn")
 
+    def test_sixel_image_under_text_and_alt_screen(self):
+        """Obrazek patri bunkam pod nim (jako v xterm): text pres nej (top hned po uvitani s logem
+        prekresluje obrazovku pres \\e[H a \\e[K bez alternativni obrazovky), smazani radku a
+        alternativni obrazovka (vim, less, htop) ho skryji; po navratu z alt. obrazovky je zpet.
+        Regrese: logo zustavalo nakreslene pres vystup top (vte3 0.84.1-1.1)."""
+        if not has_sixel():
+            self.skipTest("VTE without SIXEL (needs vte3 from [luxos])")
+        self.config("[terminal]\ntheme=dark\n")
+        img = os.path.join(self.home, "green.six")
+        with open(img, "w") as f:
+            f.write(sixel_square(200, 120, (0, 100, 0)))
+        st = os.path.join(self.home, "step")
+        # 1 obrazek; 2 alt. obrazovka (?1049h) s textem; 3 zpet (?1049l); 4 jako top: domu a radky
+        # textu s \e[K pres celou obrazovku; 5 novy obrazek a jen cast prvniho radku prepsana
+        script = (f'cat "{img}"; echo; echo normal; : > "{st}1"; sleep 2; '
+                  f'printf "\\033[?1049h\\033[H\\033[2Jalt screen\\n"; seq 1 20; : > "{st}2"; sleep 2; '
+                  f'printf "\\033[?1049l"; : > "{st}3"; sleep 2; '
+                  f'printf "\\033[H"; i=0; while [ $i -lt 20 ]; do printf "top line %s\\033[K\\r\\n" $i; '
+                  f'i=$((i+1)); done; : > "{st}4"; sleep 2; '
+                  f'printf "\\033[H\\033[2J"; cat "{img}"; printf "\\033[1;1HXXXX"; : > "{st}5"; sleep 30')
+        self.start("--geometry", "100x30", "-x", "sh", "-c", script)
+        self.wait_window()
+        full = 200 * 120
+        hits = {}
+        for k in range(1, 6):
+            end = time.time() + 15
+            while not os.path.exists(f"{st}{k}") and time.time() < end:
+                time.sleep(0.05)
+            time.sleep(0.8)
+            hits[k] = self.count(self.window_area(self.screenshot(f"sixel-text-{k}")), (0, 255, 0))
+        self.assertGreaterEqual(hits[1], full * 0.95, "image on the normal screen")
+        self.assertEqual(hits[2], 0, "image drawn over the alternate screen")
+        self.assertGreaterEqual(hits[3], full * 0.95, "image back after leaving the alternate screen")
+        self.assertEqual(hits[4], 0, "image drawn over text written over it (top)")
+        self.assertTrue(full * 0.5 < hits[5] < full * 0.99, f"partly overwritten image: {hits[5]}")
+
     def test_fastfetch_logo_image(self):
         """fastfetch s logem LuxOS jako obrazkem (jako bashrc v Terminalu LuxOS)."""
         if not has_sixel():
