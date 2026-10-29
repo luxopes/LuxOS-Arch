@@ -55,6 +55,10 @@ development version only reads the images without drawing them. LuxOS ships its 
 (`sixel-draw-gtk3.patch`). SIXEL stays **off** in VTE by default; only `luxos-terminal` turns it on,
 other apps using VTE behave as before.
 
+An image belongs to the cells under it, like in xterm: text written over it, erased lines (`clear`,
+`top` repainting the screen) and full-screen programs on the alternate screen (`vim`, `less`,
+`htop`) hide it; it scrolls with the text and stays in the scrollback.
+
 Check: `luxos-terminal --version` prints `SIXEL` when the installed VTE supports it. In the shell,
 `LUXOS_TERMINAL_SIXEL=1` is set when images are on.
 

@@ -11,6 +11,18 @@ modes=(alpha recent most category)
 
 # poradi pro rofi: alpha = jen zarazka, ostatni pripravene po poslednim spusteni (jinak ted)
 prepare_order() {
+    # razeni podle kategorie: nove nainstalovana nebo odebrana aplikace (zmena slozky applications,
+    # i odkazy na aplikace z Flathubu v /var/lib/luxos/apps) -> poradi znovu, jinak by nova aplikace
+    # byla az na konci mrizky
+    if [[ $sort == category && -e $cache/launchpad-order-$sort ]]; then
+        local d dirs
+        IFS=: read -ra dirs <<<"${XDG_DATA_HOME:-$HOME/.local/share}:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+        for d in "${dirs[@]}"; do
+            [[ -n $d && $d/applications -nt $cache/launchpad-order-$sort ]] || continue
+            rm -f "$cache/launchpad-order-$sort"
+            break
+        done
+    fi
     if [[ $sort == alpha ]]; then
         echo "0 luxos-launchpad-sentinel" >"$run/rofi3.druncache"
     elif [[ -s $cache/launchpad-order-$sort ]]; then

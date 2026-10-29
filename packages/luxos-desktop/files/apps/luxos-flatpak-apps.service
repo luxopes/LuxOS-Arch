@@ -1,0 +1,7 @@
+# LuxOS - odkazy na aplikace z Flathubu v /var/lib/luxos/apps (spousti luxos-flatpak-apps.path)
+[Unit]
+Description=LuxOS: update Flathub apps in the app menu and Launchpad
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/luxos/luxos-apps-sync

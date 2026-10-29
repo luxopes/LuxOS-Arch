@@ -351,6 +351,19 @@ case $1 in
   remote-list) echo flathub ;;
   list) printf '%b\n' "${FAKE_FLATPAK_LIST:-us.zoom.Zoom\tZoom}" ;;
 esac
+# s FAKE_MENU_DELAY jako skutecny Flatpak + luxos-flatpak-apps.path: export hned, odkaz pro nabidku
+# (luxos-apps-sync ze systemd) o chvili pozdeji
+if [[ -n ${FAKE_MENU_DELAY-} && ($1 == install || $1 == uninstall) && $2 != --unused ]]; then
+  id=${*: -1}; exp=$LUX_FLATPAK_EXPORTS/applications; menu=$LUX_APPS_DIR/applications
+  mkdir -p "$exp" "$menu"
+  if [[ $1 == install ]]; then
+    echo "[Desktop Entry]" >"$exp/$id.desktop"
+    (sleep "$FAKE_MENU_DELAY"; ln -s "$exp/$id.desktop" "$menu/$id.desktop") >/dev/null 2>&1 &
+  else
+    rm -f "$exp/$id.desktop"
+    (sleep "$FAKE_MENU_DELAY"; rm -f "$menu/$id.desktop") >/dev/null 2>&1 &
+  fi
+fi
 exit 0
 """,
     "makepkg": "#!/bin/bash\nprintf '%s\\n' \"$*\" >>\"$LOG/makepkg.log\"\nexit 0\n",
@@ -533,6 +546,58 @@ class CommunityCLI(unittest.TestCase):
         self.assertIn("uninstall -y --noninteractive us.zoom.Zoom", fl)
         self.assertIn("uninstall --unused -y --noninteractive", fl)
         self.assertFalse(any(c.startswith("remove") for c in self.backend()))
+
+    # --- aplikace z Flathubu hned v Launchpadu a nabidce (luxos-apps-sync z luxos-desktop) ---
+    def fake_sync(self):
+        p = os.path.join(self.bin, "luxos-apps-sync")
+        with open(p, "w") as f:
+            f.write('#!/bin/bash\nprintf "%s\\n" "$EUID" >>"$LOG/luxos-apps-sync.log"\n')
+        os.chmod(p, 0o755)
+
+    def test_flatpak_install_waits_for_menu_link(self):
+        """lux skonci, az kdyz ma nova aplikace odkaz v /var/lib/luxos/apps (vytvari ho systemd)."""
+        self.fake_sync()
+        rc, out = self.lux("-y", "install", "zoom", env={"FAKE_FLATHUB": "us.zoom.Zoom", "FAKE_MENU_DELAY": "0.6"})
+        self.assertEqual(rc, 0, out)
+        link = os.path.join(self.tmp, "luxos-apps", "applications", "us.zoom.Zoom.desktop")
+        self.assertTrue(os.path.islink(link), "lux returned before the menu link existed")
+        self.assertEqual(self.calls("luxos-apps-sync"), [])     # bez rootu ho spousti jen systemd
+
+    def test_flatpak_remove_waits_for_menu_link(self):
+        self.fake_sync()
+        menu = os.path.join(self.tmp, "luxos-apps", "applications")
+        os.makedirs(menu)
+        os.symlink("/nonexistent/us.zoom.Zoom.desktop", os.path.join(menu, "us.zoom.Zoom.desktop"))
+        rc, out = self.lux("-y", "remove", "zoom", env={"FAKE_MENU_DELAY": "0.6"})
+        self.assertEqual(rc, 0, out)
+        self.assertFalse(os.path.lexists(os.path.join(menu, "us.zoom.Zoom.desktop")))
+
+    def test_flatpak_menu_wait_is_bounded(self):
+        """Bez sluzby (starsi luxos-desktop, chroot) lux pocka nejvys ~3 s a skonci uspesne."""
+        import time
+        self.fake_sync()
+        exp = os.path.join(self.tmp, "flatpak-exports", "applications")
+        os.makedirs(exp)
+        t = time.monotonic()
+        rc, out = self.lux("-y", "install", "zoom", env={"FAKE_FLATHUB": "us.zoom.Zoom", "FAKE_MENU_DELAY": "8"})
+        self.assertEqual(rc, 0, out)
+        self.assertTrue(2.5 < time.monotonic() - t < 8, time.monotonic() - t)
+
+    def test_flatpak_without_luxos_desktop_no_wait(self):
+        """Bez luxos-apps-sync (jine prostredi) se na nic neceka."""
+        rc, out = self.lux("-y", "install", "zoom", env={"FAKE_FLATHUB": "us.zoom.Zoom", "FAKE_MENU_DELAY": "2"})
+        self.assertEqual(rc, 0, out)
+        self.assertFalse(os.path.lexists(os.path.join(self.tmp, "luxos-apps", "applications", "us.zoom.Zoom.desktop")))
+
+    @unittest.skipUnless(shutil.which("unshare"), "unshare missing")
+    def test_flatpak_update_as_root_runs_sync(self):
+        self.fake_sync()
+        r = subprocess.run(["unshare", "-r", "true"], capture_output=True)
+        if r.returncode:
+            self.skipTest("user namespaces not available")
+        rc, out = self.lux("-y", "remove", "zoom", prefix=("unshare", "-r"))
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(self.calls("luxos-apps-sync"), ["0"])
 
 
 if __name__ == "__main__":

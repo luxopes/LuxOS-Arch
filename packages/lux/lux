@@ -494,6 +494,7 @@ flathub_install() {
         ask "$(T "Install %s?" "${B}$id${R}")" Y || die "$(T "Cancelled")"
         flatpak install -y --noninteractive flathub "$id" || exit 1
     done
+    flatpak_menu_sync "$@"
 }
 
 # Flatpak aplikace k odebrani: ID nebo nazev nainstalovane aplikace -> ID
@@ -504,6 +505,31 @@ flatpak_installed_id() {
         tolower($1) == q { print $1; found = 1; exit }
         tolower($2) == q { ids[++n] = $1 }
         END { if (!found && n == 1) print ids[1] }' | grep .
+}
+
+# Aplikace z Flathubu hned v Launchpadu a nabidce: odkazy v /var/lib/luxos/apps (v XDG_DATA_DIRS kazde
+# relace) obnovuje luxos-apps-sync z luxos-desktop - spousti ho luxos-flatpak-apps.path pri kazde zmene
+# exportu Flatpaku. Root ho spusti rovnou; jinak lux chvili (nejvys 3 s) pocka, nez odkazy nainstalovanych
+# aplikaci vzniknou a odebranych zmizi, aby aplikace v Launchpadu byla, jakmile lux skonci.
+LUX_APPS_SYNC=${LUX_APPS_SYNC:-/usr/lib/luxos/luxos-apps-sync}
+LUX_APPS_DIR=${LUX_APPS_DIR:-/var/lib/luxos/apps}
+LUX_FLATPAK_EXPORTS=${LUX_FLATPAK_EXPORTS:-/var/lib/flatpak/exports/share}
+flatpak_menu_sync() {
+    [[ -x $LUX_APPS_SYNC ]] || return 0
+    if ((EUID == 0)); then "$LUX_APPS_SYNC" &>/dev/null; return 0; fi
+    local id i ready
+    for ((i = 0; i < 30; i++)); do
+        ready=1
+        for id; do
+            if [[ -e $LUX_FLATPAK_EXPORTS/applications/$id.desktop ]]; then
+                [[ -e $LUX_APPS_DIR/applications/$id.desktop ]] || ready=0
+            elif [[ -L $LUX_APPS_DIR/applications/$id.desktop ]]; then ready=0
+            fi
+        done
+        ((ready)) && return 0
+        sleep 0.1
+    done
+    return 0
 }
 
 flatpak_cleanup() {  # nepouzivana prostredi (runtime) po odebrani a aktualizaci
@@ -562,6 +588,7 @@ cmd_remove() {
         # data aplikaci (~/.var/app) zustavaji
         flatpak uninstall -y --noninteractive "${flat[@]}" || exit 1
         flatpak_cleanup
+        flatpak_menu_sync "${flat[@]}"
         ok "$(T "Removed: %s" "${flat[*]}")"
     fi
     ((${#pac[@]})) || return 0
@@ -651,6 +678,7 @@ cmd_update() {
     if ((FLATPAK)) && command -v flatpak &>/dev/null && [[ $ONLY == "" ]]; then
         say "$(T "Updating Flatpak apps")"; flatpak update -y --noninteractive
         flatpak_cleanup
+        flatpak_menu_sync
     fi
 
     # Kroky jinych baliku LuxOS po aktualizaci (napr. luxos-care: prechod na jadro LuxOS);

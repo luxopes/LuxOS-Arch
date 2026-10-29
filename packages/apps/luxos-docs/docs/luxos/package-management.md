@@ -264,6 +264,12 @@ Order of sources for `lux install <name>`: LuxOS and Arch Linux repositories →
   when it is not installed yet. Runtimes are shared by all Flatpak apps.
 - `lux remove <id or name>` removes the app and then runs `flatpak uninstall --unused` (runtimes
   no app needs); `lux update` does the same after `flatpak update`. App data in `~/.var/app` stays.
+- A new app is in **Launchpad and the app menu right away**, for every user, without logging out —
+  also when it comes from the Store or a plain `flatpak install`. `luxos-flatpak-apps.path`
+  (luxos-desktop) watches `/var/lib/flatpak/exports/share/applications` and `luxos-apps-sync` links
+  the apps' `.desktop` files and the `hicolor` icons into `/var/lib/luxos/apps`, which every session
+  has in `XDG_DATA_DIRS`; removed apps lose their link. lux waits (at most 3 s) until the link is
+  there. The same app in both folders is shown once.
 
 **Community (AUR)** — build scripts written by other users, not checked by LuxOS. Every build
 script is checked before building (fixed rules + two LuxAI models), the default target is your
