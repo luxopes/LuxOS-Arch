@@ -1,6 +1,23 @@
-diff -ruN a/src/image.cc b/src/image.cc
---- a/src/image.cc	2026-10-26 17:32:59.951486756 +0100
-+++ b/src/image.cc	2026-10-26 17:33:18.235017752 +0100
+--- a/src/attr.hh
++++ b/src/attr.hh
+@@ -112,6 +112,15 @@
+ #define VTE_ATTR_BOXED_MASK            (VTE_ATTR_MASK(VTE_ATTR_BOXED_SHIFT, VTE_ATTR_BOXED_BITS))
+ #define VTE_ATTR_BOXED                 (1U << VTE_ATTR_BOXED_SHIFT)
+ 
++/* LuxOS: internal (not SGR) - the cell is covered by an inline image. Set on the cells under a
++ * SIXEL image when it is inserted; anything that rewrites or erases the cell (text, EL/ED/ECH,
++ * a full-screen program repainting the screen) clears it, and the image is only drawn in cells
++ * that still have it. Stored in the scrollback with the other attributes. */
++#define VTE_ATTR_IMAGE_SHIFT           (30)
++#define VTE_ATTR_IMAGE_BITS            (1)
++#define VTE_ATTR_IMAGE_MASK            (VTE_ATTR_MASK(VTE_ATTR_IMAGE_SHIFT, VTE_ATTR_IMAGE_BITS))
++#define VTE_ATTR_IMAGE                 (1U << VTE_ATTR_IMAGE_SHIFT)
++
+ /* All attributes except DIM and BOXED */
+ #define VTE_ATTR_ALL_MASK              (VTE_ATTR_BOLD_MASK | \
+                                         VTE_ATTR_ITALIC_MASK | \
+--- a/src/image.cc
++++ b/src/image.cc
 @@ -58,7 +58,41 @@
  
          cairo_rectangle(cr, real_offset_x, real_offset_y, m_width_pixels, m_height_pixels);
@@ -44,9 +61,8 @@ diff -ruN a/src/image.cc b/src/image.cc
          cairo_paint(cr);
          cairo_restore(cr);
  }
-diff -ruN a/src/image.hh b/src/image.hh
---- a/src/image.hh	2026-10-26 17:32:59.951524317 +0100
-+++ b/src/image.hh	2026-10-26 17:33:18.234885571 +0100
+--- a/src/image.hh
++++ b/src/image.hh
 @@ -30,6 +30,11 @@
          // Image data, device-independent
          vte::Freeable<cairo_surface_t> m_surface{};
@@ -59,9 +75,8 @@ diff -ruN a/src/image.hh b/src/image.hh
          // Draw/prune priority, must be unique
          size_t m_priority;
  
-diff -ruN a/src/ring.cc b/src/ring.cc
---- a/src/ring.cc	2026-10-26 17:32:59.951931672 +0100
-+++ b/src/ring.cc	2026-10-26 17:33:18.238891753 +0100
+--- a/src/ring.cc
++++ b/src/ring.cc
 @@ -31,7 +31,8 @@
  
  /* We should be able to hold a single fullscreen 4K image at most.
@@ -72,10 +87,9 @@ diff -ruN a/src/ring.cc b/src/ring.cc
  
  /* Hard limit on number of images to keep around. This limits the impact
   * of potential issues related to algorithmic complexity. */
-diff -ruN a/src/vte.cc b/src/vte.cc
---- a/src/vte.cc	2026-10-26 17:32:59.960411840 +0100
-+++ b/src/vte.cc	2026-10-26 17:33:18.237891727 +0100
-@@ -10212,6 +10212,27 @@
+--- a/src/vte.cc
++++ b/src/vte.cc
+@@ -10212,6 +10212,64 @@
                    m_cell_width,
                    m_cell_height);
  
@@ -91,11 +105,48 @@ diff -ruN a/src/vte.cc b/src/vte.cc
 +                        if (image->get_bottom() < first_row ||
 +                            image->get_top() > last_row)
 +                                continue;
-+                        image->paint(cr,
-+                                     image->get_left() * m_cell_width,
-+                                     row_to_pixel(image->get_top()),
-+                                     m_cell_width,
-+                                     m_cell_height);
++
++                        /* LuxOS: draw the image only in the cells it still covers (VTE_ATTR_IMAGE).
++                         * Text written over it (e.g. top repainting the screen) or erased cells
++                         * hide that part of the image, like in xterm; no such cell - no drawing. */
++                        auto const top = std::max(long(image->get_top()), long(first_row));
++                        auto const bottom = std::min(long(image->get_bottom()), long(last_row));
++                        auto const left = long(image->get_left());
++                        auto any = false;
++                        cairo_save(cr);
++                        cairo_new_path(cr);
++                        for (auto row = top; row <= bottom; ++row) {
++                                auto const rowdata = find_row_data(row);
++                                if (!rowdata)
++                                        continue;
++                                auto const end = std::min(left + long(image->get_width()),
++                                                          long(_vte_row_data_length(rowdata)));
++                                auto const y = row_to_pixel(row);
++                                for (auto col = left; col < end; ) {
++                                        if (!_vte_row_data_get(rowdata, col)->attr.has_any(VTE_ATTR_IMAGE)) {
++                                                ++col;
++                                                continue;
++                                        }
++                                        auto run = col + 1;
++                                        while (run < end &&
++                                               _vte_row_data_get(rowdata, run)->attr.has_any(VTE_ATTR_IMAGE))
++                                                ++run;
++                                        cairo_rectangle(cr, col * m_cell_width, y,
++                                                        (run - col) * m_cell_width, m_cell_height);
++                                        any = true;
++                                        col = run;
++                                }
++                        }
++                        if (any) {
++                                cairo_clip(cr);
++                                image->paint(cr,
++                                             image->get_left() * m_cell_width,
++                                             row_to_pixel(image->get_top()),
++                                             m_cell_width,
++                                             m_cell_height);
++                        }
++                        cairo_new_path(cr);
++                        cairo_restore(cr);
 +                }
 +        }
 +#endif /* WITH_SIXEL && VTE_GTK == 3 */
@@ -103,3 +154,22 @@ diff -ruN a/src/vte.cc b/src/vte.cc
  	paint_im_preedit_string();
  
          m_draw.unclip_border();
+--- a/src/vteseq.cc
++++ b/src/vteseq.cc
+@@ -931,6 +931,16 @@
+ 
+                 erase_characters(columns, true);
+ 
++#if WITH_SIXEL
++                /* LuxOS: mark the erased cells as covered by the image (see VTE_ATTR_IMAGE) */
++                if (auto rowdata = ensure_row()) {
++                        auto const end = std::min(long(m_screen->cursor.col) + long(columns),
++                                                  long(_vte_row_data_length(rowdata)));
++                        for (auto col = long(m_screen->cursor.col); col < end; ++col)
++                                _vte_row_data_get_writable(rowdata, col)->attr.attr |= VTE_ATTR_IMAGE;
++                }
++#endif
++
+                 if (row > m_screen->insert_delta - 1 &&
+                     row < m_screen->insert_delta + m_row_count)
+                         set_hard_wrapped(row);
