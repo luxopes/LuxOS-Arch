@@ -1,0 +1,10 @@
+[Unit]
+Description=LuxOS Performance mode: discrete AMD graphics at full speed
+
+[Service]
+# Bezi jen jako stav: start = samostatna grafika AMD na "high", stop (i pri vypnuti pocitace) = vratit.
+# Spousti ji luxos-gpu apply v rezimu Vykon (polkit 50-luxos-gpu.rules, bez hesla).
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/luxos-gpu system on
+ExecStop=/usr/bin/luxos-gpu system off

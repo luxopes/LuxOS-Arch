@@ -229,7 +229,7 @@ class Hub(unittest.TestCase):
                "LUXOS_DRIVERS_HELPER": self.drivers_helper, "LUXOS_CARE_ROOT": os.path.join(self.home, "root"),
                "LUXOS_CARE_DELAY": "1", "LUXOS_DRIVERS_DELAY": "1", "LUXOS_DRM_DIR": os.path.join(self.home, "drm"),
                "LUXOS_MOUNTINFO": os.path.join(self.home, "mountinfo"), "GTK_THEME": "Adwaita:dark",
-               "LUXOS_HUB_NO_AUTOHIDE": "1",
+               "LUXOS_HUB_NO_AUTOHIDE": "1", "LUXOS_GPU": "/nonexistent", "LUXOS_GPU_DELAY": "1",
                "LUXOS_AUDIO_HELPER": os.path.join(self.home, "no-audio-helper")}   # zvuk jen v test_audio_*      # pod Xvfb bez spravce oken by se okno hned zavrelo ztratou fokusu
         if "XAUTHORITY" in os.environ:
             env["XAUTHORITY"] = os.environ["XAUTHORITY"]
@@ -677,6 +677,35 @@ class Hub(unittest.TestCase):
         self.assertEqual(self.hub.poll(), None)
 
     # ---- LuxOS Care a Ovladace -----------------------------------------------------------------------------------
+    def test_gpu_follows_power_profile(self):
+        """Grafika podle rezimu napajeni: luxos-gpu apply po startu a po kazde zmene ActiveProfile (signal,
+        bez dotazovani); oba objekty power-profiles-daemon hlasi zmenu jen jednim spustenim."""
+        fake = os.path.join(self.home, "luxos-gpu")
+        with open(fake, "w") as f:
+            f.write('#!/bin/sh\necho "luxos-gpu $*" >>"$FAKE_LOG"\n')
+        os.chmod(fake, 0o755)
+        xml = """<node><interface name="org.freedesktop.UPower.PowerProfiles">
+          <property name="ActiveProfile" type="s" access="read"/></interface></node>"""
+        ppd = self.service("org.freedesktop.UPower.PowerProfiles", [("/org/freedesktop/UPower/PowerProfiles", xml),
+                                                                    ("/net/hadess/PowerProfiles", xml)],
+                           {"ActiveProfile": GLib.Variant("s", "balanced")})
+        self.start_hub(LUXOS_GPU=fake)
+        applies = lambda: [c for c in self.calls() if c.startswith("luxos-gpu")]
+        self.assertTrue(self.wait_for(lambda: applies() == ["luxos-gpu apply"], 5), (self.calls(), self.hub_err()))
+        changed = GLib.Variant("(sa{sv}as)", ("org.freedesktop.UPower.PowerProfiles", {"ActiveProfile": GLib.Variant("s", "performance")}, []))
+        ppd.emit("/org/freedesktop/UPower/PowerProfiles", "org.freedesktop.DBus.Properties", "PropertiesChanged", changed)
+        ppd.emit("/net/hadess/PowerProfiles", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                 GLib.Variant("(sa{sv}as)", ("net.hadess.PowerProfiles", {"ActiveProfile": GLib.Variant("s", "performance")}, [])))
+        self.assertTrue(self.wait_for(lambda: len(applies()) == 2, 5), self.calls())
+        time.sleep(1)
+        self.assertEqual(applies(), ["luxos-gpu apply"] * 2)
+        # jina zmena vlastnosti (bez ActiveProfile) nic nespusti
+        ppd.emit("/org/freedesktop/UPower/PowerProfiles", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                 GLib.Variant("(sa{sv}as)", ("org.freedesktop.UPower.PowerProfiles", {"PerformanceDegraded": GLib.Variant("s", "")}, [])))
+        time.sleep(1)
+        self.assertEqual(len(applies()), 2)
+        self.assertNotIn("LSL callback error", self.hub_err())
+
     def test_care_restart_notice_after_reboot(self):
         """Prechod/aktualizace jadra pred restartem: po restartu uz "Restartujte" nechodi."""
         notes = self.service("org.freedesktop.Notifications", [("/org/freedesktop/Notifications", NOTIFY_XML)])

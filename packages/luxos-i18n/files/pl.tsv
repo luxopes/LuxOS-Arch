@@ -4448,3 +4448,10 @@ LuxAI is waiting for your approval on the phone	LuxAI czeka na Twoje zatwierdzen
 Connection missed. Finding another one…	Połączenie odjechało. Szukanie innego…
 Finding a new connection…	Szukanie nowego połączenia…
 No other connection found.	Nie znaleziono innego połączenia.
+Graphics: %s for games and demanding apps	Grafika: %s do gier i wymagających aplikacji
+Graphics: integrated (Performance mode uses %s for games)	Grafika: zintegrowana (tryb Wydajność używa do gier %s)
+Graphics for games	Grafika do gier
+Restart %s to run its games on %s.	Uruchom ponownie %s, aby gry działały na %s.
+Restart %s so its games use the integrated graphics again and save battery.	Uruchom ponownie %s, aby gry znów używały zintegrowanej grafiki i oszczędzały baterię.
+discrete graphics	osobna karta graficzna
+cannot be started	nie można uruchomić

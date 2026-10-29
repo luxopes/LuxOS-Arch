@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=49
+pkgrel=50
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -110,6 +110,9 @@ build() {
     # jen s libc, bez hubu spusti samostatny proces luxos-screenshot-ui se stejnym modulem luxos_shot
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-screenshot.lsl" luxos-screenshot
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-screenshot-ui.lsl" luxos-screenshot-ui
+    # Grafika podle rezimu napajeni: hry na samostatne grafice v rezimu Vykon (luxos-gpu run v .desktop),
+    # prepisy Flatpaku a PowerMizer NVIDIA (luxos-gpu apply z luxos-hub)
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-gpu.lsl" luxos-gpu
 }
 
 package() {
@@ -124,7 +127,7 @@ package() {
 
     install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
-        luxos-screenshot
+        luxos-screenshot luxos-gpu
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
     # Ovladaci centrum a Kalendar jsou tentyz program (chova se podle jmena); profily panelu uzivatelu
     # volaji "luxos-control-center --panel", relace "luxos-hub"
@@ -169,6 +172,9 @@ package() {
     install -Dm644 "$f/apps/rename.conf" "$pkgdir/usr/share/luxos/apps/rename.conf"
     install -Dm755 "$f/apps/luxos-apps-sync" "$pkgdir/usr/lib/luxos/luxos-apps-sync"
     install -Dm644 "$f/hooks/luxos-apps.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-apps.hook"
+    # Rezim Vykon: samostatna grafika AMD na plny vykon (root cast luxos-gpu, polkit bez hesla)
+    install -Dm644 "$f/gpu/luxos-gpu-performance.service" "$pkgdir/usr/lib/systemd/system/luxos-gpu-performance.service"
+    install -Dm644 "$f/gpu/50-luxos-gpu.rules" "$pkgdir/usr/share/polkit-1/rules.d/50-luxos-gpu.rules"
     # Aplikace z Flathubu hned v Launchpadu a nabidce (lux, Obchod i flatpak install): sledovani exportu
     # Flatpaku -> odkazy v /var/lib/luxos/apps; zapnute staticky, po instalaci spusti hook
     install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f/apps/luxos-flatpak-apps.path" \

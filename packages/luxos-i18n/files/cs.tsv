@@ -4536,3 +4536,10 @@ LuxAI is waiting for your approval on the phone	LuxAI čeká na vaše potvrzení
 Connection missed. Finding another one…	Spoj vám ujel. Hledá se jiné spojení…
 Finding a new connection…	Hledá se nové spojení…
 No other connection found.	Jiné spojení nebylo nalezeno.
+Graphics: %s for games and demanding apps	Grafika: %s pro hry a náročné aplikace
+Graphics: integrated (Performance mode uses %s for games)	Grafika: integrovaná (režim Výkon použije pro hry %s)
+Graphics for games	Grafika pro hry
+Restart %s to run its games on %s.	Restartujte %s, aby hry běžely na %s.
+Restart %s so its games use the integrated graphics again and save battery.	Restartujte %s, aby hry znovu používaly integrovanou grafiku a šetřily baterii.
+discrete graphics	samostatná grafika
+cannot be started	nelze spustit

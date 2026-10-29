@@ -32,7 +32,7 @@ and the package list.
 | NVIDIA Maxwell / Pascal / Volta (legacy branch 580) | `nvidia-580xx-dkms nvidia-580xx-utils libva-nvidia-driver` from `[luxos]` + headers; services `nvidia-suspend`, `nvidia-resume`, `nvidia-hibernate` (enabled, not started) |
 | NVIDIA Kepler (branch 470) | open-source **nouveau** (`vulkan-nouveau linux-firmware-nvidia`); optional alternative "NVIDIA 470 legacy driver" (`nvidia-470xx-dkms nvidia-470xx-utils`, Xorg only, community-patched, can break on kernel updates) |
 | NVIDIA Fermi and older | nouveau (NVIDIA has no driver for current kernels) |
-| Hybrid graphics (NVIDIA open/580 + Intel/AMD) | adds `nvidia-prime`; run `prime-run <app>` to use the NVIDIA GPU |
+| Hybrid graphics (NVIDIA open/580 + Intel/AMD) | adds `nvidia-prime`; in **Performance mode** games and demanding apps use the NVIDIA GPU automatically ([Power and performance](power-and-performance.md)); `prime-run <app>` still works manually |
 | VMware / VirtualBox / QEMU virtual GPU | built into the kernel (noted only) |
 | Broadcom Wi-Fi (specific PCI IDs, e.g. BCM4311–4360, 43a0, 43b1, 43b3) | `broadcom-wl-dkms` + headers, restart |
 | Intel Smart Sound audio (SOF) | `sof-firmware alsa-ucm-conf` (laptop speakers and microphones), restart |
@@ -67,6 +67,16 @@ all (580 also supports Turing+).
 - udev `80-luxos-nvidia-pm.rules`: runtime PM `auto` when the driver binds, plus for the card's HDMI
   audio and USB-C controller, so an unused NVIDIA GPU in a hybrid laptop powers down.
 - The installer puts NVIDIA modules into the initramfs only without integrated graphics.
+
+### Hybrid graphics
+
+The integrated GPU drives the screen and the desktop; the NVIDIA (or discrete AMD) GPU sleeps until an
+app uses it. Which apps use it follows the power mode: in **Performance** games (`Categories=Game`),
+apps with `PrefersNonDefaultGPU=true` and Flatpak game launchers such as Steam start on the discrete
+GPU (`luxos-gpu`, see [Power and performance](power-and-performance.md#performance-mode-maximum-performance-including-the-gpu-luxos-gpu));
+in Balanced and Power Saver everything stays on the integrated GPU. `prime-run <app>` (NVIDIA) and
+`DRI_PRIME=1 <app>` (AMD/nouveau) still start any single app on the discrete GPU by hand.
+`luxos-gpu status` shows what was detected.
 
 ## Drivers app
 

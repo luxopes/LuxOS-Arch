@@ -4447,3 +4447,10 @@ LuxAI is waiting for your approval on the phone	LuxAI čaká na vaše potvrdenie
 Connection missed. Finding another one…	Spoj vám ušiel. Hľadá sa iné spojenie…
 Finding a new connection…	Hľadá sa nové spojenie…
 No other connection found.	Iné spojenie sa nenašlo.
+Graphics: %s for games and demanding apps	Grafika: %s pre hry a náročné aplikácie
+Graphics: integrated (Performance mode uses %s for games)	Grafika: integrovaná (režim Výkon použije pre hry %s)
+Graphics for games	Grafika pre hry
+Restart %s to run its games on %s.	Reštartujte %s, aby hry bežali na %s.
+Restart %s so its games use the integrated graphics again and save battery.	Reštartujte %s, aby hry znova používali integrovanú grafiku a šetrili batériu.
+discrete graphics	samostatná grafika
+cannot be started	nie je možné spustiť

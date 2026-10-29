@@ -4447,3 +4447,10 @@ LuxAI is waiting for your approval on the phone	LuxAI attende la tua approvazion
 Connection missed. Finding another one…	Coincidenza persa. Ricerca di un’altra…
 Finding a new connection…	Ricerca di un nuovo collegamento…
 No other connection found.	Nessun altro collegamento trovato.
+Graphics: %s for games and demanding apps	Grafica: %s per giochi e app impegnative
+Graphics: integrated (Performance mode uses %s for games)	Grafica: integrata (la modalità Prestazioni usa %s per i giochi)
+Graphics for games	Grafica per i giochi
+Restart %s to run its games on %s.	Riavvia %s per eseguire i suoi giochi su %s.
+Restart %s so its games use the integrated graphics again and save battery.	Riavvia %s perché i suoi giochi tornino a usare la grafica integrata e risparmino batteria.
+discrete graphics	grafica dedicata
+cannot be started	impossibile avviare
