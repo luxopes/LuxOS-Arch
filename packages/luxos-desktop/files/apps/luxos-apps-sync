@@ -1,15 +1,29 @@
 #!/bin/bash
-# LuxOS - prepis nazvu (a ikon) aplikaci podle /usr/share/luxos/apps/rename.conf
-# Spousti hook spravce baliku pri kazde zmene .desktop souboru; vystup v /var/lib/luxos/apps
-# je v XDG_DATA_DIRS pred /usr/share (viz /etc/profile.d/luxos.sh).
-conf=/usr/share/luxos/apps/rename.conf
-out=/var/lib/luxos/apps/applications
-mkdir -p "$out"
+# LuxOS - prepis nazvu (a ikon) aplikaci podle /usr/share/luxos/apps/rename.conf a odkazy na aplikace
+# z Flathubu. Vystup v /var/lib/luxos/apps je v XDG_DATA_DIRS kazde relace pred /usr/share
+# (viz /etc/profile.d/luxos.sh).
+# Spousti ho hook spravce baliku pri kazde zmene .desktop souboru a luxos-flatpak-apps.path pri
+# kazde zmene aplikaci systemove instalace Flatpaku (lux install, Obchod, flatpak install/update/
+# uninstall) - nova aplikace je tak v Launchpadu a nabidce hned, bez noveho prihlaseni, i v relacich,
+# ktere slozku exportu Flatpaku v XDG_DATA_DIRS nemaji. Stejne desktop-id v exportech Flatpaku
+# i zde je pro nabidku, Launchpad (rofi) i GLib jedna aplikace (plati prvni slozka).
+# Cesty jde pro testy zmenit promennymi LUXOS_APPS_*.
+conf=${LUXOS_APPS_RENAME_CONF:-/usr/share/luxos/apps/rename.conf}
+apps=${LUXOS_APPS_SOURCE:-/usr/share/applications}
+base=${LUXOS_APPS_DIR:-/var/lib/luxos/apps}
+flatpak=${LUXOS_APPS_FLATPAK_EXPORTS:-/var/lib/flatpak/exports/share}
+out=$base/applications
+mkdir -p "$out" "$base/icons" || exit 1
+
+# Hook a sluzba Flatpaku muzou bezet soucasne - jeden zapis naraz
+exec 9>"$base/.lock"
+flock 9
+
 declare -A keep=()
 
 while IFS='|' read -r id name name_cs icon; do
     [[ -z $id || $id == \#* ]] && continue
-    src=/usr/share/applications/$id.desktop
+    src=$apps/$id.desktop
     [[ -r $src ]] || continue
     keep[$id]=1
     awk -v n="$name" -v cs="$name_cs" -v ic="$icon" '
@@ -24,10 +38,32 @@ while IFS='|' read -r id name name_cs icon; do
         }' "$src" >"$out/$id.desktop.tmp" && mv "$out/$id.desktop.tmp" "$out/$id.desktop"
 done <"$conf"
 
-# Prepisy odinstalovanych aplikaci smazat
+# Aplikace z Flathubu: odkaz na exportovany .desktop (exporty Flatpaku jsou samy odkazy na aktualni
+# verzi aplikace, takze aktualizace odkaz nemeni). Rozbity export (rozpracovane odebrani) se preskoci.
+# Prepis z rename.conf ma prednost. Odkaz se meni jen pri zmene (nabidka sleduje slozku).
+for src in "$flatpak"/applications/*.desktop; do
+    [[ -f $src ]] || continue
+    f=${src##*/}
+    id=${f%.desktop}
+    [[ ${keep[$id]-} ]] && continue
+    keep[$id]=1
+    [[ -L $out/$f && $(readlink -- "$out/$f") == "$src" ]] && continue
+    ln -sfn -- "$src" "$out/.$f.tmp" && mv -fT -- "$out/.$f.tmp" "$out/$f"
+done
+
+# Ikony aplikaci z Flathubu: GTK hleda motiv hicolor v <slozka XDG_DATA_DIRS>/icons, takze staci jeden
+# odkaz na slozku hicolor exportu (nove ikony v ni jsou videt hned). Odkaz zustava, i kdyz Flatpak
+# zatim nic nema - neexistujici slozku GTK preskoci a vsimne si, az vznikne.
+link=$base/icons/hicolor
+if [[ ! -L $link || $(readlink -- "$link") != "$flatpak/icons/hicolor" ]]; then
+    [[ -e $link && ! -L $link ]] || { ln -sfn -- "$flatpak/icons/hicolor" "$base/icons/.hicolor.tmp" &&
+        mv -fT -- "$base/icons/.hicolor.tmp" "$link"; }
+fi
+
+# Prepisy odinstalovanych aplikaci a odkazy na odebrane aplikace Flathubu smazat
 for f in "$out"/*.desktop; do
-    [[ -e $f ]] || continue
+    [[ -e $f || -L $f ]] || continue
     id=${f##*/}
-    [[ ${keep[${id%.desktop}]-} ]] || rm -f "$f"
+    [[ ${keep[${id%.desktop}]-} ]] || rm -f -- "$f"
 done
 update-desktop-database -q "$out" 2>/dev/null || true

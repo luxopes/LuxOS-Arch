@@ -103,6 +103,10 @@ class CLI(unittest.TestCase):
             "LUX_ENGINE_BIN": self.bin,
             "LOG": self.log,
             "FAKEDB": self.db,
+            # odkazy na aplikace z Flathubu (luxos-desktop): nikdy skutecny /usr/lib/luxos/luxos-apps-sync
+            "LUX_APPS_SYNC": os.path.join(self.bin, "luxos-apps-sync"),
+            "LUX_APPS_DIR": os.path.join(self.tmp, "luxos-apps"),
+            "LUX_FLATPAK_EXPORTS": os.path.join(self.tmp, "flatpak-exports"),
             "LANG": "C.UTF-8",
         }
 

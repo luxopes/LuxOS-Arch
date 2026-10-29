@@ -1,0 +1,10 @@
+# LuxOS - aplikace z Flathubu hned v Launchpadu a nabidce (i z Obchodu nebo flatpak install)
+# Pri kazde zmene exportovanych aplikaci systemove instalace Flatpaku obnovi odkazy
+# v /var/lib/luxos/apps (luxos-apps-sync). Dokud slozka neexistuje, systemd sleduje nadrazenou.
+# Zapnuta staticky (odkaz v paths.target.wants v baliku), po instalaci ji spusti luxos-flatpak-apps.hook.
+[Unit]
+Description=LuxOS: watch Flathub apps for the app menu and Launchpad
+
+[Path]
+PathChanged=/var/lib/flatpak/exports/share/applications
+Unit=luxos-flatpak-apps.service

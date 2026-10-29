@@ -1,0 +1,15 @@
+# LuxOS - po instalaci/aktualizaci luxos-desktop spustit sledovani aplikaci z Flathubu a jednou
+# obnovit odkazy (aplikace nainstalovane drive). Jmeno souboru az po 30-systemd-daemon-reload-system:
+# systemd uz jednotku zna. V chrootu (instalace, sestaveni ISO) se jednotka nespousti - po startu
+# ji spusti paths.target.
+[Trigger]
+Type = Path
+Operation = Install
+Operation = Upgrade
+Target = usr/lib/systemd/system/luxos-flatpak-apps.path
+Target = usr/lib/luxos/luxos-apps-sync
+
+[Action]
+Description = Updating Flathub apps in the app menu...
+When = PostTransaction
+Exec = /bin/sh -c '/usr/lib/luxos/luxos-apps-sync; [ -d /run/systemd/system ] && systemctl start luxos-flatpak-apps.path >/dev/null 2>&1; exit 0'

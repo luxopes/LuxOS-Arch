@@ -361,6 +361,35 @@ class TestLaunchpadMouse(unittest.TestCase):
         self.open()
         self.assertEqual(self.enter(), ["App16"])
 
+    def test_new_flathub_app_shown_right_away(self):
+        """Aplikace z Flathubu nainstalovana za behu relace (odkaz z luxos-apps-sync ve slozce
+        /var/lib/luxos/apps, ktera je v XDG_DATA_DIRS) je v Launchpadu pri dalsim otevreni - i pri
+        razeni podle kategorie, kde je pripravene poradi z doby pred instalaci."""
+        luxos_apps = os.path.join(self.t, "var-lib-luxos-apps")
+        export = os.path.join(self.t, "flatpak-exports", "applications")
+        os.makedirs(os.path.join(luxos_apps, "applications"))
+        os.makedirs(export)
+        self.env["XDG_DATA_DIRS"] = luxos_apps + ":" + self.env["XDG_DATA_DIRS"]
+        os.makedirs(os.path.join(self.env["XDG_CONFIG_HOME"], "luxos"))
+        with open(os.path.join(self.env["XDG_CONFIG_HOME"], "luxos", "launchpad-sort"), "w") as f:
+            f.write("category\n")
+        self.open()                                 # pripravi poradi podle kategorie (jen App00..59)
+        self.proc.terminate()
+        self.proc.wait(timeout=10)
+        subprocess.run(["xdotool", "search", "--class", "rofi", "windowkill"], capture_output=True)
+        order = os.path.join(self.env["XDG_CACHE_HOME"], "luxos", "launchpad-order-category")
+        self.assertTrue(os.path.exists(order))
+        time.sleep(1.1)                             # mtime slozky musi byt novejsi nez poradi
+        src = os.path.join(export, "org.example.Browser.desktop")
+        with open(src, "w") as f:
+            f.write("[Desktop Entry]\nType=Application\nName=Zebra Browser\n"
+                    "Exec=sh -c \"echo Zebra >> %s\"\nCategories=Network;\n" % self.launched)
+        os.symlink(src, os.path.join(luxos_apps, "applications", "org.example.Browser.desktop"))
+        # Internet je prvni kategorie: nova aplikace musi byt prvni dlazdice (ne na konci mrizky)
+        xdo("mousemove", 640, 400)
+        self.open()
+        self.assertEqual(self.enter(), ["Zebra"])
+
     def test_launchpad_not_in_grid(self):
         """Launchpad se v mrizce nenajde (ani hledanim), v mrizce je jen 60 aplikaci."""
         self.open()

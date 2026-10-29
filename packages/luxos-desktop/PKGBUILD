@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=48
+pkgrel=49
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -169,6 +169,13 @@ package() {
     install -Dm644 "$f/apps/rename.conf" "$pkgdir/usr/share/luxos/apps/rename.conf"
     install -Dm755 "$f/apps/luxos-apps-sync" "$pkgdir/usr/lib/luxos/luxos-apps-sync"
     install -Dm644 "$f/hooks/luxos-apps.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-apps.hook"
+    # Aplikace z Flathubu hned v Launchpadu a nabidce (lux, Obchod i flatpak install): sledovani exportu
+    # Flatpaku -> odkazy v /var/lib/luxos/apps; zapnute staticky, po instalaci spusti hook
+    install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f/apps/luxos-flatpak-apps.path" \
+        "$f/apps/luxos-flatpak-apps.service"
+    install -dm755 "$pkgdir/usr/lib/systemd/system/paths.target.wants"
+    ln -s ../luxos-flatpak-apps.path "$pkgdir/usr/lib/systemd/system/paths.target.wants/luxos-flatpak-apps.path"
+    install -Dm644 "$f/hooks/luxos-flatpak-apps.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-flatpak-apps.hook"
     # Prihlasovaci relace "LuxOS" misto "Xfce Session" (hook odstrani xfce.desktop z xfce4-session)
     install -Dm644 "$f/xsessions/luxos.desktop" "$pkgdir/usr/share/xsessions/luxos.desktop"
     install -Dm644 "$f/hooks/luxos-xsession.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-xsession.hook"
