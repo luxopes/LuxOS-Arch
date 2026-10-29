@@ -11,6 +11,17 @@ case ":${XDG_DATA_DIRS:-}:" in
     *:/usr/share/luxos/xdg:*) ;;
     *) export XDG_DATA_DIRS="/var/lib/luxos/apps:/usr/share/luxos/xdg:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" ;;
 esac
+# Aplikace z Flathubu: exporty vzdy v XDG_DATA_DIRS, i kdyz flatpak jeste neni nainstalovany - lux ho
+# doinstaluje az s prvni aplikaci a /etc/profile.d/flatpak.sh by se uplatnil az po novem prihlaseni,
+# do te doby by aplikace v Launchpadu a nabidce chybela (prazdne nebo chybejici slozky nevadi)
+for d in "${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/exports/share" /var/lib/flatpak/exports/share; do
+    case ":$XDG_DATA_DIRS:" in
+        *":$d:"* | *":$d/:"*) ;;
+        *) XDG_DATA_DIRS="$XDG_DATA_DIRS:$d" ;;
+    esac
+done
+unset d
+export XDG_DATA_DIRS
 # Lehci horni lista: pluginy bez nabidek primo v procesu panelu (/usr/lib/luxos/panel, luxos-desktop)
 case ":$XDG_DATA_DIRS:" in
     *:/usr/lib/luxos/panel/share:*) ;;
