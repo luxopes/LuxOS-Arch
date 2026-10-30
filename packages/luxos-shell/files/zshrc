@@ -50,6 +50,14 @@ command_not_found_handler() {
                 return 127
             fi ;;
     esac
+    # Prikaz jen v sandboxu LuxOS (viz bashrc)
+    local _sbr=/var/lib/luxos/sandbox/${USER:-$(id -un)}/usr/bin/$1 _sbout
+    if [[ $1 =~ '^[A-Za-z0-9][A-Za-z0-9._+-]*$' && -x /usr/bin/luxos-sandbox ]] && [[ -L $_sbr || -e $_sbr ]] &&
+        _sbout=$(/usr/bin/luxos-sandbox __command-hint "$1" 2>/dev/null); then
+        printf 'zsh: command not found: %s\n' "$1" >&2
+        printf '%s\n' "$_sbout" >&2
+        return 127
+    fi
     if (( $+functions[_luxos_cnf_prev] )); then _luxos_cnf_prev "$@"; return; fi
     printf 'zsh: command not found: %s\n' "$1" >&2
     return 127
@@ -91,3 +99,6 @@ if [[ $LUXOS_FASTFETCH == 1 && $TERM != linux ]] && (( $+commands[fastfetch] ));
     esac
     unset luxos_parent
 fi
+
+# Prikazy aplikaci ze sandboxu LuxOS na konci PATH (i v relaci z doby pred aktualizaci)
+[[ -r /etc/profile.d/zz-luxos-sandbox.sh ]] && . /etc/profile.d/zz-luxos-sandbox.sh

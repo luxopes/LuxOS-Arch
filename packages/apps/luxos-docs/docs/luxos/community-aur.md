@@ -33,7 +33,12 @@ are not checked by LuxOS, so lux checks them itself and builds them isolated by 
 - **Default target: your sandbox** ([sandbox.md](sandbox.md)). lux copies the checked directory into
   the sandbox (`luxos-sandbox build-install`), installs `base-devel`/dependencies there, runs
   `makepkg` inside as the sandbox user and installs the result with the sandbox's own `pacman`. The
-  build script never runs on your system. Start the app with `luxos-sandbox run --gui --net <command>`.
+  build script never runs on your system. lux then says how to start it: a command-line tool by its
+  own name (`pi` – a wrapper at the end of `PATH`, a system program of the same name wins), an app
+  with a window from Launchpad as "<App> (Sandbox)"; see
+  [sandbox.md](sandbox.md#starting-sandbox-apps-commands-and-launchpad). Sandbox apps cannot see your
+  files – to use a tool with them, install it with `lux install --system <name>`. `lux remove <name>`
+  removes it from the sandbox again.
 - **Into the system only with explicit permission**: `--system`, or choose "2 System" and type the
   word `system`. A **dangerous** script is never installed into the system; an unchecked or
   suspicious one only after you confirm without `-y`. System builds use `makepkg -si`

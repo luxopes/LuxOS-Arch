@@ -52,6 +52,18 @@ Vše kromě vytvoření/smazání běží **bez root práv** jako uživatel.
   se nedostane, schránka se nesdílí.
 - **Výměna souborů:** jen složka `~/Sandbox`, a to pouze s `--shared` (jako `/home/sandbox/Shared`).
 - **Zdroje:** limity paměti, procesů a CPU (systemd scope); bez uživatelského systemd jen varování.
+- **Spouštěče na hostiteli** (`luxos-sandbox sync-launchers`; obaly příkazů v
+  `~/.local/share/luxos/sandbox/bin`, položky `luxos-sandbox-app-*.desktop` v `~/.local/share/applications`):
+  databáze balíků, `.desktop` soubory a ikony sandboxu se čtou bez spuštění sandboxu, ale jen přes FD
+  adresářů s `O_NOFOLLOW` (žádný symlink se nenásleduje, FIFO a zařízení se přeskočí) a s limity velikosti.
+  Z `.desktop` souborů sandboxu se **nikdy nepřebírá `Exec` ani jiné klíče** – jen očištěné `Name`/`Comment`
+  (bez řídicích, neviditelných a obousměrných znaků) a hlavní kategorie; spouští se vždy
+  `luxos-sandbox run [--gui] --net -- /usr/bin/<příkaz>`, příkaz vybraný ze seznamu souborů balíku a ověřený
+  regulárním výrazem. Ikony jen jako běžný PNG (≤ 1 MiB, ≤ 1024×1024) nebo SVG (≤ 256 KiB) bez DOCTYPE/entit,
+  skriptů, obsluh událostí a vnějších odkazů. Složka obalů je vždy **poslední** v `PATH` a obal nevznikne
+  pro jméno, které systém už má, ani pro `sudo`, `su`, `pkexec`, `passwd`, `ssh`, `gpg`, shelly, `lux`,
+  `luxos-*` apod. – program systému stejného jména vždy vyhraje. Zastaralé spouštěče se mažou jen podle
+  vlastní značky (`luxos-sandbox launcher`, `X-LuxOS-Sandbox-Launcher`).
 
 ## Co izolované NENÍ (poctivě)
 
@@ -66,6 +78,12 @@ Vše kromě vytvoření/smazání běží **bez root práv** jako uživatel.
 - **Terminál:** `shell` a `run` v terminálu sdílí terminál (bez `--new-session`, aby fungovala
   Ctrl+C a job control); vkládání znaků (`TIOCSTI`) blokuje seccomp, ale aplikace může do terminálu
   posílat escape sekvence (chyby emulátoru terminálu).
+- **Spouštěče a síť:** obaly a položky Launchpadu spouštějí aplikace s `--net` (jen internet; většina takto
+  instalovaných aplikací ho potřebuje – AI agenti, prohlížeče, chat). Aplikace spuštěná z terminálu jménem
+  příkazu sdílí terminál: příkaz, který v systému (zatím) není, spustí verzi ze sandboxu, a ta může např.
+  vypsat podvržený dotaz na heslo a odeslat odpověď na internet. Proto obaly nedostanou jména nástrojů
+  pro hesla a práva (`sudo`, `su`, `passwd`, `ssh`, `gpg` …) a v terminálu se při prvním spuštění za
+  přihlášení vypíše, že příkaz běží v sandboxu. Heslo nikdy nezadávejte do programu ze sandboxu.
 - **Sdílená složka:** vše, co aplikace zapíše do `~/Sandbox`, je nedůvěryhodné (škodlivé dokumenty,
   symlinky mířící jinam – neotevírejte je slepě na hostiteli).
 - **Síť s `--net`:** sandbox může cokoli na internetu (stahovat malware, útočit na jiné servery, být
@@ -89,4 +107,6 @@ Vše kromě vytvoření/smazání běží **bez root práv** jako uživatel.
 
 Automatický test izolace (bez root): `packages/luxos-sandbox/tests/isolation-test.sh`
 (domov, síť, `/proc`, ptrace, zápis mimo kořen včetně podvržených symlinků, sdílená složka, seccomp,
-capabilities, `--net` bez LAN/hostitele, `--gui` jen Xephyr, limity).
+capabilities, `--net` bez LAN/hostitele, `--gui` jen Xephyr, limity) a test spouštěčů
+`packages/luxos-sandbox/tests/test_launchers.py` (podvržené `.desktop` soubory, ikony a symlinky,
+zastaralé spouštěče, pořadí v `PATH`).

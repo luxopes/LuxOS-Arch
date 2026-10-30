@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Sandbox app launchers
+Name[cs]=Spouštěče aplikací ze sandboxu
+Comment=Commands and Launchpad entries for apps installed in the sandbox
+Comment[cs]=Příkazy a položky v Launchpadu pro aplikace nainstalované v sandboxu
+Exec=luxos-sandbox sync-launchers --quiet
+NoDisplay=true
+Terminal=false
+X-GNOME-Autostart-enabled=true

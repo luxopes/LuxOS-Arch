@@ -439,8 +439,33 @@ aur_install() {
     done
     if [[ $COMMUNITY_TARGET == sandbox ]]; then
         ok "$(T "Installed in the sandbox: %s" "$*")"
-        say "$(T "Start it with: %s" "${B}luxos-sandbox run --gui --net $1${R}")"
+        sandbox_start_hint "$@"
     fi
+}
+
+# Jak spustit aplikaci ze sandboxu: luxos-sandbox (build-install i sync-launchers) vytvori obal prikazu
+# na konci PATH (prikaz systemu stejneho jmena vyhraje) a pro aplikace s oknem polozku v Launchpadu
+sandbox_start_hint() {
+    local json p gui cmd main
+    json=$("$LUX_SANDBOX" sync-launchers --json 2>/dev/null) || json='{}'
+    for p; do
+        gui=$(jq -r --arg p "$p" '[.apps[]? | select(.package == $p) | .gui[]?.name] | .[0] // empty' <<<"$json" 2>/dev/null)
+        main=$(jq -r --arg p "$p" '[.apps[]? | select(.package == $p) | .main] | .[0] // empty' <<<"$json" 2>/dev/null)
+        cmd=$(jq -r --arg p "$p" '[.apps[]? | select(.package == $p) | .main as $m
+            | if ($m != "" and (.commands | index($m))) then $m else .commands[0] end] | .[0] // empty' <<<"$json" 2>/dev/null)
+        if [[ -n $gui ]]; then
+            say "$(T "Find it in Launchpad as %s." "${B}$gui${R}")"
+        elif [[ -n $cmd ]]; then
+            say "$(T "Start it with: %s (runs in the sandbox, without access to your files)" "${B}$cmd${R}")"
+            say "$(T "To use it with your files, install it into the system: %s" "${B}lux install --system $p${R}")"
+        elif [[ -n $main ]]; then
+            # prikaz stejneho jmena uz je v systemu - ten v terminalu vyhraje
+            say "$(T "Start it with: %s" "${B}luxos-sandbox run --net -- $main${R}")"
+            say "$(T "%s in the terminal starts the version installed in the system." "${B}$main${R}")"
+        else
+            say "$(T "Start it with: %s" "${B}luxos-sandbox shell --net${R}")"
+        fi
+    done
 }
 
 # --- Flathub ----------------------------------------------------------------
@@ -575,13 +600,20 @@ cmd_install() {
 
 cmd_remove() {
     (($#)) || die "$(T "Usage: lux remove <package...>")"
-    local -a pac=() flat=()
+    local -a pac=() flat=() sbx=()
     local p id
     for p in "$@"; do
         if lp_installed "$p"; then as_root "$LUX_SELF" __lux-remove "$p" || exit 1
         elif ! "$LUX_ENGINE" -Q -- "$p" &>/dev/null && id=$(flatpak_installed_id "$p"); then flat+=("$id")
+        elif ((EUID != 0)) && [[ -x $LUX_SANDBOX ]] && ! "$LUX_ENGINE" -Q -- "$p" &>/dev/null &&
+            "$LUX_SANDBOX" __has-app "$p" &>/dev/null; then sbx+=("$p")   # z komunity do sandboxu (lux install)
         else pac+=("$p"); fi
     done
+    if ((${#sbx[@]})); then
+        ask "$(T "Remove %s from the sandbox?" "${B}${sbx[*]}${R}")" "$([[ -t 0 ]] && echo Y || echo n)" || die "$(T "Cancelled")"
+        "$LUX_SANDBOX" remove-app "${sbx[@]}" || exit 1      # odebere i jeho prikazy a polozky Launchpadu
+        ok "$(T "Removed from the sandbox: %s" "${sbx[*]}")"
+    fi
     if ((${#flat[@]})); then
         # bez terminalu a bez -y se nic neodebira (vychozi odpoved "ne")
         ask "$(T "Remove %s?" "${B}${flat[*]}${R}")" "$([[ -t 0 ]] && echo Y || echo n)" || die "$(T "Cancelled")"
@@ -690,6 +722,9 @@ cmd_update() {
             as_root "$hook" || warn "$(T "Step after the update failed:") ${hook##*/}"
         done
     fi
+
+    # Spoustece aplikaci ze sandboxu (prikazy, Launchpad) - i pro aplikace z doby pred jejich zavedenim
+    if ((EUID != 0)) && [[ -x $LUX_SANDBOX ]]; then "$LUX_SANDBOX" sync-launchers --quiet &>/dev/null || true; fi
 
     local luxnew
     luxnew=$(find /etc \( -name '*.luxnew' -o -name '*.pacnew' \) 2>/dev/null)

@@ -4454,3 +4454,16 @@ Restart %s to run its games on %s.	Starta om %s för att köra spelen på %s.
 Restart %s so its games use the integrated graphics again and save battery.	Starta om %s så att spelen använder den integrerade grafiken igen och sparar batteri.
 discrete graphics	separat grafikkort
 cannot be started	kan inte startas
+update commands and Launchpad entries for sandbox apps (automatic after changes and at login)	uppdatera kommandon och Launchpad-poster för sandlådeappar (automatiskt efter ändringar och vid inloggning)
+%s (Sandbox)	%s (Sandlåda)
+Warning: could not update the sandbox app launchers: %s	Varning: startare för sandlådeappar kunde inte uppdateras: %s
+Commands: %s	Kommandon: %s
+Launchpad: %s	Launchpad: %s
+%s is installed in the sandbox (without access to your files). Start it with: %s	%s är installerat i sandlådan (utan åtkomst till dina filer). Starta med: %s
+In a new terminal window just type: %s	I ett nytt terminalfönster räcker det att skriva: %s
+%s runs in the sandbox: internet only, no access to your files.	%s körs i sandlådan: bara internet, ingen åtkomst till dina filer.
+Find it in Launchpad as %s.	Du hittar den i Launchpad som %s.
+Start it with: %s (runs in the sandbox, without access to your files)	Starta med: %s (körs i sandlådan, utan åtkomst till dina filer)
+To use it with your files, install it into the system: %s	För att använda den med dina filer, installera den i systemet: %s
+%s in the terminal starts the version installed in the system.	%s i terminalen startar versionen som är installerad i systemet.
+Removed from the sandbox: %s	Borttaget från sandlådan: %s

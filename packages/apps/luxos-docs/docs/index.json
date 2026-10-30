@@ -871,7 +871,7 @@
         {
           "path": "luxos/sandbox.md",
           "title": "Sandbox – isolated system for untrusted apps (/dev/sandbox/<user>)",
-          "summary": "luxos-sandbox: per-user minimal Arch root run with bubblewrap, seccomp, pasta networking and Xephyr; commands, isolation and threat model",
+          "summary": "luxos-sandbox: per-user minimal Arch root run with bubblewrap, seccomp, pasta networking and Xephyr; commands, starting sandbox apps (command wrappers at the end of PATH, Launchpad entries, sync-launchers), isolation and threat model",
           "keywords": [
             "sandbox",
             "luxos-sandbox",
@@ -885,7 +885,10 @@
             "pasta",
             "security",
             "sandbox lux.conf",
-            "pacman inside sandbox"
+            "pacman inside sandbox",
+            "sync-launchers",
+            "sandbox app command not found",
+            "launchpad sandbox"
           ]
         },
         {

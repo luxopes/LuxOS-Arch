@@ -4455,3 +4455,16 @@ Restart %s to run its games on %s.	Перезапустіть %s, щоб ігр�
 Restart %s so its games use the integrated graphics again and save battery.	Перезапустіть %s, щоб ігри знову використовували вбудовану графіку й заощаджували батарею.
 discrete graphics	дискретна графіка
 cannot be started	не вдається запустити
+update commands and Launchpad entries for sandbox apps (automatic after changes and at login)	оновити команди й елементи Launchpad для застосунків із пісочниці (автоматично після змін і під час входу)
+%s (Sandbox)	%s (Пісочниця)
+Warning: could not update the sandbox app launchers: %s	Попередження: не вдалося оновити засоби запуску застосунків із пісочниці: %s
+Commands: %s	Команди: %s
+Launchpad: %s	Launchpad: %s
+%s is installed in the sandbox (without access to your files). Start it with: %s	%s встановлено в пісочниці (без доступу до ваших файлів). Запустіть командою: %s
+In a new terminal window just type: %s	У новому вікні термінала достатньо ввести: %s
+%s runs in the sandbox: internet only, no access to your files.	%s працює в пісочниці: лише інтернет, без доступу до ваших файлів.
+Find it in Launchpad as %s.	Знайдете його в Launchpad як %s.
+Start it with: %s (runs in the sandbox, without access to your files)	Запустіть командою: %s (працює в пісочниці, без доступу до ваших файлів)
+To use it with your files, install it into the system: %s	Щоб використовувати його зі своїми файлами, встановіть його в систему: %s
+%s in the terminal starts the version installed in the system.	%s у терміналі запускає версію, встановлену в системі.
+Removed from the sandbox: %s	Видалено з пісочниці: %s

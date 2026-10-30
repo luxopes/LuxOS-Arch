@@ -4455,3 +4455,16 @@ Restart %s to run its games on %s.	Uruchom ponownie %s, aby gry działały na %s
 Restart %s so its games use the integrated graphics again and save battery.	Uruchom ponownie %s, aby gry znów używały zintegrowanej grafiki i oszczędzały baterię.
 discrete graphics	osobna karta graficzna
 cannot be started	nie można uruchomić
+update commands and Launchpad entries for sandbox apps (automatic after changes and at login)	odśwież polecenia i pozycje w Launchpadzie dla aplikacji z piaskownicy (automatycznie po zmianach i przy logowaniu)
+%s (Sandbox)	%s (Sandbox)
+Warning: could not update the sandbox app launchers: %s	Ostrzeżenie: nie udało się odświeżyć programów uruchamiających aplikacje z piaskownicy: %s
+Commands: %s	Polecenia: %s
+Launchpad: %s	Launchpad: %s
+%s is installed in the sandbox (without access to your files). Start it with: %s	%s jest zainstalowany w piaskownicy (bez dostępu do Twoich plików). Uruchom poleceniem: %s
+In a new terminal window just type: %s	W nowym oknie terminala wystarczy wpisać: %s
+%s runs in the sandbox: internet only, no access to your files.	%s działa w piaskownicy: tylko internet, bez dostępu do Twoich plików.
+Find it in Launchpad as %s.	Znajdziesz go w Launchpadzie jako %s.
+Start it with: %s (runs in the sandbox, without access to your files)	Uruchom poleceniem: %s (działa w piaskownicy, bez dostępu do Twoich plików)
+To use it with your files, install it into the system: %s	Aby używać go ze swoimi plikami, zainstaluj go w systemie: %s
+%s in the terminal starts the version installed in the system.	%s w terminalu uruchamia wersję zainstalowaną w systemie.
+Removed from the sandbox: %s	Usunięto z piaskownicy: %s

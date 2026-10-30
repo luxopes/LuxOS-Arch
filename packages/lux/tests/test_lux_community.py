@@ -333,6 +333,8 @@ printf '%s\n' "$*" >>"$LOG/luxos-sandbox.log"
 case $1 in
   status) echo '{"exists": true}' ;;
   build-install) tar -tf - | sort >>"$LOG/sandbox-tar.log" ;;
+  sync-launchers) [[ $2 == --json ]] && printf '%s\n' "${FAKE_LAUNCHERS:-{\"apps\": []\}}" ;;
+  __has-app) [[ " ${FAKE_SANDBOX_APPS-} " == *" $2 "* ]] || exit 1 ;;
 esac
 exit 0
 """,
@@ -430,6 +432,51 @@ class CommunityCLI(unittest.TestCase):
         self.assertNotIn("./.git/", self.calls("sandbox-tar"))
         self.assertEqual(self.calls("makepkg"), [])             # v systemu se nic nesestavuje
         self.assertIn("community", out)
+
+    def launchers(self, apps):
+        return {"FAKE_LAUNCHERS": json.dumps({"bin": "/x", "apps": apps})}
+
+    def test_sandbox_cli_hint(self):
+        """Prikaz ze sandboxu: spusteni jen jmenem prikazu a rada pro praci se soubory (--system)."""
+        env = self.launchers([{"package": "hello-tool", "main": "hello", "commands": ["hello", "hello-x"], "gui": []}])
+        rc, out = self.lux("-y", "install", "hello-tool", env=env)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("Start it with: hello (runs in the sandbox, without access to your files)", out)
+        self.assertIn("To use it with your files, install it into the system: lux install --system hello-tool", out)
+        self.assertNotIn("--gui", out)
+        self.assertIn("sync-launchers --json", self.calls("luxos-sandbox"))
+
+    def test_sandbox_gui_hint(self):
+        env = self.launchers([{"package": "hello-tool", "main": "hello", "commands": ["hello"],
+                               "gui": [{"name": "Hello (Sandbox)", "command": "hello"}]}])
+        rc, out = self.lux("-y", "install", "hello-tool", env=env)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("Find it in Launchpad as Hello (Sandbox).", out)
+        self.assertNotIn("--system", out)
+
+    def test_sandbox_hint_when_system_has_command(self):
+        # prikaz stejneho jmena uz je v systemu: obal nevznikl, v terminalu vyhraje system
+        env = self.launchers([{"package": "hello-tool", "main": "hello", "commands": [], "gui": []}])
+        rc, out = self.lux("-y", "install", "hello-tool", env=env)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("Start it with: luxos-sandbox run --net -- hello", out)
+        self.assertIn("starts the version installed in the system", out)
+        rc, out = self.lux("-y", "install", "hello-tool")      # nic ke spusteni / starsi luxos-sandbox
+        self.assertEqual(rc, 0, out)
+        self.assertIn("luxos-sandbox shell --net", out)
+
+    def test_remove_sandbox_app(self):
+        """lux remove balik ze sandboxu (lux install z komunity) odebere ze sandboxu, ne ze systemu."""
+        env = {"FAKE_SANDBOX_APPS": "hello-tool"}
+        rc, out = self.lux("-y", "remove", "hello-tool", "htop", env=env)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("remove-app hello-tool", self.calls("luxos-sandbox"))
+        self.assertIn("Removed from the sandbox: hello-tool", out)
+        self.assertTrue(any("htop" in c and "hello-tool" not in c for c in self.backend()), self.backend())
+        # bez -y a bez terminalu se nic neodebira
+        rc, out = self.lux("remove", "hello-tool", env=env)
+        self.assertNotEqual(rc, 0)
+        self.assertEqual(self.calls("luxos-sandbox").count("remove-app hello-tool"), 1)
 
     def test_dangerous_not_installed_with_yes(self):
         rc, out = self.lux("-y", "install", "hello-tool", env={"FAKE_VERDICT": "dangerous"})
