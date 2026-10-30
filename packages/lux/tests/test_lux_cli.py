@@ -107,6 +107,8 @@ class CLI(unittest.TestCase):
             "LUX_APPS_SYNC": os.path.join(self.bin, "luxos-apps-sync"),
             "LUX_APPS_DIR": os.path.join(self.tmp, "luxos-apps"),
             "LUX_FLATPAK_EXPORTS": os.path.join(self.tmp, "flatpak-exports"),
+            # nikdy skutecny luxos-sandbox (sandbox uzivatele)
+            "LUX_SANDBOX": os.path.join(self.tmp, "no-luxos-sandbox"),
             "LANG": "C.UTF-8",
         }
 

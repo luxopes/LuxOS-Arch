@@ -2,7 +2,7 @@
 
 pkgname=luxos-shell
 pkgver=1.1.0
-pkgrel=16
+pkgrel=17
 pkgdesc="LuxOS shell experience: lsh (Lux shell) with ble.sh, zsh, starship prompt, fastfetch"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -16,6 +16,8 @@ package() {
     local f="$startdir/files"
     install -Dm644 -t "$pkgdir/usr/share/luxos/shell" "$f"/{bashrc,blerc,aliases.sh,zshrc,starship.toml}
     install -Dm644 "$f/profile.sh" "$pkgdir/etc/profile.d/luxos.sh"
+    # prikazy aplikaci ze sandboxu (luxos-sandbox) na KONCI PATH - "zz", aby byl i za skripty, ktere PATH prodluzuji
+    install -Dm644 "$f/sandbox-path.sh" "$pkgdir/etc/profile.d/zz-luxos-sandbox.sh"
     # ssh/sshfs: mrtve spojeni skonci chybou misto zaseknuti (ssh_config.d cte vychozi ssh_config Archu)
     install -Dm644 "$f/ssh-keepalive.conf" "$pkgdir/etc/ssh/ssh_config.d/50-luxos-keepalive.conf"
     install -Dm644 "$f/fastfetch/logo.ans" "$pkgdir/usr/share/luxos/fastfetch/logo.ans"

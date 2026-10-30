@@ -4,7 +4,7 @@
 
 pkgname=luxos-sandbox
 pkgver=1.0.0
-pkgrel=5
+pkgrel=6
 pkgdesc="LuxOS Sandbox - isolated per-user system for untrusted applications"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
@@ -23,6 +23,8 @@ package() {
     install -Dm644 "$f/org.luxos.sandbox.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.sandbox.policy"
     install -Dm644 "$f/luxos-sandbox.tmpfiles" "$pkgdir/usr/lib/tmpfiles.d/luxos-sandbox.conf"
     install -Dm644 "$f/luxos-sandbox.desktop" "$pkgdir/usr/share/applications/luxos-sandbox.desktop"
+    # pri prihlaseni: prikazy a polozky Launchpadu aplikaci ze sandboxu (i pro sandboxy ze starsich verzi)
+    install -Dm644 "$f/luxos-sandbox-launchers.desktop" "$pkgdir/etc/xdg/autostart/luxos-sandbox-launchers.desktop"
     install -Dm644 "$f/luxos-sandbox.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-sandbox.svg"
     install -Dm644 "$f/SECURITY.md" "$pkgdir/usr/share/doc/luxos-sandbox/SECURITY.md"
 }

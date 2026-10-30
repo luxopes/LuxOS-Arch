@@ -4454,3 +4454,16 @@ Restart %s to run its games on %s.	Indítsa újra a(z) %s alkalmazást, hogy a j
 Restart %s so its games use the integrated graphics again and save battery.	Indítsa újra a(z) %s alkalmazást, hogy a játékok ismét az integrált grafikát használják, és kíméljék az akkumulátort.
 discrete graphics	különálló grafika
 cannot be started	nem indítható
+update commands and Launchpad entries for sandbox apps (automatic after changes and at login)	a homokozó alkalmazásainak parancsai és Launchpad-elemei frissítése (változás után és bejelentkezéskor automatikusan)
+%s (Sandbox)	%s (Sandbox)
+Warning: could not update the sandbox app launchers: %s	Figyelmeztetés: a homokozó alkalmazásainak indítói nem frissíthetők: %s
+Commands: %s	Parancsok: %s
+Launchpad: %s	Launchpad: %s
+%s is installed in the sandbox (without access to your files). Start it with: %s	A(z) %s a homokozóba van telepítve (a fájljaihoz nem fér hozzá). Indítás: %s
+In a new terminal window just type: %s	Új terminálablakban elég beírni: %s
+%s runs in the sandbox: internet only, no access to your files.	A(z) %s a homokozóban fut: csak internet, a fájljaihoz nem fér hozzá.
+Find it in Launchpad as %s.	A Launchpadban találja: %s.
+Start it with: %s (runs in the sandbox, without access to your files)	Indítás: %s (a homokozóban fut, a fájljaihoz nem fér hozzá)
+To use it with your files, install it into the system: %s	Ha a saját fájljaival szeretné használni, telepítse a rendszerbe: %s
+%s in the terminal starts the version installed in the system.	A(z) %s a terminálban a rendszerbe telepített változatot indítja.
+Removed from the sandbox: %s	Eltávolítva a homokozóból: %s

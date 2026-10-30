@@ -4454,3 +4454,16 @@ Restart %s to run its games on %s.	Redémarrez %s pour lancer ses jeux sur %s.
 Restart %s so its games use the integrated graphics again and save battery.	Redémarrez %s pour que ses jeux réutilisent le graphisme intégré et économisent la batterie.
 discrete graphics	carte graphique dédiée
 cannot be started	impossible de lancer
+update commands and Launchpad entries for sandbox apps (automatic after changes and at login)	mettre à jour les commandes et les entrées du Launchpad des applications du bac à sable (automatique après chaque modification et à la connexion)
+%s (Sandbox)	%s (Bac à sable)
+Warning: could not update the sandbox app launchers: %s	Avertissement : impossible de mettre à jour les lanceurs des applications du bac à sable : %s
+Commands: %s	Commandes : %s
+Launchpad: %s	Launchpad : %s
+%s is installed in the sandbox (without access to your files). Start it with: %s	%s est installé dans le bac à sable (sans accès à vos fichiers). Lancez-le avec : %s
+In a new terminal window just type: %s	Dans une nouvelle fenêtre de terminal, tapez simplement : %s
+%s runs in the sandbox: internet only, no access to your files.	%s s'exécute dans le bac à sable : Internet uniquement, sans accès à vos fichiers.
+Find it in Launchpad as %s.	Vous le trouverez dans le Launchpad sous le nom %s.
+Start it with: %s (runs in the sandbox, without access to your files)	Lancez-le avec : %s (s'exécute dans le bac à sable, sans accès à vos fichiers)
+To use it with your files, install it into the system: %s	Pour l'utiliser avec vos fichiers, installez-le dans le système : %s
+%s in the terminal starts the version installed in the system.	%s dans le terminal lance la version installée dans le système.
+Removed from the sandbox: %s	Retiré du bac à sable : %s

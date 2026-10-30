@@ -4543,3 +4543,16 @@ Restart %s to run its games on %s.	Restartujte %s, aby hry běžely na %s.
 Restart %s so its games use the integrated graphics again and save battery.	Restartujte %s, aby hry znovu používaly integrovanou grafiku a šetřily baterii.
 discrete graphics	samostatná grafika
 cannot be started	nelze spustit
+update commands and Launchpad entries for sandbox apps (automatic after changes and at login)	obnovit příkazy a položky v Launchpadu pro aplikace ze sandboxu (automaticky po změnách a při přihlášení)
+%s (Sandbox)	%s (Sandbox)
+Warning: could not update the sandbox app launchers: %s	Upozornění: spouštěče aplikací ze sandboxu nešlo obnovit: %s
+Commands: %s	Příkazy: %s
+Launchpad: %s	Launchpad: %s
+%s is installed in the sandbox (without access to your files). Start it with: %s	%s je nainstalovaný v sandboxu (bez přístupu k vašim souborům). Spustíte ho příkazem: %s
+In a new terminal window just type: %s	V novém okně terminálu stačí napsat: %s
+%s runs in the sandbox: internet only, no access to your files.	%s běží v sandboxu: jen internet, bez přístupu k vašim souborům.
+Find it in Launchpad as %s.	Najdete ho v Launchpadu jako %s.
+Start it with: %s (runs in the sandbox, without access to your files)	Spustíte ho příkazem: %s (běží v sandboxu, bez přístupu k vašim souborům)
+To use it with your files, install it into the system: %s	Chcete-li ho používat se svými soubory, nainstalujte ho do systému: %s
+%s in the terminal starts the version installed in the system.	%s v terminálu spustí verzi nainstalovanou v systému.
+Removed from the sandbox: %s	Odebráno ze sandboxu: %s

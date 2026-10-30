@@ -45,8 +45,9 @@ USERNAME=$(id -un)
 BASE="$T/base"
 R="$BASE/$USERNAME"
 SHARED="$T/shared"
+# spoustece aplikaci (sync-launchers) jen do docasne slozky, nikdy do domova uzivatele
 export LUXOS_SANDBOX_TESTING=1 LUXOS_SANDBOX_BASE="$BASE" LUXOS_SANDBOX_SHARED="$SHARED" \
-       LUXOS_SANDBOX_TEST_IMPORT_ROOT="$T"
+       LUXOS_SANDBOX_TEST_IMPORT_ROOT="$T" XDG_DATA_HOME="$T/data"
 S() { python3 "$CLI" "$@"; }
 
 # ---- testovaci koren --------------------------------------------------------------
@@ -177,6 +178,10 @@ if [[ -n ${DISPLAY:-} ]] && command -v Xephyr >/dev/null; then
 else
     skip "no DISPLAY or Xephyr, GUI test skipped"
 fi
+
+# ---- 10b. spoustece aplikaci (obal prikazu: run --launcher) ---------------------------------
+expect "--launcher: the wrapper's run works the same (no host home inside)" "GONE" -- \
+    S run --launcher -- sh -c 'test -e "$1" && echo VISIBLE || echo GONE' sh "$HOME"
 
 # ---- 11. limity (systemd --user scope) --------------------------------------------------------
 if [[ -S ${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/systemd/private ]]; then

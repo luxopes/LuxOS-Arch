@@ -51,9 +51,11 @@ luxos-sandbox run ./downloaded-program   # a host file is COPIED in first, then 
 luxos-sandbox shell [--net] [--shared]   # interactive bash inside ([sandbox] prompt)
 luxos-sandbox reset [--yes]              # wipe everything inside and create it again
 luxos-sandbox destroy [--yes]            # delete the sandbox (~/Sandbox stays)
+luxos-sandbox sync-launchers [--json]    # update commands/Launchpad entries of sandbox apps
 ```
 
-Options for `run` (before the command): `--net`, `--gui`, `--shared`.
+Options for `run` (before the command): `--net`, `--gui`, `--shared` (and `--launcher`, used by the
+generated launchers: a one-line notice in the terminal, cleanup when the sandbox is gone).
 
 | Option | Effect |
 |---|---|
@@ -90,6 +92,54 @@ tar archive on standard input:
 Errors: "Building %s in the sandbox failed." (the build script failed – see the output above it),
 "Installing the build tools into the sandbox failed." (no network or a broken sandbox:
 `luxos-sandbox reset`).
+
+### Starting sandbox apps: commands and Launchpad
+
+Apps you install into the sandbox (`lux install <AUR name>`, `luxos-sandbox install`, the Sandbox
+window) are started **like normal apps** – nothing to set up:
+
+- **Commands:** every program in `/usr/bin` of an app package gets a small wrapper script in
+  `~/.local/share/luxos/sandbox/bin/<command>` that runs
+  `luxos-sandbox run --net --launcher -- /usr/bin/<command> "$@"`. That folder is always the **last**
+  entry of `PATH` (`/etc/profile.d/zz-luxos-sandbox.sh` at login, the LuxOS `bashrc`/`zshrc`/lsh in every
+  new terminal – also in a session started before the update), so **a system program of the same name
+  always wins**: after `lux install --system pi`, `pi` runs `/usr/bin/pi`. No wrapper is made for a
+  name the system already has, nor for `sudo`, `su`, `pkexec`, `passwd`, `ssh`, `gpg`, shells, `lux`,
+  `luxos-*` and similar.
+- **Apps with a window** (a `.desktop` file without `Terminal=true`/`NoDisplay=true`) appear in
+  Launchpad and the menu as **"<App> (Sandbox)"**
+  (`~/.local/share/applications/luxos-sandbox-app-<package>--<id>.desktop`), started with
+  `luxos-sandbox run --gui --net` in its own Xephyr window; the icon is copied from the sandbox
+  (fallback: the Sandbox icon). Their command wrapper also uses `--gui`.
+- In a terminal the first start per login prints one dim line: "*pi runs in the sandbox: internet only,
+  no access to your files.*" – the app sees only `/home/sandbox`, not your home. To use a developer
+  or CLI tool with your files, install it into the system: `lux install --system <name>`.
+- **Network:** launchers use `--net` (internet only – LAN and this computer stay blocked, see below):
+  most apps installed this way need the internet (AI agents, browsers, chat). For a run without network
+  use `luxos-sandbox run -- <command>`.
+- **Kept in sync automatically:** after `install`, `build-install`, `remove-app`, `reset`, `destroy`, at
+  every login (`/etc/xdg/autostart/luxos-sandbox-launchers.desktop`) and after `lux update`. Unchanged
+  files are not rewritten; stale wrappers/entries/icons are removed (only files carrying the
+  `luxos-sandbox launcher` / `X-LuxOS-Sandbox-Launcher` mark – your own files are never touched).
+- **Typed a command that is only in the sandbox** and the wrapper is missing (e.g. a terminal from
+  before the update)? The shell's "command not found" handler runs `luxos-sandbox __command-hint`,
+  which recreates the wrappers and prints how to start it
+  (`luxos-sandbox run --net -- pi`, or just `pi` in a new terminal). Dependencies and base-system
+  commands get no hint.
+- `lux remove <name>` removes a package that is only in the sandbox from the sandbox (asks first).
+
+**Security of the launchers.** Everything read from the sandbox is untrusted. `sync-launchers` reads
+the sandbox's package database (`/var/lib/pacman/local`), `.desktop` files and icons on the host
+**without starting the sandbox**, but only through directory file descriptors with `O_NOFOLLOW`
+(symlinks pointing anywhere, including inside, are not followed; FIFOs and devices are skipped) and with
+size limits. Only explicitly installed packages count (not dependencies, the base system or the build
+tools `base-devel`/`git`). Command names must match `^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$`. **No `Exec`
+line or other key is ever copied** from a sandbox `.desktop` file: the program is chosen from the
+package's own `/usr/bin` list, the generated `.desktop`/wrapper always runs `luxos-sandbox run`. Only
+`Name`/`Comment` (control, invisible and bidi characters removed, shortened) and the main freedesktop
+`Categories` are taken. Icons: regular PNG (≤ 1 MiB, ≤ 1024×1024) or SVG (≤ 256 KiB, without
+`DOCTYPE`/entities, scripts, event handlers, `foreignObject` and external references) from the standard
+icon folders, otherwise the Sandbox icon.
 
 ### Running a downloaded file
 

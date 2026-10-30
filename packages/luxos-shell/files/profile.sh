@@ -33,3 +33,4 @@ case ":$PATH:" in
     *:/usr/lib/luxos/override-bin:*) ;;
     *) export PATH="/usr/lib/luxos/override-bin:$PATH" ;;
 esac
+# Prikazy aplikaci ze sandboxu LuxOS (luxos-sandbox) pridava na KONEC PATH az /etc/profile.d/zz-luxos-sandbox.sh

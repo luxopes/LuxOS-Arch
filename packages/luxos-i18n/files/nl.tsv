@@ -4454,3 +4454,16 @@ Restart %s to run its games on %s.	Start %s opnieuw om de games op %s te spelen.
 Restart %s so its games use the integrated graphics again and save battery.	Start %s opnieuw zodat de games weer de geïntegreerde grafische kaart gebruiken en de accu sparen.
 discrete graphics	aparte grafische kaart
 cannot be started	kan niet worden gestart
+update commands and Launchpad entries for sandbox apps (automatic after changes and at login)	opdrachten en Launchpad-items van sandbox-apps bijwerken (automatisch na wijzigingen en bij het aanmelden)
+%s (Sandbox)	%s (Sandbox)
+Warning: could not update the sandbox app launchers: %s	Waarschuwing: starters van sandbox-apps konden niet worden bijgewerkt: %s
+Commands: %s	Opdrachten: %s
+Launchpad: %s	Launchpad: %s
+%s is installed in the sandbox (without access to your files). Start it with: %s	%s is in de sandbox geïnstalleerd (zonder toegang tot uw bestanden). Start het met: %s
+In a new terminal window just type: %s	Typ in een nieuw terminalvenster gewoon: %s
+%s runs in the sandbox: internet only, no access to your files.	%s draait in de sandbox: alleen internet, geen toegang tot uw bestanden.
+Find it in Launchpad as %s.	U vindt het in Launchpad als %s.
+Start it with: %s (runs in the sandbox, without access to your files)	Start het met: %s (draait in de sandbox, zonder toegang tot uw bestanden)
+To use it with your files, install it into the system: %s	Om het met uw bestanden te gebruiken, installeer het in het systeem: %s
+%s in the terminal starts the version installed in the system.	%s in de terminal start de versie die in het systeem is geïnstalleerd.
+Removed from the sandbox: %s	Uit de sandbox verwijderd: %s

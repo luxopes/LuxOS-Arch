@@ -4454,3 +4454,16 @@ Restart %s to run its games on %s.	Reinicia %s para ejecutar sus juegos con %s.
 Restart %s so its games use the integrated graphics again and save battery.	Reinicia %s para que sus juegos vuelvan a usar los gráficos integrados y ahorren batería.
 discrete graphics	gráfica dedicada
 cannot be started	no se puede iniciar
+update commands and Launchpad entries for sandbox apps (automatic after changes and at login)	actualizar los comandos y las entradas del Launchpad de las aplicaciones del sandbox (automático tras cambios y al iniciar sesión)
+%s (Sandbox)	%s (Sandbox)
+Warning: could not update the sandbox app launchers: %s	Aviso: no se pudieron actualizar los lanzadores de las aplicaciones del sandbox: %s
+Commands: %s	Comandos: %s
+Launchpad: %s	Launchpad: %s
+%s is installed in the sandbox (without access to your files). Start it with: %s	%s está instalado en el sandbox (sin acceso a sus archivos). Inícielo con: %s
+In a new terminal window just type: %s	En una nueva ventana de terminal basta con escribir: %s
+%s runs in the sandbox: internet only, no access to your files.	%s se ejecuta en el sandbox: solo internet, sin acceso a sus archivos.
+Find it in Launchpad as %s.	Lo encontrará en el Launchpad como %s.
+Start it with: %s (runs in the sandbox, without access to your files)	Inícielo con: %s (se ejecuta en el sandbox, sin acceso a sus archivos)
+To use it with your files, install it into the system: %s	Para usarlo con sus archivos, instálelo en el sistema: %s
+%s in the terminal starts the version installed in the system.	%s en el terminal inicia la versión instalada en el sistema.
+Removed from the sandbox: %s	Eliminado del sandbox: %s
