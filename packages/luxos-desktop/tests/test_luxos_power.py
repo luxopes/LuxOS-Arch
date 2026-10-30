@@ -713,6 +713,31 @@ class CleanHistory(unittest.TestCase):
         self.assertEqual(pts[-1], (9000, 100.0, 4))          # dotazeno do ted
         self.assertTrue(all(p is None or p[1] >= 98.0 for p in pts))
 
+    def test_old_record_held_through_window(self):
+        # Nabijecka, 100 % uz dva dny: posledni zaznam je starsi nez 24 h - graf ma celou caru na 100 %
+        m = load_power()
+        now = 1_000_000
+        raw = [(now - 200000, 95.0, 1), (now - 127000, 100.0, 4)]
+        pts = m.clean_history(raw, "charge", {"Percentage": 100.0, "State": 4}, now=now, span=86400)
+        self.assertEqual(pts[0], (now - 86400, 100.0, 4))
+        self.assertEqual(pts[-1], (now, 100.0, 4))
+        self.assertTrue(all(p and p[0] >= now - 86400 for p in pts))
+
+    def test_clip_keeps_recent_and_breaks(self):
+        m = load_power()
+        now = 1_000_000
+        raw = [(now - 90000, 50.0, 1), (now - 50000, 40.0, 1), (now - 40000, 0.0, 0), (now - 40000, 70.0, 1)]
+        pts = m.clean_history(raw, "charge", {"Percentage": 80.0, "State": 1}, now=now, span=86400)
+        self.assertEqual(pts[0], (now - 86400, 50.0, 1))     # hodnota z doby pred oknem
+        self.assertIn(None, pts)                             # start pocitace dal prerusi caru
+        self.assertEqual(pts[-1], (now, 80.0, 1))
+
+    def test_history_asks_for_raw_records(self):
+        # points=0 vraci v upower 1.91 prazdny seznam; musi byt vic nez pocet zaznamu
+        m = load_power()
+        self.assertGreater(m.HISTORY_POINTS, 10000)
+        self.assertGreaterEqual(m.HISTORY_LOOKBACK, 2 * 86400)
+
     def test_discharge_gap_breaks_line(self):
         m = load_power()
         raw = [(0, 80.0, 2), (600, 79.0, 2), (20000, 60.0, 2)]
