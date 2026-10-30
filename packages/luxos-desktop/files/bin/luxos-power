@@ -178,23 +178,29 @@ class Battery:
             return demo_info()
         return self.props(self.path) if self.path else None
 
-    def history(self, kind, span=86400, points=0):
-        """[(cas_s, hodnota, stav)] od nejstarsiho; kind = charge | rate. points=0: surove zaznamy
-        (prevzorkovani upower prumeruje pres mezery a vyrabi sikme cary)."""
+    def history(self, kind, span=86400, points=None):
+        """[(cas_s, hodnota, stav)] od nejstarsiho; kind = charge | rate. upower vraci surove zaznamy jen
+        pri points vetsim nez jejich pocet (mensi = prevzorkovani pres mezery se sikmymi carami, 0 = nic).
+        Zapisuje jen zmeny - pri nabijecce na 100 % treba dva dny nic: bere se tyden a orizne na span."""
         if DEMO:
             return demo_history(kind)
         if not self.path:
             return []
         try:
             r = self.bus.call_sync(UP, self.path, UP + ".Device", "GetHistory",
-                                   GLib.Variant("(suu)", (kind, span, points)), GLib.VariantType("(a(udu))"),
-                                   0, 3000, None)
-            return clean_history(r.unpack()[0], kind, self.info() or {})
+                                   GLib.Variant("(suu)", (kind, HISTORY_LOOKBACK, points or HISTORY_POINTS)),
+                                   GLib.VariantType("(a(udu))"), 0, 3000, None)
+            return clean_history(r.unpack()[0], kind, self.info() or {}, span=span)
         except GLib.Error:
             return []
 
 
-def clean_history(raw, kind, info, now=None, gap=2 * 3600):
+# Zaznamu upower za tyden je stovky; points musi byt vetsi nez jejich pocet (viz BatteryInfo.history)
+HISTORY_LOOKBACK = 7 * 86400
+HISTORY_POINTS = 100000
+
+
+def clean_history(raw, kind, info, now=None, gap=2 * 3600, span=None):
     """Zaznamy upower -> body grafu. upower pri kazdem startu zapise 0 se stavem "unknown" (neni to
     vybiti) a zapisuje jen zmeny: hodnota plati az do dalsiho zaznamu (schody), posledni do ted.
     None = preruseni cary (vypnuty pocitac: zaznam "unknown" nebo mezera bez zmeny u vybijeni)."""
@@ -223,6 +229,29 @@ def clean_history(raw, kind, info, now=None, gap=2 * 3600):
             out.append((now, float(cur), state))
     while out and out[-1] is None:
         out.pop()
+    if span is not None:
+        out = clip_history(out, now - span)
+    return out
+
+
+def clip_history(pts, start):
+    """Jen body od start; hodnota platna na zacatku okna (posledni starsi zaznam) zacina na start."""
+    out, before = [], None
+    for p in pts:
+        if p is None:
+            if out:
+                out.append(None)
+            else:
+                before = None
+            continue
+        if p[0] < start:
+            before = p
+            continue
+        if before is not None and not out:
+            out.append((start, before[1], before[2]))
+        out.append(p)
+    while out and out[0] is None:
+        out.pop(0)
     return out
 
 
