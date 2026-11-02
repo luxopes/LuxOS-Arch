@@ -4467,3 +4467,5 @@ Start it with: %s (runs in the sandbox, without access to your files)	Indítás:
 To use it with your files, install it into the system: %s	Ha a saját fájljaival szeretné használni, telepítse a rendszerbe: %s
 %s in the terminal starts the version installed in the system.	A(z) %s a terminálban a rendszerbe telepített változatot indítja.
 Removed from the sandbox: %s	Eltávolítva a homokozóból: %s
+The printer driver could not be installed. Check the internet connection and try again.	A nyomtató illesztőprogramját nem sikerült telepíteni. Ellenőrizze az internetkapcsolatot, és próbálja újra.
+LuxOS did not find a driver for this printer. Choose one in Advanced…	A LuxOS nem talált illesztőprogramot ehhez a nyomtatóhoz. Válasszon egyet a Speciális… menüben.

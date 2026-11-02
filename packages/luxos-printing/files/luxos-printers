@@ -1093,8 +1093,12 @@ class AddDialog(Gtk.Dialog):
             else:
                 b.set_label(_("Add"))
                 b.set_sensitive(True)
+                why = {"driver": _("The printer driver could not be installed. Check the internet connection "
+                                   "and try again."),
+                       "manual": _("LuxOS did not find a driver for this printer. Choose one in Advanced…")}
                 self.win.error(_("The printer could not be added"),
-                               _("Make sure it is turned on and try again.") + ("\n\n" + err if err else ""))
+                               why.get(res.get("needs"), _("Make sure it is turned on and try again."))
+                               + ("\n\n" + err if err else ""))
         run_helper(["add", d["key"]], done)
 
 

@@ -4467,3 +4467,5 @@ Start it with: %s (runs in the sandbox, without access to your files)	Inícielo 
 To use it with your files, install it into the system: %s	Para usarlo con sus archivos, instálelo en el sistema: %s
 %s in the terminal starts the version installed in the system.	%s en el terminal inicia la versión instalada en el sistema.
 Removed from the sandbox: %s	Eliminado del sandbox: %s
+The printer driver could not be installed. Check the internet connection and try again.	No se pudo instalar el controlador de la impresora. Compruebe la conexión a internet e inténtelo de nuevo.
+LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS no encontró un controlador para esta impresora. Elija uno en Avanzado…

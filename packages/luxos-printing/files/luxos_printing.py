@@ -256,6 +256,13 @@ def _ppd_rank(ppd):
     return r
 
 
+def _cmd_mismatch(ppd, device_id):
+    """Ovladac pro jiny jazyk tiskarny, nez jaky hlasi (Canon: CARPS2 vs UFR II LT/LIPSLX)."""
+    cmd = parse_device_id(device_id).get("CMD", "").upper()
+    mm = ppd.get("make-and-model", "").upper()
+    return bool(cmd) and "CARPS" in mm and "CARPS" not in cmd
+
+
 def pick_ppd(models, device_id):
     """Nejlepsi ovladac pro zarizeni (models = parse_lpinfo(lpinfo -l -m, 'Model'))."""
     dev = parse_device_id(device_id)
@@ -274,13 +281,16 @@ def pick_ppd(models, device_id):
             mm = re.split(r",| - | cups| foomatic", mm)[0].strip()
             if norm_mdl(mfg, mm) == mdl and (mm.startswith(mfg + " ") or mfg == "hp" and mm.startswith("hp ")):
                 score = 80
+            elif mm.startswith(mfg + " ") and re.fullmatch(re.escape(mdl) + r" series [a-z0-9 ]+",
+                                                         norm_mdl(mfg, mm.removesuffix(" series"))):
+                score = 70              # vyrobce pridava jazyk tiskarny: "Canon MF4100 Series UFRII LT"
             elif mm.startswith(mfg + " ") and _family(mfg, mdl) and \
                     re.fullmatch(re.escape(_family(mfg, mdl)) + "0", norm_mdl(mfg, mm).replace(" ", "")):
                 score = 60              # Samsung ULD: jedno PPD pro celou radu (M2026 -> "M2020 Series")
         if not score:
             continue
         # oba zpusoby shody urcuji stejny model - rozhoduje kvalita ovladace, pak presnost shody
-        cand = (_ppd_rank(ppd), score, ppd["name"])
+        cand = (_ppd_rank(ppd) - (5 if _cmd_mismatch(ppd, device_id) else 0), score, ppd["name"])
         if best is None or cand[:2] > best[:2]:
             best = cand
     return best[2] if best else None
