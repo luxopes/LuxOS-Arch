@@ -6,8 +6,8 @@
 # verejny repozitar); preklada se tady prekladacem LSL jako programy v luxos-desktop.
 
 pkgname=luxai
-pkgver=2.0.0
-pkgrel=3
+pkgver=2.0.1
+pkgrel=1
 pkgdesc="LuxAI - AI assistant that can work with your computer (chat and agent mode)"
 arch=(x86_64)
 url="https://lux-ai.cz"
@@ -27,7 +27,7 @@ optdepends=('libnotify: desktop notifications from the agent'
 options=(!strip !debug)
 install=luxai.install
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('c887b44a7eff171f6f937652b641645a15be6d255ed2c61853322e6adc7ca3aa')
+sha256sums=('ced229d1cee574ed4629c88393403a54741553b106b4515eee2ef0b230834047')
 
 build() {
     cd "$pkgname-$pkgver"
