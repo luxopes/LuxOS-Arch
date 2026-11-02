@@ -4467,3 +4467,5 @@ Start it with: %s (runs in the sandbox, without access to your files)	Start het 
 To use it with your files, install it into the system: %s	Om het met uw bestanden te gebruiken, installeer het in het systeem: %s
 %s in the terminal starts the version installed in the system.	%s in de terminal start de versie die in het systeem is geïnstalleerd.
 Removed from the sandbox: %s	Uit de sandbox verwijderd: %s
+The printer driver could not be installed. Check the internet connection and try again.	Het printerstuurprogramma kon niet worden geïnstalleerd. Controleer de internetverbinding en probeer het opnieuw.
+LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS heeft geen stuurprogramma voor deze printer gevonden. Kies er een via Geavanceerd…

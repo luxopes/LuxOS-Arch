@@ -4468,3 +4468,5 @@ Start it with: %s (runs in the sandbox, without access to your files)	Запус
 To use it with your files, install it into the system: %s	Щоб використовувати його зі своїми файлами, встановіть його в систему: %s
 %s in the terminal starts the version installed in the system.	%s у терміналі запускає версію, встановлену в системі.
 Removed from the sandbox: %s	Видалено з пісочниці: %s
+The printer driver could not be installed. Check the internet connection and try again.	Не вдалося встановити драйвер принтера. Перевірте підключення до інтернету й спробуйте ще раз.
+LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS не знайшов драйвер для цього принтера. Виберіть його в меню Додатково…

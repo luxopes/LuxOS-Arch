@@ -4467,3 +4467,5 @@ Start it with: %s (runs in the sandbox, without access to your files)	Starta med
 To use it with your files, install it into the system: %s	För att använda den med dina filer, installera den i systemet: %s
 %s in the terminal starts the version installed in the system.	%s i terminalen startar versionen som är installerad i systemet.
 Removed from the sandbox: %s	Borttaget från sandlådan: %s
+The printer driver could not be installed. Check the internet connection and try again.	Skrivardrivrutinen kunde inte installeras. Kontrollera internetanslutningen och försök igen.
+LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS hittade ingen drivrutin för den här skrivaren. Välj en under Avancerat…

@@ -4467,3 +4467,5 @@ Start it with: %s (runs in the sandbox, without access to your files)	Spustíte 
 To use it with your files, install it into the system: %s	Ak ho chcete používať so svojimi súbormi, nainštalujte ho do systému: %s
 %s in the terminal starts the version installed in the system.	%s v termináli spustí verziu nainštalovanú v systéme.
 Removed from the sandbox: %s	Odstránené zo sandboxu: %s
+The printer driver could not be installed. Check the internet connection and try again.	Ovládač tlačiarne sa nepodarilo nainštalovať. Skontrolujte pripojenie na internet a skúste to znova.
+LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS pre túto tlačiareň nenašiel ovládač. Vyberte ho v ponuke Rozšírené…

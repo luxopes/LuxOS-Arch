@@ -105,6 +105,23 @@ class Drivers(unittest.TestCase):
         self.assertIsNone(lp.pick_ppd(self.models, "MFG:Brother;MDL:HL-1110;"))
         self.assertIsNone(lp.pick_ppd(self.models, ""))
 
+    def test_canon_ufr_ppd_names(self):
+        """Canon MF4100 (USB): PPD ovladace cnrdrvcups-lb ma jazyk za nazvem ("... Series UFRII LT")."""
+        canon = lp.parse_lpinfo(
+            "Model:  name = CNRCUPSMF4100ZJ.ppd\n        make-and-model = Canon MF4100 Series CARPS2\n"
+            "        device-id = \n"
+            "Model:  name = CNRCUPSMF4100ZK.ppd\n        make-and-model = Canon MF4100 Series UFRII LT\n"
+            "        device-id = \n"
+            "Model:  name = CNRCUPSMF410ZK.ppd\n        make-and-model = Canon MF410 Series UFR II\n"
+            "        device-id = \n"
+            "Model:  name = CNRCUPSMF4010ZJ.ppd\n        make-and-model = Canon MF4010 Series CARPS2\n"
+            "        device-id = \n", "Model")
+        did = "MFG:Canon;MDL:MF4100 Series;CMD:LIPSLX,CPCA;CLS:PRINTER;DES:Canon MF4100 Series;"
+        self.assertEqual(lp.pick_ppd(canon, did), "CNRCUPSMF4100ZK.ppd")      # UFR II LT, ne CARPS2
+        self.assertEqual(lp.pick_ppd(canon, "MFG:Canon;MDL:MF410 Series;CMD:LIPSLX;"), "CNRCUPSMF410ZK.ppd")
+        self.assertEqual(lp.pick_ppd(canon, "MFG:Canon;MDL:MF4010 Series;CMD:CARPS2;"), "CNRCUPSMF4010ZJ.ppd")
+        self.assertIsNone(lp.pick_ppd(canon, "MFG:Canon;MDL:MF41;CMD:LIPSLX;"))  # zadna shoda podle prefixu
+
     def test_generic(self):
         self.assertEqual(lp.generic_ppd("MFG:X;MDL:Y;CMD:PJL,PCL,POSTSCRIPT;"), "drv:///sample.drv/generic.ppd")
         self.assertEqual(lp.generic_ppd("CMD:PJL,PCLXL;"), "lsb/usr/cupsfilters/pxlmono.ppd")
