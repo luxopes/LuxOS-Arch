@@ -39,6 +39,7 @@ SIG = {"Address": "s", "Name": "s", "Alias": "s", "Powered": "b", "Discoverable"
        "Discovering": "b"}
 DEV = A + "/dev_AA_BB_CC_DD_EE_01"
 dev_props = {"Address": GLib.Variant("s", "AA:BB:CC:DD:EE:01"), "Alias": GLib.Variant("s", "Pixel Test"),
+             "Name": GLib.Variant("s", "Pixel Test"), "RSSI": GLib.Variant("n", -55),
              "Adapter": GLib.Variant("o", A), "Paired": GLib.Variant("b", False), "Trusted": GLib.Variant("b", False)}
 XML = """<node>
 <interface name="org.freedesktop.DBus.ObjectManager">
@@ -218,6 +219,32 @@ class FakeBluez(BusFixture):
             os.unlink(self.log + ".deny")
         self.assertEqual(self.alias(bz), "luxos-pc")
 
+    @staticmethod
+    def props_changed(iface, changed, invalidated=()):
+        return GLib.Variant("(sa{sv}as)", (iface, changed, list(invalidated)))
+
+    def test_rssi_does_not_reload(self):
+        """Pri hledani posila BlueZ RSSI zarizeni v okoli nekolikrat za sekundu - bez nacteni a prekresleni."""
+        changes = []
+        bz = bt.Bluez(lambda: changes.append(1))
+        self.addCleanup(bz.close)
+        dev = "/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01"
+        changes.clear()
+        for changed in ({"RSSI": GLib.Variant("n", -60)}, {"TxPower": GLib.Variant("n", 4)},
+                        {"RSSI": GLib.Variant("n", -61), "ManufacturerData": GLib.Variant("a{qv}", {})}):
+            bz.on_props(None, None, dev, None, None, self.props_changed("org.bluez.Device1", changed))
+        self.assertEqual(changes, [])
+        # zmeny, ktere okno ukazuje, se nactou
+        for iface, changed in (("org.bluez.Device1", {"Connected": GLib.Variant("b", True)}),
+                               ("org.bluez.Device1", {"RSSI": GLib.Variant("n", -50), "Name": GLib.Variant("s", "x")}),
+                               ("org.bluez.Battery1", {"Percentage": GLib.Variant("y", 70)}),
+                               ("org.bluez.Adapter1", {"Discovering": GLib.Variant("b", True)})):
+            bz.on_props(None, None, dev, None, None, self.props_changed(iface, changed))
+        self.assertEqual(len(changes), 4)
+        # zneplatnena vlastnost (RSSI zmizelo = zarizeni mimo dosah) se nacte
+        bz.on_props(None, None, dev, None, None, self.props_changed("org.bluez.Device1", {}, ["RSSI"]))
+        self.assertEqual(len(changes), 5)
+
 
 @unittest.skipUnless(os.environ.get("DISPLAY") and "xvfb-run" in os.environ.get("XAUTHORITY", ""),
                      "needs xvfb-run (never the real display)")
@@ -380,6 +407,61 @@ class Window(BusFixture):
         win.visible_failed = True                            # BlueZ viditelnost odmitl
         self.bluez_set("Discoverable", GLib.Variant("b", False))
         self.assertTrue(self.wait(lambda: win.hint.get_text() == "Not visible to other devices."))
+
+    # ---- pamet: okno otevrene hodiny (sluchatka pripojena, hledani bezi) ----
+    def test_refresh_does_not_leak_rows(self):
+        """Prekresleni radky nahradi a stare uvolni (drive zustavaly v pameti: 2,2 GB za 19 h)."""
+        import gc
+        import weakref
+        win = self.make()
+        self.assertTrue(self.wait(lambda: win.lists["nearby"].get_children()))
+        refs = [weakref.ref(r) for lb in win.lists.values() for r in lb.get_children()]
+        self.assertTrue(refs)
+        for _ in range(50):
+            win.refresh()
+        self.wait(lambda: False, 0.2)
+        gc.collect()
+        self.assertEqual([r for r in refs if r() is not None], [], "stare radky zustaly v pameti")
+        self.assertEqual(len(win.lists["nearby"].get_children()), 1)
+        # pocet objektu Pythonu po dalsich prekreslenich neroste
+        gc.collect()
+        before = len(gc.get_objects())
+        for _ in range(200):
+            win.refresh()
+        self.wait(lambda: False, 0.2)
+        gc.collect()
+        self.assertLess(len(gc.get_objects()) - before, 200)
+
+    def test_scan_pauses_in_background(self):
+        """Okno v pozadi po SCAN_IDLE prestane hledat zarizeni, po navratu hleda znovu."""
+        win = self.make()
+        open(self.log, "w").close()
+        win.is_active = lambda: False
+        win.on_active()
+        self.assertTrue(win.scan_pause_timer)
+        self.assertFalse(win.pause_scan())               # vyprseni SCAN_IDLE
+        self.assertTrue(win.scan_paused)
+        self.assertIn({"call": "StopDiscovery"}, self.calls())
+        open(self.log, "w").close()
+        win.is_active = lambda: True
+        win.on_active()
+        self.assertFalse(win.scan_paused)
+        self.assertEqual(win.scan_pause_timer, 0)
+        self.assertTrue(self.wait(lambda: {"call": "StartDiscovery"} in self.calls()))
+        # kratky odskok do jineho okna hledani nezastavi
+        open(self.log, "w").close()
+        win.is_active = lambda: False
+        win.on_active()
+        win.is_active = lambda: True
+        win.on_active()
+        self.assertEqual(win.scan_pause_timer, 0)
+        self.wait(lambda: False, 0.2)
+        self.assertNotIn({"call": "StopDiscovery"}, self.calls())
+        # zavreni okna zrusi casovac
+        win.is_active = lambda: False
+        win.on_active()
+        win.destroy()
+        self.assertEqual(win.scan_pause_timer, 0)
 
     # ---- agent: parovani, ktere zacal telefon ----
     def agent_call(self, win, method, args, sig):

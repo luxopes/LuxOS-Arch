@@ -162,14 +162,27 @@ would kill the whole session. Drop-in `/usr/lib/systemd/system/earlyoom.service.
 earlyoom -m 4,2 -s 8,4 -r 0 -n --avoid "<protected>" --prefer "<preferred>"
 ```
 
-- When free RAM < 4 % **and** free swap (zram) < 8 %, the largest process gets `SIGTERM`; below 2 % / 4 %
-  it gets `SIGKILL`.
-- Protected (`--avoid`): Xorg/Xwayland, lightdm, systemd*, xfce4-session, xfwm4, xfce4-panel,
-  xfdesktop, xfsettingsd, plank, luxos-hub, luxos-menubar, luxos-greeter, PipeWire, WirePlumber,
-  NetworkManager, wpa_supplicant, D-Bus, the accessibility bus (at-spi: when it is killed and later
-  restarts, every running GTK app and the top bar crash), polkitd, udisksd, sshd, earlyoom.
+- When free RAM < 4 % **and** free swap (zram) < 8 %, the process with the highest `oom_score` gets
+  `SIGTERM`; below 2 % / 4 % it gets `SIGKILL`. `--avoid` subtracts 300 from the score, `--prefer`
+  adds 300 (names are `/proc/PID/comm`, at most 15 characters).
+- Protected (`--avoid`): Xorg/Xwayland, lightdm, systemd*, xfce4-session, xfwm4, xfce4-panel and its
+  plugins (`wrapper-2.0`), xfdesktop, xfsettingsd, plank, luxos-hub, luxos-menubar, luxos-greeter,
+  PipeWire, WirePlumber, NetworkManager, wpa_supplicant, D-Bus, the accessibility bus (at-spi: when it
+  is killed and later restarts, every running GTK app and the top bar crash), polkitd, udisksd, sshd,
+  earlyoom, and the small session services: xfce4-notifyd, xfconfd, xfce4-power-manager,
+  xfce4-screensaver, light-locker, polkit agents, gnome-keyring, dconf-service, xdg-desktop-portal,
+  xdg-document-portal, xdg-permission-store, flatpak-portal/session-helper, gvfs, bamfdaemon,
+  nm-applet, upowerd, bluetoothd. Reason: systemd gives every user service `oom_score_adj` 200, so a
+  3–15 MiB service scored higher than a 4 GB game (adj 0); before 1.0 earlyoom killed dozens of them
+  (notifications 5× in 2 s) without freeing memory. Protected processes can still be killed when
+  they really use the most memory.
 - Preferred victims (`--prefer`): browser tabs/content processes, chromium/chrome, electron, code,
-  node, java, qemu-system-x86.
+  node, java, qemu-system-x86, steamwebhelper, WebKitWebProcess.
+- `xfce4-notifyd` restarts by itself 2 s after it was killed (drop-in
+  `/usr/lib/systemd/user/xfce4-notifyd.service.d/10-luxos.conf`: `Restart=on-abnormal`,
+  `RestartForceExitStatus=SIGTERM`), so notifications come back and D-Bus activation does not hang.
+  The panel volume plugin sends its notifications asynchronously (1.5 s limit), so a stuck
+  notification server can no longer freeze it.
 - `luxos-hub` shows a critical notification **"Memory is running low – “<app>” used too much memory
   and was closed so the computer would not freeze."**
 

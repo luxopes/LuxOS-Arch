@@ -1,0 +1,301 @@
+diff --git a/panel-plugin/pulseaudio-button.c b/panel-plugin/pulseaudio-button.c
+--- a/panel-plugin/pulseaudio-button.c
++++ b/panel-plugin/pulseaudio-button.c
+@@ -260,6 +260,12 @@
+   if ((event->type == GDK_2BUTTON_PRESS) || (event->type == GDK_3BUTTON_PRESS))
+     return TRUE;
+ 
++  /* LuxOS: nabidka, ktera neni na obrazovce (nepodarilo se ji otevrit - napr. cizi grab mysi,
++     nebo ji skryl vypadek spojeni se zvukovym serverem bez "deactivate"), nesmi tlacitko
++     zablokovat - ikona hlasitosti by uz na klik nereagovala. Uklidit a otevrit znovu. */
++  if (event->button == 1 && button->menu != NULL && !gtk_widget_get_mapped (GTK_WIDGET (button->menu)))
++    pulseaudio_button_menu_deactivate (button, GTK_MENU_SHELL (button->menu));
++
+   if (event->button == 1 && button->menu == NULL) /* left button */
+     {
+       gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), TRUE);
+@@ -286,6 +292,10 @@
+ G_GNUC_END_IGNORE_DEPRECATIONS
+ #endif
+ 
++      /* LuxOS: GTK pri neuspesnem grabu nabidku neukaze a "deactivate" neposle */
++      if (button->menu != NULL && !gtk_widget_get_visible (GTK_WIDGET (button->menu)))
++        pulseaudio_button_menu_deactivate (button, GTK_MENU_SHELL (button->menu));
++
+       return TRUE;
+     }
+ 
+diff --git a/panel-plugin/pulseaudio-menu.c b/panel-plugin/pulseaudio-menu.c
+--- a/panel-plugin/pulseaudio-menu.c
++++ b/panel-plugin/pulseaudio-menu.c
+@@ -108,6 +108,9 @@
+   if (menu->volume_mic_changed_id != 0)
+     g_signal_handler_disconnect (G_OBJECT (menu->volume), menu->volume_mic_changed_id);
+ 
++  /* LuxOS: nabidka drzi vlastni referenci na volume (viz pulseaudio_menu_new) */
++  g_object_unref (menu->volume);
++
+   G_OBJECT_CLASS (pulseaudio_menu_parent_class)->finalize (object);
+ }
+ 
+@@ -322,7 +325,12 @@
+       menu->volume_mic_changed_id = 0;
+     }
+ 
++  /* LuxOS: zavrit pres deactivate, ne jen skryt - jinak tlacitko v liste nevi, ze nabidka
++     zmizela (button->menu zustane nastavene) a ikona hlasitosti uz nejde otevrit */
++  g_object_ref (menu);
++  gtk_menu_shell_deactivate (GTK_MENU_SHELL (menu));
+   gtk_widget_set_visible (GTK_WIDGET (menu), FALSE);
++  g_object_unref (menu);
+ }
+ 
+ 
+@@ -543,7 +551,9 @@
+   menu = g_object_new (TYPE_PULSEAUDIO_MENU, NULL);
+   gtk_menu_set_screen (GTK_MENU (menu), gscreen);
+ 
+-  menu->volume = volume;
++  /* LuxOS: vlastni reference - plugin pri ukonceni uvolni volume driv nez nabidku a jeji finalize
++     by odpojovala signaly od uz uvolneneho objektu (pad wrapperu v g_signal_handler_disconnect) */
++  menu->volume = g_object_ref (volume);
+   menu->config = config;
+   menu->mpris = mpris;
+   menu->button = widget;
+diff --git a/panel-plugin/pulseaudio-notify.c b/panel-plugin/pulseaudio-notify.c
+--- a/panel-plugin/pulseaudio-notify.c
++++ b/panel-plugin/pulseaudio-notify.c
+@@ -35,7 +35,7 @@
+ #endif
+ 
+ #ifdef HAVE_LIBNOTIFY
+-#include <libnotify/notify.h>
++#include <gio/gio.h>
+ #include <libxfce4util/libxfce4util.h>
+ 
+ 
+@@ -46,6 +46,13 @@
+ #define V_MEDIUM 2
+ #define V_HIGH   3
+ 
++/* LuxOS: OSD hlasitosti se posila asynchronne primo pres D-Bus (libnotify posila synchronne a pri
++   zaseknutem xfce4-notifyd blokoval cely plugin 25 s - ikona hlasitosti nesla otevrit, klavesy
++   nefungovaly). Odpoved se ceka nejvys NOTIFY_TIMEOUT_MS; dokud predchozi oznameni nema odpoved,
++   nove se neposila, jen se po odpovedi posle jednou aktualni stav. */
++#define NOTIFY_TIMEOUT_MS 1500
++#define NOTIFY_APP_NAME   "Xfce volume control"
++
+ 
+ 
+ /* Icons for different volume levels */
+@@ -80,8 +87,12 @@
+   PulseaudioVolume     *volume;
+   PulseaudioButton     *button;
+ 
+-  NotifyNotification   *notification;
+-  NotifyNotification   *notification_mic;
++  GDBusConnection      *bus;
++  GCancellable         *cancellable;
++  guint32               id[2];        /* replaces_id: [0] vystup, [1] mikrofon */
++  gboolean              pending[2];   /* Notify ceka na odpoved */
++  gboolean              again[2];     /* behem cekani se hlasitost zmenila - poslat znovu */
++  gboolean              failed;       /* posledni volani selhalo (varovani jen jednou) */
+ 
+   gulong                volume_changed_id;
+   gulong                volume_mic_changed_id;
+@@ -112,25 +123,19 @@
+ static void
+ pulseaudio_notify_init (PulseaudioNotify *notify)
+ {
+-  notify->notification = NULL;
+-  notify->notification_mic = NULL;
++  GError *error = NULL;
++
+   notify->volume_changed_id = 0;
+   notify->volume_mic_changed_id = 0;
++  notify->cancellable = g_cancellable_new ();
+ 
+-  notify_init ("Xfce volume control");
+-
+-  // Calling "notify_get_server_info" is needed to see icon in first notification popup, see:
+-  // - https://gitlab.gnome.org/GNOME/libnotify/-/issues/53
+-  // - https://gitlab.gnome.org/GNOME/libnotify/-/issues/55
+-  // - https://gitlab.gnome.org/GNOME/libnotify/-/issues/58
+-  notify_get_server_info (NULL, NULL, NULL, NULL);
+-
+-  notify->notification = notify_notification_new ("xfce4-pulseaudio-plugin", NULL, NULL);
+-  notify_notification_set_timeout (notify->notification, 2000);
+-  notify_notification_set_hint (notify->notification, "transient", g_variant_new_boolean (TRUE));
+-  notify->notification_mic = notify_notification_new ("xfce4-pulseaudio-plugin", NULL, NULL);
+-  notify_notification_set_timeout (notify->notification_mic, 2000);
+-  notify_notification_set_hint (notify->notification_mic, "transient", g_variant_new_boolean (TRUE));
++  /* spojeni se sbernici sezeni (sdilene, nezavisi na tom, zda server oznameni odpovida) */
++  notify->bus = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, &error);
++  if (notify->bus == NULL)
++    {
++      g_warning ("Cannot connect to the session bus: %s", error->message);
++      g_error_free (error);
++    }
+ }
+ 
+ 
+@@ -142,22 +147,89 @@
+ 
+   notify->config = NULL;
+ 
+-  g_object_unref (G_OBJECT (notify->notification));
+-  notify->notification = NULL;
+-  g_object_unref (G_OBJECT (notify->notification_mic));
+-  notify->notification_mic = NULL;
+-  notify_uninit ();
++  /* rozpracovana volani pak objekt nepouziji (kontroluji zruseni pred prvnim pristupem) */
++  g_cancellable_cancel (notify->cancellable);
++  g_object_unref (notify->cancellable);
++  g_clear_object (&notify->bus);
+ 
+   (*G_OBJECT_CLASS (pulseaudio_notify_parent_class)->finalize) (object);
+ }
+ 
+ 
+ 
++typedef struct
++{
++  PulseaudioNotify *notify;
++  GCancellable     *cancellable;
++  gboolean          mic;
++} NotifyCall;
++
++
++
++static void pulseaudio_notify_notify (PulseaudioNotify *notify, gboolean mic);
++
++
++
++static void
++pulseaudio_notify_sent (GObject      *source,
++                        GAsyncResult *result,
++                        gpointer      user_data)
++{
++  NotifyCall       *call = user_data;
++  PulseaudioNotify *notify;
++  GError           *error = NULL;
++  GVariant         *ret;
++  gint              i = call->mic ? 1 : 0;
++
++  ret = g_dbus_connection_call_finish (G_DBUS_CONNECTION (source), result, &error);
++
++  if (g_cancellable_is_cancelled (call->cancellable))
++    {
++      /* plugin uz skoncil - notify neexistuje */
++      if (ret != NULL)
++        g_variant_unref (ret);
++      g_clear_error (&error);
++      g_object_unref (call->cancellable);
++      g_free (call);
++      return;
++    }
++
++  notify = call->notify;
++  notify->pending[i] = FALSE;
++
++  if (ret != NULL)
++    {
++      g_variant_get (ret, "(u)", &notify->id[i]);
++      g_variant_unref (ret);
++      notify->failed = FALSE;
++    }
++  else
++    {
++      if (!notify->failed)
++        g_warning ("Error while sending notification : %s", error->message);
++      g_error_free (error);
++      notify->failed = TRUE;
++      notify->id[i] = 0;   /* server mohl mezitim skoncit, puvodni oznameni uz neexistuje */
++    }
++
++  g_object_unref (call->cancellable);
++  g_free (call);
++
++  if (notify->again[i])
++    {
++      notify->again[i] = FALSE;
++      pulseaudio_notify_notify (notify, i == 1);
++    }
++}
++
++
++
+ static void
+ pulseaudio_notify_notify (PulseaudioNotify *notify, gboolean mic)
+ {
+-  GError             *error = NULL;
+-  NotifyNotification *notification;
++  NotifyCall         *call;
++  GVariantBuilder     hints;
++  gint                i = mic ? 1 : 0;
+   gdouble             volume;
+   gint                volume_i;
+   gboolean            muted;
+@@ -173,7 +245,16 @@
+       pulseaudio_button_get_menu (notify->button) != NULL)
+     return;
+ 
+-  notification = mic ? notify->notification_mic : notify->notification;
++  if (notify->bus == NULL)
++    return;
++
++  /* predchozi oznameni jeste nema odpoved: neblokovat ani nehromadit, poslat az po odpovedi */
++  if (notify->pending[i])
++    {
++      notify->again[i] = TRUE;
++      return;
++    }
++
+   icons_array = mic ? icons_mic : icons;
+ 
+   volume = (mic ? pulseaudio_volume_get_volume_mic : pulseaudio_volume_get_volume) (notify->volume);
+@@ -204,21 +285,30 @@
+   else
+     icon = icons_array[V_HIGH];
+ 
+-  notify_notification_update (notification,
+-                              title,
+-                              NULL,
+-                              icon);
++  g_variant_builder_init (&hints, G_VARIANT_TYPE ("a{sv}"));
++  g_variant_builder_add (&hints, "{sv}", "transient", g_variant_new_boolean (TRUE));
++  g_variant_builder_add (&hints, "{sv}", "value", g_variant_new_int32 (MIN (100, volume_i)));
++
++  call = g_new0 (NotifyCall, 1);
++  call->notify = notify;
++  call->cancellable = g_object_ref (notify->cancellable);
++  call->mic = mic;
++  notify->pending[i] = TRUE;
++
++  g_dbus_connection_call (notify->bus,
++                          "org.freedesktop.Notifications",
++                          "/org/freedesktop/Notifications",
++                          "org.freedesktop.Notifications",
++                          "Notify",
++                          g_variant_new ("(susssasa{sv}i)", NOTIFY_APP_NAME, notify->id[i], icon,
++                                         title, "", NULL, &hints, 2000),
++                          G_VARIANT_TYPE ("(u)"),
++                          G_DBUS_CALL_FLAGS_NONE,
++                          NOTIFY_TIMEOUT_MS,
++                          notify->cancellable,
++                          pulseaudio_notify_sent,
++                          call);
+   g_free (title);
+-
+-  notify_notification_set_hint (notification,
+-                                "value",
+-                                g_variant_new_int32 (MIN (100, volume_i)));
+-
+-  if (!notify_notification_show (notification, &error))
+-    {
+-      g_warning ("Error while sending notification : %s\n", error->message);
+-      g_error_free (error);
+-    }
+ }
+ 
+ 
