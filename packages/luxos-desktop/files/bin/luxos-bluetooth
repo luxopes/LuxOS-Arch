@@ -53,6 +53,7 @@ CSS = b"""
 
 VISIBLE_TIMEOUT = 180   # s, BlueZ viditelnost vypne sam (pad okna); otevrene okno ji obnovuje
 VISIBLE_REFRESH = 60    # s, jak casto okno obnovi DiscoverableTimeout (BlueZ znovu spusti odpocet)
+SCAN_IDLE = 120         # s, po jak dlouhe dobe v pozadi (okno neaktivni) okno prestane hledat zarizeni
 COMPANION_UUID = "ad9b7c10-6ce5-4f35-9952-728f760fcb70"   # sluzbu LuxOS Companion schvaluje aplikace sama
 ALIAS_MAX = 248   # nejdelsi jmeno zarizeni v Bluetooth (HCI local name, bajty UTF-8)
 
@@ -78,6 +79,9 @@ def alias_problem(name):
     return None
 
 
+# Vlastnosti Device1, ktere okno nezobrazuje a ktere BlueZ pri hledani meni porad dokola
+IGNORED_PROPS = {"RSSI", "TxPower", "ManufacturerData", "ServiceData", "AdvertisingData", "AdvertisingFlags"}
+
 KIND = {
     "audio-headset": "Headphones", "audio-headphones": "Headphones", "audio-card": "Speaker",
     "input-mouse": "Mouse", "input-keyboard": "Keyboard", "input-gaming": "Game controller",
@@ -96,7 +100,15 @@ class Bluez:
                                                lambda *_a: self.reload())
                      for sig in ("InterfacesAdded", "InterfacesRemoved")]
         self.subs.append(self.bus.signal_subscribe(BLUEZ, "org.freedesktop.DBus.Properties", "PropertiesChanged",
-                                                   None, None, 0, lambda *_a: self.reload()))
+                                                   None, None, 0, self.on_props))
+        self.reload()
+
+    def on_props(self, _conn, _sender, _path, _iface, _signal, params):
+        # Pri hledani posila BlueZ silu signalu (RSSI) kazdeho zarizeni v okoli nekolikrat za sekundu;
+        # okno ji nezobrazuje - kvuli ni nenacitat vsechno znovu a neprekreslovat
+        iface, changed, invalidated = params.unpack()
+        if iface == "org.bluez.Device1" and changed and not invalidated and set(changed) <= IGNORED_PROPS:
+            return
         self.reload()
 
     def close(self):
@@ -371,12 +383,40 @@ class BluetoothWindow(Gtk.Window):
         self.refresh()
         self.start_scan()
         self.visible_timer = GLib.timeout_add_seconds(VISIBLE_REFRESH, self.renew_visible)
+        # Hledani zarizeni zbytecne zatezuje radio (horsi zvuk sluchatek, baterie) a BlueZ pri nem
+        # posila stale udalosti - okno odlozene v pozadi ho po chvili zastavi, po navratu obnovi
+        self.scan_paused = False
+        self.scan_pause_timer = 0
+        self.connect("notify::is-active", self.on_active)
+
+    def on_active(self, *_a):
+        if self.scan_pause_timer:
+            GLib.source_remove(self.scan_pause_timer)
+            self.scan_pause_timer = 0
+        if self.closing:
+            return
+        if self.is_active():
+            if self.scan_paused:
+                self.scan_paused = False
+                self.start_scan()
+        else:
+            self.scan_pause_timer = GLib.timeout_add_seconds(SCAN_IDLE, self.pause_scan)
+
+    def pause_scan(self):
+        self.scan_pause_timer = 0
+        if not self.closing and not self.scan_paused:
+            self.scan_paused = True
+            self.stop_scan()
+        return False
 
     def on_destroy(self, *_a):
         self.closing = True
         if self.visible_timer:
             GLib.source_remove(self.visible_timer)
             self.visible_timer = 0
+        if self.scan_pause_timer:
+            GLib.source_remove(self.scan_pause_timer)
+            self.scan_pause_timer = 0
         self.stop_scan()
         self.hide_visible(restore=True)
         self.bz.close()
@@ -429,8 +469,10 @@ class BluetoothWindow(Gtk.Window):
         self.head_nearby.set_visible(on)
         (self.scan_spinner.start if adapter.get("Discovering") else self.scan_spinner.stop)()
         for lb in self.lists.values():
+            # destroy, ne jen remove: tlacitka radku drzi lambdy s odkazem na radek (cyklus GObject <-> Python),
+            # odebrany radek by zustal v pameti navzdy (okno otevrene 19 h melo 2,2 GB)
             for row in lb.get_children():
-                lb.remove(row)
+                row.destroy()
         devs = sorted(self.bz.devices(apath), key=lambda d: (not d[1].get("Connected"), (d[1].get("Alias") or "").lower()))
         for path, props in devs:
             if not props.get("Paired") and not props.get("Name"):
