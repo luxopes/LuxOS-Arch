@@ -1,4 +1,4 @@
-# Whole-system configuration: network, printers, power, boot and new users
+# System configuration: network, printers, power, boot
 
 Part of [system-config.md](system-config.md) (`lux system`, `/etc/luxos/system.lsl`): the settings beyond packages, services and users. As everywhere in the file, a missing setting means "leave it as it is", and `lux system diff` / `apply` / `fix` show, confirm and apply the changes after a snapshot.
 
