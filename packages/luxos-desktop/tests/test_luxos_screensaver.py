@@ -186,5 +186,23 @@ class Defaults(unittest.TestCase):
                 self.assertIn(f"--style {style}\n", f.read())
 
 
+class LockDefaults(unittest.TestCase):
+    """Bezpecnost: sporic zamyka hned (0 min). S 1 minutou Enter po spusteni sporice pustil na plochu."""
+
+    def test_lock_immediately(self):
+        root = ET.parse(os.path.join(FILES, "xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml")).getroot()
+        lock = root.find("./property[@name='lock']")
+        self.assertEqual(lock.find("./property[@name='enabled']").get("value"), "true")
+        sa = lock.find("./property[@name='saver-activation']")
+        self.assertEqual(sa.find("./property[@name='enabled']").get("value"), "true")
+        self.assertEqual(sa.find("./property[@name='delay']").get("value"), "0")
+        self.assertEqual(lock.find("./property[@name='sleep-activation']").get("value"), "true")
+
+    def test_running_sessions_migrated(self):
+        with open(os.path.join(HERE, "..", "luxos-desktop.install")) as f:
+            inst = f.read()
+        self.assertIn("_luxos_lock_now", inst.split("post_upgrade()")[1].splitlines()[0])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -120,7 +120,7 @@ class LockSettings(Gtk.Window):
 
         g = Group(page, _("Lock"))
         lock_on = get("/lock/enabled", "true") == "true" and get("/lock/saver-activation/enabled", "true") == "true"
-        lock_delay = get("/lock/saver-activation/delay", "1") if lock_on else "never"
+        lock_delay = get("/lock/saver-activation/delay", "0") if lock_on else "never"
         req = combo([(0, _("Immediately")), (1, _("After 1 minute")), (5, _("After 5 minutes")),
                      (15, _("After 15 minutes")), ("never", _("Never"))], lock_delay)
         req.connect("changed", self.on_require)

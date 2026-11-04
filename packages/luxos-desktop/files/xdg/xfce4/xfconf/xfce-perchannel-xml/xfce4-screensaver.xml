@@ -16,9 +16,11 @@
   </property>
   <property name="lock" type="empty">
     <property name="enabled" type="bool" value="true"/>
+    <!-- Heslo hned po spusteni sporice (0 min): s 1 minutou sporic po Enteru pustil na plochu bez hesla -->
     <property name="saver-activation" type="empty">
       <property name="enabled" type="bool" value="true"/>
-      <property name="delay" type="int" value="1"/>
+      <property name="delay" type="int" value="0"/>
     </property>
+    <property name="sleep-activation" type="bool" value="true"/>
   </property>
 </channel>
