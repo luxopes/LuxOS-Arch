@@ -4469,3 +4469,5 @@ To use it with your files, install it into the system: %s	För att använda den 
 Removed from the sandbox: %s	Borttaget från sandlådan: %s
 The printer driver could not be installed. Check the internet connection and try again.	Skrivardrivrutinen kunde inte installeras. Kontrollera internetanslutningen och försök igen.
 LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS hittade ingen drivrutin för den här skrivaren. Välj en under Avancerat…
+A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	Ett program i den här fliken startade för många processer (gräns %u), så nya nekas. Resten av systemet fungerar som vanligt. Stäng fliken för att stoppa alla dess processer.
+Too many processes	För många processer

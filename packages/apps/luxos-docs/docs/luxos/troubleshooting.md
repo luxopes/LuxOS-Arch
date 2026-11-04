@@ -228,6 +228,14 @@ earlyoom closed the biggest process because RAM < 4 % and swap < 8 %. Close heav
 check memory with System Monitor (`luxos-monitor`). See
 [power-and-performance.md](power-and-performance.md#low-memory-protection-earlyoom).
 
+## "Too many processes" in Terminal (fork bomb)
+
+A program in a Terminal tab started thousands of processes (e.g. `:(){ :|:& };:`) and hit the tab's
+process limit; the rest of the desktop keeps working. Close that tab (or its window) – all of its
+processes stop at once. Details and how to change the limit: [terminal.md](terminal.md#process-limit-per-tab-fork-bomb-protection).
+If the whole desktop stops starting programs ("No such file or directory" in the top bar, shortcuts
+fail) after something was started outside Terminal, log out and in again.
+
 ## A downloaded program does not start (Lux Guard)
 
 - "Permission denied" or a **Lux Guard** dialog: the file came from outside (Downloads, USB,

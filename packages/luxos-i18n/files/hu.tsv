@@ -4469,3 +4469,5 @@ To use it with your files, install it into the system: %s	Ha a saját fájljaiva
 Removed from the sandbox: %s	Eltávolítva a homokozóból: %s
 The printer driver could not be installed. Check the internet connection and try again.	A nyomtató illesztőprogramját nem sikerült telepíteni. Ellenőrizze az internetkapcsolatot, és próbálja újra.
 LuxOS did not find a driver for this printer. Choose one in Advanced…	A LuxOS nem talált illesztőprogramot ehhez a nyomtatóhoz. Válasszon egyet a Speciális… menüben.
+A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	A lapon futó program túl sok folyamatot indított (korlát: %u), ezért újakat nem indíthat. A rendszer többi része tovább működik. A lap bezárásával minden folyamata leáll.
+Too many processes	Túl sok folyamat

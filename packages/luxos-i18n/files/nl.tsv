@@ -4469,3 +4469,5 @@ To use it with your files, install it into the system: %s	Om het met uw bestande
 Removed from the sandbox: %s	Uit de sandbox verwijderd: %s
 The printer driver could not be installed. Check the internet connection and try again.	Het printerstuurprogramma kon niet worden geïnstalleerd. Controleer de internetverbinding en probeer het opnieuw.
 LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS heeft geen stuurprogramma voor deze printer gevonden. Kies er een via Geavanceerd…
+A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	Een programma in dit tabblad heeft te veel processen gestart (limiet %u), nieuwe worden geweigerd. De rest van het systeem blijft werken. Sluit het tabblad om al zijn processen te stoppen.
+Too many processes	Te veel processen

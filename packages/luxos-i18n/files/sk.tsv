@@ -4469,3 +4469,5 @@ To use it with your files, install it into the system: %s	Ak ho chcete používa
 Removed from the sandbox: %s	Odstránené zo sandboxu: %s
 The printer driver could not be installed. Check the internet connection and try again.	Ovládač tlačiarne sa nepodarilo nainštalovať. Skontrolujte pripojenie na internet a skúste to znova.
 LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS pre túto tlačiareň nenašiel ovládač. Vyberte ho v ponuke Rozšírené…
+A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	Program v tomto paneli spustil príliš veľa procesov (limit %u), ďalšie preto nedostane. Zvyšok systému funguje ďalej. Zatvorením panela ukončíte všetky jeho procesy.
+Too many processes	Príliš veľa procesov

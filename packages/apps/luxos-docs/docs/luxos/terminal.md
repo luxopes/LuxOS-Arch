@@ -111,6 +111,36 @@ The shell is your login shell (`lsh` by default), started as a non-login interac
 xfce4-terminal. The environment has `TERM=xterm-256color`, `COLORTERM=truecolor`,
 `TERM_PROGRAM=LuxOS-Terminal`, `TERM_PROGRAM_VERSION`.
 
+## Process limit per tab (fork bomb protection)
+
+Every tab runs its shell in its own systemd scope `luxos-terminal-tab-<PID>.scope` (in `app.slice`
+of your user systemd) with a process limit (`TasksMax`). A program that forks without stopping –
+a fork bomb such as `:(){ :|:& };:`, or a broken script – only hits the limit of **its own tab**:
+new processes in that tab are refused (`fork: Resource temporarily unavailable`), while the top
+bar, Dock, Search, keyboard shortcuts, other tabs and other apps keep working. Before, all of the
+desktop shared one limit for the whole user, so the bomb used it up and nothing could start any
+more (panel items showed "No such file or directory", shortcuts failed).
+
+- The limit is 5 % of the kernel maximum (`min(pid_max, threads-max)`; threads-max grows with RAM),
+  at least 4096 and at most 16384 – far above normal heavy use (`make -j`, browsers, Steam/Proton,
+  Electron, containers). Check it with `systemctl --user show -p TasksMax luxos-terminal-tab-$$.scope`.
+- When a tab hits the limit, a red line appears in the tab and a notification "Too many processes"
+  says so. **Closing the tab stops all of its processes at once** (`cgroup.kill`). Tabs that never
+  hit the limit close as before: programs started with `nohup` or `disown` keep running.
+- The shell waits (a few ms) until it is inside its scope, so even a command started directly with
+  `-x` cannot fork past the limit.
+- To make this possible the terminal runs as the user service `luxos-terminal.service`, started via
+  D-Bus (`cz.luxos.Terminal`); `luxos-terminal` itself just hands over the command line. If the user
+  systemd or the service is not available, the terminal runs as before in one process, without
+  scopes. `LUXOS_TERMINAL_NO_SERVICE=1` forces that (debugging).
+- Administrators can change the limit with a drop-in, e.g.
+  `/etc/systemd/user/luxos-terminal-tab-.scope.d/50-tasks.conf` with `[Scope]` `TasksMax=8192`.
+- After `lux update`, a terminal that was already open keeps running the old way until all of its
+  windows are closed; the next terminal starts protected (no relogin or reboot needed).
+
+Apps started from the Dock, Launchpad or Search still share the desktop session's limit; the
+protection covers everything run in Terminal.
+
 ## Default terminal
 
 - Keyboard shortcuts Super+T and Ctrl+Alt+T, the Dock icon and the menu favourite run
