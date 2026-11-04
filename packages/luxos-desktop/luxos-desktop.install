@@ -16,7 +16,28 @@ import luxos_keyboard as k
 k.migrate_default_switch() and print("==> Keyboard layouts now switch with both Shift keys (from the next login).")' \
         2>/dev/null || true
 }
+# Zamek obrazovky: heslo hned po spusteni sporice. Stare vychozi bylo 1 minuta - sporic po Enteru
+# pustil na plochu bez hesla. Bezicim relacim se nastavi hned (bez prihlaseni), jen uzivatelum, kteri
+# si dobu sami nezvolili (v jejich xfconf neni vlastni hodnota delay).
+_luxos_lock_now() {
+    local bus uid user xml
+    for bus in /run/user/[0-9]*/bus; do
+        [[ -S $bus ]] || continue
+        uid=${bus#/run/user/}; uid=${uid%/bus}
+        user=$(getent passwd "$uid" | cut -d: -f1)
+        [[ -n $user ]] || continue
+        xml=$(getent passwd "$uid" | cut -d: -f6)/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml
+        if [[ -f $xml ]] && python3 - "$xml" <<'PY' 2>/dev/null; then continue; fi
+import sys, xml.etree.ElementTree as ET
+sa = ET.parse(sys.argv[1]).getroot().find("./property[@name='lock']/property[@name='saver-activation']/property[@name='delay']")
+sys.exit(0 if sa is not None and sa.get("value") is not None else 1)
+PY
+        runuser -u "$user" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" \
+            timeout 5 xfconf-query -c xfce4-screensaver -p /lock/saver-activation/delay -n -t int -s 0 \
+            >/dev/null 2>&1 || true
+    done
+}
 post_install() { _luxos_dconf; _luxos_session; _luxos_keyboard; }
-post_upgrade() { _luxos_dconf; _luxos_session; _luxos_keyboard; }
+post_upgrade() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_lock_now; }
 # Otisk prstu: pred odinstalaci vratit PAM sluzby do puvodni podoby (hook uz pak nepobezi)
 pre_remove() { /usr/lib/luxos/luxos-fingerprint-pam remove || true; }
