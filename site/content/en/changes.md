@@ -6,6 +6,20 @@ systems update continuously with `lux update`, so the version tells which state 
 from. The detailed changelog is maintained in Czech ([Czech version](/cs/zmeny/)); this page
 summarises the recent releases in English.
 
+## 1.0.0 "Sirius" – 2026-11-04
+
+New ISO with two security and stability fixes (installed systems get them with `lux update`):
+
+- **Screen lock asks for the password immediately.** The screen saver used to require the password
+  only one minute after it started, so pressing Enter in that minute returned to the desktop
+  without a password. Running sessions are switched over during the update.
+- **A fork bomb no longer takes down the desktop.** Every Terminal tab runs in its own process
+  group with a limit; a fork bomb only blocks its own tab, and closing the tab ends it.
+
+Also included: Flathub apps appear in Launchpad right away, Performance mode uses the discrete
+GPU for games, LuxAI 2.0.1, easier start of sandboxed apps, printer driver matching for Canon
+UFR II, and memory-leak, volume and notification fixes.
+
 ## 0.9.12 "Polaris" – 2026-10-26 (beta)
 
 New ISO: the ISO 0.9.7–0.9.11 failed on computers with DKMS drivers (NVIDIA, Broadcom) with "target

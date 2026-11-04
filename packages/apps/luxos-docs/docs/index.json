@@ -1175,7 +1175,7 @@
         },
         {
           "path": "luxos/system-config-areas.md",
-          "title": "Whole-system configuration: network, printers, power, boot and new users",
+          "title": "System configuration: network, printers, power, boot",
           "summary": "Generated system.lsl (comments in the system language, no passwords) and sections network (NetworkManager, connection in use protected), printers (CUPS), power, boot menu, drivers, formats, console, faillock, new_users defaults, repos.",
           "keywords": [
             "network",
