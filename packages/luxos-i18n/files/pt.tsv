@@ -4469,3 +4469,5 @@ To use it with your files, install it into the system: %s	Para o usar com os seu
 Removed from the sandbox: %s	Removido da sandbox: %s
 The printer driver could not be installed. Check the internet connection and try again.	Não foi possível instalar o controlador da impressora. Verifique a ligação à internet e tente novamente.
 LuxOS did not find a driver for this printer. Choose one in Advanced…	O LuxOS não encontrou um controlador para esta impressora. Escolha um em Avançado…
+A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	Um programa neste separador iniciou demasiados processos (limite %u), por isso os novos são recusados. O resto do sistema continua a funcionar. Feche o separador para parar todos os seus processos.
+Too many processes	Demasiados processos

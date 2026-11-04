@@ -1,0 +1,14 @@
+# LuxOS Terminal jako sluzba uzivatelskeho systemd (aktivace pres D-Bus: cz.luxos.Terminal.service).
+# Jen z jednotky uzivatelskeho systemd muze terminal presunout shell kazdeho panelu do vlastniho
+# luxos-terminal-tab-PID.scope s limitem procesu - fork bomba v panelu pak omezi jen sebe,
+# ne celou relaci (panel, spoustec, zkratky).
+[Unit]
+Description=LuxOS Terminal
+
+[Service]
+Type=dbus
+BusName=cz.luxos.Terminal
+ExecStart=/usr/bin/luxos-terminal --gapplication-service
+# procesy, ktere se rozvetvi driv, nez terminal presune shell do scope panelu (prikaz -x hned po
+# startu), zustanou tady - i ty maji strop (5 % maxima jadra), relace zustane pouzitelna
+TasksMax=5%

@@ -4470,3 +4470,5 @@ To use it with your files, install it into the system: %s	Aby używać go ze swo
 Removed from the sandbox: %s	Usunięto z piaskownicy: %s
 The printer driver could not be installed. Check the internet connection and try again.	Nie udało się zainstalować sterownika drukarki. Sprawdź połączenie z internetem i spróbuj ponownie.
 LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS nie znalazł sterownika dla tej drukarki. Wybierz go w menu Zaawansowane…
+A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	Program w tej karcie uruchomił zbyt wiele procesów (limit %u), więc kolejne są odrzucane. Reszta systemu działa dalej. Zamknij kartę, aby zatrzymać wszystkie jej procesy.
+Too many processes	Zbyt wiele procesów

@@ -4469,3 +4469,5 @@ To use it with your files, install it into the system: %s	Pour l'utiliser avec v
 Removed from the sandbox: %s	Retiré du bac à sable : %s
 The printer driver could not be installed. Check the internet connection and try again.	Le pilote de l’imprimante n’a pas pu être installé. Vérifiez la connexion internet et réessayez.
 LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS n’a pas trouvé de pilote pour cette imprimante. Choisissez-en un dans Avancé…
+A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	Un programme de cet onglet a lancé trop de processus (limite %u), les nouveaux sont refusés. Le reste du système continue de fonctionner. Fermez l’onglet pour arrêter tous ses processus.
+Too many processes	Trop de processus

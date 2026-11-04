@@ -19,6 +19,8 @@
 #include <gtk/gtk.h>
 #include <vte/vte.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <glib-unix.h>
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -217,6 +219,8 @@ typedef struct {
     gboolean closed;    /* panel zrusen, Tab se uvolni az se scroller uvolni z pameti */
     GtkWidget *menu;    /* otevrena kontextova nabidka */
     char *link;         /* odkaz pod mysi pri otevreni nabidky */
+    char *cg;           /* cgroup vlastniho scope panelu (/sys/fs/cgroup/...), NULL = bez scope */
+    gboolean limited;   /* panel narazil na limit procesu (TasksMax) */
 } Tab;
 
 static GtkApplication *app;
@@ -224,6 +228,7 @@ static gboolean sixel_available;
 static VteRegex *url_regex;
 static int url_tag = -1;
 static GList *windows;  /* Win* */
+static char **last_env; /* prostredi posledni prikazove radky (novy panel z nabidky, rezim sluzby) */
 
 static Tab *tab_of(GtkWidget *page) { return page ? g_object_get_data(G_OBJECT(page), "luxos-tab") : NULL; }
 
@@ -390,6 +395,211 @@ static void on_win_destroy(GtkWidget *win, Win *w)
 
 static void win_free(gpointer w, GObject *where) { g_free(w); }
 
+/* ---------- kazdy panel ve vlastnim scope s limitem procesu ----------
+ * Fork bomba (":(){ :|:& };:") nebo program, ktery se nekontrolovane vetvi, vycerpala limit procesu
+ * celeho uzivatele (user-UID.slice, TasksMax 33 % jadra) - panel, spoustec i zkratky pak uz nic
+ * nespustily. Shell kazdeho panelu proto bezi ve vlastnim systemd scope "luxos-terminal-tab-PID.scope"
+ * (app.slice uzivatelskeho systemd) s TasksMax: bomba narazi jen na svuj limit, zbytek relace dal
+ * funguje. Presun procesu do scope jde jen z jednotky uzivatelskeho systemd (delegovany podstrom), proto
+ * terminal bezi jako sluzba luxos-terminal.service (aktivace pres D-Bus, viz main). Bez uzivatelskeho
+ * systemd (testy, jiny system) se scope nevytvari a panel bezi jako drive.
+ * Limit: 5 % maxima jadra (min(pid_max, threads-max), threads-max roste s RAM), v mezich 4096-16384 -
+ * vysoko nad beznou praci (make -j, prohlizec, Steam/Proton, Electron), bomba zabere jen cast pameti.
+ * Spravce ho muze zmenit drop-inem /etc/systemd/user/luxos-terminal-tab-.scope.d/ (TasksMax=). */
+static guint64 tab_tasks_max(void)
+{
+    static guint64 v;
+    if (v) return v;
+    guint64 kmax = 0;
+    const char *files[] = {"/proc/sys/kernel/pid_max", "/proc/sys/kernel/threads-max"};
+    for (size_t i = 0; i < G_N_ELEMENTS(files); i++) {
+        char *d = NULL;
+        if (g_file_get_contents(files[i], &d, NULL, NULL)) {
+            guint64 n = g_ascii_strtoull(d, NULL, 10);
+            if (n && (!kmax || n < kmax)) kmax = n;
+        }
+        g_free(d);
+    }
+    v = CLAMP(kmax / 20, 4096, 16384);
+    return v;
+}
+
+/* cgroup uzivatelskeho systemd (".../user@UID.service"), ve kterem bezi tento proces; NULL = mimo nej */
+static char *user_manager_cgroup(void)
+{
+    char *d = NULL, *r = NULL;
+    if (!g_file_get_contents("/proc/self/cgroup", &d, NULL, NULL)) return NULL;
+    char *p = strstr(d, "0::/");
+    char *u = p ? strstr(p, "/user@") : NULL;
+    char *e = u ? strstr(u, ".service") : NULL;
+    if (e && !memchr(p, '\n', e - p)) r = g_strdup_printf("/sys/fs/cgroup%.*s", (int)(e + 8 - (p + 3)), p + 3);
+    g_free(d);
+    return r;
+}
+
+typedef struct { GWeakRef term; GPid pid; char *cg; char *unit; int gate, tries; } ScopeReq;
+
+/* uvolnit zavoru: shell panelu ceka (read na fd 3), az bude ve svem scope - jinak by se program
+ * spusteny hned po startu (-x, fork bomba) stihl rozvetvit driv a potomci by zustali mimo limit */
+static void gate_open(int fd)
+{
+    if (fd < 0) return;
+    ssize_t r = write(fd, "\n", 1);
+    (void)r;
+    close(fd);
+}
+
+static gboolean scopes_supported(void);
+
+static void scope_req_free(ScopeReq *rq)
+{
+    gate_open(rq->gate);
+    g_weak_ref_clear(&rq->term);
+    g_free(rq->cg);
+    g_free(rq->unit);
+    g_free(rq);
+}
+
+/* StartTransientUnit odpovi uz po zarazeni ulohy - proces se do scope presune az pri jejim behu.
+ * Zavoru uvolnit, az /proc/PID/cgroup opravdu ukazuje na scope (kazde 2 ms, nejvys ~2 s). */
+static gboolean scope_wait_moved(gpointer data)
+{
+    ScopeReq *rq = data;
+    char *f = g_strdup_printf("/proc/%d/cgroup", (int)rq->pid), *d = NULL;
+    gboolean moved = !g_file_get_contents(f, &d, NULL, NULL) || strstr(d, rq->unit);
+    g_free(d);
+    g_free(f);
+    if (!moved && ++rq->tries < 1000) return G_SOURCE_CONTINUE;
+    scope_req_free(rq);
+    return G_SOURCE_REMOVE;
+}
+
+static void on_scope_created(GObject *src, GAsyncResult *res, gpointer data)
+{
+    ScopeReq *rq = data;
+    GError *e = NULL;
+    GVariant *v = g_dbus_connection_call_finish(G_DBUS_CONNECTION(src), res, &e);
+    if (!v) {
+        g_debug("scope: %s", e->message);
+        g_error_free(e);
+        scope_req_free(rq);
+        return;
+    }
+    g_variant_unref(v);
+    VteTerminal *term = g_weak_ref_get(&rq->term);
+    Tab *t = term ? g_object_get_data(G_OBJECT(term), "luxos-tab") : NULL;
+    if (t && t->pid == rq->pid && !t->cg) t->cg = g_strdup(rq->cg);
+    if (term) g_object_unref(term);
+    if (scope_wait_moved(rq) == G_SOURCE_CONTINUE) g_timeout_add(2, scope_wait_moved, rq);
+}
+
+static char *manager_base;
+static gboolean scopes_supported(void)
+{
+    static int in_manager = -1;
+    /* mimo uzivatelsky systemd (session-N.scope) presun do scope nejde (EACCES) */
+    if (in_manager < 0) { manager_base = user_manager_cgroup(); in_manager = manager_base != NULL; }
+    return in_manager;
+}
+
+static void tab_scope_create(VteTerminal *term, GPid pid, int gate)
+{
+    GDBusConnection *bus = scopes_supported() && pid > 0 ? g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL) : NULL;
+    if (!bus) { gate_open(gate); return; }
+    char *name = g_strdup_printf("luxos-terminal-tab-%d.scope", (int)pid);
+    guint32 pid32 = (guint32)pid;
+    GVariantBuilder props;
+    g_variant_builder_init(&props, G_VARIANT_TYPE("a(sv)"));
+    g_variant_builder_add(&props, "(sv)", "Description", g_variant_new_string("LuxOS Terminal tab"));
+    g_variant_builder_add(&props, "(sv)", "Slice", g_variant_new_string("app.slice"));
+    g_variant_builder_add(&props, "(sv)", "PIDs",
+                          g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32, &pid32, 1, sizeof pid32));
+    g_variant_builder_add(&props, "(sv)", "TasksMax", g_variant_new_uint64(tab_tasks_max()));
+    /* prazdny nebo neuspesny scope systemd hned uklidi */
+    g_variant_builder_add(&props, "(sv)", "CollectMode", g_variant_new_string("inactive-or-failed"));
+    ScopeReq *rq = g_new0(ScopeReq, 1);
+    g_weak_ref_init(&rq->term, term);
+    rq->pid = pid;
+    rq->gate = gate;
+    rq->unit = g_strdup_printf("/%s\n", name);
+    rq->cg = g_strdup_printf("%s/app.slice/%s", manager_base, name);
+    g_dbus_connection_call(bus, "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+                           "org.freedesktop.systemd1.Manager", "StartTransientUnit",
+                           g_variant_new("(ssa(sv)a(sa(sv)))", name, "fail", &props, NULL),
+                           G_VARIANT_TYPE("(o)"), G_DBUS_CALL_FLAGS_NO_AUTO_START, 5000, NULL,
+                           on_scope_created, rq);
+    g_free(name);
+    g_object_unref(bus);
+}
+
+/* zavreny panel, ktery narazil na limit: ukoncit vsechny jeho procesy najednou (cgroup.kill, jadro
+ * 5.14+) - po SIGHUP shellu by procesy bomby bez rizeni uloh bezely dal. Panel bez limitu se zavira jako
+ * drive (procesy spustene pres nohup/disown preziji). */
+static void tab_scope_close(Tab *t)
+{
+    if (!t->cg || !t->limited) return;
+    char *f = g_build_filename(t->cg, "cgroup.kill", NULL);
+    FILE *fp = fopen(f, "w");   /* soubor cgroup: zadny docasny soubor + prejmenovani */
+    if (!fp || fputs("1", fp) < 0) g_debug("cgroup.kill failed: %s", f);
+    if (fp) fclose(fp);
+    g_free(f);
+}
+
+/* pocet odmitnutych fork() kvuli limitu (radek "max N" v pids.events) */
+static guint64 tab_pids_max_events(Tab *t)
+{
+    char *f = g_build_filename(t->cg, "pids.events", NULL), *d = NULL;
+    guint64 n = 0;
+    if (g_file_get_contents(f, &d, NULL, NULL)) {
+        char *m = strstr(d, "max ");
+        if (m) n = g_ascii_strtoull(m + 4, NULL, 10);
+    }
+    g_free(d);
+    g_free(f);
+    return n;
+}
+
+static void tab_limit_reached(Tab *t)
+{
+    t->limited = TRUE;
+    /* skutecny limit scope (spravce ho mohl zmenit drop-inem) */
+    char *f = g_build_filename(t->cg, "pids.max", NULL), *d = NULL;
+    guint64 lim = g_file_get_contents(f, &d, NULL, NULL) ? g_ascii_strtoull(d, NULL, 10) : 0;
+    g_free(d);
+    g_free(f);
+    if (!lim) lim = tab_tasks_max();
+    char *body = g_strdup_printf(T("A program in this tab started too many processes (limit %u), so new "
+                                   "ones are refused. The rest of the system keeps working. Close the tab "
+                                   "to stop all its processes."), (unsigned)lim);
+    char *msg = g_strdup_printf("\r\n\e[1;31m[%s]\e[0m\r\n", body);
+    vte_terminal_feed(t->term, msg, -1);
+    g_free(msg);
+    GNotification *n = g_notification_new(T("Too many processes"));
+    GIcon *ic = g_themed_icon_new("utilities-terminal");
+    g_notification_set_body(n, body);
+    g_notification_set_icon(n, ic);
+    g_notification_set_priority(n, G_NOTIFICATION_PRIORITY_HIGH);
+    g_application_send_notification(G_APPLICATION(app), "luxos-terminal-tasks-limit", n);
+    g_object_unref(ic);
+    g_object_unref(n);
+    g_free(body);
+}
+
+/* kontrola limitu panelu (2 s, jen cteni malych souboru cgroup) */
+static gboolean check_tab_limits(gpointer d)
+{
+    for (GList *l = windows; l; l = l->next) {
+        Win *w = l->data;
+        if (w->dead) continue;
+        int n = gtk_notebook_get_n_pages(w->nb);
+        for (int i = 0; i < n; i++) {
+            Tab *t = tab_of(gtk_notebook_get_nth_page(w->nb, i));
+            if (t && t->cg && !t->limited && !t->closed && tab_pids_max_events(t) > 0) tab_limit_reached(t);
+        }
+    }
+    return G_SOURCE_CONTINUE;
+}
+
 /* ---------- spusteni shellu ---------- */
 typedef struct {
     char **argv;        /* NULL = shell uzivatele */
@@ -409,7 +619,9 @@ static void spawn_free(Spawn *s)
 
 static void on_spawned(VteTerminal *term, GPid pid, GError *err, gpointer data)
 {
+    int gate = GPOINTER_TO_INT(data) - 1;   /* zapisovaci konec zavory, -1 = bez zavory */
     Tab *t = g_object_get_data(G_OBJECT(term), "luxos-tab");
+    if (!t || err) gate_open(gate);
     if (!t) return;  /* panel uz je zavreny */
     if (err) {
         char *msg = g_strdup_printf("\r\n%s\r\n", err->message);
@@ -419,6 +631,7 @@ static void on_spawned(VteTerminal *term, GPid pid, GError *err, gpointer data)
         return;
     }
     t->pid = pid;
+    tab_scope_create(term, pid, gate);
 }
 
 static void on_child_exited(VteTerminal *term, int status, Tab *t)
@@ -586,6 +799,7 @@ static gboolean on_focus_in(GtkWidget *win, GdkEvent *ev, Win *w)
 static void tab_destroyed(GtkWidget *scroller, Tab *t)
 {
     t->closed = TRUE;
+    tab_scope_close(t);
     g_signal_handlers_disconnect_by_data(t->term, t);
     g_object_set_data(G_OBJECT(t->term), "luxos-tab", NULL);
     if (t->menu) gtk_widget_destroy(t->menu);
@@ -596,6 +810,7 @@ static void tab_free(gpointer data, GObject *where)
     Tab *t = data;
     g_free(t->fixed_title);
     g_free(t->link);
+    g_free(t->cg);
     g_free(t);
 }
 
@@ -846,10 +1061,32 @@ static void new_tab(Win *w, Spawn *s)
         argv = g_new0(char *, 2);
         argv[0] = sh;
     }
-    char **env = child_env(s->env, term);
+    char **env = child_env(s->env ? s->env : last_env, term);
     const char *cwd = s->cwd && g_file_test(s->cwd, G_FILE_TEST_IS_DIR) ? s->cwd : g_get_home_dir();
-    vte_terminal_spawn_async(term, VTE_PTY_DEFAULT, cwd, argv, env, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL,
-                             -1, NULL, on_spawned, NULL);
+    /* scope si panel vytvari sam (tab_scope_create, s limitem procesu) - vlastni scope VTE bez limitu ne.
+     * Se scope startuje shell pres zavoru: /bin/sh pocka na radek z fd 3 (pipe, zapise ho
+     * on_scope_created po presunu do scope, EOF = terminal skoncil) a pak exec puvodni prikaz. */
+    int gate[2] = {-1, -1};
+    if (scopes_supported() && !g_unix_open_pipe(gate, FD_CLOEXEC, NULL)) gate[0] = gate[1] = -1;
+    if (gate[0] >= 0) {
+        int n = g_strv_length(argv);
+        char **gated = g_new0(char *, n + 5);
+        gated[0] = g_strdup("/bin/sh");
+        gated[1] = g_strdup("-c");
+        gated[2] = g_strdup("read -r _ <&3; exec 3<&-; exec \"$@\"");
+        gated[3] = g_strdup("sh");
+        for (int i = 0; i < n; i++) gated[4 + i] = g_strdup(argv[i]);
+        int map = 3;
+        /* VTE prebira gate[0] (zavre ho po spusteni) */
+        vte_terminal_spawn_with_fds_async(term, VTE_PTY_DEFAULT, cwd, (const char * const *)gated,
+                                          (const char * const *)env, &gate[0], 1, &map, 1,
+                                          G_SPAWN_SEARCH_PATH | VTE_SPAWN_NO_SYSTEMD_SCOPE, NULL, NULL, NULL,
+                                          -1, NULL, on_spawned, GINT_TO_POINTER(gate[1] + 1));
+        g_strfreev(gated);
+    } else
+        vte_terminal_spawn_async(term, VTE_PTY_DEFAULT, cwd, argv, env,
+                                 G_SPAWN_SEARCH_PATH | VTE_SPAWN_NO_SYSTEMD_SCOPE, NULL, NULL, NULL,
+                                 -1, NULL, on_spawned, NULL);
     g_strfreev(argv);
     g_strfreev(env);
 }
@@ -1215,7 +1452,11 @@ static int on_command_line(GApplication *ga, GApplicationCommandLine *cl, gpoint
         o.s.cwd = p;
     }
     const char * const *env = g_application_command_line_get_environ(cl);
-    if (env && *env) o.s.env = g_strdupv((char **)env);
+    if (env && *env) {
+        o.s.env = g_strdupv((char **)env);
+        g_strfreev(last_env);
+        last_env = g_strdupv((char **)env);
+    }
     int oc = cfg.columns, orows = cfg.rows;
     if (o.cols >= 10 && o.rows >= 3) { cfg.columns = o.cols; cfg.rows = o.rows; }
 
@@ -1244,6 +1485,7 @@ static int on_command_line(GApplication *ga, GApplicationCommandLine *cl, gpoint
 static void on_startup(GApplication *ga, gpointer d)
 {
     load_config();
+    g_timeout_add_seconds(2, check_tab_limits, NULL);
     sixel_available = (vte_get_feature_flags() & VTE_FEATURE_FLAG_SIXEL) != 0;
     url_regex = vte_regex_new_for_match(
         "(?:(?:https?|ftp|sftp|file|ssh)://|www\\.|mailto:)[^\\s<>\"'`{}|\\\\^]*[^\\s<>\"'`{}|\\\\^.,;:!?)\\]]"
@@ -1268,10 +1510,42 @@ static void on_startup(GApplication *ga, gpointer d)
     g_signal_connect(s, "notify::gtk-application-prefer-dark-theme", G_CALLBACK(on_theme_changed), NULL);
 }
 
+/* Spusteni jako sluzba uzivatelskeho systemd: StartServiceByName aktivuje cz.luxos.Terminal pres
+ * dbus-broker -> luxos-terminal.service (app.slice). Tento proces pak jen preda prikazovou radku (stejne
+ * jako kdyz terminal uz bezi). Jen tak muze terminal presouvat shelly panelu do scope s limitem procesu
+ * (tab_scope_create) - z session-N.scope relace Xfce to jadro nedovoli. Kdyz aktivace selze (bez
+ * uzivatelskeho systemd, bez souboru sluzby), terminal pobezi jako drive v tomto procesu. */
+static void start_service(void)
+{
+    GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+    if (!bus) return;
+    for (int attempt = 0; attempt < 2; attempt++) {
+        GError *e = NULL;
+        GVariant *v = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus",
+                                                  "org.freedesktop.DBus", "StartServiceByName",
+                                                  g_variant_new("(su)", APP_ID, 0), G_VARIANT_TYPE("(u)"),
+                                                  G_DBUS_CALL_FLAGS_NONE, 8000, NULL, &e);
+        if (v) { g_variant_unref(v); break; }
+        gboolean unknown = g_error_matches(e, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN);
+        g_debug("StartServiceByName: %s", e->message);
+        g_error_free(e);
+        if (!unknown || attempt) break;
+        /* soubor sluzby nainstalovany az po startu relace (lux update): dbus-broker adresare sluzeb
+         * nesleduje - nacist znovu a zkusit jeste jednou */
+        v = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+                                        "ReloadConfig", NULL, NULL, G_DBUS_CALL_FLAGS_NONE, 5000, NULL, NULL);
+        if (!v) break;
+        g_variant_unref(v);
+    }
+    g_object_unref(bus);
+}
+
 int main(int argc, char **argv)
 {
     setlocale(LC_ALL, "");
     gboolean unique = TRUE;
+    /* --gapplication-service: proces sluzby luxos-terminal.service (prikazove radky prichazeji pres D-Bus) */
+    gboolean service = argc > 1 && !strcmp(argv[1], "--gapplication-service");
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-x") || !strcmp(argv[i], "--execute") || !strcmp(argv[i], "--")) break;
         if (!strcmp(argv[i], "--disable-server") || !strcmp(argv[i], "--new-process")) unique = FALSE;
@@ -1301,11 +1575,16 @@ int main(int argc, char **argv)
     g_set_prgname("luxos-terminal");
     /* LUXOS_TERMINAL_NEW_PROCESS=1: testy a mereni bez sdileni procesu */
     if (g_getenv("LUXOS_TERMINAL_NEW_PROCESS")) unique = FALSE;
+    /* LUXOS_TERMINAL_NO_SERVICE=1: bez sluzby (ladeni) */
+    if (unique && !service && !g_getenv("LUXOS_TERMINAL_NO_SERVICE")) start_service();
     app = gtk_application_new(APP_ID, G_APPLICATION_HANDLES_COMMAND_LINE | G_APPLICATION_SEND_ENVIRONMENT |
+                                          (service ? G_APPLICATION_IS_SERVICE : 0) |
                                           (unique ? 0 : G_APPLICATION_NON_UNIQUE));
     g_signal_connect(app, "startup", G_CALLBACK(on_startup), NULL);
     g_signal_connect(app, "command-line", G_CALLBACK(on_command_line), NULL);
-    int r = g_application_run(G_APPLICATION(app), argc, argv);
+    /* sluzba bez oken skonci po 10 s (prvni prikazova radka prijde hned po aktivaci) */
+    if (service) g_application_set_inactivity_timeout(G_APPLICATION(app), 10000);
+    int r = g_application_run(G_APPLICATION(app), service ? 1 : argc, argv);
     g_object_unref(app);
     return r;
 }
