@@ -4507,3 +4507,8 @@ Default skin tone	Standardhudton
 Skin tone	Hudton
 No emoji found	Inga emoji hittades
 The emoji was copied to the clipboard. Paste it with Ctrl+V.	Emojin har kopierats till urklipp. Klistra in den med Ctrl+V.
+Switch windows of the current app	Byt mellan fönster i den aktuella appen
+Switch windows of the current app backwards	Byt fönster i den aktuella appen bakåt
+Next window of the same app (without previews)	Nästa fönster i samma app (utan förhandsvisningar)
+Group windows by app in Alt+Tab	Gruppera fönster per app i Alt+Tab
+Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Varje app visas en gång. Håll ned Alt och tryck på Nedåt eller ` för att se fönstren i den valda appen.

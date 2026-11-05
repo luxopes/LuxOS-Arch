@@ -145,7 +145,9 @@ as well. They appear under "Other Xfce Shortcuts".
 | Super+M, Super+H, Super+Down | Minimize window |
 | Super+Tab, Alt+Tab | Switch windows |
 | Super+Shift+Tab, Alt+Shift+Tab | Switch windows backwards |
-| Super+` (grave) | Switch windows of the same app |
+| Alt+` (grave) | Switch windows of the current app (Alt+Tab previews, only windows with the same WM_CLASS) |
+| Alt+Shift+` | Switch windows of the current app backwards |
+| Super+` (grave) | Next window of the same app, without previews |
 | Super+Up | Maximize window |
 | Super+Left / Super+Right | Tile window left / right (half screen) |
 | Ctrl+Super+F, F11 | Full screen |
@@ -155,6 +157,18 @@ as well. They appear under "Other Xfce Shortcuts".
 
 Esc and the arrow keys are bound to xfwm4's internal cancel and movement keys, which are used
 while moving or resizing windows.
+
+The ` key is the key below Esc (above Tab) in every layout: xfwm4 from [luxos] (`packages/xfwm4`)
+binds shortcuts with `grave` to the physical XKB key `<TLDE>`. On the Czech layout this key types
+";" and "`" is only on AltGr of other keys, so stock xfwm4 resolved `<Alt>grave` to the H key. The
+actions are `cycle_app_windows_key` and `cycle_reverse_app_windows_key` (new in the LuxOS xfwm4);
+older profiles get the two shortcuts once at login (`luxos-session`, marker
+`~/.config/luxos/app-windows-shortcuts`), only when the keys are still free.
+
+**Group windows by app in Alt+Tab** (Keyboard Shortcuts › Windows, off by default; xfconf
+`xfwm4 /general/cycle_group_apps`): Alt+Tab shows every app once, with its most recently used
+window. While holding Alt, Down or ` shows the windows of the selected app (` also moves to its
+next window), Up goes back to the list of apps; releasing Alt activates the selected window.
 
 ### Other keys
 

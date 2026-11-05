@@ -4508,3 +4508,8 @@ Default skin tone	Типовий відтінок шкіри
 Skin tone	Відтінок шкіри
 No emoji found	Емодзі не знайдено
 The emoji was copied to the clipboard. Paste it with Ctrl+V.	Емодзі скопійовано в буфер обміну. Вставте його клавішами Ctrl+V.
+Switch windows of the current app	Перемикати вікна поточного застосунку
+Switch windows of the current app backwards	Перемикати вікна поточного застосунку назад
+Next window of the same app (without previews)	Наступне вікно того самого застосунку (без мініатюр)
+Group windows by app in Alt+Tab	Групувати вікна за застосунками в Alt+Tab
+Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Кожен застосунок показано один раз. Утримуючи Alt, натисніть «Вниз» або `, щоб побачити вікна вибраного застосунку.

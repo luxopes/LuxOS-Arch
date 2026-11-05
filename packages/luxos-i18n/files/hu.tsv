@@ -4507,3 +4507,8 @@ Default skin tone	Alapértelmezett bőrtónus
 Skin tone	Bőrtónus
 No emoji found	Nincs találat
 The emoji was copied to the clipboard. Paste it with Ctrl+V.	Az emodzsi a vágólapra került. Illessze be a Ctrl+V billentyűkkel.
+Switch windows of the current app	Váltás az aktuális alkalmazás ablakai között
+Switch windows of the current app backwards	Váltás az aktuális alkalmazás ablakai között visszafelé
+Next window of the same app (without previews)	Ugyanazon alkalmazás következő ablaka (előnézet nélkül)
+Group windows by app in Alt+Tab	Ablakok csoportosítása alkalmazásonként az Alt+Tab-ban
+Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Minden alkalmazás egyszer jelenik meg. Az Alt nyomva tartása közben a Le nyíl vagy a ` megmutatja a kiválasztott alkalmazás ablakait.

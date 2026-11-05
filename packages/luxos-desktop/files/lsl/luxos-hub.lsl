@@ -69,7 +69,7 @@ PORTAL_REMIND_MAX = 3600
 # soubor existuje, dokud je sit za portalem; obsah "URL IP" z luxos-portal-check nebo prazdny
 PORTAL_STATE = "luxos-portal"
 
-hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0, "portal_found": False, "portal_url": "", "portal_probes": 0, "portal_note": 0, "portal_gen": 0, "portal_delay": 0, "cover_pid": 0, "start": 0, "noinet_timer": False, "exit": 0, "update_seen": 0}
+hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0, "portal_found": False, "portal_url": "", "portal_probes": 0, "portal_note": 0, "portal_gen": 0, "portal_delay": 0, "cover_pid": 0, "start": 0, "noinet_timer": False, "exit": 0, "update_seen": 0, "wm_pid": 0, "wm_seen": 0, "wm_replaced": 0}
 
 function runtime_dir():
     value = env.get("XDG_RUNTIME_DIR", "")
@@ -1002,6 +1002,49 @@ function update_check():
     else:
         hub["update_seen"] = 0
     end
+    call wm_update_check()
+    return True
+end
+
+# Spravce oken xfwm4 tohoto uzivatele (cislo procesu; 0 = nebezi). Cizi procesy readlink neprecte.
+# LUXOS_HUB_WM_NAME jen pro testy (jiny nazev procesu nez skutecny xfwm4).
+function wm_pid():
+    comm = env.get("LUXOS_HUB_WM_NAME", "xfwm4") + "\n"
+    pid = hub["wm_pid"]
+    if pid > 0 and glib.read_text("/proc/" + String(pid) + "/comm") == comm and glib.readlink("/proc/" + String(pid) + "/exe") != "":
+        return pid
+    end
+    hub["wm_pid"] = 0
+    for name in glib.list_dir("/proc"):
+        if text.is_digits(name) and glib.read_text("/proc/" + name + "/comm") == comm and glib.readlink("/proc/" + name + "/exe") != "":
+            hub["wm_pid"] = Int(name)
+            return hub["wm_pid"]
+        end
+    end
+    return 0
+end
+
+# Aktualizace nahradila /usr/bin/xfwm4 (balik xfwm4 z [luxos]: umisteni oken, Alt+`): bezici spravce
+# oken se vymeni za novou verzi (xfwm4 --replace, okna i jejich pozice zustanou, jako luxos-unfreeze),
+# az pri druhe kontrole po sobe, at se nemeni uprostred instalace. Opravy plati bez odhlaseni.
+function wm_update_check():
+    if env.get("LUXOS_HUB_NO_WM_REPLACE", "") != "":
+        return False
+    end
+    pid = wm_pid()
+    # stejny proces se nevymenuje dvakrat (kdyby nova verze nenastartovala, stary spravce zustane)
+    if pid == 0 or pid == hub["wm_replaced"] or not glib.readlink("/proc/" + String(pid) + "/exe").endswith(" (deleted)"):
+        hub["wm_seen"] = 0
+        return False
+    end
+    hub["wm_seen"] = hub["wm_seen"] + 1
+    if hub["wm_seen"] < 2 or len(glib.stat("/usr/bin/xfwm4")) == 0:
+        return False
+    end
+    call log("xfwm4: new version installed, replacing the window manager")
+    hub["wm_seen"] = 0
+    hub["wm_replaced"] = pid
+    call glib.spawn_quiet(["setsid", "-f", "xfwm4", "--replace"])
     return True
 end
 

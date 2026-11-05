@@ -1,0 +1,62 @@
+# Maintainer: LuxOS Team
+# xfwm4 z Archu + okna jako v macOS (luxos-windows.patch):
+#   - placement_mode "luxos": nove okno do stredu, kdyz je volny, jinak na volne misto bez
+#     prekryti, jinak kaskadou 28 px vpravo dolu od posledniho okna stejne aplikace (WM_CLASS);
+#     nikdy presne na jine okno. Dialogy, prechodna okna, okna s vlastni pozici (PPosition/
+#     USPosition) a okna obnovena z relace se dal neumistuji (beze zmeny proti xfwm4).
+#     Neopraveny xfwm4 bere "luxos" jako "center".
+#   - cycle_app_windows_key / cycle_reverse_app_windows_key (LuxOS: Alt+` a Shift+Alt+`):
+#     prepinac Alt+Tab (s nahledy oken) jen s okny aktualni aplikace.
+#   - cycle_group_apps (volba, vychozi vypnuto): Alt+Tab ukaze kazdou aplikaci jednou, Dolu
+#     nebo ` ukaze okna vybrane aplikace, Nahoru zpet na aplikace.
+#   - zkratky s klavesou "grave" plati pro fyzickou klavesu pod Esc (XKB <TLDE>) v kazdem
+#     rozlozeni - v ceskem je na ni ";" a puvodni xfwm4 by "grave" hledal na klavese H.
+#   - zavreni posledniho okna v prepinaci Alt+Tab behem prepinani uz xfwm4 neshodi (tabwin.c).
+# Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
+# verzi v Archu zvysit pkgver (a sha256sums), pkgrel nechat X.1.
+# Puvodni PKGBUILD Archu (udrzovatele Evangelos Foutras, Robin Candau) je v PKGBUILD.arch.
+
+pkgname=xfwm4
+pkgver=4.20.0
+pkgrel=2.1
+pkgdesc='Xfce window manager (LuxOS: free-space/cascade placement, Alt+` switches windows of the app)'
+arch=('x86_64')
+url="https://docs.xfce.org/xfce/xfwm4/start"
+license=('GPL-2.0-or-later')
+groups=('xfce4')
+depends=('libxfce4ui' 'xfconf' 'libwnck3' 'libepoxy' 'libxpresent'
+         'hicolor-icon-theme')
+makedepends=('git' 'xfce4-dev-tools')
+source=("git+https://gitlab.xfce.org/xfce/xfwm4.git#tag=$pkgname-$pkgver"
+        'luxos-windows.patch')
+sha256sums=('68691593f06659f1ba1a0363be161b2cd50a84016612394c909bce1485a75cff'
+            '41e6f423905badac58c5bfce380195deb69a5c4557e2a66232216b5525f6e75c')
+
+prepare() {
+  cd $pkgname
+  # LuxOS: umisteni oken, Alt+` a seskupeny Alt+Tab
+  patch -Np1 -i "$srcdir/luxos-windows.patch"
+  NOCONFIGURE=1 ./autogen.sh
+}
+
+build() {
+  cd $pkgname
+  ./configure \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --localstatedir=/var \
+    --enable-startup-notification \
+    --enable-randr \
+    --enable-compositor \
+    --enable-xsync \
+    --disable-debug \
+    --enable-maintainer-mode
+  make
+}
+
+package() {
+  cd $pkgname
+  make DESTDIR="$pkgdir" install
+}
+
+# vim:set ts=2 sw=2 et:

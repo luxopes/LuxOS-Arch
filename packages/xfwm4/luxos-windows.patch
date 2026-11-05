@@ -1,0 +1,745 @@
+--- a/src/cycle.c
++++ b/src/cycle.c
+@@ -50,14 +50,86 @@
+ #include "workspaces.h"
+ #include "event_filter.h"
+ 
++/*
++ * LuxOS: rezimy prepinani oken
++ *   ALL      puvodni Alt+Tab (vsechna okna)
++ *   GROUPED  Alt+Tab se seskupenim (volba cycle_group_apps): kazda aplikace (WM_CLASS) jednou,
++ *            jejim naposledy pouzitym oknem; Dolu nebo ` ukaze okna vybrane aplikace, Nahoru zpet
++ *   APP      Alt+` (cycle_app_windows_key): jen okna aktualni aplikace
++ */
++typedef enum
++{
++    CYCLE_MODE_ALL,
++    CYCLE_MODE_GROUPED,
++    CYCLE_MODE_APP
++} CycleMode;
++
+ typedef struct _ClientCycleData ClientCycleData;
+ struct _ClientCycleData
+ {
+     Tabwin *tabwin;
+     WireFrame *wireframe;
+     gboolean inside;
++    /* LuxOS */
++    GList *client_list;     /* seznam zobrazeny v tabwin (tabwin drzi ukazatel na tuto polozku) */
++    GList *all_list;        /* vsechna okna k prepnuti (pro seskupeni a rozbaleni aplikace) */
++    CycleMode mode;
++    gboolean expanded;      /* okna jedne aplikace rozbalena ze seskupeneho Alt+Tab */
+ };
+ 
++/* LuxOS: stejna aplikace = stejna trida okna (WM_CLASS) */
++static gboolean
++clientCycleSameClass (Client *c1, Client *c2)
++{
++    if (c1 == c2)
++    {
++        return TRUE;
++    }
++    return (c1->class.res_class != NULL && c2->class.res_class != NULL &&
++            !g_ascii_strcasecmp (c1->class.res_class, c2->class.res_class));
++}
++
++/* LuxOS: kazda aplikace jednou (prvni = naposledy pouzite okno, poradi zustava) */
++static GList *
++clientCycleGroupList (GList *all_list)
++{
++    GList *result, *li, *lj;
++
++    result = NULL;
++    for (li = all_list; li; li = g_list_next (li))
++    {
++        for (lj = result; lj; lj = g_list_next (lj))
++        {
++            if (clientCycleSameClass ((Client *) lj->data, (Client *) li->data))
++            {
++                break;
++            }
++        }
++        if (lj == NULL)
++        {
++            result = g_list_append (result, li->data);
++        }
++    }
++    return result;
++}
++
++/* LuxOS: jen okna stejne aplikace jako c */
++static GList *
++clientCycleAppList (GList *all_list, Client *c)
++{
++    GList *result, *li;
++
++    result = NULL;
++    for (li = all_list; li; li = g_list_next (li))
++    {
++        if (clientCycleSameClass (c, (Client *) li->data))
++        {
++            result = g_list_append (result, li->data);
++        }
++    }
++    return result;
++}
++
+ static gint
+ clientCompareModal (gconstpointer a, gconstpointer b)
+ {
+@@ -240,6 +312,66 @@
+     return FALSE;
+ }
+ 
++/* LuxOS: zobrazit v prepinaci jiny seznam oken a vybrat v nem select (nebo prvni okno) */
++static Client *
++clientCycleReplaceList (ClientCycleData *passdata, GList *list, Client *select)
++{
++    ScreenInfo *screen_info;
++    GList *selected;
++
++    if (list == NULL)
++    {
++        return NULL;
++    }
++    selected = g_list_find (list, select);
++    if (selected == NULL)
++    {
++        selected = list;
++    }
++    screen_info = ((Client *) selected->data)->screen_info;
++
++    tabwinDestroy (passdata->tabwin);
++    g_free (passdata->tabwin);
++    g_list_free (passdata->client_list);
++    passdata->client_list = list;
++    passdata->tabwin = tabwinCreate (&passdata->client_list, selected,
++                                     screen_info->params->cycle_workspaces);
++    passdata->inside = FALSE;
++
++    return (Client *) selected->data;
++}
++
++/* LuxOS: seskupeny Alt+Tab -> okna vybrane aplikace */
++static Client *
++clientCycleExpand (ClientCycleData *passdata, Client *c)
++{
++    passdata->mode = CYCLE_MODE_APP;
++    passdata->expanded = TRUE;
++    return clientCycleReplaceList (passdata, clientCycleAppList (passdata->all_list, c), c);
++}
++
++/* LuxOS: okna aplikace -> zpet na seskupeny Alt+Tab s vybranou touto aplikaci */
++static Client *
++clientCycleCollapse (ClientCycleData *passdata, Client *c)
++{
++    GList *groups, *li;
++    Client *select;
++
++    groups = clientCycleGroupList (passdata->all_list);
++    select = NULL;
++    for (li = groups; li && c; li = g_list_next (li))
++    {
++        if (clientCycleSameClass ((Client *) li->data, c))
++        {
++            select = (Client *) li->data;
++            break;
++        }
++    }
++    passdata->mode = CYCLE_MODE_GROUPED;
++    passdata->expanded = FALSE;
++    return clientCycleReplaceList (passdata, groups, select);
++}
++
+ static eventFilterStatus
+ clientCycleEventFilter (XfwmEvent *event, gpointer data)
+ {
+@@ -271,7 +403,9 @@
+     up = screen_info->params->keys[KEY_UP].keycode;
+     down = screen_info->params->keys[KEY_DOWN].keycode;
+     modifiers = (screen_info->params->keys[KEY_CYCLE_WINDOWS].modifier |
+-                 screen_info->params->keys[KEY_CYCLE_REVERSE_WINDOWS].modifier);
++                 screen_info->params->keys[KEY_CYCLE_REVERSE_WINDOWS].modifier |
++                 screen_info->params->keys[KEY_CYCLE_APP_WINDOWS].modifier |
++                 screen_info->params->keys[KEY_CYCLE_REVERSE_APP_WINDOWS].modifier);
+     status = EVENT_FILTER_CONTINUE;
+     removed = NULL;
+     cycling = TRUE;
+@@ -294,6 +428,16 @@
+                     c2 = tabwinSelectHead (passdata->tabwin);
+                     cycling = FALSE;
+                 }
++                else if (event->key.keycode == up && passdata->expanded)
++                {
++                    /* LuxOS: zpet na seznam aplikaci */
++                    c2 = clientCycleCollapse (passdata, c);
++                }
++                else if (event->key.keycode == down && passdata->mode == CYCLE_MODE_GROUPED)
++                {
++                    /* LuxOS: okna vybrane aplikace */
++                    c2 = clientCycleExpand (passdata, c);
++                }
+                 else if (event->key.keycode == up)
+                 {
+                     c2 = tabwinSelectDelta(passdata->tabwin, -1, 0);
+@@ -320,6 +464,24 @@
+                     TRACE ("cycle: next");
+                     c2 = tabwinSelectNext(passdata->tabwin);
+                 }
++                else if ((key == KEY_CYCLE_APP_WINDOWS || key == KEY_CYCLE_REVERSE_APP_WINDOWS)
++                         && passdata->mode != CYCLE_MODE_ALL)
++                {
++                    /* LuxOS: ` v seskupenem Alt+Tab rozbali vybranou aplikaci a posune se na jeji
++                     * dalsi okno; v oknech aplikace (Alt+`) prepina dal */
++                    if (passdata->mode == CYCLE_MODE_GROUPED)
++                    {
++                        clientCycleExpand (passdata, c);
++                    }
++                    if (key == KEY_CYCLE_REVERSE_APP_WINDOWS)
++                    {
++                        c2 = tabwinSelectPrev(passdata->tabwin);
++                    }
++                    else
++                    {
++                        c2 = tabwinSelectNext(passdata->tabwin);
++                    }
++                }
+                 if (c2)
+                 {
+                     clientCycleUpdateWireframe (c2, passdata);
+@@ -426,7 +588,23 @@
+                             break; /* No need to go any further */
+                         }
+                     }
+-                    c = tabwinRemoveClient(passdata->tabwin, removed);
++                    /* LuxOS: zavrene okno pryc i ze seznamu vsech oken. Ve seskupenem seznamu
++                     * aplikaci ho nahradi dalsi okno stejne aplikace (aplikace zustane vybrana);
++                     * po zavreni vsech oken rozbalene aplikace zpet na seznam aplikaci. */
++                    passdata->all_list = g_list_remove (passdata->all_list, removed);
++                    if (passdata->all_list && passdata->mode == CYCLE_MODE_GROUPED &&
++                        g_list_find (passdata->client_list, removed))
++                    {
++                        c = clientCycleCollapse (passdata, tabwinGetSelected (passdata->tabwin));
++                    }
++                    else
++                    {
++                        c = tabwinRemoveClient(passdata->tabwin, removed);
++                        if (c == NULL && passdata->expanded && passdata->all_list)
++                        {
++                            c = clientCycleCollapse (passdata, NULL);
++                        }
++                    }
+                     cycling = clientCycleUpdateWireframe (c, passdata);
+                     break;
+             }
+@@ -464,7 +642,8 @@
+     ScreenInfo *screen_info;
+     DisplayInfo *display_info;
+     ClientCycleData passdata;
+-    GList *client_list, *selected;
++    GList *client_list, *all_list, *selected;
++    CycleMode mode;
+     int key, modifier;
+ 
+     g_return_if_fail (c != NULL);
+@@ -473,21 +652,51 @@
+     screen_info = c->screen_info;
+     display_info = screen_info->display_info;
+ 
+-    client_list = clientCycleCreateList (c);
+-    if (!client_list)
++    all_list = clientCycleCreateList (c);
++    if (!all_list)
+     {
+         return;
+     }
+ 
++    /* LuxOS: Alt+` = okna aktualni aplikace, Alt+Tab pripadne seskupeny po aplikacich */
+     key = myScreenGetKeyPressed (screen_info, event);
+-    if (key == KEY_CYCLE_REVERSE_WINDOWS)
++    if (key == KEY_CYCLE_APP_WINDOWS || key == KEY_CYCLE_REVERSE_APP_WINDOWS)
++    {
++        mode = CYCLE_MODE_APP;
++        client_list = clientCycleAppList (all_list, c);
++        if (g_list_length (client_list) < 2)
++        {
++            /* aplikace nema jine okno */
++            g_list_free (client_list);
++            g_list_free (all_list);
++            return;
++        }
++    }
++    else if (screen_info->params->cycle_group_apps)
++    {
++        mode = CYCLE_MODE_GROUPED;
++        client_list = clientCycleGroupList (all_list);
++    }
++    else
++    {
++        mode = CYCLE_MODE_ALL;
++        client_list = g_list_copy (all_list);
++    }
++
++    if (key == KEY_CYCLE_REVERSE_WINDOWS || key == KEY_CYCLE_REVERSE_APP_WINDOWS)
+     {
+         selected = g_list_last (client_list);
+-        modifier = screen_info->params->keys[KEY_CYCLE_REVERSE_WINDOWS].modifier;
+     }
+     else
+     {
+         selected = g_list_next (client_list);
++    }
++    if (key >= 0 && key < KEY_COUNT)
++    {
++        modifier = screen_info->params->keys[key].modifier;
++    }
++    else
++    {
+         modifier = screen_info->params->keys[KEY_CYCLE_WINDOWS].modifier;
+     }
+     if (!selected)
+@@ -505,6 +714,7 @@
+          */
+         clientCycleActivate ((Client *) selected->data);
+         g_list_free (client_list);
++        g_list_free (all_list);
+         return;
+     }
+ 
+@@ -514,12 +724,17 @@
+         myDisplayBeep (display_info);
+         myScreenUngrabKeyboard (screen_info, myDisplayGetCurrentTime (display_info));
+         g_list_free (client_list);
++        g_list_free (all_list);
+ 
+         return;
+     }
+ 
+     passdata.wireframe = NULL;
+     passdata.inside = FALSE;
++    passdata.client_list = client_list;
++    passdata.all_list = all_list;
++    passdata.mode = mode;
++    passdata.expanded = FALSE;
+ 
+     TRACE ("entering cycle loop");
+     if (screen_info->params->cycle_raise)
+@@ -530,7 +745,7 @@
+     {
+         passdata.wireframe = wireframeCreate ((Client *) selected->data);
+     }
+-    passdata.tabwin = tabwinCreate (&client_list, selected, screen_info->params->cycle_workspaces);
++    passdata.tabwin = tabwinCreate (&passdata.client_list, selected, screen_info->params->cycle_workspaces);
+     eventFilterPush (display_info->xfilter, clientCycleEventFilter, &passdata);
+ 
+     gtk_main ();
+@@ -545,7 +760,8 @@
+     c = tabwinGetSelected (passdata.tabwin);
+     tabwinDestroy (passdata.tabwin);
+     g_free (passdata.tabwin);
+-    g_list_free (client_list);
++    g_list_free (passdata.client_list);
++    g_list_free (passdata.all_list);
+ 
+     if (passdata.inside)
+     {
+--- a/src/events.c
++++ b/src/events.c
+@@ -326,6 +326,8 @@
+                 break;
+             case KEY_CYCLE_WINDOWS:
+             case KEY_CYCLE_REVERSE_WINDOWS:
++            case KEY_CYCLE_APP_WINDOWS:
++            case KEY_CYCLE_REVERSE_APP_WINDOWS:
+                 clientCycle (c, event);
+                 break;
+             case KEY_CLOSE_WINDOW:
+--- a/src/keyboard.c
++++ b/src/keyboard.c
+@@ -27,6 +27,7 @@
+ #endif
+ 
+ #include <X11/Xlib.h>
++#include <X11/XKBlib.h>
+ #include <glib.h>
+ #include <gtk/gtk.h>
+ #include <stdlib.h>
+@@ -68,12 +69,56 @@
+     KeyPressMask | \
+     KeyReleaseMask
+ 
++/*
++ * LuxOS: klavesa pod Esc (nad Tabem, XKB <TLDE>) podle fyzicke polohy. V ceskem rozlozeni
++ * na ni je ";" a "`" az s AltGr - XKeysymToKeycode by pro "grave" nasel prvni klavesu s "`"
++ * na libovolne urovni (v cz <AC06>, tedy H). Zkratky s "grave" (Alt+`, Super+`) proto plati
++ * pro tuto klavesu v kazdem rozlozeni, jako Cmd+` v macOS.
++ */
++static KeyCode
++getTildeKeycode (Display *dpy)
++{
++    XkbDescPtr desc;
++    KeyCode keycode;
++    int i;
++
++    keycode = 0;
++    desc = XkbGetMap (dpy, 0, XkbUseCoreKbd);
++    if (desc == NULL)
++    {
++        return 0;
++    }
++    if (XkbGetNames (dpy, XkbKeyNamesMask, desc) == Success && desc->names && desc->names->keys)
++    {
++        for (i = desc->min_key_code; i <= desc->max_key_code; i++)
++        {
++            if (!strncmp (desc->names->keys[i].name, "TLDE", XkbKeyNameLength))
++            {
++                keycode = (KeyCode) i;
++                break;
++            }
++        }
++    }
++    XkbFreeKeyboard (desc, 0, True);
++
++    return keycode;
++}
++
+ static KeyCode
+ getKeycode (Display *dpy, const char *str)
+ {
+     GdkModifierType keysym;
++    KeyCode keycode;
+ 
+     gtk_accelerator_parse (str, &keysym, NULL);
++    if (keysym == GDK_KEY_grave)
++    {
++        keycode = getTildeKeycode (dpy);
++        if (keycode)
++        {
++            return keycode;
++        }
++    }
+     return XKeysymToKeycode (dpy, keysym);
+ }
+ 
+--- a/src/placement.c
++++ b/src/placement.c
+@@ -634,7 +634,7 @@
+     }
+ }
+ 
+-static void
++static gfloat
+ smartPlacement (Client * c, int full_x, int full_y, int full_w, int full_h)
+ {
+     Client *c2;
+@@ -646,7 +646,7 @@
+     gint c2_x, c2_y;
+     gint xmin, ymin;
+ 
+-    g_return_if_fail (c != NULL);
++    g_return_val_if_fail (c != NULL, G_MAXFLOAT);
+ 
+     TRACE ("client \"%s\" (0x%lx)", c->name, c->window);
+ 
+@@ -815,6 +815,9 @@
+ 
+     c->x = best_x;
+     c->y = best_y;
++
++    /* LuxOS: volajici pozna, jestli se naslo misto bez prekryti */
++    return best_overlaps;
+ }
+ 
+ static void
+@@ -845,6 +848,176 @@
+     c->y = MAX (c->y, full_y + frameExtentTop(c));
+ }
+ 
++/*
++ * LuxOS: umisteni noveho okna jako v macOS (placement_mode "luxos").
++ *  1. stred monitoru, kdyz tam okno nic neprekryva,
++ *  2. jinak volne misto bez prekryti (puvodni "smart" hledani),
++ *  3. jinak kaskada: o LUXOS_CASCADE_STEP px vpravo dolu od nejvyssiho okna stejne aplikace
++ *     (WM_CLASS); na okraji pracovni plochy pokracuje novym sloupcem nahore / vlevo.
++ * Okno nikdy neskonci presne na jinem okne (stejny levy horni roh).
++ * Dialogy, prechodna okna, okna s vlastni pozici (PPosition/USPosition) a okna obnovena
++ * z relace sem nechodi vubec (viz clientInitPosition a clientFrame).
++ */
++#define LUXOS_CASCADE_STEP 28
++
++static gboolean
++luxosSameClass (Client *c1, Client *c2)
++{
++    return (c1->class.res_class != NULL && c2->class.res_class != NULL &&
++            !g_ascii_strcasecmp (c1->class.res_class, c2->class.res_class));
++}
++
++/* okno, se kterym se pri umistovani pocita (stejna pravidla jako smartPlacement) */
++static gboolean
++luxosCountsForPlacement (Client *c, Client *c2)
++{
++    return ((c2 != c) && (c2->type != WINDOW_DESKTOP)
++            && (c->win_workspace == c2->win_workspace)
++            && FLAG_TEST (c2->xfwm_flags, XFWM_FLAG_VISIBLE));
++}
++
++/* plocha prekryti ramu okna c v pozici ramu (fx, fy) s ostatnimi okny */
++static unsigned long
++luxosOverlapAt (Client *c, int fx, int fy)
++{
++    ScreenInfo *screen_info;
++    Client *c2;
++    unsigned long total;
++    guint i;
++
++    screen_info = c->screen_info;
++    total = 0;
++    for (c2 = screen_info->clients, i = 0; i < screen_info->client_count; c2 = c2->next, i++)
++    {
++        if (!luxosCountsForPlacement (c, c2))
++        {
++            continue;
++        }
++        total += overlap (fx, fy, fx + frameExtentWidth (c), fy + frameExtentHeight (c),
++                          frameExtentX (c2), frameExtentY (c2),
++                          frameExtentX (c2) + frameExtentWidth (c2),
++                          frameExtentY (c2) + frameExtentHeight (c2));
++    }
++    return total;
++}
++
++/* na pozici ramu (fx, fy) uz je jine okno (levy horni roh blize nez pul kroku kaskady) */
++static gboolean
++luxosPositionTaken (Client *c, int fx, int fy)
++{
++    ScreenInfo *screen_info;
++    Client *c2;
++    guint i;
++
++    screen_info = c->screen_info;
++    for (c2 = screen_info->clients, i = 0; i < screen_info->client_count; c2 = c2->next, i++)
++    {
++        if (!luxosCountsForPlacement (c, c2) || (c2->type & WINDOW_TYPE_DONT_PLACE))
++        {
++            continue;
++        }
++        if (ABS (frameExtentX (c2) - fx) < LUXOS_CASCADE_STEP / 2 &&
++            ABS (frameExtentY (c2) - fy) < LUXOS_CASCADE_STEP / 2)
++        {
++            return TRUE;
++        }
++    }
++    return FALSE;
++}
++
++/* nejvyssi (naposledy pouzite) normalni okno stejne aplikace na tomto monitoru a plose */
++static Client *
++luxosCascadeReference (Client *c, int full_x, int full_y, int full_w, int full_h)
++{
++    ScreenInfo *screen_info;
++    Client *c2;
++    GList *list;
++    int cx, cy;
++
++    screen_info = c->screen_info;
++    for (list = g_list_last (screen_info->windows_stack); list; list = g_list_previous (list))
++    {
++        c2 = (Client *) list->data;
++        if (!luxosCountsForPlacement (c, c2) || !(c2->type & WINDOW_NORMAL) || !luxosSameClass (c, c2))
++        {
++            continue;
++        }
++        if (FLAG_TEST (c2->flags, CLIENT_FLAG_FULLSCREEN | CLIENT_FLAG_MAXIMIZED))
++        {
++            continue;
++        }
++        cx = frameExtentX (c2) + frameExtentWidth (c2) / 2;
++        cy = frameExtentY (c2) + frameExtentHeight (c2) / 2;
++        if (cx >= full_x && cx < full_x + full_w && cy >= full_y && cy < full_y + full_h)
++        {
++            return c2;
++        }
++    }
++    return NULL;
++}
++
++static void
++luxosPlacement (Client * c, int full_x, int full_y, int full_w, int full_h)
++{
++    Client *ref;
++    int fx, fy, fw, fh, tries;
++
++    g_return_if_fail (c != NULL);
++
++    TRACE ("client \"%s\" (0x%lx)", c->name, c->window);
++
++    fw = frameExtentWidth (c);
++    fh = frameExtentHeight (c);
++
++    /* 1. stred, kdyz je volny */
++    centerPlacement (c, full_x, full_y, full_w, full_h);
++    if (luxosOverlapAt (c, frameExtentX (c), frameExtentY (c)) == 0)
++    {
++        return;
++    }
++
++    /* 2. volne misto kdekoli na monitoru */
++    if (smartPlacement (c, full_x, full_y, full_w, full_h) == 0.0f)
++    {
++        return;
++    }
++
++    /* 3. kaskada od posledniho okna stejne aplikace, jinak misto s nejmensim prekrytim */
++    ref = luxosCascadeReference (c, full_x, full_y, full_w, full_h);
++    if (ref)
++    {
++        fx = frameExtentX (ref) + LUXOS_CASCADE_STEP;
++        fy = frameExtentY (ref) + LUXOS_CASCADE_STEP;
++    }
++    else
++    {
++        fx = frameExtentX (c);
++        fy = frameExtentY (c);
++    }
++
++    for (tries = 0; tries < 64; tries++)
++    {
++        /* na okraji pracovni plochy zacit novy sloupec kaskady nahore / vlevo */
++        if (fy + fh > full_y + full_h)
++        {
++            fy = full_y;
++        }
++        if (fx + fw > full_x + full_w)
++        {
++            fx = full_x;
++        }
++        if (!luxosPositionTaken (c, fx, fy))
++        {
++            break;
++        }
++        fx += LUXOS_CASCADE_STEP;
++        fy += LUXOS_CASCADE_STEP;
++    }
++
++    c->x = MAX (fx, full_x) + frameExtentLeft (c);
++    c->y = MAX (fy, full_y) + frameExtentTop (c);
++}
++
+ void
+ clientInitPosition (Client * c)
+ {
+@@ -908,7 +1081,19 @@
+        than 100% place the window at the center.
+        Otherwise, place the window "smartly", using the good old CPU consuming algorithm...
+      */
+-    if (place)
++    if (place && screen_info->params->placement_mode == PLACE_LUXOS)
++    {
++        /* LuxOS: volne misto, jinak kaskada (bez ohledu na placement_ratio) */
++        if ((frameExtentWidth(c) >= full.width) && (frameExtentHeight(c) >= full.height))
++        {
++            centerPlacement (c, full.x, full.y, full.width, full.height);
++        }
++        else
++        {
++            luxosPlacement (c, full.x, full.y, full.width, full.height);
++        }
++    }
++    else if (place)
+     {
+         if ((screen_info->params->placement_ratio >= 100) ||
+             (100 * frameExtentWidth(c) * frameExtentHeight(c)) <
+--- a/src/settings.c
++++ b/src/settings.c
+@@ -194,6 +194,10 @@
+     {
+         screen_info->params->placement_mode = PLACE_MOUSE;
+     }
++    else if (!g_ascii_strcasecmp ("luxos", value))
++    {
++        screen_info->params->placement_mode = PLACE_LUXOS;
++    }
+     else
+     {
+         screen_info->params->placement_mode = PLACE_CENTER;
+@@ -585,6 +589,8 @@
+     parseShortcut (screen_info, KEY_CLOSE_WINDOW, "close_window_key", shortcuts);
+     parseShortcut (screen_info, KEY_CYCLE_WINDOWS, "cycle_windows_key", shortcuts);
+     parseShortcut (screen_info, KEY_CYCLE_REVERSE_WINDOWS, "cycle_reverse_windows_key", shortcuts);
++    parseShortcut (screen_info, KEY_CYCLE_APP_WINDOWS, "cycle_app_windows_key", shortcuts);
++    parseShortcut (screen_info, KEY_CYCLE_REVERSE_APP_WINDOWS, "cycle_reverse_app_windows_key", shortcuts);
+     parseShortcut (screen_info, KEY_DEL_WORKSPACE, "del_workspace_key", shortcuts);
+     parseShortcut (screen_info, KEY_DEL_ACTIVE_WORKSPACE, "del_active_workspace_key", shortcuts);
+     parseShortcut (screen_info, KEY_DOWN_WORKSPACE, "down_workspace_key", shortcuts);
+@@ -690,6 +696,7 @@
+         {"click_to_focus", NULL, G_TYPE_BOOLEAN, TRUE},
+         {"cycle_apps_only", NULL, G_TYPE_BOOLEAN, TRUE},
+         {"cycle_draw_frame", NULL, G_TYPE_BOOLEAN, TRUE},
++        {"cycle_group_apps", NULL, G_TYPE_BOOLEAN, FALSE},
+         {"cycle_raise", NULL, G_TYPE_BOOLEAN, TRUE},
+         {"cycle_hidden", NULL, G_TYPE_BOOLEAN, TRUE},
+         {"cycle_minimum", NULL, G_TYPE_BOOLEAN, TRUE},
+@@ -793,6 +800,8 @@
+         getBoolValue ("cycle_minimized", rc);
+     screen_info->params->cycle_draw_frame =
+         getBoolValue ("cycle_draw_frame", rc);
++    screen_info->params->cycle_group_apps =
++        getBoolValue ("cycle_group_apps", rc);
+     screen_info->params->cycle_raise =
+         getBoolValue ("cycle_raise", rc);
+     screen_info->params->cycle_hidden =
+@@ -1378,6 +1387,10 @@
+                 {
+                     screen_info->params->cycle_apps_only = g_value_get_boolean (value);
+                 }
++                else if (!strcmp (name, "cycle_group_apps"))
++                {
++                    screen_info->params->cycle_group_apps = g_value_get_boolean (value);
++                }
+                 else if (!strcmp (name, "cycle_preview"))
+                 {
+                     screen_info->params->cycle_preview = g_value_get_boolean (value);
+--- a/src/settings.h
++++ b/src/settings.h
+@@ -65,6 +65,8 @@
+     KEY_CLOSE_WINDOW,
+     KEY_CYCLE_WINDOWS,
+     KEY_CYCLE_REVERSE_WINDOWS,
++    KEY_CYCLE_APP_WINDOWS,          /* LuxOS: Alt+` - okna aktualni aplikace */
++    KEY_CYCLE_REVERSE_APP_WINDOWS,  /* LuxOS: Shift+Alt+` */
+     KEY_DEL_ACTIVE_WORKSPACE,
+     KEY_DEL_WORKSPACE,
+     KEY_DOWN_WORKSPACE,
+@@ -165,7 +167,8 @@
+ enum
+ {
+     PLACE_MOUSE,
+-    PLACE_CENTER
++    PLACE_CENTER,
++    PLACE_LUXOS     /* LuxOS: volne misto, jinak kaskada */
+ };
+ 
+ struct _Settings
+@@ -215,6 +218,7 @@
+     gboolean click_to_focus;
+     gboolean cycle_apps_only;
+     gboolean cycle_draw_frame;
++    gboolean cycle_group_apps;      /* LuxOS: Alt+Tab ukaze kazdou aplikaci jednou */
+     gboolean cycle_raise;
+     gboolean cycle_hidden;
+     gboolean cycle_minimized;
+--- a/src/tabwin.c
++++ b/src/tabwin.c
+@@ -983,6 +983,12 @@
+             if (client_list == tabwin->selected)
+             {
+                 tabwinSelectNext (tabwin);
++                if (client_list == tabwin->selected)
++                {
++                    /* LuxOS: zavrelo se posledni okno seznamu - nic vybrane (puvodne zustal
++                     * ukazatel na uvolnenou polozku a xfwm4 pak spadl) */
++                    tabwin->selected = NULL;
++                }
+             }
+             *tabwin->client_list = g_list_delete_link (*tabwin->client_list, client_list);
+             break;

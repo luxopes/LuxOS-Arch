@@ -37,8 +37,8 @@ depends=(
     gdk-pixbuf2 luxos-pixbuf-svg webp-pixbuf-loader
     # Graficky server a vstup
     xorg-server xorg-xrandr xorg-xinput xorg-xset xf86-input-libinput mesa
-    # Xfce (jen potrebne casti)
-    xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf 'xfce4-notifyd>=0.9.7-3.3'
+    # Xfce (jen potrebne casti); xfwm4 z [luxos]: umisteni oken a Alt+` (packages/xfwm4)
+    xfce4-session 'xfwm4>=4.20.0-2.1' xfce4-panel xfdesktop xfce4-settings xfconf 'xfce4-notifyd>=0.9.7-3.3'
     xfce4-power-manager 'xfce4-screensaver>=4.20.2-1.3' ffmpeg xfce4-taskmanager
     # Terminal LuxOS misto xfce4-terminal (packages/luxos-terminal, VTE s obrazky SIXEL)
     luxos-terminal
