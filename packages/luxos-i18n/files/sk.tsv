@@ -4471,3 +4471,11 @@ The printer driver could not be installed. Check the internet connection and try
 LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS pre túto tlačiareň nenašiel ovládač. Vyberte ho v ponuke Rozšírené…
 A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	Program v tomto paneli spustil príliš veľa procesov (limit %u), ďalšie preto nedostane. Zvyšok systému funguje ďalej. Zatvorením panela ukončíte všetky jeho procesy.
 Too many processes	Príliš veľa procesov
+line 5	5. riadok
+lines 1 and 10	1. a 10. riadok
+lines 1 to 10	riadky 1 až 10
+from line 5 to the end	od 5. riadku do konca
+the last line (-2 the one before it)	posledný riadok (-2 predposledný)
+FILE...	SÚBOR...
+invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)	neplatný výber riadkov: %s (príklady: 5, 1,10, 1-10, 5-, -1)
+cannot read %s	nedá sa čítať %s

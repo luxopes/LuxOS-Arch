@@ -111,6 +111,22 @@ Unlike bash, an interactive **login** lsh (TTY, ssh) also reads the lshrc files.
 
 Environment: `EDITOR=nano` (unless set), `PAGER=less`, `LESS='-R -F -i'`, man pages through `bat`.
 
+## line: selected lines of output
+
+`line` prints chosen lines of its input or of files – instead of `sed -n` or `head | tail`:
+
+```
+command | line 5        # line 5
+command | line 1,10     # lines 1 and 10 ("line 1, 10" works too)
+command | line 1-10     # lines 1 to 10
+command | line 5-       # from line 5 to the end
+command | line -1       # the last line (-2 the one before it)
+line 3,7-9 file.txt     # from a file
+```
+
+Lines come out in input order, each once. Without negative numbers it reads the input as a stream and
+stops right after the last selected line, so `huge-command | line 3` returns immediately.
+
 ## pacman hint
 
 There is no `pacman` command in LuxOS. Typing `pacman …` (or `pacman-*`) prints

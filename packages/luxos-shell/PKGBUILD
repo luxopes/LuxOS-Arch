@@ -2,7 +2,7 @@
 
 pkgname=luxos-shell
 pkgver=1.1.0
-pkgrel=17
+pkgrel=18
 pkgdesc="LuxOS shell experience: lsh (Lux shell) with ble.sh, zsh, starship prompt, fastfetch"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -26,7 +26,7 @@ package() {
     install -Dm755 "$f/fastfetch/packages" "$pkgdir/usr/lib/luxos/fastfetch-packages"
 
     # Prikazy zname z Debianu/Ubuntu: adduser (+ deluser, addgroup, delgroup), service, update-grub
-    install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/{adduser,service,update-grub}
+    install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/{adduser,service,update-grub,line}
     local l
     for l in deluser addgroup delgroup; do ln -s adduser "$pkgdir/usr/bin/$l"; done
     # napoveda pro apt, dnf, ifconfig, ... v obsluze "command not found"

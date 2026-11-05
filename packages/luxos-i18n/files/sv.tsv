@@ -4471,3 +4471,11 @@ The printer driver could not be installed. Check the internet connection and try
 LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS hittade ingen drivrutin för den här skrivaren. Välj en under Avancerat…
 A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	Ett program i den här fliken startade för många processer (gräns %u), så nya nekas. Resten av systemet fungerar som vanligt. Stäng fliken för att stoppa alla dess processer.
 Too many processes	För många processer
+line 5	rad 5
+lines 1 and 10	rad 1 och 10
+lines 1 to 10	rad 1 till 10
+from line 5 to the end	från rad 5 till slutet
+the last line (-2 the one before it)	sista raden (-2 den näst sista)
+FILE...	FIL...
+invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)	ogiltigt radval: %s (exempel: 5, 1,10, 1-10, 5-, -1)
+cannot read %s	kan inte läsa %s

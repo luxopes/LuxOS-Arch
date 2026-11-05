@@ -6,6 +6,9 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 
 ## Připravuje se
 
+### Nové
+- **Příkaz `line`** (`luxos-shell`, `luxos-i18n`, `luxos-docs`): vybrané řádky výstupu nebo souboru místo `sed -n` nebo `head | tail` – `prikaz | line 5`, `line 1,10` (i `line 1, 10`), `line 1-10`, `line 5-` (do konce), `line -1` (poslední řádek), `line 3,7-9 soubor`. Bez záporných čísel čte proudově a skončí hned po posledním vybraném řádku.
+
 ### Opraveno
 - **WebGPU v Chromiu funguje** (`luxos-desktop` 54): Chromium na Linuxu WebGPU bez voleb Vulkanu nezapne a stránky (např. hry v prohlížeči) hlásily chybějící grafiku. LuxOS jednou vytvoří `~/.config/chromium-flags.conf` s `--enable-features=Vulkan` a `--enable-unsafe-webgpu` – jen když ho uživatel nemá (vlastní volby se nemění).
 
