@@ -13,6 +13,9 @@
       <property name="&lt;Super&gt;t" type="string" value="luxos-terminal"/>
       <property name="&lt;Primary&gt;&lt;Alt&gt;t" type="string" value="luxos-terminal"/>
       <property name="&lt;Super&gt;comma" type="string" value="xfce4-settings-manager"/>
+      <!-- Emoji a symboly: Super+. jako Win+. ve Windows, Ctrl+Super+Mezernik jako Ctrl+Cmd+Mezernik v macOS -->
+      <property name="&lt;Super&gt;period" type="string" value="luxos-emoji"/>
+      <property name="&lt;Primary&gt;&lt;Super&gt;space" type="string" value="luxos-emoji"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;q" type="string" value="xflock4"/>
       <property name="&lt;Super&gt;l" type="string" value="xflock4"/>
       <property name="&lt;Super&gt;&lt;Alt&gt;Escape" type="string" value="luxos-monitor"/>

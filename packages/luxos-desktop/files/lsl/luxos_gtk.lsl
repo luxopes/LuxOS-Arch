@@ -9,7 +9,9 @@
 #   dialog_new/dialog_add_button/dialog_get_content_area/dialog_set_default_response/dialog_run (agent Bluetooth),
 #   css_set(provider, css) (novy obsah poskytovatele: prepnuti svetly/tmavy), settings_theme_name(), settings_prefer_dark(),
 #   pointer_position() -> [x, y], screen_active_window() (GdkWindow aktivniho okna podle spravce oken, 0 kdyz neni;
-#   nova reference -> glib.object_unref), window_set_rgba(okno) (RGBA visual + app paintable, jen s kompozitorem)
+#   nova reference -> glib.object_unref), window_set_rgba(okno) (RGBA visual + app paintable, jen s kompozitorem),
+#   Emoji a symboly: selection_set_text/_image, selection_owned, selection_request_text/_image (asynchronne,
+#   CLIPBOARD i PRIMARY), x11_server_time(widget), window_set_icon_list(okno, ikona) 16-256 px
 load glib, gtk, cairo
 load luxos_glib
 
@@ -596,6 +598,115 @@ end
 function clipboard_owner():
     unsafe:
         return __lsl_qbe_call1(__lsl_symbol("gdk_selection_owner_get"), 69)
+    end
+end
+
+# Schranka i vyber (PRIMARY = atom 1) pro Emoji a symboly: SELECTION_CLIPBOARD / SELECTION_PRIMARY
+SELECTION_PRIMARY = 1
+SELECTION_CLIPBOARD = 69
+
+function selection_set_text(selection, value):
+    unsafe:
+        clip = __lsl_qbe_call1(__lsl_symbol("gtk_clipboard_get"), ptr(selection))
+        call __lsl_qbe_call3(__lsl_symbol("gtk_clipboard_set_text"), clip, cstr(value), -1)
+        return 0
+    end
+end
+
+function selection_set_image(selection, pixbuf):
+    unsafe:
+        clip = __lsl_qbe_call1(__lsl_symbol("gtk_clipboard_get"), ptr(selection))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_clipboard_set_image"), clip, ptr(pixbuf))
+        return 0
+    end
+end
+
+# True kdyz vyber drzi tento proces (gdk_selection_owner_get vraci jen vlastni okna)
+function selection_owned(selection):
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("gdk_selection_owner_get"), ptr(selection)) != 0
+    end
+end
+
+# Asynchronni cteni textu vyberu: handler(bound, text) - text None, kdyz vyber text nema nebo je prazdny
+function selection_request_text(selection, handler, bound):
+    state = [handler, bound, 0]
+    tracked = luxos_glib.track(selection_text_trampoline, 2, state)
+    state[2] = tracked[1]
+    unsafe:
+        clip = __lsl_qbe_call1(__lsl_symbol("gtk_clipboard_get"), ptr(selection))
+        call __lsl_qbe_call3(__lsl_symbol("gtk_clipboard_request_text"), clip, __lsl_symbol("lsl_arch_callback_u3"), ptr(tracked[0]))
+    end
+    return 0
+end
+
+function selection_text_trampoline(state, clip, address):
+    call luxos_glib.release(state[2])
+    value = None
+    unsafe:
+        if ptr(address) != 0:
+            value = glib.from_c(address)
+        end
+    end
+    handler = state[0]
+    call handler(state[1], value)
+    return 0
+end
+
+# Asynchronni cteni obrazku vyberu: handler(bound, pixbuf) - vlastni reference (glib.object_unref), 0 kdyz neni
+function selection_request_image(selection, handler, bound):
+    state = [handler, bound, 0]
+    tracked = luxos_glib.track(selection_image_trampoline, 2, state)
+    state[2] = tracked[1]
+    unsafe:
+        clip = __lsl_qbe_call1(__lsl_symbol("gtk_clipboard_get"), ptr(selection))
+        call __lsl_qbe_call3(__lsl_symbol("gtk_clipboard_request_image"), clip, __lsl_symbol("lsl_arch_callback_u3"), ptr(tracked[0]))
+    end
+    return 0
+end
+
+function selection_image_trampoline(state, clip, pixbuf):
+    call luxos_glib.release(state[2])
+    value = 0
+    unsafe:
+        if ptr(pixbuf) != 0:
+            value = __lsl_qbe_call1(__lsl_symbol("g_object_ref"), ptr(pixbuf))
+        end
+    end
+    handler = state[0]
+    call handler(state[1], value)
+    return 0
+end
+
+# Cas serveru X (pro present_with_time / _NET_ACTIVE_WINDOW bez udalosti od uzivatele); 0 bez okna
+function x11_server_time(widget):
+    unsafe:
+        window = __lsl_qbe_call1(__lsl_symbol("gtk_widget_get_window"), ptr(widget))
+        if window == 0:
+            return 0
+        end
+        return __lsl_qbe_call1(__lsl_symbol("gdk_x11_get_server_time"), window) & 4294967295
+    end
+end
+
+# Ikona okna 16-256 px z motivu ikon (GTK_ICON_LOOKUP_FORCE_SIZE): ostra i v Alt+Tab (xfwm4 jinak zvetsuje 48 px)
+function window_set_icon_list(window, name):
+    unsafe:
+        theme = __lsl_qbe_call0(__lsl_symbol("gtk_icon_theme_get_default"))
+        list = 0
+        for size in [16, 24, 32, 48, 64, 128, 256]:
+            pb = __lsl_qbe_call5(__lsl_symbol("gtk_icon_theme_load_icon"), theme, cstr(name), ptr(size), 16, 0)
+            if pb != 0:
+                list = __lsl_qbe_call2(__lsl_symbol("g_list_append"), list, pb)
+            end
+        end
+        if list != 0:
+            call __lsl_qbe_call2(__lsl_symbol("gtk_window_set_icon_list"), ptr(window), list)
+            call __lsl_qbe_call2(__lsl_symbol("g_list_free_full"), list, __lsl_symbol("g_object_unref"))
+            return True
+        end
+        call __lsl_qbe_call2(__lsl_symbol("gtk_window_set_icon_name"), ptr(window), cstr(name))
+        return False
     end
 end
 

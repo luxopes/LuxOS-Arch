@@ -21,6 +21,8 @@
 #   Grafika           rezim Vykon: hry a narocne aplikace na samostatne grafice (luxos_gpu_hub + luxos-gpu)
 #   Snimek obrazovky  lista a okna luxos-screenshot (luxos_shot) pripravena predem; klient luxos-screenshot
 #                     preda prepinace pres abstraktni socket UNIX, lista je videt hned po zkratce
+#   Emoji a symboly   okno vyberu emoji (luxos_emoji) s nactenymi daty pripravene predem; klient luxos-emoji
+#                     (Super+., Ctrl+Super+Mezernik) preda pozadavek stejne jako snimek obrazovky
 #
 # Stejny program bezi i jako `luxos-control-center [--panel|--background]` a `luxos-calendar [--background]`
 # (podle nazvu, pod kterym byl spusten): bezici instance (hub nebo samostatna) jen dostane signal.
@@ -43,6 +45,7 @@ load luxos_drivers_hub as drivers
 load luxos_safe_hub as safe
 load luxos_timechange as timechange
 load luxos_shot as shot
+load luxos_emoji as emoji
 load luxos_audio_hub as audio
 load luxos_gpu_hub as gpu
 
@@ -709,7 +712,18 @@ function prebuild():
     call window_cc()
     call window_cal()
     call window_shot()
+    call window_emoji()
     return False
+end
+
+# Okno Emoji a symbolu s daty (~2 MB) skryte predem: zkratka ho ukaze hned
+function window_emoji():
+    try:
+        call emoji.prebuild()
+    else:
+        call log("emoji: " + String(last_error()))
+    end
+    return 0
 end
 
 # Okna Snimku obrazovky (lista, prekryv, nahled) skryta predem: zkratka je ukaze hned
@@ -844,6 +858,12 @@ function main_hub():
         call shot.start_server(False)
     else:
         call log("screenshot: " + String(last_error()))
+    end
+    # Emoji a symboly: pozadavky klienta luxos-emoji (okno se postavi s ostatnimi, nebo pri prvnim pozadavku)
+    try:
+        call emoji.start_server(False)
+    else:
+        call log("emoji: " + String(last_error()))
     end
     safe:
         hub["session"] = gio.session_bus()

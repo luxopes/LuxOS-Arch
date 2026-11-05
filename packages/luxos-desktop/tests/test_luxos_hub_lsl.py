@@ -65,6 +65,12 @@ def build():
     if r.returncode != 0:
         print(r.stdout + r.stderr)
         return None
+    # maly klient Emoji a symbolu (pozadavky na hub pres socket)
+    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(src, "luxos-emoji.lsl"), os.path.join(out, "luxos-emoji")],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        print(r.stdout + r.stderr)
+        return None
     return out
 
 
@@ -327,6 +333,35 @@ class Hub(unittest.TestCase):
         self.assertEqual(hub.wait(5), 143)     # po SIGTERM: luxos-session ho spusti znovu
         err = self.hub_err()
         self.assertNotIn("LSL callback error", err, err)
+
+    def test_emoji_served_by_hub(self):
+        """luxos-emoji preda pozadavek bezicimu hubu: okno s daty pripravene predem, stejna zkratka ho zavre."""
+        data = os.path.join(self.home, "emoji-data")
+        os.makedirs(data)
+        with open(os.path.join(data, "emoji.tsv"), "w", encoding="utf-8") as f:
+            f.write("# luxos-emoji-data 1\n😀\t0\t\n❤️\t0\t\n👋\t1\t👋🏻 👋🏼 👋🏽 👋🏾 👋🏿\n")
+        with open(os.path.join(data, "en.tsv"), "w", encoding="utf-8") as f:
+            f.write("😀\tgrinning face\t\t|grinning face|smile|\n❤️\tred heart\t\t|red heart|love|\n"
+                    "👋\twaving hand\t\t|waving hand|hello|\n")
+        log = os.path.join(self.home, "emoji.log")
+        extra = {"LUXOS_EMOJI_DATA": data, "LUXOS_EMOJI_TEST_LOG": log, "LUXOS_EMOJI_UI": "/nonexistent"}
+        hub = self.start_hub(**extra)
+        events = lambda: [l.rsplit(" @", 1)[0] for l in open(log, encoding="utf-8").read().splitlines()] if os.path.exists(log) else []
+        r = self.run_prog("luxos-emoji", **extra)
+        self.assertEqual(r.returncode, 0, (r.stderr, self.hub_err()))
+        self.assertTrue(self.wait_for(lambda: "shown" in events()), (events(), self.hub_err()))
+        r = self.run_prog("luxos-emoji", **extra)          # stejna zkratka okno zavre
+        self.assertEqual(r.returncode, 0)
+        self.assertTrue(self.wait_for(lambda: "hidden" in events()), events())
+        r = self.run_prog("luxos-emoji", "--search", "heart", **extra)
+        self.assertTrue(self.wait_for(lambda: events().count("shown") == 2), events())
+        self.assertEqual(self.run_prog("luxos-emoji", "--close", **extra).returncode, 0)
+        self.assertTrue(self.wait_for(lambda: events().count("hidden") == 2), events())
+        hub.send_signal(signal.SIGTERM)
+        self.assertEqual(hub.wait(5), 143)
+        err = self.hub_err()
+        self.assertNotIn("LSL callback error", err, err)
+        self.assertNotIn("emoji:", err, err)
 
     def test_profile_picture_in_control_center(self):
         # ~/.face z Profilove fotky: kolecko profilu ukaze fotku (styl .avatar.photo) misto pismena

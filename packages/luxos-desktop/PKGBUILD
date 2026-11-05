@@ -3,14 +3,29 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=56
+pkgrel=57
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
 # ("exec format error"); programy a knihovny z C se zmensi rucne v build()
 options=(!debug !strip)
 url="https://github.com/luxopes/LuxOS-Arch"
-license=(GPL-3.0-or-later)
+# Unicode-3.0: data Emoji a symbolu z emoji-test.txt a anotaci CLDR (/usr/share/luxos/emoji)
+license=(GPL-3.0-or-later Unicode-3.0)
+# Emoji a symboly: poradi, skupiny a odstiny pleti (Unicode Emoji 17.0 - stejna verze, jakou umi
+# noto-fonts-emoji) a nazvy s klicovymi slovy v 13 jazycich (Unicode CLDR 49). Arch ma unicode-emoji,
+# ale jeho unicode-cldr neobsahuje common/annotations (jen annotationsDerived), proto pevne verze
+# s kontrolnimi soucty; data se generuji pri sestaveni (luxos-emoji-data), za behu se nic nestahuje.
+_emoji=17.0
+_cldr=49.0.0
+source=("emoji-test-$_emoji.txt::https://www.unicode.org/Public/$_emoji.0/emoji/emoji-test.txt"
+        "https://registry.npmjs.org/cldr-annotations-full/-/cldr-annotations-full-$_cldr.tgz"
+        "https://registry.npmjs.org/cldr-annotations-derived-full/-/cldr-annotations-derived-full-$_cldr.tgz")
+# oba balicky npm maji koren "package/": rozbalit kazdy zvlast v build()
+noextract=("cldr-annotations-full-$_cldr.tgz" "cldr-annotations-derived-full-$_cldr.tgz")
+sha256sums=('1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda'
+            'ce415a4898da7a4ca755437de2593863c05045fc6b1649d8da5ee05fa3bdc33b'
+            'e83ab0348ec09f4b5bb27f658b9c424c9c8fbf512484b728903515b9f01c3c28')
 # lsl >= 0.10.6: prekladac lslc s moduly glib/gio/gtk/cairo/pango (cil linux-x86_64-gnu) pro programy v files/lsl;
 # balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni
 makedepends=(python xfce4-settings xfce4-session libxi xorgproto libxtst libxrandr libxfixes libxcomposite gtk3 cairo pango pkgconf 'lsl>=0.10.6')
@@ -113,6 +128,17 @@ build() {
     # Grafika podle rezimu napajeni: hry na samostatne grafice v rezimu Vykon (luxos-gpu run v .desktop),
     # prepisy Flatpaku a PowerMizer NVIDIA (luxos-gpu apply z luxos-hub)
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-gpu.lsl" luxos-gpu
+    # Emoji a symboly: okno bezi v luxos-hub, luxos-emoji je maly klient, luxos-emoji-ui samostatny
+    # proces bez hubu; luxos-emoji-data jen pri sestaveni vytvori data z emoji-test.txt a CLDR
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-emoji.lsl" luxos-emoji
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-emoji-ui.lsl" luxos-emoji-ui
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-emoji-data.lsl" luxos-emoji-data
+    rm -rf cldr-ann cldr-der emoji-data
+    mkdir -p cldr-ann cldr-der
+    tar -xzf "cldr-annotations-full-$_cldr.tgz" -C cldr-ann
+    tar -xzf "cldr-annotations-derived-full-$_cldr.tgz" -C cldr-der
+    ./luxos-emoji-data "emoji-test-$_emoji.txt" cldr-ann/package/annotations cldr-der/package/annotationsDerived \
+        emoji-data cs sk de fr es it pl pt nl sv hu uk
 }
 
 package() {
@@ -129,6 +155,10 @@ package() {
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
         luxos-screenshot luxos-gpu
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
+    install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"
+    install -Dm755 luxos-emoji-ui "$pkgdir/usr/lib/luxos/luxos-emoji-ui"
+    install -Dm644 -t "$pkgdir/usr/share/luxos/emoji" emoji-data/*.tsv
+    install -Dm644 cldr-ann/package/LICENSE "$pkgdir/usr/share/licenses/$pkgname/Unicode-CLDR-LICENSE"
     # Ovladaci centrum a Kalendar jsou tentyz program (chova se podle jmena); profily panelu uzivatelu
     # volaji "luxos-control-center --panel", relace "luxos-hub"
     ln -s luxos-hub "$pkgdir/usr/bin/luxos-control-center"

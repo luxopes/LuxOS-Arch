@@ -1,5 +1,5 @@
 # lsl: internal-abi
-# lsl: link libX11.so.6 libXfixes.so.3 libgdk-3.so.0 libcairo.so.2 libgobject-2.0.so.0 libglib-2.0.so.0
+# lsl: link libX11.so.6 libXfixes.so.3 libXtst.so.6 libgdk-3.so.0 libcairo.so.2 libgobject-2.0.so.0 libglib-2.0.so.0
 # LuxOS - primo Xlib pres spojeni GDK (cil linux-x86_64-gnu) pro Snimek obrazovky: okna aplikaci od nejvyssiho,
 # globalni klavesy bez zabrani klavesnice (XGrabKey jako libkeybinder), sledovani korenoveho okna (filtr GDK)
 # a kurzor mysi (XFixes).
@@ -9,6 +9,8 @@
 #   root_filter(f, data)       f(data, typ udalosti, okno, atom/keycode, stav) pro udalosti korenoveho okna;
 #                              filtr se pridava jen jednou, root_watch(True/False) zapne/vypne sledovani
 #   cursor_surface() -> [surface ARGB32, x, y, w, h] nebo [] (pixely zarizeni)
+#   Emoji a symboly: active_window(), wm_class(okno) -> [jmeno, trida], window_alive(okno),
+#   activate(okno, cas), release_modifiers(), send_keys([keysym modifikatoru...], keysym) pres XTEST
 #
 # Udalosti X: KeyPress 2, KeyRelease 3, ConfigureNotify 22, MapNotify 19, PropertyNotify 28.
 load glib
@@ -330,4 +332,189 @@ function cursor_surface():
         call __lsl_qbe_call1(__lsl_symbol("XFree"), image)
         return [surface, x - xhot, y - yhot, w, h]
     end
+end
+
+# ---- aktivni okno a vlozeni (Emoji a symboly) ---------------------------------------------------------------------
+
+function wm_running():
+    return len(cardinals(root_xid(), "_NET_SUPPORTING_WM_CHECK")) > 0
+end
+
+# Okno s fokusem klavesnice (bez spravce oken); 0 = zadne / PointerRoot
+function input_focus():
+    unsafe:
+        cells = __lsl_byte_zeros(16)
+        base = data(cells)
+        call __lsl_qbe_call3(__lsl_symbol("XGetInputFocus"), xdisplay(), base, base + 8)
+        window = __lsl_qbe_load64(base)
+        if window <= 1:
+            return 0
+        end
+        return window
+    end
+end
+
+# Aktivni okno aplikace: _NET_ACTIVE_WINDOW spravce oken, bez nej okno s fokusem; 0 kdyz neni
+function active_window():
+    call trap_push()
+    window = 0
+    if wm_running():
+        value = cardinals(root_xid(), "_NET_ACTIVE_WINDOW")
+        if len(value) > 0:
+            window = value[0]
+        end
+    else:
+        window = input_focus()
+    end
+    call trap_pop()
+    return window
+end
+
+function window_alive(window):
+    if window == 0:
+        return False
+    end
+    call trap_push()
+    ok = False
+    unsafe:
+        attrs = __lsl_byte_zeros(160)
+        ok = __lsl_qbe_s32(__lsl_qbe_call3(__lsl_symbol("XGetWindowAttributes"), xdisplay(), ptr(window), data(attrs))) != 0
+    end
+    if trap_pop() != 0:
+        return False
+    end
+    return ok
+end
+
+# [res_name, res_class] z WM_CLASS (okno nebo nejblizsi predek, ktery ho ma); ["", ""] kdyz neni
+function wm_class(window):
+    out = ["", ""]
+    call trap_push()
+    current = window
+    depth = 0
+    while current != 0 and depth < 8:
+        found = False
+        unsafe:
+            hint = __lsl_byte_zeros(16)
+            base = data(hint)
+            if __lsl_qbe_s32(__lsl_qbe_call3(__lsl_symbol("XGetClassHint"), xdisplay(), ptr(current), base)) != 0:
+                name = __lsl_qbe_load64(base)
+                klass = __lsl_qbe_load64(base + 8)
+                out = [glib.from_c(name), glib.from_c(klass)]
+                if name != 0:
+                    call __lsl_qbe_call1(__lsl_symbol("XFree"), name)
+                end
+                if klass != 0:
+                    call __lsl_qbe_call1(__lsl_symbol("XFree"), klass)
+                end
+                found = True
+            end
+        end
+        if found:
+            break
+        end
+        current = parent_of(current)
+        depth += 1
+    end
+    call trap_pop()
+    return out
+end
+
+function parent_of(window):
+    unsafe:
+        cells = __lsl_byte_zeros(32)
+        base = data(cells)
+        if __lsl_qbe_s32(__lsl_qbe_call6(__lsl_symbol("XQueryTree"), xdisplay(), ptr(window), base, base + 8, base + 16, base + 24)) == 0:
+            return 0
+        end
+        children = __lsl_qbe_load64(base + 16)
+        if children != 0:
+            call __lsl_qbe_call1(__lsl_symbol("XFree"), children)
+        end
+        parent = __lsl_qbe_load64(base + 8)
+        if parent == __lsl_qbe_load64(base):
+            return 0
+        end
+        return parent
+    end
+end
+
+# Aktivace okna: se spravcem oken zprava _NET_ACTIVE_WINDOW (zdroj 2 = pager, xfwm4 ji nebrzdi
+# ochranou proti kradeni fokusu), bez nej primo XSetInputFocus
+function activate(window, time):
+    call trap_push()
+    if wm_running():
+        unsafe:
+            event = __lsl_byte_zeros(192)
+            base = data(event)
+            call __lsl_qbe_store32(base, 33)                            # ClientMessage
+            call __lsl_qbe_store64(base + 24, xdisplay())
+            call __lsl_qbe_store64(base + 32, ptr(window))
+            call __lsl_qbe_store64(base + 40, ptr(atom("_NET_ACTIVE_WINDOW")))
+            call __lsl_qbe_store32(base + 48, 32)
+            call __lsl_qbe_store64(base + 56, 2)
+            call __lsl_qbe_store64(base + 64, ptr(time))
+            # SubstructureRedirectMask | SubstructureNotifyMask
+            call __lsl_qbe_call5(__lsl_symbol("XSendEvent"), xdisplay(), root_xid(), 0, 1572864, base)
+        end
+    else:
+        unsafe:
+            call __lsl_qbe_call4(__lsl_symbol("XSetInputFocus"), xdisplay(), ptr(window), 2, ptr(time))
+        end
+    end
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("XFlush"), xdisplay())
+    end
+    return trap_pop() == 0
+end
+
+# Uvolni drzene modifikatory (Shift z Shift+Enter, Super ze zkratky), at vlozeni neni Ctrl+Shift+V
+MODIFIER_KEYSYMS = [65505, 65506, 65507, 65508, 65513, 65514, 65515, 65516, 65027, 65511, 65512]
+
+function release_modifiers():
+    unsafe:
+        dpy = xdisplay()
+        keys = __lsl_byte_zeros(32)
+        base = data(keys)
+        call __lsl_qbe_call2(__lsl_symbol("XQueryKeymap"), dpy, base)
+        for sym in MODIFIER_KEYSYMS:
+            code = keycode(sym)
+            if code != 0 and ((__lsl_qbe_load8(base + code // 8) & 255) >> (code % 8)) & 1 == 1:
+                call __lsl_qbe_call4(__lsl_symbol("XTestFakeKeyEvent"), dpy, ptr(code), 0, 0)
+            end
+        end
+        call __lsl_qbe_call1(__lsl_symbol("XFlush"), dpy)
+        return 0
+    end
+end
+
+# Stisk klavesy s modifikatory pres XTEST (napr. [Control_L], v); False kdyz klavesa v rozlozeni neni
+function send_keys(mods, keysym):
+    code = keycode(keysym)
+    if code == 0:
+        return False
+    end
+    codes = []
+    for m in mods:
+        c = keycode(m)
+        if c == 0:
+            return False
+        end
+        codes.append(c)
+    end
+    unsafe:
+        dpy = xdisplay()
+        for c in codes:
+            call __lsl_qbe_call4(__lsl_symbol("XTestFakeKeyEvent"), dpy, ptr(c), 1, 0)
+        end
+        call __lsl_qbe_call4(__lsl_symbol("XTestFakeKeyEvent"), dpy, ptr(code), 1, 0)
+        call __lsl_qbe_call4(__lsl_symbol("XTestFakeKeyEvent"), dpy, ptr(code), 0, 0)
+        index = len(codes) - 1
+        while index >= 0:
+            call __lsl_qbe_call4(__lsl_symbol("XTestFakeKeyEvent"), dpy, ptr(codes[index]), 0, 0)
+            index -= 1
+        end
+        call __lsl_qbe_call1(__lsl_symbol("XFlush"), dpy)
+    end
+    return True
 end

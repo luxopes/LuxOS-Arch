@@ -778,6 +778,33 @@
           ]
         },
         {
+          "path": "luxos/emoji.md",
+          "title": "Emoji & Symbols",
+          "summary": "Emoji picker (luxos-emoji, Super+. and Ctrl+Super+Space): search in the system language and English without diacritics, categories, skin tones, recently used, insertion into the focused app via the clipboard (Ctrl+V, Ctrl+Shift+V in terminals), emoji.conf, Unicode CLDR data.",
+          "keywords": [
+            "emoji",
+            "emoji picker",
+            "emoticon",
+            "smiley",
+            "symbols",
+            "character viewer",
+            "Super+.",
+            "Win+.",
+            "Ctrl+Super+Space",
+            "Ctrl+Cmd+Space",
+            "luxos-emoji",
+            "skin tone",
+            "recently used",
+            "insert emoji",
+            "type emoji",
+            "clipboard",
+            "emoji.conf",
+            "CLDR",
+            "Noto Color Emoji",
+            "smajlik"
+          ]
+        },
+        {
           "path": "luxos/printing-scanning.md",
           "title": "Printing and Scanning",
           "summary": "Automatic driverless printer and scanner setup (luxos-printing), Printers & Scanners and Scanner apps, helper commands and troubleshooting.",
