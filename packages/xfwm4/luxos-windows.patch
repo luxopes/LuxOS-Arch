@@ -138,7 +138,7 @@
 +
 +    groups = clientCycleGroupList (passdata->all_list);
 +    select = NULL;
-+    for (li = groups; li; li = g_list_next (li))
++    for (li = groups; li && c; li = g_list_next (li))
 +    {
 +        if (clientCycleSameClass ((Client *) li->data, c))
 +        {
@@ -207,16 +207,32 @@
                  if (c2)
                  {
                      clientCycleUpdateWireframe (c2, passdata);
-@@ -426,6 +588,8 @@
+@@ -426,7 +588,23 @@
                              break; /* No need to go any further */
                          }
                      }
-+                    /* LuxOS: zavrene okno pryc i ze seznamu pro seskupeni */
+-                    c = tabwinRemoveClient(passdata->tabwin, removed);
++                    /* LuxOS: zavrene okno pryc i ze seznamu vsech oken. Ve seskupenem seznamu
++                     * aplikaci ho nahradi dalsi okno stejne aplikace (aplikace zustane vybrana);
++                     * po zavreni vsech oken rozbalene aplikace zpet na seznam aplikaci. */
 +                    passdata->all_list = g_list_remove (passdata->all_list, removed);
-                     c = tabwinRemoveClient(passdata->tabwin, removed);
++                    if (passdata->all_list && passdata->mode == CYCLE_MODE_GROUPED &&
++                        g_list_find (passdata->client_list, removed))
++                    {
++                        c = clientCycleCollapse (passdata, tabwinGetSelected (passdata->tabwin));
++                    }
++                    else
++                    {
++                        c = tabwinRemoveClient(passdata->tabwin, removed);
++                        if (c == NULL && passdata->expanded && passdata->all_list)
++                        {
++                            c = clientCycleCollapse (passdata, NULL);
++                        }
++                    }
                      cycling = clientCycleUpdateWireframe (c, passdata);
                      break;
-@@ -464,7 +628,8 @@
+             }
+@@ -464,7 +642,8 @@
      ScreenInfo *screen_info;
      DisplayInfo *display_info;
      ClientCycleData passdata;
@@ -226,7 +242,7 @@
      int key, modifier;
  
      g_return_if_fail (c != NULL);
-@@ -473,21 +638,51 @@
+@@ -473,21 +652,51 @@
      screen_info = c->screen_info;
      display_info = screen_info->display_info;
  
@@ -282,7 +298,7 @@
          modifier = screen_info->params->keys[KEY_CYCLE_WINDOWS].modifier;
      }
      if (!selected)
-@@ -505,6 +700,7 @@
+@@ -505,6 +714,7 @@
           */
          clientCycleActivate ((Client *) selected->data);
          g_list_free (client_list);
@@ -290,7 +306,7 @@
          return;
      }
  
-@@ -514,12 +710,17 @@
+@@ -514,12 +724,17 @@
          myDisplayBeep (display_info);
          myScreenUngrabKeyboard (screen_info, myDisplayGetCurrentTime (display_info));
          g_list_free (client_list);
@@ -308,7 +324,7 @@
  
      TRACE ("entering cycle loop");
      if (screen_info->params->cycle_raise)
-@@ -530,7 +731,7 @@
+@@ -530,7 +745,7 @@
      {
          passdata.wireframe = wireframeCreate ((Client *) selected->data);
      }
@@ -317,7 +333,7 @@
      eventFilterPush (display_info->xfilter, clientCycleEventFilter, &passdata);
  
      gtk_main ();
-@@ -545,7 +746,8 @@
+@@ -545,7 +760,8 @@
      c = tabwinGetSelected (passdata.tabwin);
      tabwinDestroy (passdata.tabwin);
      g_free (passdata.tabwin);
@@ -712,3 +728,18 @@
      gboolean cycle_raise;
      gboolean cycle_hidden;
      gboolean cycle_minimized;
+--- a/src/tabwin.c
++++ b/src/tabwin.c
+@@ -983,6 +983,12 @@
+             if (client_list == tabwin->selected)
+             {
+                 tabwinSelectNext (tabwin);
++                if (client_list == tabwin->selected)
++                {
++                    /* LuxOS: zavrelo se posledni okno seznamu - nic vybrane (puvodne zustal
++                     * ukazatel na uvolnenou polozku a xfwm4 pak spadl) */
++                    tabwin->selected = NULL;
++                }
+             }
+             *tabwin->client_list = g_list_delete_link (*tabwin->client_list, client_list);
+             break;

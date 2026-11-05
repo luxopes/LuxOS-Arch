@@ -11,6 +11,7 @@
 #     nebo ` ukaze okna vybrane aplikace, Nahoru zpet na aplikace.
 #   - zkratky s klavesou "grave" plati pro fyzickou klavesu pod Esc (XKB <TLDE>) v kazdem
 #     rozlozeni - v ceskem je na ni ";" a puvodni xfwm4 by "grave" hledal na klavese H.
+#   - zavreni posledniho okna v prepinaci Alt+Tab behem prepinani uz xfwm4 neshodi (tabwin.c).
 # Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
 # verzi v Archu zvysit pkgver (a sha256sums), pkgrel nechat X.1.
 # Puvodni PKGBUILD Archu (udrzovatele Evangelos Foutras, Robin Candau) je v PKGBUILD.arch.
@@ -29,7 +30,7 @@ makedepends=('git' 'xfce4-dev-tools')
 source=("git+https://gitlab.xfce.org/xfce/xfwm4.git#tag=$pkgname-$pkgver"
         'luxos-windows.patch')
 sha256sums=('68691593f06659f1ba1a0363be161b2cd50a84016612394c909bce1485a75cff'
-            'f733cc1ba0429911a7c25e72a38c313362628413af86d1b8bf7eb2c2d7f3a813')
+            '41e6f423905badac58c5bfce380195deb69a5c4557e2a66232216b5525f6e75c')
 
 prepare() {
   cd $pkgname
