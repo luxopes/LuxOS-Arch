@@ -3878,6 +3878,7 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	O nome do computador para o domínio pode ter no máximo 15 letras, dígitos e hífens.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	O domínio não foi encontrado no DNS. Verifique se o computador usa o servidor DNS da organização (geralmente via DHCP) ou digite o endereço de um controlador de domínio.
 Sign In to Network…	Entrar na rede…
+Sign In to “%s”…	Entrar na rede «%s»…
 Allow LuxAI requests from the phone	Permitir pedidos ao LuxAI a partir do telemóvel
 Allow saving notes to Calendar	Permitir guardar notas no Calendário
 Allow “%s” to connect to LuxOS?	Permitir que “%s” se ligue ao LuxOS?

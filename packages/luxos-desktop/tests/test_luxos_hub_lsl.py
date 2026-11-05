@@ -88,6 +88,7 @@ NOTIFY_XML = """<node><interface name="org.freedesktop.Notifications">
   <method name="Notify"><arg type="s" direction="in"/><arg type="u" direction="in"/><arg type="s" direction="in"/>
     <arg type="s" direction="in"/><arg type="s" direction="in"/><arg type="as" direction="in"/><arg type="a{sv}" direction="in"/>
     <arg type="i" direction="in"/><arg type="u" direction="out"/></method>
+  <method name="CloseNotification"><arg type="u" direction="in"/></method>
   <signal name="ActionInvoked"><arg type="u"/><arg type="s"/></signal>
 </interface></node>"""
 LOGIN_XML = """<node><interface name="org.freedesktop.login1.Manager">
@@ -376,22 +377,25 @@ class Hub(unittest.TestCase):
         with open(os.path.join(fake, "nmcli"), "w") as f:
             f.write('#!/bin/sh\nst=$(cat "%s")\ncase "$*" in\n'
                     '  "radio wifi") [ "$st" = off ] && echo disabled || echo enabled;;\n'
-                    '  "-t -f ACTIVE,SSID device wifi") [ "$st" = on ] && printf "no:Soused\\nyes:Domov\\n" || echo "no:Soused";;\n'
+                    '  "-t -f ACTIVE,SSID device wifi") case $st in on|portal) printf "no:Soused\\nyes:Domov\\n";; *) echo "no:Soused";; esac;;\n'
+                    '  "-t -f CONNECTIVITY general") [ "$st" = portal ] && echo limited || echo full;;\n'
                     '  "-t -f TYPE,STATE device") echo "wifi:disconnected";;\n'
                     'esac\n' % state)
         os.chmod(os.path.join(fake, "nmcli"), 0o755)
         hub = self.start_hub(PATH=fake + ":" + self.fake + ":/usr/bin:/bin")
         shown = 0
-        for st, expect in (("on", "wifi-qr:share"), ("noconn", "wifi-qr:scan"), ("off", "wifi-qr:")):
+        # portal / omezene pripojeni: "Prihlasit se do site „Domov“…" (i po zavrenem okne prihlaseni)
+        for st, expect in (("on", "wifi-qr:share"), ("portal", "wifi-signin:Domov"), ("noconn", "wifi-qr:scan"), ("off", "wifi-qr:")):
             with open(state, "w") as f:
                 f.write(st)
             hub.send_signal(signal.SIGUSR1)
             shown += 1
             self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log").count("shown") == shown))
             self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log")[-1] == expect), (st, self.ui_log("cc.log")))
-            if st == "on" and os.environ.get("LUXOS_TEST_SHOTS"):
+            if st in ("on", "portal") and os.environ.get("LUXOS_TEST_SHOTS"):
                 time.sleep(0.5)
-                subprocess.run([sys.executable, "-c", SHOT, os.path.join(os.environ["LUXOS_TEST_SHOTS"], "cc-wifi-qr.png")],
+                name = "cc-wifi-qr.png" if st == "on" else "cc-wifi-signin.png"
+                subprocess.run([sys.executable, "-c", SHOT, os.path.join(os.environ["LUXOS_TEST_SHOTS"], name)],
                                env=dict(os.environ), timeout=20)
             hub.send_signal(signal.SIGUSR1)
             self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log")[-1] == "hidden"))
@@ -588,6 +592,7 @@ class Hub(unittest.TestCase):
         nm = self.service("org.freedesktop.NetworkManager", [("/org/freedesktop/NetworkManager", NM_XML)],
                           {"State": GLib.Variant("u", 70), "Connectivity": GLib.Variant("u", 3)})
         panel = self.service("org.xfce.Panel", [("/org/xfce/Panel", PANEL_XML)])
+        notifier = self.service("org.freedesktop.Notifications", [("/org/freedesktop/Notifications", NOTIFY_XML)])
         open(os.path.join(self.cfg, "datasaver"), "w").close()
         self.start_hub()
         # po prihlaseni: obnova pluginu "!" a jedno upozorneni (bez internetu)
@@ -612,10 +617,15 @@ class Hub(unittest.TestCase):
         nm.properties["Connectivity"] = GLib.Variant("u", 2)
         nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
                 GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"State": GLib.Variant("u", 70)}, [])))
-        self.assertTrue(self.wait_for(lambda: len([c for c in self.calls() if c.startswith("notify-send")]) == 2, 5))
-        portal_note = [c for c in self.calls() if c.startswith("notify-send")][-1]
-        self.assertIn(translation("This network requires you to sign in before you can use the internet."), portal_note)
-        self.assertIn("-A login=" + translation("Sign In"), portal_note)
+        portal_notes = lambda: [c[1] for c in notifier.calls if c[0] == "Notify" and c[1][2].startswith("luxos-network")]  # noqa: E731
+        self.assertTrue(self.wait_for(portal_notes, 5))
+        self.assertEqual(len(portal_notes()), 1)
+        portal_note = portal_notes()[0]
+        self.assertEqual(portal_note[3], translation("Sign in to the network"))
+        self.assertEqual(portal_note[4], translation("This network requires you to sign in before you can use the internet."))
+        self.assertEqual(portal_note[5], ["default", translation("Sign In")])
+        self.assertEqual(portal_note[7], 0)          # zustava, dokud ho uzivatel nezavre
+        self.assertTrue(os.path.exists(os.path.join(self.runtime, "luxos-portal")))
         # sit s portalem: okno pro prihlaseni se otevre samo, jen jednou
         self.assertTrue(self.wait_for(lambda: any(c.startswith("luxos-network-login") for c in self.calls()), 5))
         login_pid = int([c for c in self.calls() if c.startswith("luxos-network-login")][0].split()[1])
@@ -630,6 +640,9 @@ class Hub(unittest.TestCase):
         self.assertTrue(self.wait_for(lambda: not os.path.exists(f"/proc/{login_pid}") or
                                       open(f"/proc/{login_pid}/stat").read().split()[2] == "Z", 5))
         self.assertTrue(self.wait_for(lambda: translation("Connected to the internet") in self.calls()[-1], 5))
+        # upozorneni portalu zavrene, stav pro listu smazany
+        self.assertTrue(self.wait_for(lambda: any(c[0] == "CloseNotification" for c in notifier.calls), 5), notifier.calls)
+        self.assertFalse(os.path.exists(os.path.join(self.runtime, "luxos-portal")))
         # nove pripojeni -> Sporic dat znovu (jen s priznakem datasaver)
         nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
                 GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"ActiveConnections": GLib.Variant("ao", [])}, [])))
@@ -640,11 +653,15 @@ class Hub(unittest.TestCase):
         nm = self.service("org.freedesktop.NetworkManager", [("/org/freedesktop/NetworkManager", NM_XML)],
                           {"State": GLib.Variant("u", 70), "Connectivity": GLib.Variant("u", 3)})
         self.service("org.xfce.Panel", [("/org/xfce/Panel", PANEL_XML)])
+        notes = self.service("org.freedesktop.Notifications", [("/org/freedesktop/Notifications", NOTIFY_XML)])
         self.start_hub(FAKE_PORTAL="portal http://login.portal.test/guest 10.5.0.2", LUXOS_HUB_NOINET_DELAY="3")
         self.assertTrue(self.wait_for(lambda: any(c.startswith("luxos-network-login") for c in self.calls()), 8))
         login = [c for c in self.calls() if c.startswith("luxos-network-login")]
         self.assertEqual(login[0].split()[2:], ["http://login.portal.test/guest", "10.5.0.2"])
-        self.assertTrue(self.wait_for(lambda: any(translation("Sign in to the network") in c for c in self.calls()), 5))
+        self.assertTrue(self.wait_for(lambda: any(c[0] == "Notify" and c[1][3] == translation("Sign in to the network") for c in notes.calls), 5))
+        # stav pro listu a Ovladaci centrum: adresa a IP portalu
+        with open(os.path.join(self.runtime, "luxos-portal")) as f:
+            self.assertEqual(f.read().split(), ["http://login.portal.test/guest", "10.5.0.2"])
         time.sleep(4.5)
         # portal: zadne "Bez internetu", okno jen jednou i pres dalsi kontroly
         self.assertFalse(any(translation("No internet connection") in c for c in self.calls()), self.calls())
@@ -656,6 +673,104 @@ class Hub(unittest.TestCase):
         self.assertTrue(self.wait_for(lambda: not os.path.exists(f"/proc/{login_pid}") or
                                       open(f"/proc/{login_pid}/stat").read().split()[2] == "Z", 5))
         self.assertTrue(self.wait_for(lambda: translation("Connected to the internet") in self.calls()[-1], 5))
+
+    def test_portal_reopen_after_window_closed(self):
+        """Zavrene okno bez prihlaseni: portal trva (lista, stav), pripominka az po LUXOS_HUB_PORTAL_REMIND,
+        jedna a bez smycky oken; tlacitko v upozorneni okno otevre znovu; restart hubu okno znovu neotevre."""
+        nm = self.service("org.freedesktop.NetworkManager", [("/org/freedesktop/NetworkManager", NM_XML)],
+                          {"State": GLib.Variant("u", 70), "Connectivity": GLib.Variant("u", 2)})
+        self.service("org.xfce.Panel", [("/org/xfce/Panel", PANEL_XML)])
+        notes = self.service("org.freedesktop.Notifications", [("/org/freedesktop/Notifications", NOTIFY_XML)])
+        state = os.path.join(self.runtime, "luxos-portal")
+
+        def logins():
+            return [c for c in self.calls() if c.startswith("luxos-network-login")]
+
+        def portal_notes():
+            return [(i, c) for i, c in enumerate(notes.calls) if c[0] == "Notify" and c[1][3] == translation("Sign in to the network")]
+
+        self.start_hub(LUXOS_HUB_PORTAL_REMIND="3")
+        self.assertTrue(self.wait_for(lambda: logins() and portal_notes(), 8))
+        self.assertTrue(os.path.exists(state))
+        nid = 41 + portal_notes()[0][0]
+        # uzivatel zavre okno (bez prihlaseni) i upozorneni
+        os.kill(int(logins()[0].split()[1]), signal.SIGTERM)
+        notes.emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications", "NotificationClosed",
+                   GLib.Variant("(uu)", (nid, 2)))
+        time.sleep(1.5)
+        self.assertEqual(len(logins()), 1)                 # zadne nove okno samo od sebe
+        self.assertEqual(len(portal_notes()), 1)           # pripominka jeste ne
+        self.assertTrue(os.path.exists(state))             # lista porad ukazuje "Prihlasit se"
+        # pripominka po limitu: jedno upozorneni, okno se samo neotevre
+        self.assertTrue(self.wait_for(lambda: len(portal_notes()) == 2, 6), notes.calls)
+        self.assertEqual(portal_notes()[1][1][1][1], 0)    # nove upozorneni (predchozi je zavrene)
+        time.sleep(1.0)
+        self.assertEqual(len(logins()), 1)
+        self.assertEqual(len(portal_notes()), 2)
+        # tlacitko "Prihlasit se" otevre okno znovu
+        nid = 41 + portal_notes()[1][0]
+        notes.emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications", "ActionInvoked",
+                   GLib.Variant("(us)", (nid, "default")))
+        self.assertTrue(self.wait_for(lambda: len(logins()) == 2, 5), self.calls())
+        # cizi id upozorneni se ignoruje
+        notes.emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications", "ActionInvoked",
+                   GLib.Variant("(us)", (9999, "default")))
+        time.sleep(1.0)
+        self.assertEqual(len(logins()), 2)
+        # dalsi pripominka az po dvojnasobku (6 s) a jen se zavrenym oknem: okno je otevrene -> nic
+        notes.emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications", "NotificationClosed",
+                   GLib.Variant("(uu)", (nid, 2)))
+        time.sleep(7.5)
+        self.assertEqual(len(portal_notes()), 2, notes.calls)
+        # restart hubu (aktualizace) za portalem: okno se znovu samo neotevre, stav zustava
+        os.kill(int(logins()[1].split()[1]), signal.SIGTERM)
+        self.hub.send_signal(signal.SIGTERM)
+        self.hub.wait(5)
+        self.start_hub(LUXOS_HUB_PORTAL_REMIND="2")
+        time.sleep(2.0)
+        self.assertEqual(len(logins()), 2)
+        self.assertTrue(os.path.exists(state))
+        self.assertTrue(self.wait_for(lambda: len(portal_notes()) == 3, 6), notes.calls)
+        # prihlaseno: upozorneni zavrene, stav smazany, zadna dalsi pripominka
+        nm.properties["Connectivity"] = GLib.Variant("u", 4)
+        nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"Connectivity": GLib.Variant("u", 4)}, [])))
+        self.assertTrue(self.wait_for(lambda: any(c[0] == "CloseNotification" for c in notes.calls), 5), notes.calls)
+        self.assertTrue(self.wait_for(lambda: not os.path.exists(state), 5))
+        self.assertTrue(self.wait_for(lambda: translation("Connected to the internet") in self.calls()[-1], 5))
+        time.sleep(3.0)
+        self.assertEqual(len(portal_notes()), 3)
+        err = self.hub_err()
+        self.assertNotIn("LSL callback error", err, err)
+
+    def test_portal_closes_manually_opened_window(self):
+        """Okno spustene rucne (lista, Ovladaci centrum; pid soubor luxos-network-login) zavre hub po pripojeni."""
+        nm = self.service("org.freedesktop.NetworkManager", [("/org/freedesktop/NetworkManager", NM_XML)],
+                          {"State": GLib.Variant("u", 70), "Connectivity": GLib.Variant("u", 3)})
+        self.service("org.xfce.Panel", [("/org/xfce/Panel", PANEL_XML)])
+        manual = subprocess.Popen(["/bin/bash", "-c", "exec -a luxos-network-login sleep 60"])
+        self.addCleanup(manual.kill)
+        pidfile = os.path.join(self.runtime, "luxos-network-login.pid")
+        with open(pidfile, "w") as f:
+            f.write("%d\n" % manual.pid)
+        # cizi proces s cizim jmenem v pid souboru se nezabiji
+        other = subprocess.Popen(["sleep", "60"])
+        self.addCleanup(other.kill)
+        self.start_hub(LUXOS_HUB_NOINET_DELAY="30")
+        time.sleep(1.5)
+        self.assertIsNone(manual.poll())
+        nm.properties["Connectivity"] = GLib.Variant("u", 4)
+        nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"Connectivity": GLib.Variant("u", 4)}, [])))
+        self.assertTrue(self.wait_for(lambda: manual.poll() is not None, 5))
+        with open(pidfile, "w") as f:
+            f.write("%d\n" % other.pid)
+        for conn in (3, 4):
+            nm.properties["Connectivity"] = GLib.Variant("u", conn)
+            nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                    GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"Connectivity": GLib.Variant("u", conn)}, [])))
+            time.sleep(1.5)
+        self.assertIsNone(other.poll())
 
     def test_limited_without_portal_still_warns(self):
         """Omezene pripojeni bez portalu (kontrola vraci none): po limitu upozorneni Bez internetu."""
