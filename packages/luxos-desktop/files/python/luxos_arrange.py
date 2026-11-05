@@ -10,6 +10,17 @@ Kdyz presne stejna sada neni ulozena, zkusi se shoda jen podle EDID (stejne moni
 v jinych konektorech, napr. po vymene kabelu nebo dokovaci stanice).
 
     {"primary": "eDP-1|", "mirror": false, "pos": {"eDP-1|": [0, 0], "HDMI-1|ab12..": [1920, 0]}}
+
+Rezim vice monitoru (Ovladaci centrum, Super+P) se uklada stejne po sadach (klic "modes",
+{"mode": "mirror"}), takze projektor ve skole zustane zrcadleny a monitor doma rozsireny.
+
+Zrcadleni (mirror_plan): vsechny vystupy v poloze 0,0 se stejnym rozlisenim. Prednost ma
+rozliseni hlavniho monitoru (ulozene, jinak nativni), pokud ho umi vsechny; jinak nejlepsi
+spolecne rozliseni (stejny pomer stran jako hlavni monitor, pak nejvetsi). Kdyz spolecne
+rozliseni neni, ostatni vystupy bezi ve svem doporucenem rezimu s --scale-from na velikost
+hlavniho - obraz se zmensi/roztahne cely, nic se neorizne (bez panningu, ktery by cast
+plochy skryl). Pri jinem pomeru stran je obraz lehce roztazeny; to je lepsi nez orezana
+lista nebo Dock.
 """
 import luxos_displays as ld
 
@@ -174,7 +185,7 @@ def drop(rects, moving, px, py, primary=None, snap=0):
 
 # ---- profily (sady monitoru) ------------------------------------------------------
 def set_key(outputs):
-    return "+".join(sorted(ld.output_key(o) for o in outputs if o["connected"]))
+    return ld.set_key(outputs)
 
 
 def _edid_of(key):
@@ -212,6 +223,153 @@ def make_layout(outputs, pos, primary, mirror=False):
     keys = {o["name"]: ld.output_key(o) for o in outputs if o["connected"]}
     return {"primary": keys.get(primary, ""), "mirror": bool(mirror),
             "pos": {keys[n]: [int(p[0]), int(p[1])] for n, p in pos.items() if n in keys}}
+
+
+def mode_for(outputs, modes):
+    """Ulozeny rezim vice monitoru pro pripojenou sadu (stejne hledani jako rozlozeni), nebo None."""
+    rec, _names = find_layout(modes, outputs)
+    mode = rec.get("mode") if rec else None
+    return mode if mode in ld.MODES else None
+
+
+def with_mode(modes, outputs, mode):
+    """Rezimy s novym rezimem pro pripojenou sadu (pri jednom monitoru None = neni co ukladat).
+
+    Zaznam nalezeny jen podle EDID (jine konektory) se prepise pod presnym klicem sady."""
+    if len([o for o in outputs if o["connected"]]) < 2 or mode not in ld.MODES:
+        return None
+    new = dict(modes)
+    rec, _names = find_layout(modes, outputs)
+    if rec is not None:
+        for k in [k for k, v in modes.items() if v is rec]:
+            del new[k]
+    new[set_key(outputs)] = {"mode": mode}
+    return new
+
+
+# ---- zrcadleni ----------------------------------------------------------------------
+ASPECT_TOLERANCE = 0.02     # 1366x768 i 1920x1080 jsou 16:9
+
+
+def _aspect(name):
+    w, h = ld.mode_size(name)
+    return w / h if h else 0.0
+
+
+def _modes(out):
+    """Neprokladane rezimy vystupu (prokladane na monitorech blikaji)."""
+    return [md["name"] for md in out["modes"] if not ld.is_interlaced(md["name"]) and ld.mode_size(md["name"])[0]]
+
+
+def _area(name):
+    w, h = ld.mode_size(name)
+    return w * h
+
+
+def common_mode(outputs, wanted):
+    """Rozliseni pro zrcadleni, ktere umi vsechny vystupy, nebo None.
+
+    `wanted` = rezimy hlavniho monitoru podle priority (ulozeny, nativni): prvni spolecny vyhrava.
+    Jinak nejlepsi spolecny: se stejnym pomerem stran jako prvni z `wanted` (aspon polovicni
+    plocha nejvetsiho spolecneho - 640x360 nema prednost pred 1280x1024), pak nejvetsi."""
+    sets = [set(_modes(o)) for o in outputs]
+    if not sets:
+        return None
+    common = set.intersection(*sets)
+    for name in wanted:
+        if name in common:
+            return name
+    if not common:
+        return None
+    target = _aspect(wanted[0]) if wanted else 0.0
+    biggest = max(_area(n) for n in common)
+
+    def score(name):
+        same = target and abs(_aspect(name) - target) <= ASPECT_TOLERANCE * target and _area(name) * 2 >= biggest
+        return (bool(same), _area(name), ld.mode_size(name)[0], name)
+    return max(common, key=score)
+
+
+def mirror_rate(out, name):
+    """Frekvence rezimu pro zrcadleni: doporucena, kdyz je to doporuceny rezim, jinak nejblize 60 Hz."""
+    md = ld.find_mode(out, name)
+    if md is None or not md["rates"]:
+        return None
+    if md["preferred"]:
+        return md["preferred"]
+    return min(md["rates"], key=lambda r: (abs(float(r) - 60.0), -float(r)))
+
+
+def mirror_primary(outputs, layouts=None):
+    """Hlavni monitor pro zrcadleni: z ulozeneho rozlozeni, jinak vestaveny, jinak aktualni hlavni, jinak prvni."""
+    conn = [o for o in outputs if o["connected"] and o["modes"]]
+    if layouts:
+        lay, names = find_layout(layouts, outputs)
+        if lay:
+            name = names.get(lay.get("primary"))
+            if any(o["name"] == name for o in conn):
+                return name
+    for test in (lambda o: ld.is_internal(o["name"]), lambda o: o["primary"]):
+        for o in conn:
+            if test(o):
+                return o["name"]
+    return conn[0]["name"] if conn else None
+
+
+def mirror_plan(outputs, entries, layouts=None, primary=None):
+    """Prikaz xrandr pro zrcadleni vsech pripojenych monitoru, nebo None (mene nez dva).
+
+    Vysledek: {"args", "primary", "mode" (spolecne rozliseni nebo None), "scale": {vystup: "WxH"}}."""
+    conn = [o for o in outputs if o["connected"] and o["modes"]]
+    if len(conn) < 2:
+        return None
+    if primary not in [o["name"] for o in conn]:
+        primary = mirror_primary(outputs, layouts)
+    prim = next(o for o in conn if o["name"] == primary)
+    wanted = []
+    _args, saved, _rot = effective(prim, (entries or {}).get(ld.output_key(prim)))
+    pref, _r = ld.preferred_mode(prim)
+    for name in (saved, pref):
+        if name and name not in wanted and not ld.is_interlaced(name):
+            wanted.append(name)
+    mode = common_mode(conn, wanted)
+    chosen, scale = {}, {}
+    if mode:
+        for o in conn:
+            chosen[o["name"]] = mode
+    else:
+        # Bez spolecneho rozliseni: hlavni nativne, ostatni v doporucenem rezimu zmensene/zvetsene
+        base = wanted[0] if wanted else _modes(prim)[0]
+        bw, bh = ld.mode_size(base)
+        for o in conn:
+            if o["name"] == primary:
+                chosen[o["name"]] = base
+            else:
+                own, _r = ld.preferred_mode(o)
+                if own is None or ld.is_interlaced(own):
+                    own = _modes(o)[0]
+                chosen[o["name"]] = own
+                if ld.mode_size(own) != (bw, bh):
+                    scale[o["name"]] = "%dx%d" % (bw, bh)
+    args = []
+    for out in outputs:
+        if not out["connected"] or not out["modes"]:
+            args += ["--output", out["name"], "--off"]
+    for o in [prim] + sorted((o for o in conn if o["name"] != primary), key=lambda o: o["name"]):
+        name = o["name"]
+        args += ["--output", name, "--mode", chosen[name]]
+        rate = mirror_rate(o, chosen[name])
+        if rate:
+            args += ["--rate", rate]
+        args += ["--rotate", "normal"]
+        if name in scale:
+            args += ["--scale-from", scale[name]]
+        else:
+            args += ["--scale", "1x1"]
+        args += ["--pos", "0x0"]
+        if name == primary:
+            args.append("--primary")
+    return {"args": args, "primary": primary, "mode": mode, "scale": scale}
 
 
 # ---- prikaz xrandr ----------------------------------------------------------------
@@ -260,23 +418,21 @@ def plan(outputs, entries, layouts, force_extend=False):
         primary = next((n for n in sorted(conn) if ld.is_internal(n)), sorted(conn)[0])
     mirror = bool(lay.get("mirror")) and not force_extend
     if mirror:
-        pos = {n: (0, 0) for n in conn}
-    else:
-        rects = {n: (*proposals[n], *sizes[n]) for n in conn}
-        pos = settle(sizes, proposals, settle_order(rects, primary))
+        m = mirror_plan(outputs, entries, primary=primary)
+        if m is not None:
+            return {"args": m["args"], "pos": {n: (0, 0) for n in conn}, "primary": primary, "mirror": True}
+    rects = {n: (*proposals[n], *sizes[n]) for n in conn}
+    pos = settle(sizes, proposals, settle_order(rects, primary))
     args = []
     for out in outputs:
         if not out["connected"]:
             args += ["--output", out["name"], "--off"]
     for name in [primary] + sorted(n for n in conn if n != primary):
-        args += ["--output", name, *margs[name]]
-        if mirror and name != primary:
-            args += ["--same-as", primary]
-        else:
-            args += ["--pos", "%dx%d" % pos[name]]
+        args += ["--output", name, *margs[name], *ld.unscale_args(conn[name])]
+        args += ["--pos", "%dx%d" % pos[name]]
         if name == primary:
             args.append("--primary")
-    return {"args": args, "pos": pos, "primary": primary, "mirror": mirror}
+    return {"args": args, "pos": pos, "primary": primary, "mirror": False}
 
 
 def matches(outputs, expected):

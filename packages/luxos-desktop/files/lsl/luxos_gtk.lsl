@@ -3,7 +3,7 @@
 # LuxOS - doplnky k modulu gtk LSL 0.10.6 pro Ovladaci centrum, Kalendar a Snimek obrazovky; programy nacitaji
 # `load luxos_gtk, gtk as gtk` (co tu neni, bere se ze standardniho modulu). Nazvy = funkce GTK bez gtk_.
 #   connect_data(widget, signal, nargs, f, data)   obsluha s vazanou hodnotou (luxos_glib)
-#   bin_get_child, image_new, widget_set_no_show_all, widget_has_class, widget_set_class(widget, trida, zapnuto),
+#   bin_get_child, image_new, widget_set_no_show_all, box_set_homogeneous, widget_has_class, widget_set_class(widget, trida, zapnuto),
 #   window_set_wmclass, widget_get_preferred_height/width -> [min, nat], scrolled_window_set_propagate_natural_height,
 #   scrolled_window_get_max_content_height, widget_get_font_family, entry_set_width_chars,
 #   dialog_new/dialog_add_button/dialog_get_content_area/dialog_set_default_response/dialog_run (agent Bluetooth),
@@ -64,6 +64,12 @@ end
 function widget_set_no_show_all(widget, value):
     unsafe:
         return __lsl_qbe_call2(__lsl_symbol("gtk_widget_set_no_show_all"), ptr(widget), flag(value))
+    end
+end
+
+function box_set_homogeneous(box, value):
+    unsafe:
+        return __lsl_qbe_call2(__lsl_symbol("gtk_box_set_homogeneous"), ptr(box), flag(value))
     end
 end
 

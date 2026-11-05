@@ -52,6 +52,8 @@ There are two tools:
 - **Displays app**: `luxos-display-settings`. Also opens when you click the brightness icon in
   Control Center.
 - **Quick menu**: `Super+P` or the Display key (`luxos-displays menu`).
+- **Control Center › Screens** (only with two or more monitors connected): Mirror, Extend and, with
+  a built-in panel, External Only. No window pops up when a monitor is connected.
 
 **Arrangement** (with two or more monitors connected, like in macOS):
 
@@ -96,13 +98,34 @@ login (`luxos-session`) and whenever a monitor is connected (`luxos-menubar` run
   | Only external screen | `luxos-displays external` |
   | Only this computer's screen | `luxos-displays internal` |
 
-  The mode is saved in `~/.config/luxos/displays-mode` (default: extend). The built-in panel
-  (eDP/LVDS/DSI) is the primary display.
+  The mode is saved for the connected **set of monitors** in `~/.config/luxos/displays.json` (key
+  `modes`, same set key and EDID matching as layouts), so a projector can stay mirrored while the
+  monitor at home stays extended. A set that has no saved mode uses the last chosen mode
+  (`~/.config/luxos/displays-mode`), otherwise extend. The built-in panel (eDP/LVDS/DSI) is the
+  primary display unless the saved arrangement says otherwise; the menu bar and Dock always follow
+  the primary display.
+
+**Mirroring** puts all monitors at 0,0 with the same resolution, so nothing is cut off:
+
+1. the primary display's saved resolution, or its native one, when every monitor supports it;
+2. otherwise the best resolution all monitors share: the same aspect ratio as the primary display
+   first (16:9 laptop + 4:3 projector → 1280×720 rather than 1280×1024), unless that is less than
+   half the size of the largest shared one, then the largest;
+3. if there is no shared resolution at all (e.g. a 1366×768 laptop and a TV with only 4K/1080p),
+   the primary display stays native and the others run at their own recommended mode with
+   `xrandr --scale-from` the primary's size. The whole picture is scaled, nothing is panned or
+   cut off; with a different aspect ratio it is slightly stretched.
+
+Interlaced modes are never used; the refresh rate is the monitor's recommended one, otherwise the
+one closest to 60 Hz. Switching back to Extend resets the scaling (`--scale 1x1`). The Arrangement
+mirror switch uses the same choice. Connecting a monitor never opens a dialog: the Xfce display
+popup is off (xfconf `displays /Notify` = 0, reset at login if an old profile changed it).
 
 Other `luxos-displays` commands:
 
 ```
 luxos-displays auto           # apply saved mode/resolution/layout (after hotplug, at login)
+luxos-displays mode           # print the mode auto would use for the connected monitors
 luxos-displays rescue         # move windows that are off-screen to the main monitor
 luxos-displays brightness N   # software brightness 10-100 % (monitors without backlight)
 ```

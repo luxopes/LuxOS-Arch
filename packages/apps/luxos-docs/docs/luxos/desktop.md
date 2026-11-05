@@ -104,6 +104,12 @@ Contents:
 - **Display** slider: brightness. With a backlight it uses `brightnessctl`. Without one (desktop
   monitor, VM) it uses software brightness of all outputs (`luxos-displays brightness N`, saved in
   `~/.config/luxos/brightness`). The minimum is 10 %. Clicking the brightness icon opens Displays.
+- **Screens**: appears only while two or more monitors are connected. **Mirror** (same picture on
+  all screens), **Extend** (one desktop across the screens) and, on laptops, **External Only**
+  (built-in screen off, e.g. with the lid closed). The active one is blue and the line at the top says
+  what is in use ("Mirroring · 1920 × 1080", "Extended"). A click switches at once
+  (`luxos-displays mirror|extend|external`) and the choice is remembered for this set of monitors.
+  Nothing pops up when a monitor is plugged in. See [settings-apps.md](settings-apps.md#displays).
 - **Sound** slider: `pactl set-sink-volume @DEFAULT_SINK@`. Clicking the icon mutes; moving the
   slider while muted turns the sound back on.
 - **Now playing**: appears only when an MPRIS player (Firefox, Spotify, VLC, mpv…) runs, with
@@ -253,10 +259,11 @@ Login screen, login transition, lock screen and screen savers: see [login-lock.m
 
 ## Multiple monitors
 
-When a monitor is connected, LuxOS extends the desktop onto it. Windows from a disconnected
-monitor move back to the main one. `Super+P` (or the Display key) opens a quick menu: Extend,
-Mirror, Only external screen, Only this computer's screen (`luxos-displays menu`). The chosen mode
-is remembered for the next connection. Resolution, refresh rate, rotation and text size are in the
+When a monitor is connected, LuxOS extends the desktop onto it, or uses the mode you chose last time
+for the same monitors. No dialog pops up. Windows from a disconnected monitor move back to the main
+one. To mirror or extend, use **Control Center › Screens** (Mirror / Extend / External Only), or
+`Super+P` (or the Display key) for a quick menu: Extend, Mirror, Only external screen, Only this
+computer's screen (`luxos-displays menu`). The mode is remembered per set of monitors. Resolution, refresh rate, rotation and text size are in the
 Displays app. Details: [settings-apps.md](settings-apps.md#displays).
 
 ## Touchpad

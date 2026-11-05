@@ -4,7 +4,8 @@
 Stav: {"outputs": [{"name", "connected", "edid", "mm": [w, h], "modes": [[nazev, [frekvence]]],
 "preferred": [rezim, frekvence], "current": [rezim, frekvence] | null, "rotation", "pos": [x, y],
 "primary"}]}. Umi vypis (--current, --prop) a nastaveni --output/--mode/--rate/--rotate/--auto/
---off/--primary/--pos/--right-of/--same-as/--brightness. FAKE_XRANDR_REJECT=REZIM odmitne rezim.
+--off/--primary/--pos/--right-of/--same-as/--brightness/--scale/--scale-from (plocha vystupu
+= velikost --scale-from, "scale_from" ve stavu). FAKE_XRANDR_REJECT=REZIM odmitne rezim.
 """
 import json
 import os
@@ -24,6 +25,8 @@ outs = {o["name"]: o for o in state["outputs"]}
 def size(o):
     if not o.get("current"):
         return None
+    if o.get("scale_from"):
+        return tuple(o["scale_from"])
     w, h = (int(v) for v in o["current"][0].rstrip("i").split("x"))
     if o.get("rotation") in ("left", "right"):
         w, h = h, w
@@ -42,7 +45,8 @@ if "--output" in args:
             i += 2
             continue
         p = pending[cur["name"]]
-        if a in ("--mode", "--rate", "--rotate", "--pos", "--right-of", "--same-as", "--brightness", "--left-of"):
+        if a in ("--mode", "--rate", "--rotate", "--pos", "--right-of", "--same-as", "--brightness", "--left-of",
+                 "--scale", "--scale-from"):
             p[a] = args[i + 1]
             i += 2
             continue
@@ -58,7 +62,12 @@ if "--output" in args:
         o = outs[name]
         if "--off" in p:
             o["current"] = None
+            o["scale_from"] = None
             continue
+        if "--scale-from" in p:
+            o["scale_from"] = [int(v) for v in p["--scale-from"].split("x")]
+        elif p.get("--scale") == "1x1":
+            o["scale_from"] = None
         if "--primary" in p:
             for x in outs.values():
                 x["primary"] = False

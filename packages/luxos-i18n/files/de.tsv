@@ -4479,3 +4479,8 @@ the last line (-2 the one before it)	die letzte Zeile (-2 die vorletzte)
 FILE...	DATEI...
 invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)	ungültige Zeilenauswahl: %s (Beispiele: 5, 1,10, 1-10, 5-, -1)
 cannot read %s	%s kann nicht gelesen werden
+Mirror	Spiegeln
+Extend	Erweitern
+External Only	Nur extern
+Mirroring	Gespiegelt
+Extended	Erweitert

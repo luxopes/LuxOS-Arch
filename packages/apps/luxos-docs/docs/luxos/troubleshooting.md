@@ -140,8 +140,9 @@ Details: [drivers.md](drivers.md).
 
 ## Display and monitors
 
-- Wrong mode with a second monitor: `Super+P` (or the Display key) → Extend, Mirror, Only
-  external screen, Only this computer's screen. The mode is saved in `~/.config/luxos/displays-mode`.
+- Wrong mode with a second monitor: **Control Center › Screens** (Mirror / Extend / External Only) or
+  `Super+P` (or the Display key) → Extend, Mirror, Only external screen, Only this computer's screen.
+  The mode is saved per set of monitors in `~/.config/luxos/displays.json` (`modes`).
 - Windows lost off-screen: `luxos-displays rescue`.
 - Re-apply saved monitor settings: `luxos-displays auto` (also runs at login and on hotplug).
 - Resolution / refresh / rotation: **Displays** (`luxos-display-settings`); unconfirmed changes

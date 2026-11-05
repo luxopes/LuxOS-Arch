@@ -4479,3 +4479,8 @@ the last line (-2 the one before it)	posledný riadok (-2 predposledný)
 FILE...	SÚBOR...
 invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)	neplatný výber riadkov: %s (príklady: 5, 1,10, 1-10, 5-, -1)
 cannot read %s	nedá sa čítať %s
+Mirror	Zrkadliť
+Extend	Rozšíriť
+External Only	Len externá
+Mirroring	Zrkadlenie
+Extended	Rozšírená plocha

@@ -398,6 +398,162 @@ class Hub(unittest.TestCase):
         err = self.hub_err()
         self.assertNotIn("LSL callback error", err, err)
 
+    @unittest.skipUnless(shutil.which("xdotool"), "xdotool neni nainstalovany")
+    def test_control_center_screens_mirror_extend(self):
+        """Obrazovky v Ovladacim centru: skryte s jednim monitorem, se dvema Zrcadlit / Rozsirit / Jen externi.
+        Klik spusti skutecny luxos-displays nad falesnym xrandr (fake-displays), stav se ukaze v Ovladacim centru
+        a rezim se ulozi pro sadu monitoru. Svetly i tmavy motiv; LUXOS_TEST_SHOTS ulozi snimky."""
+        import test_luxos_displays as td
+        import luxos_displays as ld
+        fake = os.path.join(self.home, "fake-xr")
+        os.makedirs(fake)
+        for name in ("xrandr", "wmctrl", "dconf", "luxos-appearance"):
+            os.symlink(os.path.join(td.FAKE, name), os.path.join(fake, name))
+        # skutecny luxos-displays z repozitare (obal ve fake-displays hleda skript relativne k $0)
+        with open(os.path.join(fake, "luxos-displays"), "w") as f:
+            f.write('#!/bin/sh\necho "luxos-displays $*" >>"$FAKE_LOG"\nexec bash "%s" "$@"\n'
+                    % os.path.normpath(os.path.join(td.BIN, "luxos-displays")))
+        os.chmod(os.path.join(fake, "luxos-displays"), 0o755)
+        icons = os.path.join(self.home, ".local", "share", "icons", "hicolor", "scalable", "apps")
+        os.makedirs(icons)
+        for svg in glob.glob(os.path.join(HERE, "..", "files", "icons", "luxos-display-*-symbolic.svg")):
+            shutil.copy(svg, icons)
+        state = os.path.join(self.home, "xrandr.json")
+        two = td.fake_state()
+        one = td.fake_state()
+        one["outputs"][1].update({"connected": False, "current": None})
+        shots = os.environ.get("LUXOS_TEST_SHOTS")
+
+        def write(st):
+            with open(state, "w") as f:
+                json.dump(st, f)
+
+        def read():
+            # falesny xrandr zapisuje stav primo (ne atomicky): rozepsany soubor zkusit znovu
+            for _ in range(50):
+                try:
+                    with open(state) as f:
+                        return {o["name"]: o for o in json.load(f)["outputs"]}
+                except ValueError:
+                    time.sleep(0.02)
+            raise AssertionError("stav xrandr nejde precist")
+
+        def shot(name):
+            if shots:
+                time.sleep(0.6)
+                subprocess.run([sys.executable, "-c", SHOT, os.path.join(shots, name)], env=dict(os.environ), timeout=20)
+
+        def log():
+            return self.ui_log("cc.log")
+
+        def probe():
+            """Snimek obrazovky: (obrys okna = nečerne pixely na cernem pozadi Xvfb, stred modreho kolecka
+            zapnuteho rezimu #3d7bff nebo None)."""
+            path = os.path.join(self.home, "probe.png")
+            subprocess.run([sys.executable, "-c", SHOT, path], env=dict(os.environ), timeout=20)
+            gi.require_version("GdkPixbuf", "2.0")
+            from gi.repository import GdkPixbuf
+            pb = GdkPixbuf.Pixbuf.new_from_file(path)
+            px, stride, nch = pb.get_pixels(), pb.get_rowstride(), pb.get_n_channels()
+            xs, ys, hits = [], [], []
+            for y in range(0, pb.get_height(), 2):
+                for x in range(0, pb.get_width(), 2):
+                    i = y * stride + x * nch
+                    r, g, b = px[i], px[i + 1], px[i + 2]
+                    if r + g + b > 60:
+                        xs.append(x)
+                        ys.append(y)
+                    if abs(r - 0x3d) < 14 and abs(g - 0x7b) < 14 and b > 235:
+                        hits.append((x, y))
+            geo = (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys)) if xs else None
+            bubble = None
+            if len(hits) >= 10:
+                bubble = (sum(p[0] for p in hits) // len(hits), sum(p[1] for p in hits) // len(hits))
+            return geo, bubble
+
+        def click(x, y):
+            # jen virtualni X testu (DISPLAY z xvfb-run zachyceny pri importu)
+            subprocess.run(["xdotool", "mousemove", str(x), str(y), "click", "1"], timeout=10,
+                           env=dict(os.environ, DISPLAY=DISPLAY))
+
+        for theme, icon_theme in (("light", "WhiteSur-light"), ("dark", "WhiteSur-dark")):
+            gtk_theme = "WhiteSur-Light" if theme == "light" else "WhiteSur-Dark"
+            os.makedirs(os.path.join(self.home, ".config", "gtk-3.0"), exist_ok=True)
+            with open(os.path.join(self.home, ".config", "gtk-3.0", "settings.ini"), "w") as f:
+                f.write(f"[Settings]\ngtk-theme-name={gtk_theme}\ngtk-icon-theme-name={icon_theme}\n")
+            for p in (os.path.join(self.home, "cc.log"), os.path.join(self.cfg, "displays.json"),
+                      os.path.join(self.cfg, "displays-mode")):
+                if os.path.exists(p):
+                    os.unlink(p)
+            write(one)
+            hub = self.start_hub(PATH=fake + ":" + self.fake + ":/usr/bin:/bin", FAKE_XRANDR_STATE=state,
+                                 LUXOS_PYDIR=td.PYDIR, GTK_THEME=gtk_theme)
+            # 1 monitor: sekce Obrazovky neni
+            hub.send_signal(signal.SIGUSR1)
+            self.assertTrue(self.wait_for(lambda: log().count("shown") == 1), self.hub_err())
+            time.sleep(1.0)
+            self.assertFalse([e for e in log() if e.startswith("displays:")], log())
+            shot(f"cc-1-monitor-{theme}.png")
+            hub.send_signal(signal.SIGUSR1)
+            self.assertTrue(self.wait_for(lambda: log()[-1] == "hidden"))
+
+            # 2 monitory (rozsireno): sekce s rozsvicenym Rozsirit
+            write(two)
+            hub.send_signal(signal.SIGUSR1)
+            self.assertTrue(self.wait_for(lambda: "displays:extend:2" in log()), (log(), self.hub_err()))
+            shot(f"cc-2-extend-{theme}.png")
+            geo, bubble = probe()
+            self.assertIsNotNone(geo)
+            self.assertIsNotNone(bubble, "modre kolecko Rozsirit nenalezeno")
+            # tri stejne siroke sloupce (Zrcadlit | Rozsirit | Jen externi) v sekci s okraji 12 + 12 px
+            step = (geo[2] - 50 - 16) // 3 + 8
+
+            click(bubble[0] - step, bubble[1])
+            self.assertTrue(self.wait_for(lambda: "display-set:mirror" in log(), 5), log())
+            # tlacitko se rozsviti hned (displays:mirror:2), luxos-displays pak zmeni falesny xrandr
+            self.assertTrue(self.wait_for(lambda: "displays:mirror:2" in log(), 5), (log(), self.hub_err()))
+            self.assertTrue(self.wait_for(lambda: read()["HDMI-1"]["pos"] == [0, 0], 15), (read(), self.calls()))
+            st = read()
+            self.assertEqual(st["eDP-1"]["pos"], [0, 0])
+            self.assertEqual(st["HDMI-1"]["pos"], [0, 0])
+            self.assertEqual(st["eDP-1"]["current"][0], st["HDMI-1"]["current"][0])
+            self.assertEqual(ld.load_modes(os.path.join(self.cfg, "displays.json")),
+                             {"HDMI-1|%s+eDP-1|" % ld.edid_id(td.EDID_DELL): {"mode": "mirror"}})
+            self.assertTrue(self.wait_for(lambda: log().count("display-done") == 1, 15), log())
+            self.assertTrue(self.wait_for(lambda: "displays:mirror:2" == [e for e in log() if e.startswith("displays:")][-1]))
+            shot(f"cc-2-mirror-{theme}.png")
+
+            # Jen externi, pak zpet Rozsirit (projektor vpravo od notebooku)
+            click(bubble[0] + step, bubble[1])
+            self.assertTrue(self.wait_for(lambda: "displays:external:2" in log(), 15), (log(), self.hub_err()))
+            self.assertTrue(self.wait_for(lambda: read()["eDP-1"]["current"] is None, 15), read())
+            self.assertTrue(self.wait_for(lambda: log().count("display-done") == 2, 15), log())
+            shot(f"cc-2-external-{theme}.png")
+            click(bubble[0], bubble[1])
+            self.assertTrue(self.wait_for(lambda: log().count("displays:extend:2") == 2, 15), (log(), self.hub_err()))
+            self.assertTrue(self.wait_for(lambda: read()["HDMI-1"]["pos"] == [1920, 0], 15), read())
+            st = read()
+            self.assertEqual(st["HDMI-1"]["pos"], [1920, 0])
+            self.assertTrue(st["eDP-1"]["primary"])
+            # Stolni pocitac (bez vestaveneho displeje): jen Zrcadlit a Rozsirit, Jen externi neni
+            hub.send_signal(signal.SIGUSR1)
+            self.assertTrue(self.wait_for(lambda: log()[-1] == "hidden"))
+            desk = td.fake_state()
+            desk["outputs"][0]["name"] = "DP-2"
+            write(desk)
+            hub.send_signal(signal.SIGUSR1)
+            self.assertTrue(self.wait_for(lambda: log().count("shown") == 3))
+            time.sleep(1.0)
+            shot(f"cc-2-desktop-{theme}.png")
+            geo, bubble2 = probe()
+            self.assertIsNotNone(bubble2)
+            # dva sloupce: modre kolecko Rozsirit je v prave polovine sekce
+            self.assertGreater(bubble2[0], geo[0] + geo[2] // 2)
+            err = self.hub_err()
+            self.assertNotIn("LSL callback error", err, err)
+            hub.send_signal(signal.SIGTERM)
+            hub.wait(5)
+
     def test_calendar_weather_line(self):
         """Kalendar ukaze pod dneskem souhrn z aplikace Pocasi, jen kdyz je cerstvy (do 3 h)."""
         wdir = os.path.join(self.cache, "weather")

@@ -157,8 +157,9 @@ class SavedArgs(unittest.TestCase):
         entries = {"HDMI-1|": {"mode": "1680x1050", "rate": "59.88", "rotate": "normal"},
                    "HDMI-1|0123456789ab": {"mode": "1280x720", "rotate": "normal"},
                    "DP-1|": {"mode": "1920x1080", "rotate": "normal"}}
+        # HDMI-1 ve vzorku: plocha 1080x1920 neodpovida rezimu 2560x1440 = zbyle meritko -> --scale 1x1
         self.assertEqual(ld.all_output_args(outs, entries),
-                         [("HDMI-1", ["--mode", "1680x1050", "--rate", "59.88", "--rotate", "normal"])])
+                         [("HDMI-1", ["--mode", "1680x1050", "--rate", "59.88", "--rotate", "normal", "--scale", "1x1"])])
 
     def test_save_load(self):
         with tempfile.TemporaryDirectory() as d:
@@ -298,8 +299,10 @@ class DisplaysScript(unittest.TestCase):
     def test_modes_keep_saved(self):
         ld.save({"eDP-1|": {"mode": "1280x720", "rate": "60.00", "rotate": "normal"}}, self.f.conf)
         self.f.run_displays("mirror")
+        # zrcadleni: ulozene rozliseni hlavniho monitoru umi i HDMI-1 -> oba 1280x720 v 0,0
         self.assertEqual(self.f.calls()[-1], "--output DP-1 --off --output eDP-1 --mode 1280x720 --rate 60.00 "
-                                             "--rotate normal --primary --pos 0x0 --output HDMI-1 --auto --same-as eDP-1")
+                                             "--rotate normal --scale 1x1 --pos 0x0 --primary "
+                                             "--output HDMI-1 --mode 1280x720 --rate 60.00 --rotate normal --scale 1x1 --pos 0x0")
         self.f.run_displays("external")
         self.assertEqual(self.f.calls()[-1], "--output DP-1 --off --output eDP-1 --off "
                                              "--output HDMI-1 --auto --primary --pos 0x0")

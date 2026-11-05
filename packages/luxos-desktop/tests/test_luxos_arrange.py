@@ -191,7 +191,8 @@ class Plan(unittest.TestCase):
         lay = la.make_layout(self.outs, {"eDP-1": (0, 0), "HDMI-1": (1920, 0)}, "eDP-1", mirror=True)
         p = la.plan(self.outs, {}, {self.key: lay})
         self.assertTrue(p["mirror"])
-        self.assertTrue(" ".join(p["args"]).endswith("--output HDMI-1 --auto --rotate normal --same-as eDP-1"))
+        self.assertTrue(" ".join(p["args"]).endswith("--output HDMI-1 --mode 1920x1080 --rate 60.00 --rotate normal "
+                                                     "--scale 1x1 --pos 0x0"))
         p = la.plan(self.outs, {}, {self.key: lay}, force_extend=True)
         self.assertFalse(p["mirror"])
         self.assertIn("--pos 1920x0", " ".join(p["args"]))
@@ -250,7 +251,8 @@ class Script(unittest.TestCase):
         lay = la.make_layout(self.outs, {"eDP-1": (0, 0), "HDMI-1": (1920, 0)}, "eDP-1", mirror=True)
         ld.save({}, self.f.conf, layouts={self.key: lay})
         self.f.run_displays("auto")
-        self.assertIn("--same-as eDP-1", self.f.calls()[-1])
+        self.assertIn("--output HDMI-1 --mode 1920x1080 --rate 60.00 --rotate normal --scale 1x1 --pos 0x0",
+                      self.f.calls()[-1])
         self.f.run_displays("extend")
         self.assertIn("--output HDMI-1 --auto --rotate normal --pos 1920x0", self.f.calls()[-1])
         self.assertFalse(ld.load_layouts(self.f.conf)[self.key]["mirror"])

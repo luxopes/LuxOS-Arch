@@ -401,14 +401,17 @@ class Displays(Gtk.Window):
         self.building = False
 
     # ---- usporadani (jako v macOS) --------------------------------------------------
-    @staticmethod
-    def read_mode():
+    def read_mode(self):
+        """Rezim vice monitoru jako luxos-displays auto: pro tuto sadu monitoru, posledni zvoleny, extend."""
+        mode = la.mode_for(self.outputs, ld.load_modes())
+        if mode:
+            return mode
         try:
             with open(MODE_FILE) as f:
                 mode = f.read().strip()
         except OSError:
             mode = "extend"
-        return mode if mode in ("extend", "mirror", "external", "internal") else "extend"
+        return mode if mode in ld.MODES else "extend"
 
     def is_mirrored(self):
         act = la.current_rects(self.outputs)
@@ -497,12 +500,7 @@ class Displays(Gtk.Window):
                            ("external", _("Only external screen")),
                            ("internal", _("Only this computer's screen"))):
             combo.append(key, label)
-        try:
-            with open(MODE_FILE) as f:
-                current = f.read().strip()
-        except OSError:
-            current = "extend"
-        combo.set_active_id(current if current in ("extend", "mirror", "external", "internal") else "extend")
+        combo.set_active_id(self.read_mode())
         combo.connect("changed", self.on_multi)
         self.multi_combo = combo
         group.row(_("Use as"), combo, _("You can also switch with Super+P."))
@@ -602,7 +600,8 @@ class Displays(Gtk.Window):
         """Zkusebne pouzit nastaveni (luxos-displays auto s docasnym souborem), pak potvrzeni."""
         self.pending = {"entries": entries, "layouts": layouts, "check": check, "mode": mode}
         preview = self.preview_path()
-        ld.save(entries, preview, layouts=layouts)
+        # rezimy sad monitoru i do zkusebniho souboru (jinak by auto pouzilo posledni zvoleny rezim)
+        ld.save(entries, preview, layouts=layouts, modes=ld.load_modes())
         env = dict(env or {}, LUXOS_DISPLAYS_CONF=preview)
         self.set_busy(True)
         self.spawn(["luxos-displays", "auto"], env, lambda _ok: self.after_preview())
@@ -637,6 +636,9 @@ class Displays(Gtk.Window):
                 os.makedirs(CFG, exist_ok=True)
                 with open(MODE_FILE, "w") as f:
                     f.write(p["mode"] + "\n")
+                modes = la.with_mode(ld.load_modes(), self.outputs, p["mode"])
+                if modes is not None:
+                    ld.save(p["entries"], layouts=p["layouts"], modes=modes)
             forget_xfce_profile()
             self.cleanup_preview()
             self.set_busy(False)

@@ -14,10 +14,16 @@ pouzije --auto (doporuceny rezim monitoru).
 Sporic baterie: vestaveny displej s vic nez 60 Hz prepne na 60 Hz (vypise
 "VYSTUP REZIM PUVODNI_FREKVENCE" pro navrat) a pri vypnuti frekvenci vrati.
 
+    python3 -I luxos_displays.py mode-get | mode-set REZIM | mirror-args
+
+Rezim vice monitoru (extend/mirror/external/internal) pro prave pripojenou sadu monitoru
+(Ovladaci centrum, Super+P, Monitory) a cely prikaz xrandr pro zrcadleni (spolecne
+rozliseni, viz luxos_arrange.mirror_plan).
+
 Nastaveni je v ~/.config/luxos/displays.json (LUXOS_DISPLAYS_CONF ho prepise,
 pouziva se pro zkusebni pouziti pred potvrzenim). Klic "layouts" = rozlozeni monitoru
-(luxos_arrange, "layout-args"). Klic zaznamu je nazev vystupu
-a otisk EDID, takze jiny monitor na stejnem konektoru dostane svuj doporuceny rezim.
+(luxos_arrange, "layout-args"), klic "modes" = rezim pro sadu monitoru. Klic zaznamu je
+nazev vystupu a otisk EDID, takze jiny monitor na stejnem konektoru dostane svuj doporuceny rezim.
 LUXOS_XRANDR prepise prikaz xrandr (testy).
 """
 import hashlib
@@ -28,6 +34,7 @@ import subprocess
 import sys
 
 ROTATIONS = ("normal", "right", "inverted", "left")
+MODES = ("extend", "mirror", "external", "internal")
 # Velikost textu = Xft/DPI v kanalu xsettings (xfsettingsd ji posila GTK, panelu, xfwm4,
 # Qt i Firefoxu). None = vychozi (vlastnost se odstrani).
 TEXT_SIZES = (84, None, 108, 120, 132)
@@ -175,6 +182,25 @@ def current_mode(out):
     return None, None
 
 
+def is_scaled(out):
+    """Pouziva vystup meritko (--scale/--scale-from ze zrcadleni)? Plocha vystupu v hlavicce
+    xrandr se pak lisi od velikosti rezimu (s otocenim)."""
+    if not out["geometry"]:
+        return False
+    name, _r = current_mode(out)
+    if name is None:
+        return False
+    w, h = mode_size(name)
+    if out["rotation"] in ("left", "right"):
+        w, h = h, w
+    return (out["geometry"][0], out["geometry"][1]) != (w, h)
+
+
+def unscale_args(out):
+    """Navrat meritka 1:1 po zrcadleni s --scale-from (jinak by rozsirena plocha zustala zmensena)."""
+    return ["--scale", "1x1"] if is_scaled(out) else []
+
+
 def preferred_mode(out):
     """Doporuceny rezim monitoru (EDID "+"), jinak prvni (nejvetsi) v seznamu."""
     for md in out["modes"]:
@@ -257,6 +283,11 @@ def output_key(out):
     return f"{out['name']}|{edid_id(out['edid'])}"
 
 
+def set_key(outputs):
+    """Klic sady pripojenych monitoru (serazene klice vystupu spojene "+")."""
+    return "+".join(sorted(output_key(o) for o in outputs if o["connected"]))
+
+
 # ---- ulozene nastaveni ----------------------------------------------------------
 def load(path=None):
     try:
@@ -278,16 +309,30 @@ def load_layouts(path=None):
         return {}
 
 
-def save(entries, path=None, layouts=None):
-    """Ulozit zaznamy monitoru; layouts=None ponecha rozlozeni ulozena v souboru."""
+def load_modes(path=None):
+    """Ulozene rezimy vice monitoru {klic sady: {"mode": rezim}} (viz luxos_arrange.mode_for)."""
+    try:
+        with open(path or conf_path(), encoding="utf-8") as f:
+            modes = json.load(f).get("modes", {})
+        return {k: v for k, v in modes.items() if isinstance(v, dict) and v.get("mode") in MODES}
+    except (OSError, ValueError, AttributeError):
+        return {}
+
+
+def save(entries, path=None, layouts=None, modes=None):
+    """Ulozit zaznamy monitoru; layouts/modes=None ponecha rozlozeni a rezimy ulozene v souboru."""
     path = path or conf_path()
     if layouts is None:
         layouts = load_layouts(path)
+    if modes is None:
+        modes = load_modes(path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".tmp"
     data = {"version": 1, "outputs": entries}
     if layouts:
         data["layouts"] = layouts
+    if modes:
+        data["modes"] = modes
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=1, sort_keys=True)
         f.write("\n")
@@ -325,11 +370,15 @@ def output_args(out, entry):
 
 
 def all_output_args(outputs, entries):
+    """[(vystup, argumenty)] pro vystupy se zaznamem a pro vystupy se zbylym meritkem ze zrcadleni."""
     lines = []
     for out in outputs:
         if not out["connected"]:
             continue
         args = output_args(out, entries.get(output_key(out)))
+        unscale = unscale_args(out)
+        if unscale:
+            args = (args or ["--auto"]) + unscale
         if args:
             lines.append((out["name"], args))
     return lines
@@ -411,11 +460,29 @@ def set_text_size(index):
 
 def main(argv):
     if argv[1:2] == ["output-args"]:
-        entries = load()
-        if not entries:
-            return 0
-        for name, args in all_output_args(query(), entries):
+        for name, args in all_output_args(query(), load()):
             print(name, *args)
+        return 0
+    if argv[1:2] in (["mode-get"], ["mode-set"], ["mirror-args"]):
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import luxos_arrange as la
+        outputs = query()
+        if argv[1] == "mode-get":
+            mode = la.mode_for(outputs, load_modes())
+            if mode:
+                print(mode)
+            return 0
+        if argv[1] == "mode-set":
+            if len(argv) != 3 or argv[2] not in MODES:
+                print("usage: luxos_displays.py mode-set " + "|".join(MODES), file=sys.stderr)
+                return 2
+            modes = la.with_mode(load_modes(), outputs, argv[2])
+            if modes is not None:
+                save(load(), modes=modes)
+            return 0
+        p = la.mirror_plan(outputs, load(), load_layouts())
+        if p is not None:
+            print(" ".join(p["args"]))
         return 0
     if argv[1:2] == ["layout-args"]:
         # Cely prikaz xrandr podle ulozeneho rozlozeni pro pripojenou sadu monitoru (nic = neni).
@@ -445,7 +512,8 @@ def main(argv):
     if argv[1:2] == ["rate-restore"] and len(argv) == 5:
         rate_restore(query(), *argv[2:5])
         return 0
-    print("usage: luxos_displays.py output-args | layout-args [extend] | rate-cap | rate-restore OUTPUT MODE RATE", file=sys.stderr)
+    print("usage: luxos_displays.py output-args | layout-args [extend] | mode-get | mode-set MODE | mirror-args"
+          " | rate-cap | rate-restore OUTPUT MODE RATE", file=sys.stderr)
     return 2
 
 
