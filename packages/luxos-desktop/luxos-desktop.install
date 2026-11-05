@@ -37,7 +37,14 @@ PY
             >/dev/null 2>&1 || true
     done
 }
-post_install() { _luxos_dconf; _luxos_session; _luxos_keyboard; }
-post_upgrade() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_lock_now; }
+# Pojistka proti fork bombe (luxos-forkguard.service, zapnuta staticky): spustit hned, bez restartu.
+# Po aktualizaci restart - nova verze programu.
+_luxos_forkguard() {
+    [ -d /run/systemd/system ] || return 0
+    systemctl daemon-reload >/dev/null 2>&1 || true
+    systemctl restart luxos-forkguard.service >/dev/null 2>&1 || true
+}
+post_install() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_forkguard; }
+post_upgrade() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_lock_now; _luxos_forkguard; }
 # Otisk prstu: pred odinstalaci vratit PAM sluzby do puvodni podoby (hook uz pak nepobezi)
 pre_remove() { /usr/lib/luxos/luxos-fingerprint-pam remove || true; }

@@ -876,6 +876,22 @@ class Hub(unittest.TestCase):
         time.sleep(0.7)
         self.assertEqual(len([c for c in self.calls() if c.startswith("notify-send")]), 1)
 
+    def test_fork_bomb_notification(self):
+        """luxos-forkguard zastavil bombu: upozorneni jen pro vlastniho uzivatele."""
+        guard = self.service("cz.luxos.FakeForkGuard", [("/cz/luxos/ForkGuard", NM_XML)], {"State": GLib.Variant("u", 0), "Connectivity": GLib.Variant("u", 0)})
+        self.start_hub()
+        time.sleep(0.5)
+        # cizi uzivatel -> nic
+        guard.emit("/cz/luxos/ForkGuard", "cz.luxos.ForkGuard", "Stopped", GLib.Variant("(suu)", ("lsh", 3828, os.getuid() + 1)))
+        time.sleep(0.7)
+        self.assertFalse(any(c.startswith("notify-send") for c in self.calls()), self.calls())
+        guard.emit("/cz/luxos/ForkGuard", "cz.luxos.ForkGuard", "Stopped", GLib.Variant("(suu)", ("lsh", 3828, os.getuid())))
+        self.assertTrue(self.wait_for(lambda: any(c.startswith("notify-send") for c in self.calls()), 5))
+        note = [c for c in self.calls() if c.startswith("notify-send")][0]
+        self.assertIn("-u critical", note)
+        self.assertIn(translation("Runaway program stopped"), note)
+        self.assertIn(translation("“%s” started thousands of processes and was stopped so the computer would not freeze.").replace("%s", "lsh"), note)
+
     # ---- Trezor --------------------------------------------------------------------------------------------
     def test_safe_locks_on_screen_lock_and_sleep(self):
         login = self.service("org.freedesktop.login1", [("/org/freedesktop/login1", LOGIN_XML)])

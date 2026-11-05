@@ -8,7 +8,7 @@
 
 pkgname=luxos-terminal
 pkgver=1.3.0
-pkgrel=2
+pkgrel=3
 pkgdesc="LuxOS Terminal - light GTK3/VTE terminal with tabs, light/dark profiles and SIXEL images"
 arch=(x86_64)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -53,6 +53,6 @@ package() {
     install -Dm644 "$f/xdg-terminals.list" "$pkgdir/etc/xdg/xdg-terminals.list"
     # Sluzba uzivatelskeho systemd (aktivace pres D-Bus): shell kazdeho panelu ve vlastnim scope
     # s limitem procesu - fork bomba omezi jen svuj panel, ne celou relaci
-    install -Dm644 "$f/luxos-terminal.service" "$pkgdir/usr/lib/systemd/user/luxos-terminal.service"
-    install -Dm644 "$f/cz.luxos.Terminal.service" "$pkgdir/usr/share/dbus-1/services/cz.luxos.Terminal.service"
+    install -Dm644 "$f/luxos-terminal2.service" "$pkgdir/usr/lib/systemd/user/luxos-terminal2.service"
+    install -Dm644 "$f/cz.luxos.Terminal2.service" "$pkgdir/usr/share/dbus-1/services/cz.luxos.Terminal2.service"
 }
