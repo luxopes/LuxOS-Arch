@@ -527,6 +527,30 @@ class App(unittest.TestCase):
         self.assertFalse(self.win.super_switch.get_active())
         self.shot("shortcuts-super-tap", self.win.rows["super-tap"])
 
+    def test_group_apps_row(self):
+        row = self.win.rows["group-apps"]
+        box = row.get_parent()
+        kids = box.get_children()
+        self.assertEqual(kids.index(row), kids.index(self.win.rows["cycle-app-reverse"]) + 1)  # pod Alt+`
+        self.assertIn("Alt + `", self.labels(self.win.rows["cycle-app"]))
+        self.assertIn("Alt + Shift + `", self.labels(self.win.rows["cycle-app-reverse"]))
+        self.assertIn("Super + `", self.labels(self.win.rows["switch-app"]))
+        sw = self.win.group_switch
+        self.assertFalse(sw.get_active())                    # vychozi vypnuto
+        sw.set_active(True)
+        self.pump(0.1)
+        self.assertIn(["-c", "xfwm4", "-p", "/general/cycle_group_apps", "-n", "-t", "bool", "-s", "true"], writes())
+        self.assertEqual(user_values().get("/general/cycle_group_apps"), "true")
+        self.win.destroy()
+        self.win = self.app.ShortcutsWindow()                # stav po znovuotevreni
+        self.win.show_all()
+        self.pump(0.2)
+        self.assertTrue(self.win.group_switch.get_active())
+        self.shot("shortcuts-group-apps", self.win.rows["group-apps"])
+        self.win.group_switch.set_active(False)
+        self.pump(0.1)
+        self.assertEqual(user_values().get("/general/cycle_group_apps"), "false")
+
     def test_capture_dialog_keys(self):
         Gdk = self.Gdk
         dlg = self.app.CaptureDialog(self.win, "Files")

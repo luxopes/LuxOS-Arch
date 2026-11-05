@@ -4503,3 +4503,8 @@ Default skin tone	Standard-Hautton
 Skin tone	Hautton
 No emoji found	Keine Emoji gefunden
 The emoji was copied to the clipboard. Paste it with Ctrl+V.	Das Emoji ist in der Zwischenablage. Mit Strg+V einfügen.
+Switch windows of the current app	Fenster der aktuellen App wechseln
+Switch windows of the current app backwards	Fenster der aktuellen App rückwärts wechseln
+Next window of the same app (without previews)	Nächstes Fenster derselben App (ohne Vorschau)
+Group windows by app in Alt+Tab	Fenster in Alt+Tab nach App gruppieren
+Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Jede App wird einmal angezeigt. Bei gedrückter Alt-Taste zeigt Pfeil nach unten oder ` die Fenster der ausgewählten App.

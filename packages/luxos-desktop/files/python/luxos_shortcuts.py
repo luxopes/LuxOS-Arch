@@ -285,7 +285,10 @@ def catalog():
         Action("hide", W, _("Minimize window"), "wm", ["hide_window_key"]),
         Action("cycle", W, _("Switch windows"), "wm", ["cycle_windows_key"]),
         Action("cycle-reverse", W, _("Switch windows backwards"), "wm", ["cycle_reverse_windows_key"]),
-        Action("switch-app", W, _("Switch windows of the same app"), "wm", ["switch_window_key"]),
+        Action("cycle-app", W, _("Switch windows of the current app"), "wm", ["cycle_app_windows_key"]),
+        Action("cycle-app-reverse", W, _("Switch windows of the current app backwards"), "wm",
+               ["cycle_reverse_app_windows_key"]),
+        Action("switch-app", W, _("Next window of the same app (without previews)"), "wm", ["switch_window_key"]),
         Action("maximize", W, _("Maximize window"), "wm", ["maximize_window_key"]),
         Action("tile-left", W, _("Tile window left"), "wm", ["tile_left_key"]),
         Action("tile-right", W, _("Tile window right"), "wm", ["tile_right_key"]),
@@ -643,3 +646,27 @@ def set_super_tap(on, path=None):
     except OSError:
         return False
     return True
+
+
+# ---- Alt+Tab seskupeny po aplikacich (xfwm4 z [luxos], kanal xfwm4 /general/cycle_group_apps) ----
+GROUP_APPS_PROP = "/general/cycle_group_apps"
+
+
+def group_apps_enabled():
+    """Alt+Tab ukaze kazdou aplikaci jednou (vychozi vypnuto)."""
+    try:
+        r = subprocess.run([xfconf_cmd(), "-c", "xfwm4", "-p", GROUP_APPS_PROP],
+                           capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return r.returncode == 0 and r.stdout.strip().lower() == "true"
+
+
+def set_group_apps(on):
+    """Zapne/vypne seskupeni oken po aplikacich v Alt+Tab; xfwm4 ho pouzije hned. Vraci uspech."""
+    try:
+        r = subprocess.run([xfconf_cmd(), "-c", "xfwm4", "-p", GROUP_APPS_PROP, "-n", "-t", "bool",
+                            "-s", "true" if on else "false"], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return r.returncode == 0

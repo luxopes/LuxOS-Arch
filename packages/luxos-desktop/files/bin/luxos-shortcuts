@@ -64,7 +64,7 @@ class Group(Gtk.Box):
         parent.pack_start(self, False, False, 0)
         self.rows = 0
 
-    def row(self, title, widgets, hint=None):
+    def row(self, title, widgets, hint=None, wrap=False):
         box = Gtk.Box(spacing=8)
         box.get_style_context().add_class("row")
         if self.rows:
@@ -73,7 +73,11 @@ class Group(Gtk.Box):
         t = Gtk.Label(label=title, xalign=0, ellipsize=Pango.EllipsizeMode.END)
         text.pack_start(t, False, False, 0)
         if hint:
-            h = Gtk.Label(label=hint, xalign=0, ellipsize=Pango.EllipsizeMode.MIDDLE)
+            if wrap:
+                # delsi vysvetleni na vic radku (ne prikaz, ktery se zkracuje uprostred)
+                h = Gtk.Label(label=hint, xalign=0, wrap=True, max_width_chars=60)
+            else:
+                h = Gtk.Label(label=hint, xalign=0, ellipsize=Pango.EllipsizeMode.MIDDLE)
             h.get_style_context().add_class("hint")
             text.pack_start(h, False, False, 0)
         box.pack_start(text, True, True, 0)
@@ -454,6 +458,8 @@ class ShortcutsWindow(Gtk.Window):
                 self.add_action_row(group, a)
                 if a.id == "launchpad":
                     self.add_super_row(group)
+                if a.id == "cycle-app-reverse":
+                    self.add_group_apps_row(group)
         bottom = Gtk.Box(margin_top=18)
         reset = Gtk.Button(label=_("Restore All Defaults…"))
         reset.connect("clicked", lambda _b: self.restore_all())
@@ -497,6 +503,21 @@ class ShortcutsWindow(Gtk.Window):
         self.rows["super-tap"] = group.row(_("Super key alone opens Launchpad"), [sw, spacer],
                                            _("Tap and release Super without another key."))
         self.super_switch = sw
+
+    def add_group_apps_row(self, group):
+        # Alt+Tab po aplikacich (xfwm4 /general/cycle_group_apps); Dolu nebo ` ukaze okna aplikace
+        sw = Gtk.Switch(active=ls.group_apps_enabled())
+        sw.connect("notify::active", self.on_group_apps)
+        spacer = Gtk.Box()
+        spacer.set_size_request(24, -1)
+        self.rows["group-apps"] = group.row(_("Group windows by app in Alt+Tab"), [sw, spacer],
+                                            _("Each app is shown once. While holding Alt, press Down or ` "
+                                              "to see the windows of the selected app."), wrap=True)
+        self.group_switch = sw
+
+    def on_group_apps(self, sw, _p):
+        if not ls.set_group_apps(sw.get_active()):
+            warn(self, _("The setting could not be saved."))
 
     def on_super_tap(self, sw, _p):
         if not ls.set_super_tap(sw.get_active()):
