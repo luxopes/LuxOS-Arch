@@ -211,3 +211,21 @@ Feedback…. The report goes **directly to the author of LuxOS**: `POST https://
 reports a connection without internet (`limited`/`none`) or a captive portal (`portal`). For a
 portal, clicking it opens the sign-in page. Otherwise it opens Control Center. To check by hand:
 `nmcli -t -f CONNECTIVITY,STATE general`.
+
+### Captive portal sign-in (hotel, train, airport Wi-Fi)
+
+The sign-in window (`luxos-network-login`, a private Firefox window that forgets everything) opens
+by itself once per connection. Closing it, even without signing in, does not mark the portal as
+done. Until the internet works you can always get back to it:
+
+- click the "!" icon in the top bar (tooltip "Sign in to the network…");
+- Control Center › **Sign In to "<network>"…** under the tiles;
+- the **Sign In** button in the notification. The notification stays until you close it. If you
+  close it while the network still blocks the internet, one reminder comes after 5 minutes, then
+  after 10, 20, 40 and at most every 60 minutes. The window never reopens by itself;
+- the command `luxos-network-login`.
+
+Only one sign-in window runs. Opening it again brings the open window to the front. When the
+internet works, the window, the notification and the "!" icon go away by themselves. A portal
+that NetworkManager cannot see (Tailscale or VPN DNS) is found by `luxos-hub` with
+`luxos-portal-check` and handled the same way (state in `$XDG_RUNTIME_DIR/luxos-portal`).

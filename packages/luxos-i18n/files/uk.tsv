@@ -3879,6 +3879,7 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Назва комп’ютера для домену може мати щонайбільше 15 літер, цифр і дефісів.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Домен не знайдено в DNS. Перевірте, що комп’ютер використовує DNS-сервер організації (зазвичай із DHCP), або введіть адресу контролера домену.
 Sign In to Network…	Увійти в мережу…
+Sign In to “%s”…	Увійти в мережу «%s»…
 Allow LuxAI requests from the phone	Дозволити запити LuxAI з телефона
 Allow saving notes to Calendar	Дозволити збереження нотаток у Календар
 Allow “%s” to connect to LuxOS?	Дозволити «%s» підключатися до LuxOS?

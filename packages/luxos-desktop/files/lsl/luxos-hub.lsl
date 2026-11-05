@@ -56,8 +56,15 @@ NM_PATH = "/org/freedesktop/NetworkManager"
 # konci prvnim nalezenym portalem nebo internetem
 PORTAL_PROBE_DELAYS = [3, 6, 10, 15, 25, 40, 60, 90, 120]
 PORTAL_PROBES = 10
+# Pripominka prihlaseni (upozorneni), kdyz je sit porad za portalem a okno je zavrene: po 5 min,
+# pak vzdy dvojnasobek (nejvys 1 h) - zadna smycka oken ani upozorneni
+PORTAL_REMIND = 300
+PORTAL_REMIND_MAX = 3600
+# Stav portalu pro luxos-netcheck, Ovladaci centrum a luxos-network-login ($XDG_RUNTIME_DIR):
+# soubor existuje, dokud je sit za portalem; obsah "URL IP" z luxos-portal-check nebo prazdny
+PORTAL_STATE = "luxos-portal"
 
-hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0, "portal_found": False, "portal_url": "", "portal_probes": 0, "cover_pid": 0, "start": 0, "noinet_timer": False, "exit": 0, "update_seen": 0}
+hub = {"session": 0, "system": 0, "plugin": "", "connectivity": None, "awake": False, "pidfiles": [], "windows": False, "portal_pid": 0, "portal_found": False, "portal_url": "", "portal_probes": 0, "portal_note": 0, "portal_gen": 0, "portal_delay": 0, "cover_pid": 0, "start": 0, "noinet_timer": False, "exit": 0, "update_seen": 0}
 
 function runtime_dir():
     value = env.get("XDG_RUNTIME_DIR", "")
@@ -215,7 +222,7 @@ function connectivity():
     return value
 end
 
-function connectivity_update():
+function panel_refresh():
     if hub["plugin"] == "":
         hub["plugin"] = netcheck_plugin()
     end
@@ -224,11 +231,21 @@ function connectivity_update():
             call gio.call_values(hub["session"], "org.xfce.Panel", "/org/xfce/Panel", "org.xfce.Panel", "PluginEvent", ["genmon-" + hub["plugin"], "refresh", ["b", True]], "(ssv)", 2000)
         end
     end
+    return 0
+end
+
+function connectivity_update():
     c = connectivity()
     start_probe = False
     # 2 = prihlaseni do site (portal), 3 = bez internetu, 4 = internet; jedno upozorneni na kazdou zmenu
     last = hub["connectivity"]
-    if c == 2 and last != 2 and not hub["portal_found"]:
+    restored = False
+    if last == None and (c == 2 or c == 3):
+        restored = portal_restore()
+    end
+    if restored:
+        call log("portal: still signing in (after restart)")
+    elif c == 2 and last != 2 and not hub["portal_found"]:
         call portal_detected("")
     elif c == 3 and not (last == 2 or last == 3):
         call noinet_schedule()
@@ -240,19 +257,22 @@ function connectivity_update():
     if c != 3 and c != 2 and last == 3:
         hub["portal_probes"] = PORTAL_PROBES
     end
-    if c == 4 and (last == 2 or hub["portal_found"]):
-        # prihlaseno: okno portalu uz neni potreba
-        if hub["portal_pid"] != 0:
-            call glib.kill(hub["portal_pid"], SIGTERM)
-            hub["portal_pid"] = 0
+    if c == 4 and last != 4:
+        # internet: okno portalu uz neni potreba (i rucne otevrene z listy nebo Ovladaciho centra)
+        call portal_close_window()
+        if last == 2 or hub["portal_found"]:
+            call glib.spawn(["notify-send", "-a", "LuxOS", "-e", "-i", "network-wireless-symbolic", i18n.T("Connected to the internet"), i18n.T("You are signed in to the network.")])
         end
-        call glib.spawn(["notify-send", "-a", "LuxOS", "-e", "-i", "network-wireless-symbolic", i18n.T("Connected to the internet"), i18n.T("You are signed in to the network.")])
     end
     if c != 2 and c != 3:
+        if hub["portal_found"] or exists(portal_state_path()):
+            call portal_clear()
+        end
         hub["portal_found"] = False
         hub["portal_url"] = ""
     end
     hub["connectivity"] = c
+    call panel_refresh()
     if start_probe:
         hub["portal_probes"] = 0
         call portal_probe()
@@ -264,13 +284,132 @@ function connectivity_update():
 end
 
 # Sit s portalem: prihlasovaci stranka se otevre sama, jednou za kazde prihlaseni do site
-# (znovu jen tlacitkem v upozorneni) - cizi sit tak nemuze otevirat okna porad dokola.
+# (cizi sit tak nemuze otevirat okna porad dokola). Zavrenim okna se portal neoznaci jako vyrizeny:
+# dokud neni internet, zustava "Prihlasit se" v liste (luxos-netcheck), v Ovladacim centru a v
+# upozorneni (pripominka po PORTAL_REMIND s, kdyz je okno zavrene).
 function portal_detected(url):
     hub["portal_found"] = True
     hub["portal_url"] = url
+    hub["portal_delay"] = 0
+    call portal_save()
+    call panel_refresh()
     call portal_open()
-    call glib.spawn_capture(["notify-send", "-a", "LuxOS", "-i", "luxos-network-no-internet-symbolic", "-w", "-A", "login=" + i18n.T("Sign In"), i18n.T("Sign in to the network"), i18n.T("This network requires you to sign in before you can use the internet.")], on_portal_notification, 0)
+    call portal_notify()
     return 0
+end
+
+function portal_active():
+    return hub["portal_found"] or hub["connectivity"] == 2
+end
+
+function portal_state_path():
+    return runtime_dir() + "/" + PORTAL_STATE
+end
+
+function portal_save():
+    safe:
+        call glib.write_atomic(portal_state_path(), hub["portal_url"] + "\n")
+    end
+    return 0
+end
+
+# luxos-hub spusten znovu (aktualizace, pad) za portalem: stav ze souboru, okno se znovu samo neotevre
+function portal_restore():
+    path = portal_state_path()
+    if not exists(path):
+        return False
+    end
+    hub["portal_found"] = True
+    hub["portal_url"] = glib.read_text(path).strip()
+    hub["portal_delay"] = 0
+    call portal_remind_later()
+    return True
+end
+
+# Internet nebo odpojeno: pryc soubor stavu, upozorneni i cekajici pripominka
+function portal_clear():
+    hub["portal_gen"] = hub["portal_gen"] + 1
+    hub["portal_delay"] = 0
+    call glib.unlink(portal_state_path())
+    if hub["portal_note"] != 0 and hub["session"] != 0:
+        call gio.call_async(hub["session"], "org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "CloseNotification", [hub["portal_note"]], "(u)", 5000, on_portal_note_closed, 0)
+    end
+    hub["portal_note"] = 0
+    return 0
+end
+
+function on_portal_note_closed(unused, values, error):
+    return 0
+end
+
+# Jedno upozorneni s tlacitkem "Prihlasit se" (nahrazuje predchozi); zustava, dokud ho uzivatel nezavre
+function portal_notify():
+    if hub["session"] == 0:
+        return 0
+    end
+    # jen "default": xfce4-notifyd ji ukaze jako tlacitko a vyvola ji i klik na upozorneni
+    actions = ["default", i18n.T("Sign In")]
+    call gio.call_async(hub["session"], "org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "Notify",
+                        ["LuxOS", hub["portal_note"], "luxos-network-no-internet-symbolic", i18n.T("Sign in to the network"), i18n.T("This network requires you to sign in before you can use the internet."), actions, {"category": ["s", "network"]}, 0],
+                        "(susssasa{sv}i)", 5000, on_portal_notified, 0)
+    return 0
+end
+
+function on_portal_notified(unused, values, error):
+    if values == None:
+        call log("portal notify: " + error)
+        return 0
+    end
+    hub["portal_note"] = values[0]
+    if not portal_active():
+        call portal_clear()            # mezitim prihlaseno
+    end
+    return 0
+end
+
+function on_notification_action(sender, path, interface, signal, values):
+    if len(values) < 2 or hub["portal_note"] == 0 or values[0] != hub["portal_note"]:
+        return 0
+    end
+    if (values[1] == "login" or values[1] == "default") and portal_active():
+        call portal_open()
+    end
+    return 0
+end
+
+function on_notification_closed(sender, path, interface, signal, values):
+    if len(values) < 1 or hub["portal_note"] == 0 or values[0] != hub["portal_note"]:
+        return 0
+    end
+    hub["portal_note"] = 0
+    call portal_remind_later()
+    return 0
+end
+
+# Pripominka za hub["portal_delay"] s; novejsi naplanovani rusi starsi (cislo generace)
+function portal_remind_later():
+    if not portal_active():
+        return 0
+    end
+    if hub["portal_delay"] == 0:
+        hub["portal_delay"] = text.to_int(env.get("LUXOS_HUB_PORTAL_REMIND", ""), PORTAL_REMIND)
+    end
+    hub["portal_gen"] = hub["portal_gen"] + 1
+    call glib.timeout_add_seconds_data(hub["portal_delay"], portal_remind, hub["portal_gen"])
+    return 0
+end
+
+function portal_remind(gen):
+    if gen != hub["portal_gen"] or not portal_active() or hub["portal_note"] != 0 or portal_window_open():
+        return False
+    end
+    delay = hub["portal_delay"] * 2
+    if delay > PORTAL_REMIND_MAX:
+        delay = PORTAL_REMIND_MAX
+    end
+    hub["portal_delay"] = delay
+    call portal_notify()
+    return False
 end
 
 # luxos-portal-check: "portal URL IP" / "online" / "none"; jen dokud je pripojeni porad omezene
@@ -359,7 +498,8 @@ function on_cover_closed(bound, pid, status):
     return 0
 end
 
-# Okno pro prihlaseni do site s portalem: jednorazovy profil prohlizece bez dat uzivatele
+# Okno pro prihlaseni do site s portalem: jednorazovy profil prohlizece bez dat uzivatele.
+# luxos-network-login bezi jen jednou: dalsi spusteni (lista, Ovladaci centrum) jen zvedne okno.
 function portal_open():
     if hub["portal_pid"] != 0 or env.get("LUXOS_HUB_NO_PORTAL", "") == "1":
         return 0
@@ -372,16 +512,32 @@ function portal_open():
     return 0
 end
 
+# Okno zavrene bez prihlaseni: portal trva dal, pripomene se upozornenim
 function on_portal_closed(bound, pid, status):
     if hub["portal_pid"] == pid:
         hub["portal_pid"] = 0
+        call portal_remind_later()
     end
     return 0
 end
 
-function on_portal_notification(bound, output, status):
-    if output.strip() == "login" and (hub["connectivity"] == 2 or hub["portal_found"]):
-        call portal_open()
+# I okno spustene rucne (lista, Ovladaci centrum, prikaz): pid soubor luxos-network-login
+function login_window_pid():
+    return running_pid("luxos-network-login.pid", ["luxos-network-login"])
+end
+
+function portal_window_open():
+    return hub["portal_pid"] != 0 or login_window_pid() != 0
+end
+
+function portal_close_window():
+    if hub["portal_pid"] != 0:
+        call glib.kill(hub["portal_pid"], SIGTERM)
+        hub["portal_pid"] = 0
+    end
+    pid = login_window_pid()
+    if pid != 0:
+        call glib.kill(pid, SIGTERM)
     end
     return 0
 end
@@ -410,6 +566,10 @@ function watch_connectivity():
     networks_reapply = debounce_new(2000, reapply_datasaver)
     call glib.timeout_add_seconds(text.to_int(env.get("LUXOS_HUB_NETCHECK_DELAY", ""), 8), connectivity_update)   # po prihlaseni (panel uz bezi)
     call gio.subscribe_values(hub["system"], NM, "org.freedesktop.DBus.Properties", "PropertiesChanged", NM_PATH, on_nm_props)
+    if hub["session"] != 0:
+        call gio.subscribe_values(hub["session"], "org.freedesktop.Notifications", "org.freedesktop.Notifications", "ActionInvoked", "/org/freedesktop/Notifications", on_notification_action)
+        call gio.subscribe_values(hub["session"], "org.freedesktop.Notifications", "org.freedesktop.Notifications", "NotificationClosed", "/org/freedesktop/Notifications", on_notification_closed)
+    end
     return 0
 end
 

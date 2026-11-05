@@ -10,6 +10,11 @@
 # prijde stranka portalu. Bezpecnost: jednorazove okno Firefoxu s prazdnym profilem v pameti
 # ($XDG_RUNTIME_DIR): nevidi cookies, hesla, historii ani doplnky uzivatele, nic si nepamatuje
 # a po zavreni se smaze cele (i se stazenymi soubory). Okno zavre luxos-hub, jakmile je internet.
+#
+# Okno bezi jen jednou: dalsi spusteni (klik v liste, Ovladaci centrum, upozorneni) jen zvedne
+# otevrene okno. Pid je v $XDG_RUNTIME_DIR/luxos-network-login.pid (podle nej okno zavre luxos-hub).
+# Bez parametru se adresa portalu vezme ze stavu luxos-hub ($XDG_RUNTIME_DIR/luxos-portal), jinak
+# ji zjisti luxos-portal-check. Zavreni okna portal neoznaci jako vyrizeny: znovu otevrit jde vzdy.
 set -u
 
 if [[ ${1-} == -h || ${1-} == --help ]]; then
@@ -20,12 +25,32 @@ if [[ ${1-} == -h || ${1-} == --help ]]; then
     exit 0
 fi
 
+base=${XDG_RUNTIME_DIR:-}
+if [[ -n $base && -d $base && -O $base ]]; then
+    pidfile=$base/luxos-network-login.pid
+else
+    base=${TMPDIR:-/tmp}
+    pidfile=$base/luxos-network-login-$UID.pid
+fi
+# Jedine okno: zamek drzi skript i prohlizec (zdedeny popisovac); uz bezici okno jen zvednout
+exec 9>>"$pidfile" || exit 1
+if ! flock -n 9; then
+    wmctrl -x -a luxos-network-login 2>/dev/null
+    exit 0
+fi
+printf '%s\n' "$$" > "$pidfile"
+
 uri=$(gdbus call --system -d org.freedesktop.NetworkManager -o /org/freedesktop/NetworkManager \
         -m org.freedesktop.DBus.Properties.Get org.freedesktop.NetworkManager ConnectivityCheckUri 2>/dev/null |
       sed -n "s/^(<'\(http:\/\/[^' ]*\)'>,)\$/\1/p")
 [[ -n $uri ]] || uri=http://ping.archlinux.org/nm-check.txt
 force_ip=""
-# Spusteno rucne (Ovladaci centrum, Hledani): adresu portalu zjistit stejne jako luxos-hub
+# Spusteno rucne (lista, Ovladaci centrum, Hledani): adresa portalu, kterou nasel luxos-hub,
+# jinak ji zjistit stejne jako luxos-hub
+if [[ -z ${1-} && -r ${XDG_RUNTIME_DIR:-/nonexistent}/luxos-portal ]]; then
+    read -r purl pip < "$XDG_RUNTIME_DIR/luxos-portal"
+    [[ ${purl-} == http://* || ${purl-} == https://* ]] && set -- "$purl" "${pip-}"
+fi
 if [[ -z ${1-} ]] && command -v luxos-portal-check >/dev/null; then
     read -r kind purl pip < <(luxos-portal-check 2>/dev/null)
     [[ $kind == portal && -n $purl ]] && set -- "$purl" "${pip-}"
@@ -40,10 +65,8 @@ if [[ ${1-} == http://* || ${1-} == https://* ]]; then
     fi
 fi
 
-base=${XDG_RUNTIME_DIR:-}
-[[ -n $base && -d $base && -O $base ]] || base=${TMPDIR:-/tmp}
 dir=$(mktemp -d "$base/luxos-network-login.XXXXXX") || exit 1
-trap 'rm -rf "$dir"' EXIT
+trap 'rm -rf "$dir"; rm -f "$pidfile"' EXIT
 mkdir -m 700 "$dir/downloads"
 
 force_pref=""
@@ -83,5 +106,6 @@ P
 
 firefox --no-remote --new-instance --profile "$dir" --class luxos-network-login --width 960 --height 720 "$uri" &
 child=$!
-trap 'kill "$child" 2>/dev/null; wait "$child" 2>/dev/null; rm -rf "$dir"' EXIT TERM INT
+trap 'kill "$child" 2>/dev/null; wait "$child" 2>/dev/null; rm -rf "$dir"; rm -f "$pidfile"' EXIT
+trap 'exit 143' TERM INT
 wait "$child"

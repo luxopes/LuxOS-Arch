@@ -885,7 +885,7 @@ function on_wifi_list(on, output, status):
     if ssid != "":
         call tile_set_state(cc["t_wifi"], True, ssid)
         call set_wifi_qr("share")
-        call glib.spawn_capture(["nmcli", "-t", "-f", "CONNECTIVITY", "general"], on_connectivity, 0)
+        call glib.spawn_capture(["nmcli", "-t", "-f", "CONNECTIVITY", "general"], on_connectivity, ssid)
         return 0
     end
     call glib.spawn_capture(["nmcli", "-t", "-f", "TYPE,STATE", "device"], on_wifi_devices, 0)
@@ -893,10 +893,15 @@ function on_wifi_list(on, output, status):
 end
 
 # Pripojeno, ale bez internetu (omezene / portal): misto sdileni nabidnout prihlaseni do site
-function on_connectivity(unused, output, status):
+# "Prihlasit se k <sit>…" (i po zavrenem okne prihlaseni, dokud neni internet)
+function on_connectivity(network, output, status):
     state = output.strip()
     if status == 0 and (state == "portal" or state == "limited"):
         call set_wifi_qr("signin")
+        call log_test("wifi-signin:" + network)
+        if network != "":
+            call gtk.button_set_label(cc["wifi_qr"], i18n.TF("Sign In to “%s”…", [network]))
+        end
     end
     return 0
 end
@@ -909,6 +914,7 @@ function on_wifi_devices(unused, output, status):
     if wired.find("ethernet:connected") >= 0:
         call tile_set_state(cc["t_wifi"], True, i18n.T("Ethernet"))
         call set_wifi_qr("")
+        call glib.spawn_capture(["nmcli", "-t", "-f", "CONNECTIVITY", "general"], on_connectivity, "")
     else:
         call tile_set_state(cc["t_wifi"], True, i18n.T("Not connected"))
         call set_wifi_qr("scan")

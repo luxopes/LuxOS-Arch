@@ -26,7 +26,7 @@ Its items, from left to right:
 | Open windows | icons of open windows (tasklist, grouped) | switch to that window |
 | Keyboard flag | xkb plugin: the flag of the current keyboard layout, Caps Lock indicator | switches layout; "Keyboard settings" opens Keyboard Layouts (`luxos-keyboard`) |
 | Tray | status icons (systray, symbolic) | - |
-| "!" network warning | shown only when you are connected but there is no internet (`luxos-netcheck`) | opens the captive-portal sign-in page (`http://ping.archlinux.org/`) or Control Center |
+| "!" network warning | shown only when you are connected but there is no internet (`luxos-netcheck`) | opens the captive-portal sign-in window (`luxos-network-login`, also after you closed it) or Control Center |
 | Sound | PulseAudio plugin (volume, media keys); the menu labels its sliders "Output: <device>" (volume) and "Input: <microphone>" (microphone sensitivity), without a microphone only the output slider is shown | mixer: `pavucontrol` |
 | Battery | icon and percentage (`luxos-battery`); hidden on computers without a battery | opens Control Center; the scroll wheel changes screen brightness (`luxos-brightness up/down`, 5 % steps, not below 10 %) |
 | Search (magnifier) | `luxos-search --panel` (genmon) | opens or closes Search, same as `Super+Space` |
