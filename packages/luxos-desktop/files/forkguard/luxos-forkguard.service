@@ -1,0 +1,27 @@
+# LuxOS - pojistka proti fork bombe kdekoli v relaci uzivatele (stare okno terminalu, jiny terminal,
+# spoustec, skript): tisice procesu stejneho jmena ve skupine procesu uzivatele, ktere narazily na limit
+# nebo rychle pribyvaji, zmrazi a ukonci; shell, ze ktereho bomba vysla, zustane. Popis v
+# luxos-forkguard.c (luxos-desktop) a v dokumentaci troubleshooting.md.
+[Unit]
+Description=LuxOS fork bomb guard
+
+[Service]
+ExecStart=/usr/lib/luxos/luxos-forkguard
+Restart=always
+RestartSec=1
+# musi bezet i pri plne pameti a pri tisicich bezicich procesu bomby
+OOMScoreAdjust=-1000
+Nice=-10
+CPUWeight=1000
+MemoryMin=16M
+LimitMEMLOCK=infinity
+# zaznam zmrazene skupiny prezije restart sluzby (pri dalsim startu se rozmrazi)
+RuntimeDirectory=luxos-forkguard
+RuntimeDirectoryPreserve=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

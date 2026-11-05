@@ -33,7 +33,12 @@
 #ifndef LUXOS_TERMINAL_VERSION
 #define LUXOS_TERMINAL_VERSION "1.0.0"
 #endif
-#define APP_ID "cz.luxos.Terminal"
+/* Proces sluzby (luxos-terminal2.service) ma vlastni jmeno na D-Bus. Terminal 1.3.0-1 a starsi (i 1.3.0-2,
+ * ktery jeste nemel limity pameti) drzi "cz.luxos.Terminal" - kdyby sluzba pouzivala stejne jmeno, po
+ * aktualizaci za behu by spoustec predal kazde nove okno staremu nechranenemu procesu (fork bomba pak
+ * shodila pocitac, 5. 11. 2026). LEGACY_APP_ID pouziva jen nouzovy rezim bez sluzby. */
+#define APP_ID "cz.luxos.Terminal2"
+#define LEGACY_APP_ID "cz.luxos.Terminal"
 #define DEFAULT_FONT "JetBrainsMono Nerd Font 11"
 
 /* ---------- preklady (radek "anglicky<TAB>preklad", hleda se az pri pouziti) ---------- */
@@ -395,17 +400,36 @@ static void on_win_destroy(GtkWidget *win, Win *w)
 
 static void win_free(gpointer w, GObject *where) { g_free(w); }
 
-/* ---------- kazdy panel ve vlastnim scope s limitem procesu ----------
+/* ---------- kazdy panel ve vlastnim scope s limitem procesu a pameti ----------
  * Fork bomba (":(){ :|:& };:") nebo program, ktery se nekontrolovane vetvi, vycerpala limit procesu
  * celeho uzivatele (user-UID.slice, TasksMax 33 % jadra) - panel, spoustec i zkratky pak uz nic
- * nespustily. Shell kazdeho panelu proto bezi ve vlastnim systemd scope "luxos-terminal-tab-PID.scope"
- * (app.slice uzivatelskeho systemd) s TasksMax: bomba narazi jen na svuj limit, zbytek relace dal
- * funguje. Presun procesu do scope jde jen z jednotky uzivatelskeho systemd (delegovany podstrom), proto
- * terminal bezi jako sluzba luxos-terminal.service (aktivace pres D-Bus, viz main). Bez uzivatelskeho
- * systemd (testy, jiny system) se scope nevytvari a panel bezi jako drive.
- * Limit: 5 % maxima jadra (min(pid_max, threads-max), threads-max roste s RAM), v mezich 4096-16384 -
- * vysoko nad beznou praci (make -j, prohlizec, Steam/Proton, Electron), bomba zabere jen cast pameti.
- * Spravce ho muze zmenit drop-inem /etc/systemd/user/luxos-terminal-tab-.scope.d/ (TasksMax=). */
+ * nespustily, a na 16 GB RAM i celou pamet (kazdy proces bomby ~0,25 MB, z toho polovina pamet jadra,
+ * ktera nejde do swapu). Shell kazdeho panelu proto bezi ve vlastnim systemd scope
+ * "luxos-terminal-tab-PID.scope" (app.slice uzivatelskeho systemd) s limity: bomba narazi jen na svuj
+ * limit, zbytek relace dal funguje. Presun procesu do scope jde jen z jednotky uzivatelskeho systemd
+ * (delegovany podstrom), proto terminal bezi jako sluzba luxos-terminal2.service (aktivace pres D-Bus,
+ * viz main). Bez uzivatelskeho systemd (testy, jiny system) se scope nevytvari a panel bezi jako drive.
+ * Limity (spravce je muze zmenit drop-inem /etc/systemd/user/luxos-terminal-tab-.scope.d/):
+ *  - TasksMax: RAM v MB / 8, nejvys 5 % maxima jadra, v mezich 1024-16384 (16 GB -> ~1900). Namereno ve VM:
+ *    proces bomby stoji 0,25 MB jako "bash -c" (4000 procesu = 1,0 GB: anon 0,54 GB, tabulky stranek
+ *    0,24 GB, slab 0,17 GB, zasobniky jadra 0,06 GB) a 0,83 MB, kdyz je napsana primo v interaktivnim lsh
+ *    (kopie velkeho shellu: 1478 procesu = 1,22 GB). Bomba v panelu tak zabere nejvys ~10 % RAM (na 4 GB
+ *    pri spodni mezi ~21 %). Bezna prace ma radove stovky vlaken (make -j16, cargo, prohlizec,
+ *    Steam/Proton ~1000). Bombu v panelu navic hned zastavi luxos-forkguard (luxos-desktop).
+ *  - MemoryMax 75 % RAM a MemorySwapMax 50 % swapu: program, ktery v panelu zabere pamet (bomba
+ *    s alokaci, chybny skript), skonci v panelu (OOM uvnitr scope) a nezaplni RAM i zram cele plochy;
+ *    preklad s LTO, kontejnery nebo ML skripty se do 75 % RAM vejdou. OOMPolicy=continue: pri OOM uvnitr
+ *    panelu skonci jen nejvetsi proces, shell panelu zustane. */
+static guint64 meminfo_kb(const char *key)
+{
+    char *d = NULL, *p;
+    guint64 v = 0;
+    if (g_file_get_contents("/proc/meminfo", &d, NULL, NULL) && (p = strstr(d, key)))
+        v = g_ascii_strtoull(p + strlen(key), NULL, 10);
+    g_free(d);
+    return v;
+}
+
 static guint64 tab_tasks_max(void)
 {
     static guint64 v;
@@ -420,7 +444,10 @@ static guint64 tab_tasks_max(void)
         }
         g_free(d);
     }
-    v = CLAMP(kmax / 20, 4096, 16384);
+    guint64 ram_mb = meminfo_kb("MemTotal:") / 1024;
+    guint64 lim = kmax ? kmax / 20 : 16384;
+    if (ram_mb && ram_mb / 8 < lim) lim = ram_mb / 8;
+    v = CLAMP(lim, 1024, 16384);
     return v;
 }
 
@@ -437,7 +464,7 @@ static char *user_manager_cgroup(void)
     return r;
 }
 
-typedef struct { GWeakRef term; GPid pid; char *cg; char *unit; int gate, tries; } ScopeReq;
+typedef struct { GWeakRef term; GPid pid; char *cg; char *unit; char *name; int gate, tries; gboolean basic; } ScopeReq;
 
 /* uvolnit zavoru: shell panelu ceka (read na fd 3), az bude ve svem scope - jinak by se program
  * spusteny hned po startu (-x, fork bomba) stihl rozvetvit driv a potomci by zustali mimo limit */
@@ -457,6 +484,7 @@ static void scope_req_free(ScopeReq *rq)
     g_weak_ref_clear(&rq->term);
     g_free(rq->cg);
     g_free(rq->unit);
+    g_free(rq->name);
     g_free(rq);
 }
 
@@ -474,6 +502,8 @@ static gboolean scope_wait_moved(gpointer data)
     return G_SOURCE_REMOVE;
 }
 
+static void scope_start(GDBusConnection *bus, ScopeReq *rq);
+
 static void on_scope_created(GObject *src, GAsyncResult *res, gpointer data)
 {
     ScopeReq *rq = data;
@@ -481,7 +511,15 @@ static void on_scope_created(GObject *src, GAsyncResult *res, gpointer data)
     GVariant *v = g_dbus_connection_call_finish(G_DBUS_CONNECTION(src), res, &e);
     if (!v) {
         g_debug("scope: %s", e->message);
+        /* starsi systemd bez nektere vlastnosti (OOMPolicy u scope od v253, MemorySwapMax): panel
+         * aspon s limitem procesu - nikdy bez scope jen kvuli neznamemu nastaveni */
+        gboolean retry = !rq->basic && !g_error_matches(e, G_IO_ERROR, G_IO_ERROR_CANCELLED);
         g_error_free(e);
+        if (retry) {
+            rq->basic = TRUE;
+            scope_start(G_DBUS_CONNECTION(src), rq);
+            return;
+        }
         scope_req_free(rq);
         return;
     }
@@ -502,12 +540,9 @@ static gboolean scopes_supported(void)
     return in_manager;
 }
 
-static void tab_scope_create(VteTerminal *term, GPid pid, int gate)
+static void scope_start(GDBusConnection *bus, ScopeReq *rq)
 {
-    GDBusConnection *bus = scopes_supported() && pid > 0 ? g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL) : NULL;
-    if (!bus) { gate_open(gate); return; }
-    char *name = g_strdup_printf("luxos-terminal-tab-%d.scope", (int)pid);
-    guint32 pid32 = (guint32)pid;
+    guint32 pid32 = (guint32)rq->pid;
     GVariantBuilder props;
     g_variant_builder_init(&props, G_VARIANT_TYPE("a(sv)"));
     g_variant_builder_add(&props, "(sv)", "Description", g_variant_new_string("LuxOS Terminal tab"));
@@ -515,20 +550,33 @@ static void tab_scope_create(VteTerminal *term, GPid pid, int gate)
     g_variant_builder_add(&props, "(sv)", "PIDs",
                           g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32, &pid32, 1, sizeof pid32));
     g_variant_builder_add(&props, "(sv)", "TasksMax", g_variant_new_uint64(tab_tasks_max()));
+    if (!rq->basic) {
+        guint64 ram = meminfo_kb("MemTotal:") * 1024, swap = meminfo_kb("SwapTotal:") * 1024;
+        if (ram) g_variant_builder_add(&props, "(sv)", "MemoryMax", g_variant_new_uint64(ram / 4 * 3));
+        if (ram && swap) g_variant_builder_add(&props, "(sv)", "MemorySwapMax", g_variant_new_uint64(swap / 2));
+        g_variant_builder_add(&props, "(sv)", "OOMPolicy", g_variant_new_string("continue"));
+    }
     /* prazdny nebo neuspesny scope systemd hned uklidi */
     g_variant_builder_add(&props, "(sv)", "CollectMode", g_variant_new_string("inactive-or-failed"));
+    g_dbus_connection_call(bus, "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+                           "org.freedesktop.systemd1.Manager", "StartTransientUnit",
+                           g_variant_new("(ssa(sv)a(sa(sv)))", rq->name, "fail", &props, NULL),
+                           G_VARIANT_TYPE("(o)"), G_DBUS_CALL_FLAGS_NO_AUTO_START, 5000, NULL,
+                           on_scope_created, rq);
+}
+
+static void tab_scope_create(VteTerminal *term, GPid pid, int gate)
+{
+    GDBusConnection *bus = scopes_supported() && pid > 0 ? g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL) : NULL;
+    if (!bus) { gate_open(gate); return; }
     ScopeReq *rq = g_new0(ScopeReq, 1);
     g_weak_ref_init(&rq->term, term);
     rq->pid = pid;
     rq->gate = gate;
-    rq->unit = g_strdup_printf("/%s\n", name);
-    rq->cg = g_strdup_printf("%s/app.slice/%s", manager_base, name);
-    g_dbus_connection_call(bus, "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
-                           "org.freedesktop.systemd1.Manager", "StartTransientUnit",
-                           g_variant_new("(ssa(sv)a(sa(sv)))", name, "fail", &props, NULL),
-                           G_VARIANT_TYPE("(o)"), G_DBUS_CALL_FLAGS_NO_AUTO_START, 5000, NULL,
-                           on_scope_created, rq);
-    g_free(name);
+    rq->name = g_strdup_printf("luxos-terminal-tab-%d.scope", (int)pid);
+    rq->unit = g_strdup_printf("/%s\n", rq->name);
+    rq->cg = g_strdup_printf("%s/app.slice/%s", manager_base, rq->name);
+    scope_start(bus, rq);
     g_object_unref(bus);
 }
 
@@ -1482,9 +1530,13 @@ static int on_command_line(GApplication *ga, GApplicationCommandLine *cl, gpoint
     return 0;
 }
 
+static gboolean is_service;
+static void check_legacy_instance(void);
+
 static void on_startup(GApplication *ga, gpointer d)
 {
     load_config();
+    if (is_service) check_legacy_instance();
     g_timeout_add_seconds(2, check_tab_limits, NULL);
     sixel_available = (vte_get_feature_flags() & VTE_FEATURE_FLAG_SIXEL) != 0;
     url_regex = vte_regex_new_for_match(
@@ -1510,22 +1562,22 @@ static void on_startup(GApplication *ga, gpointer d)
     g_signal_connect(s, "notify::gtk-application-prefer-dark-theme", G_CALLBACK(on_theme_changed), NULL);
 }
 
-/* Spusteni jako sluzba uzivatelskeho systemd: StartServiceByName aktivuje cz.luxos.Terminal pres
- * dbus-broker -> luxos-terminal.service (app.slice). Tento proces pak jen preda prikazovou radku (stejne
- * jako kdyz terminal uz bezi). Jen tak muze terminal presouvat shelly panelu do scope s limitem procesu
- * (tab_scope_create) - z session-N.scope relace Xfce to jadro nedovoli. Kdyz aktivace selze (bez
- * uzivatelskeho systemd, bez souboru sluzby), terminal pobezi jako drive v tomto procesu. */
-static void start_service(void)
+/* Spusteni jako sluzba uzivatelskeho systemd: StartServiceByName aktivuje cz.luxos.Terminal2 pres
+ * dbus-broker -> luxos-terminal2.service (app.slice). Tento proces pak jen preda prikazovou radku (stejne
+ * jako kdyz terminal uz bezi). Jen tak muze terminal presouvat shelly panelu do scope s limity
+ * (tab_scope_create) - z session-N.scope relace Xfce to jadro nedovoli. TRUE = sluzba bezi. */
+static gboolean start_service(void)
 {
     GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
-    if (!bus) return;
+    gboolean ok = FALSE;
+    if (!bus) return FALSE;
     for (int attempt = 0; attempt < 2; attempt++) {
         GError *e = NULL;
         GVariant *v = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus",
                                                   "org.freedesktop.DBus", "StartServiceByName",
                                                   g_variant_new("(su)", APP_ID, 0), G_VARIANT_TYPE("(u)"),
                                                   G_DBUS_CALL_FLAGS_NONE, 8000, NULL, &e);
-        if (v) { g_variant_unref(v); break; }
+        if (v) { g_variant_unref(v); ok = TRUE; break; }
         gboolean unknown = g_error_matches(e, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN);
         g_debug("StartServiceByName: %s", e->message);
         g_error_free(e);
@@ -1538,14 +1590,73 @@ static void start_service(void)
         g_variant_unref(v);
     }
     g_object_unref(bus);
+    return ok;
+}
+
+/* Okna otevrena pred aktualizaci bezi dal ve starem procesu (cz.luxos.Terminal) bez limitu - presunout je
+ * nejde. Sluzba to jednou rekne (pro kazdy stary proces jen jednou, znacka v XDG_RUNTIME_DIR); nova okna
+ * a panely jsou chranene hned. Pred fork bombou v tech oknech chrani zbytek systemu luxos-forkguard. */
+static void on_legacy_owner(GObject *src, GAsyncResult *res, gpointer d)
+{
+    GVariant *v = g_dbus_connection_call_finish(G_DBUS_CONNECTION(src), res, NULL);
+    if (!v) return;   /* stary terminal nebezi */
+    guint32 pid = 0;
+    g_variant_get(v, "(u)", &pid);
+    g_variant_unref(v);
+    char *stamp = g_build_filename(g_get_user_runtime_dir(), "luxos-terminal-legacy-hint", NULL);
+    char *seen = NULL, *cur = g_strdup_printf("%u", pid);
+    gboolean shown = g_file_get_contents(stamp, &seen, NULL, NULL) && !strcmp(g_strstrip(seen), cur);
+    if (!shown && g_file_set_contents(stamp, cur, -1, NULL)) {
+        GNotification *n = g_notification_new(T("Older Terminal windows are not protected"));
+        GIcon *ic = g_themed_icon_new("utilities-terminal");
+        g_notification_set_body(n, T("Terminal windows opened before the last update still run without the "
+                                     "process and memory limits. New windows and tabs are protected. Close "
+                                     "the old windows when it suits you."));
+        g_notification_set_icon(n, ic);
+        g_application_send_notification(G_APPLICATION(app), "luxos-terminal-legacy", n);
+        g_object_unref(ic);
+        g_object_unref(n);
+    }
+    g_free(seen);
+    g_free(cur);
+    g_free(stamp);
+}
+
+static void check_legacy_instance(void)
+{
+    GDBusConnection *bus = g_application_get_dbus_connection(G_APPLICATION(app));
+    if (!bus) return;
+    g_dbus_connection_call(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+                           "GetConnectionUnixProcessID", g_variant_new("(s)", LEGACY_APP_ID),
+                           G_VARIANT_TYPE("(u)"), G_DBUS_CALL_FLAGS_NONE, 5000, NULL, on_legacy_owner, NULL);
+}
+
+/* Spoustec nesmi nikdy sam prevzit jmeno sluzby: zaregistrovany proces mimo luxos-terminal2.service by
+ * dostaval vsechna dalsi okna bez limitu (stejna chyba jako se starym procesem). Vraci aplikaci, ktera
+ * jen preda prikazovou radku sluzbe (jmeno drzi sluzba), nebo NULL = nouzovy rezim. */
+static GtkApplication *service_client(void)
+{
+    for (int attempt = 0; attempt < 2; attempt++) {
+        if (attempt && !start_service()) break;
+        GtkApplication *a = gtk_application_new(APP_ID, G_APPLICATION_HANDLES_COMMAND_LINE |
+                                                            G_APPLICATION_SEND_ENVIRONMENT);
+        GError *e = NULL;
+        if (g_application_register(G_APPLICATION(a), NULL, &e) && g_application_get_is_remote(G_APPLICATION(a)))
+            return a;
+        if (e) { g_debug("register: %s", e->message); g_error_free(e); }
+        /* sluzba mezitim skoncila (necinnost) - uvolnit jmeno a zkusit ji spustit znovu */
+        g_object_unref(a);
+    }
+    return NULL;
 }
 
 int main(int argc, char **argv)
 {
     setlocale(LC_ALL, "");
     gboolean unique = TRUE;
-    /* --gapplication-service: proces sluzby luxos-terminal.service (prikazove radky prichazeji pres D-Bus) */
+    /* --gapplication-service: proces sluzby luxos-terminal2.service (prikazove radky prichazeji pres D-Bus) */
     gboolean service = argc > 1 && !strcmp(argv[1], "--gapplication-service");
+    is_service = service;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-x") || !strcmp(argv[i], "--execute") || !strcmp(argv[i], "--")) break;
         if (!strcmp(argv[i], "--disable-server") || !strcmp(argv[i], "--new-process")) unique = FALSE;
@@ -1575,11 +1686,14 @@ int main(int argc, char **argv)
     g_set_prgname("luxos-terminal");
     /* LUXOS_TERMINAL_NEW_PROCESS=1: testy a mereni bez sdileni procesu */
     if (g_getenv("LUXOS_TERMINAL_NEW_PROCESS")) unique = FALSE;
-    /* LUXOS_TERMINAL_NO_SERVICE=1: bez sluzby (ladeni) */
-    if (unique && !service && !g_getenv("LUXOS_TERMINAL_NO_SERVICE")) start_service();
-    app = gtk_application_new(APP_ID, G_APPLICATION_HANDLES_COMMAND_LINE | G_APPLICATION_SEND_ENVIRONMENT |
-                                          (service ? G_APPLICATION_IS_SERVICE : 0) |
-                                          (unique ? 0 : G_APPLICATION_NON_UNIQUE));
+    /* LUXOS_TERMINAL_NO_SERVICE=1: bez sluzby (ladeni). Nouzovy rezim (bez uzivatelskeho systemd nebo
+     * souboru sluzby) bezi v tomto procesu pod LEGACY_APP_ID - nikdy pod jmenem sluzby. */
+    if (unique && !service && !g_getenv("LUXOS_TERMINAL_NO_SERVICE") && start_service()) app = service_client();
+    if (!app)
+        app = gtk_application_new(service ? APP_ID : LEGACY_APP_ID,
+                                  G_APPLICATION_HANDLES_COMMAND_LINE | G_APPLICATION_SEND_ENVIRONMENT |
+                                      (service ? G_APPLICATION_IS_SERVICE : 0) |
+                                      (unique ? 0 : G_APPLICATION_NON_UNIQUE));
     g_signal_connect(app, "startup", G_CALLBACK(on_startup), NULL);
     g_signal_connect(app, "command-line", G_CALLBACK(on_command_line), NULL);
     /* sluzba bez oken skonci po 10 s (prvni prikazova radka prijde hned po aktivaci) */

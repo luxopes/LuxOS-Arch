@@ -235,10 +235,37 @@ check memory with System Monitor (`luxos-monitor`). See
 ## "Too many processes" in Terminal (fork bomb)
 
 A program in a Terminal tab started thousands of processes (e.g. `:(){ :|:& };:`) and hit the tab's
-process limit; the rest of the desktop keeps working. Close that tab (or its window) – all of its
-processes stop at once. Details and how to change the limit: [terminal.md](terminal.md#process-limit-per-tab-fork-bomb-protection).
+process limit; the rest of the desktop keeps working and luxos-forkguard stops the runaway processes
+within about a second (next section). If something is still running, close that tab (or its window) –
+all of its processes stop at once. Details and how to change the limits:
+[terminal.md](terminal.md#process-and-memory-limits-per-tab-fork-bomb-protection).
+
+## A runaway program was stopped (fork bomb)
+
+The notification "Runaway program stopped – “lsh” started thousands of processes and was stopped so the
+computer would not freeze" comes from **luxos-forkguard** (system service `luxos-forkguard.service`,
+package `luxos-desktop`). It protects the whole desktop, not only Terminal tabs: old Terminal windows
+from before an update, other terminals, scripts started from the Dock, Search or the file manager.
+
+- It watches the process groups (cgroups) of logged-in users. When someone hits a process limit or
+  processes multiply quickly, it looks for at least 500 processes with the same name that make up
+  most of their group – a fork bomb; normal work (builds, browsers, games, containers) never looks
+  like that.
+- It freezes that group (`cgroup.freeze`), kills the processes whose parent has the same name or is
+  gone, and thaws the group – the shell or program the bomb was started from survives, so the
+  terminal window keeps working. If the same bomb comes back within 60 s, all processes of that name
+  in the group are stopped. Root processes are never touched.
+- Log: `journalctl -u luxos-forkguard`. In a VM, a bomb outside any limit was stopped within
+  ~1.5 s at ~6000 processes.
+- Backup limits if the guard did not run: one login session may use at most 5 % of the kernel's
+  process maximum and one user 8 % (`/usr/lib/systemd/system/session-.scope.d/` and `user-.slice.d/`,
+  package `luxos-tweaks`; 16 GB RAM → about 6000 and 9700), so the system, `Ctrl+Alt+F3` login and
+  `luxos-unfreeze` keep working. Before 1.0 the user limit was 33 % – a bomb could use more memory than
+  the computer has.
+
 If the whole desktop stops starting programs ("No such file or directory" in the top bar, shortcuts
-fail) after something was started outside Terminal, log out and in again.
+fail) and no notification came, switch to a console with `Ctrl+Alt+F3`, log in and run
+`luxos-unfreeze`, or log out and in again.
 
 ## A downloaded program does not start (Lux Guard)
 

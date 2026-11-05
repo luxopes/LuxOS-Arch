@@ -64,7 +64,7 @@
         {
           "path": "luxos/troubleshooting.md",
           "title": "Troubleshooting LuxOS",
-          "summary": "Fixes for failed updates, locked package database, boot problems, drivers, displays, sound, Bluetooth, printing, keyboard layouts, network, memory, fork bombs in Terminal, Safe, Sandbox and LuxAI sign-in.",
+          "summary": "Fixes for failed updates, locked package database, boot problems, drivers, displays, sound, Bluetooth, printing, keyboard layouts, network, memory, fork bombs (luxos-forkguard), Safe, Sandbox and LuxAI sign-in.",
           "keywords": [
             "troubleshooting",
             "problem",
@@ -1038,7 +1038,7 @@
         {
           "path": "luxos/terminal.md",
           "title": "Terminal (luxos-terminal)",
-          "summary": "Default terminal (GTK3 + VTE): tabs, shortcuts, light/dark profiles, find, links, SIXEL images, fastfetch logo, terminal.conf, command-line options, per-tab process limit (fork bomb protection, luxos-terminal.service, scopes), default-terminal integration, speed.",
+          "summary": "Default terminal (GTK3 + VTE): tabs, shortcuts, light/dark profiles, find, links, SIXEL images, fastfetch logo, terminal.conf, command-line options, per-tab process and memory limits (fork bomb protection, luxos-terminal2.service, scopes, after an update), default-terminal integration, speed.",
           "keywords": [
             "terminal",
             "luxos-terminal",
