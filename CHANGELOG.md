@@ -6,6 +6,9 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 
 ## Připravuje se
 
+### Opraveno
+- **WebGPU v Chromiu funguje** (`luxos-desktop` 54): Chromium na Linuxu WebGPU bez voleb Vulkanu nezapne a stránky (např. hry v prohlížeči) hlásily chybějící grafiku. LuxOS jednou vytvoří `~/.config/chromium-flags.conf` s `--enable-features=Vulkan` a `--enable-unsafe-webgpu` – jen když ho uživatel nemá (vlastní volby se nemění).
+
 ## 1.0.0 „Sirius“ – 2026-11-04 (stabilní vydání)
 
 První stabilní vydání: všechny změny od 0.9.12 jsou v této a následující části (testovací vydání 1.0.0 z 28. 10.).
