@@ -167,6 +167,28 @@ if [[ ! -e $cfg/alttab-previews ]]; then
     : >"$cfg/alttab-previews"
 fi
 
+# Nove okno na volne misto, jinak kaskadou od posledniho okna stejne aplikace (xfwm4 z [luxos], jednou):
+# jen kdyz ma profil v xfconf porad puvodni vychozi hodnotu LuxOS (center a placement_ratio 50) -
+# vlastni volbu uzivatele nemeni. Profily bez vlastni hodnoty berou novou vychozi z /etc/xdg.
+if [[ ! -e $cfg/window-placement ]] && xfconf-query -c xfwm4 -l >/dev/null 2>&1; then
+    if [[ $(xfconf-query -c xfwm4 -p /general/placement_mode 2>/dev/null) == center &&
+          $(xfconf-query -c xfwm4 -p /general/placement_ratio 2>/dev/null) == 50 ]]; then
+        xfconf-query -c xfwm4 -p /general/placement_mode -s luxos 2>/dev/null
+    fi
+    : >"$cfg/window-placement"
+fi
+
+# Alt+` / Shift+Alt+` = okna aktualni aplikace i u profilu z drivejsich verzi (jednou). Jen volne
+# zkratky - vlastni prirazeni uzivatele (i vypnuta zkratka v Klavesovych zkratkach) zustava.
+if [[ ! -e $cfg/app-windows-shortcuts ]] && xfconf-query -c xfce4-keyboard-shortcuts -l >/dev/null 2>&1; then
+    for k in '<Alt>grave:cycle_app_windows_key' '<Alt><Shift>grave:cycle_reverse_app_windows_key'; do
+        xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/${k%%:*}" >/dev/null 2>&1 ||
+            xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/${k%%:*}" -n -t string -s "${k#*:}" 2>/dev/null
+    done
+    : >"$cfg/app-windows-shortcuts"
+    unset k
+fi
+
 # Prepinac ploch (pager), pokud si ho uzivatel prida do listy: cisla ploch misto miniatur (sede
 # bloky; miniatury jdou zapnout v jeho nastaveni - pak uz se to nemeni) a plochy s vychozimi
 # nazvy "Workspace N" pojmenovane cisly (tlacitka by jinak byla dlouha)

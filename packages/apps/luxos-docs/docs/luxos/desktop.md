@@ -14,6 +14,19 @@ Window buttons sit on the left (close, minimize, maximize: xfwm4 `button_layout=
 centred, and a double click on the title bar maximizes. The default fonts are Inter 10 and
 JetBrainsMono Nerd Font 10. The themes are WhiteSur GTK, icons and cursors, plus LuxOS icons.
 
+New windows are placed like on macOS (xfwm4 from [luxos], `placement_mode=luxos`): in the centre of
+the monitor under the pointer when nothing is there, otherwise in a free spot that overlaps no other
+window, and when the screen is full they cascade 28 px right and down from the topmost window of the
+same app (WM_CLASS), starting a new column at the top or left edge of the work area. A new window
+never lands exactly on top of another one. Dialogs, transient and utility windows, splash screens,
+windows that set their own position (PPosition/USPosition) and windows restored from the session
+keep their position. `placement_ratio` is not used in this mode; choosing Center or Under the mouse
+in Window Manager Tweaks switches back to the stock behaviour. Profiles from earlier versions that
+still have the old default (`center`, ratio 50) are switched once at login (marker
+`~/.config/luxos/window-placement`). After an update of xfwm4, `luxos-hub` replaces the running window
+manager with the new version (`xfwm4 --replace`, windows stay) within about two minutes, so no
+re-login is needed.
+
 ## Top bar (menu bar)
 
 The top bar is an xfce4-panel ("panel-1", 28 px, at the top of the primary monitor, translucent).

@@ -41,6 +41,10 @@
       <property name="&lt;Super&gt;&lt;Shift&gt;Tab" type="string" value="cycle_reverse_windows_key"/>
       <property name="&lt;Alt&gt;Tab" type="string" value="cycle_windows_key"/>
       <property name="&lt;Alt&gt;&lt;Shift&gt;Tab" type="string" value="cycle_reverse_windows_key"/>
+      <!-- Alt+` (klavesa pod Esc v kazdem rozlozeni, v ceskem ";"): okna aktualni aplikace s nahledy
+           (xfwm4 z [luxos], packages/xfwm4) -->
+      <property name="&lt;Alt&gt;grave" type="string" value="cycle_app_windows_key"/>
+      <property name="&lt;Alt&gt;&lt;Shift&gt;grave" type="string" value="cycle_reverse_app_windows_key"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;f" type="string" value="fullscreen_key"/>
       <property name="F11" type="string" value="fullscreen_key"/>
       <property name="&lt;Super&gt;Up" type="string" value="maximize_window_key"/>

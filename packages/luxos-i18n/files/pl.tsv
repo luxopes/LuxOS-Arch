@@ -4504,3 +4504,8 @@ Default skin tone	Domyślny odcień skóry
 Skin tone	Odcień skóry
 No emoji found	Nie znaleziono emoji
 The emoji was copied to the clipboard. Paste it with Ctrl+V.	Emoji jest w schowku. Wklej je za pomocą Ctrl+V.
+Switch windows of the current app	Przełączaj okna bieżącej aplikacji
+Switch windows of the current app backwards	Przełączaj okna bieżącej aplikacji wstecz
+Next window of the same app (without previews)	Następne okno tej samej aplikacji (bez podglądów)
+Group windows by app in Alt+Tab	Grupuj okna według aplikacji w Alt+Tab
+Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Każda aplikacja jest pokazana raz. Przytrzymując Alt, naciśnij strzałkę w dół lub `, aby zobaczyć okna wybranej aplikacji.
