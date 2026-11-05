@@ -627,6 +627,40 @@ class CommandHint(Base):
         self.assertIn("notacommand_xyz: command not found", p.stderr)
 
 
+class Line(unittest.TestCase):
+    """line: vybrane radky (line 5, line 1,10, line 1-10, line 5-, line -1, i ze souboru)."""
+
+    def run_line(self, *args, stdin="".join(f"{i}\n" for i in range(1, 21))):
+        r = subprocess.run([os.path.join(FILES, "bin", "line"), *args], input=stdin, capture_output=True,
+                           text=True, timeout=10, env=dict(os.environ, LANG="C"))
+        return r.returncode, r.stdout.split(), r.stderr
+
+    def test_selections(self):
+        for args, want in ((["5"], ["5"]), (["1,10"], ["1", "10"]), (["1,", "10"], ["1", "10"]),
+                           (["1-3"], ["1", "2", "3"]), (["19-"], ["19", "20"]), (["-1"], ["20"]),
+                           (["-2,3"], ["3", "19"]), (["10-8"], ["8", "9", "10"]), (["99"], []),
+                           (["2,2,1-2"], ["1", "2"])):
+            rc, out, _ = self.run_line(*args)
+            self.assertEqual((rc, out), (0, want), args)
+
+    def test_file_and_errors(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".txt") as f:
+            f.write("a\nb\nc\n")
+            f.flush()
+            self.assertEqual(self.run_line("2-3", f.name, stdin="")[:2], (0, ["b", "c"]))
+        rc, _, err = self.run_line("abc")
+        self.assertEqual(rc, 2)
+        self.assertIn("invalid line selection", err)
+        rc, _, err = self.run_line("1", "/nonexistent/x")
+        self.assertEqual(rc, 1)
+
+    def test_stops_early_on_endless_input(self):
+        p = subprocess.Popen(["sh", "-c", f"yes | {os.path.join(FILES, 'bin', 'line')} 3"],
+                             stdout=subprocess.PIPE, text=True)
+        out, _ = p.communicate(timeout=10)
+        self.assertEqual(out, "y\n")
+
+
 class Translations(unittest.TestCase):
     """Kazdy retezec T "..." z novych skriptu ma preklad do vsech jazyku se stejnymi %s."""
 
@@ -650,7 +684,7 @@ class Translations(unittest.TestCase):
                 self.assertEqual(re.findall(r"%[sd]", r[0]), re.findall(r"%[sd]", v), (r[0], LANGS[i]))
             new[r[0]] = r
         used = set()
-        for path in (os.path.join(FILES, "bin", n) for n in ("adduser", "service", "update-grub")):
+        for path in (os.path.join(FILES, "bin", n) for n in ("adduser", "service", "update-grub", "line")):
             with open(path) as f:
                 used |= set(re.findall(r'\$\(T "((?:[^"\\]|\\.)*)"', f.read()))
         with open(os.path.join(FILES, "command-hint")) as f:

@@ -1,0 +1,70 @@
+#!/bin/bash
+# LuxOS - line: vybrane radky vystupu nebo souboru (misto sed -n / head | tail)
+#   prikaz | line 5          5. radek
+#   prikaz | line 1,10       1. a 10. radek (mezery za carkou nevadi: line 1, 10)
+#   prikaz | line 1-10       radky 1 az 10
+#   prikaz | line 5-         od 5. radku do konce
+#   prikaz | line -1         posledni radek (-2 predposledni ...)
+#   line 3,7-9 soubor.txt    i ze souboru (vice souboru = jako jeden spojeny vystup)
+# Radky se vypisi v poradi vstupu, kazdy jen jednou. Pri zapornych cislech (od konce) se vstup
+# drzi v pameti, jinak se cte proudove a konci hned po poslednim vybranem radku.
+[[ -r /usr/lib/luxos/i18n.sh ]] && . /usr/lib/luxos/i18n.sh
+declare -F T >/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+
+usage() {
+    printf '%s\n' "$(T "Usage:")"
+    printf '  %s | line 5          %s\n' "$(T "command")" "$(T "line 5")"
+    printf '  %s | line 1,10       %s\n' "$(T "command")" "$(T "lines 1 and 10")"
+    printf '  %s | line 1-10       %s\n' "$(T "command")" "$(T "lines 1 to 10")"
+    printf '  %s | line 5-         %s\n' "$(T "command")" "$(T "from line 5 to the end")"
+    printf '  %s | line -1         %s\n' "$(T "command")" "$(T "the last line (-2 the one before it)")"
+    printf '  line 3,7-9 %s\n' "$(T "FILE...")"
+}
+
+case ${1-} in
+    ""|-h|--help) usage; [[ -n ${1-} ]]; exit $? ;;
+esac
+
+# Vyber muze byt rozdeleny mezerami ("1, 10"): spojit argumenty, dokud vypadaji jako vyber
+spec=""
+while (($#)) && [[ $1 =~ ^[-0-9,[:space:]]+$ && ! -e $1 ]]; do
+    spec+="$1"
+    shift
+done
+spec=${spec//[[:space:]]/}
+item='(-?[0-9]+|[0-9]+-([0-9]+)?)'
+if [[ ! $spec =~ ^$item(,$item)*$ ]]; then
+    printf 'line: %s\n' "$(T "invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)" "${spec:-${1-}}")" >&2
+    exit 2
+fi
+for f in "$@"; do
+    [[ -r $f ]] || { printf 'line: %s\n' "$(T "cannot read %s" "$f")" >&2; exit 1; }
+done
+
+exec awk -v spec="$spec" '
+BEGIN {
+    n = split(spec, parts, ",")
+    for (i = 1; i <= n; i++) {
+        p = parts[i]
+        if (p ~ /^-[0-9]+$/) { neg[++nneg] = -p; continue }       # od konce
+        if (p ~ /-$/) { lo[++nr] = substr(p, 1, length(p) - 1) + 0; hi[nr] = -1; open_end = 1; continue }
+        if (p ~ /-/) { split(p, ab, "-"); a = ab[1] + 0; b = ab[2] + 0
+                       if (a > b) { t = a; a = b; b = t }
+                       lo[++nr] = a; hi[nr] = b; continue }
+        lo[++nr] = p + 0; hi[nr] = p + 0
+    }
+    last = 0                                   # nejvyssi vybrany radek (proudove cteni muze skoncit)
+    for (i = 1; i <= nr; i++) if (hi[i] > last) last = hi[i]
+}
+function wanted(k,   i) {
+    for (i = 1; i <= nr; i++)
+        if (k >= lo[i] && (hi[i] < 0 || k <= hi[i])) return 1
+    return 0
+}
+nneg { buf[NR] = $0; next }
+{ if (wanted(NR)) print; if (!open_end && NR >= last) exit }
+END {
+    if (!nneg) exit
+    for (i = 1; i <= nneg; i++) if (NR - neg[i] + 1 >= 1) pick[NR - neg[i] + 1] = 1
+    for (k = 1; k <= NR; k++) if (pick[k] || wanted(k)) print buf[k]
+}' "$@"

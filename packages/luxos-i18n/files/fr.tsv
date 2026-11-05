@@ -4471,3 +4471,11 @@ The printer driver could not be installed. Check the internet connection and try
 LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS n’a pas trouvé de pilote pour cette imprimante. Choisissez-en un dans Avancé…
 A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	Un programme de cet onglet a lancé trop de processus (limite %u), les nouveaux sont refusés. Le reste du système continue de fonctionner. Fermez l’onglet pour arrêter tous ses processus.
 Too many processes	Trop de processus
+line 5	ligne 5
+lines 1 and 10	lignes 1 et 10
+lines 1 to 10	lignes 1 à 10
+from line 5 to the end	de la ligne 5 jusqu’à la fin
+the last line (-2 the one before it)	la dernière ligne (-2 l’avant-dernière)
+FILE...	FICHIER...
+invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)	sélection de lignes non valide : %s (exemples : 5, 1,10, 1-10, 5-, -1)
+cannot read %s	impossible de lire %s

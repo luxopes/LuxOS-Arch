@@ -4471,3 +4471,11 @@ The printer driver could not be installed. Check the internet connection and try
 LuxOS did not find a driver for this printer. Choose one in Advanced…	A LuxOS nem talált illesztőprogramot ehhez a nyomtatóhoz. Válasszon egyet a Speciális… menüben.
 A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	A lapon futó program túl sok folyamatot indított (korlát: %u), ezért újakat nem indíthat. A rendszer többi része tovább működik. A lap bezárásával minden folyamata leáll.
 Too many processes	Túl sok folyamat
+line 5	5. sor
+lines 1 and 10	1. és 10. sor
+lines 1 to 10	1–10. sor
+from line 5 to the end	az 5. sortól a végéig
+the last line (-2 the one before it)	az utolsó sor (-2 az utolsó előtti)
+FILE...	FÁJL...
+invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)	érvénytelen sorkijelölés: %s (példák: 5, 1,10, 1-10, 5-, -1)
+cannot read %s	nem olvasható: %s
