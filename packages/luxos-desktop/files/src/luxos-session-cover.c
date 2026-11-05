@@ -12,8 +12,8 @@
  * Cerne okno bez spravce oken se drzi navrchu, dokud neskonci X server.
  *
  * luxos-session-cover --login - prechod po prihlaseni (spousti /etc/X11/xinit/xinitrc.d/60-luxos-login-cover.sh
- * pred startem relace): posledni snimek prihlasovaci obrazovky (jen ztmavena tapeta) s malym tocicim se
- * koleckem na miste pole pro heslo zakryje skladani plochy. Jakmile je plocha (okno typu DESKTOP) opravdu
+ * pred startem relace): posledni snimek prihlasovaci obrazovky (jen ztmavena tapeta) s tenkym barem prubehu
+ * jako pri startu systemu (Plymouth) na miste pole pro heslo zakryje skladani plochy. Jakmile je plocha (okno typu DESKTOP) opravdu
  * vykreslena (obsah jejiho presmerovaneho okna uz je obraz a nemeni se) a lista/Dock (DOCK) taky, okno se
  * behem ~0,28 s rozplyne do hotove plochy (pruhlednost pres kompozitor xfwm4) a skonci. Na nic neceka:
  * vstup (mys, klavesnice) jde skrz (prazdny vstupni tvar), nejdele po LOGIN_MAX_MS konci vzdy. Bez animace
@@ -46,18 +46,24 @@
 #include <X11/extensions/shape.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/Xrandr.h>
+#include <X11/extensions/Xrender.h>
+#include <cairo/cairo-xlib-xrender.h>
 #include <cairo/cairo-xlib.h>
 #include <cairo/cairo.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <math.h>
 #include <poll.h>
+#include <pthread.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/timerfd.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -183,7 +189,6 @@ static int logout_main(void)
 
 #define LOGIN_FADE_MS 280
 #define LOGIN_FADE_STEPS 14
-#define LOGIN_FRAME_MS 16        /* kolecko ~60 snimku/s, jen male misto na obrazovce */
 #define LOGIN_SCAN_MS 90         /* jak casto kontrolovat, zda je plocha vykreslena */
 #define LOGIN_NOCM_SETTLE_MS 400 /* bez kompozitoru okna nejdou precist: plocha a lista namapovane + chvile */
 #define LOGIN_WAIT_CM_MS 1500    /* bez kompozitoru jeste chvili pockat, zda nezacne (rozplynuti) */
@@ -373,9 +378,9 @@ static int x_errors;
 
 static int ignore_errors(Display *d, XErrorEvent *e)
 {
-    (void)d;
     (void)e;
-    x_errors++;
+    if (d == dpy)
+        x_errors++;             /* jen hlavni spojeni (vlakno baru kresli do okna, ktere uz mohlo zaniknout) */
     return 0;                   /* okno ze seznamu mezitim zaniklo */
 }
 
@@ -473,12 +478,21 @@ static double window_painted(Window w, unsigned long *sum, int *uniform)
     long nz = 0, tot = 0;
     unsigned long h = 1469598103UL, first = 0;
     int uni = 1;
-    for (int k = 1; k <= 5; k++) {
-        XImage *im = XGetImage(dpy, w, 0, wa.height * k / 6, (unsigned)wa.width, 1, AllPlanes, ZPixmap);
-        if (!im)
-            continue;
+    /* Pet radku nejdriv na serveru do jedne male pixmapy a pak jedno XGetImage: s GPU (glamor) kazde
+     * cteni obrazu ceka, az GPU dokresli vsechno rozpracovane, a cely X server (i nas bar) mezitim stoji */
+    Pixmap rows = XCreatePixmap(dpy, root, (unsigned)wa.width, 5, (unsigned)wa.depth);
+    XGCValues gv;
+    gv.graphics_exposures = False;
+    gv.subwindow_mode = IncludeInferiors;   /* jako XGetImage okna: i obsah podoken */
+    GC gc = XCreateGC(dpy, rows, GCGraphicsExposures | GCSubwindowMode, &gv);
+    for (int k = 1; k <= 5; k++)
+        XCopyArea(dpy, w, rows, gc, 0, wa.height * k / 6, (unsigned)wa.width, 1, 0, k - 1);
+    XImage *im = XGetImage(dpy, rows, 0, 0, (unsigned)wa.width, 5, AllPlanes, ZPixmap);
+    XFreeGC(dpy, gc);
+    XFreePixmap(dpy, rows);
+    for (int k = 0; im && k < 5; k++) {
         for (int x = 0; x < wa.width; x += 3) {
-            unsigned long p = XGetPixel(im, x, 0);
+            unsigned long p = XGetPixel(im, x, k);
             if (!tot)
                 first = p;
             else if (p != first)
@@ -487,8 +501,9 @@ static double window_painted(Window w, unsigned long *sum, int *uniform)
             nz += p != 0;
             h = (h ^ p) * 1099511628211UL;
         }
-        XDestroyImage(im);
     }
+    if (im)
+        XDestroyImage(im);
     if (sum)
         *sum = h;
     if (uniform)
@@ -540,18 +555,60 @@ static void scan(Scan *s, int pixels)
     XFree(data);
 }
 
-/* ---- kolecko (nacitani) ------------------------------------------------------------------------- */
+/* ---- prubeh nacitani (stejny bar jako pri startu systemu) --------------------------------------- */
+
+/* Tenky zaobleny bar jako v Plymouth (luxos-branding/files/plymouth: draha 220x6 bodu, svetla vypln, ktera
+ * plynule dobiha k cili) na miste pole pro heslo - i pri startu systemu je pole hesla (LUKS) na miste
+ * baru. Start systemu konci plnym barem, prihlaseni ukazuje stejny bar, ktery se plni podle skutecneho
+ * postupu relace (spravce oken, plocha a lista v seznamu oken, plocha vykreslena, hotovo) a mezi fazemi
+ * se pomalu sune dal, takze nikdy nestoji.
+ *
+ * Proc se drive kolecko trhalo (skutecny hardware, Ryzen 5 5500U): kreslilo se ve stejne smycce, ktera
+ * kontroluje plochu - kazda kontrola (kazdych 90 ms a po kazde zmene seznamu oken) dela desitky
+ * synchronnich dotazu na X server (XGetWindowProperty, XQueryTree, XSync, XGetImage) a X server je pri
+ * startu relace zahlceny (xfwm4 + kompozitor, panel, Dock, hub, xfdesktop), takze kontrola trvala
+ * desitky ms a snimky vypadly; nice(+2) proti procesum relace na vsech jadrech k tomu ubral cas
+ * procesoru. Ted:
+ *  - kresli samostatne vlakno s vlastnim spojenim na X server, ktere nikdy neceka na odpoved serveru
+ *    (zadne XSync ani dotazy, jen XFlush), kontrola plochy v hlavnim vlakne kresleni nezdrzi
+ *  - takt timerfd (CLOCK_MONOTONIC, 60 Hz), poloha vyplne podle skutecneho casu: vypadly snimek jen
+ *    preskoci mezikrok, animace se nezpomali
+ *  - draha (s vyrezem snimku pod ni) a vypln jsou predem pripravene pixmapy na serveru: snimek = jedno
+ *    male kopirovani, jedno skladani XRender (vypln oriznuta tvarem drahy, posun o zlomky bodu) a
+ *    kopirovani 220x6 bodu do okna; zadne cairo za behu, zadne prenosy obrazu
+ *  - bez nice: bezna priorita jako ostatni procesy relace */
+
+#define BAR_W 220
+#define BAR_H 6
+#define BAR_PERIOD_NS 16666667L    /* 60 Hz */
+#define BAR_FADE_IN_MS 250
+#define BAR_TAU_MS 300.0           /* jak rychle vypln dobiha k cili (Plymouth: 8 % rozdilu za snimek) */
+#define BAR_FINISH_TAU_MS 70.0     /* hotovo: rychle do konce (Plymouth "luxos-finish") */
+#define BAR_CREEP_MS 2500.0        /* v kazde fazi se pomalu blizi k dalsi (nikdy nestoji) */
+#define BAR_STAGES 5               /* start, spravce oken, plocha a lista, plocha vykreslena, hotovo */
+#define BAR_LOG_MAX 4096
+
+static const double bar_level[BAR_STAGES] = {0.04, 0.30, 0.55, 0.80, 1.0};
 
 typedef struct {
-    int x, y, size;
-    double u;
-    Pixmap back;                /* pozadi z obrazku + kolecko, pak jednim kopirovanim do okna */
-    GC gc;
-    cairo_surface_t *cs;
-} Spinner;
+    int x, y, w, h;
+    Pixmap snap;                /* snimek obrazovky (pozadi okna), vlastni ho hlavni vlakno */
+    VisualID visual;            /* Visual* plati jen pro spojeni, ktere ho vratilo */
+    int depth;
+    pthread_t thread;
+    int running;
+    pthread_mutex_t lock;       /* chrani nasledujici sdilene hodnoty */
+    Window targets[2];          /* kam kreslit (okno v prekryti, pri predani i pruhledne okno) */
+    int ntargets;
+    long stage_at[BAR_STAGES];  /* kdy faze zacala (ms od startu), 0 = jeste ne */
+    long start;
+    int quit;
+    int log_fd;                 /* LUXOS_COVER_FRAMELOG: casy snimku (mereni trhani) */
+    int bench;                  /* LUXOS_COVER_BENCH: vypln stale v pohybu (jen testy) */
+} Bar;
 
 /* Misto pole pro heslo (pod avatarem) na hlavnim monitoru - stejne rozmery jako luxos-greeter */
-static void spinner_init(Spinner *s, Visual *vis, int depth, int sw, int sh)
+static void bar_geometry(Bar *b, int sw, int sh)
 {
     int mx = 0, my = 0, mw = sw, mh = sh, ev, er, n = 0;
     if (XRRQueryExtension(dpy, &ev, &er)) {
@@ -567,50 +624,245 @@ static void spinner_init(Spinner *s, Visual *vis, int depth, int sw, int sh)
             XRRFreeMonitors(m);
     }
     double u = mh / 1080.0;
-    s->u = u < 0.55 ? 0.55 : u;
-    s->size = (int)(48 * s->u + 0.5);
-    s->x = mx + mw / 2 - s->size / 2;
-    s->y = my + mh - (int)(204 * s->u + 0.5) - s->size / 2;
-    s->back = XCreatePixmap(dpy, root, (unsigned)s->size, (unsigned)s->size, (unsigned)depth);
-    /* Bez GraphicsExpose/NoExpose: jinak kazde XCopyArea poslalo udalost, poll se hned probudil a kolecko
-     * se kreslilo bez prestavky - X server na 100 % a relace (xfce4-session) startovala o vterinu az 15 s
-     * pozdeji */
+    if (u < 0.55)
+        u = 0.55;
+    /* Plymouth kresli bar v logickych bodech (220x6, na HiDPI dvojnasobek) - stejne */
+    int k = (int)(mh / 1080.0 + 0.5);
+    if (k < 1)
+        k = 1;
+    b->w = BAR_W * k;
+    b->h = BAR_H * k;
+    b->x = mx + mw / 2 - b->w / 2;
+    b->y = my + mh - (int)(204 * u + 0.5) - b->h / 2;
+}
+
+/* Postup relace (hlavni vlakno): faze 1..4, t = ms od startu */
+static void bar_stage(Bar *b, int stage, long t)
+{
+    pthread_mutex_lock(&b->lock);
+    for (int i = 1; i <= stage && i < BAR_STAGES; i++)
+        if (!b->stage_at[i])
+            b->stage_at[i] = t > 0 ? t : 1;
+    pthread_mutex_unlock(&b->lock);
+}
+
+static void bar_targets(Bar *b, Window a, Window c)
+{
+    pthread_mutex_lock(&b->lock);
+    b->targets[0] = a;
+    b->targets[1] = c;
+    b->ntargets = c != None ? 2 : 1;
+    pthread_mutex_unlock(&b->lock);
+}
+
+/* Cil vyplne v case t (ms od startu): uroven posledni dosazene faze a pomale priblizovani k dalsi */
+static double bar_goal(const long *stage_at, long t, int *last)
+{
+    int k = 0;
+    for (int i = 1; i < BAR_STAGES; i++)
+        if (stage_at[i] && stage_at[i] <= t)
+            k = i;
+    *last = k;
+    if (k == BAR_STAGES - 1)
+        return 1.0;
+    long since = t - (k ? stage_at[k] : 0);
+    double a = bar_level[k], next = bar_level[k + 1];
+    return a + (next - a) * 0.85 * (1.0 - exp(-(double)since / BAR_CREEP_MS));
+}
+
+/* Zaobleny obdelnik (pulkruhy na koncich) jako rounded() v make-variants.py */
+static void rounded_path(cairo_t *cr, double w, double h)
+{
+    double r = h / 2;
+    cairo_new_path(cr);
+    cairo_arc(cr, w - r, r, r, -M_PI / 2, M_PI / 2);
+    cairo_arc(cr, r, r, r, M_PI / 2, 3 * M_PI / 2);
+    cairo_close_path(cr);
+}
+
+/* Pixmapa ARGB32 nebo A8 vyplnena zaoblenym obdelnikem dane barvy (jednou pri startu) */
+static Picture rounded_picture(Display *d, Pixmap p, int a8, int w, int h, double r, double g, double bl, double a)
+{
+    XRenderPictFormat *f = XRenderFindStandardFormat(d, a8 ? PictStandardA8 : PictStandardARGB32);
+    cairo_surface_t *cs = cairo_xlib_surface_create_with_xrender_format(d, p, DefaultScreenOfDisplay(d), f, w, h);
+    cairo_t *cr = cairo_create(cs);
+    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+    cairo_set_source_rgba(cr, 0, 0, 0, 0);
+    cairo_paint(cr);
+    cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+    rounded_path(cr, w, h);
+    cairo_set_source_rgba(cr, r, g, bl, a);
+    cairo_fill(cr);
+    cairo_destroy(cr);
+    cairo_surface_flush(cs);
+    cairo_surface_destroy(cs);
+    return XRenderCreatePicture(d, p, f, 0, NULL);
+}
+
+static void *bar_thread(void *arg)
+{
+    Bar *b = arg;
+    Display *d = XOpenDisplay(NULL);
+    if (!d)
+        return NULL;
+    int w = b->w, h = b->h;
+    Window r = DefaultRootWindow(d);
     XGCValues gv;
-    gv.graphics_exposures = False;
-    s->gc = XCreateGC(dpy, s->back, GCGraphicsExposures, &gv);
-    s->cs = cairo_xlib_surface_create(dpy, s->back, vis, s->size, s->size);
-}
-
-/* Tenky svetly kruh a po nem obihajici jasny oblouk (otacka ~0,9 s, delka oblouku se jemne meni) */
-static void spinner_draw(Spinner *s, Window target, Pixmap bg, double t, double alpha)
-{
-    XCopyArea(dpy, bg, s->back, s->gc, s->x, s->y, (unsigned)s->size, (unsigned)s->size, 0, 0);
-    if (alpha > 0) {
-        cairo_t *cr = cairo_create(s->cs);
-        double c = s->size / 2.0, r = 14 * s->u, lw = 3 * s->u;
-        /* rovnomerne otaceni (1 otacka za 1,2 s) se stalou delkou oblouku: pri vytizenem procesoru po
-         * prihlaseni (vynechane snimky) promenna delka oblouku a rychla otacka vypadaly jako trhani */
-        double a0 = t * 2 * M_PI / 1.2;
-        double len = M_PI * 0.6;
-        cairo_set_line_width(cr, lw);
-        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
-        cairo_arc(cr, c, c, r, 0, 2 * M_PI);
-        cairo_set_source_rgba(cr, 1, 1, 1, 0.22 * alpha);
-        cairo_stroke(cr);
-        cairo_arc(cr, c, c, r, a0, a0 + len);
-        cairo_set_source_rgba(cr, 1, 1, 1, 0.95 * alpha);
-        cairo_stroke(cr);
-        cairo_destroy(cr);
-        cairo_surface_flush(s->cs);
+    gv.graphics_exposures = False;  /* jinak po kazdem XCopyArea udalost NoExpose */
+    GC gc = XCreateGC(d, r, GCGraphicsExposures, &gv);
+    XVisualInfo vt, *vi;
+    int nvi = 0;
+    vt.visualid = b->visual;
+    vi = XGetVisualInfo(d, VisualIDMask, &vt, &nvi);
+    XRenderPictFormat *vf = vi && nvi ? XRenderFindVisualFormat(d, vi->visual) : NULL;
+    if (vi)
+        XFree(vi);
+    if (!vf) {
+        XCloseDisplay(d);
+        return NULL;            /* bez XRender jen snimek bez baru */
     }
-    XCopyArea(dpy, s->back, target, s->gc, 0, 0, (unsigned)s->size, (unsigned)s->size, s->x, s->y);
+
+    /* Pozadi: vyrez snimku pod barem + draha (tlumena bila jako kruh drive - snimek je ztmavena tapeta) */
+    Pixmap base = XCreatePixmap(d, r, (unsigned)w, (unsigned)h, (unsigned)b->depth);
+    XCopyArea(d, b->snap, base, gc, b->x, b->y, (unsigned)w, (unsigned)h, 0, 0);
+    Pixmap trackp = XCreatePixmap(d, r, (unsigned)w, (unsigned)h, 32);
+    Pixmap fillp = XCreatePixmap(d, r, (unsigned)w, (unsigned)h, 32);
+    Pixmap maskp = XCreatePixmap(d, r, (unsigned)w, (unsigned)h, 8);
+    Picture track = rounded_picture(d, trackp, 0, w, h, 1, 1, 1, 0.22);
+    Picture fill = rounded_picture(d, fillp, 0, w, h, 0xee / 255.0, 0xf4 / 255.0, 1.0, 0.95);   /* bar-fill */
+    Picture mask = rounded_picture(d, maskp, 1, w, h, 0, 0, 0, 1);                             /* tvar drahy */
+    Picture basep = XRenderCreatePicture(d, base, vf, 0, NULL);
+    XRenderComposite(d, PictOpOver, track, None, basep, 0, 0, 0, 0, 0, 0, (unsigned)w, (unsigned)h);
+    XRenderSetPictureFilter(d, fill, FilterBilinear, NULL, 0);     /* posun o zlomky bodu */
+
+    /* Zadni buffery: hotovy snimek baru, pri prvnim zobrazeni jeste prolnuti se snimkem */
+    Pixmap back = XCreatePixmap(d, r, (unsigned)w, (unsigned)h, (unsigned)b->depth);
+    Pixmap back2 = XCreatePixmap(d, r, (unsigned)w, (unsigned)h, (unsigned)b->depth);
+    Picture backp = XRenderCreatePicture(d, back, vf, 0, NULL), back2p = XRenderCreatePicture(d, back2, vf, 0, NULL);
+    XRenderColor half = {0, 0, 0, 0};
+    Picture fade = XRenderCreateSolidFill(d, &half);
+    XFlush(d);
+
+    int tfd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
+    struct itimerspec its = {{0, BAR_PERIOD_NS}, {0, BAR_PERIOD_NS}};
+    if (tfd >= 0)
+        timerfd_settime(tfd, 0, &its, NULL);
+    static long logbuf[BAR_LOG_MAX];
+    int nlog = 0;
+    double shown = 0;
+    long prev = -1;
+    for (;;) {
+        pthread_mutex_lock(&b->lock);
+        int quit = b->quit, nt = b->ntargets;
+        Window tg[2] = {b->targets[0], b->targets[1]};
+        long st[BAR_STAGES];
+        memcpy(st, b->stage_at, sizeof st);
+        pthread_mutex_unlock(&b->lock);
+        if (quit)
+            break;
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        long tus = ts.tv_sec * 1000000L + ts.tv_nsec / 1000L;
+        long t = tus / 1000L - b->start;
+        if (nlog < BAR_LOG_MAX && b->log_fd >= 0)
+            logbuf[nlog++] = tus;
+
+        /* Poloha z hodin: exponencialni dobihani k cili podle skutecne uplynule doby (vypadly snimek =
+         * stejny vysledek, jen bez mezikroku) */
+        int last;
+        double goal = bar_goal(st, t, &last);
+        long dt = prev < 0 ? 0 : t - prev;
+        prev = t;
+        double tau = last == BAR_STAGES - 1 ? BAR_FINISH_TAU_MS : BAR_TAU_MS;
+        if (goal > shown)
+            shown += (goal - shown) * (1.0 - exp(-(double)dt / tau));
+        double fw = shown * w;
+        if (b->bench)               /* mereni trhani: vypln stale bezi tam a zpet (kazdy snimek je jiny) */
+            fw = h + (w - h) * fabs(fmod(t / 2000.0, 2.0) - 1.0);
+        if (fw < h)
+            fw = h;                 /* aspon kulaty zacatek */
+        double alpha = t >= BAR_FADE_IN_MS ? 1.0 : (double)(t < 0 ? 0 : t) / BAR_FADE_IN_MS;
+
+        XCopyArea(d, base, back, gc, 0, 0, (unsigned)w, (unsigned)h, 0, 0);
+        /* vypln posunuta doleva o (w - fw): jeji kulaty konec je v miste postupu, levy konec orizne tvar
+         * drahy (maska) */
+        XTransform tr = {{{XDoubleToFixed(1), 0, XDoubleToFixed(w - fw)},
+                          {0, XDoubleToFixed(1), 0},
+                          {0, 0, XDoubleToFixed(1)}}};
+        XRenderSetPictureTransform(d, fill, &tr);
+        XRenderComposite(d, PictOpOver, fill, mask, backp, 0, 0, 0, 0, 0, 0, (unsigned)w, (unsigned)h);
+        Pixmap out = back;
+        if (alpha < 1) {
+            XCopyArea(d, b->snap, back2, gc, b->x, b->y, (unsigned)w, (unsigned)h, 0, 0);
+            XRenderColor c = {0, 0, 0, (unsigned short)(alpha * 0xffff)};
+            XRenderFreePicture(d, fade);
+            fade = XRenderCreateSolidFill(d, &c);
+            XRenderComposite(d, PictOpOver, backp, fade, back2p, 0, 0, 0, 0, 0, 0, (unsigned)w, (unsigned)h);
+            out = back2;
+        }
+        for (int i = 0; i < nt; i++)
+            XCopyArea(d, out, tg[i], gc, 0, 0, (unsigned)w, (unsigned)h, b->x, b->y);
+        XFlush(d);
+
+        uint64_t n;
+        if (tfd < 0 || (read(tfd, &n, sizeof n) < 0 && errno != EINTR))
+            sleep_ms(16);
+    }
+    if (b->log_fd >= 0) {
+        char line[32];
+        for (int i = 0; i < nlog; i++) {
+            int n = snprintf(line, sizeof line, "%ld\n", logbuf[i]);
+            if (write(b->log_fd, line, (size_t)n) < 0)
+                break;
+        }
+    }
+    if (tfd >= 0)
+        close(tfd);
+    Picture pics[] = {track, fill, mask, basep, backp, back2p, fade};
+    for (unsigned i = 0; i < sizeof pics / sizeof *pics; i++)
+        XRenderFreePicture(d, pics[i]);
+    Pixmap pms[] = {trackp, fillp, maskp, base, back, back2};
+    for (unsigned i = 0; i < sizeof pms / sizeof *pms; i++)
+        XFreePixmap(d, pms[i]);
+    XFreeGC(d, gc);
+    XSync(d, False);
+    XCloseDisplay(d);
+    return NULL;
 }
 
-static void spinner_free(Spinner *s)
+static void bar_start(Bar *b, Pixmap snap, Visual *vis, int depth, int sw, int sh, Window target, long start)
 {
-    cairo_surface_destroy(s->cs);
-    XFreeGC(dpy, s->gc);
-    XFreePixmap(dpy, s->back);
+    memset(b, 0, sizeof *b);
+    bar_geometry(b, sw, sh);
+    b->snap = snap;
+    b->visual = XVisualIDFromVisual(vis);
+    b->depth = depth;
+    b->start = start;
+    b->targets[0] = target;
+    b->ntargets = 1;
+    b->log_fd = -1;
+    const char *log = getenv("LUXOS_COVER_FRAMELOG");
+    if (log && *log)
+        b->log_fd = open(log, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
+    b->bench = getenv("LUXOS_COVER_BENCH") != NULL;
+    pthread_mutex_init(&b->lock, NULL);
+    XSync(dpy, False);          /* snimek a okno musi na serveru existovat pred prvnim kreslenim */
+    b->running = pthread_create(&b->thread, NULL, bar_thread, b) == 0;
+}
+
+static void bar_stop(Bar *b)
+{
+    if (b->running) {
+        pthread_mutex_lock(&b->lock);
+        b->quit = 1;
+        pthread_mutex_unlock(&b->lock);
+        pthread_join(b->thread, NULL);
+        b->running = 0;
+    }
+    if (b->log_fd >= 0)
+        close(b->log_fd);
+    b->log_fd = -1;
+    pthread_mutex_destroy(&b->lock);
 }
 
 static int login_debug;
@@ -657,15 +909,13 @@ static Window cover_window(Window parent, Pixmap bg, Visual *vis, int depth, uns
 
 static int login_main(void)
 {
+    /* Bar kresli druhe vlakno s vlastnim spojenim (globalni stav Xlib musi byt pro vlakna pripraveny).
+     * Bezna priorita (drive nice +2): bar je maly, ale nesmi cekat na procesor za procesy relace */
+    XInitThreads();
     dpy = XOpenDisplay(NULL);
     if (!dpy)
         return 1;
     login_debug = getenv("LUXOS_COVER_DEBUG") != NULL;
-    /* Mirne nizsi priorita: relace ma prednost, kolecko (male misto, 60 snimku/s) ale nesmi vynechavat
-     * snimky tolik, aby se trhalo */
-    errno = 0;
-    if (nice(2) == -1 && errno != 0)
-        dbg(0, "nice failed");
     XSetErrorHandler(ignore_errors);
     int scr = DefaultScreen(dpy);
     root = RootWindow(dpy, scr);
@@ -680,6 +930,22 @@ static int login_main(void)
     a_desktop = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
     a_dock = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
     a_hold = XInternAtom(dpy, "_LUXOS_LOGIN_HOLD", False);
+    /* Jen jedno zakryti: skript xinitrc.d nacita /etc/lightdm/Xsession a pak znovu startxfce4
+     * (/etc/xdg/xfce4/xinitrc). Dve zakryti v prekryti kompozitoru se navzajem zvedala nad sebe (kazde
+     * reaguje na ConfigureNotify toho druheho), druhe meli ve snimku zamrzle kolecko prvniho a obe kreslila
+     * a kontrolovala plochu - dvojnasobna prace X serveru a trhani. Vlastnik vyberu _LUXOS_LOGIN_COVER =
+     * bezici zakryti; posledni nastaveni vyhrava, takze i pri soubehu zustane jen jedno. */
+    Atom a_single = XInternAtom(dpy, "_LUXOS_LOGIN_COVER", False);
+    if (XGetSelectionOwner(dpy, a_single) != None) {
+        dbg(0, "another cover is running");
+        return 0;
+    }
+    Window owner = XCreateSimpleWindow(dpy, root, -10, -10, 1, 1, 0, 0, 0);
+    XSetSelectionOwner(dpy, a_single, owner, CurrentTime);
+    if (XGetSelectionOwner(dpy, a_single) != owner) {
+        dbg(0, "another cover is running");
+        return 0;
+    }
     Window held = held_window();
     if (login_debug) {
         Atom type;
@@ -741,10 +1007,10 @@ static int login_main(void)
     XSelectInput(dpy, root, PropertyChangeMask | (cow == None ? SubstructureNotifyMask : 0));
     if (cow != None)
         XSelectInput(dpy, cow, SubstructureNotifyMask);
-    Spinner sp;
-    spinner_init(&sp, ra.visual, ra.depth, (int)w, (int)h);
     int motion = motion_allowed();
-    long start = now_ms(), listed_at = 0, ready_at = 0, last_scan = 0, image_at = 0, solid_at = 0, drawn_at = -1000;
+    long start = now_ms(), listed_at = 0, ready_at = 0, last_scan = 0, image_at = 0, solid_at = 0;
+    Bar bar;
+    bar_start(&bar, snap, ra.visual, ra.depth, (int)w, (int)h, win, start);
     Atom a_wm = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
     int wm_seen = 0;
     unsigned long last_sum = 0;
@@ -765,6 +1031,8 @@ static int login_main(void)
             else if (ev.type == PropertyNotify && ev.xproperty.atom == a_wm)
                 wm_seen = 1;
         }
+        if (wm_seen)
+            bar_stage(&bar, 1, now_ms() - start);
         if (raise) {
             XRaiseWindow(dpy, win);
             XFlush(dpy);
@@ -792,8 +1060,10 @@ static int login_main(void)
             scan(&sc, have_cm);
             last_scan = t;
             check = 0;
-            if (sc.desk && sc.dock && !listed_at)
+            if (sc.desk && sc.dock && !listed_at) {
                 listed_at = t;
+                bar_stage(&bar, 2, t - start);
+            }
             if (listed_at && have_cm) {
                 /* plocha s obrazem, ktery se uz nemeni (dokreslena tapeta), a vykreslena lista */
                 int stable = sc.desk_sum == last_sum;
@@ -813,6 +1083,8 @@ static int login_main(void)
                               || t - listed_at >= LOGIN_PAINT_MAX_MS;
                 dbg(t - start, "cm desk=%d image=%d filled=%d stable=%d dock=%d/%d", sc.desk, sc.desk_image,
                     sc.desk_filled, stable, sc.dock_painted, sc.dock);
+                if (desk_ok)
+                    bar_stage(&bar, 3, t - start);
                 if (desk_ok && dock_ok)
                     ready_at = t;
             } else if (listed_at && t - listed_at >= LOGIN_NOCM_SETTLE_MS
@@ -824,16 +1096,12 @@ static int login_main(void)
             if (ready_at)
                 dbg(t - start, "ready");
         }
-        if (ready_at)
+        if (ready_at) {
+            bar_stage(&bar, 4, ready_at - start);   /* bar dobehne do konce behem rozplynuti */
             break;
-        /* kolecko nejvys LOGIN_FRAME_MS za snimek, at se smycka probudi cimkoli */
-        if (t - drawn_at >= LOGIN_FRAME_MS) {
-            double since = (double)(t - start);
-            spinner_draw(&sp, win, snap, since / 1000.0, since >= 250 ? 1.0 : since / 250.0);
-            XFlush(dpy);
-            drawn_at = t;
         }
-        long wait = LOGIN_FRAME_MS - (now_ms() - drawn_at);
+        /* bar kresli vlastni vlakno - tady jen udalosti a dalsi kontrola plochy */
+        long wait = LOGIN_SCAN_MS - (now_ms() - last_scan);
         if (poll(&pfd, 1, (int)(wait < 1 ? 1 : wait)) < 0 && errno != EINTR)
             return 0;
         if (pfd.revents & (POLLHUP | POLLERR))
@@ -849,13 +1117,10 @@ static int login_main(void)
             Window fader = cover_window(root, snap, ra.visual, ra.depth, w, h, 1);
             XMapRaised(dpy, fader);
             XSync(dpy, False);
-            for (int i = 0; i < 4; i++) {
-                double tt = (double)(now_ms() - start) / 1000.0;
-                spinner_draw(&sp, fader, snap, tt, 1.0);
-                spinner_draw(&sp, win, snap, tt, 1.0);
-                XSync(dpy, False);
-                sleep_ms(LOGIN_FRAME_MS);
-            }
+            /* bar se kresli do obou oken, nez kompozitor pruhledne okno slozi (par snimku) */
+            bar_targets(&bar, fader, win);
+            sleep_ms(4 * 17);
+            bar_targets(&bar, fader, None);
             XDestroyWindow(dpy, win);
             XCompositeReleaseOverlayWindow(dpy, root);
             cow = None;
@@ -865,7 +1130,6 @@ static int login_main(void)
             double p = (double)i / LOGIN_FADE_STEPS;
             set_opacity((unsigned long)(0xffffffffUL * (p * p)));   /* rychle odkryti, jemny konec */
             XRaiseWindow(dpy, win);
-            spinner_draw(&sp, win, snap, (double)(now_ms() - start) / 1000.0, 1.0);
             XFlush(dpy);
             sleep_ms(LOGIN_FADE_MS / LOGIN_FADE_STEPS);
             if (XGetSelectionOwner(dpy, a_cm) == None)
@@ -873,7 +1137,7 @@ static int login_main(void)
         }
         dbg(now_ms() - start, "faded in %ld ms", now_ms() - f0);
     }
-    spinner_free(&sp);
+    bar_stop(&bar);
     XDestroyWindow(dpy, win);
     if (cow != None)
         XCompositeReleaseOverlayWindow(dpy, root);
