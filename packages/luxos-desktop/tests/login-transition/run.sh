@@ -26,7 +26,7 @@ OUT=${OUT:-$(mktemp -d -p "${TMPDIR:-/tmp}" luxos-login-frames-XXXXXX)}
 BIN=$OUT/bin
 mkdir -p "$BIN"
 gcc -O2 -Wall -Werror -o "$BIN/luxos-session-cover" "$HERE/../../files/src/luxos-session-cover.c" \
-    -lX11 -lXfixes -lXcomposite -lXrandr -lcairo -lm || exit 1
+    -lX11 -lXfixes -lXcomposite -lXrandr -lXrender -lcairo -lm -pthread || exit 1
 gcc -O2 -Wall -o "$BIN/capture" "$HERE/capture.c" -lX11 -lXext || exit 1
 gcc -O2 -Wall -o "$BIN/diffcap" "$HERE/diffcap.c" -lX11 -lXext || exit 1
 printf '#!/bin/sh\nexec /usr/bin/python3 %s "$@"\n' "$(cd "$HERE/../../files/screensaver" && pwd)/luxos-screensaver" \

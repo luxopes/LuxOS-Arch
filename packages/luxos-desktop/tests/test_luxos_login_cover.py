@@ -82,7 +82,7 @@ class LoginCover(unittest.TestCase):
         cls.tmp = tempfile.mkdtemp(prefix="luxos-login-cover-")
         cls.bin = os.path.join(cls.tmp, "luxos-session-cover")
         subprocess.run(["gcc", "-O2", "-Wall", "-Werror", "-o", cls.bin, SRC, "-lX11", "-lXfixes", "-lXcomposite",
-                        "-lXrandr", "-lcairo", "-lm"], check=True)
+                        "-lXrandr", "-lXrender", "-lcairo", "-lm", "-pthread"], check=True)
 
     def setUp(self):
         self.home = tempfile.mkdtemp(dir=self.tmp)
@@ -278,6 +278,105 @@ class LoginCover(unittest.TestCase):
         pump(0.1)
         self.assertNotIn("window id", self.held_prop())
         self.assertEqual(self.X.pixel(), self.X.black)
+
+    def bar_rect(self):
+        """Stejny vypocet jako bar_geometry(): 220x6 (HiDPI 2x) na miste pole pro heslo."""
+        w, h = self.screen_size()
+        u = max(h / 1080.0, 0.55)
+        k = max(1, int(h / 1080.0 + 0.5))
+        bw, bh = 220 * k, 6 * k
+        return w // 2 - bw // 2, h - int(204 * u + 0.5) - bh // 2, bw, bh
+
+    def fill_end(self, x, y, bw, bh):
+        """Kde konci svetla vypln baru (prvni bod drahy zleva)."""
+        for px in range(x + bh, x + bw):
+            if self.X.pixel(px, y + bh // 2) & 0xff < 0xb0:
+                return px - x
+        return bw
+
+    def wm_check(self, on):
+        if on:
+            subprocess.run(["xprop", "-root", "-f", "_NET_SUPPORTING_WM_CHECK", "32x", "-set",
+                            "_NET_SUPPORTING_WM_CHECK", str(self.X.root)], check=True)
+        else:
+            subprocess.run(["xprop", "-root", "-remove", "_NET_SUPPORTING_WM_CHECK"], check=False)
+
+    def test_progress_bar_like_boot(self):
+        # stejny bar jako Plymouth: tlumena draha a svetla vypln, ktera se plni podle postupu relace
+        Gdk.Atom.intern("_NET_SUPPORTING_WM_CHECK", False)
+        gray = 0x404040
+        self.X.set_root(gray)
+        env = dict(os.environ, HOME=self.home, XDG_CONFIG_HOME=os.path.join(self.home, ".config"),
+                   LUXOS_LOGIN_FRAME_DIR=self.frames)
+        p = subprocess.Popen([self.bin, "--login"], env=env)
+        try:
+            pump(0.6)
+            x, y, bw, bh = self.bar_rect()
+            cy = y + bh // 2
+            fill = self.X.pixel(x + bh, cy)
+            track = self.X.pixel(x + bw - bh, cy)
+            self.assertGreater(fill & 0xff, 0xd0, hex(fill))                     # svetla vypln vlevo
+            self.assertTrue(0x50 < (track & 0xff) < 0x90, hex(track))           # tlumena draha
+            self.assertEqual(self.X.pixel(x + bw // 2, y - 3), gray)            # nic jineho se nekresli
+            self.assertEqual(self.X.pixel(x - 3, cy), gray)
+            self.assertEqual(self.X.pixel(20, 20), gray)                        # snimek zustava
+            first = self.fill_end(x, y, bw, bh)
+            self.assertLess(first, bw * 0.25)
+            self.wm_check(True)                                                 # spravce oken bezi
+            pump(1.2)
+            later = self.fill_end(x, y, bw, bh)
+            self.assertGreater(later, first + bw * 0.1, (first, later))
+            self.assertLess(later, bw * 0.6)                                    # plocha jeste neni
+        finally:
+            self.wm_check(False)
+        self.X.set_root(self.X.black)
+        self.finish(p)
+
+    def test_frames_steady_under_cpu_load(self):
+        # bar kresli vlastni vlakno v taktu 60 Hz podle hodin: ani plne vytizeny procesor (procesy relace
+        # na vsech jadrech) nesmi zpusobit dlouhou mezeru mezi snimky (drive trhani pri prihlaseni)
+        log = os.path.join(self.home, "frames.log")
+        env = dict(os.environ, HOME=self.home, XDG_CONFIG_HOME=os.path.join(self.home, ".config"),
+                   LUXOS_LOGIN_FRAME_DIR=self.frames, LUXOS_COVER_FRAMELOG=log)
+        busy = [subprocess.Popen([sys.executable, "-c", "while True: pass"]) for _ in range(os.cpu_count() or 2)]
+        try:
+            p = subprocess.Popen([self.bin, "--login"], env=env)
+            time.sleep(2.5)
+        finally:
+            for b in busy:
+                b.kill()
+                b.wait()
+        self.X.set_root(self.X.black)
+        self.finish(p)
+        ts = [int(v) for v in open(log).read().split()]
+        ts = [t for t in ts if t >= ts[0] + 300000]
+        gaps = sorted((b - a) / 1000.0 for a, b in zip(ts, ts[1:]))
+        self.assertGreater(len(gaps), 100, len(gaps))                            # ~60 snimku/s
+        self.assertTrue(14 < gaps[len(gaps) // 2] < 19, gaps[len(gaps) // 2])
+        self.assertLess(gaps[-1], 50, gaps[-5:])
+
+    def test_single_instance(self):
+        # hook xinitrc.d nacita /etc/lightdm/Xsession i startxfce4 (/etc/xdg/xfce4/xinitrc): druhe spusteni
+        # behem prechodu hned skonci, jinak by se dve zakryti predhanela navrchu a kreslila dvakrat
+        p, _t0 = self.start()
+        env = dict(os.environ, HOME=self.home, LUXOS_LOGIN_FRAME_DIR=self.frames)
+        t0 = time.monotonic()
+        self.assertEqual(subprocess.run([self.bin, "--login"], env=env, timeout=5).returncode, 0)
+        self.assertLess(time.monotonic() - t0, 0.5)
+        self.assertIsNone(p.poll())                            # prvni zakryti bezi dal
+        self.assertEqual(self.X.pixel(), self.X.white)
+        self.finish(p)
+        # po skonceni prvniho jde zakryti spustit znovu (vyber se uvolnil)
+        for w in self.windows:
+            w.destroy()
+        self.windows = []
+        subprocess.run(["xprop", "-root", "-remove", "_NET_CLIENT_LIST"], check=False, stderr=subprocess.DEVNULL)
+        pump(0.05)
+        self.X.set_root(self.X.white)
+        p, _t0 = self.start()
+        pump(0.3)
+        self.assertIsNone(p.poll())
+        self.finish(p)
 
     def test_desktop_already_running(self):
         self.desktop_ready()
