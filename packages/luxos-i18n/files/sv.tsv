@@ -3878,6 +3878,7 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Datornamnet för domänen får ha högst 15 bokstäver, siffror och bindestreck.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Domänen hittades inte i DNS. Kontrollera att datorn använder organisationens DNS-server (oftast via DHCP) eller ange adressen till en domänkontrollant.
 Sign In to Network…	Logga in på nätverket…
+Sign In to “%s”…	Logga in på nätverket ”%s”…
 Allow LuxAI requests from the phone	Tillåt LuxAI-förfrågningar från telefonen
 Allow saving notes to Calendar	Tillåt att anteckningar sparas i Kalender
 Allow “%s” to connect to LuxOS?	Tillåta att ”%s” ansluter till LuxOS?

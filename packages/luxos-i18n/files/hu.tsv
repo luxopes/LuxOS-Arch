@@ -3878,6 +3878,7 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	A számítógép tartományi neve legfeljebb 15 betűből, számjegyből és kötőjelből állhat.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	A tartomány nem található a DNS-ben. Ellenőrizd, hogy a gép a szervezet DNS-kiszolgálóját használja-e (általában DHCP-ből), vagy add meg egy tartományvezérlő címét.
 Sign In to Network…	Bejelentkezés a hálózatba…
+Sign In to “%s”…	Bejelentkezés a(z) „%s” hálózatba…
 Allow LuxAI requests from the phone	LuxAI-kérések engedélyezése a telefonról
 Allow saving notes to Calendar	Jegyzetek mentésének engedélyezése a Naptárba
 Allow “%s” to connect to LuxOS?	Engedélyezi, hogy a(z) „%s” csatlakozzon a LuxOS-hez?

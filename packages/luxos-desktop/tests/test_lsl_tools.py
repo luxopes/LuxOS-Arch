@@ -72,7 +72,7 @@ class LslTools(unittest.TestCase):
             os.chmod(os.path.join(cls.ref, p), 0o755)
         # falesne programy: zapisuji volani do $FAKE_LOG
         for name in ("luxos-powersaver", "notify-send", "luxos-control-center", "luxos-calendar", "xdg-open",
-                     "luxos-cc-toggle"):
+                     "luxos-cc-toggle", "luxos-network-login"):
             path = os.path.join(cls.fake, name)
             with open(path, "w") as f:
                 f.write('#!/bin/sh\nprintf "%s\\n" "$0 $*" >>"$FAKE_LOG"\n')
@@ -104,6 +104,12 @@ class LslTools(unittest.TestCase):
         self.assertEqual(new.stdout, old.stdout, f"{prog} {args}: stderr new={new.stderr!r} old={old.stderr!r}")
         self.assertEqual(new.returncode, old.returncode)
         return new.stdout
+
+    def log_programs(self):
+        if not os.path.exists(self.log):
+            return []
+        with open(self.log) as f:
+            return [line.split(" ", 1)[0] for line in f.read().splitlines()]
 
     def calls(self):
         if not os.path.exists(self.log):
@@ -344,8 +350,27 @@ class LslTools(unittest.TestCase):
             finally:
                 nm.kill()
                 nm.wait()
-        # klik: prihlasovaci stranka jen pro portal, jinak Ovladaci centrum
-        self.assertEqual(self.calls(), ["", "http://ping.archlinux.org/", "", "", "", ""])
+        # klik: okno prihlaseni (luxos-network-login) jen pro portal, jinak Ovladaci centrum
+        self.assertEqual([os.path.basename(c) for c in self.log_programs()],
+                         ["luxos-cc-toggle", "luxos-network-login", "luxos-cc-toggle", "luxos-cc-toggle",
+                          "luxos-cc-toggle", "luxos-cc-toggle"])
+        # portal, ktery nasel luxos-hub (NM hlasi jen omezene/zadne pripojeni pod VPN DNS): soubor stavu
+        open(os.path.join(self.runtime, "luxos-portal"), "w").write("http://login.portal.test/ 10.5.0.2\n")
+        os.remove(self.log)
+        cases = [((70, 3), icon % portal), ((60, 1), icon % portal), ((70, 4), "<txt></txt>\n"), ((20, 3), "<txt></txt>\n")]
+        for (state, conn), expected in cases:
+            nm = subprocess.Popen([sys.executable, fake, str(state), str(conn)], stdout=subprocess.PIPE, text=True,
+                                  env=dict(os.environ, DBUS_SESSION_BUS_ADDRESS=address))
+            self.assertEqual(nm.stdout.readline().strip(), "ready")
+            try:
+                self.assertEqual(self.run_prog(self.bin, "luxos-netcheck", **env).stdout, expected, (state, conn))
+                self.assertEqual(self.run_prog(self.bin, "luxos-netcheck", "click", **env).returncode, 0)
+            finally:
+                nm.kill()
+                nm.wait()
+        self.assertEqual([os.path.basename(c) for c in self.log_programs()],
+                         ["luxos-network-login", "luxos-network-login", "luxos-cc-toggle", "luxos-cc-toggle"])
+        os.remove(os.path.join(self.runtime, "luxos-portal"))
         # anglicky text a NetworkManager, ktery nebezi
         self.assertEqual(self.run_prog(self.bin, "luxos-netcheck", **env).stdout, "<txt></txt>\n")
         nm = subprocess.Popen([sys.executable, fake, "70", "2"], stdout=subprocess.PIPE, text=True,
