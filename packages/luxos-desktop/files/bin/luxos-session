@@ -31,6 +31,19 @@ fi
 # listy hned po prihlaseni zakryje prechod na plochu (luxos-session-cover --login).
 [[ -e $cfg/search-icon-added ]] || luxos-search --add-to-panel &
 
+# Emoji a symboly i u profilu z drivejsich verzi (jednou): Super+. a Ctrl+Super+Mezernik -> luxos-emoji.
+# Jen volne zkratky - vlastni prirazeni uzivatele (i vypnuta zkratka v Klavesovych zkratkach) zustava.
+if [[ ! -e $cfg/emoji-shortcuts ]] && command -v luxos-emoji >/dev/null; then
+    if xfconf-query -c xfce4-keyboard-shortcuts -l >/dev/null 2>&1; then
+        for k in '<Super>period' '<Primary><Super>space'; do
+            xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$k" >/dev/null 2>&1 ||
+                xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$k" -n -t string -s luxos-emoji 2>/dev/null
+        done
+        : >"$cfg/emoji-shortcuts"
+    fi
+    unset k
+fi
+
 # Terminal LuxOS misto xfce4-terminal i u profilu z drivejsich verzi (jednou): zkratky Super+T
 # a Ctrl+Alt+T, ikona v Docku, oblibene v nabidce, vlastni volba terminalu pro exo (Otevrit
 # terminal zde). Meni se jen puvodni hodnoty "xfce4-terminal", vlastni volba zustava.

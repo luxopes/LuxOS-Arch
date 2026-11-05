@@ -305,6 +305,7 @@ def catalog():
         Action("monitor", A, _("System monitor (force quit)"), "cmd", ["luxos-monitor", "xfce4-taskmanager"]),
         Action("displays", A, _("Displays"), "cmd", ["luxos-displays menu"]),
         Action("calculator", A, _("Calculator"), "cmd", ["luxos-calculator"]),
+        Action("emoji", A, _("Emoji & Symbols"), "cmd", ["luxos-emoji"]),
         Action("logout", A, _("Log out or shut down"), "cmd", ["xfce4-session-logout"]),
         Action("shot-screen", S, _("Screenshot"), "cmd", ["luxos-screenshot --screen"]),
         Action("shot-region", S, _("Screenshot of region"), "cmd", ["luxos-screenshot --portion"]),

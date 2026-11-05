@@ -115,6 +115,8 @@ as well. They appear under "Other Xfce Shortcuts".
 | Super+T | Terminal | `luxos-terminal` |
 | Ctrl+Alt+T | Terminal | `luxos-terminal` |
 | Super+, (comma) | Settings | `xfce4-settings-manager` |
+| Super+. (period) | Emoji & Symbols | `luxos-emoji` |
+| Ctrl+Super+Space | Emoji & Symbols (macOS habit) | `luxos-emoji` |
 | Super+L | Lock screen | `xflock4` |
 | Ctrl+Super+Q | Lock screen | `xflock4` |
 | Super+Alt+Esc | System Monitor (force quit) | `luxos-monitor` |

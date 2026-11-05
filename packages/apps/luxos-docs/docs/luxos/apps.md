@@ -21,6 +21,7 @@ translations) and the light/dark mode.
 | Wi-Fi QR Code | `luxos-wifi-qr` | share the Wi-Fi as a QR code, join one by scanning ([wifi-qr.md](wifi-qr.md)) |
 | System Monitor | `luxos-monitor` | performance charts, quit frozen apps |
 | Screenshot | `luxos-screenshot` | screenshots and screen recording |
+| Emoji & Symbols | `luxos-emoji` | search and insert emoji, `Super+.` or `Ctrl+Super+Space` ([emoji.md](emoji.md)) |
 | Feedback | `luxos-feedback` | send a bug report or an idea to the author of LuxOS |
 | Control Center | `luxos-control-center` | quick settings ([desktop.md](desktop.md#control-center)) |
 | Search / Launchpad | `luxos-search` / `luxos-launchpad` | find and launch apps ([desktop.md](desktop.md#launchpad-and-search)) |

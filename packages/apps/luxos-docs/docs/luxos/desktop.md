@@ -157,6 +157,13 @@ running.
   question in Agent mode (`luxai --agent "<text>"`, through `luxos-luxai-rofi`).
 - Running the command again (or pressing the shortcut again) closes the window.
 
+## Emoji & Symbols
+
+`Super+.` or `Ctrl+Super+Space` (like `Win+.` on Windows and `Ctrl+Cmd+Space` on macOS) opens a
+small emoji panel with search in the system language and English, categories, skin tones and
+recently used emoji; Enter inserts the emoji into the app you were typing in. Details:
+[emoji.md](emoji.md).
+
 ## Notifications
 
 Notifications come from xfce4-notifyd. They are slightly translucent and follow light or dark mode
@@ -246,7 +253,8 @@ Login screen, login transition, lock screen and screen savers: see [login-lock.m
 
 `luxos-hub` is one light process that replaces several background programs:
 
-- keeps Control Center (SIGUSR1) and Calendar (SIGUSR2) preloaded;
+- keeps Control Center (SIGUSR1) and Calendar (SIGUSR2) preloaded, as well as the screenshot toolbar
+  and the Emoji & Symbols panel (`luxos-screenshot` and `luxos-emoji` pass requests over a socket);
 - locks the Safe on screen lock and before sleep;
 - marks new networks as metered while Data Saver is on;
 - notifies when earlyoom ended a program because memory ran low;
@@ -275,5 +283,5 @@ method, touchpad off while typing, and adaptive acceleration.
 ## Keyboard shortcuts
 
 `Super` plays the role of the macOS Cmd key: `Super+Space` Search, `Super` alone or `Super+A` Launchpad, `Super+Q`
-close, `Super+Shift+4` screenshot of an area. The full list and how to change it:
+close, `Super+Shift+4` screenshot of an area, `Super+.` or `Ctrl+Super+Space` emoji. The full list and how to change it:
 [keyboard.md](keyboard.md).
