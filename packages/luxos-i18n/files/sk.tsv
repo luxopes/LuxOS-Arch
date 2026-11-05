@@ -4507,3 +4507,8 @@ Default skin tone	Predvolený odtieň pokožky
 Skin tone	Odtieň pokožky
 No emoji found	Nenašli sa žiadne emoji
 The emoji was copied to the clipboard. Paste it with Ctrl+V.	Emoji je v schránke. Vložte ho pomocou Ctrl+V.
+Switch windows of the current app	Prepínať okná aktuálnej aplikácie
+Switch windows of the current app backwards	Prepínať okná aktuálnej aplikácie dozadu
+Next window of the same app (without previews)	Ďalšie okno rovnakej aplikácie (bez náhľadov)
+Group windows by app in Alt+Tab	Zoskupiť okná podľa aplikácií v Alt+Tab
+Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Každá aplikácia sa ukáže raz. So stlačeným Alt ukáže šípka dole alebo ` okná vybranej aplikácie.

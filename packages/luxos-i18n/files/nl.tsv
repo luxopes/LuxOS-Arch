@@ -4507,3 +4507,8 @@ Default skin tone	Standaardhuidskleur
 Skin tone	Huidskleur
 No emoji found	Geen emoji gevonden
 The emoji was copied to the clipboard. Paste it with Ctrl+V.	De emoji staat op het klembord. Plak hem met Ctrl+V.
+Switch windows of the current app	Wisselen tussen vensters van de huidige app
+Switch windows of the current app backwards	Vensters van de huidige app achteruit wisselen
+Next window of the same app (without previews)	Volgend venster van dezelfde app (zonder voorbeelden)
+Group windows by app in Alt+Tab	Vensters per app groeperen in Alt+Tab
+Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Elke app wordt één keer getoond. Houd Alt ingedrukt en druk op Omlaag of ` om de vensters van de gekozen app te zien.

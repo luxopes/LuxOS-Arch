@@ -4507,3 +4507,8 @@ Default skin tone	Teint par défaut
 Skin tone	Teint de peau
 No emoji found	Aucun emoji trouvé
 The emoji was copied to the clipboard. Paste it with Ctrl+V.	L’emoji a été copié dans le presse-papiers. Collez-le avec Ctrl+V.
+Switch windows of the current app	Changer de fenêtre dans l’app actuelle
+Switch windows of the current app backwards	Changer de fenêtre dans l’app actuelle en sens inverse
+Next window of the same app (without previews)	Fenêtre suivante de la même app (sans aperçus)
+Group windows by app in Alt+Tab	Regrouper les fenêtres par app dans Alt+Tab
+Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Chaque app n’apparaît qu’une fois. En maintenant Alt, appuyez sur Bas ou ` pour voir les fenêtres de l’app sélectionnée.

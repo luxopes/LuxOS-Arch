@@ -237,7 +237,8 @@ class Hub(unittest.TestCase):
                "LUXOS_CARE_DELAY": "1", "LUXOS_DRIVERS_DELAY": "1", "LUXOS_DRM_DIR": os.path.join(self.home, "drm"),
                "LUXOS_MOUNTINFO": os.path.join(self.home, "mountinfo"), "GTK_THEME": "Adwaita:dark",
                "LUXOS_HUB_NO_AUTOHIDE": "1", "LUXOS_GPU": "/nonexistent", "LUXOS_GPU_DELAY": "1",
-               "LUXOS_AUDIO_HELPER": os.path.join(self.home, "no-audio-helper")}   # zvuk jen v test_audio_*      # pod Xvfb bez spravce oken by se okno hned zavrelo ztratou fokusu
+               "LUXOS_AUDIO_HELPER": os.path.join(self.home, "no-audio-helper"),
+               "LUXOS_HUB_NO_WM_REPLACE": "1"}   # skutecny xfwm4 uzivatele se nikdy nevymeni (jen test_wm_replaced_after_update)   # zvuk jen v test_audio_*      # pod Xvfb bez spravce oken by se okno hned zavrelo ztratou fokusu
         if "XAUTHORITY" in os.environ:
             env["XAUTHORITY"] = os.environ["XAUTHORITY"]
         env.update(extra)
@@ -278,6 +279,34 @@ class Hub(unittest.TestCase):
 
     def run_prog(self, name, *args, **extra):
         return subprocess.run([os.path.join(BIN, name), *args], env=self.env(**extra), capture_output=True, text=True, timeout=20)
+
+    # ---- vymena spravce oken po aktualizaci xfwm4 -----------------------------------------------------
+    def test_wm_replaced_after_update(self):
+        # falesny "spravce oken": kopie sleep s vlastnim nazvem procesu, jejiz soubor se pak smaze
+        # (jako po aktualizaci baliku: /proc/PID/exe ukazuje "(deleted)"); xfwm4 v PATH jen zapise volani
+        wm_bin = os.path.join(self.home, "luxtestwm")
+        shutil.copy("/usr/bin/sleep", wm_bin)
+        wm = subprocess.Popen([wm_bin, "120"])
+        try:
+            fake_xfwm4 = os.path.join(self.home, "bin")
+            os.makedirs(fake_xfwm4)
+            with open(os.path.join(fake_xfwm4, "xfwm4"), "w") as f:
+                f.write('#!/bin/sh\nprintf "%s\\n" "xfwm4 $*" >>"$FAKE_LOG"\n')
+            os.chmod(os.path.join(fake_xfwm4, "xfwm4"), 0o755)
+            path = fake_xfwm4 + ":" + self.fake + ":/usr/bin:/bin"
+            self.start_hub(LUXOS_HUB_UPDATE_CHECK="1", LUXOS_HUB_WM_NAME="luxtestwm", LUXOS_HUB_NO_WM_REPLACE="",
+                           PATH=path)
+            time.sleep(3)
+            self.assertNotIn("xfwm4 --replace", self.calls())          # binarka beze zmeny: nic
+            os.unlink(wm_bin)
+            self.assertTrue(self.wait_for(lambda: "xfwm4 --replace" in self.calls(), 8), (self.calls(), self.hub_err()))
+            self.assertIn("replacing the window manager", self.hub_err())
+            time.sleep(3)
+            self.assertEqual(self.calls().count("xfwm4 --replace"), 1)    # jen jednou
+            self.assertIsNone(self.hub.poll())                            # hub bezi dal
+        finally:
+            wm.kill()
+            wm.wait()
 
     # ---- okna, signaly, pid soubory ------------------------------------------------------------------
     def test_windows_on_signals_and_clean_exit(self):
