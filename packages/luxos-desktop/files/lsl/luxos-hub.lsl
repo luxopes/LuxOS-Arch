@@ -8,6 +8,7 @@
 #   Trezor            zamkne pri zamceni obrazovky a pred uspanim (luxos-safe lock --force)
 #   Sporic dat        nove pripojena sit se hned oznaci jako merena
 #   Pamet             upozorneni, kdyz pojistka earlyoom ukonci program (nedostatek pameti)
+#   Fork bomba        upozorneni, kdyz pojistka luxos-forkguard zastavi program s tisici procesy
 #   Internet          "!" v liste a upozorneni, kdyz je sit bez internetu (luxos-netcheck); sit
 #                     s portalem (hotel, letiste): okno pro prihlaseni (luxos-network-login)
 #   Bluetooth         agent pro parovani z telefonu a sluchatek (misto blueman-applet)
@@ -33,6 +34,7 @@ load luxos_glib, glib as glib
 load luxos_gio, gio as gio
 load luxos_gtk, gtk as gtk
 load luxos_i18n as i18n
+load luxos_sys
 load luxos_text as text
 load luxos_mpris as mpris
 load luxos_cc as cc
@@ -634,6 +636,18 @@ function on_low_memory(sender, path, interface, signal, values):
     return 0
 end
 
+# ---- Fork bomba: upozorneni od pojistky luxos-forkguard (systemova sluzba, luxos-desktop) -------------------
+# Signal cz.luxos.ForkGuard.Stopped (jmeno procesu, pocet ukoncenych, UID) - jen pro tohoto uzivatele.
+
+function on_fork_bomb(sender, path, interface, signal, values):
+    if len(values) < 3 or values[2] != luxos_sys.getuid():
+        return 0
+    end
+    body = i18n.TF("“%s” started thousands of processes and was stopped so the computer would not freeze.", [String(values[0])])
+    call glib.spawn(["notify-send", "-a", "LuxOS", "-u", "critical", "-i", "dialog-warning", i18n.T("Runaway program stopped"), body])
+    return 0
+end
+
 # ---- Automaticky svetly/tmavy rezim ----------------------------------------------------------------------------
 
 function appearance_check():
@@ -939,6 +953,7 @@ function main_hub():
         try:
             call watch_connectivity()
             call gio.subscribe_values(hub["system"], "", "net.nuetzlich.SystemNotifications", "Notify", "", on_low_memory)
+            call gio.subscribe_values(hub["system"], "", "cz.luxos.ForkGuard", "Stopped", "/cz/luxos/ForkGuard", on_fork_bomb)
             call agent.watch(hub["system"])
             if hub["session"] != 0:
                 call mpris.init(hub["session"])

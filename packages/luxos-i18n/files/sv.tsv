@@ -4472,6 +4472,10 @@ The printer driver could not be installed. Check the internet connection and try
 LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS hittade ingen drivrutin för den här skrivaren. Välj en under Avancerat…
 A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	Ett program i den här fliken startade för många processer (gräns %u), så nya nekas. Resten av systemet fungerar som vanligt. Stäng fliken för att stoppa alla dess processer.
 Too many processes	För många processer
+Runaway program stopped	Skenande program stoppat
+“%s” started thousands of processes and was stopped so the computer would not freeze.	”%s” startade tusentals processer och stoppades så att datorn inte skulle frysa.
+Older Terminal windows are not protected	Äldre Terminal-fönster är inte skyddade
+Terminal windows opened before the last update still run without the process and memory limits. New windows and tabs are protected. Close the old windows when it suits you.	Terminal-fönster som öppnades före den senaste uppdateringen körs fortfarande utan gränser för processer och minne. Nya fönster och flikar är skyddade. Stäng de gamla fönstren när det passar dig.
 line 5	rad 5
 lines 1 and 10	rad 1 och 10
 lines 1 to 10	rad 1 till 10

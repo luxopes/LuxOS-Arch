@@ -4473,6 +4473,10 @@ The printer driver could not be installed. Check the internet connection and try
 LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS не знайшов драйвер для цього принтера. Виберіть його в меню Додатково…
 A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	Програма в цій вкладці запустила забагато процесів (ліміт %u), тому нові відхиляються. Решта системи працює далі. Закрийте вкладку, щоб зупинити всі її процеси.
 Too many processes	Забагато процесів
+Runaway program stopped	Некерована програма зупинена
+“%s” started thousands of processes and was stopped so the computer would not freeze.	«%s» запустила тисячі процесів і була зупинена, щоб комп’ютер не завис.
+Older Terminal windows are not protected	Старіші вікна Терміналу не захищені
+Terminal windows opened before the last update still run without the process and memory limits. New windows and tabs are protected. Close the old windows when it suits you.	Вікна Терміналу, відкриті до останнього оновлення, досі працюють без обмежень процесів і пам’яті. Нові вікна та вкладки захищені. Закрийте старі вікна, коли вам буде зручно.
 line 5	рядок 5
 lines 1 and 10	рядки 1 і 10
 lines 1 to 10	рядки з 1 до 10

@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=57
+pkgrel=58
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -108,7 +108,10 @@ build() {
     # Kontextove nabidky horni listy bez sedeho nazvu pluginu
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-panel-menus.so "$startdir/files/src/luxos-panel-menus.c" \
         $(pkg-config --cflags --libs gtk+-3.0)
-    strip --strip-all luxos-menubar luxos-session-cover
+    # Pojistka proti fork bombe kdekoli v relaci (systemova sluzba, viz files/src/luxos-forkguard.c);
+    # C: smycka bez alokaci se zamcenou pameti i pri vycerpane RAM (sd-bus z libsystemd jen pro upozorneni)
+    gcc $CFLAGS $LDFLAGS -o luxos-forkguard "$startdir/files/src/luxos-forkguard.c" -lsystemd
+    strip --strip-all luxos-menubar luxos-session-cover luxos-forkguard
     strip --strip-unneeded libluxos-rgba-menus.so libluxos-lock-fix.so libluxos-panel-menus.so
 
     # Casto spoustene programy horni listy v LSL (files/lsl, viz docs/perf/lsl-rewrite-plan.md):
@@ -205,6 +208,11 @@ package() {
     # Rezim Vykon: samostatna grafika AMD na plny vykon (root cast luxos-gpu, polkit bez hesla)
     install -Dm644 "$f/gpu/luxos-gpu-performance.service" "$pkgdir/usr/lib/systemd/system/luxos-gpu-performance.service"
     install -Dm644 "$f/gpu/50-luxos-gpu.rules" "$pkgdir/usr/share/polkit-1/rules.d/50-luxos-gpu.rules"
+    # Pojistka proti fork bombe: zapnuta staticky, po aktualizaci ji spusti luxos-desktop.install
+    install -Dm755 luxos-forkguard "$pkgdir/usr/lib/luxos/luxos-forkguard"
+    install -Dm644 "$f/forkguard/luxos-forkguard.service" "$pkgdir/usr/lib/systemd/system/luxos-forkguard.service"
+    install -dm755 "$pkgdir/usr/lib/systemd/system/multi-user.target.wants"
+    ln -s ../luxos-forkguard.service "$pkgdir/usr/lib/systemd/system/multi-user.target.wants/luxos-forkguard.service"
     # Aplikace z Flathubu hned v Launchpadu a nabidce (lux, Obchod i flatpak install): sledovani exportu
     # Flatpaku -> odkazy v /var/lib/luxos/apps; zapnute staticky, po instalaci spusti hook
     install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f/apps/luxos-flatpak-apps.path" \

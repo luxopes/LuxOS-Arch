@@ -111,35 +111,50 @@ The shell is your login shell (`lsh` by default), started as a non-login interac
 xfce4-terminal. The environment has `TERM=xterm-256color`, `COLORTERM=truecolor`,
 `TERM_PROGRAM=LuxOS-Terminal`, `TERM_PROGRAM_VERSION`.
 
-## Process limit per tab (fork bomb protection)
+## Process and memory limits per tab (fork bomb protection)
 
 Every tab runs its shell in its own systemd scope `luxos-terminal-tab-<PID>.scope` (in `app.slice`
-of your user systemd) with a process limit (`TasksMax`). A program that forks without stopping –
-a fork bomb such as `:(){ :|:& };:`, or a broken script – only hits the limit of **its own tab**:
-new processes in that tab are refused (`fork: Resource temporarily unavailable`), while the top
-bar, Dock, Search, keyboard shortcuts, other tabs and other apps keep working. Before, all of the
-desktop shared one limit for the whole user, so the bomb used it up and nothing could start any
-more (panel items showed "No such file or directory", shortcuts failed).
+of your user systemd) with a process limit (`TasksMax`) and a memory limit. A program that forks
+without stopping – a fork bomb such as `:(){ :|:& };:`, or a broken script – only hits the limit of
+**its own tab**: new processes in that tab are refused (`fork: Resource temporarily unavailable`),
+while the top bar, Dock, Search, keyboard shortcuts, other tabs and other apps keep working. Within
+about a second the system guard **luxos-forkguard** stops the runaway processes (see
+[troubleshooting.md](troubleshooting.md#a-runaway-program-was-stopped-fork-bomb)); the shell you
+typed the command in stays, so the tab is usable again.
 
-- The limit is 5 % of the kernel maximum (`min(pid_max, threads-max)`; threads-max grows with RAM),
-  at least 4096 and at most 16384 – far above normal heavy use (`make -j`, browsers, Steam/Proton,
-  Electron, containers). Check it with `systemctl --user show -p TasksMax luxos-terminal-tab-$$.scope`.
-- When a tab hits the limit, a red line appears in the tab and a notification "Too many processes"
-  says so. **Closing the tab stops all of its processes at once** (`cgroup.kill`). Tabs that never
-  hit the limit close as before: programs started with `nohup` or `disown` keep running.
+- **Process limit:** RAM in MB / 8, at most 5 % of the kernel maximum, at least 1024 and at most
+  16384 (16 GB RAM → about 1900). Measured in a VM, one fork-bomb process costs 0.25 MB (`bash -c`)
+  to 0.83 MB (typed in the interactive shell, which is copied for every process), half of it kernel
+  memory that cannot be swapped – so a bomb in a tab takes at most ~10 % of RAM (~21 % on 4 GB).
+  Normal heavy work stays far below (`make -j`, `cargo`, browsers, Steam/Proton, Electron).
+  Check it with `systemctl --user show -p TasksMax luxos-terminal-tab-$$.scope`.
+- **Memory limit:** `MemoryMax` 75 % of RAM and `MemorySwapMax` 50 % of swap (zram). A program in a
+  tab that eats all memory is stopped inside the tab by the kernel (only the biggest process,
+  `OOMPolicy=continue` – the shell stays) instead of filling RAM and zram of the whole desktop.
+  Large builds (LTO, LLVM, Rust), containers and ML scripts fit into 75 % of RAM.
+- When a tab hits the process limit, a red line appears in the tab and a notification "Too many
+  processes" says so. **Closing the tab stops all of its processes at once** (`cgroup.kill`). Tabs
+  that never hit the limit close as before: programs started with `nohup` or `disown` keep running.
 - The shell waits (a few ms) until it is inside its scope, so even a command started directly with
   `-x` cannot fork past the limit.
-- To make this possible the terminal runs as the user service `luxos-terminal.service`, started via
-  D-Bus (`cz.luxos.Terminal`); `luxos-terminal` itself just hands over the command line. If the user
+- To make this possible the terminal runs as the user service `luxos-terminal2.service`, started via
+  D-Bus (`cz.luxos.Terminal2`); `luxos-terminal` itself just hands over the command line. If the user
   systemd or the service is not available, the terminal runs as before in one process, without
-  scopes. `LUXOS_TERMINAL_NO_SERVICE=1` forces that (debugging).
-- Administrators can change the limit with a drop-in, e.g.
-  `/etc/systemd/user/luxos-terminal-tab-.scope.d/50-tasks.conf` with `[Scope]` `TasksMax=8192`.
-- After `lux update`, a terminal that was already open keeps running the old way until all of its
-  windows are closed; the next terminal starts protected (no relogin or reboot needed).
+  scopes (`LUXOS_TERMINAL_NO_SERVICE=1` forces that, for debugging). That fallback process never takes
+  over the service's name, so the next window is protected again.
+- Administrators can change the limits with a drop-in, e.g.
+  `/etc/systemd/user/luxos-terminal-tab-.scope.d/50-limits.conf` with `[Scope]` `TasksMax=4096`,
+  `MemoryMax=80%`.
 
-Apps started from the Dock, Launchpad or Search still share the desktop session's limit; the
-protection covers everything run in Terminal.
+### After an update
+
+Terminal windows opened before an update keep running in the old Terminal process – they cannot be
+moved. **Every new window and tab is protected right after the update**, without logging out: the new
+Terminal starts its own service under a new D-Bus name even while the old process is still running
+(before 1.3.0-3 the new window was handed to the old, unprotected process – a fork bomb there froze
+a laptop on 5 November 2026). When old windows are still open, a notification "Older Terminal windows
+are not protected" says so once; close them when it suits you. Fork bombs in those old windows (and
+anywhere else on the desktop) are stopped by luxos-forkguard.
 
 ## Default terminal
 

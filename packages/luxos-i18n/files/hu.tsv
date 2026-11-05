@@ -4472,6 +4472,10 @@ The printer driver could not be installed. Check the internet connection and try
 LuxOS did not find a driver for this printer. Choose one in Advanced…	A LuxOS nem talált illesztőprogramot ehhez a nyomtatóhoz. Válasszon egyet a Speciális… menüben.
 A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	A lapon futó program túl sok folyamatot indított (korlát: %u), ezért újakat nem indíthat. A rendszer többi része tovább működik. A lap bezárásával minden folyamata leáll.
 Too many processes	Túl sok folyamat
+Runaway program stopped	Elszabadult program leállítva
+“%s” started thousands of processes and was stopped so the computer would not freeze.	A(z) „%s” több ezer folyamatot indított, ezért leállítottuk, hogy a számítógép ne fagyjon le.
+Older Terminal windows are not protected	A régebbi Terminál-ablakok nincsenek védve
+Terminal windows opened before the last update still run without the process and memory limits. New windows and tabs are protected. Close the old windows when it suits you.	A legutóbbi frissítés előtt megnyitott Terminál-ablakok továbbra is folyamat- és memóriakorlát nélkül futnak. Az új ablakok és lapok védettek. A régi ablakokat zárja be, amikor alkalmas.
 line 5	5. sor
 lines 1 and 10	1. és 10. sor
 lines 1 to 10	1–10. sor

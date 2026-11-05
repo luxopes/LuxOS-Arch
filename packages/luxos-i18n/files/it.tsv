@@ -4472,6 +4472,10 @@ The printer driver could not be installed. Check the internet connection and try
 LuxOS did not find a driver for this printer. Choose one in Advanced…	LuxOS non ha trovato un driver per questa stampante. Scegline uno in Avanzate…
 A program in this tab started too many processes (limit %u), so new ones are refused. The rest of the system keeps working. Close the tab to stop all its processes.	Un programma in questa scheda ha avviato troppi processi (limite %u), quindi i nuovi vengono rifiutati. Il resto del sistema continua a funzionare. Chiudi la scheda per fermare tutti i suoi processi.
 Too many processes	Troppi processi
+Runaway program stopped	Programma fuori controllo arrestato
+“%s” started thousands of processes and was stopped so the computer would not freeze.	«%s» ha avviato migliaia di processi ed è stato arrestato perché il computer non si bloccasse.
+Older Terminal windows are not protected	Le vecchie finestre del Terminale non sono protette
+Terminal windows opened before the last update still run without the process and memory limits. New windows and tabs are protected. Close the old windows when it suits you.	Le finestre del Terminale aperte prima dell’ultimo aggiornamento funzionano ancora senza limiti di processi e di memoria. Le nuove finestre e schede sono protette. Chiudi le vecchie finestre quando ti è comodo.
 line 5	riga 5
 lines 1 and 10	righe 1 e 10
 lines 1 to 10	righe da 1 a 10
