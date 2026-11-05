@@ -1,4 +1,4 @@
 [D-BUS Service]
-Name=cz.luxos.Terminal
+Name=cz.luxos.Terminal2
 Exec=/usr/bin/luxos-terminal --gapplication-service
-SystemdService=luxos-terminal.service
+SystemdService=luxos-terminal2.service

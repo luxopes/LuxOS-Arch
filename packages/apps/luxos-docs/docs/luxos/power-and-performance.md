@@ -191,6 +191,8 @@ Related cgroup limits:
 - `user-.slice`: `MemoryHigh=92%` – user programs are throttled (pushed to zram) instead of freezing
   the desktop.
 - `lightdm.service`: `MemoryLow=200M` – the display server and login stay responsive.
+- Fork bombs: `luxos-forkguard` and `TasksMax` 8 % per user / 5 % per session, see
+  [troubleshooting.md](troubleshooting.md#a-runaway-program-was-stopped-fork-bomb).
 
 ## zram swap
 
