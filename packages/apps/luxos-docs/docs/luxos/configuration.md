@@ -84,7 +84,7 @@ contain defaults for the **Plank Dock** (`net.launchpad.plank.dock.settings`
 | `powersaver` | luxos-powersaver | flag: Battery Saver on |
 | `powersaver-auto` | Battery & Power | flag: automatic Battery Saver at 20 % |
 | `brightness` | Control Center / luxos-displays | software brightness for monitors without backlight |
-| `displays.json`, `displays-mode` | Displays / luxos-displays | resolution, rotation, monitor layouts per set of monitors (`layouts`), multi-monitor mode (Super+P) |
+| `displays.json`, `displays-mode` | Displays / luxos-displays / Control Center | resolution, rotation, monitor layouts (`layouts`) and multi-monitor mode (`modes`) per set of monitors; `displays-mode` = last chosen mode for new sets |
 | `shortcuts.json` | Keyboard Shortcuts | names of custom shortcuts |
 | `screenshot.json` | Screenshot tool | save location, timer, pointer options |
 | `camera.json` | Camera | camera settings |

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- LuxOS: Rozsirit - jedna plocha pres dve obrazovky (vlastni kresba) -->
+  <path fill="#2e3436" fill-rule="evenodd" d="M1 2.5h14a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1zm.4 1.4v4.7h5.9V3.9zm7.3 0v4.7h5.9V3.9z"/>
+  <path fill="#2e3436" d="M2.4 6.25 4.6 4.5v1.15h6.8V4.5l2.2 1.75-2.2 1.75V6.85H4.6V8z"/>
+  <path fill="#2e3436" d="M2 11.5h4V13H2zM10 11.5h4V13h-4z"/>
+</svg>

@@ -4480,3 +4480,8 @@ the last line (-2 the one before it)	останній рядок (-2 перед�
 FILE...	ФАЙЛ...
 invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)	неправильний вибір рядків: %s (приклади: 5, 1,10, 1-10, 5-, -1)
 cannot read %s	не вдається прочитати %s
+Mirror	Дублювати
+Extend	Розширити
+External Only	Лише зовнішній
+Mirroring	Дублювання
+Extended	Розширений екран

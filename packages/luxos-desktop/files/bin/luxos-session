@@ -204,6 +204,12 @@ if [[ $(luxos-appearance mode) == auto ]]; then
     [[ -n $m && $m != "$(luxos-appearance status)" ]] && luxos-appearance auto
 fi
 
+# Pripojeni monitoru nikdy neotevre okno s volbami (dialog Xfce "minimal"): rezim resi luxos-displays
+# a prepina se v Ovladacim centru. Vychozi Notify=0 je v /etc/xdg/luxos; starsi vlastni hodnotu uzivatele vratit.
+_n=$(xfconf-query -c displays -p /Notify 2>/dev/null)
+[[ -n $_n && $_n != 0 ]] && xfconf-query -c displays -p /Notify -s 0 2>/dev/null
+unset _n
+
 # Ulozene rozliseni/otoceni (Monitory) a rezim vice monitoru (Super+P) plati i po prihlaseni.
 # Profil "Default" z xfsettingsd (kanal displays) se pouzije drive, toto ho prepise.
 # Sporic baterie: systemova cast a 60 Hz restart neprezije - obnovit az po rozvrzeni monitoru

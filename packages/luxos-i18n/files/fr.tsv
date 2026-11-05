@@ -4479,3 +4479,8 @@ the last line (-2 the one before it)	la dernière ligne (-2 l’avant-dernière)
 FILE...	FICHIER...
 invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)	sélection de lignes non valide : %s (exemples : 5, 1,10, 1-10, 5-, -1)
 cannot read %s	impossible de lire %s
+Mirror	Dupliquer
+Extend	Étendre
+External Only	Externe seul
+Mirroring	Duplication
+Extended	Étendu

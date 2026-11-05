@@ -4479,3 +4479,8 @@ the last line (-2 the one before it)	de laatste regel (-2 de voorlaatste)
 FILE...	BESTAND...
 invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)	ongeldige regelselectie: %s (voorbeelden: 5, 1,10, 1-10, 5-, -1)
 cannot read %s	kan %s niet lezen
+Mirror	Dupliceren
+Extend	Uitbreiden
+External Only	Alleen extern
+Mirroring	Gedupliceerd
+Extended	Uitgebreid

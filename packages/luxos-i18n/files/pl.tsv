@@ -4480,3 +4480,8 @@ the last line (-2 the one before it)	ostatni wiersz (-2 przedostatni)
 FILE...	PLIK...
 invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)	nieprawidłowy wybór wierszy: %s (przykłady: 5, 1,10, 1-10, 5-, -1)
 cannot read %s	nie można odczytać %s
+Mirror	Powiel
+Extend	Rozszerz
+External Only	Tylko zewnętrzny
+Mirroring	Powielanie
+Extended	Rozszerzony pulpit

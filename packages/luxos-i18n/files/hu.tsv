@@ -4479,3 +4479,8 @@ the last line (-2 the one before it)	az utolsó sor (-2 az utolsó előtti)
 FILE...	FÁJL...
 invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)	érvénytelen sorkijelölés: %s (példák: 5, 1,10, 1-10, 5-, -1)
 cannot read %s	nem olvasható: %s
+Mirror	Tükrözés
+Extend	Kiterjesztés
+External Only	Csak külső
+Mirroring	Tükrözve
+Extended	Kiterjesztve

@@ -4479,3 +4479,8 @@ the last line (-2 the one before it)	sista raden (-2 den näst sista)
 FILE...	FIL...
 invalid line selection: %s (examples: 5, 1,10, 1-10, 5-, -1)	ogiltigt radval: %s (exempel: 5, 1,10, 1-10, 5-, -1)
 cannot read %s	kan inte läsa %s
+Mirror	Spegla
+Extend	Utöka
+External Only	Endast extern
+Mirroring	Speglas
+Extended	Utökad

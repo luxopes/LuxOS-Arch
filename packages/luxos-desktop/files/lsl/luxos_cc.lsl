@@ -1,6 +1,7 @@
 # LuxOS Control Center - rychle nastaveni z horni listy (jako v macOS); prepis luxos-control-center do LSL.
 # Dlazdice: Wi-Fi (+ odkaz na QR kod site), Bluetooth, Nerusit, Tmavy rezim, Sporic dat, Sporic baterie; posuvniky jasu a hlasitosti;
-# stav baterie; prave hrajici hudba (MPRIS). Okno se zavre pri ztrate fokusu nebo klavesou Esc.
+# stav baterie; prave hrajici hudba (MPRIS); Obrazovky (Zrcadlit / Rozsirit / Jen externi) jen pri 2+ pripojenych
+# monitorech - misto okna, ktere by vyskakovalo pri pripojeni. Okno se zavre pri ztrate fokusu nebo klavesou Esc.
 #
 #   call cc.create()      skryte okno se styly podle motivu (pouziva luxos-hub i samostatny program)
 #   call cc.toggle()      ukaze/skryje okno (klik v liste)
@@ -23,6 +24,8 @@ CSS = ("window.cc { background: transparent; }\n"
     + ".tile .title { font-weight: 600; font-size: 12px; }\n"
     + ".tile .sub { font-size: 11px; color: @cc_dim; }\n"
     + ".tile:disabled { opacity: 0.45; }\n"
+    + ".tile.mode { padding: 8px 4px 6px 4px; }\n"
+    + ".tile.mode .title { font-weight: 500; font-size: 11px; }\n"
     + ".section { background-color: @cc_tile; border-radius: 14px; padding: 10px 12px; }\n"
     + ".section .title { font-weight: 600; font-size: 12px; }\n"
     + ".section .sub { font-size: 11px; color: @cc_dim; }\n"
@@ -500,6 +503,7 @@ function create():
     # Klik na ikonu jasu otevre Monitory (rozliseni, velikost textu)
     cc["s_bright"] = slider_new(i18n.T("Display"), "display-brightness-symbolic", set_brightness, open_displays)
     call gtk.box_pack_start(outer, cc["s_bright"]["box"], False, False, 0)
+    call displays_section(outer)
     cc["s_vol"] = slider_new(i18n.T("Sound"), "audio-volume-high-symbolic", set_volume, toggle_mute)
     call gtk.box_pack_start(outer, cc["s_vol"]["box"], False, False, 0)
 
@@ -813,6 +817,7 @@ function refresh_slow():
     call tile_set_state(cc["t_bt"], bt[0], bt[1])
     call glib.spawn_capture(["xfconf-query", "-c", "xfce4-notifyd", "-p", "/do-not-disturb"], on_dnd, 0)
     call glib.spawn_capture(["pactl", "get-sink-volume", "@DEFAULT_SINK@"], on_volume, 0)
+    call glib.spawn_capture(["xrandr", "--current"], on_displays, 0)
     return 0
 end
 
@@ -1128,6 +1133,247 @@ end
 
 function toggle_mute():
     call glib.spawn_watched_data(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"], on_command_done_slow, 0)
+    return 0
+end
+
+# ---- obrazovky: Zrcadlit / Rozsirit / Jen externi -----------------------------------------------------
+# Jen kdyz jsou pripojene aspon dva monitory. Prepina luxos-displays (rezim se ulozi pro tuto sadu monitoru
+# a pouzije se i po opetovnem pripojeni a prihlaseni); stav se cte z "xrandr --current" (bez sondovani).
+
+function is_internal_name(name):
+    return name.startswith("eDP") or name.startswith("LVDS") or name.startswith("DSI")
+end
+
+# "1920x1080+0+0" -> [w, h, x, y], jinak None
+function parse_geometry(word):
+    parts = word.split("+")
+    if len(parts) != 3:
+        return None
+    end
+    size = parts[0].split("x")
+    if len(size) != 2:
+        return None
+    end
+    out = []
+    for value in [size[0], size[1], parts[1], parts[2]]:
+        number = text.to_int(value, None)
+        if number == None:
+            return None
+        end
+        out.append(number)
+    end
+    return out
+end
+
+# Vystup "xrandr --current" -> {"count": pripojenych, "internal": vestaveny pripojen,
+#   "mode": "mirror" | "extend" | "external" | "internal" | "" (neznamy), "size": [w, h] hlavniho/prvniho aktivniho}
+function displays_parse(output):
+    count = 0
+    internal = False
+    active = []
+    first = None
+    for line in output.split("\n"):
+        if line == "" or line.startswith(" ") or line.startswith("\t"):
+            continue
+        end
+        words = line.split(" ")
+        if len(words) < 2 or words[1] != "connected":
+            continue
+        end
+        name = words[0]
+        count += 1
+        if is_internal_name(name):
+            internal = True
+        end
+        index = 2
+        primary = False
+        if len(words) > index and words[index] == "primary":
+            primary = True
+            index += 1
+        end
+        if len(words) > index:
+            geo = parse_geometry(words[index])
+            if geo != None:
+                active.append([name, geo])
+                if primary or first == None:
+                    first = geo
+                end
+            end
+        end
+    end
+    mode = ""
+    if count >= 2 and len(active) >= 2:
+        mode = "mirror"
+        origin = active[0][1]
+        for item in active:
+            geo = item[1]
+            if geo[2] != origin[2] or geo[3] != origin[3]:
+                mode = "extend"
+            end
+        end
+    elif count >= 2 and len(active) == 1:
+        if is_internal_name(active[0][0]):
+            mode = "internal"
+        elif internal:
+            mode = "external"
+        end
+    end
+    size = None
+    if first != None:
+        size = [first[0], first[1]]
+    end
+    return {"count": count, "internal": internal, "mode": mode, "size": size}
+end
+
+# Tlacitko rezimu: ikona v kolecku nad nazvem (jako dlazdice, zapnuty rezim modre)
+function mode_button_new(icon, title, mode):
+    button = gtk.button_new_empty()
+    call gtk.widget_set_can_focus(button, False)
+    call gtk.widget_add_class(button, "tile")
+    call gtk.widget_add_class(button, "mode")
+    call gtk.widget_set_tooltip(button, title)
+    column = gtk.box_new(gtk.VERTICAL, 4)
+    bubble = gtk.box_new(gtk.HORIZONTAL, 0)
+    call gtk.widget_set_halign(bubble, gtk.ALIGN_CENTER)
+    call gtk.widget_add_class(bubble, "bubble")
+    image = gtk.image_new_from_icon_name(icon, gtk.ICON_MENU)
+    call gtk.widget_set_hexpand(image, True)
+    call gtk.widget_set_vexpand(image, True)
+    call gtk.box_pack_start(bubble, image, True, True, 0)
+    call gtk.box_pack_start(column, bubble, False, False, 0)
+    title_label = label(title, "title", 0.5)
+    call gtk.label_set_ellipsize(title_label, gtk.ELLIPSIZE_END)
+    call gtk.label_set_max_width_chars(title_label, 10)
+    call gtk.box_pack_start(column, title_label, False, False, 0)
+    call gtk.container_add(button, column)
+    call gtk.connect_data(button, "clicked", 0, on_display_mode_clicked, mode)
+    return button
+end
+
+function displays_section(outer):
+    box = gtk.box_new(gtk.VERTICAL, 8)
+    call gtk.widget_add_class(box, "section")
+    head = gtk.box_new(gtk.HORIZONTAL, 8)
+    call gtk.box_pack_start(head, label(i18n.T("Screens"), "title", 0), False, False, 0)
+    cc["disp_sub"] = label("", "sub", 1)
+    call gtk.label_set_ellipsize(cc["disp_sub"], gtk.ELLIPSIZE_END)
+    call gtk.box_pack_end(head, cc["disp_sub"], True, True, 0)
+    call gtk.box_pack_start(box, head, False, False, 0)
+    row = gtk.box_new(gtk.HORIZONTAL, 8)
+    call gtk.box_set_homogeneous(row, True)
+    cc["d_mirror"] = mode_button_new("luxos-display-mirror-symbolic", i18n.T("Mirror"), "mirror")
+    cc["d_extend"] = mode_button_new("luxos-display-extend-symbolic", i18n.T("Extend"), "extend")
+    cc["d_external"] = mode_button_new("luxos-display-external-symbolic", i18n.T("External Only"), "external")
+    for button in [cc["d_mirror"], cc["d_extend"], cc["d_external"]]:
+        call gtk.box_pack_start(row, button, True, True, 0)
+    end
+    call gtk.box_pack_start(box, row, False, False, 0)
+    cc["disp_box"] = box
+    cc["disp_state"] = {"count": 0, "internal": False, "mode": "", "size": None}
+    cc["disp_busy"] = False
+    cc["disp_next"] = ""
+    cc["disp_logged"] = ""
+    # skryte, dokud xrandr neukaze druhy monitor (show_all okna ho nezobrazi)
+    call gtk.widget_set_no_show_all(box, True)
+    call gtk.box_pack_start(outer, box, False, False, 0)
+    return 0
+end
+
+function on_displays(unused, output, status):
+    # behem prepinani by mezistav (jeden vystup vypnuty) prepsal prave zvoleny rezim
+    if status != 0 or cc["disp_busy"]:
+        return 0
+    end
+    call displays_apply(displays_parse(output))
+    return 0
+end
+
+function displays_apply(state):
+    cc["disp_state"] = state
+    box = cc["disp_box"]
+    show = state["count"] >= 2
+    if not show:
+        call gtk.widget_set_no_show_all(box, True)
+        call gtk.widget_hide(box)
+    else:
+        # Jen externi: jen u notebooku (s vestavenym displejem)
+        call gtk.widget_set_no_show_all(cc["d_external"], not state["internal"])
+        call gtk.widget_set_no_show_all(box, False)
+        call gtk.widget_show_all(box)
+        if not state["internal"]:
+            call gtk.widget_hide(cc["d_external"])
+        end
+    end
+    mode = state["mode"]
+    call gtk.widget_set_class(cc["d_mirror"], "on", mode == "mirror")
+    call gtk.widget_set_class(cc["d_extend"], "on", mode == "extend")
+    call gtk.widget_set_class(cc["d_external"], "on", mode == "external")
+    call gtk.label_set_text(cc["disp_sub"], displays_sub(state))
+    key = ""
+    if show:
+        key = mode + ":" + String(state["count"])
+    end
+    if key != cc["disp_logged"]:
+        cc["disp_logged"] = key
+        call log_test("displays:" + key)
+    end
+    return 0
+end
+
+function displays_sub(state):
+    mode = state["mode"]
+    if mode == "mirror":
+        sub = i18n.T("Mirroring")
+        if state["size"] != None:
+            sub = sub + " · " + String(state["size"][0]) + " × " + String(state["size"][1])
+        end
+        return sub
+    elif mode == "extend":
+        return i18n.T("Extended")
+    elif mode == "external":
+        return i18n.T("Only external screen")
+    elif mode == "internal":
+        return i18n.T("Only this computer's screen")
+    end
+    return ""
+end
+
+# Prepnuti hned (tlacitko se rozsviti ihned), luxos-displays dobehne na pozadi a stav se pak precte znovu
+# Klik behem prepinani se nezahodi: posledni volba se pouzije hned po dobehnuti predchozi
+function on_display_mode_clicked(mode, button):
+    state = cc["disp_state"]
+    if state["mode"] == mode:
+        return 0
+    end
+    call log_test("display-set:" + mode)
+    call displays_apply({"count": state["count"], "internal": state["internal"], "mode": mode, "size": None})
+    if cc["disp_busy"]:
+        cc["disp_next"] = mode
+        return 0
+    end
+    call display_mode_run(mode)
+    return 0
+end
+
+function display_mode_run(mode):
+    cc["disp_next"] = ""
+    pid = glib.spawn_watched_data(["luxos-displays", mode], on_display_mode_done, 0)
+    cc["disp_busy"] = pid != 0
+    return 0
+end
+
+function on_display_mode_done(unused, pid, status):
+    cc["disp_busy"] = False
+    if cc["disp_next"] != "":
+        call display_mode_run(cc["disp_next"])
+        return 0
+    end
+    call log_test("display-done")
+    call glib.spawn_capture(["xrandr", "--current"], on_displays, 0)
+    # plocha se zmenila (napr. vypnuty vestaveny displej): okno znovu na monitor s kurzorem
+    if gtk.widget_get_visible(cc["win"]):
+        call place()
+    end
     return 0
 end
 
