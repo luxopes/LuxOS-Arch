@@ -878,6 +878,42 @@ class LuxBackend(unittest.TestCase):
         self.assertEqual((care.DB_LOCK, care.ENGINE_LOG, care.PKG_CACHE),
                          ("/var/lib/lux/db.lck", "/var/log/lux.log", "/var/cache/lux/pkg"))
 
+    def test_check_updates_db_root_not_in_tmp(self):
+        """Root nepouziva predvidatelnou /tmp/lux-checkupdates-0 (kdokoli ji muze predem zalozit)."""
+        with mock.patch.object(care.os, "geteuid", return_value=0):
+            db = care.check_updates_db()
+        self.assertEqual(db, care.P("/var/lib/luxos-care/checkupdates"))
+        self.assertFalse(db.startswith("/tmp"))
+        with mock.patch.object(care.os, "geteuid", return_value=1000), \
+                mock.patch.object(care.os, "getuid", return_value=1000), \
+                mock.patch.dict(care.os.environ, {"TMPDIR": ""}):
+            self.assertEqual(care.check_updates_db(), "/tmp/lux-checkupdates-1000")
+
+    def test_check_updates_engine_refuses_foreign_or_linked_dir(self):
+        """Zaloha bez pyalpm nezapisuje do cizi slozky, do odkazu ani do slozky zapisovatelne pro jine."""
+        with tempfile.TemporaryDirectory() as d:
+            target = os.path.join(d, "victim")
+            os.mkdir(target)
+            link = os.path.join(d, "db-link")
+            os.symlink(target, link)
+            loose = os.path.join(d, "loose")
+            os.mkdir(loose)
+            os.chmod(loose, 0o777)
+            for db in (link, loose):
+                with mock.patch.object(care, "check_updates_db", return_value=db), \
+                        mock.patch.object(care, "run") as r:
+                    rc, msg = care.check_updates_engine()
+                self.assertEqual(rc, 1, db)
+                self.assertIn("does not belong", msg)
+                r.assert_not_called()
+            self.assertEqual(os.listdir(target), [])
+            with mock.patch.object(care, "check_updates_db", return_value=loose), \
+                    mock.patch.object(care.os, "geteuid", return_value=os.geteuid() + 1), \
+                    mock.patch.object(care, "run") as r:
+                os.chmod(loose, 0o700)
+                self.assertEqual(care.check_updates_engine()[0], 1)
+                r.assert_not_called()
+
     def test_check_updates_uses_lux(self):
         out = "glibc 2.42-1 -> 2.42-2\nfirefox 131.0-1 -> 132.0-1\n"
         with mock.patch.object(care.os, "access", return_value=True), \

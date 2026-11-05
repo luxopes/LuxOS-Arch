@@ -23,6 +23,7 @@ import secrets
 import shutil
 import signal
 import socket
+import stat
 import subprocess
 import sys
 import tempfile
@@ -610,15 +611,31 @@ def remove_stale_lock():
 
 
 def check_updates_db():
-    """Docasna databaze lux_alpm.py check-updates (stejna cesta jako check_updates_db v lux_alpm)."""
+    """Docasna databaze lux_alpm.py check-updates. Root (sluzby Pece) pouziva vlastni slozku
+    v /var/lib/luxos-care: /tmp/lux-checkupdates-0 muze predem zalozit kdokoli (zablokoval by
+    kontrolu aktualizaci a zaloha bez pyalpm by do ni zapisovala jako root). Bezny uzivatel
+    stejnou cestu jako check_updates_db v lux_alpm."""
+    if os.geteuid() == 0:
+        return P(STATE_DIR + "/checkupdates")
     return os.path.join(os.environ.get("TMPDIR") or "/tmp", f"lux-checkupdates-{os.getuid()}")
+
+
+def own_private_dir(path):
+    """Slozka patri tomuto uzivateli, neni to odkaz a nikdo jiny do ni nesmi zapisovat."""
+    st = os.lstat(path)
+    return stat.S_ISDIR(st.st_mode) and st.st_uid == os.geteuid() and not st.st_mode & 0o022
 
 
 def check_updates_engine():
     """Zaloha bez pyalpm: totez nastrojem jadra (docasna kopie databaze, systemova se nemeni)."""
     db = check_updates_db()
     try:
+        os.makedirs(db, mode=0o700, exist_ok=True)
+        if not own_private_dir(db):
+            return 1, f"{db} does not belong to this user"
         os.makedirs(os.path.join(db, "sync"), mode=0o700, exist_ok=True)
+        if not own_private_dir(os.path.join(db, "sync")):
+            return 1, f"{db}/sync does not belong to this user"
         if not os.path.lexists(os.path.join(db, "local")):
             os.symlink("/var/lib/lux/local", os.path.join(db, "local"))
         for f in os.listdir("/var/lib/lux/sync"):
