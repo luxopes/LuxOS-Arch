@@ -31,7 +31,7 @@
         {
           "path": "luxos/for-ai-assistants.md",
           "title": "Guide for AI assistants on LuxOS",
-          "summary": "How an AI assistant should do admin tasks safely on LuxOS: use lux not pacman, pkexec/polkit instead of passwords, which settings app or command to use for each task.",
+          "summary": "How an AI assistant should do admin tasks safely on LuxOS: use lux not pacman, pkexec/polkit instead of passwords, LuxAI administrator mode (password once, only for LuxAI), which settings app or command to use for each task.",
           "keywords": [
             "AI assistant",
             "agent",
@@ -1129,6 +1129,29 @@
             "delete account",
             "answer style",
             "settings"
+          ]
+        },
+        {
+          "path": "luxos/luxai-admin-mode.md",
+          "title": "LuxAI administrator mode",
+          "summary": "How LuxAI runs agent commands as root: administrator mode since 2.0.2 (password once, remembered ~5 minutes only for the LuxAI process, requests from other programs always confirmed), the removed passwordless rule of 2.0.1, residual risks.",
+          "keywords": [
+            "LuxAI",
+            "administrator mode",
+            "admin mode",
+            "root",
+            "pkexec",
+            "polkit",
+            "auth_admin_keep",
+            "luxai-root",
+            "luxai-root-auto",
+            "luxai-root-setup",
+            "org.luxai.root-auto",
+            "49-luxai-root",
+            "password",
+            "agent permissions",
+            "security",
+            "privilege escalation"
           ]
         },
         {

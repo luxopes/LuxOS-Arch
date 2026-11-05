@@ -1,5 +1,31 @@
 # LuxAI
+
+# Bezpecnost (2.0.2): pravidla 49-luxai-root-<uzivatel>.rules ze starsiho rezimu spravce vracela
+# polkit.Result.YES pro org.luxai.root-auto - kterykoli program uzivatele (i skodlivy) tak ziskal
+# root bez hesla (pkexec /usr/lib/luxai/luxai-root-auto -- PRIKAZ). Rezim spravce od 2.0.2 zadne
+# pravidlo nepotrebuje (auth_admin_keep v politice: heslo jednou, ~5 minut jen pro proces LuxAI),
+# proto se pravidla pri instalaci i aktualizaci hned smazou; polkitd je znovu nacte sam (inotify).
+# Volba uzivatele (root_mode v ~/.config/luxai) zustava a znamena novy, bezpecny rezim.
+_luxai_remove_root_rules() {
+    local f removed=0
+    for f in /etc/polkit-1/rules.d/49-luxai-root-*.rules; do
+        [ -e "$f" ] || [ -L "$f" ] || continue
+        rm -f -- "$f" && removed=1
+    done
+    if [ "$removed" = 1 ]; then
+        echo ">> LuxAI: removed the old administrator mode rule (administrator commands without a password)."
+        echo "   Administrator mode now asks for the password once and remembers it for about 5 minutes,"
+        echo "   only for LuxAI itself. Restart LuxAI if it is running."
+    fi
+    return 0
+}
+
+post_install() {
+    _luxai_remove_root_rules
+}
+
 post_upgrade() {
+    _luxai_remove_root_rules
     # 1.x (Python) -> 2.x (nativni LSL): nastaveni, ucet a historie zustavaji, jen informace
     if [ "$(vercmp "$2" 2.0.0)" -lt 0 ]; then
         echo ">> LuxAI 2.0 is a native program (rewritten in LSL): faster start, less memory."

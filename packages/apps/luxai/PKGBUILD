@@ -6,7 +6,7 @@
 # verejny repozitar); preklada se tady prekladacem LSL jako programy v luxos-desktop.
 
 pkgname=luxai
-pkgver=2.0.1
+pkgver=2.0.2
 pkgrel=1
 pkgdesc="LuxAI - AI assistant that can work with your computer (chat and agent mode)"
 arch=(x86_64)
@@ -27,7 +27,7 @@ optdepends=('libnotify: desktop notifications from the agent'
 options=(!strip !debug)
 install=luxai.install
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('ced229d1cee574ed4629c88393403a54741553b106b4515eee2ef0b230834047')
+sha256sums=('85dbf72379e6b4aa2f5dd3f5863db719a185f08e4776be1b12f44260c86eb826')
 
 build() {
     cd "$pkgname-$pkgver"
@@ -51,9 +51,11 @@ check() {
 package() {
     cd "$pkgname-$pkgver"
     install -Dm755 build/luxai "$pkgdir/usr/bin/luxai"
-    # Rezim spravce: pomocnik spousteny pres pkexec (luxai-root vzdy heslo, luxai-root-auto bez hesla jen
-    # s pravidlem 49-luxai-root-<uzivatel>.rules, ktere zapina/vypina luxai-root-setup). Kopie, ne odkaz:
-    # polkit rozlisuje akce podle cesty programu. Cesty jsou stejne jako v Python verzi.
+    # Rezim spravce: pomocnik spousteny pres pkexec (luxai-root vzdy heslo, luxai-root-auto heslo jednou,
+    # polkit auth_admin_keep ~5 minut jen pro proces LuxAI; pomocnik pusti jen rodice /usr/bin/luxai).
+    # luxai-root-setup od 2.0.2 jen maze stara pravidla 49-luxai-root-<uzivatel>.rules (root bez hesla
+    # pro kazdy program uzivatele; smaze je i luxai.install). Kopie, ne odkaz: polkit rozlisuje akce
+    # podle cesty programu. Cesty jsou stejne jako v Python verzi.
     install -Dm755 build/luxai-root "$pkgdir/usr/lib/luxai/luxai-root"
     install -Dm755 build/luxai-root-auto "$pkgdir/usr/lib/luxai/luxai-root-auto"
     install -Dm755 build/luxai-root-setup "$pkgdir/usr/lib/luxai/luxai-root-setup"
