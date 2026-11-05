@@ -3879,6 +3879,7 @@ The clock of this computer differs from the domain by more than 5 minutes. Set t
 The computer name for the domain may have at most 15 letters, digits and hyphens.	Nazwa komputera dla domeny może mieć najwyżej 15 liter, cyfr i łączników.
 The domain was not found in DNS. Check that the computer uses the DNS server of the organization (usually from DHCP) or enter the address of a domain controller.	Nie znaleziono domeny w DNS. Sprawdź, czy komputer używa serwera DNS organizacji (zwykle z DHCP), lub podaj adres kontrolera domeny.
 Sign In to Network…	Zaloguj się do sieci…
+Sign In to “%s”…	Zaloguj się do sieci „%s”…
 Allow LuxAI requests from the phone	Zezwalaj na zapytania LuxAI z telefonu
 Allow saving notes to Calendar	Zezwalaj na zapisywanie notatek w Kalendarzu
 Allow “%s” to connect to LuxOS?	Zezwolić urządzeniu „%s” na połączenie z LuxOS?

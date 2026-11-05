@@ -212,6 +212,9 @@ Default / Restore All Defaults…. See [keyboard.md](keyboard.md).
 
 - "!" in the top bar: connected but no internet, or a captive portal; click it to open the sign-in
   page. Check with `nmcli -t -f CONNECTIVITY,STATE general`.
+- Closed the hotel/train sign-in window before signing in: click the "!" icon, Control Center ›
+  Sign In to "<network>"…, the notification's Sign In button, or run `luxos-network-login`.
+  See [apps.md](apps.md#captive-portal-sign-in-hotel-train-airport-wi-fi).
 - Wi-Fi on/off: Control Center › Wi-Fi (`nmcli radio wifi on`).
 - Broadcom Wi-Fi without driver: Drivers (`broadcom-wl-dkms`), restart.
 

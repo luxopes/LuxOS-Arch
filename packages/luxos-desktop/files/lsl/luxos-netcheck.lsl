@@ -3,6 +3,10 @@
 #   luxos-netcheck click    klik na ikonu: prihlasovaci stranka site, nebo Ovladaci centrum
 # Obnovu pluginu pri zmene site posila luxos-hub (bez pravidelneho dotazovani).
 # Stav bere primo z NetworkManageru pres D-Bus (nmcli stal ~20 ms na kazde spusteni).
+# Sit s portalem: NetworkManager hlasi "portal", nebo jen "omezene" a portal nasel luxos-hub
+# (luxos-portal-check pod Tailscale/VPN DNS) - pak je soubor $XDG_RUNTIME_DIR/luxos-portal.
+# Dokud neni internet, klik vzdy otevre okno prihlaseni (i kdyz ho uzivatel predtim zavrel).
+load env
 load gio
 load luxos_sys
 load luxos_i18n as i18n
@@ -19,6 +23,14 @@ function nm_uint(property):
     return Int(text.split(" ")[-1])
 end
 
+function portal_file():
+    runtime = env.get("XDG_RUNTIME_DIR", "")
+    if runtime == "":
+        runtime = "/tmp"
+    end
+    return runtime + "/luxos-portal"
+end
+
 # full | limited | portal | none | unknown | offline (NetworkManager nebezi nebo neni pripojeno)
 function state():
     result = "offline"
@@ -28,6 +40,9 @@ function state():
         end
     else:
         result = "offline"
+    end
+    if (result == "limited" or result == "none") and exists(portal_file()):
+        result = "portal"
     end
     return result
 end
@@ -51,8 +66,8 @@ if mode == "panel":
     end
 elif mode == "click":
     if state() == "portal":
-        # Prihlasovaci stranka verejne Wi-Fi se ukaze misto teto adresy
-        call luxos_sys.exec(["xdg-open", "http://ping.archlinux.org/"])
+        # Jednorazove okno prihlaseni (bezi jen jednou; uz otevrene se jen zvedne)
+        call luxos_sys.exec(["luxos-network-login"])
         call exit(127)
     end
     call luxos_sys.exec(["luxos-cc-toggle"])
