@@ -1,0 +1,29 @@
+[Unit]
+# Jen vlastni tabulka "inet luxos" (Tailscale, Podman, libvirt, Docker a ufw maji sve tabulky a zustavaji).
+# Pri chybe nahrani zustane sit otevrena (fail-open) - stav a chybu ukaze `luxos-firewall status`.
+Description=LuxOS firewall (nftables table inet luxos)
+Documentation=file:///usr/share/luxos/docs/luxos/firewall.md
+DefaultDependencies=no
+After=local-fs.target
+Before=network-pre.target shutdown.target
+Wants=network-pre.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/luxos-firewall load
+# Zmena nastaveni/aplikaci: nova pravidla jednou transakci, bez okamziku bez firewallu
+ExecReload=/usr/bin/luxos-firewall load
+ExecStop=/usr/bin/luxos-firewall unload
+SyslogIdentifier=luxos-firewall
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_READ_SEARCH
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

@@ -4512,3 +4512,72 @@ Switch windows of the current app backwards	Vensters van de huidige app achterui
 Next window of the same app (without previews)	Volgend venster van dezelfde app (zonder voorbeelden)
 Group windows by app in Alt+Tab	Vensters per app groeperen in Alt+Tab
 Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Elke app wordt één keer getoond. Houd Alt ingedrukt en druk op Omlaag of ` om de vensters van de gekozen app te zien.
+# Firewall LuxOS (luxos-firewall, Nastaveni > Firewall, upozorneni v luxos-hub)
+A container (Podman)	Een container (Podman)
+add one with: luxos-firewall allow PORT	voeg er een toe met: luxos-firewall allow PORT
+administrator rights are needed (sudo luxos-firewall ...)	beheerdersrechten zijn nodig (sudo luxos-firewall ...)
+Allow a port	Sta een poort toe
+Allowed automatically	Automatisch toegestaan
+Allowed automatically:	Automatisch toegestaan:
+Allowed incoming connections to %s (%s).	Inkomende verbindingen naar %s (%s) toegestaan.
+allow: --from lan (default) = only devices on this network, --from any = everywhere	allow: --from lan (standaard) = alleen apparaten in dit netwerk, --from any = overal
+Allow will let only devices on this network connect (not the internet).	Met Sta toe kunnen alleen apparaten in dit netwerk verbinden (niet vanaf internet).
+A program	Een programma
+Blocks incoming connections from the network. Your apps can still use the internet, and apps listed below keep working.	Blokkeert inkomende verbindingen vanaf het netwerk. Je apps kunnen het internet nog steeds gebruiken en de apps hieronder blijven werken.
+Connection from %s	Verbinding van %s
+Devices on this network can connect to port %s. You can change it in Firewall settings.	Apparaten in dit netwerk kunnen verbinden met poort %s. Je kunt dit wijzigen in de Firewall-instellingen.
+everywhere	overal
+Everywhere	Overal
+Firewall: off - the computer accepts connections from the network.	Firewall: uit - de computer accepteert verbindingen vanaf het netwerk.
+Firewall: on, but the rules are not loaded (the network is open).	Firewall: aan, maar de regels zijn niet geladen (het netwerk is open).
+Firewall: on - incoming connections from the network are blocked, except:	Firewall: aan - inkomende verbindingen vanaf het netwerk worden geblokkeerd, behalve:
+Firewall Settings	Firewall-instellingen
+from	van
+Keep Blocked	Blijf blokkeren
+LuxDrop and exceptions for this network also accept connections from your Tailscale devices.	LuxDrop en uitzonderingen voor dit netwerk accepteren ook verbindingen van je Tailscale-apparaten.
+LuxOS firewall	LuxOS-firewall
+Nothing	Niets
+Off - the computer accepts connections from the network.	Uit - de computer accepteert verbindingen vanaf het netwerk.
+On, but the rules are not loaded - the network is open. Try turning the firewall off and on.	Aan, maar de regels zijn niet geladen - het netwerk is open. Probeer de firewall uit en weer aan te zetten.
+On - the computer is protected.	Aan - de computer is beschermd.
+Open Firewall settings and try it there.	Open de Firewall-instellingen en probeer het daar.
+pkexec could not be started.	pkexec kon niet worden gestart.
+Port, e.g. 8080	Poort, bijv. 8080
+Port %s is blocked again.	Poort %s is weer geblokkeerd.
+Printer sharing	Printerdeling
+Recently blocked	Onlangs geblokkeerd
+Recently blocked (a program on this computer was listening):	Onlangs geblokkeerd (een programma op deze computer luisterde):
+%s can now accept connections	%s kan nu verbindingen accepteren
+You can also change it in Settings > Firewall.	Je kunt dit ook wijzigen in Instellingen > Firewall.
+%s is damaged; using the default settings	%s is beschadigd; de standaardinstellingen worden gebruikt
+"%s" is not a valid port (e.g. 8080, 8080/tcp, 8000-8010/udp)	“%s” is geen geldige poort (bijv. 8080, 8080/tcp, 8000-8010/udp)
+Something stopped working on the network? Allow it here, or run "luxos-firewall allow PORT" in Terminal.	Werkt er iets niet meer in het netwerk? Sta het hier toe, of voer “luxos-firewall allow PORT” uit in Terminal.
+SSH (remote login)	SSH (inloggen op afstand)
+%s wants to accept connections from the network	%s wil verbindingen vanaf het netwerk accepteren
+Tailscale devices are no longer treated as this network.	Tailscale-apparaten worden niet langer als dit netwerk behandeld.
+Tailscale devices are treated as this network.	Tailscale-apparaten worden als dit netwerk behandeld.
+TCP and UDP	TCP en UDP
+The change could not be made.	De wijziging kon niet worden doorgevoerd.
+The firewall blocked a connection to port %s from a Tailscale device (%s).	De firewall heeft een verbinding met poort %s van een Tailscale-apparaat (%s) geblokkeerd.
+The firewall blocked a connection to port %s from %s.	De firewall heeft een verbinding met poort %s van %s geblokkeerd.
+The firewall exception could not be added	De firewall-uitzondering kon niet worden toegevoegd
+The firewall is off; the change applies when you turn it on.	De firewall staat uit; de wijziging geldt zodra je hem aanzet.
+The firewall is off. Turn it on again with: luxos-firewall on	De firewall staat uit. Zet hem weer aan met: luxos-firewall on
+The firewall is on.	De firewall staat aan.
+the firewall rules could not be loaded:	de firewallregels konden niet worden geladen:
+The LuxOS firewall is not installed (lux install luxos-firewall).	De LuxOS-firewall is niet geïnstalleerd (lux install luxos-firewall).
+There is no exception for %s.	Er is geen uitzondering voor %s.
+this network only	alleen dit netwerk
+This network only	Alleen dit netwerk
+"This network only" means devices on your Wi-Fi or cable network, not the internet.	“Alleen dit netwerk” betekent apparaten in je wifi- of kabelnetwerk, niet het internet.
+To allow your Tailscale devices, turn on "Treat Tailscale devices as this network" in Firewall settings.	Om je Tailscale-apparaten toe te staan, zet je “Tailscale-apparaten als dit netwerk behandelen” aan in de Firewall-instellingen.
+Treat Tailscale devices as this network	Tailscale-apparaten als dit netwerk behandelen
+Try: sudo systemctl restart luxos-firewall	Probeer: sudo systemctl restart luxos-firewall
+Your exceptions	Jouw uitzonderingen
+Your exceptions:	Jouw uitzonderingen:
+Firewall: allow = incoming ports open from everywhere, allow_lan = only from this network, e.g. ["22/tcp"]	Firewall: allow = inkomende poorten open vanaf overal, allow_lan = alleen vanaf dit netwerk, bijv. ["22/tcp"]
+The LuxOS firewall is not installed; add "luxos-firewall" to packages.	De LuxOS-firewall is niet geïnstalleerd; voeg "luxos-firewall" toe aan packages.
+allow incoming %s from everywhere	inkomend %s van overal toestaan
+allow incoming %s from this network	inkomend %s van dit netwerk toestaan
+stop allowing incoming %s from everywhere	inkomend %s van overal niet meer toestaan
+stop allowing incoming %s from this network	inkomend %s van dit netwerk niet meer toestaan

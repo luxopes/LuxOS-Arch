@@ -136,8 +136,9 @@ can be as short as `config = {"packages": ["htop"]}`.
 | `care.verify` | `True`/`False`: weekly verification of system files (default `True`) | `VERIFY` in `care.conf` |
 | `guard.enable` | Lux Guard on/off | `luxos-guard.service` |
 | `guard.home_snapshots` | hourly snapshots of `/home` | `luxos-guard-snapshot.timer` |
-| `firewall.enable` | firewall on/off (ufw; added to the packages automatically when on) | `ufw enable`, `ufw.service` |
-| `firewall.allow` | incoming ports allowed from anywhere: `"22/tcp"`, `"8000:8010/udp"`, `"53"` | `ufw allow`, `ufw delete allow` |
+| `firewall.enable` | LuxOS firewall on/off (on by default; [firewall.md](firewall.md)) | `luxos-firewall on`/`off` |
+| `firewall.allow` | incoming ports allowed from everywhere: `"22/tcp"`, `"8000:8010/udp"`, `"53"` (TCP and UDP) | `luxos-firewall allow PORT --from any`, `luxos-firewall deny PORT` |
+| `firewall.allow_lan` | incoming ports allowed only from this network (same format) | `luxos-firewall allow PORT --from lan`, `luxos-firewall deny PORT` |
 | `kernel.params` | extra kernel parameters | `options` of the LuxOS systemd-boot entries or `GRUB_CMDLINE_LINUX_DEFAULT` + `grub-mkconfig` |
 | `kernel.scheduler` | process scheduler: `"lavd"` (scx_lavd, smooth desktop and games, default) or `"default"` (the kernel's own) | `luxos-care scheduler` (`/etc/luxos/scheduler.conf`, switches at once) |
 | `formats`, `console`, `drivers`, `network`, `printers`, `power`, `boot`, `security`, `new_users`, `repos` | network connections, printers, power, boot menu, drivers, formats, console, sign-in lockout, defaults for new users, repositories – see [system-config-areas.md](system-config-areas.md) | |

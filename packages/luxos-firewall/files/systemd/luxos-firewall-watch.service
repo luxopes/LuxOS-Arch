@@ -1,0 +1,31 @@
+[Unit]
+# Zahozena spojeni na porty, kde posloucha mistni program -> /run/luxos-firewall/requests.json
+# (luxos-hub ukaze "Program chce prijimat spojeni ze site - Povolit / Nechat blokovane");
+# pri zmene site aktualizuje sadu pripojenych siti (IPv6 prefixy, verejne adresy v mistni siti).
+Description=LuxOS firewall - notices about blocked programs, local network updates
+Documentation=file:///usr/share/luxos/docs/luxos/firewall.md
+After=luxos-firewall.service
+PartOf=luxos-firewall.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/luxos-firewall watch
+Restart=on-failure
+RestartSec=5
+SyslogIdentifier=luxos-firewall-watch
+Nice=10
+MemoryHigh=48M
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/run/luxos-firewall
+RuntimeDirectory=luxos-firewall
+RuntimeDirectoryPreserve=yes
+RuntimeDirectoryMode=0755
+ProtectHome=read-only
+PrivateTmp=yes
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_SYSLOG CAP_SYS_PTRACE CAP_DAC_READ_SEARCH
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

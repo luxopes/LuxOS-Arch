@@ -4512,3 +4512,72 @@ Switch windows of the current app backwards	Changer de fenêtre dans l’app act
 Next window of the same app (without previews)	Fenêtre suivante de la même app (sans aperçus)
 Group windows by app in Alt+Tab	Regrouper les fenêtres par app dans Alt+Tab
 Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Chaque app n’apparaît qu’une fois. En maintenant Alt, appuyez sur Bas ou ` pour voir les fenêtres de l’app sélectionnée.
+# Firewall LuxOS (luxos-firewall, Nastaveni > Firewall, upozorneni v luxos-hub)
+A container (Podman)	Un conteneur (Podman)
+add one with: luxos-firewall allow PORT	ajoutez-en une avec : luxos-firewall allow PORT
+administrator rights are needed (sudo luxos-firewall ...)	des droits d’administrateur sont nécessaires (sudo luxos-firewall ...)
+Allow a port	Autoriser un port
+Allowed automatically	Autorisé automatiquement
+Allowed automatically:	Autorisé automatiquement :
+Allowed incoming connections to %s (%s).	Connexions entrantes vers %s (%s) autorisées.
+allow: --from lan (default) = only devices on this network, --from any = everywhere	allow: --from lan (par défaut) = uniquement les appareils de ce réseau, --from any = partout
+Allow will let only devices on this network connect (not the internet).	Autoriser ne laisse se connecter que les appareils de ce réseau (pas depuis Internet).
+A program	Un programme
+Blocks incoming connections from the network. Your apps can still use the internet, and apps listed below keep working.	Bloque les connexions entrantes depuis le réseau. Vos apps peuvent toujours utiliser Internet, et les apps listées ci-dessous continuent de fonctionner.
+Connection from %s	Connexion depuis %s
+Devices on this network can connect to port %s. You can change it in Firewall settings.	Les appareils de ce réseau peuvent se connecter au port %s. Vous pouvez le modifier dans les réglages du Pare-feu.
+everywhere	partout
+Everywhere	Partout
+Firewall: off - the computer accepts connections from the network.	Pare-feu : désactivé - l’ordinateur accepte les connexions depuis le réseau.
+Firewall: on, but the rules are not loaded (the network is open).	Pare-feu : activé, mais les règles ne sont pas chargées (le réseau est ouvert).
+Firewall: on - incoming connections from the network are blocked, except:	Pare-feu : activé - les connexions entrantes depuis le réseau sont bloquées, sauf :
+Firewall Settings	Réglages du pare-feu
+from	depuis
+Keep Blocked	Garder bloqué
+LuxDrop and exceptions for this network also accept connections from your Tailscale devices.	LuxDrop et les exceptions pour ce réseau acceptent aussi les connexions de vos appareils Tailscale.
+LuxOS firewall	Pare-feu LuxOS
+Nothing	Rien
+Off - the computer accepts connections from the network.	Désactivé - l’ordinateur accepte les connexions depuis le réseau.
+On, but the rules are not loaded - the network is open. Try turning the firewall off and on.	Activé, mais les règles ne sont pas chargées - le réseau est ouvert. Essayez de désactiver puis de réactiver le pare-feu.
+On - the computer is protected.	Activé - l’ordinateur est protégé.
+Open Firewall settings and try it there.	Ouvrez les réglages du Pare-feu et essayez à partir de là.
+pkexec could not be started.	Impossible de lancer pkexec.
+Port, e.g. 8080	Port, p. ex. 8080
+Port %s is blocked again.	Le port %s est de nouveau bloqué.
+Printer sharing	Partage d’imprimantes
+Recently blocked	Bloqués récemment
+Recently blocked (a program on this computer was listening):	Bloqués récemment (un programme de cet ordinateur était en écoute) :
+%s can now accept connections	%s peut maintenant accepter des connexions
+You can also change it in Settings > Firewall.	Vous pouvez aussi le modifier dans Réglages > Pare-feu.
+%s is damaged; using the default settings	%s est endommagé ; réglages par défaut utilisés
+"%s" is not a valid port (e.g. 8080, 8080/tcp, 8000-8010/udp)	« %s » n’est pas un port valide (p. ex. 8080, 8080/tcp, 8000-8010/udp)
+Something stopped working on the network? Allow it here, or run "luxos-firewall allow PORT" in Terminal.	Quelque chose ne fonctionne plus sur le réseau ? Autorisez-le ici, ou exécutez « luxos-firewall allow PORT » dans le Terminal.
+SSH (remote login)	SSH (connexion à distance)
+%s wants to accept connections from the network	%s veut accepter des connexions depuis le réseau
+Tailscale devices are no longer treated as this network.	Les appareils Tailscale ne sont plus traités comme ce réseau.
+Tailscale devices are treated as this network.	Les appareils Tailscale sont traités comme ce réseau.
+TCP and UDP	TCP et UDP
+The change could not be made.	La modification n’a pas pu être effectuée.
+The firewall blocked a connection to port %s from a Tailscale device (%s).	Le pare-feu a bloqué une connexion au port %s depuis un appareil Tailscale (%s).
+The firewall blocked a connection to port %s from %s.	Le pare-feu a bloqué une connexion au port %s depuis %s.
+The firewall exception could not be added	L’exception du pare-feu n’a pas pu être ajoutée
+The firewall is off; the change applies when you turn it on.	Le pare-feu est désactivé ; la modification s’appliquera quand vous l’activerez.
+The firewall is off. Turn it on again with: luxos-firewall on	Le pare-feu est désactivé. Réactivez-le avec : luxos-firewall on
+The firewall is on.	Le pare-feu est activé.
+the firewall rules could not be loaded:	les règles du pare-feu n’ont pas pu être chargées :
+The LuxOS firewall is not installed (lux install luxos-firewall).	Le pare-feu LuxOS n’est pas installé (lux install luxos-firewall).
+There is no exception for %s.	Il n’y a aucune exception pour %s.
+this network only	ce réseau uniquement
+This network only	Ce réseau uniquement
+"This network only" means devices on your Wi-Fi or cable network, not the internet.	« Ce réseau uniquement » désigne les appareils de votre réseau Wi-Fi ou filaire, pas Internet.
+To allow your Tailscale devices, turn on "Treat Tailscale devices as this network" in Firewall settings.	Pour autoriser vos appareils Tailscale, activez « Traiter les appareils Tailscale comme ce réseau » dans les réglages du Pare-feu.
+Treat Tailscale devices as this network	Traiter les appareils Tailscale comme ce réseau
+Try: sudo systemctl restart luxos-firewall	Essayez : sudo systemctl restart luxos-firewall
+Your exceptions	Vos exceptions
+Your exceptions:	Vos exceptions :
+Firewall: allow = incoming ports open from everywhere, allow_lan = only from this network, e.g. ["22/tcp"]	Pare-feu : allow = ports entrants ouverts depuis partout, allow_lan = uniquement depuis ce réseau, p. ex. ["22/tcp"]
+The LuxOS firewall is not installed; add "luxos-firewall" to packages.	Le pare-feu LuxOS n’est pas installé ; ajoutez "luxos-firewall" à packages.
+allow incoming %s from everywhere	autoriser %s entrant depuis partout
+allow incoming %s from this network	autoriser %s entrant depuis ce réseau
+stop allowing incoming %s from everywhere	ne plus autoriser %s entrant depuis partout
+stop allowing incoming %s from this network	ne plus autoriser %s entrant depuis ce réseau

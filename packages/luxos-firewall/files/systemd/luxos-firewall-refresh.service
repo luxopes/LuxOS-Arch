@@ -1,0 +1,13 @@
+[Unit]
+# Spousti luxos-firewall-refresh.path: zmena nastaveni firewallu, zapnuti/vypnuti sshd, sdileni
+# tiskaren v CUPS, nastaveni Tailscale nebo instalace aplikace z Flathubu (system).
+Description=LuxOS firewall - apply changed settings and services
+Documentation=file:///usr/share/luxos/docs/luxos/firewall.md
+After=luxos-firewall.service
+StartLimitIntervalSec=60
+StartLimitBurst=30
+
+[Service]
+Type=oneshot
+# Jen kdyz firewall bezi (zastaveny pres systemctl stop se tim sam nezapne)
+ExecStart=/usr/bin/systemctl try-reload-or-restart luxos-firewall.service

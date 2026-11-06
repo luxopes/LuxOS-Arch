@@ -4512,3 +4512,72 @@ Switch windows of the current app backwards	Alternar janelas do app atual para t
 Next window of the same app (without previews)	Próxima janela do mesmo app (sem pré-visualizações)
 Group windows by app in Alt+Tab	Agrupar janelas por app no Alt+Tab
 Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Cada app aparece uma vez. Segurando Alt, pressione Baixo ou ` para ver as janelas do app selecionado.
+# Firewall LuxOS (luxos-firewall, Nastaveni > Firewall, upozorneni v luxos-hub)
+A container (Podman)	Um contêiner (Podman)
+add one with: luxos-firewall allow PORT	adicione uma com: luxos-firewall allow PORT
+administrator rights are needed (sudo luxos-firewall ...)	são necessários direitos de administrador (sudo luxos-firewall ...)
+Allow a port	Permitir uma porta
+Allowed automatically	Permitido automaticamente
+Allowed automatically:	Permitido automaticamente:
+Allowed incoming connections to %s (%s).	Conexões de entrada para %s (%s) permitidas.
+allow: --from lan (default) = only devices on this network, --from any = everywhere	allow: --from lan (padrão) = só dispositivos desta rede, --from any = de qualquer lugar
+Allow will let only devices on this network connect (not the internet).	Permitir deixa conectar só os dispositivos desta rede (não da internet).
+A program	Um programa
+Blocks incoming connections from the network. Your apps can still use the internet, and apps listed below keep working.	Bloqueia conexões de entrada da rede. Seus apps continuam podendo usar a internet, e os apps listados abaixo continuam funcionando.
+Connection from %s	Conexão de %s
+Devices on this network can connect to port %s. You can change it in Firewall settings.	Os dispositivos desta rede podem se conectar à porta %s. Você pode mudar isso nos ajustes do Firewall.
+everywhere	de qualquer lugar
+Everywhere	De qualquer lugar
+Firewall: off - the computer accepts connections from the network.	Firewall: desativado - o computador aceita conexões da rede.
+Firewall: on, but the rules are not loaded (the network is open).	Firewall: ativado, mas as regras não estão carregadas (a rede está aberta).
+Firewall: on - incoming connections from the network are blocked, except:	Firewall: ativado - as conexões de entrada da rede são bloqueadas, exceto:
+Firewall Settings	Ajustes do Firewall
+from	de
+Keep Blocked	Manter bloqueada
+LuxDrop and exceptions for this network also accept connections from your Tailscale devices.	O LuxDrop e as exceções para esta rede também aceitam conexões dos seus dispositivos Tailscale.
+LuxOS firewall	Firewall do LuxOS
+Nothing	Nada
+Off - the computer accepts connections from the network.	Desativado - o computador aceita conexões da rede.
+On, but the rules are not loaded - the network is open. Try turning the firewall off and on.	Ativado, mas as regras não estão carregadas - a rede está aberta. Tente desativar e ativar o firewall de novo.
+On - the computer is protected.	Ativado - o computador está protegido.
+Open Firewall settings and try it there.	Abra os ajustes do Firewall e tente por lá.
+pkexec could not be started.	Não foi possível iniciar o pkexec.
+Port, e.g. 8080	Porta, ex.: 8080
+Port %s is blocked again.	A porta %s está bloqueada de novo.
+Printer sharing	Compartilhamento de impressoras
+Recently blocked	Bloqueados recentemente
+Recently blocked (a program on this computer was listening):	Bloqueados recentemente (um programa neste computador estava escutando):
+%s can now accept connections	%s agora pode aceitar conexões
+You can also change it in Settings > Firewall.	Você também pode mudar isso em Ajustes > Firewall.
+%s is damaged; using the default settings	%s está danificado; usando os ajustes padrão
+"%s" is not a valid port (e.g. 8080, 8080/tcp, 8000-8010/udp)	“%s” não é uma porta válida (ex.: 8080, 8080/tcp, 8000-8010/udp)
+Something stopped working on the network? Allow it here, or run "luxos-firewall allow PORT" in Terminal.	Algo parou de funcionar na rede? Permita aqui ou execute “luxos-firewall allow PORT” no Terminal.
+SSH (remote login)	SSH (login remoto)
+%s wants to accept connections from the network	%s quer aceitar conexões da rede
+Tailscale devices are no longer treated as this network.	Os dispositivos Tailscale não são mais tratados como esta rede.
+Tailscale devices are treated as this network.	Os dispositivos Tailscale são tratados como esta rede.
+TCP and UDP	TCP e UDP
+The change could not be made.	Não foi possível fazer a alteração.
+The firewall blocked a connection to port %s from a Tailscale device (%s).	O firewall bloqueou uma conexão à porta %s de um dispositivo Tailscale (%s).
+The firewall blocked a connection to port %s from %s.	O firewall bloqueou uma conexão à porta %s de %s.
+The firewall exception could not be added	Não foi possível adicionar a exceção do firewall
+The firewall is off; the change applies when you turn it on.	O firewall está desativado; a alteração vale quando você ativá-lo.
+The firewall is off. Turn it on again with: luxos-firewall on	O firewall está desativado. Ative-o de novo com: luxos-firewall on
+The firewall is on.	O firewall está ativado.
+the firewall rules could not be loaded:	não foi possível carregar as regras do firewall:
+The LuxOS firewall is not installed (lux install luxos-firewall).	O firewall do LuxOS não está instalado (lux install luxos-firewall).
+There is no exception for %s.	Não há exceção para %s.
+this network only	só esta rede
+This network only	Só esta rede
+"This network only" means devices on your Wi-Fi or cable network, not the internet.	“Só esta rede” significa os dispositivos da sua rede Wi-Fi ou cabeada, não a internet.
+To allow your Tailscale devices, turn on "Treat Tailscale devices as this network" in Firewall settings.	Para permitir seus dispositivos Tailscale, ative “Tratar dispositivos Tailscale como esta rede” nos ajustes do Firewall.
+Treat Tailscale devices as this network	Tratar dispositivos Tailscale como esta rede
+Try: sudo systemctl restart luxos-firewall	Tente: sudo systemctl restart luxos-firewall
+Your exceptions	Suas exceções
+Your exceptions:	Suas exceções:
+Firewall: allow = incoming ports open from everywhere, allow_lan = only from this network, e.g. ["22/tcp"]	Firewall: allow = portas de entrada abertas de qualquer lugar, allow_lan = só desta rede, ex.: ["22/tcp"]
+The LuxOS firewall is not installed; add "luxos-firewall" to packages.	O firewall do LuxOS não está instalado; adicione "luxos-firewall" a packages.
+allow incoming %s from everywhere	permitir %s de entrada de qualquer lugar
+allow incoming %s from this network	permitir %s de entrada desta rede
+stop allowing incoming %s from everywhere	deixar de permitir %s de entrada de qualquer lugar
+stop allowing incoming %s from this network	deixar de permitir %s de entrada desta rede

@@ -1,0 +1,27 @@
+# LuxOS firewall: zapnout hned pri instalaci (nova instalace i starsi system po lux update, bez restartu),
+# po aktualizaci nahrat nova pravidla jednou transakci (bez okamziku bez firewallu).
+# Vypnuti uzivatelem (luxos-firewall off) je v /etc/luxos/firewall.json a aktualizace ho nemeni.
+_units="luxos-firewall.service luxos-firewall-watch.service luxos-firewall-refresh.path"
+
+post_install() {
+    # shellcheck disable=SC2086  # seznam jednotek se zamerne rozdeli na slova
+    systemctl enable $_units >/dev/null 2>&1 || true
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload >/dev/null 2>&1 || true
+        # shellcheck disable=SC2086
+        systemctl start $_units >/dev/null 2>&1 || true
+    fi
+}
+
+post_upgrade() {
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload >/dev/null 2>&1 || true
+        systemctl try-reload-or-restart luxos-firewall.service >/dev/null 2>&1 || true
+        systemctl try-restart luxos-firewall-watch.service >/dev/null 2>&1 || true
+    fi
+}
+
+pre_remove() {
+    # shellcheck disable=SC2086
+    systemctl disable --now $_units >/dev/null 2>&1 || true
+}

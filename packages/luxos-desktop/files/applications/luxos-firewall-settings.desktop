@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Firewall
+Name[cs]=Firewall
+Comment=Turn the firewall on or off and allow apps to accept connections from the network
+Comment[cs]=Zapnutí firewallu a povolení aplikací, které mají přijímat spojení ze sítě
+Exec=luxos-firewall-settings
+Icon=firewall
+Terminal=false
+Categories=Settings;System;Security;X-XFCE-SettingsDialog;X-XFCE-SystemSettings;GTK;
+Keywords=firewall;network;port;security;incoming;block;allow;síť;zabezpečení;povolit;blokovat;
+StartupWMClass=luxos-firewall-settings

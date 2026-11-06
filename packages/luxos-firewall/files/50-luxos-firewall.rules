@@ -1,0 +1,12 @@
+// LuxOS firewall: "Povolit" v upozorneni (luxos-hub) bez hesla - jen aktivni mistni spravce (wheel)
+// a jen vyjimka pro jeden port z MISTNI site (--from lan). Vypnuti firewallu, povoleni odkudkoli
+// a ostatni zmeny chteji heslo spravce (org.luxos.firewall.manage: auth_admin_keep).
+polkit.addRule(function(action, subject) {
+    if (action.id != "org.luxos.firewall.manage" || !subject.local || !subject.active ||
+        !subject.isInGroup("wheel"))
+        return polkit.Result.NOT_HANDLED;
+    var cmd = action.lookup("command_line");
+    if (/^\/usr\/bin\/luxos-firewall allow [0-9]{1,5}\/(tcp|udp) --from lan( --app [A-Za-z0-9._+-]{1,32})?$/.test(cmd))
+        return polkit.Result.YES;
+    return polkit.Result.NOT_HANDLED;
+});

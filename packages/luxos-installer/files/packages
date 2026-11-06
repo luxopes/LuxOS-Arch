@@ -34,5 +34,6 @@ luxos-sandbox
 luxos-care
 luxos-guard
 luxos-backup
+luxos-firewall
 # firemni sit (Active Directory): Nastaveni > Firemni sit, nic nebezi do pripojeni k domene
 luxos-domain

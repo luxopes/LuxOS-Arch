@@ -17,6 +17,8 @@
 #   Svetly/tmavy      automaticky rezim podle vychodu a zapadu slunce
 #   Prehravani        pri hrajici hudbe/videu neuspava (ani zavreny vik), viz luxos_awake
 #   Ovladace          jednou za start upozorneni na chybejici ovladace (luxos-drivers)
+#   Firewall          program, ktery chce prijimat spojeni ze site a firewall ho zablokoval: Povolit /
+#                     Nechat blokovane (luxos_firewall_hub + luxos-firewall-watch.service)
 #   Zmena casu        vecer pred prechodem na letni/zimni cas a rano po nem (luxos_timechange)
 #   Tapeta            tapeta plochy i na prihlasovaci obrazovce (luxos-appearance greeter-sync)
 #   Grafika           rezim Vykon: hry a narocne aplikace na samostatne grafice (luxos_gpu_hub + luxos-gpu)
@@ -44,6 +46,7 @@ load luxos_awake as awake
 load luxos_bt_agent as agent
 load luxos_care_hub as care
 load luxos_drivers_hub as drivers
+load luxos_firewall_hub as firewall
 load luxos_safe_hub as safe
 load luxos_timechange as timechange
 load luxos_shot as shot
@@ -914,6 +917,14 @@ function main_hub():
             call drivers.subscribe(hub["session"])
         else:
             call log("drivers: " + String(last_error()))
+        end
+    end
+    # Firewall (balik luxos-firewall): zablokovany program, ktery posloucha -> Povolit / Nechat blokovane
+    if firewall.available():
+        try:
+            call firewall.subscribe(hub["session"])
+        else:
+            call log("firewall: " + String(last_error()))
         end
     end
 

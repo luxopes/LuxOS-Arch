@@ -4513,3 +4513,72 @@ Switch windows of the current app backwards	Перемикати вікна по
 Next window of the same app (without previews)	Наступне вікно того самого застосунку (без мініатюр)
 Group windows by app in Alt+Tab	Групувати вікна за застосунками в Alt+Tab
 Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Кожен застосунок показано один раз. Утримуючи Alt, натисніть «Вниз» або `, щоб побачити вікна вибраного застосунку.
+# Firewall LuxOS (luxos-firewall, Nastaveni > Firewall, upozorneni v luxos-hub)
+A container (Podman)	Контейнер (Podman)
+add one with: luxos-firewall allow PORT	додайте виняток командою: luxos-firewall allow PORT
+administrator rights are needed (sudo luxos-firewall ...)	потрібні права адміністратора (sudo luxos-firewall ...)
+Allow a port	Дозволити порт
+Allowed automatically	Дозволено автоматично
+Allowed automatically:	Дозволено автоматично:
+Allowed incoming connections to %s (%s).	Вхідні з’єднання до %s (%s) дозволено.
+allow: --from lan (default) = only devices on this network, --from any = everywhere	allow: --from lan (типово) = лише пристрої в цій мережі, --from any = звідусіль
+Allow will let only devices on this network connect (not the internet).	«Дозволити» пропустить лише пристрої в цій мережі (не з інтернету).
+A program	Програма
+Blocks incoming connections from the network. Your apps can still use the internet, and apps listed below keep working.	Блокує вхідні з’єднання з мережі. Ваші програми й далі можуть користуватися інтернетом, а програми, наведені нижче, продовжують працювати.
+Connection from %s	З’єднання з %s
+Devices on this network can connect to port %s. You can change it in Firewall settings.	Пристрої в цій мережі можуть під’єднуватися до порту %s. Змінити це можна в параметрах брандмауера.
+everywhere	звідусіль
+Everywhere	Звідусіль
+Firewall: off - the computer accepts connections from the network.	Брандмауер: вимкнено - комп’ютер приймає з’єднання з мережі.
+Firewall: on, but the rules are not loaded (the network is open).	Брандмауер: увімкнено, але правила не завантажено (мережа відкрита).
+Firewall: on - incoming connections from the network are blocked, except:	Брандмауер: увімкнено - вхідні з’єднання з мережі блокуються, крім:
+Firewall Settings	Параметри брандмауера
+from	з
+Keep Blocked	Залишити заблокованим
+LuxDrop and exceptions for this network also accept connections from your Tailscale devices.	LuxDrop і винятки для цієї мережі також приймають з’єднання з ваших пристроїв у Tailscale.
+LuxOS firewall	Брандмауер LuxOS
+Nothing	Нічого
+Off - the computer accepts connections from the network.	Вимкнено - комп’ютер приймає з’єднання з мережі.
+On, but the rules are not loaded - the network is open. Try turning the firewall off and on.	Увімкнено, але правила не завантажено - мережа відкрита. Спробуйте вимкнути й знову ввімкнути брандмауер.
+On - the computer is protected.	Увімкнено - комп’ютер захищено.
+Open Firewall settings and try it there.	Відкрийте параметри брандмауера і спробуйте там.
+pkexec could not be started.	Не вдалося запустити pkexec.
+Port, e.g. 8080	Порт, напр. 8080
+Port %s is blocked again.	Порт %s знову заблоковано.
+Printer sharing	Спільний доступ до принтерів
+Recently blocked	Нещодавно заблоковані
+Recently blocked (a program on this computer was listening):	Нещодавно заблоковані (програма на цьому комп’ютері очікувала з’єднань):
+%s can now accept connections	%s тепер може приймати з’єднання
+You can also change it in Settings > Firewall.	Змінити це можна також у Параметри > Брандмауер.
+%s is damaged; using the default settings	%s пошкоджено; використовуються типові налаштування
+"%s" is not a valid port (e.g. 8080, 8080/tcp, 8000-8010/udp)	«%s» не є дійсним портом (напр. 8080, 8080/tcp, 8000-8010/udp)
+Something stopped working on the network? Allow it here, or run "luxos-firewall allow PORT" in Terminal.	Щось перестало працювати в мережі? Дозвольте це тут або виконайте в Терміналі «luxos-firewall allow PORT».
+SSH (remote login)	SSH (віддалений вхід)
+%s wants to accept connections from the network	%s хоче приймати з’єднання з мережі
+Tailscale devices are no longer treated as this network.	Пристрої в Tailscale більше не вважаються цією мережею.
+Tailscale devices are treated as this network.	Пристрої в Tailscale вважаються цією мережею.
+TCP and UDP	TCP і UDP
+The change could not be made.	Не вдалося внести зміну.
+The firewall blocked a connection to port %s from a Tailscale device (%s).	Брандмауер заблокував з’єднання до порту %s з пристрою в Tailscale (%s).
+The firewall blocked a connection to port %s from %s.	Брандмауер заблокував з’єднання до порту %s з %s.
+The firewall exception could not be added	Не вдалося додати виняток брандмауера
+The firewall is off; the change applies when you turn it on.	Брандмауер вимкнено; зміна почне діяти, коли ви його ввімкнете.
+The firewall is off. Turn it on again with: luxos-firewall on	Брандмауер вимкнено. Увімкніть його знову командою: luxos-firewall on
+The firewall is on.	Брандмауер увімкнено.
+the firewall rules could not be loaded:	не вдалося завантажити правила брандмауера:
+The LuxOS firewall is not installed (lux install luxos-firewall).	Брандмауер LuxOS не встановлено (lux install luxos-firewall).
+There is no exception for %s.	Для %s немає винятку.
+this network only	лише ця мережа
+This network only	Лише ця мережа
+"This network only" means devices on your Wi-Fi or cable network, not the internet.	«Лише ця мережа» означає пристрої у вашій мережі Wi-Fi або кабельній мережі, а не інтернет.
+To allow your Tailscale devices, turn on "Treat Tailscale devices as this network" in Firewall settings.	Щоб дозволити свої пристрої в Tailscale, увімкніть у параметрах брандмауера «Вважати пристрої в Tailscale цією мережею».
+Treat Tailscale devices as this network	Вважати пристрої в Tailscale цією мережею
+Try: sudo systemctl restart luxos-firewall	Спробуйте: sudo systemctl restart luxos-firewall
+Your exceptions	Ваші винятки
+Your exceptions:	Ваші винятки:
+Firewall: allow = incoming ports open from everywhere, allow_lan = only from this network, e.g. ["22/tcp"]	Брандмауер: allow = вхідні порти, відкриті звідусіль, allow_lan = лише з цієї мережі, напр. ["22/tcp"]
+The LuxOS firewall is not installed; add "luxos-firewall" to packages.	Брандмауер LuxOS не встановлено; додайте "luxos-firewall" до packages.
+allow incoming %s from everywhere	дозволити вхідні %s звідусіль
+allow incoming %s from this network	дозволити вхідні %s з цієї мережі
+stop allowing incoming %s from everywhere	скасувати дозвіл вхідних %s звідусіль
+stop allowing incoming %s from this network	скасувати дозвіл вхідних %s з цієї мережі

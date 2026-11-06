@@ -79,7 +79,9 @@ SCHED_CONF = "/etc/luxos/scheduler.conf"            # planovac procesu (luxos-tw
 SCHEDULERS = ("lavd", "default")
 KEYBOARD_CONF = "/etc/X11/xorg.conf.d/00-keyboard.conf"
 GUARD_UNITS = {"enable": "luxos-guard.service", "home_snapshots": "luxos-guard-snapshot.timer"}
-FIREWALL_UNIT = "ufw.service"
+# Firewall LuxOS (balik luxos-firewall): vlastni tabulka nftables, nastaveni v /etc/luxos/firewall.json
+FIREWALL_UNIT = "luxos-firewall.service"
+FIREWALL_CONF = "/etc/luxos/firewall.json"
 EVAL_TIMEOUT = 120
 
 TOOLS = {
@@ -88,7 +90,7 @@ TOOLS = {
     "flatpak": "/usr/bin/flatpak", "systemctl": "/usr/bin/systemctl", "hostnamectl": "/usr/bin/hostnamectl",
     "timedatectl": "/usr/bin/timedatectl", "localectl": "/usr/bin/localectl", "locale-gen": "/usr/bin/locale-gen",
     "useradd": "/usr/bin/useradd", "usermod": "/usr/bin/usermod", "groupadd": "/usr/bin/groupadd",
-    "gpasswd": "/usr/bin/gpasswd", "chpasswd": "/usr/bin/chpasswd", "ufw": "/usr/bin/ufw",
+    "gpasswd": "/usr/bin/gpasswd", "chpasswd": "/usr/bin/chpasswd", "luxos-firewall": "/usr/bin/luxos-firewall",
     "luxos-care": "/usr/bin/luxos-care", "grub-mkconfig": "/usr/bin/grub-mkconfig",
     "lux-domain": "/usr/bin/lux-domain", "nmcli": "/usr/bin/nmcli", "lpstat": "/usr/bin/lpstat",
     "lpoptions": "/usr/bin/lpoptions", "lpadmin": "/usr/bin/lpadmin", "lpinfo": "/usr/bin/lpinfo",
@@ -393,7 +395,7 @@ FRAGMENT_RE = re.compile(r"^\d{2}-[A-Za-z0-9][A-Za-z0-9_.-]*\.lsl$")
 LV_DEFAULT, LV_ORG, LV_LOCAL, LV_FORCE = 0, 1, 2, 3
 # Seznamy, ktere se mezi vrstvami spojuji (ostatni seznamy se nahrazuji celou hodnotou)
 UNION_PATHS = {("packages",), ("drivers",), ("flatpaks",), ("groups",), ("services", "enable"), ("services", "disable"),
-               ("firewall", "allow"), ("kernel", "params"), ("domain", "admins"), ("domain", "allow_groups")}
+               ("firewall", "allow"), ("firewall", "allow_lan"), ("kernel", "params"), ("domain", "admins"), ("domain", "allow_groups")}
 POLICY_META_KEYS = ("organization", "name")
 MISSING = object()
 
@@ -917,14 +919,14 @@ def normalize(raw):
                 if k == "enable":
                     if ck.typed("firewall.enable", v, (bool,), "True or False"):
                         nf["enable"] = v
-                elif k == "allow":
-                    nf["allow"] = ck.str_list("firewall.allow", v, PORT_RE, "port (e.g. \"22/tcp\")")
-                    for p in nf["allow"]:
+                elif k in ("allow", "allow_lan"):
+                    nf[k] = ck.str_list("firewall." + k, v, PORT_RE, "port (e.g. \"22/tcp\")")
+                    for p in nf[k]:
                         m = PORT_RE.match(p)
                         if not 1 <= int(m.group(1)) <= 65535 or (m.group(3) and not int(m.group(1)) < int(m.group(3)) <= 65535):
-                            ck.err("firewall.allow", _("\"%s\" is not a valid %s") % (p, _("port (e.g. \"22/tcp\")")))
+                            ck.err("firewall." + k, _("\"%s\" is not a valid %s") % (p, _("port (e.g. \"22/tcp\")")))
                 else:
-                    ck.unknown("firewall", k, ("enable", "allow"))
+                    ck.unknown("firewall", k, ("enable", "allow", "allow_lan"))
             cfg["firewall"] = nf
     if "kernel" in raw:
         kn = raw["kernel"]
@@ -1485,19 +1487,28 @@ class State:
                 "verify": c.get("VERIFY", "yes").lower() not in ("no", "0", "false", "off")}
 
     def firewall(self):
-        installed = "ufw" in self.installed() if have("lux-engine") else have("ufw")
-        enabled = read_kv("/etc/ufw/ufw.conf").get("ENABLED", "no").lower() == "yes"
-        allow = []
-        for path in ("/etc/ufw/user.rules", "/etc/ufw/user6.rules"):
-            for m in re.finditer(r"^### tuple ### (.*)$", read(path), re.M):
-                f = m.group(1).split()
-                # allow PROTO DPORT DST SPORT SRC in (bez jmena aplikace, odkudkoli)
-                if (len(f) == 7 and f[0] == "allow" and f[6] == "in" and f[3] in ("0.0.0.0/0", "::/0")
-                        and f[5] in ("0.0.0.0/0", "::/0") and f[4] == "any" and f[2] != "any"):
-                    spec = f[2] if f[1] == "any" else f"{f[2]}/{f[1]}"
-                    if spec not in allow:
-                        allow.append(spec)
-        return {"installed": installed, "enable": enabled, "allow": allow}
+        """Firewall LuxOS z /etc/luxos/firewall.json: zapnuty (chybi = zapnuty), vyjimky odkudkoli (allow)
+        a jen z mistni site (allow_lan) jako "22/tcp", "8000:8010/udp", "53" (TCP i UDP)."""
+        installed = have("luxos-firewall")
+        try:
+            with open(P(FIREWALL_CONF), encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            data = {}
+        if not isinstance(data, dict):
+            data = {}
+        out = {"installed": installed, "enable": data.get("enable", True) is not False, "allow": [], "allow_lan": []}
+        pairs = {"any": [], "lan": []}
+        for item in data.get("allow", []) if isinstance(data.get("allow"), list) else []:
+            if isinstance(item, dict) and item.get("proto") in ("tcp", "udp") and re.match(r"^\d{1,5}(-\d{1,5})?$", str(item.get("port", ""))):
+                pairs["any" if item.get("from") == "any" else "lan"].append((str(item["port"]), item["proto"]))
+        for source, key in (("any", "allow"), ("lan", "allow_lan")):
+            for port, proto in pairs[source]:
+                other = "udp" if proto == "tcp" else "tcp"
+                spec = port.replace("-", ":") if (port, other) in pairs[source] else f"{port.replace('-', ':')}/{proto}"
+                if spec not in out[key]:
+                    out[key].append(spec)
+        return out
 
     def scheduler(self):
         """Planovac procesu z /etc/luxos/scheduler.conf ("lavd" | "default"); None = bez planovace LuxOS."""
@@ -2344,8 +2355,8 @@ def compute(cfg, st, applied=None, force=False):
     drivers = [p for p in cfg.get("drivers", []) if p not in pkgs]
     wanted = pkgs + drivers
     extra = []
-    if cfg.get("firewall", {}).get("enable") and "ufw" not in wanted:
-        extra.append("ufw")
+    if cfg.get("firewall", {}).get("enable") and "luxos-firewall" not in wanted and not have("luxos-firewall"):
+        extra.append("luxos-firewall")
     if cfg.get("flatpaks") and not have("flatpak") and "flatpak" not in wanted:
         extra.append("flatpak")
     if "packages" in cfg or "drivers" in cfg or extra:
@@ -2587,32 +2598,52 @@ def ensure_groups(names):
             run([tool("groupadd"), g])
 
 
+def firewall_pairs(specs):
+    """{(port, proto)} z "22/tcp", "8000:8010/udp", "53" (= TCP i UDP); port jako "8000-8010"."""
+    out = set()
+    for spec in specs:
+        m = PORT_RE.match(spec)
+        if not m:
+            continue
+        port = m.group(1) + ("-" + m.group(3) if m.group(3) else "")
+        for proto in ((m.group(5),) if m.group(5) else ("tcp", "udp")):
+            out.add((port, proto))
+    return out
+
+
 def compute_firewall(fw, st, plan):
+    """Firewall LuxOS (luxos-firewall): zapnuti, vyjimky odkudkoli (allow) a jen z mistni site (allow_lan).
+    Uvedeny seznam je uplny - vyjimky stejneho druhu, ktere v nem nejsou, se odeberou."""
     cur = st.firewall()
-    pending = cur["installed"] or any(c.section == "packages" and c.op == "+" and "ufw" in (c.data or [])
+    pending = cur["installed"] or any(c.section == "packages" and c.op == "+" and "luxos-firewall" in (c.data or [])
                                       for c in plan.changes)
     if not pending:
-        if fw.get("enable") or fw.get("allow"):
-            raise UserError(_("The firewall (ufw) is not installed; add \"ufw\" to packages."))
+        if fw.get("enable") or fw.get("allow") or fw.get("allow_lan"):
+            raise UserError(_("The LuxOS firewall is not installed; add \"luxos-firewall\" to packages."))
         return
-    if "allow" in fw:
-        for spec in fw["allow"]:
-            if spec not in cur["allow"]:
-                plan.add("firewall", "+", _("allow incoming %s") % spec, 70,
-                         lambda s=spec: run([tool("ufw"), "allow", s]), target=spec)
-        for spec in cur["allow"]:
-            if spec not in fw["allow"]:
-                plan.add("firewall", "-", _("stop allowing incoming %s") % spec, 70,
-                         lambda s=spec: run([tool("ufw"), "delete", "allow", s]), target=spec)
-    if "enable" in fw and (fw["enable"] != cur["enable"] or fw["enable"] != st.enabled(FIREWALL_UNIT)):
+    fwtool = tool("luxos-firewall")
+    for key, source, text_add, text_del in (
+            ("allow", "any", _("allow incoming %s from everywhere"), _("stop allowing incoming %s from everywhere")),
+            ("allow_lan", "lan", _("allow incoming %s from this network"), _("stop allowing incoming %s from this network"))):
+        if key not in fw:
+            continue
+        want, have_now = firewall_pairs(fw[key]), firewall_pairs(cur[key])
+        for port, proto in sorted(want - have_now):
+            spec = f"{port}/{proto}"
+            plan.add("firewall", "+", text_add % spec.replace("-", ":"), 70,
+                     lambda s=spec, src=source: run([fwtool, "allow", s, "--from", src]), target=spec)
+        for port, proto in sorted(have_now - want):
+            spec = f"{port}/{proto}"
+            # stejny port v druhem seznamu: "allow" ho uz prepsal, mazat by ho odebralo uplne
+            if (port, proto) in firewall_pairs(fw.get("allow_lan" if key == "allow" else "allow", [])):
+                continue
+            plan.add("firewall", "-", text_del % spec.replace("-", ":"), 70,
+                     lambda s=spec: run([fwtool, "deny", s]), target=spec)
+    if "enable" in fw and (fw["enable"] != cur["enable"] or (fw["enable"] and not st.enabled(FIREWALL_UNIT))):
         if fw["enable"]:
-            plan.add("firewall", "+", _("turn on the firewall"), 71,
-                     lambda: (run([tool("systemctl"), "enable", "--now", FIREWALL_UNIT]),
-                              run([tool("ufw"), "--force", "enable"])), target="ufw")
+            plan.add("firewall", "+", _("turn on the firewall"), 71, lambda: run([fwtool, "on"]), target="luxos-firewall")
         else:
-            plan.add("firewall", "-", _("turn off the firewall"), 71,
-                     lambda: (run([tool("ufw"), "disable"]), run([tool("systemctl"), "disable", "--now", FIREWALL_UNIT])),
-                     target="ufw")
+            plan.add("firewall", "-", _("turn off the firewall"), 71, lambda: run([fwtool, "off"]), target="luxos-firewall")
 
 
 def compute_domain(dm, plan):
@@ -3150,10 +3181,11 @@ def generate(st):
         w(f"        \"home_snapshots\": {lsl_bool(st.enabled(GUARD_UNITS['home_snapshots']))}")
         w("    }")
     fw = st.firewall()
-    note("Firewall (ufw): allowed incoming ports, e.g. [\"22/tcp\"]")
+    note("Firewall: allow = incoming ports open from everywhere, allow_lan = only from this network, e.g. [\"22/tcp\"]")
     w("    \"firewall\": {")
     w(f"        \"enable\": {lsl_bool(fw['enable'] and fw['installed'])}")
     w(f"        \"allow\": {lsl_list(fw['allow'], 8)}")
+    w(f"        \"allow_lan\": {lsl_list(fw['allow_lan'], 8)}")
     w("    }")
     fl = st.faillock()
     note("Wrong passwords: after \"deny\" failures within \"fail_interval\" seconds the account waits \"unlock_time\" seconds.")
