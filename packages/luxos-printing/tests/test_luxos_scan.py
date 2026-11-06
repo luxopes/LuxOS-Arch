@@ -146,6 +146,32 @@ class Errors(unittest.TestCase):
         self.assertEqual(ls.clean_stderr("Progress: 10.0%\rProgress: 20.0%\rscanimage: boom\n\n"), "scanimage: boom")
 
 
+class OpenRetry(FakePath):
+    """Skener drzi na okamzik jiny proces (pixma: "Invalid argument") - zkusi se znovu, chyba se neukaze."""
+
+    def setUp(self):
+        super().setUp()
+        os.environ["FAKE_SCAN"] = "einval-once"
+        os.environ["FAKE_SCAN_COUNT"] = os.path.join(self.tmp, "count")
+        self.old_delay, ls.OPEN_RETRY_DELAY = ls.OPEN_RETRY_DELAY, 0.05
+
+    def tearDown(self):
+        ls.OPEN_RETRY_DELAY = self.old_delay
+        os.environ.pop("FAKE_SCAN_COUNT", None)
+        os.environ["FAKE_SCAN"] = "ok"
+        super().tearDown()
+
+    def test_probe_retries(self):
+        opts = ls.probe_options("pixma:04A926A3_TEST")
+        self.assertIn("mode", opts)
+        with open(os.environ["FAKE_SCAN_COUNT"]) as f:
+            self.assertEqual(f.read(), "2")
+
+    def test_scan_retries(self):
+        files = ls.Scan("pixma:04A926A3_TEST", ["--mode", "Gray"], self.tmp).run()
+        self.assertEqual(len(files), 1)
+
+
 class Scanning(FakePath):
     def test_single(self):
         log = os.path.join(self.tmp, "log")

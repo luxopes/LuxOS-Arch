@@ -9,6 +9,8 @@ import os
 import re
 import signal
 import subprocess
+import threading
+import time
 
 import luxos_printing as lp
 
@@ -43,22 +45,37 @@ def parse_devices(text):
     return [v[1] for v in sorted(best.values(), key=lambda v: v[1]["name"].lower())]
 
 
+# Skener USB (napr. Canon pixma) smi mit otevreny jen jeden proces: soubezne `scanimage -L` (hledani)
+# a `scanimage -A` nebo skenovani skonci "open of device ... failed: Invalid argument". Volani z aplikace
+# se proto stridaji (zamek) a otevreni, ktere selze kvuli jinemu procesu, se par sekund zkousi znovu.
+SANE_LOCK = threading.Lock()
+OPEN_FAILED = re.compile(r"open of device \S+ failed: (invalid argument|device busy|resource busy)", re.I)
+OPEN_RETRIES = 4
+OPEN_RETRY_DELAY = 1.5
+
+
 def list_devices(timeout=90):
     """[{id, name, type, conn}]; OSError, kdyz scanimage chybi."""
-    r = subprocess.run(["scanimage", "-f", LIST_FORMAT], capture_output=True, text=True, timeout=timeout)
+    with SANE_LOCK:
+        r = subprocess.run(["scanimage", "-f", LIST_FORMAT], capture_output=True, text=True, timeout=timeout)
     return parse_devices(r.stdout)
 
 
 def probe_options(dev, timeout=60):
     """Volby skeneru ze `scanimage -A` (rezimy, rozliseni, zdroje). Chyba -> ScanError."""
-    try:
-        r = subprocess.run(["scanimage", "-d", dev, "-A"], capture_output=True, text=True, timeout=timeout)
-    except subprocess.TimeoutExpired as e:
-        raise ScanError("timeout", "scanimage -A: timeout") from e
-    opts = lp.parse_scan_options(r.stdout)
-    if r.returncode != 0 and not opts:
-        raise ScanError(error_kind(r.stderr), r.stderr.strip())
-    return opts
+    for attempt in range(OPEN_RETRIES):
+        try:
+            with SANE_LOCK:
+                r = subprocess.run(["scanimage", "-d", dev, "-A"], capture_output=True, text=True, timeout=timeout)
+        except subprocess.TimeoutExpired as e:
+            raise ScanError("timeout", "scanimage -A: timeout") from e
+        opts = lp.parse_scan_options(r.stdout)
+        if r.returncode == 0 or opts:
+            return opts
+        if not OPEN_FAILED.search(r.stderr) or attempt == OPEN_RETRIES - 1:
+            break
+        time.sleep(OPEN_RETRY_DELAY)        # skener prave drzi jiny proces (hledani, druhe okno)
+    raise ScanError(error_kind(r.stderr), r.stderr.strip())
 
 
 # ---- zdroje papiru ----
@@ -198,6 +215,16 @@ class Scan:
 
     def run(self, progress=None):
         """Vrati seznam naskenovanych souboru, jinak ScanError."""
+        for attempt in range(OPEN_RETRIES):
+            with SANE_LOCK:
+                try:
+                    return self._run_once(progress)
+                except ScanError as e:
+                    if self.cancelled or not OPEN_FAILED.search(e.details or "") or attempt == OPEN_RETRIES - 1:
+                        raise
+            time.sleep(OPEN_RETRY_DELAY)    # skener drzi jiny proces - zkusit znovu, nez se ukaze chyba
+
+    def _run_once(self, progress=None):
         try:
             self.proc = subprocess.Popen(self.command(), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
                                          start_new_session=True)

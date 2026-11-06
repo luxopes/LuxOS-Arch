@@ -1,4 +1,6 @@
 # LuxOS - po pripojeni USB tiskarny nebo skeneru ji hned nastavit (luxos-printing-helper sync).
+# Jmeno 99-zz: az po 99-systemd.rules a po 70-printers.rules (system-config-printer prirazuje SYSTEMD_WANTS
+# pres "=", coz by nase pridani prepsalo - proto se luxos-printing-sync po pripojeni nikdy nespustil).
 # Tiskarny IPP-USB obslouzi ipp-usb (71-ipp-usb.rules) a ohlasi se pres avahi -> luxos-printing-watch.
 ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{ID_USB_INTERFACES}=="*:0701??:*", TAG+="systemd", ENV{SYSTEMD_WANTS}+="luxos-printing-sync.service"
 ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{libsane_matched}=="yes", TAG+="systemd", ENV{SYSTEMD_WANTS}+="luxos-printing-sync.service"
