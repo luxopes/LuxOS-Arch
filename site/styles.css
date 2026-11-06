@@ -95,3 +95,8 @@ body.light .lang-switch a[aria-current]{color:#fff}
 body.light .about p,body.light .breadcrumbs,body.light .badge-en{color:#42506d}
 body.light .about a{color:#3d4fd0}
 body.light .doc-nav a.current{color:#fff}
+
+/* Varovani u stazeni: nestabilni vydani */
+.unstable-warning{margin:0 0 14px;padding:7px 11px;border-radius:9px;font-size:12px;color:#ffc46b;
+  background:rgba(255,159,10,.13);border:1px solid rgba(255,159,10,.35)}
+body.light .unstable-warning{color:#8a4b00}
