@@ -1,0 +1,17 @@
+[Unit]
+Description=LuxOS firewall - watch settings and services that open ports
+Documentation=file:///usr/share/luxos/docs/luxos/firewall.md
+
+[Path]
+PathChanged=/etc/luxos/firewall.json
+PathChanged=/etc/systemd/system/multi-user.target.wants
+PathChanged=/etc/systemd/system/sockets.target.wants
+PathChanged=/etc/ssh/sshd_config
+PathChanged=/etc/ssh/sshd_config.d
+PathChanged=/etc/cups/cupsd.conf
+PathChanged=/etc/default/tailscaled
+PathChanged=/var/lib/flatpak/app
+Unit=luxos-firewall-refresh.service
+
+[Install]
+WantedBy=paths.target

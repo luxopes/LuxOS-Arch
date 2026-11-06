@@ -4513,3 +4513,72 @@ Switch windows of the current app backwards	Przełączaj okna bieżącej aplikac
 Next window of the same app (without previews)	Następne okno tej samej aplikacji (bez podglądów)
 Group windows by app in Alt+Tab	Grupuj okna według aplikacji w Alt+Tab
 Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Każda aplikacja jest pokazana raz. Przytrzymując Alt, naciśnij strzałkę w dół lub `, aby zobaczyć okna wybranej aplikacji.
+# Firewall LuxOS (luxos-firewall, Nastaveni > Firewall, upozorneni v luxos-hub)
+A container (Podman)	Kontener (Podman)
+add one with: luxos-firewall allow PORT	dodaj wyjątek poleceniem: luxos-firewall allow PORT
+administrator rights are needed (sudo luxos-firewall ...)	wymagane są uprawnienia administratora (sudo luxos-firewall ...)
+Allow a port	Zezwól na port
+Allowed automatically	Dozwolone automatycznie
+Allowed automatically:	Dozwolone automatycznie:
+Allowed incoming connections to %s (%s).	Zezwolono na połączenia przychodzące do %s (%s).
+allow: --from lan (default) = only devices on this network, --from any = everywhere	allow: --from lan (domyślnie) = tylko urządzenia w tej sieci, --from any = zewsząd
+Allow will let only devices on this network connect (not the internet).	Zezwól pozwoli łączyć się tylko urządzeniom w tej sieci (nie z internetu).
+A program	Program
+Blocks incoming connections from the network. Your apps can still use the internet, and apps listed below keep working.	Blokuje połączenia przychodzące z sieci. Twoje aplikacje nadal mogą korzystać z internetu, a aplikacje wymienione poniżej działają dalej.
+Connection from %s	Połączenie z %s
+Devices on this network can connect to port %s. You can change it in Firewall settings.	Urządzenia w tej sieci mogą łączyć się z portem %s. Możesz to zmienić w ustawieniach Zapory.
+everywhere	zewsząd
+Everywhere	Zewsząd
+Firewall: off - the computer accepts connections from the network.	Zapora: wyłączona - komputer przyjmuje połączenia z sieci.
+Firewall: on, but the rules are not loaded (the network is open).	Zapora: włączona, ale reguły nie są wczytane (sieć jest otwarta).
+Firewall: on - incoming connections from the network are blocked, except:	Zapora: włączona - połączenia przychodzące z sieci są blokowane, z wyjątkiem:
+Firewall Settings	Ustawienia zapory
+from	z
+Keep Blocked	Nadal blokuj
+LuxDrop and exceptions for this network also accept connections from your Tailscale devices.	LuxDrop i wyjątki dla tej sieci przyjmują też połączenia z Twoich urządzeń w Tailscale.
+LuxOS firewall	Zapora LuxOS
+Nothing	Nic
+Off - the computer accepts connections from the network.	Wyłączona - komputer przyjmuje połączenia z sieci.
+On, but the rules are not loaded - the network is open. Try turning the firewall off and on.	Włączona, ale reguły nie są wczytane - sieć jest otwarta. Spróbuj wyłączyć i ponownie włączyć zaporę.
+On - the computer is protected.	Włączona - komputer jest chroniony.
+Open Firewall settings and try it there.	Otwórz ustawienia Zapory i spróbuj tam.
+pkexec could not be started.	Nie udało się uruchomić pkexec.
+Port, e.g. 8080	Port, np. 8080
+Port %s is blocked again.	Port %s jest znowu zablokowany.
+Printer sharing	Udostępnianie drukarek
+Recently blocked	Ostatnio zablokowane
+Recently blocked (a program on this computer was listening):	Ostatnio zablokowane (program na tym komputerze nasłuchiwał):
+%s can now accept connections	%s może teraz przyjmować połączenia
+You can also change it in Settings > Firewall.	Możesz to też zmienić w Ustawienia > Zapora.
+%s is damaged; using the default settings	%s jest uszkodzony; używane są ustawienia domyślne
+"%s" is not a valid port (e.g. 8080, 8080/tcp, 8000-8010/udp)	„%s” nie jest prawidłowym portem (np. 8080, 8080/tcp, 8000-8010/udp)
+Something stopped working on the network? Allow it here, or run "luxos-firewall allow PORT" in Terminal.	Coś przestało działać w sieci? Zezwól na to tutaj albo uruchom w Terminalu „luxos-firewall allow PORT”.
+SSH (remote login)	SSH (zdalne logowanie)
+%s wants to accept connections from the network	%s chce przyjmować połączenia z sieci
+Tailscale devices are no longer treated as this network.	Urządzenia w Tailscale nie są już traktowane jako ta sieć.
+Tailscale devices are treated as this network.	Urządzenia w Tailscale są traktowane jako ta sieć.
+TCP and UDP	TCP i UDP
+The change could not be made.	Nie udało się wprowadzić zmiany.
+The firewall blocked a connection to port %s from a Tailscale device (%s).	Zapora zablokowała połączenie z portem %s z urządzenia w Tailscale (%s).
+The firewall blocked a connection to port %s from %s.	Zapora zablokowała połączenie z portem %s z %s.
+The firewall exception could not be added	Nie udało się dodać wyjątku zapory
+The firewall is off; the change applies when you turn it on.	Zapora jest wyłączona; zmiana zacznie działać po jej włączeniu.
+The firewall is off. Turn it on again with: luxos-firewall on	Zapora jest wyłączona. Włącz ją ponownie poleceniem: luxos-firewall on
+The firewall is on.	Zapora jest włączona.
+the firewall rules could not be loaded:	nie udało się wczytać reguł zapory:
+The LuxOS firewall is not installed (lux install luxos-firewall).	Zapora LuxOS nie jest zainstalowana (lux install luxos-firewall).
+There is no exception for %s.	Brak wyjątku dla %s.
+this network only	tylko ta sieć
+This network only	Tylko ta sieć
+"This network only" means devices on your Wi-Fi or cable network, not the internet.	„Tylko ta sieć” oznacza urządzenia w Twojej sieci Wi-Fi lub kablowej, nie internet.
+To allow your Tailscale devices, turn on "Treat Tailscale devices as this network" in Firewall settings.	Aby zezwolić na Twoje urządzenia w Tailscale, włącz w ustawieniach Zapory opcję „Traktuj urządzenia w Tailscale jako tę sieć”.
+Treat Tailscale devices as this network	Traktuj urządzenia w Tailscale jako tę sieć
+Try: sudo systemctl restart luxos-firewall	Spróbuj: sudo systemctl restart luxos-firewall
+Your exceptions	Twoje wyjątki
+Your exceptions:	Twoje wyjątki:
+Firewall: allow = incoming ports open from everywhere, allow_lan = only from this network, e.g. ["22/tcp"]	Zapora: allow = porty przychodzące otwarte zewsząd, allow_lan = tylko z tej sieci, np. ["22/tcp"]
+The LuxOS firewall is not installed; add "luxos-firewall" to packages.	Zapora LuxOS nie jest zainstalowana; dodaj "luxos-firewall" do packages.
+allow incoming %s from everywhere	zezwól na przychodzące %s zewsząd
+allow incoming %s from this network	zezwól na przychodzące %s z tej sieci
+stop allowing incoming %s from everywhere	przestań zezwalać na przychodzące %s zewsząd
+stop allowing incoming %s from this network	przestań zezwalać na przychodzące %s z tej sieci

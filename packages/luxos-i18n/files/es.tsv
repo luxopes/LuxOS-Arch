@@ -4512,3 +4512,72 @@ Switch windows of the current app backwards	Cambiar entre ventanas de la app act
 Next window of the same app (without previews)	Siguiente ventana de la misma app (sin vistas previas)
 Group windows by app in Alt+Tab	Agrupar ventanas por app en Alt+Tab
 Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Cada app aparece una sola vez. Manteniendo Alt, pulsa Abajo o ` para ver las ventanas de la app seleccionada.
+# Firewall LuxOS (luxos-firewall, Nastaveni > Firewall, upozorneni v luxos-hub)
+A container (Podman)	Un contenedor (Podman)
+add one with: luxos-firewall allow PORT	añade una con: luxos-firewall allow PORT
+administrator rights are needed (sudo luxos-firewall ...)	se necesitan permisos de administrador (sudo luxos-firewall ...)
+Allow a port	Permitir un puerto
+Allowed automatically	Permitido automáticamente
+Allowed automatically:	Permitido automáticamente:
+Allowed incoming connections to %s (%s).	Se permitieron las conexiones entrantes a %s (%s).
+allow: --from lan (default) = only devices on this network, --from any = everywhere	allow: --from lan (predeterminado) = solo dispositivos de esta red, --from any = desde cualquier lugar
+Allow will let only devices on this network connect (not the internet).	Permitir solo deja conectarse a los dispositivos de esta red (no desde internet).
+A program	Un programa
+Blocks incoming connections from the network. Your apps can still use the internet, and apps listed below keep working.	Bloquea las conexiones entrantes desde la red. Tus apps pueden seguir usando internet y las apps de la lista de abajo siguen funcionando.
+Connection from %s	Conexión desde %s
+Devices on this network can connect to port %s. You can change it in Firewall settings.	Los dispositivos de esta red pueden conectarse al puerto %s. Puedes cambiarlo en los ajustes del Cortafuegos.
+everywhere	desde cualquier lugar
+Everywhere	Desde cualquier lugar
+Firewall: off - the computer accepts connections from the network.	Cortafuegos: desactivado - el ordenador acepta conexiones desde la red.
+Firewall: on, but the rules are not loaded (the network is open).	Cortafuegos: activado, pero las reglas no están cargadas (la red está abierta).
+Firewall: on - incoming connections from the network are blocked, except:	Cortafuegos: activado - las conexiones entrantes desde la red están bloqueadas, excepto:
+Firewall Settings	Ajustes del cortafuegos
+from	desde
+Keep Blocked	Mantener bloqueado
+LuxDrop and exceptions for this network also accept connections from your Tailscale devices.	LuxDrop y las excepciones para esta red también aceptan conexiones de tus dispositivos de Tailscale.
+LuxOS firewall	Cortafuegos de LuxOS
+Nothing	Nada
+Off - the computer accepts connections from the network.	Desactivado - el ordenador acepta conexiones desde la red.
+On, but the rules are not loaded - the network is open. Try turning the firewall off and on.	Activado, pero las reglas no están cargadas - la red está abierta. Prueba a desactivar y volver a activar el cortafuegos.
+On - the computer is protected.	Activado - el ordenador está protegido.
+Open Firewall settings and try it there.	Abre los ajustes del Cortafuegos e inténtalo allí.
+pkexec could not be started.	No se pudo iniciar pkexec.
+Port, e.g. 8080	Puerto, p. ej. 8080
+Port %s is blocked again.	El puerto %s vuelve a estar bloqueado.
+Printer sharing	Compartir impresoras
+Recently blocked	Bloqueados recientemente
+Recently blocked (a program on this computer was listening):	Bloqueados recientemente (un programa de este ordenador estaba escuchando):
+%s can now accept connections	%s ya puede aceptar conexiones
+You can also change it in Settings > Firewall.	También puedes cambiarlo en Ajustes > Cortafuegos.
+%s is damaged; using the default settings	%s está dañado; se usan los ajustes predeterminados
+"%s" is not a valid port (e.g. 8080, 8080/tcp, 8000-8010/udp)	«%s» no es un puerto válido (p. ej. 8080, 8080/tcp, 8000-8010/udp)
+Something stopped working on the network? Allow it here, or run "luxos-firewall allow PORT" in Terminal.	¿Algo dejó de funcionar en la red? Permítelo aquí o ejecuta «luxos-firewall allow PORT» en Terminal.
+SSH (remote login)	SSH (inicio de sesión remoto)
+%s wants to accept connections from the network	%s quiere aceptar conexiones desde la red
+Tailscale devices are no longer treated as this network.	Los dispositivos de Tailscale ya no se tratan como esta red.
+Tailscale devices are treated as this network.	Los dispositivos de Tailscale se tratan como esta red.
+TCP and UDP	TCP y UDP
+The change could not be made.	No se pudo realizar el cambio.
+The firewall blocked a connection to port %s from a Tailscale device (%s).	El cortafuegos bloqueó una conexión al puerto %s desde un dispositivo de Tailscale (%s).
+The firewall blocked a connection to port %s from %s.	El cortafuegos bloqueó una conexión al puerto %s desde %s.
+The firewall exception could not be added	No se pudo añadir la excepción del cortafuegos
+The firewall is off; the change applies when you turn it on.	El cortafuegos está desactivado; el cambio se aplicará cuando lo actives.
+The firewall is off. Turn it on again with: luxos-firewall on	El cortafuegos está desactivado. Vuelve a activarlo con: luxos-firewall on
+The firewall is on.	El cortafuegos está activado.
+the firewall rules could not be loaded:	no se pudieron cargar las reglas del cortafuegos:
+The LuxOS firewall is not installed (lux install luxos-firewall).	El cortafuegos de LuxOS no está instalado (lux install luxos-firewall).
+There is no exception for %s.	No hay ninguna excepción para %s.
+this network only	solo esta red
+This network only	Solo esta red
+"This network only" means devices on your Wi-Fi or cable network, not the internet.	«Solo esta red» significa los dispositivos de tu red Wi-Fi o por cable, no internet.
+To allow your Tailscale devices, turn on "Treat Tailscale devices as this network" in Firewall settings.	Para permitir tus dispositivos de Tailscale, activa «Tratar los dispositivos de Tailscale como esta red» en los ajustes del Cortafuegos.
+Treat Tailscale devices as this network	Tratar los dispositivos de Tailscale como esta red
+Try: sudo systemctl restart luxos-firewall	Prueba: sudo systemctl restart luxos-firewall
+Your exceptions	Tus excepciones
+Your exceptions:	Tus excepciones:
+Firewall: allow = incoming ports open from everywhere, allow_lan = only from this network, e.g. ["22/tcp"]	Cortafuegos: allow = puertos entrantes abiertos desde cualquier lugar, allow_lan = solo desde esta red, p. ej. ["22/tcp"]
+The LuxOS firewall is not installed; add "luxos-firewall" to packages.	El cortafuegos de LuxOS no está instalado; añade "luxos-firewall" a packages.
+allow incoming %s from everywhere	permitir %s entrante desde cualquier lugar
+allow incoming %s from this network	permitir %s entrante desde esta red
+stop allowing incoming %s from everywhere	dejar de permitir %s entrante desde cualquier lugar
+stop allowing incoming %s from this network	dejar de permitir %s entrante desde esta red

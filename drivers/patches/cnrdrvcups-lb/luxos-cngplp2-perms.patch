@@ -1,0 +1,49 @@
+# LuxOS: /etc/cngplp2/account a options s pravy 1777 (sticky) misto 777 - zapis uzivatelu zustava, cizi soubory nejdou smazat ani prepsat
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -25,7 +25,7 @@
+ 
+ pkgver="${_pkgver}.1.${_suffix2}"
+ epoch=1
+-pkgrel=2
++pkgrel=2.1
+ pkgdesc='CUPS Canon UFR II LIPSLX CARPS2 printer driver for LBP iR MF ImageCLASS ImageRUNNER Laser Shot i-SENSYS ImagePRESS ADVANCE printers and copiers'
+ arch=('x86_64' 'aarch64')
+ # Direct links to the download reference go bad on the next version. We want something that will persist for a while.
+@@ -45,6 +45,8 @@
+ 
+ conflicts=(cndrvcups-lb cndrvcups-common-lb)
+ options=(emptydirs !strip !libtool !debug)
++# LuxOS: /etc/cngplp2/{account,options} 1777 misto 777 (luxos-cngplp2.install opravi i starsi instalace)
++install=luxos-cngplp2.install
+ 
+ source=(  "http://gdlp01.c-wss.com/gds/${_dl}/linux-UFRII-drv-v${_pkgver//\./}-${_suffix1}-${_suffix2}.tar.gz"
+                 replace_incorrect_int_with_char.patch
+@@ -191,6 +193,11 @@
+     env "${_vars[@]}" \
+     RPM_BUILD_ROOT="${pkgdir}" \
+     sh 'make.install.Arch'
++
++    # LuxOS: cngplp2 (bezi pod uzivatelem) zapisuje do /etc/cngplp2/account vlastni soubory uzivatele
++    # (<uzivatel>.conf, 0600) a do options/options.conf; ovladac CUPS je necte. Sticky bit (1777 jako /tmp):
++    # zapis zustava, ale nikdo nesmaze/neprepise soubory jineho uzivatele (Canon dava 777).
++    chmod 1777 "$pkgdir/etc/cngplp2/account" "$pkgdir/etc/cngplp2/options"
+     
+     # package creates empty directories in /etc and /usr.
+     # If those in /etc are not present, some functionality is unavailable. manually remove the empty in /usr
+--- /dev/null
++++ b/luxos-cngplp2.install
+@@ -0,0 +1,13 @@
++# LuxOS: pacman nemeni prava existujicich adresaru - starsi instalace mely /etc/cngplp2/* s pravy 777
++post_install() {
++    if [ -d /etc/cngplp2/account ]; then
++        chmod 1777 /etc/cngplp2/account
++    fi
++    if [ -d /etc/cngplp2/options ]; then
++        chmod 1777 /etc/cngplp2/options
++    fi
++}
++
++post_upgrade() {
++    post_install
++}

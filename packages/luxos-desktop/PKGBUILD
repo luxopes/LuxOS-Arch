@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=59
+pkgrel=60
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -50,6 +50,8 @@ depends=(
     luxos-guard
     # LuxOS Care: aktualizace, zalozni jadro a prechod na jadro LuxOS (starsi instalace ho nemely)
     luxos-care
+    # Firewall LuxOS: zapnuty po instalaci i aktualizaci starsich systemu (upozorneni v luxos-hub, Nastaveni > Firewall)
+    luxos-firewall
     # Zalohy: automaticke zalohy domovske slozky na externi/sitovy disk (uzivatelsky casovac)
     luxos-backup
     # Zvuk s prioritou v realnem case (PipeWire bez praskani pri zatezi) a pravidla Wi-Fi podle
@@ -136,6 +138,8 @@ build() {
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-emoji.lsl" luxos-emoji
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-emoji-ui.lsl" luxos-emoji-ui
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-emoji-data.lsl" luxos-emoji-data
+    # Nastaveni > Firewall (luxos-firewall: zapnuti, vyjimky, Tailscale, nedavno zablokovane programy)
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-firewall-settings.lsl" luxos-firewall-settings
     rm -rf cldr-ann cldr-der emoji-data
     mkdir -p cldr-ann cldr-der
     tar -xzf "cldr-annotations-full-$_cldr.tgz" -C cldr-ann
@@ -156,7 +160,7 @@ package() {
 
     install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
-        luxos-screenshot luxos-gpu
+        luxos-screenshot luxos-gpu luxos-firewall-settings
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"
     install -Dm755 luxos-emoji-ui "$pkgdir/usr/lib/luxos/luxos-emoji-ui"

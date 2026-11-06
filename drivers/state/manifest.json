@@ -10366,6 +10366,9 @@
    "gzip",
    "libxml2"
   ],
+  "patches": {
+   "luxos-cngplp2-perms.patch": "c730f512c651304b6ea9a99bfe27c92aaab21ee450486f04c887e380cbbf556f"
+  },
   "pkgnames": [
    "cnrdrvcups-lb"
   ],
@@ -10375,8 +10378,8 @@
    "replace_incorrect_int_with_char.patch": "033efa703c5e48ea911e11112977998911e6b933a945bd7a58de435693e9ec40"
   },
   "vendor": "canon",
-  "verified": "2026-10-24",
-  "version": "1:6.40.1.05-2"
+  "verified": "2026-11-06",
+  "version": "1:6.40.1.05-2.1"
  },
  "cnrdrvcups-lb-bin": {
   "commit": "9499f431bf45e3046299412b7ab9db53e9107764",

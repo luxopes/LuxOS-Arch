@@ -119,5 +119,7 @@ Run `luxos-scan` (optionally `--device <SANE device>`). It is a simple scanner w
 - **Scanner not found**: `scanimage -L`. The Scanner app says "Scanning support is not installed"
   when SANE is missing (install `luxos-printing`). It says "The scanner does not respond" when the
   device is off or busy.
-- If you have a firewall, network printers need mDNS (UDP 5353). LuxOS does not ship a firewall by
-  default.
+- The LuxOS firewall lets printer and scanner discovery through (mDNS, SSDP, WS-Discovery, SNMP,
+  Canon BJNP and Epson replies from this network) and printing itself is an outgoing connection.
+  Sharing your printers with other computers opens TCP 631 automatically once CUPS shares them.
+  See [firewall.md](firewall.md).

@@ -389,7 +389,9 @@ def _abs_writes(code, where, masked=None):
 INSTALL_WRITE_OK = ("/opt/", "/usr/share/cups/", "/usr/share/ppd/", "/usr/lib/cups/", "/usr/share/brother",
                     "/usr/local/Brother", "/usr/share/doc/", "/etc/sane.d/", "/etc/udev/rules.d/", "/usr/lib/sane/",
                     "/var/log/", "/var/spool/lpd/", "/var/tmp/", "/tmp/", "/usr/share/epson", "/usr/lib/epson",
-                    "/usr/share/iscan", "/usr/lib/iscan", "/etc/cups/ppd/", "/usr/share/samsung", "/opt")
+                    "/usr/share/iscan", "/usr/lib/iscan", "/etc/cups/ppd/", "/usr/share/samsung", "/opt",
+                    # Canon UFR II (cnrdrvcups-lb): oprava prav /etc/cngplp2/{account,options} u starsich instalaci
+                    "/etc/cngplp2/")
 
 
 # Spustitelne soubory vyrobce, ktere smi .install spustit (zdroj = archiv vyrobce s overenym souctem)

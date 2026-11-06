@@ -66,7 +66,7 @@ systemd-timesyncd.service enabled enabled
 dbus-broker.service enabled enabled
 luxos-guard.service enabled disabled
 luxos-guard-snapshot.timer enabled disabled
-ufw.service disabled disabled
+luxos-firewall.service enabled disabled
 lightdm.service enabled disabled
 """
 
@@ -115,9 +115,10 @@ class Base(unittest.TestCase):
         write(r + "/etc/shells", "/bin/bash\n/usr/bin/bash\n/usr/bin/zsh\n")
         write(r + "/etc/login.defs", "UID_MIN 1000\nUID_MAX 60000\nGID_MIN 1000\nGID_MAX 60000\n")
         write(r + ls.CARE_CONF, "# LuxOS Care\nMODE=carefree\n")
-        write(r + "/etc/ufw/ufw.conf", "ENABLED=no\n")
-        write(r + "/etc/ufw/user.rules", "### tuple ### allow tcp 22 0.0.0.0/0 any 0.0.0.0/0 in\n"
-              "### tuple ### allow any 53 0.0.0.0/0 any 0.0.0.0/0 in\n")
+        write(r + ls.FIREWALL_CONF, json.dumps({"enable": False, "trust_tailscale": False, "allow": [
+            {"port": "22", "proto": "tcp", "from": "any"}, {"port": "53", "proto": "tcp", "from": "any"},
+            {"port": "53", "proto": "udp", "from": "any"},
+            {"port": "5432", "proto": "tcp", "from": "lan", "app": "postgres"}]}))
         write(r + "/boot/loader/entries/luxos.conf", SDBOOT)
         write(r + "/boot/loader/entries/luxos-fallback.conf", SDBOOT.replace(" quiet splash", ""))
         write(r + "/boot/loader/entries/luxos-snapshot-2026-10-20_10-00-00.conf", SDBOOT)
@@ -228,7 +229,8 @@ class StateTest(Base):
         self.assertEqual(sorted(st.normal_users()), ["anna", "petr"])
         self.assertEqual(st.user_groups("anna"), ["audio", "family", "wheel"])
         self.assertEqual(st.shadow_hash("anna"), "$6$salt$old")
-        self.assertEqual(st.firewall(), {"installed": True, "enable": False, "allow": ["22/tcp", "53"]})
+        self.assertEqual(st.firewall(), {"installed": True, "enable": False, "allow": ["22/tcp", "53"],
+                                         "allow_lan": ["5432/tcp"]})
         self.assertEqual(st.care(), {"mode": "carefree", "snapshots": True, "keep_snapshots": 5,
                                      "protect": False, "verify": True})
         lay = st.boot()
@@ -339,18 +341,43 @@ class PlanTest(Base):
         self.assertEqual(self.texts(plan), [
             "guard - turn off luxos-guard-snapshot.timer",
             "care ~ mode: carefree → classic, snapshots: True → False",
-            "firewall + allow incoming 8000:8010/udp",
-            "firewall - stop allowing incoming 53",
+            "firewall + allow incoming 8000:8010/udp from everywhere",
+            "firewall - stop allowing incoming 53/tcp from everywhere",
+            "firewall - stop allowing incoming 53/udp from everywhere",
             "firewall + turn on the firewall",
             "kernel ~ +mitigations=auto -splash  (after a restart)",
         ])
         self.assertTrue(plan.restart)
 
-    def test_firewall_needs_ufw(self):
-        write(self.fake + "/explicit", "base\nlux\n")
+    def test_firewall_not_installed(self):
+        os.remove(os.path.join(self.bin, "luxos-firewall"))
+        write(self.fake + "/repo", "luxos-firewall\n")
         plan = self.plan({"firewall": {"enable": True, "allow": ["22/tcp"]}})
-        self.assertEqual(plan.changes[0].text, "install: ufw")
+        self.assertEqual(plan.changes[0].text, "install: luxos-firewall")
         self.assertIn("firewall + turn on the firewall", self.texts(plan))
+        with self.assertRaises(ls.UserError) as cm:
+            ls.compute(ls.normalize({"firewall": {"allow_lan": ["80"]}})[0], ls.State(), {})
+        self.assertIn("luxos-firewall", str(cm.exception))
+
+    def test_firewall_lan_exceptions_and_commands(self):
+        plan = self.plan({"firewall": {"allow": ["22/tcp", "53"], "allow_lan": ["5432/tcp", "3000:3001/tcp"]}})
+        self.assertEqual(self.texts(plan), ["firewall + allow incoming 3000:3001/tcp from this network"])
+        plan.changes[0].action()
+        with open(self.log) as f:
+            self.assertIn("luxos-firewall allow 3000-3001/tcp --from lan", f.read())
+        # port presunuty z "jen tato sit" do "odkudkoli": jen allow (prepise), zadne deny
+        plan = self.plan({"firewall": {"allow": ["22/tcp", "53", "5432/tcp"], "allow_lan": []}})
+        self.assertEqual(self.texts(plan), ["firewall + allow incoming 5432/tcp from everywhere"])
+        plan = self.plan({"firewall": {"enable": False, "allow_lan": []}})
+        self.assertEqual(self.texts(plan), ["firewall - stop allowing incoming 5432/tcp from this network"])
+        plan.changes[0].action()
+        with open(self.log) as f:
+            self.assertIn("luxos-firewall deny 5432/tcp", f.read())
+        plan = self.plan({"firewall": {"enable": True}})
+        self.assertEqual(self.texts(plan), ["firewall + turn on the firewall"])
+        plan.changes[0].action()
+        with open(self.log) as f:
+            self.assertIn("luxos-firewall on", f.read())
 
 
 class ApplyFilesTest(Base):

@@ -69,9 +69,11 @@ config = {
         "enable": True
         "home_snapshots": True
     }
+    # Firewall LuxOS: allow = from everywhere, allow_lan = only from this network
     "firewall": {
         "enable": True
         "allow": ["22/tcp"]
+        "allow_lan": ["8080/tcp"]
     }
     "kernel": {
         "params": ["quiet", "splash"]

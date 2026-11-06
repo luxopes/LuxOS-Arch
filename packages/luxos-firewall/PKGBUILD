@@ -1,0 +1,40 @@
+# Maintainer: LuxOS Team
+# LuxOS firewall: vychozi firewall zapnuty po instalaci i po aktualizaci, ve vlastni tabulce nftables
+# (inet luxos) - Tailscale, Podman, libvirt, Docker ani ufw neovlivni. Blokuje nova prichozi spojeni
+# krome nezbytnych (DHCP, IPv6 sousede, mDNS, odpovedi pri hledani tiskaren), LuxDrop/Steam/KDE Connect
+# jen z mistni site, SSH jen se zapnutym sshd. Zablokovany program, ktery posloucha, ukaze luxos-hub
+# jako upozorneni "Povolit / Nechat blokovane"; nastaveni v Nastaveni > Firewall (luxos-desktop).
+
+pkgname=luxos-firewall
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS firewall - on by default, own nftables table, LAN-only app ports, notifications for blocked programs"
+arch=(x86_64)
+url="https://luxos.lux-ai.cz/"
+license=(GPL-3.0-or-later)
+# !strip: program v LSL (dynamicky linkovany ELF cile linux-x86_64-gnu) po strip nejde spustit
+options=(!debug !strip)
+# nftables: nft; iproute2: ss (ktery program posloucha); polkit: pkexec pro "Povolit" v upozorneni
+depends=(glibc nftables iproute2 systemd polkit)
+optdepends=('luxos-i18n: translated messages')
+makedepends=('lsl>=0.10.6')
+checkdepends=(python python-pytest)
+install=luxos-firewall.install
+
+build() {
+    lslc --target linux-x86_64-gnu "$startdir/files/luxos-firewall.lsl" luxos-firewall
+}
+
+check() {
+    cd "$startdir"
+    LUXOS_FIREWALL_BIN="$srcdir/luxos-firewall" python -m pytest -q -p no:cacheprovider tests
+}
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 luxos-firewall "$pkgdir/usr/bin/luxos-firewall"
+    install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f"/systemd/*
+    install -Dm644 "$f/hooks/luxos-firewall.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-firewall.hook"
+    install -Dm644 "$f/org.luxos.firewall.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.firewall.policy"
+    install -Dm644 "$f/50-luxos-firewall.rules" "$pkgdir/usr/share/polkit-1/rules.d/50-luxos-firewall.rules"
+}

@@ -165,7 +165,8 @@ class Hub(unittest.TestCase):
         cls.fake = os.path.join(TMP, "fake")
         os.makedirs(cls.fake, exist_ok=True)
         for name in ("notify-send", "luxos-datasaver", "luxos-appearance", "luxos-safe", "luxos-powersaver", "brightnessctl",
-                     "luxos-displays", "xfce4-panel", "luxos-update", "luxos-drivers", "xfce4-session-logout", "nmcli", "pactl"):
+                     "luxos-displays", "xfce4-panel", "luxos-update", "luxos-drivers", "xfce4-session-logout", "nmcli", "pactl",
+                     "pkexec", "luxos-firewall-settings"):
             with open(os.path.join(cls.fake, name), "w") as f:
                 f.write('#!/bin/sh\nprintf "%s\\n" "$(basename "$0") $*" >>"$FAKE_LOG"\n')
             os.chmod(os.path.join(cls.fake, name), 0o755)
@@ -1078,6 +1079,65 @@ class Hub(unittest.TestCase):
         titles = [c[1][3] for c in notes.calls if c[0] == "Notify"]
         self.assertNotIn(translation("Restart to finish the kernel update"), titles)
         self.assertNotIn(translation("LuxOS was updated"), titles)
+
+    def test_firewall_notifications(self):
+        """Zablokovany program (requests.json od luxos-firewall-watch) -> upozorneni; Povolit = pkexec allow --from lan,
+        Nechat blokovane = firewall-ignored; uz povolene, ignorovane, stare a Tailscale s duverou se neoznamuji."""
+        notes = self.service("org.freedesktop.Notifications", [("/org/freedesktop/Notifications", NOTIFY_XML)])
+        run = os.path.join(self.home, "fwrun")
+        os.makedirs(run)
+        conf = os.path.join(self.home, "firewall.json")
+        with open(conf, "w") as f:
+            json.dump({"enable": True, "trust_tailscale": False, "allow": [{"port": "8080", "proto": "tcp", "from": "lan"}]}, f)
+        os.makedirs(self.cfg, exist_ok=True)
+        with open(os.path.join(self.cfg, "firewall-ignored"), "w") as f:
+            f.write("9999/tcp\n")
+        now = int(time.time())
+        entries = [{"port": 5432, "proto": "tcp", "app": "Podman", "src": "192.168.1.20", "lan": True, "tailscale": False, "time": now},
+                   {"port": 8080, "proto": "tcp", "app": "node", "src": "192.168.1.20", "lan": True, "tailscale": False, "time": now},
+                   {"port": 9999, "proto": "tcp", "app": "x", "src": "192.168.1.20", "lan": True, "tailscale": False, "time": now},
+                   {"port": 7000, "proto": "tcp", "app": "old", "src": "192.168.1.20", "lan": True, "tailscale": False, "time": now - 7200},
+                   {"port": 3000, "proto": "tcp", "app": "node", "src": "100.90.1.3", "lan": False, "tailscale": True, "time": now}]
+        with open(os.path.join(run, "requests.json"), "w") as f:
+            json.dump(entries, f)
+        self.start_hub(LUXOS_FIREWALL_RUN_DIR=run, LUXOS_FIREWALL_CONFIG=conf, LUXOS_FIREWALL_DELAY="1")
+        self.assertTrue(self.wait_for(lambda: len([c for c in notes.calls if c[0] == "Notify" and c[1][2] == "firewall"]) >= 2, 10), notes.calls)
+        time.sleep(1)
+        notify = [c[1] for c in notes.calls if c[0] == "Notify" and c[1][2] == "firewall"]
+        titles = [n[3] for n in notify]
+        podman = translation("%s wants to accept connections from the network").replace("%s", translation("A container (Podman)"))
+        self.assertIn(podman, titles)
+        self.assertIn(translation("%s wants to accept connections from the network").replace("%s", "node"), titles)
+        self.assertEqual(len(notify), 2, titles)                      # 8080 povoleny, 9999 ignorovany, 7000 stary
+        ts = [n for n in notify if "100.90.1.3" in n[4]][0]
+        self.assertNotIn("allow", ts[5])                               # Tailscale: jen Nastaveni, ne Povolit
+        self.assertIn("allow", [n for n in notify if n[3] == podman][0][5])
+        allnotes = [c[1] for c in notes.calls if c[0] == "Notify"]
+        ids = {n[3]: 41 + i for i, n in enumerate(allnotes)}
+        notes.emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications", "ActionInvoked",
+                   GLib.Variant("(us)", (ids[podman], "allow")))
+        self.assertTrue(self.wait_for(lambda: "pkexec /usr/bin/luxos-firewall allow 5432/tcp --from lan --app Podman" in self.calls(), 5),
+                        self.calls())
+        tsid = [41 + i for i, n in enumerate(allnotes) if "100.90.1.3" in n[4]][0]
+        notes.emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications", "ActionInvoked",
+                   GLib.Variant("(us)", (tsid, "keep")))
+        ignored = os.path.join(self.cfg, "firewall-ignored")
+        self.assertTrue(self.wait_for(lambda: "3000/tcp" in open(ignored).read(), 5))
+        # po Povolit potvrzeni "... muze prijimat spojeni"
+        self.assertTrue(self.wait_for(lambda: any(c[1][3] == translation("%s can now accept connections").replace("%s", translation("A container (Podman)"))
+                                                  for c in notes.calls if c[0] == "Notify"), 5))
+        # nova zadost (atomicky zapis jako root) -> dalsi upozorneni; uz oznamene se neopakuji
+        entries.append({"port": 5173, "proto": "tcp", "app": "vite", "src": "fd00::5", "lan": True, "tailscale": False, "time": now})
+        with open(os.path.join(run, "requests.json.tmp"), "w") as f:
+            json.dump(entries, f)
+        os.replace(os.path.join(run, "requests.json.tmp"), os.path.join(run, "requests.json"))
+        self.assertTrue(self.wait_for(lambda: any("vite" in c[1][3] for c in notes.calls if c[0] == "Notify"), 8))
+        time.sleep(1)
+        wants = translation("%s wants to accept connections from the network").replace("%s", "")
+        asked = [c[1][3] for c in notes.calls if c[0] == "Notify" and wants.strip() in c[1][3]]
+        self.assertEqual(len(asked), 3, asked)
+        with open(os.path.join(self.runtime, "luxos-firewall-notified")) as f:
+            self.assertEqual(sorted(f.read().split()), ["3000/tcp", "5173/tcp", "5432/tcp"])
 
     def test_care_and_drivers_notifications(self):
         notes = self.service("org.freedesktop.Notifications", [("/org/freedesktop/Notifications", NOTIFY_XML)])

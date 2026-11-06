@@ -208,6 +208,13 @@ See [printing-scanning.md](printing-scanning.md).
 Shortcut conflicts or a broken shortcut: **Keyboard Shortcuts** (`luxos-shortcuts`) › Restore
 Default / Restore All Defaults…. See [keyboard.md](keyboard.md).
 
+## Something stopped working on the network (firewall)
+
+Another device cannot connect to this computer (dev server, game, container)?
+Press **Allow** in the notification "… wants to accept connections from the network", or use
+Settings › Firewall › *Recently blocked*, or `luxos-firewall allow 8080` (this network only;
+`--from any` also the internet). Test with `luxos-firewall off` / `on`. See [firewall.md](firewall.md).
+
 ## Network
 
 - "!" in the top bar: connected but no internet, or a captive portal; click it to open the sign-in

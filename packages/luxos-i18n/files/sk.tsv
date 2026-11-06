@@ -4512,3 +4512,72 @@ Switch windows of the current app backwards	Prepínať okná aktuálnej aplikác
 Next window of the same app (without previews)	Ďalšie okno rovnakej aplikácie (bez náhľadov)
 Group windows by app in Alt+Tab	Zoskupiť okná podľa aplikácií v Alt+Tab
 Each app is shown once. While holding Alt, press Down or ` to see the windows of the selected app.	Každá aplikácia sa ukáže raz. So stlačeným Alt ukáže šípka dole alebo ` okná vybranej aplikácie.
+# Firewall LuxOS (luxos-firewall, Nastaveni > Firewall, upozorneni v luxos-hub)
+A container (Podman)	Kontajner (Podman)
+add one with: luxos-firewall allow PORT	pridajte výnimku príkazom: luxos-firewall allow PORT
+administrator rights are needed (sudo luxos-firewall ...)	sú potrebné práva správcu (sudo luxos-firewall ...)
+Allow a port	Povoliť port
+Allowed automatically	Povolené automaticky
+Allowed automatically:	Povolené automaticky:
+Allowed incoming connections to %s (%s).	Prichádzajúce spojenia na %s (%s) sú povolené.
+allow: --from lan (default) = only devices on this network, --from any = everywhere	allow: --from lan (predvolené) = len zariadenia v tejto sieti, --from any = odkiaľkoľvek
+Allow will let only devices on this network connect (not the internet).	Povoliť pustí len zariadenia v tejto sieti (nie z internetu).
+A program	Program
+Blocks incoming connections from the network. Your apps can still use the internet, and apps listed below keep working.	Blokuje prichádzajúce spojenia zo siete. Vaše aplikácie môžu naďalej používať internet a aplikácie uvedené nižšie fungujú ďalej.
+Connection from %s	Spojenie z %s
+Devices on this network can connect to port %s. You can change it in Firewall settings.	Zariadenia v tejto sieti sa môžu pripojiť k portu %s. Zmeniť to môžete v nastaveniach Firewallu.
+everywhere	odkiaľkoľvek
+Everywhere	Odkiaľkoľvek
+Firewall: off - the computer accepts connections from the network.	Firewall: vypnutý - počítač prijíma spojenia zo siete.
+Firewall: on, but the rules are not loaded (the network is open).	Firewall: zapnutý, ale pravidlá nie sú načítané (sieť je otvorená).
+Firewall: on - incoming connections from the network are blocked, except:	Firewall: zapnutý - prichádzajúce spojenia zo siete sú blokované, okrem:
+Firewall Settings	Nastavenia firewallu
+from	z
+Keep Blocked	Nechať blokované
+LuxDrop and exceptions for this network also accept connections from your Tailscale devices.	LuxDrop a výnimky pre túto sieť prijímajú spojenia aj z vašich zariadení v Tailscale.
+LuxOS firewall	Firewall LuxOS
+Nothing	Nič
+Off - the computer accepts connections from the network.	Vypnuté - počítač prijíma spojenia zo siete.
+On, but the rules are not loaded - the network is open. Try turning the firewall off and on.	Zapnuté, ale pravidlá nie sú načítané - sieť je otvorená. Skúste firewall vypnúť a znova zapnúť.
+On - the computer is protected.	Zapnuté - počítač je chránený.
+Open Firewall settings and try it there.	Otvorte nastavenia Firewallu a skúste to tam.
+pkexec could not be started.	pkexec sa nepodarilo spustiť.
+Port, e.g. 8080	Port, napr. 8080
+Port %s is blocked again.	Port %s je znova blokovaný.
+Printer sharing	Zdieľanie tlačiarní
+Recently blocked	Nedávno blokované
+Recently blocked (a program on this computer was listening):	Nedávno blokované (program na tomto počítači načúval):
+%s can now accept connections	%s teraz môže prijímať spojenia
+You can also change it in Settings > Firewall.	Zmeniť to môžete aj v Nastavenia > Firewall.
+%s is damaged; using the default settings	%s je poškodený; používajú sa predvolené nastavenia
+"%s" is not a valid port (e.g. 8080, 8080/tcp, 8000-8010/udp)	„%s“ nie je platný port (napr. 8080, 8080/tcp, 8000-8010/udp)
+Something stopped working on the network? Allow it here, or run "luxos-firewall allow PORT" in Terminal.	Niečo v sieti prestalo fungovať? Povoľte to tu alebo v Termináli spustite „luxos-firewall allow PORT“.
+SSH (remote login)	SSH (vzdialené prihlásenie)
+%s wants to accept connections from the network	%s chce prijímať spojenia zo siete
+Tailscale devices are no longer treated as this network.	Zariadenia v Tailscale sa už nepovažujú za túto sieť.
+Tailscale devices are treated as this network.	Zariadenia v Tailscale sa považujú za túto sieť.
+TCP and UDP	TCP a UDP
+The change could not be made.	Zmenu sa nepodarilo vykonať.
+The firewall blocked a connection to port %s from a Tailscale device (%s).	Firewall zablokoval spojenie na port %s zo zariadenia v Tailscale (%s).
+The firewall blocked a connection to port %s from %s.	Firewall zablokoval spojenie na port %s z %s.
+The firewall exception could not be added	Výnimku vo firewalle sa nepodarilo pridať
+The firewall is off; the change applies when you turn it on.	Firewall je vypnutý; zmena sa prejaví, keď ho zapnete.
+The firewall is off. Turn it on again with: luxos-firewall on	Firewall je vypnutý. Znova ho zapnete príkazom: luxos-firewall on
+The firewall is on.	Firewall je zapnutý.
+the firewall rules could not be loaded:	pravidlá firewallu sa nepodarilo načítať:
+The LuxOS firewall is not installed (lux install luxos-firewall).	Firewall LuxOS nie je nainštalovaný (lux install luxos-firewall).
+There is no exception for %s.	Pre %s neexistuje žiadna výnimka.
+this network only	len táto sieť
+This network only	Len táto sieť
+"This network only" means devices on your Wi-Fi or cable network, not the internet.	„Len táto sieť“ znamená zariadenia vo vašej Wi-Fi alebo káblovej sieti, nie internet.
+To allow your Tailscale devices, turn on "Treat Tailscale devices as this network" in Firewall settings.	Ak chcete povoliť svoje zariadenia v Tailscale, zapnite v nastaveniach Firewallu „Považovať zariadenia v Tailscale za túto sieť“.
+Treat Tailscale devices as this network	Považovať zariadenia v Tailscale za túto sieť
+Try: sudo systemctl restart luxos-firewall	Skúste: sudo systemctl restart luxos-firewall
+Your exceptions	Vaše výnimky
+Your exceptions:	Vaše výnimky:
+Firewall: allow = incoming ports open from everywhere, allow_lan = only from this network, e.g. ["22/tcp"]	Firewall: allow = prichádzajúce porty otvorené odkiaľkoľvek, allow_lan = len z tejto siete, napr. ["22/tcp"]
+The LuxOS firewall is not installed; add "luxos-firewall" to packages.	Firewall LuxOS nie je nainštalovaný; pridajte "luxos-firewall" do packages.
+allow incoming %s from everywhere	povoliť prichádzajúce %s odkiaľkoľvek
+allow incoming %s from this network	povoliť prichádzajúce %s z tejto siete
+stop allowing incoming %s from everywhere	zrušiť povolenie prichádzajúcich %s odkiaľkoľvek
+stop allowing incoming %s from this network	zrušiť povolenie prichádzajúcich %s z tejto siete
