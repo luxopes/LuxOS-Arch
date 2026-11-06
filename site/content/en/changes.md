@@ -6,9 +6,9 @@ systems update continuously with `lux update`, so the version tells which state 
 from. The detailed changelog is maintained in Czech ([Czech version](/cs/zmeny/)); this page
 summarises the recent releases in English.
 
-## 1.0.0 "Sirius" – 2026-11-04
+## 1.0.0 "Sirius" – 2026-11-04 (unstable)
 
-The first stable release. Compared with 0.9.12 "Polaris" (installed systems get everything with
+An unstable release: there are still bugs. Compared with 0.9.12 "Polaris" (installed systems get everything with
 `lux update`):
 
 ### New apps

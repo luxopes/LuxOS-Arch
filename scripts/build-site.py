@@ -500,7 +500,7 @@ def main():
     ver = read_kv(os.path.join(ROOT, "packages", "luxos-branding", "files", "version"))
     with open(os.path.join(SITE, "iso.json")) as f:
         iso = json.load(f)
-    release = {"version": ver["VERSION"], "codename": ver["CODENAME"], "channel": "beta",
+    release = {"version": ver["VERSION"], "codename": ver["CODENAME"], "channel": "unstable",
                "iso": iso, "repo": "https://luxos.lux-ai.cz/repo/", "fingerprint": FINGERPRINT}
     write("release.json", json.dumps(release, ensure_ascii=False, indent=2) + "\n")
 
