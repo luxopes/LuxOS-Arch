@@ -122,6 +122,11 @@ class Drivers(unittest.TestCase):
         self.assertEqual(lp.pick_ppd(canon, "MFG:Canon;MDL:MF4010 Series;CMD:CARPS2;"), "CNRCUPSMF4010ZJ.ppd")
         self.assertIsNone(lp.pick_ppd(canon, "MFG:Canon;MDL:MF41;CMD:LIPSLX;"))  # zadna shoda podle prefixu
 
+    def test_system_config_printer_autoadd_masked(self):
+        """Tiskarny pridava jen LuxOS: udev-configure-printer (system-config-printer) je vypnuty."""
+        with open(os.path.join(os.path.dirname(__file__), "..", "PKGBUILD")) as f:
+            self.assertIn('ln -s /dev/null "$pkgdir/etc/udev/rules.d/70-printers.rules"', f.read())
+
     def test_generic(self):
         self.assertEqual(lp.generic_ppd("MFG:X;MDL:Y;CMD:PJL,PCL,POSTSCRIPT;"), "drv:///sample.drv/generic.ppd")
         self.assertEqual(lp.generic_ppd("CMD:PJL,PCLXL;"), "lsb/usr/cupsfilters/pxlmono.ppd")
