@@ -37,6 +37,18 @@ if "-f" in args:
         sys.stderr.write("\nNo scanners were identified.\n")
     sys.exit(0)
 
+# einval-once: prvni otevreni skeneru selze jako pri soubeznem pristupu jineho procesu (pixma)
+if mode == "einval-once" and "-d" in args:
+    cnt = os.environ.get("FAKE_SCAN_COUNT")
+    n = int(open(cnt).read() or 0) if cnt and os.path.exists(cnt) else 0
+    if cnt:
+        with open(cnt, "w") as _f:
+            _f.write(str(n + 1))
+    if n == 0:
+        sys.stderr.write(f"Output format is not set, using pnm as a default.\n"
+                         f"scanimage: open of device {opt('-d')} failed: Invalid argument\n")
+        sys.exit(1)
+
 if "-A" in args:
     if mode == "busy":
         sys.stderr.write(f"scanimage: open of device {opt('-d')} failed: Device busy\n")
