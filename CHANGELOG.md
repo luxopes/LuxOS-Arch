@@ -6,6 +6,9 @@ LuxOS je průběžně aktualizovaný systém (`lux update`): verze označuje, z 
 
 ## Připravuje se
 
+### Opraveno
+- **USB tiskárny nastavuje jen LuxOS** (`luxos-printing` 11): automatické přidání ze system-config-printer (udev-configure-printer) bylo rychlejší než LuxOS a vybralo horší ovladač (Canon MF4100: CARPS2 místo UFR II LT). Je vypnuté (`/etc/udev/rules.d/70-printers.rules` → `/dev/null`); tiskárnu po připojení přidá pomocník LuxOS s lepším výběrem ovladače.
+
 ### Nové
 - **Nová okna na volné místo, jinak kaskádou – jako v macOS** (`xfwm4` 4.20.0-2.1 z [luxos], `luxos-desktop` 59, `luxos-i18n` 50, `luxos-docs` 29): okna se už neotvírají všechna přesně uprostřed přes sebe. První okno jde doprostřed, další na volné místo, kde nic nepřekrývá, a když volné místo není, každé další okno stejné aplikace se posune o 28 px vpravo dolů od posledního (u okraje obrazovky začne nový sloupec nahoře nebo vlevo); nové okno nikdy neskončí přesně na jiném. Dialogy, okna s vlastní pozicí a okna obnovená z relace zůstávají, kde byla. Profily z dřívějších verzí s původním výchozím nastavením (na střed) se při přihlášení jednou přepnou; vlastní volbu ve Vyladění správce oken LuxOS nemění.
 - **Alt+` přepíná okna aktuální aplikace** (klávesa pod Esc, v české klávesnici „;“): stejný přepínač s náhledy jako Alt+Tab, ale jen s okny aplikace, ve které právě jste (např. jen terminály); Shift+Alt+` pozpátku. Funguje v každém rozložení klávesnice podle polohy klávesy – původní xfwm4 by v českém rozložení „`“ hledal na klávese H. Super+` (další okno aplikace bez náhledů) teď v české klávesnici také funguje na klávese pod Esc.
