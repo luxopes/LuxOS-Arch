@@ -1,0 +1,16 @@
+From: Obchod <news@shop.example>
+To: info@example.test
+Subject: Novinky
+Date: Wed, 28 Oct 2026 07:00:00 GMT
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html><head><title>Novinky</title><style>.x{}</style></head>=
+<body><!-- komentar --><h1>Novinky&nbsp;v&nbsp;listopadu</h1><p>Ahoj,<br>m&=
+aacute;me pro tebe <a href=3D"https://example.cz/akce?id=3D1">akci</a> &nda=
+sh; 20&nbsp;% sleva.</p><ul><li>Prvn&iacute;</li><li>Druh&aacute; &amp; t&#=
+345;et&iacute;</li></ul><table><tr><td>Cena</td><td>1&nbsp;200&nbsp;K&#269;=
+</td></tr></table><img src=3D"https://tracker.example/pixel.gif" width=3D1 =
+height=3D1><img src=3D"cid:logo" alt=3D"Logo"><pre>  zachovat   mezery</pre=
+><p>&#x1F600; &euro;</p></body></html>

@@ -4581,3 +4581,90 @@ allow incoming %s from everywhere	bejövő %s engedélyezése bárhonnan
 allow incoming %s from this network	bejövő %s engedélyezése erről a hálózatról
 stop allowing incoming %s from everywhere	bejövő %s engedélyezésének visszavonása bárhonnan
 stop allowing incoming %s from this network	bejövő %s engedélyezésének visszavonása erről a hálózatról
+# Posta (luxos-mail)
+New messages: %d	Új üzenetek: %d
+(no subject)	(nincs tárgy)
+New mail from %s	Új levél tőle: %s
+Mail	Levelezés
+The mail service stopped.	A levelezőszolgáltatás leállt.
+Inbox	Beérkezett
+Sent	Elküldött
+Drafts	Piszkozatok
+Trash	Kuka
+Junk	Levélszemét
+Archive	Archívum
+Get Mail (Ctrl+R)	Levelek letöltése (Ctrl+R)
+New Message (Ctrl+N)	Új üzenet (Ctrl+N)
+Mark as Read/Unread (Ctrl+Shift+U)	Megjelölés olvasottként/olvasatlanként (Ctrl+Shift+U)
+Move to Trash (Delete)	Áthelyezés a kukába (Delete)
+Filter (Ctrl+F)	Szűrő (Ctrl+F)
+Welcome to Mail	Üdvözli a Levelezés
+Add your email account to read your mail and get notified about new messages.	Adja hozzá e-mail-fiókját a levelek olvasásához és az új üzenetek értesítéseihez.
+Add Account…	Fiók hozzáadása…
+No messages	Nincsenek üzenetek
+No Message Selected	Nincs kijelölt üzenet
+Unread: %d	Olvasatlan: %d
+To: %s	Címzett: %s
+Load Older Messages	Régebbi üzenetek betöltése
+To:	Címzett:
+Cc:	Másolat:
+This message could not be displayed.	Ez az üzenet nem jeleníthető meg.
+(This message has no text.)	(Ennek az üzenetnek nincs szövege.)
+This message was formatted as a web page; Mail shows its text. Images and remote content are not loaded.	Az üzenet weboldalként van formázva; a Levelezés a szövegét mutatja. Képek és távoli tartalmak nem töltődnek be.
+Save attachment…	Melléklet mentése…
+Save Attachment	Melléklet mentése
+The attachment could not be saved.	A melléklet nem menthető.
+Delete this message permanently?	Véglegesen törli az üzenetet?
+It is already in the Trash. This cannot be undone.	Már a kukában van. A művelet nem vonható vissza.
+The server rejected the password for %s.	A kiszolgáló elutasította %s jelszavát.
+The password is not in the keyring. Enter it again.	A jelszó nincs a kulcstartóban. Adja meg újra.
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password.	%s biztonsági tanúsítványa érvénytelen (%s). A Levelezés nem csatlakozik, hogy védje a jelszavát.
+Cannot reach %s. Showing saved messages.	%s nem érhető el. A mentett üzenetek láthatók.
+%s does not offer an encrypted connection. Mail does not send your password unencrypted.	%s nem kínál titkosított kapcsolatot. A Levelezés nem küldi el titkosítatlanul a jelszavát.
+Offline – showing saved messages.	Offline – a mentett üzenetek láthatók.
+Enter Password…	Jelszó megadása…
+This message is not available offline.	Ez az üzenet offline nem érhető el.
+The message no longer exists on the server.	Az üzenet már nincs a kiszolgálón.
+New Message	Új üzenet
+Writing messages is coming soon	Az üzenetírás hamarosan érkezik
+This version of Mail reads your mail and notifies you about new messages. Writing and replying will come in a future update; until then use your webmail.	A Levelezés e verziója olvassa a leveleit és értesít az új üzenetekről. Az írás és a válaszadás egy későbbi frissítésben érkezik; addig használja a webes levelezőt.
+Recipient:	Címzett:
+Copy Address	Cím másolása
+Change Password for %s…	%s jelszavának módosítása…
+Remove %s…	%s eltávolítása…
+Saved messages and the password are removed from this computer. Nothing is deleted on the server.	A mentett üzenetek és a jelszó törlődnek erről a számítógépről. A kiszolgálón semmi sem törlődik.
+Previous / next message	Előző / következő üzenet
+Read the message text	Üzenet szövegének olvasása
+Mark as read / unread	Megjelölés olvasottként / olvasatlanként
+Filter the message list	Üzenetlista szűrése
+Get mail	Levelek letöltése
+Close Mail	Levelezés bezárása
+Add Account	Fiók hozzáadása
+Add an Email Account	E-mail-fiók hozzáadása
+Mail finds the server settings for most providers automatically.	A Levelezés a legtöbb szolgáltatónál magától megtalálja a kiszolgáló beállításait.
+Optional	Nem kötelező
+Email	E-mail
+Incoming server (IMAP)	Bejövő kiszolgáló (IMAP)
+Port	Port
+Outgoing server (SMTP)	Kimenő kiszolgáló (SMTP)
+Configure Manually	Kézi beállítás
+Enter the server settings from your email provider.	Adja meg az e-mail-szolgáltatótól kapott kiszolgálóbeállításokat.
+Enter a valid email address.	Adjon meg érvényes e-mail-címet.
+Enter your password.	Adja meg a jelszavát.
+Looking up the server settings…	Kiszolgálóbeállítások keresése…
+Enter the incoming server.	Adja meg a bejövő kiszolgálót.
+Signing in to %s…	Bejelentkezés: %s…
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password. Check the server name with your provider.	%s biztonsági tanúsítványa érvénytelen (%s). A Levelezés nem csatlakozik, hogy védje a jelszavát. Ellenőrizze a kiszolgáló nevét a szolgáltatójánál.
+The server settings were not found automatically. Enter them below.	A kiszolgáló beállításai nem találhatók automatikusan. Adja meg őket alább.
+Settings provided by your email provider.	Az e-mail-szolgáltató által megadott beállítások.
+Settings found in the Thunderbird provider database.	A Thunderbird szolgáltatói adatbázisában talált beállítások.
+Settings found in the DNS records of your domain.	A domain DNS-rekordjaiban talált beállítások.
+Settings guessed from your address – please check them.	A cím alapján kitalált beállítások – ellenőrizze őket.
+The email address or password is not correct.	Az e-mail-cím vagy a jelszó helytelen.
+Cannot connect to %s. Check the server name and port.	Nem lehet csatlakozni ehhez: %s. Ellenőrizze a kiszolgáló nevét és a portot.
+%s did not answer in time.	%s nem válaszolt időben.
+The password could not be saved in the keyring.	A jelszó nem menthető a kulcstartóba.
+This is not an IMAP server.	Ez nem IMAP-kiszolgáló.
+Password for %s	%s jelszava
+Signing in failed	A bejelentkezés sikertelen
+Read your email and get notified about new messages	Levelek olvasása és értesítés az új üzenetekről

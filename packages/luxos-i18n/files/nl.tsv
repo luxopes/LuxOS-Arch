@@ -4581,3 +4581,90 @@ allow incoming %s from everywhere	inkomend %s van overal toestaan
 allow incoming %s from this network	inkomend %s van dit netwerk toestaan
 stop allowing incoming %s from everywhere	inkomend %s van overal niet meer toestaan
 stop allowing incoming %s from this network	inkomend %s van dit netwerk niet meer toestaan
+# Posta (luxos-mail)
+New messages: %d	Nieuwe berichten: %d
+(no subject)	(geen onderwerp)
+New mail from %s	Nieuwe mail van %s
+Mail	Mail
+The mail service stopped.	De maildienst is gestopt.
+Inbox	Postvak IN
+Sent	Verzonden
+Drafts	Concepten
+Trash	Prullenbak
+Junk	Ongewenst
+Archive	Archief
+Get Mail (Ctrl+R)	Mail ophalen (Ctrl+R)
+New Message (Ctrl+N)	Nieuw bericht (Ctrl+N)
+Mark as Read/Unread (Ctrl+Shift+U)	Markeren als gelezen/ongelezen (Ctrl+Shift+U)
+Move to Trash (Delete)	Naar prullenbak (Delete)
+Filter (Ctrl+F)	Filteren (Ctrl+F)
+Welcome to Mail	Welkom bij Mail
+Add your email account to read your mail and get notified about new messages.	Voeg uw e-mailaccount toe om uw mail te lezen en meldingen van nieuwe berichten te krijgen.
+Add Account…	Account toevoegen…
+No messages	Geen berichten
+No Message Selected	Geen bericht geselecteerd
+Unread: %d	Ongelezen: %d
+To: %s	Aan: %s
+Load Older Messages	Oudere berichten laden
+To:	Aan:
+Cc:	Cc:
+This message could not be displayed.	Dit bericht kan niet worden weergegeven.
+(This message has no text.)	(Dit bericht bevat geen tekst.)
+This message was formatted as a web page; Mail shows its text. Images and remote content are not loaded.	Dit bericht is opgemaakt als webpagina; Mail toont de tekst. Afbeeldingen en externe inhoud worden niet geladen.
+Save attachment…	Bijlage opslaan…
+Save Attachment	Bijlage opslaan
+The attachment could not be saved.	De bijlage kan niet worden opgeslagen.
+Delete this message permanently?	Dit bericht definitief verwijderen?
+It is already in the Trash. This cannot be undone.	Het staat al in de prullenbak. Dit kan niet ongedaan worden gemaakt.
+The server rejected the password for %s.	De server heeft het wachtwoord voor %s geweigerd.
+The password is not in the keyring. Enter it again.	Het wachtwoord staat niet in de sleutelbos. Voer het opnieuw in.
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password.	Het beveiligingscertificaat van %s is ongeldig (%s). Mail maakt geen verbinding om uw wachtwoord te beschermen.
+Cannot reach %s. Showing saved messages.	%s is niet bereikbaar. Opgeslagen berichten worden getoond.
+%s does not offer an encrypted connection. Mail does not send your password unencrypted.	%s biedt geen versleutelde verbinding. Mail verstuurt uw wachtwoord niet onversleuteld.
+Offline – showing saved messages.	Offline – opgeslagen berichten worden getoond.
+Enter Password…	Wachtwoord invoeren…
+This message is not available offline.	Dit bericht is offline niet beschikbaar.
+The message no longer exists on the server.	Het bericht bestaat niet meer op de server.
+New Message	Nieuw bericht
+Writing messages is coming soon	Berichten schrijven komt binnenkort
+This version of Mail reads your mail and notifies you about new messages. Writing and replying will come in a future update; until then use your webmail.	Deze versie van Mail leest uw mail en meldt nieuwe berichten. Schrijven en beantwoorden komt in een toekomstige update; gebruik tot dan uw webmail.
+Recipient:	Ontvanger:
+Copy Address	Adres kopiëren
+Change Password for %s…	Wachtwoord voor %s wijzigen…
+Remove %s…	%s verwijderen…
+Saved messages and the password are removed from this computer. Nothing is deleted on the server.	Opgeslagen berichten en het wachtwoord worden van deze computer verwijderd. Op de server wordt niets verwijderd.
+Previous / next message	Vorig / volgend bericht
+Read the message text	Berichttekst lezen
+Mark as read / unread	Markeren als gelezen / ongelezen
+Filter the message list	Berichtenlijst filteren
+Get mail	Mail ophalen
+Close Mail	Mail sluiten
+Add Account	Account toevoegen
+Add an Email Account	E-mailaccount toevoegen
+Mail finds the server settings for most providers automatically.	Mail vindt de serverinstellingen van de meeste providers automatisch.
+Optional	Optioneel
+Email	E-mail
+Incoming server (IMAP)	Inkomende server (IMAP)
+Port	Poort
+Outgoing server (SMTP)	Uitgaande server (SMTP)
+Configure Manually	Handmatig instellen
+Enter the server settings from your email provider.	Voer de serverinstellingen van uw e-mailprovider in.
+Enter a valid email address.	Voer een geldig e-mailadres in.
+Enter your password.	Voer uw wachtwoord in.
+Looking up the server settings…	Serverinstellingen zoeken…
+Enter the incoming server.	Voer de inkomende server in.
+Signing in to %s…	Aanmelden bij %s…
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password. Check the server name with your provider.	Het beveiligingscertificaat van %s is ongeldig (%s). Mail maakt geen verbinding om uw wachtwoord te beschermen. Controleer de servernaam bij uw provider.
+The server settings were not found automatically. Enter them below.	De serverinstellingen zijn niet automatisch gevonden. Voer ze hieronder in.
+Settings provided by your email provider.	Instellingen van uw e-mailprovider.
+Settings found in the Thunderbird provider database.	Instellingen gevonden in de providerdatabase van Thunderbird.
+Settings found in the DNS records of your domain.	Instellingen gevonden in de DNS-records van uw domein.
+Settings guessed from your address – please check them.	Instellingen geraden op basis van uw adres – controleer ze.
+The email address or password is not correct.	Het e-mailadres of wachtwoord is onjuist.
+Cannot connect to %s. Check the server name and port.	Kan geen verbinding maken met %s. Controleer de servernaam en poort.
+%s did not answer in time.	%s heeft niet op tijd geantwoord.
+The password could not be saved in the keyring.	Het wachtwoord kan niet in de sleutelbos worden opgeslagen.
+This is not an IMAP server.	Dit is geen IMAP-server.
+Password for %s	Wachtwoord voor %s
+Signing in failed	Aanmelden mislukt
+Read your email and get notified about new messages	Lees uw e-mail en krijg meldingen van nieuwe berichten

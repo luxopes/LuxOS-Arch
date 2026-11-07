@@ -977,6 +977,33 @@
           ]
         },
         {
+          "path": "luxos/mail.md",
+          "title": "LuxOS Mail",
+          "summary": "LuxOS Mail (luxos-mail, LSL): add an IMAP account with automatic server discovery, TLS and keyring passwords, three-column reading, keyboard shortcuts, instant new-mail notifications via IMAP IDLE, offline cache, files and troubleshooting.",
+          "keywords": [
+            "Mail",
+            "Pošta",
+            "email",
+            "e-mail",
+            "luxos-mail",
+            "luxos-mail-service",
+            "IMAP",
+            "IDLE",
+            "new mail notification",
+            "upozornění na poštu",
+            "Thunderbird",
+            "autoconfig",
+            "mailto",
+            "keyring",
+            "secret-tool",
+            "certificate",
+            "Inbox",
+            "attachment",
+            "unread count",
+            "Dock badge"
+          ]
+        },
+        {
           "path": "luxos/backups.md",
           "title": "Backups – automatic backups to an external or network disk",
           "summary": "luxos-backup: hourly incremental backups of the home folder to a USB, SFTP or SMB disk (btrfs snapshots or rsync hard links), optional LUKS encryption, thinning, excludes, restoring files and restore everything on a new install",
