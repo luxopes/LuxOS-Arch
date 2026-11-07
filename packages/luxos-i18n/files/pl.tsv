@@ -4603,3 +4603,90 @@ Could not start %s in the sandbox	Nie udało się uruchomić %s w piaskownicy
 The program ended with error code %d.	Program zakończył się z kodem błędu %d.
 The launcher does not contain a program to run.	Program uruchamiający nie zawiera programu do uruchomienia.
 No terminal application was found.	Nie znaleziono aplikacji terminala.
+# Posta (luxos-mail)
+New messages: %d	Nowe wiadomości: %d
+(no subject)	(brak tematu)
+New mail from %s	Nowa wiadomość od %s
+Mail	Poczta
+The mail service stopped.	Usługa poczty została zatrzymana.
+Inbox	Odebrane
+Sent	Wysłane
+Drafts	Szkice
+Trash	Kosz
+Junk	Spam
+Archive	Archiwum
+Get Mail (Ctrl+R)	Pobierz pocztę (Ctrl+R)
+New Message (Ctrl+N)	Nowa wiadomość (Ctrl+N)
+Mark as Read/Unread (Ctrl+Shift+U)	Oznacz jako przeczytane/nieprzeczytane (Ctrl+Shift+U)
+Move to Trash (Delete)	Przenieś do kosza (Delete)
+Filter (Ctrl+F)	Filtr (Ctrl+F)
+Welcome to Mail	Witamy w Poczcie
+Add your email account to read your mail and get notified about new messages.	Dodaj konto e-mail, aby czytać pocztę i otrzymywać powiadomienia o nowych wiadomościach.
+Add Account…	Dodaj konto…
+No messages	Brak wiadomości
+No Message Selected	Nie wybrano wiadomości
+Unread: %d	Nieprzeczytane: %d
+To: %s	Do: %s
+Load Older Messages	Wczytaj starsze wiadomości
+To:	Do:
+Cc:	DW:
+This message could not be displayed.	Nie można wyświetlić tej wiadomości.
+(This message has no text.)	(Ta wiadomość nie zawiera tekstu.)
+This message was formatted as a web page; Mail shows its text. Images and remote content are not loaded.	Wiadomość sformatowano jak stronę internetową; Poczta pokazuje jej tekst. Obrazy i treści zdalne nie są wczytywane.
+Save attachment…	Zapisz załącznik…
+Save Attachment	Zapisz załącznik
+The attachment could not be saved.	Nie można zapisać załącznika.
+Delete this message permanently?	Usunąć wiadomość na stałe?
+It is already in the Trash. This cannot be undone.	Jest już w koszu. Tej operacji nie można cofnąć.
+The server rejected the password for %s.	Serwer odrzucił hasło dla %s.
+The password is not in the keyring. Enter it again.	Hasła nie ma w bazie kluczy. Wprowadź je ponownie.
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password.	Certyfikat bezpieczeństwa %s jest nieprawidłowy (%s). Poczta nie połączy się, aby chronić Twoje hasło.
+Cannot reach %s. Showing saved messages.	Nie można połączyć się z %s. Wyświetlane są zapisane wiadomości.
+%s does not offer an encrypted connection. Mail does not send your password unencrypted.	%s nie oferuje szyfrowanego połączenia. Poczta nie wysyła hasła bez szyfrowania.
+Offline – showing saved messages.	Offline – wyświetlane są zapisane wiadomości.
+Enter Password…	Wprowadź hasło…
+This message is not available offline.	Ta wiadomość nie jest dostępna offline.
+The message no longer exists on the server.	Wiadomość nie istnieje już na serwerze.
+New Message	Nowa wiadomość
+Writing messages is coming soon	Pisanie wiadomości już wkrótce
+This version of Mail reads your mail and notifies you about new messages. Writing and replying will come in a future update; until then use your webmail.	Ta wersja Poczty czyta Twoją pocztę i powiadamia o nowych wiadomościach. Pisanie i odpowiadanie pojawi się w przyszłej aktualizacji; do tego czasu korzystaj z poczty w przeglądarce.
+Recipient:	Odbiorca:
+Copy Address	Kopiuj adres
+Change Password for %s…	Zmień hasło dla %s…
+Remove %s…	Usuń %s…
+Saved messages and the password are removed from this computer. Nothing is deleted on the server.	Zapisane wiadomości i hasło zostaną usunięte z tego komputera. Na serwerze nic nie zostanie usunięte.
+Previous / next message	Poprzednia / następna wiadomość
+Read the message text	Czytaj treść wiadomości
+Mark as read / unread	Oznacz jako przeczytane / nieprzeczytane
+Filter the message list	Filtruj listę wiadomości
+Get mail	Pobierz pocztę
+Close Mail	Zamknij Pocztę
+Add Account	Dodaj konto
+Add an Email Account	Dodaj konto e-mail
+Mail finds the server settings for most providers automatically.	Poczta sama znajduje ustawienia serwera u większości dostawców.
+Optional	Opcjonalnie
+Email	E-mail
+Incoming server (IMAP)	Serwer poczty przychodzącej (IMAP)
+Port	Port
+Outgoing server (SMTP)	Serwer poczty wychodzącej (SMTP)
+Configure Manually	Konfiguruj ręcznie
+Enter the server settings from your email provider.	Wprowadź ustawienia serwera od swojego dostawcy poczty.
+Enter a valid email address.	Wprowadź prawidłowy adres e-mail.
+Enter your password.	Wprowadź hasło.
+Looking up the server settings…	Wyszukiwanie ustawień serwera…
+Enter the incoming server.	Wprowadź serwer poczty przychodzącej.
+Signing in to %s…	Logowanie do %s…
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password. Check the server name with your provider.	Certyfikat bezpieczeństwa %s jest nieprawidłowy (%s). Poczta nie połączy się, aby chronić Twoje hasło. Sprawdź nazwę serwera u swojego dostawcy.
+The server settings were not found automatically. Enter them below.	Nie znaleziono automatycznie ustawień serwera. Wprowadź je poniżej.
+Settings provided by your email provider.	Ustawienia od Twojego dostawcy poczty.
+Settings found in the Thunderbird provider database.	Ustawienia znalezione w bazie dostawców Thunderbirda.
+Settings found in the DNS records of your domain.	Ustawienia znalezione w rekordach DNS Twojej domeny.
+Settings guessed from your address – please check them.	Ustawienia odgadnięte na podstawie adresu – sprawdź je.
+The email address or password is not correct.	Adres e-mail lub hasło są nieprawidłowe.
+Cannot connect to %s. Check the server name and port.	Nie można połączyć się z %s. Sprawdź nazwę serwera i port.
+%s did not answer in time.	%s nie odpowiedział na czas.
+The password could not be saved in the keyring.	Nie można zapisać hasła w bazie kluczy.
+This is not an IMAP server.	To nie jest serwer IMAP.
+Password for %s	Hasło dla %s
+Signing in failed	Logowanie nie powiodło się
+Read your email and get notified about new messages	Czytaj pocztę i otrzymuj powiadomienia o nowych wiadomościach

@@ -1,0 +1,67 @@
+# Maintainer: LuxOS Team
+# Posta LuxOS (luxos-mail): lehky postovni klient v LSL misto tezkeho Thunderbirdu. Faze 1: cteni posty
+# (IMAP s TLS, mistni mezipamet pro offline cteni, HTML jako text bez vzdaleneho obsahu, prilohy k ulozeni)
+# a okamzita upozorneni na novou postu (IMAP IDLE) i se zavrenym oknem - maly program na pozadi bez GTK
+# (luxos-mail-service, XDG autostart). Hesla jen v klicence Secret Service (gnome-keyring, secret-tool).
+# Psani a odesilani (SMTP) prijde ve fazi 2. Moduly LuxOS pro GTK/GLib (luxos_gtk, luxos_glib ...) bere
+# ze zdroju luxos-desktop (files/lsl), stejne jako programy tam.
+
+pkgname=luxos-mail
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS Mail - lightweight mail app with instant new-mail notifications (IMAP IDLE), written in LSL"
+arch=(x86_64)
+url="https://luxos.lux-ai.cz/"
+license=(GPL-3.0-or-later)
+# !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
+options=(!debug !strip)
+# openssl: TLS (moduly net/tls LSL); libsecret: secret-tool; gnome-keyring: klicenka relace;
+# curl: automaticke nalezeni serveru (autoconfig pres HTTPS, modul http LSL)
+depends=(glibc glib2 gtk3 openssl libsecret gnome-keyring curl)
+optdepends=('luxos-i18n: translated texts'
+            'plank: unread count on the Dock icon'
+            'xfce4-notifyd: new mail notifications')
+makedepends=('lsl>=0.10.8' librsvg)
+checkdepends=(python python-pytest python-gobject openssl dbus gnome-keyring libsecret)
+
+_lsl_modules=(luxos_gtk luxos_glib luxos_gio luxos_i18n luxos_sys luxos_text)
+
+build() {
+    local shared d
+    # build_one v container-build.sh odkazuje luxos-desktop vedle baliku; v repozitari je o uroven vys
+    for d in "$startdir/../luxos-desktop/files/lsl" "$startdir/../../luxos-desktop/files/lsl"; do
+        [[ -d $d ]] && { shared=$d; break; }
+    done
+    [[ -n $shared ]] || { echo "luxos-desktop/files/lsl not found" >&2; return 1; }
+    rm -rf lsl
+    mkdir lsl
+    cp "$startdir"/files/*.lsl lsl/
+    for m in "${_lsl_modules[@]}"; do
+        cp "$shared/$m.lsl" lsl/
+    done
+    (cd lsl && lslc --target linux-x86_64-gnu luxos-mail.lsl ../luxos-mail \
+            && lslc --target linux-x86_64-gnu luxos-mail-service.lsl ../luxos-mail-service)
+    # ostre ikony okna 16-256 px (Alt+Tab, Dock) z vlastni SVG
+    mkdir -p icons
+    for s in 16 24 32 48 64 128 256; do
+        rsvg-convert -w $s -h $s "$startdir/files/luxos-mail.svg" -o "icons/$s.png"
+    done
+}
+
+check() {
+    cd "$startdir/tests"
+    # okno potrebuje xvfb-run (test_gui se bez nej preskoci); sluzba vlastni D-Bus a gnome-keyring
+    LUXOS_MAIL_BIN="$srcdir/luxos-mail" python -m pytest -q -p no:cacheprovider test_mime.py test_discover.py test_service.py test_gui.py
+}
+
+package() {
+    local f="$startdir/files"
+    install -Dm755 luxos-mail "$pkgdir/usr/bin/luxos-mail"
+    install -Dm755 luxos-mail-service "$pkgdir/usr/lib/luxos-mail/luxos-mail-service"
+    install -Dm644 "$f/luxos-mail.desktop" "$pkgdir/usr/share/applications/luxos-mail.desktop"
+    install -Dm644 "$f/luxos-mail-background.desktop" "$pkgdir/etc/xdg/autostart/luxos-mail-background.desktop"
+    install -Dm644 "$f/luxos-mail.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-mail.svg"
+    for s in 16 24 32 48 64 128 256; do
+        install -Dm644 "icons/$s.png" "$pkgdir/usr/share/icons/hicolor/${s}x${s}/apps/luxos-mail.png"
+    done
+}

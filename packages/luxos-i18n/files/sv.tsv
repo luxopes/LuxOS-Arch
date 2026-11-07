@@ -4602,3 +4602,90 @@ Could not start %s in the sandbox	Det gick inte att starta %s i sandlådan
 The program ended with error code %d.	Programmet avslutades med felkod %d.
 The launcher does not contain a program to run.	Startaren innehåller inget program att köra.
 No terminal application was found.	Inget terminalprogram hittades.
+# Posta (luxos-mail)
+New messages: %d	Nya meddelanden: %d
+(no subject)	(inget ämne)
+New mail from %s	Ny e-post från %s
+Mail	E-post
+The mail service stopped.	E-posttjänsten stoppades.
+Inbox	Inkorg
+Sent	Skickat
+Drafts	Utkast
+Trash	Papperskorg
+Junk	Skräppost
+Archive	Arkiv
+Get Mail (Ctrl+R)	Hämta e-post (Ctrl+R)
+New Message (Ctrl+N)	Nytt meddelande (Ctrl+N)
+Mark as Read/Unread (Ctrl+Shift+U)	Markera som läst/oläst (Ctrl+Skift+U)
+Move to Trash (Delete)	Flytta till papperskorgen (Delete)
+Filter (Ctrl+F)	Filtrera (Ctrl+F)
+Welcome to Mail	Välkommen till E-post
+Add your email account to read your mail and get notified about new messages.	Lägg till ditt e-postkonto för att läsa din e-post och få aviseringar om nya meddelanden.
+Add Account…	Lägg till konto…
+No messages	Inga meddelanden
+No Message Selected	Inget meddelande markerat
+Unread: %d	Olästa: %d
+To: %s	Till: %s
+Load Older Messages	Läs in äldre meddelanden
+To:	Till:
+Cc:	Kopia:
+This message could not be displayed.	Meddelandet kan inte visas.
+(This message has no text.)	(Meddelandet innehåller ingen text.)
+This message was formatted as a web page; Mail shows its text. Images and remote content are not loaded.	Meddelandet är formaterat som en webbsida; E-post visar texten. Bilder och fjärrinnehåll läses inte in.
+Save attachment…	Spara bilaga…
+Save Attachment	Spara bilaga
+The attachment could not be saved.	Bilagan kunde inte sparas.
+Delete this message permanently?	Radera meddelandet permanent?
+It is already in the Trash. This cannot be undone.	Det ligger redan i papperskorgen. Det går inte att ångra.
+The server rejected the password for %s.	Servern avvisade lösenordet för %s.
+The password is not in the keyring. Enter it again.	Lösenordet finns inte i nyckelringen. Ange det igen.
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password.	Säkerhetscertifikatet för %s är ogiltigt (%s). E-post ansluter inte för att skydda ditt lösenord.
+Cannot reach %s. Showing saved messages.	Det går inte att nå %s. Sparade meddelanden visas.
+%s does not offer an encrypted connection. Mail does not send your password unencrypted.	%s erbjuder ingen krypterad anslutning. E-post skickar inte ditt lösenord okrypterat.
+Offline – showing saved messages.	Offline – sparade meddelanden visas.
+Enter Password…	Ange lösenord…
+This message is not available offline.	Meddelandet är inte tillgängligt offline.
+The message no longer exists on the server.	Meddelandet finns inte längre på servern.
+New Message	Nytt meddelande
+Writing messages is coming soon	Att skriva meddelanden kommer snart
+This version of Mail reads your mail and notifies you about new messages. Writing and replying will come in a future update; until then use your webmail.	Den här versionen av E-post läser din e-post och aviserar om nya meddelanden. Att skriva och svara kommer i en framtida uppdatering; använd din webbmejl så länge.
+Recipient:	Mottagare:
+Copy Address	Kopiera adress
+Change Password for %s…	Ändra lösenord för %s…
+Remove %s…	Ta bort %s…
+Saved messages and the password are removed from this computer. Nothing is deleted on the server.	Sparade meddelanden och lösenordet tas bort från den här datorn. Ingenting raderas på servern.
+Previous / next message	Föregående / nästa meddelande
+Read the message text	Läs meddelandets text
+Mark as read / unread	Markera som läst / oläst
+Filter the message list	Filtrera meddelandelistan
+Get mail	Hämta e-post
+Close Mail	Stäng E-post
+Add Account	Lägg till konto
+Add an Email Account	Lägg till ett e-postkonto
+Mail finds the server settings for most providers automatically.	E-post hittar serverinställningarna för de flesta leverantörer automatiskt.
+Optional	Valfritt
+Email	E-post
+Incoming server (IMAP)	Inkommande server (IMAP)
+Port	Port
+Outgoing server (SMTP)	Utgående server (SMTP)
+Configure Manually	Konfigurera manuellt
+Enter the server settings from your email provider.	Ange serverinställningarna från din e-postleverantör.
+Enter a valid email address.	Ange en giltig e-postadress.
+Enter your password.	Ange ditt lösenord.
+Looking up the server settings…	Söker serverinställningar…
+Enter the incoming server.	Ange den inkommande servern.
+Signing in to %s…	Loggar in på %s…
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password. Check the server name with your provider.	Säkerhetscertifikatet för %s är ogiltigt (%s). E-post ansluter inte för att skydda ditt lösenord. Kontrollera servernamnet med din leverantör.
+The server settings were not found automatically. Enter them below.	Serverinställningarna hittades inte automatiskt. Ange dem nedan.
+Settings provided by your email provider.	Inställningar från din e-postleverantör.
+Settings found in the Thunderbird provider database.	Inställningar hittade i Thunderbirds leverantörsdatabas.
+Settings found in the DNS records of your domain.	Inställningar hittade i domänens DNS-poster.
+Settings guessed from your address – please check them.	Inställningar gissade från adressen – kontrollera dem.
+The email address or password is not correct.	E-postadressen eller lösenordet är fel.
+Cannot connect to %s. Check the server name and port.	Det går inte att ansluta till %s. Kontrollera servernamn och port.
+%s did not answer in time.	%s svarade inte i tid.
+The password could not be saved in the keyring.	Lösenordet kunde inte sparas i nyckelringen.
+This is not an IMAP server.	Detta är ingen IMAP-server.
+Password for %s	Lösenord för %s
+Signing in failed	Inloggningen misslyckades
+Read your email and get notified about new messages	Läs din e-post och få aviseringar om nya meddelanden

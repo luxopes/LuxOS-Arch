@@ -4602,3 +4602,90 @@ Could not start %s in the sandbox	Impossible de démarrer %s dans le bac à sabl
 The program ended with error code %d.	Le programme s’est terminé avec le code d’erreur %d.
 The launcher does not contain a program to run.	Le lanceur ne contient aucun programme à exécuter.
 No terminal application was found.	Aucune application de terminal n’a été trouvée.
+# Posta (luxos-mail)
+New messages: %d	Nouveaux messages : %d
+(no subject)	(sans objet)
+New mail from %s	Nouveau message de %s
+Mail	Mail
+The mail service stopped.	Le service de messagerie s'est arrêté.
+Inbox	Boîte de réception
+Sent	Envoyés
+Drafts	Brouillons
+Trash	Corbeille
+Junk	Indésirables
+Archive	Archives
+Get Mail (Ctrl+R)	Relever le courrier (Ctrl+R)
+New Message (Ctrl+N)	Nouveau message (Ctrl+N)
+Mark as Read/Unread (Ctrl+Shift+U)	Marquer comme lu/non lu (Ctrl+Maj+U)
+Move to Trash (Delete)	Mettre à la corbeille (Suppr)
+Filter (Ctrl+F)	Filtrer (Ctrl+F)
+Welcome to Mail	Bienvenue dans Mail
+Add your email account to read your mail and get notified about new messages.	Ajoutez votre compte de messagerie pour lire vos e-mails et être averti des nouveaux messages.
+Add Account…	Ajouter un compte…
+No messages	Aucun message
+No Message Selected	Aucun message sélectionné
+Unread: %d	Non lus : %d
+To: %s	À : %s
+Load Older Messages	Charger les messages plus anciens
+To:	À :
+Cc:	Cc :
+This message could not be displayed.	Impossible d'afficher ce message.
+(This message has no text.)	(Ce message ne contient pas de texte.)
+This message was formatted as a web page; Mail shows its text. Images and remote content are not loaded.	Ce message est mis en forme comme une page web ; Mail affiche son texte. Les images et le contenu distant ne sont pas chargés.
+Save attachment…	Enregistrer la pièce jointe…
+Save Attachment	Enregistrer la pièce jointe
+The attachment could not be saved.	Impossible d'enregistrer la pièce jointe.
+Delete this message permanently?	Supprimer définitivement ce message ?
+It is already in the Trash. This cannot be undone.	Il est déjà dans la corbeille. Cette action est irréversible.
+The server rejected the password for %s.	Le serveur a refusé le mot de passe de %s.
+The password is not in the keyring. Enter it again.	Le mot de passe n'est pas dans le trousseau. Saisissez-le à nouveau.
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password.	Le certificat de sécurité de %s n'est pas valide (%s). Mail ne se connecte pas afin de protéger votre mot de passe.
+Cannot reach %s. Showing saved messages.	%s est injoignable. Affichage des messages enregistrés.
+%s does not offer an encrypted connection. Mail does not send your password unencrypted.	%s ne propose pas de connexion chiffrée. Mail n'envoie pas votre mot de passe en clair.
+Offline – showing saved messages.	Hors ligne – affichage des messages enregistrés.
+Enter Password…	Saisir le mot de passe…
+This message is not available offline.	Ce message n'est pas disponible hors ligne.
+The message no longer exists on the server.	Le message n'existe plus sur le serveur.
+New Message	Nouveau message
+Writing messages is coming soon	La rédaction de messages arrive bientôt
+This version of Mail reads your mail and notifies you about new messages. Writing and replying will come in a future update; until then use your webmail.	Cette version de Mail lit votre courrier et vous avertit des nouveaux messages. La rédaction et les réponses arriveront dans une prochaine mise à jour ; d'ici là, utilisez votre webmail.
+Recipient:	Destinataire :
+Copy Address	Copier l'adresse
+Change Password for %s…	Modifier le mot de passe de %s…
+Remove %s…	Supprimer %s…
+Saved messages and the password are removed from this computer. Nothing is deleted on the server.	Les messages enregistrés et le mot de passe sont supprimés de cet ordinateur. Rien n'est supprimé sur le serveur.
+Previous / next message	Message précédent / suivant
+Read the message text	Lire le texte du message
+Mark as read / unread	Marquer comme lu / non lu
+Filter the message list	Filtrer la liste des messages
+Get mail	Relever le courrier
+Close Mail	Fermer Mail
+Add Account	Ajouter un compte
+Add an Email Account	Ajouter un compte de messagerie
+Mail finds the server settings for most providers automatically.	Mail trouve automatiquement les réglages du serveur pour la plupart des fournisseurs.
+Optional	Facultatif
+Email	E-mail
+Incoming server (IMAP)	Serveur entrant (IMAP)
+Port	Port
+Outgoing server (SMTP)	Serveur sortant (SMTP)
+Configure Manually	Configurer manuellement
+Enter the server settings from your email provider.	Saisissez les réglages du serveur fournis par votre fournisseur de messagerie.
+Enter a valid email address.	Saisissez une adresse e-mail valide.
+Enter your password.	Saisissez votre mot de passe.
+Looking up the server settings…	Recherche des réglages du serveur…
+Enter the incoming server.	Saisissez le serveur entrant.
+Signing in to %s…	Connexion à %s…
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password. Check the server name with your provider.	Le certificat de sécurité de %s n'est pas valide (%s). Mail ne se connecte pas afin de protéger votre mot de passe. Vérifiez le nom du serveur auprès de votre fournisseur.
+The server settings were not found automatically. Enter them below.	Les réglages du serveur n'ont pas été trouvés automatiquement. Saisissez-les ci-dessous.
+Settings provided by your email provider.	Réglages fournis par votre fournisseur de messagerie.
+Settings found in the Thunderbird provider database.	Réglages trouvés dans la base de fournisseurs de Thunderbird.
+Settings found in the DNS records of your domain.	Réglages trouvés dans les enregistrements DNS de votre domaine.
+Settings guessed from your address – please check them.	Réglages devinés d'après votre adresse – vérifiez-les.
+The email address or password is not correct.	L'adresse e-mail ou le mot de passe est incorrect.
+Cannot connect to %s. Check the server name and port.	Impossible de se connecter à %s. Vérifiez le nom du serveur et le port.
+%s did not answer in time.	%s n'a pas répondu à temps.
+The password could not be saved in the keyring.	Impossible d'enregistrer le mot de passe dans le trousseau.
+This is not an IMAP server.	Ce n'est pas un serveur IMAP.
+Password for %s	Mot de passe de %s
+Signing in failed	Échec de la connexion
+Read your email and get notified about new messages	Lisez vos e-mails et soyez averti des nouveaux messages

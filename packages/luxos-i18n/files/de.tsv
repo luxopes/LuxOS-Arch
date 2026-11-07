@@ -4602,3 +4602,90 @@ Could not start %s in the sandbox	%s konnte in der Sandbox nicht gestartet werde
 The program ended with error code %d.	Das Programm wurde mit Fehlercode %d beendet.
 The launcher does not contain a program to run.	Der Starter enthält kein Programm zum Ausführen.
 No terminal application was found.	Es wurde keine Terminal-Anwendung gefunden.
+# Posta (luxos-mail)
+New messages: %d	Neue E-Mails: %d
+(no subject)	(kein Betreff)
+New mail from %s	Neue E-Mail von %s
+Mail	Mail
+The mail service stopped.	Der E-Mail-Dienst wurde beendet.
+Inbox	Posteingang
+Sent	Gesendet
+Drafts	Entwürfe
+Trash	Papierkorb
+Junk	Spam
+Archive	Archiv
+Get Mail (Ctrl+R)	E-Mails abrufen (Strg+R)
+New Message (Ctrl+N)	Neue E-Mail (Strg+N)
+Mark as Read/Unread (Ctrl+Shift+U)	Als gelesen/ungelesen markieren (Strg+Umschalt+U)
+Move to Trash (Delete)	In den Papierkorb (Entf)
+Filter (Ctrl+F)	Filter (Strg+F)
+Welcome to Mail	Willkommen bei Mail
+Add your email account to read your mail and get notified about new messages.	Fügen Sie Ihr E-Mail-Konto hinzu, um Ihre E-Mails zu lesen und über neue Nachrichten benachrichtigt zu werden.
+Add Account…	Konto hinzufügen…
+No messages	Keine E-Mails
+No Message Selected	Keine E-Mail ausgewählt
+Unread: %d	Ungelesen: %d
+To: %s	An: %s
+Load Older Messages	Ältere E-Mails laden
+To:	An:
+Cc:	Kopie:
+This message could not be displayed.	Diese E-Mail kann nicht angezeigt werden.
+(This message has no text.)	(Diese E-Mail enthält keinen Text.)
+This message was formatted as a web page; Mail shows its text. Images and remote content are not loaded.	Diese E-Mail ist als Webseite formatiert; Mail zeigt ihren Text. Bilder und externe Inhalte werden nicht geladen.
+Save attachment…	Anhang speichern…
+Save Attachment	Anhang speichern
+The attachment could not be saved.	Der Anhang konnte nicht gespeichert werden.
+Delete this message permanently?	Diese E-Mail endgültig löschen?
+It is already in the Trash. This cannot be undone.	Sie ist bereits im Papierkorb. Dies kann nicht rückgängig gemacht werden.
+The server rejected the password for %s.	Der Server hat das Passwort für %s abgelehnt.
+The password is not in the keyring. Enter it again.	Das Passwort ist nicht im Schlüsselbund. Geben Sie es erneut ein.
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password.	Das Sicherheitszertifikat von %s ist ungültig (%s). Mail verbindet sich nicht, um Ihr Passwort zu schützen.
+Cannot reach %s. Showing saved messages.	%s ist nicht erreichbar. Gespeicherte E-Mails werden angezeigt.
+%s does not offer an encrypted connection. Mail does not send your password unencrypted.	%s bietet keine verschlüsselte Verbindung an. Mail sendet Ihr Passwort nicht unverschlüsselt.
+Offline – showing saved messages.	Offline – gespeicherte E-Mails werden angezeigt.
+Enter Password…	Passwort eingeben…
+This message is not available offline.	Diese E-Mail ist offline nicht verfügbar.
+The message no longer exists on the server.	Die E-Mail existiert auf dem Server nicht mehr.
+New Message	Neue E-Mail
+Writing messages is coming soon	Das Schreiben von E-Mails kommt bald
+This version of Mail reads your mail and notifies you about new messages. Writing and replying will come in a future update; until then use your webmail.	Diese Version von Mail liest Ihre E-Mails und benachrichtigt Sie über neue Nachrichten. Schreiben und Antworten folgen in einem künftigen Update; nutzen Sie bis dahin Ihr Webmail.
+Recipient:	Empfänger:
+Copy Address	Adresse kopieren
+Change Password for %s…	Passwort für %s ändern…
+Remove %s…	%s entfernen…
+Saved messages and the password are removed from this computer. Nothing is deleted on the server.	Gespeicherte E-Mails und das Passwort werden von diesem Computer entfernt. Auf dem Server wird nichts gelöscht.
+Previous / next message	Vorherige / nächste E-Mail
+Read the message text	E-Mail-Text lesen
+Mark as read / unread	Als gelesen / ungelesen markieren
+Filter the message list	E-Mail-Liste filtern
+Get mail	E-Mails abrufen
+Close Mail	Mail schließen
+Add Account	Konto hinzufügen
+Add an Email Account	E-Mail-Konto hinzufügen
+Mail finds the server settings for most providers automatically.	Mail findet die Servereinstellungen der meisten Anbieter automatisch.
+Optional	Optional
+Email	E-Mail
+Incoming server (IMAP)	Posteingangsserver (IMAP)
+Port	Port
+Outgoing server (SMTP)	Postausgangsserver (SMTP)
+Configure Manually	Manuell einrichten
+Enter the server settings from your email provider.	Geben Sie die Servereinstellungen Ihres E-Mail-Anbieters ein.
+Enter a valid email address.	Geben Sie eine gültige E-Mail-Adresse ein.
+Enter your password.	Geben Sie Ihr Passwort ein.
+Looking up the server settings…	Servereinstellungen werden gesucht…
+Enter the incoming server.	Geben Sie den Posteingangsserver ein.
+Signing in to %s…	Anmeldung bei %s…
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password. Check the server name with your provider.	Das Sicherheitszertifikat von %s ist ungültig (%s). Mail verbindet sich nicht, um Ihr Passwort zu schützen. Prüfen Sie den Servernamen bei Ihrem Anbieter.
+The server settings were not found automatically. Enter them below.	Die Servereinstellungen wurden nicht automatisch gefunden. Geben Sie sie unten ein.
+Settings provided by your email provider.	Einstellungen von Ihrem E-Mail-Anbieter.
+Settings found in the Thunderbird provider database.	Einstellungen aus der Anbieterdatenbank von Thunderbird.
+Settings found in the DNS records of your domain.	Einstellungen aus den DNS-Einträgen Ihrer Domain.
+Settings guessed from your address – please check them.	Aus Ihrer Adresse geschätzte Einstellungen – bitte prüfen.
+The email address or password is not correct.	E-Mail-Adresse oder Passwort ist falsch.
+Cannot connect to %s. Check the server name and port.	Keine Verbindung zu %s. Prüfen Sie Servername und Port.
+%s did not answer in time.	%s hat nicht rechtzeitig geantwortet.
+The password could not be saved in the keyring.	Das Passwort konnte nicht im Schlüsselbund gespeichert werden.
+This is not an IMAP server.	Dies ist kein IMAP-Server.
+Password for %s	Passwort für %s
+Signing in failed	Anmeldung fehlgeschlagen
+Read your email and get notified about new messages	E-Mails lesen und über neue Nachrichten benachrichtigt werden
