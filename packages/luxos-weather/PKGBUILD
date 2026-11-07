@@ -7,7 +7,7 @@
 
 pkgname=luxos-weather
 pkgver=1.0.0
-pkgrel=3
+pkgrel=4
 pkgdesc="LuxOS Weather - current conditions, hourly and 7-day forecast (Open-Meteo)"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"

@@ -303,7 +303,12 @@ class TestWindows(unittest.TestCase):
                           stride=rgba.get_rowstride())
         self.assertEqual([qr.parse_wifi(t) for t in texts],
                          [{"ssid": "Kavárna:1", "password": "tajne;heslo,\\1", "security": "WPA", "hidden": False}])
-        win.copy_image(None)
+        # Tlacitko Kopirovat je videt i s ikonou (drive no_show_all schoval ikonu -> prazdne/neviditelne)
+        btn = win.copy_btn
+        self.assertTrue(btn.get_visible() and btn.get_mapped())
+        self.assertTrue(btn.get_child().get_visible() and btn.get_child().get_mapped())
+        self.assertGreaterEqual(btn.get_child().get_allocated_width(), 16)
+        btn.clicked()
         self.assertTrue(self.Gtk.Clipboard.get(self.Gdk.SELECTION_CLIPBOARD).wait_is_image_available())
 
     def test_share_window_states(self):

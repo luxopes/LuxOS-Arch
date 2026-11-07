@@ -36,9 +36,7 @@ def parse_devices(text):
         name = model if model.lower().startswith(vendor.lower()) else f"{vendor} {model}".strip()
         name = lp.friendly_name(name or dev)
         prio = 0 if dev.startswith("airscan:e") else 2 if dev.startswith("airscan:w") else 1
-        conn = "network" if dev.startswith("airscan:") else "usb" if "usb" in dev.lower() else ""
-        if dev.startswith("airscan:") and ("localhost" in dev.lower() or "usb" in name.lower()):
-            conn = "usb"            # ipp-usb: USB skener se ohlasuje jako sitovy na localhost
+        conn = lp.scanner_conn(dev, name)   # ipp-usb: USB skener se ohlasuje jako sitovy na localhost
         key = name.lower()
         if key not in best or prio < best[key][0]:
             best[key] = (prio, {"id": dev, "name": name, "type": typ, "conn": conn})

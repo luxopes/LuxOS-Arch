@@ -21,7 +21,9 @@ import sys
 import threading
 import time
 
-sys.path.insert(0, "/usr/lib/luxos/python")
+# moduly ze zdroju (files/python vedle files/bin) maji prednost, instalovane moduly LuxOS jsou zaloha
+_SRC_PY = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "python"))
+sys.path[:0] = ([_SRC_PY] if os.path.isfile(os.path.join(_SRC_PY, "luxos_qr.py")) else []) + ["/usr/lib/luxos/python"]
 from luxos_i18n import _  # noqa: E402
 from luxos_camera import TEST, has, probe_caps, scan_devices, video_nodes  # noqa: E402
 import luxos_qr  # noqa: E402
