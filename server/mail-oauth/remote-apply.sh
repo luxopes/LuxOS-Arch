@@ -164,6 +164,15 @@ if ! doveconf -n > /dev/null 2> "$BACKUP/doveconf.err"; then
     die "doveconf rejected the configuration (run remote-rollback.sh $STAMP)"
 fi
 doveconf -h auth_mechanisms | grep -q oauthbearer || die "auth_mechanisms without oauthbearer"
+# LMTP (Postfix -> Dovecot) hleda uzivatele bez mechanismu a passdb s mechanisms_filter se pri tom preskoci
+# ("All password databases were skipped") -> posta se nedorucila. userdb static musi mit allow_all_users
+# (platne adresaty uz overil Postfix: virtual_mailbox_maps). Chyba z prvniho nasazeni 2026-11-07.
+PWF=$DOVE/conf.d/auth-passwdfile.conf.ext
+if [[ -f $PWF ]] && grep -q '^userdb static {' "$PWF" && ! grep -q 'allow_all_users' "$PWF"; then
+    cp -a "$PWF" "$BACKUP/" 2>/dev/null || true
+    sed -i 's/^userdb static {$/userdb static {\n  allow_all_users = yes/' "$PWF"
+fi
+doveadm user "$(awk -F: 'NR==1{print $1}' "$DOVE/users")" > /dev/null || die "userdb lookup for LMTP delivery fails"
 systemctl restart dovecot
 for i in $(seq 1 20); do ss -Hltn 'sport = :993' | grep -q LISTEN && break; sleep 0.5; done
 ss -Hltn 'sport = :993' | grep -q LISTEN || die "dovecot does not listen on 993"

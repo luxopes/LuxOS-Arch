@@ -135,6 +135,7 @@ passdb passwd-file {{
   passwd_file_path = {root}/users
 }}
 userdb static {{
+  allow_all_users = yes
   fields {{
     uid = {user}
     gid = {group}
