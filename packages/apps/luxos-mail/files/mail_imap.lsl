@@ -3,8 +3,9 @@
 # (poll) z obsluhy glib.fd_add. TLS vzdy s overenim certifikatu systemovymi CA a jmenem serveru;
 # bez sifrovani se heslo nikdy neposle (security "ssl" = port 993, "starttls" = 143 + STARTTLS).
 # Chyby: Error(MailError: "druh|text"), druh: connect, cert, tls, closed, timeout, auth, nostarttls,
-# insecure, no (server odmitl prikaz), protocol.
-load net
+# insecure, no (server odmitl prikaz), protocol, nooauth (server neumi prihlaseni tokenem), unavailable
+# (docasna chyba overeni na serveru).
+load net, json
 load tls
 load mail_bytes as mb
 load mail_mime as mime
@@ -545,6 +546,124 @@ function login(conn, user, password):
         call fail("auth", text)
     end
     if not result["code"].upper().startswith("CAPABILITY "):
+        call capability(conn)
+    end
+    return 0
+end
+
+# ---- SASL OAUTHBEARER (RFC 7628) a XOAUTH2: pristupovy token misto hesla (schranky LuxAI) -----------------
+
+# Vybrany mechanismus: OAUTHBEARER (standard), jinak XOAUTH2 (Google, Microsoft, starsi Dovecot); "" = zadny
+function oauth_mechanism(caps):
+    if "AUTH=OAUTHBEARER" in caps:
+        return "OAUTHBEARER"
+    elif "AUTH=XOAUTH2" in caps:
+        return "XOAUTH2"
+    end
+    return ""
+end
+
+# Pocatecni odpoved klienta (text pred base64). host/port jen v OAUTHBEARER (RFC 7628 3.1); IMAP i SMTP
+# (faze 2) pouziji stejny tvar.
+function oauth_payload(mech, user, token, host, port):
+    if mech == "OAUTHBEARER":
+        # gs2 saslname: "=" -> "=3D", "," -> "=2C" (RFC 5801)
+        name = user.replace("=", "=3D").replace(",", "=2C")
+        return "n,a=" + name + "," + chr(1) + "host=" + host + chr(1) + "port=" + String(port) + chr(1) + "auth=Bearer " + token + chr(1) + chr(1)
+    end
+    return "user=" + user + chr(1) + "auth=Bearer " + token + chr(1) + chr(1)
+end
+
+# Chybova zprava serveru v pokracovani "+ <base64 JSON>" ({"status": "invalid_token", ...}) -> text stavu
+function oauth_error_status(line):
+    text = line.strip()
+    if text == "":
+        return ""
+    end
+    out = ""
+    safe:
+        b = net.bytes(text)
+        data = json.decode(net.text(mime.b64_decode(b, 0, len(b))))
+        if type(data) == "Dictionary":
+            out = String(data.get("status", ""))
+        end
+    end
+    return out
+end
+
+# Prihlaseni tokenem. Spatny/odvolany token -> MailError "auth"; docasna chyba serveru (NO [UNAVAILABLE],
+# napr. nedostupna introspekce) -> "unavailable" (opakuje se s odstupem, neni to spatny token).
+function login_oauth(conn, user, token, port=993):
+    mech = oauth_mechanism(conn["caps"])
+    if mech == "":
+        call fail("nooauth", "The server does not support signing in with an access token (OAUTHBEARER or XOAUTH2).")
+    end
+    if not ascii_safe(user) or not ascii_safe(token) or token == "":
+        call fail("auth", "Invalid user name or access token.")
+    end
+    payload = mime.b64_encode(net.bytes(oauth_payload(mech, user, token, conn["host"], port)))
+    tag = next_tag(conn)
+    if has_cap(conn, "SASL-IR"):
+        call write(conn, tag + " AUTHENTICATE " + mech + " " + payload + "\r\n")
+    else:
+        call write(conn, tag + " AUTHENTICATE " + mech + "\r\n")
+        r = read_response(conn, TIMEOUT, False)
+        if r["tag"] != "+":
+            call fail("auth", status_parts(first_line(r))[2])
+        end
+        call write(conn, payload + "\r\n")
+    end
+    status = ""
+    parts = []
+    challenges = 0
+    loop:
+        r = read_response(conn, TIMEOUT, False)
+        if r["tag"] == "+":
+            # odmitnuty token: server posle JSON s chybou a ceka na prazdnou odpoved klienta, pak NO
+            challenges += 1
+            if challenges > 2:
+                call close(conn)
+                call fail("protocol", "Unexpected SASL challenge.")
+            end
+            status = oauth_error_status(first_line(r))
+            if mech == "OAUTHBEARER":
+                call write(conn, "AQ==\r\n")
+            else:
+                call write(conn, "\r\n")
+            end
+            continue
+        end
+        if r["tag"] == tag:
+            parts = status_parts(first_line(r))
+            break
+        end
+        if r["tag"] == "*":
+            up = first_line(r).upper()
+            if up.startswith("BYE"):
+                conn["closed"] = True
+                call fail("closed", status_parts(first_line(r))[2])
+            end
+            if up.startswith("CAPABILITY "):
+                conn["caps"] = up.split(" ")[1:]
+            end
+        end
+    end
+    if parts[0] != "OK":
+        text = parts[2]
+        if text == "":
+            text = "Authentication failed."
+        end
+        if status != "":
+            text = text + " (" + status + ")"
+        end
+        if parts[1].upper().startswith("UNAVAILABLE"):
+            call fail("unavailable", text)
+        end
+        call fail("auth", text)
+    end
+    if parts[1].upper().startswith("CAPABILITY "):
+        conn["caps"] = parts[1].upper().split(" ")[1:]
+    else:
         call capability(conn)
     end
     return 0

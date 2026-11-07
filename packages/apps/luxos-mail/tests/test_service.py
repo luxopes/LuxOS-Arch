@@ -32,10 +32,11 @@ def inbox_rows(s, account):
 
 class ServiceTest(unittest.TestCase):
     qresync = False
+    dovecot_flags = False
 
     def setUp(self):
         self.s = mt.Session()
-        self.server = mt.FakeServer(self.s.root, self.s.certs, seed=mt.FIXTURES, qresync=self.qresync)
+        self.server = mt.FakeServer(self.s.root, self.s.certs, seed=mt.FIXTURES, qresync=self.qresync, dovecot_flags=self.dovecot_flags)
         self.c = self.s.start_service()
 
     def tearDown(self):
@@ -261,6 +262,22 @@ class QresyncServiceTest(ServiceTest):
         self.add()
         log = self.server.control("log")["log"]
         self.assertIn("ENABLE QRESYNC", " ".join(log))
+
+
+
+class DovecotFlagsServiceTest(ServiceTest):
+    """Server jako Dovecot: behem FETCH posila nevyzadane "* n FETCH (UID u MODSEQ (m) FLAGS (...))".
+    Drive tato odpoved prepsala nove stazenou zpravu prazdnym radkem (bez predmetu a odesilatele)."""
+    qresync = True
+    dovecot_flags = True
+
+    def test_unsolicited_flag_fetch_keeps_envelope(self):
+        acc = self.add()["account"]
+        rows = inbox_rows(self.s, acc)
+        self.assertEqual(len(rows), 9)
+        self.assertNotIn("", [r[7] for r in rows])
+        self.assertNotIn("0", [r[2] for r in rows])
+        self.assertIn("Příliš žluťoučký kůň", {r[7] for r in rows})
 
 
 if __name__ == "__main__":

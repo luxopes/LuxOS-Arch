@@ -999,7 +999,7 @@
         {
           "path": "luxos/mail.md",
           "title": "LuxOS Mail",
-          "summary": "LuxOS Mail (luxos-mail, LSL): add an IMAP account with automatic server discovery, TLS and keyring passwords, three-column reading, keyboard shortcuts, instant new-mail notifications via IMAP IDLE, offline cache, files and troubleshooting.",
+          "summary": "LuxOS Mail (luxos-mail, LSL): sign in with the LuxAI account (LuxAI mailboxes without a password, OAUTHBEARER/XOAUTH2), IMAP accounts with server discovery, TLS, keyring passwords, keyboard shortcuts, IDLE notifications, offline cache, troubleshooting.",
           "keywords": [
             "Mail",
             "Pošta",
@@ -1008,6 +1008,9 @@
             "luxos-mail",
             "luxos-mail-service",
             "IMAP",
+            "LuxAI mailbox",
+            "OAUTHBEARER",
+            "XOAUTH2",
             "IDLE",
             "new mail notification",
             "upozornění na poštu",

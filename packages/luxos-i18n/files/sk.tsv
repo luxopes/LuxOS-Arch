@@ -4722,3 +4722,23 @@ Output of %s	Výstup programu %s
 Ran in the sandbox without access to your files	Bežal v sandboxe bez prístupu k vašim súborom
 The output is no longer available.	Výstup už nie je k dispozícii.
 The program did not print anything.	Program nič nevypísal.
+Continue as %s	Pokračovať ako %s
+Use Another Account…	Použiť iný účet…
+Add LuxAI Mailbox…	Pridať schránku LuxAI…
+LuxAI Mailboxes	Schránky LuxAI
+Mailboxes of %s	Schránky používateľa %s
+Mail signs in with your LuxAI account – no password is needed.	Pošta sa prihlási vaším účtom LuxAI – heslo nie je potrebné.
+Your LuxAI account has no mailbox on the LuxAI server. Add your email account – its address is already filled in.	Váš účet LuxAI nemá schránku na serveri LuxAI. Pridajte svoj e-mailový účet – jeho adresa je už vyplnená.
+Sign In to LuxAI	Prihlásenie do LuxAI
+Sign In…	Prihlásiť sa…
+Your LuxAI sign-in has expired. Sign in to your LuxAI account again.	Prihlásenie do LuxAI vypršalo. Prihláste sa do svojho účtu LuxAI znova.
+No LuxAI account is signed in on this computer.	Na tomto počítači nie je prihlásený žiadny účet LuxAI.
+Your LuxAI account no longer has access to %s.	Váš účet LuxAI už nemá prístup k schránke %s.
+Your LuxAI account has no access to this mailbox.	Váš účet LuxAI nemá prístup k tejto schránke.
+Too many requests to LuxAI. Try again in a minute.	Príliš veľa požiadaviek na LuxAI. Skúste to o minútu znova.
+The LuxAI server is not available right now.	Server LuxAI teraz nie je dostupný.
+The mail server does not support signing in with a LuxAI account.	Poštový server nepodporuje prihlásenie účtom LuxAI.
+The mail server cannot verify the sign-in right now. Mail tries again later.	Poštový server teraz nemôže overiť prihlásenie. Pošta to skúsi neskôr znova.
+The mail server did not accept the LuxAI sign-in for %s.	Poštový server neprijal prihlásenie účtom LuxAI pre %s.
+Cannot reach the LuxAI server. Check your internet connection.	Server LuxAI nie je dostupný. Skontrolujte pripojenie k internetu.
+The LuxAI Account app (luxos-account) is not installed.	Aplikácia Účet LuxAI (luxos-account) nie je nainštalovaná.

@@ -4722,3 +4722,23 @@ Output of %s	Utdata från %s
 Ran in the sandbox without access to your files	Kördes i sandlådan utan åtkomst till dina filer
 The output is no longer available.	Utdata finns inte längre.
 The program did not print anything.	Programmet skrev inte ut något.
+Continue as %s	Fortsätt som %s
+Use Another Account…	Använd ett annat konto…
+Add LuxAI Mailbox…	Lägg till LuxAI-brevlåda…
+LuxAI Mailboxes	LuxAI-brevlådor
+Mailboxes of %s	Brevlådor för %s
+Mail signs in with your LuxAI account – no password is needed.	E-post loggar in med ditt LuxAI-konto – inget lösenord behövs.
+Your LuxAI account has no mailbox on the LuxAI server. Add your email account – its address is already filled in.	Ditt LuxAI-konto har ingen brevlåda på LuxAI-servern. Lägg till ditt e-postkonto – adressen är redan ifylld.
+Sign In to LuxAI	Logga in på LuxAI
+Sign In…	Logga in…
+Your LuxAI sign-in has expired. Sign in to your LuxAI account again.	Din LuxAI-inloggning har gått ut. Logga in på ditt LuxAI-konto igen.
+No LuxAI account is signed in on this computer.	Inget LuxAI-konto är inloggat på den här datorn.
+Your LuxAI account no longer has access to %s.	Ditt LuxAI-konto har inte längre åtkomst till %s.
+Your LuxAI account has no access to this mailbox.	Ditt LuxAI-konto har inte åtkomst till den här brevlådan.
+Too many requests to LuxAI. Try again in a minute.	För många förfrågningar till LuxAI. Försök igen om en minut.
+The LuxAI server is not available right now.	LuxAI-servern är inte tillgänglig just nu.
+The mail server does not support signing in with a LuxAI account.	E-postservern stöder inte inloggning med ett LuxAI-konto.
+The mail server cannot verify the sign-in right now. Mail tries again later.	E-postservern kan inte kontrollera inloggningen just nu. E-post försöker igen senare.
+The mail server did not accept the LuxAI sign-in for %s.	E-postservern godtog inte LuxAI-inloggningen för %s.
+Cannot reach the LuxAI server. Check your internet connection.	Det går inte att nå LuxAI-servern. Kontrollera internetanslutningen.
+The LuxAI Account app (luxos-account) is not installed.	Appen LuxAI-konto (luxos-account) är inte installerad.

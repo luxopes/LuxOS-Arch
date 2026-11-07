@@ -65,7 +65,7 @@ def wait_for(predicate, timeout=10.0, step=0.05):
 
 
 class FakeServer:
-    def __init__(self, workdir, certs, seed=None, qresync=False, bad=False, ports=None):
+    def __init__(self, workdir, certs, seed=None, qresync=False, bad=False, ports=None, oauth="", sasl_ir=True, dovecot_flags=False):
         self.ready = os.path.join(workdir, "server-%d.json" % int(time.time() * 1000))
         args = [sys.executable, os.path.join(HERE, "fake_imap.py"), "--cert", certs["bad_cert" if bad else "cert"],
                 "--key", certs["bad_key" if bad else "key"], "--ready", self.ready, "--user", USER, "--password", PASSWORD]
@@ -75,6 +75,12 @@ class FakeServer:
             args.append("--qresync")
         if ports:
             args += ["--port", str(ports["tls"]), "--starttls-port", str(ports["starttls"])]
+        if oauth:
+            args += ["--oauth", oauth]
+        if not sasl_ir:
+            args.append("--no-sasl-ir")
+        if dovecot_flags:
+            args.append("--dovecot-flags")
         self.proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         if not wait_for(lambda: os.path.exists(self.ready), 10):
             raise RuntimeError("fake IMAP server did not start: " + self.proc.stderr.read().decode())

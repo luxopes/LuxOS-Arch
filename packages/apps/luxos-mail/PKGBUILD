@@ -3,12 +3,13 @@
 # (IMAP s TLS, mistni mezipamet pro offline cteni, HTML jako text bez vzdaleneho obsahu, prilohy k ulozeni)
 # a okamzita upozorneni na novou postu (IMAP IDLE) i se zavrenym oknem - maly program na pozadi bez GTK
 # (luxos-mail-service, XDG autostart). Hesla jen v klicence Secret Service (gnome-keyring, secret-tool).
+# Prihlaseni uctem LuxAI: schranky na serveru LuxAI bez hesla (kratkodoby token, SASL OAUTHBEARER/XOAUTH2).
 # Psani a odesilani (SMTP) prijde ve fazi 2. Moduly LuxOS pro GTK/GLib (luxos_gtk, luxos_glib ...) bere
 # ze zdroju luxos-desktop (files/lsl), stejne jako programy tam.
 
 pkgname=luxos-mail
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxOS Mail - lightweight mail app with instant new-mail notifications (IMAP IDLE), written in LSL"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"
@@ -19,6 +20,7 @@ options=(!debug !strip)
 # curl: automaticke nalezeni serveru (autoconfig pres HTTPS, modul http LSL)
 depends=(glibc glib2 gtk3 openssl libsecret gnome-keyring curl)
 optdepends=('luxos-i18n: translated texts'
+            'luxos-account: sign in with the LuxAI account (LuxAI mailboxes without a password)'
             'plank: unread count on the Dock icon'
             'xfce4-notifyd: new mail notifications')
 makedepends=('lsl>=0.10.8' librsvg)
@@ -51,7 +53,7 @@ build() {
 check() {
     cd "$startdir/tests"
     # okno potrebuje xvfb-run (test_gui se bez nej preskoci); sluzba vlastni D-Bus a gnome-keyring
-    LUXOS_MAIL_BIN="$srcdir/luxos-mail" python -m pytest -q -p no:cacheprovider test_mime.py test_discover.py test_service.py test_gui.py
+    LUXOS_MAIL_BIN="$srcdir/luxos-mail" python -m pytest -q -p no:cacheprovider test_mime.py test_discover.py test_service.py test_luxai.py test_gui.py test_gui_luxai.py
 }
 
 package() {

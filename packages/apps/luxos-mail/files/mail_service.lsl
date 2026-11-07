@@ -4,6 +4,8 @@
 # Otevrit (otevre aplikaci na te zprave); rezim Nerusit respektuje xfce4-notifyd. Po zmene site
 # (NetworkManager) a probuzeni (logind) se spoji znovu, pri vypadku ceka 5 s, 10 s ... nejvys 15 min.
 # Spatne heslo se znovu nezkousi (zadne zablokovani uctu na serveru), az po zadani noveho.
+# Schranky LuxAI (ucet "auth": "luxai") heslo nemaji: pred kazdym spojenim si sluzba vyzada od serveru
+# LuxAI kratkodoby token (ucet LuxAI tohoto pocitace, mail_luxai) a prihlasi se SASL OAUTHBEARER/XOAUTH2.
 #
 # Okno (luxos-mail) mezipamet jen cte a o vse ostatni zada sluzbu pres abstraktni socket UNIX
 # "luxos-mail-<uid>" (jen procesy tehoz uzivatele): radky JSON {"id", "op", ...} -> {"id", "ok", ...}
@@ -18,6 +20,7 @@ load mail_mime as mime
 load mail_imap as imap
 load mail_store as store
 load mail_secret as secret
+load mail_luxai as luxai
 
 ITEMS = "UID FLAGS INTERNALDATE RFC822.SIZE ENVELOPE BODYSTRUCTURE"
 INITIAL = 500
@@ -194,10 +197,52 @@ function disconnect(st):
     return 0
 end
 
+function is_luxai(cfg):
+    return cfg.get("auth", "") == "luxai"
+end
+
+# Chyby, po kterych se samo znovu nezkousi (cekani na uzivatele: nove heslo, prihlaseni k LuxAI)
+function blocked_kind(kind):
+    return kind in ["auth", "nopassword", "luxai_session", "luxai_signedout", "luxai_denied", "nooauth"]
+end
+
+# Spojeni a prihlaseni tokenem LuxAI (novy token pri kazdem spojeni; plati 15 minut, otevrene spojeni
+# vcetne IDLE plati dal)
+function luxai_login(cfg, s):
+    address = String(s.get("user", cfg["email"]))
+    t = luxai.token(address)
+    if not t["ok"]:
+        call imap.fail(t["kind"], t["error"])
+    end
+    conn = imap.connect(s["host"], s["port"], s["security"], 15000)
+    try:
+        call imap.login_oauth(conn, address, t["token"], s["port"])
+    else:
+        err = last_error()
+        call imap.close(conn)
+        Error(MailError: String(err).replace("MailError: ", ""))
+    end
+    return conn
+end
+
 # Spojeni, prihlaseni, seznam schranek; MailError pri chybe
 function open_connection(st):
     cfg = st["cfg"]
     s = cfg["imap"]
+    if is_luxai(cfg):
+        call set_state(st, "connecting", "", "")
+        conn = luxai_login(cfg, s)
+        try:
+            call imap.enable_extensions(conn)
+        else:
+            err = last_error()
+            call imap.close(conn)
+            Error(MailError: String(err).replace("MailError: ", ""))
+        end
+        st["conn"] = conn
+        call refresh_mailboxes(st)
+        return conn
+    end
     if st["password"] == "":
         st["password"] = secret.lookup(cfg["id"])
     end
@@ -427,9 +472,28 @@ function sync_mailbox(st, raw, older=False):
     elif info["uidnext"] == 0 or info["uidnext"] > state["uidnext"] or last_uid == 0:
         fetched = imap.fetches(imap.uid_fetch(conn, String(last_uid + 1) + ":*", ITEMS)["untagged"])
     end
+    # Dovecot posila behem FETCH i nevyzadane "* n FETCH (UID u MODSEQ (m) FLAGS (...))" (zmena priznaku,
+    # napr. $HasNoAttachment po BODYSTRUCTURE); se zapnutym CONDSTORE/QRESYNC maji UID. Odpovedi pro stejne
+    # UID se slouci (pozdejsi priznaky, obalka z prvni), jinak by prazdna odpoved prepsala zpravu.
+    merged = {}
+    order = []
     for f in fetched:
         uid = imap.tint(f.get("UID", None), 0)
-        if uid <= 0 or uid in by_uid:
+        if uid <= 0:
+            continue
+        end
+        if uid in merged:
+            for key in f.keys():
+                merged[uid][key] = f[key]
+            end
+        else:
+            merged[uid] = f
+            order.append(uid)
+        end
+    end
+    for uid in order:
+        f = merged[uid]
+        if uid in by_uid or "ENVELOPE" not in f:
             continue
         end
         if not first and not older and uid <= last_uid:
@@ -722,8 +786,9 @@ function connection_failed(st, err):
     kind = imap.error_kind(err)
     call disconnect(st)
     call log("account " + st["cfg"]["id"] + ": " + kind[0] + ": " + kind[1])
-    if kind[0] == "auth" or kind[0] == "nopassword":
-        # spatne heslo: nezkouset znovu (server by ucet zablokoval), cekat na nove heslo
+    if blocked_kind(kind[0]):
+        # spatne heslo: nezkouset znovu (server by ucet zablokoval), cekat na nove heslo;
+        # schranka LuxAI: cekat na nove prihlaseni k uctu LuxAI (fail2ban na serveru po opakovani blokuje)
         st["password"] = ""
         call set_state(st, "error", kind[0], kind[1])
         return 0
@@ -930,7 +995,7 @@ function begin_op(st):
         return 0
     end
     # odmitnute heslo: nezkouset ho znovu pri kazde akci v okne (server by ucet zablokoval)
-    if st["state"] == "error" and (st["kind"] == "auth" or st["kind"] == "nopassword"):
+    if st["state"] == "error" and blocked_kind(st["kind"]):
         call imap.fail(st["kind"], st["error"])
     end
     call disconnect(st)
@@ -943,11 +1008,11 @@ end
 function end_op(st, err):
     if err != "":
         kind = imap.error_kind(err)
-        if kind[0] == "closed" or kind[0] == "timeout" or kind[0] == "connect" or kind[0] == "tls":
+        if kind[0] == "closed" or kind[0] == "timeout" or kind[0] == "connect" or kind[0] == "tls" or kind[0] == "unavailable" or kind[0].startswith("luxai_"):
             call connection_failed(st, err)
             return 0
         end
-        if kind[0] == "auth" or kind[0] == "nopassword" or kind[0] == "cert":
+        if blocked_kind(kind[0]) or kind[0] == "cert":
             call connection_failed(st, err)
             return 0
         end
@@ -1163,6 +1228,73 @@ function add_account(req):
     return {"ok": True, "account": id, "state": st["state"], "error": st["error"]}
 end
 
+# Schranky LuxAI uctu tohoto pocitace; "added" = uz pridane v Poste
+function luxai_mailboxes(req):
+    r = luxai.mailboxes()
+    if not r["ok"]:
+        return r
+    end
+    ids = []
+    for a in store.load_accounts():
+        ids.append(a["id"])
+    end
+    for m in r["mailboxes"]:
+        m["added"] = store.account_id(m["address"]) in ids
+    end
+    return {"ok": True, "mailboxes": r["mailboxes"]}
+end
+
+# Nova schranka LuxAI: nastaveni serveru vzdy ze serveru LuxAI (ne z pozadavku okna), overeni prihlaseni
+# tokenem, ulozeni uctu bez hesla a pripojeni
+function add_luxai_account(req):
+    address = String(req.get("address", "")).strip().lower()
+    r = luxai.mailboxes()
+    if not r["ok"]:
+        return r
+    end
+    box = {}
+    for m in r["mailboxes"]:
+        if m["address"] == address:
+            box = m
+        end
+    end
+    if len(box) == 0:
+        return {"ok": False, "kind": "luxai_denied", "error": "The LuxAI account has no access to " + address + "."}
+    end
+    conn = luxai_login({"email": address}, box["imap"])
+    call imap.logout(conn)
+    id = store.account_id(address)
+    out = []
+    for a in store.load_accounts():
+        if a["id"] != id:
+            out.append(a)
+        end
+    end
+    name = String(box.get("display_name", ""))
+    cfg = {"id": id, "email": address, "name": name, "auth": "luxai", "imap": box["imap"], "smtp": box["smtp"]}
+    out.append(cfg)
+    call store.save_accounts(out)
+    # stary zaznam v klicence (drive pridano heslem) uz neni potreba
+    call secret.clear(id)
+    if id in svc["accounts"]:
+        call disconnect(svc["accounts"][id])
+    else:
+        svc["order"].append(id)
+    end
+    st = new_state(cfg)
+    svc["accounts"][id] = st
+    call start_account(st)
+    return {"ok": True, "account": id, "state": st["state"], "error": st["error"]}
+end
+
+# Znovu pripojit ucet i po chybe prihlaseni (po novem prihlaseni k LuxAI)
+function retry_account(req):
+    st = account_state(req.get("account", ""))
+    st["backoff"] = 0
+    call start_account(st)
+    return {"ok": True, "state": st["state"], "kind": st["kind"]}
+end
+
 function set_password(req):
     st = account_state(req.get("account", ""))
     cfg = st["cfg"]
@@ -1218,6 +1350,12 @@ function handle(req):
         return add_account(req)
     elif op == "set_password":
         return set_password(req)
+    elif op == "luxai_mailboxes":
+        return luxai_mailboxes(req)
+    elif op == "add_luxai_account":
+        return add_luxai_account(req)
+    elif op == "retry_account":
+        return retry_account(req)
     elif op == "remove_account":
         return remove_account(req)
     elif op == "reconnect":

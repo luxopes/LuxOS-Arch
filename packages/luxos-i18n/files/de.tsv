@@ -4722,3 +4722,23 @@ Output of %s	Ausgabe von %s
 Ran in the sandbox without access to your files	Lief in der Sandbox ohne Zugriff auf Ihre Dateien
 The output is no longer available.	Die Ausgabe ist nicht mehr verfügbar.
 The program did not print anything.	Das Programm hat nichts ausgegeben.
+Continue as %s	Weiter als %s
+Use Another Account…	Anderen Account verwenden…
+Add LuxAI Mailbox…	LuxAI-Postfach hinzufügen…
+LuxAI Mailboxes	LuxAI-Postfächer
+Mailboxes of %s	Postfächer von %s
+Mail signs in with your LuxAI account – no password is needed.	Mail meldet sich mit Ihrem LuxAI-Account an – kein Passwort nötig.
+Your LuxAI account has no mailbox on the LuxAI server. Add your email account – its address is already filled in.	Ihr LuxAI-Account hat kein Postfach auf dem LuxAI-Server. Fügen Sie Ihren E-Mail-Account hinzu – die Adresse ist bereits ausgefüllt.
+Sign In to LuxAI	Bei LuxAI anmelden
+Sign In…	Anmelden…
+Your LuxAI sign-in has expired. Sign in to your LuxAI account again.	Ihre LuxAI-Anmeldung ist abgelaufen. Melden Sie sich erneut bei Ihrem LuxAI-Account an.
+No LuxAI account is signed in on this computer.	Auf diesem Computer ist kein LuxAI-Account angemeldet.
+Your LuxAI account no longer has access to %s.	Ihr LuxAI-Account hat keinen Zugriff mehr auf %s.
+Your LuxAI account has no access to this mailbox.	Ihr LuxAI-Account hat keinen Zugriff auf dieses Postfach.
+Too many requests to LuxAI. Try again in a minute.	Zu viele Anfragen an LuxAI. Versuchen Sie es in einer Minute erneut.
+The LuxAI server is not available right now.	Der LuxAI-Server ist gerade nicht erreichbar.
+The mail server does not support signing in with a LuxAI account.	Der Mailserver unterstützt keine Anmeldung mit einem LuxAI-Account.
+The mail server cannot verify the sign-in right now. Mail tries again later.	Der Mailserver kann die Anmeldung gerade nicht prüfen. Mail versucht es später erneut.
+The mail server did not accept the LuxAI sign-in for %s.	Der Mailserver hat die LuxAI-Anmeldung für %s nicht akzeptiert.
+Cannot reach the LuxAI server. Check your internet connection.	Der LuxAI-Server ist nicht erreichbar. Prüfen Sie Ihre Internetverbindung.
+The LuxAI Account app (luxos-account) is not installed.	Die App LuxAI-Account (luxos-account) ist nicht installiert.

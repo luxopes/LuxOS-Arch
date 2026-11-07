@@ -4722,3 +4722,23 @@ Output of %s	Salida de %s
 Ran in the sandbox without access to your files	Se ejecutó en el sandbox sin acceso a tus archivos
 The output is no longer available.	La salida ya no está disponible.
 The program did not print anything.	El programa no mostró nada.
+Continue as %s	Continuar como %s
+Use Another Account…	Usar otra cuenta…
+Add LuxAI Mailbox…	Añadir buzón de LuxAI…
+LuxAI Mailboxes	Buzones de LuxAI
+Mailboxes of %s	Buzones de %s
+Mail signs in with your LuxAI account – no password is needed.	Correo inicia sesión con su cuenta de LuxAI: no hace falta contraseña.
+Your LuxAI account has no mailbox on the LuxAI server. Add your email account – its address is already filled in.	Su cuenta de LuxAI no tiene buzón en el servidor de LuxAI. Añada su cuenta de correo: su dirección ya está rellenada.
+Sign In to LuxAI	Iniciar sesión en LuxAI
+Sign In…	Iniciar sesión…
+Your LuxAI sign-in has expired. Sign in to your LuxAI account again.	Su sesión de LuxAI ha caducado. Vuelva a iniciar sesión en su cuenta de LuxAI.
+No LuxAI account is signed in on this computer.	No hay ninguna cuenta de LuxAI conectada en este equipo.
+Your LuxAI account no longer has access to %s.	Su cuenta de LuxAI ya no tiene acceso a %s.
+Your LuxAI account has no access to this mailbox.	Su cuenta de LuxAI no tiene acceso a este buzón.
+Too many requests to LuxAI. Try again in a minute.	Demasiadas solicitudes a LuxAI. Inténtelo de nuevo dentro de un minuto.
+The LuxAI server is not available right now.	El servidor de LuxAI no está disponible en este momento.
+The mail server does not support signing in with a LuxAI account.	El servidor de correo no admite el inicio de sesión con una cuenta de LuxAI.
+The mail server cannot verify the sign-in right now. Mail tries again later.	El servidor de correo no puede verificar el inicio de sesión ahora. Correo lo intentará más tarde.
+The mail server did not accept the LuxAI sign-in for %s.	El servidor de correo no aceptó el inicio de sesión de LuxAI para %s.
+Cannot reach the LuxAI server. Check your internet connection.	No se puede conectar con el servidor de LuxAI. Compruebe su conexión a internet.
+The LuxAI Account app (luxos-account) is not installed.	La aplicación Cuenta de LuxAI (luxos-account) no está instalada.

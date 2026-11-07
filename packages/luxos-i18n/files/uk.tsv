@@ -4723,3 +4723,23 @@ Output of %s	Вивід програми %s
 Ran in the sandbox without access to your files	Виконано в пісочниці без доступу до ваших файлів
 The output is no longer available.	Вивід більше не доступний.
 The program did not print anything.	Програма нічого не вивела.
+Continue as %s	Продовжити як %s
+Use Another Account…	Використати інший обліковий запис…
+Add LuxAI Mailbox…	Додати скриньку LuxAI…
+LuxAI Mailboxes	Скриньки LuxAI
+Mailboxes of %s	Скриньки користувача %s
+Mail signs in with your LuxAI account – no password is needed.	Пошта входить за допомогою вашого облікового запису LuxAI – пароль не потрібен.
+Your LuxAI account has no mailbox on the LuxAI server. Add your email account – its address is already filled in.	Ваш обліковий запис LuxAI не має скриньки на сервері LuxAI. Додайте свій обліковий запис пошти – його адресу вже заповнено.
+Sign In to LuxAI	Вхід до LuxAI
+Sign In…	Увійти…
+Your LuxAI sign-in has expired. Sign in to your LuxAI account again.	Термін входу до LuxAI минув. Увійдіть до свого облікового запису LuxAI знову.
+No LuxAI account is signed in on this computer.	На цьому комп’ютері не виконано вхід до жодного облікового запису LuxAI.
+Your LuxAI account no longer has access to %s.	Ваш обліковий запис LuxAI більше не має доступу до %s.
+Your LuxAI account has no access to this mailbox.	Ваш обліковий запис LuxAI не має доступу до цієї скриньки.
+Too many requests to LuxAI. Try again in a minute.	Забагато запитів до LuxAI. Спробуйте ще раз за хвилину.
+The LuxAI server is not available right now.	Сервер LuxAI зараз недоступний.
+The mail server does not support signing in with a LuxAI account.	Поштовий сервер не підтримує вхід за допомогою облікового запису LuxAI.
+The mail server cannot verify the sign-in right now. Mail tries again later.	Поштовий сервер зараз не може перевірити вхід. Пошта спробує пізніше.
+The mail server did not accept the LuxAI sign-in for %s.	Поштовий сервер не прийняв вхід LuxAI для %s.
+Cannot reach the LuxAI server. Check your internet connection.	Не вдається зв’язатися з сервером LuxAI. Перевірте підключення до інтернету.
+The LuxAI Account app (luxos-account) is not installed.	Застосунок Обліковий запис LuxAI (luxos-account) не встановлено.
