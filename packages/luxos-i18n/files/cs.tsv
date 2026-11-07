@@ -4670,3 +4670,20 @@ allow incoming %s from everywhere	povolit příchozí %s odkudkoli
 allow incoming %s from this network	povolit příchozí %s z této sítě
 stop allowing incoming %s from everywhere	zrušit povolení příchozích %s odkudkoli
 stop allowing incoming %s from this network	zrušit povolení příchozích %s z této sítě
+%s is missing; the anonymous weekly count was not checked.	%s chybí; anonymní týdenní počítání nebylo zkontrolováno.
+anonymous weekly count: %s	anonymní týdenní počítání: %s
+Changing the anonymous weekly count needs a newer lux-engine (lux update).	Změna anonymního týdenního počítání potřebuje novější lux-engine (lux update).
+countme = once a week anonymously report that this computer uses LuxOS (version, channel, install age; no ID)	countme = jednou týdně anonymně nahlásit, že tento počítač používá LuxOS (verze, kanál, stáří instalace; žádné ID)
+Privacy	Soukromí
+Anonymously report that this computer uses LuxOS	Anonymně hlásit, že tento počítač používá LuxOS
+Once a week, with no ID or personal data: only the LuxOS version, update channel and how long ago LuxOS was installed. It helps to see how many people use LuxOS.	Jednou týdně, bez ID a osobních údajů: jen verze LuxOS, kanál aktualizací a jak dávno byl LuxOS nainstalován. Pomáhá to zjistit, kolik lidí LuxOS používá.
+Once a week, with no ID or personal data: only the LuxOS version, update channel and how long ago LuxOS was installed. You can turn it off later in Software Update.	Jednou týdně, bez ID a osobních údajů: jen verze LuxOS, kanál aktualizací a jak dávno byl LuxOS nainstalován. Vypnout to jde později v Aktualizaci softwaru.
+Usage count	Počítání
+anonymous, weekly	anonymní, týdně
+Could not turn off the anonymous weekly count in the installed system.	Anonymní týdenní počítání se v nainstalovaném systému nepodařilo vypnout.
+LuxOS can anonymously report once a week that this computer uses LuxOS - only the version, update channel and install age, no ID or personal data.	LuxOS může jednou týdně anonymně nahlásit, že tento počítač používá LuxOS – jen verzi, kanál aktualizací a stáří instalace, žádné ID ani osobní údaje.
+Anonymously report that this computer uses LuxOS?	Anonymně hlásit, že tento počítač používá LuxOS?
+Invalid COUNTME (use 0 or 1)	Neplatné COUNTME (použijte 0 nebo 1)
+Could not change the anonymous weekly count.	Anonymní týdenní počítání se nepodařilo změnit.
+Usage: lux config countme [on|off]	Použití: lux config countme [on|off]
+Usage: lux config [check|show|edit|engine|migrate|channel|countme]	Použití: lux config [check|show|edit|engine|migrate|channel|countme]

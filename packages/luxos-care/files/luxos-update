@@ -27,6 +27,7 @@ STATE_DIR = ROOT + "/var/lib/luxos-care"
 PROGRESS = ROOT + "/run/luxos-care/progress.json"
 VERIFY_PROGRESS = ROOT + "/run/luxos-care/verify-progress.json"
 CONF = ROOT + "/etc/luxos/care.conf"
+LUX_CONF = ROOT + "/etc/lux/lux.conf"
 HELPER = "/usr/lib/luxos/care/luxos-care-helper"
 
 CSS = b"""
@@ -55,6 +56,24 @@ def read_json(path, default):
         return d if isinstance(d, type(default)) else default
     except (OSError, ValueError):
         return default
+
+
+def read_countme():
+    """[general] countme v /etc/lux/lux.conf (vychozi zapnuto). Cte ho lux-config z lux-engine
+    (i conf.d a starsi format); bez nej primo TOML."""
+    try:
+        if "/usr/lib/lux" not in sys.path:
+            sys.path.append("/usr/lib/lux")
+        import lux_config
+        return lux_config.parse("/etc/lux/lux.conf", ROOT).get("countme") != "off"
+    except Exception:  # noqa: BLE001 - jen zobrazeni
+        pass
+    try:
+        import tomllib
+        with open(LUX_CONF, "rb") as f:
+            return tomllib.load(f).get("general", {}).get("countme", True) is not False
+    except (OSError, ValueError):
+        return True
 
 
 def read_mode():
@@ -276,6 +295,18 @@ class App:
         self.verify_poll = None
         self.protect_busy = False
 
+        # -- soukromi: anonymni tydenni pocitani instalaci (countme v /etc/lux/lux.conf) --
+        outer.pack_start(self.group_title(_("Privacy")), False, False, 0)
+        self.privacy_group = self.group()
+        outer.pack_start(self.privacy_group, False, False, 0)
+        self.countme_busy = False
+        self.countme_switch = Gtk.Switch()
+        self.countme_handler = self.countme_switch.connect("notify::active", self.on_countme)
+        self.row(self.privacy_group, _("Anonymously report that this computer uses LuxOS"),
+                 _("Once a week, with no ID or personal data: only the LuxOS version, update channel and "
+                   "how long ago LuxOS was installed. It helps to see how many people use LuxOS."),
+                 widget=self.countme_switch)
+
         # -- historie --
         outer.pack_start(self.group_title(_("Repair and update history")), False, False, 0)
         self.history_group = self.group()
@@ -428,6 +459,7 @@ class App:
                      _("After the next kernel update the current kernel stays available as a fallback."))
 
         self.show_protection()
+        self.show_countme()
 
         # historie
         self.clear(self.history_group)
@@ -518,6 +550,33 @@ class App:
         self.start_unit("luxos-care-verify-now.service")
         self.verify_btn.set_sensitive(False)
         GLib.timeout_add(800, lambda: self.refresh() and False)
+
+    def show_countme(self):
+        on = read_countme()
+        self.countme_switch.handler_block(self.countme_handler)
+        self.countme_switch.set_active(on)
+        self.countme_switch.handler_unblock(self.countme_handler)
+        self.countme_switch.set_sensitive(not self.countme_busy)
+
+    def on_countme(self, sw, _pspec):
+        want = sw.get_active()
+        if self.countme_busy or want == read_countme():
+            return
+        self.countme_busy = True
+        sw.set_sensitive(False)
+
+        def done(pid, status):
+            self.countme_busy = False
+            GLib.spawn_close_pid(pid)
+            self.show_countme()        # zruseni hesla nebo chyba: prepinac zpet podle souboru
+        try:
+            pid, *_x = GLib.spawn_async(["pkexec", HELPER, "set-countme", "on" if want else "off"],
+                                        flags=GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD)
+            GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid, done)
+        except GLib.Error as e:
+            self.countme_busy = False
+            self.show_countme()
+            self.error(e.message)
 
     def set_protect(self, on):
         if self.protect_busy:

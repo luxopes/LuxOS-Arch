@@ -1,0 +1,69 @@
+[Unit]
+Description=LuxOS countme (anonymous weekly install counter)
+Documentation=https://github.com/luxopes/LuxOS-Arch/tree/main/server/countme
+After=network.target
+
+[Service]
+Type=simple
+# staticka binarka z luxos_countme.lsl (lsl compile); na serveru neni potreba LSL ani Python
+ExecStart=/opt/luxos-countme/luxos-countme --bind 127.0.0.1 --port 8766 --state /var/lib/luxos-countme
+Restart=on-failure
+RestartSec=2s
+# SIGTERM: sluzba zapise rozpracovane citace a skonci (smycka ho kontroluje kazdou sekundu)
+KillSignal=SIGTERM
+TimeoutStopSec=10s
+Nice=5
+# zadny log po pozadavcich: stdout/stderr jen start, konec a chyby bez IP
+SyslogIdentifier=luxos-countme
+
+# --- stav: jen citace po ISO tydnech (counts.json), 0600 ---
+StateDirectory=luxos-countme
+StateDirectoryMode=0700
+UMask=0077
+
+# --- izolace ---
+DynamicUser=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/opt/luxos-countme
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateUsers=yes
+ProtectHostname=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectProc=invisible
+ProcSubset=pid
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# LSL binarka nic nejituje - overeno pod MemoryDenyWriteExecute=yes (systemd-run --user)
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+
+# --- zdroje: RSS ~14 MB (hash tabulky 8 + 2 MB), pri zmene tydne chvili ~21 MB ---
+MemoryHigh=48M
+MemoryMax=64M
+MemorySwapMax=0
+CPUQuota=50%
+TasksMax=8
+LimitNOFILE=256
+# bez core dumpu (v pameti je tydenni sul a HMAC klice)
+LimitCORE=0
+
+[Install]
+WantedBy=multi-user.target

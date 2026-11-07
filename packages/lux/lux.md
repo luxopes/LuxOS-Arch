@@ -97,6 +97,7 @@ repozitářem (a použije), ale `lux config check` napíše varování.
 | | `color`, `candy`, `verbose` | `true` \| `false` (`true`) | barvy, pruh ve stylu Pac-Mana, podrobné seznamy |
 | | `syslog` | `true` \| `false` (`false`) | záznam i do systémového deníku |
 | | `channel` | `"stable"` \| `"staging"` (`"stable"`) | kanál aktualizací: ve `"staging"` (testovací sestavení před vydáním, pro testery) se adresy začínající `https://luxos.lux-ai.cz/repo/` čtou z `https://luxos.lux-ai.cz/staging/` (repozitáře LuxOS, balíky `.lux`, ikony Obchodu); soubor se nemění, Arch a vlastní repozitáře beze změny. Přepnutí: `updates.channel` v `system.lsl` + `sudo lux system apply`, nebo `lux-config set-channel`; `lux config check` ho ukáže |
+| | `countme` | `true` \| `false` (`true`) | jednou týdně anonymně nahlásit, že počítač používá LuxOS (podle „countme“ z Fedory): při stažení seznamů balíků (root, LuxOS Care) jeden požadavek `https://luxos.lux-ai.cz/countme?v=…&arch=…&ch=…&age=…` – jen verze, architektura, kanál a stáří instalace (1 = první týden, 2 = do měsíce, 3 = do půl roku, 4 = déle), žádné ID ani osobní data. Stav a přesný požadavek: `lux config countme`; vypnutí: `lux config countme off` (= `lux-config set-countme off`), Aktualizace softwaru › Soukromí nebo `updates.countme` v `system.lsl`. Podrobnosti: dokumentace LuxOS, „countme“ |
 | `[downloads]` | `parallel` | číslo ≥ 1 (`10`) | kolik souborů se stahuje najednou |
 | | `check_space` | `true` \| `false` (`true`) | kontrola místa na disku |
 | | `user` | uživatel \| `"none"` (`"alpm"`) | pod kým se stahuje (bez práv roota) |
@@ -200,7 +201,7 @@ pořád čte – každý soubor (i v `conf.d`) se rozpozná sám; `lux config ch
 | `color`, `candy` | `[general] color`, `candy` | `review-pkgbuild` | `[packages] review_pkgbuild` |
 | `verbose-lists` | `[general] verbose` | `flatpak` | `[packages] flatpak` |
 | `syslog` | `[general] syslog` | `clean-keep` | `[packages] cache_keep` |
-| `channel` | `[general] channel` | | |
+| `channel` | `[general] channel` | `countme` | `[general] countme` |
 | `parallel-downloads` | `[downloads] parallel` | `hold` | `[packages] hold` |
 | `check-space` | `[downloads] check_space` | `ignore-group` | `[packages] ignore_group` |
 | `download-user` | `[downloads] user` | `no-upgrade` | `[packages] no_upgrade` |

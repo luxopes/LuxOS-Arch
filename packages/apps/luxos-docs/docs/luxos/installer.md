@@ -96,6 +96,7 @@ Template: `/usr/share/luxos/installer/install.conf.example`. Keys (bash variable
 | `HOSTNAME_SEL` | computer name (default `luxos`) |
 | `AUTOLOGIN` | `1` = log in without a password |
 | `CARE_MODE` | `carefree` (default) or `classic`, see [care-updates.md](care-updates.md) |
+| `COUNTME` | `1` (default) = anonymous weekly usage count, `0` = off, see [countme.md](countme.md) |
 | `TEMPLATES` | comma-separated: `everyday`, `programming`, `creative`, `gaming`, `security` |
 | `UI_LANG` | language of installer output |
 | `LUXAI_EMAIL`, `LUXAI_PASSWORD` or `LUXAI_ACCOUNT` | optional LuxAI sign-in (account JSON as in `~/.config/luxai/account.json`) |
@@ -149,6 +150,10 @@ later in the Keyboard Layouts app (see [keyboard.md](keyboard.md)).
 "How should LuxOS be maintained?": **Carefree (recommended)** — automatic background updates
 (not on metered networks, with Data Saver or on low battery), a kept previous kernel and self-repair;
 **Classic (for IT professionals)** — no automatic updates or repairs, only notifications.
+
+Below the two modes: checkbox **Anonymously report that this computer uses LuxOS** (default on;
+once a week only the version, update channel and install age, no ID — see [countme.md](countme.md)).
+The text installer asks the same question after the maintenance mode; the summary shows "Usage count".
 
 ## Software templates
 

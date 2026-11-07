@@ -1276,6 +1276,8 @@ class Lux:
         self.trans = None
         self.interrupted = False
         self.extra = {}
+        # api/conf predane zvenku = testy a docasne kopie (check-updates): bez countme
+        self.injected = api is not None or conf is not None
 
     @property
     def h(self):
@@ -1343,6 +1345,7 @@ class Lux:
                     raise LuxError("interrupted", _("Cancelled"), rc=130)
             if not failed:
                 self.ui.phase_done(True, ", ".join(d.name for d in dbs))
+                countme_start(self)
                 return
             text = "\n".join(f"{n}: {m}" for n, m, _d in failed) + "\n" + "\n".join(self.cb.log_errors)
             kind = classify(text)
@@ -2368,7 +2371,38 @@ def cmd_check_updates(lux, args):
             continue
         n += 1
         lux.ui.write(f"{p.name} {p.version} -> {new.version}")
+    countme_start(lux, conf)
     return 0 if n else 2
+
+
+def countme_start(lux, conf=None):
+    """Seznamy baliku se prave stahly: jednou tydne anonymni pocitani instalaci (lux_countme.py - jen
+    verze, architektura, kanal a stari instalace; ve vlakne na pozadi, chyby se ignoruji). Jen root
+    na skutecnem systemu s repozitari LuxOS; vypnuti: [general] countme = false v lux.conf."""
+    try:
+        if lux.injected or os.environ.get("LUX_NO_COUNTME") or os.geteuid() != 0:
+            return
+        conf = conf if conf is not None else lux.conf
+        servers = [srv for r in getattr(conf, "repos", []) for srv in r.get("Server", [])]
+        if not any(srv.startswith(("https://luxos.lux-ai.cz/repo/", "https://luxos.lux-ai.cz/staging/"))
+                   for srv in servers):
+            return
+        _d = os.path.dirname(os.path.abspath(__file__))
+        if _d not in sys.path:
+            sys.path.insert(0, _d)
+        import lux_countme  # noqa: PLC0415
+        lux_countme.start(rootdir=conf.get("RootDir", "/") if conf is not None else "/")
+    except Exception:
+        pass
+
+
+def countme_finish():
+    mod = sys.modules.get("lux_countme")
+    if mod is not None:
+        try:
+            mod.finish()
+        except Exception:
+            pass
 
 
 PKG_FILE = re.compile(r"^(?P<name>.+)-(?P<ver>[^-]+-[^-]+)-(?P<arch>[^-]+)\.pkg\.tar(\.[a-z0-9]+)?$")
@@ -2611,6 +2645,7 @@ def main(argv=None, api=None, conf=None, out=None, inp=None):
     finally:
         while _CHECK_LOCKS:
             _CHECK_LOCKS.pop().close()
+        countme_finish()
     ui.emit("DONE", rc)
     return rc
 

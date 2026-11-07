@@ -620,6 +620,7 @@ class Installer(Gtk.Window):
             "fullname": "", "username": "", "user_edited": False, "pw1": "", "pw2": "",
             "hostname": "", "host_edited": False, "autologin": False,
             "luxai": None, "luxai_email": "", "care": "carefree", "templates": [],
+            "countme": True,    # anonymni tydenni pocitani instalaci (COUNTME)
             "layout_ok": False, "pass_mismatch": False, "part": None, "home_part": None,
             "wipe": False,
             # OEM: priprava pro jineho cloveka (ucet si zalozi majitel v Pruvodci nastavenim)
@@ -2608,6 +2609,14 @@ class Installer(Gtk.Window):
                              icon=icon, extra=col, badge=_("Recommended") if key == "carefree" else None)
             card.get_child().get_style_context().add_class("care-card")
             page.pack_start(card, False, False, 0)
+        # Anonymni tydenni pocitani instalaci (countme): jedna veta a volba, vychozi zapnuto
+        cm = Gtk.CheckButton(label=_("Anonymously report that this computer uses LuxOS"), active=self.s["countme"])
+        cm.set_margin_top(8)
+        cm.connect("toggled", lambda b: self.s.__setitem__("countme", b.get_active()))
+        page.pack_start(cm, False, False, 0)
+        page.pack_start(self.hint(_("Once a week, with no ID or personal data: only the LuxOS version, update "
+                                    "channel and how long ago LuxOS was installed. You can turn it off later "
+                                    "in Software Update.")), False, False, 0)
 
     def pick_care(self, key):
         if key != self.s["care"]:
@@ -2799,6 +2808,7 @@ class Installer(Gtk.Window):
                 (_("Automatic login"), _("yes") if self.s["autologin"] else _("no")),
                 (_("Maintenance"), _("Classic - you manage the system yourself") if self.s["care"] == "classic"
                  else _("Carefree - automatic updates and repairs")),
+                (_("Usage count"), _("anonymous, weekly") if self.s["countme"] else _("off")),
                 (_("Software"), self.templates_text()),
                 ("LuxAI", _("signed in") if self.s["luxai"] else _("not signed in"))]
         if self.s["org"] and not self.s["oem"]:
@@ -3162,6 +3172,7 @@ class Installer(Gtk.Window):
             "ENCRYPT": "1" if s["encrypt"] else "0", "LUKS_PASS": s["luks1"] if s["encrypt"] else "",
             "USERNAME": s["username"], "FULLNAME": s["fullname"].strip(), "PASSWORD": s["pw1"],
             "HOSTNAME_SEL": s["hostname"], "AUTOLOGIN": "1" if s["autologin"] else "0", "CARE_MODE": s["care"],
+            "COUNTME": "1" if s["countme"] else "0",
             "LUXAI_ACCOUNT": json.dumps(s["luxai"], ensure_ascii=False) if s["luxai"] else "",
             "TEMPLATES": ",".join(s["templates"]),
             "WIPE": "zero" if s["wipe"] else "none", "WIPE_CANCEL_FILE": self.wipe_cancel_file(),

@@ -897,8 +897,12 @@ def normalize(raw):
                         nu["channel"] = v
                     else:
                         ck.err("updates.channel", _("must be \"stable\" or \"staging\""))
+                elif k == "countme":
+                    # anonymni tydenni pocitani instalaci ([general] countme v lux.conf)
+                    if ck.typed("updates.countme", v, (bool,), "True or False"):
+                        nu["countme"] = v
                 else:
-                    ck.unknown("updates", k, ("channel",))
+                    ck.unknown("updates", k, ("channel", "countme"))
             cfg["updates"] = nu
     if "guard" in raw:
         gu = raw["guard"]
@@ -1880,7 +1884,7 @@ def lux_conf_settings():
     lux.conf se odtud nezapisuje (jen kanal aktualizaci: apply_channel pres lux-config). Umi puvodni format ("klic hodnota", "repo JMENO" s odsazenym
     blokem) i tabulky ([repo.JMENO], "klic = hodnota"); vlozene soubory (include) se ctou take.
     -> {"list": [...], "community": bool, "review_build_scripts": bool, "flatpak_updates": bool,
-        "channel": "stable"|"staging"} | None"""
+        "channel": "stable"|"staging", "countme": bool} | None"""
     if read(LUX_CONF, None) is None:
         return None
     lc = _lux_config()
@@ -1896,7 +1900,8 @@ def lux_conf_settings():
             return {"list": names, "community": bool(pk.get("aur", True)),
                     "review_build_scripts": bool(pk.get("review_pkgbuild", True)),
                     "flatpak_updates": bool(pk.get("flatpak", True)),
-                    "channel": d.get("general", {}).get("channel") or "stable"}
+                    "channel": d.get("general", {}).get("channel") or "stable",
+                    "countme": d.get("general", {}).get("countme", True) is not False}
         except Exception:
             pass
     files, seen, repos, vals = [LUX_CONF], set(), [], {}
@@ -1920,7 +1925,7 @@ def lux_conf_settings():
                 for p in sorted(glob.glob(P(pat))):
                     files.append(p[len(ROOT):] if ROOT and p.startswith(ROOT) else p)
                 continue
-            m = re.match(r'^(aur|review-pkgbuild|review_pkgbuild|flatpak|channel)\s*(?:=\s*)?\"?([A-Za-z0-9]+)\"?$', s)
+            m = re.match(r'^(aur|review-pkgbuild|review_pkgbuild|flatpak|channel|countme)\s*(?:=\s*)?\"?([A-Za-z0-9]+)\"?$', s)
             if m:
                 vals[m.group(1).replace("_", "-")] = m.group(2).lower()
 
@@ -1928,7 +1933,8 @@ def lux_conf_settings():
         return vals.get(key, "on") not in ("off", "no", "false", "0")
     return {"list": repos, "community": flag("aur"), "review_build_scripts": flag("review-pkgbuild"),
             "flatpak_updates": flag("flatpak"),
-            "channel": vals.get("channel") if vals.get("channel") in CHANNELS else "stable"}
+            "channel": vals.get("channel") if vals.get("channel") in CHANNELS else "stable",
+            "countme": flag("countme")}
 
 
 # ---- plan zmen dalsich oblasti ---------------------------------------------------------------------
@@ -2185,6 +2191,14 @@ def compute_more(cfg, st, plan, applied, force):
         elif cur.get("channel") != ch:
             plan.add("updates", "~", _("update channel: %s") % f"{cur.get('channel')} → {ch}", 5,
                      lambda c=ch: apply_channel(c), target="channel")
+    cm = cfg.get("updates", {}).get("countme")
+    if cm is not None:
+        cur = st.repos()
+        if cur is None:
+            plan.warnings.append(_("%s is missing; the anonymous weekly count was not checked.") % LUX_CONF)
+        elif cur.get("countme", True) != cm:
+            plan.add("updates", "~", _("anonymous weekly count: %s") % (_("on") if cm else _("off")), 5,
+                     lambda v=cm: apply_countme(v), target="countme")
     if cfg.get("repos"):
         cur = st.repos()
         if cur is None:
@@ -2300,7 +2314,7 @@ SECTIONS = [("packages", "Packages"), ("drivers", "Drivers"), ("flatpaks", "Flat
             ("printers", "Printers"), ("power", "Power"), ("care", "LuxOS Care"), ("guard", "Lux Guard"),
             ("firewall", "Firewall"), ("security", "Security"), ("new_users", "Defaults for new users"),
             ("boot", "Boot menu"), ("kernel", "Kernel parameters"), ("domain", "Organization network"),
-            ("updates", "Update channel")]
+            ("updates", "Updates")]
 
 
 class Change:
@@ -2750,6 +2764,17 @@ def apply_channel(channel):
         raise UserError(str(e)) from e
 
 
+def apply_countme(on):
+    """[general] countme v /etc/lux/lux.conf (zapis a kontrolu dela lux-config z lux-engine)."""
+    lc = _lux_config()
+    if lc is None or not hasattr(lc, "set_countme"):
+        raise UserError(_("Changing the anonymous weekly count needs a newer lux-engine (lux update)."))
+    try:
+        lc.set_countme(bool(on), LUX_CONF, root=ROOT or "")
+    except lc.ConfigError as e:
+        raise UserError(str(e)) from e
+
+
 def apply_kernel(lay, add, remove):
     for f in lay["files"]:
         text = read(f)
@@ -3173,7 +3198,9 @@ def generate(st):
     repos_now = st.repos()
     if repos_now is not None:
         note("Update channel: \"stable\" = releases, \"staging\" = test builds before a release (for testers)")
-        w(f"    \"updates\": {{\"channel\": {lsl_str(repos_now.get('channel', 'stable'))}}}")
+        note("countme = once a week anonymously report that this computer uses LuxOS (version, channel, install age; no ID)")
+        w(f"    \"updates\": {{\"channel\": {lsl_str(repos_now.get('channel', 'stable'))}, "
+          f"\"countme\": {lsl_bool(repos_now.get('countme', True))}}}")
     if any(u in units for u in GUARD_UNITS.values()):
         note("Lux Guard: protection against harmful downloads, hourly snapshots of /home")
         w("    \"guard\": {")

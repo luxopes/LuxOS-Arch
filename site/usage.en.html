@@ -1,0 +1,74 @@
+    <article class="doc panel usage" data-usage>
+      {{CRUMBS}}
+      <h1>LuxOS usage</h1>
+      <p class="lead">How many computers run LuxOS each week, how many people keep using it, and which versions they run. The numbers are anonymous weekly counts – no computer can be identified from them.</p>
+      <p class="usage-msg" data-usage-msg role="status" hidden>Loading statistics…</p>
+      <noscript><p class="usage-msg">The charts need JavaScript. The raw weekly counts are available as <a href="/stats/usage.json">usage.json</a>.</p></noscript>
+      <div class="usage-dash" data-usage-dash hidden>
+        <div class="usage-kpis">
+          <div class="usage-kpi"><span class="usage-kpi-label">Computers last week</span><strong data-kpi="total">–</strong><span class="usage-kpi-sub" data-kpi="week"></span></div>
+          <div class="usage-kpi"><span class="usage-kpi-label">Change vs the week before</span><strong data-kpi="change">–</strong><span class="usage-kpi-sub" data-kpi="change-sub"></span></div>
+          <div class="usage-kpi"><span class="usage-kpi-label">Returning computers</span><strong data-kpi="returning">–</strong><span class="usage-kpi-sub">installed for more than a week</span></div>
+        </div>
+
+        <h2 id="weekly">Weekly active computers</h2>
+        <figure class="usage-chart" data-chart="totals"></figure>
+        <p class="usage-note" data-partial-note></p>
+
+        <h2 id="retention">Who keeps using LuxOS</h2>
+        <p>Every week each computer also says roughly how long LuxOS has been installed on it. A growing share of “1–6 months” and “longer” means that people do not just try LuxOS – they stay with it.</p>
+        <ul class="usage-legend" aria-hidden="true">
+          <li><i class="u-sw u-a1"></i>New (first week)</li><li><i class="u-sw u-a2"></i>Up to 1 month</li><li><i class="u-sw u-a3"></i>1–6 months</li><li><i class="u-sw u-a4"></i>Longer</li>
+        </ul>
+        <figure class="usage-chart" data-chart="age"></figure>
+
+        <h2 id="versions">Versions and channels</h2>
+        <p data-breakdown-week>In the last complete week.</p>
+        <div class="usage-breakdown">
+          <section><h3>Version</h3><div data-bars="by_version"></div></section>
+          <section><h3>Update channel</h3><div data-bars="by_channel"></div></section>
+          <section><h3>Architecture</h3><div data-bars="by_arch"></div></section>
+        </div>
+
+        <details class="usage-table">
+          <summary>Weekly numbers as a table</summary>
+          <div class="usage-table-wrap"><table>
+            <thead><tr><th scope="col">Week</th><th scope="col">Computers</th><th scope="col">New</th><th scope="col">Up to 1 month</th><th scope="col">1–6 months</th><th scope="col">Longer</th></tr></thead>
+            <tbody data-table></tbody>
+          </table></div>
+        </details>
+        <p class="usage-note" data-generated></p>
+      </div>
+
+      <h2 id="what-is-sent">What exactly is sent</h2>
+      <p>Once per calendar week (an ISO week starting on Monday, in UTC), when the package manager <code>lux</code> downloads the package lists – LuxOS Care does this automatically – it makes one extra request to <code>https://luxos.lux-ai.cz/countme</code> with only these four values:</p>
+      <table>
+        <thead><tr><th scope="col">Value</th><th scope="col">Meaning</th><th scope="col">Example</th></tr></thead>
+        <tbody>
+          <tr><td><code>v</code></td><td>LuxOS version</td><td><code>1.0.0</code></td></tr>
+          <tr><td><code>arch</code></td><td>Processor architecture</td><td><code>x86_64</code></td></tr>
+          <tr><td><code>ch</code></td><td>Update channel</td><td><code>stable</code> or <code>staging</code></td></tr>
+          <tr><td><code>age</code></td><td>How long the system has been installed: 1 = first week, 2 = up to a month, 3 = up to six months, 4 = longer</td><td><code>3</code></td></tr>
+        </tbody>
+      </table>
+      <p>The whole request then looks like this:</p>
+      <pre><code>https://luxos.lux-ai.cz/countme?v=1.0.0&amp;arch=x86_64&amp;ch=stable&amp;age=3</code></pre>
+      <ul>
+        <li><strong>Nothing else is sent:</strong> no unique ID, no computer name, no hardware details, no list of installed apps and no user data.</li>
+        <li><strong>The server keeps only weekly counters</strong> for each combination of week, version, architecture, channel and age – that is all this page shows.</li>
+        <li><strong>IP addresses are not stored.</strong> Access logging is switched off for <code>/countme</code>. To filter out duplicates the server uses a keyed hash of the IP address; the key is random, lives only in memory and is thrown away every week, so the hashes cannot be linked to anyone or across weeks.</li>
+        <li><strong>The numbers are an estimate.</strong> Computers that are switched off or offline for a whole week are not counted. Several computers behind one shared IP address (a school, an office) may be counted only once per week and version – a simple protection against spamming.</li>
+      </ul>
+      <p>The idea is inspired by Fedora’s DNF countme.</p>
+
+      <h2 id="opt-out">How to turn it off</h2>
+      <p>Counting is on by default and can be switched off at any time, in any of these ways:</p>
+      <ul>
+        <li>In the <strong>Software Update</strong> app: the <strong>Privacy</strong> switch.</li>
+        <li>In the terminal: <code>sudo lux-config set-countme off</code></li>
+        <li>In <code>/etc/lux/lux.conf</code>: <code>countme = false</code> in the <code>[general]</code> section.</li>
+        <li>In the system configuration <code>/etc/luxos/system.lsl</code>: <code>"updates": {"countme": False}</code></li>
+        <li>When installing: the installer has a checkbox for it (checked by default).</li>
+      </ul>
+      <p>More details are in the documentation: <a href="{{COUNTME_DOC}}">{{COUNTME_DOC_TITLE}}</a>.</p>
+    </article>

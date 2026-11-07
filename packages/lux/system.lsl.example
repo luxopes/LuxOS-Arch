@@ -63,8 +63,10 @@ config = {
         "keep_snapshots": 5
         "protect": True
     }
-    # "stable" = released updates, "staging" = test builds before a release (for testers)
-    "updates": {"channel": "stable"}
+    # "stable" = released updates, "staging" = test builds before a release (for testers);
+    # countme = once a week anonymously report that this computer uses LuxOS (version, channel,
+    # install age bucket; no ID or personal data) - False turns it off
+    "updates": {"channel": "stable", "countme": True}
     "guard": {
         "enable": True
         "home_snapshots": True

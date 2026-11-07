@@ -335,9 +335,16 @@ echo "## luxos-oem finish (bez sifrovani)"
 printf '#!/bin/bash\necho "lux_system $*" >>"%s"\n' "$TMP/luxsys.log" >"$TMP/fake-lux-system"
 chmod +x "$TMP/fake-lux-system"
 export LUXOS_LUX_SYSTEM=$TMP/fake-lux-system
+# lux-config (anonymni tydenni pocitani): zastupny skript zapise argumenty
+printf '#!/bin/bash\necho "lux-config $*" >>"%s"\n' "$TMP/luxconfig.log" >"$TMP/fake-lux-config"
+chmod +x "$TMP/fake-lux-config"
+export LUXOS_LUX_CONFIG=$TMP/fake-lux-config
 setup_root 0 ""
+mkdir -p "$R/var/lib/lux" && echo '{"since": 1, "last_week": "2026-W01"}' >"$R/var/lib/lux/countme"
 (load_oem; main seal --chroot --yes) >/dev/null 2>&1
+check "seal: stav countme technika smazan" test ! -e "$R/var/lib/lux/countme"
 (load_oem; main finish <<<"$INPUT") >"$TMP/out" 2>&1
+check "countme: vychozi zapnuto podle majitele" grep -qx "lux-config set-countme on --root $R" "$TMP/luxconfig.log"
 check "finish: @@DONE" grep -qx "@@DONE" "$TMP/out"
 check "jazyk" grep -q "localectl set-locale LANG=cs_CZ.UTF-8" "$TMP/cmds"
 check "klavesnice vcetne konzole (localectl)" grep -q "localectl set-x11-keymap cz,us  qwerty, grp:shifts_toggle" "$TMP/cmds"

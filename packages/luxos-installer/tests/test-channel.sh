@@ -65,5 +65,30 @@ else
 fi
 if [[ ! -s $OUT/info ]]; then ok "no warning"; else bad "warning shown" "$(cat "$OUT/info")"; fi
 
+# Anonymni tydenni pocitani (COUNTME): vychozi zapnuto (lux.conf z baliku), COUNTME=0 vypne
+if grep -qx 'countme = true' "$OUT/target-stable/etc/lux/lux.conf"; then
+    ok "countme on by default"
+else
+    bad "countme default" "$(grep -n countme "$OUT/target-stable/etc/lux/lux.conf")"
+fi
+COUNTME=0 run_case stable
+conf=$OUT/target-stable/etc/lux/lux.conf
+if diff <(sed 's/^countme = false$/countme = true/' "$conf") "$FILES/lux.conf" >/dev/null &&
+        grep -qx 'countme = false' "$conf"; then
+    ok "COUNTME=0: only countme = false differs"
+else
+    bad "COUNTME=0" "$(diff "$conf" "$FILES/lux.conf")"
+fi
+cm=$(cd "$ENGINE" && python3 -c 'import sys, lux_config as lc
+print(lc.parse("/etc/lux/lux.conf", root=sys.argv[1]).get("countme"))' "$OUT/target-stable")
+if [[ $cm == off ]]; then ok "lux-config reads countme off"; else bad "countme value" "$cm"; fi
+COUNTME=1 run_case stable
+if cmp -s "$FILES/lux.conf" "$OUT/target-stable/etc/lux/lux.conf"; then
+    ok "COUNTME=1: lux.conf unchanged from the package"
+else
+    bad "COUNTME=1 changed lux.conf"
+fi
+if [[ ! -s $OUT/info ]]; then ok "no warning (countme)"; else bad "warning shown" "$(cat "$OUT/info")"; fi
+
 echo "passed: $NPASS, failed: $NFAIL"
 ((NFAIL == 0))

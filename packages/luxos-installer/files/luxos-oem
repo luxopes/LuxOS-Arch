@@ -41,6 +41,7 @@ SELF=/usr/bin/luxos-oem
 DOMAIN_CLI=${LUXOS_DOMAIN_CLI:-/usr/bin/lux-domain}
 # Cely system v jednom souboru (/etc/luxos/system.lsl) - az s uctem a jazykem majitele (lux system)
 LUX_SYSTEM_CLI=${LUXOS_LUX_SYSTEM:-/usr/lib/lux/lux_system.py}
+LUX_CONFIG_TOOL=${LUXOS_LUX_CONFIG:-/usr/lib/lux/lux-config}
 
 if [[ -r $R/usr/lib/luxos/i18n.sh ]]; then . "$R/usr/lib/luxos/i18n.sh"
 elif ! declare -F T >/dev/null; then T() { local f=$1; shift; printf -- "$f" "$@"; }; fi
@@ -135,6 +136,7 @@ scrub() {  # scrub CHROOT KEEP_WIFI: stopy pripravy pocitace
     rm -f "$R/var/lib/systemd/random-seed" "$R/var/lib/systemd/credential.secret"
     # cache a docasne soubory
     rm -rf "$R"/var/cache/pacman/pkg/* "$R"/var/cache/lux/* "$R"/var/tmp/* 2>/dev/null || true
+    rm -f "$R/var/lib/lux/countme" 2>/dev/null || true   # countme: stari instalace az od majitele
     rm -rf "$R"/root/.cache "$R"/root/.local/share/recently-used.xbel "$R"/root/.*_history "$R"/root/.lesshst 2>/dev/null || true
     # prihlasovaci obrazovka si pamatuje posledniho uzivatele
     rm -rf "$SETUP_HOME"/.cache "$SETUP_HOME"/.local "$R"/var/lib/lightdm-data/* "$R"/var/cache/lightdm/* 2>/dev/null || true
@@ -234,7 +236,7 @@ cmd_status() {
 }
 
 # --- dokonceni Pruvodce ----------------------------------------------------------------------------
-FIN_KEYS=" LOCALE XKB_LAYOUT XKB_VARIANT XKB_OPTIONS TIMEZONE FULLNAME USERNAME PASSWORD HOSTNAME AUTOLOGIN CARE_MODE LUXAI_ACCOUNT PHOTO DISK_PASS DOMAIN DOMAIN_USER DOMAIN_PASSWORD DOMAIN_OU "
+FIN_KEYS=" LOCALE XKB_LAYOUT XKB_VARIANT XKB_OPTIONS TIMEZONE FULLNAME USERNAME PASSWORD HOSTNAME AUTOLOGIN CARE_MODE COUNTME LUXAI_ACCOUNT PHOTO DISK_PASS DOMAIN DOMAIN_USER DOMAIN_PASSWORD DOMAIN_OU "
 declare -gA V=()
 
 read_input() {  # stdin: radky KLIC=hodnota (bez eval; nezname klice = chyba)
@@ -272,6 +274,7 @@ validate() {
     [[ $opt =~ ^([A-Za-z0-9_]+:[A-Za-z0-9_]+(,[A-Za-z0-9_]+:[A-Za-z0-9_]+)*)?$ ]] || die "$(T "Invalid XKB_OPTIONS: %s" "$opt")"
     [[ ${V[CARE_MODE]:=carefree} == @(carefree|classic) ]] || die "$(T "Invalid CARE_MODE (use carefree or classic)")"
     [[ ${V[AUTOLOGIN]:=0} == @(0|1) ]] || die "$(T "Invalid setup data.")"
+    [[ ${V[COUNTME]:=1} == @(0|1) ]] || die "$(T "Invalid setup data.")"
     if [[ $(luks_state) == pending && -z ${V[DISK_PASS]-} ]]; then die "$(T "Choose a password for the disk.")"; fi
     if [[ -n ${V[DOMAIN]-} ]]; then
         V[DOMAIN]=${V[DOMAIN],,}
@@ -309,6 +312,9 @@ apply_system() {  # jazyk, klavesnice, casove pasmo, nazev pocitace (opakovateln
     protect=$(sed -n 's/^PROTECT=//p' "$R/etc/luxos/care.conf" 2>/dev/null | tail -n1) || protect=""
     printf 'MODE=%s\nKERNEL=linux-luxos\nPROTECT=%s\n' "${V[CARE_MODE]}" "${protect:-yes}" |
         install -Dm644 /dev/stdin "$R/etc/luxos/care.conf"
+    # Anonymni tydenni pocitani instalaci: rozhodl majitel na strance Udrzba (vychozi zapnuto)
+    "$LUX_CONFIG_TOOL" set-countme "$( ((V[COUNTME])) && echo on || echo off)" ${R:+--root "$R"} >/dev/null 2>&1 ||
+        say "$(T "Could not change the anonymous weekly count.")"
 }
 
 # Ochrana systemu: /usr je jen pro cteni a locale-gen zapisuje do /usr/lib/locale
