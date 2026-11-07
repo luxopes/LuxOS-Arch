@@ -1,7 +1,8 @@
 # Posta LuxOS - sluzba na pozadi (`luxos-mail --background`, spousti ji relace pres XDG autostart).
 # Drzi jedno spojeni IMAP na ucet: po synchronizaci ceka v IDLE na INBOX (server sam oznami novou zpravu),
-# bez IDLE kontroluje kazdych 5 minut. Nova neprectena zprava -> upozorneni "Nova posta od X" s akci
-# Otevrit (otevre aplikaci na te zprave); rezim Nerusit respektuje xfce4-notifyd. Po zmene site
+# bez IDLE kontroluje kazdych 5 minut. Nova neprectena zprava -> trvale upozorneni "Nova posta od X"
+# s akci Otevrit (otevre aplikaci na te zprave), ulozene i v historii oznameni (zvonek v liste); dalsi
+# zpravy ho nahradi souhrnem, po precteni se zavre. Rezim Nerusit respektuje xfce4-notifyd. Po zmene site
 # (NetworkManager) a probuzeni (logind) se spoji znovu, pri vypadku ceka 5 s, 10 s ... nejvys 15 min.
 # Spatne heslo se znovu nezkousi (zadne zablokovani uctu na serveru), az po zadani noveho.
 # Schranky LuxAI (ucet "auth": "luxai") heslo nemaji: pred kazdym spojenim si sluzba vyzada od serveru
@@ -144,7 +145,8 @@ end
 
 function new_state(cfg):
     return {"cfg": cfg, "conn": {}, "state": "offline", "kind": "", "error": "", "password": "", "watch": [], "backoff": 0,
-            "retry": 0, "idle_timer": 0, "poll_timer": 0, "debounce": 0, "boxes": [], "started": False}
+            "retry": 0, "idle_timer": 0, "poll_timer": 0, "debounce": 0, "boxes": [], "started": False,
+            "note": {"id": 0, "pending": []}}
 end
 
 function status_of(st):
@@ -303,6 +305,9 @@ function update_box_counts(st, raw, unseen, total):
     end
     call store.save_mailboxes(st["cfg"]["id"], boxes)
     call update_badge()
+    if raw == "INBOX":
+        call check_read(st)
+    end
     return 0
 end
 
@@ -616,6 +621,13 @@ end
 
 # ---- upozorneni ------------------------------------------------------------------------------------------------
 
+# Jedno trvale upozorneni na ucet: zustane, dokud ho uzivatel nezavre (expire_timeout 0), s hintem
+# x-luxos-keep se ulozi do historie oznameni (zvonek v liste, cervena tecka = neprectene). Dalsi nove
+# zpravy ho nahradi (stejne id -> souhrn "Nove zpravy: N", xfce4-notifyd prepise i zaznam v historii).
+# Kdyz jsou vsechny ohlasene zpravy prectene (v Poste nebo jinde - IMAP \Seen), upozorneni se zavre
+# (CloseNotification, zaznam v historii se oznaci jako precteny).
+NOTE_LINES = 3
+
 function notify_new(st, raw, result):
     id = st["cfg"]["id"]
     state = result["state"]
@@ -637,41 +649,74 @@ function notify_new(st, raw, result):
     if len(fresh) == 0 or svc["session"] == 0:
         return 0
     end
-    if len(fresh) > 3:
-        summary = i18n.TF("New messages: %d", [len(fresh)])
-        body = st["cfg"]["email"]
-        newest = fresh[0]
-        for r in fresh:
-            if r["uid"] > newest["uid"]:
-                newest = r
-            end
-        end
-        call send_note(summary, body, {"account": id, "mailbox": raw, "uid": newest["uid"]})
-        return 0
+    note = st["note"]
+    known = {}
+    for p in note["pending"]:
+        known[p["uid"]] = True
     end
     for r in fresh:
-        who = r["from_name"]
-        if who == "":
-            who = r["from_email"]
+        if r["uid"] not in known:
+            note["pending"].append({"uid": r["uid"], "from_name": r["from_name"], "from_email": r["from_email"],
+                                    "subject": r["subject"], "preview": r["preview"]})
         end
-        subject = r["subject"]
-        if subject == "":
-            subject = i18n.T("(no subject)")
-        end
-        body = glib.markup_escape(subject)
-        if r["preview"] != "":
-            body = body + "\n" + glib.markup_escape(r["preview"][0:min(len(r["preview"]), 120)])
-        end
-        call send_note(i18n.TF("New mail from %s", [who]), body, {"account": id, "mailbox": raw, "uid": r["uid"]})
     end
+    call show_note(st, raw)
     return 0
 end
 
-function send_note(summary, body, target):
+function note_sender(p):
+    if p["from_name"] != "":
+        return p["from_name"]
+    end
+    return p["from_email"]
+end
+
+function note_subject(p):
+    if p["subject"] == "":
+        return i18n.T("(no subject)")
+    end
+    return p["subject"]
+end
+
+function show_note(st, raw):
+    note = st["note"]
+    pending = note["pending"]
+    # nejnovejsi nahore
+    newest = []
+    for p in pending:
+        i = 0
+        while i < len(newest) and newest[i]["uid"] > p["uid"]:
+            i += 1
+        end
+        newest.insert(i, p)
+    end
+    if len(newest) == 1:
+        p = newest[0]
+        summary = i18n.TF("New mail from %s", [note_sender(p)])
+        body = glib.markup_escape(note_subject(p))
+        if p["preview"] != "":
+            body = body + "\n" + glib.markup_escape(p["preview"][0:min(len(p["preview"]), 120)])
+        end
+    else:
+        summary = i18n.TF("New messages: %d", [len(newest)])
+        lines = []
+        for p in newest[0:min(len(newest), NOTE_LINES)]:
+            lines.append(glib.markup_escape(note_sender(p) + ": " + note_subject(p)))
+        end
+        if len(newest) > NOTE_LINES:
+            lines.append("…")
+        end
+        body = "\n".join(lines)
+    end
+    call send_note(note["id"], summary, body, {"account": st["cfg"]["id"], "mailbox": raw, "uid": newest[0]["uid"]})
+    return 0
+end
+
+function send_note(replaces, summary, body, target):
     actions = ["default", i18n.T("Open")]
-    hints = {"category": ["s", "email.arrived"], "desktop-entry": ["s", "luxos-mail"]}
+    hints = {"category": ["s", "email.arrived"], "desktop-entry": ["s", "luxos-mail"], "x-luxos-keep": ["b", True]}
     call gio.call_async(svc["session"], "org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "Notify",
-                        [i18n.T("Mail"), 0, "luxos-mail", summary, body, actions, hints, -1],
+                        [i18n.T("Mail"), replaces, "luxos-mail", summary, body, actions, hints, 0],
                         "(susssasa{sv}i)", 5000, on_notified, target)
     return 0
 end
@@ -682,10 +727,63 @@ function on_notified(target, values, error):
         return 0
     end
     svc["notes"][values[0]] = target
+    if target["account"] in svc["accounts"]:
+        svc["accounts"][target["account"]]["note"]["id"] = values[0]
+    end
     if env.get("LUXOS_MAIL_NOTIFY_LOG", "") != "":
         safe:
             call appendfile(env.get("LUXOS_MAIL_NOTIFY_LOG", ""), json.encode({"id": values[0], "target": target}) + "\n")
         end
+    end
+    return 0
+end
+
+# Po kazde zmene INBOXu (synchronizace, priznak z okna, IDLE): prectene/smazane zpravy z upozorneni
+# vypadnou; kdyz nezbyde zadna, upozorneni se zavre. Castecne precteny souhrn se nemeni (nahrazeni
+# by v historii vytvorilo novy neprecteny zaznam a zvonek by se znovu rozsvitil).
+function check_read(st):
+    note = st["note"]
+    if len(note["pending"]) == 0:
+        return 0
+    end
+    flags = {}
+    for r in store.load_index(st["cfg"]["id"], "INBOX"):
+        flags[r["uid"]] = r["flags"]
+    end
+    keep = []
+    for p in note["pending"]:
+        f = flags.get(p["uid"], None)
+        if f != None and f.find("S") < 0 and f.find("D") < 0:
+            keep.append(p)
+        end
+    end
+    note["pending"] = keep
+    if len(keep) == 0:
+        call close_note(st)
+    end
+    return 0
+end
+
+function close_note(st):
+    note = st["note"]
+    nid = note["id"]
+    st["note"] = {"id": 0, "pending": []}
+    if nid == 0 or svc["session"] == 0:
+        return 0
+    end
+    if nid in svc["notes"]:
+        call svc["notes"].pop(nid)
+    end
+    safe:
+        call gio.call_async(svc["session"], "org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "CloseNotification",
+                            [nid], "(u)", 5000, on_note_closed, nid)
+    end
+    return 0
+end
+
+function on_note_closed(nid, values, error):
+    if values == None:
+        call log("closing notification failed: " + error)
     end
     return 0
 end
@@ -699,9 +797,28 @@ function on_action(sender, path, interface, signal, values):
     return 0
 end
 
+# Zavrene uzivatelem (krizek, akce: duvod 2) nebo aplikaci (3) -> dalsi posta zacne nove upozorneni.
+# Duvod 4 posila xfce4-notifyd hned, kdyz popup vubec neukaze (Nerusit) - upozorneni ale zustava
+# v historii, takze ho dal nahrazujeme a po precteni zavreme.
 function on_closed(sender, path, interface, signal, values):
-    if len(values) >= 1 and values[0] in svc["notes"]:
+    if len(values) < 1:
+        return 0
+    end
+    reason = 0
+    if len(values) >= 2:
+        reason = values[1]
+    end
+    if reason != 2 and reason != 3:
+        return 0
+    end
+    if values[0] in svc["notes"]:
         call svc["notes"].pop(values[0])
+    end
+    for id in svc["order"]:
+        st = svc["accounts"][id]
+        if st["note"]["id"] == values[0]:
+            st["note"] = {"id": 0, "pending": []}
+        end
     end
     return 0
 end
@@ -1333,6 +1450,7 @@ function remove_account(req):
     id = req.get("account", "")
     if id in svc["accounts"]:
         call disconnect(svc["accounts"][id])
+        call close_note(svc["accounts"][id])
         call svc["accounts"].pop(id)
         call svc["order"].remove(id)
     end

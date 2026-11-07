@@ -1,0 +1,83 @@
+--- a/panel-plugin/notification-plugin.c
++++ b/panel-plugin/notification-plugin.c
+@@ -123,6 +123,36 @@
+ 
+ 
+ 
++/* LuxOS: neprectena oznameni = cervena tecka vpravo nahore na zvonku. Kreslime ji sami: ikony
++ * WhiteSur maji variantu "-new" s modrou teckou, kterou nacteni jako symbolicke ikony prebarvi
++ * barvou textu, takze tecka v liste skoro neni videt (a vlastni znak pak plugin nepridal).
++ * Kolem tecky se zvonek vymaze (mezera 1 px), aby byla ostra na svetle i tmave liste a pri 1x i 2x. */
++#define LUXOS_BADGE_RED_R (0xF2 / 255.0)
++#define LUXOS_BADGE_RED_G (0x3D / 255.0)
++#define LUXOS_BADGE_RED_B (0x3D / 255.0)
++
++static void
++luxos_draw_unread_badge(cairo_surface_t *surface, gint scale_factor) {
++  gdouble size = (gdouble)cairo_image_surface_get_width(surface) / MAX(scale_factor, 1);
++  gdouble r = MAX(2.0, (gdouble)(gint)(size * 0.2 + 0.5));
++  gdouble gap = MAX(1.0, (gdouble)(gint)(size / 16.0));
++  gdouble cx = size - r;
++  gdouble cy = r;
++  cairo_t *cr = cairo_create(surface);
++
++  /* gdk_cairo_surface_create_from_pixbuf nastavi device scale -> kreslime v logickych px */
++  cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
++  cairo_arc(cr, cx, cy, r + gap, 0.0, 2 * G_PI);
++  cairo_fill(cr);
++
++  cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
++  cairo_set_source_rgb(cr, LUXOS_BADGE_RED_R, LUXOS_BADGE_RED_G, LUXOS_BADGE_RED_B);
++  cairo_arc(cr, cx, cy, r, 0.0, 2 * G_PI);
++  cairo_fill(cr);
++
++  cairo_destroy(cr);
++}
++
+ void
+ notification_plugin_update_icon(NotificationPlugin *notification_plugin) {
+   GtkIconTheme *icon_theme = gtk_icon_theme_get_default();
+@@ -133,21 +163,10 @@
+   gboolean dnd_enabled; 
+ 
+   dnd_enabled = xfconf_channel_get_bool(notification_plugin->channel, DND_ENABLED_PROP, FALSE);
+-  if (dnd_enabled && notification_plugin->new_notifications) {
+-    base_icon = g_themed_icon_new_with_default_fallbacks("notification-disabled-new-symbolic");
+-    g_themed_icon_append_name(G_THEMED_ICON(base_icon), "notifications-disabled-new-symbolic");
+-    g_themed_icon_append_name(G_THEMED_ICON(base_icon), "notification-new-disabled-symbolic");
+-    g_themed_icon_append_name(G_THEMED_ICON(base_icon), "notifications-new-disabled-symbolic");
+-    g_themed_icon_append_name(G_THEMED_ICON(base_icon), "notification-disabled-symbolic");
+-    g_themed_icon_append_name(G_THEMED_ICON(base_icon), "notifications-disabled-symbolic");
+-  } else if (dnd_enabled) {
++  /* LuxOS: vzdy zakladni zvonek (preskrtnuty pri Nerusit), neprectena = nase cervena tecka */
++  if (dnd_enabled) {
+     base_icon = g_themed_icon_new_with_default_fallbacks("notification-disabled-symbolic");
+     g_themed_icon_append_name(G_THEMED_ICON(base_icon), "notifications-disabled-symbolic");
+-  } else if (notification_plugin->new_notifications) {
+-    base_icon = g_themed_icon_new_with_default_fallbacks("notification-new-symbolic");
+-    g_themed_icon_append_name(G_THEMED_ICON(base_icon), "notifications-new-symbolic");
+-    g_themed_icon_append_name(G_THEMED_ICON(base_icon), "notification-symbolic");
+-    g_themed_icon_append_name(G_THEMED_ICON(base_icon), "notifications-symbolic");
+   } else {
+     base_icon = g_themed_icon_new_with_default_fallbacks("notification-symbolic");
+     g_themed_icon_append_name(G_THEMED_ICON(base_icon), "notifications-symbolic");
+@@ -168,18 +187,7 @@
+       cairo_surface_t *surface = gdk_cairo_surface_create_from_pixbuf(pix, scale_factor, NULL);
+ 
+       if (notification_plugin->new_notifications) {
+-        const gchar *filename = gtk_icon_info_get_filename(icon_info);
+-        const gchar *name = g_strrstr(filename, G_DIR_SEPARATOR_S);
+-        if (strstr(name != NULL ? name : filename, "-new") == NULL) {
+-          // This icon theme does not have the "unread notifications" variant
+-          // of the notifications icon, so add the emblem.
+-          gdouble alpha = dnd_enabled ? 0.7 : 1.0;
+-          notify_log_icon_add_unread_emblem(surface,
+-                                            style_context,
+-                                            notification_plugin->icon_size,
+-                                            scale_factor,
+-                                            alpha);
+-        }
++        luxos_draw_unread_badge(surface, scale_factor);
+       }
+ 
+       gtk_image_set_from_surface(GTK_IMAGE(notification_plugin->image), surface);

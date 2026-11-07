@@ -104,6 +104,13 @@ class ServiceTest(unittest.TestCase):
         self.assertTrue(n["body"].startswith("Grüße aus München"))
         self.assertEqual(n["actions"], ["default", "Otevřít"])
         self.assertEqual(n["icon"], "luxos-mail")
+        # trvale (zmizi az po zavreni), v historii oznameni (x-luxos-keep), ikona a nazev Posty v historii
+        self.assertEqual(n["timeout"], 0)
+        self.assertEqual(n["replaces"], 0)
+        self.assertEqual(n["hints"]["x-luxos-keep"], "True")
+        self.assertEqual(n["hints"]["category"], "email.arrived")
+        self.assertEqual(n["hints"]["desktop-entry"], "luxos-mail")
+        self.assertNotIn("transient", n["hints"])
         # uz prectena zprava (z jineho klienta) upozorneni nedela
         self.server.control("deliver INBOX " + os.path.join(mt.FIXTURES, "flowed.eml") + " \\Seen")
         self.assertTrue(mt.wait_for(lambda: len(inbox_rows(self.s, acc)) == 11, 5))
@@ -115,15 +122,70 @@ class ServiceTest(unittest.TestCase):
         # smazana jinde
         self.server.control("expunge INBOX 2")
         self.assertTrue(mt.wait_for(lambda: not [r for r in inbox_rows(self.s, acc) if r[0] == "2"], 5))
-        # vic novych zprav najednou -> jedno souhrnne upozorneni
+        # dalsi nove zpravy nahradi upozorneni (stejne id) souhrnem - zadna hromada upozorneni
         for name in ("cs-iso88592-qp.eml", "uk-koi8u-base64.eml", "html-only.eml", "mixed-attachment.eml"):
             self.server.control("deliver INBOX " + os.path.join(mt.FIXTURES, name))
-        self.assertTrue(mt.wait_for(lambda: len(self.s.notifications()) >= 2, 6))
+        self.assertTrue(mt.wait_for(lambda: len(inbox_rows(self.s, acc)) == 14, 6))
         time.sleep(1.0)
         later = self.s.notifications()[1:]
-        # 4 zpravy najednou (> 3): jedno souhrnne upozorneni
-        self.assertEqual(len(later), 1, later)
-        self.assertEqual(later[0]["summary"], "Nové zprávy: 4")
+        self.assertGreaterEqual(len(later), 1, later)
+        self.assertEqual({x["id"] for x in later}, {n["id"]})
+        self.assertEqual({x["replaces"] for x in later}, {n["id"]})
+        # neprectena zprava od Jürgena + 4 nove
+        self.assertEqual(later[-1]["summary"], "Nové zprávy: 5")
+        self.assertEqual(later[-1]["timeout"], 0)
+        lines = later[-1]["body"].split("\n")
+        self.assertEqual(len(lines), 4, lines)
+        self.assertEqual(lines[-1], "…")
+        self.assertEqual(self.s.closed_notifications(), [])
+
+    def test_persistent_note_closes_when_read(self):
+        acc = self.add()["account"]
+        self.assertTrue(mt.wait_for(lambda: self.server.control("sessions")["sessions"] >= 1, 5))
+        time.sleep(0.3)
+        self.server.control("deliver INBOX " + os.path.join(mt.FIXTURES, "de-alternative.eml"))
+        self.assertTrue(mt.wait_for(lambda: len(self.s.notifications()) == 1, 5), self.s.service_log())
+        self.server.control("deliver INBOX " + os.path.join(mt.FIXTURES, "cs-iso88592-qp.eml"))
+        self.assertTrue(mt.wait_for(lambda: len(self.s.notifications()) == 2, 5), self.s.service_log())
+        first, second = self.s.notifications()
+        self.assertEqual(second["id"], first["id"])
+        self.assertEqual(second["replaces"], first["id"])
+        self.assertEqual(second["summary"], "Nové zprávy: 2")
+        # nejnovejsi nahore, "Odesilatel: Predmet"
+        lines = second["body"].split("\n")
+        self.assertEqual(len(lines), 2, lines)
+        self.assertTrue(lines[0].startswith("Jana Dvořáková: "), lines)
+        self.assertTrue(lines[1].startswith("Jürgen Müller: "), lines)
+        nid = first["id"]
+        # jedna precte v Poste (okno -> sluzba "flags"): souhrn zustava beze zmeny (zadny novy neprecteny zaznam)
+        r = self.c.call("flags", account=acc, mailbox="INBOX", uids=[10], add=True, flags=["\\Seen"])
+        self.assertTrue(r["ok"], r)
+        time.sleep(0.8)
+        self.assertEqual(len(self.s.notifications()), 2)
+        self.assertEqual(self.s.closed_notifications(), [])
+        # druhou precte jinde (webmail, IMAP \Seen pres IDLE) -> vse prectene -> upozorneni se zavre
+        self.server.control("flags INBOX 11 \\Seen")
+        self.assertTrue(mt.wait_for(lambda: self.s.closed_notifications() == [nid], 5), self.s.service_log())
+        self.assertEqual(len(self.s.notifications()), 2)
+        # dalsi posta = nove upozorneni (nic nenahrazuje)
+        self.server.control("deliver INBOX " + os.path.join(mt.FIXTURES, "uk-koi8u-base64.eml"))
+        self.assertTrue(mt.wait_for(lambda: len(self.s.notifications()) == 3, 5), self.s.service_log())
+        third = self.s.notifications()[2]
+        self.assertEqual(third["replaces"], 0)
+        self.assertTrue(third["summary"].startswith("Nová pošta od "), third["summary"])
+        # uzivatel ho zavre krizkem -> dalsi posta opet nove upozorneni, zavrene uz se nenahrazuje ani nezavira
+        with open(self.s.notify_log + ".dismiss", "w") as f:
+            f.write(str(third["id"]))
+        time.sleep(0.6)
+        self.server.control("deliver INBOX " + os.path.join(mt.FIXTURES, "html-only.eml"))
+        self.assertTrue(mt.wait_for(lambda: len(self.s.notifications()) == 4, 5), self.s.service_log())
+        fourth = self.s.notifications()[3]
+        self.assertEqual(fourth["replaces"], 0)
+        self.assertNotEqual(fourth["id"], third["id"])
+        self.assertTrue(fourth["summary"].startswith("Nová pošta od "), fourth["summary"])
+        # zprava z upozorneni smazana jinde -> upozorneni se zavre
+        self.server.control("expunge INBOX 13")
+        self.assertTrue(mt.wait_for(lambda: self.s.closed_notifications() == [nid, fourth["id"]], 5), self.s.service_log())
 
     def test_body_flags_trash(self):
         acc = self.add()["account"]

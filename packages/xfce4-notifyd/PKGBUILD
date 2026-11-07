@@ -6,6 +6,10 @@
 # dalsi klik spusti vychozi akci; zavira krizek v rohu, ktery se ukaze pri najeti mysi. Oznameni
 # se prekryvajici s otevrenym popupem horni listy (Ovladaci centrum, Kalendar, nabidky, Launchpad)
 # se do jeho zavreni skryje.
+# Oznameni s x-luxos-keep nahrazene stejnym id (Posta: "Nove zpravy: 3") prepise i svuj zaznam
+# v historii (jeden souhrn), CloseNotification od aplikace (zprava prectena) zaznam oznaci jako
+# precteny i pri Nerusit. Neprectena oznameni = cervena tecka na zvonku v liste (svetla i tmava
+# lista, 1x i 2x; pri Nerusit preskrtnuty zvonek s teckou).
 # luxos-restart.conf (drop-in sluzby systemd): kdyz xfce4-notifyd ukonci pojistka earlyoom (SIGTERM)
 # nebo spadne, za 2 s se spusti znovu - oznameni se vrati sama a spousteni pres D-Bus nevisi.
 # Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
@@ -14,7 +18,7 @@
 
 pkgname=xfce4-notifyd
 pkgver=0.9.7
-pkgrel=3.4
+pkgrel=3.5
 pkgdesc="Notification daemon for the Xfce desktop (LuxOS: history keeps only important notices, click for details)"
 arch=('x86_64')
 url="https://docs.xfce.org/apps/notifyd/start"
@@ -28,12 +32,16 @@ source=("git+https://gitlab.xfce.org/apps/xfce4-notifyd.git#tag=$pkgname-$pkgver
         'luxos-reflow.patch'
         'luxos-click-detail.patch'
         'luxos-below-popups.patch'
+        'luxos-replace-close-log.patch'
+        'luxos-bell-badge.patch'
         'luxos-restart.conf')
 sha256sums=('76dec9b137b06860402badfb820bccf6d2c7e6b00925e2cbb4d06c2674811d8f'
             'af4724bb96fbd7724c3e1bc160947c13e8f04e8cfd9a9e7546ab1a59a8851af1'
             'bbd01053c8b819f1f9ba99cd7f5ad0228133de51f8408fb5ccd006669cd0f133'
             '91a4e632555206cce288746e922a73fa8ba755cb6f8711a4c27109d2b51fadc6'
             '1bd968c0fa50827377f33cd17176ec5c38ee1473fd240d5167bde69921bdf6de'
+            'c38b70725aab7e6c54bc4e9361d25815f0a3d444d679b039adc8e495d823cbb8'
+            '52b255e40aea39f41f8edd6ae6ee3e506176644e4ae47a6b5895186133d361a9'
             '1cfce8e6f7a11654d189868b7a7a1cbf56c9459af73d4d2b0cab899630625515')
 
 prepare() {
@@ -46,6 +54,10 @@ prepare() {
   patch -Np1 -i "$srcdir/luxos-click-detail.patch"
   # LuxOS: oznameni pod otevrenym popupem horni listy skryte
   patch -Np1 -i "$srcdir/luxos-below-popups.patch"
+  # LuxOS: nahrazeni prepise zaznam v historii, CloseNotification ho oznaci jako precteny
+  patch -Np1 -i "$srcdir/luxos-replace-close-log.patch"
+  # LuxOS: cervena tecka na zvonku pri neprectenych oznamenich
+  patch -Np1 -i "$srcdir/luxos-bell-badge.patch"
   NOCONFIGURE=1 ./autogen.sh
 }
 

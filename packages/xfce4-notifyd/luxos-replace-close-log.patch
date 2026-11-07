@@ -1,0 +1,80 @@
+--- a/xfce4-notifyd/xfce-notify-daemon.c
++++ b/xfce4-notifyd/xfce-notify-daemon.c
+@@ -111,6 +111,10 @@
+ 
+     GHashTable *denied_critical_notifications;
+     GHashTable *excluded_from_log;
++    /* LuxOS: id oznameni -> id zaznamu v historii (oznameni s x-luxos-keep), i kdyz popup
++       neni videt (Nerusit, zavreny) - nahrazeni stejnym id prepise zaznam, CloseNotification
++       od aplikace ho oznaci jako precteny (napr. Posta: zprava prectena) */
++    GHashTable *luxos_log_ids;
+ 
+ #ifdef ENABLE_SOUND
+     gboolean mute_sounds;
+@@ -627,6 +631,7 @@
+ 
+     xndaemon->denied_critical_notifications = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+     xndaemon->excluded_from_log = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
++    xndaemon->luxos_log_ids = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);
+ 
+     xndaemon->log = xfce_notify_log_open(&error);
+     if (xndaemon->log == NULL) {
+@@ -693,6 +698,7 @@
+ 
+     g_hash_table_destroy(xndaemon->denied_critical_notifications);
+     g_hash_table_destroy(xndaemon->excluded_from_log);
++    g_hash_table_destroy(xndaemon->luxos_log_ids);
+ 
+     if (xndaemon->log != NULL) {
+         g_object_unref(xndaemon->log);
+@@ -756,6 +762,18 @@
+         }
+     }
+ 
++    /* LuxOS: zavrel uzivatel (krizek, akce) nebo aplikace -> aktualni zaznam v historii precteny
++       (po nahrazeni stejnym id ma popup jeste id puvodniho zaznamu) */
++    if ((reason == XFCE_NOTIFY_CLOSE_REASON_DISMISSED || reason == XFCE_NOTIFY_CLOSE_REASON_CLIENT) &&
++        xndaemon->log != NULL)
++    {
++        const gchar *luxos_log_id = g_hash_table_lookup(xndaemon->luxos_log_ids, GUINT_TO_POINTER(id));
++
++        if (luxos_log_id != NULL) {
++            xfce_notify_log_mark_read(xndaemon->log, luxos_log_id);
++        }
++    }
++
+     g_return_if_fail(id > 0);
+     g_tree_remove(xndaemon->active_notifications, GUINT_TO_POINTER(id));
+     xfce_notify_fdo_gbus_emit_notification_closed(XFCE_NOTIFY_FDO_GBUS(xndaemon),
+@@ -1504,6 +1522,17 @@
+                                             expire_timeout,
+                                             actions);
+             g_date_time_unref(timestamp);
++
++            /* LuxOS: nahrazeni (stejne id, napr. "Nove zpravy: 3" misto "Nova posta od X")
++               nahradi i zaznam v historii - jeden souhrn misto hromady */
++            if (log_id != NULL && luxos_keep) {
++                const gchar *old_log_id = g_hash_table_lookup(xndaemon->luxos_log_ids, GUINT_TO_POINTER(OUT_id));
++
++                if (old_log_id != NULL && g_strcmp0(old_log_id, log_id) != 0) {
++                    xfce_notify_log_delete(xndaemon->log, old_log_id);
++                }
++                g_hash_table_replace(xndaemon->luxos_log_ids, GUINT_TO_POINTER(OUT_id), g_strdup(log_id));
++            }
+         }
+     }
+ 
+@@ -1734,6 +1763,13 @@
+ 
+     if (G_LIKELY(notification != NULL)) {
+         xfce_notification_closed(notification, XFCE_NOTIFY_CLOSE_REASON_CLIENT);
++    } else if (xndaemon->log != NULL) {
++        /* LuxOS: popup uz neni (Nerusit, zavreny) - zaznam v historii presto precteny */
++        const gchar *luxos_log_id = g_hash_table_lookup(xndaemon->luxos_log_ids, GUINT_TO_POINTER(id));
++
++        if (luxos_log_id != NULL) {
++            xfce_notify_log_mark_read(xndaemon->log, luxos_log_id);
++        }
+     }
+ 
+     xfce_notify_fdo_gbus_complete_close_notification(skeleton, invocation);
