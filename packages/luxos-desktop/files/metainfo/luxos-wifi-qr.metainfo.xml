@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-wifi-qr</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Wi-Fi QR Code</name>
+  <summary>Share your Wi-Fi with a QR code or join a network by scanning one</summary>
+  <launchable type="desktop-id">luxos-wifi-qr.desktop</launchable>
+  <description>
+    <p>Share your Wi-Fi without spelling out the password: a phone joins simply by scanning the QR code on your screen. It also works the other way round, so you can join a network by scanning its QR code with the computer’s camera.</p>
+    <p xml:lang="cs">Sdílejte Wi‑Fi bez diktování hesla: telefon se připojí jednoduše naskenováním QR kódu na obrazovce. Funguje to i obráceně, takže se k síti připojíte naskenováním jejího QR kódu kamerou počítače.</p>
+    <p xml:lang="sk">Zdieľajte Wi‑Fi bez diktovania hesla: telefón sa pripojí jednoducho naskenovaním QR kódu na obrazovke. Funguje to aj opačne, takže sa k sieti pripojíte naskenovaním jej QR kódu kamerou počítača.</p>
+    <p xml:lang="pl">Udostępniaj Wi‑Fi bez dyktowania hasła: telefon połączy się po prostu po zeskanowaniu kodu QR z ekranu. Działa to też w drugą stronę, więc do sieci dołączysz, skanując jej kod QR kamerą komputera.</p>
+    <p xml:lang="uk">Діліться Wi‑Fi, не диктуючи пароль: телефон під’єднається, просто відсканувавши QR-код на екрані. Це працює й навпаки: до мережі можна під’єднатися, відсканувавши її QR-код камерою комп’ютера.</p>
+    <p xml:lang="hu">Ossza meg a Wi‑Fi-t a jelszó diktálása nélkül: a telefon egyszerűen a képernyőn lévő QR-kód beolvasásával csatlakozik. Fordítva is működik: egy hálózathoz a QR-kódja beolvasásával csatlakozhat a számítógép kamerájával.</p>
+    <p xml:lang="de">Teilen Sie Ihr WLAN, ohne das Passwort zu buchstabieren: Ein Handy verbindet sich einfach, indem es den QR-Code auf dem Bildschirm scannt. Es geht auch umgekehrt: Scannen Sie den QR-Code eines Netzwerks mit der Kamera des Computers, um sich zu verbinden.</p>
+    <p xml:lang="fr">Partagez votre Wi‑Fi sans épeler le mot de passe : un téléphone se connecte simplement en scannant le code QR affiché à l’écran. Cela marche aussi dans l’autre sens : rejoignez un réseau en scannant son code QR avec la caméra de l’ordinateur.</p>
+    <p xml:lang="es">Comparte tu Wi‑Fi sin deletrear la contraseña: un teléfono se conecta con solo escanear el código QR de la pantalla. También funciona al revés: conéctate a una red escaneando su código QR con la cámara del ordenador.</p>
+    <p xml:lang="it">Condividi il Wi‑Fi senza dettare la password: un telefono si collega semplicemente inquadrando il codice QR sullo schermo. Funziona anche al contrario: collegati a una rete inquadrandone il codice QR con la fotocamera del computer.</p>
+    <p xml:lang="pt">Compartilhe seu Wi‑Fi sem soletrar a senha: um celular se conecta só de escanear o código QR na tela. Também funciona ao contrário: conecte-se a uma rede escaneando o código QR dela com a câmera do computador.</p>
+    <p xml:lang="nl">Deel je wifi zonder het wachtwoord te spellen: een telefoon maakt verbinding door simpelweg de QR-code op je scherm te scannen. Het werkt ook andersom: maak verbinding met een netwerk door de QR-code ervan te scannen met de camera van de computer.</p>
+    <p xml:lang="sv">Dela ditt wifi utan att bokstavera lösenordet: en telefon ansluter genom att skanna QR-koden på skärmen. Det fungerar också åt andra hållet: anslut till ett nätverk genom att skanna dess QR-kod med datorns kamera.</p>
+    <ul>
+      <li>QR code of the connected Wi-Fi that Android and iPhone cameras understand</li>
+      <li xml:lang="cs">QR kód připojené Wi‑Fi, kterému rozumí fotoaparát v Androidu i iPhonu</li>
+      <li xml:lang="sk">QR kód pripojenej Wi‑Fi, ktorému rozumie fotoaparát v Androide aj iPhone</li>
+      <li xml:lang="pl">Kod QR połączonej sieci Wi‑Fi, który rozumieją aparaty w Androidzie i iPhonie</li>
+      <li xml:lang="uk">QR-код під’єднаної Wi‑Fi, який розуміють камери Android та iPhone</li>
+      <li xml:lang="hu">A csatlakoztatott Wi‑Fi QR-kódja, amelyet az Android és az iPhone kamerája is ért</li>
+      <li xml:lang="de">QR-Code des verbundenen WLANs, den Android- und iPhone-Kameras verstehen</li>
+      <li xml:lang="fr">Code QR du Wi‑Fi connecté, compris par les appareils photo Android et iPhone</li>
+      <li xml:lang="es">Código QR de la Wi‑Fi conectada que entienden las cámaras de Android y iPhone</li>
+      <li xml:lang="it">Codice QR del Wi‑Fi connesso, compreso dalle fotocamere di Android e iPhone</li>
+      <li xml:lang="pt">Código QR do Wi‑Fi conectado que as câmeras do Android e do iPhone entendem</li>
+      <li xml:lang="nl">QR-code van de verbonden wifi die Android- en iPhone-camera’s begrijpen</li>
+      <li xml:lang="sv">QR-kod för det anslutna wifi-nätverket som Android- och iPhone-kameror förstår</li>
+      <li>Network name and password, hidden until you show it</li>
+      <li xml:lang="cs">Název sítě a heslo, skryté, dokud si ho nezobrazíte</li>
+      <li xml:lang="sk">Názov siete a heslo, skryté, kým si ho nezobrazíte</li>
+      <li xml:lang="pl">Nazwa sieci i hasło, ukryte, dopóki go nie pokażesz</li>
+      <li xml:lang="uk">Назва мережі та пароль, прихований, доки ви його не покажете</li>
+      <li xml:lang="hu">Hálózatnév és jelszó, amely rejtve marad, amíg meg nem jeleníti</li>
+      <li xml:lang="de">Netzwerkname und Passwort, verborgen, bis Sie es einblenden</li>
+      <li xml:lang="fr">Nom du réseau et mot de passe, masqué jusqu’à ce que vous l’affichiez</li>
+      <li xml:lang="es">Nombre de la red y contraseña, oculta hasta que la muestres</li>
+      <li xml:lang="it">Nome della rete e password, nascosta finché non la mostri</li>
+      <li xml:lang="pt">Nome da rede e senha, oculta até você mostrá-la</li>
+      <li xml:lang="nl">Netwerknaam en wachtwoord, verborgen tot je het toont</li>
+      <li xml:lang="sv">Nätverksnamn och lösenord, dolt tills du visar det</li>
+      <li>Join a network from a QR code with the camera</li>
+      <li xml:lang="cs">Připojení k síti z QR kódu pomocí kamery</li>
+      <li xml:lang="sk">Pripojenie k sieti z QR kódu pomocou kamery</li>
+      <li xml:lang="pl">Dołączanie do sieci z kodu QR za pomocą kamery</li>
+      <li xml:lang="uk">Під’єднання до мережі з QR-коду за допомогою камери</li>
+      <li xml:lang="hu">Csatlakozás hálózathoz QR-kódból a kamerával</li>
+      <li xml:lang="de">Mit der Kamera einem Netzwerk per QR-Code beitreten</li>
+      <li xml:lang="fr">Rejoindre un réseau à partir d’un code QR avec la caméra</li>
+      <li xml:lang="es">Conéctate a una red desde un código QR con la cámara</li>
+      <li xml:lang="it">Collegati a una rete da un codice QR con la fotocamera</li>
+      <li xml:lang="pt">Conecte-se a uma rede a partir de um código QR com a câmera</li>
+      <li xml:lang="nl">Maak met de camera verbinding met een netwerk via een QR-code</li>
+      <li xml:lang="sv">Anslut till ett nätverk från en QR-kod med kameran</li>
+      <li>For networks saved for the whole computer, the administrator password unlocks the code</li>
+      <li xml:lang="cs">U sítí uložených pro celý počítač kód odemkne heslo správce</li>
+      <li xml:lang="sk">Pri sieťach uložených pre celý počítač kód odomkne heslo správcu</li>
+      <li xml:lang="pl">W przypadku sieci zapisanych dla całego komputera kod odblokowuje hasło administratora</li>
+      <li xml:lang="uk">Для мереж, збережених для всього комп’ютера, код відкриває пароль адміністратора</li>
+      <li xml:lang="hu">Az egész számítógéphez mentett hálózatoknál a rendszergazdai jelszó oldja fel a kódot</li>
+      <li xml:lang="de">Bei Netzwerken, die für den ganzen Computer gespeichert sind, entsperrt das Administratorpasswort den Code</li>
+      <li xml:lang="fr">Pour les réseaux enregistrés pour tout l’ordinateur, le mot de passe administrateur déverrouille le code</li>
+      <li xml:lang="es">En las redes guardadas para todo el equipo, la contraseña de administrador desbloquea el código</li>
+      <li xml:lang="it">Per le reti salvate per tutto il computer, la password di amministratore sblocca il codice</li>
+      <li xml:lang="pt">Em redes salvas para todo o computador, a senha de administrador desbloqueia o código</li>
+      <li xml:lang="nl">Bij netwerken die voor de hele computer zijn opgeslagen, ontgrendelt het beheerderswachtwoord de code</li>
+      <li xml:lang="sv">För nätverk som sparats för hela datorn låser administratörslösenordet upp koden</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

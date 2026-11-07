@@ -7,7 +7,7 @@
 
 pkgname=luxos-backup
 pkgver=1.0.0
-pkgrel=2
+pkgrel=3
 pkgdesc="LuxOS Backups - automatic incremental backups to an external or network disk and restoring files"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -36,5 +36,7 @@ package() {
     install -Dm644 -t "$pkgdir/usr/lib/systemd/user" "$f"/systemd/*
     install -Dm644 "$f/70-luxos-backup.rules" "$pkgdir/usr/lib/udev/rules.d/70-luxos-backup.rules"
     install -Dm644 "$f/luxos-backup.desktop" "$pkgdir/usr/share/applications/luxos-backup.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
     install -Dm644 "$f/luxos-backup.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-backup.svg"
 }

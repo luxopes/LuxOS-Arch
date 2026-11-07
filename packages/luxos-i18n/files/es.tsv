@@ -4775,3 +4775,8 @@ Seznam: use your normal password. With two-factor authentication turned on, crea
 Signing in failed.	No se pudo iniciar sesión.
 Starred	Destacados
 iCloud Mail requires an app-specific password: turn on two-factor authentication for your Apple Account, then in Sign-In and Security choose App-Specific Passwords, create one and enter it here.	iCloud Mail requiere una contraseña específica de app: active la autenticación de doble factor en su cuenta de Apple, luego en Inicio de sesión y seguridad elija Contraseñas específicas de app, cree una e introdúzcala aquí.
+Screenshot %d of %d	Captura de pantalla %d de %d
+Previous screenshot	Captura anterior
+Next screenshot	Captura siguiente
+Screenshots are not available offline.	Las capturas de pantalla no están disponibles sin conexión.
+Show screenshots	Mostrar capturas de pantalla

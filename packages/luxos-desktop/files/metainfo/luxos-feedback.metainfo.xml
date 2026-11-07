@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-feedback</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Feedback</name>
+  <summary>Report a bug or suggest an idea to the author of LuxOS</summary>
+  <launchable type="desktop-id">luxos-feedback.desktop</launchable>
+  <description>
+    <p>Feedback sends a bug report, an idea or a question directly to the author of LuxOS. Choose what kind of message it is, describe it in your own words and press Send.</p>
+    <p xml:lang="cs">Zpětná vazba pošle hlášení chyby, nápad nebo dotaz přímo autorovi LuxOS. Vyberte, o jakou zprávu jde, popište ji vlastními slovy a stiskněte Odeslat.</p>
+    <p xml:lang="sk">Spätná väzba pošle hlásenie chyby, nápad alebo otázku priamo autorovi LuxOS. Vyberte, o akú správu ide, opíšte ju vlastnými slovami a stlačte Odoslať.</p>
+    <p xml:lang="pl">Opinie wysyła zgłoszenie błędu, pomysł lub pytanie bezpośrednio do autora LuxOS. Wybierz rodzaj wiadomości, opisz ją własnymi słowami i naciśnij Wyślij.</p>
+    <p xml:lang="uk">«Відгук» надсилає повідомлення про помилку, ідею чи запитання безпосередньо автору LuxOS. Виберіть тип повідомлення, опишіть його своїми словами й натисніть «Надіслати».</p>
+    <p xml:lang="hu">A Visszajelzés hibajelentést, ötletet vagy kérdést küld közvetlenül a LuxOS szerzőjének. Válassza ki az üzenet típusát, írja le saját szavaival, és nyomja meg a Küldés gombot.</p>
+    <p xml:lang="de">Feedback schickt einen Fehlerbericht, eine Idee oder eine Frage direkt an den Autor von LuxOS. Wählen Sie die Art der Nachricht, beschreiben Sie sie mit eigenen Worten und klicken Sie auf Senden.</p>
+    <p xml:lang="fr">Commentaires envoie un signalement de bug, une idée ou une question directement à l’auteur de LuxOS. Choisissez le type de message, décrivez-le avec vos propres mots et appuyez sur Envoyer.</p>
+    <p xml:lang="es">Comentarios envía un informe de error, una idea o una pregunta directamente al autor de LuxOS. Elija el tipo de mensaje, descríbalo con sus propias palabras y pulse Enviar.</p>
+    <p xml:lang="it">Feedback invia una segnalazione di bug, un’idea o una domanda direttamente all’autore di LuxOS. Scegli il tipo di messaggio, descrivilo con parole tue e premi Invia.</p>
+    <p xml:lang="pt">Feedback envia um relatório de erro, uma ideia ou uma pergunta diretamente ao autor do LuxOS. Escolha o tipo de mensagem, descreva-a por palavras suas e prima Enviar.</p>
+    <p xml:lang="nl">Feedback stuurt een foutmelding, een idee of een vraag rechtstreeks naar de maker van LuxOS. Kies wat voor bericht het is, beschrijf het in je eigen woorden en druk op Verzenden.</p>
+    <p xml:lang="sv">Feedback skickar en felrapport, en idé eller en fråga direkt till upphovspersonen bakom LuxOS. Välj typ av meddelande, beskriv det med egna ord och tryck på Skicka.</p>
+    <ul>
+      <li>Bug, idea or something else, with an optional e-mail address for a reply</li>
+      <li xml:lang="cs">Chyba, nápad nebo něco jiného, volitelně s e-mailem pro odpověď</li>
+      <li xml:lang="sk">Chyba, nápad alebo niečo iné, voliteľne s e-mailom na odpoveď</li>
+      <li xml:lang="pl">Błąd, pomysł lub coś innego, opcjonalnie z adresem e-mail do odpowiedzi</li>
+      <li xml:lang="uk">Помилка, ідея чи щось інше, за бажанням з адресою e-mail для відповіді</li>
+      <li xml:lang="hu">Hiba, ötlet vagy más, igény szerint e-mail-címmel a válaszhoz</li>
+      <li xml:lang="de">Fehler, Idee oder etwas anderes, optional mit E-Mail-Adresse für eine Antwort</li>
+      <li xml:lang="fr">Bug, idée ou autre chose, avec une adresse e-mail facultative pour recevoir une réponse</li>
+      <li xml:lang="es">Error, idea u otra cosa, con un correo electrónico opcional para recibir respuesta</li>
+      <li xml:lang="it">Bug, idea o altro, con un indirizzo e-mail facoltativo per la risposta</li>
+      <li xml:lang="pt">Erro, ideia ou outra coisa, com um e-mail opcional para receber resposta</li>
+      <li xml:lang="nl">Fout, idee of iets anders, met een optioneel e-mailadres voor een antwoord</li>
+      <li xml:lang="sv">Fel, idé eller något annat, med valfri e-postadress för svar</li>
+      <li>Attach a screenshot when it helps to explain the problem</li>
+      <li xml:lang="cs">Snímek obrazovky přiložíte, když pomůže problém vysvětlit</li>
+      <li xml:lang="sk">Snímku obrazovky priložíte, keď pomôže problém vysvetliť</li>
+      <li xml:lang="pl">Zrzut ekranu można dołączyć, gdy pomaga wyjaśnić problem</li>
+      <li xml:lang="uk">Знімок екрана можна додати, якщо він допоможе пояснити проблему</li>
+      <li xml:lang="hu">Képernyőkép csatolható, ha segít a probléma megértésében</li>
+      <li xml:lang="de">Ein Bildschirmfoto anhängen, wenn es das Problem besser erklärt</li>
+      <li xml:lang="fr">Joignez une capture d’écran si elle aide à expliquer le problème</li>
+      <li xml:lang="es">Adjunte una captura de pantalla cuando ayude a explicar el problema</li>
+      <li xml:lang="it">Allega uno screenshot quando aiuta a spiegare il problema</li>
+      <li xml:lang="pt">Anexe uma captura de ecrã quando ajudar a explicar o problema</li>
+      <li xml:lang="nl">Voeg een schermafbeelding toe als die het probleem helpt uitleggen</li>
+      <li xml:lang="sv">Bifoga en skärmbild när den hjälper till att förklara problemet</li>
+      <li>Optional system information without personal files, passwords or e-mail addresses – you can see exactly what will be sent</li>
+      <li xml:lang="cs">Volitelné informace o systému bez osobních souborů, hesel a e-mailových adres – přesně uvidíte, co se odešle</li>
+      <li xml:lang="sk">Voliteľné informácie o systéme bez osobných súborov, hesiel a e-mailových adries – presne uvidíte, čo sa odošle</li>
+      <li xml:lang="pl">Opcjonalne informacje o systemie bez osobistych plików, haseł i adresów e-mail – dokładnie widać, co zostanie wysłane</li>
+      <li xml:lang="uk">Необов’язкові відомості про систему без особистих файлів, паролів і адрес e-mail – ви точно бачите, що буде надіслано</li>
+      <li xml:lang="hu">Választható rendszeradatok személyes fájlok, jelszavak és e-mail-címek nélkül – pontosan látható, mi kerül elküldésre</li>
+      <li xml:lang="de">Optionale Systeminformationen ohne persönliche Dateien, Passwörter oder E-Mail-Adressen – Sie sehen genau, was gesendet wird</li>
+      <li xml:lang="fr">Informations système facultatives, sans fichiers personnels, mots de passe ni adresses e-mail – vous voyez exactement ce qui sera envoyé</li>
+      <li xml:lang="es">Información del sistema opcional, sin archivos personales, contraseñas ni direcciones de correo: verá exactamente qué se envía</li>
+      <li xml:lang="it">Informazioni di sistema facoltative, senza file personali, password o indirizzi e-mail: vedi esattamente cosa verrà inviato</li>
+      <li xml:lang="pt">Informações do sistema opcionais, sem ficheiros pessoais, palavras-passe ou endereços de e-mail – vê exatamente o que será enviado</li>
+      <li xml:lang="nl">Optionele systeeminformatie zonder persoonlijke bestanden, wachtwoorden of e-mailadressen – je ziet precies wat er wordt verzonden</li>
+      <li xml:lang="sv">Valfri systeminformation utan personliga filer, lösenord eller e-postadresser – du ser exakt vad som skickas</li>
+      <li>Without an internet connection the report is saved and sent automatically later</li>
+      <li xml:lang="cs">Bez připojení k internetu se hlášení uloží a později odešle samo</li>
+      <li xml:lang="sk">Bez pripojenia na internet sa hlásenie uloží a neskôr sa odošle samo</li>
+      <li xml:lang="pl">Bez połączenia z internetem zgłoszenie zostanie zapisane i wysłane później automatycznie</li>
+      <li xml:lang="uk">Без підключення до інтернету повідомлення збережеться й надішлеться пізніше автоматично</li>
+      <li xml:lang="hu">Internetkapcsolat nélkül a jelentés elmentődik, és később automatikusan elküldésre kerül</li>
+      <li xml:lang="de">Ohne Internetverbindung wird der Bericht gespeichert und später automatisch gesendet</li>
+      <li xml:lang="fr">Sans connexion Internet, le message est enregistré et envoyé automatiquement plus tard</li>
+      <li xml:lang="es">Sin conexión a Internet, el informe se guarda y se envía automáticamente más tarde</li>
+      <li xml:lang="it">Senza connessione a Internet la segnalazione viene salvata e inviata automaticamente più tardi</li>
+      <li xml:lang="pt">Sem ligação à Internet, o relatório é guardado e enviado automaticamente mais tarde</li>
+      <li xml:lang="nl">Zonder internetverbinding wordt het bericht bewaard en later automatisch verzonden</li>
+      <li xml:lang="sv">Utan internetanslutning sparas rapporten och skickas automatiskt senare</li>
+      <li>Every delivered report gets a report ID</li>
+      <li xml:lang="cs">Každé doručené hlášení dostane své ID</li>
+      <li xml:lang="sk">Každé doručené hlásenie dostane svoje ID</li>
+      <li xml:lang="pl">Każde dostarczone zgłoszenie otrzymuje identyfikator</li>
+      <li xml:lang="uk">Кожне доставлене повідомлення отримує ідентифікатор</li>
+      <li xml:lang="hu">Minden kézbesített jelentés azonosítót kap</li>
+      <li xml:lang="de">Jeder zugestellte Bericht erhält eine Meldungs-ID</li>
+      <li xml:lang="fr">Chaque message remis reçoit un identifiant</li>
+      <li xml:lang="es">Cada informe entregado recibe un identificador</li>
+      <li xml:lang="it">Ogni segnalazione consegnata riceve un identificativo</li>
+      <li xml:lang="pt">Cada relatório entregue recebe um identificador</li>
+      <li xml:lang="nl">Elk afgeleverd bericht krijgt een meldings-ID</li>
+      <li xml:lang="sv">Varje levererad rapport får ett rapport-ID</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

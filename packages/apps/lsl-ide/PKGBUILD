@@ -4,7 +4,7 @@
 
 pkgname=lsl-ide
 pkgver=1.0.0
-pkgrel=3
+pkgrel=4
 pkgdesc="LSL IDE - development environment for Lux Simple Lang (editor, checker, runner, packages, manual, LuxAI agent)"
 arch=(any)
 url="https://lsl.lux-ai.cz"
@@ -30,6 +30,8 @@ exec python3 /usr/lib/lsl-ide/lslide/__main__.py "$@"
 SH
     chmod 755 "$pkgdir/usr/bin/lsl-ide"
     install -Dm644 share/lsl-ide.desktop "$pkgdir/usr/share/applications/lsl-ide.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$startdir"/metainfo/*.metainfo.xml
     install -Dm644 share/x-lsl.xml "$pkgdir/usr/share/mime/packages/x-lsl.xml"
     local s
     for s in 16 22 24 32 48 64 128 256 512; do

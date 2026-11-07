@@ -128,6 +128,16 @@ class FakePool:
             c.set_name(name, "C")
             c.set_summary(summary, "C")
             c.add_category("Utility")
+            if pkg == "firefox":
+                c.set_description("<p>Firefox is a <em>fast</em> browser.</p><ul><li>Private browsing</li>"
+                                  "<li>Extensions</li></ul>", "C")
+                # snimek AppStream bez rozmeru (jako v archlinux-appstream-data)
+                sc = AppStream.Screenshot()
+                im = AppStream.Image()
+                im.set_kind(AppStream.ImageKind.SOURCE)
+                im.set_url("file://" + os.path.join(REPO, "appstream-firefox.png"))
+                sc.add_image(im)
+                c.add_screenshot(sc)
             comps.append(c)
 
         class Box:
@@ -136,8 +146,48 @@ class FakePool:
         return Box()
 
 
+DEMO_DESCRIPTION = {
+    "en": [{"p": "Current weather and a forecast for every place you care about."},
+           {"p": "Works offline with the last forecast."},
+           {"ul": ["Hourly and 10-day forecast", "Several places", "Rain radar"]}],
+    "cs": [{"p": "Aktuální počasí a předpověď pro všechna místa, na kterých vám záleží."},
+           {"p": "Bez internetu ukáže poslední předpověď."},
+           {"ul": ["Předpověď po hodinách i na 10 dní", "Více míst", "Srážkový radar"]}],
+}
+# snimky na "serveru": tri pro Pocasi (prvni i tmavy), Mapy maji snimky v katalogu, ale soubory chybi (offline)
+DEMO_SHOTS = [("1.webp", 1000, 660, (61, 123, 255)), ("2.webp", 900, 700, (47, 180, 87)),
+              ("3.png", 1200, 760, (255, 149, 0))]
+
+
+def write_screens():
+    from gi.repository import GdkPixbuf
+    d = os.path.join(REPO, "app-screens", "luxos-weather")
+    os.makedirs(d, exist_ok=True)
+    refs = []
+    for name, w, h, (r, g, b) in DEMO_SHOTS + [("1-dark.webp", 1000, 660, (20, 20, 40))]:
+        pix = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, w, h)
+        pix.fill((r << 24) | (g << 16) | (b << 8) | 0xFF)
+        pix.savev(os.path.join(d, name), "webp" if name.endswith(".webp") else "png", [], [])
+        if "dark" not in name:
+            refs.append({"url": f"app-screens/luxos-weather/{name}", "width": w, "height": h})
+    refs[0]["dark"] = "app-screens/luxos-weather/1-dark.webp"
+    pix = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, 800, 400)      # 2:1
+    pix.fill(0xE66000FF)
+    pix.savev(os.path.join(REPO, "appstream-firefox.png"), "png", [], [])
+    # neplatne odkazy se ignoruji (cizi adresa, spatne rozmery)
+    refs.append({"url": "https://evil.example/x.webp", "width": 10, "height": 10})
+    refs.append({"url": "app-screens/luxos-weather/1.webp", "width": 0, "height": 10})
+    return refs
+
+
 def write_fixture():
     """Katalog na "serveru" (file://) a .desktop nainstalovanych aplikaci."""
+    for a in CATALOG["apps"]:
+        if a["id"] == "luxos-weather":
+            a["description"] = DEMO_DESCRIPTION
+            a["screenshots"] = write_screens()
+        elif a["id"] == "luxos-maps":
+            a["screenshots"] = [{"url": "app-screens/luxos-maps/1.webp", "width": 1000, "height": 700}]
     for a in CATALOG["apps"]:
         if a["package"] in INSTALLED and a["id"] != NEW_IN_UPDATE:
             with open(os.path.join(DATA, "applications", a["id"] + ".desktop"), "w") as f:
@@ -197,6 +247,9 @@ def shot(win, name):
     if not SHOTS:
         return
     os.makedirs(SHOTS, exist_ok=True)
+    # ukazatel mysi mimo okno (tooltip nahledu by na snimku byl cerny obdelnik)
+    pointer = Gdk.Display.get_default().get_default_seat().get_pointer()
+    pointer.warp(Gdk.Screen.get_default(), 1279, 899)
     pump(timeout=0.6)
     gw = win.get_window()
     pix = Gdk.pixbuf_get_from_window(gw, 0, 0, gw.get_width(), gw.get_height())
@@ -384,6 +437,8 @@ class StoreGui(unittest.TestCase):
         self.assertEqual(by_id["luxos-calculator"].name, "Kalkulačka")
         self.assertEqual(by_id["luxos-safe"].summary, "Šifrovaná složka pro citlivá data")
         self.assertEqual(by_id["luxai"].name, "LuxAI")
+        # dlouhy popis v jazyce uzivatele z katalogu
+        self.assertEqual(by_id["luxos-weather"].description_blocks(), DEMO_DESCRIPTION["cs"])
 
     def test_8_offline_first_start_uses_installed_apps(self):
         """Bez katalogu (offline, prazdna mezipamet): stejny vyber z nainstalovanych baliku LuxOS."""
@@ -414,6 +469,136 @@ class StoreGui(unittest.TestCase):
         self.assertNotIn("luxos-mail", lux)                  # nenainstalovana: bez katalogu neznama
         self.assertNotIn("luxos-bluetooth", lux)
         self.assertFalse(any("Vte" in (a.desktop or a.pkg) or a.pkg == "vte3-utils" for a in cat.apps.values()))
+
+    # ---- stranka aplikace: popis a snimky ----
+    def open_detail(self, name, page="luxos"):
+        self.win.show_page(page)
+        pump(timeout=0.3)
+        self.win.show_detail(card(self.win, name).app)
+        pump(timeout=0.3)
+
+    def labels(self, w):
+        return [x.get_text() for x in widgets(w) if isinstance(x, Gtk.Label) and x.get_visible()]
+
+    def test_9_detail_description_and_carousel(self):
+        set_theme(False)
+        self.open_detail("Weather")
+        page = self.win.scroll
+        [desc] = [w for w in widgets(page) if isinstance(w, store.DescriptionView)]
+        texts = self.labels(desc)
+        for t in ("Current weather and a forecast for every place you care about.",
+                  "Works offline with the last forecast.", "Hourly and 10-day forecast", "Rain radar"):
+            self.assertIn(t, texts)
+        self.assertEqual(texts.count("•"), 3)
+        self.assertIn("About", self.labels(page))
+        car = self.win.carousel
+        self.assertIsInstance(car, store.ScreenshotCarousel)
+        self.assertEqual(len(car.thumbs), 3)                     # neplatne odkazy pryc
+        self.assertTrue(car.shots[0]["show"].endswith("/app-screens/luxos-weather/1.webp"))   # svetly vzhled
+        self.assertTrue(pump(lambda: all(t[1].get_visible_child_name() == "image" for t in car.thumbs), 10))
+        # nahledy maji pomer stran snimku a jsou v mezipameti
+        for (btn, _stack, img, w), (_n, sw, sh, _c) in zip(car.thumbs, DEMO_SHOTS):
+            self.assertEqual(w, round(store.SCREEN_THUMB_HEIGHT * sw / sh))
+            self.assertTrue(btn.get_tooltip_text().startswith("Screenshot "))
+        for s in car.shots:
+            self.assertTrue(os.path.getsize(store.screen_cache_path(s["show"])) > 0)
+            self.assertTrue(store.screen_cache_path(s["show"]).startswith(store.SCREEN_CACHE + "/"))
+        self.assertFalse([f for f in os.listdir(store.SCREEN_CACHE) if f.endswith(".part")])
+        self.assertEqual(car.thumbs[1][0].get_tooltip_text(), "Screenshot 2 of 3")
+        # popis je pod snimky
+        kids = car.get_parent().get_children()
+        self.assertLess(kids.index(car), kids.index(desc))
+        shot(self.win, "detail-light")
+        set_theme(True)
+        self.open_detail("Weather")
+        car = self.win.carousel
+        self.assertTrue(car.shots[0]["show"].endswith("/1-dark.webp"))        # tmava varianta snimku
+        self.assertTrue(car.shots[1]["show"].endswith("/2.webp"))             # bez tmave varianty svetly
+        self.assertTrue(pump(lambda: all(t[1].get_visible_child_name() == "image" for t in car.thumbs), 10))
+        shot(self.win, "detail-dark")
+        set_theme(False)
+
+    def test_10_viewer_keyboard(self):
+        self.open_detail("Weather")
+        car = self.win.carousel
+        self.assertTrue(pump(lambda: all(car.paths), 10))
+        # klavesnice: fokus na prvni nahled, sipka vpravo na druhy, Enter otevre zvetseni
+        car.thumbs[0][0].grab_focus()
+        pump(timeout=0.2)
+        ev = Gdk.Event.new(Gdk.EventType.KEY_PRESS)
+        ev.keyval = Gdk.KEY_Right
+        self.assertTrue(car.on_key(car, ev))
+        self.assertIs(self.win.get_focus(), car.thumbs[1][0])
+        car.thumbs[1][0].clicked()
+        pump(timeout=0.5)
+        viewers = [w for w in Gtk.Window.list_toplevels() if isinstance(w, store.ScreenshotViewer) and w.get_visible()]
+        self.assertEqual(len(viewers), 1)
+        v = viewers[0]
+        self.assertEqual(v.index, 1)
+        self.assertEqual(v.count.get_text(), "2 / 3")
+        self.assertTrue(v.get_modal())
+        for key, want in ((Gdk.KEY_Right, 2), (Gdk.KEY_Right, 2), (Gdk.KEY_Left, 1), (Gdk.KEY_Home, 0),
+                          (Gdk.KEY_End, 2)):
+            ev = Gdk.Event.new(Gdk.EventType.KEY_PRESS)
+            ev.keyval = key
+            v.on_key(v, ev)
+            self.assertEqual(v.index, want)
+        self.assertFalse(v.next.get_sensitive())
+        self.assertEqual((v.pix.get_width(), v.pix.get_height()), DEMO_SHOTS[2][1:3])
+        pump(timeout=0.5)
+        if SHOTS:
+            gw = v.get_window()
+            pix = Gdk.pixbuf_get_from_window(gw, 0, 0, gw.get_width(), gw.get_height())
+            pix.savev(os.path.join(SHOTS, "detail-viewer.png"), "png", [], [])
+        ev = Gdk.Event.new(Gdk.EventType.KEY_PRESS)
+        ev.keyval = Gdk.KEY_Escape
+        v.on_key(v, ev)
+        pump(timeout=0.3)
+        self.assertFalse([w for w in Gtk.Window.list_toplevels() if isinstance(w, store.ScreenshotViewer)
+                          and w.get_visible()])
+
+    def test_11_offline_screenshots_and_no_screenshots(self):
+        # Mapy: snimky v katalogu, soubory nedostupne (offline) -> poznamka misto prazdnych nahledu
+        self.open_detail("Maps")
+        car = self.win.carousel
+        self.assertTrue(pump(lambda: car.note.get_visible(), 10))
+        self.assertEqual(car.note.get_text(), "Screenshots are not available offline.")
+        self.assertFalse(any(t[0].get_visible() for t in car.thumbs))
+        # aplikace bez snimku: zadny pas
+        self.win.carousel = None
+        self.open_detail("Calculator")
+        self.assertIsNone(self.win.carousel)
+        self.assertFalse([w for w in widgets(self.win.scroll) if isinstance(w, store.ScreenshotCarousel)])
+
+    def test_12_data_saver_loads_on_request(self):
+        shutil.rmtree(store.SCREEN_CACHE, ignore_errors=True)
+        os.makedirs(os.path.dirname(store.DATASAVER), exist_ok=True)
+        open(store.DATASAVER, "w").close()
+        try:
+            self.open_detail("Weather")
+            car = self.win.carousel
+            pump(timeout=0.5)
+            self.assertFalse(any(car.paths))
+            self.assertFalse(os.path.isdir(store.SCREEN_CACHE) and os.listdir(store.SCREEN_CACHE))
+            self.assertEqual(car.more.get_label(), "Show screenshots")
+            car.more.clicked()
+            self.assertTrue(pump(lambda: all(car.paths), 10))
+        finally:
+            os.unlink(store.DATASAVER)
+
+    def test_13_appstream_description(self):
+        """Aplikace z Archu: popis AppStream jako odstavce a seznam (driv prosty text s tecnami)."""
+        self.open_detail("Firefox", page="discover")
+        [desc] = [w for w in widgets(self.win.scroll) if isinstance(w, store.DescriptionView)]
+        texts = self.labels(desc)
+        self.assertIn("Firefox is a fast browser.", texts)
+        self.assertIn("Private browsing", texts)
+        self.assertEqual(texts.count("•"), 2)
+        # snimek AppStream: rozmery az ze stazeneho obrazku (sirka nahledu podle pomeru stran)
+        car = self.win.carousel
+        self.assertEqual(len(car.thumbs), 1)
+        self.assertTrue(pump(lambda: car.thumbs[0][1].get_visible_child_name() == "image", 10))
+        self.assertEqual(car.thumbs[0][3], 2 * store.SCREEN_THUMB_HEIGHT)
 
 
 if __name__ == "__main__":

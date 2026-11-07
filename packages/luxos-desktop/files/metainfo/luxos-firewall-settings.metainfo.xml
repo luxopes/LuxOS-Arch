@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-firewall-settings</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Firewall</name>
+  <summary>Turn the firewall on or off and allow apps to accept connections from the network</summary>
+  <launchable type="desktop-id">luxos-firewall-settings.desktop</launchable>
+  <description>
+    <p>Settings for the LuxOS firewall. It blocks new incoming connections from the network, while your apps keep using the internet as usual. Here you see what is protected and allow exactly what you need.</p>
+    <p xml:lang="cs">Nastavení firewallu LuxOS. Firewall blokuje nová příchozí spojení ze sítě, aplikace přitom dál normálně používají internet. Tady uvidíte, co je chráněné, a povolíte přesně to, co potřebujete.</p>
+    <p xml:lang="sk">Nastavenia firewallu LuxOS. Firewall blokuje nové prichádzajúce spojenia zo siete, aplikácie pritom ďalej normálne používajú internet. Tu uvidíte, čo je chránené, a povolíte presne to, čo potrebujete.</p>
+    <p xml:lang="pl">Ustawienia zapory LuxOS. Zapora blokuje nowe połączenia przychodzące z sieci, a aplikacje nadal normalnie korzystają z internetu. Tutaj widać, co jest chronione, i można zezwolić dokładnie na to, czego potrzebujesz.</p>
+    <p xml:lang="uk">Налаштування брандмауера LuxOS. Він блокує нові вхідні з’єднання з мережі, а застосунки й далі звично користуються інтернетом. Тут видно, що захищено, і можна дозволити саме те, що вам потрібно.</p>
+    <p xml:lang="hu">A LuxOS tűzfal beállításai. A tűzfal letiltja a hálózatról érkező új bejövő kapcsolatokat, az alkalmazások pedig továbbra is a megszokott módon használják az internetet. Itt látja, mi védett, és pontosan azt engedélyezheti, amire szüksége van.</p>
+    <p xml:lang="de">Einstellungen der LuxOS-Firewall. Sie blockiert neue eingehende Verbindungen aus dem Netzwerk, während Ihre Apps das Internet wie gewohnt nutzen. Hier sehen Sie, was geschützt ist, und erlauben genau das, was Sie brauchen.</p>
+    <p xml:lang="fr">Les réglages du pare-feu LuxOS. Il bloque les nouvelles connexions entrantes depuis le réseau, tandis que vos applications continuent d’utiliser Internet normalement. Vous voyez ici ce qui est protégé et autorisez exactement ce dont vous avez besoin.</p>
+    <p xml:lang="es">Los ajustes del cortafuegos de LuxOS. Bloquea las nuevas conexiones entrantes desde la red, mientras tus aplicaciones siguen usando internet con normalidad. Aquí ves qué está protegido y permites exactamente lo que necesitas.</p>
+    <p xml:lang="it">Le impostazioni del firewall di LuxOS. Blocca le nuove connessioni in entrata dalla rete, mentre le app continuano a usare internet come sempre. Qui vedi cosa è protetto e consenti esattamente ciò che ti serve.</p>
+    <p xml:lang="pt">As configurações do firewall do LuxOS. Ele bloqueia novas conexões de entrada vindas da rede, enquanto seus aplicativos continuam usando a internet normalmente. Aqui você vê o que está protegido e permite exatamente o que precisa.</p>
+    <p xml:lang="nl">De instellingen van de LuxOS-firewall. Die blokkeert nieuwe inkomende verbindingen vanaf het netwerk, terwijl je apps het internet gewoon blijven gebruiken. Hier zie je wat beschermd is en sta je precies toe wat je nodig hebt.</p>
+    <p xml:lang="sv">Inställningar för LuxOS brandvägg. Den blockerar nya inkommande anslutningar från nätverket, medan dina appar använder internet som vanligt. Här ser du vad som är skyddat och tillåter precis det du behöver.</p>
+    <ul>
+      <li>Turn the firewall on or off with one switch</li>
+      <li xml:lang="cs">Zapnutí a vypnutí firewallu jedním přepínačem</li>
+      <li xml:lang="sk">Zapnutie a vypnutie firewallu jedným prepínačom</li>
+      <li xml:lang="pl">Włączanie i wyłączanie zapory jednym przełącznikiem</li>
+      <li xml:lang="uk">Увімкнення й вимкнення брандмауера одним перемикачем</li>
+      <li xml:lang="hu">A tűzfal be- és kikapcsolása egyetlen kapcsolóval</li>
+      <li xml:lang="de">Firewall mit einem Schalter ein- oder ausschalten</li>
+      <li xml:lang="fr">Activer ou désactiver le pare-feu d’un seul interrupteur</li>
+      <li xml:lang="es">Activa o desactiva el cortafuegos con un solo interruptor</li>
+      <li xml:lang="it">Attiva o disattiva il firewall con un solo interruttore</li>
+      <li xml:lang="pt">Ligue ou desligue o firewall com um só botão</li>
+      <li xml:lang="nl">Zet de firewall aan of uit met één schakelaar</li>
+      <li xml:lang="sv">Slå på eller av brandväggen med en enda knapp</li>
+      <li>See what is allowed automatically, such as LuxDrop or printer sharing</li>
+      <li xml:lang="cs">Přehled toho, co je povoleno automaticky, například LuxDrop nebo sdílení tiskáren</li>
+      <li xml:lang="sk">Prehľad toho, čo je povolené automaticky, napríklad LuxDrop alebo zdieľanie tlačiarní</li>
+      <li xml:lang="pl">Podgląd tego, co jest dozwolone automatycznie, np. LuxDrop lub udostępnianie drukarek</li>
+      <li xml:lang="uk">Огляд того, що дозволено автоматично, наприклад LuxDrop або спільний доступ до принтерів</li>
+      <li xml:lang="hu">Áttekintés arról, mi van automatikusan engedélyezve, például a LuxDrop vagy a nyomtatómegosztás</li>
+      <li xml:lang="de">Überblick, was automatisch erlaubt ist, etwa LuxDrop oder die Druckerfreigabe</li>
+      <li xml:lang="fr">Voir ce qui est autorisé automatiquement, comme LuxDrop ou le partage d’imprimantes</li>
+      <li xml:lang="es">Mira qué está permitido automáticamente, como LuxDrop o compartir impresoras</li>
+      <li xml:lang="it">Vedi cosa è consentito automaticamente, come LuxDrop o la condivisione stampanti</li>
+      <li xml:lang="pt">Veja o que é permitido automaticamente, como o LuxDrop ou o compartilhamento de impressoras</li>
+      <li xml:lang="nl">Zie wat automatisch is toegestaan, zoals LuxDrop of printerdeling</li>
+      <li xml:lang="sv">Se vad som tillåts automatiskt, till exempel LuxDrop eller skrivardelning</li>
+      <li>Allow a port for this network only or from everywhere</li>
+      <li xml:lang="cs">Povolení portu jen pro tuto síť, nebo odkudkoli</li>
+      <li xml:lang="sk">Povolenie portu len pre túto sieť, alebo odkiaľkoľvek</li>
+      <li xml:lang="pl">Zezwolenie na port tylko dla tej sieci lub zewsząd</li>
+      <li xml:lang="uk">Дозвіл порту лише для цієї мережі або звідусіль</li>
+      <li xml:lang="hu">Port engedélyezése csak erről a hálózatról vagy bárhonnan</li>
+      <li xml:lang="de">Einen Port nur für dieses Netzwerk oder von überall erlauben</li>
+      <li xml:lang="fr">Autoriser un port pour ce réseau uniquement ou depuis partout</li>
+      <li xml:lang="es">Permite un puerto solo para esta red o desde cualquier lugar</li>
+      <li xml:lang="it">Consenti una porta solo per questa rete o da ovunque</li>
+      <li xml:lang="pt">Permita uma porta só para esta rede ou de qualquer lugar</li>
+      <li xml:lang="nl">Sta een poort toe voor alleen dit netwerk of vanaf overal</li>
+      <li xml:lang="sv">Tillåt en port bara för det här nätverket eller från överallt</li>
+      <li>Allow recently blocked programs with one click</li>
+      <li xml:lang="cs">Povolení nedávno blokovaných programů jedním kliknutím</li>
+      <li xml:lang="sk">Povolenie nedávno blokovaných programov jedným kliknutím</li>
+      <li xml:lang="pl">Zezwalanie ostatnio zablokowanym programom jednym kliknięciem</li>
+      <li xml:lang="uk">Дозвіл нещодавно заблокованим програмам одним клацанням</li>
+      <li xml:lang="hu">Nemrég letiltott programok engedélyezése egy kattintással</li>
+      <li xml:lang="de">Kürzlich blockierte Programme mit einem Klick erlauben</li>
+      <li xml:lang="fr">Autoriser d’un clic les programmes bloqués récemment</li>
+      <li xml:lang="es">Permite con un clic los programas bloqueados recientemente</li>
+      <li xml:lang="it">Consenti con un clic i programmi bloccati di recente</li>
+      <li xml:lang="pt">Permita com um clique os programas bloqueados recentemente</li>
+      <li xml:lang="nl">Sta onlangs geblokkeerde programma’s met één klik toe</li>
+      <li xml:lang="sv">Tillåt nyligen blockerade program med ett klick</li>
+      <li>Optionally treat your Tailscale devices as this network</li>
+      <li xml:lang="cs">Volitelně můžete zařízení v Tailscale považovat za tuto síť</li>
+      <li xml:lang="sk">Voliteľne môžete zariadenia v Tailscale považovať za túto sieť</li>
+      <li xml:lang="pl">Opcjonalnie urządzenia w Tailscale można traktować jako tę sieć</li>
+      <li xml:lang="uk">За бажанням пристрої в Tailscale можна вважати цією мережею</li>
+      <li xml:lang="hu">A Tailscale-eszközök igény szerint ennek a hálózatnak számíthatnak</li>
+      <li xml:lang="de">Tailscale-Geräte auf Wunsch als dieses Netzwerk behandeln</li>
+      <li xml:lang="fr">Traiter au besoin les appareils Tailscale comme ce réseau</li>
+      <li xml:lang="es">Si quieres, trata los dispositivos de Tailscale como esta red</li>
+      <li xml:lang="it">Se vuoi, tratta i dispositivi Tailscale come questa rete</li>
+      <li xml:lang="pt">Se quiser, trate os dispositivos Tailscale como esta rede</li>
+      <li xml:lang="nl">Behandel Tailscale-apparaten desgewenst als dit netwerk</li>
+      <li xml:lang="sv">Behandla vid behov Tailscale-enheter som det här nätverket</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

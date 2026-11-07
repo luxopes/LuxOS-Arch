@@ -7,7 +7,7 @@
 
 pkgname=luxos-weather
 pkgver=1.0.0
-pkgrel=2
+pkgrel=3
 pkgdesc="LuxOS Weather - current conditions, hourly and 7-day forecast (Open-Meteo)"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -32,4 +32,6 @@ package() {
     install -Dm644 -t "$pkgdir/usr/share/luxos/weather/icons" "$f"/icons/*.svg
     install -Dm644 "$f/luxos-weather.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-weather.svg"
     install -Dm644 "$f/luxos-weather.desktop" "$pkgdir/usr/share/applications/luxos-weather.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
 }

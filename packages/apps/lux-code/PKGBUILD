@@ -6,7 +6,7 @@
 
 pkgname=lux-code
 pkgver=0.1.2
-pkgrel=6
+pkgrel=7
 _lslver=0.10.8
 pkgdesc="Lux Code - LuxAI terminal coding agent written in LSL (uses the LuxOS LuxAI account)"
 arch=(x86_64)
@@ -60,6 +60,8 @@ exec /usr/lib/lux-code/lux-code "$@"
 SH
     chmod 755 "$pkgdir/usr/bin/lux-code"
     install -Dm644 packaging/lux-code.desktop "$pkgdir/usr/share/applications/lux-code.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$startdir"/metainfo/*.metainfo.xml
     install -Dm644 assets/luxai.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/lux-code.png"
     install -Dm644 -t "$pkgdir/usr/share/doc/lux-code" README.md TOOLS.md
     install -Dm644 .env.example "$pkgdir/usr/share/doc/lux-code/env.example"
