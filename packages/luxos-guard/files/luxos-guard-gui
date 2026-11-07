@@ -342,7 +342,7 @@ class GuardWindow(Gtk.Window):
         return False
 
     def sandbox(self, e):
-        run_in_sandbox(e.get("path"), e.get("kind"))
+        run_in_sandbox(e.get("path"), e.get("kind"), e.get("interp"))
 
     def user_dir(self, p):
         return snap.user_snapshot_dir(p, os.path.realpath(os.path.expanduser("~")))

@@ -15,7 +15,7 @@ class FakeProc:
         self.root = root
         os.makedirs(root, exist_ok=True)
 
-    def add(self, pid, exe, argv, cwd="/", ppid=1, uid=1000, loginuid=None, fds=(), comm=None):
+    def add(self, pid, exe, argv, cwd="/", ppid=1, uid=1000, loginuid=None, fds=(), comm=None, tty=None):
         d = os.path.join(self.root, str(pid))
         os.makedirs(os.path.join(d, "fd"))
         os.symlink(exe, os.path.join(d, "exe"))
@@ -30,6 +30,9 @@ class FakeProc:
             f.write(str(loginuid if loginuid is not None else 4294967295))
         for i, t in enumerate(fds):
             os.symlink(t, os.path.join(d, "fd", str(i + 3)))
+        if tty is not None:
+            with open(os.path.join(d, "stat"), "w") as f:
+                f.write(f"{pid} ({comm or os.path.basename(exe)}) S {ppid} {pid} {pid} {tty} -1 0 0 0\n")
         return C.Proc(self.root)
 
 

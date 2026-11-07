@@ -4687,3 +4687,7 @@ Invalid COUNTME (use 0 or 1)	Neplatné COUNTME (použijte 0 nebo 1)
 Could not change the anonymous weekly count.	Anonymní týdenní počítání se nepodařilo změnit.
 Usage: lux config countme [on|off]	Použití: lux config countme [on|off]
 Usage: lux config [check|show|edit|engine|migrate|channel|countme]	Použití: lux config [check|show|edit|engine|migrate|channel|countme]
+Could not start %s in the sandbox	%s se v sandboxu nepodařilo spustit
+The program ended with error code %d.	Program skončil s chybovým kódem %d.
+The launcher does not contain a program to run.	Spouštěč neobsahuje žádný program ke spuštění.
+No terminal application was found.	Nebyla nalezena žádná aplikace terminálu.

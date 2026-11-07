@@ -4598,3 +4598,7 @@ Invalid COUNTME (use 0 or 1)	COUNTME non valido (usa 0 o 1)
 Could not change the anonymous weekly count.	Impossibile modificare il conteggio settimanale anonimo.
 Usage: lux config countme [on|off]	Uso: lux config countme [on|off]
 Usage: lux config [check|show|edit|engine|migrate|channel|countme]	Uso: lux config [check|show|edit|engine|migrate|channel|countme]
+Could not start %s in the sandbox	Impossibile avviare %s nella sandbox
+The program ended with error code %d.	Il programma è terminato con il codice di errore %d.
+The launcher does not contain a program to run.	Il lanciatore non contiene alcun programma da eseguire.
+No terminal application was found.	Non è stata trovata alcuna applicazione terminale.

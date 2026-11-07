@@ -144,6 +144,15 @@ class Proc:
             pass
         return out
 
+    def has_tty(self, pid):
+        """Proces ma ridici terminal (spusteni z terminalu, "Spustit v terminalu" ve spravci souboru)."""
+        try:
+            with open(self._p(pid, "stat"), "rb") as f:
+                raw = f.read(4096)
+            return int(raw[raw.rindex(b")") + 2:].split()[4]) != 0
+        except (OSError, ValueError, IndexError):
+            return False
+
     def ppid(self, pid):
         try:
             return int(self.status(pid)["PPid"][0])

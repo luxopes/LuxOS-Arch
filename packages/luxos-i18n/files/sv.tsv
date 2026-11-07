@@ -4598,3 +4598,7 @@ Invalid COUNTME (use 0 or 1)	Ogiltigt COUNTME (använd 0 eller 1)
 Could not change the anonymous weekly count.	Det gick inte att ändra den anonyma veckoräkningen.
 Usage: lux config countme [on|off]	Användning: lux config countme [on|off]
 Usage: lux config [check|show|edit|engine|migrate|channel|countme]	Användning: lux config [check|show|edit|engine|migrate|channel|countme]
+Could not start %s in the sandbox	Det gick inte att starta %s i sandlådan
+The program ended with error code %d.	Programmet avslutades med felkod %d.
+The launcher does not contain a program to run.	Startaren innehåller inget program att köra.
+No terminal application was found.	Inget terminalprogram hittades.

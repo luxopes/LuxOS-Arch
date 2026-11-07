@@ -36,6 +36,11 @@ Není to antivirus: žádná databáze signatur, žádné procházení disku, ž
   ani přečíst (Soubory ho nespustí).
 - Sandbox: proces uvnitř LuxOS Sandboxu (předek `/usr/bin/bwrap` se signaturou luxos-sandbox)
   smí soubor spustit. „Spustit v sandboxu“ soubor do sandboxu kopíruje (`luxos-sandbox run`).
+  O okně/terminálu rozhoduje jen čtení souboru jako dat (hlavičky ELF přes `O_NOFOLLOW` s limitem
+  velikosti, text skriptu, klíče `.desktop`) – nic z něj se nespouští na hostiteli. U spouštěče
+  `.desktop` se v sandboxu spustí jeho `Exec` (bez kódů `%f %u …`); výstup programu jde jen do
+  nepojmenovaného souboru a do upozornění se dostanou poslední řádky bez řídicích znaků a se
+  zneškodněným značkováním.
 
 ### Rozhodnutí
 
