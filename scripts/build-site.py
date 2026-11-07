@@ -8,9 +8,10 @@ home.en.html a home.cs.html, styly, skript, obrazky), site/iso.json (posledni IS
 s novym ISO), verze z packages/luxos-branding/files/version, dokumentace z luxos-docs
 (packages/apps/luxos-docs/docs, stejna jako offline v LuxOS) doplnena strankami z site/content
 (LuxAI, Lux Code, hardware, zkratky, FAQ; cs/ = ceske verze), seznam zmen z CHANGELOG.md
-(cesky) a site/content/en/changes.md (anglicky).
+(cesky) a site/content/en/changes.md (anglicky), stranka o pouzivani (countme) ze sablon
+usage.en.html a usage.cs.html (grafy kresli usage.js z /stats/usage.json, ktery vytvari server).
 Vystup: index.html, cs/index.html, release.json (aktualni vydani, nacita ho i stranka), docs/,
-cs/docs/, changes/, cs/zmeny/, sitemap.xml, robots.txt, download/index.html (presmerovani
+cs/docs/, changes/, cs/zmeny/, usage/, cs/pouzivani/, sitemap.xml, robots.txt, download/index.html (presmerovani
 na /#download - ISO a podpisy zustavaji v /download/). Kontrola odkazu: scripts/check-site.py.
 """
 import datetime
@@ -83,7 +84,10 @@ T = {
         "gallery_label": "Screenshot", "close": "Close", "prev_shot": "Previous", "next_shot": "Next",
         "copy_https": "Copying works only over HTTPS.", "other_name": "Čeština",
         "doc_note_en": "", "footer_docs": "Documentation", "en_only": "EN",
-        "en_only_title": "English only",
+        "en_only_title": "English only", "usage": "Usage",
+        "usage_title": "LuxOS usage – weekly active computers, versions and retention",
+        "usage_desc": ("How many computers run LuxOS each week, how many keep using it and which versions they run. "
+                       "Anonymous weekly counts (countme): what is sent and how to turn it off."),
     },
     "cs": {
         "locale": "cs_CZ", "home": "Domů", "features": "Funkce", "gallery": "Galerie",
@@ -106,7 +110,10 @@ T = {
         "gallery_label": "Snímek obrazovky", "close": "Zavřít", "prev_shot": "Předchozí", "next_shot": "Další",
         "copy_https": "Kopírování funguje jen přes HTTPS.", "other_name": "English",
         "doc_note_en": "", "footer_docs": "Dokumentace", "en_only": "EN",
-        "en_only_title": "Pouze anglicky",
+        "en_only_title": "Pouze anglicky", "usage": "Používání LuxOS",
+        "usage_title": "Používání LuxOS – aktivní počítače po týdnech, verze a věrnost",
+        "usage_desc": ("Kolik počítačů každý týden používá LuxOS, kolik lidí u něj zůstává a jaké verze mají. "
+                       "Anonymní týdenní součty (countme): co se odesílá a jak to vypnout."),
     },
 }
 
@@ -163,6 +170,10 @@ def docs_index_url(lang):
 
 def changes_url(lang):
     return "/changes/" if lang == "en" else "/cs/zmeny/"
+
+
+def usage_url(lang):
+    return "/usage/" if lang == "en" else "/cs/pouzivani/"
 
 
 def doc_url(lang, path):
@@ -260,7 +271,7 @@ def jsonld(*items):
 
 
 def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="website", ld=(), home=False,
-          switch_to=None, noindex=False, sitemap=True, dialog=False):
+          switch_to=None, noindex=False, sitemap=True, dialog=False, scripts=()):
     """Cela stranka: hlavicka se SEO znackami, navigace s prepinacem jazyka, obsah, paticka."""
     t = T[lang]
     other = OTHER[lang]
@@ -296,7 +307,8 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
     foot_links = (f'<a href="{docs_index_url(lang)}">{e(t["footer_docs"])}</a>'
                   f'<a href="{doc_url(lang if lang in DOCS_BY_PATH["luxos/luxai.md"]["src"] else "en", "luxos/luxai.md")}">LuxAI</a>'
                   f'<a href="{doc_url(lang if lang in DOCS_BY_PATH["luxos/faq.md"]["src"] else "en", "luxos/faq.md")}">{e(t["faq"])}</a>'
-                  f'<a href="{changes_url(lang)}">{e(t["changes"])}</a><a href="/repo/">{e(t["repos"])}</a>'
+                  f'<a href="{changes_url(lang)}">{e(t["changes"])}</a><a href="{usage_url(lang)}">{e(t["usage"])}</a>'
+                  f'<a href="/repo/">{e(t["repos"])}</a>'
                   f'<a href="https://github.com/luxopes/luxos-kernel">{e(t["kernel"])}</a>'
                   f'<a href="https://lux-ai.cz">lux-ai.cz</a>')
     dlg = ""
@@ -307,6 +319,7 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
                '    <figure><img alt=""><figcaption></figcaption></figure>\n'
                f'    <button class="lightbox-next" aria-label="{e(t["next_shot"])}">›</button>\n'
                '  </dialog>\n')
+    extra_js = "".join(f'  <script src="/{s}?v={stamp}" defer></script>\n' for s in scripts)
     if home:
         body = '    <span id="top"></span>\n' + body
     if sitemap and not noindex:
@@ -338,7 +351,7 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
 {jsonld(*ld) if ld else ""}
   <link rel="stylesheet" href="/styles.css?v={stamp}">
   <script src="/script.js?v={stamp}" defer></script>
-</head>
+{extra_js}</head>
 <body>
   <script>try{{var t=localStorage.getItem("luxos-theme");if(t?t==="light":matchMedia("(prefers-color-scheme: light)").matches)document.body.classList.add("light")}}catch(e){{}}</script>
   <a class="skip-link" href="#content">{e(t["skip"])}</a>
@@ -591,7 +604,39 @@ def main():
           '<meta http-equiv="refresh" content="0; url=/#download"><link rel="canonical" href="https://luxos.lux-ai.cz/#download">'
           '<meta name="robots" content="noindex"><a href="/#download">Download LuxOS</a>\n')
 
-    for name in ("styles.css", "script.js"):
+    # ---- pouzivani (countme): data nacita usage.js z /stats/usage.json na serveru ----
+    countme = DOCS_BY_PATH.get("luxos/countme.md")
+    if not countme:
+        print("build-site: warning: luxos/countme.md is not in the luxos-docs index.json, "
+              "the usage page links to the documentation index instead", file=sys.stderr)
+    ualt = {l: usage_url(l) for l in LANGS}
+    for lang in LANGS:
+        t = T[lang]
+        path = usage_url(lang)
+        trail = [(t["crumb_home"], home_url(lang)), (t["usage"], path)]
+        crumbs = ('<nav class="breadcrumbs" aria-label="Breadcrumb"><ol>'
+                  f'<li><a href="{trail[0][1]}">{e(trail[0][0])}</a></li>'
+                  f'<li aria-current="page">{e(trail[1][0])}</li></ol></nav>')
+        if countme:
+            cl = lang if lang in countme["src"] else "en"
+            doc_href, doc_title = doc_url(cl, "luxos/countme.md"), countme["title"][cl]
+        else:
+            doc_href, doc_title = docs_index_url(lang), t["docs"]
+        with open(os.path.join(SITE, f"usage.{lang}.html")) as f:
+            text = f.read()
+        for k, v in {"CRUMBS": crumbs, "COUNTME_DOC": doc_href, "COUNTME_DOC_TITLE": e(doc_title)}.items():
+            text = text.replace("{{" + k + "}}", v)
+        left = re.findall(r"\{\{[A-Za-z_:/.-]+\}\}", text)
+        if left:
+            sys.exit(f"build-site: unfilled placeholders in usage.{lang}.html {left}")
+        ld = [{"@context": "https://schema.org", "@type": "BreadcrumbList",
+               "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": n, "item": abs_url(h)}
+                                   for i, (n, h) in enumerate(trail)]}]
+        write(path.lstrip("/") + "index.html",
+              shell(lang, path, t["usage_title"], t["usage_desc"], text.rstrip("\n"), ualt, "", stamp, "website",
+                    ld, scripts=("usage.js",)))
+
+    for name in ("styles.css", "script.js", "usage.js"):
         shutil.copy(os.path.join(SITE, name), os.path.join(OUT, name))
     shutil.copytree(os.path.join(SITE, "assets"), os.path.join(OUT, "assets"))
     write("sitemap.xml", sitemap_xml(today))

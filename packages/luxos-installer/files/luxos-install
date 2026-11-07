@@ -734,6 +734,14 @@ ask_care() {
     sel=$(gum choose --header "$(T "How should LuxOS be maintained?")" "$carefree" "$classic") || exit 1
     if [[ $sel == "$classic" ]]; then CARE_MODE=classic; else CARE_MODE=carefree; fi
     info "$(care_text "$CARE_MODE")"
+    # Anonymni tydenni pocitani instalaci (countme): jedna veta a volba, vychozi ano
+    info "$(T "LuxOS can anonymously report once a week that this computer uses LuxOS - only the version, update channel and install age, no ID or personal data.")"
+    if gum confirm --default=true --affirmative "$(T "Yes")" --negative "$(T "No")" \
+            "$(T "Anonymously report that this computer uses LuxOS?")"; then
+        COUNTME=1
+    else
+        COUNTME=0
+    fi
 }
 
 # Sablony softwaru: aplikace predinstalovane navic k zakladnimu systemu (vice najednou)
@@ -938,6 +946,7 @@ summary() {
         "$(printf '%-13s%s' "$(T "Computer")" "$HOSTNAME_SEL")"
         "$(printf '%-13s%s' "$(T "Boot mode")" "$boot_text")"
         "$(printf '%-13s%s' "$(T "Maintenance")" "$(care_text "$CARE_MODE")")"
+        "$(printf '%-13s%s' "$(T "Usage count")" "$( ((${COUNTME:-1})) && T "anonymous, weekly" || T "off")")"
         "$(printf '%-13s%s' "$(T "Software")" "$(templates_text)")"
         "$(printf '%-13s%s' "LuxAI" "$([[ -n $LUXAI_ACCOUNT ]] && T "signed in" || T "not signed in")")"
     )
@@ -1865,6 +1874,11 @@ install_engine_config() {
         "$LUX_CONFIG_TOOL" set-channel staging --root "$TARGET" >>"$LOG" 2>&1 \
             || info "$(T "Could not set the update channel %s in the installed system." staging)"
     fi
+    # Anonymni tydenni pocitani instalaci (countme, vychozi zapnuto v lux.conf z baliku): COUNTME=0 vypne
+    if [[ ${COUNTME:-1} == 0 ]]; then
+        "$LUX_CONFIG_TOOL" set-countme off --root "$TARGET" >>"$LOG" 2>&1 \
+            || info "$(T "Could not turn off the anonymous weekly count in the installed system.")"
+    fi
 }
 
 install_online_drivers() {
@@ -2418,6 +2432,8 @@ main() {
     [[ $CARE_MODE == carefree || $CARE_MODE == classic ]] || fail "$(T "Invalid CARE_MODE (use carefree or classic)")"
     : "${PROTECT:=1}"
     [[ $PROTECT == @(0|1) ]] || fail "$(T "Invalid PROTECT (use 0 or 1)")"
+    : "${COUNTME:=1}"
+    [[ $COUNTME == @(0|1) ]] || fail "$(T "Invalid COUNTME (use 0 or 1)")"
     [[ -n $CONFIG ]] && parse_templates
     if [[ $DISK_MODE == manual ]]; then STEP_TOTAL=4
     elif uses_layout; then STEP_TOTAL=$(($(layout_steps) + 4))

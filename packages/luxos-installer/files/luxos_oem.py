@@ -12,11 +12,11 @@ import tempfile
 PROGRESS = os.environ.get("LUXOS_SETUP_STATE") or os.path.expanduser("~/.local/state/luxos-setup/progress.json")
 # Ulozene volby (zadna hesla ani ucet LuxAI - ten se po vypadku prihlasi znovu)
 SAVED_KEYS = ("locale", "xkb", "xkb_switch", "timezone", "fullname", "username", "user_edited", "hostname",
-              "host_edited", "autologin", "care", "disk_same", "org", "domain", "domain_user", "domain_ou", "step")
+              "host_edited", "autologin", "care", "countme", "disk_same", "org", "domain", "domain_user", "domain_ou", "step")
 # Firemni sit (domena Active Directory, luxos-domain): heslo spravce domeny jen v DOMAIN_PASSWORD
 # na stdin luxos-oem finish -> stdin "lux-domain join --password-stdin"; nikdy se neuklada
 FINISH_KEYS = ("LOCALE", "XKB_LAYOUT", "XKB_VARIANT", "XKB_OPTIONS", "TIMEZONE", "FULLNAME", "USERNAME",
-               "PASSWORD", "HOSTNAME", "AUTOLOGIN", "CARE_MODE", "LUXAI_ACCOUNT", "PHOTO", "DISK_PASS",
+               "PASSWORD", "HOSTNAME", "AUTOLOGIN", "CARE_MODE", "COUNTME", "LUXAI_ACCOUNT", "PHOTO", "DISK_PASS",
                "DOMAIN", "DOMAIN_USER", "DOMAIN_PASSWORD", "DOMAIN_OU")
 DOMAIN_CLI = os.environ.get("LUXOS_DOMAIN_CLI", "/usr/bin/lux-domain")
 DOMAIN_RE = re.compile(r"(?=.{3,253}$)[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+")
@@ -157,6 +157,7 @@ def finish_input(state, xkb_values, luks_pending, photo=""):
         "TIMEZONE": state["timezone"], "FULLNAME": state.get("fullname", "").strip(),
         "USERNAME": state["username"], "PASSWORD": state["pw1"], "HOSTNAME": state.get("hostname", ""),
         "AUTOLOGIN": "1" if state.get("autologin") else "0", "CARE_MODE": state.get("care", "carefree"),
+        "COUNTME": "0" if state.get("countme") is False else "1",
         "LUXAI_ACCOUNT": json.dumps(state["luxai"], ensure_ascii=False) if state.get("luxai") else "",
         "PHOTO": photo or "",
         "DISK_PASS": disk_password(state) if luks_pending else "",

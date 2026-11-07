@@ -1,0 +1,74 @@
+    <article class="doc panel usage" data-usage>
+      {{CRUMBS}}
+      <h1>Používání LuxOS</h1>
+      <p class="lead">Kolik počítačů každý týden používá LuxOS, kolik lidí u něj zůstává a jaké verze mají. Čísla jsou anonymní týdenní součty – nedá se z nich poznat žádný konkrétní počítač.</p>
+      <p class="usage-msg" data-usage-msg role="status" hidden>Načítám statistiky…</p>
+      <noscript><p class="usage-msg">Grafy potřebují JavaScript. Týdenní součty jsou k dispozici i jako soubor <a href="/stats/usage.json">usage.json</a>.</p></noscript>
+      <div class="usage-dash" data-usage-dash hidden>
+        <div class="usage-kpis">
+          <div class="usage-kpi"><span class="usage-kpi-label">Počítačů minulý týden</span><strong data-kpi="total">–</strong><span class="usage-kpi-sub" data-kpi="week"></span></div>
+          <div class="usage-kpi"><span class="usage-kpi-label">Změna oproti předchozímu týdnu</span><strong data-kpi="change">–</strong><span class="usage-kpi-sub" data-kpi="change-sub"></span></div>
+          <div class="usage-kpi"><span class="usage-kpi-label">Vracející se počítače</span><strong data-kpi="returning">–</strong><span class="usage-kpi-sub">s LuxOS déle než týden</span></div>
+        </div>
+
+        <h2 id="tydne">Aktivní počítače po týdnech</h2>
+        <figure class="usage-chart" data-chart="totals"></figure>
+        <p class="usage-note" data-partial-note></p>
+
+        <h2 id="kdo-zustava">Kdo u LuxOS zůstává</h2>
+        <p>Každý počítač zároveň jednou týdně sdělí, zhruba jak dlouho má LuxOS nainstalovaný. Rostoucí podíl skupin „1–6 měsíců“ a „déle“ znamená, že lidé LuxOS jen nevyzkoušejí, ale zůstanou u něj.</p>
+        <ul class="usage-legend" aria-hidden="true">
+          <li><i class="u-sw u-a1"></i>Nové (první týden)</li><li><i class="u-sw u-a2"></i>Do 1 měsíce</li><li><i class="u-sw u-a3"></i>1–6 měsíců</li><li><i class="u-sw u-a4"></i>Déle</li>
+        </ul>
+        <figure class="usage-chart" data-chart="age"></figure>
+
+        <h2 id="verze">Verze a kanály</h2>
+        <p data-breakdown-week>Za poslední celý týden.</p>
+        <div class="usage-breakdown">
+          <section><h3>Verze</h3><div data-bars="by_version"></div></section>
+          <section><h3>Kanál aktualizací</h3><div data-bars="by_channel"></div></section>
+          <section><h3>Architektura</h3><div data-bars="by_arch"></div></section>
+        </div>
+
+        <details class="usage-table">
+          <summary>Týdenní čísla v tabulce</summary>
+          <div class="usage-table-wrap"><table>
+            <thead><tr><th scope="col">Týden</th><th scope="col">Počítače</th><th scope="col">Nové</th><th scope="col">Do 1 měsíce</th><th scope="col">1–6 měsíců</th><th scope="col">Déle</th></tr></thead>
+            <tbody data-table></tbody>
+          </table></div>
+        </details>
+        <p class="usage-note" data-generated></p>
+      </div>
+
+      <h2 id="co-se-odesila">Co přesně se odesílá</h2>
+      <p>Jednou za kalendářní týden (týden podle ISO začíná pondělím, počítá se v UTC), když správce balíků <code>lux</code> stahuje seznamy balíků – LuxOS Care to dělá automaticky – pošle navíc jeden požadavek na <code>https://luxos.lux-ai.cz/countme</code>, a to jen s těmito čtyřmi údaji:</p>
+      <table>
+        <thead><tr><th scope="col">Údaj</th><th scope="col">Význam</th><th scope="col">Příklad</th></tr></thead>
+        <tbody>
+          <tr><td><code>v</code></td><td>Verze LuxOS</td><td><code>1.0.0</code></td></tr>
+          <tr><td><code>arch</code></td><td>Architektura procesoru</td><td><code>x86_64</code></td></tr>
+          <tr><td><code>ch</code></td><td>Kanál aktualizací</td><td><code>stable</code> nebo <code>staging</code></td></tr>
+          <tr><td><code>age</code></td><td>Jak dlouho je systém nainstalovaný: 1 = první týden, 2 = do měsíce, 3 = do půl roku, 4 = déle</td><td><code>3</code></td></tr>
+        </tbody>
+      </table>
+      <p>Celý požadavek pak vypadá takto:</p>
+      <pre><code>https://luxos.lux-ai.cz/countme?v=1.0.0&amp;arch=x86_64&amp;ch=stable&amp;age=3</code></pre>
+      <ul>
+        <li><strong>Nic jiného se neposílá:</strong> žádný jedinečný identifikátor, název počítače, údaje o hardwaru, seznam nainstalovaných aplikací ani data uživatele.</li>
+        <li><strong>Server si ukládá jen týdenní počítadla</strong> pro každou kombinaci týdne, verze, architektury, kanálu a stáří – nic víc tato stránka ani neukazuje.</li>
+        <li><strong>IP adresy se neukládají.</strong> Záznam přístupů je pro <code>/countme</code> vypnutý. Kvůli odfiltrování duplicit server používá klíčovaný otisk (hash) IP adresy; klíč je náhodný, existuje jen v paměti a každý týden se zahodí, takže otisky nejde přiřadit k nikomu ani propojit mezi týdny.</li>
+        <li><strong>Čísla jsou odhad.</strong> Počítače, které jsou celý týden vypnuté nebo bez internetu, se nezapočítají. Více počítačů za jednou sdílenou IP adresou (škola, kancelář) se může započítat jen jednou za týden a verzi – jde o jednoduchou ochranu proti zahlcení falešnými požadavky.</li>
+      </ul>
+      <p>Nápad vychází z funkce countme ve správci balíků DNF v distribuci Fedora.</p>
+
+      <h2 id="vypnuti">Jak počítání vypnout</h2>
+      <p>Počítání je ve výchozím stavu zapnuté a kdykoli ho můžete vypnout, a to kterýmkoli z těchto způsobů:</p>
+      <ul>
+        <li>V aplikaci <strong>Aktualizace softwaru</strong>: přepínač <strong>Soukromí</strong>.</li>
+        <li>V terminálu: <code>sudo lux-config set-countme off</code></li>
+        <li>V souboru <code>/etc/lux/lux.conf</code>: <code>countme = false</code> v sekci <code>[general]</code>.</li>
+        <li>V systémové konfiguraci <code>/etc/luxos/system.lsl</code>: <code>"updates": {"countme": False}</code></li>
+        <li>Při instalaci: instalátor k tomu má zaškrtávací políčko (ve výchozím stavu zaškrtnuté).</li>
+      </ul>
+      <p>Podrobnosti najdete v dokumentaci: <a href="{{COUNTME_DOC}}">{{COUNTME_DOC_TITLE}}</a>.</p>
+    </article>

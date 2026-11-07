@@ -69,6 +69,9 @@ retried within one run (after 20 s and 90 s).
 - "When updates are installed": Carefree / Classic.
 - "Available updates" list and new configuration files to review (`lux configs`).
 - "System health": problems found, the kept previous kernel.
+- "Privacy": switch **Anonymously report that this computer uses LuxOS** (`[general] countme` in
+  `/etc/lux/lux.conf`, changed through pkexec `luxos-care-helper set-countme on|off`), see
+  [countme.md](countme.md).
 - "Repair and update history" with **Show Full Log…** (`/var/lib/luxos-care/history.jsonl`).
 
 Update Now starts `luxos-care-update-now.service`; Check for Problems Now starts

@@ -2,11 +2,14 @@
 # LuxOS Care - zmeny nastaveni z aplikace (pkexec, viz org.luxos.care.policy)
 #   luxos-care-helper set-mode carefree|classic
 #   luxos-care-helper set-protect on|off       ochrana systemu (/usr jen pro cteni)
+#   luxos-care-helper set-countme on|off       anonymni tydenni pocitani instalaci ([general] countme
+#                                              v /etc/lux/lux.conf, zapisuje lux-config z lux-engine)
 set -euo pipefail
 case ${1-}:${2-} in
     set-mode:carefree|set-mode:classic) exec /usr/bin/luxos-care mode "$2" ;;
     set-protect:on) exec /usr/bin/luxos-care protect enable ;;
     set-protect:off) exec /usr/bin/luxos-care protect disable ;;
+    set-countme:on|set-countme:off) exec /usr/lib/lux/lux-config set-countme "$2" ;;
 esac
-echo "usage: luxos-care-helper set-mode carefree|classic | set-protect on|off" >&2
+echo "usage: luxos-care-helper set-mode carefree|classic | set-protect on|off | set-countme on|off" >&2
 exit 2

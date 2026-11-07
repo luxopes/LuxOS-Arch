@@ -176,6 +176,7 @@ class SetupAssistant(gui.Installer):
             "hostname": "", "host_edited": False, "autologin": False, "luxai": None, "luxai_email": "",
             "care": "carefree", "templates": [], "disk_same": True, "disk1": "", "disk2": "",
             "encrypt": False, "mode": None, "oem": False,
+            "countme": True,    # anonymni tydenni pocitani (volba na strance Udrzba z instalatoru)
             "org": False, "domain": "", "domain_user": "", "domain_pw": "", "domain_ou": "",
         }
         saved = oem.load_progress()

@@ -15,7 +15,10 @@ from urllib.parse import unquote, urldefrag, urljoin, urlparse
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = "https://luxos.lux-ai.cz"
 # cesty, ktere existuji jen na serveru (ISO, podpisy, repozitare), v out/site nejsou
-SERVER_ONLY = ("/repo/", "/download/")
+SERVER_ONLY = ("/repo/", "/download/", "/stats/")
+# stranka Pouzivani LuxOS (countme) a dokument, na ktery odkazuje (z luxos-docs docs/luxos/countme.md)
+USAGE_PAGES = ("/usage/", "/cs/pouzivani/")
+COUNTME_DOC = "/docs/luxos/countme.html"
 
 
 class Page(HTMLParser):
@@ -171,11 +174,28 @@ def main():
     if not os.path.isfile(rb) or "Sitemap: " + BASE + "/sitemap.xml" not in open(rb).read():
         errors.append("robots.txt missing or without Sitemap line")
 
+    # countme: stranky o pouzivani a jejich skript; dokument countme muze chybet, dokud neni v luxos-docs
+    warnings = []
+    for up in USAGE_PAGES:
+        f = exists(up)
+        if f is None:
+            errors.append(f"{up}: usage page missing")
+            continue
+        p = pages[f]
+        if not any(l.startswith("/usage.js") for l in p.links):
+            errors.append(f"{up}: usage.js not loaded")
+        if not any(l.startswith(("/docs/luxos/countme.html", "/cs/docs/luxos/countme.html")) for l in p.links):
+            warnings.append(f"{up}: no link to {COUNTME_DOC} (luxos/countme.md not in luxos-docs yet?)")
+    if exists(COUNTME_DOC) is None:
+        warnings.append(f"{COUNTME_DOC} does not exist yet (packages/apps/luxos-docs/docs/luxos/countme.md + index.json)")
+
     print(f"check-site: {len(pages)} html pages, {n_links} links checked, {len(errors)} problems")
     for err in errors[:80]:
         print("  " + err)
     if len(errors) > 80:
         print(f"  ... and {len(errors) - 80} more")
+    for w in warnings:
+        print("  warning: " + w)
     sys.exit(1 if errors else 0)
 
 

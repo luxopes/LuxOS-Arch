@@ -295,6 +295,26 @@
           ]
         },
         {
+          "path": "luxos/countme.md",
+          "title": "Anonymous usage count (countme)",
+          "summary": "Weekly anonymous count of active LuxOS installs (like Fedora countme): exactly what is sent (v, arch, ch, age), when not, never slows updates, what the server stores (no IPs), lux config countme, turning it off (Software Update > Privacy, lux.conf, system.lsl, installer).",
+          "keywords": [
+            "countme",
+            "telemetry",
+            "privacy",
+            "statistics",
+            "usage",
+            "anonymous",
+            "opt-out",
+            "lux config countme",
+            "lux-config set-countme",
+            "/var/lib/lux/countme",
+            "usage.json",
+            "soukromí",
+            "telemetrie"
+          ]
+        },
+        {
           "path": "luxos/system-protection.md",
           "title": "System protection",
           "summary": "Read-only /usr (only lux, Software Update, Store and lux system apply change it), weekly integrity check of system files against the package database with repair from signed repositories, settings, opt-in for older installations, design and plans for dm-verity/composefs.",

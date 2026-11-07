@@ -7,7 +7,7 @@
 
 pkgname=luxos-care
 pkgver=1.0.0
-pkgrel=12
+pkgrel=13
 pkgdesc="LuxOS Care - automatic updates, previous kernel fallback, self-repair, system snapshots, recovery and system protection"
 arch=(any)
 url="https://luxos.lux-ai.cz/repo/"

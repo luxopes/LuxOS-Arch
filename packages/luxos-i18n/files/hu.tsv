@@ -4581,3 +4581,20 @@ allow incoming %s from everywhere	bejövő %s engedélyezése bárhonnan
 allow incoming %s from this network	bejövő %s engedélyezése erről a hálózatról
 stop allowing incoming %s from everywhere	bejövő %s engedélyezésének visszavonása bárhonnan
 stop allowing incoming %s from this network	bejövő %s engedélyezésének visszavonása erről a hálózatról
+%s is missing; the anonymous weekly count was not checked.	%s hiányzik; a névtelen heti számlálás nem lett ellenőrizve.
+anonymous weekly count: %s	névtelen heti számlálás: %s
+Changing the anonymous weekly count needs a newer lux-engine (lux update).	A névtelen heti számlálás módosításához újabb lux-engine szükséges (lux update).
+countme = once a week anonymously report that this computer uses LuxOS (version, channel, install age; no ID)	countme = hetente egyszer névtelenül jelezni, hogy ez a számítógép LuxOS-t használ (verzió, csatorna, a telepítés kora; azonosító nélkül)
+Privacy	Adatvédelem
+Anonymously report that this computer uses LuxOS	Névtelen jelzés arról, hogy ez a számítógép LuxOS-t használ
+Once a week, with no ID or personal data: only the LuxOS version, update channel and how long ago LuxOS was installed. It helps to see how many people use LuxOS.	Hetente egyszer, azonosító és személyes adatok nélkül: csak a LuxOS verziója, a frissítési csatorna és az, hogy mióta van telepítve a LuxOS. Segít megtudni, hányan használják a LuxOS-t.
+Once a week, with no ID or personal data: only the LuxOS version, update channel and how long ago LuxOS was installed. You can turn it off later in Software Update.	Hetente egyszer, azonosító és személyes adatok nélkül: csak a LuxOS verziója, a frissítési csatorna és az, hogy mióta van telepítve a LuxOS. Később kikapcsolhatja a Szoftverfrissítésben.
+Usage count	Használatszámlálás
+anonymous, weekly	névtelen, heti
+Could not turn off the anonymous weekly count in the installed system.	A névtelen heti számlálást nem sikerült kikapcsolni a telepített rendszerben.
+LuxOS can anonymously report once a week that this computer uses LuxOS - only the version, update channel and install age, no ID or personal data.	A LuxOS hetente egyszer névtelenül jelezheti, hogy ez a számítógép LuxOS-t használ – csak a verziót, a frissítési csatornát és a telepítés korát, azonosító és személyes adatok nélkül.
+Anonymously report that this computer uses LuxOS?	Névtelenül jelezze, hogy ez a számítógép LuxOS-t használ?
+Invalid COUNTME (use 0 or 1)	Érvénytelen COUNTME (0 vagy 1 adható meg)
+Could not change the anonymous weekly count.	A névtelen heti számlálást nem sikerült módosítani.
+Usage: lux config countme [on|off]	Használat: lux config countme [on|off]
+Usage: lux config [check|show|edit|engine|migrate|channel|countme]	Használat: lux config [check|show|edit|engine|migrate|channel|countme]

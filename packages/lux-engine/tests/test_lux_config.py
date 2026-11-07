@@ -254,7 +254,7 @@ class Ensure(Base):
             f.write(text.replace("parallel = 10", "parallel = 0"))
         path, state, err = self.ensure()
         self.assertEqual((path, state), (self.out, "stale"))
-        self.assertIn("lux.conf:13: 'parallel' in [downloads] must be a whole number of at least 1", err)
+        self.assertIn("lux.conf:15: 'parallel' in [downloads] must be a whole number of at least 1", err)
         self.assertIn("last working configuration", err)
         with open(self.out) as f:
             self.assertEqual(f.read(), good)
@@ -359,7 +359,7 @@ class Wrapper(Base):
                    LUX_CONFIG_TOOL=self.tool, WRAP_LOG=self.log)
         r = subprocess.run([os.path.join(self.bin, "lux-engine"), "-Q"], capture_output=True, text=True, env=env)
         self.assertEqual(r.returncode, 1)
-        self.assertIn("lux.conf:51: Expected '=' after a key", r.stderr)
+        self.assertIn("lux.conf:53: Expected '=' after a key", r.stderr)
 
 
 class Convert(Base):
@@ -560,7 +560,7 @@ class Toml(Base):
     def test_default_config_values(self):
         d = lc.load("/etc/lux/lux.conf", root=self.root)
         self.assertEqual(d["general"], {"architecture": "auto", "color": True, "candy": True, "verbose": True,
-                                        "syslog": False, "channel": "stable"})
+                                        "syslog": False, "channel": "stable", "countme": True})
         self.assertEqual(d["downloads"], {"parallel": 10, "check_space": True, "user": "alpm", "timeout": True,
                                           "sandbox": True})
         self.assertEqual(d["security"], {"signatures": "required", "local_signatures": "optional",
@@ -761,7 +761,7 @@ class Toml(Base):
         r = subprocess.run([sys.executable, os.path.join(PKG, "lux_config.py"), "check", conf],
                            capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("lux.conf:27: unknown key 'keep' in [packages]", r.stderr)
+        self.assertIn("lux.conf:29: unknown key 'keep' in [packages]", r.stderr)
         self.assertIn("lux.conf: OK (1 warning)", r.stdout)
         with open(conf, "w") as f:
             f.write(read(OLD_DEFAULT).replace("/etc/lux/", self.path("etc/lux/")))
@@ -860,7 +860,7 @@ class Channel(Base):
         self.write("etc/lux/lux.conf", before.replace('channel = "stable"\n', ""))
         lc.set_channel("staging", "/etc/lux/lux.conf", root=self.root)
         self.assertEqual(self.parse().get("channel"), "staging")
-        self.assertIn('verbose = true\nchannel = "staging"\n', read(conf))
+        self.assertIn('countme = true\nchannel = "staging"\n', read(conf))
         # stary format
         self.write("etc/lux/lux.conf", read(OLD_DEFAULT))
         lc.set_channel("staging", "/etc/lux/lux.conf", root=self.root)

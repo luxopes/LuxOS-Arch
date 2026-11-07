@@ -4581,3 +4581,20 @@ allow incoming %s from everywhere	permitir %s entrante desde cualquier lugar
 allow incoming %s from this network	permitir %s entrante desde esta red
 stop allowing incoming %s from everywhere	dejar de permitir %s entrante desde cualquier lugar
 stop allowing incoming %s from this network	dejar de permitir %s entrante desde esta red
+%s is missing; the anonymous weekly count was not checked.	Falta %s; no se comprobó el recuento semanal anónimo.
+anonymous weekly count: %s	recuento semanal anónimo: %s
+Changing the anonymous weekly count needs a newer lux-engine (lux update).	Para cambiar el recuento semanal anónimo se necesita un lux-engine más reciente (lux update).
+countme = once a week anonymously report that this computer uses LuxOS (version, channel, install age; no ID)	countme = una vez por semana, informar de forma anónima de que este equipo usa LuxOS (versión, canal, antigüedad de la instalación; sin ID)
+Privacy	Privacidad
+Anonymously report that this computer uses LuxOS	Informar de forma anónima de que este equipo usa LuxOS
+Once a week, with no ID or personal data: only the LuxOS version, update channel and how long ago LuxOS was installed. It helps to see how many people use LuxOS.	Una vez por semana, sin ID ni datos personales: solo la versión de LuxOS, el canal de actualizaciones y hace cuánto se instaló LuxOS. Ayuda a saber cuántas personas usan LuxOS.
+Once a week, with no ID or personal data: only the LuxOS version, update channel and how long ago LuxOS was installed. You can turn it off later in Software Update.	Una vez por semana, sin ID ni datos personales: solo la versión de LuxOS, el canal de actualizaciones y hace cuánto se instaló LuxOS. Puede desactivarlo más tarde en Actualización de software.
+Usage count	Recuento de uso
+anonymous, weekly	anónimo, semanal
+Could not turn off the anonymous weekly count in the installed system.	No se pudo desactivar el recuento semanal anónimo en el sistema instalado.
+LuxOS can anonymously report once a week that this computer uses LuxOS - only the version, update channel and install age, no ID or personal data.	LuxOS puede informar de forma anónima una vez por semana de que este equipo usa LuxOS: solo la versión, el canal de actualizaciones y la antigüedad de la instalación, sin ID ni datos personales.
+Anonymously report that this computer uses LuxOS?	¿Informar de forma anónima de que este equipo usa LuxOS?
+Invalid COUNTME (use 0 or 1)	COUNTME no válido (use 0 o 1)
+Could not change the anonymous weekly count.	No se pudo cambiar el recuento semanal anónimo.
+Usage: lux config countme [on|off]	Uso: lux config countme [on|off]
+Usage: lux config [check|show|edit|engine|migrate|channel|countme]	Uso: lux config [check|show|edit|engine|migrate|channel|countme]

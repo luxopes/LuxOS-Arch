@@ -138,6 +138,16 @@ Check or edit /etc/lux/lux.conf
 converts a file in the old LuxOS 0.9 format to the new one and keeps the original as
 .IR lux.conf.old\-format ).
 .TP
+.BR "config countme" " [" on | off ]
+Anonymous weekly count of active LuxOS installs (like Fedora's countme). Without an argument it
+shows the exact request: once per calendar week, when the package lists are refreshed as root,
+.I https://luxos.lux\-ai.cz/countme
+gets only the LuxOS version, architecture, update channel and install age bucket \- no ID and no
+personal data.
+.B off
+turns it off
+.RB ( "[general] countme = false" " in /etc/lux/lux.conf)."
+.TP
 .BR history " [" \fIn\fR "] [" \fIpkg\fR ]
 Recent package changes (from /var/log/lux.log).
 .TP

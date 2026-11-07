@@ -160,7 +160,8 @@ class StateMoreTest(More):
         self.assertEqual(st.formats(), {"LC_TIME": "cs_CZ.UTF-8"})
         self.assertEqual(st.drivers(), {"nvidia-open-dkms", "samsung-unified-driver"})
         self.assertEqual(st.repos(), {"list": ["luxos", "core", "extra"], "community": True,
-                                      "review_build_scripts": True, "flatpak_updates": False, "channel": "stable"})
+                                      "review_build_scripts": True, "flatpak_updates": False, "channel": "stable",
+                                  "countme": True})
         self.assertEqual(st.new_users(), {})
 
     def test_cups_not_running(self):
@@ -181,7 +182,8 @@ class StateMoreTest(More):
         write(self.root + ls.LUX_CONF, "[packages]\naur = false\nreview-pkgbuild = true\n\n[repo.luxos]\n"
                                        "server = \"https://example.org\"\n\n[repo.core]\nmirrors = \"x\"\n")
         self.assertEqual(ls.lux_conf_settings(), {"list": ["luxos", "core"], "community": False,
-                                                  "review_build_scripts": True, "flatpak_updates": True, "channel": "stable"})
+                                                  "review_build_scripts": True, "flatpak_updates": True, "channel": "stable",
+                                              "countme": True})
 
 
 class NormalizeMoreTest(More):
@@ -423,6 +425,26 @@ class PlanMoreTest(More):
         _c, errors = ls.normalize({"updates": {"channel": "beta", "chanel": "x"}})
         self.assertIn("updates.channel: must be \"stable\" or \"staging\"", "\n".join(errors))
         self.assertTrue(any("unknown setting \"chanel\"" in e for e in errors))
+
+    def test_countme(self):
+        """updates.countme: anonymni tydenni pocitani ([general] countme v lux.conf pres lux-config)."""
+        write(self.root + "/etc/lux/mirrorlist", "https://mirror.example/$repo/os/$arch\n")
+        self.assertTrue(ls.State().repos()["countme"])                  # vychozi zapnuto
+        self.assertEqual(self.texts(self.plan({"updates": {"countme": True}})), [])
+        plan = self.plan({"updates": {"countme": False}})
+        self.assertEqual(self.texts(plan), ["updates ~ anonymous weekly count: off"])
+        plan.changes[0].action()
+        with open(self.root + ls.LUX_CONF, encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn("countme off\n", text)                # stary format zustal starym formatem
+        self.assertFalse(ls.State().repos()["countme"])
+        self.assertEqual(self.texts(self.plan({"updates": {"countme": False}})), [])
+        plan = self.plan({"updates": {"countme": True, "channel": "stable"}})
+        self.assertEqual(self.texts(plan), ["updates ~ anonymous weekly count: on"])
+        plan.changes[0].action()
+        self.assertTrue(ls.State().repos()["countme"])
+        _c, errors = ls.normalize({"updates": {"countme": "yes"}})
+        self.assertTrue(any("updates.countme" in e for e in errors), errors)
 
     def test_repos_are_only_checked(self):
         plan = self.plan({"repos": {"list": ["luxos", "core", "extra"], "community": False, "flatpak_updates": False}})

@@ -44,6 +44,7 @@ funkcni engine.conf zustava (lux sam odmitne pokracovat).
   lux-config enable-repo NAZEV [--mirrors F|--server URL] [--config F]   prida repozitar
   lux-config has-repo NAZEV [--config F]             0 = repozitar je nastaven
   lux-config set-channel stable|staging [--config F] [--root DIR]   kanal aktualizaci ([general] channel)
+  lux-config set-countme on|off [--config F] [--root DIR]   anonymni tydenni pocitani ([general] countme)
 """
 import difflib
 import glob
@@ -106,6 +107,9 @@ GLOBAL_KEYS = {
     "clean-keep": ("int0", None, False),
     # kanal aktualizaci LuxOS: stable (vydani) | staging (testovaci sestaveni pred vydanim)
     "channel": ("channel", None, False),
+    # countme: jednou tydne anonymni pocitani aktivnich instalaci (jen verze, architektura, kanal
+    # a stari instalace; bez identifikatoru) - lux_countme.py v lux, popis countme.md v luxos-docs
+    "countme": ("bool", None, False),
 }
 REPO_KEYS = {
     "server": ("url", True),
@@ -119,6 +123,7 @@ DEFAULTS = {
     "color": "on", "candy": "on", "check-space": "on", "verbose-lists": "on", "syslog": "off",
     "download-timeout": "on", "download-sandbox": "on", "download-user": "alpm", "protect": "lux-engine glibc",
     "aur": "on", "review-pkgbuild": "on", "flatpak": "on", "clean-keep": "2", "channel": "stable",
+    "countme": "on",
 }
 CLI_SHELL = {"aur": "AUR", "review-pkgbuild": "REVIEW_PKGBUILD", "flatpak": "FLATPAK", "clean-keep": "CLEAN_KEEP"}
 LEGACY_SHELL = {v: k for k, v in CLI_SHELL.items()}   # lux.conf do LuxOS 0.9.5 (AUR=1 ...)
@@ -265,7 +270,8 @@ def read_mirrorlist_text(text, file="mirrorlist"):
 # kazdy klic stareho formatu ma presne jedno misto v TOML.
 TOML_TABLES = {
     "general": {"architecture": "architecture", "color": "color", "candy": "candy",
-                "verbose": "verbose-lists", "syslog": "syslog", "channel": "channel"},
+                "verbose": "verbose-lists", "syslog": "syslog", "channel": "channel",
+                "countme": "countme"},
     "downloads": {"parallel": "parallel-downloads", "check_space": "check-space", "user": "download-user",
                   "timeout": "download-timeout", "sandbox": "download-sandbox"},
     "security": {"signatures": "signatures", "local_signatures": "local-signatures", "protect": "protect"},
@@ -595,7 +601,7 @@ def typed_value(ik, val):
 
 TOML_HEADER = ["# LuxOS Package Manager", "# Configuration: /etc/lux/lux.conf"]
 # klice, ktere vychozi lux.conf vypisuje vzdy (ostatni jen kdyz jsou nastavene)
-TEMPLATE_KEYS = {"general": ("architecture", "color", "candy", "verbose", "channel"),
+TEMPLATE_KEYS = {"general": ("architecture", "color", "candy", "verbose", "channel", "countme"),
                  "downloads": ("parallel", "check_space", "user"),
                  "security": ("signatures", "local_signatures", "protect"),
                  "packages": ("aur", "review_pkgbuild", "flatpak", "cache_keep")}
@@ -1818,6 +1824,39 @@ def set_channel(channel, conf=LUX_CONF, root=""):
     return True
 
 
+def set_countme_text(text, on):
+    """Text lux.conf s [general] countme = true|false (oba formaty; ostatni radky beze zmeny)."""
+    if detect_format(text) == "toml":
+        return toml_set(text, "general", "countme", bool(on))
+    val = "on" if on else "off"
+    pat = re.compile(r"^countme[ \t]+\S+([ \t]*#.*)?$", re.M)
+    if pat.search(text):
+        return pat.sub(lambda m: f"countme {val}" + (m.group(1) or ""), text)
+    lines = text.split("\n")
+    pos = next((i for i, ln in enumerate(lines) if re.match(r"^(repo|include)\s", ln)), len(lines))
+    while pos > 0 and lines[pos - 1].lstrip().startswith("#"):
+        pos -= 1
+    lines.insert(pos, f"countme {val}")
+    return "\n".join(lines)
+
+
+def set_countme(on, conf=LUX_CONF, root=""):
+    """Zapne/vypne anonymni tydenni pocitani v lux.conf (Aktualizace softwaru, instalator, lux system,
+    lux-config set-countme). Vraci True pri zmene. Hodnota z conf.d ma prednost (ConfigError)."""
+    want = "on" if on else "off"
+    real = _prefixed(root, conf)
+    with open(real, encoding="utf-8") as f:
+        text = f.read()
+    new = set_countme_text(text, on)
+    cfg = parse(conf, root, text=new)       # kontrola pred zapisem
+    if cfg.get("countme") != want:
+        raise ConfigError("countme is set in an included file (conf.d); change it there", conf)
+    if new == text:
+        return False
+    atomic_write(real, new, os.stat(real).st_mode & 0o7777)
+    return True
+
+
 def _opt(args, name, default=None):
     if name in args:
         i = args.index(name)
@@ -1832,7 +1871,8 @@ def _opt(args, name, default=None):
 CLI_USAGE = """usage: lux-config COMMAND [--config FILE]  (used by lux; settings: lux config)
   ensure [-q] [--output F] | check [FILE...] | migrate [FILE...] [--dry-run] | env | get KEY | json | dump
   mirrors-import [FILE|-] [--output F] | convert-pacman FILE | update-servers
-  enable-repo NAME [--mirrors F|--server URL] | has-repo NAME | set-channel stable|staging [--root DIR]"""
+  enable-repo NAME [--mirrors F|--server URL] | has-repo NAME | set-channel stable|staging [--root DIR]
+  set-countme on|off [--root DIR]"""
 
 
 def main(argv):
@@ -1957,6 +1997,14 @@ def main(argv):
                 raise IndexError("set-channel needs stable or staging")
             if set_channel(args[0], conf, root=root):
                 print(f"lux-config: update channel {args[0]} set in {_prefixed(root, conf)}")
+            return 0
+        if cmd == "set-countme":
+            root = _opt(args, "--root", "")         # instalator: lux.conf ciloveho systemu
+            if not args or args[0].lower() not in ON | OFF:
+                raise IndexError("set-countme needs on or off")
+            on = args[0].lower() in ON
+            if set_countme(on, conf, root=root):
+                print(f"lux-config: countme {'on' if on else 'off'} set in {_prefixed(root, conf)}")
             return 0
         if cmd == "update-servers":
             if update_moved_servers(conf):

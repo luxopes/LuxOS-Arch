@@ -47,6 +47,9 @@ LUX_SELF=$(readlink -f "$0")
 # Backend libalpm (vedle skriptu pri spusteni z repozitare)
 LUX_ALPM=${LUX_ALPM:-/usr/lib/lux/lux_alpm.py}
 [[ -x $LUX_ALPM ]] || LUX_ALPM="$(dirname "$LUX_SELF")/lux_alpm.py"
+# anonymni tydenni pocitani instalaci (lux config countme)
+LUX_COUNTME=${LUX_COUNTME:-/usr/lib/lux/lux_countme.py}
+[[ -r $LUX_COUNTME ]] || LUX_COUNTME="$(dirname "$LUX_SELF")/lux_countme.py"
 # nastroj jadra (lux-engine) pro zalozni backend a dotazy
 LUX_ENGINE=${LUX_ENGINE:-$LUX_ENGINE_BIN/lux-engine}
 # jadro z LuxOS 0.9.0 (luxos-pacman) do vymeny za lux-engine
@@ -1089,7 +1092,14 @@ cmd_config() {
             # kanal aktualizaci: stable (vydani) nebo staging (testovaci sestaveni)
             if [[ -z ${2-} ]]; then "$LUX_CONFIG" get general.channel; return; fi
             as_root "$LUX_CONFIG" set-channel "$2" && "$LUX_CONFIG" check ;;
-        *) die "$(T "Usage: lux config [check|show|edit|engine|migrate|channel]")" ;;
+        countme)
+            # anonymni tydenni pocitani instalaci: bez argumentu stav a presne to, co se posila
+            case ${2-} in
+                "") python3 -I "$LUX_COUNTME" status ;;
+                on|off) as_root "$LUX_CONFIG" set-countme "$2" && python3 -I "$LUX_COUNTME" status ;;
+                *) die "$(T "Usage: lux config countme [on|off]")" ;;
+            esac ;;
+        *) die "$(T "Usage: lux config [check|show|edit|engine|migrate|channel|countme]")" ;;
     esac
 }
 
