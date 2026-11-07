@@ -251,7 +251,7 @@ starting at [LSL overview](../lsl/overview.md).
   `/var/log/lux.log`, keyring `/etc/lux/keyring`. The engine is based on Arch's libalpm (pacman code).
 - Default shell is `lsh` (bash-compatible). `~/.lshrc` instead of `~/.bashrc`.
 - Kernel is `linux-luxos` (own LuxOS kernel; older installs switch from `linux-zen` automatically); initramfs built with `mkinitcpio`; Btrfs subvolumes `@`, `@home`, `@log`,
-  `@cache`.
+  `@cache`, `@tmp`.
 - Desktop defaults are in `/etc/xdg/luxos`, LuxOS state files in `~/.config/luxos`
   ([configuration.md](configuration.md)).
 - earlyoom, not systemd-oomd, handles low memory; zram is the swap.

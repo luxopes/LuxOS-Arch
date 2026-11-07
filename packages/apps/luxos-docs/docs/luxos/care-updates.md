@@ -151,8 +151,8 @@ and takes a **read-only Btrfs snapshot** of the system subvolume (`@`):
 
 - Snapshots are in the subvolume `@snapshots` at the top level of the Btrfs file system (next to
   `@` and `@home`, not mounted): `@snapshots/YYYY-MM-DD_HH-MM-SS` plus a description
-  `YYYY-MM-DD_HH-MM-SS.json` (time, kernel, packages of the transaction). `/home` (`@home`), `@log`
-  and `@cache` are not part of system snapshots (`/home` has its own hourly snapshots, see Lux Guard).
+  `YYYY-MM-DD_HH-MM-SS.json` (time, kernel, packages of the transaction). `/home` (`@home`), `@log`,
+  `@cache` and `/tmp` (`@tmp`) are not part of system snapshots (`/home` has its own hourly snapshots, see Lux Guard).
 - Kept: the last **5** snapshots plus the newest one with the previous kernel (the state before the
   last kernel change); with little free space (< 5 % or < 2 GiB) only 2.
   `SNAPSHOT_KEEP=N` in `/etc/luxos/care.conf` changes 5, `SNAPSHOTS=no` turns snapshots off.

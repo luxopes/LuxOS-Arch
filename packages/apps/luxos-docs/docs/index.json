@@ -1071,6 +1071,23 @@
           ]
         },
         {
+          "path": "luxos/temporary-files.md",
+          "title": "Temporary files (/tmp)",
+          "summary": "/tmp on disk instead of RAM (Btrfs subvolume @tmp, nodev,nosuid, exec allowed), emptied at every start and after 10 days, excluded from snapshots, automatic switch of existing installs (luxos-tmp-setup), live ISO keeps tmpfs",
+          "keywords": [
+            "/tmp",
+            "tmp",
+            "tmpfs",
+            "@tmp",
+            "tmp.mount",
+            "luxos-tmp-setup",
+            "temporary files",
+            "tmpfiles",
+            "/var/tmp",
+            "RAM"
+          ]
+        },
+        {
           "path": "luxos/power-and-performance.md",
           "title": "Power, performance and memory",
           "summary": "Data Saver, Battery Saver (auto at 20 %), Performance mode with games on the discrete GPU (NVIDIA/AMD hybrid graphics, luxos-gpu), earlyoom, zram, sysctl, I/O schedulers, CPU scheduler scx_lavd (sched_ext), boot speed (hidden boot menu, splash), journald and other performance defaults",

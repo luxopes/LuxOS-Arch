@@ -41,8 +41,11 @@ Minimum disk size is 20 GB.
 - UEFI: ESP 1 GiB FAT32 mounted at `/boot` + the rest as Btrfs (`LuxOS`), boot loader **systemd-boot**.
 - BIOS: 1 MiB `bios_grub` + 1 GiB ext4 `/boot` + Btrfs, boot loader **GRUB** (hidden menu,
   `GRUB_TIMEOUT=0`: hold Shift or press Esc while starting).
-- Btrfs subvolumes `@` (/), `@home`, `@log` (/var/log), `@cache` (/var/cache), mount options
-  `noatime,compress=zstd:1`.
+- Btrfs subvolumes `@` (/), `@home`, `@log` (/var/log), `@cache` (/var/cache), `@tmp` (/tmp on
+  disk, not in RAM, `nodev,nosuid`, emptied at every start – see
+  [Temporary files](temporary-files.md)), mount options
+  `noatime,compress=zstd:1`. Manual partitioning creates `@tmp` too unless `/tmp` has its own
+  partition.
 - Encryption: LUKS2 on the Btrfs partition (`cryptroot`); the password is asked at every start.
 - Swap: zram (no swap partition).
 - Kernel: `linux-luxos` (LuxOS kernel, see [Power and performance](power-and-performance.md)).
