@@ -4705,3 +4705,20 @@ Sign in to LuxAI for AI in LuxOS apps	Logga in på LuxAI för AI i LuxOS-appar
 Print, scan and see your printers	Skriv ut, skanna och se dina skrivare
 Run untrusted apps in an isolated system	Kör opålitliga appar i ett isolerat system
 See how your computer is doing and quit apps that stopped responding	Se hur datorn mår och avsluta appar som slutat svara
+%s is running in the sandbox	%s körs i sandlådan
+It has no window. It cannot see or change your files.	Det har inget fönster. Det kan inte se eller ändra dina filer.
+Show Output	Visa utdata
+%s was stopped	%s stoppades
+The program in the sandbox was ended.	Programmet i sandlådan avslutades.
+%s crashed in the sandbox	%s kraschade i sandlådan
+It ran in the sandbox and could not change your files.	Det kördes i sandlådan och kunde inte ändra dina filer.
+%s ran safely in the sandbox	%s kördes säkert i sandlådan
+It could not see or change your files.	Det kunde inte se eller ändra dina filer.
+%s finished with an error	%s avslutades med ett fel
+It finished with error code %d. It ran in the sandbox, so your files were not affected.	Det avslutades med felkod %d. Det kördes i sandlådan, så dina filer påverkades inte.
+It did not print anything.	Det skrev inte ut något.
+… (only the last %d KB of the output is kept)	… (bara de sista %d KB av utdata sparas)
+Output of %s	Utdata från %s
+Ran in the sandbox without access to your files	Kördes i sandlådan utan åtkomst till dina filer
+The output is no longer available.	Utdata finns inte längre.
+The program did not print anything.	Programmet skrev inte ut något.

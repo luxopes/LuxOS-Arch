@@ -4705,3 +4705,20 @@ Sign in to LuxAI for AI in LuxOS apps	Bejelentkezés a LuxAI-ba a LuxOS-alkalmaz
 Print, scan and see your printers	Nyomtatás, szkennelés és a nyomtatók áttekintése
 Run untrusted apps in an isolated system	Nem megbízható alkalmazások futtatása elszigetelt rendszerben
 See how your computer is doing and quit apps that stopped responding	A számítógép állapota és a nem válaszoló alkalmazások bezárása
+%s is running in the sandbox	%s fut a sandboxban
+It has no window. It cannot see or change your files.	Nincs ablaka. Nem látja és nem módosíthatja a fájljait.
+Show Output	Kimenet megjelenítése
+%s was stopped	%s leállítva
+The program in the sandbox was ended.	A sandboxban futó program leállt.
+%s crashed in the sandbox	%s összeomlott a sandboxban
+It ran in the sandbox and could not change your files.	A sandboxban futott, és nem módosíthatta a fájljait.
+%s ran safely in the sandbox	%s biztonságosan lefutott a sandboxban
+It could not see or change your files.	Nem látta és nem módosíthatta a fájljait.
+%s finished with an error	%s hibával fejeződött be
+It finished with error code %d. It ran in the sandbox, so your files were not affected.	%d hibakóddal fejeződött be. A sandboxban futott, így a fájljait nem érintette.
+It did not print anything.	Nem írt ki semmit.
+… (only the last %d KB of the output is kept)	… (csak a kimenet utolsó %d KB-ja marad meg)
+Output of %s	%s kimenete
+Ran in the sandbox without access to your files	A sandboxban futott, a fájljaihoz való hozzáférés nélkül
+The output is no longer available.	A kimenet már nem érhető el.
+The program did not print anything.	A program nem írt ki semmit.

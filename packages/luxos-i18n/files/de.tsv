@@ -4705,3 +4705,20 @@ Sign in to LuxAI for AI in LuxOS apps	Bei LuxAI anmelden für KI in LuxOS-Apps
 Print, scan and see your printers	Drucken, scannen und Drucker anzeigen
 Run untrusted apps in an isolated system	Nicht vertrauenswürdige Apps in einem isolierten System ausführen
 See how your computer is doing and quit apps that stopped responding	Sehen, wie es Ihrem Computer geht, und nicht reagierende Apps beenden
+%s is running in the sandbox	%s läuft in der Sandbox
+It has no window. It cannot see or change your files.	Es hat kein Fenster. Es kann Ihre Dateien weder sehen noch ändern.
+Show Output	Ausgabe anzeigen
+%s was stopped	%s wurde gestoppt
+The program in the sandbox was ended.	Das Programm in der Sandbox wurde beendet.
+%s crashed in the sandbox	%s ist in der Sandbox abgestürzt
+It ran in the sandbox and could not change your files.	Es lief in der Sandbox und konnte Ihre Dateien nicht ändern.
+%s ran safely in the sandbox	%s lief sicher in der Sandbox
+It could not see or change your files.	Es konnte Ihre Dateien weder sehen noch ändern.
+%s finished with an error	%s wurde mit einem Fehler beendet
+It finished with error code %d. It ran in the sandbox, so your files were not affected.	Es wurde mit Fehlercode %d beendet. Es lief in der Sandbox, Ihre Dateien sind nicht betroffen.
+It did not print anything.	Es hat nichts ausgegeben.
+… (only the last %d KB of the output is kept)	… (nur die letzten %d KB der Ausgabe werden behalten)
+Output of %s	Ausgabe von %s
+Ran in the sandbox without access to your files	Lief in der Sandbox ohne Zugriff auf Ihre Dateien
+The output is no longer available.	Die Ausgabe ist nicht mehr verfügbar.
+The program did not print anything.	Das Programm hat nichts ausgegeben.

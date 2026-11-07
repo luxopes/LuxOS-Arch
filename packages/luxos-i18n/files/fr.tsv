@@ -4705,3 +4705,20 @@ Sign in to LuxAI for AI in LuxOS apps	Se connecter à LuxAI pour l’IA dans les
 Print, scan and see your printers	Imprimer, numériser et voir vos imprimantes
 Run untrusted apps in an isolated system	Exécuter des applis non fiables dans un système isolé
 See how your computer is doing and quit apps that stopped responding	Voir l’état de votre ordinateur et quitter les applis qui ne répondent plus
+%s is running in the sandbox	%s s’exécute dans le bac à sable
+It has no window. It cannot see or change your files.	Il n’a pas de fenêtre. Il ne peut ni voir ni modifier vos fichiers.
+Show Output	Afficher la sortie
+%s was stopped	%s a été arrêté
+The program in the sandbox was ended.	Le programme du bac à sable a été arrêté.
+%s crashed in the sandbox	%s a planté dans le bac à sable
+It ran in the sandbox and could not change your files.	Il s’est exécuté dans le bac à sable et n’a pas pu modifier vos fichiers.
+%s ran safely in the sandbox	%s s’est exécuté en toute sécurité dans le bac à sable
+It could not see or change your files.	Il n’a pas pu voir ni modifier vos fichiers.
+%s finished with an error	%s s’est terminé avec une erreur
+It finished with error code %d. It ran in the sandbox, so your files were not affected.	Il s’est terminé avec le code d’erreur %d. Il s’est exécuté dans le bac à sable, vos fichiers n’ont pas été touchés.
+It did not print anything.	Il n’a rien affiché.
+… (only the last %d KB of the output is kept)	… (seuls les %d derniers Ko de la sortie sont conservés)
+Output of %s	Sortie de %s
+Ran in the sandbox without access to your files	Exécuté dans le bac à sable sans accès à vos fichiers
+The output is no longer available.	La sortie n’est plus disponible.
+The program did not print anything.	Le programme n’a rien affiché.

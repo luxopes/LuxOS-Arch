@@ -41,6 +41,12 @@ Není to antivirus: žádná databáze signatur, žádné procházení disku, ž
   `.desktop` se v sandboxu spustí jeho `Exec` (bez kódů `%f %u …`); výstup programu jde jen do
   nepojmenovaného souboru a do upozornění se dostanou poslední řádky bez řídicích znaků a se
   zneškodněným značkováním.
+- Program bez okna (bez terminálu u zablokovaného procesu) běží bez okna i terminálu; hlídá ho
+  samostatný proces uživatele. Výstup je nedůvěryhodný: drží se jen posledních 64 KB, odstraní se
+  escape sekvence, řídicí znaky a znaky obrácení směru textu, zapíše se `O_NOFOLLOW` 0600 do
+  `$XDG_RUNTIME_DIR/luxos-guard/` (vlastní složka 0700, ne odkaz) a okno výstupu ho čte zase jen
+  `O_NOFOLLOW` jako text (nic se neinterpretuje). Název souboru v upozornění je escapovaný.
+  „Zastavit“ posílá signály jen skupině procesů vlastního běhu (vlastní sezení), nikdy podle názvu.
 
 ### Rozhodnutí
 
