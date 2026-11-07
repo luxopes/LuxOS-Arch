@@ -10,3 +10,5 @@ Terminal=false
 Categories=Settings;HardwareSettings;Printing;Scanning;X-XFCE-SettingsDialog;X-XFCE-HardwareSettings;GTK;
 Keywords=printer;print;scanner;scan;print settings;cups;tiskárna;tisk;skener;skenovat;nastavení tisku;
 StartupWMClass=luxos-printers
+# Obchod LuxOS: zobrazit v sekci Aplikace LuxOS (jinak skryte jako nastaveni)
+X-LuxOS-Store=show

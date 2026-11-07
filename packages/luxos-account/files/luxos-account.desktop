@@ -10,3 +10,5 @@ Terminal=false
 Categories=Settings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;GTK;
 Keywords=account;luxai;login;profile;účet;přihlášení;profil;
 StartupWMClass=luxos-account
+# Obchod LuxOS: zobrazit v sekci Aplikace LuxOS (jinak skryte jako nastaveni)
+X-LuxOS-Store=show

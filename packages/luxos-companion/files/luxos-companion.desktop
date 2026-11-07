@@ -34,3 +34,5 @@ Categories=Settings;HardwareSettings;X-XFCE-SettingsDialog;X-XFCE-HardwareSettin
 Keywords=phone;android;companion;bluetooth;location;telefon;mobil;poloha;
 StartupNotify=true
 StartupWMClass=luxos-companion
+# Obchod LuxOS: zobrazit v sekci Aplikace LuxOS (jinak skryte jako nastaveni)
+X-LuxOS-Store=show

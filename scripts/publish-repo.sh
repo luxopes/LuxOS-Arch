@@ -62,6 +62,10 @@ elif ssh "$HOST" "test -d '$BASE/$FROM/luxos-drivers'"; then
     rsync -a "$HOST:$BASE/$FROM/luxos-drivers/" "$stage/luxos-drivers/"
 fi
 
+# Katalog aplikaci LuxOS pro Obchod (apps.json a app-icons/) z prave zverejnovanych baliku
+# [luxos] a [luxos-apps] - i pri --apps-only, kdy [luxos] prichazi ze serveru
+python3 packages/luxos-store/files/luxos_app_catalog.py generate "$stage"
+
 # Prehledova stranka repozitare (seznam aplikaci a nastaveni pacmanu)
 pkglist() {  # pkglist REPO -> radky tabulky "nazev verze popis"
     local f

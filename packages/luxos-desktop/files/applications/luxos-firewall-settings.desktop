@@ -10,3 +10,5 @@ Terminal=false
 Categories=Settings;System;Security;X-XFCE-SettingsDialog;X-XFCE-SystemSettings;GTK;
 Keywords=firewall;network;port;security;incoming;block;allow;síť;zabezpečení;povolit;blokovat;
 StartupWMClass=luxos-firewall-settings
+# Obchod LuxOS: zobrazit v sekci Aplikace LuxOS (jinak skryte jako nastaveni)
+X-LuxOS-Store=show

@@ -21,3 +21,5 @@ Terminal=false
 Categories=Settings;HardwareSettings;X-XFCE-SettingsDialog;X-XFCE-HardwareSettings;GTK;
 Keywords=drivers;nvidia;graphics;gpu;wifi;hardware;ovladače;ovladač;grafika;
 StartupWMClass=luxos-drivers
+# Obchod LuxOS: zobrazit v sekci Aplikace LuxOS (jinak skryte jako nastaveni)
+X-LuxOS-Store=show

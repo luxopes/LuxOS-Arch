@@ -32,3 +32,5 @@ Terminal=false
 NoDisplay=true
 StartupWMClass=luxos-whats-new
 Categories=System;GTK;
+# Obchod LuxOS: zobrazit v sekci Aplikace LuxOS (jinak skryte jako nastaveni)
+X-LuxOS-Store=show

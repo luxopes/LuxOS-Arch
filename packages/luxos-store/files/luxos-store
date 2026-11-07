@@ -2,7 +2,7 @@
 """LuxOS Store - obchod s aplikacemi z repozitaru LuxOS a Arch Linuxu.
 
 Aplikace Arch Linuxu popisuji metadata AppStream (archlinux-appstream-data),
-aplikace LuxOS repozitar [luxos-apps]. Instalace bezi pres pkexec a pomocny
+aplikace LuxOS katalog apps.json zverejneny s repozitari (luxos_app_catalog.py). Instalace bezi pres pkexec a pomocny
 skript /usr/lib/luxos/luxos-store-helper (lux pres libalpm, bez pyalpm nastroj jadra lux-engine).
 """
 import json
@@ -15,7 +15,8 @@ import time
 from html import unescape
 
 sys.path.insert(0, "/usr/lib/luxos/python")
-from luxos_i18n import _  # noqa: E402
+from luxos_i18n import LANG, _  # noqa: E402
+import luxos_app_catalog  # noqa: E402
 
 import gi  # noqa: E402
 
@@ -48,10 +49,18 @@ def channel_urls(*urls):
         return list(urls)
 
 
-_INDEX_URL, APPS_ICON_URL = channel_urls("https://luxos.lux-ai.cz/repo/lux",
-                                         "https://luxos.lux-ai.cz/repo/luxos-apps/x86_64/icons")
+_INDEX_URL, _CATALOG_URL = channel_urls("https://luxos.lux-ai.cz/repo/lux", "https://luxos.lux-ai.cz/repo/apps.json")
 LUX_INDEX_URL = os.environ.get("LUX_INDEX_URL") or _INDEX_URL
-ICON_CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "luxos-store/icons")
+# Katalog aplikaci LuxOS (scripts/publish-repo.sh) a jejich ikony (app-icons/ vedle apps.json)
+CATALOG_URL = os.environ.get("LUXOS_STORE_CATALOG_URL") or _CATALOG_URL
+CACHE_DIR = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "luxos-store")
+ICON_CACHE = os.path.join(CACHE_DIR, "icons")
+CATALOG_CACHE = os.path.join(CACHE_DIR, "apps.json")
+CATALOG_MAX_AGE = 6 * 3600      # starsi katalog se pouzije hned a obnovi na pozadi
+# Katalog v mistnim repozitari live systemu (ISO, instalace bez internetu)
+LOCAL_CATALOGS = ("/opt/luxos-repo/apps.json",)
+OUR_REPOS = ("luxos", "luxos-apps")
+APPLICATIONS_DIR = "/usr/share/applications/"
 ICON_SIZE = 56
 # Flathub: vyhledani a velikosti pres lux (API Flathubu, funguje i bez nainstalovaneho flatpaku)
 LUX_COMMUNITY = "/usr/lib/lux/lux_community.py"
@@ -69,6 +78,7 @@ CATEGORIES = [
     ("utilities", "Utilities", ("Utility",), "applications-utilities"),
     ("system", "System", ("System",), "applications-system"),
 ]
+DISCOVER_LUXOS = 6      # doporucene aplikace LuxOS na strance Objevovat
 POPULAR = ["firefox", "chromium", "thunderbird", "libreoffice-fresh", "gimp", "inkscape", "krita", "vlc",
            "obs-studio", "kdenlive", "audacity", "blender", "telegram-desktop", "signal-desktop", "discord",
            "code", "transmission-gtk", "qbittorrent", "keepassxc", "gnome-boxes", "shotwell", "rhythmbox"]
@@ -132,15 +142,20 @@ class App:
     """Aplikace v obchode (z AppStream nebo z repozitare LuxOS)."""
 
     def __init__(self, pkg, name, summary, repo, version="", size=0, component=None, description="",
-                 icon_file=None, categories=None):
+                 icon_file=None, categories=None, luxos=False, desktop=None, icon_name=None, featured=0,
+                 system=False):
         self.pkg, self.name, self.summary, self.repo = pkg, name, summary, repo
         self.version, self.size, self.component, self.description = version, size, component, description
         self.icon_file = icon_file
         self.categories = component.get_categories() if component else (categories or [])
+        # aplikace z katalogu LuxOS: vlastni .desktop (balik muze mit vic aplikaci), ikona z motivu,
+        # poradi doporucenych; system = soucast luxos-desktop (vzdy nainstalovana, neodebira se)
+        self.luxos, self.desktop, self.icon_name = luxos, desktop, icon_name
+        self.featured, self.system = featured, system
 
     @property
     def is_luxos(self):
-        return self.repo.startswith("luxos") or self.repo == "lux"
+        return self.luxos or self.is_lux_format
 
     @property
     def is_lux_format(self):
@@ -160,6 +175,8 @@ class App:
     def desktop_id(self):
         if self.is_flatpak:
             return f"{self.pkg}.desktop"
+        if self.desktop:
+            return f"{self.desktop}.desktop"
         if self.component:
             lc = self.component.get_launchable(AppStream.LaunchableKind.DESKTOP_ID)
             if lc and lc.get_entries():
@@ -168,6 +185,11 @@ class App:
 
     def icon_pixbuf(self, size):
         theme = Gtk.IconTheme.get_default()
+        if self.icon_name and theme.has_icon(self.icon_name):
+            try:
+                return theme.load_icon(self.icon_name, size, Gtk.IconLookupFlags.FORCE_SIZE)
+            except GLib.Error:
+                pass
         if self.icon_file:
             try:
                 return GdkPixbuf.Pixbuf.new_from_file_at_size(self.icon_file, size, size)
@@ -226,8 +248,14 @@ class Catalog:
         self.update_info = {}
         self.pending_icons = []
         self.flathub_apps = []
+        self.catalog_refresh = False        # katalog LuxOS stahnout znovu na pozadi (starsi kopie)
 
     def load(self):
+        # bez cerstveho katalogu LuxOS: stahuje se soubezne s nacitanim repozitaru
+        fetch = None
+        if not self.catalog_fresh():
+            fetch = threading.Thread(target=self.fetch_catalog, daemon=True)
+            fetch.start()
         sync = {}
         # repo, nazev, verze, velikost po instalaci, popis (lux_alpm list --sync); bez pyalpm aspon
         # nazvy a verze z lux-engine -Sl
@@ -250,33 +278,98 @@ class Catalog:
         apps = {}
         for c in comps:
             pkg = c.get_pkgname()
-            if not pkg or pkg not in sync or pkg in apps:
+            # baliky repozitaru LuxOS (i prevzate z Archu, napr. knihovny vte3/vte4) popisuje jen katalog LuxOS
+            if not pkg or pkg not in sync or pkg in apps or sync[pkg][0] in OUR_REPOS:
                 continue
             repo, _n, ver, size, _d = sync[pkg]
             apps[pkg] = App(pkg, c.get_name() or pkg, c.get_summary() or "", repo, ver, int(size or 0), c)
-        # Aplikace LuxOS (repozitar [luxos-apps]) - bez AppStream, z popisu balicku
-        for pkg, (repo, _n, ver, size, desc) in sync.items():
-            if repo == "luxos-apps" and pkg not in apps:
-                # Popis "Nazev - shrnuti" (napr. "LSL IDE - development environment ...")
-                name, sep, summary = desc.partition(" - ")
-                if not sep:
-                    name, summary = pkg, desc
-                apps[pkg] = App(pkg, name, summary, repo, ver, int(size or 0), description=desc,
-                                icon_file=self.repo_icon(pkg))
-            elif repo == "luxos-apps":
-                apps[pkg].repo = repo
+        if fetch:
+            fetch.join()
+        self.load_luxos_apps(apps, sync)
         self.load_lux(apps)
         self.apps = apps
 
-    def repo_icon(self, pkg):
-        """Ikona aplikace z repozitare LuxOS z mezipameti; chybejici se stahne az po zobrazeni katalogu."""
-        for ext in ("svg", "png"):
-            path = os.path.join(ICON_CACHE, f"{pkg}.{ext}")
-            if os.path.exists(path) and os.path.getsize(path):
-                return path
-        self.pending_icons.append((pkg, [(f"{APPS_ICON_URL}/{pkg}.{ext}", os.path.join(ICON_CACHE, f"{pkg}.{ext}"))
-                                         for ext in ("svg", "png")]))
+    # ---- katalog aplikaci LuxOS ----
+    def catalog_fresh(self):
+        try:
+            return time.time() - os.path.getmtime(CATALOG_CACHE) < CATALOG_MAX_AGE
+        except OSError:
+            return False
+
+    def fetch_catalog(self):
+        """Stazeni katalogu do mezipameti (jen platny katalog nahradi predchozi). True = stazen."""
+        if os.path.exists(DATASAVER) and os.path.exists(CATALOG_CACHE):
+            return False        # setric dat: starsi katalog staci
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        tmp = CATALOG_CACHE + ".part"
+        run("curl", "-fsSL", "--max-time", "8", "-o", tmp, CATALOG_URL, timeout=10)
+        try:
+            with open(tmp, encoding="utf-8") as f:
+                ok = luxos_app_catalog.load_catalog(f.read()) is not None
+        except (OSError, UnicodeDecodeError):
+            ok = False
+        if ok:
+            os.replace(tmp, CATALOG_CACHE)
+        elif os.path.exists(tmp):
+            os.unlink(tmp)
+        return ok
+
+    def read_catalog(self):
+        """Katalog: mezipamet (i starsi, obnovi se na pozadi), katalog mistniho repozitare, jinak None."""
+        for path in (CATALOG_CACHE,) + LOCAL_CATALOGS:
+            try:
+                with open(path, encoding="utf-8") as f:
+                    data = luxos_app_catalog.load_catalog(f.read())
+            except (OSError, UnicodeDecodeError):
+                continue
+            if data:
+                self.catalog_refresh = path != CATALOG_CACHE or not self.catalog_fresh()
+                return data
+        self.catalog_refresh = True
         return None
+
+    def installed_catalog(self, sync):
+        """Bez katalogu (offline pri prvnim spusteni): stejny vyber z .desktop nainstalovanych baliku LuxOS."""
+        pkgs = sorted(p for p in self.installed if p in sync and
+                      luxos_app_catalog.is_luxos_package(p, sync[p][0]))
+        desktop = {}
+        for line in (run(ENGINE, "-Ql", *pkgs, timeout=30) if pkgs else "").splitlines():
+            pkg, _s, path = line.partition(" ")
+            rel = path[len(APPLICATIONS_DIR):]
+            if path.startswith(APPLICATIONS_DIR) and rel.endswith(".desktop") and "/" not in rel:
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        desktop.setdefault(pkg, {})[rel[:-8]] = f.read()
+                except (OSError, UnicodeDecodeError):
+                    pass
+        return luxos_app_catalog.build_catalog([{"name": p, "repo": sync[p][0], "version": sync[p][2],
+                                                 "desktop": desktop.get(p, {})} for p in pkgs])
+
+    def load_luxos_apps(self, apps, sync):
+        """Aplikace LuxOS z katalogu: nazev a popis v jazyce uzivatele (preklad z .desktop, jinak luxos-i18n)."""
+        data = self.read_catalog() or self.installed_catalog(sync)
+        icon_base = CATALOG_URL.rsplit("/", 1)[0] + "/app-icons"
+        for e in data["apps"]:
+            pkg = e["package"]
+            if pkg in sync:
+                repo, _n, ver, size, _d = sync[pkg]
+            elif pkg in self.installed:
+                repo, ver, size = "luxos", e.get("version", ""), 0
+            else:
+                continue        # balik zatim neni v databazi repozitaru (starsi seznam balicku)
+            key = e["id"] if e["id"] not in apps else "luxos:" + e["id"]
+            icon = None
+            if e.get("icon_file") and pkg not in self.installed:
+                # nenainstalovana aplikace: ikona ze serveru (nainstalovana ma ikonu v motivu)
+                icon = os.path.join(ICON_CACHE, "app-" + os.path.basename(e["icon_file"]))
+                if not (os.path.exists(icon) and os.path.getsize(icon)):
+                    self.pending_icons.append((key, [(f"{icon_base}/{os.path.basename(e['icon_file'])}", icon)]))
+                    icon = None
+            names, summaries = e.get("names") or {}, e.get("summaries") or {}
+            apps[key] = App(pkg, names.get(LANG) or _(e["name"]), summaries.get(LANG) or _(e.get("summary", "")),
+                            repo, ver, int(size or 0), icon_file=icon, categories=e.get("categories") or ["System"],
+                            luxos=True, desktop=e["id"], icon_name=e.get("icon") or None,
+                            featured=int(e.get("featured") or 0), system=bool(e.get("system")))
 
     def fetch_icons(self):
         """Stazeni chybejicich ikon na pozadi (pomala sit nesmi zdrzet zobrazeni obchodu)."""
@@ -287,7 +380,7 @@ class Catalog:
             for url, path in candidates:
                 run("curl", "-fsSL", "--max-time", "6", "-o", path, url, timeout=8)
                 if os.path.exists(path) and os.path.getsize(path):
-                    if pkg in self.apps:
+                    if pkg in self.apps:        # klic aplikace (balik nebo desktop-id aplikace LuxOS)
                         self.apps[pkg].icon_file = path
                     for a in self.flathub_apps:
                         if a.pkg == pkg:
@@ -390,6 +483,17 @@ class Catalog:
 
 
 # ---- widgety ----------------------------------------------------------------
+# popisky tlacitka podle stavu aplikace (preklad az pri pouziti)
+ACTION_LABELS = {"open": lambda: _("Open"), "get": lambda: _("Get"), "update": lambda: _("Update")}
+
+
+def desktop_installed(desktop_id):
+    try:
+        return Gio.DesktopAppInfo.new(desktop_id) is not None
+    except TypeError:
+        return False
+
+
 class AppCard(Gtk.EventBox):
     def __init__(self, store, app):
         super().__init__()
@@ -439,7 +543,7 @@ class AppCard(Gtk.EventBox):
             self.button.set_sensitive(False)
         else:
             self.button.set_sensitive(True)
-            self.button.set_label(_("Open") if self.app.pkg in self.store.catalog.installed else _("Get"))
+            self.button.set_label(ACTION_LABELS[self.store.app_state(self.app)]())
 
 
 class UpdateView(Gtk.Box):
@@ -468,6 +572,10 @@ class UpdateView(Gtk.Box):
         self.spinner.set_size_request(40, 40)
         self.icon_stack.add_named(self.icon, "icon")
         self.icon_stack.add_named(self.spinner, "spin")
+        # Gtk.Stack prepne jen na viditelne dite: summary(spin=True) bezi pri prvnim otevreni stranky
+        # jeste pred show_all() - bez show() by stack tise zustal na prazdne ikone a kolecko chybelo
+        self.icon.show()
+        self.spinner.show()
         head.pack_start(self.icon_stack, False, False, 0)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, valign=Gtk.Align.CENTER)
         self.headline = Gtk.Label(xalign=0, wrap=True)
@@ -788,6 +896,9 @@ class Store(Gtk.Window):
         if self.catalog.fetch_icons():
             # stazene ikony: znovu vykreslit aktualni stranku
             GLib.idle_add(lambda: self.show_page(*self.current) or False)
+        if self.catalog.catalog_refresh:
+            # starsi katalog LuxOS: novy pro pristi spusteni (zobrazeni neblokuje)
+            self.catalog.fetch_catalog()
 
     # ---- navigace ----
     def on_side(self, listbox, row):
@@ -797,6 +908,17 @@ class Store(Gtk.Window):
         self.search.set_text("")
         self.history.clear()
         self.show_page(row.key)
+
+    def open_updates(self):
+        """Stranka Aktualizace (i s vyberem v postrannim panelu)."""
+        for lb in (self.sidebar, self.catlist):
+            lb.unselect_all()
+        for row in self.liblist.get_children():
+            if row.key == "updates":
+                self.liblist.select_row(row)
+        self.search.set_text("")
+        self.history.clear()
+        self.show_page("updates", "check")
 
     def go_back(self):
         if self.history:
@@ -821,7 +943,7 @@ class Store(Gtk.Window):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
         if key == "discover":
             box.pack_start(self.hero(), False, False, 0)
-            lux = sorted((a for a in apps.values() if a.is_luxos), key=lambda a: a.name.lower())
+            lux = [a for a in self.luxos_apps() if a.featured][:DISCOVER_LUXOS]
             if lux:
                 box.pack_start(self.section(_("From LuxOS")), False, False, 0)
                 box.pack_start(self.grid(lux), False, False, 0)
@@ -831,8 +953,7 @@ class Store(Gtk.Window):
         elif key == "luxos":
             box.pack_start(self.title(_("LuxOS Apps")), False, False, 0)
             box.pack_start(self.dim(_("Apps made for LuxOS, signed by the LuxOS team.")), False, False, 0)
-            box.pack_start(self.grid(sorted((a for a in apps.values() if a.is_luxos), key=lambda a: a.name.lower())),
-                           False, False, 0)
+            box.pack_start(self.grid(self.luxos_apps()), False, False, 0)
         elif key == "installed":
             self.catalog.refresh_installed()
             box.pack_start(self.title(_("Installed")), False, False, 0)
@@ -853,6 +974,20 @@ class Store(Gtk.Window):
                     found.sort(key=lambda a: (a.pkg not in POPULAR, a.name.lower()))
                     box.pack_start(self.grid(found), False, False, 0)
         self.set_content(box)
+
+    def luxos_apps(self):
+        """Aplikace LuxOS: doporucene v danem poradi, pak ostatni podle (prelozeneho) nazvu; balicky .lux."""
+        return sorted((a for a in self.catalog.apps.values() if a.is_luxos),
+                      key=lambda a: (not a.luxos, a.featured or 999, a.name.lower()))
+
+    def app_state(self, app):
+        """open = nainstalovana, get = k instalaci, update = nainstalovany balik ma aktualizaci nebo
+        aplikace prisla az v novejsi verzi balicku (jeji .desktop zatim neni v systemu)."""
+        if app.pkg not in self.catalog.installed:
+            return "get"
+        if app.pkg in self.catalog.update_info or (app.desktop and not desktop_installed(app.desktop_id())):
+            return "update"
+        return "open"
 
     def flathub_section(self, text):
         """Vysledky z Flathubu (nacitaji se na pozadi; mezitim kolecko)."""
@@ -1028,12 +1163,12 @@ class Store(Gtk.Window):
         top.pack_start(text, True, True, 0)
         actions = Gtk.Box(spacing=8, valign=Gtk.Align.CENTER)
         installed = app.pkg in self.catalog.installed
-        main = Gtk.Button(label=_("Open") if installed else _("Get"))
+        main = Gtk.Button(label=ACTION_LABELS[self.app_state(app)]())
         main.get_style_context().add_class("get")
         main.get_style_context().add_class("primary")
         main.connect("clicked", lambda _b: self.primary_action(app))
         actions.pack_start(main, False, False, 0)
-        if installed:
+        if installed and not app.system:
             rm = Gtk.Button(label=_("Remove"))
             rm.connect("clicked", lambda _b: self.confirm_remove(app))
             actions.pack_start(rm, False, False, 0)
@@ -1091,6 +1226,9 @@ class Store(Gtk.Window):
 
     # ---- akce ----
     def primary_action(self, app):
+        if self.app_state(app) == "update":
+            self.open_updates()
+            return
         if app.pkg in self.catalog.installed:
             try:
                 info = Gio.DesktopAppInfo.new(app.desktop_id())

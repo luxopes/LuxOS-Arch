@@ -4689,3 +4689,19 @@ This is not an IMAP server.	Ez nem IMAP-kiszolgáló.
 Password for %s	%s jelszava
 Signing in failed	A bejelentkezés sikertelen
 Read your email and get notified about new messages	Levelek olvasása és értesítés az új üzenetekről
+# Obchod LuxOS - popisy aplikaci LuxOS
+AI assistant that can work with your computer	MI-asszisztens, amely kezelni tudja a számítógépét
+Calculate with LuxOS Calculator	LuxOS Számológép
+Securely send files and folders to nearby LuxOS computers and LocalSend apps	Fájlok és mappák biztonságos küldése a közeli LuxOS-gépekre és LocalSend alkalmazásokba
+Automatic backups to an external or network disk and restoring files	Automatikus mentés külső vagy hálózati lemezre és fájlok visszaállítása
+Encrypted folder for sensitive files	Titkosított mappa bizalmas fájlokhoz
+Development environment for Lux Simple Lang	Fejlesztőkörnyezet a Lux Simple Langhoz
+Build, edit and debug projects with an AI coding agent	Projektek fejlesztése, szerkesztése és hibakeresése MI-ügynökkel
+Open the shared folders of another LuxOS computer next to your files	Egy másik LuxOS-gép megosztott mappáinak megnyitása a saját fájljai mellett
+Detected hardware and its drivers (graphics, Wi-Fi, camera)	Felismert hardver és illesztőprogramjai (grafika, Wi-Fi, kamera)
+Turn the firewall on or off and allow apps to accept connections from the network	A tűzfal be- és kikapcsolása, és hálózati kapcsolatok engedélyezése alkalmazásoknak
+Protection against harmful programs and restoring deleted files	Védelem a kártékony programok ellen és törölt fájlok visszaállítása
+Sign in to LuxAI for AI in LuxOS apps	Bejelentkezés a LuxAI-ba a LuxOS-alkalmazások MI-funkcióihoz
+Print, scan and see your printers	Nyomtatás, szkennelés és a nyomtatók áttekintése
+Run untrusted apps in an isolated system	Nem megbízható alkalmazások futtatása elszigetelt rendszerben
+See how your computer is doing and quit apps that stopped responding	A számítógép állapota és a nem válaszoló alkalmazások bezárása
