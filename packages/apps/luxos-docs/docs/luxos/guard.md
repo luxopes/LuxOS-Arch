@@ -75,15 +75,39 @@ compressed programs and AppImages are usually just risky.
 
 ## Run in Sandbox
 
-The button starts the file in the user's [Sandbox](sandbox.md). Programs with a window run with
-`luxos-sandbox run --gui -- FILE` **without a terminal**: AppImage, jar, exe, ELF programs linking a
-window library (X11/xcb, GTK, Qt, SDL, GLFW, wayland-client, Electron …), scripts using Tk/GTK/Qt/pygame
-or zenity/yad that do not read from the terminal, and `.desktop` launchers with `Terminal=false` (their
-`Exec` runs in the sandbox). Text programs and scripts run in a terminal (`luxos-sandbox run -- FILE`)
-that stays open so the output can be read; so do launchers with `Terminal=true`. If the blocked file
-was started from a terminal (also "Run in Terminal" in the file manager), the sandbox also starts in a
-terminal. A program with a window that fails right away (within 20 s) shows a notification with the
-last lines of its output. The file is copied into the sandbox; inside it cannot see the home folder, desktop or local network. If the
+The button starts the file in the user's [Sandbox](sandbox.md). Nothing alarming pops up – a normal
+user just clicks the button:
+
+- **Programs with a window** run with `luxos-sandbox run --gui -- FILE` in their own sandbox window,
+  **without a terminal**: AppImage, jar, exe, ELF programs linking a window library (X11/xcb, GTK, Qt,
+  SDL, GLFW, wayland-client, Electron …), scripts using Tk/GTK/Qt/pygame or zenity/yad that do not ask
+  for input, and `.desktop` launchers with `Terminal=false` (their `Exec` runs in the sandbox). One that
+  fails right away (within 20 s) shows a notification with the last lines of its output.
+- **Text programs and scripts** (CLI ELF, shell/Python/… scripts) run **without any window or terminal**
+  (`luxos-sandbox run -- FILE`). Their output (stdout and stderr, only the last 64 KB, escape sequences
+  and control characters removed) goes to a private file in `$XDG_RUNTIME_DIR/luxos-guard/` (0700,
+  deleted after a day or at logout). When the program ends, one calm notification appears:
+  “NAME ran safely in the sandbox” or “NAME finished with an error” (“It finished with error code N …”,
+  normal urgency; only a crash – SIGSEGV, SIGABRT … – is shown as “NAME crashed in the sandbox”), with a
+  **Show Output** button that opens a small read-only window with the output (Copy, Esc closes). A
+  program still running after 20 s shows “NAME is running in the sandbox” with **Show Output** and
+  **Stop** (stops only this run: its process group gets SIGTERM, then SIGKILL after 3 s); the final
+  notification replaces it. The run is watched by a small separate process
+  (`luxos_guard_session.py headless`), so it survives closing the Lux Guard window or an update of the
+  agent.
+- **A terminal** opens only when the user clearly works in one or the program obviously needs typing:
+  the blocked process had a controlling terminal (a command typed in a terminal, also "Run in Terminal"
+  in the file manager), the script reads input (`read`/`select`/`whiptail`/`/dev/tty` in shell scripts –
+  not `while read … < file` or pipes –, `input()`/`getpass` in Python, `<STDIN>` in Perl, `gets` in Ruby,
+  `readline` in Node), or a launcher has `Terminal=true`. A text program's terminal stays open so the
+  output can be read; a program with a window started from a terminal closes it by itself (it stays only
+  on an error). Without any terminal application the program runs without a window as above.
+
+Real case: a background process (no terminal) ran a shell script from the AUR; after **Run in Sandbox**
+the user now sees only the notification “… finished with an error” with **Show Output** (the script's
+usage text) instead of a terminal window popping up.
+
+The file is copied into the sandbox; inside it cannot see the home folder, desktop or local network. If the
 sandbox does not exist yet, the Sandbox window opens (click Create, then try again). The sandbox is a
 minimal Arch Linux without Python, Java or Wine unless installed with `luxos-sandbox install`.
 

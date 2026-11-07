@@ -4,6 +4,8 @@
   luxos-guard-gui                 okno Lux Guard (hlidane soubory, posledni rozhodnuti, Obnovit soubory)
   luxos-guard-gui dialog          dotaz/zprava podle JSON na stdin (spousti luxos-guard-agent);
                                   volbu (run|sandbox|deny|trash|close) vypise na stdout
+  luxos-guard-gui output SOUBOR [NAZEV]
+                                  vystup programu spusteneho v sandboxu bez okna (jen pro cteni)
 """
 import datetime
 import json
@@ -20,7 +22,7 @@ except ImportError:
         return text
 import luxos_guard_core as core  # noqa: E402
 import luxos_guard_snap as snap  # noqa: E402
-from luxos_guard_session import run_in_sandbox  # noqa: E402
+from luxos_guard_session import clean_output, run_in_sandbox  # noqa: E402
 
 import gi  # noqa: E402
 
@@ -49,6 +51,8 @@ CSS = b"""
 .badge.risky { background-color: @lg_warn; }
 .primary { background-image: none; background-color: @lg_accent; color: #ffffff; border-color: @lg_accent; }
 .danger { color: @lg_danger; }
+.output-view { font-family: monospace; font-size: 11px; }
+.output-view text { background-color: alpha(currentColor, 0.03); }
 """
 
 
@@ -80,7 +84,7 @@ class GuardDialog(Gtk.Window):
         super().__init__(title="Lux Guard")
         self.msg = msg
         self.choice = "deny" if msg.get("mode") == "ask" else "close"
-        self.set_icon_name("luxos-guard")
+        set_icons(self)
         self.set_resizable(False)
         self.set_keep_above(True)
         self.set_position(Gtk.WindowPosition.CENTER)
@@ -184,6 +188,96 @@ def run_dialog():
     return 0
 
 
+# ---- vystup programu z behu bez okna ---------------------------------------------------------------
+OUTPUT_MAX = 1 << 20
+
+
+def set_icons(win):
+    """Ostra ikona okna 16-256 px (Dock, Alt+Tab); bez luxos-desktop aspon nazev ikony."""
+    try:
+        from luxos_wm_icon import set_window_icons
+        set_window_icons(win, "luxos-guard")
+    except Exception:  # noqa: BLE001 - ikona nesmi zabranit otevreni okna
+        win.set_icon_name("luxos-guard")
+
+
+def read_output(path):
+    """Text souboru s vystupem (bez nasledovani odkazu, nejvys OUTPUT_MAX); None = nelze precist."""
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    except (OSError, TypeError, ValueError):
+        return None
+    try:
+        import stat
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            return None
+        data = os.read(fd, OUTPUT_MAX + 1)
+    except OSError:
+        return None
+    finally:
+        os.close(fd)
+    # soubor zapsal hlidac behu uz vycisteny; znovu pro jistotu (ridici znaky, smer textu)
+    return clean_output(data[-OUTPUT_MAX:], len(data) > OUTPUT_MAX)
+
+
+class OutputWindow(Gtk.Window):
+    """Jednoduche okno jen pro cteni: co program v sandboxu vypsal."""
+
+    def __init__(self, path, name):
+        super().__init__(title=_("Output of %s") % name)
+        self.set_default_size(680, 440)
+        set_icons(self)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        hb = Gtk.HeaderBar(show_close_button=True, title=_("Output of %s") % name,
+                           subtitle=_("Ran in the sandbox without access to your files"))
+        self.copy_btn = Gtk.Button(label=_("Copy"))
+        self.copy_btn.connect("clicked", self.copy)
+        hb.pack_end(self.copy_btn)
+        self.set_titlebar(hb)
+        self.connect("key-press-event", self.on_key)
+        text = read_output(path)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.add(box)
+        scroll = Gtk.ScrolledWindow(hexpand=True, vexpand=True)
+        self.view = Gtk.TextView(editable=False, cursor_visible=False, monospace=True,
+                                 wrap_mode=Gtk.WrapMode.WORD_CHAR, left_margin=12, right_margin=12,
+                                 top_margin=10, bottom_margin=10)
+        self.view.get_style_context().add_class("output-view")
+        if text is None:
+            text = _("The output is no longer available.")
+        elif not text:
+            text = _("The program did not print anything.")
+        self.view.get_buffer().set_text(text)
+        self.text = text
+        scroll.add(self.view)
+        box.pack_start(scroll, True, True, 0)
+        self.show_all()
+        self.present_with_time(Gdk.CURRENT_TIME)
+
+    def copy(self, _b):
+        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(self.text, -1)
+
+    def on_key(self, _w, ev):
+        if ev.keyval == Gdk.KEY_Escape or (ev.keyval in (Gdk.KEY_w, Gdk.KEY_W)
+                                            and ev.state & Gdk.ModifierType.CONTROL_MASK):
+            self.destroy()
+            return True
+        return False
+
+
+def run_output(argv):
+    if not argv:
+        print("usage: luxos-guard-gui output FILE [NAME]", file=sys.stderr)
+        return 2
+    setup_css()
+    GLib.set_prgname("luxos-guard")
+    name = argv[1] if len(argv) > 1 and argv[1] else os.path.basename(argv[0])
+    w = OutputWindow(argv[0], clean_output(name).replace("\n", " ")[:80])
+    w.connect("destroy", lambda _w: Gtk.main_quit())
+    Gtk.main()
+    return 0
+
+
 # ---- okno Lux Guard ----------------------------------------------------------------------------------
 def request(msg, timeout=5):
     import socket
@@ -235,7 +329,7 @@ class GuardWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="Lux Guard")
         self.set_default_size(620, 680)
-        self.set_icon_name("luxos-guard")
+        set_icons(self)
         self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title="Lux Guard"))
         scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.add(scroll)
@@ -384,6 +478,8 @@ class GuardWindow(Gtk.Window):
 def main():
     if sys.argv[1:2] == ["dialog"]:
         return run_dialog()
+    if sys.argv[1:2] == ["output"]:
+        return run_output(sys.argv[2:])
     setup_css()
     GLib.set_prgname("luxos-guard")
     GuardWindow()

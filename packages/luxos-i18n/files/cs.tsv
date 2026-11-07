@@ -4794,3 +4794,20 @@ Sign in to LuxAI for AI in LuxOS apps	Přihlášení k LuxAI pro AI v aplikacíc
 Print, scan and see your printers	Tisk, skenování a přehled tiskáren
 Run untrusted apps in an isolated system	Spouštění nedůvěryhodných aplikací v izolovaném systému
 See how your computer is doing and quit apps that stopped responding	Výkon počítače v grafech a ukončení aplikací, které nereagují
+%s is running in the sandbox	%s běží v sandboxu
+It has no window. It cannot see or change your files.	Nemá žádné okno. Nevidí vaše soubory a nemůže je změnit.
+Show Output	Zobrazit výstup
+%s was stopped	%s byl zastaven
+The program in the sandbox was ended.	Program v sandboxu byl ukončen.
+%s crashed in the sandbox	%s v sandboxu spadl
+It ran in the sandbox and could not change your files.	Běžel v sandboxu a vaše soubory změnit nemohl.
+%s ran safely in the sandbox	%s bezpečně proběhl v sandboxu
+It could not see or change your files.	Neviděl vaše soubory a nemohl je změnit.
+%s finished with an error	%s skončil s chybou
+It finished with error code %d. It ran in the sandbox, so your files were not affected.	Skončil s chybovým kódem %d. Běžel v sandboxu, vašich souborů se to nedotklo.
+It did not print anything.	Nic nevypsal.
+… (only the last %d KB of the output is kept)	… (uchovává se jen posledních %d KB výstupu)
+Output of %s	Výstup programu %s
+Ran in the sandbox without access to your files	Běžel v sandboxu bez přístupu k vašim souborům
+The output is no longer available.	Výstup už není k dispozici.
+The program did not print anything.	Program nic nevypsal.

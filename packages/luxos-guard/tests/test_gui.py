@@ -120,3 +120,106 @@ def test_main_window_without_service(monkeypatch, tmp_path):
     assert w.get_titlebar().get_visible()
     assert w.badge.get_text() == "Not running"
     w.destroy()
+
+
+# ---- okno s vystupem behu bez okna (Zobrazit vystup) -------------------------------------------------
+def textview(widget):
+    if isinstance(widget, Gtk.TextView):
+        return widget
+    if isinstance(widget, Gtk.Container):
+        for c in widget.get_children():
+            r = textview(c)
+            if r:
+                return r
+    return None
+
+
+def view_text(w):
+    b = textview(w).get_buffer()
+    return b.get_text(b.get_start_iter(), b.get_end_iter(), True)
+
+
+@pytest.fixture
+def icons():
+    """Ikona luxos-guard ze zdroju a ostre ikony okna z luxos-desktop (jako na nainstalovanem systemu)."""
+    import sys
+    Gtk.IconTheme.get_default().append_search_path(os.path.join(HERE, "..", "files"))
+    sys.path.insert(0, os.path.join(HERE, "..", "..", "luxos-desktop", "files", "python"))
+    yield
+    sys.path.remove(os.path.join(HERE, "..", "..", "luxos-desktop", "files", "python"))
+
+
+def test_output_window(tmp_path, icons):
+    out = tmp_path / "output-1-1.txt"
+    out.write_bytes(b"usage: tool [-h] FILE\n\x1b[31merror\x1b[0m: missing FILE\x07\n\xe2\x80\xaertl\n")
+    gui.setup_css()
+    w = gui.OutputWindow(str(out), "tool.sh")
+    flush()
+    tb = w.get_titlebar()
+    assert tb.get_visible() and tb.get_show_close_button()
+    assert tb.get_title() == "Output of tool.sh" and w.get_title() == "Output of tool.sh"
+    tv = textview(w)
+    assert not tv.get_editable() and not tv.get_cursor_visible() and tv.get_monospace()
+    assert view_text(w) == "usage: tool [-h] FILE\nerror: missing FILE\nrtl"
+    sizes = sorted(p.get_width() for p in (w.get_icon_list() or []))
+    assert sizes and sizes[0] <= 16 and sizes[-1] >= 256, sizes          # ostra ikona v Alt+Tab
+    copy = [b for b in buttons(tb) if b.get_label() == "Copy"]
+    assert copy
+    copy[0].clicked()
+    flush()
+    assert Gtk.Clipboard.get(gui.Gdk.SELECTION_CLIPBOARD).wait_for_text() == view_text(w)
+    # Esc zavre okno
+    destroyed = []
+    w.connect("destroy", lambda _w: destroyed.append(1))
+    ev = gui.Gdk.Event.new(gui.Gdk.EventType.KEY_PRESS)
+    ev.keyval = gui.Gdk.KEY_Escape
+    w.on_key(w, ev)
+    flush()
+    assert destroyed
+
+
+def test_output_window_missing_empty_and_symlink(tmp_path, icons):
+    w = gui.OutputWindow(str(tmp_path / "gone.txt"), "x")
+    assert view_text(w) == "The output is no longer available."
+    w.destroy()
+    (tmp_path / "empty.txt").write_text("")
+    w = gui.OutputWindow(str(tmp_path / "empty.txt"), "x")
+    assert view_text(w) == "The program did not print anything."
+    w.destroy()
+    secret = tmp_path / "secret"
+    secret.write_text("private")
+    os.symlink(secret, tmp_path / "link.txt")
+    w = gui.OutputWindow(str(tmp_path / "link.txt"), "x")
+    assert "private" not in view_text(w)
+    w.destroy()
+
+
+def test_output_command_line_shows_window(tmp_path):
+    """luxos-guard-gui output SOUBOR NAZEV jako samostatny proces (spousti ho hlidac behu)."""
+    import subprocess
+    import sys
+    import time
+    out = tmp_path / "o.txt"
+    out.write_text("hello\n")
+    files = os.path.abspath(os.path.join(HERE, "..", "files"))
+    # moduly ze zdroju drive nez nainstalovane (/usr/lib/luxos/python si pridavaji samy)
+    boot = ("import runpy, sys; sys.path.insert(0, sys.argv[1]); "
+            "import luxos_guard_core, luxos_guard_snap, luxos_guard_session; "
+            "sys.argv = sys.argv[2:]; runpy.run_path(sys.argv[0], run_name='__main__')")
+    p = subprocess.Popen([sys.executable, "-c", boot, files, os.path.join(files, "luxos-guard-gui"), "output",
+                          str(out), "demo.sh"], env=dict(os.environ, LC_ALL="C"),
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        found = False
+        for _ in range(100):
+            r = subprocess.run(["xdotool", "search", "--name", "Output of demo.sh"], capture_output=True, text=True)
+            if r.stdout.strip():
+                found = True
+                break
+            if p.poll() is not None:
+                break
+            time.sleep(0.1)
+        assert found, p.stderr.read().decode() if p.poll() is not None else "window not found"
+    finally:
+        p.terminate()                       # jen vlastni proces
+        p.wait(5)

@@ -4705,3 +4705,20 @@ Sign in to LuxAI for AI in LuxOS apps	Aanmelden bij LuxAI voor AI in LuxOS-apps
 Print, scan and see your printers	Afdrukken, scannen en je printers bekijken
 Run untrusted apps in an isolated system	Niet-vertrouwde apps in een geïsoleerd systeem uitvoeren
 See how your computer is doing and quit apps that stopped responding	Zien hoe je computer presteert en apps afsluiten die niet meer reageren
+%s is running in the sandbox	%s draait in de sandbox
+It has no window. It cannot see or change your files.	Het heeft geen venster. Het kan je bestanden niet zien of wijzigen.
+Show Output	Uitvoer tonen
+%s was stopped	%s is gestopt
+The program in the sandbox was ended.	Het programma in de sandbox is beëindigd.
+%s crashed in the sandbox	%s is vastgelopen in de sandbox
+It ran in the sandbox and could not change your files.	Het draaide in de sandbox en kon je bestanden niet wijzigen.
+%s ran safely in the sandbox	%s is veilig uitgevoerd in de sandbox
+It could not see or change your files.	Het kon je bestanden niet zien of wijzigen.
+%s finished with an error	%s is met een fout beëindigd
+It finished with error code %d. It ran in the sandbox, so your files were not affected.	Het is beëindigd met foutcode %d. Het draaide in de sandbox, dus je bestanden zijn niet geraakt.
+It did not print anything.	Het heeft niets weergegeven.
+… (only the last %d KB of the output is kept)	… (alleen de laatste %d KB van de uitvoer wordt bewaard)
+Output of %s	Uitvoer van %s
+Ran in the sandbox without access to your files	Uitgevoerd in de sandbox zonder toegang tot je bestanden
+The output is no longer available.	De uitvoer is niet meer beschikbaar.
+The program did not print anything.	Het programma heeft niets weergegeven.

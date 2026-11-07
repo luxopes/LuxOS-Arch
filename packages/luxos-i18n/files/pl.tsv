@@ -4706,3 +4706,20 @@ Sign in to LuxAI for AI in LuxOS apps	Zaloguj się do LuxAI, aby korzystać z AI
 Print, scan and see your printers	Drukuj, skanuj i zarządzaj drukarkami
 Run untrusted apps in an isolated system	Uruchamiaj niezaufane aplikacje w odizolowanym systemie
 See how your computer is doing and quit apps that stopped responding	Sprawdź, jak działa komputer, i zamykaj aplikacje, które nie odpowiadają
+%s is running in the sandbox	%s działa w piaskownicy
+It has no window. It cannot see or change your files.	Nie ma okna. Nie widzi Twoich plików i nie może ich zmienić.
+Show Output	Pokaż wynik
+%s was stopped	%s został zatrzymany
+The program in the sandbox was ended.	Program w piaskownicy został zakończony.
+%s crashed in the sandbox	%s uległ awarii w piaskownicy
+It ran in the sandbox and could not change your files.	Działał w piaskownicy i nie mógł zmienić Twoich plików.
+%s ran safely in the sandbox	%s bezpiecznie zadziałał w piaskownicy
+It could not see or change your files.	Nie widział Twoich plików i nie mógł ich zmienić.
+%s finished with an error	%s zakończył się błędem
+It finished with error code %d. It ran in the sandbox, so your files were not affected.	Zakończył się z kodem błędu %d. Działał w piaskownicy, więc Twoje pliki są nietknięte.
+It did not print anything.	Nic nie wypisał.
+… (only the last %d KB of the output is kept)	… (zachowywane jest tylko ostatnie %d KB wyniku)
+Output of %s	Wynik programu %s
+Ran in the sandbox without access to your files	Działał w piaskownicy bez dostępu do Twoich plików
+The output is no longer available.	Wynik nie jest już dostępny.
+The program did not print anything.	Program nic nie wypisał.

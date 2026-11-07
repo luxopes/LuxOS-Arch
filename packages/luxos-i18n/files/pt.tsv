@@ -4705,3 +4705,20 @@ Sign in to LuxAI for AI in LuxOS apps	Iniciar sessão no LuxAI para IA nas apps 
 Print, scan and see your printers	Imprimir, digitalizar e ver as suas impressoras
 Run untrusted apps in an isolated system	Executar apps não fidedignas num sistema isolado
 See how your computer is doing and quit apps that stopped responding	Veja como está o seu computador e feche apps que deixaram de responder
+%s is running in the sandbox	%s está a ser executado na sandbox
+It has no window. It cannot see or change your files.	Não tem janela. Não pode ver nem alterar os seus ficheiros.
+Show Output	Mostrar saída
+%s was stopped	%s foi parado
+The program in the sandbox was ended.	O programa na sandbox foi terminado.
+%s crashed in the sandbox	%s falhou na sandbox
+It ran in the sandbox and could not change your files.	Foi executado na sandbox e não pôde alterar os seus ficheiros.
+%s ran safely in the sandbox	%s foi executado em segurança na sandbox
+It could not see or change your files.	Não pôde ver nem alterar os seus ficheiros.
+%s finished with an error	%s terminou com um erro
+It finished with error code %d. It ran in the sandbox, so your files were not affected.	Terminou com o código de erro %d. Foi executado na sandbox, por isso os seus ficheiros não foram afetados.
+It did not print anything.	Não mostrou nada.
+… (only the last %d KB of the output is kept)	… (só são guardados os últimos %d KB da saída)
+Output of %s	Saída de %s
+Ran in the sandbox without access to your files	Executado na sandbox sem acesso aos seus ficheiros
+The output is no longer available.	A saída já não está disponível.
+The program did not print anything.	O programa não mostrou nada.

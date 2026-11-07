@@ -4706,3 +4706,20 @@ Sign in to LuxAI for AI in LuxOS apps	Вхід у LuxAI для ШІ в заст�
 Print, scan and see your printers	Друк, сканування та огляд принтерів
 Run untrusted apps in an isolated system	Запуск ненадійних застосунків в ізольованій системі
 See how your computer is doing and quit apps that stopped responding	Стан комп’ютера та завершення застосунків, що не відповідають
+%s is running in the sandbox	%s працює в пісочниці
+It has no window. It cannot see or change your files.	Вона не має вікна. Вона не бачить і не може змінити ваші файли.
+Show Output	Показати вивід
+%s was stopped	%s зупинено
+The program in the sandbox was ended.	Програму в пісочниці завершено.
+%s crashed in the sandbox	%s аварійно завершилася в пісочниці
+It ran in the sandbox and could not change your files.	Вона працювала в пісочниці й не могла змінити ваші файли.
+%s ran safely in the sandbox	%s безпечно виконалася в пісочниці
+It could not see or change your files.	Вона не бачила і не могла змінити ваші файли.
+%s finished with an error	%s завершилася з помилкою
+It finished with error code %d. It ran in the sandbox, so your files were not affected.	Вона завершилася з кодом помилки %d. Вона працювала в пісочниці, тож ваші файли не постраждали.
+It did not print anything.	Вона нічого не вивела.
+… (only the last %d KB of the output is kept)	… (зберігаються лише останні %d КБ виводу)
+Output of %s	Вивід програми %s
+Ran in the sandbox without access to your files	Виконано в пісочниці без доступу до ваших файлів
+The output is no longer available.	Вивід більше не доступний.
+The program did not print anything.	Програма нічого не вивела.
