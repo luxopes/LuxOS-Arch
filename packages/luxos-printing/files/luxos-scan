@@ -16,7 +16,8 @@ import tempfile
 import threading
 import time
 
-sys.path.insert(0, "/usr/lib/luxos/python")
+# vlastni slozka skriptu ma prednost (spusteni ze zdroju), instalovane moduly LuxOS jsou zaloha
+sys.path[:0] = [os.path.dirname(os.path.realpath(__file__)), "/usr/lib/luxos/python"]
 from luxos_i18n import _  # noqa: E402
 import luxos_scan as ls  # noqa: E402
 

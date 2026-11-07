@@ -16,7 +16,9 @@ import re
 import subprocess
 import sys
 
-sys.path.insert(0, "/usr/lib/luxos/python")
+# moduly ze zdroju (files/python vedle files/bin) maji prednost, instalovane moduly LuxOS jsou zaloha
+_SRC_PY = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "python"))
+sys.path[:0] = ([_SRC_PY] if os.path.isfile(os.path.join(_SRC_PY, "luxos_qr.py")) else []) + ["/usr/lib/luxos/python"]
 from luxos_i18n import _  # noqa: E402
 
 import cairo  # noqa: E402

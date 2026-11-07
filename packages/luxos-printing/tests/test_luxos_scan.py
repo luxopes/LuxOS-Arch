@@ -64,6 +64,63 @@ class Devices(FakePath):
         self.assertTrue(lp.is_camera("v4l:/dev/video2", "virtual device"))
         self.assertFalse(lp.is_camera("pixma:04A91234_ABC", "multifunction peripheral"))
 
+    def test_scanner_kind_labels(self):
+        # drive se ukazovalo typ.capitalize() -> "Escl network scanner", "Multifunction peripheral" (bez prekladu)
+        cases = [
+            ("airscan:e0:HP LaserJet", "eSCL network scanner", "", "Network scanner (eSCL/AirScan)"),
+            ("airscan:e1:Brother USB", "eSCL network scanner", "DCP-L2530DW USB", "Scanner (eSCL/AirScan)"),
+            ("escl:https://192.168.1.20:443", "flatbed scanner", "", "Network scanner (eSCL/AirScan)"),
+            ("escl:http://127.0.0.1:60000", "flatbed scanner", "", "Scanner (eSCL/AirScan)"),
+            ("airscan:w1:HP LaserJet", "WSD network scanner", "", "Network scanner (WSD)"),
+            ("pixma:04A91234_ABC", "multifunction peripheral", "", "Multi-function peripheral"),
+            ("hpaio:/usb/Deskjet_2130?serial=CN1", "all-in-one", "", "Multi-function peripheral"),
+            ("brother4:bus2;dev1", "Multi-Function Peripheral", "", "Multi-function peripheral"),
+            ("genesys:libusb:001:004", "flatbed scanner", "", "Flatbed scanner"),
+            ("fujitsu:fi-7160:1", "sheetfed scanner", "", "Sheet-fed scanner"),
+            ("epsonds:libusb:001:005", "ADF scanner", "", "Sheet-fed scanner"),
+            ("plustek:libusb:001:006", "film scanner", "", "Film scanner"),
+            ("test:0", "virtual device", "", "Virtual device"),
+            ("weird:1", "some vendor thing", "", "Scanner"),
+            ("weird:2", "", "", ""),
+        ]
+        for dev, typ, name, want in cases:
+            with self.subTest(dev=dev):
+                self.assertEqual(lp.scanner_kind(dev, typ, name), want)
+        self.assertEqual(lp.scanner_conn("hpaio:/net/Officejet?ip=10.0.0.5"), "network")
+        self.assertEqual(lp.scanner_conn("epson2:net:192.168.1.7"), "network")
+        self.assertEqual(lp.scanner_conn("genesys:libusb:001:004"), "usb")
+        self.assertEqual(lp.scanner_conn("escl:http://localhost:60000"), "usb")
+        self.assertEqual(lp.scanner_conn("pixma:04A91234_ABC"), "")
+        # kazdy popisek ma preklad ve vsech jazycich LuxOS
+        i18n = os.path.join(HERE, "..", "..", "luxos-i18n", "files")
+        labels = {c[3] for c in cases if c[3]} | {"Network", "USB"}
+        for tsv in sorted(f for f in os.listdir(i18n) if f.endswith(".tsv")):
+            with open(os.path.join(i18n, tsv), encoding="utf-8") as f:
+                have = {line.split("\t", 1)[0] for line in f if "\t" in line and not line.startswith("#")}
+            self.assertEqual(sorted(labels - have), [], tsv)
+
+    def test_printers_subtitle(self):
+        """Podtitulek v aplikaci Tiskarny a skenery (cesky): zadne "Escl network scanner"."""
+        import importlib.machinery
+        import importlib.util
+        env = {"LANG": "cs_CZ.UTF-8", "LC_ALL": "cs_CZ.UTF-8",
+               "LUXOS_I18N_DIR": os.path.join(HERE, "..", "..", "luxos-i18n", "files"),
+               "PYTHONPATH": os.path.join(HERE, "..", "files") + os.pathsep +
+               os.path.join(HERE, "..", "..", "luxos-i18n", "files")}
+        code = ("import importlib.machinery as m, importlib.util as u, sys\n"
+                "l = m.SourceFileLoader('lp_app', sys.argv[1]); s = u.spec_from_loader('lp_app', l)\n"
+                "a = u.module_from_spec(s); l.exec_module(a)\n"
+                "for d, t, n in (('airscan:e0:HP', 'eSCL network scanner', ''), "
+                "('genesys:libusb:1:2', 'flatbed scanner', ''), ('airscan:e1:Brother USB', 'eSCL network scanner', "
+                "'Brother USB')):\n    print(a.scanner_subtitle(d, t, n))\n")
+        r = subprocess.run([sys.executable, "-c", code, os.path.join(HERE, "..", "files", "luxos-printers")],
+                           capture_output=True, text=True, env={**os.environ, **env}, timeout=60)
+        if r.returncode and "Gtk" in r.stderr and "display" in r.stderr.lower():
+            self.skipTest("Gtk needs a display (run under xvfb-run)")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout.splitlines(), ["Síťový skener (eSCL/AirScan)", "Stolní skener · USB",
+                                                 "Skener (eSCL/AirScan) · USB"])
+
     def test_list_fake(self):
         d = ls.list_devices()
         self.assertEqual([x["id"] for x in d], ["pixma:04A91234_ABC", "airscan:e0:HP LaserJet MFP M140w"])

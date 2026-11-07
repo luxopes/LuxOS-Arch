@@ -48,6 +48,19 @@
       <li xml:lang="pt">Nome da rede e senha, oculta até você mostrá-la</li>
       <li xml:lang="nl">Netwerknaam en wachtwoord, verborgen tot je het toont</li>
       <li xml:lang="sv">Nätverksnamn och lösenord, dolt tills du visar det</li>
+      <li>Copy the QR code as an image to paste into a document or chat</li>
+      <li xml:lang="cs">Zkopírování QR kódu jako obrázku pro vložení do dokumentu nebo chatu</li>
+      <li xml:lang="sk">Skopírovanie QR kódu ako obrázka na vloženie do dokumentu alebo chatu</li>
+      <li xml:lang="pl">Kopiowanie kodu QR jako obrazu do wklejenia w dokumencie lub czacie</li>
+      <li xml:lang="uk">Копіювання QR-коду як зображення, щоб вставити його в документ або чат</li>
+      <li xml:lang="hu">A QR-kód másolása képként, hogy dokumentumba vagy csevegésbe illessze</li>
+      <li xml:lang="de">QR-Code als Bild kopieren, um ihn in ein Dokument oder einen Chat einzufügen</li>
+      <li xml:lang="fr">Copie du code QR en image pour le coller dans un document ou une discussion</li>
+      <li xml:lang="es">Copia el código QR como imagen para pegarlo en un documento o un chat</li>
+      <li xml:lang="it">Copia il codice QR come immagine da incollare in un documento o in una chat</li>
+      <li xml:lang="pt">Copie o código QR como imagem para colar em um documento ou chat</li>
+      <li xml:lang="nl">Kopieer de QR-code als afbeelding om in een document of chat te plakken</li>
+      <li xml:lang="sv">Kopiera QR-koden som bild för att klistra in i ett dokument eller en chatt</li>
       <li>Join a network from a QR code with the camera</li>
       <li xml:lang="cs">Připojení k síti z QR kódu pomocí kamery</li>
       <li xml:lang="sk">Pripojenie k sieti z QR kódu pomocou kamery</li>

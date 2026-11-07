@@ -316,6 +316,48 @@ def is_camera(dev, typ=""):
         (typ or "").strip().lower() in ("webcam", "video camera", "camera")
 
 
+def scanner_conn(dev, name=""):
+    """Pripojeni skeneru podle SANE id: network | usb | "" (aplikace prelozi).
+
+    airscan/escl na localhost nebo s "USB" v nazvu je ipp-usb (USB skener se ohlasuje jako sitovy);
+    hpaio:/net/, epson2:net:, net: (saned) jsou sitove, *usb* je USB."""
+    d = (dev or "").lower()
+    if d.startswith(("airscan:", "escl:")):
+        local = any(h in d for h in ("localhost", "127.0.0.1", "[::1]"))
+        return "usb" if local or "usb" in (name or "").lower() else "network"
+    if "usb" in d:
+        return "usb"
+    if d.startswith("net:") or ":net:" in d or "/net/" in d:
+        return "network"
+    return ""
+
+
+def scanner_kind(dev, typ="", name=""):
+    """Druh skeneru jako anglicky text k prekladu (aplikace ho prozene _()), nebo "".
+
+    Typ ze `scanimage` (%t) je volny text backendu: airscan "eSCL network scanner" / "WSD network
+    scanner", pixma "multifunction peripheral", hpaio "all-in-one", genesys "flatbed scanner"…
+    Drive se ukazoval jen s velkym pocatecnim pismenem ("Escl network scanner")."""
+    d = (dev or "").lower()
+    t = re.sub(r"[\s_-]+", " ", (typ or "").strip().lower())
+    if d.startswith(("airscan:e", "escl:")) or "escl" in t or "airscan" in t:
+        return ("Scanner (eSCL/AirScan)" if scanner_conn(dev, name) == "usb"
+                else "Network scanner (eSCL/AirScan)")
+    if d.startswith("airscan:w") or "wsd" in t:
+        return "Network scanner (WSD)"
+    if not t:
+        return ""
+    for keys, label in ((("multi function", "multifunction", "all in one", "mfp"), "Multi-function peripheral"),
+                        (("flatbed",), "Flatbed scanner"),
+                        (("sheetfed", "sheet fed", "adf", "document"), "Sheet-fed scanner"),
+                        (("film", "slide", "negative"), "Film scanner"),
+                        (("handheld", "hand held"), "Handheld scanner"),
+                        (("virtual",), "Virtual device")):
+        if any(k in t for k in keys):
+            return label
+    return "Scanner"
+
+
 def usb_serial(uri):
     m = re.search(r"[?&]serial=([^&]+)", uri or "")
     return urllib.parse.unquote(m.group(1)) if m else None

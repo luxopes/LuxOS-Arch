@@ -4,7 +4,7 @@
 
 pkgname=lsl-ide
 pkgver=1.0.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LSL IDE - development environment for Lux Simple Lang (editor, checker, runner, packages, manual, LuxAI agent)"
 arch=(any)
 url="https://lsl.lux-ai.cz"
@@ -13,7 +13,7 @@ depends=(python pyside6 lsl)
 optdepends=('xdg-utils: open files and links from the IDE'
             'luxos-account: shared LuxAI account of LuxOS (agent signs in via the system account)')
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('494046e301bf1d0b5ff83ea281f0bf8e45622adc2ae11bbdcdab8816f6146439')
+sha256sums=('3dcf2596307ae9e49b5b15cc0715b64901412d1400e25bcc7dad2cfe1658ea00')
 
 package() {
     cd "$pkgname-$pkgver"
