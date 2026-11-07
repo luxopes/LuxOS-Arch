@@ -21,6 +21,7 @@ load mail_imap as imap
 load mail_store as store
 load mail_secret as secret
 load mail_luxai as luxai
+load mail_provider as provider
 
 ITEMS = "UID FLAGS INTERNALDATE RFC822.SIZE ENVELOPE BODYSTRUCTURE"
 INITIAL = 500
@@ -203,7 +204,7 @@ end
 
 # Chyby, po kterych se samo znovu nezkousi (cekani na uzivatele: nove heslo, prihlaseni k LuxAI)
 function blocked_kind(kind):
-    return kind in ["auth", "nopassword", "luxai_session", "luxai_signedout", "luxai_denied", "nooauth"]
+    return kind in ["auth", "oauthonly", "nopassword", "luxai_session", "luxai_signedout", "luxai_denied", "nooauth"]
 end
 
 # Spojeni a prihlaseni tokenem LuxAI (novy token pri kazdem spojeni; plati 15 minut, otevrene spojeni
@@ -752,11 +753,13 @@ function start_account(st):
     return True
 end
 
-# Pocty neprectenych v ostatnich schrankach (STATUS), jen pro schranky bez mistni mezipameti
+# Pocty neprectenych v ostatnich schrankach (STATUS), jen pro schranky bez mistni mezipameti.
+# Gmail "Vsechny zpravy", "Dulezite", "S hvezdickou" ne (jen jine pohledy na tytez zpravy; STATUS velke
+# schranky "All Mail" muze trvat)
 function refresh_counts(st):
     conn = st["conn"]
     for b in st["boxes"]:
-        if b["raw"] == "INBOX" or not b.get("selectable", True) or b["role"] == "junk" or b["role"] == "trash":
+        if b["raw"] == "INBOX" or not b.get("selectable", True) or b["role"] in ["junk", "trash", "all", "important", "starred"]:
             continue
         end
         r = imap.command(conn, "STATUS " + imap.quote(b["raw"]) + " (MESSAGES UNSEEN)", False)
@@ -1214,6 +1217,14 @@ function add_account(req):
         smtp = {}
     end
     cfg = {"id": id, "email": email, "name": String(req.get("name", "")), "imap": s, "smtp": smtp}
+    # znamy poskytovatel (Google, Microsoft ...): texty chyb a napovedy hesla v okne
+    prov = String(req.get("provider", ""))
+    if len(provider.info(prov)) == 0:
+        prov = provider.detect(provider.domain_of(email), s["host"], [])
+    end
+    if prov != "":
+        cfg["provider"] = prov
+    end
     out.append(cfg)
     call store.save_accounts(out)
     if id in svc["accounts"]:

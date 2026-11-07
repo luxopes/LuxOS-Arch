@@ -1002,7 +1002,7 @@
         {
           "path": "luxos/mail.md",
           "title": "LuxOS Mail",
-          "summary": "LuxOS Mail (luxos-mail, LSL): sign in with the LuxAI account (LuxAI mailboxes without a password, OAUTHBEARER/XOAUTH2), IMAP accounts with server discovery, TLS, keyring passwords, keyboard shortcuts, IDLE notifications, offline cache, troubleshooting.",
+          "summary": "LuxOS Mail (luxos-mail, LSL): sign in with the LuxAI account (LuxAI mailboxes without a password, OAUTHBEARER/XOAUTH2), IMAP accounts with server discovery, Gmail app passwords, Outlook/iCloud/Seznam advice, TLS, keyring, shortcuts, IDLE notifications, offline cache, troubleshooting.",
           "keywords": [
             "Mail",
             "Pošta",
@@ -1026,7 +1026,14 @@
             "Inbox",
             "attachment",
             "unread count",
-            "Dock badge"
+            "Dock badge",
+            "Gmail",
+            "app password",
+            "heslo aplikace",
+            "Google Workspace",
+            "Outlook",
+            "Seznam",
+            "show password"
           ]
         },
         {

@@ -4838,3 +4838,29 @@ We picked %s for your region. You can change it any time in ⋯ › Units.	Pro v
 Celsius (°C)	Celsius (°C)
 Fahrenheit (°F)	Fahrenheit (°F)
 Keep Automatic	Ponechat automaticky
+%s accepts only “Sign in with %s” (OAuth), not a password. Mail does not support it yet – use the webmail for now.	%s přijímá jen „Přihlásit se účtem %s“ (OAuth), ne heslo. Pošta to zatím neumí – zatím použijte webmail.
+%s closed the connection.	%s ukončil spojení.
+%s did not accept the password. Use an app password, not your normal password.	%s nepřijal heslo. Použijte heslo aplikace, ne své běžné heslo.
+%s does not accept passwords from mail apps, only sign-in with a token (OAuth), which Mail does not support for this provider yet.	%s nepřijímá hesla z poštovních aplikací, jen přihlášení tokenem (OAuth), které Pošta u tohoto poskytovatele zatím neumí.
+%s requires an app password: open the account security settings, create an app password for Mail and enter it here instead of your normal password.	%s vyžaduje heslo aplikace: otevřete nastavení zabezpečení účtu, vytvořte heslo aplikace pro Poštu a zadejte ho sem místo svého běžného hesla.
+All Mail	Všechny zprávy
+All Mail, Starred and Important (Gmail)	Všechny zprávy, S hvězdičkou a Důležité (Gmail)
+Centrum, Atlas and Volný: use your normal password. If signing in fails, check in the webmail settings that access by mail apps (IMAP) is allowed for your mailbox.	Centrum, Atlas a Volný: použijte své běžné heslo. Pokud přihlášení selže, zkontrolujte v nastavení webmailu, že je pro vaši schránku povolen přístup poštovních aplikací (IMAP).
+Create App Password	Vytvořit heslo aplikace
+GMX and WEB.DE: first allow access by mail apps (POP3/IMAP) in the webmail settings, then use your normal password.	GMX a WEB.DE: nejdřív v nastavení webmailu povolte přístup poštovních aplikací (POP3/IMAP), pak použijte své běžné heslo.
+Google did not accept the password. Google accepts only an app password here, not your normal Google password: turn on 2-Step Verification and create an app password.	Google heslo nepřijal. Google tu přijímá jen heslo aplikace, ne vaše běžné heslo Google: zapněte dvoufázové ověření a vytvořte heslo aplikace.
+Google requires an app password: turn on 2-Step Verification for your Google account, then create an app password and enter it here instead of your normal password.	Google vyžaduje heslo aplikace: zapněte pro svůj účet Google dvoufázové ověření, pak vytvořte heslo aplikace a zadejte ho sem místo svého běžného hesla.
+If your organization manages the account, its administrator must allow app passwords.	Pokud účet spravuje vaše organizace, musí hesla aplikací povolit její správce.
+Important	Důležité
+Less	Méně
+Menu (F10)	Nabídka (F10)
+Microsoft no longer accepts passwords from mail apps for Outlook.com, Hotmail, Live and Microsoft 365 mailboxes – only “Sign in with Microsoft”, which Mail does not support yet. Until then, read this mailbox in Outlook on the web.	Microsoft už nepřijímá hesla z poštovních aplikací pro schránky Outlook.com, Hotmail, Live a Microsoft 365 – jen „Přihlásit se účtem Microsoft“, které Pošta zatím neumí. Do té doby čtěte tuto schránku v Outlooku na webu.
+More	Další
+Open Outlook on the Web	Otevřít Outlook na webu
+Open Seznam Account	Otevřít účet Seznam
+Open Webmail	Otevřít webmail
+Server:	Server:
+Seznam: use your normal password. With two-factor authentication turned on, create an app password in your Seznam account security settings instead. If signing in fails, allow IMAP access in the mail settings.	Seznam: použijte své běžné heslo. Se zapnutým dvoufázovým ověřením si místo něj vytvořte heslo pro aplikace v nastavení zabezpečení účtu Seznam. Pokud přihlášení selže, povolte v nastavení pošty přístup přes IMAP.
+Signing in failed.	Přihlášení se nezdařilo.
+Starred	S hvězdičkou
+iCloud Mail requires an app-specific password: turn on two-factor authentication for your Apple Account, then in Sign-In and Security choose App-Specific Passwords, create one and enter it here.	iCloud Mail vyžaduje heslo pro konkrétní aplikaci: zapněte pro svůj Apple účet dvoufázové ověření, pak v části Přihlášení a zabezpečení zvolte Hesla pro konkrétní aplikace, jedno vytvořte a zadejte ho sem.

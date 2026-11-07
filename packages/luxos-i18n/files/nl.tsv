@@ -4749,3 +4749,29 @@ We picked %s for your region. You can change it any time in ⋯ › Units.	We he
 Celsius (°C)	Celsius (°C)
 Fahrenheit (°F)	Fahrenheit (°F)
 Keep Automatic	Automatisch houden
+%s accepts only “Sign in with %s” (OAuth), not a password. Mail does not support it yet – use the webmail for now.	%s accepteert alleen ‘Inloggen met %s’ (OAuth), geen wachtwoord. Mail ondersteunt dat nog niet – gebruik voorlopig de webmail.
+%s closed the connection.	%s heeft de verbinding verbroken.
+%s did not accept the password. Use an app password, not your normal password.	%s heeft het wachtwoord niet geaccepteerd. Gebruik een app-wachtwoord, niet je gewone wachtwoord.
+%s does not accept passwords from mail apps, only sign-in with a token (OAuth), which Mail does not support for this provider yet.	%s accepteert geen wachtwoorden van mail-apps, alleen inloggen met een token (OAuth), wat Mail voor deze provider nog niet ondersteunt.
+%s requires an app password: open the account security settings, create an app password for Mail and enter it here instead of your normal password.	%s vereist een app-wachtwoord: open de beveiligingsinstellingen van het account, maak een app-wachtwoord voor Mail en voer dat hier in in plaats van je gewone wachtwoord.
+All Mail	Alle berichten
+All Mail, Starred and Important (Gmail)	Alle berichten, Met ster en Belangrijk (Gmail)
+Centrum, Atlas and Volný: use your normal password. If signing in fails, check in the webmail settings that access by mail apps (IMAP) is allowed for your mailbox.	Centrum, Atlas en Volný: gebruik je gewone wachtwoord. Lukt inloggen niet, controleer dan in de webmailinstellingen of toegang door mail-apps (IMAP) voor je mailbox is toegestaan.
+Create App Password	App-wachtwoord maken
+GMX and WEB.DE: first allow access by mail apps (POP3/IMAP) in the webmail settings, then use your normal password.	GMX en WEB.DE: sta eerst in de webmailinstellingen toegang door mail-apps (POP3/IMAP) toe en gebruik daarna je gewone wachtwoord.
+Google did not accept the password. Google accepts only an app password here, not your normal Google password: turn on 2-Step Verification and create an app password.	Google heeft het wachtwoord niet geaccepteerd. Google accepteert hier alleen een app-wachtwoord, niet je gewone Google-wachtwoord: zet verificatie in twee stappen aan en maak een app-wachtwoord.
+Google requires an app password: turn on 2-Step Verification for your Google account, then create an app password and enter it here instead of your normal password.	Google vereist een app-wachtwoord: zet verificatie in twee stappen aan voor je Google-account, maak daarna een app-wachtwoord en voer dat hier in in plaats van je gewone wachtwoord.
+If your organization manages the account, its administrator must allow app passwords.	Als je organisatie het account beheert, moet de beheerder app-wachtwoorden toestaan.
+Important	Belangrijk
+Less	Minder
+Menu (F10)	Menu (F10)
+Microsoft no longer accepts passwords from mail apps for Outlook.com, Hotmail, Live and Microsoft 365 mailboxes – only “Sign in with Microsoft”, which Mail does not support yet. Until then, read this mailbox in Outlook on the web.	Microsoft accepteert geen wachtwoorden van mail-apps meer voor mailboxen van Outlook.com, Hotmail, Live en Microsoft 365 – alleen ‘Inloggen met Microsoft’, wat Mail nog niet ondersteunt. Lees deze mailbox tot die tijd in Outlook op het web.
+More	Meer
+Open Outlook on the Web	Outlook op het web openen
+Open Seznam Account	Seznam-account openen
+Open Webmail	Webmail openen
+Server:	Server:
+Seznam: use your normal password. With two-factor authentication turned on, create an app password in your Seznam account security settings instead. If signing in fails, allow IMAP access in the mail settings.	Seznam: gebruik je gewone wachtwoord. Met tweestapsverificatie aan maak je in plaats daarvan een app-wachtwoord in de beveiligingsinstellingen van je Seznam-account. Lukt inloggen niet, sta dan IMAP-toegang toe in de mailinstellingen.
+Signing in failed.	Inloggen mislukt.
+Starred	Met ster
+iCloud Mail requires an app-specific password: turn on two-factor authentication for your Apple Account, then in Sign-In and Security choose App-Specific Passwords, create one and enter it here.	iCloud Mail vereist een appspecifiek wachtwoord: zet twee-factor-authenticatie aan voor je Apple Account, kies daarna bij Inloggen en beveiliging voor Appspecifieke wachtwoorden, maak er een en voer het hier in.

@@ -65,10 +65,17 @@ def wait_for(predicate, timeout=10.0, step=0.05):
 
 
 class FakeServer:
-    def __init__(self, workdir, certs, seed=None, qresync=False, bad=False, ports=None, oauth="", sasl_ir=True, dovecot_flags=False):
-        self.ready = os.path.join(workdir, "server-%d.json" % int(time.time() * 1000))
+    def __init__(self, workdir, certs, seed=None, qresync=False, bad=False, ports=None, oauth="", sasl_ir=True, dovecot_flags=False,
+                 personality="", user=USER, password=PASSWORD, account_password=None, alert_untagged=False):
+        self.ready = os.path.join(workdir, "server-%d-%d.json" % (int(time.time() * 1000), id(self)))
         args = [sys.executable, os.path.join(HERE, "fake_imap.py"), "--cert", certs["bad_cert" if bad else "cert"],
-                "--key", certs["bad_key" if bad else "key"], "--ready", self.ready, "--user", USER, "--password", PASSWORD]
+                "--key", certs["bad_key" if bad else "key"], "--ready", self.ready, "--user", user, "--password", password]
+        if personality:
+            args += ["--personality", personality]
+        if account_password is not None:
+            args += ["--account-password", account_password]
+        if alert_untagged:
+            args.append("--alert-untagged")
         if seed:
             args += ["--seed", seed]
         if qresync:

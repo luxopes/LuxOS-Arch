@@ -8,6 +8,9 @@
 # Prvni spusteni s uctem LuxAI v systemu: "Pokracovat jako <jmeno>" nabidne schranky na serveru LuxAI
 # (pridani jednim kliknutim, bez hesla - token uctu LuxAI); "Pouzit jiny ucet" otevre bezne pridani
 # s predvyplnenym registracnim e-mailem.
+# Velci poskytovatele (Google, Microsoft, Yahoo, iCloud, Seznam ...): pri pridani uctu napoveda, jake heslo
+# zadat (heslo aplikace) s tlacitkem na stranku poskytovatele; chyby prihlaseni s duvodem od serveru.
+# Pole hesla maji tlacitko oka (zobrazit/skryt heslo, Tab + mezernik). F10 = nabidka.
 load env, json, net
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
@@ -18,13 +21,18 @@ load mail_mime as mime
 load mail_store as store
 load mail_gtk as mg
 load mail_luxai as luxai
+load mail_provider as provider
 
 CSS = ".toolbar { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.10); }\n.toolbar button { min-height: 26px; padding: 2px 8px; }\n.sidebar, .sidebar list { background-color: alpha(currentColor, 0.035); }\n.sidebar row { padding: 4px 10px; border-radius: 6px; margin: 0 6px; }\n.side-header { font-size: 11px; font-weight: 700; opacity: 0.55; margin: 12px 4px 2px 4px; }\n.side-count { font-size: 11px; opacity: 0.6; }\n.side-error { color: #d9534f; }\n.list-head { padding: 10px 14px 6px 14px; }\n.list-title { font-weight: 700; font-size: 15px; }\n.dim { opacity: 0.6; }\n.small { font-size: 11px; }\n.msg-row { padding: 8px 12px 8px 6px; border-bottom: 1px solid alpha(currentColor, 0.07); }\n.sender { font-size: 13px; }\n.sender.unread { font-weight: 700; }\n.subject { font-size: 12.5px; }\n.preview { font-size: 12px; opacity: 0.6; }\n.unread-dot { color: @theme_selected_bg_color; font-size: 11px; min-width: 14px; }\n.flagged { color: #e6a700; }\n.banner { padding: 8px 14px; background-color: alpha(#e6a700, 0.18); }\n.banner.error { background-color: alpha(#d9534f, 0.18); }\n.msg-head { padding: 16px 22px 10px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.msg-subject { font-size: 18px; font-weight: 700; }\n.msg-from { font-weight: 600; }\n.att-bar { padding: 8px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.att { padding: 2px 10px; border-radius: 12px; }\n.body { font-size: 13.5px; }\n.empty { font-size: 16px; opacity: 0.45; }\n.welcome-title { font-size: 22px; font-weight: 700; }\n.dialog-box { padding: 20px 24px; }\n.error { color: #d9534f; }\n"
 
-ROLE_ORDER = {"inbox": 0, "drafts": 2, "sent": 3, "archive": 4, "junk": 5, "trash": 6, "": 9}
+ROLE_ORDER = {"inbox": 0, "drafts": 2, "sent": 3, "archive": 4, "junk": 5, "trash": 6, "": 9, "starred": 10, "important": 10, "all": 11}
+# Gmail: pohledy na tytez zpravy - v levem sloupci az po "Dalsi"
+HIDDEN_ROLES = ["all", "important", "starred"]
 ROLE_ICONS = {"inbox": ["mail-inbox-symbolic", "mail-unread-symbolic"], "sent": ["mail-sent-symbolic", "mail-send-symbolic"],
               "drafts": ["document-edit-symbolic", "text-editor-symbolic"], "trash": ["user-trash-symbolic", "user-trash-symbolic"],
               "junk": ["mail-mark-junk-symbolic", "dialog-warning-symbolic"], "archive": ["mail-archive-symbolic", "folder-documents-symbolic"],
+              "all": ["mail-archive-symbolic", "folder-documents-symbolic"], "starred": ["starred-symbolic", "emblem-favorite-symbolic"],
+              "important": ["mail-mark-important-symbolic", "emblem-important-symbolic"],
               "": ["folder-symbolic", "folder-symbolic"]}
 # radku seznamu najednou (dalsi pri posunu dolu): rychlejsi spusteni a mene widgetu
 PAGE = 25
@@ -38,7 +46,7 @@ ui = {"window": 0, "outer": 0, "sidebar": 0, "list": 0, "list_scroll": 0, "view"
       "svc_fd": -1, "svc_buf": ByteArray(), "next_id": 1, "pending": {}, "outbox": [], "status": {}, "connecting": False,
       "tries": 0, "message": {}, "body": ByteArray(), "body_uid": 0, "open_target": {}, "ui_listen": -1, "dlg": {},
       "started": 0, "ready_logged": False, "older_row": 0, "welcome_button": 0,
-      "welcome_luxai": 0, "luxai_button": 0, "luxai_sub": 0, "luxdlg": {}, "luxai_busy": False}
+      "welcome_luxai": 0, "luxai_button": 0, "luxai_sub": 0, "luxdlg": {}, "luxai_busy": False, "more": {}, "menu_button": 0}
 
 function log(message):
     return eprint("luxos-mail: " + message)
@@ -267,6 +275,12 @@ function role_name(role, name, delim):
         return i18n.T("Junk")
     elif role == "archive":
         return i18n.T("Archive")
+    elif role == "all":
+        return i18n.T("All Mail")
+    elif role == "starred":
+        return i18n.T("Starred")
+    elif role == "important":
+        return i18n.T("Important")
     end
     leaf = name
     if delim != "":
@@ -349,7 +363,8 @@ function build_window():
     call gtk.connect(search, "search-changed", on_search)
     ui["search"] = search
     call gtk.box_pack_end(bar, search, False, False, 0)
-    menu_button = tool_button(["open-menu-symbolic"], i18n.T("Menu"), on_menu_clicked)
+    menu_button = tool_button(["open-menu-symbolic"], i18n.T("Menu (F10)"), on_menu_clicked)
+    ui["menu_button"] = menu_button
     call gtk.box_pack_end(bar, menu_button, False, False, 4)
     call gtk.box_pack_start(root, bar, False, False, 0)
 
@@ -405,6 +420,7 @@ function build_window():
     side = gtk.list_box_new()
     call gtk.list_box_set_selection_mode(side, 1)
     call gtk.connect(side, "row-selected", on_side_selected)
+    call gtk.connect(side, "row-activated", on_side_activated)
     ui["sidebar"] = side
     call gtk.container_add(side_scroll, side)
     call gtk.widget_set_size_request(side_scroll, 180, -1)
@@ -542,15 +558,30 @@ function sorted_boxes(boxes):
     return out
 end
 
-function side_row_widget(b, account_id):
-    box = gtk.box_new(gtk.HORIZONTAL, 8)
+# Odsazeni podslozky: pocet zobrazenych nadrazenych schranek (Gmail "[Gmail]/Important" pod skrytou
+# "[Gmail]" (\Noselect) neodsazovat)
+function box_depth(b, shown):
+    if b["delim"] == "" or b["role"] != "":
+        return 0
+    end
+    parts = b["raw"].split(b["delim"])
     depth = 0
-    if b["delim"] != "" and b["role"] == "":
-        depth = b["raw"].count(b["delim"])
-        if b["raw"].upper().startswith("INBOX" + b["delim"]):
-            depth = max(0, depth - 1)
+    prefix = ""
+    for i in range(len(parts) - 1):
+        if i == 0:
+            prefix = parts[0]
+        else:
+            prefix = prefix + b["delim"] + parts[i]
+        end
+        if prefix in shown and prefix != "INBOX":
+            depth += 1
         end
     end
+    return depth
+end
+
+function side_row_widget(b, account_id, depth=0):
+    box = gtk.box_new(gtk.HORIZONTAL, 8)
     call gtk.widget_set_margins(box, 2 + depth * 14, 2, 2, 2)
     call gtk.box_pack_start(box, icon(ROLE_ICONS.get(b["role"], ROLE_ICONS[""]), 1), False, False, 0)
     name = label(role_name(b["role"], b["name"], b["delim"]), "")
@@ -590,15 +621,49 @@ function build_sidebar():
         call mg.list_box_row_set_selectable(r, False)
         call mg.list_box_row_set_activatable(r, False)
         rows.append({"header": a["id"]})
-        for b in sorted_boxes(store.load_mailboxes(a["id"])):
-            if not b.get("selectable", True):
+        boxes = sorted_boxes(store.load_mailboxes(a["id"]))
+        shown = {}
+        hidden = []
+        for b in boxes:
+            if b.get("selectable", True):
+                shown[b["raw"]] = True
+                if b["role"] in HIDDEN_ROLES:
+                    hidden.append(b)
+                end
+            end
+        end
+        if cur["account"] == a["id"] and cur.get("role", "") in HIDDEN_ROLES:
+            ui["more"][a["id"]] = True
+        end
+        more = ui["more"].get(a["id"], False)
+        for b in boxes:
+            if not b.get("selectable", True) or (b["role"] in HIDDEN_ROLES and not more):
                 continue
             end
-            call gtk.list_box_insert(side, side_row_widget(b, a["id"]), -1)
+            call gtk.list_box_insert(side, side_row_widget(b, a["id"], box_depth(b, shown)), -1)
             if cur["account"] == a["id"] and cur["raw"] == b["raw"]:
                 selected = len(rows)
             end
             rows.append({"account": a["id"], "raw": b["raw"], "role": b["role"], "name": role_name(b["role"], b["name"], b["delim"]), "unseen": b.get("unseen", 0), "total": b.get("total", 0)})
+        end
+        if len(hidden) > 0:
+            # "Dalsi" / "Mene": Enter nebo klepnuti (radek se nevybira, jen aktivuje)
+            mb_box = gtk.box_new(gtk.HORIZONTAL, 8)
+            call gtk.widget_set_margins(mb_box, 2, 2, 2, 2)
+            arrow = ["pan-end-symbolic", "go-next-symbolic"]
+            text = i18n.T("More")
+            if more:
+                arrow = ["pan-down-symbolic", "go-down-symbolic"]
+                text = i18n.T("Less")
+            end
+            call gtk.box_pack_start(mb_box, icon(arrow, 1), False, False, 0)
+            ml = label(text, "dim")
+            call gtk.box_pack_start(mb_box, ml, True, True, 0)
+            call gtk.widget_set_tooltip(mb_box, i18n.T("All Mail, Starred and Important (Gmail)"))
+            call gtk.list_box_insert(side, mb_box, -1)
+            r = mg.list_box_get_row_at_index(side, len(rows))
+            call mg.list_box_row_set_selectable(r, False)
+            rows.append({"more": a["id"]})
         end
         if len(rows) == 1 or rows[len(rows) - 1].get("header", "") == a["id"]:
             # ucet jeste bez seznamu schranek (prvni synchronizace): aspon Dorucena posta
@@ -619,6 +684,37 @@ function build_sidebar():
     return selected
 end
 
+function on_side_activated(row, box):
+    if row == 0:
+        return 0
+    end
+    index = gtk.list_box_row_get_index(row)
+    if index < 0 or index >= len(ui["side_rows"]):
+        return 0
+    end
+    item = ui["side_rows"][index]
+    if "more" in item:
+        id = item["more"]
+        ui["more"][id] = not ui["more"].get(id, False)
+        if not ui["more"][id] and ui["current"]["account"] == id and ui["current"].get("role", "") in HIDDEN_ROLES:
+            ui["more"][id] = True                  # otevrena skryta schranka zustava videt
+        end
+        call build_sidebar()
+        # fokus zpet na radek Dalsi/Mene (klavesnice)
+        i = 0
+        for it in ui["side_rows"]:
+            if it.get("more", "") == id:
+                r = mg.list_box_get_row_at_index(ui["sidebar"], i)
+                if r != 0:
+                    call gtk.widget_grab_focus(r)
+                end
+            end
+            i += 1
+        end
+    end
+    return 0
+end
+
 function on_side_selected(row, box):
     if ui["building"] or row == 0:
         return 0
@@ -628,7 +724,7 @@ function on_side_selected(row, box):
         return 0
     end
     item = ui["side_rows"][index]
-    if "header" in item:
+    if "header" in item or "more" in item:
         return 0
     end
     call open_mailbox(item["account"], item["raw"], 0)
@@ -1248,6 +1344,10 @@ function on_key(event, window):
         call quit()
         return True
     end
+    if key == 65479 and not ctrl:                       # F10: nabidka (Pridat ucet ...)
+        call on_menu_clicked(ui["menu_button"])
+        return True
+    end
     if ctrl and shift and (key == 117 or key == 85):
         call toggle_read()
         return True
@@ -1298,8 +1398,13 @@ function error_text(st):
     if a.get("auth", "") == "luxai" and (kind == "auth" or kind.startswith("luxai_") or kind == "nooauth"):
         return luxai_error_text(kind, detail, a.get("email", ""))
     end
-    if kind == "auth":
-        return i18n.TF("The server rejected the password for %s.", [a.get("email", "")])
+    if kind == "auth" or kind == "oauthonly":
+        t = i18n.TF("The server rejected the password for %s.", [a.get("email", "")])
+        extra = provider_auth_text(provider.of_account(a), kind)
+        if extra != "":
+            t = t + " " + extra
+        end
+        return t
     elif kind == "nopassword":
         return i18n.T("The password is not in the keyring. Enter it again.")
     elif kind == "cert":
@@ -1608,8 +1713,10 @@ function on_menu_clicked(button):
     call gtk.connect(item, "activate", on_menu_shortcuts)
     call gtk.menu_append(menu, item)
     call gtk.widget_show_all(menu)
-    call gtk.menu_attach(menu, button)
-    call gtk.menu_popup_at_pointer(menu)
+    call gtk.menu_attach(menu, ui["menu_button"])
+    call mg.menu_popup_below(menu, ui["menu_button"])
+    # klavesnice: prvni polozka vybrana (sipky, Enter)
+    call mg.menu_shell_select_first(menu)
     return 0
 end
 
@@ -1651,6 +1758,149 @@ function security_combo(value):
     return c
 end
 
+# ---- heslo: tlacitko oka a napoveda poskytovatele ------------------------------------------------------------
+
+# Pole hesla s tlacitkem oka (zobrazit/skryt); vraci [radek, pole, oko]. Tlacitko je v poradi Tab hned za
+# polem (mezernik prepne), popisek pro ctecku obrazovky a tooltip. Heslo se nikam nezapisuje.
+function password_entry():
+    row = gtk.box_new(gtk.HORIZONTAL, 0)
+    call gtk.widget_add_class(row, "linked")
+    entry = gtk.entry_new()
+    call gtk.entry_set_visibility(entry, False)
+    call mg.entry_set_input_purpose(entry, 8)
+    call gtk.widget_set_hexpand(entry, True)
+    call gtk.box_pack_start(row, entry, True, True, 0)
+    eye = mg.toggle_button_new_empty()
+    call gtk.box_pack_start(row, eye, False, False, 0)
+    call update_eye(eye, False)
+    call gtk.connect_data(eye, "toggled", 0, on_eye_toggled, entry)
+    return [row, entry, eye]
+end
+
+function update_eye(eye, visible):
+    tip = i18n.T("Show password")
+    names = ["view-reveal-symbolic", "view-visible-symbolic"]
+    if visible:
+        tip = i18n.T("Hide password")
+        names = ["view-conceal-symbolic", "view-hidden-symbolic"]
+    end
+    call gtk.button_set_image(eye, icon(names, 1))
+    call gtk.widget_set_tooltip(eye, tip)
+    call gtk.accessible_name(eye, tip)
+    return 0
+end
+
+function on_eye_toggled(entry, eye):
+    visible = gtk.toggle_button_get_active(eye)
+    call gtk.entry_set_visibility(entry, visible)
+    call update_eye(eye, visible)
+    return 0
+end
+
+# Napoveda k heslu u znameho poskytovatele: [text, popisek tlacitka, adresa]; prazdny text = nic
+function provider_hint(id, domain):
+    p = provider.info(id)
+    if len(p) == 0:
+        return ["", "", ""]
+    end
+    if id == "google":
+        text = i18n.T("Google requires an app password: turn on 2-Step Verification for your Google account, then create an app password and enter it here instead of your normal password.")
+        if provider.workspace(id, domain):
+            text = text + " " + i18n.T("If your organization manages the account, its administrator must allow app passwords.")
+        end
+        return [text, i18n.T("Create App Password"), p["url"]]
+    elif id == "microsoft":
+        return [i18n.T("Microsoft no longer accepts passwords from mail apps for Outlook.com, Hotmail, Live and Microsoft 365 mailboxes – only “Sign in with Microsoft”, which Mail does not support yet. Until then, read this mailbox in Outlook on the web."), i18n.T("Open Outlook on the Web"), p["webmail"]]
+    elif id == "yahoo" or id == "aol":
+        return [i18n.TF("%s requires an app password: open the account security settings, create an app password for Mail and enter it here instead of your normal password.", [p["name"]]), i18n.T("Create App Password"), p["url"]]
+    elif id == "icloud":
+        return [i18n.T("iCloud Mail requires an app-specific password: turn on two-factor authentication for your Apple Account, then in Sign-In and Security choose App-Specific Passwords, create one and enter it here."), i18n.T("Create App Password"), p["url"]]
+    elif id == "seznam":
+        return [i18n.T("Seznam: use your normal password. With two-factor authentication turned on, create an app password in your Seznam account security settings instead. If signing in fails, allow IMAP access in the mail settings."), i18n.T("Open Seznam Account"), p["url"]]
+    elif id == "centrum":
+        return [i18n.T("Centrum, Atlas and Volný: use your normal password. If signing in fails, check in the webmail settings that access by mail apps (IMAP) is allowed for your mailbox."), i18n.T("Open Webmail"), p["webmail"]]
+    elif id == "gmx":
+        return [i18n.T("GMX and WEB.DE: first allow access by mail apps (POP3/IMAP) in the webmail settings, then use your normal password."), i18n.T("Open Webmail"), p["webmail"]]
+    end
+    return ["", "", ""]
+end
+
+# Napoveda do okna: box [text, tlacitko]; vraci {"box", "label", "button", "url", "id"}
+function hint_widgets():
+    box = gtk.box_new(gtk.VERTICAL, 6)
+    call gtk.widget_add_class(box, "provider-hint")
+    call gtk.widget_set_no_show_all(box, True)
+    l = label("", "small")
+    call gtk.label_set_line_wrap(l, True)
+    call gtk.label_set_max_width_chars(l, 56)
+    call gtk.box_pack_start(box, l, False, False, 0)
+    b = gtk.button_new("")
+    call gtk.widget_set_halign(b, gtk.ALIGN_START)
+    call gtk.box_pack_start(box, b, False, False, 0)
+    h = {"box": box, "label": l, "button": b, "url": "", "id": ""}
+    call gtk.connect_data(b, "clicked", 0, on_hint_button, h)
+    return h
+end
+
+function show_hint(h, id, domain):
+    hint = provider_hint(id, domain)
+    h["id"] = id
+    h["url"] = hint[2]
+    if hint[0] == "":
+        call gtk.widget_hide(h["box"])
+        return 0
+    end
+    call gtk.label_set_text(h["label"], hint[0])
+    call gtk.button_set_label(h["button"], hint[1])
+    call gtk.widget_set_tooltip(h["button"], hint[2])
+    call gtk.widget_show(h["label"])
+    if hint[2] != "":
+        call gtk.widget_show(h["button"])
+    else:
+        call gtk.widget_hide(h["button"])
+    end
+    call gtk.widget_show(h["box"])
+    return 0
+end
+
+function on_hint_button(h, button):
+    call open_url(h["url"])
+    return 0
+end
+
+# Otevreni stranky poskytovatele v prohlizeci (testy: LUXOS_MAIL_OPEN_URL_LOG = soubor misto prohlizece)
+function open_url(url):
+    if url == "" or not url.startswith("https://"):
+        return 0
+    end
+    log_path = env.get("LUXOS_MAIL_OPEN_URL_LOG", "")
+    if log_path != None and log_path != "":
+        safe:
+            prev = ""
+            if exists(log_path):
+                prev = readfile(log_path)
+            end
+            call writefile(log_path, prev + url + "\n")
+        end
+        return 0
+    end
+    call glib.spawn_quiet(["xdg-open", url])
+    return 0
+end
+
+# [radek, port, zabezpeceni]: "993  Zabezpeceni [SSL/TLS]"
+function port_security_row(value):
+    row = gtk.box_new(gtk.HORIZONTAL, 10)
+    port = gtk.entry_new()
+    call gtk.entry_set_width_chars(port, 6)
+    call gtk.box_pack_start(row, port, False, False, 0)
+    call gtk.box_pack_start(row, label(i18n.T("Security"), ""), False, False, 0)
+    combo = security_combo(value)
+    call gtk.widget_set_hexpand(combo, True)
+    call gtk.box_pack_start(row, combo, True, True, 0)
+    return [row, port, combo]
+end
+
 function on_add_account_clicked(widget):
     return open_add_dialog("", "")
 end
@@ -1672,7 +1922,8 @@ function open_add_dialog(prefill, note):
     call gtk.window_set_modal(win, True)
     call gtk.window_set_default_size(win, 460, -1)
     call gtk.window_set_resizable(win, False)
-    call gtk.window_set_position(win, gtk.WIN_POS_CENTER_ON_PARENT)
+    # okno roste (nastaveni serveru, napoveda, chyba): drzet uprostred, aby tlacitka nezmizela pod okrajem
+    call gtk.window_set_position(win, gtk.WIN_POS_CENTER_ALWAYS)
     call gtk.window_set_icon_list(win, "luxos-mail")
     box = gtk.box_new(gtk.VERTICAL, 10)
     call gtk.widget_add_class(box, "dialog-box")
@@ -1692,10 +1943,12 @@ function open_add_dialog(prefill, note):
     email = field(grid, 1, i18n.T("Email"), gtk.entry_new())
     call gtk.entry_set_placeholder_text(email, "name@example.com")
     call mg.entry_set_input_purpose(email, 5)
-    password = field(grid, 2, i18n.T("Password"), gtk.entry_new())
-    call gtk.entry_set_visibility(password, False)
-    call mg.entry_set_input_purpose(password, 8)
+    pw = password_entry()
+    call field(grid, 2, i18n.T("Password"), pw[0])
+    password = pw[1]
     call gtk.box_pack_start(box, grid, False, False, 0)
+    hint = hint_widgets()
+    call gtk.box_pack_start(box, hint["box"], False, False, 0)
 
     # nastaveni serveru (po hledani)
     details = gtk.box_new(gtk.VERTICAL, 8)
@@ -1706,13 +1959,18 @@ function open_add_dialog(prefill, note):
     g2 = gtk.grid_new()
     call gtk.grid_set_row_spacing(g2, 8)
     call gtk.grid_set_column_spacing(g2, 10)
+    # port a zabezpeceni na jednom radku (okno se vejde i na nizsi obrazovku i s napovedou a chybou)
     host = field(g2, 0, i18n.T("Incoming server (IMAP)"), gtk.entry_new())
-    port = field(g2, 1, i18n.T("Port"), gtk.entry_new())
-    sec = field(g2, 2, i18n.T("Security"), security_combo("ssl"))
-    user = field(g2, 3, i18n.T("User name"), gtk.entry_new())
-    shost = field(g2, 4, i18n.T("Outgoing server (SMTP)"), gtk.entry_new())
-    sport = field(g2, 5, i18n.T("Port"), gtk.entry_new())
-    ssec = field(g2, 6, i18n.T("Security"), security_combo("starttls"))
+    ps = port_security_row("ssl")
+    call field(g2, 1, i18n.T("Port"), ps[0])
+    port = ps[1]
+    sec = ps[2]
+    user = field(g2, 2, i18n.T("User name"), gtk.entry_new())
+    shost = field(g2, 3, i18n.T("Outgoing server (SMTP)"), gtk.entry_new())
+    ps = port_security_row("starttls")
+    call field(g2, 4, i18n.T("Port"), ps[0])
+    sport = ps[1]
+    ssec = ps[2]
     call gtk.box_pack_start(details, g2, False, False, 0)
     call gtk.box_pack_start(box, details, False, False, 0)
 
@@ -1741,17 +1999,46 @@ function open_add_dialog(prefill, note):
     call gtk.container_add(win, box)
     ui["dlg"] = {"window": win, "name": name, "email": email, "password": password, "details": details, "found": found,
                  "host": host, "port": port, "sec": sec, "user": user, "shost": shost, "sport": sport, "ssec": ssec,
-                 "spinner": spinner, "message": message, "ok": ok, "manual": manual, "stage": "start", "busy": False, "smtp": {}}
+                 "spinner": spinner, "message": message, "ok": ok, "manual": manual, "stage": "start", "busy": False, "smtp": {},
+                 "eye": pw[2], "hint": hint, "provider": "", "email_text": ""}
     call gtk.connect(email, "activate", on_dlg_activate)
+    call gtk.connect(email, "changed", on_dlg_email_changed)
     call gtk.connect(password, "activate", on_dlg_activate)
     call gtk.connect(win, "delete-event", on_dlg_delete)
     call gtk.widget_show_all(win)
     if prefill != "":
         call gtk.entry_set_text(email, prefill)
+        call on_dlg_email_changed(email)
         call gtk.widget_grab_focus(password)
     else:
         call gtk.widget_grab_focus(email)
     end
+    return 0
+end
+
+# Napoveda hned podle domeny (bez site); po hledani serveru i podle MX (Google Workspace, Microsoft 365).
+# Jina adresa po nalezeni serveru: znovu hledat (nastaveni patrila puvodni adrese).
+function on_dlg_email_changed(entry):
+    d = ui["dlg"]
+    if len(d) == 0:
+        return 0
+    end
+    email = gtk.entry_get_text(d["email"]).strip()
+    if email == d["email_text"]:
+        return 0
+    end
+    d["email_text"] = email
+    domain = provider.domain_of(email)
+    id = provider.by_domain(domain)
+    if d["stage"] != "start" and not d["busy"]:
+        call gtk.widget_hide(d["details"])
+        call gtk.widget_show(d["manual"])
+        call gtk.button_set_label(d["ok"], i18n.T("Continue"))
+        call dlg_message("", False)
+        d["stage"] = "start"
+    end
+    d["provider"] = id
+    call show_hint(d["hint"], id, domain)
     return 0
 end
 
@@ -1804,8 +2091,10 @@ function show_details(info):
     sp = smtp.get("port", 587)
     call gtk.entry_set_text(d["sport"], String(sp))
     call mg.combo_box_set_active_id(d["ssec"], String(smtp.get("security", "starttls")))
+    # no_show_all chrani box jen pri otevreni okna; widget_show_all na nem s no_show_all nic neukaze
+    # (pole serveru by zustala skryta - ani rucni nastaveni by neslo upravit)
+    call gtk.widget_set_no_show_all(d["details"], False)
     call gtk.widget_show_all(d["details"])
-    call gtk.widget_show(d["details"])
     call gtk.widget_hide(d["manual"])
     call gtk.button_set_label(d["ok"], i18n.T("Sign In"))
     d["stage"] = "details"
@@ -1867,6 +2156,11 @@ function on_dlg_ok(button):
     req = {"email": email, "name": gtk.entry_get_text(d["name"]).strip(), "password": password,
            "imap": {"host": host, "port": port, "security": security, "user": gtk.entry_get_text(d["user"]).strip()},
            "smtp": {"host": gtk.entry_get_text(d["shost"]).strip(), "port": sport, "security": ssec, "user": gtk.entry_get_text(d["user"]).strip()}}
+    prov = d["provider"]
+    if prov == "":
+        prov = provider.detect(provider.domain_of(email), host, [])
+    end
+    req["provider"] = prov
     call request("add_account", req, {"email": email})
     return 0
 end
@@ -1877,6 +2171,11 @@ function on_discovered(email, output, status):
         return 0
     end
     call dlg_busy(False)
+    if gtk.entry_get_text(d["email"]).strip() != email:
+        # adresa se behem hledani zmenila: vysledek patri jine adrese
+        call dlg_message("", False)
+        return 0
+    end
     info = None
     safe:
         info = json.decode(output)
@@ -1897,6 +2196,11 @@ function on_discovered(email, output, status):
         return 0
     end
     call show_details(info)
+    prov = String(info.get("provider", ""))
+    if prov != "" and len(provider.info(prov)) > 0:
+        d["provider"] = prov
+        call show_hint(d["hint"], prov, provider.domain_of(email))
+    end
     text = ""
     if source == "autoconfig":
         text = i18n.T("Settings provided by your email provider.")
@@ -1913,11 +2217,48 @@ function on_discovered(email, output, status):
     return 0
 end
 
-function kind_text(msg, host):
+# Odmitnute heslo u znameho poskytovatele: co udelat (heslo aplikace, OAuth jeste neni); "" = obecny text
+function provider_auth_text(id, kind):
+    p = provider.info(id)
+    if len(p) == 0:
+        return ""
+    end
+    if kind == "oauthonly" or p["auth"] == "oauth":
+        return i18n.TF("%s accepts only “Sign in with %s” (OAuth), not a password. Mail does not support it yet – use the webmail for now.", [p["name"], p["name"]])
+    end
+    if p["auth"] == "app_password":
+        if id == "google":
+            return i18n.T("Google did not accept the password. Google accepts only an app password here, not your normal Google password: turn on 2-Step Verification and create an app password.")
+        end
+        return i18n.TF("%s did not accept the password. Use an app password, not your normal password.", [p["name"]])
+    end
+    return ""
+end
+
+# Duvod od serveru do zavorky (sluzba ho uz ocistila od ridicich znaku; tady jen zkraceni)
+function server_reason(detail):
+    d = String(detail).strip()
+    if d == "":
+        return ""
+    end
+    if len(d) > 300:
+        d = d[0:297] + "..."
+    end
+    return " (" + i18n.T("Server:") + " " + d + ")"
+end
+
+function kind_text(msg, host, prov=""):
     kind = msg.get("kind", "")
     detail = msg.get("error", "")
-    if kind == "auth":
-        return i18n.T("The email address or password is not correct.") + " (" + detail + ")"
+    if kind == "auth" or kind == "oauthonly":
+        t = provider_auth_text(prov, kind)
+        if t == "" and kind == "oauthonly":
+            return i18n.TF("%s does not accept passwords from mail apps, only sign-in with a token (OAuth), which Mail does not support for this provider yet.", [host])
+        end
+        if t == "":
+            t = i18n.T("The email address or password is not correct.")
+        end
+        return t + server_reason(detail)
     elif kind == "cert":
         return i18n.TF("The security certificate of %s is not valid (%s). Mail does not connect to protect your password.", [host, detail])
     elif kind == "connect":
@@ -1932,6 +2273,13 @@ function kind_text(msg, host):
         return i18n.T("This is not an IMAP server.") + " " + detail
     elif kind.startswith("luxai_") or kind == "nooauth" or kind == "unavailable":
         return luxai_error_text(kind, detail, "")
+    elif kind == "closed":
+        return i18n.TF("%s closed the connection.", [host]) + server_reason(detail)
+    elif kind == "no" or kind == "error" or kind == "invalid":
+        return i18n.T("Signing in failed.") + server_reason(detail)
+    end
+    if detail == "":
+        return i18n.T("Signing in failed.")
     end
     return detail
 end
@@ -1945,7 +2293,14 @@ function on_account_added(msg):
     end
     call dlg_busy(False)
     if not msg.get("ok", False):
-        call dlg_message(kind_text(msg, gtk.entry_get_text(d["host"]).strip()), True)
+        prov = d["provider"]
+        if prov == "":
+            prov = provider.detect(provider.domain_of(gtk.entry_get_text(d["email"])), gtk.entry_get_text(d["host"]).strip(), [])
+        end
+        call dlg_message(kind_text(msg, gtk.entry_get_text(d["host"]).strip(), prov), True)
+        if (msg.get("kind", "") == "auth" or msg.get("kind", "") == "oauthonly") and prov != "":
+            call show_hint(d["hint"], prov, provider.domain_of(gtk.entry_get_text(d["email"])))
+        end
         return 0
     end
     w = d["window"]
@@ -2262,15 +2617,19 @@ function password_dialog(id):
     box = gtk.box_new(gtk.VERTICAL, 8)
     call gtk.widget_add_class(box, "dialog-box")
     call gtk.box_pack_start(box, label(i18n.TF("Password for %s", [a["email"]]), "list-title"), False, False, 0)
-    entry = gtk.entry_new()
-    call gtk.entry_set_visibility(entry, False)
+    hint = hint_widgets()
+    call gtk.box_pack_start(box, hint["box"], False, False, 0)
+    pw = password_entry()
+    entry = pw[1]
     call gtk.entry_set_activates_default(entry, True)
-    call gtk.box_pack_start(box, entry, False, False, 0)
+    call gtk.box_pack_start(box, pw[0], False, False, 0)
     call gtk.box_pack_start(area, box, True, True, 0)
     call gtk.dialog_add_button(d, i18n.T("Cancel"), gtk.RESPONSE_CANCEL)
     call gtk.dialog_add_button(d, i18n.T("Sign In"), gtk.RESPONSE_OK)
     call gtk.dialog_set_default_response(d, gtk.RESPONSE_OK)
     call gtk.widget_show_all(d)
+    call show_hint(hint, provider.of_account(a), provider.domain_of(a.get("email", "")))
+    call gtk.widget_grab_focus(entry)
     response = gtk.dialog_run(d)
     password = gtk.entry_get_text(entry)
     call gtk.widget_destroy(d)
@@ -2285,7 +2644,7 @@ function on_password_set(msg):
     call set_busy(False)
     if not msg.get("ok", False):
         a = account(ui["current"]["account"])
-        call message_box(i18n.T("Signing in failed"), kind_text(msg, String(a.get("imap", {}).get("host", ""))))
+        call message_box(i18n.T("Signing in failed"), kind_text(msg, String(a.get("imap", {}).get("host", "")), provider.of_account(a)))
     end
     return 0
 end

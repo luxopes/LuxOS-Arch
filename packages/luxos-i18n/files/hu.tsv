@@ -4749,3 +4749,29 @@ We picked %s for your region. You can change it any time in ⋯ › Units.	A ré
 Celsius (°C)	Celsius (°C)
 Fahrenheit (°F)	Fahrenheit (°F)
 Keep Automatic	Automatikus marad
+%s accepts only “Sign in with %s” (OAuth), not a password. Mail does not support it yet – use the webmail for now.	A(z) %s csak a „Bejelentkezés %s-fiókkal” (OAuth) módot fogadja el, jelszót nem. A Levelezés ezt még nem támogatja – addig használja a webes levelezést.
+%s closed the connection.	A(z) %s bontotta a kapcsolatot.
+%s did not accept the password. Use an app password, not your normal password.	A(z) %s nem fogadta el a jelszót. Alkalmazásjelszót használjon, ne a szokásos jelszavát.
+%s does not accept passwords from mail apps, only sign-in with a token (OAuth), which Mail does not support for this provider yet.	A(z) %s nem fogad el jelszót levelezőalkalmazásoktól, csak tokenes bejelentkezést (OAuth), amelyet a Levelezés ennél a szolgáltatónál még nem támogat.
+%s requires an app password: open the account security settings, create an app password for Mail and enter it here instead of your normal password.	A(z) %s alkalmazásjelszót kér: nyissa meg a fiók biztonsági beállításait, hozzon létre alkalmazásjelszót a Levelezés számára, és azt írja be ide a szokásos jelszava helyett.
+All Mail	Összes levél
+All Mail, Starred and Important (Gmail)	Összes levél, Csillagozott és Fontos (Gmail)
+Centrum, Atlas and Volný: use your normal password. If signing in fails, check in the webmail settings that access by mail apps (IMAP) is allowed for your mailbox.	Centrum, Atlas és Volný: a szokásos jelszavát használja. Ha a bejelentkezés nem sikerül, ellenőrizze a webes levelező beállításaiban, hogy engedélyezett-e a levelezőalkalmazások (IMAP) hozzáférése a postafiókjához.
+Create App Password	Alkalmazásjelszó létrehozása
+GMX and WEB.DE: first allow access by mail apps (POP3/IMAP) in the webmail settings, then use your normal password.	GMX és WEB.DE: előbb engedélyezze a webes levelező beállításaiban a levelezőalkalmazások (POP3/IMAP) hozzáférését, majd a szokásos jelszavát használja.
+Google did not accept the password. Google accepts only an app password here, not your normal Google password: turn on 2-Step Verification and create an app password.	A Google nem fogadta el a jelszót. A Google itt csak alkalmazásjelszót fogad el, nem a szokásos Google-jelszavát: kapcsolja be a kétlépcsős azonosítást, és hozzon létre alkalmazásjelszót.
+Google requires an app password: turn on 2-Step Verification for your Google account, then create an app password and enter it here instead of your normal password.	A Google alkalmazásjelszót kér: kapcsolja be Google-fiókjában a kétlépcsős azonosítást, majd hozzon létre alkalmazásjelszót, és azt írja be ide a szokásos jelszava helyett.
+If your organization manages the account, its administrator must allow app passwords.	Ha a fiókot a szervezete kezeli, a rendszergazdának engedélyeznie kell az alkalmazásjelszavakat.
+Important	Fontos
+Less	Kevesebb
+Menu (F10)	Menü (F10)
+Microsoft no longer accepts passwords from mail apps for Outlook.com, Hotmail, Live and Microsoft 365 mailboxes – only “Sign in with Microsoft”, which Mail does not support yet. Until then, read this mailbox in Outlook on the web.	A Microsoft már nem fogad el jelszót levelezőalkalmazásoktól az Outlook.com, Hotmail, Live és Microsoft 365 postafiókoknál – csak a „Bejelentkezés Microsoft-fiókkal” módot, amelyet a Levelezés még nem támogat. Addig olvassa ezt a postafiókot a webes Outlookban.
+More	Továbbiak
+Open Outlook on the Web	Webes Outlook megnyitása
+Open Seznam Account	Seznam-fiók megnyitása
+Open Webmail	Webes levelezés megnyitása
+Server:	Kiszolgáló:
+Seznam: use your normal password. With two-factor authentication turned on, create an app password in your Seznam account security settings instead. If signing in fails, allow IMAP access in the mail settings.	Seznam: a szokásos jelszavát használja. Bekapcsolt kétlépcsős azonosítás esetén helyette hozzon létre alkalmazásjelszót a Seznam-fiók biztonsági beállításaiban. Ha a bejelentkezés nem sikerül, engedélyezze az IMAP-hozzáférést a levelezés beállításaiban.
+Signing in failed.	A bejelentkezés nem sikerült.
+Starred	Csillagozott
+iCloud Mail requires an app-specific password: turn on two-factor authentication for your Apple Account, then in Sign-In and Security choose App-Specific Passwords, create one and enter it here.	Az iCloud Mail alkalmazásspecifikus jelszót kér: kapcsolja be Apple-fiókjában a kétlépcsős hitelesítést, majd a Bejelentkezés és biztonság részben válassza az Alkalmazásspecifikus jelszavak lehetőséget, hozzon létre egyet, és írja be ide.

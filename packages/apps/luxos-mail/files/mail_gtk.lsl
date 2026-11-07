@@ -236,3 +236,23 @@ function entry_set_input_purpose(entry, purpose):
         return __lsl_qbe_call2(__lsl_symbol("gtk_entry_set_input_purpose"), ptr(entry), ptr(purpose))
     end
 end
+
+# Prepinaci tlacitko bez popisku (jen ikona pres button_set_image, napr. oko u hesla)
+function toggle_button_new_empty():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("gtk_toggle_button_new"))
+    end
+end
+
+# Nabidka pod widgetem, pravy okraj zarovnany (tlacitko nabidky vpravo v liste; GdkGravity 9/3 = SE/NE)
+function menu_popup_below(menu, widget):
+    unsafe:
+        return __lsl_qbe_call5(__lsl_symbol("gtk_menu_popup_at_widget"), ptr(menu), ptr(widget), 9, 3, 0)
+    end
+end
+
+function menu_shell_select_first(menu):
+    unsafe:
+        return __lsl_qbe_call2(__lsl_symbol("gtk_menu_shell_select_first"), ptr(menu), 1)
+    end
+end
