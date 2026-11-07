@@ -4581,3 +4581,90 @@ allow incoming %s from everywhere	povoliť prichádzajúce %s odkiaľkoľvek
 allow incoming %s from this network	povoliť prichádzajúce %s z tejto siete
 stop allowing incoming %s from everywhere	zrušiť povolenie prichádzajúcich %s odkiaľkoľvek
 stop allowing incoming %s from this network	zrušiť povolenie prichádzajúcich %s z tejto siete
+# Posta (luxos-mail)
+New messages: %d	Nové správy: %d
+(no subject)	(bez predmetu)
+New mail from %s	Nová pošta od %s
+Mail	Pošta
+The mail service stopped.	Služba pošty sa zastavila.
+Inbox	Doručená pošta
+Sent	Odoslané
+Drafts	Koncepty
+Trash	Kôš
+Junk	Nevyžiadaná pošta
+Archive	Archív
+Get Mail (Ctrl+R)	Stiahnuť poštu (Ctrl+R)
+New Message (Ctrl+N)	Nová správa (Ctrl+N)
+Mark as Read/Unread (Ctrl+Shift+U)	Označiť ako prečítané/neprečítané (Ctrl+Shift+U)
+Move to Trash (Delete)	Presunúť do koša (Delete)
+Filter (Ctrl+F)	Filter (Ctrl+F)
+Welcome to Mail	Vitajte v Pošte
+Add your email account to read your mail and get notified about new messages.	Pridajte svoj e-mailový účet, aby ste mohli čítať poštu a dostávať upozornenia na nové správy.
+Add Account…	Pridať účet…
+No messages	Žiadne správy
+No Message Selected	Nie je vybraná žiadna správa
+Unread: %d	Neprečítané: %d
+To: %s	Komu: %s
+Load Older Messages	Načítať staršie správy
+To:	Komu:
+Cc:	Kópia:
+This message could not be displayed.	Túto správu nie je možné zobraziť.
+(This message has no text.)	(Táto správa nemá žiadny text.)
+This message was formatted as a web page; Mail shows its text. Images and remote content are not loaded.	Správa je naformátovaná ako webová stránka; Pošta zobrazuje jej text. Obrázky a obsah z internetu sa nenačítavajú.
+Save attachment…	Uložiť prílohu…
+Save Attachment	Uložiť prílohu
+The attachment could not be saved.	Prílohu nie je možné uložiť.
+Delete this message permanently?	Odstrániť správu natrvalo?
+It is already in the Trash. This cannot be undone.	Už je v koši. Túto akciu nie je možné vrátiť.
+The server rejected the password for %s.	Server odmietol heslo pre %s.
+The password is not in the keyring. Enter it again.	Heslo nie je v kľúčenke. Zadajte ho znova.
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password.	Bezpečnostný certifikát servera %s nie je platný (%s). Pošta sa nepripojí, aby ochránila vaše heslo.
+Cannot reach %s. Showing saved messages.	Server %s nie je dostupný. Zobrazujú sa uložené správy.
+%s does not offer an encrypted connection. Mail does not send your password unencrypted.	%s neponúka šifrované spojenie. Pošta neposiela heslo nešifrovane.
+Offline – showing saved messages.	Offline – zobrazujú sa uložené správy.
+Enter Password…	Zadať heslo…
+This message is not available offline.	Táto správa nie je dostupná offline.
+The message no longer exists on the server.	Správa už na serveri nie je.
+New Message	Nová správa
+Writing messages is coming soon	Písanie správ už čoskoro
+This version of Mail reads your mail and notifies you about new messages. Writing and replying will come in a future update; until then use your webmail.	Táto verzia Pošty číta vašu poštu a upozorňuje na nové správy. Písanie a odpovedanie príde v niektorej z budúcich aktualizácií; dovtedy použite webmail.
+Recipient:	Príjemca:
+Copy Address	Skopírovať adresu
+Change Password for %s…	Zmeniť heslo pre %s…
+Remove %s…	Odobrať %s…
+Saved messages and the password are removed from this computer. Nothing is deleted on the server.	Uložené správy a heslo sa z tohto počítača odstránia. Na serveri sa nič neodstráni.
+Previous / next message	Predchádzajúca / ďalšia správa
+Read the message text	Čítať text správy
+Mark as read / unread	Označiť ako prečítané / neprečítané
+Filter the message list	Filtrovať zoznam správ
+Get mail	Stiahnuť poštu
+Close Mail	Zavrieť Poštu
+Add Account	Pridať účet
+Add an Email Account	Pridať e-mailový účet
+Mail finds the server settings for most providers automatically.	Pošta u väčšiny poskytovateľov nájde nastavenia servera sama.
+Optional	Nepovinné
+Email	E-mail
+Incoming server (IMAP)	Server prichádzajúcej pošty (IMAP)
+Port	Port
+Outgoing server (SMTP)	Server odchádzajúcej pošty (SMTP)
+Configure Manually	Nastaviť ručne
+Enter the server settings from your email provider.	Zadajte nastavenia servera od svojho poskytovateľa e-mailu.
+Enter a valid email address.	Zadajte platnú e-mailovú adresu.
+Enter your password.	Zadajte heslo.
+Looking up the server settings…	Hľadám nastavenia servera…
+Enter the incoming server.	Zadajte server prichádzajúcej pošty.
+Signing in to %s…	Prihlasujem sa k %s…
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password. Check the server name with your provider.	Bezpečnostný certifikát servera %s nie je platný (%s). Pošta sa nepripojí, aby ochránila vaše heslo. Overte názov servera u svojho poskytovateľa.
+The server settings were not found automatically. Enter them below.	Nastavenia servera sa nepodarilo nájsť automaticky. Zadajte ich nižšie.
+Settings provided by your email provider.	Nastavenia od vášho poskytovateľa e-mailu.
+Settings found in the Thunderbird provider database.	Nastavenia nájdené v databáze poskytovateľov Thunderbirdu.
+Settings found in the DNS records of your domain.	Nastavenia nájdené v záznamoch DNS vašej domény.
+Settings guessed from your address – please check them.	Nastavenia odhadnuté podľa adresy – skontrolujte ich, prosím.
+The email address or password is not correct.	E-mailová adresa alebo heslo nie sú správne.
+Cannot connect to %s. Check the server name and port.	Nie je možné pripojiť sa k %s. Skontrolujte názov servera a port.
+%s did not answer in time.	%s neodpovedal včas.
+The password could not be saved in the keyring.	Heslo nie je možné uložiť do kľúčenky.
+This is not an IMAP server.	Toto nie je server IMAP.
+Password for %s	Heslo pre %s
+Signing in failed	Prihlásenie zlyhalo
+Read your email and get notified about new messages	Čítanie e-mailu a upozornenia na nové správy
