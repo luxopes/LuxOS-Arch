@@ -52,9 +52,42 @@ How it works and what it means for security:
 3. Mail signs in, saves the password in the keyring and downloads the newest 500 messages of the
    Inbox. Older messages load with **Load Older Messages** at the end of the list.
 
+You can add any number of accounts (a LuxAI mailbox, Gmail, a company mailbox …): **… › Add
+Account…** in the menu (or **F10**, then Enter). Every password field has an **eye** button right
+after it (Tab, then Space; tooltip *Show password*) that shows what you typed.
+
 When the settings are not found automatically, Mail opens the server fields: **Incoming server
 (IMAP)**, **Port** (993 for SSL/TLS, 143 for STARTTLS), **Security** and **User name** (usually the
 whole address). The outgoing server (SMTP) is stored for the coming send feature.
+
+### Gmail, Outlook and other big providers
+
+Many big providers no longer accept your normal password from mail apps. Mail recognises them by the
+address, the found server or the domain's MX records (Google Workspace, Microsoft 365 on your own
+domain) and says what to enter **before** you sign in, with a button to the right page:
+
+| Provider | What to enter |
+| --- | --- |
+| **Gmail**, Google Workspace | an **app password**: turn on 2-Step Verification, then create one at <https://myaccount.google.com/apppasswords> (**Create App Password**). Your normal Google password is refused (*"Application-specific password required"*). In a company account the administrator must allow app passwords. |
+| **Outlook.com**, Hotmail, Live, Microsoft 365 | not possible yet: Microsoft accepts only "Sign in with Microsoft" (OAuth2) for IMAP. Mail says so and offers **Open Outlook on the Web**; the password is never sent. |
+| **Yahoo**, **AOL** | an app password from the account security page |
+| **iCloud** (`imap.mail.me.com`) | an app-specific password (account.apple.com › Sign-In and Security) |
+| **Seznam** (seznam.cz, email.cz, post.cz) | the normal password; with two-factor authentication an app password; IMAP must be allowed in the mail settings |
+| **Centrum, Atlas, Volný** | the normal password; access by mail apps (IMAP) must be allowed for the mailbox |
+| **GMX, WEB.DE** | allow POP3/IMAP in the webmail settings first, then the normal password |
+
+When signing in fails, the window shows the real reason from the server after *Server:* (control
+characters removed, shortened), together with the provider's advice – for Gmail for example *"Google
+did not accept the password … (Server: Application-specific password required: …)"*.
+
+Gmail folders are recognised from SPECIAL-USE flags: *[Gmail]/Sent Mail* is Sent, *Spam* is Junk,
+*Drafts* and *Trash* likewise. **All Mail**, **Starred** and **Important** only show the same
+messages again, so they are under **More** at the end of the account's folders; Mail does not count
+or download them in the background (All Mail can hold hundreds of thousands of messages).
+
+"Sign in with Google" (OAuth2) is not available: it needs an OAuth client registered with Google
+and, for the Gmail scope, Google's app verification and security assessment. The sign-in code is
+ready for it (LuxAI mailboxes already use XOAUTH2/OAUTHBEARER tokens).
 
 ### How the server settings are found
 
@@ -107,6 +140,7 @@ as read when you open it. Attachments are listed above the text; click one to sa
 | Ctrl+R, F5 | get mail now |
 | Ctrl+N | new message (coming in a later update) |
 | Ctrl+Q, Ctrl+W | close Mail |
+| F10 | menu (Add Account, Change Password, Remove …) |
 
 Messages that were opened once stay readable **offline**; the list always comes from the local cache,
 so Mail opens instantly also without a network. When the server cannot be reached, a yellow bar says
@@ -174,6 +208,8 @@ downloaded again.
 | "The security certificate … is not valid" | The server name does not match its certificate or the certificate expired. Use the exact server name from your provider (e.g. `mail.example.com` instead of `example.com`). |
 | "The password is not in the keyring" | The keyring was not unlocked at login (password changed?). Enter the password again with **Enter Password…**. |
 | Settings not found | Ask the provider for IMAP server, port and security, then **Configure Manually**. |
+| Gmail: "Google did not accept the password" | Use an app password, not your Google password – see [Gmail, Outlook and other big providers](#gmail-outlook-and-other-big-providers). |
+| Outlook/Hotmail: "accepts only Sign in with Microsoft" | Not supported yet; read the mailbox in Outlook on the web. |
 | "Your LuxAI sign-in has expired" | Press **Sign In…** (or run `luxos-account login`); Mail reconnects after signing in. |
 | "Your LuxAI account no longer has access to …" | The owner of the mailbox removed the access on the LuxAI server. Remove the account in the menu, or ask the owner and press **Try Again**. |
 | "The mail server did not accept the LuxAI sign-in" | Press **Try Again** once. If it repeats, the mail server cannot check tokens right now – wait a few minutes (repeated failures can block your address for an hour). |

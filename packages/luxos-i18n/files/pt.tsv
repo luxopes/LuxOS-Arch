@@ -4749,3 +4749,29 @@ We picked %s for your region. You can change it any time in ⋯ › Units.	Escol
 Celsius (°C)	Celsius (°C)
 Fahrenheit (°F)	Fahrenheit (°F)
 Keep Automatic	Manter automático
+%s accepts only “Sign in with %s” (OAuth), not a password. Mail does not support it yet – use the webmail for now.	%s aceita apenas “Iniciar sessão com %s” (OAuth), não uma palavra-passe. O Mail ainda não o suporta – por agora use o webmail.
+%s closed the connection.	%s fechou a ligação.
+%s did not accept the password. Use an app password, not your normal password.	%s não aceitou a palavra-passe. Use uma palavra-passe de aplicação, não a sua palavra-passe normal.
+%s does not accept passwords from mail apps, only sign-in with a token (OAuth), which Mail does not support for this provider yet.	%s não aceita palavras-passe de aplicações de correio, apenas início de sessão com um token (OAuth), que o Mail ainda não suporta para este fornecedor.
+%s requires an app password: open the account security settings, create an app password for Mail and enter it here instead of your normal password.	%s exige uma palavra-passe de aplicação: abra as definições de segurança da conta, crie uma palavra-passe de aplicação para o Mail e introduza-a aqui em vez da sua palavra-passe normal.
+All Mail	Todo o correio
+All Mail, Starred and Important (Gmail)	Todo o correio, Com estrela e Importante (Gmail)
+Centrum, Atlas and Volný: use your normal password. If signing in fails, check in the webmail settings that access by mail apps (IMAP) is allowed for your mailbox.	Centrum, Atlas e Volný: use a sua palavra-passe normal. Se o início de sessão falhar, verifique nas definições do webmail se o acesso por aplicações de correio (IMAP) está permitido para a sua caixa.
+Create App Password	Criar palavra-passe de aplicação
+GMX and WEB.DE: first allow access by mail apps (POP3/IMAP) in the webmail settings, then use your normal password.	GMX e WEB.DE: primeiro permita o acesso por aplicações de correio (POP3/IMAP) nas definições do webmail e depois use a sua palavra-passe normal.
+Google did not accept the password. Google accepts only an app password here, not your normal Google password: turn on 2-Step Verification and create an app password.	O Google não aceitou a palavra-passe. Aqui o Google aceita apenas uma palavra-passe de aplicação, não a sua palavra-passe normal do Google: ative a validação em dois passos e crie uma palavra-passe de aplicação.
+Google requires an app password: turn on 2-Step Verification for your Google account, then create an app password and enter it here instead of your normal password.	O Google exige uma palavra-passe de aplicação: ative a validação em dois passos na sua conta Google, depois crie uma palavra-passe de aplicação e introduza-a aqui em vez da sua palavra-passe normal.
+If your organization manages the account, its administrator must allow app passwords.	Se a sua organização gere a conta, o administrador tem de permitir palavras-passe de aplicação.
+Important	Importante
+Less	Menos
+Menu (F10)	Menu (F10)
+Microsoft no longer accepts passwords from mail apps for Outlook.com, Hotmail, Live and Microsoft 365 mailboxes – only “Sign in with Microsoft”, which Mail does not support yet. Until then, read this mailbox in Outlook on the web.	A Microsoft já não aceita palavras-passe de aplicações de correio para caixas Outlook.com, Hotmail, Live e Microsoft 365 – apenas “Iniciar sessão com a Microsoft”, que o Mail ainda não suporta. Até lá, leia esta caixa no Outlook na Web.
+More	Mais
+Open Outlook on the Web	Abrir o Outlook na Web
+Open Seznam Account	Abrir conta Seznam
+Open Webmail	Abrir webmail
+Server:	Servidor:
+Seznam: use your normal password. With two-factor authentication turned on, create an app password in your Seznam account security settings instead. If signing in fails, allow IMAP access in the mail settings.	Seznam: use a sua palavra-passe normal. Com a autenticação de dois fatores ativa, crie antes uma palavra-passe de aplicação nas definições de segurança da sua conta Seznam. Se o início de sessão falhar, permita o acesso IMAP nas definições do correio.
+Signing in failed.	Falha ao iniciar sessão.
+Starred	Com estrela
+iCloud Mail requires an app-specific password: turn on two-factor authentication for your Apple Account, then in Sign-In and Security choose App-Specific Passwords, create one and enter it here.	O iCloud Mail exige uma palavra-passe específica da app: ative a autenticação de dois fatores na sua Conta Apple, depois em Início de sessão e segurança escolha Palavras-passe específicas da app, crie uma e introduza-a aqui.

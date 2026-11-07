@@ -4749,3 +4749,29 @@ We picked %s for your region. You can change it any time in ⋯ › Units.	Vi va
 Celsius (°C)	Celsius (°C)
 Fahrenheit (°F)	Fahrenheit (°F)
 Keep Automatic	Behåll automatiskt
+%s accepts only “Sign in with %s” (OAuth), not a password. Mail does not support it yet – use the webmail for now.	%s accepterar bara ”Logga in med %s” (OAuth), inte ett lösenord. Mail stöder det inte än – använd webbmejlen så länge.
+%s closed the connection.	%s stängde anslutningen.
+%s did not accept the password. Use an app password, not your normal password.	%s godtog inte lösenordet. Använd ett applösenord, inte ditt vanliga lösenord.
+%s does not accept passwords from mail apps, only sign-in with a token (OAuth), which Mail does not support for this provider yet.	%s accepterar inte lösenord från e-postappar, bara inloggning med en token (OAuth), som Mail ännu inte stöder för den här leverantören.
+%s requires an app password: open the account security settings, create an app password for Mail and enter it here instead of your normal password.	%s kräver ett applösenord: öppna kontots säkerhetsinställningar, skapa ett applösenord för Mail och ange det här i stället för ditt vanliga lösenord.
+All Mail	Alla mejl
+All Mail, Starred and Important (Gmail)	Alla mejl, Stjärnmärkta och Viktiga (Gmail)
+Centrum, Atlas and Volný: use your normal password. If signing in fails, check in the webmail settings that access by mail apps (IMAP) is allowed for your mailbox.	Centrum, Atlas och Volný: använd ditt vanliga lösenord. Om inloggningen misslyckas, kontrollera i webbmejlens inställningar att åtkomst för e-postappar (IMAP) är tillåten för din brevlåda.
+Create App Password	Skapa applösenord
+GMX and WEB.DE: first allow access by mail apps (POP3/IMAP) in the webmail settings, then use your normal password.	GMX och WEB.DE: tillåt först åtkomst för e-postappar (POP3/IMAP) i webbmejlens inställningar och använd sedan ditt vanliga lösenord.
+Google did not accept the password. Google accepts only an app password here, not your normal Google password: turn on 2-Step Verification and create an app password.	Google godtog inte lösenordet. Google accepterar här bara ett applösenord, inte ditt vanliga Google-lösenord: aktivera tvåstegsverifiering och skapa ett applösenord.
+Google requires an app password: turn on 2-Step Verification for your Google account, then create an app password and enter it here instead of your normal password.	Google kräver ett applösenord: aktivera tvåstegsverifiering för ditt Google-konto, skapa sedan ett applösenord och ange det här i stället för ditt vanliga lösenord.
+If your organization manages the account, its administrator must allow app passwords.	Om din organisation hanterar kontot måste administratören tillåta applösenord.
+Important	Viktiga
+Less	Färre
+Menu (F10)	Meny (F10)
+Microsoft no longer accepts passwords from mail apps for Outlook.com, Hotmail, Live and Microsoft 365 mailboxes – only “Sign in with Microsoft”, which Mail does not support yet. Until then, read this mailbox in Outlook on the web.	Microsoft accepterar inte längre lösenord från e-postappar för brevlådor hos Outlook.com, Hotmail, Live och Microsoft 365 – bara ”Logga in med Microsoft”, som Mail ännu inte stöder. Läs den här brevlådan i Outlook på webben så länge.
+More	Fler
+Open Outlook on the Web	Öppna Outlook på webben
+Open Seznam Account	Öppna Seznam-kontot
+Open Webmail	Öppna webbmejl
+Server:	Server:
+Seznam: use your normal password. With two-factor authentication turned on, create an app password in your Seznam account security settings instead. If signing in fails, allow IMAP access in the mail settings.	Seznam: använd ditt vanliga lösenord. Med tvåfaktorsautentisering aktiverad skapar du i stället ett applösenord i säkerhetsinställningarna för ditt Seznam-konto. Om inloggningen misslyckas, tillåt IMAP-åtkomst i e-postinställningarna.
+Signing in failed.	Inloggningen misslyckades.
+Starred	Stjärnmärkta
+iCloud Mail requires an app-specific password: turn on two-factor authentication for your Apple Account, then in Sign-In and Security choose App-Specific Passwords, create one and enter it here.	iCloud Mail kräver ett appspecifikt lösenord: aktivera tvåfaktorsautentisering för ditt Apple-konto, välj sedan Appspecifika lösenord under Inloggning och säkerhet, skapa ett och ange det här.

@@ -4,12 +4,14 @@
 # a okamzita upozorneni na novou postu (IMAP IDLE) i se zavrenym oknem - maly program na pozadi bez GTK
 # (luxos-mail-service, XDG autostart). Hesla jen v klicence Secret Service (gnome-keyring, secret-tool).
 # Prihlaseni uctem LuxAI: schranky na serveru LuxAI bez hesla (kratkodoby token, SASL OAUTHBEARER/XOAUTH2).
+# Velci poskytovatele (Gmail/Workspace, Microsoft, Yahoo, iCloud, Seznam ...): napoveda k heslu aplikace,
+# duvod odmitnuti od serveru, slozky Gmailu; tlacitko oka u kazdeho pole hesla.
 # Psani a odesilani (SMTP) prijde ve fazi 2. Moduly LuxOS pro GTK/GLib (luxos_gtk, luxos_glib ...) bere
 # ze zdroju luxos-desktop (files/lsl), stejne jako programy tam.
 
 pkgname=luxos-mail
 pkgver=1.0.0
-pkgrel=2
+pkgrel=3
 pkgdesc="LuxOS Mail - lightweight mail app with instant new-mail notifications (IMAP IDLE), written in LSL"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"
@@ -53,7 +55,7 @@ build() {
 check() {
     cd "$startdir/tests"
     # okno potrebuje xvfb-run (test_gui se bez nej preskoci); sluzba vlastni D-Bus a gnome-keyring
-    LUXOS_MAIL_BIN="$srcdir/luxos-mail" python -m pytest -q -p no:cacheprovider test_mime.py test_discover.py test_service.py test_luxai.py test_gui.py test_gui_luxai.py
+    LUXOS_MAIL_BIN="$srcdir/luxos-mail" python -m pytest -q -p no:cacheprovider test_mime.py test_discover.py test_service.py test_luxai.py test_providers.py test_gui.py test_gui_luxai.py test_gui_providers.py
 }
 
 package() {

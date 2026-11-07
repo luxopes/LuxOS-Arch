@@ -502,6 +502,76 @@ function connect(host, port, security, timeout=15000):
     return conn
 end
 
+# Text od serveru pro uzivatele: bez ridicich znaku, nejvys 300 znaku (zpravy chyb, [ALERT])
+function clean_text(text):
+    out = ByteArray()
+    for c in net.bytes(String(text)):
+        if c < 32 or c == 127:
+            out.append(32)
+        else:
+            out.append(c)
+        end
+    end
+    words = []
+    for w in net.text(out).split(" "):
+        if w != "":
+            words.append(w)
+        end
+    end
+    t = " ".join(words)
+    if len(t) > 300:
+        t = t[0:297] + "..."
+    end
+    return t
+end
+
+# Upozorneni serveru pri prihlaseni: "* NO [ALERT] text", "* OK [WEBALERT url] text" (Gmail) a kod
+# tagovane odpovedi -> text pro uzivatele, napr. Gmail: "[ALERT] Application-specific password required: ..."
+function auth_reason(result):
+    alerts = []
+    for resp in result.get("untagged", []):
+        if resp.get("tag", "") != "*":
+            continue
+        end
+        parts = status_parts(first_line(resp))
+        code = parts[1].upper()
+        if (parts[0] == "NO" or parts[0] == "OK" or parts[0] == "BAD") and (code == "ALERT" or code.startswith("WEBALERT")):
+            t = clean_text(parts[2])
+            if t != "" and t not in alerts:
+                alerts.append(t)
+            end
+        end
+    end
+    text = clean_text(result.get("text", ""))
+    code = String(result.get("code", "")).upper()
+    if code != "" and not code.startswith("CAPABILITY"):
+        first = code.split(" ")[0]
+        if first == "ALERT" or first == "WEBALERT":
+            if text != "" and text not in alerts:
+                alerts.append(text)
+            end
+            text = ""
+        elif text != "":
+            text = "[" + clean_text(first) + "] " + text
+        end
+    end
+    if text != "" and text not in alerts:
+        alerts.append(text)
+    end
+    if len(alerts) == 0:
+        return "Authentication failed."
+    end
+    return " ".join(alerts)
+end
+
+# Server bez prihlaseni heslem (LOGINDISABLED a zadne AUTH=PLAIN/LOGIN), jen tokenem OAuth2 (Microsoft)
+function oauth_only(conn):
+    if has_cap(conn, "AUTH=PLAIN") or has_cap(conn, "AUTH=LOGIN") or not has_cap(conn, "LOGINDISABLED"):
+        return False
+    end
+    return has_cap(conn, "AUTH=XOAUTH2") or has_cap(conn, "AUTH=OAUTHBEARER")
+end
+
 function login(conn, user, password):
     result = {}
     if has_cap(conn, "AUTH=PLAIN"):
@@ -515,11 +585,13 @@ function login(conn, user, password):
             r = read_response(conn, TIMEOUT, False)
             if r["tag"] != "+":
                 parts = status_parts(first_line(r))
-                call fail("auth", parts[2])
+                call fail("auth", auth_reason({"code": parts[1], "text": parts[2], "untagged": []}))
             end
             call write(conn, token + "\r\n")
         end
         result = finish(conn, tag, False, TIMEOUT)
+    elif oauth_only(conn):
+        call fail("oauthonly", "The server accepts only sign-in with a token (OAuth2), not a password.")
     elif has_cap(conn, "LOGINDISABLED"):
         call fail("auth", "The server does not allow signing in on this connection.")
     elif ascii_safe(user) and ascii_safe(password):
@@ -539,11 +611,7 @@ function login(conn, user, password):
         result = finish(conn, tag, False, TIMEOUT)
     end
     if result["status"] != "OK":
-        text = result["text"]
-        if text == "":
-            text = "Authentication failed."
-        end
-        call fail("auth", text)
+        call fail("auth", auth_reason(result))
     end
     if not result["code"].upper().startswith("CAPABILITY "):
         call capability(conn)
@@ -799,7 +867,7 @@ ROLE_NAMES = {"sent": "sent", "sent items": "sent", "sent messages": "sent", "se
 
 function role_from_flags(flags):
     for f in flags:
-        if f == "\\sent" or f == "\\drafts" or f == "\\trash" or f == "\\junk" or f == "\\archive" or f == "\\all":
+        if f in ["\\sent", "\\drafts", "\\trash", "\\junk", "\\archive", "\\all", "\\important", "\\flagged"]:
             return f
         end
     end
@@ -816,8 +884,15 @@ function mailbox_role(name, flags, delim):
             return "trash"
         elif f == "\\junk":
             return "junk"
-        elif f == "\\archive" or f == "\\all":
+        elif f == "\\archive":
             return "archive"
+        elif f == "\\all":
+            # Gmail "[Gmail]/All Mail": vsechny zpravy (i z Dorucene) - jen pod "Dalsi", nestahovat
+            return "all"
+        elif f == "\\important":
+            return "important"
+        elif f == "\\flagged":
+            return "starred"
         end
     end
     if name.upper() == "INBOX":

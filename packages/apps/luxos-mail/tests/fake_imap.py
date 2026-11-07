@@ -15,6 +15,14 @@ Rizeni testu: radkovy protokol na --control portu (127.0.0.1):
     revoke                              zneplatni vsechny tokeny
     dump                                JSON stav schranek
     log                                 prijate prikazy (heslo zakryte)
+
+Napodobeni velkych poskytovatelu (--personality):
+    gmail      pozdrav "Gimap ready" bez CAPABILITY, schopnosti jako imap.gmail.com (X-GM-EXT-1, XLIST,
+               SASL-IR, AUTH=PLAIN/XOAUTH2/OAUTHBEARER), po prihlaseni SPECIAL-USE; schranky [Gmail]/...;
+               normalni heslo uctu (--account-password) -> NO [ALERT] Application-specific password required,
+               jine spatne heslo -> NO [AUTHENTICATIONFAILED] Invalid credentials (Failure); --password je
+               heslo aplikace. --alert-untagged posle [ALERT] jako "* NO" pred tagovanou odpovedi.
+    microsoft  jako outlook.office365.com: LOGINDISABLED, jen AUTH=XOAUTH2 (bez hesla)
 """
 import argparse
 import base64
@@ -70,6 +78,9 @@ class State:
         self.sasl_ir = sasl_ir
         self.tokens = {}
         self.dovecot_flags = False
+        self.personality = ""
+        self.account_password = None
+        self.alert_untagged = False
         self.boxes = {
             "INBOX": Mailbox("INBOX"),
             "Sent": Mailbox("Sent", "\\Sent"),
@@ -263,6 +274,14 @@ class Session(threading.Thread):
         self.alive = True
 
     def caps(self):
+        if self.state.personality == "gmail":
+            if self.user is None:
+                return ("IMAP4rev1 UNSELECT IDLE NAMESPACE QUOTA ID XLIST CHILDREN X-GM-EXT-1 XYZZY SASL-IR "
+                        "AUTH=XOAUTH2 AUTH=PLAIN AUTH=PLAIN-CLIENTTOKEN AUTH=OAUTHBEARER")
+            return ("IMAP4rev1 UNSELECT IDLE NAMESPACE QUOTA ID XLIST CHILDREN X-GM-EXT-1 UIDPLUS COMPRESS=DEFLATE "
+                    "ENABLE MOVE CONDSTORE ESEARCH UTF8=ACCEPT LIST-EXTENDED LIST-STATUS LITERAL- SPECIAL-USE APPENDLIMIT=35651584")
+        if self.state.personality == "microsoft":
+            return "IMAP4 IMAP4rev1 AUTH=XOAUTH2 LOGINDISABLED SASL-IR UIDPLUS MOVE ID UNSELECT CHILDREN IDLE NAMESPACE LITERAL+"
         c = ["IMAP4rev1", "IDLE", "UIDPLUS", "MOVE", "CONDSTORE", "ENABLE", "LITERAL+", "SPECIAL-USE"]
         if self.state.sasl_ir:
             c.append("SASL-IR")
@@ -304,7 +323,12 @@ class Session(threading.Thread):
         try:
             if self.tls:
                 self.sock = self.ctx.wrap_socket(self.sock, server_side=True)
-            self.send("* OK [CAPABILITY %s] LuxOS test IMAP ready\r\n" % self.caps())
+            if self.state.personality == "gmail":
+                self.send("* OK Gimap ready for requests from 127.0.0.1 fake-gimap\r\n")
+            elif self.state.personality == "microsoft":
+                self.send("* OK Microsoft Exchange IMAP4 service ready. [RwBWAFoA]\r\n")
+            else:
+                self.send("* OK [CAPABILITY %s] LuxOS test IMAP ready\r\n" % self.caps())
             while self.alive:
                 line = self.readline()
                 self.handle(line)
@@ -363,6 +387,21 @@ class Session(threading.Thread):
         self.rbuf = b""
 
     def login_ok(self, tag, user, password):
+        if self.state.personality == "gmail":
+            if self.state.users.get(user) == password:
+                self.user = user
+                self.send("%s OK %s authenticated (Success)\r\n" % (tag, user))
+                return
+            time.sleep(0.2)
+            if user in self.state.users and password == self.state.account_password:
+                alert = "Application-specific password required: https://support.google.com/accounts/answer/185833 (Failure)"
+                if self.state.alert_untagged:
+                    self.send("* NO [ALERT] %s\r\n%s NO [AUTHENTICATIONFAILED] Invalid credentials (Failure)\r\n" % (alert, tag))
+                else:
+                    self.send("%s NO [ALERT] %s\r\n" % (tag, alert))
+                return
+            self.send("%s NO [AUTHENTICATIONFAILED] Invalid credentials (Failure)\r\n" % tag)
+            return
         if self.state.users.get(user) == password:
             self.user = user
             self.send("%s OK [CAPABILITY %s] logged in\r\n" % (tag, self.caps()))
@@ -371,6 +410,9 @@ class Session(threading.Thread):
             self.send("%s NO [AUTHENTICATIONFAILED] Authentication failed.\r\n" % tag)
 
     def cmd_login(self, tag, rest, uid):
+        if self.state.personality == "microsoft":
+            self.send("%s BAD Command received in Invalid state.\r\n" % tag)
+            return
         if not self.tls:
             self.send("%s NO [PRIVACYREQUIRED] TLS required\r\n" % tag)
             return
@@ -676,6 +718,10 @@ class Session(threading.Thread):
         self.send("%s OK IDLE terminated\r\n" % tag)
 
     def cmd_logout(self, tag, rest, uid):
+        if self.state.personality == "gmail":
+            self.send("* BYE LOGOUT Requested\r\n%s OK 73 good day (Success)\r\n" % tag)
+            self.alive = False
+            return
         self.send("* BYE bye\r\n%s OK logout\r\n" % tag)
         self.alive = False
 
@@ -754,11 +800,31 @@ def main():
     ap.add_argument("--oauth", default="", help="mechanismy tokenu, napr. OAUTHBEARER,XOAUTH2")
     ap.add_argument("--no-sasl-ir", action="store_true")
     ap.add_argument("--dovecot-flags", action="store_true", help="nevyzadane FETCH s priznaky po BODYSTRUCTURE")
+    ap.add_argument("--personality", default="", help="gmail | microsoft")
+    ap.add_argument("--account-password", default=None, help="gmail: normalni heslo uctu (IMAP ho odmitne s [ALERT])")
+    ap.add_argument("--alert-untagged", action="store_true")
     a = ap.parse_args()
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.load_cert_chain(a.cert, a.key)
     state = State({a.user: a.password}, a.qresync, [m for m in a.oauth.upper().split(",") if m], not a.no_sasl_ir)
     state.dovecot_flags = a.dovecot_flags
+    state.personality = a.personality
+    state.account_password = a.account_password
+    state.alert_untagged = a.alert_untagged
+    if a.personality == "gmail":
+        state.boxes = {
+            "INBOX": Mailbox("INBOX"),
+            "[Gmail]": Mailbox("[Gmail]", "\\Noselect"),
+            "[Gmail]/All Mail": Mailbox("[Gmail]/All Mail", "\\All"),
+            "[Gmail]/Drafts": Mailbox("[Gmail]/Drafts", "\\Drafts"),
+            "[Gmail]/Important": Mailbox("[Gmail]/Important", "\\Important"),
+            "[Gmail]/Sent Mail": Mailbox("[Gmail]/Sent Mail", "\\Sent"),
+            "[Gmail]/Spam": Mailbox("[Gmail]/Spam", "\\Junk"),
+            "[Gmail]/Starred": Mailbox("[Gmail]/Starred", "\\Flagged"),
+            "[Gmail]/Trash": Mailbox("[Gmail]/Trash", "\\Trash"),
+            "Faktury": Mailbox("Faktury"),
+            "Faktury/2026": Mailbox("Faktury/2026"),
+        }
     if a.seed:
         for i, name in enumerate(sorted(os.listdir(a.seed))):
             if name.endswith(".eml"):

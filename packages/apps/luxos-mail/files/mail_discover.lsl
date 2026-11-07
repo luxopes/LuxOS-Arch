@@ -11,6 +11,7 @@
 load env, json, http, net
 load mail_bytes as mb
 load mail_imap as imap
+load mail_provider as provider
 
 DEFAULT_URLS = "https://autoconfig.%DOMAIN%/mail/config-v1.1.xml?emailaddress=%EMAIL% https://%DOMAIN%/.well-known/autoconfig/mail/config-v1.1.xml"
 ISPDB = "https://autoconfig.thunderbird.net/v1.1/%DOMAIN%"
@@ -301,8 +302,42 @@ function fill(template, domain, email):
     return template.replace("%DOMAIN%", domain).replace("%EMAIL%", email)
 end
 
-# Hlavni funkce; probe=False: zadne spojeni se servery posty (jen DNS a HTTPS autoconfig)
+# Hlavni funkce; probe=False: zadne spojeni se servery posty (jen DNS a HTTPS autoconfig).
+# "provider": znamy poskytovatel (mail_provider) podle domeny, nalezeneho serveru IMAP nebo MX
+# (Google Workspace / Microsoft 365 na vlastni domene) - okno podle nej ukaze, jake heslo zadat.
 function discover(email, probe):
+    result = discover_servers(email, probe)
+    host = ""
+    if len(result["imap"]) > 0:
+        host = String(result["imap"].get("host", ""))
+    end
+    mx = result.get("mx", None)
+    if mx == None:
+        mx = []
+        if result["domain"] != "" and provider.by_domain(result["domain"]) == "" and provider.by_host(host) == "":
+            mx = mx_hosts(result["domain"])
+        end
+    end
+    result["provider"] = provider.detect(result["domain"], host, mx)
+    if "mx" in result:
+        call result.pop("mx")
+    end
+    return result
+end
+
+function mx_hosts(domain):
+    out = []
+    for mx in dns_query(domain, "MX"):
+        host = String(mx[1]).lower()
+        if host.endswith("."):
+            host = host[0:len(host) - 1]
+        end
+        out.append(host)
+    end
+    return out
+end
+
+function discover_servers(email, probe):
     email = email.strip()
     domain = domain_of(email)
     result = {"email": email, "domain": domain, "imap": {}, "smtp": {}, "source": "", "steps": [], "error": ""}
@@ -320,8 +355,8 @@ function discover(email, probe):
     end
     # ISPDB podle MX (domeny u Google, Microsoftu, Seznamu ...)
     mx_domains = []
-    for mx in dns_query(domain, "MX"):
-        host = String(mx[1]).lower()
+    result["mx"] = mx_hosts(domain)
+    for host in result["mx"]:
         parts = host.split(".")
         if len(parts) >= 2:
             base = parts[len(parts) - 2] + "." + parts[len(parts) - 1]

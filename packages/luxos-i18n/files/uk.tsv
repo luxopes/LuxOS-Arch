@@ -4750,3 +4750,29 @@ We picked %s for your region. You can change it any time in ⋯ › Units.	Дл�
 Celsius (°C)	Цельсій (°C)
 Fahrenheit (°F)	Фаренгейт (°F)
 Keep Automatic	Залишити автоматично
+%s accepts only “Sign in with %s” (OAuth), not a password. Mail does not support it yet – use the webmail for now.	%s приймає лише «Увійти через %s» (OAuth), а не пароль. Пошта поки що цього не підтримує – тим часом користуйтеся вебпоштою.
+%s closed the connection.	%s розірвав з’єднання.
+%s did not accept the password. Use an app password, not your normal password.	%s не прийняв пароль. Використайте пароль застосунку, а не звичайний пароль.
+%s does not accept passwords from mail apps, only sign-in with a token (OAuth), which Mail does not support for this provider yet.	%s не приймає паролі від поштових застосунків, лише вхід за токеном (OAuth), який Пошта для цього постачальника поки що не підтримує.
+%s requires an app password: open the account security settings, create an app password for Mail and enter it here instead of your normal password.	%s вимагає пароль застосунку: відкрийте налаштування безпеки облікового запису, створіть пароль застосунку для Пошти й введіть його тут замість звичайного пароля.
+All Mail	Уся пошта
+All Mail, Starred and Important (Gmail)	Уся пошта, Із зірочкою та Важливі (Gmail)
+Centrum, Atlas and Volný: use your normal password. If signing in fails, check in the webmail settings that access by mail apps (IMAP) is allowed for your mailbox.	Centrum, Atlas і Volný: використовуйте звичайний пароль. Якщо вхід не вдається, перевірте в налаштуваннях вебпошти, що для вашої скриньки дозволено доступ поштових застосунків (IMAP).
+Create App Password	Створити пароль застосунку
+GMX and WEB.DE: first allow access by mail apps (POP3/IMAP) in the webmail settings, then use your normal password.	GMX і WEB.DE: спочатку дозвольте в налаштуваннях вебпошти доступ поштових застосунків (POP3/IMAP), а потім використовуйте звичайний пароль.
+Google did not accept the password. Google accepts only an app password here, not your normal Google password: turn on 2-Step Verification and create an app password.	Google не прийняв пароль. Тут Google приймає лише пароль застосунку, а не ваш звичайний пароль Google: увімкніть двоетапну перевірку й створіть пароль застосунку.
+Google requires an app password: turn on 2-Step Verification for your Google account, then create an app password and enter it here instead of your normal password.	Google вимагає пароль застосунку: увімкніть двоетапну перевірку для свого облікового запису Google, потім створіть пароль застосунку й введіть його тут замість звичайного пароля.
+If your organization manages the account, its administrator must allow app passwords.	Якщо обліковим записом керує ваша організація, її адміністратор має дозволити паролі застосунків.
+Important	Важливі
+Less	Менше
+Menu (F10)	Меню (F10)
+Microsoft no longer accepts passwords from mail apps for Outlook.com, Hotmail, Live and Microsoft 365 mailboxes – only “Sign in with Microsoft”, which Mail does not support yet. Until then, read this mailbox in Outlook on the web.	Microsoft більше не приймає паролі від поштових застосунків для скриньок Outlook.com, Hotmail, Live і Microsoft 365 – лише «Увійти через Microsoft», що Пошта поки не підтримує. Доти читайте цю скриньку в Outlook в інтернеті.
+More	Більше
+Open Outlook on the Web	Відкрити Outlook в інтернеті
+Open Seznam Account	Відкрити обліковий запис Seznam
+Open Webmail	Відкрити вебпошту
+Server:	Сервер:
+Seznam: use your normal password. With two-factor authentication turned on, create an app password in your Seznam account security settings instead. If signing in fails, allow IMAP access in the mail settings.	Seznam: використовуйте звичайний пароль. Якщо ввімкнено двофакторну автентифікацію, натомість створіть пароль для застосунків у налаштуваннях безпеки облікового запису Seznam. Якщо вхід не вдається, дозвольте доступ IMAP у налаштуваннях пошти.
+Signing in failed.	Не вдалося увійти.
+Starred	Із зірочкою
+iCloud Mail requires an app-specific password: turn on two-factor authentication for your Apple Account, then in Sign-In and Security choose App-Specific Passwords, create one and enter it here.	iCloud Mail вимагає пароль для програми: увімкніть двофакторну автентифікацію для свого облікового запису Apple, потім у розділі «Вхід і безпека» виберіть «Паролі для програм», створіть один і введіть його тут.
