@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-maps</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Maps</name>
+  <summary>Maps of the whole world, places and routes</summary>
+  <launchable type="desktop-id">luxos-maps.desktop</launchable>
+  <description>
+    <p>Maps shows an OpenStreetMap map of the whole world. Find places and addresses, plan routes by car, by bike, on foot or by public transport, and keep your favorite places at hand.</p>
+    <p xml:lang="cs">Mapy ukazují mapu OpenStreetMap celého světa. Najděte místa a adresy, naplánujte trasu autem, na kole, pěšky nebo MHD a mějte oblíbená místa po ruce.</p>
+    <p xml:lang="sk">Mapy zobrazujú mapu OpenStreetMap celého sveta. Nájdite miesta a adresy, naplánujte trasu autom, na bicykli, pešo alebo MHD a majte obľúbené miesta poruke.</p>
+    <p xml:lang="pl">Mapy pokazują mapę OpenStreetMap całego świata. Znajduj miejsca i adresy, planuj trasy samochodem, rowerem, pieszo lub komunikacją miejską i miej ulubione miejsca pod ręką.</p>
+    <p xml:lang="uk">Карти показують мапу OpenStreetMap усього світу. Шукайте місця й адреси, плануйте маршрути автомобілем, велосипедом, пішки чи громадським транспортом і тримайте улюблені місця під рукою.</p>
+    <p xml:lang="hu">A Térképek az egész világ OpenStreetMap-térképét mutatja. Keressen helyeket és címeket, tervezzen útvonalat autóval, kerékpárral, gyalog vagy tömegközlekedéssel, és tartsa kéznél kedvenc helyeit.</p>
+    <p xml:lang="de">Karten zeigt eine OpenStreetMap-Karte der ganzen Welt. Finden Sie Orte und Adressen, planen Sie Routen mit dem Auto, dem Fahrrad, zu Fuß oder mit öffentlichen Verkehrsmitteln und haben Sie Ihre Lieblingsorte immer zur Hand.</p>
+    <p xml:lang="fr">Plans affiche une carte OpenStreetMap du monde entier. Trouvez des lieux et des adresses, calculez des itinéraires en voiture, à vélo, à pied ou en transports en commun, et gardez vos lieux favoris à portée de main.</p>
+    <p xml:lang="es">Mapas muestra un mapa de OpenStreetMap de todo el mundo. Busca lugares y direcciones, planifica rutas en coche, en bici, a pie o en transporte público y ten tus lugares favoritos a mano.</p>
+    <p xml:lang="it">Mappe mostra una mappa OpenStreetMap di tutto il mondo. Trova luoghi e indirizzi, pianifica percorsi in auto, in bici, a piedi o con i mezzi pubblici e tieni a portata di mano i tuoi luoghi preferiti.</p>
+    <p xml:lang="pt">O Mapas mostra um mapa OpenStreetMap de todo o mundo. Encontre locais e moradas, planeie percursos de carro, de bicicleta, a pé ou de transportes públicos e tenha os seus locais favoritos à mão.</p>
+    <p xml:lang="nl">Kaarten toont een OpenStreetMap-kaart van de hele wereld. Zoek plaatsen en adressen, plan routes met de auto, de fiets, te voet of met het openbaar vervoer en houd je favoriete plaatsen bij de hand.</p>
+    <p xml:lang="sv">Kartor visar en OpenStreetMap-karta över hela världen. Hitta platser och adresser, planera rutter med bil, cykel, till fots eller med kollektivtrafik och ha dina favoritplatser nära till hands.</p>
+    <p>Your location is used only with your permission. Maps also opens location links (geo:) from other apps.</p>
+    <p xml:lang="cs">Vaše poloha se použije jen s vaším svolením. Mapy také otevírají odkazy na místa (geo:) z jiných aplikací.</p>
+    <p xml:lang="sk">Vaša poloha sa použije len s vaším súhlasom. Mapy tiež otvárajú odkazy na miesta (geo:) z iných aplikácií.</p>
+    <p xml:lang="pl">Twoja lokalizacja jest używana tylko za Twoją zgodą. Mapy otwierają też odnośniki do miejsc (geo:) z innych aplikacji.</p>
+    <p xml:lang="uk">Ваше місцезнаходження використовується лише з вашого дозволу. Карти також відкривають посилання на місця (geo:) з інших програм.</p>
+    <p xml:lang="hu">A tartózkodási helyét csak az Ön engedélyével használja. A Térképek a más alkalmazásokból érkező helyhivatkozásokat (geo:) is megnyitja.</p>
+    <p xml:lang="de">Ihr Standort wird nur mit Ihrer Erlaubnis verwendet. Karten öffnet auch Ortslinks (geo:) aus anderen Apps.</p>
+    <p xml:lang="fr">Votre position n’est utilisée qu’avec votre accord. Plans ouvre aussi les liens de lieux (geo:) provenant d’autres applications.</p>
+    <p xml:lang="es">Tu ubicación solo se usa con tu permiso. Mapas también abre enlaces de ubicación (geo:) de otras aplicaciones.</p>
+    <p xml:lang="it">La tua posizione viene usata solo con il tuo permesso. Mappe apre anche i link di luoghi (geo:) da altre app.</p>
+    <p xml:lang="pt">A sua localização só é usada com a sua autorização. O Mapas também abre ligações de locais (geo:) de outras aplicações.</p>
+    <p xml:lang="nl">Je locatie wordt alleen met je toestemming gebruikt. Kaarten opent ook locatielinks (geo:) uit andere apps.</p>
+    <p xml:lang="sv">Din plats används bara med ditt tillstånd. Kartor öppnar också platslänkar (geo:) från andra appar.</p>
+    <ul>
+      <li>Search with suggestions while you type</li>
+      <li xml:lang="cs">Hledání s našeptáváním při psaní</li>
+      <li xml:lang="sk">Vyhľadávanie s našepkávaním pri písaní</li>
+      <li xml:lang="pl">Wyszukiwanie z podpowiedziami podczas pisania</li>
+      <li xml:lang="uk">Пошук із підказками під час введення</li>
+      <li xml:lang="hu">Keresés javaslatokkal gépelés közben</li>
+      <li xml:lang="de">Suche mit Vorschlägen beim Tippen</li>
+      <li xml:lang="fr">Recherche avec suggestions pendant la saisie</li>
+      <li xml:lang="es">Búsqueda con sugerencias mientras escribes</li>
+      <li xml:lang="it">Ricerca con suggerimenti durante la digitazione</li>
+      <li xml:lang="pt">Pesquisa com sugestões enquanto escreve</li>
+      <li xml:lang="nl">Zoeken met suggesties tijdens het typen</li>
+      <li xml:lang="sv">Sökning med förslag medan du skriver</li>
+      <li>Turn-by-turn directions and navigation along the route</li>
+      <li xml:lang="cs">Popis trasy krok za krokem a navigace po trase</li>
+      <li xml:lang="sk">Popis trasy krok za krokom a navigácia po trase</li>
+      <li xml:lang="pl">Wskazówki krok po kroku i nawigacja po trasie</li>
+      <li xml:lang="uk">Покрокові вказівки та навігація маршрутом</li>
+      <li xml:lang="hu">Lépésenkénti útvonalleírás és navigáció az útvonalon</li>
+      <li xml:lang="de">Wegbeschreibung Schritt für Schritt und Navigation entlang der Route</li>
+      <li xml:lang="fr">Instructions étape par étape et navigation le long de l’itinéraire</li>
+      <li xml:lang="es">Indicaciones paso a paso y navegación por la ruta</li>
+      <li xml:lang="it">Indicazioni passo passo e navigazione lungo il percorso</li>
+      <li xml:lang="pt">Indicações passo a passo e navegação ao longo do percurso</li>
+      <li xml:lang="nl">Routebeschrijving stap voor stap en navigatie langs de route</li>
+      <li xml:lang="sv">Vägbeskrivning steg för steg och navigering längs rutten</li>
+      <li>Public transport connections and live departures from stops</li>
+      <li xml:lang="cs">Spojení MHD a odjezdy ze zastávek v reálném čase</li>
+      <li xml:lang="sk">Spojenia MHD a odchody zo zastávok v reálnom čase</li>
+      <li xml:lang="pl">Połączenia komunikacji miejskiej i odjazdy z przystanków na żywo</li>
+      <li xml:lang="uk">Сполучення громадського транспорту й відправлення із зупинок у реальному часі</li>
+      <li xml:lang="hu">Tömegközlekedési kapcsolatok és élő indulások a megállókból</li>
+      <li xml:lang="de">Verbindungen mit öffentlichen Verkehrsmitteln und Live-Abfahrten an Haltestellen</li>
+      <li xml:lang="fr">Trajets en transports en commun et départs en temps réel aux arrêts</li>
+      <li xml:lang="es">Conexiones de transporte público y salidas en tiempo real desde las paradas</li>
+      <li xml:lang="it">Collegamenti con i mezzi pubblici e partenze in tempo reale dalle fermate</li>
+      <li xml:lang="pt">Ligações de transportes públicos e partidas em tempo real das paragens</li>
+      <li xml:lang="nl">Ov-verbindingen en actuele vertrektijden bij haltes</li>
+      <li xml:lang="sv">Kollektivtrafikresor och avgångar i realtid från hållplatser</li>
+      <li>Places nearby, such as pharmacies, stops or hotels</li>
+      <li xml:lang="cs">Místa v okolí, třeba lékárny, zastávky nebo hotely</li>
+      <li xml:lang="sk">Miesta v okolí, napríklad lekárne, zastávky alebo hotely</li>
+      <li xml:lang="pl">Miejsca w pobliżu, np. apteki, przystanki lub hotele</li>
+      <li xml:lang="uk">Місця поблизу, наприклад аптеки, зупинки чи готелі</li>
+      <li xml:lang="hu">Helyek a közelben, például gyógyszertárak, megállók vagy szállodák</li>
+      <li xml:lang="de">Orte in der Nähe, etwa Apotheken, Haltestellen oder Hotels</li>
+      <li xml:lang="fr">Lieux à proximité, comme pharmacies, arrêts ou hôtels</li>
+      <li xml:lang="es">Lugares cercanos, como farmacias, paradas u hoteles</li>
+      <li xml:lang="it">Luoghi nelle vicinanze, come farmacie, fermate o hotel</li>
+      <li xml:lang="pt">Locais nas proximidades, como farmácias, paragens ou hotéis</li>
+      <li xml:lang="nl">Plaatsen in de buurt, zoals apotheken, haltes of hotels</li>
+      <li xml:lang="sv">Platser i närheten, till exempel apotek, hållplatser eller hotell</li>
+      <li>Favorite places and a dark map</li>
+      <li xml:lang="cs">Oblíbená místa a tmavá mapa</li>
+      <li xml:lang="sk">Obľúbené miesta a tmavá mapa</li>
+      <li xml:lang="pl">Ulubione miejsca i ciemna mapa</li>
+      <li xml:lang="uk">Улюблені місця та темна мапа</li>
+      <li xml:lang="hu">Kedvenc helyek és sötét térkép</li>
+      <li xml:lang="de">Lieblingsorte und eine dunkle Karte</li>
+      <li xml:lang="fr">Lieux favoris et carte sombre</li>
+      <li xml:lang="es">Lugares favoritos y mapa oscuro</li>
+      <li xml:lang="it">Luoghi preferiti e mappa scura</li>
+      <li xml:lang="pt">Locais favoritos e mapa escuro</li>
+      <li xml:lang="nl">Favoriete plaatsen en een donkere kaart</li>
+      <li xml:lang="sv">Favoritplatser och en mörk karta</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

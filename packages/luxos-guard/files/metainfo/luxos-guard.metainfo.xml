@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-guard</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Lux Guard</name>
+  <summary>Protection against harmful programs and restoring deleted files</summary>
+  <launchable type="desktop-id">luxos-guard.desktop</launchable>
+  <description>
+    <p>Lux Guard checks programs and scripts from outside your computer (downloads, e-mail attachments, USB drives) the moment they start. For an unknown program it asks first. Dangerous ones, for example scripts that would delete your files, can run only in the sandbox.</p>
+    <p xml:lang="cs">Lux Guard kontroluje programy a skripty, které přišly zvenčí (stažené z internetu, z příloh e-mailů nebo z disků USB), hned při jejich spuštění. U neznámého programu se nejdřív zeptá. Nebezpečné programy, například skripty, které by smazaly vaše soubory, smějí běžet jen v sandboxu.</p>
+    <p xml:lang="sk">Lux Guard kontroluje programy a skripty, ktoré prišli zvonka (stiahnuté z internetu, z príloh e-mailov alebo z diskov USB), hneď pri ich spustení. Pri neznámom programe sa najprv opýta. Nebezpečné programy, napríklad skripty, ktoré by zmazali vaše súbory, smú bežať len v sandboxe.</p>
+    <p xml:lang="pl">Lux Guard sprawdza programy i skrypty spoza komputera (pobrane z internetu, z załączników e-mail czy z dysków USB) w chwili ich uruchomienia. Przy nieznanym programie najpierw pyta. Niebezpieczne programy, na przykład skrypty, które usunęłyby twoje pliki, mogą działać tylko w sandboxie.</p>
+    <p xml:lang="uk">Lux Guard перевіряє програми та скрипти ззовні (завантажені з інтернету, із вкладень e-mail чи з USB-дисків) у момент їхнього запуску. Про невідому програму він спершу запитує. Небезпечні програми, наприклад скрипти, що видалили б ваші файли, можуть працювати лише в пісочниці.</p>
+    <p xml:lang="hu">A Lux Guard a kívülről érkezett programokat és szkripteket (letöltések, e-mail-mellékletek, USB-meghajtók) az indításuk pillanatában ellenőrzi. Ismeretlen programnál előbb rákérdez. A veszélyes programok, például a fájljait törlő szkriptek, csak sandboxban futhatnak.</p>
+    <p xml:lang="de">Lux Guard prüft Programme und Skripte von außerhalb des Computers (Downloads, E-Mail-Anhänge, USB-Laufwerke) in dem Moment, in dem sie starten. Bei einem unbekannten Programm fragt er zuerst nach. Gefährliche Programme, etwa Skripte, die Ihre Dateien löschen würden, laufen nur in der Sandbox.</p>
+    <p xml:lang="fr">Lux Guard vérifie les programmes et scripts venus de l’extérieur (téléchargements, pièces jointes d’e-mails, clés USB) au moment où ils démarrent. Pour un programme inconnu, il demande d’abord. Les programmes dangereux, par exemple des scripts qui supprimeraient vos fichiers, ne peuvent s’exécuter que dans le bac à sable.</p>
+    <p xml:lang="es">Lux Guard comprueba los programas y scripts que vienen de fuera del equipo (descargas, adjuntos de correo, unidades USB) en el momento en que se inician. Ante un programa desconocido, primero pregunta. Los programas peligrosos, por ejemplo scripts que borrarían sus archivos, solo pueden ejecutarse en el sandbox.</p>
+    <p xml:lang="it">Lux Guard controlla programmi e script provenienti dall’esterno (download, allegati e-mail, chiavette USB) nel momento in cui si avviano. Per un programma sconosciuto chiede prima. I programmi pericolosi, per esempio script che cancellerebbero i tuoi file, possono essere eseguiti solo nella sandbox.</p>
+    <p xml:lang="pt">O Lux Guard verifica programas e scripts vindos de fora do computador (downloads, anexos de e-mail, pendrives) no momento em que são iniciados. Diante de um programa desconhecido, ele pergunta primeiro. Programas perigosos, como scripts que apagariam seus arquivos, só podem rodar na sandbox.</p>
+    <p xml:lang="nl">Lux Guard controleert programma’s en scripts van buiten je computer (downloads, e-mailbijlagen, USB-sticks) op het moment dat ze starten. Bij een onbekend programma vraagt hij eerst. Gevaarlijke programma’s, zoals scripts die je bestanden zouden wissen, mogen alleen in de sandbox draaien.</p>
+    <p xml:lang="sv">Lux Guard kontrollerar program och skript utifrån (nedladdningar, e-postbilagor, USB-minnen) i samma ögonblick som de startar. För ett okänt program frågar den först. Farliga program, till exempel skript som skulle radera dina filer, får bara köras i sandlådan.</p>
+    <p>On a standard LuxOS installation it also saves your home folder every hour in copies that programs cannot change, so deleted or encrypted files can be restored.</p>
+    <p xml:lang="cs">Ve standardní instalaci LuxOS navíc každou hodinu ukládá kopii vaší domovské složky, kterou programy nemohou změnit, takže smazané nebo zašifrované soubory lze obnovit.</p>
+    <p xml:lang="sk">V štandardnej inštalácii LuxOS navyše každú hodinu ukladá kópiu vášho domovského priečinka, ktorú programy nemôžu zmeniť, takže zmazané alebo zašifrované súbory sa dajú obnoviť.</p>
+    <p xml:lang="pl">W standardowej instalacji LuxOS co godzinę zapisuje też kopię twojego folderu domowego, której programy nie mogą zmienić, więc usunięte lub zaszyfrowane pliki można przywrócić.</p>
+    <p xml:lang="uk">У стандартній інсталяції LuxOS він також щогодини зберігає копію вашої домашньої теки, яку програми не можуть змінити, тож видалені чи зашифровані файли можна відновити.</p>
+    <p xml:lang="hu">Szabványos LuxOS-telepítésen óránként másolatot is ment a saját mappájáról, amelyet a programok nem módosíthatnak, így a törölt vagy titkosított fájlok visszaállíthatók.</p>
+    <p xml:lang="de">Bei einer Standardinstallation von LuxOS sichert er außerdem stündlich Ihren Benutzerordner in Kopien, die Programme nicht ändern können – gelöschte oder verschlüsselte Dateien lassen sich so wiederherstellen.</p>
+    <p xml:lang="fr">Sur une installation standard de LuxOS, il enregistre aussi chaque heure une copie de votre dossier personnel que les programmes ne peuvent pas modifier : les fichiers supprimés ou chiffrés peuvent ainsi être restaurés.</p>
+    <p xml:lang="es">En una instalación estándar de LuxOS, además guarda cada hora una copia de su carpeta personal que los programas no pueden modificar, así que los archivos borrados o cifrados se pueden restaurar.</p>
+    <p xml:lang="it">In un’installazione standard di LuxOS salva inoltre ogni ora una copia della tua cartella home che i programmi non possono modificare, così i file cancellati o cifrati si possono ripristinare.</p>
+    <p xml:lang="pt">Em uma instalação padrão do LuxOS, ele também salva a cada hora uma cópia da sua pasta pessoal que os programas não podem alterar, assim arquivos apagados ou criptografados podem ser restaurados.</p>
+    <p xml:lang="nl">Op een standaardinstallatie van LuxOS bewaart hij bovendien elk uur een kopie van je thuismap die programma’s niet kunnen wijzigen, zodat gewiste of versleutelde bestanden terug te zetten zijn.</p>
+    <p xml:lang="sv">På en standardinstallation av LuxOS sparar den dessutom varje timme en kopia av din hemmapp som program inte kan ändra, så att raderade eller krypterade filer kan återställas.</p>
+    <ul>
+      <li>Choose: don't run, run in the sandbox, or run anyway</li>
+      <li xml:lang="cs">Volba: nespouštět, spustit v sandboxu, nebo přesto spustit</li>
+      <li xml:lang="sk">Voľba: nespúšťať, spustiť v sandboxe alebo napriek tomu spustiť</li>
+      <li xml:lang="pl">Wybór: nie uruchamiaj, uruchom w sandboxie lub uruchom mimo to</li>
+      <li xml:lang="uk">Вибір: не запускати, запустити в пісочниці або все одно запустити</li>
+      <li xml:lang="hu">Választás: ne fusson, fusson sandboxban, vagy fusson mégis</li>
+      <li xml:lang="de">Auswahl: nicht ausführen, in der Sandbox ausführen oder trotzdem ausführen</li>
+      <li xml:lang="fr">Au choix : ne pas exécuter, exécuter dans le bac à sable ou exécuter quand même</li>
+      <li xml:lang="es">A elegir: no ejecutar, ejecutar en el sandbox o ejecutar de todos modos</li>
+      <li xml:lang="it">A scelta: non eseguire, eseguire nella sandbox o eseguire comunque</li>
+      <li xml:lang="pt">Escolha: não executar, executar na sandbox ou executar mesmo assim</li>
+      <li xml:lang="nl">Kies: niet uitvoeren, uitvoeren in de sandbox of toch uitvoeren</li>
+      <li xml:lang="sv">Välj: kör inte, kör i sandlådan eller kör ändå</li>
+      <li>Explains in plain words why a program is dangerous</li>
+      <li xml:lang="cs">Srozumitelně vysvětlí, proč je program nebezpečný</li>
+      <li xml:lang="sk">Zrozumiteľne vysvetlí, prečo je program nebezpečný</li>
+      <li xml:lang="pl">Prostymi słowami wyjaśnia, dlaczego program jest niebezpieczny</li>
+      <li xml:lang="uk">Простими словами пояснює, чому програма небезпечна</li>
+      <li xml:lang="hu">Közérthetően elmagyarázza, miért veszélyes egy program</li>
+      <li xml:lang="de">Erklärt in einfachen Worten, warum ein Programm gefährlich ist</li>
+      <li xml:lang="fr">Explique simplement pourquoi un programme est dangereux</li>
+      <li xml:lang="es">Explica con palabras sencillas por qué un programa es peligroso</li>
+      <li xml:lang="it">Spiega con parole semplici perché un programma è pericoloso</li>
+      <li xml:lang="pt">Explica em palavras simples por que um programa é perigoso</li>
+      <li xml:lang="nl">Legt in gewone woorden uit waarom een programma gevaarlijk is</li>
+      <li xml:lang="sv">Förklarar med enkla ord varför ett program är farligt</li>
+      <li>Restore deleted files or return everything to an earlier hour</li>
+      <li xml:lang="cs">Obnova smazaných souborů nebo návrat všeho k dřívější hodině</li>
+      <li xml:lang="sk">Obnova zmazaných súborov alebo návrat všetkého k skoršej hodine</li>
+      <li xml:lang="pl">Przywracanie usuniętych plików lub cofnięcie wszystkiego do wcześniejszej godziny</li>
+      <li xml:lang="uk">Відновлення видалених файлів або повернення всього до попередньої години</li>
+      <li xml:lang="hu">Törölt fájlok visszaállítása, vagy minden visszaállítása egy korábbi órára</li>
+      <li xml:lang="de">Gelöschte Dateien wiederherstellen oder alles auf eine frühere Stunde zurücksetzen</li>
+      <li xml:lang="fr">Restauration des fichiers supprimés ou retour de tout à une heure antérieure</li>
+      <li xml:lang="es">Restaurar archivos borrados o devolver todo a una hora anterior</li>
+      <li xml:lang="it">Ripristino dei file cancellati o ritorno di tutto a un’ora precedente</li>
+      <li xml:lang="pt">Restaurar arquivos apagados ou voltar tudo a uma hora anterior</li>
+      <li xml:lang="nl">Gewiste bestanden terugzetten of alles terugzetten naar een eerder uur</li>
+      <li xml:lang="sv">Återställ raderade filer eller allt till en tidigare timme</li>
+      <li>No virus database and no scanning of all your files</li>
+      <li xml:lang="cs">Žádná virová databáze ani prohledávání všech souborů</li>
+      <li xml:lang="sk">Žiadna vírusová databáza ani prehľadávanie všetkých súborov</li>
+      <li xml:lang="pl">Bez bazy wirusów i bez skanowania wszystkich plików</li>
+      <li xml:lang="uk">Без бази вірусів і без сканування всіх файлів</li>
+      <li xml:lang="hu">Nincs vírusadatbázis, és nem vizsgálja át az összes fájlt</li>
+      <li xml:lang="de">Keine Virendatenbank und kein Durchsuchen aller Dateien</li>
+      <li xml:lang="fr">Pas de base de virus ni d’analyse de tous vos fichiers</li>
+      <li xml:lang="es">Sin base de datos de virus ni análisis de todos sus archivos</li>
+      <li xml:lang="it">Nessun database di virus e nessuna scansione di tutti i file</li>
+      <li xml:lang="pt">Sem banco de dados de vírus e sem varredura de todos os arquivos</li>
+      <li xml:lang="nl">Geen virusdatabase en geen scan van al je bestanden</li>
+      <li xml:lang="sv">Ingen virusdatabas och ingen genomsökning av alla filer</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

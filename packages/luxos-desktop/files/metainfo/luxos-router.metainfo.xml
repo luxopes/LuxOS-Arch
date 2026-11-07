@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-router</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Router</name>
+  <summary>Router settings, network details, devices on your network and quick tests</summary>
+  <launchable type="desktop-id">luxos-router.desktop</launchable>
+  <description>
+    <p>Everything about your home network in one place: network details, your router’s settings page right in the app, the devices on your network and quick tests for when something does not work.</p>
+    <p xml:lang="cs">Vše o domácí síti na jednom místě: údaje o síti, stránka s nastavením routeru přímo v aplikaci, zařízení v síti a rychlé testy pro chvíle, kdy něco nefunguje.</p>
+    <p xml:lang="sk">Všetko o domácej sieti na jednom mieste: údaje o sieti, stránka s nastaveniami routera priamo v aplikácii, zariadenia v sieti a rýchle testy pre chvíle, keď niečo nefunguje.</p>
+    <p xml:lang="pl">Wszystko o sieci domowej w jednym miejscu: dane sieci, strona ustawień routera bezpośrednio w aplikacji, urządzenia w sieci i szybkie testy na wypadek, gdy coś nie działa.</p>
+    <p xml:lang="uk">Усе про домашню мережу в одному місці: дані мережі, сторінка налаштувань роутера просто в застосунку, пристрої в мережі та швидкі перевірки, коли щось не працює.</p>
+    <p xml:lang="hu">Minden az otthoni hálózatról egy helyen: hálózati adatok, a router beállítóoldala közvetlenül az alkalmazásban, a hálózat eszközei és gyors tesztek arra az esetre, ha valami nem működik.</p>
+    <p xml:lang="de">Alles über Ihr Heimnetz an einem Ort: Netzwerkdaten, die Einstellungsseite Ihres Routers direkt in der App, die Geräte im Netzwerk und Schnelltests, wenn etwas nicht funktioniert.</p>
+    <p xml:lang="fr">Tout sur votre réseau domestique au même endroit : les informations du réseau, la page de réglages de votre routeur directement dans l’application, les appareils du réseau et des tests rapides quand quelque chose ne fonctionne pas.</p>
+    <p xml:lang="es">Todo sobre tu red doméstica en un solo lugar: los datos de la red, la página de ajustes del router dentro de la aplicación, los dispositivos de la red y pruebas rápidas para cuando algo no funciona.</p>
+    <p xml:lang="it">Tutto sulla rete di casa in un unico posto: i dati della rete, la pagina delle impostazioni del router direttamente nell’app, i dispositivi in rete e test rapidi per quando qualcosa non funziona.</p>
+    <p xml:lang="pt">Tudo sobre a sua rede doméstica em um só lugar: os dados da rede, a página de configurações do roteador dentro do aplicativo, os dispositivos da rede e testes rápidos para quando algo não funciona.</p>
+    <p xml:lang="nl">Alles over je thuisnetwerk op één plek: netwerkgegevens, de instellingenpagina van je router direct in de app, de apparaten in je netwerk en snelle tests voor als iets niet werkt.</p>
+    <p xml:lang="sv">Allt om ditt hemnätverk på ett ställe: nätverksuppgifter, routerns inställningssida direkt i appen, enheterna i nätverket och snabbtester när något inte fungerar.</p>
+    <p>The router page opens only addresses in your home network, and no passwords or cookies are saved.</p>
+    <p xml:lang="cs">Stránka routeru otevře jen adresy v domácí síti a neukládají se žádná hesla ani cookies.</p>
+    <p xml:lang="sk">Stránka routera otvorí len adresy v domácej sieti a neukladajú sa žiadne heslá ani cookies.</p>
+    <p xml:lang="pl">Strona routera otwiera tylko adresy w sieci domowej i nie zapisuje żadnych haseł ani plików cookie.</p>
+    <p xml:lang="uk">Сторінка роутера відкриває лише адреси в домашній мережі, а жодні паролі чи файли cookie не зберігаються.</p>
+    <p xml:lang="hu">A router oldala csak az otthoni hálózat címeit nyitja meg, és nem ment jelszavakat vagy sütiket.</p>
+    <p xml:lang="de">Die Routerseite öffnet nur Adressen in Ihrem Heimnetz, und es werden keine Passwörter oder Cookies gespeichert.</p>
+    <p xml:lang="fr">La page du routeur n’ouvre que des adresses de votre réseau domestique, et aucun mot de passe ni cookie n’est enregistré.</p>
+    <p xml:lang="es">La página del router solo abre direcciones de tu red doméstica y no se guardan contraseñas ni cookies.</p>
+    <p xml:lang="it">La pagina del router apre solo indirizzi della rete di casa e non vengono salvati password né cookie.</p>
+    <p xml:lang="pt">A página do roteador abre apenas endereços da sua rede doméstica, e nenhuma senha ou cookie é salvo.</p>
+    <p xml:lang="nl">De routerpagina opent alleen adressen in je thuisnetwerk en er worden geen wachtwoorden of cookies bewaard.</p>
+    <p xml:lang="sv">Routersidan öppnar bara adresser i ditt hemnätverk, och inga lösenord eller cookies sparas.</p>
+    <ul>
+      <li>Network name, IP address, router, DNS and MAC address at a glance</li>
+      <li xml:lang="cs">Název sítě, IP adresa, router, DNS a MAC adresa na první pohled</li>
+      <li xml:lang="sk">Názov siete, IP adresa, router, DNS a MAC adresa na prvý pohľad</li>
+      <li xml:lang="pl">Nazwa sieci, adres IP, router, DNS i adres MAC w jednym miejscu</li>
+      <li xml:lang="uk">Назва мережі, IP-адреса, роутер, DNS і MAC-адреса з першого погляду</li>
+      <li xml:lang="hu">Hálózatnév, IP-cím, router, DNS és MAC-cím egy pillantással</li>
+      <li xml:lang="de">Netzwerkname, IP-Adresse, Router, DNS und MAC-Adresse auf einen Blick</li>
+      <li xml:lang="fr">Nom du réseau, adresse IP, routeur, DNS et adresse MAC en un coup d’œil</li>
+      <li xml:lang="es">Nombre de la red, dirección IP, router, DNS y dirección MAC de un vistazo</li>
+      <li xml:lang="it">Nome della rete, indirizzo IP, router, DNS e indirizzo MAC a colpo d’occhio</li>
+      <li xml:lang="pt">Nome da rede, endereço IP, roteador, DNS e endereço MAC num relance</li>
+      <li xml:lang="nl">Netwerknaam, IP-adres, router, DNS en MAC-adres in één oogopslag</li>
+      <li xml:lang="sv">Nätverksnamn, IP-adress, router, DNS och MAC-adress i en överblick</li>
+      <li>Router settings over HTTP or HTTPS inside the app</li>
+      <li xml:lang="cs">Nastavení routeru přes HTTP i HTTPS přímo v aplikaci</li>
+      <li xml:lang="sk">Nastavenia routera cez HTTP aj HTTPS priamo v aplikácii</li>
+      <li xml:lang="pl">Ustawienia routera przez HTTP lub HTTPS w aplikacji</li>
+      <li xml:lang="uk">Налаштування роутера через HTTP або HTTPS просто в застосунку</li>
+      <li xml:lang="hu">Router-beállítások HTTP-n vagy HTTPS-en az alkalmazáson belül</li>
+      <li xml:lang="de">Router-Einstellungen über HTTP oder HTTPS direkt in der App</li>
+      <li xml:lang="fr">Réglages du routeur en HTTP ou HTTPS dans l’application</li>
+      <li xml:lang="es">Ajustes del router por HTTP o HTTPS dentro de la aplicación</li>
+      <li xml:lang="it">Impostazioni del router via HTTP o HTTPS dentro l’app</li>
+      <li xml:lang="pt">Configurações do roteador por HTTP ou HTTPS dentro do aplicativo</li>
+      <li xml:lang="nl">Routerinstellingen via HTTP of HTTPS in de app</li>
+      <li xml:lang="sv">Routerinställningar via HTTP eller HTTPS direkt i appen</li>
+      <li>Devices on your network with their manufacturer</li>
+      <li xml:lang="cs">Zařízení v síti včetně výrobce</li>
+      <li xml:lang="sk">Zariadenia v sieti vrátane výrobcu</li>
+      <li xml:lang="pl">Urządzenia w sieci wraz z producentem</li>
+      <li xml:lang="uk">Пристрої в мережі разом із виробником</li>
+      <li xml:lang="hu">A hálózat eszközei a gyártóval együtt</li>
+      <li xml:lang="de">Geräte im Netzwerk mit ihrem Hersteller</li>
+      <li xml:lang="fr">Appareils du réseau avec leur fabricant</li>
+      <li xml:lang="es">Dispositivos de la red con su fabricante</li>
+      <li xml:lang="it">Dispositivi in rete con il relativo produttore</li>
+      <li xml:lang="pt">Dispositivos da rede com o fabricante</li>
+      <li xml:lang="nl">Apparaten in je netwerk met hun fabrikant</li>
+      <li xml:lang="sv">Enheter i nätverket med tillverkare</li>
+      <li>Ping the router or the internet, test name lookup and download speed</li>
+      <li xml:lang="cs">Ping routeru i internetu, test překladu názvů a rychlosti stahování</li>
+      <li xml:lang="sk">Ping routera aj internetu, test prekladu názvov a rýchlosti sťahovania</li>
+      <li xml:lang="pl">Ping routera lub internetu, test rozwiązywania nazw i szybkości pobierania</li>
+      <li xml:lang="uk">Пінг роутера чи інтернету, перевірка DNS і швидкості завантаження</li>
+      <li xml:lang="hu">A router vagy az internet pingelése, névfeloldási és letöltési sebességteszt</li>
+      <li xml:lang="de">Router oder Internet anpingen, Namensauflösung und Download-Tempo testen</li>
+      <li xml:lang="fr">Ping du routeur ou d’Internet, test de résolution de noms et de débit</li>
+      <li xml:lang="es">Ping al router o a internet, prueba de resolución de nombres y de velocidad de descarga</li>
+      <li xml:lang="it">Ping del router o di internet, test della risoluzione dei nomi e della velocità di download</li>
+      <li xml:lang="pt">Ping no roteador ou na internet, teste de resolução de nomes e de velocidade de download</li>
+      <li xml:lang="nl">Ping de router of het internet, test naamomzetting en downloadsnelheid</li>
+      <li xml:lang="sv">Pinga routern eller internet, testa namnuppslag och nedladdningshastighet</li>
+      <li>Public IP address only when you ask for it</li>
+      <li xml:lang="cs">Veřejná IP adresa, jen když o ni požádáte</li>
+      <li xml:lang="sk">Verejná IP adresa, len keď o ňu požiadate</li>
+      <li xml:lang="pl">Publiczny adres IP tylko na żądanie</li>
+      <li xml:lang="uk">Публічна IP-адреса лише на ваш запит</li>
+      <li xml:lang="hu">Nyilvános IP-cím csak kérésre</li>
+      <li xml:lang="de">Öffentliche IP-Adresse nur auf Wunsch</li>
+      <li xml:lang="fr">Adresse IP publique uniquement sur demande</li>
+      <li xml:lang="es">Dirección IP pública solo cuando la pides</li>
+      <li xml:lang="it">Indirizzo IP pubblico solo quando lo chiedi</li>
+      <li xml:lang="pt">Endereço IP público só quando você pedir</li>
+      <li xml:lang="nl">Openbaar IP-adres alleen als je erom vraagt</li>
+      <li xml:lang="sv">Offentlig IP-adress bara när du ber om den</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

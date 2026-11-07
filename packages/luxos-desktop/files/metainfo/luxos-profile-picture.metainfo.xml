@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-profile-picture</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Profile Picture</name>
+  <summary>Picture of your account on the login screen and in the menu</summary>
+  <launchable type="desktop-id">luxos-profile-picture.desktop</launchable>
+  <description>
+    <p>Choose the picture of your account. It appears on the login and lock screen, in the LuxOS menu and in Control Center.</p>
+    <p xml:lang="cs">Vyberte fotku svého účtu. Zobrazí se na přihlašovací a zamykací obrazovce, v nabídce LuxOS a v Ovládacím centru.</p>
+    <p xml:lang="sk">Vyberte fotku svojho účtu. Zobrazí sa na prihlasovacej a zamykacej obrazovke, v ponuke LuxOS a v Ovládacom centre.</p>
+    <p xml:lang="pl">Wybierz zdjęcie swojego konta. Pojawi się na ekranie logowania i blokady, w menu LuxOS oraz w Centrum sterowania.</p>
+    <p xml:lang="uk">Виберіть фото свого облікового запису. Воно з’явиться на екрані входу та блокування, у меню LuxOS і в Центрі керування.</p>
+    <p xml:lang="hu">Válassza ki fiókja képét. Megjelenik a bejelentkezési és a zárolási képernyőn, a LuxOS menüben és a Vezérlőközpontban.</p>
+    <p xml:lang="de">Wählen Sie das Bild Ihres Kontos. Es erscheint auf dem Anmelde- und Sperrbildschirm, im LuxOS-Menü und im Kontrollzentrum.</p>
+    <p xml:lang="fr">Choisissez la photo de votre compte. Elle s’affiche sur l’écran de connexion et de verrouillage, dans le menu LuxOS et dans le Centre de contrôle.</p>
+    <p xml:lang="es">Elige la foto de tu cuenta. Aparece en la pantalla de inicio de sesión y de bloqueo, en el menú de LuxOS y en el Centro de control.</p>
+    <p xml:lang="it">Scegli l’immagine del tuo account. Compare nella schermata di accesso e di blocco, nel menu di LuxOS e nel Centro di Controllo.</p>
+    <p xml:lang="pt">Escolha a foto da sua conta. Ela aparece na tela de login e de bloqueio, no menu do LuxOS e na Central de Controle.</p>
+    <p xml:lang="nl">Kies de foto van je account. Die verschijnt op het aanmeld- en vergrendelscherm, in het LuxOS-menu en in het Bedieningspaneel.</p>
+    <p xml:lang="sv">Välj bilden för ditt konto. Den visas på inloggnings- och låsskärmen, i LuxOS-menyn och i Kontrollcenter.</p>
+    <ul>
+      <li>Pick a photo from your files</li>
+      <li xml:lang="cs">Výběr fotky z vašich souborů</li>
+      <li xml:lang="sk">Výber fotky z vašich súborov</li>
+      <li xml:lang="pl">Wybór zdjęcia z twoich plików</li>
+      <li xml:lang="uk">Вибір фото з ваших файлів</li>
+      <li xml:lang="hu">Fénykép kiválasztása a fájljai közül</li>
+      <li xml:lang="de">Ein Foto aus Ihren Dateien auswählen</li>
+      <li xml:lang="fr">Choisir une photo parmi vos fichiers</li>
+      <li xml:lang="es">Elige una foto de tus archivos</li>
+      <li xml:lang="it">Scegli una foto dai tuoi file</li>
+      <li xml:lang="pt">Escolha uma foto dos seus arquivos</li>
+      <li xml:lang="nl">Kies een foto uit je bestanden</li>
+      <li xml:lang="sv">Välj ett foto bland dina filer</li>
+      <li>Take a new photo with the webcam</li>
+      <li xml:lang="cs">Nová fotka z webkamery</li>
+      <li xml:lang="sk">Nová fotka z webkamery</li>
+      <li xml:lang="pl">Nowe zdjęcie z kamery internetowej</li>
+      <li xml:lang="uk">Нове фото з вебкамери</li>
+      <li xml:lang="hu">Új fénykép készítése a webkamerával</li>
+      <li xml:lang="de">Ein neues Foto mit der Webcam aufnehmen</li>
+      <li xml:lang="fr">Prendre une nouvelle photo avec la webcam</li>
+      <li xml:lang="es">Haz una foto nueva con la cámara web</li>
+      <li xml:lang="it">Scatta una nuova foto con la webcam</li>
+      <li xml:lang="pt">Tire uma nova foto com a webcam</li>
+      <li xml:lang="nl">Maak een nieuwe foto met de webcam</li>
+      <li xml:lang="sv">Ta ett nytt foto med webbkameran</li>
+      <li>Crop it into a circle: drag to move, scroll to zoom</li>
+      <li xml:lang="cs">Ořez do kruhu: tažením posunete, kolečkem myši přiblížíte</li>
+      <li xml:lang="sk">Orez do kruhu: ťahaním posuniete, kolieskom myši priblížite</li>
+      <li xml:lang="pl">Kadrowanie do koła: przeciągnij, aby przesunąć, przewiń, aby powiększyć</li>
+      <li xml:lang="uk">Обрізання по колу: перетягуйте, щоб зсунути, прокручуйте, щоб наблизити</li>
+      <li xml:lang="hu">Kör alakú vágás: húzással mozgatja, görgetéssel nagyítja</li>
+      <li xml:lang="de">Kreisförmig zuschneiden: ziehen zum Verschieben, scrollen zum Zoomen</li>
+      <li xml:lang="fr">Recadrage en cercle : faites glisser pour déplacer, faites défiler pour zoomer</li>
+      <li xml:lang="es">Recórtala en un círculo: arrastra para moverla y desplaza para hacer zoom</li>
+      <li xml:lang="it">Ritaglio circolare: trascina per spostare, scorri per ingrandire</li>
+      <li xml:lang="pt">Recorte em círculo: arraste para mover, role para ampliar</li>
+      <li xml:lang="nl">Bijsnijden tot een cirkel: sleep om te verplaatsen, scrol om te zoomen</li>
+      <li xml:lang="sv">Beskär till en cirkel: dra för att flytta, scrolla för att zooma</li>
+      <li>Remove the picture to show your initial instead</li>
+      <li xml:lang="cs">Po odebrání fotky se místo ní ukáže počáteční písmeno jména</li>
+      <li xml:lang="sk">Po odobratí fotky sa namiesto nej ukáže začiatočné písmeno mena</li>
+      <li xml:lang="pl">Po usunięciu zdjęcia zamiast niego pojawi się pierwsza litera imienia</li>
+      <li xml:lang="uk">Після видалення фото замість нього з’явиться перша літера імені</li>
+      <li xml:lang="hu">A kép eltávolítása után helyette a név kezdőbetűje látszik</li>
+      <li xml:lang="de">Ohne Bild wird stattdessen der Anfangsbuchstabe Ihres Namens gezeigt</li>
+      <li xml:lang="fr">Sans photo, l’initiale de votre nom s’affiche à la place</li>
+      <li xml:lang="es">Si quitas la foto, se muestra la inicial de tu nombre</li>
+      <li xml:lang="it">Rimuovendo l’immagine compare l’iniziale del tuo nome</li>
+      <li xml:lang="pt">Sem foto, aparece a inicial do seu nome</li>
+      <li xml:lang="nl">Zonder foto wordt de eerste letter van je naam getoond</li>
+      <li xml:lang="sv">Utan bild visas i stället initialen i ditt namn</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

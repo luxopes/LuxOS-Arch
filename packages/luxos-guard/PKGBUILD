@@ -5,7 +5,7 @@
 
 pkgname=luxos-guard
 pkgver=1.0.0
-pkgrel=5
+pkgrel=6
 pkgdesc="Lux Guard - checks programs from downloads, attachments and USB drives before they run; /home snapshots"
 arch=(any)
 url="https://luxos.lux-ai.cz/"
@@ -30,6 +30,8 @@ package() {
     install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f"/systemd/*
     install -Dm644 "$f/luxos-guard-agent.desktop" "$pkgdir/etc/xdg/autostart/luxos-guard-agent.desktop"
     install -Dm644 "$f/luxos-guard.desktop" "$pkgdir/usr/share/applications/luxos-guard.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
     install -Dm644 "$f/luxos-guard.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-guard.svg"
     install -Dm644 "$f/SECURITY.md" "$pkgdir/usr/share/doc/luxos-guard/SECURITY.md"
     install -Dm644 "$startdir/tests/root-fanotify-test.sh" "$pkgdir/usr/share/doc/luxos-guard/root-fanotify-test.sh"

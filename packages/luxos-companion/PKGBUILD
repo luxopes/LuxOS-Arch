@@ -9,7 +9,7 @@
 
 pkgname=luxos-companion
 pkgver=1.0.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxOS Companion - connect the Android app over Bluetooth: phone location for Maps, LuxAI requests and calendar notes"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -36,5 +36,7 @@ package() {
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 "$f/luxos-companion.service" "$pkgdir/usr/lib/systemd/user/luxos-companion.service"
     install -Dm644 "$f/luxos-companion.desktop" "$pkgdir/usr/share/applications/luxos-companion.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
     install -Dm644 "$f/luxos-companion.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-companion.svg"
 }

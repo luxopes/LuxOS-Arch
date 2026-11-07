@@ -151,8 +151,9 @@ area; press Space to pick a window instead).
 The bar has these modes: Capture Entire Screen, Capture Selected Window, Capture Selected Portion,
 Record Entire Screen, Record Selected Portion. Its **Options** menu has:
 
-- **Save to**: Desktop (default), Pictures, Clipboard, Other… (a chosen folder). Recordings
-  cannot go to the clipboard and are saved to the Desktop instead.
+- **Save to**: Screenshots (default, `Pictures/Screenshots` named in the user's language, created on
+  the first save), Desktop, Pictures, Clipboard, Other… (a chosen folder). Recordings cannot go to the
+  clipboard and are saved to the default folder instead.
 - **Timer**: None, 5 Seconds, 10 Seconds.
 - **Show Mouse Pointer**.
 - **Remember Last Selection**.

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-screenshot</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Screenshot</name>
+  <summary>Capture or record the screen, a window or a selected area</summary>
+  <launchable type="desktop-id">luxos-screenshot.desktop</launchable>
+  <description>
+    <p>Screenshot captures the whole screen, a window or a selected portion, or records the screen as a video. Press Print or Super+Shift+5 for its floating toolbar.</p>
+    <p xml:lang="cs">Snímek obrazovky vyfotí celou obrazovku, okno nebo vybranou oblast, případně obrazovku nahraje jako video. Plovoucí lištu otevřete klávesou Print nebo Super+Shift+5.</p>
+    <p xml:lang="sk">Snímka obrazovky zachytí celú obrazovku, okno alebo vybranú oblasť, prípadne obrazovku nahrá ako video. Plávajúcu lištu otvoríte klávesom Print alebo Super+Shift+5.</p>
+    <p xml:lang="pl">Zrzut ekranu wykonuje zrzut całego ekranu, okna lub zaznaczonego obszaru albo nagrywa ekran jako film. Pływający pasek otworzysz klawiszem Print lub Super+Shift+5.</p>
+    <p xml:lang="uk">Знімок екрана фотографує весь екран, вікно чи вибрану область або записує екран як відео. Плаваючу панель відкриває клавіша Print або Super+Shift+5.</p>
+    <p xml:lang="hu">A Képernyőkép rögzíti a teljes képernyőt, egy ablakot vagy egy kijelölt területet, illetve videót készít a képernyőről. A lebegő eszköztárat a Print vagy a Super+Shift+5 nyitja meg.</p>
+    <p xml:lang="de">Bildschirmfoto nimmt den ganzen Bildschirm, ein Fenster oder einen ausgewählten Bereich auf oder zeichnet den Bildschirm als Video auf. Die schwebende Leiste öffnet sich mit Druck oder Super+Umschalt+5.</p>
+    <p xml:lang="fr">Capture d’écran capture tout l’écran, une fenêtre ou une zone sélectionnée, ou enregistre l’écran en vidéo. Sa barre flottante s’ouvre avec Impr. écran ou Super+Maj+5.</p>
+    <p xml:lang="es">Captura de pantalla captura toda la pantalla, una ventana o un área seleccionada, o graba la pantalla en vídeo. Su barra flotante se abre con Impr Pant o Super+Mayús+5.</p>
+    <p xml:lang="it">Istantanea schermo cattura l’intero schermo, una finestra o un’area selezionata, oppure registra lo schermo in un video. La barra mobile si apre con Stamp o Super+Maiusc+5.</p>
+    <p xml:lang="pt">A Captura de ecrã captura o ecrã inteiro, uma janela ou uma área selecionada, ou grava o ecrã em vídeo. A barra flutuante abre-se com Print ou Super+Shift+5.</p>
+    <p xml:lang="nl">Schermafbeelding legt het hele scherm, een venster of een geselecteerd gebied vast, of neemt het scherm op als video. De zwevende balk open je met Print of Super+Shift+5.</p>
+    <p xml:lang="sv">Skärmbild tar en bild av hela skärmen, ett fönster eller ett markerat område, eller spelar in skärmen som video. Det flytande verktygsfältet öppnas med Print eller Super+Skift+5.</p>
+    <p>Super+Shift+3 captures the whole screen at once and Super+Shift+4 a selected area. After saving, a thumbnail lets you copy the picture, show it in Files, save it elsewhere or delete it.</p>
+    <p xml:lang="cs">Super+Shift+3 vyfotí rovnou celou obrazovku a Super+Shift+4 vybranou oblast. Po uložení můžete snímek z náhledu zkopírovat, zobrazit v Souborech, uložit jinam nebo smazat.</p>
+    <p xml:lang="sk">Super+Shift+3 rovno zachytí celú obrazovku a Super+Shift+4 vybranú oblasť. Po uložení môžete snímku z náhľadu skopírovať, zobraziť v Súboroch, uložiť inam alebo vymazať.</p>
+    <p xml:lang="pl">Super+Shift+3 od razu robi zrzut całego ekranu, a Super+Shift+4 zaznaczonego obszaru. Po zapisaniu miniatura pozwala skopiować zrzut, pokazać go w Plikach, zapisać gdzie indziej lub usunąć.</p>
+    <p xml:lang="uk">Super+Shift+3 одразу знімає весь екран, а Super+Shift+4 — вибрану область. Після збереження мініатюра дає змогу скопіювати знімок, показати його у Файлах, зберегти деінде або видалити.</p>
+    <p xml:lang="hu">A Super+Shift+3 azonnal a teljes képernyőt, a Super+Shift+4 egy kijelölt területet rögzít. Mentés után a bélyegképről a kép másolható, megjeleníthető a Fájlokban, máshová menthető vagy törölhető.</p>
+    <p xml:lang="de">Super+Umschalt+3 nimmt sofort den ganzen Bildschirm auf, Super+Umschalt+4 einen ausgewählten Bereich. Nach dem Speichern lässt sich das Bild über die Vorschau kopieren, in Dateien zeigen, anderswo sichern oder löschen.</p>
+    <p xml:lang="fr">Super+Maj+3 capture directement tout l’écran et Super+Maj+4 une zone sélectionnée. Après l’enregistrement, la miniature permet de copier l’image, de l’afficher dans Fichiers, de l’enregistrer ailleurs ou de la supprimer.</p>
+    <p xml:lang="es">Super+Mayús+3 captura directamente toda la pantalla y Super+Mayús+4 un área seleccionada. Tras guardar, la miniatura permite copiar la imagen, mostrarla en Archivos, guardarla en otro lugar o eliminarla.</p>
+    <p xml:lang="it">Super+Maiusc+3 cattura subito l’intero schermo e Super+Maiusc+4 un’area selezionata. Dopo il salvataggio, la miniatura permette di copiare l’immagine, mostrarla in File, salvarla altrove o eliminarla.</p>
+    <p xml:lang="pt">Super+Shift+3 captura logo o ecrã inteiro e Super+Shift+4 uma área selecionada. Depois de guardar, a miniatura permite copiar a imagem, mostrá-la nos Arquivos, guardá-la noutro local ou apagá-la.</p>
+    <p xml:lang="nl">Super+Shift+3 legt meteen het hele scherm vast en Super+Shift+4 een geselecteerd gebied. Na het opslaan kun je de afbeelding via de miniatuur kopiëren, tonen in Bestanden, elders bewaren of verwijderen.</p>
+    <p xml:lang="sv">Super+Skift+3 tar direkt en bild av hela skärmen och Super+Skift+4 av ett markerat område. När bilden har sparats kan du via miniatyren kopiera den, visa den i Filer, spara den någon annanstans eller radera den.</p>
+    <ul>
+      <li>Saves to Screenshots, the Desktop, Pictures or the clipboard</li>
+      <li xml:lang="cs">Ukládá do Snímků obrazovky, na Plochu, do Obrázků nebo do schránky</li>
+      <li xml:lang="sk">Ukladá do Snímok obrazovky, na Plochu, do Obrázkov alebo do schránky</li>
+      <li xml:lang="pl">Zapisuje w Zrzutach ekranu, na Biurku, w Obrazkach lub w schowku</li>
+      <li xml:lang="uk">Зберігає в «Знімки екрана», на робочий стіл, у «Зображення» або в буфер обміну</li>
+      <li xml:lang="hu">Mentés a Képernyőképek mappába, az Íróasztalra, a Képekbe vagy a vágólapra</li>
+      <li xml:lang="de">Speichert in Bildschirmfotos, auf den Schreibtisch, in Bilder oder in die Zwischenablage</li>
+      <li xml:lang="fr">Enregistre dans Captures d’écran, sur le Bureau, dans Images ou dans le presse-papiers</li>
+      <li xml:lang="es">Guarda en Capturas de pantalla, el Escritorio, Imágenes o el portapapeles</li>
+      <li xml:lang="it">Salva in Istantanee dello schermo, sulla Scrivania, in Immagini o negli Appunti</li>
+      <li xml:lang="pt">Guarda em Capturas de tela, na Mesa, em Imagens ou na Área de transferência</li>
+      <li xml:lang="nl">Slaat op in Schermafbeeldingen, op het bureaublad, in Afbeeldingen of op het klembord</li>
+      <li xml:lang="sv">Sparar i Skärmbilder, på skrivbordet, i Bilder eller i urklipp</li>
+      <li>Timer of 5 or 10 seconds, optionally with the mouse pointer</li>
+      <li xml:lang="cs">Časovač 5 nebo 10 sekund, volitelně i s ukazatelem myši</li>
+      <li xml:lang="sk">Časovač 5 alebo 10 sekúnd, voliteľne aj s ukazovateľom myši</li>
+      <li xml:lang="pl">Minutnik 5 lub 10 sekund, opcjonalnie ze wskaźnikiem myszy</li>
+      <li xml:lang="uk">Таймер на 5 або 10 секунд, за бажанням із вказівником миші</li>
+      <li xml:lang="hu">5 vagy 10 másodperces időzítő, igény szerint egérmutatóval</li>
+      <li xml:lang="de">Timer mit 5 oder 10 Sekunden, auf Wunsch mit Mauszeiger</li>
+      <li xml:lang="fr">Minuteur de 5 ou 10 secondes, avec le pointeur si vous le souhaitez</li>
+      <li xml:lang="es">Temporizador de 5 o 10 segundos, opcionalmente con el puntero</li>
+      <li xml:lang="it">Timer di 5 o 10 secondi, a scelta con il puntatore</li>
+      <li xml:lang="pt">Temporizador de 5 ou 10 segundos, opcionalmente com o ponteiro</li>
+      <li xml:lang="nl">Timer van 5 of 10 seconden, desgewenst met muisaanwijzer</li>
+      <li xml:lang="sv">Timer på 5 eller 10 sekunder, om du vill med muspekaren</li>
+      <li>Remembers the last selected portion</li>
+      <li xml:lang="cs">Pamatuje si naposledy vybranou oblast</li>
+      <li xml:lang="sk">Pamätá si naposledy vybranú oblasť</li>
+      <li xml:lang="pl">Zapamiętuje ostatnio zaznaczony obszar</li>
+      <li xml:lang="uk">Запам’ятовує останню вибрану область</li>
+      <li xml:lang="hu">Megjegyzi a legutóbb kijelölt területet</li>
+      <li xml:lang="de">Merkt sich den zuletzt gewählten Bereich</li>
+      <li xml:lang="fr">Mémorise la dernière zone sélectionnée</li>
+      <li xml:lang="es">Recuerda la última área seleccionada</li>
+      <li xml:lang="it">Ricorda l’ultima area selezionata</li>
+      <li xml:lang="pt">Memoriza a última área selecionada</li>
+      <li xml:lang="nl">Onthoudt het laatst geselecteerde gebied</li>
+      <li xml:lang="sv">Kommer ihåg det senast markerade området</li>
+      <li>Hold Ctrl to copy to the clipboard instead of saving</li>
+      <li xml:lang="cs">S klávesou Ctrl se snímek místo uložení zkopíruje do schránky</li>
+      <li xml:lang="sk">S klávesom Ctrl sa snímka namiesto uloženia skopíruje do schránky</li>
+      <li xml:lang="pl">Z wciśniętym Ctrl zrzut trafia do schowka zamiast do pliku</li>
+      <li xml:lang="uk">З натиснутою Ctrl знімок копіюється в буфер обміну замість збереження</li>
+      <li xml:lang="hu">A Ctrl nyomva tartásával mentés helyett a vágólapra másol</li>
+      <li xml:lang="de">Mit gedrückter Strg-Taste in die Zwischenablage statt in eine Datei</li>
+      <li xml:lang="fr">Avec Ctrl, copie dans le presse-papiers au lieu d’enregistrer</li>
+      <li xml:lang="es">Con Ctrl pulsado, copia al portapapeles en lugar de guardar</li>
+      <li xml:lang="it">Tenendo premuto Ctrl, copia negli Appunti invece di salvare</li>
+      <li xml:lang="pt">Com Ctrl premido, copia para a Área de transferência em vez de guardar</li>
+      <li xml:lang="nl">Met Ctrl ingedrukt naar het klembord kopiëren in plaats van opslaan</li>
+      <li xml:lang="sv">Håll ned Ctrl för att kopiera till urklipp i stället för att spara</li>
+      <li>Screen recordings as MP4 videos with a Stop button</li>
+      <li xml:lang="cs">Nahrávky obrazovky jako videa MP4 s tlačítkem Zastavit</li>
+      <li xml:lang="sk">Nahrávky obrazovky ako videá MP4 s tlačidlom Zastaviť</li>
+      <li xml:lang="pl">Nagrania ekranu jako filmy MP4 z przyciskiem Zatrzymaj</li>
+      <li xml:lang="uk">Записи екрана як відео MP4 з кнопкою «Зупинити»</li>
+      <li xml:lang="hu">Képernyőfelvételek MP4-videóként, Leállítás gombbal</li>
+      <li xml:lang="de">Bildschirmaufnahmen als MP4-Videos mit Stopp-Taste</li>
+      <li xml:lang="fr">Enregistrements de l’écran en vidéos MP4 avec un bouton Arrêter</li>
+      <li xml:lang="es">Grabaciones de pantalla en vídeo MP4 con botón Detener</li>
+      <li xml:lang="it">Registrazioni dello schermo in video MP4 con pulsante Interrompi</li>
+      <li xml:lang="pt">Gravações do ecrã em vídeo MP4 com botão Parar</li>
+      <li xml:lang="nl">Schermopnames als MP4-video met een knop Stoppen</li>
+      <li xml:lang="sv">Skärminspelningar som MP4-video med knappen Stoppa</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

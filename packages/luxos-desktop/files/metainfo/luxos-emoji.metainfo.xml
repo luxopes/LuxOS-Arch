@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-emoji</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Emoji &amp; Symbols</name>
+  <summary>Search and insert emoji into any app (Super+.)</summary>
+  <launchable type="desktop-id">luxos-emoji.desktop</launchable>
+  <description>
+    <p>Emoji &amp; Symbols lets you type emoji in any app, just like on Windows and macOS: press Super+. or Ctrl+Super+Space and a small panel opens next to the mouse pointer.</p>
+    <p xml:lang="cs">S Emoji a symboly napíšete emoji v jakékoli aplikaci stejně jako ve Windows a macOS: stiskněte Super+. nebo Ctrl+Super+Mezerník a u ukazatele myši se otevře malý panel.</p>
+    <p xml:lang="sk">S Emoji a symbolmi napíšete emoji v akejkoľvek aplikácii rovnako ako vo Windows a macOS: stlačte Super+. alebo Ctrl+Super+Medzerník a pri ukazovateli myši sa otvorí malý panel.</p>
+    <p xml:lang="pl">Emoji i symbole pozwalają wpisywać emoji w dowolnej aplikacji, tak jak w Windows i macOS: naciśnij Super+. lub Ctrl+Super+Spacja, a obok wskaźnika myszy otworzy się mały panel.</p>
+    <p xml:lang="uk">Емодзі та символи дають змогу вводити емодзі в будь-якій програмі, як у Windows і macOS: натисніть Super+. або Ctrl+Super+Пробіл, і біля вказівника миші відкриється невелика панель.</p>
+    <p xml:lang="hu">Az Emodzsik és szimbólumok segítségével bármely alkalmazásban írhat emodzsikat, mint Windowson és macOS-en: nyomja meg a Super+. vagy a Ctrl+Super+Szóköz billentyűket, és az egérmutató mellett megnyílik egy kis panel.</p>
+    <p xml:lang="de">Mit Emoji und Symbole tippen Sie Emoji in jeder App, wie unter Windows und macOS: Drücken Sie Super+. oder Strg+Super+Leertaste, und neben dem Mauszeiger öffnet sich ein kleines Feld.</p>
+    <p xml:lang="fr">Emoji et symboles permet de taper des emoji dans n’importe quelle application, comme sous Windows et macOS : appuyez sur Super+. ou Ctrl+Super+Espace et un petit panneau s’ouvre près du pointeur.</p>
+    <p xml:lang="es">Emoji y símbolos te permite escribir emoji en cualquier aplicación, como en Windows y macOS: pulsa Super+. o Ctrl+Super+Espacio y se abre un pequeño panel junto al puntero.</p>
+    <p xml:lang="it">Emoji e simboli permette di inserire emoji in qualsiasi app, come su Windows e macOS: premi Super+. o Ctrl+Super+Spazio e accanto al puntatore si apre un piccolo pannello.</p>
+    <p xml:lang="pt">O Emoji e símbolos permite escrever emoji em qualquer aplicação, como no Windows e no macOS: prima Super+. ou Ctrl+Super+Espaço e abre-se um pequeno painel junto ao ponteiro.</p>
+    <p xml:lang="nl">Met Emoji en symbolen typ je emoji in elke app, net als in Windows en macOS: druk op Super+. of Ctrl+Super+Spatie en naast de muisaanwijzer opent een klein paneel.</p>
+    <p xml:lang="sv">Med Emoji och symboler skriver du emoji i vilken app som helst, precis som i Windows och macOS: tryck Super+. eller Ctrl+Super+Mellanslag så öppnas en liten panel vid muspekaren.</p>
+    <p>Search works in your language and in English, with or without accents. The chosen emoji goes straight into the window you were typing in.</p>
+    <p xml:lang="cs">Hledá se v jazyce systému i anglicky, s diakritikou i bez ní. Vybrané emoji se vloží rovnou do okna, ve kterém jste psali.</p>
+    <p xml:lang="sk">Hľadá sa v jazyku systému aj po anglicky, s diakritikou aj bez nej. Vybrané emoji sa vloží rovno do okna, v ktorom ste písali.</p>
+    <p xml:lang="pl">Wyszukiwanie działa w języku systemu i po angielsku, ze znakami diakrytycznymi lub bez nich. Wybrane emoji trafia prosto do okna, w którym piszesz.</p>
+    <p xml:lang="uk">Пошук працює мовою системи та англійською, з діакритикою чи без неї. Вибране емодзі вставляється просто у вікно, в якому ви писали.</p>
+    <p xml:lang="hu">A keresés a rendszer nyelvén és angolul is működik, ékezettel vagy anélkül. A kiválasztott emodzsi egyenesen abba az ablakba kerül, amelyben írt.</p>
+    <p xml:lang="de">Die Suche funktioniert in der Systemsprache und auf Englisch, mit oder ohne Akzente. Das gewählte Emoji landet direkt in dem Fenster, in dem Sie geschrieben haben.</p>
+    <p xml:lang="fr">La recherche fonctionne dans la langue du système et en anglais, avec ou sans accents. L’emoji choisi est inséré directement dans la fenêtre où vous écriviez.</p>
+    <p xml:lang="es">La búsqueda funciona en el idioma del sistema y en inglés, con o sin tildes. El emoji elegido se inserta directamente en la ventana en la que escribías.</p>
+    <p xml:lang="it">La ricerca funziona nella lingua del sistema e in inglese, con o senza accenti. L’emoji scelta viene inserita direttamente nella finestra in cui stavi scrivendo.</p>
+    <p xml:lang="pt">A pesquisa funciona no idioma do sistema e em inglês, com ou sem acentos. O emoji escolhido é inserido diretamente na janela onde estava a escrever.</p>
+    <p xml:lang="nl">Zoeken werkt in de systeemtaal en in het Engels, met of zonder accenten. De gekozen emoji komt meteen in het venster waarin je aan het typen was.</p>
+    <p xml:lang="sv">Sökningen fungerar på systemets språk och på engelska, med eller utan accenter. Den valda emojin hamnar direkt i fönstret där du skrev.</p>
+    <ul>
+      <li>Categories, recently and frequently used emoji</li>
+      <li xml:lang="cs">Kategorie, naposledy a často používané emoji</li>
+      <li xml:lang="sk">Kategórie, naposledy a často používané emoji</li>
+      <li xml:lang="pl">Kategorie, ostatnio i często używane emoji</li>
+      <li xml:lang="uk">Категорії, нещодавно й часто використовувані емодзі</li>
+      <li xml:lang="hu">Kategóriák, legutóbb és gyakran használt emodzsik</li>
+      <li xml:lang="de">Kategorien, zuletzt und häufig verwendete Emoji</li>
+      <li xml:lang="fr">Catégories, emoji récents et fréquents</li>
+      <li xml:lang="es">Categorías, emoji recientes y frecuentes</li>
+      <li xml:lang="it">Categorie, emoji recenti e usate spesso</li>
+      <li xml:lang="pt">Categorias, emoji recentes e frequentes</li>
+      <li xml:lang="nl">Categorieën, recent en vaak gebruikte emoji</li>
+      <li xml:lang="sv">Kategorier, senast och ofta använda emoji</li>
+      <li>Skin tone for people and hands, remembered</li>
+      <li xml:lang="cs">Odstín pleti pro lidi a ruce, který si panel pamatuje</li>
+      <li xml:lang="sk">Odtieň pokožky pre ľudí a ruky, ktorý si panel pamätá</li>
+      <li xml:lang="pl">Odcień skóry dla postaci i dłoni, zapamiętywany</li>
+      <li xml:lang="uk">Відтінок шкіри для людей і рук, який запам’ятовується</li>
+      <li xml:lang="hu">Bőrtónus emberekhez és kezekhez, amelyet megjegyez</li>
+      <li xml:lang="de">Hautton für Personen und Hände, wird gemerkt</li>
+      <li xml:lang="fr">Teint de peau pour les personnes et les mains, mémorisé</li>
+      <li xml:lang="es">Tono de piel para personas y manos, que se recuerda</li>
+      <li xml:lang="it">Tonalità della pelle per persone e mani, memorizzata</li>
+      <li xml:lang="pt">Tom de pele para pessoas e mãos, memorizado</li>
+      <li xml:lang="nl">Huidskleur voor personen en handen, wordt onthouden</li>
+      <li xml:lang="sv">Hudton för personer och händer, som sparas</li>
+      <li>Keyboard control: arrows, Tab, Enter, Esc</li>
+      <li xml:lang="cs">Ovládání klávesnicí: šipky, Tab, Enter, Esc</li>
+      <li xml:lang="sk">Ovládanie klávesnicou: šípky, Tab, Enter, Esc</li>
+      <li xml:lang="pl">Obsługa klawiaturą: strzałki, Tab, Enter, Esc</li>
+      <li xml:lang="uk">Керування клавіатурою: стрілки, Tab, Enter, Esc</li>
+      <li xml:lang="hu">Billentyűzetes vezérlés: nyilak, Tab, Enter, Esc</li>
+      <li xml:lang="de">Bedienung per Tastatur: Pfeiltasten, Tab, Enter, Esc</li>
+      <li xml:lang="fr">Contrôle au clavier : flèches, Tab, Entrée, Échap</li>
+      <li xml:lang="es">Control con el teclado: flechas, Tab, Intro, Esc</li>
+      <li xml:lang="it">Controllo da tastiera: frecce, Tab, Invio, Esc</li>
+      <li xml:lang="pt">Controlo pelo teclado: setas, Tab, Enter, Esc</li>
+      <li xml:lang="nl">Bediening met het toetsenbord: pijltjes, Tab, Enter, Esc</li>
+      <li xml:lang="sv">Styrning med tangentbordet: piltangenter, Tab, Retur, Esc</li>
+      <li>Shift+Enter inserts several emoji in a row</li>
+      <li xml:lang="cs">Shift+Enter vloží více emoji za sebou</li>
+      <li xml:lang="sk">Shift+Enter vloží viac emoji za sebou</li>
+      <li xml:lang="pl">Shift+Enter wstawia kilka emoji z rzędu</li>
+      <li xml:lang="uk">Shift+Enter вставляє кілька емодзі поспіль</li>
+      <li xml:lang="hu">A Shift+Enter több emodzsit szúr be egymás után</li>
+      <li xml:lang="de">Umschalt+Enter fügt mehrere Emoji nacheinander ein</li>
+      <li xml:lang="fr">Maj+Entrée insère plusieurs emoji à la suite</li>
+      <li xml:lang="es">Mayús+Intro inserta varios emoji seguidos</li>
+      <li xml:lang="it">Maiusc+Invio inserisce più emoji di fila</li>
+      <li xml:lang="pt">Shift+Enter insere vários emoji seguidos</li>
+      <li xml:lang="nl">Shift+Enter voegt meerdere emoji achter elkaar in</li>
+      <li xml:lang="sv">Skift+Retur infogar flera emoji i rad</li>
+      <li>The clipboard is restored after inserting</li>
+      <li xml:lang="cs">Schránka se po vložení vrátí do původního stavu</li>
+      <li xml:lang="sk">Schránka sa po vložení vráti do pôvodného stavu</li>
+      <li xml:lang="pl">Po wstawieniu schowek wraca do poprzedniego stanu</li>
+      <li xml:lang="uk">Після вставлення буфер обміну відновлюється</li>
+      <li xml:lang="hu">Beszúrás után a vágólap visszaáll</li>
+      <li xml:lang="de">Die Zwischenablage wird nach dem Einfügen wiederhergestellt</li>
+      <li xml:lang="fr">Le presse-papiers est restauré après l’insertion</li>
+      <li xml:lang="es">El portapapeles se restaura tras insertar</li>
+      <li xml:lang="it">Gli appunti vengono ripristinati dopo l’inserimento</li>
+      <li xml:lang="pt">A área de transferência é reposta após a inserção</li>
+      <li xml:lang="nl">Het klembord wordt na het invoegen hersteld</li>
+      <li xml:lang="sv">Urklipp återställs efter infogningen</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

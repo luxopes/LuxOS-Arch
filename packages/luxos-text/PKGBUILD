@@ -11,7 +11,7 @@
 
 pkgname=luxos-text
 pkgver=1.0.0
-pkgrel=3
+pkgrel=4
 pkgdesc="LuxOS Text Editor - fast GTK3/GtkSourceView text and code editor with folder sidebar, outline and encodings"
 arch=(x86_64)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -54,6 +54,8 @@ package() {
     install -Dm755 luxos-text "$pkgdir/usr/bin/luxos-text"
     install -Dm755 "$f/60-luxos-text" "$pkgdir/usr/lib/lux/after-update.d/60-luxos-text"
     install -Dm644 "$f/luxos-text.desktop" "$pkgdir/usr/share/applications/luxos-text.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
     # Barvy (svetle/tmave) a zvyrazneni LSL - ve spolecnych adresarich GtkSourceView (i pro jine editory)
     install -Dm644 -t "$pkgdir/usr/share/gtksourceview-4/styles" "$f"/styles/luxos-{light,dark}.xml
     install -Dm644 "$f/language-specs/lsl.lang" "$pkgdir/usr/share/gtksourceview-4/language-specs/lsl.lang"

@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=61
+pkgrel=62
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -182,6 +182,8 @@ package() {
     # Setric obrazovky: xfce4-screensaver spousti jen programy ze sve slozky
     install -Dm755 "$f/screensaver/luxos-screensaver" "$pkgdir/usr/lib/xfce4-screensaver/luxos"
     install -Dm644 -t "$pkgdir/usr/share/applications/screensavers" "$f"/screensaver/*.desktop
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
     install -Dm755 -t "$pkgdir/usr/lib/luxos/override-bin" "$f"/override-bin/*
     install -Dm644 -t "$pkgdir/usr/share/applications" "$f"/applications/*.desktop
     # Monitory i v Launchpadu (ten skryva panely Nastaveni); OnlyShowIn ji skryje v menu a Hledani
