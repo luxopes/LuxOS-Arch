@@ -1,0 +1,13 @@
+From: a@example.test
+To: info@example.test
+Subject: flowed
+Date: 27 Oct 2026 22:10 +0100
+Content-Type: text/plain; charset=utf-8; format=flowed
+
+Tohle je dlouhy odstavec, ktery 
+se zalomil na vice 
+radku.
+
+> citace
+-- 
+podpis

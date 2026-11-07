@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Mail notifications
+Name[cs]=Upozornění Pošty
+Comment=Notifies you about new mail (LuxOS Mail); exits when no account is set up
+Comment[cs]=Upozorní na novou poštu (Pošta LuxOS); bez nastaveného účtu hned skončí
+Exec=/usr/lib/luxos-mail/luxos-mail-service
+Icon=luxos-mail
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

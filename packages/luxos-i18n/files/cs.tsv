@@ -4691,3 +4691,90 @@ Could not start %s in the sandbox	%s se v sandboxu nepodařilo spustit
 The program ended with error code %d.	Program skončil s chybovým kódem %d.
 The launcher does not contain a program to run.	Spouštěč neobsahuje žádný program ke spuštění.
 No terminal application was found.	Nebyla nalezena žádná aplikace terminálu.
+# Posta (luxos-mail)
+New messages: %d	Nové zprávy: %d
+(no subject)	(bez předmětu)
+New mail from %s	Nová pošta od %s
+Mail	Pošta
+The mail service stopped.	Služba pošty se zastavila.
+Inbox	Doručená pošta
+Sent	Odeslané
+Drafts	Koncepty
+Trash	Koš
+Junk	Nevyžádaná pošta
+Archive	Archiv
+Get Mail (Ctrl+R)	Stáhnout poštu (Ctrl+R)
+New Message (Ctrl+N)	Nová zpráva (Ctrl+N)
+Mark as Read/Unread (Ctrl+Shift+U)	Označit jako přečtené/nepřečtené (Ctrl+Shift+U)
+Move to Trash (Delete)	Přesunout do koše (Delete)
+Filter (Ctrl+F)	Filtr (Ctrl+F)
+Welcome to Mail	Vítejte v Poště
+Add your email account to read your mail and get notified about new messages.	Přidejte svůj e-mailový účet, abyste mohli číst poštu a dostávat upozornění na nové zprávy.
+Add Account…	Přidat účet…
+No messages	Žádné zprávy
+No Message Selected	Není vybraná žádná zpráva
+Unread: %d	Nepřečtené: %d
+To: %s	Komu: %s
+Load Older Messages	Načíst starší zprávy
+To:	Komu:
+Cc:	Kopie:
+This message could not be displayed.	Tuto zprávu nejde zobrazit.
+(This message has no text.)	(Tato zpráva nemá žádný text.)
+This message was formatted as a web page; Mail shows its text. Images and remote content are not loaded.	Zpráva je naformátovaná jako webová stránka; Pošta ukazuje její text. Obrázky a obsah z internetu se nenačítají.
+Save attachment…	Uložit přílohu…
+Save Attachment	Uložit přílohu
+The attachment could not be saved.	Přílohu nejde uložit.
+Delete this message permanently?	Smazat zprávu natrvalo?
+It is already in the Trash. This cannot be undone.	Už je v koši. Tuto akci nejde vrátit.
+The server rejected the password for %s.	Server odmítl heslo pro %s.
+The password is not in the keyring. Enter it again.	Heslo není v klíčence. Zadejte ho znovu.
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password.	Bezpečnostní certifikát serveru %s není platný (%s). Pošta se nepřipojí, aby ochránila vaše heslo.
+Cannot reach %s. Showing saved messages.	Server %s není dostupný. Zobrazují se uložené zprávy.
+%s does not offer an encrypted connection. Mail does not send your password unencrypted.	%s nenabízí šifrované spojení. Pošta neposílá heslo nešifrovaně.
+Offline – showing saved messages.	Offline – zobrazují se uložené zprávy.
+Enter Password…	Zadat heslo…
+This message is not available offline.	Tato zpráva není dostupná offline.
+The message no longer exists on the server.	Zpráva už na serveru není.
+New Message	Nová zpráva
+Writing messages is coming soon	Psaní zpráv už brzy
+This version of Mail reads your mail and notifies you about new messages. Writing and replying will come in a future update; until then use your webmail.	Tato verze Pošty čte vaši poštu a upozorňuje na nové zprávy. Psaní a odpovídání přijde v některé z příštích aktualizací; do té doby použijte webmail.
+Recipient:	Příjemce:
+Copy Address	Zkopírovat adresu
+Change Password for %s…	Změnit heslo pro %s…
+Remove %s…	Odebrat %s…
+Saved messages and the password are removed from this computer. Nothing is deleted on the server.	Uložené zprávy a heslo se z tohoto počítače odstraní. Na serveru se nic nesmaže.
+Previous / next message	Předchozí / další zpráva
+Read the message text	Číst text zprávy
+Mark as read / unread	Označit jako přečtené / nepřečtené
+Filter the message list	Filtrovat seznam zpráv
+Get mail	Stáhnout poštu
+Close Mail	Zavřít Poštu
+Add Account	Přidat účet
+Add an Email Account	Přidat e-mailový účet
+Mail finds the server settings for most providers automatically.	Pošta u většiny poskytovatelů najde nastavení serveru sama.
+Optional	Nepovinné
+Email	E-mail
+Incoming server (IMAP)	Server příchozí pošty (IMAP)
+Port	Port
+Outgoing server (SMTP)	Server odchozí pošty (SMTP)
+Configure Manually	Nastavit ručně
+Enter the server settings from your email provider.	Zadejte nastavení serveru od svého poskytovatele e-mailu.
+Enter a valid email address.	Zadejte platnou e-mailovou adresu.
+Enter your password.	Zadejte heslo.
+Looking up the server settings…	Hledám nastavení serveru…
+Enter the incoming server.	Zadejte server příchozí pošty.
+Signing in to %s…	Přihlašuji se k %s…
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password. Check the server name with your provider.	Bezpečnostní certifikát serveru %s není platný (%s). Pošta se nepřipojí, aby ochránila vaše heslo. Ověřte název serveru u svého poskytovatele.
+The server settings were not found automatically. Enter them below.	Nastavení serveru se nepodařilo najít automaticky. Zadejte je níže.
+Settings provided by your email provider.	Nastavení od vašeho poskytovatele e-mailu.
+Settings found in the Thunderbird provider database.	Nastavení nalezené v databázi poskytovatelů Thunderbirdu.
+Settings found in the DNS records of your domain.	Nastavení nalezené v záznamech DNS vaší domény.
+Settings guessed from your address – please check them.	Nastavení odhadnuté podle adresy – zkontrolujte je prosím.
+The email address or password is not correct.	E-mailová adresa nebo heslo nejsou správné.
+Cannot connect to %s. Check the server name and port.	Nejde se připojit k %s. Zkontrolujte název serveru a port.
+%s did not answer in time.	%s neodpověděl včas.
+The password could not be saved in the keyring.	Heslo nejde uložit do klíčenky.
+This is not an IMAP server.	Toto není server IMAP.
+Password for %s	Heslo pro %s
+Signing in failed	Přihlášení se nezdařilo
+Read your email and get notified about new messages	Čtení e-mailu a upozornění na nové zprávy
