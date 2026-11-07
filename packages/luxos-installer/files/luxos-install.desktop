@@ -12,3 +12,5 @@ Keywords[cs]=instalace;instalátor;nainstalovat;disk;
 StartupNotify=true
 StartupWMClass=luxos-install-gui
 Terminal=false
+# Obchod LuxOS: soucast systemu, v sekci Aplikace LuxOS se nezobrazuje
+X-LuxOS-Store=hide

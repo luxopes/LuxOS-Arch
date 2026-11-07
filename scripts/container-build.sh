@@ -256,6 +256,9 @@ build_packages() {
     make_repo luxos "$BUILD/pkgs/luxos"
     make_repo luxos-apps "$BUILD/pkgs/luxos-apps"
     make_lux_repo
+    # Katalog aplikaci LuxOS pro Obchod (out/repo/apps.json; v ISO /opt/luxos-repo/apps.json),
+    # pri zverejneni ho scripts/publish-repo.sh vytvori znovu ze zverejnovanych baliku
+    python3 "$ROOT/packages/luxos-store/files/luxos_app_catalog.py" generate "$REPO"
 }
 
 # Jen repozitar [luxos-apps] (packages/apps/*): [luxos] v out/repo zustava, jak je
@@ -275,6 +278,7 @@ build_apps() {
     chown -R root: "$SOURCES"
 
     make_repo luxos-apps "$BUILD/pkgs/luxos-apps"
+    python3 "$ROOT/packages/luxos-store/files/luxos_app_catalog.py" generate "$REPO"
 }
 
 # Repozitar [luxos-drivers]: overene ovladace tiskaren a skeneru z AUR (drivers/luxdrv.py verify).

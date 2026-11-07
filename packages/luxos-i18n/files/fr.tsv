@@ -4689,3 +4689,19 @@ This is not an IMAP server.	Ce n'est pas un serveur IMAP.
 Password for %s	Mot de passe de %s
 Signing in failed	Échec de la connexion
 Read your email and get notified about new messages	Lisez vos e-mails et soyez averti des nouveaux messages
+# Obchod LuxOS - popisy aplikaci LuxOS
+AI assistant that can work with your computer	Assistant IA capable de travailler avec votre ordinateur
+Calculate with LuxOS Calculator	Calculer avec la Calculatrice LuxOS
+Securely send files and folders to nearby LuxOS computers and LocalSend apps	Envoyer en toute sécurité des fichiers et dossiers aux ordinateurs LuxOS et applis LocalSend à proximité
+Automatic backups to an external or network disk and restoring files	Sauvegardes automatiques sur un disque externe ou réseau et restauration de fichiers
+Encrypted folder for sensitive files	Dossier chiffré pour les fichiers sensibles
+Development environment for Lux Simple Lang	Environnement de développement pour Lux Simple Lang
+Build, edit and debug projects with an AI coding agent	Créer, modifier et déboguer des projets avec un agent de programmation IA
+Open the shared folders of another LuxOS computer next to your files	Ouvrir les dossiers partagés d’un autre ordinateur LuxOS à côté de vos fichiers
+Detected hardware and its drivers (graphics, Wi-Fi, camera)	Matériel détecté et ses pilotes (graphique, Wi-Fi, caméra)
+Turn the firewall on or off and allow apps to accept connections from the network	Activer ou désactiver le pare-feu et autoriser des applis à accepter des connexions du réseau
+Protection against harmful programs and restoring deleted files	Protection contre les programmes malveillants et restauration des fichiers supprimés
+Sign in to LuxAI for AI in LuxOS apps	Se connecter à LuxAI pour l’IA dans les applis LuxOS
+Print, scan and see your printers	Imprimer, numériser et voir vos imprimantes
+Run untrusted apps in an isolated system	Exécuter des applis non fiables dans un système isolé
+See how your computer is doing and quit apps that stopped responding	Voir l’état de votre ordinateur et quitter les applis qui ne répondent plus

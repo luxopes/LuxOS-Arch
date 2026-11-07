@@ -7,3 +7,5 @@ Exec=luxos-about
 Icon=luxos-logo
 Categories=System;
 StartupWMClass=luxos-about
+# Obchod LuxOS: soucast systemu, v sekci Aplikace LuxOS se nezobrazuje
+X-LuxOS-Store=hide

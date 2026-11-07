@@ -7,3 +7,5 @@ Icon=luxos-launchpad
 Categories=System;
 # Launchpad sam sebe v mrizce nezobrazuje (v Hledani a menu zustava)
 NotShowIn=X-LuxOS-Launchpad;
+# Obchod LuxOS: soucast systemu, v sekci Aplikace LuxOS se nezobrazuje
+X-LuxOS-Store=hide

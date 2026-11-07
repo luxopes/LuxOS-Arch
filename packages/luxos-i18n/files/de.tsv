@@ -4689,3 +4689,19 @@ This is not an IMAP server.	Dies ist kein IMAP-Server.
 Password for %s	Passwort für %s
 Signing in failed	Anmeldung fehlgeschlagen
 Read your email and get notified about new messages	E-Mails lesen und über neue Nachrichten benachrichtigt werden
+# Obchod LuxOS - popisy aplikaci LuxOS
+AI assistant that can work with your computer	KI-Assistent, der mit Ihrem Computer arbeiten kann
+Calculate with LuxOS Calculator	Rechnen mit dem LuxOS-Rechner
+Securely send files and folders to nearby LuxOS computers and LocalSend apps	Dateien und Ordner sicher an LuxOS-Computer und LocalSend-Apps in der Nähe senden
+Automatic backups to an external or network disk and restoring files	Automatische Sicherungen auf eine externe oder Netzwerkfestplatte und Wiederherstellen von Dateien
+Encrypted folder for sensitive files	Verschlüsselter Ordner für vertrauliche Dateien
+Development environment for Lux Simple Lang	Entwicklungsumgebung für Lux Simple Lang
+Build, edit and debug projects with an AI coding agent	Projekte mit einem KI-Programmieragenten erstellen, bearbeiten und debuggen
+Open the shared folders of another LuxOS computer next to your files	Freigegebene Ordner eines anderen LuxOS-Computers neben Ihren Dateien öffnen
+Detected hardware and its drivers (graphics, Wi-Fi, camera)	Erkannte Hardware und ihre Treiber (Grafik, WLAN, Kamera)
+Turn the firewall on or off and allow apps to accept connections from the network	Firewall ein- oder ausschalten und Apps eingehende Netzwerkverbindungen erlauben
+Protection against harmful programs and restoring deleted files	Schutz vor schädlichen Programmen und Wiederherstellen gelöschter Dateien
+Sign in to LuxAI for AI in LuxOS apps	Bei LuxAI anmelden für KI in LuxOS-Apps
+Print, scan and see your printers	Drucken, scannen und Drucker anzeigen
+Run untrusted apps in an isolated system	Nicht vertrauenswürdige Apps in einem isolierten System ausführen
+See how your computer is doing and quit apps that stopped responding	Sehen, wie es Ihrem Computer geht, und nicht reagierende Apps beenden

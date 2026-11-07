@@ -4690,3 +4690,19 @@ This is not an IMAP server.	To nie jest serwer IMAP.
 Password for %s	Hasło dla %s
 Signing in failed	Logowanie nie powiodło się
 Read your email and get notified about new messages	Czytaj pocztę i otrzymuj powiadomienia o nowych wiadomościach
+# Obchod LuxOS - popisy aplikaci LuxOS
+AI assistant that can work with your computer	Asystent AI, który potrafi pracować z Twoim komputerem
+Calculate with LuxOS Calculator	Kalkulator LuxOS
+Securely send files and folders to nearby LuxOS computers and LocalSend apps	Bezpieczne wysyłanie plików i folderów do pobliskich komputerów LuxOS i aplikacji LocalSend
+Automatic backups to an external or network disk and restoring files	Automatyczne kopie zapasowe na dysk zewnętrzny lub sieciowy i przywracanie plików
+Encrypted folder for sensitive files	Zaszyfrowany folder na poufne pliki
+Development environment for Lux Simple Lang	Środowisko programistyczne dla Lux Simple Lang
+Build, edit and debug projects with an AI coding agent	Twórz, edytuj i debuguj projekty z agentem AI
+Open the shared folders of another LuxOS computer next to your files	Otwórz udostępnione foldery innego komputera LuxOS obok swoich plików
+Detected hardware and its drivers (graphics, Wi-Fi, camera)	Wykryty sprzęt i jego sterowniki (grafika, Wi-Fi, kamera)
+Turn the firewall on or off and allow apps to accept connections from the network	Włącz lub wyłącz zaporę i zezwól aplikacjom na przyjmowanie połączeń z sieci
+Protection against harmful programs and restoring deleted files	Ochrona przed szkodliwymi programami i przywracanie usuniętych plików
+Sign in to LuxAI for AI in LuxOS apps	Zaloguj się do LuxAI, aby korzystać z AI w aplikacjach LuxOS
+Print, scan and see your printers	Drukuj, skanuj i zarządzaj drukarkami
+Run untrusted apps in an isolated system	Uruchamiaj niezaufane aplikacje w odizolowanym systemie
+See how your computer is doing and quit apps that stopped responding	Sprawdź, jak działa komputer, i zamykaj aplikacje, które nie odpowiadają

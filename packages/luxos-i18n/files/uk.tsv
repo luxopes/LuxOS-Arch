@@ -4690,3 +4690,19 @@ This is not an IMAP server.	Це не сервер IMAP.
 Password for %s	Пароль для %s
 Signing in failed	Не вдалося увійти
 Read your email and get notified about new messages	Читайте пошту й отримуйте сповіщення про нові листи
+# Obchod LuxOS - popisy aplikaci LuxOS
+AI assistant that can work with your computer	ШІ-асистент, який уміє працювати з вашим комп’ютером
+Calculate with LuxOS Calculator	Калькулятор LuxOS
+Securely send files and folders to nearby LuxOS computers and LocalSend apps	Безпечне надсилання файлів і тек на комп’ютери LuxOS і в застосунок LocalSend поблизу
+Automatic backups to an external or network disk and restoring files	Автоматичні резервні копії на зовнішній або мережевий диск і відновлення файлів
+Encrypted folder for sensitive files	Зашифрована тека для конфіденційних файлів
+Development environment for Lux Simple Lang	Середовище розробки для Lux Simple Lang
+Build, edit and debug projects with an AI coding agent	Створення, редагування й налагодження проєктів з ШІ-агентом
+Open the shared folders of another LuxOS computer next to your files	Відкрити спільні теки іншого комп’ютера LuxOS поруч із вашими файлами
+Detected hardware and its drivers (graphics, Wi-Fi, camera)	Виявлене обладнання та його драйвери (графіка, Wi-Fi, камера)
+Turn the firewall on or off and allow apps to accept connections from the network	Увімкнення брандмауера та дозвіл застосункам приймати з’єднання з мережі
+Protection against harmful programs and restoring deleted files	Захист від шкідливих програм і відновлення видалених файлів
+Sign in to LuxAI for AI in LuxOS apps	Вхід у LuxAI для ШІ в застосунках LuxOS
+Print, scan and see your printers	Друк, сканування та огляд принтерів
+Run untrusted apps in an isolated system	Запуск ненадійних застосунків в ізольованій системі
+See how your computer is doing and quit apps that stopped responding	Стан комп’ютера та завершення застосунків, що не відповідають

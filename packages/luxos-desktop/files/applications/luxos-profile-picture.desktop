@@ -33,3 +33,5 @@ Categories=Settings;DesktopSettings;X-XFCE-SettingsDialog;X-XFCE-PersonalSetting
 Keywords=profile;picture;photo;avatar;account;user;face;login;
 Keywords[cs]=profil;fotka;obrázek;avatar;účet;uživatel;přihlášení;profile;picture;photo;
 StartupWMClass=luxos-profile-picture
+# Obchod LuxOS: zobrazit v sekci Aplikace LuxOS (jinak skryte jako nastaveni)
+X-LuxOS-Store=show

@@ -10,3 +10,5 @@ Terminal=false
 Categories=System;PackageManager;GTK;
 Keywords=store;apps;install;software;obchod;aplikace;instalace;
 StartupWMClass=luxos-store
+# Obchod LuxOS: soucast systemu, v sekci Aplikace LuxOS se nezobrazuje
+X-LuxOS-Store=hide
