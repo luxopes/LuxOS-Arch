@@ -35,6 +35,5 @@ luxos-care
 luxos-guard
 luxos-backup
 luxos-firewall
-# Posta LuxOS: cteni posty a okamzita upozorneni na novou postu (Thunderbird zustava v sade Everyday)
 # firemni sit (Active Directory): Nastaveni > Firemni sit, nic nebezi do pripojeni k domene
 luxos-domain
