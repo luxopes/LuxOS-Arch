@@ -4742,3 +4742,10 @@ The mail server cannot verify the sign-in right now. Mail tries again later.	E-p
 The mail server did not accept the LuxAI sign-in for %s.	E-postservern godtog inte LuxAI-inloggningen för %s.
 Cannot reach the LuxAI server. Check your internet connection.	Det går inte att nå LuxAI-servern. Kontrollera internetanslutningen.
 The LuxAI Account app (luxos-account) is not installed.	Appen LuxAI-konto (luxos-account) är inte installerad.
+Automatic (%s)	Automatiskt (%s)
+Animated Background	Animerad bakgrund
+Which unit do you prefer?	Vilken enhet föredrar du?
+We picked %s for your region. You can change it any time in ⋯ › Units.	Vi valde %s för din region. Du kan ändra det när som helst under ⋯ › Enheter.
+Celsius (°C)	Celsius (°C)
+Fahrenheit (°F)	Fahrenheit (°F)
+Keep Automatic	Behåll automatiskt
