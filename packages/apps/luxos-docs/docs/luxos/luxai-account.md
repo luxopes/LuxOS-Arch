@@ -116,6 +116,8 @@ Every request to `https://lux-ai.cz` carries:
 | `PATCH /api/account/settings` | `{"username" \| "theme" \| "aiResponseStyle"}` → `{user}` |
 | `POST /api/account/password` | `{"currentPassword", "newPassword"}`; signs out other sessions |
 | `GET /api/chat/history[/<id>]` | web chat history (export) |
+| `GET /api/mail/mailboxes` | mailboxes on the LuxAI server this account may use: `{"mailboxes": [{"address", "display_name", "imap": {host, port, security}, "smtp": {…}, "auth": "luxai-oauth"}]}` (LuxOS Mail) |
+| `POST /api/mail/token` | `{"address"}` → short-lived access token (15 min) for IMAP/SMTP via SASL OAUTHBEARER/XOAUTH2; never stored by the app |
 
 Helpers:
 

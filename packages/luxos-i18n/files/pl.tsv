@@ -4723,3 +4723,23 @@ Output of %s	Wynik programu %s
 Ran in the sandbox without access to your files	Działał w piaskownicy bez dostępu do Twoich plików
 The output is no longer available.	Wynik nie jest już dostępny.
 The program did not print anything.	Program nic nie wypisał.
+Continue as %s	Kontynuuj jako %s
+Use Another Account…	Użyj innego konta…
+Add LuxAI Mailbox…	Dodaj skrzynkę LuxAI…
+LuxAI Mailboxes	Skrzynki LuxAI
+Mailboxes of %s	Skrzynki użytkownika %s
+Mail signs in with your LuxAI account – no password is needed.	Poczta loguje się Twoim kontem LuxAI – hasło nie jest potrzebne.
+Your LuxAI account has no mailbox on the LuxAI server. Add your email account – its address is already filled in.	Twoje konto LuxAI nie ma skrzynki na serwerze LuxAI. Dodaj swoje konto e-mail – jego adres jest już wpisany.
+Sign In to LuxAI	Logowanie do LuxAI
+Sign In…	Zaloguj się…
+Your LuxAI sign-in has expired. Sign in to your LuxAI account again.	Logowanie do LuxAI wygasło. Zaloguj się ponownie do konta LuxAI.
+No LuxAI account is signed in on this computer.	Na tym komputerze nie jest zalogowane żadne konto LuxAI.
+Your LuxAI account no longer has access to %s.	Twoje konto LuxAI nie ma już dostępu do %s.
+Your LuxAI account has no access to this mailbox.	Twoje konto LuxAI nie ma dostępu do tej skrzynki.
+Too many requests to LuxAI. Try again in a minute.	Zbyt wiele żądań do LuxAI. Spróbuj ponownie za minutę.
+The LuxAI server is not available right now.	Serwer LuxAI jest teraz niedostępny.
+The mail server does not support signing in with a LuxAI account.	Serwer poczty nie obsługuje logowania kontem LuxAI.
+The mail server cannot verify the sign-in right now. Mail tries again later.	Serwer poczty nie może teraz sprawdzić logowania. Poczta spróbuje ponownie później.
+The mail server did not accept the LuxAI sign-in for %s.	Serwer poczty nie przyjął logowania LuxAI dla %s.
+Cannot reach the LuxAI server. Check your internet connection.	Nie można połączyć się z serwerem LuxAI. Sprawdź połączenie z internetem.
+The LuxAI Account app (luxos-account) is not installed.	Aplikacja Konto LuxAI (luxos-account) nie jest zainstalowana.

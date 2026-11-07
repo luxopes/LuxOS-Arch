@@ -4722,3 +4722,23 @@ Output of %s	%s kimenete
 Ran in the sandbox without access to your files	A sandboxban futott, a fájljaihoz való hozzáférés nélkül
 The output is no longer available.	A kimenet már nem érhető el.
 The program did not print anything.	A program nem írt ki semmit.
+Continue as %s	Folytatás mint %s
+Use Another Account…	Másik fiók használata…
+Add LuxAI Mailbox…	LuxAI-postafiók hozzáadása…
+LuxAI Mailboxes	LuxAI-postafiókok
+Mailboxes of %s	%s postafiókjai
+Mail signs in with your LuxAI account – no password is needed.	A Levelezés a LuxAI-fiókjával jelentkezik be – nincs szükség jelszóra.
+Your LuxAI account has no mailbox on the LuxAI server. Add your email account – its address is already filled in.	LuxAI-fiókjának nincs postafiókja a LuxAI-kiszolgálón. Adja hozzá e-mail-fiókját – a címe már ki van töltve.
+Sign In to LuxAI	Bejelentkezés a LuxAI-ba
+Sign In…	Bejelentkezés…
+Your LuxAI sign-in has expired. Sign in to your LuxAI account again.	A LuxAI-bejelentkezés lejárt. Jelentkezzen be újra a LuxAI-fiókjába.
+No LuxAI account is signed in on this computer.	Ezen a számítógépen nincs bejelentkezett LuxAI-fiók.
+Your LuxAI account no longer has access to %s.	LuxAI-fiókja már nem fér hozzá ehhez: %s.
+Your LuxAI account has no access to this mailbox.	LuxAI-fiókja nem fér hozzá ehhez a postafiókhoz.
+Too many requests to LuxAI. Try again in a minute.	Túl sok kérés a LuxAI felé. Próbálja újra egy perc múlva.
+The LuxAI server is not available right now.	A LuxAI-kiszolgáló most nem érhető el.
+The mail server does not support signing in with a LuxAI account.	A levelezőkiszolgáló nem támogatja a LuxAI-fiókkal való bejelentkezést.
+The mail server cannot verify the sign-in right now. Mail tries again later.	A levelezőkiszolgáló most nem tudja ellenőrizni a bejelentkezést. A Levelezés később újra megpróbálja.
+The mail server did not accept the LuxAI sign-in for %s.	A levelezőkiszolgáló nem fogadta el a LuxAI-bejelentkezést ehhez: %s.
+Cannot reach the LuxAI server. Check your internet connection.	A LuxAI-kiszolgáló nem érhető el. Ellenőrizze az internetkapcsolatot.
+The LuxAI Account app (luxos-account) is not installed.	A LuxAI-fiók alkalmazás (luxos-account) nincs telepítve.

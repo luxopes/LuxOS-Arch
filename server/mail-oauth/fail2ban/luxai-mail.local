@@ -1,0 +1,23 @@
+# Fail2ban: verejna posta LuxAI (IMAPS 993, submission 465/587). Instaluje server/mail-oauth/deploy.sh
+# do /etc/fail2ban/jail.d/luxai-mail.local. Vychozi hodnoty (backend systemd, banaction
+# nftables-multiport, ignoreip) jsou z /etc/fail2ban/jail.local. Posta LuxOS spatne prihlaseni sama
+# neopakuje (jeden pokus, pak ceka na uzivatele), takze 5 chyb za 10 minut je utok nebo spatne heslo
+# z jineho klienta. Ban jen na postovni porty (web a SSH zustavaji).
+
+[luxai-dovecot]
+enabled = true
+backend = systemd
+filter = luxai-dovecot
+port = 993,143
+findtime = 10m
+maxretry = 5
+bantime = 1h
+
+[luxai-postfix-sasl]
+enabled = true
+backend = systemd
+filter = luxai-postfix-sasl
+port = 465,587
+findtime = 10m
+maxretry = 5
+bantime = 1h

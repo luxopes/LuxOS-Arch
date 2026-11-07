@@ -5,6 +5,9 @@
 # "luxos-mail-ui-<uid>" a skonci.
 # Klavesnice: sipky v seznamech, Enter = text zpravy, Delete = do Kose, Ctrl+Shift+U = prectena/neprectena,
 # Ctrl+F = filtr seznamu (Esc zrusi), Ctrl+R / F5 = stahnout postu, Ctrl+N = nova zprava (faze 2), Ctrl+Q/W = zavrit.
+# Prvni spusteni s uctem LuxAI v systemu: "Pokracovat jako <jmeno>" nabidne schranky na serveru LuxAI
+# (pridani jednim kliknutim, bez hesla - token uctu LuxAI); "Pouzit jiny ucet" otevre bezne pridani
+# s predvyplnenym registracnim e-mailem.
 load env, json, net
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
@@ -14,6 +17,7 @@ load mail_bytes as mb
 load mail_mime as mime
 load mail_store as store
 load mail_gtk as mg
+load mail_luxai as luxai
 
 CSS = ".toolbar { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.10); }\n.toolbar button { min-height: 26px; padding: 2px 8px; }\n.sidebar, .sidebar list { background-color: alpha(currentColor, 0.035); }\n.sidebar row { padding: 4px 10px; border-radius: 6px; margin: 0 6px; }\n.side-header { font-size: 11px; font-weight: 700; opacity: 0.55; margin: 12px 4px 2px 4px; }\n.side-count { font-size: 11px; opacity: 0.6; }\n.side-error { color: #d9534f; }\n.list-head { padding: 10px 14px 6px 14px; }\n.list-title { font-weight: 700; font-size: 15px; }\n.dim { opacity: 0.6; }\n.small { font-size: 11px; }\n.msg-row { padding: 8px 12px 8px 6px; border-bottom: 1px solid alpha(currentColor, 0.07); }\n.sender { font-size: 13px; }\n.sender.unread { font-weight: 700; }\n.subject { font-size: 12.5px; }\n.preview { font-size: 12px; opacity: 0.6; }\n.unread-dot { color: @theme_selected_bg_color; font-size: 11px; min-width: 14px; }\n.flagged { color: #e6a700; }\n.banner { padding: 8px 14px; background-color: alpha(#e6a700, 0.18); }\n.banner.error { background-color: alpha(#d9534f, 0.18); }\n.msg-head { padding: 16px 22px 10px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.msg-subject { font-size: 18px; font-weight: 700; }\n.msg-from { font-weight: 600; }\n.att-bar { padding: 8px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.att { padding: 2px 10px; border-radius: 12px; }\n.body { font-size: 13.5px; }\n.empty { font-size: 16px; opacity: 0.45; }\n.welcome-title { font-size: 22px; font-weight: 700; }\n.dialog-box { padding: 20px 24px; }\n.error { color: #d9534f; }\n"
 
@@ -33,7 +37,8 @@ ui = {"window": 0, "outer": 0, "sidebar": 0, "list": 0, "list_scroll": 0, "view"
       "rows": [], "shown": [], "built": 0, "row_index": {}, "widgets": {}, "selected": 0, "building": False, "filter": "",
       "svc_fd": -1, "svc_buf": ByteArray(), "next_id": 1, "pending": {}, "outbox": [], "status": {}, "connecting": False,
       "tries": 0, "message": {}, "body": ByteArray(), "body_uid": 0, "open_target": {}, "ui_listen": -1, "dlg": {},
-      "started": 0, "ready_logged": False, "older_row": 0, "welcome_button": 0}
+      "started": 0, "ready_logged": False, "older_row": 0, "welcome_button": 0,
+      "welcome_luxai": 0, "luxai_button": 0, "luxai_sub": 0, "luxdlg": {}, "luxai_busy": False}
 
 function log(message):
     return eprint("luxos-mail: " + message)
@@ -368,10 +373,26 @@ function build_window():
     call gtk.label_set_max_width_chars(ws, 50)
     call gtk.label_set_justify(ws, 2)
     call gtk.box_pack_start(welcome, ws, False, False, 0)
+    # ucet LuxAI tohoto pocitace (zobrazi update_welcome)
+    lbox = gtk.box_new(gtk.VERTICAL, 4)
+    call gtk.widget_set_no_show_all(lbox, True)
+    lb = gtk.button_new(i18n.T("Continue"))
+    call gtk.widget_add_class(lb, "suggested-action")
+    call gtk.widget_set_halign(lb, gtk.ALIGN_CENTER)
+    call gtk.connect(lb, "clicked", on_luxai_clicked)
+    call gtk.box_pack_start(lbox, lb, False, False, 0)
+    lsub = gtk.label_new("")
+    call gtk.widget_add_class(lsub, "dim")
+    call gtk.widget_add_class(lsub, "small")
+    call gtk.box_pack_start(lbox, lsub, False, False, 0)
+    call gtk.box_pack_start(welcome, lbox, False, False, 8)
+    ui["welcome_luxai"] = lbox
+    ui["luxai_button"] = lb
+    ui["luxai_sub"] = lsub
     add = gtk.button_new(i18n.T("Add Account…"))
     call gtk.widget_set_halign(add, gtk.ALIGN_CENTER)
-    call gtk.connect(add, "clicked", on_add_account_clicked)
-    call gtk.box_pack_start(welcome, add, False, False, 8)
+    call gtk.connect(add, "clicked", on_welcome_add_clicked)
+    call gtk.box_pack_start(welcome, add, False, False, 4)
     call gtk.widget_set_can_default(add, True)
     ui["welcome_button"] = add
     call mg.stack_add(stack, welcome, "welcome")
@@ -1274,6 +1295,9 @@ function error_text(st):
     a = account(st.get("account", ""))
     s = a.get("imap", {})
     host = String(s.get("host", ""))
+    if a.get("auth", "") == "luxai" and (kind == "auth" or kind.startswith("luxai_") or kind == "nooauth"):
+        return luxai_error_text(kind, detail, a.get("email", ""))
+    end
     if kind == "auth":
         return i18n.TF("The server rejected the password for %s.", [a.get("email", "")])
     elif kind == "nopassword":
@@ -1297,7 +1321,10 @@ function update_banner():
     if state == "error" or (state == "offline" and st.get("kind", "") != ""):
         call gtk.label_set_text(ui["banner_label"], error_text(st))
         kind = st.get("kind", "")
-        if kind == "auth" or kind == "nopassword":
+        luxai_account = account(st.get("account", "")).get("auth", "") == "luxai"
+        if luxai_account and (kind == "luxai_session" or kind == "luxai_signedout"):
+            call gtk.button_set_label(ui["banner_button"], i18n.T("Sign In…"))
+        elif (kind == "auth" or kind == "nopassword") and not luxai_account:
             call gtk.button_set_label(ui["banner_button"], i18n.T("Enter Password…"))
         else:
             call gtk.button_set_label(ui["banner_button"], i18n.T("Try Again"))
@@ -1315,6 +1342,19 @@ end
 function on_banner_clicked(button):
     st = ui["status"].get(ui["current"]["account"], {})
     kind = st.get("kind", "")
+    id = ui["current"]["account"]
+    if account(id).get("auth", "") == "luxai":
+        if kind == "luxai_session" or kind == "luxai_signedout":
+            call luxai_login("retry", id)
+        elif st.get("state", "") == "error":
+            # jeden novy pokus (zamitnuty token se sam neopakuje)
+            call set_busy(True)
+            call request("retry_account", {"account": id}, {"account": id})
+        else:
+            call request("reconnect", {}, {})
+        end
+        return 0
+    end
     if kind == "auth" or kind == "nopassword":
         call password_dialog(ui["current"]["account"])
     else:
@@ -1330,9 +1370,7 @@ function reload_accounts():
     if len(ui["accounts"]) == 0:
         call mg.stack_show(ui["outer"], "welcome")
         call gtk.window_set_title(ui["window"], i18n.T("Mail"))
-        if ui["welcome_button"] != 0:
-            call gtk.widget_grab_focus(ui["welcome_button"])
-        end
+        call update_welcome()
     else:
         call mg.stack_show(ui["outer"], "main")
     end
@@ -1419,6 +1457,12 @@ function on_reply(msg, ctx):
         call on_account_added(msg)
     elif op == "set_password":
         call on_password_set(msg)
+    elif op == "luxai_mailboxes":
+        call on_luxai_mailboxes(msg, ctx)
+    elif op == "add_luxai_account":
+        call on_luxai_added(msg)
+    elif op == "retry_account":
+        call set_busy(False)
     elif op == "remove_account":
         call reload_accounts()
         ui["current"] = {"account": "", "raw": "", "role": "", "name": ""}
@@ -1542,12 +1586,19 @@ function on_menu_clicked(button):
     item = gtk.menu_item_new(i18n.T("Add Account…"))
     call gtk.connect(item, "activate", on_add_account_clicked)
     call gtk.menu_append(menu, item)
+    if len(luxai.account_user()) > 0:
+        item = gtk.menu_item_new(i18n.T("Add LuxAI Mailbox…"))
+        call gtk.connect(item, "activate", on_luxai_clicked)
+        call gtk.menu_append(menu, item)
+    end
     cur = ui["current"]["account"]
     if cur != "":
         a = account(cur)
-        item = gtk.menu_item_new(i18n.TF("Change Password for %s…", [a.get("email", "")]))
-        call gtk.connect_data(item, "activate", 0, on_menu_password, cur)
-        call gtk.menu_append(menu, item)
+        if a.get("auth", "") != "luxai":
+            item = gtk.menu_item_new(i18n.TF("Change Password for %s…", [a.get("email", "")]))
+            call gtk.connect_data(item, "activate", 0, on_menu_password, cur)
+            call gtk.menu_append(menu, item)
+        end
         item = gtk.menu_item_new(i18n.TF("Remove %s…", [a.get("email", "")]))
         call gtk.connect_data(item, "activate", 0, on_menu_remove, cur)
         call gtk.menu_append(menu, item)
@@ -1601,6 +1652,17 @@ function security_combo(value):
 end
 
 function on_add_account_clicked(widget):
+    return open_add_dialog("", "")
+end
+
+# Uvitani: s uctem LuxAI predvyplni registracni e-mail (bezne pridani: heslo, automaticke nalezeni)
+function on_welcome_add_clicked(widget):
+    u = luxai.account_user()
+    return open_add_dialog(u.get("email", ""), "")
+end
+
+# prefill = e-mail predem, note = vysvetleni nad poli (napr. ucet LuxAI nema schranku na serveru LuxAI)
+function open_add_dialog(prefill, note):
     if len(ui["dlg"]) > 0:
         call gtk.window_present(ui["dlg"]["window"])
         return 0
@@ -1615,7 +1677,11 @@ function on_add_account_clicked(widget):
     box = gtk.box_new(gtk.VERTICAL, 10)
     call gtk.widget_add_class(box, "dialog-box")
     call gtk.box_pack_start(box, label(i18n.T("Add an Email Account"), "list-title"), False, False, 0)
-    hint = label(i18n.T("Mail finds the server settings for most providers automatically."), "dim small")
+    hint_text = i18n.T("Mail finds the server settings for most providers automatically.")
+    if note != "":
+        hint_text = note + "\n" + hint_text
+    end
+    hint = label(hint_text, "dim small")
     call gtk.label_set_line_wrap(hint, True)
     call gtk.box_pack_start(box, hint, False, False, 0)
     grid = gtk.grid_new()
@@ -1680,7 +1746,12 @@ function on_add_account_clicked(widget):
     call gtk.connect(password, "activate", on_dlg_activate)
     call gtk.connect(win, "delete-event", on_dlg_delete)
     call gtk.widget_show_all(win)
-    call gtk.widget_grab_focus(email)
+    if prefill != "":
+        call gtk.entry_set_text(email, prefill)
+        call gtk.widget_grab_focus(password)
+    else:
+        call gtk.widget_grab_focus(email)
+    end
     return 0
 end
 
@@ -1859,6 +1930,8 @@ function kind_text(msg, host):
         return i18n.T("The password could not be saved in the keyring.") + " " + detail
     elif kind == "protocol":
         return i18n.T("This is not an IMAP server.") + " " + detail
+    elif kind.startswith("luxai_") or kind == "nooauth" or kind == "unavailable":
+        return luxai_error_text(kind, detail, "")
     end
     return detail
 end
@@ -1878,12 +1951,299 @@ function on_account_added(msg):
     w = d["window"]
     ui["dlg"] = {}
     call gtk.widget_destroy(w)
+    call show_new_account(msg.get("account", ""))
+    return 0
+end
+
+function show_new_account(id):
     call reload_accounts()
-    id = msg.get("account", "")
     ui["current"] = {"account": id, "raw": "INBOX", "role": "inbox", "name": i18n.T("Inbox")}
     call build_sidebar()
     call open_mailbox(id, "INBOX", 0)
     call select_side(id, "INBOX")
+    return 0
+end
+
+# ---- ucet LuxAI: schranky na serveru LuxAI ---------------------------------------------------------------------
+
+function update_welcome():
+    if ui["welcome_luxai"] == 0:
+        return 0
+    end
+    u = luxai.account_user()
+    if len(u) > 0:
+        call gtk.button_set_label(ui["luxai_button"], i18n.TF("Continue as %s", [u["name"]]))
+        sub = i18n.T("LuxAI account")
+        if u["email"] != "" and u["email"] != u["name"]:
+            sub = u["email"] + " · " + sub
+        end
+        call gtk.label_set_text(ui["luxai_sub"], sub)
+        call gtk.widget_show(ui["luxai_button"])
+        call gtk.widget_show(ui["luxai_sub"])
+        call gtk.widget_show(ui["welcome_luxai"])
+        call gtk.button_set_label(ui["welcome_button"], i18n.T("Use Another Account…"))
+        call gtk.widget_grab_focus(ui["luxai_button"])
+    else:
+        call gtk.widget_hide(ui["welcome_luxai"])
+        call gtk.button_set_label(ui["welcome_button"], i18n.T("Add Account…"))
+        call gtk.widget_grab_focus(ui["welcome_button"])
+    end
+    return 0
+end
+
+function luxai_error_text(kind, detail, address):
+    if kind == "luxai_session":
+        return i18n.T("Your LuxAI sign-in has expired. Sign in to your LuxAI account again.")
+    elif kind == "luxai_signedout":
+        return i18n.T("No LuxAI account is signed in on this computer.")
+    elif kind == "luxai_denied":
+        if address != "":
+            return i18n.TF("Your LuxAI account no longer has access to %s.", [address])
+        end
+        return i18n.T("Your LuxAI account has no access to this mailbox.")
+    elif kind == "luxai_rate":
+        return i18n.T("Too many requests to LuxAI. Try again in a minute.")
+    elif kind == "luxai_server":
+        return i18n.T("The LuxAI server is not available right now.") + " (" + detail + ")"
+    elif kind == "nooauth":
+        return i18n.T("The mail server does not support signing in with a LuxAI account.")
+    elif kind == "unavailable":
+        return i18n.T("The mail server cannot verify the sign-in right now. Mail tries again later.")
+    elif kind == "auth":
+        return i18n.TF("The mail server did not accept the LuxAI sign-in for %s.", [address])
+    elif kind == "connect":
+        return i18n.T("Cannot reach the LuxAI server. Check your internet connection.")
+    end
+    return detail
+end
+
+function on_luxai_clicked(widget):
+    return luxai_start()
+end
+
+function luxai_start():
+    if ui["luxai_busy"]:
+        return 0
+    end
+    ui["luxai_busy"] = True
+    call set_busy(True)
+    if ui["luxai_button"] != 0:
+        call gtk.widget_set_sensitive(ui["luxai_button"], False)
+    end
+    call request("luxai_mailboxes", {}, {})
+    return 0
+end
+
+function on_luxai_mailboxes(msg, ctx):
+    ui["luxai_busy"] = False
+    call set_busy(False)
+    if ui["luxai_button"] != 0:
+        call gtk.widget_set_sensitive(ui["luxai_button"], True)
+    end
+    u = luxai.account_user()
+    if not msg.get("ok", False):
+        kind = msg.get("kind", "")
+        if kind == "luxai_session" or kind == "luxai_signedout":
+            if confirm(i18n.T("Sign In to LuxAI"), luxai_error_text(kind, "", ""), i18n.T("Sign In…")):
+                call luxai_login("mailboxes", "")
+            end
+        else:
+            call message_box(i18n.T("LuxAI Mailboxes"), luxai_error_text(kind, msg.get("error", ""), ""))
+        end
+        return 0
+    end
+    boxes = msg.get("mailboxes", [])
+    if len(boxes) == 0:
+        # ucet nema schranku na serveru LuxAI: bezne pridani s registracnim e-mailem
+        call open_add_dialog(u.get("email", ""), i18n.T("Your LuxAI account has no mailbox on the LuxAI server. Add your email account – its address is already filled in."))
+        return 0
+    end
+    call luxai_dialog(boxes, u)
+    return 0
+end
+
+function luxai_dialog(boxes, u):
+    if len(ui["luxdlg"]) > 0:
+        call gtk.widget_destroy(ui["luxdlg"]["window"])
+        ui["luxdlg"] = {}
+    end
+    win = gtk.window_new(i18n.T("LuxAI Mailboxes"))
+    call gtk.window_set_transient_for(win, ui["window"])
+    call gtk.window_set_modal(win, True)
+    call gtk.window_set_default_size(win, 460, -1)
+    call gtk.window_set_resizable(win, False)
+    call gtk.window_set_position(win, gtk.WIN_POS_CENTER_ON_PARENT)
+    call gtk.window_set_icon_list(win, "luxos-mail")
+    box = gtk.box_new(gtk.VERTICAL, 10)
+    call gtk.widget_add_class(box, "dialog-box")
+    call gtk.box_pack_start(box, label(i18n.TF("Mailboxes of %s", [u.get("name", "")]), "list-title"), False, False, 0)
+    hint = label(i18n.T("Mail signs in with your LuxAI account – no password is needed."), "dim small")
+    call gtk.label_set_line_wrap(hint, True)
+    call gtk.box_pack_start(box, hint, False, False, 0)
+    buttons = {}
+    added = []
+    first = 0
+    for m in boxes:
+        row = gtk.box_new(gtk.HORIZONTAL, 10)
+        text = gtk.box_new(gtk.VERTICAL, 2)
+        call gtk.box_pack_start(text, label(m["address"], "msg-from"), False, False, 0)
+        if m.get("display_name", "") != "":
+            call gtk.box_pack_start(text, label(m["display_name"], "dim small"), False, False, 0)
+        end
+        call gtk.box_pack_start(row, text, True, True, 0)
+        b = gtk.button_new(i18n.T("Add"))
+        if m.get("added", False):
+            added.append(m["address"])
+            call gtk.button_set_label(b, i18n.T("Added"))
+            call gtk.widget_set_sensitive(b, False)
+        else:
+            call gtk.widget_add_class(b, "suggested-action")
+            call gtk.connect_data(b, "clicked", 0, on_luxai_add, m["address"])
+            if first == 0:
+                first = b
+            end
+        end
+        call gtk.widget_set_valign(b, gtk.ALIGN_CENTER)
+        call gtk.box_pack_end(row, b, False, False, 0)
+        buttons[m["address"]] = b
+        call gtk.box_pack_start(box, row, False, False, 2)
+    end
+    status = gtk.box_new(gtk.HORIZONTAL, 8)
+    spinner = mg.spinner_new()
+    call gtk.box_pack_start(status, spinner, False, False, 0)
+    message = label("", "small")
+    call gtk.label_set_line_wrap(message, True)
+    call gtk.label_set_max_width_chars(message, 52)
+    call gtk.box_pack_start(status, message, True, True, 0)
+    call gtk.box_pack_start(box, status, False, False, 0)
+    bar = gtk.box_new(gtk.HORIZONTAL, 8)
+    other = gtk.button_new(i18n.T("Use Another Account…"))
+    call gtk.button_set_relief(other, gtk.RELIEF_NONE)
+    call gtk.connect(other, "clicked", on_luxai_other)
+    call gtk.box_pack_start(bar, other, False, False, 0)
+    close = gtk.button_new(i18n.T("Close"))
+    call gtk.connect(close, "clicked", on_luxai_close)
+    call gtk.box_pack_end(bar, close, False, False, 0)
+    call gtk.box_pack_start(box, bar, False, False, 6)
+    call gtk.container_add(win, box)
+    ui["luxdlg"] = {"window": win, "message": message, "spinner": spinner, "busy": False, "buttons": buttons, "added": added, "email": u.get("email", "")}
+    call gtk.connect(win, "delete-event", on_luxdlg_delete)
+    call gtk.widget_show_all(win)
+    if first != 0:
+        call gtk.widget_grab_focus(first)
+    else:
+        call gtk.widget_grab_focus(close)
+    end
+    return 0
+end
+
+function on_luxdlg_delete(event, window):
+    ui["luxdlg"] = {}
+    return False
+end
+
+function on_luxai_close(button):
+    if len(ui["luxdlg"]) > 0:
+        w = ui["luxdlg"]["window"]
+        ui["luxdlg"] = {}
+        call gtk.widget_destroy(w)
+    end
+    return 0
+end
+
+function on_luxai_other(button):
+    email = ui["luxdlg"].get("email", "")
+    call on_luxai_close(button)
+    call open_add_dialog(email, "")
+    return 0
+end
+
+function on_luxai_add(address, button):
+    d = ui["luxdlg"]
+    if len(d) == 0 or d["busy"]:
+        return 0
+    end
+    d["busy"] = True
+    call mg.spinner_set(d["spinner"], True)
+    for key in d["buttons"].keys():
+        call gtk.widget_set_sensitive(d["buttons"][key], False)
+    end
+    call gtk.label_set_text(d["message"], i18n.TF("Signing in to %s…", [address]))
+    call gtk.widget_set_class(d["message"], "error", False)
+    call request("add_luxai_account", {"address": address}, {"address": address})
+    return 0
+end
+
+function on_luxai_added(msg):
+    d = ui["luxdlg"]
+    if not msg.get("ok", False):
+        text = luxai_error_text(msg.get("kind", ""), msg.get("error", ""), "")
+        if msg.get("kind", "") in ["cert", "connect", "timeout", "closed", "tls", "protocol"]:
+            text = kind_text(msg, "")
+        end
+        if len(d) == 0:
+            call message_box(i18n.T("Signing in failed"), text)
+            return 0
+        end
+        d["busy"] = False
+        call mg.spinner_set(d["spinner"], False)
+        for key in d["buttons"].keys():
+            if key not in d["added"]:
+                call gtk.widget_set_sensitive(d["buttons"][key], True)
+            end
+        end
+        call gtk.label_set_text(d["message"], text)
+        call gtk.widget_set_class(d["message"], "error", True)
+        if msg.get("kind", "") == "luxai_session" or msg.get("kind", "") == "luxai_signedout":
+            call on_luxai_close(0)
+            call luxai_login("mailboxes", "")
+        end
+        return 0
+    end
+    if len(d) > 0:
+        call on_luxai_close(0)
+    end
+    call show_new_account(msg.get("account", ""))
+    return 0
+end
+
+# Prihlaseni k uctu LuxAI (luxos-account login); po uspechu dalsi krok: "mailboxes" = znovu nabidka schranek,
+# "retry" = znovu pripojit ucet
+function account_tool():
+    value = env.get("LUXOS_MAIL_ACCOUNT_TOOL", "")
+    if value != None and value != "":
+        return value
+    end
+    return glib.find_program_in_path("luxos-account")
+end
+
+function luxai_login(next, id):
+    tool = account_tool()
+    if tool == "":
+        call message_box(i18n.T("Sign In to LuxAI"), i18n.T("The LuxAI Account app (luxos-account) is not installed."))
+        return 0
+    end
+    pid = glib.spawn_capture([tool, "login"], on_luxai_login_done, [next, id])
+    if pid == 0:
+        call log("luxos-account login could not be started")
+    end
+    return 0
+end
+
+function on_luxai_login_done(ctx, output, status):
+    if status != 0 or len(luxai.account_user()) == 0:
+        call update_welcome()
+        return 0
+    end
+    if len(ui["accounts"]) == 0:
+        call update_welcome()
+    end
+    if ctx[0] == "mailboxes":
+        call luxai_start()
+    elif ctx[0] == "retry":
+        call set_busy(True)
+        call request("retry_account", {"account": ctx[1]}, {"account": ctx[1]})
+    end
     return 0
 end
 

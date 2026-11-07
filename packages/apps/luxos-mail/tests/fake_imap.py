@@ -2,7 +2,7 @@
 """Testovaci server IMAP pro Postu LuxOS (nikdy ne skutecna schranka).
 
 Podmnozina IMAP4rev1, kterou luxos-mail pouziva: TLS (implicitni i STARTTLS), LOGIN,
-AUTHENTICATE PLAIN (SASL-IR), ENABLE, LIST (SPECIAL-USE priznaky), SELECT (CONDSTORE/QRESYNC),
+AUTHENTICATE PLAIN (SASL-IR), OAUTHBEARER/XOAUTH2 (--oauth, tokeny z rizeni), ENABLE, LIST (SPECIAL-USE priznaky), SELECT (CONDSTORE/QRESYNC),
 STATUS, FETCH/UID FETCH (ENVELOPE, BODYSTRUCTURE, BODY.PEEK[...]<o.n>, CHANGEDSINCE, VANISHED),
 UID SEARCH, UID STORE, UID MOVE/COPY, UID EXPUNGE, EXPUNGE, CREATE, IDLE, LOGOUT.
 
@@ -11,6 +11,8 @@ Rizeni testu: radkovy protokol na --control portu (127.0.0.1):
     expunge MAILBOX UID                 smaze zpravu (* N EXPUNGE)
     flags MAILBOX UID \\Seen ...         nastavi priznaky (* N FETCH (FLAGS ...))
     password NOVE                       zmena hesla (heslo zmenene ve webmailu)
+    token TOKEN UZIVATEL                platny pristupovy token (OAUTHBEARER/XOAUTH2)
+    revoke                              zneplatni vsechny tokeny
     dump                                JSON stav schranek
     log                                 prijate prikazy (heslo zakryte)
 """
@@ -61,9 +63,13 @@ class Mailbox:
 
 
 class State:
-    def __init__(self, users, qresync):
+    def __init__(self, users, qresync, oauth=(), sasl_ir=True):
         self.users = users
         self.qresync = qresync
+        self.oauth = list(oauth)
+        self.sasl_ir = sasl_ir
+        self.tokens = {}
+        self.dovecot_flags = False
         self.boxes = {
             "INBOX": Mailbox("INBOX"),
             "Sent": Mailbox("Sent", "\\Sent"),
@@ -257,7 +263,9 @@ class Session(threading.Thread):
         self.alive = True
 
     def caps(self):
-        c = ["IMAP4rev1", "IDLE", "UIDPLUS", "MOVE", "CONDSTORE", "ENABLE", "LITERAL+", "SASL-IR", "SPECIAL-USE"]
+        c = ["IMAP4rev1", "IDLE", "UIDPLUS", "MOVE", "CONDSTORE", "ENABLE", "LITERAL+", "SPECIAL-USE"]
+        if self.state.sasl_ir:
+            c.append("SASL-IR")
         if self.state.qresync:
             c.append("QRESYNC")
         if not self.tls:
@@ -265,6 +273,7 @@ class Session(threading.Thread):
             c.append("LOGINDISABLED")
         elif self.user is None:
             c.append("AUTH=PLAIN")
+            c += ["AUTH=" + m for m in self.state.oauth]
         return " ".join(c)
 
     def send(self, text):
@@ -312,7 +321,9 @@ class Session(threading.Thread):
 
     def log(self, line):
         safe = re.sub(r'(?i)^(\S+ LOGIN \S+ ).*', r'\1"***"', line)
-        safe = re.sub(r'(?i)^(\S+ AUTHENTICATE PLAIN ).*', r'\1***', safe)
+        safe = re.sub(r'(?i)^(\S+ AUTHENTICATE (PLAIN|OAUTHBEARER|XOAUTH2) ).*', r'\1***', safe)
+        if self.user is None and re.match(r'^[A-Za-z0-9+/=]{16,}$', safe):
+            safe = "***"
         with LOCK:
             self.state.log.append(safe)
 
@@ -366,8 +377,49 @@ class Session(threading.Thread):
         t = tokenize(rest)
         self.login_ok(tag, t[0], t[1])
 
+    def oauth_login(self, tag, mech, data):
+        text = base64.b64decode(data).decode("utf-8", "replace")
+        fields = {}
+        user = ""
+        if mech == "OAUTHBEARER":
+            head, _, rest = text.partition("\x01")
+            gs2 = head.split(",")
+            if len(gs2) >= 2 and gs2[1].startswith("a="):
+                user = gs2[1][2:].replace("=2C", ",").replace("=3D", "=")
+            text = rest
+        for item in text.split("\x01"):
+            if "=" in item:
+                k, v = item.split("=", 1)
+                fields[k] = v
+        if mech == "XOAUTH2":
+            user = fields.get("user", "")
+        auth = fields.get("auth", "")
+        token = auth[7:] if auth.startswith("Bearer ") else ""
+        with LOCK:
+            self.state.log.append("AUTH %s user=%s host=%s port=%s" % (mech, user, fields.get("host", "-"), fields.get("port", "-")))
+            ok = bool(token) and self.state.tokens.get(token) == user.lower()
+        if ok:
+            self.user = user
+            self.send("%s OK [CAPABILITY %s] logged in\r\n" % (tag, self.caps()))
+            return
+        # RFC 7628: chyba v pokracovani, klient odpovi prazdnou zpravou, pak NO
+        self.send("+ %s\r\n" % base64.b64encode(b'{"status":"invalid_token","scope":"mail"}').decode())
+        reply = self.readline()
+        with LOCK:
+            self.state.log.append("SASL abort reply=%r" % reply)
+        self.send("%s NO [AUTHENTICATIONFAILED] Authentication failed.\r\n" % tag)
+
     def cmd_authenticate(self, tag, rest, uid):
         t = rest.split(" ")
+        mech = t[0].upper()
+        if mech in self.state.oauth:
+            if len(t) > 1:
+                data = t[1]
+            else:
+                self.send("+ \r\n")
+                data = self.readline()
+            self.oauth_login(tag, mech, data)
+            return
         if t[0].upper() != "PLAIN":
             self.send("%s NO unsupported\r\n" % tag)
             return
@@ -472,6 +524,10 @@ class Session(threading.Thread):
                 if changedsince is not None and msg.modseq <= changedsince:
                     continue
                 out.append(self.fetch_one(i + 1, msg, items, uid or changedsince is not None))
+            if self.state.dovecot_flags and "BODYSTRUCTURE" in [x.upper() for x in items]:
+                # jako Dovecot: po BODYSTRUCTURE nevyzadana zmena priznaku ($HasNoAttachment) s UID
+                for i, msg in selected:
+                    out.append("* %d FETCH (UID %d MODSEQ (%d) FLAGS (%s))\r\n" % (i + 1, msg.uid, msg.modseq, " ".join(sorted(msg.flags | {"$HasNoAttachment"}))))
         self.send("".join(out) + "%s OK fetch\r\n" % tag)
 
     def fetch_one(self, seq, msg, items, add_uid):
@@ -658,6 +714,10 @@ def control(state, conn):
                 elif parts[0] == "password":
                     for u in state.users:
                         state.users[u] = parts[1]
+                elif parts[0] == "token":
+                    state.tokens[parts[1]] = parts[2].lower()
+                elif parts[0] == "revoke":
+                    state.tokens.clear()
                 elif parts[0] == "dump":
                     out["boxes"] = {n: [{"uid": m.uid, "flags": sorted(m.flags)} for m in b.messages] for n, b in state.boxes.items()}
                 elif parts[0] == "log":
@@ -691,10 +751,14 @@ def main():
     ap.add_argument("--qresync", action="store_true")
     ap.add_argument("--seed", default="", help="adresar s .eml zpravami do INBOX")
     ap.add_argument("--ready", default="", help="soubor s porty po startu")
+    ap.add_argument("--oauth", default="", help="mechanismy tokenu, napr. OAUTHBEARER,XOAUTH2")
+    ap.add_argument("--no-sasl-ir", action="store_true")
+    ap.add_argument("--dovecot-flags", action="store_true", help="nevyzadane FETCH s priznaky po BODYSTRUCTURE")
     a = ap.parse_args()
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.load_cert_chain(a.cert, a.key)
-    state = State({a.user: a.password}, a.qresync)
+    state = State({a.user: a.password}, a.qresync, [m for m in a.oauth.upper().split(",") if m], not a.no_sasl_ir)
+    state.dovecot_flags = a.dovecot_flags
     if a.seed:
         for i, name in enumerate(sorted(os.listdir(a.seed))):
             if name.endswith(".eml"):

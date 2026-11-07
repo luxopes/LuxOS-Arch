@@ -4722,3 +4722,23 @@ Output of %s	Output di %s
 Ran in the sandbox without access to your files	Eseguito nella sandbox senza accesso ai tuoi file
 The output is no longer available.	L’output non è più disponibile.
 The program did not print anything.	Il programma non ha stampato nulla.
+Continue as %s	Continua come %s
+Use Another Account…	Usa un altro account…
+Add LuxAI Mailbox…	Aggiungi casella LuxAI…
+LuxAI Mailboxes	Caselle LuxAI
+Mailboxes of %s	Caselle di %s
+Mail signs in with your LuxAI account – no password is needed.	Posta accede con il tuo account LuxAI – non serve la password.
+Your LuxAI account has no mailbox on the LuxAI server. Add your email account – its address is already filled in.	Il tuo account LuxAI non ha una casella sul server LuxAI. Aggiungi il tuo account email – l’indirizzo è già compilato.
+Sign In to LuxAI	Accedi a LuxAI
+Sign In…	Accedi…
+Your LuxAI sign-in has expired. Sign in to your LuxAI account again.	L’accesso a LuxAI è scaduto. Accedi di nuovo al tuo account LuxAI.
+No LuxAI account is signed in on this computer.	Su questo computer non è connesso nessun account LuxAI.
+Your LuxAI account no longer has access to %s.	Il tuo account LuxAI non ha più accesso a %s.
+Your LuxAI account has no access to this mailbox.	Il tuo account LuxAI non ha accesso a questa casella.
+Too many requests to LuxAI. Try again in a minute.	Troppe richieste a LuxAI. Riprova tra un minuto.
+The LuxAI server is not available right now.	Il server LuxAI non è disponibile al momento.
+The mail server does not support signing in with a LuxAI account.	Il server di posta non supporta l’accesso con un account LuxAI.
+The mail server cannot verify the sign-in right now. Mail tries again later.	Il server di posta non può verificare l’accesso in questo momento. Posta riproverà più tardi.
+The mail server did not accept the LuxAI sign-in for %s.	Il server di posta non ha accettato l’accesso LuxAI per %s.
+Cannot reach the LuxAI server. Check your internet connection.	Impossibile raggiungere il server LuxAI. Controlla la connessione a internet.
+The LuxAI Account app (luxos-account) is not installed.	L’app Account LuxAI (luxos-account) non è installata.

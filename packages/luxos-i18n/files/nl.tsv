@@ -4722,3 +4722,23 @@ Output of %s	Uitvoer van %s
 Ran in the sandbox without access to your files	Uitgevoerd in de sandbox zonder toegang tot je bestanden
 The output is no longer available.	De uitvoer is niet meer beschikbaar.
 The program did not print anything.	Het programma heeft niets weergegeven.
+Continue as %s	Doorgaan als %s
+Use Another Account…	Ander account gebruiken…
+Add LuxAI Mailbox…	LuxAI-mailbox toevoegen…
+LuxAI Mailboxes	LuxAI-mailboxen
+Mailboxes of %s	Mailboxen van %s
+Mail signs in with your LuxAI account – no password is needed.	Mail meldt zich aan met je LuxAI-account – geen wachtwoord nodig.
+Your LuxAI account has no mailbox on the LuxAI server. Add your email account – its address is already filled in.	Je LuxAI-account heeft geen mailbox op de LuxAI-server. Voeg je e-mailaccount toe – het adres is al ingevuld.
+Sign In to LuxAI	Aanmelden bij LuxAI
+Sign In…	Aanmelden…
+Your LuxAI sign-in has expired. Sign in to your LuxAI account again.	Je LuxAI-aanmelding is verlopen. Meld je opnieuw aan bij je LuxAI-account.
+No LuxAI account is signed in on this computer.	Er is geen LuxAI-account aangemeld op deze computer.
+Your LuxAI account no longer has access to %s.	Je LuxAI-account heeft geen toegang meer tot %s.
+Your LuxAI account has no access to this mailbox.	Je LuxAI-account heeft geen toegang tot deze mailbox.
+Too many requests to LuxAI. Try again in a minute.	Te veel verzoeken aan LuxAI. Probeer het over een minuut opnieuw.
+The LuxAI server is not available right now.	De LuxAI-server is nu niet beschikbaar.
+The mail server does not support signing in with a LuxAI account.	De mailserver ondersteunt geen aanmelding met een LuxAI-account.
+The mail server cannot verify the sign-in right now. Mail tries again later.	De mailserver kan de aanmelding nu niet controleren. Mail probeert het later opnieuw.
+The mail server did not accept the LuxAI sign-in for %s.	De mailserver heeft de LuxAI-aanmelding voor %s niet geaccepteerd.
+Cannot reach the LuxAI server. Check your internet connection.	Kan de LuxAI-server niet bereiken. Controleer je internetverbinding.
+The LuxAI Account app (luxos-account) is not installed.	De app LuxAI-account (luxos-account) is niet geïnstalleerd.
