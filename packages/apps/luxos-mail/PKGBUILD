@@ -11,7 +11,7 @@
 
 pkgname=luxos-mail
 pkgver=1.0.0
-pkgrel=3
+pkgrel=4
 pkgdesc="LuxOS Mail - lightweight mail app with instant new-mail notifications (IMAP IDLE), written in LSL"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"
@@ -24,7 +24,7 @@ depends=(glibc glib2 gtk3 openssl libsecret gnome-keyring curl)
 optdepends=('luxos-i18n: translated texts'
             'luxos-account: sign in with the LuxAI account (LuxAI mailboxes without a password)'
             'plank: unread count on the Dock icon'
-            'xfce4-notifyd: new mail notifications')
+            'xfce4-notifyd>=0.9.7-3.5: new mail notifications (persistent, in the bell history)')
 makedepends=('lsl>=0.10.8' librsvg)
 checkdepends=(python python-pytest python-gobject openssl dbus gnome-keyring libsecret)
 
@@ -55,7 +55,7 @@ build() {
 check() {
     cd "$startdir/tests"
     # okno potrebuje xvfb-run (test_gui se bez nej preskoci); sluzba vlastni D-Bus a gnome-keyring
-    LUXOS_MAIL_BIN="$srcdir/luxos-mail" python -m pytest -q -p no:cacheprovider test_mime.py test_discover.py test_service.py test_luxai.py test_providers.py test_gui.py test_gui_luxai.py test_gui_providers.py
+    LUXOS_MAIL_BIN="$srcdir/luxos-mail" python -m pytest -q -p no:cacheprovider test_mime.py test_discover.py test_service.py test_luxai.py test_providers.py test_gui.py test_gui_luxai.py test_gui_providers.py test_notify_bell.py
 }
 
 package() {

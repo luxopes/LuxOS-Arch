@@ -189,6 +189,14 @@ class Session:
                     out.append(json.loads(line))
         return out
 
+    def closed_notifications(self):
+        """Id upozorneni zavrenych sluzbou (CloseNotification)."""
+        try:
+            with open(self.notify_log + ".closed") as f:
+                return [int(x) for x in f.read().split()]
+        except OSError:
+            return []
+
     def secret_lookup(self, account):
         r = subprocess.run(["secret-tool", "lookup", "service", "luxos-mail", "account", account], capture_output=True, env=self.env, timeout=10)
         return r.stdout.decode()
