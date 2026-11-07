@@ -710,3 +710,17 @@ class Grub(Env):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HistoryKindCollision(unittest.TestCase):
+    """history(kind, **data): rollback zaznamy nesmi predat dalsi 'kind' (TypeError na konci rollbacku)."""
+
+    def test_no_kind_keyword_passed_to_history(self):
+        import ast
+        src = open(os.path.join(os.path.dirname(__file__), "..", "files", "luxos_snapshots.py")).read()
+        for node in ast.walk(ast.parse(src)):
+            if isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "history":
+                self.assertNotIn("kind", [k.arg for k in node.keywords])
+                for k in node.keywords:
+                    if k.arg is None and isinstance(k.value, ast.DictComp):
+                        self.assertNotIn("'kind'", ast.unparse(k.value.key).replace('"', "'").split(" else ")[-1])
