@@ -1002,7 +1002,7 @@ def rollback(top, name, now=None, lay=None, kind="before-rollback", build=None):
     snaps = list_snapshots(top)
     gc_kernels(lay, top, snaps)
     sync_boot(top, lay, snaps)
-    care.history("rollback", ok=True, to=name, replaced=replaced, kind=kind)
+    care.history("rollback", ok=True, to=name, replaced=replaced, target_kind=kind)
     return {"target": name, "replaced": replaced, "label": label(meta)}
 
 
@@ -1024,7 +1024,7 @@ def after_rollback():
             care.log(f"mkinitcpio after rollback failed: {out[-500:]}")
     if os.path.exists("/usr/local/sbin/luxos-esp-sync") and not care.ROOT:
         sh(["/usr/local/sbin/luxos-esp-sync"], timeout=300)
-    care.history("rollback_done", ok=True, **{k: flag.get(k) for k in ("from", "to", "kind")})
+    care.history("rollback_done", ok=True, **{("target_kind" if k == "kind" else k): flag.get(k) for k in ("from", "to", "kind")})
     care.add_event("rolled_back", label=flag.get("label", ""), kind=flag.get("kind", "before-rollback"))
     return 0
 
