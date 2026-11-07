@@ -2,8 +2,8 @@
 
 pkgname=luxos-tweaks
 pkgver=1.0.0
-pkgrel=11
-pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, CPU scheduler (sched_ext scx_lavd), low-memory safeguard (earlyoom), Battery/Data Saver system parts, boot failure reporting"
+pkgrel=12
+pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, CPU scheduler (sched_ext scx_lavd), low-memory safeguard (earlyoom), Battery/Data Saver system parts, boot failure reporting, /tmp on disk"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
@@ -55,6 +55,14 @@ package() {
     install -Dm644 "$f/boot/luxos-boot.hook" "$pkgdir/usr/lib/initcpio/install/luxos-boot"
     install -Dm644 "$f/boot/zz-luxos-boot.conf" "$pkgdir/usr/lib/luxos/boot/zz-luxos-boot.conf"
     install -Dm644 "$f/boot/luxos-emergency.conf" "$pkgdir/usr/lib/systemd/system/emergency.service.d/luxos-boot-failure.conf"
+    # /tmp na disku misto v pameti (swap je jen zram, tmpfs vzdy zabira RAM): subvolume @tmp nebo
+    # slozka korene, vyprazdneni pri startu; prechod u stavajicich instalaci (instalacni skript
+    # a jednou pri startu), live ISO zustava s tmpfs
+    install -Dm755 "$f/tmp/luxos-tmp-setup" "$pkgdir/usr/lib/luxos/luxos-tmp-setup"
+    install -Dm644 "$f/tmp/luxos-tmp.conf" "$pkgdir/usr/lib/tmpfiles.d/luxos-tmp.conf"
+    install -Dm644 "$f/tmp/luxos-tmp-setup.service" "$pkgdir/usr/lib/systemd/system/luxos-tmp-setup.service"
+    install -dm755 "$pkgdir/usr/lib/systemd/system/multi-user.target.wants"
+    ln -s ../luxos-tmp-setup.service "$pkgdir/usr/lib/systemd/system/multi-user.target.wants/luxos-tmp-setup.service"
     local u
     for u in reflector archlinux-keyring-wkd-sync; do
         install -Dm644 "$f/power/50-luxos-datasaver.conf" "$pkgdir/usr/lib/systemd/system/$u.service.d/50-luxos-datasaver.conf"

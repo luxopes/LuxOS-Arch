@@ -1,0 +1,168 @@
+#!/bin/bash
+# LuxOS - /tmp na disku misto v pameti (tmpfs)
+#
+# Proc: LuxOS ma swap jen v pameti (zram), takze vse v tmpfs /tmp vzdy zabira RAM; earlyoom ani
+# luxos-forkguard ho nemohou uvolnit (zapomenute soubory v /tmp uz zaplnily i swap). /tmp proto lezi
+# na disku (sifrovanem, je-li sifrovany system) a pri kazdem startu se vyprazdni
+# (/usr/lib/tmpfiles.d/luxos-tmp.conf: "D /tmp", behem behu soubory starsi 10 dni).
+#
+# Jak:
+#   koren btrfs v subvolumu (instalator LuxOS: @)  -> vlastni subvolume @tmp na nejvyssi urovni,
+#        pripojeny pres fstab na /tmp (nodev,nosuid; spousteni povolene - instalatory, AppImage,
+#        Steam, pip). Neni soucasti snimku systemu (@) ani navratu ze snimku; zalohy /tmp nezahrnuji.
+#        Radek /tmp ve fstab ma prednost pred tmp.mount systemd (generator > /usr/lib), maskovat
+#        tmp.mount se NESMI - maska v /etc by vypnula i pripojeni z fstab.
+#   jiny skutecny souborovy system korene (ext4, xfs, f2fs, btrfs bez subvolumu)
+#        -> tmp.mount se zamaskuje (/etc/systemd/system/tmp.mount -> /dev/null), /tmp je obycejna
+#        slozka korene. Kdyz pozdeji pribude radek /tmp ve fstab, maska LuxOS se zase odstrani.
+#   live ISO, overlay/tmpfs/sit, chroot (instalace, sestaveni ISO), start ze snimku -> nic.
+#   /tmp uz ve fstab (vlastni oddil, rucni nastaveni) nebo vlastni tmp.mount v /etc -> nic.
+#
+# Prepnuti plati od pristiho startu: bezici tmpfs /tmp (sokety X11, soubory relace) se nemeni.
+# Hotovo = /var/lib/luxos/tmp-on-disk (pak se nic nedela, i kdyz spravce radek z fstab odebere).
+# Spousti ho instalacni skript luxos-tweaks a jednou pri startu luxos-tmp-setup.service (kdyz
+# instalace balicku prechod nemohla udelat, napr. pri startu ze snimku). Nikdy nekonci chybou.
+#
+#   luxos-tmp-setup [--dry-run]
+# Testy: LUXOS_TMP_ROOT predradi cesty (fstab, stav, /etc/systemd), LUXOS_TMP_ROOTINFO="FSTYPE
+# ZDROJ VOLBY" nahradi findmnt, LUXOS_TMP_FORCE=1 preskoci kontrolu roota/chrootu/systemd.
+set -u
+export LC_ALL=C
+
+R=${LUXOS_TMP_ROOT:-}
+FSTAB=$R/etc/fstab
+STATE=$R/var/lib/luxos/tmp-on-disk
+MASK=$R/etc/systemd/system/tmp.mount
+DRY=0
+[[ ${1-} == --dry-run ]] && DRY=1
+
+log() { echo "luxos-tmp-setup: $*"; }
+done_state() {  # done_state ZPUSOB
+    ((DRY)) && { log "would record: $1"; return 0; }
+    mkdir -p "${STATE%/*}" 2>/dev/null && printf 'method=%s\ntime=%s\n' "$1" "$(date -Is)" >"$STATE" 2>/dev/null
+    return 0
+}
+
+# Aktivni radek fstab pro dany bod pripojeni -> "SPEC TYP VOLBY"
+fstab_line() {
+    [[ -r $FSTAB ]] || return 1
+    awk -v mp="$1" '$1 !~ /^#/ && NF >= 3 { m = $2; if (m != "/") sub(/\/+$/, "", m); if (m == mp) { print $1, $3, ($4 == "" ? "defaults" : $4); f = 1; exit } }
+                    END { exit !f }' "$FSTAB"
+}
+
+# Maska LuxOS pryc, kdyz /tmp mezitim dostal radek ve fstab (maska by ho vypnula)
+if [[ -f $STATE ]] && grep -qx 'method=mask' "$STATE" 2>/dev/null; then
+    if fstab_line /tmp >/dev/null && [[ -L $MASK && $(readlink "$MASK") == /dev/null ]]; then
+        if ((DRY)); then log "would remove the tmp.mount mask (fstab has /tmp)"
+        else rm -f "$MASK" && done_state fstab && log "/tmp is in fstab now: tmp.mount mask removed"
+        fi
+    fi
+    exit 0
+fi
+[[ -f $STATE ]] && exit 0
+
+if [[ ${LUXOS_TMP_FORCE:-0} != 1 ]]; then
+    ((EUID == 0)) || exit 0
+    [[ -d /run/systemd/system ]] || exit 0                        # bez systemd (chroot, kontejner)
+    systemd-detect-virt -q --chroot 2>/dev/null && exit 0         # chroot: instalator/ISO resi sam
+    grep -qw 'luxos\.snapshot' /proc/cmdline 2>/dev/null && exit 0  # start ze snimku (docasny)
+    [[ -d /run/archiso ]] && exit 0                               # live ISO: zustava tmpfs
+fi
+
+if fstab_line /tmp >/dev/null; then
+    log "/tmp already has an entry in /etc/fstab, nothing to do"
+    done_state fstab; exit 0
+fi
+if [[ -e $MASK || -L $MASK ]]; then
+    log "/etc/systemd/system/tmp.mount exists (set by the administrator), nothing to do"
+    done_state custom; exit 0
+fi
+
+if [[ -n ${LUXOS_TMP_ROOTINFO-} ]]; then
+    read -r fstype src opts <<<"$LUXOS_TMP_ROOTINFO"
+else
+    read -r fstype src opts < <(findmnt -n -v -o FSTYPE,SOURCE,OPTIONS --mountpoint / 2>/dev/null | tail -1)
+fi
+fstype=${fstype-} src=${src-} opts=${opts-}
+subvol=$(tr ',' '\n' <<<"$opts" | sed -n 's/^subvol=//p' | head -1)
+subvol=${subvol#/}
+
+do_mask() {
+    if ((DRY)); then log "would mask tmp.mount ($fstype root without subvolume)"; return 0; fi
+    mkdir -p "${MASK%/*}" && ln -s /dev/null "$MASK" || { log "could not mask tmp.mount"; return 0; }
+    done_state mask
+    log "tmp.mount masked: /tmp is a directory on the $fstype root from the next start"
+}
+
+case $fstype in
+    btrfs)
+        if [[ -z $subvol || $subvol == @snapshots/* ]]; then
+            [[ -z $subvol ]] && do_mask
+            exit 0
+        fi
+        ;;
+    ext4|ext3|xfs|f2fs|jfs|bcachefs) do_mask; exit 0 ;;
+    *) log "root file system '$fstype' is not supported, /tmp stays as it is"; exit 0 ;;
+esac
+
+# --- btrfs: subvolume @tmp na nejvyssi urovni + radek ve fstab --------------------------------
+# Zdroj a volby jako u korene ve fstab (UUID=..., compress, ssd, discard plati pro cely FS stejne)
+spec="" ropts=""
+if rl=$(fstab_line /); then
+    read -r spec _ ropts <<<"$rl"
+fi
+if [[ -z $spec ]]; then
+    uuid=$(findmnt -n -o UUID --mountpoint / 2>/dev/null)
+    [[ -n $uuid ]] || { log "root file system has no UUID, /tmp stays as it is"; exit 0; }
+    spec=UUID=$uuid ropts=noatime
+fi
+tmpopts=$(tr ',' '\n' <<<"$ropts" | grep -Ev '^(subvol|subvolid)=|^(defaults|rw|ro|nodev|nosuid|x-systemd\..*)$' |
+          grep -v '^$' | paste -sd, -)
+tmpopts=${tmpopts:+$tmpopts,}nodev,nosuid,subvol=/@tmp
+dev=${src%%\[*}
+
+if ((DRY)); then
+    log "would create subvolume @tmp on $dev and add: $spec /tmp btrfs $tmpopts 0 0"
+    exit 0
+fi
+[[ -b $dev ]] || { log "root device $dev not found, /tmp stays as it is"; exit 0; }
+command -v btrfs >/dev/null || { log "btrfs-progs missing, /tmp stays as it is"; exit 0; }
+
+# Nejvyssi uroven jen v soukromem jmennem prostoru pripojeni (nikdo ji nevidi, po skonceni zmizi);
+# zkusebni pripojeni s presne temi volbami, ktere dostane fstab. Bezici /tmp se nemeni.
+top=/run/luxos-tmp-setup
+mkdir -p -m 0700 "$top" || exit 0
+if ! out=$(unshare -m --propagation private /bin/bash -euc '
+    dev=$1 top=$2 opts=$3
+    mount -t btrfs -o subvolid=5,noatime "$dev" "$top"
+    if [[ -e $top/@tmp ]]; then
+        # uz existuje (opakovany pokus, navrat ze snimku): jen kdyz je to opravdu subvolume
+        [[ $(stat -c %i "$top/@tmp") == 256 ]] || { echo "@tmp exists and is not a subvolume"; exit 3; }
+    else
+        btrfs -q subvolume create "$top/@tmp"
+    fi
+    chmod 1777 "$top/@tmp"; chown 0:0 "$top/@tmp"
+    umount "$top"
+    mount -t btrfs -o "$opts" "$dev" "$top"
+    [[ $(stat -c %a "$top") == 1777 ]]
+    umount "$top"
+' _ "$dev" "$top" "$tmpopts" 2>&1); then
+    log "creating the @tmp subvolume failed, /tmp stays as it is: ${out//$'\n'/ }"
+    rmdir "$top" 2>/dev/null
+    exit 0
+fi
+rmdir "$top" 2>/dev/null
+
+# fstab: kopie + novy radek, pak prejmenovani (fstab nikdy neni napul zapsany)
+new=$FSTAB.luxos-tmp.$$
+if { cat "$FSTAB" 2>/dev/null
+     printf '\n# /tmp on disk, not in RAM (LuxOS: subvolume @tmp, emptied at every start)\n'
+     printf '%s\t/tmp\tbtrfs\t%s\t0 0\n' "$spec" "$tmpopts"; } >"$new" &&
+   chmod --reference="$FSTAB" "$new" 2>/dev/null; [[ -s $new ]] && mv -f "$new" "$FSTAB"; then
+    done_state btrfs
+    log "subvolume @tmp ready and added to /etc/fstab: /tmp is on the disk from the next start"
+else
+    rm -f "$new"
+    log "could not write /etc/fstab, /tmp stays as it is"
+fi
+exit 0

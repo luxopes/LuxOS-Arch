@@ -208,6 +208,8 @@ fs-type = swap
 
 Compressed swap in RAM, half of RAM up to 8 GiB.
 
+`/tmp` is on disk, not in RAM: [Temporary files](temporary-files.md).
+
 ## sysctl (/usr/lib/sysctl.d/99-luxos.conf)
 
 | Setting | Value | Why |
@@ -294,7 +296,7 @@ balanced or performance by load.
 - Headers for DKMS drivers (NVIDIA): `linux-luxos-headers` (installed together with the driver).
 - Older installs used `linux-zen`; LuxOS Care switches them automatically (see
   [Care and updates](care-updates.md), "Switch to the LuxOS kernel").
-- Btrfs with `compress=zstd:1,noatime` (subvolumes `@`, `@home`, `@log`, `@cache`) – see
+- Btrfs with `compress=zstd:1,noatime` (subvolumes `@`, `@home`, `@log`, `@cache`, `@tmp`) – see
   [Installer](installer.md).
 - `/etc/makepkg.conf.d/luxos.conf`: `MAKEFLAGS="-j$(nproc)"`, multithreaded zstd, LTO – faster AUR
   builds through `lux`.

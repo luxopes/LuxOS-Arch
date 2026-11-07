@@ -122,6 +122,8 @@ expect "A: mkswap na luxos-swap" has "$c" "mkfs.swap -L swap /dev/mapper/luxos-s
 expect "A: / pripojeno pred /boot" before "$c" "subvol=@ /dev/mapper/luxos-root" "dmask=0077 /dev/vda1"
 expect "A: /home pripojen" has "$c" "mount -o noatime,compress=zstd:1 /dev/mapper/luxos-home"
 expect "A: bez subvolumu @home (samostatny /home)" hasnot "$c" "subvolume create $OUT/A"/"@home"
+expect "A: subvolume @tmp (/tmp na disku, ne v RAM)" grep -q "subvolume create .*/@tmp$" "$c"
+expect "A: /tmp z @tmp s nodev,nosuid" grep -q "mount -o noatime,compress=zstd:1,nodev,nosuid,subvol=@tmp /dev/mapper/luxos-root .*/tmp$" "$c"
 expect "A: crypttab.initramfs" has "$OUT/A/crypttab.initramfs" "cryptlvm UUID=luks-uuid-vda2 none luks,discard"
 expect "A: /etc/crypttab prazdny (vse v initramfs)" test ! -s "$OUT/A/crypttab"
 expect "A: cmdline" test "$(<"$OUT/A/cmdline")" == "rd.luks.name=luks-uuid-vda2=cryptlvm rd.luks.options=discard root=UUID=fs-uuid-mapper_luxos-root rootflags=subvol=@"
@@ -147,6 +149,7 @@ expect "B: GRUB na /dev/vda" grep -q 'GRUB_DISK=/dev/vda ' "$OUT/B/vars"
 expect "B: LV var a tmp" has "$c" "-n var luxos"
 expect "B: /tmp nosuid,nodev" has "$c" "mount -o noatime,nosuid,nodev /dev/mapper/luxos-tmp"
 expect "B: bez @log/@cache (samostatny /var)" hasnot "$c" "/@cache"
+expect "B: bez @tmp (samostatny /tmp)" hasnot "$c" "/@tmp"
 expect "B: / pripojeno pred /var" before "$c" "subvol=@ " "mount -o noatime,compress=zstd:1 /dev/mapper/luxos-var"
 expect "B: varovani maly /" warn_is B root_small_warn
 

@@ -12,11 +12,19 @@ post_install() {
     systemctl enable luxos-scheduler.service >/dev/null 2>&1 || true
     _boot_hook
     /usr/lib/luxos/luxos-faillock-setup || true
+    _tmp_on_disk
+}
+
+# /tmp z pameti (tmpfs) na disk: subvolume @tmp + fstab, plati od pristiho startu (bezici /tmp se
+# nemeni). V chrootu (instalator, ISO) a pri startu ze snimku nic; nikdy neselze.
+_tmp_on_disk() {
+    /usr/lib/luxos/luxos-tmp-setup 2>&1 | sed 's/^/  /' || true
 }
 
 post_upgrade() {
     _boot_hook
     /usr/lib/luxos/luxos-faillock-setup || true
+    _tmp_on_disk
     systemctl disable systemd-oomd.service systemd-oomd.socket >/dev/null 2>&1 || true
     # Cache balicku cisti LuxOS Care (lux); paccache.timer z pacman-contrib uz LuxOS nepouziva
     systemctl disable paccache.timer >/dev/null 2>&1 || true

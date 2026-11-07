@@ -191,6 +191,7 @@ expect "A: ESP je FAT32" bash -c "[[ \$(blkid -s TYPE -o value ${LOOP1}p1) == vf
 expect "A: ESP typ EF00" bash -c "sgdisk -i 1 $LOOP1 | grep -qi 'C12A7328-F81F-11D2-BA4B-00A0C93EC93B'"
 expect "A: LUKS oddil typ 8309" bash -c "sgdisk -i 2 $LOOP1 | grep -qi 'CA7D7CCB-63ED-4C53-861C-1742536059CC'"
 expect "A: / btrfs subvol=@" bash -c "findmnt -n -o OPTIONS '$WORK/mnt' | grep -q 'subvol=/@'"
+expect "A: /tmp btrfs subvol=@tmp, nodev,nosuid, 1777" bash -c "findmnt -n -o OPTIONS '$WORK/mnt/tmp' | grep -q 'nosuid,nodev.*subvol=/@tmp' && [[ \$(stat -c %a '$WORK/mnt/tmp') == 1777 ]]"
 expect "A: HOOKS sd-encrypt + lvm2" grep -qx 'ENCRYPT_HOOK=1 LVM_HOOK=1' "$WORK/A/hooks"
 expect "A: VG luxos na cryptlvm" bash -c "pvs --noheadings -o pv_name,vg_name | grep -q '/dev/mapper/cryptlvm *luxos'"
 expect "A: LV root, swap, home" bash -c "lvs --noheadings -o lv_name luxos | tr -d ' ' | sort | tr '\n' ' ' | grep -qx 'home root swap '"

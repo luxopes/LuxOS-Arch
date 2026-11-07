@@ -144,7 +144,9 @@ def run_pw_out(args, password_lines, capture=True):
     """Jako run_pw, navic vraci standardni vystup (gocryptfs-xray -dumpmasterkey)."""
     # Chyby do docasneho souboru, ne do roury: proces gocryptfs by ji drzel otevrenou
     # a subprocess by cekal az do timeoutu
-    with tempfile.TemporaryFile("w+") as err:
+    # v pameti (XDG_RUNTIME_DIR), ne v /tmp na disku: jde o vystup nastroju s hlavnim klicem trezoru
+    run = os.environ.get("XDG_RUNTIME_DIR")
+    with tempfile.TemporaryFile("w+", dir=run if run and os.path.isdir(run) else None) as err:
         try:
             r = subprocess.run(args, input="".join(p + "\n" for p in password_lines), text=True,
                                stdout=subprocess.PIPE if capture else subprocess.DEVNULL, stderr=err,

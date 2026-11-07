@@ -1496,13 +1496,16 @@ mount_root() {
     run mkfs.btrfs -f -L LuxOS "$ROOTDEV"
     local mntopts=noatime,compress=zstd:1 sv
     run mount "$ROOTDEV" "$TARGET"
-    for sv in @ @home @log @cache; do run btrfs subvolume create "$TARGET/$sv"; done
+    # @tmp: /tmp na disku, ne v RAM (swap je jen zram); mimo snimky systemu (@), viz luxos-tmp-setup
+    for sv in @ @home @log @cache @tmp; do run btrfs subvolume create "$TARGET/$sv"; done
     run umount "$TARGET"
     run mount -o "$mntopts,subvol=@" "$ROOTDEV" "$TARGET"
-    mkdir -p "$TARGET"/{boot,home,var/log,var/cache}
+    mkdir -p "$TARGET"/{boot,home,var/log,var/cache,tmp}
     run mount -o "$mntopts,subvol=@home"  "$ROOTDEV" "$TARGET/home"
     run mount -o "$mntopts,subvol=@log"   "$ROOTDEV" "$TARGET/var/log"
     run mount -o "$mntopts,subvol=@cache" "$ROOTDEV" "$TARGET/var/cache"
+    run mount -o "$mntopts,nodev,nosuid,subvol=@tmp" "$ROOTDEV" "$TARGET/tmp"
+    chmod 1777 "$TARGET/tmp"
 }
 
 prepare_disk() {

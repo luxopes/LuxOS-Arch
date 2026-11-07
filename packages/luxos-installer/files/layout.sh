@@ -1144,20 +1144,23 @@ layout_apply() {  # vse zalozit a pripojit do $TARGET (az po potvrzeni souhrnu)
     root=$(ly_fs_by_mount /)
     dev=${L[$root.dev]}
     if [[ ${L[$root.type]-btrfs} == btrfs ]]; then
-        # Jako automaticka instalace: subvolumy @ (+ @home, @log, @cache, pokud nejsou samostatne)
+        # Jako automaticka instalace: subvolumy @ (+ @home, @log, @cache, @tmp, pokud nejsou samostatne)
         run mount "$dev" "$TARGET"
         local -a svs=(@)
         [[ -n $(ly_fs_by_mount /home) ]] || svs+=(@home)
         [[ -n $(ly_fs_by_mount /var)$(ly_fs_by_mount /var/log) ]] || svs+=(@log)
         [[ -n $(ly_fs_by_mount /var) ]] || svs+=(@cache)
+        [[ -n $(ly_fs_by_mount /tmp) ]] || svs+=(@tmp)
         for sv in "${svs[@]}"; do run btrfs subvolume create "$TARGET/$sv"; done
         run umount "$TARGET"
         run mount -o "$(ly_mount_opts "$root"),subvol=@" "$dev" "$TARGET"
         L[$root.rootsubvol]=@
         for sv in "${svs[@]:1}"; do
-            case $sv in @home) mp=home ;; @log) mp=var/log ;; @cache) mp=var/cache ;; esac
+            opts=$(ly_mount_opts "$root")
+            case $sv in @home) mp=home ;; @log) mp=var/log ;; @cache) mp=var/cache ;;
+                        @tmp) mp=tmp opts+=,nodev,nosuid ;; esac
             mkdir -p "$TARGET/$mp"
-            run mount -o "$(ly_mount_opts "$root"),subvol=$sv" "$dev" "$TARGET/$mp"
+            run mount -o "$opts,subvol=$sv" "$dev" "$TARGET/$mp"
         done
     else
         run mount -o "$(ly_mount_opts "$root")" "$dev" "$TARGET"

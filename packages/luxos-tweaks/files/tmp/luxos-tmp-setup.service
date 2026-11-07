@@ -1,0 +1,14 @@
+# LuxOS - jednorazovy prechod /tmp z pameti na disk (luxos-tmp-setup), kdyz ho instalace balicku
+# nemohla udelat (start ze snimku, instalace v chrootu). Po prechodu se uz nespousti.
+[Unit]
+Description=LuxOS: move /tmp from RAM to disk (one-time)
+ConditionPathExists=!/var/lib/luxos/tmp-on-disk
+ConditionPathIsDirectory=!/run/archiso
+ConditionKernelCommandLine=!luxos.snapshot
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/luxos/luxos-tmp-setup
+Nice=10
+IOSchedulingClass=idle

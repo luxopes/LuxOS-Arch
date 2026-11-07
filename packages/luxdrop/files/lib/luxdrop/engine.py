@@ -234,7 +234,9 @@ class Engine:
         """Text jako docasny soubor .txt (protokol LuxDrop prenasi jen soubory)."""
         import tempfile
         import time
-        d = tempfile.mkdtemp(prefix="luxdrop-text-")
+        # Text (muze byt i heslo) jen v pameti: /tmp je na disku a vyprazdni se az pri startu
+        run = os.environ.get("XDG_RUNTIME_DIR")
+        d = tempfile.mkdtemp(prefix="luxdrop-text-", dir=run if run and os.path.isdir(run) else None)
         p = os.path.join(d, "Text %s.txt" % time.strftime("%Y-%m-%d %H-%M-%S"))
         with open(p, "w", encoding="utf-8") as f:
             f.write(text)
