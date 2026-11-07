@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxdrop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>LuxDrop</name>
+  <summary>Securely send files and folders to nearby LuxOS computers and LocalSend apps</summary>
+  <launchable type="desktop-id">luxdrop.desktop</launchable>
+  <description>
+    <p>LuxDrop sends files, folders and text to computers and phones on the same local network. Between two LuxOS computers every transfer is encrypted and both screens show the same six-digit code, so you know exactly who gets your files. Phones, tablets and computers with the LocalSend app work too.</p>
+    <p xml:lang="cs">LuxDrop posílá soubory, složky a text do počítačů a telefonů ve stejné místní síti. Mezi dvěma počítači s LuxOS je každý přenos šifrovaný a na obou obrazovkách se zobrazí stejný šestimístný kód, takže přesně víte, komu soubory posíláte. Funguje i s telefony, tablety a počítači s aplikací LocalSend.</p>
+    <p xml:lang="sk">LuxDrop posiela súbory, priečinky a text do počítačov a telefónov v rovnakej miestnej sieti. Medzi dvoma počítačmi s LuxOS je každý prenos šifrovaný a na oboch obrazovkách sa zobrazí rovnaký šesťmiestny kód, takže presne viete, komu súbory posielate. Funguje aj s telefónmi, tabletmi a počítačmi s aplikáciou LocalSend.</p>
+    <p xml:lang="pl">LuxDrop wysyła pliki, foldery i tekst do komputerów i telefonów w tej samej sieci lokalnej. Między dwoma komputerami z LuxOS każde przesyłanie jest szyfrowane, a na obu ekranach pojawia się ten sam sześciocyfrowy kod, więc wiesz dokładnie, kto otrzyma twoje pliki. Działa też z telefonami, tabletami i komputerami z aplikacją LocalSend.</p>
+    <p xml:lang="uk">LuxDrop надсилає файли, теки й текст на комп’ютери та телефони в тій самій локальній мережі. Між двома комп’ютерами з LuxOS кожне передавання зашифроване, а на обох екранах з’являється однаковий шестизначний код, тож ви точно знаєте, хто отримає ваші файли. Також працює з телефонами, планшетами й комп’ютерами із застосунком LocalSend.</p>
+    <p xml:lang="hu">A LuxDrop fájlokat, mappákat és szöveget küld az azonos helyi hálózaton lévő számítógépekre és telefonokra. Két LuxOS-számítógép között minden átvitel titkosított, és mindkét képernyőn ugyanaz a hatjegyű kód jelenik meg, így pontosan tudja, ki kapja meg a fájljait. A LocalSend alkalmazást használó telefonokkal, táblagépekkel és számítógépekkel is működik.</p>
+    <p xml:lang="de">LuxDrop sendet Dateien, Ordner und Text an Computer und Telefone im selben lokalen Netzwerk. Zwischen zwei LuxOS-Computern ist jede Übertragung verschlüsselt, und beide Bildschirme zeigen denselben sechsstelligen Code – so wissen Sie genau, wer Ihre Dateien bekommt. Auch Telefone, Tablets und Computer mit der App LocalSend werden unterstützt.</p>
+    <p xml:lang="fr">LuxDrop envoie des fichiers, des dossiers et du texte aux ordinateurs et téléphones du même réseau local. Entre deux ordinateurs LuxOS, chaque transfert est chiffré et les deux écrans affichent le même code à six chiffres : vous savez exactement qui reçoit vos fichiers. Les téléphones, tablettes et ordinateurs équipés de l’application LocalSend sont aussi pris en charge.</p>
+    <p xml:lang="es">LuxDrop envía archivos, carpetas y texto a equipos y teléfonos de la misma red local. Entre dos equipos con LuxOS cada transferencia va cifrada y ambas pantallas muestran el mismo código de seis cifras, así que sabe exactamente quién recibe sus archivos. También funciona con teléfonos, tabletas y equipos que tengan la aplicación LocalSend.</p>
+    <p xml:lang="it">LuxDrop invia file, cartelle e testo a computer e telefoni nella stessa rete locale. Tra due computer LuxOS ogni trasferimento è cifrato e su entrambi gli schermi compare lo stesso codice di sei cifre, così sai esattamente chi riceve i tuoi file. Funziona anche con telefoni, tablet e computer con l’app LocalSend.</p>
+    <p xml:lang="pt">O LuxDrop envia arquivos, pastas e texto para computadores e celulares na mesma rede local. Entre dois computadores com LuxOS, cada transferência é criptografada e as duas telas mostram o mesmo código de seis dígitos, para você saber exatamente quem recebe seus arquivos. Também funciona com celulares, tablets e computadores com o aplicativo LocalSend.</p>
+    <p xml:lang="nl">LuxDrop stuurt bestanden, mappen en tekst naar computers en telefoons in hetzelfde lokale netwerk. Tussen twee LuxOS-computers is elke overdracht versleuteld en tonen beide schermen dezelfde zescijferige code, zodat je precies weet wie je bestanden krijgt. Ook telefoons, tablets en computers met de app LocalSend werken.</p>
+    <p xml:lang="sv">LuxDrop skickar filer, mappar och text till datorer och telefoner i samma lokala nätverk. Mellan två LuxOS-datorer är varje överföring krypterad och båda skärmarna visar samma sexsiffriga kod, så att du vet exakt vem som får dina filer. Telefoner, surfplattor och datorer med appen LocalSend fungerar också.</p>
+    <ul>
+      <li>Send files, folders, text or the clipboard contents</li>
+      <li xml:lang="cs">Posílání souborů, složek, textu nebo obsahu schránky</li>
+      <li xml:lang="sk">Posielanie súborov, priečinkov, textu alebo obsahu schránky</li>
+      <li xml:lang="pl">Wysyłanie plików, folderów, tekstu lub zawartości schowka</li>
+      <li xml:lang="uk">Надсилання файлів, тек, тексту або вмісту буфера обміну</li>
+      <li xml:lang="hu">Fájlok, mappák, szöveg vagy a vágólap tartalmának küldése</li>
+      <li xml:lang="de">Dateien, Ordner, Text oder den Inhalt der Zwischenablage senden</li>
+      <li xml:lang="fr">Envoi de fichiers, de dossiers, de texte ou du contenu du presse-papiers</li>
+      <li xml:lang="es">Envío de archivos, carpetas, texto o el contenido del portapapeles</li>
+      <li xml:lang="it">Invio di file, cartelle, testo o del contenuto degli appunti</li>
+      <li xml:lang="pt">Envio de arquivos, pastas, texto ou do conteúdo da área de transferência</li>
+      <li xml:lang="nl">Bestanden, mappen, tekst of de inhoud van het klembord versturen</li>
+      <li xml:lang="sv">Skicka filer, mappar, text eller urklippets innehåll</li>
+      <li>Nearby devices appear automatically; others can be added by address</li>
+      <li xml:lang="cs">Zařízení v okolí se objeví sama, další lze přidat podle adresy</li>
+      <li xml:lang="sk">Zariadenia v okolí sa zobrazia samy, ďalšie možno pridať podľa adresy</li>
+      <li xml:lang="pl">Urządzenia w pobliżu pojawiają się same, inne można dodać po adresie</li>
+      <li xml:lang="uk">Пристрої поблизу з’являються самі, інші можна додати за адресою</li>
+      <li xml:lang="hu">A közeli eszközök maguktól megjelennek, másokat cím alapján adhat hozzá</li>
+      <li xml:lang="de">Geräte in der Nähe erscheinen automatisch, andere lassen sich per Adresse hinzufügen</li>
+      <li xml:lang="fr">Les appareils à proximité apparaissent automatiquement, les autres s’ajoutent par adresse</li>
+      <li xml:lang="es">Los dispositivos cercanos aparecen solos; otros se añaden por dirección</li>
+      <li xml:lang="it">I dispositivi nelle vicinanze compaiono da soli, altri si aggiungono tramite indirizzo</li>
+      <li xml:lang="pt">Dispositivos próximos aparecem sozinhos; outros podem ser adicionados pelo endereço</li>
+      <li xml:lang="nl">Apparaten in de buurt verschijnen vanzelf, andere voeg je toe via hun adres</li>
+      <li xml:lang="sv">Enheter i närheten visas automatiskt, andra kan läggas till med adress</li>
+      <li>Every transfer from an unknown device must be accepted</li>
+      <li xml:lang="cs">Každý přenos z neznámého zařízení musíte nejdřív přijmout</li>
+      <li xml:lang="sk">Každý prenos z neznámeho zariadenia musíte najprv prijať</li>
+      <li xml:lang="pl">Każde przesłanie z nieznanego urządzenia trzeba najpierw zaakceptować</li>
+      <li xml:lang="uk">Кожне передавання з невідомого пристрою потрібно спершу прийняти</li>
+      <li xml:lang="hu">Ismeretlen eszközről érkező átvitelt mindig el kell fogadnia</li>
+      <li xml:lang="de">Jede Übertragung von einem unbekannten Gerät muss angenommen werden</li>
+      <li xml:lang="fr">Chaque transfert depuis un appareil inconnu doit être accepté</li>
+      <li xml:lang="es">Cada transferencia desde un dispositivo desconocido debe aceptarse</li>
+      <li xml:lang="it">Ogni trasferimento da un dispositivo sconosciuto va accettato</li>
+      <li xml:lang="pt">Cada transferência de um dispositivo desconhecido precisa ser aceita</li>
+      <li xml:lang="nl">Elke overdracht van een onbekend apparaat moet je eerst accepteren</li>
+      <li xml:lang="sv">Varje överföring från en okänd enhet måste godkännas</li>
+      <li>Quick save for files from trusted devices</li>
+      <li xml:lang="cs">Rychlé uložení souborů z důvěryhodných zařízení</li>
+      <li xml:lang="sk">Rýchle uloženie súborov z dôveryhodných zariadení</li>
+      <li xml:lang="pl">Szybki zapis plików z zaufanych urządzeń</li>
+      <li xml:lang="uk">Швидке збереження файлів із довірених пристроїв</li>
+      <li xml:lang="hu">Gyors mentés a megbízható eszközökről érkező fájlokhoz</li>
+      <li xml:lang="de">Schnell sichern für Dateien von vertrauenswürdigen Geräten</li>
+      <li xml:lang="fr">Enregistrement rapide des fichiers venant d’appareils de confiance</li>
+      <li xml:lang="es">Guardado rápido de archivos de dispositivos de confianza</li>
+      <li xml:lang="it">Salvataggio rapido dei file da dispositivi attendibili</li>
+      <li xml:lang="pt">Salvamento rápido de arquivos de dispositivos confiáveis</li>
+      <li xml:lang="nl">Snel bewaren van bestanden van vertrouwde apparaten</li>
+      <li xml:lang="sv">Snabbsparning av filer från betrodda enheter</li>
+      <li>Send straight from Files with a right-click</li>
+      <li xml:lang="cs">Posílání přímo ze Souborů přes pravé tlačítko myši</li>
+      <li xml:lang="sk">Posielanie priamo zo Súborov cez pravé tlačidlo myši</li>
+      <li xml:lang="pl">Wysyłanie prosto z Plików prawym przyciskiem myszy</li>
+      <li xml:lang="uk">Надсилання просто з Файлів через праву кнопку миші</li>
+      <li xml:lang="hu">Küldés közvetlenül a Fájlokból, jobb kattintással</li>
+      <li xml:lang="de">Direkt aus „Dateien“ per Rechtsklick senden</li>
+      <li xml:lang="fr">Envoi direct depuis Fichiers d’un clic droit</li>
+      <li xml:lang="es">Envío directo desde Archivos con el botón derecho</li>
+      <li xml:lang="it">Invio diretto da File con il tasto destro</li>
+      <li xml:lang="pt">Envio direto pelo Arquivos com o botão direito</li>
+      <li xml:lang="nl">Rechtstreeks versturen vanuit Bestanden met de rechtermuisknop</li>
+      <li xml:lang="sv">Skicka direkt från Filer med högerklick</li>
+      <li>Can keep receiving when the window is closed</li>
+      <li xml:lang="cs">Může přijímat, i když je okno zavřené</li>
+      <li xml:lang="sk">Môže prijímať, aj keď je okno zatvorené</li>
+      <li xml:lang="pl">Może odbierać także przy zamkniętym oknie</li>
+      <li xml:lang="uk">Може отримувати, навіть коли вікно закрите</li>
+      <li xml:lang="hu">Bezárt ablakkal is tud fogadni</li>
+      <li xml:lang="de">Kann auch bei geschlossenem Fenster empfangen</li>
+      <li xml:lang="fr">Peut continuer à recevoir quand la fenêtre est fermée</li>
+      <li xml:lang="es">Puede seguir recibiendo con la ventana cerrada</li>
+      <li xml:lang="it">Può ricevere anche a finestra chiusa</li>
+      <li xml:lang="pt">Pode continuar recebendo com a janela fechada</li>
+      <li xml:lang="nl">Kan ook ontvangen als het venster gesloten is</li>
+      <li xml:lang="sv">Kan ta emot även när fönstret är stängt</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

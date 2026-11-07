@@ -63,8 +63,9 @@ elif ssh "$HOST" "test -d '$BASE/$FROM/luxos-drivers'"; then
 fi
 
 # Katalog aplikaci LuxOS pro Obchod (apps.json a app-icons/) z prave zverejnovanych baliku
-# [luxos] a [luxos-apps] - i pri --apps-only, kdy [luxos] prichazi ze serveru
-python3 packages/luxos-store/files/luxos_app_catalog.py generate "$stage"
+# [luxos] a [luxos-apps] - i pri --apps-only, kdy [luxos] prichazi ze serveru; dlouhe popisy z metainfo
+# baliku, snimky aplikaci (app-screens/) z packages/luxos-store/screens (scripts/store-screenshots)
+python3 packages/luxos-store/files/luxos_app_catalog.py generate "$stage" --screens packages/luxos-store/screens
 
 # Prehledova stranka repozitare (seznam aplikaci a nastaveni pacmanu)
 pkglist() {  # pkglist REPO -> radky tabulky "nazev verze popis"

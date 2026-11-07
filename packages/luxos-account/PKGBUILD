@@ -3,7 +3,7 @@
 
 pkgname=luxos-account
 pkgver=1.0.0
-pkgrel=7
+pkgrel=8
 pkgdesc="LuxAI account for LuxOS (sign in once, used by LuxAI, Lux Code and LSL IDE)"
 arch=(any)
 url="https://lux-ai.cz"
@@ -19,5 +19,7 @@ package() {
     install -Dm644 "$f/luxai_account_gtk.py" "$pkgdir/usr/lib/luxos/python/luxai_account_gtk.py"
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 "$f/luxos-account.desktop" "$pkgdir/usr/share/applications/luxos-account.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
     install -Dm644 "$f/luxai-account.md" "$pkgdir/usr/share/doc/luxos-account/luxai-account.md"
 }

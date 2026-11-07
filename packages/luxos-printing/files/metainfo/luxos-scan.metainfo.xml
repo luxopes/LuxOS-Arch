@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-scan</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Scanner</name>
+  <summary>Scan documents and photos to PDF or pictures</summary>
+  <launchable type="desktop-id">luxos-scan.desktop</launchable>
+  <description>
+    <p>A simple scanner app with one Scan button. It finds your scanner by itself, and you can scan several pages and save them together as one PDF in your Documents folder.</p>
+    <p xml:lang="cs">Jednoduchá aplikace pro skenování s jedním tlačítkem Skenovat. Skener najde sama a naskenované stránky můžete uložit dohromady jako jedno PDF do složky Dokumenty.</p>
+    <p xml:lang="sk">Jednoduchá aplikácia na skenovanie s jedným tlačidlom Skenovať. Skener nájde sama a naskenované strany môžete uložiť spolu ako jedno PDF do priečinka Dokumenty.</p>
+    <p xml:lang="pl">Prosta aplikacja do skanowania z jednym przyciskiem Skanuj. Sama znajduje skaner, a zeskanowane strony możesz zapisać razem jako jeden plik PDF w folderze Dokumenty.</p>
+    <p xml:lang="uk">Простий застосунок для сканування з однією кнопкою «Сканувати». Він сам знаходить сканер, а відскановані сторінки можна зберегти разом як один PDF у теці «Документи».</p>
+    <p xml:lang="hu">Egyszerű szkennelőalkalmazás egyetlen Beolvasás gombbal. Magától megtalálja a szkennert, a beolvasott oldalakat pedig együtt, egyetlen PDF-ként mentheti a Dokumentumok mappába.</p>
+    <p xml:lang="de">Eine einfache Scanner-App mit einer einzigen Scannen-Taste. Sie findet Ihren Scanner selbst, und Sie können mehrere Seiten scannen und zusammen als ein PDF im Ordner Dokumente speichern.</p>
+    <p xml:lang="fr">Une application de numérisation simple avec un seul bouton Numériser. Elle trouve votre scanner toute seule, et vous pouvez numériser plusieurs pages et les enregistrer ensemble dans un seul PDF du dossier Documents.</p>
+    <p xml:lang="es">Una aplicación de escaneo sencilla con un solo botón Escanear. Encuentra el escáner por sí sola y puedes escanear varias páginas y guardarlas juntas como un único PDF en la carpeta Documentos.</p>
+    <p xml:lang="it">Un’app di scansione semplice con un solo pulsante Scansiona. Trova lo scanner da sola e puoi scansionare più pagine e salvarle insieme come un unico PDF nella cartella Documenti.</p>
+    <p xml:lang="pt">Um aplicativo de digitalização simples, com um único botão Digitalizar. Ele encontra o scanner sozinho, e você pode digitalizar várias páginas e salvá-las juntas como um único PDF na pasta Documentos.</p>
+    <p xml:lang="nl">Een eenvoudige scan-app met één knop Scan. Hij vindt je scanner zelf, en je kunt meerdere pagina’s scannen en samen als één PDF in de map Documenten opslaan.</p>
+    <p xml:lang="sv">En enkel skanningsapp med en enda Skanna-knapp. Den hittar skannern själv, och du kan skanna flera sidor och spara dem tillsammans som en PDF i mappen Dokument.</p>
+    <ul>
+      <li>Scan as a document or a photo, in colour or black and white</li>
+      <li xml:lang="cs">Skenování jako dokument nebo fotka, barevně nebo černobíle</li>
+      <li xml:lang="sk">Skenovanie ako dokument alebo fotka, farebne alebo čiernobielo</li>
+      <li xml:lang="pl">Skanowanie jako dokument lub zdjęcie, w kolorze albo czarno-biało</li>
+      <li xml:lang="uk">Сканування як документ або фото, кольорове чи чорно-біле</li>
+      <li xml:lang="hu">Beolvasás dokumentumként vagy fényképként, színesben vagy fekete-fehérben</li>
+      <li xml:lang="de">Als Dokument oder Foto scannen, in Farbe oder Schwarzweiß</li>
+      <li xml:lang="fr">Numérisation en document ou en photo, en couleur ou en noir et blanc</li>
+      <li xml:lang="es">Escanea como documento o como foto, en color o en blanco y negro</li>
+      <li xml:lang="it">Scansione come documento o foto, a colori o in bianco e nero</li>
+      <li xml:lang="pt">Digitalize como documento ou foto, em cores ou em preto e branco</li>
+      <li xml:lang="nl">Scan als document of foto, in kleur of zwart-wit</li>
+      <li xml:lang="sv">Skanna som dokument eller foto, i färg eller svartvitt</li>
+      <li>From the scanner glass or the document feeder, also both sides</li>
+      <li xml:lang="cs">Ze skla skeneru nebo z podavače dokumentů, i oboustranně</li>
+      <li xml:lang="sk">Zo skla skenera alebo z podávača dokumentov, aj obojstranne</li>
+      <li xml:lang="pl">Z szyby skanera lub z podajnika dokumentów, także dwustronnie</li>
+      <li xml:lang="uk">Зі скла сканера або з автоподавача документів, зокрема з обох боків</li>
+      <li xml:lang="hu">A szkenner üveglapjáról vagy a lapadagolóból, akár mindkét oldalról</li>
+      <li xml:lang="de">Vom Scannerglas oder aus dem Dokumenteneinzug, auch beidseitig</li>
+      <li xml:lang="fr">Depuis la vitre du scanner ou le chargeur de documents, aussi en recto verso</li>
+      <li xml:lang="es">Desde el cristal del escáner o el alimentador de documentos, también a doble cara</li>
+      <li xml:lang="it">Dal vetro dello scanner o dall’alimentatore documenti, anche fronte e retro</li>
+      <li xml:lang="pt">Do vidro do scanner ou do alimentador de documentos, também frente e verso</li>
+      <li xml:lang="nl">Vanaf de glasplaat of uit de documentinvoer, ook dubbelzijdig</li>
+      <li xml:lang="sv">Från skannerns glas eller dokumentmataren, även båda sidor</li>
+      <li>Reorder or remove pages, then save as PDF, JPEG or PNG</li>
+      <li xml:lang="cs">Změna pořadí a odebrání stránek, uložení do PDF, JPEG nebo PNG</li>
+      <li xml:lang="sk">Zmena poradia a odobratie strán, uloženie do PDF, JPEG alebo PNG</li>
+      <li xml:lang="pl">Zmiana kolejności i usuwanie stron, zapis do PDF, JPEG lub PNG</li>
+      <li xml:lang="uk">Зміна порядку та видалення сторінок, збереження в PDF, JPEG або PNG</li>
+      <li xml:lang="hu">Oldalak átrendezése és eltávolítása, mentés PDF, JPEG vagy PNG formátumba</li>
+      <li xml:lang="de">Seiten umsortieren oder entfernen, dann als PDF, JPEG oder PNG speichern</li>
+      <li xml:lang="fr">Réorganiser ou supprimer des pages, puis enregistrer en PDF, JPEG ou PNG</li>
+      <li xml:lang="es">Reordena o quita páginas y guarda en PDF, JPEG o PNG</li>
+      <li xml:lang="it">Riordina o rimuovi le pagine, poi salva in PDF, JPEG o PNG</li>
+      <li xml:lang="pt">Reordene ou remova páginas e salve em PDF, JPEG ou PNG</li>
+      <li xml:lang="nl">Pagina’s herschikken of verwijderen, daarna opslaan als PDF, JPEG of PNG</li>
+      <li xml:lang="sv">Ändra ordning på eller ta bort sidor och spara som PDF, JPEG eller PNG</li>
+      <li>Print the scanned pages right away</li>
+      <li xml:lang="cs">Okamžitý tisk naskenovaných stránek</li>
+      <li xml:lang="sk">Okamžitá tlač naskenovaných strán</li>
+      <li xml:lang="pl">Natychmiastowy wydruk zeskanowanych stron</li>
+      <li xml:lang="uk">Миттєвий друк відсканованих сторінок</li>
+      <li xml:lang="hu">A beolvasott oldalak azonnali nyomtatása</li>
+      <li xml:lang="de">Gescannte Seiten sofort drucken</li>
+      <li xml:lang="fr">Impression immédiate des pages numérisées</li>
+      <li xml:lang="es">Imprime al momento las páginas escaneadas</li>
+      <li xml:lang="it">Stampa subito le pagine scansionate</li>
+      <li xml:lang="pt">Imprima na hora as páginas digitalizadas</li>
+      <li xml:lang="nl">Gescande pagina’s meteen afdrukken</li>
+      <li xml:lang="sv">Skriv ut de skannade sidorna direkt</li>
+      <li>A scanner switched on later appears by itself</li>
+      <li xml:lang="cs">Skener zapnutý později se objeví sám</li>
+      <li xml:lang="sk">Skener zapnutý neskôr sa objaví sám</li>
+      <li xml:lang="pl">Skaner włączony później pojawi się sam</li>
+      <li xml:lang="uk">Сканер, увімкнений пізніше, з’явиться сам</li>
+      <li xml:lang="hu">A később bekapcsolt szkenner magától megjelenik</li>
+      <li xml:lang="de">Ein später eingeschalteter Scanner erscheint von selbst</li>
+      <li xml:lang="fr">Un scanner allumé plus tard apparaît tout seul</li>
+      <li xml:lang="es">Un escáner encendido más tarde aparece solo</li>
+      <li xml:lang="it">Uno scanner acceso più tardi compare da solo</li>
+      <li xml:lang="pt">Um scanner ligado depois aparece sozinho</li>
+      <li xml:lang="nl">Een scanner die later wordt aangezet, verschijnt vanzelf</li>
+      <li xml:lang="sv">En skanner som slås på senare dyker upp av sig själv</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

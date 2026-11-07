@@ -45,6 +45,15 @@ by `/usr/lib/luxos/python/luxos_app_catalog.py generate REPO_ROOT`.
   the Store itself).
 - Name and summary are shown in the user's language (`Name[cs]`/`Comment[cs]` from the `.desktop`,
   otherwise the `luxos-i18n` translation of `Name`/`Comment`).
+- Long description: each package ships `/usr/share/metainfo/<desktop-id>.metainfo.xml` (AppStream format,
+  `<description>` with a lead paragraph and a feature list, every `<p>`/`<li>` translated with `xml:lang`
+  into all 12 LuxOS languages). The catalog carries it per language (`"description": {"en": [...],
+  "cs": [...]}`); a language whose translation is incomplete falls back to English.
+- Screenshots: `scripts/store-screenshots/store-screenshots.sh` starts every LuxOS app from the sources
+  under a virtual display (xvfb 1280×800, LuxOS theme, demo data only, never real accounts or files) and
+  writes WebP files (at most 1280 px wide and 150 KB) to `packages/luxos-store/screens/<desktop-id>/`
+  with `manifest.json`. `publish-repo.sh` publishes them as `app-screens/` next to `apps.json`
+  (`"screenshots": [{"url", "width", "height", "dark"}]`). The ISO catalog has no screenshots.
 - Featured apps come first (LuxAI, Terminal, Text Editor, Maps, Weather, Mail, Calculator, LuxDrop,
   Backups, Safe, Screenshot, LSL IDE, Lux Code), then the rest by name. Each app is in the Store category
   of its `Categories` (Settings panels go to System).
@@ -68,7 +77,13 @@ by `/usr/lib/luxos/python/luxos_app_catalog.py generate REPO_ROOT`.
 - Search box "Search apps" (at least 2 characters; matches name, package name and summary,
   LuxOS apps ranked first).
 - App detail: icon, name, **Get** / **Open** / **Update** button, **Remove** for installed apps (not for parts of the system), Version, Size,
-  Package, About (description) and Website.
+  Package, screenshots, About (description: paragraphs and a bullet list of features) and Website.
+- Screenshots: a horizontal strip of thumbnails with arrow buttons; Tab/arrow keys move between them, a
+  click or Enter opens a large view ("2 / 3", Left/Right/Home/End to switch, Esc closes). Dark
+  screenshots are used with a dark theme when the app has them. LuxOS apps use the catalog screenshots,
+  Arch apps their AppStream screenshots. They are downloaded only when the detail page opens and kept
+  in `~/.cache/luxos-store/screens`; offline only cached ones are shown ("Screenshots are not available
+  offline."), with Data Saver on they load after **Show screenshots**.
 
 ## Install, open, remove
 

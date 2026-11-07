@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-camera</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Camera</name>
+  <summary>Take photos and videos with your webcam</summary>
+  <launchable type="desktop-id">luxos-camera.desktop</launchable>
+  <description>
+    <p>Camera takes photos and records videos with your webcam. Photos are saved to your Pictures folder and videos to your Videos folder.</p>
+    <p xml:lang="cs">Kamera fotí a nahrává videa z webkamery. Fotky se ukládají do složky Obrázky, videa do složky Videa.</p>
+    <p xml:lang="sk">Kamera fotí a nahráva videá z webkamery. Fotky sa ukladajú do priečinka Obrázky, videá do priečinka Videá.</p>
+    <p xml:lang="pl">Kamera robi zdjęcia i nagrywa filmy kamerą internetową. Zdjęcia trafiają do folderu Obrazki, a filmy do folderu Wideo.</p>
+    <p xml:lang="uk">Камера знімає фото й записує відео з вебкамери. Фото зберігаються в теці «Зображення», відео — в теці «Відео».</p>
+    <p xml:lang="hu">A Kamera fényképeket készít és videókat rögzít a webkamerával. A fényképek a Képek, a videók a Videók mappába kerülnek.</p>
+    <p xml:lang="de">Kamera nimmt mit Ihrer Webcam Fotos und Videos auf. Fotos werden im Ordner Bilder gespeichert, Videos im Ordner Filme.</p>
+    <p xml:lang="fr">Caméra prend des photos et enregistre des vidéos avec votre webcam. Les photos sont enregistrées dans le dossier Images et les vidéos dans le dossier Vidéos.</p>
+    <p xml:lang="es">Cámara hace fotos y graba vídeos con tu webcam. Las fotos se guardan en la carpeta Imágenes y los vídeos en la carpeta Vídeos.</p>
+    <p xml:lang="it">Fotocamera scatta foto e registra video con la webcam. Le foto vengono salvate nella cartella Immagini e i video nella cartella Video.</p>
+    <p xml:lang="pt">A Câmera tira fotos e grava vídeos com a webcam. As fotos são guardadas na pasta Imagens e os vídeos na pasta Vídeos.</p>
+    <p xml:lang="nl">Camera maakt foto’s en video’s met je webcam. Foto’s worden opgeslagen in de map Afbeeldingen en video’s in de map Video’s.</p>
+    <p xml:lang="sv">Kamera tar foton och spelar in video med webbkameran. Foton sparas i mappen Bilder och videor i mappen Filmer.</p>
+    <p>It can also read the QR code of a Wi-Fi network and join it after you confirm.</p>
+    <p xml:lang="cs">Umí také přečíst QR kód sítě Wi-Fi a po potvrzení se k ní připojit.</p>
+    <p xml:lang="sk">Vie tiež prečítať QR kód siete Wi-Fi a po potvrdení sa k nej pripojiť.</p>
+    <p xml:lang="pl">Potrafi też odczytać kod QR sieci Wi-Fi i po potwierdzeniu się z nią połączyć.</p>
+    <p xml:lang="uk">Також вона вміє зчитати QR-код мережі Wi-Fi і після підтвердження під’єднатися до неї.</p>
+    <p xml:lang="hu">Egy Wi-Fi-hálózat QR-kódját is be tudja olvasni, és megerősítés után csatlakozik hozzá.</p>
+    <p xml:lang="de">Die App kann auch den QR-Code eines WLANs lesen und sich nach Bestätigung damit verbinden.</p>
+    <p xml:lang="fr">Elle peut aussi lire le code QR d’un réseau Wi-Fi et s’y connecter après confirmation.</p>
+    <p xml:lang="es">También puede leer el código QR de una red Wi-Fi y conectarse a ella tras confirmarlo.</p>
+    <p xml:lang="it">Può anche leggere il codice QR di una rete Wi-Fi e connettersi dopo la conferma.</p>
+    <p xml:lang="pt">Também consegue ler o código QR de uma rede Wi-Fi e ligar-se a ela depois de confirmar.</p>
+    <p xml:lang="nl">Hij kan ook de QR-code van een wifinetwerk lezen en er na bevestiging verbinding mee maken.</p>
+    <p xml:lang="sv">Den kan också läsa QR-koden för ett wifi-nätverk och ansluta till det när du har bekräftat.</p>
+    <ul>
+      <li>Photo and Video modes with a large shutter button</li>
+      <li xml:lang="cs">Režimy Fotka a Video s velkou spouští</li>
+      <li xml:lang="sk">Režimy Fotka a Video s veľkou spúšťou</li>
+      <li xml:lang="pl">Tryby Zdjęcie i Wideo z dużym przyciskiem migawki</li>
+      <li xml:lang="uk">Режими «Фото» та «Відео» з великою кнопкою знімка</li>
+      <li xml:lang="hu">Fotó és Videó mód nagy exponálógombbal</li>
+      <li xml:lang="de">Modi Foto und Video mit großem Auslöser</li>
+      <li xml:lang="fr">Modes Photo et Vidéo avec un grand déclencheur</li>
+      <li xml:lang="es">Modos Foto y Vídeo con un botón de disparo grande</li>
+      <li xml:lang="it">Modalità Foto e Video con un grande pulsante di scatto</li>
+      <li xml:lang="pt">Modos Foto e Vídeo com um botão de disparo grande</li>
+      <li xml:lang="nl">Modi Foto en Video met een grote ontspanknop</li>
+      <li xml:lang="sv">Lägena Foto och Video med en stor avtryckare</li>
+      <li>Self-timer with a 3-second countdown</li>
+      <li xml:lang="cs">Samospoušť s odpočtem 3 sekund</li>
+      <li xml:lang="sk">Samospúšť s odpočítavaním 3 sekúnd</li>
+      <li xml:lang="pl">Samowyzwalacz z odliczaniem 3 sekund</li>
+      <li xml:lang="uk">Автоспуск із відліком 3 секунди</li>
+      <li xml:lang="hu">Önkioldó 3 másodperces visszaszámlálással</li>
+      <li xml:lang="de">Selbstauslöser mit 3-Sekunden-Countdown</li>
+      <li xml:lang="fr">Retardateur avec compte à rebours de 3 secondes</li>
+      <li xml:lang="es">Temporizador con cuenta atrás de 3 segundos</li>
+      <li xml:lang="it">Autoscatto con conto alla rovescia di 3 secondi</li>
+      <li xml:lang="pt">Temporizador com contagem decrescente de 3 segundos</li>
+      <li xml:lang="nl">Zelfontspanner met aftelling van 3 seconden</li>
+      <li xml:lang="sv">Självutlösare med nedräkning på 3 sekunder</li>
+      <li>Thumbnail of the last photo or video, one click opens it</li>
+      <li xml:lang="cs">Náhled poslední fotky nebo videa, kliknutím se otevře</li>
+      <li xml:lang="sk">Náhľad poslednej fotky alebo videa, kliknutím sa otvorí</li>
+      <li xml:lang="pl">Miniatura ostatniego zdjęcia lub filmu, kliknięcie je otwiera</li>
+      <li xml:lang="uk">Мініатюра останнього фото чи відео, клік відкриває його</li>
+      <li xml:lang="hu">Az utolsó fénykép vagy videó bélyegképe, kattintásra megnyílik</li>
+      <li xml:lang="de">Vorschaubild des letzten Fotos oder Videos, ein Klick öffnet es</li>
+      <li xml:lang="fr">Miniature de la dernière photo ou vidéo, un clic l’ouvre</li>
+      <li xml:lang="es">Miniatura de la última foto o vídeo, un clic la abre</li>
+      <li xml:lang="it">Miniatura dell’ultima foto o dell’ultimo video, un clic la apre</li>
+      <li xml:lang="pt">Miniatura da última foto ou vídeo, um clique abre-a</li>
+      <li xml:lang="nl">Miniatuur van de laatste foto of video, één klik opent hem</li>
+      <li xml:lang="sv">Miniatyr av senaste foto eller video, ett klick öppnar den</li>
+      <li>Mirrored preview that can be turned off</li>
+      <li xml:lang="cs">Zrcadlený náhled, který lze vypnout</li>
+      <li xml:lang="sk">Zrkadlený náhľad, ktorý sa dá vypnúť</li>
+      <li xml:lang="pl">Lustrzany podgląd, który można wyłączyć</li>
+      <li xml:lang="uk">Дзеркальний перегляд, який можна вимкнути</li>
+      <li xml:lang="hu">Tükrözött előnézet, amely kikapcsolható</li>
+      <li xml:lang="de">Gespiegelte Vorschau, die sich abschalten lässt</li>
+      <li xml:lang="fr">Aperçu en miroir désactivable</li>
+      <li xml:lang="es">Vista previa en espejo que se puede desactivar</li>
+      <li xml:lang="it">Anteprima specchiata disattivabile</li>
+      <li xml:lang="pt">Pré-visualização em espelho que pode ser desligada</li>
+      <li xml:lang="nl">Gespiegeld voorbeeld dat je kunt uitschakelen</li>
+      <li xml:lang="sv">Spegelvänd förhandsvisning som kan stängas av</li>
+      <li>Choice of camera; a newly connected one is found automatically</li>
+      <li xml:lang="cs">Výběr kamery; nově připojenou kameru najde sama</li>
+      <li xml:lang="sk">Výber kamery; novo pripojenú kameru nájde sama</li>
+      <li xml:lang="pl">Wybór kamery; nowo podłączona kamera jest wykrywana automatycznie</li>
+      <li xml:lang="uk">Вибір камери; щойно під’єднану камеру знаходить сама</li>
+      <li xml:lang="hu">Kameraválasztás; az újonnan csatlakoztatott kamerát magától megtalálja</li>
+      <li xml:lang="de">Kamerawahl; eine neu angeschlossene Kamera wird automatisch erkannt</li>
+      <li xml:lang="fr">Choix de la caméra ; une caméra branchée est détectée automatiquement</li>
+      <li xml:lang="es">Elección de cámara; detecta sola una cámara recién conectada</li>
+      <li xml:lang="it">Scelta della fotocamera; una fotocamera appena collegata viene rilevata da sola</li>
+      <li xml:lang="pt">Escolha da câmera; uma câmera ligada é detetada automaticamente</li>
+      <li xml:lang="nl">Camerakeuze; een nieuw aangesloten camera wordt vanzelf gevonden</li>
+      <li xml:lang="sv">Val av kamera; en nyansluten kamera hittas automatiskt</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

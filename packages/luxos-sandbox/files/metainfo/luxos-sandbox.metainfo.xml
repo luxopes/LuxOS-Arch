@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-sandbox</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Sandbox</name>
+  <summary>Run untrusted apps in an isolated system</summary>
+  <launchable type="desktop-id">luxos-sandbox.desktop</launchable>
+  <description>
+    <p>Sandbox runs apps you don't trust in a separate, minimal Arch Linux system that only you use. Apps inside cannot see your files, your desktop or your local network, and they never get administrator rights.</p>
+    <p xml:lang="cs">Sandbox spouští aplikace, kterým nedůvěřujete, v odděleném minimálním systému Arch Linux, který patří jen vám. Aplikace uvnitř nevidí vaše soubory, plochu ani místní síť a nikdy nezískají práva správce.</p>
+    <p xml:lang="sk">Sandbox spúšťa aplikácie, ktorým nedôverujete, v oddelenom minimálnom systéme Arch Linux, ktorý patrí len vám. Aplikácie vnútri nevidia vaše súbory, plochu ani miestnu sieť a nikdy nezískajú práva správcu.</p>
+    <p xml:lang="pl">Sandbox uruchamia aplikacje, którym nie ufasz, w osobnym, minimalnym systemie Arch Linux, z którego korzystasz tylko ty. Aplikacje w środku nie widzą twoich plików, pulpitu ani sieci lokalnej i nigdy nie dostają uprawnień administratora.</p>
+    <p xml:lang="uk">Пісочниця запускає застосунки, яким ви не довіряєте, в окремій мінімальній системі Arch Linux лише для вас. Застосунки всередині не бачать ваших файлів, робочого столу чи локальної мережі й ніколи не отримують прав адміністратора.</p>
+    <p xml:lang="hu">A Sandbox a nem megbízható alkalmazásokat egy külön, minimális, csak az Ön által használt Arch Linux rendszerben futtatja. A benne futó alkalmazások nem látják a fájljait, az asztalát és a helyi hálózatot, és soha nem kapnak rendszergazdai jogokat.</p>
+    <p xml:lang="de">Sandbox führt Apps, denen Sie nicht vertrauen, in einem getrennten, minimalen Arch-Linux-System aus, das nur Ihnen gehört. Apps darin sehen weder Ihre Dateien noch Ihren Desktop oder Ihr lokales Netzwerk und erhalten nie Administratorrechte.</p>
+    <p xml:lang="fr">Bac à sable exécute les applications auxquelles vous ne faites pas confiance dans un système Arch Linux minimal et séparé, rien que pour vous. Les applications à l’intérieur ne voient ni vos fichiers, ni votre bureau, ni votre réseau local, et n’obtiennent jamais les droits d’administrateur.</p>
+    <p xml:lang="es">Sandbox ejecuta las aplicaciones en las que no confía en un sistema Arch Linux mínimo y separado, solo para usted. Las aplicaciones de dentro no ven sus archivos, su escritorio ni su red local, y nunca obtienen derechos de administrador.</p>
+    <p xml:lang="it">Sandbox esegue le app di cui non ti fidi in un sistema Arch Linux minimo e separato, solo per te. Le app al suo interno non vedono i tuoi file, il desktop né la rete locale e non ottengono mai i diritti di amministratore.</p>
+    <p xml:lang="pt">A Sandbox executa os aplicativos em que você não confia em um sistema Arch Linux mínimo e separado, só seu. Os aplicativos lá dentro não veem seus arquivos, sua área de trabalho nem sua rede local, e nunca recebem direitos de administrador.</p>
+    <p xml:lang="nl">Sandbox draait apps die je niet vertrouwt in een apart, minimaal Arch Linux-systeem dat alleen van jou is. Apps daarin zien je bestanden, je bureaublad en je lokale netwerk niet en krijgen nooit beheerdersrechten.</p>
+    <p xml:lang="sv">Sandlåda kör appar du inte litar på i ett separat, minimalt Arch Linux-system som bara du använder. Appar där inne ser inte dina filer, ditt skrivbord eller ditt lokala nätverk och får aldrig administratörsrättigheter.</p>
+    <ul>
+      <li>Install apps from the Arch Linux repositories into the sandbox only</li>
+      <li xml:lang="cs">Instalace aplikací z repozitářů Arch Linuxu jen do sandboxu</li>
+      <li xml:lang="sk">Inštalácia aplikácií z repozitárov Arch Linuxu len do sandboxu</li>
+      <li xml:lang="pl">Instalowanie aplikacji z repozytoriów Arch Linux tylko w sandboxie</li>
+      <li xml:lang="uk">Встановлення застосунків із репозиторіїв Arch Linux лише в пісочницю</li>
+      <li xml:lang="hu">Alkalmazások telepítése az Arch Linux tárolóiból, csak a sandboxba</li>
+      <li xml:lang="de">Apps aus den Arch-Linux-Paketquellen nur in die Sandbox installieren</li>
+      <li xml:lang="fr">Installation d’applications des dépôts Arch Linux, uniquement dans le bac à sable</li>
+      <li xml:lang="es">Instalar aplicaciones de los repositorios de Arch Linux solo en el sandbox</li>
+      <li xml:lang="it">Installazione di app dai repository di Arch Linux solo nella sandbox</li>
+      <li xml:lang="pt">Instalar aplicativos dos repositórios do Arch Linux só na sandbox</li>
+      <li xml:lang="nl">Apps uit de Arch Linux-repository’s alleen in de sandbox installeren</li>
+      <li xml:lang="sv">Installera appar från Arch Linux-förråden enbart i sandlådan</li>
+      <li>Run a downloaded file without exposing the original</li>
+      <li xml:lang="cs">Spuštění staženého souboru bez zpřístupnění originálu</li>
+      <li xml:lang="sk">Spustenie stiahnutého súboru bez sprístupnenia originálu</li>
+      <li xml:lang="pl">Uruchamianie pobranego pliku bez udostępniania oryginału</li>
+      <li xml:lang="uk">Запуск завантаженого файла без доступу до оригіналу</li>
+      <li xml:lang="hu">Letöltött fájl futtatása az eredeti elérhetővé tétele nélkül</li>
+      <li xml:lang="de">Heruntergeladene Datei ausführen, ohne das Original freizugeben</li>
+      <li xml:lang="fr">Exécution d’un fichier téléchargé sans exposer l’original</li>
+      <li xml:lang="es">Ejecutar un archivo descargado sin exponer el original</li>
+      <li xml:lang="it">Esecuzione di un file scaricato senza esporre l’originale</li>
+      <li xml:lang="pt">Executar um arquivo baixado sem expor o original</li>
+      <li xml:lang="nl">Een gedownload bestand uitvoeren zonder het origineel bloot te stellen</li>
+      <li xml:lang="sv">Kör en nedladdad fil utan att exponera originalet</li>
+      <li>Network limited to the internet, never your local network</li>
+      <li xml:lang="cs">Síť jen do internetu, nikdy do vaší místní sítě</li>
+      <li xml:lang="sk">Sieť len do internetu, nikdy do vašej miestnej siete</li>
+      <li xml:lang="pl">Sieć tylko do internetu, nigdy do twojej sieci lokalnej</li>
+      <li xml:lang="uk">Мережа лише до інтернету, ніколи до вашої локальної мережі</li>
+      <li xml:lang="hu">Hálózat csak az internet felé, a helyi hálózat felé soha</li>
+      <li xml:lang="de">Netzwerk nur ins Internet, nie in Ihr lokales Netzwerk</li>
+      <li xml:lang="fr">Réseau limité à Internet, jamais votre réseau local</li>
+      <li xml:lang="es">Red limitada a internet, nunca a su red local</li>
+      <li xml:lang="it">Rete limitata a internet, mai la tua rete locale</li>
+      <li xml:lang="pt">Rede limitada à internet, nunca à sua rede local</li>
+      <li xml:lang="nl">Netwerk alleen naar internet, nooit naar je lokale netwerk</li>
+      <li xml:lang="sv">Nätverk bara mot internet, aldrig ditt lokala nätverk</li>
+      <li>Apps open in their own separate window</li>
+      <li xml:lang="cs">Aplikace se otevírají ve vlastním odděleném okně</li>
+      <li xml:lang="sk">Aplikácie sa otvárajú vo vlastnom oddelenom okne</li>
+      <li xml:lang="pl">Aplikacje otwierają się we własnym, osobnym oknie</li>
+      <li xml:lang="uk">Застосунки відкриваються у власному окремому вікні</li>
+      <li xml:lang="hu">Az alkalmazások saját, külön ablakban nyílnak meg</li>
+      <li xml:lang="de">Apps öffnen sich in einem eigenen, getrennten Fenster</li>
+      <li xml:lang="fr">Les applications s’ouvrent dans leur propre fenêtre séparée</li>
+      <li xml:lang="es">Las aplicaciones se abren en su propia ventana aparte</li>
+      <li xml:lang="it">Le app si aprono in una propria finestra separata</li>
+      <li xml:lang="pt">Os aplicativos abrem em uma janela própria e separada</li>
+      <li xml:lang="nl">Apps openen in hun eigen, aparte venster</li>
+      <li xml:lang="sv">Appar öppnas i ett eget, separat fönster</li>
+      <li>Installed apps also appear in Launchpad</li>
+      <li xml:lang="cs">Nainstalované aplikace najdete i v Launchpadu</li>
+      <li xml:lang="sk">Nainštalované aplikácie nájdete aj v Launchpade</li>
+      <li xml:lang="pl">Zainstalowane aplikacje znajdziesz też w Launchpadzie</li>
+      <li xml:lang="uk">Встановлені застосунки з’являються й у Launchpad</li>
+      <li xml:lang="hu">A telepített alkalmazások a Launchpadben is megjelennek</li>
+      <li xml:lang="de">Installierte Apps erscheinen auch im Launchpad</li>
+      <li xml:lang="fr">Les applications installées apparaissent aussi dans le Launchpad</li>
+      <li xml:lang="es">Las aplicaciones instaladas aparecen también en el Launchpad</li>
+      <li xml:lang="it">Le app installate compaiono anche nel Launchpad</li>
+      <li xml:lang="pt">Os aplicativos instalados aparecem também no Launchpad</li>
+      <li xml:lang="nl">Geïnstalleerde apps verschijnen ook in Launchpad</li>
+      <li xml:lang="sv">Installerade appar visas även i Launchpad</li>
+      <li>The sandbox can be reset to a clean state at any time</li>
+      <li xml:lang="cs">Sandbox lze kdykoli obnovit do čistého stavu</li>
+      <li xml:lang="sk">Sandbox možno kedykoľvek obnoviť do čistého stavu</li>
+      <li xml:lang="pl">Sandbox można w każdej chwili zresetować do czystego stanu</li>
+      <li xml:lang="uk">Пісочницю можна будь-коли скинути до чистого стану</li>
+      <li xml:lang="hu">A sandbox bármikor visszaállítható tiszta állapotba</li>
+      <li xml:lang="de">Die Sandbox lässt sich jederzeit in einen sauberen Zustand zurücksetzen</li>
+      <li xml:lang="fr">Le bac à sable peut être réinitialisé à tout moment</li>
+      <li xml:lang="es">El sandbox se puede restablecer a un estado limpio en cualquier momento</li>
+      <li xml:lang="it">La sandbox si può riportare a uno stato pulito in qualsiasi momento</li>
+      <li xml:lang="pt">A sandbox pode ser redefinida para um estado limpo a qualquer momento</li>
+      <li xml:lang="nl">De sandbox is altijd terug te zetten naar een schone staat</li>
+      <li xml:lang="sv">Sandlådan kan när som helst återställas till ett rent läge</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

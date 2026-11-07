@@ -7,7 +7,7 @@
 
 pkgname=luxdrop
 pkgver=1.0.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxOS LuxDrop - securely send files to nearby LuxOS computers and LocalSend apps"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
@@ -38,6 +38,8 @@ package() {
     install -Dm644 -t "$pkgdir/usr/lib/luxdrop/luxdrop" "$f"/lib/luxdrop/*.py
     python3 -m compileall -q -d /usr/lib/luxdrop "$pkgdir/usr/lib/luxdrop"
     install -Dm644 "$f/luxdrop.desktop" "$pkgdir/usr/share/applications/luxdrop.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
     install -Dm644 "$f/luxdrop.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxdrop.svg"
     install -Dm644 "$f/luxdrop-receiver.service" "$pkgdir/usr/lib/systemd/user/luxdrop-receiver.service"
     # Sdilene slozky pro jine pocitace (vypnuto, zapina "luxdrop share on" / Nastaveni) a Pripojit k pocitaci

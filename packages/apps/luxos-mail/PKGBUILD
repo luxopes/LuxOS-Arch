@@ -63,6 +63,8 @@ package() {
     install -Dm755 luxos-mail "$pkgdir/usr/bin/luxos-mail"
     install -Dm755 luxos-mail-service "$pkgdir/usr/lib/luxos-mail/luxos-mail-service"
     install -Dm644 "$f/luxos-mail.desktop" "$pkgdir/usr/share/applications/luxos-mail.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
     install -Dm644 "$f/luxos-mail-background.desktop" "$pkgdir/etc/xdg/autostart/luxos-mail-background.desktop"
     install -Dm644 "$f/luxos-mail.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-mail.svg"
     for s in 16 24 32 48 64 128 256; do

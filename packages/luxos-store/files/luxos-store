@@ -2,10 +2,14 @@
 """LuxOS Store - obchod s aplikacemi z repozitaru LuxOS a Arch Linuxu.
 
 Aplikace Arch Linuxu popisuji metadata AppStream (archlinux-appstream-data),
-aplikace LuxOS katalog apps.json zverejneny s repozitari (luxos_app_catalog.py). Instalace bezi pres pkexec a pomocny
+aplikace LuxOS katalog apps.json zverejneny s repozitari (luxos_app_catalog.py) vcetne dlouheho popisu
+v jazyce uzivatele a snimku obrazovky (app-screens/ vedle katalogu, nacitaji se az na strance aplikace
+do ~/.cache/luxos-store/screens). Instalace bezi pres pkexec a pomocny
 skript /usr/lib/luxos/luxos-store-helper (lux pres libalpm, bez pyalpm nastroj jadra lux-engine).
 """
+import hashlib
 import json
+import math
 import os
 import re
 import subprocess
@@ -56,6 +60,9 @@ CATALOG_URL = os.environ.get("LUXOS_STORE_CATALOG_URL") or _CATALOG_URL
 CACHE_DIR = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "luxos-store")
 ICON_CACHE = os.path.join(CACHE_DIR, "icons")
 CATALOG_CACHE = os.path.join(CACHE_DIR, "apps.json")
+SCREEN_CACHE = os.path.join(CACHE_DIR, "screens")
+SCREEN_THUMB_HEIGHT = 230        # vyska nahledu snimku na strance aplikace
+METAINFO_DIR = "/usr/share/metainfo/"
 CATALOG_MAX_AGE = 6 * 3600      # starsi katalog se pouzije hned a obnovi na pozadi
 # Katalog v mistnim repozitari live systemu (ISO, instalace bez internetu)
 LOCAL_CATALOGS = ("/opt/luxos-repo/apps.json",)
@@ -130,6 +137,18 @@ CSS = b"""
 .upd-blue { color: #3d7bff; }
 .upd-pending { opacity: 0.35; }
 .upd-log { font-family: monospace; font-size: 11px; padding: 8px; }
+.about p, .about-text { font-size: 14px; }
+.about-bullet { color: #3d7bff; font-weight: 800; }
+.shot-thumb { padding: 0; border-radius: 12px; border: 1px solid alpha(currentColor, 0.12);
+              background-image: none; background-color: alpha(currentColor, 0.05); box-shadow: none; }
+.shot-thumb:hover { border-color: alpha(#3d7bff, 0.55); }
+.shot-thumb:focus { border-color: #3d7bff; box-shadow: 0 0 0 2px alpha(#3d7bff, 0.45); }
+.shot-nav { border-radius: 999px; min-width: 34px; min-height: 34px; padding: 0; margin: 0 6px;
+            background-image: none; background-color: alpha(@theme_bg_color, 0.92);
+            border: 1px solid alpha(currentColor, 0.15); box-shadow: 0 1px 4px alpha(black, 0.18); }
+.shot-viewer { background-color: #15161d; }
+.shot-viewer .shot-nav { color: white; background-color: alpha(white, 0.14); border-color: alpha(white, 0.2); }
+.shot-count { font-weight: 700; opacity: 0.7; }
 """
 
 # Balicky, po jejichz aktualizaci je potreba restart (jadro, ovladace, zakladni knihovny)
@@ -143,7 +162,7 @@ class App:
 
     def __init__(self, pkg, name, summary, repo, version="", size=0, component=None, description="",
                  icon_file=None, categories=None, luxos=False, desktop=None, icon_name=None, featured=0,
-                 system=False):
+                 system=False, blocks=None, screenshots=None):
         self.pkg, self.name, self.summary, self.repo = pkg, name, summary, repo
         self.version, self.size, self.component, self.description = version, size, component, description
         self.icon_file = icon_file
@@ -152,6 +171,22 @@ class App:
         # poradi doporucenych; system = soucast luxos-desktop (vzdy nainstalovana, neodebira se)
         self.luxos, self.desktop, self.icon_name = luxos, desktop, icon_name
         self.featured, self.system = featured, system
+        # dlouhy popis ([{"p": text} | {"ul": [text]}]) a snimky ([{"url", "width", "height", "dark"}])
+        self.blocks, self.screenshots = blocks, screenshots
+
+    def description_blocks(self):
+        if self.blocks is None:
+            if self.component:
+                self.blocks = luxos_app_catalog.description_blocks(self.component.get_description() or "")
+            else:
+                self.blocks = [{"p": t.strip()} for t in re.split(r"\n\s*\n", self.description or "") if t.strip()]
+        return self.blocks
+
+    def screenshot_list(self):
+        """Snimky aplikace: z katalogu LuxOS, u aplikaci Archu z AppStream (nahled kolem 1248 px, jinak zdroj)."""
+        if self.screenshots is None:
+            self.screenshots = appstream_screenshots(self.component) if self.component else []
+        return self.screenshots
 
     @property
     def is_luxos(self):
@@ -238,6 +273,65 @@ def description_text(component):
     return unescape(re.sub(r"\n{3,}", "\n\n", raw)).strip()
 
 
+def appstream_screenshots(component, limit=5):
+    """Snimky komponenty AppStream (obrazky, ne videa): nejblizsi velikost k 1248 px sirky."""
+    out = []
+    try:
+        shots = component.get_screenshots_all()
+    except (AttributeError, GLib.Error):
+        return out
+    for sc in shots or []:
+        try:
+            if sc.get_media_kind() != AppStream.ScreenshotMediaKind.IMAGE:
+                continue
+            images = sc.get_images_all() or []
+        except AttributeError:
+            images = sc.get_images() or []
+        best = None
+        for im in images:
+            url, w, h = im.get_url(), im.get_width(), im.get_height()
+            if not url or not url.startswith(("https://", "http://", "file://")):
+                continue
+            score = abs((w or 1248) - 1248)
+            if best is None or score < best[0]:
+                best = (score, url, w, h)
+        if best:
+            out.append({"url": best[1], "width": best[2] or 0, "height": best[3] or 0})
+        if len(out) >= limit:
+            break
+    return out
+
+
+def screen_cache_path(url):
+    ext = os.path.splitext(url.split("?", 1)[0])[1].lower()
+    ext = ext if ext in (".webp", ".png", ".jpg", ".jpeg") else ".img"
+    return os.path.join(SCREEN_CACHE, hashlib.sha256(url.encode()).hexdigest()[:24] + ext)
+
+
+def fetch_screenshot(url):
+    """Snimek do mezipameti (~/.cache/luxos-store/screens) -> cesta, None = nedostupny (offline)."""
+    path = screen_cache_path(url)
+    if os.path.exists(path) and os.path.getsize(path):
+        return path
+    os.makedirs(SCREEN_CACHE, exist_ok=True)
+    tmp = path + ".part"
+    run("curl", "-fsSL", "--max-time", "15", "--max-filesize", "8000000", "-o", tmp, url, timeout=18)
+    if os.path.exists(tmp) and os.path.getsize(tmp):
+        os.replace(tmp, path)
+        return path
+    if os.path.exists(tmp):
+        os.unlink(tmp)
+    return None
+
+
+def prefers_dark():
+    s = Gtk.Settings.get_default()
+    if s is None:
+        return False
+    return bool(s.get_property("gtk-application-prefer-dark-theme")) or \
+        (s.get_property("gtk-theme-name") or "").lower().endswith("dark")
+
+
 class Catalog:
     """Vsechny aplikace a stav nainstalovanych balicku."""
 
@@ -249,6 +343,7 @@ class Catalog:
         self.pending_icons = []
         self.flathub_apps = []
         self.catalog_refresh = False        # katalog LuxOS stahnout znovu na pozadi (starsi kopie)
+        self.catalog_base = CATALOG_URL.rsplit("/", 1)[0]     # adresa, vuci ktere jsou snimky v katalogu
 
     def load(self):
         # bez cerstveho katalogu LuxOS: stahuje se soubezne s nacitanim repozitaru
@@ -324,6 +419,8 @@ class Catalog:
                 continue
             if data:
                 self.catalog_refresh = path != CATALOG_CACHE or not self.catalog_fresh()
+                self.catalog_base = (CATALOG_URL.rsplit("/", 1)[0] if path == CATALOG_CACHE
+                                     else "file://" + os.path.dirname(path))
                 return data
         self.catalog_refresh = True
         return None
@@ -332,18 +429,20 @@ class Catalog:
         """Bez katalogu (offline pri prvnim spusteni): stejny vyber z .desktop nainstalovanych baliku LuxOS."""
         pkgs = sorted(p for p in self.installed if p in sync and
                       luxos_app_catalog.is_luxos_package(p, sync[p][0]))
-        desktop = {}
+        desktop, metainfo = {}, {}
         for line in (run(ENGINE, "-Ql", *pkgs, timeout=30) if pkgs else "").splitlines():
             pkg, _s, path = line.partition(" ")
-            rel = path[len(APPLICATIONS_DIR):]
-            if path.startswith(APPLICATIONS_DIR) and rel.endswith(".desktop") and "/" not in rel:
-                try:
-                    with open(path, encoding="utf-8") as f:
-                        desktop.setdefault(pkg, {})[rel[:-8]] = f.read()
-                except (OSError, UnicodeDecodeError):
-                    pass
+            for base, ext, out in ((APPLICATIONS_DIR, ".desktop", desktop), (METAINFO_DIR, ".metainfo.xml", metainfo)):
+                rel = path[len(base):]
+                if path.startswith(base) and rel.endswith(ext) and "/" not in rel:
+                    try:
+                        with open(path, encoding="utf-8") as f:
+                            out.setdefault(pkg, {})[rel[:-8] if ext == ".desktop" else rel] = f.read()
+                    except (OSError, UnicodeDecodeError):
+                        pass
         return luxos_app_catalog.build_catalog([{"name": p, "repo": sync[p][0], "version": sync[p][2],
-                                                 "desktop": desktop.get(p, {})} for p in pkgs])
+                                                 "desktop": desktop.get(p, {}), "metainfo": metainfo.get(p, {})}
+                                                for p in pkgs])
 
     def load_luxos_apps(self, apps, sync):
         """Aplikace LuxOS z katalogu: nazev a popis v jazyce uzivatele (preklad z .desktop, jinak luxos-i18n)."""
@@ -366,10 +465,30 @@ class Catalog:
                     self.pending_icons.append((key, [(f"{icon_base}/{os.path.basename(e['icon_file'])}", icon)]))
                     icon = None
             names, summaries = e.get("names") or {}, e.get("summaries") or {}
+            desc = e.get("description") if isinstance(e.get("description"), dict) else {}
+            blocks = [b for b in (desc.get(LANG) or desc.get("en") or []) if isinstance(b, dict)]
             apps[key] = App(pkg, names.get(LANG) or _(e["name"]), summaries.get(LANG) or _(e.get("summary", "")),
                             repo, ver, int(size or 0), icon_file=icon, categories=e.get("categories") or ["System"],
                             luxos=True, desktop=e["id"], icon_name=e.get("icon") or None,
-                            featured=int(e.get("featured") or 0), system=bool(e.get("system")))
+                            featured=int(e.get("featured") or 0), system=bool(e.get("system")),
+                            blocks=blocks, screenshots=self.catalog_screens(e))
+
+    def catalog_screens(self, entry):
+        """Snimky aplikace z katalogu: adresy vuci umisteni katalogu (jen relativni cesty app-screens/...)."""
+        out = []
+        for ref in entry.get("screenshots") or []:
+            try:
+                rel, w, h = ref["url"], int(ref["width"]), int(ref["height"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if not re.match(r"^app-screens/[\w.+-]+/[\w.+-]+\.(webp|png|jpe?g)$", rel) or w <= 0 or h <= 0:
+                continue
+            shot = {"url": f"{self.catalog_base}/{rel}", "width": w, "height": h}
+            dark = ref.get("dark")
+            if isinstance(dark, str) and re.match(r"^app-screens/[\w.+-]+/[\w.+-]+\.(webp|png|jpe?g)$", dark):
+                shot["dark"] = f"{self.catalog_base}/{dark}"
+            out.append(shot)
+        return out
 
     def fetch_icons(self):
         """Stazeni chybejicich ikon na pozadi (pomala sit nesmi zdrzet zobrazeni obchodu)."""
@@ -798,6 +917,306 @@ class UpdateView(Gtk.Box):
         self.set_buttons(retry)
 
 
+class DescriptionView(Gtk.Box):
+    """Dlouhy popis aplikace: odstavce a seznam vlastnosti (bloky z katalogu nebo AppStream)."""
+
+    def __init__(self, blocks):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.get_style_context().add_class("about")
+        for b in blocks:
+            if b.get("p"):
+                self.pack_start(self.text(b["p"]), False, False, 0)
+            elif b.get("ul"):
+                lst = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5, margin_start=4)
+                for item in b["ul"]:
+                    row = Gtk.Box(spacing=10)
+                    dot = Gtk.Label(label="•", valign=Gtk.Align.START)
+                    dot.get_style_context().add_class("about-bullet")
+                    row.pack_start(dot, False, False, 0)
+                    row.pack_start(self.text(item), True, True, 0)
+                    lst.pack_start(row, False, False, 0)
+                self.pack_start(lst, False, False, 0)
+
+    @staticmethod
+    def text(t):
+        lbl = Gtk.Label(label=t, xalign=0, wrap=True, selectable=True, max_width_chars=90)
+        lbl.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        lbl.get_style_context().add_class("about-text")
+        return lbl
+
+
+class ScreenshotCarousel(Gtk.Box):
+    """Vodorovny pas nahledu snimku (sipky, klavesnice, kliknuti = zvetseni). Snimky se stahuji az tady,
+    na pozadi a do mezipameti; bez site zustanou jen ulozene, jinak se pas schova s poznamkou."""
+
+    def __init__(self, store, app, shots):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.store, self.app = store, app
+        dark = prefers_dark()
+        self.shots = [dict(s, show=(s.get("dark") if dark and s.get("dark") else s["url"])) for s in shots]
+        self.paths = [None] * len(self.shots)
+        self.thumbs = []
+        overlay = Gtk.Overlay()
+        self.scroller = Gtk.ScrolledWindow(vscrollbar_policy=Gtk.PolicyType.NEVER,
+                                           hscrollbar_policy=Gtk.PolicyType.EXTERNAL)
+        self.scroller.set_size_request(-1, SCREEN_THUMB_HEIGHT + 4)
+        self.row = Gtk.Box(spacing=12)
+        # fokus klavesnici (Tab, sipky) posune pas na vybrany nahled
+        self.row.set_focus_hadjustment(self.scroller.get_hadjustment())
+        for i, s in enumerate(self.shots):
+            w = max(80, round(SCREEN_THUMB_HEIGHT * s["width"] / s["height"])) if s["height"] else 360
+            btn = Gtk.Button()
+            btn.get_style_context().add_class("shot-thumb")
+            btn.set_relief(Gtk.ReliefStyle.NONE)
+            label = _("Screenshot %d of %d") % (i + 1, len(self.shots))
+            btn.set_tooltip_text(label)
+            btn.get_accessible().set_name(label)
+            stack = Gtk.Stack()
+            stack.set_size_request(w, SCREEN_THUMB_HEIGHT)
+            spin = Gtk.Spinner(active=True, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+            stack.add_named(spin, "wait")
+            missing = Gtk.Image.new_from_icon_name("image-missing-symbolic", Gtk.IconSize.DIALOG)
+            missing.set_opacity(0.4)
+            stack.add_named(missing, "missing")
+            img = Gtk.DrawingArea()
+            img.surface = None
+            img.connect("draw", self.draw_thumb)
+            stack.add_named(img, "image")
+            btn.add(stack)
+            btn.connect("clicked", lambda _b, n=i: self.open(n))
+            self.thumbs.append((btn, stack, img, w))
+            self.row.pack_start(btn, False, False, 0)
+        self.scroller.add(self.row)
+        overlay.add(self.scroller)
+        self.prev = self.nav_button("go-previous-symbolic", _("Previous screenshot"), Gtk.Align.START, -1)
+        self.next = self.nav_button("go-next-symbolic", _("Next screenshot"), Gtk.Align.END, 1)
+        overlay.add_overlay(self.prev)
+        overlay.add_overlay(self.next)
+        self.pack_start(overlay, False, False, 0)
+        self.note = Gtk.Label(xalign=0)
+        self.note.get_style_context().add_class("dim")
+        self.note.set_no_show_all(True)
+        self.pack_start(self.note, False, False, 0)
+        self.more = None
+        hadj = self.scroller.get_hadjustment()
+        hadj.connect("changed", lambda *_a: self.update_nav())
+        hadj.connect("value-changed", lambda *_a: self.update_nav())
+        self.connect("key-press-event", self.on_key)
+        cached = all(os.path.exists(screen_cache_path(s["show"])) for s in self.shots)
+        if os.path.exists(DATASAVER) and not cached:
+            # setric dat: snimky az na pozadani
+            for _b, stack, _i, _w in self.thumbs:
+                stack.set_visible_child_name("missing")
+            self.more = Gtk.Button(label=_("Show screenshots"), halign=Gtk.Align.START)
+            self.more.connect("clicked", lambda b: (b.destroy(), self.load()))
+            self.pack_start(self.more, False, False, 0)
+        else:
+            self.load()
+
+    def nav_button(self, icon, tip, align, step):
+        b = Gtk.Button.new_from_icon_name(icon, Gtk.IconSize.BUTTON)
+        b.set_halign(align)
+        b.set_valign(Gtk.Align.CENTER)
+        b.set_tooltip_text(tip)
+        b.get_accessible().set_name(tip)
+        b.set_can_focus(False)       # klavesnici: sipky na nahledech
+        b.get_style_context().add_class("shot-nav")
+        b.set_no_show_all(True)
+        b.connect("clicked", lambda _b: self.scroll_by(step))
+        return b
+
+    def update_nav(self):
+        adj = self.scroller.get_hadjustment()
+        overflow = adj.get_upper() - adj.get_page_size() > 2
+        self.prev.set_visible(overflow and adj.get_value() > 1)
+        self.next.set_visible(overflow and adj.get_value() < adj.get_upper() - adj.get_page_size() - 1)
+
+    def scroll_by(self, step):
+        adj = self.scroller.get_hadjustment()
+        target = adj.get_value() + step * adj.get_page_size() * 0.8
+        adj.set_value(max(adj.get_lower(), min(target, adj.get_upper() - adj.get_page_size())))
+
+    def on_key(self, _w, ev):
+        """Sipky vlevo/vpravo mezi nahledy (fokus), Enter/mezernik otevre."""
+        focus = self.store.get_focus()
+        idx = next((i for i, t in enumerate(self.thumbs) if t[0] is focus), None)
+        if idx is None:
+            return False
+        if ev.keyval in (Gdk.KEY_Left, Gdk.KEY_KP_Left) and idx > 0:
+            self.thumbs[idx - 1][0].grab_focus()
+            return True
+        if ev.keyval in (Gdk.KEY_Right, Gdk.KEY_KP_Right) and idx < len(self.thumbs) - 1:
+            self.thumbs[idx + 1][0].grab_focus()
+            return True
+        return False
+
+    def load(self):
+        for _b, stack, _i, _w in self.thumbs:
+            stack.set_visible_child_name("wait")
+        urls = [s["show"] for s in self.shots]
+
+        def work():
+            for i, url in enumerate(urls):
+                path = fetch_screenshot(url)
+                GLib.idle_add(self.loaded, i, path)
+        threading.Thread(target=work, daemon=True).start()
+
+    def loaded(self, i, path):
+        if not self.get_parent():
+            return False            # stranka uz je pryc
+        btn, stack, img, w = self.thumbs[i]
+        pix, sf = None, self.get_scale_factor()
+        if path:
+            try:
+                if not (self.shots[i]["width"] and self.shots[i]["height"]):
+                    # rozmery neznamo (AppStream): sirka nahledu podle obrazku, nejvys 2:1
+                    _fmt, pw, ph = GdkPixbuf.Pixbuf.get_file_info(path)
+                    if pw and ph:
+                        w = min(2 * SCREEN_THUMB_HEIGHT, max(80, round(SCREEN_THUMB_HEIGHT * pw / ph)))
+                        stack.set_size_request(w, SCREEN_THUMB_HEIGHT)
+                        self.thumbs[i] = (btn, stack, img, w)
+                pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, w * sf, SCREEN_THUMB_HEIGHT * sf, True)
+            except (GLib.Error, TypeError):
+                pix = None
+        self.paths[i] = path if pix else None
+        if pix:
+            img.surface = Gdk.cairo_surface_create_from_pixbuf(pix, sf, None)
+            img.queue_draw()
+            stack.set_visible_child_name("image")
+        else:
+            stack.set_visible_child_name("missing")
+        if i == len(self.thumbs) - 1 and not any(self.paths):
+            # nic se nestahlo (offline): misto prazdnych nahledu jen poznamka
+            for b, _s, _im, _w in self.thumbs:
+                b.hide()
+            self.prev.hide()
+            self.next.hide()
+            self.note.set_text(_("Screenshots are not available offline."))
+            self.note.show()
+        return False
+
+    @staticmethod
+    def draw_thumb(area, cr):
+        """Nahled se zaoblenymi rohy (jako tlacitko kolem)."""
+        if area.surface is None:
+            return False
+        w, h, r = area.get_allocated_width(), area.get_allocated_height(), 11
+        cr.new_sub_path()
+        cr.arc(w - r, r, r, -math.pi / 2, 0)
+        cr.arc(w - r, h - r, r, 0, math.pi / 2)
+        cr.arc(r, h - r, r, math.pi / 2, math.pi)
+        cr.arc(r, r, r, math.pi, 3 * math.pi / 2)
+        cr.close_path()
+        cr.clip()
+        cr.set_source_surface(area.surface, 0, 0)
+        cr.paint()
+        return False
+
+    def open(self, n):
+        if not self.paths[n]:
+            return
+        ScreenshotViewer(self.store, self.app.name, self.paths, n).show_all()
+
+
+class ScreenshotViewer(Gtk.Window):
+    """Zvetseny snimek: sipky/klavesy vlevo a vpravo, Esc zavre; obrazek se vejde do okna."""
+
+    def __init__(self, parent, title, paths, index):
+        super().__init__(title=title, transient_for=parent, modal=True,
+                         destroy_with_parent=True, window_position=Gtk.WindowPosition.CENTER_ON_PARENT)
+        self.paths = [p for p in paths if p]
+        self.index = self.paths.index(paths[index]) if paths[index] in self.paths else 0
+        self.pix, self.scaled = None, None
+        self.get_style_context().add_class("shot-viewer")
+        geo = parent.get_screen().get_display().get_monitor_at_window(parent.get_window()).get_workarea() \
+            if parent.get_window() else None
+        w, h = (geo.width, geo.height) if geo else (1280, 800)
+        self.set_default_size(min(1320, int(w * 0.92)), min(880, int(h * 0.9)))
+        header = Gtk.HeaderBar(show_close_button=True, title=title)
+        self.count = Gtk.Label()
+        self.count.get_style_context().add_class("shot-count")
+        header.set_custom_title(None)
+        header.set_subtitle("")
+        header.pack_start(self.count)
+        self.set_titlebar(header)
+        overlay = Gtk.Overlay()
+        self.area = Gtk.DrawingArea()
+        self.area.connect("draw", self.on_draw)
+        overlay.add(self.area)
+        self.prev = self.nav("go-previous-symbolic", _("Previous screenshot"), Gtk.Align.START, -1)
+        self.next = self.nav("go-next-symbolic", _("Next screenshot"), Gtk.Align.END, 1)
+        overlay.add_overlay(self.prev)
+        overlay.add_overlay(self.next)
+        self.add(overlay)
+        self.connect("key-press-event", self.on_key)
+        self.show_index()
+
+    def nav(self, icon, tip, align, step):
+        b = Gtk.Button.new_from_icon_name(icon, Gtk.IconSize.LARGE_TOOLBAR)
+        b.set_halign(align)
+        b.set_valign(Gtk.Align.CENTER)
+        b.set_tooltip_text(tip)
+        b.get_accessible().set_name(tip)
+        b.get_style_context().add_class("shot-nav")
+        b.set_margin_start(10)
+        b.set_margin_end(10)
+        b.connect("clicked", lambda _b: self.go(step))
+        return b
+
+    def show_index(self):
+        try:
+            self.pix = GdkPixbuf.Pixbuf.new_from_file(self.paths[self.index])
+        except GLib.Error:
+            self.pix = None
+        self.scaled = None
+        self.count.set_text(f"{self.index + 1} / {len(self.paths)}")
+        self.prev.set_sensitive(self.index > 0)
+        self.next.set_sensitive(self.index < len(self.paths) - 1)
+        for b in (self.prev, self.next):
+            b.set_visible(len(self.paths) > 1)
+            b.set_no_show_all(len(self.paths) <= 1)
+        self.area.queue_draw()
+
+    def go(self, step):
+        n = self.index + step
+        if 0 <= n < len(self.paths):
+            self.index = n
+            self.show_index()
+
+    def on_key(self, _w, ev):
+        k = ev.keyval
+        if k == Gdk.KEY_Escape:
+            self.destroy()
+        elif k in (Gdk.KEY_Left, Gdk.KEY_KP_Left, Gdk.KEY_Page_Up):
+            self.go(-1)
+        elif k in (Gdk.KEY_Right, Gdk.KEY_KP_Right, Gdk.KEY_Page_Down, Gdk.KEY_space):
+            self.go(1)
+        elif k == Gdk.KEY_Home:
+            self.go(-self.index)
+        elif k == Gdk.KEY_End:
+            self.go(len(self.paths) - 1 - self.index)
+        else:
+            return False
+        return True
+
+    def on_draw(self, area, cr):
+        if not self.pix:
+            return False
+        sf = area.get_scale_factor()
+        aw, ah = area.get_allocated_width() - 40, area.get_allocated_height() - 40
+        pw, ph = self.pix.get_width(), self.pix.get_height()
+        scale = min(aw * sf / pw, ah * sf / ph, 1.0 * sf)       # nezvetsovat nad puvodni velikost
+        w, h = max(1, int(pw * scale)), max(1, int(ph * scale))
+        if not self.scaled or self.scaled.get_width() != w or self.scaled.get_height() != h:
+            self.scaled = self.pix.scale_simple(w, h, GdkPixbuf.InterpType.BILINEAR)
+        surface = Gdk.cairo_surface_create_from_pixbuf(self.scaled, sf, None)
+        x = (area.get_allocated_width() - w / sf) / 2
+        y = (area.get_allocated_height() - h / sf) / 2
+        cr.set_source_surface(surface, x, y)
+        cr.paint()
+        return False
+
+
 class Store(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("LuxOS Store"))
@@ -807,6 +1226,7 @@ class Store(Gtk.Window):
         self.busy = {}
         self.cards = []
         self.update_view = None
+        self.carousel = None
 
         header = Gtk.HeaderBar(show_close_button=True, title=_("LuxOS Store"))
         self.back = Gtk.Button.new_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON)
@@ -1190,11 +1610,14 @@ class Store(Gtk.Window):
         box.pack_start(facts, False, False, 0)
         if app.is_flatpak:
             box.pack_start(self.flathub_facts(app, size_value), False, False, 0)
-        desc = description_text(app.component) if app.component else app.description
-        if desc:
+        shots = app.screenshot_list()
+        if shots:
+            self.carousel = ScreenshotCarousel(self, app, shots)
+            box.pack_start(self.carousel, False, False, 0)
+        blocks = app.description_blocks()
+        if blocks:
             box.pack_start(self.section(_("About")), False, False, 0)
-            box.pack_start(Gtk.Label(label=desc, xalign=0, wrap=True, selectable=True, max_width_chars=90),
-                           False, False, 0)
+            box.pack_start(DescriptionView(blocks), False, False, 0)
         if app.component and app.component.get_url(AppStream.UrlKind.HOMEPAGE):
             url = app.component.get_url(AppStream.UrlKind.HOMEPAGE)
             link = Gtk.LinkButton(uri=url, label=_("Website"), halign=Gtk.Align.START)

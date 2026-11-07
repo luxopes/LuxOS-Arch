@@ -7,7 +7,7 @@
 
 pkgname=luxai
 pkgver=2.0.2
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxAI - AI assistant that can work with your computer (chat and agent mode)"
 arch=(x86_64)
 url="https://lux-ai.cz"
@@ -66,6 +66,8 @@ package() {
     rm -rf "$pkgdir/usr/share/luxai/data/root"
     chmod -R u=rwX,go=rX "$pkgdir/usr/share/luxai"
     install -Dm644 data/luxai.desktop "$pkgdir/usr/share/applications/luxai.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$startdir"/metainfo/*.metainfo.xml
     install -Dm644 data/luxai.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/luxai.png"
     local s
     for s in 256 128 64 48 32 24 16; do

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-drivers</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Drivers</name>
+  <summary>Detected hardware and its drivers (graphics, Wi-Fi, camera)</summary>
+  <launchable type="desktop-id">luxos-drivers.desktop</launchable>
+  <description>
+    <p>Drivers shows the hardware LuxOS has detected (graphics, Wi-Fi, camera, processor and more) and whether each device has the driver it needs. Missing drivers, for example for NVIDIA graphics, are installed with one click.</p>
+    <p xml:lang="cs">Ovladače ukazují rozpoznaný hardware (grafiku, Wi-Fi, kameru, procesor a další) a to, zda má každé zařízení potřebný ovladač. Chybějící ovladače, třeba pro grafiku NVIDIA, nainstalujete jedním kliknutím.</p>
+    <p xml:lang="sk">Ovládače ukazujú rozpoznaný hardvér (grafiku, Wi-Fi, kameru, procesor a ďalšie) a to, či má každé zariadenie potrebný ovládač. Chýbajúce ovládače, napríklad pre grafiku NVIDIA, nainštalujete jedným kliknutím.</p>
+    <p xml:lang="pl">Sterowniki pokazują wykryty sprzęt (grafikę, Wi-Fi, kamerę, procesor i inne) oraz to, czy każde urządzenie ma potrzebny sterownik. Brakujące sterowniki, na przykład do grafiki NVIDIA, zainstalujesz jednym kliknięciem.</p>
+    <p xml:lang="uk">«Драйвери» показують розпізнане обладнання (графіку, Wi-Fi, камеру, процесор тощо) і те, чи має кожен пристрій потрібний драйвер. Відсутні драйвери, наприклад для графіки NVIDIA, встановлюються одним клацанням.</p>
+    <p xml:lang="hu">Az Illesztőprogramok megmutatja, milyen hardvert ismert fel a LuxOS (grafika, Wi-Fi, kamera, processzor és egyebek), és hogy minden eszköznek megvan-e a szükséges illesztőprogramja. A hiányzó illesztőprogramokat, például az NVIDIA grafikához valót, egy kattintással telepítheti.</p>
+    <p xml:lang="de">Treiber zeigt die von LuxOS erkannte Hardware (Grafik, WLAN, Kamera, Prozessor und mehr) und ob jedes Gerät den nötigen Treiber hat. Fehlende Treiber, etwa für NVIDIA-Grafik, installieren Sie mit einem Klick.</p>
+    <p xml:lang="fr">Pilotes affiche le matériel détecté par LuxOS (carte graphique, Wi-Fi, caméra, processeur, etc.) et indique si chaque appareil dispose du pilote nécessaire. Les pilotes manquants, par exemple pour une carte graphique NVIDIA, s’installent en un clic.</p>
+    <p xml:lang="es">Controladores muestra el hardware que LuxOS ha detectado (gráficos, Wi-Fi, cámara, procesador y más) y si cada dispositivo tiene el controlador que necesita. Los controladores que faltan, por ejemplo para gráficos NVIDIA, se instalan con un clic.</p>
+    <p xml:lang="it">Driver mostra l’hardware rilevato da LuxOS (grafica, Wi-Fi, fotocamera, processore e altro) e se ogni dispositivo ha il driver necessario. I driver mancanti, per esempio per la grafica NVIDIA, si installano con un clic.</p>
+    <p xml:lang="pt">O Drivers mostra o hardware que o LuxOS detectou (gráficos, Wi-Fi, câmera, processador e mais) e se cada dispositivo tem o driver de que precisa. Drivers que faltam, por exemplo para gráficos NVIDIA, são instalados com um clique.</p>
+    <p xml:lang="nl">Stuurprogramma’s toont de hardware die LuxOS heeft herkend (grafische kaart, wifi, camera, processor en meer) en of elk apparaat het benodigde stuurprogramma heeft. Ontbrekende stuurprogramma’s, bijvoorbeeld voor NVIDIA-graphics, installeer je met één klik.</p>
+    <p xml:lang="sv">Drivrutiner visar den hårdvara som LuxOS har hittat (grafik, wifi, kamera, processor med mera) och om varje enhet har den drivrutin den behöver. Saknade drivrutiner, till exempel för NVIDIA-grafik, installeras med ett klick.</p>
+    <ul>
+      <li>Status for every device: working, installed, restart required or driver available</li>
+      <li xml:lang="cs">Stav každého zařízení: funguje, nainstalováno, vyžaduje restart nebo ovladač k dispozici</li>
+      <li xml:lang="sk">Stav každého zariadenia: funguje, nainštalované, vyžaduje reštart alebo ovládač k dispozícii</li>
+      <li xml:lang="pl">Stan każdego urządzenia: działa, zainstalowane, wymaga ponownego uruchomienia lub sterownik dostępny</li>
+      <li xml:lang="uk">Стан кожного пристрою: працює, інстальовано, потрібен перезапуск або драйвер доступний</li>
+      <li xml:lang="hu">Minden eszköz állapota: működik, telepítve, újraindítás szükséges vagy illesztőprogram elérhető</li>
+      <li xml:lang="de">Status jedes Geräts: funktioniert, installiert, Neustart erforderlich oder Treiber verfügbar</li>
+      <li xml:lang="fr">État de chaque appareil : fonctionne, installé, redémarrage requis ou pilote disponible</li>
+      <li xml:lang="es">Estado de cada dispositivo: funciona, instalado, requiere reinicio o controlador disponible</li>
+      <li xml:lang="it">Stato di ogni dispositivo: funziona, installato, riavvio necessario o driver disponibile</li>
+      <li xml:lang="pt">Status de cada dispositivo: funcionando, instalado, reinicialização necessária ou driver disponível</li>
+      <li xml:lang="nl">Status per apparaat: werkt, geïnstalleerd, herstart vereist of stuurprogramma beschikbaar</li>
+      <li xml:lang="sv">Status för varje enhet: fungerar, installerad, omstart krävs eller drivrutin finns</li>
+      <li>Installs all recommended drivers and shows the progress</li>
+      <li xml:lang="cs">Nainstaluje všechny doporučené ovladače a ukazuje průběh</li>
+      <li xml:lang="sk">Nainštaluje všetky odporúčané ovládače a ukazuje priebeh</li>
+      <li xml:lang="pl">Instaluje wszystkie zalecane sterowniki i pokazuje postęp</li>
+      <li xml:lang="uk">Встановлює всі рекомендовані драйвери й показує перебіг</li>
+      <li xml:lang="hu">Telepíti az összes ajánlott illesztőprogramot, és mutatja a folyamatot</li>
+      <li xml:lang="de">Installiert alle empfohlenen Treiber und zeigt den Fortschritt</li>
+      <li xml:lang="fr">Installe tous les pilotes recommandés en affichant la progression</li>
+      <li xml:lang="es">Instala todos los controladores recomendados y muestra el progreso</li>
+      <li xml:lang="it">Installa tutti i driver consigliati e mostra l’avanzamento</li>
+      <li xml:lang="pt">Instala todos os drivers recomendados e mostra o progresso</li>
+      <li xml:lang="nl">Installeert alle aanbevolen stuurprogramma’s en toont de voortgang</li>
+      <li xml:lang="sv">Installerar alla rekommenderade drivrutiner och visar förloppet</li>
+      <li>Offers an alternative driver where one exists, such as NVIDIA 470 for older cards</li>
+      <li xml:lang="cs">Nabídne jiný ovladač, pokud existuje, třeba NVIDIA 470 pro starší karty</li>
+      <li xml:lang="sk">Ponúkne iný ovládač, ak existuje, napríklad NVIDIA 470 pre staršie karty</li>
+      <li xml:lang="pl">Proponuje inny sterownik, jeśli istnieje, np. NVIDIA 470 dla starszych kart</li>
+      <li xml:lang="uk">Пропонує інший драйвер, якщо він є, наприклад NVIDIA 470 для старіших карт</li>
+      <li xml:lang="hu">Ha van, másik illesztőprogramot is felkínál, például NVIDIA 470-et régebbi kártyákhoz</li>
+      <li xml:lang="de">Bietet einen alternativen Treiber an, wo es einen gibt, etwa NVIDIA 470 für ältere Karten</li>
+      <li xml:lang="fr">Propose un pilote alternatif s’il en existe un, comme NVIDIA 470 pour les cartes plus anciennes</li>
+      <li xml:lang="es">Ofrece un controlador alternativo si existe, como NVIDIA 470 para tarjetas antiguas</li>
+      <li xml:lang="it">Propone un driver alternativo se esiste, come NVIDIA 470 per le schede più vecchie</li>
+      <li xml:lang="pt">Oferece um driver alternativo quando existe, como o NVIDIA 470 para placas antigas</li>
+      <li xml:lang="nl">Biedt een alternatief stuurprogramma aan waar dat bestaat, zoals NVIDIA 470 voor oudere kaarten</li>
+      <li xml:lang="sv">Erbjuder en alternativ drivrutin där det finns, till exempel NVIDIA 470 för äldre kort</li>
+      <li>After login, tells you when new hardware needs a driver</li>
+      <li xml:lang="cs">Po přihlášení upozorní, když nový hardware potřebuje ovladač</li>
+      <li xml:lang="sk">Po prihlásení upozorní, keď nový hardvér potrebuje ovládač</li>
+      <li xml:lang="pl">Po zalogowaniu powiadamia, gdy nowy sprzęt potrzebuje sterownika</li>
+      <li xml:lang="uk">Після входу повідомляє, коли новому обладнанню потрібен драйвер</li>
+      <li xml:lang="hu">Bejelentkezés után szól, ha egy új hardvernek illesztőprogram kell</li>
+      <li xml:lang="de">Meldet nach der Anmeldung, wenn neue Hardware einen Treiber braucht</li>
+      <li xml:lang="fr">Après la connexion, signale quand un nouveau matériel a besoin d’un pilote</li>
+      <li xml:lang="es">Tras iniciar sesión, avisa cuando un hardware nuevo necesita un controlador</li>
+      <li xml:lang="it">Dopo l’accesso avvisa quando un nuovo hardware ha bisogno di un driver</li>
+      <li xml:lang="pt">Depois do login, avisa quando um hardware novo precisa de driver</li>
+      <li xml:lang="nl">Meldt na het aanmelden wanneer nieuwe hardware een stuurprogramma nodig heeft</li>
+      <li xml:lang="sv">Säger till efter inloggning när ny hårdvara behöver en drivrutin</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

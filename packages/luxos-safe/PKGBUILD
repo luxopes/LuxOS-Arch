@@ -3,7 +3,7 @@
 
 pkgname=luxos-safe
 pkgver=1.0.0
-pkgrel=7
+pkgrel=8
 pkgdesc="LuxOS Safe - encrypted /safe/<user> folder unlocked with its own password"
 arch=(any)
 url="https://lsl.lux-ai.cz/luxos/"
@@ -20,6 +20,8 @@ package() {
     install -Dm644 "$f/luxos-safe-watch.service" "$pkgdir/usr/lib/systemd/user/luxos-safe-watch.service"
     install -Dm644 "$f/luxos-safe-guard.service" "$pkgdir/usr/lib/systemd/system/luxos-safe-guard.service"
     install -Dm644 "$f/luxos-safe.desktop" "$pkgdir/usr/share/applications/luxos-safe.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
     install -Dm644 "$f/luxos-safe.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-safe.svg"
     install -dm755 "$pkgdir/safe"
     install -dm711 "$pkgdir/safe/.vaults"

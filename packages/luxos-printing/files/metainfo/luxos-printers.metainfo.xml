@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-printers</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Printers &amp; Scanners</name>
+  <summary>Print, scan and see your printers</summary>
+  <launchable type="desktop-id">luxos-printers.desktop</launchable>
+  <description>
+    <p>LuxOS sets up printers on your network or USB cable by itself, without drivers where possible. This app shows how your printers and scanners are doing and what is printing right now.</p>
+    <p xml:lang="cs">LuxOS nastaví tiskárny v síti nebo na kabelu USB sám, a kde to jde, i bez ovladačů. Tato aplikace ukazuje, jak se vašim tiskárnám a skenerům daří a co se právě tiskne.</p>
+    <p xml:lang="sk">LuxOS nastaví tlačiarne v sieti alebo na kábli USB sám, a kde sa dá, aj bez ovládačov. Táto aplikácia ukazuje, ako sa vašim tlačiarňam a skenerom darí a čo sa práve tlačí.</p>
+    <p xml:lang="pl">LuxOS sam konfiguruje drukarki w sieci lub podłączone kablem USB, a gdzie się da, nawet bez sterowników. Ta aplikacja pokazuje stan drukarek i skanerów oraz to, co właśnie się drukuje.</p>
+    <p xml:lang="uk">LuxOS сам налаштовує принтери в мережі чи під’єднані кабелем USB, а де можливо, то й без драйверів. Цей застосунок показує стан ваших принтерів і сканерів та те, що зараз друкується.</p>
+    <p xml:lang="hu">A LuxOS magától beállítja a hálózati és USB-kábellel csatlakoztatott nyomtatókat, ahol lehet, illesztőprogram nélkül. Ez az alkalmazás megmutatja, hogy állnak a nyomtatók és szkennerek, és mi nyomtatódik éppen.</p>
+    <p xml:lang="de">LuxOS richtet Drucker im Netzwerk oder per USB-Kabel selbst ein, wo möglich ganz ohne Treiber. Diese App zeigt, wie es Ihren Druckern und Scannern geht und was gerade gedruckt wird.</p>
+    <p xml:lang="fr">LuxOS configure tout seul les imprimantes du réseau ou branchées en USB, sans pilote quand c’est possible. Cette application montre l’état de vos imprimantes et scanners et ce qui est en cours d’impression.</p>
+    <p xml:lang="es">LuxOS configura por sí solo las impresoras de la red o conectadas por USB, sin controladores cuando es posible. Esta aplicación muestra el estado de tus impresoras y escáneres y lo que se está imprimiendo.</p>
+    <p xml:lang="it">LuxOS configura da solo le stampanti in rete o collegate via USB, senza driver quando possibile. Questa app mostra lo stato di stampanti e scanner e cosa si sta stampando.</p>
+    <p xml:lang="pt">O LuxOS configura sozinho as impressoras da rede ou conectadas por USB, sem drivers quando possível. Este aplicativo mostra o estado das suas impressoras e scanners e o que está sendo impresso.</p>
+    <p xml:lang="nl">LuxOS stelt printers in het netwerk of via een USB-kabel zelf in, waar mogelijk zonder stuurprogramma’s. Deze app laat zien hoe het met je printers en scanners gaat en wat er nu wordt afgedrukt.</p>
+    <p xml:lang="sv">LuxOS ställer själv in skrivare i nätverket eller via USB-kabel, om möjligt helt utan drivrutiner. Den här appen visar hur dina skrivare och skannrar mår och vad som skrivs ut just nu.</p>
+    <ul>
+      <li>Printer status with ink and toner levels</li>
+      <li xml:lang="cs">Stav tiskáren a hladina inkoustu a toneru</li>
+      <li xml:lang="sk">Stav tlačiarní a hladina atramentu a tonera</li>
+      <li xml:lang="pl">Stan drukarek oraz poziom atramentu i tonera</li>
+      <li xml:lang="uk">Стан принтерів і рівень чорнила та тонера</li>
+      <li xml:lang="hu">A nyomtatók állapota, tinta- és tonerszint</li>
+      <li xml:lang="de">Druckerstatus mit Tinten- und Tonerstand</li>
+      <li xml:lang="fr">État des imprimantes avec niveaux d’encre et de toner</li>
+      <li xml:lang="es">Estado de las impresoras con niveles de tinta y tóner</li>
+      <li xml:lang="it">Stato delle stampanti con livelli di inchiostro e toner</li>
+      <li xml:lang="pt">Estado das impressoras com níveis de tinta e toner</li>
+      <li xml:lang="nl">Printerstatus met inkt- en tonerniveaus</li>
+      <li xml:lang="sv">Skrivarstatus med bläck- och tonernivåer</li>
+      <li>Print queue with Cancel for each document</li>
+      <li xml:lang="cs">Tisková fronta se zrušením každého dokumentu</li>
+      <li xml:lang="sk">Tlačový front so zrušením každého dokumentu</li>
+      <li xml:lang="pl">Kolejka wydruku z anulowaniem każdego dokumentu</li>
+      <li xml:lang="uk">Черга друку зі скасуванням кожного документа</li>
+      <li xml:lang="hu">Nyomtatási sor, minden dokumentum külön megszakítható</li>
+      <li xml:lang="de">Druckwarteschlange, jedes Dokument einzeln abbrechbar</li>
+      <li xml:lang="fr">File d’attente d’impression avec annulation de chaque document</li>
+      <li xml:lang="es">Cola de impresión con cancelación de cada documento</li>
+      <li xml:lang="it">Coda di stampa con annullamento di ogni documento</li>
+      <li xml:lang="pt">Fila de impressão com cancelamento de cada documento</li>
+      <li xml:lang="nl">Afdrukwachtrij waarin je elk document kunt annuleren</li>
+      <li xml:lang="sv">Utskriftskö där varje dokument kan avbrytas</li>
+      <li>Choose the default printer and print a test page</li>
+      <li xml:lang="cs">Volba výchozí tiskárny a zkušební stránka</li>
+      <li xml:lang="sk">Voľba predvolenej tlačiarne a skúšobná strana</li>
+      <li xml:lang="pl">Wybór drukarki domyślnej i strona testowa</li>
+      <li xml:lang="uk">Вибір стандартного принтера та пробна сторінка</li>
+      <li xml:lang="hu">Alapértelmezett nyomtató kiválasztása és tesztoldal</li>
+      <li xml:lang="de">Standarddrucker wählen und eine Testseite drucken</li>
+      <li xml:lang="fr">Choix de l’imprimante par défaut et page de test</li>
+      <li xml:lang="es">Elige la impresora predeterminada e imprime una página de prueba</li>
+      <li xml:lang="it">Scegli la stampante predefinita e stampa una pagina di prova</li>
+      <li xml:lang="pt">Escolha a impressora padrão e imprima uma página de teste</li>
+      <li xml:lang="nl">Kies de standaardprinter en druk een testpagina af</li>
+      <li xml:lang="sv">Välj förvald skrivare och skriv ut en testsida</li>
+      <li>Add a printer that was not found automatically</li>
+      <li xml:lang="cs">Přidání tiskárny, která se nenašla automaticky</li>
+      <li xml:lang="sk">Pridanie tlačiarne, ktorá sa nenašla automaticky</li>
+      <li xml:lang="pl">Dodawanie drukarki, której nie znaleziono automatycznie</li>
+      <li xml:lang="uk">Додавання принтера, якого не знайдено автоматично</li>
+      <li xml:lang="hu">Olyan nyomtató hozzáadása, amely nem lett automatikusan megtalálva</li>
+      <li xml:lang="de">Einen Drucker hinzufügen, der nicht automatisch gefunden wurde</li>
+      <li xml:lang="fr">Ajout d’une imprimante qui n’a pas été trouvée automatiquement</li>
+      <li xml:lang="es">Añade una impresora que no se encontró automáticamente</li>
+      <li xml:lang="it">Aggiungi una stampante non trovata automaticamente</li>
+      <li xml:lang="pt">Adicione uma impressora que não foi encontrada automaticamente</li>
+      <li xml:lang="nl">Voeg een printer toe die niet automatisch is gevonden</li>
+      <li xml:lang="sv">Lägg till en skrivare som inte hittades automatiskt</li>
+      <li>Scan with a preview and save as PDF or JPEG</li>
+      <li xml:lang="cs">Skenování s náhledem a uložení do PDF nebo JPEG</li>
+      <li xml:lang="sk">Skenovanie s náhľadom a uloženie do PDF alebo JPEG</li>
+      <li xml:lang="pl">Skanowanie z podglądem i zapis do PDF lub JPEG</li>
+      <li xml:lang="uk">Сканування з попереднім переглядом і збереження в PDF або JPEG</li>
+      <li xml:lang="hu">Beolvasás előnézettel, mentés PDF-be vagy JPEG-be</li>
+      <li xml:lang="de">Mit Vorschau scannen und als PDF oder JPEG speichern</li>
+      <li xml:lang="fr">Numérisation avec aperçu et enregistrement en PDF ou JPEG</li>
+      <li xml:lang="es">Escanea con vista previa y guarda en PDF o JPEG</li>
+      <li xml:lang="it">Scansiona con anteprima e salva in PDF o JPEG</li>
+      <li xml:lang="pt">Digitalize com pré-visualização e salve em PDF ou JPEG</li>
+      <li xml:lang="nl">Scan met voorbeeld en sla op als PDF of JPEG</li>
+      <li xml:lang="sv">Skanna med förhandsvisning och spara som PDF eller JPEG</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

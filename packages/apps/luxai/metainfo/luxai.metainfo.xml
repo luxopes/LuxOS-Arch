@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxai</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-custom</project_license>
+  <name>LuxAI</name>
+  <summary>AI assistant that can work with your computer</summary>
+  <launchable type="desktop-id">luxai.desktop</launchable>
+  <description>
+    <p>LuxAI is the AI assistant of LuxOS. In Chat mode it answers questions and helps with texts, ideas and code; in Agent mode it does things on your computer for you – always with your approval.</p>
+    <p xml:lang="cs">LuxAI je AI asistent systému LuxOS. V režimu Chat odpovídá na otázky a pomáhá s texty, nápady i kódem; v režimu Agent za vás udělá práci na počítači – vždy s vaším souhlasem.</p>
+    <p xml:lang="sk">LuxAI je AI asistent systému LuxOS. V režime Chat odpovedá na otázky a pomáha s textami, nápadmi aj kódom; v režime Agent za vás urobí prácu na počítači – vždy s vaším súhlasom.</p>
+    <p xml:lang="pl">LuxAI to asystent AI systemu LuxOS. W trybie Czat odpowiada na pytania i pomaga przy tekstach, pomysłach i kodzie; w trybie Agent wykonuje za Ciebie zadania na komputerze – zawsze za Twoją zgodą.</p>
+    <p xml:lang="uk">LuxAI – це AI-асистент LuxOS. У режимі «Чат» він відповідає на запитання й допомагає з текстами, ідеями та кодом; у режимі «Агент» виконує завдання на комп’ютері замість вас – завжди з вашого дозволу.</p>
+    <p xml:lang="hu">A LuxAI a LuxOS AI-asszisztense. Csevegés módban kérdésekre válaszol, és segít szövegekben, ötletekben és kódban; Ügynök módban elvégzi Ön helyett a feladatokat a számítógépen – mindig az Ön jóváhagyásával.</p>
+    <p xml:lang="de">LuxAI ist der KI-Assistent von LuxOS. Im Modus Chat beantwortet er Fragen und hilft bei Texten, Ideen und Code; im Modus Agent erledigt er Aufgaben auf Ihrem Computer – immer mit Ihrer Zustimmung.</p>
+    <p xml:lang="fr">LuxAI est l’assistant IA de LuxOS. En mode Chat, il répond aux questions et aide pour les textes, les idées et le code ; en mode Agent, il agit sur votre ordinateur à votre place – toujours avec votre accord.</p>
+    <p xml:lang="es">LuxAI es el asistente de IA de LuxOS. En el modo Chat responde preguntas y ayuda con textos, ideas y código; en el modo Agente hace tareas en su ordenador por usted, siempre con su aprobación.</p>
+    <p xml:lang="it">LuxAI è l’assistente IA di LuxOS. In modalità Chat risponde alle domande e aiuta con testi, idee e codice; in modalità Agente svolge compiti sul computer al posto tuo, sempre con la tua approvazione.</p>
+    <p xml:lang="pt">LuxAI é o assistente de IA do LuxOS. No modo Chat responde a perguntas e ajuda com textos, ideias e código; no modo Agente faz tarefas no seu computador por si – sempre com a sua aprovação.</p>
+    <p xml:lang="nl">LuxAI is de AI-assistent van LuxOS. In de modus Chat beantwoordt hij vragen en helpt hij met teksten, ideeën en code; in de modus Agent doet hij dingen op je computer voor je – altijd met jouw toestemming.</p>
+    <p xml:lang="sv">LuxAI är AI-assistenten i LuxOS. I läget Chatt svarar den på frågor och hjälper till med texter, idéer och kod; i läget Agent utför den uppgifter på datorn åt dig – alltid med ditt godkännande.</p>
+    <ul>
+      <li>Answers appear as they are written, with tables, code blocks and math</li>
+      <li xml:lang="cs">Odpovědi se zobrazují průběžně, s tabulkami, bloky kódu a matematikou</li>
+      <li xml:lang="sk">Odpovede sa zobrazujú priebežne, s tabuľkami, blokmi kódu a matematikou</li>
+      <li xml:lang="pl">Odpowiedzi pojawiają się na bieżąco, z tabelami, blokami kodu i wzorami matematycznymi</li>
+      <li xml:lang="uk">Відповіді з’являються одразу під час написання, з таблицями, блоками коду й математикою</li>
+      <li xml:lang="hu">A válaszok írás közben jelennek meg, táblázatokkal, kódblokkokkal és képletekkel</li>
+      <li xml:lang="de">Antworten erscheinen schon beim Schreiben, mit Tabellen, Codeblöcken und Formeln</li>
+      <li xml:lang="fr">Les réponses s’affichent au fil de l’écriture, avec tableaux, blocs de code et formules</li>
+      <li xml:lang="es">Las respuestas aparecen mientras se escriben, con tablas, bloques de código y fórmulas</li>
+      <li xml:lang="it">Le risposte compaiono mentre vengono scritte, con tabelle, blocchi di codice e formule</li>
+      <li xml:lang="pt">As respostas aparecem à medida que são escritas, com tabelas, blocos de código e fórmulas</li>
+      <li xml:lang="nl">Antwoorden verschijnen terwijl ze worden geschreven, met tabellen, codeblokken en formules</li>
+      <li xml:lang="sv">Svaren visas medan de skrivs, med tabeller, kodblock och formler</li>
+      <li>Agent mode runs commands, works with files, opens apps and controls the mouse and keyboard</li>
+      <li xml:lang="cs">Režim Agent spouští příkazy, pracuje se soubory, otevírá aplikace a ovládá myš i klávesnici</li>
+      <li xml:lang="sk">Režim Agent spúšťa príkazy, pracuje so súbormi, otvára aplikácie a ovláda myš aj klávesnicu</li>
+      <li xml:lang="pl">Tryb Agent uruchamia polecenia, pracuje z plikami, otwiera aplikacje i steruje myszą oraz klawiaturą</li>
+      <li xml:lang="uk">Режим «Агент» виконує команди, працює з файлами, відкриває застосунки й керує мишею та клавіатурою</li>
+      <li xml:lang="hu">Az Ügynök mód parancsokat futtat, fájlokkal dolgozik, alkalmazásokat nyit meg, és vezérli az egeret és a billentyűzetet</li>
+      <li xml:lang="de">Der Modus Agent führt Befehle aus, arbeitet mit Dateien, öffnet Apps und steuert Maus und Tastatur</li>
+      <li xml:lang="fr">Le mode Agent exécute des commandes, gère des fichiers, ouvre des applications et pilote la souris et le clavier</li>
+      <li xml:lang="es">El modo Agente ejecuta comandos, trabaja con archivos, abre aplicaciones y controla el ratón y el teclado</li>
+      <li xml:lang="it">La modalità Agente esegue comandi, lavora con i file, apre app e controlla mouse e tastiera</li>
+      <li xml:lang="pt">O modo Agente executa comandos, trabalha com ficheiros, abre aplicações e controla o rato e o teclado</li>
+      <li xml:lang="nl">De modus Agent voert opdrachten uit, werkt met bestanden, opent apps en bedient muis en toetsenbord</li>
+      <li xml:lang="sv">Läget Agent kör kommandon, arbetar med filer, öppnar appar och styr mus och tangentbord</li>
+      <li>Searches the web and reads pages, protected against instructions hidden in web pages</li>
+      <li xml:lang="cs">Hledá na webu a čte stránky, s ochranou před pokyny ukrytými ve webových stránkách</li>
+      <li xml:lang="sk">Hľadá na webe a číta stránky, s ochranou pred pokynmi ukrytými vo webových stránkach</li>
+      <li xml:lang="pl">Wyszukuje w sieci i czyta strony, z ochroną przed poleceniami ukrytymi na stronach</li>
+      <li xml:lang="uk">Шукає в інтернеті й читає сторінки із захистом від прихованих у них інструкцій</li>
+      <li xml:lang="hu">Keres a weben és oldalakat olvas, védelemmel a weboldalakba rejtett utasítások ellen</li>
+      <li xml:lang="de">Sucht im Web und liest Seiten, geschützt vor Anweisungen, die in Webseiten versteckt sind</li>
+      <li xml:lang="fr">Cherche sur le Web et lit des pages, protégé contre les instructions cachées dans les pages</li>
+      <li xml:lang="es">Busca en la web y lee páginas, con protección frente a instrucciones ocultas en ellas</li>
+      <li xml:lang="it">Cerca sul web e legge le pagine, con protezione dalle istruzioni nascoste nelle pagine</li>
+      <li xml:lang="pt">Pesquisa na Web e lê páginas, com proteção contra instruções escondidas nas páginas</li>
+      <li xml:lang="nl">Zoekt op het web en leest pagina’s, beschermd tegen instructies die in webpagina’s verborgen zitten</li>
+      <li xml:lang="sv">Söker på webben och läser sidor, skyddad mot instruktioner som gömts i webbsidor</li>
+      <li>Places, routes and public transport timetables, and events in your LuxOS Calendar</li>
+      <li xml:lang="cs">Místa, trasy a jízdní řády MHD i události ve vašem Kalendáři LuxOS</li>
+      <li xml:lang="sk">Miesta, trasy a cestovné poriadky MHD aj udalosti vo vašom Kalendári LuxOS</li>
+      <li xml:lang="pl">Miejsca, trasy i rozkłady jazdy komunikacji miejskiej oraz wydarzenia w Kalendarzu LuxOS</li>
+      <li xml:lang="uk">Місця, маршрути й розклади громадського транспорту, а також події у вашому Календарі LuxOS</li>
+      <li xml:lang="hu">Helyek, útvonalak, tömegközlekedési menetrendek és események a LuxOS Naptárban</li>
+      <li xml:lang="de">Orte, Routen und Fahrpläne des Nahverkehrs sowie Termine in Ihrem LuxOS-Kalender</li>
+      <li xml:lang="fr">Lieux, itinéraires et horaires des transports en commun, et événements de votre Calendrier LuxOS</li>
+      <li xml:lang="es">Lugares, rutas y horarios de transporte público, y eventos de su Calendario de LuxOS</li>
+      <li xml:lang="it">Luoghi, percorsi e orari dei mezzi pubblici, ed eventi nel tuo Calendario di LuxOS</li>
+      <li xml:lang="pt">Locais, percursos e horários de transportes públicos, e eventos no seu Calendário do LuxOS</li>
+      <li xml:lang="nl">Plaatsen, routes en dienstregelingen van het openbaar vervoer, en afspraken in je LuxOS-agenda</li>
+      <li xml:lang="sv">Platser, rutter och tidtabeller för kollektivtrafik samt händelser i din LuxOS-kalender</li>
+      <li>Attach images and text files to a message</li>
+      <li xml:lang="cs">Ke zprávě můžete přiložit obrázky a textové soubory</li>
+      <li xml:lang="sk">K správe môžete priložiť obrázky a textové súbory</li>
+      <li xml:lang="pl">Do wiadomości można dołączać obrazy i pliki tekstowe</li>
+      <li xml:lang="uk">До повідомлення можна додавати зображення й текстові файли</li>
+      <li xml:lang="hu">Az üzenethez képeket és szövegfájlokat csatolhat</li>
+      <li xml:lang="de">Bilder und Textdateien an eine Nachricht anhängen</li>
+      <li xml:lang="fr">Joignez des images et des fichiers texte à un message</li>
+      <li xml:lang="es">Adjunte imágenes y archivos de texto a un mensaje</li>
+      <li xml:lang="it">Allega immagini e file di testo a un messaggio</li>
+      <li xml:lang="pt">Anexe imagens e ficheiros de texto a uma mensagem</li>
+      <li xml:lang="nl">Voeg afbeeldingen en tekstbestanden toe aan een bericht</li>
+      <li xml:lang="sv">Bifoga bilder och textfiler till ett meddelande</li>
+      <li>Searchable conversation history; uses your LuxAI account</li>
+      <li xml:lang="cs">Historie konverzací s hledáním; používá váš účet LuxAI</li>
+      <li xml:lang="sk">História konverzácií s vyhľadávaním; používa váš účet LuxAI</li>
+      <li xml:lang="pl">Historia rozmów z wyszukiwaniem; korzysta z Twojego konta LuxAI</li>
+      <li xml:lang="uk">Історія розмов із пошуком; використовує ваш обліковий запис LuxAI</li>
+      <li xml:lang="hu">Kereshető beszélgetési előzmények; a LuxAI-fiókját használja</li>
+      <li xml:lang="de">Durchsuchbarer Gesprächsverlauf; nutzt Ihr LuxAI-Konto</li>
+      <li xml:lang="fr">Historique des conversations avec recherche ; utilise votre compte LuxAI</li>
+      <li xml:lang="es">Historial de conversaciones con búsqueda; usa su cuenta de LuxAI</li>
+      <li xml:lang="it">Cronologia delle conversazioni con ricerca; usa il tuo account LuxAI</li>
+      <li xml:lang="pt">Histórico de conversas com pesquisa; usa a sua conta LuxAI</li>
+      <li xml:lang="nl">Doorzoekbare gespreksgeschiedenis; gebruikt je LuxAI-account</li>
+      <li xml:lang="sv">Sökbar konversationshistorik; använder ditt LuxAI-konto</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

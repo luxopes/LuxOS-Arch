@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-tour</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>LuxOS Tour</name>
+  <summary>Find out where everything is in LuxOS</summary>
+  <launchable type="desktop-id">luxos-tour.desktop</launchable>
+  <description>
+    <p>LuxOS Tour is a short guide that shows where everything is: the menu bar, the Dock, Launchpad and Search, Files and the Safe, installing apps, appearance, sharing and printing, and help.</p>
+    <p xml:lang="cs">Prohlídka LuxOS je krátký průvodce, který ukáže, kde co je: horní lišta, Dock, Launchpad a Hledání, Soubory a Trezor, instalace aplikací, vzhled, sdílení a tisk a nápověda.</p>
+    <p xml:lang="sk">Prehliadka LuxOS je krátky sprievodca, ktorý ukáže, kde čo je: horná lišta, Dock, Launchpad a Hľadanie, Súbory a Trezor, inštalácia aplikácií, vzhľad, zdieľanie a tlač a pomocník.</p>
+    <p xml:lang="pl">Przewodnik po LuxOS to krótki samouczek, który pokazuje, gdzie co jest: pasek menu, Dock, Launchpad i wyszukiwanie, Pliki i Sejf, instalowanie aplikacji, wygląd, udostępnianie i drukowanie oraz pomoc.</p>
+    <p xml:lang="uk">Огляд LuxOS — це короткий путівник, який показує, де що знаходиться: смуга меню, Dock, Launchpad і пошук, Файли та Сейф, встановлення програм, вигляд, обмін файлами й друк, а також довідка.</p>
+    <p xml:lang="hu">A LuxOS bemutató egy rövid útmutató, amely megmutatja, mi hol található: a menüsor, a Dock, a Launchpad és a keresés, a Fájlok és a Széf, alkalmazások telepítése, megjelenés, megosztás és nyomtatás, valamint súgó.</p>
+    <p xml:lang="de">LuxOS-Tour ist eine kurze Einführung, die zeigt, wo Sie was finden: Menüleiste, Dock, Launchpad und Suche, Dateien und Tresor, Apps installieren, Erscheinungsbild, Teilen und Drucken sowie Hilfe.</p>
+    <p xml:lang="fr">Visite de LuxOS est un petit guide qui montre où se trouve chaque chose : la barre des menus, le Dock, Launchpad et la recherche, Fichiers et le Coffre-fort, l’installation d’applications, l’apparence, le partage et l’impression, et l’aide.</p>
+    <p xml:lang="es">Recorrido por LuxOS es una guía breve que muestra dónde está cada cosa: la barra de menús, el Dock, Launchpad y la búsqueda, Archivos y la Caja fuerte, la instalación de aplicaciones, la apariencia, compartir e imprimir, y la ayuda.</p>
+    <p xml:lang="it">Tour di LuxOS è una breve guida che mostra dove si trova ogni cosa: la barra dei menu, il Dock, Launchpad e la ricerca, File e la Cassaforte, l’installazione delle app, l’aspetto, la condivisione e la stampa, e l’aiuto.</p>
+    <p xml:lang="pt">O Tour pelo LuxOS é um guia curto que mostra onde fica cada coisa: a barra de menus, a Dock, o Launchpad e a pesquisa, os Arquivos e o Cofre, a instalação de aplicações, a aparência, a partilha e impressão, e a ajuda.</p>
+    <p xml:lang="nl">Rondleiding door LuxOS is een korte gids die laat zien waar alles zit: de menubalk, het Dock, Launchpad en Zoeken, Bestanden en de Kluis, apps installeren, weergave, delen en afdrukken, en hulp.</p>
+    <p xml:lang="sv">Rundtur i LuxOS är en kort guide som visar var allt finns: menyraden, Dock, Launchpad och sökningen, Filer och Valvet, att installera appar, utseende, delning och utskrift samt hjälp.</p>
+    <p>It opens by itself the first time you sign in and takes about a minute. You can skip it at any time and open it again from Launchpad.</p>
+    <p xml:lang="cs">Spustí se sama při prvním přihlášení a zabere asi minutu. Můžete ji kdykoli přeskočit a znovu otevřít z Launchpadu.</p>
+    <p xml:lang="sk">Spustí sa sama pri prvom prihlásení a trvá asi minútu. Môžete ju kedykoľvek preskočiť a znova otvoriť z Launchpadu.</p>
+    <p xml:lang="pl">Uruchamia się sam przy pierwszym logowaniu i zajmuje około minuty. W każdej chwili możesz go pominąć i otworzyć ponownie z Launchpada.</p>
+    <p xml:lang="uk">Він відкривається сам під час першого входу й триває близько хвилини. Його можна будь-коли пропустити й знову відкрити з Launchpad.</p>
+    <p xml:lang="hu">Az első bejelentkezéskor magától megnyílik, és körülbelül egy percig tart. Bármikor kihagyhatja, és újra megnyithatja a Launchpadből.</p>
+    <p xml:lang="de">Sie startet bei der ersten Anmeldung von selbst und dauert etwa eine Minute. Sie können sie jederzeit überspringen und über Launchpad erneut öffnen.</p>
+    <p xml:lang="fr">Elle s’ouvre d’elle-même à la première connexion et dure environ une minute. Vous pouvez la passer à tout moment et la rouvrir depuis Launchpad.</p>
+    <p xml:lang="es">Se abre solo la primera vez que inicias sesión y dura alrededor de un minuto. Puedes saltarlo en cualquier momento y volver a abrirlo desde Launchpad.</p>
+    <p xml:lang="it">Si apre da solo al primo accesso e dura circa un minuto. Puoi saltarlo in qualsiasi momento e riaprirlo da Launchpad.</p>
+    <p xml:lang="pt">Abre-se sozinho no primeiro início de sessão e demora cerca de um minuto. Pode ignorá-lo a qualquer momento e abri-lo de novo a partir do Launchpad.</p>
+    <p xml:lang="nl">Hij opent vanzelf de eerste keer dat je inlogt en duurt ongeveer een minuut. Je kunt hem altijd overslaan en later opnieuw openen via Launchpad.</p>
+    <p xml:lang="sv">Den öppnas av sig själv första gången du loggar in och tar ungefär en minut. Du kan hoppa över den när som helst och öppna den igen från Launchpad.</p>
+    <ul>
+      <li>Nine short pages with clear illustrations</li>
+      <li xml:lang="cs">Devět krátkých stránek s názornými ilustracemi</li>
+      <li xml:lang="sk">Deväť krátkych stránok s názornými ilustráciami</li>
+      <li xml:lang="pl">Dziewięć krótkich stron z przejrzystymi ilustracjami</li>
+      <li xml:lang="uk">Дев’ять коротких сторінок з наочними ілюстраціями</li>
+      <li xml:lang="hu">Kilenc rövid oldal szemléletes ábrákkal</li>
+      <li xml:lang="de">Neun kurze Seiten mit anschaulichen Illustrationen</li>
+      <li xml:lang="fr">Neuf pages courtes avec des illustrations claires</li>
+      <li xml:lang="es">Nueve páginas breves con ilustraciones claras</li>
+      <li xml:lang="it">Nove pagine brevi con illustrazioni chiare</li>
+      <li xml:lang="pt">Nove páginas curtas com ilustrações claras</li>
+      <li xml:lang="nl">Negen korte pagina’s met duidelijke illustraties</li>
+      <li xml:lang="sv">Nio korta sidor med tydliga illustrationer</li>
+      <li>Show on Screen highlights the real menu bar and Dock</li>
+      <li xml:lang="cs">„Ukázat na obrazovce“ zvýrazní skutečnou horní lištu a Dock</li>
+      <li xml:lang="sk">„Ukázať na obrazovke“ zvýrazní skutočnú hornú lištu a Dock</li>
+      <li xml:lang="pl">„Pokaż na ekranie” wyróżnia prawdziwy pasek menu i Dock</li>
+      <li xml:lang="uk">«Показати на екрані» підсвічує справжню смугу меню й Dock</li>
+      <li xml:lang="hu">A „Mutasd a képernyőn” kiemeli a valódi menüsort és a Dockot</li>
+      <li xml:lang="de">„Auf dem Bildschirm zeigen“ hebt die echte Menüleiste und das Dock hervor</li>
+      <li xml:lang="fr">« Montrer à l’écran » met en évidence la vraie barre des menus et le Dock</li>
+      <li xml:lang="es">«Mostrar en pantalla» resalta la barra de menús y el Dock reales</li>
+      <li xml:lang="it">«Mostra sullo schermo» evidenzia la vera barra dei menu e il Dock</li>
+      <li xml:lang="pt">«Mostrar na tela» destaca a barra de menus e a Dock reais</li>
+      <li xml:lang="nl">‘Toon op scherm’ markeert de echte menubalk en het Dock</li>
+      <li xml:lang="sv">”Visa på skärmen” markerar den riktiga menyraden och Dock</li>
+      <li>Buttons open the apps it talks about</li>
+      <li xml:lang="cs">Tlačítka otevřou aplikace, o kterých je řeč</li>
+      <li xml:lang="sk">Tlačidlá otvoria aplikácie, o ktorých je reč</li>
+      <li xml:lang="pl">Przyciski otwierają omawiane aplikacje</li>
+      <li xml:lang="uk">Кнопки відкривають програми, про які йдеться</li>
+      <li xml:lang="hu">A gombok megnyitják a bemutatott alkalmazásokat</li>
+      <li xml:lang="de">Schaltflächen öffnen die vorgestellten Apps</li>
+      <li xml:lang="fr">Des boutons ouvrent les applications présentées</li>
+      <li xml:lang="es">Los botones abren las aplicaciones de las que habla</li>
+      <li xml:lang="it">I pulsanti aprono le app di cui si parla</li>
+      <li xml:lang="pt">Os botões abrem as aplicações apresentadas</li>
+      <li xml:lang="nl">Knoppen openen de apps waar het over gaat</li>
+      <li xml:lang="sv">Knappar öppnar apparna som beskrivs</li>
+      <li>Choose light, dark or automatic appearance right in the tour</li>
+      <li xml:lang="cs">Světlý, tmavý nebo automatický vzhled si vyberete přímo v prohlídce</li>
+      <li xml:lang="sk">Svetlý, tmavý alebo automatický vzhľad si vyberiete priamo v prehliadke</li>
+      <li xml:lang="pl">Jasny, ciemny lub automatyczny wygląd wybierzesz bezpośrednio w przewodniku</li>
+      <li xml:lang="uk">Світлий, темний або автоматичний вигляд можна вибрати просто в огляді</li>
+      <li xml:lang="hu">Világos, sötét vagy automatikus megjelenés választható közvetlenül a bemutatóban</li>
+      <li xml:lang="de">Helles, dunkles oder automatisches Erscheinungsbild direkt in der Tour wählen</li>
+      <li xml:lang="fr">Choix de l’apparence claire, sombre ou automatique directement dans la visite</li>
+      <li xml:lang="es">Elige la apariencia clara, oscura o automática desde el propio recorrido</li>
+      <li xml:lang="it">Scegli l’aspetto chiaro, scuro o automatico direttamente nel tour</li>
+      <li xml:lang="pt">Escolha a aparência clara, escura ou automática no próprio tour</li>
+      <li xml:lang="nl">Kies lichte, donkere of automatische weergave direct in de rondleiding</li>
+      <li xml:lang="sv">Välj ljust, mörkt eller automatiskt utseende direkt i rundturen</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

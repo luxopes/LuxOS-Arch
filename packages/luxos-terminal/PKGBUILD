@@ -8,7 +8,7 @@
 
 pkgname=luxos-terminal
 pkgver=1.3.0
-pkgrel=3
+pkgrel=4
 pkgdesc="LuxOS Terminal - light GTK3/VTE terminal with tabs, light/dark profiles and SIXEL images"
 arch=(x86_64)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -47,6 +47,8 @@ package() {
     # logo pro fastfetch (obrazek SIXEL), pruhledne pozadi
     install -Dm644 "$f/luxos-terminal-logo.png" "$pkgdir/usr/share/luxos/terminal/logo.png"
     install -Dm644 "$f/luxos-terminal.desktop" "$pkgdir/usr/share/applications/luxos-terminal.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
     # Pomocna aplikace Xfce (exo-open --launch TerminalEmulator: "Otevrit terminal zde" v Souborech)
     install -Dm644 "$f/luxos-terminal-helper.desktop" "$pkgdir/usr/share/xfce4/helpers/luxos-terminal.desktop"
     # Vychozi terminal pro xdg-terminal-exec (Terminal=true v .desktop)
