@@ -4599,3 +4599,7 @@ Invalid COUNTME (use 0 or 1)	Неприпустиме COUNTME (використ�
 Could not change the anonymous weekly count.	Не вдалося змінити анонімний щотижневий підрахунок.
 Usage: lux config countme [on|off]	Використання: lux config countme [on|off]
 Usage: lux config [check|show|edit|engine|migrate|channel|countme]	Використання: lux config [check|show|edit|engine|migrate|channel|countme]
+Could not start %s in the sandbox	Не вдалося запустити %s у пісочниці
+The program ended with error code %d.	Програма завершилася з кодом помилки %d.
+The launcher does not contain a program to run.	Ярлик запуску не містить програми для запуску.
+No terminal application was found.	Не знайдено жодної програми терміналу.

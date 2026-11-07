@@ -390,7 +390,7 @@ class Guard:
             f"{', '.join(entry.get('reasons') or []) or 'not allowed'}")
         self.state.add_log(path=entry.get("path"), level=entry.get("level"), action="blocked", uid=uid,
                            reasons=entry.get("reasons"))
-        self._to_agent(uid, {"op": "blocked", **self._public(entry)})
+        self._to_agent(uid, {"op": "blocked", "terminal": self.proc.has_tty(pid), **self._public(entry)})
 
     def _public(self, entry):
         return {"path": entry.get("path"), "level": entry.get("level"), "kind": entry.get("kind"),
@@ -415,7 +415,8 @@ class Guard:
         self.asks[rid] = {"key": key, "uid": uid, "fds": [fd], "t": self.clock(), "entry": entry,
                           "pid": pid, "fd0": os.dup(fd)}
         self.ask_index[(uid, key)] = rid
-        msg = {"op": "ask", "id": rid, "program": self.proc.comm(pid), **self._public(entry)}
+        msg = {"op": "ask", "id": rid, "program": self.proc.comm(pid), "terminal": self.proc.has_tty(pid),
+               **self._public(entry)}
         if not self._to_agent(uid, msg):
             self._finish_ask(rid, "deny", reason="agent unreachable")
 

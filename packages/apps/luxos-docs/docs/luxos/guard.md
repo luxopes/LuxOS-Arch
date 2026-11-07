@@ -75,9 +75,15 @@ compressed programs and AppImages are usually just risky.
 
 ## Run in Sandbox
 
-The button starts the file in the user's [Sandbox](sandbox.md): programs (ELF, AppImage, jar, exe) with
-`luxos-sandbox run --gui -- FILE`, scripts in a terminal with `luxos-sandbox run -- FILE`. The file
-is copied into the sandbox; inside it cannot see the home folder, desktop or local network. If the
+The button starts the file in the user's [Sandbox](sandbox.md). Programs with a window run with
+`luxos-sandbox run --gui -- FILE` **without a terminal**: AppImage, jar, exe, ELF programs linking a
+window library (X11/xcb, GTK, Qt, SDL, GLFW, wayland-client, Electron …), scripts using Tk/GTK/Qt/pygame
+or zenity/yad that do not read from the terminal, and `.desktop` launchers with `Terminal=false` (their
+`Exec` runs in the sandbox). Text programs and scripts run in a terminal (`luxos-sandbox run -- FILE`)
+that stays open so the output can be read; so do launchers with `Terminal=true`. If the blocked file
+was started from a terminal (also "Run in Terminal" in the file manager), the sandbox also starts in a
+terminal. A program with a window that fails right away (within 20 s) shows a notification with the
+last lines of its output. The file is copied into the sandbox; inside it cannot see the home folder, desktop or local network. If the
 sandbox does not exist yet, the Sandbox window opens (click Create, then try again). The sandbox is a
 minimal Arch Linux without Python, Java or Wine unless installed with `luxos-sandbox install`.
 

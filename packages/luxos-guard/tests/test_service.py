@@ -184,6 +184,28 @@ def test_sandbox_choice_denies_here(g):
     assert g.fan.responses[-1][1] is False and ident(p) in g.fan.marks
 
 
+def test_ask_and_blocked_say_if_started_from_terminal(g):
+    """Spusteni z terminalu (ridici terminal procesu) -> agent spusti sandbox take v terminalu;
+    dvojklik ve spravci souboru (bez terminalu) -> program s oknem bez terminalu."""
+    g.fp.add(70, "/usr/bin/bash", ["bash"], loginuid=1000, tty=34817)
+    p = write(g.home / "Downloads" / "game.sh", GAME)
+    close_write(g, p, 52)
+    perm(g, p, S.PERM_EXEC, 54)
+    ask = [m for m in g.agent.sent if m["op"] == "ask"][-1]
+    assert ask["terminal"] is False and ask["kind"] == "script" and ask["interp"] == "bash"
+    g.on_message(g.agent, {"op": "answer", "id": ask["id"], "choice": "deny"})
+    g._now += C.DENY_MEMORY + 1
+    g.tick()
+    perm(g, p, S.PERM_EXEC, 70)
+    ask = [m for m in g.agent.sent if m["op"] == "ask"][-1]
+    assert ask["terminal"] is True
+    w = write(g.home / "Downloads" / "codec.sh", WIPER)
+    close_write(g, w, 52)
+    assert perm(g, w, S.PERM_EXEC, 70) is False
+    blocked = [m for m in g.agent.sent if m["op"] == "blocked"][-1]
+    assert blocked["path"] == w and blocked["terminal"] is True
+
+
 def test_answer_from_other_user_ignored(g):
     p = write(g.home / "Downloads" / "game.sh", GAME)
     close_write(g, p, 52)

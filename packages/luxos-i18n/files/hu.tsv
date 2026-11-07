@@ -4598,3 +4598,7 @@ Invalid COUNTME (use 0 or 1)	Érvénytelen COUNTME (0 vagy 1 adható meg)
 Could not change the anonymous weekly count.	A névtelen heti számlálást nem sikerült módosítani.
 Usage: lux config countme [on|off]	Használat: lux config countme [on|off]
 Usage: lux config [check|show|edit|engine|migrate|channel|countme]	Használat: lux config [check|show|edit|engine|migrate|channel|countme]
+Could not start %s in the sandbox	A(z) %s nem indítható el a sandboxban
+The program ended with error code %d.	A program %d hibakóddal fejeződött be.
+The launcher does not contain a program to run.	Az indító nem tartalmaz futtatható programot.
+No terminal application was found.	Nem található terminálalkalmazás.

@@ -102,7 +102,8 @@ class Agent:
         if choice == "sandbox":
             # chvili pockat: odmitnuty proces muze soubor jeste drzet
             time.sleep(0.3)
-            run_in_sandbox(path, msg.get("kind"))
+            # spusteno z terminalu (i "Spustit v terminalu" ve spravci souboru) = uzivatel chce terminal
+            run_in_sandbox(path, msg.get("kind"), msg.get("interp"), True if msg.get("terminal") else None)
         elif choice == "trash":
             trash(path)
 
