@@ -5,7 +5,10 @@
 
 Data: luxos_weather (Open-Meteo bez klice, mezipamet 30 min v ~/.cache/luxos/weather, bez site
 posledni data). Vychozi misto: mesto podle casoveho pasma systemu; priblizna poloha podle IP adresy
-jen po potvrzeni uzivatelem. Jednotky podle jazyka (cs: °C, km/h), lze prepnout v nabidce.
+jen po potvrzeni uzivatelem. Jednotky: uzemi z LC_MEASUREMENT/LANG (en_US jen z LANG rozhodne zeme
+mista/casoveho pasma), pri prvnim otevreni nenapadny dotaz °C/°F; lze prepnout v nabidce.
+Pozadi: kreslena scena podle pocasi a denni doby (luxos_weather_sky), animuje se jen v aktivnim okne,
+ne v Uspore baterie ani s vypnutymi animacemi GTK (Omezit pohyb) nebo vypnutou volbou v nabidce.
 Testy: LUXOS_WEATHER_API/GEO/IP (falesny server), LUXOS_WEATHER_TZ, LUXOS_WEATHER_ICONS.
 """
 import os
@@ -16,39 +19,41 @@ import time
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_i18n import _  # noqa: E402
 import luxos_weather as lw  # noqa: E402
+import luxos_weather_sky as lsky  # noqa: E402
 
 import gi  # noqa: E402
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, Pango  # noqa: E402
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # noqa: E402
 
 APP = "luxos-weather"
 ICONS = os.environ.get("LUXOS_WEATHER_ICONS") or "/usr/share/luxos/weather/icons"
 LANG = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES") or os.environ.get("LANG") or "en")
 LANG = LANG.split("_")[0].split(".")[0] or "en"
 CHECK_SECONDS = 300          # jak casto se kontroluje stari dat otevreneho okna
+SCENE_SECONDS = 60           # jak casto se prepocita denni doba sceny (usvit, soumrak, noc)
+POWERSAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"),
+                          "luxos", "powersaver")     # Uspora baterie zapnuta (luxos-powersaver)
 WEEKDAYS = ("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su")
 
 CSS = b"""
 .sky { color: white; }
-.sky scrolledwindow, .sky viewport, .sky list { background: transparent; }
-.sky-clear { background-image: linear-gradient(180deg, #2f7cf6, #79bdfb); }
-.sky-cloudy { background-image: linear-gradient(180deg, #5f7594, #9aabc2); }
-.sky-fog { background-image: linear-gradient(180deg, #6d7a8c, #a6b0bd); }
-.sky-rain { background-image: linear-gradient(180deg, #3f5674, #6f87a6); }
-.sky-storm { background-image: linear-gradient(180deg, #2c3049, #545a7c); }
-.sky-snow { background-image: linear-gradient(180deg, #6684a8, #9fb6d2); }
-.sky-clear-night { background-image: linear-gradient(180deg, #0b1633, #29407a); }
-.sky-cloudy-night, .sky-fog-night { background-image: linear-gradient(180deg, #232a39, #465065); }
-.sky-rain-night, .sky-storm-night { background-image: linear-gradient(180deg, #1c2233, #3b4560); }
-.sky-snow-night { background-image: linear-gradient(180deg, #2a3650, #56688a); }
-.sky-none { background-image: linear-gradient(180deg, #4d6a90, #8aa3c2); }
+.sky label { text-shadow: 0 1px 3px alpha(black, 0.35); }
+.sky scrolledwindow, .sky viewport, .sky list, .sky stack { background: transparent; }
+.units-banner { background-color: alpha(#0b1426, 0.55); border-radius: 14px;
+                border: 1px solid alpha(white, 0.14); }
+.units-banner .banner-title { font-weight: 700; }
+.units-banner button { border-radius: 999px; padding: 4px 16px; font-weight: 700; color: white;
+                       background-image: none; background-color: alpha(white, 0.16); border: none;
+                       box-shadow: none; text-shadow: none; }
+.units-banner button.primary { background-color: #3d7bff; }
+.units-banner button.flat-close { padding: 4px; background-color: transparent; }
 .place { font-size: 26px; font-weight: 600; }
 .big-temp { font-size: 76px; font-weight: 200; }
 .cond { font-size: 17px; font-weight: 600; }
 .hilo { font-size: 15px; font-weight: 600; }
-.card { background-color: alpha(white, 0.16); border-radius: 14px; }
+.card { background-color: alpha(#0b1426, 0.2); border: 1px solid alpha(white, 0.1); border-radius: 14px; }
 .card-title { font-size: 11px; font-weight: 700; opacity: 0.7; }
 .hour-time { font-size: 13px; font-weight: 600; }
 .hour-temp { font-size: 16px; font-weight: 600; }
@@ -217,6 +222,101 @@ class RangeBar(Gtk.DrawingArea):
         cr.fill()
 
 
+def system_dark():
+    s = Gtk.Settings.get_default()
+    return "dark" in (s.props.gtk_theme_name or "").lower() or bool(s.props.gtk_application_prefer_dark_theme)
+
+
+def powersaver_on():
+    return os.path.exists(POWERSAVER)
+
+
+class SkyArea(Gtk.DrawingArea):
+    """Pozadi okna: kreslena scena pocasi (luxos_weather_sky). Casovac snimku bezi, jen kdyz je
+    na co se divat a scena se hybe: okno je zobrazene a aktivni (ne minimalizovane, ne na pozadi),
+    animace GTK nejsou vypnute (Omezit pohyb), Uspora baterie je vypnuta a volba Animovane pozadi
+    v nabidce je zapnuta. Jinak zustane staticky snimek."""
+
+    def __init__(self, win):
+        super().__init__()
+        self.win = win
+        self.sky = lsky.Sky()
+        self.timer = None
+        self.last = 0.0
+        self.iconified = False
+        self.force_active = None        # testy: True/False misto skutecneho stavu okna (None)
+        self.frames = 0
+        self.connect("draw", self.on_draw)
+        self.connect("map", lambda *_a: self.update())
+        self.connect("unmap", lambda *_a: self.update())
+        win.connect("notify::is-active", lambda *_a: self.update())
+        win.connect("window-state-event", self.on_state)
+        settings = Gtk.Settings.get_default()
+        settings.connect("notify::gtk-enable-animations", lambda *_a: self.update())
+        settings.connect("notify::gtk-theme-name", lambda *_a: self.win.update_scene())
+        settings.connect("notify::gtk-application-prefer-dark-theme", lambda *_a: self.win.update_scene())
+        # Uspora baterie: priznak ~/.config/luxos/powersaver (inotify, zadne dotazovani)
+        try:
+            self.saver_mon = Gio.File.new_for_path(POWERSAVER).monitor_file(Gio.FileMonitorFlags.NONE, None)
+            self.saver_mon.connect("changed", lambda *_a: self.update())
+        except GLib.Error:
+            self.saver_mon = None
+
+    def on_state(self, _w, event):
+        self.iconified = bool(event.new_window_state & (Gdk.WindowState.ICONIFIED | Gdk.WindowState.WITHDRAWN))
+        self.update()
+        return False
+
+    def motion_allowed(self):
+        return (self.win.cfg.get("animate", True) and Gtk.Settings.get_default().props.gtk_enable_animations
+                and not powersaver_on())
+
+    def visible(self):
+        active = self.win.is_active() if self.force_active is None else self.force_active
+        return self.get_mapped() and not self.iconified and active
+
+    def set_scene(self, scene):
+        # prolnuti jen kdyz se na nej nekdo diva (jinak by zustal stary snimek)
+        if self.sky.set_scene(scene, system_dark(), fade=self.visible() and self.motion_allowed()):
+            self.queue_draw()
+        self.update()
+
+    def running(self):
+        return self.visible() and self.sky.fps() > 0
+
+    def update(self):
+        """Spusti, zmeni nebo zastavi casovac snimku podle stavu okna a sceny."""
+        self.sky.set_motion(self.motion_allowed())
+        if not self.visible() and self.sky.finish_fade():
+            self.queue_draw()                    # at po pauze nezustane napul prolnuta stara scena
+        fps = self.sky.fps() if self.running() else 0
+        if self.timer and getattr(self, "timer_fps", 0) != fps:
+            GLib.source_remove(self.timer)
+            self.timer = None
+        if fps and not self.timer:
+            self.timer_fps = fps
+            self.last = time.monotonic()
+            self.timer = GLib.timeout_add(max(16, int(1000 / fps)), self.tick)
+        return False
+
+    def tick(self):
+        now = time.monotonic()
+        self.sky.advance(now - self.last)
+        self.last = now
+        self.queue_draw()
+        if not self.running() or self.sky.fps() != self.timer_fps:
+            self.timer = None
+            GLib.idle_add(self.update)
+            return False
+        return True
+
+    def on_draw(self, widget, cr):
+        self.frames += 1
+        self.sky.draw(cr, widget.get_allocated_width(), widget.get_allocated_height(),
+                      widget.get_scale_factor())
+        return False
+
+
 class WeatherWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Weather"))
@@ -256,12 +356,18 @@ class WeatherWindow(Gtk.Window):
         root.pack_start(side, False, False, 0)
         root.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 0)
 
-        self.sky = Gtk.EventBox()
+        self.sky = Gtk.Overlay()
         self.sky.get_style_context().add_class("sky")
         self.sky_class = None
+        self.scene = None
         root.pack_start(self.sky, True, True, 0)
+        self.sky_area = SkyArea(self)
+        self.sky.add(self.sky_area)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.sky.add_overlay(content)
+        content.pack_start(self.build_units_banner(), False, False, 0)
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, transition_duration=150)
-        self.sky.add(self.stack)
+        content.pack_start(self.stack, True, True, 0)
         self.detail_scroller = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.stack.add_named(self.detail_scroller, "detail")
         self.detail = None
@@ -270,6 +376,7 @@ class WeatherWindow(Gtk.Window):
 
         self.rebuild_list()
         GLib.timeout_add_seconds(CHECK_SECONDS, self.periodic)
+        GLib.timeout_add_seconds(SCENE_SECONDS, self.periodic_scene)
         if not self.cfg["locations"]:
             self.first_run()
         else:
@@ -464,17 +571,20 @@ class WeatherWindow(Gtk.Window):
             if lw.same_place(l, place):
                 self.select(i)
                 return
+        before = self.units()
         keep = ("name", "lat", "lon", "admin", "country", "country_code", "tz")
         locs.append({k: place[k] for k in keep if k in place})
         self.cfg["selected"] = len(locs) - 1
         lw.save_config(self.cfg)
         self.rebuild_list()
         self.refresh(len(locs) - 1)
+        self.units_changed(before)
 
     def remove_location(self, index):
         locs = self.cfg["locations"]
         if not 0 <= index < len(locs):
             return
+        before = self.units()
         del locs[index]
         self.results = {i - (i > index): r for i, r in self.results.items() if i != index}
         self.cfg["selected"] = min(self.cfg["selected"], max(0, len(locs) - 1))
@@ -485,6 +595,7 @@ class WeatherWindow(Gtk.Window):
             self.show_state("find-location-symbolic", _("Add a city"),
                             _("Search for a city with the + button to see its weather."),
                             _("Add a City…"), lambda: self.add_btn.set_active(True))
+        self.units_changed(before)
 
     def select(self, index):
         row = self.listbox.get_row_at_index(index)
@@ -559,13 +670,19 @@ class WeatherWindow(Gtk.Window):
         box.pack_start(label(_("Units"), "card-title", xalign=0), False, False, 4)
         group = None
         current = self.cfg["units"]
-        for key, text in (("auto", _("Automatic")), ("metric", _("Celsius (°C, km/h)")),
-                          ("imperial", _("Fahrenheit (°F, mph)"))):
+        self.unit_buttons = {}
+        for key, text in (("auto", _("Automatic (%s)") % lw.unit_labels(self.detected_units())["temp"]),
+                          ("metric", _("Celsius (°C, km/h)")), ("imperial", _("Fahrenheit (°F, mph)"))):
             b = Gtk.RadioButton(label=text, group=group)
             group = group or b
             b.set_active(key == current)
             b.connect("toggled", self.on_units, key)
             box.pack_start(b, False, False, 0)
+            self.unit_buttons[key] = b
+        box.pack_start(Gtk.Separator(margin_top=6, margin_bottom=6), False, False, 0)
+        self.animate_btn = Gtk.CheckButton(label=_("Animated Background"), active=self.cfg["animate"])
+        self.animate_btn.connect("toggled", self.on_animate)
+        box.pack_start(self.animate_btn, False, False, 0)
         box.pack_start(Gtk.Separator(margin_top=6, margin_bottom=6), False, False, 0)
         rm = Gtk.ModelButton(text=_("Remove Location"))
         rm.connect("clicked", lambda _b: self.remove_location(self.cfg["selected"]))
@@ -579,13 +696,85 @@ class WeatherWindow(Gtk.Window):
     def on_units(self, button, key):
         if not button.get_active() or self.cfg["units"] == key:
             return
+        self.set_units(key)
+
+    def set_units(self, key):
+        """Ulozi volbu jednotek (nabidka i dotaz pri prvnim otevreni) a nacte data v nich."""
+        before = self.units()
         self.cfg["units"] = key
+        self.cfg["units_asked"] = True
         lw.save_config(self.cfg)
-        self.results = {}
-        self.refresh_all()
+        self.units_banner.set_reveal_child(False)
+        button = self.unit_buttons.get(key)
+        if button is not None and not button.get_active():
+            button.set_active(True)          # on_units uz nic nezmeni (stejna hodnota)
+        if self.units() != before:
+            self.results = {}
+            self.refresh_all()
+
+    def on_animate(self, button):
+        self.cfg["animate"] = button.get_active()
+        lw.save_config(self.cfg)
+        self.sky_area.update()
+        self.sky_area.queue_draw()
+
+    def detected_units(self):
+        return lw.resolve_units("auto", places=self.cfg["locations"])
 
     def units(self):
-        return lw.resolve_units(self.cfg["units"])
+        return lw.resolve_units(self.cfg["units"], places=self.cfg["locations"])
+
+    def units_changed(self, before):
+        """Automaticke jednotky zavisi i na prvnim miste: po pridani/odebrani mista znovu nacist."""
+        auto = self.unit_buttons.get("auto")
+        if auto is not None:
+            auto.set_label(_("Automatic (%s)") % lw.unit_labels(self.detected_units())["temp"])
+        if self.units() != before:
+            self.results = {}
+            self.refresh_all()
+
+    # ---- dotaz na jednotky pri prvnim otevreni (nenapadny pruh, neblokuje) ----
+    def build_units_banner(self):
+        self.units_banner = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
+        box = Gtk.Box(spacing=10, margin_start=18, margin_end=18, margin_top=12)
+        box.get_style_context().add_class("units-banner")
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, margin_start=14, margin_top=8,
+                       margin_bottom=8)
+        text.pack_start(label(_("Which unit do you prefer?"), "banner-title", xalign=0), False, False, 0)
+        self.units_hint = label("", "dim", xalign=0, wrap=True)
+        text.pack_start(self.units_hint, False, False, 0)
+        box.pack_start(text, True, True, 0)
+        self.units_choice = {}
+        for key, text_ in (("metric", _("Celsius (°C)")), ("imperial", _("Fahrenheit (°F)"))):
+            b = Gtk.Button(label=text_, valign=Gtk.Align.CENTER)
+            b.connect("clicked", lambda _b, k=key: self.set_units(k))
+            box.pack_start(b, False, False, 0)
+            self.units_choice[key] = b
+        close = Gtk.Button(valign=Gtk.Align.CENTER, margin_end=8, tooltip_text=_("Keep Automatic"))
+        close.add(Gtk.Image(icon_name="window-close-symbolic"))
+        close.get_style_context().add_class("flat-close")
+        close.connect("clicked", lambda _b: self.dismiss_units_banner())
+        box.pack_start(close, False, False, 0)
+        self.units_banner.add(box)
+        return self.units_banner
+
+    def show_units_banner(self):
+        """Jen jednou: dokud uzivatel nevybere jednotky ani pruh nezavre. Predvybrane jsou zjistene."""
+        if self.cfg.get("units_asked"):
+            return
+        units = self.units()
+        for key, b in self.units_choice.items():
+            ctx = b.get_style_context()
+            (ctx.add_class if key == units else ctx.remove_class)("primary")
+        self.units_hint.set_text(_("We picked %s for your region. You can change it any time in ⋯ › Units.")
+                                 % lw.unit_labels(units)["temp"])
+        self.units_banner.set_reveal_child(True)
+
+    def dismiss_units_banner(self):
+        """Zavrit bez volby: zustanou automaticke jednotky, uz se neptame."""
+        self.cfg["units_asked"] = True
+        lw.save_config(self.cfg)
+        self.units_banner.set_reveal_child(False)
 
     # ---- data ----
     def refresh_all(self):
@@ -647,12 +836,29 @@ class WeatherWindow(Gtk.Window):
         return True
 
     # ---- detail ----
-    def set_sky(self, name):
-        ctx = self.sky.get_style_context()
-        if self.sky_class:
-            ctx.remove_class(self.sky_class)
-        self.sky_class = f"sky-{name or 'none'}"
-        ctx.add_class(self.sky_class)
+    def set_sky(self, scene):
+        """Scena pozadi (lw.scene_for) nebo None (nacitani, chyba: neutralni obloha)."""
+        self.scene = scene
+        self.sky_class = f"sky-{scene['name'] if scene else 'none'}"
+        self.sky_area.set_scene(scene)
+
+    def current_scene(self):
+        res = self.results.get(self.cfg["selected"]) if self.cfg["locations"] else None
+        if res and res.get("data") and self.stack.get_visible_child_name() == "detail":
+            return lw.scene_for(res["data"])
+        return None
+
+    def update_scene(self):
+        """Zmena vzhledu (svetly/tmavy): stejna scena v jinych barvach."""
+        self.sky_area.sky.dark = None
+        self.set_sky(self.current_scene())
+
+    def periodic_scene(self):
+        """Denni doba (usvit, den, soumrak, noc) se meni i bez novych dat."""
+        scene = self.current_scene()
+        if scene and (not self.scene or scene["name"] != self.scene["name"]):
+            self.set_sky(scene)
+        return True
 
     def show_detail(self, index):
         if not 0 <= index < len(self.cfg["locations"]):
@@ -669,8 +875,7 @@ class WeatherWindow(Gtk.Window):
                                 lambda: self.refresh(index, force=True))
             return
         data, units = res["data"], self.units()
-        cur = data["current"]
-        self.set_sky(lw.sky(cur["code"], cur["is_day"]))
+        self.set_sky(lw.scene_for(data))
         old = self.detail_scroller.get_child()   # Gtk.Viewport kolem predchozi stranky
         if old is not None:
             old.destroy()
@@ -678,6 +883,7 @@ class WeatherWindow(Gtk.Window):
         self.detail_scroller.add(self.detail)
         self.detail.show_all()
         self.stack.set_visible_child_name("detail")
+        self.show_units_banner()
 
     def build_detail(self, loc, res, units):
         data = res["data"]

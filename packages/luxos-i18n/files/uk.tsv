@@ -4743,3 +4743,10 @@ The mail server cannot verify the sign-in right now. Mail tries again later.	П�
 The mail server did not accept the LuxAI sign-in for %s.	Поштовий сервер не прийняв вхід LuxAI для %s.
 Cannot reach the LuxAI server. Check your internet connection.	Не вдається зв’язатися з сервером LuxAI. Перевірте підключення до інтернету.
 The LuxAI Account app (luxos-account) is not installed.	Застосунок Обліковий запис LuxAI (luxos-account) не встановлено.
+Automatic (%s)	Автоматично (%s)
+Animated Background	Анімований фон
+Which unit do you prefer?	Які одиниці вам зручніші?
+We picked %s for your region. You can change it any time in ⋯ › Units.	Для вашого регіону ми вибрали %s. Змінити можна будь-коли в ⋯ › Одиниці.
+Celsius (°C)	Цельсій (°C)
+Fahrenheit (°F)	Фаренгейт (°F)
+Keep Automatic	Залишити автоматично
