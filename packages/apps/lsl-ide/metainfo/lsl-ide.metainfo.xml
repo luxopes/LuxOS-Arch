@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>lsl-ide</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-custom</project_license>
+  <name>LSL IDE</name>
+  <summary>Development environment for Lux Simple Lang</summary>
+  <launchable type="desktop-id">lsl-ide.desktop</launchable>
+  <description>
+    <p>LSL IDE is a development environment for Lux Simple Lang (LSL). It checks your code for errors while you type, runs programs right in the window and builds them into native programs.</p>
+    <p xml:lang="cs">LSL IDE je vývojové prostředí pro Lux Simple Lang (LSL). Už během psaní kontroluje chyby v kódu, spouští programy přímo v okně a překládá je do nativních programů.</p>
+    <p xml:lang="sk">LSL IDE je vývojové prostredie pre Lux Simple Lang (LSL). Už počas písania kontroluje chyby v kóde, spúšťa programy priamo v okne a prekladá ich do natívnych programov.</p>
+    <p xml:lang="pl">LSL IDE to środowisko programistyczne dla Lux Simple Lang (LSL). Sprawdza błędy w kodzie już podczas pisania, uruchamia programy bezpośrednio w oknie i kompiluje je do natywnych programów.</p>
+    <p xml:lang="uk">LSL IDE – середовище розробки для Lux Simple Lang (LSL). Воно перевіряє код на помилки вже під час набору, запускає програми просто у вікні та збирає їх у нативні програми.</p>
+    <p xml:lang="hu">Az LSL IDE fejlesztői környezet a Lux Simple Lang (LSL) nyelvhez. Már gépelés közben ellenőrzi a kód hibáit, közvetlenül az ablakban futtatja a programokat, és natív programmá fordítja őket.</p>
+    <p xml:lang="de">LSL IDE ist eine Entwicklungsumgebung für Lux Simple Lang (LSL). Sie prüft Ihren Code schon beim Tippen auf Fehler, führt Programme direkt im Fenster aus und übersetzt sie in native Programme.</p>
+    <p xml:lang="fr">LSL IDE est un environnement de développement pour Lux Simple Lang (LSL). Il vérifie votre code pendant la saisie, exécute les programmes directement dans la fenêtre et les compile en programmes natifs.</p>
+    <p xml:lang="es">LSL IDE es un entorno de desarrollo para Lux Simple Lang (LSL). Comprueba los errores del código mientras escribe, ejecuta los programas en la propia ventana y los compila en programas nativos.</p>
+    <p xml:lang="it">LSL IDE è un ambiente di sviluppo per Lux Simple Lang (LSL). Controlla gli errori nel codice mentre scrivi, esegue i programmi direttamente nella finestra e li compila in programmi nativi.</p>
+    <p xml:lang="pt">LSL IDE é um ambiente de desenvolvimento para Lux Simple Lang (LSL). Verifica erros no código enquanto escreve, executa os programas na própria janela e compila-os em programas nativos.</p>
+    <p xml:lang="nl">LSL IDE is een ontwikkelomgeving voor Lux Simple Lang (LSL). Het controleert je code al tijdens het typen op fouten, voert programma’s direct in het venster uit en bouwt ze tot native programma’s.</p>
+    <p xml:lang="sv">LSL IDE är en utvecklingsmiljö för Lux Simple Lang (LSL). Den kontrollerar koden efter fel medan du skriver, kör program direkt i fönstret och bygger dem till inbyggda program.</p>
+    <ul>
+      <li>Syntax highlighting, completion and go to definition, also into the standard library</li>
+      <li xml:lang="cs">Zvýraznění syntaxe, doplňování a přechod na definici, i do standardní knihovny</li>
+      <li xml:lang="sk">Zvýraznenie syntaxe, dopĺňanie a prechod na definíciu, aj do štandardnej knižnice</li>
+      <li xml:lang="pl">Podświetlanie składni, uzupełnianie i przejście do definicji, także w bibliotece standardowej</li>
+      <li xml:lang="uk">Підсвічування синтаксису, автодоповнення й перехід до визначення, зокрема в стандартній бібліотеці</li>
+      <li xml:lang="hu">Szintaxiskiemelés, kódkiegészítés és ugrás a definícióra, a szabványos könyvtárban is</li>
+      <li xml:lang="de">Syntaxhervorhebung, Vervollständigung und Sprung zur Definition, auch in die Standardbibliothek</li>
+      <li xml:lang="fr">Coloration syntaxique, complétion et accès à la définition, y compris dans la bibliothèque standard</li>
+      <li xml:lang="es">Resaltado de sintaxis, autocompletado e ir a la definición, también en la biblioteca estándar</li>
+      <li xml:lang="it">Evidenziazione della sintassi, completamento e vai alla definizione, anche nella libreria standard</li>
+      <li xml:lang="pt">Realce de sintaxe, preenchimento automático e ir para a definição, também na biblioteca padrão</li>
+      <li xml:lang="nl">Syntaxiskleuring, aanvulling en naar definitie gaan, ook in de standaardbibliotheek</li>
+      <li xml:lang="sv">Syntaxmarkering, komplettering och gå till definition, även i standardbiblioteket</li>
+      <li>Compiler errors are underlined in the code and listed with hints</li>
+      <li xml:lang="cs">Chyby z překladače jsou podtržené v kódu a vypsané s nápovědou</li>
+      <li xml:lang="sk">Chyby z prekladača sú podčiarknuté v kóde a vypísané s nápovedou</li>
+      <li xml:lang="pl">Błędy kompilatora są podkreślone w kodzie i wypisane ze wskazówkami</li>
+      <li xml:lang="uk">Помилки компілятора підкреслено в коді й наведено з підказками</li>
+      <li xml:lang="hu">A fordító hibái alá vannak húzva a kódban, és tippekkel listázva</li>
+      <li xml:lang="de">Compilerfehler werden im Code unterstrichen und mit Hinweisen aufgelistet</li>
+      <li xml:lang="fr">Les erreurs du compilateur sont soulignées dans le code et listées avec des conseils</li>
+      <li xml:lang="es">Los errores del compilador se subrayan en el código y se listan con sugerencias</li>
+      <li xml:lang="it">Gli errori del compilatore sono sottolineati nel codice ed elencati con suggerimenti</li>
+      <li xml:lang="pt">Os erros do compilador são sublinhados no código e listados com sugestões</li>
+      <li xml:lang="nl">Compilerfouten worden in de code onderstreept en met tips opgesomd</li>
+      <li xml:lang="sv">Kompilatorfel stryks under i koden och listas med tips</li>
+      <li>Run programs with input and colored output, even full-screen terminal programs</li>
+      <li xml:lang="cs">Spouštění programů se vstupem a barevným výstupem, i celoobrazovkových terminálových</li>
+      <li xml:lang="sk">Spúšťanie programov so vstupom a farebným výstupom, aj celoobrazovkových terminálových</li>
+      <li xml:lang="pl">Uruchamianie programów z wejściem i kolorowym wyjściem, także pełnoekranowych programów terminalowych</li>
+      <li xml:lang="uk">Запуск програм із введенням і кольоровим виведенням, навіть повноекранних термінальних</li>
+      <li xml:lang="hu">Programok futtatása bemenettel és színes kimenettel, akár teljes képernyős terminálprogramoké is</li>
+      <li xml:lang="de">Programme mit Eingabe und farbiger Ausgabe ausführen, auch Vollbild-Terminalprogramme</li>
+      <li xml:lang="fr">Exécution des programmes avec saisie et sortie en couleur, même les programmes plein écran du terminal</li>
+      <li xml:lang="es">Ejecución de programas con entrada y salida en color, incluso programas de terminal a pantalla completa</li>
+      <li xml:lang="it">Esecuzione dei programmi con input e output a colori, anche programmi da terminale a schermo intero</li>
+      <li xml:lang="pt">Execução de programas com entrada e saída a cores, até programas de terminal em ecrã inteiro</li>
+      <li xml:lang="nl">Programma’s uitvoeren met invoer en gekleurde uitvoer, zelfs terminalprogramma’s op volledig scherm</li>
+      <li xml:lang="sv">Kör program med inmatning och färgad utdata, även terminalprogram i helskärm</li>
+      <li>Library manager to install, update and verify LSL libraries</li>
+      <li xml:lang="cs">Správce knihoven pro instalaci, aktualizaci a ověření knihoven LSL</li>
+      <li xml:lang="sk">Správca knižníc na inštaláciu, aktualizáciu a overenie knižníc LSL</li>
+      <li xml:lang="pl">Menedżer bibliotek do instalowania, aktualizowania i weryfikowania bibliotek LSL</li>
+      <li xml:lang="uk">Менеджер бібліотек для встановлення, оновлення й перевірки бібліотек LSL</li>
+      <li xml:lang="hu">Könyvtárkezelő az LSL-könyvtárak telepítéséhez, frissítéséhez és ellenőrzéséhez</li>
+      <li xml:lang="de">Bibliotheksverwaltung zum Installieren, Aktualisieren und Prüfen von LSL-Bibliotheken</li>
+      <li xml:lang="fr">Gestionnaire de bibliothèques pour installer, mettre à jour et vérifier les bibliothèques LSL</li>
+      <li xml:lang="es">Gestor de bibliotecas para instalar, actualizar y verificar bibliotecas de LSL</li>
+      <li xml:lang="it">Gestore delle librerie per installare, aggiornare e verificare le librerie LSL</li>
+      <li xml:lang="pt">Gestor de bibliotecas para instalar, atualizar e verificar bibliotecas LSL</li>
+      <li xml:lang="nl">Bibliotheekbeheer om LSL-bibliotheken te installeren, bij te werken en te controleren</li>
+      <li xml:lang="sv">Bibliotekshanterare för att installera, uppdatera och verifiera LSL-bibliotek</li>
+      <li>Offline LSL manual and a panel explaining the symbol under the cursor</li>
+      <li xml:lang="cs">Offline manuál LSL a panel s popisem symbolu pod kurzorem</li>
+      <li xml:lang="sk">Offline manuál LSL a panel s popisom symbolu pod kurzorom</li>
+      <li xml:lang="pl">Podręcznik LSL offline i panel z opisem symbolu pod kursorem</li>
+      <li xml:lang="uk">Офлайн-посібник LSL і панель з описом символу під курсором</li>
+      <li xml:lang="hu">Offline LSL-kézikönyv és a kurzor alatti szimbólumot magyarázó panel</li>
+      <li xml:lang="de">Offline-Handbuch zu LSL und ein Bereich, der das Symbol unter dem Cursor erklärt</li>
+      <li xml:lang="fr">Manuel LSL hors ligne et panneau expliquant le symbole sous le curseur</li>
+      <li xml:lang="es">Manual de LSL sin conexión y un panel que explica el símbolo bajo el cursor</li>
+      <li xml:lang="it">Manuale LSL offline e un pannello che spiega il simbolo sotto il cursore</li>
+      <li xml:lang="pt">Manual de LSL offline e um painel que explica o símbolo sob o cursor</li>
+      <li xml:lang="nl">Offline LSL-handleiding en een paneel dat het symbool onder de cursor uitlegt</li>
+      <li xml:lang="sv">LSL-handbok offline och en panel som förklarar symbolen under markören</li>
+      <li>LuxAI agent that can read, edit, check and run your project</li>
+      <li xml:lang="cs">Agent LuxAI, který umí číst, upravovat, kontrolovat i spouštět váš projekt</li>
+      <li xml:lang="sk">Agent LuxAI, ktorý vie čítať, upravovať, kontrolovať aj spúšťať váš projekt</li>
+      <li xml:lang="pl">Agent LuxAI, który potrafi czytać, edytować, sprawdzać i uruchamiać Twój projekt</li>
+      <li xml:lang="uk">Агент LuxAI, що вміє читати, редагувати, перевіряти й запускати ваш проєкт</li>
+      <li xml:lang="hu">LuxAI-ügynök, amely olvassa, szerkeszti, ellenőrzi és futtatja a projektjét</li>
+      <li xml:lang="de">LuxAI-Agent, der Ihr Projekt lesen, bearbeiten, prüfen und ausführen kann</li>
+      <li xml:lang="fr">Agent LuxAI capable de lire, modifier, vérifier et exécuter votre projet</li>
+      <li xml:lang="es">Agente LuxAI que puede leer, editar, comprobar y ejecutar su proyecto</li>
+      <li xml:lang="it">Agente LuxAI che sa leggere, modificare, controllare ed eseguire il tuo progetto</li>
+      <li xml:lang="pt">Agente LuxAI que lê, edita, verifica e executa o seu projeto</li>
+      <li xml:lang="nl">LuxAI-agent die je project kan lezen, bewerken, controleren en uitvoeren</li>
+      <li xml:lang="sv">LuxAI-agent som kan läsa, redigera, kontrollera och köra ditt projekt</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

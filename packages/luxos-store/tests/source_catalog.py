@@ -47,10 +47,17 @@ def source_packages():
                     base = os.path.basename(mem.name)
                     if mem.isfile() and base.endswith(".desktop") and f"usr/share/applications/{base}" in pkgbuild:
                         desktop[base[:-8]] = tar.extractfile(mem).read().decode("utf-8")
+        # popisy pro Obchod: metainfo/*.metainfo.xml, ktere PKGBUILD instaluje do usr/share/metainfo
+        metainfo = {}
+        installs = re.search(r'usr/share/metainfo"\s+"\$(f|startdir)"/metainfo/\*\.metainfo\.xml', pkgbuild)
+        for f in glob.glob(os.path.join(d, "**", "metainfo", "*.metainfo.xml"), recursive=True):
+            if installs and "/tests/" not in f:
+                metainfo[os.path.basename(f)] = open(f, encoding="utf-8").read()
         m = re.search(r"^depends=\((.*?)\)", re.sub(r"#[^\n]*", "", pkgbuild), re.M | re.S)
         body = m.group(1) if m else ""
         deps = re.findall(r"[A-Za-z0-9@._+-]+(?:[<>=][^\s'\"]*)?", body)
-        pkgs.append({"name": name, "repo": repo, "version": "1.0.0-1", "depends": deps, "desktop": desktop})
+        pkgs.append({"name": name, "repo": repo, "version": "1.0.0-1", "depends": deps, "desktop": desktop,
+                     "metainfo": metainfo})
     return pkgs
 
 

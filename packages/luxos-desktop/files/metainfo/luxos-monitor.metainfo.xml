@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-monitor</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>System Monitor</name>
+  <summary>See how your computer is doing and quit apps that stopped responding</summary>
+  <launchable type="desktop-id">luxos-monitor.desktop</launchable>
+  <description>
+    <p>See at a glance how busy your computer is and which apps use it the most. If an app stops responding, you can quit it right here. The charts update every second.</p>
+    <p xml:lang="cs">Na první pohled uvidíte, jak je počítač vytížený a které aplikace ho zatěžují nejvíc. Když aplikace přestane reagovat, ukončíte ji přímo tady. Grafy se obnovují každou sekundu.</p>
+    <p xml:lang="sk">Na prvý pohľad uvidíte, ako je počítač vyťažený a ktoré aplikácie ho zaťažujú najviac. Keď aplikácia prestane reagovať, ukončíte ju priamo tu. Grafy sa obnovujú každú sekundu.</p>
+    <p xml:lang="pl">Od razu widać, jak bardzo komputer jest obciążony i które aplikacje zużywają go najbardziej. Gdy aplikacja przestanie odpowiadać, zamkniesz ją właśnie tutaj. Wykresy odświeżają się co sekundę.</p>
+    <p xml:lang="uk">З першого погляду видно, наскільки завантажений комп’ютер і які застосунки навантажують його найбільше. Якщо застосунок перестав відповідати, його можна завершити просто тут. Графіки оновлюються щосекунди.</p>
+    <p xml:lang="hu">Egy pillantással látja, mennyire leterhelt a számítógép, és mely alkalmazások használják a legjobban. Ha egy alkalmazás nem válaszol, itt rögtön bezárhatja. A grafikonok másodpercenként frissülnek.</p>
+    <p xml:lang="de">Auf einen Blick sehen Sie, wie ausgelastet Ihr Computer ist und welche Apps ihn am meisten beanspruchen. Reagiert eine App nicht mehr, beenden Sie sie direkt hier. Die Diagramme werden jede Sekunde aktualisiert.</p>
+    <p xml:lang="fr">Voyez d’un coup d’œil à quel point votre ordinateur est occupé et quelles applications le sollicitent le plus. Si une application ne répond plus, vous pouvez la quitter ici même. Les graphiques se mettent à jour chaque seconde.</p>
+    <p xml:lang="es">Ve de un vistazo lo ocupado que está tu ordenador y qué aplicaciones lo usan más. Si una aplicación deja de responder, puedes cerrarla aquí mismo. Los gráficos se actualizan cada segundo.</p>
+    <p xml:lang="it">Vedi a colpo d’occhio quanto è impegnato il computer e quali app lo usano di più. Se un’app smette di rispondere, puoi chiuderla proprio qui. I grafici si aggiornano ogni secondo.</p>
+    <p xml:lang="pt">Veja num relance o quanto o computador está ocupado e quais aplicativos o usam mais. Se um aplicativo parar de responder, você pode encerrá-lo aqui mesmo. Os gráficos são atualizados a cada segundo.</p>
+    <p xml:lang="nl">Zie in één oogopslag hoe druk je computer het heeft en welke apps hem het meest gebruiken. Reageert een app niet meer, dan stop je hem hier meteen. De grafieken worden elke seconde bijgewerkt.</p>
+    <p xml:lang="sv">Se direkt hur belastad datorn är och vilka appar som använder den mest. Om en app slutar svara kan du avsluta den här. Diagrammen uppdateras varje sekund.</p>
+    <ul>
+      <li>Processor, memory, disk and network with gauges and a one-minute chart</li>
+      <li xml:lang="cs">Procesor, paměť, disk a síť s ukazateli a grafem za poslední minutu</li>
+      <li xml:lang="sk">Procesor, pamäť, disk a sieť s ukazovateľmi a grafom za poslednú minútu</li>
+      <li xml:lang="pl">Procesor, pamięć, dysk i sieć ze wskaźnikami i wykresem z ostatniej minuty</li>
+      <li xml:lang="uk">Процесор, пам’ять, диск і мережа з індикаторами та графіком за останню хвилину</li>
+      <li xml:lang="hu">Processzor, memória, lemez és hálózat mutatókkal és az elmúlt perc grafikonjával</li>
+      <li xml:lang="de">Prozessor, Speicher, Festplatte und Netzwerk mit Anzeigen und einem Verlauf der letzten Minute</li>
+      <li xml:lang="fr">Processeur, mémoire, disque et réseau avec jauges et graphique de la dernière minute</li>
+      <li xml:lang="es">Procesador, memoria, disco y red con indicadores y un gráfico del último minuto</li>
+      <li xml:lang="it">Processore, memoria, disco e rete con indicatori e grafico dell’ultimo minuto</li>
+      <li xml:lang="pt">Processador, memória, disco e rede com indicadores e gráfico do último minuto</li>
+      <li xml:lang="nl">Processor, geheugen, schijf en netwerk met meters en een grafiek van de laatste minuut</li>
+      <li xml:lang="sv">Processor, minne, disk och nätverk med mätare och ett diagram över senaste minuten</li>
+      <li>Open apps with their processor and memory use</li>
+      <li xml:lang="cs">Otevřené aplikace a jejich využití procesoru a paměti</li>
+      <li xml:lang="sk">Otvorené aplikácie a ich využitie procesora a pamäte</li>
+      <li xml:lang="pl">Otwarte aplikacje i ich użycie procesora oraz pamięci</li>
+      <li xml:lang="uk">Відкриті застосунки та їхнє використання процесора й пам’яті</li>
+      <li xml:lang="hu">A megnyitott alkalmazások processzor- és memóriahasználata</li>
+      <li xml:lang="de">Geöffnete Apps mit ihrer Prozessor- und Speichernutzung</li>
+      <li xml:lang="fr">Applications ouvertes avec leur utilisation du processeur et de la mémoire</li>
+      <li xml:lang="es">Aplicaciones abiertas con su uso de procesador y memoria</li>
+      <li xml:lang="it">App aperte con il loro uso di processore e memoria</li>
+      <li xml:lang="pt">Aplicativos abertos com o uso de processador e memória</li>
+      <li xml:lang="nl">Geopende apps met hun processor- en geheugengebruik</li>
+      <li xml:lang="sv">Öppna appar med deras processor- och minnesanvändning</li>
+      <li>Quit an app, or force it to quit when it does not respond</li>
+      <li xml:lang="cs">Ukončení aplikace, a když nereaguje, i vynucené ukončení</li>
+      <li xml:lang="sk">Ukončenie aplikácie, a keď nereaguje, aj vynútené ukončenie</li>
+      <li xml:lang="pl">Zamykanie aplikacji, a gdy nie odpowiada, także wymuszone</li>
+      <li xml:lang="uk">Завершення застосунку, а якщо він не відповідає, то й примусове</li>
+      <li xml:lang="hu">Alkalmazás bezárása, és ha nem válaszol, kilépés kényszerítése</li>
+      <li xml:lang="de">Apps beenden oder sofort beenden, wenn sie nicht reagieren</li>
+      <li xml:lang="fr">Quitter une application, ou la forcer à quitter si elle ne répond plus</li>
+      <li xml:lang="es">Cierra una aplicación o fuerza su salida si no responde</li>
+      <li xml:lang="it">Chiudi un’app o forzane l’uscita se non risponde</li>
+      <li xml:lang="pt">Encerre um aplicativo ou force o encerramento se ele não responder</li>
+      <li xml:lang="nl">Stop een app, of forceer stoppen als hij niet reageert</li>
+      <li xml:lang="sv">Avsluta en app eller tvångsavsluta den om den inte svarar</li>
+      <li>A switch shows a technical list of all processes</li>
+      <li xml:lang="cs">Přepínač ukáže technický výpis všech procesů</li>
+      <li xml:lang="sk">Prepínač ukáže technický výpis všetkých procesov</li>
+      <li xml:lang="pl">Przełącznik pokazuje techniczną listę wszystkich procesów</li>
+      <li xml:lang="uk">Перемикач показує технічний список усіх процесів</li>
+      <li xml:lang="hu">Egy kapcsolóval megjelenik az összes folyamat technikai listája</li>
+      <li xml:lang="de">Ein Schalter zeigt eine technische Liste aller Prozesse</li>
+      <li xml:lang="fr">Un interrupteur affiche la liste technique de tous les processus</li>
+      <li xml:lang="es">Un interruptor muestra una lista técnica de todos los procesos</li>
+      <li xml:lang="it">Un interruttore mostra l’elenco tecnico di tutti i processi</li>
+      <li xml:lang="pt">Um botão mostra uma lista técnica de todos os processos</li>
+      <li xml:lang="nl">Een schakelaar toont een technische lijst van alle processen</li>
+      <li xml:lang="sv">En knapp visar en teknisk lista över alla processer</li>
+      <li>Opens with Ctrl+Shift+Esc</li>
+      <li xml:lang="cs">Otevřete ho zkratkou Ctrl+Shift+Esc</li>
+      <li xml:lang="sk">Otvoríte ho skratkou Ctrl+Shift+Esc</li>
+      <li xml:lang="pl">Otwiera się skrótem Ctrl+Shift+Esc</li>
+      <li xml:lang="uk">Відкривається клавішами Ctrl+Shift+Esc</li>
+      <li xml:lang="hu">A Ctrl+Shift+Esc billentyűkkel nyílik meg</li>
+      <li xml:lang="de">Öffnet sich mit Strg+Umschalt+Esc</li>
+      <li xml:lang="fr">S’ouvre avec Ctrl+Maj+Échap</li>
+      <li xml:lang="es">Se abre con Ctrl+Mayús+Esc</li>
+      <li xml:lang="it">Si apre con Ctrl+Maiusc+Esc</li>
+      <li xml:lang="pt">Abre com Ctrl+Shift+Esc</li>
+      <li xml:lang="nl">Opent met Ctrl+Shift+Esc</li>
+      <li xml:lang="sv">Öppnas med Ctrl+Skift+Esc</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

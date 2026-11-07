@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-backup</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Backups</name>
+  <summary>Automatic backups to an external or network disk and restoring files</summary>
+  <launchable type="desktop-id">luxos-backup.desktop</launchable>
+  <description>
+    <p>Backups keeps automatic copies of your home folder on an external USB disk or a network disk. Every backup is a complete copy of your files at that moment, while unchanged files take no extra space. Because the copies are on another disk, they survive a broken or stolen computer.</p>
+    <p xml:lang="cs">Zálohy automaticky ukládají kopie vaší domovské složky na externí disk USB nebo na síťový disk. Každá záloha je úplná kopie vašich souborů v daném okamžiku, přitom nezměněné soubory nezabírají místo navíc. Protože jsou kopie na jiném disku, přečkají i porouchaný nebo ukradený počítač.</p>
+    <p xml:lang="sk">Zálohy automaticky ukladajú kópie vášho domovského priečinka na externý disk USB alebo na sieťový disk. Každá záloha je úplná kópia vašich súborov v danom okamihu, pričom nezmenené súbory nezaberajú miesto navyše. Keďže sú kópie na inom disku, prečkajú aj pokazený alebo ukradnutý počítač.</p>
+    <p xml:lang="pl">Kopie zapasowe automatycznie zapisują kopie twojego folderu domowego na zewnętrznym dysku USB lub dysku sieciowym. Każda kopia to pełny obraz twoich plików z danej chwili, a niezmienione pliki nie zajmują dodatkowego miejsca. Ponieważ kopie są na innym dysku, przetrwają awarię lub kradzież komputera.</p>
+    <p xml:lang="uk">«Резервні копії» автоматично зберігають копії вашої домашньої теки на зовнішньому USB-диску або мережевому диску. Кожна копія — це повний знімок ваших файлів на той момент, а незмінені файли не займають додаткового місця. Оскільки копії лежать на іншому диску, вони вціліють, навіть якщо комп’ютер зламається або його вкрадуть.</p>
+    <p xml:lang="hu">A Biztonsági mentések automatikusan másolatot készít a saját mappájáról egy külső USB-lemezre vagy hálózati lemezre. Minden mentés a fájlok teljes másolata az adott pillanatban, a változatlan fájlok mégsem foglalnak plusz helyet. Mivel a másolatok egy másik lemezen vannak, a számítógép meghibásodását vagy ellopását is túlélik.</p>
+    <p xml:lang="de">Datensicherung legt automatisch Kopien Ihres Benutzerordners auf einer externen USB-Festplatte oder einem Netzlaufwerk an. Jede Sicherung ist eine vollständige Kopie Ihrer Dateien zu diesem Zeitpunkt, unveränderte Dateien belegen dabei keinen zusätzlichen Platz. Da die Kopien auf einem anderen Datenträger liegen, überstehen sie auch einen defekten oder gestohlenen Computer.</p>
+    <p xml:lang="fr">Sauvegardes copie automatiquement votre dossier personnel sur un disque USB externe ou un disque réseau. Chaque sauvegarde est une copie complète de vos fichiers à cet instant, et les fichiers inchangés ne prennent pas de place en plus. Comme les copies sont sur un autre disque, elles survivent à un ordinateur en panne ou volé.</p>
+    <p xml:lang="es">Copias de seguridad guarda automáticamente copias de su carpeta personal en un disco USB externo o en un disco de red. Cada copia es un duplicado completo de sus archivos en ese momento, y los archivos sin cambios no ocupan espacio adicional. Como las copias están en otro disco, sobreviven a un equipo averiado o robado.</p>
+    <p xml:lang="it">Backup salva automaticamente copie della tua cartella home su un disco USB esterno o su un disco di rete. Ogni backup è una copia completa dei tuoi file in quel momento, e i file invariati non occupano spazio in più. Poiché le copie sono su un altro disco, sopravvivono a un computer guasto o rubato.</p>
+    <p xml:lang="pt">O Cópias de segurança guarda automaticamente cópias da sua pasta pessoal em um disco USB externo ou em um disco de rede. Cada cópia é um retrato completo dos seus arquivos naquele momento, e arquivos sem alterações não ocupam espaço extra. Como as cópias ficam em outro disco, elas sobrevivem a um computador quebrado ou roubado.</p>
+    <p xml:lang="nl">Back-ups maakt automatisch kopieën van je thuismap op een externe USB-schijf of een netwerkschijf. Elke back-up is een volledige kopie van je bestanden op dat moment, terwijl ongewijzigde bestanden geen extra ruimte innemen. Omdat de kopieën op een andere schijf staan, overleven ze een kapotte of gestolen computer.</p>
+    <p xml:lang="sv">Säkerhetskopior sparar automatiskt kopior av din hemmapp på en extern USB-disk eller en nätverksdisk. Varje säkerhetskopia är en fullständig kopia av dina filer vid det tillfället, och oförändrade filer tar ingen extra plats. Eftersom kopiorna ligger på en annan disk klarar de sig även om datorn går sönder eller blir stulen.</p>
+    <ul>
+      <li>Backs up every hour while the computer is charging</li>
+      <li xml:lang="cs">Zálohuje každou hodinu, když se počítač nabíjí</li>
+      <li xml:lang="sk">Zálohuje každú hodinu, keď sa počítač nabíja</li>
+      <li xml:lang="pl">Kopia co godzinę, gdy komputer się ładuje</li>
+      <li xml:lang="uk">Резервне копіювання щогодини, поки комп’ютер заряджається</li>
+      <li xml:lang="hu">Óránként ment, amikor a számítógép töltődik</li>
+      <li xml:lang="de">Sichert stündlich, während der Computer lädt</li>
+      <li xml:lang="fr">Sauvegarde toutes les heures quand l’ordinateur est en charge</li>
+      <li xml:lang="es">Copia cada hora mientras el equipo se está cargando</li>
+      <li xml:lang="it">Backup ogni ora mentre il computer è in carica</li>
+      <li xml:lang="pt">Faz cópia a cada hora enquanto o computador está carregando</li>
+      <li xml:lang="nl">Maakt elk uur een back-up terwijl de computer oplaadt</li>
+      <li xml:lang="sv">Säkerhetskopierar varje timme medan datorn laddas</li>
+      <li>Restore single files or folders from a timeline</li>
+      <li xml:lang="cs">Obnova jednotlivých souborů a složek podle časové osy</li>
+      <li xml:lang="sk">Obnova jednotlivých súborov a priečinkov podľa časovej osi</li>
+      <li xml:lang="pl">Przywracanie pojedynczych plików i folderów z osi czasu</li>
+      <li xml:lang="uk">Відновлення окремих файлів і тек за шкалою часу</li>
+      <li xml:lang="hu">Egyes fájlok és mappák visszaállítása idővonalról</li>
+      <li xml:lang="de">Einzelne Dateien oder Ordner über eine Zeitleiste wiederherstellen</li>
+      <li xml:lang="fr">Restauration de fichiers ou de dossiers précis depuis une frise chronologique</li>
+      <li xml:lang="es">Restauración de archivos o carpetas sueltos desde una línea de tiempo</li>
+      <li xml:lang="it">Ripristino di singoli file o cartelle da una linea temporale</li>
+      <li xml:lang="pt">Restauração de arquivos ou pastas avulsos a partir de uma linha do tempo</li>
+      <li xml:lang="nl">Losse bestanden of mappen terugzetten via een tijdlijn</li>
+      <li xml:lang="sv">Återställ enskilda filer eller mappar från en tidslinje</li>
+      <li>Restore everything onto a new installation</li>
+      <li xml:lang="cs">Obnova všeho do nové instalace</li>
+      <li xml:lang="sk">Obnova všetkého do novej inštalácie</li>
+      <li xml:lang="pl">Przywrócenie wszystkiego w nowej instalacji</li>
+      <li xml:lang="uk">Відновлення всього в новій інсталяції</li>
+      <li xml:lang="hu">Minden visszaállítása egy új telepítésre</li>
+      <li xml:lang="de">Alles auf eine neue Installation zurückspielen</li>
+      <li xml:lang="fr">Restauration complète sur une nouvelle installation</li>
+      <li xml:lang="es">Restauración completa en una instalación nueva</li>
+      <li xml:lang="it">Ripristino completo su una nuova installazione</li>
+      <li xml:lang="pt">Restauração completa em uma instalação nova</li>
+      <li xml:lang="nl">Alles terugzetten op een nieuwe installatie</li>
+      <li xml:lang="sv">Återställ allt till en ny installation</li>
+      <li>Optional password encryption of the backup disk</li>
+      <li xml:lang="cs">Volitelné šifrování zálohovacího disku heslem</li>
+      <li xml:lang="sk">Voliteľné šifrovanie zálohovacieho disku heslom</li>
+      <li xml:lang="pl">Opcjonalne szyfrowanie dysku kopii hasłem</li>
+      <li xml:lang="uk">Необов’язкове шифрування диска з копіями паролем</li>
+      <li xml:lang="hu">A mentési lemez opcionális titkosítása jelszóval</li>
+      <li xml:lang="de">Optionale Verschlüsselung des Sicherungsdatenträgers mit Passwort</li>
+      <li xml:lang="fr">Chiffrement facultatif du disque de sauvegarde par mot de passe</li>
+      <li xml:lang="es">Cifrado opcional del disco de copias con contraseña</li>
+      <li xml:lang="it">Cifratura facoltativa del disco di backup con password</li>
+      <li xml:lang="pt">Criptografia opcional do disco de cópias com senha</li>
+      <li xml:lang="nl">Optionele versleuteling van de back-upschijf met een wachtwoord</li>
+      <li xml:lang="sv">Valfri kryptering av säkerhetskopieringsdisken med lösenord</li>
+      <li>Network disks over SFTP or SMB</li>
+      <li xml:lang="cs">Síťové disky přes SFTP nebo SMB</li>
+      <li xml:lang="sk">Sieťové disky cez SFTP alebo SMB</li>
+      <li xml:lang="pl">Dyski sieciowe przez SFTP lub SMB</li>
+      <li xml:lang="uk">Мережеві диски через SFTP або SMB</li>
+      <li xml:lang="hu">Hálózati lemezek SFTP-n vagy SMB-n keresztül</li>
+      <li xml:lang="de">Netzlaufwerke über SFTP oder SMB</li>
+      <li xml:lang="fr">Disques réseau via SFTP ou SMB</li>
+      <li xml:lang="es">Discos de red por SFTP o SMB</li>
+      <li xml:lang="it">Dischi di rete tramite SFTP o SMB</li>
+      <li xml:lang="pt">Discos de rede via SFTP ou SMB</li>
+      <li xml:lang="nl">Netwerkschijven via SFTP of SMB</li>
+      <li xml:lang="sv">Nätverksdiskar via SFTP eller SMB</li>
+      <li>Older backups are thinned out automatically</li>
+      <li xml:lang="cs">Starší zálohy se automaticky prořeďují</li>
+      <li xml:lang="sk">Staršie zálohy sa automaticky preriedia</li>
+      <li xml:lang="pl">Starsze kopie są automatycznie przerzedzane</li>
+      <li xml:lang="uk">Старіші копії автоматично проріджуються</li>
+      <li xml:lang="hu">A régebbi mentések automatikusan ritkulnak</li>
+      <li xml:lang="de">Ältere Sicherungen werden automatisch ausgedünnt</li>
+      <li xml:lang="fr">Les anciennes sauvegardes sont élaguées automatiquement</li>
+      <li xml:lang="es">Las copias antiguas se van depurando automáticamente</li>
+      <li xml:lang="it">I backup più vecchi vengono diradati automaticamente</li>
+      <li xml:lang="pt">Cópias antigas são reduzidas automaticamente</li>
+      <li xml:lang="nl">Oudere back-ups worden automatisch uitgedund</li>
+      <li xml:lang="sv">Äldre säkerhetskopior gallras automatiskt</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

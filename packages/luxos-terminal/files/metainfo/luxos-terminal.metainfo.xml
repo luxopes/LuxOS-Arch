@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-terminal</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Terminal</name>
+  <summary>Use the command line</summary>
+  <launchable type="desktop-id">luxos-terminal.desktop</launchable>
+  <description>
+    <p>Terminal is the command line of LuxOS: a fast, lightweight terminal with tabs, a dark profile that suits both light and dark appearance, and pictures right in the terminal.</p>
+    <p xml:lang="cs">Terminál je příkazový řádek LuxOS: rychlý a lehký terminál s panely, tmavým profilem, který sedí ke světlému i tmavému vzhledu, a obrázky přímo v terminálu.</p>
+    <p xml:lang="sk">Terminál je príkazový riadok LuxOS: rýchly a ľahký terminál s kartami, tmavým profilom, ktorý sa hodí k svetlému aj tmavému vzhľadu, a obrázkami priamo v termináli.</p>
+    <p xml:lang="pl">Terminal to wiersz poleceń LuxOS: szybki i lekki terminal z kartami, ciemnym profilem pasującym do jasnego i ciemnego wyglądu oraz obrazami bezpośrednio w terminalu.</p>
+    <p xml:lang="uk">Термінал — це командний рядок LuxOS: швидкий і легкий термінал із вкладками, темним профілем, що пасує і до світлого, і до темного вигляду, та зображеннями просто в терміналі.</p>
+    <p xml:lang="hu">A Terminál a LuxOS parancssora: gyors, könnyű terminál lapokkal, a világos és a sötét megjelenéshez egyaránt illő sötét profillal és képekkel közvetlenül a terminálban.</p>
+    <p xml:lang="de">Terminal ist die Befehlszeile von LuxOS: ein schnelles, schlankes Terminal mit Tabs, einem dunklen Profil, das zu hellem und dunklem Erscheinungsbild passt, und Bildern direkt im Terminal.</p>
+    <p xml:lang="fr">Terminal est la ligne de commande de LuxOS : un terminal rapide et léger avec des onglets, un profil sombre qui s’accorde à l’apparence claire comme sombre, et des images directement dans le terminal.</p>
+    <p xml:lang="es">Terminal es la línea de órdenes de LuxOS: un terminal rápido y ligero con pestañas, un perfil oscuro que encaja con la apariencia clara y oscura, e imágenes directamente en el terminal.</p>
+    <p xml:lang="it">Terminale è la riga di comando di LuxOS: un terminale veloce e leggero con schede, un profilo scuro adatto sia all’aspetto chiaro sia a quello scuro e immagini direttamente nel terminale.</p>
+    <p xml:lang="pt">O Terminal é a linha de comandos do LuxOS: um terminal rápido e leve com separadores, um perfil escuro que combina com a aparência clara e escura, e imagens diretamente no terminal.</p>
+    <p xml:lang="nl">Terminal is de opdrachtregel van LuxOS: een snelle, lichte terminal met tabbladen, een donker profiel dat past bij zowel de lichte als de donkere weergave, en afbeeldingen direct in de terminal.</p>
+    <p xml:lang="sv">Terminal är kommandoraden i LuxOS: en snabb och lätt terminal med flikar, en mörk profil som passar både ljust och mörkt utseende, och bilder direkt i terminalen.</p>
+    <p>Every tab has its own limit for processes and memory, so a runaway program stops only in its own tab and the rest of the desktop keeps working.</p>
+    <p xml:lang="cs">Každý panel má vlastní limit procesů a paměti, takže program, který se vymkne kontrole, se zastaví jen ve svém panelu a zbytek plochy funguje dál.</p>
+    <p xml:lang="sk">Každá karta má vlastný limit procesov a pamäte, takže program, ktorý sa vymkne spod kontroly, sa zastaví len vo svojej karte a zvyšok plochy funguje ďalej.</p>
+    <p xml:lang="pl">Każda karta ma własny limit procesów i pamięci, więc program, który wymknie się spod kontroli, zatrzyma się tylko w swojej karcie, a reszta pulpitu działa dalej.</p>
+    <p xml:lang="uk">Кожна вкладка має власне обмеження процесів і пам’яті, тож програма, що вийшла з-під контролю, зупиниться лише у своїй вкладці, а решта робочого столу працюватиме далі.</p>
+    <p xml:lang="hu">Minden lapnak saját folyamat- és memóriakorlátja van, így egy elszabadult program csak a saját lapján áll le, az asztal többi része tovább működik.</p>
+    <p xml:lang="de">Jeder Tab hat ein eigenes Limit für Prozesse und Speicher – ein außer Kontrolle geratenes Programm wird nur in seinem Tab gestoppt, der Rest des Desktops arbeitet weiter.</p>
+    <p xml:lang="fr">Chaque onglet a sa propre limite de processus et de mémoire : un programme qui s’emballe est arrêté uniquement dans son onglet et le reste du bureau continue de fonctionner.</p>
+    <p xml:lang="es">Cada pestaña tiene su propio límite de procesos y memoria, así que un programa descontrolado se detiene solo en su pestaña y el resto del escritorio sigue funcionando.</p>
+    <p xml:lang="it">Ogni scheda ha un proprio limite di processi e memoria, così un programma fuori controllo si ferma solo nella sua scheda e il resto del desktop continua a funzionare.</p>
+    <p xml:lang="pt">Cada separador tem o seu próprio limite de processos e memória, por isso um programa descontrolado para apenas no seu separador e o resto do ambiente de trabalho continua a funcionar.</p>
+    <p xml:lang="nl">Elk tabblad heeft een eigen limiet voor processen en geheugen, zodat een op hol geslagen programma alleen in zijn eigen tabblad stopt en de rest van het bureaublad gewoon blijft werken.</p>
+    <p xml:lang="sv">Varje flik har en egen gräns för processer och minne, så ett program som skenar stoppas bara i sin egen flik och resten av skrivbordet fungerar som vanligt.</p>
+    <ul>
+      <li>Tabs; new tabs and windows open in the same folder</li>
+      <li xml:lang="cs">Panely; nový panel i okno se otevře ve stejné složce</li>
+      <li xml:lang="sk">Karty; nová karta aj okno sa otvorí v rovnakom priečinku</li>
+      <li xml:lang="pl">Karty; nowa karta i okno otwierają się w tym samym folderze</li>
+      <li xml:lang="uk">Вкладки; нова вкладка й вікно відкриваються в тій самій теці</li>
+      <li xml:lang="hu">Lapok; az új lap és ablak ugyanabban a mappában nyílik meg</li>
+      <li xml:lang="de">Tabs; neue Tabs und Fenster öffnen sich im selben Ordner</li>
+      <li xml:lang="fr">Onglets ; les nouveaux onglets et fenêtres s’ouvrent dans le même dossier</li>
+      <li xml:lang="es">Pestañas; las nuevas pestañas y ventanas se abren en la misma carpeta</li>
+      <li xml:lang="it">Schede; nuove schede e finestre si aprono nella stessa cartella</li>
+      <li xml:lang="pt">Separadores; novos separadores e janelas abrem na mesma pasta</li>
+      <li xml:lang="nl">Tabbladen; nieuwe tabbladen en vensters openen in dezelfde map</li>
+      <li xml:lang="sv">Flikar; nya flikar och fönster öppnas i samma mapp</li>
+      <li>Pictures in the terminal (SIXEL) and the LuxOS logo in the welcome</li>
+      <li xml:lang="cs">Obrázky v terminálu (SIXEL) a logo LuxOS v uvítání</li>
+      <li xml:lang="sk">Obrázky v termináli (SIXEL) a logo LuxOS v uvítaní</li>
+      <li xml:lang="pl">Obrazy w terminalu (SIXEL) i logo LuxOS na powitanie</li>
+      <li xml:lang="uk">Зображення в терміналі (SIXEL) і логотип LuxOS у привітанні</li>
+      <li xml:lang="hu">Képek a terminálban (SIXEL) és LuxOS-logó az üdvözlésben</li>
+      <li xml:lang="de">Bilder im Terminal (SIXEL) und das LuxOS-Logo zur Begrüßung</li>
+      <li xml:lang="fr">Images dans le terminal (SIXEL) et logo LuxOS à l’accueil</li>
+      <li xml:lang="es">Imágenes en el terminal (SIXEL) y el logotipo de LuxOS al iniciar</li>
+      <li xml:lang="it">Immagini nel terminale (SIXEL) e il logo LuxOS all’avvio</li>
+      <li xml:lang="pt">Imagens no terminal (SIXEL) e o logótipo do LuxOS na abertura</li>
+      <li xml:lang="nl">Afbeeldingen in de terminal (SIXEL) en het LuxOS-logo bij het openen</li>
+      <li xml:lang="sv">Bilder i terminalen (SIXEL) och LuxOS-logotypen vid start</li>
+      <li>Find in the output, Ctrl+click opens links</li>
+      <li xml:lang="cs">Hledání ve výpisu, odkazy se otevírají Ctrl+klikem</li>
+      <li xml:lang="sk">Hľadanie vo výpise, odkazy sa otvárajú Ctrl+klikom</li>
+      <li xml:lang="pl">Wyszukiwanie w wyjściu, Ctrl+klik otwiera odnośniki</li>
+      <li xml:lang="uk">Пошук у виводі, Ctrl+клік відкриває посилання</li>
+      <li xml:lang="hu">Keresés a kimenetben, a hivatkozások Ctrl+kattintással nyílnak meg</li>
+      <li xml:lang="de">Suche in der Ausgabe, Strg+Klick öffnet Links</li>
+      <li xml:lang="fr">Recherche dans la sortie, Ctrl+clic ouvre les liens</li>
+      <li xml:lang="es">Búsqueda en la salida, Ctrl+clic abre los enlaces</li>
+      <li xml:lang="it">Ricerca nell’output, Ctrl+clic apre i link</li>
+      <li xml:lang="pt">Pesquisa na saída, Ctrl+clique abre ligações</li>
+      <li xml:lang="nl">Zoeken in de uitvoer, Ctrl+klik opent links</li>
+      <li xml:lang="sv">Sök i utdata, Ctrl+klick öppnar länkar</li>
+      <li>Dark, light or automatic profile, bigger and smaller text</li>
+      <li xml:lang="cs">Tmavý, světlý nebo automatický profil, větší a menší písmo</li>
+      <li xml:lang="sk">Tmavý, svetlý alebo automatický profil, väčšie a menšie písmo</li>
+      <li xml:lang="pl">Profil ciemny, jasny lub automatyczny, większa i mniejsza czcionka</li>
+      <li xml:lang="uk">Темний, світлий або автоматичний профіль, більший і менший шрифт</li>
+      <li xml:lang="hu">Sötét, világos vagy automatikus profil, nagyobb és kisebb betűméret</li>
+      <li xml:lang="de">Dunkles, helles oder automatisches Profil, größere und kleinere Schrift</li>
+      <li xml:lang="fr">Profil sombre, clair ou automatique, texte plus grand ou plus petit</li>
+      <li xml:lang="es">Perfil oscuro, claro o automático, texto más grande o más pequeño</li>
+      <li xml:lang="it">Profilo scuro, chiaro o automatico, testo più grande o più piccolo</li>
+      <li xml:lang="pt">Perfil escuro, claro ou automático, texto maior ou menor</li>
+      <li xml:lang="nl">Donker, licht of automatisch profiel, grotere en kleinere tekst</li>
+      <li xml:lang="sv">Mörk, ljus eller automatisk profil, större och mindre text</li>
+      <li>Remembers the size of the window</li>
+      <li xml:lang="cs">Pamatuje si velikost okna</li>
+      <li xml:lang="sk">Pamätá si veľkosť okna</li>
+      <li xml:lang="pl">Zapamiętuje rozmiar okna</li>
+      <li xml:lang="uk">Запам’ятовує розмір вікна</li>
+      <li xml:lang="hu">Megjegyzi az ablak méretét</li>
+      <li xml:lang="de">Merkt sich die Fenstergröße</li>
+      <li xml:lang="fr">Mémorise la taille de la fenêtre</li>
+      <li xml:lang="es">Recuerda el tamaño de la ventana</li>
+      <li xml:lang="it">Ricorda la dimensione della finestra</li>
+      <li xml:lang="pt">Memoriza o tamanho da janela</li>
+      <li xml:lang="nl">Onthoudt de venstergrootte</li>
+      <li xml:lang="sv">Kommer ihåg fönstrets storlek</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

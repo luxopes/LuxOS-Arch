@@ -1,0 +1,409 @@
+{
+ "lsl-ide": [
+  {
+   "file": "1.webp",
+   "width": 1280,
+   "height": 800
+  },
+  {
+   "file": "2.webp",
+   "width": 1280,
+   "height": 800
+  }
+ ],
+ "lux-code": [
+  {
+   "file": "1.webp",
+   "width": 1152,
+   "height": 717
+  },
+  {
+   "file": "2.webp",
+   "width": 1152,
+   "height": 717
+  }
+ ],
+ "luxai": [
+  {
+   "file": "1.webp",
+   "width": 1100,
+   "height": 720
+  },
+  {
+   "file": "2.webp",
+   "width": 1100,
+   "height": 720
+  }
+ ],
+ "luxdrop": [
+  {
+   "file": "1.webp",
+   "width": 480,
+   "height": 760
+  },
+  {
+   "file": "2.webp",
+   "width": 480,
+   "height": 760
+  },
+  {
+   "file": "3.webp",
+   "width": 422,
+   "height": 516
+  }
+ ],
+ "luxdrop-connect": [
+  {
+   "file": "1.webp",
+   "width": 502,
+   "height": 589
+  },
+  {
+   "file": "2.webp",
+   "width": 502,
+   "height": 589
+  }
+ ],
+ "luxos-account": [
+  {
+   "file": "1.webp",
+   "width": 860,
+   "height": 640
+  },
+  {
+   "file": "2.webp",
+   "width": 860,
+   "height": 640
+  }
+ ],
+ "luxos-backup": [
+  {
+   "file": "1.webp",
+   "width": 820,
+   "height": 752
+  },
+  {
+   "file": "2.webp",
+   "width": 820,
+   "height": 752
+  },
+  {
+   "file": "3.webp",
+   "width": 522,
+   "height": 532
+  }
+ ],
+ "luxos-calculator": [
+  {
+   "file": "1.webp",
+   "width": 284,
+   "height": 507
+  },
+  {
+   "file": "2.webp",
+   "width": 636,
+   "height": 507
+  }
+ ],
+ "luxos-camera": [
+  {
+   "file": "1.webp",
+   "width": 960,
+   "height": 680
+  },
+  {
+   "file": "2.webp",
+   "width": 960,
+   "height": 680
+  }
+ ],
+ "luxos-companion": [
+  {
+   "file": "1.webp",
+   "width": 560,
+   "height": 620
+  },
+  {
+   "file": "2.webp",
+   "width": 560,
+   "height": 620
+  }
+ ],
+ "luxos-drivers": [
+  {
+   "file": "1.webp",
+   "width": 700,
+   "height": 540
+  },
+  {
+   "file": "2.webp",
+   "width": 700,
+   "height": 540
+  }
+ ],
+ "luxos-emoji": [
+  {
+   "file": "1.webp",
+   "width": 1040,
+   "height": 780
+  },
+  {
+   "file": "2.webp",
+   "width": 1040,
+   "height": 780
+  }
+ ],
+ "luxos-feedback": [
+  {
+   "file": "1.webp",
+   "width": 582,
+   "height": 765
+  },
+  {
+   "file": "2.webp",
+   "width": 582,
+   "height": 765
+  }
+ ],
+ "luxos-firewall-settings": [
+  {
+   "file": "1.webp",
+   "width": 662,
+   "height": 763
+  },
+  {
+   "file": "2.webp",
+   "width": 662,
+   "height": 763
+  }
+ ],
+ "luxos-guard": [
+  {
+   "file": "1.webp",
+   "width": 660,
+   "height": 796
+  },
+  {
+   "file": "2.webp",
+   "width": 534,
+   "height": 330
+  },
+  {
+   "file": "3.webp",
+   "width": 531,
+   "height": 335
+  }
+ ],
+ "luxos-mail": [
+  {
+   "file": "1.webp",
+   "width": 1102,
+   "height": 709
+  },
+  {
+   "file": "2.webp",
+   "width": 1102,
+   "height": 709
+  },
+  {
+   "file": "3.webp",
+   "width": 1102,
+   "height": 709
+  }
+ ],
+ "luxos-maps": [
+  {
+   "file": "1.webp",
+   "width": 1100,
+   "height": 720
+  },
+  {
+   "file": "2.webp",
+   "width": 1100,
+   "height": 720
+  },
+  {
+   "file": "3.webp",
+   "width": 1100,
+   "height": 720
+  }
+ ],
+ "luxos-monitor": [
+  {
+   "file": "1.webp",
+   "width": 1070,
+   "height": 640
+  }
+ ],
+ "luxos-printers": [
+  {
+   "file": "1.webp",
+   "width": 940,
+   "height": 640
+  },
+  {
+   "file": "2.webp",
+   "width": 940,
+   "height": 640
+  }
+ ],
+ "luxos-profile-picture": [
+  {
+   "file": "1.webp",
+   "width": 462,
+   "height": 605
+  },
+  {
+   "file": "2.webp",
+   "width": 462,
+   "height": 605
+  }
+ ],
+ "luxos-router": [
+  {
+   "file": "1.webp",
+   "width": 900,
+   "height": 700
+  },
+  {
+   "file": "2.webp",
+   "width": 900,
+   "height": 560
+  },
+  {
+   "file": "3.webp",
+   "width": 900,
+   "height": 600
+  }
+ ],
+ "luxos-safe": [
+  {
+   "file": "1.webp",
+   "width": 438,
+   "height": 502
+  },
+  {
+   "file": "2.webp",
+   "width": 438,
+   "height": 372
+  },
+  {
+   "file": "3.webp",
+   "width": 449,
+   "height": 499
+  }
+ ],
+ "luxos-sandbox": [
+  {
+   "file": "1.webp",
+   "width": 680,
+   "height": 790
+  },
+  {
+   "file": "2.webp",
+   "width": 680,
+   "height": 790
+  }
+ ],
+ "luxos-scan": [
+  {
+   "file": "1.webp",
+   "width": 940,
+   "height": 680
+  },
+  {
+   "file": "2.webp",
+   "width": 940,
+   "height": 680
+  }
+ ],
+ "luxos-screenshot": [
+  {
+   "file": "1.webp",
+   "width": 1280,
+   "height": 800
+  },
+  {
+   "file": "2.webp",
+   "width": 1280,
+   "height": 800
+  },
+  {
+   "file": "3.webp",
+   "width": 1280,
+   "height": 800
+  }
+ ],
+ "luxos-terminal": [
+  {
+   "file": "1.webp",
+   "width": 1002,
+   "height": 669
+  },
+  {
+   "file": "2.webp",
+   "width": 1002,
+   "height": 669
+  }
+ ],
+ "luxos-text": [
+  {
+   "file": "1.webp",
+   "width": 1040,
+   "height": 700
+  },
+  {
+   "file": "2.webp",
+   "width": 1040,
+   "height": 700
+  }
+ ],
+ "luxos-tour": [
+  {
+   "file": "1.webp",
+   "width": 782,
+   "height": 712
+  },
+  {
+   "file": "2.webp",
+   "width": 782,
+   "height": 712
+  },
+  {
+   "file": "3.webp",
+   "width": 782,
+   "height": 712
+  }
+ ],
+ "luxos-weather": [
+  {
+   "file": "1.webp",
+   "width": 1000,
+   "height": 700
+  },
+  {
+   "file": "2.webp",
+   "width": 1000,
+   "height": 700
+  },
+  {
+   "file": "3.webp",
+   "width": 1000,
+   "height": 700
+  }
+ ],
+ "luxos-whats-new": [
+  {
+   "file": "1.webp",
+   "width": 582,
+   "height": 765
+  }
+ ],
+ "luxos-wifi-qr": [
+  {
+   "file": "1.webp",
+   "width": 422,
+   "height": 645
+  }
+ ]
+}

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-mail</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Mail</name>
+  <summary>Read your email and get notified about new messages</summary>
+  <launchable type="desktop-id">luxos-mail.desktop</launchable>
+  <description>
+    <p>Mail is a light, fast mail app for any IMAP mailbox. It tells you the moment new mail arrives – even when its window is closed.</p>
+    <p xml:lang="cs">Pošta je lehká a rychlá poštovní aplikace pro jakoukoli schránku IMAP. O nové poště vás upozorní hned, jak dorazí – i když je její okno zavřené.</p>
+    <p xml:lang="sk">Pošta je ľahká a rýchla poštová aplikácia pre akúkoľvek schránku IMAP. O novej pošte vás upozorní hneď, ako príde – aj keď je jej okno zatvorené.</p>
+    <p xml:lang="pl">Poczta to lekka i szybka aplikacja pocztowa dla dowolnej skrzynki IMAP. Powiadamia o nowej wiadomości, gdy tylko nadejdzie – nawet gdy jej okno jest zamknięte.</p>
+    <p xml:lang="uk">«Пошта» – легкий і швидкий поштовий застосунок для будь-якої скриньки IMAP. Він повідомляє про новий лист щойно той надійде – навіть коли вікно закрите.</p>
+    <p xml:lang="hu">A Levelezés könnyű és gyors levelezőalkalmazás bármilyen IMAP-postafiókhoz. Azonnal jelez, amint új levél érkezik – akkor is, ha az ablaka be van zárva.</p>
+    <p xml:lang="de">Mail ist eine leichte, schnelle Mail-App für jedes IMAP-Postfach. Sie meldet neue Nachrichten, sobald sie eintreffen – auch wenn ihr Fenster geschlossen ist.</p>
+    <p xml:lang="fr">Mail est une application de messagerie légère et rapide pour toute boîte IMAP. Elle vous prévient dès qu’un nouveau message arrive, même lorsque sa fenêtre est fermée.</p>
+    <p xml:lang="es">Correo es una aplicación de correo ligera y rápida para cualquier buzón IMAP. Le avisa en cuanto llega un mensaje nuevo, incluso con su ventana cerrada.</p>
+    <p xml:lang="it">Posta è un’app di posta leggera e veloce per qualsiasi casella IMAP. Ti avvisa appena arriva un nuovo messaggio, anche quando la sua finestra è chiusa.</p>
+    <p xml:lang="pt">Correio é uma aplicação de e-mail leve e rápida para qualquer caixa IMAP. Avisa-o assim que chega uma mensagem nova, mesmo com a janela fechada.</p>
+    <p xml:lang="nl">Mail is een lichte, snelle mail-app voor elke IMAP-mailbox. Je krijgt meteen een melding als er nieuwe mail binnenkomt – ook als het venster gesloten is.</p>
+    <p xml:lang="sv">E-post är en lätt och snabb e-postapp för alla IMAP-brevlådor. Den säger till så fort ny e-post kommer – även när fönstret är stängt.</p>
+    <p>This version is for reading mail; writing and sending messages will come in a later update.</p>
+    <p xml:lang="cs">Tato verze slouží ke čtení pošty; psaní a odesílání zpráv přibude v některé z dalších aktualizací.</p>
+    <p xml:lang="sk">Táto verzia slúži na čítanie pošty; písanie a odosielanie správ pribudne v niektorej z ďalších aktualizácií.</p>
+    <p xml:lang="pl">Ta wersja służy do czytania poczty; pisanie i wysyłanie wiadomości pojawi się w jednej z kolejnych aktualizacji.</p>
+    <p xml:lang="uk">Ця версія призначена для читання пошти; написання й надсилання листів з’явиться в одному з наступних оновлень.</p>
+    <p xml:lang="hu">Ez a verzió levelek olvasására szolgál; az írás és a küldés egy későbbi frissítésben érkezik.</p>
+    <p xml:lang="de">Diese Version dient zum Lesen von E-Mails; Schreiben und Senden folgen in einem späteren Update.</p>
+    <p xml:lang="fr">Cette version sert à lire le courrier ; la rédaction et l’envoi de messages arriveront dans une prochaine mise à jour.</p>
+    <p xml:lang="es">Esta versión sirve para leer el correo; redactar y enviar mensajes llegará en una actualización posterior.</p>
+    <p xml:lang="it">Questa versione serve a leggere la posta; scrittura e invio dei messaggi arriveranno con un prossimo aggiornamento.</p>
+    <p xml:lang="pt">Esta versão serve para ler e-mail; escrever e enviar mensagens chegará numa atualização futura.</p>
+    <p xml:lang="nl">Deze versie is bedoeld om mail te lezen; berichten schrijven en verzenden volgt in een latere update.</p>
+    <p xml:lang="sv">Den här versionen är till för att läsa e-post; att skriva och skicka meddelanden kommer i en senare uppdatering.</p>
+    <ul>
+      <li>Three columns: mailboxes, message list and the message</li>
+      <li xml:lang="cs">Tři sloupce: schránky, seznam zpráv a samotná zpráva</li>
+      <li xml:lang="sk">Tri stĺpce: schránky, zoznam správ a samotná správa</li>
+      <li xml:lang="pl">Trzy kolumny: skrzynki, lista wiadomości i sama wiadomość</li>
+      <li xml:lang="uk">Три стовпці: скриньки, список листів і сам лист</li>
+      <li xml:lang="hu">Három oszlop: postafiókok, üzenetlista és maga az üzenet</li>
+      <li xml:lang="de">Drei Spalten: Postfächer, Nachrichtenliste und die Nachricht selbst</li>
+      <li xml:lang="fr">Trois colonnes : boîtes aux lettres, liste des messages et message</li>
+      <li xml:lang="es">Tres columnas: buzones, lista de mensajes y el mensaje</li>
+      <li xml:lang="it">Tre colonne: caselle, elenco dei messaggi e messaggio</li>
+      <li xml:lang="pt">Três colunas: caixas de correio, lista de mensagens e a mensagem</li>
+      <li xml:lang="nl">Drie kolommen: mailboxen, berichtenlijst en het bericht zelf</li>
+      <li xml:lang="sv">Tre kolumner: brevlådor, meddelandelista och själva meddelandet</li>
+      <li>Server settings are found automatically from your e-mail address</li>
+      <li xml:lang="cs">Nastavení serveru se najde samo podle vaší e-mailové adresy</li>
+      <li xml:lang="sk">Nastavenia servera sa nájdu samy podľa vašej e-mailovej adresy</li>
+      <li xml:lang="pl">Ustawienia serwera są wyszukiwane automatycznie na podstawie adresu e-mail</li>
+      <li xml:lang="uk">Налаштування сервера знаходяться автоматично за вашою адресою e-mail</li>
+      <li xml:lang="hu">A kiszolgáló beállításait az e-mail-cím alapján automatikusan megtalálja</li>
+      <li xml:lang="de">Servereinstellungen werden anhand Ihrer E-Mail-Adresse automatisch gefunden</li>
+      <li xml:lang="fr">Les réglages du serveur sont trouvés automatiquement à partir de votre adresse e-mail</li>
+      <li xml:lang="es">La configuración del servidor se detecta automáticamente a partir de su dirección de correo</li>
+      <li xml:lang="it">Le impostazioni del server vengono trovate automaticamente dal tuo indirizzo e-mail</li>
+      <li xml:lang="pt">As definições do servidor são encontradas automaticamente a partir do seu endereço de e-mail</li>
+      <li xml:lang="nl">Serverinstellingen worden automatisch gevonden aan de hand van je e-mailadres</li>
+      <li xml:lang="sv">Serverinställningarna hittas automatiskt utifrån din e-postadress</li>
+      <li>LuxAI mailboxes open with your LuxAI account, no password needed</li>
+      <li xml:lang="cs">Schránky LuxAI otevřete účtem LuxAI, bez hesla</li>
+      <li xml:lang="sk">Schránky LuxAI otvoríte účtom LuxAI, bez hesla</li>
+      <li xml:lang="pl">Skrzynki LuxAI otwierasz kontem LuxAI, bez hasła</li>
+      <li xml:lang="uk">Скриньки LuxAI відкриваються обліковим записом LuxAI, без пароля</li>
+      <li xml:lang="hu">A LuxAI-postafiókok a LuxAI-fiókkal nyílnak meg, jelszó nélkül</li>
+      <li xml:lang="de">LuxAI-Postfächer öffnen Sie mit Ihrem LuxAI-Konto, ganz ohne Passwort</li>
+      <li xml:lang="fr">Les boîtes LuxAI s’ouvrent avec votre compte LuxAI, sans mot de passe</li>
+      <li xml:lang="es">Los buzones de LuxAI se abren con su cuenta de LuxAI, sin contraseña</li>
+      <li xml:lang="it">Le caselle LuxAI si aprono con il tuo account LuxAI, senza password</li>
+      <li xml:lang="pt">As caixas LuxAI abrem com a sua conta LuxAI, sem palavra-passe</li>
+      <li xml:lang="nl">LuxAI-mailboxen open je met je LuxAI-account, zonder wachtwoord</li>
+      <li xml:lang="sv">LuxAI-brevlådor öppnas med ditt LuxAI-konto, utan lösenord</li>
+      <li>Passwords are kept only in the keyring and connections are always encrypted</li>
+      <li xml:lang="cs">Hesla jsou jen v klíčence a spojení je vždy šifrované</li>
+      <li xml:lang="sk">Heslá sú len v kľúčenke a spojenie je vždy šifrované</li>
+      <li xml:lang="pl">Hasła są przechowywane tylko w pęku kluczy, a połączenia są zawsze szyfrowane</li>
+      <li xml:lang="uk">Паролі зберігаються лише у в’язці ключів, а з’єднання завжди зашифровані</li>
+      <li xml:lang="hu">A jelszavak csak a kulcstartóban vannak, a kapcsolat mindig titkosított</li>
+      <li xml:lang="de">Passwörter liegen nur im Schlüsselbund, Verbindungen sind immer verschlüsselt</li>
+      <li xml:lang="fr">Les mots de passe restent dans le trousseau et les connexions sont toujours chiffrées</li>
+      <li xml:lang="es">Las contraseñas se guardan solo en el llavero y las conexiones siempre van cifradas</li>
+      <li xml:lang="it">Le password restano solo nel portachiavi e le connessioni sono sempre cifrate</li>
+      <li xml:lang="pt">As palavras-passe ficam apenas no porta-chaves e as ligações são sempre cifradas</li>
+      <li xml:lang="nl">Wachtwoorden staan alleen in de sleutelbos en verbindingen zijn altijd versleuteld</li>
+      <li xml:lang="sv">Lösenord sparas bara i nyckelringen och anslutningar är alltid krypterade</li>
+      <li>HTML mail is shown as text, with no remote images or tracking</li>
+      <li xml:lang="cs">E-maily v HTML se zobrazí jako text, bez vzdálených obrázků a sledování</li>
+      <li xml:lang="sk">E-maily v HTML sa zobrazia ako text, bez vzdialených obrázkov a sledovania</li>
+      <li xml:lang="pl">Wiadomości HTML są wyświetlane jako tekst, bez zdalnych obrazów i śledzenia</li>
+      <li xml:lang="uk">Листи в HTML показуються як текст, без віддалених зображень і стеження</li>
+      <li xml:lang="hu">A HTML-levelek szövegként jelennek meg, távoli képek és követés nélkül</li>
+      <li xml:lang="de">HTML-Mails werden als Text angezeigt, ohne externe Bilder und Tracking</li>
+      <li xml:lang="fr">Les e-mails HTML s’affichent en texte, sans images distantes ni pistage</li>
+      <li xml:lang="es">Los correos HTML se muestran como texto, sin imágenes remotas ni rastreo</li>
+      <li xml:lang="it">Le e-mail HTML sono mostrate come testo, senza immagini remote né tracciamento</li>
+      <li xml:lang="pt">Os e-mails em HTML são mostrados como texto, sem imagens remotas nem rastreio</li>
+      <li xml:lang="nl">HTML-mail wordt als tekst getoond, zonder externe afbeeldingen of tracking</li>
+      <li xml:lang="sv">HTML-e-post visas som text, utan externa bilder eller spårning</li>
+      <li>Messages you have opened stay readable offline</li>
+      <li xml:lang="cs">Jednou otevřené zprávy si přečtete i bez připojení</li>
+      <li xml:lang="sk">Raz otvorené správy si prečítate aj bez pripojenia</li>
+      <li xml:lang="pl">Otwarte wiadomości można czytać także offline</li>
+      <li xml:lang="uk">Відкриті листи можна читати й без з’єднання</li>
+      <li xml:lang="hu">A megnyitott levelek kapcsolat nélkül is olvashatók</li>
+      <li xml:lang="de">Geöffnete Nachrichten bleiben auch offline lesbar</li>
+      <li xml:lang="fr">Les messages déjà ouverts restent lisibles hors ligne</li>
+      <li xml:lang="es">Los mensajes que ha abierto se pueden leer sin conexión</li>
+      <li xml:lang="it">I messaggi già aperti restano leggibili offline</li>
+      <li xml:lang="pt">As mensagens que abriu continuam legíveis sem ligação</li>
+      <li xml:lang="nl">Geopende berichten blijven offline leesbaar</li>
+      <li xml:lang="sv">Meddelanden du har öppnat går att läsa även offline</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

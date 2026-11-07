@@ -4775,3 +4775,8 @@ Seznam: use your normal password. With two-factor authentication turned on, crea
 Signing in failed.	A bejelentkezés nem sikerült.
 Starred	Csillagozott
 iCloud Mail requires an app-specific password: turn on two-factor authentication for your Apple Account, then in Sign-In and Security choose App-Specific Passwords, create one and enter it here.	Az iCloud Mail alkalmazásspecifikus jelszót kér: kapcsolja be Apple-fiókjában a kétlépcsős hitelesítést, majd a Bejelentkezés és biztonság részben válassza az Alkalmazásspecifikus jelszavak lehetőséget, hozzon létre egyet, és írja be ide.
+Screenshot %d of %d	%d. képernyőkép (összesen %d)
+Previous screenshot	Előző képernyőkép
+Next screenshot	Következő képernyőkép
+Screenshots are not available offline.	A képernyőképek internet nélkül nem érhetők el.
+Show screenshots	Képernyőképek megjelenítése

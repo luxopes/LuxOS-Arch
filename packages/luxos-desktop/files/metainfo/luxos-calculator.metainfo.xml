@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-calculator</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Calculator</name>
+  <summary>Calculate with LuxOS Calculator</summary>
+  <launchable type="desktop-id">luxos-calculator.desktop</launchable>
+  <description>
+    <p>A calculator for quick everyday sums and for more demanding math. It calculates with exact decimal numbers, so 0.1 + 0.2 is exactly 0.3, and it respects operator precedence and parentheses.</p>
+    <p xml:lang="cs">Kalkulačka pro rychlé každodenní počty i náročnější matematiku. Počítá s přesnými desetinnými čísly, takže 0,1 + 0,2 je přesně 0,3, a dodržuje přednost operátorů i závorky.</p>
+    <p xml:lang="sk">Kalkulačka na rýchle každodenné počty aj náročnejšiu matematiku. Počíta s presnými desatinnými číslami, takže 0,1 + 0,2 je presne 0,3, a dodržiava prednosť operátorov aj zátvorky.</p>
+    <p xml:lang="pl">Kalkulator do szybkich codziennych obliczeń i bardziej wymagającej matematyki. Liczy na dokładnych liczbach dziesiętnych, więc 0,1 + 0,2 to dokładnie 0,3, i przestrzega kolejności działań oraz nawiasów.</p>
+    <p xml:lang="uk">Калькулятор для швидких щоденних обчислень і складнішої математики. Рахує з точними десятковими числами, тож 0,1 + 0,2 дорівнює рівно 0,3, і враховує пріоритет операцій та дужки.</p>
+    <p xml:lang="hu">Számológép a gyors mindennapi számolásokhoz és az igényesebb matematikához is. Pontos tizedes számokkal számol, így 0,1 + 0,2 pontosan 0,3, és betartja a műveleti sorrendet és a zárójeleket.</p>
+    <p xml:lang="de">Ein Rechner für schnelle Alltagsrechnungen und anspruchsvollere Mathematik. Er rechnet mit exakten Dezimalzahlen, sodass 0,1 + 0,2 genau 0,3 ergibt, und beachtet Punkt-vor-Strich und Klammern.</p>
+    <p xml:lang="fr">Une calculette pour les calculs rapides du quotidien comme pour des mathématiques plus poussées. Elle calcule avec des nombres décimaux exacts, donc 0,1 + 0,2 font exactement 0,3, et respecte la priorité des opérateurs et les parenthèses.</p>
+    <p xml:lang="es">Una calculadora para las cuentas rápidas del día a día y para matemáticas más exigentes. Calcula con números decimales exactos, así que 0,1 + 0,2 es exactamente 0,3, y respeta la prioridad de los operadores y los paréntesis.</p>
+    <p xml:lang="it">Una calcolatrice per i calcoli veloci di tutti i giorni e per la matematica più impegnativa. Calcola con numeri decimali esatti, quindi 0,1 + 0,2 fa esattamente 0,3, e rispetta la precedenza degli operatori e le parentesi.</p>
+    <p xml:lang="pt">Uma calculadora para as contas rápidas do dia a dia e para matemática mais exigente. Ela calcula com números decimais exatos, então 0,1 + 0,2 dá exatamente 0,3, e respeita a precedência dos operadores e os parênteses.</p>
+    <p xml:lang="nl">Een rekenmachine voor snelle sommen van alledag en voor lastigere wiskunde. Hij rekent met exacte decimale getallen, dus 0,1 + 0,2 is precies 0,3, en houdt rekening met de volgorde van bewerkingen en haakjes.</p>
+    <p xml:lang="sv">En kalkylator för snabba vardagsuträkningar och mer krävande matematik. Den räknar med exakta decimaltal, så 0,1 + 0,2 blir exakt 0,3, och följer prioriteringsregler och parenteser.</p>
+    <ul>
+      <li>Basic mode (Ctrl+1) and scientific mode (Ctrl+2)</li>
+      <li xml:lang="cs">Základní režim (Ctrl+1) a vědecký režim (Ctrl+2)</li>
+      <li xml:lang="sk">Základný režim (Ctrl+1) a vedecký režim (Ctrl+2)</li>
+      <li xml:lang="pl">Tryb podstawowy (Ctrl+1) i naukowy (Ctrl+2)</li>
+      <li xml:lang="uk">Звичайний режим (Ctrl+1) та інженерний режим (Ctrl+2)</li>
+      <li xml:lang="hu">Alap mód (Ctrl+1) és tudományos mód (Ctrl+2)</li>
+      <li xml:lang="de">Standardmodus (Strg+1) und wissenschaftlicher Modus (Strg+2)</li>
+      <li xml:lang="fr">Mode standard (Ctrl+1) et mode scientifique (Ctrl+2)</li>
+      <li xml:lang="es">Modo básico (Ctrl+1) y modo científico (Ctrl+2)</li>
+      <li xml:lang="it">Modalità base (Ctrl+1) e scientifica (Ctrl+2)</li>
+      <li xml:lang="pt">Modo básico (Ctrl+1) e modo científico (Ctrl+2)</li>
+      <li xml:lang="nl">Standaardmodus (Ctrl+1) en wetenschappelijke modus (Ctrl+2)</li>
+      <li xml:lang="sv">Standardläge (Ctrl+1) och vetenskapligt läge (Ctrl+2)</li>
+      <li>Powers, roots, logarithms and factorial</li>
+      <li xml:lang="cs">Mocniny, odmocniny, logaritmy a faktoriál</li>
+      <li xml:lang="sk">Mocniny, odmocniny, logaritmy a faktoriál</li>
+      <li xml:lang="pl">Potęgi, pierwiastki, logarytmy i silnia</li>
+      <li xml:lang="uk">Степені, корені, логарифми та факторіал</li>
+      <li xml:lang="hu">Hatványok, gyökök, logaritmusok és faktoriális</li>
+      <li xml:lang="de">Potenzen, Wurzeln, Logarithmen und Fakultät</li>
+      <li xml:lang="fr">Puissances, racines, logarithmes et factorielle</li>
+      <li xml:lang="es">Potencias, raíces, logaritmos y factorial</li>
+      <li xml:lang="it">Potenze, radici, logaritmi e fattoriale</li>
+      <li xml:lang="pt">Potências, raízes, logaritmos e fatorial</li>
+      <li xml:lang="nl">Machten, wortels, logaritmen en faculteit</li>
+      <li xml:lang="sv">Potenser, rötter, logaritmer och fakultet</li>
+      <li>Trigonometric functions in degrees or radians</li>
+      <li xml:lang="cs">Goniometrické funkce ve stupních nebo radiánech</li>
+      <li xml:lang="sk">Goniometrické funkcie v stupňoch alebo radiánoch</li>
+      <li xml:lang="pl">Funkcje trygonometryczne w stopniach lub radianach</li>
+      <li xml:lang="uk">Тригонометричні функції в градусах або радіанах</li>
+      <li xml:lang="hu">Szögfüggvények fokban vagy radiánban</li>
+      <li xml:lang="de">Winkelfunktionen in Grad oder Bogenmaß</li>
+      <li xml:lang="fr">Fonctions trigonométriques en degrés ou en radians</li>
+      <li xml:lang="es">Funciones trigonométricas en grados o radianes</li>
+      <li xml:lang="it">Funzioni trigonometriche in gradi o radianti</li>
+      <li xml:lang="pt">Funções trigonométricas em graus ou radianos</li>
+      <li xml:lang="nl">Goniometrische functies in graden of radialen</li>
+      <li xml:lang="sv">Trigonometriska funktioner i grader eller radianer</li>
+      <li>Constants π and e and a random number</li>
+      <li xml:lang="cs">Konstanty π a e a náhodné číslo</li>
+      <li xml:lang="sk">Konštanty π a e a náhodné číslo</li>
+      <li xml:lang="pl">Stałe π i e oraz liczba losowa</li>
+      <li xml:lang="uk">Константи π і e та випадкове число</li>
+      <li xml:lang="hu">A π és az e állandó, valamint véletlenszám</li>
+      <li xml:lang="de">Konstanten π und e sowie eine Zufallszahl</li>
+      <li xml:lang="fr">Constantes π et e et nombre aléatoire</li>
+      <li xml:lang="es">Constantes π y e y un número aleatorio</li>
+      <li xml:lang="it">Costanti π ed e e un numero casuale</li>
+      <li xml:lang="pt">Constantes π e e e um número aleatório</li>
+      <li xml:lang="nl">Constanten π en e en een willekeurig getal</li>
+      <li xml:lang="sv">Konstanterna π och e samt ett slumptal</li>
+      <li>Full keyboard control, copy and paste with Ctrl+C and Ctrl+V</li>
+      <li xml:lang="cs">Celé ovládání z klávesnice, kopírování a vkládání pomocí Ctrl+C a Ctrl+V</li>
+      <li xml:lang="sk">Celé ovládanie z klávesnice, kopírovanie a vkladanie pomocou Ctrl+C a Ctrl+V</li>
+      <li xml:lang="pl">Pełna obsługa z klawiatury, kopiowanie i wklejanie skrótami Ctrl+C i Ctrl+V</li>
+      <li xml:lang="uk">Повне керування з клавіатури, копіювання та вставлення через Ctrl+C і Ctrl+V</li>
+      <li xml:lang="hu">Teljes billentyűzetes vezérlés, másolás és beillesztés a Ctrl+C és Ctrl+V billentyűkkel</li>
+      <li xml:lang="de">Vollständig per Tastatur bedienbar, Kopieren und Einfügen mit Strg+C und Strg+V</li>
+      <li xml:lang="fr">Entièrement utilisable au clavier, copier-coller avec Ctrl+C et Ctrl+V</li>
+      <li xml:lang="es">Control total con el teclado, copiar y pegar con Ctrl+C y Ctrl+V</li>
+      <li xml:lang="it">Uso completo da tastiera, copia e incolla con Ctrl+C e Ctrl+V</li>
+      <li xml:lang="pt">Controle total pelo teclado, copiar e colar com Ctrl+C e Ctrl+V</li>
+      <li xml:lang="nl">Volledig met het toetsenbord te bedienen, kopiëren en plakken met Ctrl+C en Ctrl+V</li>
+      <li xml:lang="sv">Helt styrbar med tangentbordet, kopiera och klistra in med Ctrl+C och Ctrl+V</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

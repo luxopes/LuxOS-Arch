@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-account</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>LuxAI Account</name>
+  <summary>Sign in to LuxAI for AI in LuxOS apps</summary>
+  <launchable type="desktop-id">luxos-account.desktop</launchable>
+  <description>
+    <p>LuxAI Account is the one place where you sign in to LuxAI on this computer. LuxAI, Lux Code and LSL IDE then share the same account, so you never have to sign in to each app separately.</p>
+    <p xml:lang="cs">Účet LuxAI je jediné místo, kde se na tomto počítači přihlásíte k LuxAI. LuxAI, Lux Code i LSL IDE pak sdílejí stejný účet, takže se nemusíte přihlašovat v každé aplikaci zvlášť.</p>
+    <p xml:lang="sk">Účet LuxAI je jediné miesto, kde sa na tomto počítači prihlásite do LuxAI. LuxAI, Lux Code aj LSL IDE potom zdieľajú rovnaký účet, takže sa nemusíte prihlasovať v každej aplikácii zvlášť.</p>
+    <p xml:lang="pl">Konto LuxAI to jedno miejsce, w którym logujesz się do LuxAI na tym komputerze. LuxAI, Lux Code i LSL IDE korzystają potem z tego samego konta, więc nie musisz logować się w każdej aplikacji osobno.</p>
+    <p xml:lang="uk">«Обліковий запис LuxAI» – єдине місце, де ви входите в LuxAI на цьому комп’ютері. LuxAI, Lux Code і LSL IDE потім використовують той самий обліковий запис, тож входити в кожен застосунок окремо не потрібно.</p>
+    <p xml:lang="hu">A LuxAI-fiók az egyetlen hely, ahol ezen a számítógépen bejelentkezik a LuxAI-ba. Ezután a LuxAI, a Lux Code és az LSL IDE ugyanazt a fiókot használja, így nem kell minden alkalmazásba külön bejelentkeznie.</p>
+    <p xml:lang="de">LuxAI-Account ist der eine Ort, an dem Sie sich auf diesem Computer bei LuxAI anmelden. LuxAI, Lux Code und LSL IDE nutzen danach dasselbe Konto – Sie müssen sich nicht in jeder App einzeln anmelden.</p>
+    <p xml:lang="fr">Compte LuxAI est l’unique endroit où vous vous connectez à LuxAI sur cet ordinateur. LuxAI, Lux Code et LSL IDE partagent ensuite le même compte : inutile de vous connecter dans chaque application.</p>
+    <p xml:lang="es">Cuenta de LuxAI es el único lugar donde inicia sesión en LuxAI en este ordenador. Después, LuxAI, Lux Code y LSL IDE comparten la misma cuenta, así que no tiene que iniciar sesión en cada aplicación por separado.</p>
+    <p xml:lang="it">Account LuxAI è l’unico posto in cui accedi a LuxAI su questo computer. LuxAI, Lux Code e LSL IDE usano poi lo stesso account, quindi non devi accedere a ogni app separatamente.</p>
+    <p xml:lang="pt">Conta LuxAI é o único sítio onde inicia sessão no LuxAI neste computador. Depois, o LuxAI, o Lux Code e o LSL IDE partilham a mesma conta, por isso não precisa de iniciar sessão em cada aplicação.</p>
+    <p xml:lang="nl">LuxAI-account is de enige plek waar je je op deze computer aanmeldt bij LuxAI. LuxAI, Lux Code en LSL IDE gebruiken daarna hetzelfde account, dus je hoeft je niet in elke app apart aan te melden.</p>
+    <p xml:lang="sv">LuxAI-konto är det enda stället där du loggar in på LuxAI på den här datorn. LuxAI, Lux Code och LSL IDE använder sedan samma konto, så du behöver inte logga in i varje app för sig.</p>
+    <ul>
+      <li>Sign in with a password, a code sent by e-mail or in the web browser, or create a new account</li>
+      <li xml:lang="cs">Přihlášení heslem, kódem z e-mailu nebo v prohlížeči, případně založení nového účtu</li>
+      <li xml:lang="sk">Prihlásenie heslom, kódom z e-mailu alebo v prehliadači, prípadne založenie nového účtu</li>
+      <li xml:lang="pl">Logowanie hasłem, kodem z e-maila lub w przeglądarce albo założenie nowego konta</li>
+      <li xml:lang="uk">Вхід за паролем, кодом з e-mail або через браузер, чи створення нового облікового запису</li>
+      <li xml:lang="hu">Bejelentkezés jelszóval, e-mailben kapott kóddal vagy a böngészőben, illetve új fiók létrehozása</li>
+      <li xml:lang="de">Anmeldung mit Passwort, per E-Mail-Code oder im Browser – oder ein neues Konto erstellen</li>
+      <li xml:lang="fr">Connexion par mot de passe, par code reçu par e-mail ou dans le navigateur, ou création d’un nouveau compte</li>
+      <li xml:lang="es">Inicio de sesión con contraseña, con un código enviado por correo o en el navegador, o creación de una cuenta nueva</li>
+      <li xml:lang="it">Accesso con password, con un codice via e-mail o nel browser, oppure creazione di un nuovo account</li>
+      <li xml:lang="pt">Início de sessão com palavra-passe, código enviado por e-mail ou no navegador, ou criação de uma conta nova</li>
+      <li xml:lang="nl">Aanmelden met een wachtwoord, een code per e-mail of in de webbrowser, of een nieuw account aanmaken</li>
+      <li xml:lang="sv">Logga in med lösenord, en kod via e-post eller i webbläsaren, eller skapa ett nytt konto</li>
+      <li>This month's AI usage of the Flash and Lite models and when the limits reset</li>
+      <li xml:lang="cs">Spotřeba AI modelů Flash a Lite za tento měsíc a datum obnovení limitů</li>
+      <li xml:lang="sk">Spotreba AI modelov Flash a Lite za tento mesiac a dátum obnovenia limitov</li>
+      <li xml:lang="pl">Zużycie AI modeli Flash i Lite w tym miesiącu oraz termin odnowienia limitów</li>
+      <li xml:lang="uk">Використання AI моделями Flash і Lite цього місяця та дата скидання лімітів</li>
+      <li xml:lang="hu">A Flash és a Lite modell havi AI-használata és a keretek megújulásának dátuma</li>
+      <li xml:lang="de">KI-Nutzung der Modelle Flash und Lite in diesem Monat und wann die Limits zurückgesetzt werden</li>
+      <li xml:lang="fr">Consommation d’IA des modèles Flash et Lite ce mois-ci et date de remise à zéro des limites</li>
+      <li xml:lang="es">Uso de IA de los modelos Flash y Lite este mes y cuándo se restablecen los límites</li>
+      <li xml:lang="it">Utilizzo dell’IA dei modelli Flash e Lite di questo mese e quando si azzerano i limiti</li>
+      <li xml:lang="pt">Utilização de IA dos modelos Flash e Lite este mês e quando os limites são repostos</li>
+      <li xml:lang="nl">AI-gebruik van de modellen Flash en Lite deze maand en wanneer de limieten opnieuw beginnen</li>
+      <li xml:lang="sv">AI-användning för modellerna Flash och Lite den här månaden och när gränserna nollställs</li>
+      <li>Change your username and password</li>
+      <li xml:lang="cs">Změna uživatelského jména a hesla</li>
+      <li xml:lang="sk">Zmena používateľského mena a hesla</li>
+      <li xml:lang="pl">Zmiana nazwy użytkownika i hasła</li>
+      <li xml:lang="uk">Зміна імені користувача й пароля</li>
+      <li xml:lang="hu">Felhasználónév és jelszó módosítása</li>
+      <li xml:lang="de">Benutzernamen und Passwort ändern</li>
+      <li xml:lang="fr">Modification du nom d’utilisateur et du mot de passe</li>
+      <li xml:lang="es">Cambio del nombre de usuario y la contraseña</li>
+      <li xml:lang="it">Modifica del nome utente e della password</li>
+      <li xml:lang="pt">Alteração do nome de utilizador e da palavra-passe</li>
+      <li xml:lang="nl">Gebruikersnaam en wachtwoord wijzigen</li>
+      <li xml:lang="sv">Ändra användarnamn och lösenord</li>
+      <li>Choose the style of LuxAI answers</li>
+      <li xml:lang="cs">Volba stylu odpovědí LuxAI</li>
+      <li xml:lang="sk">Voľba štýlu odpovedí LuxAI</li>
+      <li xml:lang="pl">Wybór stylu odpowiedzi LuxAI</li>
+      <li xml:lang="uk">Вибір стилю відповідей LuxAI</li>
+      <li xml:lang="hu">A LuxAI válaszstílusának kiválasztása</li>
+      <li xml:lang="de">Den Antwortstil von LuxAI wählen</li>
+      <li xml:lang="fr">Choix du style des réponses de LuxAI</li>
+      <li xml:lang="es">Elección del estilo de las respuestas de LuxAI</li>
+      <li xml:lang="it">Scelta dello stile delle risposte di LuxAI</li>
+      <li xml:lang="pt">Escolha do estilo das respostas do LuxAI</li>
+      <li xml:lang="nl">De stijl van de antwoorden van LuxAI kiezen</li>
+      <li xml:lang="sv">Välj stil för LuxAI:s svar</li>
+      <li>Export your data or ask for the account to be deleted</li>
+      <li xml:lang="cs">Export vašich dat nebo žádost o zrušení účtu</li>
+      <li xml:lang="sk">Export vašich údajov alebo žiadosť o zrušenie účtu</li>
+      <li xml:lang="pl">Eksport danych lub prośba o usunięcie konta</li>
+      <li xml:lang="uk">Експорт ваших даних або запит на видалення облікового запису</li>
+      <li xml:lang="hu">Adatai exportálása vagy a fiók törlésének kérése</li>
+      <li xml:lang="de">Ihre Daten exportieren oder die Löschung des Kontos beantragen</li>
+      <li xml:lang="fr">Export de vos données ou demande de suppression du compte</li>
+      <li xml:lang="es">Exportación de sus datos o solicitud de eliminación de la cuenta</li>
+      <li xml:lang="it">Esportazione dei tuoi dati o richiesta di eliminazione dell’account</li>
+      <li xml:lang="pt">Exportação dos seus dados ou pedido de eliminação da conta</li>
+      <li xml:lang="nl">Je gegevens exporteren of verwijdering van het account aanvragen</li>
+      <li xml:lang="sv">Exportera dina data eller begär att kontot tas bort</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

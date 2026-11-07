@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>lux-code</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-custom</project_license>
+  <name>Lux Code</name>
+  <summary>Build, edit and debug projects with an AI coding agent</summary>
+  <launchable type="desktop-id">lux-code.desktop</launchable>
+  <description>
+    <p>Lux Code is an AI coding agent that works in the terminal. Describe a task in plain words and it reads your project, edits the code, runs checks and carries on based on the results.</p>
+    <p xml:lang="cs">Lux Code je AI agent pro programování, který pracuje v terminálu. Popište úkol běžnými slovy a on si přečte projekt, upraví kód, spustí kontroly a podle výsledků pokračuje dál.</p>
+    <p xml:lang="sk">Lux Code je AI agent na programovanie, ktorý pracuje v termináli. Opíšte úlohu bežnými slovami a on si prečíta projekt, upraví kód, spustí kontroly a podľa výsledkov pokračuje ďalej.</p>
+    <p xml:lang="pl">Lux Code to agent AI do programowania działający w terminalu. Opisz zadanie zwykłymi słowami, a on przeczyta projekt, zmieni kod, uruchomi testy i będzie kontynuował na podstawie wyników.</p>
+    <p xml:lang="uk">Lux Code – AI-агент для програмування, який працює в терміналі. Опишіть завдання звичайними словами, і він прочитає проєкт, змінить код, запустить перевірки та продовжить залежно від результатів.</p>
+    <p xml:lang="hu">A Lux Code egy terminálban működő AI programozóügynök. Írja le a feladatot hétköznapi szavakkal, ő pedig elolvassa a projektet, módosítja a kódot, ellenőrzéseket futtat, és az eredmények alapján folytatja.</p>
+    <p xml:lang="de">Lux Code ist ein KI-Agent fürs Programmieren, der im Terminal arbeitet. Beschreiben Sie eine Aufgabe in einfachen Worten – er liest Ihr Projekt, ändert den Code, führt Prüfungen aus und macht anhand der Ergebnisse weiter.</p>
+    <p xml:lang="fr">Lux Code est un agent de programmation IA qui fonctionne dans le terminal. Décrivez une tâche avec vos mots : il lit votre projet, modifie le code, lance des vérifications et poursuit selon les résultats.</p>
+    <p xml:lang="es">Lux Code es un agente de programación con IA que funciona en el terminal. Describa una tarea con palabras sencillas y leerá su proyecto, editará el código, ejecutará comprobaciones y seguirá según los resultados.</p>
+    <p xml:lang="it">Lux Code è un agente IA per la programmazione che lavora nel terminale. Descrivi un compito con parole semplici: legge il progetto, modifica il codice, esegue i controlli e prosegue in base ai risultati.</p>
+    <p xml:lang="pt">Lux Code é um agente de programação com IA que funciona no terminal. Descreva uma tarefa por palavras simples e ele lê o projeto, edita o código, executa verificações e continua com base nos resultados.</p>
+    <p xml:lang="nl">Lux Code is een AI-programmeeragent die in de terminal werkt. Beschrijf een taak in gewone woorden en hij leest je project, past de code aan, voert controles uit en gaat verder op basis van de resultaten.</p>
+    <p xml:lang="sv">Lux Code är en AI-agent för programmering som arbetar i terminalen. Beskriv en uppgift med vanliga ord så läser den projektet, ändrar koden, kör kontroller och fortsätter utifrån resultaten.</p>
+    <ul>
+      <li>Every step is shown compactly, with a short preview of each file edit</li>
+      <li xml:lang="cs">Každý krok se ukáže stručně, u úprav souborů s krátkým náhledem</li>
+      <li xml:lang="sk">Každý krok sa ukáže stručne, pri úpravách súborov s krátkym náhľadom</li>
+      <li xml:lang="pl">Każdy krok jest pokazany zwięźle, z krótkim podglądem każdej zmiany w pliku</li>
+      <li xml:lang="uk">Кожен крок показано стисло, з коротким переглядом кожної зміни файлу</li>
+      <li xml:lang="hu">Minden lépés tömören jelenik meg, a fájlmódosítások rövid előnézetével</li>
+      <li xml:lang="de">Jeder Schritt wird kompakt angezeigt, mit einer kurzen Vorschau jeder Dateiänderung</li>
+      <li xml:lang="fr">Chaque étape est affichée de façon compacte, avec un bref aperçu de chaque modification de fichier</li>
+      <li xml:lang="es">Cada paso se muestra de forma compacta, con una breve vista previa de cada cambio en un archivo</li>
+      <li xml:lang="it">Ogni passaggio è mostrato in forma compatta, con una breve anteprima di ogni modifica ai file</li>
+      <li xml:lang="pt">Cada passo é mostrado de forma compacta, com uma breve pré-visualização de cada alteração a ficheiros</li>
+      <li xml:lang="nl">Elke stap wordt compact getoond, met een korte voorvertoning van elke bestandswijziging</li>
+      <li xml:lang="sv">Varje steg visas kompakt, med en kort förhandsvisning av varje filändring</li>
+      <li>Choose how much it may do on its own: read only, confirm actions or full access</li>
+      <li xml:lang="cs">Sami určíte, kolik smí dělat sám: jen číst, potvrzovat akce, nebo plný přístup</li>
+      <li xml:lang="sk">Sami určíte, koľko smie robiť sám: len čítať, potvrdzovať akcie, alebo plný prístup</li>
+      <li xml:lang="pl">Decydujesz, ile może robić sam: tylko odczyt, potwierdzanie działań lub pełny dostęp</li>
+      <li xml:lang="uk">Ви вирішуєте, скільки він може робити сам: лише читання, підтвердження дій або повний доступ</li>
+      <li xml:lang="hu">Ön dönti el, mennyit tehet önállóan: csak olvasás, műveletek jóváhagyása vagy teljes hozzáférés</li>
+      <li xml:lang="de">Sie legen fest, wie viel er selbst darf: nur lesen, Aktionen bestätigen oder voller Zugriff</li>
+      <li xml:lang="fr">Choisissez ce qu’il peut faire seul : lecture seule, confirmation des actions ou accès complet</li>
+      <li xml:lang="es">Elija cuánto puede hacer por su cuenta: solo lectura, confirmar acciones o acceso completo</li>
+      <li xml:lang="it">Scegli quanto può fare da solo: sola lettura, conferma delle azioni o accesso completo</li>
+      <li xml:lang="pt">Escolha quanto pode fazer sozinho: só leitura, confirmar ações ou acesso total</li>
+      <li xml:lang="nl">Kies hoeveel hij zelf mag doen: alleen lezen, acties bevestigen of volledige toegang</li>
+      <li xml:lang="sv">Välj hur mycket den får göra själv: bara läsa, bekräfta åtgärder eller full åtkomst</li>
+      <li>Review the changed files and undo the last edit</li>
+      <li xml:lang="cs">Přehled změněných souborů a vrácení poslední úpravy</li>
+      <li xml:lang="sk">Prehľad zmenených súborov a vrátenie poslednej úpravy</li>
+      <li xml:lang="pl">Przegląd zmienionych plików i cofnięcie ostatniej zmiany</li>
+      <li xml:lang="uk">Перегляд змінених файлів і скасування останньої зміни</li>
+      <li xml:lang="hu">A módosított fájlok áttekintése és az utolsó módosítás visszavonása</li>
+      <li xml:lang="de">Geänderte Dateien prüfen und die letzte Änderung rückgängig machen</li>
+      <li xml:lang="fr">Revue des fichiers modifiés et annulation de la dernière modification</li>
+      <li xml:lang="es">Revisión de los archivos cambiados y deshacer el último cambio</li>
+      <li xml:lang="it">Revisione dei file modificati e annullamento dell’ultima modifica</li>
+      <li xml:lang="pt">Revisão dos ficheiros alterados e anulação da última alteração</li>
+      <li xml:lang="nl">Gewijzigde bestanden bekijken en de laatste wijziging ongedaan maken</li>
+      <li xml:lang="sv">Granska ändrade filer och ångra den senaste ändringen</li>
+      <li>Saved sessions that you can resume later</li>
+      <li xml:lang="cs">Uložená sezení, ve kterých můžete později pokračovat</li>
+      <li xml:lang="sk">Uložené relácie, v ktorých môžete neskôr pokračovať</li>
+      <li xml:lang="pl">Zapisane sesje, do których można wrócić później</li>
+      <li xml:lang="uk">Збережені сесії, які можна продовжити пізніше</li>
+      <li xml:lang="hu">Mentett munkamenetek, amelyeket később folytathat</li>
+      <li xml:lang="de">Gespeicherte Sitzungen, die Sie später fortsetzen können</li>
+      <li xml:lang="fr">Sessions enregistrées que vous pouvez reprendre plus tard</li>
+      <li xml:lang="es">Sesiones guardadas que puede retomar más tarde</li>
+      <li xml:lang="it">Sessioni salvate da riprendere in seguito</li>
+      <li xml:lang="pt">Sessões guardadas que pode retomar mais tarde</li>
+      <li xml:lang="nl">Opgeslagen sessies die je later kunt hervatten</li>
+      <li xml:lang="sv">Sparade sessioner som du kan återuppta senare</li>
+      <li>Looks things up in the offline LuxOS and LSL documentation</li>
+      <li xml:lang="cs">Umí hledat v offline dokumentaci LuxOS a LSL</li>
+      <li xml:lang="sk">Vie hľadať v offline dokumentácii LuxOS a LSL</li>
+      <li xml:lang="pl">Sprawdza informacje w dokumentacji LuxOS i LSL dostępnej offline</li>
+      <li xml:lang="uk">Шукає відомості в офлайн-документації LuxOS і LSL</li>
+      <li xml:lang="hu">Utánanéz a LuxOS és az LSL offline dokumentációjában</li>
+      <li xml:lang="de">Schlägt in der Offline-Dokumentation von LuxOS und LSL nach</li>
+      <li xml:lang="fr">Consulte la documentation hors ligne de LuxOS et de LSL</li>
+      <li xml:lang="es">Consulta la documentación sin conexión de LuxOS y LSL</li>
+      <li xml:lang="it">Consulta la documentazione offline di LuxOS e LSL</li>
+      <li xml:lang="pt">Consulta a documentação offline do LuxOS e do LSL</li>
+      <li xml:lang="nl">Zoekt dingen op in de offline documentatie van LuxOS en LSL</li>
+      <li xml:lang="sv">Slår upp saker i offlinedokumentationen för LuxOS och LSL</li>
+      <li>Uses your LuxAI account or your own API key</li>
+      <li xml:lang="cs">Používá váš účet LuxAI nebo vlastní API klíč</li>
+      <li xml:lang="sk">Používa váš účet LuxAI alebo vlastný API kľúč</li>
+      <li xml:lang="pl">Korzysta z Twojego konta LuxAI lub własnego klucza API</li>
+      <li xml:lang="uk">Використовує ваш обліковий запис LuxAI або власний ключ API</li>
+      <li xml:lang="hu">A LuxAI-fiókját vagy saját API-kulcsát használja</li>
+      <li xml:lang="de">Nutzt Ihr LuxAI-Konto oder Ihren eigenen API-Schlüssel</li>
+      <li xml:lang="fr">Utilise votre compte LuxAI ou votre propre clé API</li>
+      <li xml:lang="es">Usa su cuenta de LuxAI o su propia clave de API</li>
+      <li xml:lang="it">Usa il tuo account LuxAI o una tua chiave API</li>
+      <li xml:lang="pt">Usa a sua conta LuxAI ou a sua própria chave de API</li>
+      <li xml:lang="nl">Gebruikt je LuxAI-account of je eigen API-sleutel</li>
+      <li xml:lang="sv">Använder ditt LuxAI-konto eller din egen API-nyckel</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

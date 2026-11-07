@@ -4775,3 +4775,8 @@ Seznam: use your normal password. With two-factor authentication turned on, crea
 Signing in failed.	Inloggningen misslyckades.
 Starred	Stjärnmärkta
 iCloud Mail requires an app-specific password: turn on two-factor authentication for your Apple Account, then in Sign-In and Security choose App-Specific Passwords, create one and enter it here.	iCloud Mail kräver ett appspecifikt lösenord: aktivera tvåfaktorsautentisering för ditt Apple-konto, välj sedan Appspecifika lösenord under Inloggning och säkerhet, skapa ett och ange det här.
+Screenshot %d of %d	Skärmbild %d av %d
+Previous screenshot	Föregående skärmbild
+Next screenshot	Nästa skärmbild
+Screenshots are not available offline.	Skärmbilder är inte tillgängliga offline.
+Show screenshots	Visa skärmbilder

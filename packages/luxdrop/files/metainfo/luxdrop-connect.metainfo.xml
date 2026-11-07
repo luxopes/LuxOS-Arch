@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxdrop-connect</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Connect to Computer</name>
+  <summary>Open the shared folders of another LuxOS computer next to your files</summary>
+  <launchable type="desktop-id">luxdrop-connect.desktop</launchable>
+  <description>
+    <p>Connect to Computer opens the shared folders of another LuxOS computer on your network in Files, right next to your own files. Drag and drop copies files between the two computers. Neither computer needs a server set up or an administrator password.</p>
+    <p xml:lang="cs">Aplikace Připojit k počítači otevře sdílené složky jiného počítače s LuxOS ve vaší síti přímo v Souborech, vedle vašich vlastních souborů. Přetažením myší kopírujete soubory mezi oběma počítači. Na žádném z nich nemusíte nastavovat server ani zadávat heslo správce.</p>
+    <p xml:lang="sk">Aplikácia Pripojiť k počítaču otvorí zdieľané priečinky iného počítača s LuxOS vo vašej sieti priamo v Súboroch, vedľa vašich vlastných súborov. Presunutím myšou kopírujete súbory medzi oboma počítačmi. Na žiadnom z nich netreba nastavovať server ani zadávať heslo správcu.</p>
+    <p xml:lang="pl">Połącz z komputerem otwiera udostępnione foldery innego komputera z LuxOS w twojej sieci bezpośrednio w Plikach, obok twoich własnych plików. Przeciąganie myszą kopiuje pliki między oboma komputerami. Na żadnym z nich nie trzeba konfigurować serwera ani podawać hasła administratora.</p>
+    <p xml:lang="uk">«Під’єднатися до комп’ютера» відкриває спільні теки іншого комп’ютера з LuxOS у вашій мережі просто у Файлах, поруч із вашими власними файлами. Перетягування мишею копіює файли між двома комп’ютерами. На жодному з них не потрібно налаштовувати сервер чи вводити пароль адміністратора.</p>
+    <p xml:lang="hu">A Csatlakozás számítógéphez a hálózatán lévő másik LuxOS-számítógép megosztott mappáit nyitja meg a Fájlokban, közvetlenül a saját fájljai mellett. Húzással fájlokat másolhat a két számítógép között. Egyik gépen sem kell kiszolgálót beállítani vagy rendszergazdai jelszót megadni.</p>
+    <p xml:lang="de">„Mit Computer verbinden“ öffnet die freigegebenen Ordner eines anderen LuxOS-Computers in Ihrem Netzwerk direkt in „Dateien“, gleich neben Ihren eigenen Dateien. Per Ziehen und Ablegen kopieren Sie Dateien zwischen beiden Computern. Auf keinem der beiden muss ein Server eingerichtet oder ein Administratorpasswort eingegeben werden.</p>
+    <p xml:lang="fr">Se connecter à un ordinateur ouvre les dossiers partagés d’un autre ordinateur LuxOS de votre réseau directement dans Fichiers, à côté de vos propres fichiers. Un glisser-déposer copie les fichiers d’un ordinateur à l’autre. Aucun serveur à configurer ni mot de passe administrateur à saisir, d’un côté comme de l’autre.</p>
+    <p xml:lang="es">Conectar a un equipo abre las carpetas compartidas de otro equipo con LuxOS de su red directamente en Archivos, junto a sus propios archivos. Arrastrando y soltando copia archivos entre ambos equipos. En ninguno de los dos hace falta configurar un servidor ni introducir la contraseña de administrador.</p>
+    <p xml:lang="it">Connetti a un computer apre le cartelle condivise di un altro computer LuxOS della tua rete direttamente in File, accanto ai tuoi file. Con il trascinamento copi i file da un computer all’altro. Su nessuno dei due serve configurare un server o inserire la password di amministratore.</p>
+    <p xml:lang="pt">O Conectar a um computador abre as pastas compartilhadas de outro computador com LuxOS da sua rede diretamente no Arquivos, ao lado dos seus próprios arquivos. Arrastar e soltar copia arquivos entre os dois computadores. Nenhum dos dois precisa de servidor configurado nem da senha de administrador.</p>
+    <p xml:lang="nl">Verbinden met computer opent de gedeelde mappen van een andere LuxOS-computer in je netwerk direct in Bestanden, naast je eigen bestanden. Met slepen en neerzetten kopieer je bestanden tussen beide computers. Op geen van beide hoef je een server in te stellen of een beheerderswachtwoord in te voeren.</p>
+    <p xml:lang="sv">Anslut till dator öppnar de delade mapparna på en annan LuxOS-dator i ditt nätverk direkt i Filer, bredvid dina egna filer. Dra och släpp kopierar filer mellan datorerna. Ingen av dem behöver någon server eller något administratörslösenord.</p>
+    <ul>
+      <li>Computers that share folders are found automatically</li>
+      <li xml:lang="cs">Počítače se sdílenými složkami se najdou samy</li>
+      <li xml:lang="sk">Počítače so zdieľanými priečinkami sa nájdu samy</li>
+      <li xml:lang="pl">Komputery z udostępnionymi folderami są wyszukiwane automatycznie</li>
+      <li xml:lang="uk">Комп’ютери зі спільними теками знаходяться автоматично</li>
+      <li xml:lang="hu">A mappákat megosztó számítógépeket magától megtalálja</li>
+      <li xml:lang="de">Computer mit freigegebenen Ordnern werden automatisch gefunden</li>
+      <li xml:lang="fr">Les ordinateurs qui partagent des dossiers sont trouvés automatiquement</li>
+      <li xml:lang="es">Los equipos que comparten carpetas se encuentran automáticamente</li>
+      <li xml:lang="it">I computer che condividono cartelle vengono trovati automaticamente</li>
+      <li xml:lang="pt">Computadores que compartilham pastas são encontrados automaticamente</li>
+      <li xml:lang="nl">Computers die mappen delen worden automatisch gevonden</li>
+      <li xml:lang="sv">Datorer som delar mappar hittas automatiskt</li>
+      <li>The first time, you check the other computer with a verification code</li>
+      <li xml:lang="cs">Při prvním připojení ověříte druhý počítač kódem</li>
+      <li xml:lang="sk">Pri prvom pripojení overíte druhý počítač kódom</li>
+      <li xml:lang="pl">Przy pierwszym połączeniu weryfikujesz drugi komputer kodem</li>
+      <li xml:lang="uk">Під час першого з’єднання ви перевіряєте інший комп’ютер кодом</li>
+      <li xml:lang="hu">Az első alkalommal ellenőrző kóddal azonosítja a másik számítógépet</li>
+      <li xml:lang="de">Beim ersten Mal prüfen Sie den anderen Computer mit einem Bestätigungscode</li>
+      <li xml:lang="fr">La première fois, vous vérifiez l’autre ordinateur avec un code</li>
+      <li xml:lang="es">La primera vez, comprueba el otro equipo con un código de verificación</li>
+      <li xml:lang="it">La prima volta verifichi l’altro computer con un codice</li>
+      <li xml:lang="pt">Na primeira vez, você confere o outro computador com um código</li>
+      <li xml:lang="nl">De eerste keer controleer je de andere computer met een verificatiecode</li>
+      <li xml:lang="sv">Första gången kontrollerar du den andra datorn med en verifieringskod</li>
+      <li>The owner allows each new computer once or always</li>
+      <li xml:lang="cs">Vlastník povolí každý nový počítač jednou, nebo natrvalo</li>
+      <li xml:lang="sk">Vlastník povolí každý nový počítač raz alebo natrvalo</li>
+      <li xml:lang="pl">Właściciel zezwala każdemu nowemu komputerowi jednorazowo lub na stałe</li>
+      <li xml:lang="uk">Власник дозволяє кожен новий комп’ютер одноразово або назавжди</li>
+      <li xml:lang="hu">A tulajdonos minden új számítógépet egyszer vagy mindig engedélyez</li>
+      <li xml:lang="de">Der Besitzer erlaubt jeden neuen Computer einmal oder dauerhaft</li>
+      <li xml:lang="fr">Le propriétaire autorise chaque nouvel ordinateur une fois ou toujours</li>
+      <li xml:lang="es">El propietario permite cada equipo nuevo una vez o siempre</li>
+      <li xml:lang="it">Il proprietario consente ogni nuovo computer una volta o sempre</li>
+      <li xml:lang="pt">O dono permite cada computador novo uma vez ou sempre</li>
+      <li xml:lang="nl">De eigenaar staat elke nieuwe computer eenmalig of altijd toe</li>
+      <li xml:lang="sv">Ägaren tillåter varje ny dator en gång eller alltid</li>
+      <li>Read-only unless the owner also allows changes</li>
+      <li xml:lang="cs">Jen pro čtení, pokud vlastník nepovolí i změny</li>
+      <li xml:lang="sk">Len na čítanie, ak vlastník nepovolí aj zmeny</li>
+      <li xml:lang="pl">Tylko do odczytu, chyba że właściciel zezwoli też na zmiany</li>
+      <li xml:lang="uk">Лише для читання, якщо власник не дозволить і зміни</li>
+      <li xml:lang="hu">Csak olvasható, hacsak a tulajdonos a módosítást is nem engedi</li>
+      <li xml:lang="de">Nur lesbar, außer der Besitzer erlaubt auch Änderungen</li>
+      <li xml:lang="fr">Lecture seule, sauf si le propriétaire autorise aussi les modifications</li>
+      <li xml:lang="es">Solo lectura, salvo que el propietario permita también cambios</li>
+      <li xml:lang="it">Sola lettura, a meno che il proprietario non consenta anche le modifiche</li>
+      <li xml:lang="pt">Somente leitura, a menos que o dono também permita alterações</li>
+      <li xml:lang="nl">Alleen-lezen, tenzij de eigenaar ook wijzigingen toestaat</li>
+      <li xml:lang="sv">Skrivskyddat om inte ägaren även tillåter ändringar</li>
+      <li>Encrypted connection that shows only the shared folders</li>
+      <li xml:lang="cs">Šifrované spojení, které zpřístupní jen sdílené složky</li>
+      <li xml:lang="sk">Šifrované spojenie, ktoré sprístupní len zdieľané priečinky</li>
+      <li xml:lang="pl">Szyfrowane połączenie, przez które widać tylko udostępnione foldery</li>
+      <li xml:lang="uk">Зашифроване з’єднання, через яке видно лише спільні теки</li>
+      <li xml:lang="hu">Titkosított kapcsolat, amelyen csak a megosztott mappák látszanak</li>
+      <li xml:lang="de">Verschlüsselte Verbindung, über die nur die freigegebenen Ordner sichtbar sind</li>
+      <li xml:lang="fr">Connexion chiffrée qui ne montre que les dossiers partagés</li>
+      <li xml:lang="es">Conexión cifrada que solo muestra las carpetas compartidas</li>
+      <li xml:lang="it">Connessione cifrata che mostra solo le cartelle condivise</li>
+      <li xml:lang="pt">Conexão criptografada que mostra só as pastas compartilhadas</li>
+      <li xml:lang="nl">Versleutelde verbinding waarin alleen de gedeelde mappen zichtbaar zijn</li>
+      <li xml:lang="sv">Krypterad anslutning som bara visar de delade mapparna</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

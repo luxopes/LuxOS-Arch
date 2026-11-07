@@ -13,7 +13,7 @@
 
 pkgname=luxos-maps
 pkgver=1.0.0
-pkgrel=5
+pkgrel=6
 pkgdesc="LuxOS Maps - OpenStreetMap maps, place search, routes, public transport with live departures, nearby places, favorites and geo: links"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -41,5 +41,7 @@ package() {
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 "$f/luxos-maps.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-maps.svg"
     install -Dm644 "$f/luxos-maps.desktop" "$pkgdir/usr/share/applications/luxos-maps.desktop"
+    # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
+    install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
     install -Dm644 "$f/90-luxos-maps.conf" "$pkgdir/etc/geoclue/conf.d/90-luxos-maps.conf"
 }

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-text</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Text Editor</name>
+  <summary>Write and edit text files and code</summary>
+  <launchable type="desktop-id">luxos-text.desktop</launchable>
+  <description>
+    <p>Text Editor is a fast editor for notes, configuration files and code. It highlights the syntax of many languages, including LSL, and shows the open folder in a sidebar.</p>
+    <p xml:lang="cs">Textový editor je rychlý editor poznámek, konfiguračních souborů a kódu. Zvýrazňuje syntaxi mnoha jazyků včetně LSL a otevřenou složku ukazuje v postranním panelu.</p>
+    <p xml:lang="sk">Textový editor je rýchly editor poznámok, konfiguračných súborov a kódu. Zvýrazňuje syntax mnohých jazykov vrátane LSL a otvorený priečinok zobrazuje v bočnom paneli.</p>
+    <p xml:lang="pl">Edytor tekstu to szybki edytor notatek, plików konfiguracyjnych i kodu. Podświetla składnię wielu języków, w tym LSL, a otwarty folder pokazuje w panelu bocznym.</p>
+    <p xml:lang="uk">Текстовий редактор — це швидкий редактор нотаток, файлів налаштувань і коду. Він підсвічує синтаксис багатьох мов, зокрема LSL, і показує відкриту теку на бічній панелі.</p>
+    <p xml:lang="hu">A Szövegszerkesztő gyors szerkesztő jegyzetekhez, konfigurációs fájlokhoz és kódhoz. Számos nyelv szintaxisát kiemeli, köztük az LSL-t, a megnyitott mappát pedig oldalsávban mutatja.</p>
+    <p xml:lang="de">Texteditor ist ein schneller Editor für Notizen, Konfigurationsdateien und Code. Er hebt die Syntax vieler Sprachen hervor, auch von LSL, und zeigt den geöffneten Ordner in einer Seitenleiste.</p>
+    <p xml:lang="fr">Éditeur de texte est un éditeur rapide pour les notes, les fichiers de configuration et le code. Il colore la syntaxe de nombreux langages, dont LSL, et affiche le dossier ouvert dans une barre latérale.</p>
+    <p xml:lang="es">Editor de texto es un editor rápido para notas, archivos de configuración y código. Resalta la sintaxis de muchos lenguajes, incluido LSL, y muestra la carpeta abierta en una barra lateral.</p>
+    <p xml:lang="it">Editor di testo è un editor veloce per note, file di configurazione e codice. Evidenzia la sintassi di molti linguaggi, incluso LSL, e mostra la cartella aperta in una barra laterale.</p>
+    <p xml:lang="pt">O Editor de texto é um editor rápido para notas, ficheiros de configuração e código. Realça a sintaxe de muitas linguagens, incluindo LSL, e mostra a pasta aberta numa barra lateral.</p>
+    <p xml:lang="nl">Teksteditor is een snelle editor voor notities, configuratiebestanden en code. Hij markeert de syntaxis van veel talen, ook LSL, en toont de geopende map in een zijbalk.</p>
+    <p xml:lang="sv">Textredigerare är en snabb redigerare för anteckningar, konfigurationsfiler och kod. Den färgmarkerar syntaxen för många språk, även LSL, och visar den öppna mappen i ett sidofält.</p>
+    <p>It recognizes the encoding and line endings of each file and keeps them when saving, so files from Windows and older systems stay intact.</p>
+    <p xml:lang="cs">Pozná kódování a konce řádků každého souboru a při ukládání je zachová, takže soubory z Windows a starších systémů zůstanou v pořádku.</p>
+    <p xml:lang="sk">Rozpozná kódovanie a konce riadkov každého súboru a pri ukladaní ich zachová, takže súbory z Windows a starších systémov zostanú v poriadku.</p>
+    <p xml:lang="pl">Rozpoznaje kodowanie i znaki końca wiersza każdego pliku i zachowuje je przy zapisie, dzięki czemu pliki z Windows i starszych systemów pozostają nienaruszone.</p>
+    <p xml:lang="uk">Він розпізнає кодування та кінці рядків кожного файлу й не змінює їх під час збереження, тож файли з Windows і старіших систем залишаються неушкодженими.</p>
+    <p xml:lang="hu">Felismeri minden fájl kódolását és sorvégjeleit, és mentéskor megtartja őket, így a Windowsból és régebbi rendszerekből származó fájlok épek maradnak.</p>
+    <p xml:lang="de">Er erkennt Zeichenkodierung und Zeilenenden jeder Datei und behält sie beim Speichern bei – Dateien aus Windows und älteren Systemen bleiben unversehrt.</p>
+    <p xml:lang="fr">Il reconnaît l’encodage et les fins de ligne de chaque fichier et les conserve à l’enregistrement : les fichiers venant de Windows ou de systèmes plus anciens restent intacts.</p>
+    <p xml:lang="es">Reconoce la codificación y los finales de línea de cada archivo y los conserva al guardar, así que los archivos de Windows y de sistemas antiguos quedan intactos.</p>
+    <p xml:lang="it">Riconosce la codifica e i fine riga di ogni file e li mantiene al salvataggio, così i file provenienti da Windows e da sistemi più vecchi restano intatti.</p>
+    <p xml:lang="pt">Reconhece a codificação e os fins de linha de cada ficheiro e mantém-nos ao guardar, por isso os ficheiros do Windows e de sistemas mais antigos ficam intactos.</p>
+    <p xml:lang="nl">Hij herkent de codering en regeleinden van elk bestand en behoudt ze bij het opslaan, zodat bestanden uit Windows en oudere systemen intact blijven.</p>
+    <p xml:lang="sv">Den känner igen teckenkodning och radslut i varje fil och behåller dem när du sparar, så filer från Windows och äldre system förblir intakta.</p>
+    <ul>
+      <li>Folder sidebar for opening and creating files</li>
+      <li xml:lang="cs">Postranní panel se složkou pro otevírání a vytváření souborů</li>
+      <li xml:lang="sk">Bočný panel s priečinkom na otváranie a vytváranie súborov</li>
+      <li xml:lang="pl">Panel boczny z folderem do otwierania i tworzenia plików</li>
+      <li xml:lang="uk">Бічна панель із текою для відкриття та створення файлів</li>
+      <li xml:lang="hu">Mappát mutató oldalsáv fájlok megnyitásához és létrehozásához</li>
+      <li xml:lang="de">Ordner-Seitenleiste zum Öffnen und Anlegen von Dateien</li>
+      <li xml:lang="fr">Barre latérale du dossier pour ouvrir et créer des fichiers</li>
+      <li xml:lang="es">Barra lateral de la carpeta para abrir y crear archivos</li>
+      <li xml:lang="it">Barra laterale della cartella per aprire e creare file</li>
+      <li xml:lang="pt">Barra lateral da pasta para abrir e criar ficheiros</li>
+      <li xml:lang="nl">Zijbalk met de map om bestanden te openen en aan te maken</li>
+      <li xml:lang="sv">Sidofält med mappen för att öppna och skapa filer</li>
+      <li>Outline of headings and functions with quick jumps</li>
+      <li xml:lang="cs">Osnova nadpisů a funkcí s rychlými skoky</li>
+      <li xml:lang="sk">Osnova nadpisov a funkcií s rýchlymi skokmi</li>
+      <li xml:lang="pl">Konspekt nagłówków i funkcji z szybkim przechodzeniem</li>
+      <li xml:lang="uk">Структура заголовків і функцій зі швидкими переходами</li>
+      <li xml:lang="hu">Címsorok és függvények vázlata gyors ugrással</li>
+      <li xml:lang="de">Gliederung von Überschriften und Funktionen mit schnellen Sprüngen</li>
+      <li xml:lang="fr">Plan des titres et des fonctions avec accès rapide</li>
+      <li xml:lang="es">Esquema de títulos y funciones con saltos rápidos</li>
+      <li xml:lang="it">Schema di titoli e funzioni con salti rapidi</li>
+      <li xml:lang="pt">Estrutura de títulos e funções com saltos rápidos</li>
+      <li xml:lang="nl">Overzicht van koppen en functies om snel te springen</li>
+      <li xml:lang="sv">Disposition över rubriker och funktioner med snabba hopp</li>
+      <li>Find and replace, also with regular expressions</li>
+      <li xml:lang="cs">Hledání a nahrazování, i pomocí regulárních výrazů</li>
+      <li xml:lang="sk">Hľadanie a nahrádzanie, aj pomocou regulárnych výrazov</li>
+      <li xml:lang="pl">Znajdź i zamień, także z wyrażeniami regularnymi</li>
+      <li xml:lang="uk">Пошук і заміна, зокрема з регулярними виразами</li>
+      <li xml:lang="hu">Keresés és csere, reguláris kifejezésekkel is</li>
+      <li xml:lang="de">Suchen und Ersetzen, auch mit regulären Ausdrücken</li>
+      <li xml:lang="fr">Rechercher et remplacer, y compris avec des expressions régulières</li>
+      <li xml:lang="es">Buscar y reemplazar, también con expresiones regulares</li>
+      <li xml:lang="it">Trova e sostituisci, anche con espressioni regolari</li>
+      <li xml:lang="pt">Procurar e substituir, também com expressões regulares</li>
+      <li xml:lang="nl">Zoeken en vervangen, ook met reguliere expressies</li>
+      <li xml:lang="sv">Sök och ersätt, även med reguljära uttryck</li>
+      <li>Lines, characters and words in the status bar</li>
+      <li xml:lang="cs">Počty řádků, znaků a slov ve stavovém řádku</li>
+      <li xml:lang="sk">Počty riadkov, znakov a slov v stavovom riadku</li>
+      <li xml:lang="pl">Liczba wierszy, znaków i słów na pasku stanu</li>
+      <li xml:lang="uk">Кількість рядків, символів і слів у рядку стану</li>
+      <li xml:lang="hu">Sorok, karakterek és szavak száma az állapotsorban</li>
+      <li xml:lang="de">Zeilen, Zeichen und Wörter in der Statusleiste</li>
+      <li xml:lang="fr">Lignes, caractères et mots dans la barre d’état</li>
+      <li xml:lang="es">Líneas, caracteres y palabras en la barra de estado</li>
+      <li xml:lang="it">Righe, caratteri e parole nella barra di stato</li>
+      <li xml:lang="pt">Linhas, caracteres e palavras na barra de estado</li>
+      <li xml:lang="nl">Regels, tekens en woorden in de statusbalk</li>
+      <li xml:lang="sv">Rader, tecken och ord i statusfältet</li>
+      <li>Tabs, recent files and light or dark colors</li>
+      <li xml:lang="cs">Panely, nedávné soubory a světlé či tmavé barvy</li>
+      <li xml:lang="sk">Karty, nedávne súbory a svetlé či tmavé farby</li>
+      <li xml:lang="pl">Karty, ostatnie pliki oraz jasne lub ciemne kolory</li>
+      <li xml:lang="uk">Вкладки, нещодавні файли та світлі або темні кольори</li>
+      <li xml:lang="hu">Lapok, legutóbbi fájlok és világos vagy sötét színek</li>
+      <li xml:lang="de">Tabs, zuletzt geöffnete Dateien und helle oder dunkle Farben</li>
+      <li xml:lang="fr">Onglets, fichiers récents et couleurs claires ou sombres</li>
+      <li xml:lang="es">Pestañas, archivos recientes y colores claros u oscuros</li>
+      <li xml:lang="it">Schede, file recenti e colori chiari o scuri</li>
+      <li xml:lang="pt">Separadores, ficheiros recentes e cores claras ou escuras</li>
+      <li xml:lang="nl">Tabbladen, recente bestanden en lichte of donkere kleuren</li>
+      <li xml:lang="sv">Flikar, senaste filer och ljusa eller mörka färger</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

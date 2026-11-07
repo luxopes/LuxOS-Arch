@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-weather</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Weather</name>
+  <summary>Current weather and forecast for your places</summary>
+  <launchable type="desktop-id">luxos-weather.desktop</launchable>
+  <description>
+    <p>Weather shows the current conditions, an hourly forecast for the next 24 hours and a 7-day forecast for all your saved places. The window background follows the sky.</p>
+    <p xml:lang="cs">Počasí ukazuje aktuální stav, hodinovou předpověď na příštích 24 hodin a předpověď na 7 dní pro všechna vaše uložená místa. Pozadí okna se mění podle oblohy.</p>
+    <p xml:lang="sk">Počasie zobrazuje aktuálny stav, hodinovú predpoveď na najbližších 24 hodín a predpoveď na 7 dní pre všetky vaše uložené miesta. Pozadie okna sa mení podľa oblohy.</p>
+    <p xml:lang="pl">Pogoda pokazuje bieżące warunki, prognozę godzinową na najbliższe 24 godziny i prognozę na 7 dni dla wszystkich zapisanych miejsc. Tło okna zmienia się zależnie od nieba.</p>
+    <p xml:lang="uk">Погода показує поточні умови, погодинний прогноз на найближчі 24 години та прогноз на 7 днів для всіх ваших збережених місць. Тло вікна змінюється разом із небом.</p>
+    <p xml:lang="hu">Az Időjárás megmutatja az aktuális időjárást, a következő 24 óra óránkénti és a 7 napos előrejelzést minden mentett helyére. Az ablak háttere az égboltot követi.</p>
+    <p xml:lang="de">Wetter zeigt das aktuelle Wetter, eine stündliche Vorhersage für die nächsten 24 Stunden und eine 7-Tage-Vorhersage für alle gespeicherten Orte. Der Fensterhintergrund folgt dem Himmel.</p>
+    <p xml:lang="fr">Météo affiche les conditions actuelles, des prévisions heure par heure pour les 24 prochaines heures et sur 7 jours pour tous vos lieux enregistrés. L’arrière-plan de la fenêtre suit le ciel.</p>
+    <p xml:lang="es">Tiempo muestra el estado actual, el pronóstico por horas para las próximas 24 horas y el de 7 días para todos tus lugares guardados. El fondo de la ventana sigue al cielo.</p>
+    <p xml:lang="it">Meteo mostra le condizioni attuali, le previsioni orarie per le prossime 24 ore e quelle a 7 giorni per tutti i tuoi luoghi salvati. Lo sfondo della finestra segue il cielo.</p>
+    <p xml:lang="pt">O Tempo mostra as condições atuais, a previsão hora a hora para as próximas 24 horas e a previsão a 7 dias para todos os seus locais guardados. O fundo da janela acompanha o céu.</p>
+    <p xml:lang="nl">Weer toont het actuele weer, een verwachting per uur voor de komende 24 uur en een 7-daagse verwachting voor al je opgeslagen plaatsen. De achtergrond van het venster volgt de lucht.</p>
+    <p xml:lang="sv">Väder visar aktuellt väder, en timprognos för de kommande 24 timmarna och en 7-dygnsprognos för alla dina sparade platser. Fönstrets bakgrund följer himlen.</p>
+    <p>The forecast comes from Open-Meteo. Weather never looks up your location on its own, only when you ask for it and allow it.</p>
+    <p xml:lang="cs">Předpověď pochází z Open-Meteo. Počasí nikdy samo nezjišťuje vaši polohu, jen když o to požádáte a povolíte to.</p>
+    <p xml:lang="sk">Predpoveď pochádza z Open-Meteo. Počasie nikdy samo nezisťuje vašu polohu, len keď o to požiadate a povolíte to.</p>
+    <p xml:lang="pl">Prognoza pochodzi z Open-Meteo. Pogoda nigdy sama nie ustala Twojej lokalizacji, tylko gdy o to poprosisz i na to zezwolisz.</p>
+    <p xml:lang="uk">Прогноз надходить від Open-Meteo. Погода ніколи сама не визначає ваше місцезнаходження, лише коли ви про це попросите й дозволите.</p>
+    <p xml:lang="hu">Az előrejelzés az Open-Meteótól származik. Az Időjárás soha nem állapítja meg magától a tartózkodási helyét, csak ha Ön kéri és engedélyezi.</p>
+    <p xml:lang="de">Die Vorhersage stammt von Open-Meteo. Wetter ermittelt Ihren Standort nie von selbst, nur wenn Sie es verlangen und erlauben.</p>
+    <p xml:lang="fr">Les prévisions proviennent d’Open-Meteo. Météo ne détermine jamais votre position de lui-même, seulement si vous le demandez et l’autorisez.</p>
+    <p xml:lang="es">El pronóstico procede de Open-Meteo. Tiempo nunca averigua tu ubicación por su cuenta, solo cuando lo pides y lo permites.</p>
+    <p xml:lang="it">Le previsioni provengono da Open-Meteo. Meteo non rileva mai la tua posizione da solo, solo quando lo chiedi e lo consenti.</p>
+    <p xml:lang="pt">A previsão vem do Open-Meteo. O Tempo nunca determina a sua localização por si, só quando o pede e o autoriza.</p>
+    <p xml:lang="nl">De verwachting komt van Open-Meteo. Weer bepaalt je locatie nooit uit zichzelf, alleen als je erom vraagt en het toestaat.</p>
+    <p xml:lang="sv">Prognosen kommer från Open-Meteo. Väder tar aldrig reda på din plats av sig självt, bara när du ber om det och tillåter det.</p>
+    <ul>
+      <li>Your places in the sidebar with the current temperature</li>
+      <li xml:lang="cs">Vaše místa v postranním panelu s aktuální teplotou</li>
+      <li xml:lang="sk">Vaše miesta v bočnom paneli s aktuálnou teplotou</li>
+      <li xml:lang="pl">Twoje miejsca na panelu bocznym z bieżącą temperaturą</li>
+      <li xml:lang="uk">Ваші місця на бічній панелі з поточною температурою</li>
+      <li xml:lang="hu">Az Ön helyei az oldalsávban az aktuális hőmérséklettel</li>
+      <li xml:lang="de">Ihre Orte in der Seitenleiste mit aktueller Temperatur</li>
+      <li xml:lang="fr">Vos lieux dans la barre latérale avec la température actuelle</li>
+      <li xml:lang="es">Tus lugares en la barra lateral con la temperatura actual</li>
+      <li xml:lang="it">I tuoi luoghi nella barra laterale con la temperatura attuale</li>
+      <li xml:lang="pt">Os seus locais na barra lateral com a temperatura atual</li>
+      <li xml:lang="nl">Je plaatsen in de zijbalk met de actuele temperatuur</li>
+      <li xml:lang="sv">Dina platser i sidofältet med aktuell temperatur</li>
+      <li>Feels like, humidity, wind, UV index, pressure, sunrise and sunset</li>
+      <li xml:lang="cs">Pocitová teplota, vlhkost, vítr, UV index, tlak, východ a západ slunce</li>
+      <li xml:lang="sk">Pocitová teplota, vlhkosť, vietor, UV index, tlak, východ a západ slnka</li>
+      <li xml:lang="pl">Temperatura odczuwalna, wilgotność, wiatr, indeks UV, ciśnienie, wschód i zachód słońca</li>
+      <li xml:lang="uk">Відчуття температури, вологість, вітер, УФ-індекс, тиск, схід і захід сонця</li>
+      <li xml:lang="hu">Hőérzet, páratartalom, szél, UV-index, légnyomás, napkelte és napnyugta</li>
+      <li xml:lang="de">Gefühlte Temperatur, Luftfeuchtigkeit, Wind, UV-Index, Luftdruck, Sonnenauf- und -untergang</li>
+      <li xml:lang="fr">Ressenti, humidité, vent, indice UV, pression, lever et coucher du soleil</li>
+      <li xml:lang="es">Sensación térmica, humedad, viento, índice UV, presión, salida y puesta del sol</li>
+      <li xml:lang="it">Temperatura percepita, umidità, vento, indice UV, pressione, alba e tramonto</li>
+      <li xml:lang="pt">Sensação térmica, humidade, vento, índice UV, pressão, nascer e pôr do sol</li>
+      <li xml:lang="nl">Gevoelstemperatuur, luchtvochtigheid, wind, uv-index, luchtdruk, zonsopkomst en zonsondergang</li>
+      <li xml:lang="sv">Känns som, luftfuktighet, vind, UV-index, lufttryck, soluppgång och solnedgång</li>
+      <li>Celsius or Fahrenheit, automatically by your region</li>
+      <li xml:lang="cs">Stupně Celsia nebo Fahrenheita, automaticky podle oblasti</li>
+      <li xml:lang="sk">Stupne Celzia alebo Fahrenheita, automaticky podľa oblasti</li>
+      <li xml:lang="pl">Stopnie Celsjusza lub Fahrenheita, automatycznie według regionu</li>
+      <li xml:lang="uk">Градуси Цельсія або Фаренгейта, автоматично за регіоном</li>
+      <li xml:lang="hu">Celsius vagy Fahrenheit, automatikusan a régió szerint</li>
+      <li xml:lang="de">Celsius oder Fahrenheit, automatisch nach Region</li>
+      <li xml:lang="fr">Celsius ou Fahrenheit, automatiquement selon la région</li>
+      <li xml:lang="es">Celsius o Fahrenheit, automáticamente según la región</li>
+      <li xml:lang="it">Celsius o Fahrenheit, automaticamente in base alla regione</li>
+      <li xml:lang="pt">Celsius ou Fahrenheit, automaticamente conforme a região</li>
+      <li xml:lang="nl">Celsius of Fahrenheit, automatisch volgens je regio</li>
+      <li xml:lang="sv">Celsius eller Fahrenheit, automatiskt efter region</li>
+      <li>The last forecast stays available offline</li>
+      <li xml:lang="cs">Poslední předpověď je k dispozici i bez internetu</li>
+      <li xml:lang="sk">Posledná predpoveď je k dispozícii aj bez internetu</li>
+      <li xml:lang="pl">Ostatnia prognoza jest dostępna także bez internetu</li>
+      <li xml:lang="uk">Останній прогноз доступний і без інтернету</li>
+      <li xml:lang="hu">Az utolsó előrejelzés internet nélkül is elérhető</li>
+      <li xml:lang="de">Die letzte Vorhersage bleibt auch offline verfügbar</li>
+      <li xml:lang="fr">Les dernières prévisions restent disponibles hors ligne</li>
+      <li xml:lang="es">El último pronóstico sigue disponible sin conexión</li>
+      <li xml:lang="it">Le ultime previsioni restano disponibili offline</li>
+      <li xml:lang="pt">A última previsão continua disponível sem ligação</li>
+      <li xml:lang="nl">De laatste verwachting blijft offline beschikbaar</li>
+      <li xml:lang="sv">Den senaste prognosen finns kvar även offline</li>
+      <li>Today's weather in the calendar under the clock</li>
+      <li xml:lang="cs">Dnešní počasí v kalendáři pod hodinami</li>
+      <li xml:lang="sk">Dnešné počasie v kalendári pod hodinami</li>
+      <li xml:lang="pl">Dzisiejsza pogoda w kalendarzu pod zegarem</li>
+      <li xml:lang="uk">Сьогоднішня погода в календарі під годинником</li>
+      <li xml:lang="hu">A mai időjárás a naptárban, az óra alatt</li>
+      <li xml:lang="de">Das heutige Wetter im Kalender unter der Uhr</li>
+      <li xml:lang="fr">La météo du jour dans le calendrier sous l’horloge</li>
+      <li xml:lang="es">El tiempo de hoy en el calendario bajo el reloj</li>
+      <li xml:lang="it">Il meteo di oggi nel calendario sotto l’orologio</li>
+      <li xml:lang="pt">O tempo de hoje no calendário sob o relógio</li>
+      <li xml:lang="nl">Het weer van vandaag in de kalender onder de klok</li>
+      <li xml:lang="sv">Dagens väder i kalendern under klockan</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

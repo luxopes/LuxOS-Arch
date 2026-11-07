@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-whats-new</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>What's New</name>
+  <summary>New features in this version of LuxOS</summary>
+  <launchable type="desktop-id">luxos-whats-new.desktop</launchable>
+  <description>
+    <p>What's New presents the highlights of the installed LuxOS version: every new feature with a short explanation, in your language.</p>
+    <p xml:lang="cs">Co je nového představí hlavní novinky nainstalované verze LuxOS: každou novou funkci s krátkým vysvětlením a ve vašem jazyce.</p>
+    <p xml:lang="sk">Čo je nové predstaví hlavné novinky nainštalovanej verzie LuxOS: každú novú funkciu s krátkym vysvetlením a vo vašom jazyku.</p>
+    <p xml:lang="pl">Co nowego przedstawia najważniejsze nowości zainstalowanej wersji LuxOS: każdą nową funkcję z krótkim objaśnieniem, w Twoim języku.</p>
+    <p xml:lang="uk">«Що нового» показує головні новинки встановленої версії LuxOS: кожну нову функцію з коротким поясненням вашою мовою.</p>
+    <p xml:lang="hu">Az Újdonságok bemutatja a telepített LuxOS-verzió legfontosabb újításait: minden új funkciót rövid magyarázattal, az Ön nyelvén.</p>
+    <p xml:lang="de">Neuigkeiten stellt die wichtigsten Neuerungen der installierten LuxOS-Version vor: jede neue Funktion mit einer kurzen Erklärung, in Ihrer Sprache.</p>
+    <p xml:lang="fr">Nouveautés présente les points forts de la version de LuxOS installée : chaque nouvelle fonction avec une courte explication, dans votre langue.</p>
+    <p xml:lang="es">Novedades presenta lo más destacado de la versión de LuxOS instalada: cada función nueva con una breve explicación, en su idioma.</p>
+    <p xml:lang="it">Novità presenta i punti salienti della versione di LuxOS installata: ogni nuova funzione con una breve spiegazione, nella tua lingua.</p>
+    <p xml:lang="pt">Novidades apresenta os destaques da versão do LuxOS instalada: cada nova funcionalidade com uma breve explicação, no seu idioma.</p>
+    <p xml:lang="nl">Wat is er nieuw toont de hoogtepunten van de geïnstalleerde LuxOS-versie: elke nieuwe functie met een korte uitleg, in je eigen taal.</p>
+    <p xml:lang="sv">Nyheter visar höjdpunkterna i den installerade LuxOS-versionen: varje ny funktion med en kort förklaring, på ditt språk.</p>
+    <p>After an update to a new version it opens once when you log in, so you never miss what has changed.</p>
+    <p xml:lang="cs">Po aktualizaci na novou verzi se jednou otevře při přihlášení, takže vám žádná změna neunikne.</p>
+    <p xml:lang="sk">Po aktualizácii na novú verziu sa raz otvorí pri prihlásení, takže vám žiadna zmena neujde.</p>
+    <p xml:lang="pl">Po aktualizacji do nowej wersji otwiera się jeden raz po zalogowaniu, więc nie przegapisz żadnej zmiany.</p>
+    <p xml:lang="uk">Після оновлення до нової версії вікно один раз відкривається під час входу, тож ви не пропустите жодної зміни.</p>
+    <p xml:lang="hu">Új verzióra frissítés után bejelentkezéskor egyszer megnyílik, így semmilyen változásról nem marad le.</p>
+    <p xml:lang="de">Nach einem Update auf eine neue Version öffnet es sich einmal bei der Anmeldung, damit Ihnen keine Änderung entgeht.</p>
+    <p xml:lang="fr">Après une mise à jour vers une nouvelle version, elle s’ouvre une fois à la connexion : vous ne manquez aucun changement.</p>
+    <p xml:lang="es">Tras actualizar a una nueva versión, se abre una vez al iniciar sesión, para que no se le escape ningún cambio.</p>
+    <p xml:lang="it">Dopo l’aggiornamento a una nuova versione si apre una sola volta all’accesso, così non ti sfugge nessuna novità.</p>
+    <p xml:lang="pt">Depois de atualizar para uma nova versão, abre-se uma vez ao iniciar sessão, para não perder nenhuma alteração.</p>
+    <p xml:lang="nl">Na een update naar een nieuwe versie opent het één keer bij het aanmelden, zodat je geen enkele wijziging mist.</p>
+    <p xml:lang="sv">Efter en uppdatering till en ny version öppnas den en gång när du loggar in, så att du inte missar några ändringar.</p>
+    <ul>
+      <li>Highlights of the current version with short explanations</li>
+      <li xml:lang="cs">Hlavní novinky aktuální verze s krátkým vysvětlením</li>
+      <li xml:lang="sk">Hlavné novinky aktuálnej verzie s krátkym vysvetlením</li>
+      <li xml:lang="pl">Najważniejsze nowości bieżącej wersji z krótkimi objaśnieniami</li>
+      <li xml:lang="uk">Головні новинки поточної версії з короткими поясненнями</li>
+      <li xml:lang="hu">Az aktuális verzió legfontosabb újdonságai rövid magyarázattal</li>
+      <li xml:lang="de">Die wichtigsten Neuerungen der aktuellen Version mit kurzen Erklärungen</li>
+      <li xml:lang="fr">Les points forts de la version actuelle avec de courtes explications</li>
+      <li xml:lang="es">Lo más destacado de la versión actual con breves explicaciones</li>
+      <li xml:lang="it">I punti salienti della versione attuale con brevi spiegazioni</li>
+      <li xml:lang="pt">Os destaques da versão atual com breves explicações</li>
+      <li xml:lang="nl">Hoogtepunten van de huidige versie met korte uitleg</li>
+      <li xml:lang="sv">Höjdpunkterna i den aktuella versionen med korta förklaringar</li>
+      <li>After skipping versions, shows the news of every version since the last one you saw</li>
+      <li xml:lang="cs">Po přeskočení verzí ukáže novinky všech verzí od té, kterou jste viděli naposledy</li>
+      <li xml:lang="sk">Po preskočení verzií ukáže novinky všetkých verzií od tej, ktorú ste videli naposledy</li>
+      <li xml:lang="pl">Po pominięciu wersji pokazuje nowości wszystkich wersji od ostatnio oglądanej</li>
+      <li xml:lang="uk">Якщо ви пропустили кілька версій, показує новинки всіх версій від останньої переглянутої</li>
+      <li xml:lang="hu">Kihagyott verziók után az utoljára látott óta megjelent összes verzió újdonságait mutatja</li>
+      <li xml:lang="de">Nach übersprungenen Versionen zeigt es die Neuerungen aller Versionen seit der zuletzt gesehenen</li>
+      <li xml:lang="fr">Si des versions ont été sautées, affiche les nouveautés de toutes les versions depuis la dernière vue</li>
+      <li xml:lang="es">Si se saltó versiones, muestra las novedades de todas desde la última que vio</li>
+      <li xml:lang="it">Se hai saltato delle versioni, mostra le novità di tutte quelle successive all’ultima vista</li>
+      <li xml:lang="pt">Se saltou versões, mostra as novidades de todas desde a última que viu</li>
+      <li xml:lang="nl">Na overgeslagen versies toont het het nieuws van alle versies sinds de laatst bekeken versie</li>
+      <li xml:lang="sv">Om du har hoppat över versioner visas nyheterna i alla versioner sedan den du såg senast</li>
+      <li>Can be opened again any time from About This Computer</li>
+      <li xml:lang="cs">Lze ji kdykoli znovu otevřít z okna O tomto počítači</li>
+      <li xml:lang="sk">Možno ju kedykoľvek znova otvoriť z okna O tomto počítači</li>
+      <li xml:lang="pl">W każdej chwili można je ponownie otworzyć z okna Ten komputer</li>
+      <li xml:lang="uk">Будь-коли можна знову відкрити з вікна «Про цей комп’ютер»</li>
+      <li xml:lang="hu">Bármikor újra megnyitható az Erről a számítógépről ablakból</li>
+      <li xml:lang="de">Jederzeit erneut über „Über diesen Computer“ zu öffnen</li>
+      <li xml:lang="fr">Peut être rouvert à tout moment depuis À propos de cet ordinateur</li>
+      <li xml:lang="es">Se puede volver a abrir en cualquier momento desde Acerca de este ordenador</li>
+      <li xml:lang="it">Si può riaprire in qualsiasi momento da Informazioni su questo computer</li>
+      <li xml:lang="pt">Pode ser reaberto a qualquer momento a partir de Sobre Este Computador</li>
+      <li xml:lang="nl">Altijd opnieuw te openen via Over deze computer</li>
+      <li xml:lang="sv">Kan när som helst öppnas igen från Om den här datorn</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

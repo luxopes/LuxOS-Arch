@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-companion</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Phone</name>
+  <summary>Connect the LuxOS Companion app on your Android phone: location for Maps, LuxAI and calendar notes</summary>
+  <launchable type="desktop-id">luxos-companion.desktop</launchable>
+  <description>
+    <p>Phone connects your computer with the LuxOS Companion app on your Android phone over Bluetooth. Nothing goes through the internet or an account – the phone talks only to your computer.</p>
+    <p xml:lang="cs">Telefon propojí počítač s aplikací LuxOS Companion ve vašem telefonu s Androidem přes Bluetooth. Nic nejde přes internet ani přes účet – telefon komunikuje jen s vaším počítačem.</p>
+    <p xml:lang="sk">Telefón prepojí počítač s aplikáciou LuxOS Companion vo vašom telefóne s Androidom cez Bluetooth. Nič nejde cez internet ani cez účet – telefón komunikuje len s vaším počítačom.</p>
+    <p xml:lang="pl">Telefon łączy komputer z aplikacją LuxOS Companion w telefonie z Androidem przez Bluetooth. Nic nie przechodzi przez internet ani przez konto – telefon komunikuje się tylko z Twoim komputerem.</p>
+    <p xml:lang="uk">«Телефон» з’єднує комп’ютер із застосунком LuxOS Companion на вашому телефоні з Android через Bluetooth. Нічого не йде через інтернет чи обліковий запис – телефон спілкується лише з вашим комп’ютером.</p>
+    <p xml:lang="hu">A Telefon Bluetooth-on keresztül összeköti a számítógépet az androidos telefonján futó LuxOS Companion alkalmazással. Semmi sem megy át az interneten vagy egy fiókon – a telefon csak az Ön számítógépével kommunikál.</p>
+    <p xml:lang="de">Telefon verbindet Ihren Computer über Bluetooth mit der App LuxOS Companion auf Ihrem Android-Telefon. Nichts läuft über das Internet oder ein Konto – das Telefon spricht nur mit Ihrem Computer.</p>
+    <p xml:lang="fr">Téléphone relie votre ordinateur à l’application LuxOS Companion de votre téléphone Android par Bluetooth. Rien ne passe par Internet ni par un compte : le téléphone ne communique qu’avec votre ordinateur.</p>
+    <p xml:lang="es">Teléfono conecta su ordenador con la aplicación LuxOS Companion de su teléfono Android por Bluetooth. Nada pasa por Internet ni por una cuenta: el teléfono solo se comunica con su ordenador.</p>
+    <p xml:lang="it">Telefono collega il computer all’app LuxOS Companion del tuo telefono Android tramite Bluetooth. Niente passa da Internet o da un account: il telefono comunica solo con il tuo computer.</p>
+    <p xml:lang="pt">Telefone liga o seu computador à aplicação LuxOS Companion do seu telemóvel Android por Bluetooth. Nada passa pela Internet nem por uma conta – o telemóvel comunica apenas com o seu computador.</p>
+    <p xml:lang="nl">Telefoon verbindt je computer via Bluetooth met de app LuxOS Companion op je Android-telefoon. Er gaat niets via internet of een account – de telefoon praat alleen met je computer.</p>
+    <p xml:lang="sv">Telefon ansluter datorn till appen LuxOS Companion i din Android-telefon via Bluetooth. Inget går via internet eller ett konto – telefonen kommunicerar bara med din dator.</p>
+    <ul>
+      <li>Share the phone's live location with Maps</li>
+      <li xml:lang="cs">Sdílení aktuální polohy telefonu s Mapami</li>
+      <li xml:lang="sk">Zdieľanie aktuálnej polohy telefónu s Mapami</li>
+      <li xml:lang="pl">Udostępnianie bieżącej lokalizacji telefonu Mapom</li>
+      <li xml:lang="uk">Передавання поточного місцезнаходження телефона в Карти</li>
+      <li xml:lang="hu">A telefon aktuális helyének megosztása a Térképpel</li>
+      <li xml:lang="de">Den aktuellen Standort des Telefons mit Karten teilen</li>
+      <li xml:lang="fr">Partage de la position en direct du téléphone avec Plans</li>
+      <li xml:lang="es">Compartir la ubicación en tiempo real del teléfono con Mapas</li>
+      <li xml:lang="it">Condivisione della posizione in tempo reale del telefono con Mappe</li>
+      <li xml:lang="pt">Partilha da localização em tempo real do telemóvel com Mapas</li>
+      <li xml:lang="nl">De actuele locatie van de telefoon delen met Kaarten</li>
+      <li xml:lang="sv">Dela telefonens aktuella plats med Kartor</li>
+      <li>Ask LuxAI from the phone and read the answer there</li>
+      <li xml:lang="cs">Dotazy na LuxAI z telefonu s odpovědí přímo v něm</li>
+      <li xml:lang="sk">Otázky pre LuxAI z telefónu s odpoveďou priamo v ňom</li>
+      <li xml:lang="pl">Pytania do LuxAI z telefonu z odpowiedzią prosto na nim</li>
+      <li xml:lang="uk">Запити до LuxAI з телефона з відповіддю просто на ньому</li>
+      <li xml:lang="hu">Kérdések a LuxAI-nak a telefonról, a válasz is ott jelenik meg</li>
+      <li xml:lang="de">LuxAI vom Telefon aus fragen und die Antwort dort lesen</li>
+      <li xml:lang="fr">Interroger LuxAI depuis le téléphone et y lire la réponse</li>
+      <li xml:lang="es">Preguntar a LuxAI desde el teléfono y leer allí la respuesta</li>
+      <li xml:lang="it">Domande a LuxAI dal telefono, con la risposta direttamente lì</li>
+      <li xml:lang="pt">Perguntar ao LuxAI a partir do telemóvel e ler lá a resposta</li>
+      <li xml:lang="nl">LuxAI vragen stellen vanaf de telefoon en daar het antwoord lezen</li>
+      <li xml:lang="sv">Fråga LuxAI från telefonen och läs svaret där</li>
+      <li>Save notes from the phone to the Calendar and see your calendar entries on the phone</li>
+      <li xml:lang="cs">Ukládání poznámek z telefonu do Kalendáře a zobrazení událostí kalendáře v telefonu</li>
+      <li xml:lang="sk">Ukladanie poznámok z telefónu do Kalendára a zobrazenie udalostí kalendára v telefóne</li>
+      <li xml:lang="pl">Zapisywanie notatek z telefonu w Kalendarzu i przeglądanie wpisów kalendarza w telefonie</li>
+      <li xml:lang="uk">Збереження нотаток з телефона в Календар і перегляд записів календаря на телефоні</li>
+      <li xml:lang="hu">Jegyzetek mentése a telefonról a Naptárba és a naptárbejegyzések megtekintése a telefonon</li>
+      <li xml:lang="de">Notizen vom Telefon im Kalender speichern und Kalendereinträge auf dem Telefon ansehen</li>
+      <li xml:lang="fr">Enregistrer des notes du téléphone dans le Calendrier et consulter votre agenda sur le téléphone</li>
+      <li xml:lang="es">Guardar notas del teléfono en el Calendario y ver las entradas del calendario en el teléfono</li>
+      <li xml:lang="it">Salvare note dal telefono nel Calendario e vedere gli eventi del calendario sul telefono</li>
+      <li xml:lang="pt">Guardar notas do telemóvel no Calendário e ver as entradas do calendário no telemóvel</li>
+      <li xml:lang="nl">Notities van de telefoon opslaan in de Agenda en je agenda-items op de telefoon bekijken</li>
+      <li xml:lang="sv">Spara anteckningar från telefonen i Kalender och se dina kalenderposter i telefonen</li>
+      <li>Pair a Phone… makes the computer visible for three minutes and guides you step by step</li>
+      <li xml:lang="cs">Spárovat telefon… zviditelní počítač na tři minuty a provede vás krok za krokem</li>
+      <li xml:lang="sk">Spárovať telefón… zviditeľní počítač na tri minúty a prevedie vás krok za krokom</li>
+      <li xml:lang="pl">Sparuj telefon… sprawia, że komputer jest widoczny przez trzy minuty, i prowadzi krok po kroku</li>
+      <li xml:lang="uk">«З’єднати телефон…» робить комп’ютер видимим на три хвилини й веде вас крок за кроком</li>
+      <li xml:lang="hu">A Telefon párosítása… három percre láthatóvá teszi a számítógépet, és lépésről lépésre végigvezet</li>
+      <li xml:lang="de">„Telefon koppeln…“ macht den Computer drei Minuten lang sichtbar und führt Schritt für Schritt</li>
+      <li xml:lang="fr">Associer un téléphone… rend l’ordinateur visible pendant trois minutes et vous guide pas à pas</li>
+      <li xml:lang="es">Vincular un teléfono… hace visible el ordenador durante tres minutos y le guía paso a paso</li>
+      <li xml:lang="it">Associa un telefono… rende visibile il computer per tre minuti e ti guida passo dopo passo</li>
+      <li xml:lang="pt">Emparelhar um telefone… torna o computador visível durante três minutos e guia-o passo a passo</li>
+      <li xml:lang="nl">Telefoon koppelen… maakt de computer drie minuten zichtbaar en helpt je stap voor stap</li>
+      <li xml:lang="sv">Parkoppla en telefon… gör datorn synlig i tre minuter och guidar dig steg för steg</li>
+      <li>Every new phone must be allowed once; removing a phone disconnects it at once</li>
+      <li xml:lang="cs">Každý nový telefon je třeba jednou povolit; odebraný telefon se hned odpojí</li>
+      <li xml:lang="sk">Každý nový telefón treba raz povoliť; odobratý telefón sa hneď odpojí</li>
+      <li xml:lang="pl">Każdy nowy telefon trzeba raz zatwierdzić; usunięty telefon zostaje od razu rozłączony</li>
+      <li xml:lang="uk">Кожен новий телефон потрібно один раз дозволити; вилучений телефон одразу від’єднується</li>
+      <li xml:lang="hu">Minden új telefont egyszer engedélyezni kell; az eltávolított telefon azonnal lecsatlakozik</li>
+      <li xml:lang="de">Jedes neue Telefon muss einmal erlaubt werden; ein entferntes Telefon wird sofort getrennt</li>
+      <li xml:lang="fr">Chaque nouveau téléphone doit être autorisé une fois ; un téléphone retiré est aussitôt déconnecté</li>
+      <li xml:lang="es">Cada teléfono nuevo debe permitirse una vez; un teléfono eliminado se desconecta al instante</li>
+      <li xml:lang="it">Ogni nuovo telefono va consentito una volta; un telefono rimosso viene scollegato subito</li>
+      <li xml:lang="pt">Cada telemóvel novo tem de ser autorizado uma vez; um telemóvel removido é desligado de imediato</li>
+      <li xml:lang="nl">Elke nieuwe telefoon moet één keer worden toegestaan; een verwijderde telefoon wordt meteen losgekoppeld</li>
+      <li xml:lang="sv">Varje ny telefon måste tillåtas en gång; en borttagen telefon kopplas från direkt</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

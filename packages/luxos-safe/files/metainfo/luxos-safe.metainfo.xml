@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-safe</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Safe</name>
+  <summary>Encrypted folder for sensitive files</summary>
+  <launchable type="desktop-id">luxos-safe.desktop</launchable>
+  <description>
+    <p>Safe is an encrypted folder for sensitive files such as documents, exports and signing keys. It opens with its own password, separate from your login password. While the Safe is locked, nobody can read its files – not other users and not someone who takes your disk.</p>
+    <p xml:lang="cs">Trezor je šifrovaná složka pro citlivá data, jako jsou dokumenty, exporty nebo podpisové klíče. Otevírá se vlastním heslem, odděleným od přihlašovacího hesla. Dokud je Trezor zamčený, nikdo jeho soubory nepřečte – ani ostatní uživatelé, ani ten, kdo by vám vzal disk.</p>
+    <p xml:lang="sk">Trezor je šifrovaný priečinok pre citlivé súbory, ako sú dokumenty, exporty alebo podpisové kľúče. Otvára sa vlastným heslom, oddeleným od prihlasovacieho hesla. Kým je Trezor zamknutý, nikto jeho súbory neprečíta – ani ostatní používatelia, ani ten, kto by vám zobral disk.</p>
+    <p xml:lang="pl">Sejf to zaszyfrowany folder na poufne pliki, takie jak dokumenty, eksporty czy klucze do podpisywania. Otwiera się własnym hasłem, oddzielnym od hasła logowania. Gdy Sejf jest zablokowany, nikt nie odczyta jego plików – ani inni użytkownicy, ani ktoś, kto zabierze twój dysk.</p>
+    <p xml:lang="uk">Сейф — це зашифрована тека для конфіденційних файлів, як-от документи, експорти чи ключі підпису. Він відкривається власним паролем, окремим від пароля входу. Поки Сейф заблоковано, ніхто не прочитає його файли — ні інші користувачі, ні той, хто забере ваш диск.</p>
+    <p xml:lang="hu">A Széf titkosított mappa bizalmas fájlokhoz, például dokumentumokhoz, exportokhoz és aláírókulcsokhoz. Saját jelszóval nyílik, amely független a bejelentkezési jelszótól. Amíg a Széf zárolva van, senki sem olvashatja a fájljait – sem más felhasználók, sem az, aki elviszi a lemezét.</p>
+    <p xml:lang="de">Tresor ist ein verschlüsselter Ordner für vertrauliche Dateien wie Dokumente, Exporte und Signaturschlüssel. Er öffnet sich mit einem eigenen Passwort, getrennt vom Anmeldepasswort. Solange der Tresor gesperrt ist, kann niemand seine Dateien lesen – weder andere Benutzer noch jemand, der Ihre Festplatte mitnimmt.</p>
+    <p xml:lang="fr">Coffre-fort est un dossier chiffré pour les fichiers sensibles : documents, exports, clés de signature. Il s’ouvre avec son propre mot de passe, distinct de celui de votre session. Tant que le Coffre-fort est verrouillé, personne ne peut lire ses fichiers – ni les autres utilisateurs, ni quelqu’un qui emporterait votre disque.</p>
+    <p xml:lang="es">Caja fuerte es una carpeta cifrada para archivos confidenciales, como documentos, exportaciones o claves de firma. Se abre con su propia contraseña, distinta de la de inicio de sesión. Mientras la Caja fuerte está bloqueada, nadie puede leer sus archivos: ni otros usuarios ni quien se lleve su disco.</p>
+    <p xml:lang="it">Cassaforte è una cartella cifrata per i file riservati, come documenti, esportazioni e chiavi di firma. Si apre con una password propria, separata da quella di accesso. Finché la Cassaforte è bloccata nessuno può leggerne i file: né gli altri utenti né chi porta via il tuo disco.</p>
+    <p xml:lang="pt">O Cofre é uma pasta criptografada para arquivos confidenciais, como documentos, exportações e chaves de assinatura. Ele abre com uma senha própria, separada da senha de login. Enquanto o Cofre está bloqueado, ninguém consegue ler os arquivos dele – nem outros usuários, nem quem levar o seu disco.</p>
+    <p xml:lang="nl">Kluis is een versleutelde map voor gevoelige bestanden, zoals documenten, exports en ondertekeningssleutels. Hij opent met een eigen wachtwoord, los van je aanmeldwachtwoord. Zolang de Kluis vergrendeld is, kan niemand de bestanden lezen – geen andere gebruikers en ook niet iemand die je schijf meeneemt.</p>
+    <p xml:lang="sv">Valv är en krypterad mapp för känsliga filer som dokument, exporter och signeringsnycklar. Den öppnas med ett eget lösenord, skilt från ditt inloggningslösenord. Så länge Valvet är låst kan ingen läsa filerna – varken andra användare eller någon som tar din disk.</p>
+    <ul>
+      <li>After unlocking, the folder opens in Files</li>
+      <li xml:lang="cs">Po odemčení se složka otevře v Souborech</li>
+      <li xml:lang="sk">Po odomknutí sa priečinok otvorí v Súboroch</li>
+      <li xml:lang="pl">Po odblokowaniu folder otwiera się w Plikach</li>
+      <li xml:lang="uk">Після розблокування тека відкривається у Файлах</li>
+      <li xml:lang="hu">Feloldás után a mappa megnyílik a Fájlokban</li>
+      <li xml:lang="de">Nach dem Entsperren öffnet sich der Ordner in „Dateien“</li>
+      <li xml:lang="fr">Une fois déverrouillé, le dossier s’ouvre dans Fichiers</li>
+      <li xml:lang="es">Al desbloquearla, la carpeta se abre en Archivos</li>
+      <li xml:lang="it">Dopo lo sblocco la cartella si apre in File</li>
+      <li xml:lang="pt">Depois de desbloquear, a pasta abre no Arquivos</li>
+      <li xml:lang="nl">Na ontgrendelen opent de map in Bestanden</li>
+      <li xml:lang="sv">När valvet låses upp öppnas mappen i Filer</li>
+      <li>Locks after inactivity, with the screen lock, on sleep and at logout</li>
+      <li xml:lang="cs">Zamyká se po nečinnosti, při zamčení obrazovky, uspání i odhlášení</li>
+      <li xml:lang="sk">Zamyká sa po nečinnosti, pri zamknutí obrazovky, uspaní aj odhlásení</li>
+      <li xml:lang="pl">Blokuje się po bezczynności, przy blokadzie ekranu, uśpieniu i wylogowaniu</li>
+      <li xml:lang="uk">Блокується після бездіяльності, разом з екраном, під час сну та виходу</li>
+      <li xml:lang="hu">Zárol tétlenség után, a képernyő zárolásakor, alváskor és kijelentkezéskor</li>
+      <li xml:lang="de">Sperrt sich bei Inaktivität, mit der Bildschirmsperre, im Ruhezustand und beim Abmelden</li>
+      <li xml:lang="fr">Se verrouille après inactivité, avec l’écran, à la mise en veille et à la déconnexion</li>
+      <li xml:lang="es">Se bloquea tras la inactividad, con la pantalla, al suspender y al cerrar sesión</li>
+      <li xml:lang="it">Si blocca dopo inattività, con il blocco schermo, in sospensione e all’uscita</li>
+      <li xml:lang="pt">Bloqueia após inatividade, junto com a tela, ao suspender e ao sair</li>
+      <li xml:lang="nl">Vergrendelt na inactiviteit, met de schermvergrendeling, bij slaapstand en afmelden</li>
+      <li xml:lang="sv">Låses vid inaktivitet, med skärmlåset, vid viloläge och utloggning</li>
+      <li>Recovery key in case you forget the password</li>
+      <li xml:lang="cs">Klíč pro obnovu pro případ zapomenutého hesla</li>
+      <li xml:lang="sk">Kľúč na obnovenie pre prípad zabudnutého hesla</li>
+      <li xml:lang="pl">Klucz odzyskiwania na wypadek zapomnienia hasła</li>
+      <li xml:lang="uk">Ключ відновлення на випадок, якщо ви забудете пароль</li>
+      <li xml:lang="hu">Helyreállítási kulcs arra az esetre, ha elfelejti a jelszót</li>
+      <li xml:lang="de">Wiederherstellungsschlüssel, falls Sie das Passwort vergessen</li>
+      <li xml:lang="fr">Clé de récupération en cas d’oubli du mot de passe</li>
+      <li xml:lang="es">Clave de recuperación por si olvida la contraseña</li>
+      <li xml:lang="it">Chiave di ripristino nel caso dimentichi la password</li>
+      <li xml:lang="pt">Chave de recuperação caso você esqueça a senha</li>
+      <li xml:lang="nl">Herstelsleutel voor als je het wachtwoord vergeet</li>
+      <li xml:lang="sv">Återställningsnyckel om du glömmer lösenordet</li>
+      <li>Checks that a new password is strong enough</li>
+      <li xml:lang="cs">Kontroluje, zda je nové heslo dost silné</li>
+      <li xml:lang="sk">Kontroluje, či je nové heslo dosť silné</li>
+      <li xml:lang="pl">Sprawdza, czy nowe hasło jest wystarczająco silne</li>
+      <li xml:lang="uk">Перевіряє, чи новий пароль достатньо надійний</li>
+      <li xml:lang="hu">Ellenőrzi, hogy az új jelszó elég erős-e</li>
+      <li xml:lang="de">Prüft, ob ein neues Passwort stark genug ist</li>
+      <li xml:lang="fr">Vérifie qu’un nouveau mot de passe est assez robuste</li>
+      <li xml:lang="es">Comprueba que la nueva contraseña sea lo bastante segura</li>
+      <li xml:lang="it">Controlla che la nuova password sia abbastanza robusta</li>
+      <li xml:lang="pt">Verifica se a nova senha é forte o suficiente</li>
+      <li xml:lang="nl">Controleert of een nieuw wachtwoord sterk genoeg is</li>
+      <li xml:lang="sv">Kontrollerar att ett nytt lösenord är tillräckligt starkt</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>
