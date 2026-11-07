@@ -598,7 +598,7 @@
         {
           "path": "luxos/weather.md",
           "title": "Weather",
-          "summary": "Weather app (luxos-weather): current conditions, hourly and 7-day forecast from Open-Meteo, saved places, city search, approximate location only after consent, units, 30-minute cache and offline use, weather in the Calendar.",
+          "summary": "Weather app (luxos-weather): current conditions, hourly and 7-day forecast from Open-Meteo, saved places, city search, location only after consent, automatic units with a one-time °C/°F question, animated weather backgrounds, cache and offline use, weather in the Calendar.",
           "keywords": [
             "weather",
             "forecast",
@@ -621,6 +621,9 @@
             "units",
             "celsius",
             "fahrenheit",
+            "LC_MEASUREMENT",
+            "background",
+            "animation",
             "cache",
             "offline",
             "weather.json",

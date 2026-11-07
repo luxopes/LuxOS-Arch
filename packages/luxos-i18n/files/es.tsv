@@ -4742,3 +4742,10 @@ The mail server cannot verify the sign-in right now. Mail tries again later.	El 
 The mail server did not accept the LuxAI sign-in for %s.	El servidor de correo no aceptó el inicio de sesión de LuxAI para %s.
 Cannot reach the LuxAI server. Check your internet connection.	No se puede conectar con el servidor de LuxAI. Compruebe su conexión a internet.
 The LuxAI Account app (luxos-account) is not installed.	La aplicación Cuenta de LuxAI (luxos-account) no está instalada.
+Automatic (%s)	Automático (%s)
+Animated Background	Fondo animado
+Which unit do you prefer?	¿Qué unidad prefieres?
+We picked %s for your region. You can change it any time in ⋯ › Units.	Hemos elegido %s para tu región. Puedes cambiarlo cuando quieras en ⋯ › Unidades.
+Celsius (°C)	Celsius (°C)
+Fahrenheit (°F)	Fahrenheit (°F)
+Keep Automatic	Mantener automático

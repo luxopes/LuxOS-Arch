@@ -4831,3 +4831,10 @@ The mail server cannot verify the sign-in right now. Mail tries again later.	Po�
 The mail server did not accept the LuxAI sign-in for %s.	Poštovní server nepřijal přihlášení účtem LuxAI pro %s.
 Cannot reach the LuxAI server. Check your internet connection.	Server LuxAI není dostupný. Zkontrolujte připojení k internetu.
 The LuxAI Account app (luxos-account) is not installed.	Aplikace Účet LuxAI (luxos-account) není nainstalovaná.
+Automatic (%s)	Automaticky (%s)
+Animated Background	Animované pozadí
+Which unit do you prefer?	Jaké jednotky chcete používat?
+We picked %s for your region. You can change it any time in ⋯ › Units.	Pro váš region jsme vybrali %s. Kdykoli to změníte v ⋯ › Jednotky.
+Celsius (°C)	Celsius (°C)
+Fahrenheit (°F)	Fahrenheit (°F)
+Keep Automatic	Ponechat automaticky
