@@ -4,6 +4,8 @@
   search(name, lang)            hledani mesta (geocoding API Open-Meteo)
   timezone_city()               mesto podle casoveho pasma systemu (vychozi poloha, bez sluzby polohy)
   ip_location()                 priblizna poloha podle IP adresy (ipinfo.io) - jen po souhlasu uzivatele
+  detect_units(env, tz, places) vychozi jednotky: uzemi z LC_ALL/LC_MEASUREMENT/LANG, jinak zeme mista
+  scene_for(data)               scena pozadi okna (druh oblohy + denni doba) z predpovedi
 
 Mezipamet: $XDG_CACHE_HOME/luxos/weather, nastaveni: $XDG_CONFIG_HOME/luxos/weather.json.
 Testy prepisuji adresy sluzeb: LUXOS_WEATHER_API, LUXOS_WEATHER_GEO, LUXOS_WEATHER_IP.
@@ -21,8 +23,14 @@ IPLOC = os.environ.get("LUXOS_WEATHER_IP") or "https://ipinfo.io/json"
 TTL = 30 * 60              # stari dat, po kterem se stahuji znovu
 TIMEOUT = 12
 USER_AGENT = "LuxOS-Weather/1.0 (+https://github.com/luxopes/LuxOS-Arch)"
-# Zeme, kde se bezne pouzivaji stupne Fahrenheita a mile
-IMPERIAL = {"US", "LR", "MM", "BS", "BZ", "KY", "PW", "FM", "MH"}
+# Zeme a uzemi, kde se teplota bezne udava ve stupnich Fahrenheita: USA a jejich uzemi (Portoriko,
+# Guam, Americke Panenske ostrovy, Americka Samoa, Severni Mariany, mensi odlehle ostrovy), pridruzene
+# staty v Tichomori (Palau, Mikronesie, Marshallovy ostrovy), Bahamy, Belize, Kajmanske ostrovy a
+# Liberie. Myanmar (MM) ne: tamni meteorologicka sluzba i zpravy udavaji °C.
+FAHRENHEIT = {"US", "PR", "GU", "VI", "AS", "MP", "UM", "PW", "FM", "MH", "BS", "BZ", "KY", "LR"}
+IMPERIAL = FAHRENHEIT           # starsi nazev (1.0.0-1)
+CONFIG_VERSION = 2              # 2: jednotky "auto" podle uzemi/mista, jednorazovy dotaz na jednotky
+ZONETAB = os.environ.get("LUXOS_WEATHER_ZONETAB") or "/usr/share/zoneinfo/zone.tab"
 
 CURRENT = ("temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,"
            "wind_speed_10m,wind_direction_10m,precipitation,pressure_msl")
@@ -72,6 +80,22 @@ def load_config():
         cfg["units"] = "auto"
     sel = cfg.get("selected")
     cfg["selected"] = sel if isinstance(sel, int) and 0 <= sel < len(cfg["locations"]) else 0
+    cfg["animate"] = cfg.get("animate") is not False
+    return migrate_config(cfg)
+
+
+def migrate_config(cfg):
+    """Jednorazovy prechod starsiho nastaveni (bez "version") na verzi 2.
+
+    1.0.0-1 ukladalo "units": "auto", dokud uzivatel v nabidce nic nevybral; "metric"/"imperial"
+    vznikly jen vyslovnou volbou. °F u "auto" byla chyba vychozich jednotek (LANG=en_US.UTF-8 je
+    v LuxOS bezna anglictina i v Evrope), ne volba: "auto" zustava, nove se vyhodnoti podle uzemi
+    a mista (detect_units) a aplikace se jednou zepta. Vyslovna volba se zachova a uz se neptame.
+    Idempotentni; na disk se zapise az s dalsim save_config."""
+    if not isinstance(cfg.get("version"), int) or cfg["version"] < CONFIG_VERSION:
+        cfg["units_asked"] = cfg["units"] != "auto"
+        cfg["version"] = CONFIG_VERSION
+    cfg["units_asked"] = bool(cfg.get("units_asked"))
     return cfg
 
 
@@ -92,22 +116,115 @@ def same_place(a, b):
 
 
 # ---- jednotky --------------------------------------------------------------------
+def _territory(value):
+    """'cs_CZ.UTF-8' -> 'CZ', 'es_419' -> '419'; C, POSIX, C.UTF-8, 'en' (bez uzemi) -> ''."""
+    v = (value or "").split(".")[0].split("@")[0]
+    if "_" not in v:
+        return ""
+    t = v.split("_", 1)[1].upper()
+    return t if t.isalnum() and 2 <= len(t) <= 3 else ""
+
+
+def _locale_conf_measurement():
+    """LC_ALL/LC_MEASUREMENT z ~/.config/locale.conf a /etc/locale.conf: zmena formatu (`lux system`,
+    Nastaveni) plati hned, bez noveho prihlaseni - prostredi bezici relace ji jeste nema."""
+    paths = os.environ.get("LUXOS_WEATHER_LOCALE_CONF")
+    if paths is None:
+        base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+        paths = [os.path.join(base, "locale.conf"), "/etc/locale.conf"]
+    else:
+        paths = [p for p in paths.split(":") if p]
+    for path in paths:
+        try:
+            with open(path, encoding="utf-8") as f:
+                kv = {}
+                for line in f:
+                    if "=" in line and not line.lstrip().startswith("#"):
+                        k, v = line.strip().split("=", 1)
+                        kv[k.strip()] = v.strip().strip("\"'")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for var in ("LC_ALL", "LC_MEASUREMENT"):
+            if kv.get(var):
+                return var, kv[var]
+    return "", ""
+
+
+def locale_territory(env=None):
+    """(uzemi, promenna) pro jednotky mereni v poradi POSIX/glibc: LC_ALL > LC_MEASUREMENT > LANG.
+    Bez env (skutecny proces) se LC_ALL/LC_MEASUREMENT hleda i v locale.conf (zmena bez prihlaseni)."""
+    real = env is None
+    env = os.environ if real else env
+    for var in ("LC_ALL", "LC_MEASUREMENT"):
+        if env.get(var):
+            return _territory(env[var]), var
+    if real:
+        var, value = _locale_conf_measurement()
+        if value:
+            return _territory(value), var
+    if env.get("LANG"):
+        return _territory(env["LANG"]), "LANG"
+    return "", ""
+
+
 def locale_country(env=None):
-    env = os.environ if env is None else env
-    for var in ("LC_ALL", "LC_MEASUREMENT", "LANG"):
-        v = env.get(var) or ""
-        if v:
-            v = v.split(".")[0].split("@")[0]
-            return v.split("_")[1].upper() if "_" in v else ""
+    return locale_territory(env)[0]
+
+
+def zone_country(tz, zonetab=None):
+    """Zeme casoveho pasma ('Europe/Prague' -> 'CZ') podle tzdata zone.tab; nezname -> ''."""
+    if not tz or "/" not in tz:
+        return ""
+    if tz.startswith("US/"):
+        return "US"
+    path = zonetab or ZONETAB
+    for p in (path, os.path.join(os.path.dirname(path), "zone1970.tab")):
+        try:
+            with open(p, encoding="utf-8") as f:
+                for line in f:
+                    parts = line.rstrip("\n").split("\t")
+                    if len(parts) >= 3 and not line.startswith("#") and parts[2] == tz:
+                        return parts[0].split(",")[0].upper()
+        except OSError:
+            continue
     return ""
 
 
-def default_units(env=None):
-    return "imperial" if locale_country(env) in IMPERIAL else "metric"
+def units_for_country(country):
+    return "imperial" if (country or "").upper() in FAHRENHEIT else "metric"
 
 
-def resolve_units(setting, env=None):
-    return setting if setting in ("metric", "imperial") else default_units(env)
+def detect_units(env=None, tz=None, places=None, zonetab=None):
+    """Vychozi jednotky a duvod: ("metric"|"imperial", "locale"|"place"|"timezone"|"default").
+
+    1. Uzemi z LC_ALL, LC_MEASUREMENT, LANG (prvni nastavena promenna, jako glibc): °F jen pro
+       FAHRENHEIT, jinak °C, km/h a mm (en_GB, cs_CZ, de_DE, es_419 ...).
+    2. Vyjimka: uzemi US jen z LANG (bez LC_MEASUREMENT/LC_ALL) - en_US.UTF-8 je bezna vychozi
+       anglictina LuxOS i Archu, i u lidi v Evrope. Rozhodne zeme prvniho ulozeneho mista, pak
+       casoveho pasma systemu; kdyz ani jedna neni znama, °F.
+    3. Bez uzemi (C, POSIX, C.UTF-8, nic): zeme prvniho mista, casoveho pasma, jinak °C.
+    tz=None: casove pasmo systemu; "" = nezname."""
+    territory, var = locale_territory(env)
+    if territory and not (var == "LANG" and territory == "US"):
+        return units_for_country(territory), "locale"
+    first = next((p for p in (places or []) if isinstance(p, dict)), None)
+    place_cc = str((first or {}).get("country_code") or "").upper()
+    tz_cc = zone_country(system_timezone() if tz is None else tz, zonetab)
+    for cc, why in ((place_cc, "place"), (tz_cc, "timezone")):
+        if cc:
+            return units_for_country(cc), why
+    return ("imperial", "locale") if territory == "US" else ("metric", "default")
+
+
+def default_units(env=None, tz=None, places=None):
+    """Vychozi jednotky. S vyslovnym env (testy, cista funkce) bez tz se casove pasmo nepouzije."""
+    if env is not None and tz is None:
+        tz = ""
+    return detect_units(env, tz, places)[0]
+
+
+def resolve_units(setting, env=None, places=None, tz=None):
+    return setting if setting in ("metric", "imperial") else default_units(env, tz, places)
 
 
 def unit_params(units):
@@ -178,6 +295,73 @@ def sky(code, is_day=True):
              "drizzle": "rain", "rain": "rain", "heavy-rain": "rain", "showers": "rain",
              "sleet": "snow", "snow": "snow", "storm": "storm"}.get(key, "cloudy")
     return group if is_day else group + "-night"
+
+
+# ---- scena pozadi okna -------------------------------------------------------------
+# kod WMO -> (druh oblohy, intenzita 0..1: hustota mraku, deste, snehu)
+SCENES = {
+    0: ("clear", 0.0), 1: ("partly", 0.3), 2: ("partly", 0.6), 3: ("cloudy", 1.0),
+    45: ("fog", 0.8), 48: ("fog", 1.0),
+    51: ("drizzle", 0.35), 53: ("drizzle", 0.6), 55: ("drizzle", 0.9), 56: ("drizzle", 0.5),
+    57: ("drizzle", 0.9),
+    61: ("rain", 0.4), 63: ("rain", 0.65), 65: ("rain", 1.0), 66: ("rain", 0.5), 67: ("rain", 0.9),
+    80: ("rain", 0.5), 81: ("rain", 0.75), 82: ("rain", 1.0),
+    71: ("snow", 0.35), 73: ("snow", 0.6), 75: ("snow", 1.0), 77: ("snow", 0.3), 85: ("snow", 0.5),
+    86: ("snow", 0.9),
+    95: ("storm", 0.8), 96: ("storm", 1.0), 99: ("storm", 1.0),
+}
+SCENE_KINDS = ("clear", "partly", "cloudy", "fog", "drizzle", "rain", "snow", "storm")
+SCENE_TIMES = ("day", "night", "dawn", "dusk")
+TWILIGHT = 45                   # minut kolem vychodu/zapadu slunce = barvy usvitu/soumraku
+
+
+def _minutes(text):
+    """'2026-10-26T06:41' -> minuty od pocatku letopoctu (mistni cas mista); spatny text -> None."""
+    try:
+        date, _sep, clock = str(text).partition("T")
+        y, m, d = (int(x) for x in date.split("-"))
+        hh, mm = (int(x) for x in clock.split(":")[:2])
+        import datetime
+        return datetime.date(y, m, d).toordinal() * 1440 + hh * 60 + mm
+    except (ValueError, TypeError):
+        return None
+
+
+def time_of_day(now, is_day=True, sunrise="", sunset=""):
+    """'dawn'/'dusk' do TWILIGHT minut od vychodu/zapadu slunce, jinak 'day'/'night' podle slunce
+    (kdyz jsou casy toho dne znamy), jinak podle priznaku is_day z Open-Meteo."""
+    n, rise, sset = _minutes(now), _minutes(sunrise), _minutes(sunset)
+    if n is not None and rise is not None and abs(n - rise) <= TWILIGHT:
+        return "dawn"
+    if n is not None and sset is not None and abs(n - sset) <= TWILIGHT:
+        return "dusk"
+    if None not in (n, rise, sset) and rise < sset and n // 1440 == rise // 1440:
+        return "day" if rise <= n < sset else "night"
+    return "day" if is_day else "night"
+
+
+def scene(code, is_day=True, now="", sunrise="", sunset=""):
+    """Scena pozadi: {"kind", "time", "intensity", "name"} (name napr. "rain-night")."""
+    kind, intensity = SCENES.get(code, ("cloudy", 0.8))
+    tod = time_of_day(now, is_day, sunrise, sunset)
+    return {"kind": kind, "time": tod, "intensity": intensity, "name": f"{kind}-{tod}"}
+
+
+def local_now(utc_offset, now=None):
+    """Aktualni mistni cas mista ('YYYY-MM-DDTHH:MM') podle posunu UTC z predpovedi."""
+    t = time.gmtime((time.time() if now is None else now) + int(utc_offset or 0))
+    return time.strftime("%Y-%m-%dT%H:%M", t)
+
+
+def scene_for(data, now=None):
+    """Scena z rozparsovane predpovedi: pocasi ted a denni doba podle skutecneho mistniho casu
+    (okno muze byt otevrene hodiny) a vychodu/zapadu slunce toho dne."""
+    cur = data["current"]
+    t = local_now(data.get("utc_offset", 0), now)
+    day = next((d for d in data["daily"] if d["date"] == t[:10]), None)
+    if day is None:                 # stara data z mezipameti: priznak is_day z Open-Meteo
+        return scene(cur["code"], cur["is_day"])
+    return scene(cur["code"], cur["is_day"], t, day.get("sunrise", ""), day.get("sunset", ""))
 
 
 # ---- HTTP ------------------------------------------------------------------------

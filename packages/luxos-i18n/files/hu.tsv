@@ -4742,3 +4742,10 @@ The mail server cannot verify the sign-in right now. Mail tries again later.	A l
 The mail server did not accept the LuxAI sign-in for %s.	A levelezőkiszolgáló nem fogadta el a LuxAI-bejelentkezést ehhez: %s.
 Cannot reach the LuxAI server. Check your internet connection.	A LuxAI-kiszolgáló nem érhető el. Ellenőrizze az internetkapcsolatot.
 The LuxAI Account app (luxos-account) is not installed.	A LuxAI-fiók alkalmazás (luxos-account) nincs telepítve.
+Automatic (%s)	Automatikus (%s)
+Animated Background	Animált háttér
+Which unit do you prefer?	Melyik mértékegységet szeretné?
+We picked %s for your region. You can change it any time in ⋯ › Units.	A régiója alapján ezt választottuk: %s. Bármikor módosíthatja itt: ⋯ › Mértékegységek.
+Celsius (°C)	Celsius (°C)
+Fahrenheit (°F)	Fahrenheit (°F)
+Keep Automatic	Automatikus marad

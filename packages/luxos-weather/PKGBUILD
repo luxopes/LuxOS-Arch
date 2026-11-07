@@ -1,17 +1,19 @@
 # Maintainer: LuxOS Team
 # Pocasi LuxOS: aktualni pocasi, predpoved na 24 hodin a 7 dni pro ulozena mista (Open-Meteo, bez klice).
 # Python + GTK3 jako ostatni aplikace LuxOS; vlastni ikony (SVG) aplikace i stavu pocasi.
+# Pozadi okna: vlastni kreslena scena podle pocasi a denni doby (luxos_weather_sky.py, jen cairo).
+# Jednotky: uzemi z LC_ALL/LC_MEASUREMENT/LANG, samotne en_US v LANG rozhodne zeme mista/pasma (tzdata).
 # Kalendar v horni liste (luxos-desktop) ukazuje souhrn, ktery aplikace zapisuje do ~/.cache/luxos/weather.
 
 pkgname=luxos-weather
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxOS Weather - current conditions, hourly and 7-day forecast (Open-Meteo)"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
 # luxos-pixbuf-svg: zavadec SVG pro gdk-pixbuf (ikony pocasi)
-depends=(python python-gobject python-cairo gtk3 luxos-i18n luxos-pixbuf-svg hicolor-icon-theme)
+depends=(python python-gobject python-cairo gtk3 luxos-i18n luxos-pixbuf-svg hicolor-icon-theme tzdata)
 makedepends=(python)
 checkdepends=(python)
 
@@ -25,7 +27,7 @@ check() {
 package() {
     local f="$startdir/files"
     install -Dm755 "$f/luxos-weather" "$pkgdir/usr/bin/luxos-weather"
-    install -Dm644 "$f/luxos_weather.py" "$pkgdir/usr/lib/luxos/python/luxos_weather.py"
+    install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f/luxos_weather.py" "$f/luxos_weather_sky.py"
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 -t "$pkgdir/usr/share/luxos/weather/icons" "$f"/icons/*.svg
     install -Dm644 "$f/luxos-weather.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-weather.svg"
