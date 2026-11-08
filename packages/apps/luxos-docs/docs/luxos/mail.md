@@ -68,8 +68,8 @@ domain) and says what to enter **before** you sign in, with a button to the righ
 
 | Provider | What to enter |
 | --- | --- |
-| **Gmail**, Google Workspace | an **app password**: turn on 2-Step Verification, then create one at <https://myaccount.google.com/apppasswords> (**Create App Password**). Your normal Google password is refused (*"Application-specific password required"*). In a company account the administrator must allow app passwords. |
-| **Outlook.com**, Hotmail, Live, Microsoft 365 | not possible yet: Microsoft accepts only "Sign in with Microsoft" (OAuth2) for IMAP. Mail says so and offers **Open Outlook on the Web**; the password is never sent. |
+| **Gmail**, Google Workspace | **Sign in with Google** (see below), or an **app password**: turn on 2-Step Verification, then create one at <https://myaccount.google.com/apppasswords> (**Create App Password**). Your normal Google password is refused (*"Application-specific password required"*). In a company account the administrator must allow app passwords. |
+| **Outlook.com**, Hotmail, Live, Microsoft 365 | no password: Microsoft accepts only **Sign in with Microsoft** (OAuth2) for IMAP – see below. Until the sign-in is set up on the computer, Mail says so and offers **Open Outlook on the Web**; the password is never sent. |
 | **Yahoo**, **AOL** | an app password from the account security page |
 | **iCloud** (`imap.mail.me.com`) | an app-specific password (account.apple.com › Sign-In and Security) |
 | **Seznam** (seznam.cz, email.cz, post.cz) | the normal password; with two-factor authentication an app password; IMAP must be allowed in the mail settings |
@@ -85,9 +85,46 @@ Gmail folders are recognised from SPECIAL-USE flags: *[Gmail]/Sent Mail* is Sent
 messages again, so they are under **More** at the end of the account's folders; Mail does not count
 or download them in the background (All Mail can hold hundreds of thousands of messages).
 
-"Sign in with Google" (OAuth2) is not available: it needs an OAuth client registered with Google
-and, for the Gmail scope, Google's app verification and security assessment. The sign-in code is
-ready for it (LuxAI mailboxes already use XOAUTH2/OAUTHBEARER tokens).
+### Sign in with Google or Microsoft
+
+When the provider's sign-in is set up on the computer (see below), **Add Account** shows one button
+**Sign in with Google** / **Sign in with Microsoft** as soon as the address is recognised – for a
+company domain (Google Workspace, Microsoft 365) after **Continue**, from its MX records – and the
+password field disappears:
+
+1. Press **Sign in with Google** (or Enter). Your web browser opens the provider's own sign-in page;
+   Mail never sees your password, 2-Step Verification works as usual.
+2. Allow access to mail. The browser shows *"You are signed in – Return to Mail"*, Mail adds the
+   account and comes back to the front by itself.
+3. If you signed in with a different account than the address you typed, Mail adds the account you
+   signed in with.
+
+For Google, **Use an app password instead** shows the password field and the app-password advice as
+before. Microsoft has no app passwords for IMAP, so it has only the sign-in button.
+
+How it works (OAuth 2.0 for native apps, RFC 8252): Mail listens on `127.0.0.1` on a random port
+only for this sign-in (Microsoft: the address is written `http://localhost:<port>/`), with PKCE
+(S256) and a random `state`; a request with another `state` is refused. The authorization code is
+exchanged for tokens by the background program. The **refresh token is stored only in the keyring**
+(*Passwords and Keys*: "LuxOS Mail (Google): address"), the short-lived access token only in memory;
+before each connection Mail renews it when it expires within 5 minutes and signs in with SASL
+OAUTHBEARER or XOAUTH2. When the provider no longer accepts the sign-in (password changed, access
+removed, or after 7 days while the Google project is in testing), a calm yellow bar says *"Your Google
+sign-in for … has expired"* with **Sign In Again…** (also **… › Sign In Again to …**); Mail does not
+retry by itself. Removing the account deletes the token from the keyring (to revoke the access at
+Google or Microsoft too, use the account's security page).
+
+Setup for the system: the providers are described in `/usr/share/luxos-mail/oauth-providers.json`
+(endpoints, scopes, servers). The **client IDs are empty** until the LuxOS project registers its own
+apps with Google and Microsoft – then the buttons appear. An administrator can set them in
+`/etc/luxos/mail-oauth.json`, for example
+`{"providers": {"microsoft": {"client_id": "…"}, "google": {"client_id": "…", "client_secret": "…"}}}`.
+Without a package update, Mail may also take the public client IDs from
+`https://luxos.lux-ai.cz/mail-oauth.json` (HTTPS, checked format, at most once a day, cached in
+`~/.cache/luxos-mail/`): only IDs, only for providers whose ID is empty, never endpoints or
+servers. `{"remote": false}` in `/etc/luxos/mail-oauth.json` turns that off. Yahoo and AOL are
+prepared but switched off (their mail scope is not available to new apps without an approval by
+Yahoo).
 
 ### How the server settings are found
 
@@ -116,6 +153,8 @@ Test it in Terminal: `luxos-mail --discover name@example.com` (JSON with every s
   stored with `secret-tool` and never written to a file or a command line. You can see it in
   *Passwords and Keys* as "LuxOS Mail: address".
 - LuxAI mailboxes have no password at all – see [Sign in with your LuxAI account](#sign-in-with-your-luxai-account).
+- Accounts added with **Sign in with Google/Microsoft** have no password in Mail: only the refresh
+  token, in the keyring – see [Sign in with Google or Microsoft](#sign-in-with-google-or-microsoft).
 - A wrong password is **not retried** automatically (servers block accounts after repeated
   failures). The message list shows *"The server rejected the password"* with **Enter Password…**;
   after you change the password in webmail, enter the new one there or in the menu

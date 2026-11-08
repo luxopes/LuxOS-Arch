@@ -4786,3 +4786,32 @@ Scanner (eSCL/AirScan)	Escáner (eSCL/AirScan)
 Sheet-fed scanner	Escáner con alimentador
 Film scanner	Escáner de película
 Handheld scanner	Escáner de mano
+%s accepts only “Sign in with %s”, not a password.	%s solo acepta «Iniciar sesión con %s», no una contraseña.
+%s did not accept the sign-in for %s. Sign in again.	%s no aceptó el inicio de sesión de %s. Vuelve a iniciar sesión.
+Cannot reach %s to renew the sign-in. Mail tries again later.	No se puede contactar con %s para renovar el inicio de sesión. Correo lo intentará más tarde.
+Cannot reach %s. Check your internet connection.	No se puede contactar con %s. Comprueba tu conexión a internet.
+Continue in your web browser. Mail adds the account as soon as you have signed in.	Continúa en el navegador web. Correo añadirá la cuenta en cuanto inicies sesión.
+Mail could not prepare signing in on this computer.	Correo no pudo preparar el inicio de sesión en este ordenador.
+Mail did not get access to your %s account. You can close this page and return to Mail.	Correo no obtuvo acceso a tu cuenta de %s. Puedes cerrar esta página y volver a Correo.
+Mail is now connected to your %s account %s. You can close this page and return to Mail.	Correo ya está conectado a tu cuenta de %s %s. Puedes cerrar esta página y volver a Correo.
+Opening the web browser…	Abriendo el navegador web…
+Return to Mail	Volver a Correo
+Return to Mail to see what went wrong and try again.	Vuelve a Correo para ver qué salió mal e inténtalo de nuevo.
+Sign In Again to %s…	Volver a iniciar sesión en %s…
+Sign In Again…	Volver a iniciar sesión…
+Sign in with %s	Iniciar sesión con %s
+Sign in with your %s account in your web browser. Mail never sees your password.	Inicia sesión con tu cuenta de %s en el navegador web. Correo nunca ve tu contraseña.
+Signing in did not finish	El inicio de sesión no terminó
+Signing in in the browser did not finish in time. Try again.	El inicio de sesión en el navegador no terminó a tiempo. Inténtalo de nuevo.
+Signing in was cancelled	Se canceló el inicio de sesión
+Signing in with %s failed.	No se pudo iniciar sesión con %s.
+Signing in with %s is not set up on this computer.	El inicio de sesión con %s no está configurado en este ordenador.
+Signing in with %s was cancelled in the browser.	Se canceló el inicio de sesión con %s en el navegador.
+The browser sent an invalid request.	El navegador envió una solicitud no válida.
+The mail server did not accept the %s sign-in.	El servidor de correo no aceptó el inicio de sesión con %s.
+The sign-in could not be saved in the keyring.	No se pudo guardar el inicio de sesión en el llavero.
+This sign-in page is out of date. Return to Mail and start signing in again.	Esta página de inicio de sesión está caducada. Vuelve a Correo e inicia sesión de nuevo.
+Use an app password instead	Usar una contraseña de aplicación
+You are signed in	Has iniciado sesión
+You signed in as %s in the browser, but this account is %s. Sign in with the same account.	Iniciaste sesión en el navegador como %s, pero esta cuenta es %s. Inicia sesión con la misma cuenta.
+Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Tu inicio de sesión de %s para %s ha caducado. Vuelve a iniciar sesión para seguir recibiendo correo nuevo.

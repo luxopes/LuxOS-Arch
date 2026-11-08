@@ -4786,3 +4786,32 @@ Scanner (eSCL/AirScan)	Skanner (eSCL/AirScan)
 Sheet-fed scanner	Arkmatad skanner
 Film scanner	Filmskanner
 Handheld scanner	Handskanner
+%s accepts only “Sign in with %s”, not a password.	%s accepterar bara ”Logga in med %s”, inget lösenord.
+%s did not accept the sign-in for %s. Sign in again.	%s godtog inte inloggningen för %s. Logga in igen.
+Cannot reach %s to renew the sign-in. Mail tries again later.	Det går inte att nå %s för att förnya inloggningen. E-post försöker igen senare.
+Cannot reach %s. Check your internet connection.	Det går inte att nå %s. Kontrollera internetanslutningen.
+Continue in your web browser. Mail adds the account as soon as you have signed in.	Fortsätt i webbläsaren. E-post lägger till kontot så snart du har loggat in.
+Mail could not prepare signing in on this computer.	E-post kunde inte förbereda inloggningen på den här datorn.
+Mail did not get access to your %s account. You can close this page and return to Mail.	E-post fick ingen åtkomst till ditt %s-konto. Du kan stänga sidan och gå tillbaka till E-post.
+Mail is now connected to your %s account %s. You can close this page and return to Mail.	E-post är nu ansluten till ditt %s-konto %s. Du kan stänga sidan och gå tillbaka till E-post.
+Opening the web browser…	Öppnar webbläsaren…
+Return to Mail	Tillbaka till E-post
+Return to Mail to see what went wrong and try again.	Gå tillbaka till E-post för att se vad som gick fel och försök igen.
+Sign In Again to %s…	Logga in igen på %s…
+Sign In Again…	Logga in igen…
+Sign in with %s	Logga in med %s
+Sign in with your %s account in your web browser. Mail never sees your password.	Logga in med ditt %s-konto i webbläsaren. E-post ser aldrig ditt lösenord.
+Signing in did not finish	Inloggningen slutfördes inte
+Signing in in the browser did not finish in time. Try again.	Inloggningen i webbläsaren slutfördes inte i tid. Försök igen.
+Signing in was cancelled	Inloggningen avbröts
+Signing in with %s failed.	Inloggningen med %s misslyckades.
+Signing in with %s is not set up on this computer.	Inloggning med %s är inte konfigurerad på den här datorn.
+Signing in with %s was cancelled in the browser.	Inloggningen med %s avbröts i webbläsaren.
+The browser sent an invalid request.	Webbläsaren skickade en ogiltig begäran.
+The mail server did not accept the %s sign-in.	E-postservern godtog inte %s-inloggningen.
+The sign-in could not be saved in the keyring.	Inloggningen kunde inte sparas i nyckelringen.
+This sign-in page is out of date. Return to Mail and start signing in again.	Den här inloggningssidan är inaktuell. Gå tillbaka till E-post och börja logga in igen.
+Use an app password instead	Använd ett applösenord i stället
+You are signed in	Du är inloggad
+You signed in as %s in the browser, but this account is %s. Sign in with the same account.	Du loggade in som %s i webbläsaren, men det här kontot är %s. Logga in med samma konto.
+Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Din %s-inloggning för %s har gått ut. Logga in igen för att fortsätta få ny e-post.

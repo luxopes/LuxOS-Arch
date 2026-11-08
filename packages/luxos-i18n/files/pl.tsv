@@ -4787,3 +4787,32 @@ Scanner (eSCL/AirScan)	Skaner (eSCL/AirScan)
 Sheet-fed scanner	Skaner z podajnikiem
 Film scanner	Skaner do filmów
 Handheld scanner	Skaner ręczny
+%s accepts only “Sign in with %s”, not a password.	%s akceptuje tylko „Zaloguj się przez %s”, a nie hasło.
+%s did not accept the sign-in for %s. Sign in again.	%s nie zaakceptował logowania dla %s. Zaloguj się ponownie.
+Cannot reach %s to renew the sign-in. Mail tries again later.	Nie można połączyć się z %s, aby odnowić logowanie. Poczta spróbuje ponownie później.
+Cannot reach %s. Check your internet connection.	Nie można połączyć się z %s. Sprawdź połączenie z internetem.
+Continue in your web browser. Mail adds the account as soon as you have signed in.	Kontynuuj w przeglądarce. Poczta doda konto, gdy tylko się zalogujesz.
+Mail could not prepare signing in on this computer.	Poczta nie mogła przygotować logowania na tym komputerze.
+Mail did not get access to your %s account. You can close this page and return to Mail.	Poczta nie uzyskała dostępu do Twojego konta %s. Możesz zamknąć tę stronę i wrócić do Poczty.
+Mail is now connected to your %s account %s. You can close this page and return to Mail.	Poczta jest teraz połączona z Twoim kontem %s %s. Możesz zamknąć tę stronę i wrócić do Poczty.
+Opening the web browser…	Otwieranie przeglądarki…
+Return to Mail	Wróć do Poczty
+Return to Mail to see what went wrong and try again.	Wróć do Poczty, aby zobaczyć, co poszło nie tak, i spróbuj ponownie.
+Sign In Again to %s…	Zaloguj się ponownie do %s…
+Sign In Again…	Zaloguj się ponownie…
+Sign in with %s	Zaloguj się przez %s
+Sign in with your %s account in your web browser. Mail never sees your password.	Zaloguj się kontem %s w przeglądarce. Poczta nigdy nie widzi Twojego hasła.
+Signing in did not finish	Logowanie nie zostało zakończone
+Signing in in the browser did not finish in time. Try again.	Logowanie w przeglądarce nie zostało zakończone na czas. Spróbuj ponownie.
+Signing in was cancelled	Logowanie zostało anulowane
+Signing in with %s failed.	Logowanie przez %s nie powiodło się.
+Signing in with %s is not set up on this computer.	Logowanie przez %s nie jest skonfigurowane na tym komputerze.
+Signing in with %s was cancelled in the browser.	Logowanie przez %s zostało anulowane w przeglądarce.
+The browser sent an invalid request.	Przeglądarka wysłała nieprawidłowe żądanie.
+The mail server did not accept the %s sign-in.	Serwer poczty nie zaakceptował logowania przez %s.
+The sign-in could not be saved in the keyring.	Nie udało się zapisać logowania w pęku kluczy.
+This sign-in page is out of date. Return to Mail and start signing in again.	Ta strona logowania jest nieaktualna. Wróć do Poczty i zacznij logowanie od nowa.
+Use an app password instead	Użyj zamiast tego hasła aplikacji
+You are signed in	Zalogowano
+You signed in as %s in the browser, but this account is %s. Sign in with the same account.	W przeglądarce zalogowano się jako %s, ale to konto to %s. Zaloguj się tym samym kontem.
+Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Twoje logowanie %s dla %s wygasło. Zaloguj się ponownie, aby nadal otrzymywać nową pocztę.
