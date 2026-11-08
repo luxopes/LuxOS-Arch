@@ -599,6 +599,56 @@ class GuiTest(unittest.TestCase):
         time.sleep(1.5)
         self.assertLess(self.count(self.screenshot("sixel-off"), (0, 255, 0)), 100)
 
+    # --- kopirovani vyberu mysi do schranky (copy_on_select) ---
+    def clipboard(self):
+        r = subprocess.run(["xclip", "-o", "-selection", "clipboard"], capture_output=True, text=True,
+                           env=self.env, timeout=5)
+        return r.stdout if r.returncode == 0 else ""
+
+    def select_first_word(self):
+        """Dvojklik na prvni slovo prvniho radku terminalu (vyber mysi jako uzivatel; bez spravce oken je radek 1 na y~12)."""
+        wid = self.windows()[0]
+        subprocess.run(["xdotool", "mousemove", "--window", wid, "40", "12"], env=self.env)
+        subprocess.run(["xdotool", "click", "--repeat", "2", "--delay", "80", "1"], env=self.env)
+        time.sleep(0.8)
+
+    def drag_select(self):
+        wid = self.windows()[0]
+        subprocess.run(["xdotool", "mousemove", "--window", wid, "10", "12", "mousedown", "1"], env=self.env)
+        for x in (60, 120, 200):
+            subprocess.run(["xdotool", "mousemove", "--window", wid, str(x), "12"], env=self.env)
+            time.sleep(0.1)
+        subprocess.run(["xdotool", "mouseup", "1"], env=self.env)
+        time.sleep(0.8)
+
+    @unittest.skipUnless(shutil.which("xclip"), "xclip needed to read the clipboard")
+    def test_copy_on_select(self):
+        subprocess.run(["xclip", "-selection", "clipboard"], input="before", text=True, env=self.env, timeout=5)
+        self.start("-x", "sh", "-c", "echo SelectMe12345 rest-of-line; sleep 30")
+        self.wait_window()
+        time.sleep(1.5)
+        self.screenshot("copy-on-select")
+        self.select_first_word()
+        self.assertIn("SelectMe12345", self.clipboard(), "double-click selection is copied to the clipboard")
+        subprocess.run(["xclip", "-selection", "clipboard"], input="before", text=True, env=self.env, timeout=5)
+        self.drag_select()
+        self.assertIn("SelectMe", self.clipboard(), "drag selection is copied on mouse-up")
+        # obycejny klik bez vyberu schranku nemeni
+        subprocess.run(["xclip", "-selection", "clipboard"], input="kept", text=True, env=self.env, timeout=5)
+        subprocess.run(["xdotool", "mousemove", "--window", self.windows()[0], "300", "200", "click", "1"], env=self.env)
+        time.sleep(0.6)
+        self.assertEqual(self.clipboard(), "kept")
+
+    @unittest.skipUnless(shutil.which("xclip"), "xclip needed to read the clipboard")
+    def test_copy_on_select_off(self):
+        self.config("[terminal]\ncopy_on_select=false\n")
+        subprocess.run(["xclip", "-selection", "clipboard"], input="before", text=True, env=self.env, timeout=5)
+        self.start("-x", "sh", "-c", "echo SelectMe12345 rest-of-line; sleep 30")
+        self.wait_window()
+        time.sleep(1.5)
+        self.select_first_word()
+        self.assertEqual(self.clipboard(), "before", "copy_on_select=false leaves the clipboard alone")
+
 
 if __name__ == "__main__":
     unittest.main()

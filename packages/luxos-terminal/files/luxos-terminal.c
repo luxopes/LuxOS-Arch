@@ -10,7 +10,9 @@
  *
  * Nastaveni: ~/.config/luxos/terminal.conf ([terminal] font, theme=dark|light|auto (vychozi dark jako
  * drive xfce4-terminal LuxOS, pozadi #1c1c22; auto = podle vzhledu systemu), opacity (vychozi 0.94 -
- * jen lehce pruhledne, 1 = nepruhledne), scrollback, sixel (obrazky), logo (logo fastfetch jako obrazek);
+ * jen lehce pruhledne, 1 = nepruhledne), scrollback, sixel (obrazky), logo (logo fastfetch jako obrazek),
+ * copy_on_select (vychozi true: vyber mysi se po pusteni tlacitka zkopiruje do schranky, jako v Lux Code /
+ * Claude Code - VTE neumi OSC 52, takze to aplikace v terminalu samy nezvladnou);
  * [state] columns, rows - posledni velikost okna).
  * Preklady: /usr/share/luxos/i18n/<jazyk>.tsv (LUXOS_I18N_DIR pro testy).
  */
@@ -103,6 +105,7 @@ static struct {
     int scrollback;
     gboolean sixel;
     gboolean logo;
+    gboolean copy_on_select; /* vyber mysi -> schranka (CLIPBOARD) po pusteni tlacitka */
     int columns, rows;  /* posledni velikost okna */
 } cfg;
 
@@ -136,6 +139,8 @@ static void load_config(void)
     if (e) { g_clear_error(&e); cfg.sixel = TRUE; }
     cfg.logo = g_key_file_get_boolean(kf, "terminal", "logo", &e);
     if (e) { g_clear_error(&e); cfg.logo = TRUE; }
+    cfg.copy_on_select = g_key_file_get_boolean(kf, "terminal", "copy_on_select", &e);
+    if (e) { g_clear_error(&e); cfg.copy_on_select = TRUE; }
     cfg.columns = g_key_file_get_integer(kf, "state", "columns", NULL);
     cfg.rows = g_key_file_get_integer(kf, "state", "rows", NULL);
     if (cfg.columns < 20 || cfg.columns > 1000) cfg.columns = 100;
@@ -792,6 +797,17 @@ static GtkWidget *menu_item(GtkWidget *menu, const char *label, const char *acce
 
 static void menu_sep(GtkWidget *menu) { gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new()); }
 
+/* Vyber mysi (tazeni, dvoj/trojklik, Shift+tazeni v aplikacich s mysi) se po pusteni leveho tlacitka
+ * zkopiruje i do schranky CLIPBOARD (Ctrl+V jinde), nejen do PRIMARY. Kliknuti bez vyberu, kolecko
+ * a posouvani historie se nemeni; klik do aplikace s mysi (mc, htop) vyber nevytvori. */
+static gboolean on_button_release(VteTerminal *term, GdkEventButton *ev, Tab *t)
+{
+    (void)t;
+    if (cfg.copy_on_select && ev->button == 1 && vte_terminal_get_has_selection(term))
+        vte_terminal_copy_clipboard_format(term, VTE_FORMAT_TEXT);
+    return FALSE;
+}
+
 static gboolean on_button(VteTerminal *term, GdkEventButton *ev, Tab *t)
 {
     if (ev->type != GDK_BUTTON_PRESS) return FALSE;
@@ -1090,6 +1106,7 @@ static void new_tab(Win *w, Spawn *s)
     g_signal_connect(term, "child-exited", G_CALLBACK(on_child_exited), t);
     g_signal_connect(term, "termprop-changed::" VTE_TERMPROP_XTERM_TITLE, G_CALLBACK(on_title_changed), t);
     g_signal_connect(term, "button-press-event", G_CALLBACK(on_button), t);
+    g_signal_connect(term, "button-release-event", G_CALLBACK(on_button_release), t);
     g_signal_connect(term, "bell", G_CALLBACK(on_bell), t);
 
     int cur = gtk_notebook_get_current_page(w->nb);
